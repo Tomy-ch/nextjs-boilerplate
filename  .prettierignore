@@ -1,0 +1,7 @@
+node_modules/
+.next/
+.husky/
+public/
+package-lock.json
+package.json
+storybook-static
