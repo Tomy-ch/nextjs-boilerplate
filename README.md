@@ -1,0 +1,2 @@
+# boilerplate-nextyjs
+Next.jsのボイラープレート
