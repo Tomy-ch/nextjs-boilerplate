@@ -5,6 +5,8 @@ Next.jsのボイラープレート
 
 ## 拡張機能
 
+### フロント開発
+
 - ESLint
 - Prettier - Code formatter
 - JavaScript and TypeScript Nightly
@@ -14,6 +16,11 @@ Next.jsのボイラープレート
 - Auto Rename Tag
 - React Snippets
 - Error Lens
+
+### Docker開発
+
+- Docker
+- YAML
 
 ## ブランチルール
 
