@@ -22,5 +22,6 @@
     "javascriptreact"
   ],
   "prettier.enable": true,
-  "prettier.requireConfig": true
+  "prettier.requireConfig": true,
+  "editor.tabSize": 2
 }
