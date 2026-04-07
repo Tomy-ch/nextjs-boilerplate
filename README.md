@@ -1,64 +1,4 @@
-# boilerplate-nextyjs
-Next.jsのボイラープレート
-
-ここからフォークして各種リポジトリを作成する用のリポジトリです。
-
-## 拡張機能
-
-### フロント開発
-
-- ESLint
-- Prettier - Code formatter
-- JavaScript and TypeScript Nightly
-- TypeScript Import Sorter
-- TypeScript Importer
-- Path Autocomplete
-- Auto Rename Tag
-- React Snippets
-- Error Lens
-
-### Docker開発
-
-- Docker
-- YAML
-
-## ブランチルール
-
-```mermaid
-gitGraph
-
-    branch master
-    checkout master
-    commit id:"AWSデプロイ用のブランチ" type:HIGHLIGHT
-
-    branch develop
-    commit id:"開発環境用のブランチ" type:HIGHLIGHT
-    commit id:"デフォルトブランチ" type:HIGHLIGHT
-    checkout develop
-
-    branch "feature/git-isuee-name"
-    commit id:"機能開発用のブランチ" type:HIGHLIGHT
-    
-    checkout develop
-    merge "feature/git-isuee-name" id:"feature/git-isuee-nameのレビュー"
-
-    checkout master
-    merge "develop" id:"AWS環境へリリース"
-```
-
-## Gitコミットメッセージ用プレフィックス一覧
-
-| プレフィックス       | 説明                              |
-|----------------------|--------------------------------|
-| `fix` | 既存の機能の問題を修正する場合。               |
-| `add` | 新しいファイルや機能を追加する場合。            |
-| `chg` | 仕様変更する場合。                          |
-| `ref` | コードを修正する場合。                       |
-| `rmv` | ファイルを削除する場合や、機能を削除する場合。   |
-| `doc` | ドキュメントを修正する場合に使用します。        |
-| `sty` | コーディングスタイルの修正をする場合に使用します。|
-
----
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
@@ -88,3 +28,9 @@ To learn more about Next.js, take a look at the following resources:
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
