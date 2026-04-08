@@ -1,4 +1,4 @@
-# go-boilerplate Copilot Instructions
+# Next.js Copilot Instructions
 
 This document defines how GitHub Copilot must operate in this repository.
 Project rules and architectural constraints are defined in AGENTS.md.
