@@ -39,11 +39,7 @@ Make ターゲットは主に以下の単位で整理されています。
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make setup-replace-module OLD_MODULE=<old> NEW_MODULE=<new>` | Go モジュール名を一括置換します。 | `node_tool_runner` を使用して `go.mod` や import パスを更新します。 |
-| `make setup-replace-app-metadata APP_NAME=<name> OPENAPI_TITLE=<title> COPILOT_TITLE=<title>` | アプリケーション名や OpenAPI タイトルなどのメタデータを一括置換します。 | README や OpenAPI 定義などに反映されます。 |
-| `make setup-replace-repository-reference REPOSITORY=<org/repo>` | リポジトリ参照（GitHub URL など）を一括置換します。 | README やドキュメント内のリンクを更新します。 |
 | `make setup-replace-license-copyright COPYRIGHT_HOLDER=<name> [COPYRIGHT_YEAR=<year>]` | LICENSE の著作権表記を更新します。 | 年は省略可能です。 |
-| `make setup-remove-debug-handlers` | Debug 用ハンドラ一式を削除します。 | 本番利用時の不要コード削除に使用します。 |
 
 ### リリースブランチ関連
 
