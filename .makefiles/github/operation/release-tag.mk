@@ -30,15 +30,15 @@ endef
 
 tag-patch:
 	@V=$(call get-latest-version); \
-	NEXT=$$(node scripts/semver.mjs $$V patch); \
+	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V patch); \
 	$(call do-release-tag,$$V,$$NEXT)
 
 tag-minor:
 	@V=$(call get-latest-version); \
-	NEXT=$$(node scripts/semver.mjs $$V minor); \
+	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V minor); \
 	$(call do-release-tag,$$V,$$NEXT)
 
 tag-major:
 	@V=$(call get-latest-version); \
-	NEXT=$$(node scripts/semver.mjs $$V major); \
+	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V major); \
 	$(call do-release-tag,$$V,$$NEXT)

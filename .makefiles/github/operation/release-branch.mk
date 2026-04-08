@@ -39,20 +39,20 @@ endef
 
 hotfix-patch:
 	@V=$(call get-latest-version); \
-	NEXT=$$(node scripts/semver.mjs $$V patch); \
+	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V patch); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,hotfix)
 
 branch-patch:
 	@V=$(call get-latest-version); \
-	NEXT=$$(node scripts/semver.mjs $$V patch); \
+	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V patch); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,release)
 
 branch-minor:
 	@V=$(call get-latest-version); \
-	NEXT=$$(node scripts/semver.mjs $$V minor); \
+	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V minor); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,release)
 
 branch-major:
 	@V=$(call get-latest-version); \
-	NEXT=$$(node scripts/semver.mjs $$V major); \
+	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V major); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,release)
