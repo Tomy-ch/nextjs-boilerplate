@@ -1,16 +1,20 @@
-# ---------------------------------------
-# Tool
-# ---------------------------------------
-## ツール関連
-.PHONY: activate-tools ## 開発に必要なツールを有効化する
-.PHONY: install-tools ## 開発に必要なツールをインストールする
+# Makefile
+.DEFAULT_GOAL := help
 
-activate-tools: install-tools
-	@echo "🔄 Activating tools..."
-	@corepack enable
-	@echo "✅ Tools activated successfully."
+# GitHub関連
+include .makefiles/github/operation/release-branch.mk
+include .makefiles/github/operation/release-tag.mk
+include .makefiles/github/setting/github.mk
+include .makefiles/github/setting/branch-ruleset.mk
+include .makefiles/github/setting/label-setting.mk
 
-install-tools:
-	@echo "🔄 Installing tools..."
-	OREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm -v
-	@echo "✅ Tools installed successfully."
+# ツール関連
+include .makefiles/tools/setup.mk
+
+# 一括実行系ファイル
+# GitHub関連
+include .makefiles/github/operation/setup-repository.mk
+
+.PHONY: help
+help:
+	@bash scripts/make_help.sh
