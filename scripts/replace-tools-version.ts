@@ -4,9 +4,23 @@ import fs from "fs"
 import path from "path"
 import yaml from "js-yaml"
 
+type Tools = {
+  pnpm: string
+}
+
+type Rule = {
+  regex: RegExp
+  value: string
+}
+
+type Target = {
+  file: string
+  rules: Rule[]
+}
+
 const ROOT = process.cwd()
 
-function loadTools() {
+function loadTools(): Tools {
   const file = path.join(ROOT, "tools.yaml")
 
   if (!fs.existsSync(file)) {
@@ -14,16 +28,21 @@ function loadTools() {
     process.exit(1)
   }
 
-  return yaml.load(fs.readFileSync(file, "utf8")).tools
+  const parsed = yaml.load(fs.readFileSync(file, "utf8")) as { tools: Tools }
+  return parsed.tools
 }
 
-function applyReplacements(filePath, rules, dryRun) {
+function applyReplacements(
+  filePath: string,
+  rules: Rule[],
+  dryRun: boolean
+): void {
   if (!fs.existsSync(filePath)) {
     console.warn(`Skip (not found): ${filePath}`)
     return
   }
 
-  let content = fs.readFileSync(filePath, "utf8")
+  const content = fs.readFileSync(filePath, "utf8")
   let updated = content
 
   for (const rule of rules) {
@@ -42,13 +61,13 @@ function applyReplacements(filePath, rules, dryRun) {
   console.log(`${dryRun ? "DryRun" : "Updated"}: ${filePath}`)
 }
 
-function main() {
+function main(): void {
   const args = process.argv.slice(2)
   const dryRun = args.includes("--dry-run")
 
   const tools = loadTools()
 
-  const targets = [
+  const targets: Target[] = [
     {
       file: ".makefiles/tools/setup.mk",
       rules: [

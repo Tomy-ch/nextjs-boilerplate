@@ -4,10 +4,16 @@ import { fileURLToPath } from "url"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-export const ROOT_DIR = path.resolve(__dirname, "../../..")
+export const ROOT_DIR: string = path.resolve(__dirname, "../../..")
 
-export function parseCommonFlags(argv) {
-  const options = {
+export type CommonOptions = {
+  dryRun: boolean
+  help: boolean
+  rest: string[]
+}
+
+export function parseCommonFlags(argv: string[]): CommonOptions {
+  const options: CommonOptions = {
     dryRun: false,
     help: false,
     rest: []
@@ -30,7 +36,7 @@ export function parseCommonFlags(argv) {
   return options
 }
 
-export function exitWithUsage(error, printUsage) {
+export function exitWithUsage(error: Error, printUsage: () => void): never {
   console.error(`エラー: ${error.message}`)
   console.error("")
   printUsage()

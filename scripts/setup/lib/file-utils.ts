@@ -1,20 +1,29 @@
+
 import fs from "fs"
 import path from "path"
-import { ROOT_DIR } from "./runtime.mjs"
+import { ROOT_DIR } from "./runtime.js"
 
-export function toAbsolutePath(relativePath) {
+export function toAbsolutePath(relativePath: string): string {
   return path.join(ROOT_DIR, relativePath)
 }
 
-export function toRelativePath(filePath) {
+export function toRelativePath(filePath: string): string {
   return path.relative(ROOT_DIR, filePath)
 }
 
-export function updateFile(relativePath, transformer, dryRun) {
+export function updateFile(
+  relativePath: string,
+  transformer: (content: string) => string | null,
+  dryRun: boolean
+): string | null {
   return updateAbsoluteFile(toAbsolutePath(relativePath), transformer, dryRun)
 }
 
-export function updateAbsoluteFile(filePath, transformer, dryRun) {
+export function updateAbsoluteFile(
+  filePath: string,
+  transformer: (content: string) => string | null,
+  dryRun: boolean
+): string | null {
   if (!fs.existsSync(filePath)) {
     return null
   }
@@ -33,7 +42,7 @@ export function updateAbsoluteFile(filePath, transformer, dryRun) {
   return toRelativePath(filePath)
 }
 
-export function removeTarget(relativePath, dryRun) {
+export function removeTarget(relativePath: string, dryRun: boolean): string | null {
   const absolutePath = toAbsolutePath(relativePath)
 
   if (!fs.existsSync(absolutePath)) {
@@ -47,8 +56,17 @@ export function removeTarget(relativePath, dryRun) {
   return relativePath
 }
 
-export function listFilesRecursive(dirPath, options = {}, files = []) {
-  const excludedDirectories = options.excludedDirectories ?? new Set()
+type ListOptions = {
+  excludedDirectories?: Set<string>
+  shouldIncludeFile?: (filePath: string) => boolean
+}
+
+export function listFilesRecursive(
+  dirPath: string,
+  options: ListOptions = {},
+  files: string[] = []
+): string[] {
+  const excludedDirectories = options.excludedDirectories ?? new Set<string>()
   const shouldIncludeFile = options.shouldIncludeFile ?? (() => true)
   const entries = fs.readdirSync(dirPath, { withFileTypes: true })
 
@@ -72,15 +90,19 @@ export function listFilesRecursive(dirPath, options = {}, files = []) {
   return files
 }
 
-export function listChildFiles(relativeDir, predicate = () => true) {
+export function listChildFiles(
+  relativeDir: string,
+  predicate: (fileName: string) => boolean = () => true
+): string[] {
   const dirPath = toAbsolutePath(relativeDir)
 
-  return fs.readdirSync(dirPath, { withFileTypes: true })
+  return fs
+    .readdirSync(dirPath, { withFileTypes: true })
     .filter(entry => entry.isFile() && predicate(entry.name))
     .map(entry => path.join(dirPath, entry.name))
     .sort((a, b) => a.localeCompare(b))
 }
 
-export function countOccurrences(content, target) {
+export function countOccurrences(content: string, target: string): number {
   return content.split(target).length - 1
 }

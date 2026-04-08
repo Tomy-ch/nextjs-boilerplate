@@ -1,24 +1,35 @@
-import { parseCommonFlags, exitWithUsage } from "./lib/runtime.mjs"
-import { updateFile } from "./lib/file-utils.mjs"
-import { ensureFourDigitYear } from "./lib/validators.mjs"
+#!/usr/bin/env node
+
+import { parseCommonFlags, exitWithUsage } from "./lib/runtime.js"
+import { updateFile } from "./lib/file-utils.js"
+import { ensureFourDigitYear } from "./lib/validators.js"
+
+type Options = {
+  holder?: string
+  year: string
+  dryRun: boolean
+  help: boolean
+  rest: string[]
+}
 
 const LICENSE_FILE = "LICENSE"
 
-function printUsage() {
+function printUsage(): void {
   console.log(`使用方法:
-  node scripts/setup/replace-license-copyright.mjs --holder <name> [--year <yyyy>] [--dry-run]
+  tsx scripts/setup/replace-license-copyright.ts --holder <name> [--year <yyyy>] [--dry-run]
 
 例:
-  node scripts/setup/replace-license-copyright.mjs --holder "Example Inc."
-  node scripts/setup/replace-license-copyright.mjs --holder "Example Inc." --year 2026 --dry-run
+  tsx scripts/setup/replace-license-copyright.ts --holder "Example Inc."
+  tsx scripts/setup/replace-license-copyright.ts --holder "Example Inc." --year 2026 --dry-run
 `)
 }
 
-function parseArgs(argv) {
-  const options = {
+function parseArgs(argv: string[]): Options {
+  const options: Options = {
     ...parseCommonFlags(argv),
     year: String(new Date().getFullYear())
   }
+
   const args = options.rest
 
   for (let i = 0; i < args.length; i += 1) {
@@ -59,13 +70,13 @@ function parseArgs(argv) {
   return options
 }
 
-function main() {
-  let options
+function main(): void {
+  let options: Options
 
   try {
     options = parseArgs(process.argv.slice(2))
   } catch (error) {
-    exitWithUsage(error, printUsage)
+    exitWithUsage(error as Error, printUsage)
   }
 
   if (options.help) {
@@ -74,9 +85,10 @@ function main() {
   }
 
   const pattern = /^Copyright \(c\) .*/m
+
   const result = updateFile(
     LICENSE_FILE,
-    original => {
+    (original: string): string => {
       if (!pattern.test(original)) {
         throw new Error("LICENSE に著作権表示が見つかりませんでした。")
       }
