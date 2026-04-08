@@ -39,20 +39,40 @@ endef
 
 hotfix-patch:
 	@V=$(call get-latest-version); \
+	if [ -z "$$V" ]; then \
+		echo "❌ 最新のリリースタグを取得できませんでした。初期タグ作成が必要です。"; \
+		echo "➡️ 先に make release-tag などで初期タグを作成してから再実行してください。"; \
+		exit 1; \
+	fi; \
 	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V patch); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,hotfix)
 
 branch-patch:
 	@V=$(call get-latest-version); \
+	if [ -z "$$V" ]; then \
+		echo "❌ 最新のリリースタグを取得できませんでした。初期タグ作成が必要です。"; \
+		echo "➡️ 先に make release-tag などで初期タグを作成してから再実行してください。"; \
+		exit 1; \
+	fi; \
 	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V patch); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,release)
 
 branch-minor:
 	@V=$(call get-latest-version); \
+	if [ -z "$$V" ]; then \
+		echo "❌ 最新のリリースタグを取得できませんでした。初期タグ作成が必要です。"; \
+		echo "➡️ 先に make release-tag などで初期タグを作成してから再実行してください。"; \
+		exit 1; \
+	fi; \
 	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V minor); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,release)
 
 branch-major:
 	@V=$(call get-latest-version); \
+	if [ -z "$$V" ]; then \
+		echo "❌ 最新のリリースタグを取得できませんでした。初期タグ作成が必要です。"; \
+		echo "➡️ 先に make release-tag などで初期タグを作成してから再実行してください。"; \
+		exit 1; \
+	fi; \
 	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V major); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,release)
