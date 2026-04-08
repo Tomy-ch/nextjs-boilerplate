@@ -9,5 +9,5 @@ activate-tools: install-tools
 
 install-tools:
 	@echo "🔄 Installing tools..."
-	OREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm -v
+	COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm -v
 	@echo "✅ Tools installed successfully."
