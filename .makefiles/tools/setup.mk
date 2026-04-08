@@ -4,7 +4,7 @@
 
 sync-tools:
 	@echo "🔧 ツールのバージョンを tools.yaml と同期中..."
-	@node scripts/replace-tools-version.cjs
+	@node scripts/replace-tools-version.mjs
 	@echo "✅ ツールのバージョンの同期が完了しました。再度 make install-tools を実行してツールをインストールしてください。"
 
 install-tools:

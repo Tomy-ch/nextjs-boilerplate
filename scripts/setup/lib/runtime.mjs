@@ -1,8 +1,12 @@
-const path = require("path")
+import path from "path"
+import { fileURLToPath } from "url"
 
-const ROOT_DIR = path.resolve(__dirname, "../../..")
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-function parseCommonFlags(argv) {
+export const ROOT_DIR = path.resolve(__dirname, "../../..")
+
+export function parseCommonFlags(argv) {
   const options = {
     dryRun: false,
     help: false,
@@ -26,15 +30,9 @@ function parseCommonFlags(argv) {
   return options
 }
 
-function exitWithUsage(error, printUsage) {
+export function exitWithUsage(error, printUsage) {
   console.error(`エラー: ${error.message}`)
   console.error("")
   printUsage()
   process.exit(1)
-}
-
-module.exports = {
-  ROOT_DIR,
-  parseCommonFlags,
-  exitWithUsage
 }

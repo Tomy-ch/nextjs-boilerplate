@@ -96,7 +96,7 @@ setup-replace-license-copyright:
 		echo "❌ COPYRIGHT_HOLDER を指定してください。例: make setup-replace-license-copyright COPYRIGHT_HOLDER='Example Inc.' COPYRIGHT_YEAR=2026"; \
 		exit 1; \
 	fi
-	@node scripts/setup/replace-license-copyright.cjs \
+	@node scripts/setup/replace-license-copyright.mjs \
 		--holder "$(COPYRIGHT_HOLDER)" \
 		$(if $(COPYRIGHT_YEAR),--year $(COPYRIGHT_YEAR),) \
 		$(SETUP_DRY_RUN_FLAG)

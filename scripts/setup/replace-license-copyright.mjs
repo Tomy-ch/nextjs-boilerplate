@@ -1,16 +1,16 @@
-const { parseCommonFlags, exitWithUsage } = require("./lib/runtime.cjs")
-const { updateFile } = require("./lib/file-utils.cjs")
-const { ensureFourDigitYear } = require("./lib/validators.cjs")
+import { parseCommonFlags, exitWithUsage } from "./lib/runtime.mjs"
+import { updateFile } from "./lib/file-utils.mjs"
+import { ensureFourDigitYear } from "./lib/validators.mjs"
 
 const LICENSE_FILE = "LICENSE"
 
 function printUsage() {
   console.log(`使用方法:
-  node scripts/setup/replace-license-copyright.cjs --holder <name> [--year <yyyy>] [--dry-run]
+  node scripts/setup/replace-license-copyright.mjs --holder <name> [--year <yyyy>] [--dry-run]
 
 例:
-  node scripts/setup/replace-license-copyright.cjs --holder "Example Inc."
-  node scripts/setup/replace-license-copyright.cjs --holder "Example Inc." --year 2026 --dry-run
+  node scripts/setup/replace-license-copyright.mjs --holder "Example Inc."
+  node scripts/setup/replace-license-copyright.mjs --holder "Example Inc." --year 2026 --dry-run
 `)
 }
 
@@ -74,16 +74,20 @@ function main() {
   }
 
   const pattern = /^Copyright \(c\) .*/m
-  const result = updateFile(LICENSE_FILE, original => {
-    if (!pattern.test(original)) {
-      throw new Error("LICENSE に著作権表示が見つかりませんでした。")
-    }
+  const result = updateFile(
+    LICENSE_FILE,
+    original => {
+      if (!pattern.test(original)) {
+        throw new Error("LICENSE に著作権表示が見つかりませんでした。")
+      }
 
-    return original.replace(
-      pattern,
-      `Copyright (c) ${options.year} ${options.holder}`
-    )
-  }, options.dryRun)
+      return original.replace(
+        pattern,
+        `Copyright (c) ${options.year} ${options.holder}`
+      )
+    },
+    options.dryRun
+  )
 
   if (!result) {
     console.log("変更対象は見つかりませんでした。")
