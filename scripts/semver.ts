@@ -25,7 +25,7 @@ function validateVersion(version: string): string {
   const v = version.replace(/^v/, "")
 
   if (!/^\d+\.\d+\.\d+$/.test(v)) {
-    console.error("version must be in the format vX.Y.Z")
+    console.error("version must be in the format X.Y.Z or vX.Y.Z")
     process.exit(1)
   }
 
