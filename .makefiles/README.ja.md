@@ -5,8 +5,6 @@
 このドキュメントでは、本リポジトリで利用できる `make` コマンドの役割を説明します。
 Make ターゲットは主に以下の単位で整理されています。
 
-- `.makefiles/docs` : Portal / ツール情報などのドキュメント生成
-- `.makefiles/gen` : 各種生成処理の一括実行
 - `.makefiles/github` : GitHub 初期設定 / リリース / ラベル / ルール設定
 - `.makefiles/tools` : 開発ツールの管理関連
 
