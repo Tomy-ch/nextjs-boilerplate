@@ -1,3 +1,6 @@
+# Makefile
+.DEFAULT_GOAL := help
+
 # GitHub関連
 include .makefiles/github/operation/release-branch.mk
 include .makefiles/github/operation/release-tag.mk
