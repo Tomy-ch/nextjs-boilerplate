@@ -11,3 +11,4 @@
 ## 一覧
 
 - [0001-package-manager.md](0001-package-manager.md) - パッケージマネージャの選定
+- [0002-formatter-linter.md](0002-formatter-linter.md) - フォーマッタ・リンタの選定（Biome 採用）
