@@ -192,26 +192,8 @@
       "Write(LICENSE)",
       "Edit(.claude/settings.json)",
       "Write(.claude/settings.json)",
-      "Edit(docs/adr/0001-*.md)",
-      "Write(docs/adr/0001-*.md)",
-      "Edit(docs/adr/0002-*.md)",
-      "Write(docs/adr/0002-*.md)",
-      "Edit(docs/adr/0003-*.md)",
-      "Write(docs/adr/0003-*.md)",
-      "Edit(docs/adr/0004-*.md)",
-      "Write(docs/adr/0004-*.md)",
-      "Edit(docs/adr/0005-*.md)",
-      "Write(docs/adr/0005-*.md)",
-      "Edit(docs/adr/0006-*.md)",
-      "Write(docs/adr/0006-*.md)",
-      "Edit(docs/adr/0007-*.md)",
-      "Write(docs/adr/0007-*.md)",
-      "Edit(docs/adr/0008-*.md)",
-      "Write(docs/adr/0008-*.md)",
-      "Edit(docs/adr/0009-*.md)",
-      "Write(docs/adr/0009-*.md)",
-      "Edit(docs/adr/0010-*.md)",
-      "Write(docs/adr/0010-*.md)"
+      "Edit(docs/adr/*-*.md)",
+      "Write(docs/adr/*-*.md)"
     ]
   }
 }
