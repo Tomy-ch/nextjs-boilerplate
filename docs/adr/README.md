@@ -13,3 +13,4 @@
 - [0001-package-manager.md](0001-package-manager.md) - パッケージマネージャの選定
 - [0002-formatter-linter.md](0002-formatter-linter.md) - フォーマッタ・リンタの選定（Biome 採用）
 - [0003-version-manager.md](0003-version-manager.md) - Node.js / pnpm のバージョンマネージャ選定（mise 採用）
+- [0004-no-docker.md](0004-no-docker.md) - Docker を boilerplate に含めない方針（表示層ロール定義）
