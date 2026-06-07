@@ -37,19 +37,22 @@ pnpm workspace により、将来的な構成拡張（モノレポ化）にも�
 
 ## バージョン管理
 
-Node.js および pnpm のバージョンは固定する。
+Node.js および pnpm のバージョンは `mise.toml` で固定する。
+ローカル・CI・Docker のすべてで [mise](https://mise.jdx.dev/) を用いて同一バージョンを再現する。
 
-### Node.js
+```toml
+# mise.toml
+[tools]
+node = "24.14.1"
+pnpm = "10.33.0"
+```
 
-`.node-version` または `.nvmrc` により管理する。
-
-### pnpm
-
-corepack を利用して固定する。
+インストールは以下のコマンドで一括実行する。
 
 ```bash
-corepack enable
-corepack prepare pnpm@latest --activate
+mise install
+# もしくは
+make install-tools
 ```
 
 ## 基本コマンド

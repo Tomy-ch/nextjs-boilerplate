@@ -1,15 +1,11 @@
 ## ツール関連
-.PHONY: sync-tools ## ツールのバージョンを tools.yaml と同期する
-.PHONY: install-tools ## 開発に必要なツールをインストールする
-
-sync-tools:
-	@echo "🔧 ツールのバージョンを tools.yaml と同期中..."
-	@pnpm exec tsx scripts/replace-tools-version.ts
-	@echo "✅ ツールのバージョンの同期が完了しました。再度 make install-tools を実行してツールをインストールしてください。"
+.PHONY: install-tools ## mise.toml に基づき Node.js / pnpm をインストールする
 
 install-tools:
-	@echo "🔄 Installing tools..."
-	@corepack enable
-	@COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack prepare pnpm@latest --activate
-	@pnpm -v
+	@echo "🔄 Installing tools via mise..."
+	@command -v mise >/dev/null 2>&1 || { echo "❌ mise がインストールされていません。https://mise.jdx.dev/ を参照してください。"; exit 1; }
+	@mise trust --quiet
+	@mise install
 	@echo "✅ Tools installed successfully."
+	@mise exec -- node --version
+	@mise exec -- pnpm --version
