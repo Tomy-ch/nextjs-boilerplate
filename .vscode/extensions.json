@@ -1,0 +1,18 @@
+{
+  "recommendations": [
+    "biomejs.biome",
+    "github.vscode-github-actions",
+    "mhutchie.git-graph",
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    "bierner.markdown-mermaid",
+    "ms-vscode.makefile-tools",
+    "redhat.vscode-yaml",
+    "42Crunch.vscode-openapi",
+    "wmaurer.change-case",
+    "editorconfig.editorconfig",
+    "oderwat.indent-rainbow",
+    "mikestead.dotenv",
+    "ms-ceintl.vscode-language-pack-ja"
+  ]
+}

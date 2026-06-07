@@ -1,12 +1,13 @@
 {
-  "name": "my-app",
-  "version": "0.1.0",
+  "name": "nextjs-boilerplate",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
+    "fix": "biome check --fix",
     "format": "biome format --write"
   },
   "dependencies": {
@@ -15,7 +16,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.0",
+    "@biomejs/biome": "2.4.10",
     "@tailwindcss/postcss": "^4",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20",

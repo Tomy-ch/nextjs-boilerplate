@@ -11,17 +11,33 @@
   "editor.guides.bracketPairs": "active",
   "editor.formatOnSave": true,
   "files.insertFinalNewline": true,
+  "editor.tabSize": 2,
+
+  "editor.defaultFormatter": "biomejs.biome",
+  "eslint.format.enable": false,
   "editor.codeActionsOnSave": {
-    "source.fixAll": "always",
-    "source.fixAll.eslint": "always"
+    "source.fixAll.markdownlint": "explicit",
+    "source.fixAll.biome": "always",
+    "source.organizeImports.biome": "always",
+    "source.fixAll.eslint": "explicit"
   },
-  "eslint.validate": [
-    "javascript",
-    "typescript",
-    "typescriptreact",
-    "javascriptreact"
-  ],
-  "prettier.enable": true,
-  "prettier.requireConfig": true,
-  "editor.tabSize": 2
+
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  }
 }
