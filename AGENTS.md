@@ -40,12 +40,17 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0005](docs/adr/0005-library-management.md) | Library policy | Core deps exact-pinned / major updates in separate PRs / `pnpm audit` required |
 | [0006](docs/adr/0006-git-workflow.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
 | [0007](docs/adr/0007-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
+| [0008](docs/adr/0008-agents-md.md) | AGENTS.md policy | File placement / language / 12-section structure / Instruction Priority / `## [TODO]` convention |
+| [0009](docs/adr/0009-claude-skills-operations.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
+| [0010](docs/adr/0010-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` redesign note |
 
 ## Pending Decisions
 
 A large set of decisions (overall architecture / responsibility separation / directory structure / state management / error handling / testing strategy / CI configuration, etc.) is **not yet settled**. See [`docs/adr/BACKLOG.md`](docs/adr/BACKLOG.md).
 
 For areas where implementation cannot proceed without a decision, this file holds **`## [TODO]` sections** as provisional placeholders. Each TODO section specifies (1) **what must be decided** and (2) **provisional behavior until decided**.
+
+Selection criterion: only items that **directly block implementation work** are surfaced here. BACKLOG.md tracks the complete set (including non-blocking items such as some Tier 4 sub-areas, Tier 5 optional-feature ADRs, and Tier 6 docs-meta items); not every BACKLOG entry has a corresponding `[TODO]` section in this file.
 
 When a change forces you to enter a pending area:
 
@@ -365,7 +370,7 @@ By default, AI agents may modify code only in the following scope. All other pat
 - `.makefiles/` (release / branch operation make targets)
 - `.github/` (workflows / settings / issue and PR templates)
 - `LICENSE`
-- Accepted ADR bodies (`docs/adr/0001-*.md` through `docs/adr/0007-*.md`)
+- Accepted ADR bodies (`docs/adr/0001-*.md` and onward, with Status: Accepted)
 
 ### Agent configuration file protection
 
@@ -418,14 +423,13 @@ pnpm format                # biome format --write
 
 ```bash
 make install-tools         # Install tools via mise (ADR 0003)
-make branch-patch          # Create a release/v<patch> branch
-make branch-minor          # Create a release/v<minor> branch
-make branch-major          # Create a release/v<major> branch
-make hotfix-patch          # Create a hotfix/v<patch> branch
+make hotfix-patch          # Create a hotfix/v<patch> branch from production
 make tag-patch             # Tag production HEAD and create a GitHub Release
 make tag-minor             # Same (minor)
 make tag-major             # Same (major)
 ```
+
+For release branches, follow ADR 0006 (`git checkout -b release/v<X.Y.Z> origin/develop`).
 
 See [`.makefiles/README.ja.md`](.makefiles/README.ja.md) for details.
 

@@ -53,9 +53,11 @@ Accepted
 | 5 | AI Modification Scope | 編集可 / 編集禁止 / エージェント設定保護 / Skill 実行時 Exception |
 | 6 | Recommended Commands | pnpm / make の主要コマンド |
 | 7 | Git Rules | ADR 0006 の要点抜粋 |
-| 8 | Language Rules + Output Language / Internal Processing / Exception | 出力言語ルール |
-| 9 | Code Style | ADR 0002 を前提とした実行手順 |
-| 10 | Protected Documentation | 直接編集禁止ファイルの宣言 |
+| 8 | Language Rules (+ `### Output Language` サブ節) | 可視出力は日本語が既定であること、その対象 |
+| 9 | Internal Processing | 内部処理は英語可。最終出力には日本語ルールを適用 |
+| 10 | Exception | ユーザが明示的に英語を指示した場合のみ英語可 |
+| 11 | Code Style | ADR 0002 を前提とした実行手順 |
+| 12 | Protected Documentation | 直接編集禁止ファイルの宣言 |
 
 節の追加・順序変更は ADR 改訂を要する。表 (Accepted Rules) への ADR 追加や `[TODO]` セクションの追加・削除は軽微編集とし、ADR 改訂は不要。
 
@@ -110,7 +112,7 @@ ADR が策定されたら、対応する `[TODO]` セクションは AGENTS.md �
 ## 補足
 
 - `CLAUDE.md` の `@AGENTS.md` 形式は Claude Code が提供する機能。他エージェントは AGENTS.md を直接読む
-- `Pending Decisions` 節の `[TODO]` 一覧は実装進捗に応じて増減する。BACKLOG の Tier 3〜6 の項目が原則 1:1 で対応する
+- `Pending Decisions` 節の `[TODO]` 一覧は実装進捗に応じて増減する。掲載基準は「実装を進める上で決まっていないと作業できない項目」のみとし、BACKLOG 全項目 (Tier 3〜6) と 1:1 対応はしない。残りの項目は BACKLOG.md で追跡する
 - 既存の `.github/copilot-instructions.md` は本 ADR 策定時点では並行存在しているが、内容のドリフトが発生した場合は AGENTS.md を SSOT とし、copilot-instructions.md 側を AGENTS.md への参照に縮約する方向で運用する
 
 ## 関連 ADR

@@ -34,7 +34,7 @@ gh auth status
 
 Bail out if any of the following:
 
-- Branch matches `^(production|develop|staging|release/.+)$` → tell the user to switch to a feature branch.
+- Branch matches `^(production|develop|staging|release/.+|hotfix/.+)$` → tell the user to switch to a feature branch.
 - `git status --porcelain` is non-empty → tell the user to run `/commit` (or stash) first.
 - `gh auth status` fails → tell the user to run `gh auth login`.
 

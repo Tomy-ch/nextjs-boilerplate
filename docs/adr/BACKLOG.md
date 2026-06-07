@@ -149,9 +149,6 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、boile
 
 - **D3 ⚠️**: `LICENSE` ファイル (MIT) は存在。ただし「なぜ MIT を選んだか」「OSS 寄与ポリシー」は未文書化
 - **D6 ⚠️**: 開発系 5 件のうち `new-env` のみ go-boilerplate 由来のパス (`internal/config/` 系) を前提。BACKLOG A7 確定後に再設計要
-- **D4 ⚠️**: `AGENTS.md` は repo ルートに 1 本配置、本文英語で 10 節構成 + `## [TODO]` 16 件の未策定領域仮設置を実装済み。`<!-- BEGIN:nextjs-agent-rules -->` / `<!-- END:nextjs-agent-rules -->` マーカーで本文を区切り、`CLAUDE.md` は `@AGENTS.md` 1 行のみで本ファイルを参照する構造。Instruction Priority も 5 階層で明記済み。ただし「AGENTS.md の役割範囲」「CLAUDE.md / `.github/copilot-instructions.md` との分担」「更新責務」自体を ADR として明文化する作業は未着手
-- **D5 ⚠️**: `.claude/skills/` に運用系 5 件 (`commit` / `submit-pr` / `release-notes` / `tools-upgrade` / `tool-map`) が存在。各 SKILL.md は YAML frontmatter (`name` / `description` / `argument-hint` / `allowed-tools`) + 本文 (`When to Use` / `Do NOT use` / Step 番号付き手順 / 検証) の共通構造を持ち、`AskUserQuestion` で重要入力 (タグ・バージョン等) を確認、Git ルール (`CLAUDE.md` / ADR 0006) と日本語出力ルールを参照する慣例が固まっている。ただし命名規則・カバー範囲・新規 skill 追加の判断基準・既存運用 (make ターゲット / lefthook) との切り分けは未文書化
-- **D6 ⚠️**: `.claude/skills/` に開発系 5 件 (`canonicalize-doc` / `sync-readme` / `readme-review` / `new-env` / `local-review`) が存在。配置・命名・frontmatter は運用系と共通。`local-review` は `.claude/agents/adversarial-reviewer.md` / `.claude/agents/review-verifier.md` の subagent パターンで構成。`new-env` は go-boilerplate 由来のパス (`internal/config/envspec.go` / `internal/config/model.go` 等) を前提としており、Next.js 文脈 (`src/config/` 等) への再設計が必要
 
 ---
 
