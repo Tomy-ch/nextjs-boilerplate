@@ -64,5 +64,4 @@ Make ターゲットは主に以下の単位で整理されています。
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make sync-tools` | `tools.yaml` に記載されたツールのバージョンをもとに、関連ファイルのバージョン表記を一括置換します。 | `replace-tools-version.ts` を使用して、Dockerfile やインストールスクリプトなどのバージョン表記を更新します。 |
-| `make install-tools` | ツールのインストールを行います。 | |
+| `make install-tools` | `mise.toml` に基づき Node.js / pnpm をインストールします。 | mise の事前インストールが必要。詳細は [docs/adr/0003-version-manager.md](../docs/adr/0003-version-manager.md) 参照 |

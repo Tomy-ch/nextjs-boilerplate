@@ -37,19 +37,23 @@ pnpm workspace により、将来的な構成拡張（モノレポ化）にも�
 
 ## バージョン管理
 
-Node.js および pnpm のバージョンは固定する。
+Node.js および pnpm のバージョンは `mise.toml` で **単一ソース (SSOT)** として宣言する。
+ローカル開発では [mise](https://mise.jdx.dev/) を用いてこの宣言通りのバージョンを取得する。
+Docker / CI の配送方針はそれぞれのレイヤのネイティブ手段に委ねる（詳細は [0003-version-manager.md](0003-version-manager.md) を参照）。
 
-### Node.js
+```toml
+# mise.toml
+[tools]
+node = "24.14.1"
+pnpm = "10.33.0"
+```
 
-`.node-version` または `.nvmrc` により管理する。
-
-### pnpm
-
-corepack を利用して固定する。
+ローカルへのインストールは以下のコマンドで一括実行する。
 
 ```bash
-corepack enable
-corepack prepare pnpm@latest --activate
+mise install
+# もしくは
+make install-tools
 ```
 
 ## 基本コマンド
@@ -82,9 +86,11 @@ pnpm fetch
 pnpm install --offline --frozen-lockfile
 ```
 
+> **既知の例外（v0.0.4 時点）:** 現行の `Dockerfile` は `node:22.15.0-alpine` ベースで `npm ci` を利用しており、本 ADR の方針（pnpm 採用 / mise.toml で固定した Node.js バージョンとの整合）を満たしていない。Dockerfile の pnpm 移行および Node バージョン同期は別 PR で実施予定。
+
 ## 禁止事項
 
-- npm / yarn の使用は禁止
+- npm / yarn の使用は禁止（Dockerfile の暫定例外を除く。上記既知の例外参照）
 - lockfile（pnpm-lock.yaml）の手動編集は禁止
 - 未宣言依存に依存した実装は禁止
 
