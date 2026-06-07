@@ -1,0 +1,129 @@
+# ツール・言語バージョン管理方針
+
+本プロジェクトでは、ツールおよび言語ランタイム（Node.js / pnpm 等）の **バージョン宣言の単一ソース (SSOT)** として `mise.toml` を採用する。
+
+[mise](https://mise.jdx.dev/) は当該 SSOT を読み取る既定の host インストール backend として位置付け、配送（Docker / CI）には拡張しない。これにより mise への過度な依存を避けつつ、開発体験の統一を図る。
+
+## Status
+
+Accepted
+
+## 採用理由
+
+### 1. バージョン宣言の SSOT 集約
+
+`mise.toml` 1 ファイルに「対象ツールとその固定バージョン」をまとめて宣言する。
+従来運用していた以下を集約・廃止できる。
+
+- `.node-version` / `.nvmrc`
+- `tools.yaml` ＋ それを `.makefiles/*.mk` へ同期する独自スクリプト
+- corepack 経由の pnpm バージョン埋め込み
+
+レビュー時に「何がどのバージョンか」を 1 ファイルで把握できる。
+
+### 2. ベンダーロック耐性 — 仕様書として読めるファイル
+
+`mise.toml` は TOML の素朴な宣言ファイルであり、mise の機能を使わなくても「Node.js 24.14.1 / pnpm 10.33.0 を入れろ」という仕様としてそのまま読める。
+
+仮に将来 mise が衰退・廃止されても以下が成立する。
+
+- `mise.toml` は仕様ファイルとして残せる（人間にもツールにも読める）
+- 切り替え範囲は **配送層** (`make install-tools` の実装) に限られる
+- CI / Docker / 開発者の日常コマンドに `mise` を撒いていないため、撤退コストが contract 層に閉じる
+
+mise の現状シェアは asdf / nodenv / nvm / volta 等と拮抗しており、boilerplate としての再利用性を確保するためにもロックインを限定する。
+
+### 3. host インストールの既定 backend として現実的
+
+ツール多種を扱う際の起動コストが低い。Node.js / pnpm の 2 つに限っても、shell activate により PATH 切替が自動化されるため、`.node-version` + 手動 `nodenv install` のような運用より摩擦が少ない。
+
+## 構成 — 3 層モデル
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ SSOT 層       :  mise.toml                              │
+│   └ ツール・言語バージョンの宣言（唯一の真実）            │
+├─────────────────────────────────────────────────────────┤
+│ 契約層        :  Makefile                                │
+│   └ make install-tools / make sync-versions など        │
+│     開発者が叩く I/F。実装の差し替え点はここに集約        │
+├─────────────────────────────────────────────────────────┤
+│ 配送層        :  レイヤごとに別実装                       │
+│   ├ host    : mise install                              │
+│   ├ Docker  : 公式 base image (FROM node:X.Y.Z-alpine)   │
+│   └ CI      : actions/setup-node 系 + version-file 連携  │
+└─────────────────────────────────────────────────────────┘
+```
+
+各層の責務:
+
+| 層 | 責務 | 変更が起きる頻度 |
+| --- | --- | --- |
+| SSOT (`mise.toml`) | バージョンを宣言する | ツール更新時のみ |
+| 契約 (Makefile) | 開発者に対する安定した I/F を提供する | ほぼ変更なし |
+| 配送 (mise / Docker / CI) | 実体を取得し PATH に置く | 環境追加・mise からの移行時に変更 |
+
+mise への依存は **配送層 (host)** に閉じている。SSOT / 契約 / その他の配送ルートには mise コマンドを撒かない。
+
+## SSOT としての mise.toml
+
+```toml
+[tools]
+node = "24.14.1"
+pnpm = "10.33.0"
+```
+
+- バージョンはパッチまで明示する（再現性のため）
+- mise の機能利用を前提とした追加機能（タスク定義 `[tasks]` / 環境変数 `[env]` 等）はここに置かない。SSOT の純度を保つため、mise 固有の付加機能は別ファイル / Makefile 側で扱う
+
+## 配送層の扱い
+
+### host（開発者ワークステーション）
+
+- mise を既定の backend として推奨。`make install-tools` がエントリポイント
+- フォーク先や個人開発で mise を使いたくない場合、`.makefiles/tools/setup.mk` の `install-tools` ターゲットを別実装（nodenv / volta 等）に差し替えれば済む。SSOT (`mise.toml`) はそのままで読める
+
+### Docker
+
+- 公式 base image (`node:X.Y.Z-alpine`) を使う。Docker レイヤキャッシュとの相性を優先
+- Dockerfile 内で `mise install` を実行しない（mise を Docker に持ち込むと、配送層に mise 依存が広がるため）
+- Dockerfile の `FROM` タグと `mise.toml` の整合性は **`make sync-versions` 相当の仕組み** で担保する（未整備の場合は手動で同期し、PR でレビューする）
+
+### CI
+
+- GitHub Actions では `actions/setup-node` + バージョンファイル指定、または `jdx/mise-action` の利用を想定
+- いずれを採用するにせよ、ジョブ内で `mise.toml` を **読み取り** はしてよいが、`mise.toml` 自体や `make install-tools` を CI で書き換えない
+
+## 基本コマンド
+
+| 操作 | コマンド |
+| --- | --- |
+| ツール一式のセットアップ（推奨入口） | `make install-tools` |
+| mise.toml 通りに直接インストール | `mise install` |
+| 現在解決されているバージョン | `mise current` |
+| インストール済み一覧 | `mise ls` |
+| アップデート確認 | `mise outdated` |
+
+## バージョン更新フロー
+
+1. `mise.toml` を編集してバージョンを書き換える
+2. `mise install` （または `make install-tools`）で実体を取得
+3. 配送層の同期（Dockerfile FROM タグ など）が必要なら反映する
+4. 動作確認の上、当該変更を PR に含める
+
+## 禁止事項
+
+- ❌ `mise.toml` を別の version manager で二重管理すること（SSOT が壊れる）
+- ❌ 配送層に mise コマンドを撒くこと（Dockerfile に `RUN mise install ...`、CI ジョブで直接 `mise install` チェーンを組む等）。配送層は各環境のネイティブ手段で完結させる
+- ❌ `mise.toml` に mise 固有のタスク / 環境変数定義を入れること（SSOT の純度を保つ）
+- ❌ メジャーのみ・マイナーのみのバージョン指定（再現性が劣化する）
+
+## 補足
+
+- mise の activate を入れていない環境で `node` / `pnpm` を素直に呼ぶと PATH に乗らない。`mise exec -- <command>` で逃げるか、`make install-tools` 後に shell activate を済ませること
+- mise を使わない開発者は `mise.toml` の宣言を参照しつつ自分の version manager で同じバージョンを揃える運用も許容する（SSOT を仕様として読む形）
+- 将来 mise から移行する場合の影響範囲は `.makefiles/tools/setup.mk` の `install-tools` ターゲットのみ
+
+## 関連 ADR
+
+- [0001-package-manager.md](0001-package-manager.md) — pnpm 採用方針（バージョン宣言の媒体として `mise.toml` を参照）
