@@ -18,7 +18,7 @@ Accepted
 
 [lefthook](https://github.com/evilmartians/lefthook) を採用する。
 
-インストールは npm devDependency 経由 (`pnpm add -D lefthook`)。バージョンは exact pin とする (ADR 0005 のコア dev ツール扱い)。
+インストールは npm devDependency 経由 (`pnpm add -D lefthook`)。バージョンは exact pin とする (Toolchain-0005 のコア dev ツール扱い)。
 
 ### lefthook を選んだ理由
 
@@ -127,7 +127,7 @@ pre-push:
 - ❌ CI 側で hook 相当の検査をスキップすること
 - ❌ `.git/hooks/` 配下に直接 shell script を書き込むこと (lefthook 経由のみ)
 - ❌ hook 設定を `.lefthook.yaml` 以外のファイル (script / Makefile 等) に分散させること
-- ❌ lefthook 自体のバージョンを caret (`^`) で指定すること (ADR 0005 のコア dev ツール方針に従い exact pin)
+- ❌ lefthook 自体のバージョンを caret (`^`) で指定すること (Toolchain-0005 のコア dev ツール方針に従い exact pin)
 
 ## 補足
 
@@ -139,5 +139,5 @@ pre-push:
 ## 関連 ADR
 
 - [0002-formatter-linter.md](0002-formatter-linter.md) — `pnpm lint` で実際に呼ばれる biome の設定方針
-- [0005-library-management.md](0005-library-management.md) — lefthook を devDependency として exact pin する根拠
-- [0006-git-workflow.md](0006-git-workflow.md) — hook 通過後の commit / PR / リリース運用フロー
+- [Toolchain-0005-library-management.md](Toolchain-0005-library-management.md) — lefthook を devDependency として exact pin する根拠
+- [Dev-0002.md](Dev-0002.md) — hook 通過後の commit / PR / リリース運用フロー

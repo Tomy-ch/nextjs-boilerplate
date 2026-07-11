@@ -37,12 +37,12 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0002](docs/adr/0002-formatter-linter.md) | Formatter / Linter | Unify on biome / ESLint and Prettier not adopted |
 | [0003](docs/adr/0003-version-manager.md) | Version manager | `mise.toml` as SSOT / mise must not extend into delivery layers |
 | [0004](docs/adr/0004-no-docker.md) | Delivery / Role | Next.js as presentation layer / no Docker for app delivery |
-| [0005](docs/adr/0005-library-management.md) | Library policy | Core deps exact-pinned / major updates in separate PRs / `pnpm audit` required |
-| [0006](docs/adr/0006-git-workflow.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
-| [0007](docs/adr/0007-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
-| [0008](docs/adr/0008-agents-md.md) | AGENTS.md policy | File placement / language / 12-section structure / Instruction Priority / `## [TODO]` convention |
-| [0009](docs/adr/0009-claude-skills-operations.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
-| [0010](docs/adr/0010-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` redesign note |
+| [Toolchain-0005](docs/adr/Toolchain-0005-library-management.md) | Library policy | Core deps exact-pinned / major updates in separate PRs / `pnpm audit` required |
+| [Dev-0002](docs/adr/Dev-0002.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
+| [Toolchain-0006](docs/adr/Toolchain-0006-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
+| [Dev-0003](docs/adr/Dev-0003.md) | AGENTS.md policy | File placement / language / 12-section structure / Instruction Priority / `## [TODO]` convention |
+| [Dev-0004](docs/adr/Dev-0004.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
+| [Dev-0005](docs/adr/Dev-0005.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` redesign note |
 
 ## Pending Decisions
 
@@ -329,7 +329,7 @@ When a change forces you to enter a pending area:
 - Required check specification
 - Caching strategy (pnpm store / Next.js build cache)
 - Matrix (Node.js versions / OS)
-- Overlap boundary with hooks ([ADR 0007](docs/adr/0007-git-hooks.md))
+- Overlap boundary with hooks ([Toolchain-0006](docs/adr/Toolchain-0006-git-hooks.md))
 
 **Provisional behavior until decided**:
 
@@ -340,7 +340,7 @@ When a change forces you to enter a pending area:
 
 ## [TODO] Security Operations
 
-> **Pending** — BACKLOG B10 (extension of [ADR 0005](docs/adr/0005-library-management.md))
+> **Pending** — BACKLOG B10 (extension of [Toolchain-0005](docs/adr/Toolchain-0005-library-management.md))
 
 **Must be decided**:
 
@@ -351,7 +351,7 @@ When a change forces you to enter a pending area:
 
 **Provisional behavior until decided**:
 
-- Always run `pnpm audit` when adding new dependencies (ADR 0005)
+- Always run `pnpm audit` when adding new dependencies (Toolchain-0005)
 - Do not embed security tools (Dependabot / Renovate / gitleaks, etc.) into CI / pre-commit on your own
 
 ## AI Modification Scope
@@ -408,7 +408,7 @@ Bypassing the spirit of these rules through a skill is forbidden. If a skill's p
 pnpm install               # Install dependencies
 pnpm add <pkg>             # Add a runtime dependency
 pnpm add -D <pkg>          # Add a dev dependency
-pnpm add -E <pkg>          # Add with exact pin (for core deps / main dev tools, ADR 0005)
+pnpm add -E <pkg>          # Add with exact pin (for core deps / main dev tools, Toolchain-0005)
 
 pnpm dev                   # Start the dev server
 pnpm build                 # Production build
@@ -429,13 +429,13 @@ make tag-minor             # Same (minor)
 make tag-major             # Same (major)
 ```
 
-For release branches, follow ADR 0006 (`git checkout -b release/v<X.Y.Z> origin/develop`).
+For release branches, follow Dev-0002 (`git checkout -b release/v<X.Y.Z> origin/develop`).
 
 See [`.makefiles/README.ja.md`](.makefiles/README.ja.md) for details.
 
 ## Git Rules
 
-[ADR 0006](docs/adr/0006-git-workflow.md) is authoritative. Key points only.
+[Dev-0002](docs/adr/Dev-0002.md) is authoritative. Key points only.
 
 ### Critical Rules
 

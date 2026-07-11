@@ -42,7 +42,7 @@ Save the current HEAD commit hash as `ORIGINAL_HEAD`. This is the rollback targe
 
 Bail out (do not commit) if any of the following:
 
-- Current branch matches `^(production|develop|staging|release/.+|hotfix/.+)$`. Per `AGENTS.md` git rules (ADR 0006), never commit to protected branches. Inform the user and ask them to create a feature branch first (e.g., `feature/<issue-or-topic>`).
+- Current branch matches `^(production|develop|staging|release/.+|hotfix/.+)$`. Per `AGENTS.md` git rules (Dev-0002), never commit to protected branches. Inform the user and ask them to create a feature branch first (e.g., `feature/<issue-or-topic>`).
 - Both staged and unstaged porcelain outputs are empty. Tell the user there is nothing to commit and stop.
 - Any of `MERGE_HEAD` / `CHERRY_PICK_HEAD` / `REBASE_HEAD` is set. The repository is mid-operation; ask the user to resolve that first.
 

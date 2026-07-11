@@ -18,9 +18,9 @@
 - [0002-formatter-linter.md](0002-formatter-linter.md) - フォーマッタ・リンタの選定（Biome 採用）
 - [0003-version-manager.md](0003-version-manager.md) - Node.js / pnpm のバージョンマネージャ選定（mise 採用）
 - [0004-no-docker.md](0004-no-docker.md) - Docker を boilerplate に含めない方針（表示層ロール定義）
-- [0005-library-management.md](0005-library-management.md) - ライブラリ選定・運用方針（npm 依存のメタ方針）
-- [0006-git-workflow.md](0006-git-workflow.md) - Git ブランチ・コミット運用方針
-- [0007-git-hooks.md](0007-git-hooks.md) - Pre-commit / Pre-push hook 運用方針 (lefthook 採用)
-- [0008-agents-md.md](0008-agents-md.md) - AGENTS.md 運用方針
-- [0009-claude-skills-operations.md](0009-claude-skills-operations.md) - Claude スキル運用方針 (運用系)
-- [0010-claude-skills-development.md](0010-claude-skills-development.md) - Claude スキル運用方針 (開発系)
+- [Toolchain-0005-library-management.md](Toolchain-0005-library-management.md) - ライブラリ選定・運用方針（npm 依存のメタ方針）
+- [Dev-0002.md](Dev-0002.md) - Git ブランチ・コミット運用方針
+- [Toolchain-0006-git-hooks.md](Toolchain-0006-git-hooks.md) - Pre-commit / Pre-push hook 運用方針 (lefthook 採用)
+- [Dev-0003.md](Dev-0003.md) - AGENTS.md 運用方針
+- [Dev-0004.md](Dev-0004.md) - Claude スキル運用方針 (運用系)
+- [Dev-0005.md](Dev-0005.md) - Claude スキル運用方針 (開発系)

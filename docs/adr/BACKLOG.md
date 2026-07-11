@@ -38,12 +38,12 @@
 
 | 枠 ID | ADR # | タイトル | 選定済み | 実装済み | 依存 | 内容要旨 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **G1** | 0006 | git-workflow | ✅ | ✅ | T1, T4 | ブランチ戦略 / コミット規約 (Feat/Fix/...) / PR 運用 / リリース運用 (`make tag-*`) |
-| **G2** | 0007 | git-hooks | ✅ | ⬜ | T2, T4, G1 | pre-commit / pre-push を lefthook で運用 / 速い hook + 権威 CI の二重化 |
+| **G1** | Dev-0002 | git-workflow | ✅ | ✅ | T1, T4 | ブランチ戦略 / コミット規約 (Feat/Fix/...) / PR 運用 / リリース運用 (`make tag-*`) |
+| **G2** | Toolchain-0006 | git-hooks | ✅ | ⬜ | T2, T4, G1 | pre-commit / pre-push を lefthook で運用 / 速い hook + 権威 CI の二重化 |
 
 ### Tier 0 の実装ギャップ
 
-- **G2 (0007)**: `.lefthook.yaml` / lefthook の devDependency 追加ともに未着手
+- **G2 (Toolchain-0006)**: `.lefthook.yaml` / lefthook の devDependency 追加ともに未着手
 
 ---
 
@@ -56,11 +56,11 @@
 | **T1** | 0001 | package-manager (pnpm) | ✅ | ✅ | — | パッケージマネージャに pnpm を採用 / lockfile commit 必須 / npm・yarn 禁止 |
 | **T2** | 0002 | formatter-linter (biome) | ✅ | ✅ | T1 | フォーマッタ・リンタを biome に 1 本化 / ESLint・Prettier 不採用 / VSCode 連携 |
 | **T3** | 0003 | version-manager (mise) | ✅ | ✅ | T1 | ツール・言語バージョンの SSOT に `mise.toml` を採用 / 配送層への mise 拡張禁止 |
-| **T4** | 0005 | library-management | ✅ | ⚠️ | T1 | npm 依存の選定・固定・更新・監査メタ方針 / コア依存は exact pin / メジャー更新は別 PR |
+| **T4** | Toolchain-0005 | library-management | ✅ | ⚠️ | T1 | npm 依存の選定・固定・更新・監査メタ方針 / コア依存は exact pin / メジャー更新は別 PR |
 
 ### Tier 1 の実装ギャップ
 
-- **T4 (0005)**: `package.json` で `typescript: "^5"` が caret 指定。ADR 0005 の「主要 dev ツール = exact pin」に違反 (`@biomejs/biome` は exact pin で整合)。また PR テンプレートに ADR 記載の「ライブラリ採用チェック」テンプレが未組込
+- **T4 (Toolchain-0005)**: `package.json` で `typescript: "^5"` が caret 指定。Toolchain-0005 の「主要 dev ツール = exact pin」に違反 (`@biomejs/biome` は exact pin で整合)。また PR テンプレートに ADR 記載の「ライブラリ採用チェック」テンプレが未組込
 
 ---
 
@@ -142,9 +142,9 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、boile
 | **D1** | — | ドキュメント運用ポリシー | ⬜ | ⬜ | — | canonical (英) / 翻訳 (日) ペア運用 / 更新責務 |
 | **D2** | — | ポータル運用 | ⬜ | ⬜ | D1 | `docs/portal/manifest.yaml` への登録基準 / portal ↔ docs ディレクトリの責務分担 |
 | **D3** | — | ライセンス選定 | ⬜ | ⚠️ | — | MIT 採用の根拠 / OSS 寄与ポリシー / 同梱ライブラリのライセンス整合 |
-| **D4** | 0008 | AGENTS.md 構成方針 | ✅ | ✅ | D1 | ファイル配置 / 本文言語 / 節構成 / Instruction Priority / `## [TODO]` セクション運用 |
-| **D5** | 0009 | Claude スキル運用方針 (運用系) | ✅ | ✅ | D4, G1, G2, T3, T4 | 配置・命名・frontmatter / 本文構造 / カバー範囲 / 商用操作前ユーザ確認 |
-| **D6** | 0010 | Claude スキル運用方針 (開発系) | ✅ | ⚠️ | D4, D1, A1 | 配置・命名・frontmatter は D5 共通 / カバー範囲 / subagent パターン / `new-env` の Next.js 再設計 |
+| **D4** | Dev-0003 | AGENTS.md 構成方針 | ✅ | ✅ | D1 | ファイル配置 / 本文言語 / 節構成 / Instruction Priority / `## [TODO]` セクション運用 |
+| **D5** | Dev-0004 | Claude スキル運用方針 (運用系) | ✅ | ✅ | D4, G1, G2, T3, T4 | 配置・命名・frontmatter / 本文構造 / カバー範囲 / 商用操作前ユーザ確認 |
+| **D6** | Dev-0005 | Claude スキル運用方針 (開発系) | ✅ | ⚠️ | D4, D1, A1 | 配置・命名・frontmatter は D5 共通 / カバー範囲 / subagent パターン / `new-env` の Next.js 再設計 |
 
 ### Tier 6 の de facto 状態
 
