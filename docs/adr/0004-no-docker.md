@@ -145,4 +145,4 @@ Docker を維持する場合、以下を毎リリースで同期する必要が�
 
 - [0001-package-manager.md](0001-package-manager.md) — pnpm 採用（旧 Dockerfile が `npm ci` を使っていた点の根拠）
 - [0003-version-manager.md](0003-version-manager.md) — Node / pnpm バージョンの SSOT（Dockerfile FROM タグとの同期問題を消す根拠）
-- [0005-library-management.md](0005-library-management.md) — `sharp` の prebuilt binary 等、現代ライブラリの system 依存に関する評価指針
+- [Toolchain-0005-library-management.md](Toolchain-0005-library-management.md) — `sharp` の prebuilt binary 等、現代ライブラリの system 依存に関する評価指針

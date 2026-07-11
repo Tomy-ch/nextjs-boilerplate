@@ -8,7 +8,15 @@
   "files": {
     "ignoreUnknown": true,
     "maxSize": 1048576,
-    "includes": ["**", "!!**/node_modules", "!!**/.next", "!!**/dist", "!!**/build", "!!**/types"]
+    "includes": [
+      "**",
+      "!!**/node_modules",
+      "!!**/.next",
+      "!!**/dist",
+      "!!**/build",
+      "!!**/types",
+      "!**/*.md"
+    ]
   },
   "formatter": {
     "enabled": true,
