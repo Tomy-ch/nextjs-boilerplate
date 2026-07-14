@@ -1,0 +1,93 @@
+# BFF / API 統合
+
+バックエンド API を呼ぶ **API クライアントの配置 / fetch wrapper の resilience(timeout / retry / retry budget / circuit breaker)/ エラー正規化 / response の runtime 検証の受け取り点** を定める。[0070](0070-backend-role-separation.md)(A2)の thin proxy・境界値所有を、実際の HTTP 呼び出し層としてどう実装するかを確定する。
+
+## Status
+
+Accepted
+
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み([決定 4](../plan/pre-implementation-decisions.md))。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+
+## 背景
+
+AGENTS.md の `[TODO] BFF / API Integration`(BACKLOG B3)は、`/api/*` の責務範囲・外部 API クライアントの場所・fetch wrapper(retry / timeout / error 変換 / logging)を未決とし、暫定運用として「コンポーネントに ad-hoc な fetch を散らさない / 独自の retry・timeout を勝手に実装しない(標準 fetch のまま)」を敷いていた。本 ADR がこれを確定させる。
+
+go-boilerplate は outbound HTTP を `internal/infrastructure/httpclient`(**go 側**の ADR 0019「outbound HTTP resilience」。本リポの ADR 番号ではない)に集約し、**dual timeout / idempotent retry / retry budget / circuit breaker** を持つ。本 ADR はこれを**広く翻案**する([決定 4](../plan/pre-implementation-decisions.md) でユーザが「go 0019 を広く翻案」を選択)。
+
+## 決定
+
+### API クライアントの配置 = `adapters` カーネル
+
+- バックエンド API クライアント(fetch wrapper)は **`adapters` カーネル**に置く([0021](0021-frontend-responsibility.md)。`config` を import できる唯一の層 / 外部接続の所有境界)。生の `fetch` をコンポーネント・feature に散らさない(AGENTS.md 暫定を確定)。**`adapters` は server / client の 2 element に分割される**(server = backend client・secret 有・config 可 / client = 同一オリジン BFF fetch・WebSocket・telemetry 送信・secret 不可)。詳細は [0024](0024-adapters-server-client-split.md) が正。本 ADR の resilience(dual timeout / retry / breaker)は主に `adapters/server` に適用する
+- 生成型・zod スキーマ([0072](0072-api-type-generation.md))の**変換もこの境界で所有**する(go の `internal/controller/conv` 翻案。[0070](0070-backend-role-separation.md) 型漏洩禁止)
+
+### fetch wrapper の resilience(go-boilerplate ADR 0019 の翻案)
+
+すべての outbound を fetch wrapper 経由に集約し(生 `fetch` を直接使わない)、以下を備える:
+
+- **dual timeout**: **per-attempt timeout** と **overall timeout** の二段を `AbortSignal` / `AbortController`(`AbortSignal.timeout()`)で表現する。backoff が overall を超える場合は retry を skip(deadline 尊重)。既定値(go: per-attempt 3s / overall 10s)は per-downstream に調整可能とする
+- **retry**: **idempotent メソッド(GET / PUT / DELETE)は retryable**、**POST / PATCH は明示 opt-in**(idempotency key 付与時のみ)。retryable 条件 = 5xx / 429 / transport error。**exponential backoff + full jitter**、`Retry-After` ヘッダを尊重する
+- **retry budget**: per-downstream の token bucket(既定 10%)で retry storm を防ぐ
+- **circuit breaker**: closed / half-open / open の状態機械(既定: 失敗率 0.5 / サンプル 20 / open 5s / half-open probe 3)。単一バックエンドでも、劣化時に叩き続けず fail-fast するために持つ
+- per-downstream の **Profile**(timeout / retry / breaker 設定)で調整し、未指定は既定 Profile を使う
+
+### エラー正規化(生 status を漏らさない)
+
+- 生の HTTP status を上位(feature / UI)に漏らさず、**`errors` カーネルの分類(sentinel)へ正規化**する([0021](0021-frontend-responsibility.md) errors)。HTTP status → 安定エラーコードの対応(go `http_error.go` の `NOT_FOUND` / `VALIDATION_FAILED` 等のテーブル)を翻案する
+- **正規化テーブル・ユーザ向けメッセージ変換の詳細は B6(エラーハンドリング)が正**。本 ADR は「adapters が生 status を正規化して errors 分類で返す」境界の存在を定める
+- ログは `logging` カーネル([0021](0021-frontend-responsibility.md)。config 値は注入で受ける)
+
+### response の runtime 検証の受け取り点
+
+- response は **`adapters` 境界で runtime validation**(zod `.parse()`)する。これは [0070](0070-backend-role-separation.md)(境界値所有 = フロントが契約破れの最後の砦)を実装する点であり、検証スキーマの生成は [0072](0072-api-type-generation.md)(B4 = orval + zod)が正
+- 検証に失敗した response(契約破れ)は正規化エラー(上記)として扱う
+
+### SSRF guard(条件付き)
+
+- フロント → 自社バックエンドの通常経路では SSRF guard は**不要**。`/api/*` BFF が**外部(信頼できない URL)を叩く**場合のみ、egress guard(go ADR 0020 相当)を検討する。本 ADR は「本体では不要・外部叩き時のみ」の方針のみ記す
+
+### Server Actions
+
+- 変更系の呼び出しは Server Action([0040](0040-routing-rendering-strategy.md)。feature 内 `actions.ts`)から adapters のクライアント経由で行う。Server Action は編成のみ・業務ロジックを持たない
+
+### データ取得のキャッシュ・再検証([0040](0040-routing-rendering-strategy.md) A4 からの引き渡し)
+
+[0040](0040-routing-rendering-strategy.md)(A4)は「レンダリングモードを強制しない / データ取得のキャッシュ設計は B3 へ引き渡す」までを定めた。その引き渡された**データ層のキャッシュ・再検証規約**を本 ADR が確定する(A4 の resilience とは別軸。Next.js のデータキャッシュの所有をここに置く):
+
+- **既定は uncached**([0040](0040-routing-rendering-strategy.md) の Next.js 16 事実 = `fetch` は既定でキャッシュされない)を土台とし、**キャッシュは opt-in**。用途を問わないグローバルキャッシュを既定で敷かない
+- **キャッシュ指定の所有層**: 何をキャッシュするかの宣言(`use cache` / `cache: 'force-cache'` 等)と再検証(`revalidateTag` / `revalidatePath` / `cacheLife` / `cacheTag`)は、**データ取得を所有する層 = `adapters`(fetch wrapper)と、それを呼ぶ Server Component / feature** が持つ。resilience 同様、コンポーネント各所に散らさず境界へ集約する
+- **cache tag 命名**は wire リソース(operationId / エンティティ)に対応させ、[0072](0072-api-type-generation.md) の生成境界と一貫させる。tag 体系の具体は実装 PR で確定
+- **ミューテーション後の再検証**: 変更系 Server Action(上記 / [0040](0040-routing-rendering-strategy.md) `actions.ts`)成功後は、影響する tag / path を `revalidateTag` / `revalidatePath` で無効化する(または `router.refresh()`)。「更新したのに画面が古い / 二重に再取得する」を防ぐ既定経路をこの層が定める
+- **重複排除**: 同一リクエスト内の重複 fetch は React `cache()` / fetch memoization で排除し、BFF・バックエンドへの重複呼び出しを抑止する
+- **`Cache Components`(PPR 既定化 = `next.config.ts` の `cacheComponents: true`)の有効化可否は [0040](0040-routing-rendering-strategy.md) の保留に従う**。有効化した場合の `use cache` / PPR 前提のキャッシュ設計もこの層が受け皿となる。具体値(何を・どれだけ・どの tag で)は用途依存のため実装 PR / fork 先で確定する(本 ADR は所有層と既定方針 = opt-in・境界集約・ミューテーション連動を定める)
+
+### 実装ライブラリ
+
+- retry / backoff / circuit breaker の実装は、標準 `fetch` + `AbortSignal` を土台に、必要なユーティリティを [0004](0004-library-management.md) の採用フロー(exact pin / `pnpm audit`)で実装 PR にて確定する
+
+## 禁止事項
+
+- ❌ コンポーネント・feature に生 `fetch` を散らすこと(adapters の wrapper 経由)
+- ❌ 生の HTTP status を上位へ漏らすこと(errors 分類へ正規化)
+- ❌ 非 idempotent メソッド(POST / PATCH)を idempotency key なしに無条件 retry すること
+- ❌ retry budget / circuit breaker なしに retry すること(retry storm 防止)
+- ❌ `adapters` の fetch wrapper に業務ロジックを書くこと(外部接続と変換のみ。[0021](0021-frontend-responsibility.md))
+- ❌ response を検証せず内層へ流すこと(adapters 境界で zod 検証。[0070](0070-backend-role-separation.md) / [0072](0072-api-type-generation.md))
+- ❌ キャッシュ / 再検証の指定をコンポーネント各所へ散らすこと(データ取得の所有層 = adapters / 呼び出す RSC に集約)
+- ❌ 用途を問わないグローバルキャッシュを既定で敷くこと(既定 uncached・opt-in)/ ミューテーション後に影響 tag / path を再検証せず古い表示を放置すること
+
+## 補足
+
+- 本 ADR の Accepted に伴い、AGENTS.md の `[TODO] BFF / API Integration` 節の削除・書き換えを実施する(未実施 — AGENTS.md は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する)
+- 再デプロイなしで変えたい値の BFF runtime config 逃し先([0030](0030-environment-variable-management.md) A7 が引き渡した責務)は、本層(BFF / API 統合)で扱う。キャッシュ必須・ユーザー体感レイテンシに載せない。具体設計(エンドポイント / キャッシュ方式)は本 ADR の方針の下、**実装 PR で確定**する(設計上の分岐が生じたら本 ADR を追補する)
+
+## 関連 ADR
+
+- [0070-backend-role-separation.md](0070-backend-role-separation.md)(A2)— thin proxy / 契約 SSOT / 境界値所有(本 ADR の親決定)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `adapters` / `errors` / `logging` カーネルの責務・依存
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters` の server/client 2 element 分割・client 側外部接続境界(本 ADR の adapters を細分)
+- [0072-api-type-generation.md](0072-api-type-generation.md)(B4)— 型 + zod 生成(response 検証スキーマの供給元)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Actions(変更系の呼び口)/ データ取得のキャッシュ設計を A4 から引き取り本 ADR「データ取得のキャッシュ・再検証」節で確定
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — BFF runtime config の逃し先(A7 からの引き渡し)
+- BACKLOG B6(エラーハンドリング)— HTTP status → エラー分類・ユーザ向けメッセージの正規化テーブル(本 ADR の error 正規化の詳細)
+- BACKLOG B7(観測性)— fetch wrapper のログ / トレース伝播
