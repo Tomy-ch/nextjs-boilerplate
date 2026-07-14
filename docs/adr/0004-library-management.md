@@ -8,6 +8,8 @@
 
 Accepted
 
+> 本 ADR は 0.0.x の living document。設計フェーズ中は本文を直接上書きし、逐次改定の履歴は残さない(不可変化 + 改定履歴の規律は v1 凍結時から。docs/plan/pre-implementation-decisions.md 決定 5)。
+
 ## 採用理由 / 目的
 
 - ライブラリ追加・更新時に **その都度ゼロから議論しない** ための判断基準を固定したい
@@ -81,6 +83,7 @@ Accepted
 - `pnpm outdated` で更新候補を一覧化
 - `pnpm audit` でセキュリティ警告を確認
 - マイナー / パッチ更新を 1 つの「ライブラリ更新 PR」に集約し、CI / 動作確認の上 merge
+- **ESLint → biome 移管判定**: ESLint 補完分（`eslint.config.mjs` の各ルール）について、`@biomejs/biome` の更新で biome が同等検査に対応したものが無いかを確認する。対応済みルールは ESLint から削除し biome へ移管する（[0002](0002-formatter-linter.md) の「ESLint による補完」= 能力ベース・縮小方向）。判定材料として `eslint.config.mjs` の各ルールに付す「なぜ biome で表現できないか」コメントを参照する
 
 ### 四半期〜半期
 
@@ -125,5 +128,5 @@ Accepted
 ## 関連 ADR
 
 - [0001-package-manager.md](0001-package-manager.md) — pnpm 採用 / lockfile 取り扱い
-- [0002-formatter-linter.md](0002-formatter-linter.md) — Biome 採用（dev ツール例）
+- [0002-formatter-linter.md](0002-formatter-linter.md) — Biome 採用（dev ツール例）/ ESLint 補完分の exact pin と移管判定
 - [0003-version-manager.md](0003-version-manager.md) — Node / pnpm 本体のバージョン固定（mise.toml）
