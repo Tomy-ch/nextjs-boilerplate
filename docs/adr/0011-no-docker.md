@@ -8,6 +8,37 @@
 
 Accepted
 
+- バッテリー採用への転換(2026-07-14・v1)
+
+## v1 バッテリー採用に伴う前提更新(性格転換)
+
+> 2026-07-14 追記(v1)。本 ADR の **ロール定義(Next.js を表示層として用いる / アプリ本体の no-Docker / PaaS・静的 CDN 配送)は不変**。変わるのは boilerplate の **性格(キャラクタ)** と **out-of-scope の意味** のみであり、禁止事項(exclusion)の中身は反転しない。**前提の更新であって除外の反転ではない**。
+
+### 性格の更新
+
+従来、本 boilerplate は「**最小・用途未定** の表示層テンプレート」として位置づけ、多くのライブラリ選定を out-of-scope(未決・seam)に置いていた。v1 ではこれを次のように更新する。
+
+- **v1 = 一般的な Next.js アプリケーション基盤**。汎用・常用のライブラリ(UI コンポーネント / form state / グローバル状態 / 表示フォーマット / 観測性 等)を **必要なものとして同梱** する(採用の内訳は各 ADR 本体と [docs/plan/adoption-matrix.md](../plan/adoption-matrix.md))。
+- **v2 = 局所的に使うライブラリ**(i18n / リッチテキスト / DnD / 決済 / 分析 / PWA 等)を **順次同梱** していく。それまでは seam を存続させる。
+
+これは「Next.js を表示層として用いる」というロール定義の **具体化** であって、ロールの拡張・変更ではない。表示層に必要な汎用ライブラリを boilerplate 側で決めておく、という粒度の更新にとどまる(バックエンド業務ロジック / DB・ORM / アプリ本体の self-host Docker は引き続きロール外)。
+
+### out-of-scope の性格の変化
+
+この更新で **out-of-scope の意味が変わる** 点に注意する。
+
+- 従来: out-of-scope ≒「**まだ決めていない / 最小に留める**」(ライブラリ選定の留保)。
+- v1 以降: out-of-scope ≒「**ロール境界の外**」(バックエンド業務ロジック / DB・ORM / アプリ本体の self-host Docker 等)。汎用ライブラリの「未決」は out-of-scope ではなく **v1 で決定済み** に移る。
+
+したがって本 ADR が定める Docker 非採用・表示層ロールの out-of-scope は、**「用途未定だから含めない」ではなく「ロール定義上そもそも対象外」** という、より明確な線引きへと性格が変わる。
+
+### 採用の規律([0010](0010-standards-and-non-lockin.md) / [0004](0004-library-management.md))
+
+v1 で同梱する各ライブラリの採用は、本 ADR ではなく個別 ADR が所有する。本 ADR はロール整合の観点からこれを参照するに留めるが、いずれの採用も次を必須とする。
+
+- [0010](0010-standards-and-non-lockin.md): デファクトに乗りつつ **vendor-independent な正当性材料を本体に明記**、かつ **adapters / カーネル境界の裏に置いて差し替え可能** に保つ(vendor 直参照を feature / component に散らさない)。
+- [0004](0004-library-management.md): コア依存は **exact-pin**、追加時に **`pnpm audit`**。
+
 ## 背景
 
 旧構成では Dockerfile（dev / builder / prd の 3 ステージ）と docker-compose.yml を同梱していたが、以下のドリフトが恒常的に発生していた。
@@ -145,4 +176,5 @@ Docker を維持する場合、以下を毎リリースで同期する必要が�
 
 - [0001-package-manager.md](0001-package-manager.md) — pnpm 採用（旧 Dockerfile が `npm ci` を使っていた点の根拠）
 - [0003-version-manager.md](0003-version-manager.md) — Node / pnpm バージョンの SSOT（Dockerfile FROM タグとの同期問題を消す根拠）
-- [Toolchain-0005-library-management.md](Toolchain-0005-library-management.md) — `sharp` の prebuilt binary 等、現代ライブラリの system 依存に関する評価指針
+- [0004-library-management.md](0004-library-management.md) — `sharp` の prebuilt binary 等、現代ライブラリの system 依存に関する評価指針 / v1 同梱ライブラリの exact-pin・`pnpm audit`
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — v1 バッテリー採用の規律(vendor-independent 正当化 + adapters/seam 越し差替可能)。本 ADR の表示層ロール定義は 0010 §2「フレームワーク選択は別既決」の根拠でもある
