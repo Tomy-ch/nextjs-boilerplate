@@ -7,6 +7,8 @@ hook の役割は「壊れた状態を CI に到達させない第一段の防�
 
 Accepted
 
+> 本 ADR は 0.0.x の living document。設計フェーズ中は本文を直接上書きし、逐次改定の履歴は残さない(不可変化 + 改定履歴の規律は v1 凍結時から。docs/plan/pre-implementation-decisions.md 決定 5)。
+
 ## 採用理由 / 目的
 
 - ローカルで lint / format / 型エラーを早期検出し、CI 失敗による待ち時間を削減する
@@ -18,7 +20,7 @@ Accepted
 
 [lefthook](https://github.com/evilmartians/lefthook) を採用する。
 
-インストールは npm devDependency 経由 (`pnpm add -D lefthook`)。バージョンは exact pin とする (Toolchain-0005 のコア dev ツール扱い)。
+インストールは npm devDependency 経由 (`pnpm add -D lefthook`)。バージョンは exact pin とする (0004 のコア dev ツール扱い)。
 
 ### lefthook を選んだ理由
 
@@ -35,9 +37,12 @@ Accepted
 
 | 段階 | 目的 | 想定処理 | 速度目標 |
 | --- | --- | --- | --- |
-| pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint` (biome check) / staged ファイルの format チェック | < 5 秒 |
-| pre-push | 「壊れた push を上げない」 | 型チェック (`pnpm exec tsc --noEmit`) / テスト (整備後) | < 30 秒 |
+| pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) | < 5 秒 |
+| pre-push | 「壊れた push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / テスト (整備後) | < 30 秒 |
 | (CI) | 権威ある検査 | lint / 型 / test / build / e2e 等 | 制約なし |
+
+- pre-commit で走らせる biome は、エディタ保存時の簡易版ではなく **完全版** (`pnpm lint:ci`)。保存時は軽量・commit 時は厳格という二段構え（プロファイル分割の詳細は [0002-formatter-linter.md](0002-formatter-linter.md)）
+- biome は Rust 実装で高速なため、完全版（`noImportCycles` の複数ファイル走査を含む）でも本リポジトリ規模では sub-second に収まり、速度目標を満たす
 
 ### 設計原則
 
@@ -50,12 +55,16 @@ Accepted
 
 Next.js の build (`pnpm build`) はキャッシュが効いても数秒〜数十秒かかる。commit のたびにこれを走らせると hook が「邪魔」となり、`--no-verify` の常用を誘発する。build 相当の最終検査は CI に委ねる。
 
+### ESLint 境界検査の pre-commit 組込みと速度目標
+
+[0002](0002-formatter-linter.md) の「biome 優先 + ESLint 補完」方針に基づき、ESLint の層境界検査は導入後 `pnpm lint:ci` の一部として **pre-commit に glob スコープで組み込む**（変更ファイルに関係する層のみを対象にし、リポジトリ全体走査を避ける）。ただし ESLint（TS resolver を伴う boundaries 検査）を加えた結果 pre-commit の速度目標（< 5 秒）を超える場合は、ESLint 実行のみを **pre-push 側へ退避してよい**。これは commands 粒度の調整であり本 ADR の改訂を要しない（後述「改変ルール」）。なお速度目標そのものの引き上げは ADR 改訂を要する。
+
 ## bypass ポリシー
 
 ### 通常運用
 
 - `git commit --no-verify` / `git push --no-verify` の **常用は禁止**
-- やむを得ず bypass した場合は、**直後に同等の検査を手動で実行** する (`pnpm lint` / `pnpm exec tsc --noEmit`)
+- やむを得ず bypass した場合は、**直後に同等の検査を手動で実行** する (`pnpm lint:ci` / `pnpm typecheck`)
 
 ### 例外: 関連コミットの分割時
 
@@ -63,7 +72,7 @@ Next.js の build (`pnpm build`) はキャッシュが効いても数秒〜数�
 
 ただし以下を守る:
 
-- PR 内のすべての commit を積み終わった時点で、**必ず 1 回 hook 相当の検査をローカルで通す** (`pnpm lint && pnpm exec tsc --noEmit`)
+- PR 内のすべての commit を積み終わった時点で、**必ず 1 回 hook 相当の検査をローカルで通す** (`pnpm lint:ci && pnpm typecheck`)
 - 「途中の commit が壊れていてもよい」のはあくまでローカル中間状態。push の時点では pre-push が動くため、最終的に検査される
 
 ### 禁止される bypass
@@ -81,7 +90,7 @@ Next.js の build (`pnpm build`) はキャッシュが効いても数秒〜数�
 | 設定の所在 | `.lefthook.yaml` | `.github/workflows/` |
 | skip 可否 | bypass 可 (例外運用のみ) | bypass 不可 |
 
-- hook と CI で **同じコマンド** (例: `pnpm lint`) を呼ぶ。ローカル ↔ CI で振る舞いを揃える
+- hook と CI で **同じコマンド** (例: `pnpm lint:ci`) を呼ぶ。ローカル ↔ CI で振る舞いを揃える
 - hook がローカルでスキップされても CI が拾うため、最終的な品質ガードは CI 側に依拠する
 - hook が「うざくて誰も使わない」状態は CI 単独運用と同義であり、避けるべき。本 ADR の速度目標を守ること
 
@@ -92,23 +101,23 @@ pnpm install                  # devDependency として lefthook が入る
 pnpm exec lefthook install    # .git/hooks/ に symlink を配置
 ```
 
-`postinstall` で `lefthook install` を自動実行する選択肢もあるが、CI / Docker ビルド時に不要な hook 配置を避けるため、本リポジトリでは **明示的に `lefthook install` を呼ぶ** 設計とする。README に手順を記載すること。
+`postinstall` で `lefthook install` を自動実行する選択肢もあるが、CI ビルド時に不要な hook 配置を避けるため、本リポジトリでは **明示的に `lefthook install` を呼ぶ** 設計とする。README に手順を記載すること。
 
 ## 設定の最小構成
 
-`.lefthook.yaml` の最小構成は以下の形を基準とする。
+`.lefthook.yaml` の構成は以下を基準とする（本リポジトリの現行値）。
 
 ```yaml
 pre-commit:
   parallel: true
   commands:
     lint:
-      run: pnpm lint
+      run: pnpm lint:ci   # biome 完全版 (biome.ci.jsonc + --error-on-warnings)
 
 pre-push:
   commands:
     typecheck:
-      run: pnpm exec tsc --noEmit
+      run: pnpm typecheck  # tsc --noEmit
 ```
 
 ### 改変ルール
@@ -127,7 +136,7 @@ pre-push:
 - ❌ CI 側で hook 相当の検査をスキップすること
 - ❌ `.git/hooks/` 配下に直接 shell script を書き込むこと (lefthook 経由のみ)
 - ❌ hook 設定を `.lefthook.yaml` 以外のファイル (script / Makefile 等) に分散させること
-- ❌ lefthook 自体のバージョンを caret (`^`) で指定すること (Toolchain-0005 のコア dev ツール方針に従い exact pin)
+- ❌ lefthook 自体のバージョンを caret (`^`) で指定すること (0004 のコア dev ツール方針に従い exact pin)
 
 ## 補足
 
@@ -138,6 +147,6 @@ pre-push:
 
 ## 関連 ADR
 
-- [0002-formatter-linter.md](0002-formatter-linter.md) — `pnpm lint` で実際に呼ばれる biome の設定方針
-- [Toolchain-0005-library-management.md](Toolchain-0005-library-management.md) — lefthook を devDependency として exact pin する根拠
-- [Dev-0002.md](Dev-0002.md) — hook 通過後の commit / PR / リリース運用フロー
+- [0002-formatter-linter.md](0002-formatter-linter.md) — `pnpm lint:ci` で呼ばれる biome 完全版 (`biome.ci.jsonc`) と簡易版のプロファイル分割
+- [0004-library-management.md](0004-library-management.md) — lefthook を devDependency として exact pin する根拠
+- [0150-git-workflow.md](0150-git-workflow.md) — hook 通過後の commit / PR / リリース運用フロー

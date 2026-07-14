@@ -112,7 +112,7 @@ release/v<major>.<minor>.<patch>          例: release/v0.1.0
 例:
 
 ```text
-Docs: ADR 0004 を Type A / Type B 区別で補強
+Docs: ADR 0011 を Type A / Type B 区別で補強
 Build: Dockerfile を削除し pnpm 採用方針と整合させる
 Fix: route handler の query 取得を Next.js 16 API に合わせる
 ```
@@ -120,7 +120,7 @@ Fix: route handler の query 取得を Next.js 16 API に合わせる
 ### スコープ分割の原則
 
 - **1 PR に複数の論理変更が混ざる場合はコミットを分割** する (例: Refactor + Feat、Docs + Fix)
-- メジャー依存の更新 (`next` / `react` / `@biomejs/biome` 等のメジャーアップ) は他の機能変更と同じコミット・PR に混ぜない (Toolchain-0005 と整合)
+- メジャー依存の更新 (`next` / `react` / `@biomejs/biome` 等のメジャーアップ) は他の機能変更と同じコミット・PR に混ぜない (0004 と整合)
 - フォーマッタ起因の大量変更は `Style:` で別コミットに切り出し、レビュアーがロジック差分に集中できるようにする
 - 生成物 (`pnpm-lock.yaml` 等) の変更は原因コミットと同じコミットに含める (lockfile だけ別コミットにしない)
 
@@ -198,5 +198,5 @@ PR タイトルも日本語で書き、関連 issue / ADR を本文末尾に記�
 ## 関連 ADR
 
 - [0001-package-manager.md](0001-package-manager.md) — `pnpm-lock.yaml` を commit する方針 (lockfile の手動編集禁止)
-- [Toolchain-0005-library-management.md](Toolchain-0005-library-management.md) — 依存ライブラリ更新 PR の粒度 (メジャー更新は別 PR)
-- [Toolchain-0006-git-hooks.md](Toolchain-0006-git-hooks.md) — pre-commit / pre-push hook の運用方針
+- [0004-library-management.md](0004-library-management.md) — 依存ライブラリ更新 PR の粒度 (メジャー更新は別 PR)
+- [0151-git-hooks.md](0151-git-hooks.md) — pre-commit / pre-push hook の運用方針

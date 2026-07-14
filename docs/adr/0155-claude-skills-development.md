@@ -2,7 +2,7 @@
 
 本プロジェクトでは、コード / ドキュメントの生成・編集・レビューに付帯する **開発フロー** を Claude Code の **スキル** として `.claude/skills/` 配下に配置する。本 ADR では開発系スキルの配置 / 命名 / 構造 / subagent パターン / カバー範囲を定義する。
 
-運用系スキル (コミット / PR / リリース / 依存監査 等) は [Dev-0004.md](Dev-0004.md) で別途扱う。
+運用系スキル (コミット / PR / リリース / 依存監査 等) は [0154-claude-skills-operations.md](0154-claude-skills-operations.md) で別途扱う。
 
 ## Status
 
@@ -25,11 +25,11 @@ Accepted
 - 設定編集 (環境変数の e2e 追加等)
 - コードレビュー (adversarial / 多視点)
 
-運用系 (Git 操作 / リリース / 依存監査) は Dev-0004 で扱う。
+運用系 (Git 操作 / リリース / 依存監査) は 0154 で扱う。
 
 ## 配置・命名・frontmatter
 
-配置・命名・frontmatter の規約は **Dev-0004 と共通** ([Dev-0004.md](Dev-0004.md) 参照)。
+配置・命名・frontmatter の規約は **0154 と共通** ([0154-claude-skills-operations.md](0154-claude-skills-operations.md) 参照)。
 
 要約:
 
@@ -114,13 +114,13 @@ local-review (orchestrator)
 
 すべての開発系スキルは以下を共通参照する:
 
-- **AGENTS.md の Instruction Priority と Language Rules**: [Dev-0003](Dev-0003.md)
+- **AGENTS.md の Instruction Priority と Language Rules**: [0152](0152-agents-md-policy.md)
 - **ドキュメント運用ポリシー (BACKLOG D1)**: canonical EN / 翻訳 JA の同期方針
 - **`canonicalize-doc` / `sync-readme` / `readme-review` のドメイン分担**: 本 ADR の「ドキュメント系の責務分担」表
 
 ## 禁止事項
 
-- ❌ 開発系スキルから商用操作 (push / tag / release) を行うこと (運用系 = Dev-0004 の領域)
+- ❌ 開発系スキルから商用操作 (push / tag / release) を行うこと (運用系 = 0154 の領域)
 - ❌ subagent をモデル分散 (reviewer ≠ implementer) なしで「念のため」増やすこと (コスト見合いに合わない)
 - ❌ subagent に code edit 権限を渡すこと (read-only 原則)
 - ❌ `new-env` を再設計せずに本リポジトリで実行すること (go-boilerplate のパスを誤って前提とする)
@@ -134,6 +134,6 @@ local-review (orchestrator)
 
 ## 関連 ADR
 
-- [Dev-0002.md](Dev-0002.md) — `local-review` が想定する「commit / PR 前」のタイミング
-- [Dev-0003.md](Dev-0003.md) — AGENTS.md の Instruction Priority と Modification Scope
-- [Dev-0004.md](Dev-0004.md) — 運用系スキルとの対 (配置・命名・frontmatter は共通)
+- [0150-git-workflow.md](0150-git-workflow.md) — `local-review` が想定する「commit / PR 前」のタイミング
+- [0152-agents-md-policy.md](0152-agents-md-policy.md) — AGENTS.md の Instruction Priority と Modification Scope
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — 運用系スキルとの対 (配置・命名・frontmatter は共通)
