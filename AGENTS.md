@@ -11,7 +11,7 @@ This repository is a **Next.js / React presentation-layer boilerplate**.
 - **Target deployment**: PaaS (Vercel / Netlify / AWS Amplify / Cloudflare Pages) or static CDN
 - **Backend** (DB / authentication / business logic) is operated as a separate repository / service
 
-See [docs/adr/0004-no-docker.md](docs/adr/0004-no-docker.md) for details.
+See [docs/adr/0011-no-docker.md](docs/adr/0011-no-docker.md) for details.
 
 ### This is NOT the Next.js you know
 
@@ -22,7 +22,7 @@ This project adopts Next.js 16 / React 19, so APIs, conventions, and file struct
 Follow instructions in this order. If conflicts occur, the higher-priority document wins.
 
 1. **AGENTS.md** (this file) — Repository-wide operational rules
-2. **`docs/adr/000?-*.md`** — Accepted architectural decisions (ADRs)
+2. **`docs/adr/*.md`** — Accepted architectural decisions (ADRs)
 3. **`docs/adr/BACKLOG.md`** — Pending decision areas + de facto state
 4. **`.github/copilot-instructions.md`** and other agent-specific configs
 5. User instructions
@@ -34,325 +34,81 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | ADR | Area | Summary |
 | --- | --- | --- |
 | [0001](docs/adr/0001-package-manager.md) | Package manager | Adopt pnpm / lockfile must be committed / npm and yarn forbidden |
-| [0002](docs/adr/0002-formatter-linter.md) | Formatter / Linter | Unify on biome / ESLint and Prettier not adopted |
+| [0002](docs/adr/0002-formatter-linter.md) | Formatter / Linter | biome-first / ESLint only for checks biome cannot express (e.g. layer-boundary imports) / formatter is biome alone / Prettier not adopted |
 | [0003](docs/adr/0003-version-manager.md) | Version manager | `mise.toml` as SSOT / mise must not extend into delivery layers |
-| [0004](docs/adr/0004-no-docker.md) | Delivery / Role | Next.js as presentation layer / no Docker for app delivery |
-| [Toolchain-0005](docs/adr/Toolchain-0005-library-management.md) | Library policy | Core deps exact-pinned / major updates in separate PRs / `pnpm audit` required |
-| [Dev-0002](docs/adr/Dev-0002.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
-| [Toolchain-0006](docs/adr/Toolchain-0006-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
-| [Dev-0003](docs/adr/Dev-0003.md) | AGENTS.md policy | File placement / language / 12-section structure / Instruction Priority / `## [TODO]` convention |
-| [Dev-0004](docs/adr/Dev-0004.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
-| [Dev-0005](docs/adr/Dev-0005.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` redesign note |
+| [0004](docs/adr/0004-library-management.md) | Library policy | Core deps exact-pinned / major updates in separate PRs / `pnpm audit` required |
+| [0010](docs/adr/0010-standards-and-non-lockin.md) | Design principle | Standards conformance & non-lock-in (permanent meta judgment axes) |
+| [0011](docs/adr/0011-no-docker.md) | Delivery / Role | Next.js as presentation layer / no Docker for app delivery |
+| [0020](docs/adr/0020-adopted-architecture.md) | Architecture pattern | Adopted architecture / inward dependency / structural boundary types / no type leakage |
+| [0021](docs/adr/0021-frontend-responsibility.md) | Frontend responsibility | Layer responsibilities / kernel naming discipline / import boundaries |
+| [0022](docs/adr/0022-capabilities-kernel.md) | `capabilities` kernel | Cross-cutting client-hook kernel |
+| [0023](docs/adr/0023-stores-kernel.md) | `stores` kernel | cross-cutting client-state kernel |
+| [0024](docs/adr/0024-adapters-server-client-split.md) | adapters split | server/client split / client-side external-connection boundary |
+| [0025](docs/adr/0025-app-layer-elements.md) | app layer elements | Route Handler / metadata element composition |
+| [0026](docs/adr/0026-layout-shell-mount.md) | Layout shell mount | cross-cutting UI / Provider mount (app shell composition) |
+| [0027](docs/adr/0027-directory-structure.md) | Directory structure | Physical layout under `src/` / co-location policy |
+| [0028](docs/adr/0028-naming-convention.md) | Naming convention | All-source kebab-case files / identifier casing / route segments / env `{SUBSYSTEM}_{NAME}` |
+| [0030](docs/adr/0030-environment-variable-management.md) | Env variables | `env/` structure / typed config loader / `NEXT_PUBLIC_` boundary / secrets |
+| [0031](docs/adr/0031-policy-state-supply.md) | Policy state supply | consent / feature-flag state supply policy |
+| [0040](docs/adr/0040-routing-rendering-strategy.md) | Routing / rendering | App Router / Server vs Client Components / CSR-SSR-SSG-ISR / Server Actions |
+| [0041](docs/adr/0041-cache-components-decision.md) | Cache Components (PPR) | enablement decision |
+| [0042](docs/adr/0042-react19-rendering-api.md) | React 19 rendering API | rendering API conventions |
+| [0043](docs/adr/0043-middleware-policy.md) | Middleware (proxy) | Middleware policy |
+| [0044](docs/adr/0044-seo-metadata-strategy.md) | SEO / metadata | metadata API strategy |
+| [0045](docs/adr/0045-fonts-and-images.md) | Fonts / images | `next/font` / `next/image` policy |
+| [0050](docs/adr/0050-styling-strategy.md) | Styling strategy | Tailwind v4 + design tokens / `cn()` helper / CSS Modules limited allowance |
+| [0051](docs/adr/0051-styling-system.md) | Styling system | design tokens / responsive / motion (Framer Motion) / print |
+| [0052](docs/adr/0052-ui-component-policy.md) | UI component policy | shadcn/ui + lucide adopted |
+| [0053](docs/adr/0053-ui-component-interaction-seam.md) | UI interaction seam | UI component policy + interaction a11y seam |
+| [0054](docs/adr/0054-ui-catalog-storybook.md) | UI catalog | Storybook policy |
+| [0060](docs/adr/0060-state-management.md) | State management | react-hook-form / Zustand adopted / server-state policy |
+| [0061](docs/adr/0061-form-mutation-ux.md) | Form submission UX | `<form action>` + `useActionState` + `useFormStatus` canonical mechanism |
+| [0062](docs/adr/0062-form-input-validation.md) | Form validation UX | client validation / generated-zod reuse boundary |
+| [0063](docs/adr/0063-mutation-result-notification.md) | Mutation notification | inline / toast / redirect + live-region UX |
+| [0070](docs/adr/0070-backend-role-separation.md) | Backend role | Next.js responsibility line / backend contract / domain-logic placement |
+| [0071](docs/adr/0071-bff-api-integration.md) | BFF / API integration | `/api/*` scope / external API clients / fetch wrapper |
+| [0072](docs/adr/0072-api-type-generation.md) | API type generation | Generated from OpenAPI/GraphQL / generated-artifact "do not edit" rules |
+| [0073](docs/adr/0073-pagination-fetch-boundary.md) | Pagination fetch | pagination / infinite-scroll data-fetch boundary |
+| [0074](docs/adr/0074-runtime-communication-seam.md) | Realtime comm seam | WebSocket / SSE seam |
+| [0075](docs/adr/0075-bff-external-boundary-seam.md) | File upload seam | presigned direct PUT default / multipart proxy exception |
+| [0076](docs/adr/0076-payment-ui-seam.md) | Payment UI seam | mount seam & PCI boundary |
+| [0077](docs/adr/0077-bff-abuse-protection-boundary.md) | BFF abuse protection | infra / edge seam boundary |
+| [0078](docs/adr/0078-dynamic-feature-flag-seam.md) | Feature-flag seam | dynamic feature flag / staged rollout (A-B) seam |
+| [0079](docs/adr/0079-auth-frontend-seam.md) | Auth frontend seam | authentication front-side seam |
+| [0080](docs/adr/0080-error-handling.md) | Error handling | `error.tsx`/`not-found.tsx` responsibilities / backend-error normalization |
+| [0081](docs/adr/0081-observability-logging.md) | Observability / logging | OTLP / OTel vendor-neutral (Sentry not adopted) / structured logs |
+| [0082](docs/adr/0082-client-observability.md) | Client observability | Web Vitals RUM / client error collection / analytics seam |
+| [0090](docs/adr/0090-testing-strategy.md) | Testing strategy | Framework selection / per-layer responsibilities / co-location |
+| [0091](docs/adr/0091-testing-and-catalog-policy.md) | Test verification | async RSC test placement / a11y automated-test integration |
+| [0100](docs/adr/0100-accessibility-target.md) | Accessibility target | Target conformance level |
+| [0101](docs/adr/0101-performance-budget.md) | Performance budget | Core Web Vitals budget |
+| [0102](docs/adr/0102-browser-support.md) | Browser support | Support matrix |
+| [0110](docs/adr/0110-security-operations.md) | Security ops | `pnpm audit` threshold / Dependabot–Renovate / secret scanning |
+| [0111](docs/adr/0111-csp-security-headers.md) | CSP / security headers | runtime CSP & security headers |
+| [0120](docs/adr/0120-locale-aware-formatting.md) | Locale formatting | date/number formatting + date-fns date arithmetic |
+| [0121](docs/adr/0121-i18n-strategy.md) | i18n (exclusion) | i18n not adopted (negative decision) |
+| [0130](docs/adr/0130-pwa-strategy.md) | PWA (exclusion) | PWA not adopted (negative decision) |
+| [0131](docs/adr/0131-cookie-consent.md) | Cookie consent (exclusion) | Consent management not adopted (negative decision) |
+| [0140](docs/adr/0140-documentation-operations.md) | Documentation ops | Canonical EN / JA translation-pair operation |
+| [0141](docs/adr/0141-portal-operations.md) | Portal ops | `docs/portal/manifest.yaml` curation |
+| [0142](docs/adr/0142-license.md) | License | MIT / OSS contribution policy / `private` flag alignment |
+| [0150](docs/adr/0150-git-workflow.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
+| [0151](docs/adr/0151-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
+| [0152](docs/adr/0152-agents-md-policy.md) | AGENTS.md policy | File placement / language / 12-section structure / Instruction Priority / `## [TODO]` convention |
+| [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / required checks / caching |
+| [0154](docs/adr/0154-claude-skills-operations.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
+| [0155](docs/adr/0155-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` redesign note |
+
+> **ADR numbering is finalized (2026-07-14): topical decade-bands.** Numbers are grouped by subject into decade bands (e.g. `002x` architecture, `004x` routing/rendering, `005x` styling/UI, `007x` data/BFF, `008x` error/observability, `015x` process/dev-ops); the former `Toolchain-` / `Dev-` prefixed ADRs were folded into the numeric sequence (`0150`+). Gaps between bands are reserved for future insertion. Each ADR body remains authoritative.
 
 ## Pending Decisions
 
-A large set of decisions (overall architecture / responsibility separation / directory structure / state management / error handling / testing strategy / CI configuration, etc.) is **not yet settled**. See [`docs/adr/BACKLOG.md`](docs/adr/BACKLOG.md).
+The major design decisions are now settled as ADRs (`0001`–`0155` across topical bands; the A / B / C / D groups are all authored, including the negative "exclusion" decisions). The `## [TODO]` placeholder sections that this file used to carry — one per undecided area, each with its own "provisional behavior" — have been removed because the corresponding ADRs are now authoritative. The remaining blank slots and not-yet-written design seams are tracked in [`docs/adr/BACKLOG.md`](docs/adr/BACKLOG.md); the ADR bodies are the source of truth and this file only summarizes them.
 
-For areas where implementation cannot proceed without a decision, this file holds **`## [TODO]` sections** as provisional placeholders. Each TODO section specifies (1) **what must be decided** and (2) **provisional behavior until decided**.
+When a change forces you into an area that BACKLOG still leaves blank (no accepted ADR yet):
 
-Selection criterion: only items that **directly block implementation work** are surfaced here. BACKLOG.md tracks the complete set (including non-blocking items such as some Tier 4 sub-areas, Tier 5 optional-feature ADRs, and Tier 6 docs-meta items); not every BACKLOG entry has a corresponding `[TODO]` section in this file.
-
-When a change forces you to enter a pending area:
-
-1. Check the relevant `[TODO]` section's "provisional behavior" and stay within it
-2. **Do not introduce new conventions, patterns, or libraries on your own**. Defer the ADR decision to the user
-3. If a provisional implementation is unavoidable, explicitly tell the user it is a "provisional implementation" before starting work
-
----
-
-## [TODO] Overall Architecture Pattern
-
-> **Pending** — BACKLOG A1
-
-**Must be decided**:
-
-- Overall pattern (feature-sliced design / layered / vertical slice / custom pattern, etc.)
-- Patterns that will not be adopted, and why
-- Overall dependency direction (which layer may import from which)
-
-**Provisional behavior until decided**:
-
-- Do not create pattern-specific directory names (`domain/` / `usecase/` / `presentation/` from DDD / Onion / Hexagonal, etc.) on your own
-- Do not enforce pattern-specific dependency constraints (e.g., "`domain` may not import anything external") in code on your own
-- Do not introduce helpers or abstractions that presuppose a new architecture pattern
-
----
-
-## [TODO] Backend Role Separation
-
-> **Pending** — BACKLOG A2 (concretization of [ADR 0004](docs/adr/0004-no-docker.md))
-
-**Must be decided**:
-
-- Responsibilities Next.js holds (UI / auth token exchange / BFF / aggregation, etc. — up to which line)
-- Contract with the backend (REST / GraphQL / RPC) and where the API spec SSOT lives
-- Where domain logic resides (presumed backend, but the concrete boundary is undefined)
-
-**Provisional behavior until decided**:
-
-- Do not write business logic in `/api/*` routes (only thin proxy / token exchange is allowed)
-- Do not add DB connection code or ORM libraries under `src/` (consistent with ADR 0004)
-- Do not duplicate the backend API spec as hand-written types in `src/`
-
----
-
-## [TODO] Frontend Responsibility Separation
-
-> **Pending** — BACKLOG A3
-
-**Must be decided**:
-
-- Whether layer concepts (`components` / `hooks` / `features` / `lib`, etc.) exist and their responsibilities
-- Dependency direction between layers (which may import from which)
-- Boundary-violation prohibitions (e.g., "components do not fetch directly", "side effects are concentrated in hooks")
-
-**Provisional behavior until decided**:
-
-- Before adding a new directory directly under `src/`, **confirm with the user**
-- Do not add layer-presuming helpers on your own (e.g., importing from `src/components/` inside `src/features/`)
-
----
-
-## [TODO] Routing & Rendering Strategy
-
-> **Pending** — BACKLOG A4 (de facto: App Router adopted / `src/app/` structure)
-
-**Must be decided**:
-
-- Default and boundary of Server Components vs Client Components (where to place `"use client"`)
-- CSR / SSR / SSG / ISR usage policy
-- Whether to adopt Server Actions
-- Use of dynamic / static / catch-all routes
-- Placement of `loading.tsx` / `error.tsx`
-
-**Provisional behavior until decided**:
-
-- Default to Next.js App Router behavior (Server Components)
-- Keep `"use client"` additions minimal and document the reason in the commit message
-- Do not add Pages Router (App Router only)
-
----
-
-## [TODO] Directory Structure
-
-> **Pending** — BACKLOG A5 (de facto: `src/` + tsconfig `@/*` alias)
-
-**Must be decided**:
-
-- Physical layout under `src/` (`components/` / `hooks/` / `features/` / `lib/` / `utils/`, etc.)
-- Co-location policy (whether tests / Storybook / styles sit alongside their target files)
-- Granularity of shared modules (per-file vs per-folder)
-
-**Provisional behavior until decided**:
-
-- Keep new directory creation minimal; **confirm with the user** when needed
-- Stay within structures that fit on top of the existing `src/app/`
-- Use the tsconfig `@/*` alias for import paths
-
----
-
-## [TODO] Naming Convention
-
-> **Pending** — BACKLOG A6
-
-**Must be decided**:
-
-- File names (kebab-case vs PascalCase usage)
-- Naming for React components / hooks / types / constants
-- App Router route segment names (dynamic `[slug]` / catch-all `[...slug]`, etc.)
-- Test file extensions (consistent with the test ADR (B8))
-
-**Provisional behavior until decided**:
-
-- Follow the naming of existing files (`src/app/layout.tsx` / `src/app/page.tsx`)
-- Do not mix cases (follow App Router's convention = lowercase)
-- Do not introduce new patterns on your own
-
----
-
-## [TODO] Environment Variable Management
-
-> **Pending** — BACKLOG A7
-
-**Must be decided**:
-
-- Structure of the `env/` directory (`env/.env.{local,ci,dev,stg,prd}` etc.)
-- Whether to have a typed Config loader and its design (`src/config/`, etc.)
-- `NEXT_PUBLIC_` boundary (which variables are allowed to leak to the browser)
-- Secret management boundary (mapping to Vercel / Amplify secret stores)
-
-**Provisional behavior until decided**:
-
-- Adding an environment variable requires **user confirmation**
-- Do not read `.env*` files directly; stay with Next.js's standard `process.env`
-- Do not expose secret variables under a `NEXT_PUBLIC_` prefix
-
----
-
-## [TODO] Styling Strategy
-
-> **Pending** — BACKLOG B1 (de facto: Tailwind v4 + `postcss.config.mjs` + `src/app/globals.css`)
-
-**Must be decided**:
-
-- Design token management (Tailwind config / CSS variables, etc.)
-- Adoption and placement of `clsx` / `cn()` helpers
-- Boundary between global and local styles
-- Explicit non-adoption policy for alternatives (CSS Modules / styled-components, etc.)
-
-**Provisional behavior until decided**:
-
-- Default to Tailwind utility classes for styling
-- **Do not introduce** CSS Modules / styled-components / emotion, etc. on your own
-- Avoid piling rules into `globals.css`; first check whether utilities cover it
-
----
-
-## [TODO] BFF / API Integration
-
-> **Pending** — BACKLOG B3 (start after A1 / A2 / A4 / A5 are settled)
-
-**Must be decided**:
-
-- Responsibility scope of `/api/*` (thin proxy / token exchange / session management / aggregation, etc.)
-- Location of external API clients (e.g., `src/lib/api/`)
-- fetch wrapper layer (retry / timeout / error transformation / logging)
-- Use of Server Actions
-
-**Provisional behavior until decided**:
-
-- Do not scatter ad-hoc fetch code inside components
-- Do not duplicate external API schemas in multiple places under `src/`
-- Do not introduce custom retry / timeout implementations on your own (use the standard `fetch` as is)
-
----
-
-## [TODO] Type Generation (API Schema)
-
-> **Pending** — BACKLOG B4
-
-**Must be decided**:
-
-- Whether API types are **generated** from OpenAPI / GraphQL schema or hand-written
-- Generator choice (openapi-typescript / oapi-codegen / graphql-codegen, etc.)
-- Location of generated artifacts and the "do not edit" rules
-
-**Provisional behavior until decided**:
-
-- Do not duplicate API types in multiple places under `src/`
-- Do not hand-write files that should be treated as generated (minimize hand-written types before the generator is introduced)
-
----
-
-## [TODO] State Management
-
-> **Pending** — BACKLOG B5
-
-**Must be decided**:
-
-- Whether to adopt Server state (TanStack Query, etc.) and where to place it
-- Whether to adopt Client state (Zustand / Jotai / Context API) and where to place it
-- Whether to adopt Form state (react-hook-form, etc.)
-- URL state (search params / route params) usage policy
-
-**Provisional behavior until decided**:
-
-- Do not introduce global state libraries (Redux / Zustand / Jotai, etc.) on your own
-- Avoid Context overuse; start with local state (`useState` / `useReducer`)
-- Default Server state to `fetch` inside a Server Component
-
----
-
-## [TODO] Error Handling
-
-> **Pending** — BACKLOG B6
-
-**Must be decided**:
-
-- Responsibilities of App Router's `error.tsx` / `not-found.tsx` / `global-error.tsx`
-- Error Boundary hierarchy and granularity
-- Normalization policy for backend errors (HTTP status → user-facing message)
-- Timing of logging emission
-
-**Provisional behavior until decided**:
-
-- Do not add `error.tsx` and similar special files on your own; let App Router's defaults run
-- Confirm with the user before placing custom Error types under `src/lib/`
-
----
-
-## [TODO] Observability / Logging
-
-> **Pending** — BACKLOG B7
-
-**Must be decided**:
-
-- Structured log schema and destination (browser → BFF relay vs direct external SaaS)
-- Adoption of Sentry / Datadog / Honeycomb, etc.
-- Adoption of OpenTelemetry
-- Trace ID propagation policy
-
-**Provisional behavior until decided**:
-
-- Do not add observability SaaS SDKs (Sentry / Datadog, etc.) on your own
-- Do not leave `console.log` calls in commits (biome's `noConsole: warn` is enabled by default / ADR 0002)
-
----
-
-## [TODO] Testing Strategy
-
-> **Pending** — BACKLOG B8
-
-**Must be decided**:
-
-- Test framework selection (Vitest / Jest / Playwright)
-- Per-layer responsibilities (unit / component / integration / e2e)
-- Coverage targets and their scope
-- Placement and naming convention (co-location / `__tests__` / extension)
-- Server Components testing policy
-
-**Provisional behavior until decided**:
-
-- Do not add a test framework to `package.json` on your own
-- When tests become necessary, **propose ADR formalization to the user**
-- If existing skills (`.claude/skills/`) cover testing, follow their instructions
-
----
-
-## [TODO] CI Configuration
-
-> **Pending** — BACKLOG B9
-
-**Must be decided**:
-
-- GitHub Actions job partitioning (lint / typecheck / test / build / e2e units)
-- Required check specification
-- Caching strategy (pnpm store / Next.js build cache)
-- Matrix (Node.js versions / OS)
-- Overlap boundary with hooks ([Toolchain-0006](docs/adr/Toolchain-0006-git-hooks.md))
-
-**Provisional behavior until decided**:
-
-- Do not add new workflows under `.github/workflows/` on your own
-- Prioritize **running lint / typecheck / build locally**
-
----
-
-## [TODO] Security Operations
-
-> **Pending** — BACKLOG B10 (extension of [Toolchain-0005](docs/adr/Toolchain-0005-library-management.md))
-
-**Must be decided**:
-
-- `pnpm audit` threshold (response SLA for high / critical)
-- Adoption and configuration of Dependabot or Renovate
-- Whether to maintain `SECURITY.md` and reporting channels
-- Adoption of secret scanning (gitleaks, etc.)
-
-**Provisional behavior until decided**:
-
-- Always run `pnpm audit` when adding new dependencies (Toolchain-0005)
-- Do not embed security tools (Dependabot / Renovate / gitleaks, etc.) into CI / pre-commit on your own
+1. **Do not introduce new conventions, patterns, or libraries on your own**. Defer the ADR decision to the user
+2. If a provisional implementation is unavoidable, explicitly tell the user it is a "provisional implementation" before starting work
 
 ## AI Modification Scope
 
@@ -408,13 +164,15 @@ Bypassing the spirit of these rules through a skill is forbidden. If a skill's p
 pnpm install               # Install dependencies
 pnpm add <pkg>             # Add a runtime dependency
 pnpm add -D <pkg>          # Add a dev dependency
-pnpm add -E <pkg>          # Add with exact pin (for core deps / main dev tools, Toolchain-0005)
+pnpm add -E <pkg>          # Add with exact pin (for core deps / main dev tools, 0004)
 
 pnpm dev                   # Start the dev server
 pnpm build                 # Production build
 pnpm start                 # Start the production server
 
-pnpm lint                  # biome check (ADR 0002)
+pnpm lint                  # biome check, light profile (ADR 0002)
+pnpm lint:ci               # biome check, full profile (biome.ci.jsonc + --error-on-warnings; pre-commit / CI)
+pnpm typecheck             # tsc --noEmit (pre-push)
 pnpm fix                   # biome check --fix
 pnpm format                # biome format --write
 ```
@@ -429,13 +187,13 @@ make tag-minor             # Same (minor)
 make tag-major             # Same (major)
 ```
 
-For release branches, follow Dev-0002 (`git checkout -b release/v<X.Y.Z> origin/develop`).
+For release branches, follow 0150 (`git checkout -b release/v<X.Y.Z> origin/develop`).
 
 See [`.makefiles/README.ja.md`](.makefiles/README.ja.md) for details.
 
 ## Git Rules
 
-[Dev-0002](docs/adr/Dev-0002.md) is authoritative. Key points only.
+[0150](docs/adr/0150-git-workflow.md) is authoritative. Key points only.
 
 ### Critical Rules
 
@@ -468,7 +226,7 @@ Format: `<Prefix>: <Japanese subject>` (no trailing period `。` on the subject)
 Examples:
 
 ```text
-Docs: ADR 0004 を Type A / Type B 区別で補強
+Docs: ADR 0011 を Type A / Type B 区別で補強
 Build: Dockerfile を削除し pnpm 採用方針と整合させる
 Fix: route handler の query 取得を Next.js 16 API に合わせる
 ```
@@ -524,15 +282,16 @@ If the user explicitly directs English output, the AI may respond in English.
 [ADR 0002](docs/adr/0002-formatter-linter.md) (biome) is authoritative. Run before committing:
 
 ```bash
-pnpm fix     # Auto-fix
-pnpm lint    # Check remaining errors
+pnpm fix       # Auto-fix
+pnpm lint:ci   # Check remaining errors (full profile — same as the pre-commit hook)
 ```
 
 Fix items the auto-fixer could not handle by hand.
 
 ### Disallowed
 
-- Using ESLint / Prettier alongside biome (contradicts ADR 0002)
+- Using Prettier (the formatter is biome alone — ADR 0002)
+- Adding ESLint rules that biome can express, applying preset bundles (`eslint:recommended` / `eslint-config-next`), or using ESLint as a formatter (ADR 0002: capability-based split — biome-first, ESLint only fills the checks biome cannot express, e.g. layer-boundary imports)
 - Locally disabling biome's formatter / linter for case-specific reasons (require ADR revision and consensus instead)
 - Heavy use of `biome-ignore` comments (consider scoped `overrides` first)
 
