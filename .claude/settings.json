@@ -38,7 +38,6 @@
       "Bash(tr *)",
       "Bash(python3 *)",
       "Bash(true)",
-
       "Bash(rm /tmp/*)",
       "Bash(rm -r /tmp/*)",
       "Bash(rm -f /tmp/*)",
@@ -55,7 +54,6 @@
       "Bash(cp /private/tmp/*)",
       "Bash(touch /tmp/*)",
       "Bash(touch /private/tmp/*)",
-
       "Bash(git status *)",
       "Bash(git log *)",
       "Bash(git diff *)",
@@ -80,7 +78,6 @@
       "Bash(git reflog *)",
       "Bash(git fetch --dry-run *)",
       "Bash(git switch *)",
-
       "Bash(gh pr view *)",
       "Bash(gh pr list *)",
       "Bash(gh pr diff *)",
@@ -92,7 +89,6 @@
       "Bash(gh auth status *)",
       "Bash(gh run list *)",
       "Bash(gh run view *)",
-
       "Bash(node --version)",
       "Bash(node -v)",
       "Bash(mise install)",
@@ -102,7 +98,6 @@
       "Bash(mise current *)",
       "Bash(mise outdated *)",
       "Bash(mise exec *)",
-
       "Bash(pnpm install)",
       "Bash(pnpm install *)",
       "Bash(pnpm i)",
@@ -125,12 +120,10 @@
       "Bash(pnpm exec tsc *)",
       "Bash(pnpm exec next *)",
       "Bash(pnpm exec tsx *)",
-
       "Bash(make help)",
       "Bash(make install-tools *)",
       "Bash(make setup-replace-license-copyright *)",
       "Bash(make gh-login *)",
-
       "Bash(docker ps *)",
       "Bash(docker images *)",
       "Bash(docker compose ps *)",
@@ -141,7 +134,6 @@
       "Bash(rm -rf *)",
       "Bash(rm -fr *)",
       "Bash(sudo *)",
-
       "Bash(git push --force*)",
       "Bash(git reset --hard*)",
       "Bash(git rebase *)",
@@ -168,10 +160,8 @@
       "Bash(git filter-branch *)",
       "Bash(git update-ref -d *)",
       "Bash(git commit --amend *)",
-
       "Bash(pnpm dlx *)",
       "Bash(mise trust *)",
-
       "Bash(make setup-repo *)",
       "Bash(make apply-branch-protection *)",
       "Bash(make delete-all-labels *)",
@@ -183,9 +173,7 @@
       "Bash(make tag-major *)",
       "Bash(make tag-minor *)",
       "Bash(make tag-patch *)",
-
       "Bash(gh api *)",
-
       "Edit(AGENTS.md)",
       "Write(AGENTS.md)",
       "Edit(LICENSE)",
