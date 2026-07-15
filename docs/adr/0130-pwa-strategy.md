@@ -4,11 +4,11 @@ PWA(Progressive Web App)— **Web App Manifest / Service Worker / オフライ�
 
 ## Status
 
-Accepted (exclusion)
+Accepted (exclusion; v2 に局所採用を予定)
 
 （採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み(Tier 5 = 用途依存の判断)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
-**v2 採用予定(局所ライブラリ・2026-07-14)**: 本 exclusion 本体は不変。採用マトリクス([adoption-matrix.md](../plan/adoption-matrix.md))で PWA は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**seam(`app/manifest.(json|ts)` / SW 実装点)は 0.0.x/v1 で敷済・ライブラリ採用は v2**(Serwist〈`@serwist/next`〉・Medium)。採用時も本体は seam を保持し、Serwist を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+**v2 採用予定(局所ライブラリ・2026-07-14)**: **0.0.x/v1 の非同梱(exclusion)方針は v2 まで不変**であり、採用マトリクス([adoption-matrix.md](../plan/adoption-matrix.md))で PWA は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた(v2 で採用へ移行予定)。**seam(`app/manifest.(json|ts)` / SW 実装点)は 0.0.x/v1 で敷設予定(本 ADR で規定済み・実装は実装 PR)・ライブラリ採用は v2**(Serwist〈`@serwist/next`〉・Medium)。採用時も本体は seam を保持し、Serwist を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 背景
 
@@ -18,8 +18,8 @@ Next.js には Web App Manifest のファイル規約(`app/manifest.(json|ts)`)�
 
 ## 決定: boilerplate 本体に同梱しない(fork 先判断)
 
-- **Web App Manifest / Service Worker / オフラインキャッシュ / インストール促進(A2HS)を boilerplate 本体に同梱しない**。用途依存のため fork 先で必要になった時点で判断する(exclusion)
-- 導出根拠: [0011](0011-no-docker.md) の「用途未定の表示層」ロール + BACKLOG out of scope 原則([0121](0121-i18n-strategy.md) / [0052](0052-ui-component-policy.md) / [0060](0060-state-management.md) と同じ fork 先判断の論理)
+- **0.0.x/v1 では Web App Manifest / Service Worker / オフラインキャッシュ / インストール促進(A2HS)を boilerplate 本体に同梱しない**。用途依存のため fork 先で必要になった時点で判断する(exclusion。本体側は v2 で局所採用予定 = Status 注記)
+- 導出根拠: [0011](0011-no-docker.md) の「用途未定の表示層」ロール + BACKLOG out of scope 原則([0121](0121-i18n-strategy.md) と同じ「用途依存を exclusion 記録する」論理。なお [0052](0052-ui-component-policy.md) / [0060](0060-state-management.md) は当初 exclusion→**v1** 採用へ反転した事例であり、PWA の採用(反転)は **v2** に予定される — 0.0.x/v1 は exclusion を維持する)
 - **fork 先が PWA を採用する場合の seam**(参考):
   - Web App Manifest は Next.js の **`app/manifest.(json|ts)`** ファイル規約で生成する([0044](0044-seo-metadata-strategy.md) のアイコン体系と接続。アイコンは `app/icon.*` / `apple-icon.*`)
   - Service Worker / オフラインキャッシュは Next.js の自動組込みがないため fork 先で実装する。外部ライブラリを使う場合も [0004](0004-library-management.md)(exact pin / `pnpm audit`)・[0021](0021-frontend-responsibility.md)(カーネル配置・命名規律)の枠内で行う
@@ -31,5 +31,6 @@ Next.js には Web App Manifest のファイル規約(`app/manifest.(json|ts)`)�
 ## 関連 ADR
 
 - [0011-no-docker.md](0011-no-docker.md) — 用途未定の表示層ロール(fork 先判断の根拠)
-- [0121-i18n-strategy.md](0121-i18n-strategy.md)(C1)/ [0052-ui-component-policy.md](0052-ui-component-policy.md) / [0060-state-management.md](0060-state-management.md) — 同じ fork 先判断の exclusion 先例
+- [0121-i18n-strategy.md](0121-i18n-strategy.md)(C1)/ [0131-cookie-consent.md](0131-cookie-consent.md) — 用途依存を exclusion 記録した先例(いずれも 0.0.x/v1 は exclusion 維持・v2 に局所採用を予定)
+- [0052-ui-component-policy.md](0052-ui-component-policy.md) / [0060-state-management.md](0060-state-management.md) — 当初 exclusion→v1 採用へ反転した事例(PWA は v1 では反転せず v2 で採用予定という時期の対比)
 - [0044-seo-metadata-strategy.md](0044-seo-metadata-strategy.md)(C7)— `manifest.*` / アイコン体系の seam(採用時)

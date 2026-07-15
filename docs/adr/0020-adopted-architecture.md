@@ -1,6 +1,6 @@
 # 採用アーキテクチャ
 
-本プロジェクトの全体アーキテクチャとして **機能スライス × 表示層カーネル**(feature-sliced × presentation-layer kernels)を採用する。`src/` 直下を、画面単位で凝集する **機能スライス**(`app` / `features`)と、複数機能から横断参照される **カーネル**(`model` / `components` / `adapters` / `capabilities` / `stores` / `config` / `errors` / `logging` / `observability`)の 2 系統で構成し、依存は常に内向き(スライス → カーネル、カーネルはより内側のカーネルのみ)とする。
+本プロジェクトの全体アーキテクチャとして **機能スライス × 表示層カーネル**(feature-sliced × presentation-layer kernels)を採用する。`src/` 直下は 11 カーネル構成とし、画面単位で凝集する **機能スライス**(`app` / `features` の 2 カーネル)と、複数機能から横断参照される **表示層カーネル**(`model` / `components` / `adapters` / `capabilities` / `stores` / `config` / `errors` / `logging` / `observability` の 9 カーネル)の 2 系統に大別する(2 + 9 = 11)。依存は常に内向き(機能スライス → 表示層カーネル、表示層カーネル間はより内側のカーネルのみ)とする。
 
 本 ADR はアーキテクチャの **宣言・設計原則・採用しないパターン** を定める。各カーネルの詳細な責務・依存マトリクス・命名規律・受入基準・機械的強制(Enforcement)は [0021](0021-frontend-responsibility.md) に委ねる(go-boilerplate における「ADR = 決定 / rules.md = 日常ルール」の役割分担に相当し、本 ADR = パターン宣言、0021 = 日常運用規約という分担)。
 
@@ -87,7 +87,7 @@ go-boilerplate の ADR レベル原則(**go 側**の `docs/adr/0002` / `0020` / 
 
 ### 1. 依存は内向きのみ
 
-外側の層(揮発的)ほど内側(安定)を知り、内側は外側を知らない。スライス(`app` → `features`)はカーネルを import してよいが、カーネルはスライスを import しない。カーネル間も内向きのみ(例: `model` は `errors` のみに依存し、`adapters` や `components` を知らない)。
+外側の層(揮発的)ほど内側(安定)を知り、内側は外側を知らない。スライス(`app` → `features`)は表示層カーネルを import してよいが、表示層カーネルはスライスを import しない。表示層カーネル間も内向きのみ(例: `model` は `errors` のみに依存し、`adapters` や `components` を知らない)。
 
 ### 2. 境界は構造的型(TypeScript)で表現する
 

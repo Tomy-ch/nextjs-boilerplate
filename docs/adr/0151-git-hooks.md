@@ -105,7 +105,7 @@ pnpm exec lefthook install    # .git/hooks/ に symlink を配置
 
 ## 設定の最小構成
 
-`.lefthook.yaml` の構成は以下を基準とする（本リポジトリの現行値）。
+`.lefthook.yaml` の構成は以下を基準とする（**未導入**。lefthook 本体・`.lefthook.yaml` とも実装 PR で導入する。以下は導入時の基準構成）。
 
 ```yaml
 pre-commit:

@@ -2,7 +2,7 @@
 
 本 ADR は、個別の技術決定に先立つ **設計判断の軸(判断軸)** のうち、**恒久的なもの** を定める。すなわち「**何を取り込むか(標準への準拠)/ その決定をどう正当化するか(非ロックインの判定)**」という、全 ADR に横断して働くメタ原則である。
 
-[0020](0020-adopted-architecture.md) が **アーキテクチャ・パターン固有の原則**(内向き依存・境界の構造的型・型漏洩禁止など)を定めるのに対し、本 ADR は **決定の下し方そのものを律する上位の判断軸** を定める。したがって 0020 の設計原則も、命名優先順位([0028](0028-naming-convention.md))も、triage 段階の認証 seam(#45)/ CSP(#46)などの新規 ADR 候補も、本 ADR の 2 原則を土台として参照する。
+[0020](0020-adopted-architecture.md) が **アーキテクチャ・パターン固有の原則**(内向き依存・境界の構造的型・型漏洩禁止など)を定めるのに対し、本 ADR は **決定の下し方そのものを律する上位の判断軸** を定める。したがって 0020 の設計原則も、命名優先順位([0028](0028-naming-convention.md))も、認証 seam([0079](0079-auth-frontend-seam.md))/ CSP([0111](0111-csp-security-headers.md))なども、本 ADR の 2 原則を土台として参照する。
 
 ## Status
 
@@ -45,7 +45,7 @@ Accepted
 ## 適用(How to apply)
 
 - **adopt を伴う ADR**: §1 でデファクトに乗り、§2 の vendor-independent 正当性材料を本体に明記する。
-- 本原則の適用状況は [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) が保持する(#45 認証の正当化要件・#46 CSP)。今後の認証 seam ADR・CSP ADR は本 ADR を参照して正当化を済ませる。
+- 本原則の適用状況は [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) が保持する(#45 認証の正当化要件・#46 CSP)。認証 seam([0079](0079-auth-frontend-seam.md))/ CSP([0111](0111-csp-security-headers.md))は本 ADR を参照して正当化済み。
 
 ## 禁止事項
 

@@ -1,6 +1,6 @@
 # セキュリティ運用
 
-**依存更新(Dependabot + cooldown)/ 秘密スキャン(gitleaks)/ 脆弱性スキャン(Trivy fs 二段・CodeQL)/ 依存監査ゲート / SECURITY.md / 多層防御** を定める。go-boilerplate のセキュリティ運用(ADR 0077 多層防御 / 0078 SHA ピン)を翻案し、no-Docker([0011](0011-no-docker.md))で対象外になる部分を exclusion として記録する。
+**依存更新(Dependabot + cooldown)/ 秘密スキャン(gitleaks)/ 脆弱性スキャン(Trivy fs 二段・CodeQL)/ 依存監査ゲート / SECURITY.md / 多層防御** を定める。go-boilerplate のセキュリティ運用(ADR 0077 多層防御)を翻案し、no-Docker([0011](0011-no-docker.md))で対象外になる部分を exclusion として記録する(go ADR 0078 の SHA ピンは CI ハードニング側の主題であり、本リポでは [0153](0153-ci-configuration.md) が持つ)。
 
 ## Status
 
@@ -27,8 +27,8 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 
 ### 2. 秘密スキャン = gitleaks(fail-closed)
 
-- **gitleaks** で秘密スキャンする。設定は `useDefault` + **allowlist に生成物**(`.next/` / 生成型 `src/adapters/gen/**`([0072](0072-api-type-generation.md))/ lockfile 等)を除外
-- CI は **PR 全体**(path 制限なし = 秘密は任意ファイルに出る)+ pre-push([0151](0151-git-hooks.md))で回し、検出時は **fail-closed**
+- **gitleaks** で秘密スキャンする。設定は `useDefault` + **allowlist に生成物**(生成型 `src/adapters/gen/**`([0072](0072-api-type-generation.md))/ lockfile 等)を除外
+- **CI** で回す。PR 全体(path 制限なし = 秘密は任意ファイルに出る)を対象とし、検出時は **fail-closed**。pre-push([0151](0151-git-hooks.md))は typecheck / test のみで gitleaks を含まない。local 側への追加は 0151 の hook 方針が整備された段階で検討する
 
 ### 3. 脆弱性スキャン(多層防御・go ADR 0077 翻案)
 
@@ -36,7 +36,7 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 - **Trivy fs 二段運用**:
   - **dev PR ゲート**(全 PR・advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`**(修正不能は無視)/ hard-fail しない + PR コメント
   - **release ゲート**(保護ブランチへの PR 限定・厳格): **`ignore-unfixed: false`**(未修正も可視化)で厳格化
-- **依存監査ゲート**: `pnpm audit`(または osv-scanner)を「**到達可能 or 修正可能なもののみ blocking**」の閾値思想で回す(go govulncheck の reachability フィルタの翻案。ノイズを抑え actionable のみゲート)。運用 SLA(`high` 以上は 48 時間以内に対応着手)は [0004](0004-library-management.md) の既定を維持し、本項はその CI ゲート側の blocking 閾値を定める
+- **依存監査ゲート**: **`pnpm audit` を既定**とする。go govulncheck 由来の「到達可能性(reachability)」フィルタは、`pnpm audit` に該当機能がなく、osv-scanner の call analysis も JS/TS 非対応のため、**現行ツールでは実装不能**である。したがって blocking 閾値は **severity(`high` / `critical`)と修正可能性(fixable)** で定める(未修正〈unfixable〉はノイズになりやすいため advisory 扱いとし、修正可能な high 以上を blocking)。運用 SLA(`high` 以上は 48 時間以内に対応着手)は [0004](0004-library-management.md) の既定を維持し、本項はその CI ゲート側の blocking 閾値を定める
 
 ### 4. SECURITY.md
 
@@ -61,7 +61,7 @@ go-boilerplate にはあるが、本リポは [0011](0011-no-docker.md)(no-Docke
 - ❌ Renovate を併用すること(Dependabot に一本化)
 - ❌ セキュリティアップデートに cooldown を効かせること(即時 PR)
 - ❌ gitleaks / CodeQL の検出を fail-closed にしないこと(秘密・SAST high は必ずブロック)
-- ❌ 依存監査を「全 severity 一律 hard-fail」にすること(到達可能 / 修正可能のみ blocking = ノイズ抑制)
+- ❌ 依存監査を「全 severity 一律 hard-fail」にすること(修正可能な `high` / `critical` のみ blocking = ノイズ抑制。到達可能性フィルタは JS/TS では実装不能)
 - ❌ image-scan / cosign / SBOM / provenance を no-Docker の本リポに持ち込むこと([0011](0011-no-docker.md))
 
 ## 補足
@@ -73,7 +73,7 @@ go-boilerplate にはあるが、本リポは [0011](0011-no-docker.md)(no-Docke
 
 - [0153-ci-configuration.md](0153-ci-configuration.md)(B9)— Security グループの CI 組込み(本 ADR の実行基盤)
 - [0004-library-management.md](0004-library-management.md) — `pnpm audit` / exact pin / major 別 PR(依存監査の土台)
-- [0151-git-hooks.md](0151-git-hooks.md) — pre-push での秘密スキャン(gitleaks の local 側)
+- [0151-git-hooks.md](0151-git-hooks.md) — pre-push の段階責務(typecheck / test)。gitleaks は CI で実行し、local 側への追加は 0151 の hook 整備段階で検討
 - [0011-no-docker.md](0011-no-docker.md) — no-Docker(image-scan / cosign / SBOM exclusion の根拠)
 - [0072-api-type-generation.md](0072-api-type-generation.md) — 生成物 `src/adapters/gen/**`(gitleaks allowlist の対象)
 - [0150-git-workflow.md](0150-git-workflow.md) — 保護ブランチ(release ゲートの対象)

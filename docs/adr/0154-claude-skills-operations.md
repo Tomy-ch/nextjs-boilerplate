@@ -70,7 +70,7 @@ Accepted
 3. **When to Use** — 利用すべき状況の列挙
 4. **Do NOT use this skill for** — 利用すべきでない状況・代替手段の列挙
 5. **Step <番号>. <タイトル>** — 番号付き手順 (Step 0 から始める慣例。前処理がある場合)
-6. **検証 / 終了処理** — `make fix` / `make lint` / `pnpm test` 等の最終確認
+6. **検証 / 終了処理** — `pnpm fix` / `pnpm lint` 等の最終確認 (`pnpm test` はテスト導入 ([0090](0090-testing-strategy.md)) 後に加える)
 
 ## カバー範囲 (既存スキル)
 
@@ -80,6 +80,8 @@ Accepted
 | `submit-pr` | PR 作成・更新 | 現ブランチに既存 PR があれば update、なければ create を自動選択。PR 本文は `.github/pull_request_template.md` から生成 |
 | `release-notes` | リリースノート生成 | `AskUserQuestion` で FROM タグと NEXT_VERSION を確認し、`.github/release/<NEXT>.md` を生成 |
 | `tools-upgrade` | `mise.toml` の依存監査 | upstream の latest と比較し、`min_age_days` でサプライチェーン検疫。承認後に `mise.toml` 更新 |
+| `node-upgrade` | Node.js バージョン更新 | SSOT である `mise.toml` `[tools] node` ([ADR 0003](0003-version-manager.md)) を対象バージョンへ更新し、lockfile 再構築 + `pnpm install` / `pnpm lint` / `pnpm build` で検証。`@types/node` のメジャー追随は別 PR ([0004](0004-library-management.md)) |
+| `repo-ops` | 運用 gotcha のランブック | mise ツールチェーン / pnpm lockfile / make `DRY_RUN` / `tmp/reviews` 等の再発しやすい躓きへの対処手順集。read-only の知識スキルで、状態は変更しない |
 | `tool-map` | `.claude/` 配下の inventory | commands / skills / agents の表 + Mermaid 依存マップを生成 |
 
 新規追加は本 ADR の趣旨 (運用系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。

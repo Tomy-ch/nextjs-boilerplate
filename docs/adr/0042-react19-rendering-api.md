@@ -24,7 +24,7 @@ ADR 空白の遡及監査([docs/plan/adr-gap-audit.md](../plan/adr-gap-audit.md)
 | --- | --- | --- |
 | RSC / Client 境界を **どこに置くか**・`"use client"` の押し下げ | [0040](0040-routing-rendering-strategy.md) | 本 ADR は境界の内側の **API の書き方** のみ |
 | `use()` を使った **データ取得の編成・キャッシュ・重複排除** | [0071](0071-bff-api-integration.md) | 本 ADR は `use()` を **レンダリングのプリミティブ** としてどう書くかのみ |
-| `<Suspense>` / `loading.tsx` の **境界配置・粒度** | [0080](0080-error-handling.md) §3.5 | 本 ADR は `use()` が Suspense を前提にする **不変条件** のみ |
+| `<Suspense>` / `loading.tsx` の **境界配置・粒度** | [0080](0080-error-handling.md) §4 | 本 ADR は `use()` が Suspense を前提にする **不変条件** のみ |
 | 横断的な reactive client hook(runtime 能力)の **家** | [0022](0022-capabilities-kernel.md) | 本 ADR は `useEffect` の **書き方の抑制方針** のみ |
 
 ## 決定
@@ -38,7 +38,7 @@ ADR 空白の遡及監査([docs/plan/adr-gap-audit.md](../plan/adr-gap-audit.md)
 
 - `use()` を **Promise / Context の読取**に用いてよい。`useContext` に代えて `use()` で Context を読むことを許容する(`use()` は条件分岐・早期 return の内側でも呼べる —— Hook のトップレベル制約を受けない読取であるため)。
 - **正道**: Server Component で開始した fetch の Promise を Client Component へ **props で渡し**、`<Suspense>` 境界の下で `use()` により解決する(`fetching-data.md` の文書化パターン。0040「`"use client"` は葉へ押し下げ」と整合し、fetch 自体は server に留めつつ待機のみ client へ寄せる)。
-- **委譲**: `use()` を **どのデータで使うか / キャッシュ・再検証・重複排除をどう設計するか** は [0071](0071-bff-api-integration.md)、`<Suspense>` 境界の **配置・粒度** は [0080](0080-error-handling.md) §3.5 が所有する。本 ADR は「`use()` は Suspense / error boundary を前提とする」という **不変条件** のみを敷く(裸の `use()` を境界なしで置かない)。
+- **委譲**: `use()` を **どのデータで使うか / キャッシュ・再検証・重複排除をどう設計するか** は [0071](0071-bff-api-integration.md)、`<Suspense>` 境界の **配置・粒度** は [0080](0080-error-handling.md) §4 が所有する。本 ADR は「`use()` は Suspense / error boundary を前提とする」という **不変条件** のみを敷く(裸の `use()` を境界なしで置かない)。
 
 ### 3. `useEffect` を外部システム同期に限定する(抑制)
 
@@ -63,7 +63,7 @@ ADR 空白の遡及監査([docs/plan/adr-gap-audit.md](../plan/adr-gap-audit.md)
 
 ## 補足
 
-- **decision と rule の分界**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は React Compiler の**採否**(decision)と各 API の**採用方針**(decision)を確定する。他方、日常強制される制約 —— 「`forwardRef` を書かない」「派生値を effect 同期しない」「予防的 memo を撒かない」、および Compiler 採用時の「手書き memo 系を書かない」—— は **rule 分類**であり、`docs/rules.md` 新設([0140](0140-documentation-operations.md) 決定 3)時に `> Rationale: [ADR-0043]` 逆参照付きでそちらへ段階移行する。本 ADR 本文には rule の芯(なぜ)のみを残す。
+- **decision と rule の分界**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は React Compiler の**採否**(decision)と各 API の**採用方針**(decision)を確定する。他方、日常強制される制約 —— 「`forwardRef` を書かない」「派生値を effect 同期しない」「予防的 memo を撒かない」、および Compiler 採用時の「手書き memo 系を書かない」—— は **rule 分類**であり、`docs/rules.md` 新設([0140](0140-documentation-operations.md) 決定 3)時に `> Rationale: [ADR-0042]` 逆参照付きでそちらへ段階移行する。本 ADR 本文には rule の芯(なぜ)のみを残す。
 - **React Compiler 採用時の連動規約の帰属は未確定**: 採用へ転じた場合、`compilationMode: 'annotation'`(`"use memo"` opt-in)を採るか全体適用かの選択と、それに連動する手書き memo 禁止規約の**置き場**(本 ADR 追補 vs rules.md)は、採用判断と同時にユーザが確定する(下記 flags)。
 - **単一項目性への注記**: 本 ADR は #36 単独の小 ADR である。将来 [0071](0071-bff-api-integration.md) 近傍に「データ取得・レンダリング」を束ねる ADR が起こる場合、`use()` のデータ取得側面はそちらへ吸収し得る(本 ADR はレンダリング API の書き方に純化する)。この整理も v1 大規模整理で行う。
 - 本 ADR の Accepted に伴う AGENTS.md への反映は不要(該当 `[TODO]` 節を持たない領域)。

@@ -1,6 +1,6 @@
 # BFF abuse 保護境界(infra / edge seam)
 
-`/api/*`(テレメトリ中継を含む公開エンドポイント)への abuse 保護を、**infra(PaaS / edge)ドメインの境界 seam**(レート制限 / DDoS 緩和 / WAF = 名前付きで残して切る)と、**本体に最小限残す防御**(Route Handler のボディサイズ上限・content-type 検証・入力バリデーション)に分けて明文化する。対象は triage #49(BFF abuse 保護)。本 ADR は [0075](0075-bff-external-boundary-seam.md) §3 を per-subject に切り出したものである。
+`/api/*`(テレメトリ中継を含む公開エンドポイント)への abuse 保護を、**infra(PaaS / edge)ドメインの境界 seam**(レート制限 / DDoS 緩和 / WAF = 名前付きで残して切る)と、**本体に最小限残す防御**(Route Handler のボディサイズ上限・content-type 検証・入力バリデーション)に分けて明文化する。対象は triage #49(BFF abuse 保護)。本 ADR は [0075](0075-file-upload-seam.md) §3 を per-subject に切り出したものである。
 
 ## Status
 
@@ -48,7 +48,7 @@ Accepted
 
 ## 関連 ADR
 
-- [0075-bff-external-boundary-seam.md](0075-bff-external-boundary-seam.md)— 分割元(ファイルアップロード seam)。本 ADR は 0075 §3(BFF abuse 保護)を per-subject に切り出したもの
+- [0075-file-upload-seam.md](0075-file-upload-seam.md)— 分割元(ファイルアップロード seam)。本 ADR は 0075 §3(BFF abuse 保護)を per-subject に切り出したもの
 - [0076-payment-ui-seam.md](0076-payment-ui-seam.md)— 分割の兄弟(決済 UI seam = mount seam と PCI 境界。0075 §2 由来)
 - [0070-backend-role-separation.md](0070-backend-role-separation.md)(A2)— `/api/*` = thin proxy(無防備エンドポイントを生む起点の親決定)
 - [0081-observability-logging.md](0081-observability-logging.md)(B7)— ブラウザ → BFF 中継 seam(無防備エンドポイントを生む起点。本 ADR の保護対象)

@@ -29,7 +29,7 @@ Accepted
 
 - 無限スクロール(`IntersectionObserver` による末尾到達検知 + 追加取得)は client fetch を必然的に伴うため、[0060](0060-state-management.md) の「クライアントでのデータ取得を本体で前提にしない」既定に対する **明示的で限定された例外**として扱う(#7 由来)。例外は狭く保つ:
   - **初回ページは RSC 取得**(§1)。client fetch は「もっと見る」の**増分取得だけ**に限る。
-  - **所有 = `adapters/client`**: client の追加取得は生 `fetch` をコンポーネントに散らさず、必ず **`adapters/client`([0024](0024-adapters-server-client-split.md) = same-origin BFF fetch の所有境界)経由**で行う。resilience(dual timeout / retry / breaker)は server 側 = `adapters/server`([0071](0071-bff-api-integration.md))が持ち、client は same-origin(`/api/*` BFF / Route Handler)への薄い fetch に留める。これにより **0071 wrapper が server 前提でカバーしない client 経路の所有者を明示**し、委譲先消失を回避する。
+  - **所有 = `adapters/client`**: client の追加取得は生 `fetch` をコンポーネントに散らさず、必ず **`adapters/client`([0024](0024-adapters-server-client-split.md) = client 側 remote IO の所有境界。同一オリジン BFF fetch が主で、presigned 直 PUT 等 ADR が明示に許す例外送信も同層が所有)経由**で行う。resilience(dual timeout / retry / breaker)は server 側 = `adapters/server`([0071](0071-bff-api-integration.md))が持ち、本 ADR の client 追加取得は same-origin(`/api/*` BFF / Route Handler)への薄い fetch に留める。これにより **0071 wrapper が server 前提でカバーしない client 経路の所有者を明示**し、委譲先消失を回避する。
   - **トリガー hook**(末尾到達を検知する reactive client hook)は既定で **feature ローカル**([0060](0060-state-management.md) client state = local から)。複数 feature を跨ぐ横断が生じた時点で **`capabilities` カーネル([0022](0022-capabilities-kernel.md))へ昇格**する([0021](0021-frontend-responsibility.md) 昇格ルール)。
   - **URL 復元性の優先**: 可能な限り searchParams 駆動の「もっと見る」ボタン(RSC 再取得)を優先し、真の無限スクロールは体感上それが要る箇所に限定する。無限スクロール採用時も現在 cursor は URL / state から復元可能に保ち、戻る / リロードで先頭に戻る UX 劣化を避ける。
 - client 追加取得の response も **`adapters` 境界で runtime validation・エラー正規化**を通す([0071](0071-bff-api-integration.md) / [0080](0080-error-handling.md))。生 status・生エラーを UI へ漏らさない原則は client 経路でも同じである。
@@ -56,7 +56,7 @@ Accepted
 - [0060-state-management.md](0060-state-management.md)(B5)— Server state = RSC fetch 既定 / URL state = Next 標準機構(本 ADR §1 の土台)/ client 取得非前提(本 ADR §2 が限定例外を追加)/ データ取得ライブラリ非同梱
 - [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3)— データ取得のキャッシュ・再検証 / fetch wrapper resilience は `adapters/server` 前提(本 ADR §2 の client 経路の対)
 - [0080-error-handling.md](0080-error-handling.md)(B6)— `adapters` 境界のエラー正規化(本 ADR §2 の client 追加取得 response にも適用)
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md)— `adapters/client`(same-origin BFF fetch の所有境界。本 ADR §2 の client 追加取得の所有者)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md)— `adapters/client`(client 側 remote IO の所有境界。同一オリジン BFF fetch が主。本 ADR §2 の client 追加取得の所有者)
 - [0022-capabilities-kernel.md](0022-capabilities-kernel.md)— 横断 client hook の昇格先(無限スクロールのトリガー hook が cross-feature 化した時の家)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 標準準拠・非ロックイン判断軸(本 ADR の vendor-independent 正当性材料の根拠)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md)— 昇格ルール(feature ローカル → capabilities)

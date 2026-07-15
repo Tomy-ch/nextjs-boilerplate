@@ -30,7 +30,7 @@ Accepted
 アップロードは **フロント領域の責務**である(アップロード UX はフロントの責務)。ただし thin proxy 原則(0070)との緊張を、**既定を境界の外に逃がす**ことで解消する。
 
 - **既定 = presigned URL 直 PUT**。ブラウザは、backend が発行した署名付き URL に対してストレージへ**直接** PUT / POST する。**大容量ボディは BFF(`/api/*`)を通さない**。
-  - 署名付き URL の発行は backend の責務(フロントは発行結果を受け取るだけ)。フロント側の取得口は `adapters/server`(認可付きで backend から署名を得る)/ 直 PUT の送信は `adapters/client`(同一オリジン外への送信を許す唯一の層)に置く([0024](0024-adapters-server-client-split.md))。進捗表示・中断・再開は client 側の **upload seam(hook / IF)** に集約し、コンポーネントに散らさない。
+  - 署名付き URL の発行は backend の責務(フロントは発行結果を受け取るだけ)。フロント側の取得口は `adapters/server`(認可付きで backend から署名を得る)/ 直 PUT の送信は `adapters/client`(client 側 remote IO を所有する唯一の層。同一オリジン外への送信は本件 #13 のように ADR が明示に許す場合に限る)に置く([0024](0024-adapters-server-client-split.md) 決定表 #13)。進捗表示・中断・再開は client 側の **upload seam(hook / IF)** に集約し、コンポーネントに散らさない。
   - サイズ制限・許可 content-type・有効期限は **署名ポリシー側**(backend が発行時に埋め込む)で担保し、フロントは表示・事前バリデーション(UX)に留める。
   - **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md) §2)**: 署名付き URL は S3 / GCS / Cloudflare R2 / Azure Blob いずれも備える業界横断パターンであり、特定ストレージ SDK・特定 PaaS に依存しない(署名を発行元から抜いても「事前署名 + HTTP PUT」という構造は正当)。BFF が大容量ボディを中継しないことの根拠は、serverless 実行の**実行時間・メモリ・ボディサイズという vendor 横断の物理制約** + thin proxy(0070)であって、フレームワーク推奨ではない。
 - **例外 = multipart proxy(`/api/*` 経由)**。presigned が使えない構成(直アクセス不可なストレージ、送信前にサーバ加工が必須、等)に限り、Route Handler が `request.formData()` 等でボディを受けて backend / ストレージへ中継する **named seam** を許す。ただし:
@@ -45,7 +45,7 @@ Accepted
 ## 補足
 
 - **タクソノミー**([0140](0140-documentation-operations.md)): 本 ADR は decision(#13 の構造確定)に属する。日常強制される rule(アップロードサイズの具体規約・Route Handler 実装規約)は `docs/rules.md`(未新設・0140 方針)側に置き、本 ADR から逆参照される。
-- 本 ADR は既存 Accepted ADR(0070 / 0071 / 0024)本体を編集せず、それらを参照して隣接する空白を埋める(既存 ADR は Protected Documentation)。
+- 本 ADR は既存 Accepted ADR(0070 / 0071 / 0024)本体を編集せず、それらを参照して隣接する空白を埋める(既存 ADR は Protected Documentation)。その後 2026-07-15 に、[0024](0024-adapters-server-client-split.md) 決定表へ #13(presigned 直 PUT)が `adapters/client` の正規役割として反映済(ユーザ指示による整合)。
 - **v2 採用予定(局所ライブラリ・2026-07-14)**: 本 decision(既定 = presigned 直 PUT / 中継 = 名前付き例外 seam)本体は不変。採用マトリクス([adoption-matrix.md](../plan/adoption-matrix.md))でアップロードは **v2 = 局所機構の materialize**(用途依存)に振り分けられた。**upload seam(`adapters/client` の進捗 / 中断 / 再開 IF・multipart proxy 例外 seam)は 0.0.x/v1 で敷済・機構実体化は v2**。既定の presigned 直 PUT は web 標準(署名付き URL + HTTP PUT)に乗り特定ストレージ SDK・PSP に依存しないため専用ベンダーを持たない。外部クライアント / SDK を採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 関連 ADR

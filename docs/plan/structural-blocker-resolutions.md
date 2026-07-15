@@ -45,7 +45,7 @@ src/adapters/
 **決定**: **新カーネル不要 — 3 分解して既存カーネルへ**:
 
 1. **生の値読み** → `adapters` source 境界(server は `cookies()` / client raw は `capabilities`)
-2. **セマンティクス + no-op 既定** → `adapters` の source adapter に同居(**滑走路成果物** = #61 no-op sink・#32 未同意で全 gate 既定・#62 flag 既定)
+2. **セマンティクス + no-op 既定** → `adapters` の source adapter に同居(**滑走路成果物** = #61 no-op sink・consent 未同意で全 gate 既定・#62 flag 既定)
 3. **供給** → 既定 stateless(RSC→props・[0060](../adr/0060-state-management.md) 忠実)/ 反応的の稀ケースのみ S4 layout Provider
 
 → 「seam の物理 = adapters source adapter + no-op 既定 + stateless props」で委譲先消失を閉じる。

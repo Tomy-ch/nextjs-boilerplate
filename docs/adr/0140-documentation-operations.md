@@ -30,7 +30,7 @@ go `docs/adr/README.md` の 4 分類を本リポの器へ翻案する:
 | 分類 | 意味 | 本リポの置き場 |
 | --- | --- | --- |
 | **decision** | 選択肢からの選定 | `docs/adr/` |
-| **exclusion** | 意図的にやらない判断 | `docs/adr/`(Status に `Accepted (exclusion)`、decision と混在する場合は `Accepted (一部 exclusion)` と明記。例: [0052](0052-ui-component-policy.md)(exclusion)/ [0060](0060-state-management.md)(一部 exclusion)) |
+| **exclusion** | 意図的にやらない判断 | `docs/adr/`(Status に `Accepted (exclusion)`、decision と混在する場合は `Accepted (一部 exclusion)` と明記。例: `Accepted (exclusion)` = [0121](0121-i18n-strategy.md) / [0130](0130-pwa-strategy.md) / [0131](0131-cookie-consent.md)、`Accepted (一部 exclusion)` = [0082](0082-client-observability.md) / [0110](0110-security-operations.md)) |
 | **rule** | 日常的に強制される制約 | **`docs/rules.md`(新設。下記 3)** |
 | **inventory** | コードと共にドリフトする目録 | `docs/adr/BACKLOG.md` + 候補インベントリ(現行追認) |
 
@@ -48,7 +48,7 @@ go `docs/adr/README.md` の 4 分類を本リポの器へ翻案する:
 
 - **0.0.x(pre-v1)= living document**: ADR 本文をクリーンに直接上書きし、設計フェーズの逐次改定を改定履歴に残さない(0.0.x なので過去記述の破棄を許容)。各 ADR の Status 注記がこの運用を宣言している
 - **v1 凍結時から go モデルへ移行**: immutable(accepted 後は Status 行のみ編集)/ supersede = 本文編集ではなく新 ADR を追加し旧を superseded 化 / **NNNN 連番・番号は再利用しない**(go `docs/adr/README.md` の翻案)
-- **採番方式(系列プレフィックス `0150` vs ブロック帯)の確定と、既存プレフィックス付き ADR との混在解消、`docs/adr/README.md` の採番記述のドリフト解消は v1 大規模整理で行う**(採番・EN 化・不可変化を同じ v1 境界でまとめて)
+- **採番方式は確定済み(2026-07-14 にブロック帯採番〈0001〜0155、トピック順ブロック帯〉へ移行完了。`docs/adr/README.md` の採番記述も更新済み)**。残る EN 化・ADR 不可変化は v1 大規模整理で行う(EN 化・不可変化を同じ v1 境界でまとめて)
 
 ### 5. per-package README 運用
 
@@ -78,5 +78,6 @@ go `docs/adr/README.md` の 4 分類を本リポの器へ翻案する:
 - [0155-claude-skills-development.md](0155-claude-skills-development.md) — Claude スキル運用・開発系(canonicalize-doc / readme-review / sync-readme の公認。配置・命名・frontmatter は [0154-claude-skills-operations.md](0154-claude-skills-operations.md) と共通)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 層別 README 運用(per-package README = 正)
 - [0141-portal-operations.md](0141-portal-operations.md)(D2)— 生成 portal(本 ADR の三層戦略の第 3 層)
-- [0052-ui-component-policy.md](0052-ui-component-policy.md) / [0060-state-management.md](0060-state-management.md) — exclusion ADR の実例(0060 は一部 exclusion)
+- [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) / [0131-cookie-consent.md](0131-cookie-consent.md) — exclusion ADR の実例(`Accepted (exclusion)`)
+- [0082-client-observability.md](0082-client-observability.md) / [0110-security-operations.md](0110-security-operations.md) — 一部 exclusion ADR の実例(`Accepted (一部 exclusion)`)
 - `docs/adr/BACKLOG.md` — inventory の器(枠 ID 体系)

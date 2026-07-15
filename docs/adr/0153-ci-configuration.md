@@ -64,7 +64,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 
 ## 補足
 
-- 本 ADR の Accepted に伴い、AGENTS.md の `[TODO] CI Configuration` 節の削除・書き換えを実施する(未実施 — AGENTS.md は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する)
+- 本 ADR の Accepted に伴う AGENTS.md の `[TODO] CI Configuration` 節の削除・書き換えは実施済み(AGENTS.md の `[TODO]` 群は全て削除され、Accepted Rules 表に集約済み)
 - workflows の実装・required check 指定・`actions-pin`(C-6)移植は本 ADR Accepted 後の実装 PR(移植計画 Phase 2)。portal 配信([0141](0141-portal-operations.md) D2 Phase 3)は Phase 2 完了後
 
 ## 関連 ADR

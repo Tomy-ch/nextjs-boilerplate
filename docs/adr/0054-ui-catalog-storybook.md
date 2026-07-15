@@ -1,8 +1,8 @@
 # UI カタログ(Storybook)方針
 
-コンポーネントの視覚的仕様の置き場 = **UI カタログ(Storybook)の採否**(#37)を確定する。これは機能 seam ではなく **開発ツール選択** であり、[0091](0091-testing-and-catalog-policy.md) §3 が当初「非採用 exclusion(tooling defer)」として着地させていた主題を、**ユーザの採用決定に伴い採用 decision へ転じた別 ADR として独立確定**する。
+コンポーネントの視覚的仕様の置き場 = **UI カタログ(Storybook)の採否**(#37)を確定する。これは機能 seam ではなく **開発ツール選択** であり、[0091](0091-test-verification-methods.md) §3 が当初「非採用 exclusion(tooling defer)」として着地させていた主題を、**ユーザの採用決定に伴い採用 decision へ転じた別 ADR として独立確定**する。
 
-> **由来注記**: 本 ADR は [0091](0091-testing-and-catalog-policy.md)(旧「テスト・カタログ方針」)が束ねていた §3 Storybook / UI カタログを、ユーザの「1 ADR = 1 主題」方針に従って分離したピースである。0091 はテスト検証手段(async RSC テストの寄せ先 / a11y 自動テストの組込)に縮約され、UI カタログの帰属は本 ADR が所有する。
+> **由来注記**: 本 ADR は [0091](0091-test-verification-methods.md)(旧「テスト・カタログ方針」)が束ねていた §3 Storybook / UI カタログを、ユーザの「1 ADR = 1 主題」方針に従って分離したピースである。0091 はテスト検証手段(async RSC テストの寄せ先 / a11y 自動テストの組込)に縮約され、UI カタログの帰属は本 ADR が所有する。
 
 ## Status
 
@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-**Storybook 等の UI カタログ**の採否([adr-gap-audit.md](../plan/adr-gap-audit.md) #37)は、[0141](0141-portal-operations.md) の portal がドキュメント portal であって UI カタログではないため、コンポーネントの視覚的仕様の置き場が未定義のまま残っていた。[adr-gap-triage.md](../plan/adr-gap-triage.md) はこれを「機能 seam でない開発ツール選択 = tooling defer」と判定し、旧 [0091](0091-testing-and-catalog-policy.md) §3 は当初これを **非採用 exclusion**(カタログ性は `components` カーネルの層別 README で担保 / `.stories.*` は存在しない前提)として着地させていた。
+**Storybook 等の UI カタログ**の採否([adr-gap-audit.md](../plan/adr-gap-audit.md) #37)は、[0141](0141-portal-operations.md) の portal がドキュメント portal であって UI カタログではないため、コンポーネントの視覚的仕様の置き場が未定義のまま残っていた。[adr-gap-triage.md](../plan/adr-gap-triage.md) はこれを「機能 seam でない開発ツール選択 = tooling defer」と判定し、旧 [0091](0091-test-verification-methods.md) §3 は当初これを **非採用 exclusion**(カタログ性は `components` カーネルの層別 README で担保 / `.stories.*` は存在しない前提)として着地させていた。
 
 その後 **ユーザが Storybook / UI カタログの採用を決定**した。tooling defer の exclusion は「fork 先が要件に応じて足すのは妨げない」余地を残しており([0140](0140-documentation-operations.md) セットアップ時の直接編集による独自ベースライン)、本 boilerplate 自身がその余地を行使して採用ベースラインへ倒す判断である。採否が非採用 → 採用へ転じたため、旧 exclusion を上書きするのではなく、機能 seam でない開発ツール選択の 1 主題として本 ADR で採用 decision を確定する。
 
@@ -33,13 +33,13 @@ Accepted
 
 ## 補足
 
-- **#37 の性質の転換**: 旧 [0091](0091-testing-and-catalog-policy.md) §3 は #37 を [0140](0140-documentation-operations.md) タクソノミー上の **exclusion**(名前付きの非採用判断)として着地させた。本 ADR はユーザ採用決定を受けて同じ #37 を **採用 decision** へ転じる。したがって「カタログ性は層別 README のみで担保 / `.stories.*` は存在しない」という旧 §3 の帰結は本 ADR が上書きし、Storybook + README 併走 / story co-location へ更新される
+- **#37 の性質の転換**: 旧 [0091](0091-test-verification-methods.md) §3 は #37 を [0140](0140-documentation-operations.md) タクソノミー上の **exclusion**(名前付きの非採用判断)として着地させた。本 ADR はユーザ採用決定を受けて同じ #37 を **採用 decision** へ転じる。したがって「カタログ性は層別 README のみで担保 / `.stories.*` は存在しない」という旧 §3 の帰結は本 ADR が上書きし、Storybook + README 併走 / story co-location へ更新される
 - Storybook の具体的な設定(builder / framework 統合・visual regression 連携〈#71〉等)は本 ADR の射程外で、実装 PR で確定する。visual regression(#71)は依然 tooling defer であり、Storybook 採用がそれを自動的に確定させるものではない
-- 本 ADR は機能 seam でない開発ツール選択であり、[0090](0090-testing-strategy.md) のテスト層(unit / component / integration / e2e)とは独立である。テスト検証手段の確定は [0091](0091-testing-and-catalog-policy.md) が所有する
+- 本 ADR は機能 seam でない開発ツール選択であり、[0090](0090-testing-strategy.md) のテスト層(unit / component / integration / e2e)とは独立である。テスト検証手段の確定は [0091](0091-test-verification-methods.md) が所有する
 
 ## 関連 ADR
 
-- [0091-testing-and-catalog-policy.md](0091-testing-and-catalog-policy.md) — 本 ADR の分割元(旧「テスト・カタログ方針」§3)。現在はテスト検証手段(RSC 寄せ先 / a11y 自動テスト)へ縮約
+- [0091-test-verification-methods.md](0091-test-verification-methods.md) — 本 ADR の分割元(旧「テスト・カタログ方針」§3)。現在はテスト検証手段(RSC 寄せ先 / a11y 自動テスト)へ縮約
 - [0141-portal-operations.md](0141-portal-operations.md) — ドキュメント portal(UI カタログではない)。Storybook と役割分担
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — per-package README(カタログ性の併走供給元)
 - [0027-directory-structure.md](0027-directory-structure.md) — co-location(`.stories.*` の配置先。採用に伴い story ファイルを co-location 対象に含める)

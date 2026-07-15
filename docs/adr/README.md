@@ -51,7 +51,7 @@
 - [0072-api-type-generation.md](0072-api-type-generation.md) - 型生成（orval + zod 生成 / gh 取込 + short SHA / do-not-edit / drift ゲート）
 - [0073-pagination-fetch-boundary.md](0073-pagination-fetch-boundary.md) - ページネーション・無限スクロールのデータ取得境界
 - [0074-runtime-communication-seam.md](0074-runtime-communication-seam.md) - 双方向 / ストリーム通信 seam（WebSocket / SSE）
-- [0075-bff-external-boundary-seam.md](0075-bff-external-boundary-seam.md) - ファイルアップロード seam（presigned 直 PUT 既定 / multipart proxy 例外）
+- [0075-file-upload-seam.md](0075-file-upload-seam.md) - ファイルアップロード seam（presigned 直 PUT 既定 / multipart proxy 例外）
 - [0076-payment-ui-seam.md](0076-payment-ui-seam.md) - 決済 UI seam（mount seam と PCI 境界）
 - [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md) - BFF abuse 保護境界（infra / edge seam）
 - [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md) - 動的 feature flag・段階的配信 seam（A-B / 段階的公開）
@@ -60,7 +60,7 @@
 - [0081-observability-logging.md](0081-observability-logging.md) - 観測性・ロギング（logging/observability カーネル / OTLP-only / signal gating / RUM は fork 先）
 - [0082-client-observability.md](0082-client-observability.md) - クライアント観測性（Web Vitals RUM / client エラー収集 / プロダクト分析 seam）
 - [0090-testing-strategy.md](0090-testing-strategy.md) - テスト戦略（Vitest + RTL + MSW + Playwright / go 準拠戦略 / 90% ゲート）
-- [0091-testing-and-catalog-policy.md](0091-testing-and-catalog-policy.md) - テスト検証手段方針（async RSC テストの寄せ先 / a11y 自動テスト = axe 組込）
+- [0091-test-verification-methods.md](0091-test-verification-methods.md) - テスト検証手段方針（async RSC テストの寄せ先 / a11y 自動テスト = axe 組込）
 - [0100-accessibility-target.md](0100-accessibility-target.md) - アクセシビリティ目標（WCAG AA / biome a11y / 手動チェック）
 - [0101-performance-budget.md](0101-performance-budget.md) - パフォーマンス予算（Core Web Vitals / 仕組みは定義・閾値は fork 先）
 - [0102-browser-support.md](0102-browser-support.md) - ブラウザサポート行列（Next.js 既定 browserslist 追認 / 切り捨ては fork 先）

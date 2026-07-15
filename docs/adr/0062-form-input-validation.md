@@ -1,6 +1,6 @@
 # フォーム入力検証 UX(client 検証・生成 zod の再利用境界)
 
-送信前の**入力検証 UX** を 1 本に定める。表示レベルの入力検証(必須 / 形式 / 文字数など UX 用)を client でも行い即時フィードバックする既定と、**表示バリデーション規則(`model`・手書き)** と **契約検証(`adapters` 境界・生成スキーマ)** の**二層分離**、および生成 zod([0072](0072-api-type-generation.md))の client 再利用の境界(具体的許容範囲は [0072](0072-api-type-generation.md) 管轄へ委譲)を定める。送信メカニクス([0061](0061-form-mutation-ux.md))の `ActionState` 契約へフィールドエラーを供給する層である。
+送信前の**入力検証 UX** を 1 本に定める。表示レベルの入力検証(必須 / 形式 / 文字数など UX 用)を client でも行い即時フィードバックする既定と、**表示バリデーション規則(`model` の手書き zod スキーマ)** と **契約検証(`adapters` 境界・生成スキーマ)** の**二層分離**、および生成 zod([0072](0072-api-type-generation.md))の client 再利用の境界(具体的許容範囲は [0072](0072-api-type-generation.md) 管轄へ委譲)を定める。client 検証は [0060](0060-state-management.md) が採用する **react-hook-form + zodResolver** で行い(resolver に食わせるのは `model` の表示検証スキーマ)、送信メカニクス([0061](0061-form-mutation-ux.md))の `ActionState` 契約へフィールドエラーを供給する層である。
 
 ## Status
 
@@ -10,9 +10,9 @@ Accepted
 
 ## 背景
 
-[0060](0060-state-management.md)(B5)が form state ライブラリ(react-hook-form 等)を意図的な exclusion とした裏面として、「**ライブラリなしで入力検証エラーをどう出すか**」(triage #10)が空白として残る。boilerplate で最頻出のフォーム入力が、規約なしでは feature ごとに検証タイミングも二重管理の扱いも不統一になる。
+[0060](0060-state-management.md)(B5)は form state に **react-hook-form + zod(`zodResolver`)を v1 採用**した。ただし rhf + resolver は「検証を回す機構」であって、「**どのスキーマで・どのタイミングで検証し、生成 wire スキーマとどう切り分けるか**」(triage #10)は別途規約が要る。これが空白のままだと、boilerplate で最頻出のフォーム入力が、feature ごとに検証タイミングも二重管理の扱いも不統一になる。
 
-triage 上、#10 の native 管轄は [0072](0072-api-type-generation.md)(zod 生成物・型漏洩禁止)である。入力検証は送信メカニクス([0061](0061-form-mutation-ux.md))と結果通知([0063](0063-mutation-result-notification.md))の間に位置し、送信前の即時フィードバック UX と、生成物(wire スキーマ)を client 入力検証に再利用してよいかという型漏洩境界の判断が交差する。本 ADR は前者(入力検証 UX の既定)を敷き、後者の具体的許容範囲は保護対象 [0072](0072-api-type-generation.md) の管轄に委ねる。
+triage 上、#10 の native 管轄は [0072](0072-api-type-generation.md)(zod 生成物・型漏洩禁止)である。入力検証は送信メカニクス([0061](0061-form-mutation-ux.md))と結果通知([0063](0063-mutation-result-notification.md))の間に位置し、送信前の即時フィードバック UX と、生成物(wire スキーマ)を client 入力検証に再利用してよいかという型漏洩境界の判断が交差する。本 ADR は前者(入力検証 UX の既定 = どのスキーマを resolver に食わせるかを含む)を敷き、後者の具体的許容範囲は保護対象 [0072](0072-api-type-generation.md) の管轄に委ねる。
 
 本 ADR は decision 分類([0140](0140-documentation-operations.md))である。
 
@@ -28,8 +28,8 @@ triage 上、#10 の native 管轄は [0072](0072-api-type-generation.md)(zod �
 
 検証を**二層に分離する**(この分離が [0072](0072-api-type-generation.md) の型漏洩禁止との整合の要):
 
-- **表示バリデーション規則** = `model` が持つ**手書き**スキーマ([0021](0021-frontend-responsibility.md)「表示バリデーション規則」)。UX 用のフィールド規則であり、**wire contract ではない**ため [0072](0072-api-type-generation.md) の型漏洩禁止の対象外。client 入力検証の基本はこちら
-- **契約検証** = `adapters` 境界。request は生成 request スキーマ、response は生成 response スキーマで `.parse()`([0071](0071-bff-api-integration.md) / [0072](0072-api-type-generation.md))。契約破れは正規化エラー([0080](0080-error-handling.md))として扱う
+- **表示バリデーション規則** = `model` が持つ**手書きの zod スキーマ**([0021](0021-frontend-responsibility.md)「表示バリデーション規則」)。UX 用のフィールド規則であり、**wire contract ではない**ため [0072](0072-api-type-generation.md) の型漏洩禁止の対象外。**client 入力検証(rhf の `zodResolver`)に食わせるのはこの `model` 表示検証スキーマ**であり、[0060](0060-state-management.md) が「zod スキーマを入力契約の SSOT とし client の `zodResolver` と共有する」と言う際の SSOT はこの表示検証スキーマを指す
+- **契約検証** = `adapters` 境界。request は生成 request スキーマ、response は生成 response スキーマで `.parse()`([0071](0071-bff-api-integration.md) / [0072](0072-api-type-generation.md))。契約破れは正規化エラー([0080](0080-error-handling.md))として扱う。**生成 wire スキーマを rhf の resolver へ直接食わせない**のが既定(生成物を feature/`model` へ漏らさない = 型漏洩禁止)。生成 request スキーマの client 再利用可否は §3 のとおり [0072](0072-api-type-generation.md) 管轄
 
 ### 3. 生成 zod の client 再利用境界(具体的許容範囲は 0072 へ委譲)
 
@@ -57,5 +57,5 @@ triage 上、#10 の native 管轄は [0072](0072-api-type-generation.md)(zod �
 - [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3)— `adapters` 境界での契約検証(`.parse()`)
 - [0080-error-handling.md](0080-error-handling.md)(B6)— 契約破れの正規化エラー
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md)(A3)— `model`(表示バリデーション規則の所有)
-- [0060-state-management.md](0060-state-management.md)(B5)— form state ライブラリ exclusion(手書き表示検証の前提)
+- [0060-state-management.md](0060-state-management.md)(B5)— form state = react-hook-form + zod(`zodResolver`)採用(v1)。resolver に食わせるのは本 ADR の `model` 表示検証スキーマ(zod SSOT)
 - [0140-documentation-operations.md](0140-documentation-operations.md)(D1)— ドキュメントタクソノミー(本 ADR = decision)

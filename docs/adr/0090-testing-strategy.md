@@ -43,11 +43,11 @@ AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層�
 ### カバレッジゲート
 
 - **カバレッジ 90% のハードゲート**とする。除外は glob で管理し、**カバレッジ例外は所有パッケージ(層 / feature)の README に記録 + 承認**を要する(超法規的措置の統治。go 規約の翻案)
-- カバレッジの **PR レポート**を出す。具体的なレポートツール(go の octocov 相当)と CI 組込みは **B9(CI 構成)** の責務として引き渡す
+- カバレッジの **PR レポート**を出す。具体的なレポートツール(go の octocov 相当)と CI 組込みは **[0153](0153-ci-configuration.md)(CI 構成)** の責務として引き渡す
 
 ### 二層実行
 
-- **CI = 厳格(キャッシュ無効)**、**pre-commit / ローカル = 高速(キャッシュ有効)** の二層で実行する(速い hook + 権威 CI の二重化。[0151](0151-git-hooks.md) と同型)。lefthook / CI への接続は [0151](0151-git-hooks.md) / B9 で行う
+- **CI = 厳格(キャッシュ無効)**、**pre-commit / ローカル = 高速(キャッシュ有効)** の二層で実行する(速い hook + 権威 CI の二重化。[0151](0151-git-hooks.md) と同型)。lefthook / CI への接続は [0151](0151-git-hooks.md) / [0153](0153-ci-configuration.md) で行う
 
 ### mock 戦略
 
@@ -81,4 +81,4 @@ AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層�
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) — env スタブ + factory 再生成(本 ADR が具体 API を確定)
 - [0004-library-management.md](0004-library-management.md) — テスト依存の exact pin / audit
 - [0151-git-hooks.md](0151-git-hooks.md) — 二層実行(速い hook + 権威 CI)の接続先
-- BACKLOG B9(CI 構成)— カバレッジ PR レポートツール・CI 組込みの確定先
+- [0153](0153-ci-configuration.md)(CI 構成)— カバレッジ PR レポートツール・CI 組込みの確定先

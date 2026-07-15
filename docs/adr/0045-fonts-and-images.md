@@ -31,7 +31,7 @@ BACKLOG C5 は、`next/font` / `next/image` の使い方規約・`public/` の�
 
 ### 4. 動的 OG 画像
 
-- 動的 OG 画像は Next.js の **`ImageResponse`(`opengraph-image` 特殊ファイル)** で生成する([0028](0028-naming-convention.md) の特殊ファイル命名)。メタデータは App Router の Metadata API で扱う
+- 動的 OG 画像は Next.js の **`ImageResponse`(`opengraph-image` 特殊ファイル)** で生成する([0028](0028-naming-convention.md) の特殊ファイル命名)。メタデータ全般は [0044](0044-seo-metadata-strategy.md) が所有する App Router の Metadata API で扱う
 
 ## 禁止事項
 
@@ -41,6 +41,7 @@ BACKLOG C5 は、`next/font` / `next/image` の使い方規約・`public/` の�
 
 ## 関連 ADR
 
+- [0044-seo-metadata-strategy.md](0044-seo-metadata-strategy.md)(C7)— SEO / メタデータ戦略(OG 画像・メタデータの所有者。責務境界を共有)
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4)— App Router / Metadata API / 特殊ファイル
 - [0027-directory-structure.md](0027-directory-structure.md)(A5)— `src/app/` / `public/` 配置
 - [0028-naming-convention.md](0028-naming-convention.md)(A6)— `opengraph-image` 等の特殊ファイル命名

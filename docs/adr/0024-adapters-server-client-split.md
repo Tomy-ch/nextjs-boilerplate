@@ -8,11 +8,11 @@
 
 Accepted
 
-（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は「S1 の解決を既存 ADR への追補で埋めず、内容として独立させ、S ごとに 1 主題 = 1 ADR とする」判断([[user]] 2026-07-14)により独立起票したもの。内容自体はこの設計討議でユーザ確定済み。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きする）
+（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は「S1 の解決を既存 ADR への追補で埋めず、内容として独立させ、S ごとに 1 主題 = 1 ADR とする」判断(ユーザ決定 2026-07-14)により独立起票したもの。内容自体はこの設計討議でユーザ確定済み。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きする）
 
 ## 背景
 
-Fable 5 による構造ブロッカー網羅検証([structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md))で、[0022](0022-capabilities-kernel.md) のミラーが 2 軸のうち対角線しか埋めていないことが判明した。`adapters` は server-only([0071](0071-bff-api-integration.md) + [0022](0022-capabilities-kernel.md) 禁止事項 + triage #67)で client コードを受け入れられず、`capabilities` は remote IO を明示拒否し、`features` / `components` への生 fetch は [0071](0071-bff-api-integration.md) が禁止 —— **全出口が閉じていた**。0021 が `adapters` の例に挙げる「storage / analytics」も、client でしか起きないため server-only 宣言と矛盾していた。
+構造ブロッカー網羅検証(docs/plan 参照。[structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md))で、[0022](0022-capabilities-kernel.md) のミラーが 2 軸のうち対角線しか埋めていないことが判明した。`adapters` は server-only([0071](0071-bff-api-integration.md) + [0022](0022-capabilities-kernel.md) 禁止事項 + triage #67)で client コードを受け入れられず、`capabilities` は remote IO を明示拒否し、`features` / `components` への生 fetch は [0071](0071-bff-api-integration.md) が禁止 —— **全出口が閉じていた**。0021 が `adapters` の例に挙げる「storage / analytics」も、client でしか起きないため server-only 宣言と矛盾していた。
 
 ## 決定
 
@@ -43,9 +43,10 @@ src/adapters/
 | element | 実行文脈 | import 可 | 中身 |
 | --- | --- | --- | --- |
 | `adapters/server` | **server-only**(`import "server-only"`) | `model` / `errors` / `logging` / **`config`(ここだけ)** | backend API client・secret 有・resilience([0071](0071-bff-api-integration.md)) |
-| `adapters/client` | **`"use client"`** | `model` / `errors` / `logging` / client config(**server config 不可・secret 無**。client config = NEXT_PUBLIC リテラルは可) | 同一オリジン BFF fetch(#7)/ WebSocket・SSE(#56)/ analytics 送信(#61)/ telemetry 送信(#59 / #60)。**remote のみ** |
+| `adapters/client` | **`"use client"`** | `model` / `errors` / `logging` / client config(**server config 不可・secret 無**。client config = NEXT_PUBLIC リテラルは可) | 同一オリジン BFF fetch(#7)/ WebSocket・SSE(#56)/ analytics 送信(#61)/ telemetry 送信(#59 / #60)/ presigned 直 PUT(#13。[0075](0075-file-upload-seam.md))。**remote のみ** |
 
 - **local ブラウザ API(#43 Web Storage・#44 client cookie 読み)は `adapters` でなく `capabilities`**([0022](0022-capabilities-kernel.md))。clipboard(#26)と同型 = browser runtime API であり外部システムではない
+- **宛先オリジン**: 同一オリジン BFF(`/api/*`)が主経路。**同一オリジン外への送信も、ADR が明示に許す場合に限り `adapters/client` が所有する**(#56 realtime のバックエンド直結 / managed サービス([0074](0074-runtime-communication-seam.md))・#13 presigned 直 PUT([0075](0075-file-upload-seam.md)))。telemetry / analytics は [0081](0081-observability-logging.md) により BFF 中継(外部直送禁止)
 - `features` は両 element の公開面を import 可。`capabilities` は `adapters` を import しない
 - ESLint boundaries を 2 element に割り、**secret / RSC 境界を機械強制**(server-only に client hook 混入・client に config import はエラー)
 

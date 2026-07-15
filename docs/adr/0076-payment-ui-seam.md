@@ -1,6 +1,6 @@
 # 決済 UI seam(mount seam と PCI 境界)
 
-決済(Stripe Elements / PayPal / Adyen 等)を **本体非同梱(exclusion)** としたうえで、EC 系 fork が採用したときに乗る **フロント領域の mount seam**(SDK の DOM マウント点 + client_secret 受け渡し口)と、**別ドメイン(backend / PSP)の PCI 境界 seam**(生カード情報をフロントに持たせない = PCI SAQ-A 相当)を分けて明文化する。対象は triage #51(決済 UI マウント seam)。本 ADR は [0075](0075-bff-external-boundary-seam.md) §2 を per-subject に切り出したものである。
+決済(Stripe Elements / PayPal / Adyen 等)を **本体非同梱(exclusion)** としたうえで、EC 系 fork が採用したときに乗る **フロント領域の mount seam**(SDK の DOM マウント点 + client_secret 受け渡し口)と、**別ドメイン(backend / PSP)の PCI 境界 seam**(生カード情報をフロントに持たせない = PCI SAQ-A 相当)を分けて明文化する。対象は triage #51(決済 UI マウント seam)。本 ADR は [0075](0075-file-upload-seam.md) §2 を per-subject に切り出したものである。
 
 ## Status
 
@@ -47,7 +47,7 @@ Accepted
 
 ## 関連 ADR
 
-- [0075-bff-external-boundary-seam.md](0075-bff-external-boundary-seam.md)— 分割元(ファイルアップロード seam)。本 ADR は 0075 §2(決済 UI)を per-subject に切り出したもの
+- [0075-file-upload-seam.md](0075-file-upload-seam.md)— 分割元(ファイルアップロード seam)。本 ADR は 0075 §2(決済 UI)を per-subject に切り出したもの
 - [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md)— 分割の兄弟(BFF abuse 保護 = infra 境界 seam。0075 §3 由来)
 - [0070-backend-role-separation.md](0070-backend-role-separation.md)(A2)— `/api/*` = thin proxy / 契約 SSOT(決済処理・PCI 準拠が backend 責務であることの親決定)
 - [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3)— fetch wrapper(JSON 前提)/ `adapters` の resilience(client_secret 受け取り口の土台)

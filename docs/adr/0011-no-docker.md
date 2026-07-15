@@ -66,10 +66,13 @@ v1 で同梱する各ライブラリの採用は、本 ADR ではなく個別 AD
 | デプロイ形態 | プラットフォーム例 | Docker |
 | --- | --- | --- |
 | 静的書き出し (`output: "export"`) + CDN | S3+CloudFront / GitHub Pages / Cloudflare Pages 等 | 不要 |
-| SSR / ISR on PaaS | Vercel / Netlify / Cloudflare Pages / AWS Amplify | 不要 |
-| SSR on Node 直接実行 PaaS | Fly.io / Railway / Render | 不要（任意） |
+| SSR / ISR on PaaS | Vercel / Netlify / AWS Amplify | 不要 |
+| SSR on Node 直接実行 PaaS | Railway / Render | 不要 |
 
-Next.js を self-host する選択肢（ECS / Kubernetes / オンプレ）でのみ Docker が現実的に必要となるが、これは本 boilerplate の想定外。
+- **Cloudflare は別枠**: Cloudflare 上の Next.js は Workers / OpenNext 方式が前提で、edge runtime 制約が大きく ISR も限定的（一般 PaaS と同列に「ISR も不要」とは扱えない）。静的書き出し + Cloudflare Pages 配信は上表の CDN 行に含まれるが、SSR / ISR は制約ありの別枠として扱う。
+- **Fly.io は対象外**: Fly.io は OCI コンテナ実行基盤であり、`fly launch` は Dockerfile 生成を標準とする。Dockerfile を要するため本方針（アプリ本体の no-Docker）の対象外。
+
+Next.js を self-host する選択肢（ECS / Kubernetes / オンプレ / Fly.io 等のコンテナ実行基盤）でのみ Docker が現実的に必要となるが、これは本 boilerplate の想定外。
 
 ### 3. `next/image` の sharp は外部 system 依存を持たない
 

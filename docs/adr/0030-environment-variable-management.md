@@ -40,7 +40,7 @@ AGENTS.md の `[TODO] Environment Variable Management` が敷いていた暫定�
 
 - 配布メカニズム = **ESM モジュールキャッシュによるシングルトン**(1 プロセス 1 評価。import した全員が同一の不変インスタンスを取得)。go の Fx DI provide/inject を、モジュールスコープでの組み立て + import に写像する
 - DI の統制部分 = **import 境界ルール**。**server config(secret を持つ runtime object)を import してよいのは、その目的の `adapters/server`(+ 起動 / ビルド境界)のみ**([0021](0021-frontend-responsibility.md) 依存マトリクスと一致)。内側の層は server config でなく**値を引数で受け取る**(go「domain は config を知らない」の維持)。※ client config(NEXT_PUBLIC インラインリテラル)は runtime object でなく公開定数のため、client 側の層(`adapters/client` / `capabilities` / Client Component)も import 可
-- 起動 / ビルド境界(`instrumentation.ts` / `next.config.ts` / `app/metadata`〈[0025](0025-app-layer-elements.md)〉/ `proxy.ts`〈Edge 互換 config スライス。[0043](0043-middleware-policy.md)〉)は 10 カーネル外の専用 element として server config import を許す([0021](0021-frontend-responsibility.md) 起動 / ビルド境界の例外)
+- 起動 / ビルド境界(`instrumentation.ts` / `next.config.ts` / `app/metadata`〈[0025](0025-app-layer-elements.md)〉/ `proxy.ts`〈Edge 互換 config スライス。[0043](0043-middleware-policy.md)〉)は 11 カーネルの外側の専用 element として server config import を許す([0021](0021-frontend-responsibility.md) 起動 / ビルド境界の例外)
 - **目的別 config = go `adr/0034` SubConfig の徹底**(getter スライスでなく独立モジュール)。各 adapter の factory は自分の目的の config だけを import して singleton を組む(mini composition root)。全目的 config の集約入口(`config.auth` 等の単一 facade)は**作らない**
 
 ### 4. default-vs-required 統治(go `adr/0035` 翻案)
@@ -83,13 +83,13 @@ go の「コンストラクタが SubConfig を受け取る」1 パターンは�
 ### 8. 漏洩防御(2 段構え)
 
 - **`import "server-only"`** を server config の必須ガードとする(確実・安定)
-- **React taint API**(`experimental_taintObjectReference` / `taintUniqueValue`)は Next.js 16 時点で experimental フラグ + React experimental チャンネル切替を伴うため**現時点では採用しない**。**stable 化したら有効化**する(本 ADR に記録するに留める)
+- **React taint API**(`experimental_taintObjectReference` / `experimental_taintUniqueValue`)は Next.js 16 時点で experimental フラグ + React experimental チャンネル切替を伴うため**現時点では採用しない**。**stable 化したら有効化**する(本 ADR に記録するに留める)
 
 ## 周辺ルール(他 ADR への引き渡し)
 
-- **再デプロイなしで変えたい値**は env に置かず **BFF runtime config へ逃がす**(例外扱い・キャッシュ必須・ユーザー体感レイテンシに載せない)。逃し先の具体設計(エンドポイント / キャッシュ方式)は **B3(BFF / API 統合)の責務**として引き渡す(B3 ADR に相互参照)
+- **再デプロイなしで変えたい値**は env に置かず **BFF runtime config へ逃がす**(例外扱い・キャッシュ必須・ユーザー体感レイテンシに載せない)。逃し先の具体設計(エンドポイント / キャッシュ方式)は **[0071](0071-bff-api-integration.md)(BFF / API 統合)の責務**として引き渡す([0071](0071-bff-api-integration.md) と相互参照)
 - **`NEXT_PUBLIC_` の表面積は最小化**する(変更 = 再ビルドのリードタイムが必ず発生するため)
-- **SSG / ISR ページ内で読んだ server env はプリレンダー結果に凍結**される。**A4(レンダリング戦略)** と相互参照を置く
+- **SSG / ISR ページ内で読んだ server env はプリレンダー結果に凍結**される。**[0040](0040-routing-rendering-strategy.md)(レンダリング戦略)** と相互参照を置く
 - **`proxy.ts`**(Next.js 16 の旧 Middleware)は既定 Node.js runtime だが、最適化時に CDN(Edge 相当)配置され得るため **Node API 非依存の config スライス**が別途要るかが **C6([0043](0043-middleware-policy.md) Middleware/Proxy 方針)** と交点。**この Edge 互換 config スライスの所有は本 ADR(0030 = config カーネル)** とし、具体(スライス分割の要否・形)は実装 PR で確定する([0043](0043-middleware-policy.md) とは相互参照)
 - **テスト**: 凍結インスタンスの変異ではなく **env スタブ + factory 再生成**(`new ServerConfig(stubEnv)`)で行う(go `config_testing_setter` の翻案。本番コード使用禁止の但し書きを維持)。本 ADR は「スタブ + factory 再生成」の方針を定め、具体 API は B8([0090](0090-testing-strategy.md))で **Vitest の `vi.stubEnv`** に確定済み
 
@@ -101,7 +101,7 @@ go の「コンストラクタが SubConfig を受け取る」1 パターンは�
 - ❌ `client.ts` での `NEXT_PUBLIC_` 変数の動的アクセス・分割代入(ビルド時置換が効かない)
 - ❌ secret を `NEXT_PUBLIC_` に置くこと
 - ❌ RSC から Client Component へ server config 値を props で渡すこと
-- ❌ `config` を `adapters` 以外の層(および起動 / ビルド境界以外)から import すること([0021](0021-frontend-responsibility.md))
+- ❌ **server config**(secret を含む runtime object)を `adapters/server`・起動 / ビルド境界以外の層から import すること([0021](0021-frontend-responsibility.md)。client config〈NEXT_PUBLIC インラインリテラル〉は client 側の層から import 可 — §2 / §3)
 
 ## 補足
 
@@ -116,8 +116,8 @@ go の「コンストラクタが SubConfig を受け取る」1 パターンは�
 - [0027-directory-structure.md](0027-directory-structure.md) — `config` カーネルの物理配置(作成タイミング = A7 実装時)
 - [0028-naming-convention.md](0028-naming-convention.md) — 環境変数の命名形式(`{SUBSYSTEM}_{NAME}` / `NEXT_PUBLIC_` プレフィックス)。本 ADR は境界・検証・型付けを定める
 - [0002-formatter-linter.md](0002-formatter-linter.md) — `process.env` 直読禁止の機械強制(biome `noProcessEnv`)の能力ベース分担。有効化は本 ADR(A7)実装 PR とセット
-- BACKLOG A2 / B3(BFF / API 統合)— runtime config の逃し先・受け手アダプタの接続先
-- BACKLOG A4(レンダリング戦略)— SSG / ISR の env 凍結との相互参照
+- [0070-backend-role-separation.md](0070-backend-role-separation.md)(A2)/ [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3・BFF / API 統合)— runtime config の逃し先・受け手アダプタの接続先
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4・レンダリング戦略)— SSG / ISR の env 凍結との相互参照
 - [0090-testing-strategy.md](0090-testing-strategy.md)(B8)— env スタブの具体 API(`vi.stubEnv`)の確定先(同日 Accepted)
-- BACKLOG B9(CI 構成)— ビルド時検証の CI 組込み
-- BACKLOG C6(Middleware 方針)— Edge runtime 用に Node API 非依存の config スライスが別途要るかの交点(本文「周辺ルール」参照)
+- [0153-ci-configuration.md](0153-ci-configuration.md)(B9・CI 構成)— ビルド時検証の CI 組込み
+- [0043-middleware-policy.md](0043-middleware-policy.md)(C6・Middleware 方針)— Edge runtime 用に Node API 非依存の config スライスが別途要るかの交点(本文「周辺ルール」参照)

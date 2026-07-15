@@ -16,7 +16,7 @@ BACKLOG C3 は、Core Web Vitals SLO・Lighthouse 閾値・bundle size 予算・
 
 ### 1. 計測指標 = Core Web Vitals
 
-- パフォーマンスの一次指標は **Core Web Vitals(LCP / INP / CLS)** とする(業界標準)
+- パフォーマンスの一次指標は **Core Web Vitals(LCP / INP / CLS)** とする(業界標準)。lab 計測(CI Lighthouse)に対する **field 値(RUM)の収集経路は [0082](0082-client-observability.md) が定める**(INP 等は実ユーザ操作を要するため field 側で補完)
 
 ### 2. 予算の仕組み(枠のみ・数値は委譲)
 
@@ -35,6 +35,7 @@ BACKLOG C3 は、Core Web Vitals SLO・Lighthouse 閾値・bundle size 予算・
 ## 関連 ADR
 
 - [0153-ci-configuration.md](0153-ci-configuration.md)(B9)— Lighthouse / bundle 計測の CI 組込み先(job 分割 / PR コメント基盤。計測 job 自体は実装 PR で追加)
+- [0082-client-observability.md](0082-client-observability.md)— CWV の field 値(RUM)収集経路を補完(lab の Lighthouse では INP 等を計測できないため)
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4)— `"use client"` 葉押し下げ(bundle 抑制の土台)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md)(A7)— `NEXT_PUBLIC_` 表面積最小化
 - [0050-styling-strategy.md](0050-styling-strategy.md)(B1)— Tailwind(CSS サイズの土台)

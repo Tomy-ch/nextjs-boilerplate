@@ -10,7 +10,7 @@
 
 Accepted（採番はブロック帯で確定〈2026-07-14・0001〜0155(トピック順ブロック帯)〉）
 
-> 本 ADR は 0.0.x の living document。設計フェーズ中は本文を直接上書きし、逐次改定の履歴は残さない(不可変化 + 改定履歴の規律は v1 凍結時から。docs/plan/pre-implementation-decisions.md 決定 5)。
+> 本 ADR は 0.0.x の living document。設計フェーズ中は本文を直接上書きし、逐次改定の履歴は残さない(不可変化 + 改定履歴の規律は v1 凍結時から。[決定 5](../plan/pre-implementation-decisions.md))。
 
 ## 採用理由
 
@@ -89,7 +89,7 @@ Biome は npm devDependency として固定する。バージョンは `package.
 ```json
 {
   "devDependencies": {
-    "@biomejs/biome": "2.5.3"
+    "@biomejs/biome": "2.4.10"
   }
 }
 ```
@@ -110,6 +110,8 @@ ESLint を導入する際も同様に、本体・プラグインとも devDepend
 | --- | --- | --- | --- |
 | 簡易版 | `biome.json` | エディタ保存時（format / organize imports / safe fix）。canonical 名のため biome / エディタが自動採用 | `pnpm lint` |
 | 完全版 | `biome.ci.jsonc` | CI / pre-commit。簡易版を `extends` し重いルールを上乗せ、warn もブロック | `pnpm lint:ci` |
+
+> 完全版プロファイル（`biome.ci.jsonc`）と `pnpm lint:ci` は**未導入**（予定 / 実装 PR で導入）。導入までは `pnpm lint` = biome 簡易版のみが動作し、実際の scripts は `lint` / `fix` / `format` の 3 つである。以下の完全版に関する記述は導入時の設計方針を表す。
 
 - 完全版は `extends: ["./biome.json"]` で簡易版を継承し、**差分ルールのみ**を記述する
 - 完全版でのみ `noImportCycles`（`project` ドメイン = 複数ファイル走査で重い）を有効化し、保存時の負荷を避ける
@@ -136,17 +138,17 @@ ESLint を導入する際も同様に、本体・プラグインとも devDepend
 
 ### Linter
 
-- `preset: "recommended"` を基準に運用（旧 `recommended: true` から 2.5 系で書式移行）
+- `recommended: true` を基準に運用
 - `next` / `react` ドメインの推奨ルールを有効化
-- 追加で有効化（簡易版 = `biome.json`）：
+- 追加で有効化（簡易版 = `biome.json` の現行値）：
   - `noConsole: warn`
   - `noExplicitAny: error`
   - `noUnusedImports / noUnusedVariables: error`
   - `noUndeclaredDependencies: error`
-  - バグ性検出（2.5.3 更新時に追加, `error`）：`noConstantBinaryExpressions` / `noLeakedRender` / `noComponentHookFactories`
-  - バグ性検出（同, `warn`）：`noReactForwardRef` / `noNestedPromises` / `noShadow` / `useIframeSandbox` / `noJsxLeakedDollar`
-  - 既定 severity 追従（`"on"`）：`noVar` / `noAlert` / `noReturnAssign` / `useUniqueElementIds` ほか計 20 ルール（全量は `biome.json` を参照）
-- 完全版のみで有効化（`biome.ci.jsonc`）：
+  - `noNestedComponentDefinitions: error` / `noNextAsyncClientComponent: error`
+  - `noUnknownAtRules: off`（Tailwind ディレクティブ用）
+- バグ性検出ルール群（`noConstantBinaryExpressions` / `noLeakedRender` / `noShadow` / `useIframeSandbox` 等）の追加有効化は**未適用**（将来版で対応予定。適用時に本文の現行値を更新する）
+- 完全版のみで有効化（`biome.ci.jsonc`。完全版プロファイル自体が未導入）：
   - `noImportCycles: error`
 
 ### Assist
@@ -158,7 +160,7 @@ ESLint を導入する際も同様に、本体・プラグインとも devDepend
 - `.vscode/**` … JSON の `allowComments` を有効化（jsonc 用）
 - `**/*.d.ts` … `noExplicitAny` を off
 - `scripts/**` … `noConsole` / `noExplicitAny` を off（運用スクリプト用）
-- `public/**` … `noSvgWithoutTitle` を off（静的 SVG アセットは使用側の `alt` で代替テキストを担保。2.5 系で SVG 単体ファイルが lint 対象化したため）
+- （予定 / 未適用）`public/**` … `noSvgWithoutTitle` を off（静的 SVG アセットは使用側の `alt` で代替テキストを担保。将来版で SVG 単体ファイルが lint 対象化した際に追加する）
 
 ### ESLint（`eslint.config.mjs` — 補完分・導入は A3 Accepted 後）
 
@@ -176,7 +178,7 @@ ESLint を導入する際も同様に、本体・プラグインとも devDepend
 # Lint + Format チェック（簡易版 / エディタ相当）
 pnpm lint
 
-# Lint（完全版 / CI・pre-commit 用。warn もブロック）
+# Lint（完全版 / CI・pre-commit 用。warn もブロック。未導入 = 実装 PR で追加）
 pnpm lint:ci
 
 # Lint + Format を自動修正
@@ -229,13 +231,13 @@ VSCode を前提に統合を行う。`.vscode/extensions.json` で `biomejs.biom
 - ルールの追加・無効化が必要になった場合は、まず `overrides`（biome）/ ファイルスコープ設定（ESLint flat config）での局所適用を検討し、グローバル変更は最後の手段とする
 - バージョン更新時は `pnpm exec biome check` で差分が出ないことを確認し、出る場合は `pnpm fix` で吸収した上で同 PR に整形コミットを含める。biome 更新 PR では、ESLint 側に残している検査の biome 対応状況（移管可否）も併せて確認する
 - nursery ルールはバージョン更新で挙動・所属グループが変わり得る。exact pin 運用（[0004-library-management.md](0004-library-management.md)）を前提に、更新 PR で差分を確認する
-- `process.env` 直読禁止のような **biome で表現できる規約は biome 側（`noProcessEnv` 等）に置き、ESLint には置かない**（能力ベースの適用例。有効化は環境変数管理の ADR = BACKLOG A7 とセットで行う）
-- ESLint の導入自体は本 ADR が直接トリガーしない。層境界検査の中身（プラグイン・層定義）が A3 ADR で確定した時点で、0004 の採用フロー（採用チェック + `pnpm audit`）に従い導入 PR を立てる
+- `process.env` 直読禁止のような **biome で表現できる規約は biome 側（`noProcessEnv` 等）に置き、ESLint には置かない**（能力ベースの適用例。有効化は環境変数管理の ADR = [0030](0030-environment-variable-management.md) とセットで行う）
+- ESLint の導入自体は本 ADR が直接トリガーしない。層境界検査の中身（プラグイン・層定義）は A3 ADR([0021](0021-frontend-responsibility.md))で確定済みのため、0004 の採用フロー（採用チェック + `pnpm audit`）に従い導入 PR を立てられる
 
 ## 今後の拡張
 
-- CI で完全版 `pnpm lint:ci` を必須化（PR チェックに組み込む。CI 構成自体は BACKLOG B9 で決定）
-- pre-commit / pre-push フック（lefthook）は導入済み。段階責務は [0151-git-hooks.md](0151-git-hooks.md) を参照。ESLint 追加後に pre-commit の速度目標（< 5 秒）を超える場合の退避ルールも同 ADR に定める
+- CI で完全版 `pnpm lint:ci` を必須化（PR チェックに組み込む。CI 構成自体は [0153](0153-ci-configuration.md) で決定済み）
+- pre-commit / pre-push フック（lefthook）は [0151-git-hooks.md](0151-git-hooks.md) で決定済み・**未導入**（実装 PR で導入）。段階責務は同 ADR を参照。ESLint 追加後に pre-commit の速度目標（< 5 秒）を超える場合の退避ルールも同 ADR に定める
 - 層境界検査の具体設定（プラグイン選定・層定義マッピング）は [0021](0021-frontend-responsibility.md)（A3）の Enforcement 節で定義済み（`eslint-plugin-boundaries` + 依存マトリクス）。残る `eslint.config.mjs` の記述は実導入 PR で行う
 
 ## 関連 ADR

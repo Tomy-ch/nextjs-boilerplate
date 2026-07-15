@@ -17,7 +17,7 @@ C 系(Tier 5)の当初列挙(C1〜C6 = [0121](0121-i18n-strategy.md)〜[0043](00
 - **Metadata API**: route セグメントで静的 `metadata` export または動的 `generateMetadata` を宣言すると、Next.js が `<head>` 要素を自動生成する
 - **ファイルベース metadata**: `app/` 直下の `sitemap.(xml|ts)` / `robots.(txt|ts)` / `icon.*` / `apple-icon.*` / `manifest.*` / `opengraph-image.*` 等。特殊 Route Handler として既定でキャッシュされる(request-time API / dynamic config 使用時を除く)
 - **大規模 sitemap**: `generateSitemaps` で分割生成
-- **Proxy 交点(重要)**: 公式ドキュメントは「`proxy.ts` と併用する場合、matcher を設定してメタデータファイルを除外せよ」と明示([0043](0043-middleware-policy.md) の matcher と交差する)
+- **Proxy 交点(重要)**: 公式ドキュメントは「`proxy.ts` と併用する場合、メタデータファイルを Proxy の対象外とせよ」と明示。`proxy.ts`([0043](0043-middleware-policy.md))を導入する場合の交点となる(0043 は proxy を薄い境界に限る方針までを定め、除外設定の具体は実装時)
 
 ## 決定
 
@@ -47,7 +47,7 @@ C 系(Tier 5)の当初列挙(C1〜C6 = [0121](0121-i18n-strategy.md)〜[0043](00
 
 ### 6. Proxy との交点
 
-- `proxy.ts`([0043](0043-middleware-policy.md))を導入する場合、**matcher でメタデータファイル(`sitemap` / `robots` / `icon` / `opengraph-image` 等)を除外**する(Next.js 公式の good-to-know。メタデータの配信を Proxy が横取りしないため)
+- `proxy.ts`([0043](0043-middleware-policy.md))を導入する場合、**メタデータファイル(`sitemap` / `robots` / `icon` / `opengraph-image` 等)を Proxy の対象外とする**必要がある(Next.js 公式の good-to-know。メタデータの配信を Proxy が横取りしないため)。除外設定の具体(`proxy.ts` 側の対象パス制御)は proxy を導入する実装 PR で行う(0043 は proxy を薄い境界に限る方針を定めるに留まる)
 
 ## 責務境界(0045 との切り分け)
 
@@ -64,7 +64,7 @@ C 系(Tier 5)の当初列挙(C1〜C6 = [0121](0121-i18n-strategy.md)〜[0043](00
 - ❌ 同一メタデータを複数箇所で重複定義すること(root の `title.template` / `metadataBase` を土台に差分宣言)
 - ❌ `sitemap` / `robots` を独自の静的配置・手書き生成で実装すること(Next.js のファイル規約 `app/sitemap.ts` / `app/robots.ts` を使う)
 - ❌ 手書き `<link rel="canonical">` を置くこと(`alternates.canonical` を使う)
-- ❌ `proxy.ts` の matcher でメタデータファイルを巻き込むこと(除外する)
+- ❌ `proxy.ts` でメタデータファイルを巻き込むこと(Proxy の対象外とする)
 - ❌ 用途依存の具体値(タイトル文言・収録 URL・JSON-LD type)を boilerplate 本体で固定すること(枠のみ・値は fork 先)
 
 ## 関連 ADR
@@ -72,6 +72,6 @@ C 系(Tier 5)の当初列挙(C1〜C6 = [0121](0121-i18n-strategy.md)〜[0043](00
 - [0045-fonts-and-images.md](0045-fonts-and-images.md)(C5)— OG 画像生成 / `public/` favicon(本 ADR と責務境界を共有)
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4)— App Router / Metadata API / 特殊ファイルの土台
 - [0028-naming-convention.md](0028-naming-convention.md)(A6)— `sitemap` / `robots` / `opengraph-image` 等の特殊ファイル命名
-- [0043-middleware-policy.md](0043-middleware-policy.md)(C6)— `proxy.ts` matcher でメタデータファイルを除外する交点
+- [0043-middleware-policy.md](0043-middleware-policy.md)(C6)— `proxy.ts` 導入時にメタデータファイルを Proxy の対象外とする交点
 - [0121-i18n-strategy.md](0121-i18n-strategy.md)(C1)— 言語 alternates(i18n 採用時に本 ADR の canonical/alternates seam へ載る)
 - [0101-performance-budget.md](0101-performance-budget.md)(C3)— メタデータ / OG は SEO・共有体験に直結

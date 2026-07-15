@@ -12,7 +12,7 @@ Accepted
 
 [adr-gap-audit.md](../plan/adr-gap-audit.md) #46 は「CSP / セキュリティヘッダ」を空白領域として挙げた。[0110](0110-security-operations.md)(B10)はサプライチェーン/CI 系防御(Dependabot / gitleaks / Trivy / CodeQL / 依存監査)のみで、**実行時のブラウザ側防御が丸ごと空白**であり、[0043](0043-middleware-policy.md)(C6)は「Proxy でヘッダ操作が可能」とのみ述べてポリシー本体・配置方針を持たない。後付けの CSP は既存の inline script/style との衝突で最も導入コストが高く、初期に方針を固めておく価値が高い。
 
-[adr-gap-triage.md](../plan/adr-gap-triage.md) は #46 を **複合 disposition** に仕分けた —— (a) **CSP 適合チェック**(inline 違反検出・ヘッダ well-formed 検証・回帰)は CI 時点で払えるため [0110](0110-security-operations.md) が逆参照ゲートで持つ / (b) **CSP ポリシー内容 + nonce の実行時運用 + ヘッダ配置**は実行時で CI では払えないため **新規 ADR(本 ADR)**。新規化の主理由は「shift-left で払えない」ことに加え、**局所推論可能性** —— 「このリポの CSP はどこで・何を enforce するか」を問う読み手が 0110/0029/0010 に散らばらず本 ADR 1 本で完結して読めることを最大化するためである。
+[adr-gap-triage.md](../plan/adr-gap-triage.md) は #46 を **複合 disposition** に仕分けた —— (a) **CSP 適合チェック**(inline 違反検出・ヘッダ well-formed 検証・回帰)は CI 時点で払えるため [0110](0110-security-operations.md) が逆参照ゲートで持つ / (b) **CSP ポリシー内容 + nonce の実行時運用 + ヘッダ配置**は実行時で CI では払えないため **新規 ADR(本 ADR)**。新規化の主理由は「shift-left で払えない」ことに加え、**局所推論可能性** —— 「このリポの CSP はどこで・何を enforce するか」を問う読み手が 0110/0043/0010 に散らばらず本 ADR 1 本で完結して読めることを最大化するためである。
 
 本リポジトリは **Next.js 16 / React 19**。実装前に `node_modules/next/dist/docs/` を確認した結果(AGENTS.md「This is NOT the Next.js you know」)、以下を前提とする(`01-app/02-guides/content-security-policy.md`):
 
@@ -91,7 +91,7 @@ CSP は「別ドメイン(infra/backend)の責務」ではなく **表示層が�
 ## 補足
 
 - **0110 への CI ゲート追加は未実施**。0110 は Protected Documentation のため、CSP 適合チェック(inline 違反検出・ヘッダ well-formed 検証)を 0110 の Security グループに 1 本追加する変更案は、ユーザ承認を経て別作業で適用する。本 ADR(実行時本体)と 0110 ゲート(CI 適合スライス)は #46 の**両輪**であり、**片側のみでは #46 は閉じない**。
-- **#47 CSRF / Server Actions の origin 検証**(`serverActions.allowedOrigins` / SameSite cookie 前提)は triage で **rules.md(主 Rationale [0070](0070-backend-role-separation.md))** に仕分けられており、本 ADR には**同居させない**(triage は同居を「要検討」とした)。CSRF は認証・cookie 運用と境界を接するため、**認証のフロント側 seam ADR(triage #45、0079)** の確定と併せて配置を最終判断する。本 ADR は CSP・レスポンスヘッダの実行時本体に射程を限る。
+- **#47 CSRF / Server Actions の origin 検証**(`serverActions.allowedOrigins` / SameSite cookie 前提)は triage で **rules.md(主 Rationale [0070](0070-backend-role-separation.md))** に仕分けられており、本 ADR には**同居させない**(triage は同居を「要検討」とした)。CSRF は認証・cookie 運用と境界を接するが、**認証のフロント側 seam ADR([0079](0079-auth-frontend-seam.md))が #47 CSRF / origin 検証を「rules.md 側・本 ADR 非同居(主 Rationale = 0070)」と確定済み**。本 ADR は CSP・レスポンスヘッダの実行時本体に射程を限る。
 - ヘッダ実装(`next.config.ts` `headers()` への追加・seam B の `proxy.ts` 追加)は本 ADR Accepted 後の実装 PR。`next.config.ts` は root config(AGENTS.md AI Modification Scope の保護対象)であり、変更はユーザ指示のもとで行う。
 - 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーで **decision** 分類に属する(実行時防御の選定=決定)。日常強制される rule(サードパーティスクリプト #50・XSS/サニタイズ #48 等)は rules.md 側に置き、本 ADR を Rationale として逆参照する。
 
@@ -100,7 +100,8 @@ CSP は「別ドメイン(infra/backend)の責務」ではなく **表示層が�
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠(seam は Next.js デファクトに乗る)+ 非ロックイン正当化(vendor-independent 材料の必須記載)。本 ADR の判断軸
 - [0110-security-operations.md](0110-security-operations.md)(B10)— CI/ビルド時点の防御(shift-left)。CSP 適合の CI ゲートを逆参照で持つ(#46 の CI 適合スライス側)
 - [0043-middleware-policy.md](0043-middleware-policy.md)(C6)— `proxy.ts` = 薄い last resort。seam B(nonce CSP)の実装制約
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4)— レンダリングモード非強制 / Cache Components 保留。nonce CSP を既定にしない根拠
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4)— レンダリングモード非強制。nonce CSP を既定にしない根拠
+- [0041-cache-components-decision.md](0041-cache-components-decision.md)— Cache Components は 0.0.x=無効に確定(nonce CSP の dynamic 化と非互換のため既定にしない根拠を補強)
 - [0131-cookie-consent.md](0131-cookie-consent.md)(C9)— 同意ゲート(外部スクリプトの CSP allowlist と連動)
 - [0070-backend-role-separation.md](0070-backend-role-separation.md)(A2)— #47 CSRF/origin 検証の主 Rationale(本 ADR には同居させない)
 - [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — #46 の複合 disposition(実行時本体=本 ADR / CI 適合=0110 逆参照ゲート)

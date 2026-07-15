@@ -21,7 +21,7 @@ BACKLOG C4 は、`browserslist` の固定・polyfill 方針・切り捨て条件
 
 ### 2. polyfill 方針
 
-- **Next.js の既定 polyfill に委ねる**(必要な polyfill は Next.js がターゲットに応じて注入)。独自 polyfill を先回りで足さない([0011](0011-no-docker.md) の「用途未定」+ 必要になってから)
+- **Next.js の既定 polyfill に委ねる**(Next.js は fetch / URL / Object.assign 等の広く使われる polyfill のみ自動注入する。ターゲット外機能に必要な polyfill は自前で追加する = Custom Polyfills)。独自 polyfill を先回りで足さない([0011](0011-no-docker.md) のロール定義上の対象外 + 必要になってから)
 
 ### 3. 切り捨て条件
 

@@ -1,6 +1,6 @@
 # フォーム送信フローの canonical 機構(`<form action>` + `useActionState` + `useFormStatus`)
 
-変更系フローの **送信メカニクス**を 1 本に定める。`<form action={serverAction}>` + `useActionState`(結果 state)+ `useFormStatus`(pending)を、ライブラリなしでの canonical な送信フローの既定形とし、戻り値契約 `ActionState<T>` を「入力検証 UX / 結果通知 UX が共通に依拠する器」として敷く。form state ライブラリ非同梱([0060](0060-state-management.md))・UI / form コンポーネント非同梱([0052](0052-ui-component-policy.md))の裏面として、標準([0010](0010-standards-and-non-lockin.md))に乗る送信メカニクスの土台を提供する。
+変更系フローの **送信メカニクス**を 1 本に定める。`<form action={serverAction}>` + `useActionState`(結果 state)+ `useFormStatus`(pending)を canonical な送信フローの既定形とし、戻り値契約 `ActionState<T>` を「入力検証 UX / 結果通知 UX が共通に依拠する器」として敷く。[0060](0060-state-management.md) は form state に react-hook-form + zod を **v1 採用**するが、rhf はクライアント入力検証を担い、**送信そのものは本 ADR の Server Actions 機構に合流させる**(送信機構は 1 本)。標準([0010](0010-standards-and-non-lockin.md))に乗る送信メカニクスの土台を提供する。
 
 ## Status
 
@@ -15,9 +15,9 @@ Accepted
 
 ## 背景
 
-[0060](0060-state-management.md)(B5)が form state ライブラリ(react-hook-form 等)を、[0052](0052-ui-component-policy.md)(B2)が UI / form コンポーネント群を、それぞれ意図的な exclusion とした。その裏面として「**ライブラリなしでどう送信するか**」という送信メカニクスの既定が空白として残る。boilerplate で最頻出の UI であるフォームが、送信の骨格すら規約なしでは feature ごとに発明され、[0062](0062-form-input-validation.md) の入力検証も [0063](0063-mutation-result-notification.md) の結果通知も、乗る先の器がなければ統一できない。
+[0060](0060-state-management.md)(B5)は form state に **react-hook-form + zod を v1 採用**し、[0052](0052-ui-component-policy.md)(B2)は UI / form 部品(shadcn 系)を v1 採用したが、rhf が担うのは**クライアントの入力状態・検証**であって「**サーバへどう送信し、結果を返すか**」という送信メカニクスは別レイヤであり、その既定が空白として残る。boilerplate で最頻出の UI であるフォームが、送信の骨格すら規約なしでは feature ごとに発明され(`onSubmit` 内での手 fetch / rhf の `handleSubmit` から独自 POST 等に分岐)、[0062](0062-form-input-validation.md) の入力検証も [0063](0063-mutation-result-notification.md) の結果通知も、乗る先の器がなければ統一できない。
 
-送信メカニクスは入力検証・結果通知の**共通の土台**である。両者は戻り値契約(`ActionState`)を入力に選ぶため、まず「送ってから結果が返るまでの骨格」を 1 本に固定する必要がある。本 ADR はその骨格のみを担い、送信前の入力検証 UX は [0062](0062-form-input-validation.md)、送信後の結果通知 UX は [0063](0063-mutation-result-notification.md) が担う。
+送信メカニクスは入力検証・結果通知の**共通の土台**である。両者は戻り値契約(`ActionState`)を入力に選ぶため、まず「送ってから結果が返るまでの骨格」を 1 本に固定する必要がある。本 ADR はその骨格のみを担い、送信前の入力検証 UX は [0062](0062-form-input-validation.md)、送信後の結果通知 UX は [0063](0063-mutation-result-notification.md) が担う。rhf との関係は「rhf = クライアント入力検証 / 送信 = 本 ADR の `<form action>` + Server Action」に切り分け、送信機構を二重化しない。
 
 [0010](0010-standards-and-non-lockin.md) の標準準拠に従い、送信フローは React 19 / App Router のデファクト(`<form action>` + `useActionState` + `useFormStatus`)に乗る。本 ADR は decision 分類([0140](0140-documentation-operations.md))であり、標準に乗る決定として vendor-independent な正当性材料を本体に添える。
 
@@ -42,7 +42,7 @@ Accepted
 
 - ❌ Server Action ごとに戻り値形状を発明すること(`ActionState<T>` 契約に従い、[0062](0062-form-input-validation.md) の入力検証・[0063](0063-mutation-result-notification.md) の共通通知を可能にする)
 - ❌ 送信フローを `<form action>` + `useActionState` 以外の自前機構で発明すること(標準デファクトに乗る = [0010](0010-standards-and-non-lockin.md))
-- ❌ form state ライブラリ / UI ライブラリを持ち込んで送信メカニクスを代替すること([0060](0060-state-management.md) / [0052](0052-ui-component-policy.md) exclusion)
+- ❌ react-hook-form 等の form state ライブラリで**送信機構そのものを置換して二重化**すること(rhf はクライアント入力検証に用い、送信は本 ADR の `<form action>` + Server Action に合流させる。[0060](0060-state-management.md) の rhf 採用と整合)
 - ❌ pending 表示を伴わない送信(`useFormStatus` を既定として要求する)
 
 ## 補足
@@ -55,8 +55,8 @@ Accepted
 
 - [0062-form-input-validation.md](0062-form-input-validation.md) — 送信前の入力検証 UX(本 ADR から分離 / `ActionState` のフィールドエラーを供給)
 - [0063-mutation-result-notification.md](0063-mutation-result-notification.md) — 変更結果の通知 UX(本 ADR から分離 / `ActionState` を入力に通知手段を選ぶ)
-- [0060-state-management.md](0060-state-management.md)(B5)— form state ライブラリ exclusion(native form 標準形の前提)
-- [0052-ui-component-policy.md](0052-ui-component-policy.md)(B2)— UI / form コンポーネント exclusion(ライブラリなし送信の前提)
+- [0060-state-management.md](0060-state-management.md)(B5)— form state = react-hook-form + zod 採用(v1)。rhf = クライアント入力検証 / 送信は本 ADR の Server Actions 機構に合流
+- [0052-ui-component-policy.md](0052-ui-component-policy.md)(B2)— UI / form 部品(shadcn 系)採用(v1)。本 ADR は送信メカニクスを担い、UI 部品と対で機能する
 - [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3)— Server Action / POST 冪等性(pending・二重送信の連動)
 - [0080-error-handling.md](0080-error-handling.md)(B6)— errors sentinel(`ActionState` が運ぶエラーの供給元)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md)(A3)— `model`(`ActionState` 所有)/ `actions.ts` 編成

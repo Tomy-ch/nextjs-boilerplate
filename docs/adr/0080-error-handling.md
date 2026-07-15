@@ -48,10 +48,15 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 ### 3. App Router のエラー特殊ファイル階層
 
 - `error.tsx`(セグメント境界の recovery UI)/ `global-error.tsx`(root layout のエラー)/ `not-found.tsx`(404)は、**正規化済みのエラーコード / メッセージを表示するだけ**の薄い境界とする。生エラー・スタックを画面へ漏らさない
+- **production の redact 挙動に注意**(Next.js 公式 `error.js` file convention): production では **Server Component から throw されたエラーの `message` は redact され**、client の error boundary(`error.tsx`)には**汎用メッセージ + `error.digest`(サーバログ突合用の自動生成ハッシュ)のみ**が伝播する(Client Component 由来の throw は原文メッセージが渡る)。したがって「正規化済みメッセージの表示」を **throw 経路に頼らない**こと。ユーザ向けメッセージは次のいずれかで解決する:
+  - (a) **期待エラー(主にユーザ起因 4xx 系)**: throw せず **Server Action の戻り値(ActionState / `useActionState`)として値で渡す**(公式ガイド「expected errors は return value でモデル化」。[0040](0040-routing-rendering-strategy.md) の Server Actions 採用と整合)
+  - (b) **予期しないエラー(システム起因 5xx 系)**: `error.tsx` は汎用文言 + `digest` の表示にとどめ、`digest` と境界ログ(下記 5)の突合で原因を解決する
+
+  いずれも本 ADR の分類(上記 1 の系統列)・境界正規化(上記 2)と両立する。具体的な配線(どの feature がどちらを使うか)は実装 PR で確定する
 - 配置は **`src/app/` 配下の route セグメント単位**(App Router の規約上、特殊ファイルは `app/` 配下でのみ機能する — [0027](0027-directory-structure.md)。特殊ファイル命名は [0028](0028-naming-convention.md))。Error Boundary の粒度はセグメント階層に従う。エラー表示の中身のコンポーネントは feature 側に置き、特殊ファイルからは薄く委譲する([0040](0040-routing-rendering-strategy.md) driving adapter 原則)
 - `error.tsx` 等に**業務ロジックを書かない**([0040](0040-routing-rendering-strategy.md) driving adapter)
 
-### 3.5. `loading.tsx` / Suspense ストリーミング境界([0040](0040-routing-rendering-strategy.md) A4 からの引き渡し)
+### 4. `loading.tsx` / Suspense ストリーミング境界([0040](0040-routing-rendering-strategy.md) A4 からの引き渡し)
 
 [0040](0040-routing-rendering-strategy.md)(A4)は「`loading.tsx` / `error.tsx` の配置・責務は B6 へ引き渡す」とした。その `error.tsx` 系は上記 3 で確定済み。**対になる正常系の待機表示 = `loading.tsx` / `<Suspense>` 境界**を本節で確定する(異常系=error.tsx と正常系=loading.tsx を同じ「薄い表示境界」の規律に載せる):
 
@@ -60,13 +65,13 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - `loading.tsx` も `app/` 配下の App Router 特殊ファイル([0027](0027-directory-structure.md) / [0028](0028-naming-convention.md))である
 - fallback の**見た目(スケルトン / スピナー)の UI 規約と、Suspense × PPR(`Cache Components`)の相互作用**は用途依存 / [0040](0040-routing-rendering-strategy.md) の保留に従う。本節は「境界の配置と薄さ」までを定め、UI 表現・PPR 前提設計は実装 PR で確定する
 
-### 4. swallow 禁止・cause chain・redact(go `rules.md` 翻案)
+### 5. swallow 禁止・cause chain・redact(go `rules.md` 翻案)
 
 - **エラーを握り潰さない(swallow 禁止)**。各エラーは handle / wrap して伝播するか、論理的到達不能なら明示的に throw する
 - 原エラーの型・情報を鎖に残す。TypeScript の **`Error` の `cause`(`new Error(msg, { cause })`)で chain を保持**する(go の `Join` 優先の翻案)
 - **秘匿情報を含むエラーは redact してから wrap** する(go の redact caveat)。ログ・レスポンスに PII / token / password を出さない
 
-### 5. ログ出力タイミング(B7 と接続)
+### 6. ログ出力タイミング(B7 と接続)
 
 - エラーのログは **境界で 1 回**(`adapters` の正規化点 / route の error 境界)出力し、二重ログを抑止する(go errorhandler の翻案)
 - **5xx(システム起因)= error レベル / 4xx(ユーザ起因)= warn レベル**(go の `errorLevelBoundHTTPStatus=500` の翻案)。ログの具体(スキーマ・出力先・trace 相関)は **B7([0081](0081-observability-logging.md))** が正

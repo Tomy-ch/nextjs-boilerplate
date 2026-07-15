@@ -12,7 +12,7 @@ Accepted
 
 AGENTS.md の `[TODO] Type Generation`(BACKLOG B4)は、API 型を OpenAPI から生成するか手書きか・生成器の選定・生成物の扱いを未決とし、暫定運用として「API 型を複数箇所で複製しない / 生成扱いすべきファイルを手書きしない」を敷いていた。本 ADR がこれを確定させる。
 
-go-boilerplate は OpenAPI-first(**go 側**の ADR 0009)でモジュラー spec を Redocly でバンドルし(同 0040)、`openapi.gen.yaml` を**クロスリポ契約成果物としてコミット**する(同 0052。いずれも本リポの同番号 ADR ではない)。go 側 ADR 0012 は消費者側(本リポ)のパスとして「フロントは GitHub API(`gh` CLI 等)でコミット済みファイルを取得し、**orval + zod** 等で自前の生成を行う」と明示している。本 ADR はこの消費者側を成文化する。
+go-boilerplate は OpenAPI-first(**go 側**の ADR 0009)でモジュラー spec を Redocly でバンドルし(同 0040)、`openapi.gen.yaml` を**クロスリポ契約成果物としてコミット**する(同 0012「バンドル済み `openapi.gen.yaml` をクロスリポ契約成果物として保持」。いずれも本リポの同番号 ADR ではない)。同 0012 はさらに消費者側(本リポ)のパスとして「フロントは GitHub API(`gh` CLI 等)でコミット済みファイルを取得し、**orval + zod** 等で自前の生成を行う」と明示している。本 ADR はこの消費者側を成文化する。
 
 [決定 4](../plan/pre-implementation-decisions.md) は当初「型のみ(openapi-typescript)」としていたが、go-boilerplate の境界値所有哲学([0070](0070-backend-role-separation.md) / go `boundary-ownership.md`)が「response には server 側 runtime 検証がなく、フロントの生成 validation(zod)が契約破れの最後の砦」と前提していることを踏まえ、ユーザが **型 + runtime validation(zod)** を選択した(2026-07-13)。
 
@@ -27,7 +27,7 @@ go-boilerplate は OpenAPI-first(**go 側**の ADR 0009)でモジュラー spec 
 ### 生成物の配置 / do-not-edit
 
 - 生成物は **`src/adapters/gen/`** に配置する。生成 wire 型・zod スキーマは `adapters`(外部接続・変換の所有境界。[0021](0021-frontend-responsibility.md))が所有するため、その内側に colocate する(go が生成物を所有層のパッケージ内 `gen/` サブディレクトリに colocate する作法の翻案。ディレクトリ名 `gen/` は生成物置き場の業界慣行名)
-- これは **`adapters` カーネル内の生成専用サブディレクトリ**であり、[0027](0027-directory-structure.md) が追補を要求する「`src/` 直下の 10 個目のカーネル増設」には当たらない(追補不要)
+- これは **`adapters` カーネル内の生成専用サブディレクトリ**であり、[0027](0027-directory-structure.md) が追補を要求する「11 カーネル構成に対する `src/` 直下の新規カーネル増設」には当たらない(追補不要)
 - **手編集禁止(do-not-edit)**。`src/adapters/gen/` は生成入力(`openapi.gen.yaml`)からの再生成で常に上書きされる。人間・AI は編集しない
 
 ### 型漏洩禁止(go rules.md DTO / Type Boundary の翻案)

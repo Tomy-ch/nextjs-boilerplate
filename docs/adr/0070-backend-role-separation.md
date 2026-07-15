@@ -12,7 +12,7 @@ Accepted
 
 AGENTS.md の `[TODO] Backend Role Separation`(BACKLOG A2)は、Next.js が抱える責務(UI / 認証トークン交換 / BFF / 集約 — どこまでか)・バックエンドとの契約(REST / GraphQL / RPC と SSOT の所在)・ドメインロジックの所在を未決としていた。暫定運用は「`/api/*` に業務ロジックを書かない(薄い proxy / token 交換のみ)/ `src/` に DB 接続・ORM を足さない / バックエンド API spec を手書き型で複製しない」だった。本 ADR がこれを確定させる。
 
-go-boilerplate は**バックエンド本体**であり、フロントの前段 proxy 責務(BFF / token 交換)の前例を持たない(調査で確認)。したがって A2 の BFF 境界は go からの翻案元がなく、[0011](0011-no-docker.md) の thin proxy 決定と「認証・DB は fork 先判断(out of scope)」原則から導出する新規決定である。一方、**契約 SSOT と境界値所有**は go-boilerplate に確立された規約(**go 側**の ADR 0009 / 0052 / 0070。本リポの同番号 ADR ではない)があり、その消費者側として翻案する。
+go-boilerplate は**バックエンド本体**であり、フロントの前段 proxy 責務(BFF / token 交換)の前例を持たない(調査で確認)。したがって A2 の BFF 境界は go からの翻案元がなく、[0011](0011-no-docker.md) の thin proxy 決定と「認証・DB は fork 先判断(out of scope)」原則から導出する新規決定である。一方、**契約 SSOT と境界値所有**は go-boilerplate に確立された規約(**go 側**の ADR 0009 / 0012 / 0015。本リポの同番号 ADR ではない)があり、その消費者側として翻案する。
 
 ## 決定
 

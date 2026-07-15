@@ -10,7 +10,7 @@ Accepted
 
 ## 背景
 
-[0052](0052-ui-component-policy.md)(B2)が UI / form コンポーネント群を意図的な exclusion とした裏面として、「**ライブラリなしで操作結果をどう出すか**」(triage #19 通知 UI 使い分け)が空白として残る。成功 / 失敗の通知手段が feature ごとにばらつくと、実装者にも利用者にも一貫した UX が失われる。
+[0052](0052-ui-component-policy.md)(B2)は UI / form 部品(shadcn 系)を **v1 採用**したが、部品が手元にあっても「**操作結果をどの手段(インライン / トースト / redirect)で出すか**」(triage #19 通知 UI 使い分け)という規約は別途要る。これが空白のままだと、成功 / 失敗の通知手段が feature ごとにばらつき、実装者にも利用者にも一貫した UX が失われる。
 
 triage 上、#19 の native 管轄は [0080](0080-error-handling.md)(エラー正規化)/ [0052](0052-ui-component-policy.md)(UI)/ [0100](0100-accessibility-target.md)(a11y)に分かれる。結果通知は送信メカニクス([0061](0061-form-mutation-ux.md))が返す `ActionState` を入力に、「フォーム文脈に留まる結果か離れる結果か」で手段を選ぶ層である。本 ADR はその使い分けの規約と live region a11y 要件を敷き、a11y の目標水準は [0100](0100-accessibility-target.md) に委ねる。
 
@@ -32,7 +32,7 @@ triage 上、#19 の native 管轄は [0080](0080-error-handling.md)(エラー�
 
 ### 2. トースト UI の帰属
 
-- **トースト UI の帰属**:トーストは**自前最小 UI** として `components` カーネルが持つ([0021](0021-frontend-responsibility.md)「`components` はトースト等の UI 状態を持てる」で帰属確定済み)。UI / form ライブラリ非同梱([0052](0052-ui-component-policy.md))と矛盾しない(**ライブラリ導入ではなく自前最小 UI**)
+- **トースト UI の帰属**:トースト / 通知部品は **shadcn 系のトースト部品(sonner 等)**を `components` カーネルに置いて用いる([0052](0052-ui-component-policy.md) の shadcn/ui + copy-in 採用 / [0021](0021-frontend-responsibility.md)「`components` はトースト等の UI 状態を持てる」で帰属確定済み)。vendor 直参照は `components` カーネルに閉じ込める([0052](0052-ui-component-policy.md) の非ロックイン境界)
 - 本 ADR はトースト *コンポーネント* を再帰属させず、**使い分けの規約**と下記 a11y 要件を持つ
 
 ### 3. a11y(live region・権威は [0100](0100-accessibility-target.md))
@@ -44,7 +44,7 @@ triage 上、#19 の native 管轄は [0080](0080-error-handling.md)(エラー�
 
 - ❌ 通知手段(インライン / トースト / redirect)の使い分けを feature ごとにばらつかせること
 - ❌ トースト等の非同期通知を live region なしで出すこと(支援技術に伝わらない = [0100](0100-accessibility-target.md) 違反)
-- ❌ トースト UI を `components` 以外へ置く / UI ライブラリ持ち込みで代替すること([0021](0021-frontend-responsibility.md) 帰属 / [0052](0052-ui-component-policy.md) exclusion)
+- ❌ トースト UI を `components` 以外へ置く / shadcn 以外の UI コンポーネントライブラリを並行導入して代替すること([0021](0021-frontend-responsibility.md) 帰属 / [0052](0052-ui-component-policy.md) の shadcn 採用・並行同梱禁止)
 
 ## 補足
 
@@ -56,8 +56,8 @@ triage 上、#19 の native 管轄は [0080](0080-error-handling.md)(エラー�
 - [0061-form-mutation-ux.md](0061-form-mutation-ux.md) — 送信メカニクス(本 ADR が入力に選ぶ `ActionState` 契約の供給元)
 - [0062-form-input-validation.md](0062-form-input-validation.md) — 入力検証 UX(インラインに出すフィールドエラーの供給元・元 0061 の姉妹分割)
 - [0080-error-handling.md](0080-error-handling.md)(B6)— errors sentinel / 境界正規化(`ActionState` が運ぶエラーの供給元・#19 の native 管轄の一部)
-- [0052-ui-component-policy.md](0052-ui-component-policy.md)(B2)— UI / form コンポーネント exclusion(自前最小トーストの前提)
-- [0100-accessibility-target.md](0100-accessibility-target.md)(C2)— a11y 目標(live region 要件の権威)
+- [0052-ui-component-policy.md](0052-ui-component-policy.md)(B2)— UI / form 部品(shadcn 系)採用(v1)。トースト / 通知は shadcn 系部品(sonner 等)を `components` で用いる
+- [0100-accessibility-target.md](0100-accessibility-target.md)(C2)— a11y 目標水準の権威(live region 要件自体は本 ADR が規定)
 - [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3)— Server Action / 再検証(redirect 通知・ミューテーション後反映の連動)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md)(A3)— `components`(トースト UI 帰属)
 - [0140-documentation-operations.md](0140-documentation-operations.md)(D1)— ドキュメントタクソノミー(本 ADR = decision)

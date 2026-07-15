@@ -16,14 +16,14 @@ triage [#52](../plan/adr-gap-audit.md)(国際化・フォーマット節「日�
 
 - **日付・数値表示は単一ロケールでも初日から必要**であり、置き場を決めないと**同じフォーマッタが feature ごとに再発明**される([0021](0021-frontend-responsibility.md) の「複数箇所参照はカーネル昇格」判断が先送りされる)。
 - 一方、**日付の加減算・差分・パース・比較・ISO 相互変換といった「演算」は `Intl` の射程外**である。`Intl` は locale-aware な**表示(format)専用**であり、演算 API を持たない。演算を素の `Date` と手書きで組むと、閏年・DST・タイムゾーン境界・月末繰り上げ等のバグが feature ごとに再生産される。v1 = 一般的なアプリ基盤としてこの演算基盤は初日から必要であり、`date-fns` を採用してカーネルに集約する([docs/plan/adoption-matrix.md](../plan/adoption-matrix.md) DATE 行 / ④判断)。
-- 隣接 ADR は [0121](0121-i18n-strategy.md)(C1)だが、本文は**翻訳基盤・ロケール解決の exclusion のみ**でフォーマット・演算は射程外。[0121](0121-i18n-strategy.md) は Status が `Accepted (exclusion)` の Protected Documentation であり、本 ADR 作成時点では編集しない。triage [#52](../plan/adr-gap-triage.md) の disposition が「フォーマット関数の置き場は 0021/0007(カーネル管轄)で**書き切る**(異質な節を 0121 に足すだけだと委譲先消失を再生産)」と定めるとおり、帰属を本 ADR がカーネル管轄で確定する。
+- 隣接 ADR は [0121](0121-i18n-strategy.md)(C1)だが、本文は**翻訳基盤・ロケール解決の exclusion のみ**でフォーマット・演算は射程外。[0121](0121-i18n-strategy.md) は Status が `Accepted (exclusion)` の Protected Documentation であり、本 ADR 作成時点では編集しない。triage [#52](../plan/adr-gap-triage.md) の disposition が「フォーマット関数の置き場は 0021/0027(カーネル管轄)で**書き切る**(異質な節を 0121 に足すだけだと委譲先消失を再生産)」と定めるとおり、帰属を本 ADR がカーネル管轄で確定する。
 
 ## 決定
 
 ### 1. 表示フォーマットは `Intl.*`(ECMA-402)を維持する(不変)
 
 - **日付・数値・通貨・パーセント等の locale-aware な表示(format)は、ランタイム標準の `Intl.*`(`Intl.DateTimeFormat` / `Intl.NumberFormat` 等)を用いる**。これは v1 のバッテリー採用でも**変更しない不変点**である。`date-fns` の `format` / `formatDistance` 等の**表示系関数は用いず、表示は `Intl` に一本化**する(二重フォーマット禁止。§2 参照)。
-- **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md) §1/§2)**: `Intl` は **ECMA-402(ECMAScript Internationalization API)標準**であり、特定ベンダー・特定フレームワークの API ではない。ブラウザ・Node.js(フル ICU 同梱)双方の**JS ランタイムに標準搭載**され、依存ゼロで **Server Component / Client Component / Route Handler のいずれの実行文脈でも同一挙動**で動く。[0010](0010-standards-and-non-lockin.md) の運用テスト「そのベンダーを正当化から抜いても正当か?」は、`Intl` に**そもそもベンダーが存在しない**(=言語標準そのもの)ため自明に成立する。
+- **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md) §1/§2)**: `Intl` は **ECMA-402(ECMAScript Internationalization API)標準**であり、特定ベンダー・特定フレームワークの API ではない。ブラウザ・Node.js(フル ICU 同梱)双方の**JS ランタイムに標準搭載**され、依存ゼロで **Server Component / Client Component / Route Handler のいずれの実行文脈でも同一 API が利用可能**である(ただし出力はランタイムの ICU バージョン/ロケールデータに依存するため、SSR〈Node〉と CSR〈ブラウザ〉で差が出うる。この hydration mismatch 要因は #53 で扱う)。[0010](0010-standards-and-non-lockin.md) の運用テスト「そのベンダーを正当化から抜いても正当か?」は、`Intl` に**そもそもベンダーが存在しない**(=言語標準そのもの)ため自明に成立する。
 - これは [0121](0121-i18n-strategy.md)(i18n ライブラリ・翻訳基盤・ロケール解決を同梱しない)と**矛盾せず補完**する。0121 が除外するのは**翻訳と locale 解決**であって、**単一 locale でのフォーマット表示ではない**。
 
 ### 2. 日付演算は `date-fns` を採用する(`Intl` の補完・二重フォーマット禁止)
@@ -58,7 +58,7 @@ triage [#52](../plan/adr-gap-audit.md)(国際化・フォーマット節「日�
 
 ## 補足
 
-- **decision / rule 分界([0140](0140-documentation-operations.md))**: 本 ADR は **decision**(`Intl` の表示採用維持 / `date-fns` の演算採用 / 二重フォーマット禁止の分界 / ヘルパの置き場 = `model` / 既定 locale seam)を確定する。一方、**日常的に強制される使用 rule**(常に明示 locale を引数で渡す・`Intl.*` インスタンスを生成しっぱなしにせず再利用する・コンポーネント内での `toLocaleString` 直書きを避けフォーマッタ経由にする・`date-fns` は関数単位 import で tree-shaking を効かせる、等)は **rule 分類**であり `docs/rules.md`(新設。[0140](0140-documentation-operations.md))へ `> Rationale: [ADR-0046]` 逆参照付きで集約する(triage の rules.md 一括着地に載せる)。ライブラリ採否という **decision は本 ADR、使用 rule は rules.md** に分ける([0140](0140-documentation-operations.md)「decision を rules.md に、rule を ADR 本文に書かない」)。
+- **decision / rule 分界([0140](0140-documentation-operations.md))**: 本 ADR は **decision**(`Intl` の表示採用維持 / `date-fns` の演算採用 / 二重フォーマット禁止の分界 / ヘルパの置き場 = `model` / 既定 locale seam)を確定する。一方、**日常的に強制される使用 rule**(常に明示 locale を引数で渡す・`Intl.*` インスタンスを生成しっぱなしにせず再利用する・コンポーネント内での `toLocaleString` 直書きを避けフォーマッタ経由にする・`date-fns` は関数単位 import で tree-shaking を効かせる、等)は **rule 分類**であり `docs/rules.md`(新設。[0140](0140-documentation-operations.md))へ `> Rationale: [ADR-0120]` 逆参照付きで集約する(triage の rules.md 一括着地に載せる)。ライブラリ採否という **decision は本 ADR、使用 rule は rules.md** に分ける([0140](0140-documentation-operations.md)「decision を rules.md に、rule を ADR 本文に書かない」)。
 - **[#53](../plan/adr-gap-audit.md)(TZ / hydration mismatch)/ [#54](../plan/adr-gap-audit.md)(相対時刻・`Intl.RelativeTimeFormat` の client 定期更新)は本 ADR の射程外**である。両者は triage で **rules.md 行き(Rationale = [0040](0040-routing-rendering-strategy.md))**に仕分けられている([adr-gap-triage.md](../plan/adr-gap-triage.md) #53 / #54)。本 ADR は **絶対時刻・数値の静的フォーマットの置き場・`Intl` 表示採用・`date-fns` 演算採用**のみを扱い、サーバ(UTC)/ ブラウザ(ローカル TZ)の表示ずれ・`suppressHydrationWarning` 可否・時刻の client 描画・相対時刻の interval 再描画は扱わない。境界: **「どこに・何で書くか」= 本 ADR(0120)/「hydration・TZ・相対時刻の描画パターン」= rules.md(Rationale 0040)**。
 - **`Intl` と `date-fns` の役割の完全な線引き**: 「値を **加工する**(足す・引く・差を取る・解析する・境界を丸める)」= `date-fns`、「値を **見せる**(locale 依存の文字列にする)」= `Intl`。この 2 者の間に第三の表示ライブラリを挟まない。将来 [ECMAScript Temporal](https://tc39.es/proposal-temporal/) がランタイム標準搭載された段では、`date-fns`(演算)を Temporal に寄せる再検討余地がある(標準準拠 [0010](0010-standards-and-non-lockin.md) §1)。その差し替えは §2/§3 の構造(標準 `Date` 境界・`model` 集約)ゆえモジュール境界内で完結する。
 - **[0121](0121-i18n-strategy.md) からの back-link(traceability)**: 本 ADR は [0121](0121-i18n-strategy.md) に節を足さない方針のため、0121 側からは本 ADR を辿れない。[0121](0121-i18n-strategy.md) は Accepted の Protected Documentation につき本 ADR 作成時点では編集せず、**0121 →(Intl フォーマット・date-fns 演算は 0120 が所有)の相互参照付与は v1 大規模整理でまとめて行う**(0010 / 0022 が Protected な 0020 への back-link を最終整理へ送るのと同型)。それまでの traceability は本 ADR 側から 0121 を参照することで担保する。
@@ -76,4 +76,4 @@ triage [#52](../plan/adr-gap-audit.md)(国際化・フォーマット節「日�
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4) — #53(TZ / hydration)・#54(相対時刻)の Rationale(本 ADR の射程外境界)
 - [0004-library-management.md](0004-library-management.md) — `date-fns` 採用フロー(exact pin + `pnpm audit`)/ fork 先が追加ライブラリを入れる場合の採用フロー
 - [docs/plan/adoption-matrix.md](../plan/adoption-matrix.md) — v1 バッテリー採用(DATE = date-fns / 表示 format は Intl 維持)の振り分け根拠
-- [docs/plan/adr-gap-audit.md](../plan/adr-gap-audit.md) / [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — 由来 #52(disposition: 0121 +0021/0007 でカーネル管轄書き切り)
+- [docs/plan/adr-gap-audit.md](../plan/adr-gap-audit.md) / [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — 由来 #52(disposition: 0121 +0021/0027 でカーネル管轄書き切り)

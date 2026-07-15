@@ -66,7 +66,7 @@ Accepted
 AI エージェントは以下の優先度で指示に従う。矛盾時は上位を優先する。
 
 1. **AGENTS.md** — 本ファイル
-2. **`docs/adr/000?-*.md`** — 確定済み ADR
+2. **`docs/adr/*.md`** — 確定済み ADR
 3. **`docs/adr/BACKLOG.md`** — 未策定領域の進捗ボード
 4. **`.github/copilot-instructions.md`** 等のエージェント固有設定
 5. ユーザ指示
@@ -98,7 +98,7 @@ ADR が策定されたら、対応する `[TODO]` セクションは AGENTS.md �
 ## 更新責務
 
 - AGENTS.md は `Protected Documentation` に列挙され、AI エージェントは直接編集しない。変更案を提示してユーザ承認を得てから編集する
-- 本 ADR (0028) と AGENTS.md は **構成上の対応関係** を持つ。本 ADR を改訂する場合は AGENTS.md 側も同じ PR で揃える
+- 本 ADR (0152) と AGENTS.md は **構成上の対応関係** を持つ。本 ADR を改訂する場合は AGENTS.md 側も同じ PR で揃える
 - `Accepted Rules` 表への ADR 追加と `[TODO]` セクションの増減は軽微編集として扱う
 
 ## 禁止事項
@@ -112,7 +112,7 @@ ADR が策定されたら、対応する `[TODO]` セクションは AGENTS.md �
 ## 補足
 
 - `CLAUDE.md` の `@AGENTS.md` 形式は Claude Code が提供する機能。他エージェントは AGENTS.md を直接読む
-- `Pending Decisions` 節の `[TODO]` 一覧は実装進捗に応じて増減する。掲載基準は「実装を進める上で決まっていないと作業できない項目」のみとし、BACKLOG 全項目 (Tier 3〜6) と 1:1 対応はしない。残りの項目は BACKLOG.md で追跡する
+- `Pending Decisions` 節の `[TODO]` 一覧は実装進捗に応じて増減する。掲載基準は「実装を進める上で決まっていないと作業できない項目」のみとし、BACKLOG 全項目 (Tier 0〜6) と 1:1 対応はしない。残りの項目は BACKLOG.md で追跡する
 - 既存の `.github/copilot-instructions.md` は本 ADR 策定時点では並行存在しているが、内容のドリフトが発生した場合は AGENTS.md を SSOT とし、copilot-instructions.md 側を AGENTS.md への参照に縮約する方向で運用する
 
 ## 関連 ADR

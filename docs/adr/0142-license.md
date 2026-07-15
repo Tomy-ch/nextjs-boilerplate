@@ -38,7 +38,7 @@ Accepted
 ### 3. 同梱ライブラリとのライセンス整合
 
 - MIT で再配布可能であることは、**依存が permissive ライセンスに限られること**に依存する。この整合は [0004](0004-library-management.md) の許可リスト(MIT / Apache-2.0 / BSD-3-Clause / ISC / 0BSD)が担保する
-- **コピーレフト(GPL / AGPL / LGPL 動的リンク以外)・SSPL・ライセンス不明の依存を混入させない**([0004](0004-library-management.md) 禁止事項)。これらは MIT 配布と両立しないため、依存追加時のライセンスチェックで排除する
+- **コピーレフト(GPL / AGPL / LGPL)・SSPL・ライセンス不明の依存を混入させない**([0004](0004-library-management.md) の許可リスト = MIT / Apache-2.0 / BSD-3-Clause / ISC / 0BSD のみ)。これらは MIT 配布と両立しないため、依存追加時のライセンスチェックで排除する
 - 個々の依存の帰属表記(attribution)保持義務は各ライブラリのライセンスに従う(本リポの `LICENSE` はリポジトリ自身の著作物に対するもの)
 
 ### 4. `package.json` の `private: true` と MIT の関係
@@ -56,10 +56,11 @@ Accepted
 - ❌ コピーレフト(GPL / AGPL / SSPL 等)・ライセンス不明の依存を追加すること([0004](0004-library-management.md)。MIT 配布と両立しない)
 - ❌ CLA / 著作権譲渡を貢献の必須条件として持ち込むこと(inbound = outbound を既定とする。強化は `CONTRIBUTING.md` で別途合意)
 - ❌ `private: true` を「MIT を無効化するもの」と解釈すること(publish ガードとライセンス許諾は別レイヤ)
-- ❌ `LICENSE` の Copyright 表記・許諾文を無断で除去・改変すること(Protected Documentation。[0140](0140-documentation-operations.md))
+- ❌ `LICENSE` の Copyright 表記・許諾文を無断で除去・改変すること(Protected Documentation。[0152](0152-agents-md-policy.md) / AGENTS.md)
 
 ## 関連 ADR
 
 - [0004-library-management.md](0004-library-management.md) — 依存ライセンス許可リスト(MIT 配布との整合を担保)
 - [0011-no-docker.md](0011-no-docker.md) — fork / テンプレート用途の表示層ロール(MIT 選定の背景)
-- [0140-documentation-operations.md](0140-documentation-operations.md)(D1)— `LICENSE` は Protected Documentation / per-package 帰属の運用
+- [0152-agents-md-policy.md](0152-agents-md-policy.md) / AGENTS.md — `LICENSE` は Protected Documentation(直接編集禁止)
+- [0140-documentation-operations.md](0140-documentation-operations.md)(D1)— per-package README 運用

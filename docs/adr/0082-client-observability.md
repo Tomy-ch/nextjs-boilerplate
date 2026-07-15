@@ -14,7 +14,7 @@ Accepted (一部 exclusion)
 
 - **#59 Web Vitals RUM**: [0101](0101-performance-budget.md) は一次指標を CWV(LCP / INP / CLS)としつつ計測を lab(CI Lighthouse)に限り、**「指標はあるがフィールド値が無い」** 状態だった([adr-gap-triage.md](../plan/adr-gap-triage.md) disposition = 0081/0026 追補)。
 - **#60 client エラー収集**: [0080](0080-error-handling.md) / [0081](0081-observability-logging.md) はサーバ側で完結し、ブラウザで起きたエラーはどこにも残らない **観測性の片翼欠落** だった(disposition = 0081 追補)。
-- **#61 プロダクト分析 seam**: 0081 が「運用テレメトリはユーザ行動トラッキングと区別する」と線を引いた側(=行動トラッキング)。SaaS 非同梱でも、計測呼び出しがコンポーネントに直書きされるか抽象を通るかは本体の構造問題として残った(disposition = 0081 exclusion + seam 敷設)。
+- **#61 プロダクト分析 seam**: [0131](0131-cookie-consent.md) が「運用テレメトリはユーザ行動トラッキングと区別する」と線を引いた側(=行動トラッキング)。SaaS 非同梱でも、計測呼び出しがコンポーネントに直書きされるか抽象を通るかは本体の構造問題として残った(disposition = 0081 exclusion + seam 敷設)。
 
 [0024](0024-adapters-server-client-split.md)(構造ブロッカー S1)が `adapters/client` element を立て、その「中身」列に **telemetry 送信(#59 / #60)/ analytics 送信(#61)** を明示的に割り当てたことで、3 経路の物理的な家が確定した。本 ADR はその家に載る送信内容と発火・ゲートの方針を定める。
 
@@ -55,7 +55,7 @@ Accepted (一部 exclusion)
 ### 5. BFF エンドポイントの物理(seam のみ確定・分割は委譲)
 
 - 本 ADR が確定するのは **seam**(0081 中継 / `adapters/client` 送信面 / `adapters/server` 受け)のみ。3 経路が **単一 BFF エンドポイント**(例 `/api/telemetry`)を共有するか **signal 別に分ける**かの物理分割は、[0153](0153-ci-configuration.md) / 実装 PR の枠で確定する(用途依存。下記「補足」/ flags)。
-- **中継エンドポイントの保護**(レート制限 / ボディサイズ上限 / 無認証エンドポイントの abuse 対策)は **本 ADR の射程外**。これは infra ドメイン寄りの境界 seam = triage **#49**(BFF レート制限・abuse 対策 seam・別 ADR〈0075〉)が所有する。本 ADR は送信経路のみを定め、保護方針は #49 を参照する(密結合のため相互参照で局所推論を保つ)。
+- **中継エンドポイントの保護**(レート制限 / ボディサイズ上限 / 無認証エンドポイントの abuse 対策)は **本 ADR の射程外**。これは infra ドメイン寄りの境界 seam = triage **#49**(BFF レート制限・abuse 対策 seam・別 ADR〈0077〉)が所有する。本 ADR は送信経路のみを定め、保護方針は #49 を参照する(密結合のため相互参照で局所推論を保つ)。
 
 ## 禁止事項
 
@@ -71,7 +71,7 @@ Accepted (一部 exclusion)
 - **採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**(独立起票・triage 観測性クラスタ = 1 ADR)。
 - **consent 結線の現在地**: #61 は [0031](0031-policy-state-supply.md) の gate 述語で結線済み。#59 / #60 の consent 要否は **法域依存で本体では確定せず**、operational = gate 対象外の保守的既定 + 0031 述語の再利用拡張点、に留める(§4。flags)。
 - **エンドポイント物理分割**(単一 vs signal 別)は seam のみ確定し実装 PR へ委譲(§5。flags)。
-- **保護は #49(0075)へ委譲**(§5)。無防備な公開中継エンドポイントの保護は別ドメイン寄りの境界 seam であり、参照先が本 ADR 外に分散する点を明示。
+- **保護は #49(0077)へ委譲**(§5)。無防備な公開中継エンドポイントの保護は別ドメイン寄りの境界 seam であり、参照先が本 ADR 外に分散する点を明示。
 - **AGENTS.md B7 TODO との関係**: 0081 の Accepted で B7 は確定済み。本 ADR は 0081 のブラウザ側 seam を 3 経路へ具体化する **従属決定** であり、AGENTS.md への追加反映は生じない(0081 の反映に含まれる)。
 - 送信・redact・サンプリングの具体実装(バッチ / `sendBeacon` vs `fetch` / サンプリング率)は用途依存で実装 PR(本体は seam と発火 IF・no-op sink のみ備える)。
 - **v2 採用予定(局所ライブラリ・2026-07-14)**: §3 プロダクト分析の SaaS 非同梱(exclusion + seam 敷設)本体は不変。採用マトリクス([adoption-matrix.md](../plan/adoption-matrix.md))でプロダクト分析は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**発火 IF + no-op sink + consent gate 述語(`adapters/client`)は 0.0.x/v1 で敷済・SaaS 採用は v2**(PostHog・Thin = adapter 抽象 + no-op 既定)。採用時も本体は発火 IF / no-op 既定 / consent gate を保持し、PostHog を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。なお §1 RUM / §2 client エラーは運用テレメトリ(0081・OTLP)であり本注記の局所ライブラリ採用の対象外。

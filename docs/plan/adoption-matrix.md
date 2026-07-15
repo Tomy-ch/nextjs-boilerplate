@@ -67,7 +67,7 @@
 | STATE | グローバル状態 | **Zustand** | Medium(既定は 0060 local・真の global のみ) | `stores` カーネル(0023)確定 | 0060 |
 | FORM | form state | **react-hook-form** + `@hookform/resolvers` + zod | Full | `features`/`components` | 0060 |
 | MOTION | モーション | **Framer Motion(`motion`)** | Medium(既定は CSS/View Transitions・複雑時 lib) | `components` | 0051 |
-| I18N | i18n | **next-intl** | **Thin**(seam + `[locale]` + 一部使用) | `proxy.ts`/`app`/`model` | 0121/0046 |
+| I18N | i18n | **next-intl** | **Thin**(seam + `[locale]` + 一部使用) | `proxy.ts`/`app`/`model` | 0121/0120 |
 | DATE | 日付演算 | **date-fns**(表示 format は Intl 維持) | Thin | `model` | 0120 |
 | RICH | リッチテキスト | **TipTap** | Thin(seam + sanitizer + デモ) | `components` | 0053 |
 | DND | DnD | **dnd-kit**(a11y) | Thin | `components`/`capabilities` | 0053 |

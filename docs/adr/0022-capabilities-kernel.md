@@ -87,13 +87,13 @@ feature の移植可能性は、**カーネル契約に対して相対的**で�
 ## 補足
 
 - **採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。
-- **[0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) 等への内容反映は 2026-07-14 に適用済**(ユーザ承認のもと): 0020 = 9 → 10 カーネル宣言(構造図・mermaid・go マッピング表)/ 0006 = 依存マトリクスに `capabilities` 行・昇格ルール 4 つ目・Enforcement element・層別 README・本 ADR への pointer。以降、本 ADR と既存 ADR は整合済み
+- **[0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) 等への内容反映は 2026-07-14 に適用済**(ユーザ承認のもと): 0020 = 9 → 10 カーネル宣言(構造図・mermaid・go マッピング表)/ 0021 = 依存マトリクスに `capabilities` 行・昇格ルール 4 つ目・Enforcement element・層別 README・本 ADR への pointer。以降、本 ADR と既存 ADR は整合済み
 - 本 ADR は遡及監査で判明した 0021 昇格ルールの穴を塞ぎ、triage #30 / #26 / #25 / #24 / #14 等の**フロント領域の拡張点(seam)の置き場を確定**する。
 
 ## 関連 ADR
 
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 機能スライス × 表示層カーネル(本カーネルの親宣言。9 → 10 は最終整理で反映)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 責務マトリクス / 命名規律 / 昇格ルールの SSOT(反映は最終整理)。命名規律「横断が必要なら追補で役割定義してから作る」の発動
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 機能スライス × 表示層カーネル(本カーネルの親宣言。9 → 10 は反映済み)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 責務マトリクス / 命名規律 / 昇格ルールの SSOT(反映済み)。命名規律「横断が必要なら追補で役割定義してから作る」の発動
 - [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — 2 軸モデル(本カーネルは adapters の「ミラー」でなく WHAT が異なる runtime 境界)/ remote IO の client 面 = `adapters/client`
 - [0031-policy-state-supply.md](0031-policy-state-supply.md) — 本カーネルから退去させたポリシー状態(consent / flag)の供給先
 - [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — Provider mount 例外(本 ADR の capabilities 限定から一般化)
