@@ -2,7 +2,7 @@
 
 本プロジェクトでは、コード / ドキュメントの生成・編集・レビューに付帯する **開発フロー** を Claude Code の **スキル** として `.claude/skills/` 配下に配置する。本 ADR では開発系スキルの配置 / 命名 / 構造 / subagent パターン / カバー範囲を定義する。
 
-運用系スキル (コミット / PR / リリース / 依存監査 等) は [Dev-0004.md](Dev-0004.md) で別途扱う。
+運用系スキル (コミット / PR / リリース / 依存監査 等) は [0154-claude-skills-operations.md](0154-claude-skills-operations.md) で別途扱う。
 
 ## Status
 
@@ -25,11 +25,11 @@ Accepted
 - 設定編集 (環境変数の e2e 追加等)
 - コードレビュー (adversarial / 多視点)
 
-運用系 (Git 操作 / リリース / 依存監査) は Dev-0004 で扱う。
+運用系 (Git 操作 / リリース / 依存監査) は 0154 で扱う。
 
 ## 配置・命名・frontmatter
 
-配置・命名・frontmatter の規約は **Dev-0004 と共通** ([Dev-0004.md](Dev-0004.md) 参照)。
+配置・命名・frontmatter の規約は **0154 と共通** ([0154-claude-skills-operations.md](0154-claude-skills-operations.md) 参照)。
 
 要約:
 
@@ -47,12 +47,15 @@ Accepted
 | `readme-review` | README の portal 価値評価 | 単一 README を `docs/portal/manifest.yaml` 登録基準で採点 |
 | `new-env` | 環境変数の e2e 追加 | typed Config struct / env サンプル / docs を一括で同期 (※ Go boilerplate 由来、後述) |
 | `local-review` | adversarial code review | 4 観点 (correctness / security / architecture / runtime-gap) の subagent fanout + verifier による多段検証 |
+| `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md / _index.md) に所見 Markdown を生成。read-only (コード変更なし) |
+| `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
+| `adr-scan` | ADR 候補の全リポ発見 | de facto に存在するが BACKLOG 未追跡の設計判断を read-only で走査し、taxonomy (decision / exclusion / rule / inventory) と Tier / frame ID へ分類した候補 inventory を出力 (※ 暫定 / one-off。BACKLOG 反映後に削除・アーカイブ予定) |
 
 新規追加は本 ADR の趣旨 (開発系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。
 
 ## subagent パターン
 
-`local-review` は **複数の subagent を組み合わせる構造** を持つ。
+`local-review` と `full-verify` は **複数の subagent を組み合わせる構造** を持つ。
 
 ```text
 local-review (orchestrator)
@@ -63,7 +66,15 @@ local-review (orchestrator)
  │   └─ runtime-gap 観点
  └─ review-verifier                   ← .claude/agents/review-verifier.md
      (各 finding を CONFIRMED / PLAUSIBLE / REFUTED 判定)
+
+full-verify (orchestrator / in-session fast-path)
+ ├─ arch-verifier (Pass 1)            ← .claude/agents/arch-verifier.md
+ │   (構造の設計妥当性。基準は skills/full-verify/prompts/verify-arch.md が SSOT)
+ └─ impl-verifier (Pass 2 / unit 単位で並列 fanout) ← .claude/agents/impl-verifier.md
+     (unit ごとの実装品質。基準は skills/full-verify/prompts/verify-impl.md が SSOT)
 ```
+
+このほか、特定スキルへの固定 wiring を持たない **単独起動の read-only レビュー subagent** として `comment-reviewer` (コメント内容の品質) / `doc-reviewer` (ドキュメント散文の品質) が `.claude/agents/` に存在する。いずれも下記の subagent 規約 (read-only / sonnet 既定 / モデル分散) に従う。
 
 ### subagent 規約
 
@@ -102,25 +113,24 @@ local-review (orchestrator)
 - `internal/config/config_testing_mock.go`
 - `env/.env.{local,ci,dev,stg,prd}`
 
-これらは Next.js 文脈には存在しない。Next.js 用の環境変数管理 ([BACKLOG A7](BACKLOG.md)) が確定したら、本スキルを以下のいずれかに再設計する:
+これらは Next.js 文脈には存在しない。Next.js 用の環境変数管理は **A7 ([0030](0030-environment-variable-management.md)) で Accepted 済み** (`process.env` 直読は `src/config/` 配下の目的別 config モジュールのみ / 供給は Next.js 標準の `.env*` ロード)。本スキルは以下のいずれかに再設計する:
 
-- A7 で確定したパス (例: `src/config/`) に書き換える
-- BACKLOG A7 で `env/` を採用するならパス分は活かしつつ、Go 特有の型同期処理を TypeScript に置き換える
-- 一旦削除して、A7 確定後に再実装する
+- A7 (0030) で確定した構造 (`src/config/` の目的別 config モジュール + 変数表ドキュメント) に書き換え、Go 特有の型同期処理を TypeScript に置き換える
+- 一旦削除して、A7 実装後に再実装する
 
-決定は A7 確定後の別 PR で行う。本 ADR 採用時点では **`new-env` は再設計対象** として明示する。
+A7 は確定済みのため、再設計は ADR 決定を要しない **実装タスク** として別 PR で行う。それまで **`new-env` は再設計対象** のままである (本リポジトリでの実行禁止は「禁止事項」参照)。
 
 ## 共通参照
 
 すべての開発系スキルは以下を共通参照する:
 
-- **AGENTS.md の Instruction Priority と Language Rules**: [Dev-0003](Dev-0003.md)
-- **ドキュメント運用ポリシー (BACKLOG D1)**: canonical EN / 翻訳 JA の同期方針
+- **AGENTS.md の Instruction Priority と Language Rules**: [0152](0152-agents-md-policy.md)
+- **ドキュメント運用ポリシー**: [0140](0140-documentation-operations.md) (D1・Accepted) — canonical EN / 翻訳 JA の同期方針
 - **`canonicalize-doc` / `sync-readme` / `readme-review` のドメイン分担**: 本 ADR の「ドキュメント系の責務分担」表
 
 ## 禁止事項
 
-- ❌ 開発系スキルから商用操作 (push / tag / release) を行うこと (運用系 = Dev-0004 の領域)
+- ❌ 開発系スキルから商用操作 (push / tag / release) を行うこと (運用系 = 0154 の領域)
 - ❌ subagent をモデル分散 (reviewer ≠ implementer) なしで「念のため」増やすこと (コスト見合いに合わない)
 - ❌ subagent に code edit 権限を渡すこと (read-only 原則)
 - ❌ `new-env` を再設計せずに本リポジトリで実行すること (go-boilerplate のパスを誤って前提とする)
@@ -134,6 +144,8 @@ local-review (orchestrator)
 
 ## 関連 ADR
 
-- [Dev-0002.md](Dev-0002.md) — `local-review` が想定する「commit / PR 前」のタイミング
-- [Dev-0003.md](Dev-0003.md) — AGENTS.md の Instruction Priority と Modification Scope
-- [Dev-0004.md](Dev-0004.md) — 運用系スキルとの対 (配置・命名・frontmatter は共通)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) (A7) — `new-env` 再設計の前提となる環境変数管理の確定
+- [0140-documentation-operations.md](0140-documentation-operations.md) (D1) — canonical EN / 翻訳 JA のドキュメント運用ポリシー
+- [0150-git-workflow.md](0150-git-workflow.md) — `local-review` が想定する「commit / PR 前」のタイミング
+- [0152-agents-md-policy.md](0152-agents-md-policy.md) — AGENTS.md の Instruction Priority と Modification Scope
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — 運用系スキルとの対 (配置・命名・frontmatter は共通)

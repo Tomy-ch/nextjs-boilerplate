@@ -52,7 +52,7 @@ Accepted
 | 4 | Pending Decisions | 未策定領域のイントロ + `## [TODO]` セクション群 (後述) |
 | 5 | AI Modification Scope | 編集可 / 編集禁止 / エージェント設定保護 / Skill 実行時 Exception |
 | 6 | Recommended Commands | pnpm / make の主要コマンド |
-| 7 | Git Rules | Dev-0002 の要点抜粋 |
+| 7 | Git Rules | 0150 の要点抜粋 |
 | 8 | Language Rules (+ `### Output Language` サブ節) | 可視出力は日本語が既定であること、その対象 |
 | 9 | Internal Processing | 内部処理は英語可。最終出力には日本語ルールを適用 |
 | 10 | Exception | ユーザが明示的に英語を指示した場合のみ英語可 |
@@ -66,7 +66,7 @@ Accepted
 AI エージェントは以下の優先度で指示に従う。矛盾時は上位を優先する。
 
 1. **AGENTS.md** — 本ファイル
-2. **`docs/adr/000?-*.md`** — 確定済み ADR
+2. **`docs/adr/*.md`** — 確定済み ADR
 3. **`docs/adr/BACKLOG.md`** — 未策定領域の進捗ボード
 4. **`.github/copilot-instructions.md`** 等のエージェント固有設定
 5. ユーザ指示
@@ -98,7 +98,7 @@ ADR が策定されたら、対応する `[TODO]` セクションは AGENTS.md �
 ## 更新責務
 
 - AGENTS.md は `Protected Documentation` に列挙され、AI エージェントは直接編集しない。変更案を提示してユーザ承認を得てから編集する
-- 本 ADR (0008) と AGENTS.md は **構成上の対応関係** を持つ。本 ADR を改訂する場合は AGENTS.md 側も同じ PR で揃える
+- 本 ADR (0152) と AGENTS.md は **構成上の対応関係** を持つ。本 ADR を改訂する場合は AGENTS.md 側も同じ PR で揃える
 - `Accepted Rules` 表への ADR 追加と `[TODO]` セクションの増減は軽微編集として扱う
 
 ## 禁止事項
@@ -112,14 +112,14 @@ ADR が策定されたら、対応する `[TODO]` セクションは AGENTS.md �
 ## 補足
 
 - `CLAUDE.md` の `@AGENTS.md` 形式は Claude Code が提供する機能。他エージェントは AGENTS.md を直接読む
-- `Pending Decisions` 節の `[TODO]` 一覧は実装進捗に応じて増減する。掲載基準は「実装を進める上で決まっていないと作業できない項目」のみとし、BACKLOG 全項目 (Tier 3〜6) と 1:1 対応はしない。残りの項目は BACKLOG.md で追跡する
+- `Pending Decisions` 節の `[TODO]` 一覧は実装進捗に応じて増減する。掲載基準は「実装を進める上で決まっていないと作業できない項目」のみとし、BACKLOG 全項目 (Tier 0〜6) と 1:1 対応はしない。残りの項目は BACKLOG.md で追跡する
 - 既存の `.github/copilot-instructions.md` は本 ADR 策定時点では並行存在しているが、内容のドリフトが発生した場合は AGENTS.md を SSOT とし、copilot-instructions.md 側を AGENTS.md への参照に縮約する方向で運用する
 
 ## 関連 ADR
 
 - [0002-formatter-linter.md](0002-formatter-linter.md) — `Code Style` 節が参照する biome 規約
-- [Toolchain-0005-library-management.md](Toolchain-0005-library-management.md) — `Recommended Commands` 節が参照する pnpm exact pin ルール
-- [Dev-0002.md](Dev-0002.md) — `Git Rules` 節が参照する Git 運用方針
-- [Toolchain-0006-git-hooks.md](Toolchain-0006-git-hooks.md) — `Code Style` / `[TODO] CI 構成` 節が参照する hook 方針
-- [Dev-0004.md](Dev-0004.md) — Skill 実行時 Exception で参照する運用系スキル方針
-- [Dev-0005.md](Dev-0005.md) — Skill 実行時 Exception で参照する開発系スキル方針
+- [0004-library-management.md](0004-library-management.md) — `Recommended Commands` 節が参照する pnpm exact pin ルール
+- [0150-git-workflow.md](0150-git-workflow.md) — `Git Rules` 節が参照する Git 運用方針
+- [0151-git-hooks.md](0151-git-hooks.md) — `Code Style` / `[TODO] CI 構成` 節が参照する hook 方針
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — Skill 実行時 Exception で参照する運用系スキル方針
+- [0155-claude-skills-development.md](0155-claude-skills-development.md) — Skill 実行時 Exception で参照する開発系スキル方針

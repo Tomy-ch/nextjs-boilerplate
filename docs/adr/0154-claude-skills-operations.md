@@ -2,7 +2,7 @@
 
 本プロジェクトでは、開発プロセスに付帯する **運用フロー** (コミット分割 / PR 作成 / リリースノート生成 / 依存監査 / メタ inventory 等) を Claude Code の **スキル** として `.claude/skills/` 配下に配置する。本 ADR では運用系スキルの配置 / 命名 / 構造 / カバー範囲を定義する。
 
-開発系スキル (scaffolding / レビュー / ドキュメント同期 等) は [Dev-0005.md](Dev-0005.md) で別途扱う。
+開発系スキル (scaffolding / レビュー / ドキュメント同期 等) は [0155-claude-skills-development.md](0155-claude-skills-development.md) で別途扱う。
 
 ## Status
 
@@ -25,7 +25,7 @@ Accepted
 - 依存・ツール監査 (`mise.toml` 更新 / `pnpm audit`)
 - `.claude/` 配下のメタ inventory
 
-開発系 (コード / ドキュメントの生成・編集を主目的とするもの) は Dev-0005 で扱う。
+開発系 (コード / ドキュメントの生成・編集を主目的とするもの) は 0155 で扱う。
 
 ## 配置と命名
 
@@ -70,7 +70,7 @@ Accepted
 3. **When to Use** — 利用すべき状況の列挙
 4. **Do NOT use this skill for** — 利用すべきでない状況・代替手段の列挙
 5. **Step <番号>. <タイトル>** — 番号付き手順 (Step 0 から始める慣例。前処理がある場合)
-6. **検証 / 終了処理** — `make fix` / `make lint` / `pnpm test` 等の最終確認
+6. **検証 / 終了処理** — `pnpm fix` / `pnpm lint` 等の最終確認 (`pnpm test` はテスト導入 ([0090](0090-testing-strategy.md)) 後に加える)
 
 ## カバー範囲 (既存スキル)
 
@@ -80,6 +80,8 @@ Accepted
 | `submit-pr` | PR 作成・更新 | 現ブランチに既存 PR があれば update、なければ create を自動選択。PR 本文は `.github/pull_request_template.md` から生成 |
 | `release-notes` | リリースノート生成 | `AskUserQuestion` で FROM タグと NEXT_VERSION を確認し、`.github/release/<NEXT>.md` を生成 |
 | `tools-upgrade` | `mise.toml` の依存監査 | upstream の latest と比較し、`min_age_days` でサプライチェーン検疫。承認後に `mise.toml` 更新 |
+| `node-upgrade` | Node.js バージョン更新 | SSOT である `mise.toml` `[tools] node` ([ADR 0003](0003-version-manager.md)) を対象バージョンへ更新し、lockfile 再構築 + `pnpm install` / `pnpm lint` / `pnpm build` で検証。`@types/node` のメジャー追随は別 PR ([0004](0004-library-management.md)) |
+| `repo-ops` | 運用 gotcha のランブック | mise ツールチェーン / pnpm lockfile / make `DRY_RUN` / `tmp/reviews` 等の再発しやすい躓きへの対処手順集。read-only の知識スキルで、状態は変更しない |
 | `tool-map` | `.claude/` 配下の inventory | commands / skills / agents の表 + Mermaid 依存マップを生成 |
 
 新規追加は本 ADR の趣旨 (運用系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。
@@ -106,15 +108,15 @@ Accepted
 
 すべての運用系スキルは以下を共通参照する:
 
-- **Git 規約**: [Dev-0002](Dev-0002.md) — ブランチ・コミット・PR の規約
-- **hook 方針**: [Toolchain-0006](Toolchain-0006-git-hooks.md) — `--no-verify` を用いる場合の例外運用と最終検証
+- **Git 規約**: [0150](0150-git-workflow.md) — ブランチ・コミット・PR の規約
+- **hook 方針**: [0151](0151-git-hooks.md) — `--no-verify` を用いる場合の例外運用と最終検証
 - **mise.toml の SSOT**: [ADR 0003](0003-version-manager.md) — `tools-upgrade` が監査対象とする
-- **ライブラリ運用**: [Toolchain-0005](Toolchain-0005-library-management.md) — 依存更新時の exact pin / メジャー更新分離の原則
-- **AGENTS.md の Instruction Priority と Language Rules**: [Dev-0003](Dev-0003.md)
+- **ライブラリ運用**: [0004](0004-library-management.md) — 依存更新時の exact pin / メジャー更新分離の原則
+- **AGENTS.md の Instruction Priority と Language Rules**: [0152](0152-agents-md-policy.md)
 
 ## 禁止事項
 
-- ❌ 運用系スキルから業務ロジックを直接編集すること (コード編集は開発系 = Dev-0005 の領域)
+- ❌ 運用系スキルから業務ロジックを直接編集すること (コード編集は開発系 = 0155 の領域)
 - ❌ `SKILL.md` の frontmatter `description` を「機能説明」のみで書くこと (発火条件を含めること)
 - ❌ 商用操作 (push / tag / release) を確認なしで実行すること
 - ❌ `SKILL.md` を翻訳ファイル (`SKILL.ja.md`) で上書きすること (canonical は英)
@@ -129,8 +131,8 @@ Accepted
 ## 関連 ADR
 
 - [0003-version-manager.md](0003-version-manager.md) — `tools-upgrade` が監査対象とする `mise.toml`
-- [Toolchain-0005-library-management.md](Toolchain-0005-library-management.md) — 依存更新時の規約
-- [Dev-0002.md](Dev-0002.md) — `commit` / `submit-pr` の Git 規約
-- [Toolchain-0006-git-hooks.md](Toolchain-0006-git-hooks.md) — `commit` が回避する lefthook の取り扱い
-- [Dev-0003.md](Dev-0003.md) — AGENTS.md と本 ADR の関係
-- [Dev-0005.md](Dev-0005.md) — 開発系スキル方針 (本 ADR と対をなす)
+- [0004-library-management.md](0004-library-management.md) — 依存更新時の規約
+- [0150-git-workflow.md](0150-git-workflow.md) — `commit` / `submit-pr` の Git 規約
+- [0151-git-hooks.md](0151-git-hooks.md) — `commit` が回避する lefthook の取り扱い
+- [0152-agents-md-policy.md](0152-agents-md-policy.md) — AGENTS.md と本 ADR の関係
+- [0155-claude-skills-development.md](0155-claude-skills-development.md) — 開発系スキル方針 (本 ADR と対をなす)
