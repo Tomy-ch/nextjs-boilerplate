@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  // 完全版 (CI / pre-commit 用)。エディタは自動採用しない (canonical 名 biome.json のみ自動読込)。
+  // biome.json (簡易版) を継承し、保存時には走らせたくない重いルールだけを上乗せする。
+  // 実行: biome check --config-path=./biome.ci.jsonc --error-on-warnings
+  //   --error-on-warnings により、簡易版で warn 表示のみのルールが CI/pre-commit ではブロックになる。
+  "extends": ["./biome.json"],
+  "linter": {
+    "rules": {
+      "suspicious": {
+        // project ドメイン = 複数ファイル走査で重いため、保存時 (簡易版) からは外し完全版のみで有効化
+        "noImportCycles": "error"
+      }
+    }
+  }
+}
