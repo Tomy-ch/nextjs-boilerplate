@@ -34,7 +34,7 @@ Accepted
 
 外部システム境界は **1 責務**(型変換 + resilience)であり、server / client は**実行文脈の差 = element 属性**。別カーネルにはしない(1 責務が 2 カーネルに割れるのを避ける)。
 
-```
+```text
 src/adapters/
 ├── server/   element: adapters/server
 └── client/   element: adapters/client
