@@ -10,7 +10,9 @@
     "lint:ci": "biome check --config-path=./biome.ci.jsonc --error-on-warnings",
     "fix": "biome check --fix",
     "format": "biome format --write",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "md-lint": "markdownlint-cli2 && node scripts/mermaid-lint.mjs",
+    "md-fix": "markdownlint-cli2 --fix"
   },
   "dependencies": {
     "next": "16.2.10",
@@ -24,6 +26,9 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "lefthook": "2.1.10",
+    "linkedom": "0.18.5",
+    "markdownlint-cli2": "0.22.1",
+    "mermaid": "10.9.6",
     "tailwindcss": "4.3.2",
     "tsx": "4.23.0",
     "typescript": "6.0.3"
