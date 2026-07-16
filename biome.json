@@ -8,7 +8,15 @@
   "files": {
     "ignoreUnknown": true,
     "maxSize": 1048576,
-    "includes": ["**", "!!**/node_modules", "!!**/.next", "!!**/dist", "!!**/build", "!!**/types"]
+    "includes": [
+      "**",
+      "!!**/node_modules",
+      "!!**/.next",
+      "!!**/dist",
+      "!!**/build",
+      "!!**/types",
+      "!**/*.md"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -29,18 +37,50 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "suspicious": {
         "noUnknownAtRules": "off",
         "noConsole": "warn",
-        "noExplicitAny": "error"
+        "noExplicitAny": "error",
+        "noConstantBinaryExpressions": "error",
+        "noLeakedRender": "error",
+        "noReactForwardRef": "warn",
+        "noNestedPromises": "warn",
+        "noShadow": "warn",
+        "noAlert": "on",
+        "noDeprecatedImports": "on",
+        "noDuplicateDependencies": "on",
+        "noDuplicatedSpreadProps": "on",
+        "noEvolvingTypes": "on",
+        "noParametersOnlyUsedInRecursion": "on",
+        "noReturnAssign": "on",
+        "noUnassignedVariables": "on",
+        "noUnknownAttribute": "on",
+        "noUnusedExpressions": "on",
+        "noVar": "on",
+        "useStaticResponseMethods": "on"
       },
       "correctness": {
         "noUnusedImports": "error",
         "noUnusedVariables": "error",
         "noUndeclaredDependencies": "error",
         "noNestedComponentDefinitions": "error",
-        "noNextAsyncClientComponent": "error"
+        "noNextAsyncClientComponent": "error",
+        "noGlobalDirnameFilename": "on",
+        "noReactPropAssignments": "on",
+        "noUnusedInstantiation": "on",
+        "useUniqueElementIds": "on"
+      },
+      "nursery": {
+        "noComponentHookFactories": "error",
+        "useIframeSandbox": "warn",
+        "noJsxLeakedDollar": "warn"
+      },
+      "performance": {
+        "noSyncScripts": "on",
+        "noJsxPropsBind": "on",
+        "noAwaitInLoops": "on",
+        "noDelete": "on"
       }
     },
     "domains": {
@@ -81,6 +121,16 @@
           "suspicious": {
             "noConsole": "off",
             "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["public/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off"
           }
         }
       }

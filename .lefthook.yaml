@@ -1,0 +1,20 @@
+# Git hook 設定 (Toolchain-0006)。CI を権威とし、hook は「壊れた状態を CI に到達させない第一段」。
+# 導入: pnpm install 後に `pnpm exec lefthook install` で .git/hooks に配置する。
+
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      # 完全版 (biome.ci.jsonc + --error-on-warnings)。エディタ保存時の簡易版に対し、
+      # commit 時は warn もブロックする完全版で検査する。
+      run: pnpm lint:ci
+    md-lint:
+      # Markdown の体裁 (markdownlint-cli2) と mermaid 図の構文を検証する。
+      # biome は Markdown を見ないため、この二段で md の壊れを CI 前に止める。
+      glob: "*.md"
+      run: pnpm md-lint
+
+pre-push:
+  commands:
+    typecheck:
+      run: pnpm typecheck

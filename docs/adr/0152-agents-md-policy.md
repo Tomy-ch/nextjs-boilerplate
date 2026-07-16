@@ -1,0 +1,125 @@
+# AGENTS.md 運用方針
+
+本プロジェクトでは、AI コーディングエージェント (Claude Code / Codex / Copilot / Gemini 等) が参照する **規約集約ファイル** として `AGENTS.md` を repo ルートに 1 本配置する。本 ADR では `AGENTS.md` の位置付け / 構成 / 本文言語 / 更新責務を定義する。
+
+## Status
+
+Accepted
+
+## 採用理由 / 目的
+
+- 複数の AI エージェントが共通して読む規約のサーフェイスを **1 本に集約** し、エージェントごとの設定ファイル (`.claude/` / `.cursor/` / `.gemini/` / `.github/copilot-instructions.md` 等) は AGENTS.md を参照する建付けにする
+- 確定済み ADR の本文を AGENTS.md に二重化しない (一次情報は `docs/adr/` 配下)
+- 未策定領域に対する暫定運用 (どこまでなら勝手にやってよいか) を明示し、ADR 化が完了する前でも作業が破綻しないようにする
+- boilerplate として fork 先が「最初に読むエージェント規約」を辿れる入口を残す
+
+## ファイル配置と参照関係
+
+```text
+.
+├── AGENTS.md                          ← 規約本体 (本 ADR の対象)
+├── CLAUDE.md                          ← `@AGENTS.md` の 1 行のみ (Claude Code が読む)
+└── .github/copilot-instructions.md    ← AGENTS.md を参照する補助
+```
+
+- **本体**: `AGENTS.md` (repo ルートに 1 本)
+- **CLAUDE.md**: 内容は `@AGENTS.md` の 1 行のみ。Claude Code の機能でシンボリック参照する
+- **エージェント固有設定** (`.github/copilot-instructions.md` 等) は AGENTS.md を参照する補助層と位置付け、規約本体を持たない
+
+## 本文言語
+
+本文は **英語** を既定とする (go-boilerplate の慣例と整合)。
+
+ただし以下は **日本語のまま残す**:
+
+- コミット規約のサンプル (件名が日本語であることを示すため)
+- PR 確認文言「変更はローカルにコミット済みです。これらの変更をプルリクエストにプッシュしますか？」 (AI エージェントがこの文言で確認することをルール化しているため)
+- PR テンプレートのセクション名 (`概要` / `変更内容` / `動作確認方法`、`.github/pull_request_template.md` の実セクションと一致させるため)
+
+### なぜ本体は英語か
+
+`Language Rules` 節で定める「AI 生成出力は日本語」は **AI が生成する成果物** (コード / PR / コメント等) に対するルールであり、**人間が編集する authoritative ドキュメント** には適用しない。AI エージェントの training data は英語が中心で、規約自体の理解精度は英語の方が安定する。
+
+## 構成 (節構造)
+
+以下の節順序で構成する。各節の責務は固定する。
+
+| # | 節 | 責務 |
+| --- | --- | --- |
+| 1 | Project Overview | リポジトリの役割 / ロール / バックエンド分離前提 |
+| 2 | Instruction Priority | 指示の優先度 (後述) |
+| 3 | Accepted Rules (ADRs) | 確定済み ADR の表で要約。詳細は `docs/adr/` に委譲 |
+| 4 | Pending Decisions | 未策定領域のイントロ + `## [TODO]` セクション群 (後述) |
+| 5 | AI Modification Scope | 編集可 / 編集禁止 / エージェント設定保護 / Skill 実行時 Exception |
+| 6 | Recommended Commands | pnpm / make の主要コマンド |
+| 7 | Git Rules | 0150 の要点抜粋 |
+| 8 | Language Rules (+ `### Output Language` サブ節) | 可視出力は日本語が既定であること、その対象 |
+| 9 | Internal Processing | 内部処理は英語可。最終出力には日本語ルールを適用 |
+| 10 | Exception | ユーザが明示的に英語を指示した場合のみ英語可 |
+| 11 | Code Style | ADR 0002 を前提とした実行手順 |
+| 12 | Protected Documentation | 直接編集禁止ファイルの宣言 |
+
+節の追加・順序変更は ADR 改訂を要する。表 (Accepted Rules) への ADR 追加や `[TODO]` セクションの追加・削除は軽微編集とし、ADR 改訂は不要。
+
+## Instruction Priority
+
+AI エージェントは以下の優先度で指示に従う。矛盾時は上位を優先する。
+
+1. **AGENTS.md** — 本ファイル
+2. **`docs/adr/*.md`** — 確定済み ADR
+3. **`docs/adr/BACKLOG.md`** — 未策定領域の進捗ボード
+4. **`.github/copilot-instructions.md`** 等のエージェント固有設定
+5. ユーザ指示
+
+## 未策定領域の扱い (`## [TODO]` セクション)
+
+ADR 化されていない決定領域のうち、**実装を進める上で決まっていないと作業できない箇所** は AGENTS.md の `## [TODO]` セクションとして仮設置する。
+
+各 `[TODO]` セクションには以下を明記する:
+
+1. 引用記法で **`> Pending — BACKLOG <枠 ID>`**
+2. **Must be decided**: 決定が必要な内容の列挙
+3. **Provisional behavior until decided**: 確定するまでの暫定運用ルール
+
+ADR が策定されたら、対応する `[TODO]` セクションは AGENTS.md から削除し、確定済み ADR を `Accepted Rules` 表に追加する形に切り替える。
+
+## BEGIN-END マーカー
+
+本文は以下のマーカーで囲む:
+
+```markdown
+<!-- BEGIN:nextjs-agent-rules -->
+... AGENTS.md 本文 ...
+<!-- END:nextjs-agent-rules -->
+```
+
+将来 AGENTS.md に外部生成ブロック (例: ADR 一覧の自動同期) を挟む可能性に備えた境界線。現状は本文全体がマーカー内に入る。
+
+## 更新責務
+
+- AGENTS.md は `Protected Documentation` に列挙され、AI エージェントは直接編集しない。変更案を提示してユーザ承認を得てから編集する
+- 本 ADR (0152) と AGENTS.md は **構成上の対応関係** を持つ。本 ADR を改訂する場合は AGENTS.md 側も同じ PR で揃える
+- `Accepted Rules` 表への ADR 追加と `[TODO]` セクションの増減は軽微編集として扱う
+
+## 禁止事項
+
+- ❌ AGENTS.md と並列に同等の規約ファイル (CLAUDE-RULES.md / GENERAL-RULES.md 等) を追加すること (規約は AGENTS.md 1 本)
+- ❌ 確定済み ADR の本文を AGENTS.md に転載 / 二重化すること (要旨表に留める)
+- ❌ AGENTS.md の節順序を独自判断で変えること
+- ❌ BEGIN-END マーカーを削除すること
+- ❌ エージェント固有設定 (`.github/copilot-instructions.md` 等) に AGENTS.md と矛盾するルールを書くこと
+
+## 補足
+
+- `CLAUDE.md` の `@AGENTS.md` 形式は Claude Code が提供する機能。他エージェントは AGENTS.md を直接読む
+- `Pending Decisions` 節の `[TODO]` 一覧は実装進捗に応じて増減する。掲載基準は「実装を進める上で決まっていないと作業できない項目」のみとし、BACKLOG 全項目 (Tier 0〜6) と 1:1 対応はしない。残りの項目は BACKLOG.md で追跡する
+- 既存の `.github/copilot-instructions.md` は本 ADR 策定時点では並行存在しているが、内容のドリフトが発生した場合は AGENTS.md を SSOT とし、copilot-instructions.md 側を AGENTS.md への参照に縮約する方向で運用する
+
+## 関連 ADR
+
+- [0002-formatter-linter.md](0002-formatter-linter.md) — `Code Style` 節が参照する biome 規約
+- [0004-library-management.md](0004-library-management.md) — `Recommended Commands` 節が参照する pnpm exact pin ルール
+- [0150-git-workflow.md](0150-git-workflow.md) — `Git Rules` 節が参照する Git 運用方針
+- [0151-git-hooks.md](0151-git-hooks.md) — `Code Style` / `[TODO] CI 構成` 節が参照する hook 方針
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — Skill 実行時 Exception で参照する運用系スキル方針
+- [0155-claude-skills-development.md](0155-claude-skills-development.md) — Skill 実行時 Exception で参照する開発系スキル方針

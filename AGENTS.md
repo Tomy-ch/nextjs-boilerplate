@@ -1,5 +1,312 @@
 <!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# Agents Documentation
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+Repository rules for **AI coding agents** (Claude Code / Codex / Copilot / Gemini, etc.) working in this repo.
+
+## Project Overview
+
+This repository is a **Next.js / React presentation-layer boilerplate**.
+
+- **Role**: Frontend presentation layer
+- **Target deployment**: PaaS (Vercel / Netlify / AWS Amplify / Cloudflare Pages) or static CDN
+- **Backend** (DB / authentication / business logic) is operated as a separate repository / service
+
+See [docs/adr/0011-no-docker.md](docs/adr/0011-no-docker.md) for details.
+
+### This is NOT the Next.js you know
+
+This project adopts Next.js 16 / React 19, so APIs, conventions, and file structure may differ from your training data. Before writing any code, read the relevant guide under `node_modules/next/dist/docs/` and heed deprecation notices.
+
+## Instruction Priority
+
+Follow instructions in this order. If conflicts occur, the higher-priority document wins.
+
+1. **AGENTS.md** (this file) — Repository-wide operational rules
+2. **`docs/adr/*.md`** — Accepted architectural decisions (ADRs)
+3. **`docs/adr/BACKLOG.md`** — Pending decision areas + de facto state
+4. **`.github/copilot-instructions.md`** and other agent-specific configs
+5. User instructions
+
+## Accepted Rules (ADRs)
+
+ADRs under `docs/adr/` are the authoritative source. This file only summarizes them.
+
+| ADR | Area | Summary |
+| --- | --- | --- |
+| [0001](docs/adr/0001-package-manager.md) | Package manager | Adopt pnpm / lockfile must be committed / npm and yarn forbidden |
+| [0002](docs/adr/0002-formatter-linter.md) | Formatter / Linter | biome-first / ESLint only for checks biome cannot express (e.g. layer-boundary imports) / formatter is biome alone / Prettier not adopted |
+| [0003](docs/adr/0003-version-manager.md) | Version manager | `mise.toml` as SSOT / mise must not extend into delivery layers |
+| [0004](docs/adr/0004-library-management.md) | Library policy | Core deps exact-pinned / major updates in separate PRs / `pnpm audit` required |
+| [0010](docs/adr/0010-standards-and-non-lockin.md) | Design principle | Standards conformance & non-lock-in (permanent meta judgment axes) |
+| [0011](docs/adr/0011-no-docker.md) | Delivery / Role | Next.js as presentation layer / no Docker for app delivery |
+| [0020](docs/adr/0020-adopted-architecture.md) | Architecture pattern | Adopted architecture / inward dependency / structural boundary types / no type leakage |
+| [0021](docs/adr/0021-frontend-responsibility.md) | Frontend responsibility | Layer responsibilities / kernel naming discipline / import boundaries |
+| [0022](docs/adr/0022-capabilities-kernel.md) | `capabilities` kernel | Cross-cutting client-hook kernel |
+| [0023](docs/adr/0023-stores-kernel.md) | `stores` kernel | cross-cutting client-state kernel |
+| [0024](docs/adr/0024-adapters-server-client-split.md) | adapters split | server/client split / client-side external-connection boundary |
+| [0025](docs/adr/0025-app-layer-elements.md) | app layer elements | Route Handler / metadata element composition |
+| [0026](docs/adr/0026-layout-shell-mount.md) | Layout shell mount | cross-cutting UI / Provider mount (app shell composition) |
+| [0027](docs/adr/0027-directory-structure.md) | Directory structure | Physical layout under `src/` / co-location policy |
+| [0028](docs/adr/0028-naming-convention.md) | Naming convention | All-source kebab-case files / identifier casing / route segments / env `{SUBSYSTEM}_{NAME}` |
+| [0030](docs/adr/0030-environment-variable-management.md) | Env variables | `env/` structure / typed config loader / `NEXT_PUBLIC_` boundary / secrets |
+| [0031](docs/adr/0031-policy-state-supply.md) | Policy state supply | consent / feature-flag state supply policy |
+| [0040](docs/adr/0040-routing-rendering-strategy.md) | Routing / rendering | App Router / Server vs Client Components / CSR-SSR-SSG-ISR / Server Actions |
+| [0041](docs/adr/0041-cache-components-decision.md) | Cache Components (PPR) | enablement decision |
+| [0042](docs/adr/0042-react19-rendering-api.md) | React 19 rendering API | rendering API conventions |
+| [0043](docs/adr/0043-middleware-policy.md) | Middleware (proxy) | Middleware policy |
+| [0044](docs/adr/0044-seo-metadata-strategy.md) | SEO / metadata | metadata API strategy |
+| [0045](docs/adr/0045-fonts-and-images.md) | Fonts / images | `next/font` / `next/image` policy |
+| [0050](docs/adr/0050-styling-strategy.md) | Styling strategy | Tailwind v4 + design tokens / `cn()` helper / CSS Modules limited allowance |
+| [0051](docs/adr/0051-styling-system.md) | Styling system | design tokens / responsive / motion (Framer Motion) / print |
+| [0052](docs/adr/0052-ui-component-policy.md) | UI component policy | shadcn/ui + lucide adopted |
+| [0053](docs/adr/0053-ui-component-interaction-seam.md) | UI interaction seam | UI component policy + interaction a11y seam |
+| [0054](docs/adr/0054-ui-catalog-storybook.md) | UI catalog | Storybook policy |
+| [0060](docs/adr/0060-state-management.md) | State management | react-hook-form / Zustand adopted / server-state policy |
+| [0061](docs/adr/0061-form-mutation-ux.md) | Form submission UX | `<form action>` + `useActionState` + `useFormStatus` canonical mechanism |
+| [0062](docs/adr/0062-form-input-validation.md) | Form validation UX | client validation / generated-zod reuse boundary |
+| [0063](docs/adr/0063-mutation-result-notification.md) | Mutation notification | inline / toast / redirect + live-region UX |
+| [0070](docs/adr/0070-backend-role-separation.md) | Backend role | Next.js responsibility line / backend contract / domain-logic placement |
+| [0071](docs/adr/0071-bff-api-integration.md) | BFF / API integration | `/api/*` scope / external API clients / fetch wrapper |
+| [0072](docs/adr/0072-api-type-generation.md) | API type generation | Generated from OpenAPI/GraphQL / generated-artifact "do not edit" rules |
+| [0073](docs/adr/0073-pagination-fetch-boundary.md) | Pagination fetch | pagination / infinite-scroll data-fetch boundary |
+| [0074](docs/adr/0074-runtime-communication-seam.md) | Realtime comm seam | WebSocket / SSE seam |
+| [0075](docs/adr/0075-bff-external-boundary-seam.md) | File upload seam | presigned direct PUT default / multipart proxy exception |
+| [0076](docs/adr/0076-payment-ui-seam.md) | Payment UI seam | mount seam & PCI boundary |
+| [0077](docs/adr/0077-bff-abuse-protection-boundary.md) | BFF abuse protection | infra / edge seam boundary |
+| [0078](docs/adr/0078-dynamic-feature-flag-seam.md) | Feature-flag seam | dynamic feature flag / staged rollout (A-B) seam |
+| [0079](docs/adr/0079-auth-frontend-seam.md) | Auth frontend seam | authentication front-side seam |
+| [0080](docs/adr/0080-error-handling.md) | Error handling | `error.tsx`/`not-found.tsx` responsibilities / backend-error normalization |
+| [0081](docs/adr/0081-observability-logging.md) | Observability / logging | OTLP / OTel vendor-neutral (Sentry not adopted) / structured logs |
+| [0082](docs/adr/0082-client-observability.md) | Client observability | Web Vitals RUM / client error collection / analytics seam |
+| [0090](docs/adr/0090-testing-strategy.md) | Testing strategy | Framework selection / per-layer responsibilities / co-location |
+| [0091](docs/adr/0091-testing-and-catalog-policy.md) | Test verification | async RSC test placement / a11y automated-test integration |
+| [0100](docs/adr/0100-accessibility-target.md) | Accessibility target | Target conformance level |
+| [0101](docs/adr/0101-performance-budget.md) | Performance budget | Core Web Vitals budget |
+| [0102](docs/adr/0102-browser-support.md) | Browser support | Support matrix |
+| [0110](docs/adr/0110-security-operations.md) | Security ops | `pnpm audit` threshold / Dependabot–Renovate / secret scanning |
+| [0111](docs/adr/0111-csp-security-headers.md) | CSP / security headers | runtime CSP & security headers |
+| [0120](docs/adr/0120-locale-aware-formatting.md) | Locale formatting | date/number formatting + date-fns date arithmetic |
+| [0121](docs/adr/0121-i18n-strategy.md) | i18n (exclusion) | i18n not adopted (negative decision) |
+| [0130](docs/adr/0130-pwa-strategy.md) | PWA (exclusion) | PWA not adopted (negative decision) |
+| [0131](docs/adr/0131-cookie-consent.md) | Cookie consent (exclusion) | Consent management not adopted (negative decision) |
+| [0140](docs/adr/0140-documentation-operations.md) | Documentation ops | Canonical EN / JA translation-pair operation |
+| [0141](docs/adr/0141-portal-operations.md) | Portal ops | `docs/portal/manifest.yaml` curation |
+| [0142](docs/adr/0142-license.md) | License | MIT / OSS contribution policy / `private` flag alignment |
+| [0150](docs/adr/0150-git-workflow.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
+| [0151](docs/adr/0151-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
+| [0152](docs/adr/0152-agents-md-policy.md) | AGENTS.md policy | File placement / language / 12-section structure / Instruction Priority / `## [TODO]` convention |
+| [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / required checks / caching |
+| [0154](docs/adr/0154-claude-skills-operations.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
+| [0155](docs/adr/0155-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` redesign note |
+
+> **ADR numbering is finalized (2026-07-14): topical decade-bands.** Numbers are grouped by subject into decade bands (e.g. `002x` architecture, `004x` routing/rendering, `005x` styling/UI, `007x` data/BFF, `008x` error/observability, `015x` process/dev-ops); the former `Toolchain-` / `Dev-` prefixed ADRs were folded into the numeric sequence (`0150`+). Gaps between bands are reserved for future insertion. Each ADR body remains authoritative.
+
+## Pending Decisions
+
+The major design decisions are now settled as ADRs (`0001`–`0155` across topical bands; the A / B / C / D groups are all authored, including the negative "exclusion" decisions). The `## [TODO]` placeholder sections that this file used to carry — one per undecided area, each with its own "provisional behavior" — have been removed because the corresponding ADRs are now authoritative. The remaining blank slots and not-yet-written design seams are tracked in [`docs/adr/BACKLOG.md`](docs/adr/BACKLOG.md); the ADR bodies are the source of truth and this file only summarizes them.
+
+When a change forces you into an area that BACKLOG still leaves blank (no accepted ADR yet):
+
+1. **Do not introduce new conventions, patterns, or libraries on your own**. Defer the ADR decision to the user
+2. If a provisional implementation is unavoidable, explicitly tell the user it is a "provisional implementation" before starting work
+
+## AI Modification Scope
+
+By default, AI agents may modify code only in the following scope. All other paths require an explicit user instruction.
+
+### Allowed
+
+- Under `src/`
+- `public/` (asset additions)
+- `docs/adr/BACKLOG.md` (progress tracking / adding new slots; ADR file creation requires a prior user instruction)
+
+### Do not touch without user instruction
+
+- Repository-root config files: `package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `postcss.config.mjs` / `Makefile`, etc.
+- `.makefiles/` (release / branch operation make targets)
+- `.github/` (workflows / settings / issue and PR templates)
+- `LICENSE`
+- Accepted ADR bodies (`docs/adr/0001-*.md` and onward, with Status: Accepted)
+
+### Agent configuration file protection
+
+Each agent's configuration must not be touched even by that agent itself. Modification requires an explicit user instruction:
+
+- Claude Code: `.claude/` (`.claude/skills/` / `.claude/settings.json` / `.claude/settings.local.json`, etc.)
+- OpenAI Codex CLI: `.agents/skills/`
+- Cursor: `.cursor/` (including `.cursor/rules/*.mdc`) / `.cursorrules`
+- GitHub Copilot: `.github/copilot-instructions.md` / `.github/instructions/` / `.github/prompts/`
+- Gemini CLI / Code Assist: `.gemini/` / `GEMINI.md`
+
+This file (`AGENTS.md`) is shared **Protected Documentation** across all agents (see the later "Protected Documentation" section).
+
+### Exception: Skill Execution
+
+When the user invokes a skill (e.g., Claude Code's `/<skill-name>`), the invocation itself counts as an **explicit instruction**. While the skill runs, AI Modification Scope is relaxed strictly within the scope the skill's `SKILL.md` declares.
+
+Conditions:
+
+- The relaxation applies **only for the duration of the skill execution**, only within the scope the skill declares
+- The skill's `SKILL.md` user-confirmation instructions (e.g., confirm before editing specific paths) must still be honored
+- The following remain protected **even during skill execution**:
+  - `AGENTS.md` (this file)
+  - Accepted ADR bodies
+  - `LICENSE`
+  - Paths listed under `.claude/settings.json`'s `permissions.deny`
+
+Bypassing the spirit of these rules through a skill is forbidden. If a skill's procedure touches sensitive areas (e.g., `.github/workflows/`), the skill's `SKILL.md` must declare this so the user is aware when invoking it.
+
+## Recommended Commands
+
+### pnpm (ADR 0001)
+
+```bash
+pnpm install               # Install dependencies
+pnpm add <pkg>             # Add a runtime dependency
+pnpm add -D <pkg>          # Add a dev dependency
+pnpm add -E <pkg>          # Add with exact pin (for core deps / main dev tools, 0004)
+
+pnpm dev                   # Start the dev server
+pnpm build                 # Production build
+pnpm start                 # Start the production server
+
+pnpm lint                  # biome check, light profile (ADR 0002)
+pnpm lint:ci               # biome check, full profile (biome.ci.jsonc + --error-on-warnings; pre-commit / CI)
+pnpm typecheck             # tsc --noEmit (pre-push)
+pnpm fix                   # biome check --fix
+pnpm format                # biome format --write
+```
+
+### make (Tool setup / release / branch operations)
+
+```bash
+make install-tools         # Install tools via mise (ADR 0003)
+make hotfix-patch          # Create a hotfix/v<patch> branch from production
+make tag-patch             # Tag production HEAD and create a GitHub Release
+make tag-minor             # Same (minor)
+make tag-major             # Same (major)
+```
+
+For release branches, follow 0150 (`git checkout -b release/v<X.Y.Z> origin/develop`).
+
+See [`.makefiles/README.ja.md`](.makefiles/README.ja.md) for details.
+
+## Git Rules
+
+[0150](docs/adr/0150-git-workflow.md) is authoritative. Key points only.
+
+### Critical Rules
+
+1. **No direct push** to protected branches (`production` / `staging` / `develop` / `release/**` / `hotfix/**`)
+2. **No force push / rebase / squash** unless the user explicitly instructs it
+3. After amending commits on an existing PR branch, **confirm with the user before pushing**. Use this exact confirmation message: 「変更はローカルにコミット済みです。これらの変更をプルリクエストにプッシュしますか？」
+4. History rewrites (`git commit --amend` + force push / `git rebase`) are forbidden. Stack fixes as **new commits**.
+
+### Branch Naming
+
+```text
+feature/<issue-no>-<kebab-description>     e.g., feature/1234-add-login-form
+bugfix/<issue-no>-<kebab-description>      e.g., bugfix/5678-fix-route-handler
+hotfix/<issue-no>-<kebab-description>      e.g., hotfix/9012-cache-invalidation
+release/v<X.Y.Z>                            e.g., release/v0.1.0
+```
+
+If no issue number exists, use only `<kebab-description>`.
+
+### Commit Convention
+
+All commit subjects start with one of the following prefixes:
+
+```text
+Feat | Fix | Refactor | Perf | Docs | Test | Build | CI | Chore | Style | Revert
+```
+
+Format: `<Prefix>: <Japanese subject>` (no trailing period `。` on the subject).
+
+Examples:
+
+```text
+Docs: ADR 0011 を Type A / Type B 区別で補強
+Build: Dockerfile を削除し pnpm 採用方針と整合させる
+Fix: route handler の query 取得を Next.js 16 API に合わせる
+```
+
+### Pull Request
+
+- Fill in `概要` / `変更内容` / `動作確認方法` of the template (`.github/pull_request_template.md`)
+- Titles are in Japanese
+- Default merge strategy is **merge commit** (`squash` is exceptional)
+- A push to an existing PR auto-dismisses prior approvals — request re-review after pushing
+
+## Language Rules
+
+AI agents may perform internal processing (code analysis / reasoning / tool calls, etc.) in English.
+
+However, visible outputs written to the repository and responses to the user follow the language rules below.
+
+### Output Language
+
+Unless the user explicitly directs otherwise, all visible outputs must be written in **Japanese**.
+
+Targets:
+
+- Responses to the user
+- Code comments
+- PR titles and bodies
+- Commit messages
+- Documentation (canonical EN / translated JA pair operation will be defined by BACKLOG D1)
+- Test `describe` / `it` strings (details follow once the test ADR (BACKLOG B8) is settled)
+- Inline documentation generated by the AI
+
+Technical terms (HTTP status code names / API names / command names, etc.) may stay in English.
+
+## Internal Processing
+
+AI agents may perform internal processing in English as needed.
+
+Targets:
+
+- Code analysis
+- Architectural reasoning
+- Tool invocation
+- Intermediate processing steps
+
+However, the final output presented to the user and content written to the repository must follow the "Output Language" Japanese rule above (unless the user explicitly directs English).
+
+## Exception
+
+If the user explicitly directs English output, the AI may respond in English.
+
+## Code Style
+
+[ADR 0002](docs/adr/0002-formatter-linter.md) (biome) is authoritative. Run before committing:
+
+```bash
+pnpm fix       # Auto-fix
+pnpm lint:ci   # Check remaining errors (full profile — same as the pre-commit hook)
+```
+
+Fix items the auto-fixer could not handle by hand.
+
+### Disallowed
+
+- Using Prettier (the formatter is biome alone — ADR 0002)
+- Adding ESLint rules that biome can express, applying preset bundles (`eslint:recommended` / `eslint-config-next`), or using ESLint as a formatter (ADR 0002: capability-based split — biome-first, ESLint only fills the checks biome cannot express, e.g. layer-boundary imports)
+- Locally disabling biome's formatter / linter for case-specific reasons (require ADR revision and consensus instead)
+- Heavy use of `biome-ignore` comments (consider scoped `overrides` first)
+
+## Protected Documentation
+
+The following files require deliberate human review before modification:
+
+- `AGENTS.md` (this file)
+- Accepted ADR bodies (`docs/adr/0001-*.md` and onward, with Status: Accepted)
+- `LICENSE`
+
+When a change to one of these appears necessary:
+
+1. Do not edit directly; present the proposed change to the user
+2. Edit only after the user explicitly approves
+
+Even when a new file appears necessary, **prefer modifying an existing file** if it suffices.
 <!-- END:nextjs-agent-rules -->
