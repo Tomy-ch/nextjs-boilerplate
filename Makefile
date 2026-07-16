@@ -17,4 +17,4 @@ include .makefiles/github/operation/setup-repository.mk
 
 .PHONY: help
 help:
-	@bash scripts/make_help.sh
+	@pnpm exec tsx scripts/make-help.ts
