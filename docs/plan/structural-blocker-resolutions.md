@@ -15,7 +15,7 @@
 
 **決定**: `adapters` を **1 カーネル内 2 element に分割**(別カーネルにしない = 外部境界は 1 責務・server/client は実行文脈差 = element 属性):
 
-```
+```text
 src/adapters/
 ├── server/   element: adapters/server — server-only・config はここだけ・secret 有・backend client(0071)
 └── client/   element: adapters/client — "use client"・config 不可・secret 無・remote のみ

@@ -45,7 +45,7 @@ Phase 1(commitlint / md lint / secret・脆弱性スキャン)は**決定不要�
 - 「route(App Router セグメント)= driving adapter であり分割軸にしない」翻案を採用するか
 - ドメインロジックはバックエンド側(BACKLOG out of scope)である前提で、表示層に残る「domain 相当」(表示用 ValueObject / フォーマッタ等)の範囲
 
-### 決まったら動く
+### 決まったら動く(決定 1)
 
 1. A1(採用アーキテクチャ)・A3(フロント内責務分離)ADR ドラフト作成 → Accepted **[完了: ADR 0020 / 0021]**
 2. A5(ディレクトリ構造)・A6(命名規則)ADR — 層の実体が決まれば go 側規約の翻案でほぼ自動確定 **[完了: ADR 0027 / 0028(2026-07-12)。A6 の命名方針は Next.js > React > nextjs-boilerplate 自身・業界スタンダード優先(2026-07-12 ユーザ変更。go-boilerplate は命名の権威に置かない)= 全ソース kebab-case 統一・特殊ファイル/route は Next.js 小文字規約・識別子は React 規約]**
@@ -112,7 +112,7 @@ go 準拠で自動確定する戦略(不変):
 - Server Components のテスト方針
 - mock 戦略の翻案(gomock 生成 → `vi.mock` / MSW / 手書き禁止ルールの読み替え)
 
-### 決まったら動く
+### 決まったら動く(決定 3)
 
 1. A4 / B1 ADR ドラフト(追認)+ B2 / B5 **exclusion** ADR → Accepted
 2. B8 ADR → **Phase 5(テスト基盤)着手**: FW 導入 + `make test` / `test-cached` 二層 + lefthook 接続 + カバレッジゲート CI
@@ -150,7 +150,7 @@ go-boilerplate は OpenAPI-first(`docs/adr/0009`)で `openapi/` を**同一リ�
 - boundary value ownership(「request ⊂ domain ⊂ response」/ wire contract はドメインルールではない)の哲学
 - A2(BFF 境界)は ADR 0011 の thin proxy と一致で確定済み
 
-### 決まったら動く
+### 決まったら動く(決定 4)
 
 1. A2(バックエンド役割分離 — BFF 境界 / `/api/*` 責務)・B3(fetch wrapper / API クライアント配置)・B4(型生成 + 上記取り込みパイプライン)ADR ドラフト → Accepted
 2. 取り込み + 型生成パイプライン導入 PR(setup マニフェスト + `gh` 取得 + short SHA スタンプ + `make gen-api` 相当 + drift gate)
@@ -187,7 +187,7 @@ go 側の 4 分類タクソノミー(参考):
   - v1 凍結時に決める: 履歴の記録方式(in-place + 改定履歴表 vs go 式 immutable + supersede)。`docs/adr/README.md` の不可変性・履歴・「連番管理」記述の整合もそこで確定
 - **採番方式 = 確定(2026-07-14 ユーザ決定)**: **ブロック帯(0001〜0155 を主題ブロックで採番)**とする。系列プレフィックス(`Dev-` / `Toolchain-`)は数値列(`0150` 番台等)へ畳み込み、全 ADR ファイルをリネーム + 相互参照を一括更新した。`docs/adr/README.md`「連番管理」記述は実体と整合済み。旧 Status の暫定/単調連番の記述は同日除去した
 
-### 決まったら動く
+### 決まったら動く(決定 5)
 
 1. D1(ドキュメント運用: canonical/翻訳ペア + 上記タクソノミー + 改定履歴規約)・D2(portal 登録基準)ADR ドラフト → Accepted
 2. `docs/rules.md` 新設 + AGENTS.md からの rule 段階移行 + 0152 整合 + exclusion ADR の運用開始
@@ -219,26 +219,26 @@ go 側の 4 分類タクソノミー(参考):
 
 env/config 周りは討議により以下の設計で確定(A7 ADR ドラフトの Decision 節にそのまま落とす):
 
-**検証(全量・ユーザ非負担)**
+#### 検証(全量・ユーザ非負担)
 
 - **全 ENV を検証対象にする(`NEXT_PUBLIC_` か否かを問わず)**。単一のスキーマ群で server / client 両変数を定義
 - 実行点は 2 箇所のみ: **ビルド時**(`next.config.ts` からスキーマを import して全量評価 → 欠落・不正でビルド失敗)+ **サーバ起動時 1 回**(`instrumentation.ts` の `register()` で config モジュールを import = 評価 = 検証。serverless はインスタンスのコールドスタート毎に 1 回)
 - **リクエスト経路・ブラウザでは検証を実行しない** — エンドユーザーに検証・焼き込みのコストを払わせない。リクエストハンドラ内での parse、Client Component での実行時 config fetch はアンチパターンとして禁止
 
-**Config オブジェクト(不変・単一入口)**
+#### Config オブジェクト(不変・単一入口)
 
 - 参照は **class の `#` private フィールド + getter のみの不変 Config オブジェクト**経由(go `model.go` の直訳。`#` は実行時にも不可触なので freeze 不要。plain object を公開する場合のみ deep freeze 必須)。setter なし。テスト以外での再生成禁止
 - `process.env` 直読は config モジュール 1 箇所のみ(**biome `noProcessEnv` で機械強制** — 決定 2 の能力ベース原則の biome 側で賄う。config モジュールは override で除外)
 - server/client 分割: `src/config/server.ts`(`import "server-only"` で client バンドル混入をビルド時遮断)/ `src/config/client.ts`(`NEXT_PUBLIC_` の**静的ドット参照のみ**で構成。動的アクセス・分割代入はビルド時置換が効かないため禁止)
 - `NEXT_PUBLIC_` はビルド時に参照箇所ごとのリテラルへ置換されるため、ブラウザ側は構造的に書き換え不能。ただし集約 client config オブジェクト自体は通常オブジェクトなので上記の不変化が必要
 
-**配布(Fx DI の代替)**
+#### 配布(Fx DI の代替)
 
 - 配布メカニズム = **ESM モジュールキャッシュによるシングルトン**(1 プロセス 1 評価。import した全員が同一不変インスタンスを取得)
 - DI の統制部分 = **import 境界ルール**: `src/config/` を import してよい層を制限し、内側の層は config でなく値を引数で受け取る(go「domain は config を知らない」の維持)。許可層の確定は決定 1(層の写像)の従属決定
 - SubConfig(go `adr/0034`)は getter がサブシステム別サブオブジェクトを返す形で維持
 
-**受け手側の実装パターン(4 分類)**
+#### 受け手側の実装パターン(4 分類)
 
 go の「コンストラクタが SubConfig を受け取る」1 パターンは、Next.js では受け手により 4 つに分かれる:
 
@@ -253,7 +253,7 @@ go の「コンストラクタが SubConfig を受け取る」1 パターンは�
 - **禁止則: RSC から Client Component へ server config の値を props で渡さない**(RSC ペイロードとして HTML に直列化されブラウザへ漏れる)。client が要る値は最初から `NEXT_PUBLIC_` で `clientConfig` に置く
 - 漏洩防御は 2 段構え: `import "server-only"`(確実・安定)を必須とし、React taint API(`experimental_taintObjectReference` / `taintUniqueValue`)は Next.js 16 時点で experimental フラグ要 + React experimental チャンネル切替を伴うため、**「stable 化したら有効化」と A7 ADR に記録するに留める**(推奨)
 
-**周辺ルール**
+#### 周辺ルール
 
 - 再デプロイなしで変えたい値は env に置かず BFF runtime config へ逃がす(**例外扱い・キャッシュ必須**・ユーザー体感レイテンシに載せない)— 逃し先の具体設計(エンドポイント / キャッシュ方式)は **B3(BFF/API 統合)の責務**として引き渡す(B3 ADR に相互参照を置く)
 - `NEXT_PUBLIC_` の表面積は最小化(変更 = 再ビルドのリードタイムが必ず発生するため)
