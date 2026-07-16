@@ -42,7 +42,7 @@ Accepted
 
 CSP の **ディレクティブ基線**を本 ADR の決定として固定する(Next.js 公式の strict CSP 例に準拠。vendor-independent な最小権限の具体化):
 
-```
+```text
 default-src 'self';
 object-src 'none';
 base-uri 'self';

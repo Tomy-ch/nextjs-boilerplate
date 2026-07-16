@@ -8,6 +8,11 @@ pre-commit:
       # 完全版 (biome.ci.jsonc + --error-on-warnings)。エディタ保存時の簡易版に対し、
       # commit 時は warn もブロックする完全版で検査する。
       run: pnpm lint:ci
+    md-lint:
+      # Markdown の体裁 (markdownlint-cli2) と mermaid 図の構文を検証する。
+      # biome は Markdown を見ないため、この二段で md の壊れを CI 前に止める。
+      glob: "*.md"
+      run: pnpm md-lint
 
 pre-push:
   commands:

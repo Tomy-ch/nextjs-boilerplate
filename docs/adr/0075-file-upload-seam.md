@@ -3,6 +3,7 @@
 [0070](0070-backend-role-separation.md) の thin proxy 境界(`/api/*`)に隣接して生じるファイルアップロードの seam を、**フロント領域の拡張点**(IF / ローカル機構 + 明示拡張点を敷いて切らない)として明文化する。対象は triage #13(ファイルアップロード)。
 
 > **分割済み**: 本 ADR は当初「BFF・外部境界」の広い括りで 3 つの異質な seam を同居させていたが(ファイルアップロード #13 / 決済 UI #51 / BFF abuse 保護 #49)、「1 ADR = 1 主題」方針に従い per-subject に分割した。
+>
 > - **決済 UI(#51)** → [0076-payment-ui-seam.md](0076-payment-ui-seam.md)(mount seam と PCI 境界)
 > - **BFF abuse 保護(#49)** → [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md)(infra / edge 境界 seam)
 >
