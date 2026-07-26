@@ -10,7 +10,7 @@ Accepted
 
 ## 背景
 
-認証は out of scope でありながら、**seam なしでは保護ページが 1 枚も書けない**という点で、out-of-scope 領域の中で最も「seam の欠落」が濃い([adr-gap-triage.md](../plan/adr-gap-triage.md) #45)。関連する断片は既に複数 ADR に散っている:
+認証は out of scope でありながら、**seam なしでは保護ページが 1 枚も書けない**という点で、out-of-scope 領域の中で最も「seam の欠落」が濃い(triage #45)。関連する断片は既に複数 ADR に散っている:
 
 - [0070](0070-backend-role-separation.md)(A2)— 「認証・セッションの具体モデルは fork 先判断」「thin proxy / token 交換の seam は許す」「確定的な認可はデータ境界」
 - [0043](0043-middleware-policy.md)(C6)— 「`proxy.ts` は optimistic チェックのみ / 確定認可はデータ境界 / Node.js runtime / 唯一の防御線にしない」
@@ -91,4 +91,3 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4)— Server Component 既定 / `page.tsx` thin / Server Action 編成のみ(各所チェックの配置根拠)
 - [0020-adopted-architecture.md](0020-adopted-architecture.md) — 型漏洩禁止(session・secret を内層へ漏らさない)
 - [0140-documentation-operations.md](0140-documentation-operations.md) — decision / rule タクソノミー(#44 cookie 属性・#47 CSRF は rules.md 側)
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) #45 — 本 ADR の由来 / #46 CSP・#47 CSRF との境界

@@ -10,7 +10,7 @@ Accepted
 
 ## 背景
 
-[0070](0070-backend-role-separation.md)(A2)が `/api/*` を **thin proxy** に限定し、[0081](0081-observability-logging.md)(B7)が「ブラウザ → BFF 中継」をテレメトリの seam にした結果、abuse 保護の空白が生じた([adr-gap-audit.md](../plan/adr-gap-audit.md) #49):
+[0070](0070-backend-role-separation.md)(A2)が `/api/*` を **thin proxy** に限定し、[0081](0081-observability-logging.md)(B7)が「ブラウザ → BFF 中継」をテレメトリの seam にした結果、abuse 保護の空白が生じた(遡及監査 #49):
 
 - `/api/*`(テレメトリ中継含む)へのレート制限・ボディサイズ上限・認証なしエンドポイントの保護を、本体で持つか PaaS / fork 先に委ねるかの線引きが未定義。
 - [0081](0081-observability-logging.md) の中継 seam が **無防備な公開エンドポイント**を本体構成に生むにもかかわらず、防御方針がない。
@@ -53,5 +53,4 @@ Accepted
 - [0070-backend-role-separation.md](0070-backend-role-separation.md)(A2)— `/api/*` = thin proxy(無防備エンドポイントを生む起点の親決定)
 - [0081-observability-logging.md](0081-observability-logging.md)(B7)— ブラウザ → BFF 中継 seam(無防備エンドポイントを生む起点。本 ADR の保護対象)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 標準準拠 + vendor-independent 正当性(edge 多層防御の正当化の土台)
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md)— #49 の disposition の管理先
 - BACKLOG(triage #8 Route Handler 規約)— rules.md / 新規 ADR 未策定。本 ADR が逆参照する連動先

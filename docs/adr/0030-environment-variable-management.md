@@ -6,7 +6,7 @@
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ討議で確定済み(正 = [docs/plan/pre-implementation-decisions.md](../plan/pre-implementation-decisions.md)「A7 の翻案方針」)。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ討議「A7 の翻案方針」で確定済み。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
@@ -30,7 +30,7 @@ AGENTS.md の `[TODO] Environment Variable Management` が敷いていた暫定�
 
 - **単一の巨大 Config オブジェクトは作らない**。config は**目的(サブシステム)ごと**に独立した typed・不変モジュールとして作る(例: `authConfig` / `apiConfig` / `analyticsConfig`)。各受け手は**自分の目的の config だけ**を import する。これは go `adr/0034` SubConfig「必要フィールドのみ注入」の徹底であり、「1 つの Config を getter でスライス」ではなく **目的ごとに独立モジュール**とする(blast radius 最小化・tree-shaking・composition-root の明確化)
 - 各 config は **`#` private フィールド + getter のみの不変オブジェクト**とする(go `model.go`)。`#` private は実行時にも不可触なので `Object.freeze` 不要。setter は持たない。テスト以外での再生成を禁止する(plain object を公開面にする場合のみ deep freeze を必須)
-- **`process.env` の直読は `src/config/` 配下(目的別 config モジュール群)のみ**に限る。**biome の `noProcessEnv` で機械強制**する([決定 2](../plan/pre-implementation-decisions.md) の能力ベース原則。config ディレクトリのみ override で除外)。go が「env source は config パッケージに閉じる」のと同型
+- **`process.env` の直読は `src/config/` 配下(目的別 config モジュール群)のみ**に限る。**biome の `noProcessEnv` で機械強制**する([0002](0002-formatter-linter.md) の能力ベース原則。config ディレクトリのみ override で除外)。go が「env source は config パッケージに閉じる」のと同型
 - **各目的 × server / client の分割**: 各目的 config は、含むフィールドの種別で **server config**(secret を含む)と **client config**(NEXT_PUBLIC のみ)に分ける。1 目的は server / client の**片方または両方**を持つ(例: `analytics` = 公開 ID〈client〉+ 送信キー〈server〉)
   - server config(`src/config/<purpose>.server.ts` 等)— 先頭に `import "server-only"` を置き、client バンドルへの混入をビルド時に遮断する。secret を含む runtime object
   - client config(`src/config/<purpose>.client.ts` 等)— **`NEXT_PUBLIC_` の静的ドット参照のみ**で構成する(`process.env.NEXT_PUBLIC_FOO` の形)。動的アクセス・分割代入はビルド時のリテラル置換が効かないため**禁止**する

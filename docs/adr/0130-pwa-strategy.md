@@ -6,9 +6,9 @@ PWA(Progressive Web App)— **Web App Manifest / Service Worker / オフライ�
 
 Accepted (exclusion; v2 に局所採用を予定)
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み(Tier 5 = 用途依存の判断)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み(Tier 5 = 用途依存の判断)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
-**v2 採用予定(局所ライブラリ・2026-07-14)**: **0.0.x/v1 の非同梱(exclusion)方針は v2 まで不変**であり、採用マトリクス([adoption-matrix.md](../plan/adoption-matrix.md))で PWA は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた(v2 で採用へ移行予定)。**seam(`app/manifest.(json|ts)` / SW 実装点)は 0.0.x/v1 で敷設予定(本 ADR で規定済み・実装は実装 PR)・ライブラリ採用は v2**(Serwist〈`@serwist/next`〉・Medium)。採用時も本体は seam を保持し、Serwist を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+**v2 採用予定(局所ライブラリ・2026-07-14)**: **0.0.x/v1 の非同梱(exclusion)方針は v2 まで不変**であり、採用マトリクス([master-plan §1.2](../plan/master-plan.md))で PWA は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた(v2 で採用へ移行予定)。**seam(`app/manifest.(json|ts)` / SW 実装点)は 0.0.x/v1 で敷設予定(本 ADR で規定済み・実装は実装 PR)・ライブラリ採用は v2**(Serwist〈`@serwist/next`〉・Medium)。採用時も本体は seam を保持し、Serwist を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 背景
 
@@ -26,7 +26,7 @@ Next.js には Web App Manifest のファイル規約(`app/manifest.(json|ts)`)�
 
 ## exclusion の扱い
 
-- 本 ADR は「意図的にやらない」判断の記録である([決定 5](../plan/pre-implementation-decisions.md) タクソノミー: exclusion = ADR)。fork 先が導入する分にはこの exclusion は障害にならない
+- 本 ADR は「意図的にやらない」判断の記録である([0140](0140-documentation-operations.md) タクソノミー: exclusion = ADR)。fork 先が導入する分にはこの exclusion は障害にならない
 
 ## 関連 ADR
 

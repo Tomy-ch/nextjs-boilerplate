@@ -10,9 +10,9 @@ Accepted (一部 exclusion)
 
 ## 背景
 
-[0081](0081-observability-logging.md)(B7)はサーバ側の構造化ログ / OTel / vendor-neutral OTLP を確定し、ブラウザ側については「クライアントで計測した値は `/api/*`(BFF)経由でサーバへ送り、サーバ側で OTLP export する(直接 SaaS へ送らない)」という **seam の宣言** までを行った。しかし何を流すか(CWV field 値 / client エラー / ユーザ行動)は 0081 本文では列挙されず、[docs/plan/adr-gap-audit.md](../plan/adr-gap-audit.md) の #59 / #60 / #61 として空白に残った。
+[0081](0081-observability-logging.md)(B7)はサーバ側の構造化ログ / OTel / vendor-neutral OTLP を確定し、ブラウザ側については「クライアントで計測した値は `/api/*`(BFF)経由でサーバへ送り、サーバ側で OTLP export する(直接 SaaS へ送らない)」という **seam の宣言** までを行った。しかし何を流すか(CWV field 値 / client エラー / ユーザ行動)は 0081 本文では列挙されず、設計フェーズの遡及監査 #59 / #60 / #61 として空白に残った。
 
-- **#59 Web Vitals RUM**: [0101](0101-performance-budget.md) は一次指標を CWV(LCP / INP / CLS)としつつ計測を lab(CI Lighthouse)に限り、**「指標はあるがフィールド値が無い」** 状態だった([adr-gap-triage.md](../plan/adr-gap-triage.md) disposition = 0081/0026 追補)。
+- **#59 Web Vitals RUM**: [0101](0101-performance-budget.md) は一次指標を CWV(LCP / INP / CLS)としつつ計測を lab(CI Lighthouse)に限り、**「指標はあるがフィールド値が無い」** 状態だった(triage disposition = 0081/0026 追補)。
 - **#60 client エラー収集**: [0080](0080-error-handling.md) / [0081](0081-observability-logging.md) はサーバ側で完結し、ブラウザで起きたエラーはどこにも残らない **観測性の片翼欠落** だった(disposition = 0081 追補)。
 - **#61 プロダクト分析 seam**: [0131](0131-cookie-consent.md) が「運用テレメトリはユーザ行動トラッキングと区別する」と線を引いた側(=行動トラッキング)。SaaS 非同梱でも、計測呼び出しがコンポーネントに直書きされるか抽象を通るかは本体の構造問題として残った(disposition = 0081 exclusion + seam 敷設)。
 
@@ -74,7 +74,7 @@ Accepted (一部 exclusion)
 - **保護は #49(0077)へ委譲**(§5)。無防備な公開中継エンドポイントの保護は別ドメイン寄りの境界 seam であり、参照先が本 ADR 外に分散する点を明示。
 - **AGENTS.md B7 TODO との関係**: 0081 の Accepted で B7 は確定済み。本 ADR は 0081 のブラウザ側 seam を 3 経路へ具体化する **従属決定** であり、AGENTS.md への追加反映は生じない(0081 の反映に含まれる)。
 - 送信・redact・サンプリングの具体実装(バッチ / `sendBeacon` vs `fetch` / サンプリング率)は用途依存で実装 PR(本体は seam と発火 IF・no-op sink のみ備える)。
-- **v2 採用予定(局所ライブラリ・2026-07-14)**: §3 プロダクト分析の SaaS 非同梱(exclusion + seam 敷設)本体は不変。採用マトリクス([adoption-matrix.md](../plan/adoption-matrix.md))でプロダクト分析は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**発火 IF + no-op sink + consent gate 述語(`adapters/client`)は 0.0.x/v1 で敷済・SaaS 採用は v2**(PostHog・Thin = adapter 抽象 + no-op 既定)。採用時も本体は発火 IF / no-op 既定 / consent gate を保持し、PostHog を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。なお §1 RUM / §2 client エラーは運用テレメトリ(0081・OTLP)であり本注記の局所ライブラリ採用の対象外。
+- **v2 採用予定(局所ライブラリ・2026-07-14)**: §3 プロダクト分析の SaaS 非同梱(exclusion + seam 敷設)本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))でプロダクト分析は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**発火 IF + no-op sink + consent gate 述語(`adapters/client`)は 0.0.x/v1 で敷済・SaaS 採用は v2**(PostHog・Thin = adapter 抽象 + no-op 既定)。採用時も本体は発火 IF / no-op 既定 / consent gate を保持し、PostHog を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。なお §1 RUM / §2 client エラーは運用テレメトリ(0081・OTLP)であり本注記の局所ライブラリ採用の対象外。
 
 ## 関連 ADR
 
@@ -87,4 +87,3 @@ Accepted (一部 exclusion)
 - [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3)— client→BFF fetch 経路(送信の実装層)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md)(A7)— secret 非露出 / BFF runtime config(BFF 中継の根拠)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠 + vendor-independent 正当化(#59 の RUM 経路の正当性の土台)
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — #59 / #60 / #61 の disposition(追補 / exclusion + seam 敷設)・#49(保護 seam)の由来

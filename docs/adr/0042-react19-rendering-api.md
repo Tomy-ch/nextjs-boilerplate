@@ -10,7 +10,7 @@ Accepted
 
 ## 背景
 
-ADR 空白の遡及監査([docs/plan/adr-gap-audit.md](../plan/adr-gap-audit.md) #36)で、**React 19 のレンダリング関連 API の書き方規約がどの ADR にも存在しない**ことが判明した。[0040](0040-routing-rendering-strategy.md) は「Server / Client 境界を **どこに置くか**(WHERE)」を定めるルーティング ADR であり、「境界の内側で React API を **どう書くか**(HOW)」は射程外である。
+ADR 空白の遡及監査(#36)で、**React 19 のレンダリング関連 API の書き方規約がどの ADR にも存在しない**ことが判明した。[0040](0040-routing-rendering-strategy.md) は「Server / Client 境界を **どこに置くか**(WHERE)」を定めるルーティング ADR であり、「境界の内側で React API を **どう書くか**(HOW)」は射程外である。
 
 本リポジトリは **React 19.2 / Next.js 16** を採用しており([0011](0011-no-docker.md) / App Router de facto の帰結)、この領域は AI エージェントの訓練データと乖離が大きい([AGENTS.md](../../AGENTS.md)「This is NOT the Next.js you know」)。規約が無いと、新旧パターン(`forwardRef` / 手書き `memo` / `useCallback` と、ref as prop / React Compiler)が実装者ごとに混在する。本 ADR はレンダリング関連 React API の使用規約を成文化する。
 
@@ -80,4 +80,3 @@ ADR 空白の遡及監査([docs/plan/adr-gap-audit.md](../plan/adr-gap-audit.md)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠(React 規約に乗る)+ vendor-independent 正当性材料の必須化
 - [0140-documentation-operations.md](0140-documentation-operations.md) — decision / rule タクソノミー(本 ADR = decision / 連動制約 = rule → rules.md)
 - [0004-library-management.md](0004-library-management.md) — `babel-plugin-react-compiler` 導入時の exact pin + `pnpm audit` フロー
-- [docs/plan/adr-gap-audit.md](../plan/adr-gap-audit.md) #36 — 由来する空白領域

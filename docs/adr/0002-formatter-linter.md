@@ -10,7 +10,7 @@
 
 Accepted（採番はブロック帯で確定〈2026-07-14・0001〜0155(トピック順ブロック帯)〉）
 
-> 本 ADR は 0.0.x の living document。設計フェーズ中は本文を直接上書きし、逐次改定の履歴は残さない(不可変化 + 改定履歴の規律は v1 凍結時から。[決定 5](../plan/pre-implementation-decisions.md))。
+> 本 ADR は 0.0.x の living document。設計フェーズ中は本文を直接上書きし、逐次改定の履歴は残さない(不可変化 + 改定履歴の規律は v1 凍結時から。[0140](0140-documentation-operations.md))。
 
 ## 採用理由
 

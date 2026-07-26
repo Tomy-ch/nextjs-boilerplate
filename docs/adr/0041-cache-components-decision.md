@@ -6,13 +6,13 @@
 
 Accepted
 
-（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は triage([docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) #1)から独立起票したものである。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は triage #1 から独立起票したものである。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 **分割注記**: 本 ADR は当初「Cache Components 判定(#1)+ ページネーション(#7)」を束ねていたが、「1 ADR = 1 主題」の原則に照らして per-subject 分割し、ページネーション / 無限スクロールのデータ取得境界(旧 §2 / §3)を [0073](0073-pagination-fetch-boundary.md) へ分離した。本 ADR は Cache Components 有効化判断(旧 §1 = #1)に縮約している。
 
 ## 背景
 
-[adr-gap-audit.md](../plan/adr-gap-audit.md) の監査で、0040 が下流 ADR へ引き渡した後に残った **「委譲先消失」に近い件**が特定された([adr-gap-triage.md](../plan/adr-gap-triage.md) #1 = 判定)。
+設計フェーズの遡及監査で、0040 が下流 ADR へ引き渡した後に残った **「委譲先消失」に近い件**が特定された(triage #1 = 判定)。
 
 - **#1 Cache Components(PPR)有効化判断**: 0040 は本文で「`Cache Components` の有効化可否は保留する。データ取得([B3])・env のプリレンダー凍結([0030](0030-environment-variable-management.md) A7)と交差するため、それらの確定後に判断する」と明示保留した。0071(B3)/ 0080(B6)は Accepted になり、0071 は「`Cache Components` の有効化可否は 0040 の保留に従う」、0080 §4 も「Suspense × PPR の相互作用は 0040 の保留に従う」と、いずれも 0040 へ差し戻す形で判断を先送りしていた。トリガー(B3 / B6 Accepted)は成立済みであり、**判断を下すだけ**の状態にある。
 
@@ -51,4 +51,3 @@ Accepted
 - [0080-error-handling.md](0080-error-handling.md)(B6)— §4 Suspense × PPR は 0040 保留に従う(本 ADR と連動・張り直しは補足参照)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md)(A7)— env プリレンダー凍結(Cache Components 判断との交差)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 標準準拠・非ロックイン判断軸(本 ADR の vendor-independent 正当性材料の根拠)
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) #1 — 本 ADR の由来(判定)

@@ -1,6 +1,6 @@
 # app レイヤの element 構成(Route Handler / metadata)
 
-[0021](0021-frontend-responsibility.md) は `app` を「route / `page.tsx` = feature の画面を呼ぶ薄い driving adapter(import 先は `features` のみ)」とだけ定めていた。しかし `src/app/` には page 以外の App Router 特殊ファイル(`route.ts` / `robots.ts` 等)が同居し、それらの element 帰属が未定義だった(構造ブロッカー **S2**。詳細は [structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md)):
+[0021](0021-frontend-responsibility.md) は `app` を「route / `page.tsx` = feature の画面を呼ぶ薄い driving adapter(import 先は `features` のみ)」とだけ定めていた。しかし `src/app/` には page 以外の App Router 特殊ファイル(`route.ts` / `robots.ts` 等)が同居し、それらの element 帰属が未定義だった(構造ブロッカー **S2**):
 
 **Route Handler**(`route.ts`)/ metadata routes(`robots.ts` 等)が `adapters` / `config` を import する必要があるのに、`app → features のみ`のマトリクスと矛盾。[0030](0030-environment-variable-management.md) は「Route Handler → adapters 直 import」を前提化しており、**Accepted 同士が矛盾**していた。
 
@@ -49,4 +49,3 @@ Pages Router(`pages/` / `pages/api`)は採用しない。裏取り: 公式 doc `
 - [0011-no-docker.md](0011-no-docker.md) / [0070-backend-role-separation.md](0070-backend-role-separation.md) — thin proxy(Route Handler の業務ロジック禁止)
 - [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters/server`(Route Handler の import 先)
 - [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — `layout.tsx` の横断 UI / Provider mount(本 ADR の route-segment が土台。S4)
-- [docs/plan/structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md) — 構造ブロッカー S2 の由来・全体像

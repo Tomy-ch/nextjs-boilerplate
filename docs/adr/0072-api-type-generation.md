@@ -6,7 +6,7 @@
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み([決定 4](../plan/pre-implementation-decisions.md))。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
@@ -14,7 +14,7 @@ AGENTS.md の `[TODO] Type Generation`(BACKLOG B4)は、API 型を OpenAPI か�
 
 go-boilerplate は OpenAPI-first(**go 側**の ADR 0009)でモジュラー spec を Redocly でバンドルし(同 0040)、`openapi.gen.yaml` を**クロスリポ契約成果物としてコミット**する(同 0012「バンドル済み `openapi.gen.yaml` をクロスリポ契約成果物として保持」。いずれも本リポの同番号 ADR ではない)。同 0012 はさらに消費者側(本リポ)のパスとして「フロントは GitHub API(`gh` CLI 等)でコミット済みファイルを取得し、**orval + zod** 等で自前の生成を行う」と明示している。本 ADR はこの消費者側を成文化する。
 
-[決定 4](../plan/pre-implementation-decisions.md) は当初「型のみ(openapi-typescript)」としていたが、go-boilerplate の境界値所有哲学([0070](0070-backend-role-separation.md) / go `boundary-ownership.md`)が「response には server 側 runtime 検証がなく、フロントの生成 validation(zod)が契約破れの最後の砦」と前提していることを踏まえ、ユーザが **型 + runtime validation(zod)** を選択した(2026-07-13)。
+設計フェーズの当初方針は「型のみ(openapi-typescript)」だったが、go-boilerplate の境界値所有哲学([0070](0070-backend-role-separation.md) / go `boundary-ownership.md`)が「response には server 側 runtime 検証がなく、フロントの生成 validation(zod)が契約破れの最後の砦」と前提していることを踏まえ、ユーザが **型 + runtime validation(zod)** を選択した(2026-07-13)。
 
 ## 決定
 

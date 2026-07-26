@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-[docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) の遡及監査で、[0021](0021-frontend-responsibility.md) の**昇格ルール**(feature を跨ぐ横断要素を `model` / `components` / `adapters` のいずれかへ昇格させる)に、**reactive な横断 client hook の出口が存在しない**ことが判明した。`useConnectivity`(triage #30)等の「フロント領域の横断 client hook(拡張点 / seam)」を置く家が無く、複数 feature から使う client hook の昇格先が定義されていなかった。
+設計フェーズの遡及監査(triage)で、[0021](0021-frontend-responsibility.md) の**昇格ルール**(feature を跨ぐ横断要素を `model` / `components` / `adapters` のいずれかへ昇格させる)に、**reactive な横断 client hook の出口が存在しない**ことが判明した。`useConnectivity`(triage #30)等の「フロント領域の横断 client hook(拡張点 / seam)」を置く家が無く、複数 feature から使う client hook の昇格先が定義されていなかった。
 
 [0021](0021-frontend-responsibility.md) の命名規律は「役割を名指しできない置き場が必要になった時点で、それは設計の欠落であり、**真に横断が必要になったら ADR 追補で役割を定義してから作る**」と定めている(0021 命名規律)。本 ADR はその条項を発動し、役割を定義したうえで 10 個目のカーネルを立てる。go-boilerplate に対応物はない(React の client hook はフロント固有であり、翻案元を持たない)。
 
@@ -102,4 +102,3 @@ feature の移植可能性は、**カーネル契約に対して相対的**で�
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠(移植性のための hook API デファクト準拠)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) / [0080-error-handling.md](0080-error-handling.md) / [0081-observability-logging.md](0081-observability-logging.md) — 「実質のあるカーネルは自前 ADR」の先例
 - [0131-cookie-consent.md](0131-cookie-consent.md) — consent seam(ポリシー hook の所有先)/ triage #62 = feature-flag seam
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — 遡及監査(本 ADR の由来)/ #30 等の拡張点(seam)の置き場

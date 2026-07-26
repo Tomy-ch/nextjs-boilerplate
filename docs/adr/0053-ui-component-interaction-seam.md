@@ -1,16 +1,16 @@
 # UI コンポーネント方針とインタラクション a11y seam
 
-[0052](0052-ui-component-policy.md) は UI コンポーネント基盤(shadcn/ui + lucide-react + 複雑入力部品)を **v1 で採用**し、複雑入力(日付ピッカー等)は `components` カーネルの shadcn 系部品として同梱済みだが、そこで扱うのは「どの部品を持つか(同梱可否)」であって、**インタラクションを持つ UI の相互作用品質**(キーボード操作・フォーカス管理・ARIA・live region・ドラッグ代替等の a11y seam)は別主題として残る。本 ADR は 0052 とは主題を分け、interaction UI の **a11y interaction seam**(sanitizer port / shortcut registry seam / WCAG 2.2 ドラッグ代替 IF・モーダルの focus/scroll 契約等)を 1 本に束ねる。0052 が v1 で採る部品(複雑入力等)にも、v2 で採る局所ライブラリ(リッチテキスト = TipTap / DnD = dnd-kit 等)にも共通して要求される相互作用 a11y 契約を、本 ADR が所有する(triage #15 / #16 / #22 / #25 / #27。監査 [adr-gap-audit.md](../plan/adr-gap-audit.md))。
+[0052](0052-ui-component-policy.md) は UI コンポーネント基盤(shadcn/ui + lucide-react + 複雑入力部品)を **v1 で採用**し、複雑入力(日付ピッカー等)は `components` カーネルの shadcn 系部品として同梱済みだが、そこで扱うのは「どの部品を持つか(同梱可否)」であって、**インタラクションを持つ UI の相互作用品質**(キーボード操作・フォーカス管理・ARIA・live region・ドラッグ代替等の a11y seam)は別主題として残る。本 ADR は 0052 とは主題を分け、interaction UI の **a11y interaction seam**(sanitizer port / shortcut registry seam / WCAG 2.2 ドラッグ代替 IF・モーダルの focus/scroll 契約等)を 1 本に束ねる。0052 が v1 で採る部品(複雑入力等)にも、v2 で採る局所ライブラリ(リッチテキスト = TipTap / DnD = dnd-kit 等)にも共通して要求される相互作用 a11y 契約を、本 ADR が所有する(triage #15 / #16 / #22 / #25 / #27)。
 
 ## Status
 
 Accepted (a11y interaction seam。一部に affirmative decision = native `<dialog>` 既定を含む)
 
-（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は triage の interaction UI クラスタ(#15 / #16 / #22 / #25 / #27)を「相互作用 a11y seam(0052 の部品採用とは別主題)」として 1 主題に束ねるため **独立起票**したもの。内容自体はこの設計討議に基づく。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない。当初は 0052 の exclusion(本体非同梱)を前提に「非同梱境界 + a11y seam」として記していたが、v1 バッテリー採用への転換([0052](0052-ui-component-policy.md) / [adoption-matrix.md](../plan/adoption-matrix.md))に伴い、本 ADR の射程を「同梱可否」から相互作用 a11y seam へ純化した)
+（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は triage の interaction UI クラスタ(#15 / #16 / #22 / #25 / #27)を「相互作用 a11y seam(0052 の部品採用とは別主題)」として 1 主題に束ねるため **独立起票**したもの。内容自体はこの設計討議に基づく。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない。当初は 0052 の exclusion(本体非同梱)を前提に「非同梱境界 + a11y seam」として記していたが、v1 バッテリー採用への転換([0052](0052-ui-component-policy.md) / [master-plan §1.2](../plan/master-plan.md))に伴い、本 ADR の射程を「同梱可否」から相互作用 a11y seam へ純化した)
 
 ## 背景
 
-triage の遡及監査([adr-gap-triage.md](../plan/adr-gap-triage.md))は、interaction UI クラスタを次のように仕分けた:
+設計フェーズの遡及監査(triage)は、interaction UI クラスタを次のように仕分けた:
 
 - **#16 複雑入力 UI の a11y 契約**(0052 で採用済み)= 日付ピッカー等は 0052 が shadcn 系部品として `components` に **v1 採用済み**。本 ADR は「入れてよいか」ではなく、採用部品の **キーボード操作 / フォーカス順序 / ARIA という相互作用 a11y 契約** を敷く
 - **#15 リッチテキスト/エディタ**(v2 局所ライブラリ)= 本体は **sanitize IF + 表示 seam**(rehype/sanitize は差し替え可能な port として名前を付ける)。エディタ本体(TipTap 等)は 0052 の区分で **v2 同梱予定**
@@ -78,7 +78,7 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 - **分類**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は a11y interaction seam(採用部品 / v2 局所ライブラリ共通の相互作用 a11y 契約 + 名前付き seam)を主とし、§4 の native `<dialog>` 既定という affirmative decision を内包する。いずれも ADR に属する分類(decision = ADR)であり、日常強制の粒度規約(rule)は 0110(XSS)/ 0100(a11y チェック)/ rules.md 側が持つ
 - **0052 との主題分担**: [0052](0052-ui-component-policy.md) は「どの UI 部品を v1/v2 で持つか(採用・同梱可否)」を所有し、本 ADR は「持った / 持つ interaction UI の相互作用 a11y 品質(seam + 契約)」を所有する。両者は主題が重複しない。0052 本体からの相互参照付与は、AGENTS.md 整合と同じ整理フェーズでまとめて行う(§関連 ADR / flag)
 - **採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**(独立起票)
-- **v2 採用予定(局所ライブラリ・2026-07-14)**: 本 ADR が敷く seam / a11y 契約は不変。採用マトリクス([adoption-matrix.md](../plan/adoption-matrix.md))で interaction UI ライブラリ(リッチテキスト・DnD 等)は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**a11y 拡張点(seam)(sanitizer port / DnD ドラッグ代替 IF / registry seam)は敷済・ライブラリ採用は v2**(リッチテキスト = TipTap / DnD = dnd-kit・ともに Thin。§1 built-in 優先と §3〜6 の a11y 契約は不変)。採用時も本体は seam と a11y 契約を保持し、TipTap / dnd-kit を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+- **v2 採用予定(局所ライブラリ・2026-07-14)**: 本 ADR が敷く seam / a11y 契約は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))で interaction UI ライブラリ(リッチテキスト・DnD 等)は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**a11y 拡張点(seam)(sanitizer port / DnD ドラッグ代替 IF / registry seam)は敷済・ライブラリ採用は v2**(リッチテキスト = TipTap / DnD = dnd-kit・ともに Thin。§1 built-in 優先と §3〜6 の a11y 契約は不変)。採用時も本体は seam と a11y 契約を保持し、TipTap / dnd-kit を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 関連 ADR
 
@@ -91,4 +91,3 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 - [0050-styling-strategy.md](0050-styling-strategy.md) — Tailwind 主軸 + CSS Modules 限定許可(styled-components / emotion は非採用。採用 UI のスタイル手段)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — カーネル配置・命名規律・受入基準(sanitizer port / 表示 seam の物理配置の根拠)
 - [0004-library-management.md](0004-library-management.md) — exact pin / audit(fork 先が interaction UI ライブラリを採る際の枠)
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — interaction UI クラスタ(#15 / #16 / #22 / #25 / #27)の disposition

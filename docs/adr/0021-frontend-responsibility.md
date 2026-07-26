@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-[0020](0020-adopted-architecture.md) は `src/{app, features/<name>, model, components, adapters, capabilities, stores, config, errors, logging, observability}` の 11 カーネル構成(`capabilities` は [0022](0022-capabilities-kernel.md)、`stores` は [0023](0023-stores-kernel.md))と設計原則を宣言したが、各カーネルが「何を受け入れ、どこを import してよいか」の詳細は従属決定として本 ADR に委ねられた(選択肢比較・従属項目の一覧は [docs/plan/a1-layer-mapping-options.md](../plan/a1-layer-mapping-options.md) を正とする)。本 ADR はその従属決定を成文化する。
+[0020](0020-adopted-architecture.md) は `src/{app, features/<name>, model, components, adapters, capabilities, stores, config, errors, logging, observability}` の 11 カーネル構成(`capabilities` は [0022](0022-capabilities-kernel.md)、`stores` は [0023](0023-stores-kernel.md))と設計原則を宣言したが、各カーネルが「何を受け入れ、どこを import してよいか」の詳細は従属決定として本 ADR に委ねられた。本 ADR はその従属決定を成文化する。
 
 AGENTS.md の `[TODO] Frontend Responsibility Separation` が敷いていた暫定運用(層概念・依存方向・境界違反禁止の未決定)を、本 ADR が確定させる。
 
@@ -36,7 +36,7 @@ AGENTS.md の `[TODO] Frontend Responsibility Separation` が敷いていた暫�
 
 ## 依存マトリクス
 
-各カーネルが import してよい先(import する側 → 許可される先)。[docs/plan/a1-layer-mapping-options.md](../plan/a1-layer-mapping-options.md) の依存ルール表を正とする。
+各カーネルが import してよい先(import する側 → 許可される先)。**本表を正とする**。
 
 | 層(import する側) | 許可される import 先 |
 | --- | --- |

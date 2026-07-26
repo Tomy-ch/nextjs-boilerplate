@@ -6,21 +6,21 @@
 
 Accepted
 
-（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み([決定 3](../plan/pre-implementation-decisions.md))。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
-**バッテリー採用への転換(2026-07-14・v1)**: 従来の「グローバル状態・form state ライブラリ 非同梱(exclusion)」を、v1 = 一般的な Next.js アプリケーション基盤として必要なライブラリを採用する方針([adoption-matrix](../plan/adoption-matrix.md))へ転換した。form state = **react-hook-form + zod**(`@hookform/resolvers`)/ 横断 client 状態 = **Zustand**(家は [0023](0023-stores-kernel.md) `stores` カーネル)を採用する。既定の local-first(単一 feature は local / server state は RSC fetch)は維持する。
+**バッテリー採用への転換(2026-07-14・v1)**: 従来の「グローバル状態・form state ライブラリ 非同梱(exclusion)」を、v1 = 一般的な Next.js アプリケーション基盤として必要なライブラリを採用する方針([master-plan §1.2](../plan/master-plan.md))へ転換した。form state = **react-hook-form + zod**(`@hookform/resolvers`)/ 横断 client 状態 = **Zustand**(家は [0023](0023-stores-kernel.md) `stores` カーネル)を採用する。既定の local-first(単一 feature は local / server state は RSC fetch)は維持する。
 
 ## 背景
 
 AGENTS.md の `[TODO]`(BACKLOG B5)は、Server state(TanStack Query 等)/ Client state(Zustand / Jotai / Context)/ Form state(react-hook-form 等)/ URL state の使い分けを未決としていた。暫定運用は「グローバル状態ライブラリを勝手に導入しない / Context 濫用を避け local state(`useState` / `useReducer`)から / Server state は Server Component の `fetch` 既定」だった。
 
-初期(0.0.x)は「用途未定の表示層」ロール([0011](0011-no-docker.md))を根拠に、グローバル状態・form state ライブラリを exclusion(非同梱)としていた。v1 で「一般的な Next.js アプリ基盤に必要なライブラリを採用する」方針へ転換したため([adoption-matrix](../plan/adoption-matrix.md))、フォーム入力・横断状態はどちらもアプリ基盤の常用要件であることから、本 ADR は該当ライブラリの採用へ反転する。既定方針(server = RSC fetch / client = local から)は据え置く。
+初期(0.0.x)は「用途未定の表示層」ロール([0011](0011-no-docker.md))を根拠に、グローバル状態・form state ライブラリを exclusion(非同梱)としていた。v1 で「一般的な Next.js アプリ基盤に必要なライブラリを採用する」方針へ転換したため([master-plan §1.2](../plan/master-plan.md))、フォーム入力・横断状態はどちらもアプリ基盤の常用要件であることから、本 ADR は該当ライブラリの採用へ反転する。既定方針(server = RSC fetch / client = local から)は据え置く。
 
 ## 決定
 
 ### Server state = Server Component fetch 既定
 
-- サーバ由来のデータは **Server Component 内の `fetch` を既定**とする([決定 3](../plan/pre-implementation-decisions.md) / [0040](0040-routing-rendering-strategy.md))
+- サーバ由来のデータは **Server Component 内の `fetch` を既定**とする([0040](0040-routing-rendering-strategy.md))
 - クライアントでのデータ取得・キャッシュ(TanStack Query 等)は boilerplate 本体で前提にしない。必要な取得の編成は feature の server 関数 / `adapters` 経由([0021](0021-frontend-responsibility.md) / [0071](0071-bff-api-integration.md))で行う。キャッシュ設計は **[0071](0071-bff-api-integration.md)(BFF / API 統合)** の責務
 
 ### Client state = local-first(既定を維持)
@@ -76,4 +76,4 @@ AGENTS.md の `[TODO]`(BACKLOG B5)は、Server state(TanStack Query 等)/ Client
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — クライアント側データ取得・キャッシュ設計 / server state 境界
 - [0011-no-docker.md](0011-no-docker.md) — 表示層ロール(初期 exclusion の根拠。v1 でアプリ基盤へ性格更新)
 - [0052-ui-component-policy.md](0052-ui-component-policy.md)(B2)— 同じく v1 バッテリー採用へ転換(shadcn/ui + lucide + 複雑入力)
-- [adoption-matrix](../plan/adoption-matrix.md) — v1 バッテリー同梱の全体像(FORM / STATE 行)
+- [master-plan §1.2 採用ロードマップ](../plan/master-plan.md) — v1 バッテリー同梱の全体像(react-hook-form + zod / Zustand)

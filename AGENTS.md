@@ -70,7 +70,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0072](docs/adr/0072-api-type-generation.md) | API type generation | Generated from OpenAPI/GraphQL / generated-artifact "do not edit" rules |
 | [0073](docs/adr/0073-pagination-fetch-boundary.md) | Pagination fetch | pagination / infinite-scroll data-fetch boundary |
 | [0074](docs/adr/0074-runtime-communication-seam.md) | Realtime comm seam | WebSocket / SSE seam |
-| [0075](docs/adr/0075-bff-external-boundary-seam.md) | File upload seam | presigned direct PUT default / multipart proxy exception |
+| [0075](docs/adr/0075-file-upload-seam.md) | File upload seam | presigned direct PUT default / multipart proxy exception |
 | [0076](docs/adr/0076-payment-ui-seam.md) | Payment UI seam | mount seam & PCI boundary |
 | [0077](docs/adr/0077-bff-abuse-protection-boundary.md) | BFF abuse protection | infra / edge seam boundary |
 | [0078](docs/adr/0078-dynamic-feature-flag-seam.md) | Feature-flag seam | dynamic feature flag / staged rollout (A-B) seam |
@@ -79,7 +79,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0081](docs/adr/0081-observability-logging.md) | Observability / logging | OTLP / OTel vendor-neutral (Sentry not adopted) / structured logs |
 | [0082](docs/adr/0082-client-observability.md) | Client observability | Web Vitals RUM / client error collection / analytics seam |
 | [0090](docs/adr/0090-testing-strategy.md) | Testing strategy | Framework selection / per-layer responsibilities / co-location |
-| [0091](docs/adr/0091-testing-and-catalog-policy.md) | Test verification | async RSC test placement / a11y automated-test integration |
+| [0091](docs/adr/0091-test-verification-methods.md) | Test verification | async RSC test placement / a11y automated-test integration |
 | [0100](docs/adr/0100-accessibility-target.md) | Accessibility target | Target conformance level |
 | [0101](docs/adr/0101-performance-budget.md) | Performance budget | Core Web Vitals budget |
 | [0102](docs/adr/0102-browser-support.md) | Browser support | Support matrix |
