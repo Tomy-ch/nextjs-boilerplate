@@ -6,9 +6,9 @@ Tailwind CSS を主軸に据えつつ、**CSS Modules をエスケープハッ�
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み([決定 3](../plan/pre-implementation-decisions.md))。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
-バッテリー採用への転換(2026-07-14・v1): 「CSS Modules / styled-components / emotion を全て非採用」から「**CSS Modules のみエスケープハッチとして限定許可・他 2 者は引き続き非採用**」へ部分改訂([採用マトリクス](../plan/adoption-matrix.md) ②）。
+バッテリー採用への転換(2026-07-14・v1): 「CSS Modules / styled-components / emotion を全て非採用」から「**CSS Modules のみエスケープハッチとして限定許可・他 2 者は引き続き非採用**」へ部分改訂([master-plan §1.2](../plan/master-plan.md))。
 
 ## 背景
 
@@ -67,4 +67,4 @@ Accepted
 - [0004-library-management.md](0004-library-management.md) — `cn()` 実装ライブラリ等の採用フロー(exact pin / audit)。CSS Modules 自体は標準機能のため追加 pin は生じない
 - [0052-ui-component-policy.md](0052-ui-component-policy.md)(B2)— UI ライブラリ(shadcn/ui + lucide)採用(本 ADR の Tailwind 主軸と接続)
 - [0060-state-management.md](0060-state-management.md)(B5)— テーマ切替状態の置き場(local state 既定 / 横断状態は `stores`)
-- [採用マトリクス](../plan/adoption-matrix.md) — v1 バッテリー採用の全体像(② CSS Modules のみ限定許可の確定)
+- [master-plan §1.2 採用ロードマップ](../plan/master-plan.md) — v1 バッテリー採用の全体像(CSS Modules のみ限定許可の確定)

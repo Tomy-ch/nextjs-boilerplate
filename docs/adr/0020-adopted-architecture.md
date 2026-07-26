@@ -16,7 +16,7 @@ Accepted
 
 一方、隣接する `go-boilerplate` リポジトリは Pragmatic Onion(`controller → usecase → domain`、infrastructure が domain の interface を実装)で構成され、内向き依存 / 境界 interface / 型漏洩禁止 / 層別 README / driving adapter 非分割軸 / ツールによる機械強制、という **ADR レベルの設計原則** を確立している。本 boilerplate は「ディレクトリ名の一致」ではなく、この **原則** を表示層に持ち込むことを狙う。
 
-決定の経緯・選択肢比較・go 層マッピング・整合確認は [docs/plan/a1-layer-mapping-options.md](../plan/a1-layer-mapping-options.md) を正とする。本 ADR はその決定を追認・成文化するものである。
+本 ADR がこの決定の正である。
 
 ## 決定: 機能スライス × 表示層カーネル
 
@@ -138,7 +138,7 @@ go は横断関心事を `internal/` 直下の独立パッケージとする(`co
 
 ## 採用しないパターン
 
-決定過程で比較した代替案と、不採用の理由(詳細は [docs/plan/a1-layer-mapping-options.md](../plan/a1-layer-mapping-options.md))。
+決定過程で比較した代替案と、不採用の理由。
 
 | 不採用パターン | 内容 | 不採用の理由 |
 | --- | --- | --- |

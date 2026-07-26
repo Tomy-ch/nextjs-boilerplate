@@ -1,6 +1,6 @@
 # ポリシー状態(consent / feature-flag)の供給方針
 
-[0022](0022-capabilities-kernel.md) は「ポリシー状態(consent / feature-flag)は `capabilities` に置かず各 seam が所有」と退去させたが、**退去先の物理的な家が無かった**(構造ブロッカー **S3** = 委譲先消失の型。詳細は [structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md))。`useConsent()` 相当(consent 供給。triage では #50〈サードパーティスクリプトの同意ゲート連動〉/ #61〈analytics の consent gating 接続〉が消費点)・`useFlag()` 相当(#62)の client 供給点が、`capabilities`(runtime 限定)にも `components`(純 UI)にも `model`(表示ロジック)にも `feature`(単一・`features↔features` 禁止)にも座らない。
+[0022](0022-capabilities-kernel.md) は「ポリシー状態(consent / feature-flag)は `capabilities` に置かず各 seam が所有」と退去させたが、**退去先の物理的な家が無かった**(構造ブロッカー **S3** = 委譲先消失の型)。`useConsent()` 相当(consent 供給。triage では #50〈サードパーティスクリプトの同意ゲート連動〉/ #61〈analytics の consent gating 接続〉が消費点)・`useFlag()` 相当(#62)の client 供給点が、`capabilities`(runtime 限定)にも `components`(純 UI)にも `model`(表示ロジック)にも `feature`(単一・`features↔features` 禁止)にも座らない。
 
 本 ADR は、この供給を **新カーネルを立てずに既存カーネルの合成で** 定める([0024](0024-adapters-server-client-split.md) の adapters/client を土台とする)。
 
@@ -49,4 +49,3 @@ consent / flag の供給を 3 つに分解し、それぞれ既存の家へ置�
 - [0060-state-management.md](0060-state-management.md) — stateless 供給既定の根拠
 - [0023-stores-kernel.md](0023-stores-kernel.md) — 反応的な横断 consent / flag 状態の置き場(Zustand)
 - [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — 反応的供給時の store provider mount(S4)
-- [docs/plan/structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md) — 構造ブロッカー S3 の由来・全体像

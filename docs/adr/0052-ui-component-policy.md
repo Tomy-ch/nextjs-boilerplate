@@ -8,13 +8,13 @@ Accepted
 
 - バッテリー採用への転換(2026-07-14・v1)
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない。当初は exclusion(本体非同梱)として記録していたが、v1 =「一般的な Next.js アプリケーション基盤」方針([docs/plan/adoption-matrix.md](../plan/adoption-matrix.md))への転換に伴い、採用へ反転した。日付 2026-07-14）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない。当初は exclusion(本体非同梱)として記録していたが、v1 =「一般的な Next.js アプリケーション基盤」方針([master-plan §1.2](../plan/master-plan.md))への転換に伴い、採用へ反転した。日付 2026-07-14）
 
 ## 背景
 
 当初 AGENTS.md の `[TODO]`(BACKLOG B2)は shadcn/ui の採否・アイコンライブラリ・form コンポーネント・Headless UI 系の扱いを未決とし、本 ADR はこれらを「用途依存ゆえ本体に同梱しない」exclusion として記録していた。
 
-その後、boilerplate の性格を「用途未定の最小表示層」から **「一般的な Next.js アプリケーション基盤(v1)」** へ転換する方針が確定した([docs/plan/adoption-matrix.md](../plan/adoption-matrix.md))。UI コンポーネント・アイコン・複雑入力部品は、一般的なアプリ基盤に **汎用・常用** で必要な要素であり、v1 で採用対象とする(判定 = 汎用/常用 → v1)。
+その後、boilerplate の性格を「用途未定の最小表示層」から **「一般的な Next.js アプリケーション基盤(v1)」** へ転換する方針が確定した([master-plan §1.2](../plan/master-plan.md))。UI コンポーネント・アイコン・複雑入力部品は、一般的なアプリ基盤に **汎用・常用** で必要な要素であり、v1 で採用対象とする(判定 = 汎用/常用 → v1)。
 
 ## 決定: shadcn/ui + lucide-react + 複雑入力を採用(v1)
 

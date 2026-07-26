@@ -6,7 +6,7 @@ App Router の採用を追認し、**Server / Client Components の境界 / Serv
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み([決定 3](../plan/pre-implementation-decisions.md))。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 バッテリー採用への転換(2026-07-14・v1): route-as-modal(intercepting / parallel routes)を選択肢として認める追補を追加(triage #22・ユーザ採用決定)。App Router 単独・Server Components 既定は不変。
 
@@ -29,7 +29,7 @@ Accepted
 
 ### `"use client"` は feature 内の葉へ押し下げる
 
-- `"use client"` は **feature 内の、クライアント機能(state / event / ブラウザ API)を実際に使う葉コンポーネント**にのみ付ける([0021](0021-frontend-responsibility.md)「Server Action の置き場」の規約が正。[決定 3](../plan/pre-implementation-decisions.md))
+- `"use client"` は **feature 内の、クライアント機能(state / event / ブラウザ API)を実際に使う葉コンポーネント**にのみ付ける([0021](0021-frontend-responsibility.md)「Server Action の置き場」の規約が正)
 - 理由: `"use client"` 境界より内側は import・子まで丸ごと client バンドルに入るため、境界を上位(`layout.tsx` / `page.tsx`)に置くと不要に client 化が広がる。境界を葉へ下げて client バンドルを最小化する
 - `page.tsx` / `layout.tsx` は Server Component のまま保つ
 
@@ -44,7 +44,7 @@ Accepted
 
 ### レンダリングモードは特定モードを強制しない
 
-- 本 boilerplate は **CSR / SSR / SSG / ISR のいずれのモードも閉ざさない**。特定モードを一律強制せず、静的シェルのプリレンダーと request-time のストリーミングの**両対応を保つ**([決定 3](../plan/pre-implementation-decisions.md))
+- 本 boilerplate は **CSR / SSR / SSG / ISR のいずれのモードも閉ざさない**。特定モードを一律強制せず、静的シェルのプリレンダーと request-time のストリーミングの**両対応を保つ**
 - 導出根拠: [0011](0011-no-docker.md) の想定デプロイは静的 CDN と SSR PaaS の**両方が主想定**であり、boilerplate 本体はどのモードも前提にしない
 - **Next.js 16 のキャッシュ挙動**: `fetch` 既定 uncached を前提とし、キャッシュは opt-in とする(Cache Components 有効時は `use cache` / PPR、無効の間は従来モデルの `cache: 'force-cache'` 等)。ただし**具体的なキャッシュ方針(どこを `use cache` するか / `cacheLife` / `<Suspense>` 境界の切り方)は本 ADR で固定しない**。データ取得のキャッシュ・再検証設計は **B3([0071](0071-bff-api-integration.md))「データ取得のキャッシュ・再検証」節**、`loading.tsx` / Suspense 境界は **B6([0080](0080-error-handling.md))** が引き取り確定済み
 - **`Cache Components`(PPR を既定化する設定)の有効化可否は [0041](0041-cache-components-decision.md) が「0.0.x = 無効」に確定済み**。本 ADR は「モードを強制しない」ことのみ確定し、有効化判断は 0041 に委ねる

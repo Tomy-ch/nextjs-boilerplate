@@ -17,7 +17,7 @@ Accepted
 
 ## 背景
 
-[0070](0070-backend-role-separation.md)(A2)が `/api/*` を **thin proxy** に限定した結果、ファイルアップロードの扱いに空白が生じた([adr-gap-audit.md](../plan/adr-gap-audit.md) #13):
+[0070](0070-backend-role-separation.md)(A2)が `/api/*` を **thin proxy** に限定した結果、ファイルアップロードの扱いに空白が生じた(遡及監査 #13):
 
 - アップロードを BFF 中継(multipart を `/api/*` proxy)にするか presigned URL 直 PUT にするかが未決。
 - [0071](0071-bff-api-integration.md) の fetch wrapper は JSON API 前提で multipart / バイナリに未言及であり、大容量ボディの BFF 中継は **thin proxy 原則(0070)と緊張**する。
@@ -47,7 +47,7 @@ Accepted
 
 - **タクソノミー**([0140](0140-documentation-operations.md)): 本 ADR は decision(#13 の構造確定)に属する。日常強制される rule(アップロードサイズの具体規約・Route Handler 実装規約)は `docs/rules.md`(未新設・0140 方針)側に置き、本 ADR から逆参照される。
 - 本 ADR は既存 Accepted ADR(0070 / 0071 / 0024)本体を編集せず、それらを参照して隣接する空白を埋める(既存 ADR は Protected Documentation)。その後 2026-07-15 に、[0024](0024-adapters-server-client-split.md) 決定表へ #13(presigned 直 PUT)が `adapters/client` の正規役割として反映済(ユーザ指示による整合)。
-- **v2 採用予定(局所ライブラリ・2026-07-14)**: 本 decision(既定 = presigned 直 PUT / 中継 = 名前付き例外 seam)本体は不変。採用マトリクス([adoption-matrix.md](../plan/adoption-matrix.md))でアップロードは **v2 = 局所機構の materialize**(用途依存)に振り分けられた。**upload seam(`adapters/client` の進捗 / 中断 / 再開 IF・multipart proxy 例外 seam)は 0.0.x/v1 で敷済・機構実体化は v2**。既定の presigned 直 PUT は web 標準(署名付き URL + HTTP PUT)に乗り特定ストレージ SDK・PSP に依存しないため専用ベンダーを持たない。外部クライアント / SDK を採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+- **v2 採用予定(局所ライブラリ・2026-07-14)**: 本 decision(既定 = presigned 直 PUT / 中継 = 名前付き例外 seam)本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))でアップロードは **v2 = 局所機構の materialize**(用途依存)に振り分けられた。**upload seam(`adapters/client` の進捗 / 中断 / 再開 IF・multipart proxy 例外 seam)は 0.0.x/v1 で敷済・機構実体化は v2**。既定の presigned 直 PUT は web 標準(署名付き URL + HTTP PUT)に乗り特定ストレージ SDK・PSP に依存しないため専用ベンダーを持たない。外部クライアント / SDK を採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 関連 ADR
 
@@ -57,5 +57,4 @@ Accepted
 - [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3)— fetch wrapper(JSON 前提)/ `adapters` の resilience(本 ADR がバイナリ / multipart の空白を補う)
 - [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md)— `adapters` server / client 2 分割(署名取得 = server / 直 PUT = client)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 標準準拠 + vendor-independent 正当性(presigned / 直 PUT の正当化の土台)
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md)— #13 の disposition の管理先
 - BACKLOG(triage #8 Route Handler 規約)— rules.md / 新規 ADR 未策定。本 ADR が逆参照する連動先

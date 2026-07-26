@@ -14,9 +14,9 @@ Accepted
 
 ## 背景
 
-[0090](0090-testing-strategy.md) は層別責務(unit / component / integration / e2e)を確定したが、「**Server Components のテスト方針 / RSC・route handler・E2E の線引きは、Next.js の現実に合わせて実装時に確定する(本 ADR で先取りしない)**」と明示保留した([adr-gap-audit.md](../plan/adr-gap-audit.md) #70)。この保留のままだと最初のテスト PR で毎回この議論が再燃し、90% カバレッジゲート(0090)の充足手段も定まらない。0090 は living かつ**実装フェーズ直前**であり、[adr-gap-triage.md](../plan/adr-gap-triage.md) は #70 を「前倒し確定は妥当(判定)」と位置づけた。
+[0090](0090-testing-strategy.md) は層別責務(unit / component / integration / e2e)を確定したが、「**Server Components のテスト方針 / RSC・route handler・E2E の線引きは、Next.js の現実に合わせて実装時に確定する(本 ADR で先取りしない)**」と明示保留した(遡及監査 #70)。この保留のままだと最初のテスト PR で毎回この議論が再燃し、90% カバレッジゲート(0090)の充足手段も定まらない。0090 は living かつ**実装フェーズ直前**であり、triage は #70 を「前倒し確定は妥当(判定)」と位置づけた。
 
-[0100](0100-accessibility-target.md) は a11y 検証を「biome 静的検査 + 手動チェック」で構成したが、**実行時 DOM に対する自動検査**(ARIA 整合・コントラスト実測)は空白のままだった([adr-gap-audit.md](../plan/adr-gap-audit.md) #72)。biome(静的)では検出できない観点が AA 目標(0100)の検証で手動レビュー頼みになる。
+[0100](0100-accessibility-target.md) は a11y 検証を「biome 静的検査 + 手動チェック」で構成したが、**実行時 DOM に対する自動検査**(ARIA 整合・コントラスト実測)は空白のままだった(遡及監査 #72)。biome(静的)では検出できない観点が AA 目標(0100)の検証で手動レビュー頼みになる。
 
 本 ADR は [0010](0010-standards-and-non-lockin.md) の 2 原則(標準準拠 / 非ロックイン判定)に基づいて 2 点を確定する。
 
@@ -44,7 +44,7 @@ Accepted
 
 ## 補足
 
-- **#70 の性質**: 0090 の「線引きは実装時に確定(本 ADR で先取りしない)」保留の**前倒し確定**である。0090 は living かつ実装フェーズ直前のため妥当([adr-gap-triage.md](../plan/adr-gap-triage.md) 判定)。本 ADR は寄せ先を確定し、mock パイプラインは B3 へ引き渡すことで 0090 の mock 戦略・B3 の契約駆動モックと二重化しない
+- **#70 の性質**: 0090 の「線引きは実装時に確定(本 ADR で先取りしない)」保留の**前倒し確定**である。0090 は living かつ実装フェーズ直前のため妥当(triage 判定)。本 ADR は寄せ先を確定し、mock パイプラインは B3 へ引き渡すことで 0090 の mock 戦略・B3 の契約駆動モックと二重化しない
 - axe の per-feature 適用粒度・CI 組込は実装 PR / [0153](0153-ci-configuration.md)(CI 構成)。visual regression(#71)は本 ADR の射程外(tooling defer・0090 の 4 層に後付け可)
 - **UI カタログ(#37)は本 ADR の射程外**。当初束ねていた Storybook / UI カタログ主題は [0054](0054-ui-catalog-storybook.md) へ分離した(採用 decision として再確定)。カタログ性の担保は 0054 が所有する
 - 本 ADR の内容(#70/#72)は [0090](0090-testing-strategy.md) が既に引き取った `[TODO] Testing Strategy` の外側にある追補・確定であり、AGENTS.md の追加改変は要さない。本 ADR Accepted に伴う BACKLOG(B8 / C2 関連行)の整合は反映対象

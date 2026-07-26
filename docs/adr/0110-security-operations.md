@@ -6,7 +6,7 @@
 
 Accepted (一部 exclusion)
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み(go 準拠の翻案。plan「決定不要」表 B10)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み(go 準拠の翻案。設計フェーズの「決定不要」表 B10)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
@@ -54,7 +54,7 @@ go-boilerplate にはあるが、本リポは [0011](0011-no-docker.md)(no-Docke
 - ❌ **コンテナ image スキャン**(Trivy image / SBOM 生成)— アプリ本体の Docker イメージがない
 - ❌ **cosign によるイメージ署名 / SLSA provenance / SBOM attestation**(go 側の ADR 0088 相当)— 配送成果物がコンテナイメージでない
 - ❌ **Dependabot の `docker` エコシステム**(go は image ディレクトリ群を監査対象に持つ)— 監査対象の Dockerfile がない(上記 1 のとおり `npm` + `github-actions` のみ)
-- これらは「意図的にやらない」判断として記録する([決定 5](../plan/pre-implementation-decisions.md) exclusion = ADR)。fork 先が独自にコンテナ配送する場合は fork 先判断で追加する
+- これらは「意図的にやらない」判断として記録する([0140](0140-documentation-operations.md) タクソノミー: exclusion = ADR)。fork 先が独自にコンテナ配送する場合は fork 先判断で追加する
 
 ## 禁止事項
 

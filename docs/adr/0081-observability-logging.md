@@ -6,9 +6,9 @@
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み(go 準拠の翻案。plan「決定不要」表 B7)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み(go 準拠の翻案。設計フェーズの「決定不要」表 B7)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
-注記(2026-07-14): 観測性は **OTLP / OTel 一本(vendor-neutral)** で確定し、**特定の観測性 / RUM SaaS SDK(Sentry / Datadog 等)は本体に同梱しない**(§6)。当初 v1 で Sentry 採用を検討したが、エラー通知・アラート等の運用機能は fork が向け先に選ぶ OTLP 互換バックエンド側で足りるため、vendor-neutral(vendor SDK 非同梱)を維持する([docs/plan/adoption-matrix.md](../plan/adoption-matrix.md))。OTLP-only の構造・ブラウザ→BFF 中継 seam・vendor 直参照禁止は不変。
+注記(2026-07-14): 観測性は **OTLP / OTel 一本(vendor-neutral)** で確定し、**特定の観測性 / RUM SaaS SDK(Sentry / Datadog 等)は本体に同梱しない**(§6)。当初 v1 で Sentry 採用を検討したが、エラー通知・アラート等の運用機能は fork が向け先に選ぶ OTLP 互換バックエンド側で足りるため、vendor-neutral(vendor SDK 非同梱)を維持する([master-plan §1.2](../plan/master-plan.md))。OTLP-only の構造・ブラウザ→BFF 中継 seam・vendor 直参照禁止は不変。
 
 ## 背景
 
@@ -82,4 +82,4 @@ go はバックエンドのみで、**server 常駐の OTel exporter / batch gor
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — vendor-independent 正当化 / 差し替え可能性(vendor SDK を抜いても正当・OTLP 経由で非ロックイン)
 - [0004-library-management.md](0004-library-management.md) — fork が vendor 観測性 SDK を導入する場合の exact-pin + `pnpm audit`
 - [0020-adopted-architecture.md](0020-adopted-architecture.md) / [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `observability` / `adapters` 境界(vendor SDK を裏に閉じ込める先)
-- [docs/plan/adoption-matrix.md](../plan/adoption-matrix.md) — v1/v2 バッテリー採用マトリクス(観測性 = OTLP/OTel vendor-neutral・vendor SDK 非同梱)
+- [master-plan §1.2 採用ロードマップ](../plan/master-plan.md) — v1/v2 バッテリー採用マトリクス(観測性 = OTLP/OTel vendor-neutral・vendor SDK 非同梱)

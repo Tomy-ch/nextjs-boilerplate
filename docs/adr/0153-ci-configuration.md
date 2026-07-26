@@ -6,7 +6,7 @@ GitHub Actions の **job 分割 / trigger 戦略 / CI ハードニング(SHA ピ
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み(go 準拠の翻案。plan「決定不要」表 B9)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み(go 準拠の翻案。設計フェーズの「決定不要」表 B9)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
@@ -23,7 +23,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 - ワークフローは関心事ごとに分ける(go 翻案)。本リポの CI job:
   - **lint**(`pnpm lint:ci` = biome full profile)/ **typecheck**(`pnpm typecheck` = tsc)/ **build**(`next build`。[0030](0030-environment-variable-management.md) のビルド時 env 全量検証を含む)/ **test**(vitest)/ **e2e**(playwright)
   - **境界検査**: ESLint boundaries は `lint:ci` に直列で載る([0002](0002-formatter-linter.md) / [0021](0021-frontend-responsibility.md))
-  - **起動スモーク**: go の boot-check(実 graph 起動検査)の翻案として、`pnpm build` → `next start` → `curl /` ポーリングの起動検査を持つ(plan「決定不要」表 B9 / 移植計画 PR 2-1)
+  - **起動スモーク**: go の boot-check(実 graph 起動検査)の翻案として、`pnpm build` → `next start` → `curl /` ポーリングの起動検査を持つ(設計フェーズの「決定不要」表 B9 / 移植計画 PR 2-1)
   - **生成物 drift ゲート**(型生成。[0072](0072-api-type-generation.md))/ **カバレッジゲート**(90%。[0090](0090-testing-strategy.md))。カバレッジの **PR レポート**([0090](0090-testing-strategy.md) が B9 へ引き渡した項)は下記 5 の PR コメント upsert 基盤で出力する(go octocov 相当。具体ツールは実装 PR で確定)
 - go 固有ジョブ(migration / sql-lint / gen-go-check 等)は本リポでは対象外(言語・DB 固有。生成物 drift は上記の型生成 drift ゲートが担う)
 

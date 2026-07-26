@@ -1,18 +1,18 @@
 # テスト戦略
 
-テストの **フレームワーク選定 / 層別責務 / 命名・配置 / カバレッジゲート / 二層実行 / mock 戦略** を定める。戦略面は go-boilerplate の実証済みテスト規約を翻案し([決定 3](../plan/pre-implementation-decisions.md) でユーザ承認済み)、フレームワークは Next.js / React エコシステムの標準を採る。
+テストの **フレームワーク選定 / 層別責務 / 命名・配置 / カバレッジゲート / 二層実行 / mock 戦略** を定める。戦略面は go-boilerplate の実証済みテスト規約を翻案し(設計フェーズでユーザ承認済み)、フレームワークは Next.js / React エコシステムの標準を採る。
 
 ## Status
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み([決定 3](../plan/pre-implementation-decisions.md))。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない。**実装中に不都合が出たら補正する前提**）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない。**実装中に不都合が出たら補正する前提**）
 
 ## 背景
 
-AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層別責務・カバレッジ・配置命名・Server Components のテスト方針を未決とし、暫定運用として「テストフレームワークを勝手に `package.json` に足さない / 必要になったら ADR 化を提案」を敷いていた。本 ADR がその ADR 化であり、[決定 3](../plan/pre-implementation-decisions.md) で確定した戦略とフレームワークを成文化する。
+AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層別責務・カバレッジ・配置命名・Server Components のテスト方針を未決とし、暫定運用として「テストフレームワークを勝手に `package.json` に足さない / 必要になったら ADR 化を提案」を敷いていた。本 ADR がその ADR 化であり、設計フェーズで確定した戦略とフレームワークを成文化する。
 
-戦略(何をどう検証するか)は go-boilerplate の `docs/testing-conventions.md` に実証済みの規約があり、それを翻案する(ユーザが [決定 3](../plan/pre-implementation-decisions.md) で承認)。フレームワークは Next.js / React の標準に従う。
+戦略(何をどう検証するか)は go-boilerplate の `docs/testing-conventions.md` に実証済みの規約があり、それを翻案する(ユーザ承認済み)。フレームワークは Next.js / React の標準に従う。
 
 ## 決定
 
@@ -21,7 +21,7 @@ AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層�
 - **Vitest**(ユニット / コンポーネント)+ **React Testing Library**(コンポーネント)+ **MSW**(HTTP 境界の mock)+ **Playwright**(E2E)を採用する
 - 選定根拠: [0004](0004-library-management.md) の基準(メンテ活発・エコシステム標準)から実質一意。本体・主要ツールは exact pin + `pnpm audit`([0004](0004-library-management.md))
 
-### 戦略(go-boilerplate 規約の翻案・[決定 3](../plan/pre-implementation-decisions.md))
+### 戦略(go-boilerplate 規約の翻案)
 
 - **co-location**: テストは実装の隣に置く([0027](0027-directory-structure.md))。`__tests__/` への一括集約はしない
 - **命名**: テストケースは **`正常系` / `異常系` の日本語命名**(振る舞い + 分岐条件を日本語で述べる)。最外グループは `正常系` / `異常系` のリテラル、内側にケースをネスト(AGENTS.md「テスト `describe` / `it` 文字列は日本語」と接続)
@@ -71,7 +71,7 @@ AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層�
 
 - 本 ADR の Accepted に伴い、AGENTS.md の `[TODO] Testing Strategy` 節の削除・書き換えを実施する(未実施 — AGENTS.md は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する)
 - テストフレームワーク導入 + `make test` / `test-cached` 二層 + lefthook 接続 + カバレッジゲート CI は本 ADR Accepted 後の実装 PR(移植計画 Phase 5)で行う。C-5(scaffold-test / test-review スキル)移植もこの時期
-- **実装中に不都合が出たら本 ADR を補正する**([決定 3](../plan/pre-implementation-decisions.md))
+- **実装中に不都合が出たら本 ADR を補正する**
 
 ## 関連 ADR
 

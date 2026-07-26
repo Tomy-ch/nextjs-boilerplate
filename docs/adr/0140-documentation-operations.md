@@ -6,11 +6,11 @@
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み([決定 5](../plan/pre-implementation-decisions.md))。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない — この living 運用自体を本 ADR が定義する）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない — この living 運用自体を本 ADR が定義する）
 
 ## 背景
 
-AGENTS.md の Language Rules は「visible outputs は日本語」としつつ、**canonical EN / translated JA ペア運用の定義を BACKLOG D1(本 ADR)に委ねて**いた。また [決定 5](../plan/pre-implementation-decisions.md) のタクソノミー(decision / exclusion / rule / inventory)・`rules.md` 新設・ADR 不可変性(0.0.x living → v1 immutable)・採番方式(ブロック帯で確定〈2026-07-14・0001〜0155〉)は方針決定済みだが未成文化だった。本 ADR がこれらを成文化する。
+AGENTS.md の Language Rules は「visible outputs は日本語」としつつ、**canonical EN / translated JA ペア運用の定義を BACKLOG D1(本 ADR)に委ねて**いた。また設計フェーズのユーザ決定によるタクソノミー(decision / exclusion / rule / inventory)・`rules.md` 新設・ADR 不可変性(0.0.x living → v1 immutable)・採番方式(ブロック帯で確定〈2026-07-14・0001〜0155〉)は方針決定済みだが未成文化だった。本 ADR がこれらを成文化する。
 
 go-boilerplate は **英語 canonical + 日本語 mirror(`docs/ja/**/*.ja.md`)+ 生成 portal** の三層戦略(go ADR 0008「docs as canonical source」)、および ADR の immutable / supersede-by-new-ADR / NNNN 連番運用(go `docs/adr/README.md`)を確立している。本リポジトリはこれらを翻案するが、**移行タイミングは本リポの現実(現状は日本語運用)に合わせて調整**する。
 
@@ -39,7 +39,7 @@ go `docs/adr/README.md` の 4 分類を本リポの器へ翻案する:
 
 ### 3. `rules.md` 新設 + AGENTS.md からの rule 段階移行
 
-- **`docs/rules.md` を新設**し、rule 分類(日常強制される制約)をここに集約する。**AGENTS.md が確実に肥大化するため**([決定 5](../plan/pre-implementation-decisions.md))、AGENTS.md の rule を段階的に `rules.md` へ移す(段階移行でよい)
+- **`docs/rules.md` を新設**し、rule 分類(日常強制される制約)をここに集約する。**AGENTS.md が確実に肥大化するため**、AGENTS.md の rule を段階的に `rules.md` へ移す(段階移行でよい)
 - 各ルールには **`> Rationale: [ADR-NNNN](...)` の逆参照リンク**を付け、「ADR = なぜ(決定)/ `rules.md` = 日々強制される制約」の役割分担を体現する(go `docs/rules.md` の翻案)
 - 既存 ADR([0021](0021-frontend-responsibility.md) / [0028](0028-naming-convention.md))が「rule は rules.md へ段階移行」と補足しているものは、`rules.md` 新設時にそちらへ移す
 - **[0152](0152-agents-md-policy.md)(AGENTS.md 構成方針)の「AGENTS.md = 規約集約ファイル」該当節との整合(supersede / 追記)が必要**。0152 は Accepted・Protected Documentation のため、変更案の提示とユーザ承認を経て適用する(未実施)

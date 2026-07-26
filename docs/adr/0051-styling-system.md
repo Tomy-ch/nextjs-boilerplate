@@ -10,11 +10,11 @@ Accepted
 
 （**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は 0050 の具体化として独立起票したものであり、その内容自体はこの設計討議でユーザ確定済み。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
-**バッテリー採用への転換(2026-07-14・v1)**: 従来「モーションライブラリ非同梱」としていた §3 を転換し、複雑モーション用途に Framer Motion(`motion` パッケージ)を **v1 で採用**する([docs/plan/adoption-matrix.md](../plan/adoption-matrix.md))。既定手段(CSS / View Transitions)は不変で、Framer は複雑ケースに限る。
+**バッテリー採用への転換(2026-07-14・v1)**: 従来「モーションライブラリ非同梱」としていた §3 を転換し、複雑モーション用途に Framer Motion(`motion` パッケージ)を **v1 で採用**する([master-plan §1.2](../plan/master-plan.md))。既定手段(CSS / View Transitions)は不変で、Framer は複雑ケースに限る。
 
 ## 背景
 
-0050 は Tailwind v4 採用・`cn()` 置き場・design token = CSS 変数・ダークモード = token 切替を確定したが、**token の中身(命名層 semantic vs raw / spacing・typography・radius・shadow のスケール / `@theme` との対応)は「器のみで空白」**だった([adr-gap-audit.md](../plan/adr-gap-audit.md) #32)。同様に **ブレークポイント体系**(#31)・**モーション方針**(#21)・**印刷/PDF**(#28)も 0050 の射程外に残り、[adr-gap-triage.md](../plan/adr-gap-triage.md) で「0050 への追補」に仕分けられていた。本 ADR はこの 4 項目を 1 本に束ねる。
+0050 は Tailwind v4 採用・`cn()` 置き場・design token = CSS 変数・ダークモード = token 切替を確定したが、**token の中身(命名層 semantic vs raw / spacing・typography・radius・shadow のスケール / `@theme` との対応)は「器のみで空白」**だった(遡及監査 #32)。同様に **ブレークポイント体系**(#31)・**モーション方針**(#21)・**印刷/PDF**(#28)も 0050 の射程外に残り、triage で「0050 への追補」に仕分けられていた。本 ADR はこの 4 項目を 1 本に束ねる。
 
 現状の `src/app/globals.css` は既に **2 層構造**(`:root` に生の色変数 → `@theme inline` で Tailwind の色トークンへ別名付け → `prefers-color-scheme: dark` で生変数を再束縛)を実装しており、本 ADR はこの de-facto を追認・一般化する。命名層を決めずに書き始めると、0050 が採用したダークモード(semantic な意味で色を参照し、テーマ切替を token 差し替えに閉じる)が破綻するため、体系の確定は最初の feature 実装に先行して効く。
 
@@ -28,7 +28,7 @@ Accepted
 - **色は semantic 経由でのみ参照**する(0050「色をハードコードせず token 経由」の具体化)。primitive を直接コンポーネントに撒かない。
 - **テーマ切替(ライト/ダーク等)は semantic 別名の再束縛だけで完結**させる(`prefers-color-scheme` / `dark` variant で semantic の指す primitive を差し替える)。これが 0050 のダークモード決定を体系として成立させる要。既存 `globals.css` の `:root` → `@theme inline` → `dark` 再束縛の形を正典とする。
 - token 定義は `globals.css`(またはそれが import する CSS)に集約する(0050 の global 集約方針を踏襲)。
-- **スケールの対象軸**: color / spacing / typography(size・line-height・weight)/ radius / shadow。z-index スケールの token 化は本 ADR の 2 層モデルに乗る同型の関心だが、レイヤリング規約([adr-gap-triage.md](../plan/adr-gap-triage.md) #23)として `docs/rules.md` 側で扱う(本 ADR は「z も token 化する」土台のみ示す)。
+- **スケールの対象軸**: color / spacing / typography(size・line-height・weight)/ radius / shadow。z-index スケールの token 化は本 ADR の 2 層モデルに乗る同型の関心だが、レイヤリング規約(triage #23)として `docs/rules.md` 側で扱う(本 ADR は「z も token 化する」土台のみ示す)。
 
 ### 2. レスポンシブ = viewport ブレークポイント(mobile-first)+ コンテナクエリ
 
@@ -68,7 +68,7 @@ Accepted
 ## 補足
 
 - **Figma → CSS 変数 同期は本 ADR の射程外**。token の**体系(命名層・スケール軸)**のみを本 ADR が定め、デザインツールとの**同期方式**(Figma variables → CSS の生成/取り込み)は未 frame(実装 PR / fork 先で確定)とし、本 ADR の射程外とする。本 ADR で同期方式に踏み込むと後続決定と矛盾しうるため、意図的に体系のみへ限定した。
-- **モーションライブラリ採用の帰属**は 0050 系(本 ADR)と [0052](0052-ui-component-policy.md)(UI ライブラリ)で射程が重なる。v1 バッテリー採用への転換により、モーション手段(既定 = CSS / View Transitions、複雑ケース = Framer Motion)の**採用決定は本 ADR が所有**する([docs/plan/adoption-matrix.md](../plan/adoption-matrix.md) ③)。0052 が扱う UI コンポーネントライブラリ(shadcn/ui 等)とは関心が別のため、モーションは本 ADR 側で一元管理する。両 ADR の相互参照の最終整合(0052 → 本 ADR back-link)は最終整理フェーズで付与する。
+- **モーションライブラリ採用の帰属**は 0050 系(本 ADR)と [0052](0052-ui-component-policy.md)(UI ライブラリ)で射程が重なる。v1 バッテリー採用への転換により、モーション手段(既定 = CSS / View Transitions、複雑ケース = Framer Motion)の**採用決定は本 ADR が所有**する([master-plan §1.2](../plan/master-plan.md))。0052 が扱う UI コンポーネントライブラリ(shadcn/ui 等)とは関心が別のため、モーションは本 ADR 側で一元管理する。両 ADR の相互参照の最終整合(0052 → 本 ADR back-link)は最終整理フェーズで付与する。
 - **`prefers-reduced-motion` 必須化の根拠水準**は本 ADR で明記する。reduced-motion 尊重は WCAG SC 2.3.3(**Level AAA**)に対応し、AA には直接の該当 SC がない —— したがって 0100(a11y AA 目標)は motion 尊重を直接の義務としては持たない。本 ADR は AA 準拠とは独立に、ユーザ体験配慮として `prefers-reduced-motion` を必須とする立場を採り、その強制根拠水準(AAA)は本 ADR 側で明記して齟齬を残さない。0100 本体は Accepted の Protected Documentation のため本 ADR 作成時点では相互参照の back-link を付さない(最終整理フェーズで付与)。
 - **print CSS 最小実装の同梱是非**は保留(0.0.x は拡張点の定義まで)。fork 先の帳票要件の有無で最小実装の要否が割れるため、強引に「同梱する/しない」を確定しない。
 - 0050 は Accepted の Protected Documentation のため、本 ADR 作成時点では 0050 本体への追補・back-link 付与は行わない。0050 → 本 ADR の相互参照は AGENTS.md 整合・v1 大規模整理と同じ最終整理フェーズでまとめて付与する。
@@ -83,4 +83,3 @@ Accepted
 - [0052-ui-component-policy.md](0052-ui-component-policy.md)(B2)— UI コンポーネントライブラリの採用(shadcn/ui 等)。モーションライブラリの採用帰属は本 ADR 側に一元化(補足参照)
 - [0020-adopted-architecture.md](0020-adopted-architecture.md) / [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — 局所性原則 / レイアウトシェル(§2 の viewport vs コンテナクエリ使い分けの土台)
 - [0070-backend-role-separation.md](0070-backend-role-separation.md)(A2)— PDF サーバ生成を切り出す backend 境界(§4)
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — 本 ADR の由来項目 #32 / #31 / #21 / #28 の disposition

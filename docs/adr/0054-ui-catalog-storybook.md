@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-**Storybook 等の UI カタログ**の採否([adr-gap-audit.md](../plan/adr-gap-audit.md) #37)は、[0141](0141-portal-operations.md) の portal がドキュメント portal であって UI カタログではないため、コンポーネントの視覚的仕様の置き場が未定義のまま残っていた。[adr-gap-triage.md](../plan/adr-gap-triage.md) はこれを「機能 seam でない開発ツール選択 = tooling defer」と判定し、旧 [0091](0091-test-verification-methods.md) §3 は当初これを **非採用 exclusion**(カタログ性は `components` カーネルの層別 README で担保 / `.stories.*` は存在しない前提)として着地させていた。
+**Storybook 等の UI カタログ**の採否(遡及監査 #37)は、[0141](0141-portal-operations.md) の portal がドキュメント portal であって UI カタログではないため、コンポーネントの視覚的仕様の置き場が未定義のまま残っていた。triage はこれを「機能 seam でない開発ツール選択 = tooling defer」と判定し、旧 [0091](0091-test-verification-methods.md) §3 は当初これを **非採用 exclusion**(カタログ性は `components` カーネルの層別 README で担保 / `.stories.*` は存在しない前提)として着地させていた。
 
 その後 **ユーザが Storybook / UI カタログの採用を決定**した。tooling defer の exclusion は「fork 先が要件に応じて足すのは妨げない」余地を残しており([0140](0140-documentation-operations.md) セットアップ時の直接編集による独自ベースライン)、本 boilerplate 自身がその余地を行使して採用ベースラインへ倒す判断である。採否が非採用 → 採用へ転じたため、旧 exclusion を上書きするのではなく、機能 seam でない開発ツール選択の 1 主題として本 ADR で採用 decision を確定する。
 

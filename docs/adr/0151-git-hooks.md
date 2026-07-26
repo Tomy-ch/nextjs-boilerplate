@@ -7,7 +7,7 @@ hook の役割は「壊れた状態を CI に到達させない第一段の防�
 
 Accepted
 
-> 本 ADR は 0.0.x の living document。設計フェーズ中は本文を直接上書きし、逐次改定の履歴は残さない(不可変化 + 改定履歴の規律は v1 凍結時から。docs/plan/pre-implementation-decisions.md 決定 5)。
+> 本 ADR は 0.0.x の living document。設計フェーズ中は本文を直接上書きし、逐次改定の履歴は残さない(不可変化 + 改定履歴の規律は v1 凍結時から。[0140](0140-documentation-operations.md))。
 
 ## 採用理由 / 目的
 

@@ -6,11 +6,11 @@
 
 Accepted
 
-（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は [0041](0041-cache-components-decision.md)(triage [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) #7)からの per-subject 分割で独立起票したものである。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は [0041](0041-cache-components-decision.md)(triage #7)からの per-subject 分割で独立起票したものである。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
-[adr-gap-audit.md](../plan/adr-gap-audit.md) の監査で、0040 が下流 ADR へ引き渡した後に残った「委譲先消失」に近い件として、**#7 ページネーション / 無限スクロール**([adr-gap-triage.md](../plan/adr-gap-triage.md) #7)が特定された。
+設計フェーズの遡及監査で、0040 が下流 ADR へ引き渡した後に残った「委譲先消失」に近い件として、**#7 ページネーション / 無限スクロール**(triage #7)が特定された。
 
 一覧画面の頁送り・無限スクロールの UI 側扱い(offset vs cursor、ページ状態の表現、client 追加取得の可否)が未定義だった。とりわけ無限スクロールは `IntersectionObserver` + client fetch を必然的に伴い、[0060](0060-state-management.md) の「Server state = Server Component fetch 既定 / クライアントでのデータ取得を本体で前提にしない」と正面から緊張する。加えて、その client fetch 経路は [0071](0071-bff-api-integration.md) の fetch wrapper(resilience は主に `adapters/server` に適用 = server 前提)ではカバーされず、所有者を明示しなければ **委譲先消失を再生産**する。
 
@@ -60,4 +60,3 @@ Accepted
 - [0022-capabilities-kernel.md](0022-capabilities-kernel.md)— 横断 client hook の昇格先(無限スクロールのトリガー hook が cross-feature 化した時の家)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 標準準拠・非ロックイン判断軸(本 ADR の vendor-independent 正当性材料の根拠)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md)— 昇格ルール(feature ローカル → capabilities)
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) #7 — 本 ADR の由来(追補)
