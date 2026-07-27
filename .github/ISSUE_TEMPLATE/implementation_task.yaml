@@ -1,0 +1,82 @@
+name: 実装タスク(v1 実装計画の PR 1 件)
+description: docs/plan/v1-implementation-plan.md の PR 1 行を 1 issue として起票する
+title: "[PNN-N] "
+labels: ["feature"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `docs/plan/v1-implementation-plan.md` の PR 1 行 = この issue 1 件。
+        各項目の意味は同計画 §0.3「PR の記法」を参照してください。
+
+  - type: input
+    id: plan-id
+    attributes:
+      label: 計画 ID
+      description: v1 実装計画の PR ID。計画外の実装なら「計画外」と書いてください
+      placeholder: "例: P3-2"
+    validations:
+      required: true
+
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 目的
+      description: この PR が解決する問題を 1〜2 文で
+    validations:
+      required: true
+
+  - type: textarea
+    id: target-adr
+    attributes:
+      label: 対象 ADR
+      description: 実装対象の ADR を列挙してください。ここに無い ADR の決定は実装しません
+      placeholder: |
+        - docs/adr/0021-frontend-responsibility.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: change-targets
+    attributes:
+      label: 主な変更先
+      description: 触るファイル / ディレクトリ
+    validations:
+      required: true
+
+  - type: textarea
+    id: enforcement
+    attributes:
+      label: 強制手段
+      description: |
+        この PR が持ち込む規約を「何が守らせるか」を書いてください。
+        型 / biome / ESLint boundaries / CI ゲート / テスト / scaffold 生成 / 散文のみ。
+        「散文のみ」を選ぶ場合も、機械強制へ寄せられない理由を添えてください(空欄では起票できません)。
+      placeholder: "例: 型(判別可能な union)+ ESLint boundaries + テスト"
+    validations:
+      required: true
+
+  - type: textarea
+    id: done-definition
+    attributes:
+      label: 完了条件
+      description: 検証可能な状態を「何が緑になるか」で書いてください(「動く」は不可)
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依存
+      description: 先行させる PR / issue。無ければ「なし」
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 補足
+      description: 未決事項・参考資料・関連 issue があれば
+    validations:
+      required: false
