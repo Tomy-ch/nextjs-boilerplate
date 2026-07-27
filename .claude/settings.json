@@ -136,9 +136,7 @@
       "Edit(LICENSE)",
       "Write(LICENSE)",
       "Edit(.claude/settings.json)",
-      "Write(.claude/settings.json)",
-      "Edit(docs/adr/*-*.md)",
-      "Write(docs/adr/*-*.md)"
+      "Write(.claude/settings.json)"
     ],
     "deny": [
       "Bash(rm -rf *)",

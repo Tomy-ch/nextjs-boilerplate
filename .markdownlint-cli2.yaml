@@ -3,7 +3,7 @@
 globs:
   - "**/*.md"
 
-# mermaid-lint.mjs の除外（EXCLUDE_DIRS/FILES）と一致させる。
+# mermaid-lint.ts の除外（EXCLUDE_DIRS/FILES）と一致させる。
 # .claude 配下は保護エージェント設定 + worktree 実体を含むため除外。
 # AGENTS.md / CLAUDE.md は保護ドキュメント、.github/copilot-instructions.md は Copilot 用エージェント設定。
 ignores:

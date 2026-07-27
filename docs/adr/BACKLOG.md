@@ -169,7 +169,7 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、boile
 
 - **D1 / D2(ADR 0140 / 0141 として策定済み・実装未)**: 2026-07-13 に決定 5 バッチとして成文化。D1 = [ADR 0140](0140-documentation-operations.md)(canonical 言語 = **EN 目標・移行は v1**〈ユーザ決定・0.0.x は日本語 canonical のまま living〉/ タクソノミー4分類 / **`rules.md` 新設 + AGENTS.md rule 段階移行**〈0152 整合はユーザ承認要〉/ ADR 不可変性 = 0.0.x living→v1 immutable〈go モデル翻案〉/ per-package README)。D2 = [ADR 0141](0141-portal-operations.md)(portal 未導入 / manifest = 構造制御のみ・curated manual / コード README 手動登録・`docs/*` 自動発見 / GitHub Pages / **実装は Phase 3 = B9 後**)。rules.md 新設・EN canonical 化・portal 実装はいずれも後続(段階移行 / v1 / Phase 3)
 - **D3(ADR 0142 として策定済み)**: 2026-07-13 に成文化([ADR 0142](0142-license.md))。MIT 採用根拠(最大許容・エコシステム標準・go-boilerplate と統一・低儀式性)/ OSS 寄与 = **inbound=outbound・CLA なし**(DCO は必要時 `CONTRIBUTING.md`)/ 同梱ライブラリのライセンス整合は [0004](0004-library-management.md) 許可リストが担保 / `package.json` の `private:true` は npm publish ガードで MIT と別レイヤ・両立。**follow-up: `package.json` に `"license": "MIT"` 追加はルート設定保護のためユーザ指示待ち**
-- **D6 ⚠️**: 開発系 5 件のうち `new-env` のみ go-boilerplate 由来のパス (`internal/config/` 系) を前提。BACKLOG A7 確定後に再設計要
+- **D6 ⚠️**: 開発系 5 件は A7 ([0030](0030-environment-variable-management.md)) の構造へ揃済。`new-env` は `src/config/` の目的別 config モジュールを対象とするが、`src/config/` の着地は A7 実装 PR (v1 計画 P3-3) のため、それまで実行不可 (スキル側がガードして停止する)
 
 ---
 
@@ -244,7 +244,7 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 - **移植済(A: 技術非依存)**: full-verify(+prompts+run.sh)/ full-apply、agent: arch-verifier / impl-verifier / doc-reviewer / comment-reviewer(godoc→TSDoc/JSDoc、正を AGENTS.md+一般原則へ)
 - **移植済(B: 変換)**: adr-scan(走査を nextjs 化・枠 ID 体系へ分類 / PROVISIONAL)、node-upgrade(← go-upgrade。mise.toml SSOT のみ伝播)、repo-ops(器のみ。Docker/sqlc 項目は ADR 0011 で不適用)
 - **対象外(D)**: portal-manifest-sync(`docs/portal/manifest.yaml` 不在。**D2**([0141](0141-portal-operations.md))は Accepted 済み・portal 実装は Phase 3 のため、portal 導入時に移植)
-- **既知の再設計対象**: `new-env` は移植済だが go 由来パス前提が残る([0155](0155-claude-skills-development.md) 記載)。**A7** 確定後に `src/config/` 等へ再設計(本節の移植計画とは別枠 = A7 の実装タスク)
+- **実行可能条件つき**: `new-env` は A7([0030](0030-environment-variable-management.md))の `src/config/` 構造へ再設計済。実行できるのは **A7 実装 PR(v1 計画 P3-3)で `src/config/` が着地してから**(未着地ならスキルがガードして停止)
 
 ### 保留(C): ADR 決定待ちの移植計画
 

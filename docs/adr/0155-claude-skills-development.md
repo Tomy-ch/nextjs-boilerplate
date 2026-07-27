@@ -45,7 +45,7 @@ Accepted
 | `canonicalize-doc` | EN / JA ペア同期 | canonical 英ドキュメントと日本語翻訳の同期 / 新規作成 |
 | `sync-readme` | README ↔ ディスク同期 | 単一 README の記述を実ディレクトリ状態に合わせて更新。子ディレクトリの README は digest + 参照リンクのみ |
 | `readme-review` | README の portal 価値評価 | 単一 README を `docs/portal/manifest.yaml` 登録基準で採点 |
-| `new-env` | 環境変数の e2e 追加 | typed Config struct / env サンプル / docs を一括で同期 (※ Go boilerplate 由来、後述) |
+| `new-env` | 環境変数の e2e 追加 | 目的別 config モジュール / env ファイル / 変数表 docs を一括で同期 (対象構造は A7 = [0030](0030-environment-variable-management.md)、後述) |
 | `local-review` | adversarial code review | 4 観点 (correctness / security / architecture / runtime-gap) の subagent fanout + verifier による多段検証 |
 | `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
 | `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
@@ -103,22 +103,13 @@ full-verify (orchestrator / in-session fast-path)
 
 `sync-readme` 実行後は内部で `canonicalize-doc` を chain する設計になっている。
 
-## `new-env` の Next.js 再設計課題
+## `new-env` の対象構造
 
-現状の `new-env` スキルは **go-boilerplate 由来** で、以下のパスを前提とする。
+`new-env` は **A7 ([0030](0030-environment-variable-management.md)) の config カーネル**を対象とする。すなわち `src/config/` の目的別 config モジュール (`<purpose>.server.ts` / `<purpose>.client.ts` のスキーマ項目 + `#` private フィールド + getter)、`env/.env.{local,ci,dev,stg,prd}`、変数表ドキュメントの 3 点を同期する。
 
-- `internal/config/envspec.go` (Loader 構造体)
-- `internal/config/model.go` (Config struct)
-- `internal/config/config.go` (`New()` マッピング + getter)
-- `internal/config/config_testing_mock.go`
-- `env/.env.{local,ci,dev,stg,prd}`
+スキルは purpose インベントリ・スキーマライブラリ・env ファイル集合を**実行時に実ツリーから検出**し、固定値で持たない。スキーマライブラリの選定は [0030](0030-environment-variable-management.md) が A7 実装 PR へ委ねているため、スキル側でライブラリ名を前提にしない。
 
-これらは Next.js 文脈には存在しない。Next.js 用の環境変数管理は **A7 ([0030](0030-environment-variable-management.md)) で Accepted 済み** (`process.env` 直読は `src/config/` 配下の目的別 config モジュールのみ / 供給は Next.js 標準の `.env*` ロード)。本スキルは以下のいずれかに再設計する:
-
-- A7 (0030) で確定した構造 (`src/config/` の目的別 config モジュール + 変数表ドキュメント) に書き換え、Go 特有の型同期処理を TypeScript に置き換える
-- 一旦削除して、A7 実装後に再実装する
-
-A7 は確定済みのため、再設計は ADR 決定を要しない **実装タスク** として別 PR で行う。それまで **`new-env` は再設計対象** のままである (本リポジトリでの実行禁止は「禁止事項」参照)。
+**`src/config/` が未着地の間、スキルは自らガードして停止する**。config カーネルの構築 (スキーマ / 検証呼び出し / `env/` の新設) は A7 実装 PR の担当であり、変数追加の依頼を根拠にスキルがカーネルを新規作成することはない。
 
 ## 共通参照
 
@@ -133,7 +124,7 @@ A7 は確定済みのため、再設計は ADR 決定を要しない **実装タ
 - ❌ 開発系スキルから商用操作 (push / tag / release) を行うこと (運用系 = 0154 の領域)
 - ❌ subagent をモデル分散 (reviewer ≠ implementer) なしで「念のため」増やすこと (コスト見合いに合わない)
 - ❌ subagent に code edit 権限を渡すこと (read-only 原則)
-- ❌ `new-env` を再設計せずに本リポジトリで実行すること (go-boilerplate のパスを誤って前提とする)
+- ❌ `new-env` に config カーネル (`src/config/` / スキーマ / 検証呼び出し / `env/`) を新規作成させること (A7 実装 PR の担当)
 - ❌ ドキュメント系 3 件 (`canonicalize-doc` / `sync-readme` / `readme-review`) の責務を重複させること
 
 ## 補足
@@ -144,7 +135,7 @@ A7 は確定済みのため、再設計は ADR 決定を要しない **実装タ
 
 ## 関連 ADR
 
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) (A7) — `new-env` 再設計の前提となる環境変数管理の確定
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) (A7) — `new-env` が対象とする config カーネルの構造
 - [0140-documentation-operations.md](0140-documentation-operations.md) (D1) — canonical EN / 翻訳 JA のドキュメント運用ポリシー
 - [0150-git-workflow.md](0150-git-workflow.md) — `local-review` が想定する「commit / PR 前」のタイミング
 - [0152-agents-md-policy.md](0152-agents-md-policy.md) — AGENTS.md の Instruction Priority と Modification Scope

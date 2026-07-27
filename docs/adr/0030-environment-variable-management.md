@@ -62,7 +62,10 @@ go は env ファイルを Docker ビルド時に binary へ embed するが、�
 
 - **`process.env` への供給は Next.js 標準の `.env*` ロード**に委ねる(AGENTS.md 暫定「`.env*` を直読せず Next.js 標準 `process.env` に従う」を維持)。config モジュールがその `process.env` を読む唯一の場所となる(決定 2)
 - **本番の secret / 環境別値は PaaS(Vercel / Amplify 等)の env・secret store から供給**する([0011](0011-no-docker.md) の配送前提)。平文ファイルへコミットしない
-- 変数の一覧・型・Secret ラベルは **変数表ドキュメント**(go `env/README.md` の変数表フォーマット `Variable Name | Description | Type | Example | Notes` を翻案)で維持する。配置は `config` カーネルの README(A7 実装 PR で作成。[0021](0021-frontend-responsibility.md) 層別 README 運用)
+- ドキュメントは **2 本立て**とし、正の範囲を分ける。同じ内容を二重に書かない:
+  - **`env/README.{md,ja.md}` = 環境変数の存在の正**。この環境で定義される全変数を **変数表**(go `env/README.md` の書式 `Variable Name | Description | Type | Example | Notes` を翻案)で維持する。値がプレースホルダのみの変数も、アプリが config 経由で読まない変数(標準名で外部 SDK が直接読むもの等)も、存在する限りここに載る
+  - **`config` カーネルの README = 設定値の解説の正**(A7 実装 PR で作成。[0021](0021-frontend-responsibility.md) 層別 README 運用)。**ビルド時に検証され、構築時に各 purpose モジュールへ流し込まれる設定値**について、purpose 区分・server / client 境界・required と code default の別・受け手側の使い方を説明する
+  - 変数の**存在**は env 側、設定値の**意味と扱い**は config 側が持つ。config に載るのは env 側の部分集合である
 - **env 変数の追加はユーザ確認を要する**(AGENTS.md 暫定を維持)
 
 ### 7. 受け手側の実装パターン(目的別 config の受け手)
@@ -107,7 +110,7 @@ go の「コンストラクタが SubConfig を受け取る」1 パターンは�
 
 - 本 ADR の Accepted に伴い、AGENTS.md の `[TODO] Environment Variable Management` 節の削除・書き換えを実施する(他 A 系 ADR の `[TODO]` 削除と併せて。未実施 — AGENTS.md は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する)
 - **スキーマライブラリの選定は実装 PR に委ねる**。本 ADR は「目的別スキーマで全 ENV を型定義・検証する(目的別でも全量検証)」という**アーキテクチャ**のみを確定し、具体ライブラリ(計画書の暫定候補は **zod**。他に valibot / arktype 等)は [0004](0004-library-management.md) の採用フロー(exact pin + `pnpm audit`)で A7 実装 PR にて確定する。ライブラリ名で本 ADR を固定しない
-- 本 ADR は `config` カーネルの**方針**を定める。物理実装(`src/config/{server,client}.ts` + スキーマ + 変数表 README + `instrumentation.ts` / `next.config.ts` の検証呼び出し + biome `noProcessEnv` の有効化と config モジュール override 除外([0002](0002-formatter-linter.md)「有効化は A7 とセット」))は A7 実装 PR で行う。移植スキル `new-env` の go 由来パス前提もこの実装時に `src/config/` へ再設計する([0155](0155-claude-skills-development.md))
+- 本 ADR は `config` カーネルの**方針**を定める。物理実装(`src/config/{server,client}.ts` + スキーマ + 変数表 README + `instrumentation.ts` / `next.config.ts` の検証呼び出し + biome `noProcessEnv` の有効化と config モジュール override 除外([0002](0002-formatter-linter.md)「有効化は A7 とセット」))は A7 実装 PR で行う。スキル `new-env` は本 ADR の構造(`src/config/` の目的別 config モジュール + 変数表)を対象とし、`src/config/` 未着地の間は自らガードして停止する([0155](0155-claude-skills-development.md))
 
 ## 関連 ADR
 

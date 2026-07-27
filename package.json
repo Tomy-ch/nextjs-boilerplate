@@ -12,7 +12,7 @@
     "fix": "biome check --fix",
     "format": "biome format --write",
     "typecheck": "tsc --noEmit",
-    "md-lint": "markdownlint-cli2 && node scripts/mermaid-lint.mjs",
+    "md-lint": "markdownlint-cli2 && tsx scripts/mermaid-lint.ts",
     "md-fix": "markdownlint-cli2 --fix"
   },
   "dependencies": {
