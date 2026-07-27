@@ -193,7 +193,7 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 
 | 粒度 | 宣言方法 |
 | --- | --- |
-| ファイル / ディレクトリ丸ごと | 爆破 manifest(`scripts/setup/lib/sample-manifest.mjs`)の `paths[]` に**明示列挙** |
+| ファイル / ディレクトリ丸ごと | 爆破 manifest(`scripts/setup/lib/sample-manifest.ts`)の `paths[]` に**明示列挙** |
 | 共有ファイル内の混在行 | ファイル内の**マーカー**(`sample:begin`/`end` / `sample:line` / `sample:replace-*`) |
 
 これによりコードは自然な場所・自然な名前のまま置ける。破棄対象かどうかは manifest を読めば分かる。
@@ -680,11 +680,12 @@ test-requirement: unit
 - **主な変更先**:
   - `src/config/` — zod ベース loader / `#` private + getter の不変 Config / server・client 分割 / ESM singleton 配布
   - `env/.env.{local,ci,dev,stg,prd}`
-  - `env/README.md` — 変数表(サブシステム別)
+  - `env/README.md` — 変数表(サブシステム別)。**環境変数の存在の正**(プレースホルダのみの変数・config を経由しない変数も載る)
+  - `src/config/README.md` — **設定値の解説の正**(purpose 区分 / server・client 境界 / required と code default / 受け手の使い方)
   - `biome.json` — `noProcessEnv` を有効化し `process.env` 直読を config モジュールのみに限定
 - **この PR で入る変数**: `APP_API_BASE_URL` / `APP_API_MODE` / `MEDIA_ORIGIN` / `OTEL_EXPORTER_OTLP_ENDPOINT` / 認証関連
 - **判断が要る点**: OTel の標準名 `OTEL_EXPORTER_OTLP_ENDPOINT` と [0028](../adr/0028-naming-convention.md) の `{SUBSYSTEM}_{NAME}` 規約が競合する。**標準名を優先**する([0010](../adr/0010-standards-and-non-lockin.md) の標準準拠)。0028 への例外条項追記は P0-4 で実施済み
-- **同時に実施**: `new-env` スキルの再設計([0155](../adr/0155-claude-skills-development.md) 記載の既知課題。go 由来パス → 実パス)
+- **同時に実施**: `new-env` スキルの実装突合。スキルは既に本 ADR の構造(`src/config/` の目的別 config モジュール + 変数表)を対象に再設計済みで、`src/config/` 未着地の間は自らガードして停止する。本 PR では実際に着地した purpose 名 / スキーマ記述 / 変数表の配置とスキルの前提が一致するかを確認し、ずれていればスキル側を合わせる
 - **完了条件**: 必須 ENV 欠落でビルドが失敗する。`NEXT_PUBLIC_` 境界を越えた secret 参照が型で防がれる。BACKLOG A7 が ✅ になる
 - **依存**: P3-1
 
