@@ -36,9 +36,9 @@ Accepted (一部 exclusion)
 - **vendor-independent**: ブラウザ側エラーの可視化は 0080 / 0081 がサーバ側で完結していた観測性の片翼を埋めるもので、収集経路は構造化ログ / OTLP(0081)= vendor-neutral。エラー監視 SaaS の同梱は fork 先判断(#59 と同じ exclusion 論理)。
 - **運用テレメトリ扱い**(consent gate 対象外。0131。§4)。
 
-### 3. プロダクト分析 seam(#61)= exclusion + seam 敷設
+### 3. プロダクト分析 seam(#61)= exclusion + 採用時の拡張点
 
-- **SaaS 非同梱**(0081 / 0131 と一致)。やらない宣言で終えず、① analytics **発火 IF** + ② ローカル **no-op sink(動く最小実装を同梱)** + ③ 明示拡張点、を敷く。
+- **SaaS 非同梱**(0081 / 0131 と一致)。やらない宣言で終えるのではなく、採用時に置くもの —— ① analytics **発火 IF** + ② ローカル **no-op sink** + ③ 明示拡張点 —— の座標を先に確定する。**ただし v1 では実使用面が無いためコードとしては置かない**(空の IF を置かない。§補足)。
 - 物理配置 = `adapters/client` の **source adapter**。これは [0031](0031-policy-state-supply.md) の分解②「セマンティクス + no-op 既定」に **#61 analytics no-op sink** として既に位置づけられている家に一致する。
 - **発火はコンポーネント / feature への直書きを禁止** し、必ず発火 IF を通す([0031](0031-policy-state-supply.md) 禁止事項「consent / flag の値取得を各 feature / component に直書きすること」と同型)。
 - **consent gating**: プロダクト分析は 0131 の consent 対象(ユーザ行動トラッキング)そのものであるため、発火 IF は [0031](0031-policy-state-supply.md) の **純関数 gate 述語**(既定 = 「未同意で全 gate」)を参照してから sink へ渡す。gate の具体粒度・consent ソースは用途依存で fork 先 / 実装 PR(0031 と一致)。
@@ -74,7 +74,7 @@ Accepted (一部 exclusion)
 - **保護は #49(0077)へ委譲**(§5)。無防備な公開中継エンドポイントの保護は別ドメイン寄りの境界 seam であり、参照先が本 ADR 外に分散する点を明示。
 - **AGENTS.md B7 TODO との関係**: 0081 の Accepted で B7 は確定済み。本 ADR は 0081 のブラウザ側 seam を 3 経路へ具体化する **従属決定** であり、AGENTS.md への追加反映は生じない(0081 の反映に含まれる)。
 - 送信・redact・サンプリングの具体実装(バッチ / `sendBeacon` vs `fetch` / サンプリング率)は用途依存で実装 PR(本体は seam と発火 IF・no-op sink のみ備える)。
-- **v2 採用予定(局所ライブラリ・2026-07-14)**: §3 プロダクト分析の SaaS 非同梱(exclusion + seam 敷設)本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))でプロダクト分析は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**発火 IF + no-op sink + consent gate 述語(`adapters/client`)は 0.0.x/v1 で敷済・SaaS 採用は v2**(PostHog・Thin = adapter 抽象 + no-op 既定)。採用時も本体は発火 IF / no-op 既定 / consent gate を保持し、PostHog を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。なお §1 RUM / §2 client エラーは運用テレメトリ(0081・OTLP)であり本注記の局所ライブラリ採用の対象外。
+- **v2 採用予定(局所ライブラリ・2026-07-14)**: §3 プロダクト分析の SaaS 非同梱(exclusion + seam 敷設)本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))でプロダクト分析は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**v1 では発火 IF / no-op sink をコードとして置かない**(プロダクト分析の実使用面が存在しないため)。本 ADR が記すのは**採用時の拡張点の座標**(発火 IF + no-op sink + consent gate 述語を `adapters/client` に置く)であり、SaaS 採用と実体化は v2(PostHog・Thin = adapter 抽象 + no-op 既定)。**consent gate 述語そのものは [0131](0131-cookie-consent.md) / [0031](0031-policy-state-supply.md) 側で v1 に実在する**(分析を繋がないだけで、ゲート機構は動く)。採用時も本体は発火 IF / no-op 既定 / consent gate を保持し、PostHog を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。なお §1 RUM / §2 client エラーは運用テレメトリ(0081・OTLP)であり本注記の局所ライブラリ採用の対象外。
 
 ## 関連 ADR
 

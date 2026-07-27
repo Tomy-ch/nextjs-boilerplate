@@ -60,13 +60,27 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 
 - 未認証時のリダイレクト先(サインイン route)と復帰用 `returnUrl`(元 URL の保持・検証)の規約は seam として名前を付けて残す。**open redirect を避けるため `returnUrl` は同一 origin の相対パスに限定検証する**(web 一般の入力検証)。
 - ログアウトは **session cookie の破棄(server)+ client 側の派生状態・キャッシュの teardown** を伴う。破棄の起点は `adapters/server`(cookie 削除)に置く。
-- 具体プロバイダ・サインイン UI・session 更新(refresh)の実装は **fork 先判断**([0070](0070-backend-role-separation.md))。本 ADR は座標(どの層が何を所有するか)と拡張点の名前のみを敷く(実体化は実装フェーズ / fork 先)。
+- サインイン UI・session 更新(refresh)の具体は §6 の Resolver に閉じる。本 ADR は座標(どの層が何を所有するか)と拡張点の名前を敷く。
+
+### 6. 動く最小 session 機構を本体へ同梱する(Resolver IF 方式)
+
+**IF 定義だけを置いて実装を fork 先に丸投げしない。** 使われない IF は腐り、実装時に必ず書き直されるため、**既定実装を 1 つ同梱して実際に動かす**。禁止事項の「特定の session 実装詳細を本体に前提として組み込まない」は、次の切り分けで満たす。
+
+- **コアに残すもの(fork 先が書き直さない部分)** — seam の座標 / 保護ルート判定 / `returnUrl` の検証 / ログアウト時の状態破棄 / RBAC ヘルパ / `verifySession()` の呼び出し規約
+- **Resolver の裏に隠すもの(各社の事情が入る部分)** — session の暗号化・署名方式 / OIDC クライアントの実装 / トークンの保管形式。これらは **Resolver IF** の内部処理とし、fork 先は Resolver を差し替えるだけで自社方式へ移行できる
+- **既定実装を 1 つ同梱する**。サンプルが実際にこの既定 Resolver を使う(= 設置面が実在する)ため、空の IF 定義にはならない
+- 認証フローは **Authorization Code + PKCE** とし、**Route Handler(`/api/auth/*`)が IdP と直接やりとりする**。ブラウザが持つのは httpOnly の BFF session cookie のみで、**Access Token をブラウザへ露出しない**。画面側の実装は「ログインボタン → `/api/auth/login` へ遷移」に留める
+- 認証が要る API 呼び出しは、**BFF 経由で Bearer が自動付与される前提**で実装する(個別に Authorization ヘッダを組み立てない)
+- **401 = 未ログイン / セッション切れ → サインインへ**、**403 = 権限不足 → 導線ごと出し分け**([0080](0080-error-handling.md) の分類に対応させる)
+- Resolver の IF 形状 / 既定実装のライブラリ選定 / refresh の扱い / role の取得元は**実装 PR で確定**する([v1 実装計画](../plan/v1-implementation-plan.md) P5-4)
 
 ## 禁止事項
 
 - ❌ 認証 seam の形を独自発明・中立化すること(Next.js 文書化パターン = httpOnly cookie / optimistic + DAL / DTO に乗る。[0010](0010-standards-and-non-lockin.md) §1)
 - ❌ 本 ADR の決定を「Next.js が推奨するから」だけで正当化すること(vendor-independent 材料 = httpOnly:XSS 緩和 / データ境界:多層防御 / DTO・最小 payload:最小権限 を本体に添える。[0010](0010-standards-and-non-lockin.md) §2)
-- ❌ 特定の認証プロバイダ・IdP・session 実装詳細(暗号化方式 / stateless vs DB)を boilerplate 本体に前提として組み込むこと(fork 先判断。[0070](0070-backend-role-separation.md))
+- ❌ 特定の認証プロバイダ・IdP・session 実装詳細(暗号化方式 / stateless vs DB)を **Resolver の外**へ組み込むこと(§6。既定実装は Resolver の裏に閉じ、差し替え可能に保つ。[0070](0070-backend-role-separation.md))
+- ❌ Access Token をブラウザ(client JS / localStorage / 非 httpOnly cookie)へ露出させること(§6)
+- ❌ 設置面のない空の IF / port 定義だけを置いて実装を持たないこと(§6)
 - ❌ `proxy.ts` を確定認可の主機構・唯一の防御線にすること / Proxy 内で DB・データ源を参照すること(optimistic・cookie 読みのみ。[0043](0043-middleware-policy.md))
 - ❌ 確定認可(`verifySession()` / DAL)を `adapters/server` 以外に置くこと / session・secret を内側の層(`model` / feature 純粋ロジック / client)へ漏らすこと([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md) / [0020](0020-adopted-architecture.md))
 - ❌ cookie payload に PII・機微情報を載せること / user オブジェクト全体を DTO なしで client へ渡すこと
@@ -75,7 +89,7 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 
 ## 補足
 
-- 本 ADR が確定するのは **seam の座標(どの層が session verify / DTO / cookie を所有するか)と拡張点の名前**までであり、**動く最小 session 機構(ローカル no-op プロバイダ等)を本体に同梱するか、IF/port 定義に留めるかは実装フェーズ / fork 先の判断に残す**(下記 flags)。boilerplate 本体は特定 session 実装を持たない。
+- 本 ADR は **seam の座標(どの層が session verify / DTO / cookie を所有するか)** に加えて、**動く最小 session 機構の同梱**(§6 Resolver IF + 既定実装 1 本)を確定する。boilerplate 本体が持つのは既定実装であって「唯一の実装」ではない。
 - **#47 CSRF / origin 検証の同居は本 ADR では行わない**(triage で「要検討」)。CSRF(Server Actions `allowedOrigins` / SameSite cookie 前提)は triage 一次分類 **rule** であり、`docs/rules.md`(0140 方針・要新設)#47 が主 Rationale = 0070 で持つのが素直。本 ADR の httpOnly / SameSite cookie 前提が CSRF rule の土台を提供する関係のみを明記し、規約本体は同居させない([0140](0140-documentation-operations.md) 「decision と rule を分ける」タクソノミー)。
 - **CSP / セキュリティヘッダ(#46・別 ADR 予定)との境界**: 認証 seam(本 ADR)と CSP 実行時本体(別 ADR)は別関心。cookie 属性・認可分担は本 ADR、`Content-Security-Policy` / `X-Frame-Options` 等のヘッダ配置は CSP ADR が所有する。両者を同居させない(局所推論の維持)。
 - **既存 ADR 本体は編集しない**(0021 / 0040 / 0070 / 0043 は Accepted の Protected Documentation)。本 ADR は片方向参照で断片を集約するが、**旧 ADR からの back-link(相互参照)付与は AGENTS.md 整合 / v1 大規模整理フェーズでまとめて行う**。それまで局所推論の起点一本化は本 ADR → 旧 ADR の一方向に留まる(下記 flags)。

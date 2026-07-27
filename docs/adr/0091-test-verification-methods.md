@@ -34,6 +34,13 @@ Accepted
 - **正当性材料(vendor-independent / [0010](0010-standards-and-non-lockin.md) §2)**: AA 目標(0100)は、biome(静的)が表現できない**実行時 DOM の ARIA 整合・コントラスト**を機械検証する層を必要とする。この必要性は特定ベンダーに依存しない — axe-core は Lighthouse / Deque / 各種 `*-axe` ラッパが共有する事実上の a11y エンジンであり、「axe を正当化から抜いても、実行時 a11y を自動アサートする層を test に敷く」というパターンは AA 準拠それ自体から正当化される(数ある選択肢〈手動のみ / 他エンジン〉から、独立した根拠で axe を 1 要因として選んだ)。`vitest-axe` / `@axe-core/playwright` は 0090 で既決のフレームワークへの標準バインディングゆえに一意
 - 依存追加は exact pin + `pnpm audit`([0004](0004-library-management.md))。適用粒度(どの component / 経路に axe アサートを敷くか)は実装 PR、CI 組込は [0153](0153-ci-configuration.md) へ
 
+### 3. visual regression = Playwright のスクリーンショット比較を採用(#71)
+
+- **visual regression を採用**し、実行基盤は **[0090](0090-testing-strategy.md) が既に採る Playwright のスクリーンショット比較**(`toHaveScreenshot()`)とする。追加のサービス・別ランナーは導入しない
+- **正当性材料(vendor-independent / [0010](0010-standards-and-non-lockin.md) §2)**: 検出したいのは「意図しない見た目の変化」であり、これは DOM アサートでは表現できない。Playwright は E2E ですでに動いており、スクリーンショット比較はその**組込機能**であるため、専用 SaaS を正当化から抜いても「基準画像との差分を CI で比較する」というパターンは成立する
+- **対象は Storybook の story を第一とする**([0054](0054-ui-catalog-storybook.md))。story がコンポーネント在庫リストであり、feature 画面より安定した比較単位になるため。画面単位の比較は主要ジャーニーに限る
+- 基準画像は repo にコミットし、更新は**意図的な差分としてレビュー対象**にする。差分許容度(`maxDiffPixelRatio` 等)と OS / ブラウザ差の吸収方法は実装 PR([v1 実装計画](../plan/v1-implementation-plan.md) P6-4)で確定する
+
 ## 禁止事項
 
 - ❌ async RSC を unit(Vitest + RTL)で無理に回すこと(脆い server render mock を積む)。E2E / integration へ寄せる
@@ -45,7 +52,7 @@ Accepted
 ## 補足
 
 - **#70 の性質**: 0090 の「線引きは実装時に確定(本 ADR で先取りしない)」保留の**前倒し確定**である。0090 は living かつ実装フェーズ直前のため妥当(triage 判定)。本 ADR は寄せ先を確定し、mock パイプラインは B3 へ引き渡すことで 0090 の mock 戦略・B3 の契約駆動モックと二重化しない
-- axe の per-feature 適用粒度・CI 組込は実装 PR / [0153](0153-ci-configuration.md)(CI 構成)。visual regression(#71)は本 ADR の射程外(tooling defer・0090 の 4 層に後付け可)
+- axe の per-feature 適用粒度・CI 組込は実装 PR / [0153](0153-ci-configuration.md)(CI 構成)。visual regression(#71)は §3 で採用を確定した(0090 の 4 層への後付け = Playwright 組込機能)
 - **UI カタログ(#37)は本 ADR の射程外**。当初束ねていた Storybook / UI カタログ主題は [0054](0054-ui-catalog-storybook.md) へ分離した(採用 decision として再確定)。カタログ性の担保は 0054 が所有する
 - 本 ADR の内容(#70/#72)は [0090](0090-testing-strategy.md) が既に引き取った `[TODO] Testing Strategy` の外側にある追補・確定であり、AGENTS.md の追加改変は要さない。本 ADR Accepted に伴う BACKLOG(B8 / C2 関連行)の整合は反映対象
 

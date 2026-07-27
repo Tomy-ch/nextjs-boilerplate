@@ -34,13 +34,17 @@ Accepted
   - 署名付き URL の発行は backend の責務(フロントは発行結果を受け取るだけ)。フロント側の取得口は `adapters/server`(認可付きで backend から署名を得る)/ 直 PUT の送信は `adapters/client`(client 側 remote IO を所有する唯一の層。同一オリジン外への送信は本件 #13 のように ADR が明示に許す場合に限る)に置く([0024](0024-adapters-server-client-split.md) 決定表 #13)。進捗表示・中断・再開は client 側の **upload seam(hook / IF)** に集約し、コンポーネントに散らさない。
   - サイズ制限・許可 content-type・有効期限は **署名ポリシー側**(backend が発行時に埋め込む)で担保し、フロントは表示・事前バリデーション(UX)に留める。
   - **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md) §2)**: 署名付き URL は S3 / GCS / Cloudflare R2 / Azure Blob いずれも備える業界横断パターンであり、特定ストレージ SDK・特定 PaaS に依存しない(署名を発行元から抜いても「事前署名 + HTTP PUT」という構造は正当)。BFF が大容量ボディを中継しないことの根拠は、serverless 実行の**実行時間・メモリ・ボディサイズという vendor 横断の物理制約** + thin proxy(0070)であって、フレームワーク推奨ではない。
-- **例外 = multipart proxy(`/api/*` 経由)**。presigned が使えない構成(直アクセス不可なストレージ、送信前にサーバ加工が必須、等)に限り、Route Handler が `request.formData()` 等でボディを受けて backend / ストレージへ中継する **named seam** を許す。ただし:
+- **backend が multipart 受け口しか持たない場合は multipart proxy が既定になる**。既定を決めるのは「presigned を発行できる backend か」であり、フロント側の好みではない。presigned が発行されない構成では、下記の例外 seam が唯一の経路となるため、その構成における既定として扱う
+  - **v1 サンプルはこちらに該当する**。go-boilerplate の画像アップロードは `POST /v1/products/images`(multipart / レスポンスは `{ imagePath }`)であり presigned URL を発行しないため、サンプル実装は multipart proxy 経路で書く([screens.md](../screens.md) A6 / A7)
+  - この場合もサイズ上限・content-type 検証は**必ずフロント側の Route Handler にも置く**(presigned なら署名ポリシーが担保していた層が無くなるため)。413 / 415 / 422 を扱う
+- **例外 = multipart proxy(`/api/*` 経由)**。presigned が使えない構成(直アクセス不可なストレージ、送信前にサーバ加工が必須、backend が multipart しか受けない、等)に限り、Route Handler が `request.formData()` 等でボディを受けて backend / ストレージへ中継する **named seam** を許す。ただし:
   - これは **例外であって既定にしない**。多用は thin proxy が業務層化する兆候として扱う([0070](0070-backend-role-separation.md) 禁止事項)。
   - **本 ADR は「例外を認める範囲(許容ボディサイズ上限・ストリーミング中継の要否)の具体値を確定しない」**(用途 / PaaS 依存。保留 = 実装 PR / fork 先。下記 flags 相当)。本 ADR が確定するのは「既定 = presigned 直 PUT / 中継は名前付き例外 seam」という**構造**である。
 
 ## 禁止事項
 
-- ❌ 大容量ファイルの本文を `/api/*`(BFF)経由で無条件に中継すること(既定 = presigned 直 PUT。中継は名前付き例外 seam に限る。[0070](0070-backend-role-separation.md) thin proxy)
+- ❌ 大容量ファイルの本文を `/api/*`(BFF)経由で無条件に中継すること(presigned を発行できる backend では既定 = 直 PUT。中継は名前付き例外 seam に限る。[0070](0070-backend-role-separation.md) thin proxy)
+- ❌ multipart proxy 経路でサイズ上限・content-type 検証を Route Handler に置かないこと(署名ポリシーが担保していた層を落とすことになる)
 - ❌ アップロードの生 fetch / 進捗管理をコンポーネントに散らすこと(`adapters/client` の upload seam へ集約。[0024](0024-adapters-server-client-split.md))
 
 ## 補足

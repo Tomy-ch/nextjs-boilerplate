@@ -43,10 +43,10 @@ src/adapters/
 | element | 実行文脈 | import 可 | 中身 |
 | --- | --- | --- | --- |
 | `adapters/server` | **server-only**(`import "server-only"`) | `model` / `errors` / `logging` / **`config`(ここだけ)** | backend API client・secret 有・resilience([0071](0071-bff-api-integration.md)) |
-| `adapters/client` | **`"use client"`** | `model` / `errors` / `logging` / client config(**server config 不可・secret 無**。client config = NEXT_PUBLIC リテラルは可) | 同一オリジン BFF fetch(#7)/ WebSocket・SSE(#56)/ analytics 送信(#61)/ telemetry 送信(#59 / #60)/ presigned 直 PUT(#13。[0075](0075-file-upload-seam.md))。**remote のみ** |
+| `adapters/client` | **`"use client"`** | `model` / `errors` / `logging` / client config(**server config 不可・secret 無**。client config = NEXT_PUBLIC リテラルは可) | 同一オリジン BFF fetch(#7)/ WebSocket・SSE(#56)/ analytics 送信(#61)/ telemetry 送信(#59 / #60)/ アップロード送信(#13。presigned 直 PUT または BFF の multipart proxy へ向けた送信。既定は backend の受け口で決まる = [0075](0075-file-upload-seam.md))。**remote のみ** |
 
 - **local ブラウザ API(#43 Web Storage・#44 client cookie 読み)は `adapters` でなく `capabilities`**([0022](0022-capabilities-kernel.md))。clipboard(#26)と同型 = browser runtime API であり外部システムではない
-- **宛先オリジン**: 同一オリジン BFF(`/api/*`)が主経路。**同一オリジン外への送信も、ADR が明示に許す場合に限り `adapters/client` が所有する**(#56 realtime のバックエンド直結 / managed サービス([0074](0074-runtime-communication-seam.md))・#13 presigned 直 PUT([0075](0075-file-upload-seam.md)))。telemetry / analytics は [0081](0081-observability-logging.md) により BFF 中継(外部直送禁止)
+- **宛先オリジン**: 同一オリジン BFF(`/api/*`)が主経路。**同一オリジン外への送信も、ADR が明示に許す場合に限り `adapters/client` が所有する**(#56 realtime のバックエンド直結 / managed サービス([0074](0074-runtime-communication-seam.md))・#13 presigned 直 PUT([0075](0075-file-upload-seam.md)。backend が multipart しか受けない構成では宛先は同一オリジン BFF になる))。telemetry / analytics は [0081](0081-observability-logging.md) により BFF 中継(外部直送禁止)
 - `features` は両 element の公開面を import 可。`capabilities` は `adapters` を import しない
 - ESLint boundaries を 2 element に割り、**secret / RSC 境界を機械強制**(server-only に client hook 混入・client に config import はエラー)
 
