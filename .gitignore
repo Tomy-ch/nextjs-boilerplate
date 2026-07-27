@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scratch (review artifacts, out-of-repo work-plan symlinks, tool locks)
+/tmp
