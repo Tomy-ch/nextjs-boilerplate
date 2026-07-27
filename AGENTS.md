@@ -17,6 +17,27 @@ See [docs/adr/0011-no-docker.md](docs/adr/0011-no-docker.md) for details.
 
 This project adopts Next.js 16 / React 19, so APIs, conventions, and file structure may differ from your training data. Before writing any code, read the relevant guide under `node_modules/next/dist/docs/` and heed deprecation notices.
 
+## Temporary Operating Rules until v1.0.0
+
+> **TEMPORARY SECTION — delete it when v1.0.0 ships** (このセクションは v1.0.0 時には消すこと)
+>
+> Process source of truth: [docs/plan/v1-implementation-plan.md](docs/plan/v1-implementation-plan.md) §2.
+
+While the repository sits below v1.0.0, the constraints below are **temporarily lifted**. The reason is that v1 implementation concretizes the whole design, and taking per-change approval would stall the process.
+
+- **Direct edits to Protected Documentation are allowed** — `AGENTS.md` (this file) / Accepted ADR bodies / `LICENSE` may be edited without per-change user approval
+- **The protected paths under AI Modification Scope are lifted** — `package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/` may be edited directly
+- **ADRs stay living documents and are overwritten in place** — ADR [0140](docs/adr/0140-documentation-operations.md)'s living operation is extended from `0.0.x` to everything below v1.0.0
+- **Do not leave change history or rationale drift in document bodies** — write the decision in its present form only; git history owns the history
+
+What this section does **not** lift: the Git Rules below (no direct push to protected branches, no force push / history rewrite, confirmation before pushing to an existing PR branch) and the paths listed under `.claude/settings.json`'s `permissions.deny`.
+
+On reaching v1.0.0, delete this section and:
+
+1. Restore `Protected Documentation` / `AI Modification Scope` to their unrelaxed form
+2. Switch ADR [0140](docs/adr/0140-documentation-operations.md) to immutable ADR operation
+3. Strip rationale / history prose from every ADR body (P9-3)
+
 ## Instruction Priority
 
 Follow instructions in this order. If conflicts occur, the higher-priority document wins.
@@ -113,6 +134,8 @@ When a change forces you into an area that BACKLOG still leaves blank (no accept
 ## AI Modification Scope
 
 By default, AI agents may modify code only in the following scope. All other paths require an explicit user instruction.
+
+> Below v1.0.0 the protected paths in this section are lifted — see "Temporary Operating Rules until v1.0.0" above.
 
 ### Allowed
 
@@ -307,6 +330,8 @@ When a change to one of these appears necessary:
 
 1. Do not edit directly; present the proposed change to the user
 2. Edit only after the user explicitly approves
+
+> Below v1.0.0 this approval requirement is lifted — see "Temporary Operating Rules until v1.0.0" above.
 
 Even when a new file appears necessary, **prefer modifying an existing file** if it suffices.
 <!-- END:nextjs-agent-rules -->

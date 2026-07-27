@@ -8,6 +8,16 @@ Accepted
 
 （採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない — この living 運用自体を本 ADR が定義する）
 
+## v1.0.0 までの暫定運用
+
+> **(このセクションは v1.0.0 時には消すこと)**
+
+v1 実装期間は、下記「決定 4」の living 運用を **0.0.x から v1.0.0 未満まで延長**する。工程上の根拠は [v1 実装計画 §2](../plan/v1-implementation-plan.md)。
+
+- **ADR 本文は直接上書きしてよい** — Protected Documentation の都度承認を一時的に解除する(AGENTS.md「Temporary Operating Rules until v1.0.0」節と対をなす)
+- **経緯・変遷を本文に残さない** — 「当初は X だったが Y に改訂」のような改定履歴・検討経緯を本文に書かない。決定の**現在形**だけを書く。経緯は git 履歴が持つ
+- v1.0.0 到達時に本節を削除し、ADR を immutable(決定 4)へ切り替え、全 ADR 本文から経緯記述を除去する(P9-3)
+
 ## 背景
 
 AGENTS.md の Language Rules は「visible outputs は日本語」としつつ、**canonical EN / translated JA ペア運用の定義を BACKLOG D1(本 ADR)に委ねて**いた。また設計フェーズのユーザ決定によるタクソノミー(decision / exclusion / rule / inventory)・`rules.md` 新設・ADR 不可変性(0.0.x living → v1 immutable)・採番方式(ブロック帯で確定〈2026-07-14・0001〜0155〉)は方針決定済みだが未成文化だった。本 ADR がこれらを成文化する。
@@ -19,7 +29,7 @@ go-boilerplate は **英語 canonical + 日本語 mirror(`docs/ja/**/*.ja.md`)+ 
 ### 1. canonical 言語モデル: 方向は EN、移行は v1
 
 - **最終目標は go ADR 0008 モデル**: 英語 canonical(`docs/**/*.md`、`docs/ja/**` と `docs/portal/**`(生成ビュー)を除く)+ 日本語 mirror(`docs/ja/**/*.ja.md`、人間保守の翻訳)+ 生成 portal(D2)。AI エージェントは英語 canonical を読み、`*.ja.md` は読まない
-- **ただし移行は v1 大規模整理まで保留**する。**0.0.x の間は日本語を canonical のまま living 運用**する(現状の全 ADR・AGENTS.md「出力は日本語」と整合)。実際の英語 canonical 化(既存日本語 ADR の英訳 canonical + `docs/ja/` mirror への再編)は、採番確定・ADR 不可変化と**同じ v1 境界**でまとめて行う(ユーザ決定 2026-07-13)
+- **ただし移行は v1 大規模整理まで保留**する。**v1.0.0 未満の間は日本語を canonical のまま living 運用**する(現状の全 ADR・AGENTS.md「出力は日本語」と整合)。実際の英語 canonical 化(既存日本語 ADR の英訳 canonical + `docs/ja/` mirror への再編)は、採番確定・ADR 不可変化と**同じ v1 境界**でまとめて行う(ユーザ決定 2026-07-13)
 - 移行時は **`canonicalize-doc` スキル**(EN/JA ペアの生成・同期。`*.ja.md` 命名 + `docs/ja/` 並行ツリー)で実施する。翻訳追従責務 = **canonical を先に更新し翻訳が追従、canonical が常に権威**(go ADR 0008 の翻案)
 - AGENTS.md Language Rules の「Documentation(canonical EN / translated JA pair)」節は、本方針(方向は EN・0.0.x は日本語 living・移行は v1)で確定する(AGENTS.md 本文への反映は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する — 未実施)
 
@@ -30,7 +40,7 @@ go `docs/adr/README.md` の 4 分類を本リポの器へ翻案する:
 | 分類 | 意味 | 本リポの置き場 |
 | --- | --- | --- |
 | **decision** | 選択肢からの選定 | `docs/adr/` |
-| **exclusion** | 意図的にやらない判断 | `docs/adr/`(Status に `Accepted (exclusion)`、decision と混在する場合は `Accepted (一部 exclusion)` と明記。例: `Accepted (exclusion)` = [0121](0121-i18n-strategy.md) / [0130](0130-pwa-strategy.md) / [0131](0131-cookie-consent.md)、`Accepted (一部 exclusion)` = [0082](0082-client-observability.md) / [0110](0110-security-operations.md)) |
+| **exclusion** | 意図的にやらない判断 | `docs/adr/`(Status に `Accepted (exclusion)`、decision と混在する場合は `Accepted (一部 exclusion)` と明記。例: `Accepted (exclusion)` = [0121](0121-i18n-strategy.md) / [0130](0130-pwa-strategy.md)、`Accepted (一部 exclusion)` = [0082](0082-client-observability.md) / [0110](0110-security-operations.md) / [0131](0131-cookie-consent.md)) |
 | **rule** | 日常的に強制される制約 | **`docs/rules.md`(新設。下記 3)** |
 | **inventory** | コードと共にドリフトする目録 | `docs/adr/BACKLOG.md` + 候補インベントリ(現行追認) |
 
@@ -46,7 +56,7 @@ go `docs/adr/README.md` の 4 分類を本リポの器へ翻案する:
 
 ### 4. ADR の不可変性・採番ライフサイクル
 
-- **0.0.x(pre-v1)= living document**: ADR 本文をクリーンに直接上書きし、設計フェーズの逐次改定を改定履歴に残さない(0.0.x なので過去記述の破棄を許容)。各 ADR の Status 注記がこの運用を宣言している
+- **v1.0.0 未満(pre-v1)= living document**: ADR 本文をクリーンに直接上書きし、設計フェーズの逐次改定を改定履歴に残さない(pre-v1 なので過去記述の破棄を許容)。各 ADR の Status 注記がこの運用を宣言している
 - **v1 凍結時から go モデルへ移行**: immutable(accepted 後は Status 行のみ編集)/ supersede = 本文編集ではなく新 ADR を追加し旧を superseded 化 / **NNNN 連番・番号は再利用しない**(go `docs/adr/README.md` の翻案)
 - **採番方式は確定済み(2026-07-14 にブロック帯採番〈0001〜0155、トピック順ブロック帯〉へ移行完了。`docs/adr/README.md` の採番記述も更新済み)**。残る EN 化・ADR 不可変化は v1 大規模整理で行う(EN 化・不可変化を同じ v1 境界でまとめて)
 
@@ -62,8 +72,9 @@ go `docs/adr/README.md` の 4 分類を本リポの器へ翻案する:
 ## 禁止事項
 
 - ❌ decision / exclusion を `rules.md` に、rule を ADR 本文に書くこと(タクソノミーの取り違え)
-- ❌ 0.0.x の ADR に改定履歴表を積むこと(living document。直接上書き)
-- ❌ v1 前に ADR を immutable 扱いして supersede-by-new-ADR を強制すること(0.0.x は living)
+- ❌ pre-v1 の ADR に改定履歴表を積むこと(living document。直接上書き)
+- ❌ v1 前に ADR を immutable 扱いして supersede-by-new-ADR を強制すること(pre-v1 は living)
+- ❌ 改定の経緯・比較検討・反転の日付をドキュメント本文に書くこと(決定の現在形のみを書く。経緯は git 履歴が持つ)
 - ❌ `*.ja.md`(将来の日本語 mirror)を AI エージェントの canonical 読込元にすること(v1 以降は英語 canonical を読む)
 - ❌ AGENTS.md に rule を無制限に積み増すこと(肥大化回避。`rules.md` 新設後は段階移行)
 
@@ -78,6 +89,6 @@ go `docs/adr/README.md` の 4 分類を本リポの器へ翻案する:
 - [0155-claude-skills-development.md](0155-claude-skills-development.md) — Claude スキル運用・開発系(canonicalize-doc / readme-review / sync-readme の公認。配置・命名・frontmatter は [0154-claude-skills-operations.md](0154-claude-skills-operations.md) と共通)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 層別 README 運用(per-package README = 正)
 - [0141-portal-operations.md](0141-portal-operations.md)(D2)— 生成 portal(本 ADR の三層戦略の第 3 層)
-- [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) / [0131-cookie-consent.md](0131-cookie-consent.md) — exclusion ADR の実例(`Accepted (exclusion)`)
+- [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) — exclusion ADR の実例(`Accepted (exclusion)`)
 - [0082-client-observability.md](0082-client-observability.md) / [0110-security-operations.md](0110-security-operations.md) — 一部 exclusion ADR の実例(`Accepted (一部 exclusion)`)
 - `docs/adr/BACKLOG.md` — inventory の器(枠 ID 体系)
