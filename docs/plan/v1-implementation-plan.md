@@ -111,7 +111,7 @@ nextjs-boilerplate は `docker-compose.yaml` を持たない([0011](../adr/0011-
 | --- | --- | --- |
 | API | `http://localhost:8080` | BFF の向き先 |
 | OTLP | `http://localhost:4318` | 観測性([0081](../adr/0081-observability-logging.md))。go 側 `observability`(otel-lgtm)。Grafana は `:3000` |
-| Object Storage | Garage の公開エンドポイント | 画像配信。bucket = `gobp-local` |
+| Object Storage | `http://gobp-local.web.garage.localhost:3902` | 画像配信。**virtual-host 形式のみ**(§3.2) |
 | 認証 | `http://localhost:4000` | go 側 `mock_auth_server`(疑似 OIDC) |
 
 起動は `cd ../go-boilerplate && docker compose --profile development up`。フロント単独で作業する場合は **MSW モック**(`APP_API_MODE=mock`)へ切り替える。
@@ -129,6 +129,15 @@ mediaUrl(path) => `${MEDIA_ORIGIN}/${path}`
 ```
 
 - オブジェクトキーは backend が発行する `products/{uuid}.{ext}`。**表示 URL の組み立てはフロント責務**(backend はパスのみを持ち、フル URL を保存しない)
+- **配信 URL は virtual-host 形式で確定した**(go-boilerplate #707 マージ済み。`[s3_web]` bind `:3902` / `bucket website --allow` / `Cache-Control: immutable` 付与まで実装済み)
+
+```text
+http://gobp-local.web.garage.localhost:3902/products/{uuid}.png
+```
+
+- **パス形式(`localhost:3902/<bucket>/<key>`)は動作しない** — Garage が `Host` ヘッダでバケットを解決するため。#668 で依頼したパス形式は採用されなかった
+- **`*.localhost` の名前解決に注意が要る**: macOS と主要ブラウザは自前で解決するが、**glibc の Linux コンテナ / CI では解決しない**。`next/image` の最適化は**サーバ側 fetch** なので、Next.js を動かすホスト側の解決が必要になる。CI では `/etc/hosts` 追記が要る見込み。加えて `*.localhost` が IPv6(`::1`)に解決され、Docker の公開が IPv4 のみだと掴み損ねる可能性がある
+- `next.config.ts` の `remotePatterns` と CSP `img-src` の両方に同オリジンを登録する
 - 爆破後の `public/` にフォールバック画像は同梱しない。favicon / app icon は App Router の metadata file 規約により `app/` 配下にあり、PWA は [0130](../adr/0130-pwa-strategy.md) で v1 非採用のため、`public/` はほぼ空になる
 - **`public/` は実行時書き込み不可**(ビルド時に焼き込まれ、PaaS のファイルシステムは読み取り専用)。よって爆破後の本線は「`MEDIA_ORIGIN` を実ストレージに向ける」であり、`public/` 配下からの配信はバックエンドを持たない開発時の逃げ道という位置づけ
 
@@ -150,7 +159,7 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 
 - **設置面(mount point)が実在する場合にのみ seam を敷く。** 設置面がなければ何も置かない
 - 従来の「形は 2 種 — ① 動くローカル最小機構 / ② インターフェース(IF/port)定義」のうち、**② 空の IF 定義は採用しない**(使われない IF は腐るため)
-- 結果として master-plan 1.2 の v2 採用マトリクス 9 件は、v1 では**何も置かない**
+- 結果として master-plan 1.2 の v2 採用マトリクス 7 件は、v1 では**何も置かない**
 
 ### 3.5 サンプル(EC)の破棄境界
 
@@ -233,11 +242,15 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 1. **TipTap の inline `style=` 属性に nonce は原理的に効かない** — nonce は要素(`<style>` / `<script>`)にしか付かず、属性は `style-src-attr` の管轄で `'unsafe-inline'` 以外に許可手段がない。つまり「リッチテキストのために `'unsafe-inline'`」は **nonce へ倒しても解消しない**
 2. **sanitizer で `style` 属性を落とせるなら、`'unsafe-inline'` 自体が不要になる** — 商品説明に必要なのは太字 / 斜体 / リスト / 見出し / リンク程度で、いずれも inline style ではなくクラスへ写像できる
 
-**よって順序を固定する**: P5-1(sanitizer 選定)で「`style` 属性を落として TipTap の要件を満たせるか」を先に検証し、その結果を入力として P0-4 の 0111 追補(seam A 維持 / seam B へ反転)を確定する。静的を保ったまま script を厳格化したい場合の道は nonce ではなく **hash ベース**([0111](../adr/0111-csp-security-headers.md) が挙げる実験的 SRI)であり、採るなら別途判断する。
+**よって順序を固定する**: P5-1(sanitizer 選定)で「`style` 属性を落として TipTap の要件を満たせるか」を先に検証し、その結果と **P6-8 の Cache Components 判断**を入力として、**0111 追補(seam A 維持 / seam B へ反転)を P6-2 で確定する**(P0-4 では扱わない)。静的を保ったまま script を厳格化したい場合の道は nonce ではなく **hash ベース**([0111](../adr/0111-csp-security-headers.md) が挙げる実験的 SRI)であり、採るなら別途判断する。
 
 ### 3.10 TypeScript / ライブラリの確定事項
 
 [0004](../adr/0004-library-management.md) の未決 3 件を確定する。
+
+**`cn()` の実装 = `clsx` + `tailwind-merge`。** これは新規決定ではなく [0052](../adr/0052-ui-component-policy.md) の追認である(同 ADR が `clsx` / `tailwind-merge` を「shadcn が引き込む実 npm 依存」として exact-pin 対象に名指ししている)。責務が join / 衝突解決に 1 対 1 対応し、[0004](../adr/0004-library-management.md) の一次判定を各々単独で通る。`tailwind-variants` は責務を 1 語で言えず(variant + slots + responsive + merge の束)`cva` とも衝突するため**一次判定で落選**。
+
+> **`clsx` は定量基準に形式上抵触するが構造基準で通す**: 最新版 `2.1.1` はバージョンが上がっておらず 0004 の「直近 6 ヶ月以内に release」を満たさない。ただし実装が数十行で **fork コスト実質ゼロ**(最悪 `components` カーネルへコピーインすれば自前実装と等価)であり、`class-variance-authority@0.7.1` が `clsx ^2.1.1` に依存するため**どのみち推移依存に入る**。この偏差と補償根拠を採用 PR 本文に明記する。**0004 に足した fork コスト上限基準が実際に機能した最初の事例**である。
 
 **`cva`(class-variance-authority): 採用。** shadcn/ui の公式コンポーネントは cva を使った状態で配布されるため、入れないと配布物を毎回書き換えることになる。[0010](../adr/0010-standards-and-non-lockin.md)「独自に機構を発明しない」とも整合する。`rules.md` #34 / #35 の規約はこれに従う形で埋まる。
 
@@ -327,7 +340,7 @@ shadcn/ui を import
 | P3-1 | 11 カーネルの物理化 + 層別 README(B13) | 3 | P0-4 |
 | P3-2 | architecture.ts SSOT + ESLint boundaries(B4) | 3 | P3-1 |
 | P3-3 | env / 型付き Config | 3 | P3-1 |
-| P3-4 | errors カーネル | 3 | P3-1, P3-6 |
+| P3-4 | errors カーネル | 3 | P3-1, P3-2, P3-6 |
 | P3-5 | logging / observability カーネル | 3 | P3-3, P3-4 |
 | P3-6 | テスト基盤(Vitest + RTL + MSW) | 3 | P3-1, P2-1 |
 | P3-7 | styling 基盤(design token はコードが SSOT) | 3 | P3-1 |
@@ -355,9 +368,9 @@ shadcn/ui を import
 | P5-13 | A3 商品補充 + A5 ユーザー一覧 | 5 | P5-11 |
 | P5-14 | A1 ダッシュボード + A4 集計(backend 合成) | 5 | P5-11 |
 | P5-15 | purchases ステータス遷移(cancel / pay / ship / deliver) | 5 | P5-8, P5-11 |
-| P5-16 | ゴールデンパス README 整備(B5 完成) | 5 | Phase 5 全 PR |
+| P5-16 | ゴールデンパス README 整備(B5 完成) | 5 | P5-1〜P5-15 |
 | P6-1 | クライアント観測性 | 6 | P3-5, P4-5 |
-| P6-2 | CSP / セキュリティヘッダ + CI 適合ゲート | 6 | P5-16 |
+| P6-2 | CSP / セキュリティヘッダ + CI 適合ゲート | 6 | P5-16, P6-8 |
 | P6-3 | SEO / metadata + fonts | 6 | P5-1, P5-4 |
 | P6-4 | E2E + visual regression | 6 | P5-16, P3-8 |
 | P6-5 | capabilities カーネル | 6 | P5-7 |
@@ -374,7 +387,7 @@ shadcn/ui を import
 | P9-3 | ADR immutable 化 + 経緯除去 + 暫定運用の撤去 | 9 | P9-2 |
 | P9-4 | トレーサビリティ台帳(B10) | 9 | P9-1 |
 | P9-5 | Tier 5 後回し分の最終確認 | 9 | P9-3 |
-| P9-6 | v1.0.0 リリース | 9 | 全て |
+| P9-6 | v1.0.0 リリース | 9 | P9-6 を除く全 PR |
 
 ### 4.1 依存マップ
 
@@ -454,8 +467,6 @@ flowchart TD
 | 追補先 | 内容 | 種別 |
 | --- | --- | --- |
 | [0050](../adr/0050-styling-strategy.md) | `cva` の採否 | 未決定の decision |
-| [0020](../adr/0020-adopted-architecture.md) or [0002](../adr/0002-formatter-linter.md) | tsconfig strict フラグの選定 | 未決定の decision |
-| [0060](../adr/0060-state-management.md) | `nuqs` 等 searchParams ヘルパの採否 | 未決定の decision |
 | [0110](../adr/0110-security-operations.md) | CSP CI 適合ゲート 1 本の追加(`> Rationale: 0111`) | 追加 |
 | [0091](../adr/0091-test-verification-methods.md) | visual regression を「tooling defer」→ **採用**(Playwright スクリーンショット) | 不整合解消 |
 | [0022](../adr/0022-capabilities-kernel.md) | hook 例から keyboard shortcut registry を削除(据え置き除外のため) | 不整合解消 |
@@ -465,7 +476,6 @@ flowchart TD
 | [0028](../adr/0028-naming-convention.md) | 標準名を持つ env(`OTEL_*` 等)は `{SUBSYSTEM}_{NAME}` の例外とする | 例外条項 |
 | [0131](../adr/0131-cookie-consent.md) | **exclusion → 採用へ反転**。軽量 consent 機構 + ゲートまで(本書 §3.7) | 反転 |
 | [0053](../adr/0053-ui-component-interaction-seam.md) | **TipTap を Thin seam → v1 実使用へ格上げ**(本書 §3.8)+ keyboard shortcut registry seam の記述を削除(0022 側と同時) | 前提更新 |
-| [0111](../adr/0111-csp-security-headers.md) | **CSP enforce seam の確定**。0111 は seam A(非 nonce・静的)を既定とし seam B(nonce)を「既定にしない」と明記している。P6-2 の nonce 前提はこれに違反するため、**seam A 維持で P6-2 を書き換える / seam B へ反転する のいずれかを確定**する(本書 §3.9) | 違反解消 |
 | [0079](../adr/0079-auth-frontend-seam.md) | **動く最小 session 機構の本体同梱へ反転**。0079:69 は「特定の session 実装詳細を本体に前提として組み込む」ことを禁じているため、Resolver IF 方式(本書 §3.6)を decision として明記する | 反転 |
 | [0027](../adr/0027-directory-structure.md) | **MSW モック生成物の配置**。0027:60 は `src/` 外の `mocks/` と規定。P4-4 をこれに合わせる(計画側を修正・ADR は変更不要の可能性あり。突合して確定) | 違反解消 |
 | [0052](../adr/0052-ui-component-policy.md) | 禁止事項「❌ リッチテキストを本体へ持ち込むこと」と v2 記述を、TipTap の v1 採用に合わせて改訂 + **`cva` 採用を明記**(本書 §3.10) | 前提更新 |
@@ -479,7 +489,8 @@ flowchart TD
 > [0004](../adr/0004-library-management.md)(ライブラリ選定の一次判定 / 例外パス / fork コスト上限)は **本計画の策定過程で実施済み**のため本 PR の対象外。
 
 - **強制手段**: 散文のみ(ADR 本文の改訂)。ただし各追補が指す機械強制は後続 PR が持つ
-- **完了条件**: 上表 22 件が ADR 本文に反映され、`docs/adr/BACKLOG.md` の該当行が更新されている
+- **完了条件**: 上表 19 件が ADR 本文に反映され、`docs/adr/BACKLOG.md` の該当行が更新されている
+- **0111(CSP)は本 PR で扱わない** — 追補内容が P5-1 の sanitizer 検証と P6-8 の Cache Components 判断を入力とするため、**P6-2 で確定する**(§3.9。Phase 0 が Phase 5/6 に依存する循環を避けるため)
 - **依存**: P0-1
 
 ### P0-5: master-plan の再編
@@ -674,10 +685,10 @@ test-requirement: unit
 - **対象 ADR**: [0080](../adr/0080-error-handling.md)
 - **主な変更先**: `src/errors/` — sentinel 分類 / cause chain / redact / 分類 → code + message のマッピング
 - **設計**: go の apperror 翻案。分類は protocol-agnostic(`NotFound` / `Unauthorized` / `Conflict` / `Internal` 等)で、HTTP status からの変換は adapters 境界(P4-3)が 1 回だけ行う
-- **注意**: swallow 禁止 / cause chain 必須 / 5xx=error・4xx=warn のログレベル規約
+- **注意**: swallow 禁止 / cause chain 必須 / 5xx=error・4xx=warn のログレベル規約。status を持たない失敗(timeout / abort / DNS)の分類は**未決 #8 のとおり P4-3 で確定する**ため、本 PR の網羅はその時点の分類集合に限る
 - **強制手段**: 型(分類は判別可能な union)+ ESLint boundaries(HTTP 語彙の混入検出)+ テスト
 - **完了条件**: 分類の網羅テストが通る。`errors` が HTTP 語彙を持たない(boundaries で検査)
-- **依存**: P3-1, P3-6(完了条件がテスト基盤を要求するため)
+- **依存**: P3-1, P3-2(完了条件が boundaries 検査を要求するため), P3-6(完了条件がテスト基盤を要求するため)
 
 ### P3-5: logging / observability カーネル
 
@@ -720,7 +731,10 @@ test-requirement: unit
   - `src/components/cn.ts` — `cn()` ヘルパ
   - `.github/workflows/` — token の drift ゲート
 - **B9 の前段は v1 では実装しない**: §3.11 のとおり v1 は Figma を使わないため搬送すべき上流が無い。**原則としては master-plan 1.3 の B9 が正**であり、fork 先が Figma を SSOT に据えるなら前段を足せば戻せる。v1 は `tokens.json` を手書き SSOT とし後段のみ実装する
-- **未決**: `cn()` の実装ライブラリ選定(`clsx` + `tailwind-merge` 等)。[0004](../adr/0004-library-management.md) の一次判定にかける
+- **`cn()` の実装は `clsx` + `tailwind-merge`**(§3.10 で確定)。実装時の注意 3 点:
+  - **`tailwind-merge` は Tailwind のメジャーに連動する**(v3 → 2.6.0 / v4 → 3.x)。現行 `tailwindcss 4.3.2` に対し `tailwind-merge 3.6.0` が対応。**Tailwind のメジャー更新時は両者をセットで 1 PR に乗せる**([0004](../adr/0004-library-management.md) の「メジャー更新は別 PR」)
+  - **shadcn の既定の置き場は `lib/utils` だが、[0050](../adr/0050-styling-strategy.md) は `components` カーネル内を指定**している(`utils/` / `lib/` は [0021](../adr/0021-frontend-responsibility.md) の命名規律で禁止)。copy-in 時に import パスの付け替えが要る
+  - design token で独自ユーティリティを増やすと `tailwind-merge` のヒューリスティックが誤マージしうるため、`extendTailwindMerge` の設定が必要になる場合がある
 - **注意**: CSS Modules は限定許可。styled-components / emotion は非採用。`@apply` は抑制(`rules.md` #34)
 - **強制手段**: CI(token の drift ゲート)+ 生成物 do-not-edit
 - **完了条件**: token の drift ゲートが CI で動く。ダークモードが token 切替で動作する
@@ -802,7 +816,7 @@ test-requirement: unit
 | #67(`server-only`) | import 自体がビルド時に失敗する |
 | #38(`enum` 可否) | `erasableSyntaxOnly`(§3.10)で決着 |
 | #42(searchParams 型付け) | scaffold(P4-6)が zod パースを生成する |
-| #69(生 `<a>` 禁止) | **biome では落ちない**(実測確認済み)。ESLint 側(P3-2)で拾うか散文のままかを P3-2 で判断する |
+| #69(生 `<a>` 禁止) | **biome では落ちない**(実測確認済み)。`next/link` を必須にするため **ESLint 側(P3-2)で拾う**(確定) |
 
 - **強制手段**: markdownlint(構造)+ 各エントリの強制手段列(内容)
 - **完了条件**: 34 エントリが存在し、全てに Rationale と**強制手段列**がある。markdownlint が緑
@@ -832,21 +846,27 @@ test-requirement: unit
 - **目的**: バックエンド契約を取り込む経路を作る
 - **対象 ADR**: [0072](../adr/0072-api-type-generation.md) / [0070](../adr/0070-backend-role-separation.md)
 - **主な変更先**:
-  - `openapi/sources.yaml` — 契約の宣言。**複数契約に対応**
+  - `openapi/sources.yaml` — 契約の宣言。複数契約に対応可能な形にしておく
   - `.makefiles/tools/gen-api.mk` — `gh` をラップした `make fetch-api`
   - `scripts/fetch-api.ts`
 
 ```yaml
 # openapi/sources.yaml
 sources:
-  - name: shop
-    url: https://raw.githubusercontent.com/.../openapi.gen.yaml
-    sha: <取得時の short SHA>
+  - name: api
+    repo: Tomy-ch/go-boilerplate
+    path: openapi/openapi.gen.yaml
+    ref: release/v2.1.0
+    sha: <取得時の blob SHA>
     fetchedAt: <ISO8601>
 ```
 
-- **設計**: `name` が生成先(`gen/<name>/`)と adapters の分割単位になる。EC では `shop` / `admin` の 2 本になる想定。`gh` 経由で取得することで commit SHA をスタンプできる
-- **完了条件**: `make fetch-api` で契約が取得され、SHA が `sources.yaml` にスタンプされる。private repo でも `gh` の認証で通る
+- **取得は GitHub Contents API を使う**: `gh api repos/<owner>/<repo>/contents/<path>?ref=<ref>`
+  - レスポンスの **`sha` が blob SHA**(内容が変われば変わり、同じなら同じ)であり、[0072](../adr/0072-api-type-generation.md) の「short SHA スタンプ」を**自前でハッシュ計算せずに**満たせる
+  - `gh` が認証を持つため private repo でも動く。`ref` でブランチ / タグ / コミットを固定できる
+  - **1MB 超で `content` が空になる制限**があるが、実測 **105.5 KB**(2794 行)で問題なし
+- **契約は 1 本で足りる(実測で確定)**: go 側の生成成果物は `openapi/openapi.gen.yaml` の 1 本のみ。**admin と一般が同居しており、tags でも `security` でも scope でも区別できない**ため、機械的に 2 本へ割ることはできない。`name` は `api` の 1 ユニットとする
+- **完了条件**: `make fetch-api` で契約が取得され、blob SHA が `sources.yaml` にスタンプされる。private repo でも `gh` の認証で通る
 - **依存**: P3-3
 
 ### P4-2: orval による型 + zod 生成
@@ -861,6 +881,7 @@ sources:
 - **drift ゲートの観点は 2 つ**(**再取得はしない**):
   1. **生成物が手動で変更されていないか** — 取得済み契約から再生成して差分を検出
   2. **契約を取得したのに生成していないか** — `sources.yaml` の SHA と生成物のスタンプを突合
+- **クライアント生成から除外するもの**: `/_internal/types/error-response`(`ErrorResponse` 型を生成させるためだけの擬似エンドポイント)/ `/metrics`(BasicAuth)/ `/health` 系
 - **完了条件**: `make gen-api` で `gen/` が再生成される。上記 2 観点の drift ゲートが CI で fail する
 - **依存**: P4-1
 
@@ -976,7 +997,12 @@ sources:
   - `env/` — IdP の issuer / audience / client_id(ローカルは `mock_auth_server`)
 - **設計**: 本書 §3.6。**JWT はブラウザに露出しない**。認可は 2 層 — optimistic = `proxy.ts` / 確定 = データ源に最も近い所([0079](../adr/0079-auth-frontend-seam.md))
 - **注意**: `proxy.ts` は thin・last resort。既定 Node runtime で `runtime` 指定不可([0043](../adr/0043-middleware-policy.md))。matcher で静的アセット・metadata ルートを除外する
-- **テスト用の認証経路をここで用意する**: 認証は Go API に存在せず OpenAPI 契約外のため **MSW では偽装できない**(P4-4)。また `mock_auth_server` は go 側 compose 内にあり、CI で compose を立てない方針(P6-4)と両立しない。したがって **テスト専用の session 発行経路**(テスト環境限定の Route Handler、または session cookie の直接注入ヘルパ)を本 PR で用意し、P6-4 の E2E がこれを使う。**本番モードでは起動を拒否する**ガードを付ける(go 側 `mock_auth_server` の `MOCK_AUTH_DEV_ENDPOINTS` と同型)
+- **`mock_auth_server` の実測結果(調査済み)**: Authorization Code + PKCE(S256)を**必須強制**、OIDC discovery / JWKS あり、`redirect_uri` は **`http://localhost:3000/api/auth/callback` が登録済み**(nextjs 前提で作られている)。**PKCE 設計はそのまま動く**
+- **ただし mock 側に無いものが 3 つあり、設計で吸収する**:
+  - **refresh token が無い**(`grant_types_supported` は `authorization_code` のみ。access token TTL は 300 秒)。Resolver の refresh 部分は mock では検証できない
+  - **authorize の subject が `user-john-doe` 固定で、その人は admin ロール保持者**。つまり **PKCE フローで取れるのは常に admin トークン**で、U1〜U12(一般ユーザー画面)を正規フローで検証できない。一般ユーザーは `POST /bypass/token {subject: "user-jane-smith"}` を使う
+  - `end_session_endpoint` は **POST のみ**(ブラウザの GET ナビゲーションは 404)。CORS ヘッダも無い(= BFF 経由を維持すべき根拠)
+- **テスト用の認証経路をここで用意する**: 認証は Go API に存在せず OpenAPI 契約外のため **MSW では偽装できない**(P4-4)。また `mock_auth_server` は go 側 compose 内にあり、CI で compose を立てない方針(P6-4)と両立しない。したがって **テスト専用の session 発行経路**(go 側の `/bypass/token` を利用する、テスト環境限定の Route Handler)を本 PR で用意し、P6-4 の E2E がこれを使う。**本番モードでは起動を拒否する**ガードを付ける(go 側 `MOCK_AUTH_DEV_ENDPOINTS` と同型)
 - **強制手段**: 型(session 型は payload 最小)+ テスト(cookie 属性・リダイレクト・状態破棄)+ 環境ガード(本番で起動拒否)
 - **完了条件**: 未認証で保護ルートへアクセスすると `returnUrl` 付きでログインへリダイレクトされる。ログアウトで cookie と client 状態が破棄される。session cookie が httpOnly + Secure + SameSite で発行される。ブラウザの JS から Access Token が観測できない。**テスト専用経路が本番ビルドで無効化されることをテストで確認**
 - **依存**: P4-3, P4-5
@@ -1120,7 +1146,7 @@ sources:
   - `docs/screens.md` — 実装との差分を反映
 - **強制手段**: `readme-review` スキルの採点(B11 の構造 CI ゲート化は v1.x.x)
 - **完了条件**: 全 sample feature が B1 必須セクション(route / operationId / 状態表 / 依存カーネル / Action 戻り値契約 / テスト観点)を持つ。`readme-review` が manual-worthy と判定する
-- **依存**: **Phase 5 全 PR**(完了条件が「全 feature」を対象にするため)
+- **依存**: **P5-1〜P5-15**(完了条件が「全 feature」を対象にするため)
 
 ## Phase 6: 非機能
 
@@ -1144,12 +1170,13 @@ sources:
 - **目的**: 実行時の CSP と、その適合を検査する CI ゲートを両輪で入れる
 - **対象 ADR**: [0111](../adr/0111-csp-security-headers.md) / [0110](../adr/0110-security-operations.md)
 - **主な変更先**:
-  - `next.config.ts` or `src/proxy.ts` — CSP / セキュリティヘッダ(nonce 生成含む)
+  - `next.config.ts` or `src/proxy.ts` — CSP / セキュリティヘッダ(**seam B へ反転した場合のみ** nonce 生成)
+  - `docs/adr/0111-csp-security-headers.md` — **CSP enforce seam の確定追補**(§3.9。P0-4 から移管)
   - `.github/workflows/csp-check.yaml` — inline 違反検出 + ヘッダ well-formed 検証
-- **設計**: `img-src` に `MEDIA_ORIGIN` を含める必要がある(本書 §3.2)。`script-src` は nonce ベース。`next/script` の strategy 使い分けは `rules.md` #50
+- **設計**: `img-src` に `MEDIA_ORIGIN` を含める必要がある(本書 §3.2)。**`script-src` の方式は未決 #1 の確定に従う**(seam A 既定 = 静的維持。seam B へ反転した場合のみ nonce)。`next/script` の strategy 使い分けは `rules.md` #50
 - **注意**: **[0111](../adr/0111-csp-security-headers.md)(実行時本体)と [0110](../adr/0110-security-operations.md)(CI 適合スライス)は両輪であり、片側だけでは閉じない**
-- **完了条件**: 全画面が CSP 違反ゼロで動作する。意図的に inline script を入れると CI が fail する
-- **依存**: P5-16
+- **完了条件**: 全画面が CSP 違反ゼロで動作する。意図的に inline script を入れると CI が fail する。**0111 に enforce seam の確定が記録されている**
+- **依存**: P5-16, **P6-8**(CSP seam と Cache Components を同時に決めるため — §3.9)
 
 ### P6-3: SEO / metadata + fonts
 
@@ -1186,7 +1213,7 @@ sources:
 - **目的**: 横断 client hook のカーネルを実体化する
 - **対象 ADR**: [0022](../adr/0022-capabilities-kernel.md)
 - **主な変更先**: `src/capabilities/`
-  - 離脱ガード(navigation-block hook)— P5-4 の注文フォームで使用
+  - 離脱ガード(navigation-block hook)— P5-7 の注文フォームで使用
   - `useConnectivity`(オンライン / オフライン検知)
   - Web Worker オフロード seam
 - **注意**: keyboard shortcut registry は据え置き除外(P0-4 で [0022](../adr/0022-capabilities-kernel.md) から削除済み)。**Web Worker はどの ADR にも記載がなく master-plan 1.2 が唯一の記録**のため、実装時に ADR 化の要否を判断する
@@ -1274,6 +1301,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **主な変更先**:
   - 全サンプル箇所へのマーカー付与(`src/app/layout.tsx` の nav 配線 / `architecture.ts` の sample 層宣言 / `openapi/sources.yaml` の admin 契約 / `env/*` の `MEDIA_ORIGIN` 既定値 / `vitest.config.ts` の閾値・除外)
   - `.github/workflows/purge-verify.yaml`
+  - `scripts/setup/lib/sample-manifest.mjs` — **P6-4 の `e2e/` など Phase 6 で追加された破棄対象を追記**(P7-1 は Phase 5 分しか集約していないため)
 - **設計**: 使い捨てチェックアウトで `purge → gen-api → fix → lint:ci → typecheck → build → test` を回す。go 側の `verify` は fork 先で一度きり自爆する設計のため、**boilerplate 自身の腐敗防止にはこの CI ジョブが必要**
 - **カバレッジ**: 爆破でサンプルのテストが消えるため、purge スクリプトが `vitest.config.ts` の閾値・除外も書き換える
 - **完了条件**: 爆破後の CI が緑。爆破後の `src/` にドメインを持つコードが残っていない
@@ -1378,7 +1406,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 | [0102](../adr/0102-browser-support.md) | Next.js 既定 browserslist の追認で足りている |
 | [0121](../adr/0121-i18n-strategy.md) | 文言が feature 内定数に寄っている(`rules.md` #55)= 将来の i18n 移行が容易 |
 
-- **完了条件**: 4 件について「v1 では現状のまま」または「対応 PR を切る」の判断が記録されている
+- **完了条件**: 4 件について「v1 では現状のまま」または「対応 PR を切る」の判断が記録されている。§1 のとおり **BACKLOG に枠のない ADR 26 本の枠増設が完了している**
 - **依存**: P9-3
 
 ### P9-6: v1.0.0 リリース
@@ -1386,8 +1414,8 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **目的**: v1.0.0 をリリースする
 - **対象 ADR**: [0150](../adr/0150-git-workflow.md)
 - **手順**: `release/v1.0.0` ブランチ → リリースノート(`release-notes` スキル)→ `make tag-major`
-- **完了条件**: §1 の完了条件がすべて満たされている。BACKLOG の全枠(Tier 5 の後回し 4 件を除く)が ✅
-- **依存**: 全 PR
+- **完了条件**: §1 の完了条件がすべて満たされている
+- **依存**: **P9-6 を除く全 PR**
 
 > **v1 対象外**: B11(構造 CI ゲート = README 必須節 / feature 完全性 lint / README 列挙 export と実ファイルの突合)は v1.x.x で追加する。
 
@@ -1397,33 +1425,43 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 
 | # | 内容 | 決着させる時期 |
 | --- | --- | --- |
-| 1 | **CSP の enforce seam**(0111 seam A 維持 / seam B へ反転)。P5-1 の sanitizer 検証を入力とする(§3.9)。**P6-8 の Cache Components 判断と両立しない**ため同時に決める | P5-1 の検証後 → P0-4 で確定 |
-| 2 | **認証 Resolver の具体化**(IF 形状 / 既定実装のライブラリ選定 / refresh の扱い / role の取得元) | P5-4 |
-| 3 | Garage 公開エンドポイントのホスト形式(virtual-host 形式だとローカルのワイルドカード名前解決が必要) | go-boilerplate #668 の回答時 |
-| 4 | **U10 登録フローの方式**(JIT 自動プロビジョニング / 明示オンボーディング)。[screens.md](../screens.md) の推奨に従い後者で実装し、確定後に差分吸収する | P5-10 |
-| 5 | **sanitizer ライブラリの選定**(`rules.md` #48。#1 の入力でもある) | P5-1 |
-| 6 | **OpenAPI 契約の本数** — P4-1 は `shop` / `admin` の 2 本を想定するが、[0072](../adr/0072-api-type-generation.md) と [screens.md](../screens.md) はバックエンドの**単一** `openapi.gen.yaml` を前提とする。2 本化はバックエンド側の作業 | P4-1 着手前(必要なら go 側へ起票) |
-| 7 | **`mock_auth_server` の PKCE(S256)/ OIDC discovery 対応** — 非対応なら P5-4 の設計が変わる | P5-4 着手前 |
-| 8 | **status を持たない失敗の分類** — [0080](../adr/0080-error-handling.md) は一次キーを HTTP status とし、timeout / abort / DNS 失敗の分類を「実装 PR で判断」と保留している | P4-3 |
-| 9 | `/api/telemetry` の最小防御(ボディサイズ上限 / content-type 検証)。[0077](../adr/0077-bff-abuse-protection-boundary.md) が実装 PR へ保留 | P6-1 |
-| 10 | `ActionState<T>` の具体型(判別子 / fieldErrors の形 / sentinel の直列化)。**B1 テンプレ(P3-10)と scaffold(P4-6)が P5-7 より先行するため、P4-6 時点で草案を切る** | P4-6 で草案 → P5-7 で確定 |
+| 1 | **CSP の enforce seam**(0111 seam A 維持 / seam B へ反転)。P5-1 の sanitizer 検証を入力とし、**P6-8 の Cache Components 判断と同時に決める**(両立しないため。§3.9) | P5-1 の検証後、P6-8 と同時 → **P6-2 で ADR 追補・実装** |
+| 2 | **認証 Resolver の具体化**(IF 形状 / 既定実装のライブラリ選定 / refresh の扱い / role の取得元)。refresh は mock に無いため実機検証できない | P5-4 |
+| 3 | **admin 判定の手段** — go 側の契約に `roles` が 1 度も出てこない(実測 0 件)。`UserResponse` にも roles が無く **admin かどうかを型から導けない**。[screens.md](../screens.md) §0 の「UI 上は導線ごと出し分ける」が実装できないため、go 側へ roles 露出を依頼するか別手段を設計する | **P5-11 着手前**(必要なら go 側へ起票) |
+| 4 | **`*.localhost` の名前解決** — `next/image` はサーバ側 fetch のため Next.js 実行ホストでの解決が要る。Linux コンテナ / CI では `/etc/hosts` 追記が必要な見込みで、IPv6(`::1`)解決の可能性もある(§3.2) | **P4-5 着手前に実測** |
+| 5 | **U10 登録フローの方式**(JIT 自動プロビジョニング / 明示オンボーディング)。[screens.md](../screens.md) の推奨に従い後者で実装し、確定後に差分吸収する | P5-10 |
+| 6 | **sanitizer ライブラリの選定**(`rules.md` #48。#1 の入力でもある) | P5-1 |
+| 7 | **status を持たない失敗の分類** — [0080](../adr/0080-error-handling.md) は一次キーを HTTP status とし、timeout / abort / DNS 失敗の分類を「実装 PR で判断」と保留している | P4-3 |
+| 8 | `/api/telemetry` の最小防御(ボディサイズ上限 / content-type 検証)。[0077](../adr/0077-bff-abuse-protection-boundary.md) が実装 PR へ保留 | P6-1 |
+| 9 | `ActionState<T>` の具体型(判別子 / fieldErrors の形 / sentinel の直列化)。**B1 テンプレ(P3-10)と scaffold(P4-6)が P5-7 より先行するため、P4-6 時点で草案を切る** | P4-6 で草案 → P5-7 で確定 |
+| 10 | **外部デザイン支援ツール連携スキルの仕様**(書き出し形式 / 同期手順 / 対象パス)。§3.11 の方針変更で新たに生じた | P3-8 |
 | 11 | Phase 2 の残余候補(sync-versions-check / auto-generate-docs)の採否 | Phase 2 実装時 |
 | 12 | issue のラベル体系 / 親子関係(task list か Projects か) | issue 発行時 |
-| 13 | `cn()` の実装ライブラリ選定 | P3-7 |
-| 14 | barrel(`index.ts`)の可否 | P3-1 |
-| 15 | Web Worker オフロード seam の ADR 化要否 | P6-5 |
-| 16 | `rules.md` #69(生 `<a>` 禁止)を ESLint で拾うか散文のままとするか | P3-2 |
+| 13 | barrel(`index.ts`)の可否。**推奨は作らない** — 循環参照 / tree-shaking の問題に加え、[0021](../adr/0021-frontend-responsibility.md) の「公開面を明示する」目的に対し barrel はむしろ境界を曖昧にするため。公開面は `architecture.ts` と README frontmatter で宣言する | P3-1 |
+| 14 | Web Worker オフロード seam の ADR 化要否 | P6-5 |
 
-## 6. go-boilerplate への依頼(起票予定)
+### 解決済み(記録)
 
-画像配信を public storage 方式に倒すために必要な変更。
+| 内容 | 結論 |
+| --- | --- |
+| Garage 公開エンドポイントのホスト形式 | **virtual-host 形式で確定**。`http://gobp-local.web.garage.localhost:3902/products/{uuid}.png`。パス形式は動作しない(§3.2)。派生の名前解決問題は上表 #4 |
+| OpenAPI 契約の本数 | **1 本で足りる**(実測 105.5 KB / 2794 行)。admin と一般が同居し tags / security / scope で区別できないため分割は不可能。`gen/api/` 1 ユニット |
+| `mock_auth_server` の PKCE / OIDC discovery | **完全対応**。`redirect_uri` も nextjs 前提で登録済み。ただし refresh 無し / subject が admin 固定 / logout は POST のみ(P5-4 に反映済み) |
+| `cn()` の実装ライブラリ | **`clsx` + `tailwind-merge`**。[0052](../adr/0052-ui-component-policy.md) が既に名指ししており追認(§3.10) |
+| `rules.md` #69(生 `<a>` 禁止) | **ESLint で拾う**。`next/link` を必須にするため機械強制が要る(P3-2) |
+| Figma Variables の輸出経路 | §3.11 の方針変更により**消滅**(SSOT がコード側) |
 
-1. **バケットを匿名 read 可能にする** — `docker/garage/garage.toml` に `[s3_web]` + `docker/garage/init.sh` に `bucket website --allow gobp-local` 相当。現状の `init.sh` は `bucket allow --read --write --key` のみで匿名 read を開けていないため、ブラウザから画像を取得できない
-2. **匿名の listing は無効のままにする** — キーが UUID(`products/{uuid}.{ext}`)のため列挙さえできなければ推測不能。ここが開くと全画像が一覧可能になる
-3. **PutObject 時に `Cache-Control: public, max-age=31536000, immutable` を付与する** — 画像差し替え時に別 UUID が振られるため immutable が安全に成立する。backend で付けると `/_next/image` の TTL も upstream 値が採用され、フロント側の設定が不要になる
-4. **公開エンドポイントのホスト形式を確定する** — パス形式(`http://localhost:PORT/<bucket>/<key>`)で到達できると dev 環境の摩擦が少ない。virtual-host 形式(`<bucket>.<root_domain>`)の場合、ローカルでワイルドカードサブドメインの名前解決(`/etc/hosts` または dnsmasq)が必要になる
+## 6. go-boilerplate への依頼
 
----
+### 完了(#668 / 実装 PR #707 マージ済み)
+
+画像の公開配信は実装済み。`[s3_web]`(port 3902)+ `bucket website --allow` による匿名 read、匿名 ListObjects の遮断、`Cache-Control: public, max-age=31536000, immutable` の付与まで確認済み。
+
+**ただし依頼 4 点目(パス形式での到達)は採用されず、virtual-host 形式で確定した。** 派生する `*.localhost` の名前解決問題は §5 #4 として本書側で扱う。
+
+### 未起票(必要なら起こす)
+
+- **`roles` の露出**(§5 #3)— 契約に `roles` が存在せず admin 判定が型から導けない。[screens.md](../screens.md) §0 が要求する「UI 上の導線出し分け」が実装できない。P5-11 着手前に、go 側へ `UserResponse` への roles 追加を依頼するか、nextjs 側で別手段を設計するかを決める
 
 ## 7. 本書の運用
 
