@@ -10,7 +10,7 @@
 
 Accepted（採番はブロック帯で確定〈2026-07-14・0001〜0155(トピック順ブロック帯)〉）
 
-> 本 ADR は 0.0.x の living document。設計フェーズ中は本文を直接上書きし、逐次改定の履歴は残さない(不可変化 + 改定履歴の規律は v1 凍結時から。[決定 5](../plan/pre-implementation-decisions.md))。
+> 本 ADR は 0.0.x の living document。設計フェーズ中は本文を直接上書きし、逐次改定の履歴は残さない(不可変化 + 改定履歴の規律は v1 凍結時から。[0140](0140-documentation-operations.md))。
 
 ## 採用理由
 
@@ -49,6 +49,25 @@ Biome は `next` / `react` の lint ドメインルールを内蔵しており�
 - `biome.json`（簡易版 / エディタの基点）に lint / format / assist / overrides を集約
 - CI / pre-commit 用の完全版 `biome.ci.jsonc` は `extends` で簡易版を継承し、差分のみを持つ（設定を二重管理しない）
 - VCS 連携 (`.gitignore` 尊重) も設定ファイル内で完結
+
+## TypeScript コンパイラによる検査（`tsconfig.json`）
+
+型で捕まえられる誤りは lint ではなく **`tsc` に持たせる**。能力ベースの役割分担（後述）はツール間だけでなく「型 vs lint」にも同じ形で適用し、重複させない。
+
+`strict: true` に加えて次を有効にする。
+
+| フラグ | 採否 | 理由 |
+| --- | --- | --- |
+| `noUncheckedIndexedAccess` | 採用 | 配列 / インデックス参照の `undefined` を型で捕まえる |
+| `erasableSyntaxOnly` | 採用 | `enum` / `namespace` を型消去可能な構文のみに制限し、実行時の値を生む TS 独自構文を禁止する |
+| `verbatimModuleSyntax` | 採用 | `import type` の規律を型側で強制する |
+| `noImplicitOverride` | 採用 | 低摩擦で継承時の取り違えを防ぐ |
+| `noPropertyAccessFromIndexSignature` | 採用 | index signature へのドット参照を禁止。流入口（[0030](0030-environment-variable-management.md) の `process.env` / searchParams）は既に塞がれているため実質ゼロコスト |
+| `exactOptionalPropertyTypes` | **見送り** | React props との摩擦が高い。残る穴（「未指定」と「明示的 `undefined`」を型で区別できない）は下記の実行時機構で埋める |
+| `noUnusedLocals` / `noUnusedParameters` | **入れない** | biome が `correctness/noUnusedVariables` / `noUnusedFunctionParameters` で error として捕捉する（重複禁止） |
+
+- **`target` は Next.js 16 / [0102](0102-browser-support.md) のサポート範囲に合わせて引き上げる**（`ES2017` 据え置きは実態と釣り合わない）。具体値は実装 PR で確定する
+- **`exactOptionalPropertyTypes` 見送りの穴を埋める機構**: `JSON.stringify` は値が `undefined` のキーを落とすため、`{name: undefined}` と `{}` はワイヤ上で同一になる。危険が残るのは直列化より手前のローカル組み立てだけなので、**`adapters` に PATCH ペイロードの正規化関数を置いて閉じ込める**。「触らない」= キーを含めない / 「消す」= `null` を明示とし、`undefined` に意味を持たせない。adapters の公開面は正規化済みの型でしか受け付けない形にする（散文の規約にしない）
 
 ## ESLint による補完
 

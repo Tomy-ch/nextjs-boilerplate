@@ -6,13 +6,13 @@
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み([決定 4](../plan/pre-implementation-decisions.md))。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
 AGENTS.md の `[TODO] BFF / API Integration`(BACKLOG B3)は、`/api/*` の責務範囲・外部 API クライアントの場所・fetch wrapper(retry / timeout / error 変換 / logging)を未決とし、暫定運用として「コンポーネントに ad-hoc な fetch を散らさない / 独自の retry・timeout を勝手に実装しない(標準 fetch のまま)」を敷いていた。本 ADR がこれを確定させる。
 
-go-boilerplate は outbound HTTP を `internal/infrastructure/httpclient`(**go 側**の ADR 0019「outbound HTTP resilience」。本リポの ADR 番号ではない)に集約し、**dual timeout / idempotent retry / retry budget / circuit breaker** を持つ。本 ADR はこれを**広く翻案**する([決定 4](../plan/pre-implementation-decisions.md) でユーザが「go 0019 を広く翻案」を選択)。
+go-boilerplate は outbound HTTP を `internal/infrastructure/httpclient`(**go 側**の ADR 0019「outbound HTTP resilience」。本リポの ADR 番号ではない)に集約し、**dual timeout / idempotent retry / retry budget / circuit breaker** を持つ。本 ADR はこれを**広く翻案**する(設計フェーズでユーザが「go 0019 を広く翻案」を選択)。
 
 ## 決定
 

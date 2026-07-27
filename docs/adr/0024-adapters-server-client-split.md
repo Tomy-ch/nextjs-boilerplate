@@ -1,6 +1,6 @@
 # adapters の server/client 分割と client 側外部接続境界
 
-[0071](0071-bff-api-integration.md) が `adapters`(BFF / API 統合)の中身を、[0022](0022-capabilities-kernel.md) が `capabilities`(client runtime hook)を定めたが、両者を「`adapters` = 外部システム × server / `capabilities` = runtime × client」というミラーで対にした結果、**「外部システム × client」セルが空席**になっていた(構造ブロッカー S1。詳細は [structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md))。ブラウザから外へ出る IO(client→BFF fetch / WebSocket・SSE / analytics・telemetry 送信)を置く家が無い。
+[0071](0071-bff-api-integration.md) が `adapters`(BFF / API 統合)の中身を、[0022](0022-capabilities-kernel.md) が `capabilities`(client runtime hook)を定めたが、両者を「`adapters` = 外部システム × server / `capabilities` = runtime × client」というミラーで対にした結果、**「外部システム × client」セルが空席**になっていた(構造ブロッカー S1)。ブラウザから外へ出る IO(client→BFF fetch / WebSocket・SSE / analytics・telemetry 送信)を置く家が無い。
 
 本 ADR は、この空席 = **client 側の外部接続境界**を、`adapters` を **1 カーネル内 2 element に分割**することで確定する(構造ブロッカー **S1**)。あわせて [0022](0022-capabilities-kernel.md) の「ミラー」framing を **2 軸モデル**へ訂正する。ポリシー状態(consent / flag)の供給は本 ADR の adapters/client を土台に [0031](0031-policy-state-supply.md)(S3)が定める。
 
@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-構造ブロッカー網羅検証(docs/plan 参照。[structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md))で、[0022](0022-capabilities-kernel.md) のミラーが 2 軸のうち対角線しか埋めていないことが判明した。`adapters` は server-only([0071](0071-bff-api-integration.md) + [0022](0022-capabilities-kernel.md) 禁止事項 + triage #67)で client コードを受け入れられず、`capabilities` は remote IO を明示拒否し、`features` / `components` への生 fetch は [0071](0071-bff-api-integration.md) が禁止 —— **全出口が閉じていた**。0021 が `adapters` の例に挙げる「storage / analytics」も、client でしか起きないため server-only 宣言と矛盾していた。
+設計フェーズの構造ブロッカー網羅検証で、[0022](0022-capabilities-kernel.md) のミラーが 2 軸のうち対角線しか埋めていないことが判明した。`adapters` は server-only([0071](0071-bff-api-integration.md) + [0022](0022-capabilities-kernel.md) 禁止事項 + triage #67)で client コードを受け入れられず、`capabilities` は remote IO を明示拒否し、`features` / `components` への生 fetch は [0071](0071-bff-api-integration.md) が禁止 —— **全出口が閉じていた**。0021 が `adapters` の例に挙げる「storage / analytics」も、client でしか起きないため server-only 宣言と矛盾していた。
 
 ## 決定
 
@@ -43,10 +43,10 @@ src/adapters/
 | element | 実行文脈 | import 可 | 中身 |
 | --- | --- | --- | --- |
 | `adapters/server` | **server-only**(`import "server-only"`) | `model` / `errors` / `logging` / **`config`(ここだけ)** | backend API client・secret 有・resilience([0071](0071-bff-api-integration.md)) |
-| `adapters/client` | **`"use client"`** | `model` / `errors` / `logging` / client config(**server config 不可・secret 無**。client config = NEXT_PUBLIC リテラルは可) | 同一オリジン BFF fetch(#7)/ WebSocket・SSE(#56)/ analytics 送信(#61)/ telemetry 送信(#59 / #60)/ presigned 直 PUT(#13。[0075](0075-file-upload-seam.md))。**remote のみ** |
+| `adapters/client` | **`"use client"`** | `model` / `errors` / `logging` / client config(**server config 不可・secret 無**。client config = NEXT_PUBLIC リテラルは可) | 同一オリジン BFF fetch(#7)/ WebSocket・SSE(#56)/ analytics 送信(#61)/ telemetry 送信(#59 / #60)/ アップロード送信(#13。presigned 直 PUT または BFF の multipart proxy へ向けた送信。既定は backend の受け口で決まる = [0075](0075-file-upload-seam.md))。**remote のみ** |
 
 - **local ブラウザ API(#43 Web Storage・#44 client cookie 読み)は `adapters` でなく `capabilities`**([0022](0022-capabilities-kernel.md))。clipboard(#26)と同型 = browser runtime API であり外部システムではない
-- **宛先オリジン**: 同一オリジン BFF(`/api/*`)が主経路。**同一オリジン外への送信も、ADR が明示に許す場合に限り `adapters/client` が所有する**(#56 realtime のバックエンド直結 / managed サービス([0074](0074-runtime-communication-seam.md))・#13 presigned 直 PUT([0075](0075-file-upload-seam.md)))。telemetry / analytics は [0081](0081-observability-logging.md) により BFF 中継(外部直送禁止)
+- **宛先オリジン**: 同一オリジン BFF(`/api/*`)が主経路。**同一オリジン外への送信も、ADR が明示に許す場合に限り `adapters/client` が所有する**(#56 realtime のバックエンド直結 / managed サービス([0074](0074-runtime-communication-seam.md))・#13 presigned 直 PUT([0075](0075-file-upload-seam.md)。backend が multipart しか受けない構成では宛先は同一オリジン BFF になる))。telemetry / analytics は [0081](0081-observability-logging.md) により BFF 中継(外部直送禁止)
 - `features` は両 element の公開面を import 可。`capabilities` は `adapters` を import しない
 - ESLint boundaries を 2 element に割り、**secret / RSC 境界を機械強制**(server-only に client hook 混入・client に config import はエラー)
 
@@ -70,4 +70,3 @@ src/adapters/
 - [0025-app-layer-elements.md](0025-app-layer-elements.md) — Route Handler(client 送信の受け側 = `adapters/server` の import 元)
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — RSC / Client 境界(server-only / use-client の機械強制の根拠)
 - [0081-observability-logging.md](0081-observability-logging.md) — ブラウザ→BFF 中継(client 送信面 = `adapters/client`)
-- [docs/plan/structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md) — 構造ブロッカー S1 の由来・全体像

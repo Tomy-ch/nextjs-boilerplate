@@ -6,7 +6,7 @@
 
 Accepted (一部 exclusion)
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み(go 準拠の翻案。plan「決定不要」表 B10)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み(go 準拠の翻案。設計フェーズの「決定不要」表 B10)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
@@ -38,6 +38,13 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
   - **release ゲート**(保護ブランチへの PR 限定・厳格): **`ignore-unfixed: false`**(未修正も可視化)で厳格化
 - **依存監査ゲート**: **`pnpm audit` を既定**とする。go govulncheck 由来の「到達可能性(reachability)」フィルタは、`pnpm audit` に該当機能がなく、osv-scanner の call analysis も JS/TS 非対応のため、**現行ツールでは実装不能**である。したがって blocking 閾値は **severity(`high` / `critical`)と修正可能性(fixable)** で定める(未修正〈unfixable〉はノイズになりやすいため advisory 扱いとし、修正可能な high 以上を blocking)。運用 SLA(`high` 以上は 48 時間以内に対応着手)は [0004](0004-library-management.md) の既定を維持し、本項はその CI ゲート側の blocking 閾値を定める
 
+### 3.5 CSP 適合ゲート
+
+- **配信ヘッダが [0111](0111-csp-security-headers.md) の宣言と一致することを CI で検査する**。ビルド成果物 / 起動したアプリのレスポンスヘッダを取得し、CSP と主要セキュリティヘッダの有無・値を宣言と突合して fail-closed にする
+  - > Rationale: [0111](0111-csp-security-headers.md)
+- 対象は CSP と、0111 が定める同伴ヘッダ(`Strict-Transport-Security` / `X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` 等)。**検査するのは「宣言と実配信の一致」**であり、ヘッダの内容そのものは 0111 が正
+- 実装は [0153](0153-ci-configuration.md) の Security グループに 1 job として置く([v1 実装計画](../plan/v1-implementation-plan.md) P6-2)
+
 ### 4. SECURITY.md
 
 - **`SECURITY.md` を置く**。脆弱性報告フロー(Private Vulnerability Reporting 誘導 / 連絡先 / Supported Versions)を定める(go の報告フロー節の翻案。連絡先は fork 先で差し替える placeholder)
@@ -54,7 +61,7 @@ go-boilerplate にはあるが、本リポは [0011](0011-no-docker.md)(no-Docke
 - ❌ **コンテナ image スキャン**(Trivy image / SBOM 生成)— アプリ本体の Docker イメージがない
 - ❌ **cosign によるイメージ署名 / SLSA provenance / SBOM attestation**(go 側の ADR 0088 相当)— 配送成果物がコンテナイメージでない
 - ❌ **Dependabot の `docker` エコシステム**(go は image ディレクトリ群を監査対象に持つ)— 監査対象の Dockerfile がない(上記 1 のとおり `npm` + `github-actions` のみ)
-- これらは「意図的にやらない」判断として記録する([決定 5](../plan/pre-implementation-decisions.md) exclusion = ADR)。fork 先が独自にコンテナ配送する場合は fork 先判断で追加する
+- これらは「意図的にやらない」判断として記録する([0140](0140-documentation-operations.md) タクソノミー: exclusion = ADR)。fork 先が独自にコンテナ配送する場合は fork 先判断で追加する
 
 ## 禁止事項
 

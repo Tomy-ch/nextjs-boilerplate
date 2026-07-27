@@ -47,6 +47,7 @@ Accepted
 | # | 節 | 責務 |
 | --- | --- | --- |
 | 1 | Project Overview | リポジトリの役割 / ロール / バックエンド分離前提 |
+| 1.5 | Temporary Operating Rules until v1.0.0 | **v1.0.0 未満の期間限定節**。Protected Documentation / AI Modification Scope の一時解除を宣言する。v1.0.0 到達時に削除する([0140](0140-documentation-operations.md) の同名節と対) |
 | 2 | Instruction Priority | 指示の優先度 (後述) |
 | 3 | Accepted Rules (ADRs) | 確定済み ADR の表で要約。詳細は `docs/adr/` に委譲 |
 | 4 | Pending Decisions | 未策定領域のイントロ + `## [TODO]` セクション群 (後述) |
@@ -60,6 +61,8 @@ Accepted
 | 12 | Protected Documentation | 直接編集禁止ファイルの宣言 |
 
 節の追加・順序変更は ADR 改訂を要する。表 (Accepted Rules) への ADR 追加や `[TODO]` セクションの追加・削除は軽微編集とし、ADR 改訂は不要。
+
+期間限定節 (#1.5) は本表に明示されたものだけを認め、v1.0.0 到達時に節ごと削除して本行と表の該当行も消す。
 
 ## Instruction Priority
 
@@ -97,7 +100,7 @@ ADR が策定されたら、対応する `[TODO]` セクションは AGENTS.md �
 
 ## 更新責務
 
-- AGENTS.md は `Protected Documentation` に列挙され、AI エージェントは直接編集しない。変更案を提示してユーザ承認を得てから編集する
+- AGENTS.md は `Protected Documentation` に列挙され、AI エージェントは直接編集しない。変更案を提示してユーザ承認を得てから編集する(**v1.0.0 未満の間はこの都度承認を解除する** — AGENTS.md #1.5 の期間限定節 / [0140](0140-documentation-operations.md))
 - 本 ADR (0152) と AGENTS.md は **構成上の対応関係** を持つ。本 ADR を改訂する場合は AGENTS.md 側も同じ PR で揃える
 - `Accepted Rules` 表への ADR 追加と `[TODO]` セクションの増減は軽微編集として扱う
 

@@ -6,7 +6,7 @@
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み([決定 4](../plan/pre-implementation-decisions.md))。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 

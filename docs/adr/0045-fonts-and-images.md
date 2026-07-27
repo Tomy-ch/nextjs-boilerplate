@@ -6,7 +6,7 @@
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み(Tier 5)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み(Tier 5)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
@@ -24,6 +24,14 @@ BACKLOG C5 は、`next/font` / `next/image` の使い方規約・`public/` の�
 - ラスター画像は **`next/image`** を用いる(最適化・遅延読み込み・レイアウトシフト抑制)。生の `<img>` は原則使わない(装飾的 SVG 等の例外は可)
 - 配送前提([0011](0011-no-docker.md))に応じて画像最適化の loader を選ぶ(PaaS の組込み最適化 / 静的書き出し時の扱いは実装 PR で確定)
 
+### 2.1 バックエンド由来画像 = public storage 前提・自前の配信レイヤを持たない
+
+- バックエンドが返すのは**オブジェクトキー**(例: `products/{uuid}.{ext}`)であり、**表示 URL の組み立てはフロントの責務**とする(backend にフル URL を保存させない)
+- ストレージは **public storage**(匿名 read 可 / listing 不可)を前提とする。したがって本リポジトリに**配信プロキシ(Route Handler)を置かない**。持つのは配信オリジンを前置する純関数(`mediaUrl()`)と `next.config.ts` の `images.remotePatterns` のみで、最適化は `next/image` が単独で担う
+- 配信オリジンは env(`MEDIA_ORIGIN`)で供給する([0030](0030-environment-variable-management.md))。`remotePatterns` と CSP の `img-src`([0111](0111-csp-security-headers.md))の**両方**に同一オリジンを登録し、**ワイルドカードは使わない**
+- private なオブジェクトを扱う必要が生じた場合は、署名付き URL の発行を backend の責務とする([0075](0075-file-upload-seam.md) と同型)。フロントに配信レイヤを生やして解決しない
+- **blur プレースホルダ(`blurDataURL`)は採用しない** — 静的 import でしか自動生成されず、バックエンド由来画像では契約に載せる必要が生じて一覧レスポンスが件数分肥大するため。代替として `components` カーネルに**アスペクト比固定 + CSS スケルトン**の画像ローディングを置く(`"use client"` 不要)。LCP になる画像(一覧先頭・詳細のメイン)は `priority` を付け、スケルトンを挟まない
+
 ### 3. `public/` の扱い
 
 - `public/` は **静的アセット(favicon / 装飾画像 / 静的ファイル)** の置き場とする([AGENTS.md](../../AGENTS.md) AI Modification Scope で追加が許可される数少ないルート外パス)。ビルドを要さず配信されるものに限る
@@ -38,6 +46,8 @@ BACKLOG C5 は、`next/font` / `next/image` の使い方規約・`public/` の�
 - ❌ Web フォントを外部 CDN 直参照 / 手動 `@font-face` で読むこと(`next/font` を使う)
 - ❌ ラスター画像に生の `<img>` を使うこと(`next/image`。装飾 SVG 等は例外)
 - ❌ `public/` にビルドを要する / 秘匿すべきファイルを置くこと(静的公開アセットのみ)
+- ❌ バックエンド由来画像のために自前の配信経路(`/cdn` 等の Route Handler プロキシ)を作ること(§2.1。public storage + `next/image` で賄う)
+- ❌ `images.remotePatterns` にワイルドカードのオリジンを登録すること(配信元は明示的に列挙する)
 
 ## 関連 ADR
 

@@ -1,199 +1,190 @@
 ---
 name: new-env
-description: Add a new environment variable to the project end-to-end, keeping the typed config struct, env file samples, and documentation in sync. Touches `internal/config/envspec.go` (Loader field), `internal/config/model.go` (Config struct + private field), `internal/config/config.go` (New() mapping + getter method), `internal/config/config_testing_mock.go` (expected value + mock setter), `env/.env.{local,ci,dev,stg,prd}` (and `.env` if used) for per-environment values, and `env/README.{md,ja.md}` (table row in the matching subsystem). The subsystem (envPrefix → struct), Go type mapping, and naming conventions are derived from the existing `envspec.go` / `model.go` at runtime — the skill hardcodes no subsystem list. Confirms variable name, type, description (en + ja), required vs default, and per-environment values via `AskUserQuestion` before writing. Does NOT auto-add a testing setter helper in `config_testing_setter.go` (the file explicitly limits additions); offers it only on explicit request. Verifies with `make fix` + `make test` at the end.
+description: Add a new environment variable to the project end-to-end, keeping the env files, the purpose-scoped typed config module, and both documentation sides in sync. Targets the config kernel defined by ADR 0030 — `env/.env.{local,ci,dev,stg,prd}` and `env/README.{md,ja.md}` (the authority on which variables exist, placeholders included) always, plus `src/config/<purpose>.server.ts` / `<purpose>.client.ts` (schema entry + `#` private field + getter) and `src/config/README.{md,ja.md}` (the authority on the config values validated at build time and injected at construction) when the app reads the variable through a config module. The purpose (subsystem) inventory, the schema library, the TypeScript type mapping, and the naming conventions are derived from the live `src/config/` contents at runtime — the skill hardcodes no purpose list and no library name. Confirms variable name, config-backed or env-only, server/client side, type, required vs code default, secret label, description (en + ja), and per-environment values via `AskUserQuestion` before writing. Refuses to place a secret behind `NEXT_PUBLIC_`. Verifies with `pnpm lint:ci` + `pnpm typecheck` + `pnpm build` at the end.
 ---
 
 # New Env
 
-Adds a new environment variable to the project end-to-end. The variable is read by the `Loader` struct, mapped into the typed `Config`, exposed via a getter, set in each per-environment sample `env` file, and documented in `env/README.md`.
+Adds a new environment variable to the project end-to-end: set in each per-environment env file and listed in the env variable table, and — when the app reads it through config — declared in the schema of **one purpose-scoped config module**, exposed through that module's immutable typed object, and explained in the config kernel README.
+
+The two documentation sides own different things ([0030](../../../docs/adr/0030-environment-variable-management.md) §6). **`env/README` is the authority on which variables exist**, placeholder-only and config-less variables included. **The config kernel README is the authority on the config values themselves** — those validated at build time and injected into the purpose modules at construction. What config covers is a subset of what exists in env; never write the same content into both.
+
+The design this skill implements is [0030](../../../docs/adr/0030-environment-variable-management.md) (env management / config kernel); the naming form comes from [0028](../../../docs/adr/0028-naming-convention.md). Those ADRs are authoritative — this skill only automates the mechanics.
 
 A Japanese reference translation of this skill is available at `SKILL.ja.md` in the same directory (not loaded as a skill; for human reference only).
+
+## Precondition: the config kernel must exist
+
+This skill assumes `src/config/` is already in place (it lands with the `env / 型付き Config` PR — plan ID **P3-3**). Before anything else:
+
+```sh
+ls src/config/ 2>/dev/null
+```
+
+If `src/config/` does not exist, **stop immediately** and tell the user that the config kernel has not landed yet, so there is nothing to add a variable to. Do **not** scaffold the kernel, the schema, the validation call sites, or `env/` from a variable-addition request — building the kernel is P3-3's scope and requires the library selection that [0030](../../../docs/adr/0030-environment-variable-management.md) defers to that PR.
 
 ## When to Use
 
 Use this skill when:
 
-- A new env var is needed (new feature flag, tunable timeout, external service URL, etc.).
-- Multiple files need to stay in sync and you want them updated consistently.
+- A new env var is needed (external service URL, tunable timeout, public site URL, etc.).
+- Several files must stay in sync and you want them updated consistently.
 
 Do NOT use this skill for:
 
-- Renaming an existing env var (different workflow — rename across all places).
-- Removing an existing env var (deletion is reverse-direction and safer to do by hand).
-- Adding a whole new subsystem (e.g., a new `RedisConfig` group). This skill assumes the subsystem already exists. For a new subsystem, do the first variable manually then use this skill for subsequent additions.
+- Renaming an existing env var (different workflow — rename across all places at once).
+- Removing an existing env var (reverse direction; safer by hand).
+- Adding a whole new **purpose** (a new `src/config/<purpose>.*.ts` module). This skill assumes the purpose module already exists. For a new purpose, write the first variable manually — a new module also needs its import-boundary placement decided ([0030](../../../docs/adr/0030-environment-variable-management.md) §3) — then use this skill for subsequent additions.
+- Moving a value out of env because it must change without a redeploy — that belongs behind the BFF runtime config ([0071](../../../docs/adr/0071-bff-api-integration.md)), not here.
 
 ## What This Skill Reads / Writes
 
-**Reads (always)**:
+**Reads (always)** — everything below is discovered at runtime; nothing about the inventory is hardcoded:
 
-- `internal/config/envspec.go` — Loader subsystem inventory (envPrefix → struct mapping).
-- `internal/config/model.go` — Config subsystem inventory (private field naming).
-- `internal/config/config.go` — `New()` body for mapping pattern; existing getters for naming convention.
-- `internal/config/config_testing_mock.go` — expected value variables and mock setter patterns.
-- `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd`, `.env` — per-environment value placement.
-- `env/README.md`, `env/README.ja.md` — table format and subsystem section names.
+- `src/config/*.server.ts` / `src/config/*.client.ts` — the purpose inventory, the schema library actually in use, the schema-entry style, the private-field + getter style, and which purposes have a server side, a client side, or both.
+- `env/README*.md` — the variable table (`Variable Name | Description | Type | Example | Notes`) and its per-subsystem sections. This is the authority on **which variables exist**.
+- `src/config/README*.md` — the config kernel README. This is the authority on **the config values themselves** — the ones validated at build time and injected into the purpose modules at construction.
+- `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd` — per-environment value placement and section-comment layout.
+- `package.json` — which verification scripts exist (`lint:ci` / `typecheck` / `build`, and a test script if one has been added).
 
-**Writes (only with confirmation)**:
+**Writes (only after confirmation)**:
 
-- The 9 files listed above. Per-file edits are minimal (one insertion in the correct location each).
+- The env files and `env/README.{md,ja.md}` — always; every variable exists in env.
+- The one purpose config module the variable belongs to, and `src/config/README.{md,ja.md}` — only when the variable is read by the app through that config module.
 
 **Never touches**:
 
-- `config_testing_setter.go` unless the user explicitly asks (file is intentionally curated).
-- Any code under `internal/` outside `config/`.
-- Generated files.
+- `next.config.ts` / `instrumentation.ts` — the build-time and server-start validation points ([0030](../../../docs/adr/0030-environment-variable-management.md) §1) import the schema module wholesale, so adding a field to an existing purpose schema is already covered. If a change there looks necessary, that means the purpose module is not wired in — stop and report it instead of editing.
+- `biome.json` — the `noProcessEnv` override belongs to P3-3.
+- Anything outside `env/` and `src/config/`.
 
 ## First Step: Gather the Spec
 
-This skill **MUST call `AskUserQuestion` immediately after invocation**. Ask in batches (multiple questions per call) to collect the spec:
+This skill **MUST call `AskUserQuestion` immediately after invocation** — adding an env variable requires user confirmation ([0030](../../../docs/adr/0030-environment-variable-management.md) §6). Ask in batches to collect the spec.
 
-### Question 1: Variable name and subsystem
+### Question 1: Variable name and purpose
 
-- Question: 「環境変数名（`{PREFIX}_{NAME}` 形式）を入力してください。例: `APP_FEATURE_X` / `DB_READ_REPLICA_HOST`」
-- Free-text input. The skill then:
-  1. Splits at the first `_` to get the prefix.
-  2. Looks up the prefix in the live `envspec.go` (each subsystem struct has `envPrefix:"XXX_"`).
-  3. If matched: shows "推定サブシステム: `Application` (envPrefix `APP_`)" and asks for confirmation.
-  4. If not matched: surfaces the candidates and asks the user to either pick a different prefix, or stop and add a new subsystem manually first.
+- Question: 「環境変数名を入力してください(`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE。ブラウザへ出す変数は `NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`)。例: `APP_API_BASE_URL` / `NEXT_PUBLIC_ANALYTICS_SITE_ID`」
+- Free-text. Then:
+  1. Strip a leading `NEXT_PUBLIC_` if present (that prefix marks the client side, not the subsystem) and split at the first `_` to get the subsystem.
+  2. Match the subsystem against the purposes discovered under `src/config/`.
+  3. If matched, show the inferred module (e.g. 「推定 purpose: `api`(`src/config/api.server.ts`)」) and ask for confirmation.
+  4. If unmatched, surface the available purposes and ask the user to pick one, or stop so a new purpose module can be added by hand.
+  5. **Standard-name exception** ([0028](../../../docs/adr/0028-naming-convention.md)): names fixed by an external spec that a third-party SDK reads (`OTEL_EXPORTER_OTLP_ENDPOINT`, `PORT`, …) keep the standard name and are exempt from `{SUBSYSTEM}_{NAME}`. Only apply this when an external tool reads the variable — not when the app reads it itself.
 
-### Question 2: Go type and required/default
+### Question 2: Is the variable read through a config module?
 
-Ask the user (single AskUserQuestion with 4 options):
+- Question: 「この変数はアプリが config モジュール経由で読みますか？」
+- Options:
+  - 「はい(config 経由で読む)」 — the normal path: schema entry + getter in a purpose module, and a `src/config/README` entry
+  - 「いいえ(外部ツール / SDK が `process.env` から直接読む)」 — e.g. a standard-named variable such as `OTEL_EXPORTER_OTLP_ENDPOINT`, or a value consumed by the platform rather than the app
 
-- Question: 「型と必須・デフォルトを選んでください」
+The answer decides how far the change reaches. `env/` and `env/README` are updated either way, because they own the fact that the variable exists. `src/config/` and its README are touched **only** on the "はい" path — the config side owns the meaning and handling of values that are validated at build time and injected at construction, which is a subset of what exists in env.
+
+On the "いいえ" path, skip Question 3 (which module side) and Question 4 (type / required vs code default) — both are schema concerns and there is no schema entry to write. The `NEXT_PUBLIC_` exposure rule and the secret label still apply. State plainly in the Step 2 plan that no config module is touched, so the reader is not left wondering why the getter is missing.
+
+### Question 3: Server or client side
+
+- Question: 「この変数はどちら側ですか？」
+- Options:
+  - 「server(secret を含み得る / runtime object)」 — goes into `<purpose>.server.ts`
+  - 「client(`NEXT_PUBLIC_` / ブラウザに露出する公開定数)」 — goes into `<purpose>.client.ts`
+
+Enforce the two invariants of [0030](../../../docs/adr/0030-environment-variable-management.md):
+
+- A `NEXT_PUBLIC_`-prefixed name must go to the client module, and a non-prefixed name to the server module. If the answer contradicts the name, surface the mismatch and re-ask.
+- **A secret must never be `NEXT_PUBLIC_`.** If the user later labels the variable as secret-managed (Question 5) while it is on the client side, stop and explain: `NEXT_PUBLIC_` values are inlined into the browser bundle as literals, so this leaks the secret. Offer the split (a public ID on the client, the secret key on the server) instead of proceeding.
+
+### Question 4: Type, and required vs code default
+
+- Question: 「型と、required / code default を選んでください」
 - Options:
   - 「string, required」
-  - 「string, default あり（値を後で指定）」
-  - 「int / bool / duration, required（型は後で指定）」
-  - 「int / bool / duration, default あり（型と値を後で指定）」
+  - 「string, code default あり(値を後で指定)」
+  - 「number / boolean / enum, required(型は後で指定)」
+  - 「number / boolean / enum, code default あり(型と値を後で指定)」
 
-Follow up with free-text for the concrete type (`int` / `bool` / `time.Duration` / `[]string` / etc.) and default value when applicable.
+Follow up with free text for the concrete type and the default value where applicable. The choice rule from [0030](../../../docs/adr/0030-environment-variable-management.md) §4: a value that is project-specific or varies per environment is **required** (its absence fails the build / server start); a universal framework-level value gets a **code default** in the schema.
 
-### Question 3: Description
+### Question 5: Secret label
 
-Free-text. The user provides EITHER English OR Japanese (or both). The skill auto-fills the missing side via inline translation so both READMEs stay in sync without forcing the user to write twice.
+- Question: 「Secret 管理ラベルを選んでください」
+- Options:
+  - 「なし(公開値 / 非機微)」
+  - 「Secret management required(本番は secret store から供給。平文コミット禁止)」
+  - 「Secret management recommended(定期ローテーション推奨)」
 
-- 「説明（日本語または英語のどちらか）」 — written into the matching language's README directly
-- Notes column（任意） — Secret management / 環境依存等の注記。Provided in the same language as the description; the skill translates for the other.
+For either secret label, the value written into the committed env files is a **placeholder**, never the real secret — production values are supplied from the PaaS env / secret store ([0030](../../../docs/adr/0030-environment-variable-management.md) §5 / §6). Say this to the user rather than asking for the real value.
+
+### Question 6: Description
+
+Free text. The user provides EITHER English OR Japanese (or both); the skill fills in the missing side so both sides of the variable table stay in sync without the user writing it twice.
+
+- 「説明(日本語または英語のどちらか)」
+- Notes 欄(任意) — Secret 管理 / 環境依存等の注記。Provided in the same language as the description.
 
 Resolution rules:
 
-- If only Japanese provided → skill writes Japanese to `env/README.ja.md` row, then translates to English for `env/README.md` row.
-- If only English provided → reverse direction.
-- If both provided → use as-is, no translation.
-- Translations are kept short and direct (single-line, technical register matching surrounding rows). If the description is non-trivial or domain-specific, surface the proposed translation in the Step 2 plan summary for user review before writing.
+- Japanese only → write the Japanese row, translate for the English side.
+- English only → the reverse.
+- Both → use as-is, no translation.
+- Keep translations short and direct, matching the register of surrounding rows. Surface any non-trivial translation in the Step 2 plan for review before writing.
 
-### Question 4: Per-environment values
-
-Single AskUserQuestion:
+### Question 7: Per-environment values
 
 - Question: 「環境別の値を指定しますか？」
 - Options:
-  - 「全環境同じ値（または default で OK）」
+  - 「全環境同じ値(または code default で OK)」
   - 「local だけ別の値を入れる」
   - 「prd だけ別の値を入れる」
-  - 「環境ごとに個別指定する（追加質問）」
+  - 「環境ごとに個別指定する(追加質問)」
 
-Based on choice, collect per-env values. For prd-specific, surface that the value is typically a placeholder commented out (`# DB_HOST` style) and ask whether to follow that convention.
-
-### Question 5: Mock / setter
-
-- Question: 「テストヘルパーをどこまで追加しますか？」
-- Options:
-  - 「mock のみ（config_testing_mock.go の expected 値 + mock setter）」（推奨）
-  - 「mock + setter（config_testing_setter.go にも追加）」 — only when the user has a clear testing need
-  - 「テストヘルパーは追加しない」
+Collect the values per the choice. For `prd`, follow whatever placeholder convention the existing files use (typically a commented-out line) unless the user supplies an explicit value — and always for a secret-labelled variable.
 
 ## Step 1. Plan the Insertion Points
 
-For each touch point, compute the exact insertion location by reading existing patterns:
+Compute each exact insertion point by reading the existing patterns rather than assuming a shape.
 
-### `envspec.go`
+### The purpose config module
 
-Find the matched subsystem struct. Append the new field at the end (preserve struct field order). Field tag format:
+One file — `src/config/<purpose>.server.ts` **or** `<purpose>.client.ts`, never both. Three insertions, each mirroring the style already used in that file:
 
-- Required: `env:"NAME,required"`
-- With default: `env:"NAME" default:"value"`
+1. **Schema entry** — add the field to the module's schema using the schema library already imported there (do not introduce a different library; the selection was made in P3-3). Required vs code default follows Question 4.
+2. **Private field** — add the `#` private field, camelCase, derived from the variable name minus its subsystem prefix (`APP_API_BASE_URL` in purpose `api` → `#baseUrl`). Never add a setter.
+3. **Getter** — add the getter next to the existing ones, matching their formatting and doc-comment style.
 
-Field type matches the Go type (`string` / `int` / `bool` / `time.Duration` / `[]string`).
+Client-module specifics ([0030](../../../docs/adr/0030-environment-variable-management.md) §2): the value **must** be read as a static dot access — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` — literally spelled out. Dynamic indexing and destructuring are forbidden because the build-time literal substitution does not apply to them.
 
-### `model.go`
-
-In the matching Config sub-struct (e.g., `ApplicationConfig`), append the private field with the camelCase name corresponding to the env name (e.g., `APP_FEATURE_X` → `featureX`).
-
-### `config.go`
-
-Two changes:
-
-1. In `New()`, find the matching subsystem block and append the field mapping (`fieldName: cfg.Sub.FieldName,`).
-2. Append a getter method on the sub-struct: `func (a *ApplicationConfig) FeatureX() T { return a.featureX }`. Use the existing getters in the same sub-struct as the formatting template (single-line or multi-line, doc comment style).
-
-### `config_testing_mock.go`
-
-1. Append an expected value variable (`expectedSubsystemFieldName = ...`).
-2. Append a setter on the mock sub-struct (`func (a *ApplicationConfig) SetFeatureX(...)`).
-3. Update the mock initializer if there is one to include the new field.
-
-### Test updates (mandatory — coverage must not regress)
-
-The `internal/config` package is currently 100% covered. Adding a field without updating the matching tests breaks coverage. Update three test files in lockstep with the production changes:
-
-| Test file | What to update |
-| --- | --- |
-| `internal/config/config_test.go` | In `TestNewConfig`, add the new field to the expected `&Config{...}` literal under the matching sub-struct, using the `expected*` variable defined in `config_testing_mock.go`. |
-| `internal/config/model_test.go` | In `TestGetterMethods`, add a `t.Run("FieldName", func(t *testing.T) { t.Parallel(); require.Equal(t, expectedValue, sub.FieldName()) })` block under the matching subsystem `t.Run`. |
-| `internal/config/config_testing_mock_test.go` | In `TestMockConfigForTest`, add the new field to the expected `&Config{...}` literal under the matching sub-struct. |
-
-The `expected*` variable comes from the `config_testing_mock.go` addition (Question-5 mock scope). If the user opted out of mock additions, the test updates also must be skipped — surface this trade-off explicitly in Step 2 plan: "テストヘルパー追加なし → カバレッジ維持テストもスキップ。100% から下がる可能性あり".
+Server-module specifics: `import "server-only"` is already at the top of the file; if it is missing, report that as a defect rather than silently adding a variable to an unguarded module.
 
 ### env files
 
-For each of `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd`, `.env`:
+For each of `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd` (use the set that actually exists):
 
-- Locate the section comment (e.g., `# Application`).
-- Append the new var line under the matching section, preserving alignment.
-- For prd, default to the commented placeholder convention (`# APP_FEATURE_X`) unless the user supplied an explicit prd value.
+- Locate the section comment for the purpose and append the line under it, preserving the existing alignment and comment style.
+- Secret-labelled variables get a placeholder (or a commented-out line), never a real value.
 
-### `env/README.md` and `README.ja.md`
+### `env/README.{md,ja.md}` — the variable exists (always)
 
-In the matching subsystem table (e.g., `### Application`), append a row:
+Append a row to the variable table in the matching subsystem section, preserving the column count and order:
 
 ```text
-|APP_FEATURE_X|<description>|<type>|<example>|<notes>|
+|APP_API_BASE_URL|<description>|<type>|<example>|<notes>|
 ```
 
-The Japanese README gets the Japanese description and notes.
+The Japanese file gets the Japanese description and notes, the English file the English ones. Include the secret label in the Notes column when one was chosen. This row is written for **every** variable — including one that no config module reads and one whose value is only ever a placeholder.
+
+### `src/config/README.{md,ja.md}` — the config value (config-backed variables only)
+
+Only on the Question-2 "はい" path. Describe the value the way the surrounding entries do: which purpose it belongs to, server or client side, required or code default, and how a consumer receives it. Do **not** restate the env row here — env owns the fact that the variable exists, config owns what the value means and how it is handled. If the config README documents purposes rather than individual values, add nothing and say so in the plan rather than inventing a per-variable section that the file's structure does not have.
+
+### Tests
+
+The testing approach for config is **env stub + factory regeneration** (`vi.stubEnv`) — [0030](../../../docs/adr/0030-environment-variable-management.md) 周辺ルール / [0090](../../../docs/adr/0090-testing-strategy.md). If config tests exist next to the module (`src/config/<purpose>.*.test.ts`), extend them in lockstep with the production change: a case asserting the new getter, and — for a required variable — a case asserting that its absence fails validation. If no config test file exists yet (the test foundation lands in P3-6), skip this and state so explicitly in the Step 2 plan.
 
 ## Step 2. Show the Plan and Confirm
 
-Display the full set of proposed changes as a Japanese summary:
-
-```text
-追加する環境変数: APP_FEATURE_X
-  サブシステム: Application (envPrefix "APP_")
-  型: bool
-  required / default: required
-  英語説明: Enable experimental X feature
-  日本語説明: 試験的な機能 X を有効化
-  notes (en): 開発環境のみ true 推奨
-  per-env 値: local=true / ci=true / dev=false / stg=false / prd=false
-  テストヘルパー: mock のみ
-
-修正対象 (12 ファイル):
-  - internal/config/envspec.go (Application 構造体に 1 行追加)
-  - internal/config/model.go (ApplicationConfig 構造体に 1 行追加)
-  - internal/config/config.go (New() マッピング + Getter 追加)
-  - internal/config/config_testing_mock.go (expected 値 + setter 追加)
-  - internal/config/config_test.go (TestNewConfig 期待値構造体に 1 行追加)
-  - internal/config/model_test.go (TestGetterMethods に t.Run 追加)
-  - internal/config/config_testing_mock_test.go (TestMockConfigForTest 期待値構造体に 1 行追加)
-  - env/.env.local, .env.ci, .env.dev, .env.stg, .env.prd (各 1 行追加)
-  - env/README.md, env/README.ja.md (Application 表に行追加)
-
-説明の補完:
-  - 入力: 日本語のみ供与
-  - 英語訳（自動生成、レビュー対象）: "Enable the experimental X feature"
-```
+Display the whole proposed change set as a Japanese summary — variable name, config-backed or env-only, purpose and target module, server/client side, type, required vs code default, secret label, both descriptions, per-environment values, the file list with what changes in each, and any auto-translation for review. On the env-only path, say explicitly that no config module and no config README entry are involved.
 
 Confirm with `AskUserQuestion`:
 
@@ -202,92 +193,84 @@ Confirm with `AskUserQuestion`:
 
 ## Step 3. Apply Changes
 
-For each file, use the `Edit` tool with exact anchor strings derived from the read context (the last existing field in the target struct / section). Stage changes in this order:
+Use `Edit` with exact anchors derived from the read context (the last existing schema entry / field / getter / table row in the target section). Order:
 
-1. `envspec.go`
-2. `model.go`
-3. `config.go` (mapping + getter)
-4. `config_testing_mock.go` (expected value variable + mock setter)
-5. `config_test.go` (TestNewConfig literal — coverage maintenance)
-6. `model_test.go` (TestGetterMethods t.Run — coverage maintenance)
-7. `config_testing_mock_test.go` (TestMockConfigForTest literal — coverage maintenance)
-8. env files (one Edit per file: `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd`, `.env`)
-9. `env/README.md` then `env/README.ja.md`
+1. `src/config/<purpose>.{server,client}.ts` (schema entry → private field → getter) — config-backed path only
+2. The config test file, if one exists
+3. env files (one edit per file)
+4. `env/README.md` → `env/README.ja.md` (canonical first, then the translation)
+5. `src/config/README.md` → `src/config/README.ja.md` — config-backed path only
 
-After each file edit, verify the edit landed (the `Edit` tool reports success or failure — if any fails, stop and report).
+If any edit fails, stop and report; do not continue with the remaining files.
 
 ## Step 4. Verify
 
-Run:
+Run the scripts that exist in `package.json`:
 
 ```sh
-make fix    # absorb formatting
-make test   # confirm config loading + getters compile, tests pass, coverage maintained
+pnpm fix        # absorb formatting
+pnpm lint:ci    # includes noProcessEnv — catches process.env read outside src/config/
+pnpm typecheck  # the new getter and its type
+pnpm build      # build-time validation of the full schema (a missing required var fails here)
 ```
 
-If `make test` fails, surface the failure and stop. Do NOT roll back the edits; the user decides whether to fix forward.
+Run the test script too if the project has one. `pnpm build` is the meaningful gate for this skill: it is where [0030](../../../docs/adr/0030-environment-variable-management.md) §1's full-set validation actually executes.
 
-If `make fix` modifies anything beyond the just-edited files, surface the diff.
-
-### Coverage check
-
-After `make test` succeeds, confirm the `internal/config` package's coverage line in the test output. Expected: `go-boilerplate/internal/config <time>  coverage: 100.0% of statements`. If coverage dropped below 100%:
-
-1. Identify which new code path lacks a test (typically the new getter or the new `New()` mapping line).
-2. Verify the Step-3 test updates (`config_test.go`, `model_test.go`, `config_testing_mock_test.go`) all included the new field.
-3. If any was missed, add it and re-run `make test`.
-
-Do NOT mark the skill complete with reduced coverage unless the user explicitly opted out of mock + test updates (Question 5).
+If a command fails, surface the failure and stop. Do NOT roll back the edits — the user decides whether to fix forward.
 
 ## Step 5. Closing
 
-- Print a 1-line summary: `<VAR_NAME> を追加。<N> ファイル更新。make test OK。`
+- Print a one-line summary: `<VAR_NAME> を <purpose> に追加。<N> ファイル更新。build OK。`
+- Remind the user when the variable is secret-labelled or `prd` was left as a placeholder: the real value must be set in the PaaS env / secret store, which this skill does not touch.
 - The skill does NOT commit. Use `/commit` after reviewing.
-- If the user also wants the corresponding documentation in `internal/config/README.md` to be refreshed (rare — `internal/config/README.md` describes the package, not individual vars), recommend `/sync-readme`.
 
 ## AI Modification Scope
 
 Per the "Exception: Skill Execution" clause in `CLAUDE.md` / `AGENTS.md`, the AI modification scope is relaxed during this skill's run, scoped to:
 
-- The 9 files listed above (or the subset the user confirmed).
+- The env files and `env/README.{md,ja.md}`; on the config-backed path also the single purpose config module the variable belongs to (plus its co-located test file) and `src/config/README.{md,ja.md}` — or the subset the user confirmed.
 
 Remains protected:
 
-- `internal/config/config_testing_setter.go` unless the user explicitly opts in (file comment intentionally limits additions).
-- All other code outside `internal/config/`.
-- Generated files.
+- `next.config.ts` / `instrumentation.ts` / `biome.json` and everything else outside `src/config/` + `env/`.
+- Accepted ADR bodies, `AGENTS.md`, `LICENSE`.
 
 ## Constraints
 
-- ❌ Hardcode the subsystem list — always derive from live `envspec.go`
-- ❌ Add a `config_testing_setter.go` helper without explicit user opt-in
-- ❌ Modify env files outside the listed 6 set
-- ❌ Skip the spec-confirmation `AskUserQuestion`
-- ❌ Apply changes without showing the full plan first
-- ❌ Touch code unrelated to the new var
+- ❌ Run at all when `src/config/` does not exist (report instead — the kernel is P3-3's scope)
+- ❌ Hardcode the purpose list, the schema library, or the env-file set — always derive them from the live tree
+- ❌ Put a secret behind `NEXT_PUBLIC_`
+- ❌ Write a real secret value into a committed env file
+- ❌ Add a setter to a config object, or create a facade that aggregates purposes
+- ❌ Use dynamic access or destructuring for `NEXT_PUBLIC_` values in a client module
+- ❌ Spread one variable across more than one purpose module
+- ❌ Skip the `env/README` row because the variable has no config module — env owns existence, config-less variables included
+- ❌ Duplicate the env variable-table content into the config README (or the reverse) — the two documents own different things
+- ❌ Skip the spec-confirmation `AskUserQuestion`, or apply changes without showing the plan first
 - ✅ Japanese user-facing output
-- ✅ Preserve formatting in env files (column alignment, comment style)
-- ✅ Preserve formatting in README tables (column count and order)
-- ✅ Run `make fix` + `make test` after the writes
+- ✅ Preserve formatting in env files (alignment, comment style) and README tables (column count and order)
+- ✅ Run `pnpm fix` + `pnpm lint:ci` + `pnpm typecheck` + `pnpm build` after the writes
 - ✅ Surface any verification failure; do not auto-rollback
 
 ## Checklist
 
 Before reporting completion, confirm:
 
-- [ ] Variable name + subsystem confirmed via `AskUserQuestion`
-- [ ] Go type and required/default confirmed
-- [ ] Description provided in either English or Japanese; the missing side was auto-translated and surfaced in the Step-2 plan for review
-- [ ] Per-environment values resolved (single default or per-env override)
-- [ ] Mock-helper scope confirmed
-- [ ] Full plan was displayed and the user approved it
-- [ ] `envspec.go`, `model.go`, `config.go` each updated with one insertion in the matching subsystem
-- [ ] `config_testing_mock.go` updated (unless skipped)
-- [ ] `config_test.go`, `model_test.go`, `config_testing_mock_test.go` each updated to cover the new field (unless mock scope was skipped — in which case this is noted explicitly)
-- [ ] All 6 env files updated with the new var under the matching subsystem comment
-- [ ] `env/README.md` and `env/README.ja.md` updated with a new table row
-- [ ] `config_testing_setter.go` was NOT touched unless explicitly requested
-- [ ] `make fix` and `make test` were run and the results reported
-- [ ] `internal/config` coverage was checked against the test output; expected 100.0% (or explicitly noted lower if mock scope skipped)
+- [ ] `src/config/` exists and the purpose inventory was read from it (not assumed)
+- [ ] Variable name confirmed and validated against `{SUBSYSTEM}_{NAME}` (or a justified standard-name exception)
+- [ ] Config-backed vs env-only confirmed, and the reach of the change matches it
+- [ ] Server / client side confirmed, and consistent with the presence or absence of `NEXT_PUBLIC_`
+- [ ] Secret label confirmed; no secret was placed behind `NEXT_PUBLIC_`, and no real secret value was written to a committed file
+- [ ] Type and required-vs-code-default confirmed
+- [ ] Description provided in one language; the other side was translated and surfaced in the plan for review
+- [ ] Per-environment values resolved
+- [ ] The full plan was displayed and the user approved it
+- [ ] Config-backed path: exactly one purpose module updated (schema entry + private field + getter, no setter)
+- [ ] Client-module values use static dot access only
+- [ ] All existing env files updated under the matching section
+- [ ] `env/README.{md,ja.md}` got its variable-table row (always)
+- [ ] `src/config/README.{md,ja.md}` updated on the config-backed path, without restating the env row
+- [ ] Config tests updated, or their absence stated explicitly
+- [ ] `pnpm fix` / `lint:ci` / `typecheck` / `build` were run and the results reported
 - [ ] No commits / pushes were performed
 - [ ] Final summary is in Japanese

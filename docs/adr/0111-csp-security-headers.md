@@ -6,13 +6,13 @@
 
 Accepted
 
-（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。独立起票。相互参照(back-link)付与は同フェーズでまとめて行う([決定 5](../plan/pre-implementation-decisions.md))。本 ADR は triage #46 の「実行時本体=新規 ADR」側に対応する([adr-gap-triage.md](../plan/adr-gap-triage.md))。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。独立起票。相互参照(back-link)付与は同フェーズでまとめて行う([0140](0140-documentation-operations.md))。本 ADR は triage #46 の「実行時本体=新規 ADR」側に対応する。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
-[adr-gap-audit.md](../plan/adr-gap-audit.md) #46 は「CSP / セキュリティヘッダ」を空白領域として挙げた。[0110](0110-security-operations.md)(B10)はサプライチェーン/CI 系防御(Dependabot / gitleaks / Trivy / CodeQL / 依存監査)のみで、**実行時のブラウザ側防御が丸ごと空白**であり、[0043](0043-middleware-policy.md)(C6)は「Proxy でヘッダ操作が可能」とのみ述べてポリシー本体・配置方針を持たない。後付けの CSP は既存の inline script/style との衝突で最も導入コストが高く、初期に方針を固めておく価値が高い。
+設計フェーズの遡及監査 #46 は「CSP / セキュリティヘッダ」を空白領域として挙げた。[0110](0110-security-operations.md)(B10)はサプライチェーン/CI 系防御(Dependabot / gitleaks / Trivy / CodeQL / 依存監査)のみで、**実行時のブラウザ側防御が丸ごと空白**であり、[0043](0043-middleware-policy.md)(C6)は「Proxy でヘッダ操作が可能」とのみ述べてポリシー本体・配置方針を持たない。後付けの CSP は既存の inline script/style との衝突で最も導入コストが高く、初期に方針を固めておく価値が高い。
 
-[adr-gap-triage.md](../plan/adr-gap-triage.md) は #46 を **複合 disposition** に仕分けた —— (a) **CSP 適合チェック**(inline 違反検出・ヘッダ well-formed 検証・回帰)は CI 時点で払えるため [0110](0110-security-operations.md) が逆参照ゲートで持つ / (b) **CSP ポリシー内容 + nonce の実行時運用 + ヘッダ配置**は実行時で CI では払えないため **新規 ADR(本 ADR)**。新規化の主理由は「shift-left で払えない」ことに加え、**局所推論可能性** —— 「このリポの CSP はどこで・何を enforce するか」を問う読み手が 0110/0043/0010 に散らばらず本 ADR 1 本で完結して読めることを最大化するためである。
+triage は #46 を **複合 disposition** に仕分けた —— (a) **CSP 適合チェック**(inline 違反検出・ヘッダ well-formed 検証・回帰)は CI 時点で払えるため [0110](0110-security-operations.md) が逆参照ゲートで持つ / (b) **CSP ポリシー内容 + nonce の実行時運用 + ヘッダ配置**は実行時で CI では払えないため **新規 ADR(本 ADR)**。新規化の主理由は「shift-left で払えない」ことに加え、**局所推論可能性** —— 「このリポの CSP はどこで・何を enforce するか」を問う読み手が 0110/0043/0010 に散らばらず本 ADR 1 本で完結して読めることを最大化するためである。
 
 本リポジトリは **Next.js 16 / React 19**。実装前に `node_modules/next/dist/docs/` を確認した結果(AGENTS.md「This is NOT the Next.js you know」)、以下を前提とする(`01-app/02-guides/content-security-policy.md`):
 
@@ -104,4 +104,3 @@ CSP は「別ドメイン(infra/backend)の責務」ではなく **表示層が�
 - [0041-cache-components-decision.md](0041-cache-components-decision.md)— Cache Components は 0.0.x=無効に確定(nonce CSP の dynamic 化と非互換のため既定にしない根拠を補強)
 - [0131-cookie-consent.md](0131-cookie-consent.md)(C9)— 同意ゲート(外部スクリプトの CSP allowlist と連動)
 - [0070-backend-role-separation.md](0070-backend-role-separation.md)(A2)— #47 CSRF/origin 検証の主 Rationale(本 ADR には同居させない)
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — #46 の複合 disposition(実行時本体=本 ADR / CI 適合=0110 逆参照ゲート)

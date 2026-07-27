@@ -6,7 +6,7 @@
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
@@ -55,8 +55,8 @@ src/
 1 機能の変更が 1 スライスに閉じるよう、関連ファイルは実装の隣に共置する([0020](0020-adopted-architecture.md) が機能スライス採用の根拠とする修正の局所性(co-location)/ フラット共置基本)。
 
 - **feature 内はフラット共置を基本**とする。1 つの `features/<name>/` に、その feature の画面ユースケース・専用 UI・hooks・`actions.ts`(Server Action)を**サブディレクトリなしで並置**する(go の集約ディレクトリと同型。ネスト深化の防止)
-- **テストは実装の隣に co-location する**(go `docs/rules.md` の「Co-locate tests with each layer's implementation」を翻案)。`__tests__/` への一括集約はしない。**テストファイルの拡張子・命名規約は B8(テスト戦略)で確定**する(本 ADR は配置方針のみ。`正常系` / `異常系` の日本語命名など戦略面は [決定 3](../plan/pre-implementation-decisions.md) で go 準拠を確定済み)
-- **スタイルは Tailwind ユーティリティを既定**とし([決定 3](../plan/pre-implementation-decisions.md) B1)、別ファイルの CSS は最小化する。グローバル CSS は `src/app/globals.css` に集約する(既存踏襲)。design token / `cn()` ヘルパの置き場は B1 で確定する
+- **テストは実装の隣に co-location する**(go `docs/rules.md` の「Co-locate tests with each layer's implementation」を翻案)。`__tests__/` への一括集約はしない。**テストファイルの拡張子・命名規約は B8(テスト戦略)で確定**する(本 ADR は配置方針のみ。`正常系` / `異常系` の日本語命名など戦略面は [0090](0090-testing-strategy.md) で go 準拠を確定済み)
+- **スタイルは Tailwind ユーティリティを既定**とし([0050](0050-styling-strategy.md))、別ファイルの CSS は最小化する。グローバル CSS は `src/app/globals.css` に集約する(既存踏襲)。design token / `cn()` ヘルパの置き場は B1 で確定する
 - **MSW 等のモック生成物**(triage #73 / #74・B3 orval 由来)は `src/` 外の **`mocks/`(または テストへ co-location)** に置き、生成型([0072](0072-api-type-generation.md) の do-not-edit)と分離する
 
 ### 共有モジュールの粒度

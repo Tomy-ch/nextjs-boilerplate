@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-[docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) の遡及監査で、[0021](0021-frontend-responsibility.md) の**昇格ルール**(feature を跨ぐ横断要素を `model` / `components` / `adapters` のいずれかへ昇格させる)に、**reactive な横断 client hook の出口が存在しない**ことが判明した。`useConnectivity`(triage #30)等の「フロント領域の横断 client hook(拡張点 / seam)」を置く家が無く、複数 feature から使う client hook の昇格先が定義されていなかった。
+設計フェーズの遡及監査(triage)で、[0021](0021-frontend-responsibility.md) の**昇格ルール**(feature を跨ぐ横断要素を `model` / `components` / `adapters` のいずれかへ昇格させる)に、**reactive な横断 client hook の出口が存在しない**ことが判明した。`useConnectivity`(triage #30)等の「フロント領域の横断 client hook(拡張点 / seam)」を置く家が無く、複数 feature から使う client hook の昇格先が定義されていなかった。
 
 [0021](0021-frontend-responsibility.md) の命名規律は「役割を名指しできない置き場が必要になった時点で、それは設計の欠落であり、**真に横断が必要になったら ADR 追補で役割を定義してから作る**」と定めている(0021 命名規律)。本 ADR はその条項を発動し、役割を定義したうえで 10 個目のカーネルを立てる。go-boilerplate に対応物はない(React の client hook はフロント固有であり、翻案元を持たない)。
 
@@ -27,9 +27,10 @@ Accepted
 - `useClipboard`(#26)
 - Web Storage(`useLocalStorage` / `useSessionStorage`・#43)/ client cookie 読み(#44)
 - safe-area / viewport(#29)
-- keyboard shortcut registry(#25)
 - navigation-block(離脱ガード・#14)
 - scroll 制御(#24)
+
+キーボードショートカット(#25)は据え置き除外のため hook 例から外す([0053](0053-ui-component-interaction-seam.md) §5)。fork 先がグローバルショートカットを採用する場合の置き場が `capabilities` であることだけは変わらない。
 
 ### `"use client"` 不変条件(client-only)
 
@@ -46,7 +47,7 @@ Accepted
 - **server config**(secret を持つ runtime config object。client のため不可)。※ client config(= NEXT_PUBLIC のビルド時インライン**リテラル**)は runtime object でなく公開定数のため import 可([0030](0030-environment-variable-management.md))
 - **業務状態**
 - **UI マークアップ** → `components`
-- **ポリシー状態**: consent-gate は [0131](0131-cookie-consent.md) の seam、feature-flag は triage #62 の seam が所有する。`capabilities` は **runtime 能力に限る**(ポリシー hook はここに置かない)
+- **ポリシー状態**: consent-gate は [0131](0131-cookie-consent.md) の機構([0031](0031-policy-state-supply.md) の供給経路)、feature-flag は triage #62 の seam が所有する。`capabilities` は **runtime 能力に限る**(ポリシー hook はここに置かない)
 
 ### 依存
 
@@ -88,7 +89,7 @@ feature の移植可能性は、**カーネル契約に対して相対的**で�
 
 - **採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。
 - **[0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) 等への内容反映は 2026-07-14 に適用済**(ユーザ承認のもと): 0020 = 9 → 10 カーネル宣言(構造図・mermaid・go マッピング表)/ 0021 = 依存マトリクスに `capabilities` 行・昇格ルール 4 つ目・Enforcement element・層別 README・本 ADR への pointer。以降、本 ADR と既存 ADR は整合済み
-- 本 ADR は遡及監査で判明した 0021 昇格ルールの穴を塞ぎ、triage #30 / #26 / #25 / #24 / #14 等の**フロント領域の拡張点(seam)の置き場を確定**する。
+- 本 ADR は遡及監査で判明した 0021 昇格ルールの穴を塞ぎ、triage #30 / #26 / #24 / #14 等の**フロント領域の拡張点(seam)の置き場を確定**する。
 
 ## 関連 ADR
 
@@ -101,5 +102,4 @@ feature の移植可能性は、**カーネル契約に対して相対的**で�
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — RSC / Client 境界(`"use client"` 不変条件の根拠)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠(移植性のための hook API デファクト準拠)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) / [0080-error-handling.md](0080-error-handling.md) / [0081-observability-logging.md](0081-observability-logging.md) — 「実質のあるカーネルは自前 ADR」の先例
-- [0131-cookie-consent.md](0131-cookie-consent.md) — consent seam(ポリシー hook の所有先)/ triage #62 = feature-flag seam
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — 遡及監査(本 ADR の由来)/ #30 等の拡張点(seam)の置き場
+- [0131-cookie-consent.md](0131-cookie-consent.md) — consent 機構(ポリシー状態の所有先。`capabilities` には置かない)/ triage #62 = feature-flag seam

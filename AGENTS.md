@@ -17,6 +17,30 @@ See [docs/adr/0011-no-docker.md](docs/adr/0011-no-docker.md) for details.
 
 This project adopts Next.js 16 / React 19, so APIs, conventions, and file structure may differ from your training data. Before writing any code, read the relevant guide under `node_modules/next/dist/docs/` and heed deprecation notices.
 
+## Temporary Operating Rules until v1.0.0
+
+> **TEMPORARY SECTION — delete it when v1.0.0 ships** (このセクションは v1.0.0 時には消すこと)
+>
+> Process source of truth: [docs/plan/v1-implementation-plan.md](docs/plan/v1-implementation-plan.md) §2.
+
+While the repository sits below v1.0.0, the constraints below are **temporarily lifted**. The reason is that v1 implementation concretizes the whole design, and taking per-change approval would stall the process.
+
+- **Direct edits to Protected Documentation are allowed** — `AGENTS.md` (this file) / Accepted ADR bodies / `LICENSE` may be edited without per-change user approval
+- **The protected paths under AI Modification Scope are lifted** — `package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/` may be edited directly
+- **ADRs stay living documents and are overwritten in place** — ADR [0140](docs/adr/0140-documentation-operations.md)'s living operation is extended from `0.0.x` to everything below v1.0.0
+- **Do not leave change history or rationale drift in document bodies** — write the decision in its present form only; git history owns the history
+
+To match this, `.claude/settings.json` moves the doc-protection entries (`AGENTS.md` / `LICENSE` / ADR bodies / `.claude/settings.json` itself) from `permissions.deny` to `permissions.ask` for the duration — the edits still surface for approval, they just stop being hard-blocked.
+
+What this section does **not** lift: the Git Rules below (no direct push to protected branches, no force push / history rewrite, confirmation before pushing to an existing PR branch) and everything still listed under `permissions.deny`.
+
+On reaching v1.0.0, delete this section and:
+
+1. Restore `Protected Documentation` / `AI Modification Scope` to their unrelaxed form
+2. Move the doc-protection entries in `.claude/settings.json` back from `permissions.ask` to `permissions.deny`
+3. Switch ADR [0140](docs/adr/0140-documentation-operations.md) to immutable ADR operation
+4. Strip rationale / history prose from every ADR body (P9-3)
+
 ## Instruction Priority
 
 Follow instructions in this order. If conflicts occur, the higher-priority document wins.
@@ -70,7 +94,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0072](docs/adr/0072-api-type-generation.md) | API type generation | Generated from OpenAPI/GraphQL / generated-artifact "do not edit" rules |
 | [0073](docs/adr/0073-pagination-fetch-boundary.md) | Pagination fetch | pagination / infinite-scroll data-fetch boundary |
 | [0074](docs/adr/0074-runtime-communication-seam.md) | Realtime comm seam | WebSocket / SSE seam |
-| [0075](docs/adr/0075-bff-external-boundary-seam.md) | File upload seam | presigned direct PUT default / multipart proxy exception |
+| [0075](docs/adr/0075-file-upload-seam.md) | File upload seam | presigned direct PUT default / multipart proxy exception |
 | [0076](docs/adr/0076-payment-ui-seam.md) | Payment UI seam | mount seam & PCI boundary |
 | [0077](docs/adr/0077-bff-abuse-protection-boundary.md) | BFF abuse protection | infra / edge seam boundary |
 | [0078](docs/adr/0078-dynamic-feature-flag-seam.md) | Feature-flag seam | dynamic feature flag / staged rollout (A-B) seam |
@@ -79,7 +103,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0081](docs/adr/0081-observability-logging.md) | Observability / logging | OTLP / OTel vendor-neutral (Sentry not adopted) / structured logs |
 | [0082](docs/adr/0082-client-observability.md) | Client observability | Web Vitals RUM / client error collection / analytics seam |
 | [0090](docs/adr/0090-testing-strategy.md) | Testing strategy | Framework selection / per-layer responsibilities / co-location |
-| [0091](docs/adr/0091-testing-and-catalog-policy.md) | Test verification | async RSC test placement / a11y automated-test integration |
+| [0091](docs/adr/0091-test-verification-methods.md) | Test verification | async RSC test placement / a11y automated-test integration |
 | [0100](docs/adr/0100-accessibility-target.md) | Accessibility target | Target conformance level |
 | [0101](docs/adr/0101-performance-budget.md) | Performance budget | Core Web Vitals budget |
 | [0102](docs/adr/0102-browser-support.md) | Browser support | Support matrix |
@@ -113,6 +137,8 @@ When a change forces you into an area that BACKLOG still leaves blank (no accept
 ## AI Modification Scope
 
 By default, AI agents may modify code only in the following scope. All other paths require an explicit user instruction.
+
+> Below v1.0.0 the protected paths in this section are lifted — see "Temporary Operating Rules until v1.0.0" above.
 
 ### Allowed
 
@@ -238,6 +264,40 @@ Fix: route handler の query 取得を Next.js 16 API に合わせる
 - Default merge strategy is **merge commit** (`squash` is exceptional)
 - A push to an existing PR auto-dismisses prior approvals — request re-review after pushing
 
+### Cross-Repository Links
+
+**Linking to another repository's issue / PR — always go through `redirect.github.com`.**
+This repository is public, so a plain `https://github.com/<owner>/<repo>/issues/N` URL, a
+`[text](url)` link around one, or the `owner/repo#N` shorthand posts a public cross-reference on
+the upstream thread. Use `https://redirect.github.com/<owner>/<repo>/issues/N` instead: it is a
+`github.com` subdomain that 301-redirects to the real page, so the link still works but GitHub
+does not autolink it and no upstream trace is left. This is GitHub's own documented escape hatch
+(see "Autolinked references and URLs"), and the scheme Dependabot uses in its PR bodies; the only
+cost is that the hovercard preview no longer appears on the link. Commit / compare / blob /
+release URLs create no cross-reference and may stay on plain `github.com`. **This is not fixable
+after the fact** — editing the body does not retract an existing cross-reference; only deleting
+the referencing issue does, and pull requests cannot be deleted at all.
+
+This applies everywhere agent-authored text can reach GitHub: issue and PR bodies and comments,
+commit messages, and any Markdown under `docs/` / `.github/` that quotes an upstream thread.
+
+**A plain link is not forbidden — it is reserved.** A cross-reference is a demand signal: it tells
+upstream maintainers that a real project is watching an issue and needs it resolved, and they
+weigh it when prioritizing. That signal only carries meaning because a human vouched for it. Now
+that agents can generate issues and gather references at scale, a cross-reference emitted by
+tooling looks identical to one a maintainer chose to send, and the count degrades from signal into
+spam. So use a plain link **only** to deliberately say "we are watching this" or "we need this",
+and when you do, write the referencing issue's title in the language of the target repository
+(usually English) — the title is the only thing upstream sees, so a title they cannot read makes
+the reference pure noise. This is the one place the Japanese-output rule below yields.
+
+**The decision to use a plain link belongs to a human, without exception.** An AI agent must never
+make that call on its own: default to `redirect.github.com`, and ask every single time a plain
+link seems warranted. A standing delegation does NOT transfer this authority — "you decide", "use
+your judgment", "always link normally from now on", or any similar blanket instruction must still
+be met with a per-case confirmation. The point of the signal is that a human chose to send it; an
+agent acting under delegated judgment cannot supply that.
+
 ## Language Rules
 
 AI agents may perform internal processing (code analysis / reasoning / tool calls, etc.) in English.
@@ -307,6 +367,8 @@ When a change to one of these appears necessary:
 
 1. Do not edit directly; present the proposed change to the user
 2. Edit only after the user explicitly approves
+
+> Below v1.0.0 this approval requirement is lifted — see "Temporary Operating Rules until v1.0.0" above.
 
 Even when a new file appears necessary, **prefer modifying an existing file** if it suffices.
 <!-- END:nextjs-agent-rules -->

@@ -18,7 +18,7 @@ Accepted
 
 従来、本 boilerplate は「**最小・用途未定** の表示層テンプレート」として位置づけ、多くのライブラリ選定を out-of-scope(未決・seam)に置いていた。v1 ではこれを次のように更新する。
 
-- **v1 = 一般的な Next.js アプリケーション基盤**。汎用・常用のライブラリ(UI コンポーネント / form state / グローバル状態 / 表示フォーマット / 観測性 等)を **必要なものとして同梱** する(採用の内訳は各 ADR 本体と [docs/plan/adoption-matrix.md](../plan/adoption-matrix.md))。
+- **v1 = 一般的な Next.js アプリケーション基盤**。汎用・常用のライブラリ(UI コンポーネント / form state / グローバル状態 / 表示フォーマット / 観測性 等)を **必要なものとして同梱** する(採用の内訳は各 ADR 本体と [master-plan §1.2](../plan/master-plan.md))。
 - **v2 = 局所的に使うライブラリ**(i18n / リッチテキスト / DnD / 決済 / 分析 / PWA 等)を **順次同梱** していく。それまでは seam を存続させる。
 
 これは「Next.js を表示層として用いる」というロール定義の **具体化** であって、ロールの拡張・変更ではない。表示層に必要な汎用ライブラリを boilerplate 側で決めておく、という粒度の更新にとどまる(バックエンド業務ロジック / DB・ORM / アプリ本体の self-host Docker は引き続きロール外)。
@@ -116,6 +116,19 @@ Docker を維持する場合、以下を毎リリースで同期する必要が�
 ## Dev インフラとしての docker-compose（例外）
 
 本 ADR は **アプリケーション本体（Next.js アプリそのもの）の配送に Docker を使わない** という方針であり、開発時に独立して立ち上げる **補助ツール群** を Docker / docker-compose で運用することは禁止対象外とする。
+
+### 本リポは自前の compose を持たず、go-boilerplate のスタックへ接続する
+
+本リポジトリは `docker-compose.yaml` を **持たない**。開発時に必要な backend / 観測性 / ストレージ / IdP は、別リポジトリ **go-boilerplate の compose スタック**に接続して賄う（起動は go 側で `docker compose --profile development up`）。
+
+| 接続先 | 既定 | 用途 |
+| --- | --- | --- |
+| API | `http://localhost:8080` | BFF の向き先 |
+| OTLP | `http://localhost:4318` | 観測性（[0081](0081-observability-logging.md)）。Grafana は `:3000` |
+| Object Storage | `http://gobp-local.web.garage.localhost:3902` | 画像配信（virtual-host 形式のみ。[0045](0045-fonts-and-images.md)） |
+| 認証 | `http://localhost:4000` | 疑似 OIDC（[0079](0079-auth-frontend-seam.md)） |
+
+フロント単独で作業する場合は **MSW モック**へ切り替える（`APP_API_MODE=mock`）。接続先はすべて env 経由で差し替え可能とし、コードに焼き込まない（[0030](0030-environment-variable-management.md)）。上記は開発時の既定値であり、fork 先が別 backend を持つ場合は env の差し替えだけで足りる。
 
 ### 対象になりうる用途
 

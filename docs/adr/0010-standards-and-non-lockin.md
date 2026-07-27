@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-これらの判断軸は設計討議の中で確立・確定したが、これまで `docs/plan/`(triage / port-plan)に **適用結果**(#45 認証の正当化要件など)として散在するだけで、**原則そのものが正典化されていなかった**。ADR が「乗る」決定を下すたびに正当化の枠組みを書き直すのは冗長であり、局所推論も崩れる。本 ADR は各 ADR が **リンクする先** としての恒久判断軸を成文化する。
+これらの判断軸は設計討議の中で確立・確定したが、これまで設計フェーズの検討文書(triage / port-plan)に **適用結果**(#45 認証の正当化要件など)として散在するだけで、**原則そのものが正典化されていなかった**。ADR が「乗る」決定を下すたびに正当化の枠組みを書き直すのは冗長であり、局所推論も崩れる。本 ADR は各 ADR が **リンクする先** としての恒久判断軸を成文化する。
 
 ## 決定
 
@@ -45,7 +45,7 @@ Accepted
 ## 適用(How to apply)
 
 - **adopt を伴う ADR**: §1 でデファクトに乗り、§2 の vendor-independent 正当性材料を本体に明記する。
-- 本原則の適用状況は [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) が保持する(#45 認証の正当化要件・#46 CSP)。認証 seam([0079](0079-auth-frontend-seam.md))/ CSP([0111](0111-csp-security-headers.md))は本 ADR を参照して正当化済み。
+- 本原則の適用状況(#45 認証の正当化要件・#46 CSP)は各適用先 ADR が保持する。認証 seam([0079](0079-auth-frontend-seam.md))/ CSP([0111](0111-csp-security-headers.md))は本 ADR を参照して正当化済み。
 
 ## 禁止事項
 
@@ -66,4 +66,3 @@ Accepted
 - [0011-no-docker.md](0011-no-docker.md) — 表示層ロール / thin proxy。§2 の「フレームワーク選択は別既決」の根拠
 - [0070-backend-role-separation.md](0070-backend-role-separation.md) / [0043-middleware-policy.md](0043-middleware-policy.md) — 認証の責務分担・proxy 方針(triage #45 が本 ADR の 2 原則を適用する土台)
 - [0140-documentation-operations.md](0140-documentation-operations.md) — ドキュメントタクソノミー(本 ADR = decision 分類)
-- [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — 本原則の #45 認証 seam・#46 CSP への適用結果

@@ -9,8 +9,8 @@ This skill defines the work procedure for generating a Japanese release note tha
 
 The canonical examples of the target format are:
 
-- `.github/release/v1.1.0.md`
-- `.github/release/v1.0.0.md`
+- `.github/release/v0.0.6.md`
+- `.github/release/v0.0.5.md`
 
 A Japanese reference translation of this skill is available at `SKILL.ja.md` in the same directory (not loaded as a skill; for human reference only).
 
@@ -37,15 +37,15 @@ This skill **MUST call `AskUserQuestion` immediately after invocation** to confi
 1. Compute candidate bumps using the in-repo helper:
 
     ```sh
-    node scripts/semver.cjs <FROM_TAG> patch
-    node scripts/semver.cjs <FROM_TAG> minor
-    node scripts/semver.cjs <FROM_TAG> major
+    pnpm exec tsx scripts/semver.ts <FROM_TAG> patch
+    pnpm exec tsx scripts/semver.ts <FROM_TAG> minor
+    pnpm exec tsx scripts/semver.ts <FROM_TAG> major
     ```
 
 2. Also detect a hint from the current branch (`git rev-parse --abbrev-ref HEAD`). If it matches `release/v[0-9]+\.[0-9]+\.[0-9]+`, surface that value as an additional candidate.
 3. Invoke `AskUserQuestion`:
     - Question: "新しいリリースのバージョン (NEW_VERSION) を指定してください。"
-    - Options: patch / minor / major candidates from `scripts/semver.cjs`, plus the branch-derived candidate if present.
+    - Options: patch / minor / major candidates from `scripts/semver.ts`, plus the branch-derived candidate if present.
 4. Validate the answer matches `^v[0-9]+\.[0-9]+\.[0-9]+$`. Use it as `<NEW_VERSION>`.
 
 Do NOT read git history, run diffs, or write any file until both values are confirmed.
@@ -172,9 +172,9 @@ Rules for the content:
 
 - **Do not paste raw commit subjects.** Summarize them in human-readable Japanese sentences.
 - **Group by theme**, not by chronology.
-- **Reference concrete file paths or component names** when they help readers locate the change (e.g., `scripts/semver.cjs`, `internal/controller/handler/...`).
+- **Reference concrete file paths or component names** when they help readers locate the change (e.g., `scripts/semver.ts`, `src/app/...`).
 - **Be honest about scope.** If a section has no content (e.g., no bug fixes), write `- 該当なし` rather than fabricating items.
-- **Match existing tone.** Compare to `.github/release/v1.1.0.md` for sentence style.
+- **Match existing tone.** Compare to `.github/release/v0.0.6.md` for sentence style.
 
 ### 5. Show a Preview Before Writing
 

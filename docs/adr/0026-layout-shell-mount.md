@@ -1,6 +1,6 @@
 # layout の横断 UI / Provider mount(app シェル合成)
 
-`<Toaster/>`・グローバル nav / footer・各 Provider(テーマ / capabilities / ポリシー)を **root layout に mount する経路が無かった**(構造ブロッカー **S4**。詳細は [structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md))。[0025](0025-app-layer-elements.md) の `app/route-segment` は import 先が `features` のみで、[0022](0022-capabilities-kernel.md) の Provider mount 例外は `capabilities` 限定に書かれていたため、横断 UI シェルと Provider を layout に置けなかった。
+`<Toaster/>`・グローバル nav / footer・各 Provider(テーマ / capabilities / ポリシー)を **root layout に mount する経路が無かった**(構造ブロッカー **S4**)。[0025](0025-app-layer-elements.md) の `app/route-segment` は import 先が `features` のみで、[0022](0022-capabilities-kernel.md) の Provider mount 例外は `capabilities` 限定に書かれていたため、横断 UI シェルと Provider を layout に置けなかった。
 
 本 ADR は **layout の mount 例外を一般化**し、`layout` と `page` を区別してこれを解消する(新カーネル不要)。
 
@@ -49,4 +49,3 @@ Accepted
 - [0031-policy-state-supply.md](0031-policy-state-supply.md) — ポリシー Provider(反応的供給時に layout mount)
 - [0050-styling-strategy.md](0050-styling-strategy.md) — テーマ / ダークモード(Provider mount 対象)
 - [0080-error-handling.md](0080-error-handling.md) / [0052-ui-component-policy.md](0052-ui-component-policy.md) — トースト UI(#19)の帰属先
-- [docs/plan/structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md) — 構造ブロッカー S4 の由来・全体像

@@ -2,7 +2,7 @@
 
 [0020](0020-adopted-architecture.md) の **機能スライス × 表示層カーネル** アーキテクチャに、11 個目のカーネル **`stores`** を追加し、その **責務 / 依存 / `"use client"` 不変条件 / 採用ライブラリ / 昇格基準** を定める。
 
-[0060](0060-state-management.md) は「Server state = RSC fetch 既定 / Client state = local から / グローバル状態ライブラリ非同梱」を定めたが、**バッテリー同梱への転換(v1・[adoption-matrix](../plan/adoption-matrix.md))で横断する client 状態を扱うライブラリ(Zustand)を採用**するにあたり、**複数 feature が共有する横断 client 状態を置く家が無い**問題(`capabilities` の横断 hook と同型のギャップ)を本 ADR が解消する。「実質のあるカーネルは自前 ADR を持つ」定石([0022](0022-capabilities-kernel.md) capabilities と同型)に従い独立させる。
+[0060](0060-state-management.md) は「Server state = RSC fetch 既定 / Client state = local から / グローバル状態ライブラリ非同梱」を定めたが、**バッテリー同梱への転換(v1・[master-plan §1.2](../plan/master-plan.md))で横断する client 状態を扱うライブラリ(Zustand)を採用**するにあたり、**複数 feature が共有する横断 client 状態を置く家が無い**問題(`capabilities` の横断 hook と同型のギャップ)を本 ADR が解消する。「実質のあるカーネルは自前 ADR を持つ」定石([0022](0022-capabilities-kernel.md) capabilities と同型)に従い独立させる。
 
 ## Status
 
@@ -69,4 +69,4 @@ Zustand は de-facto の軽量 store で、`create()` + hook の標準形に乗�
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — server state(RSC/adapters。store と二重にしない境界)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 昇格ルール(横断 client 状態 → stores の出口を追加)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — Zustand 標準準拠 + 差し替え可能性
-- [docs/plan/adoption-matrix.md](../plan/adoption-matrix.md) — v1 バッテリー同梱(Zustand 採用)の全体像
+- [master-plan §1.2 採用ロードマップ](../plan/master-plan.md) — v1 バッテリー同梱(Zustand 採用)の全体像

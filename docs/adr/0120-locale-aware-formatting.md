@@ -6,17 +6,17 @@ i18n 本体([0121](0121-i18n-strategy.md) の exclusion)とは独立に、単一
 
 Accepted
 
-- **バッテリー採用への転換(2026-07-14・v1)**: 従来の「フォーマットライブラリ非同梱・最小」路線から、v1 = 一般的な Next.js アプリケーション基盤として **表示フォーマットは `Intl` を維持しつつ、`Intl` が持たない日付演算(加減算 / 差分 / パース等)を `date-fns` で補う**方針へ転換([docs/plan/adoption-matrix.md](../plan/adoption-matrix.md))。
+- **バッテリー採用への転換(2026-07-14・v1)**: 従来の「フォーマットライブラリ非同梱・最小」路線から、v1 = 一般的な Next.js アプリケーション基盤として **表示フォーマットは `Intl` を維持しつつ、`Intl` が持たない日付演算(加減算 / 差分 / パース等)を `date-fns` で補う**方針へ転換([master-plan §1.2](../plan/master-plan.md))。
 
 （**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。独立起票。本 ADR の内容自体はこの設計討議でユーザ確定済み。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
-triage [#52](../plan/adr-gap-audit.md)(国際化・フォーマット節「日付・数値・通貨の locale-aware フォーマット」)は、**i18n ライブラリ([0121](0121-i18n-strategy.md) exclusion)とは独立に必要な `Intl.DateTimeFormat` / `Intl.NumberFormat` の使用規約** — フォーマッタの置き場・既定 locale・ライブラリ(date-fns 等)の採否 — を未決としていた([adr-gap-audit.md](../plan/adr-gap-audit.md) 一次分類: decision)。
+triage #52(国際化・フォーマット節「日付・数値・通貨の locale-aware フォーマット」)は、**i18n ライブラリ([0121](0121-i18n-strategy.md) exclusion)とは独立に必要な `Intl.DateTimeFormat` / `Intl.NumberFormat` の使用規約** — フォーマッタの置き場・既定 locale・ライブラリ(date-fns 等)の採否 — を未決としていた(遡及監査の一次分類: decision)。
 
 - **日付・数値表示は単一ロケールでも初日から必要**であり、置き場を決めないと**同じフォーマッタが feature ごとに再発明**される([0021](0021-frontend-responsibility.md) の「複数箇所参照はカーネル昇格」判断が先送りされる)。
-- 一方、**日付の加減算・差分・パース・比較・ISO 相互変換といった「演算」は `Intl` の射程外**である。`Intl` は locale-aware な**表示(format)専用**であり、演算 API を持たない。演算を素の `Date` と手書きで組むと、閏年・DST・タイムゾーン境界・月末繰り上げ等のバグが feature ごとに再生産される。v1 = 一般的なアプリ基盤としてこの演算基盤は初日から必要であり、`date-fns` を採用してカーネルに集約する([docs/plan/adoption-matrix.md](../plan/adoption-matrix.md) DATE 行 / ④判断)。
-- 隣接 ADR は [0121](0121-i18n-strategy.md)(C1)だが、本文は**翻訳基盤・ロケール解決の exclusion のみ**でフォーマット・演算は射程外。[0121](0121-i18n-strategy.md) は Status が `Accepted (exclusion)` の Protected Documentation であり、本 ADR 作成時点では編集しない。triage [#52](../plan/adr-gap-triage.md) の disposition が「フォーマット関数の置き場は 0021/0027(カーネル管轄)で**書き切る**(異質な節を 0121 に足すだけだと委譲先消失を再生産)」と定めるとおり、帰属を本 ADR がカーネル管轄で確定する。
+- 一方、**日付の加減算・差分・パース・比較・ISO 相互変換といった「演算」は `Intl` の射程外**である。`Intl` は locale-aware な**表示(format)専用**であり、演算 API を持たない。演算を素の `Date` と手書きで組むと、閏年・DST・タイムゾーン境界・月末繰り上げ等のバグが feature ごとに再生産される。v1 = 一般的なアプリ基盤としてこの演算基盤は初日から必要であり、`date-fns` を採用してカーネルに集約する([master-plan §1.2](../plan/master-plan.md))。
+- 隣接 ADR は [0121](0121-i18n-strategy.md)(C1)だが、本文は**翻訳基盤・ロケール解決の exclusion のみ**でフォーマット・演算は射程外。[0121](0121-i18n-strategy.md) は Status が `Accepted (exclusion)` の Protected Documentation であり、本 ADR 作成時点では編集しない。triage #52 の disposition が「フォーマット関数の置き場は 0021/0027(カーネル管轄)で**書き切る**(異質な節を 0121 に足すだけだと委譲先消失を再生産)」と定めるとおり、帰属を本 ADR がカーネル管轄で確定する。
 
 ## 決定
 
@@ -28,10 +28,10 @@ triage [#52](../plan/adr-gap-audit.md)(国際化・フォーマット節「日�
 
 ### 2. 日付演算は `date-fns` を採用する(`Intl` の補完・二重フォーマット禁止)
 
-- **`Intl` が持たない日付の「演算」= 加減算(`addDays` / `subMonths` 等)・差分(`differenceInDays` 等)・パース(`parseISO` 等)・比較(`isBefore` / `isAfter`)・境界(`startOfDay` / `endOfMonth`)等は `date-fns` を用いる**。これは v1 で採用する([docs/plan/adoption-matrix.md](../plan/adoption-matrix.md))。導入は [0004](0004-library-management.md) の採用フロー(**exact pin + `pnpm audit`**)に従う。
+- **`Intl` が持たない日付の「演算」= 加減算(`addDays` / `subMonths` 等)・差分(`differenceInDays` 等)・パース(`parseISO` 等)・比較(`isBefore` / `isAfter`)・境界(`startOfDay` / `endOfMonth`)等は `date-fns` を用いる**。これは v1 で採用する([master-plan §1.2](../plan/master-plan.md))。導入は [0004](0004-library-management.md) の採用フロー(**exact pin + `pnpm audit`**)に従う。
 - **`Intl` との役割分界(二重フォーマットの禁止)**: **表示 = `Intl`、演算 = `date-fns`** に厳密に分ける。`date-fns` の `format` 系(`format` / `formatDistance` / `formatRelative` 等)や locale パッケージ(`date-fns/locale`)は**表示用途では使わない**(表示は §1 の `Intl` が唯一の出口)。同じ表示を `Intl` と `date-fns` の双方で二重に持たない。`date-fns` の責務は**あくまで `Date` 値の演算・生成・解析**に限定し、演算結果の `Date` を最終的に `Intl` で描画する。
 - **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md) §1/§2)**: `date-fns` は **immutable な純関数の集合**であり、`Date` オブジェクトを入出力とする — 独自ラッパ型(Moment / Luxon の `DateTime`、Day.js の `Dayjs` 等)を導入しないため、**ライブラリ固有オブジェクトが型境界を汚染しない**([0020](0020-adopted-architecture.md) 型漏洩禁止と整合)。関数単位で **tree-shakable**(使う関数だけがバンドルに載る)であり、各ヘルパは標準 `Date` を受け取り標準 `Date` を返すため、**別ライブラリ(Luxon / Temporal 等)への差し替えがモジュール境界内で完結**する。[0010](0010-standards-and-non-lockin.md) の運用テスト「そのベンダーを抜いてもパターンは正当か?」は Yes — 演算ヘルパを `model` に集約し標準 `Date` を境界型に保つという**構造**は `date-fns` 固有ではなく、将来 [ECMAScript Temporal](https://tc39.es/proposal-temporal/) が標準搭載された時点で `date-fns` を Temporal 実装へ差し替えても構造は不変。ゆえに「数ある演算手段から、標準 `Date` 境界・tree-shakable・型非汚染という独立根拠で `date-fns` を 1 要因として選んだ」= 非ロックイン。
-- **差替可能性の担保([0010](0010-standards-and-non-lockin.md) §2 / [adoption-matrix.md](../plan/adoption-matrix.md))**: `date-fns` の関数を **feature / component から直接 import して散らさない**。日付演算は次項の `model` カーネルの薄いヘルパ越しに使い、vendor 直参照を単一の家に閉じ込める(差し替え点を 1 箇所に保つ)。
+- **差替可能性の担保([0010](0010-standards-and-non-lockin.md) §2 / [master-plan §1.2](../plan/master-plan.md))**: `date-fns` の関数を **feature / component から直接 import して散らさない**。日付演算は次項の `model` カーネルの薄いヘルパ越しに使い、vendor 直参照を単一の家に閉じ込める(差し替え点を 1 箇所に保つ)。
 
 ### 3. フォーマッタ・日付演算ヘルパの置き場 = `model` カーネル
 
@@ -59,7 +59,7 @@ triage [#52](../plan/adr-gap-audit.md)(国際化・フォーマット節「日�
 ## 補足
 
 - **decision / rule 分界([0140](0140-documentation-operations.md))**: 本 ADR は **decision**(`Intl` の表示採用維持 / `date-fns` の演算採用 / 二重フォーマット禁止の分界 / ヘルパの置き場 = `model` / 既定 locale seam)を確定する。一方、**日常的に強制される使用 rule**(常に明示 locale を引数で渡す・`Intl.*` インスタンスを生成しっぱなしにせず再利用する・コンポーネント内での `toLocaleString` 直書きを避けフォーマッタ経由にする・`date-fns` は関数単位 import で tree-shaking を効かせる、等)は **rule 分類**であり `docs/rules.md`(新設。[0140](0140-documentation-operations.md))へ `> Rationale: [ADR-0120]` 逆参照付きで集約する(triage の rules.md 一括着地に載せる)。ライブラリ採否という **decision は本 ADR、使用 rule は rules.md** に分ける([0140](0140-documentation-operations.md)「decision を rules.md に、rule を ADR 本文に書かない」)。
-- **[#53](../plan/adr-gap-audit.md)(TZ / hydration mismatch)/ [#54](../plan/adr-gap-audit.md)(相対時刻・`Intl.RelativeTimeFormat` の client 定期更新)は本 ADR の射程外**である。両者は triage で **rules.md 行き(Rationale = [0040](0040-routing-rendering-strategy.md))**に仕分けられている([adr-gap-triage.md](../plan/adr-gap-triage.md) #53 / #54)。本 ADR は **絶対時刻・数値の静的フォーマットの置き場・`Intl` 表示採用・`date-fns` 演算採用**のみを扱い、サーバ(UTC)/ ブラウザ(ローカル TZ)の表示ずれ・`suppressHydrationWarning` 可否・時刻の client 描画・相対時刻の interval 再描画は扱わない。境界: **「どこに・何で書くか」= 本 ADR(0120)/「hydration・TZ・相対時刻の描画パターン」= rules.md(Rationale 0040)**。
+- **#53(TZ / hydration mismatch)/ #54(相対時刻・`Intl.RelativeTimeFormat` の client 定期更新)は本 ADR の射程外**である。両者は triage で **rules.md 行き(Rationale = [0040](0040-routing-rendering-strategy.md))**に仕分けられている(triage #53 / #54)。本 ADR は **絶対時刻・数値の静的フォーマットの置き場・`Intl` 表示採用・`date-fns` 演算採用**のみを扱い、サーバ(UTC)/ ブラウザ(ローカル TZ)の表示ずれ・`suppressHydrationWarning` 可否・時刻の client 描画・相対時刻の interval 再描画は扱わない。境界: **「どこに・何で書くか」= 本 ADR(0120)/「hydration・TZ・相対時刻の描画パターン」= rules.md(Rationale 0040)**。
 - **`Intl` と `date-fns` の役割の完全な線引き**: 「値を **加工する**(足す・引く・差を取る・解析する・境界を丸める)」= `date-fns`、「値を **見せる**(locale 依存の文字列にする)」= `Intl`。この 2 者の間に第三の表示ライブラリを挟まない。将来 [ECMAScript Temporal](https://tc39.es/proposal-temporal/) がランタイム標準搭載された段では、`date-fns`(演算)を Temporal に寄せる再検討余地がある(標準準拠 [0010](0010-standards-and-non-lockin.md) §1)。その差し替えは §2/§3 の構造(標準 `Date` 境界・`model` 集約)ゆえモジュール境界内で完結する。
 - **[0121](0121-i18n-strategy.md) からの back-link(traceability)**: 本 ADR は [0121](0121-i18n-strategy.md) に節を足さない方針のため、0121 側からは本 ADR を辿れない。[0121](0121-i18n-strategy.md) は Accepted の Protected Documentation につき本 ADR 作成時点では編集せず、**0121 →(Intl フォーマット・date-fns 演算は 0120 が所有)の相互参照付与は v1 大規模整理でまとめて行う**(0010 / 0022 が Protected な 0020 への back-link を最終整理へ送るのと同型)。それまでの traceability は本 ADR 側から 0121 を参照することで担保する。
 - **既定 locale の供給元**: 0.0.x では `model` 定数(単一 seam)に留める。env 駆動にする必要が生じた場合は [0030](0030-environment-variable-management.md) の `config` カーネルへ昇格し得る(env 変数追加はユーザ確認を要する。[0030](0030-environment-variable-management.md))。i18n 採用時は [0121](0121-i18n-strategy.md) の seam(`proxy.ts` / `[locale]`)がアクティブ locale を供給する。
@@ -75,5 +75,4 @@ triage [#52](../plan/adr-gap-audit.md)(国際化・フォーマット節「日�
 - [0140-documentation-operations.md](0140-documentation-operations.md)(D1) — タクソノミー(本 ADR = decision / 使用 rule は rules.md)
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4) — #53(TZ / hydration)・#54(相対時刻)の Rationale(本 ADR の射程外境界)
 - [0004-library-management.md](0004-library-management.md) — `date-fns` 採用フロー(exact pin + `pnpm audit`)/ fork 先が追加ライブラリを入れる場合の採用フロー
-- [docs/plan/adoption-matrix.md](../plan/adoption-matrix.md) — v1 バッテリー採用(DATE = date-fns / 表示 format は Intl 維持)の振り分け根拠
-- [docs/plan/adr-gap-audit.md](../plan/adr-gap-audit.md) / [docs/plan/adr-gap-triage.md](../plan/adr-gap-triage.md) — 由来 #52(disposition: 0121 +0021/0027 でカーネル管轄書き切り)
+- [master-plan §1.2 採用ロードマップ](../plan/master-plan.md) — v1 バッテリー採用(DATE = date-fns / 表示 format は Intl 維持)の振り分け根拠

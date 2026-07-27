@@ -1,6 +1,6 @@
 # ポリシー状態(consent / feature-flag)の供給方針
 
-[0022](0022-capabilities-kernel.md) は「ポリシー状態(consent / feature-flag)は `capabilities` に置かず各 seam が所有」と退去させたが、**退去先の物理的な家が無かった**(構造ブロッカー **S3** = 委譲先消失の型。詳細は [structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md))。`useConsent()` 相当(consent 供給。triage では #50〈サードパーティスクリプトの同意ゲート連動〉/ #61〈analytics の consent gating 接続〉が消費点)・`useFlag()` 相当(#62)の client 供給点が、`capabilities`(runtime 限定)にも `components`(純 UI)にも `model`(表示ロジック)にも `feature`(単一・`features↔features` 禁止)にも座らない。
+[0022](0022-capabilities-kernel.md) は「ポリシー状態(consent / feature-flag)は `capabilities` に置かず各 seam が所有」と退去させたが、**退去先の物理的な家が無かった**(構造ブロッカー **S3** = 委譲先消失の型)。`useConsent()` 相当(consent 供給。triage では #50〈サードパーティスクリプトの同意ゲート連動〉/ #61〈analytics の consent gating 接続〉が消費点)・`useFlag()` 相当(#62)の client 供給点が、`capabilities`(runtime 限定)にも `components`(純 UI)にも `model`(表示ロジック)にも `feature`(単一・`features↔features` 禁止)にも座らない。
 
 本 ADR は、この供給を **新カーネルを立てずに既存カーネルの合成で** 定める([0024](0024-adapters-server-client-split.md) の adapters/client を土台とする)。
 
@@ -24,7 +24,7 @@ consent / flag の供給を 3 つに分解し、それぞれ既存の家へ置�
 | **② セマンティクス + no-op 既定** | `adapters` の source adapter に同居 | **seam 成果物** = #61 analytics no-op sink /「未同意で全 gate」consent 既定(#50 / #61 の同意ゲートが消費)/ #62 flag 既定。gate 述語は純関数 |
 | **③ ツリーへの供給** | 既定 = **stateless**(RSC が読み props で配る) | [0060](0060-state-management.md)(Server state = RSC fetch 既定)に忠実。反応的が要る横断ケース(同意バナー操作の即時反映等)は横断 client 状態として `stores`([0023](0023-stores-kernel.md) / Zustand)に置く(provider mount は [0026](0026-layout-shell-mount.md)) |
 
-これにより [0022](0022-capabilities-kernel.md) の「seam が所有」の**物理 = `adapters` source adapter + no-op 既定 + stateless props(反応的な横断ケースのみ `stores`)** が確定し、委譲先消失が閉じる。consent / flag ライブラリ本体の非同梱(exclusion)は [0131](0131-cookie-consent.md) / triage #62 のまま不変で、本 ADR は**その周りの供給方針(seam)**を定める。
+これにより [0022](0022-capabilities-kernel.md) の「seam が所有」の**物理 = `adapters` source adapter + no-op 既定 + stateless props(反応的な横断ケースのみ `stores`)** が確定し、委譲先消失が閉じる。consent は [0131](0131-cookie-consent.md) が**軽量機構 + スクリプトゲートを本体同梱**とし(CMP 本体と トラッキング製品は非同梱)、flag ライブラリ本体の非同梱は triage #62 のまま不変で、本 ADR は**その供給方針(seam)**を定める。0131 の gate 述語はこの供給経路に乗る。
 
 ## 禁止事項
 
@@ -43,10 +43,9 @@ consent / flag の供給を 3 つに分解し、それぞれ既存の家へ置�
 - [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — ポリシー状態を退去させた元(client raw 読みの家)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `features↔features` 禁止(feature 化不成立の根拠)
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — #62 server 面の追補先(adapters・runtime config の逃し先)
-- [0131-cookie-consent.md](0131-cookie-consent.md) — consent 本体の exclusion(本 ADR は供給の seam)
+- [0131-cookie-consent.md](0131-cookie-consent.md) — consent の軽量機構 + スクリプトゲート(本 ADR はその状態供給の seam)
 - [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md) — 動的 feature flag seam(本 ADR の供給の物理を土台に結線)
 - [0082-client-observability.md](0082-client-observability.md) — consent gate の主消費者(#61 プロダクト分析は本 ADR の gate 述語で gate)
 - [0060-state-management.md](0060-state-management.md) — stateless 供給既定の根拠
 - [0023-stores-kernel.md](0023-stores-kernel.md) — 反応的な横断 consent / flag 状態の置き場(Zustand)
 - [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — 反応的供給時の store provider mount(S4)
-- [docs/plan/structural-blocker-resolutions.md](../plan/structural-blocker-resolutions.md) — 構造ブロッカー S3 の由来・全体像

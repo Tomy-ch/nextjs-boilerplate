@@ -8,7 +8,7 @@
 
 Accepted
 
-（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([決定 5](../plan/pre-implementation-decisions.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
+（採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み。日付 2026-07-12。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
 ## 背景
 
@@ -25,7 +25,7 @@ Accepted
 - **それ以外のファイル名**は Next.js が非強制なので**業界スタンダード**に委ねる。Next.js エコシステムのデファクト(公式サンプル / shadcn/ui)・ファイルシステム安全性(case-insensitive FS での衝突回避)・本リポジトリ既存ファイル(`src/app/layout.tsx` / `page.tsx` が小文字)のいずれとも整合する **kebab-case** を採る
 - **識別子**(コンポーネント名・hook 名等)は React/JSX が構文的に強制する(コンポーネント = PascalCase 必須)ため React 規約に従う
 
-env / ADR / テストの命名形式は、**本リポジトリ自身の既存規約・関連 ADR を正**とする(ADR ファイル = 本リポの `docs/adr/README.md` と既存 0001〜 / 環境変数 = [0030](0030-environment-variable-management.md)(A7)/ テスト = [決定 3](../plan/pre-implementation-decisions.md)・B8)。
+env / ADR / テストの命名形式は、**本リポジトリ自身の既存規約・関連 ADR を正**とする(ADR ファイル = 本リポの `docs/adr/README.md` と既存 0001〜 / 環境変数 = [0030](0030-environment-variable-management.md)(A7)/ テスト = [0090](0090-testing-strategy.md)・B8)。
 
 AGENTS.md の `[TODO] Naming Convention` が敷いていた暫定運用(既存ファイル `layout.tsx` / `page.tsx` に倣う / ケースを混在させない / 新パターンを勝手に導入しない)を、本 ADR が確定させる。既存ファイルが小文字であることは本 ADR の kebab-case 方針と整合する。
 
@@ -72,15 +72,16 @@ React/JSX の構文的制約と業界スタンダード(非ハンガリアン記
 
 - 環境変数名は **`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE**(UPPER_SNAKE は環境変数の業界スタンダード。`{SUBSYSTEM}` はサブシステム prefix(例 `SERVER_` / `AUTH_`)でグルーピングし、`{NAME}` は相対名)。この形式の採用は [0030](0030-environment-variable-management.md)(A7)の決定に連なる
 - ブラウザへ露出する変数は Next.js 規約に従い **`NEXT_PUBLIC_` プレフィックス**を付す(`NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`)。境界・検証・型付けの詳細は **[0030](0030-environment-variable-management.md)(環境変数管理 = A7)** を正とする
+- **例外: 標準・デファクトが変数名まで規定しているものは、その標準名をそのまま使う**(例: OpenTelemetry の `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_SERVICE_NAME`、Next.js の `NEXT_PUBLIC_*` / `PORT`)。標準名を `{SUBSYSTEM}_{NAME}` へ改名すると、その標準を実装した SDK・ツールが既定で読めなくなり、自前の橋渡しコードが必要になるため([0010](0010-standards-and-non-lockin.md) 標準準拠)。例外に該当するのは **外部の仕様・ツールが読む変数だけ**であり、アプリが自分で読む変数は例外にしない
 
 ### ADR ファイル名
 
 - ADR ファイルは **`NNNN-kebab-case-title.md`**(4 桁ゼロ埋め番号 + kebab-case タイトル)とする。これは**本リポジトリ自身の既存規約**(`docs/adr/README.md` の「トピック順ブロック帯採番」+ 既存 0001〜)であり、ソースファイルの kebab-case 方針とも一致する
-- **ADR 採番方式はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯)。[決定 5](../plan/pre-implementation-decisions.md))**。旧採番(単調連番 + `Dev-` / `Toolchain-` プレフィックス)は主題ブロック(10 番台)へ全面再付番し、プレフィックス系は数値列(`0150` 番台等)へ畳み込んだ。本 ADR はファイル/シンボル等の kebab-case 規約を確定する
+- **ADR 採番方式はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯)。[0140](0140-documentation-operations.md))**。旧採番(単調連番 + `Dev-` / `Toolchain-` プレフィックス)は主題ブロック(10 番台)へ全面再付番し、プレフィックス系は数値列(`0150` 番台等)へ畳み込んだ。本 ADR はファイル/シンボル等の kebab-case 規約を確定する
 
 ### テストファイル命名
 
-- テストファイルの拡張子・命名(`*.test.ts` 等)は **B8(テスト戦略)で確定**する。テストケースの `正常系` / `異常系` 日本語命名・table-driven 禁止・sequential 方式の戦略は [決定 3](../plan/pre-implementation-decisions.md) で確定済みだが、具体的なファイル拡張子・`describe` / `it` 文字列規約は B8 ADR に引き渡す(AGENTS.md「test file extensions は B8 と整合」)。ファイル名の本体部分が kebab-case であることは本 ADR の統一方針に従う
+- テストファイルの拡張子・命名(`*.test.ts` 等)は **B8(テスト戦略)で確定**する。テストケースの `正常系` / `異常系` 日本語命名・table-driven 禁止・sequential 方式の戦略は [0090](0090-testing-strategy.md) で確定済みだが、具体的なファイル拡張子・`describe` / `it` 文字列規約は B8 ADR に引き渡す(AGENTS.md「test file extensions は B8 と整合」)。ファイル名の本体部分が kebab-case であることは本 ADR の統一方針に従う
 
 ## 禁止事項
 
@@ -88,13 +89,14 @@ React/JSX の構文的制約と業界スタンダード(非ハンガリアン記
 - ❌ ケースの混在(kebab-case 以外のファイル名を持ち込む)
 - ❌ 型 / interface への `I` プレフィックス(`IUser` 等)
 - ❌ App Router 特殊ファイル・route セグメントに独自の命名パターンを持ち込むこと(Next.js 規約に従う)
-- ❌ 環境変数を `{SUBSYSTEM}_{NAME}` 以外の形にすること / secret を `NEXT_PUBLIC_` に置くこと([0030](0030-environment-variable-management.md))
+- ❌ 環境変数を `{SUBSYSTEM}_{NAME}` 以外の形にすること(標準名の例外に該当する場合を除く)/ secret を `NEXT_PUBLIC_` に置くこと([0030](0030-environment-variable-management.md))
+- ❌ 標準が規定する変数名(`OTEL_*` 等)を `{SUBSYSTEM}_{NAME}` へ改名すること(標準実装が読めなくなる)
 - ❌ カーネル・ディレクトリに役割を名指ししない名称を付けること([0021](0021-frontend-responsibility.md) 命名規律。本 ADR の対象外だが再掲)
 
 ## 補足
 
 - 本 ADR の Accepted に伴い、AGENTS.md の `[TODO] Naming Convention` 節の削除・書き換えを実施する([0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) / [0027](0027-directory-structure.md) の `[TODO]` 削除と併せて。未実施 — AGENTS.md は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する)
-- 本 ADR が持つファイル・識別子命名は rule 分類([決定 5](../plan/pre-implementation-decisions.md))に当たるため、`rules.md` 新設(D1)の際にそちらへ段階移行する
+- 本 ADR が持つファイル・識別子命名は rule 分類([0140](0140-documentation-operations.md))に当たるため、`rules.md` 新設(D1)の際にそちらへ段階移行する
 
 ## 関連 ADR
 
