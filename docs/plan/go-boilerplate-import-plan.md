@@ -13,6 +13,8 @@
   - **ADR が正**。[AGENTS.md](../../AGENTS.md) Instruction Priority に従い、ADR で未決の領域へ go 側の規約を持ち込まない。該当枠が Accepted になるまで着手しない
   - **仕組みを輸入し、内容は翻案する**。Go / Docker / sqlc / OpenAPI 生成に依存する中身は捨て、言語非依存の構造(fan-out / read-only 分離 / ロックファイル SSOT / 検疫 / 台帳)だけを持ち込む
   - **受け皿を優先する**。v1 計画に既存 PR 枠があるものは新規枠を立てず、その PR 定義へ輸入元を書き足す
+  - **`scripts/` 配下は TypeScript へ変換して輸入する**。go 側の `scripts/**`(`*.sh` / `*.js` / `*.cjs` / `*.mjs`)をそのまま持ち込まず、`scripts/*.ts` へ書き換えたうえで `pnpm exec tsx` から実行する形にする(既存の `scripts/make-help.ts` / `scripts/semver.ts` / `scripts/mermaid-lint.ts` と同じ形)。理由は 3 つ — 本リポジトリの言語は TypeScript であり、シェル / 素の JS を混在させると `pnpm typecheck` と biome の検査対象から外れる / 実行系を `tsx` に一本化できる / mise 管理外のシェル依存(GNU coreutils 差異など)を持ち込まずに済む。呼び出し側(`.makefiles/*.mk` / `package.json` scripts / `.lefthook.yaml` / workflow)も `tsx` 実行へ合わせて書き換える
+    - **例外**: スキル同梱スクリプト(`.claude/skills/*/scripts/`)のうち、**依存インストール前に単体で動くこと**を要件とするもの(`full-verify` の `run.sh` のような他リポジトリへ無編集コピーする前提の headless 駆動系)はシェルのまま輸入してよい。この例外に当たるかは輸入時に個別判断し、当たらないものは TypeScript へ変換する
 
 ---
 
@@ -66,7 +68,7 @@ BACKLOG の移植バックログ節はスナップショット「スキル 31 / 
 | **W2: AI 環境二重運用**(受け皿なし / 即着手可) | | | | |
 | IM-03 | `manage-skill` 移植 | A | — | なし |
 | IM-04 | `.codex/` 基盤(README 対訳 / config.toml / スコープ規約) | B | — | IM-03 |
-| IM-05 | `sync-ai` + handoff スクリプト双方向 | A | — | IM-03, IM-04 |
+| IM-05 | `sync-ai` + handoff スクリプト双方向 | B | — | IM-03, IM-04 |
 | IM-06 | `.codex/` へのスキル / エージェント一括ミラー | B | — | IM-05 |
 | **W3: ローカル品質ゲート**(v1 Phase 1 併走) | | | | |
 | IM-07 | commitlint | A | P1-1 | なし |
@@ -190,7 +192,7 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 - **目的**: 片方の環境で更新したスキルを、もう片方へ**セマンティックに**移植する。生ディレクトリコピーを禁じ、受け側の `manage-skill` に翻案させる
 - **輸入元**: `.claude/skills/sync-ai/`(+ `scripts/handoff-to-codex.sh`)、`.codex/skills/sync-ai/`(+ `scripts/handoff-to-claude.sh`)
 - **主な変更先**: `.claude/skills/sync-ai/`、`.codex/skills/sync-ai/`
-- **翻案メモ**: 中身は言語非依存でほぼ無翻案。**再帰防止の機構は無改造で必須輸入** — `tmp/sync-ai/.handoff.lock` の `mkdir` アトミックロック + TTL 3600s、非対話 CLI 起動、Codex sandbox の writable roots への `.codex/` 追加、Claude 側への `--permission-mode bypassPermissions` 引き渡し。`tmp/` は本リポジトリの `.gitignore` に未登録のため**併せて追加する**
+- **翻案メモ**: 中身は言語非依存でほぼ無翻案。**再帰防止の機構は無改造で必須輸入** — `tmp/sync-ai/.handoff.lock` の `mkdir` アトミックロック + TTL 3600s、非対話 CLI 起動、Codex sandbox の writable roots への `.codex/` 追加、Claude 側への `--permission-mode bypassPermissions` 引き渡し。`tmp/` は本リポジトリの `.gitignore` に未登録のため**併せて追加する**。handoff スクリプトは §0「輸入の原則」に従い `*.sh` から `*.ts`(`pnpm exec tsx` 実行)へ変換する — ロック機構は `fs.mkdirSync` の失敗判定で等価に再現できるため、この変換で再帰防止の要件は落ちない
 - **完了条件**: 片方向ハンドオフが完走し、受け側にネイティブな形でスキルが生成される。同時起動でロックが効き再帰しない
 - **依存**: IM-03, IM-04
 
@@ -362,7 +364,7 @@ P8-2 に受け皿があり、そこへ書き足す: pair_drift preflight → N1(
 | `scaffold-infra-db` | 表示層に DB を持たない([0070](../adr/0070-backend-role-separation.md)) |
 | `.spectral.yaml` / `redocly.yaml` | OpenAPI を**書かない**(取得する側)。P4-1 で契約を取得する形が固まったら再検討 |
 | `repo-ops` の Docker / sqlc 項目 | 移植済みの器のみ採用。BACKLOG に記載済み |
-| `new-env` の再設計 | 本書の対象外。A7 の実装タスクとして BACKLOG が追跡 |
+| `new-env` の再設計 | 本書の対象外。再設計済([0030](../adr/0030-environment-variable-management.md) の `src/config/` 構造)。実行可能になるのは A7 実装 PR で `src/config/` が着地してから |
 | `sync-versions-check` | v1 計画 §5 未決 #11(Phase 2 実装時に採否判断)へ委譲 |
 
 ---
