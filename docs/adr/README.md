@@ -69,7 +69,7 @@
 - [0120-locale-aware-formatting.md](0120-locale-aware-formatting.md) - ロケール対応フォーマット（日付・数値 + Intl / date-fns 日付演算）
 - [0121-i18n-strategy.md](0121-i18n-strategy.md) - i18n 戦略（本体非同梱 = exclusion / 採用時の seam）
 - [0130-pwa-strategy.md](0130-pwa-strategy.md) - PWA 戦略（Manifest / SW / オフライン本体非同梱 = exclusion）
-- [0131-cookie-consent.md](0131-cookie-consent.md) - Cookie 同意 / 同意管理（本体非同梱 = exclusion / 法令要件は fork 先）
+- [0131-cookie-consent.md](0131-cookie-consent.md) - Cookie 同意（軽量 consent 機構 + スクリプトゲートは同梱 / CMP・トラッキング製品本体は非同梱）
 - [0140-documentation-operations.md](0140-documentation-operations.md) - ドキュメント運用ポリシー（EN canonical 方向・移行 v1 / タクソノミー / rules.md 新設 / ADR 不可変性）
 - [0141-portal-operations.md](0141-portal-operations.md) - ポータル運用（manifest = 構造制御 / 登録基準 / GitHub Pages / 実装は Phase 3）
 - [0142-license.md](0142-license.md) - ライセンス選定（MIT 採用根拠 / OSS 寄与 = inbound=outbound / 同梱ライブラリ整合 / private:true との関係）

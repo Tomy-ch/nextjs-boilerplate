@@ -48,7 +48,7 @@ Accepted
 - 本 ADR は保守的に **IF/契約 + SSE 既定の指針**までを敷き、具体機構(再接続 / heartbeat を含む local subscription adapter)は実装 PR / fork 先へ委ねる。
 - 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーで **exclusion** 分類に属する(非同梱宣言 + named seam を併記する)。
 - polling(#57)/ 相対時刻更新(#54)等の周期 client 取得の rule は本 ADR の対象外(rules.md 着地)。本 ADR は**双方向/ストリーム**の seam のみを扱う(動的配信フラグ #62 は [0078](0078-dynamic-feature-flag-seam.md))。
-- **v2 採用予定(局所ライブラリ・2026-07-14)**: 本 exclusion 本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))で双方向/ストリーム通信は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**購読 seam(`adapters/client` の subscription adapter 契約)は 0.0.x/v1 で敷済・実装採用は v2**(既定 = native `EventSource` / `WebSocket` + 薄い client・Medium。§手段の優先順位=標準準拠は不変)。native で足りず外部クライアントを採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+- **v2 採用(局所ライブラリ)**: 本 exclusion 本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))で双方向/ストリーム通信は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**v1 では購読 seam をコードとして置かない** — 設置面(実使用箇所)が存在せず、使われない IF は腐るため。本 ADR が記すのは**採用時の拡張点の座標**(`adapters/client` の subscription adapter 契約)であり、実体化は最初の該当 feature 実装時に行う(既定 = native `EventSource` / `WebSocket` + 薄い client・Medium。§手段の優先順位=標準準拠は不変)。native で足りず外部クライアントを採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 関連 ADR
 

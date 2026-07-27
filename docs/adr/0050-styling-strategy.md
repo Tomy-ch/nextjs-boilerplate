@@ -28,7 +28,13 @@ Accepted
 ### `cn()` ヘルパ
 
 - クラス結合ヘルパ **`cn()` を採用**する。置き場は **`components` カーネル内**([0021](0021-frontend-responsibility.md) 命名規律により `utils/` 等の汎用置き場は作らない)
-- 実装ライブラリ(`clsx` + `tailwind-merge` 等)の選定は [0004](0004-library-management.md) の採用フロー(exact pin + `pnpm audit`)で実装 PR にて確定する
+- 実装ライブラリは **`clsx` + `tailwind-merge`** とする([0052](0052-ui-component-policy.md) が shadcn の実 npm 依存として既に名指ししているものと同一)。責務が join / 衝突解決に 1 対 1 対応し、[0004](0004-library-management.md) の一次判定(単一責務 × 単一 upstream)を各々単独で通る。exact pin + `pnpm audit` は [0004](0004-library-management.md) に従う
+- `tailwind-variants` は**採らない**。variant + slots + responsive + merge の束であり責務を 1 語で言えず、下記 `cva` とも責務が衝突する
+
+### variant 定義 = `class-variance-authority`(cva)
+
+- コンポーネントの variant 定義には **`cva` を採用**する。[0052](0052-ui-component-policy.md) が採る shadcn/ui の公式コンポーネントが cva を使った状態で配布されるため、採らなければ配布物を毎回書き換えることになる([0010](0010-standards-and-non-lockin.md)「独自に機構を発明しない」)
+- 置き場は `cn()` と同じく **`components` カーネル内**。variant 定義を feature 側へ散らさない
 
 ### design token = CSS 変数
 
@@ -56,7 +62,7 @@ Accepted
 
 ## 補足
 
-- 本 ADR の Accepted に伴い、AGENTS.md の `[TODO] Styling Strategy` 節の削除・書き換えを実施する(未実施 — AGENTS.md は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する)。特に暫定運用の「CSS Modules / styled-components / emotion 等を勝手に導入しない」という記述は、本改訂で **CSS Modules を限定許可**へ変わったため、AGENTS.md 側も「CSS Modules はエスケープハッチとして限定許可・ランタイム CSS-in-JS は非採用」に整合させる必要がある
+- AGENTS.md の `[TODO] Styling Strategy` 節は本 ADR の Accepted に伴い削除済みで、スタイリングの正は本 ADR にある(CSS Modules はエスケープハッチとして限定許可 / ランタイム CSS-in-JS は非採用)
 
 ## 関連 ADR
 

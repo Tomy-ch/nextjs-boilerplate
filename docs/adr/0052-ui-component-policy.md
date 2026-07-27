@@ -22,7 +22,9 @@ Accepted
 - **アイコン = lucide-react**。同じく `components` カーネル配下の UI から参照する
 - **複雑入力(日付ピッカー等)= shadcn 系部品**(`react-day-picker` などを Radix/Tailwind でラップした shadcn レシピ)。`components` に配置する。既定は控えめ(Medium)= 必要時に使う位置づけ
 - boilerplate 本体の UI は、これら採用部品に加えて **Tailwind ユーティリティ**([0050](0050-styling-strategy.md))と feature 内 UI([0021](0021-frontend-responsibility.md))で構成する
-- **v1 スコープの線引き**: v1 が抱えるのは上記の汎用 UI 基盤まで。より重い/局所的な UI 要件(リッチテキスト = TipTap、DnD = dnd-kit 等は [0053](0053-ui-component-interaction-seam.md))は v2 で順次同梱、それを超える要件は **fork 先で追加**する
+- **variant 定義 = `class-variance-authority`(cva)**。shadcn/ui の公式コンポーネントが cva を使った状態で配布されるため採用する(採らなければ配布物を毎回書き換えることになる)。置き場・使い方の規約は [0050](0050-styling-strategy.md) が持つ
+- **リッチテキスト(TipTap)は v1 採用**。エディタ本体と表示側 sanitizer の a11y 契約・seam は [0053](0053-ui-component-interaction-seam.md) が所有し、本 ADR は `components` カーネルへの配置と exact-pin 要件のみを持つ
+- **v1 スコープの線引き**: v1 が抱えるのは上記の汎用 UI 基盤 + リッチテキストまで。これを超える局所的な UI 要件(DnD = dnd-kit 等は [0053](0053-ui-component-interaction-seam.md))は v2 で順次同梱、それを超える要件は **fork 先で追加**する
 
 ## 0010 準拠(vendor-independent 正当性 + 非ロックイン)
 
@@ -54,7 +56,8 @@ Accepted
 - ❌ shadcn/ui 以外の UI コンポーネントライブラリ(MUI / Chakra / Ant Design 等、ランタイム同梱型)を並行採用すること([0050](0050-styling-strategy.md) の Tailwind 主軸 + CSS Modules 限定許可(ランタイム CSS-in-JS = styled-components / emotion は非採用)および copy-in 方針と衝突。必要なら ADR 改定)
 - ❌ lucide-react 以外のアイコンライブラリを追加同梱すること(差し替えは可だが並行同梱はしない)
 - ❌ 採用ライブラリを exact-pin / `pnpm audit` を経ずに追加すること([0004](0004-library-management.md))
-- ❌ v1 スコープを超える重い UI 要件(リッチテキスト / 高度な DnD 等)を本 ADR の範囲で本体へ持ち込むこと(v2 = [0053](0053-ui-component-interaction-seam.md) / それ以上は fork)
+- ❌ v1 スコープを超える局所的な UI 要件(高度な DnD 等)を本 ADR の範囲で本体へ持ち込むこと(v2 = [0053](0053-ui-component-interaction-seam.md) / それ以上は fork)
+- ❌ リッチテキストの表示を sanitizer を通さずに行うこと(生の `dangerouslySetInnerHTML` は禁止。sanitizer port は [0053](0053-ui-component-interaction-seam.md))
 
 ## 関連 ADR
 
@@ -64,4 +67,4 @@ Accepted
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `components` カーネル(採用 UI の配置先)・昇格規律(vendor 依存の閉じ込め)
 - [0011-no-docker.md](0011-no-docker.md) — 表示層ロール(v1 でアプリケーション基盤へ性格更新)
 - [0060-state-management.md](0060-state-management.md)(B5)— form state(react-hook-form + zod)採用。form 部品と対で機能する
-- [0053-ui-component-interaction-seam.md](0053-ui-component-interaction-seam.md) — リッチテキスト(TipTap)/ DnD(dnd-kit)等、v2 で採用する局所 UI(本 ADR の v1 スコープ外)
+- [0053-ui-component-interaction-seam.md](0053-ui-component-interaction-seam.md) — リッチテキスト(TipTap。v1 採用)の a11y 契約 / sanitizer port、および DnD(dnd-kit)等 v2 採用の局所 UI

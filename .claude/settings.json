@@ -130,6 +130,16 @@
       "Bash(docker compose logs *)",
       "Bash(docker compose config *)"
     ],
+    "ask": [
+      "Edit(AGENTS.md)",
+      "Write(AGENTS.md)",
+      "Edit(LICENSE)",
+      "Write(LICENSE)",
+      "Edit(.claude/settings.json)",
+      "Write(.claude/settings.json)",
+      "Edit(docs/adr/*-*.md)",
+      "Write(docs/adr/*-*.md)"
+    ],
     "deny": [
       "Bash(rm -rf *)",
       "Bash(rm -fr *)",
@@ -173,15 +183,7 @@
       "Bash(make tag-major *)",
       "Bash(make tag-minor *)",
       "Bash(make tag-patch *)",
-      "Bash(gh api *)",
-      "Edit(AGENTS.md)",
-      "Write(AGENTS.md)",
-      "Edit(LICENSE)",
-      "Write(LICENSE)",
-      "Edit(.claude/settings.json)",
-      "Write(.claude/settings.json)",
-      "Edit(docs/adr/*-*.md)",
-      "Write(docs/adr/*-*.md)"
+      "Bash(gh api *)"
     ]
   }
 }

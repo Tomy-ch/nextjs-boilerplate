@@ -38,6 +38,13 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
   - **release ゲート**(保護ブランチへの PR 限定・厳格): **`ignore-unfixed: false`**(未修正も可視化)で厳格化
 - **依存監査ゲート**: **`pnpm audit` を既定**とする。go govulncheck 由来の「到達可能性(reachability)」フィルタは、`pnpm audit` に該当機能がなく、osv-scanner の call analysis も JS/TS 非対応のため、**現行ツールでは実装不能**である。したがって blocking 閾値は **severity(`high` / `critical`)と修正可能性(fixable)** で定める(未修正〈unfixable〉はノイズになりやすいため advisory 扱いとし、修正可能な high 以上を blocking)。運用 SLA(`high` 以上は 48 時間以内に対応着手)は [0004](0004-library-management.md) の既定を維持し、本項はその CI ゲート側の blocking 閾値を定める
 
+### 3.5 CSP 適合ゲート
+
+- **配信ヘッダが [0111](0111-csp-security-headers.md) の宣言と一致することを CI で検査する**。ビルド成果物 / 起動したアプリのレスポンスヘッダを取得し、CSP と主要セキュリティヘッダの有無・値を宣言と突合して fail-closed にする
+  - > Rationale: [0111](0111-csp-security-headers.md)
+- 対象は CSP と、0111 が定める同伴ヘッダ(`Strict-Transport-Security` / `X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` 等)。**検査するのは「宣言と実配信の一致」**であり、ヘッダの内容そのものは 0111 が正
+- 実装は [0153](0153-ci-configuration.md) の Security グループに 1 job として置く([v1 実装計画](../plan/v1-implementation-plan.md) P6-2)
+
 ### 4. SECURITY.md
 
 - **`SECURITY.md` を置く**。脆弱性報告フロー(Private Vulnerability Reporting 誘導 / 連絡先 / Supported Versions)を定める(go の報告フロー節の翻案。連絡先は fork 先で差し替える placeholder)

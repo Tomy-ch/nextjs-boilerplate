@@ -8,7 +8,7 @@ Accepted (exclusion; v2 に局所採用を予定)
 
 （採番はブロック帯で確定(2026-07-14・0001〜0155。トピック順ブロック帯(10 番台=主題ブロック))([0140](0140-documentation-operations.md))。本 ADR の内容自体はユーザ決定済み(Tier 5 = 用途依存の判断)。日付 2026-07-13。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
-**v2 採用予定(局所ライブラリ・2026-07-14)**: **0.0.x/v1 の非同梱(exclusion)方針は v2 まで不変**であり、採用マトリクス([master-plan §1.2](../plan/master-plan.md))で PWA は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた(v2 で採用へ移行予定)。**seam(`app/manifest.(json|ts)` / SW 実装点)は 0.0.x/v1 で敷設予定(本 ADR で規定済み・実装は実装 PR)・ライブラリ採用は v2**(Serwist〈`@serwist/next`〉・Medium)。採用時も本体は seam を保持し、Serwist を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+**v2 採用予定(局所ライブラリ・2026-07-14)**: **0.0.x/v1 の非同梱(exclusion)方針は v2 まで不変**であり、採用マトリクス([master-plan §1.2](../plan/master-plan.md))で PWA は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた(v2 で採用へ移行予定)。**v1 では seam をコードとして置かない**(manifest / Service Worker の設置面が存在しない)。本 ADR が記すのは**採用時の拡張点の座標**(`app/manifest.(json|ts)` / SW 実装点)であり、ライブラリ採用と実体化は v2(Serwist〈`@serwist/next`〉・Medium)。採用時も本体は seam を保持し、Serwist を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 背景
 
@@ -31,6 +31,6 @@ Next.js には Web App Manifest のファイル規約(`app/manifest.(json|ts)`)�
 ## 関連 ADR
 
 - [0011-no-docker.md](0011-no-docker.md) — 用途未定の表示層ロール(fork 先判断の根拠)
-- [0121-i18n-strategy.md](0121-i18n-strategy.md)(C1)/ [0131-cookie-consent.md](0131-cookie-consent.md) — 用途依存を exclusion 記録した先例(いずれも 0.0.x/v1 は exclusion 維持・v2 に局所採用を予定)
+- [0121-i18n-strategy.md](0121-i18n-strategy.md)(C1)— 用途依存を exclusion 記録した先例(v1 は exclusion 維持・v2 に局所採用を予定)
 - [0052-ui-component-policy.md](0052-ui-component-policy.md) / [0060-state-management.md](0060-state-management.md) — 当初 exclusion→v1 採用へ反転した事例(PWA は v1 では反転せず v2 で採用予定という時期の対比)
 - [0044-seo-metadata-strategy.md](0044-seo-metadata-strategy.md)(C7)— `manifest.*` / アイコン体系の seam(採用時)

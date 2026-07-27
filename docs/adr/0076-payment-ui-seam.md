@@ -43,7 +43,7 @@ Accepted
 
 - **タクソノミー**([0140](0140-documentation-operations.md)): 本 ADR は exclusion(決済 SDK 非同梱)に属する。日常強制される rule(サードパーティスクリプト規約)は `docs/rules.md`(未新設・0140 方針)側に置き、本 ADR から逆参照される。
 - 本 ADR は既存 Accepted ADR(0070 / 0071 / 0131 / 0010 / 0024)本体を編集せず、それらを参照して隣接する空白を埋める(既存 ADR は Protected Documentation)。
-- **v2 採用予定(局所ライブラリ・2026-07-14)**: 決済 SDK 非同梱(exclusion)本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))で決済 UI は **v2 = 局所ライブラリ採用**(用途依存・EC 系 fork)に振り分けられた。**mount seam(SDK の DOM マウント点 + client_secret 受け渡し口)と PCI 境界 seam(生カード情報をフロントに持たせない = SAQ-A 相当)は 0.0.x/v1 で敷済・SDK 採用は v2**(Stripe〈`@stripe/stripe-js` + Elements〉・Thin = mount seam)。採用時も本体は mount seam / PCI 境界を保持し、Stripe を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+- **v2 採用予定(局所ライブラリ・2026-07-14)**: 決済 SDK 非同梱(exclusion)本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))で決済 UI は **v2 = 局所ライブラリ採用**(用途依存・EC 系 fork)に振り分けられた。**v1 では mount seam をコードとして置かない**(決済画面という設置面が存在しないため)。本 ADR が記すのは**採用時の拡張点の座標**(SDK の DOM マウント点 + client_secret 受け渡し口)と、常に守るべき **PCI 境界**(生カード情報をフロントに持たせない = SAQ-A 相当)であり、SDK 採用と seam の実体化は v2(Stripe〈`@stripe/stripe-js` + Elements〉・Thin = mount seam)。採用時も本体は mount seam / PCI 境界を保持し、Stripe を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 関連 ADR
 

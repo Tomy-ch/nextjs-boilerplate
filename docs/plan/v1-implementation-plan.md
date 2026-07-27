@@ -73,10 +73,10 @@
 
 ### 1.1 バージョン運用
 
-- 現在の正は **v0.0.7**(`package.json` の `0.2.0` は更新漏れ。P0-3 で修正する)
+- 現在の正は **v0.0.7**(`package.json` の version も一致済み。P0-3)
 - 本書の方針が確定した時点で **0.1.0** を切る
 - 以降は Phase 完了ごとにマイナーを上げ、全 Phase 完了で **1.0.0**
-- **GitHub のデフォルトブランチは `release/vX.Y.Z`**(go-boilerplate と同形式)。実測では go-boilerplate = `release/v2.1.0` / 本リポ = `release/v0.0.6` で **既に de facto そうなっており、[0150](../adr/0150-git-workflow.md) の「`develop` = デフォルトブランチ」という記述の方が誤り**。運用変更ではなく 0150 の記述修正として P0-4 で扱う。PR のベースは 0150 どおり `develop`
+- **GitHub のデフォルトブランチは `release/vX.Y.Z`**(go-boilerplate と同形式)。実測では go-boilerplate = `release/v2.1.0` / 本リポ = `release/v0.0.6` で **既に de facto そうなっており、[0150](../adr/0150-git-workflow.md) の「`develop` = デフォルトブランチ」という記述の方が誤りだった**。運用変更ではなく記述修正として P0-4 で反映済み。PR のベースは 0150 どおり `develop`
 
 ---
 
@@ -88,14 +88,16 @@
 
 - **Protected Documentation の直接編集を許可する** — `AGENTS.md` / Accepted ADR 本体 / `LICENSE` を、ユーザ承認を都度取らずに上書き編集してよい
 - **AI Modification Scope の保護パスを解除する** — `package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/` を直接編集してよい
+- **`.claude/settings.json` の permissions を実態に合わせる** — 文書保護系の 4 対象(`AGENTS.md` / `LICENSE` / ADR 本体 / `settings.json` 自身)を `deny` から `ask` へ移す。ハード禁止では v1 実装が進まないため、承認を挟む形に落とす
 - **ADR は living document として直接上書きする** — [0140](../adr/0140-documentation-operations.md) の 0.0.x living 運用を v1.0.0 未満まで延長する
 - **経緯・変遷コメントを本文に残さない** — 「当初は X だったが Y に改訂」「2026-07-14 に反転」のような改定履歴・検討経緯を文書本文に書かない。決定の**現在形**だけを書く。経緯は git 履歴が持つ
 
 v1.0.0 到達時に本セクションを削除し、同時に:
 
 1. `AGENTS.md` の Protected Documentation / AI Modification Scope を復活させる
-2. [0140](../adr/0140-documentation-operations.md) の ADR 不可変性を immutable へ切り替える
-3. 全 ADR 本文から経緯記述を除去する(P9-3)
+2. `.claude/settings.json` の文書保護 4 対象を `ask` から `deny` へ戻す
+3. [0140](../adr/0140-documentation-operations.md) の ADR 不可変性を immutable へ切り替える
+4. 全 ADR 本文から経緯記述を除去する(P9-3)
 
 ---
 
@@ -422,6 +424,7 @@ flowchart TD
   - `docs/adr/0140-documentation-operations.md` — living 運用を「0.0.x」から「v1.0.0 未満」へ延長。経緯記述の禁止を追記
 - **完了条件**: 両ファイルに削除マーカー `(このセクションは v1.0.0 時には消すこと)` 付きの節が存在する
 - **依存**: なし
+- **状態**: **実施済み**。`AGENTS.md` に「Temporary Operating Rules until v1.0.0」節、[0140](../adr/0140-documentation-operations.md) に「v1.0.0 までの暫定運用」節を新設。節の追加は [0152](../adr/0152-agents-md-policy.md) が ADR 改訂を要求するため、同 ADR の節構造表へ期間限定節(#1.5)を追加済み
 
 ### P0-2: リンク切れ一括修正
 
@@ -457,6 +460,7 @@ flowchart TD
 - **強制手段**: CI(lockfile-drift / lint)+ PR テンプレの記入欄
 - **完了条件**: BACKLOG T4 の実装ギャップが解消され ✅ になる。`package.json` の version がタグと一致する
 - **依存**: なし
+- **状態**: **実施済み**。`version` は `0.0.7` / `"license": "MIT"` を追加 / PR テンプレートに「ライブラリ採用チェック」節を組込 / BACKLOG T4 を ✅ 化。[0142](../adr/0142-license.md) の `license` フィールド follow-up も解消済み。`typescript` の caret 指定は実測で既に exact(`6.0.3`)
 
 ### P0-4: ADR 追補・不整合解消
 
@@ -492,6 +496,10 @@ flowchart TD
 - **完了条件**: 上表 19 件が ADR 本文に反映され、`docs/adr/BACKLOG.md` の該当行が更新されている
 - **0111(CSP)は本 PR で扱わない** — 追補内容が P5-1 の sanitizer 検証と P6-8 の Cache Components 判断を入力とするため、**P6-2 で確定する**(§3.9。Phase 0 が Phase 5/6 に依存する循環を避けるため)
 - **依存**: P0-1
+- **状態**: **実施済み**。上表の全件を ADR 本文へ反映し、BACKLOG の該当行(T2 / T4 / A6 / B1 / B2 / B5 / B10 / C5 / C9)を更新した。個別の補足:
+  - **[0027](../adr/0027-directory-structure.md) は変更不要だった** — 同 ADR は既に「MSW 等のモック生成物は `src/` 外の `mocks/`」と規定しており、P4-4 の記述もこれに一致している(突合の結果、計画側の修正も不要)
+  - **[0002](../adr/0002-formatter-linter.md) 側に tsconfig 節を新設**した(型で捕まえる検査は tsc / lint と重複させない、という同 ADR の能力ベース分担に接続するため。0020 には置かない)
+  - **[0022](../adr/0022-capabilities-kernel.md) の Web Worker seam は追加していない** — §5 未決 #14(ADR 化要否)が P6-5 の判断事項として残っているため、ここで先取りしない
 
 ### P0-5: master-plan の再編
 
@@ -529,6 +537,7 @@ flowchart TD
 - **強制手段**: issue フォームの必須バリデーション
 - **完了条件**: 強制手段を空欄にすると issue が作成できない
 - **依存**: P0-1
+- **状態**: **実施済み**。`.github/ISSUE_TEMPLATE/implementation_task.yaml` を追加(計画 ID / 目的 / 対象 ADR / 主な変更先 / 強制手段 / 完了条件 / 依存 を必須入力)。既存の PBI テンプレートは残し、v1 実装計画の PR 起票はこちらを使う
 
 ---
 

@@ -50,7 +50,7 @@ SaaS(LaunchDarkly / Statsig / Unleash / GrowthBook 等)を boilerplate に埋め
 
 ## 禁止事項
 
-- ❌ flag / A-B / 段階的公開サービス本体を同梱すること(exclusion。[0031](0031-policy-state-supply.md) / [0131](0131-cookie-consent.md) と同型)
+- ❌ flag / A-B / 段階的公開サービス本体を同梱すること(exclusion。[0031](0031-policy-state-supply.md) の供給 seam に乗せる)
 - ❌ **動的フラグ値を [0030](0030-environment-variable-management.md) の env / 目的別 config 経由に載せること**(env は凍結。動的値は runtime config / source adapter へ逃がす)
 - ❌ フラグ評価ロジック / SaaS SDK を既定で client bundle に載せること(評価既定 = server。flicker / CLS 回避・バンドル排除)
 - ❌ ユーザ / コホート依存のフラグ評価結果をキャッシュ / PPR static 出力へ焼き込むこと(dynamic 扱い or cohort を cache key に含める)
@@ -61,7 +61,7 @@ SaaS(LaunchDarkly / Statsig / Unleash / GrowthBook 等)を boilerplate に埋め
 - 本 ADR は元 [0074](0074-runtime-communication-seam.md) の §2 を「1 ADR = 1 主題」方針で切り出したもの。元 ADR 本文自身が「**2 主題(#56 / #62)を消極的括りで束ねており、グラブバッグ化の懸念から 2 ADR へ分割する余地がある**」と自認していた(→ 本分割で解消)。
 - 本 ADR は保守的に **評価場所 = server 既定 + 動的値 = runtime config / source adapter 逃し + cache 焼き込み回避**の指針までを定め、具体機構(source の選択・cache key 設計)は実装 PR / fork 先へ委ねる。
 - 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーで **exclusion(+ 拡張点)** 分類に属する。exclusion 本体(非同梱宣言)と named seam(拡張点)を併記する型に従う。
-- **v2 採用予定(局所ライブラリ・2026-07-14)**: SaaS 非同梱(exclusion + 拡張点)本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))で動的 feature flag は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**flag 供給 seam(source adapter + no-op 既定 + stateless props〈0031〉/ 評価既定 = server / 動的値 = runtime config 逃し)は 0.0.x/v1 で敷済・SaaS 採用は v2**(既定 = env + adapter〈GrowthBook 等差替可〉・Thin)。採用時も本体は source adapter / no-op 既定 / server 評価既定を保持し、flag SaaS を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+- **v2 採用予定(局所ライブラリ・2026-07-14)**: SaaS 非同梱(exclusion + 拡張点)本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))で動的 feature flag は **v2 = 局所ライブラリ採用**(用途依存)に振り分けられた。**v1 では flag 供給 seam をコードとして置かない**(動的 flag を消費する設置面が存在しないため)。本 ADR が記すのは**採用時の拡張点の座標**(source adapter + no-op 既定 + stateless props〈[0031](0031-policy-state-supply.md)〉/ 評価既定 = server / 動的値 = runtime config 逃し)であり、SaaS 採用と seam の実体化は v2(既定 = env + adapter〈GrowthBook 等差替可〉・Thin)。採用時も本体は source adapter / no-op 既定 / server 評価既定を保持し、flag SaaS を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 関連 ADR
 
@@ -71,4 +71,4 @@ SaaS(LaunchDarkly / Statsig / Unleash / GrowthBook 等)を boilerplate に埋め
 - [0030-environment-variable-management.md](0030-environment-variable-management.md)(A7)— env = ビルド/起動時固定(静的フラグの家)。動的フラグは runtime config へ逃がす境界
 - [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components を 0.0.x 無効に確定(フラグ評価 × cache key 相互作用の依存先)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 非ロックインの vendor-independent 正当化(server 評価既定の独立根拠)
-- [0131-cookie-consent.md](0131-cookie-consent.md)— exclusion(+ 拡張点)分類の同型例
+- [0131-cookie-consent.md](0131-cookie-consent.md)— 同じ [0031](0031-policy-state-supply.md) 供給 seam に乗るポリシー状態(consent。機構は v1 同梱)
