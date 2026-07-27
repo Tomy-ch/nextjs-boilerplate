@@ -30,13 +30,16 @@ While the repository sits below v1.0.0, the constraints below are **temporarily 
 - **ADRs stay living documents and are overwritten in place** — ADR [0140](docs/adr/0140-documentation-operations.md)'s living operation is extended from `0.0.x` to everything below v1.0.0
 - **Do not leave change history or rationale drift in document bodies** — write the decision in its present form only; git history owns the history
 
-What this section does **not** lift: the Git Rules below (no direct push to protected branches, no force push / history rewrite, confirmation before pushing to an existing PR branch) and the paths listed under `.claude/settings.json`'s `permissions.deny`.
+To match this, `.claude/settings.json` moves the doc-protection entries (`AGENTS.md` / `LICENSE` / ADR bodies / `.claude/settings.json` itself) from `permissions.deny` to `permissions.ask` for the duration — the edits still surface for approval, they just stop being hard-blocked.
+
+What this section does **not** lift: the Git Rules below (no direct push to protected branches, no force push / history rewrite, confirmation before pushing to an existing PR branch) and everything still listed under `permissions.deny`.
 
 On reaching v1.0.0, delete this section and:
 
 1. Restore `Protected Documentation` / `AI Modification Scope` to their unrelaxed form
-2. Switch ADR [0140](docs/adr/0140-documentation-operations.md) to immutable ADR operation
-3. Strip rationale / history prose from every ADR body (P9-3)
+2. Move the doc-protection entries in `.claude/settings.json` back from `permissions.ask` to `permissions.deny`
+3. Switch ADR [0140](docs/adr/0140-documentation-operations.md) to immutable ADR operation
+4. Strip rationale / history prose from every ADR body (P9-3)
 
 ## Instruction Priority
 
