@@ -1,3 +1,9 @@
 [tools]
+# ランタイム / パッケージマネージャ
 node = "24.14.1"
 pnpm = "10.33.0"
+
+# セキュリティスキャナ。短縮名でも解決できるが backend を明示する。
+# mise のレジストリが既定 backend を差し替えても取得元が動かないようにするため。
+"aqua:gitleaks/gitleaks" = "8.30.1"
+"aqua:aquasecurity/trivy" = "0.72.0"

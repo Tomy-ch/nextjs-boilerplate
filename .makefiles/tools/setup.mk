@@ -1,5 +1,5 @@
 ## ツール関連
-.PHONY: install-tools ## mise.toml に基づき Node.js / pnpm をインストールする
+.PHONY: install-tools ## mise.toml に基づき Node.js / pnpm / gitleaks / Trivy をインストールする
 
 install-tools:
 	@echo "🔄 Installing tools via mise..."
@@ -8,3 +8,5 @@ install-tools:
 	@echo "✅ Tools installed successfully."
 	@mise exec -- node --version
 	@mise exec -- pnpm --version
+	@mise exec -- gitleaks version
+	@mise exec -- trivy --version | head -1
