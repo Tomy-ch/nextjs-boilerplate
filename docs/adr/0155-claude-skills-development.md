@@ -50,6 +50,7 @@ Accepted
 | `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
 | `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
 | `adr-scan` | ADR 候補の全リポ発見 | de facto に存在するが BACKLOG 未追跡の設計判断を read-only で走査し、taxonomy (decision / exclusion / rule / inventory) と Tier / frame ID へ分類した候補 inventory を出力 (※ 暫定 / one-off。BACKLOG 反映後に削除・アーカイブ予定) |
+| `manage-skill` | スキルの作成・更新の単一入口 | 公式 `skill-creator` の方法論をラップし、本 ADR / [0154](0154-claude-skills-operations.md) の配置・命名・frontmatter・本文構造と [0140](0140-documentation-operations.md) の対訳ペアを上乗せする。`.claude/skills/**` への変更はこのスキルを入口とし、`SKILL.md` / `SKILL.ja.md` の直接手編集に先立って通す。公式プラグインの用意は `scripts/bootstrap-plugins.ts` が担う |
 
 新規追加は本 ADR の趣旨 (開発系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。
 
