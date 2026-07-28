@@ -27,7 +27,11 @@ Git hooks are managed by [lefthook](https://github.com/evilmartians/lefthook) ([
 | Hook | Command | Purpose |
 | --- | --- | --- |
 | pre-commit | `pnpm lint:ci` | biome full profile (`biome.ci.jsonc`, warnings block) |
+| pre-commit | `pnpm md-lint` | markdownlint + mermaid syntax check (`*.md` only) |
+| commit-msg | `make commitlint` | commit subject prefix check (`commitlint.config.ts`, [0150](docs/adr/0150-git-workflow.md)) |
 | pre-push | `pnpm typecheck` | `tsc --noEmit` |
+
+Commit subjects must be `<Prefix>: <subject>`, where `<Prefix>` is one of `Feat` / `Fix` / `Refactor` / `Perf` / `Docs` / `Test` / `Build` / `CI` / `Chore` / `Style` / `Revert` — e.g. `Feat: ログインフォームを追加`. The subject must not end with `。`. Any other prefix, an empty subject, or a trailing `。` fails the `commit-msg` hook.
 
 Do not habitually bypass hooks with `--no-verify` (see the ADR for the exception policy).
 
