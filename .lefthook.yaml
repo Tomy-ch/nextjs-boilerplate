@@ -15,6 +15,13 @@ pre-commit:
       run: pnpm md-lint
 
 pre-push:
+  parallel: true
   commands:
     typecheck:
       run: pnpm typecheck
+    secret-scan:
+      # push 予定のコミット範囲に秘密が含まれていれば fail-closed で止める。
+      run: make secret-scan
+    trivy-fs:
+      # 依存の脆弱性を報告する。ここでは落とさず、ゲート化は CI 側が持つ。
+      run: make trivy-fs

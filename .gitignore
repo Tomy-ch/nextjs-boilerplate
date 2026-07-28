@@ -20,6 +20,9 @@
 # production
 /build
 
+# git worktree (リポジトリ内に実体を置くため、本体の作業ツリーでは untracked 扱いにしない)
+/.claude/worktrees/
+
 # misc
 .DS_Store
 *.pem

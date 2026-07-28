@@ -11,6 +11,10 @@ include .makefiles/github/setting/label-setting.mk
 # ツール関連
 include .makefiles/tools/setup.mk
 
+# セキュリティ関連
+include .makefiles/security/gitleaks.mk
+include .makefiles/security/trivy.mk
+
 # 一括実行系ファイル
 # GitHub関連
 include .makefiles/github/operation/setup-repository.mk
