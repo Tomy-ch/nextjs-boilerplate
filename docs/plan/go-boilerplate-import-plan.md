@@ -48,7 +48,7 @@
 
 ## 2. 作業一覧
 
-全 29 項目。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
+全 27 項目。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
 
 | ID | 内容 | 分類 | 受け皿 | 依存 / トリガー |
 | --- | --- | --- | --- | --- |
@@ -62,9 +62,7 @@
 | **W3: ローカル品質ゲート**(v1 Phase 1 併走) | | | | |
 | IM-07 | commitlint | A | P1-1 | なし |
 | IM-08 | lefthook の glob 別並列 + 段階設計 | B | P1-1, P1-2 | IM-07 |
-| IM-09 | `.editorconfig` | B | P1-3 | なし |
 | IM-10 | 抑止ポリシー様式の統一 | A | P1-2 | なし |
-| IM-11 | `.makefiles/README.md`(EN) + `make help` 未文書化警告 | A | P1-3 | なし |
 | **W4: CI 設計パターン**(v1 Phase 2 併走) | | | | |
 | IM-12 | skip-guard ペア方式 | A | P2-1 | P1-3 |
 | IM-13 | 二重リリースゲート | A | P2-2 | IM-12 |
@@ -184,9 +182,7 @@ v1 計画 Phase 1 の各 PR へ、以下を輸入元・輸入内容として書�
 | --- | --- | --- |
 | IM-07 | P1-1 | 輸入元 `commitlint.config.js`。type-enum は [0150](../adr/0150-git-workflow.md) の prefix 11 種と同一。**大文字混在のため `type-case` を課さない**点をそのまま輸入 |
 | IM-08 | P1-1, P1-2 | lefthook の**段階設計**を輸入 — pre-commit = glob 別に並列発火する速い lint + キャッシュテスト / pre-push = 重い検証(秘密スキャン・フルテスト・生成物ドリフト)。現行は pre-commit 一括のため、`*.md` / `*.ts` / `.github/**` の glob 分割へ組み替える |
-| IM-09 | P1-3 | `.editorconfig` を新規追加。go 側から Go 節を除去し、TS / TSX / JSON / YAML / MD / CSS の indent 規約を biome の設定と一致させる |
 | IM-10 | P1-2 | **抑止ポリシー様式**を輸入 — `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に共通する「一括無効化禁止・抑止はファイル or フィンガープリント単位・理由必須・条件が変われば削除」を各ファイル冒頭に明文化。`.gitleaksignore` は 1 行ごとに「なぜ秘密でないか」を書く |
-| IM-11 | P1-3 | `.makefiles/README.md`(EN)を新設し `README.ja.md` の対訳を成立させる(現在リンク切れ)。`make help` の未文書化ターゲット警告は P1-3 に既に記載あり |
 
 ### W4: CI 設計パターン
 
