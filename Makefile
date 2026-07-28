@@ -7,6 +7,7 @@ include .makefiles/github/operation/release-tag.mk
 include .makefiles/github/setting/github.mk
 include .makefiles/github/setting/branch-ruleset.mk
 include .makefiles/github/setting/label-setting.mk
+include .makefiles/github/lint/actionlint.mk
 
 # ツール関連
 include .makefiles/tools/setup.mk
@@ -17,4 +18,4 @@ include .makefiles/github/operation/setup-repository.mk
 
 .PHONY: help
 help:
-	@pnpm exec tsx scripts/make-help.ts
+	@mise exec -- pnpm exec tsx scripts/make-help.ts
