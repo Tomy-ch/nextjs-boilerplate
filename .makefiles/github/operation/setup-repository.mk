@@ -1,6 +1,6 @@
 ## リポジトリの初期化
 .PHONY: setup-repo ## リポジトリの初期化
-.PHONY: setup-replace-license-copyright ## node_tool_runnerでLICENSEの著作権表示更新を実行
+.PHONY: setup-replace-license-copyright ## LICENSEの著作権表示を更新
 
 SETUP_DRY_RUN_FLAG := $(if $(DRY_RUN),--dry-run,)
 
