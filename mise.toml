@@ -3,7 +3,14 @@
 node = "24.14.1"
 pnpm = "10.33.0"
 
-# セキュリティスキャナ。短縮名でも解決できるが backend を明示する。
-# mise のレジストリが既定 backend を差し替えても取得元が動かないようにするため。
+# GitHub Actions 定義の Lint（make actionlint）
+actionlint = "1.7.12"
+# actionlint が run ステップのシェルを検査するために PATH 上で参照する（同梱ではなく別バイナリ）。
+# 版を固定しないと検査結果が実行者の環境依存になるため mise 側で持つ。
+shellcheck = "0.11.0"
+
+# セキュリティスキャナ（make secret-scan / make trivy-fs）。
+# 短縮名でも解決できるが、検出そのものを担うツールのため backend まで明示し、
+# レジストリの既定 backend が差し替わっても取得元が動かないようにする。
 "aqua:gitleaks/gitleaks" = "8.30.1"
 "aqua:aquasecurity/trivy" = "0.72.0"

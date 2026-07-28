@@ -29,8 +29,12 @@ function main(): void {
 
   // カテゴリ見出し行（bash 版の ^##\ (.*) と等価）
   const categoryPattern = /^## (.*)/;
-  // .PHONY 行（単一ターゲット + コメント付き。bash 版の正規表現と等価）
-  const phonyPattern = /^\.PHONY: ([^\s]+)\s*##\s*(.*)$/;
+  // .PHONY 行（説明コメント付き。1 行に複数ターゲットを書いた場合は全件を一覧に出す）
+  const phonyPattern = /^\.PHONY:\s+([^#]+?)\s*##\s*(.*)$/;
+  // 説明コメント（## ...）を持たない .PHONY 行
+  const undocumentedPhonyPattern = /^\.PHONY:(?!.*##)/;
+
+  const undocumented: string[] = [];
 
   for (const file of files) {
     const content = readFileSync(file, "utf8");
@@ -45,15 +49,34 @@ function main(): void {
 
       const phonyMatch = line.match(phonyPattern);
       if (phonyMatch) {
-        const target = phonyMatch[1];
+        const targets = phonyMatch[1].split(/\s+/);
         const comment = phonyMatch[2];
-        // printf "🛠  %-24s %s\n" 相当（ターゲットを左寄せ幅24 + コメント）
-        lines.push(`🛠  ${target.padEnd(24)} ${comment}`);
+
+        for (const target of targets) {
+          // printf "🛠  %-24s %s\n" 相当（ターゲットを左寄せ幅24 + コメント）
+          lines.push(`🛠  ${target.padEnd(24)} ${comment}`);
+        }
+
+        continue;
+      }
+
+      if (undocumentedPhonyPattern.test(line)) {
+        // 一覧に出ない = 利用者から見えないターゲットになるため警告する
+        undocumented.push(`${file}: ${line.trim()}`);
       }
     }
   }
 
   console.log(lines.join("\n"));
+
+  if (undocumented.length > 0) {
+    console.error("");
+    console.error("⚠️  説明コメント（## ...）が無い .PHONY 行を一覧から除外しました:");
+
+    for (const entry of undocumented) {
+      console.error(`   - ${entry}`);
+    }
+  }
 }
 
 main();
