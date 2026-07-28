@@ -40,5 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# scratch (review artifacts, out-of-repo work-plan symlinks, tool locks)
+# 作業用スクラッチ（レビュー所見の出力先 / repo 外作業計画書の symlink / ツールのロックファイル）
 /tmp
+
+# エージェントがリポジトリ内に作成する worktree
+/.claude/worktrees/
