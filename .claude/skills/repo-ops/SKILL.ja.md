@@ -68,19 +68,16 @@ pnpm format    # biome format --write : フォーマットのみ
 ものは手で直す。`// biome-ignore` を多用しない(スコープ付き `overrides` を `biome.json` に。ただし `biome.json` は
 保護対象ルート設定=ユーザ指示)。
 
-## 5. `tmp/reviews/`(full-verify / full-apply の成果物)が `git status` に出る
+## 5. スクラッチ出力は `tmp/` 配下に置き、git には乗せない
 
-`full-verify` / `full-apply` は指摘集を `tmp/reviews/` 配下に書く。Next.js の既定 `.gitignore` は `tmp/` を無視
-**しない**ため、未追跡として現れ、誤ってコミットされ得る。
+`/tmp` と `/.claude/worktrees/` は `.gitignore` 済みなので、以下は `git status` に出ない。
 
-対処: `tmp/` を無視(`.gitignore` はルートファイルなので編集前にユーザ確認)。
+- `tmp/reviews/` ── `full-verify` / `full-apply` の指摘集
+- `tmp/<name>.md` ── 実体をリポジトリ外に置いた作業計画書への symlink
+- `.claude/worktrees/<name>/` ── エージェントがリポジトリ内に作成する worktree
 
-```gitignore
-# review / scratch artifacts
-/tmp/
-```
-
-それまでは `tmp/reviews/**` を `git add` しない ── ソースではなくスクラッチ出力。
+いずれもソースではなくスクラッチ出力: `git add -f` で強引に載せない。残す必要があるスクラッチはリポジトリ外に
+実体を置き、`tmp/` 配下の symlink から参照する。
 
 ## 6. commit / push が hook に弾かれる(lefthook)
 
@@ -110,6 +107,6 @@ echo "Feat: 説明" | pnpm exec commitlint
 
 - ✅ read-only ナレッジ: 正確なコマンドを提示。実行はユーザが操作を頼んだ時のみ。
 - ✅ 破壊的ステップ(§2 のタグ/ブランチ削除)は `CLAUDE.md` に従い事前警告。
-- ✅ ルートファイル編集(§5 `.gitignore`、§4 `biome.json`、§3 `package.json`)は事前にユーザ確認 ── 既定の
+- ✅ ルートファイル編集(§4 `biome.json`、§3 `package.json`)は事前にユーザ確認 ── 既定の
   AI 変更スコープ外。
 - ❌ go-boilerplate の Docker / sqlc / DB 項目をここに移植しない ── 適用外(ADR 0004)。

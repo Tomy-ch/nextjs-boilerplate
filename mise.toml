@@ -1,3 +1,9 @@
 [tools]
 node = "24.14.1"
 pnpm = "10.33.0"
+
+# GitHub Actions 定義の Lint（make actionlint）
+actionlint = "1.7.12"
+# actionlint が run ステップのシェルを検査するために PATH 上で参照する（同梱ではなく別バイナリ）。
+# 版を固定しないと検査結果が実行者の環境依存になるため mise 側で持つ。
+shellcheck = "0.11.0"

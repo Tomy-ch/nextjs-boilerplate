@@ -5,4 +5,4 @@
 COMMIT_MSG_FILE ?= $(shell git rev-parse --git-path COMMIT_EDITMSG)
 
 commitlint:
-	@pnpm exec commitlint --edit "$(COMMIT_MSG_FILE)"
+	@mise exec -- pnpm exec commitlint --edit "$(COMMIT_MSG_FILE)"

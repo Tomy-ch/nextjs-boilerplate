@@ -1,6 +1,6 @@
 ---
 name: repo-ops
-description: Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed toolchain, the pnpm lockfile, the Makefile setup targets, and the review-artifact directory. Read-only knowledge skill — it tells you the exact command to run; it does not silently mutate state. This is deliberately a SPARSE STARTER for the Next.js boilerplate: it carries only the gotchas that genuinely exist today (mise / pnpm / make DRY_RUN / tmp-reviews / lefthook hooks), and grows as new operational traps are discovered (in contrast to the go-boilerplate original, whose items were mostly Docker / sqlc / DB-runner specific and do not apply here — ADR 0004 no-docker). Triggers: "make install-tools が mise not found で落ちる", "DRY_RUN=0 なのに dry-run になる", "pnpm install --frozen-lockfile が落ちる", "mise.toml を変えた後の反映", "tmp/reviews が git に乗る", "commit が commitlint に弾かれる", "hook が command not found で落ちる".
+description: Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, and the lefthook git hooks. Read-only knowledge skill — it tells you the exact command to run; it does not silently mutate state. This is deliberately a SPARSE STARTER for the Next.js boilerplate: it carries only the gotchas that genuinely exist today (mise / pnpm / make DRY_RUN / scratch paths / lefthook hooks), and grows as new operational traps are discovered (in contrast to the go-boilerplate original, whose items were mostly Docker / sqlc / DB-runner specific and do not apply here — ADR 0004 no-docker). Triggers: "make install-tools が mise not found で落ちる", "DRY_RUN=0 なのに dry-run になる", "pnpm install --frozen-lockfile が落ちる", "mise.toml を変えた後の反映", "スクラッチ出力をどこに置くか", "commit が commitlint に弾かれる", "hook が command not found で落ちる".
 ---
 
 # Repo Ops Runbook
@@ -76,20 +76,17 @@ pnpm format    # biome format --write : formatting only
 Fix items the auto-fixer cannot handle by hand; do not sprinkle `// biome-ignore` (prefer a scoped
 `overrides` in `biome.json`, which is a protected root config = user instruction).
 
-## 5. `tmp/reviews/` (full-verify / full-apply artifacts) shows up in `git status`
+## 5. Scratch output belongs under `tmp/`, and stays out of git
 
-`full-verify` / `full-apply` write their finding set under `tmp/reviews/`. Next.js's default
-`.gitignore` does **not** ignore `tmp/`, so these artifacts appear as untracked and can be committed by
-accident.
+`/tmp` and `/.claude/worktrees/` are ignored by `.gitignore`, so the following never reach
+`git status`:
 
-Fix: ignore `tmp/` (confirm with the user before editing `.gitignore` — it is a root file).
+- `tmp/reviews/` — `full-verify` / `full-apply` finding sets
+- `tmp/<name>.md` — symlinks to work-plan documents whose real files live outside the repo
+- `.claude/worktrees/<name>/` — worktrees an agent creates inside the repository
 
-```gitignore
-# review / scratch artifacts
-/tmp/
-```
-
-Until then, do not `git add` `tmp/reviews/**` — it is scratch output, not source.
+These are scratch output, not source: do not force them in with `git add -f`. A scratch file that
+must survive belongs outside the repo, referenced through a symlink under `tmp/`.
 
 ## 6. A commit or push is rejected by a hook (lefthook)
 
@@ -120,6 +117,6 @@ echo "Feat: 説明" | pnpm exec commitlint
 - ✅ Read-only knowledge: surface the exact command; run it only when the user asked you to perform the
   operation.
 - ✅ Warn before destructive steps (tag/branch deletion in §2) per `CLAUDE.md`.
-- ✅ Confirm with the user before editing root files (`.gitignore` in §5, `biome.json` in §4,
-  `package.json` in §3) — they are outside the default AI Modification Scope.
+- ✅ Confirm with the user before editing root files (`biome.json` in §4, `package.json` in §3) —
+  they are outside the default AI Modification Scope.
 - ❌ Do not port the go-boilerplate Docker / sqlc / DB items here — they do not apply (ADR 0004).

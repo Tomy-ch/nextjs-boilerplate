@@ -33,18 +33,9 @@
 
 ### 1.2 台帳の鮮度
 
-BACKLOG の移植バックログ節はスナップショット「スキル 31 / エージェント 18 / 共有スペック 5」時点で書かれており、以降に go 側へ追加された次の資産が**未登録**:
+[BACKLOG.md](../adr/BACKLOG.md) の移植バックログ節は上記スナップショットへ揃っており、35 スキル / 19 エージェントの全数が分類済み。本書の作業一覧との対応は各 IM 項目の「主な変更先」で辿る。
 
-| 資産 | 種別 | 本書での扱い |
-| --- | --- | --- |
-| `supply-chain-triage`(+ references 4) | スキル | IM-20 |
-| `dep-vuln-upgrade` | スキル | IM-21 |
-| `images-pin` | スキル | 対象外([0011](../adr/0011-no-docker.md) no-docker) |
-| `manage-skill` | スキル | IM-03 |
-| `sync-ai`(+ handoff スクリプト) | スキル | IM-05 |
-| `type-design-reviewer` | エージェント | IM-24(新設枠 C-7) |
-
-加えて `impl-review` は移植時点から機能拡張されており、本リポジトリの `local-review`(130 行)は go 側(256 行)の現行仕様に追随していない(IM-02)。
+`impl-review` は移植時点から機能拡張されており、本リポジトリの `local-review`(130 行)は go 側(256 行)の現行仕様に追随していない(IM-02)。
 
 ### 1.3 分類凡例
 
@@ -57,14 +48,12 @@ BACKLOG の移植バックログ節はスナップショット「スキル 31 / 
 
 ## 2. 作業一覧
 
-全 30 項目。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
+全 27 項目。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
 
 | ID | 内容 | 分類 | 受け皿 | 依存 / トリガー |
 | --- | --- | --- | --- | --- |
-| **W0: 前提整備** | | | | |
-| IM-01 | 移植バックログ節をスナップショット 35/19 へ改訂 | A | — | なし |
 | **W1: レビュー体系の追随**(受け皿なし / 即着手可) | | | | |
-| IM-02 | `local-review` を `impl-review` 現行仕様へ追随 | B | — | IM-01 |
+| IM-02 | `local-review` を `impl-review` 現行仕様へ追随 | B | — | なし |
 | **W2: AI 環境二重運用**(受け皿なし / 即着手可) | | | | |
 | IM-03 | `manage-skill` 移植 | A | — | なし |
 | IM-04 | `.codex/` 基盤(README 対訳 / config.toml / スコープ規約) | B | — | IM-03 |
@@ -73,9 +62,7 @@ BACKLOG の移植バックログ節はスナップショット「スキル 31 / 
 | **W3: ローカル品質ゲート**(v1 Phase 1 併走) | | | | |
 | IM-07 | commitlint | A | P1-1 | なし |
 | IM-08 | lefthook の glob 別並列 + 段階設計 | B | P1-1, P1-2 | IM-07 |
-| IM-09 | `.editorconfig` | B | P1-3 | なし |
 | IM-10 | 抑止ポリシー様式の統一 | A | P1-2 | なし |
-| IM-11 | `.makefiles/README.md`(EN) + `make help` 未文書化警告 | A | P1-3 | なし |
 | **W4: CI 設計パターン**(v1 Phase 2 併走) | | | | |
 | IM-12 | skip-guard ペア方式 | A | P2-1 | P1-3 |
 | IM-13 | 二重リリースゲート | A | P2-2 | IM-12 |
@@ -106,7 +93,6 @@ BACKLOG の移植バックログ節はスナップショット「スキル 31 / 
 
 ```mermaid
 flowchart TD
-  IM01["IM-01 台帳改訂"] --> IM02["IM-02 local-review 追随"]
   IM03["IM-03 manage-skill"] --> IM04["IM-04 .codex 基盤"]
   IM04 --> IM05["IM-05 sync-ai"]
   IM05 --> IM06["IM-06 ミラー生成"]
@@ -132,22 +118,6 @@ flowchart TD
 
 v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容のみを記す。
 
-### W0: 前提整備
-
-#### IM-01: 移植バックログ節をスナップショット 35/19 へ改訂
-
-- **目的**: 台帳が古いスナップショットを指しているため、以降の判断が go 側の現状とずれる。基準を現在へ揃える
-- **主な変更先**: [BACKLOG.md](../adr/BACKLOG.md) 移植バックログ節
-- **変更内容**:
-  - 対象スナップショットを「スキル 35 / エージェント 19 / 共有スペック 5」+ `.codex/`(エージェント 19 / スキル 34)へ更新
-  - §1.2 の未登録 6 資産を分類へ追加
-  - **C-6**(actions-pin)の受け皿が P2-3 であることを明記
-  - **C-7** を新設: `type-design-reviewer`。ブロック元 A3、着手トリガーは `src/model/` の型設計規約確定
-  - 「対象外(D)」へ `images-pin` を追加([0011](../adr/0011-no-docker.md))
-  - 本書へのリンクを張り、作業定義の所在を示す
-- **完了条件**: BACKLOG の分類に go 側の全 35 スキル / 19 エージェントが漏れなく現れる
-- **依存**: なし
-
 ### W1: レビュー体系の追随
 
 #### IM-02: `local-review` を `impl-review` 現行仕様へ追随
@@ -165,7 +135,7 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 | 4 | **モデル選択**(fable / sonnet / opus / haiku、既定 auto = 実装者 ≠ レビュアー) | 無翻案 |
 
 - **完了条件**: 5 レンズ + comment-reviewer が走り、コメント指摘が自動修正され、残る指摘が PR へインライン投稿される。`--no-comment` / `--no-apply` が効く
-- **依存**: IM-01
+- **依存**: なし
 
 ### W2: AI 環境二重運用
 
@@ -212,9 +182,7 @@ v1 計画 Phase 1 の各 PR へ、以下を輸入元・輸入内容として書�
 | --- | --- | --- |
 | IM-07 | P1-1 | 輸入元 `commitlint.config.js`。type-enum は [0150](../adr/0150-git-workflow.md) の prefix 11 種と同一。**大文字混在のため `type-case` を課さない**点をそのまま輸入 |
 | IM-08 | P1-1, P1-2 | lefthook の**段階設計**を輸入 — pre-commit = glob 別に並列発火する速い lint + キャッシュテスト / pre-push = 重い検証(秘密スキャン・フルテスト・生成物ドリフト)。現行は pre-commit 一括のため、`*.md` / `*.ts` / `.github/**` の glob 分割へ組み替える |
-| IM-09 | P1-3 | `.editorconfig` を新規追加。go 側から Go 節を除去し、TS / TSX / JSON / YAML / MD / CSS の indent 規約を biome の設定と一致させる |
 | IM-10 | P1-2 | **抑止ポリシー様式**を輸入 — `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に共通する「一括無効化禁止・抑止はファイル or フィンガープリント単位・理由必須・条件が変われば削除」を各ファイル冒頭に明文化。`.gitleaksignore` は 1 行ごとに「なぜ秘密でないか」を書く |
-| IM-11 | P1-3 | `.makefiles/README.md`(EN)を新設し `README.ja.md` の対訳を成立させる(現在リンク切れ)。`make help` の未文書化ターゲット警告は P1-3 に既に記載あり |
 
 ### W4: CI 設計パターン
 
