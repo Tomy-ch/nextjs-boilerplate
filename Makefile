@@ -10,6 +10,7 @@ include .makefiles/github/setting/label-setting.mk
 
 # ツール関連
 include .makefiles/tools/setup.mk
+include .makefiles/tools/commitlint.mk
 
 # 一括実行系ファイル
 # GitHub関連
