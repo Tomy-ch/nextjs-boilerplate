@@ -38,11 +38,15 @@ Accepted
 | 段階 | 目的 | 想定処理 | 速度目標 |
 | --- | --- | --- | --- |
 | pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) | < 5 秒 |
-| pre-push | 「壊れた push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / テスト (整備後) | < 30 秒 |
+| pre-push | 「壊れた push・秘密を含む push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / 秘密スキャン (`make secret-scan` = push 予定コミット範囲) / 依存脆弱性スキャン (`make trivy-fs`) / テスト (整備後) | < 30 秒 |
 | (CI) | 権威ある検査 | lint / 型 / test / build / e2e 等 | 制約なし |
 
 - pre-commit で走らせる biome は、エディタ保存時の簡易版ではなく **完全版** (`pnpm lint:ci`)。保存時は軽量・commit 時は厳格という二段構え（プロファイル分割の詳細は [0002-formatter-linter.md](0002-formatter-linter.md)）
 - biome は Rust 実装で高速なため、完全版（`noImportCycles` の複数ファイル走査を含む）でも本リポジトリ規模では sub-second に収まり、速度目標を満たす
+- pre-push の commands は `parallel: true` で並列実行する。秘密スキャンと脆弱性スキャンは型チェックと独立しており、直列化すると速度目標を割るため
+- **秘密スキャンを pre-push に置く理由**は、秘密が push された時点で「リモートに残る」不可逆な事故になるためである。**この段階でしか「送られるコミット範囲」が確定しない**点も pre-push を選ぶ根拠になる。commit 段階では、その commit が最終的に push されるか・後続 commit で消されるかがまだ決まらない（走査対象の決め方そのものは [0110](0110-security-operations.md) が正）
+- 依存脆弱性スキャンは**報告専用**で push を止めない。既存依存の脆弱性はその push が持ち込んだものではなく、これで落とすと `--no-verify` の常用を招く（[0110](0110-security-operations.md)）
+- 速度目標は**定常状態の実測**で判断する。Trivy の脆弱性 DB 取得や各ツールのコールドスタートは初回に限って目標を超えるが、これを理由に目標を緩めない
 
 ### 設計原則
 
@@ -105,7 +109,7 @@ pnpm exec lefthook install    # .git/hooks/ に symlink を配置
 
 ## 設定の最小構成
 
-`.lefthook.yaml` の構成は以下を基準とする（**未導入**。lefthook 本体・`.lefthook.yaml` とも実装 PR で導入する。以下は導入時の基準構成）。
+`.lefthook.yaml` の構成は以下を基準とする。
 
 ```yaml
 pre-commit:
@@ -113,11 +117,19 @@ pre-commit:
   commands:
     lint:
       run: pnpm lint:ci   # biome 完全版 (biome.ci.jsonc + --error-on-warnings)
+    md-lint:
+      glob: "*.md"
+      run: pnpm md-lint   # markdownlint + mermaid 構文検証
 
 pre-push:
+  parallel: true
   commands:
     typecheck:
-      run: pnpm typecheck  # tsc --noEmit
+      run: pnpm typecheck    # tsc --noEmit
+    secret-scan:
+      run: make secret-scan  # gitleaks (push 予定コミット範囲。検出時は fail)
+    trivy-fs:
+      run: make trivy-fs     # Trivy (報告専用)
 ```
 
 ### 改変ルール
@@ -149,4 +161,5 @@ pre-push:
 
 - [0002-formatter-linter.md](0002-formatter-linter.md) — `pnpm lint:ci` で呼ばれる biome 完全版 (`biome.ci.jsonc`) と簡易版のプロファイル分割
 - [0004-library-management.md](0004-library-management.md) — lefthook を devDependency として exact pin する根拠
+- [0110-security-operations.md](0110-security-operations.md) — pre-push で走る秘密 / 脆弱性スキャンの内容と抑止ポリシー
 - [0150-git-workflow.md](0150-git-workflow.md) — hook 通過後の commit / PR / リリース運用フロー

@@ -7,6 +7,7 @@ Make ターゲットは主に以下の単位で整理されています。
 
 - `.makefiles/github` : GitHub 初期設定 / リリース / ラベル / ルール設定
 - `.makefiles/tools` : 開発ツールの管理関連
+- `.makefiles/security` : シークレット / 依存脆弱性のスキャン
 
 ## `.makefiles/github` 系
 
@@ -64,4 +65,16 @@ Make ターゲットは主に以下の単位で整理されています。
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make install-tools` | `mise.toml` に基づき Node.js / pnpm をインストールします。 | mise の事前インストールが必要。詳細は [docs/adr/0003-version-manager.md](../docs/adr/0003-version-manager.md) 参照 |
+| `make install-tools` | `mise.toml` に基づき Node.js / pnpm / gitleaks / Trivy をインストールします。 | mise の事前インストールが必要。詳細は [docs/adr/0003-version-manager.md](../docs/adr/0003-version-manager.md) 参照 |
+
+## `.makefiles/security` 系
+
+シークレットの混入と脆弱な依存をローカルで検知するためのスキャンです。いずれも pre-push hook から実行され、CI 側のゲートと同じコマンドを呼びます。
+
+抑止は `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に限定し、各ファイル冒頭の抑止ポリシーに従って理由付きで記録します。
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make secret-scan` | push 予定のコミット範囲を gitleaks でスキャンします。 | 対象は「HEAD から辿れてどのリモートにも無いコミット」。検出時は exit 1 で失敗します（fail-closed）。検出値は `--redact` で出力しません。 |
+| `make secret-scan-history` | コミット履歴全体を gitleaks でスキャンします。 | マージ済み履歴に埋もれた秘密を拾う用途。コミット数に比例して伸びるため hook には載せません。 |
+| `make trivy-fs` | 依存ライブラリの脆弱性を Trivy fs でスキャンします。 | 修正版のあるものだけを報告し、exit code では落としません。厳格判定は昇格ゲートが CI 側で持ちます。 |

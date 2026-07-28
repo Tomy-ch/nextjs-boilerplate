@@ -203,10 +203,12 @@ pnpm fix                   # biome check --fix
 pnpm format                # biome format --write
 ```
 
-### make (Tool setup / release / branch operations)
+### make (Tool setup / security scans / release / branch operations)
 
 ```bash
 make install-tools         # Install tools via mise (ADR 0003)
+make secret-scan           # gitleaks over the commits about to be pushed — fails on detection (ADR 0110)
+make trivy-fs              # Trivy dependency vulnerability scan — report only (ADR 0110)
 make hotfix-patch          # Create a hotfix/v<patch> branch from production
 make tag-patch             # Tag production HEAD and create a GitHub Release
 make tag-minor             # Same (minor)
