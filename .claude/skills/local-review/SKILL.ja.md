@@ -79,9 +79,9 @@
 | Finder | エージェント | 起動条件 |
 | --- | --- | --- |
 | `correctness` | adversarial-reviewer | 常時 |
-| `security` | adversarial-reviewer | 常時（route handler / auth / DTO / `openapi/**` が触られた時は特に） |
+| `security` | adversarial-reviewer | 常時（Route Handler / Server Action / middleware / auth / API のリクエスト・レスポンス型が触られた時は特に） |
 | `architecture` | adversarial-reviewer | 常時 |
-| `runtime-gap` | adversarial-reviewer | route handler / DI / `openapi/**` / `database/**` が触られた時 |
+| `runtime-gap` | adversarial-reviewer | Route Handler / Server Action / middleware / Provider マウント / 生成 API 型が触られた時 — モックのコンポーネントテストが通らない継ぎ目 |
 | `test-gap` | adversarial-reviewer | `src/**` 配下の非生成な本番 `.ts` / `.tsx` が触られ、**かつ**テストランナーが構成されている時（Step 1） |
 | コメント品質 | **comment-reviewer** | diff がコードコメントを追加/変更した時（ほぼ常時） |
 
@@ -152,7 +152,8 @@
 
 各 finding が持つアクションを適用する — 内容の悪いコメントは **削除**、正しい振る舞い記述への **書換**、薄い What / 欠けた非自明な契約 / 欠けた良い Why の **加筆**。`誤り/陳腐化` の finding（What がコードと矛盾）は削除ではなく訂正する。以下のガードを守る（ここでの誤削除は本物のリグレッション）:
 
-- **機能ディレクティブ / 指示コメントを決して削除しない**: `// @ts-expect-error`、`// @ts-ignore`、`// biome-ignore …`、`/** @jsxImportSource … */`、`// prettier-ignore`、`// Code generated … DO NOT EDIT`、shebang、SQL / YAML のツールディレクティブ。（`"use client"` / `"use server"` はコメントではなく文字列ディレクティブ — こちらも触らない。）
+- **機能ディレクティブ / 指示コメントを決して削除しない**: `// @ts-expect-error`、`// @ts-ignore`、`// biome-ignore …`、`// eslint-disable` / `// eslint-disable-next-line` / `/* eslint-disable … */`（ADR [0002](../../../docs/adr/0002-formatter-linter.md) は biome が表現できない検査のために ESLint を残している）、`/** @jsxImportSource … */`、`// prettier-ignore`、`// Code generated … DO NOT EDIT`、shebang、SQL / YAML のツールディレクティブ。（`"use client"` / `"use server"` はコメントではなく文字列ディレクティブ — こちらも触らない。）
+- **保護パスを決して編集しない。** `AGENTS.md` の *AI Modification Scope* と *Protected Documentation* が権威: `AGENTS.md` 自身 / Accepted な ADR 本文 / `LICENSE` / `.claude/settings.json` の `permissions.deny` に載るものは、スキル実行中であっても触らない。ルート設定（`package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/`）の保護解除は v1.0.0 未満の暫定運用によるものであり、コメント修正はそこへ手を入れる理由にならない。コメント指摘がこれらのパスに当たった場合は適用せず報告に留める。
 - **export 宣言**: doc コメントが実際の契約（エラー意味論 / 単位 / 境界 / 副作用）を述べているなら、**書換 or 加筆であって削除は不可** — 型シグネチャがその情報を運ばないため。削除してよいのは、名前と型の純粋な言い換えに留まる場合のみ。どちらのケースかは `comment-reviewer` が export 宣言の finding ごとに明記する。明記が無ければ契約ありとみなして書換にする。
 - **良いコメントは残す**: 正しく十分で実質のある What、および非自明な Why（根拠 / 効いている制約）は finding ではない — 剥ぎ取らない。書換・加筆は **What + 非自明な Why** を書き、**How** や開発の経緯は書かない。コメントは日本語で書く（AGENTS.md Language Rules）。編集はスコープ内のファイルのみ。生成ファイル / Markdown 散文 / deny リストには決して触れない。`Edit` を使い、finding（またはファイル）1 件ずつ進める。
 
@@ -163,7 +164,7 @@
 3. 触ったファイルを `git diff` し、散文コメントだけが変わったことを確認（機能ディレクティブを巻き込んでいないか）。非 TS ファイルは変更ハンクを読み直す。
 4. 失敗したら表に出して止める — 自動 revert しない（判断はユーザー）。commit はしない — 変更はユーザー（または後続の `/commit`）に残す。
 
-`--no-apply` の場合は本ステップをスキップし、コメント finding を Step 6（他レンズ同様 PR へ投稿）へ流す。
+`--no-apply` の場合は本ステップをスキップし、コメント finding を Step 6（他レンズ同様 PR へ投稿）へ流す。`--no-apply` と `--no-comment` を **両方** 指定された場合は受け皿が無くなるため、Step 5 のローカルレポートへ全件を列挙し、その節の見出しを「コメント品質（未適用・未投稿）」に変える — 起きていない適用を起きたことにしない。
 
 ## Step 6 — finding を PR インラインコメントとして投稿（既定。`--no-comment` で opt out）
 
@@ -175,6 +176,12 @@
 - 現ブランチに open な PR が無い（`gh pr view` が何も返さない）— ローカルレポートのみとし、必要なら PR 作成を提案する。
 
 GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ** 確認する — 件数と対象 PR を示す（`AskUserQuestion`: 「<N> 件の指摘を PR #<番号> にインラインコメントとして投稿しますか？」/「投稿する」「投稿しない（ローカルレポートのみ）」）。
+
+**投稿前に伏せ字化する。** 本リポジトリは public であり、`security` の finding は指摘対象そのもの — 漏れたトークン、ハードコードされた認証情報、PII の実例 — を引用する。それをそのまま投稿すると、取り消せない場所へ秘密を再公開することになる。payload を組む前に、各 finding 本文を「証拠を再現する」形から「証拠を説明する」形へ書き換える: 秘密らしき具体値は `***REDACTED***` に置換し、代わりに `path:line` を示す。伏せ字化すると意味を失う finding（値そのものが指摘である場合）はローカルレポート限りとし、投稿せずサマリでその旨を述べる。
+
+**`gh api` は `.claude/settings.json` で deny されている。** `permissions.deny` に `Bash(gh api *)` があり、AGENTS.md はこのリストをスキル実行中も有効としている — つまり以下のインラインコメント呼び出しは実行されずブロックされる。迂回しないこと（同じリクエストを `python3` / `pnpm exec tsx` など許可済みインタプリタ経由で送り直さない — それはガードを満たすのではなく無効化する行為）。deny リストを自分で編集して解除することも決してしない。代わりに、ブロックされた事実をユーザーへ提示し、この呼び出しに限定した一時的な許可か、下記のフォールバックかを選んでもらう。
+
+**API 呼び出しが使えない場合のフォールバック:** `gh pr comment` でサマリコメントを 1 件投稿する — 真の行アンカーの代わりに `path:line` 参照付きでファイルごとにまとめる — そして Step 5 のレポートに「インラインではなくサマリにまとめた」ことを明記する。
 
 ### 手順
 
@@ -210,7 +217,7 @@ GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ**
      "comments": [
        {
          "path": "<file>",
-         "line": 0,
+         "line": "<行番号>",
          "side": "RIGHT",
          "body": "🔎 [CONFIRMED · high] <問題の要約>\n\n根拠: <...>\n修正案: <...>\n検証: <verifier 判定>"
        }
@@ -232,6 +239,8 @@ GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ**
 - ✅ コメント品質の指摘は Step 5.5 で 1 度の確認後に適用（削除 / 書換 / 加筆）し、`pnpm fix` + `pnpm lint:ci`。`--no-apply` でスキップ。
 - ✅ 既定でコードレンズの CONFIRMED + PLAUSIBLE を PR へインラインレビューコメントとして投稿（Step 6）。`--no-comment` または open な PR が無い場合は抑止。
 - ✅ PR 投稿（外向き操作）の前に 1 度だけ確認。各コメントは `path:line` へアンカーし、diff 外の finding はレビューサマリへ畳む。
+- ✅ 投稿前に各 finding 本文から秘密らしき具体値を伏せ字化する — 本リポジトリは public で、投稿は取り消せない。
+- ❌ deny された `gh api` を許可済みインタプリタ経由で送り直す / `permissions.deny` を編集して解除する — ブロックを提示し、サマリコメントのフォールバックを提案すること。
 - ✅ どのレンズが動かなかったか・なぜかをレポートに明記（テストランナー未導入の間の `test-gap`）。
 - ❌ REFUTED を投稿する / `REQUEST_CHANGES` / `APPROVE` を使う — 投稿するレビューは助言的な `COMMENT` のみ。
 - ❌ コードレンズを自動修正する — 指摘まで、直すのはユーザー。自動適用はコメント品質のみ（Step 5.5）。

@@ -89,9 +89,9 @@ Spawn all finders concurrently (issue every `Agent` call in a single message). P
 | Finder | Agent | Run when |
 | --- | --- | --- |
 | `correctness` | adversarial-reviewer | always |
-| `security` | adversarial-reviewer | always (especially when a route handler / auth / DTO / `openapi/**` is touched) |
+| `security` | adversarial-reviewer | always (especially when a Route Handler / Server Action / middleware / auth / an API request-response type is touched) |
 | `architecture` | adversarial-reviewer | always |
-| `runtime-gap` | adversarial-reviewer | when a route handler / DI / `openapi/**` / `database/**` is touched |
+| `runtime-gap` | adversarial-reviewer | when a Route Handler / Server Action / middleware / Provider mount / generated API type is touched — the seams a mocked component test does not exercise |
 | `test-gap` | adversarial-reviewer | when the diff touches non-generated production `.ts` / `.tsx` under `src/**` **and** a test runner is configured (Step 1) |
 | comment quality | **comment-reviewer** | when the diff adds / changes any code comment (almost always) |
 
@@ -114,12 +114,12 @@ Collect all findings and **dedup** by (file, line, claim). For each surviving fi
 
 Run this **only if Step 1 found a touched endpoint**, and run it from the **orchestrator (main session)**, not a subagent — it needs interactive bash, real DB/state, log reading, and possibly user confirmation. Follow `scaffold-endpoint` Step 3.5:
 
-1. `make test` (mocked) does NOT build the real Fx graph, run auth/OpenAPI middleware, or touch the DB — so this stage exists to catch what Step 2's `runtime-gap` lens only *predicts*.
+1. Mocked tests do NOT build the real DI graph, run auth/OpenAPI middleware, or touch the DB — so this stage exists to catch what Step 2's `runtime-gap` lens only *predicts*.
 2. Pick/seed a target row in a known state. For credential/state-sensitive checks, create a row whose plaintext/state you control.
 3. `curl` the touched endpoint(s) (local auth: `Authorization: Bearer debug:<subject>`) and assert: happy path; key error paths (404 / 400 / 422); and — **if the operation declares `security:`** — no-token ⇒ 401 (prove it is actually protected). For IDOR-shaped findings, curl as a *different* subject and assert it cannot reach another subject's resource.
 4. **Shared-schema impact:** if a shared `components/*` was edited (Step 1), curl **every** consumer endpoint, not just the changed one — `grep` the spec for `$ref`s and exercise each.
-5. Read the o11y logs once for a single request: confirm the trace spans controller → usecase → infra and the emitted SQL is what you expect. Later re-checks can rely on o11y instead of re-curling.
-6. **Destructive guard:** if a curl mutates data and the only restore path is `make db-init` (or similar), confirm with the user before running it (per `CLAUDE.md`). Clean up rows you created.
+5. Read the o11y logs once for a single request: confirm the trace spans the layers and the emitted queries are what you expect. Later re-checks can rely on o11y instead of re-curling.
+6. **Destructive guard:** if a curl mutates data and the only restore path is a full data reset, confirm with the user before running it (per `CLAUDE.md`). Clean up rows you created.
 
 Fold any runtime-confirmed defect into the report as CONFIRMED with the curl/o11y evidence.
 
@@ -162,7 +162,8 @@ Confirm once before editing:
 
 Apply the action each finding carries — **削除 (delete)** a bad-content comment, **書換 (rewrite)** to a correct/behavioral What, or **加筆 (enrich)** a thin What / missing non-obvious contract / missing good Why. A `誤り/陳腐化` finding (the What contradicts the code) is corrected, not deleted. Obey these guards (a wrong deletion here is a real regression):
 
-- **Never delete functional / directive comments**: `// @ts-expect-error`, `// @ts-ignore`, `// biome-ignore …`, `/** @jsxImportSource … */`, `// prettier-ignore`, `// Code generated … DO NOT EDIT`, shebangs, tool directives in SQL / YAML. (`"use client"` / `"use server"` are string directives, not comments — never touch them either.)
+- **Never delete functional / directive comments**: `// @ts-expect-error`, `// @ts-ignore`, `// biome-ignore …`, `// eslint-disable` / `// eslint-disable-next-line` / `/* eslint-disable … */` (ADR [0002](../../../docs/adr/0002-formatter-linter.md) keeps ESLint for the checks biome cannot express), `/** @jsxImportSource … */`, `// prettier-ignore`, `// Code generated … DO NOT EDIT`, shebangs, tool directives in SQL / YAML. (`"use client"` / `"use server"` are string directives, not comments — never touch them either.)
+- **Never edit a protected path.** `AGENTS.md`'s *AI Modification Scope* and *Protected Documentation* are authoritative: `AGENTS.md` itself, Accepted ADR bodies, `LICENSE`, and anything listed under `.claude/settings.json`'s `permissions.deny` stay untouched even during skill execution. Root config (`package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/`) is lifted only by the temporary pre-v1.0.0 rules — a comment fix is never a good enough reason to reach into one. If a comment finding lands on such a path, report it instead of applying it.
 - **Exported declarations**: if the doc comment carries a real contract (error semantics / units / boundaries / side effects), **rewrite or enrich, never delete** — the type signature does not carry it. Delete only when the comment is a pure restatement of the name and type. The `comment-reviewer` marks which case applies on every exported-declaration finding; if it did not, treat it as contract-bearing and rewrite.
 - **Keep good comments**: a correct, sufficient What and a non-obvious Why (rationale / load-bearing constraint) are not findings — do not strip them. Rewrites/enrichments describe **What + non-obvious Why**, never **How** or development 経緯. Comments are written in Japanese (AGENTS.md Language Rules). Edit only in-scope files; never touch generated files, Markdown prose, or the deny list. Use `Edit`, one finding (or one file) at a time.
 
@@ -173,7 +174,7 @@ After editing, verify:
 3. `git diff` the touched files and confirm only prose comments changed (no functional directive caught). For non-TS files, re-read the changed hunks.
 4. On failure, surface it and stop — do not auto-revert; the user decides. Do NOT commit — leave the changes for the user (or a later `/commit`).
 
-If `--no-apply`, skip this step and instead let the comment findings flow into Step 6 (posted to the PR like the other lenses).
+If `--no-apply`, skip this step and instead let the comment findings flow into Step 6 (posted to the PR like the other lenses). If **both** `--no-apply` and `--no-comment` are given, nothing consumes them — list them in full in the Step 5 local report instead, and retitle that subsection 「コメント品質（未適用・未投稿）」 so it does not claim an apply that never happened.
 
 ## Step 6 — Post Findings as Inline PR Comments (default; opt out with `--no-comment`)
 
@@ -185,6 +186,12 @@ Skip this step entirely when:
 - no open PR exists for the current branch (`gh pr view` returns nothing) — keep the local report only and optionally offer to open a PR.
 
 Posting to GitHub is an outward-facing action, so confirm **once** before posting — show the count and the target PR (`AskUserQuestion`: 「<N> 件の指摘を PR #<番号> にインラインコメントとして投稿しますか？」/「投稿する」「投稿しない（ローカルレポートのみ）」).
+
+**Redact before posting.** This repository is public, and a `security` finding quotes the very thing it flags — a leaked token, a hardcoded credential, a PII sample. Posting that verbatim republishes the secret in a place that cannot be retracted. Before building the payload, rewrite every finding body so the evidence is described, not reproduced: replace concrete secret-shaped values with `***REDACTED***` and cite `path:line` instead. A finding whose point cannot survive redaction (the value *is* the finding) stays in the local report only — say so in the summary rather than posting it.
+
+**`gh api` is denied by `.claude/settings.json`.** The `permissions.deny` list carries `Bash(gh api *)`, and AGENTS.md keeps that list in force even during skill execution — so the inline-comment call below will be blocked rather than run. Do **not** work around it (never re-route the same request through `python3` / `pnpm exec tsx` / any other allowed interpreter — that defeats the guard rather than satisfying it) and never edit the deny list to unblock yourself. Instead: surface the block to the user, and offer either a one-off permission grant for exactly this call or the fallback below.
+
+**Fallback when the API call is unavailable:** post a single summary comment with `gh pr comment` — the findings grouped by file with `path:line` references instead of true line anchors — and say plainly in the Step 5 report that the findings were summarized, not inlined.
 
 ### Procedure
 
@@ -220,7 +227,7 @@ Posting to GitHub is an outward-facing action, so confirm **once** before postin
      "comments": [
        {
          "path": "<file>",
-         "line": 0,
+         "line": "<行番号>",
          "side": "RIGHT",
          "body": "🔎 [CONFIRMED · high] <問題の要約>\n\n根拠: <...>\n修正案: <...>\n検証: <verifier 判定>"
        }
@@ -242,6 +249,8 @@ Posting to GitHub is an outward-facing action, so confirm **once** before postin
 - ✅ Apply comment quality findings in Step 5.5 after one confirmation (delete / rewrite / enrich), then `pnpm fix` + `pnpm lint:ci`; skip with `--no-apply`.
 - ✅ By default, post the code lenses' CONFIRMED + PLAUSIBLE findings to the branch's PR as inline review comments (Step 6); suppress with `--no-comment` or when no open PR exists.
 - ✅ Confirm once before posting to the PR (outward action); anchor each comment to its `path:line`, fold off-diff findings into the review summary.
+- ✅ Redact secret-shaped values out of every finding body before posting — this repository is public and a post cannot be retracted.
+- ❌ Route a denied command (`gh api`) through an allowed interpreter, or edit `permissions.deny` to unblock yourself — surface the block and offer the summary-comment fallback instead.
 - ✅ State in the report which lenses did not run and why (`test-gap` while no test runner is configured).
 - ❌ Post REFUTED findings, or use `REQUEST_CHANGES` / `APPROVE` — the posted review is advisory `COMMENT` only.
 - ❌ Auto-fix the code lenses — those are reported, the user fixes. Only comment quality is auto-applied (Step 5.5).

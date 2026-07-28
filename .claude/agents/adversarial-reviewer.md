@@ -17,7 +17,7 @@ The orchestrator gives you:
 
 - **Lens** — the single review dimension you own (one of: `correctness`, `security`, `architecture`, `runtime-gap`, `test-gap`). Stay in your lane; another reviewer owns the other lenses. (Comment quality is a separate concern owned by the dedicated `comment-reviewer` agent — not a lens here.)
 - **Scope** — the base ref / changed file list / diff to review.
-- Repo context pointers (`CLAUDE.md`, relevant `README.md`, OpenAPI spec, migrations) as needed.
+- Repo context pointers (`AGENTS.md`, the relevant `README.md`, the governing ADRs under `docs/adr/`) as needed.
 
 ## Lens definitions
 
