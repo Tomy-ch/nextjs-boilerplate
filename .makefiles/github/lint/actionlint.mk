@@ -1,0 +1,13 @@
+## GitHub Actions 定義の Lint
+.PHONY: actionlint ## .github/workflows のワークフロー定義を actionlint で検査
+
+WORKFLOW_DIR := .github/workflows
+
+actionlint:
+	@command -v mise >/dev/null 2>&1 || { echo "❌ mise がインストールされていません。https://mise.jdx.dev/ を参照してください。"; exit 1; }
+	@if [ ! -d "$(WORKFLOW_DIR)" ]; then \
+		echo "🟡 $(WORKFLOW_DIR) が存在しないため検査をスキップします。"; \
+	else \
+		echo "🔍 Linting GitHub Actions workflows..."; \
+		mise exec -- actionlint && echo "✅ actionlint passed."; \
+	fi
