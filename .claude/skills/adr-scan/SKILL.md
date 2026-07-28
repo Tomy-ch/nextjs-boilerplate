@@ -13,7 +13,7 @@ source. Remove or archive it once the discovered gaps have been reconciled into 
 ## Why this exists here (differs from the go-boilerplate original)
 
 The go-boilerplate version migrated a flat `docs/decisions.md` into a formal `docs/adr/` set. **This
-repo is already past that**: it has a formal ADR set (`docs/adr/0001-*` … `Dev-000x` … `Toolchain-000x`)
+repo is already past that**: it has a formal ADR set (`docs/adr/0001-*` … `0155-*`, numbered in topical decade-bands)
 and a live board (`docs/adr/BACKLOG.md`) that tracks every decision area across Tiers 0–6 with
 frame IDs (`G` / `T` / `R` / `A` / `B` / `C` / `D`) and a 選定済み / 実装済み status pair.
 
