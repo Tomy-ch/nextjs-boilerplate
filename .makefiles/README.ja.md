@@ -12,6 +12,7 @@
 
 - `.makefiles/github` : GitHub 初期設定 / リリース / ラベル / ルール設定 / ワークフロー Lint
 - `.makefiles/tools` : 開発ツールの管理（mise）/ コミットメッセージ検証
+- `.makefiles/security` : シークレット / 依存脆弱性のスキャン
 
 アプリケーション側のコマンド（`dev` / `build` / `lint` / `typecheck`）は make ターゲットでは**なく**、
 `package.json` の scripts に置き pnpm から実行します（[ADR 0001](../docs/adr/0001-package-manager.md)）。
@@ -107,13 +108,25 @@ actionlint は `run:` ステップのシェルも shellcheck 経由で検査す�
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make install-tools` | `mise.toml` の `[tools]`（Node.js / pnpm / actionlint / shellcheck）をインストールします。 | mise の事前インストールが必要。詳細は [ADR 0003](../docs/adr/0003-version-manager.md) 参照 |
+| `make install-tools` | `mise.toml` の `[tools]`（Node.js / pnpm / actionlint / shellcheck / gitleaks / Trivy）をインストールします。 | mise の事前インストールが必要。詳細は [ADR 0003](../docs/adr/0003-version-manager.md) 参照 |
 
 ### コミットメッセージ検証関連
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
 | `make commitlint [COMMIT_MSG_FILE=<path>]` | コミットメッセージを commitlint で検証します。 | `.lefthook.yaml` の commit-msg hook から呼ばれます。`COMMIT_MSG_FILE` 省略時は編集中のコミットメッセージを対象にします。規約は [ADR 0150](../docs/adr/0150-git-workflow.md) 参照 |
+
+## `.makefiles/security` 系
+
+シークレットの混入と脆弱な依存をローカルで検知するためのスキャンです。pre-push hook から実行され、CI 側のゲートと同じコマンドを呼びます（[ADR 0110](../docs/adr/0110-security-operations.md)）。
+
+抑止は `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に限定し、各ファイル冒頭の抑止ポリシーに従って理由付きで記録します。
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make secret-scan` | push 予定のコミット範囲を gitleaks でスキャンします。 | 対象は「`HEAD` から辿れてどのリモートにも無いコミット」。検出時は exit 1 で失敗します（fail-closed）。検出値は `--redact` で出力しません。 |
+| `make secret-scan-history` | コミット履歴全体を gitleaks でスキャンします。 | マージ済み履歴に埋もれた秘密を拾う用途。コミット数に比例して伸びるため hook には載せません。 |
+| `make trivy-fs` | 依存ライブラリの脆弱性を Trivy fs でスキャンします。 | 修正版のあるものだけを報告し、exit code では落としません。厳格判定は昇格ゲートが CI 側で持ちます。 |
 
 ## 補足
 

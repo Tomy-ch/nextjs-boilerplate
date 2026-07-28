@@ -13,6 +13,10 @@ include .makefiles/github/lint/actionlint.mk
 include .makefiles/tools/setup.mk
 include .makefiles/tools/commitlint.mk
 
+# セキュリティ関連
+include .makefiles/security/gitleaks.mk
+include .makefiles/security/trivy.mk
+
 # 一括実行系ファイル
 # GitHub関連
 include .makefiles/github/operation/setup-repository.mk

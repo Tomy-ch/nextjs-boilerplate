@@ -12,6 +12,7 @@ Targets are organized into the following units.
 
 - `.makefiles/github` — GitHub initial setup / release / labels / ruleset / workflow lint
 - `.makefiles/tools` — development tool management (mise) / commit message validation
+- `.makefiles/security` — secret / dependency-vulnerability scanning
 
 Application-side commands (`dev` / `build` / `lint` / `typecheck`) are **not** make targets: they live in
 `package.json` scripts and are run with pnpm ([ADR 0001](../docs/adr/0001-package-manager.md)). `make` covers
@@ -109,13 +110,27 @@ actionlint also checks the shell of `run:` steps through shellcheck, so both bin
 
 | Command | Description | Notes |
 | --- | --- | --- |
-| `make install-tools` | Installs the `[tools]` entries of `mise.toml` (Node.js / pnpm / actionlint / shellcheck). | mise must be installed beforehand — see [ADR 0003](../docs/adr/0003-version-manager.md). |
+| `make install-tools` | Installs the `[tools]` entries of `mise.toml` (Node.js / pnpm / actionlint / shellcheck / gitleaks / Trivy). | mise must be installed beforehand — see [ADR 0003](../docs/adr/0003-version-manager.md). |
 
 ### Commit message validation
 
 | Command | Description | Notes |
 | --- | --- | --- |
 | `make commitlint [COMMIT_MSG_FILE=<path>]` | Lints a commit message with commitlint. | Called from the `commit-msg` hook in `.lefthook.yaml`. With `COMMIT_MSG_FILE` omitted it targets the message being edited. The convention is [ADR 0150](../docs/adr/0150-git-workflow.md). |
+
+## `.makefiles/security`
+
+Local detection of leaked secrets and vulnerable dependencies. These run from the pre-push hook and invoke
+the same commands the CI gate will ([ADR 0110](../docs/adr/0110-security-operations.md)).
+
+Suppressions are confined to `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml`, each entry recorded
+with its reason per the policy stated at the top of those files.
+
+| Command | Description | Notes |
+| --- | --- | --- |
+| `make secret-scan` | Scans the commit range about to be pushed with gitleaks. | The range is "commits reachable from `HEAD` but absent from every remote". Exits 1 on detection (fail-closed). Detected values are withheld via `--redact`. |
+| `make secret-scan-history` | Scans the entire commit history with gitleaks. | Catches secrets buried in already-merged history. Grows with the commit count, so it is not wired into a hook. |
+| `make trivy-fs` | Scans dependencies for vulnerabilities with Trivy fs. | Reports only the fixable ones and never fails on exit code. Strict judgement belongs to the promotion gate in CI. |
 
 ## Notes
 
