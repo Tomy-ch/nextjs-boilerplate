@@ -38,6 +38,7 @@ Accepted
 | 段階 | 目的 | 想定処理 | 速度目標 |
 | --- | --- | --- | --- |
 | pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) | < 5 秒 |
+| commit-msg | 「規約外のコミットメッセージを積ませない」 | commitlint ([0150](0150-git-workflow.md) の prefix 11 種を検証) | < 5 秒 |
 | pre-push | 「壊れた push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / テスト (整備後) | < 30 秒 |
 | (CI) | 権威ある検査 | lint / 型 / test / build / e2e 等 | 制約なし |
 
@@ -105,7 +106,7 @@ pnpm exec lefthook install    # .git/hooks/ に symlink を配置
 
 ## 設定の最小構成
 
-`.lefthook.yaml` の構成は以下を基準とする（**未導入**。lefthook 本体・`.lefthook.yaml` とも実装 PR で導入する。以下は導入時の基準構成）。
+`.lefthook.yaml` の構成は以下を基準とする。
 
 ```yaml
 pre-commit:
@@ -113,6 +114,11 @@ pre-commit:
   commands:
     lint:
       run: pnpm lint:ci   # biome 完全版 (biome.ci.jsonc + --error-on-warnings)
+
+commit-msg:
+  commands:
+    commitlint:
+      run: make commitlint COMMIT_MSG_FILE={1}   # 0150 の prefix 11 種
 
 pre-push:
   commands:
@@ -124,7 +130,7 @@ pre-push:
 
 具体的な commands の追加・更新は本 ADR の改訂を伴わずに行ってよい (粒度的な調整であり、方針そのものではないため)。ただし以下の改変は **ADR 改訂を要する** :
 
-- 段階責務 (pre-commit / pre-push) の再定義
+- 段階責務 (pre-commit / commit-msg / pre-push) の再定義
 - bypass ポリシーの緩和
 - lefthook 以外のツールへの移行
 - 速度目標 (pre-commit < 5 秒、pre-push < 30 秒) の引き上げ
@@ -135,7 +141,7 @@ pre-push:
 - ❌ `--no-verify` を git alias / shell alias / IDE 設定で恒常化すること
 - ❌ CI 側で hook 相当の検査をスキップすること
 - ❌ `.git/hooks/` 配下に直接 shell script を書き込むこと (lefthook 経由のみ)
-- ❌ hook 設定を `.lefthook.yaml` 以外のファイル (script / Makefile 等) に分散させること
+- ❌ hook 設定 (どの段階でどの command を走らせるか) を `.lefthook.yaml` 以外のファイル (script / Makefile 等) に分散させること。`run:` から `pnpm <script>` / `make <target>` のような既存の実行入口を 1 行で呼ぶのは分散にあたらない (ローカルと CI で同じコマンドを呼ぶための要件でもある)
 - ❌ lefthook 自体のバージョンを caret (`^`) で指定すること (0004 のコア dev ツール方針に従い exact pin)
 
 ## 補足

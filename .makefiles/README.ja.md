@@ -6,7 +6,7 @@
 Make ターゲットは主に以下の単位で整理されています。
 
 - `.makefiles/github` : GitHub 初期設定 / リリース / ラベル / ルール設定
-- `.makefiles/tools` : 開発ツールの管理関連
+- `.makefiles/tools` : 開発ツールの管理 / コミットメッセージ検証
 
 ## `.makefiles/github` 系
 
@@ -65,3 +65,9 @@ Make ターゲットは主に以下の単位で整理されています。
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
 | `make install-tools` | `mise.toml` に基づき Node.js / pnpm をインストールします。 | mise の事前インストールが必要。詳細は [docs/adr/0003-version-manager.md](../docs/adr/0003-version-manager.md) 参照 |
+
+### コミットメッセージ検証関連
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make commitlint [COMMIT_MSG_FILE=<path>]` | コミットメッセージを commitlint で検証します。 | `.lefthook.yaml` の commit-msg hook から呼ばれます。`COMMIT_MSG_FILE` 省略時は編集中のコミットメッセージを対象にします。規約は [docs/adr/0150-git-workflow.md](../docs/adr/0150-git-workflow.md) 参照 |
