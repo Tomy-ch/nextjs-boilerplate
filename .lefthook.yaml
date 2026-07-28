@@ -1,4 +1,4 @@
-# Git hook 設定 (Toolchain-0006)。CI を権威とし、hook は「壊れた状態を CI に到達させない第一段」。
+# Git hook 設定 (ADR 0151)。CI を権威とし、hook は「壊れた状態を CI に到達させない第一段」。
 # 導入: pnpm install 後に `pnpm exec lefthook install` で .git/hooks に配置する。
 
 pre-commit:
@@ -13,6 +13,13 @@ pre-commit:
       # biome は Markdown を見ないため、この二段で md の壊れを CI 前に止める。
       glob: "*.md"
       run: pnpm md-lint
+
+commit-msg:
+  commands:
+    commitlint:
+      # コミット規約 (ADR 0150) の prefix 11 種を検証する。規約外の prefix はここで落ちる。
+      # {1} はクォートされずに展開されるため、パスに空白を含む clone でも壊れないよう囲む。
+      run: make commitlint COMMIT_MSG_FILE="{1}"
 
 pre-push:
   parallel: true

@@ -1,6 +1,6 @@
 ---
 name: repo-ops
-description: Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed toolchain, the pnpm lockfile, the Makefile setup targets, and the review-artifact directory. Read-only knowledge skill — it tells you the exact command to run; it does not silently mutate state. This is deliberately a SPARSE STARTER for the Next.js boilerplate: it carries only the gotchas that genuinely exist today (mise / pnpm / make DRY_RUN / scratch paths), and grows as new operational traps are discovered (in contrast to the go-boilerplate original, whose items were mostly Docker / sqlc / DB-runner specific and do not apply here — ADR 0004 no-docker). Triggers: "make install-tools が mise not found で落ちる", "DRY_RUN=0 なのに dry-run になる", "pnpm install --frozen-lockfile が落ちる", "mise.toml を変えた後の反映", "スクラッチ出力をどこに置くか".
+description: Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, and the lefthook git hooks. Read-only knowledge skill — it tells you the exact command to run; it does not silently mutate state. This is deliberately a SPARSE STARTER for the Next.js boilerplate: it carries only the gotchas that genuinely exist today (mise / pnpm / make DRY_RUN / scratch paths / lefthook hooks), and grows as new operational traps are discovered (in contrast to the go-boilerplate original, whose items were mostly Docker / sqlc / DB-runner specific and do not apply here — ADR 0004 no-docker). Triggers: "make install-tools が mise not found で落ちる", "DRY_RUN=0 なのに dry-run になる", "pnpm install --frozen-lockfile が落ちる", "mise.toml を変えた後の反映", "スクラッチ出力をどこに置くか", "commit が commitlint に弾かれる", "hook が command not found で落ちる".
 ---
 
 # Repo Ops Runbook
@@ -88,13 +88,29 @@ Fix items the auto-fixer cannot handle by hand; do not sprinkle `// biome-ignore
 These are scratch output, not source: do not force them in with `git add -f`. A scratch file that
 must survive belongs outside the repo, referenced through a symlink under `tmp/`.
 
-## 6. No git hooks yet (lefthook pending — BACKLOG G2)
+## 6. A commit or push is rejected by a hook (lefthook)
 
-Toolchain-0006 specifies pre-commit / pre-push via **lefthook**, but it is **not yet installed**
-(no `.lefthook.yaml`, no devDependency — BACKLOG G2 実装ギャップ). So there is currently **no
-commit-msg / pre-commit hook** firing locally: lint/build are enforced by you running `pnpm lint` /
-`pnpm build` (and by the `commit` skill's verification step), not by a hook. Do not assume a hook
-caught anything. When G2 lands, its hook gotchas belong in this runbook.
+Hooks are declared in `.lefthook.yaml` (ADR 0151) and are **not** registered by `pnpm install` —
+`pnpm exec lefthook install` must be run once after cloning. Hooks live in the common git dir, so a
+worktree inherits them; what a worktree does **not** inherit is `node_modules`, so run `pnpm install`
+in it or every hook fails with `command not found`.
+
+| Stage | Command |
+| --- | --- |
+| pre-commit | `pnpm lint:ci`, plus `pnpm md-lint` when `*.md` is staged |
+| commit-msg | `make commitlint COMMIT_MSG_FILE={1}` |
+| pre-push | `pnpm typecheck` |
+
+A commit-msg failure means the subject is not `<Prefix>: <subject>` with one of the 11 prefixes of
+ADR 0150, the subject is empty, or it ends with `。`. `commitlint.config.ts` deliberately omits
+`type-case` — the prefixes mix `Feat` and `CI`, so no single case rule fits. Merge and revert commits
+are skipped by commitlint's default ignores.
+
+To check a message without committing:
+
+```bash
+echo "Feat: 説明" | pnpm exec commitlint
+```
 
 ## Constraints
 

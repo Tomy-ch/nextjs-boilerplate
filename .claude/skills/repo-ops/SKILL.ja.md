@@ -79,12 +79,29 @@ pnpm format    # biome format --write : フォーマットのみ
 いずれもソースではなくスクラッチ出力: `git add -f` で強引に載せない。残す必要があるスクラッチはリポジトリ外に
 実体を置き、`tmp/` 配下の symlink から参照する。
 
-## 6. git hook はまだ無い(lefthook 保留 ── BACKLOG G2)
+## 6. commit / push が hook に弾かれる(lefthook)
 
-Toolchain-0006 は lefthook による pre-commit / pre-push を規定するが、**まだ未導入**(`.lefthook.yaml` なし・
-devDependency なし ── BACKLOG G2 実装ギャップ)。したがって現状**ローカルで commit-msg / pre-commit hook は
-発火しない**: lint/build は自分で `pnpm lint` / `pnpm build` を回すこと(と `commit` スキルの検証ステップ)で担保
-され、hook ではない。hook が何か拾ったと仮定しない。G2 導入時にその hook の落とし穴をこの runbook に足す。
+hook は `.lefthook.yaml` で宣言される(ADR 0151)。`pnpm install` では登録されないため、clone 後に
+`pnpm exec lefthook install` を 1 度実行する必要がある。hook は共通 git ディレクトリに置かれるので
+worktree にも継承されるが、**`node_modules` は継承されない** ── worktree で `pnpm install` を実行しないと
+すべての hook が `command not found` で落ちる。
+
+| 段階 | コマンド |
+| --- | --- |
+| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint` も |
+| commit-msg | `make commitlint COMMIT_MSG_FILE={1}` |
+| pre-push | `pnpm typecheck` |
+
+commit-msg で落ちた場合、subject が ADR 0150 の prefix 11 種を使った `<Prefix>: <subject>` になっていないか、
+subject が空か、末尾が `。` で終わっている。
+`commitlint.config.ts` は `type-case` を意図的に課していない ── prefix が `Feat` と `CI` のように大文字構成を
+混在させるため、単一の case ルールが当たらない。merge / revert コミットは commitlint の既定 ignore で除外される。
+
+コミットせずにメッセージだけ検査する:
+
+```bash
+echo "Feat: 説明" | pnpm exec commitlint
+```
 
 ## 制約
 

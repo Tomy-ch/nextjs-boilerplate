@@ -11,7 +11,7 @@ existing area needs no top-level edit.
 Targets are organized into the following units.
 
 - `.makefiles/github` — GitHub initial setup / release / labels / ruleset / workflow lint
-- `.makefiles/tools` — development tool management (mise)
+- `.makefiles/tools` — development tool management (mise) / commit message validation
 - `.makefiles/security` — secret / dependency-vulnerability scanning
 
 Application-side commands (`dev` / `build` / `lint` / `typecheck`) are **not** make targets: they live in
@@ -111,6 +111,12 @@ actionlint also checks the shell of `run:` steps through shellcheck, so both bin
 | Command | Description | Notes |
 | --- | --- | --- |
 | `make install-tools` | Installs the `[tools]` entries of `mise.toml` (Node.js / pnpm / actionlint / shellcheck / gitleaks / Trivy). | mise must be installed beforehand — see [ADR 0003](../docs/adr/0003-version-manager.md). |
+
+### Commit message validation
+
+| Command | Description | Notes |
+| --- | --- | --- |
+| `make commitlint [COMMIT_MSG_FILE=<path>]` | Lints a commit message with commitlint. | Called from the `commit-msg` hook in `.lefthook.yaml`. With `COMMIT_MSG_FILE` omitted it targets the message being edited. The convention is [ADR 0150](../docs/adr/0150-git-workflow.md). |
 
 ## `.makefiles/security`
 
