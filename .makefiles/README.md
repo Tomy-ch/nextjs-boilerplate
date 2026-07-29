@@ -9,7 +9,7 @@
 ターゲットは以下の単位で整理されています。
 
 - `.makefiles/github` : GitHub 初期設定 / リリース / ラベル / ルール設定 / ワークフロー Lint
-- `.makefiles/tools` : 開発ツールの管理（mise）/ コミットメッセージ検証
+- `.makefiles/tools` : 開発ツールの管理（mise）/ コミットメッセージ検証 / GitHub Actions の SHA ピン
 - `.makefiles/security` : シークレット / 依存脆弱性のスキャン
 
 アプリケーション側のコマンド（`dev` / `build` / `lint` / `typecheck`）は make ターゲットでは**なく**、
@@ -112,6 +112,34 @@ actionlint は `run:` ステップのシェルも shellcheck 経由で検査す�
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
 | `make commitlint [COMMIT_MSG_FILE=<path>]` | コミットメッセージを commitlint で検証します。 | `.lefthook.yaml` の commit-msg hook から呼ばれます。`COMMIT_MSG_FILE` 省略時は編集中のコミットメッセージを対象にします。規約は [ADR 0150](../docs/adr/0150-git-workflow.md) 参照 |
+
+### GitHub Actions の SHA ピン関連
+
+`uses:` を moving tag のまま置くと、上流が tag を付け替えた時点で CI が実行する内容が黙って変わります。
+これを防ぐため、参照は commit SHA へ固定し、tag → SHA の対応を `.github/actions-pin.toml` が持ちます
+（[ADR 0153](../docs/adr/0153-ci-configuration.md)）。**版の SSOT は `uses:` 行末尾のコメント tag** であり、
+`@` 側の SHA ではありません。
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>]` | コメント tag を `git ls-remote` で SHA へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます。既定の検疫日数は 14。GitHub API のレート制限に掛かる場合は `GITHUB_TOKEN`（または `GH_TOKEN`）を設定してください。 |
+| `make actions-pin-apply` | ロックファイルを元に `uses:` の `@<sha>` を書き換えます。 | コメント tag は保持します。 |
+| `make actions-pin-check` | `uses:` がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-pin` job が実行します。未登録の参照 / 未固定・不一致の SHA / 壊れたロックファイル / 参照されなくなったエントリ / 解釈できない `uses:` 記法を検出して exit 1（fail-closed）。 |
+
+`uses:` は **1 行 1 ステップのブロック記法**で書いてください。YAML の flow mapping
+（`- {name: X, uses: owner/repo@v1}`）は検査の網に入らないため、素通りではなく error になります。
+
+`ACTIONS_PIN_MIN_AGE_DAYS` は供給網検疫の窓です。解決先が公開から指定日数に満たない場合、既存のピンがあれば
+それを維持し、無ければ採用を見送ります。公開直後の（侵害されている可能性のある）リリースを、上流が検知・
+取り下げるより先に取り込まないための猶予です。`0` を渡すと検疫は無効になります。
+
+検疫が見る経過日数は、Release の `published_at` と commit の日付のうち**新しい方**です。Release は tag 名に
+紐づくだけで tag の付け替えでは動かず、commit の日付は発行者が任意に書けるため、どちらも単独では解決先の
+新しさを表しません。ただし新しい方を採ってもなお、**検疫は自動化された乗っ取りに対して時間を稼ぐ仕組みで
+あり、日付の偽装に耐える保証ではありません**。tag 付け替えそのものの検知はロックファイルの差分が担い、
+`make actions-pin-resolve` は同一 tag が別 SHA へ解決された件を出力に明示します。
+
+更新の運用手順は `actions-pin` スキルが持ちます。
 
 ## `.makefiles/security` 系
 
