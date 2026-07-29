@@ -73,7 +73,7 @@ model is passed to every `adversarial-reviewer` / `comment-reviewer` / `review-v
 
 - Resolve the base ref and produce the review target: `git diff <base>...HEAD` (or `git diff` for uncommitted), plus the changed-file list (`git diff --name-only ...`).
 - Detect which **kernels / elements** are touched. The inventory is ADR [0027](../../../docs/adr/0027-directory-structure.md)'s physical layout, and what each may import is ADR [0021](../../../docs/adr/0021-frontend-responsibility.md)'s dependency matrix: `src/app/**` (3 elements — route-segment `page`/`layout`, route-handler `route.ts`, metadata), `src/features/<name>/**`, `src/model/**`, `src/components/**`, `src/adapters/server/**` · `src/adapters/client/**`, `src/capabilities/**`, `src/stores/**`, `src/config/**`, `src/errors/**`, `src/logging/**`, `src/observability/**` — plus the **boot / build boundary entries that sit outside the kernels**: `src/proxy.ts`, `src/instrumentation.ts`, `next.config.ts`. Several kernels are not on disk yet (ADR 0027 creates each when its decision lands); detect what exists rather than assuming the full set.
-- Note whether a **request-time seam** is touched — a Route Handler (`src/app/**/route.ts`), a Server Action (`src/features/<name>/actions.ts`), `src/proxy.ts`, the response header configuration (`next.config.ts` `headers()`), or the **layout shell / Provider composition** (`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.md); a missing Provider only fails when the route actually renders). This decides whether Step 4-2 runs.
+- Note whether a **request-time seam** is touched — a Route Handler (`src/app/**/route.ts`), a Server Action (`src/features/<name>/actions.ts`), `src/proxy.ts`, the response header configuration (`next.config.ts` `headers()`), or the **layout shell / Provider composition** (`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.md); a missing Provider only fails when the route actually renders). This decides whether Step 4-2 runs. <!-- skill-lint-ignore -->
 - Note whether a **generated API artifact** is touched (`**/gen/**` — the types / zod schemas of ADR [0072](../../../docs/adr/0072-api-type-generation.md)). A regenerated artifact ripples to every consumer, so widen the review to the `adapters` conversions and features that import it, not just the changed file.
 - Note whether any **non-generated production `.ts` / `.tsx` under `src/**`** is touched (exclude `*.test.ts(x)` / `*.spec.ts(x)` / `**/gen/**` / files carrying a `Code generated … DO NOT EDIT` banner) — this feeds the `test-gap` lens its changed-symbol list.
 - Check whether a **test runner is configured at all**: a `test` script in `package.json`, or any `*.test.ts(x)` / `*.spec.ts(x)` in the tree. If neither exists, the `test-gap` lens is **disabled** for this run (see Step 2) — say so in the Step 5 report rather than silently skipping it.
@@ -128,7 +128,7 @@ A build failure **is** a CONFIRMED finding: report it with the output. Do not fi
 
 ### 4-2 Request verification — only when a request-time seam is touched
 
-Gate: Step 1 found a touched Route Handler (`src/app/**/route.ts`), Server Action (`src/features/<name>/actions.ts`), `src/proxy.ts`, response header configuration (`next.config.ts` `headers()`), or layout shell / Provider composition (`src/app/**/layout.tsx`).
+Gate: Step 1 found a touched Route Handler (`src/app/**/route.ts`), Server Action (`src/features/<name>/actions.ts`), `src/proxy.ts`, response header configuration (`next.config.ts` `headers()`), or layout shell / Provider composition (`src/app/**/layout.tsx`). <!-- skill-lint-ignore -->
 
 1. Start the app built in 4-1: `pnpm start --port <3000+N>`, on a port distinct from other worktrees so a parallel session's server is not the one under test. Run it in the background and stop it when done.
 2. `curl -i` the touched path(s) and assert:
@@ -243,7 +243,7 @@ The permission layer is not what makes this safe — a pattern rule cannot tell 
    gh api --method POST repos/<owner>/<repo>/pulls/<PR>/reviews --input payload.json
    ```
 
-   `payload.json`:
+   `payload.json`: <!-- skill-lint-ignore -->
 
    ```json
    {

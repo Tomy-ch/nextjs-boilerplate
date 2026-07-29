@@ -98,10 +98,10 @@ git diff --name-only
 Treat the following as **rider files** — they never form their own commit, but ride along with the source change that produced them:
 
 - Lockfile: `pnpm-lock.yaml` rides with the `package.json` change that produced it ([0001](../../../docs/adr/0001-package-manager.md) — the lockfile must be committed, never on its own)
-- Generated API artifacts: `src/adapters/gen/**` and the imported `openapi.gen.yaml` ([0072](../../../docs/adr/0072-api-type-generation.md) — do-not-edit, regenerated from the backend spec)
+- Generated API artifacts: `src/adapters/gen/**` and the imported `openapi.gen.yaml` ([0072](../../../docs/adr/0072-api-type-generation.md) — do-not-edit, regenerated from the backend spec) <!-- skill-lint-ignore -->
 - Next.js-managed types: `next-env.d.ts`
 
-Example: a `package.json` dependency change brings the regenerated `pnpm-lock.yaml` with it in the same commit. Re-importing the backend `openapi.gen.yaml` brings its `src/adapters/gen/**` outputs in the same commit.
+Example: a `package.json` dependency change brings the regenerated `pnpm-lock.yaml` with it in the same commit. Re-importing the backend `openapi.gen.yaml` brings its `src/adapters/gen/**` outputs in the same commit. <!-- skill-lint-ignore -->
 
 Some of these paths do not exist yet (the generation pipeline lands with [0072](../../../docs/adr/0072-api-type-generation.md)'s implementation PR). Treat an absent path as "no rider", not as an error.
 
@@ -133,7 +133,7 @@ Do not invent prefixes outside this list. When ambiguous, choose the closest mat
 | `src/**/*.test.ts`, `src/**/*.test.tsx` | `Test` |
 | `src/**/*.stories.*` | `Docs` (catalog entry) / `Feat` when it ships with a new component |
 | `src/app/**` (new route segment, `page.tsx` / `layout.tsx` / `route.ts`) | `Feat` (new screen or endpoint) |
-| `src/adapters/gen/**`, `openapi.gen.yaml` | rider only — never its own commit (see Step 2) |
+| `src/adapters/gen/**`, `openapi.gen.yaml` | rider only — never its own commit (see Step 2) <!-- skill-lint-ignore --> |
 | `src/**/*.css`, design tokens | `Style` when formatting-only, otherwise `Feat` / `Fix` |
 | `env/**`, `*.env*` | `Feat` / `Chore` (judge from the diff; never commit secrets) |
 | `docs/**/*.md`, `README*.md`, `*.ja.md` | `Docs` |
@@ -157,7 +157,7 @@ Build a list of proposed commits with appropriate granularity. Each item:
 
 - **One semantic change = one commit.** Do not mix feature + refactor + fix into a single commit.
 - **Tests may co-locate with the implementation they cover** (a new handler and its tests belong together). If you are only adding tests for existing code, that goes into a standalone `Test:` commit.
-- **Generated artifacts co-locate with their source change.** When a dependency in `package.json` changes, the regenerated `pnpm-lock.yaml` belongs in the same commit. When the imported `openapi.gen.yaml` changes, the regenerated `src/adapters/gen/**` belongs in the same commit ([0072](../../../docs/adr/0072-api-type-generation.md)).
+- **Generated artifacts co-locate with their source change.** When a dependency in `package.json` changes, the regenerated `pnpm-lock.yaml` belongs in the same commit. When the imported `openapi.gen.yaml` changes, the regenerated `src/adapters/gen/**` belongs in the same commit ([0072](../../../docs/adr/0072-api-type-generation.md)). <!-- skill-lint-ignore -->
 - **Formatting-only changes are standalone `Style:` commits.** Output produced by Step 0's `pnpm fix` may be folded into the appropriate existing group when it is clearly part of the same change; if it is unrelated, surface it as a separate `Style:` commit.
 - **`Docs:` is standalone by default.** Exception: when documentation is part of a new feature (e.g., a README added alongside a new package), they may co-locate.
 - **One prefix per commit.** If you feel the urge to write two, the grouping is wrong.

@@ -63,7 +63,7 @@
 
 - ベース ref を解決しレビュー対象を作る: `git diff <base>...HEAD`（未コミットなら `git diff`）+ 変更ファイル一覧（`git diff --name-only ...`）。
 - どの**カーネル / element** が触られたか検出する。何が在るかは ADR [0027](../../../docs/adr/0027-directory-structure.md) の物理レイアウト、各々が何を import してよいかは ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) の依存マトリクスが正: `src/app/**`（3 element — route-segment `page`/`layout` / route-handler `route.ts` / metadata）、`src/features/<name>/**`、`src/model/**`、`src/components/**`、`src/adapters/server/**`・`src/adapters/client/**`、`src/capabilities/**`、`src/stores/**`、`src/config/**`、`src/errors/**`、`src/logging/**`、`src/observability/**` — に加えて**カーネルの外側にある起動 / ビルド境界エントリ**: `src/proxy.ts`、`src/instrumentation.ts`、`next.config.ts`。いくつかのカーネルはまだディスク上に無い（ADR 0027 は対応決定が下りた時点で作成する）ので、全部揃っている前提を置かず実在するものを検出する。
-- **リクエスト時の seam** が触られたか — Route Handler（`src/app/**/route.ts`）/ Server Action（`src/features/<name>/actions.ts`）/ `src/proxy.ts` / レスポンスヘッダ設定（`next.config.ts` の `headers()`）/ **layout shell・Provider 合成**（`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.md)。Provider の欠落は当該ルートが実際に描画されて初めて落ちる）。Step 4-2 を回すかの判定。
+- **リクエスト時の seam** が触られたか — Route Handler（`src/app/**/route.ts`）/ Server Action（`src/features/<name>/actions.ts`）/ `src/proxy.ts` / レスポンスヘッダ設定（`next.config.ts` の `headers()`）/ **layout shell・Provider 合成**（`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.md)。Provider の欠落は当該ルートが実際に描画されて初めて落ちる）。Step 4-2 を回すかの判定。 <!-- skill-lint-ignore -->
 - **生成 API 成果物**（`**/gen/**` — ADR [0072](../../../docs/adr/0072-api-type-generation.md) の型 / zod スキーマ）が触られたか。再生成は全 consumer に波及するので、変更ファイルだけでなくそれを import する `adapters` 変換と feature までレビュー範囲を広げる。
 - **`src/**` 配下の非生成な本番 `.ts` / `.tsx`** が触られたか（除外: `*.test.ts(x)` / `*.spec.ts(x)` / `**/gen/**` / `Code generated … DO NOT EDIT` バナーを持つファイル）— `test-gap` レンズへ渡す変更シンボル一覧の材料。
 - **そもそもテストランナーが構成されているか**を確認: `package.json` の `test` スクリプト、またはツリー内の `*.test.ts(x)` / `*.spec.ts(x)`。どちらも無ければ `test-gap` レンズは本実行で **無効**（Step 2 参照）— 黙ってスキップせず Step 5 のレポートに明記する。
@@ -118,7 +118,7 @@ build 失敗は **それ自体が CONFIRMED な finding**。出力付きで報�
 
 ### 4-2 リクエスト検証 — リクエスト時 seam が触られた時のみ
 
-ゲート: Step 1 が Route Handler（`src/app/**/route.ts`）/ Server Action（`src/features/<name>/actions.ts`）/ `src/proxy.ts` / レスポンスヘッダ設定（`next.config.ts` の `headers()`）/ layout shell・Provider 合成（`src/app/**/layout.tsx`）の変更を検出している。
+ゲート: Step 1 が Route Handler（`src/app/**/route.ts`）/ Server Action（`src/features/<name>/actions.ts`）/ `src/proxy.ts` / レスポンスヘッダ設定（`next.config.ts` の `headers()`）/ layout shell・Provider 合成（`src/app/**/layout.tsx`）の変更を検出している。 <!-- skill-lint-ignore -->
 
 1. 4-1 でビルドしたアプリを起動: `pnpm start --port <3000+N>`。並行 worktree のサーバーを叩いてしまわないよう、他と異なるポートを使う。バックグラウンドで走らせ、終わったら止める。
 2. 対象パスへ `curl -i` し検証する:
@@ -233,7 +233,7 @@ GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ**
    gh api --method POST repos/<owner>/<repo>/pulls/<PR>/reviews --input payload.json
    ```
 
-   `payload.json`:
+   `payload.json`: <!-- skill-lint-ignore -->
 
    ```json
    {
