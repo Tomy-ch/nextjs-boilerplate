@@ -235,10 +235,19 @@ VSCode を前提に統合を行う。`.vscode/extensions.json` で `biomejs.biom
 
 なお、`dbaeumer.vscode-eslint` の `.vscode/extensions.json` への推奨追加は ESLint 導入 PR で行う。`.vscode/settings.json` 側の ESLint 関連設定は導入前から置いてよい（拡張未導入時は単に無効なだけで、biome の動作に影響しない）。
 
+### `.editorconfig`
+
+repo ルートに `.editorconfig` を置く。担当範囲は **biome が整形しないファイル**（`Makefile` / `*.mk` / `*.md` / `*.toml` / `*.yaml` 等）と、biome 拡張が入っていないエディタでの保存時の既定挙動であり、biome の対象ファイルには関与しない。
+
+- 共通値（`charset` / `end_of_line` / `indent_style` / `indent_size` / `insert_final_newline` / `trim_trailing_whitespace`）は上記「フォーマッタ」表と一致させる。食い違った場合は `biome.json` が正
+- 例外は 2 件 — `*.md` は行末 2 スペースが改行を意味するため `trim_trailing_whitespace = false`、`Makefile` / `*.mk` はレシピ行がタブを要求するため `indent_style = tab`
+- `formatter.useEditorconfig` は既定の `false` のまま据え置く。有効にしても `biome.json` の値が優先されるため biome 対象ファイルの結果は変わらず、整形設定の入口だけが 2 本になる
+
 ## 禁止事項
 
 - Prettier の併用は禁止（フォーマッタは biome 単独）
 - ESLint をフォーマッタとして使うことは禁止（`eslint.format.enable` の有効化 / stylistic・フォーマット系ルールの導入を含む）
+- `.editorconfig` に biome の対象ファイル向けの独自値を書くことは禁止（整形の権威は `biome.json`。`.editorconfig` は biome が見ないファイルのみを担当する）
 - biome が表現できる検査を ESLint 側に置くことは禁止（能力ベース・重複禁止。「ESLint 利用の条件」を満たさない ESLint ルール追加はすべて本 ADR 違反）
 - `eslint:recommended` / `eslint-config-next` 等のプリセット一括適用は禁止（ルール単位 opt-in のみ）
 - `biome.json` のフォーマッタ・リンタを個別案件理由で一方的に無効化しない（必要なら ADR 改訂で合意する）
