@@ -21,7 +21,8 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 ### 1. job 分割 = 1 関心事 = 1 ワークフロー
 
 - ワークフローは関心事ごとに分ける(go 翻案)。本リポの CI job:
-  - **lint**(`pnpm lint:ci` = biome full profile)/ **typecheck**(`pnpm typecheck` = tsc)/ **build**(`next build`。[0030](0030-environment-variable-management.md) のビルド時 env 全量検証を含む)/ **test**(vitest)/ **e2e**(playwright)
+  - **lint**(`pnpm lint:ci` = biome full profile)/ **md-lint**(`pnpm md-lint` = markdownlint + mermaid 構文。biome が Markdown を見ないため独立)/ **typecheck**(`pnpm typecheck` = tsc)/ **build**(`next build`。[0030](0030-environment-variable-management.md) のビルド時 env 全量検証を含む)/ **test**(vitest)/ **e2e**(playwright)
+  - **ロックファイル drift**: `pnpm install --frozen-lockfile` が通ること(`package.json` との一致)に加え、install が追跡ファイルを書き換えないこと(pnpm が `pnpm-workspace.yaml` へビルド承認キーを自走で書き足す)を `git diff` で検査する
   - **境界検査**: ESLint boundaries は `lint:ci` に直列で載る([0002](0002-formatter-linter.md) / [0021](0021-frontend-responsibility.md))
   - **ワークフロー定義の lint**: `.github/workflows/**` 自体を **actionlint** で検査する(`make actionlint`)。`run:` ステップのシェルは actionlint が **shellcheck** を呼び出して検査するため、両バイナリを `mise.toml` で版固定し、検査結果を実行環境に依存させない([0003](0003-version-manager.md))。上記 4 の hooks mirror CI に従いローカルと CI の両方で走らせる。SHA ピン検査(下記 3)とは別関心として分ける
   - **起動スモーク**: go の boot-check(実 graph 起動検査)の翻案として、`pnpm build` → `next start` → `curl /` ポーリングの起動検査を持つ(設計フェーズの「決定不要」表 B9 / 移植計画 PR 2-1)
@@ -38,6 +39,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 - **SHA ピン**: `uses: owner/repo@<40hex> # <tag>` 形式で actions を SHA ピンする(go ADR 0078 の翻案)。tag→SHA の SSOT を持ち、`--min-age-days` 相当の検疫で新規リリースを一定期間採用しない。CI で pin 検査を行い、未ピンは fail-closed。運用スキルは `actions-pin`(移植候補 GB-6。依存監査系のため [0154](0154-claude-skills-operations.md) 運用系の体系に置く — `tools-upgrade` と同系)
 - **concurrency**: 全ワークフローで `group: ${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`(古い実行をキャンセル)
 - **最小 permissions**: トップレベルを `contents: read` に絞り、job で必要分(`pull-requests: write` 等)のみ加算する二段構え
+- **runner ハードニング**: 全 job の冒頭で `step-security/harden-runner` を `egress-policy: audit` で走らせ、ランナーからの外向き通信を記録する(go の全 workflow と同形)。監査から遮断(`block`)への移行は、記録された通信先が出揃ってからの判断とする
 
 ### 4. hooks mirror CI(go ADR 0073 翻案)
 
@@ -48,11 +50,14 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 
 - 解析ステップは即 fail させず結果を capture → **PR コメントを upsert**(HTML マーカーで既存コメント検出 → update / create。go `upsert-pr-comment` の翻案。言語非依存でほぼそのまま)→ 最後に fail-closed(`exit 1`)
 - 保護ブランチは required check + high-severity 検出でマージブロック([0150](0150-git-workflow.md) / [0110](0110-security-operations.md))
-- **required check の粒度**(どの job を必須にするか)は実装 PR で確定する(lint / typecheck / build / test を基本必須、e2e は選択)
+- **required check の粒度**: CI Checks グループの job は全て必須とする。`paths:` フィルタを使わない(下記)以上どの job も全 PR で必ず報告されるため、必須から外す理由が無い
+- **`paths:` フィルタ = 非採用**: CI Checks のワークフローはトリガを絞らず全 PR で走らせる。絞ると required check が報告されない PR が生まれ、それを埋める guard ワークフローとの対を常に裏返しの関係に保つ保守コストのほうが、数分の実行コストより高い(絞りたい job を足すときの手順は `.github/workflows/README.md`)
+- **検査ステップに secret を渡さない**: 上記の upsert は解析ログをそのまま公開 PR コメントへ複製する。Actions のシークレットマスキングはランナーがログ表示用に捕捉する経路にしか効かず、`tee` でファイルへ落とした内容は素通りする。よって検査コマンド自体には `secrets.*` を `env:` で渡さない(ツール取得に要る場合は取得ステップに限定する)
 
-### 6. キャッシュ / matrix
+### 6. ランタイム供給 / キャッシュ / matrix
 
-- **キャッシュ**: `actions/setup-node` の `cache: pnpm`(+ `cache-dependency-path: pnpm-lock.yaml`)。加えて `next build` キャッシュ(`.next/cache`)を `actions/cache` で保持(go に相当なし・本リポ新設)
+- **ランタイム供給**: Node / pnpm は **mise-action** が `mise.toml` から供給する(go が setup-go に `go-version-file: go.mod` を渡すのと同じく、版数宣言は 1 箇所)。`actions/setup-node` は採らない — `node-version-file` が受け付けるのは `.nvmrc` / `.node-version` / `.tool-versions` / `package.json` だけで `mise.toml` を読めず、採用すれば版数の第二宣言を置くことになるため([0003](0003-version-manager.md))
+- **キャッシュ**: pnpm store(`pnpm store path` の解決結果)と `next build` キャッシュ(`.next/cache`)を `actions/cache` で保持する。キーは `pnpm-lock.yaml` の hash を先頭に置き、`.next/cache` はソースの hash を足したうえで restore-keys により前世代へフォールバックさせる(`.next/cache` の保持は go に相当なし・本リポ新設)
 - **matrix = 非採用**: `runs-on: ubuntu-latest` 単一、Node バージョンは `mise.toml` を SSOT とし matrix 展開しない(go の単一ランタイム方針の翻案。[0003](0003-version-manager.md))
 
 ## 禁止事項
