@@ -2,7 +2,12 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { listFilesRecursive, toAbsolutePath, toRelativePath } from "./lib/file-utils.js";
+import {
+  listFilesRecursive,
+  readUtf8File,
+  toAbsolutePath,
+  toRelativePath,
+} from "./lib/file-utils.js";
 import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "./lib/runtime.js";
 import { ensurePackageName, ensureRepositoryReference } from "./lib/validators.js";
 
@@ -158,7 +163,12 @@ function shouldProcessFile(filePath: string): boolean {
 
 function planFile(filePath: string, currentName: string, repository: string): PlannedChange | null {
   const newName = repository.split("/")[1];
-  const original = fs.readFileSync(filePath, "utf8");
+  const original = readUtf8File(filePath);
+
+  if (original === null) {
+    return null;
+  }
+
   const slugPattern = buildSlugPattern(currentName);
   const namePattern = buildNamePattern(currentName);
 

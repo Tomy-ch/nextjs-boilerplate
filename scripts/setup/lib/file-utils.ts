@@ -10,6 +10,20 @@ export function toRelativePath(filePath: string): string {
   return path.relative(ROOT_DIR, filePath);
 }
 
+// UTF-8 として往復できないファイルは読み込みを断る。不正バイトは decode で U+FFFD へ
+// 潰れ、書き戻すと元に戻せないため、置換対象から外して呼び出し側へ知らせる
+export function readUtf8File(filePath: string): string | null {
+  const buffer = fs.readFileSync(filePath);
+  const content = buffer.toString("utf8");
+
+  if (!Buffer.from(content, "utf8").equals(buffer)) {
+    console.error(`⚠️  UTF-8 として読めないためスキップしました: ${toRelativePath(filePath)}`);
+    return null;
+  }
+
+  return content;
+}
+
 export function updateFile(
   relativePath: string,
   transformer: (content: string) => string | null,
@@ -27,7 +41,12 @@ export function updateAbsoluteFile(
     return null;
   }
 
-  const original = fs.readFileSync(filePath, "utf8");
+  const original = readUtf8File(filePath);
+
+  if (original === null) {
+    return null;
+  }
+
   const updated = transformer(original);
 
   if (updated === null || updated === original) {
