@@ -89,24 +89,24 @@ hook は `.lefthook.yaml` で宣言される(ADR 0151)。`pnpm install` では�
 worktree にも継承されるが、**`node_modules` は継承されない** ── worktree で `pnpm install` を実行しないと
 すべての hook が `command not found` で落ちる。
 
-| 段階 | コマンド |
-| --- | --- |
-| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint`、`.github/workflows/*` が staged なら `make actionlint` |
-| commit-msg | `make commitlint COMMIT_MSG_FILE={1}` |
-| pre-push | `pnpm typecheck`、`make secret-scan`、`make trivy-fs` |
+| 段階 | 入口 | 検査内容 |
+| --- | --- | --- |
+| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint`、workflow が staged なら `make actionlint` | biome 完全版 / markdownlint + mermaid 構文 / workflow 構文 + `run:` のシェル |
+| commit-msg | `make commitlint` | subject を ADR 0150 に照らす |
+| pre-push | `pnpm typecheck`、`make secret-scan`、`make trivy-fs` | `tsc --noEmit` / push 範囲の秘密(**fail-closed**) / 依存の脆弱性(報告のみ ── ゲートは CI 側、ADR 0110) |
 
-pre-push の `make secret-scan` は **fail-closed** ── push 予定のコミット範囲のどこかに秘密が含まれていれば
-push が止まり、対処は再実行ではなく履歴からの除去。`make trivy-fs` はここでは依存の脆弱性を報告するだけで、
-ブロックするゲートは CI 側が持つ(ADR 0110)。
-
-`mise ls` にツールが入っているのに hook が `❌ <tool> が PATH にありません` で落ちる場合、hook のシェルが
-`mise activate` を経ていないだけ ── hook は非対話シェルで走る。そのため `.lefthook.yaml` の全コマンドを
-`mise exec --` で包んである。包み忘れた新規エントリは、mise を activate していないシェルの全員に対し、
-変更内容と無関係に落ちる。hook のコマンドを手で再現するときも同じ形で叩く:
+各段の再現は入口を mise 経由で手で叩けばよい。引数まで含めた正確なコマンド行は `.lefthook.yaml` にあり、
+写しではなくそちらを読むこと。
 
 ```bash
 mise exec -- make secret-scan     # make secret-scan ではなく
 ```
+
+hook は `mise activate` を経ていない非対話シェルで走るため、`.lefthook.yaml` の全コマンドを `mise exec --`
+で包んである。`mise ls` にツールが入っているのに `❌ <tool> が PATH にありません` で落ちる場合、その包みが
+エントリから抜けている ── mise を activate していないシェルの全員に対し、変更内容と無関係に落ちる。
+
+`secret-scan` の失敗は再実行では解けない。秘密が push 範囲のコミットに入っているので、履歴から除く必要がある。
 
 commit-msg で落ちた場合、subject が ADR 0150 の prefix 11 種を使った `<Prefix>: <subject>` になっていないか、
 subject が空か、末尾が `。` で終わっている。

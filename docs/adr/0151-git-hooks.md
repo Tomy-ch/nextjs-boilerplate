@@ -37,7 +37,7 @@ Accepted
 
 | 段階 | 目的 | 想定処理 | 速度目標 |
 | --- | --- | --- | --- |
-| pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) | < 5 秒 |
+| pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) / Markdown 検査 (`pnpm md-lint` = markdownlint + mermaid 構文。`*.md` が staged のときのみ) / ワークフロー検査 (`make actionlint` = 構文 + `run:` のシェル。`.github/workflows/*` が staged のときのみ — [0153](0153-ci-configuration.md)) | < 5 秒 |
 | commit-msg | 「規約外のコミットメッセージを積ませない」 | commitlint ([0150](0150-git-workflow.md) の prefix 11 種を検証) | < 5 秒 |
 | pre-push | 「壊れた push・秘密を含む push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / 秘密スキャン (`make secret-scan` = push 予定コミット範囲) / 依存脆弱性スキャン (`make trivy-fs`) / テスト (整備後) | < 30 秒 |
 | (CI) | 権威ある検査 | lint / 型 / test / build / e2e 等 | 制約なし |
@@ -110,33 +110,30 @@ pnpm exec lefthook install    # .git/hooks/ に symlink を配置
 
 ## 設定の最小構成
 
-`.lefthook.yaml` の構成は以下を基準とする。
+**`.lefthook.yaml` が唯一の正**。本 ADR は骨格 (どの段に、いくつの、どういう名前の command を置くか) だけを定め、各 command が実際に実行するコマンド行は転記しない。転記は写しがずれる場所を増やすだけで、hook の挙動を知りたい者は必ず `.lefthook.yaml` を読む。
 
 ```yaml
 pre-commit:
   parallel: true
   commands:
-    lint:
-      run: pnpm lint:ci   # biome 完全版 (biome.ci.jsonc + --error-on-warnings)
-    md-lint:
-      glob: "*.md"
-      run: pnpm md-lint   # markdownlint + mermaid 構文検証
-
+    lint: ...
+    md-lint: ...
+    actionlint: ...
 commit-msg:
   commands:
-    commitlint:
-      run: make commitlint COMMIT_MSG_FILE={1}   # 0150 の prefix 11 種
-
+    commitlint: ...
 pre-push:
   parallel: true
   commands:
-    typecheck:
-      run: pnpm typecheck    # tsc --noEmit
-    secret-scan:
-      run: make secret-scan  # gitleaks (push 予定コミット範囲。検出時は fail)
-    trivy-fs:
-      run: make trivy-fs     # Trivy (報告専用)
+    typecheck: ...
+    secret-scan: ...
+    trivy-fs: ...
 ```
+
+- 各段の責務と、そこで走らせる検査は上の「hook 段階の責務分担」表が定める
+- **1 command = 1 つの関心**。1 つの `run:` に複数の検査をつなげず、command を分けて名前で識別できるようにする (失敗時にどの検査が落ちたか lefthook の出力で分かる)
+- pre-commit は `parallel: true`。command 間に順序依存を作らない
+- **全 command を `mise exec --` で包む**。hook は `mise activate` を経ていない非対話シェルで走るため、包まない command は mise 管理下のツール (gitleaks / Trivy / actionlint) を PATH に見つけられず、変更内容と無関係に落ちる
 
 ### 改変ルール
 
