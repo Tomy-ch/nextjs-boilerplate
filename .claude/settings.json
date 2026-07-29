@@ -82,6 +82,7 @@
       "Bash(gh pr list *)",
       "Bash(gh pr diff *)",
       "Bash(gh pr checks *)",
+      "Bash(gh api *)",
       "Bash(gh pr status *)",
       "Bash(gh issue view *)",
       "Bash(gh issue list *)",
@@ -135,7 +136,6 @@
       "Write(AGENTS.md)",
       "Edit(LICENSE)",
       "Write(LICENSE)",
-      "Edit(.claude/settings.json)",
       "Write(.claude/settings.json)"
     ],
     "deny": [
@@ -181,7 +181,9 @@
       "Bash(make tag-major *)",
       "Bash(make tag-minor *)",
       "Bash(make tag-patch *)",
-      "Bash(gh api *)"
+      "Bash(gh api *DELETE*)",
+      "Bash(gh api *delete*)",
+      "Bash(gh api *git/refs*)"
     ]
   }
 }
