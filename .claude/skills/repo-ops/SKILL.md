@@ -98,28 +98,30 @@ Hooks are declared in `.lefthook.yaml` (ADR 0151) and are **not** registered by 
 worktree inherits them; what a worktree does **not** inherit is `node_modules`, so run `pnpm install`
 in it or every hook fails with `command not found`.
 
-| Stage | Command |
-| --- | --- |
-| pre-commit | `pnpm lint:ci`; `pnpm md-lint` when `*.md` is staged; `make actionlint` when `.github/workflows/*` is staged |
-| commit-msg | `make commitlint COMMIT_MSG_FILE={1}` |
-| pre-push | `pnpm typecheck`; `make secret-scan` |
-
-On pre-push, `make secret-scan` is **fail-closed** — a secret anywhere in the commit range being pushed
-stops the push, and the fix is to remove it from the history, not to re-run.
+| Stage | Entry point | What it checks |
+| --- | --- | --- |
+| pre-commit | `pnpm lint:ci`; `pnpm md-lint` when `*.md` is staged; `make actionlint` when a workflow is staged | biome full profile; markdownlint + mermaid syntax; workflow syntax + `run:` shell |
+| commit-msg | `make commitlint` | the subject against ADR 0150 |
+| pre-push | `pnpm typecheck`; `make secret-scan` | `tsc --noEmit`; secrets in the range being pushed (**fail-closed**) |
 
 `make trivy-fs` is deliberately **not** wired into any hook (on demand only). A dependency vulnerability
 cannot be resolved by the pusher on the spot and its status changes independently of the diff, so it does
-not hold as a gate (ADR 0110 3.1).
+not hold as a gate — reporting goes to the PR comment and blocking to the promotion gate (ADR 0110 3.1).
 
-If a hook dies with `❌ <tool> が PATH にありません` even though `mise ls` shows the tool installed, the
-hook shell simply never ran `mise activate` — hooks are non-interactive. Every command in `.lefthook.yaml`
-is therefore wrapped in `mise exec --`; a new entry that forgets the wrapper fails for everyone whose
-shell does not activate mise, regardless of what they changed. Reproduce a hook command by hand the same
-way:
+Reproduce a stage by running its entry point by hand, through mise. The exact argument lists live in
+`.lefthook.yaml` — read them there rather than from a copy.
 
 ```bash
 mise exec -- make secret-scan     # not: make secret-scan
 ```
+
+Hooks run in a non-interactive shell that never sourced `mise activate`, which is why every command in
+`.lefthook.yaml` is wrapped in `mise exec --`. A hook dying with `❌ <tool> が PATH にありません` while
+`mise ls` shows the tool installed means that wrapper is missing from the entry — it then fails for
+everyone whose shell does not activate mise, regardless of what they changed.
+
+A `secret-scan` failure is not retryable: the secret is inside the commit range being pushed, so it has
+to come out of the history.
 
 A commit-msg failure means the subject is not `<Prefix>: <subject>` with one of the 11 prefixes of
 ADR 0150, the subject is empty, or it ends with `。`. `commitlint.config.ts` deliberately omits
