@@ -1,0 +1,120 @@
+name: Lint
+
+# biome, full profile — the same command the pre-commit hook runs (ADR 0153: hooks
+# mirror CI). The hook is the fast first stop; this job is the authority.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # The mise CLI's own version is the one version number pinned in a workflow:
+      # mise.toml declares what mise resolves, not mise itself, so there is nowhere
+      # else to put it. Left unpinned it floats to whatever released today, which is
+      # the resolver for every other tool. It is restated in each workflow — a bump
+      # has to touch all of them.
+      - name: Setup mise
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.7.12
+          install: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # mise.toml is the single source of truth for the Node / pnpm versions (ADR
+      # 0003), so only the tool names appear here. They carry their backend prefix
+      # because every mise.toml entry is backend-qualified — a bare `node` would not
+      # match the `core:node` key.
+      - name: Install Node and pnpm
+        env:
+          # The aqua backend resolves releases through the GitHub API. Unauthenticated,
+          # a hosted runner shares its IP quota with everyone else on it and the
+          # install fails intermittently on rate limiting.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise install core:node aqua:pnpm/pnpm
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          # Assigned first so a failure inside the substitution fails the step; an
+          # `echo "$(...)"` would report success and hand the cache an empty path.
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The status is captured rather than allowed to abort the step: the PR comment
+      # has to be produced whether the check passed or failed. The last step turns
+      # the captured status into the verdict.
+      - name: Run biome
+        id: lint
+        shell: bash
+        run: |
+          set +e
+
+          pnpm lint:ci 2>&1 | tee /tmp/lint.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Lint: PASS (biome)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Lint: FAIL (biome)" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # A PR from a fork gets a read-only token, so posting is allowed to fail
+      # without taking the verdict with it.
+      - name: Comment lint result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- lint-result -->'
+          title: ${{ steps.lint.outputs.title }}
+          body-file: /tmp/lint.log
+          details-summary: 'biome log'
+
+      # An empty status means the capture step never ran (an earlier step failed),
+      # which is also a failure — the comparison is against 'success', not 'failure'.
+      - name: Fail if biome failed
+        if: always() && steps.lint.outputs.status != 'success'
+        run: exit 1

@@ -1,0 +1,87 @@
+name: Actions Lint
+
+# actionlint over the workflow definitions themselves — the same command the
+# pre-commit hook runs (ADR 0153: hooks mirror CI). shellcheck is installed
+# alongside it because actionlint shells out to it to check every `run:` block; on a
+# runner without it the shell checks are silently skipped rather than reported.
+#
+# The only CI Checks workflow with no Node or pnpm: actionlint reads YAML, not the
+# project.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actions-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.7.12
+          install: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install actionlint and shellcheck
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise install aqua:rhysd/actionlint aqua:koalaman/shellcheck
+
+      - name: Run actionlint
+        id: actionlint
+        shell: bash
+        run: |
+          set +e
+
+          make actionlint 2>&1 | tee /tmp/actionlint.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Actions lint: PASS (actionlint)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Actions lint: FAIL (actionlint)" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment actions lint result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- actions-lint-result -->'
+          title: ${{ steps.actionlint.outputs.title }}
+          body-file: /tmp/actionlint.log
+          details-summary: 'actionlint log'
+
+      - name: Fail if actionlint failed
+        if: always() && steps.actionlint.outputs.status != 'success'
+        run: exit 1
