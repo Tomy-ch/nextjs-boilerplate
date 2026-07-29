@@ -91,9 +91,13 @@ worktree にも継承されるが、**`node_modules` は継承されない** ─
 
 | 段階 | コマンド |
 | --- | --- |
-| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint` も |
+| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint`、`.github/workflows/*` が staged なら `make actionlint` |
 | commit-msg | `make commitlint COMMIT_MSG_FILE={1}` |
-| pre-push | `pnpm typecheck` |
+| pre-push | `pnpm typecheck`、`make secret-scan`、`make trivy-fs` |
+
+pre-push の `make secret-scan` は **fail-closed** ── push 予定のコミット範囲のどこかに秘密が含まれていれば
+push が止まり、対処は再実行ではなく履歴からの除去。`make trivy-fs` はここでは依存の脆弱性を報告するだけで、
+ブロックするゲートは CI 側が持つ(ADR 0110)。
 
 commit-msg で落ちた場合、subject が ADR 0150 の prefix 11 種を使った `<Prefix>: <subject>` になっていないか、
 subject が空か、末尾が `。` で終わっている。

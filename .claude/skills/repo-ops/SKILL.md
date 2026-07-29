@@ -100,9 +100,13 @@ in it or every hook fails with `command not found`.
 
 | Stage | Command |
 | --- | --- |
-| pre-commit | `pnpm lint:ci`, plus `pnpm md-lint` when `*.md` is staged |
+| pre-commit | `pnpm lint:ci`; `pnpm md-lint` when `*.md` is staged; `make actionlint` when `.github/workflows/*` is staged |
 | commit-msg | `make commitlint COMMIT_MSG_FILE={1}` |
-| pre-push | `pnpm typecheck` |
+| pre-push | `pnpm typecheck`; `make secret-scan`; `make trivy-fs` |
+
+On pre-push, `make secret-scan` is **fail-closed** — a secret anywhere in the commit range being pushed
+stops the push, and the fix is to remove it from the history, not to re-run. `make trivy-fs` only reports
+dependency vulnerabilities here; the blocking gate for those lives in CI (ADR 0110).
 
 A commit-msg failure means the subject is not `<Prefix>: <subject>` with one of the 11 prefixes of
 ADR 0150, the subject is empty, or it ends with `。`. `commitlint.config.ts` deliberately omits
