@@ -46,10 +46,11 @@ Accepted
 | `sync-readme` | README ↔ ディスク同期 | 単一 README の記述を実ディレクトリ状態に合わせて更新。子ディレクトリの README は digest + 参照リンクのみ |
 | `readme-review` | README の portal 価値評価 | 単一 README を `docs/portal/manifest.yaml` 登録基準で採点 |
 | `new-env` | 環境変数の e2e 追加 | 目的別 config モジュール / env ファイル / 変数表 docs を一括で同期 (対象構造は A7 = [0030](0030-environment-variable-management.md)、後述) |
-| `local-review` | adversarial code review | 4 観点 (correctness / security / architecture / runtime-gap) の subagent fanout + verifier による多段検証 |
+| `local-review` | adversarial code review | 5 観点 (correctness / security / architecture / runtime-gap / test-gap) + コメント品質の subagent fanout + verifier による多段検証。コメント指摘のみライフサイクル内で自動修正し、残る指摘は PR へインライン投稿する |
 | `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
 | `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
 | `adr-scan` | ADR 候補の全リポ発見 | de facto に存在するが BACKLOG 未追跡の設計判断を read-only で走査し、taxonomy (decision / exclusion / rule / inventory) と Tier / frame ID へ分類した候補 inventory を出力 (※ 暫定 / one-off。BACKLOG 反映後に削除・アーカイブ予定) |
+| `manage-skill` | スキルの作成・更新の単一入口 | 公式 `skill-creator` の方法論をラップし、本 ADR / [0154](0154-claude-skills-operations.md) の配置・命名・frontmatter・本文構造と [0140](0140-documentation-operations.md) の対訳ペアを上乗せする。`.claude/skills/**` への変更はこのスキルを入口とし、`SKILL.md` / `SKILL.ja.md` の直接手編集に先立って通す。公式プラグインの用意は `scripts/bootstrap-plugins.ts` が担う |
 
 新規追加は本 ADR の趣旨 (開発系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。
 
@@ -63,7 +64,10 @@ local-review (orchestrator)
  │   ├─ correctness 観点
  │   ├─ security 観点
  │   ├─ architecture 観点
- │   └─ runtime-gap 観点
+ │   ├─ runtime-gap 観点
+ │   └─ test-gap 観点 (テストランナー導入後に有効)
+ ├─ comment-reviewer                  ← .claude/agents/comment-reviewer.md
+ │   (コメント内容の品質。指摘はオーケストレーターが作業ツリーへ適用)
  └─ review-verifier                   ← .claude/agents/review-verifier.md
      (各 finding を CONFIRMED / PLAUSIBLE / REFUTED 判定)
 
@@ -74,7 +78,9 @@ full-verify (orchestrator / in-session fast-path)
      (unit ごとの実装品質。基準は skills/full-verify/prompts/verify-impl.md が SSOT)
 ```
 
-このほか、特定スキルへの固定 wiring を持たない **単独起動の read-only レビュー subagent** として `comment-reviewer` (コメント内容の品質) / `doc-reviewer` (ドキュメント散文の品質) が `.claude/agents/` に存在する。いずれも下記の subagent 規約 (read-only / sonnet 既定 / モデル分散) に従う。
+このほか、特定スキルへの固定 wiring を持たない **単独起動の read-only レビュー subagent** として `doc-reviewer` (ドキュメント散文の品質) が `.claude/agents/` に存在する。下記の subagent 規約 (read-only / sonnet 既定 / モデル分散) に従う。
+
+subagent 自身が read-only である規約は `comment-reviewer` にも等しく適用される。`local-review` がコメント指摘を修正できるのは、**オーケストレーター側が適用する**からであって、subagent に編集権限を与えているからではない。
 
 ### subagent 規約
 
@@ -131,7 +137,7 @@ full-verify (orchestrator / in-session fast-path)
 
 - subagent 設定 (`.claude/agents/`) は本 ADR と対になる。新規 subagent を追加する場合は `SKILL.md` 側の参照も更新する
 - スキルの組み合わせ (`sync-readme` → `canonicalize-doc`) は `SKILL.md` 内で chain として明示する
-- `local-review` の lens (correctness / security / architecture / runtime-gap) は追加・削除可能だが、本 ADR の趣旨 (adversarial / 多視点) を逸脱しないこと
+- `local-review` の lens (correctness / security / architecture / runtime-gap / test-gap) は追加・削除可能だが、本 ADR の趣旨 (adversarial / 多視点) を逸脱しないこと
 
 ## 関連 ADR
 

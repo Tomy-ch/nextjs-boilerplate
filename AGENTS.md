@@ -30,16 +30,16 @@ While the repository sits below v1.0.0, the constraints below are **temporarily 
 - **ADRs stay living documents and are overwritten in place** — ADR [0140](docs/adr/0140-documentation-operations.md)'s living operation is extended from `0.0.x` to everything below v1.0.0
 - **Do not leave change history or rationale drift in document bodies** — write the decision in its present form only; git history owns the history
 
-To match this, `.claude/settings.json` moves the doc-protection entries (`AGENTS.md` / `LICENSE` / ADR bodies / `.claude/settings.json` itself) from `permissions.deny` to `permissions.ask` for the duration — the edits still surface for approval, they just stop being hard-blocked.
+To match this, `.claude/settings.json` keeps `AGENTS.md` / `LICENSE` / `.claude/settings.json` itself under `permissions.ask` instead of `permissions.deny` for the duration — the edits still surface for approval, they just stop being hard-blocked. Accepted ADR bodies carry **no permission entry at all**: they are living documents below v1.0.0 (see the bullet above), so a per-edit prompt would fire on ordinary work.
 
 What this section does **not** lift: the Git Rules below (no direct push to protected branches, no force push / history rewrite, confirmation before pushing to an existing PR branch) and everything still listed under `permissions.deny`.
 
 On reaching v1.0.0, delete this section and:
 
 1. Restore `Protected Documentation` / `AI Modification Scope` to their unrelaxed form
-2. Move the doc-protection entries in `.claude/settings.json` back from `permissions.ask` to `permissions.deny`
+2. Move `AGENTS.md` / `LICENSE` / `.claude/settings.json` back from `permissions.ask` to `permissions.deny` in `.claude/settings.json`, and add Accepted ADR bodies (`Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)`) to `permissions.deny` to back the immutable operation of step 3
 3. Switch ADR [0140](docs/adr/0140-documentation-operations.md) to immutable ADR operation
-4. Strip rationale / history prose from every ADR body (P9-3)
+4. Strip rationale / history prose from every ADR body and from [`docs/adr/BACKLOG.md`](docs/adr/BACKLOG.md) (P9-3)
 
 ## Instruction Priority
 
@@ -107,21 +107,21 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0100](docs/adr/0100-accessibility-target.md) | Accessibility target | Target conformance level |
 | [0101](docs/adr/0101-performance-budget.md) | Performance budget | Core Web Vitals budget |
 | [0102](docs/adr/0102-browser-support.md) | Browser support | Support matrix |
-| [0110](docs/adr/0110-security-operations.md) | Security ops | `pnpm audit` threshold / Dependabot–Renovate / secret scanning |
+| [0110](docs/adr/0110-security-operations.md) | Security ops | Dependabot + cooldown / gitleaks secret scan (fail-closed) / vulnerability scan is report-only / suppression-policy format |
 | [0111](docs/adr/0111-csp-security-headers.md) | CSP / security headers | runtime CSP & security headers |
 | [0120](docs/adr/0120-locale-aware-formatting.md) | Locale formatting | date/number formatting + date-fns date arithmetic |
 | [0121](docs/adr/0121-i18n-strategy.md) | i18n (exclusion) | i18n not adopted (negative decision) |
 | [0130](docs/adr/0130-pwa-strategy.md) | PWA (exclusion) | PWA not adopted (negative decision) |
 | [0131](docs/adr/0131-cookie-consent.md) | Cookie consent (exclusion) | Consent management not adopted (negative decision) |
-| [0140](docs/adr/0140-documentation-operations.md) | Documentation ops | Canonical EN / JA translation-pair operation |
+| [0140](docs/adr/0140-documentation-operations.md) | Documentation ops | Japanese canonical on suffix-less paths below v1.0.0 / EN canonical + `.ja.md` mirror from v1.0.0 |
 | [0141](docs/adr/0141-portal-operations.md) | Portal ops | `docs/portal/manifest.yaml` curation |
 | [0142](docs/adr/0142-license.md) | License | MIT / OSS contribution policy / `private` flag alignment |
 | [0150](docs/adr/0150-git-workflow.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
 | [0151](docs/adr/0151-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
 | [0152](docs/adr/0152-agents-md-policy.md) | AGENTS.md policy | File placement / language / 12-section structure / Instruction Priority / `## [TODO]` convention |
-| [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / required checks / caching |
+| [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / workflow-definition lint (actionlint) / hooks mirror CI / required checks / caching |
 | [0154](docs/adr/0154-claude-skills-operations.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
-| [0155](docs/adr/0155-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` redesign note |
+| [0155](docs/adr/0155-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` target structure |
 
 > **ADR numbering is finalized (2026-07-14): topical decade-bands.** Numbers are grouped by subject into decade bands (e.g. `002x` architecture, `004x` routing/rendering, `005x` styling/UI, `007x` data/BFF, `008x` error/observability, `015x` process/dev-ops); the former `Toolchain-` / `Dev-` prefixed ADRs were folded into the numeric sequence (`0150`+). Gaps between bands are reserved for future insertion. Each ADR body remains authoritative.
 
@@ -148,7 +148,7 @@ By default, AI agents may modify code only in the following scope. All other pat
 
 ### Do not touch without user instruction
 
-- Repository-root config files: `package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `postcss.config.mjs` / `Makefile`, etc.
+- Repository-root config files: `package.json` / `pnpm-workspace.yaml` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `postcss.config.mjs` / `Makefile`, etc.
 - `.makefiles/` (release / branch operation make targets)
 - `.github/` (workflows / settings / issue and PR templates)
 - `LICENSE`
@@ -184,6 +184,17 @@ Bypassing the spirit of these rules through a skill is forbidden. If a skill's p
 
 ## Recommended Commands
 
+Run every command below **bare. `mise exec -- <command>` is forbidden outright** — in what you type, in
+`.lefthook.yaml`, in `.makefiles/` recipes, anywhere ([0003](docs/adr/0003-version-manager.md)). The
+toolchain resolves through an activated mise on `PATH`, so a command has exactly one spelling and the
+same one everywhere. A wrapper only hides a broken environment behind a per-call workaround, and it
+takes the failure — a stale `PATH`, a missing `make install-tools` — with it, so the next caller who
+forgets to wrap hits it instead.
+
+If a bare command resolves to a tool outside mise, the fix is `PATH`, not a wrapper — a stray pnpm one
+major ahead of the pin fails the script and rewrites the tracked `pnpm-workspace.yaml` on its own (see
+the `repo-ops` skill).
+
 ### pnpm (ADR 0001)
 
 ```bash
@@ -203,19 +214,23 @@ pnpm fix                   # biome check --fix
 pnpm format                # biome format --write
 ```
 
-### make (Tool setup / release / branch operations)
+### make (Tool setup / security scans / release / branch operations)
 
 ```bash
 make install-tools         # Install tools via mise (ADR 0003)
+make help                  # List every make target (warns on undocumented ones)
+make actionlint            # Lint .github/workflows with actionlint (ADR 0153)
+make secret-scan           # gitleaks over the commits about to be pushed — fails on detection (ADR 0110)
+make trivy-fs              # Trivy dependency vulnerability scan — on demand, report only (ADR 0110)
 make hotfix-patch          # Create a hotfix/v<patch> branch from production
 make tag-patch             # Tag production HEAD and create a GitHub Release
 make tag-minor             # Same (minor)
 make tag-major             # Same (major)
 ```
 
-For release branches, follow 0150 (`git checkout -b release/v<X.Y.Z> origin/develop`).
+For release branches, follow 0150 (`git switch -c release/v<X.Y.Z> origin/develop`).
 
-See [`.makefiles/README.ja.md`](.makefiles/README.ja.md) for details.
+See [`.makefiles/README.md`](.makefiles/README.md) for details.
 
 ## Git Rules
 
@@ -319,6 +334,14 @@ Targets:
 - Inline documentation generated by the AI
 
 Technical terms (HTTP status code names / API names / command names, etc.) may stay in English.
+
+**Exception — comments in GitHub Actions workflow definitions (`.github/workflows/**`) are written in English.**
+Workflows are the part of a public boilerplate that is most often read from outside it: they get pasted
+into upstream bug reports, they are the first thing a fork adapts, and they carry the security-hardening
+rationale (SHA pinning / minimal permissions / fail-closed gates — ADR [0153](docs/adr/0153-ci-configuration.md))
+that an outside reader needs in order to judge it. They also sit directly against English-only tool output
+(`actionlint` / `shellcheck`). Everything else under `.github/` — issue and PR templates, `settings/` —
+follows the Japanese rule above.
 
 ## Internal Processing
 

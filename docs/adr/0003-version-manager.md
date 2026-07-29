@@ -69,11 +69,16 @@ mise への依存は **配送層 (host)** に閉じている。SSOT / 契約 / �
 
 ```toml
 [tools]
-node = "24.14.1"
-pnpm = "10.33.0"
+"core:node" = "24.14.1"
+"aqua:pnpm/pnpm" = "10.33.0"
+"aqua:rhysd/actionlint" = "1.7.12"
+"aqua:gitleaks/gitleaks" = "8.30.1"
 ```
 
 - バージョンはパッチまで明示する（再現性のため）
+- **backend (`core:` / `aqua:` 等) を全エントリで明示する**。mise のレジストリは 1 つの短縮名に複数 backend を対応させており、どれが既定かはレジストリ側の都合で変わりうる。短縮名で書くと、その差し替えが**取得元の変更として現れず、バージョンも lockfile も動かないまま別の配布物が入る**。明示すれば SSOT が「何を・どこから取るか」まで宣言したことになる
+  - **一様に適用する**。一部のツールにだけ課す運用は、読み手が「意図的な線引き」と「書き漏れ」を区別できず、規約として機能しない
+  - これが守るのはレジストリのマッピング差し替えだけである。配布物そのものの改竄は mise 既定の checksum / cosign 検証が担う。両者は別の層であり、片方が他方を代替しない
 - mise の機能利用を前提とした追加機能（タスク定義 `[tasks]` / 環境変数 `[env]` 等）はここに置かない。SSOT の純度を保つため、mise 固有の付加機能は別ファイル / Makefile 側で扱う
 
 ## 配送層の扱い
@@ -116,11 +121,15 @@ pnpm = "10.33.0"
 - ❌ `mise.toml` を別の version manager で二重管理すること（SSOT が壊れる）
 - ❌ 配送層に mise コマンドを撒くこと（Dockerfile に `RUN mise install ...`、CI ジョブで直接 `mise install` チェーンを組む等）。配送層は各環境のネイティブ手段で完結させる
 - ❌ `mise.toml` に mise 固有のタスク / 環境変数定義を入れること（SSOT の純度を保つ）
+- ❌ **`mise exec -- <command>` でコマンドを包むこと（全面禁止）**。手で打つコマンド・`.lefthook.yaml` の hook・`.makefiles/` のレシピ・スクリプトのいずれでも使わない。1 コマンドに 2 通りの書き方が生まれ、どちらが正か読めなくなる。加えて、包み込みは PATH の不備をその呼び出しの中だけで覆い隠すため、包み忘れた次の呼び出し側に同じ失敗が回る
 - ❌ メジャーのみ・マイナーのみのバージョン指定（再現性が劣化する）
 
 ## 補足
 
-- mise の activate を入れていない環境で `node` / `pnpm` を素直に呼ぶと PATH に乗らない。`mise exec -- <command>` で逃げるか、`make install-tools` 後に shell activate を済ませること
+- **コマンドは activate を前提に素で呼ぶ**。`make install-tools` 後に shell activate を済ませ、`node` / `pnpm` / mise 管理ツールをそのまま実行する。手で打つ場合も、`.lefthook.yaml` の hook や `.makefiles/` のレシピの中でも同じ（[0151](0151-git-hooks.md)）
+- 素で呼んだツールが mise の pin と食い違う、あるいは PATH に無い場合は **環境側が壊れている**。activate と PATH を直す。壊れ方の実例と復旧手順は `repo-ops` スキルが持つ
+- **`mise activate` を経ない実行環境（GUI クライアントから起動した git hook / エージェントのシェル / CI）は、shims ディレクトリ（`~/.local/share/mise/shims`）を PATH に載せて揃える**（`mise activate --shims`）。解決を PATH 側で直す点は対話シェルと同じで、呼び出しごとの包み込みには落とさない
+- ツールを呼ぶ入口（hook / make レシピ / スクリプト）は、前段で `command -v <tool>` を確認し、無ければ `make install-tools` と activate を促して落とす。包んで動かすのではなく、環境の不足をその場で名指しする
 - mise を使わない開発者は `mise.toml` の宣言を参照しつつ自分の version manager で同じバージョンを揃える運用も許容する（SSOT を仕様として読む形）
 - 将来 mise から移行する場合の影響範囲は `.makefiles/tools/setup.mk` の `install-tools` ターゲットのみ
 

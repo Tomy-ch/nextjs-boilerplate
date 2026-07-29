@@ -55,8 +55,9 @@
 
 1. `--reviews-dir`(既定 `tmp/reviews`)に `mod_*.md` があるか確認。無ければ「先に `full-verify` を」と伝えて終了。
 2. **ツールチェーンが使えるか確認**(本リポジトリは pnpm / mise 管理、ADR 0001 / 0003)。`pnpm install` 状態が
-   最新で `pnpm lint` / `pnpm build` が走ることを確認。バージョン不整合で `pnpm`/`node` が失敗するなら
-   `mise exec -- node --version` / `mise exec -- pnpm --version` で明示、または `mise install` で整合させる。
+   最新で `pnpm lint` / `pnpm build` が走ることを確認。バージョン不整合で `pnpm`/`node` が失敗するなら、
+   `PATH` の解決(`pnpm --version`)とピン留めの実体(`mise which pnpm`)を突き合わせ、`mise install` と
+   activate 済みシェルで直す ── **`mise exec --` で包んで通すことはリポジトリ全体で禁止(ADR 0003)**。
    マシン固有の mise パスを漁らない(環境依存のハックを残さない)。pin 不整合はユーザに「`mise.toml` を実態に
    合わせるか」を確認してよい(`mise.toml` は保護対象のルート設定 ── 勝手に編集しない)。
 

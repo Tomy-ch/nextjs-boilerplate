@@ -37,12 +37,17 @@ Accepted
 
 | 段階 | 目的 | 想定処理 | 速度目標 |
 | --- | --- | --- | --- |
-| pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) | < 5 秒 |
-| pre-push | 「壊れた push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / テスト (整備後) | < 30 秒 |
+| pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) / Markdown 検査 (`pnpm md-lint` = markdownlint + mermaid 構文。`*.md` が staged のときのみ) / ワークフロー検査 (`make actionlint` = 構文 + `run:` のシェル。`.github/workflows/*` が staged のときのみ — [0153](0153-ci-configuration.md)) | < 5 秒 |
+| commit-msg | 「規約外のコミットメッセージを積ませない」 | commitlint ([0150](0150-git-workflow.md) の prefix 11 種を検証) | < 5 秒 |
+| pre-push | 「壊れた push・秘密を含む push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / 秘密スキャン (`make secret-scan` = push 予定コミット範囲) / テスト (整備後) | < 30 秒 |
 | (CI) | 権威ある検査 | lint / 型 / test / build / e2e 等 | 制約なし |
 
 - pre-commit で走らせる biome は、エディタ保存時の簡易版ではなく **完全版** (`pnpm lint:ci`)。保存時は軽量・commit 時は厳格という二段構え（プロファイル分割の詳細は [0002-formatter-linter.md](0002-formatter-linter.md)）
 - biome は Rust 実装で高速なため、完全版（`noImportCycles` の複数ファイル走査を含む）でも本リポジトリ規模では sub-second に収まり、速度目標を満たす
+- pre-push の commands は `parallel: true` で並列実行する。秘密スキャンは型チェックと独立しており、直列化すると速度目標を割るため
+- **秘密スキャンを pre-push に置く理由**は、秘密が push された時点で「リモートに残る」不可逆な事故になるためである。**この段階でしか「送られるコミット範囲」が確定しない**点も pre-push を選ぶ根拠になる。commit 段階では、その commit が最終的に push されるか・後続 commit で消されるかがまだ決まらない（走査対象の決め方そのものは [0110](0110-security-operations.md) が正）
+- **依存脆弱性スキャン (`make trivy-fs`) は hook に接続しない**。hook に載せてよいのは「当事者がその場で解消でき、かつ変更と共に結果が決まる」検査に限られる。依存の脆弱性はどちらも満たさない（上流待ちで解消できず、CVE の公開だけで結果が変わる）ため、報告は PR コメント・ブロックは昇格ゲートが持つ（判断の全文は [0110](0110-security-operations.md) 3.1）
+- 速度目標は**定常状態の実測**で判断する。各ツールのコールドスタートは初回に限って目標を超えるが、これを理由に目標を緩めない
 
 ### 設計原則
 
@@ -105,26 +110,35 @@ pnpm exec lefthook install    # .git/hooks/ に symlink を配置
 
 ## 設定の最小構成
 
-`.lefthook.yaml` の構成は以下を基準とする（**未導入**。lefthook 本体・`.lefthook.yaml` とも実装 PR で導入する。以下は導入時の基準構成）。
+**`.lefthook.yaml` が唯一の正**。本 ADR は骨格 (どの段に、いくつの、どういう名前の command を置くか) だけを定め、各 command が実際に実行するコマンド行は転記しない。転記は写しがずれる場所を増やすだけで、hook の挙動を知りたい者は必ず `.lefthook.yaml` を読む。
 
 ```yaml
 pre-commit:
   parallel: true
   commands:
-    lint:
-      run: pnpm lint:ci   # biome 完全版 (biome.ci.jsonc + --error-on-warnings)
-
-pre-push:
+    lint: ...
+    md-lint: ...
+    actionlint: ...
+commit-msg:
   commands:
-    typecheck:
-      run: pnpm typecheck  # tsc --noEmit
+    commitlint: ...
+pre-push:
+  parallel: true
+  commands:
+    typecheck: ...
+    secret-scan: ...
 ```
+
+- 各段の責務と、そこで走らせる検査は上の「hook 段階の責務分担」表が定める
+- **1 command = 1 つの関心**。1 つの `run:` に複数の検査をつなげず、command を分けて名前で識別できるようにする (失敗時にどの検査が落ちたか lefthook の出力で分かる)
+- pre-commit は `parallel: true`。command 間に順序依存を作らない
+- **全 command を素で書く**。`mise exec --` での包み込みは [0003](0003-version-manager.md) で全面禁止しており、hook も例外にしない。ツールは activate 済みの PATH から解決する前提とし、`❌ <tool> が PATH にありません` で落ちた場合は hook の書き方ではなく環境を直す (`make install-tools` + activate)
 
 ### 改変ルール
 
 具体的な commands の追加・更新は本 ADR の改訂を伴わずに行ってよい (粒度的な調整であり、方針そのものではないため)。ただし以下の改変は **ADR 改訂を要する** :
 
-- 段階責務 (pre-commit / pre-push) の再定義
+- 段階責務 (pre-commit / commit-msg / pre-push) の再定義
 - bypass ポリシーの緩和
 - lefthook 以外のツールへの移行
 - 速度目標 (pre-commit < 5 秒、pre-push < 30 秒) の引き上げ
@@ -135,7 +149,7 @@ pre-push:
 - ❌ `--no-verify` を git alias / shell alias / IDE 設定で恒常化すること
 - ❌ CI 側で hook 相当の検査をスキップすること
 - ❌ `.git/hooks/` 配下に直接 shell script を書き込むこと (lefthook 経由のみ)
-- ❌ hook 設定を `.lefthook.yaml` 以外のファイル (script / Makefile 等) に分散させること
+- ❌ hook 設定 (どの段階でどの command を走らせるか) を `.lefthook.yaml` 以外のファイル (script / Makefile 等) に分散させること。`run:` から `pnpm <script>` / `make <target>` のような既存の実行入口を 1 行で呼ぶのは分散にあたらない (ローカルと CI で同じコマンドを呼ぶための要件でもある)
 - ❌ lefthook 自体のバージョンを caret (`^`) で指定すること (0004 のコア dev ツール方針に従い exact pin)
 
 ## 補足
@@ -149,4 +163,5 @@ pre-push:
 
 - [0002-formatter-linter.md](0002-formatter-linter.md) — `pnpm lint:ci` で呼ばれる biome 完全版 (`biome.ci.jsonc`) と簡易版のプロファイル分割
 - [0004-library-management.md](0004-library-management.md) — lefthook を devDependency として exact pin する根拠
+- [0110-security-operations.md](0110-security-operations.md) — pre-push で走る秘密スキャンの内容、および脆弱性スキャンを hook に載せない判断
 - [0150-git-workflow.md](0150-git-workflow.md) — hook 通過後の commit / PR / リリース運用フロー

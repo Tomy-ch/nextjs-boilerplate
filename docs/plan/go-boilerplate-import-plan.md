@@ -6,8 +6,8 @@
 
 - **役割分担**
   - [v1-implementation-plan.md](v1-implementation-plan.md) — v1.0.0 までの実装 PR の SSOT。本書はその PR 枠へ**輸入元と輸入すべき設計**を供給する
-  - [BACKLOG.md](../adr/BACKLOG.md) 「go-boilerplate Claude 資産 移植バックログ」節 — 枠 ID との紐づけと追跡ステータスの SSOT。本書は作業定義を持ち、ステータスは持たない
-  - 本書 — 比較結果と作業定義。完了した項目は BACKLOG へ反映のうえ本書から削除する(living 運用)
+  - [BACKLOG.md](../adr/BACKLOG.md#go-boilerplate-claude-資産-移植バックログ)「go-boilerplate Claude 資産 移植バックログ」節 — 枠 ID・移植グループ ID `GB-N` との紐づけと資産単位の分類の SSOT
+  - 本書 — 比較結果と作業定義、および各項目の状態。**完了した項目も削除せず、状態と決着内容を記して残す** — 何をどう輸入したか(および輸入時に取り下げた判断)を後から辿れるようにするため
 - **対象スナップショット**: `go-boilerplate` `.claude/`(スキル 35 / エージェント 19 / 共有スペック 5)、`.codex/`(エージェント 19 / スキル 34)、`.github/`(workflow 48 + composite action 4)、`.makefiles/` / `scripts/` / ルート lint 設定群
 - **輸入の原則**
   - **ADR が正**。[AGENTS.md](../../AGENTS.md) Instruction Priority に従い、ADR で未決の領域へ go 側の規約を持ち込まない。該当枠が Accepted になるまで着手しない
@@ -24,7 +24,7 @@
 
 | 区分 | go-boilerplate | nextjs-boilerplate | 差分 |
 | --- | --- | --- | --- |
-| Claude スキル | 35 | 15 | 20 |
+| Claude スキル | 35 | 16 | 19 |
 | Claude エージェント | 19 | 6 | 13 |
 | 共有スペック(`scaffold-spec/`) | 5 | 0 | 5 |
 | Codex 資産(`.codex/`) | エージェント 19 / スキル 34 | 0 | 全数 |
@@ -33,18 +33,7 @@
 
 ### 1.2 台帳の鮮度
 
-BACKLOG の移植バックログ節はスナップショット「スキル 31 / エージェント 18 / 共有スペック 5」時点で書かれており、以降に go 側へ追加された次の資産が**未登録**:
-
-| 資産 | 種別 | 本書での扱い |
-| --- | --- | --- |
-| `supply-chain-triage`(+ references 4) | スキル | IM-20 |
-| `dep-vuln-upgrade` | スキル | IM-21 |
-| `images-pin` | スキル | 対象外([0011](../adr/0011-no-docker.md) no-docker) |
-| `manage-skill` | スキル | IM-03 |
-| `sync-ai`(+ handoff スクリプト) | スキル | IM-05 |
-| `type-design-reviewer` | エージェント | IM-24(新設枠 C-7) |
-
-加えて `impl-review` は移植時点から機能拡張されており、本リポジトリの `local-review`(130 行)は go 側(256 行)の現行仕様に追随していない(IM-02)。
+[BACKLOG.md](../adr/BACKLOG.md) の移植バックログ節は上記スナップショットへ揃っており、35 スキル / 19 エージェントの全数が分類済み。本書の作業一覧との対応は各 IM 項目の「主な変更先」で辿る。
 
 ### 1.3 分類凡例
 
@@ -57,58 +46,58 @@ BACKLOG の移植バックログ節はスナップショット「スキル 31 / 
 
 ## 2. 作業一覧
 
-全 30 項目。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
+全 30 項目(完了 7 / 未着手 23)。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
 
-| ID | 内容 | 分類 | 受け皿 | 依存 / トリガー |
-| --- | --- | --- | --- | --- |
-| **W0: 前提整備** | | | | |
-| IM-01 | 移植バックログ節をスナップショット 35/19 へ改訂 | A | — | なし |
-| **W1: レビュー体系の追随**(受け皿なし / 即着手可) | | | | |
-| IM-02 | `local-review` を `impl-review` 現行仕様へ追随 | B | — | IM-01 |
-| **W2: AI 環境二重運用**(受け皿なし / 即着手可) | | | | |
-| IM-03 | `manage-skill` 移植 | A | — | なし |
-| IM-04 | `.codex/` 基盤(README 対訳 / config.toml / スコープ規約) | B | — | IM-03 |
-| IM-05 | `sync-ai` + handoff スクリプト双方向 | B | — | IM-03, IM-04 |
-| IM-06 | `.codex/` へのスキル / エージェント一括ミラー | B | — | IM-05 |
-| **W3: ローカル品質ゲート**(v1 Phase 1 併走) | | | | |
-| IM-07 | commitlint | A | P1-1 | なし |
-| IM-08 | lefthook の glob 別並列 + 段階設計 | B | P1-1, P1-2 | IM-07 |
-| IM-09 | `.editorconfig` | B | P1-3 | なし |
-| IM-10 | 抑止ポリシー様式の統一 | A | P1-2 | なし |
-| IM-11 | `.makefiles/README.md`(EN) + `make help` 未文書化警告 | A | P1-3 | なし |
-| **W4: CI 設計パターン**(v1 Phase 2 併走) | | | | |
-| IM-12 | skip-guard ペア方式 | A | P2-1 | P1-3 |
-| IM-13 | 二重リリースゲート | A | P2-2 | IM-12 |
-| IM-14 | notify workflow(failure / detection 2 モード) | A | P2-1 | IM-12 |
-| IM-15 | CODEOWNERS + dependabot cooldown の対構造 | A | P2-2 | IM-12 |
-| IM-16 | lockfile-integrity + pnpm cooldown audit | B | P2-2 | IM-15 |
-| IM-17 | workflows README + harden-runner + `cache: false` 規約 | A | P2-1 | IM-12 |
-| IM-18 | `required_status_checks` の branch ruleset 反映 | A | Phase 2 完了条件 | IM-12〜IM-17 |
-| **W5: サプライチェーン**(v1 Phase 2 後) | | | | |
-| IM-19 | actions-pin 機構 + スキル(C-6) | B | P2-3 | IM-12 |
-| IM-20 | `supply-chain-triage` スキル | B | — | IM-19 |
-| IM-21 | `dep-vuln-upgrade` スキル | B | — | IM-20 |
-| **W6: アーキ監査・ドリフト**(v1 Phase 3 後) | | | | |
-| IM-22 | `arch-check` + 層別 auditor(C-1) | C | — | A3 Accepted + P3-1 |
-| IM-23 | `back-prop` + drift-detector(C-2) | C | — | IM-22 |
-| IM-24 | `type-design-reviewer`(新設枠 C-7) | C | — | A3 Accepted + P3-1 |
-| IM-25 | 2 段 lint 構成の思想を ESLint へ適用 | B | P3-2 | P3-2 |
-| **W7: spec / scaffold**(v1 Phase 4 前後) | | | | |
-| IM-26 | C-3(spec 駆動)の採否判断 | C | — | A1 Accepted。**P4-6 着手前に決着** |
-| IM-27 | C-4 の骨格のみ P4-6 へ吸収 | C | P4-6 | IM-26 |
-| **W8: テスト**(v1 Phase 3 後) | | | | |
-| IM-28 | `scaffold-test` / `test-review`(C-5) | C | — | P3-6 完了 |
-| **W9: docs portal**(v1 Phase 8) | | | | |
-| IM-29 | `portal-manifest-sync` 復活 | A | P8-2 | P8-1 |
-| IM-30 | `docs/maintenance/` の新設 | B | P3-10 | P3-10 |
+| ID | 内容 | 分類 | 受け皿 | 依存 / トリガー | 状態 |
+| --- | --- | --- | --- | --- | --- |
+| **W0: 前提整備** | | | | | |
+| IM-01 | 移植バックログ節をスナップショット 35/19 へ改訂 | A | — | なし | 完了(issue #38) |
+| **W1: レビュー体系の追随** | | | | | |
+| IM-02 | `local-review` を `impl-review` 現行仕様へ追随 | B | — | IM-01 | 完了(issue #40) |
+| **W2: AI 環境二重運用**(受け皿なし / 即着手可) | | | | | |
+| IM-03 | `manage-skill` 移植 | A | — | なし | 完了(issue #39) |
+| IM-04 | `.codex/` 基盤(README 対訳 / config.toml / スコープ規約) | B | — | なし | 未着手 |
+| IM-05 | `sync-ai` + handoff スクリプト双方向 | B | — | IM-04 | 未着手 |
+| IM-06 | `.codex/` へのスキル / エージェント一括ミラー | B | — | IM-05 | 未着手 |
+| **W3: ローカル品質ゲート**(v1 Phase 1 併走) | | | | | |
+| IM-07 | commitlint | A | P1-1 | なし | 完了(issue #36) |
+| IM-08 | lefthook の段階設計の残り(lint の glob 分割 / テスト・生成物ドリフト) | B | — | P3-6 | 一部完了 |
+| IM-09 | `.editorconfig` | B | P1-3 | なし | 完了(issue #35) |
+| IM-10 | 抑止ポリシー様式の統一 | A | P1-2 | なし | 完了(issue #37) |
+| IM-11 | `.makefiles/README` + `make help` 未文書化警告 | A | P1-3 | なし | 完了(issue #35)。EN 正典の形は PR #63 で撤回 |
+| **W4: CI 設計パターン**(v1 Phase 2 併走) | | | | | |
+| IM-12 | skip-guard ペア方式 | A | P2-1 | P1-3 | 未着手 |
+| IM-13 | 二重リリースゲート | A | P2-2 | IM-12 | 未着手 |
+| IM-14 | notify workflow(failure / detection 2 モード) | A | P2-1 | IM-12 | 未着手 |
+| IM-15 | CODEOWNERS + dependabot cooldown の対構造 | A | P2-2 | IM-12 | 未着手 |
+| IM-16 | lockfile-integrity + pnpm cooldown audit | B | P2-2 | IM-15 | 未着手 |
+| IM-17 | workflows README + harden-runner + `cache: false` 規約 | A | P2-1 | IM-12 | 未着手 |
+| IM-18 | `required_status_checks` の branch ruleset 反映 | A | Phase 2 完了条件 | IM-12〜IM-17 | 未着手 |
+| **W5: サプライチェーン**(v1 Phase 2 後) | | | | | |
+| IM-19 | actions-pin 機構 + スキル(GB-6) | B | P2-3 | IM-12 | 未着手 |
+| IM-20 | `supply-chain-triage` スキル | B | — | IM-19 | 未着手 |
+| IM-21 | `dep-vuln-upgrade` スキル | B | — | IM-20 | 未着手 |
+| **W6: アーキ監査・ドリフト**(v1 Phase 3 後) | | | | | |
+| IM-22 | `arch-check` + 層別 auditor(GB-1) | C | — | A3 Accepted + P3-1 | 未着手 |
+| IM-23 | `back-prop` + drift-detector(GB-2) | C | — | IM-22 | 未着手 |
+| IM-24 | `type-design-reviewer`(新設枠 GB-7) | C | — | A3 Accepted + P3-1 | 未着手 |
+| IM-25 | 2 段 lint 構成の思想を ESLint へ適用 | B | P3-2 | P3-2 | 未着手 |
+| **W7: spec / scaffold**(v1 Phase 4 前後) | | | | | |
+| IM-26 | GB-3(spec 駆動)の採否判断 | C | — | A1 Accepted。**P4-6 着手前に決着** | 未着手 |
+| IM-27 | GB-4 の骨格のみ P4-6 へ吸収 | C | P4-6 | IM-26 | 未着手 |
+| **W8: テスト**(v1 Phase 3 後) | | | | | |
+| IM-28 | `scaffold-test` / `test-review`(GB-5) | C | — | P3-6 完了 | 未着手 |
+| **W9: docs portal**(v1 Phase 8) | | | | | |
+| IM-29 | `portal-manifest-sync` 復活 | A | P8-2 | P8-1 | 未着手 |
+| IM-30 | `docs/maintenance/` の新設 | B | P3-10 | P3-10 | 未着手 |
 
 ### 2.1 依存マップ
 
+未着手の項目のみを描く(完了済みは着手順序に影響しないため省く)。矢印は**着手をブロックする依存**だけを引く。
+
 ```mermaid
 flowchart TD
-  IM01["IM-01 台帳改訂"] --> IM02["IM-02 local-review 追随"]
-  IM03["IM-03 manage-skill"] --> IM04["IM-04 .codex 基盤"]
-  IM04 --> IM05["IM-05 sync-ai"]
+  IM04["IM-04 .codex 基盤"] --> IM05["IM-05 sync-ai"]
   IM05 --> IM06["IM-06 ミラー生成"]
   P13["v1 P1-3"] --> IM12["IM-12 skip-guard"]
   IM12 --> IM13["IM-13 リリースゲート"]
@@ -123,14 +112,14 @@ flowchart TD
   P31["v1 P3-1"] --> IM22["IM-22 arch-check"]
   IM22 --> IM23["IM-23 back-prop"]
   P31 --> IM24["IM-24 type-design-reviewer"]
-  IM26["IM-26 C-3 採否"] --> IM27["IM-27 C-4 骨格 → P4-6"]
+  IM26["IM-26 GB-3 採否"] --> IM27["IM-27 GB-4 骨格 → P4-6"]
 ```
 
 ---
 
 ## 3. 作業定義
 
-v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容のみを記す。
+v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容のみを記す。完了した項目は **状態**(決着内容 / 当初定義から変えた点)を添えて残す。
 
 ### W0: 前提整備
 
@@ -140,13 +129,13 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 - **主な変更先**: [BACKLOG.md](../adr/BACKLOG.md) 移植バックログ節
 - **変更内容**:
   - 対象スナップショットを「スキル 35 / エージェント 19 / 共有スペック 5」+ `.codex/`(エージェント 19 / スキル 34)へ更新
-  - §1.2 の未登録 6 資産を分類へ追加
-  - **C-6**(actions-pin)の受け皿が P2-3 であることを明記
-  - **C-7** を新設: `type-design-reviewer`。ブロック元 A3、着手トリガーは `src/model/` の型設計規約確定
+  - 未登録だった 6 資産(`supply-chain-triage` / `dep-vuln-upgrade` / `images-pin` / `manage-skill` / `sync-ai` / `type-design-reviewer`)を分類へ追加
+  - **GB-6**(actions-pin)の受け皿が P2-3 であることを明記
+  - **GB-7** を新設: `type-design-reviewer`。ブロック元 A3、着手トリガーは `src/model/` の型設計規約確定
   - 「対象外(D)」へ `images-pin` を追加([0011](../adr/0011-no-docker.md))
-  - 本書へのリンクを張り、作業定義の所在を示す
 - **完了条件**: BACKLOG の分類に go 側の全 35 スキル / 19 エージェントが漏れなく現れる
 - **依存**: なし
+- **状態**: **完了**(issue #38)。移植グループ ID は当初 `C-N` としたが、Tier 5 の枠 ID `CN` と記号が衝突するため後に `GB-N` へ改名した(issue #58)
 
 ### W1: レビュー体系の追随
 
@@ -159,13 +148,14 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 
 | # | 機能 | 翻案メモ |
 | --- | --- | --- |
-| 1 | **`test-gap` レンズ**(第 5 の code-origin レンズ) | 変更された本番コードを読み、到達可能な分岐 / 変更シンボルのうち未テスト・空虚アサートを検出。対象は `src/**` の非生成 `.ts` / `.tsx`(除外は `*.test.ts` / `gen/**`)。sentinel 検証は `require.ErrorIs` → `expect(...).toThrow(ErrClass)` 等へ読み替え。**P3-6(テスト基盤)完了まではレンズを無効化** |
-| 2 | **`comment-reviewer` のライフサイクル組込 + 自動修正** | CONFIRMED なコメント指摘を 1 度の確認後に作業ツリーへ適用。ガードは Go 固有部を差し替え — 機能ディレクティブ(`// @ts-expect-error` / `biome-ignore` / `"use client"` 等)は決して削除しない、export された API の TSDoc は削除でなく書換 or 補強、生成物 / Markdown 散文 / deny リストは除外。検証は `make fix` → `pnpm lint:ci` |
+| 1 | **`test-gap` レンズ**(第 5 の code-origin レンズ) | 変更された本番コードを読み、到達可能な分岐 / 変更シンボルのうち未テスト・空虚アサートを検出。対象は `src/**` の非生成 `.ts` / `.tsx`(除外は `*.test.ts` / `gen/**`)。**P3-6(テスト基盤)完了まではレンズを無効化** |
+| 2 | **`comment-reviewer` のライフサイクル組込 + 自動修正** | CONFIRMED なコメント指摘を 1 度の確認後に作業ツリーへ適用。機能ディレクティブ(`// @ts-expect-error` / `biome-ignore` / `"use client"` 等)は削除しない、export された API の TSDoc は削除でなく書換 or 補強、生成物 / Markdown 散文 / deny リストは除外。検証は `pnpm fix` → `pnpm lint:ci` |
 | 3 | **PR インラインコメント投稿**(既定 on / `--no-comment`) | CONFIRMED + PLAUSIBLE をレンズ別に `path:line` へアンカーして投稿。REFUTED は投稿しない。**外向き操作のため投稿前に 1 度だけ確認**する規約もそのまま輸入 |
 | 4 | **モデル選択**(fable / sonnet / opus / haiku、既定 auto = 実装者 ≠ レビュアー) | 無翻案 |
 
 - **完了条件**: 5 レンズ + comment-reviewer が走り、コメント指摘が自動修正され、残る指摘が PR へインライン投稿される。`--no-comment` / `--no-apply` が効く
 - **依存**: IM-01
+- **状態**: **完了**(issue #40)。PR インライン投稿は `gh api` の実行許可が前提で、これを許可する判断は issue #48 で別途決着させた。Step 1 の layer 検出・ランタイム検証段・`architecture` / `runtime-gap` のレンズ定義本文には go 由来の記述が残っており、未翻案分は BACKLOG の移植バックログ節が持つ
 
 ### W2: AI 環境二重運用
 
@@ -173,10 +163,11 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 
 - **目的**: スキルの新規作成・更新の単一入口を作る。これが無いと IM-05 の受け側が定まらない
 - **輸入元**: `.claude/skills/manage-skill/`
-- **主な変更先**: `.claude/skills/manage-skill/SKILL.md`(+ `.ja.md`)、`.claude/scripts/bootstrap-plugins.sh`
-- **翻案メモ**: 公式 marketplace `anthropics/claude-plugins-official` の `skill-creator` プラグインをラップする構造は無翻案。上乗せする規約を本リポジトリのものへ差し替える — 英語正典 + `SKILL.ja.md` 対訳([0140](../adr/0140-documentation-operations.md))、スキル配置・命名・frontmatter([0154](../adr/0154-claude-skills-operations.md) / [0155](../adr/0155-claude-skills-development.md))、[AGENTS.md](../../AGENTS.md) の AI Modification Scope
-- **完了条件**: `manage-skill` 経由で作成したスキルが対訳ペアと frontmatter 規約を満たす。既存 15 スキルのうち対訳片落ちの 3 件(`adr-scan` / `commit` / `tool-map`)が解消される
+- **主な変更先**: `.claude/skills/manage-skill/SKILL.md`(+ `.ja.md`)、プラグイン導入スクリプト
+- **翻案メモ**: 公式 marketplace `anthropics/claude-plugins-official` の `skill-creator` プラグインをラップする構造は無翻案。上乗せする規約を本リポジトリのものへ差し替える — `SKILL.ja.md` 対訳([0140](../adr/0140-documentation-operations.md))、スキル配置・命名・frontmatter([0154](../adr/0154-claude-skills-operations.md) / [0155](../adr/0155-claude-skills-development.md))、[AGENTS.md](../../AGENTS.md) の AI Modification Scope
+- **完了条件**: `manage-skill` 経由で作成したスキルが対訳ペアと frontmatter 規約を満たす。対訳片落ちの 3 件(`adr-scan` / `commit` / `tool-map`)が解消される
 - **依存**: なし
+- **状態**: **完了**(issue #39)。導入スクリプトは輸入元の `.claude/scripts/bootstrap-plugins.sh` ではなく、§0 の TypeScript 変換原則に従い `scripts/bootstrap-plugins.ts`(`pnpm exec tsx` 実行)として着地した
 
 #### IM-04: `.codex/` 基盤
 
@@ -185,16 +176,16 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 - **主な変更先**: `.codex/README.md`(+ `.ja.md`)、`.codex/config.toml`、[AGENTS.md](../../AGENTS.md) の「Agent configuration file protection」節(`.codex/` は記載済みのため確認のみ)
 - **翻案メモ**: `config.toml` は codex-cli がプロジェクト設定を読まないため**「記録された意図」**である旨を go 側同様に明記する。個人設定(MCP / 認証)は `~/.codex/` へ置く分離方針も踏襲。ツール実行系の記述を Go/Docker から pnpm / mise へ差し替える
 - **完了条件**: `.codex/README.md` が Claude 側 `.claude/README.md` と鏡像の構成で存在し、両者が互いを参照する
-- **依存**: IM-03
+- **依存**: なし
 
 #### IM-05: `sync-ai` + handoff スクリプト双方向
 
 - **目的**: 片方の環境で更新したスキルを、もう片方へ**セマンティックに**移植する。生ディレクトリコピーを禁じ、受け側の `manage-skill` に翻案させる
 - **輸入元**: `.claude/skills/sync-ai/`(+ `scripts/handoff-to-codex.sh`)、`.codex/skills/sync-ai/`(+ `scripts/handoff-to-claude.sh`)
 - **主な変更先**: `.claude/skills/sync-ai/`、`.codex/skills/sync-ai/`
-- **翻案メモ**: 中身は言語非依存でほぼ無翻案。**再帰防止の機構は無改造で必須輸入** — `tmp/sync-ai/.handoff.lock` の `mkdir` アトミックロック + TTL 3600s、非対話 CLI 起動、Codex sandbox の writable roots への `.codex/` 追加、Claude 側への `--permission-mode bypassPermissions` 引き渡し。`tmp/` は本リポジトリの `.gitignore` に未登録のため**併せて追加する**。handoff スクリプトは §0「輸入の原則」に従い `*.sh` から `*.ts`(`pnpm exec tsx` 実行)へ変換する — ロック機構は `fs.mkdirSync` の失敗判定で等価に再現できるため、この変換で再帰防止の要件は落ちない
+- **翻案メモ**: 中身は言語非依存でほぼ無翻案。**再帰防止の機構は無改造で必須輸入** — `tmp/sync-ai/.handoff.lock` の `mkdir` アトミックロック + TTL 3600s、非対話 CLI 起動、Codex sandbox の writable roots への `.codex/` 追加、Claude 側への `--permission-mode bypassPermissions` 引き渡し。ロックの置き場となる `tmp/` は `.gitignore` へ登録済み(issue #34)。handoff スクリプトは §0「輸入の原則」に従い `*.sh` から `*.ts`(`pnpm exec tsx` 実行)へ変換する — ロック機構は `fs.mkdirSync` の失敗判定で等価に再現できるため、この変換で再帰防止の要件は落ちない
 - **完了条件**: 片方向ハンドオフが完走し、受け側にネイティブな形でスキルが生成される。同時起動でロックが効き再帰しない
-- **依存**: IM-03, IM-04
+- **依存**: IM-04
 
 #### IM-06: `.codex/` へのスキル / エージェント一括ミラー
 
@@ -206,15 +197,24 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 
 ### W3: ローカル品質ゲート
 
-v1 計画 Phase 1 の各 PR へ、以下を輸入元・輸入内容として書き足す。
+v1 計画 Phase 1 の各 PR へ書き足した輸入内容と、その決着。
 
-| ID | 受け皿 | 書き足す内容 |
-| --- | --- | --- |
-| IM-07 | P1-1 | 輸入元 `commitlint.config.js`。type-enum は [0150](../adr/0150-git-workflow.md) の prefix 11 種と同一。**大文字混在のため `type-case` を課さない**点をそのまま輸入 |
-| IM-08 | P1-1, P1-2 | lefthook の**段階設計**を輸入 — pre-commit = glob 別に並列発火する速い lint + キャッシュテスト / pre-push = 重い検証(秘密スキャン・フルテスト・生成物ドリフト)。現行は pre-commit 一括のため、`*.md` / `*.ts` / `.github/**` の glob 分割へ組み替える |
-| IM-09 | P1-3 | `.editorconfig` を新規追加。go 側から Go 節を除去し、TS / TSX / JSON / YAML / MD / CSS の indent 規約を biome の設定と一致させる |
-| IM-10 | P1-2 | **抑止ポリシー様式**を輸入 — `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に共通する「一括無効化禁止・抑止はファイル or フィンガープリント単位・理由必須・条件が変われば削除」を各ファイル冒頭に明文化。`.gitleaksignore` は 1 行ごとに「なぜ秘密でないか」を書く |
-| IM-11 | P1-3 | `.makefiles/README.md`(EN)を新設し `README.ja.md` の対訳を成立させる(現在リンク切れ)。`make help` の未文書化ターゲット警告は P1-3 に既に記載あり |
+| ID | 受け皿 | 輸入内容 | 状態 |
+| --- | --- | --- | --- |
+| IM-07 | P1-1 | 輸入元 `commitlint.config.js`。type-enum は [0150](../adr/0150-git-workflow.md) の prefix 11 種と同一。**大文字混在のため `type-case` を課さない**点をそのまま輸入 | **完了**(issue #36)。config は TypeScript 変換原則に従い `commitlint.config.ts` として着地 |
+| IM-09 | P1-3 | `.editorconfig` を新規追加。go 側から Go 節を除去し、TS / TSX / JSON / YAML / MD / CSS の indent 規約を biome の設定と一致させる | **完了**(issue #35) |
+| IM-10 | P1-2 | **抑止ポリシー様式**を輸入 — `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に共通する「一括無効化禁止・抑止はファイル or フィンガープリント単位・理由必須・条件が変われば削除」を各ファイル冒頭に明文化。`.gitleaksignore` は 1 行ごとに「なぜ秘密でないか」を書く | **完了**(issue #37) |
+| IM-11 | P1-3 | `.makefiles/README.md`(EN)を新設し `README.ja.md` の対訳を成立させる。`make help` の未文書化ターゲット警告も併せて入れる | **完了**(issue #35)。ただし **EN 正典 + `.ja.md` 対訳の形は撤回**した(PR #63)。[0140](../adr/0140-documentation-operations.md) が v1.0.0 未満は日本語 canonical をサフィックス無しのパスへ置くと定めるため、`.makefiles/README.md` 日本語 1 本へ戻した |
+
+#### IM-08: lefthook 段階設計の残り
+
+- **目的**: pre-commit は変更に関係する検査だけを走らせ、重い検証を pre-push へ寄せる。全部を毎回走らせると hook が邪魔になり、`--no-verify` の常用へ流れる
+- **輸入元**: go 側 `.lefthook.yaml`
+- **主な変更先**: `.lefthook.yaml`
+- **残っている差分**: biome の完全版 lint が glob 無しで全コミットに発火する(go 側は対象言語の glob で分割)。pre-push にテスト実行と生成物ドリフト検査が無い
+- **完了条件**: lint が対象ファイルを含むコミットでのみ発火し、pre-push でテストと生成物ドリフトが検査される
+- **依存**: テストは P3-6(テスト基盤)、生成物ドリフトは B4(型生成)の着地後
+- **状態**: **一部完了**。commit-msg フック(issue #36)と pre-push の秘密スキャン(issue #37)は着地済み。段階設計のうち上記「残っている差分」が未着手
 
 ### W4: CI 設計パターン
 
@@ -258,7 +258,7 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 
 ### W5: サプライチェーン
 
-#### IM-19: actions-pin 機構 + スキル(C-6 / 受け皿 P2-3)
+#### IM-19: actions-pin 機構 + スキル(GB-6 / 受け皿 P2-3)
 
 P2-3 に受け皿があり、そこへ書き足す:
 
@@ -289,19 +289,19 @@ P2-3 に受け皿があり、そこへ書き足す:
 
 いずれも ADR 未決を含むため、トリガーが立つまで着手しない。
 
-#### IM-22: `arch-check` + 層別 auditor(C-1)
+#### IM-22: `arch-check` + 層別 auditor(GB-1)
 
 - **トリガー**: A3 Accepted + P3-1(11 カーネル物理化 + 層別 README)完了
 - **輸入する骨格**: integrator が lint を 1 回だけ実行し、層別 auditor を**並列 fan-out** する。各 auditor は**自層の README を正として実行時に読み込む**(規約をエージェント本文にハードコードしない)。TODO ハンドオフコメントは opt-in
 - **翻案メモ**: 層マッピングを go の domain / usecase / controller / infra / pkg から、本リポジトリの 11 カーネルへ差し替える。**`full-verify` Pass 1 との分担を SKILL.md に明記する**(`arch-check` = 層規約の準拠検査 / `full-verify` Pass 1 = 構造設計の妥当性)
 
-#### IM-23: `back-prop` + drift-detector(C-2)
+#### IM-23: `back-prop` + drift-detector(GB-2)
 
 - **トリガー**: IM-22 と同時期
 - **輸入する骨格**: 検出カテゴリ A(README → Code)/ B(Code → README 未文書化)/ C(Skill ↔ README 重複)と、**検出は read-only subagent・承認と書き込みは integrator** の分離
 - **翻案メモ**: `sync-readme`(構造ドリフト)との分担を明記する
 
-#### IM-24: `type-design-reviewer`(新設枠 C-7)
+#### IM-24: `type-design-reviewer`(新設枠 GB-7)
 
 - **トリガー**: A3 Accepted + `src/model/` の型設計規約確定
 - **目的**: `arch-auditor` 系の二値判定では拾えない「規約は満たすが弱い型」を程度で拾う
@@ -315,15 +315,15 @@ P2-3 に受け皿があり、そこへ書き足す:
 
 ### W7: spec / scaffold
 
-#### IM-26: C-3(spec 駆動)の採否判断
+#### IM-26: GB-3(spec 駆動)の採否判断
 
 - **判断すべきこと**: `docs/spec/<feature>/` に domain / usecase の 2 層 spec を置き、そこから実装を生成する **lean A 方式を採るか**
 - **輸入可能な設計(採用する場合)**: **spec フォーマットを外部ファイル(`.claude/scaffold-spec/*`)から実行時に読み込む = SSOT** という構造は言語非依存。フォーマット変更がスキル改修なしで伝播する
 - **注意**: v1 計画の **P4-6(スキャフォールドジェネレータ)は `architecture.ts` を読んで生成する方式**であり、spec 駆動とは前提が異なる。**両方を持つと SSOT が二重化する**ため、P4-6 着手前に決着させる
-- **不採用の場合**: C-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
+- **不採用の場合**: GB-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
 - **トリガー**: A1 Accepted。遅くとも P4-6 着手前
 
-#### IM-27: C-4 の骨格のみ P4-6 へ吸収
+#### IM-27: GB-4 の骨格のみ P4-6 へ吸収
 
 - go の onion + sqlc / OpenAPI 前提は表示層に載らない(DB が無い)。輸入するのは 2 点のみ:
   - **chain 構造** — 生成を段階に分け、前段の検証が通らなければ次段へ進まない
@@ -332,7 +332,7 @@ P2-3 に受け皿があり、そこへ書き足す:
 
 ### W8: テスト
 
-#### IM-28: `scaffold-test` / `test-review`(C-5)
+#### IM-28: `scaffold-test` / `test-review`(GB-5)
 
 - **トリガー**: P3-6(テスト基盤 Vitest + RTL + MSW)完了
 - **輸入する骨格**:
@@ -371,6 +371,7 @@ P8-2 に受け皿があり、そこへ書き足す: pair_drift preflight → N1(
 
 ## 5. 本書の運用
 
-- **living 運用**: 完了した項目は [BACKLOG.md](../adr/BACKLOG.md) へ反映のうえ本書から削除する
+- **living 運用**: 完了した項目は削除せず、§2 の表と §3 の定義に **状態**(完了 / 一部完了 / 未着手)と決着内容を記す。資産単位の分類は [BACKLOG.md](../adr/BACKLOG.md) の移植バックログ節へ反映する
+- 状態欄に書くのは**決着した事実と、当初定義から変わった点**だけとする。検討の経緯は書かない
 - go 側が再度強化された場合は §1.1 のスナップショットを取り直し、差分を作業一覧へ追加する
 - 判断の経緯・比較検討は本書に書かない([v1-implementation-plan.md](v1-implementation-plan.md) §2 の暫定規約に従う)

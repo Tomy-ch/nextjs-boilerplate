@@ -23,6 +23,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 - ワークフローは関心事ごとに分ける(go 翻案)。本リポの CI job:
   - **lint**(`pnpm lint:ci` = biome full profile)/ **typecheck**(`pnpm typecheck` = tsc)/ **build**(`next build`。[0030](0030-environment-variable-management.md) のビルド時 env 全量検証を含む)/ **test**(vitest)/ **e2e**(playwright)
   - **境界検査**: ESLint boundaries は `lint:ci` に直列で載る([0002](0002-formatter-linter.md) / [0021](0021-frontend-responsibility.md))
+  - **ワークフロー定義の lint**: `.github/workflows/**` 自体を **actionlint** で検査する(`make actionlint`)。`run:` ステップのシェルは actionlint が **shellcheck** を呼び出して検査するため、両バイナリを `mise.toml` で版固定し、検査結果を実行環境に依存させない([0003](0003-version-manager.md))。上記 4 の hooks mirror CI に従いローカルと CI の両方で走らせる。SHA ピン検査(下記 3)とは別関心として分ける
   - **起動スモーク**: go の boot-check(実 graph 起動検査)の翻案として、`pnpm build` → `next start` → `curl /` ポーリングの起動検査を持つ(設計フェーズの「決定不要」表 B9 / 移植計画 PR 2-1)
   - **生成物 drift ゲート**(型生成。[0072](0072-api-type-generation.md))/ **カバレッジゲート**(90%。[0090](0090-testing-strategy.md))。カバレッジの **PR レポート**([0090](0090-testing-strategy.md) が B9 へ引き渡した項)は下記 5 の PR コメント upsert 基盤で出力する(go octocov 相当。具体ツールは実装 PR で確定)
 - go 固有ジョブ(migration / sql-lint / gen-go-check 等)は本リポでは対象外(言語・DB 固有。生成物 drift は上記の型生成 drift ゲートが担う)
@@ -34,7 +35,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 
 ### 3. CI ハードニング(言語非依存・go からそのまま)
 
-- **SHA ピン**: `uses: owner/repo@<40hex> # <tag>` 形式で actions を SHA ピンする(go ADR 0078 の翻案)。tag→SHA の SSOT を持ち、`--min-age-days` 相当の検疫で新規リリースを一定期間採用しない。CI で pin 検査を行い、未ピンは fail-closed。運用スキルは `actions-pin`(移植候補 C-6。依存監査系のため [0154](0154-claude-skills-operations.md) 運用系の体系に置く — `tools-upgrade` と同系)
+- **SHA ピン**: `uses: owner/repo@<40hex> # <tag>` 形式で actions を SHA ピンする(go ADR 0078 の翻案)。tag→SHA の SSOT を持ち、`--min-age-days` 相当の検疫で新規リリースを一定期間採用しない。CI で pin 検査を行い、未ピンは fail-closed。運用スキルは `actions-pin`(移植候補 GB-6。依存監査系のため [0154](0154-claude-skills-operations.md) 運用系の体系に置く — `tools-upgrade` と同系)
 - **concurrency**: 全ワークフローで `group: ${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`(古い実行をキャンセル)
 - **最小 permissions**: トップレベルを `contents: read` に絞り、job で必要分(`pull-requests: write` 等)のみ加算する二段構え
 
@@ -65,7 +66,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 ## 補足
 
 - 本 ADR の Accepted に伴う AGENTS.md の `[TODO] CI Configuration` 節の削除・書き換えは実施済み(AGENTS.md の `[TODO]` 群は全て削除され、Accepted Rules 表に集約済み)
-- workflows の実装・required check 指定・`actions-pin`(C-6)移植は本 ADR Accepted 後の実装 PR(移植計画 Phase 2)。portal 配信([0141](0141-portal-operations.md) D2 Phase 3)は Phase 2 完了後
+- workflows の実装・required check 指定・`actions-pin`(GB-6)移植は本 ADR Accepted 後の実装 PR(移植計画 Phase 2)。portal 配信([0141](0141-portal-operations.md) D2 Phase 3)は Phase 2 完了後
 
 ## 関連 ADR
 

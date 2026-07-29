@@ -73,9 +73,9 @@
 
 ### 1.1 バージョン運用
 
-- 現在の正は **v0.0.7**(`package.json` の version も一致済み。P0-3)
-- 本書の方針が確定した時点で **0.1.0** を切る
-- 以降は Phase 完了ごとにマイナーを上げ、全 Phase 完了で **1.0.0**
+- **0.1.0 は「本書の方針が確定した時点」のタグ**。中身は Phase 0 完了分であり、Phase 1 の完了は待たない
+- 以降は Phase 完了ごとにマイナーを上げる(Phase 1 完了 = **0.2.0**)。全 Phase 完了で **1.0.0**
+- `package.json` の `version` は **作業中の `release/vX.Y.Z` に一致させる**。タグは [0150](../adr/0150-git-workflow.md) に従い `production` HEAD へ打つため、リリースブランチを切ってからタグを打つまでの間、`package.json` は最新タグより 1 つ先行する。この先行は正常な状態であり、一致させる相手はタグではなくリリースブランチである
 - **GitHub のデフォルトブランチは `release/vX.Y.Z`**(go-boilerplate と同形式)。実測では go-boilerplate = `release/v2.1.0` / 本リポ = `release/v0.0.6` で **既に de facto そうなっており、[0150](../adr/0150-git-workflow.md) の「`develop` = デフォルトブランチ」という記述の方が誤りだった**。運用変更ではなく記述修正として P0-4 で反映済み。PR のベースは 0150 どおり `develop`
 
 ---
@@ -88,16 +88,16 @@
 
 - **Protected Documentation の直接編集を許可する** — `AGENTS.md` / Accepted ADR 本体 / `LICENSE` を、ユーザ承認を都度取らずに上書き編集してよい
 - **AI Modification Scope の保護パスを解除する** — `package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/` を直接編集してよい
-- **`.claude/settings.json` の permissions を実態に合わせる** — 文書保護系の 4 対象(`AGENTS.md` / `LICENSE` / ADR 本体 / `settings.json` 自身)を `deny` から `ask` へ移す。ハード禁止では v1 実装が進まないため、承認を挟む形に落とす
+- **`.claude/settings.json` の permissions を実態に合わせる** — `AGENTS.md` / `LICENSE` / `settings.json` 自身を `deny` ではなく `ask` に置く。ハード禁止では v1 実装が進まないため、承認を挟む形に落とす。**ADR 本体は permissions に載せない** — living document として日常的に上書きするため、都度確認が通常作業のたびに発火する
 - **ADR は living document として直接上書きする** — [0140](../adr/0140-documentation-operations.md) の 0.0.x living 運用を v1.0.0 未満まで延長する
 - **経緯・変遷コメントを本文に残さない** — 「当初は X だったが Y に改訂」「2026-07-14 に反転」のような改定履歴・検討経緯を文書本文に書かない。決定の**現在形**だけを書く。経緯は git 履歴が持つ
 
 v1.0.0 到達時に本セクションを削除し、同時に:
 
 1. `AGENTS.md` の Protected Documentation / AI Modification Scope を復活させる
-2. `.claude/settings.json` の文書保護 4 対象を `ask` から `deny` へ戻す
+2. `.claude/settings.json` の `AGENTS.md` / `LICENSE` / `settings.json` 自身を `ask` から `deny` へ戻し、**ADR 本体(`docs/adr/*-*.md`)を `deny` へ追加する**(3 の immutable 化の裏付け)
 3. [0140](../adr/0140-documentation-operations.md) の ADR 不可変性を immutable へ切り替える
-4. 全 ADR 本文から経緯記述を除去する(P9-3)
+4. 全 ADR 本文と [BACKLOG.md](../adr/BACKLOG.md) から経緯記述を除去する(P9-3)
 
 ---
 
@@ -458,7 +458,7 @@ flowchart TD
   - PR テンプレートへ「ライブラリ採用チェック」を組込([0004](../adr/0004-library-management.md) の改訂版テンプレ。一次判定 / 例外パス / fork コスト上限を含む)
   - **`docs/adr/BACKLOG.md` の T4 記述を修正** — 「`typescript: "^5"` が caret 指定」は stale(実際は `6.0.3` で exact 済み)。残るギャップは PR テンプレ未組込のみ
 - **強制手段**: CI(lockfile-drift / lint)+ PR テンプレの記入欄
-- **完了条件**: BACKLOG T4 の実装ギャップが解消され ✅ になる。`package.json` の version がタグと一致する
+- **完了条件**: BACKLOG T4 の実装ギャップが解消され ✅ になる。`package.json` の version が §1.1 のバージョン運用に沿う
 - **依存**: なし
 - **状態**: **実施済み**。`version` は `0.0.7` / `"license": "MIT"` を追加 / PR テンプレートに「ライブラリ採用チェック」節を組込 / BACKLOG T4 を ✅ 化。[0142](../adr/0142-license.md) の `license` フィールド follow-up も解消済み。`typescript` の caret 指定は実測で既に exact(`6.0.3`)
 
@@ -557,6 +557,9 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
 - **注意**: mise の `npm:` バックエンドではなく lefthook と同居させる([0151](../adr/0151-git-hooks.md) 整合)
 - **完了条件**: 規約外の prefix でコミットが失敗する。規約内の prefix は通る
 - **依存**: なし
+- **状態**: **実施済み**(issue #36)。`@commitlint/cli` / `@commitlint/types` を exact pin で追加 / config は TypeScript 変換原則に従い `commitlint.config.ts` として新設 / `.makefiles/tools/commitlint.mk` の `make commitlint` を `.lefthook.yaml` の commit-msg フックから呼ぶ形で接続
+  - 機械強制するのは **prefix 11 種 / 件名が空でないこと / 件名が句点で終わらないこと** の 3 点に限る。日本語であること・72 文字の目安・why を本文に残すことは判定が主観に依存し、誤検知する hook は `--no-verify` の常用を招いて強制済みの 3 点まで無効化する。この線引きは [0150](../adr/0150-git-workflow.md) に明記した
+  - 輸入元は `type-case` を課さない(prefix が大文字混在のため)。この判断もそのまま引き継いでいる
 
 ### P1-2: gitleaks + trivy
 
@@ -569,6 +572,9 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
   - `.lefthook.yaml` — pre-push へ接続
 - **完了条件**: `make secret-scan` / `make trivy-fs` が動作し、pre-push で走る。既知のシークレット形式を仕込むと fail する
 - **依存**: なし
+- **状態**: **実施済み**。`mise.toml` に gitleaks / Trivy を登録 / `.makefiles/security/` に `make secret-scan`(fail-closed)と `make trivy-fs`(報告専用)を新設 / 抑止ポリシー様式を `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` の冒頭に明文化。秘密スキャンは作業ツリーではなく **push 予定のコミット範囲**を走査する(取りこぼしと誤検知の双方を避ける根拠は [0110](../adr/0110-security-operations.md))。`useDefault` 同伴の global allowlist が本ポリシーの管理外である点も同 ADR に明記
+  - **完了条件のうち「`make trivy-fs` が pre-push で走る」は意図的に満たしていない**。脆弱性スキャンはゲートの形として成立しない(その場で解消できず、変更と独立に状態が変わる)ため hook に接続せず、報告は PR コメント・ブロックは昇格ゲートが持つ([0110](../adr/0110-security-operations.md) 3.1、撤回条件は [BACKLOG](../adr/BACKLOG.md) W1・W2)。本書の完了条件はこの判断で置き換える
+  - あわせて `mise.toml` の**全エントリで backend を明示**する規約を [0003](../adr/0003-version-manager.md) に確定(撤回条件 W3)
 
 ### P1-3: actionlint 先行移植 + setup スクリプト拡充
 
@@ -580,6 +586,10 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
   - `scripts/setup/` — repo 参照書換・`package.json` name 書換
 - **完了条件**: `make actionlint` が動作する。`make help` が未文書化ターゲットを警告する。setup スクリプトで fork 後の repo 名置換が完了する
 - **依存**: なし
+- **状態**: **実施済み**(issue #35)。`mise.toml` に actionlint を登録し `.makefiles/github/lint/actionlint.mk` の `make actionlint` を新設 / `scripts/make-help.ts` に未文書化ターゲットの警告を追加 / `scripts/setup/replace-repository-reference.ts` で fork 後のリポジトリ参照とプロジェクト名を置換
+  - **shellcheck も mise で版を固定**する。actionlint は `run:` ステップの検査で PATH 上の shellcheck を別バイナリとして呼ぶため、固定しないと検査結果が実行者の環境に依存する
+  - ワークフロー定義の lint は [0153](../adr/0153-ci-configuration.md) へ明記のうえ、`.github/workflows/*` を glob とする pre-commit フックへ接続した(対象を含まないコミットでは発火しない)
+  - 併せて輸入計画の同梱 2 件が着地 — `.editorconfig` の新設と、`.makefiles/README` + `make help` 警告。ただし README を EN 正典 + `.ja.md` 対訳とした形は [0140](../adr/0140-documentation-operations.md) の日本語 canonical 方針に反するため後に撤回し、日本語 1 本へ戻した
 
 ---
 
@@ -623,7 +633,7 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
   - `scripts/actions-pin/` — go 側の機構を TS へ書換(resolve / apply / check)
   - `actions-pin.toml` — 解決済み `uses: → SHA` のロックファイル
   - `.makefiles/tools/actions-pin.mk`
-  - `.claude/skills/actions-pin/` — BACKLOG C-6 の移植
+  - `.claude/skills/actions-pin/` — BACKLOG GB-6 の移植
 - **設計**: `min-age-days` の検疫を入れ、公開直後のリリースは自動採用しない(`tools-upgrade` の quarantine と同系)
 - **完了条件**: `make actions-pin-check` が fail-closed で動作する。未登録 / 未固定の `uses:` が error になる
 - **依存**: P2-2
@@ -725,7 +735,7 @@ test-requirement: unit
 - **規約**: co-location(`__tests__` 集約は否定)/ 正常系・異常系を分ける / table-driven 禁止 / 命名は kebab + `.test.ts` / integration は HTTP 境界を mock
 - **カバレッジ**: 90% ハードゲート。**到達不可能コード以外は全てテストする**方針のため閾値は維持できる想定(維持できない場合は相談)
 - **async RSC のテスト配置**: [0091](../adr/0091-test-verification-methods.md) に従う
-- **同時に実施**: BACKLOG C-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルの `pnpm test` 条件分岐見直し
+- **同時に実施**: BACKLOG GB-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルの `pnpm test` 条件分岐見直し
 - **強制手段**: CI(カバレッジ 90% ハードゲート)+ lefthook(pre-commit)
 - **完了条件**: `make test` が CI で緑。カバレッジゲートが PR にレポートされる。**BACKLOG B8 は Playwright を含む(P6-4)ため、ここでは ⚠️ に留め P6-4 で ✅ にする**
 - **依存**: P3-1, P2-1
@@ -1388,9 +1398,10 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **主な変更先**:
   - `docs/adr/0140-documentation-operations.md` — ADR 不可変性を immutable へ切替(accepted 後は Status 行のみ編集 / supersede は新 ADR / 番号は再利用しない)
   - `docs/adr/*.md` — **全 ADR 本文から経緯記述を除去**(「当初は X だったが」「2026-07-14 に反転」等)
+  - `docs/adr/BACKLOG.md` — **経緯記述を除去**。BACKLOG は ADR 本文ではなく進捗ボードだが、経緯を本文に残さない規約は同じく掛かる。対象は末尾の「付録: go-upgrade / repo-ops の処遇判断(経緯記録)」節に加え、各 Tier の de facto 状態欄に散在する「当初 N → その後 M」「YYYY-MM-DD に反転」型の記述。付録は決定の実体を「移植済 / 対象外」節と各スキル本文が現在形で持つため削除でよく、de facto 状態欄は現在の状態だけを残して経緯を落とす
   - `AGENTS.md` — 「v1.0.0 までの暫定運用」節を**削除**し、Protected Documentation / AI Modification Scope を復活
   - `docs/plan/v1-implementation-plan.md` — **本書 §2 を削除**
-- **完了条件**: 全 ADR に改定履歴・検討経緯の記述がない。保護が復活している。本書と AGENTS.md から暫定運用節が消えている
+- **完了条件**: 全 ADR と `docs/adr/BACKLOG.md` に改定履歴・検討経緯の記述がない。保護が復活している。本書と AGENTS.md から暫定運用節が消えている
 - **依存**: P9-2
 
 ### P9-4: トレーサビリティの棚卸し(B10)

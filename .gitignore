@@ -20,6 +20,9 @@
 # production
 /build
 
+# git worktree (リポジトリ内に実体を置くため、本体の作業ツリーでは untracked 扱いにしない)
+/.claude/worktrees/
+
 # misc
 .DS_Store
 *.pem
@@ -39,3 +42,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 作業用スクラッチ（レビュー所見の出力先 / repo 外作業計画書の symlink / ツールのロックファイル）
+/tmp
+
+# エージェントがリポジトリ内に作成する worktree
+/.claude/worktrees/

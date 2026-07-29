@@ -1,8 +1,17 @@
 ## リポジトリの初期化
 .PHONY: setup-repo ## リポジトリの初期化
-.PHONY: setup-replace-license-copyright ## node_tool_runnerでLICENSEの著作権表示更新を実行
+.PHONY: setup-replace-license-copyright ## LICENSEの著作権表示を更新
+.PHONY: setup-replace-repository-reference ## リポジトリ参照とプロジェクト名をフォーク先へ置換
 
-SETUP_DRY_RUN_FLAG := $(if $(DRY_RUN),--dry-run,)
+# make の $(if) は空文字列判定のため、そのまま使うと DRY_RUN=0 も真になる。
+# 文書化された唯一の有効値 1 に限定する
+SETUP_DRY_RUN_FLAG := $(if $(filter 1,$(DRY_RUN)),--dry-run,)
+
+# 利用者が渡す値はレシピ文字列へ直接展開せず、環境変数としてシェルに渡して
+# シェル側で展開する（make が展開した文字列を再解釈させるとコマンド注入を許すため）
+export COPYRIGHT_HOLDER
+export COPYRIGHT_YEAR
+export REPOSITORY
 
 setup-repo:
 	@echo "🔧 設定を確認中..."
@@ -92,11 +101,20 @@ setup-repo:
 	@echo "✅ Initialization complete. Default branch: production"
 
 setup-replace-license-copyright:
-	@if [ -z "$(COPYRIGHT_HOLDER)" ]; then \
+	@if [ -z "$$COPYRIGHT_HOLDER" ]; then \
 		echo "❌ COPYRIGHT_HOLDER を指定してください。例: make setup-replace-license-copyright COPYRIGHT_HOLDER='Example Inc.' COPYRIGHT_YEAR=2026"; \
 		exit 1; \
 	fi
 	@pnpm exec tsx scripts/setup/replace-license-copyright.ts \
-		--holder "$(COPYRIGHT_HOLDER)" \
-		$(if $(COPYRIGHT_YEAR),--year $(COPYRIGHT_YEAR),) \
+		--holder "$$COPYRIGHT_HOLDER" \
+		$${COPYRIGHT_YEAR:+--year "$$COPYRIGHT_YEAR"} \
+		$(SETUP_DRY_RUN_FLAG)
+
+setup-replace-repository-reference:
+	@if [ -z "$$REPOSITORY" ]; then \
+		echo "❌ REPOSITORY を指定してください。例: make setup-replace-repository-reference REPOSITORY='example-org/example-app'"; \
+		exit 1; \
+	fi
+	@pnpm exec tsx scripts/setup/replace-repository-reference.ts \
+		--repository "$$REPOSITORY" \
 		$(SETUP_DRY_RUN_FLAG)

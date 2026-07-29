@@ -1,54 +1,80 @@
-This is a [Next.js](https://nextjs.org) presentation-layer boilerplate. See [AGENTS.md](AGENTS.md) and [docs/adr/](docs/adr/) for repository rules and architectural decisions.
+# nextjs-boilerplate
 
-## Getting Started
+**Next.js / React の表示層ボイラープレート**。バックエンド（DB / 認証 / ビジネスロジック）は別リポジトリ
+またはサービスが持ち、本リポジトリは表示層だけを受け持って PaaS または静的 CDN へデプロイします
+（Docker は採らない — [ADR 0011](docs/adr/0011-no-docker.md)）。
 
-This repository uses **pnpm only** (npm / yarn are forbidden — [ADR 0001](docs/adr/0001-package-manager.md)). Tool versions are managed by mise ([ADR 0003](docs/adr/0003-version-manager.md)).
+ツールチェーン、lint / format、git hook、セキュリティスキャン、ドキュメント運用は配線済みで、規約は
+暗黙知にせずすべて ADR として明文化しています。
+
+> この README は意図的に最小限です。各トピックはそれを所有するドキュメントへのリンクに委ねています
+> （[ドキュメントマップ](#ドキュメントマップ)を参照）。正はリンク先であり、このページは入口にすぎません。
+
+## 配線済みのもの
+
+各項目は拡張するための seam です。決定とその規約はリンク先にあります。
+
+- **pnpm のみ**（lockfile はコミット必須）— [ADR 0001](docs/adr/0001-package-manager.md)
+- **ツール版数の SSOT は mise**（[`mise.toml`](mise.toml)）— [ADR 0003](docs/adr/0003-version-manager.md)
+- **biome 優先の lint / format**（ESLint は biome で表現できない検査のみ）— [ADR 0002](docs/adr/0002-formatter-linter.md)
+- **lefthook による git hook**（pre-commit / commit-msg / pre-push）— [ADR 0151](docs/adr/0151-git-hooks.md)
+- **ローカルのセキュリティスキャン**（gitleaks / Trivy）と抑止ポリシー — [ADR 0110](docs/adr/0110-security-operations.md)
+- **GitHub Actions 定義の lint**（actionlint + shellcheck）— [ADR 0153](docs/adr/0153-ci-configuration.md)
+- **ブランチ / コミット / リリース運用** — [ADR 0150](docs/adr/0150-git-workflow.md)
+- **リポジトリ運用の make ターゲット** — [`.makefiles/README.md`](.makefiles/README.md)
+
+## 前提ツール
+
+- [mise](https://mise.jdx.dev) — ツール / ランタイムのバージョン管理（**必須**。シェルで activate しておくこと。`make` ターゲットは mise 経由でツールを解決します）
+- GitHub CLI（`gh`）— リポジトリ運用系ターゲット（`make setup-repo`、リリース系）が必要とします
+
+## クイックスタート
 
 ```bash
-make install-tools        # install node / pnpm via mise
-pnpm install              # install dependencies
-pnpm exec lefthook install  # register git hooks (required — see below)
-```
+git clone https://github.com/Tomy-ch/nextjs-boilerplate.git
+cd nextjs-boilerplate
 
-Then run the development server:
+# 1. mise を導入し (https://mise.jdx.dev/getting-started.html)、シェルで activate する。
+echo 'eval "$(mise activate zsh)"' >> ~/.zshrc   # bash の場合は ~/.bashrc へ `mise activate bash` を追記
+# 新しいターミナルを開き、mise の shim を PATH に載せる。
 
-```bash
+# 2. 固定版のツールチェーン・依存・git hook を導入する。
+make install-tools
+pnpm install
+pnpm exec lefthook install   # 自動では入らない。clone 後に 1 度だけ実行する
+
+# 3. 開発サーバーを起動する。
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+<http://localhost:3000> を開くと表示されます。`src/app/page.tsx` を編集すると自動で反映されます。
 
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+このボイラープレートを新規プロジェクトへ fork する場合は追加の手順（リポジトリ初期化、プロジェクト名と
+著作権表記の置換）が必要です。[`.makefiles/README.md`](.makefiles/README.md) を参照してください。
 
-## Git Hooks (lefthook)
+## コマンド
 
-Git hooks are managed by [lefthook](https://github.com/evilmartians/lefthook) ([0151](docs/adr/0151-git-hooks.md)). They are **not** registered automatically by `pnpm install` — run `pnpm exec lefthook install` once after cloning.
-
-| Hook | Command | Purpose |
-| --- | --- | --- |
-| pre-commit | `pnpm lint:ci` | biome full profile (`biome.ci.jsonc`, warnings block) |
-| pre-push | `pnpm typecheck` | `tsc --noEmit` |
-
-Do not habitually bypass hooks with `--no-verify` (see the ADR for the exception policy).
-
-## Commands
+アプリケーション側のコマンドは `package.json` の scripts を pnpm から実行します。リポジトリ運用と
+ツールチェーン整備は `make` ターゲットが受け持ちます。
 
 ```bash
-pnpm lint      # biome check (light profile / editor equivalent)
-pnpm lint:ci   # biome check, full profile (CI / pre-commit)
-pnpm fix       # biome check --fix
-pnpm format    # biome format --write
-pnpm typecheck # tsc --noEmit
-pnpm build     # production build
+pnpm dev / build / start        # 開発 / ビルド / 本番起動
+pnpm lint / lint:ci / fix       # biome — エディタ相当 / 完全版 / 自動修正
+pnpm typecheck                  # tsc --noEmit
+pnpm md-lint                    # markdownlint + mermaid 構文検査
+
+make help                       # 全 make ターゲットとその説明
 ```
 
-## Learn More
+`make help` が一覧の出所です。`.makefiles/**` の全ターゲットを列挙し、説明コメントの無いものを警告します。
+各ターゲットの内容は [`.makefiles/README.md`](.makefiles/README.md) にあります。
 
-To learn more about Next.js, take a look at the following resources:
+## ドキュメントマップ
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+正は、それが規定する対象の隣にあります。ここを起点に、目的のトピックを所有するリンクを辿ってください。
 
-## Deploy
-
-This boilerplate targets PaaS / static CDN deployment (Vercel / Netlify / AWS Amplify / Cloudflare Pages — no Docker, see [ADR 0011](docs/adr/0011-no-docker.md)).
+- [AGENTS.md](AGENTS.md) — AI コーディングエージェント向けの運用ルールと、リポジトリ規約の要約
+- [docs/adr/](docs/adr/) — アーキテクチャ決定記録（ADR）。本リポジトリの規約はすべてここにある
+- [docs/adr/BACKLOG.md](docs/adr/BACKLOG.md) — 未決の決定領域
+- [.makefiles/README.md](.makefiles/README.md) — 全 `make` ターゲット
+- [.claude/skills/](.claude/skills/) — 反復する運用を Claude Code のスキルとして packaging したもの
