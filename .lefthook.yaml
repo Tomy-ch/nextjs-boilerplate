@@ -21,8 +21,12 @@ pre-commit:
       run: pnpm md-lint
     actionlint:
       # ワークフロー定義の構文と run: ステップのシェルを検査する (ADR 0153)。
+      # 検査が及ぶのは workflows だけだが、composite action の変更も呼び出し側の
+      # 入力整合を壊すため発火対象に含める (及ぶ範囲と限界は make 側が正)。
       # 対象が無いコミットでは発火しない。
-      glob: ".github/workflows/*"
+      glob:
+        - ".github/workflows/*.{yml,yaml}"
+        - ".github/actions/**/*.{yml,yaml}"
       run: make actionlint
 
 commit-msg:

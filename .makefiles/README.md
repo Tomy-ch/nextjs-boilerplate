@@ -82,6 +82,9 @@ make help
 actionlint は `run:` ステップのシェルも shellcheck 経由で検査するため、両バイナリを `mise.toml` で版固定して
 います（[ADR 0003](../docs/adr/0003-version-manager.md)）。先に `make install-tools` を実行してください。
 
+composite action（`.github/actions/**`）は走査対象に含めていません。理由と、検査がどこまで及ぶかは
+[ADR 0153](../docs/adr/0153-ci-configuration.md) を参照してください。
+
 ### リリースブランチ関連
 
 | コマンド | 説明 | 補足 |
