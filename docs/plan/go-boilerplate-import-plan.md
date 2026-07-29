@@ -24,7 +24,7 @@
 
 | 区分 | go-boilerplate | nextjs-boilerplate | 差分 |
 | --- | --- | --- | --- |
-| Claude スキル | 35 | 15 | 20 |
+| Claude スキル | 35 | 16 | 19 |
 | Claude エージェント | 19 | 6 | 13 |
 | 共有スペック(`scaffold-spec/`) | 5 | 0 | 5 |
 | Codex 資産(`.codex/`) | エージェント 19 / スキル 34 | 0 | 全数 |
@@ -34,8 +34,6 @@
 ### 1.2 台帳の鮮度
 
 [BACKLOG.md](../adr/BACKLOG.md) の移植バックログ節は上記スナップショットへ揃っており、35 スキル / 19 エージェントの全数が分類済み。本書の作業一覧との対応は各 IM 項目の「主な変更先」で辿る。
-
-`impl-review` は移植時点から機能拡張されており、本リポジトリの `local-review`(130 行)は go 側(256 行)の現行仕様に追随していない(IM-02)。
 
 ### 1.3 分類凡例
 
@@ -48,21 +46,16 @@
 
 ## 2. 作業一覧
 
-全 27 項目。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
+全 23 項目。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
 
 | ID | 内容 | 分類 | 受け皿 | 依存 / トリガー |
 | --- | --- | --- | --- | --- |
-| **W1: レビュー体系の追随**(受け皿なし / 即着手可) | | | | |
-| IM-02 | `local-review` を `impl-review` 現行仕様へ追随 | B | — | なし |
 | **W2: AI 環境二重運用**(受け皿なし / 即着手可) | | | | |
-| IM-03 | `manage-skill` 移植 | A | — | なし |
-| IM-04 | `.codex/` 基盤(README 対訳 / config.toml / スコープ規約) | B | — | IM-03 |
-| IM-05 | `sync-ai` + handoff スクリプト双方向 | B | — | IM-03, IM-04 |
+| IM-04 | `.codex/` 基盤(README 対訳 / config.toml / スコープ規約) | B | — | なし |
+| IM-05 | `sync-ai` + handoff スクリプト双方向 | B | — | IM-04 |
 | IM-06 | `.codex/` へのスキル / エージェント一括ミラー | B | — | IM-05 |
 | **W3: ローカル品質ゲート**(v1 Phase 1 併走) | | | | |
-| IM-07 | commitlint | A | P1-1 | なし |
-| IM-08 | lefthook の glob 別並列 + 段階設計 | B | P1-1, P1-2 | IM-07 |
-| IM-10 | 抑止ポリシー様式の統一 | A | P1-2 | なし |
+| IM-08 | lefthook の段階設計の残り(lint の glob 分割 / テスト・生成物ドリフト) | B | — | P3-6 |
 | **W4: CI 設計パターン**(v1 Phase 2 併走) | | | | |
 | IM-12 | skip-guard ペア方式 | A | P2-1 | P1-3 |
 | IM-13 | 二重リリースゲート | A | P2-2 | IM-12 |
@@ -93,8 +86,7 @@
 
 ```mermaid
 flowchart TD
-  IM03["IM-03 manage-skill"] --> IM04["IM-04 .codex 基盤"]
-  IM04 --> IM05["IM-05 sync-ai"]
+  IM04["IM-04 .codex 基盤"] --> IM05["IM-05 sync-ai"]
   IM05 --> IM06["IM-06 ミラー生成"]
   P13["v1 P1-3"] --> IM12["IM-12 skip-guard"]
   IM12 --> IM13["IM-13 リリースゲート"]
@@ -118,35 +110,7 @@ flowchart TD
 
 v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容のみを記す。
 
-### W1: レビュー体系の追随
-
-#### IM-02: `local-review` を `impl-review` 現行仕様へ追随
-
-- **目的**: 移植後に go 側で拡張された 4 機能が本リポジトリに無い。レビュー品質の差がそのまま実装品質の差になる
-- **輸入元**: `.claude/skills/impl-review/SKILL.md`
-- **主な変更先**: `.claude/skills/local-review/SKILL.md`(+ `SKILL.ja.md`)、`.claude/agents/adversarial-reviewer.md`、`.claude/agents/comment-reviewer.md`
-- **輸入する 4 点**:
-
-| # | 機能 | 翻案メモ |
-| --- | --- | --- |
-| 1 | **`test-gap` レンズ**(第 5 の code-origin レンズ) | 変更された本番コードを読み、到達可能な分岐 / 変更シンボルのうち未テスト・空虚アサートを検出。対象は `src/**` の非生成 `.ts` / `.tsx`(除外は `*.test.ts` / `gen/**`)。sentinel 検証は `require.ErrorIs` → `expect(...).toThrow(ErrClass)` 等へ読み替え。**P3-6(テスト基盤)完了まではレンズを無効化** |
-| 2 | **`comment-reviewer` のライフサイクル組込 + 自動修正** | CONFIRMED なコメント指摘を 1 度の確認後に作業ツリーへ適用。ガードは Go 固有部を差し替え — 機能ディレクティブ(`// @ts-expect-error` / `biome-ignore` / `"use client"` 等)は決して削除しない、export された API の TSDoc は削除でなく書換 or 補強、生成物 / Markdown 散文 / deny リストは除外。検証は `make fix` → `pnpm lint:ci` |
-| 3 | **PR インラインコメント投稿**(既定 on / `--no-comment`) | CONFIRMED + PLAUSIBLE をレンズ別に `path:line` へアンカーして投稿。REFUTED は投稿しない。**外向き操作のため投稿前に 1 度だけ確認**する規約もそのまま輸入 |
-| 4 | **モデル選択**(fable / sonnet / opus / haiku、既定 auto = 実装者 ≠ レビュアー) | 無翻案 |
-
-- **完了条件**: 5 レンズ + comment-reviewer が走り、コメント指摘が自動修正され、残る指摘が PR へインライン投稿される。`--no-comment` / `--no-apply` が効く
-- **依存**: なし
-
 ### W2: AI 環境二重運用
-
-#### IM-03: `manage-skill` 移植
-
-- **目的**: スキルの新規作成・更新の単一入口を作る。これが無いと IM-05 の受け側が定まらない
-- **輸入元**: `.claude/skills/manage-skill/`
-- **主な変更先**: `.claude/skills/manage-skill/SKILL.md`(+ `.ja.md`)、`.claude/scripts/bootstrap-plugins.sh`
-- **翻案メモ**: 公式 marketplace `anthropics/claude-plugins-official` の `skill-creator` プラグインをラップする構造は無翻案。上乗せする規約を本リポジトリのものへ差し替える — 英語正典 + `SKILL.ja.md` 対訳([0140](../adr/0140-documentation-operations.md))、スキル配置・命名・frontmatter([0154](../adr/0154-claude-skills-operations.md) / [0155](../adr/0155-claude-skills-development.md))、[AGENTS.md](../../AGENTS.md) の AI Modification Scope
-- **完了条件**: `manage-skill` 経由で作成したスキルが対訳ペアと frontmatter 規約を満たす。既存 15 スキルのうち対訳片落ちの 3 件(`adr-scan` / `commit` / `tool-map`)が解消される
-- **依存**: なし
 
 #### IM-04: `.codex/` 基盤
 
@@ -155,7 +119,7 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 - **主な変更先**: `.codex/README.md`(+ `.ja.md`)、`.codex/config.toml`、[AGENTS.md](../../AGENTS.md) の「Agent configuration file protection」節(`.codex/` は記載済みのため確認のみ)
 - **翻案メモ**: `config.toml` は codex-cli がプロジェクト設定を読まないため**「記録された意図」**である旨を go 側同様に明記する。個人設定(MCP / 認証)は `~/.codex/` へ置く分離方針も踏襲。ツール実行系の記述を Go/Docker から pnpm / mise へ差し替える
 - **完了条件**: `.codex/README.md` が Claude 側 `.claude/README.md` と鏡像の構成で存在し、両者が互いを参照する
-- **依存**: IM-03
+- **依存**: なし
 
 #### IM-05: `sync-ai` + handoff スクリプト双方向
 
@@ -164,7 +128,7 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 - **主な変更先**: `.claude/skills/sync-ai/`、`.codex/skills/sync-ai/`
 - **翻案メモ**: 中身は言語非依存でほぼ無翻案。**再帰防止の機構は無改造で必須輸入** — `tmp/sync-ai/.handoff.lock` の `mkdir` アトミックロック + TTL 3600s、非対話 CLI 起動、Codex sandbox の writable roots への `.codex/` 追加、Claude 側への `--permission-mode bypassPermissions` 引き渡し。`tmp/` は本リポジトリの `.gitignore` に未登録のため**併せて追加する**。handoff スクリプトは §0「輸入の原則」に従い `*.sh` から `*.ts`(`pnpm exec tsx` 実行)へ変換する — ロック機構は `fs.mkdirSync` の失敗判定で等価に再現できるため、この変換で再帰防止の要件は落ちない
 - **完了条件**: 片方向ハンドオフが完走し、受け側にネイティブな形でスキルが生成される。同時起動でロックが効き再帰しない
-- **依存**: IM-03, IM-04
+- **依存**: IM-04
 
 #### IM-06: `.codex/` へのスキル / エージェント一括ミラー
 
@@ -176,13 +140,14 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 
 ### W3: ローカル品質ゲート
 
-v1 計画 Phase 1 の各 PR へ、以下を輸入元・輸入内容として書き足す。
+#### IM-08: lefthook 段階設計の残り
 
-| ID | 受け皿 | 書き足す内容 |
-| --- | --- | --- |
-| IM-07 | P1-1 | 輸入元 `commitlint.config.js`。type-enum は [0150](../adr/0150-git-workflow.md) の prefix 11 種と同一。**大文字混在のため `type-case` を課さない**点をそのまま輸入 |
-| IM-08 | P1-1, P1-2 | lefthook の**段階設計**を輸入 — pre-commit = glob 別に並列発火する速い lint + キャッシュテスト / pre-push = 重い検証(秘密スキャン・フルテスト・生成物ドリフト)。現行は pre-commit 一括のため、`*.md` / `*.ts` / `.github/**` の glob 分割へ組み替える |
-| IM-10 | P1-2 | **抑止ポリシー様式**を輸入 — `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に共通する「一括無効化禁止・抑止はファイル or フィンガープリント単位・理由必須・条件が変われば削除」を各ファイル冒頭に明文化。`.gitleaksignore` は 1 行ごとに「なぜ秘密でないか」を書く |
+- **目的**: pre-commit は変更に関係する検査だけを走らせ、重い検証を pre-push へ寄せる。全部を毎回走らせると hook が邪魔になり、`--no-verify` の常用へ流れる
+- **輸入元**: go 側 `.lefthook.yaml`
+- **主な変更先**: `.lefthook.yaml`
+- **残っている差分**: biome の完全版 lint が glob 無しで全コミットに発火する(go 側は対象言語の glob で分割)。pre-push にテスト実行と生成物ドリフト検査が無い
+- **完了条件**: lint が対象ファイルを含むコミットでのみ発火し、pre-push でテストと生成物ドリフトが検査される
+- **依存**: テストは P3-6(テスト基盤)、生成物ドリフトは B4(型生成)の着地後
 
 ### W4: CI 設計パターン
 
