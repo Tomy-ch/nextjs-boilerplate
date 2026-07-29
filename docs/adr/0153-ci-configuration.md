@@ -21,7 +21,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 ### 1. job 分割 = 1 関心事 = 1 ワークフロー
 
 - ワークフローは関心事ごとに分ける(go 翻案)。本リポの CI job:
-  - **lint**(`pnpm lint:ci` = biome full profile)/ **md-lint**(`pnpm md-lint` = markdownlint + mermaid 構文。biome が Markdown を見ないため独立)/ **typecheck**(`pnpm typecheck` = tsc)/ **build**(`next build`。[0030](0030-environment-variable-management.md) のビルド時 env 全量検証を含む)/ **test**(vitest)/ **e2e**(playwright)
+  - **lint**(`pnpm lint:ci` = biome full profile)/ **md-lint**(`pnpm md-lint` = markdownlint + mermaid 構文 + `.claude/**` の意味検査 (`skill-lint`)。biome が Markdown を見ないため独立)/ **typecheck**(`pnpm typecheck` = tsc)/ **build**(`next build`。[0030](0030-environment-variable-management.md) のビルド時 env 全量検証を含む)/ **test**(vitest)/ **e2e**(playwright)
   - **ロックファイル drift**: `pnpm install --frozen-lockfile` が通ること(`package.json` との一致)に加え、install が追跡ファイルを書き換えないこと(pnpm が `pnpm-workspace.yaml` へビルド承認キーを自走で書き足す)を `git diff` で検査する
   - **境界検査**: ESLint boundaries は `lint:ci` に直列で載る([0002](0002-formatter-linter.md) / [0021](0021-frontend-responsibility.md))
   - **ワークフロー定義の lint**: `.github/workflows/**` 自体を **actionlint** で検査する(`make actionlint`)。`run:` ステップのシェルは actionlint が **shellcheck** を呼び出して検査するため、両バイナリを `mise.toml` で版固定し、検査結果を実行環境に依存させない([0003](0003-version-manager.md))。両者は同一の `[tools]` から同一の activate で PATH に載るため、`make actionlint` のガードは actionlint の存在確認だけを持ち、shellcheck 個別のガードは置かない(撤回条件 W9)。上記 4 の hooks mirror CI に従いローカルと CI の両方で走らせる。SHA ピン検査(下記 3)とは別関心として分ける
