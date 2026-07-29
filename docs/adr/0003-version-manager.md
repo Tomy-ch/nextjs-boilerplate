@@ -121,11 +121,15 @@ mise への依存は **配送層 (host)** に閉じている。SSOT / 契約 / �
 - ❌ `mise.toml` を別の version manager で二重管理すること（SSOT が壊れる）
 - ❌ 配送層に mise コマンドを撒くこと（Dockerfile に `RUN mise install ...`、CI ジョブで直接 `mise install` チェーンを組む等）。配送層は各環境のネイティブ手段で完結させる
 - ❌ `mise.toml` に mise 固有のタスク / 環境変数定義を入れること（SSOT の純度を保つ）
+- ❌ **`mise exec -- <command>` でコマンドを包むこと（全面禁止）**。手で打つコマンド・`.lefthook.yaml` の hook・`.makefiles/` のレシピ・スクリプトのいずれでも使わない。1 コマンドに 2 通りの書き方が生まれ、どちらが正か読めなくなる。加えて、包み込みは PATH の不備をその呼び出しの中だけで覆い隠すため、包み忘れた次の呼び出し側に同じ失敗が回る
 - ❌ メジャーのみ・マイナーのみのバージョン指定（再現性が劣化する）
 
 ## 補足
 
-- mise の activate を入れていない環境で `node` / `pnpm` を素直に呼ぶと PATH に乗らない。`mise exec -- <command>` で逃げるか、`make install-tools` 後に shell activate を済ませること
+- **コマンドは activate を前提に素で呼ぶ**。`make install-tools` 後に shell activate を済ませ、`node` / `pnpm` / mise 管理ツールをそのまま実行する。手で打つ場合も、`.lefthook.yaml` の hook や `.makefiles/` のレシピの中でも同じ（[0151](0151-git-hooks.md)）
+- 素で呼んだツールが mise の pin と食い違う、あるいは PATH に無い場合は **環境側が壊れている**。activate と PATH を直す。壊れ方の実例と復旧手順は `repo-ops` スキルが持つ
+- **`mise activate` を経ない実行環境（GUI クライアントから起動した git hook / エージェントのシェル / CI）は、shims ディレクトリ（`~/.local/share/mise/shims`）を PATH に載せて揃える**（`mise activate --shims`）。解決を PATH 側で直す点は対話シェルと同じで、呼び出しごとの包み込みには落とさない
+- ツールを呼ぶ入口（hook / make レシピ / スクリプト）は、前段で `command -v <tool>` を確認し、無ければ `make install-tools` と activate を促して落とす。包んで動かすのではなく、環境の不足をその場で名指しする
 - mise を使わない開発者は `mise.toml` の宣言を参照しつつ自分の version manager で同じバージョンを揃える運用も許容する（SSOT を仕様として読む形）
 - 将来 mise から移行する場合の影響範囲は `.makefiles/tools/setup.mk` の `install-tools` ターゲットのみ
 

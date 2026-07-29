@@ -148,7 +148,7 @@ By default, AI agents may modify code only in the following scope. All other pat
 
 ### Do not touch without user instruction
 
-- Repository-root config files: `package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `postcss.config.mjs` / `Makefile`, etc.
+- Repository-root config files: `package.json` / `pnpm-workspace.yaml` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `postcss.config.mjs` / `Makefile`, etc.
 - `.makefiles/` (release / branch operation make targets)
 - `.github/` (workflows / settings / issue and PR templates)
 - `LICENSE`
@@ -183,6 +183,17 @@ Conditions:
 Bypassing the spirit of these rules through a skill is forbidden. If a skill's procedure touches sensitive areas (e.g., `.github/workflows/`), the skill's `SKILL.md` must declare this so the user is aware when invoking it.
 
 ## Recommended Commands
+
+Run every command below **bare. `mise exec -- <command>` is forbidden outright** — in what you type, in
+`.lefthook.yaml`, in `.makefiles/` recipes, anywhere ([0003](docs/adr/0003-version-manager.md)). The
+toolchain resolves through an activated mise on `PATH`, so a command has exactly one spelling and the
+same one everywhere. A wrapper only hides a broken environment behind a per-call workaround, and it
+takes the failure — a stale `PATH`, a missing `make install-tools` — with it, so the next caller who
+forgets to wrap hits it instead.
+
+If a bare command resolves to a tool outside mise, the fix is `PATH`, not a wrapper — a stray pnpm one
+major ahead of the pin fails the script and rewrites the tracked `pnpm-workspace.yaml` on its own (see
+the `repo-ops` skill).
 
 ### pnpm (ADR 0001)
 

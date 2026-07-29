@@ -4,10 +4,10 @@
 WORKFLOW_DIR := .github/workflows
 
 actionlint:
-	@command -v mise >/dev/null 2>&1 || { echo "❌ mise がインストールされていません。https://mise.jdx.dev/ を参照してください。"; exit 1; }
+	@command -v actionlint >/dev/null 2>&1 || { echo "❌ actionlint が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
 	@if [ ! -d "$(WORKFLOW_DIR)" ]; then \
 		echo "🟡 $(WORKFLOW_DIR) が存在しないため検査をスキップします。"; \
 	else \
 		echo "🔍 Linting GitHub Actions workflows..."; \
-		mise exec -- actionlint && echo "✅ actionlint passed."; \
+		actionlint && echo "✅ actionlint passed."; \
 	fi

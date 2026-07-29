@@ -5,4 +5,5 @@
 COMMIT_MSG_FILE ?= $(shell git rev-parse --git-path COMMIT_EDITMSG)
 
 commitlint:
-	@mise exec -- pnpm exec commitlint --edit "$(COMMIT_MSG_FILE)"
+	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
+	@pnpm exec commitlint --edit "$(COMMIT_MSG_FILE)"

@@ -1,8 +1,11 @@
 # Git hook 設定 (ADR 0151)。CI を権威とし、hook は「壊れた状態を CI に到達させない第一段」。
 # 導入: pnpm install 後に `pnpm exec lefthook install` で .git/hooks に配置する。
 #
-# 全コマンドを mise exec で包むのは、hook が非対話シェルで走り mise activate を経ていないため。
-# 素で呼ぶと gitleaks / trivy / actionlint が PATH に無く、変更内容と無関係に落ちる。
+# コマンドは素で書く。`mise exec` での包み込みは全面禁止 (ADR 0003)。
+# ツールは mise を activate した PATH から解決する前提。activate を経ない
+# シェル (GUI クライアント / エージェント / CI) から起動して
+# `❌ <tool> が PATH にありません` で落ちる場合は、包まずに shims を
+# PATH へ載せて直す (`mise activate --shims`)。
 
 pre-commit:
   parallel: true
@@ -10,31 +13,31 @@ pre-commit:
     lint:
       # 完全版 (biome.ci.jsonc + --error-on-warnings)。エディタ保存時の簡易版に対し、
       # commit 時は warn もブロックする完全版で検査する。
-      run: mise exec -- pnpm lint:ci
+      run: pnpm lint:ci
     md-lint:
       # Markdown の体裁 (markdownlint-cli2) と mermaid 図の構文を検証する。
       # biome は Markdown を見ないため、この二段で md の壊れを CI 前に止める。
       glob: "*.md"
-      run: mise exec -- pnpm md-lint
+      run: pnpm md-lint
     actionlint:
       # ワークフロー定義の構文と run: ステップのシェルを検査する (ADR 0153)。
       # 対象が無いコミットでは発火しない。
       glob: ".github/workflows/*"
-      run: mise exec -- make actionlint
+      run: make actionlint
 
 commit-msg:
   commands:
     commitlint:
       # コミット規約 (ADR 0150) の prefix 11 種を検証する。規約外の prefix はここで落ちる。
       # {1} はクォートされずに展開されるため、パスに空白を含む clone でも壊れないよう囲む。
-      run: mise exec -- make commitlint COMMIT_MSG_FILE="{1}"
+      run: make commitlint COMMIT_MSG_FILE="{1}"
 
 pre-push:
   parallel: true
   commands:
     typecheck:
-      run: mise exec -- pnpm typecheck
+      run: pnpm typecheck
     secret-scan:
       # push 予定のコミット範囲に秘密が含まれていれば fail-closed で止める。
       # 依存脆弱性スキャン (make trivy-fs) をここに置かないのは ADR 0110 3.1 の判断による。
-      run: mise exec -- make secret-scan
+      run: make secret-scan

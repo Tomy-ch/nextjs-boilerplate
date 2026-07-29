@@ -98,7 +98,7 @@
       "Bash(mise list *)",
       "Bash(mise current *)",
       "Bash(mise outdated *)",
-      "Bash(mise exec *)",
+      "Bash(mise which *)",
       "Bash(pnpm install)",
       "Bash(pnpm install *)",
       "Bash(pnpm i)",

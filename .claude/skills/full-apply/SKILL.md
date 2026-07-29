@@ -70,11 +70,12 @@ but fixing the whole-verification md set by severity, ledger-driven. For diff sc
    `full-verify` first" and exit.
 2. **Check the toolchain is usable** (this repository is pnpm / mise-managed, ADR 0001 / 0003).
    Ensure `pnpm install` state is current and that `pnpm lint` / `pnpm build` run. If `pnpm` or
-   `node` fails due to a version mismatch, make the mise-managed toolchain explicit — verify with
-   `mise exec -- node --version` / `mise exec -- pnpm --version`, or align with `mise install`. Do
-   not rummage through a machine-specific mise path (leave no environment-dependent hacks). For a pin
-   mismatch you may ask the user whether to "align `mise.toml` to reality" (`mise.toml` is a protected
-   root config — do not edit it on your own).
+   `node` fails on a version mismatch, compare what `PATH` resolves (`pnpm --version`) against what
+   the pin holds (`mise which pnpm`), and fix it with `mise install` plus an activated shell —
+   **never by wrapping the command in `mise exec --`, which is forbidden repository-wide (ADR 0003)**.
+   Do not rummage through a machine-specific mise path (leave no environment-dependent hacks). For a
+   pin mismatch you may ask the user whether to "align `mise.toml` to reality" (`mise.toml` is a
+   protected root config — do not edit it on your own).
 
 ### 1. Confirm Scope / Severity / Stop Granularity (Once)
 
