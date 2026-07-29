@@ -107,21 +107,21 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0100](docs/adr/0100-accessibility-target.md) | Accessibility target | Target conformance level |
 | [0101](docs/adr/0101-performance-budget.md) | Performance budget | Core Web Vitals budget |
 | [0102](docs/adr/0102-browser-support.md) | Browser support | Support matrix |
-| [0110](docs/adr/0110-security-operations.md) | Security ops | `pnpm audit` threshold / Dependabot–Renovate / secret scanning |
+| [0110](docs/adr/0110-security-operations.md) | Security ops | Dependabot + cooldown / gitleaks secret scan (fail-closed) / vulnerability scan is report-only / suppression-policy format |
 | [0111](docs/adr/0111-csp-security-headers.md) | CSP / security headers | runtime CSP & security headers |
 | [0120](docs/adr/0120-locale-aware-formatting.md) | Locale formatting | date/number formatting + date-fns date arithmetic |
 | [0121](docs/adr/0121-i18n-strategy.md) | i18n (exclusion) | i18n not adopted (negative decision) |
 | [0130](docs/adr/0130-pwa-strategy.md) | PWA (exclusion) | PWA not adopted (negative decision) |
 | [0131](docs/adr/0131-cookie-consent.md) | Cookie consent (exclusion) | Consent management not adopted (negative decision) |
-| [0140](docs/adr/0140-documentation-operations.md) | Documentation ops | Canonical EN / JA translation-pair operation |
+| [0140](docs/adr/0140-documentation-operations.md) | Documentation ops | Japanese canonical on suffix-less paths below v1.0.0 / EN canonical + `.ja.md` mirror from v1.0.0 |
 | [0141](docs/adr/0141-portal-operations.md) | Portal ops | `docs/portal/manifest.yaml` curation |
 | [0142](docs/adr/0142-license.md) | License | MIT / OSS contribution policy / `private` flag alignment |
 | [0150](docs/adr/0150-git-workflow.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
 | [0151](docs/adr/0151-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
 | [0152](docs/adr/0152-agents-md-policy.md) | AGENTS.md policy | File placement / language / 12-section structure / Instruction Priority / `## [TODO]` convention |
-| [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / required checks / caching |
+| [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / workflow-definition lint (actionlint) / hooks mirror CI / required checks / caching |
 | [0154](docs/adr/0154-claude-skills-operations.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
-| [0155](docs/adr/0155-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` redesign note |
+| [0155](docs/adr/0155-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` target structure |
 
 > **ADR numbering is finalized (2026-07-14): topical decade-bands.** Numbers are grouped by subject into decade bands (e.g. `002x` architecture, `004x` routing/rendering, `005x` styling/UI, `007x` data/BFF, `008x` error/observability, `015x` process/dev-ops); the former `Toolchain-` / `Dev-` prefixed ADRs were folded into the numeric sequence (`0150`+). Gaps between bands are reserved for future insertion. Each ADR body remains authoritative.
 
@@ -228,7 +228,7 @@ make tag-minor             # Same (minor)
 make tag-major             # Same (major)
 ```
 
-For release branches, follow 0150 (`git checkout -b release/v<X.Y.Z> origin/develop`).
+For release branches, follow 0150 (`git switch -c release/v<X.Y.Z> origin/develop`).
 
 See [`.makefiles/README.md`](.makefiles/README.md) for details.
 
