@@ -12,6 +12,7 @@ include .makefiles/github/lint/actionlint.mk
 # ツール関連
 include .makefiles/tools/setup.mk
 include .makefiles/tools/commitlint.mk
+include .makefiles/tools/actions-pin.mk
 
 # セキュリティ関連
 include .makefiles/security/gitleaks.mk
