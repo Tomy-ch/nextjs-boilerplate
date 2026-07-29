@@ -208,7 +208,7 @@ pnpm format                # biome format --write
 ```bash
 make install-tools         # Install tools via mise (ADR 0003)
 make help                  # List every make target (warns on undocumented ones)
-make actionlint            # Lint .github/workflows with actionlint
+make actionlint            # Lint .github/workflows with actionlint (ADR 0153)
 make secret-scan           # gitleaks over the commits about to be pushed — fails on detection (ADR 0110)
 make trivy-fs              # Trivy dependency vulnerability scan — report only (ADR 0110)
 make hotfix-patch          # Create a hotfix/v<patch> branch from production
