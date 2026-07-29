@@ -23,4 +23,5 @@ include .makefiles/github/operation/setup-repository.mk
 
 .PHONY: help
 help:
-	@mise exec -- pnpm exec tsx scripts/make-help.ts
+	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
+	@pnpm exec tsx scripts/make-help.ts
