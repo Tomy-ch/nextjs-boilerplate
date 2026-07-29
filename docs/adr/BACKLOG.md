@@ -19,6 +19,7 @@
   - **B** = 実装方針 (Tier 4)
   - **C** = Compat / 機能・互換 (Tier 5)
   - **D** = Docs / ドキュメント (Tier 6)
+- 枠 ID の letter prefix は上記 7 つで予約済み。**他の ID 体系はこれと衝突しない接頭辞を用いる** — [移植バックログ](#go-boilerplate-claude-資産-移植バックログ)のグループ ID が 2 文字の `GB-N` (`GB` = go-boilerplate) なのはこのため
 - 公式の **ADR 番号** (`0001`-`9999`) はファイル化のタイミングで採番し、`ADR #` 列に記録する。BACKLOG 内の依存参照は枠 ID で行う
 - **2 軸の意味**:
   - **選定済み**: ADR ファイルが書かれて Status = Accepted になっているか
@@ -125,7 +126,7 @@ UI / スタイリング / データ統合 / 状態管理 / エラー / 観測性
 - **B1(ADR 0050 として策定済み・実装 ⚠️)**: 2026-07-12 に [ADR 0050](0050-styling-strategy.md) として成文化(2026-07-14・v1 でバッテリー採用へ部分改訂 = Tailwind 主軸 / CSS Modules 限定許可・styled-components・emotion 非採用 / `cn()` は `components` カーネル内 / design token = CSS 変数 / global は `globals.css` 集約)。`tailwindcss` / `@tailwindcss/postcss` + `postcss.config.mjs` + `src/app/globals.css` は存在 = 実装 ⚠️(`cn()` = `clsx` + `tailwind-merge` / variant 定義 = `cva` を ADR で確定済み。依存追加と実装は実装 PR)
 - **B2 / B5(ADR 0052 / 0060 — 2026-07-14 に v1 バッテリー採用へ反転)**: 当初(2026-07-12)は本体非同梱の exclusion だったが、**v1 = 一般的 Next.js アプリ基盤として必要ライブラリを採用**の方針転換で反転。0052 = shadcn/ui + lucide-react + 複雑入力採用 / 0060 = react-hook-form + zod / Zustand(横断 client 状態は `stores` カーネル [0023](0023-stores-kernel.md))。B5 の Server state = RSC fetch 既定 / Client state = local から、は不変。詳細は [docs/plan/master-plan.md](../plan/master-plan.md) の採用ロードマップ節
 - **B8(ADR 0090 として策定済み・実装未)**: 2026-07-12 に [ADR 0090](0090-testing-strategy.md) として成文化(Vitest + RTL + MSW + Playwright / go 準拠戦略 / 90% ハードゲート / integration=HTTP 境界 mock / 二層実行 / 命名は 0028 kebab + `.test.ts`)。FW 導入・カバレッジゲート CI は実装 PR(移植 Phase 5)。実装中補正可
-- **B3 / B4(ADR 0071 / 0072 として策定済み・実装未)**: 2026-07-13 に決定 4 バッチとして成文化。B3 = [ADR 0071](0071-bff-api-integration.md)(API クライアント = `adapters` / fetch wrapper に go ADR 0019 resilience を広く翻案 = dual timeout + idempotent retry + retry budget + circuit breaker / 生 status を errors へ正規化・詳細テーブルは B6 / response は adapters 境界で zod 検証 / SSRF guard は外部叩き時のみ)。B4 = [ADR 0072](0072-api-type-generation.md)(**型 + runtime validation を orval で zod 生成** — 決定 4 当初の openapi-typescript 型のみから、go 境界値所有哲学に合わせユーザが変更 / `gen/` do-not-edit / gh 取込 + short SHA スタンプ + マニフェスト / 型漏洩禁止 = adapters 変換 / drift ゲート)。取込 + 生成パイプライン・drift ゲート CI は実装 PR(A-9 setup 翻案 / C-4)
+- **B3 / B4(ADR 0071 / 0072 として策定済み・実装未)**: 2026-07-13 に決定 4 バッチとして成文化。B3 = [ADR 0071](0071-bff-api-integration.md)(API クライアント = `adapters` / fetch wrapper に go ADR 0019 resilience を広く翻案 = dual timeout + idempotent retry + retry budget + circuit breaker / 生 status を errors へ正規化・詳細テーブルは B6 / response は adapters 境界で zod 検証 / SSRF guard は外部叩き時のみ)。B4 = [ADR 0072](0072-api-type-generation.md)(**型 + runtime validation を orval で zod 生成** — 決定 4 当初の openapi-typescript 型のみから、go 境界値所有哲学に合わせユーザが変更 / `gen/` do-not-edit / gh 取込 + short SHA スタンプ + マニフェスト / 型漏洩禁止 = adapters 変換 / drift ゲート)。取込 + 生成パイプライン・drift ゲート CI は実装 PR(A-9 setup 翻案 / GB-4)
 - **B6 / B7 / B9 / B10(ADR 0080 / 0081 / 0153 / 0110 として策定済み・実装未)**: 2026-07-13 に成文化。B6 = [ADR 0080](0080-error-handling.md)(errors カーネル = go apperror 0038 翻案 / sentinel 分類 + 境界正規化 + error.tsx 階層 / swallow 禁止・cause chain)。B7 = [ADR 0081](0081-observability-logging.md)(logging/observability カーネル = go 0059-0061 翻案 / OTLP-only + signal gating + 公式 semconv / ブラウザ→BFF 中継 seam / **RUM SaaS は fork 先 exclusion**)。B9 = [ADR 0153](0153-ci-configuration.md)(go workflows 翻案 / 1 関心事=1 workflow・SHA ピン・最小 permissions・hooks mirror / job は biome/tsc/next build/vitest/playwright / matrix 非採用)。B10 = [ADR 0110](0110-security-operations.md)(go 0077 多層防御翻案 / Dependabot cooldown・gitleaks・Trivy 二段・CodeQL js-ts / **image-scan・cosign・SBOM は本リポ 0011 no-docker で exclusion**)。errors/logging/observability カーネル物理作成・CI workflows 実装は実装 PR(Phase 1/2)
 - **B10 の実装 ⚠️ の内訳**: gitleaks / Trivy をローカル(`mise.toml` + `make secret-scan` / `make trivy-fs`)へ導入済み。**pre-push hook に載せるのは秘密スキャンだけ**で、脆弱性スキャンは意図的に接続していない([0110](0110-security-operations.md) 3.1 / 撤回条件 W1・W2)。抑止ポリシー様式(`.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml`)も確定済み。**未実装は CI 側** — CodeQL / gitleaks / Trivy 二段 / Dependabot cooldown / `pnpm audit` ゲート / SECURITY.md / CSP 適合ゲート / 履歴全体の秘密スキャンの定期実行
 
@@ -271,17 +272,17 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 - **本リポジトリ固有**: adr-scan(go 側に現存しない。走査を nextjs 化・枠 ID 体系へ分類 / PROVISIONAL)。上記の資産数には数えない
 - **実行可能条件つき**: `new-env` は A7([0030](0030-environment-variable-management.md))の `src/config/` 構造へ再設計済。実行できるのは **A7 実装 PR(v1 計画 P3-3)で `src/config/` が着地してから**(未着地ならスキルがガードして停止)
 - **追随済**: `local-review` は移植後に go 側 `impl-review` へ入った 4 機能(`test-gap` レンズ / `comment-reviewer` のライフサイクル組込 + 自動修正 / PR インラインコメント投稿 / モデル選択)へ追随済。`test-gap` はテストランナー未導入の間は起動しないゲート付き
-- **未翻案(`local-review` / `adversarial-reviewer`)**: Step 1 の layer 検出(`internal/controller/**` / `usecase` / `domain` / `infrastructure` / `database/**`)、Step 4 のランタイム検証段(curl + o11y。本リポジトリでは一度も実行可能になっていない)、`architecture` / `runtime-gap` のレンズ定義本文(Onion / `BindHandler` / 実 DB SQL / OpenAPI `allOf`)が go 由来のまま。参照先の `arch-check` / `verify-spec` / `scaffold-endpoint` も本リポジトリに実体が無い(C-1 / C-3 / C-4 の前方参照)
+- **未翻案(`local-review` / `adversarial-reviewer`)**: Step 1 の layer 検出(`internal/controller/**` / `usecase` / `domain` / `infrastructure` / `database/**`)、Step 4 のランタイム検証段(curl + o11y。本リポジトリでは一度も実行可能になっていない)、`architecture` / `runtime-gap` のレンズ定義本文(Onion / `BindHandler` / 実 DB SQL / OpenAPI `allOf`)が go 由来のまま。参照先の `arch-check` / `verify-spec` / `scaffold-endpoint` も本リポジトリに実体が無い(GB-1 / GB-3 / GB-4 の前方参照)
 
 ### 未着手(ADR 決定待ちなし)
 
-ブロック元の枠がすべて Accepted で、**ADR の決定待ちによる停止は無い**。ただし資産間の依存で着手順序が生じ、`supply-chain-triage` 以降は C-6 の完了に従属する。
+ブロック元の枠がすべて Accepted で、**ADR の決定待ちによる停止は無い**。ただし資産間の依存で着手順序が生じ、`supply-chain-triage` 以降は GB-6 の完了に従属する。
 
 | 資産 | 種別 | 依存 | 内容要旨 |
 | --- | --- | --- | --- |
 | `manage-skill` | スキル | — | スキルの新規作成・更新の単一入口。正は D5 / D6([0154](0154-claude-skills-operations.md) / [0155](0155-claude-skills-development.md))の運用規約 |
 | `sync-ai` | スキル | `manage-skill` | `.claude/` ↔ `.codex/` の双方向同期(handoff スクリプト同梱) |
-| `supply-chain-triage` | スキル | C-6 | 検疫に掛かったアーティファクトを直接証拠でスコアリングする report-only スキル |
+| `supply-chain-triage` | スキル | GB-6 | 検疫に掛かったアーティファクトを直接証拠でスコアリングする report-only スキル |
 | `dep-vuln-upgrade` | スキル | `supply-chain-triage` | CVE / GHSA を名指しした単発の依存更新 |
 
 `.codex/`(エージェント 19 / スキル 34)は Codex 向けの並行資産で、上記の資産数には数えない。`.claude/` の完全なミラーではなく、現時点で `supply-chain-triage` が欠落し `arch-auditor-infra` の名が `arch-auditor-infrastructure` に振れている。基盤(`config.toml` / README)整備と全数ミラーは `sync-ai` と同時期に行う。
@@ -290,21 +291,19 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 
 Go 側の本丸は **spec 駆動 scaffold + 層別監査体系**。今移植すると AGENTS.md「保留領域に独自の規約・パターンを持ち込まない」に抵触するため、該当枠が **Accepted** になってから着手する。
 
-本表のグループ ID `C-N`(ハイフン付き)は移植グループの識別子で、Tier 5 の枠 ID `CN`(ハイフン無し)とは別体系。
-
 | グループ | 資産 | ブロック元 | 着手トリガー | 翻案メモ(流用可能な骨格) |
 | --- | --- | --- | --- | --- |
-| C-1 層別アーキ監査 | `arch-check` + `arch-auditor-{domain,usecase,controller,infra,pkg}` | A1 / A3 / A5 | A3 Accepted + 層別 README が `src/**` に整備 | 層マッピングを差し替えるのみ。並列 fan-out + 「自層 README を正として実行時読込」構造は流用可。full-verify Pass1 との分担を明記 |
-| C-2 層別ドリフト検出 | `back-prop` + `drift-detector-{domain,usecase,controller,infra,pkg}` | A3 / A5 | C-1 と同時期 | 検出カテゴリ A/B/C と read-only 原則は流用可。`sync-readme`(構造ドリフト)との分担を明記 |
-| C-3 spec 生成・検証 | `new-spec` / `new-spec-{domain,usecase}`、`verify-spec` + `spec-validator-{domain,usecase}`、`.claude/scaffold-spec/*`(5) | A1 / A3 | A1 で「spec 駆動を採用」と決まった場合のみ | 「spec フォーマットを外部ファイルから実行時読込 = SSOT」設計は言語非依存で採用可。**不採用なら破棄** |
-| C-4 onion scaffold | `scaffold-endpoint` / `scaffold-domain` / `scaffold-usecase` / `scaffold-controller` | A1 / A2 / A3 / A5(+B3 / B4) | A1/A3/A5 + B3(BFF/API)+ B4(型生成)確定後 | Go の onion + sqlc/OpenAPI 前提はほぼ載らない(表示層に DB 無し)。流用は chain 構造と「gen 由来マッピングを name-match 導出 → 不能なら halt/hand-off」の骨格のみ。**翻案コスト最大** |
-| C-5 テスト scaffold/review | `scaffold-test` / `scaffold-integration-test` / `test-review` | B8 | B8 Accepted(フレームワーク・配置規約確定) | 「テスト観点を README から実行時導出」+ 2 段レビュー構造は流用可。`test-review` は既移植ワーカーを再利用。full-apply/node-upgrade/repo-ops の `pnpm test` 条件分岐も併せて見直す |
-| C-6 Actions ピン留め | `actions-pin` | B9 | B9 で `.github/workflows/` 追加 + SHA ピン方針採用時 | 受け皿は **B9 実装**([v1 計画 P2-3](../plan/v1-implementation-plan.md) actions SHA ピン機構)。中身は言語非依存でほぼ無翻案(Go 実装のため TypeScript へ書き換える)。思想は `tools-upgrade` の quarantine と同系 |
-| C-7 型設計レビュー | agent: `type-design-reviewer` | A3 | A3 Accepted + `src/model/` の型設計規約(層別 README + `docs/rules.md`)確定 | 4 軸ルーブリックは言語非依存。Go の非公開フィールド + getter / `New()` 不変条件検査を TypeScript の型表現へ読み替えるのみ。`arch-auditor` 系の二値判定では拾えない「規約は満たすが弱い型」を程度で拾う |
+| GB-1 層別アーキ監査 | `arch-check` + `arch-auditor-{domain,usecase,controller,infra,pkg}` | A1 / A3 / A5 | A3 Accepted + 層別 README が `src/**` に整備 | 層マッピングを差し替えるのみ。並列 fan-out + 「自層 README を正として実行時読込」構造は流用可。full-verify Pass1 との分担を明記 |
+| GB-2 層別ドリフト検出 | `back-prop` + `drift-detector-{domain,usecase,controller,infra,pkg}` | A3 / A5 | GB-1 と同時期 | 検出カテゴリ A/B/C と read-only 原則は流用可。`sync-readme`(構造ドリフト)との分担を明記 |
+| GB-3 spec 生成・検証 | `new-spec` / `new-spec-{domain,usecase}`、`verify-spec` + `spec-validator-{domain,usecase}`、`.claude/scaffold-spec/*`(5) | A1 / A3 | A1 で「spec 駆動を採用」と決まった場合のみ | 「spec フォーマットを外部ファイルから実行時読込 = SSOT」設計は言語非依存で採用可。**不採用なら破棄** |
+| GB-4 onion scaffold | `scaffold-endpoint` / `scaffold-domain` / `scaffold-usecase` / `scaffold-controller` | A1 / A2 / A3 / A5(+B3 / B4) | A1/A3/A5 + B3(BFF/API)+ B4(型生成)確定後 | Go の onion + sqlc/OpenAPI 前提はほぼ載らない(表示層に DB 無し)。流用は chain 構造と「gen 由来マッピングを name-match 導出 → 不能なら halt/hand-off」の骨格のみ。**翻案コスト最大** |
+| GB-5 テスト scaffold/review | `scaffold-test` / `scaffold-integration-test` / `test-review` | B8 | B8 Accepted(フレームワーク・配置規約確定) | 「テスト観点を README から実行時導出」+ 2 段レビュー構造は流用可。`test-review` は既移植ワーカーを再利用。full-apply/node-upgrade/repo-ops の `pnpm test` 条件分岐も併せて見直す |
+| GB-6 Actions ピン留め | `actions-pin` | B9 | B9 で `.github/workflows/` 追加 + SHA ピン方針採用時 | 受け皿は **B9 実装**([v1 計画 P2-3](../plan/v1-implementation-plan.md) actions SHA ピン機構)。中身は言語非依存でほぼ無翻案(Go 実装のため TypeScript へ書き換える)。思想は `tools-upgrade` の quarantine と同系 |
+| GB-7 型設計レビュー | agent: `type-design-reviewer` | A3 | A3 Accepted + `src/model/` の型設計規約(層別 README + `docs/rules.md`)確定 | 4 軸ルーブリックは言語非依存。Go の非公開フィールド + getter / `New()` 不変条件検査を TypeScript の型表現へ読み替えるのみ。`arch-auditor` 系の二値判定では拾えない「規約は満たすが弱い型」を程度で拾う |
 
 **分類合計**: スキル = 移植済 14 + 対象外 3 + 未着手 4 + 保留(C) 14 = **35**。エージェント = 移植済 6 + 保留(C) 13 = **19**。
 
-**推奨着手順序**(BACKLOG 依存順): A1 決定 → C-3 採否確定 →(採用なら)C-4 翻案 / A3・A5 決定(層別 README 整備)→ C-1・C-2・C-7 / B8 決定 → C-5 / B9 決定 → C-6。各グループ着手時は該当枠が Accepted であることと Instruction Priority(ADR > BACKLOG > agent config)を再確認する。
+**推奨着手順序**(BACKLOG 依存順): A1 決定 → GB-3 採否確定 →(採用なら)GB-4 翻案 / A3・A5 決定(層別 README 整備)→ GB-1・GB-2・GB-7 / B8 決定 → GB-5 / B9 決定 → GB-6。各グループ着手時は該当枠が Accepted であることと Instruction Priority(ADR > BACKLOG > agent config)を再確認する。
 
 ### 付録: go-upgrade / repo-ops の処遇判断(経緯記録)
 
