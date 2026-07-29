@@ -569,7 +569,9 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
   - `.lefthook.yaml` — pre-push へ接続
 - **完了条件**: `make secret-scan` / `make trivy-fs` が動作し、pre-push で走る。既知のシークレット形式を仕込むと fail する
 - **依存**: なし
-- **状態**: **実施済み**。`mise.toml` に gitleaks / Trivy を aqua backend で登録 / `.makefiles/security/` に `make secret-scan`(fail-closed)/ `make secret-scan-history` / `make trivy-fs`(報告専用)を新設 / pre-push へ `parallel: true` で接続 / 抑止ポリシー様式を `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` の冒頭に明文化。秘密スキャンは作業ツリーではなく **push 予定のコミット範囲**を走査する(取りこぼしと誤検知の双方を避ける根拠は [0110](../adr/0110-security-operations.md))。`useDefault` 同伴の global allowlist が本ポリシーの管理外である点も同 ADR に明記
+- **状態**: **実施済み**。`mise.toml` に gitleaks / Trivy を登録 / `.makefiles/security/` に `make secret-scan`(fail-closed)と `make trivy-fs`(報告専用)を新設 / 抑止ポリシー様式を `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` の冒頭に明文化。秘密スキャンは作業ツリーではなく **push 予定のコミット範囲**を走査する(取りこぼしと誤検知の双方を避ける根拠は [0110](../adr/0110-security-operations.md))。`useDefault` 同伴の global allowlist が本ポリシーの管理外である点も同 ADR に明記
+  - **完了条件のうち「`make trivy-fs` が pre-push で走る」は意図的に満たしていない**。脆弱性スキャンはゲートの形として成立しない(その場で解消できず、変更と独立に状態が変わる)ため hook に接続せず、報告は PR コメント・ブロックは昇格ゲートが持つ([0110](../adr/0110-security-operations.md) 3.1、撤回条件は [BACKLOG](../adr/BACKLOG.md) W1・W2)。本書の完了条件はこの判断で置き換える
+  - あわせて `mise.toml` の**全エントリで backend を明示**する規約を [0003](../adr/0003-version-manager.md) に確定(撤回条件 W3)
 
 ### P1-3: actionlint 先行移植 + setup スクリプト拡充
 
