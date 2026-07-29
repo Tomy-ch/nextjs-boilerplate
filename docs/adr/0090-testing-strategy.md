@@ -70,7 +70,7 @@ AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層�
 ## 補足
 
 - 本 ADR の Accepted に伴い、AGENTS.md の `[TODO] Testing Strategy` 節の削除・書き換えを実施する(未実施 — AGENTS.md は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する)
-- テストフレームワーク導入 + `make test` / `test-cached` 二層 + lefthook 接続 + カバレッジゲート CI は本 ADR Accepted 後の実装 PR(移植計画 Phase 5)で行う。C-5(scaffold-test / test-review スキル)移植もこの時期
+- テストフレームワーク導入 + `make test` / `test-cached` 二層 + lefthook 接続 + カバレッジゲート CI は本 ADR Accepted 後の実装 PR(移植計画 Phase 5)で行う。GB-5(scaffold-test / test-review スキル)移植もこの時期
 - **実装中に不都合が出たら本 ADR を補正する**
 
 ## 関連 ADR
