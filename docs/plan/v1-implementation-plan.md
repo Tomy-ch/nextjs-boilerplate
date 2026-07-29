@@ -88,14 +88,14 @@
 
 - **Protected Documentation の直接編集を許可する** — `AGENTS.md` / Accepted ADR 本体 / `LICENSE` を、ユーザ承認を都度取らずに上書き編集してよい
 - **AI Modification Scope の保護パスを解除する** — `package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/` を直接編集してよい
-- **`.claude/settings.json` の permissions を実態に合わせる** — 文書保護系の 4 対象(`AGENTS.md` / `LICENSE` / ADR 本体 / `settings.json` 自身)を `deny` から `ask` へ移す。ハード禁止では v1 実装が進まないため、承認を挟む形に落とす
+- **`.claude/settings.json` の permissions を実態に合わせる** — `AGENTS.md` / `LICENSE` / `settings.json` 自身を `deny` ではなく `ask` に置く。ハード禁止では v1 実装が進まないため、承認を挟む形に落とす。**ADR 本体は permissions に載せない** — living document として日常的に上書きするため、都度確認が通常作業のたびに発火する
 - **ADR は living document として直接上書きする** — [0140](../adr/0140-documentation-operations.md) の 0.0.x living 運用を v1.0.0 未満まで延長する
 - **経緯・変遷コメントを本文に残さない** — 「当初は X だったが Y に改訂」「2026-07-14 に反転」のような改定履歴・検討経緯を文書本文に書かない。決定の**現在形**だけを書く。経緯は git 履歴が持つ
 
 v1.0.0 到達時に本セクションを削除し、同時に:
 
 1. `AGENTS.md` の Protected Documentation / AI Modification Scope を復活させる
-2. `.claude/settings.json` の文書保護 4 対象を `ask` から `deny` へ戻す
+2. `.claude/settings.json` の `AGENTS.md` / `LICENSE` / `settings.json` 自身を `ask` から `deny` へ戻し、**ADR 本体(`docs/adr/*-*.md`)を `deny` へ追加する**(3 の immutable 化の裏付け)
 3. [0140](../adr/0140-documentation-operations.md) の ADR 不可変性を immutable へ切り替える
 4. 全 ADR 本文から経緯記述を除去する(P9-3)
 
