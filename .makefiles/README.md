@@ -105,7 +105,7 @@ actionlint は `run:` ステップのシェルも shellcheck 経由で検査す�
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make install-tools` | `mise.toml` の `[tools]`（Node.js / pnpm / actionlint / shellcheck / gitleaks / Trivy）をインストールします。 | mise の事前インストールが必要。詳細は [ADR 0003](../docs/adr/0003-version-manager.md) 参照 |
+| `make install-tools` | `mise.toml` の `[tools]`（Node.js / pnpm / actionlint / shellcheck / gitleaks / Trivy）をインストールします。 | mise の事前インストールが必要。全エントリが backend を明示します。詳細は [ADR 0003](../docs/adr/0003-version-manager.md) 参照 |
 
 ### コミットメッセージ検証関連
 
@@ -115,15 +115,14 @@ actionlint は `run:` ステップのシェルも shellcheck 経由で検査す�
 
 ## `.makefiles/security` 系
 
-シークレットの混入と脆弱な依存をローカルで検知するためのスキャンです。pre-push hook から実行され、CI 側のゲートと同じコマンドを呼びます（[ADR 0110](../docs/adr/0110-security-operations.md)）。
+シークレットの混入と脆弱な依存をローカルで検知するためのスキャンです（[ADR 0110](../docs/adr/0110-security-operations.md)）。
 
 抑止は `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に限定し、各ファイル冒頭の抑止ポリシーに従って理由付きで記録します。
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make secret-scan` | push 予定のコミット範囲を gitleaks でスキャンします。 | 対象は「`HEAD` から辿れてどのリモートにも無いコミット」。検出時は exit 1 で失敗します（fail-closed）。検出値は `--redact` で出力しません。 |
-| `make secret-scan-history` | コミット履歴全体を gitleaks でスキャンします。 | マージ済み履歴に埋もれた秘密を拾う用途。コミット数に比例して伸びるため hook には載せません。 |
-| `make trivy-fs` | 依存ライブラリの脆弱性を Trivy fs でスキャンします。 | 修正版のあるものだけを報告し、exit code では落としません。厳格判定は昇格ゲートが CI 側で持ちます。 |
+| `make secret-scan` | push 予定のコミット範囲を gitleaks でスキャンします。 | pre-push hook から実行されます。対象は「`HEAD` から辿れてどのリモートにも無いコミット」。検出時は exit 1 で失敗します（fail-closed）。検出値は `--redact` で出力しません。 |
+| `make trivy-fs` | 依存ライブラリの脆弱性を Trivy fs でスキャンします。 | 手動実行専用で、**意図的に hook へ接続していません**。exit code でも落としません。脆弱性は push する当事者がその場で解消できず、diff と独立に状態が変わるためです。ブロックは昇格ゲートが持ちます（[ADR 0110](../docs/adr/0110-security-operations.md) 3.1）。 |
 
 ## 補足
 

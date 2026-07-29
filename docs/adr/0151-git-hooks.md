@@ -39,15 +39,15 @@ Accepted
 | --- | --- | --- | --- |
 | pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) / Markdown 検査 (`pnpm md-lint` = markdownlint + mermaid 構文。`*.md` が staged のときのみ) / ワークフロー検査 (`make actionlint` = 構文 + `run:` のシェル。`.github/workflows/*` が staged のときのみ — [0153](0153-ci-configuration.md)) | < 5 秒 |
 | commit-msg | 「規約外のコミットメッセージを積ませない」 | commitlint ([0150](0150-git-workflow.md) の prefix 11 種を検証) | < 5 秒 |
-| pre-push | 「壊れた push・秘密を含む push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / 秘密スキャン (`make secret-scan` = push 予定コミット範囲) / 依存脆弱性スキャン (`make trivy-fs`) / テスト (整備後) | < 30 秒 |
+| pre-push | 「壊れた push・秘密を含む push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / 秘密スキャン (`make secret-scan` = push 予定コミット範囲) / テスト (整備後) | < 30 秒 |
 | (CI) | 権威ある検査 | lint / 型 / test / build / e2e 等 | 制約なし |
 
 - pre-commit で走らせる biome は、エディタ保存時の簡易版ではなく **完全版** (`pnpm lint:ci`)。保存時は軽量・commit 時は厳格という二段構え（プロファイル分割の詳細は [0002-formatter-linter.md](0002-formatter-linter.md)）
 - biome は Rust 実装で高速なため、完全版（`noImportCycles` の複数ファイル走査を含む）でも本リポジトリ規模では sub-second に収まり、速度目標を満たす
-- pre-push の commands は `parallel: true` で並列実行する。秘密スキャンと脆弱性スキャンは型チェックと独立しており、直列化すると速度目標を割るため
+- pre-push の commands は `parallel: true` で並列実行する。秘密スキャンは型チェックと独立しており、直列化すると速度目標を割るため
 - **秘密スキャンを pre-push に置く理由**は、秘密が push された時点で「リモートに残る」不可逆な事故になるためである。**この段階でしか「送られるコミット範囲」が確定しない**点も pre-push を選ぶ根拠になる。commit 段階では、その commit が最終的に push されるか・後続 commit で消されるかがまだ決まらない（走査対象の決め方そのものは [0110](0110-security-operations.md) が正）
-- 依存脆弱性スキャンは**報告専用**で push を止めない。既存依存の脆弱性はその push が持ち込んだものではなく、これで落とすと `--no-verify` の常用を招く（[0110](0110-security-operations.md)）
-- 速度目標は**定常状態の実測**で判断する。Trivy の脆弱性 DB 取得や各ツールのコールドスタートは初回に限って目標を超えるが、これを理由に目標を緩めない
+- **依存脆弱性スキャン (`make trivy-fs`) は hook に接続しない**。hook に載せてよいのは「当事者がその場で解消でき、かつ変更と共に結果が決まる」検査に限られる。依存の脆弱性はどちらも満たさない（上流待ちで解消できず、CVE の公開だけで結果が変わる）ため、報告は PR コメント・ブロックは昇格ゲートが持つ（判断の全文は [0110](0110-security-operations.md) 3.1）
+- 速度目標は**定常状態の実測**で判断する。各ツールのコールドスタートは初回に限って目標を超えるが、これを理由に目標を緩めない
 
 ### 設計原則
 
@@ -127,7 +127,6 @@ pre-push:
   commands:
     typecheck: ...
     secret-scan: ...
-    trivy-fs: ...
 ```
 
 - 各段の責務と、そこで走らせる検査は上の「hook 段階の責務分担」表が定める
@@ -164,5 +163,5 @@ pre-push:
 
 - [0002-formatter-linter.md](0002-formatter-linter.md) — `pnpm lint:ci` で呼ばれる biome 完全版 (`biome.ci.jsonc`) と簡易版のプロファイル分割
 - [0004-library-management.md](0004-library-management.md) — lefthook を devDependency として exact pin する根拠
-- [0110-security-operations.md](0110-security-operations.md) — pre-push で走る秘密 / 脆弱性スキャンの内容と抑止ポリシー
+- [0110-security-operations.md](0110-security-operations.md) — pre-push で走る秘密スキャンの内容、および脆弱性スキャンを hook に載せない判断
 - [0150-git-workflow.md](0150-git-workflow.md) — hook 通過後の commit / PR / リリース運用フロー

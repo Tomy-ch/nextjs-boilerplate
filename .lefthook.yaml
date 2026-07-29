@@ -36,7 +36,5 @@ pre-push:
       run: mise exec -- pnpm typecheck
     secret-scan:
       # push 予定のコミット範囲に秘密が含まれていれば fail-closed で止める。
+      # 依存脆弱性スキャン (make trivy-fs) をここに置かないのは ADR 0110 3.1 の判断による。
       run: mise exec -- make secret-scan
-    trivy-fs:
-      # 依存の脆弱性を報告する。ここでは落とさず、ゲート化は CI 側が持つ。
-      run: mise exec -- make trivy-fs

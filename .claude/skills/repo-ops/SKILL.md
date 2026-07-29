@@ -102,7 +102,11 @@ in it or every hook fails with `command not found`.
 | --- | --- | --- |
 | pre-commit | `pnpm lint:ci`; `pnpm md-lint` when `*.md` is staged; `make actionlint` when a workflow is staged | biome full profile; markdownlint + mermaid syntax; workflow syntax + `run:` shell |
 | commit-msg | `make commitlint` | the subject against ADR 0150 |
-| pre-push | `pnpm typecheck`; `make secret-scan`; `make trivy-fs` | `tsc --noEmit`; secrets in the range being pushed (**fail-closed**); dependency vulnerabilities (reported only — the gate lives in CI, ADR 0110) |
+| pre-push | `pnpm typecheck`; `make secret-scan` | `tsc --noEmit`; secrets in the range being pushed (**fail-closed**) |
+
+`make trivy-fs` is deliberately **not** wired into any hook (on demand only). A dependency vulnerability
+cannot be resolved by the pusher on the spot and its status changes independently of the diff, so it does
+not hold as a gate — reporting goes to the PR comment and blocking to the promotion gate (ADR 0110 3.1).
 
 Reproduce a stage by running its entry point by hand, through mise. The exact argument lists live in
 `.lefthook.yaml` — read them there rather than from a copy.

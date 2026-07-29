@@ -23,6 +23,7 @@
 - **2 軸の意味**:
   - **選定済み**: ADR ファイルが書かれて Status = Accepted になっているか
   - **実装済み**: 方針を実行するための仕組み (config / artifact / コード) がリポジトリに存在するか
+- **「やらない」と決めた事項は[撤回条件](#撤回条件-決定を見直すトリガ)へ記録する**。決定そのものは ADR が持ち、本ボードは「いつ考え直すか」だけを持つ
 
 ## 凡例
 
@@ -43,7 +44,7 @@
 
 ### Tier 0 の実装ギャップ
 
-- なし (G2 は解消済: `.lefthook.yaml` + lefthook devDependency (exact pin) を導入。pre-commit = `pnpm lint:ci` + `pnpm md-lint` + `make actionlint` / commit-msg = `make commitlint` / pre-push = `pnpm typecheck` + `make secret-scan` + `make trivy-fs`)
+- なし (G2 は解消済: `.lefthook.yaml` + lefthook devDependency (exact pin) を導入。pre-commit = `pnpm lint:ci` + `pnpm md-lint` + `make actionlint` / commit-msg = `make commitlint` / pre-push = `pnpm typecheck` + `make secret-scan`)
 
 ---
 
@@ -126,7 +127,7 @@ UI / スタイリング / データ統合 / 状態管理 / エラー / 観測性
 - **B8(ADR 0090 として策定済み・実装未)**: 2026-07-12 に [ADR 0090](0090-testing-strategy.md) として成文化(Vitest + RTL + MSW + Playwright / go 準拠戦略 / 90% ハードゲート / integration=HTTP 境界 mock / 二層実行 / 命名は 0028 kebab + `.test.ts`)。FW 導入・カバレッジゲート CI は実装 PR(移植 Phase 5)。実装中補正可
 - **B3 / B4(ADR 0071 / 0072 として策定済み・実装未)**: 2026-07-13 に決定 4 バッチとして成文化。B3 = [ADR 0071](0071-bff-api-integration.md)(API クライアント = `adapters` / fetch wrapper に go ADR 0019 resilience を広く翻案 = dual timeout + idempotent retry + retry budget + circuit breaker / 生 status を errors へ正規化・詳細テーブルは B6 / response は adapters 境界で zod 検証 / SSRF guard は外部叩き時のみ)。B4 = [ADR 0072](0072-api-type-generation.md)(**型 + runtime validation を orval で zod 生成** — 決定 4 当初の openapi-typescript 型のみから、go 境界値所有哲学に合わせユーザが変更 / `gen/` do-not-edit / gh 取込 + short SHA スタンプ + マニフェスト / 型漏洩禁止 = adapters 変換 / drift ゲート)。取込 + 生成パイプライン・drift ゲート CI は実装 PR(A-9 setup 翻案 / C-4)
 - **B6 / B7 / B9 / B10(ADR 0080 / 0081 / 0153 / 0110 として策定済み・実装未)**: 2026-07-13 に成文化。B6 = [ADR 0080](0080-error-handling.md)(errors カーネル = go apperror 0038 翻案 / sentinel 分類 + 境界正規化 + error.tsx 階層 / swallow 禁止・cause chain)。B7 = [ADR 0081](0081-observability-logging.md)(logging/observability カーネル = go 0059-0061 翻案 / OTLP-only + signal gating + 公式 semconv / ブラウザ→BFF 中継 seam / **RUM SaaS は fork 先 exclusion**)。B9 = [ADR 0153](0153-ci-configuration.md)(go workflows 翻案 / 1 関心事=1 workflow・SHA ピン・最小 permissions・hooks mirror / job は biome/tsc/next build/vitest/playwright / matrix 非採用)。B10 = [ADR 0110](0110-security-operations.md)(go 0077 多層防御翻案 / Dependabot cooldown・gitleaks・Trivy 二段・CodeQL js-ts / **image-scan・cosign・SBOM は本リポ 0011 no-docker で exclusion**)。errors/logging/observability カーネル物理作成・CI workflows 実装は実装 PR(Phase 1/2)
-- **B10 の実装 ⚠️ の内訳**: gitleaks / Trivy をローカル(`mise.toml` + `make secret-scan` / `make trivy-fs` + pre-push hook)へ導入済み。抑止ポリシー様式(`.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml`)も確定済み。**未実装は CI 側** — CodeQL / gitleaks / Trivy 二段 / Dependabot cooldown / `pnpm audit` ゲート / SECURITY.md / CSP 適合ゲート
+- **B10 の実装 ⚠️ の内訳**: gitleaks / Trivy をローカル(`mise.toml` + `make secret-scan` / `make trivy-fs`)へ導入済み。**pre-push hook に載せるのは秘密スキャンだけ**で、脆弱性スキャンは意図的に接続していない([0110](0110-security-operations.md) 3.1 / 撤回条件 W1・W2)。抑止ポリシー様式(`.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml`)も確定済み。**未実装は CI 側** — CodeQL / gitleaks / Trivy 二段 / Dependabot cooldown / `pnpm audit` ゲート / SECURITY.md / CSP 適合ゲート / 履歴全体の秘密スキャンの定期実行
 
 ---
 
@@ -230,6 +231,25 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 | 完了 | ✅ | ✅ |
 
 「事実上動いているが ADR 未策定」(`⬜` 選定済み + `⚠️` 実装済み) の項目は、**de facto を ADR で追認するだけのコストが低い** ため、優先度を上げて着手すべきシグナル。
+
+---
+
+## 撤回条件 (決定を見直すトリガ)
+
+**「やらない」と決めた事項の、再検討を開始する条件**を記録する。決定だけを残すと、なぜやらないのかは ADR に書かれても**いつなら考え直すのか**がどこにも残らず、前提が変わったことに誰も気づけない。
+
+条件を満たしたら、その場で撤回するのではなく **ADR を読み直して判断し直す**。条件は「再検討の開始点」であって「自動的な結論」ではない。
+
+| # | 決定 (現状) | 権威 | 撤回条件 |
+| --- | --- | --- | --- |
+| **W1** | 依存脆弱性スキャンを hook に接続しない | [0110](0110-security-operations.md) 3.1 / [0151](0151-git-hooks.md) | **原則としてこの決定は状態では動かない**。動かせるのは前提の変化だけ — (a) 脆弱性を「その場で当事者が解消できる」機構が入る (例: 上流 pin を跨いで安全に更新できる仕組み) / (b) 変更と独立に結果が変動する性質が消える。**検出件数が 0 になったこと・CI ゲートが揃ったことは条件にならない** |
+| **W2** | `make trivy-fs` を exit code で落とさない | [0110](0110-security-operations.md) 3.1 | W1 と同じ。昇格ゲート (保護ブランチ宛 PR) 側は本条件の対象外で、そちらは最初からブロックする |
+| **W3** | `mise.toml` の全エントリで backend を明示する | [0003](0003-version-manager.md) | (a) mise がレジストリのマッピング固定を宣言の外で保証する機構を持つ / (b) backend 明示が原因で fork 先の環境で解決できない事例が出る。**「記述が冗長」は条件にならない** — 一様適用をやめた時点で規約として機能しなくなる |
+| **W4** | 履歴全体の秘密スキャンを hook に載せない | [0110](0110-security-operations.md) 2 | 走査時間がコミット数に比例しなくなる (差分走査やキャッシュが入る)。**現在の実測が速いことは条件にならない** — リポジトリの成長で必ず破れる |
+| **W5** | `.gitleaks.toml` の `useDefault` 同伴 allowlist を受け入れる | [0110](0110-security-operations.md) 2 | (a) gitleaks が既定 allowlist の部分的な打ち消しを提供する / (b) 除外対象 (lockfile 等) に実際の秘密が入る事例が公表される |
+| **W6** | `.trivyignore.yaml` の抑止エントリ | [0110](0110-security-operations.md) 3.4 | 各エントリの `expired_at`、または statement に書かれた条件が消えたとき。**期限切れは自動で報告に戻る**ため、この行は運用の明文化であって追跡対象ではない |
+
+新しく「やらない」を決めたら、**その場でここに撤回条件を書く**。条件を書けない「やらない」は、判断ではなく先送りである。
 
 ---
 

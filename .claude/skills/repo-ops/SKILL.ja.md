@@ -93,7 +93,11 @@ worktree にも継承されるが、**`node_modules` は継承されない** ─
 | --- | --- | --- |
 | pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint`、workflow が staged なら `make actionlint` | biome 完全版 / markdownlint + mermaid 構文 / workflow 構文 + `run:` のシェル |
 | commit-msg | `make commitlint` | subject を ADR 0150 に照らす |
-| pre-push | `pnpm typecheck`、`make secret-scan`、`make trivy-fs` | `tsc --noEmit` / push 範囲の秘密(**fail-closed**) / 依存の脆弱性(報告のみ ── ゲートは CI 側、ADR 0110) |
+| pre-push | `pnpm typecheck`、`make secret-scan` | `tsc --noEmit` / push 範囲の秘密(**fail-closed**) |
+
+`make trivy-fs` は **hook に接続していない**(手動実行専用)。依存の脆弱性は push する当事者がその場で
+解消できず、diff と独立に状態が変わるため、ゲートとして成立しないという判断による ── 報告は PR コメント、
+ブロックは昇格ゲートが持つ(ADR 0110 3.1)。
 
 各段の再現は入口を mise 経由で手で叩けばよい。引数まで含めた正確なコマンド行は `.lefthook.yaml` にあり、
 写しではなくそちらを読むこと。
