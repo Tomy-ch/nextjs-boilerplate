@@ -148,7 +148,7 @@ By default, AI agents may modify code only in the following scope. All other pat
 
 ### Do not touch without user instruction
 
-- Repository-root config files: `package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `postcss.config.mjs` / `Makefile`, etc.
+- Repository-root config files: `package.json` / `pnpm-workspace.yaml` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `postcss.config.mjs` / `Makefile`, etc.
 - `.makefiles/` (release / branch operation make targets)
 - `.github/` (workflows / settings / issue and PR templates)
 - `LICENSE`
@@ -183,6 +183,17 @@ Conditions:
 Bypassing the spirit of these rules through a skill is forbidden. If a skill's procedure touches sensitive areas (e.g., `.github/workflows/`), the skill's `SKILL.md` must declare this so the user is aware when invoking it.
 
 ## Recommended Commands
+
+Run every command below **bare — never wrapped in `mise exec --`**. The toolchain is expected to be on
+`PATH` through an activated mise ([0003](docs/adr/0003-version-manager.md)). Wrapping belongs to the
+repository's own automation, which runs in shells that never sourced the activation — the hooks in
+`.lefthook.yaml` ([0151](docs/adr/0151-git-hooks.md)) and the `.makefiles/` recipes they drive — and
+nowhere else. Keeping one spelling per typed command is the point: two spellings make it unreadable
+which one is authoritative.
+
+If a bare command resolves to a tool outside mise, the fix is `PATH`, not a wrapper — a stray pnpm one
+major ahead of the pin fails the script and rewrites the tracked `pnpm-workspace.yaml` on its own (see
+the `repo-ops` skill).
 
 ### pnpm (ADR 0001)
 

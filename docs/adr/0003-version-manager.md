@@ -125,7 +125,8 @@ mise への依存は **配送層 (host)** に閉じている。SSOT / 契約 / �
 
 ## 補足
 
-- mise の activate を入れていない環境で `node` / `pnpm` を素直に呼ぶと PATH に乗らない。`mise exec -- <command>` で逃げるか、`make install-tools` 後に shell activate を済ませること
+- **コマンドは activate を前提に素で呼ぶ**。`make install-tools` 後に shell activate を済ませ、`node` / `pnpm` / mise 管理ツールをそのまま実行する。`mise exec -- <command>` で包むのは、activate を経ずに走るリポジトリ側の自動化に限る（`.lefthook.yaml` の hook — [0151](0151-git-hooks.md) — と、そこから駆動される `.makefiles/` のレシピ）。1 コマンドに 2 通りの書き方があるとどちらが正か読めなくなるため、手で打つコマンドを exec で包む運用は採らない
+- 素で呼んだツールが mise の pin と食い違う場合は **PATH 側が壊れている**。exec で包んで回避せず、activate と PATH を直す。壊れ方の実例と復旧手順は `repo-ops` スキルが持つ
 - mise を使わない開発者は `mise.toml` の宣言を参照しつつ自分の version manager で同じバージョンを揃える運用も許容する（SSOT を仕様として読む形）
 - 将来 mise から移行する場合の影響範囲は `.makefiles/tools/setup.mk` の `install-tools` ターゲットのみ
 
