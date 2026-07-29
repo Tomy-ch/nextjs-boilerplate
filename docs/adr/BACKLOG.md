@@ -266,7 +266,7 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 ### 移植済 / 対象外
 
 - **移植済(既存)**(スキル 10 / エージェント 2): canonicalize-doc / commit / `impl-review`(→ `local-review`)/ new-env / readme-review / release-notes / submit-pr / sync-readme / tool-map / tools-upgrade、agent: adversarial-reviewer / review-verifier
-- **移植済(A: 技術非依存)**(スキル 2 / エージェント 4): full-verify(+prompts+run.sh)/ full-apply、agent: arch-verifier / impl-verifier / doc-reviewer / comment-reviewer(godoc→TSDoc/JSDoc、正を AGENTS.md+一般原則へ)
+- **移植済(A: 技術非依存)**(スキル 3 / エージェント 4): full-verify(+prompts+run.sh)/ full-apply / manage-skill(上乗せ規約を [0140](0140-documentation-operations.md) の対訳ペアと [0154](0154-claude-skills-operations.md) / [0155](0155-claude-skills-development.md) の配置・命名規約へ差し替え)、agent: arch-verifier / impl-verifier / doc-reviewer / comment-reviewer(godoc→TSDoc/JSDoc、正を AGENTS.md+一般原則へ)
 - **移植済(B: 変換)**(スキル 2): node-upgrade(← go-upgrade。mise.toml SSOT のみ伝播)、repo-ops(器のみ。Docker/sqlc 項目は ADR 0011 で不適用)
 - **対象外(D)**(スキル 3): portal-manifest-sync(`docs/portal/manifest.yaml` 不在。**D2**([0141](0141-portal-operations.md))は Accepted 済み・portal 実装は Phase 3 のため、portal 導入時に移植)/ `images-pin`([0011](0011-no-docker.md) no-docker)/ `scaffold-infra-db`(表示層に DB を持たない — [0070](0070-backend-role-separation.md))
 - **本リポジトリ固有**: adr-scan(go 側に現存しない。走査を nextjs 化・枠 ID 体系へ分類 / PROVISIONAL)。上記の資産数には数えない
@@ -280,8 +280,7 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 
 | 資産 | 種別 | 依存 | 内容要旨 |
 | --- | --- | --- | --- |
-| `manage-skill` | スキル | — | スキルの新規作成・更新の単一入口。正は D5 / D6([0154](0154-claude-skills-operations.md) / [0155](0155-claude-skills-development.md))の運用規約 |
-| `sync-ai` | スキル | `manage-skill` | `.claude/` ↔ `.codex/` の双方向同期(handoff スクリプト同梱) |
+| `sync-ai` | スキル | — | `.claude/` ↔ `.codex/` の双方向同期(handoff スクリプト同梱) |
 | `supply-chain-triage` | スキル | GB-6 | 検疫に掛かったアーティファクトを直接証拠でスコアリングする report-only スキル |
 | `dep-vuln-upgrade` | スキル | `supply-chain-triage` | CVE / GHSA を名指しした単発の依存更新 |
 
@@ -301,7 +300,7 @@ Go 側の本丸は **spec 駆動 scaffold + 層別監査体系**。今移植す�
 | GB-6 Actions ピン留め | `actions-pin` | B9 | B9 で `.github/workflows/` 追加 + SHA ピン方針採用時 | 受け皿は **B9 実装**([v1 計画 P2-3](../plan/v1-implementation-plan.md) actions SHA ピン機構)。中身は言語非依存でほぼ無翻案(Go 実装のため TypeScript へ書き換える)。思想は `tools-upgrade` の quarantine と同系 |
 | GB-7 型設計レビュー | agent: `type-design-reviewer` | A3 | A3 Accepted + `src/model/` の型設計規約(層別 README + `docs/rules.md`)確定 | 4 軸ルーブリックは言語非依存。Go の非公開フィールド + getter / `New()` 不変条件検査を TypeScript の型表現へ読み替えるのみ。`arch-auditor` 系の二値判定では拾えない「規約は満たすが弱い型」を程度で拾う |
 
-**分類合計**: スキル = 移植済 14 + 対象外 3 + 未着手 4 + 保留(C) 14 = **35**。エージェント = 移植済 6 + 保留(C) 13 = **19**。
+**分類合計**: スキル = 移植済 15 + 対象外 3 + 未着手 3 + 保留(C) 14 = **35**。エージェント = 移植済 6 + 保留(C) 13 = **19**。
 
 **推奨着手順序**(BACKLOG 依存順): A1 決定 → GB-3 採否確定 →(採用なら)GB-4 翻案 / A3・A5 決定(層別 README 整備)→ GB-1・GB-2・GB-7 / B8 決定 → GB-5 / B9 決定 → GB-6。各グループ着手時は該当枠が Accepted であることと Instruction Priority(ADR > BACKLOG > agent config)を再確認する。
 

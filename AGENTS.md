@@ -30,14 +30,14 @@ While the repository sits below v1.0.0, the constraints below are **temporarily 
 - **ADRs stay living documents and are overwritten in place** — ADR [0140](docs/adr/0140-documentation-operations.md)'s living operation is extended from `0.0.x` to everything below v1.0.0
 - **Do not leave change history or rationale drift in document bodies** — write the decision in its present form only; git history owns the history
 
-To match this, `.claude/settings.json` moves the doc-protection entries (`AGENTS.md` / `LICENSE` / ADR bodies / `.claude/settings.json` itself) from `permissions.deny` to `permissions.ask` for the duration — the edits still surface for approval, they just stop being hard-blocked.
+To match this, `.claude/settings.json` keeps `AGENTS.md` / `LICENSE` / `.claude/settings.json` itself under `permissions.ask` instead of `permissions.deny` for the duration — the edits still surface for approval, they just stop being hard-blocked. Accepted ADR bodies carry **no permission entry at all**: they are living documents below v1.0.0 (see the bullet above), so a per-edit prompt would fire on ordinary work.
 
 What this section does **not** lift: the Git Rules below (no direct push to protected branches, no force push / history rewrite, confirmation before pushing to an existing PR branch) and everything still listed under `permissions.deny`.
 
 On reaching v1.0.0, delete this section and:
 
 1. Restore `Protected Documentation` / `AI Modification Scope` to their unrelaxed form
-2. Move the doc-protection entries in `.claude/settings.json` back from `permissions.ask` to `permissions.deny`
+2. Move `AGENTS.md` / `LICENSE` / `.claude/settings.json` back from `permissions.ask` to `permissions.deny` in `.claude/settings.json`, and add Accepted ADR bodies (`Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)`) to `permissions.deny` to back the immutable operation of step 3
 3. Switch ADR [0140](docs/adr/0140-documentation-operations.md) to immutable ADR operation
 4. Strip rationale / history prose from every ADR body and from [`docs/adr/BACKLOG.md`](docs/adr/BACKLOG.md) (P9-3)
 
