@@ -132,7 +132,7 @@ pre-push:
 - 各段の責務と、そこで走らせる検査は上の「hook 段階の責務分担」表が定める
 - **1 command = 1 つの関心**。1 つの `run:` に複数の検査をつなげず、command を分けて名前で識別できるようにする (失敗時にどの検査が落ちたか lefthook の出力で分かる)
 - pre-commit は `parallel: true`。command 間に順序依存を作らない
-- **全 command を `mise exec --` で包む**。hook は `mise activate` を経ていない非対話シェルで走るため、包まない command は mise 管理下のツール (gitleaks / Trivy / actionlint) を PATH に見つけられず、変更内容と無関係に落ちる
+- **全 command を素で書く**。`mise exec --` での包み込みは [0003](0003-version-manager.md) で全面禁止しており、hook も例外にしない。ツールは activate 済みの PATH から解決する前提とし、`❌ <tool> が PATH にありません` で落ちた場合は hook の書き方ではなく環境を直す (`make install-tools` + activate)
 
 ### 改変ルール
 

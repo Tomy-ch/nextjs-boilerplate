@@ -184,12 +184,12 @@ Bypassing the spirit of these rules through a skill is forbidden. If a skill's p
 
 ## Recommended Commands
 
-Run every command below **bare — never wrapped in `mise exec --`**. The toolchain is expected to be on
-`PATH` through an activated mise ([0003](docs/adr/0003-version-manager.md)). Wrapping belongs to the
-repository's own automation, which runs in shells that never sourced the activation — the hooks in
-`.lefthook.yaml` ([0151](docs/adr/0151-git-hooks.md)) and the `.makefiles/` recipes they drive — and
-nowhere else. Keeping one spelling per typed command is the point: two spellings make it unreadable
-which one is authoritative.
+Run every command below **bare. `mise exec -- <command>` is forbidden outright** — in what you type, in
+`.lefthook.yaml`, in `.makefiles/` recipes, anywhere ([0003](docs/adr/0003-version-manager.md)). The
+toolchain resolves through an activated mise on `PATH`, so a command has exactly one spelling and the
+same one everywhere. A wrapper only hides a broken environment behind a per-call workaround, and it
+takes the failure — a stale `PATH`, a missing `make install-tools` — with it, so the next caller who
+forgets to wrap hits it instead.
 
 If a bare command resolves to a tool outside mise, the fix is `PATH`, not a wrapper — a stray pnpm one
 major ahead of the pin fails the script and rewrites the tracked `pnpm-workspace.yaml` on its own (see
