@@ -189,9 +189,11 @@ Posting to GitHub is an outward-facing action, so confirm **once** before postin
 
 **Redact before posting.** This repository is public, and a `security` finding quotes the very thing it flags — a leaked token, a hardcoded credential, a PII sample. Posting that verbatim republishes the secret in a place that cannot be retracted. Before building the payload, rewrite every finding body so the evidence is described, not reproduced: replace concrete secret-shaped values with `***REDACTED***` and cite `path:line` instead. A finding whose point cannot survive redaction (the value *is* the finding) stays in the local report only — say so in the summary rather than posting it.
 
-**`gh api` is denied by `.claude/settings.json`.** The `permissions.deny` list carries `Bash(gh api *)`, and AGENTS.md keeps that list in force even during skill execution — so the inline-comment call below will be blocked rather than run. Do **not** work around it (never re-route the same request through `python3` / `pnpm exec tsx` / any other allowed interpreter — that defeats the guard rather than satisfying it) and never edit the deny list to unblock yourself. Instead: surface the block to the user, and offer either a one-off permission grant for exactly this call or the fallback below.
+**`gh api` is available for this call.** `.claude/settings.json` allows `Bash(gh api *)` and denies only the shapes that lose committed work: anything containing `DELETE`, and ref manipulation (`git/refs`, whose `force` update is an API-side force push). Posting a review is neither, so it runs. Those denies still hold during skill execution — if a call you need is blocked, surface it and let the user decide. Never re-route a blocked request through `python3` / `pnpm exec tsx` / any other allowed interpreter (that defeats the guard rather than satisfying it), and never edit `permissions.deny` to unblock yourself.
 
-**Fallback when the API call is unavailable:** post a single summary comment with `gh pr comment` — the findings grouped by file with `path:line` references instead of true line anchors — and say plainly in the Step 5 report that the findings were summarized, not inlined.
+The permission layer is not what makes this safe — a pattern rule cannot tell an advisory review from a destructive write. The control that matters is the single confirmation above, so do not skip it on the grounds that the command is allowed.
+
+**Fallback when the API call fails:** post a single summary comment with `gh pr comment` — the findings grouped by file with `path:line` references instead of true line anchors — and say plainly in the Step 5 report that the findings were summarized, not inlined.
 
 ### Procedure
 
@@ -250,7 +252,8 @@ Posting to GitHub is an outward-facing action, so confirm **once** before postin
 - ✅ By default, post the code lenses' CONFIRMED + PLAUSIBLE findings to the branch's PR as inline review comments (Step 6); suppress with `--no-comment` or when no open PR exists.
 - ✅ Confirm once before posting to the PR (outward action); anchor each comment to its `path:line`, fold off-diff findings into the review summary.
 - ✅ Redact secret-shaped values out of every finding body before posting — this repository is public and a post cannot be retracted.
-- ❌ Route a denied command (`gh api`) through an allowed interpreter, or edit `permissions.deny` to unblock yourself — surface the block and offer the summary-comment fallback instead.
+- ❌ Skip the Step 6 confirmation because `gh api` is allowed — the permission rule is not the safety control, the confirmation is.
+- ❌ Route a denied command through an allowed interpreter, or edit `permissions.deny` to unblock yourself — surface the block and offer the summary-comment fallback instead.
 - ✅ State in the report which lenses did not run and why (`test-gap` while no test runner is configured).
 - ❌ Post REFUTED findings, or use `REQUEST_CHANGES` / `APPROVE` — the posted review is advisory `COMMENT` only.
 - ❌ Auto-fix the code lenses — those are reported, the user fixes. Only comment quality is auto-applied (Step 5.5).
