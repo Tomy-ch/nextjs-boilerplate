@@ -2,10 +2,8 @@
 .PHONY: trivy-fs ## 依存ライブラリの脆弱性を Trivy fs でスキャンする
 
 # node_modules は pnpm-lock.yaml と同じ依存を二重計上するため除外する。
-# .claude/worktrees は git worktree の実体であり、別ブランチの依存を本体の結果に混ぜないため除外する
-# （trivy は .gitignore を見ないので、ignore 済みでも指定しないと走査される）。
 # --skip-version-check: trivy 自身の更新確認の通信を止める（版は mise.toml が SSOT）。
-TRIVY_SKIP_FLAGS := --skip-dirs node_modules --skip-dirs .claude/worktrees --skip-version-check
+TRIVY_SKIP_FLAGS := --skip-dirs node_modules --skip-version-check
 
 # 報告専用（exit code では落とさない）。脆弱性は「その変更の作者がその場で解消できない」うえ、
 # 変更と無関係に時間で状態が変わるため、変更を対象とするゲートには載せられない。
