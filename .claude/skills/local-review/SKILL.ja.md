@@ -13,7 +13,7 @@
 以下には使わない:
 
 - formatting / style — `pnpm fix` / `pnpm lint:ci`
-- 静的な層境界の強制 — ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement は `eslint-plugin-boundaries` を選定しているが、**ESLint 実導入 PR はまだ着地していない**。現在の `pnpm lint:ci` は biome のみで、import 方向を一切検査しない。着地するまでは本スキルの `architecture` レンズが境界違反を捕まえる*唯一*の手段なので、静的ゲートが既に走った前提で手加減しないこと。着地後はレンズがその上に載る*意味的*なパスとなり、高シグナルな違反へ絞る。網羅的なレイヤ適合監査は専用の監査スキルの仕事だが、**こちらもまだ実体が無い**（BACKLOG C-1）
+- 静的な層境界の強制 — ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement は `eslint-plugin-boundaries` を選定しているが、**ESLint 実導入 PR はまだ着地していない**。現在の `pnpm lint:ci` は biome のみで、import 方向を一切検査しない。着地するまでは本スキルの `architecture` レンズが境界違反を捕まえる*唯一*の手段なので、静的ゲートが既に走った前提で手加減しないこと。着地後はレンズがその上に載る*意味的*なパスとなり、高シグナルな違反へ絞る。網羅的なレイヤ適合監査は専用の監査スキルの仕事だが、**こちらもまだ実体が無い**（BACKLOG GB-1）
 - コメント以外の修正の適用 — コードレンズについてはソースに対し read-only。指摘するだけで直すのはユーザー。（例外: **コメント品質の指摘は Step 5.5 で自動適用する** — 冗長・ナレーション的なコメントは報告で終わらず実際に直す。）
 
 ## 中核アイデア — reviewer ≠ implementer

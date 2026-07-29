@@ -626,7 +626,7 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
   - `scripts/actions-pin/` — go 側の機構を TS へ書換(resolve / apply / check)
   - `actions-pin.toml` — 解決済み `uses: → SHA` のロックファイル
   - `.makefiles/tools/actions-pin.mk`
-  - `.claude/skills/actions-pin/` — BACKLOG C-6 の移植
+  - `.claude/skills/actions-pin/` — BACKLOG GB-6 の移植
 - **設計**: `min-age-days` の検疫を入れ、公開直後のリリースは自動採用しない(`tools-upgrade` の quarantine と同系)
 - **完了条件**: `make actions-pin-check` が fail-closed で動作する。未登録 / 未固定の `uses:` が error になる
 - **依存**: P2-2
@@ -728,7 +728,7 @@ test-requirement: unit
 - **規約**: co-location(`__tests__` 集約は否定)/ 正常系・異常系を分ける / table-driven 禁止 / 命名は kebab + `.test.ts` / integration は HTTP 境界を mock
 - **カバレッジ**: 90% ハードゲート。**到達不可能コード以外は全てテストする**方針のため閾値は維持できる想定(維持できない場合は相談)
 - **async RSC のテスト配置**: [0091](../adr/0091-test-verification-methods.md) に従う
-- **同時に実施**: BACKLOG C-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルの `pnpm test` 条件分岐見直し
+- **同時に実施**: BACKLOG GB-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルの `pnpm test` 条件分岐見直し
 - **強制手段**: CI(カバレッジ 90% ハードゲート)+ lefthook(pre-commit)
 - **完了条件**: `make test` が CI で緑。カバレッジゲートが PR にレポートされる。**BACKLOG B8 は Playwright を含む(P6-4)ため、ここでは ⚠️ に留め P6-4 で ✅ にする**
 - **依存**: P3-1, P2-1
