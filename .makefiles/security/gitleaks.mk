@@ -1,6 +1,5 @@
 ## シークレットスキャン（gitleaks）
 .PHONY: secret-scan ## push 予定のコミットのシークレットを gitleaks でスキャンする
-.PHONY: secret-scan-history ## コミット履歴全体のシークレットを gitleaks でスキャンする
 
 # --redact: 検出値そのものを出力しない（hook / CI のログ経由の二次漏洩を防ぐ）
 # --no-color: 非 TTY（lefthook / CI）で ANSI エスケープが化けないようにする
@@ -15,9 +14,3 @@
 secret-scan:
 	@command -v gitleaks >/dev/null 2>&1 || { echo "❌ gitleaks が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
 	@gitleaks git . --no-banner --redact --no-color --log-opts="HEAD --not --remotes"
-
-# 履歴全体。マージ済みの履歴に埋もれた秘密を拾う。
-# コミット数に比例して伸びるため pre-push には載せず、手動 / 定期実行で使う。
-secret-scan-history:
-	@command -v gitleaks >/dev/null 2>&1 || { echo "❌ gitleaks が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
-	@gitleaks git . --no-banner --redact --no-color

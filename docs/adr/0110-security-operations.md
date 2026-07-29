@@ -32,7 +32,7 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 - **走査対象は「これから送られるコミット範囲」**(`gitleaks git` + `--log-opts`)。作業ツリーのスナップショット(`gitleaks dir`)は採らない。理由は 2 つあり、いずれも**守りたい境界とずれる**ため:
   - **取りこぼす**: commit したあと作業ツリーから消した秘密は、blob として履歴に残り push される。スナップショットには映らない
   - **誤検知する**: push されない gitignore 済みファイル(`env/.env.local` 等 — [0030](0030-environment-variable-management.md))を秘密として検出する。ローカルの正当な秘密で毎回 push が止まれば `--no-verify` の常用を招き、fail-closed が形骸化する
-- **コミット履歴全体の走査は別建て**(`make secret-scan-history`)。マージ済み履歴に埋もれた秘密を拾う用途で、コミット数に比例して伸びるため hook には載せず定期実行に置く
+- **コミット履歴全体の走査は CI の定期実行が持つ**。マージ済み履歴に埋もれた秘密を拾う用途で、コミット数に比例して伸びるため hook には載せない
 - 検出値はログに出さない(`--redact`)。hook / CI のログ自体が二次的な漏洩経路になるため
 - **`useDefault` は gitleaks 本体の global allowlist を同伴する**。node_modules / 各種 lockfile / `.svg` 等が無条件に走査対象外となり、これは `.gitleaks.toml` からは打ち消せない。打ち消すには全ルールを自前で持つことになり既定ルールの更新追随を失うため、**追随を優先して除外範囲を把握したうえで受け入れる**。生成型([0072](0072-api-type-generation.md))など自前の除外は、誤検知が実際に出た時点で下記の抑止ポリシーに沿って追加する
 
@@ -40,9 +40,21 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 
 - **CodeQL SAST**: `languages: javascript-typescript`(go の `go` を差し替え)。trigger = PR + 保護ブランチ push + 週次 cron。`security-events: write` で SARIF アップロード。high-severity はマージブロック(ブロックの実体は branch protection / code scanning の required 設定側。go 同様、workflow 内の hard-fail には依存しない)
 - **Trivy fs 二段運用**:
-  - **dev ゲート**(pre-push([0151](0151-git-hooks.md))+ 全 PR・advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`**(修正不能は無視)/ hard-fail しない + PR コメント。hook と CI は同じ `make trivy-fs` を呼ぶ。**修正版のない脆弱性はその変更が持ち込んだものではない**ため、ここでは push もマージも止めない
-  - **release ゲート**(保護ブランチへの PR 限定・厳格): **`ignore-unfixed: false`**(未修正も可視化)で厳格化
+  - **dev ゲート**(全 PR・advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`**(修正不能は無視)/ hard-fail しない + PR コメント
+  - **release ゲート**(保護ブランチへの PR 限定・厳格): **`ignore-unfixed: false`**(未修正も可視化)で厳格化。**止めるのはこの一点だけ**である
 - **依存監査ゲート**: **`pnpm audit` を既定**とする。go govulncheck 由来の「到達可能性(reachability)」フィルタは、`pnpm audit` に該当機能がなく、osv-scanner の call analysis も JS/TS 非対応のため、**現行ツールでは実装不能**である。したがって blocking 閾値は **severity(`high` / `critical`)と修正可能性(fixable)** で定める(未修正〈unfixable〉はノイズになりやすいため advisory 扱いとし、修正可能な high 以上を blocking)。運用 SLA(`high` 以上は 48 時間以内に対応着手)は [0004](0004-library-management.md) の既定を維持し、本項はその CI ゲート側の blocking 閾値を定める
+
+#### 3.1 脆弱性スキャンを push のゲートにしない
+
+`make trivy-fs` はローカルで手動実行できるが、**pre-push hook には接続しない**([0151](0151-git-hooks.md))。これは「今は検出件数が多いから」という状態依存の判断ではなく、**ゲートの形として成立しない**という判断である。
+
+- **その場で解消できない**。秘密の混入は値を消して commit し直せば当事者だけで解消できる。依存の脆弱性は上流の修正版が出ていなければ解消できず、出ていても上流が推移的依存を pin していれば `pnpm.overrides` で上流の検証外の組み合わせを作るしかない。**自力で通せないゲートはゲートではなく障害物**であり、`--no-verify` の常用を教育する(これは [0151](0151-git-hooks.md) が禁じている状態そのもの)
+- **変更と独立に状態が変わる**。CVE が公開されれば、コードを 1 行も変えていない push が昨日と違う結果になる。**変更を対象とするゲートに、変更と無関係に変動する信号は載せられない**
+- **判断する権限がその場に無い**。「この脆弱性を抱えたまま出す」は誰かが引き受けるべき判断であり、それが成立するのは昇格(保護ブランチ宛 PR)の場面だけである。push は判断の場ではない
+
+同じ理由で、脆弱性の報告先は **PR コメント**とする。hook の出力はレビューされず記録も残らないため、報告としても機能しない。
+
+秘密スキャンが逆にすべての条件を満たす(その場で解消でき、変更と共に決まり、判断の余地が無い)ことが、両者の扱いが違う理由である。
 
 ### 3.4 抑止(ignore)ポリシー
 

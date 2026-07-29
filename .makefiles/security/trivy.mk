@@ -7,10 +7,11 @@
 # --skip-version-check: trivy 自身の更新確認の通信を止める（版は mise.toml が SSOT）。
 TRIVY_SKIP_FLAGS := --skip-dirs node_modules --skip-dirs .claude/worktrees --skip-version-check
 
-# --ignore-unfixed で修正版のある脆弱性だけを対象にし、exit code では落とさない（報告専用）。
-# 修正版のない脆弱性はこの変更が持ち込んだものではないため push を止める理由にならず、
-# 未修正分まで含めた厳格判定は保護ブランチ宛の昇格ゲートが CI 側で持つ
-# （docs/adr/0110-security-operations.md）。
+# 報告専用（exit code では落とさない）。脆弱性は「その変更の作者がその場で解消できない」うえ、
+# 変更と無関係に時間で状態が変わるため、変更を対象とするゲートには載せられない。
+# 止めるのは昇格（保護ブランチ宛 PR）の一点で、そこが CI 側の責務になる
+# （判断の全文は docs/adr/0110-security-operations.md）。
+# --ignore-unfixed: 修正版のある脆弱性だけを報告する。
 # .trivyignore.yaml は自動検出に頼らず --ignorefile で明示し、抑止の適用先を本ターゲットに閉じる。
 trivy-fs:
 	@command -v trivy >/dev/null 2>&1 || { echo "❌ trivy が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
