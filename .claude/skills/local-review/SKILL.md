@@ -5,21 +5,20 @@ description: Local adversarial, low-bias code review of the current change, run 
 
 # Local Review
 
-Independent, adversarial, **different-model** code review you can run locally — no Copilot, no cloud `/code-review`. The implementer's own model has blind spots; the whole point is to review with another model so those blind spots get caught. Built on the `/code-review` finder → verify pattern, plus a runtime curl + o11y stage that mocked unit tests structurally cannot reach.
+Independent, adversarial, **different-model** code review you can run locally — no Copilot, no cloud `/code-review`. The implementer's own model has blind spots; the whole point is to review with another model so those blind spots get caught. Built on the `/code-review` finder → verify pattern, plus a runtime build + request stage that mocked component tests structurally cannot reach.
 
 A Japanese reference translation of this skill lives at `SKILL.ja.md` in this directory (for human reference only; not loaded as a skill).
 
 ## When to Use
 
 - Before committing / opening a PR, to get a second opinion the implementer's model would not produce on its own.
-- After a multi-layer change where mocked tests pass but DI / middleware / real-DB behavior is unverified.
-- Whenever you want an adversarial pass focused on bugs, auth/IDOR, and layer violations.
+- After a multi-kernel change where mocked component tests pass but the RSC / Client boundary, `src/proxy.ts`, or the `adapters` request path is unverified.
+- Whenever you want an adversarial pass focused on bugs, auth / IDOR, and layer violations.
 
 Do NOT use this skill for:
 
 - Style / formatting — `pnpm fix` / `pnpm lint:ci`.
-- Exhaustive layer-compliance auditing — `arch-check` (this skill's `architecture` lens flags only high-signal violations).
-- Spec validation — `verify-spec`.
+- Static layer-boundary enforcement — ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement selects `eslint-plugin-boundaries` for it, **but the ESLint introduction PR has not landed**: `pnpm lint:ci` today runs biome alone and checks no import direction at all. Until it does, this skill's `architecture` lens is the *only* thing catching a boundary violation, so do not soften it on the assumption a static gate already ran. Once ESLint lands, the lens becomes the *semantic* pass on top of it and narrows to high-signal violations. Exhaustive layer-compliance auditing belongs to a dedicated auditor skill, which **also does not exist yet** (BACKLOG C-1).
 - Applying non-comment fixes — for the code lenses this skill is read-only; it reports, the user fixes. (Exception: **comment-style findings are auto-applied** in Step 5.5 — verbose / narrating comments are actually fixed, not just reported.)
 
 ## Core Idea — reviewer ≠ implementer
@@ -73,9 +72,9 @@ model is passed to every `adversarial-reviewer` / `comment-reviewer` / `review-v
 ## Step 1 — Gather Context
 
 - Resolve the base ref and produce the review target: `git diff <base>...HEAD` (or `git diff` for uncommitted), plus the changed-file list (`git diff --name-only ...`).
-- Detect which layers/areas are touched (`internal/controller/**`, `usecase`, `domain`, `infrastructure`, `pkg`, `openapi/**`, `database/**`).
-- Note whether any **endpoint** is touched (controller handler or `openapi/**`) — this decides whether Step 4 runs.
-- Note whether any **shared** OpenAPI component is edited (a `components/*` referenced by more than one operation) — this widens Step 4 to every consumer.
+- Detect which **kernels / elements** are touched. The inventory is ADR [0027](../../../docs/adr/0027-directory-structure.md)'s physical layout, and what each may import is ADR [0021](../../../docs/adr/0021-frontend-responsibility.md)'s dependency matrix: `src/app/**` (3 elements — route-segment `page`/`layout`, route-handler `route.ts`, metadata), `src/features/<name>/**`, `src/model/**`, `src/components/**`, `src/adapters/server/**` · `src/adapters/client/**`, `src/capabilities/**`, `src/stores/**`, `src/config/**`, `src/errors/**`, `src/logging/**`, `src/observability/**` — plus the **boot / build boundary entries that sit outside the kernels**: `src/proxy.ts`, `src/instrumentation.ts`, `next.config.ts`. Several kernels are not on disk yet (ADR 0027 creates each when its decision lands); detect what exists rather than assuming the full set.
+- Note whether a **request-time seam** is touched — a Route Handler (`src/app/**/route.ts`), a Server Action (`src/features/<name>/actions.ts`), `src/proxy.ts`, the response header configuration (`next.config.ts` `headers()`), or the **layout shell / Provider composition** (`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.md); a missing Provider only fails when the route actually renders). This decides whether Step 4-2 runs.
+- Note whether a **generated API artifact** is touched (`**/gen/**` — the types / zod schemas of ADR [0072](../../../docs/adr/0072-api-type-generation.md)). A regenerated artifact ripples to every consumer, so widen the review to the `adapters` conversions and features that import it, not just the changed file.
 - Note whether any **non-generated production `.ts` / `.tsx` under `src/**`** is touched (exclude `*.test.ts(x)` / `*.spec.ts(x)` / `**/gen/**` / files carrying a `Code generated … DO NOT EDIT` banner) — this feeds the `test-gap` lens its changed-symbol list.
 - Check whether a **test runner is configured at all**: a `test` script in `package.json`, or any `*.test.ts(x)` / `*.spec.ts(x)` in the tree. If neither exists, the `test-gap` lens is **disabled** for this run (see Step 2) — say so in the Step 5 report rather than silently skipping it.
 
@@ -89,9 +88,9 @@ Spawn all finders concurrently (issue every `Agent` call in a single message). P
 | Finder | Agent | Run when |
 | --- | --- | --- |
 | `correctness` | adversarial-reviewer | always |
-| `security` | adversarial-reviewer | always (especially when a Route Handler / Server Action / middleware / auth / an API request-response type is touched) |
+| `security` | adversarial-reviewer | always (especially when a Route Handler / Server Action / `src/proxy.ts` / auth / a generated API request-response type is touched) |
 | `architecture` | adversarial-reviewer | always |
-| `runtime-gap` | adversarial-reviewer | when a Route Handler / Server Action / middleware / Provider mount / generated API type is touched — the seams a mocked component test does not exercise |
+| `runtime-gap` | adversarial-reviewer | when a Route Handler / Server Action / `src/proxy.ts` / Provider mount / generated API artifact is touched — the seams a mocked component test does not exercise |
 | `test-gap` | adversarial-reviewer | when the diff touches non-generated production `.ts` / `.tsx` under `src/**` **and** a test runner is configured (Step 1) |
 | comment quality | **comment-reviewer** | when the diff adds / changes any code comment (almost always) |
 
@@ -110,18 +109,43 @@ Collect all findings and **dedup** by (file, line, claim). For each surviving fi
 - Keep **CONFIRMED** and **PLAUSIBLE** findings. Drop **REFUTED** (but keep a count for the report).
 - For a critical/high finding where a single verdict feels shaky, spawn 2–3 verifiers and go by majority — diversity beats one opinion on the findings that matter.
 
-## Step 4 — Runtime Verification (curl + o11y) — endpoints only
+## Step 4 — Runtime Verification (build + request)
 
-Run this **only if Step 1 found a touched endpoint**, and run it from the **orchestrator (main session)**, not a subagent — it needs interactive bash, real DB/state, log reading, and possibly user confirmation. Follow `scaffold-endpoint` Step 3.5:
+Run this from the **orchestrator (main session)**, not a subagent — it needs interactive bash, a real server process, and possibly user confirmation. It is where the defects Step 2's `runtime-gap` lens only *predicts* get confirmed or dropped — as far as the stage reaches; see "What this stage does NOT reach" under 4-2. Two stages, each with its own gate.
 
-1. Mocked tests do NOT build the real DI graph, run auth/OpenAPI middleware, or touch the DB — so this stage exists to catch what Step 2's `runtime-gap` lens only *predicts*.
-2. Pick/seed a target row in a known state. For credential/state-sensitive checks, create a row whose plaintext/state you control.
-3. `curl` the touched endpoint(s) (local auth: `Authorization: Bearer debug:<subject>`) and assert: happy path; key error paths (404 / 400 / 422); and — **if the operation declares `security:`** — no-token ⇒ 401 (prove it is actually protected). For IDOR-shaped findings, curl as a *different* subject and assert it cannot reach another subject's resource.
-4. **Shared-schema impact:** if a shared `components/*` was edited (Step 1), curl **every** consumer endpoint, not just the changed one — `grep` the spec for `$ref`s and exercise each.
-5. Read the o11y logs once for a single request: confirm the trace spans the layers and the emitted queries are what you expect. Later re-checks can rely on o11y instead of re-curling.
-6. **Destructive guard:** if a curl mutates data and the only restore path is a full data reset, confirm with the user before running it (per `CLAUDE.md`). Clean up rows you created.
+### 4-1 Build verification — whenever app code is touched
 
-Fold any runtime-confirmed defect into the report as CONFIRMED with the curl/o11y evidence.
+Gate: the diff touches `src/**`, `next.config.ts`, `src/proxy.ts`, or `src/instrumentation.ts`.
+
+Run `pnpm build`. This is not a slower `pnpm lint:ci` / `pnpm typecheck` — those are per-file and structurally cannot see the module graph the build assembles:
+
+- **RSC / Client boundary violations** — a `server-only` module reachable from the client graph, `"use client"` on a module that imports server config, a client hook mixed into `adapters/server` (ADR [0024](../../../docs/adr/0024-adapters-server-client-split.md)).
+- **Secret leakage into the client bundle** — server config reached from a client-side layer. ADR [0030](../../../docs/adr/0030-environment-variable-management.md) lets only `NEXT_PUBLIC_` literals cross, and the bundle is where the violation actually materializes.
+- **Build-time config validation** — `next.config.ts` imports the schema and evaluates it in full (ADR 0030), so a missing or invalid variable fails here and nowhere earlier. Note that ADR 0030's *second* validation point, `src/instrumentation.ts`'s `register()`, runs once at **server start**, not during the build — only Step 4-2 reaches it.
+- Route / metadata type errors raised only by the App Router's own generated types.
+
+A build failure **is** a CONFIRMED finding: report it with the output. Do not fix it here — the code lenses are read-only.
+
+### 4-2 Request verification — only when a request-time seam is touched
+
+Gate: Step 1 found a touched Route Handler (`src/app/**/route.ts`), Server Action (`src/features/<name>/actions.ts`), `src/proxy.ts`, response header configuration (`next.config.ts` `headers()`), or layout shell / Provider composition (`src/app/**/layout.tsx`).
+
+1. Start the app built in 4-1: `pnpm start --port <3000+N>`, on a port distinct from other worktrees so a parallel session's server is not the one under test. Run it in the background and stop it when done.
+2. `curl -i` the touched path(s) and assert:
+   - the happy-path status and body shape;
+   - **no raw upstream status leaks** — a backend failure must surface as the normalized `errors` classification, not a pass-through 4xx/5xx (ADR [0071](../../../docs/adr/0071-bff-api-integration.md));
+   - the security headers / CSP the change should produce (ADR [0111](../../../docs/adr/0111-csp-security-headers.md) — `next.config.ts` `headers()` is the default seam; a nonce CSP forces every route dynamic, which is itself a finding if unintended);
+   - for a path the change intends to protect, that the no-credential request is actually rejected — prove it, do not infer it from reading the handler.
+3. **`src/proxy.ts` changes:** exercise both a path the `matcher` selects and one it excludes. A matcher regression is invisible to unit tests and to the build (ADR [0043](../../../docs/adr/0043-middleware-policy.md)).
+4. **Layout shell / Provider changes:** request a route beneath the changed layout and confirm it renders — a Provider dropped from the shell leaves a hook without context, which surfaces as a runtime error or an error boundary, not a build failure (ADR [0026](../../../docs/adr/0026-layout-shell-mount.md)).
+
+**What this stage does NOT reach.** It asserts the four points above plus the matcher and shell checks — nothing else. The `runtime-gap` lens can raise categories this stage cannot execute today, chiefly **cache / revalidation** (a mutation that fails to invalidate its tags) and **retry / idempotency / breaker semantics**: both need the `adapters` layer and a backend, and ADR 0071 leaves their concrete shape to the implementation PR. Report those findings as 到達不能 rather than treating an unrun check as a pass.
+
+**There is no backend in this repository** — DB / auth / business logic belong to a separate service (ADR [0011](../../../docs/adr/0011-no-docker.md) / [0070](../../../docs/adr/0070-backend-role-separation.md)), so a Route Handler's upstream call fails unless a stub is configured. That is not a reason to skip the stage: the *failure* path is precisely what ADR 0071's error normalization owns, so assert it. What genuinely cannot be reached without a backend — a real success response, cross-subject authorization — is **stated as 到達不能 in the Step 5 report**. Never simulate it, and never report it as passing.
+
+**Destructive guard:** a Server Action can mutate real backend state. If one is in scope and running it would write to a shared environment, confirm with the user first — ADR [0154](../../../docs/adr/0154-claude-skills-operations.md)'s 商用操作前のユーザ確認 requires it of any skill whose step reaches outside the working tree — and say what the restore path is.
+
+Fold any runtime-confirmed defect into the report as CONFIRMED with the build output / curl evidence.
 
 ## Step 5 — Synthesize Report (Japanese)
 
@@ -132,12 +156,12 @@ Produce one Japanese report:
 
 スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, runtime-gap, test-gap, comment-style
 未実行のレンズ: test-gap（テストランナー未導入のため無効）
-ランタイム検証: 実施（curl/o11y）/ 対象外（エンドポイント変更なし）
+ランタイム検証: 4-1 build 実施 / 4-2 リクエスト検証 実施（curl）・対象外（リクエスト時 seam の変更なし）・到達不能（バックエンド不在で未検証の経路: <経路>）
 
 ### CONFIRMED（要対応）
 - [重大度] タイトル — path:行
   - 問題 / 根拠 / 修正案
-  - 検証: verifier 判定（+ 該当すれば curl/o11y 結果）
+  - 検証: verifier 判定（+ 該当すれば build / curl 結果）
 
 ### PLAUSIBLE（要確認・判断保留）
 - ...
@@ -162,7 +186,7 @@ Confirm once before editing:
 
 Apply the action each finding carries — **削除 (delete)** a bad-content comment, **書換 (rewrite)** to a correct/behavioral What, or **加筆 (enrich)** a thin What / missing non-obvious contract / missing good Why. A `誤り/陳腐化` finding (the What contradicts the code) is corrected, not deleted. Obey these guards (a wrong deletion here is a real regression):
 
-- **Never delete functional / directive comments**: `// @ts-expect-error`, `// @ts-ignore`, `// biome-ignore …`, `// eslint-disable` / `// eslint-disable-next-line` / `/* eslint-disable … */` (ADR [0002](../../../docs/adr/0002-formatter-linter.md) keeps ESLint for the checks biome cannot express), `/** @jsxImportSource … */`, `// prettier-ignore`, `// Code generated … DO NOT EDIT`, shebangs, tool directives in SQL / YAML. (`"use client"` / `"use server"` are string directives, not comments — never touch them either.)
+- **Never delete functional / directive comments**: `// @ts-expect-error`, `// @ts-ignore`, `// biome-ignore …`, `// eslint-disable` / `// eslint-disable-next-line` / `/* eslint-disable … */` (ADR [0002](../../../docs/adr/0002-formatter-linter.md) keeps ESLint for the checks biome cannot express), `/** @jsxImportSource … */`, `// prettier-ignore`, `// Code generated … DO NOT EDIT`, shebangs, tool directives in shell / YAML. (`"use client"` / `"use server"` are string directives, not comments — never touch them either.)
 - **Never edit a protected path.** `AGENTS.md`'s *AI Modification Scope* and *Protected Documentation* are authoritative: `AGENTS.md` itself, Accepted ADR bodies, `LICENSE`, and anything listed under `.claude/settings.json`'s `permissions.deny` stay untouched even during skill execution. Root config (`package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/`) is lifted only by the temporary pre-v1.0.0 rules — a comment fix is never a good enough reason to reach into one. If a comment finding lands on such a path, report it instead of applying it.
 - **Exported declarations**: if the doc comment carries a real contract (error semantics / units / boundaries / side effects), **rewrite or enrich, never delete** — the type signature does not carry it. Delete only when the comment is a pure restatement of the name and type. The `comment-reviewer` marks which case applies on every exported-declaration finding; if it did not, treat it as contract-bearing and rewrite.
 - **Keep good comments**: a correct, sufficient What and a non-obvious Why (rationale / load-bearing constraint) are not findings — do not strip them. Rewrites/enrichments describe **What + non-obvious Why**, never **How** or development 経緯. Comments are written in Japanese (AGENTS.md Language Rules). Edit only in-scope files; never touch generated files, Markdown prose, or the deny list. Use `Edit`, one finding (or one file) at a time.
@@ -246,8 +270,10 @@ The permission layer is not what makes this safe — a pattern rule cannot tell 
 - ✅ Guarantee reviewer model ≠ implementer model (user selects it in Step 0; warn + confirm if they pick the implementer's model).
 - ✅ Run finders concurrently (one message, multiple `Agent` calls): the code lenses via `adversarial-reviewer`, comment quality via `comment-reviewer`.
 - ✅ Independently verify every finding before reporting; drop REFUTED.
-- ✅ Run the runtime stage for touched endpoints; widen to all consumers on a shared-schema edit.
-- ✅ Confirm with the user before any destructive curl whose only restore path is a full data reset.
+- ✅ Run `pnpm build` (Step 4-1) whenever app code is touched, and the request stage (Step 4-2) when a request-time seam is.
+- ✅ When a generated artifact changed, widen the *finders'* read scope (Step 1) to every consumer that imports it — Step 4 does not widen; it verifies the paths it can reach.
+- ✅ State a path as 到達不能 when the missing backend blocks it — never simulate it, never call it passing.
+- ✅ Confirm with the user before running a Server Action that would mutate shared backend state.
 - ✅ Apply comment quality findings in Step 5.5 after one confirmation (delete / rewrite / enrich), then `pnpm fix` + `pnpm lint:ci`; skip with `--no-apply`.
 - ✅ By default, post the code lenses' CONFIRMED + PLAUSIBLE findings to the branch's PR as inline review comments (Step 6); suppress with `--no-comment` or when no open PR exists.
 - ✅ Confirm once before posting to the PR (outward action); anchor each comment to its `path:line`, fold off-diff findings into the review summary.
@@ -269,7 +295,7 @@ The permission layer is not what makes this safe — a pattern rule cannot tell 
 - [ ] Reviewer model selected in Step 0 and verified ≠ implementer model (warn + confirm if same).
 - [ ] Finders fanned out concurrently: code lenses (`adversarial-reviewer`) + comment quality (`comment-reviewer`); `test-gap` only when a test runner is configured.
 - [ ] Every finding independently verified; REFUTED dropped (count kept).
-- [ ] Runtime curl + o11y done for touched endpoints (shared-schema → all consumers); destructive curls confirmed.
+- [ ] Step 4-1 `pnpm build` run when app code was touched; Step 4-2 curl run when a request-time seam was; 到達不能 paths named; a mutating Server Action confirmed before running.
 - [ ] Single Japanese report: CONFIRMED → PLAUSIBLE, comment findings in their own subsection, runtime coverage and skipped lenses stated.
 - [ ] Unless `--no-apply`: comment findings applied in Step 5.5 (functional directives untouched, contract-bearing exported doc comments rewritten not deleted), then `pnpm fix` + `pnpm lint:ci`; no auto-commit.
 - [ ] Unless `--no-comment` / no PR: confirmed once, then posted the code lenses' CONFIRMED + PLAUSIBLE as inline PR comments (off-diff → summary body); REFUTED excluded; `event: COMMENT`.
