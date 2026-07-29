@@ -1,139 +1,133 @@
-# Make Command List
+# Make コマンド一覧
 
-English | [日本語](README.ja.md)
+## 役割
 
-## Role
+`.makefiles/` は本リポジトリで使用するすべての `make` ターゲットの中央レジストリです。各 `.mk` ファイルは関連
+ターゲットを領域別にグルーピングし、トップレベルの `Makefile` はそれらを `include` するだけなので、既存領域への
+ターゲット追加はトップレベル編集なしで完結します。
 
-`.makefiles/` is the central registry for every `make` target in this repository. Each `.mk` file groups
-related targets by area, and the top-level `Makefile` only `include`s them — so adding a target to an
-existing area needs no top-level edit.
+ターゲットは以下の単位で整理されています。
 
-Targets are organized into the following units.
+- `.makefiles/github` : GitHub 初期設定 / リリース / ラベル / ルール設定 / ワークフロー Lint
+- `.makefiles/tools` : 開発ツールの管理（mise）/ コミットメッセージ検証
+- `.makefiles/security` : シークレット / 依存脆弱性のスキャン
 
-- `.makefiles/github` — GitHub initial setup / release / labels / ruleset / workflow lint
-- `.makefiles/tools` — development tool management (mise) / commit message validation
-- `.makefiles/security` — secret / dependency-vulnerability scanning
+アプリケーション側のコマンド（`dev` / `build` / `lint` / `typecheck`）は make ターゲットでは**なく**、
+`package.json` の scripts に置き pnpm から実行します（[ADR 0001](../docs/adr/0001-package-manager.md)）。
+`make` が受け持つのは pnpm scripts で表せない領域 — リポジトリ運用とツールチェーン整備 — だけです。
 
-Application-side commands (`dev` / `build` / `lint` / `typecheck`) are **not** make targets: they live in
-`package.json` scripts and are run with pnpm ([ADR 0001](../docs/adr/0001-package-manager.md)). `make` covers
-only what pnpm scripts cannot — repository operations and toolchain setup.
+## 規約
 
-## Conventions
+- ターゲット名はハイフン区切りの小文字（`make install-tools`、`make setup-repo`）
+- すべて `.PHONY` 指定し、末尾 `## <説明>` コメントを付けて `make help` の一覧に載せること。説明コメントの無い
+  `.PHONY` 行は `make help` が警告する（一覧に出ないターゲットは利用者から見えないため）
+- 自明でないロジックはインラインシェルではなく `scripts/*.ts` に置き `pnpm exec tsx` から実行する。TypeScript に
+  置けば `pnpm typecheck` と biome の検査対象に入り、実行環境ごとのシェル差異も持ち込まずに済む
+- 一回限りのリポジトリ運用コマンド（`make setup-repo` とその補助）は `.makefiles/github/operation/` 配下に置き、
+  開発者向けターゲットと分離する。GitHub 設定を**適用する**ターゲットは `setting/`、何も変更せずファイルを
+  **検査する**ターゲットは `lint/` へ置く
 
-- Target names are dash-separated lower case (`make install-tools`, `make setup-repo`).
-- Every target is declared `.PHONY` with a trailing `## <description>` comment so `make help` can list it.
-  `make help` reports any `.PHONY` line missing that comment as a warning — an undocumented target is
-  invisible to its users.
-- Non-trivial logic lives in `scripts/*.ts` invoked through `pnpm exec tsx`, not in inline shell. Keeping it
-  in TypeScript keeps it inside the reach of `pnpm typecheck` and biome, and off machine-specific shell
-  behavior.
-- One-off repository operations (`make setup-repo` and its helpers) stay under `.makefiles/github/operation/`,
-  separate from developer-facing targets. Targets that *apply* a GitHub setting live in `setting/`, and
-  targets that *inspect* files without changing anything live in `lint/`.
-
-## Listing targets
+## ターゲットの一覧表示
 
 ```bash
 make help
 ```
 
-`make help` collects the `.PHONY: <target> ## <description>` lines under `.makefiles/` and groups them by the
-`## <category>` heading of each file.
+`make help` は `.makefiles/` 配下の `.PHONY: <target> ## <説明>` 行を収集し、各ファイルの `## <カテゴリ>` 見出し
+ごとにグルーピングして出力します。
 
-## `.makefiles/github`
+## `.makefiles/github` 系
 
-### GitHub settings
+### GitHub 設定関連
 
-| Command | Description | Notes |
+| コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make gh-login` | Logs in to GitHub with the `gh` CLI. | Browser-based authentication. |
-| `make delete-all-labels` | Deletes every existing label on the repository. | None |
-| `make create-default-labels` | Creates the default labels from `.github/settings/labels.json`. | None |
-| `make apply-branch-protection` | Applies the branch ruleset from `.github/settings/branch-protection.json`. | None |
+| `make gh-login` | `gh` コマンドで GitHub にログインします。 | ブラウザ認証方式でログインを行います。 |
+| `make delete-all-labels` | GitHub リポジトリ上の既存ラベルをすべて削除します。 | なし |
+| `make create-default-labels` | `.github/settings/labels.json` をもとに、デフォルトラベルを作成します。 | なし |
+| `make apply-branch-protection` | `.github/settings/branch-protection.json` をもとに、対象リポジトリへブランチルールセットを適用します。 | なし |
 
-### Repository initialization
+### GitHub リポジトリ初期化関連
 
 #### `make setup-repo`
 
-Runs the whole initialization of a newly forked repository, in this order. Several steps are
-destructive — read the list before running it on anything but a fresh fork.
+フォーク直後のリポジトリ初期化処理をまとめて実行します。以下を順に行います。破壊的な手順を含むため、
+フォーク直後以外で実行する前に必ず内容を確認してください。
 
-- `gh` login
-- **Deleting every existing tag** (locally and on `origin`), then creating and pushing `v0.0.0`
-- Creating the `develop` / `staging` / `production` branches
-- Setting the GitHub default branch
-- Applying the branch ruleset
-- Initializing labels
-- **Deleting every release note under `.github/release/` except `v0.0.0.md`**
-- **Removing the `upstream` remote**
+- `gh` ログイン
+- **既存タグの全削除**（ローカルと `origin` の両方）と初期タグ `v0.0.0` の作成 / push
+- `develop` / `staging` / `production` ブランチの作成
+- GitHub デフォルトブランチの設定
+- ブランチルールセット適用
+- ラベル初期化
+- **`.github/release/` 配下のリリースノートを `v0.0.0.md` を除いて全削除**
+- **`upstream` リモートの削除**
 
-#### Setup helper commands
+#### セットアップ補助コマンド
 
-| Command | Description | Notes |
+| コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make setup-replace-license-copyright COPYRIGHT_HOLDER=<name> [COPYRIGHT_YEAR=<year>]` | Updates the copyright line of `LICENSE`. | The year may be omitted. |
-| `make setup-replace-repository-reference REPOSITORY=<owner>/<repo>` | Rewrites GitHub repository references and the project name (`package.json` `name`) to the forked repository. | `docs/`, `.claude/`, `scripts/setup/`, build output (`.next` / `dist` / `build` / `tmp`) and lock files are out of scope. |
+| `make setup-replace-license-copyright COPYRIGHT_HOLDER=<name> [COPYRIGHT_YEAR=<year>]` | LICENSE の著作権表記を更新します。 | 年は省略可能です。 |
+| `make setup-replace-repository-reference REPOSITORY=<owner>/<repo>` | GitHub リポジトリ参照とプロジェクト名（`package.json` の `name`）をフォーク先へ置換します。 | `docs/` / `.claude/` / `scripts/setup/` / ビルド成果物（`.next` / `dist` / `build` / `tmp`）/ ロックファイルは対象外です。 |
 
-Both helpers take `DRY_RUN=1` to print the planned changes without writing them. `1` is the only value that
-turns the dry run on; anything else (including `DRY_RUN=0` and omitting the variable) writes for real.
+どちらの補助コマンドも `DRY_RUN=1` を付けると、書き換えずに変更予定だけを出力します。有効値は `1` のみで、
+それ以外（`DRY_RUN=0` や変数の省略）はすべて実際に書き換えます。
 
-### GitHub Actions lint
+### GitHub Actions Lint 関連
 
-| Command | Description | Notes |
+| コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make actionlint` | Lints the workflow definitions under `.github/workflows` with actionlint. | Skips when the directory does not exist. |
+| `make actionlint` | `.github/workflows` のワークフロー定義を actionlint で検査します。 | ディレクトリが存在しない場合はスキップします。 |
 
-actionlint also checks the shell of `run:` steps through shellcheck, so both binaries are version-pinned in
-`mise.toml` ([ADR 0003](../docs/adr/0003-version-manager.md)) — run `make install-tools` first.
+actionlint は `run:` ステップのシェルも shellcheck 経由で検査するため、両バイナリを `mise.toml` で版固定して
+います（[ADR 0003](../docs/adr/0003-version-manager.md)）。先に `make install-tools` を実行してください。
 
-### Release branches
+### リリースブランチ関連
 
-| Command | Description | Notes |
+| コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make hotfix-patch` | Creates a hotfix branch from `production` and sets it as the GitHub default branch. | Bumps the patch of the latest tag by one. |
-| `make branch-patch` | Creates a patch release branch from `production` and sets it as the default branch. | Bumps the patch of the latest tag. |
-| `make branch-minor` | Creates a minor release branch from `production` and sets it as the default branch. | Bumps the minor of the latest tag. |
-| `make branch-major` | Creates a major release branch from `production` and sets it as the default branch. | Bumps the major of the latest tag. |
+| `make hotfix-patch` | `production` から hotfix ブランチを作成し、GitHub のデフォルトブランチに設定します。 | 現在の最新タグを基準に patch を 1 つ進めます。 |
+| `make branch-patch` | `production` から patch リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に patch バージョンを進めます。 |
+| `make branch-minor` | `production` から minor リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に minor バージョンを進めます。 |
+| `make branch-major` | `production` から major リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に major バージョンを進めます。 |
 
-### Release tags
+### リリースタグ関連
 
-| Command | Description | Notes |
+| コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make tag-patch` | Creates a patch-bumped tag and publishes a GitHub Release. | Based on the latest tag; the release body is `.github/release/<version>.md`. |
-| `make tag-minor` | Creates a minor-bumped tag and publishes a GitHub Release. | Based on the latest tag. |
-| `make tag-major` | Creates a major-bumped tag and publishes a GitHub Release. | Based on the latest tag. |
+| `make tag-patch` | patch バージョンを 1 つ進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準とし、リリースノートには `.github/release/<version>.md` を使用します。 |
+| `make tag-minor` | minor バージョンを進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準にします。 |
+| `make tag-major` | major バージョンを進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準にします。 |
 
-## `.makefiles/tools`
+## `.makefiles/tools` 系
 
-### Tool version management
+### ツールバージョン管理関連
 
-| Command | Description | Notes |
+| コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make install-tools` | Installs the `[tools]` entries of `mise.toml` (Node.js / pnpm / actionlint / shellcheck / gitleaks / Trivy). | mise must be installed beforehand — see [ADR 0003](../docs/adr/0003-version-manager.md). |
+| `make install-tools` | `mise.toml` の `[tools]`（Node.js / pnpm / actionlint / shellcheck / gitleaks / Trivy）をインストールします。 | mise の事前インストールが必要。詳細は [ADR 0003](../docs/adr/0003-version-manager.md) 参照 |
 
-### Commit message validation
+### コミットメッセージ検証関連
 
-| Command | Description | Notes |
+| コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make commitlint [COMMIT_MSG_FILE=<path>]` | Lints a commit message with commitlint. | Called from the `commit-msg` hook in `.lefthook.yaml`. With `COMMIT_MSG_FILE` omitted it targets the message being edited. The convention is [ADR 0150](../docs/adr/0150-git-workflow.md). |
+| `make commitlint [COMMIT_MSG_FILE=<path>]` | コミットメッセージを commitlint で検証します。 | `.lefthook.yaml` の commit-msg hook から呼ばれます。`COMMIT_MSG_FILE` 省略時は編集中のコミットメッセージを対象にします。規約は [ADR 0150](../docs/adr/0150-git-workflow.md) 参照 |
 
-## `.makefiles/security`
+## `.makefiles/security` 系
 
-Local detection of leaked secrets and vulnerable dependencies. These run from the pre-push hook and invoke
-the same commands the CI gate will ([ADR 0110](../docs/adr/0110-security-operations.md)).
+シークレットの混入と脆弱な依存をローカルで検知するためのスキャンです。pre-push hook から実行され、CI 側のゲートと同じコマンドを呼びます（[ADR 0110](../docs/adr/0110-security-operations.md)）。
 
-Suppressions are confined to `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml`, each entry recorded
-with its reason per the policy stated at the top of those files.
+抑止は `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に限定し、各ファイル冒頭の抑止ポリシーに従って理由付きで記録します。
 
-| Command | Description | Notes |
+| コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make secret-scan` | Scans the commit range about to be pushed with gitleaks. | The range is "commits reachable from `HEAD` but absent from every remote". Exits 1 on detection (fail-closed). Detected values are withheld via `--redact`. |
-| `make secret-scan-history` | Scans the entire commit history with gitleaks. | Catches secrets buried in already-merged history. Grows with the commit count, so it is not wired into a hook. |
-| `make trivy-fs` | Scans dependencies for vulnerabilities with Trivy fs. | Reports only the fixable ones and never fails on exit code. Strict judgement belongs to the promotion gate in CI. |
+| `make secret-scan` | push 予定のコミット範囲を gitleaks でスキャンします。 | 対象は「`HEAD` から辿れてどのリモートにも無いコミット」。検出時は exit 1 で失敗します（fail-closed）。検出値は `--redact` で出力しません。 |
+| `make secret-scan-history` | コミット履歴全体を gitleaks でスキャンします。 | マージ済み履歴に埋もれた秘密を拾う用途。コミット数に比例して伸びるため hook には載せません。 |
+| `make trivy-fs` | 依存ライブラリの脆弱性を Trivy fs でスキャンします。 | 修正版のあるものだけを報告し、exit code では落としません。厳格判定は昇格ゲートが CI 側で持ちます。 |
 
-## Notes
+## 補足
 
-- Adding a target to an existing group file needs no top-level edit. Adding a **new** `.mk` file does: the
-  top-level `Makefile` includes files individually, not by wildcard.
-- The release branch / tag targets act on the GitHub default branch and push to `origin`. Read
-  [ADR 0150](../docs/adr/0150-git-workflow.md) before running them.
+- 既存グループファイルへのターゲット追加ならトップレベル編集は不要。ただし**新規** `.mk` ファイルを追加する場合は、
+  トップレベル `Makefile` へ `include` 行の追記が必要（ワイルドカードではなく個別 include のため）
+- リリースブランチ / タグ系のターゲットは GitHub のデフォルトブランチを操作し `origin` へ push します。実行前に
+  [ADR 0150](../docs/adr/0150-git-workflow.md) を確認してください
