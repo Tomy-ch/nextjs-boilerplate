@@ -23,9 +23,67 @@ make install-tools     # mise.toml に従い Node.js + pnpm を入れ、両バ�
 ```
 
 原則: **mise が Node.js / pnpm バージョンの SSOT。** 誰かが `mise.toml` を変えたら(例 `node-upgrade`)、
-`make install-tools` でローカルツールチェーンを揃え、`node --version` / `pnpm --version` で確認する。
+`make install-tools` でローカルツールチェーンを揃え、`mise exec -- node --version` /
+`mise exec -- pnpm --version` で確認する ── 素の `pnpm --version` は `PATH` が拾った方を答えるだけで、
+問いが別物になる(§2)。
 
-## 2. `DRY_RUN` は `make setup-repo` には効かない
+## 2. 素の `pnpm` は別の pnpm ── スクリプトが落ち、`pnpm-workspace.yaml` が勝手に変わる
+
+`mise.toml` は pnpm をピン留めしている(ADR 0003)が、素の `pnpm` は `PATH` で解決されるため、システム全体に
+入った pnpm(Homebrew / グローバル npm install / Corepack)がピンを覆い隠す。ピンより 1 メジャー先の pnpm は、
+次の 2 つの挙動でどちらも別の場所へ責任を押し付けてくる。
+
+- **スクリプトがそもそも走らない。** pnpm 11 はスクリプト実行前に依存の鮮度を検査して `pnpm install` を呼び、
+  それが本リポジトリの未承認ビルドスクリプトで止まる ── `esbuild` / `lefthook` / `sharp` を挙げる
+  `ERR_PNPM_IGNORED_BUILDS`、あるいはエージェントや CI の非対話シェルでは、別メジャーが書いた
+  `node_modules` を破棄しようとして `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`。スタックの末尾が
+  `runDepsStatusCheck` であることが目印で、落ちたのは前段のゲートであって `lint:ci` / `typecheck` /
+  `md-lint` ではない。
+- **追跡対象のルート設定を書き換える。** pnpm 11 は `pnpm-workspace.yaml` の先頭にプレースホルダを追記する:
+
+  ```yaml
+  allowBuilds:
+    esbuild: set this to true or false
+    lefthook: set this to true or false
+    sharp: set this to true or false
+  ```
+
+  何も告知されないため `git status` に紛れ込み、PR まで届きうる。`pnpm-workspace.yaml` は既定の
+  AI 変更スコープ外のルート設定で、ついでに変えてよいものではない。
+
+2 つの解決結果を突き合わせる。一致していなければならない。
+
+```bash
+pnpm --version                 # PATH が拾った方
+mise exec -- pnpm --version    # mise.toml がピン留めした方
+which -a pnpm                  # どちらがどちらを覆っているか
+```
+
+戻してから mise 経由で実行する:
+
+```bash
+git restore pnpm-workspace.yaml     # allowBuilds ブロックが付いていたら捨てる
+mise exec -- pnpm lint:ci           # pnpm lint:ci ではなく
+```
+
+誤った pnpm が既に `node_modules` を入れ直していた場合、ピン留めされた pnpm 側も同じ `..._NO_TTY` で
+引き取りを拒む。`CI=true` が破棄の確認に代わりに答える:
+
+```bash
+CI=true mise exec -- pnpm install --frozen-lockfile
+```
+
+シェルで `mise activate` を読み込んでおけば `PATH` の解決が恒久的に正しくなり、人間のシェルにはこれが本筋。
+エージェントや hook はそれを継承しないので、代わりに `mise exec --` で包む。
+
+lefthook はこの罠を踏まない ── `.lefthook.yaml` の全コマンドが既に包まれているため(§7)。つまり
+**hook が緑でも、手で叩いたコマンドについては何も保証しない**。この食い違いこそが、原因をツールチェーンでなく
+リンタの問題に見せる。
+
+ピンを新しい pnpm へ動かすかは `tools-upgrade` の判断であって、この罠の回避策ではない。動かす場合は
+`allowBuilds` をプレースホルダでなく実値で埋める作業も要る。
+
+## 3. `DRY_RUN` は `make setup-repo` には効かない
 
 `DRY_RUN=1` が効くのは置換系の補助ターゲット 2 つだけ。`make setup-repo` はこの変数を読まないため、
 **事前にプレビューする手段が無い**。
@@ -42,7 +100,7 @@ dry-run が有効になる値は `1` のみ。それ以外(`DRY_RUN=0` を含む
 `v0.0.0.md` 以外のリリースノートを削除し、`upstream` リモートを外し、`v0.0.0` と保護ブランチ 3 本を作成・push する。
 実行前にユーザ確認を取り、初期化済みリポジトリでは実行しない(`v0.0.0` があれば中断する)。
 
-## 3. `pnpm install --frozen-lockfile` が落ちる ── lockfile 不整合
+## 4. `pnpm install --frozen-lockfile` が落ちる ── lockfile 不整合
 
 ADR 0001 により `pnpm-lock.yaml` は**コミット必須**で `package.json` と同期させる。CI 相当の `--frozen-lockfile`
 インストールは両者がズレると落ちる(例: 再ロックせず依存を編集)。
@@ -57,7 +115,7 @@ git add package.json pnpm-lock.yaml
 原則: **`package.json` の依存変更は、再生成した `pnpm-lock.yaml` を必ず同時コミットする。**(`package.json` は
 保護対象のルート設定 ── 依存編集はユーザ明示指示が必要。Toolchain-0005 により依存メジャーは別 PR。)
 
-## 4. biome: `pnpm lint` vs `pnpm fix`(ADR 0002)
+## 5. biome: `pnpm lint` vs `pnpm fix`(ADR 0002)
 
 biome が唯一のフォーマッタ/リンタ(ESLint / Prettier 不採用 ── ADR 0002)。入口は 2 つ:
 
@@ -71,7 +129,7 @@ pnpm format    # biome format --write : フォーマットのみ
 ものは手で直す。`// biome-ignore` を多用しない(スコープ付き `overrides` を `biome.json` に。ただし `biome.json` は
 保護対象ルート設定=ユーザ指示)。
 
-## 5. スクラッチ出力は `tmp/` 配下に置き、git には乗せない
+## 6. スクラッチ出力は `tmp/` 配下に置き、git には乗せない
 
 `/tmp` と `/.claude/worktrees/` は `.gitignore` 済みなので、以下は `git status` に出ない。
 
@@ -82,7 +140,7 @@ pnpm format    # biome format --write : フォーマットのみ
 いずれもソースではなくスクラッチ出力: `git add -f` で強引に載せない。残す必要があるスクラッチはリポジトリ外に
 実体を置き、`tmp/` 配下の symlink から参照する。
 
-## 6. commit / push が hook に弾かれる(lefthook)
+## 7. commit / push が hook に弾かれる(lefthook)
 
 hook は `.lefthook.yaml` で宣言される(ADR 0151)。`pnpm install` では登録されないため、clone 後に
 `pnpm exec lefthook install` を 1 度実行する必要がある。hook は共通 git ディレクトリに置かれるので
@@ -126,7 +184,8 @@ echo "Feat: 説明" | pnpm exec commitlint
 ## 制約
 
 - ✅ read-only ナレッジ: 正確なコマンドを提示。実行はユーザが操作を頼んだ時のみ。
-- ✅ 破壊的ステップ(§2 のタグ/ブランチ削除)は `CLAUDE.md` に従い事前警告。
-- ✅ ルートファイル編集(§4 `biome.json`、§3 `package.json`)は事前にユーザ確認 ── 既定の
-  AI 変更スコープ外。
+- ✅ 破壊的ステップ(§3 のタグ/ブランチ削除)は `CLAUDE.md` に従い事前警告。
+- ✅ ルートファイル編集(§5 `biome.json`、§4 `package.json`)は事前にユーザ確認 ── 既定の
+  AI 変更スコープ外。§2 の `git restore pnpm-workspace.yaml` は例外 ── 頼んでいない機械的な変更を
+  作るのではなく捨てる操作だから。
 - ❌ go-boilerplate の Docker / sqlc / DB 項目をここに移植しない ── 適用外(ADR 0004)。
