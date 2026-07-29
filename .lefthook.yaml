@@ -7,12 +7,17 @@ pre-commit:
     lint:
       # 完全版 (biome.ci.jsonc + --error-on-warnings)。エディタ保存時の簡易版に対し、
       # commit 時は warn もブロックする完全版で検査する。
-      run: pnpm lint:ci
+      run: mise exec -- pnpm lint:ci
     md-lint:
       # Markdown の体裁 (markdownlint-cli2) と mermaid 図の構文を検証する。
       # biome は Markdown を見ないため、この二段で md の壊れを CI 前に止める。
       glob: "*.md"
-      run: pnpm md-lint
+      run: mise exec -- pnpm md-lint
+    actionlint:
+      # ワークフロー定義の構文と run: ステップのシェルを検査する (ADR 0153)。
+      # 対象が無いコミットでは発火しない。
+      glob: ".github/workflows/*"
+      run: make actionlint
 
 commit-msg:
   commands:
@@ -25,7 +30,7 @@ pre-push:
   parallel: true
   commands:
     typecheck:
-      run: pnpm typecheck
+      run: mise exec -- pnpm typecheck
     secret-scan:
       # push 予定のコミット範囲に秘密が含まれていれば fail-closed で止める。
       run: make secret-scan

@@ -1,5 +1,9 @@
+// owner は GitHub のアカウント名規則（英数字とハイフン / 先頭末尾はハイフン不可）、
+// repo は GitHub が許す文字種に合わせる
+const REPOSITORY_REFERENCE = /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\/[A-Za-z0-9._-]+$/;
+
 export function ensureRepositoryReference(value: string): void {
-  if (!/^[^/\s]+\/[^/\s]+$/.test(value)) {
+  if (!REPOSITORY_REFERENCE.test(value)) {
     throw new Error("リポジトリ参照は <owner>/<repo> 形式で指定してください。");
   }
 }

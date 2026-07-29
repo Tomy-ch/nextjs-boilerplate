@@ -25,19 +25,22 @@ make install-tools     # mise.toml に従い Node.js + pnpm を入れ、両バ�
 原則: **mise が Node.js / pnpm バージョンの SSOT。** 誰かが `mise.toml` を変えたら(例 `node-upgrade`)、
 `make install-tools` でローカルツールチェーンを揃え、`node --version` / `pnpm --version` で確認する。
 
-## 2. `DRY_RUN=0 make <target>` でも dry-run のまま
+## 2. `DRY_RUN` は `make setup-repo` には効かない
 
-Makefile の setup 系ターゲットは dry-run を `$(if $(DRY_RUN),--dry-run,)` で判定しており、**非空値なら真**扱い ──
-つまり `DRY_RUN=0 make setup-repo` でも dry-run になる。実行するには**変数を完全に省く**。プレビューは何か値を入れる。
+`DRY_RUN=1` が効くのは置換系の補助ターゲット 2 つだけ。`make setup-repo` はこの変数を読まないため、
+**事前にプレビューする手段が無い**。
 
 ```bash
-make setup-repo            # 実行(変数を省略)
-DRY_RUN=1 make setup-repo  # dry-run プレビュー
-DRY_RUN=0 make setup-repo  # ⚠️ これでも dry-run(0 は非空=真)
+DRY_RUN=1 make setup-replace-license-copyright COPYRIGHT_HOLDER='Example Inc.'  # プレビュー
+DRY_RUN=1 make setup-replace-repository-reference REPOSITORY=org/app           # プレビュー
+DRY_RUN=1 make setup-repo                                                      # ⚠️ そのまま実行される
 ```
 
-`make setup-repo` はリポジトリ初期化の一度きりターゲット: 既存タグを削除し `v0.0.0` + ブランチを作る。
-**タグ/ブランチに破壊的**なので実行前にユーザ確認、初期化済みリポジトリでは実行しない(`v0.0.0` があれば中断する)。
+dry-run が有効になる値は `1` のみ。それ以外(`DRY_RUN=0` を含む)はすべて書き換える。
+
+`make setup-repo` はリポジトリ初期化の一度きりターゲットで**破壊的**: ローカルと `origin` の既存タグを全削除し、
+`v0.0.0.md` 以外のリリースノートを削除し、`upstream` リモートを外し、`v0.0.0` と保護ブランチ 3 本を作成・push する。
+実行前にユーザ確認を取り、初期化済みリポジトリでは実行しない(`v0.0.0` があれば中断する)。
 
 ## 3. `pnpm install --frozen-lockfile` が落ちる ── lockfile 不整合
 

@@ -74,9 +74,8 @@ destructive — read the list before running it on anything but a fresh fork.
 | `make setup-replace-license-copyright COPYRIGHT_HOLDER=<name> [COPYRIGHT_YEAR=<year>]` | Updates the copyright line of `LICENSE`. | The year may be omitted. |
 | `make setup-replace-repository-reference REPOSITORY=<owner>/<repo>` | Rewrites GitHub repository references and the project name (`package.json` `name`) to the forked repository. | `docs/`, `.claude/`, `scripts/setup/`, build output (`.next` / `dist` / `build` / `tmp`) and lock files are out of scope. |
 
-Both helpers take `DRY_RUN=1` to print the planned changes without writing them. `DRY_RUN` is tested for
-emptiness, not for truth: **any** non-empty value — `DRY_RUN=0` included — turns the dry run on. Leave the
-variable out entirely to actually write.
+Both helpers take `DRY_RUN=1` to print the planned changes without writing them. `1` is the only value that
+turns the dry run on; anything else (including `DRY_RUN=0` and omitting the variable) writes for real.
 
 ### GitHub Actions lint
 

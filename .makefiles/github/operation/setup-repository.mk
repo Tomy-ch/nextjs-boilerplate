@@ -3,7 +3,9 @@
 .PHONY: setup-replace-license-copyright ## LICENSEの著作権表示を更新
 .PHONY: setup-replace-repository-reference ## リポジトリ参照とプロジェクト名をフォーク先へ置換
 
-SETUP_DRY_RUN_FLAG := $(if $(DRY_RUN),--dry-run,)
+# make の $(if) は空文字列判定のため、そのまま使うと DRY_RUN=0 も真になる。
+# 文書化された唯一の有効値 1 に限定する
+SETUP_DRY_RUN_FLAG := $(if $(filter 1,$(DRY_RUN)),--dry-run,)
 
 # 利用者が渡す値はレシピ文字列へ直接展開せず、環境変数としてシェルに渡して
 # シェル側で展開する（make が展開した文字列を再解釈させるとコマンド注入を許すため）
