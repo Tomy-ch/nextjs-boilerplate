@@ -1,83 +1,82 @@
-This is a [Next.js](https://nextjs.org) presentation-layer boilerplate. See [AGENTS.md](AGENTS.md) and [docs/adr/](docs/adr/) for repository rules and architectural decisions.
+# nextjs-boilerplate
 
-## Getting Started
+A **Next.js / React presentation-layer boilerplate**. The backend (DB / authentication / business
+logic) is a separate repository or service; this repo owns the presentation layer only and deploys to
+a PaaS or a static CDN — no Docker ([ADR 0011](docs/adr/0011-no-docker.md)).
 
-This repository uses **pnpm only** (npm / yarn are forbidden — [ADR 0001](docs/adr/0001-package-manager.md)). Tool versions are managed by mise ([ADR 0003](docs/adr/0003-version-manager.md)).
+The toolchain, lint / format, git hooks, security scans and documentation operation are already
+wired, and every convention is written down as an ADR rather than left implicit.
+
+> This README is intentionally minimal. Each topic links out to the document that owns it — see the
+> [Documentation Map](#documentation-map). Those documents are the source of truth; this page is only
+> the entry point.
+
+## What is wired
+
+Each item is a seam you extend; follow the link for the decision and its rules.
+
+- **pnpm only**, lockfile committed — [ADR 0001](docs/adr/0001-package-manager.md)
+- **mise as the single source of truth for tool versions** ([`mise.toml`](mise.toml)) — [ADR 0003](docs/adr/0003-version-manager.md)
+- **biome-first lint / format**, ESLint only for what biome cannot express — [ADR 0002](docs/adr/0002-formatter-linter.md)
+- **Git hooks via lefthook** (pre-commit / commit-msg / pre-push) — [ADR 0151](docs/adr/0151-git-hooks.md)
+- **Local security scans** (gitleaks / Trivy) and their suppression policy — [ADR 0110](docs/adr/0110-security-operations.md)
+- **GitHub Actions definition lint** (actionlint + shellcheck) — [ADR 0153](docs/adr/0153-ci-configuration.md)
+- **Branch / commit / release workflow** — [ADR 0150](docs/adr/0150-git-workflow.md)
+- **Repository operations as `make` targets** — [`.makefiles/README.md`](.makefiles/README.md)
+
+## Prerequisites
+
+- [mise](https://mise.jdx.dev) — tool / runtime version manager (**required**, and it must be activated in your shell; the `make` targets resolve tools through it)
+- GitHub CLI (`gh`) — required by the repository-operation targets (`make setup-repo`, release targets)
+
+## Quick Start
 
 ```bash
-make install-tools        # install node / pnpm / gitleaks / trivy via mise
-pnpm install              # install dependencies
-pnpm exec lefthook install  # register git hooks (required — see below)
-```
+git clone https://github.com/Tomy-ch/nextjs-boilerplate.git
+cd nextjs-boilerplate
 
-Then run the development server:
+# 1. Install mise (https://mise.jdx.dev/getting-started.html), then activate it in your shell.
+echo 'eval "$(mise activate zsh)"' >> ~/.zshrc   # bash: append `mise activate bash` to ~/.bashrc
+# Open a new terminal so the mise shims are on PATH.
 
-```bash
+# 2. Install the pinned toolchain, the dependencies, and the git hooks.
+make install-tools
+pnpm install
+pnpm exec lefthook install   # not automatic — run it once after cloning
+
+# 3. Start the dev server.
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open <http://localhost:3000>; editing `src/app/page.tsx` hot-reloads the page.
 
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
-
-## Git Hooks (lefthook)
-
-Git hooks are managed by [lefthook](https://github.com/evilmartians/lefthook) ([0151](docs/adr/0151-git-hooks.md)). They are **not** registered automatically by `pnpm install` — run `pnpm exec lefthook install` once after cloning.
-
-| Hook | Command | Purpose |
-| --- | --- | --- |
-| pre-commit | `pnpm lint:ci` | biome full profile (`biome.ci.jsonc`, warnings block) |
-| pre-commit | `pnpm md-lint` | markdownlint + mermaid syntax check (`*.md` only) |
-| commit-msg | `make commitlint` | commit subject prefix check (`commitlint.config.ts`, [0150](docs/adr/0150-git-workflow.md)) |
-| pre-push | `pnpm typecheck` | `tsc --noEmit` |
-| pre-push | `make secret-scan` | gitleaks over the commits about to be pushed — blocks the push on detection |
-| pre-push | `make trivy-fs` | Trivy — reports vulnerable dependencies, does not block |
-
-Commit subjects must be `<Prefix>: <subject>`, where `<Prefix>` is one of `Feat` / `Fix` / `Refactor` / `Perf` / `Docs` / `Test` / `Build` / `CI` / `Chore` / `Style` / `Revert` — e.g. `Feat: ログインフォームを追加`. The subject must not end with `。`. Any other prefix, an empty subject, or a trailing `。` fails the `commit-msg` hook.
-
-Do not habitually bypass hooks with `--no-verify` (see the ADR for the exception policy).
-
-## Security Scans
-
-Secret and dependency scanning run locally through mise-managed binaries ([ADR 0110](docs/adr/0110-security-operations.md)).
-
-```bash
-make secret-scan          # gitleaks — scan the commits about to be pushed (exits non-zero on detection)
-make secret-scan-history  # gitleaks — scan the entire commit history (too slow for a hook)
-make trivy-fs             # Trivy — report fixable CRITICAL/HIGH/MEDIUM vulnerabilities in dependencies
-```
-
-`secret-scan` scans a **commit range** (commits reachable from `HEAD` but absent from every remote), not the working tree. A working-tree snapshot would both miss a secret that was committed and later deleted from the tree, and falsely flag gitignored local files such as `env/.env.local` that are never pushed.
-
-Findings are suppressed only through the dedicated policy files, never by disabling a rule wholesale:
-
-| File | Suppression unit |
-| --- | --- |
-| `.gitleaks.toml` | detection ruleset and path-level allowlist |
-| `.gitleaksignore` | a single finding, by fingerprint (`<path>:<rule-id>:<line>`) |
-| `.trivyignore.yaml` | a single vulnerability ID, scoped to explicit paths |
-
-Every entry must carry the reason it is acceptable, and must be removed once that reason no longer holds. Each file states the policy in its header. Note that these files do not cover everything that is excluded: gitleaks' bundled default ruleset carries its own global allowlist (lockfiles, `node_modules`, `.svg`) which cannot be overridden from `.gitleaks.toml` — see [ADR 0110](docs/adr/0110-security-operations.md).
+Forking this boilerplate into a new project needs a few more steps (repository initialization, name
+and copyright replacement) — see [`.makefiles/README.md`](.makefiles/README.md).
 
 ## Commands
 
+Application commands are `package.json` scripts run through pnpm; repository operations and toolchain
+setup are `make` targets.
+
 ```bash
-pnpm lint      # biome check (light profile / editor equivalent)
-pnpm lint:ci   # biome check, full profile (CI / pre-commit)
-pnpm fix       # biome check --fix
-pnpm format    # biome format --write
-pnpm typecheck # tsc --noEmit
-pnpm md-lint   # markdownlint + mermaid syntax check
-pnpm build     # production build
+pnpm dev / build / start        # develop, build, serve
+pnpm lint / lint:ci / fix       # biome — editor profile, full profile, autofix
+pnpm typecheck                  # tsc --noEmit
+pnpm md-lint                    # markdownlint + mermaid syntax check
+
+make help                       # every make target, with its description
 ```
 
-## Learn More
+`make help` is the inventory — it lists every target from `.makefiles/**` and warns about any that is
+undocumented. [`.makefiles/README.md`](.makefiles/README.md) explains what each one does.
 
-To learn more about Next.js, take a look at the following resources:
+## Documentation Map
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The source of truth lives next to what it governs. Start here and follow the link that owns your
+topic.
 
-## Deploy
-
-This boilerplate targets PaaS / static CDN deployment (Vercel / Netlify / AWS Amplify / Cloudflare Pages — no Docker, see [ADR 0011](docs/adr/0011-no-docker.md)).
+- [AGENTS.md](AGENTS.md) — the operating rules for AI coding agents, and the repository-wide rule summary
+- [docs/adr/](docs/adr/) — architecture decision records; every convention in this repo is one of these
+- [docs/adr/BACKLOG.md](docs/adr/BACKLOG.md) — decision areas that are still open
+- [.makefiles/README.md](.makefiles/README.md) — every `make` target
+- [.claude/skills/](.claude/skills/) — the repeatable operations packaged as Claude Code skills

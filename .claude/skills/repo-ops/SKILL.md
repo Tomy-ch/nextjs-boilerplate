@@ -1,6 +1,6 @@
 ---
 name: repo-ops
-description: Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, and the lefthook git hooks. Read-only knowledge skill — it tells you the exact command to run; it does not silently mutate state. This is deliberately a SPARSE STARTER for the Next.js boilerplate: it carries only the gotchas that genuinely exist today (mise / pnpm / make DRY_RUN / scratch paths / lefthook hooks), and grows as new operational traps are discovered (in contrast to the go-boilerplate original, whose items were mostly Docker / sqlc / DB-runner specific and do not apply here — ADR 0004 no-docker). Triggers: "make install-tools が mise not found で落ちる", "DRY_RUN=0 なのに dry-run になる", "pnpm install --frozen-lockfile が落ちる", "mise.toml を変えた後の反映", "スクラッチ出力をどこに置くか", "commit が commitlint に弾かれる", "hook が command not found で落ちる".
+description: Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, and the lefthook git hooks. Read-only knowledge skill — it tells you the exact command to run; it does not silently mutate state. This is deliberately a SPARSE STARTER for the Next.js boilerplate: it carries only the gotchas that genuinely exist today (mise / pnpm / make DRY_RUN / scratch paths / lefthook hooks), and grows as new operational traps are discovered (in contrast to the go-boilerplate original, whose items were mostly Docker / sqlc / DB-runner specific and do not apply here — ADR 0004 no-docker). Triggers: "make install-tools が mise not found で落ちる", "DRY_RUN はどのターゲットで効くのか", "setup-repo を試しに実行したい", "pnpm install --frozen-lockfile が落ちる", "mise.toml を変えた後の反映", "スクラッチ出力をどこに置くか", "commit が commitlint に弾かれる", "hook が command not found で落ちる".
 ---
 
 # Repo Ops Runbook
@@ -30,21 +30,24 @@ Rule of thumb: **mise is the SSOT for Node.js / pnpm versions.** After anyone ch
 (e.g. a `node-upgrade`), run `make install-tools` to bring the local toolchain in line, and confirm
 with `node --version` / `pnpm --version`.
 
-## 2. `DRY_RUN=0 make <target>` is STILL a dry-run
+## 2. `DRY_RUN` does nothing on `make setup-repo`
 
-The Makefile setup targets gate dry-run on `$(if $(DRY_RUN),--dry-run,)`, which treats **any non-empty
-value as truthy** — so `DRY_RUN=0 make setup-repo` still runs in dry-run mode. To actually run, **omit
-the variable entirely**; to preview, set it to anything.
+`DRY_RUN=1` gates only the two replacement helpers. `make setup-repo` never reads it, so there is **no
+way to preview** what it will do.
 
 ```bash
-make setup-repo            # real run (variable omitted)
-DRY_RUN=1 make setup-repo  # dry-run preview
-DRY_RUN=0 make setup-repo  # ⚠️ STILL a dry-run (0 is non-empty = truthy)
+DRY_RUN=1 make setup-replace-license-copyright COPYRIGHT_HOLDER='Example Inc.'  # preview
+DRY_RUN=1 make setup-replace-repository-reference REPOSITORY=org/app           # preview
+DRY_RUN=1 make setup-repo                                                      # ⚠️ runs for real
 ```
 
-Note `make setup-repo` is a one-time repository-initialization target: it deletes existing tags and
-creates `v0.0.0` + branches. It is **destructive to tags/branches** — confirm with the user before a
-real run, and never run it against an already-initialized repo (it aborts if `v0.0.0` exists).
+`1` is the only value that enables the dry run; anything else (including `DRY_RUN=0`) writes.
+
+`make setup-repo` is a one-time repository-initialization target and is **destructive**: it deletes
+every existing tag locally and on `origin`, deletes every release note except `v0.0.0.md`, removes the
+`upstream` remote, and creates + pushes `v0.0.0` and the three protected branches. Confirm with the
+user before running it, and never run it against an already-initialized repo (it aborts if `v0.0.0`
+exists).
 
 ## 3. `pnpm install --frozen-lockfile` fails — lockfile out of sync
 

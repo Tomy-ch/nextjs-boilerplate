@@ -27,7 +27,7 @@ function main(): void {
   lines.push("📦 Makeターゲット一覧");
   lines.push("-------------------------------------------");
 
-  // カテゴリ見出し行（bash 版の ^##\ (.*) と等価）
+  // カテゴリ見出し行
   const categoryPattern = /^## (.*)/;
   // .PHONY 行（説明コメント付き。1 行に複数ターゲットを書いた場合は全件を一覧に出す）
   const phonyPattern = /^\.PHONY:\s+([^#]+?)\s*##\s*(.*)$/;
@@ -53,7 +53,6 @@ function main(): void {
         const comment = phonyMatch[2];
 
         for (const target of targets) {
-          // printf "🛠  %-24s %s\n" 相当（ターゲットを左寄せ幅24 + コメント）
           lines.push(`🛠  ${target.padEnd(24)} ${comment}`);
         }
 
