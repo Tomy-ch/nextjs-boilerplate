@@ -53,9 +53,9 @@ make install-tools     # mise.toml に従い Node.js + pnpm を入れ、両バ�
 2 つの解決結果を突き合わせる。一致していなければならない。
 
 ```bash
-pnpm --version                 # PATH が拾った方
-mise exec -- pnpm --version    # mise.toml がピン留めした方
-which -a pnpm                  # どちらがどちらを覆っているか
+pnpm --version     # PATH が拾った方
+mise which pnpm    # mise.toml がピン留めした実体
+which -a pnpm      # どちらがどちらを覆っているか
 ```
 
 包んで回避せず、`PATH` を直して戻す:
@@ -73,14 +73,14 @@ pnpm lint:ci                        # そのうえで AGENTS.md どおり素で�
 CI=true pnpm install --frozen-lockfile
 ```
 
-シェルの `mise activate` が修正のすべてで、素のコマンドがピン留めした方へ解決するのはこれによる。本リポジトリは
-手で打つコマンドを全てこの形で実行する(AGENTS.md「Recommended Commands」/ ADR 0003)。`mise exec --` で
-包むのは activate を経ずに走る自動化 ── `.lefthook.yaml` の hook(§7)と、そこから駆動される `.makefiles/` の
-レシピ ── に限る。壊れた `PATH` の回避策として使わない。
+シェルの `mise activate` が修正のすべてで、素のコマンドがピン留めした方へ解決するのはこれによる。逃げ道として
+`mise exec -- <command>` を使うことは **禁止**(ADR 0003)── その 1 回の呼び出しだけを直し、壊れた `PATH` を
+残すため、包み忘れた次の呼び出し側に同じ失敗が回る。本リポジトリのどこにも包んだ書き方は存在しない
+(`.lefthook.yaml` にも `.makefiles/` にも)。
 
-lefthook はこの罠を踏まない ── `.lefthook.yaml` の全コマンドが既に包まれているため(§7)。つまり
-**hook が緑でも、手で叩いたコマンドについては何も保証しない**。この食い違いこそが、原因をツールチェーンでなく
-リンタの問題に見せる。
+hook も同じ `PATH` で解決するため、誤った pnpm を掴んだシェルは hook にもそれを渡す(§7)── つまり
+**`lint:ci` で落ちた commit は、差分ではなくこれかもしれない**。スタックに `runDepsStatusCheck` が出るかどうかが
+両者の分かれ目になる。
 
 ピンを新しい pnpm へ動かすかは `tools-upgrade` の判断であって、この罠の回避策ではない。動かす場合は
 `allowBuilds` をプレースホルダでなく実値で埋める作業も要る。
@@ -166,9 +166,13 @@ worktree にも継承されるが、**`node_modules` は継承されない** ─
 make secret-scan
 ```
 
-hook は `mise activate` を経ていない非対話シェルで走るため、`.lefthook.yaml` の全コマンドを `mise exec --`
-で包んである。`mise ls` にツールが入っているのに `❌ <tool> が PATH にありません` で落ちる場合、その包みが
-エントリから抜けている ── mise を activate していないシェルの全員に対し、変更内容と無関係に落ちる。
+`.lefthook.yaml` の全コマンドは素で書いてある ── `mise exec --` は他と同様ここでも禁止 (ADR 0003 / 0151)。
+`mise ls` にツールが入っているのに `❌ <tool> が PATH にありません` で落ちる場合、それは hook の不備ではなく
+環境の報告で、`git` を起動したシェルに activate 済みの `PATH` が無い。元から直す ── `make install-tools` の後、
+そのシェルで mise を activate する。プロファイルを読まない起動元 (GUI の git クライアント / エージェントの
+シェル / CI) では、代わりに **shims** ディレクトリを `PATH` に載せる (`mise activate --shims`、実体は
+`~/.local/share/mise/shims`)。shims は呼び出しごとの包み込み無しで同じピンへ解決する。その呼び出しだけを
+通すためにエントリを包まない。
 
 `secret-scan` の失敗は再実行では解けない。秘密が push 範囲のコミットに入っているので、履歴から除く必要がある。
 

@@ -58,9 +58,9 @@ then behaves in two ways that both point the blame somewhere else:
 Compare the two resolutions; they should agree:
 
 ```bash
-pnpm --version                 # what PATH found
-mise exec -- pnpm --version    # what mise.toml pins
-which -a pnpm                  # who is shadowing whom
+pnpm --version     # what PATH found
+mise which pnpm    # the binary mise.toml pins
+which -a pnpm      # who is shadowing whom
 ```
 
 Recover by fixing `PATH`, not by wrapping the command:
@@ -78,15 +78,15 @@ same `..._NO_TTY` abort. `CI=true` answers the purge prompt for it:
 CI=true pnpm install --frozen-lockfile
 ```
 
-`mise activate` in the shell is the whole fix — it is what makes a bare command resolve to the pin, and
-this repository runs every typed command that way (AGENTS.md "Recommended Commands", ADR 0003). Wrapping
-in `mise exec --` belongs to the automation that runs without the activation — the hooks in
-`.lefthook.yaml` (§7) and the `.makefiles/` recipes they drive. Do not reach for it to work around a
-broken `PATH`.
+`mise activate` in the shell is the whole fix — it is what makes a bare command resolve to the pin.
+`mise exec -- <command>` is **forbidden** as a way around this (ADR 0003): it would repair one call while
+leaving the `PATH` that broke it in place, and every caller that forgets the wrapper hits the same
+failure. There is no wrapped spelling anywhere in this repository — not in `.lefthook.yaml`, not in
+`.makefiles/`.
 
-lefthook never trips this — every command in `.lefthook.yaml` is already wrapped (§7). So **green hooks
-say nothing about a command you ran by hand**, and that asymmetry is what makes the failure read as a
-linter problem rather than a toolchain one.
+Hooks resolve through the same `PATH` you do, so a shell holding the wrong pnpm hands it to the hooks as
+well (§7) — **a commit failing in `lint:ci` can be this, not your diff**. The `runDepsStatusCheck` frame
+in the stack is what separates the two.
 
 Moving the pin to the newer pnpm is `tools-upgrade`'s decision, not a workaround for this; it also
 requires filling `allowBuilds` with real values rather than the placeholders.
@@ -176,10 +176,13 @@ argument lists live in `.lefthook.yaml` — read them there rather than from a c
 make secret-scan
 ```
 
-Hooks run in a non-interactive shell that never sourced `mise activate`, which is why every command in
-`.lefthook.yaml` is wrapped in `mise exec --`. A hook dying with `❌ <tool> が PATH にありません` while
-`mise ls` shows the tool installed means that wrapper is missing from the entry — it then fails for
-everyone whose shell does not activate mise, regardless of what they changed.
+Every command in `.lefthook.yaml` is written bare — `mise exec --` is forbidden there like everywhere
+else (ADR 0003 / 0151). A hook dying with `❌ <tool> が PATH にありません` while `mise ls` shows the tool
+installed is therefore an environment report, not a hook bug: the shell that launched `git` does not have
+the activated `PATH`. Fix it at the source — `make install-tools`, then activate mise in that shell. For
+a launcher that never sources a profile (a GUI git client, an agent shell, CI), put mise's **shims**
+directory on `PATH` instead (`mise activate --shims`, i.e. `~/.local/share/mise/shims`); the shims
+resolve the same pins without a per-call wrapper. Do not wrap the entry to make this one caller pass.
 
 A `secret-scan` failure is not retryable: the secret is inside the commit range being pushed, so it has
 to come out of the history.
