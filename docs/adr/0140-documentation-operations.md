@@ -30,6 +30,7 @@ go-boilerplate は **英語 canonical + 日本語 mirror(`docs/ja/**/*.ja.md`)+ 
 
 - **最終目標は go ADR 0008 モデル**: 英語 canonical(`docs/**/*.md`、`docs/ja/**` と `docs/portal/**`(生成ビュー)を除く)+ 日本語 mirror(`docs/ja/**/*.ja.md`、人間保守の翻訳)+ 生成 portal(D2)。AI エージェントは英語 canonical を読み、`*.ja.md` は読まない
 - **ただし移行は v1 大規模整理まで保留**する。**v1.0.0 未満の間は日本語を canonical のまま living 運用**する(現状の全 ADR・AGENTS.md「出力は日本語」と整合)。実際の英語 canonical 化(既存日本語 ADR の英訳 canonical + `docs/ja/` mirror への再編)は、採番確定・ADR 不可変化と**同じ v1 境界**でまとめて行う(ユーザ決定 2026-07-13)
+- **v1.0.0 未満の日本語 canonical は、サフィックス無しのパス(`README.md` 等)に置き `*.ja.md` を作らない**。canonical は常にサフィックス無しのパスであり、`*.ja.md` は翻訳 mirror の名前空間だからである。v1.0.0 でサフィックス無し側を英語へ書き換え、日本語を `*.ja.md` へ移す。**リポジトリ内に英語ドキュメントが既に存在することを、他ドキュメントを英語で新設する根拠にしない**(`SKILL.md` は Claude Code が frontmatter を英語で解釈するツール要件による例外 — [0154](0154-claude-skills-operations.md))
 - 移行時は **`canonicalize-doc` スキル**(EN/JA ペアの生成・同期。`*.ja.md` 命名 + `docs/ja/` 並行ツリー)で実施する。翻訳追従責務 = **canonical を先に更新し翻訳が追従、canonical が常に権威**(go ADR 0008 の翻案)
 - AGENTS.md Language Rules の「Documentation(canonical EN / translated JA pair)」節は、本方針(方向は EN・0.0.x は日本語 living・移行は v1)で確定する(AGENTS.md 本文への反映は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する — 未実施)
 

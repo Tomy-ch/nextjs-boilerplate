@@ -324,6 +324,14 @@ Targets:
 
 Technical terms (HTTP status code names / API names / command names, etc.) may stay in English.
 
+**Exception — comments in GitHub Actions workflow definitions (`.github/workflows/**`) are written in English.**
+Workflows are the part of a public boilerplate that is most often read from outside it: they get pasted
+into upstream bug reports, they are the first thing a fork adapts, and they carry the security-hardening
+rationale (SHA pinning / minimal permissions / fail-closed gates — ADR [0153](docs/adr/0153-ci-configuration.md))
+that an outside reader needs in order to judge it. They also sit directly against English-only tool output
+(`actionlint` / `shellcheck`). Everything else under `.github/` — issue and PR templates, `settings/` —
+follows the Japanese rule above.
+
 ## Internal Processing
 
 AI agents may perform internal processing in English as needed.

@@ -100,9 +100,26 @@ in it or every hook fails with `command not found`.
 
 | Stage | Command |
 | --- | --- |
-| pre-commit | `pnpm lint:ci`, plus `pnpm md-lint` when `*.md` is staged |
+| pre-commit | `pnpm lint:ci`; `pnpm md-lint` when `*.md` is staged; `make actionlint` when `.github/workflows/*` is staged |
 | commit-msg | `make commitlint COMMIT_MSG_FILE={1}` |
-| pre-push | `pnpm typecheck` |
+| pre-push | `pnpm typecheck`; `make secret-scan` |
+
+On pre-push, `make secret-scan` is **fail-closed** — a secret anywhere in the commit range being pushed
+stops the push, and the fix is to remove it from the history, not to re-run.
+
+`make trivy-fs` is deliberately **not** wired into any hook (on demand only). A dependency vulnerability
+cannot be resolved by the pusher on the spot and its status changes independently of the diff, so it does
+not hold as a gate (ADR 0110 3.1).
+
+If a hook dies with `❌ <tool> が PATH にありません` even though `mise ls` shows the tool installed, the
+hook shell simply never ran `mise activate` — hooks are non-interactive. Every command in `.lefthook.yaml`
+is therefore wrapped in `mise exec --`; a new entry that forgets the wrapper fails for everyone whose
+shell does not activate mise, regardless of what they changed. Reproduce a hook command by hand the same
+way:
+
+```bash
+mise exec -- make secret-scan     # not: make secret-scan
+```
 
 A commit-msg failure means the subject is not `<Prefix>: <subject>` with one of the 11 prefixes of
 ADR 0150, the subject is empty, or it ends with `。`. `commitlint.config.ts` deliberately omits

@@ -44,7 +44,7 @@
 
 ### Tier 0 の実装ギャップ
 
-- なし (G2 は 2026-07-12 に解消: `.lefthook.yaml` + lefthook devDependency (exact pin) 導入。pre-commit = `pnpm lint:ci` / pre-push = `pnpm typecheck`)。なお commit-msg hook (commitlint) は G2 の範囲外で、移植計画 Phase 1 / PR 1-1 (インベントリ A-2) にて別途導入予定
+- なし (G2 は解消済: `.lefthook.yaml` + lefthook devDependency (exact pin) を導入。pre-commit = `pnpm lint:ci` + `pnpm md-lint` + `make actionlint` / commit-msg = `make commitlint` / pre-push = `pnpm typecheck` + `make secret-scan`)
 
 ---
 
