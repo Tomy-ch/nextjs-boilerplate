@@ -37,6 +37,7 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
   - **dev PR ゲート**(全 PR・advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`**(修正不能は無視)/ hard-fail しない + PR コメント
   - **release ゲート**(保護ブランチへの PR 限定・厳格): **`ignore-unfixed: false`**(未修正も可視化)で厳格化
 - **依存監査ゲート**: **`pnpm audit` を既定**とする。go govulncheck 由来の「到達可能性(reachability)」フィルタは、`pnpm audit` に該当機能がなく、osv-scanner の call analysis も JS/TS 非対応のため、**現行ツールでは実装不能**である。したがって blocking 閾値は **severity(`high` / `critical`)と修正可能性(fixable)** で定める(未修正〈unfixable〉はノイズになりやすいため advisory 扱いとし、修正可能な high 以上を blocking)。運用 SLA(`high` 以上は 48 時間以内に対応着手)は [0004](0004-library-management.md) の既定を維持し、本項はその CI ゲート側の blocking 閾値を定める
+- **スキャナ間で検出が食い違う場合は和集合を正とする**。Trivy fs と `pnpm audit` は集計単位(CVE 単位 / advisory 単位)も対象範囲も異なり、同一リポジトリに対して異なる件数を返す。片方だけを正とすると、そのツールが見ない領域(例: `pnpm audit` は npm advisory DB のみを見る)が恒久的な死角になる。**どちらか一方でも blocking 閾値に達したものは blocking として扱う**。両者の件数が一致しないこと自体は異常ではないため、突合して差分を潰そうとしない
 
 ### 3.5 CSP 適合ゲート
 
