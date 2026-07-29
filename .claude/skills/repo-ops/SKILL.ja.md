@@ -23,9 +23,8 @@ make install-tools     # mise.toml に従い Node.js + pnpm を入れ、両バ�
 ```
 
 原則: **mise が Node.js / pnpm バージョンの SSOT。** 誰かが `mise.toml` を変えたら(例 `node-upgrade`)、
-`make install-tools` でローカルツールチェーンを揃え、`mise exec -- node --version` /
-`mise exec -- pnpm --version` で確認する ── 素の `pnpm --version` は `PATH` が拾った方を答えるだけで、
-問いが別物になる(§2)。
+`make install-tools` でローカルツールチェーンを揃え、activate 済みのシェルから素の `node --version` /
+`pnpm --version` で確認する。どちらかが `mise.toml` と食い違うなら、`PATH` が別物を答えている(§2)。
 
 ## 2. 素の `pnpm` は別の pnpm ── スクリプトが落ち、`pnpm-workspace.yaml` が勝手に変わる
 
@@ -59,22 +58,25 @@ mise exec -- pnpm --version    # mise.toml がピン留めした方
 which -a pnpm                  # どちらがどちらを覆っているか
 ```
 
-戻してから mise 経由で実行する:
+包んで回避せず、`PATH` を直して戻す:
 
 ```bash
 git restore pnpm-workspace.yaml     # allowBuilds ブロックが付いていたら捨てる
-mise exec -- pnpm lint:ci           # pnpm lint:ci ではなく
+eval "$(mise activate zsh)"         # ピン留めした方を先に置く(bash なら mise activate bash)
+pnpm lint:ci                        # そのうえで AGENTS.md どおり素で実行する
 ```
 
 誤った pnpm が既に `node_modules` を入れ直していた場合、ピン留めされた pnpm 側も同じ `..._NO_TTY` で
 引き取りを拒む。`CI=true` が破棄の確認に代わりに答える:
 
 ```bash
-CI=true mise exec -- pnpm install --frozen-lockfile
+CI=true pnpm install --frozen-lockfile
 ```
 
-シェルで `mise activate` を読み込んでおけば `PATH` の解決が恒久的に正しくなり、人間のシェルにはこれが本筋。
-エージェントや hook はそれを継承しないので、代わりに `mise exec --` で包む。
+シェルの `mise activate` が修正のすべてで、素のコマンドがピン留めした方へ解決するのはこれによる。本リポジトリは
+手で打つコマンドを全てこの形で実行する(AGENTS.md「Recommended Commands」/ ADR 0003)。`mise exec --` で
+包むのは activate を経ずに走る自動化 ── `.lefthook.yaml` の hook(§7)と、そこから駆動される `.makefiles/` の
+レシピ ── に限る。壊れた `PATH` の回避策として使わない。
 
 lefthook はこの罠を踏まない ── `.lefthook.yaml` の全コマンドが既に包まれているため(§7)。つまり
 **hook が緑でも、手で叩いたコマンドについては何も保証しない**。この食い違いこそが、原因をツールチェーンでなく
@@ -157,11 +159,11 @@ worktree にも継承されるが、**`node_modules` は継承されない** ─
 解消できず、diff と独立に状態が変わるため、ゲートとして成立しないという判断による ── 報告は PR コメント、
 ブロックは昇格ゲートが持つ(ADR 0110 3.1)。
 
-各段の再現は入口を mise 経由で手で叩けばよい。引数まで含めた正確なコマンド行は `.lefthook.yaml` にあり、
-写しではなくそちらを読むこと。
+各段の再現は、activate 済みのシェルから入口を素で叩けばよい。引数まで含めた正確なコマンド行は
+`.lefthook.yaml` にあり、写しではなくそちらを読むこと。
 
 ```bash
-mise exec -- make secret-scan     # make secret-scan ではなく
+make secret-scan
 ```
 
 hook は `mise activate` を経ていない非対話シェルで走るため、`.lefthook.yaml` の全コマンドを `mise exec --`

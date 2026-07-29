@@ -27,9 +27,9 @@ make install-tools     # installs Node.js + pnpm per mise.toml, then prints both
 ```
 
 Rule of thumb: **mise is the SSOT for Node.js / pnpm versions.** After anyone changes `mise.toml`
-(e.g. a `node-upgrade`), run `make install-tools` to bring the local toolchain in line, and confirm
-with `mise exec -- node --version` / `mise exec -- pnpm --version` — a bare `pnpm --version` answers
-for whatever `PATH` found, which is a different question (§2).
+(e.g. a `node-upgrade`), run `make install-tools` to bring the local toolchain in line, then confirm
+with a bare `node --version` / `pnpm --version` from an activated shell. If either disagrees with
+`mise.toml`, `PATH` is answering for something else — §2.
 
 ## 2. A bare `pnpm` is a different pnpm — scripts fail, `pnpm-workspace.yaml` changes on its own
 
@@ -63,22 +63,26 @@ mise exec -- pnpm --version    # what mise.toml pins
 which -a pnpm                  # who is shadowing whom
 ```
 
-Recover, then run through mise:
+Recover by fixing `PATH`, not by wrapping the command:
 
 ```bash
 git restore pnpm-workspace.yaml     # drop the allowBuilds block if it landed
-mise exec -- pnpm lint:ci           # not: pnpm lint:ci
+eval "$(mise activate zsh)"         # put the pinned toolchain first (bash: mise activate bash)
+pnpm lint:ci                        # then run it bare, as AGENTS.md prescribes
 ```
 
 If the wrong pnpm already reinstalled `node_modules`, the pinned pnpm refuses to take it back with the
 same `..._NO_TTY` abort. `CI=true` answers the purge prompt for it:
 
 ```bash
-CI=true mise exec -- pnpm install --frozen-lockfile
+CI=true pnpm install --frozen-lockfile
 ```
 
-Sourcing `mise activate` in your shell fixes `PATH` resolution for good and is the right answer for a
-human shell; agents and hooks do not inherit it, which is why they wrap in `mise exec --` instead.
+`mise activate` in the shell is the whole fix — it is what makes a bare command resolve to the pin, and
+this repository runs every typed command that way (AGENTS.md "Recommended Commands", ADR 0003). Wrapping
+in `mise exec --` belongs to the automation that runs without the activation — the hooks in
+`.lefthook.yaml` (§7) and the `.makefiles/` recipes they drive. Do not reach for it to work around a
+broken `PATH`.
 
 lefthook never trips this — every command in `.lefthook.yaml` is already wrapped (§7). So **green hooks
 say nothing about a command you ran by hand**, and that asymmetry is what makes the failure read as a
@@ -165,11 +169,11 @@ in it or every hook fails with `command not found`.
 cannot be resolved by the pusher on the spot and its status changes independently of the diff, so it does
 not hold as a gate — reporting goes to the PR comment and blocking to the promotion gate (ADR 0110 3.1).
 
-Reproduce a stage by running its entry point by hand, through mise. The exact argument lists live in
-`.lefthook.yaml` — read them there rather than from a copy.
+Reproduce a stage by running its entry point by hand — bare, from an activated shell. The exact
+argument lists live in `.lefthook.yaml` — read them there rather than from a copy.
 
 ```bash
-mise exec -- make secret-scan     # not: make secret-scan
+make secret-scan
 ```
 
 Hooks run in a non-interactive shell that never sourced `mise activate`, which is why every command in
