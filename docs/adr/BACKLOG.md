@@ -306,5 +306,13 @@ Go 側の本丸は **spec 駆動 scaffold + 層別監査体系**。今移植す�
 
 ### 付録: go-upgrade / repo-ops の処遇判断(経緯記録)
 
+> **暫定セクション — v1.0.0 到達時に削除する**(この節は v1.0.0 時には消すこと)。
+>
+> 本節は経緯記録であり、[AGENTS.md](../../AGENTS.md)「Temporary Operating Rules until v1.0.0」の
+> 「本文に経緯・変更履歴を残さない」に反する。削除は P9-3 が担う。
+> 決定の実体は上の「移植済 / 対象外」節(`node-upgrade`(← go-upgrade。`mise.toml` SSOT のみ伝播)/
+> `repo-ops`(器のみ))と `.claude/skills/node-upgrade/SKILL.md` の `Positioning (vs tools-upgrade)` 節が
+> 現在形で持つため、削除しても情報は失われない。
+
 - **go-upgrade → node-upgrade に翻案**: `tools-upgrade` が mise 経由で node 更新をカバーし役割が一部重複するが、「リリースノート確認 + 破壊的変更チェック + フルリビルド検証」を伴う*意図的な単一ランタイム移動*の専用スキルとして価値があるため翻案移植。役割分担(node-upgrade=熟慮の単発 / tools-upgrade=定期一括監査)は go リポの go-upgrade vs tools-upgrade と同型。Go 版の `make sync-versions` / Dockerfile / go.mod / CI 同期は本リポジトリに存在しない(ADR 0011、B9 未着手)ため伝播先は `mise.toml` のみに簡素化。
 - **repo-ops は器のみ**: Go 版の中身(Docker ツールランナー / sqlc / `schema.gen.sql` / root 所有生成物 / 稼働 DB)は ADR 0011(no-docker)と非互換でほぼ全滅。「read-only 運用 runbook」の型のみ再利用し、実在する落とし穴(mise / pnpm lockfile / make DRY_RUN の非空真値 / `tmp/reviews` の gitignore 漏れ / lefthook 未導入 = G2 ※2026-07-12 解消済・スキル本文の更新は未)だけを記載。新トラップを踏んだら追記して育てる。
