@@ -1,0 +1,130 @@
+name: Lockfile Drift
+
+# Two different drifts, one job.
+#
+# `--frozen-lockfile` catches the ordinary one: pnpm-lock.yaml no longer describes
+# package.json, because a dependency was edited by hand or the lockfile was resolved
+# on a different pnpm. Every other workflow installs with the same flag, but they
+# would report it as "lint failed to install" — this job is the one that names it.
+#
+# The `git diff` catches the quieter one: pnpm mutating a tracked file as a side
+# effect of installing (it appends build-approval keys to pnpm-workspace.yaml on its
+# own). Nothing surfaces that locally, so an unreviewed supply-chain-relevant edit
+# would otherwise ride along in whichever PR happened to run install first.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lockfile-drift:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.7.12
+          install: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Node and pnpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise install core:node aqua:pnpm/pnpm
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          # Assigned first so a failure inside the substitution fails the step; an
+          # `echo "$(...)"` would report success and hand the cache an empty path.
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      # Both checks always run: knowing that the lockfile is stale *and* that
+      # install rewrote something is more useful than being told only the first.
+      - name: Install and look for drift
+        id: drift
+        shell: bash
+        run: |
+          set +e
+
+          : > /tmp/lockfile-drift.log
+          status=success
+
+          pnpm install --frozen-lockfile 2>&1 | tee -a /tmp/lockfile-drift.log
+          if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+            status=failure
+            {
+              echo ""
+              echo "--- pnpm install --frozen-lockfile failed ---"
+              echo "pnpm-lock.yaml does not describe package.json."
+              echo "Run 'pnpm install' locally and commit the updated lockfile."
+            } | tee -a /tmp/lockfile-drift.log
+          fi
+
+          git diff --exit-code -- pnpm-lock.yaml pnpm-workspace.yaml 2>&1 | tee -a /tmp/lockfile-drift.log
+          if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+            status=failure
+            {
+              echo ""
+              echo "--- installing rewrote a tracked file ---"
+              echo "pnpm edited pnpm-lock.yaml or pnpm-workspace.yaml during install."
+              echo "Reproduce with 'pnpm install' locally, read the diff above, and commit it deliberately."
+            } | tee -a /tmp/lockfile-drift.log
+          fi
+
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+          if [ "${status}" = "success" ]; then
+            echo "title=## ✅ Lockfile drift: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "title=## ❌ Lockfile drift: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment lockfile drift result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- lockfile-drift-result -->'
+          title: ${{ steps.drift.outputs.title }}
+          body-file: /tmp/lockfile-drift.log
+          details-summary: 'pnpm install / git diff log'
+
+      - name: Fail if the lockfile drifted
+        if: always() && steps.drift.outputs.status != 'success'
+        run: exit 1
