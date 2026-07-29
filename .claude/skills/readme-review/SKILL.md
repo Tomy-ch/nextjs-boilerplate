@@ -1,6 +1,6 @@
 ---
 name: readme-review
-description: Review a single README (canonical English) and judge whether it has "manual-worthy" characteristics for inclusion in the portal at `docs/portal/manifest.yaml`. The evaluation criteria are derived from patterns observed in currently-registered manifest entries (Role / Design Intent / Rules / Architecture diagram / Navigation / Notes / substantive prose). Produces a scorecard with strengths, gaps, concrete improvement suggestions, and a final classification (manual-worthy / borderline / not-yet-manual-grade / out-of-scope-for-portal). Read-only by default; never edits the README or the manifest. When the result is manual-worthy, the skill suggests chaining into `portal-manifest-sync` (curation flow) as the natural next step; it does not perform the addition itself.
+description: Review a single README (canonical English) and judge whether it has "manual-worthy" characteristics for inclusion in the portal manifest curated per ADR 0141. The evaluation criteria are derived from patterns observed in currently-registered manifest entries (Role / Design Intent / Rules / Architecture diagram / Navigation / Notes / substantive prose). Produces a scorecard with strengths, gaps, concrete improvement suggestions, and a final classification (manual-worthy / borderline / not-yet-manual-grade / out-of-scope-for-portal). Read-only by default; never edits the README or the manifest. When the result is manual-worthy, the skill suggests chaining into `portal-manifest-sync` (curation flow) as the natural next step; it does not perform the addition itself.
 ---
 
 # Readme Review
@@ -32,7 +32,7 @@ This skill remains the canonical place to invoke for **deep-dive single-file ana
 
 ## How the Criteria Were Derived
 
-The evaluation pattern is not hardcoded from theory — it was reverse-engineered by reading every entry currently in `docs/portal/manifest.yaml` (53 unique English srcs at initial skill creation, later expanded) and identifying what they have in common. Findings:
+The evaluation pattern is not hardcoded from theory — it was reverse-engineered by reading every entry currently in `docs/portal/manifest.yaml` (53 unique English srcs at initial skill creation, later expanded) and identifying what they have in common. Findings: <!-- skill-lint-ignore -->
 
 - median prose length ≈ 225 words; max 1358
 - 27/53 use Mermaid diagrams
@@ -172,7 +172,7 @@ If the user requests improvements based on the review, recommend running `sync-r
 
 ## Constraints
 
-- ❌ Hardcode evaluation rules in a way that drifts from `docs/portal/manifest.yaml` reality. The criteria above were derived from the current manifest snapshot; if the manifest convention evolves, re-derive
+- ❌ Hardcode evaluation rules in a way that drifts from `docs/portal/manifest.yaml` reality. The criteria above were derived from the current manifest snapshot; if the manifest convention evolves, re-derive <!-- skill-lint-ignore -->
 - ❌ Treat absence of all positive criteria as "the README is bad" — some READMEs are deliberately concise references and the right verdict is `out-of-scope-for-portal`, not "fix it"
 - ❌ Auto-add the README to the manifest
 - ❌ Edit the README itself

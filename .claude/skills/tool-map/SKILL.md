@@ -36,7 +36,7 @@ Scan only project-level paths under the current working directory:
 
 | Type | Path glob | Entry file |
 | --- | --- | --- |
-| commands | `.claude/commands/` | `<name>.md` |
+| commands | `.claude/commands/` | `<name>.md` <!-- skill-lint-ignore --> |
 | skills | `.claude/skills/` | `<name>/SKILL.md` (skip `SKILL.ja.md` and other `*.ja.md` translation files) |
 | agents | `.claude/agents/` | `<name>.md` |
 
@@ -155,7 +155,7 @@ pnpm md-fix
 pnpm md-lint
 ```
 
-`pnpm md-fix` runs `markdownlint-cli2 --fix` on the entire repository to auto-fix common issues (blank-line placement around headings / lists / code blocks, trailing whitespace, file-final newline, etc.). `pnpm md-lint` then verifies that the result is clean against `.markdownlint.yaml`.
+`pnpm md-fix` runs `markdownlint-cli2 --fix` on the entire repository to auto-fix common issues (blank-line placement around headings / lists / code blocks, trailing whitespace, file-final newline, etc.). `pnpm md-lint` then verifies the result in three stages — markdownlint against `.markdownlint.yaml`, mermaid diagram syntax, and `skill-lint` over `.claude/**` (frontmatter / translation-pair structure / reference existence).
 
 If `pnpm md-lint` reports remaining errors:
 
@@ -175,7 +175,7 @@ When `--output=inline`, skip this step (no file was written).
 - Scan scope is **project-level only**. Do NOT read or list anything under `~/.claude/`.
 - Plugin-provided entries are out of scope.
 - Do NOT modify any scanned entry. This command only inspects.
-- If `.claude/commands/`, `.claude/skills/`, or `.claude/agents/` does not exist, treat its entry count as 0 and note it in the report rather than erroring.
+- If `.claude/commands/`, `.claude/skills/`, or `.claude/agents/` does not exist, treat its entry count as 0 and note it in the report rather than erroring. <!-- skill-lint-ignore -->
 
 ## Checklist
 

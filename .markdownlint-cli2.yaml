@@ -4,12 +4,10 @@ globs:
   - "**/*.md"
 
 # mermaid-lint.ts の除外（EXCLUDE_DIRS/FILES）と一致させる。
-# .claude 配下は保護エージェント設定 + worktree 実体を含むため除外。
-# AGENTS.md / CLAUDE.md は保護ドキュメント、.github/copilot-instructions.md は Copilot 用エージェント設定。
+# 保護対象であることは除外の理由にならない（保護は「誰が編集してよいか」の話で、linter が読んでよいかとは
+# 無関係）。.github/copilot-instructions.md だけは Copilot 側の設定であり、AGENTS.md「Agent configuration
+# file protection」によりユーザ指示なしに直せない = 違反しても解消できないため、ゲートに載せない。
 ignores:
   - "**/node_modules/**"
   - ".git/**"
-  - ".claude/**"
-  - "AGENTS.md"
-  - "CLAUDE.md"
   - ".github/copilot-instructions.md"

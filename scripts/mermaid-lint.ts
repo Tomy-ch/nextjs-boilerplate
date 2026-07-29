@@ -30,10 +30,10 @@ type Failure = {
   msg: string;
 };
 
-// markdownlint-cli2 の ignores と対象範囲を揃える（node_modules・.git・.claude を除外）。
-const EXCLUDE_DIRS = new Set(["node_modules", ".git", ".claude"]);
+// markdownlint-cli2 の ignores と対象範囲を揃える（node_modules・.git を除外）。
+const EXCLUDE_DIRS = new Set(["node_modules", ".git"]);
 const EXCLUDE_PREFIXES: string[] = [];
-const EXCLUDE_FILES = new Set(["AGENTS.md", "CLAUDE.md"]);
+const EXCLUDE_FILES = new Set([".github/copilot-instructions.md"]);
 
 function errorMessage(e: unknown): string {
   return (e instanceof Error && e.message ? e.message : String(e)).trim();

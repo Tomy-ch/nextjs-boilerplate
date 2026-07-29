@@ -66,36 +66,78 @@ A1 / A3 / A5 / A6)。`AGENTS.md` とその `## [TODO]` セクションが現時�
 
 ## 起動時の挙動
 
-1. **リポジトリ検出(Claude が先に把握)**: 主要言語(拡張子分布、本リポジトリは `ts`/`tsx`)/ モジュール単位
-   (単一パッケージ Next.js なら `src/` 直下を `--module-depth` の深さで列挙)/ 設計文書の有無
-   (`AGENTS.md` / `CLAUDE.md`、`docs/adr/**`、`README*`)。
-2. **基準(正)の確定 — Pass 0**: 設計文書があるので(`AGENTS.md`、`docs/adr/**`)**意図の正**とし、基準の所在
-   (ファイルパス)を出力に明記させる。未文書化の意図を推測で補完しない。本リポジトリはアーキテクチャが保留
-   (BACKLOG A1/A3/A5/A6)のため、確定した決定に照らして検証できない点は欠陥ではなく「検証不能(基準保留)」と
-   記録する。ここで一度だけ「基準は `AGENTS.md` + `docs/adr/**` でよいか」をユーザに確認し、了承なら即起動。
-3–4. **構造表現の生成とパス配置は `run.sh` に委譲**(`_structure/` の tree / signatures / deps。JS/TS は
-   `madge` があれば使用、無ければ import 抽出にフォールバック)。Pass1 → `architecture.md`、Pass2 →
-   `mod_<id>.md`(`architecture.md` を前提文脈に渡す。中身あり md はスキップ=再開可能)、Pass3 → `_index.md`
-   (全ユニット完了後のみ)。
-5. **バックグラウンド起動**: `run.sh` は長時間走り得る(上限で 5h sleep して 1 回再送)ため**必ず背景起動**。
-   Bash ツールでは `run_in_background: true` とし前景で待たない。
+### 1. リポジトリ検出(Claude が先に把握)
 
-   ```bash
-   cd <REPO_ROOT>
-   mkdir -p tmp/reviews
-   nohup bash .claude/skills/full-verify/scripts/run.sh $ARGUMENTS \
-     > tmp/reviews/run.log 2>&1 &
-   echo "started pid=$!  -> tail -f tmp/reviews/run.log"
-   ```
+`run.sh` も内部で同等の検出を行うが、起動前に Claude 自身も状況を把握し、基準の所在をユーザに確認する。
+Read/Grep/Glob/Bash(読み取り)で:
 
-   起動後は「背景で開始。進行は `tmp/reviews/run.log`、成果物は `tmp/reviews/`」と伝える。進捗確認は
-   `tail -n 40 tmp/reviews/run.log` / `ls -la tmp/reviews/` を読むだけ(ブロックして待たない)。
-6. **セッション内 fast-path(`--inline` / 小スコープ・即時)**: `run.sh` を起動せず、本文が Pass0(検出・基準
-   確定)→ `arch-verifier` 1 本 → 各ユニット `impl-verifier` を 1 メッセージ内で並列 → 集約、の順で実行。
-   ワーカーは read-only(Read/Grep/Glob のみ)で、ファイル書き込みは常にオーケストレーター(本文)が行う=
-   `run.sh` が `claude -p` に書き込み権を与えない設計と同じ。判定基準は `prompts/verify-*.md` を単一ソースとして
-   参照(背景モードと二重管理しない)。fast-path はセッション束縛のため常駐・5h sleep 再開・トークン枯渇後の
-   セッション跨ぎ再開を**持たない**。大規模・長時間・確実な再開が要るなら背景モード(既定)。
+- **主要言語**: 拡張子分布(`git ls-files` / `find` の拡張子集計)から判断する。本リポジトリは `ts` / `tsx`。
+- **モジュール単位**: 「パッケージ / ワークスペース境界」を優先する。単一パッケージの Next.js リポジトリなら
+  `src/` 直下を `--module-depth` の深さで列挙する。
+- **設計文書の有無**: `AGENTS.md` / `CLAUDE.md`、`docs/adr/**`、`README*` を検出する。
+
+### 2. 基準(正)の確定 — Pass 0
+
+- 設計文書がある(`AGENTS.md`、`docs/adr/**`)ので、**意図の正**として扱う。基準の所在(ファイルパス)は
+  出力に明記させる。
+- **未文書化の意図を推測で補完しない。** 本リポジトリはアーキテクチャの保留が多い(BACKLOG A1/A3/A5/A6)ため、
+  確定した決定に照らして検証できない点は、欠陥ではなく「検証不能(基準保留)」として記録する。
+
+> 基準が `AGENTS.md` + `docs/adr/**` でよいかは、ここで一度だけユーザに確認する。
+> 「そのままで」と言われたら即起動する。背景実行のため、以降は対話を求めない。
+
+### 3–4. 構造表現の生成とパス配置は `run.sh` に委譲
+
+`run.sh` が以下を順に行う(詳細は `README.md` と `scripts/run.sh`):
+
+- `tmp/reviews/_structure/` 配下に**構造表現**を生成する: tree / 公開シグネチャ(best-effort な grep)/
+  依存グラフ。依存グラフは JS/TS では `madge` があれば使い、無ければ import 抽出にフォールバックする。
+- **Pass1 構造検証** → `tmp/reviews/architecture.md`(`prompts/verify-arch.md`)。
+- **Pass2 モジュール別の実装検証** → `tmp/reviews/mod_<id>.md`(`prompts/verify-impl.md`。
+  `architecture.md` を前提文脈として渡す)。**中身のある `mod_<id>.md` はスキップ = 再開可能。**
+- **Pass3 集約** → `tmp/reviews/_index.md`(設計由来の問題と局所実装の問題を分け、深刻度順)。
+  **全モジュールの完了後にのみ**実行する。
+
+### 5. バックグラウンド起動
+
+`run.sh` は長時間走り得る(上限に当たると 5 時間 sleep して 1 回だけ再送する)ため、**必ず背景で起動する**。
+`nohup`(または `tmux`)で起動し、ログは `tmp/reviews/run.log`、失敗は `tmp/reviews/run.err` に置く。
+**Bash ツールでは `run_in_background: true` とし、前景で待たない。**
+
+起動コマンド(Claude が組み立てて実行する):
+
+```bash
+cd <REPO_ROOT>
+mkdir -p tmp/reviews   # nohup のリダイレクト先が先に存在している必要がある
+nohup bash .claude/skills/full-verify/scripts/run.sh $ARGUMENTS \
+  > tmp/reviews/run.log 2>&1 &
+echo "started pid=$!  -> tail -f tmp/reviews/run.log"
+```
+
+起動後は「背景で開始した。進行は `tmp/reviews/run.log`、成果物は `tmp/reviews/` 配下」とユーザへ伝える。
+進捗を聞かれたら `tail -n 40 tmp/reviews/run.log` / `ls -la tmp/reviews/` を読むだけにする(ブロックして待たない)。
+
+### 6. セッション内 fast-path(`--inline` / 小スコープ・即時)
+
+対象が小さい(単一モジュール / 小リポジトリ)場合や、再開機構を使わず今すぐ結果が欲しい場合は、`run.sh` を
+起動せず**セッション内 fast-path**を使う(`--inline` 指定時。`--inline` はスキル本文が解釈し、`run.sh` へは渡さない):
+
+1. **Pass0 / 構造検出**: 本文が Read/Grep/Glob で言語・モジュール・設計文書を把握し、基準(`BASIS`)を確定する
+   (背景モードと同じく確認は一度だけ)。必要なら `tmp/reviews/_structure/` を軽量に生成する(tree / signatures / deps / meta)。
+2. **Pass1 構造検証**: Agent ツールで `arch-verifier` を 1 本起動する(`BASIS` / `SRC` / `STRUCTURE_DIR` を渡す)。
+   戻り値のテキストは**オーケストレーター(本文)**が `tmp/reviews/architecture.md` へ書く。
+3. **Pass2 実装検証**: 各ユニットに対し `impl-verifier` を**1 メッセージ内で並列**起動する
+   (`MODULE_ID` / `MODULE_PATH` / `BASIS` / `STRUCTURE_DIR` / `ARCH_DOC` を渡す)。戻り値をそれぞれ
+   `tmp/reviews/mod_<id>.md` へ書く(`問題なし` もそのまま完了マーカーとして保存する)。
+4. **Pass3 集約**: `mod_*.md` が揃ったら本文で集約し、`tmp/reviews/_index.md` を書く(`--no-index` なら省略)。
+
+不変条件: fast-path のワーカーは **read-only(Read/Grep/Glob のみ。Write/Edit を持たない)**であり、
+ファイル書き込みは常にオーケストレーター(本文)が行う = `run.sh` が `claude -p` に書き込み権を与えない設計と同じ。
+判定基準は `prompts/verify-*.md` を単一ソースとして参照する(背景モードと二重管理しない)。
+
+制約: fast-path は**セッション束縛**のため、常駐・5 時間 sleep 再開・トークン枯渇後のセッション跨ぎ再開を
+**持たない**。大きなスコープ・長時間・確実な再開が要るときは背景モード(既定)を使う。中断された
+`tmp/reviews/` は `mod_*.md` の有無で互換なので、そのまま背景モード(`run.sh`)から再開できる。
 
 ## 出力(成果物)
 
