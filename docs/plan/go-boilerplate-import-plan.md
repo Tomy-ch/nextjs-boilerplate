@@ -6,7 +6,7 @@
 
 - **役割分担**
   - [v1-implementation-plan.md](v1-implementation-plan.md) — v1.0.0 までの実装 PR の SSOT。本書はその PR 枠へ**輸入元と輸入すべき設計**を供給する
-  - [BACKLOG.md](../adr/BACKLOG.md) 「go-boilerplate Claude 資産 移植バックログ」節 — 枠 ID との紐づけと追跡ステータスの SSOT。本書は作業定義を持ち、ステータスは持たない
+  - [BACKLOG.md](../adr/BACKLOG.md#go-boilerplate-claude-資産-移植バックログ)「go-boilerplate Claude 資産 移植バックログ」節 — 枠 ID・移植グループ ID `GB-N` との紐づけと追跡ステータスの SSOT。本書は作業定義を持ち、ステータスは持たない
   - 本書 — 比較結果と作業定義。完了した項目は BACKLOG へ反映のうえ本書から削除する(living 運用)
 - **対象スナップショット**: `go-boilerplate` `.claude/`(スキル 35 / エージェント 19 / 共有スペック 5)、`.codex/`(エージェント 19 / スキル 34)、`.github/`(workflow 48 + composite action 4)、`.makefiles/` / `scripts/` / ルート lint 設定群
 - **輸入の原則**
@@ -65,19 +65,19 @@
 | IM-17 | workflows README + harden-runner + `cache: false` 規約 | A | P2-1 | IM-12 |
 | IM-18 | `required_status_checks` の branch ruleset 反映 | A | Phase 2 完了条件 | IM-12〜IM-17 |
 | **W5: サプライチェーン**(v1 Phase 2 後) | | | | |
-| IM-19 | actions-pin 機構 + スキル(C-6) | B | P2-3 | IM-12 |
+| IM-19 | actions-pin 機構 + スキル(GB-6) | B | P2-3 | IM-12 |
 | IM-20 | `supply-chain-triage` スキル | B | — | IM-19 |
 | IM-21 | `dep-vuln-upgrade` スキル | B | — | IM-20 |
 | **W6: アーキ監査・ドリフト**(v1 Phase 3 後) | | | | |
-| IM-22 | `arch-check` + 層別 auditor(C-1) | C | — | A3 Accepted + P3-1 |
-| IM-23 | `back-prop` + drift-detector(C-2) | C | — | IM-22 |
-| IM-24 | `type-design-reviewer`(新設枠 C-7) | C | — | A3 Accepted + P3-1 |
+| IM-22 | `arch-check` + 層別 auditor(GB-1) | C | — | A3 Accepted + P3-1 |
+| IM-23 | `back-prop` + drift-detector(GB-2) | C | — | IM-22 |
+| IM-24 | `type-design-reviewer`(新設枠 GB-7) | C | — | A3 Accepted + P3-1 |
 | IM-25 | 2 段 lint 構成の思想を ESLint へ適用 | B | P3-2 | P3-2 |
 | **W7: spec / scaffold**(v1 Phase 4 前後) | | | | |
-| IM-26 | C-3(spec 駆動)の採否判断 | C | — | A1 Accepted。**P4-6 着手前に決着** |
-| IM-27 | C-4 の骨格のみ P4-6 へ吸収 | C | P4-6 | IM-26 |
+| IM-26 | GB-3(spec 駆動)の採否判断 | C | — | A1 Accepted。**P4-6 着手前に決着** |
+| IM-27 | GB-4 の骨格のみ P4-6 へ吸収 | C | P4-6 | IM-26 |
 | **W8: テスト**(v1 Phase 3 後) | | | | |
-| IM-28 | `scaffold-test` / `test-review`(C-5) | C | — | P3-6 完了 |
+| IM-28 | `scaffold-test` / `test-review`(GB-5) | C | — | P3-6 完了 |
 | **W9: docs portal**(v1 Phase 8) | | | | |
 | IM-29 | `portal-manifest-sync` 復活 | A | P8-2 | P8-1 |
 | IM-30 | `docs/maintenance/` の新設 | B | P3-10 | P3-10 |
@@ -101,7 +101,7 @@ flowchart TD
   P31["v1 P3-1"] --> IM22["IM-22 arch-check"]
   IM22 --> IM23["IM-23 back-prop"]
   P31 --> IM24["IM-24 type-design-reviewer"]
-  IM26["IM-26 C-3 採否"] --> IM27["IM-27 C-4 骨格 → P4-6"]
+  IM26["IM-26 GB-3 採否"] --> IM27["IM-27 GB-4 骨格 → P4-6"]
 ```
 
 ---
@@ -191,7 +191,7 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 
 ### W5: サプライチェーン
 
-#### IM-19: actions-pin 機構 + スキル(C-6 / 受け皿 P2-3)
+#### IM-19: actions-pin 機構 + スキル(GB-6 / 受け皿 P2-3)
 
 P2-3 に受け皿があり、そこへ書き足す:
 
@@ -222,19 +222,19 @@ P2-3 に受け皿があり、そこへ書き足す:
 
 いずれも ADR 未決を含むため、トリガーが立つまで着手しない。
 
-#### IM-22: `arch-check` + 層別 auditor(C-1)
+#### IM-22: `arch-check` + 層別 auditor(GB-1)
 
 - **トリガー**: A3 Accepted + P3-1(11 カーネル物理化 + 層別 README)完了
 - **輸入する骨格**: integrator が lint を 1 回だけ実行し、層別 auditor を**並列 fan-out** する。各 auditor は**自層の README を正として実行時に読み込む**(規約をエージェント本文にハードコードしない)。TODO ハンドオフコメントは opt-in
 - **翻案メモ**: 層マッピングを go の domain / usecase / controller / infra / pkg から、本リポジトリの 11 カーネルへ差し替える。**`full-verify` Pass 1 との分担を SKILL.md に明記する**(`arch-check` = 層規約の準拠検査 / `full-verify` Pass 1 = 構造設計の妥当性)
 
-#### IM-23: `back-prop` + drift-detector(C-2)
+#### IM-23: `back-prop` + drift-detector(GB-2)
 
 - **トリガー**: IM-22 と同時期
 - **輸入する骨格**: 検出カテゴリ A(README → Code)/ B(Code → README 未文書化)/ C(Skill ↔ README 重複)と、**検出は read-only subagent・承認と書き込みは integrator** の分離
 - **翻案メモ**: `sync-readme`(構造ドリフト)との分担を明記する
 
-#### IM-24: `type-design-reviewer`(新設枠 C-7)
+#### IM-24: `type-design-reviewer`(新設枠 GB-7)
 
 - **トリガー**: A3 Accepted + `src/model/` の型設計規約確定
 - **目的**: `arch-auditor` 系の二値判定では拾えない「規約は満たすが弱い型」を程度で拾う
@@ -248,15 +248,15 @@ P2-3 に受け皿があり、そこへ書き足す:
 
 ### W7: spec / scaffold
 
-#### IM-26: C-3(spec 駆動)の採否判断
+#### IM-26: GB-3(spec 駆動)の採否判断
 
 - **判断すべきこと**: `docs/spec/<feature>/` に domain / usecase の 2 層 spec を置き、そこから実装を生成する **lean A 方式を採るか**
 - **輸入可能な設計(採用する場合)**: **spec フォーマットを外部ファイル(`.claude/scaffold-spec/*`)から実行時に読み込む = SSOT** という構造は言語非依存。フォーマット変更がスキル改修なしで伝播する
 - **注意**: v1 計画の **P4-6(スキャフォールドジェネレータ)は `architecture.ts` を読んで生成する方式**であり、spec 駆動とは前提が異なる。**両方を持つと SSOT が二重化する**ため、P4-6 着手前に決着させる
-- **不採用の場合**: C-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
+- **不採用の場合**: GB-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
 - **トリガー**: A1 Accepted。遅くとも P4-6 着手前
 
-#### IM-27: C-4 の骨格のみ P4-6 へ吸収
+#### IM-27: GB-4 の骨格のみ P4-6 へ吸収
 
 - go の onion + sqlc / OpenAPI 前提は表示層に載らない(DB が無い)。輸入するのは 2 点のみ:
   - **chain 構造** — 生成を段階に分け、前段の検証が通らなければ次段へ進まない
@@ -265,7 +265,7 @@ P2-3 に受け皿があり、そこへ書き足す:
 
 ### W8: テスト
 
-#### IM-28: `scaffold-test` / `test-review`(C-5)
+#### IM-28: `scaffold-test` / `test-review`(GB-5)
 
 - **トリガー**: P3-6(テスト基盤 Vitest + RTL + MSW)完了
 - **輸入する骨格**:

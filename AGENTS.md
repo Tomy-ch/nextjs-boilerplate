@@ -39,7 +39,7 @@ On reaching v1.0.0, delete this section and:
 1. Restore `Protected Documentation` / `AI Modification Scope` to their unrelaxed form
 2. Move `AGENTS.md` / `LICENSE` / `.claude/settings.json` back from `permissions.ask` to `permissions.deny` in `.claude/settings.json`, and add Accepted ADR bodies (`Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)`) to `permissions.deny` to back the immutable operation of step 3
 3. Switch ADR [0140](docs/adr/0140-documentation-operations.md) to immutable ADR operation
-4. Strip rationale / history prose from every ADR body (P9-3)
+4. Strip rationale / history prose from every ADR body and from [`docs/adr/BACKLOG.md`](docs/adr/BACKLOG.md) (P9-3)
 
 ## Instruction Priority
 

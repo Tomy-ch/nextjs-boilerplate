@@ -35,7 +35,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 
 ### 3. CI ハードニング(言語非依存・go からそのまま)
 
-- **SHA ピン**: `uses: owner/repo@<40hex> # <tag>` 形式で actions を SHA ピンする(go ADR 0078 の翻案)。tag→SHA の SSOT を持ち、`--min-age-days` 相当の検疫で新規リリースを一定期間採用しない。CI で pin 検査を行い、未ピンは fail-closed。運用スキルは `actions-pin`(移植候補 C-6。依存監査系のため [0154](0154-claude-skills-operations.md) 運用系の体系に置く — `tools-upgrade` と同系)
+- **SHA ピン**: `uses: owner/repo@<40hex> # <tag>` 形式で actions を SHA ピンする(go ADR 0078 の翻案)。tag→SHA の SSOT を持ち、`--min-age-days` 相当の検疫で新規リリースを一定期間採用しない。CI で pin 検査を行い、未ピンは fail-closed。運用スキルは `actions-pin`(移植候補 GB-6。依存監査系のため [0154](0154-claude-skills-operations.md) 運用系の体系に置く — `tools-upgrade` と同系)
 - **concurrency**: 全ワークフローで `group: ${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`(古い実行をキャンセル)
 - **最小 permissions**: トップレベルを `contents: read` に絞り、job で必要分(`pull-requests: write` 等)のみ加算する二段構え
 
@@ -66,7 +66,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 ## 補足
 
 - 本 ADR の Accepted に伴う AGENTS.md の `[TODO] CI Configuration` 節の削除・書き換えは実施済み(AGENTS.md の `[TODO]` 群は全て削除され、Accepted Rules 表に集約済み)
-- workflows の実装・required check 指定・`actions-pin`(C-6)移植は本 ADR Accepted 後の実装 PR(移植計画 Phase 2)。portal 配信([0141](0141-portal-operations.md) D2 Phase 3)は Phase 2 完了後
+- workflows の実装・required check 指定・`actions-pin`(GB-6)移植は本 ADR Accepted 後の実装 PR(移植計画 Phase 2)。portal 配信([0141](0141-portal-operations.md) D2 Phase 3)は Phase 2 完了後
 
 ## 関連 ADR
 

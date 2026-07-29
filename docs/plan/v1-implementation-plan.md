@@ -97,7 +97,7 @@ v1.0.0 到達時に本セクションを削除し、同時に:
 1. `AGENTS.md` の Protected Documentation / AI Modification Scope を復活させる
 2. `.claude/settings.json` の `AGENTS.md` / `LICENSE` / `settings.json` 自身を `ask` から `deny` へ戻し、**ADR 本体(`docs/adr/*-*.md`)を `deny` へ追加する**(3 の immutable 化の裏付け)
 3. [0140](../adr/0140-documentation-operations.md) の ADR 不可変性を immutable へ切り替える
-4. 全 ADR 本文から経緯記述を除去する(P9-3)
+4. 全 ADR 本文と [BACKLOG.md](../adr/BACKLOG.md) から経緯記述を除去する(P9-3)
 
 ---
 
@@ -626,7 +626,7 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
   - `scripts/actions-pin/` — go 側の機構を TS へ書換(resolve / apply / check)
   - `actions-pin.toml` — 解決済み `uses: → SHA` のロックファイル
   - `.makefiles/tools/actions-pin.mk`
-  - `.claude/skills/actions-pin/` — BACKLOG C-6 の移植
+  - `.claude/skills/actions-pin/` — BACKLOG GB-6 の移植
 - **設計**: `min-age-days` の検疫を入れ、公開直後のリリースは自動採用しない(`tools-upgrade` の quarantine と同系)
 - **完了条件**: `make actions-pin-check` が fail-closed で動作する。未登録 / 未固定の `uses:` が error になる
 - **依存**: P2-2
@@ -728,7 +728,7 @@ test-requirement: unit
 - **規約**: co-location(`__tests__` 集約は否定)/ 正常系・異常系を分ける / table-driven 禁止 / 命名は kebab + `.test.ts` / integration は HTTP 境界を mock
 - **カバレッジ**: 90% ハードゲート。**到達不可能コード以外は全てテストする**方針のため閾値は維持できる想定(維持できない場合は相談)
 - **async RSC のテスト配置**: [0091](../adr/0091-test-verification-methods.md) に従う
-- **同時に実施**: BACKLOG C-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルの `pnpm test` 条件分岐見直し
+- **同時に実施**: BACKLOG GB-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルの `pnpm test` 条件分岐見直し
 - **強制手段**: CI(カバレッジ 90% ハードゲート)+ lefthook(pre-commit)
 - **完了条件**: `make test` が CI で緑。カバレッジゲートが PR にレポートされる。**BACKLOG B8 は Playwright を含む(P6-4)ため、ここでは ⚠️ に留め P6-4 で ✅ にする**
 - **依存**: P3-1, P2-1
@@ -1391,9 +1391,10 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **主な変更先**:
   - `docs/adr/0140-documentation-operations.md` — ADR 不可変性を immutable へ切替(accepted 後は Status 行のみ編集 / supersede は新 ADR / 番号は再利用しない)
   - `docs/adr/*.md` — **全 ADR 本文から経緯記述を除去**(「当初は X だったが」「2026-07-14 に反転」等)
+  - `docs/adr/BACKLOG.md` — **経緯記述を除去**。BACKLOG は ADR 本文ではなく進捗ボードだが、経緯を本文に残さない規約は同じく掛かる。対象は末尾の「付録: go-upgrade / repo-ops の処遇判断(経緯記録)」節に加え、各 Tier の de facto 状態欄に散在する「当初 N → その後 M」「YYYY-MM-DD に反転」型の記述。付録は決定の実体を「移植済 / 対象外」節と各スキル本文が現在形で持つため削除でよく、de facto 状態欄は現在の状態だけを残して経緯を落とす
   - `AGENTS.md` — 「v1.0.0 までの暫定運用」節を**削除**し、Protected Documentation / AI Modification Scope を復活
   - `docs/plan/v1-implementation-plan.md` — **本書 §2 を削除**
-- **完了条件**: 全 ADR に改定履歴・検討経緯の記述がない。保護が復活している。本書と AGENTS.md から暫定運用節が消えている
+- **完了条件**: 全 ADR と `docs/adr/BACKLOG.md` に改定履歴・検討経緯の記述がない。保護が復活している。本書と AGENTS.md から暫定運用節が消えている
 - **依存**: P9-2
 
 ### P9-4: トレーサビリティの棚卸し(B10)

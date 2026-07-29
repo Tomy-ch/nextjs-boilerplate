@@ -57,7 +57,7 @@ go-boilerplate は OpenAPI-first(**go 側**の ADR 0009)でモジュラー spec 
 ## 補足
 
 - 本 ADR の Accepted に伴い、AGENTS.md の `[TODO] Type Generation` 節の削除・書き換えを実施する(未実施 — AGENTS.md は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する)
-- 取り込み + 生成パイプライン導入(setup マニフェスト + `gh` 取得 + short SHA スタンプ + `make gen-api` 相当 + drift ゲート)は本 ADR Accepted 後の実装 PR で行う。セットアップスクリプトは go `scripts/setup/*.mjs` + `lib/` 構造の翻案(移植インベントリ A-9)。C-4(scaffold-endpoint 系)移植もこの時期
+- 取り込み + 生成パイプライン導入(setup マニフェスト + `gh` 取得 + short SHA スタンプ + `make gen-api` 相当 + drift ゲート)は本 ADR Accepted 後の実装 PR で行う。セットアップスクリプトは go `scripts/setup/*.mjs` + `lib/` 構造の翻案(移植インベントリ A-9)。GB-4(scaffold-endpoint 系)移植もこの時期
 - go ADR 0015(境界値所有)が指摘する「request ⊆ domain ⊆ response」の方向不変条件のうち、フロントが担保するのは response 側の検証(最後の砦)である
 
 ## 関連 ADR

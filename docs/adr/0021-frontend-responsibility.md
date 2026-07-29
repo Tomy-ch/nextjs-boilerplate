@@ -104,13 +104,13 @@ Server Action は **feature 内 `actions.ts`**(controller 相当)に置く。
 - **層定義マッピング(本 ADR で確定)**: 上記「依存マトリクス」がそのまま element(層 = カーネル / feature 単位)+ allowed-import ルールの定義である。11 カーネルを element とし(`app` は route-segment / route-handler / metadata の 3 element、`adapters` は server / client の 2 element に細分。[0025](0025-app-layer-elements.md) / [0024](0024-adapters-server-client-split.md))、`features` は feature 単位の element として `features ↔ features` を禁止する。`server config`(runtime config object)を import してよい element は `adapters/server` と起動 / ビルド境界(`instrumentation.ts` / `next.config.ts` / `app/metadata` / `proxy.ts`〈Edge 互換 config スライス。[0043](0043-middleware-policy.md)〉)のみ(client config の NEXT_PUBLIC リテラルは client 側も可)。server-only(`adapters/server`)と use-client(`adapters/client` / `capabilities` / `stores`)も element 属性で分ける
 - **violation severity**: 境界違反は CI(`pnpm lint:ci`)でブロック(error)とする
 - **実装 PR に残す範囲**: 確定するのは上記(プラグイン = eslint-plugin-boundaries / element = 11 カーネル〈app 3 / adapters 2 の細分含む〉+ feature / 依存ルール = マトリクス / severity = error)まで。実装 PR で行うのは **`eslint.config.mjs` の具体記述のみ**(element ごとの glob パターン、`eslint-plugin-boundaries` の設定オプション、起動 / ビルド境界ファイルの element 割当)。[0002](0002-formatter-linter.md) の「A3 が Accepted になるまで ESLint の実導入は行わない」に従い、本 ADR の Accepted が ESLint 実導入 PR のトリガーとなる(exact pin + `pnpm audit` / flat config / `lint:ci` 直列は 0002 の条件に従う)
-- **静的強制 vs 意味的監査の分担**: 静的な層境界強制は ESLint、意味的な層責務の監査は C-1(arch-check スキル)が担う
+- **静的強制 vs 意味的監査の分担**: 静的な層境界強制は ESLint、意味的な層責務の監査は GB-1(arch-check スキル)が担う
 
 ## 層別 README 運用
 
 11 カーネル(`app` / `features` / `model` / `components` / `adapters` / `capabilities` / `stores` / `config` / `errors` / `logging` / `observability`)+ 各 feature に README を配置する(go の per-package README ペア方式の翻案)。
 
-- 各 README を **C-1(層別アーキ監査)/ C-5(テスト観点)の実行時読込元**(= 正)とする
+- 各 README を **GB-1(層別アーキ監査)/ GB-5(テスト観点)の実行時読込元**(= 正)とする
 - 各 README には、本 ADR の**命名規律**(役割名のみ・禁止名)と**カーネル受入基準**(go pkg Policy 翻案)を転記し、その場で参照できるようにする
 - 物理未作成のカーネル(`config` / `errors` / `logging` / `observability`)の README は、対応決定(A7 / B6 / B7)の実装時に作成する
 
