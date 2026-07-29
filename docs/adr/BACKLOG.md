@@ -272,7 +272,7 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 - **本リポジトリ固有**: adr-scan(go 側に現存しない。走査を nextjs 化・枠 ID 体系へ分類 / PROVISIONAL)。上記の資産数には数えない
 - **実行可能条件つき**: `new-env` は A7([0030](0030-environment-variable-management.md))の `src/config/` 構造へ再設計済。実行できるのは **A7 実装 PR(v1 計画 P3-3)で `src/config/` が着地してから**(未着地ならスキルがガードして停止)
 - **追随済**: `local-review` は移植後に go 側 `impl-review` へ入った 4 機能(`test-gap` レンズ / `comment-reviewer` のライフサイクル組込 + 自動修正 / PR インラインコメント投稿 / モデル選択)へ追随済。`test-gap` はテストランナー未導入の間は起動しないゲート付き
-- **未翻案(`local-review` / `adversarial-reviewer`)**: Step 1 の layer 検出(`internal/controller/**` / `usecase` / `domain` / `infrastructure` / `database/**`)、Step 4 のランタイム検証段(curl + o11y。本リポジトリでは一度も実行可能になっていない)、`architecture` / `runtime-gap` のレンズ定義本文(Onion / `BindHandler` / 実 DB SQL / OpenAPI `allOf`)が go 由来のまま。参照先の `arch-check` / `verify-spec` / `scaffold-endpoint` も本リポジトリに実体が無い(GB-1 / GB-3 / GB-4 の前方参照)
+- **翻案済(`local-review` / `adversarial-reviewer`)**: Step 1 の検出対象は [0027](0027-directory-structure.md) の物理レイアウト + [0021](0021-frontend-responsibility.md) の依存マトリクス(11 カーネル + 起動 / ビルド境界エントリ)、`architecture` レンズはマトリクス違反、`runtime-gap` レンズは RSC / Client 境界・生成成果物波及・`adapters` 境界挙動・キャッシュ再検証・`proxy.ts` matcher・CSP・Provider マウントへ差し替え済。Step 4 は **build 検証(常時)+ リクエスト検証(リクエスト時 seam に触れた時のみ)** の 2 段へ翻案し、バックエンド不在で塞がる経路は「到達不能」と明記させる。`verify-spec` / `scaffold-endpoint` への参照は削除(前者は GB-3 が採否未定、後者は GB-4 が翻案コスト最大で実体化未定)、網羅的レイヤ監査(GB-1)への言及のみ「本リポジトリに未実装」と明示した前方参照として残す
 
 ### 未着手(ADR 決定待ちなし)
 
