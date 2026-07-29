@@ -99,6 +99,15 @@ pre-push の `make secret-scan` は **fail-closed** ── push 予定のコミ�
 push が止まり、対処は再実行ではなく履歴からの除去。`make trivy-fs` はここでは依存の脆弱性を報告するだけで、
 ブロックするゲートは CI 側が持つ(ADR 0110)。
 
+`mise ls` にツールが入っているのに hook が `❌ <tool> が PATH にありません` で落ちる場合、hook のシェルが
+`mise activate` を経ていないだけ ── hook は非対話シェルで走る。そのため `.lefthook.yaml` の全コマンドを
+`mise exec --` で包んである。包み忘れた新規エントリは、mise を activate していないシェルの全員に対し、
+変更内容と無関係に落ちる。hook のコマンドを手で再現するときも同じ形で叩く:
+
+```bash
+mise exec -- make secret-scan     # make secret-scan ではなく
+```
+
 commit-msg で落ちた場合、subject が ADR 0150 の prefix 11 種を使った `<Prefix>: <subject>` になっていないか、
 subject が空か、末尾が `。` で終わっている。
 `commitlint.config.ts` は `type-case` を意図的に課していない ── prefix が `Feat` と `CI` のように大文字構成を

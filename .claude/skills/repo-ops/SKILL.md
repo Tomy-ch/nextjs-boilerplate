@@ -108,6 +108,16 @@ On pre-push, `make secret-scan` is **fail-closed** — a secret anywhere in the 
 stops the push, and the fix is to remove it from the history, not to re-run. `make trivy-fs` only reports
 dependency vulnerabilities here; the blocking gate for those lives in CI (ADR 0110).
 
+If a hook dies with `❌ <tool> が PATH にありません` even though `mise ls` shows the tool installed, the
+hook shell simply never ran `mise activate` — hooks are non-interactive. Every command in `.lefthook.yaml`
+is therefore wrapped in `mise exec --`; a new entry that forgets the wrapper fails for everyone whose
+shell does not activate mise, regardless of what they changed. Reproduce a hook command by hand the same
+way:
+
+```bash
+mise exec -- make secret-scan     # not: make secret-scan
+```
+
 A commit-msg failure means the subject is not `<Prefix>: <subject>` with one of the 11 prefixes of
 ADR 0150, the subject is empty, or it ends with `。`. `commitlint.config.ts` deliberately omits
 `type-case` — the prefixes mix `Feat` and `CI`, so no single case rule fits. Merge and revert commits
