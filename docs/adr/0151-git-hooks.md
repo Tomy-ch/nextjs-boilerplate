@@ -106,25 +106,24 @@ pnpm exec lefthook install    # .git/hooks/ に symlink を配置
 
 ## 設定の最小構成
 
-`.lefthook.yaml` の構成は以下を基準とする。
+**`.lefthook.yaml` が唯一の正**。本 ADR は骨格 (どの段に、いくつの、どういう名前の command を置くか) だけを定め、各 command が実際に実行するコマンド行は転記しない。転記は写しがずれる場所を増やすだけで、hook の挙動を知りたい者は必ず `.lefthook.yaml` を読む。
 
 ```yaml
 pre-commit:
   parallel: true
   commands:
-    lint:
-      run: pnpm lint:ci   # biome 完全版 (biome.ci.jsonc + --error-on-warnings)
-
+    lint: ...
 commit-msg:
   commands:
-    commitlint:
-      run: make commitlint COMMIT_MSG_FILE={1}   # 0150 の prefix 11 種
-
+    commitlint: ...
 pre-push:
   commands:
-    typecheck:
-      run: pnpm typecheck  # tsc --noEmit
+    typecheck: ...
 ```
+
+- 各段の責務と、そこで走らせる検査は上の「hook 段階の責務分担」表が定める
+- **1 command = 1 つの関心**。1 つの `run:` に複数の検査をつなげず、command を分けて名前で識別できるようにする (失敗時にどの検査が落ちたか lefthook の出力で分かる)
+- pre-commit は `parallel: true`。command 間に順序依存を作らない
 
 ### 改変ルール
 

@@ -86,11 +86,14 @@ hook は `.lefthook.yaml` で宣言される(ADR 0151)。`pnpm install` では�
 worktree にも継承されるが、**`node_modules` は継承されない** ── worktree で `pnpm install` を実行しないと
 すべての hook が `command not found` で落ちる。
 
-| 段階 | コマンド |
-| --- | --- |
-| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint` も |
-| commit-msg | `make commitlint COMMIT_MSG_FILE={1}` |
-| pre-push | `pnpm typecheck` |
+| 段階 | 入口 | 検査内容 |
+| --- | --- | --- |
+| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint` も | biome 完全版 / markdownlint + mermaid 構文 |
+| commit-msg | `make commitlint` | subject を ADR 0150 に照らす |
+| pre-push | `pnpm typecheck` | `tsc --noEmit` |
+
+各段の再現は入口を手で叩けばよい。引数まで含めた正確なコマンド行は `.lefthook.yaml` にあり、写しではなく
+そちらを読むこと。
 
 commit-msg で落ちた場合、subject が ADR 0150 の prefix 11 種を使った `<Prefix>: <subject>` になっていないか、
 subject が空か、末尾が `。` で終わっている。

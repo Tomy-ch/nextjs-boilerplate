@@ -95,11 +95,14 @@ Hooks are declared in `.lefthook.yaml` (ADR 0151) and are **not** registered by 
 worktree inherits them; what a worktree does **not** inherit is `node_modules`, so run `pnpm install`
 in it or every hook fails with `command not found`.
 
-| Stage | Command |
-| --- | --- |
-| pre-commit | `pnpm lint:ci`, plus `pnpm md-lint` when `*.md` is staged |
-| commit-msg | `make commitlint COMMIT_MSG_FILE={1}` |
-| pre-push | `pnpm typecheck` |
+| Stage | Entry point | What it checks |
+| --- | --- | --- |
+| pre-commit | `pnpm lint:ci`, plus `pnpm md-lint` when `*.md` is staged | biome full profile; markdownlint + mermaid syntax |
+| commit-msg | `make commitlint` | the subject against ADR 0150 |
+| pre-push | `pnpm typecheck` | `tsc --noEmit` |
+
+Reproduce a stage by running its entry point by hand. The exact argument lists live in
+`.lefthook.yaml` — read them there rather than from a copy.
 
 A commit-msg failure means the subject is not `<Prefix>: <subject>` with one of the 11 prefixes of
 ADR 0150, the subject is empty, or it ends with `。`. `commitlint.config.ts` deliberately omits
