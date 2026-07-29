@@ -73,9 +73,9 @@
 
 ### 1.1 バージョン運用
 
-- 現在の正は **v0.0.7**(`package.json` の version も一致済み。P0-3)
-- 本書の方針が確定した時点で **0.1.0** を切る
-- 以降は Phase 完了ごとにマイナーを上げ、全 Phase 完了で **1.0.0**
+- **0.1.0 は「本書の方針が確定した時点」のタグ**。中身は Phase 0 完了分であり、Phase 1 の完了は待たない
+- 以降は Phase 完了ごとにマイナーを上げる(Phase 1 完了 = **0.2.0**)。全 Phase 完了で **1.0.0**
+- `package.json` の `version` は **作業中の `release/vX.Y.Z` に一致させる**。タグは [0150](../adr/0150-git-workflow.md) に従い `production` HEAD へ打つため、リリースブランチを切ってからタグを打つまでの間、`package.json` は最新タグより 1 つ先行する。この先行は正常な状態であり、一致させる相手はタグではなくリリースブランチである
 - **GitHub のデフォルトブランチは `release/vX.Y.Z`**(go-boilerplate と同形式)。実測では go-boilerplate = `release/v2.1.0` / 本リポ = `release/v0.0.6` で **既に de facto そうなっており、[0150](../adr/0150-git-workflow.md) の「`develop` = デフォルトブランチ」という記述の方が誤りだった**。運用変更ではなく記述修正として P0-4 で反映済み。PR のベースは 0150 どおり `develop`
 
 ---
@@ -458,7 +458,7 @@ flowchart TD
   - PR テンプレートへ「ライブラリ採用チェック」を組込([0004](../adr/0004-library-management.md) の改訂版テンプレ。一次判定 / 例外パス / fork コスト上限を含む)
   - **`docs/adr/BACKLOG.md` の T4 記述を修正** — 「`typescript: "^5"` が caret 指定」は stale(実際は `6.0.3` で exact 済み)。残るギャップは PR テンプレ未組込のみ
 - **強制手段**: CI(lockfile-drift / lint)+ PR テンプレの記入欄
-- **完了条件**: BACKLOG T4 の実装ギャップが解消され ✅ になる。`package.json` の version がタグと一致する
+- **完了条件**: BACKLOG T4 の実装ギャップが解消され ✅ になる。`package.json` の version が §1.1 のバージョン運用に沿う
 - **依存**: なし
 - **状態**: **実施済み**。`version` は `0.0.7` / `"license": "MIT"` を追加 / PR テンプレートに「ライブラリ採用チェック」節を組込 / BACKLOG T4 を ✅ 化。[0142](../adr/0142-license.md) の `license` フィールド follow-up も解消済み。`typescript` の caret 指定は実測で既に exact(`6.0.3`)
 
