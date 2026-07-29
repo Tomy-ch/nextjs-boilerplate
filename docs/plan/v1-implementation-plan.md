@@ -557,6 +557,9 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
 - **注意**: mise の `npm:` バックエンドではなく lefthook と同居させる([0151](../adr/0151-git-hooks.md) 整合)
 - **完了条件**: 規約外の prefix でコミットが失敗する。規約内の prefix は通る
 - **依存**: なし
+- **状態**: **実施済み**(issue #36)。`@commitlint/cli` / `@commitlint/types` を exact pin で追加 / config は TypeScript 変換原則に従い `commitlint.config.ts` として新設 / `.makefiles/tools/commitlint.mk` の `make commitlint` を `.lefthook.yaml` の commit-msg フックから呼ぶ形で接続
+  - 機械強制するのは **prefix 11 種 / 件名が空でないこと / 件名が句点で終わらないこと** の 3 点に限る。日本語であること・72 文字の目安・why を本文に残すことは判定が主観に依存し、誤検知する hook は `--no-verify` の常用を招いて強制済みの 3 点まで無効化する。この線引きは [0150](../adr/0150-git-workflow.md) に明記した
+  - 輸入元は `type-case` を課さない(prefix が大文字混在のため)。この判断もそのまま引き継いでいる
 
 ### P1-2: gitleaks + trivy
 
@@ -583,6 +586,10 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
   - `scripts/setup/` — repo 参照書換・`package.json` name 書換
 - **完了条件**: `make actionlint` が動作する。`make help` が未文書化ターゲットを警告する。setup スクリプトで fork 後の repo 名置換が完了する
 - **依存**: なし
+- **状態**: **実施済み**(issue #35)。`mise.toml` に actionlint を登録し `.makefiles/github/lint/actionlint.mk` の `make actionlint` を新設 / `scripts/make-help.ts` に未文書化ターゲットの警告を追加 / `scripts/setup/replace-repository-reference.ts` で fork 後のリポジトリ参照とプロジェクト名を置換
+  - **shellcheck も mise で版を固定**する。actionlint は `run:` ステップの検査で PATH 上の shellcheck を別バイナリとして呼ぶため、固定しないと検査結果が実行者の環境に依存する
+  - ワークフロー定義の lint は [0153](../adr/0153-ci-configuration.md) へ明記のうえ、`.github/workflows/*` を glob とする pre-commit フックへ接続した(対象を含まないコミットでは発火しない)
+  - 併せて輸入計画の同梱 2 件が着地 — `.editorconfig` の新設と、`.makefiles/README` + `make help` 警告。ただし README を EN 正典 + `.ja.md` 対訳とした形は [0140](../adr/0140-documentation-operations.md) の日本語 canonical 方針に反するため後に撤回し、日本語 1 本へ戻した
 
 ---
 
