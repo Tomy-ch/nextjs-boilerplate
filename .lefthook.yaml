@@ -24,6 +24,13 @@ pre-commit:
       # 対象が無いコミットでは発火しない。
       glob: ".github/workflows/*"
       run: make actionlint
+    actions-pin-check:
+      # uses: がロックファイル通りに SHA 固定されているかを検査する (ADR 0153)。
+      # 検査はネットワークに出ないため hook の速度目標に収まる。
+      # glob を .github/** と広く取るのは、workflow 定義・composite action 定義・
+      # ロックファイルの 3 か所いずれの変更でも発火させる必要があるため。
+      glob: ".github/**"
+      run: make actions-pin-check
 
 commit-msg:
   commands:
