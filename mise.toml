@@ -1,16 +1,17 @@
 [tools]
+# backend (`core:` / `aqua:` 等) は常に明示する。レジストリ上で複数 backend を持つツールは、
+# 既定 backend が差し替わると取得元が黙って変わるため（判断は docs/adr/0003-version-manager.md）。
+
 # ランタイム / パッケージマネージャ
-node = "24.14.1"
-pnpm = "10.33.0"
+"core:node" = "24.14.1"
+"aqua:pnpm/pnpm" = "10.33.0"
 
 # GitHub Actions 定義の Lint（make actionlint）
-actionlint = "1.7.12"
+"aqua:rhysd/actionlint" = "1.7.12"
 # actionlint が run ステップのシェルを検査するために PATH 上で参照する（同梱ではなく別バイナリ）。
 # 版を固定しないと検査結果が実行者の環境依存になるため mise 側で持つ。
-shellcheck = "0.11.0"
+"aqua:koalaman/shellcheck" = "0.11.0"
 
-# セキュリティスキャナ（make secret-scan / make trivy-fs）。
-# 短縮名でも解決できるが、検出そのものを担うツールのため backend まで明示し、
-# レジストリの既定 backend が差し替わっても取得元が動かないようにする。
+# セキュリティスキャナ（make secret-scan / make trivy-fs）
 "aqua:gitleaks/gitleaks" = "8.30.1"
 "aqua:aquasecurity/trivy" = "0.72.0"
