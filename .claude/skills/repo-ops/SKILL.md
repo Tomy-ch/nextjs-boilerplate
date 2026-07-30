@@ -152,10 +152,21 @@ Fix items the auto-fixer cannot handle by hand; do not sprinkle `// biome-ignore
 These are scratch output, not source: do not force them in with `git add -f`. A scratch file that
 must survive belongs outside the repo, referenced through a symlink under `tmp/`.
 
-**Worktrees belong outside the repository**, in a sibling directory (`<repo>.worktrees/<name>/`) —
-`git worktree add ../<repo>.worktrees/<name>`. A checkout placed inside the tree lands in the scan
-surface of every tool that walks it (markdownlint / mermaid-lint / skill-lint / trivy) and has to be
-excluded from each one; a sibling directory needs no exclusion anywhere, and none is written.
+**Worktrees live at `.claude/worktrees/<name>/`**, inside the repository — that is where the agent
+tooling creates them and the location is not configurable, so a convention placing them elsewhere
+only holds for the ones a human makes by hand. A checkout inside the tree lands in the scan surface
+of every tool that walks it, so the exclusion is written in five places and they must stay in sync:
+
+| Where | Entry |
+| --- | --- |
+| `.gitignore` | `/.claude/worktrees/` |
+| `.markdownlint-cli2.yaml` | `ignores:` `.claude/worktrees/**` |
+| `scripts/mermaid-lint.ts` | `EXCLUDE_PREFIXES` |
+| `scripts/skill-lint.ts` | `EXCLUDE_PREFIXES` |
+| `.makefiles/security/trivy.mk` | `--skip-dirs .claude/worktrees` |
+
+None of these tools reads `.gitignore`, so ignoring a path there does not exclude it from any of the
+other four. Adding a sixth tool that walks the tree means adding a sixth entry.
 
 ## 7. A commit or push is rejected by a hook (lefthook)
 
