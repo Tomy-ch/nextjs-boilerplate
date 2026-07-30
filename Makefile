@@ -9,6 +9,7 @@ include .makefiles/github/setting/branch-ruleset.mk
 include .makefiles/github/setting/label-setting.mk
 include .makefiles/github/lint/actionlint.mk
 include .makefiles/github/lint/actions-shellcheck.mk
+include .makefiles/github/lint/actions-comment-secret-lint.mk
 
 # ツール関連
 include .makefiles/tools/setup.mk

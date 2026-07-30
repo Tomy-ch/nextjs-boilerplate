@@ -37,7 +37,7 @@ Accepted
 
 | 段階 | 目的 | 想定処理 | 速度目標 |
 | --- | --- | --- | --- |
-| pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) / Markdown 検査 (`pnpm md-lint` = markdownlint + mermaid 構文 + `.claude/**` の意味検査 (`skill-lint`)。対象ファイルが staged のときのみ) / ワークフロー検査 (`make actionlint` = 構文 + `run:` のシェル / `make actions-shellcheck` = composite action の `run:` のシェル / `make actions-pin-check` = `uses:` の SHA ピン。ワークフロー / composite action の定義が staged のときのみ — [0153](0153-ci-configuration.md)) | < 5 秒 |
+| pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) / Markdown 検査 (`pnpm md-lint` = markdownlint + mermaid 構文 + `.claude/**` の意味検査 (`skill-lint`)。対象ファイルが staged のときのみ) / ワークフロー検査 (`make actionlint` = 構文 + `run:` のシェル / `make actions-shellcheck` = composite action の `run:` のシェル / `make actions-pin-check` = `uses:` の SHA ピン / `make actions-comment-secret-lint` = PR コメントを投稿するジョブへの secret 混入。ワークフロー / composite action の定義が staged のときのみ — [0153](0153-ci-configuration.md)) | < 5 秒 |
 | commit-msg | 「規約外のコミットメッセージを積ませない」 | commitlint ([0150](0150-git-workflow.md) の prefix 11 種を検証) | < 5 秒 |
 | pre-push | 「壊れた push・秘密を含む push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / 秘密スキャン (`make secret-scan` = push 予定コミット範囲) / テスト (整備後) | < 30 秒 |
 | (CI) | 権威ある検査 | lint / 型 / test / build / e2e 等 | 制約なし |
@@ -121,6 +121,7 @@ pre-commit:
     actionlint: ...
     actions-shellcheck: ...
     actions-pin-check: ...
+    actions-comment-secret-lint: ...
 commit-msg:
   commands:
     commitlint: ...

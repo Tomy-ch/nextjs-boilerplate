@@ -25,7 +25,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Build | `build.yaml` | `build` | `next build` が通ることを検査する |
 | Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
-| Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で検査する |
+| Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 
 ## hooks mirror CI
@@ -69,7 +69,10 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 - コメントは HTML マーカー（`<!-- lint-result -->` 等）で同定し、**同一 PR では増やさず更新する**。マーカーは job ごとに一意
 - 成功時もコメントを更新する。FAIL → PASS で直したときに古い FAIL コメントが残るのを避けるため
 - 投稿ステップは `continue-on-error: true`。fork からの PR はトークンが read-only で投稿できないが、それで検査の判定を落とさない
-- **検査コマンドに `secrets.*` を `env:` で渡さない**。Actions のシークレットマスキングはランナーがログ表示用に捕捉する経路にしか効かず、`tee` でファイルへ落とした内容は素通りする。そのファイルがこのリポジトリ（public）の PR コメントへそのまま載る
+- **検査コマンドに `secrets.*` を `env:` で渡さない**。Actions のシークレットマスキングはランナーがログ表示用に捕捉する経路にしか効かず、`tee` でファイルへ落とした内容は素通りする。そのファイルがこのリポジトリ（public）の PR コメントへそのまま載る。`GITHUB_TOKEN` だけが例外（投稿そのものに要る短命トークン）。この規約は `make actions-comment-secret-lint` が機械検査するが、追えるのは `${{ }}` 式の直接参照までで、`needs.<job>.outputs` 経由の間接渡しは検査を通る — **規約が正であり、検査は退行ガード**
+- **既存コメントの同定は「bot 投稿者」と「マーカーで始まること」の両方を要求する**。public リポジトリでは第三者がマーカー入りのコメントを先に投稿でき、かつ全ワークフローが同じ bot で投稿するため、どちらか片方では同定にならない（別ワークフローのマーカーを検査ログへ出力させれば、そのワークフローを誤ったコメントへ誘導できる）。この前提として `github-token` には **bot として投稿するトークンを渡す** — 個人の PAT では投稿できても二度と更新できない
+- **本文の折り畳みに使うフェンスは本文から決める**。検査ログには linter やコンパイラがソース行をそのまま出力するので、その中身は PR 提出者が制御できる。固定の 3 連バッククォートで囲むと本文自身がフェンスを閉じ、以降が生 Markdown としてレンダリングされる（mention による第三者への通知、偽の見出しやリンクが CI bot の名義で載る）。呼び出し側は自前でフェンスを組み立てず `details-summary` を使うこと（撤回条件 W12）
+- **`title` と `details-summary` には静的リテラルだけを渡す**。無害化が効くのは本文（`body-file`）だけで、`title` は生 Markdown、`details-summary` は生 HTML としてフェンスの**外**に置かれる。ログの中身を要約して `title` に載せるような変更を入れると、フェンスで塞いだ注入が外側から復活する
 
 以降のレポーティング（セキュリティスキャン結果 / カバレッジ / 生成物 drift）もすべてこの composite action に乗せる。
 
