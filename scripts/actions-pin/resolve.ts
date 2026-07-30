@@ -10,6 +10,7 @@ const MS_PER_DAY = 86_400_000;
 const LS_REMOTE_COLUMNS = 2;
 const HTTP_OK = 200;
 const HTTP_NOT_FOUND = 404;
+const MOVING_TAG_PATTERN = /^v?\d+$/;
 
 type ReleaseResponse = { published_at?: string };
 type CommitResponse = { commit?: { committer?: { date?: string } } };
@@ -21,6 +22,58 @@ export type QuarantineResult = {
   use: string | null;
   note: string | null;
 };
+
+// 解決先がロックファイルの記録から変わったキー 1 件。
+export type MovedRef = {
+  key: string;
+  from: string;
+  to: string;
+};
+
+// 移動の分類。repointed は付け替えを疑うもの、accepted は採用してよいもの。
+export type MoveReport = {
+  repointed: MovedRef[];
+  accepted: MovedRef[];
+};
+
+// 解決に使う候補 1 件。tag は版の SSOT である `uses:` 末尾のコメント tag。
+export type MoveCandidate = {
+  key: string;
+  tag: string;
+  sha: string;
+};
+
+// コメント tag が「前進してよい」と宣言しているか。bare な major 番号（`v6` / `6`）だけを
+// moving とみなす。
+//
+// これは上流の tag 運用の推測ではなく、その tag を書いた側の宣言である。版の SSOT は
+// コメント tag であり、`# v6` と書く行為が「この参照は major の範囲で追随する」という意思を
+// 表す。宣言の外にある形（`v6.1.0` / `v6.1` / `main`）はすべて不変として扱われるため、
+// 上流が moving minor tag を持つ場合は誤検知するが、その向きの誤りは停止で済む。
+export function isMovingTag(tag: string): boolean {
+  return MOVING_TAG_PATTERN.test(tag);
+}
+
+// 解決先が変わったキーを、付け替えを疑うものと採用してよいものへ分ける。
+//
+// 渡す sha は検疫を掛ける前の候補でなければならない。検疫後の採用値で比べると、付け替え直後の
+// SHA は最も新しいがゆえに検疫へ掛かって「既存ピンを維持」に化けるため、検疫の窓が明けるまで
+// 付け替えを検知できない。
+export function classifyMoves(
+  existing: Map<string, string>,
+  candidates: readonly MoveCandidate[],
+  allowMoved: ReadonlySet<string>,
+): MoveReport {
+  const report: MoveReport = { repointed: [], accepted: [] };
+  for (const candidate of candidates) {
+    const from = existing.get(candidate.key);
+    if (from === undefined || from === candidate.sha) continue;
+    const accepted = isMovingTag(candidate.tag) || allowMoved.has(candidate.key);
+    const target = accepted ? report.accepted : report.repointed;
+    target.push({ key: candidate.key, from, to: candidate.sha });
+  }
+  return report;
+}
 
 // owner/repo の tag / branch を commit SHA へ解決する。
 export async function resolveSHA(repo: string, tag: string): Promise<string> {
@@ -61,7 +114,7 @@ export function selectSHA(out: string, tag: string): string {
 // 採れば、少なくとも片方が「新しい」と言っている限り検疫は掛かる。
 //
 // なお検疫は自動化された乗っ取りに対して時間を稼ぐ仕組みであり、日付偽装に耐える保証ではない。
-// tag 付け替えそのものの検知はロックファイルの差分が担う。
+// tag 付け替えそのものの検知は classifyMoves が担う。
 export async function refAgeDays(repo: string, tag: string, sha: string): Promise<number> {
   const release = await githubGet<ReleaseResponse>(
     `https://api.github.com/repos/${repo}/releases/tags/${encodeURIComponent(tag)}`,

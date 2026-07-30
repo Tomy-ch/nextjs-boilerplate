@@ -6,11 +6,16 @@
 # 供給網検疫。解決先の公開から N 日未満なら採用せず、既存ピンがあればそれを維持する (0 で無効)。
 ACTIONS_PIN_MIN_AGE_DAYS ?= 14
 
+# tag 付け替えの承認。不変を宣言した tag (bare な major 番号以外) の解決先が変わると resolve は
+# 失敗する。意図した更新であればロックファイルのキーを空白区切りで並べる (既定は承認なし)。
+ACTIONS_PIN_ALLOW_MOVED ?=
+
 ACTIONS_PIN := pnpm exec tsx scripts/actions-pin/main.ts
+ACTIONS_PIN_ALLOW_MOVED_ARGS := $(foreach key,$(ACTIONS_PIN_ALLOW_MOVED),--allow-moved=$(key))
 
 actions-pin-resolve:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
-	@$(ACTIONS_PIN) resolve --min-age-days=$(ACTIONS_PIN_MIN_AGE_DAYS)
+	@$(ACTIONS_PIN) resolve --min-age-days=$(ACTIONS_PIN_MIN_AGE_DAYS) $(ACTIONS_PIN_ALLOW_MOVED_ARGS)
 
 actions-pin-apply:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
