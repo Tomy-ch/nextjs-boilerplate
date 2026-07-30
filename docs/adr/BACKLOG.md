@@ -270,7 +270,7 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 
 - **移植済(既存)**(スキル 10 / エージェント 2): canonicalize-doc / commit / `impl-review`(→ `local-review`)/ new-env / readme-review / release-notes / submit-pr / sync-readme / tool-map / tools-upgrade、agent: adversarial-reviewer / review-verifier
 - **移植済(A: 技術非依存)**(スキル 3 / エージェント 4): full-verify(+prompts+run.sh)/ full-apply / manage-skill(上乗せ規約を [0140](0140-documentation-operations.md) の対訳ペアと [0154](0154-claude-skills-operations.md) / [0155](0155-claude-skills-development.md) の配置・命名規約へ差し替え)、agent: arch-verifier / impl-verifier / doc-reviewer / comment-reviewer(godoc→TSDoc/JSDoc、正を AGENTS.md+一般原則へ)
-- **移植済(B: 変換)**(スキル 2): node-upgrade(← go-upgrade。mise.toml SSOT のみ伝播)、repo-ops(器のみ。Docker/sqlc 項目は ADR 0011 で不適用)
+- **移植済(B: 変換)**(スキル 3): node-upgrade(← go-upgrade。mise.toml SSOT のみ伝播)、repo-ops(器のみ。Docker/sqlc 項目は ADR 0011 で不適用)、actions-pin(GB-6。Go 実装を TypeScript へ書き換え。`supply-chain-triage` 未移植のため triage への連鎖は「証拠を添えてユーザへ委ねる」に置換)
 - **対象外(D)**(スキル 3): portal-manifest-sync(`docs/portal/manifest.yaml` 不在。**D2**([0141](0141-portal-operations.md))は Accepted 済み・portal 実装は Phase 3 のため、portal 導入時に移植)/ `images-pin`([0011](0011-no-docker.md) no-docker)/ `scaffold-infra-db`(表示層に DB を持たない — [0070](0070-backend-role-separation.md))
 - **本リポジトリ固有**: adr-scan(go 側に現存しない。走査を nextjs 化・枠 ID 体系へ分類 / PROVISIONAL)。上記の資産数には数えない
 - **実行可能条件つき**: `new-env` は A7([0030](0030-environment-variable-management.md))の `src/config/` 構造へ再設計済。実行できるのは **A7 実装 PR(v1 計画 P3-3)で `src/config/` が着地してから**(未着地ならスキルがガードして停止)
@@ -279,12 +279,12 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 
 ### 未着手(ADR 決定待ちなし)
 
-ブロック元の枠がすべて Accepted で、**ADR の決定待ちによる停止は無い**。ただし資産間の依存で着手順序が生じ、`supply-chain-triage` 以降は GB-6 の完了に従属する。
+ブロック元の枠がすべて Accepted で、**ADR の決定待ちによる停止は無い**。GB-6 が着地したため、`supply-chain-triage` を塞いでいた依存も外れている。残る着手順序は `supply-chain-triage` → `dep-vuln-upgrade` の資産間依存だけ。
 
 | 資産 | 種別 | 依存 | 内容要旨 |
 | --- | --- | --- | --- |
 | `sync-ai` | スキル | — | `.claude/` ↔ `.codex/` の双方向同期(handoff スクリプト同梱) |
-| `supply-chain-triage` | スキル | GB-6 | 検疫に掛かったアーティファクトを直接証拠でスコアリングする report-only スキル |
+| `supply-chain-triage` | スキル | — | 検疫に掛かったアーティファクトを直接証拠でスコアリングする report-only スキル。移植までの間、`actions-pin` はステップバック先が無い事例を証拠付きでユーザへ提示して止まる |
 | `dep-vuln-upgrade` | スキル | `supply-chain-triage` | CVE / GHSA を名指しした単発の依存更新 |
 
 `.codex/`(エージェント 19 / スキル 34)は Codex 向けの並行資産で、上記の資産数には数えない。`.claude/` の完全なミラーではなく、現時点で `supply-chain-triage` が欠落し `arch-auditor-infra` の名が `arch-auditor-infrastructure` に振れている。基盤(`config.toml` / README)整備と全数ミラーは `sync-ai` と同時期に行う。
@@ -300,12 +300,11 @@ Go 側の本丸は **spec 駆動 scaffold + 層別監査体系**。今移植す�
 | GB-3 spec 生成・検証 | `new-spec` / `new-spec-{domain,usecase}`、`verify-spec` + `spec-validator-{domain,usecase}`、`.claude/scaffold-spec/*`(5) | A1 / A3 | A1 で「spec 駆動を採用」と決まった場合のみ | 「spec フォーマットを外部ファイルから実行時読込 = SSOT」設計は言語非依存で採用可。**不採用なら破棄** |
 | GB-4 onion scaffold | `scaffold-endpoint` / `scaffold-domain` / `scaffold-usecase` / `scaffold-controller` | A1 / A2 / A3 / A5(+B3 / B4) | A1/A3/A5 + B3(BFF/API)+ B4(型生成)確定後 | Go の onion + sqlc/OpenAPI 前提はほぼ載らない(表示層に DB 無し)。流用は chain 構造と「gen 由来マッピングを name-match 導出 → 不能なら halt/hand-off」の骨格のみ。**翻案コスト最大** |
 | GB-5 テスト scaffold/review | `scaffold-test` / `scaffold-integration-test` / `test-review` | B8 | B8 Accepted(フレームワーク・配置規約確定) | 「テスト観点を README から実行時導出」+ 2 段レビュー構造は流用可。`test-review` は既移植ワーカーを再利用。full-apply/node-upgrade/repo-ops の `pnpm test` 条件分岐も併せて見直す |
-| GB-6 Actions ピン留め | `actions-pin` | B9 | B9 で `.github/workflows/` 追加 + SHA ピン方針採用時 | 受け皿は **B9 実装**([v1 計画 P2-3](../plan/v1-implementation-plan.md) actions SHA ピン機構)。中身は言語非依存でほぼ無翻案(Go 実装のため TypeScript へ書き換える)。思想は `tools-upgrade` の quarantine と同系 |
 | GB-7 型設計レビュー | agent: `type-design-reviewer` | A3 | A3 Accepted + `src/model/` の型設計規約(層別 README + `docs/rules.md`)確定 | 4 軸ルーブリックは言語非依存。Go の非公開フィールド + getter / `New()` 不変条件検査を TypeScript の型表現へ読み替えるのみ。`arch-auditor` 系の二値判定では拾えない「規約は満たすが弱い型」を程度で拾う |
 
-**分類合計**: スキル = 移植済 15 + 対象外 3 + 未着手 3 + 保留(C) 14 = **35**。エージェント = 移植済 6 + 保留(C) 13 = **19**。
+**分類合計**: スキル = 移植済 16 + 対象外 3 + 未着手 3 + 保留(C) 13 = **35**。エージェント = 移植済 6 + 保留(C) 13 = **19**。
 
-**推奨着手順序**(BACKLOG 依存順): A1 決定 → GB-3 採否確定 →(採用なら)GB-4 翻案 / A3・A5 決定(層別 README 整備)→ GB-1・GB-2・GB-7 / B8 決定 → GB-5 / B9 決定 → GB-6。各グループ着手時は該当枠が Accepted であることと Instruction Priority(ADR > BACKLOG > agent config)を再確認する。
+**推奨着手順序**(BACKLOG 依存順): A1 決定 → GB-3 採否確定 →(採用なら)GB-4 翻案 / A3・A5 決定(層別 README 整備)→ GB-1・GB-2・GB-7 / B8 決定 → GB-5。各グループ着手時は該当枠が Accepted であることと Instruction Priority(ADR > BACKLOG > agent config)を再確認する。
 
 ### 付録: go-upgrade / repo-ops の処遇判断(経緯記録)
 

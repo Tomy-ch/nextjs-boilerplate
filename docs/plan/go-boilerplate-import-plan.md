@@ -74,7 +74,7 @@
 | IM-17 | workflows README + harden-runner + `cache: false` 規約 | A | P2-1 | IM-12 | 未着手 |
 | IM-18 | `required_status_checks` の branch ruleset 反映 | A | Phase 2 完了条件 | IM-12〜IM-17 | 未着手 |
 | **W5: サプライチェーン**(v1 Phase 2 後) | | | | | |
-| IM-19 | actions-pin 機構 + スキル(GB-6) | B | P2-3 | IM-12 | 未着手 |
+| IM-19 | actions-pin 機構 + スキル(GB-6) | B | P2-3 | IM-12 | 完了(issue #86) |
 | IM-20 | `supply-chain-triage` スキル | B | — | IM-19 | 未着手 |
 | IM-21 | `dep-vuln-upgrade` スキル | B | — | IM-20 | 未着手 |
 | **W6: アーキ監査・ドリフト**(v1 Phase 3 後) | | | | | |
@@ -260,13 +260,13 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 
 #### IM-19: actions-pin 機構 + スキル(GB-6 / 受け皿 P2-3)
 
-P2-3 に受け皿があり、そこへ書き足す:
+**完了(issue #86)**。着地した形:
 
-- `git ls-remote` で `uses:` のタグ → SHA を解決し、ロックファイル `actions-pin.toml` を SSOT とする **resolve / apply / check の三相**構造
-- **検疫**: `PIN_ACTIONS_MIN_AGE_DAYS`(既定 14)未満の新リリースは自動採用せず、1 つ前へ step-back する
-- **再ポイントタグ検知**: 既知 SHA と現在の解決結果の乖離を fail 扱いにする
-- `check` は fail-closed(未登録 / 未固定の `uses:` は error)
-- Go 実装のため TS への書き換えが必要(P2-3 に記載済み)
+- `scripts/actions-pin/` に TypeScript で **resolve / apply / check の三相**を実装。ロックファイルは `.github/actions-pin.toml`(TOML パーサ依存を足さず、行指向の部分集合を自前で往復する)
+- **検疫**: `ACTIONS_PIN_MIN_AGE_DAYS`(既定 14)未満の解決先は採用せず、既存ピンがあれば維持・無ければ見送る。1 つ前の通過済み版への step-back は `actions-pin` スキルが持つ
+- **再ポイントタグ検知**: ロックファイルの差分監視としてスキルの手順に置いた(厳密版 tag の SHA が動いたらセキュリティイベント扱いで停止)
+- `check` は fail-closed。go 版の「未登録 / 未固定」に加え、**壊れたロックファイル行**と**孤児エントリ**も error にした
+- 二重掛けは pre-commit hook と CI の `actions-pin` job。`actions-lint` へは相乗りさせない([0153](../adr/0153-ci-configuration.md) 1「別関心として分ける」)
 
 #### IM-20: `supply-chain-triage` スキル
 
@@ -275,7 +275,7 @@ P2-3 に受け皿があり、そこへ書き足す:
 - **主な変更先**: `.claude/skills/supply-chain-triage/SKILL.md`(+ `.ja.md`)、`references/npm.md`、`references/github-actions.md`
 - **翻案メモ**: **references は npm / github-actions の 2 本のみ採用**し、`go-modules.md` / `docker-images.md` は捨てる([0011](../adr/0011-no-docker.md))。0–12 のスコアリングと **report-only(絶対に実行しない)** 原則は無翻案。参照する自リポジトリのセキュリティ観点は、go 側の `docs/design/security.md` に代えて [0110](../adr/0110-security-operations.md) / [0111](../adr/0111-csp-security-headers.md) を読ませる
 - **完了条件**: 検疫に掛かった 1 パッケージについて、直接証拠つきのスコアと採否推奨が出る。スキルが npm install / 実行を一切行わない
-- **依存**: IM-19
+- **依存**: IM-19(完了済み)
 
 #### IM-21: `dep-vuln-upgrade` スキル
 

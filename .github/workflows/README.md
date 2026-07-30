@@ -26,10 +26,11 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint + shellcheck でワークフロー定義自身を検査する |
+| Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 
 ## hooks mirror CI
 
-`lint` / `md-lint` / `typecheck` / `actions-lint` の 4 本は、[lefthook](../../.lefthook.yaml) が回すのと**同じコマンド**を実行する。hook は高速な第一段、CI は権威という二層（[0153](../../docs/adr/0153-ci-configuration.md) §4 / [0151](../../docs/adr/0151-git-hooks.md)）。
+`lint` / `md-lint` / `typecheck` / `actions-lint` / `actions-pin` の 5 本は、[lefthook](../../.lefthook.yaml) が回すのと**同じコマンド**を実行する。hook は高速な第一段、CI は権威という二層（[0153](../../docs/adr/0153-ci-configuration.md) §4 / [0151](../../docs/adr/0151-git-hooks.md)）。
 
 残りは片側にしか無い。**どちらが持つかは意図的な配置**であって、揃えるべき漏れではない。
 
@@ -44,7 +45,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 全ワークフローが以下を守る。逸脱する場合は ADR の改定が要る。ステップ構成の参照実装は `lint.yaml` で、各ステップが何のためにあるかのコメントもそこに置いてある。
 
-- **actions の SHA ピン** — `uses: owner/repo@<40hex> # <tag>`。moving tag は禁止。tag → SHA の SSOT 化と未ピン検査の機械化は未実装で、現時点は手で固定している
+- **actions の SHA ピン** — `uses: owner/repo@<40hex> # <tag>`。moving tag は禁止。**版の SSOT は末尾コメントの tag** であり、tag → SHA の対応は [`../actions-pin.toml`](../actions-pin.toml) が持つ。`make actions-pin-resolve` で解決、`make actions-pin-apply` で反映、`make actions-pin-check` で検査する（`actions-pin` job と pre-commit hook が回す。詳細は [`.makefiles/README.md`](../../.makefiles/README.md)）
 - **最小 permissions** — トップレベルは `contents: read`。PR コメントを書く job だけが `pull-requests: write` を加算する
 - **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない
 - **harden-runner** — 全 job 冒頭で egress を `audit` で記録する
@@ -74,9 +75,9 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 ## required check
 
-セキュリティ workflow と SHA ピン検査まで揃った時点で、以下の context を branch ruleset の required status checks へ登録する（**GitHub 側の設定はユーザが実施**。[`../settings/branch-protection.json`](../settings/branch-protection.json) も同時に更新する）。
+セキュリティ workflow まで揃った時点で、以下の context を branch ruleset の required status checks へ登録する（**GitHub 側の設定はユーザが実施**。[`../settings/branch-protection.json`](../settings/branch-protection.json) も同時に更新する）。
 
-`lint` / `md-lint` / `typecheck` / `build` / `smoke` / `lockfile-drift` / `actions-lint`
+`lint` / `md-lint` / `typecheck` / `build` / `smoke` / `lockfile-drift` / `actions-lint` / `actions-pin`
 
 context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required check の設定を黙って無効化する。
 

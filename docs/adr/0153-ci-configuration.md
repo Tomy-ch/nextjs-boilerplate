@@ -36,7 +36,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 
 ### 3. CI ハードニング(言語非依存・go からそのまま)
 
-- **SHA ピン**: `uses: owner/repo@<40hex> # <tag>` 形式で actions を SHA ピンする(go ADR 0078 の翻案)。tag→SHA の SSOT を持ち、`--min-age-days` 相当の検疫で新規リリースを一定期間採用しない。CI で pin 検査を行い、未ピンは fail-closed。運用スキルは `actions-pin`(移植候補 GB-6。依存監査系のため [0154](0154-claude-skills-operations.md) 運用系の体系に置く — `tools-upgrade` と同系)
+- **SHA ピン**: `uses: owner/repo@<40hex> # <tag>` 形式で actions を SHA ピンする(go ADR 0078 の翻案)。**版の SSOT は末尾コメントの tag** であり、tag→SHA の対応は `.github/actions-pin.toml` が持つ。解決 / 反映 / 検査は `make actions-pin-{resolve,apply,check}`(実体は `scripts/actions-pin/`)。`resolve` は `ACTIONS_PIN_MIN_AGE_DAYS`(既定 14)の検疫を掛け、公開直後のリリースを採用しない(既存ピンがあれば維持し、無ければ見送る)。`check` はネットワークに出ず、未登録 / 未固定 / ロックファイル不一致 / 参照されないエントリ / 解釈できない `uses:` 記法を fail-closed で落とす。よって `uses:` は 1 行 1 ステップのブロック記法で書く(flow mapping は検査の網に入らないため error)。pre-commit hook と CI の両方で走らせる。**検疫は自動化された乗っ取りに対して時間を稼ぐ仕組みであり、日付の偽装に耐える保証ではない** — tag 付け替えそのものの検知はロックファイルの差分が担い、`resolve` は同一 tag が別 SHA へ解決された件を明示する。運用スキルは `actions-pin`(依存監査系のため [0154](0154-claude-skills-operations.md) 運用系の体系に置く — `tools-upgrade` と同系)
 - **concurrency**: 全ワークフローで `group: ${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`(古い実行をキャンセル)
 - **最小 permissions**: トップレベルを `contents: read` に絞り、job で必要分(`pull-requests: write` 等)のみ加算する二段構え
 - **runner ハードニング**: 全 job の冒頭で `step-security/harden-runner` を `egress-policy: audit` で走らせ、ランナーからの外向き通信を記録する(go の全 workflow と同形)。監査から遮断(`block`)への移行は、記録された通信先が出揃ってからの判断とする
@@ -71,7 +71,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 ## 補足
 
 - 本 ADR の Accepted に伴う AGENTS.md の `[TODO] CI Configuration` 節の削除・書き換えは実施済み(AGENTS.md の `[TODO]` 群は全て削除され、Accepted Rules 表に集約済み)
-- workflows の実装・required check 指定・`actions-pin`(GB-6)移植は本 ADR Accepted 後の実装 PR(移植計画 Phase 2)。portal 配信([0141](0141-portal-operations.md) D2 Phase 3)は Phase 2 完了後
+- required check の branch ruleset への指定は、Security グループ([0110](0110-security-operations.md))の workflow が揃った時点でユーザが実施する。portal 配信([0141](0141-portal-operations.md) D2)はその後
 
 ## 関連 ADR
 
