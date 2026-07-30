@@ -16,6 +16,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+// Claude Code の設定ディレクトリ。`CLAUDE_CONFIG_DIR` が立っていればそちらが優先される。
+// 着地検証はインストーラと同じ優先順位で解決しないと、導入は成功しているのに検証だけが
+// `~/.claude` を見て失敗する。
+function claudeConfigDir(): string {
+  return process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
+}
+
 // 導入する外部スキル。増やす場合はここに足す。
 const EXTERNAL_SKILLS = [
   {
@@ -31,7 +38,7 @@ const EXTERNAL_SKILLS = [
     command: "graphify",
     args: ["install", "--platform", "claude"],
     // 導入後に実体が居るべき場所。ここを見て着地を検証する。
-    landing: path.join(os.homedir(), ".claude", "skills", "graphify", "SKILL.md"),
+    landing: path.join(claudeConfigDir(), "skills", "graphify", "SKILL.md"),
     label: "graphify (Claude Code)",
   },
 ];
