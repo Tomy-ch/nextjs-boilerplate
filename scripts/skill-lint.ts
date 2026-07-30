@@ -42,7 +42,9 @@ const AGENTS_DIR = path.join(CLAUDE_DIR, "agents");
 const EXCLUDE_DIRS = new Set([".git", "node_modules", ".next", "tmp"]);
 
 // 同じく外す、リポジトリ相対パスの先頭一致。worktree は別ブランチの作業ツリーなので、
-// 索引に入れると「このブランチには無いファイル」への参照が実在すると誤判定される。
+// 実在しても「このブランチのソース」ではない。索引にも直接の fs 参照にも通すと、
+// このブランチに無いファイルへの参照が実在すると判定され、しかもその可否が
+// 作業マシンにどの worktree が生きているかで変わる。
 const EXCLUDE_PREFIXES: string[] = [path.join(CLAUDE_DIR, "worktrees")];
 
 function isExcludedPrefix(rel: string): boolean {
@@ -535,7 +537,12 @@ function isUncreatedKernelPath(text: string): boolean {
 function repoPathExists(candidate: string, fromDir: string): boolean {
   const bases = [REPO_ROOT, path.join(REPO_ROOT, fromDir)];
   return expandBraces(candidate).some((text) => {
-    if (!WILDCARD_RE.test(text)) return bases.some((base) => fs.existsSync(path.join(base, text)));
+    if (!WILDCARD_RE.test(text))
+      return bases.some((base) => {
+        const abs = path.join(base, text);
+        if (isExcludedPrefix(path.relative(REPO_ROOT, abs))) return false;
+        return fs.existsSync(abs);
+      });
     const re = placeholderToRegExp(text, { segmentSeparator: true });
     return entryIndex.some((entry) => re.test(entry));
   });
@@ -583,6 +590,7 @@ function linkPathExists(target: string, fromDir: string): boolean {
     : path.resolve(REPO_ROOT, fromDir, target);
   const rel = path.relative(REPO_ROOT, abs);
   if (rel.startsWith("..")) return false;
+  if (isExcludedPrefix(rel)) return false;
   // tmp/ 配下はスキル実行中に生成されるため、静的検査では存在しないのが正常。
   if (PATH_ROOT_DENY.has(rel.split(path.sep)[0])) return true;
   return fs.existsSync(abs);
