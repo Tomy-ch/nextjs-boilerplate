@@ -1,6 +1,6 @@
 ---
 name: actions-pin
-description: Audit and upgrade the SHA-pinned GitHub Actions referenced by `.github/workflows/**` and `.github/actions/**`, with a supply-chain quarantine and an automatic step-back to the previous aged version. Default is minor-only (stay within the current majors); pass `major` to also bump major versions; pass a bare number or `days=N` to set the exclusion window (`ACTIONS_PIN_MIN_AGE_DAYS`, default 14). The version source of truth is the trailing tag comment on each `uses: owner/repo@<sha> # <tag>` line; `.github/actions-pin.toml` is the resolved tag→SHA lockfile, driven by `make actions-pin-resolve` / `actions-pin-apply` / `actions-pin-check` (backed by `scripts/actions-pin/`). For each target major the skill prefers the moving major tag when its latest is aged, else steps back to the newest exact version older than the exclusion window, else holds — so a freshly published (possibly compromised) release is never adopted. It stops on an **exact** tag whose SHA moved (a re-pointed tag) as a security event rather than a refresh. Verifies with `make actions-pin-check` + `make actionlint`. Major bumps additionally verify `with:` input compatibility and are held (not auto-applied) on a breaking change. Sibling of `tools-upgrade` (which covers `mise.toml`, not Actions). Use on a routine cadence or after an Actions security advisory.
+description: Audit and upgrade the SHA-pinned GitHub Actions referenced by `.github/workflows/**` and `.github/actions/**`, with a supply-chain quarantine and an automatic step-back to the previous aged version. Default is minor-only (stay within the current majors); pass `major` to also bump major versions; pass a bare number or `days=N` to set the exclusion window (`ACTIONS_PIN_MIN_AGE_DAYS`, default 14). The version source of truth is the trailing tag comment on each `uses: owner/repo@<sha> # <tag>` line; `.github/actions-pin.toml` is the resolved tag→SHA lockfile, driven by `make actions-pin-resolve` / `actions-pin-apply` / `actions-pin-check` (backed by `scripts/actions-pin/`). For each target major the skill prefers the moving major tag when its latest is aged, else steps back to the newest exact version older than the exclusion window, else holds — so a freshly published (possibly compromised) release is never adopted. `resolve` itself fails closed when a tag declared immutable (any comment tag but a bare major number) resolves to a different SHA: a re-pointed tag is a security event, not a refresh, and the intended-update escape hatch is `ACTIONS_PIN_ALLOW_MOVED`. Verifies with `make actions-pin-check` + `make actionlint`. Major bumps additionally verify `with:` input compatibility and are held (not auto-applied) on a breaking change. Sibling of `tools-upgrade` (which covers `mise.toml`, not Actions). Use on a routine cadence or after an Actions security advisory.
 argument-hint: "[major] [days=<N>]"
 allowed-tools: Read, Edit, Bash, Glob, Grep, AskUserQuestion
 ---
@@ -33,7 +33,8 @@ is [ADR 0153](../../../docs/adr/0153-ci-configuration.md) §3.
   via `git ls-remote` (annotated tags are dereferenced to the commit), applies the quarantine, and
   rewrites the lockfile. `ACTIONS_PIN_MIN_AGE_DAYS` (default 14) controls the gate; when a resolved
   SHA is inside the window it **keeps the existing pin** (its own built-in step-back for moving
-  tags). This is the only command that touches the network.
+  tags). This is the only command that touches the network. It **fails closed and writes nothing**
+  when a tag declared immutable resolves to a different SHA — see "Re-pointed tags" below.
 - `make actions-pin-apply` — rewrites each `uses:` `@<sha>` from the lockfile, keeping `# <tag>`.
 - `make actions-pin-check` — verifies pins match the lockfile without writing (CI / pre-commit hook).
   Offline. It fails on an unregistered reference, an unpinned or drifted `@<sha>`, a malformed
@@ -46,6 +47,33 @@ is [ADR 0153](../../../docs/adr/0153-ci-configuration.md) §3.
   `resolve`. A same-major refresh is therefore just `resolve` + `apply`. A **major bump requires
   editing the comment tag** (`# v6` → `# v7`) first. An **exact-version comment (`# v6.1.0`) never
   moves** on `resolve`; bumping it requires editing the comment.
+- **The shape of the comment tag declares which of the two it is.** A bare major number (`v6` / `6`)
+  is moving; everything else (`v6.1.0`, `v6.1`, `main`) is immutable and its SHA moving is a fail.
+  This is not a guess about upstream's tagging — it is the intent of whoever wrote the pin. An
+  upstream with a moving minor tag (`v6.1`) therefore produces a false positive, which fails safe.
+
+### Re-pointed tags
+
+`resolve` exits 1 and **writes no lockfile at all** — not the accepted moves, not the other entries —
+when an immutable-declared tag resolves to a different SHA, printing `key: <old> -> <new>` per
+finding. Once a re-pointed SHA lands in the lockfile, `check` answers "consistent" forever after, so
+the write is withheld rather than reported alongside.
+
+The check runs on the candidate SHA **before** the quarantine. A freshly re-pointed SHA is the
+newest thing there is, so a post-quarantine comparison would see it turn into `既存ピンを維持` and
+stay silent until the window clears — the detection would sleep through exactly the moment it exists
+for.
+
+An intended update to an immutable tag is approved per key:
+
+```sh
+make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0 actions/checkout@v7.0.0"
+```
+
+Approval covers one move. A key that did not move is reported as a redundant approval — leaving a
+stale one in place would wave the next re-point through. The quarantine still applies independently;
+`ACTIONS_PIN_ALLOW_MOVED` silences only the re-point failure. A key no `uses:` references is an
+error, so a typo cannot pass as a granted approval.
 
 ## When to Use
 
@@ -206,14 +234,18 @@ make actions-pin-apply
 `resolve` re-resolves every referenced tag and prints `⚠️ ... 既存ピンを維持` for any whose head is
 inside the window — expected, not a failure.
 
-**Watch for a re-pointed tag.** `resolve` prints `⚠️ tag の指す SHA が変わりました` with the old and
-new SHA for every key whose resolved SHA moved. A moving major tag (`# v6`) legitimately advances. An
-**exact** comment tag (`# v6.1.0`) must not: the version reference stayed the same while the code
-underneath it changed. That is tag re-pointing, and it is a security event rather than a pin refresh.
-The tool cannot tell the two apart — deciding which one you are looking at is your job here. On a
-re-point: stop, do not `apply`, and report both SHAs — those two values are what make an upstream
-report actionable. If `resolve` aborts with `ref "vN" が見つかりません`, the moving-major tag does
-not exist — that action should have been a step-2 exact pin; fix and re-run.
+A legitimate advance of a moving major tag is printed as `ℹ️ tag の解決先が前進しました` with the
+old and new SHA.
+
+**If `resolve` exits 1 with `不変を宣言した tag の解決先が変わりました`, stop.** The lockfile was not
+written, so nothing has been adopted yet. Report both SHAs for every listed key — those two values
+are what make an upstream report actionable — and let the user decide. Do **not** reach for
+`ACTIONS_PIN_ALLOW_MOVED` on your own: the only case it is for is a comment tag this repo declared
+immutable that upstream in fact moves (a moving minor like `# v6.1`), and confirming that is a human
+judgment. If it is confirmed, re-run with the key approved and note in the commit why that tag moves.
+
+If `resolve` aborts with `ref "vN" が見つかりません`, the moving-major tag does not exist — that
+action should have been a step-2 exact pin; fix and re-run.
 
 ### 7. Verify
 
@@ -227,7 +259,7 @@ Report OK / FAIL per command. Do NOT auto-roll-back on failure — the user deci
 ### 8. Final Report
 
 Summarize: actions bumped (moving / exact step-back), actions SHA-refreshed, actions held (with
-reason), any re-pointed exact tag found in step 6, verification result. List any exact-version pins
+reason), any re-pointed tag `resolve` failed on in step 6, verification result. List any exact-version pins
 introduced so the user knows to revisit them once aged. Do NOT commit, stage, or push — the user
 runs `/commit` (these changes take the `CI:` prefix) manually.
 
@@ -236,13 +268,14 @@ runs `/commit` (these changes take the `CI:` prefix) manually.
 - **Step-back is the default response to the quarantine, not a hold.** Holding happens only when no
   aged release exists in the target major.
 - **A tag is a name, not an identity.** The lockfile exists because a tag can be re-pointed; an
-  exact tag whose SHA moves is the case it was built to catch (step 6).
+  immutable-declared tag whose SHA moves is the case it was built to catch, and `resolve` fails
+  closed on it (step 6).
 - **The quarantine buys time; it does not prove age.** It reads the more recent of the release's
   `published_at` and the commit's date. A release object is bound to the tag *name* and does not move
   when the tag is re-pointed, and a commit date is git metadata the publisher can set freely — so
   neither signal alone describes the resolved SHA, and even together they are defeatable by a
   determined publisher. The gate is a delay against automated compromise, not a guarantee. Catching a
-  re-point is the lockfile diff's job (step 6), not the quarantine's.
+  re-point is `resolve`'s fail-closed job (step 6), not the quarantine's.
 - **Quarantine vs new majors**: the gate keys off SHA age, and a new major has no prior lockfile
   entry, so a fresh major's moving tag is skipped by `resolve` until it ages — which is exactly why
   step 2 pins an aged exact version instead.
@@ -269,8 +302,8 @@ Confirm before reporting completion:
       `# vM` aged → exact step-back → hold)
 - [ ] Tag-format changes and moving-tag existence accounted for
 - [ ] For each major-changing action: `with:` compatibility verified; breaking ones held + reported
-- [ ] Lockfile diff checked for an **exact** tag whose SHA moved (re-pointed tag → stop before
-      `apply`, report)
+- [ ] `resolve` did not exit 1 on a re-pointed tag (if it did → stop, report both SHAs, do not
+      approve with `ACTIONS_PIN_ALLOW_MOVED` without the user's judgment)
 - [ ] Plan (bumps / step-backs / holds with reasons) presented and confirmed via `AskUserQuestion`
 - [ ] Comment tags edited only for approved bumps; held / unchanged actions left untouched
 - [ ] `make actions-pin-resolve ACTIONS_PIN_MIN_AGE_DAYS=<N>` + `make actions-pin-apply` run
