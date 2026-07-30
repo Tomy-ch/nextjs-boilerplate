@@ -41,6 +41,14 @@ const AGENTS_DIR = path.join(CLAUDE_DIR, "agents");
 // ファイル索引・参照検査から外すディレクトリ（VCS 内部 / 外部依存 / 生成物 / 実行時成果物）。
 const EXCLUDE_DIRS = new Set([".git", "node_modules", ".next", "tmp"]);
 
+// 同じく外す、リポジトリ相対パスの先頭一致。worktree は別ブランチの作業ツリーなので、
+// 索引に入れると「このブランチには無いファイル」への参照が実在すると誤判定される。
+const EXCLUDE_PREFIXES: string[] = [path.join(CLAUDE_DIR, "worktrees")];
+
+function isExcludedPrefix(rel: string): boolean {
+  return EXCLUDE_PREFIXES.some((p) => rel === p || rel.startsWith(`${p}${path.sep}`));
+}
+
 // 参照検査の対象外にする先頭セグメント。tmp/ 配下はスキル実行中に生成されるため、
 // 静的なファイルシステム検査では存在しないのが正常。
 const PATH_ROOT_DENY = new Set(["tmp", ".git"]);
@@ -103,7 +111,9 @@ function buildEntryIndex(): string[] {
   const walk = (dir: string) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const abs = path.join(dir, entry.name);
-      entries.push(path.relative(REPO_ROOT, abs));
+      const rel = path.relative(REPO_ROOT, abs);
+      if (isExcludedPrefix(rel)) continue;
+      entries.push(rel);
       if (entry.isDirectory()) {
         if (EXCLUDE_DIRS.has(entry.name)) continue;
         walk(abs);
@@ -670,12 +680,14 @@ function collectClaudeMarkdown(): string[] {
   const walk = (dir: string) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const abs = path.join(dir, entry.name);
+      const rel = path.relative(REPO_ROOT, abs);
+      if (isExcludedPrefix(rel)) continue;
       if (entry.isDirectory()) {
         if (EXCLUDE_DIRS.has(entry.name)) continue;
         walk(abs);
         continue;
       }
-      if (entry.name.endsWith(".md")) out.push(path.relative(REPO_ROOT, abs));
+      if (entry.name.endsWith(".md")) out.push(rel);
     }
   };
   const abs = path.join(REPO_ROOT, CLAUDE_DIR);
