@@ -30,11 +30,11 @@ type Failure = {
   msg: string;
 };
 
-// markdownlint-cli2 の ignores と対象範囲を揃える（node_modules・.git を除外）。
-// プレフィックス単位・ファイル単位の除外は現状 0 件だが、yaml 側の ignores が
-// この 3 粒度で書けるため、対応する受け口として空のまま置く。
+// markdownlint-cli2 の ignores と対象範囲を揃える。DIRS は名前がどこに現れても、
+// PREFIXES は root からの相対パスの先頭一致で、FILES は完全一致で除外する。
+// FILES に該当するものは現状ない。
 const EXCLUDE_DIRS = new Set(["node_modules", ".git"]);
-const EXCLUDE_PREFIXES: string[] = [];
+const EXCLUDE_PREFIXES: string[] = [".claude/worktrees"];
 const EXCLUDE_FILES = new Set<string>([]);
 
 function errorMessage(e: unknown): string {
@@ -96,15 +96,18 @@ function collectMarkdown(root: string): string[] {
   const walk = (dir: string) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const abs = path.join(dir, entry.name);
+      const rel = path.relative(root, abs);
+      // 除外プレフィックスはディレクトリの段階で判定する。ファイルまで降りてから捨てると
+      // 除外対象のツリー全体を走査してしまう。境界は区切り文字で見る（.claude/worktrees が
+      // .claude/worktrees-backup に一致しないようにする）。
+      if (EXCLUDE_PREFIXES.some((p) => rel === p || rel.startsWith(`${p}${path.sep}`))) continue;
       if (entry.isDirectory()) {
         if (EXCLUDE_DIRS.has(entry.name)) continue;
         walk(abs);
         continue;
       }
       if (!entry.name.endsWith(".md")) continue;
-      const rel = path.relative(root, abs);
       if (EXCLUDE_FILES.has(rel)) continue;
-      if (EXCLUDE_PREFIXES.some((p) => rel.startsWith(p))) continue;
       out.push(rel);
     }
   };
