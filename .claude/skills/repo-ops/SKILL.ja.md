@@ -8,7 +8,8 @@
 
 > **スコープ注記。** この runbook は意図的に薄い。元にした go-boilerplate の `repo-ops` は Docker ツールランナー・
 > `sqlc` / `schema.gen.sql`・root 所有の生成ディレクトリ・稼働 DB が中心だったが、**それらはここには存在しない**
-> (ADR 0004 no-docker、DB なし、表示層のみ)。以下には実在する落とし穴だけを載せる。新たに踏んだら項目を足す
+> ([0011](../../../docs/adr/0011-no-docker.md)、DB なし、表示層のみ)。以下には実在する落とし穴だけを載せる。
+> 新たに踏んだら項目を足す
 > こと ── Go 固有のものを戻さない。
 
 ## 1. `make install-tools` が `mise not found` で落ちる
@@ -115,7 +116,8 @@ git add package.json pnpm-lock.yaml
 ```
 
 原則: **`package.json` の依存変更は、再生成した `pnpm-lock.yaml` を必ず同時コミットする。**(`package.json` は
-保護対象のルート設定 ── 依存編集はユーザ明示指示が必要。Toolchain-0005 により依存メジャーは別 PR。)
+保護対象のルート設定 ── 依存編集はユーザ明示指示が必要。[0004](../../../docs/adr/0004-library-management.md)
+により依存メジャーは別 PR。)
 
 ## 5. biome: `pnpm lint` vs `pnpm fix`(ADR 0002)
 
@@ -198,4 +200,5 @@ echo "Feat: 説明" | pnpm exec commitlint
 - ✅ ルートファイル編集(§5 `biome.json`、§4 `package.json`)は事前にユーザ確認 ── 既定の
   AI 変更スコープ外。§2 の `git restore pnpm-workspace.yaml` は例外 ── 頼んでいない機械的な変更を
   作るのではなく捨てる操作だから。
-- ❌ go-boilerplate の Docker / sqlc / DB 項目をここに移植しない ── 適用外(ADR 0004)。
+- ❌ go-boilerplate の Docker / sqlc / DB 項目をここに移植しない ──
+  適用外([0011](../../../docs/adr/0011-no-docker.md))。
