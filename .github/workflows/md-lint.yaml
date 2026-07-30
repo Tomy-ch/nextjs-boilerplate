@@ -1,8 +1,9 @@
 name: Markdown Lint
 
-# markdownlint-cli2 plus the mermaid syntax check — the same command the pre-commit
-# hook runs (ADR 0153: hooks mirror CI). biome does not read Markdown, so nothing
-# else in CI would catch a broken document or an unrenderable diagram.
+# markdownlint-cli2, the mermaid syntax check, and skill-lint (the semantic check over
+# `.claude/**`) — the same command the pre-commit hook runs (ADR 0153: hooks mirror CI).
+# biome does not read Markdown, so nothing else in CI would catch a broken document, an
+# unrenderable diagram, or a skill instructing an agent to run a target that no longer exists.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.

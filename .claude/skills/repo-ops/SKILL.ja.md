@@ -133,14 +133,18 @@ pnpm format    # biome format --write : フォーマットのみ
 
 ## 6. スクラッチ出力は `tmp/` 配下に置き、git には乗せない
 
-`/tmp` と `/.claude/worktrees/` は `.gitignore` 済みなので、以下は `git status` に出ない。
+`/tmp` は `.gitignore` 済みなので、以下は `git status` に出ない。
 
 - `tmp/reviews/` ── `full-verify` / `full-apply` の指摘集
 - `tmp/<name>.md` ── 実体をリポジトリ外に置いた作業計画書への symlink
-- `.claude/worktrees/<name>/` ── エージェントがリポジトリ内に作成する worktree
 
 いずれもソースではなくスクラッチ出力: `git add -f` で強引に載せない。残す必要があるスクラッチはリポジトリ外に
 実体を置き、`tmp/` 配下の symlink から参照する。
+
+**worktree はリポジトリ外の兄弟ディレクトリ（`<repo>.worktrees/<name>/`）に置く** ──
+`git worktree add ../<repo>.worktrees/<name>`。ツリー内に置いたチェックアウトは、ツリーを走査する
+全ツール（markdownlint / mermaid-lint / skill-lint / trivy）の走査対象に入り、その全てで除外を書く
+羽目になる。兄弟ディレクトリならどこにも除外が要らず、実際どこにも書いていない。
 
 ## 7. commit / push が hook に弾かれる(lefthook)
 
@@ -151,7 +155,7 @@ worktree にも継承されるが、**`node_modules` は継承されない** ─
 
 | 段階 | 入口 | 検査内容 |
 | --- | --- | --- |
-| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint`、workflow が staged なら `make actionlint` | biome 完全版 / markdownlint + mermaid 構文 / workflow 構文 + `run:` のシェル |
+| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint`、workflow が staged なら `make actionlint` | biome 完全版 / markdownlint + mermaid 構文 + `.claude/**` の意味検査(`skill-lint`) / workflow 構文 + `run:` のシェル |
 | commit-msg | `make commitlint` | subject を ADR 0150 に照らす |
 | pre-push | `pnpm typecheck`、`make secret-scan` | `tsc --noEmit` / push 範囲の秘密(**fail-closed**) |
 

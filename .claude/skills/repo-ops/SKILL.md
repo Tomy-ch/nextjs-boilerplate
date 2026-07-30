@@ -142,15 +142,18 @@ Fix items the auto-fixer cannot handle by hand; do not sprinkle `// biome-ignore
 
 ## 6. Scratch output belongs under `tmp/`, and stays out of git
 
-`/tmp` and `/.claude/worktrees/` are ignored by `.gitignore`, so the following never reach
-`git status`:
+`/tmp` is ignored by `.gitignore`, so the following never reach `git status`:
 
 - `tmp/reviews/` — `full-verify` / `full-apply` finding sets
 - `tmp/<name>.md` — symlinks to work-plan documents whose real files live outside the repo
-- `.claude/worktrees/<name>/` — worktrees an agent creates inside the repository
 
 These are scratch output, not source: do not force them in with `git add -f`. A scratch file that
 must survive belongs outside the repo, referenced through a symlink under `tmp/`.
+
+**Worktrees belong outside the repository**, in a sibling directory (`<repo>.worktrees/<name>/`) —
+`git worktree add ../<repo>.worktrees/<name>`. A checkout placed inside the tree lands in the scan
+surface of every tool that walks it (markdownlint / mermaid-lint / skill-lint / trivy) and has to be
+excluded from each one; a sibling directory needs no exclusion anywhere, and none is written.
 
 ## 7. A commit or push is rejected by a hook (lefthook)
 
@@ -161,7 +164,7 @@ in it or every hook fails with `command not found`.
 
 | Stage | Entry point | What it checks |
 | --- | --- | --- |
-| pre-commit | `pnpm lint:ci`; `pnpm md-lint` when `*.md` is staged; `make actionlint` when a workflow is staged | biome full profile; markdownlint + mermaid syntax; workflow syntax + `run:` shell |
+| pre-commit | `pnpm lint:ci`; `pnpm md-lint` when `*.md` is staged; `make actionlint` when a workflow is staged | biome full profile; markdownlint + mermaid syntax + `.claude/**` semantics (`skill-lint`); workflow syntax + `run:` shell |
 | commit-msg | `make commitlint` | the subject against ADR 0150 |
 | pre-push | `pnpm typecheck`; `make secret-scan` | `tsc --noEmit`; secrets in the range being pushed (**fail-closed**) |
 

@@ -76,7 +76,7 @@ node = "<TARGET_VERSION>"
 pnpm = "…"   # 変更なし
 ```
 
-`mise.toml` が単一の正。本リポジトリに `make sync-versions` は無い(あれは Go-boilerplate の `go.mod` /
+`mise.toml` が単一の正。本リポジトリに `sync-versions` は無い(あれは Go-boilerplate の `go.mod` /
 Dockerfile 用機構で、どちらも本リポジトリには存在しない ── ADR 0004 no-docker)。
 
 ### 3. ローカル Node 環境の更新(ユーザ作業)

@@ -20,7 +20,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
 | Lint | `lint.yaml` | `lint` | biome（full profile）で Markdown を除くリポジトリ全体を検査する（対象範囲は `biome.json` の `files.includes`） |
-| Markdown Lint | `md-lint.yaml` | `md-lint` | markdownlint + mermaid 図の構文を検査する |
+| Markdown Lint | `md-lint.yaml` | `md-lint` | markdownlint + mermaid 図の構文 + `.claude/**` の意味検査（`skill-lint`）を実行する |
 | Typecheck | `typecheck.yaml` | `typecheck` | `tsc --noEmit` で型を検査する |
 | Build | `build.yaml` | `build` | `next build` が通ることを検査する |
 | Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
