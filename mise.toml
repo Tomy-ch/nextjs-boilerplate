@@ -8,8 +8,9 @@
 
 # GitHub Actions 定義の Lint（make actionlint）
 "aqua:rhysd/actionlint" = "1.7.12"
-# actionlint が run ステップのシェルを検査するために PATH 上で参照する（同梱ではなく別バイナリ）。
-# 版を固定しないと検査結果が実行者の環境依存になるため mise 側で持つ。
+# run ステップのシェルの検査に使う。actionlint が PATH 上で参照する（同梱ではなく別バイナリ）ほか、
+# composite action 側の検査（make actions-shellcheck）が直接呼ぶ。版を固定しないと検査結果が
+# 実行者の環境依存になるため mise 側で持つ。
 "aqua:koalaman/shellcheck" = "0.11.0"
 
 # セキュリティスキャナ（make secret-scan / make trivy-fs）

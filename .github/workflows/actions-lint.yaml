@@ -1,12 +1,21 @@
 name: Actions Lint
 
-# actionlint over the workflow definitions themselves — the same command the
-# pre-commit hook runs (ADR 0153: hooks mirror CI). shellcheck is installed
-# alongside it because actionlint shells out to it to check every `run:` block; on a
-# runner without it the shell checks are silently skipped rather than reported.
+# Lints the Actions definitions themselves — the same commands the pre-commit hook
+# runs (ADR 0153: hooks mirror CI). Two checks, one concern:
 #
-# The only CI Checks workflow with no Node or pnpm: actionlint reads YAML, not the
-# project.
+#   actionlint          — workflow syntax, plus the shell of every `run:` in
+#                         `.github/workflows`. shellcheck is installed alongside it
+#                         because actionlint shells out to it; on a runner without it
+#                         the shell checks are silently skipped rather than reported.
+#   actions-shellcheck  — the shell of every `run:` in a composite action. actionlint
+#                         scans only `.github/workflows` and rejects an `action.yaml`
+#                         handed to it directly (it reads the file as a workflow), so
+#                         without this the shells under `.github/actions` reach no gate
+#                         at all (ADR 0153 §1, revert condition W10).
+#
+# Both are reported through a single PR comment: they answer the same question — is
+# the shell we are about to execute in CI correct — and splitting them would add a
+# second required check for one concern.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
@@ -47,26 +56,50 @@ jobs:
           install: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install actionlint and shellcheck
+      # Node and pnpm are here for the composite-action check, which is a TypeScript
+      # script run through tsx.
+      - name: Install actionlint, shellcheck, Node and pnpm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install aqua:rhysd/actionlint aqua:koalaman/shellcheck
+        run: mise install aqua:rhysd/actionlint aqua:koalaman/shellcheck core:node aqua:pnpm/pnpm
 
-      - name: Run actionlint
-        id: actionlint
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Both checks run unconditionally so one failure does not hide the other's
+      # findings, and both logs land in the same PR comment.
+      - name: Run Actions lint
+        id: actions-lint
         shell: bash
         run: |
           set +e
 
-          make actionlint 2>&1 | tee /tmp/actionlint.log
-          code=${PIPESTATUS[0]}
+          make actionlint 2>&1 | tee /tmp/actions-lint.log
+          actionlint_code=${PIPESTATUS[0]}
 
-          if [ "${code}" -eq 0 ]; then
+          make actions-shellcheck 2>&1 | tee -a /tmp/actions-lint.log
+          shellcheck_code=${PIPESTATUS[0]}
+
+          if [ "${actionlint_code}" -eq 0 ] && [ "${shellcheck_code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
-            echo "title=## ✅ Actions lint: PASS (actionlint)" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Actions lint: PASS (actionlint + composite-action shellcheck)" >> "$GITHUB_OUTPUT"
           else
             echo "status=failure" >> "$GITHUB_OUTPUT"
-            echo "title=## ❌ Actions lint: FAIL (actionlint)" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Actions lint: FAIL (actionlint + composite-action shellcheck)" >> "$GITHUB_OUTPUT"
           fi
 
           exit 0
@@ -78,10 +111,10 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- actions-lint-result -->'
-          title: ${{ steps.actionlint.outputs.title }}
-          body-file: /tmp/actionlint.log
-          details-summary: 'actionlint log'
+          title: ${{ steps.actions-lint.outputs.title }}
+          body-file: /tmp/actions-lint.log
+          details-summary: 'Actions lint log'
 
-      - name: Fail if actionlint failed
-        if: always() && steps.actionlint.outputs.status != 'success'
+      - name: Fail if the Actions lint failed
+        if: always() && steps.actions-lint.outputs.status != 'success'
         run: exit 1
