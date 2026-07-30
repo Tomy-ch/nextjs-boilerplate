@@ -156,8 +156,8 @@ absent, fall to step 2.
 ### 3. Verify `with:` for Major Bumps
 
 `resolve` / `apply` / `actionlint` catch syntax, NOT semantic input changes. For every action whose
-**major changes**, read its release notes / `action.yml` and compare against every `with:` block
-this repo uses. If the repo's actual inputs remain compatible → keep the bump. If a breaking input
+**major changes**, read its release notes and the upstream action's own definition file, then compare
+them against every `with:` block this repo uses. If the repo's actual inputs remain compatible → keep the bump. If a breaking input
 change applies → **hold the action and report the required change**; do not auto-apply. Minor-only
 refreshes within a major skip this check.
 
