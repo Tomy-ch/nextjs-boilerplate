@@ -1,6 +1,6 @@
 ---
 name: node-upgrade
-description: Upgrade the Node.js version used by this project. `mise.toml` `[tools] node` is the single source of truth (ADR 0003); this skill confirms the target version with the user via AskUserQuestion, reviews the release notes / breaking changes for that Node line, edits `mise.toml`, has the user run `make install-tools` (mise install), then rebuilds the lockfile and verifies with `pnpm install` + `pnpm lint` + `pnpm build`. Unlike go-boilerplate's go-upgrade there is no `sync-versions` propagation / Dockerfile / go.mod to update (ADR 0004 no-docker), and no CI node-version to sync yet (BACKLOG B9 pending). A `@types/node` major realignment is intentionally NOT bundled here — it is a separate PR per Toolchain-0005 (major updates in isolation). Use this for a deliberate Node version move; for a routine bulk audit of all mise tools (node + pnpm + …) with supply-chain quarantine, use `tools-upgrade` instead.
+description: Upgrade the Node.js version used by this project. `mise.toml` `[tools] node` is the single source of truth (ADR 0003); this skill confirms the target version with the user via AskUserQuestion, reviews the release notes / breaking changes for that Node line, edits `mise.toml`, has the user run `make install-tools` (mise install), then rebuilds the lockfile and verifies with `pnpm install` + `pnpm lint` + `pnpm build`. Unlike go-boilerplate's go-upgrade there is no `sync-versions` propagation / Dockerfile / go.mod to update (ADR 0011 no-docker), and no CI node-version to sync yet (BACKLOG B9 pending). A `@types/node` major realignment is intentionally NOT bundled here — it is a separate PR per ADR 0004 (major updates in isolation). Use this for a deliberate Node version move; for a routine bulk audit of all mise tools (node + pnpm + …) with supply-chain quarantine, use `tools-upgrade` instead.
 argument-hint: [<target-version>]
 allowed-tools: Read, Edit, Bash, AskUserQuestion
 ---
@@ -31,7 +31,7 @@ the release-note review + full rebuild, use this skill.
 - Bumping `pnpm` or other tools → `tools-upgrade` (or edit `mise.toml` + `make install-tools` for a
   one-off).
 - Updating npm dependencies (`package.json` `dependencies` / `devDependencies`) → out of scope here;
-  per Toolchain-0005, dependency majors go in their own PR.
+  per [0004](../../../docs/adr/0004-library-management.md), dependency majors go in their own PR.
 
 ## First Step: Confirm the Target Version
 
@@ -96,8 +96,8 @@ pnpm = "…"   # unchanged
 ```
 
 `mise.toml` is the single source of truth; there is no `sync-versions` step in this repo (that was
-a Go-boilerplate mechanism for `go.mod` / Dockerfiles, neither of which exists here — ADR 0004
-no-docker).
+a Go-boilerplate mechanism for `go.mod` / Dockerfiles, neither of which exists here —
+[0011](../../../docs/adr/0011-no-docker.md)).
 
 ### 3. Update the Local Node Environment (user task)
 
@@ -136,7 +136,7 @@ server (`pnpm dev`, then stop it) to confirm the runtime boots the app.
 ### 6. Flag Follow-ups (do NOT bundle here)
 
 - **`@types/node`**: currently `^20` in `devDependencies` while the runtime is Node 24+. Aligning its
-  major to the runtime is reasonable, but per **Toolchain-0005** a dependency **major** update belongs
+  major to the runtime is reasonable, but per **[0004](../../../docs/adr/0004-library-management.md)** a dependency **major** update belongs
   in its **own PR**, not bundled with a runtime bump. Report it as a recommended follow-up; do not edit
   `package.json` in this skill.
 - **CI**: there is no `.github/workflows/` yet (BACKLOG **B9** pending). When CI is added, a
@@ -155,7 +155,7 @@ server (`pnpm dev`, then stop it) to confirm the runtime boots the app.
 ## Notes
 
 - Do NOT run `mise install` yourself — ask the user (it mutates their toolchain).
-- Do NOT edit `package.json` here — dependency majors are separate PRs (Toolchain-0005).
+- Do NOT edit `package.json` here — dependency majors are separate PRs ([0004](../../../docs/adr/0004-library-management.md)).
 - Commit on the working branch. Direct commits to protected branches are prohibited (AGENTS.md).
 - Push to a PR only when the user explicitly instructs it.
 - After updating `SKILL.md`, also update `SKILL.ja.md` to keep the Japanese translation in sync.

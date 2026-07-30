@@ -1,6 +1,6 @@
 ---
 name: repo-ops
-description: Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, and the lefthook git hooks. Read-only knowledge skill — it tells you the exact command to run; it does not silently mutate state. This is deliberately a SPARSE STARTER for the Next.js boilerplate: it carries only the gotchas that genuinely exist today (mise / pnpm / make DRY_RUN / scratch paths / lefthook hooks), and grows as new operational traps are discovered (in contrast to the go-boilerplate original, whose items were mostly Docker / sqlc / DB-runner specific and do not apply here — ADR 0004 no-docker). Triggers: "make install-tools が mise not found で落ちる", "DRY_RUN はどのターゲットで効くのか", "setup-repo を試しに実行したい", "pnpm install --frozen-lockfile が落ちる", "mise.toml を変えた後の反映", "pnpm のスクリプトが ERR_PNPM_IGNORED_BUILDS で落ちる", "pnpm-workspace.yaml に覚えのない allowBuilds が付いている", "スクラッチ出力をどこに置くか", "commit が commitlint に弾かれる", "hook が command not found で落ちる".
+description: Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, and the lefthook git hooks. Read-only knowledge skill — it tells you the exact command to run; it does not silently mutate state. This is deliberately a SPARSE STARTER for the Next.js boilerplate: it carries only the gotchas that genuinely exist today (mise / pnpm / make DRY_RUN / scratch paths / lefthook hooks), and grows as new operational traps are discovered (in contrast to the go-boilerplate original, whose items were mostly Docker / sqlc / DB-runner specific and do not apply here — ADR 0011 no-docker). Triggers: "make install-tools が mise not found で落ちる", "DRY_RUN はどのターゲットで効くのか", "setup-repo を試しに実行したい", "pnpm install --frozen-lockfile が落ちる", "mise.toml を変えた後の反映", "pnpm のスクリプトが ERR_PNPM_IGNORED_BUILDS で落ちる", "pnpm-workspace.yaml に覚えのない allowBuilds が付いている", "スクラッチ出力をどこに置くか", "commit が commitlint に弾かれる", "hook が command not found で落ちる".
 ---
 
 # Repo Ops Runbook
@@ -11,7 +11,8 @@ root file, say so to the user first per `CLAUDE.md`.
 
 > **Scope note.** This runbook is intentionally sparse. The go-boilerplate `repo-ops` it was adapted
 > from centred on Docker tool-runners, `sqlc` / `schema.gen.sql`, root-owned generated dirs, and a
-> live DB — **none of which exist here** (ADR 0004 no-docker; no DB; presentation layer only). Only the
+> live DB — **none of which exist here** ([0011](../../../docs/adr/0011-no-docker.md); no DB;
+> presentation layer only). Only the
 > genuinely-present traps are listed below. Add an item when a new one bites — do not port the
 > Go-specific ones back in.
 
@@ -124,7 +125,8 @@ git add package.json pnpm-lock.yaml
 
 Rule of thumb: **any change to `package.json` dependencies requires committing the regenerated
 `pnpm-lock.yaml` alongside it.** (`package.json` is a protected root config — dependency edits need an
-explicit user instruction; per Toolchain-0005, a dependency *major* goes in its own PR.)
+explicit user instruction; per [0004](../../../docs/adr/0004-library-management.md), a dependency
+*major* goes in its own PR.)
 
 ## 5. biome: `pnpm lint` vs `pnpm fix` (ADR 0002)
 
@@ -150,10 +152,21 @@ Fix items the auto-fixer cannot handle by hand; do not sprinkle `// biome-ignore
 These are scratch output, not source: do not force them in with `git add -f`. A scratch file that
 must survive belongs outside the repo, referenced through a symlink under `tmp/`.
 
-**Worktrees belong outside the repository**, in a sibling directory (`<repo>.worktrees/<name>/`) —
-`git worktree add ../<repo>.worktrees/<name>`. A checkout placed inside the tree lands in the scan
-surface of every tool that walks it (markdownlint / mermaid-lint / skill-lint / trivy) and has to be
-excluded from each one; a sibling directory needs no exclusion anywhere, and none is written.
+**Worktrees live at `.claude/worktrees/<name>/`**, inside the repository — that is where the agent
+tooling creates them and the location is not configurable, so a convention placing them elsewhere
+only holds for the ones a human makes by hand. A checkout inside the tree lands in the scan surface
+of every tool that walks it, so the exclusion is written in five places and they must stay in sync:
+
+| Where | Entry |
+| --- | --- |
+| `.gitignore` | `/.claude/worktrees/` |
+| `.markdownlint-cli2.yaml` | `ignores:` `.claude/worktrees/**` |
+| `scripts/mermaid-lint.ts` | `EXCLUDE_PREFIXES` |
+| `scripts/skill-lint.ts` | `EXCLUDE_PREFIXES` |
+| `.makefiles/security/trivy.mk` | `--skip-dirs .claude/worktrees` |
+
+None of these tools reads `.gitignore`, so ignoring a path there does not exclude it from any of the
+other four. Adding a sixth tool that walks the tree means adding a sixth entry.
 
 ## 7. A commit or push is rejected by a hook (lefthook)
 
@@ -209,4 +222,5 @@ echo "Feat: 説明" | pnpm exec commitlint
 - ✅ Confirm with the user before editing root files (`biome.json` in §5, `package.json` in §4) —
   they are outside the default AI Modification Scope. §2's `git restore pnpm-workspace.yaml` is the
   exception: it discards an unrequested machine edit rather than making one.
-- ❌ Do not port the go-boilerplate Docker / sqlc / DB items here — they do not apply (ADR 0004).
+- ❌ Do not port the go-boilerplate Docker / sqlc / DB items here — they do not apply
+  ([0011](../../../docs/adr/0011-no-docker.md)).

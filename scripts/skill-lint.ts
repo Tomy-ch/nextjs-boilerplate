@@ -4,8 +4,8 @@
 // markdownlint は体裁しか見ないため、「書いてある内容が実態と合っているか」は誰も検査していない。
 // スキル定義はエージェントの挙動を決める指示書であり、腐った参照はそのまま誤った手順の実行につながる。
 //
-// 検査は Makefile のターゲット一覧・ファイルシステム・見出し抽出から導出できるものだけに限る
-// （判断を含めない）。node の標準ライブラリのみに依存する。
+// 検査は Makefile のターゲット一覧・ファイルシステム・見出し抽出・確定済みの採番規約から導出できる
+// ものだけに限る（判断を含めない）。node の標準ライブラリのみに依存する。
 // 1 件でも違反があれば非 0 で終了する。
 import fs from "node:fs";
 import path from "node:path";
@@ -41,6 +41,16 @@ const AGENTS_DIR = path.join(CLAUDE_DIR, "agents");
 // ファイル索引・参照検査から外すディレクトリ（VCS 内部 / 外部依存 / 生成物 / 実行時成果物）。
 const EXCLUDE_DIRS = new Set([".git", "node_modules", ".next", "tmp"]);
 
+// 同じく外す、リポジトリ相対パスの先頭一致。worktree は別ブランチの作業ツリーなので、
+// 実在しても「このブランチのソース」ではない。索引にも直接の fs 参照にも通すと、
+// このブランチに無いファイルへの参照が実在すると判定され、しかもその可否が
+// 作業マシンにどの worktree が生きているかで変わる。
+const EXCLUDE_PREFIXES: string[] = [path.join(CLAUDE_DIR, "worktrees")];
+
+function isExcludedPrefix(rel: string): boolean {
+  return EXCLUDE_PREFIXES.some((p) => rel === p || rel.startsWith(`${p}${path.sep}`));
+}
+
 // 参照検査の対象外にする先頭セグメント。tmp/ 配下はスキル実行中に生成されるため、
 // 静的なファイルシステム検査では存在しないのが正常。
 const PATH_ROOT_DENY = new Set(["tmp", ".git"]);
@@ -55,6 +65,12 @@ const IGNORE_DIRECTIVE = "<!-- skill-lint-ignore -->";
 // （黙って通すと「複雑に書けば検査を外せる」抜け道になる）。
 const MAX_WILDCARDS = 8;
 const MAX_BRACE_EXPANSIONS = 64;
+
+// 検査する 1 行の長さの上限。行の内容も書き手が自由に決められ、正規表現の照合は行長に対して
+// 二次時間まで落ちる。このリポジトリは公開されており md-lint は fork からの PR でも走るため、
+// 極端に長い 1 行は CI と pre-commit を止める手段になる。上限超過は検査を飛ばさず違反として
+// 報告する（黙って通すと「長く書けば検査を外せる」抜け道になる）。
+const MAX_LINE_LENGTH = 4096;
 
 function isTooComplex(text: string): boolean {
   const wildcards = text.match(/\*+|<[^>]*>/g)?.length ?? 0;
@@ -97,7 +113,9 @@ function buildEntryIndex(): string[] {
   const walk = (dir: string) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const abs = path.join(dir, entry.name);
-      entries.push(path.relative(REPO_ROOT, abs));
+      const rel = path.relative(REPO_ROOT, abs);
+      if (isExcludedPrefix(rel)) continue;
+      entries.push(rel);
       if (entry.isDirectory()) {
         if (EXCLUDE_DIRS.has(entry.name)) continue;
         walk(abs);
@@ -194,16 +212,48 @@ function* eachLineOutsideFence(content: string): Generator<{ line: string; lineN
   }
 }
 
-// 1 行からインラインコードスパン（`...`）の中身を抜き出す。
-function extractInlineCode(line: string): string[] {
+// 1 行をインラインコードスパンの中身（spans）とスパンを除いた残り（withoutCode）へ分解する。
+// 閉じ判定は CommonMark どおり「開きと同じ長さのバッククォート列」に限る。長さを見ないと、単一
+// バッククォートを含む語句を二重で囲む書き方（`` `x` ``）が内側の 1 個で閉じたと解釈され、コード
+// スパンの中身が地の文として漏れる。
+// 抽出と除去を 1 つの走査で持つのは、解釈が食い違うと同じ記述が一方の検査では例示・他方では実在の
+// 主張になるため。走査は 1 パスで、正規表現の後方参照のようなバックトラッキングを持たない。
+function scanInlineCode(line: string): { spans: string[]; withoutCode: string } {
   const spans: string[] = [];
-  const re = /(`+)([^`]+?)\1/g;
-  let m: RegExpExecArray | null = re.exec(line);
-  while (m !== null) {
-    spans.push(m[2].trim());
-    m = re.exec(line);
+  let withoutCode = "";
+  let i = 0;
+  while (i < line.length) {
+    if (line[i] !== "`") {
+      withoutCode += line[i];
+      i++;
+      continue;
+    }
+    let open = 0;
+    while (line[i + open] === "`") open++;
+    let close = -1;
+    for (let j = i + open; j < line.length; ) {
+      if (line[j] !== "`") {
+        j++;
+        continue;
+      }
+      let run = 0;
+      while (line[j + run] === "`") run++;
+      if (run === open) {
+        close = j;
+        break;
+      }
+      j += run;
+    }
+    // 閉じないバッククォート列はコードスパンを開いていない。地の文として残す。
+    if (close === -1) {
+      withoutCode += line.slice(i, i + open);
+      i += open;
+      continue;
+    }
+    spans.push(line.slice(i + open, close).trim());
+    i = close + open;
   }
-  return spans;
+  return { spans, withoutCode };
 }
 
 // ---------------------------------------------------------------------------
@@ -487,17 +537,71 @@ function isUncreatedKernelPath(text: string): boolean {
 function repoPathExists(candidate: string, fromDir: string): boolean {
   const bases = [REPO_ROOT, path.join(REPO_ROOT, fromDir)];
   return expandBraces(candidate).some((text) => {
-    if (!WILDCARD_RE.test(text)) return bases.some((base) => fs.existsSync(path.join(base, text)));
+    if (!WILDCARD_RE.test(text))
+      return bases.some((base) => {
+        const abs = path.join(base, text);
+        if (isExcludedPrefix(path.relative(REPO_ROOT, abs))) return false;
+        return fs.existsSync(abs);
+      });
     const re = placeholderToRegExp(text, { segmentSeparator: true });
     return entryIndex.some((entry) => re.test(entry));
   });
 }
 
 // ---------------------------------------------------------------------------
+// 参照: ADR 採番
+// ---------------------------------------------------------------------------
+
+// 廃止済みの ADR 採番プレフィックス。採番はトピック別ブロック帯の数値 4 桁へ全面再付番済みで
+// （`docs/adr/0028-naming-convention.md`）、プレフィックス付きの採番は現行に 1 つも存在しない。
+// 参照先が実在しないことが綴りだけで確定するため、判断を挟まずに違反と断定できる。
+// 廃止された 2 つに限定するのは、`[A-Z]\w+-\d{4}` のような一般形が規格番号や型番を巻き込むため。
+const RETIRED_ADR_NUMBER_RE = /\b(?:Toolchain|Dev)-\d{4}\b/g;
+
+// ---------------------------------------------------------------------------
+// 参照: Markdown リンク
+// ---------------------------------------------------------------------------
+
+// 末尾の任意タイトル（`[a](b "title")`）まで含めて 1 つのリンクとして取る。タイトル付きを
+// 取りこぼすと、その行のリンクだけ実在検査を素通りする。
+const MD_LINK_RE = /\[[^\]]*\]\(\s*([^()\s]+)(?:\s+"[^"]*")?\s*\)/g;
+
+// リンクターゲットのうち、リポジトリ内のファイルとして解決できるものだけを取り出す。
+// ページ内アンカー・スキーム付き URL・プロトコル相対 URL・プレースホルダ入りは実パスに解決できない。
+function asLinkPath(target: string): string | null {
+  if (target.startsWith("#")) return null;
+  if (target.startsWith("//")) return null;
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(target)) return null;
+  // `<...>` で囲む書き方は CommonMark のリンク先エスケープであって、書き手が埋めるプレースホルダ
+  // （`docs/<name>/x.md`）とは別物。囲みを外してから中身をプレースホルダとして判定する。
+  const unwrapped = /^<[^<>]*>$/.test(target) ? target.slice(1, -1) : target;
+  if (/<[^>]*>/.test(unwrapped)) return null;
+  const withoutFragment = unwrapped.split("#")[0];
+  return withoutFragment === "" ? null : withoutFragment;
+}
+
+// リンク先の実在性を判定する。相対リンクの基準は参照元ファイルのディレクトリ、`/` 始まりは
+// リポジトリルート（GitHub の解決規則）。パス参照と違ってルート相対でも解決を試すことはしない
+// ── リンクは表示時に実際に辿られるため、解決規則から外れた当たりを実在と見なすと壊れたリンクを通す。
+// 解決結果がリポジトリルートの外へ出た場合も false を返す。索引の外にあるものは実在を主張できない。
+function linkPathExists(target: string, fromDir: string): boolean {
+  const abs = target.startsWith("/")
+    ? path.join(REPO_ROOT, target)
+    : path.resolve(REPO_ROOT, fromDir, target);
+  const rel = path.relative(REPO_ROOT, abs);
+  if (rel.startsWith("..")) return false;
+  if (isExcludedPrefix(rel)) return false;
+  // tmp/ 配下はスキル実行中に生成されるため、静的検査では存在しないのが正常。
+  if (PATH_ROOT_DENY.has(rel.split(path.sep)[0])) return true;
+  return fs.existsSync(abs);
+}
+
+// ---------------------------------------------------------------------------
 // 実行
 // ---------------------------------------------------------------------------
 
-// `.claude/**` の Markdown 本文が参照する make ターゲット / ファイルパスの実在性を検査する。
+// `.claude/**` の Markdown 本文が参照する make ターゲット / ファイルパス / リンク先の実在性と、
+// 廃止済み ADR 採番の不使用を検査する。
 // frontmatter も対象にする。`description` はスキル選択時にモデルへ渡る要約であり、本文と同じだけ腐る。
 // 抑止ディレクティブ（HTML コメント）は YAML スカラの中では機能しないため、frontmatter で誤検知が
 // 出た場合は記述側を直して回避する。
@@ -506,7 +610,34 @@ function checkReferences(rel: string): void {
   const fromDir = path.dirname(rel);
   for (const { line, lineNo } of eachLineOutsideFence(content)) {
     if (line.includes(IGNORE_DIRECTIVE)) continue;
-    for (const span of extractInlineCode(line)) {
+    if (line.length > MAX_LINE_LENGTH) {
+      report(
+        rel,
+        lineNo,
+        "line-length",
+        `1 行が長すぎて検査できません（${line.length} 文字 / 上限 ${MAX_LINE_LENGTH} 文字）`,
+      );
+      continue;
+    }
+    // 採番だけは行全体を見る。廃止採番はコードスパンに書かれていても実在しない ADR を指しており、
+    // リンクと違って「記法の例示」という正当な用途が無い。
+    for (const match of line.matchAll(RETIRED_ADR_NUMBER_RE)) {
+      report(
+        rel,
+        lineNo,
+        "adr-ref",
+        `廃止された ADR 採番を参照しています: \`${match[0]}\`（現行の採番は数値 4 桁のみ）`,
+      );
+    }
+    const { spans, withoutCode } = scanInlineCode(line);
+    // コードスパンの中のリンクはリンク記法そのものの例示であり、実在するファイルを指す主張ではない。
+    for (const match of withoutCode.matchAll(MD_LINK_RE)) {
+      const target = asLinkPath(match[1]);
+      if (target !== null && !linkPathExists(target, fromDir)) {
+        report(rel, lineNo, "link-ref", `存在しないパスへリンクしています: \`${match[1]}\``);
+      }
+    }
+    for (const span of spans) {
       for (const target of extractMakeTargets(span)) {
         if (isTooComplex(target)) {
           report(
@@ -557,12 +688,14 @@ function collectClaudeMarkdown(): string[] {
   const walk = (dir: string) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const abs = path.join(dir, entry.name);
+      const rel = path.relative(REPO_ROOT, abs);
+      if (isExcludedPrefix(rel)) continue;
       if (entry.isDirectory()) {
         if (EXCLUDE_DIRS.has(entry.name)) continue;
         walk(abs);
         continue;
       }
-      if (entry.name.endsWith(".md")) out.push(path.relative(REPO_ROOT, abs));
+      if (entry.name.endsWith(".md")) out.push(rel);
     }
   };
   const abs = path.join(REPO_ROOT, CLAUDE_DIR);
