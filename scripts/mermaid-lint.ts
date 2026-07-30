@@ -34,7 +34,9 @@ type Failure = {
 // PREFIXES は root からの相対パスの先頭一致で、FILES は完全一致で除外する。
 // FILES は現状空だが、yaml 側の ignores がこの 3 粒度で書けるため受け口として残す。
 const EXCLUDE_DIRS = new Set(["node_modules", ".git"]);
-const EXCLUDE_PREFIXES: string[] = [path.join(".claude", "worktrees")];
+// graphify-out は gitignore 済みだが本スクリプトは .gitignore を見ないため、ここで外さないと
+// グラフを生成した人だけ GRAPH_REPORT.md で pre-commit が落ちる。
+const EXCLUDE_PREFIXES: string[] = [path.join(".claude", "worktrees"), "graphify-out"];
 const EXCLUDE_FILES = new Set<string>([]);
 
 function errorMessage(e: unknown): string {

@@ -39,7 +39,7 @@ const SKILLS_DIR = path.join(CLAUDE_DIR, "skills");
 const AGENTS_DIR = path.join(CLAUDE_DIR, "agents");
 
 // ファイル索引・参照検査から外すディレクトリ（VCS 内部 / 外部依存 / 生成物 / 実行時成果物）。
-const EXCLUDE_DIRS = new Set([".git", "node_modules", ".next", "tmp"]);
+const EXCLUDE_DIRS = new Set([".git", "node_modules", ".next", "tmp", "graphify-out"]);
 
 // 同じく外す、リポジトリ相対パスの先頭一致。worktree は別ブランチの作業ツリーなので、
 // 実在しても「このブランチのソース」ではない。索引にも直接の fs 参照にも通すと、
@@ -51,9 +51,10 @@ function isExcludedPrefix(rel: string): boolean {
   return EXCLUDE_PREFIXES.some((p) => rel === p || rel.startsWith(`${p}${path.sep}`));
 }
 
-// 参照検査の対象外にする先頭セグメント。tmp/ 配下はスキル実行中に生成されるため、
-// 静的なファイルシステム検査では存在しないのが正常。
-const PATH_ROOT_DENY = new Set(["tmp", ".git"]);
+// 参照検査の対象外にする先頭セグメント。tmp/ と graphify-out/ の配下は実行時に生成されるため、
+// 静的なファイルシステム検査では存在しないのが正常。生成済みの環境でだけ検査が通ることを避けるため、
+// 実在するかどうかに関わらず対象外にする。
+const PATH_ROOT_DENY = new Set(["tmp", ".git", "graphify-out"]);
 
 // 意図的に実在しない参照（仮定の例示・任意配置）を抑止するための行内ディレクティブ。
 const IGNORE_DIRECTIVE = "<!-- skill-lint-ignore -->";

@@ -45,3 +45,6 @@ next-env.d.ts
 
 # エージェントが作る worktree の実体。別ブランチの作業ツリーであってこのリポジトリのソースではない
 /.claude/worktrees/
+
+# graphify の出力（graph.json / GRAPH_REPORT.md 等）。コード変更ごとに動く派生物
+/graphify-out

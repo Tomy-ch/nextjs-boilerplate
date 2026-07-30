@@ -43,7 +43,11 @@ make install-tools
 pnpm install
 pnpm exec lefthook install   # 自動では入らない。clone 後に 1 度だけ実行する
 
-# 3. 開発サーバーを起動する。
+# 3. （任意）AI コーディングアシスタント向けの資産を導入する。開発・ビルドの必須経路ではない。
+pnpm exec tsx scripts/bootstrap-plugins.ts           # 公式プラグイン
+pnpm exec tsx scripts/bootstrap-external-skills.ts   # 外部スキル（graphify）
+
+# 4. 開発サーバーを起動する。
 pnpm dev
 ```
 
@@ -77,4 +81,4 @@ make help                       # 全 make ターゲットとその説明
 - [docs/adr/](docs/adr/) — アーキテクチャ決定記録（ADR）。本リポジトリの規約はすべてここにある
 - [docs/adr/BACKLOG.md](docs/adr/BACKLOG.md) — 未決の決定領域
 - [.makefiles/README.md](.makefiles/README.md) — 全 `make` ターゲット
-- [.claude/skills/](.claude/skills/) — 反復する運用を Claude Code のスキルとして packaging したもの
+- [.claude/README.md](.claude/README.md) — Claude Code 向けの設定資産（スキル / エージェント / 権限境界 / 外部スキル）

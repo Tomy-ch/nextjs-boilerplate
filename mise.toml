@@ -1,3 +1,8 @@
+[settings]
+# pipx backend を uv（uvx）で解決する。実行系を mise 管理の uv に固定し、
+# 実行者の環境に入っている pipx の差異を持ち込まない。
+pipx.uvx = true
+
 [tools]
 # backend (`core:` / `aqua:` 等) は常に明示する。レジストリ上で複数 backend を持つツールは、
 # 既定 backend が差し替わると取得元が黙って変わるため（判断は docs/adr/0003-version-manager.md）。
@@ -16,3 +21,12 @@
 # セキュリティスキャナ（make secret-scan / make trivy-fs）
 "aqua:gitleaks/gitleaks" = "8.30.1"
 "aqua:aquasecurity/trivy" = "0.72.0"
+
+# 外部スキル（AI アシスタント向け。scripts/bootstrap-external-skills.ts が導入する）
+# uv は pipx backend の実行系（[settings] pipx.uvx）。graphifyy の解決を実行者の環境から切り離すために版を固定する。
+"aqua:astral-sh/uv" = "0.11.27"
+# コードベース知識グラフ（/graphify）。PyPI パッケージ名は graphifyy（y 2 つ）で CLI 名が graphify。
+# `graphify`（y 1 つ）は PyPI の空き名なので、手順書に書くときも必ず graphifyy を使う。
+# 版は「最新」ではなく「PyPI のクールダウン 7 日（docs/adr/0110-security-operations.md）を満たす最新」を採る。
+# 上流は高頻度でリリースするため、この pin は構造的に最新から数日遅れる。
+"pipx:graphifyy" = "0.9.25"
