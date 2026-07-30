@@ -139,7 +139,7 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>]` | コメント tag を `git ls-remote` で SHA へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます。既定の検疫日数は 14。GitHub API のレート制限に掛かる場合は `GITHUB_TOKEN`（または `GH_TOKEN`）を設定してください。 |
+| `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>] [ACTIONS_PIN_ALLOW_MOVED="<key>..."]` | コメント tag を `git ls-remote` で SHA へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます。既定の検疫日数は 14。不変を宣言した tag の解決先が変わると exit 1（下記）。GitHub API のレート制限に掛かる場合は `GITHUB_TOKEN`（または `GH_TOKEN`）を設定してください。 |
 | `make actions-pin-apply` | ロックファイルを元に `uses:` の `@<sha>` を書き換えます。 | コメント tag は保持します。 |
 | `make actions-pin-check` | `uses:` がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-pin` job が実行します。未登録の参照 / 未固定・不一致の SHA / 壊れたロックファイル / 参照されなくなったエントリ / 解釈できない `uses:` 記法を検出して exit 1（fail-closed）。 |
 
@@ -153,8 +153,26 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 検疫が見る経過日数は、Release の `published_at` と commit の日付のうち**新しい方**です。Release は tag 名に
 紐づくだけで tag の付け替えでは動かず、commit の日付は発行者が任意に書けるため、どちらも単独では解決先の
 新しさを表しません。ただし新しい方を採ってもなお、**検疫は自動化された乗っ取りに対して時間を稼ぐ仕組みで
-あり、日付の偽装に耐える保証ではありません**。tag 付け替えそのものの検知はロックファイルの差分が担い、
-`make actions-pin-resolve` は同一 tag が別 SHA へ解決された件を出力に明示します。
+あり、日付の偽装に耐える保証ではありません**。tag 付け替えそのものの検知は下記の fail-closed が担います。
+
+#### tag 付け替えの検知
+
+`make actions-pin-resolve` は、**不変を宣言した tag の解決先が変わった時点で exit 1 になり、ロックファイルを
+書きません**（承認済みの移動や他のエントリを含め、一切書きません）。付け替えられた SHA が一度ロックファイルへ
+入れば、以降 `make actions-pin-check` は「整合している」と答え続けるためです。
+
+`# v6` のような **bare な major 番号だけを moving**（前進してよい）とみなします。これは上流の tag 運用の推測では
+なく、その tag を書いた側の宣言です。`# v6.1.0` / `# v6.1` / `# main` はすべて不変として扱われ、解決先が動けば
+落ちます。上流が `v6.1` のような moving minor tag を持つ場合は誤検知しますが、その向きの誤りは停止で済みます。
+
+意図した更新であれば、ロックファイルのキーを空白区切りで並べて承認します。
+
+```bash
+make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
+```
+
+承認は 1 回の移動に対して与えるものです。移動していないキーを承認に残していると次の付け替えを黙って通すため、
+その場合は「承認は不要でした」と表示されます。承認しても検疫は独立に掛かります。
 
 更新の運用手順は `actions-pin` スキルが持ちます。
 
