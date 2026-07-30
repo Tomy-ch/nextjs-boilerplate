@@ -4,7 +4,7 @@ description: Detect an existing comment by marker and update / create it (PR com
 inputs:
   github-token:
     required: true
-    description: GITHUB_TOKEN used to post the comment
+    description: Token used to post the comment; must post as a bot (GITHUB_TOKEN or a GitHub App token), because the existing comment is matched on a bot author
   marker:
     required: true
     description: HTML comment marker used to detect the same comment
@@ -81,8 +81,21 @@ runs:
           const commitLine = `🔖 Commit: [\`${shortSha}\`](${commitUrl})`;
           const updatedLine = `🕒 UpdatedAt: ${updatedAtJST} (JST)`;
 
+          // 本文を固定の 3 連バッククォートで囲むと、本文自身がそのフェンスを閉じうる。
+          // linter やコンパイラはソース行をそのまま出力するため、この中身は PR 提出者が
+          // 制御できる — フェンスが破れた以降は生の Markdown としてレンダリングされ、
+          // 第三者へ通知が飛ぶ mention や偽の見出し・リンクが CI bot の名義で載る。
+          // 本文中の最長のバッククォート連より 1 本長いフェンスで囲めば、本文中のどの連も
+          // それを閉じられない。
+          const fenceFor = (text) => {
+            const longestRun = (text.match(/`+/g) || [])
+              .reduce((max, run) => Math.max(max, run.length), 0);
+            return '`'.repeat(Math.max(3, longestRun + 1));
+          };
+
+          const fence = fenceFor(content);
           const main = detailsSummary
-            ? [`<details><summary>${detailsSummary}</summary>`, '', '```', content, '```', '', '</details>'].join('\n')
+            ? [`<details><summary>${detailsSummary}</summary>`, '', fence, content, fence, '', '</details>'].join('\n')
             : content;
 
           const parts = [marker];
@@ -97,7 +110,15 @@ runs:
             per_page: 100,
           });
 
-          const existing = comments.find(c => (c.body || '').includes(marker));
+          // 2 つの条件はそれぞれ別の経路を塞ぐ。public リポジトリではマーカー入りのコメントを
+          // 誰でも投稿できるので、第三者のコメントを更新対象から外すには投稿者が bot である
+          // ことが要る。一方その投稿者条件だけでは、本リポジトリのワークフローがすべて同じ bot
+          // で投稿するため兄弟ワークフロー間を区別できない — 別のワークフローのマーカーを
+          // ログへ出力させれば、そのワークフローを誤ったコメントへ誘導できる。このアクションが
+          // 書いた本文は必ずマーカーで始まり、仕込まれた側はそうならない。
+          const existing = comments.find(
+            c => (c.body || '').startsWith(marker) && c.user?.type === 'Bot',
+          );
 
           if (existing) {
             await github.rest.issues.updateComment({

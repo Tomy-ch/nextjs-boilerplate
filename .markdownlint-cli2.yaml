@@ -3,12 +3,13 @@
 globs:
   - "**/*.md"
 
-# mermaid-lint.ts の除外（EXCLUDE_DIRS/PREFIXES/FILES）と一致させる。
+# mermaid-lint.ts / skill-lint.ts の除外（EXCLUDE_DIRS/PREFIXES/FILES）と一致させる。
 # 保護対象であることは除外の理由にならない（保護は「誰が編集してよいか」の話で、linter が読んでよいかとは
-# 無関係）。除外してよいのは linter が読むべきでない領域（依存・git の管理領域・実行時の生成物）だけ。
+# 無関係）。除外してよいのは、このリポジトリのソースではない領域だけ — 依存・git の管理領域・別ブランチの
+# 作業ツリー・ツールの生成物。markdownlint-cli2 は既定で .gitignore を読まないため、ここに書かない限り
+# 対象に入る。
 ignores:
   - "**/node_modules/**"
   - ".git/**"
-  # graphify の出力。gitignore 済みだが markdownlint は .gitignore を見ないため、ここで外さないと
-  # グラフを生成した人だけ GRAPH_REPORT.md で pre-commit が落ちる。
+  - ".claude/worktrees/**"
   - "graphify-out/**"

@@ -6,6 +6,14 @@
 # 供給網検疫。解決先の公開から N 日未満なら採用せず、既存ピンがあればそれを維持する (0 で無効)。
 ACTIONS_PIN_MIN_AGE_DAYS ?= 14
 
+# tag 付け替えの承認。不変を宣言した tag (bare な major 番号以外) の解決先が変わると resolve は
+# 失敗する。意図した更新であればロックファイルのキーを空白区切りで並べる (既定は承認なし)。
+#
+# レシピへ展開せず環境変数として渡す。キーは uses: のコメント tag 由来でシェルのメタ文字を
+# 含みうるため、レシピ行へ埋めるとリポジトリの中身がシェルコマンドを決められることになる。
+ACTIONS_PIN_ALLOW_MOVED ?=
+export ACTIONS_PIN_ALLOW_MOVED
+
 ACTIONS_PIN := pnpm exec tsx scripts/actions-pin/main.ts
 
 actions-pin-resolve:

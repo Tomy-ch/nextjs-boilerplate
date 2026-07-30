@@ -79,6 +79,7 @@ make help
 | --- | --- | --- |
 | `make actionlint` | `.github/workflows` のワークフロー定義を actionlint で検査します。 | ディレクトリが存在しない場合はスキップします。 |
 | `make actions-shellcheck` | composite action（`.github/actions/**/action.yaml`）の `run:` シェルを shellcheck で検査します。 | 指摘は `action.yaml` の行・列で報告します。`bash` / `sh` 以外の `shell:` は検査せず、位置と方言を添えて skip として出力します。 |
+| `make actions-comment-secret-lint` | PR コメントを投稿するジョブに `GITHUB_TOKEN` 以外の secret が渡っていないか検査します。 | 規約違反は exit 1、検査そのものが成立していない状態は exit 2 で区別します。 |
 
 actionlint は `run:` ステップのシェルも shellcheck 経由で検査するため、両バイナリを `mise.toml` で版固定して
 います（[ADR 0003](../docs/adr/0003-version-manager.md)）。先に `make install-tools` を実行してください。
@@ -98,6 +99,27 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 
 `run:` の本文は**リテラル（`|`）で書いてください**。ブロック折り畳み（`>`）は隣接する行を空白へ畳むため
 指摘の位置を写し戻せず、畳まれた行がソースに無い構文を作って誤検知も生むため、error になります。
+
+`make actions-comment-secret-lint` は、検査ログをそのまま公開 PR コメントへ複製する `upsert-pr-comment` の
+性質上守らなければならない規約 — **本文を作るジョブに secret を渡さない**（[ADR 0153](../docs/adr/0153-ci-configuration.md)）—
+を機械検査します。走査単位はステップではなく**ジョブ**で、`upsert-pr-comment` を内側で呼ぶローカル action を
+経由するジョブも対象に含めます。
+
+参照を探す対象はソースの範囲ではなく**パース済みスカラーの値**です。範囲で切ると、YAML コメントに書いた
+例示が実参照として拾われ、閉じない `${{` があればそこから次の `}}` までが 1 つの式と見なされて間にある
+本物の参照を呑み込み、alias で他のジョブへ退避させた値は逆に対象から外れます。
+
+検出できるのは `${{ }}` 式に現れる secrets コンテキストの直接参照だけです。別ジョブで読んで
+`needs.<job>.outputs` 経由で渡す間接参照は静的に追えないため検査を通ります。**規約が正であり、この検査は
+規約が将来 `env:` 1 行で破られることへの退行ガード**です。
+
+異常終了は 2 通りに分かれます。
+
+- **exit 1** — 規約違反（投稿ジョブ、またはワークフロー全体に及ぶ位置に `GITHUB_TOKEN` 以外の secret がある）
+- **exit 2** — 検査そのものが成立していない。ワークフローが 1 件も見つからない（リポジトリルート以外での実行）/
+  `jobs:` がマッピングとして読めない / `upsert-pr-comment` の定義があるのに、それを使うジョブが 1 つも
+  見つからない（参照の同定が壊れている）/ ジョブが reusable workflow を呼び出している（呼び出し先へ
+  `with:` で渡る secret を追えないため未対応）
 
 ### リリースブランチ関連
 
@@ -139,7 +161,7 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>]` | コメント tag を `git ls-remote` で SHA へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます。既定の検疫日数は 14。GitHub API のレート制限に掛かる場合は `GITHUB_TOKEN`（または `GH_TOKEN`）を設定してください。 |
+| `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>] [ACTIONS_PIN_ALLOW_MOVED="<key>..."]` | コメント tag を `git ls-remote` で SHA へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます。既定の検疫日数は 14。不変を宣言した tag の解決先が変わると exit 1（下記）。GitHub API のレート制限に掛かる場合は `GITHUB_TOKEN`（または `GH_TOKEN`）を設定してください。 |
 | `make actions-pin-apply` | ロックファイルを元に `uses:` の `@<sha>` を書き換えます。 | コメント tag は保持します。 |
 | `make actions-pin-check` | `uses:` がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-pin` job が実行します。未登録の参照 / 未固定・不一致の SHA / 壊れたロックファイル / 参照されなくなったエントリ / 解釈できない `uses:` 記法を検出して exit 1（fail-closed）。 |
 
@@ -153,8 +175,30 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 検疫が見る経過日数は、Release の `published_at` と commit の日付のうち**新しい方**です。Release は tag 名に
 紐づくだけで tag の付け替えでは動かず、commit の日付は発行者が任意に書けるため、どちらも単独では解決先の
 新しさを表しません。ただし新しい方を採ってもなお、**検疫は自動化された乗っ取りに対して時間を稼ぐ仕組みで
-あり、日付の偽装に耐える保証ではありません**。tag 付け替えそのものの検知はロックファイルの差分が担い、
-`make actions-pin-resolve` は同一 tag が別 SHA へ解決された件を出力に明示します。
+あり、日付の偽装に耐える保証ではありません**。tag 付け替えそのものの検知は下記の fail-closed が担います。
+
+#### tag 付け替えの検知
+
+`make actions-pin-resolve` は、**不変を宣言した tag の解決先が変わった時点で exit 1 になり、ロックファイルを
+書きません**（承認済みの移動や他のエントリを含め、一切書きません）。付け替えられた SHA が一度ロックファイルへ
+入れば、以降 `make actions-pin-check` は「整合している」と答え続けるためです。
+
+`# v6` のような **bare な major 番号だけを moving**（前進してよい）とみなします。これは上流の tag 運用の推測では
+なく、その tag を書いた側の宣言です。`# v6.1.0` / `# v6.1` / `# main` はすべて不変として扱われ、解決先が動けば
+落ちます。上流が `v6.1` のような moving minor tag を持つ場合は誤検知しますが、その向きの誤りは停止で済みます。
+
+意図した更新であれば、ロックファイルのキーを空白区切りで並べて承認します。
+
+```bash
+make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
+```
+
+承認は 1 回の移動に対して与えるものです。移動していないキーを承認に残していると次の付け替えを黙って通すため、
+その場合は「承認は不要でした」と表示されます。承認しても検疫は独立に掛かります。
+
+この値は make のレシピへ展開されず、環境変数のままスクリプトが読みます。キーは `uses:` のコメント tag に由来する
+ため、レシピ行へ埋めるとリポジトリの中身がシェルの解釈対象になります。同じ理由で、検知の失敗出力はキーを埋め込んだ
+承認コマンドを組み立てません（キーは 1 行ずつ上に並びます）。
 
 更新の運用手順は `actions-pin` スキルが持ちます。
 

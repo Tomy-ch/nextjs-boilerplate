@@ -1,7 +1,7 @@
 name: Actions Lint
 
 # Lints the Actions definitions themselves — the same commands the pre-commit hook
-# runs (ADR 0153: hooks mirror CI). Two checks, one concern:
+# runs (ADR 0153: hooks mirror CI). Three checks, one concern:
 #
 #   actionlint          — workflow syntax, plus the shell of every `run:` in
 #                         `.github/workflows`. shellcheck is installed alongside it
@@ -12,10 +12,15 @@ name: Actions Lint
 #                         handed to it directly (it reads the file as a workflow), so
 #                         without this the shells under `.github/actions` reach no gate
 #                         at all (ADR 0153 §1, revert condition W10).
+#   actions-comment-…   — no secret reaches a job that posts a PR comment. Secret
+#     …secret-lint        masking only covers what the runner captures for the log, so
+#                         bytes written to a file with `tee` pass through unmasked and
+#                         land verbatim in a public comment. actionlint cannot express
+#                         that rule, so it is checked here (ADR 0153 §5).
 #
-# Both are reported through a single PR comment: they answer the same question — is
-# the shell we are about to execute in CI correct — and splitting them would add a
-# second required check for one concern.
+# All three are reported through a single PR comment: they answer the same question —
+# are the Actions definitions we are about to execute correct — and splitting them
+# would add further required checks for one concern.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
@@ -80,8 +85,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Both checks run unconditionally so one failure does not hide the other's
-      # findings, and both logs land in the same PR comment.
+      # Every check runs unconditionally so one failure does not hide another's
+      # findings, and all logs land in the same PR comment.
       - name: Run Actions lint
         id: actions-lint
         shell: bash
@@ -94,12 +99,18 @@ jobs:
           make actions-shellcheck 2>&1 | tee -a /tmp/actions-lint.log
           shellcheck_code=${PIPESTATUS[0]}
 
-          if [ "${actionlint_code}" -eq 0 ] && [ "${shellcheck_code}" -eq 0 ]; then
+          make actions-comment-secret-lint 2>&1 | tee -a /tmp/actions-lint.log
+          secret_lint_code=${PIPESTATUS[0]}
+
+          summary="actionlint + composite-action shellcheck + pr-comment secret lint"
+          if [ "${actionlint_code}" -eq 0 ] \
+            && [ "${shellcheck_code}" -eq 0 ] \
+            && [ "${secret_lint_code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
-            echo "title=## ✅ Actions lint: PASS (actionlint + composite-action shellcheck)" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Actions lint: PASS (${summary})" >> "$GITHUB_OUTPUT"
           else
             echo "status=failure" >> "$GITHUB_OUTPUT"
-            echo "title=## ❌ Actions lint: FAIL (actionlint + composite-action shellcheck)" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Actions lint: FAIL (${summary})" >> "$GITHUB_OUTPUT"
           fi
 
           exit 0
