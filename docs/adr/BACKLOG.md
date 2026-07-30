@@ -254,6 +254,8 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 | **W9** | `make actionlint` に shellcheck 個別の PATH ガードを置かない | [0153](0153-ci-configuration.md) 1 / [0003](0003-version-manager.md) | actionlint と shellcheck の**供給経路が分かれたとき** — 片方が `mise.toml` の管理から外れる、または mise 以外の経路での導入を許容したとき。現状は同一の `[tools]` から同一の activate で PATH に載るため、先行する actionlint のガードが両方を覆っている。**「shellcheck が無い環境で検査範囲が縮んだ」ことは条件にならない** — それは PATH の問題であり、ガードではなく PATH で直す |
 | **W10** | composite action (`.github/actions/**`) を actionlint の直接の走査対象に加えない | [0153](0153-ci-configuration.md) 1 | actionlint が action メタデータ (`action.yaml`) を workflow と区別して検査できるようになったとき。現状は composite action を渡すと workflow として解釈され `jobs` / `on` 欠落の syntax-check で必ず落ちる。action 内の `run:` のシェルは、全 action 定義を解析して shellcheck へ流す専用の検査 (`make actions-shellcheck`) が未参照の action も含めて担保するため、actionlint 側に残るのは **action メタデータのスキーマ検査** (`inputs` / `outputs` / `using` の妥当性) だけで、それは workflows 側の `uses:` 解決経由で参照済み action の入力整合として部分的に覆われている。**「composite action の中身が検査されていない」ことは条件にならない** — 検査は actionlint の外に置ける |
 
+| **W11** | worktree をリポジトリ外へ出さない (`.claude/worktrees/` に置き、ツリーを走査する各ツールで個別に除外する) | [repo-ops](../../.claude/skills/repo-ops/SKILL.md) 6 | エージェントのツールが worktree の生成先を設定で受け取るようになったとき。現状は生成先が固定で、リポジトリ外に置く規約を敷いても人手で作った分にしか効かず、両流儀が併存して除外の要否が読めなくなる。**除外箇所が 5 つに増えて煩わしいことは条件にならない** — 煩わしさは同期漏れの検査で減らす話であり、実体の置き場所とは別 |
+
 新しく「やらない」を決めたら、**その場でここに撤回条件を書く**。条件を書けない「やらない」は、判断ではなく先送りである。
 
 ---
