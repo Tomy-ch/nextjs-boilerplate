@@ -11,3 +11,6 @@ ignores:
   - "**/node_modules/**"
   - ".git/**"
   - ".github/copilot-instructions.md"
+  # graphify の出力。gitignore 済みだが markdownlint は .gitignore を見ないため、ここで外さないと
+  # グラフを生成した人だけ GRAPH_REPORT.md で pre-commit が落ちる。
+  - "graphify-out/**"

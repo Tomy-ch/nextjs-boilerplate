@@ -32,7 +32,9 @@ type Failure = {
 
 // markdownlint-cli2 の ignores と対象範囲を揃える（node_modules・.git を除外）。
 const EXCLUDE_DIRS = new Set(["node_modules", ".git"]);
-const EXCLUDE_PREFIXES: string[] = [];
+// graphify の出力。gitignore 済みだが本スクリプトは .gitignore を見ないため、ここで外さないと
+// グラフを生成した人だけ GRAPH_REPORT.md で pre-commit が落ちる。
+const EXCLUDE_PREFIXES: string[] = ["graphify-out/"];
 const EXCLUDE_FILES = new Set([".github/copilot-instructions.md"]);
 
 function errorMessage(e: unknown): string {
