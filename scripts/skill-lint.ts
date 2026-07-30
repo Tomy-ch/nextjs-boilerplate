@@ -4,8 +4,8 @@
 // markdownlint は体裁しか見ないため、「書いてある内容が実態と合っているか」は誰も検査していない。
 // スキル定義はエージェントの挙動を決める指示書であり、腐った参照はそのまま誤った手順の実行につながる。
 //
-// 検査は Makefile のターゲット一覧・ファイルシステム・見出し抽出から導出できるものだけに限る
-// （判断を含めない）。node の標準ライブラリのみに依存する。
+// 検査は Makefile のターゲット一覧・ファイルシステム・見出し抽出・確定済みの採番規約から導出できる
+// ものだけに限る（判断を含めない）。node の標準ライブラリのみに依存する。
 // 1 件でも違反があれば非 0 で終了する。
 import fs from "node:fs";
 import path from "node:path";
@@ -494,10 +494,57 @@ function repoPathExists(candidate: string, fromDir: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// 参照: ADR 採番
+// ---------------------------------------------------------------------------
+
+// 廃止済みの ADR 採番プレフィックス。採番はトピック別ブロック帯の数値 4 桁へ全面再付番済みで
+// （`docs/adr/0028-naming-convention.md`）、プレフィックス付きの採番は現行に 1 つも存在しない。
+// 参照先が実在しないことが綴りだけで確定するため、判断を挟まずに違反と断定できる。
+// 廃止された 2 つに限定するのは、`[A-Z]\w+-\d{4}` のような一般形が規格番号や型番を巻き込むため。
+const RETIRED_ADR_NUMBER_RE = /\b(?:Toolchain|Dev)-\d{4}\b/g;
+
+// ---------------------------------------------------------------------------
+// 参照: Markdown リンク
+// ---------------------------------------------------------------------------
+
+const MD_LINK_RE = /\[[^\]]*\]\(([^()\s]+)\)/g;
+
+// 行からインラインコードスパンを取り除く。コードスパンの中のリンクはリンク記法そのものの例示であり、
+// 実在するファイルを指す主張ではない。
+function stripInlineCode(line: string): string {
+  return line.replace(/(`+)[^`]+?\1/g, "");
+}
+
+// リンクターゲットのうち、リポジトリ内のファイルとして解決できるものだけを取り出す。
+// 外部 URL・ページ内アンカー・プレースホルダ入りは実パスに解決できない。
+function asLinkPath(target: string): string | null {
+  if (target.startsWith("#")) return null;
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(target)) return null;
+  if (/<[^>]*>/.test(target)) return null;
+  const withoutFragment = target.split("#")[0];
+  return withoutFragment === "" ? null : withoutFragment;
+}
+
+// リンク先の実在性を判定する。相対リンクの基準は参照元ファイルのディレクトリ、`/` 始まりは
+// リポジトリルート（GitHub の解決規則）。パス参照と違ってルート相対でも解決を試すことはしない
+// ── リンクは表示時に実際に辿られるため、解決規則から外れた当たりを実在と見なすと壊れたリンクを通す。
+function linkPathExists(target: string, fromDir: string): boolean {
+  const abs = target.startsWith("/")
+    ? path.join(REPO_ROOT, target)
+    : path.resolve(REPO_ROOT, fromDir, target);
+  const rel = path.relative(REPO_ROOT, abs);
+  if (rel.startsWith("..")) return false;
+  // tmp/ 配下はスキル実行中に生成されるため、静的検査では存在しないのが正常。
+  if (PATH_ROOT_DENY.has(rel.split(path.sep)[0])) return true;
+  return fs.existsSync(abs);
+}
+
+// ---------------------------------------------------------------------------
 // 実行
 // ---------------------------------------------------------------------------
 
-// `.claude/**` の Markdown 本文が参照する make ターゲット / ファイルパスの実在性を検査する。
+// `.claude/**` の Markdown 本文が参照する make ターゲット / ファイルパス / リンク先の実在性と、
+// 廃止済み ADR 採番の不使用を検査する。
 // frontmatter も対象にする。`description` はスキル選択時にモデルへ渡る要約であり、本文と同じだけ腐る。
 // 抑止ディレクティブ（HTML コメント）は YAML スカラの中では機能しないため、frontmatter で誤検知が
 // 出た場合は記述側を直して回避する。
@@ -506,6 +553,20 @@ function checkReferences(rel: string): void {
   const fromDir = path.dirname(rel);
   for (const { line, lineNo } of eachLineOutsideFence(content)) {
     if (line.includes(IGNORE_DIRECTIVE)) continue;
+    for (const match of line.matchAll(RETIRED_ADR_NUMBER_RE)) {
+      report(
+        rel,
+        lineNo,
+        "adr-ref",
+        `廃止された ADR 採番を参照しています: \`${match[0]}\`（現行の採番は数値 4 桁のみ）`,
+      );
+    }
+    for (const match of stripInlineCode(line).matchAll(MD_LINK_RE)) {
+      const target = asLinkPath(match[1]);
+      if (target !== null && !linkPathExists(target, fromDir)) {
+        report(rel, lineNo, "link-ref", `存在しないパスへリンクしています: \`${match[1]}\``);
+      }
+    }
     for (const span of extractInlineCode(line)) {
       for (const target of extractMakeTargets(span)) {
         if (isTooComplex(target)) {
