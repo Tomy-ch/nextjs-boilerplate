@@ -40,9 +40,12 @@ pnpm exec tsx scripts/bootstrap-external-skills.ts
 `graphify-out/GRAPH_REPORT.md` を出す。`/graphify` で呼ぶ。
 
 - 上流: `Graphify-Labs/graphify`（Apache-2.0）
-- PyPI パッケージ名は **`graphifyy`**（y 2 つ）で、CLI 名が `graphify`。`graphify`（y 1 つ）は PyPI の
-  空き名なので、手順を書くときは必ず `graphifyy` を使う
+- PyPI パッケージ名は **`graphifyy`**（y 2 つ）で、CLI 名が `graphify`。取り違えやすいので、手順を書く
+  ときは必ず `graphifyy` を使う（理由は [`mise.toml`](../mise.toml) のコメント）
 - 版の SSOT は [`mise.toml`](../mise.toml)。bump の検疫は [ADR 0110](../docs/adr/0110-security-operations.md) 1.1
+
+**以下は `mise.toml` で pin している版の挙動**。既定値もサブコマンドも上流の版に紐づくため、pin を
+上げたらこの節も突き合わせる（同 1.1 がレビュー項目として要求している）。
 
 ### 何がマシンの外へ出るか
 

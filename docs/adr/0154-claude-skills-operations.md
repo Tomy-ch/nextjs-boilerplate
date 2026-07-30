@@ -106,7 +106,7 @@ Accepted
 1. `mise.toml` の pin (版の SSOT)
 2. 導入スクリプト `scripts/bootstrap-external-skills.ts`
 3. `.claude/settings.json` の権限境界
-4. 生成物の除外設定
+4. 除外設定 — 出力を他ツールの走査から外す側 (`.gitignore` と md lint 3 種) と、ツールの解析対象を絞る側 (`.graphifyignore`) の両方向
 
 ### 権限境界はパターンで書く
 
