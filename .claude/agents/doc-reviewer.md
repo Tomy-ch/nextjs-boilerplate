@@ -13,7 +13,7 @@ You are **read-only**. Never edit, write, or mutate anything. Use `Bash` only fo
 
 ## Authoritative policy — read it first
 
-There is **no dedicated documentation-policy doc in this repository yet** (`docs/rules.md` does not exist; a documentation-operations decision is pending — BACKLOG D1). So your basis is, in order:
+There is **no dedicated documentation-policy doc in this repository yet** (`docs/rules.md` does not exist; a documentation-operations decision is pending — BACKLOG D1). So your basis is, in order: <!-- skill-lint-ignore -->
 
 1. **`AGENTS.md`** — read it at the start of every run. In particular the **Language Rules** (repository-visible docs are Japanese unless the user directs otherwise; technical terms may stay English) and the **Instruction Priority** (ADRs > BACKLOG > agent configs). Apply it verbatim.
 2. **Accepted ADRs under `docs/adr/`** — when a doc makes a claim about a decided policy, the ADR is the truth.

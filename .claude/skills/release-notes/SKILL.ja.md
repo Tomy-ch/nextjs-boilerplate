@@ -188,21 +188,21 @@ git log --no-merges --pretty=format:'%h%n%s%n%b%n---' <FROM_TAG>..HEAD
 書き込み後、以下を実行する。
 
 ```sh
-make md-fix
-make md-lint
+pnpm md-fix
+pnpm md-lint
 ```
 
-`make md-fix` はリポジトリ全体に対して `markdownlint-cli2 --fix` を実行し、よくある違反（見出し / リスト / コードブロック周辺の空行、行末空白、ファイル末尾の改行など）を自動修正する。続けて `make md-lint` で `.markdownlint.yaml` 準拠かを検証する。
+`pnpm md-fix` はリポジトリ全体に対して `markdownlint-cli2 --fix` を実行し、よくある違反（見出し / リスト / コードブロック周辺の空行、行末空白、ファイル末尾の改行など）を自動修正する。続けて `pnpm md-lint` が 3 段で検証する — `.markdownlint.yaml` に対する体裁、mermaid 図の構文、`.claude/**` に対する `skill-lint`（frontmatter / 対訳ペアの構造 / 参照の実在性）。
 
-`make md-lint` がエラーを報告する場合:
+`pnpm md-lint` がエラーを報告する場合:
 
 1. lint 出力を確認する。
 2. 自動修正で解消できないルール（見出し階層、重複見出し、bare URL など）を手で修正する。
-3. clean になるまで `make md-fix` → `make md-lint` を繰り返す。
+3. clean になるまで `pnpm md-fix` → `pnpm md-lint` を繰り返す。
 
-`make md-lint` がクリーン終了するまでスキルを完了報告しない。
+`pnpm md-lint` がクリーン終了するまでスキルを完了報告しない。
 
-`make md-fix` はリポジトリ全体を対象にするため、本リリースノートとは無関係な Markdown も自動修正される可能性がある。その場合、変更された他ファイルの一覧を完了報告時にユーザーへ提示し、レビューできるようにする。
+`pnpm md-fix` はリポジトリ全体を対象にするため、本リリースノートとは無関係な Markdown も自動修正される可能性がある。その場合、変更された他ファイルの一覧を完了報告時にユーザーへ提示し、レビューできるようにする。
 
 ### 7. 最終確認
 
@@ -223,7 +223,7 @@ make md-lint
 - [ ] リリースノートを日本語で、正規フォーマットに沿って起草した
 - [ ] プレビューをユーザーが承認した
 - [ ] `.github/release/<NEW_VERSION>.md` を書き出した
-- [ ] `make md-lint` がクリーン終了する
+- [ ] `pnpm md-lint` がクリーン終了する
 - [ ] git 操作を行っていないことをユーザーに伝えた
 
 ## 注意事項

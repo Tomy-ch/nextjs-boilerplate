@@ -1,6 +1,6 @@
 ---
 name: tools-upgrade
-description: Audit `mise.toml` `[tools]` entries against upstream latest versions, with a configurable supply-chain quarantine. For each tool the latest release is fetched from its backend (GitHub Releases for `aqua:` / `go:` tagged modules, npm registry for `npm:`, PyPI for `pipx:`, language download manifests for `go` / `node` / `python`). Releases newer than `min_age_days` are reported as informational only — never applied automatically — to avoid pulling in newly-published malicious versions before upstream has time to detect and revoke them. Confirms `min_age_days` and the per-tool update set via `AskUserQuestion`, rewrites approved entries in `mise.toml` atomically, runs `make sync-versions` if `go` / `node` / `python` changed, and verifies with `make lint` + `make test`. Use this skill on a routine cadence (monthly / quarterly) or after a security advisory.
+description: Audit `mise.toml` `[tools]` entries against upstream latest versions, with a configurable supply-chain quarantine. For each tool the latest release is fetched from its backend (GitHub Releases for `aqua:` / `go:` tagged modules, npm registry for `npm:`, PyPI for `pipx:`, language download manifests for `go` / `node` / `python`). Releases newer than `min_age_days` are reported as informational only — never applied automatically — to avoid pulling in newly-published malicious versions before upstream has time to detect and revoke them. Confirms `min_age_days` and the per-tool update set via `AskUserQuestion`, rewrites approved entries in `mise.toml` atomically, reinstalls the toolchain with `make install-tools`, and verifies with `pnpm install` + `pnpm lint:ci` + `pnpm build`. Use this skill on a routine cadence (monthly / quarterly) or after a security advisory.
 ---
 
 # Tool Version Upgrade
@@ -19,9 +19,9 @@ Use this skill when:
 
 Do NOT use this skill for:
 
-- Upgrading Go itself — use `/go-upgrade` (different downstream sync via `make sync-versions`)
-- Updating Go module dependencies (`go.mod` `require` block) — use `make tidy-lib` directly
-- One-off ad-hoc version bumps — just edit `mise.toml` and run `make sync-versions`
+- Upgrading Node.js itself — use `/node-upgrade`, which reviews the release notes and breaking changes of that Node line
+- Updating npm dependencies (`package.json`) — use `pnpm add` / `pnpm update` directly ([0004](../../../docs/adr/0004-library-management.md))
+- One-off ad-hoc version bumps — just edit `mise.toml` and run `make install-tools`
 
 ## First Step: Confirm `min_age_days`
 
@@ -42,12 +42,15 @@ Do NOT fetch any upstream API or read `mise.toml` until `<MIN_AGE_DAYS>` is conf
 Per the "Exception: Skill Execution" clause in `CLAUDE.md`, the following paths are permitted to be modified while this skill is running:
 
 - `mise.toml` (the `[tools]` table — write only entries the user explicitly approved)
-- `go.mod`, `docker/**/Dockerfile`, `docker/**/README.md`, `docker/**/README.ja.md` — only as the downstream output of `make sync-versions` (the script handles these atomically)
+
+`mise.toml` is the only tracked file this skill writes. Nothing propagates from it into the delivery
+layers — there is no Dockerfile or runtime manifest carrying a duplicated version
+([0003](../../../docs/adr/0003-version-manager.md) / [0011](../../../docs/adr/0011-no-docker.md)).
 
 The following remain protected even during skill execution:
 
 - `AGENTS.md` / `CLAUDE.md`
-- Generated files (`**/*.gen.go`, `*.sql.go`, `*_mock.go`, `**/openapi.gen.yaml`, generated content under `docs/`)
+- Generated artifacts (`src/adapters/gen/**` and the imported `openapi.gen.yaml` — [0072](../../../docs/adr/0072-api-type-generation.md)) <!-- skill-lint-ignore -->
 - Any file unrelated to the version bump
 
 ## Execution Steps
@@ -59,13 +62,14 @@ Read `mise.toml` and enumerate every key under `[tools]`. For each key, determin
 | Key format | Backend | Latest-version source |
 | --- | --- | --- |
 | `aqua:owner/repo` | aqua (GitHub Releases) | `gh api repos/owner/repo/releases/latest` |
-| `go:path/to/module` | go install | GitHub Releases (if hosted there) or `go list -m -versions path/to/module` |
 | `npm:package` | npm | `https://registry.npmjs.org/{package}` |
 | `pipx:package` | pipx (PyPI) | `https://pypi.org/pypi/{package}/json` |
-| Short name (e.g., `golangci-lint`) | mise registry default | Resolve via `mise registry`, then query the resolved backend |
-| `go` (runtime) | language download manifest | `https://go.dev/dl/?mode=json` |
-| `node` (runtime) | language download manifest | `https://nodejs.org/dist/index.json` |
-| `python` (runtime) | language download manifest | `https://www.python.org/api/v2/downloads/release/` |
+| `core:node` (runtime) | mise core | `https://nodejs.org/dist/index.json` |
+| `core:python` (runtime) | mise core | `https://www.python.org/api/v2/downloads/release/` |
+
+A key with no backend prefix must not appear: [0003](../../../docs/adr/0003-version-manager.md) requires
+the backend to be explicit, because a tool registered under several backends silently changes its
+download source when the registry default moves. Surface such a key as a finding instead of resolving it.
 
 For each tool, fetch:
 
@@ -128,17 +132,20 @@ For each approved tool:
 
 After computing all approved changes, write `mise.toml` **once** (atomic single-pass write). Read the file → apply all replacements in memory → write.
 
-### 6. Run `make sync-versions` if Necessary
+### 6. Install the Approved Versions
 
-If any of `go` / `node` / `python` was updated, run `make sync-versions`. This propagates the new runtime version to `go.mod` and the hardcoded `FROM golang:` / `FROM node:` / `FROM python:` references in the Dockerfile and `docker/**/README.md` files.
+Run `make install-tools` so the freshly pinned versions are the ones actually on `PATH`. Until this
+runs, `mise.toml` and the installed toolchain disagree and every later step verifies the old versions.
 
-If only non-runtime tools were updated, skip `make sync-versions`.
+There is no downstream propagation step: `mise.toml` is the single source of truth and no delivery-layer
+file carries a duplicated version ([0003](../../../docs/adr/0003-version-manager.md)).
 
 ### 7. Verify
 
 ```sh
-make lint
-make test
+pnpm install
+pnpm lint:ci
+pnpm build
 ```
 
 Report the result table to the user (OK / FAIL per command). Do NOT automatically roll back on failure — the user decides whether to amend, revert, or proceed.
@@ -161,7 +168,7 @@ Do NOT commit, stage, or push. The user reviews the resulting working tree and r
 - **Calendar versioning**: for tools using calendar versioning (e.g., `2024.12.30`), comparison is lexicographic with semver fallback. The "potential downgrade" guard remains active.
 - **Rate limits**: GitHub API anonymous limit is 60 req/h per IP. The skill SHOULD use `gh api` which authenticates via `GITHUB_TOKEN` (1000 req/h authenticated).
 - **Idempotency**: multiple invocations are safe. A second run after a successful apply will show those tools as up-to-date.
-- The skill never auto-pushes. The user reviews the working tree, runs `make sync-versions` if needed, then commits and pushes manually.
+- The skill never auto-pushes. The user reviews the working tree, then commits and pushes manually.
 
 ## Checklist
 
@@ -173,8 +180,8 @@ Confirm the following before reporting completion:
 - [ ] Classification table presented to the user
 - [ ] If eligible set non-empty: user confirmed per-tool update set via `AskUserQuestion`
 - [ ] `mise.toml` rewritten atomically with only approved changes, preserving key formats and `v`-prefix convention
-- [ ] `make sync-versions` run if go / node / python was updated
-- [ ] `make lint` + `make test` run after writes
+- [ ] `make install-tools` run after `mise.toml` was rewritten
+- [ ] `pnpm install` + `pnpm lint:ci` + `pnpm build` run after writes
 - [ ] Final result table reported to the user
 - [ ] After updating `SKILL.md`, also update `SKILL.ja.md` to keep the Japanese translation in sync
 - [ ] No commit / stage / push performed

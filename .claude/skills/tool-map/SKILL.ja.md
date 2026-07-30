@@ -33,7 +33,7 @@
 
 | 種別 | パス glob | 項目ファイル |
 | --- | --- | --- |
-| commands | `.claude/commands/` | `<name>.md` |
+| commands | `.claude/commands/` | `<name>.md` <!-- skill-lint-ignore --> |
 | skills | `.claude/skills/` | `<name>/SKILL.md`（`SKILL.ja.md` その他の `*.ja.md` 翻訳ファイルはスキップ） |
 | agents | `.claude/agents/` | `<name>.md` |
 
@@ -152,7 +152,7 @@ pnpm md-fix
 pnpm md-lint
 ```
 
-`pnpm md-fix` はリポジトリ全体に `markdownlint-cli2 --fix` を掛け、よくある問題（見出し / リスト / コードブロック周りの空行、行末空白、ファイル末尾改行など）を自動修正する。続く `pnpm md-lint` が、その結果が `.markdownlint.yaml` に対してクリーンであることを検証する。
+`pnpm md-fix` はリポジトリ全体に `markdownlint-cli2 --fix` を掛け、よくある問題（見出し / リスト / コードブロック周りの空行、行末空白、ファイル末尾改行など）を自動修正する。続く `pnpm md-lint` が 3 段で検証する — `.markdownlint.yaml` に対する体裁、mermaid 図の構文、`.claude/**` に対する `skill-lint`（frontmatter / 対訳ペアの構造 / 参照の実在性）。
 
 `pnpm md-lint` にエラーが残る場合:
 
@@ -172,7 +172,7 @@ pnpm md-lint
 - 走査範囲は**プロジェクトレベルのみ**。`~/.claude/` 配下を読んだり一覧したりしない。
 - プラグイン由来の項目は対象外。
 - 走査した項目を変更しない。このコマンドは検査のみを行う。
-- `.claude/commands/` / `.claude/skills/` / `.claude/agents/` が存在しない場合は、件数 0 として扱いレポートに記載する。エラーにしない。
+- `.claude/commands/` / `.claude/skills/` / `.claude/agents/` が存在しない場合は、件数 0 として扱いレポートに記載する。エラーにしない。 <!-- skill-lint-ignore -->
 
 ## チェックリスト
 

@@ -15,9 +15,15 @@ pre-commit:
       # commit 時は warn もブロックする完全版で検査する。
       run: pnpm lint:ci
     md-lint:
-      # Markdown の体裁 (markdownlint-cli2) と mermaid 図の構文を検証する。
-      # biome は Markdown を見ないため、この二段で md の壊れを CI 前に止める。
-      glob: "*.md"
+      # Markdown の体裁 (markdownlint-cli2)、mermaid 図の構文、`.claude/**` の意味
+      # (skill-lint = frontmatter / 対訳ペアの構造 / 参照の実在性) を検証する。
+      # biome は Markdown を見ないため、この三段で md の壊れを CI 前に止める。
+      # Makefile 側も glob に入れるのは、skill-lint が make ターゲット一覧を検査入力に取るため
+      # (ターゲットを消すだけのコミットでスキル本文の参照が腐る)。
+      glob:
+        - "*.md"
+        - "Makefile"
+        - ".makefiles/**/*.mk"
       run: pnpm md-lint
     actionlint:
       # ワークフロー定義の構文と run: ステップのシェルを検査する (ADR 0153)。
