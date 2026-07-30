@@ -143,10 +143,21 @@ pnpm format    # biome format --write : フォーマットのみ
 いずれもソースではなくスクラッチ出力: `git add -f` で強引に載せない。残す必要があるスクラッチはリポジトリ外に
 実体を置き、`tmp/` 配下の symlink から参照する。
 
-**worktree はリポジトリ外の兄弟ディレクトリ（`<repo>.worktrees/<name>/`）に置く** ──
-`git worktree add ../<repo>.worktrees/<name>`。ツリー内に置いたチェックアウトは、ツリーを走査する
-全ツール（markdownlint / mermaid-lint / skill-lint / trivy）の走査対象に入り、その全てで除外を書く
-羽目になる。兄弟ディレクトリならどこにも除外が要らず、実際どこにも書いていない。
+**worktree はリポジトリ内の `.claude/worktrees/<name>/` に置く** ── エージェントのツールがそこに
+作り、置き場所は設定できない。別の場所に置く規約を敷いても、守られるのは人手で作った分だけになる。
+ツリー内のチェックアウトは、ツリーを走査する全ツールの走査対象に入るため、除外は 5 箇所に書かれて
+おり、その全てを揃えて保つ必要がある。
+
+| 場所 | エントリ |
+| --- | --- |
+| `.gitignore` | `/.claude/worktrees/` |
+| `.markdownlint-cli2.yaml` | `ignores:` の `.claude/worktrees/**` |
+| `scripts/mermaid-lint.ts` | `EXCLUDE_PREFIXES` |
+| `scripts/skill-lint.ts` | `EXCLUDE_PREFIXES` |
+| `.makefiles/security/trivy.mk` | `--skip-dirs .claude/worktrees` |
+
+これらのツールはいずれも `.gitignore` を読まないため、そこで ignore しても他の 4 箇所の除外にはならない。
+ツリーを走査するツールを 6 つ目に増やすときは、除外も 6 箇所目を足すことになる。
 
 ## 7. commit / push が hook に弾かれる(lefthook)
 
