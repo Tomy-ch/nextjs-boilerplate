@@ -34,6 +34,15 @@ pre-commit:
         - ".github/workflows/*.{yml,yaml}"
         - ".github/actions/**/*.{yml,yaml}"
       run: make actionlint
+    actions-shellcheck:
+      # composite action の run: シェルを検査する (ADR 0153)。actionlint が届かない範囲を
+      # 埋めるため、上の actionlint とは別コマンドとして持つ。
+      # 検査ツール自身も glob に入れるのは、抽出が壊れれば「検査対象があるのに 0 件で緑」
+      # になりうるため (ツール側の突き合わせで落とすが、発火自体は手元で確かめさせる)。
+      glob:
+        - ".github/actions/**/*.{yml,yaml}"
+        - "scripts/actions-shellcheck/*.ts"
+      run: make actions-shellcheck
     actions-pin-check:
       # uses: がロックファイル通りに SHA 固定されているかを検査する (ADR 0153)。
       # 検査はネットワークに出ないため hook の速度目標に収まる。
