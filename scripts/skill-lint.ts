@@ -56,6 +56,12 @@ const IGNORE_DIRECTIVE = "<!-- skill-lint-ignore -->";
 const MAX_WILDCARDS = 8;
 const MAX_BRACE_EXPANSIONS = 64;
 
+// 検査する 1 行の長さの上限。行の内容も書き手が自由に決められ、正規表現の照合は行長に対して
+// 二次時間まで落ちる。このリポジトリは公開されており md-lint は fork からの PR でも走るため、
+// 極端に長い 1 行は CI と pre-commit を止める手段になる。上限超過は検査を飛ばさず違反として
+// 報告する（黙って通すと「長く書けば検査を外せる」抜け道になる）。
+const MAX_LINE_LENGTH = 4096;
+
 function isTooComplex(text: string): boolean {
   const wildcards = text.match(/\*+|<[^>]*>/g)?.length ?? 0;
   if (wildcards > MAX_WILDCARDS) return true;
@@ -194,16 +200,48 @@ function* eachLineOutsideFence(content: string): Generator<{ line: string; lineN
   }
 }
 
-// 1 行からインラインコードスパン（`...`）の中身を抜き出す。
-function extractInlineCode(line: string): string[] {
+// 1 行をインラインコードスパンの中身（spans）とスパンを除いた残り（withoutCode）へ分解する。
+// 閉じ判定は CommonMark どおり「開きと同じ長さのバッククォート列」に限る。長さを見ないと、単一
+// バッククォートを含む語句を二重で囲む書き方（`` `x` ``）が内側の 1 個で閉じたと解釈され、コード
+// スパンの中身が地の文として漏れる。
+// 抽出と除去を 1 つの走査で持つのは、解釈が食い違うと同じ記述が一方の検査では例示・他方では実在の
+// 主張になるため。走査は 1 パスで、正規表現の後方参照のようなバックトラッキングを持たない。
+function scanInlineCode(line: string): { spans: string[]; withoutCode: string } {
   const spans: string[] = [];
-  const re = /(`+)([^`]+?)\1/g;
-  let m: RegExpExecArray | null = re.exec(line);
-  while (m !== null) {
-    spans.push(m[2].trim());
-    m = re.exec(line);
+  let withoutCode = "";
+  let i = 0;
+  while (i < line.length) {
+    if (line[i] !== "`") {
+      withoutCode += line[i];
+      i++;
+      continue;
+    }
+    let open = 0;
+    while (line[i + open] === "`") open++;
+    let close = -1;
+    for (let j = i + open; j < line.length; ) {
+      if (line[j] !== "`") {
+        j++;
+        continue;
+      }
+      let run = 0;
+      while (line[j + run] === "`") run++;
+      if (run === open) {
+        close = j;
+        break;
+      }
+      j += run;
+    }
+    // 閉じないバッククォート列はコードスパンを開いていない。地の文として残す。
+    if (close === -1) {
+      withoutCode += line.slice(i, i + open);
+      i += open;
+      continue;
+    }
+    spans.push(line.slice(i + open, close).trim());
+    i = close + open;
   }
-  return spans;
+  return { spans, withoutCode };
 }
 
 // ---------------------------------------------------------------------------
@@ -507,27 +545,28 @@ const RETIRED_ADR_NUMBER_RE = /\b(?:Toolchain|Dev)-\d{4}\b/g;
 // 参照: Markdown リンク
 // ---------------------------------------------------------------------------
 
-const MD_LINK_RE = /\[[^\]]*\]\(([^()\s]+)\)/g;
-
-// 行からインラインコードスパンを取り除く。コードスパンの中のリンクはリンク記法そのものの例示であり、
-// 実在するファイルを指す主張ではない。
-function stripInlineCode(line: string): string {
-  return line.replace(/(`+)[^`]+?\1/g, "");
-}
+// 末尾の任意タイトル（`[a](b "title")`）まで含めて 1 つのリンクとして取る。タイトル付きを
+// 取りこぼすと、その行のリンクだけ実在検査を素通りする。
+const MD_LINK_RE = /\[[^\]]*\]\(\s*([^()\s]+)(?:\s+"[^"]*")?\s*\)/g;
 
 // リンクターゲットのうち、リポジトリ内のファイルとして解決できるものだけを取り出す。
-// 外部 URL・ページ内アンカー・プレースホルダ入りは実パスに解決できない。
+// ページ内アンカー・スキーム付き URL・プロトコル相対 URL・プレースホルダ入りは実パスに解決できない。
 function asLinkPath(target: string): string | null {
   if (target.startsWith("#")) return null;
+  if (target.startsWith("//")) return null;
   if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(target)) return null;
-  if (/<[^>]*>/.test(target)) return null;
-  const withoutFragment = target.split("#")[0];
+  // `<...>` で囲む書き方は CommonMark のリンク先エスケープであって、書き手が埋めるプレースホルダ
+  // （`docs/<name>/x.md`）とは別物。囲みを外してから中身をプレースホルダとして判定する。
+  const unwrapped = /^<[^<>]*>$/.test(target) ? target.slice(1, -1) : target;
+  if (/<[^>]*>/.test(unwrapped)) return null;
+  const withoutFragment = unwrapped.split("#")[0];
   return withoutFragment === "" ? null : withoutFragment;
 }
 
 // リンク先の実在性を判定する。相対リンクの基準は参照元ファイルのディレクトリ、`/` 始まりは
 // リポジトリルート（GitHub の解決規則）。パス参照と違ってルート相対でも解決を試すことはしない
 // ── リンクは表示時に実際に辿られるため、解決規則から外れた当たりを実在と見なすと壊れたリンクを通す。
+// 解決結果がリポジトリルートの外へ出た場合も false を返す。索引の外にあるものは実在を主張できない。
 function linkPathExists(target: string, fromDir: string): boolean {
   const abs = target.startsWith("/")
     ? path.join(REPO_ROOT, target)
@@ -553,6 +592,17 @@ function checkReferences(rel: string): void {
   const fromDir = path.dirname(rel);
   for (const { line, lineNo } of eachLineOutsideFence(content)) {
     if (line.includes(IGNORE_DIRECTIVE)) continue;
+    if (line.length > MAX_LINE_LENGTH) {
+      report(
+        rel,
+        lineNo,
+        "line-length",
+        `1 行が長すぎて検査できません（${line.length} 文字 / 上限 ${MAX_LINE_LENGTH} 文字）`,
+      );
+      continue;
+    }
+    // 採番だけは行全体を見る。廃止採番はコードスパンに書かれていても実在しない ADR を指しており、
+    // リンクと違って「記法の例示」という正当な用途が無い。
     for (const match of line.matchAll(RETIRED_ADR_NUMBER_RE)) {
       report(
         rel,
@@ -561,13 +611,15 @@ function checkReferences(rel: string): void {
         `廃止された ADR 採番を参照しています: \`${match[0]}\`（現行の採番は数値 4 桁のみ）`,
       );
     }
-    for (const match of stripInlineCode(line).matchAll(MD_LINK_RE)) {
+    const { spans, withoutCode } = scanInlineCode(line);
+    // コードスパンの中のリンクはリンク記法そのものの例示であり、実在するファイルを指す主張ではない。
+    for (const match of withoutCode.matchAll(MD_LINK_RE)) {
       const target = asLinkPath(match[1]);
       if (target !== null && !linkPathExists(target, fromDir)) {
         report(rel, lineNo, "link-ref", `存在しないパスへリンクしています: \`${match[1]}\``);
       }
     }
-    for (const span of extractInlineCode(line)) {
+    for (const span of spans) {
       for (const target of extractMakeTargets(span)) {
         if (isTooComplex(target)) {
           report(
