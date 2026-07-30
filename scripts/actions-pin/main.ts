@@ -15,13 +15,12 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { applyPins } from "./apply-check.js";
 import { LOCK_FILE, readLock, readLockOrEmpty, writeLock } from "./lockfile.js";
-import { type MovedRef, classifyMoves, quarantine, refAgeDays, resolveSHA } from "./resolve.js";
+import { classifyMoves, type MovedRef, quarantine, refAgeDays, resolveSHA } from "./resolve.js";
 import { type ActionRef, collectRefs, targetFiles, unparsedUsesLines } from "./uses-reference.js";
 
-const USAGE =
-  "usage: actions-pin <resolve|apply|check> [--min-age-days=N] [--allow-moved=<owner/repo@tag>]";
+const USAGE = "usage: actions-pin <resolve|apply|check> [--min-age-days=N]";
 const MIN_AGE_PATTERN = /^--min-age-days=(\d+)$/;
-const ALLOW_MOVED_PATTERN = /^--allow-moved=(.+)$/;
+const ALLOW_MOVED_ENV = "ACTIONS_PIN_ALLOW_MOVED";
 const UNPARSED_MESSAGE =
   "解釈できない記法の uses: があります（1 行 1 ステップのブロック記法へ直してください）";
 
@@ -72,7 +71,9 @@ async function runResolve(root: string, files: string[], options: ResolveOptions
   for (const entry of resolved) {
     if (entry.note) console.log(`  ⚠️ ${entry.note}`);
   }
-  reportAcceptedMoves(moves.accepted);
+  // 移動の検知は検疫前の候補で行うため、検疫が既存ピンを維持した分は採用されていない。
+  // ロックファイルへ実際に書いた値と一致する移動だけが前進である。
+  reportAcceptedMoves(moves.accepted.filter((move) => lock.get(move.key) === move.to));
   reportRedundantApprovals(options.allowMoved, moves.accepted);
 
   writeLock(path.join(root, LOCK_FILE), lock);
@@ -89,10 +90,10 @@ function failRepointed(repointed: MovedRef[]): never {
   for (const move of repointed) {
     console.error(`   ${move.key}: ${move.from} -> ${move.to}`);
   }
-  const keys = repointed.map((move) => move.key).join(" ");
-  console.error(
-    `   意図した更新なら make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="${keys}" で承認してください`,
-  );
+  // 承認コマンドにキーを埋め込まない。キーはコメント tag 由来でシェルのメタ文字を含みうるため、
+  // 貼り付けられる 1 行を組み立てれば、その内容をリポジトリ側が決められることになる。
+  console.error(`   意図した更新なら上記のキーを ${ALLOW_MOVED_ENV} へ並べて再実行してください:`);
+  console.error(`   make actions-pin-resolve ${ALLOW_MOVED_ENV}="<キー> [<キー>...]"`);
   process.exit(1);
 }
 
@@ -195,19 +196,22 @@ function assertAllUsesParsed(root: string, files: string[]): void {
   if (unparsed.length > 0) fail(`${UNPARSED_MESSAGE}: ${unparsed.join(", ")}`);
 }
 
-function parseResolveArgs(args: string[]): ResolveOptions {
-  const options: ResolveOptions = { minAgeDays: 0, allowMoved: new Set() };
+function parseMinAgeDays(args: string[]): number {
+  let days = 0;
   for (const arg of args) {
-    const days = MIN_AGE_PATTERN.exec(arg);
-    if (days) {
-      options.minAgeDays = Number(days[1]);
-      continue;
-    }
-    const allowed = ALLOW_MOVED_PATTERN.exec(arg);
-    if (!allowed) fail(USAGE);
-    options.allowMoved.add(allowed[1]);
+    const match = MIN_AGE_PATTERN.exec(arg);
+    if (!match) fail(USAGE);
+    days = Number(match[1]);
   }
-  return options;
+  return days;
+}
+
+// 承認リストはコマンドライン引数ではなく環境変数で受ける。キーは `uses:` のコメント tag に
+// 由来する（リポジトリの中身が決める）文字列であり、make のレシピへ展開すればシェルが
+// 再解釈する。環境変数ならシェルを一度も経由しない。
+function readAllowMoved(): Set<string> {
+  const raw = process.env[ALLOW_MOVED_ENV] ?? "";
+  return new Set(raw.split(/\s+/).filter((key) => key !== ""));
 }
 
 function printError(message: string): void {
@@ -229,7 +233,10 @@ async function main(): Promise<void> {
   const files = targetFiles(root);
   switch (command) {
     case "resolve":
-      await runResolve(root, files, parseResolveArgs(rest));
+      await runResolve(root, files, {
+        minAgeDays: parseMinAgeDays(rest),
+        allowMoved: readAllowMoved(),
+      });
       return;
     case "apply":
       runApplyOrCheck(root, files, false);

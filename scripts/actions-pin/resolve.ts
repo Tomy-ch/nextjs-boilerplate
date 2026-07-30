@@ -1,5 +1,5 @@
-// tag → SHA の解決と供給網検疫。ネットワークに出るのはこのモジュールだけで、
-// apply / check は完全にオフラインで動く。
+// tag → SHA の解決と、解決先に対する 2 つのゲート（供給網検疫・付け替え検知）。
+// ネットワークに出るのはこのモジュールだけで、apply / check は完全にオフラインで動く。
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
