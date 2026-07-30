@@ -176,6 +176,7 @@
       "Bash(git filter-branch *)",
       "Bash(git update-ref -d *)",
       "Bash(git commit --amend *)",
+      "Bash(graphify install*)",
       "Bash(graphify * install*)",
       "Bash(graphify * uninstall*)",
       "Bash(graphify uninstall*)",

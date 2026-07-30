@@ -59,9 +59,11 @@ pnpm exec tsx scripts/bootstrap-external-skills.ts
 
 ### 使うときの注意
 
-- **`install --platform <name>` 以外の導入系命令を使わない。** `graphify claude install` /
-  `codex install` / `hook install` などは名前が似ているが別物で、リポジトリの `CLAUDE.md` /
-  `AGENTS.md` / `.cursor/` / git hook を書き換える。`settings.json` の `deny` がパターンで塞いでいる
+- **導入は上の bootstrap スクリプト経由だけにする。** graphify の `install` 系統はリポジトリの
+  `CLAUDE.md` / `AGENTS.md` / `.cursor/` / `.gemini/` / git hook を書き換えうる。`--platform` を
+  付ければ user スコープ、という切り分けは成立しない — `--project` を足せば project スコープへ倒れ、
+  `--platform cursor` / `--platform gemini` はフラグ無しでもカレントディレクトリを書く。
+  `settings.json` の `deny` が `install` 系統を丸ごと塞いでいる
 - **`query` は既定 budget（2000 token）で答えを切り詰める。** 切り捨てた側に答えがある場合があり、
   ツール自身がその旨を警告する。網羅性が要る問いには向かない
 - **グラフは最後の `update` 時点のスナップショット。** 未コミットの変更は映らない
@@ -77,8 +79,9 @@ pnpm exec tsx scripts/bootstrap-external-skills.ts
 graphify uninstall --purge
 ```
 
-`settings.json` の `deny` に載っているため、実行には確認を通す必要がある。Claude Code 以外の
-プラットフォームへ入れた場合は消し残すことがあるので、`~/.codex/skills/graphify/` などは目視で確認する。
+`settings.json` の `deny` に載っているため、**エージェントからは実行できない**（deny は確認を挟まず
+拒否する）。人間が自分の端末で直接叩く。Claude Code 以外のプラットフォームへ入れた場合は消し残す
+ことがあるので、`~/.codex/skills/graphify/` などは目視で確認する。
 
 リポジトリ側の設定を含めて戻す場合は、導入したコミットを revert すれば足りる。
 

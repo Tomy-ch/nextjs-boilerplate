@@ -31,10 +31,11 @@ const EXTERNAL_SKILLS = [
     // Claude Code だけを対象にするのは、本リポジトリが `.codex/` などの他アシスタント用の器を
     // 持たず、着地検証ができないため。器を用意したら platform を足す。
     //
-    // 使ってよいのは `install --platform <name>` だけ。紛らわしいことに `graphify <name> install`
-    // という別系統の命令があり、そちらは project スコープ — このリポジトリの `CLAUDE.md` /
-    // `AGENTS.md` / `.cursor/` / git hook — を書き換える。AGENTS.md が保護対象と定めている
-    // ファイル群なので、`.claude/settings.json` の deny でも塞いである。
+    // 引数は `install --platform claude` から動かさない。graphify の `install` 系統は綴り次第で
+    // リポジトリの `CLAUDE.md` / `AGENTS.md` / `.cursor/` / `.gemini/` / git hook を書き換える
+    // （`--project` を足す、`--platform` を cursor / gemini にする、`<name> install` を使う）。
+    // AGENTS.md が保護対象と定めているファイル群であり、`.claude/settings.json` の deny は
+    // `install` 系統を丸ごと塞いでいる。この経路だけが例外で、スクリプトの外から叩かせない。
     command: "graphify",
     args: ["install", "--platform", "claude"],
     // 導入後に実体が居るべき場所。ここを見て着地を検証する。
