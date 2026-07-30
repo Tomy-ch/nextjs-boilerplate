@@ -17,7 +17,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { collectCommentActions, UPSERT_ACTION_DIR } from "./comment-actions.js";
 import { findSecretReferences } from "./secret-reference.js";
-import { listWorkflowFiles, parseWorkflow, WORKFLOW_DIR, type Workflow } from "./workflow.js";
+import { listWorkflowFiles, parseWorkflow, WORKFLOW_DIR } from "./workflow.js";
 
 const ALLOWED_SECRET = "GITHUB_TOKEN";
 
@@ -46,56 +46,67 @@ function main(): void {
       readFileSync(path.join(root, file), "utf8"),
       commentActions.dirs,
     );
-    const posting = workflow.jobs.filter((job) => job.posts);
-    postingJobs += posting.length;
-    if (posting.length === 0) continue;
+    postingJobs += workflow.postingJobIds.length;
+    if (workflow.postingJobIds.length === 0) continue;
 
-    // 投稿しないジョブの範囲だけを除いて、残り全体（トップレベルの `env:` を含む）を見る。
-    // ジョブ本文の外に置かれた secret もワークフロー全体に及び、投稿ジョブへ届くため。
-    const excluded = workflow.jobs.filter((job) => !job.posts);
-    const isExcluded = (offset: number) =>
-      excluded.some((job) => offset >= job.start && offset < job.end);
-
-    for (const reference of findSecretReferences(workflow.source, isExcluded)) {
-      if (reference.name?.toUpperCase() === ALLOWED_SECRET) continue;
-      findings.push(findingAt(workflow, posting, reference.offset, reference.name));
+    for (const scalar of workflow.texts) {
+      for (const reference of findSecretReferences(scalar.text)) {
+        if (reference.name?.toUpperCase() === ALLOWED_SECRET) continue;
+        findings.push({
+          file,
+          line: scalar.lineAt(reference.offset),
+          message: describeViolation(scalar.jobId, reference.name),
+        });
+      }
     }
   }
 
-  // action の定義があるのに投稿ジョブが 1 つも見つからないのは、参照の同定が壊れている
-  // ことを意味する。検査対象が消えたまま緑になるのを塞ぐ。
+  // 定義があるのに投稿ジョブが 1 つも見つからないのは、参照の同定が壊れていることを意味する。
+  // 検査対象が消えたまま緑になるのを塞ぐ。
   if (commentActions.defined && postingJobs === 0) {
     abort(
       `${UPSERT_ACTION_DIR} の定義があるのに、それを使うジョブが 1 つも見つかりません（参照の同定が壊れています）`,
     );
   }
 
-  report(files.length, postingJobs, findings);
+  report(commentActions.defined, files.length, postingJobs, dedupe(findings));
 }
 
-function findingAt(
-  workflow: Workflow,
-  posting: Workflow["jobs"],
-  offset: number,
-  name: string | null,
-): Finding {
-  const { line } = workflow.lineCounter.linePos(offset);
-  const job = posting.find((candidate) => offset >= candidate.start && offset < candidate.end);
+function describeViolation(jobId: string | null, name: string | null): string {
   const reason = "マスキングは tee したファイルに効かず、生値が公開 PR コメントに載ります";
-  const message = job
-    ? `ジョブ \`${job.id}\` は PR コメントを投稿するため ${describe(name)} を渡せません（${reason}）`
+  return jobId
+    ? `ジョブ \`${jobId}\` は PR コメントを投稿するため ${describe(name)} を渡せません（${reason}）`
     : `ワークフロー全体に及ぶ ${describe(name)} は PR コメントを投稿するジョブにも届きます（${reason}）`;
-  return { file: workflow.file, line, message };
 }
 
 function describe(name: string | null): string {
   return name ? `\`secrets.${name}\`` : "`secrets` コンテキスト全体";
 }
 
-function report(workflows: number, postingJobs: number, findings: Finding[]): void {
+// 複数の投稿ジョブが同じ anchor を参照していると、同じ位置の違反が人数分積まれる。
+function dedupe(findings: Finding[]): Finding[] {
+  const seen = new Set<string>();
+  return findings.filter((finding) => {
+    const key = `${finding.file}:${finding.line}:${finding.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function report(
+  defined: boolean,
+  workflows: number,
+  postingJobs: number,
+  findings: Finding[],
+): void {
   if (findings.length === 0) {
+    // 投稿 action が無いリポジトリ（fork が削除した場合など）で「N ジョブ検査した」と出すと、
+    // 検査が働いた結果に見える。実際は対象が無いだけなので、そう書く。
     console.log(
-      `✅ ワークフロー ${workflows} 件のうち PR コメントを投稿する ${postingJobs} ジョブに secret の混入はありません`,
+      defined
+        ? `✅ ワークフロー ${workflows} 件のうち PR コメントを投稿する ${postingJobs} ジョブに secret の混入はありません`
+        : `✅ ${UPSERT_ACTION_DIR} の定義が無いため検査対象はありません（ワークフロー ${workflows} 件）`,
     );
     return;
   }
