@@ -32,9 +32,9 @@ type Failure = {
 
 // markdownlint-cli2 の ignores と対象範囲を揃える。DIRS は名前がどこに現れても、
 // PREFIXES は root からの相対パスの先頭一致で、FILES は完全一致で除外する。
-// FILES に該当するものは現状ない。
+// FILES は現状空だが、yaml 側の ignores がこの 3 粒度で書けるため受け口として残す。
 const EXCLUDE_DIRS = new Set(["node_modules", ".git"]);
-const EXCLUDE_PREFIXES: string[] = [".claude/worktrees"];
+const EXCLUDE_PREFIXES: string[] = [path.join(".claude", "worktrees")];
 const EXCLUDE_FILES = new Set<string>([]);
 
 function errorMessage(e: unknown): string {
