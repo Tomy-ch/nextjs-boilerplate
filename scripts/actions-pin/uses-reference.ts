@@ -1,6 +1,11 @@
 // `uses:` 行の走査と解釈。固定対象ファイルの列挙と、行から参照 1 件を取り出す責務を持つ。
 import fs from "node:fs";
 import path from "node:path";
+import {
+  COMPOSITE_ACTION_DIR,
+  collectActionDefinitions,
+  readDirOrEmpty,
+} from "../lib/composite-action-files.js";
 
 // GitHub Actions の参照 1 件。repo は owner/repo、sub は `codeql-action/init` のようなサブパス、
 // tag は固定対象の版。
@@ -19,9 +24,7 @@ export const USES_PATTERN =
 const LOOSE_USES_PATTERN = /\buses[ \t]*:[ \t]*['"]?([^\s'",}#]+)/;
 
 const WORKFLOW_DIR = ".github/workflows";
-const COMPOSITE_ACTION_DIR = ".github/actions";
 const YAML_EXTENSIONS = [".yml", ".yaml"];
-const ACTION_FILENAMES = ["action.yml", "action.yaml"];
 const REPO_SEGMENTS = 2;
 
 export function refKey(ref: ActionRef): string {
@@ -66,20 +69,6 @@ export function targetFiles(root: string): string[] {
   return files.sort();
 }
 
-// composite action は `uses: ./.github/actions/<group>/<name>` のように入れ子に置けるため、
-// 走査は再帰する。1 階層で打ち切ると、入れ子の定義に書かれた外部参照が固定検査に一度も
-// 掛からないまま CI で実行される。
-function collectActionDefinitions(dir: string, out: string[]): void {
-  for (const entry of readDirOrEmpty(dir)) {
-    const target = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      collectActionDefinitions(target, out);
-    } else if (entry.isFile() && ACTION_FILENAMES.includes(entry.name)) {
-      out.push(target);
-    }
-  }
-}
-
 // 対象ファイル群から固定対象の参照をキー単位で集める。同一キーが複数箇所に現れても 1 件に畳む。
 export function collectRefs(files: string[]): Map<string, ActionRef> {
   const refs = new Map<string, ActionRef>();
@@ -112,15 +101,4 @@ export function unparsedUsesLines(data: string): number[] {
     if (match && !match[1].startsWith(".") && match[1].includes("@")) lines.push(index + 1);
   }
   return lines;
-}
-
-// ディレクトリ不在は空として扱う（composite action を持たないリポジトリがあるため）。
-// それ以外の読み取り失敗は握り潰さず呼び出し元へ投げる。
-function readDirOrEmpty(dir: string): fs.Dirent[] {
-  try {
-    return fs.readdirSync(dir, { withFileTypes: true });
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw e;
-  }
 }
