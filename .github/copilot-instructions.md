@@ -7,6 +7,7 @@ Copilot must follow them strictly.
 ## Repository Overview (Reference Only)
 
 Refer to AGENTS.md for:
+
 - Architecture rules
 - Layer responsibilities
 - Modification scope
@@ -28,6 +29,7 @@ Copilot may modify only:
 - `app/` (if using App Router)
 
 Do NOT modify:
+
 - `public/`
 - `.next/`
 - `node_modules/`
@@ -109,6 +111,7 @@ Feature branches must be created from the latest active release branch.
 Do not branch from develop, staging, or production.
 
 Protected branches:
+
 - `production`
 - `staging`
 - `develop`

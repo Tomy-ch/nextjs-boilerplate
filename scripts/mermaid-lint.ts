@@ -31,9 +31,11 @@ type Failure = {
 };
 
 // markdownlint-cli2 の ignores と対象範囲を揃える（node_modules・.git を除外）。
+// プレフィックス単位・ファイル単位の除外は現状 0 件だが、yaml 側の ignores が
+// この 3 粒度で書けるため、対応する受け口として空のまま置く。
 const EXCLUDE_DIRS = new Set(["node_modules", ".git"]);
 const EXCLUDE_PREFIXES: string[] = [];
-const EXCLUDE_FILES = new Set([".github/copilot-instructions.md"]);
+const EXCLUDE_FILES = new Set<string>([]);
 
 function errorMessage(e: unknown): string {
   return (e instanceof Error && e.message ? e.message : String(e)).trim();
