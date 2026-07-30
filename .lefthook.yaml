@@ -42,7 +42,20 @@ pre-commit:
       glob:
         - ".github/actions/**/*.{yml,yaml}"
         - "scripts/actions-shellcheck/*.ts"
+        - "scripts/lib/*.ts"
       run: make actions-shellcheck
+    actions-comment-secret-lint:
+      # PR コメントを投稿するジョブに secret が渡っていないかを検査する (ADR 0153)。
+      # 規約 (検査ログをそのまま公開コメントへ複製するため本文を作るジョブに secret を
+      # 渡さない) は actionlint では表現できないため、別コマンドとして持つ。
+      # 投稿ジョブの同定に action 定義の参照を辿るので、workflow だけでなく
+      # .github/actions/** と共有モジュールの変更でも発火させる。
+      glob:
+        - ".github/workflows/*.{yml,yaml}"
+        - ".github/actions/**/*.{yml,yaml}"
+        - "scripts/actions-comment-secret-lint/*.ts"
+        - "scripts/lib/*.ts"
+      run: make actions-comment-secret-lint
     actions-pin-check:
       # uses: がロックファイル通りに SHA 固定されているかを検査する (ADR 0153)。
       # 検査はネットワークに出ないため hook の速度目標に収まる。
