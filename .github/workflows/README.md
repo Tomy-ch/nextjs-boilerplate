@@ -25,7 +25,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Build | `build.yaml` | `build` | `next build` が通ることを検査する |
 | Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
-| Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint + shellcheck でワークフロー定義自身を検査する |
+| Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 
 ## hooks mirror CI

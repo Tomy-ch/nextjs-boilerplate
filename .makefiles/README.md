@@ -78,12 +78,26 @@ make help
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
 | `make actionlint` | `.github/workflows` のワークフロー定義を actionlint で検査します。 | ディレクトリが存在しない場合はスキップします。 |
+| `make actions-shellcheck` | composite action（`.github/actions/**/action.yaml`）の `run:` シェルを shellcheck で検査します。 | 指摘は `action.yaml` の行・列で報告します。`bash` / `sh` 以外の `shell:` は検査せず、位置と方言を添えて skip として出力します。 |
 
 actionlint は `run:` ステップのシェルも shellcheck 経由で検査するため、両バイナリを `mise.toml` で版固定して
 います（[ADR 0003](../docs/adr/0003-version-manager.md)）。先に `make install-tools` を実行してください。
 
-composite action（`.github/actions/**`）は走査対象に含めていません。理由と、検査がどこまで及ぶかは
+composite action は actionlint の走査対象に含めていません（`action.yaml` を渡すと workflow として解釈され、
+必ず構文エラーになります）。その代わり `run:` のシェルは `make actions-shellcheck` が担い、両者を合わせて
+pre-commit hook と CI の `actions-lint` job が実行します。actionlint 側に何が残るかは
 [ADR 0153](../docs/adr/0153-ci-configuration.md) を参照してください。
+
+`make actions-shellcheck` は、次のいずれかでも異常終了します。検査範囲が黙って縮んだまま緑になる状態を
+作らないためのもので、判定はファイル単位です（合計で見ると 1 ファイルの抽出失敗が他ファイルの成功に隠れます）。
+
+- **抽出数が合わない** — パーサ自身の変換で数えた `runs.steps[].run` の件数と、実際に抽出できた件数が食い違う
+  （`using:` の綴りを取り違えた action もここで落ちます）
+- `runs.using: composite` なのに `runs.steps` がリストとして読めない
+- `run:` ステップに `shell:` が無い / 参照先の無い alias がある / YAML として壊れている
+
+`run:` の本文は**リテラル（`|`）で書いてください**。ブロック折り畳み（`>`）は隣接する行を空白へ畳むため
+指摘の位置を写し戻せず、畳まれた行がソースに無い構文を作って誤検知も生むため、error になります。
 
 ### リリースブランチ関連
 
