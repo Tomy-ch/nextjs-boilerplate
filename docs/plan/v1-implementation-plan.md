@@ -623,10 +623,6 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
 - **完了条件**: `make actions-pin-check` が fail-closed で動作する。未登録 / 未固定の `uses:` が error になる
 - **依存**: P2-1
 
-> **Phase 2 の完了条件**: required check を branch ruleset へ反映する(**GitHub 側の設定はユーザが実施**)。
->
-> **採否未判断の残余候補**(Phase 2 実装時に確定する): sync-versions-check(`mise.toml` SSOT ↔ CI の Node 版数 drift 検査)/ auto-generate-docs(bot による生成物更新 PR + 再帰防止 guard)。
-
 ---
 
 ## Phase 3: 骨格
@@ -942,8 +938,6 @@ sources:
 - **設計**: P4-5 で確定した構造をテンプレート化する。命名・配置・境界・テスト・README を**生成時点で正**にする。`architecture.ts`(P3-2)を読んで境界を決めるため、生成物が boundaries に違反しない
 - **完了条件**: `pnpm gen feature <name>` が出力した雛形が、無修正で `lint:ci` / boundaries / README 必須節 / カバレッジゲートを満たす
 - **依存**: P4-5
-
-> **Phase 4 完了時点で 0.2.0 相当。** ここまでで全カーネルと主要 ADR の交差点が 1 度は踏まれている。
 
 ---
 
@@ -1456,7 +1450,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 | 8 | `/api/telemetry` の最小防御(ボディサイズ上限 / content-type 検証)。[0077](../adr/0077-bff-abuse-protection-boundary.md) が実装 PR へ保留 | P6-1 |
 | 9 | `ActionState<T>` の具体型(判別子 / fieldErrors の形 / sentinel の直列化)。**B1 テンプレ(P3-10)と scaffold(P4-6)が P5-7 より先行するため、P4-6 時点で草案を切る** | P4-6 で草案 → P5-7 で確定 |
 | 10 | **外部デザイン支援ツール連携スキルの仕様**(書き出し形式 / 同期手順 / 対象パス)。§3.11 の方針変更で新たに生じた | P3-8 |
-| 11 | Phase 2 の残余候補(sync-versions-check / auto-generate-docs)の採否 | Phase 2 実装時 |
+| 11 | Phase 2 の残余候補(sync-versions-check / auto-generate-docs)の採否 | Phase 6 実装時 |
 | 12 | issue のラベル体系 / 親子関係(task list か Projects か) | issue 発行時 |
 | 13 | barrel(`index.ts`)の可否。**推奨は作らない** — 循環参照 / tree-shaking の問題に加え、[0021](../adr/0021-frontend-responsibility.md) の「公開面を明示する」目的に対し barrel はむしろ境界を曖昧にするため。公開面は `architecture.ts` と README frontmatter で宣言する | P3-1 |
 | 14 | Web Worker オフロード seam の ADR 化要否 | P6-5 |
