@@ -56,7 +56,7 @@
 | 枠 ID | ADR # | タイトル | 選定済み | 実装済み | 依存 | 内容要旨 |
 | --- | --- | --- | --- | --- | --- | --- |
 | **T1** | 0001 | package-manager (pnpm) | ✅ | ✅ | — | パッケージマネージャに pnpm を採用 / lockfile commit 必須 / npm・yarn 禁止 |
-| **T2** | 0002 | formatter-linter (biome) | ✅ | ⚠️ | T1 | biome 優先 / biome 非対応検査のみ ESLint 補完 (能力ベース・重複禁止・縮小方向) / フォーマッタは biome 単独 / Prettier 不採用 / VSCode 連携 / **tsconfig 追加フラグ 5 件 + `target` 引き上げ**(型で捕まえる検査は tsc 側) |
+| **T2** | 0002 | formatter-linter (biome) | ✅ | ✅ | T1 | biome 優先 / biome 非対応検査のみ ESLint 補完 (能力ベース・重複禁止・縮小方向) / フォーマッタは biome 単独 / Prettier 不採用 / VSCode 連携 / **tsconfig 追加フラグ 5 件 + `target` 引き上げ**(型で捕まえる検査は tsc 側) |
 | **T3** | 0003 | version-manager (mise) | ✅ | ✅ | T1 | ツール・言語バージョンの SSOT に `mise.toml` を採用 / 配送層への mise 拡張禁止 |
 | **T4** | 0004 | library-management | ✅ | ✅ | T1 | npm 依存の選定・固定・更新・監査メタ方針 / コア依存は exact pin / メジャー更新は別 PR / 一次判定 (単一責務 × 単一 upstream) + 例外パス + fork コスト上限 |
 
@@ -85,7 +85,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | **A1** | 0020 | 採用アーキテクチャ | ✅ | ✅ | — | 全体パターンの宣言 (機能スライス × 表示層カーネル) / 設計原則 / 不採用パターン (onion 直訳 / Next.js 慣行ミニマル) |
 | **A2** | 0070 | バックエンドとの役割分離 | ✅ | ⬜ | A1, R1 | Next.js = UI + 薄い BFF / `/api/*` = thin proxy(業務ロジック禁止)/ ドメインはバックエンド / 契約 SSOT = backend `openapi.gen.yaml` / 境界値所有(フロントが response 検証の最後の砦) |
-| **A3** | 0021 | 責務分離方針 (フロント内) | ✅ | ⚠️ | A1 | `features` / `model` / `components` / `adapters` 等カーネルの責務 / 依存方向 / 境界違反禁止 / カーネル命名規律・受入基準 / ESLint boundaries による機械強制 (Enforcement) |
+| **A3** | 0021 | 責務分離方針 (フロント内) | ✅ | ✅ | A1 | `features` / `model` / `components` / `adapters` 等カーネルの責務 / 依存方向 / 境界違反禁止 / カーネル命名規律・受入基準 / ESLint boundaries による機械強制 (Enforcement) |
 | **A4** | 0040 | ルーティング・レンダリング戦略 | ✅ | ⚠️ | A1, A2 | App Router 単独 / Server Components 既定 / `"use client"` は feature 葉へ / Server Actions = `actions.ts` / page = 薄い driving adapter / モード非強制(Next.js 16 caching は B3/B6 へ) |
 | **A5** | 0027 | ディレクトリ構造 | ✅ | ✅ | A3, A4 | `src/` 配下の物理配置 / path alias (`@/*`) / co-location の方針 / 共有モジュール粒度 |
 | **A6** | 0028 | 命名規則 | ✅ | ✅ | A5 | 優先順位 = Next.js > React > nextjs-boilerplate 自身・業界スタンダード / ファイル名 (全ソース kebab-case 統一) / 識別子 (component=Pascal / hook=useCamel / 型=Pascal / 定数=UPPER_SNAKE) / route segment (Next.js 小文字・`[slug]`・`(group)`・`_folder`) / 環境変数 (`{SUBSYSTEM}_{NAME}`・標準名〈`OTEL_*` 等〉は例外) / ADR ファイル (kebab・採番はブロック帯で確定〈0001〜0155〉) / テストファイルは B8 |

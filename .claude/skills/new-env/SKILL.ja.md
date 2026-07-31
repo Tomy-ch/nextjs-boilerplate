@@ -29,23 +29,24 @@ ls src/config/ 2>/dev/null
 
 - 既存 env 変数の**リネーム**（別ワークフロー。全箇所を一括で改名する）
 - 既存 env 変数の**削除**（逆方向。手作業のほうが安全）
-- **purpose の新設**（`src/config/<purpose>.*.ts` の新規モジュール）。本スキルは purpose モジュールが既に在ることを前提とする。新設時は最初の 1 変数を手で書く（新モジュールは import 境界上の位置づけ決定も要る — [0030](../../../docs/adr/0030-environment-variable-management.md) §3）。以降の追加から本スキルを使う
+- **purpose の新設**（`src/config/<purpose>/` の新規ディレクトリ）。本スキルは purpose モジュールが既に在ることを前提とする。新設時は最初の 1 変数を手で書く（新モジュールは import 境界上の位置づけ決定も要る — [0030](../../../docs/adr/0030-environment-variable-management.md) §3）。以降の追加から本スキルを使う
 - **再デプロイなしで変えたい値**を env へ置くこと。それは BFF runtime config の担当（[0071](../../../docs/adr/0071-bff-api-integration.md)）であり、ここではない
 
 ## 読み書きする対象
 
 **読む（常に）** — 以下はすべて実行時に検出する。インベントリを固定値で持たない:
 
-- `src/config/*.server.ts` / `src/config/*.client.ts` — purpose インベントリ、実際に使われているスキーマライブラリ、スキーマ記述の作法、private フィールド + getter の作法、各 purpose が server / client のどちらを持つか
-- `env/README*.md` — 変数表（`Variable Name | Description | Type | Example | Notes`）とサブシステム別セクション。**どの変数が存在するか**の正
-- `src/config/README*.md` — config カーネル README。**設定値そのもの**（ビルド時に検証され、構築時に purpose モジュールへ流し込まれる値）の正
+- `src/config/*/*.schema.ts` と対応する server / client モジュール — purpose インベントリ、スキーマ validator、Config getter の作法
+- `src/config/environment.ts` — 明示的な環境スキーマと purpose validator の import
+- `env/README.md` — 変数表とサブシステム別セクション。**どの変数が存在するか**の正
+- `src/config/README.md` — config カーネル README。**設定値そのもの**（ビルド時に検証され、purpose モジュールへ渡される値）の正
 - `env/.env.local` / `.env.ci` / `.env.dev` / `.env.stg` / `.env.prd` — 環境別の値の置き場とセクションコメントの体裁
 - `package.json` — 存在する検証スクリプト（`lint:ci` / `typecheck` / `build`、テストスクリプトが追加済みならそれも）
 
 **書く（確認後のみ）**:
 
-- env ファイル群と `env/README.{md,ja.md}` — **常に**（変数はすべて env に存在する）
-- 変数が属する purpose config モジュール 1 本と `src/config/README.{md,ja.md}` — アプリが config モジュール経由で読む変数のときのみ
+- env ファイル群と `env/README.md` — **常に**（変数はすべて env に存在する）
+- purpose schema、対応する Config モジュール、`src/config/environment.ts`、`src/config/README.md` — アプリが config モジュール経由で読む変数のときのみ
 
 **触らない**:
 
@@ -63,7 +64,7 @@ ls src/config/ 2>/dev/null
 - 自由入力。その後:
   1. 先頭に `NEXT_PUBLIC_` があれば剥がし（これは client 側を示すプレフィックスであってサブシステム名ではない）、最初の `_` で分割してサブシステムを得る
   2. `src/config/` から検出した purpose 群と突合する
-  3. 一致すれば推定モジュールを提示して確認する（例:「推定 purpose: `api`（`src/config/api.server.ts`）」）
+  3. 一致すれば推定モジュールを提示して確認する（例:「推定 purpose: `api`（`src/config/api/api.server.ts`）」）
   4. 一致しなければ候補を提示し、選び直すか、purpose モジュールを手で追加するために停止するかを尋ねる
   5. **標準名の例外**（[0028](../../../docs/adr/0028-naming-convention.md)）: 外部仕様が名前まで規定し、サードパーティ SDK が読む変数（`OTEL_EXPORTER_OTLP_ENDPOINT` / `PORT` 等）は標準名のままとし `{SUBSYSTEM}_{NAME}` を課さない。適用対象は**外部ツールが読む変数だけ**で、アプリが自分で読む変数には適用しない
 
@@ -142,11 +143,11 @@ ls src/config/ 2>/dev/null
 
 ### purpose config モジュール
 
-`src/config/<purpose>.server.ts` **または** `<purpose>.client.ts` のどちらか 1 本のみ（両方には書かない）。そのファイルの既存作法に合わせて 3 箇所:
+purpose ディレクトリは schema モジュールと、対応する runtime モジュール 1 本（`src/config/<purpose>/<purpose>.server.ts` **または** `<purpose>.client.ts`）を持つ。
 
-1. **スキーマ項目** — そのモジュールが既に import しているスキーマライブラリで項目を足す（別ライブラリを持ち込まない。選定は P3-3 で済んでいる）。required / code default は質問 4 に従う
-2. **private フィールド** — 変数名からサブシステム prefix を除いた camelCase の `#` private フィールドを足す（purpose `api` の `APP_API_BASE_URL` → `#baseUrl`）。setter は絶対に足さない
-3. **getter** — 既存 getter の隣に、その整形・doc コメント作法に合わせて足す
+1. **スキーマ validator** — `<purpose>.schema.ts` の named validator を追加・拡張する。既存のスキーマライブラリを使い、required / code default は質問 4 に従う
+2. **環境スキーマ項目** — `src/config/environment.ts` の明示的な `z.object({...})` へ validator を import して呼び出す
+3. **Config 値と getter** — 対応する runtime モジュールに型付き値と getter を加え、private constructor と既存作法を保つ。setter や外部公開 constructor / factory は足さない
 
 client モジュール固有（[0030](../../../docs/adr/0030-environment-variable-management.md) §2）: 値は**静的なドット参照**で読む — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` と literal に書き下す。動的インデックスアクセスと分割代入はビルド時のリテラル置換が効かないため禁止。
 
@@ -159,7 +160,7 @@ server モジュール固有: `import "server-only"` はファイル先頭に既
 - purpose のセクションコメントを探し、その下へ既存の整列とコメント作法を保って 1 行足す
 - secret ラベル付きはプレースホルダ（またはコメントアウト行）とし、実値は書かない
 
-### `env/README.{md,ja.md}` — 変数の存在（常に）
+### `env/README.md` — 変数の存在（常に）
 
 該当サブシステムのセクションの変数表へ、列数と順序を保って行を足す:
 
@@ -167,15 +168,15 @@ server モジュール固有: `import "server-only"` はファイル先頭に既
 |APP_API_BASE_URL|<説明>|<型>|<例>|<注記>|
 ```
 
-日本語ファイルには日本語の説明・注記、英語ファイルには英語のものを入れる。secret ラベルを選んだ場合は Notes 列に含める。この行は**すべての**変数について書く — config モジュールが読まない変数も、値が常にプレースホルダの変数も含む。
+secret ラベルを選んだ場合は Notes 列に含める。この行は**すべての**変数について書く — config モジュールが読まない変数も、値が常にプレースホルダの変数も含む。
 
-### `src/config/README.{md,ja.md}` — 設定値（config 経由の変数のみ）
+### `src/config/README.md` — 設定値（config 経由の変数のみ）
 
 質問 2 が「はい」のときだけ。周囲の記述に倣って値を解説する: どの purpose に属するか、server / client のどちら側か、required か code default か、受け手がどう受け取るか。env 行の内容をここへ**再掲しない** — 変数が存在する事実は env、値の意味と扱いは config が持つ。config README が個別の値ではなく purpose 単位の解説になっている場合は、何も足さずその旨を計画で述べる（ファイルの構造に無い変数別セクションを勝手に作らない）。
 
 ### テスト
 
-config のテスト方針は **env スタブ + factory 再生成**（`vi.stubEnv`） — [0030](../../../docs/adr/0030-environment-variable-management.md) 周辺ルール / [0090](../../../docs/adr/0090-testing-strategy.md)。モジュールの隣に config テスト（`src/config/<purpose>.*.test.ts`）が在れば、本体変更と歩調を合わせて拡張する: 新 getter を検証するケースと、required 変数なら欠落時に検証が失敗することを確認するケース。config テストがまだ無い場合（テスト基盤は P3-6 で入る）はスキップし、その旨を Step 2 の計画で明示する。
+config のテスト方針は **env スタブ + factory 再生成**（`vi.stubEnv`） — [0030](../../../docs/adr/0030-environment-variable-management.md) 周辺ルール / [0090](../../../docs/adr/0090-testing-strategy.md)。purpose ディレクトリに config テストが在れば、本体変更と歩調を合わせて拡張する: 新 getter を検証するケースと、required 変数なら欠落時に検証が失敗することを確認するケース。config テストがまだ無い場合（テスト基盤は P3-6 で入る）はスキップし、その旨を Step 2 の計画で明示する。
 
 ## Step 2. 計画の提示と確認
 
@@ -190,11 +191,11 @@ config のテスト方針は **env スタブ + factory 再生成**（`vi.stubEnv
 
 読み取り済みコンテキストから導いた厳密なアンカー（対象セクションの最後のスキーマ項目 / フィールド / getter / 表の行）で `Edit` を使う。順序:
 
-1. `src/config/<purpose>.{server,client}.ts`（スキーマ項目 → private フィールド → getter）— config 経由の経路のみ
+1. `src/config/<purpose>/<purpose>.schema.ts`、対応 runtime モジュール、`src/config/environment.ts`（validator → 環境スキーマ項目 → getter）— config 経由の経路のみ
 2. config テスト（存在する場合）
 3. env ファイル（1 ファイル 1 編集）
-4. `env/README.md` → `env/README.ja.md`（canonical → 翻訳の順）
-5. `src/config/README.md` → `src/config/README.ja.md` — config 経由の経路のみ
+4. `env/README.md`
+5. `src/config/README.md` — config 経由の経路のみ
 
 いずれかの編集が失敗したら停止して報告する。残りのファイルへ進まない。
 
@@ -223,7 +224,7 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 
 `CLAUDE.md` / `AGENTS.md` の「Exception: Skill Execution」に従い、本スキル実行中は以下へスコープを限定して AI 変更スコープが緩和される:
 
-- env ファイル群と `env/README.{md,ja.md}`。config 経由の経路ではさらに、変数が属する purpose config モジュール 1 本（および同居するテストファイル）と `src/config/README.{md,ja.md}` — またはユーザが承認した部分集合
+- env ファイル群と `env/README.md`。config 経由の経路ではさらに、purpose schema、対応する runtime モジュール、`src/config/environment.ts`、同居するテストファイル、`src/config/README.md` — またはユーザが承認した部分集合
 
 保護されたまま:
 
@@ -263,8 +264,8 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - [ ] config 経由の経路: purpose モジュールを 1 本だけ更新した（スキーマ項目 + private フィールド + getter。setter なし）
 - [ ] client モジュールの値は静的ドット参照のみ
 - [ ] 実在する env ファイルすべてを該当セクション配下で更新した
-- [ ] `env/README.{md,ja.md}` の変数表に行を足した（常に）
-- [ ] config 経由の経路では `src/config/README.{md,ja.md}` を更新した（env 行の再掲なし）
+- [ ] `env/README.md` の変数表に行を足した（常に）
+- [ ] config 経由の経路では `src/config/README.md` を更新した（env 行の再掲なし）
 - [ ] config テストを更新した、または不在を明示した
 - [ ] `pnpm fix` / `lint:ci` / `typecheck` / `build` を実行し結果を報告した
 - [ ] コミット / push を行っていない
