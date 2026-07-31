@@ -1,6 +1,6 @@
 ---
 name: new-env
-description: Add a new environment variable to the project end-to-end, keeping the env files, the purpose-scoped typed config module, and both documentation sides in sync. Targets the config kernel defined by ADR 0030 — `env/.env.{local,ci,dev,stg,prd}` and `env/README.{md,ja.md}` (the authority on which variables exist, placeholders included) always, plus `src/config/<purpose>.server.ts` / `<purpose>.client.ts` (schema entry + `#` private field + getter) and `src/config/README.{md,ja.md}` (the authority on the config values validated at build time and injected at construction) when the app reads the variable through a config module. The purpose (subsystem) inventory, the schema library, the TypeScript type mapping, and the naming conventions are derived from the live `src/config/` contents at runtime — the skill hardcodes no purpose list and no library name. Confirms variable name, config-backed or env-only, server/client side, type, required vs code default, secret label, description (en + ja), and per-environment values via `AskUserQuestion` before writing. Refuses to place a secret behind `NEXT_PUBLIC_`. Verifies with `pnpm lint:ci` + `pnpm typecheck` + `pnpm build` at the end.
+description: Add a new environment variable end-to-end, keeping the env files, purpose-scoped typed config modules, and documentation in sync. Targets ADR 0030's config kernel: `env/.env.{local,ci,dev,stg,prd}` and `env/README.md` always, plus `src/config/<purpose>/<purpose>.schema.ts`, the corresponding server or client module, `src/config/environment.ts`, and `src/config/README.md` when the app reads the value through config. The skill derives the purpose inventory, schema library, type mapping, and naming conventions from live `src/config/` contents. It confirms the variable specification before writing, refuses secrets behind `NEXT_PUBLIC_`, and verifies with `pnpm lint:ci`, `pnpm typecheck`, and `pnpm build`.
 ---
 
 # New Env
@@ -34,23 +34,24 @@ Do NOT use this skill for:
 
 - Renaming an existing env var (different workflow — rename across all places at once).
 - Removing an existing env var (reverse direction; safer by hand).
-- Adding a whole new **purpose** (a new `src/config/<purpose>.*.ts` module). This skill assumes the purpose module already exists. For a new purpose, write the first variable manually — a new module also needs its import-boundary placement decided ([0030](../../../docs/adr/0030-environment-variable-management.md) §3) — then use this skill for subsequent additions.
+- Adding a whole new **purpose** (a new `src/config/<purpose>/` directory). This skill assumes the purpose module already exists. For a new purpose, write the first variable manually — a new module also needs its import-boundary placement decided ([0030](../../../docs/adr/0030-environment-variable-management.md) §3) — then use this skill for subsequent additions.
 - Moving a value out of env because it must change without a redeploy — that belongs behind the BFF runtime config ([0071](../../../docs/adr/0071-bff-api-integration.md)), not here.
 
 ## What This Skill Reads / Writes
 
 **Reads (always)** — everything below is discovered at runtime; nothing about the inventory is hardcoded:
 
-- `src/config/*.server.ts` / `src/config/*.client.ts` — the purpose inventory, the schema library actually in use, the schema-entry style, the private-field + getter style, and which purposes have a server side, a client side, or both.
-- `env/README*.md` — the variable table (`Variable Name | Description | Type | Example | Notes`) and its per-subsystem sections. This is the authority on **which variables exist**.
-- `src/config/README*.md` — the config kernel README. This is the authority on **the config values themselves** — the ones validated at build time and injected into the purpose modules at construction.
+- `src/config/*/*.schema.ts` and the corresponding server or client modules — the purpose inventory, schema-validator style, and config getter style.
+- `src/config/environment.ts` — the explicit environment schema and the purpose-validator imports.
+- `env/README.md` — the variable table and its per-subsystem sections. This is the authority on **which variables exist**.
+- `src/config/README.md` — the config kernel README. This is the authority on **the config values themselves** — the ones validated at build time and supplied to purpose modules.
 - `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd` — per-environment value placement and section-comment layout.
 - `package.json` — which verification scripts exist (`lint:ci` / `typecheck` / `build`, and a test script if one has been added).
 
 **Writes (only after confirmation)**:
 
-- The env files and `env/README.{md,ja.md}` — always; every variable exists in env.
-- The one purpose config module the variable belongs to, and `src/config/README.{md,ja.md}` — only when the variable is read by the app through that config module.
+- The env files and `env/README.md` — always; every variable exists in env.
+- The purpose schema, its corresponding config module, `src/config/environment.ts`, and `src/config/README.md` — only when the variable is read by the app through config.
 
 **Never touches**:
 
@@ -68,7 +69,7 @@ This skill **MUST call `AskUserQuestion` immediately after invocation** — addi
 - Free-text. Then:
   1. Strip a leading `NEXT_PUBLIC_` if present (that prefix marks the client side, not the subsystem) and split at the first `_` to get the subsystem.
   2. Match the subsystem against the purposes discovered under `src/config/`.
-  3. If matched, show the inferred module (e.g. 「推定 purpose: `api`(`src/config/api.server.ts`)」) and ask for confirmation.
+  3. If matched, show the inferred module (e.g. 「推定 purpose: `api` (`src/config/api/api.server.ts`)」) and ask for confirmation.
   4. If unmatched, surface the available purposes and ask the user to pick one, or stop so a new purpose module can be added by hand.
   5. **Standard-name exception** ([0028](../../../docs/adr/0028-naming-convention.md)): names fixed by an external spec that a third-party SDK reads (`OTEL_EXPORTER_OTLP_ENDPOINT`, `PORT`, …) keep the standard name and are exempt from `{SUBSYSTEM}_{NAME}`. Only apply this when an external tool reads the variable — not when the app reads it itself.
 
@@ -147,11 +148,11 @@ Compute each exact insertion point by reading the existing patterns rather than 
 
 ### The purpose config module
 
-One file — `src/config/<purpose>.server.ts` **or** `<purpose>.client.ts`, never both. Three insertions, each mirroring the style already used in that file:
+The purpose directory has a schema module and exactly one corresponding runtime module — `src/config/<purpose>/<purpose>.server.ts` **or** `<purpose>.client.ts`.
 
-1. **Schema entry** — add the field to the module's schema using the schema library already imported there (do not introduce a different library; the selection was made in P3-3). Required vs code default follows Question 4.
-2. **Private field** — add the `#` private field, camelCase, derived from the variable name minus its subsystem prefix (`APP_API_BASE_URL` in purpose `api` → `#baseUrl`). Never add a setter.
-3. **Getter** — add the getter next to the existing ones, matching their formatting and doc-comment style.
+1. **Schema validator** — add or extend the named validator in `<purpose>.schema.ts`, using the schema library already used there. Required vs code default follows Question 4.
+2. **Environment schema entry** — import and call that validator in the explicit `z.object({...})` declaration in `src/config/environment.ts`.
+3. **Config value and getter** — add the typed value and getter in the corresponding runtime module, preserving its private constructor and existing style. Never add a setter or expose a constructor/factory.
 
 Client-module specifics ([0030](../../../docs/adr/0030-environment-variable-management.md) §2): the value **must** be read as a static dot access — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` — literally spelled out. Dynamic indexing and destructuring are forbidden because the build-time literal substitution does not apply to them.
 
@@ -164,7 +165,7 @@ For each of `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd` (use
 - Locate the section comment for the purpose and append the line under it, preserving the existing alignment and comment style.
 - Secret-labelled variables get a placeholder (or a commented-out line), never a real value.
 
-### `env/README.{md,ja.md}` — the variable exists (always)
+### `env/README.md` — the variable exists (always)
 
 Append a row to the variable table in the matching subsystem section, preserving the column count and order:
 
@@ -172,15 +173,15 @@ Append a row to the variable table in the matching subsystem section, preserving
 |APP_API_BASE_URL|<description>|<type>|<example>|<notes>|
 ```
 
-The Japanese file gets the Japanese description and notes, the English file the English ones. Include the secret label in the Notes column when one was chosen. This row is written for **every** variable — including one that no config module reads and one whose value is only ever a placeholder.
+Include the secret label in the Notes column when one was chosen. This row is written for **every** variable — including one that no config module reads and one whose value is only ever a placeholder.
 
-### `src/config/README.{md,ja.md}` — the config value (config-backed variables only)
+### `src/config/README.md` — the config value (config-backed variables only)
 
 Only on the Question-2 "はい" path. Describe the value the way the surrounding entries do: which purpose it belongs to, server or client side, required or code default, and how a consumer receives it. Do **not** restate the env row here — env owns the fact that the variable exists, config owns what the value means and how it is handled. If the config README documents purposes rather than individual values, add nothing and say so in the plan rather than inventing a per-variable section that the file's structure does not have.
 
 ### Tests
 
-The testing approach for config is **env stub + factory regeneration** (`vi.stubEnv`) — [0030](../../../docs/adr/0030-environment-variable-management.md) 周辺ルール / [0090](../../../docs/adr/0090-testing-strategy.md). If config tests exist next to the module (`src/config/<purpose>.*.test.ts`), extend them in lockstep with the production change: a case asserting the new getter, and — for a required variable — a case asserting that its absence fails validation. If no config test file exists yet (the test foundation lands in P3-6), skip this and state so explicitly in the Step 2 plan.
+The testing approach for config is **env stub + factory regeneration** (`vi.stubEnv`) — [0030](../../../docs/adr/0030-environment-variable-management.md) 周辺ルール / [0090](../../../docs/adr/0090-testing-strategy.md). If config tests exist in the purpose directory, extend them in lockstep with the production change: a case asserting the new getter, and — for a required variable — a case asserting that its absence fails validation. If no config test file exists yet (the test foundation lands in P3-6), skip this and state so explicitly in the Step 2 plan.
 
 ## Step 2. Show the Plan and Confirm
 
@@ -195,11 +196,11 @@ Confirm with `AskUserQuestion`:
 
 Use `Edit` with exact anchors derived from the read context (the last existing schema entry / field / getter / table row in the target section). Order:
 
-1. `src/config/<purpose>.{server,client}.ts` (schema entry → private field → getter) — config-backed path only
+1. `src/config/<purpose>/<purpose>.schema.ts`, its runtime module, and `src/config/environment.ts` (validator → environment-schema entry → getter) — config-backed path only
 2. The config test file, if one exists
 3. env files (one edit per file)
-4. `env/README.md` → `env/README.ja.md` (canonical first, then the translation)
-5. `src/config/README.md` → `src/config/README.ja.md` — config-backed path only
+4. `env/README.md`
+5. `src/config/README.md` — config-backed path only
 
 If any edit fails, stop and report; do not continue with the remaining files.
 
@@ -228,7 +229,7 @@ If a command fails, surface the failure and stop. Do NOT roll back the edits —
 
 Per the "Exception: Skill Execution" clause in `CLAUDE.md` / `AGENTS.md`, the AI modification scope is relaxed during this skill's run, scoped to:
 
-- The env files and `env/README.{md,ja.md}`; on the config-backed path also the single purpose config module the variable belongs to (plus its co-located test file) and `src/config/README.{md,ja.md}` — or the subset the user confirmed.
+- The env files and `env/README.md`; on the config-backed path also the purpose schema, its runtime module, `src/config/environment.ts`, its co-located test file, and `src/config/README.md` — or the subset the user confirmed.
 
 Remains protected:
 
@@ -268,8 +269,8 @@ Before reporting completion, confirm:
 - [ ] Config-backed path: exactly one purpose module updated (schema entry + private field + getter, no setter)
 - [ ] Client-module values use static dot access only
 - [ ] All existing env files updated under the matching section
-- [ ] `env/README.{md,ja.md}` got its variable-table row (always)
-- [ ] `src/config/README.{md,ja.md}` updated on the config-backed path, without restating the env row
+- [ ] `env/README.md` got its variable-table row (always)
+- [ ] `src/config/README.md` updated on the config-backed path, without restating the env row
 - [ ] Config tests updated, or their absence stated explicitly
 - [ ] `pnpm fix` / `lint:ci` / `typecheck` / `build` were run and the results reported
 - [ ] No commits / pushes were performed

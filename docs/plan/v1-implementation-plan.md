@@ -346,7 +346,7 @@ shadcn/ui を import
 | P3-6 | テスト基盤(Vitest + RTL + MSW) | 3 | P3-1, P2-1 |
 | P3-7 | styling 基盤(design token はコードが SSOT) | 3 | P3-1 |
 | P3-8 | components + Storybook + デザインシステム化 | 3 | P3-7 |
-| P3-9 | rules.md 骨格 34 エントリ | 3 | P0-4 |
+| P3-9 | rules.md 骨格 35 エントリ | 3 | P0-4 |
 | P3-10 | ドキュメントレール(B1 / B6 / B14) | 3 | P3-1 |
 | P4-1 | OpenAPI 取得機構 | 4 | P3-3 |
 | P4-2 | orval による型 + zod 生成 | 4 | P4-1 |
@@ -763,12 +763,12 @@ test-requirement: unit
 - **完了条件**: Storybook が起動する。基礎コンポーネントが 4 状態(loading / empty / error / success)の story を持つ。biome の a11y ルールが緑。**デザイン支援ツール側でデザインシステムが閲覧できる**
 - **依存**: P3-7
 
-### P3-9: rules.md 骨格 34 エントリ
+### P3-9: rules.md 骨格 35 エントリ
 
 - **目的**: rule クラスの規約の置き場を作る。ADR にも AGENTS.md にも書かない規約の受け皿
 - **対象 ADR**: [0140](../adr/0140-documentation-operations.md)
 - **主な変更先**: `docs/rules.md` — master-plan 旧 2.7 由来の 33 エントリ
-- **方針**: **ここで 33 本を一度書き切る。荒削りで可。** 各レイヤーの実装 PR で精度を上げ、P9-1 で磨き上げる。各エントリに `> Rationale: [ADR-NNNN]` の逆参照を付す
+- **方針**: **ここで 35 本を一度書き切る。荒削りで可。** 各レイヤーの実装 PR で精度を上げ、P9-1 で磨き上げる。各エントリに `> Rationale: [ADR-NNNN]` の逆参照を付す
 - **エントリ一覧**(番号は master-plan 2.7 の監査番号を踏襲):
 
 | # | 項目 | 主 Rationale |
@@ -791,6 +791,7 @@ test-requirement: unit
 | 35 | コンポーネント API 設計(props 命名 / variant / compound / `...rest`) | [0021](../adr/0021-frontend-responsibility.md) |
 | 38 | TypeScript 言語規約(`type` 優先 / `enum` 可否 / `satisfies` / `any`・`as` 禁止度) | [0020](../adr/0020-adopted-architecture.md) |
 | 39 | TSDoc / コメント規約(公開面への TSDoc / 日本語コメント / `@deprecated`) | [0140](../adr/0140-documentation-operations.md) |
+| 40 | 関数 export の使い分け(公開 API は `export function`、値として渡す callback は arrow function。React component / hook は既存規約に従う) | [0028](../adr/0028-naming-convention.md) |
 | 42 | searchParams 型付け(zod 検証 / シリアライズ形式 / 既定値) | [0060](../adr/0060-state-management.md) |
 | 43 | Web Storage 利用規約(可否 / キー命名 / SSR 安全 / 機微情報の禁止) | [0060](../adr/0060-state-management.md) |
 | 44 | アプリ用 cookie 規約(命名 / SameSite・Secure・HttpOnly・Max-Age / 読み書き場所) | [0131](../adr/0131-cookie-consent.md) |
@@ -808,7 +809,7 @@ test-requirement: unit
 | 68 | version skew 対応(Server Action ID 不一致 → フルリロード誘導 or PaaS 依存) | [0040](../adr/0040-routing-rendering-strategy.md) |
 | 69 | typed routes / リンク規約(`typedRoutes` 有効化 / 生 `<a>` 禁止 / 外部リンクの `rel`) | [0040](../adr/0040-routing-rendering-strategy.md) |
 
-- **追加エントリ**: 33 件に加え、**#12b 楽観ロック競合(409)** を新設する([screens.md](../screens.md) A7 の要件。既存 33 件に該当項目がない)
+- **追加エントリ**: 33 件に加え、**#12b 楽観ロック競合(409)**([screens.md](../screens.md) A7 の要件。既存 33 件に該当項目がない)と、**#40 関数 export の使い分け**を新設する
 - **各エントリに「強制手段」列を必須にする**(§0.3 と同じ趣旨)。散文に逃がす前に機械強制の余地を検討させるため。実測で既に機械強制できるものがある:
 
 | rule | 強制手段 |
@@ -820,7 +821,7 @@ test-requirement: unit
 | #69(生 `<a>` 禁止) | **biome では落ちない**(実測確認済み)。`next/link` を必須にするため **ESLint 側(P3-2)で拾う**(確定) |
 
 - **強制手段**: markdownlint(構造)+ 各エントリの強制手段列(内容)
-- **完了条件**: 34 エントリが存在し、全てに Rationale と**強制手段列**がある。markdownlint が緑
+- **完了条件**: 35 エントリが存在し、全てに Rationale と**強制手段列**がある。markdownlint が緑
 - **依存**: P0-4
 
 ### P3-10: ドキュメントレール(B1 / B6 / B14)
@@ -1368,11 +1369,11 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 
 ### P9-1: rules.md 磨き上げ
 
-- **目的**: P3-9 で荒削りに書いた 34 エントリを、実装済みコードと突合して精度を上げる
+- **目的**: P3-9 で荒削りに書いた 35 エントリを、実装済みコードと突合して精度を上げる
 - **対象 ADR**: [0140](../adr/0140-documentation-operations.md)
 - **主な変更先**: `docs/rules.md`
 - **設計**: 各エントリが**実在のコード / 設定 / 生成物を指す**状態にする。実装で採らなかった選択肢の記述を削る。Rationale ADR のリンクが生きていることを確認する
-- **完了条件**: 全 34 エントリが実在の参照先を持つ。**強制手段列に「散文のみ」が残るものが棚卸しされている**。`doc-reviewer` が accuracy の指摘を出さない
+- **完了条件**: 全 35 エントリが実在の参照先を持つ。**強制手段列に「散文のみ」が残るものが棚卸しされている**。`doc-reviewer` が accuracy の指摘を出さない
 - **依存**: P7-2, **Phase 6 全 PR / Phase 8 全 PR**(#44 / #50 は P6-7、#66 は P6-8 の実装を参照先にするため)
 
 ### P9-2: EN canonical 化 + `.ja.md` mirror

@@ -81,6 +81,9 @@
         "noJsxPropsBind": "on",
         "noAwaitInLoops": "on",
         "noDelete": "on"
+      },
+      "style": {
+        "noProcessEnv": "error"
       }
     },
     "domains": {
@@ -115,12 +118,35 @@
       }
     },
     {
+      "includes": ["src/config/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noProcessEnv": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/instrumentation.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noProcessEnv": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["scripts/**"],
       "linter": {
         "rules": {
           "suspicious": {
             "noConsole": "off",
             "noExplicitAny": "off"
+          },
+          "style": {
+            "noProcessEnv": "off"
           }
         }
       }
