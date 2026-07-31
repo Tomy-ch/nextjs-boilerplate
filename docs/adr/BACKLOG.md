@@ -83,22 +83,22 @@
 
 | 枠 ID | ADR # | タイトル | 選定済み | 実装済み | 依存 | 内容要旨 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **A1** | 0020 | 採用アーキテクチャ | ✅ | ⬜ | — | 全体パターンの宣言 (機能スライス × 表示層カーネル) / 設計原則 / 不採用パターン (onion 直訳 / Next.js 慣行ミニマル) |
+| **A1** | 0020 | 採用アーキテクチャ | ✅ | ✅ | — | 全体パターンの宣言 (機能スライス × 表示層カーネル) / 設計原則 / 不採用パターン (onion 直訳 / Next.js 慣行ミニマル) |
 | **A2** | 0070 | バックエンドとの役割分離 | ✅ | ⬜ | A1, R1 | Next.js = UI + 薄い BFF / `/api/*` = thin proxy(業務ロジック禁止)/ ドメインはバックエンド / 契約 SSOT = backend `openapi.gen.yaml` / 境界値所有(フロントが response 検証の最後の砦) |
-| **A3** | 0021 | 責務分離方針 (フロント内) | ✅ | ⬜ | A1 | `features` / `model` / `components` / `adapters` 等カーネルの責務 / 依存方向 / 境界違反禁止 / カーネル命名規律・受入基準 / ESLint boundaries による機械強制 (Enforcement) |
+| **A3** | 0021 | 責務分離方針 (フロント内) | ✅ | ⚠️ | A1 | `features` / `model` / `components` / `adapters` 等カーネルの責務 / 依存方向 / 境界違反禁止 / カーネル命名規律・受入基準 / ESLint boundaries による機械強制 (Enforcement) |
 | **A4** | 0040 | ルーティング・レンダリング戦略 | ✅ | ⚠️ | A1, A2 | App Router 単独 / Server Components 既定 / `"use client"` は feature 葉へ / Server Actions = `actions.ts` / page = 薄い driving adapter / モード非強制(Next.js 16 caching は B3/B6 へ) |
-| **A5** | 0027 | ディレクトリ構造 | ✅ | ⚠️ | A3, A4 | `src/` 配下の物理配置 / path alias (`@/*`) / co-location の方針 / 共有モジュール粒度 |
-| **A6** | 0028 | 命名規則 | ✅ | ⬜ | A5 | 優先順位 = Next.js > React > nextjs-boilerplate 自身・業界スタンダード / ファイル名 (全ソース kebab-case 統一) / 識別子 (component=Pascal / hook=useCamel / 型=Pascal / 定数=UPPER_SNAKE) / route segment (Next.js 小文字・`[slug]`・`(group)`・`_folder`) / 環境変数 (`{SUBSYSTEM}_{NAME}`・標準名〈`OTEL_*` 等〉は例外) / ADR ファイル (kebab・採番はブロック帯で確定〈0001〜0155〉) / テストファイルは B8 |
+| **A5** | 0027 | ディレクトリ構造 | ✅ | ✅ | A3, A4 | `src/` 配下の物理配置 / path alias (`@/*`) / co-location の方針 / 共有モジュール粒度 |
+| **A6** | 0028 | 命名規則 | ✅ | ✅ | A5 | 優先順位 = Next.js > React > nextjs-boilerplate 自身・業界スタンダード / ファイル名 (全ソース kebab-case 統一) / 識別子 (component=Pascal / hook=useCamel / 型=Pascal / 定数=UPPER_SNAKE) / route segment (Next.js 小文字・`[slug]`・`(group)`・`_folder`) / 環境変数 (`{SUBSYSTEM}_{NAME}`・標準名〈`OTEL_*` 等〉は例外) / ADR ファイル (kebab・採番はブロック帯で確定〈0001〜0155〉) / テストファイルは B8 |
 | **A7** | 0030 | 環境変数管理 | ✅ | ⬜ | A5 | 全 ENV 検証 (ビルド時 + 起動時のみ) / 不変 Config (`#`+getter) / server・client 分割 / ESM singleton 配布 / `NEXT_PUBLIC_` 境界 / Secret 境界 |
 
 ### Tier 3 の de facto 状態
 
-- **A1 / A3(ADR 0020 / 0021 として策定済み・実装未)**: 2026-07-12 に層写像「B 改 2: 機能スライス × 表示層カーネル」(当初 9 カーネル → その後 **11 カーネル** = `src/{app, features, model, components, adapters, capabilities, stores, config, errors, logging, observability}`。`capabilities` は [0022](0022-capabilities-kernel.md)・`stores` は [0023](0023-stores-kernel.md) で追加) をユーザ決定し、[ADR 0020](0020-adopted-architecture.md)(採用アーキテクチャの宣言・設計原則・不採用パターン)/ [ADR 0021](0021-frontend-responsibility.md)(カーネル責務・依存マトリクス・命名規律・受入基準・Server Action 置き場・Enforcement・層別 README 運用)として成文化。命名規律 (カーネルは役割名のみ、`common`/`utils`/`lib` 等禁止)・受入基準 (go pkg Policy 翻案)・依存マトリクス込み。経緯・選択肢比較の記録は docs/plan 統合(2026-07-18)で破棄(git 履歴参照)。決定は ADR [0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) が正。物理ディレクトリ・層別 README・ESLint boundaries は実装未のため実装済みは ⬜
+- **A1 / A3(ADR 0020 / 0021)**: `src/{app, features, model, components, adapters, capabilities, stores, config, errors, logging, observability}` の 11 カーネルと層別 README は実装済み。命名規律・カーネル受入基準・依存マトリクスは README に反映済みである。ESLint boundaries による機械強制は P3-2 で実装するため、A3 は ⚠️ とする。
 - **A5 / A6 / A7(ADR 0027 / 0028 / 0030 として策定済み・実装未)**: 2026-07-12 に A1/A3 (0020/0021) に続けて成文化。
   - **A5 = [ADR 0027](0027-directory-structure.md)**: 物理レイアウト・`@/*` alias 追認・co-location (feature 内フラット共置 / テストは実装隣接・`__tests__` 集約否定 / スタイルは Tailwind 既定)・共有粒度 (per-file 基本 → 肥大時 per-folder)・物理作成タイミング (空ディレクトリ禁止)
   - **A6 = [ADR 0028](0028-naming-convention.md)**: 命名優先順位 = **Next.js 規約 > React 規約 > nextjs-boilerplate 自身の既存規約・業界スタンダード**(go-boilerplate は命名の権威に置かない)。ファイル名は**全ソース kebab-case 統一**(Next.js は特殊ファイル以外を unopinionated → 業界スタンダード/shadcn/FS 安全性/自リポ既存の小文字ファイル。従来型 React の PascalCase コンポーネントファイルは不採用)・特殊ファイル/route は Next.js 小文字規約(`[slug]`/`(group)`/`_folder`)・識別子は React 規約(component=PascalCase 等・`I` プレフィックス禁止)・環境変数 `{SUBSYSTEM}_{NAME}`・ADR ファイル `NNNN-kebab`(自リポ既存規約 `docs/adr/README.md`・採番方式はトピック順ブロック帯で確定〈2026-07-14・0001〜0155〉。`Dev-`/`Toolchain-` は数値列へ畳み込み)・テストファイル命名は B8 へ引き渡し。カーネル命名規律は 0021 が正
   - **A7 = [ADR 0030](0030-environment-variable-management.md)**: env/config の翻案方針 (全 ENV 検証 = ビルド時 + サーバ起動時のみ / `#` private + getter の不変 Config / server・client 分割 / `process.env` 直読は config モジュールのみ・biome `noProcessEnv` 強制 / 配布 = ESM シングルトン + import 境界 / 受け手 4 分類 / no-Docker のため embed → Next.js native `.env` + PaaS secret store)。討議経緯は docs/plan 統合(2026-07-18)で破棄(git 履歴参照)。決定は ADR [0030](0030-environment-variable-management.md) が正
-  - 物理ディレクトリ・層別 README・ESLint boundaries・config 実装は未のため実装済みは A5=⚠️(`@/*` alias 設定済) / A6=⬜ / A7=⬜
+  - A5 の物理ディレクトリ・層別 README と A6 の命名規則は実装済み。ESLint boundaries は P3-2、config の実装は P3-3 で着手する
 - **A4(ADR 0040 として策定済み・実装 ⚠️)**: 2026-07-12 に [ADR 0040](0040-routing-rendering-strategy.md) として成文化(App Router 単独 / Server Components 既定 / `"use client"` は feature 葉へ押し下げ / Server Actions = feature 内 `actions.ts` / page = 薄い driving adapter / レンダリングモード非強制)。`src/app/` (layout.tsx + page.tsx + globals.css) は存在 = 実装 ⚠️。Next.js 16 の caching(`use cache` / PPR / Cache Components 有効化)は B3 / B6 へ委譲、`loading.tsx` / `error.tsx` 配置は B6 へ
 - **A2(ADR 0070 として策定済み・実装未)**: 2026-07-13 に [ADR 0070](0070-backend-role-separation.md) として成文化(Next.js = UI + 薄い BFF / `/api/*` = thin proxy・業務ロジック禁止 / ドメインはバックエンド / 契約 SSOT = backend `openapi.gen.yaml`(go ADR 0012 消費者側)/ 境界値所有 = go ADR 0015 翻案・response 検証はフロントが最後の砦 / 認証・セッション具体は fork 先判断)。**Tier 3(A 系)はこれで全 ADR 化完了**
 
