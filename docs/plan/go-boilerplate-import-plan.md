@@ -46,7 +46,7 @@
 
 ## 2. 作業一覧
 
-全 30 項目(完了 7 / 未着手 23)。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
+全 32 項目(完了 9 / 一部完了 1 / 未着手 22)。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
 
 | ID | 内容 | 分類 | 受け皿 | 依存 / トリガー | 状態 |
 | --- | --- | --- | --- | --- | --- |
@@ -74,7 +74,7 @@
 | IM-17 | workflows README + harden-runner + `cache: false` 規約 | A | P2-1 | IM-12 | 未着手 |
 | IM-18 | `required_status_checks` の branch ruleset 反映 | A | Phase 2 完了条件 | IM-12〜IM-17 | 未着手 |
 | **W5: サプライチェーン**(v1 Phase 2 後) | | | | | |
-| IM-19 | actions-pin 機構 + スキル(GB-6) | B | P2-3 | IM-12 | 未着手 |
+| IM-19 | actions-pin 機構 + スキル(GB-6) | B | P2-3 | IM-12 | 完了(issue #86) |
 | IM-20 | `supply-chain-triage` スキル | B | — | IM-19 | 未着手 |
 | IM-21 | `dep-vuln-upgrade` スキル | B | — | IM-20 | 未着手 |
 | **W6: アーキ監査・ドリフト**(v1 Phase 3 後) | | | | | |
@@ -90,6 +90,9 @@
 | **W9: docs portal**(v1 Phase 8) | | | | | |
 | IM-29 | `portal-manifest-sync` 復活 | A | P8-2 | P8-1 | 未着手 |
 | IM-30 | `docs/maintenance/` の新設 | B | P3-10 | P3-10 | 未着手 |
+| **W10: 外部スキル** | | | | | |
+| IM-31 | graphify 導入(pin / bootstrap / 権限境界 / 除外) | B | — | go 側の検証決着 | 完了(issue #102) |
+| IM-32 | `affected` に絞った repo スコープの薄いラッパースキル | C | — | go 側で当該ラッパーが着地 | 未着手 |
 
 ### 2.1 依存マップ
 
@@ -260,13 +263,13 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 
 #### IM-19: actions-pin 機構 + スキル(GB-6 / 受け皿 P2-3)
 
-P2-3 に受け皿があり、そこへ書き足す:
+**完了(issue #86)**。着地した形:
 
-- `git ls-remote` で `uses:` のタグ → SHA を解決し、ロックファイル `actions-pin.toml` を SSOT とする **resolve / apply / check の三相**構造
-- **検疫**: `PIN_ACTIONS_MIN_AGE_DAYS`(既定 14)未満の新リリースは自動採用せず、1 つ前へ step-back する
-- **再ポイントタグ検知**: 既知 SHA と現在の解決結果の乖離を fail 扱いにする
-- `check` は fail-closed(未登録 / 未固定の `uses:` は error)
-- Go 実装のため TS への書き換えが必要(P2-3 に記載済み)
+- `scripts/actions-pin/` に TypeScript で **resolve / apply / check の三相**を実装。ロックファイルは `.github/actions-pin.toml`(TOML パーサ依存を足さず、行指向の部分集合を自前で往復する)
+- **検疫**: `ACTIONS_PIN_MIN_AGE_DAYS`(既定 14)未満の解決先は採用せず、既存ピンがあれば維持・無ければ見送る。1 つ前の通過済み版への step-back は `actions-pin` スキルが持つ
+- **再ポイントタグ検知**: ロックファイルの差分監視としてスキルの手順に置いた(厳密版 tag の SHA が動いたらセキュリティイベント扱いで停止)
+- `check` は fail-closed。go 版の「未登録 / 未固定」に加え、**壊れたロックファイル行**と**孤児エントリ**も error にした
+- 二重掛けは pre-commit hook と CI の `actions-pin` job。`actions-lint` へは相乗りさせない([0153](../adr/0153-ci-configuration.md) 1「別関心として分ける」)
 
 #### IM-20: `supply-chain-triage` スキル
 
@@ -275,7 +278,7 @@ P2-3 に受け皿があり、そこへ書き足す:
 - **主な変更先**: `.claude/skills/supply-chain-triage/SKILL.md`(+ `.ja.md`)、`references/npm.md`、`references/github-actions.md`
 - **翻案メモ**: **references は npm / github-actions の 2 本のみ採用**し、`go-modules.md` / `docker-images.md` は捨てる([0011](../adr/0011-no-docker.md))。0–12 のスコアリングと **report-only(絶対に実行しない)** 原則は無翻案。参照する自リポジトリのセキュリティ観点は、go 側の `docs/design/security.md` に代えて [0110](../adr/0110-security-operations.md) / [0111](../adr/0111-csp-security-headers.md) を読ませる
 - **完了条件**: 検疫に掛かった 1 パッケージについて、直接証拠つきのスコアと採否推奨が出る。スキルが npm install / 実行を一切行わない
-- **依存**: IM-19
+- **依存**: IM-19(完了済み)
 
 #### IM-21: `dep-vuln-upgrade` スキル
 
@@ -350,6 +353,24 @@ P8-2 に受け皿があり、そこへ書き足す: pair_drift preflight → N1(
 
 - **目的**: スキルが実行時に読む手順書の置き場を作る。現在は手順がスキル本文に埋まっており、スキル改修なしに手順を直せない
 - **翻案メモ**: go 側の `docs/maintenance/` から、本リポジトリに実在するものだけを採る — `node-upgrade.md`(go-upgrade.md 相当)、`portal-manifest.md`(P8-1 と同時)、`docs-structure.md`。Docker / DB 系(`db-worktree-pool.md` / `local-environment.md`)は対象外
+
+### W10: 外部スキル
+
+#### IM-31: graphify 導入
+
+- **状態**: **完了**(issue #102)。リポジトリが持つのは pin / bootstrap / 権限境界 / 除外設定の 4 点で、`SKILL.md` 実体は持たない。線引きは [0154](../adr/0154-claude-skills-operations.md) の外部スキル節が権威
+- **翻案メモ**: go 側から意図的に変えた点
+  - bootstrap を `.sh` ではなく `scripts/bootstrap-external-skills.ts` として置く(§0 の TypeScript 変換原則)
+  - `mise exec` で包まない。素の `graphify` を activate 済み mise の PATH から解決する([0003](../adr/0003-version-manager.md))。この帰結としてスクリプトは `mise.toml` の pin を読まない
+  - 対象プラットフォームは Claude Code のみ。`.codex/` の器が無く着地検証ができない(IM-04 待ち)
+  - `[sql]` extra を付けない。表示層に SQL ソースを持たない([0070](../adr/0070-backend-role-separation.md))
+  - クールダウン基準の置き場は `docs/design/security.md` ではなく [0110](../adr/0110-security-operations.md) 1.1
+  - `.graphifyignore` は `*.ja.md` の 1 件のみ。go 側は生成物を追跡下に置くため除外が要るが、本リポジトリの生成物は gitignore 済みで graphify が自動的に外す
+  - project スコープ書き換え命令の `deny` を、プラットフォーム名の列挙ではなくパターン(`graphify * install*`)で書く。0.9.25 の CLI 表面は go 側が列挙した 9 件より広く、列挙は pin bump ごとに穴が開く
+
+#### IM-32: `affected` に絞った repo スコープの薄いラッパースキル
+
+go 側の残課題。上流の project モードは `AGENTS.md` / `CLAUDE.md` を書くため採れず、サードパーティの `SKILL.md` を vendoring すると対訳ペアの要求と SSOT の二重化が起きる。自作の薄いラッパーが妥当というところまでは go 側で出ているが未着手のため、本リポジトリでは着地を待つ。
 
 ---
 

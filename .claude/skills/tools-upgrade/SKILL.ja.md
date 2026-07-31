@@ -18,9 +18,9 @@
 
 以下の用途では使用しない。
 
-- Go 自体のアップグレード → `/go-upgrade` を使う（`make sync-versions` 経由の伝播範囲が異なる）
-- Go module 依存のアップデート（`go.mod` の `require` ブロック）→ `make tidy-lib` を直接使う
-- 単発のアドホックなバージョン bump → `mise.toml` を直接編集して `make sync-versions`
+- Node.js 自体のアップグレード → `/node-upgrade` を使う（その Node ラインのリリースノート / 破壊的変更をレビューする）
+- npm 依存のアップデート（`package.json`）→ `pnpm add` / `pnpm update` を直接使う（[0004](../../../docs/adr/0004-library-management.md)）
+- 単発のアドホックなバージョン bump → `mise.toml` を直接編集して `make install-tools`
 
 ## 最初に行うこと: `min_age_days` の確認
 
@@ -41,12 +41,15 @@
 `CLAUDE.md` の "Exception: Skill Execution" 節に基づき、スキル実行中に以下のパスへの変更が許可される。
 
 - `mise.toml`（`[tools]` table のみ、ユーザーが承認したエントリだけを書き換え）
-- `go.mod`, `docker/**/Dockerfile`, `docker/**/README.md`, `docker/**/README.ja.md` — `make sync-versions` の下流出力としてのみ（スクリプトが atomic に処理）
+
+本スキルが書き換える追跡ファイルは `mise.toml` だけ。そこから配信層へ伝播するものは無く、バージョンを
+二重に持つ Dockerfile / ランタイムマニフェストも存在しない（[0003](../../../docs/adr/0003-version-manager.md) /
+[0011](../../../docs/adr/0011-no-docker.md)）。
 
 以下は引き続き保護対象（スキル実行中でも変更不可）。
 
 - `AGENTS.md` / `CLAUDE.md`
-- 生成ファイル（`**/*.gen.go`, `*.sql.go`, `*_mock.go`, `**/openapi.gen.yaml`, `docs/` の生成物）
+- 生成物（`src/adapters/gen/**` と取り込んだ `openapi.gen.yaml` — [0072](../../../docs/adr/0072-api-type-generation.md)） <!-- skill-lint-ignore -->
 - バージョン bump と無関係な全てのファイル
 
 ## 実行ステップ
@@ -58,13 +61,14 @@
 | Key format | Backend | 最新バージョンの取得元 |
 | --- | --- | --- |
 | `aqua:owner/repo` | aqua (GitHub Releases) | `gh api repos/owner/repo/releases/latest` |
-| `go:path/to/module` | go install | GitHub Releases（hosted されていれば）または `go list -m -versions path/to/module` |
 | `npm:package` | npm | `https://registry.npmjs.org/{package}` |
 | `pipx:package` | pipx (PyPI) | `https://pypi.org/pypi/{package}/json` |
-| 短い名前（例 `golangci-lint`） | mise registry のデフォルト | `mise registry` で resolve、続いて該当 backend を query |
-| `go`（ランタイム） | 公式 download manifest | `https://go.dev/dl/?mode=json` |
-| `node`（ランタイム） | 公式 download manifest | `https://nodejs.org/dist/index.json` |
-| `python`（ランタイム） | 公式 download manifest | `https://www.python.org/api/v2/downloads/release/` |
+| `core:node`（ランタイム） | mise core | `https://nodejs.org/dist/index.json` |
+| `core:python`（ランタイム） | mise core | `https://www.python.org/api/v2/downloads/release/` |
+
+backend prefix の無い key は存在してはならない。[0003](../../../docs/adr/0003-version-manager.md) は backend の
+明示を要求している — 複数 backend を持つツールは、レジストリの既定が変わると取得元が黙って変わるため。
+そうした key は resolve せず、指摘として報告する。
 
 各ツールについて以下を取得する。
 
@@ -127,17 +131,20 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
 
 全承認分の置換を memory 上で計算したあと、`mise.toml` を **1 回だけ書き出す**（atomic single-pass）。
 
-### 6. 必要なら `make sync-versions` を実行
+### 6. 承認したバージョンをインストール
 
-`go` / `node` / `python` のいずれかが更新されていれば `make sync-versions` を実行する。これにより `go.mod` と Dockerfile / `docker/**/README.md` 群の `FROM golang:` / `FROM node:` / `FROM python:` ハードコードが伝播する。
+`make install-tools` を実行し、固定し直したバージョンを実際に `PATH` 上のものにする。これを回すまでは
+`mise.toml` と導入済みツールチェインが食い違い、以降の検証は古いバージョンを検証してしまう。
 
-非ランタイムのツールだけが更新された場合は `make sync-versions` は不要。
+下流への伝播ステップは無い。`mise.toml` が単一の正であり、バージョンを二重に持つ配信層のファイルは
+存在しない（[0003](../../../docs/adr/0003-version-manager.md)）。
 
 ### 7. 検証
 
 ```sh
-make lint
-make test
+pnpm install
+pnpm lint:ci
+pnpm build
 ```
 
 結果テーブル（OK / FAIL）をユーザーに報告する。失敗しても自動ロールバックはしない — どう扱うか（修正コミット追加 / revert / そのまま）はユーザーが判断する。
@@ -160,7 +167,7 @@ make test
 - **calendar versioning**: `2024.12.30` のような calendar versioning を使うツールは lexicographic + semver fallback で比較する。downgrade ガードは常時有効。
 - **rate limit**: GitHub API は anonymous で 60 req/h（IP 単位）。本スキルは `gh api` を経由して `GITHUB_TOKEN` 認証で 1000 req/h に上げる。
 - **idempotency**: 複数回起動しても安全。適用後に再実行すると、適用済みツールは up-to-date として表示される。
-- スキルは auto-push しない。ユーザーが working tree をレビューし、必要なら `make sync-versions` を回したうえでコミット・push する。
+- スキルは auto-push しない。ユーザーが working tree をレビューしたうえでコミット・push する。
 
 ## チェックリスト
 
@@ -172,8 +179,8 @@ make test
 - [ ] 分類結果テーブルをユーザーに提示
 - [ ] eligible が非空なら、per-tool 適用候補を `AskUserQuestion` で確定
 - [ ] `mise.toml` を承認分のみ atomic に書き換え、key 形式と `v` prefix 慣習を保持
-- [ ] go / node / python が更新されたなら `make sync-versions` を実行
-- [ ] `make lint` + `make test` を実行
+- [ ] `mise.toml` を書き換えたら `make install-tools` を実行
+- [ ] `pnpm install` + `pnpm lint:ci` + `pnpm build` を実行
 - [ ] 最終結果テーブルをユーザーに報告
 - [ ] `SKILL.md` 更新時は `SKILL.ja.md` も同期
 - [ ] コミット / stage / push は一切実行しない

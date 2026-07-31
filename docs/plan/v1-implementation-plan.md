@@ -337,8 +337,7 @@ shadcn/ui を import
 | P1-2 | gitleaks + trivy | 1 | — |
 | P1-3 | actionlint 先行移植 + setup スクリプト拡充 | 1 | — |
 | P2-1 | 基本 workflow(upsert-pr-comment / lint / typecheck / build / smoke) | 2 | P1-3 |
-| P2-2 | セキュリティ workflow(CodeQL / gitleaks / trivy / Dependabot) | 2 | P2-1 |
-| P2-3 | actions SHA ピン機構 | 2 | P2-2 |
+| P2-3 | actions SHA ピン機構 | 2 | P2-1 |
 | P3-1 | 11 カーネルの物理化 + 層別 README(B13) | 3 | P0-4 |
 | P3-2 | architecture.ts SSOT + ESLint boundaries(B4) | 3 | P3-1 |
 | P3-3 | env / 型付き Config | 3 | P3-1 |
@@ -371,6 +370,7 @@ shadcn/ui を import
 | P5-14 | A1 ダッシュボード + A4 集計(backend 合成) | 5 | P5-11 |
 | P5-15 | purchases ステータス遷移(cancel / pay / ship / deliver) | 5 | P5-8, P5-11 |
 | P5-16 | ゴールデンパス README 整備(B5 完成) | 5 | P5-1〜P5-15 |
+| P5-17 | セキュリティ workflow(CodeQL / gitleaks / trivy / Dependabot) | 5 | P5-16 |
 | P6-1 | クライアント観測性 | 6 | P3-5, P4-5 |
 | P6-2 | CSP / セキュリティヘッダ + CI 適合ゲート | 6 | P5-16, P6-8 |
 | P6-3 | SEO / metadata + fonts | 6 | P5-1, P5-4 |
@@ -563,7 +563,7 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
 
 ### P1-2: gitleaks + trivy
 
-- **目的**: シークレット混入と脆弱依存をローカルで止める。CI 導入(P2-2)に先行して開発者の手元で塞ぐ
+- **目的**: シークレット混入と脆弱依存をローカルで止める。CI 導入(P5-17)に先行して開発者の手元で塞ぐ
 - **対象 ADR**: [0110](../adr/0110-security-operations.md) / [0151](../adr/0151-git-hooks.md)
 - **主な変更先**:
   - `mise.toml` — gitleaks / trivy を aqua バックエンドで登録
@@ -593,9 +593,9 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
 
 ---
 
-## Phase 2: CI 基盤
+## Phase 2: 基本 CI 基盤
 
-[0153](../adr/0153-ci-configuration.md) / [0110](../adr/0110-security-operations.md) の実装。1 関心事 = 1 workflow / SHA ピン / 最小 permissions / concurrency / hooks mirror CI を全 workflow で守る。
+[0153](../adr/0153-ci-configuration.md) の基本検査と Actions 供給網対策を実装する。1 関心事 = 1 workflow / SHA ピン / 最小 permissions / concurrency / hooks mirror CI を全 workflow で守る。
 
 ### P2-1: 基本 workflow
 
@@ -610,21 +610,6 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
 - **完了条件**: PR で全 job が緑になる。`upsert-pr-comment` が PR コメントを冪等に更新する
 - **依存**: P1-3
 
-### P2-2: セキュリティ workflow
-
-- **目的**: [0110](../adr/0110-security-operations.md) の多層防御を CI に載せる
-- **対象 ADR**: [0110](../adr/0110-security-operations.md) / [0004](../adr/0004-library-management.md)
-- **主な変更先**:
-  - `.github/workflows/codeql.yaml` — js-ts。PR + push baseline + 週次 cron
-  - `.github/workflows/gitleaks.yaml` — fail-closed
-  - `.github/workflows/trivy.yaml` — 二段(dev advisory / release strict)
-  - `.github/dependabot.yml` — cooldown patch 5 / minor 7 / major 30、security は即時
-  - `SECURITY.md` — 報告窓口
-  - `pnpm audit` の CI 組込(severity high+ / 修正可能性で blocking)
-- **注意**: image-scan / cosign / SBOM は [0011](../adr/0011-no-docker.md) の no-docker により exclusion
-- **完了条件**: 全 workflow が動作する。既知の脆弱依存を入れると trivy / audit が fail する
-- **依存**: P2-1
-
 ### P2-3: actions SHA ピン機構
 
 - **目的**: Actions の供給網リスクを検疫付きで管理する
@@ -636,11 +621,7 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
   - `.claude/skills/actions-pin/` — BACKLOG GB-6 の移植
 - **設計**: `min-age-days` の検疫を入れ、公開直後のリリースは自動採用しない(`tools-upgrade` の quarantine と同系)
 - **完了条件**: `make actions-pin-check` が fail-closed で動作する。未登録 / 未固定の `uses:` が error になる
-- **依存**: P2-2
-
-> **Phase 2 の完了条件**: required check を branch ruleset へ反映する(**GitHub 側の設定はユーザが実施**)。
->
-> **採否未判断の残余候補**(Phase 2 実装時に確定する): sync-versions-check(`mise.toml` SSOT ↔ CI の Node 版数 drift 検査)/ auto-generate-docs(bot による生成物更新 PR + 再帰防止 guard)。
+- **依存**: P2-1
 
 ---
 
@@ -958,8 +939,6 @@ sources:
 - **完了条件**: `pnpm gen feature <name>` が出力した雛形が、無修正で `lint:ci` / boundaries / README 必須節 / カバレッジゲートを満たす
 - **依存**: P4-5
 
-> **Phase 4 完了時点で 0.2.0 相当。** ここまでで全カーネルと主要 ADR の交差点が 1 度は踏まれている。
-
 ---
 
 ## Phase 5: EC ジャーニー横展開
@@ -1167,6 +1146,21 @@ sources:
 - **強制手段**: `readme-review` スキルの採点(B11 の構造 CI ゲート化は v1.x.x)
 - **完了条件**: 全 sample feature が B1 必須セクション(route / operationId / 状態表 / 依存カーネル / Action 戻り値契約 / テスト観点)を持つ。`readme-review` が manual-worthy と判定する
 - **依存**: **P5-1〜P5-15**(完了条件が「全 feature」を対象にするため)
+
+### P5-17: セキュリティ workflow
+
+- **目的**: [0110](../adr/0110-security-operations.md) の多層防御を、全サンプル機能が揃った後に CI へ載せる
+- **対象 ADR**: [0110](../adr/0110-security-operations.md) / [0004](../adr/0004-library-management.md)
+- **主な変更先**:
+  - `.github/workflows/codeql.yaml` — js-ts。PR + push baseline + 週次 cron
+  - `.github/workflows/gitleaks.yaml` — fail-closed
+  - `.github/workflows/trivy.yaml` — 二段(dev advisory / release strict)
+  - `.github/dependabot.yml` — cooldown patch 5 / minor 7 / major 30、security は即時
+  - `SECURITY.md` — 報告窓口
+  - `pnpm audit` の CI 組込(severity high+ / 修正可能性で blocking)
+- **注意**: image-scan / cosign / SBOM は [0011](../adr/0011-no-docker.md) の no-docker により exclusion
+- **完了条件**: 全 workflow が動作する。既知の脆弱依存を入れると trivy / audit が fail する
+- **依存**: P5-16
 
 ## Phase 6: 非機能
 
@@ -1456,7 +1450,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 | 8 | `/api/telemetry` の最小防御(ボディサイズ上限 / content-type 検証)。[0077](../adr/0077-bff-abuse-protection-boundary.md) が実装 PR へ保留 | P6-1 |
 | 9 | `ActionState<T>` の具体型(判別子 / fieldErrors の形 / sentinel の直列化)。**B1 テンプレ(P3-10)と scaffold(P4-6)が P5-7 より先行するため、P4-6 時点で草案を切る** | P4-6 で草案 → P5-7 で確定 |
 | 10 | **外部デザイン支援ツール連携スキルの仕様**(書き出し形式 / 同期手順 / 対象パス)。§3.11 の方針変更で新たに生じた | P3-8 |
-| 11 | Phase 2 の残余候補(sync-versions-check / auto-generate-docs)の採否 | Phase 2 実装時 |
+| 11 | Phase 2 の残余候補(sync-versions-check / auto-generate-docs)の採否 | Phase 6 実装時 |
 | 12 | issue のラベル体系 / 親子関係(task list か Projects か) | issue 発行時 |
 | 13 | barrel(`index.ts`)の可否。**推奨は作らない** — 循環参照 / tree-shaking の問題に加え、[0021](../adr/0021-frontend-responsibility.md) の「公開面を明示する」目的に対し barrel はむしろ境界を曖昧にするため。公開面は `architecture.ts` と README frontmatter で宣言する | P3-1 |
 | 14 | Web Worker オフロード seam の ADR 化要否 | P6-5 |

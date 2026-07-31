@@ -1,0 +1,7 @@
+# graphify の解析対象から外すパス。
+# graphify は既定で .gitignore を尊重するため、gitignore 済みの生成物（node_modules/ / .next/ /
+# tmp/ / graphify-out/ 等）はここに書かなくても除外される。追跡下に置いていて、かつグラフに
+# 入れたくないものだけを書く。
+
+# 日本語ミラー。正本（SKILL.md 等）の複製であり、両方を入れると同じ内容が二重にグラフへ乗る。
+*.ja.md

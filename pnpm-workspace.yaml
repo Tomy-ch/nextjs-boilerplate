@@ -1,4 +1,36 @@
-ignoredBuiltDependencies:
-  - esbuild
-  - sharp
-  - unrs-resolver
+# ----- 時間差防御 -----
+# pnpm は semver 種別ごとの冷却期間を設定できないため、minor の7日を一律下限にする。
+minimumReleaseAge: 10080
+# 緊急のセキュリティ修正は、影響を受ける特定バージョンだけを一時的に例外化する。(パッケージ名だけの例外は禁止)
+minimumReleaseAgeExclude:
+  - conventional-commits-parser@7.1.1 # 2026-08-02 20:34 JST 以降に削除する。@commitlint の開発時依存であり、既知脆弱性なしを確認済み。
+# 冷却期間を満たす版がなければ解決を失敗させる。
+minimumReleaseAgeStrict: true
+# 公開日時を返さないレジストリの依存は解決を失敗させる。
+minimumReleaseAgeIgnoreMissingTime: false
+
+# 依存状態が lockfile と一致しないままスクリプトを実行しない。
+verifyDepsBeforeRun: error
+
+# mise.toml[SSOT] と同じ Node.js 版を依存の engine 判定にも使う。
+nodeVersion: 24.14.1
+# Node.js の対応範囲外を宣言する依存の導入を拒否する。
+engineStrict: true
+
+# ----- 実行制御 -----
+# 未レビューの依存ライフサイクルスクリプトを install エラーにする。
+strictDepBuilds: true
+# 依存ライフサイクルスクリプトの実行可否をパッケージ単位で明示する。
+allowBuilds:
+  lefthook: false
+  esbuild: false
+  sharp: false
+  unrs-resolver: false
+
+# ----- 公開元の信頼性 -----
+# 間接依存による Git・URL などの非標準ソースを拒否する。
+blockExoticSubdeps: true
+# 過去より弱い provenance に下がった版の導入を拒否する。
+trustPolicy: no-downgrade
+# 公開から180日を過ぎた版は provenance 情報不足だけでは拒否しない。
+trustPolicyIgnoreAfter: 259200

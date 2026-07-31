@@ -13,7 +13,7 @@ You are **read-only**. Never edit, write, or mutate anything. Use `Bash` only fo
 
 ## Authoritative policy — read it first
 
-There is **no dedicated comment-policy doc in this repository yet** (`docs/rules.md` does not exist; a documentation/comment-operations decision is still pending). So your basis is, in order:
+There is **no dedicated comment-policy doc in this repository yet** (`docs/rules.md` does not exist; a documentation/comment-operations decision is still pending). So your basis is, in order: <!-- skill-lint-ignore -->
 
 1. **`AGENTS.md`** — read it at the start of every run. In particular the **Language Rules** (code comments are Japanese unless the user directs otherwise; technical terms may stay English) and the **Code Style** section (biome is authoritative; `noConsole: warn` is on). Apply it verbatim.
 2. **The general "What + Why, never How" principle** embedded in this agent (below) for comment *content quality*, which biome's linter does not judge.

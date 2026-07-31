@@ -8,7 +8,8 @@
 
 > **スコープ注記。** この runbook は意図的に薄い。元にした go-boilerplate の `repo-ops` は Docker ツールランナー・
 > `sqlc` / `schema.gen.sql`・root 所有の生成ディレクトリ・稼働 DB が中心だったが、**それらはここには存在しない**
-> (ADR 0004 no-docker、DB なし、表示層のみ)。以下には実在する落とし穴だけを載せる。新たに踏んだら項目を足す
+> ([0011](../../../docs/adr/0011-no-docker.md)、DB なし、表示層のみ)。以下には実在する落とし穴だけを載せる。
+> 新たに踏んだら項目を足す
 > こと ── Go 固有のものを戻さない。
 
 ## 1. `make install-tools` が `mise not found` で落ちる
@@ -115,7 +116,8 @@ git add package.json pnpm-lock.yaml
 ```
 
 原則: **`package.json` の依存変更は、再生成した `pnpm-lock.yaml` を必ず同時コミットする。**(`package.json` は
-保護対象のルート設定 ── 依存編集はユーザ明示指示が必要。Toolchain-0005 により依存メジャーは別 PR。)
+保護対象のルート設定 ── 依存編集はユーザ明示指示が必要。[0004](../../../docs/adr/0004-library-management.md)
+により依存メジャーは別 PR。)
 
 ## 5. biome: `pnpm lint` vs `pnpm fix`(ADR 0002)
 
@@ -133,14 +135,29 @@ pnpm format    # biome format --write : フォーマットのみ
 
 ## 6. スクラッチ出力は `tmp/` 配下に置き、git には乗せない
 
-`/tmp` と `/.claude/worktrees/` は `.gitignore` 済みなので、以下は `git status` に出ない。
+`/tmp` は `.gitignore` 済みなので、以下は `git status` に出ない。
 
 - `tmp/reviews/` ── `full-verify` / `full-apply` の指摘集
 - `tmp/<name>.md` ── 実体をリポジトリ外に置いた作業計画書への symlink
-- `.claude/worktrees/<name>/` ── エージェントがリポジトリ内に作成する worktree
 
 いずれもソースではなくスクラッチ出力: `git add -f` で強引に載せない。残す必要があるスクラッチはリポジトリ外に
 実体を置き、`tmp/` 配下の symlink から参照する。
+
+**worktree はリポジトリ内の `.claude/worktrees/<name>/` に置く** ── エージェントのツールがそこに
+作り、置き場所は設定できない。別の場所に置く規約を敷いても、守られるのは人手で作った分だけになる。
+ツリー内のチェックアウトは、ツリーを走査する全ツールの走査対象に入るため、除外は 5 箇所に書かれて
+おり、その全てを揃えて保つ必要がある。
+
+| 場所 | エントリ |
+| --- | --- |
+| `.gitignore` | `/.claude/worktrees/` |
+| `.markdownlint-cli2.yaml` | `ignores:` の `.claude/worktrees/**` |
+| `scripts/mermaid-lint.ts` | `EXCLUDE_PREFIXES` |
+| `scripts/skill-lint.ts` | `EXCLUDE_PREFIXES` |
+| `.makefiles/security/trivy.mk` | `--skip-dirs .claude/worktrees` |
+
+これらのツールはいずれも `.gitignore` を読まないため、そこで ignore しても他の 4 箇所の除外にはならない。
+ツリーを走査するツールを 6 つ目に増やすときは、除外も 6 箇所目を足すことになる。
 
 ## 7. commit / push が hook に弾かれる(lefthook)
 
@@ -151,7 +168,7 @@ worktree にも継承されるが、**`node_modules` は継承されない** ─
 
 | 段階 | 入口 | 検査内容 |
 | --- | --- | --- |
-| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint`、workflow が staged なら `make actionlint` | biome 完全版 / markdownlint + mermaid 構文 / workflow 構文 + `run:` のシェル |
+| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint`、workflow が staged なら `make actionlint` | biome 完全版 / markdownlint + mermaid 構文 + `.claude/**` の意味検査(`skill-lint`) / workflow 構文 + `run:` のシェル |
 | commit-msg | `make commitlint` | subject を ADR 0150 に照らす |
 | pre-push | `pnpm typecheck`、`make secret-scan` | `tsc --noEmit` / push 範囲の秘密(**fail-closed**) |
 
@@ -194,4 +211,5 @@ echo "Feat: 説明" | pnpm exec commitlint
 - ✅ ルートファイル編集(§5 `biome.json`、§4 `package.json`)は事前にユーザ確認 ── 既定の
   AI 変更スコープ外。§2 の `git restore pnpm-workspace.yaml` は例外 ── 頼んでいない機械的な変更を
   作るのではなく捨てる操作だから。
-- ❌ go-boilerplate の Docker / sqlc / DB 項目をここに移植しない ── 適用外(ADR 0004)。
+- ❌ go-boilerplate の Docker / sqlc / DB 項目をここに移植しない ──
+  適用外([0011](../../../docs/adr/0011-no-docker.md))。

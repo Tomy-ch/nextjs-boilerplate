@@ -246,10 +246,11 @@ Update the row when an existing skill's coverage materially changes.
 
 - `pnpm lint:ci` and `pnpm typecheck` — required whenever a bundled or `scripts/` TypeScript
   file was added or changed. Run `pnpm fix` first for autofixable findings.
-- `pnpm md-lint` — run it when an ADR or any other tracked Markdown outside `.claude/` was touched.
-  **Note that `.claude/**` is excluded from both markdownlint and mermaid-lint**, so `SKILL.md` and
-  `SKILL.ja.md` are not machine-checked. Their structure is this skill's own responsibility: verify
-  the frontmatter keys, the heading structure, and the pair's 1:1 correspondence by reading them.
+- `pnpm md-lint` — required whenever any Markdown was touched, including `.claude/**`. It runs three
+  stages: markdownlint (layout), mermaid-lint (diagram syntax), and `skill-lint`, which checks the
+  frontmatter keys, the `SKILL.md` / `SKILL.ja.md` pair's heading structure, and the existence of
+  every `make` target and path the body references. What `skill-lint` cannot judge stays this skill's
+  responsibility: whether the translation says the same thing, and whether the body is still correct.
 - Confirm no eval artifact is staged (`git status`), and that no protected path was touched.
 
 ## Definition of Done

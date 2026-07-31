@@ -1,0 +1,103 @@
+name: Markdown Lint
+
+# markdownlint-cli2, the mermaid syntax check, and skill-lint (the semantic check over
+# `.claude/**`) — the same command the pre-commit hook runs (ADR 0153: hooks mirror CI).
+# biome does not read Markdown, so nothing else in CI would catch a broken document, an
+# unrenderable diagram, or a skill instructing an agent to run a target that no longer exists.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  md-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.7.12
+          install: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Node and pnpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise install core:node aqua:pnpm/pnpm
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          # Assigned first so a failure inside the substitution fails the step; an
+          # `echo "$(...)"` would report success and hand the cache an empty path.
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run markdownlint and the mermaid check
+        id: md-lint
+        shell: bash
+        run: |
+          set +e
+
+          pnpm md-lint 2>&1 | tee /tmp/md-lint.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Markdown lint: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Markdown lint: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment markdown lint result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- md-lint-result -->'
+          title: ${{ steps.md-lint.outputs.title }}
+          body-file: /tmp/md-lint.log
+          details-summary: 'markdownlint / mermaid log'
+
+      - name: Fail if markdown lint failed
+        if: always() && steps.md-lint.outputs.status != 'success'
+        run: exit 1

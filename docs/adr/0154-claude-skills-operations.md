@@ -81,10 +81,50 @@ Accepted
 | `release-notes` | リリースノート生成 | `AskUserQuestion` で FROM タグと NEXT_VERSION を確認し、`.github/release/<NEXT>.md` を生成 |
 | `tools-upgrade` | `mise.toml` の依存監査 | upstream の latest と比較し、`min_age_days` でサプライチェーン検疫。承認後に `mise.toml` 更新 |
 | `node-upgrade` | Node.js バージョン更新 | SSOT である `mise.toml` `[tools] node` ([ADR 0003](0003-version-manager.md)) を対象バージョンへ更新し、lockfile 再構築 + `pnpm install` / `pnpm lint` / `pnpm build` で検証。`@types/node` のメジャー追随は別 PR ([0004](0004-library-management.md)) |
+| `actions-pin` | GitHub Actions の SHA ピン監査 | `.github/actions-pin.toml` を SSOT に `uses:` の版を検疫付きで更新する。除外窓より新しいリリースは採らず、窓を通過済みの版へ step-back する。実体は `make actions-pin-{resolve,apply,check}` ([0153](0153-ci-configuration.md)) |
 | `repo-ops` | 運用 gotcha のランブック | mise ツールチェーン / pnpm lockfile / make `DRY_RUN` / `tmp/reviews` 等の再発しやすい躓きへの対処手順集。read-only の知識スキルで、状態は変更しない |
 | `tool-map` | `.claude/` 配下の inventory | commands / skills / agents の表 + Mermaid 依存マップを生成 |
 
 新規追加は本 ADR の趣旨 (運用系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。
+
+## 外部スキル (上流の配布物)
+
+上の表は本リポジトリが **著作・保守する** スキルである。上流が配布するスキルはこれと別扱いにする。線は **「著作物か配布物か」** で引く。
+
+| | 自作スキル (`.claude/skills/`) | 外部スキル |
+| --- | --- | --- |
+| 実体の置き場 | リポジトリ内 (project スコープ) | `~/.claude/skills/` (user スコープ) |
+| 配布 | 信頼済み clone で届く | マシンごとに導入が要る |
+| 対訳ペア | 必須 ([0140](0140-documentation-operations.md)) | 作らない |
+| `manage-skill` / `skill-lint` | 対象 | 対象外 |
+| 更新経路 | 直接編集 | `mise.toml` の pin bump ([0110](0110-security-operations.md) 1.1 の検疫) |
+
+したがって**外部スキルの `SKILL.md` をリポジトリへ持ち込まない**。40KB 級のサードパーティ本文を vendoring すると、対訳ペアの要求と SSOT の二重化が同時に発生し、上流の更新のたびに両方が腐る。
+
+リポジトリが持つのは次の 4 点だけである。
+
+1. `mise.toml` の pin (版の SSOT)
+2. 導入スクリプト `scripts/bootstrap-external-skills.ts`
+3. `.claude/settings.json` の権限境界
+4. 除外設定 — 出力を他ツールの走査から外す側 (`.gitignore` と md lint 3 種) と、ツールの解析対象を絞る側 (`.graphifyignore`) の両方向
+
+### 権限境界はパターンで書く
+
+外部スキルを配布するツールは、スキルを置く命令とは別に、**リポジトリ内のファイルを書き換える命令**を持ちうる。graphify の場合、書き換え先は `CLAUDE.md` / `AGENTS.md` / `.cursor/` / `.gemini/` / git hook — いずれも AGENTS.md が保護対象と定めるファイルである。
+
+**「どのサブコマンドが user スコープか」で線を引かない。** graphify には `<name> install` という系統と `install --platform <name>` という系統があり、後者だけが user スコープに見える。実際は違う: `--project` フラグは後者を project スコープへ倒し、`--platform cursor` / `--platform gemini` はフラグ無しでもカレントディレクトリを書く。系統の名前で安全側を選り分けようとすると、この種の例外を 1 つ見落とすたびに穴が開く。**導入はスクリプト経由に一本化し、エージェントには `install` 系統を丸ごと禁じる。**
+
+これを `deny` に載せるのは、散文の禁止だけでは足りないためである。エージェントは `--help` を読んで自分で到達しうるし、そのとき参照するのは ADR ではなく CLI のヘルプになる。
+
+**列挙ではなくパターンで書く。** 上流はプラットフォーム対応を継続的に足しており、名前を並べた deny は次の pin bump で黙って穴が開く。塞ぐべきは「そのとき存在した名前」ではなく「install という形」である。
+
+ただし deny が塞ぐのは正面の経路だけである。上の「外向き操作の統制をどこに置くか」に書いたとおり、パターンは前方一致のグロブで、同じ実行は汎用インタプリタからも絶対パスからも起こせる。deny は取り違えと自走を止める第一段であって、統制の全体ではない。
+
+### 前提にしない
+
+外部スキルは **lint / CI / git hook / build のいずれのゲートにも接続しない**。導入しなくても何も壊れない状態を保つ。上流が pre-1.0 でも採れるのはこの構成が理由であり、逆に言えばゲートへ繋いだ時点でその根拠は失われる ([0110](0110-security-operations.md))。
+
+現在の外部スキルは graphify (コードベース知識グラフ) 1 件。導入手順と運用上の注意は [`.claude/README.md`](../../.claude/README.md) が持つ。
 
 ## 商用操作前のユーザ確認
 

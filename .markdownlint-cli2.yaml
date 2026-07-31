@@ -3,13 +3,13 @@
 globs:
   - "**/*.md"
 
-# mermaid-lint.ts の除外（EXCLUDE_DIRS/FILES）と一致させる。
-# .claude 配下は保護エージェント設定 + worktree 実体を含むため除外。
-# AGENTS.md / CLAUDE.md は保護ドキュメント、.github/copilot-instructions.md は Copilot 用エージェント設定。
+# mermaid-lint.ts / skill-lint.ts の除外（EXCLUDE_DIRS/PREFIXES/FILES）と一致させる。
+# 保護対象であることは除外の理由にならない（保護は「誰が編集してよいか」の話で、linter が読んでよいかとは
+# 無関係）。除外してよいのは、このリポジトリのソースではない領域だけ — 依存・git の管理領域・別ブランチの
+# 作業ツリー・ツールの生成物。markdownlint-cli2 は既定で .gitignore を読まないため、ここに書かない限り
+# 対象に入る。
 ignores:
   - "**/node_modules/**"
   - ".git/**"
-  - ".claude/**"
-  - "AGENTS.md"
-  - "CLAUDE.md"
-  - ".github/copilot-instructions.md"
+  - ".claude/worktrees/**"
+  - "graphify-out/**"

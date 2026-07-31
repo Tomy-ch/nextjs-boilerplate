@@ -95,10 +95,10 @@ git diff --name-only
 以下は **rider ファイル**として扱う — 単独でコミットを構成せず、それを生んだソース変更に相乗りする:
 
 - ロックファイル: `pnpm-lock.yaml` は、それを生んだ `package.json` の変更に相乗りする（[0001](../../../docs/adr/0001-package-manager.md) — ロックファイルはコミット必須であり、単独ではコミットしない）
-- 生成された API 生成物: `src/adapters/gen/**` と取り込んだ `openapi.gen.yaml`（[0072](../../../docs/adr/0072-api-type-generation.md) — 編集禁止。バックエンドの spec から再生成される）
+- 生成された API 生成物: `src/adapters/gen/**` と取り込んだ `openapi.gen.yaml`（[0072](../../../docs/adr/0072-api-type-generation.md) — 編集禁止。バックエンドの spec から再生成される） <!-- skill-lint-ignore -->
 - Next.js が管理する型: `next-env.d.ts`
 
-例: `package.json` の依存変更は、再生成された `pnpm-lock.yaml` を同じコミットへ連れてくる。バックエンドの `openapi.gen.yaml` を再取り込みした場合は、その `src/adapters/gen/**` 出力を同じコミットへ連れてくる。
+例: `package.json` の依存変更は、再生成された `pnpm-lock.yaml` を同じコミットへ連れてくる。バックエンドの `openapi.gen.yaml` を再取り込みした場合は、その `src/adapters/gen/**` 出力を同じコミットへ連れてくる。 <!-- skill-lint-ignore -->
 
 これらのパスの一部はまだ存在しない（生成パイプラインは [0072](../../../docs/adr/0072-api-type-generation.md) の実装 PR で着地する）。存在しないパスは「rider 無し」として扱い、エラーにしない。
 
@@ -130,7 +130,7 @@ git diff --name-only
 | `src/**/*.test.ts`、`src/**/*.test.tsx` | `Test` |
 | `src/**/*.stories.*` | `Docs`（カタログ項目）／ 新規コンポーネントと同時なら `Feat` |
 | `src/app/**`（新規 route segment、`page.tsx` / `layout.tsx` / `route.ts`） | `Feat`（新画面・新エンドポイント） |
-| `src/adapters/gen/**`、`openapi.gen.yaml` | rider のみ — 単独コミットにしない（Step 2 参照） |
+| `src/adapters/gen/**`、`openapi.gen.yaml` | rider のみ — 単独コミットにしない（Step 2 参照） <!-- skill-lint-ignore --> |
 | `src/**/*.css`、design token | フォーマットのみなら `Style`、それ以外は `Feat` / `Fix` |
 | `env/**`、`*.env*` | `Feat` / `Chore`（差分から判断。秘密情報は決してコミットしない） |
 | `docs/**/*.md`、`README*.md`、`*.ja.md` | `Docs` |
@@ -154,7 +154,7 @@ git diff --name-only
 
 - **1 つの意味的変更 = 1 コミット。** feature + refactor + fix を 1 コミットへ混ぜない。
 - **テストは対象の実装と同居してよい**（新規ハンドラとそのテストは一緒でよい）。既存コードへテストだけを追加する場合は、単独の `Test:` コミットにする。
-- **生成物はソース変更と同居する。** `package.json` の依存が変わったら、再生成された `pnpm-lock.yaml` は同じコミットに属する。取り込んだ `openapi.gen.yaml` が変わったら、再生成された `src/adapters/gen/**` は同じコミットに属する（[0072](../../../docs/adr/0072-api-type-generation.md)）。
+- **生成物はソース変更と同居する。** `package.json` の依存が変わったら、再生成された `pnpm-lock.yaml` は同じコミットに属する。取り込んだ `openapi.gen.yaml` が変わったら、再生成された `src/adapters/gen/**` は同じコミットに属する（[0072](../../../docs/adr/0072-api-type-generation.md)）。 <!-- skill-lint-ignore -->
 - **フォーマットのみの変更は単独の `Style:` コミット。** Step 0 の `pnpm fix` が生んだ出力は、明らかに同じ変更の一部なら該当グループへ畳み込んでよい。無関係なら別の `Style:` コミットとして出す。
 - **`Docs:` は既定で単独。** 例外として、ドキュメントが新機能の一部である場合（新規パッケージに添える README 等）は同居してよい。
 - **1 コミット 1 prefix。** 2 つ書きたくなったら、その分割が間違っている。

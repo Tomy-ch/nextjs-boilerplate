@@ -1,0 +1,137 @@
+name: Upsert PR comment
+description: Detect an existing comment by marker and update / create it (PR comment upsert)
+
+inputs:
+  github-token:
+    required: true
+    description: Token used to post the comment; must post as a bot (GITHUB_TOKEN or a GitHub App token), because the existing comment is matched on a bot author
+  marker:
+    required: true
+    description: HTML comment marker used to detect the same comment
+  body-file:
+    required: true
+    description: Path to the file read as the comment body
+  title:
+    required: false
+    default: ""
+    description: Heading prepended to the body (optional)
+  details-summary:
+    required: false
+    default: ""
+    description: When set, the summary text used to fold the body into a details block with a code block
+  max-length:
+    required: false
+    default: "45000"
+    description: Maximum body length in characters (the excess is truncated)
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+      env:
+        MARKER: ${{ inputs.marker }}
+        BODY_FILE: ${{ inputs.body-file }}
+        TITLE: ${{ inputs.title }}
+        DETAILS_SUMMARY: ${{ inputs.details-summary }}
+        MAX_LENGTH: ${{ inputs.max-length }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const fs = require('fs');
+
+          const marker = process.env.MARKER;
+          const bodyFile = process.env.BODY_FILE;
+          const title = process.env.TITLE || '';
+          const detailsSummary = process.env.DETAILS_SUMMARY || '';
+          const maxLength = Number(process.env.MAX_LENGTH || '45000');
+
+          const pr = context.payload.pull_request?.number;
+          if (!pr) {
+            core.setFailed('Not a PR context');
+            return;
+          }
+          if (!fs.existsSync(bodyFile)) {
+            core.setFailed(`${bodyFile} not found`);
+            return;
+          }
+
+          let content = fs.readFileSync(bodyFile, 'utf8').trimEnd();
+          if (content.length > maxLength) {
+            content = content.slice(0, maxLength) + '\n... (truncated)';
+          }
+
+          const updatedAtJST = new Date().toLocaleString('ja-JP', {
+            timeZone: 'Asia/Tokyo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          });
+
+          const headSha =
+            (context.payload.pull_request?.head?.sha)
+            || process.env.GITHUB_SHA
+            || context.sha;
+          const shortSha = headSha.slice(0, 7);
+
+          const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}`;
+          const commitUrl = `${repoUrl}/commit/${headSha}`;
+          const commitLine = `🔖 Commit: [\`${shortSha}\`](${commitUrl})`;
+          const updatedLine = `🕒 UpdatedAt: ${updatedAtJST} (JST)`;
+
+          // 本文を固定の 3 連バッククォートで囲むと、本文自身がそのフェンスを閉じうる。
+          // linter やコンパイラはソース行をそのまま出力するため、この中身は PR 提出者が
+          // 制御できる — フェンスが破れた以降は生の Markdown としてレンダリングされ、
+          // 第三者へ通知が飛ぶ mention や偽の見出し・リンクが CI bot の名義で載る。
+          // 本文中の最長のバッククォート連より 1 本長いフェンスで囲めば、本文中のどの連も
+          // それを閉じられない。
+          const fenceFor = (text) => {
+            const longestRun = (text.match(/`+/g) || [])
+              .reduce((max, run) => Math.max(max, run.length), 0);
+            return '`'.repeat(Math.max(3, longestRun + 1));
+          };
+
+          const fence = fenceFor(content);
+          const main = detailsSummary
+            ? [`<details><summary>${detailsSummary}</summary>`, '', fence, content, fence, '', '</details>'].join('\n')
+            : content;
+
+          const parts = [marker];
+          if (title) parts.push(title, '');
+          parts.push(main, '', commitLine, '', updatedLine);
+          const body = parts.join('\n');
+
+          const comments = await github.paginate(github.rest.issues.listComments, {
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: pr,
+            per_page: 100,
+          });
+
+          // 2 つの条件はそれぞれ別の経路を塞ぐ。public リポジトリではマーカー入りのコメントを
+          // 誰でも投稿できるので、第三者のコメントを更新対象から外すには投稿者が bot である
+          // ことが要る。一方その投稿者条件だけでは、本リポジトリのワークフローがすべて同じ bot
+          // で投稿するため兄弟ワークフロー間を区別できない — 別のワークフローのマーカーを
+          // ログへ出力させれば、そのワークフローを誤ったコメントへ誘導できる。このアクションが
+          // 書いた本文は必ずマーカーで始まり、仕込まれた側はそうならない。
+          const existing = comments.find(
+            c => (c.body || '').startsWith(marker) && c.user?.type === 'Bot',
+          );
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr,
+              body,
+            });
+          }

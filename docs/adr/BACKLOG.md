@@ -250,6 +250,16 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 | **W5** | `.gitleaks.toml` の `useDefault` 同伴 allowlist を受け入れる | [0110](0110-security-operations.md) 2 | (a) gitleaks が既定 allowlist の部分的な打ち消しを提供する / (b) 除外対象 (lockfile 等) に実際の秘密が入る事例が公表される |
 | **W6** | `.trivyignore.yaml` の抑止エントリ | [0110](0110-security-operations.md) 3.4 | 各エントリの `expired_at`、または statement に書かれた条件が消えたとき。**期限切れは自動で報告に戻る**ため、この行は運用の明文化であって追跡対象ではない |
 | **W7** | コミット件名の**内容**を規約化しない (空白のみの件名・意味を持たない文字列を機械検査しない。強制するのは prefix / 空でないこと / 句点なしの 3 点のみ) | [0150](0150-git-workflow.md) | commitlint が、**件名の形を正規表現で定義させずに**「空白のみ」を判定できる標準ルールを提供したとき。塞ぐ手段が `parserOpts` の `headerPattern` 自前定義しかなく、それが「日本語であること・長さ・体裁は機械強制しない」という同 ADR の指針と衝突することが、やらない理由そのもの。**「規約外の件名が実際に混入した」ことは条件にならない** |
+| **W8** | pnpm のバージョンを `package.json` の `packageManager` フィールド + Corepack で宣言しない | [0003](0003-version-manager.md) | mise 側が `packageManager` を読んで自らのピンと突き合わせる(二重管理が起きない)機構を持ったとき。**「素の pnpm を叩いて事故が起きた」ことは条件にならない** — それは強制手段の不在ではなく実行経路の誤りで、`repo-ops` の該当項が受け持つ |
+| **W9** | `make actionlint` に shellcheck 個別の PATH ガードを置かない | [0153](0153-ci-configuration.md) 1 / [0003](0003-version-manager.md) | actionlint と shellcheck の**供給経路が分かれたとき** — 片方が `mise.toml` の管理から外れる、または mise 以外の経路での導入を許容したとき。現状は同一の `[tools]` から同一の activate で PATH に載るため、先行する actionlint のガードが両方を覆っている。**「shellcheck が無い環境で検査範囲が縮んだ」ことは条件にならない** — それは PATH の問題であり、ガードではなく PATH で直す |
+| **W10** | composite action (`.github/actions/**`) を actionlint の直接の走査対象に加えない | [0153](0153-ci-configuration.md) 1 | actionlint が action メタデータ (`action.yaml`) を workflow と区別して検査できるようになったとき。現状は composite action を渡すと workflow として解釈され `jobs` / `on` 欠落の syntax-check で必ず落ちる。action 内の `run:` のシェルは、全 action 定義を解析して shellcheck へ流す専用の検査 (`make actions-shellcheck`) が未参照の action も含めて担保するため、actionlint 側に残るのは **action メタデータのスキーマ検査** (`inputs` / `outputs` / `using` の妥当性) だけで、それは workflows 側の `uses:` 解決経由で参照済み action の入力整合として部分的に覆われている。**「composite action の中身が検査されていない」ことは条件にならない** — 検査は actionlint の外に置ける |
+| **W11** | `upsert-pr-comment` にマスク対象値を渡して本文から置換する input を持たせない (規約 + `make actions-comment-secret-lint` の機械検査で守る) | [0153](0153-ci-configuration.md) 5 | 検査ログの生成そのものに secret を要するジョブが現れ、かつそのジョブを投稿ジョブから分離できない構造になったとき。または Actions のマスキングが `tee` したファイルのバイトにも及ぶようになったとき (その場合は input ではなく検査ごと不要になる)。**「lint が緑であり続けていること」は条件にならない** — 緑は規約が守られている証拠であって、機構が要らない理由ではない |
+| **W12** | 呼び出し側が自前で組み立てたコードフェンスを検査しない | [0153](0153-ci-configuration.md) 5 | `details-summary` を使わず本文へ自前でフェンスを組み立てるワークフローを置いた時点。現状は投稿ジョブの全件がアクション側の折り畳みを通るため、フェンス長の決定はアクション 1 箇所に閉じている。**その記法を持ち込む PR が検査も併せて持ち込むこと**が条件であり、置かれるまで検査を先に作らない (対象 0 件の検査は、守っている対象が無いまま緑を返し続ける) |
+| **W13** | worktree をリポジトリ外へ出さない (`.claude/worktrees/` に置き、ツリーを走査する各ツールで個別に除外する) | [repo-ops](../../.claude/skills/repo-ops/SKILL.md) 6 | エージェントのツールが worktree の生成先を設定で受け取るようになったとき。現状は生成先が固定で、リポジトリ外に置く規約を敷いても人手で作った分にしか効かず、両流儀が併存して除外の要否が読めなくなる。**除外箇所が 5 つに増えて煩わしいことは条件にならない** — 煩わしさは同期漏れの検査で減らす話であり、実体の置き場所とは別 |
+| **W14** | tag の moving / 不変の別をロックファイル形式に持たせない (コメント tag が bare な major 番号かどうかで判定し、moving の前進には承認を要求しない) | [0153](0153-ci-configuration.md) 3 | (a) bare な major 番号を**不変**の版として運用する上流を採用したとき / (b) `v6.1` のような bare 番号以外の moving tag を採用し、`ACTIONS_PIN_ALLOW_MOVED` の常用が定着したとき — 形からの宣言が上流と恒常的に食い違うなら、種別はキーからの導出ではなく明示保持へ移す。**「判定が素朴」「誤検知でロックファイルが更新されなかった」ことは条件にならない** — 誤検知は停止で済む向きであり、fail-closed が意図した挙動そのものである |
+| **W15** | 外部スキル (graphify) を lint / CI / git hook / build のどのゲートにも接続しない | [0110](0110-security-operations.md) 1.1 / [0154](0154-claude-skills-operations.md) | (a) 本リポジトリでの価値が実測で確認され、かつ (b) グラフの鮮度をゲート内で保証する機構が入ったとき。現状のグラフは最後の `update` 時点のスナップショットで、未コミットの変更が映らないため、ゲートに載せると「古いグラフで緑」が成立する。**「導入済みだから」「上流が pre-1.0 を抜けたから」は条件にならない** — ゲートに繋がないことが pre-1.0 を採れる根拠そのものであり、成熟度が上がっても鮮度の問題は消えない |
+| **W16** | 外部スキルの導入対象を Claude Code のみとする | [0154](0154-claude-skills-operations.md) | `.codex/` などの器が着地したとき (移植計画 IM-04)。器が無いプラットフォームへ入れても、着地したかを検証する先が無い。**「上流が対応している」「輸入元が入れている」は条件にならない** |
+| **W17** | `pipx:graphifyy` に `[sql]` extra を付けない | [0003](0003-version-manager.md) / [0070](0070-backend-role-separation.md) | SQL ソースが追跡対象に入ったとき。表示層に DB を持たない現行のロール定義では通常発生しない。**「輸入元が付けているから」は条件にならない** — extra は依存面積、すなわち供給網上の露出そのものである |
 
 新しく「やらない」を決めたら、**その場でここに撤回条件を書く**。条件を書けない「やらない」は、判断ではなく先送りである。
 
@@ -267,7 +277,7 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 
 - **移植済(既存)**(スキル 10 / エージェント 2): canonicalize-doc / commit / `impl-review`(→ `local-review`)/ new-env / readme-review / release-notes / submit-pr / sync-readme / tool-map / tools-upgrade、agent: adversarial-reviewer / review-verifier
 - **移植済(A: 技術非依存)**(スキル 3 / エージェント 4): full-verify(+prompts+run.sh)/ full-apply / manage-skill(上乗せ規約を [0140](0140-documentation-operations.md) の対訳ペアと [0154](0154-claude-skills-operations.md) / [0155](0155-claude-skills-development.md) の配置・命名規約へ差し替え)、agent: arch-verifier / impl-verifier / doc-reviewer / comment-reviewer(godoc→TSDoc/JSDoc、正を AGENTS.md+一般原則へ)
-- **移植済(B: 変換)**(スキル 2): node-upgrade(← go-upgrade。mise.toml SSOT のみ伝播)、repo-ops(器のみ。Docker/sqlc 項目は ADR 0011 で不適用)
+- **移植済(B: 変換)**(スキル 3): node-upgrade(← go-upgrade。mise.toml SSOT のみ伝播)、repo-ops(器のみ。Docker/sqlc 項目は ADR 0011 で不適用)、actions-pin(GB-6。Go 実装を TypeScript へ書き換え。`supply-chain-triage` 未移植のため triage への連鎖は「証拠を添えてユーザへ委ねる」に置換)
 - **対象外(D)**(スキル 3): portal-manifest-sync(`docs/portal/manifest.yaml` 不在。**D2**([0141](0141-portal-operations.md))は Accepted 済み・portal 実装は Phase 3 のため、portal 導入時に移植)/ `images-pin`([0011](0011-no-docker.md) no-docker)/ `scaffold-infra-db`(表示層に DB を持たない — [0070](0070-backend-role-separation.md))
 - **本リポジトリ固有**: adr-scan(go 側に現存しない。走査を nextjs 化・枠 ID 体系へ分類 / PROVISIONAL)。上記の資産数には数えない
 - **実行可能条件つき**: `new-env` は A7([0030](0030-environment-variable-management.md))の `src/config/` 構造へ再設計済。実行できるのは **A7 実装 PR(v1 計画 P3-3)で `src/config/` が着地してから**(未着地ならスキルがガードして停止)
@@ -276,12 +286,12 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 
 ### 未着手(ADR 決定待ちなし)
 
-ブロック元の枠がすべて Accepted で、**ADR の決定待ちによる停止は無い**。ただし資産間の依存で着手順序が生じ、`supply-chain-triage` 以降は GB-6 の完了に従属する。
+ブロック元の枠がすべて Accepted で、**ADR の決定待ちによる停止は無い**。GB-6 が着地したため、`supply-chain-triage` を塞いでいた依存も外れている。残る着手順序は `supply-chain-triage` → `dep-vuln-upgrade` の資産間依存だけ。
 
 | 資産 | 種別 | 依存 | 内容要旨 |
 | --- | --- | --- | --- |
 | `sync-ai` | スキル | — | `.claude/` ↔ `.codex/` の双方向同期(handoff スクリプト同梱) |
-| `supply-chain-triage` | スキル | GB-6 | 検疫に掛かったアーティファクトを直接証拠でスコアリングする report-only スキル |
+| `supply-chain-triage` | スキル | — | 検疫に掛かったアーティファクトを直接証拠でスコアリングする report-only スキル。移植までの間、`actions-pin` はステップバック先が無い事例を証拠付きでユーザへ提示して止まる |
 | `dep-vuln-upgrade` | スキル | `supply-chain-triage` | CVE / GHSA を名指しした単発の依存更新 |
 
 `.codex/`(エージェント 19 / スキル 34)は Codex 向けの並行資産で、上記の資産数には数えない。`.claude/` の完全なミラーではなく、現時点で `supply-chain-triage` が欠落し `arch-auditor-infra` の名が `arch-auditor-infrastructure` に振れている。基盤(`config.toml` / README)整備と全数ミラーは `sync-ai` と同時期に行う。
@@ -297,12 +307,11 @@ Go 側の本丸は **spec 駆動 scaffold + 層別監査体系**。今移植す�
 | GB-3 spec 生成・検証 | `new-spec` / `new-spec-{domain,usecase}`、`verify-spec` + `spec-validator-{domain,usecase}`、`.claude/scaffold-spec/*`(5) | A1 / A3 | A1 で「spec 駆動を採用」と決まった場合のみ | 「spec フォーマットを外部ファイルから実行時読込 = SSOT」設計は言語非依存で採用可。**不採用なら破棄** |
 | GB-4 onion scaffold | `scaffold-endpoint` / `scaffold-domain` / `scaffold-usecase` / `scaffold-controller` | A1 / A2 / A3 / A5(+B3 / B4) | A1/A3/A5 + B3(BFF/API)+ B4(型生成)確定後 | Go の onion + sqlc/OpenAPI 前提はほぼ載らない(表示層に DB 無し)。流用は chain 構造と「gen 由来マッピングを name-match 導出 → 不能なら halt/hand-off」の骨格のみ。**翻案コスト最大** |
 | GB-5 テスト scaffold/review | `scaffold-test` / `scaffold-integration-test` / `test-review` | B8 | B8 Accepted(フレームワーク・配置規約確定) | 「テスト観点を README から実行時導出」+ 2 段レビュー構造は流用可。`test-review` は既移植ワーカーを再利用。full-apply/node-upgrade/repo-ops の `pnpm test` 条件分岐も併せて見直す |
-| GB-6 Actions ピン留め | `actions-pin` | B9 | B9 で `.github/workflows/` 追加 + SHA ピン方針採用時 | 受け皿は **B9 実装**([v1 計画 P2-3](../plan/v1-implementation-plan.md) actions SHA ピン機構)。中身は言語非依存でほぼ無翻案(Go 実装のため TypeScript へ書き換える)。思想は `tools-upgrade` の quarantine と同系 |
 | GB-7 型設計レビュー | agent: `type-design-reviewer` | A3 | A3 Accepted + `src/model/` の型設計規約(層別 README + `docs/rules.md`)確定 | 4 軸ルーブリックは言語非依存。Go の非公開フィールド + getter / `New()` 不変条件検査を TypeScript の型表現へ読み替えるのみ。`arch-auditor` 系の二値判定では拾えない「規約は満たすが弱い型」を程度で拾う |
 
-**分類合計**: スキル = 移植済 15 + 対象外 3 + 未着手 3 + 保留(C) 14 = **35**。エージェント = 移植済 6 + 保留(C) 13 = **19**。
+**分類合計**: スキル = 移植済 16 + 対象外 3 + 未着手 3 + 保留(C) 13 = **35**。エージェント = 移植済 6 + 保留(C) 13 = **19**。
 
-**推奨着手順序**(BACKLOG 依存順): A1 決定 → GB-3 採否確定 →(採用なら)GB-4 翻案 / A3・A5 決定(層別 README 整備)→ GB-1・GB-2・GB-7 / B8 決定 → GB-5 / B9 決定 → GB-6。各グループ着手時は該当枠が Accepted であることと Instruction Priority(ADR > BACKLOG > agent config)を再確認する。
+**推奨着手順序**(BACKLOG 依存順): A1 決定 → GB-3 採否確定 →(採用なら)GB-4 翻案 / A3・A5 決定(層別 README 整備)→ GB-1・GB-2・GB-7 / B8 決定 → GB-5。各グループ着手時は該当枠が Accepted であることと Instruction Priority(ADR > BACKLOG > agent config)を再確認する。
 
 ### 付録: go-upgrade / repo-ops の処遇判断(経緯記録)
 
