@@ -1,0 +1,91 @@
+---
+imports-allowed: []
+forbidden: [ui, fetch, business-logic]
+test-requirement: unit
+---
+
+# config
+
+型付き設定を目的別に提供するカーネルです。各 config は `#` private field と getter
+だけを公開する不変の ESM singleton です。
+
+## 受け入れるもの
+
+- 環境変数の検証、目的別 config、設定値の不変な公開面
+
+## 受け入れないもの
+
+- UI、fetch、業務ロジック
+
+## config 一覧
+
+| モジュール | 用途 | 種別 | 利用者 |
+| --- | --- | --- | --- |
+| `api/api.schema.ts` / `api/api.server.ts` | API base URL と接続モードの schema / Config | server | `adapters/server` と起動・ビルド境界 |
+| `auth/auth.schema.ts` / `auth/auth.server.ts` | OIDC と BFF session の schema / Config | server | `adapters/server` と起動・ビルド境界 |
+| `media/media.schema.ts` / `media/media.server.ts` | media origin の schema / Config | server | `adapters/server` と起動・ビルド境界 |
+| `observability/observability.schema.ts` / `observability/observability.server.ts` | OTLP endpoint の schema / Config | server | `adapters/server` と起動・ビルド境界 |
+| `bootstrap.server.ts` | 起動時の ENV 読込と全 config 検証 | server | `src/instrumentation.ts` |
+
+各 `config/<purpose>/<purpose>.schema.ts` が自分の目的に属する Zod validator を、対応する
+`<purpose>.server.ts` が不変 Config を所有します。`environment.ts` は validator を呼んで全量検証を
+実行するだけで、個別の変数規則を持ちません。`next.config.ts` が build 時に、
+`src/instrumentation.ts` がサーバー起動時に検証を実行します。
+
+## 実行機序と評価タイミング
+
+Config の評価はリクエストごとに行いません。ENV を一度だけ読み込み、検証済みの値から目的別の
+singleton を作り、以後は import で配線します。
+
+```text
+build / Next.js 初期化
+  next.config.ts
+    ├─ loadEnvironment()
+    │    └─ APP_ENV (未指定なら local) から env/.env.<環境> を選択
+    └─ validateEnvironment()
+         └─ getEnvironment() で全 ENV を一度だけ検証
+
+Node.js サーバーインスタンスの起動
+  Next.js → src/instrumentation.ts の register()
+    └─ config/bootstrap.server.ts の bootstrapConfig()
+         ├─ loadEnvironment()
+         └─ validate-environment.server.ts を import
+              └─ api / auth / media / observability の getter を呼び singleton を初期化
+
+リクエスト処理
+  adapters/server → 目的別 Config singleton を import
+  （ENV 読込・schema parse は再実行しない）
+```
+
+| 時点 | 実行するもの | 評価内容 | 回数 |
+| --- | --- | --- | --- |
+| Next.js の設定評価 | `next.config.ts` | 選択済み env ファイルの読込と全 ENV の形式検証 | build / dev 起動ごと |
+| Node.js サーバー起動 | `src/instrumentation.ts` → `bootstrap.server.ts` | server Config singleton の生成 | 新しいサーバーインスタンスごと |
+| Config singleton の生成 | `getApiConfig()` など | `getEnvironment()` の共有済み評価結果を private field へ写す | getter の初回呼出し時、プロセスごとに一度 |
+| 通常のリクエスト | `adapters/server` | singleton の getter を読む | リクエストごと。ただし parse なし |
+| unit test | `vi.stubEnv()` と `vi.resetModules()` | env スタブを設定して Config module を再評価する | テスト呼出しごと |
+
+`loadEnvironment()` は `override: false` で読み込むため、CI / PaaS がすでに注入した変数を
+上書きしません。`env/.env.dev`・`.env.stg`・`.env.prd` は変数名の宣言に留め、実値は PaaS の
+環境設定または secret store から供給します。
+
+`src/instrumentation.ts` は Next.js の規約ファイルであり、`register()` はサーバーインスタンスの
+準備時に Next.js が自動実行します。Edge runtime では Node.js のファイル読込を行えないため、
+Node.js runtime だけが `bootstrapConfig()` を呼びます。
+
+## Config の配線
+
+- `next.config.ts` は build 境界として `loadEnvironment()` と `validateEnvironment()` を直接呼ぶ。
+- `src/instrumentation.ts` は起動境界として `bootstrapConfig()` だけを呼ぶ。
+- `bootstrap.server.ts` は `validate-environment.server.ts` を import し、全 server Config getter を一度呼ぶ。
+- `adapters/server` は必要な目的の `get*Config()` だけを import し、feature / model / component は Config を import しない。
+- 内側のロジックへ設定値が必要な場合は、adapter が getter から取り出した値を引数で渡す。
+- Config class と ENV parser は module 外へ export しない。通常コードが任意の ENV から Config を再生成する経路を持たせない。
+- P3-6 以降の unit test は `vi.stubEnv()` と `vi.resetModules()` で module cache を再評価し、公開 singleton を検証する。
+
+## 運用
+
+- `process.env` の直読はこのカーネルだけに置く。
+- server config は `import "server-only"` で保護し、`adapters/server` と起動・ビルド境界だけが import する。
+- client config が必要になった場合は、`NEXT_PUBLIC_` の静的ドット参照だけを持つ `*.client.ts` を別途作る。server config の値を props として client へ渡さない。
+- 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.md) を正とする。
