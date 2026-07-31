@@ -1,6 +1,7 @@
 {
   "recommendations": [
     "biomejs.biome",
+    "dbaeumer.vscode-eslint",
     "github.vscode-github-actions",
     "mhutchie.git-graph",
     "yzhang.markdown-all-in-one",

@@ -1,5 +1,5 @@
 ---
-imports-allowed: [features, components, capabilities, stores, adapters/server, errors, logging, config, model]
+imports-allowed: [features, components, capabilities, stores, adapters, errors, logging, config, model]
 forbidden: [business-logic, direct-fetch]
 test-requirement: route
 ---
