@@ -24,6 +24,7 @@ strictDepBuilds: true
 allowBuilds:
   lefthook: false
   esbuild: false
+  msw: false
   sharp: false
   unrs-resolver: false
 

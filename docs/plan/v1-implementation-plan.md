@@ -348,6 +348,7 @@ shadcn/ui を import
 | P3-8 | components + Storybook + デザインシステム化 | 3 | P3-7 |
 | P3-9 | rules.md 骨格 35 エントリ | 3 | P0-4 |
 | P3-10 | ドキュメントレール(B1 / B6 / B14) | 3 | P3-1 |
+| P4-0 | テスト関連 skill の回収 | 4 | P3-6 |
 | P4-1 | OpenAPI 取得機構 | 4 | P3-3 |
 | P4-2 | orval による型 + zod 生成 | 4 | P4-1 |
 | P4-3 | adapters — fetch wrapper | 4 | P4-2, P3-4, P3-2, P3-6 |
@@ -602,7 +603,7 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
 - **目的**: 全レポーティングの背骨と基本検査を立てる
 - **対象 ADR**: [0153](../adr/0153-ci-configuration.md)
 - **主な変更先**:
-  - `.github/actions/upsert-pr-comment/` — composite action。go 側から as-is 移植。以降の全レポーティングがこれに乗る
+  - `.github/actions/upsert-pr-comment/` — composite action。go 側から as-is 移植。coverage 以外の検査ログを冪等に報告する
   - `.github/workflows/lint.yaml` / `typecheck.yaml` / `build.yaml` / `lockfile-drift.yaml`
   - `.github/workflows/smoke.yaml` — `next start` → `curl` の起動スモーク
   - `.github/workflows/README.md`
@@ -710,15 +711,15 @@ test-requirement: unit
 - **主な変更先**:
   - `package.json` — Vitest + RTL + MSW を exact pin
   - `vitest.config.ts` — カバレッジ設定 / 環境分離
-  - `.makefiles/` — `make test`(CI 厳格・キャッシュ無効)/ `make test-cached`(pre-commit 高速)の二層
+  - `.makefiles/` — `make test-full`(CI 厳格・キャッシュ無効)/ `make test-cached`(pre-commit 高速)の二層
   - `.lefthook.yaml` — pre-commit へ `test-cached` を接続
-  - `.github/workflows/test.yaml` — カバレッジ 90% ゲート + PR レポート(`upsert-pr-comment` 経由)
+  - `.github/workflows/test.yaml` — カバレッジ 97.5% ゲート + PR レポート(octocov)
 - **規約**: co-location(`__tests__` 集約は否定)/ 正常系・異常系を分ける / table-driven 禁止 / 命名は kebab + `.test.ts` / integration は HTTP 境界を mock
-- **カバレッジ**: 90% ハードゲート。**到達不可能コード以外は全てテストする**方針のため閾値は維持できる想定(維持できない場合は相談)
+- **カバレッジ**: 97.5% ハードゲート。**到達不可能コード以外は全てテストする**方針のため閾値は維持できる想定(維持できない場合は相談)
 - **async RSC のテスト配置**: [0091](../adr/0091-test-verification-methods.md) に従う
-- **同時に実施**: BACKLOG GB-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルの `pnpm test` 条件分岐見直し
-- **強制手段**: CI(カバレッジ 90% ハードゲート)+ lefthook(pre-commit)
-- **完了条件**: `make test` が CI で緑。カバレッジゲートが PR にレポートされる。**BACKLOG B8 は Playwright を含む(P6-4)ため、ここでは ⚠️ に留め P6-4 で ✅ にする**
+- **持越し**: BACKLOG GB-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルのテスト導入後の検証手順への更新は、Claude 利用可能後の **P4-0** で回収する
+- **強制手段**: CI(カバレッジ 97.5% ハードゲート)+ lefthook(pre-commit)
+- **完了条件**: `make test-full` が CI で緑。カバレッジゲートが PR にレポートされる。**BACKLOG B8 は Playwright を含む(P6-4)ため、ここでは ⚠️ に留め P6-4 で ✅ にする**
 - **依存**: P3-1, P2-1
 
 ### P3-7: styling 基盤(design token はコードが SSOT)
@@ -842,6 +843,15 @@ test-requirement: unit
 ## Phase 4: 垂直スライス 1 本目(ユーザー向け商品一覧)
 
 **認証を必要としない公開画面**を選ぶことで、認証を最初の貫通に持ち込まずに済む。この Phase の終了時点で全カーネルと主要 ADR の交差点が 1 度は踏まれる。
+
+### P4-0: テスト関連 skill の回収
+
+- **目的**: P3-6 で導入したテスト基盤を、Claude の利用再開後に skill 運用へ反映する
+- **主な変更先**:
+  - BACKLOG GB-5 — `scaffold-test` / `scaffold-integration-test` / `test-review` を移植する
+  - `.claude/skills/full-apply/` / `node-upgrade/` / `repo-ops/` — テスト未導入を前提とした `pnpm test` の条件分岐を、`make test-full` を必須検証とする手順へ更新する
+- **完了条件**: 上記 skill が P3-6 のテスト基盤を前提に動作し、テスト未導入を前提にした条件分岐が残っていない
+- **依存**: P3-6
 
 ### P4-1: OpenAPI 取得機構
 
