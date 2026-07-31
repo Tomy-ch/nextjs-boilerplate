@@ -42,7 +42,7 @@ const allow = {
 };
 
 export default [
-  { ignores: [".next/**", "node_modules/**", "out/**", "graphify-out/**"] },
+  { ignores: [".next/**", "coverage/**", "node_modules/**", "out/**", "graphify-out/**"] },
   {
     files: ["src/**/*.{js,jsx,ts,tsx}"],
     languageOptions: { parser: tseslint.parser },

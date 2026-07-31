@@ -16,6 +16,9 @@ include .makefiles/tools/setup.mk
 include .makefiles/tools/commitlint.mk
 include .makefiles/tools/actions-pin.mk
 
+# テスト関連
+include .makefiles/testing/test.mk
+
 # セキュリティ関連
 include .makefiles/security/gitleaks.mk
 include .makefiles/security/trivy.mk

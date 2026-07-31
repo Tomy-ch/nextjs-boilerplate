@@ -1,0 +1,21 @@
+coverage:
+  paths:
+    - coverage/lcov.info
+codeToTestRatio:
+  code:
+    - "**/*.{ts,tsx}"
+    - "!**/*.test.{ts,tsx}"
+    - "!next-env.d.ts"
+  test:
+    - "**/*.test.{ts,tsx}"
+testExecutionTime:
+  if: true
+comment:
+  if: is_pull_request
+report:
+  if: env.GITHUB_BASE_REF == 'production'
+  datastores:
+    - artifact://${GITHUB_REPOSITORY}
+diff:
+  datastores:
+    - artifact://${GITHUB_REPOSITORY}

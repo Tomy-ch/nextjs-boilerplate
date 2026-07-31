@@ -8,7 +8,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 | グループ | 走るタイミング | 役割 |
 | --- | --- | --- |
-| CI Checks | 全 PR | lint / typecheck / build / 起動が壊れていればマージを止める |
+| CI Checks | 全 PR | lint / typecheck / build / test / 起動が壊れていればマージを止める |
 | Security | 全 PR + 週次スケジュール | コード・依存・ワークフロー定義・コミット済みシークレットの脆弱性を可視化する |
 | Deployment | 保護ブランチへの push | ビルド成果物の配信 |
 | Documentation | portal 配信 | 生成ドキュメントの再生成と配信 |
@@ -22,6 +22,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Lint | `lint.yaml` | `lint` | biome（full profile）で Markdown を除くリポジトリ全体を検査する（対象範囲は `biome.json` の `files.includes`） |
 | Markdown Lint | `md-lint.yaml` | `md-lint` | markdownlint + mermaid 図の構文 + `.claude/**` の意味検査（`skill-lint`）を実行する |
 | Typecheck | `typecheck.yaml` | `typecheck` | `tsc --noEmit` で型を検査する |
+| Test | `test.yaml` | `test` | Vitest をカバレッジ 97.5% のハードゲートで実行し、octocov が coverage・差分・実行時間を PR へ報告する |
 | Build | `build.yaml` | `build` | `next build` が通ることを検査する |
 | Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
@@ -30,13 +31,14 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 ## hooks mirror CI
 
-`lint` / `md-lint` / `typecheck` / `actions-lint` / `actions-pin` の 5 本は、[lefthook](../../.lefthook.yaml) が回すのと**同じコマンド**を実行する。hook は高速な第一段、CI は権威という二層（[0153](../../docs/adr/0153-ci-configuration.md) §4 / [0151](../../docs/adr/0151-git-hooks.md)）。
+`lint` / `md-lint` / `typecheck` / `actions-lint` / `actions-pin` の 5 本は、[lefthook](../../.lefthook.yaml) が回すのと**同じコマンド**を実行する。`test` は二層実行で、pre-commit の `make test-cached` に対し、pre-push と CI は `make test-full` を実行する。hook は高速な第一段、CI は権威という二層（[0153](../../docs/adr/0153-ci-configuration.md) §4 / [0151](../../docs/adr/0151-git-hooks.md)）。
 
 残りは片側にしか無い。**どちらが持つかは意図的な配置**であって、揃えるべき漏れではない。
 
 | 検査 | 持っている側 | 理由 |
 | --- | --- | --- |
 | `build` / `smoke` | CI のみ | フルビルドは hook の速度目標（30 秒）に収まらない。収めようとすれば `--no-verify` の常用を招く |
+| `test` | pre-push + CI | pre-commit は開発中の反復を優先して cache を使い、push 前と CI は coverage を含む完全実行で gate を掛ける |
 | `lockfile-drift` | CI のみ | install が追跡ファイルを書き換えたことは、手元では「自分が触った変更」と区別が付かない。第三者の目で見る CI が持つ |
 | commitlint | hook のみ | コミット件名の検査。作り直しがコミット単位でしか効かず、PR 到達後に落としても直す手段が rebase になる |
 | secret-scan | hook のみ（現時点） | push 前に止めるのが本旨。CI 側は Security グループ（[0110](../../docs/adr/0110-security-operations.md)）で追加する |
@@ -62,9 +64,9 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
 
-## PR コメント（upsert-pr-comment）
+## PR コメント（検査ログ: upsert-pr-comment）
 
-各 job は検査結果を即 fail させず、いったん capture して [`../actions/upsert-pr-comment`](../actions/upsert-pr-comment/action.yaml) で PR コメントを upsert し、最後に fail-closed で落とす。
+coverage 以外の各 job は検査結果を即 fail させず、いったん capture して [`../actions/upsert-pr-comment`](../actions/upsert-pr-comment/action.yaml) で PR コメントを upsert し、最後に fail-closed で落とす。
 
 - コメントは HTML マーカー（`<!-- lint-result -->` 等）で同定し、**同一 PR では増やさず更新する**。マーカーは job ごとに一意
 - 成功時もコメントを更新する。FAIL → PASS で直したときに古い FAIL コメントが残るのを避けるため
@@ -74,13 +76,13 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 - **本文の折り畳みに使うフェンスは本文から決める**。検査ログには linter やコンパイラがソース行をそのまま出力するので、その中身は PR 提出者が制御できる。固定の 3 連バッククォートで囲むと本文自身がフェンスを閉じ、以降が生 Markdown としてレンダリングされる（mention による第三者への通知、偽の見出しやリンクが CI bot の名義で載る）。呼び出し側は自前でフェンスを組み立てず `details-summary` を使うこと（撤回条件 W12）
 - **`title` と `details-summary` には静的リテラルだけを渡す**。無害化が効くのは本文（`body-file`）だけで、`title` は生 Markdown、`details-summary` は生 HTML としてフェンスの**外**に置かれる。ログの中身を要約して `title` に載せるような変更を入れると、フェンスで塞いだ注入が外側から復活する
 
-以降のレポーティング（セキュリティスキャン結果 / カバレッジ / 生成物 drift）もすべてこの composite action に乗せる。
+カバレッジだけは、行単位の coverage と基準ブランチとの差分を構造化して報告する必要があるため、`test.yaml` の octocov が専用コメントを投稿する。ほかの検査ログ（セキュリティスキャン結果 / 生成物 drift を含む）はこの composite action に乗せる。
 
 ## required check
 
 セキュリティ workflow まで揃った時点で、以下の context を branch ruleset の required status checks へ登録する（**GitHub 側の設定はユーザが実施**。[`../settings/branch-protection.json`](../settings/branch-protection.json) も同時に更新する）。
 
-`lint` / `md-lint` / `typecheck` / `build` / `smoke` / `lockfile-drift` / `actions-lint` / `actions-pin`
+`lint` / `md-lint` / `typecheck` / `test` / `build` / `smoke` / `lockfile-drift` / `actions-lint` / `actions-pin`
 
 context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required check の設定を黙って無効化する。
 
