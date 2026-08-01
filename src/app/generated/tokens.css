@@ -1,0 +1,40 @@
+/* このファイルは tokens/scripts/gen-tokens.ts から生成されます。手編集禁止。 */
+
+@theme {
+  --color-neutral-0: #ffffff;
+  --color-neutral-100: #ededed;
+  --color-neutral-700: #404040;
+  --color-neutral-900: #171717;
+  --color-neutral-950: #0a0a0a;
+  --spacing-0: 0px;
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --radius-none: 0px;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --font-sans: var(--font-geist-sans), Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+@theme inline {
+  --color-background: var(--semantic-color-background);
+  --color-foreground: var(--semantic-color-foreground);
+  --color-muted: var(--semantic-color-muted);
+}
+
+:root {
+  --semantic-color-background: var(--color-neutral-0);
+  --semantic-color-foreground: var(--color-neutral-900);
+  --semantic-color-muted: var(--color-neutral-700);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --semantic-color-background: var(--color-neutral-950);
+    --semantic-color-foreground: var(--color-neutral-100);
+    --semantic-color-muted: var(--color-neutral-100);
+  }
+}

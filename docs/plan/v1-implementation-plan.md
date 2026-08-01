@@ -729,11 +729,15 @@ test-requirement: unit
 - **対象 ADR**: [0050](../adr/0050-styling-strategy.md) / [0051](../adr/0051-styling-system.md)
 - **主な変更先**:
   - `tokens/*.json` — **W3C Design Tokens 形式**。**これが SSOT**(手書き。Figma からの生成物ではない)
-  - `scripts/gen-tokens.ts` — `tokens.json` → Tailwind v4 `@theme`(**生成物・do-not-edit**)
+  - `tokens/scripts/gen-tokens.ts` — `tokens.json` → Tailwind v4 `@theme`(**生成物・do-not-edit**)
   - `src/app/globals.css` — design token = CSS 変数 / テーマ・ダークモード(`prefers-color-scheme` 追従 + token 切替)
   - `src/components/cn.ts` — `cn()` ヘルパ
   - `.github/workflows/` — token の drift ゲート
 - **B9 の前段は v1 では実装しない**: §3.11 のとおり v1 は Figma を使わないため搬送すべき上流が無い。**原則としては master-plan 1.3 の B9 が正**であり、fork 先が Figma を SSOT に据えるなら前段を足せば戻せる。v1 は `tokens.json` を手書き SSOT とし後段のみ実装する
+- **スクリプトの配置判断**:
+  - `scripts/`: リポジトリ全体に関わるが、特定のシステム・カーネル・機能の責務には属さない補助スクリプトを置く
+  - `**/scripts/`: 特定のシステム・カーネル・機能が守る生成、検査、変換などのスクリプトを、その責務の近くに co-location する
+  - token の生成・検査は `tokens/` の SSOT と生成物を扱う token システム自身の責務であるため、`tokens/scripts/` に置く
 - **`cn()` の実装は `clsx` + `tailwind-merge`**(§3.10 で確定)。実装時の注意 3 点:
   - **`tailwind-merge` は Tailwind のメジャーに連動する**(v3 → 2.6.0 / v4 → 3.x)。現行 `tailwindcss 4.3.2` に対し `tailwind-merge 3.6.0` が対応。**Tailwind のメジャー更新時は両者をセットで 1 PR に乗せる**([0004](../adr/0004-library-management.md) の「メジャー更新は別 PR」)
   - **shadcn の既定の置き場は `lib/utils` だが、[0050](../adr/0050-styling-strategy.md) は `components` カーネル内を指定**している(`utils/` / `lib/` は [0021](../adr/0021-frontend-responsibility.md) の命名規律で禁止)。copy-in 時に import パスの付け替えが要る
