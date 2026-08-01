@@ -6,7 +6,7 @@ test-requirement: unit
 
 # observability
 
-OTel を用いた trace と計測のためのカーネルです。設定値は import せず、起動側から注入されます。
+OTel を用いた server-side の trace、metrics、logs のためのカーネルです。設定値は import せず、起動側から注入されます。
 
 ## 受け入れるもの
 
@@ -16,7 +16,23 @@ OTel を用いた trace と計測のためのカーネルです。設定値は i
 
 - 業務ロジック、config の直接参照、特定 RUM SaaS への固定
 
+## 構成
+
+- `initialize.server.ts` は Node.js runtime の `NodeSDK` をプロセスごとに一度だけ初期化する。resource には公式 semantic convention の `service.name` を設定し、W3C Trace Context と W3C Baggage を伝播する。HTTP instrumentation は受信 HTTP request の trace を作る。
+- `trace-context.ts` は現在の有効な span から trace ID と span ID を抽出する。logging にはこの関数を起動境界で注入する。
+- `otlp-log-sink.server.ts` は logging が渡す正規化済みレコードを OTel Logs API へ変換する。OTLP 属性へ変換できない値は送出しない。
+
+## signal の有効化
+
+`OTEL_EXPORTER_OTLP_ENDPOINT` は OTLP HTTP の base endpoint を、`OBS_TRACES_EXPORTER`、`OBS_METRICS_EXPORTER`、`OBS_LOGS_EXPORTER` は signal ごとの有効化を表す。各値は `otlp`、`none`、または空文字列であり、`otlp` だけが有効である。base endpoint には各 signal の `/v1/traces`、`/v1/metrics`、`/v1/logs` を自動付与する。無効な signal は exporter、batch processor、metric reader を生成しない。変数の一覧と環境別の供給方法は [env/README.md](../../env/README.md) を参照する。
+
+## 実行機序
+
+Next.js は Node.js サーバーを準備すると `src/instrumentation.ts` の `register()` を自動実行する。そこで Config を bootstrap し、signal 構成を `initializeObservability()` へ注入する。続いて `OBS_LOGS_EXPORTER=otlp` の場合だけ OTLP Logs sink を logging に注入する。Edge runtime と browser ではこの SDK を初期化しない。browser telemetry は P6-1 で BFF 中継 seam として扱う。
+
 ## 運用
 
 - OTLP と公式 semconv のみを使用する
 - 実装時に設定値を注入し、vendor 固定を避ける
+- local 開発では go 側 compose の `observability` が公開する OTLP HTTP `http://localhost:4318` と Grafana `http://localhost:3000` を使う
+- fork 先のバックエンドや collector に合わせて endpoint、`service.name`、signal 有効化を設定する。Grafana、Sentry、Faro などの SDK をこのカーネルへ直接固定しない
