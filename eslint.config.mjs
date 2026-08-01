@@ -64,4 +64,21 @@ export default [
       ],
     },
   },
+  {
+    files: ["src/errors/**/*.{js,jsx,ts,tsx}"],
+    ignores: ["src/errors/**/*.test.{js,jsx,ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Identifier[name=/^(http|status|response)$/i]",
+          message: "errors カーネルへ transport 語彙を持ち込んではいけません。",
+        },
+        {
+          selector: "Literal[value=/\\bhttps?\\b/i]",
+          message: "errors カーネルへ transport 語彙を持ち込んではいけません。",
+        },
+      ],
+    },
+  },
 ];
