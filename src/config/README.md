@@ -24,7 +24,7 @@ test-requirement: unit
 | `api/api.schema.ts` / `api/api.server.ts` | API base URL と接続モードの schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `auth/auth.schema.ts` / `auth/auth.server.ts` | OIDC と BFF session の schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `media/media.schema.ts` / `media/media.server.ts` | media origin の schema / Config | server | `adapters/server` と起動・ビルド境界 |
-| `observability/observability.schema.ts` / `observability/observability.server.ts` | OTLP endpoint の schema / Config | server | `adapters/server` と起動・ビルド境界 |
+| `observability/observability.schema.ts` / `observability/observability.server.ts` | OTLP endpoint と signal 別 exporter の schema / Config | server | 起動・ビルド境界 |
 | `bootstrap.server.ts` | 起動時の ENV 読込と全 config 検証 | server | `src/instrumentation.ts` |
 
 各 `config/<purpose>/<purpose>.schema.ts` が自分の目的に属する Zod validator を、対応する
@@ -51,6 +51,7 @@ Node.js サーバーインスタンスの起動
          ├─ loadEnvironment()
          └─ validate-environment.server.ts を import
               └─ api / auth / media / observability の getter を呼び singleton を初期化
+    └─ observability Config から signal 構成を読み、OTel SDK と logger を初期化
 
 リクエスト処理
   adapters/server → 目的別 Config singleton を import
@@ -71,7 +72,8 @@ Node.js サーバーインスタンスの起動
 
 `src/instrumentation.ts` は Next.js の規約ファイルであり、`register()` はサーバーインスタンスの
 準備時に Next.js が自動実行します。Edge runtime では Node.js のファイル読込を行えないため、
-Node.js runtime だけが `bootstrapConfig()` を呼びます。
+Node.js runtime だけが `bootstrapConfig()` を呼びます。bootstrap 後は observability Config を読んで
+OTel SDK と logger へ値を注入します。Config 自身は logger / observability を import しません。
 
 ## Config の配線
 

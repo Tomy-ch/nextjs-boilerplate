@@ -1,22 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Environment } from "./environment";
 
 const validEnvironment = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
   MEDIA_ORIGIN: "https://media.example.test",
   OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.test/v1/traces",
+  OBS_TRACES_EXPORTER: "otlp",
+  OBS_METRICS_EXPORTER: "none",
+  OBS_LOGS_EXPORTER: "",
   AUTH_ISSUER: "https://id.example.test",
   AUTH_CLIENT_ID: "nextjs-boilerplate",
   AUTH_REDIRECT_URI: "https://app.example.test/auth/callback",
   AUTH_SCOPES: "openid profile",
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
-} as const;
+} satisfies Environment;
 
 function stubValidEnvironment(): void {
   vi.stubEnv("APP_API_BASE_URL", validEnvironment.APP_API_BASE_URL);
   vi.stubEnv("APP_API_MODE", validEnvironment.APP_API_MODE);
   vi.stubEnv("MEDIA_ORIGIN", validEnvironment.MEDIA_ORIGIN);
   vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", validEnvironment.OTEL_EXPORTER_OTLP_ENDPOINT);
+  vi.stubEnv("OBS_TRACES_EXPORTER", validEnvironment.OBS_TRACES_EXPORTER);
+  vi.stubEnv("OBS_METRICS_EXPORTER", validEnvironment.OBS_METRICS_EXPORTER);
+  vi.stubEnv("OBS_LOGS_EXPORTER", validEnvironment.OBS_LOGS_EXPORTER);
   vi.stubEnv("AUTH_ISSUER", validEnvironment.AUTH_ISSUER);
   vi.stubEnv("AUTH_CLIENT_ID", validEnvironment.AUTH_CLIENT_ID);
   vi.stubEnv("AUTH_REDIRECT_URI", validEnvironment.AUTH_REDIRECT_URI);
@@ -69,6 +76,9 @@ describe("正常系", () => {
     expect(getMediaConfig()).toMatchObject({ origin: validEnvironment.MEDIA_ORIGIN });
     expect(getObservabilityConfig()).toMatchObject({
       otlpEndpoint: validEnvironment.OTEL_EXPORTER_OTLP_ENDPOINT,
+      tracesEnabled: true,
+      metricsEnabled: false,
+      logsEnabled: false,
     });
   });
 
