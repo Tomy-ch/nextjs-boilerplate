@@ -17,11 +17,31 @@ test-requirement: unit
 - `resolveErrorMeta()` — 分類カタログと外側メタ情報から code・文言・詳細を解決
 - `redactMessage()` — 明示指定した秘匿値を wrap 前に置換
 
+## エラー分類
+
+`ErrorKind` が分類語彙の唯一の定義であり、呼出し側は `ErrorKind.INVALID_ARGUMENT` のような名前付き定数を使います。分類は protocol-agnostic であり、HTTP status への変換は adapters 境界が担当します。
+
+| `ErrorKind` | 意味 / 使い所 |
+| --- | --- |
+| `INVALID_ARGUMENT` | 構文上は正しいが意味が不正な引数 |
+| `UNAUTHENTICATED` | 認証失敗・未ログイン |
+| `PERMISSION_DENIED` | 権限不足 |
+| `NOT_FOUND` | 対象が存在しない |
+| `CONFLICT` | ユニーク制約違反・同時更新衝突など |
+| `VALIDATION` | ドメインまたはユースケースの検証失敗 |
+| `UNSUPPORTED_MEDIA_TYPE` | サポートしない入力形式 |
+| `PAYLOAD_TOO_LARGE` | 許容サイズを超えた入力 |
+| `TOO_MANY_REQUESTS` | 流量制限・外部依存のスロットリング |
+| `CANCELED` | 呼出し側による処理の中断 |
+| `INTERNAL` | 想定外の内部エラー |
+| `UNIMPLEMENTED` | 未実装または非サポートの機能 |
+| `UNAVAILABLE` | 外部依存障害などの一時的な利用不可 |
+
 ## 利用例
 
 ```ts
 const cause = new Error(redactMessage(`token=${token}`, [token]));
-const classified = createAppError("unauthenticated", { cause });
+const classified = createAppError(ErrorKind.UNAUTHENTICATED, { cause });
 const error = withErrorDetails(classified, ["accessToken"]);
 
 const meta = resolveErrorMeta(error);

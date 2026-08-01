@@ -2,15 +2,20 @@ import path from "node:path";
 import { config } from "dotenv";
 
 const defaultApplicationEnvironment = "local";
-const applicationEnvironments = ["local", "ci", "dev", "stg", "prd"] as const;
-
-type ApplicationEnvironment = (typeof applicationEnvironments)[number];
+type ApplicationEnvironment = "local" | "ci" | "dev" | "stg" | "prd";
+const applicationEnvironments: readonly ApplicationEnvironment[] = [
+  "local",
+  "ci",
+  "dev",
+  "stg",
+  "prd",
+];
 
 let isLoaded = false;
 
 /** `APP_ENV` が選択可能な環境名かを判定する。 */
 function isApplicationEnvironment(value: string): value is ApplicationEnvironment {
-  return applicationEnvironments.includes(value as ApplicationEnvironment);
+  return applicationEnvironments.some((environment) => environment === value);
 }
 
 /**

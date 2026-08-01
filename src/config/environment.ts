@@ -9,13 +9,16 @@ import {
   authSessionSecretValidator,
 } from "./auth/auth.schema";
 import { mediaOriginValidator } from "./media/media.schema";
-import { otlpEndpointValidator } from "./observability/observability.schema";
+import { otlpEndpointValidator, otlpExporterValidator } from "./observability/observability.schema";
 
 const environmentSchema = z.object({
   APP_API_BASE_URL: apiBaseUrlValidator(),
   APP_API_MODE: apiModeValidator(),
   MEDIA_ORIGIN: mediaOriginValidator(),
   OTEL_EXPORTER_OTLP_ENDPOINT: otlpEndpointValidator(),
+  OBS_TRACES_EXPORTER: otlpExporterValidator(),
+  OBS_METRICS_EXPORTER: otlpExporterValidator(),
+  OBS_LOGS_EXPORTER: otlpExporterValidator(),
   AUTH_ISSUER: authIssuerValidator(),
   AUTH_CLIENT_ID: authClientIdValidator(),
   AUTH_REDIRECT_URI: authRedirectUriValidator(),

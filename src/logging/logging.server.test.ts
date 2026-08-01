@@ -1,0 +1,41 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LogLevel } from "./logger";
+
+const mocks = vi.hoisted(() => ({ createLogger: vi.fn() }));
+
+vi.mock("./pino.server", () => ({ createLogger: mocks.createLogger }));
+
+describe("logger singleton", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    mocks.createLogger.mockReset();
+  });
+
+  it("起動時に一度だけ logger を生成する", async () => {
+    const instance = { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    mocks.createLogger.mockReturnValue(instance);
+    const { initializeLogger } = await import("./logging.server");
+    const options = { level: LogLevel.INFO };
+
+    initializeLogger(options);
+    initializeLogger(options);
+
+    expect(mocks.createLogger).toHaveBeenCalledOnce();
+  });
+
+  it("初期化済みの logger を返す", async () => {
+    const instance = { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    mocks.createLogger.mockReturnValue(instance);
+    const { getLogger, initializeLogger } = await import("./logging.server");
+
+    initializeLogger({ level: LogLevel.INFO });
+
+    expect(getLogger()).toBe(instance);
+  });
+
+  it("起動前に logger を取得すると失敗する", async () => {
+    const { getLogger } = await import("./logging.server");
+
+    expect(() => getLogger()).toThrow("logger は起動時に初期化されていません");
+  });
+});

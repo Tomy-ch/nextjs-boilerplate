@@ -29,7 +29,10 @@
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP exporter の送信先 | URL | `http://localhost:4318` | Required。OpenTelemetry 標準名をそのまま使う |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP の base endpoint | URL | `http://localhost:4318` | Required。OpenTelemetry 標準名をそのまま使う。各 signal は `/v1/traces` などを自動付与する |
+| `OBS_TRACES_EXPORTER` | trace exporter の有効化値 | string | `otlp` / `none` | 空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |
+| `OBS_METRICS_EXPORTER` | metrics exporter の有効化値 | string | `otlp` / `none` | 空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |
+| `OBS_LOGS_EXPORTER` | logs exporter の有効化値 | string | `otlp` / `none` | 空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |
 
 ### Authentication
 
