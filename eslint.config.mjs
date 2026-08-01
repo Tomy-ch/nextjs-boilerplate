@@ -3,6 +3,47 @@
 import boundaries from "eslint-plugin-boundaries";
 import tseslint from "typescript-eslint";
 
+const projectRules = {
+  rules: {
+    "no-internal-anchor": {
+      meta: {
+        type: "problem",
+        docs: {
+          description: "内部リンクには next/link を使う",
+        },
+        schema: [],
+        messages: {
+          noInternalAnchor: "内部リンクには <a> ではなく next/link を使ってください。",
+        },
+      },
+      create(context) {
+        return {
+          JSXOpeningElement(node) {
+            if (node.name.type !== "JSXIdentifier" || node.name.name !== "a") {
+              return;
+            }
+
+            const href = node.attributes.find(
+              (attribute) => attribute.type === "JSXAttribute" && attribute.name.name === "href",
+            );
+
+            if (
+              href?.type !== "JSXAttribute" ||
+              href.value?.type !== "Literal" ||
+              typeof href.value.value !== "string" ||
+              !href.value.value.startsWith("/")
+            ) {
+              return;
+            }
+
+            context.report({ node, messageId: "noInternalAnchor" });
+          },
+        };
+      },
+    },
+  },
+};
+
 const elements = [
   "app",
   "features",
@@ -46,7 +87,11 @@ export default [
   {
     files: ["src/**/*.{js,jsx,ts,tsx}"],
     languageOptions: { parser: tseslint.parser },
-    plugins: { boundaries },
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+      boundaries,
+      "project-rules": projectRules,
+    },
     settings: {
       "boundaries/include": ["src/**/*"],
       "boundaries/elements": elements,
@@ -60,6 +105,13 @@ export default [
             from: { element: { type: from } },
             allow: { to: { element: { types: { anyOf: types } } } },
           })),
+        },
+      ],
+      "project-rules/no-internal-anchor": "error",
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        {
+          assertionStyle: "never",
         },
       ],
     },
