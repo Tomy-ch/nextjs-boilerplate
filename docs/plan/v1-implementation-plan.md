@@ -687,7 +687,7 @@ test-requirement: unit
 - **目的**: protocol-agnostic な分類を用意し、HTTP 語彙が上位層へ漏れないようにする
 - **対象 ADR**: [0080](../adr/0080-error-handling.md)
 - **主な変更先**: `src/errors/` — sentinel 分類 / cause chain / redact / 分類 → code + message のマッピング
-- **設計**: go の apperror 翻案。分類は protocol-agnostic(`NotFound` / `Unauthorized` / `Conflict` / `Internal` 等)で、HTTP status からの変換は adapters 境界(P4-3)が 1 回だけ行う
+- **設計**: go の apperror 翻案。分類は protocol-agnostic な13種(`InvalidArgument` / `Unauthenticated` / `PermissionDenied` / `NotFound` / `Conflict` / `Validation` / `UnsupportedMediaType` / `PayloadTooLarge` / `TooManyRequests` / `Canceled` / `Internal` / `Unimplemented` / `Unavailable`)で、HTTP status からの変換は adapters 境界(P4-3)が 1 回だけ行う
 - **注意**: swallow 禁止 / cause chain 必須 / 5xx=error・4xx=warn のログレベル規約。status を持たない失敗(timeout / abort / DNS)の分類は**未決 #8 のとおり P4-3 で確定する**ため、本 PR の網羅はその時点の分類集合に限る
 - **強制手段**: 型(分類は判別可能な union)+ ESLint boundaries(HTTP 語彙の混入検出)+ テスト
 - **完了条件**: 分類の網羅テストが通る。`errors` が HTTP 語彙を持たない(boundaries で検査)
