@@ -12,7 +12,10 @@ describe("正常系", () => {
     expect(getDefaultErrorMeta("not-found").code).toBe("NOT_FOUND");
     expect(getDefaultErrorMeta("conflict").code).toBe("RESOURCE_CONFLICT");
     expect(getDefaultErrorMeta("validation").code).toBe("VALIDATION_FAILED");
+    expect(getDefaultErrorMeta("unsupported-media-type").code).toBe("UNSUPPORTED_MEDIA_TYPE");
+    expect(getDefaultErrorMeta("payload-too-large").code).toBe("PAYLOAD_TOO_LARGE");
     expect(getDefaultErrorMeta("too-many-requests").code).toBe("TOO_MANY_REQUESTS");
+    expect(getDefaultErrorMeta("canceled").code).toBe("CANCELED");
     expect(getDefaultErrorMeta("unavailable").code).toBe("SERVICE_UNAVAILABLE");
     expect(getDefaultErrorMeta("unimplemented").code).toBe("NOT_IMPLEMENTED");
     expect(getDefaultErrorMeta("internal").code).toBe("INTERNAL");
