@@ -1,0 +1,18 @@
+{
+  "theme": {
+    "light": {
+      "color": {
+        "background": { "$type": "color", "$value": "{color.neutral.0}" },
+        "foreground": { "$type": "color", "$value": "{color.neutral.900}" },
+        "muted": { "$type": "color", "$value": "{color.neutral.700}" }
+      }
+    },
+    "dark": {
+      "color": {
+        "background": { "$type": "color", "$value": "{color.neutral.950}" },
+        "foreground": { "$type": "color", "$value": "{color.neutral.100}" },
+        "muted": { "$type": "color", "$value": "{color.neutral.100}" }
+      }
+    }
+  }
+}

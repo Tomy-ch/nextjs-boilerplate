@@ -26,6 +26,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Build | `build.yaml` | `build` | `next build` が通ることを検査する |
 | Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
+| Tokens Drift | `tokens-drift.yaml` | `tokens-drift` | hand-written token SSOT と追跡する CSS 生成物が一致することを検査する |
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 
@@ -82,7 +83,7 @@ coverage 以外の各 job は検査結果を即 fail させず、いったん ca
 
 セキュリティ workflow まで揃った時点で、以下の context を branch ruleset の required status checks へ登録する（**GitHub 側の設定はユーザが実施**。[`../settings/branch-protection.json`](../settings/branch-protection.json) も同時に更新する）。
 
-`lint` / `md-lint` / `typecheck` / `test` / `build` / `smoke` / `lockfile-drift` / `actions-lint` / `actions-pin`
+`lint` / `md-lint` / `typecheck` / `test` / `build` / `smoke` / `lockfile-drift` / `tokens-drift` / `actions-lint` / `actions-pin`
 
 context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required check の設定を黙って無効化する。
 
