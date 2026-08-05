@@ -1,0 +1,72 @@
+// @vitest-environment jsdom
+
+import { fireEvent, render, screen } from "@testing-library/react";
+import { useId } from "react";
+import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
+
+import { Label } from "../label/label";
+import { RadioGroupNative, RadioGroupNativeItem } from "./radio-group-native";
+
+function Fixture() {
+  return (
+    <RadioGroupNative>
+      <legend>表示形式</legend>
+      <RadioGroupNativeItem aria-label="簡潔" name="display-mode" value="compact" />
+      <RadioGroupNativeItem aria-label="標準" defaultChecked name="display-mode" value="standard" />
+    </RadioGroupNative>
+  );
+}
+
+function LabelInteractionFixture() {
+  const compactId = useId();
+  const standardId = useId();
+
+  return (
+    <RadioGroupNative>
+      <Label htmlFor={compactId}>
+        <RadioGroupNativeItem id={compactId} name="display-mode" value="compact" />
+        簡潔
+      </Label>
+      <Label htmlFor={standardId}>
+        <RadioGroupNativeItem defaultChecked id={standardId} name="display-mode" value="standard" />
+        標準
+      </Label>
+    </RadioGroupNative>
+  );
+}
+
+describe("RadioGroupNative", () => {
+  it("同じ name を持つ native radio を表示する", () => {
+    render(<Fixture />);
+    expect(screen.getByRole("radio", { name: "標準" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "簡潔" })).toHaveAttribute("name", "display-mode");
+  });
+
+  it("選択肢をクリックすると native radio の選択値を切り替える", () => {
+    render(<Fixture />);
+
+    const compact = screen.getByRole("radio", { name: "簡潔" });
+    const standard = screen.getByRole("radio", { name: "標準" });
+
+    fireEvent.click(compact);
+
+    expect(compact).toBeChecked();
+    expect(standard).not.toBeChecked();
+  });
+
+  it("Story と同じラベルのクリックでも選択値を切り替える", () => {
+    render(<LabelInteractionFixture />);
+
+    fireEvent.click(screen.getByText("簡潔"));
+
+    expect(screen.getByRole("radio", { name: "簡潔" })).toBeChecked();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<Fixture />);
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
+  });
+});
