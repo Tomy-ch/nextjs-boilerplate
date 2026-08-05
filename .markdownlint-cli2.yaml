@@ -13,3 +13,4 @@ ignores:
   - ".git/**"
   - ".claude/worktrees/**"
   - "graphify-out/**"
+  - "tmp/**"
