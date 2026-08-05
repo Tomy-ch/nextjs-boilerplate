@@ -1,0 +1,107 @@
+// @vitest-environment jsdom
+
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
+
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
+
+// TODO: jsdom に ResizeObserver が無く、arrow の寸法計測が落ちる。共有の vitest.setup.ts へ移す。
+vi.stubGlobal(
+  "ResizeObserver",
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+);
+
+function TooltipFixture({ defaultOpen = false }: { defaultOpen?: boolean }) {
+  return (
+    <TooltipProvider>
+      <Tooltip defaultOpen={defaultOpen}>
+        <TooltipTrigger>為替の参考額</TooltipTrigger>
+        <TooltipContent>表示時点の参考レートで換算した概算です。</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+describe("Tooltip", () => {
+  it("開くまで内容を表示しない", () => {
+    render(<TooltipFixture />);
+
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("閉じている間は trigger に説明を関連付けない", () => {
+    render(<TooltipFixture />);
+
+    const trigger = screen.getByRole("button", { name: "為替の参考額" });
+
+    expect(trigger).not.toHaveAttribute("aria-describedby");
+    expect(trigger).toHaveAttribute("data-slot", "tooltip-trigger");
+  });
+
+  it("keyboard focus で Portal の内容を表示し、trigger の説明にする", () => {
+    render(<TooltipFixture />);
+
+    const trigger = screen.getByRole("button", { name: "為替の参考額" });
+
+    fireEvent.focus(trigger);
+
+    const content = screen.getByRole("tooltip");
+
+    expect(content).toHaveAttribute("data-slot", "tooltip-content");
+    expect(trigger).toHaveAccessibleDescription("表示時点の参考レートで換算した概算です。");
+  });
+
+  it("focus が外れると閉じる", () => {
+    render(<TooltipFixture />);
+
+    const trigger = screen.getByRole("button", { name: "為替の参考額" });
+    fireEvent.focus(trigger);
+
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+
+    fireEvent.blur(trigger);
+
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("Escape で閉じる", () => {
+    render(<TooltipFixture defaultOpen />);
+
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("trigger のアクセシブルな名前は tooltip の内容ではなく trigger 自身が持つ", () => {
+    render(
+      <TooltipProvider>
+        <Tooltip defaultOpen>
+          <TooltipTrigger aria-label="補足を表示" />
+          <TooltipContent>この値は保存されません。</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>,
+    );
+
+    const trigger = screen.getByRole("button", { name: "補足を表示" });
+
+    expect(trigger).toHaveAccessibleName("補足を表示");
+    expect(trigger).toHaveAccessibleDescription("この値は保存されません。");
+  });
+
+  it("開いた状態で a11y 自動検査に違反しない", async () => {
+    const { baseElement } = render(<TooltipFixture defaultOpen />);
+
+    const result = await axe(baseElement, {
+      rules: { "color-contrast": { enabled: false }, region: { enabled: false } },
+    });
+
+    expect(result.violations).toEqual([]);
+  });
+});
