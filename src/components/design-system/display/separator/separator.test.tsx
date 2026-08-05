@@ -20,6 +20,21 @@ describe("Separator", () => {
     );
   });
 
+  it("垂直でも装飾でなければ区切りとして支援技術へ伝える", () => {
+    render(<Separator orientation="vertical" />);
+    expect(screen.getByRole("separator")).toHaveAttribute("data-orientation", "vertical");
+  });
+
+  it("装飾として指定した区切りを支援技術から隠す", () => {
+    render(<Separator decorative />);
+    expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+  });
+
+  it("垂直かつ装飾の区切りも支援技術から隠す", () => {
+    render(<Separator decorative orientation="vertical" />);
+    expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+  });
+
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(<Separator />);
     expect(

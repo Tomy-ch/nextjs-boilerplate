@@ -3,6 +3,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { type MouseEventHandler, useId } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { Carousel, CarouselContent, CarouselItem } from "./carousel";
 import {
@@ -335,5 +336,17 @@ describe("CarouselPrevious / CarouselNext", () => {
 
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(scrollBy).not.toHaveBeenCalled();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<StepFixture />);
+
+    expect(
+      (
+        await axe(container, {
+          rules: { "color-contrast": { enabled: false }, region: { enabled: false } },
+        })
+      ).violations,
+    ).toEqual([]);
   });
 });

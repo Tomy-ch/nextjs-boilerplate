@@ -83,13 +83,28 @@ describe("NavigationGuard", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
-  it("画面を離れる意図が明示された link は対象にしない", () => {
+  it("download 指定の link は対象にしない", () => {
     render(<GuardFixture />);
 
-    for (const name of ["資料", "別タブ", "外部サイト"]) {
-      fireEvent.click(screen.getByRole("link", { name }));
-      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-    }
+    fireEvent.click(screen.getByRole("link", { name: "資料" }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("別タブで開く link は対象にしない", () => {
+    render(<GuardFixture />);
+
+    fireEvent.click(screen.getByRole("link", { name: "別タブ" }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("別 origin の link は対象にしない", () => {
+    render(<GuardFixture />);
+
+    fireEvent.click(screen.getByRole("link", { name: "外部サイト" }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
   it("修飾キーつきの click は別タブで開く操作なので対象にしない", () => {

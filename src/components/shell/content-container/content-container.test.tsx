@@ -2,6 +2,7 @@
 
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { ContentContainer } from "./content-container";
 
@@ -41,5 +42,17 @@ describe("ContentContainer", () => {
     render(<ContentContainer className="py-8">本文</ContentContainer>);
 
     expect(document.querySelector("[data-slot='content-container']")).toHaveClass("py-8");
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<ContentContainer>本文</ContentContainer>);
+
+    expect(
+      (
+        await axe(container, {
+          rules: { "color-contrast": { enabled: false }, region: { enabled: false } },
+        })
+      ).violations,
+    ).toEqual([]);
   });
 });

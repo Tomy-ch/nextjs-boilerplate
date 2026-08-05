@@ -108,31 +108,104 @@ describe("RichTextEditor", () => {
     expect(bold).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("すべての書式ボタンが押下状態を切り替える", () => {
+  it("太字ボタンが押下状態を切り替える", () => {
     renderEditor({ defaultValue: "<p>本文</p>" });
 
-    const names = [
-      "太字",
-      "斜体",
-      "打ち消し線",
-      "コード",
-      "見出し 2",
-      "見出し 3",
-      "見出し 4",
-      "箇条書き",
-      "番号付き箇条書き",
-      "引用",
-    ];
+    fireEvent.click(toolbarButton("太字"));
+    expect(toolbarButton("太字")).toHaveAttribute("aria-pressed", "true");
 
-    for (const name of names) {
-      fireEvent.click(toolbarButton(name));
+    fireEvent.click(toolbarButton("太字"));
+    expect(toolbarButton("太字")).toHaveAttribute("aria-pressed", "false");
+  });
 
-      expect(toolbarButton(name)).toHaveAttribute("aria-pressed", "true");
+  it("斜体ボタンが押下状態を切り替える", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
 
-      fireEvent.click(toolbarButton(name));
+    fireEvent.click(toolbarButton("斜体"));
+    expect(toolbarButton("斜体")).toHaveAttribute("aria-pressed", "true");
 
-      expect(toolbarButton(name)).toHaveAttribute("aria-pressed", "false");
-    }
+    fireEvent.click(toolbarButton("斜体"));
+    expect(toolbarButton("斜体")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("打ち消し線ボタンが押下状態を切り替える", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("打ち消し線"));
+    expect(toolbarButton("打ち消し線")).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(toolbarButton("打ち消し線"));
+    expect(toolbarButton("打ち消し線")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("コードボタンが押下状態を切り替える", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("コード"));
+    expect(toolbarButton("コード")).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(toolbarButton("コード"));
+    expect(toolbarButton("コード")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("見出し 2ボタンが押下状態を切り替える", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("見出し 2"));
+    expect(toolbarButton("見出し 2")).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(toolbarButton("見出し 2"));
+    expect(toolbarButton("見出し 2")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("見出し 3ボタンが押下状態を切り替える", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("見出し 3"));
+    expect(toolbarButton("見出し 3")).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(toolbarButton("見出し 3"));
+    expect(toolbarButton("見出し 3")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("見出し 4ボタンが押下状態を切り替える", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("見出し 4"));
+    expect(toolbarButton("見出し 4")).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(toolbarButton("見出し 4"));
+    expect(toolbarButton("見出し 4")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("箇条書きボタンが押下状態を切り替える", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("箇条書き"));
+    expect(toolbarButton("箇条書き")).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(toolbarButton("箇条書き"));
+    expect(toolbarButton("箇条書き")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("番号付き箇条書きボタンが押下状態を切り替える", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("番号付き箇条書き"));
+    expect(toolbarButton("番号付き箇条書き")).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(toolbarButton("番号付き箇条書き"));
+    expect(toolbarButton("番号付き箇条書き")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("引用ボタンが押下状態を切り替える", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("引用"));
+    expect(toolbarButton("引用")).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(toolbarButton("引用"));
+    expect(toolbarButton("引用")).toHaveAttribute("aria-pressed", "false");
   });
 
   it("段落の種類を変えると、変更後の HTML を通知する", () => {
@@ -433,6 +506,10 @@ describe("isRichTextHrefAllowed", () => {
     expect(isRichTextHrefAllowed("https://example.com")).toBe(true);
     expect(isRichTextHrefAllowed("http://example.com")).toBe(true);
     expect(isRichTextHrefAllowed("mailto:info@example.com")).toBe(true);
+  });
+
+  it("外部ホストへ解決される protocol-relative な URL を落とす", () => {
+    expect(isRichTextHrefAllowed("//attacker.example.com")).toBe(false);
   });
 
   it("protocol を持たない URL を通す", () => {

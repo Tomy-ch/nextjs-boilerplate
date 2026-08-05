@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import Link from "next/link";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { Badge } from "./badge";
 import { BADGE_VARIANT } from "./badge.definition";
@@ -37,5 +38,13 @@ describe("Badge", () => {
       "href",
       "/items?category=food",
     );
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<Badge>新着</Badge>);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

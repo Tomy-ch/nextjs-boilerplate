@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 import { Button } from "./button";
 import { BUTTON_VARIANT } from "./button.definition";
 
@@ -23,5 +24,27 @@ describe("Button", () => {
       "href",
       "https://github.com/",
     );
+  });
+
+  it("disabled のときは操作を受け付けない", () => {
+    const onClick = vi.fn();
+
+    render(
+      <Button disabled onClick={onClick}>
+        保存する
+      </Button>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    expect(screen.getByRole("button", { name: "保存する" })).toBeDisabled();
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<Button>保存する</Button>);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

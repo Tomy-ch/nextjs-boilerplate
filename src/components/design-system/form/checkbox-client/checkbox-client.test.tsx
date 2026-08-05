@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { CheckboxClient } from "./checkbox-client";
@@ -13,15 +13,23 @@ describe("CheckboxClient", () => {
     expect(screen.getByRole("checkbox", { name: "設定を有効にする" })).toBeChecked();
   });
 
-  it("indeterminate は checked と別の印を持つ", () => {
-    const { container } = render(
-      <CheckboxClient aria-label="すべて選択" checked="indeterminate" />,
+  it("indeterminate は checked と別の状態として支援技術へ伝える", () => {
+    render(<CheckboxClient aria-label="すべて選択" checked="indeterminate" />);
+
+    expect(screen.getByRole("checkbox", { name: "すべて選択" })).toHaveAttribute(
+      "aria-checked",
+      "mixed",
     );
+  });
 
-    const icons = [...container.querySelectorAll("svg")].map((icon) => icon.getAttribute("class"));
+  it("クリックで選択を切り替え、呼び出し元へ通知する", () => {
+    const onCheckedChange = vi.fn();
 
-    expect(icons).toHaveLength(2);
-    expect(icons.join(" ")).toContain("lucide-minus");
+    render(<CheckboxClient aria-label="設定を有効にする" onCheckedChange={onCheckedChange} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "設定を有効にする" }));
+
+    expect(screen.getByRole("checkbox", { name: "設定を有効にする" })).toBeChecked();
+    expect(onCheckedChange).toHaveBeenCalledWith(true);
   });
 
   it("disabled 状態では操作不能にする", () => {

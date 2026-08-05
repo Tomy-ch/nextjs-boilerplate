@@ -114,7 +114,9 @@ describe("Breadcrumb", () => {
 
     const ellipsis = container.querySelector("[data-slot='breadcrumb-ellipsis']");
 
-    expect(ellipsis).toHaveAttribute("aria-hidden", "true");
+    // 記号だけを隠す。外側に aria-hidden を付けると子孫ごと外れ、代替テキストも読まれない。
+    expect(ellipsis).not.toHaveAttribute("aria-hidden");
+    expect(ellipsis?.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     expect(within(container).getByText("省略された階層")).toHaveClass("sr-only");
   });
 

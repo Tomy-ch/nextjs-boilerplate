@@ -8,15 +8,40 @@ import { AuthSignInAction, AuthStateFeedback } from "./auth-state-feedback";
 import { AUTH_STATE, AUTH_STATE_MESSAGE } from "./auth-state-feedback.definition";
 
 describe("AuthStateFeedback", () => {
-  it("状態ごとの既定の見出しと説明を表示する", () => {
-    for (const state of Object.values(AUTH_STATE)) {
-      const { unmount } = render(<AuthStateFeedback state={state} />);
-      const feedback = screen.getByRole("alert");
+  it("未認証の既定の見出しと説明を表示する", () => {
+    render(<AuthStateFeedback state={AUTH_STATE.UNAUTHENTICATED} />);
+    const feedback = screen.getByRole("alert");
+    const message = AUTH_STATE_MESSAGE[AUTH_STATE.UNAUTHENTICATED];
 
-      expect(within(feedback).getByText(AUTH_STATE_MESSAGE[state].title)).toBeInTheDocument();
-      expect(within(feedback).getByText(AUTH_STATE_MESSAGE[state].description)).toBeInTheDocument();
-      unmount();
-    }
+    expect(within(feedback).getByText(message.title)).toBeInTheDocument();
+    expect(within(feedback).getByText(message.description)).toBeInTheDocument();
+  });
+
+  it("セッション切れの既定の見出しと説明を表示する", () => {
+    render(<AuthStateFeedback state={AUTH_STATE.SESSION_EXPIRED} />);
+    const feedback = screen.getByRole("alert");
+    const message = AUTH_STATE_MESSAGE[AUTH_STATE.SESSION_EXPIRED];
+
+    expect(within(feedback).getByText(message.title)).toBeInTheDocument();
+    expect(within(feedback).getByText(message.description)).toBeInTheDocument();
+  });
+
+  it("権限不足の既定の見出しと説明を表示する", () => {
+    render(<AuthStateFeedback state={AUTH_STATE.FORBIDDEN} />);
+    const feedback = screen.getByRole("alert");
+    const message = AUTH_STATE_MESSAGE[AUTH_STATE.FORBIDDEN];
+
+    expect(within(feedback).getByText(message.title)).toBeInTheDocument();
+    expect(within(feedback).getByText(message.description)).toBeInTheDocument();
+  });
+
+  it("対象が見つからない場合の既定の見出しと説明を表示する", () => {
+    render(<AuthStateFeedback state={AUTH_STATE.NOT_FOUND} />);
+    const feedback = screen.getByRole("alert");
+    const message = AUTH_STATE_MESSAGE[AUTH_STATE.NOT_FOUND];
+
+    expect(within(feedback).getByText(message.title)).toBeInTheDocument();
+    expect(within(feedback).getByText(message.description)).toBeInTheDocument();
   });
 
   it("権限不足だけを注意として示す", () => {

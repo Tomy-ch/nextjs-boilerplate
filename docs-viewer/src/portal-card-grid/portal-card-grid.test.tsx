@@ -16,56 +16,57 @@ const document: PortalItem = {
 
 const generated: PortalItem = { name: "Coverage", path: "./coverage/index.html", lang: "all" };
 
-describe("PortalCardGrid", () => {
-  it("Markdown の項目を押せる操作として描画する", () => {
-    render(<PortalCardGrid items={[document]} onOpenDocument={vi.fn()} />);
+describe("正常系", () => {
+  describe("PortalCardGrid", () => {
+    it("Markdown の項目を押せる操作として描画する", () => {
+      render(<PortalCardGrid items={[document]} onOpenDocument={vi.fn()} />);
 
-    expect(screen.getByRole("button", { name: "ADR 0001" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "ADR 0001" })).toBeInTheDocument();
+    });
+    it("Markdown 以外の項目を別タブへの link として描画する", () => {
+      render(<PortalCardGrid items={[generated]} onOpenDocument={vi.fn()} />);
+      const link = screen.getByRole("link", { name: "Coverage" });
+
+      expect(link).toHaveAttribute("href", "./coverage/index.html");
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    });
+    it("Markdown の項目を押すと呼び出し元へ項目を渡す", () => {
+      const onOpenDocument = vi.fn();
+
+      render(<PortalCardGrid items={[document]} onOpenDocument={onOpenDocument} />);
+      fireEvent.click(screen.getByRole("button", { name: "ADR 0001" }));
+
+      expect(onOpenDocument).toHaveBeenCalledWith(document);
+    });
+    it("出所が分かる項目は出所を添える", () => {
+      render(<PortalCardGrid items={[document]} onOpenDocument={vi.fn()} />);
+
+      expect(screen.getByText("docs/adr/0001.md")).toBeInTheDocument();
+    });
+    it("出所を持たない項目は経路を添える", () => {
+      render(<PortalCardGrid items={[generated]} onOpenDocument={vi.fn()} />);
+
+      expect(screen.getByText("./coverage/index.html")).toBeInTheDocument();
+    });
+    it("a11y 自動検査に違反しない", async () => {
+      const { container } = render(
+        <PortalCardGrid items={[document, generated]} onOpenDocument={vi.fn()} />,
+      );
+
+      expect(
+        (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+      ).toEqual([]);
+    });
   });
+});
 
-  it("Markdown 以外の項目を別タブへの link として描画する", () => {
-    render(<PortalCardGrid items={[generated]} onOpenDocument={vi.fn()} />);
-    const link = screen.getByRole("link", { name: "Coverage" });
+describe("異常系", () => {
+  describe("PortalCardGrid", () => {
+    it("項目が無ければ空の一覧を描画する", () => {
+      render(<PortalCardGrid items={[]} onOpenDocument={vi.fn()} />);
 
-    expect(link).toHaveAttribute("href", "./coverage/index.html");
-    expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noopener noreferrer");
-  });
-
-  it("Markdown の項目を押すと呼び出し元へ項目を渡す", () => {
-    const onOpenDocument = vi.fn();
-
-    render(<PortalCardGrid items={[document]} onOpenDocument={onOpenDocument} />);
-    fireEvent.click(screen.getByRole("button", { name: "ADR 0001" }));
-
-    expect(onOpenDocument).toHaveBeenCalledWith(document);
-  });
-
-  it("出所が分かる項目は出所を添える", () => {
-    render(<PortalCardGrid items={[document]} onOpenDocument={vi.fn()} />);
-
-    expect(screen.getByText("docs/adr/0001.md")).toBeInTheDocument();
-  });
-
-  it("出所を持たない項目は経路を添える", () => {
-    render(<PortalCardGrid items={[generated]} onOpenDocument={vi.fn()} />);
-
-    expect(screen.getByText("./coverage/index.html")).toBeInTheDocument();
-  });
-
-  it("項目が無ければ空の一覧を描画する", () => {
-    render(<PortalCardGrid items={[]} onOpenDocument={vi.fn()} />);
-
-    expect(screen.getByRole("list").children).toHaveLength(0);
-  });
-
-  it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(
-      <PortalCardGrid items={[document, generated]} onOpenDocument={vi.fn()} />,
-    );
-
-    expect(
-      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
-    ).toEqual([]);
+      expect(screen.getByRole("list").children).toHaveLength(0);
+    });
   });
 });

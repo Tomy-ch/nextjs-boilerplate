@@ -33,10 +33,16 @@ describe("HoverCard", () => {
   });
 
   it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(<HoverCardFixture />);
+    // Portal で body 直下へ描くため baseElement を渡す。container では trigger しか入らず、
+    // 検査対象が空になる。
+    const { baseElement } = render(<HoverCardFixture />);
 
     expect(
-      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+      (
+        await axe(baseElement, {
+          rules: { "color-contrast": { enabled: false }, region: { enabled: false } },
+        })
+      ).violations,
     ).toEqual([]);
   });
 });

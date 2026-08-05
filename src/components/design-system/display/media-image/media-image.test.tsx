@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { MediaImage } from "./media-image";
-import { MEDIA_IMAGE_ASPECT_RATIO, MEDIA_IMAGE_ASPECT_RATIO_CLASS } from "./media-image.definition";
+import { MEDIA_IMAGE_ASPECT_RATIO } from "./media-image.definition";
 
 vi.mock("next/image", () => ({
   default: ({
@@ -104,9 +104,55 @@ describe("MediaImage", () => {
     ).toEqual([]);
   });
 
-  it("公開する比率 class は、内容に押し広げられないよう溢れを切る", () => {
-    for (const className of Object.values(MEDIA_IMAGE_ASPECT_RATIO_CLASS)) {
-      expect(className).toContain("overflow-hidden");
-    }
+  it("正方形を指定すると正方形の枠にし、溢れを切る", () => {
+    render(
+      <MediaImage
+        alt="サンプル画像"
+        aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
+        src="/sample.svg"
+      />,
+    );
+
+    const wrapper = screen
+      .getByRole("img", { name: "サンプル画像" })
+      .closest("[data-slot=media-image]");
+
+    expect(wrapper).toHaveClass("aspect-square", "overflow-hidden");
+  });
+
+  it("既定の比率でも溢れを切る", () => {
+    render(<MediaImage alt="サンプル画像" src="/sample.svg" />);
+
+    const wrapper = screen
+      .getByRole("img", { name: "サンプル画像" })
+      .closest("[data-slot=media-image]");
+
+    expect(wrapper).toHaveClass("aspect-[4/3]", "overflow-hidden");
+  });
+
+  it("横長を指定しても溢れを切る", () => {
+    render(
+      <MediaImage
+        alt="サンプル画像"
+        aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.WIDE}
+        src="/sample.svg"
+      />,
+    );
+
+    const wrapper = screen
+      .getByRole("img", { name: "サンプル画像" })
+      .closest("[data-slot=media-image]");
+
+    expect(wrapper).toHaveClass("aspect-video", "overflow-hidden");
+  });
+
+  it("preload でも Skeleton の表示を明示すれば従う", () => {
+    render(<MediaImage alt="サンプル画像" preload showSkeleton src="/sample.svg" />);
+
+    const wrapper = screen
+      .getByRole("img", { name: "サンプル画像" })
+      .closest("[data-slot=media-image]");
+
+    expect(wrapper?.querySelector("[data-slot=skeleton]")).toBeInTheDocument();
   });
 });

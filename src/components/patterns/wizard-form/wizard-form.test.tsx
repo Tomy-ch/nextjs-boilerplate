@@ -5,9 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { Button } from "@/components/design-system/action/button/button";
-import { WizardForm, type WizardStep } from "./wizard-form";
+import { WizardForm, type WizardSteps } from "./wizard-form";
 
-const STEPS: readonly WizardStep[] = [
+const STEPS: WizardSteps = [
   {
     id: "applicant",
     title: "申請者",
@@ -21,7 +21,7 @@ const STEPS: readonly WizardStep[] = [
   { id: "confirm", title: "確認", content: <p>この内容で申請します。</p> },
 ];
 
-function WizardFixture({ steps = STEPS }: { steps?: readonly WizardStep[] } = {}) {
+function WizardFixture({ steps = STEPS }: { steps?: WizardSteps } = {}) {
   return (
     <WizardForm
       label="利用申請"

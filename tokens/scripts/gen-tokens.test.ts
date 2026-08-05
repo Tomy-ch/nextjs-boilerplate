@@ -65,4 +65,17 @@ describe("generateTokensCss", () => {
     expect(css).not.toMatch(/@media \(prefers-color-scheme/);
     expect(css).toContain('@media screen {\n  :root[data-theme="dark"]');
   });
+
+  it("既定の theme を欠いた定義を拒否する", () => {
+    expect(() =>
+      generateTokensCss(
+        { color: { neutral: { 0: { $type: "color", $value: "#ffffff" } } } },
+        {
+          theme: {
+            dark: { color: { background: { $type: "color", $value: "{color.neutral.0}" } } },
+          },
+        },
+      ),
+    ).toThrow('既定の theme "light" が themes.json にありません');
+  });
 });

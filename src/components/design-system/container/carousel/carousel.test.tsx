@@ -142,16 +142,24 @@ describe("Carousel", () => {
     expect(screen.getAllByRole("link")).toHaveLength(SLIDES.length);
   });
 
-  it("送りの link は実在する slide を指す", () => {
+  it("先頭の送りは 1 枚目の slide を指す", () => {
     render(<NavFixture />);
 
-    for (const position of SLIDES) {
-      const href = screen.getByRole("link", { name: String(position) }).getAttribute("href");
-      const target = document.getElementById((href ?? "").slice(1));
+    const href = screen.getByRole("link", { name: "1" }).getAttribute("href");
+    const target = document.getElementById((href ?? "").slice(1));
 
-      expect(target).toHaveAttribute("aria-roledescription", "slide");
-      expect(target).toHaveAccessibleName(`${position} / ${SLIDES.length}`);
-    }
+    expect(target).toHaveAttribute("aria-roledescription", "slide");
+    expect(target).toHaveAccessibleName(`1 / ${SLIDES.length}`);
+  });
+
+  it("末尾の送りは最後の slide を指す", () => {
+    render(<NavFixture />);
+
+    const href = screen.getByRole("link", { name: "3" }).getAttribute("href");
+    const target = document.getElementById((href ?? "").slice(1));
+
+    expect(target).toHaveAttribute("aria-roledescription", "slide");
+    expect(target).toHaveAccessibleName(`3 / ${SLIDES.length}`);
   });
 
   it("端の送りは記号だけを描き、名前を aria-label で持つ", () => {
@@ -161,22 +169,43 @@ describe("Carousel", () => {
     expect(screen.getAllByRole("link", { name: "次へ" })).toHaveLength(SLIDES.length - 1);
   });
 
-  it("端の送りは隣り合う slide を指す", () => {
+  it("先頭の slide は前を持たず、次だけを指す", () => {
     const { container } = render(<StepFixture />);
-
     const items = [...container.querySelectorAll('[data-slot="carousel-item"]')];
+    const first = items[0];
 
-    for (const [index, item] of items.entries()) {
-      const previous = item.querySelector('[data-slot="carousel-previous"]');
-      const next = item.querySelector('[data-slot="carousel-next"]');
+    expect(first.querySelector('[data-slot="carousel-previous"]')).not.toBeInTheDocument();
+    expect(first.querySelector('[data-slot="carousel-next"]')).toHaveAttribute(
+      "href",
+      `#${items[1].id}`,
+    );
+  });
 
-      expect(previous?.getAttribute("href") ?? null).toBe(
-        index === 0 ? null : `#${items[index - 1].id}`,
-      );
-      expect(next?.getAttribute("href") ?? null).toBe(
-        index === items.length - 1 ? null : `#${items[index + 1].id}`,
-      );
-    }
+  it("中間の slide は前後どちらの slide も指す", () => {
+    const { container } = render(<StepFixture />);
+    const items = [...container.querySelectorAll('[data-slot="carousel-item"]')];
+    const middle = items[1];
+
+    expect(middle.querySelector('[data-slot="carousel-previous"]')).toHaveAttribute(
+      "href",
+      `#${items[0].id}`,
+    );
+    expect(middle.querySelector('[data-slot="carousel-next"]')).toHaveAttribute(
+      "href",
+      `#${items[2].id}`,
+    );
+  });
+
+  it("末尾の slide は次を持たず、前だけを指す", () => {
+    const { container } = render(<StepFixture />);
+    const items = [...container.querySelectorAll('[data-slot="carousel-item"]')];
+    const last = items[items.length - 1];
+
+    expect(last.querySelector('[data-slot="carousel-previous"]')).toHaveAttribute(
+      "href",
+      `#${items[items.length - 2].id}`,
+    );
+    expect(last.querySelector('[data-slot="carousel-next"]')).not.toBeInTheDocument();
   });
 
   it("端の送りの名前を呼び出し元が言い換えられる", () => {

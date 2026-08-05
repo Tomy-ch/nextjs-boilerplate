@@ -30,42 +30,44 @@ function firstElement(root: Root, tagName: string): Element | undefined {
   return collectElements(root).find((element) => element.tagName === tagName);
 }
 
-describe("parseMarkdownDocument", () => {
-  it("見出しと段落を要素へ変換する", () => {
-    const { root } = parseMarkdownDocument("## 節\n\n本文です。\n");
+describe("正常系", () => {
+  describe("parseMarkdownDocument", () => {
+    it("見出しと段落を要素へ変換する", () => {
+      const { root } = parseMarkdownDocument("## 節\n\n本文です。\n");
 
-    expect(tagNamesOf(root)).toEqual(["h2", "p"]);
+      expect(tagNamesOf(root)).toEqual(["h2", "p"]);
+    });
+    it("表を構造ごと変換する", () => {
+      const { root } = parseMarkdownDocument("| 見出し |\n| --- |\n| 値 |\n");
+
+      expect(tagNamesOf(root)).toContain("table");
+      expect(tagNamesOf(root)).toContain("th");
+      expect(tagNamesOf(root)).toContain("td");
+    });
+    it("コードフェンスの言語表記を残す", () => {
+      const { root } = parseMarkdownDocument("```ts\nconst a = 1;\n```\n");
+
+      expect(firstElement(root, "code")?.properties.className).toEqual(["language-ts"]);
+    });
+    it("文書の題を h1 として本文の先頭へ残す", () => {
+      const { root } = parseMarkdownDocument("# 題\n\n## 節\n");
+
+      expect(tagNamesOf(root)).toEqual(["h1", "h2"]);
+    });
+    it("空の Markdown を空の本文にする", () => {
+      const { root } = parseMarkdownDocument("");
+
+      expect(root.children).toEqual([]);
+    });
   });
+});
 
-  it("表を構造ごと変換する", () => {
-    const { root } = parseMarkdownDocument("| 見出し |\n| --- |\n| 値 |\n");
+describe("異常系", () => {
+  describe("parseMarkdownDocument", () => {
+    it("Markdown 内に直接書かれた script を落とす", () => {
+      const { root } = parseMarkdownDocument("本文\n\n<script>alert(1)</script>\n");
 
-    expect(tagNamesOf(root)).toContain("table");
-    expect(tagNamesOf(root)).toContain("th");
-    expect(tagNamesOf(root)).toContain("td");
-  });
-
-  it("コードフェンスの言語表記を残す", () => {
-    const { root } = parseMarkdownDocument("```ts\nconst a = 1;\n```\n");
-
-    expect(firstElement(root, "code")?.properties.className).toEqual(["language-ts"]);
-  });
-
-  it("Markdown 内に直接書かれた script を落とす", () => {
-    const { root } = parseMarkdownDocument("本文\n\n<script>alert(1)</script>\n");
-
-    expect(tagNamesOf(root)).not.toContain("script");
-  });
-
-  it("文書の題である h1 を本文から外す", () => {
-    const { root } = parseMarkdownDocument("# 題\n\n## 節\n");
-
-    expect(tagNamesOf(root)).toEqual(["h2"]);
-  });
-
-  it("空の Markdown を空の本文にする", () => {
-    const { root } = parseMarkdownDocument("");
-
-    expect(root.children).toEqual([]);
+      expect(tagNamesOf(root)).not.toContain("script");
+    });
   });
 });

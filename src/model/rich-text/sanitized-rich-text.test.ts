@@ -83,6 +83,7 @@ describe("allowlist 外", () => {
     const { root } = SanitizedRichText.from("<h1>大見出し</h1>");
 
     expect(tagNamesOf(root)).toEqual([]);
+    expect(textOf(root)).toBe("大見出し");
   });
 
   it("script / iframe / style / object を落とす", () => {
@@ -144,6 +145,20 @@ describe("href のプロトコル", () => {
     );
 
     expect(firstElement(root, "a")?.properties).toEqual({});
+  });
+
+  it("外部ホストへ解決される protocol-relative な link を落とす", () => {
+    const { root } = SanitizedRichText.from(
+      '<a href="//attacker.example.com">内部パスに見える</a>',
+    );
+
+    expect(firstElement(root, "a")?.properties).toEqual({});
+  });
+
+  it("アプリ内を指す相対 link を通す", () => {
+    const { root } = SanitizedRichText.from('<a href="/products/1">商品</a>');
+
+    expect(firstElement(root, "a")?.properties.href).toBe("/products/1");
   });
 });
 

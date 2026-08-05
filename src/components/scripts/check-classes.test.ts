@@ -66,6 +66,19 @@ describe("collectClassCandidates", () => {
     ]);
   });
 
+  it("数字で始まる breakpoint の class も拾う", () => {
+    expect([...collectClassCandidates('<div className="sm:flex 2xl:hidden" />')]).toEqual([
+      "sm:flex",
+      "2xl:hidden",
+    ]);
+  });
+
+  it("コード中の数値リテラルは class として拾わない", () => {
+    expect([...collectClassCandidates('<div className="w-4" data-count={123} />')]).toEqual([
+      "w-4",
+    ]);
+  });
+
   it("cn() と cva() の引数を拾う", () => {
     const source = 'cn("flex", condition && "gap-2");\nconst v = cva("rounded-md");';
 

@@ -1,12 +1,35 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import Link from "next/link";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 import { ApiErrorAlert, ApiErrorDialog } from "./api-error-feedback";
 
 const noop = () => undefined;
 
 describe("ApiErrorAlert", () => {
+  it("client の失敗では入力を見直す見出しを出す", () => {
+    render(<ApiErrorAlert error={{ kind: "client", message: "本文" }} />);
+
+    expect(
+      within(screen.getByRole("alert")).getByText("入力を確認してください"),
+    ).toBeInTheDocument();
+  });
+
+  it("network の失敗では通信を見直す見出しを出す", () => {
+    render(<ApiErrorAlert error={{ kind: "network", message: "本文", retryable: true }} />);
+
+    expect(
+      within(screen.getByRole("alert")).getByText("通信を確認してください"),
+    ).toBeInTheDocument();
+  });
+
+  it("server の失敗では処理が失敗した見出しを出す", () => {
+    render(<ApiErrorAlert error={{ kind: "server", message: "本文", retryable: true }} />);
+
+    expect(within(screen.getByRole("alert")).getByText("処理に失敗しました")).toBeInTheDocument();
+  });
+
   it("API error と retry を表示する", () => {
     render(
       <ApiErrorAlert error={{ kind: "server", message: "失敗", retryable: true }} onRetry={noop} />,
@@ -96,5 +119,24 @@ describe("ApiErrorDialog", () => {
     expect(screen.getByRole("alertdialog")).toHaveTextContent("入力を確認してください。");
     expect(screen.queryByRole("button", { name: "再試行" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "閉じる" })).toBeVisible();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    // Dialog は Portal で body 直下へ描くため baseElement を渡す。
+    const { baseElement } = render(
+      <ApiErrorDialog
+        error={{ kind: "server", message: "失敗", retryable: true }}
+        onOpenChange={noop}
+        open
+      />,
+    );
+
+    expect(
+      (
+        await axe(baseElement, {
+          rules: { "color-contrast": { enabled: false }, region: { enabled: false } },
+        })
+      ).violations,
+    ).toEqual([]);
   });
 });
