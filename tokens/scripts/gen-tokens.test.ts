@@ -44,6 +44,31 @@ describe("generateTokensCss", () => {
     ).toThrow("token 参照 {color.neutral.9} に対応する primitive がありません");
   });
 
+  it("配色の切替と同じ条件で color-scheme を宣言する", () => {
+    const css = generateTokensCss(
+      {
+        color: {
+          neutral: {
+            0: { $type: "color", $value: "#ffffff" },
+            950: { $type: "color", $value: "#0a0a0a" },
+          },
+        },
+      },
+      {
+        theme: {
+          light: { color: { background: { $type: "color", $value: "{color.neutral.0}" } } },
+          dark: { color: { background: { $type: "color", $value: "{color.neutral.950}" } } },
+        },
+      },
+    );
+
+    expect(css).toContain(":root {\n  color-scheme: light;");
+    expect(css).toContain(
+      '@media screen and (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {\n    color-scheme: dark;',
+    );
+    expect(css).toContain('@media screen {\n  :root[data-theme="dark"] {\n    color-scheme: dark;');
+  });
+
   it("既定以外の theme を screen に限定し、印刷は既定の配色にする", () => {
     const css = generateTokensCss(
       {

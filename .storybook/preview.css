@@ -1,0 +1,23 @@
+/*
+ * story を描く面だけを、このリポジトリの配色トークンへ寄せる。
+ *
+ * Storybook の docs は独自のテーマを持ち、toolbar の Theme 切替には追従しない。何もしないと
+ * 「Storybook が塗った白い面」の上に「dark に切り替わった我々の文字」が載り、文字が読めなくなる。
+ *
+ * docs の chrome（見出し・説明文・controls 表）は Storybook のものとして light のまま残す。
+ * そちらまで塗り替えようとすると、emotion が生成するハッシュ付き class を一つずつ追う必要があり、
+ * Storybook の更新のたびに壊れる。部品が載る面だけを合わせれば、読めない状態は解消する。
+ *
+ * 参照するのは semantic 層である。`--color-*` は `@theme inline` の変数で、utility へ埋め込まれる
+ * 代わりに変数としては出力されないものがあり、素の CSS からは解決できない。
+ */
+
+.sbdocs.sbdocs-preview {
+  background: var(--semantic-color-background);
+  border-color: var(--semantic-color-border);
+}
+
+.docs-story {
+  background: var(--semantic-color-background);
+  color: var(--semantic-color-foreground);
+}

@@ -2,6 +2,7 @@
 
 @theme {
   --color-neutral-0: #ffffff;
+  --color-neutral-50: #fafafa;
   --color-neutral-100: #ededed;
   --color-neutral-300: #b3b3b3;
   --color-neutral-400: #a3a3a3;
@@ -55,7 +56,8 @@
 }
 
 :root {
-  --semantic-color-background: var(--color-neutral-0);
+  color-scheme: light;
+  --semantic-color-background: var(--color-neutral-100);
   --semantic-color-foreground: var(--color-neutral-900);
   --semantic-color-muted: var(--color-neutral-100);
   --semantic-color-muted-foreground: var(--color-neutral-700);
@@ -76,6 +78,7 @@
 }
 @media screen and (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --semantic-color-background: var(--color-neutral-950);
     --semantic-color-foreground: var(--color-neutral-100);
     --semantic-color-muted: var(--color-neutral-700);
@@ -88,7 +91,7 @@
     --semantic-color-primary: var(--color-neutral-100);
     --semantic-color-primary-foreground: var(--color-neutral-950);
     --semantic-color-input: var(--color-neutral-500);
-    --semantic-color-card: var(--color-neutral-950);
+    --semantic-color-card: var(--color-neutral-900);
     --semantic-color-card-foreground: var(--color-neutral-100);
     --semantic-color-warning: var(--color-amber-100);
     --semantic-color-warning-foreground: var(--color-neutral-950);
@@ -98,6 +101,7 @@
 }
 @media screen {
   :root[data-theme="dark"] {
+    color-scheme: dark;
     --semantic-color-background: var(--color-neutral-950);
     --semantic-color-foreground: var(--color-neutral-100);
     --semantic-color-muted: var(--color-neutral-700);
@@ -110,7 +114,7 @@
     --semantic-color-primary: var(--color-neutral-100);
     --semantic-color-primary-foreground: var(--color-neutral-950);
     --semantic-color-input: var(--color-neutral-500);
-    --semantic-color-card: var(--color-neutral-950);
+    --semantic-color-card: var(--color-neutral-900);
     --semantic-color-card-foreground: var(--color-neutral-100);
     --semantic-color-warning: var(--color-amber-100);
     --semantic-color-warning-foreground: var(--color-neutral-950);

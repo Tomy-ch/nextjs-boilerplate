@@ -100,15 +100,19 @@ function renderDeclarations(
  * 既定以外の theme は `screen` に限定する。media type を伴わない条件は print にも一致するため、
  * 暗い配色のまま印刷されてしまう。背景の塗りは印刷時に落ちるので、そのままだと白い紙に薄い文字が
  * 出る。既定 theme だけが `:root` に残ることで、印刷は常に既定の配色になる。
+ *
+ * あわせて `color-scheme` を宣言する。宣言しないと、配色を切り替えてもスクロールバー・フォーム
+ * 部品・キャンバスの既定描画が light のまま取り残される。theme の切替条件と同じ場所で出すのは、
+ * 条件を二重に書くと必ずどちらかがずれるためである。
  */
 function renderTheme(name: string, tokens: TokenGroup, declared: ReadonlySet<string>): string[] {
   if (name === defaultThemeName) {
-    return [`:root {\n${renderDeclarations(tokens, "", declared)}\n}`];
+    return [`:root {\n  color-scheme: ${name};\n${renderDeclarations(tokens, "", declared)}\n}`];
   }
 
   return [
-    `@media screen and (prefers-color-scheme: ${name}) {\n  :root:not([data-theme="${defaultThemeName}"]) {\n${renderDeclarations(tokens, "  ", declared)}\n  }\n}`,
-    `@media screen {\n  :root[data-theme="${name}"] {\n${renderDeclarations(tokens, "  ", declared)}\n  }\n}`,
+    `@media screen and (prefers-color-scheme: ${name}) {\n  :root:not([data-theme="${defaultThemeName}"]) {\n    color-scheme: ${name};\n${renderDeclarations(tokens, "  ", declared)}\n  }\n}`,
+    `@media screen {\n  :root[data-theme="${name}"] {\n    color-scheme: ${name};\n${renderDeclarations(tokens, "  ", declared)}\n  }\n}`,
   ];
 }
 
