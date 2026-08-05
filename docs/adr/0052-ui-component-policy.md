@@ -26,6 +26,17 @@ Accepted
 - **リッチテキスト(TipTap)は v1 採用**。エディタ本体と表示側 sanitizer の a11y 契約・seam は [0053](0053-ui-component-interaction-seam.md) が所有し、本 ADR は `components` カーネルへの配置と exact-pin 要件のみを持つ
 - **v1 スコープの線引き**: v1 が抱えるのは上記の汎用 UI 基盤 + リッチテキストまで。これを超える局所的な UI 要件(DnD = dnd-kit 等は [0053](0053-ui-component-interaction-seam.md))は v2 で順次同梱、それを超える要件は **fork 先で追加**する
 
+### 部品を得るために上流を増やさない
+
+registry は、本リポジトリが採るものとは別の headless 上流を前提とする item を配ることがある。**この場合その item は copy-in しない。**同一責務に 2 つ目の上流を抱える判断になり、1 部品のために同規模の下地を丸ごと引き受けることになるためである([0010](0010-standards-and-non-lockin.md) 非ロックイン)。registry に item が無い UI 概念も同じ扱いとする。取り得る道は 2 つで、いずれも `components` の公開 API を変えない。
+
+- **既に持つ部品の合成で組む**
+- **合成で届かない場合は、必要な機構だけを抽出して自前で実装する**
+
+上流を増やす判断へ倒せるのは、**複数の部品が同じ上流を要求し始めたとき**か、**自前合成では満たせない要件が実使用面で確定したとき**である。この 2 つは別々に処理せず、**「今の上流をそちらへ置き換えるか」という 1 つの移行判断**としてまとめて評価する。**併存は選ばない** —— 依存表面が純増し、同じ責務の部品が 2 系統に割れる。
+
+供給網の弱さは、この判断の論拠にならない。それは移行判断の論拠であって、併存の論拠にはならないためである。
+
 ## 0010 準拠(vendor-independent 正当性 + 非ロックイン)
 
 本採用は [0010](0010-standards-and-non-lockin.md) の 2 原則(標準に乗る / 選択主体は設計者)を満たす。
@@ -47,14 +58,16 @@ Accepted
 
 **exact-pin + audit**([0004](0004-library-management.md)):
 
-- lucide-react / react-day-picker / `@radix-ui/*` / `class-variance-authority` / `clsx` / `tailwind-merge` など、shadcn が引き込む実 npm 依存は **exact-pin** で追加(`pnpm add -E`)し、追加時に `pnpm audit` を実行する。メジャー更新は別 PR(0004)
+- shadcn が引き込む実 npm 依存は **exact-pin** で追加(`pnpm add -E`)し、追加時に `pnpm audit` を実行する。メジャー更新は別 PR(0004)
 - copy-in された shadcn コンポーネント本体はソースコードとして本体に取り込まれ、依存パッケージではない(pin 対象は上記の実依存のみ)
+- **部品ごとの実依存は、copy-in の前に 0004 の様式で評価する。** registry item を取り込む判断は、その item が引く vendor を採る判断でもある。どの部品がどの vendor を引いたかという結果の一覧は本 ADR ではなく取り込みの記録が持つ
 
 ## 禁止事項
 
 - ❌ Radix / lucide / react-day-picker を feature 内・各画面から直接 import すること(UI ライブラリ依存は `components` カーネルに閉じ込める。[0021](0021-frontend-responsibility.md) 昇格ルール)
 - ❌ shadcn/ui 以外の UI コンポーネントライブラリ(MUI / Chakra / Ant Design 等、ランタイム同梱型)を並行採用すること([0050](0050-styling-strategy.md) の Tailwind 主軸 + CSS Modules 限定許可(ランタイム CSS-in-JS = styled-components / emotion は非採用)および copy-in 方針と衝突。必要なら ADR 改定)
 - ❌ lucide-react 以外のアイコンライブラリを追加同梱すること(差し替えは可だが並行同梱はしない)
+- ❌ 別の headless 上流を、registry item が要求するという理由だけで併存させること(合成か自前実装で組む。上流の追加は現行からの移行判断としてのみ扱う)
 - ❌ 採用ライブラリを exact-pin / `pnpm audit` を経ずに追加すること([0004](0004-library-management.md))
 - ❌ v1 スコープを超える局所的な UI 要件(高度な DnD 等)を本 ADR の範囲で本体へ持ち込むこと(v2 = [0053](0053-ui-component-interaction-seam.md) / それ以上は fork)
 - ❌ リッチテキストの表示を sanitizer を通さずに行うこと(生の `dangerouslySetInnerHTML` は禁止。sanitizer port は [0053](0053-ui-component-interaction-seam.md))
@@ -64,6 +77,8 @@ Accepted
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠 + 非ロックインの判断軸(本採用の正当化根拠)
 - [0004-library-management.md](0004-library-management.md) — exact-pin / `pnpm audit` / メジャー更新は別 PR
 - [0050-styling-strategy.md](0050-styling-strategy.md) — Tailwind 主軸 + CSS Modules 限定許可(styled-components / emotion は非採用。shadcn/ui のスタイル手段)
+- [0051-styling-system.md](0051-styling-system.md) — デザイントークン体系 / レスポンシブ / モーション / 印刷(採用 UI が参照する semantic token の供給元。モーションライブラリの採用帰属も 0051 側)
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — UI カタログ(採用部品の視覚的仕様の置き場)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `components` カーネル(採用 UI の配置先)・昇格規律(vendor 依存の閉じ込め)
 - [0011-no-docker.md](0011-no-docker.md) — 表示層ロール(v1 でアプリケーション基盤へ性格更新)
 - [0060-state-management.md](0060-state-management.md)(B5)— form state(react-hook-form + zod)採用。form 部品と対で機能する

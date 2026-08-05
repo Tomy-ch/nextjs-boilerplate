@@ -1,4 +1,4 @@
-# ファイルアップロード seam(presigned 直 PUT 既定 / multipart proxy 例外)
+# ファイルアップロード seam(presigned 直 PUT と multipart proxy の 2 経路。選択は backend の能力)
 
 [0070](0070-backend-role-separation.md) の thin proxy 境界(`/api/*`)に隣接して生じるファイルアップロードの seam を、**フロント領域の拡張点**(IF / ローカル機構 + 明示拡張点を敷いて切らない)として明文化する。対象は triage #13(ファイルアップロード)。
 
@@ -26,24 +26,30 @@ Accepted
 
 ## 決定
 
-### ファイルアップロード(#13)= presigned URL 直 PUT 既定 / multipart proxy は thin proxy 例外の seam
+### ファイルアップロード(#13)= presigned 直 PUT と multipart proxy の 2 経路を対等な seam として持つ
 
-アップロードは **フロント領域の責務**である(アップロード UX はフロントの責務)。ただし thin proxy 原則(0070)との緊張を、**既定を境界の外に逃がす**ことで解消する。
+アップロードは **フロント領域の責務**である(アップロード UX はフロントの責務)。thin proxy 原則(0070)との緊張は、**大容量ボディを境界の外へ逃がせる経路を第一候補に置く**ことで解消する。
 
-- **既定 = presigned URL 直 PUT**。ブラウザは、backend が発行した署名付き URL に対してストレージへ**直接** PUT / POST する。**大容量ボディは BFF(`/api/*`)を通さない**。
+- **第一候補 = presigned URL 直 PUT**(backend が発行できる場合)。ブラウザは、backend が発行した署名付き URL に対してストレージへ**直接** PUT / POST する。**大容量ボディは BFF(`/api/*`)を通さない**。
   - 署名付き URL の発行は backend の責務(フロントは発行結果を受け取るだけ)。フロント側の取得口は `adapters/server`(認可付きで backend から署名を得る)/ 直 PUT の送信は `adapters/client`(client 側 remote IO を所有する唯一の層。同一オリジン外への送信は本件 #13 のように ADR が明示に許す場合に限る)に置く([0024](0024-adapters-server-client-split.md) 決定表 #13)。進捗表示・中断・再開は client 側の **upload seam(hook / IF)** に集約し、コンポーネントに散らさない。
   - サイズ制限・許可 content-type・有効期限は **署名ポリシー側**(backend が発行時に埋め込む)で担保し、フロントは表示・事前バリデーション(UX)に留める。
   - **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md) §2)**: 署名付き URL は S3 / GCS / Cloudflare R2 / Azure Blob いずれも備える業界横断パターンであり、特定ストレージ SDK・特定 PaaS に依存しない(署名を発行元から抜いても「事前署名 + HTTP PUT」という構造は正当)。BFF が大容量ボディを中継しないことの根拠は、serverless 実行の**実行時間・メモリ・ボディサイズという vendor 横断の物理制約** + thin proxy(0070)であって、フレームワーク推奨ではない。
-- **backend が multipart 受け口しか持たない場合は multipart proxy が既定になる**。既定を決めるのは「presigned を発行できる backend か」であり、フロント側の好みではない。presigned が発行されない構成では、下記の例外 seam が唯一の経路となるため、その構成における既定として扱う
-  - **v1 サンプルはこちらに該当する**。go-boilerplate の画像アップロードは `POST /v1/products/images`(multipart / レスポンスは `{ imagePath }`)であり presigned URL を発行しないため、サンプル実装は multipart proxy 経路で書く([screens.md](../screens.md) A6 / A7)
-  - この場合もサイズ上限・content-type 検証は**必ずフロント側の Route Handler にも置く**(presigned なら署名ポリシーが担保していた層が無くなるため)。413 / 415 / 422 を扱う
-- **例外 = multipart proxy(`/api/*` 経由)**。presigned が使えない構成(直アクセス不可なストレージ、送信前にサーバ加工が必須、backend が multipart しか受けない、等)に限り、Route Handler が `request.formData()` 等でボディを受けて backend / ストレージへ中継する **named seam** を許す。ただし:
-  - これは **例外であって既定にしない**。多用は thin proxy が業務層化する兆候として扱う([0070](0070-backend-role-separation.md) 禁止事項)。
-  - **本 ADR は「例外を認める範囲(許容ボディサイズ上限・ストリーミング中継の要否)の具体値を確定しない」**(用途 / PaaS 依存。保留 = 実装 PR / fork 先。下記 flags 相当)。本 ADR が確定するのは「既定 = presigned 直 PUT / 中継は名前付き例外 seam」という**構造**である。
+- **もう一方の経路 = multipart proxy(`/api/*` 経由)**。Route Handler が `request.formData()` 等でボディを受けて backend / ストレージへ中継する **named seam** を置く。presigned が使えない構成(直アクセス不可なストレージ、送信前にサーバ加工が必須、backend が multipart 受け口しか持たない、等)で用いる。
+  - この経路ではサイズ上限・content-type 検証を**必ずフロント側の Route Handler にも置く**(presigned なら署名ポリシーが担保していた層が無くなるため)。413 / 415 / 422 を扱う。
+  - **本 ADR は許容ボディサイズ上限・ストリーミング中継の要否といった具体値を確定しない**(用途 / PaaS 依存。保留 = 実装 PR / fork 先)。
+
+### 経路の選択は backend の能力で決まる
+
+**どちらを使うかは、接続先 backend が presigned URL を発行できるかで決まる。** フロント側の好みでも、そのとき同梱しているサンプルの実装状態でもない。presigned を発行できるなら直 PUT、multipart 受け口しか持たないなら proxy であり、**後者は「劣った例外」ではなく、その構成における正規経路**である。
+
+したがって本 boilerplate は **両経路の seam を対等に持つ**。片方だけを実装して他方を後付け扱いにしない。
+
+> **サンプルの実装状態を本 ADR へ書き戻さない。** 同梱サンプルが現時点でどちらの経路を通るかは、backend 側の都合で変わる一時的な事実であり、この決定の根拠ではない。サンプルは撤去される前提の付属物であって、撤去後もこの boilerplate は単独で意味を保つ必要がある。経路の具体は接続先ごとに `adapters` の実装が決め、本 ADR は**構造(両経路の seam を持ち、選択は backend の能力に従う)**だけを確定する。
 
 ## 禁止事項
 
-- ❌ 大容量ファイルの本文を `/api/*`(BFF)経由で無条件に中継すること(presigned を発行できる backend では既定 = 直 PUT。中継は名前付き例外 seam に限る。[0070](0070-backend-role-separation.md) thin proxy)
+- ❌ **presigned URL を発行できる backend に対して** multipart proxy を選ぶこと(その構成では直 PUT が既定。大容量ボディを BFF へ通す理由が無い。[0070](0070-backend-role-separation.md) thin proxy)
+- ❌ multipart proxy を「劣った例外」として扱い、seam を片方だけ実装すること(経路は backend の能力で決まる。両経路を対等に持つ)
 - ❌ multipart proxy 経路でサイズ上限・content-type 検証を Route Handler に置かないこと(署名ポリシーが担保していた層を落とすことになる)
 - ❌ アップロードの生 fetch / 進捗管理をコンポーネントに散らすこと(`adapters/client` の upload seam へ集約。[0024](0024-adapters-server-client-split.md))
 
@@ -51,7 +57,7 @@ Accepted
 
 - **タクソノミー**([0140](0140-documentation-operations.md)): 本 ADR は decision(#13 の構造確定)に属する。日常強制される rule(アップロードサイズの具体規約・Route Handler 実装規約)は `docs/rules.md`(未新設・0140 方針)側に置き、本 ADR から逆参照される。
 - 本 ADR は既存 Accepted ADR(0070 / 0071 / 0024)本体を編集せず、それらを参照して隣接する空白を埋める(既存 ADR は Protected Documentation)。その後 2026-07-15 に、[0024](0024-adapters-server-client-split.md) 決定表へ #13(presigned 直 PUT)が `adapters/client` の正規役割として反映済(ユーザ指示による整合)。
-- **v2 採用予定(局所ライブラリ・2026-07-14)**: 本 decision(既定 = presigned 直 PUT / 中継 = 名前付き例外 seam)本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))でアップロードは **v2 = 局所機構の materialize**(用途依存)に振り分けられた。**upload seam(`adapters/client` の進捗 / 中断 / 再開 IF・multipart proxy 例外 seam)は 0.0.x/v1 で敷済・機構実体化は v2**。既定の presigned 直 PUT は web 標準(署名付き URL + HTTP PUT)に乗り特定ストレージ SDK・PSP に依存しないため専用ベンダーを持たない。外部クライアント / SDK を採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+- **v2 採用予定(局所ライブラリ・2026-07-14)**: 本 decision(2 経路を対等な seam として持ち、選択は backend の能力に従う)本体は不変。採用マトリクス([master-plan §1.2](../plan/master-plan.md))でアップロードは **v2 = 局所機構の materialize**(用途依存)に振り分けられた。**upload seam(`adapters/client` の進捗 / 中断 / 再開 IF・multipart proxy 例外 seam)は 0.0.x/v1 で敷済・機構実体化は v2**。既定の presigned 直 PUT は web 標準(署名付き URL + HTTP PUT)に乗り特定ストレージ SDK・PSP に依存しないため専用ベンダーを持たない。外部クライアント / SDK を採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 関連 ADR
 
