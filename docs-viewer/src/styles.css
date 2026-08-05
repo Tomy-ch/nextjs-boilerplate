@@ -1,0 +1,12 @@
+/*
+ * アプリ本体の stylesheet をそのまま取り込む。トークン・組版・foundation の CSS を複製すると
+ * 乖離した時点で、実運用の画面でデザインシステムを検証するという目的が失われる。
+ */
+@import "../../src/app/globals.css";
+
+/*
+ * Tailwind の class 検出はこの CSS の位置から辿るため、別パッケージにある部品と
+ * ビューアー自身のソースを明示する。
+ */
+@source "../../src/components";
+@source "./";
