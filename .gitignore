@@ -17,6 +17,10 @@ node_modules/
 /.next/
 /out/
 
+# portal の生成物。配信時に組み立てるため追跡しない
+docs/portal/guides/
+docs/portal/docs.json
+
 # production
 /build
 /storybook-static
