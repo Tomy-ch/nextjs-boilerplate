@@ -1,0 +1,75 @@
+name: Component Classes
+
+# Tailwind emits nothing for a class it does not recognise, and nothing fails: the element simply
+# renders without that declaration. A surface turns transparent, a focus ring disappears, a
+# selected state stops being visible — silently, and only in the browser. Copy-in from the
+# shadcn/ui registry is the usual way these classes arrive, because the upstream theme defines
+# tokens this repository does not.
+#
+# The check compiles the real entry stylesheet and looks for every class written under
+# src/components in the output. It is hermetic and caused by the change under review, so it gates
+# pull requests.
+
+on:
+  pull_request:
+    paths:
+      - "src/components/**"
+      - "src/app/globals.css"
+      - "src/app/generated/tokens.css"
+      - "tokens/**"
+      - ".github/workflows/component-classes.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  classes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.7.12
+          install: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Node and pnpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise install core:node aqua:pnpm/pnpm
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify that every class written in a component produces CSS
+        run: pnpm check:classes
