@@ -46,7 +46,8 @@ Accepted
 | `sync-readme` | README ↔ ディスク同期 | 単一 README の記述を実ディレクトリ状態に合わせて更新。子ディレクトリの README は digest + 参照リンクのみ |
 | `readme-review` | README の portal 価値評価 | 単一 README を `docs/portal/manifest.yaml` 登録基準で採点 |
 | `new-env` | 環境変数の e2e 追加 | 目的別 config モジュール / env ファイル / 変数表 docs を一括で同期 (対象構造は A7 = [0030](0030-environment-variable-management.md)、後述) |
-| `local-review` | adversarial code review | 5 観点 (correctness / security / architecture / runtime-gap / test-gap) + コメント品質の subagent fanout + verifier による多段検証。コメント指摘のみライフサイクル内で自動修正し、残る指摘は PR へインライン投稿する |
+| `impl-review` | adversarial code review | 5 観点 (correctness / security / architecture / runtime-gap / test-gap) + コメント品質の subagent fanout + verifier による多段検証。コメント指摘のみライフサイクル内で自動修正し、残る指摘は PR へインライン投稿する |
+| `test-review` | テストの品質レビュー | 5 レンズ (構造準拠 / 観点カバレッジ / 意味的品質 / 分岐×意味 / シンボル網羅) の fanout + verifier。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む。read-only で、`impl-review` Step 4.5 の委譲先を兼ねる |
 | `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
 | `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
 | `adr-scan` | ADR 候補の全リポ発見 | de facto に存在するが BACKLOG 未追跡の設計判断を read-only で走査し、taxonomy (decision / exclusion / rule / inventory) と Tier / frame ID へ分類した候補 inventory を出力 (※ 暫定 / one-off。BACKLOG 反映後に削除・アーカイブ予定) |
@@ -56,10 +57,10 @@ Accepted
 
 ## subagent パターン
 
-`local-review` と `full-verify` は **複数の subagent を組み合わせる構造** を持つ。
+`impl-review` と `full-verify` は **複数の subagent を組み合わせる構造** を持つ。
 
 ```text
-local-review (orchestrator)
+impl-review (orchestrator)
  ├─ adversarial-reviewer (per lens)   ← .claude/agents/adversarial-reviewer.md
  │   ├─ correctness 観点
  │   ├─ security 観点
@@ -80,7 +81,7 @@ full-verify (orchestrator / in-session fast-path)
 
 このほか、特定スキルへの固定 wiring を持たない **単独起動の read-only レビュー subagent** として `doc-reviewer` (ドキュメント散文の品質) が `.claude/agents/` に存在する。下記の subagent 規約 (read-only / sonnet 既定 / モデル分散) に従う。
 
-subagent 自身が read-only である規約は `comment-reviewer` にも等しく適用される。`local-review` がコメント指摘を修正できるのは、**オーケストレーター側が適用する**からであって、subagent に編集権限を与えているからではない。
+subagent 自身が read-only である規約は `comment-reviewer` にも等しく適用される。`impl-review` がコメント指摘を修正できるのは、**オーケストレーター側が適用する**からであって、subagent に編集権限を与えているからではない。
 
 ### subagent 規約
 
@@ -137,12 +138,12 @@ subagent 自身が read-only である規約は `comment-reviewer` にも等し�
 
 - subagent 設定 (`.claude/agents/`) は本 ADR と対になる。新規 subagent を追加する場合は `SKILL.md` 側の参照も更新する
 - スキルの組み合わせ (`sync-readme` → `canonicalize-doc`) は `SKILL.md` 内で chain として明示する
-- `local-review` の lens (correctness / security / architecture / runtime-gap / test-gap) は追加・削除可能だが、本 ADR の趣旨 (adversarial / 多視点) を逸脱しないこと
+- `impl-review` の lens (correctness / security / architecture / runtime-gap / test-gap) と `test-review` のレンズは追加・削除可能だが、本 ADR の趣旨 (adversarial / 多視点) を逸脱しないこと。テスト観点の所管は `test-review` にあり、`impl-review` の `test-gap` は委譲が動かない場合の fallback である
 
 ## 関連 ADR
 
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) (A7) — `new-env` が対象とする config カーネルの構造
 - [0140-documentation-operations.md](0140-documentation-operations.md) (D1) — canonical EN / 翻訳 JA のドキュメント運用ポリシー
-- [0150-git-workflow.md](0150-git-workflow.md) — `local-review` が想定する「commit / PR 前」のタイミング
+- [0150-git-workflow.md](0150-git-workflow.md) — `impl-review` が想定する「commit / PR 前」のタイミング
 - [0152-agents-md-policy.md](0152-agents-md-policy.md) — AGENTS.md の Instruction Priority と Modification Scope
 - [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — 運用系スキルとの対 (配置・命名・frontmatter は共通)
