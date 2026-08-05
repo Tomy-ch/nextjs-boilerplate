@@ -91,6 +91,9 @@ export default [
       "out/**",
       "storybook-static/**",
       "graphify-out/**",
+      // 配信ツリーの組み立て先。docs の複製と Storybook / ビューアーのバンドルが入る。
+      // ワークスペースのパッケージ配下にも出るため先頭を固定しない。
+      "**/dist/**",
     ],
   },
   {
