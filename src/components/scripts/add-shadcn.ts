@@ -670,7 +670,7 @@ export async function addShadcnComponents(arguments_: string[]): Promise<void> {
   }
 }
 
-/* v8 ignore next -- CLI entry point is exercised by pnpm add:ui dry-run. */
+/* v8 ignore next -- CLI のエントリポイントは pnpm add:ui の dry-run が実地で通す。 */
 if (process.argv[1]?.endsWith("add-shadcn.ts")) {
   void addShadcnComponents(process.argv.slice(2)).catch((error: unknown) => {
     process.stderr.write(`${errorMessage(error)}\n`);

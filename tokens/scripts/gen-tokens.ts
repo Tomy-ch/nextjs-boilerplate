@@ -120,7 +120,14 @@ export function generateTokensCss(primitives: TokenGroup, themes: TokenGroup): s
     ([path, token]) => `  ${toPrimitiveVariable(path)}: ${toCssValue(token.$value)};`,
   );
   const themeEntries = Object.entries(themes.theme as TokenGroup);
-  const defaultTheme = themeEntries.find(([name]) => name === defaultThemeName)?.[1] as TokenGroup;
+  const defaultTheme = themeEntries.find(([name]) => name === defaultThemeName)?.[1] as
+    | TokenGroup
+    | undefined;
+
+  if (!defaultTheme) {
+    throw new Error(`既定の theme "${defaultThemeName}" が themes.json にありません`);
+  }
+
   const semanticDeclarations = flattenTokens(defaultTheme).map(([path]) => {
     return `  ${toThemeVariable(path)}: var(${toSemanticVariable(path)});`;
   });

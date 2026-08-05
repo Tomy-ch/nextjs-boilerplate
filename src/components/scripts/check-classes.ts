@@ -123,8 +123,14 @@ export function collectClassCandidates(source: string): ReadonlySet<string> {
   const candidates = new Set<string>();
   const addTokens = (value: string): void => {
     for (const token of value.split(/\s+/)) {
-      // 先頭は utility の頭文字か、任意 variant の `[`、子孫を指す `*` になる
-      if (!/^[a-z[*][\w:./[\]()&>*+~=%!#'-]*$/.test(token)) continue;
+      // 先頭は utility の頭文字か、任意 variant の `[`、子孫を指す `*`。加えて `2xl:` のように
+      // 数字で始まる breakpoint も通す。数字始まりを一律に落とすと、その class は候補に上がらない
+      // まま検査を素通りし、ガードが黙って効かなくなる。ただし通すのは `:` を伴う variant 形だけで、
+      // `2xl` 単体は utility ではないため落とす（コード中の数値リテラルも同じ判定で落ちる）。
+      const utility = /^[a-z[*][\w:./[\]()&>*+~=%!#'-]*$/;
+      const digitLedVariant = /^\d+[a-z]+:[\w:./[\]()&>*+~=%!#'-]*$/;
+
+      if (!utility.test(token) && !digitLedVariant.test(token)) continue;
       candidates.add(token);
     }
   };
@@ -221,7 +227,7 @@ export function findMissingClasses(
     .sort((a, b) => a.className.localeCompare(b.className));
 }
 
-/* v8 ignore start -- CLI entry point is exercised by pnpm check:classes. */
+/* v8 ignore start -- CLI のエントリポイントは pnpm check:classes が実地で通す。 */
 async function main(): Promise<void> {
   const css = await buildCss();
   const files = await collectComponentSources(componentsDirectoryPath);

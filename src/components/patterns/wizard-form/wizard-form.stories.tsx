@@ -12,7 +12,7 @@ import {
 import { Field, FieldDescription, FieldLabel } from "@/components/design-system/form/field/field";
 import { Input } from "@/components/design-system/form/input/input";
 import { Textarea } from "@/components/design-system/form/textarea/textarea";
-import { WizardForm, type WizardStep } from "./wizard-form";
+import { WizardForm, type WizardSteps } from "./wizard-form";
 
 const meta = {
   title: "Form/WizardForm",
@@ -71,7 +71,7 @@ function Confirmation() {
   );
 }
 
-const STEPS: readonly WizardStep[] = [
+const STEPS: WizardSteps = [
   { id: "applicant", title: "申請者", content: <ApplicantFields /> },
   { id: "purpose", title: "利用目的", content: <PurposeFields /> },
   { id: "confirm", title: "確認", content: <Confirmation /> },
@@ -98,7 +98,7 @@ export const Default: Story = {
 export const TwoSteps: Story = {
   args: {
     label: "利用申請",
-    steps: STEPS.slice(1),
+    steps: [STEPS[1], STEPS[2]],
     submit: <Button type="submit">申請する</Button>,
   },
   render: (args) => (

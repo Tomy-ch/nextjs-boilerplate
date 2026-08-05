@@ -17,6 +17,35 @@ export function toRichTextRoot(node: Nodes): Root {
   return node.type === "root" ? node : { type: "root", children: [node] };
 }
 
+/** protocol-relative URL を落とす対象の属性です。 */
+const URL_PROPERTY_NAMES: ReadonlySet<string> = new Set(["href", "src"]);
+
+/**
+ * protocol-relative URL（`//host`）を属性から落とします。
+ *
+ * `hast-util-sanitize` の protocol 検査は `:` を含む値のスキームだけを見るため、`//host` は
+ * 相対参照として素通りします。実体は閲覧中のページと同じ protocol で解決される外部ホストへの
+ * 絶対 URL であり、内部パスに見せかけた誘導になるので sanitize の後段で落とします。
+ *
+ * @param node - 検査対象のノード。木を破壊的に書き換えます
+ */
+function dropProtocolRelativeUrls(node: Nodes): void {
+  if (node.type === "element") {
+    node.properties = Object.fromEntries(
+      Object.entries(node.properties).filter(
+        ([name, value]) =>
+          !(URL_PROPERTY_NAMES.has(name) && typeof value === "string" && value.startsWith("//")),
+      ),
+    );
+  }
+
+  if ("children" in node) {
+    for (const child of node.children) {
+      dropProtocolRelativeUrls(child);
+    }
+  }
+}
+
 /**
  * sanitize 済みのリッチテキストを表す Value Object です。
  *
@@ -60,7 +89,10 @@ export class SanitizedRichText {
    */
   static from(html: string): SanitizedRichText {
     const parsed = fromHtml(html, { fragment: true });
+    const sanitized = toRichTextRoot(sanitize(parsed, RICH_TEXT_SANITIZE_SCHEMA));
 
-    return new SanitizedRichText(toRichTextRoot(sanitize(parsed, RICH_TEXT_SANITIZE_SCHEMA)));
+    dropProtocolRelativeUrls(sanitized);
+
+    return new SanitizedRichText(sanitized);
   }
 }

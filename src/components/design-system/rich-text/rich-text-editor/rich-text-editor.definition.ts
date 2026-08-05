@@ -45,14 +45,20 @@ export const RICH_TEXT_EDITOR_HEADING_LEVELS: readonly Level[] = [2, 3, 4];
  * `a` の `href` として書けるかどうかを判定します。
  *
  * protocol を持たない相対 URL と、{@link RICH_TEXT_LINK_PROTOCOLS} の protocol を持つ URL だけを
- * 通します。判定は sanitizer と同じ規則で行うため、この関数が通した `href` は sanitize を通っても
- * 落ちません。protocol の有無は最初の `:` の位置で決まり、`?` `#` `/` より後ろにある `:` は
+ * 通します。protocol の有無は最初の `:` の位置で決まり、`?` `#` `/` より後ろにある `:` は
  * protocol の区切りとして扱いません。
+ *
+ * `//` で始まる値は拒否します。`:` を持たないため相対 URL の見た目をしていますが、閲覧中の
+ * ページと同じ protocol で解決される外部ホストへの絶対 URL であり、アプリ内のパスではありません。
  *
  * @param href - 判定する `href` の値
  * @returns 書ける場合は `true`
  */
 export function isRichTextHrefAllowed(href: string): boolean {
+  if (href.startsWith("//")) {
+    return false;
+  }
+
   const colon = href.indexOf(":");
   const questionMark = href.indexOf("?");
   const numberSign = href.indexOf("#");

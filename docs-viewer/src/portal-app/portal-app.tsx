@@ -59,6 +59,18 @@ export function PortalApp({ docs }: PortalAppProps) {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
+  // ハッシュが section を指していれば、その見出しまで送る。group を切り替えるだけでは
+  // 長い group の末尾にある section へ辿り着けず、link が指した先と表示がずれる。
+  useEffect(() => {
+    const { sectionSlug } = parseHashRoute(hash);
+
+    if (!sectionSlug) {
+      return;
+    }
+
+    document.getElementById(`section-${sectionSlug}`)?.scrollIntoView({ block: "start" });
+  }, [hash]);
+
   const visibleGroups = useMemo(() => applyLangFilter(docs.groups, lang), [docs.groups, lang]);
   const corpus = useMemo(() => buildSearchCorpus(visibleGroups), [visibleGroups]);
   const fuse = useMemo(() => new Fuse(corpus, { keys: [...searchKeys], threshold: 0.3 }), [corpus]);

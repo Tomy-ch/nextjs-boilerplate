@@ -82,3 +82,29 @@ export function assertWithinOutputRoot(
     }
   }
 }
+
+/**
+ * 複製元がリポジトリの内側に収まっているか検査する。
+ *
+ * @remarks
+ * `dst` と対称に扱います。複製した内容はそのまま公開されるため、リポジトリ外を指す `src` は
+ * 「読み出して公開する」経路になります。manifest はレビューを経るファイルですが、書き込み先だけ
+ * 守って読み出し元を素通しにすると、防御の非対称が残ります。
+ *
+ * @param resolve - 相対パスを絶対パスへ解決する関数。呼び出し元が `node:path` を渡す
+ */
+export function assertWithinRepositoryRoot(
+  entries: readonly ResolvedCopyEntry[],
+  repositoryRoot: string,
+  resolve: (value: string) => string,
+): void {
+  const rootAbsolute = resolve(repositoryRoot);
+
+  for (const entry of entries) {
+    const source = resolve(entry.src);
+
+    if (!source.startsWith(`${rootAbsolute}/`)) {
+      throw new Error(`[${entry.section}] src がリポジトリの外を指しています: ${entry.src}`);
+    }
+  }
+}

@@ -2,7 +2,11 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:
 import { dirname, resolve } from "node:path";
 import { parse } from "yaml";
 
-import { assertWithinOutputRoot, resolveCopyEntries } from "./portal-manifest";
+import {
+  assertWithinOutputRoot,
+  assertWithinRepositoryRoot,
+  resolveCopyEntries,
+} from "./portal-manifest";
 
 const MANIFEST_PATH = "docs/portal/manifest.yaml";
 const OUTPUT_ROOT = "docs/portal/guides";
@@ -15,6 +19,7 @@ if (!existsSync(MANIFEST_PATH)) {
 const entries = resolveCopyEntries(parse(readFileSync(MANIFEST_PATH, "utf8")));
 
 assertWithinOutputRoot(entries, OUTPUT_ROOT, resolve);
+assertWithinRepositoryRoot(entries, ".", resolve);
 
 // 複製の前に全ての src を検査する。途中で気付いて止まると、出力ディレクトリを
 // 消した後の半端な状態が残る。

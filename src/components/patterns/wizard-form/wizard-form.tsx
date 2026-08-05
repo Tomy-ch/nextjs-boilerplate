@@ -22,12 +22,20 @@ export type WizardStep = {
   blocked?: boolean;
 };
 
+/**
+ * 段階の並び。1 件以上を型で要求する。
+ *
+ * 段階が 0 件の wizard は表示するものが無く、先頭要素を読んだ時点で壊れるため、渡せない
+ * 状態にしておく。
+ */
+export type WizardSteps = readonly [WizardStep, ...WizardStep[]];
+
 /** {@link WizardForm} の props。 */
 export type WizardFormProps = {
   /** この入力全体のアクセシブルな名前。 */
   label: string;
   /** 段階の定義。並び順がそのまま進む順になる。 */
-  steps: readonly WizardStep[];
+  steps: WizardSteps;
   /** 最後の段階で「次へ」の代わりに置く操作。送信は呼び出し元が持つ。 */
   submit: ReactNode;
   /** 前の段階へ戻る操作の文言。 */

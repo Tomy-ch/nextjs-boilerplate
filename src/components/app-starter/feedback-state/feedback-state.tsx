@@ -51,7 +51,7 @@ export function FeedbackState({ kind, title, description }: FeedbackStateProps) 
 
   return (
     <section
-      aria-live="polite"
+      aria-live={kind === FEEDBACK_STATE_KIND.ERROR ? "assertive" : "polite"}
       className="grid max-w-sm justify-items-center gap-2 rounded-lg p-6 text-center"
       role={role}
     >

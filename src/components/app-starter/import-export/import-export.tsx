@@ -167,6 +167,9 @@ export type ExportButtonProps = Omit<ComponentProps<typeof Button>, "children"> 
  *
  * 生成そのもの、出力形式、ファイルの中身は持たない。状態と URL を呼び出し元が渡す。
  *
+ * `href` の検証も持たない。同一オリジンかつ `http` / `https` であることは呼び出し元が保証する。
+ * `javascript:` を渡すと押下時に実行されるため、生成 API の応答をそのまま流し込まない。
+ *
  * @param props.pending - 出力の生成が進行中か。
  * @param props.href - 生成が終わり、受け取れる URL。
  *

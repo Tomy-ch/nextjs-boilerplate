@@ -97,7 +97,7 @@ export function titleOf(markdown: string, fallback: string): string {
   return /^# (.+)$/m.exec(markdown)?.[1].trim() ?? fallback;
 }
 
-/** 層から registry の item 種別を決める。 */
+/** `design-system` の部品だけを `registry:ui` とし、それ以外の層は `registry:component` にする。 */
 export function itemTypeOf(layer: string): string {
   return layer === "design-system" ? REGISTRY_ITEM_TYPE.UI : REGISTRY_ITEM_TYPE.COMPONENT;
 }
@@ -149,10 +149,16 @@ async function collectComponents(): Promise<BundleComponent[]> {
   let index: z.infer<typeof storybookIndexSchema> | undefined;
   try {
     index = storybookIndexSchema.parse(JSON.parse(await readFile(storybookIndexPath, "utf8")));
-  } catch {
-    throw new Error(
-      "storybook-static/index.json がありません。先に pnpm build-storybook を実行してください。",
-    );
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      throw new Error(
+        "storybook-static/index.json がありません。先に pnpm build-storybook を実行してください。",
+      );
+    }
+
+    // 形が変わった場合は原因を残す。「ファイルが無い」に丸めると、既にビルド済みの利用者が
+    // build-storybook を回し直して同じ所で止まる。
+    throw new Error("storybook-static/index.json を解釈できません。", { cause: error });
   }
 
   const storiesByImportPath = new Map<string, { id: string; name: string }[]>();

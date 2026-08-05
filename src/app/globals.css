@@ -12,14 +12,16 @@
  * 面の色だけが切り替わり dark: 付きの class が追従しない状態になる。
  */
 @custom-variant dark {
-  @media (prefers-color-scheme: dark) {
+  @media screen and (prefers-color-scheme: dark) {
     &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
       @slot;
     }
   }
 
-  &:where(:root[data-theme="dark"], :root[data-theme="dark"] *) {
-    @slot;
+  @media screen {
+    &:where(:root[data-theme="dark"], :root[data-theme="dark"] *) {
+      @slot;
+    }
   }
 }
 

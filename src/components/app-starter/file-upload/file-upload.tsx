@@ -271,7 +271,10 @@ export function FileUpload({
       {selected.length > 0 ? (
         <ul className="flex flex-col gap-1" data-slot="file-upload-selection">
           {selected.map((file) => (
-            <li className="truncate text-muted-foreground text-sm" key={file.name}>
+            <li
+              className="truncate text-muted-foreground text-sm"
+              key={`${file.name}:${file.size}:${file.lastModified}`}
+            >
               {file.name}
             </li>
           ))}

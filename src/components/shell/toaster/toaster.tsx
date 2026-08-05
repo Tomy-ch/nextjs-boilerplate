@@ -1,7 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { ToastRegion } from "./toast-region";
 import {
@@ -86,6 +94,19 @@ export function Toaster({
     },
     [onDismiss],
   );
+
+  const currentIds = useMemo(() => new Set(toasts.map((toast) => toast.id)), [toasts]);
+
+  // 呼び出し元が queue から外した id を抑制対象からも落とす。積みっぱなしにすると、
+  // 対象ごとに id を採る呼び出し元（同じ対象で再び失敗したら同じ id）では、二度目の
+  // 通知が二度と出せなくなる。
+  useEffect(() => {
+    setDismissedIds((current) => {
+      const next = new Set([...current].filter((id) => currentIds.has(id)));
+
+      return next.size === current.size ? current : next;
+    });
+  }, [currentIds]);
 
   const visible = toasts
     .filter((toast) => !dismissedIds.has(toast.id))

@@ -1,6 +1,11 @@
 import type { PortalGroup } from "../docs-json/docs-json";
 
-/** `#/<group>/<section>` が指す位置。section 未指定なら group の先頭を見ている。 */
+/**
+ * `#/<group>/<section>` が指す位置。
+ *
+ * `groupSlug` が本文へ出す group を決め、`sectionSlug` はその group 内で送る先の見出しを表す。
+ * section を指さないハッシュでは `sectionSlug` が `null` になり、group の先頭が表示される。
+ */
 export type HashRoute = {
   groupSlug: string;
   sectionSlug: string | null;

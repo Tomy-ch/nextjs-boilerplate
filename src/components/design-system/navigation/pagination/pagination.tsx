@@ -212,12 +212,13 @@ export function PaginationNext({
 export function PaginationEllipsis({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
-      aria-hidden="true"
       className={cn("flex size-8 items-center justify-center", className)}
       data-slot="pagination-ellipsis"
       {...props}
     >
-      <MoreHorizontalIcon className="size-4" />
+      {/* 隠すのは記号だけ。外側に付けると子孫ごとアクセシビリティツリーから外れ、
+          sr-only の文言も一緒に消える。 */}
+      <MoreHorizontalIcon aria-hidden="true" className="size-4" />
       <span className="sr-only">省略されたページ</span>
     </span>
   );

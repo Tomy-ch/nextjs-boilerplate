@@ -155,13 +155,13 @@ function BreadcrumbSeparator({ children, className, ...props }: ComponentProps<"
 function BreadcrumbEllipsis({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
-      aria-hidden="true"
       className={cn("flex size-9 items-center justify-center", className)}
       data-slot="breadcrumb-ellipsis"
-      role="presentation"
       {...props}
     >
-      <MoreHorizontal className="size-4" />
+      {/* 隠すのは記号だけ。外側に付けると子孫ごとアクセシビリティツリーから外れ、
+          sr-only の文言も一緒に消える。 */}
+      <MoreHorizontal aria-hidden="true" className="size-4" />
       <span className="sr-only">省略された階層</span>
     </span>
   );

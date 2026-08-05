@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { CircleDollarSignIcon, PencilIcon, PlusIcon, UploadIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { CursorPagination } from "@/components/app-starter/cursor-pagination/cursor-pagination";
 import {
   ListItemContent,
   ListItemDescription,
@@ -106,8 +105,8 @@ export const SingleEvent: Story = {
 };
 
 /**
- * 続きの読み込み。件数が増え続けるため pagination を伴うが、この部品は持たない。隣へ
- * `CursorPagination` を合成し、URL の組み立ては呼び出し元が行う。
+ * 続きの読み込み。件数が増え続けるため送りの導線を伴うが、この部品は持たない。隣へ並べる
+ * のは呼び出し元の仕事で、URL の組み立ても呼び出し元が行う。
  */
 export const WithPagination: Story = {
   render: (args) => (
@@ -115,7 +114,11 @@ export const WithPagination: Story = {
       <ActivityTimeline {...args}>
         <Events events={EVENTS} />
       </ActivityTimeline>
-      <CursorPagination aria-label="変更履歴の移動" nextHref="/plans/42/history?after=evt_1" />
+      <nav aria-label="変更履歴の移動">
+        <a className="text-sm underline" href="#next">
+          古い変更を読み込む
+        </a>
+      </nav>
     </div>
   ),
 };

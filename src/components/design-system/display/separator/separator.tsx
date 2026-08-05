@@ -37,6 +37,9 @@ export function Separator({
         className={separatorClassName}
         data-orientation={orientation}
         data-slot="separator"
+        // `hr` は暗黙で separator になるが `div` は何も持たない。装飾でない縦線は
+        // 意味論を持つ区切りなので、role を明示しないと支援技術から消える。
+        role={decorative ? undefined : "separator"}
         {...props}
       />
     );
