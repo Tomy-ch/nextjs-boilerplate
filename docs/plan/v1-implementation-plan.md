@@ -1445,9 +1445,9 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **対象 ADR**: [0141](../adr/0141-portal-operations.md) / [0004](../adr/0004-library-management.md) / [0140](../adr/0140-documentation-operations.md)
 - **主な変更先**:
   - `docs/portal/manifest.yaml` — **構造制御のみ**(curated manual)。コード README は手動登録、`docs/*` は自動発見
-  - `scripts/portal/` — gen-portal-docs / gen-docs-json / build-portal
-  - React SPA 一式
-  - `package.json` — deps は devDependencies([0004](../adr/0004-library-management.md) 準拠)
+  - `scripts/portal/` — gen-portal-docs / gen-docs-json(判断は純粋関数、FS 入出力は CLI)
+  - `docs-viewer/` — ビューアーの独立 workspace パッケージ(Vite ビルド)。無害化の許容範囲をアプリ本体と分けるための境界
+  - `docs-viewer/package.json` — 独立した依存宣言([0004](../adr/0004-library-management.md) 準拠の exact pin)
 - **設計**: go 側から移植するが Go 結合はゼロ。manifest の中身と除外リストの差替のみ
 - **完了条件**: `make build-portal` でローカルに portal が生成され、閲覧できる
 - **依存**: P5-16
