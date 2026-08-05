@@ -137,6 +137,21 @@ build 失敗は **それ自体が CONFIRMED な finding**。出力付きで報�
 
 ランタイムで確証した不具合は CONFIRMED として build 出力 / curl 証拠付きでレポートに統合。
 
+## Step 4.5 — テスト観点を `/test-review` へ委譲
+
+テスト観点はここでは監査しない。`/test-review` が所管し、このスキルの `test-gap` の抽出よりも深く見る — subject の export シンボル表を作り（テストが 1 つも無いシンボルはテストファイル起点の読み方では見えない）、関数ごとに分岐 × 意味の行列を回す。両方を走らせると同じギャップを 2 つの語彙で二重報告することになる。
+
+この実行が既に解決したことを訊き直させないよう、payload を付けて chain する。
+
+- `scope` — Step 1 で解決したファイル一覧。**ペアのテストが存在しない production ファイルも含める。** その不在こそ委譲先のシンボルレンズが報告する対象である
+- `base_ref` — ブランチ base 比較で動いている場合
+- `reviewer_model` — Step 2 で解決したモデル。reviewer ≠ implementer をスキル境界を跨いで保つ
+- `skip_verifier` — この実行が検証を飛ばしている場合だけ渡す
+
+返ってきたレポートは Step 5 のレポートの 1 節として埋め込み、**severity 語彙をそのまま保つ**（修正必須 / 補完推奨 / 再考 / 追加検討 + criticality）。このスキルの severity へ写すと「規則に違反している」と「この分岐が未検証である」の区別が失われる。
+
+委譲が動かせない場合は、その旨をレポートに書いたうえで、この実行に限り `test-gap` レンズへ fallback する。観点を黙って未検査のままにしない。
+
 ## Step 5 — レポート合成（日本語）
 
 1つの日本語レポートを出す:
@@ -239,7 +254,7 @@ GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ**
    {
      "commit_id": "<SHA>",
      "event": "COMMENT",
-     "body": "🔎 local-review (reviewer: <model>) — CONFIRMED <n> / PLAUSIBLE <m>\n\ndiff 外で行アンカー不可の指摘:\n- <path>: <要約>",
+     "body": "🔎 impl-review (reviewer: <model>) — CONFIRMED <n> / PLAUSIBLE <m>\n\ndiff 外で行アンカー不可の指摘:\n- <path>: <要約>",
      "comments": [
        {
          "path": "<file>",
@@ -251,7 +266,7 @@ GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ**
    }
    ```
 
-   `event: "COMMENT"` を使う — これは助言的なレビューであり、`REQUEST_CHANGES` / `APPROVE` は使わない。人間のレビューと区別できるよう、各コメント本文の先頭に `🔎 local-review`（または `🔎 [判定 · 重大度]` タグ）を付ける。
+   `event: "COMMENT"` を使う — これは助言的なレビューであり、`REQUEST_CHANGES` / `APPROVE` は使わない。人間のレビューと区別できるよう、各コメント本文の先頭に `🔎 impl-review`（または `🔎 [判定 · 重大度]` タグ）を付ける。
 
 4. 頑健性: API がバッチを拒否したら（422 — diff に無い行）、該当コメントをサマリ `body` へ移して再試行する。事後に、何をインライン投稿し何をサマリへ回したかを報告する — finding を黙って落とさない。
 
