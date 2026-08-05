@@ -117,7 +117,7 @@ Accepted
 - `pnpm outdated` で更新候補を一覧化
 - `pnpm audit` でセキュリティ警告を確認
 - マイナー / パッチ更新を 1 つの「ライブラリ更新 PR」に集約し、CI / 動作確認の上 merge
-- **ESLint → biome 移管判定**: ESLint 補完分（`eslint.config.mjs` の各ルール）について、`@biomejs/biome` の更新で biome が同等検査に対応したものが無いかを確認する。対応済みルールは ESLint から削除し biome へ移管する（[0002](0002-formatter-linter.md) の「ESLint による補完」= 能力ベース・縮小方向）。判定材料として `eslint.config.mjs` の各ルールに付す「なぜ biome で表現できないか」コメントを参照する
+- **ESLint → biome 移管判定**: ESLint 補完分（`eslint.config.ts` の各ルール）について、`@biomejs/biome` の更新で biome が同等検査に対応したものが無いかを確認する。対応済みルールは ESLint から削除し biome へ移管する（[0002](0002-formatter-linter.md) の「ESLint による補完」= 能力ベース・縮小方向）。判定材料として `eslint.config.ts` の各ルールに付す「なぜ biome で表現できないか」コメントを参照する
 
 ### 四半期〜半期
 
