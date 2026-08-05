@@ -17,8 +17,26 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 
 - 業務ロジック、画面ユースケースの編成、route segment からの直接 fetch
 
+## 現在の実装の位置づけ
+
+**この層の現在の中身は足場であり、画面実装の段階で全面的に置き換わります。** route segment・layout の構成・metadata の値は、app shell の情報設計と画面一覧が確定した時点で作り直す前提です。
+
+そのため、いまここに情報設計を先取りした構造を作りません。今すぐ必要な配線だけを最小限で置き、判断が要る部分は画面実装まで持ち越します。この層を読むときは、**構造の参考にはせず、mount の作法だけを参考にしてください**。
+
+現時点で足場として置いてあるもの。
+
+| 対象 | 現状 | 置き換わる契機 |
+| --- | --- | --- |
+| `layout.tsx` の html / body | 言語と font 変数、`min-h-full` の骨格のみ | app shell の実装 |
+| `metadata` の `title` / `description` | リポジトリ名と一行説明の**仮値**。`title.template` の雛形だけが恒久的な枠 | fork 先または画面実装 |
+| `metadata` の `metadataBase` | **未設定**。公開 URL を保持する config が無いため | 公開 URL を config へ足す時点 |
+| `page.tsx` | 動作確認用の最小ページ | 画面実装 |
+
 ## 運用
 
 - 層をまたぐ import は `@/*` alias を使う
 - 役割を示さない `common`、`shared`、`utils`、`lib` 等の置き場は作らない
 - 単一 feature 専用のコードは `features/<name>/` に置く
+- 横断 UI と Provider を mount してよいのは `layout.tsx` だけで、`page.tsx` は feature のみを呼ぶ。mount は**配置だけ**を意味し、layout で hook を呼んでデータを組むことは含まない
+- root layout は横断通知の Provider を mount する。通知を出す側は `useToast()` を呼ぶだけでよく、queue の state も dismiss の配線も持たない。ただし 1 画面で完結する表示状態を、ここを経由してグローバルへ持ち上げない
+- metadata は Metadata API で宣言する。`<head>` の手書きと `next/head` は使わない。root は雛形の枠だけを持ち、各 segment はそこからの差分を宣言する
