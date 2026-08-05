@@ -35,7 +35,7 @@ pnpm check:tokens
 
 前者は `src/app/generated/tokens.css` を更新します。後者は更新せず、生成結果との差分があれば失敗します。生成物を手編集してはいけません。
 
-`scripts/gen-tokens.test.ts` は **`pnpm test` では実行されません。** `vitest.config.ts` の `include` が `src/**/*.test.{ts,tsx}` に限定されているためです。生成ロジックを変えたときは `include` を差し替えた設定で個別に走らせて確認してください。生成結果そのものの回帰は `pnpm check:tokens` が CI で守ります。
+`scripts/gen-tokens.test.ts` は `pnpm test` の実行対象に含まれ、カバレッジゲートにも載ります。生成結果そのものの回帰は `pnpm check:tokens` が CI で守ります。
 
 ## 小数を含む段
 

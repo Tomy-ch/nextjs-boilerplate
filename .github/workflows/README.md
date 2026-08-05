@@ -22,13 +22,22 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Lint | `lint.yaml` | `lint` | biome（full profile）で Markdown を除くリポジトリ全体を検査する（対象範囲は `biome.json` の `files.includes`） |
 | Markdown Lint | `md-lint.yaml` | `md-lint` | markdownlint + mermaid 図の構文 + `.claude/**` の意味検査（`skill-lint`）を実行する |
 | Typecheck | `typecheck.yaml` | `typecheck` | `tsc --noEmit` で型を検査する |
-| Test | `test.yaml` | `test` | Vitest をカバレッジ 97.5% のハードゲートで実行し、octocov が coverage・差分・実行時間を PR へ報告する |
+| Test | `test.yaml` | `test` | Vitest をカバレッジ 100% のハードゲートで実行し、octocov が coverage・差分・実行時間を PR へ報告する |
 | Build | `build.yaml` | `build` | `next build` が通ることを検査する |
 | Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
 | Tokens Drift | `tokens-drift.yaml` | `tokens-drift` | hand-written token SSOT と追跡する CSS 生成物が一致することを検査する |
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
+
+## ワークフロー一覧（Components）
+
+`src/components/**` に触れる PR でだけ走る検査。**`paths:` フィルタを持つため required status check には登録しない**（下記「`paths:` フィルタを使わない」の但し書き）。
+
+| ワークフロー | ファイル | job 名 | 内容 |
+| --- | --- | --- | --- |
+| Component Classes | `component-classes.yaml` | `classes` | Tailwind が出力しない未定義 class を検出する |
+| shadcn Drift | `shadcn-drift.yaml` | `manifest` | 取り込み台帳と実体の乖離、および上流の更新を検出する |
 
 ## ワークフロー一覧（Documentation）
 
@@ -85,6 +94,8 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 本リポの CI Checks はどれも数分で終わり、実行コストよりも「本体と guard の 2 ファイルを常に裏返しの関係に保つ」保守コストのほうが高い。よってフィルタを付けず、全 PR で全 job を走らせる。
 
 将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
+
+`component-classes` / `shadcn-drift` は `paths:` を持つため、**後者（required check から外す）を選んでいる**。この 2 本を required へ登録するなら、同時に裏返しの guard を対で用意すること。
 
 ## PR コメント（検査ログ: upsert-pr-comment）
 
