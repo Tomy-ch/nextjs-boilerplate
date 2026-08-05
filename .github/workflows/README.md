@@ -38,13 +38,14 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 サイトは**単一のツリーに複数の生成物を同居させる**形を採る。GitHub Pages はリポジトリに 1 サイトしか持てないため、Storybook・portal・coverage のような生成 HTML はそれぞれサイト直下の兄弟パスへ入り、ルートは入口へ転送するだけの薄い層（[`../../docs/index.html`](../../docs/index.html)）に留める。
 
-| パス | 中身 | 状態 |
-| --- | --- | --- |
-| `/` | 現時点の入口への転送 | 実装済み |
-| `/storybook/` | Storybook（`pnpm build-storybook` の出力） | 実装済み |
-| `/portal/` | docs portal（[0141](../../docs/adr/0141-portal-operations.md)） | 予約 |
+| パス | 中身 |
+| --- | --- |
+| `/` | 入口（`/portal/`）への転送 |
+| `/portal/` | docs portal（[0141](../../docs/adr/0141-portal-operations.md)）。`pnpm portal:build` の出力 |
+| `/storybook/` | Storybook（`pnpm build-storybook` の出力） |
+| `/<dir>/`, `/*.md` | `docs/` の内容そのまま。portal のカードが `../<dir>/<file>` で参照する |
 
-ルートに Storybook を直接置かないのは、後から portal が入るときに Storybook の URL を動かさないため。portal 導入時に変わるのは転送先だけで、既存 tenant の URL は据え置かれる。
+`docs/` をサイトルートへ写すのは、走査で自動発見したドキュメントへの相対経路（`../<dir>/<file>`）を成立させるため。ここを削ると自動発見のカードが全て死にリンクになる。
 
 配信の発火は `production` への push（＋任意 ref から回すための `workflow_dispatch`）。`paths:` フィルタは付けない — 理由は下記「`paths:` フィルタを使わない」と同じではなく、リリースが間接的な経路（token・依存更新・設定）で見た目を変えうるため、対象パスを予測して並べる保守コストのほうが高いという判断による。
 
@@ -112,4 +113,4 @@ context 名は**ワークフロー名ではなく job 名**である点に注意
 | 候補 | 判断 | 理由 |
 | --- | --- | --- |
 | `sync-versions-check` | 不採用 | `mise.toml` の版数を複製する下流が本リポに存在しない（Dockerfile 無し / CI は mise-action が `mise.toml` を直読み）。検査対象そのものが無い。`package.json` の `engines` / `packageManager` 等、版数の第二宣言を置いた時点で採用する |
-| `auto-generate-docs` | 不採用（現時点） | 生成物が 1 つも存在しない。型生成（[0072](../../docs/adr/0072-api-type-generation.md)）と portal 配信（[0141](../../docs/adr/0141-portal-operations.md)）が入る時点で再検討する |
+| `auto-generate-docs` | 不採用 | portal の生成物（`guides/` / `docs.json`）は追跡せず配信時に組み立てるため、drift が発生しえない。追跡する生成物を持つのは型生成（[0072](../../docs/adr/0072-api-type-generation.md)）が入る時点で、そこで再検討する |

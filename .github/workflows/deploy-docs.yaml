@@ -82,15 +82,29 @@ jobs:
       - name: Build Storybook
         run: pnpm build-storybook
 
+      - name: Build the documentation portal
+        # Copies the manifest-registered READMEs into the portal, generates
+        # docs.json from the manifest plus a scan of docs/, and bundles the viewer.
+        run: pnpm portal:build
+
       - name: Assemble the site tree
         shell: bash
         run: |
           set -euo pipefail
 
-          # Every reference Storybook emits is relative, so the build is servable
-          # from any prefix and needs no base-path configuration.
+          # docs/ becomes the site root, so a document discovered at docs/<dir>/<file>
+          # is reachable from the portal as ../<dir>/<file> — the same relative path
+          # the generator wrote into docs.json. Copying anything less would turn every
+          # auto-discovered card into a dead link.
           mkdir -p dist
-          cp docs/index.html dist/index.html
+          cp -R docs/. dist/
+
+          # The viewer's own bundle lands on top of the generated guides and docs.json
+          # already copied to dist/portal/.
+          cp -R docs-viewer/dist/. dist/portal/
+
+          # Every reference Storybook and the viewer emit is relative, so both are
+          # servable from any prefix and need no base-path configuration.
           mv storybook-static dist/storybook
 
       - name: Upload Pages artifact

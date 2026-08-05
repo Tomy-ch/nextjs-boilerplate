@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <!--
   GitHub Pages サイトのルート（[ADR 0141](adr/0141-portal-operations.md)）。
-  生成 HTML はそれぞれサイト配下の兄弟パスに並び、ルート自身は現時点の入口へ
-  転送するだけの薄い層に留める。docs portal を入れる時点で転送先を差し替える。
+  生成 HTML はそれぞれサイト配下の兄弟パスに並び、ルート自身は入口へ転送する
+  だけの薄い層に留める。転送先は docs portal で、Storybook は /storybook/ に並ぶ。
 -->
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=./storybook/index.html" />
+    <meta http-equiv="refresh" content="0; url=./portal/index.html" />
     <script>
       // 履歴を残さない JS リダイレクト（戻るボタンで転送元へ捕まらないようにする）
-      location.replace("./storybook/index.html");
+      location.replace("./portal/index.html");
     </script>
     <title>Redirecting...</title>
   </head>
   <body>
-    <p><a href="./storybook/index.html">Storybook</a> へ移動します...</p>
+    <p><a href="./portal/index.html">ドキュメントポータル</a> へ移動します...</p>
   </body>
 </html>
