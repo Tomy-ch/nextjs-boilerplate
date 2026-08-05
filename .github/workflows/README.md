@@ -13,7 +13,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Deployment | 保護ブランチへの push | ビルド成果物の配信 |
 | Documentation | portal 配信 | 生成ドキュメントの再生成と配信 |
 
-現時点で実体があるのは **CI Checks のみ**。Security は [0110](../../docs/adr/0110-security-operations.md)、Documentation は [0141](../../docs/adr/0141-portal-operations.md) が担当し、それぞれ後続で追加する。
+実体があるのは **CI Checks** と **Documentation**。Security は [0110](../../docs/adr/0110-security-operations.md) が担当し、後続で追加する。Deployment はアプリ本体の配信先が fork 先の決定であるため（[0011](../../docs/adr/0011-no-docker.md)）本リポには置かない。
 
 ## ワークフロー一覧（CI Checks）
 
@@ -29,6 +29,26 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Tokens Drift | `tokens-drift.yaml` | `tokens-drift` | hand-written token SSOT と追跡する CSS 生成物が一致することを検査する |
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
+
+## ワークフロー一覧（Documentation）
+
+| ワークフロー | ファイル | job 名 | 内容 |
+| --- | --- | --- | --- |
+| Deploy Docs | `deploy-docs.yaml` | `build` / `deploy` | 生成 HTML のドキュメントサイトを組んで GitHub Pages へ配信する（[0141](../../docs/adr/0141-portal-operations.md)） |
+
+サイトは**単一のツリーに複数の生成物を同居させる**形を採る。GitHub Pages はリポジトリに 1 サイトしか持てないため、Storybook・portal・coverage のような生成 HTML はそれぞれサイト直下の兄弟パスへ入り、ルートは入口へ転送するだけの薄い層（[`../../docs/index.html`](../../docs/index.html)）に留める。
+
+| パス | 中身 | 状態 |
+| --- | --- | --- |
+| `/` | 現時点の入口への転送 | 実装済み |
+| `/storybook/` | Storybook（`pnpm build-storybook` の出力） | 実装済み |
+| `/portal/` | docs portal（[0141](../../docs/adr/0141-portal-operations.md)） | 予約 |
+
+ルートに Storybook を直接置かないのは、後から portal が入るときに Storybook の URL を動かさないため。portal 導入時に変わるのは転送先だけで、既存 tenant の URL は据え置かれる。
+
+配信の発火は `production` への push（＋任意 ref から回すための `workflow_dispatch`）。`paths:` フィルタは付けない — 理由は下記「`paths:` フィルタを使わない」と同じではなく、リリースが間接的な経路（token・依存更新・設定）で見た目を変えうるため、対象パスを予測して並べる保守コストのほうが高いという判断による。
+
+**GitHub Pages の有効化はユーザが Settings で実施する**（ワークフロー側で `actions/configure-pages` による自動有効化はしない）。有効化前に走った実行は deploy job で失敗する。
 
 ## hooks mirror CI
 
@@ -50,7 +70,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 - **actions の SHA ピン** — `uses: owner/repo@<40hex> # <tag>`。moving tag は禁止。**版の SSOT は末尾コメントの tag** であり、tag → SHA の対応は [`../actions-pin.toml`](../actions-pin.toml) が持つ。`make actions-pin-resolve` で解決、`make actions-pin-apply` で反映、`make actions-pin-check` で検査する（`actions-pin` job と pre-commit hook が回す。詳細は [`.makefiles/README.md`](../../.makefiles/README.md)）
 - **最小 permissions** — トップレベルは `contents: read`。PR コメントを書く job だけが `pull-requests: write` を加算する
-- **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない
+- **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.md) §3）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る
 - **harden-runner** — 全 job 冒頭で egress を `audit` で記録する
 - **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck の版はワークフロー側に書かない。mise-action が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.md)）。`matrix` は使わず `ubuntu-latest` 単一
 - **例外は mise CLI 自身の版** — `mise.toml` は mise が解決する対象を宣言するもので、mise 自身の版を宣言できない。よって mise-action の `version:` だけが唯一ワークフロー側に書かれた版数であり、全ワークフローに複製されている。更新時は全ファイルを揃えて直すこと
