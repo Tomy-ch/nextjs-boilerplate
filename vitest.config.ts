@@ -43,6 +43,7 @@ export default defineConfig({
         // 引数の受け渡しだけを持つ。撤去条件は CLI 側が判断を持ち始めた時点。
         "scripts/portal/gen-docs-json.ts",
         "scripts/portal/gen-portal-docs.ts",
+        "scripts/portal/build-site.ts",
       ],
       thresholds: {
         branches: 100,

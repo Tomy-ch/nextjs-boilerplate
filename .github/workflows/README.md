@@ -58,6 +58,8 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 配信の発火は `production` への push（＋任意 ref から回すための `workflow_dispatch`）。`paths:` フィルタは付けない — 理由は下記「`paths:` フィルタを使わない」と同じではなく、リリースが間接的な経路（token・依存更新・設定）で見た目を変えうるため、対象パスを予測して並べる保守コストのほうが高いという判断による。
 
+この workflow 自身を編集する PR では、`build` だけが自己検査として走る（`deploy` は `pull_request` を除外している）。配信の壊れは、それを必要とするリリースまで気付けないため。この PR 用の実行は **required status check へ登録しない** — 当該ファイルに触れない PR では context が報告されず、必須待ちで止まる。
+
 **GitHub Pages の有効化はユーザが Settings で実施する**（ワークフロー側で `actions/configure-pages` による自動有効化はしない）。有効化前に走った実行は deploy job で失敗する。
 
 ## hooks mirror CI

@@ -8,17 +8,26 @@ name: Deploy Docs
 # mounted at `/`. Retargeting that redirect is the only change the portal needs
 # here; no tenant URL moves.
 #
-# `paths:` is deliberately absent. This is not a CI Check, so no required status
-# context depends on it (the reason CI Checks avoid the filter is in README.md).
-# A push to `production` is a release, and a release can change the rendered
-# design system through an indirect path — a token, a dependency bump, a config
-# file — that a path list would have to predict. Releases are rare enough that
-# rebuilding unconditionally is cheaper than maintaining that prediction.
+# The release trigger carries no `paths:`. A push to `production` is a release, and
+# a release can change the rendered site through an indirect path — a token, a
+# dependency bump, a config file — that a path list would have to predict.
+# Releases are rare enough that rebuilding unconditionally is cheaper than
+# maintaining that prediction.
+#
+# A pull request that edits this file runs the build as a self-test, because a
+# broken deploy job is otherwise only discovered on the release that needs it. That
+# run is filtered to this file and MUST NOT be a required status check — a PR that
+# does not touch it reports no context at all (see README.md). It also never
+# deploys: the deploy job is gated on the event below, so no pull request can
+# publish from its branch.
 
 on:
   push:
     branches:
       - production
+  pull_request:
+    paths:
+      - .github/workflows/deploy-docs.yaml
   workflow_dispatch:
 
 permissions:
@@ -82,30 +91,12 @@ jobs:
       - name: Build Storybook
         run: pnpm build-storybook
 
-      - name: Build the documentation portal
-        # Copies the manifest-registered READMEs into the portal, generates
-        # docs.json from the manifest plus a scan of docs/, and bundles the viewer.
-        run: pnpm portal:build
-
-      - name: Assemble the site tree
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # docs/ becomes the site root, so a document discovered at docs/<dir>/<file>
-          # is reachable from the portal as ../<dir>/<file> — the same relative path
-          # the generator wrote into docs.json. Copying anything less would turn every
-          # auto-discovered card into a dead link.
-          mkdir -p dist
-          cp -R docs/. dist/
-
-          # The viewer's own bundle lands on top of the generated guides and docs.json
-          # already copied to dist/portal/.
-          cp -R docs-viewer/dist/. dist/portal/
-
-          # Every reference Storybook and the viewer emit is relative, so both are
-          # servable from any prefix and need no base-path configuration.
-          mv storybook-static dist/storybook
+      - name: Build the documentation portal and assemble the site tree
+        # Generates the portal artifacts, bundles the viewer, and lays out dist/.
+        # The layout lives in scripts/portal/site-tree.ts rather than inline here so
+        # that `pnpm portal:preview` serves byte-for-byte what this job publishes —
+        # duplicating it in shell means only one of the two ever gets fixed.
+        run: pnpm portal:site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
@@ -114,6 +105,9 @@ jobs:
 
   deploy:
     needs: build
+    # Pull requests build but never publish. Deploying from a PR branch would put
+    # unreviewed content on the live site.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     # Only this job talks to the Pages deployment API: `pages: write` creates the
     # deployment and `id-token: write` mints the OIDC token actions/deploy-pages
