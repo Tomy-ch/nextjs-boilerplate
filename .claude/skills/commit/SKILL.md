@@ -212,6 +212,7 @@ EOF
 - **Body**: Optional. If present, leave one blank line after the title and wrap around 72 characters. Prefer "why" over "what".
 - **Language**: Japanese (per the output rule in `CLAUDE.md`).
 - **`Co-Authored-By` footer**: Required, in the form `Co-Authored-By: <running model name> <noreply@anthropic.com>` — e.g. `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`. Use the identifier of the model actually producing the commit, as given by the environment / `CLAUDE.md`. Do not copy a model name hardcoded in this document: it goes stale at every model release, and a wrong name misattributes the commit.
+- **`Refs:` footer (review-applied commits only)**: when a commit applies a finding from `full-apply` / `impl-review` / `code-review`, add a `Refs: tmp/reviews/mod_*.md (<severity>)` line in the footer so the commit links to the finding. Omit it for ordinary commits.
 - **HEREDOC**: Required (keeps the title + blank line + body + footer layout intact).
 - **`--no-verify`**: Required for every commit produced by this command. This is an explicit, command-scoped carve-out from the project-wide rule; the rationale is documented in Step 4 (lefthook is run once manually before push, not N times during the split).
 - **Never use `-a`, `git add -A`, or `git add .`.** Always stage files by name (avoids sweeping in `.env` or credentials).

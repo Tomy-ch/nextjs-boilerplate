@@ -179,7 +179,7 @@ in it or every hook fails with `command not found`.
 | --- | --- | --- |
 | pre-commit | `pnpm lint:ci`; `pnpm md-lint` when `*.md` is staged; `make actionlint` when a workflow is staged | biome full profile; markdownlint + mermaid syntax + `.claude/**` semantics (`skill-lint`); workflow syntax + `run:` shell |
 | commit-msg | `make commitlint` | the subject against ADR 0150 |
-| pre-push | `pnpm typecheck`; `make secret-scan` | `tsc --noEmit`; secrets in the range being pushed (**fail-closed**) |
+| pre-push | `make test-full`; `pnpm typecheck`; `make secret-scan` | Vitest cache 無効 + カバレッジしきい値; `tsc --noEmit`; secrets in the range being pushed (**fail-closed**) |
 
 `make trivy-fs` is deliberately **not** wired into any hook (on demand only). A dependency vulnerability
 cannot be resolved by the pusher on the spot and its status changes independently of the diff, so it does
@@ -207,6 +207,34 @@ A commit-msg failure means the subject is not `<Prefix>: <subject>` with one of 
 ADR 0150, the subject is empty, or it ends with `。`. `commitlint.config.ts` deliberately omits
 `type-case` — the prefixes mix `Feat` and `CI`, so no single case rule fits. Merge and revert commits
 are skipped by commitlint's default ignores.
+
+### When a gate fails for a reason outside the change
+
+A hook failure is only evidence about the change when the failure is *caused by* the change. Three
+recurring cases are not:
+
+- **Another session's file.** `pnpm typecheck` and `make test-full` read the whole working tree, not the
+  commit range. An uncommitted file another window is mid-edit on fails the gate for a push that does not
+  contain it.
+- **Two runs sharing one output directory.** Vitest writes `coverage/.tmp` <!-- skill-lint-ignore --> and fails with
+  `Something removed the coverage directory ... Make sure you are not running multiple Vitests with the
+  same "coverage.reportsDirectory"` when a second run starts while the first is live. Nothing is wrong
+  with the code; the two runs deleted each other's temp files.
+- **A pre-existing failure on the base branch.** Verify by checking out the base and running the same
+  gate.
+
+In all three, `--no-verify` is the correct move and the cause is fixed separately — reshaping the change
+to satisfy a gate it did not break makes the change worse. Two conditions hold it in place:
+
+- **Say which gate failed and why it is outside the change**, in the report and in the PR. A carve-out
+  taken silently is indistinguishable from skipping a real failure.
+- **Never take it for a gate the push itself makes unrecoverable.** `secret-scan` is fail-closed for this
+  reason: a secret in the pushed range cannot be un-pushed. `commitlint` likewise — the subject is already
+  in history. Those two are fixed, never bypassed.
+
+**Do not pre-empt the hook by running the heavy gates by hand first.** They are minutes of saturated host
+to rediscover what the hook and CI run identically, and the saturation itself produces the second case
+above. Pushing *is* the verification step.
 
 To check a message without committing:
 

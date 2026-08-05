@@ -209,6 +209,7 @@ EOF
 - **本文**: 任意。書く場合はタイトルの後に空行を 1 行入れ、72 文字程度で折り返す。「何を」より「なぜ」を優先する。
 - **言語**: 日本語（`CLAUDE.md` の出力規約に従う）。
 - **`Co-Authored-By` フッタ**: 必須。形式は `Co-Authored-By: <実行中のモデル名> <noreply@anthropic.com>` — 例: `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`。実際にコミットを生成しているモデルの識別子を、環境 / `CLAUDE.md` の記載どおりに使う。本ドキュメントにハードコードされたモデル名を写さないこと — モデルのリリースごとに古くなり、誤った名前はコミットの帰属を誤らせる。
+- **`Refs:` footer（レビュー適用コミットのみ）**: `full-apply` / `impl-review` / `code-review` の指摘を適用したコミットには、`Refs: tmp/reviews/mod_*.md (<severity>)` の行を footer へ足し、コミットからfinding へ辿れるようにする。通常のコミットには付けない。
 - **HEREDOC**: 必須（タイトル + 空行 + 本文 + フッタの体裁を保つ）。
 - **`--no-verify`**: このコマンドが作る全コミットで必須。プロジェクト全体の規則に対するコマンド限定の明示的な例外であり、根拠は Step 4 に記載（lefthook は分割中に N 回ではなく、push 前に 1 回手動で回す）。
 - **`-a` / `git add -A` / `git add .` は決して使わない。** 常にファイル名を指定して staging する（`.env` や資格情報の巻き込みを避ける）。
