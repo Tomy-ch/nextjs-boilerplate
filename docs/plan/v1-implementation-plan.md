@@ -362,7 +362,7 @@ shadcn/ui を import
 
 ## 4. PR 一覧
 
-全 65 PR。issue 化の単位はこの 1 行 = 1 issue。
+全 64 PR。issue 化の単位はこの 1 行 = 1 issue。
 
 | ID | タイトル | Phase | 依存 |
 | --- | --- | --- | --- |
@@ -423,8 +423,7 @@ shadcn/ui を import
 | P7-1 | 爆破スクリプト移植 | 7 | P5-16 |
 | P7-2 | マーカー埋め込み + purge 検証 CI | 7 | P7-1, P6-4 |
 | P7-3 | `new-feature` スキル(B12) | 7 | P4-6, P3-10 |
-| P8-1 | portal 基盤移植 | 8 | P5-16 |
-| P8-2 | deploy-docs workflow + スキル復活 | 8 | P8-1, P2-1 |
+| P8-2 | portal 運用スキルの復活 + Pages 有効化 | 8 | P5-16 |
 | P9-1 | rules.md 磨き上げ | 9 | P7-2, Phase 6 全 PR, Phase 8 全 PR |
 | P9-2 | EN canonical 化 + `.ja.md` mirror | 9 | P9-1 |
 | P9-3 | ADR immutable 化 + 経緯除去 + 暫定運用の撤去 | 9 | P9-2 |
@@ -671,6 +670,8 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
 
 垂直スライスを通すための土台。ここまで `src/` は `app/` のみで、実装コードがほぼ存在しない。
 
+ドキュメント portal([0141](../adr/0141-portal-operations.md))の生成基盤・ビューアー・配信 workflow も、デザインシステムの最初の利用者として P3-8 と同じ PR で着地させる。Storybook の中だけでは掛からない負荷(実データ量・実文書長・実際の組み合わせ)を部品へ掛けるためであり、Phase 8 には運用スキルと Pages 有効化だけが残る。
+
 ### P3-1: 11 カーネルの物理化 + 層別 README(B13)
 
 - **目的**: `src/` にカーネルを実体化し、責務と公開面を README で宣言する
@@ -755,12 +756,12 @@ test-requirement: unit
   - `vitest.config.ts` — カバレッジ設定 / 環境分離
   - `.makefiles/` — `make test-full`(CI 厳格・キャッシュ無効)/ `make test-cached`(pre-commit 高速)の二層
   - `.lefthook.yaml` — pre-commit へ `test-cached` を接続
-  - `.github/workflows/test.yaml` — カバレッジ 97.5% ゲート + PR レポート(octocov)
+  - `.github/workflows/test.yaml` — カバレッジ 100% ゲート + PR レポート(octocov)
 - **規約**: co-location(`__tests__` 集約は否定)/ 正常系・異常系を分ける / table-driven 禁止 / 命名は kebab + `.test.ts` / integration は HTTP 境界を mock
-- **カバレッジ**: 97.5% ハードゲート。**到達不可能コード以外は全てテストする**方針のため閾値は維持できる想定(維持できない場合は相談)
+- **カバレッジ**: 100% ハードゲート。**到達不可能コード以外は全てテストする**方針のため閾値は維持できる想定(維持できない場合は相談)
 - **async RSC のテスト配置**: [0091](../adr/0091-test-verification-methods.md) に従う
 - **持越し**: BACKLOG GB-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルのテスト導入後の検証手順への更新は、Claude 利用可能後の **P4-0** で回収する
-- **強制手段**: CI(カバレッジ 97.5% ハードゲート)+ lefthook(pre-commit)
+- **強制手段**: CI(カバレッジ 100% ハードゲート)+ lefthook(pre-commit)
 - **完了条件**: `make test-full` が CI で緑。カバレッジゲートが PR にレポートされる。**BACKLOG B8 は Playwright を含む(P6-4)ため、ここでは ⚠️ に留め P6-4 で ✅ にする**
 - **依存**: P3-1, P2-1
 
@@ -1437,32 +1438,18 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 
 ## Phase 8: docs portal
 
-[0141](../adr/0141-portal-operations.md) の実装。README が出揃ってから着手する。
+[0141](../adr/0141-portal-operations.md) の残務。生成基盤(`docs/portal/manifest.yaml` / `scripts/portal/` / `docs-viewer/`)と GitHub Pages への配信 workflow は Phase 3 で着地済みで、ここに残るのは manifest のキュレーションを支える運用スキルと、リポジトリ設定である Pages の有効化だけである。スキルの判定対象が README である以上、README が出揃ってから着手する。
 
-### P8-1: portal 基盤移植
+### P8-2: portal 運用スキルの復活 + Pages 有効化
 
-- **目的**: ドキュメント portal の生成基盤を用意する
-- **対象 ADR**: [0141](../adr/0141-portal-operations.md) / [0004](../adr/0004-library-management.md) / [0140](../adr/0140-documentation-operations.md)
+- **目的**: manifest の同期をスキル化し、portal を公開する
+- **対象 ADR**: [0141](../adr/0141-portal-operations.md) / [0155](../adr/0155-claude-skills-development.md)
 - **主な変更先**:
-  - `docs/portal/manifest.yaml` — **構造制御のみ**(curated manual)。コード README は手動登録、`docs/*` は自動発見
-  - `scripts/portal/` — gen-portal-docs / gen-docs-json(判断は純粋関数、FS 入出力は CLI)
-  - `docs-viewer/` — ビューアーの独立 workspace パッケージ(Vite ビルド)。無害化の許容範囲をアプリ本体と分けるための境界
-  - `docs-viewer/package.json` — 独立した依存宣言([0004](../adr/0004-library-management.md) 準拠の exact pin)
-- **設計**: go 側から移植するが Go 結合はゼロ。manifest の中身と除外リストの差替のみ
-- **完了条件**: `make build-portal` でローカルに portal が生成され、閲覧できる
-- **依存**: P5-16
-
-### P8-2: deploy-docs workflow + スキル復活
-
-- **目的**: portal を公開し、manifest の同期をスキル化する
-- **対象 ADR**: [0141](../adr/0141-portal-operations.md) / [0153](../adr/0153-ci-configuration.md)
-- **主な変更先**:
-  - `.github/workflows/deploy-docs.yaml` — GitHub Pages
   - `.claude/skills/portal-manifest-sync/` — BACKLOG「対象外(D)」からの復活移植
   - `.claude/skills/readme-review/` — manual-worthy 判定から `portal-manifest-sync` への導線を接続
 - **完了条件**: GitHub Pages で portal が公開される(**Pages の有効化はユーザが実施**)。`portal-manifest-sync` が manifest の drift を検出する
 - **URL 整合**: setup が書き込む portal URL（既定の GitHub Pages project site または導入先指定の custom domain）で、Typeset の Storybook 例から公開 portal へ到達できる
-- **依存**: P8-1, P2-1
+- **依存**: P5-16
 
 ---
 

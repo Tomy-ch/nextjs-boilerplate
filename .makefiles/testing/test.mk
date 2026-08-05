@@ -1,5 +1,5 @@
 ## テスト
-.PHONY: test-full ## カバレッジを測定し、97.5% のしきい値を検証する
+.PHONY: test-full ## カバレッジを測定し、100% のしきい値を検証する
 test-full:
 	pnpm test
 

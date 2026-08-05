@@ -88,7 +88,7 @@
 | **W8: テスト**(v1 Phase 3 後) | | | | | |
 | IM-28 | `scaffold-test` / `test-review`(GB-5) | C | — | P3-6 完了 | `test-review` 完了 / `scaffold-test` 未着手 |
 | **W9: docs portal**(v1 Phase 8) | | | | | |
-| IM-29 | `portal-manifest-sync` 復活 | A | P8-2 | P8-1 | 未着手 |
+| IM-29 | `portal-manifest-sync` 復活 | A | P8-2 | P5-16 | 未着手 |
 | IM-30 | `docs/maintenance/` の新設 | B | P3-10 | P3-10 | 未着手 |
 | **W10: 外部スキル** | | | | | |
 | IM-31 | graphify 導入(pin / bootstrap / 権限境界 / 除外) | B | — | go 側の検証決着 | 完了(issue #102) |
@@ -353,7 +353,7 @@ P8-2 に受け皿があり、そこへ書き足す: pair_drift preflight → N1(
 #### IM-30: `docs/maintenance/` の新設(受け皿 P3-10)
 
 - **目的**: スキルが実行時に読む手順書の置き場を作る。現在は手順がスキル本文に埋まっており、スキル改修なしに手順を直せない
-- **翻案メモ**: go 側の `docs/maintenance/` から、本リポジトリに実在するものだけを採る — `node-upgrade.md`(go-upgrade.md 相当)、`portal-manifest.md`(P8-1 と同時)、`docs-structure.md`。Docker / DB 系(`db-worktree-pool.md` / `local-environment.md`)は対象外
+- **翻案メモ**: go 側の `docs/maintenance/` から、本リポジトリに実在するものだけを採る — `node-upgrade.md`(go-upgrade.md 相当)、`portal-manifest.md`(P8-2 と同時)、`docs-structure.md`。Docker / DB 系(`db-worktree-pool.md` / `local-environment.md`)は対象外
 
 ### W10: 外部スキル
 
