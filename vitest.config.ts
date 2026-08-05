@@ -19,7 +19,18 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "v8",
-      include: ["src/**/*.{ts,tsx}", "docs-viewer/src/**/*.{ts,tsx}"],
+      // テストを持つ範囲は実行対象と計測対象を揃える。片方だけ広げると、テストは走るのに
+      // ゲートに載らない範囲ができ、未テストの分岐を足しても緑のまま通る（ADR 0090）。
+      //
+      // scripts/ のうち portal 以外（actions-pin / actions-shellcheck / setup / lib）は
+      // 現時点でテストを持たないため計測対象へ入れていない。これは記録された除外であって
+      // 暗黙の穴ではない。撤去条件は当該スクリプト群にテストが入った時点。
+      include: [
+        "src/**/*.{ts,tsx}",
+        "docs-viewer/src/**/*.{ts,tsx}",
+        "scripts/portal/**/*.ts",
+        "tokens/**/*.ts",
+      ],
       exclude: [
         "src/**/*.test.{ts,tsx}",
         "src/**/*.stories.{ts,tsx}",
@@ -28,6 +39,10 @@ export default defineConfig({
         // ビューアーの entry。読み込まれた時点で DOM を触るため import しただけで副作用が出る。
         // 判断はすべて mount/mount-portal.tsx 側にあり、そちらは検査対象に残している。
         "docs-viewer/src/main.tsx",
+        // portal の CLI entry。判断は同ディレクトリの純粋関数側にあり、こちらは FS 入出力と
+        // 引数の受け渡しだけを持つ。撤去条件は CLI 側が判断を持ち始めた時点。
+        "scripts/portal/gen-docs-json.ts",
+        "scripts/portal/gen-portal-docs.ts",
       ],
       thresholds: {
         branches: 100,

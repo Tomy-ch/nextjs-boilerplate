@@ -12,15 +12,6 @@ minimumReleaseAge: 10080
 # 緊急のセキュリティ修正は、影響を受ける特定バージョンだけを一時的に例外化する。(パッケージ名だけの例外は禁止)
 minimumReleaseAgeExclude:
   - conventional-commits-parser@7.1.1 # 2026-08-02 20:34 JST 以降に削除する。@commitlint の開発時依存であり、既知脆弱性なしを確認済み。
-  - storybook@10.5.5 # 2026-08-03 10:11 JST 以降に削除する。npm 署名・SHA-512 integrity・SLSA v1 provenance を確認済み。
-  - '@storybook/nextjs-vite@10.5.5' # 2026-08-03 10:11 JST 以降に削除する。npm 署名・SHA-512 integrity・SLSA v1 provenance を確認済み。
-  - '@storybook/addon-a11y@10.5.5' # 2026-08-03 10:11 JST 以降に削除する。npm 署名・SHA-512 integrity・SLSA v1 provenance を確認済み。
-  - '@storybook/addon-docs@10.5.5' # 2026-08-03 10:11 JST 以降に削除する。npm 署名・SHA-512 integrity・SLSA v1 provenance を確認済み。
-  - '@storybook/react-dom-shim@10.5.5' # 2026-08-03 10:11 JST 以降に削除する。npm 署名・SHA-512 integrity・SLSA v1 provenance を確認済み。
-  - '@storybook/csf-plugin@10.5.5' # 2026-08-03 10:11 JST 以降に削除する。npm 署名・SHA-512 integrity・SLSA v1 provenance を確認済み。
-  - '@storybook/react@10.5.5' # 2026-08-03 10:11 JST 以降に削除する。npm 署名・SHA-512 integrity・SLSA v1 provenance を確認済み。
-  - '@storybook/react-vite@10.5.5' # 2026-08-03 10:11 JST 以降に削除する。npm 署名・SHA-512 integrity・SLSA v1 provenance を確認済み。
-  - '@storybook/builder-vite@10.5.5' # 2026-08-03 10:11 JST 以降に削除する。npm 署名・SHA-512 integrity・SLSA v1 provenance を確認済み。
 # 冷却期間を満たす版がなければ解決を失敗させる。
 minimumReleaseAgeStrict: true
 # 公開日時を返さないレジストリの依存は解決を失敗させる。

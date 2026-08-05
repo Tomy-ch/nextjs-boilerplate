@@ -180,7 +180,7 @@ importers:
         specifier: 2.3.6
         version: 2.3.6
       input-otp:
-        specifier: ^1.4.2
+        specifier: 1.4.2
         version: 1.4.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       lucide-react:
         specifier: 1.26.0
@@ -201,7 +201,7 @@ importers:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
       react-resizable-panels:
-        specifier: ^4.12.2
+        specifier: 4.12.2
         version: 4.12.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       recharts:
         specifier: 3.8.0
@@ -394,6 +394,9 @@ importers:
       jsdom:
         specifier: 29.0.1
         version: 29.0.1
+      msw:
+        specifier: 2.15.0
+        version: 2.15.0(@types/node@26.1.1)(typescript@6.0.3)
       tailwindcss:
         specifier: 4.3.3
         version: 4.3.3
