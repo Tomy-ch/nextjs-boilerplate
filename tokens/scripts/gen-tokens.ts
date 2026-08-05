@@ -28,8 +28,12 @@ function flattenTokens(group: TokenGroup, path: string[] = []): Array<[string[],
   });
 }
 
+/**
+ * CSS のカスタムプロパティ名は ident であり、`.` をそのまま置けない。`spacing.0.5` のような
+ * 小数の段は `--spacing-0\.5` と綴る必要がある。Tailwind が生成する参照側も同じ綴りになる。
+ */
 function toVariableName(path: string[]): string {
-  return path.join("-");
+  return path.join("-").replaceAll(".", String.raw`\.`);
 }
 
 function toCssValue(value: TokenValue): string {
@@ -48,35 +52,75 @@ function toThemeVariable(path: string[]): string {
   return `--${toVariableName(path)}`;
 }
 
-function toReference(value: string): string {
-  const path = value.slice(1, -1).split(".");
-  return `var(${toPrimitiveVariable(path)})`;
+/**
+ * `{color.neutral.0}` 形式の参照を primitive の変数へ解決する。
+ *
+ * 参照は `.` 区切りだが、`spacing.0.5` のように段の名前自体が `.` を含むため区切りだけでは
+ * 一意に定まらない。宣言済みの変数名と突き合わせて解決し、見つからなければ落とす。放置すると
+ * 実在しない変数を指す `var()` が生成され、宣言ごと無効になって面や文字が消える。
+ */
+function toReference(value: string, declared: ReadonlySet<string>): string {
+  const segments = value.slice(1, -1).split(".");
+  for (let split = segments.length; split > 0; split--) {
+    // 後ろから順に `.` を段の名前として畳み、宣言済みの変数に当たったものを採る
+    const candidate = toPrimitiveVariable([
+      ...segments.slice(0, split - 1),
+      segments.slice(split - 1).join("."),
+    ]);
+    if (declared.has(candidate)) return `var(${candidate})`;
+  }
+  throw new Error(`token 参照 ${value} に対応する primitive がありません`);
 }
 
-function renderTheme(name: string, tokens: TokenGroup): string {
-  const indentation = name === "light" ? "" : "  ";
-  const declarations = flattenTokens(tokens).map(([path, token]) => {
-    const value =
-      typeof token.$value === "string" && token.$value.startsWith("{")
-        ? toReference(token.$value)
-        : toCssValue(token.$value);
-    return `  ${indentation}${toSemanticVariable(path)}: ${value};`;
-  });
+const defaultThemeName = "light";
 
-  if (name === "light") {
-    return `:root {\n${declarations.join("\n")}\n}`;
+function renderDeclarations(
+  tokens: TokenGroup,
+  indentation: string,
+  declared: ReadonlySet<string>,
+): string {
+  return flattenTokens(tokens)
+    .map(([path, token]) => {
+      const value =
+        typeof token.$value === "string" && token.$value.startsWith("{")
+          ? toReference(token.$value, declared)
+          : toCssValue(token.$value);
+      return `  ${indentation}${toSemanticVariable(path)}: ${value};`;
+    })
+    .join("\n");
+}
+
+/**
+ * theme 1 つぶんの CSS ブロックを組み立てる。
+ *
+ * 既定 theme は `:root` に置き、それ以外は「OS の設定」と「`data-theme` の明示指定」の
+ * 二経路で発火させる。OS 側のブロックが `data-theme` の明示指定を打ち消さないよう、
+ * 既定 theme を指定した root は media query 側から除外する。
+ *
+ * 既定以外の theme は `screen` に限定する。media type を伴わない条件は print にも一致するため、
+ * 暗い配色のまま印刷されてしまう。背景の塗りは印刷時に落ちるので、そのままだと白い紙に薄い文字が
+ * 出る。既定 theme だけが `:root` に残ることで、印刷は常に既定の配色になる。
+ */
+function renderTheme(name: string, tokens: TokenGroup, declared: ReadonlySet<string>): string[] {
+  if (name === defaultThemeName) {
+    return [`:root {\n${renderDeclarations(tokens, "", declared)}\n}`];
   }
 
-  return `@media (prefers-color-scheme: ${name}) {\n  :root {\n${declarations.join("\n")}\n  }\n}`;
+  return [
+    `@media screen and (prefers-color-scheme: ${name}) {\n  :root:not([data-theme="${defaultThemeName}"]) {\n${renderDeclarations(tokens, "  ", declared)}\n  }\n}`,
+    `@media screen {\n  :root[data-theme="${name}"] {\n${renderDeclarations(tokens, "  ", declared)}\n  }\n}`,
+  ];
 }
 
 /** W3C Design Tokens 形式の入力から Tailwind v4 用 CSS を生成する。 */
 export function generateTokensCss(primitives: TokenGroup, themes: TokenGroup): string {
-  const primitiveDeclarations = flattenTokens(primitives).map(
+  const primitivePaths = flattenTokens(primitives);
+  const declared = new Set(primitivePaths.map(([path]) => toPrimitiveVariable(path)));
+  const primitiveDeclarations = primitivePaths.map(
     ([path, token]) => `  ${toPrimitiveVariable(path)}: ${toCssValue(token.$value)};`,
   );
   const themeEntries = Object.entries(themes.theme as TokenGroup);
-  const defaultTheme = themeEntries.find(([name]) => name === "light")?.[1] as TokenGroup;
+  const defaultTheme = themeEntries.find(([name]) => name === defaultThemeName)?.[1] as TokenGroup;
   const semanticDeclarations = flattenTokens(defaultTheme).map(([path]) => {
     return `  ${toThemeVariable(path)}: var(${toSemanticVariable(path)});`;
   });
@@ -92,7 +136,7 @@ export function generateTokensCss(primitives: TokenGroup, themes: TokenGroup): s
     ...semanticDeclarations,
     "}",
     "",
-    ...themeEntries.map(([name, tokens]) => renderTheme(name, tokens as TokenGroup)),
+    ...themeEntries.flatMap(([name, tokens]) => renderTheme(name, tokens as TokenGroup, declared)),
     "",
   ].join("\n");
 }
