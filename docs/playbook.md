@@ -72,5 +72,18 @@ export async function listProducts(): Promise<readonly Product[]> {
 実装後:
 
 - [ ] 4状態のテストと story を追加した
-- [ ] `pnpm lint:ci`、`pnpm typecheck`、`pnpm test` を実行した
+- [ ] `pnpm lint:ci`、`pnpm typecheck`、`pnpm test` を実行した（他の作業と並行して流すときは `pnpm test:light`）
 - [ ] feature README と [rules.md](rules.md) の該当規約を更新した
+
+### 低負荷モード
+
+`pnpm test` は既定で CPU コア数ぶんの worker を起こす。全部品が jsdom を組み立てるため、16 コアではピーク 4.4 GB / 19 プロセスに達し、Storybook の dev サーバーなど他のプロセスと同時に動かすと双方が遅くなる。**待ち時間ではなく、タイムアウトによる偽の失敗として現れる**ので原因が分かりにくい。
+
+worker 数を 4 に抑えた `pnpm test:light` を使う。実測ではピークが 1.8 GB / 8 プロセスまで下がり、所要は 22% しか延びない。
+
+| モード | ピーク RSS | 最大プロセス | 所要 |
+| --- | ---: | ---: | ---: |
+| `pnpm test` | 4428 MB | 19 | 26.6s |
+| `pnpm test:light` | 1808 MB | 8 | 32.5s |
+
+上限を変えたい、対象を絞りたいといった場合は `pnpm exec vitest run <対象> --maxWorkers=2` のように直接指定する。`vitest.config.ts` には並列度を書かない。既定を書き換えると CI と手元で挙動が割れ、負荷を落としたい状況とそうでない状況の区別が消えるためである。

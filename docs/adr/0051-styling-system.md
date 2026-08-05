@@ -24,10 +24,11 @@ Accepted
 
 - token を **2 層**に分ける。この分離は [W3C Design Tokens](https://www.w3.org/community/design-tokens/) が標準化を進める業界パターンであり、CSS custom properties だけで成立する(**Tailwind を抜いても成立する** = 0010 §2 非ロックインの正当性材料)。
   - **primitive(生スケール)**: 意味を持たない生の値。色パレット(`--color-*` の raw ramp)・`--spacing-*`・`--text-*`(font-size / line-height)・`--font-weight-*`・`--radius-*`・`--shadow-*`。**Tailwind v4 の `@theme` に登録**し、ユーティリティを自動生成させる。
-  - **semantic(意味別名)**: 用途を名指しした別名。`--color-bg` / `--color-fg` / `--color-muted` / `--color-border` / `--color-accent` 等。primitive を `var()` で参照する。**参照面(コンポーネント)の既定は semantic 層**とする。
+  - **semantic(意味別名)**: 用途を名指しした別名。接頭辞は `--semantic-color-*`(`background` / `foreground` / `muted` / `border` / `accent` 等)とし、primitive を `var()` で参照する。**参照面(コンポーネント)の既定は semantic 層**とする。接頭辞を分けるのは、生成した CSS に対する検出で primitive 直参照と semantic 参照を機械的に見分けるためである。
 - **色は semantic 経由でのみ参照**する(0050「色をハードコードせず token 経由」の具体化)。primitive を直接コンポーネントに撒かない。
-- **テーマ切替(ライト/ダーク等)は semantic 別名の再束縛だけで完結**させる(`prefers-color-scheme` / `dark` variant で semantic の指す primitive を差し替える)。これが 0050 のダークモード決定を体系として成立させる要。既存 `globals.css` の `:root` → `@theme inline` → `dark` 再束縛の形を正典とする。
-- token 定義は `globals.css`(またはそれが import する CSS)に集約する(0050 の global 集約方針を踏襲)。
+- **token の SSOT は `tokens/*.json`**([W3C Design Tokens](https://www.w3.org/community/design-tokens/) 形式・手書き)であり、デザインツールからの生成物ではない。`tokens/scripts/gen-tokens.ts` が primitive の `@theme` 登録と semantic 別名を含む CSS を生成し、`src/app/globals.css` がそれを import する。**生成物は編集しない**([0072](0072-api-type-generation.md) の生成物規律と同型)。CSS を直接書き換えると SSOT が二重化するため、token の追加・変更は必ず `tokens/*.json` に対して行う。
+- **テーマ切替(ライト/ダーク等)は semantic 別名の再束縛だけで完結**させる。これが 0050 のダークモード決定を体系として成立させる要である。切替の経路は 2 つで、既定は OS 設定(`prefers-color-scheme`)、`data-theme` 属性が置かれている場合はそちらを優先する。**Tailwind の `dark:` variant も同じ 2 経路で発火させる**(`@custom-variant`)。片方だけを見る条件にすると、面の色だけが切り替わって `dark:` 付きの class が追従しない状態になる。
+- **既定以外の theme は `screen` メディアへ限定する。** 限定しないと dark の配色が印刷にも一致し、紙面が読めなくなる(§4)。
 - **スケールの対象軸**: color / spacing / typography(size・line-height・weight)/ radius / shadow。z-index スケールの token 化は本 ADR の 2 層モデルに乗る同型の関心だが、レイヤリング規約(triage #23)として `docs/rules.md` 側で扱う(本 ADR は「z も token 化する」土台のみ示す)。
 
 ### 2. レスポンシブ = viewport ブレークポイント(mobile-first)+ コンテナクエリ
@@ -45,6 +46,7 @@ Accepted
   - **0010 §2(vendor-independent 正当性材料)**: 採用根拠は「Framer が推奨するから」ではない。上記の複雑ケース(特に **exit アニメーション** = 要素がアンマウントされる前の退場遷移)は **CSS / View Transitions だけでは構造的に表現できない**(React のアンマウント制御と DOM 生存期間の噛み合わせが必要)。この「標準では届かない具体的欠落を、宣言的 API で埋める」という根拠は Framer という固有ベンダーを抜いても成立する(同種の代替 = React Spring / GSAP / Motion One 等の中から、宣言的・React 統合・a11y 配慮という独立根拠で Framer を 1 要因として選択した)。既定を標準手段に置き Framer を複雑ケースに限定する境界そのものが、非ロックインの運用テスト(「Framer を抜いても既定モーションは成立するか」= Yes)を満たす。
   - **置き場 = `components`**: Framer Motion(`motion.*` コンポーネント / `AnimatePresence` / `useAnimate` 等)への **vendor 直参照は `components` 層に閉じる**。feature スライス側に `motion` を直接撒かず、モーション付き UI は再利用可能なコンポーネントとして `components` にラップして提供する(0010 §2「adapters / カーネル境界の裏に置き差し替え可能に保つ」の具体化 = vendor 差し替え時の影響面を `components` に局所化)。
   - **依存管理**: `motion` は core dep として **exact-pin**(`pnpm add -E`)し、追加時に **`pnpm audit`** を実施する([0004](0004-library-management.md))。major 更新は別 PR で扱う。
+  - **設置面が実在した時点で依存へ追加する**([0053](0053-ui-component-interaction-seam.md) の「設置面が無い拡張点を実体化しない」と同型)。既定手段で足りている間に先回りで入れると、使われないまま major 更新の追随コストだけが残る。
 - **`prefers-reduced-motion` の尊重を必須**とする(Tailwind の `motion-reduce:` / `motion-safe:` variant、`@media (prefers-reduced-motion)`、または Framer Motion の `useReducedMotion` フックで実装)。reduced-motion の尊重は WCAG SC 2.3.3 Animation from Interactions(**Level AAA**)に対応する。AA には該当を直接義務付ける SC はないが、本プロジェクトはユーザ体験配慮として `prefers-reduced-motion` を尊重する。**この強制の根拠水準(AAA)は本 ADR で明記**し、本 ADR は「モーション実装時に reduced-motion 分岐を欠かさない」という体系側の帰結を持つ。Framer Motion を用いる場合も reduced-motion 尊重は同じく必須(退場・layout・spring も低減対象)。
 
 ### 4. 印刷 / PDF = print CSS(フロント拡張点)/ PDF 生成(backend 境界 seam)
@@ -52,7 +54,8 @@ Accepted
 - **境界判定(「別ドメインか?」)** により、印刷関心を 2 分する。
   - **print CSS = フロント領域の拡張点**。Tailwind の **`print:` variant / `@media print`**(CSS 標準)を、印刷体裁を与える**名前付きの拡張点**として定義する。0050 の global 集約に従い、print 用のグローバル調整が要る場合は `globals.css` に置く。
   - **PDF 生成 = backend ドメイン = 境界 seam で切る**。サーバサイド PDF レンダリング(Puppeteer / 帳票エンジン等)はバックエンド責務([0070](0070-backend-role-separation.md))であり、フロントは「印刷可能な HTML/CSS を提供する」ところまでを担い、その先は境界 seam として名前を付けて切る(表示層で PDF を生成しない)。
-- print CSS の**最小実装を 0.0.x で同梱するか実装 PR に先送りするか**は用途依存で割れるため、本 ADR は**拡張点(`print:` / `@media print` という座)の定義に留め**、最小 print reset の同梱是非は実装フェーズの判断とする(下記「補足」参照)。
+- **最小の print 実装を同梱する。** 紙面の余白・見出しと段落の分断抑止・表の見出し行の繰り返しという、出力対象によらず効く体裁だけを CSS 基盤として持つ。**何を紙に出すかは持たない** —— 出す / 出さないの指定は呼び出し元が class で与え、tag からは自動判定しない。`window.print()` の実行と PDF 生成もこの基盤の外である。
+- **dark 配色を print へ持ち込まない。** 既定以外の theme を `screen` メディアへ限定することで担保する(§1)。限定しないと、暗い面に明るい文字という配色がそのまま紙面に出て読めなくなる。
 
 ## 禁止事項
 
@@ -68,10 +71,9 @@ Accepted
 ## 補足
 
 - **Figma → CSS 変数 同期は本 ADR の射程外**。token の**体系(命名層・スケール軸)**のみを本 ADR が定め、デザインツールとの**同期方式**(Figma variables → CSS の生成/取り込み)は未 frame(実装 PR / fork 先で確定)とし、本 ADR の射程外とする。本 ADR で同期方式に踏み込むと後続決定と矛盾しうるため、意図的に体系のみへ限定した。
-- **モーションライブラリ採用の帰属**は 0050 系(本 ADR)と [0052](0052-ui-component-policy.md)(UI ライブラリ)で射程が重なる。v1 バッテリー採用への転換により、モーション手段(既定 = CSS / View Transitions、複雑ケース = Framer Motion)の**採用決定は本 ADR が所有**する([master-plan §1.2](../plan/master-plan.md))。0052 が扱う UI コンポーネントライブラリ(shadcn/ui 等)とは関心が別のため、モーションは本 ADR 側で一元管理する。両 ADR の相互参照の最終整合(0052 → 本 ADR back-link)は最終整理フェーズで付与する。
-- **`prefers-reduced-motion` 必須化の根拠水準**は本 ADR で明記する。reduced-motion 尊重は WCAG SC 2.3.3(**Level AAA**)に対応し、AA には直接の該当 SC がない —— したがって 0100(a11y AA 目標)は motion 尊重を直接の義務としては持たない。本 ADR は AA 準拠とは独立に、ユーザ体験配慮として `prefers-reduced-motion` を必須とする立場を採り、その強制根拠水準(AAA)は本 ADR 側で明記して齟齬を残さない。0100 本体は Accepted の Protected Documentation のため本 ADR 作成時点では相互参照の back-link を付さない(最終整理フェーズで付与)。
-- **print CSS 最小実装の同梱是非**は保留(0.0.x は拡張点の定義まで)。fork 先の帳票要件の有無で最小実装の要否が割れるため、強引に「同梱する/しない」を確定しない。
-- 0050 は Accepted の Protected Documentation のため、本 ADR 作成時点では 0050 本体への追補・back-link 付与は行わない。0050 → 本 ADR の相互参照は AGENTS.md 整合・v1 大規模整理と同じ最終整理フェーズでまとめて付与する。
+- **モーションライブラリ採用の帰属**は 0050 系(本 ADR)と [0052](0052-ui-component-policy.md)(UI ライブラリ)で射程が重なる。モーション手段(既定 = CSS / View Transitions、複雑ケース = Framer Motion)の**採用決定は本 ADR が所有**する。0052 が扱う UI コンポーネントライブラリ(shadcn/ui 等)とは関心が別のため、モーションは本 ADR 側で一元管理する。
+- **`prefers-reduced-motion` 必須化の根拠水準**は本 ADR で明記する。reduced-motion 尊重は WCAG SC 2.3.3(**Level AAA**)に対応し、AA には直接の該当 SC がない —— したがって [0100](0100-accessibility-target.md)(a11y AA 目標)は motion 尊重を直接の義務としては持たない。本 ADR は AA 準拠とは独立に、ユーザ体験配慮として `prefers-reduced-motion` を必須とする立場を採り、その強制根拠水準(AAA)は本 ADR 側で明記して齟齬を残さない。
+- **reduced-motion で「止める」と決めた表現は、止めた状態で何も伝わらなくならないことまでを含む。** 動きだけで進行中を示す表現(帯の流れ等)は、停止時に代替の手掛かり(骨格表示・待機文言)を併用する前提で設計する。
 - 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーにおいて **decision** 分類に属する(体系の決定であり、日常強制される rule = Tailwind クラス順序等は `docs/rules.md` 側 / triage #34)。
 
 ## 関連 ADR

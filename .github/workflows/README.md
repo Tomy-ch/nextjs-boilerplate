@@ -13,7 +13,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Deployment | 保護ブランチへの push | ビルド成果物の配信 |
 | Documentation | portal 配信 | 生成ドキュメントの再生成と配信 |
 
-現時点で実体があるのは **CI Checks のみ**。Security は [0110](../../docs/adr/0110-security-operations.md)、Documentation は [0141](../../docs/adr/0141-portal-operations.md) が担当し、それぞれ後続で追加する。
+実体があるのは **CI Checks** と **Documentation**。Security は [0110](../../docs/adr/0110-security-operations.md) が担当し、後続で追加する。Deployment はアプリ本体の配信先が fork 先の決定であるため（[0011](../../docs/adr/0011-no-docker.md)）本リポには置かない。
 
 ## ワークフロー一覧（CI Checks）
 
@@ -22,13 +22,45 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Lint | `lint.yaml` | `lint` | biome（full profile）で Markdown を除くリポジトリ全体を検査する（対象範囲は `biome.json` の `files.includes`） |
 | Markdown Lint | `md-lint.yaml` | `md-lint` | markdownlint + mermaid 図の構文 + `.claude/**` の意味検査（`skill-lint`）を実行する |
 | Typecheck | `typecheck.yaml` | `typecheck` | `tsc --noEmit` で型を検査する |
-| Test | `test.yaml` | `test` | Vitest をカバレッジ 97.5% のハードゲートで実行し、octocov が coverage・差分・実行時間を PR へ報告する |
+| Test | `test.yaml` | `test` | Vitest をカバレッジ 100% のハードゲートで実行し、octocov が coverage・差分・実行時間を PR へ報告する |
 | Build | `build.yaml` | `build` | `next build` が通ることを検査する |
 | Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
 | Tokens Drift | `tokens-drift.yaml` | `tokens-drift` | hand-written token SSOT と追跡する CSS 生成物が一致することを検査する |
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
+
+## ワークフロー一覧（Components）
+
+`src/components/**` に触れる PR でだけ走る検査。**`paths:` フィルタを持つため required status check には登録しない**（下記「`paths:` フィルタを使わない」の但し書き）。
+
+| ワークフロー | ファイル | job 名 | 内容 |
+| --- | --- | --- | --- |
+| Component Classes | `component-classes.yaml` | `classes` | Tailwind が出力しない未定義 class を検出する |
+| shadcn Drift | `shadcn-drift.yaml` | `manifest` | 取り込み台帳と実体の乖離、および上流の更新を検出する |
+
+## ワークフロー一覧（Documentation）
+
+| ワークフロー | ファイル | job 名 | 内容 |
+| --- | --- | --- | --- |
+| Deploy Docs | `deploy-docs.yaml` | `build` / `deploy` | 生成 HTML のドキュメントサイトを組んで GitHub Pages へ配信する（[0141](../../docs/adr/0141-portal-operations.md)） |
+
+サイトは**単一のツリーに複数の生成物を同居させる**形を採る。GitHub Pages はリポジトリに 1 サイトしか持てないため、Storybook・portal・coverage のような生成 HTML はそれぞれサイト直下の兄弟パスへ入り、ルートは入口へ転送するだけの薄い層（[`../../docs/index.html`](../../docs/index.html)）に留める。
+
+| パス | 中身 |
+| --- | --- |
+| `/` | 入口（`/portal/`）への転送 |
+| `/portal/` | docs portal（[0141](../../docs/adr/0141-portal-operations.md)）。`pnpm portal:build` の出力 |
+| `/storybook/` | Storybook（`pnpm build-storybook` の出力） |
+| `/<dir>/`, `/*.md` | `docs/` の内容そのまま。portal のカードが `../<dir>/<file>` で参照する |
+
+`docs/` をサイトルートへ写すのは、走査で自動発見したドキュメントへの相対経路（`../<dir>/<file>`）を成立させるため。ここを削ると自動発見のカードが全て死にリンクになる。
+
+配信の発火は `production` への push（＋任意 ref から回すための `workflow_dispatch`）。`paths:` フィルタは付けない — 理由は下記「`paths:` フィルタを使わない」と同じではなく、リリースが間接的な経路（token・依存更新・設定）で見た目を変えうるため、対象パスを予測して並べる保守コストのほうが高いという判断による。
+
+この workflow 自身を編集する PR では、`build` だけが自己検査として走る（`deploy` は `pull_request` を除外している）。配信の壊れは、それを必要とするリリースまで気付けないため。この PR 用の実行は **required status check へ登録しない** — 当該ファイルに触れない PR では context が報告されず、必須待ちで止まる。
+
+**GitHub Pages の有効化はユーザが Settings で実施する**（ワークフロー側で `actions/configure-pages` による自動有効化はしない）。有効化前に走った実行は deploy job で失敗する。
 
 ## hooks mirror CI
 
@@ -50,7 +82,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 - **actions の SHA ピン** — `uses: owner/repo@<40hex> # <tag>`。moving tag は禁止。**版の SSOT は末尾コメントの tag** であり、tag → SHA の対応は [`../actions-pin.toml`](../actions-pin.toml) が持つ。`make actions-pin-resolve` で解決、`make actions-pin-apply` で反映、`make actions-pin-check` で検査する（`actions-pin` job と pre-commit hook が回す。詳細は [`.makefiles/README.md`](../../.makefiles/README.md)）
 - **最小 permissions** — トップレベルは `contents: read`。PR コメントを書く job だけが `pull-requests: write` を加算する
-- **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない
+- **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.md) §3）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る
 - **harden-runner** — 全 job 冒頭で egress を `audit` で記録する
 - **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck の版はワークフロー側に書かない。mise-action が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.md)）。`matrix` は使わず `ubuntu-latest` 単一
 - **例外は mise CLI 自身の版** — `mise.toml` は mise が解決する対象を宣言するもので、mise 自身の版を宣言できない。よって mise-action の `version:` だけが唯一ワークフロー側に書かれた版数であり、全ワークフローに複製されている。更新時は全ファイルを揃えて直すこと
@@ -64,6 +96,8 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 本リポの CI Checks はどれも数分で終わり、実行コストよりも「本体と guard の 2 ファイルを常に裏返しの関係に保つ」保守コストのほうが高い。よってフィルタを付けず、全 PR で全 job を走らせる。
 
 将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
+
+`component-classes` / `shadcn-drift` は `paths:` を持つため、**後者（required check から外す）を選んでいる**。この 2 本を required へ登録するなら、同時に裏返しの guard を対で用意すること。
 
 ## PR コメント（検査ログ: upsert-pr-comment）
 
@@ -92,4 +126,4 @@ context 名は**ワークフロー名ではなく job 名**である点に注意
 | 候補 | 判断 | 理由 |
 | --- | --- | --- |
 | `sync-versions-check` | 不採用 | `mise.toml` の版数を複製する下流が本リポに存在しない（Dockerfile 無し / CI は mise-action が `mise.toml` を直読み）。検査対象そのものが無い。`package.json` の `engines` / `packageManager` 等、版数の第二宣言を置いた時点で採用する |
-| `auto-generate-docs` | 不採用（現時点） | 生成物が 1 つも存在しない。型生成（[0072](../../docs/adr/0072-api-type-generation.md)）と portal 配信（[0141](../../docs/adr/0141-portal-operations.md)）が入る時点で再検討する |
+| `auto-generate-docs` | 不採用 | portal の生成物（`guides/` / `docs.json`）は追跡せず配信時に組み立てるため、drift が発生しえない。追跡する生成物を持つのは型生成（[0072](../../docs/adr/0072-api-type-generation.md)）が入る時点で、そこで再検討する |

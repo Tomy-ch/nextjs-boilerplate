@@ -23,6 +23,7 @@
 | 34 | Tailwind class は読みやすいまとまりで記述する。長い class 列は component / variant に分け、`@apply` は使わない。 | Biome formatter と review。 | [ADR 0050](adr/0050-styling-strategy.md) |
 | 35 | component API は意味のある props 名を使う。状態差分は variant、複合的な部品は compound component を検討し、無目的な `...rest` 転送を避ける。 | component テストと review。 | [ADR 0021](adr/0021-frontend-responsibility.md) |
 | 38 | TypeScript は `type` を優先し、`enum` と `namespace` を使わない。`any` と型アサーション (`as`) は全面禁止し、型ガード・`satisfies`・パースで表現する。 | `erasableSyntaxOnly`、Biome `noExplicitAny`、ESLint の型アサーション禁止。 | [ADR 0020](adr/0020-adopted-architecture.md) |
+| 38a | 値集合の公開定数は、`export const BUTTON_SIZE: Readonly<{ ... }> = { ... }` の形式で定義する。公開 API でなくても、複数ファイルが同じ概念の値を使う場合は所有モジュールを一つ決め、そこから参照する。native HTML 要素名など JSX／型構文そのものを表す値は直接記述してよい。 | review。 | [ADR 0028](adr/0028-naming-convention.md) |
 | 39 | 公開 API には TSDoc を書く。コメントは「なぜ」を日本語で記し、廃止予定の API は `@deprecated` を付ける。 | review。 | [ADR 0140](adr/0140-documentation-operations.md) |
 | 40 | 公開 API は `export function` を使う。値として渡す callback は arrow function を使い、React component / hook は既存の React 規約に従う。 | review。 | [ADR 0028](adr/0028-naming-convention.md) |
 | 42 | `searchParams` は zod で検証し、URL のシリアライズ形式と既定値を明示する。 | P4-6 scaffold と feature テスト。 | [ADR 0060](adr/0060-state-management.md) |

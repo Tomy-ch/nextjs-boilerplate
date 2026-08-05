@@ -1,0 +1,63 @@
+# WizardForm
+
+## 用途
+
+複数段階に分けた入力の枠です。申請・登録・設定のように、一度に出すと多すぎる入力を段階へ分けます。
+
+## 何を持つか
+
+**今どの段階に居るかと、その行き来だけ**です。
+
+| 持つ | 持たない |
+| --- | --- |
+| 現在位置の保持、前後移動 | 各段階の field |
+| 進捗の表示（`Stepper` を合成） | 検証規則 |
+| 段階の見出しと領域 | 送信 |
+| 最後の段階での操作の差し替え | 途中保存 |
+
+進めてよいかは呼び出し元が判断し、結果を `blocked` として渡します。検証そのものはこの部品に入りません。
+
+```tsx
+<form action={submitApplication}>
+  <WizardForm
+    label="利用申請"
+    steps={[
+      { id: "applicant", title: "申請者", content: <ApplicantFields />, blocked: !isNameFilled },
+      { id: "confirm", title: "確認", content: <Confirmation /> },
+    ]}
+    submit={<Button type="submit">申請する</Button>}
+  />
+</form>
+```
+
+## 表示していない段階も DOM に残します
+
+現在以外の段階は `hidden` 属性で隠し、**unmount しません**。
+
+段階ごとに unmount すると、`<form action>` で送信したときに他の段階の入力値が送られません。`hidden` なら値は form に残ったまま、支援技術と layout からは外れます。class で `display: none` を当てないのは、値を保つことが目的だからです。
+
+この性質のおかげで、送信は最後の段階で一度だけ、全段階ぶんをまとめて行えます。ADR [0061](../../../../docs/adr/0061-form-mutation-ux.md) の `<form action>` + `useActionState` をそのまま使えます。
+
+## 段階が変わったら focus を移します
+
+移動先の段階の領域へ focus を移します。移さないと押した button に focus が残り、keyboard と読み上げの利用者には何が変わったのか伝わりません。
+
+**最初の表示では移しません。** 開いた直後に focus を奪うと、その前の文脈が読み飛ばされます。
+
+段階は form control の集合なので `fieldset` で表し、段階名を `legend` として与えます。
+
+## 進捗
+
+`Stepper` を合成します。段階の並び、現在位置の `aria-current="step"`、通過済みと未到達の表し分けはそちらが持ちます。進捗の名前は「〈label〉の進捗」になります。
+
+## 責務境界
+
+送信は呼び出し元が持ちます。最後の段階では「次へ」の代わりに `submit` で渡した要素を置くだけで、この部品は送信しません。
+
+途中保存も持ちません。必要なら呼び出し元が `blocked` の計算と同じ場所で行います。
+
+離脱の抑止が要る場合は [`unload-guard`](../unload-guard/README.md) と [`navigation-guard`](../navigation-guard/README.md) を併用します。
+
+## Storybook とテスト
+
+Storybook は 3 段階の申請、2 段階だけの場合、文言を差し替えた場合、進めてよいかを呼び出し元が決める場合を確認します。テストは初期位置、表示していない段階が支援技術から外れること、進捗の現在位置、前後移動、最初の段階で戻れないこと、最後の段階での操作の差し替え、`blocked`、隠れた段階の値が form に残ること、focus の移動と初期表示で奪わないこと、文言の差し替え、送信が呼び出し元にあること、a11y 自動検査を確認します。

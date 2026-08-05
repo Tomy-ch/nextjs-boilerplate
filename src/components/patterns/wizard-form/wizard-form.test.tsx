@@ -1,0 +1,189 @@
+// @vitest-environment jsdom
+
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
+
+import { Button } from "@/components/design-system/action/button/button";
+import { WizardForm, type WizardSteps } from "./wizard-form";
+
+const STEPS: WizardSteps = [
+  {
+    id: "applicant",
+    title: "申請者",
+    content: <input aria-label="氏名" defaultValue="田中" name="name" />,
+  },
+  {
+    id: "details",
+    title: "申請内容",
+    content: <input aria-label="用途" defaultValue="開発" name="purpose" />,
+  },
+  { id: "confirm", title: "確認", content: <p>この内容で申請します。</p> },
+];
+
+function WizardFixture({ steps = STEPS }: { steps?: WizardSteps } = {}) {
+  return (
+    <WizardForm
+      label="利用申請"
+      steps={steps}
+      submit={
+        <Button type="submit" variant="default">
+          申請する
+        </Button>
+      }
+    />
+  );
+}
+
+const next = () => fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+const previous = () => fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+describe("WizardForm", () => {
+  it("最初の段階から始める", () => {
+    render(<WizardFixture />);
+
+    expect(screen.getByRole("group", { name: "申請者" })).toBeVisible();
+    expect(screen.queryByRole("group", { name: "申請内容" })).not.toBeInTheDocument();
+  });
+
+  it("表示していない段階は支援技術からも外れる", () => {
+    const { container } = render(<WizardFixture />);
+
+    const panels = container.querySelectorAll("[data-slot='wizard-form-step']");
+
+    expect(panels).toHaveLength(3);
+    expect(screen.getAllByRole("group")).toHaveLength(1);
+  });
+
+  it("進捗として段階の並びと現在位置を示す", () => {
+    render(<WizardFixture />);
+
+    const progress = screen.getByRole("list", { name: "利用申請の進捗" });
+    const currentStep = screen.getByRole("listitem", { current: "step" });
+
+    expect(progress).toBeInTheDocument();
+    expect(currentStep).toHaveTextContent("申請者");
+  });
+
+  it("次へ進むと現在位置が移る", () => {
+    render(<WizardFixture />);
+
+    next();
+
+    expect(screen.getByRole("group", { name: "申請内容" })).toBeVisible();
+    expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent("申請内容");
+  });
+
+  it("戻ると前の段階へ返る", () => {
+    render(<WizardFixture />);
+    next();
+
+    previous();
+
+    expect(screen.getByRole("group", { name: "申請者" })).toBeVisible();
+  });
+
+  it("最初の段階では戻れない", () => {
+    render(<WizardFixture />);
+
+    expect(screen.getByRole("button", { name: "戻る" })).toBeDisabled();
+  });
+
+  it("最後の段階では次へではなく送信の操作を置く", () => {
+    render(<WizardFixture />);
+
+    next();
+    next();
+
+    expect(screen.queryByRole("button", { name: "次へ" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "申請する" })).toBeInTheDocument();
+  });
+
+  it("終えられない段階からは進めない", () => {
+    render(<WizardFixture steps={[{ ...STEPS[0], blocked: true }, STEPS[1], STEPS[2]]} />);
+
+    expect(screen.getByRole("button", { name: "次へ" })).toBeDisabled();
+  });
+
+  it("隠れている段階の入力値も form に残る", () => {
+    render(
+      <form data-testid="wizard-host">
+        <WizardFixture />
+      </form>,
+    );
+    next();
+
+    const form = screen.getByTestId("wizard-host");
+
+    expect(new FormData(form instanceof HTMLFormElement ? form : undefined).get("name")).toBe(
+      "田中",
+    );
+  });
+
+  it("段階が変わったら、その段階へ focus を移す", async () => {
+    render(<WizardFixture />);
+
+    next();
+
+    await waitFor(() => expect(screen.getByRole("group", { name: "申請内容" })).toHaveFocus());
+  });
+
+  it("最初の表示では focus を奪わない", () => {
+    render(<WizardFixture />);
+
+    expect(screen.getByRole("group", { name: "申請者" })).not.toHaveFocus();
+  });
+
+  it("操作の文言を呼び出し元が差し替えられる", () => {
+    render(
+      <WizardForm
+        label="利用申請"
+        nextLabel="次の項目へ"
+        previousLabel="前の項目へ"
+        steps={STEPS}
+        submit={<Button type="submit">申請する</Button>}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "次の項目へ" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "前の項目へ" })).toBeInTheDocument();
+  });
+
+  it("最後の一つ手前で次へを押しても送信しない", () => {
+    const onSubmit = vi.fn((event: { preventDefault: () => void }) => event.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <WizardFixture />
+      </form>,
+    );
+
+    next();
+    next();
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "申請する" })).toBeInTheDocument();
+  });
+
+  it("送信は呼び出し元が持つ", () => {
+    const onSubmit = vi.fn((event: { preventDefault: () => void }) => event.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <WizardFixture />
+      </form>,
+    );
+    next();
+    next();
+
+    fireEvent.click(screen.getByRole("button", { name: "申請する" }));
+
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<WizardFixture />);
+
+    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+    expect(result.violations).toEqual([]);
+  });
+});

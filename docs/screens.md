@@ -134,7 +134,7 @@ Go API の OpenAPI には存在しない。BFF の Route Handler が次の mock 
 | # | 内容 | 決着させる時期 |
 | --- | --- | --- |
 | 1 | **`style-src`(CSP)の運用方式** — TipTap が inline style を出力するため、nonce 運用かハッシュ運用かで A6 / A7 のエディタ組み込み方法が変わる | v1 実装計画 P6-2 |
-| 2 | **sanitizer ライブラリの選定** — description 表示側で必須(`rules.md` #48) | A6 / A7 の実装 PR まで |
+| 2 | ~~**sanitizer ライブラリの選定**~~ — **決着済み**。`hast-util-from-html` + `hast-util-sanitize` + `hast-util-to-jsx-runtime` を採用し、port は `src/model/rich-text/` に置く(v1 実装計画 §3.10) | 決着済み |
 | 3 | **未公開商品を含む admin 商品一覧** — 現行 `GET /v1/products` は公開済み商品だけを返す。A2 の完全な管理一覧には backend 契約の追加が必要 | A2 の実装 PR まで |
 | 4 | **在庫僅少一覧** — `GET /v1/products/low-stock` は API 作成計画 #566 で未実装。A1 の数値カードとは独立した後続機能として扱う | #566 の OpenAPI 追加後 |
 | 5 | **配達完了操作** — `PATCH /v1/purchases/{purchaseId}/deliver` は API 作成計画 #591 で未実装。画面・導線は現時点で作らない | #591 の OpenAPI 追加後 |

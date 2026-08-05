@@ -1,6 +1,6 @@
 # ポータル運用
 
-ドキュメントポータル(`docs/portal/`)の **manifest 構造 / 登録基準 / portal ↔ docs の責務分担 / 生成・配信の仕組み / 運用スキル / 実装タイミング** を定める。[0140](0140-documentation-operations.md)(D1)の三層戦略の第 3 層(生成 portal)を具体化する。go-boilerplate の portal 運用(go `docs/maintenance/portal-manifest.md` / go ADR 0090「docs via GitHub Pages」)を翻案する。
+ドキュメントポータル(`docs/portal/`)の **manifest 構造 / 登録基準 / portal ↔ docs の責務分担 / 生成・配信の仕組み / 運用スキル / 実装状況** を定める。[0140](0140-documentation-operations.md)(D1)の三層戦略の第 3 層(生成 portal)を具体化する。go-boilerplate の portal 運用(go `docs/maintenance/portal-manifest.md` / go ADR 0090「docs via GitHub Pages」)を翻案する。
 
 ## Status
 
@@ -10,7 +10,7 @@ Accepted
 
 ## 背景
 
-BACKLOG D2 は、`docs/portal/manifest.yaml` への登録基準・portal ↔ docs ディレクトリの責務分担を未決としていた(実装をブロックしない項目のため、AGENTS.md に D2 の `[TODO]` セクションは置かれていない — [0152](0152-agents-md-policy.md) の掲載基準)。本リポジトリは portal 未導入であり、go-boilerplate の portal 一式(manifest スキーマ / gen スクリプト / GitHub Pages 配信 / 運用スキル)は Go 結合がほぼなく(Node / esbuild ベース)言語非依存で翻案できる。本 ADR は登録基準・責務分担の**方針**を確定する(実装は後続。下記「実装タイミング」)。
+BACKLOG D2 は、`docs/portal/manifest.yaml` への登録基準・portal ↔ docs ディレクトリの責務分担を扱う(実装をブロックしない項目のため、AGENTS.md に D2 の `[TODO]` セクションは置かれていない — [0152](0152-agents-md-policy.md) の掲載基準)。go-boilerplate の portal 一式(manifest スキーマ / gen スクリプト / GitHub Pages 配信 / 運用スキル)は Go 結合がほぼなく言語非依存で翻案できる。本 ADR は登録基準と責務分担を定める。
 
 ## 決定
 
@@ -34,19 +34,21 @@ BACKLOG D2 は、`docs/portal/manifest.yaml` への登録基準・portal ↔ doc
 
 ### 4. 生成・配信
 
-- **生成スクリプト(Node / esbuild)**: manifest の `src`→`dst` コピー / manifest + FS スキャンから `docs.json`(生成物・手編集禁止)出力 / SPA フロントを esbuild でバンドルして `dist/` 出力(go の `gen-portal-docs` / `gen-docs-json` / `build-portal` の翻案。Makefile / pnpm ターゲット名は本リポ体系に合わせる)
-- **配信 = GitHub Pages**(go ADR 0090 の翻案)。本番 / デフォルトブランチへの push かつ `docs/**` 変更で発火。**SPA の deep-link には 404 fallback が必要**
-- **生成物 drift の自動同期**: 生成物が古いと CI で検出し、生成物更新 PR で追従(go `auto-generate-docs` の翻案)。CI workflow は B9 と接続
+- **生成スクリプト(`scripts/portal/`)**: manifest の `src`→`dst` コピー(`gen-portal-docs`)/ manifest + FS スキャンから `docs.json` 出力(`gen-docs-json`)。判断はいずれも純粋関数へ寄せ、FS 入出力は CLI 側に閉じる(テスト可能性)
+- **ビューアーは独立した workspace パッケージ(`docs-viewer/`)**、ビルドは **Vite**。パッケージを分けるのは**無害化の許容範囲がアプリ本体と違う**ためで、ドキュメントに必要な広い allowlist(`table` / `pre` / `img` / `language-*` class)を **アプリから import できない位置**へ置く。分離を規約ではなくパッケージ境界で担保する。esbuild ではなく Vite なのは、デザイントークンを通すのに Tailwind のビルドが要るため
+- **配信 = GitHub Pages**(go ADR 0090 の翻案)。`production` への push で発火する。**Pages はリポジトリに 1 サイトしか持てない**ため、`docs/` をサイトルートへ写し、portal を `/portal/`、Storybook を `/storybook/` と兄弟に並べる。ルートは入口への転送だけを持つ
+- **deep-link は位置ハッシュ(`#/<group>/<section>`)で表すため、404 fallback を必要としない**。経路がサーバへ届かない
+- **生成物(`guides/` / `docs.json`)は追跡しない**。配信時に組み立てるため drift が発生しえず、drift 検出の仕組みを持たない
 
 ### 5. 運用スキルループ
 
 - **readme-review**(内容の manual-worthy 判定 = 基準の単一ソース)→ **portal-manifest-sync**(manifest への登録キュレーション。編集は `manifest.yaml` のみ・自動追加しない)/ **sync-readme**(構造ドリフト整合)。スキル体系は [0155](0155-claude-skills-development.md)(開発系。配置・命名・frontmatter は [0154](0154-claude-skills-operations.md) と共通)。`portal-manifest-sync` は未移植 — portal 導入時に 0155 カバー範囲へ追加(リスト追加は軽微編集)
 - 判定基準は現行 manifest から runtime 参照する(基準を複製しない)。本リポの portal 立ち上げ後に基準語彙を再導出する
 
-### 6. 実装タイミング
+### 6. 実装状況
 
-- portal の実装・GitHub Pages 配信は **移植計画 Phase 3**(Phase 2 = B9 の CI / workflows 導入後)で行う。本 ADR は登録基準・責務分担の方針を定め、実装は後続とする
-- `portal-manifest-sync` スキルは portal 導入時に有効化する(現状は対象不在のため移植保留 = BACKLOG 移植バックログの D2 トリガー)
+- portal の生成と GitHub Pages 配信は実装済みとする。Pages の有効化はリポジトリ設定のためユーザが行う
+- `portal-manifest-sync` スキルは manifest が着地したため移植可能になった。移植までの間、manifest の drift 検出は行われない
 
 ## 禁止事項
 
@@ -57,12 +59,11 @@ BACKLOG D2 は、`docs/portal/manifest.yaml` への登録基準・portal ↔ doc
 
 ## 補足
 
-- 本 ADR の Accepted に伴う BACKLOG の整合(D2 行 / Tier 6 注記 / 移植バックログ)は反映済み。AGENTS.md への整合(Accepted Rules 表への 0140 / 0141 追加)は未実施 — Protected Documentation のため、変更案の提示とユーザ承認を経て適用する
-- go の `docs/maintenance/portal-manifest.md` は「CDN 経由・ビルド不要」と記すが実体は esbuild ビルドであり、翻案時は **esbuild 版を正**とする(go 側ドキュメントのドリフトに引きずられない)
+- go の `docs/maintenance/portal-manifest.md` は「CDN 経由・ビルド不要」と記すが実体はビルドを伴う。翻案では go 側ドキュメントの記述ではなく **実装を正**とする
 
 ## 関連 ADR
 
 - [0140-documentation-operations.md](0140-documentation-operations.md)(D1)— canonical / 三層戦略・per-package README(本 ADR の親決定。portal は第 3 層)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 層別 README(portal カードの供給元)
 - [0155-claude-skills-development.md](0155-claude-skills-development.md) — readme-review / sync-readme の公認(開発系。配置・命名・frontmatter は [0154-claude-skills-operations.md](0154-claude-skills-operations.md) と共通)。`portal-manifest-sync` は portal 導入時に同体系へ追加
-- BACKLOG B9(CI 構成)— GitHub Pages 配信・生成物 drift 同期の workflow
+- BACKLOG B9(CI 構成)— GitHub Pages 配信の workflow

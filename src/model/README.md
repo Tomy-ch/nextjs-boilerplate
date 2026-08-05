@@ -17,6 +17,12 @@ test-requirement: unit
 
 - バックエンドが所有する業務ルール、fetch、config、外部型の漏洩
 
+## モジュール
+
+| モジュール | 役割 |
+| --- | --- |
+| [`rich-text/`](rich-text/README.md) | リッチテキストの sanitize port。HTML 文字列を表示してよい範囲の木へ変換する |
+
 ## 運用
 
 - 依存先は `errors` のみ

@@ -30,13 +30,13 @@
 以下には使わない:
 
 - 検出(レビュー生成)そのもの → `full-verify`。
-- diff/PR レビュー → `local-review` / `/code-review`。
+- diff/PR レビュー → `impl-review` / `/code-review`。
 - 単発のコミット作業 → `commit`。
 
 ## 位置づけ(他スキルとの分担)
 
 `full-verify`(検出)の対になる「**適用**」。diff レビューの適用ではなく、全体検証の md 集合を重大度順・台帳駆動で
-直す。diff スコープは `local-review` / `/code-review`、単発コミットは `commit`。コミット機構自体は `commit`
+直す。diff スコープは `impl-review` / `/code-review`、単発コミットは `commit`。コミット機構自体は `commit`
 スキルに委譲(6. 参照)。
 
 ## 引数(既定値つき)

@@ -1,0 +1,1433 @@
+# shadcn/ui 由来の component の来歴を記録する台帳。
+#
+# 対象は `src/components` 配下のすべての役割で、`README.md` を持つディレクトリが component。
+# 記録の追加・確認は `pnpm add:ui` / `pnpm check:ui` が行う。詳細は scripts/README.md を正とする。
+#
+#   key           実体を指すラベル。原則ディレクトリ名。衝突する場合だけ修飾する
+#   registryItem  上流の item 名。`original` は上流を持たないため書かない
+#   dependencies  実装が実際に import している外部 package。参照が無ければ書かない
+#   directory     実体の置き場所。名前から推測しないためこれが正
+#   kind          copy-in = 要追従 / reimplemented = 参考 / original = 上流なし /
+#                 not-adopted = 検討したうえで作らない
+#   as            component 目録で載る見出し。目的を表す
+#
+# `not-adopted` は実体を持たないため `layer` / `as` / `directory` を書かず、代わりに `reason` と
+# `revisitWhen` を必須にする。**条件を書けない「やらない」は判断ではなく先送りである。**
+# ここに残すのは「検討したのか、まだ見ていないのか」を後から区別できるようにするためで、
+# 責務を引き取った component がある場合はその README が決定の実体を持つ。
+#
+# `as` と `directory` を 1 つに畳まないこと。`as` は目的、`directory` は層と置き場所で、軸が違う。
+# `ui/pagination` と `navigation/cursor-pagination` はどちらも `as: navigation` であり、
+# 基底か合成かは `directory` だけが持つ。
+#
+# key と registryItem を 1 つに畳まないこと。同じ item から native / client の 2 実装を
+# 作った場合に表現できなくなる。
+schemaVersion: 1
+components:
+  api-error-feedback:
+    kind: original
+    layer: app-starter
+    as: feedback
+    directory: src/components/app-starter/api-error-feedback
+    addedAt: 2026-08-03T14:45:00.000Z
+    dependencies:
+      - lucide-react
+  auth-state-feedback:
+    kind: original
+    layer: app-starter
+    as: feedback
+    directory: src/components/app-starter/auth-state-feedback
+    addedAt: 2026-08-03T14:45:00.000Z
+    dependencies:
+      - lucide-react
+  form-feedback:
+    kind: original
+    layer: app-starter
+    as: feedback
+    directory: src/components/app-starter/form-feedback
+    addedAt: 2026-08-03T14:45:00.000Z
+  form-validation-summary:
+    kind: original
+    layer: app-starter
+    as: feedback
+    directory: src/components/app-starter/form-validation-summary
+    addedAt: 2026-08-03T14:45:00.000Z
+  # `pnpm add:ui toast --dry-run` は "The toast component is only available for Base UI
+  # projects. Use the sonner component instead." で終了する。registry の `toast` は
+  # new-york-v4 style に存在せず（404）、`@base-ui/react` は非ロックインを理由に不採用。
+  # CLI が案内する代替がこの `sonner` だが、既存の `Toaster` と責務が重複するため copy-in せず、
+  # 不足していた機能だけを自前実装へ取り込んだ（vendor 追加なし）。
+  toaster:
+    kind: reimplemented
+    layer: shell
+    as: feedback
+    registryItem: sonner
+    directory: src/components/shell/toaster
+    addedAt: 2026-08-03T14:45:00.000Z
+    dependencies:
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/sonner.tsx
+        localPath: src/components/shell/toaster/toaster.tsx
+        commit: 6a534d7954d0eb36c0a984d2839dac74459267b9
+        committedAt: 2025-10-14T12:40:17Z
+  print:
+    kind: original
+    layer: design-system
+    as: foundation
+    directory: src/components/design-system/foundation/print
+    addedAt: 2026-08-04T04:10:00.000Z
+  scroll-fade:
+    kind: original
+    layer: design-system
+    as: foundation
+    directory: src/components/design-system/foundation/scroll-fade
+    addedAt: 2026-08-04T05:30:00.000Z
+  scrollbar:
+    kind: original
+    layer: design-system
+    as: foundation
+    directory: src/components/design-system/foundation/scrollbar
+    addedAt: 2026-08-03T14:45:00.000Z
+  shimmer:
+    kind: original
+    layer: design-system
+    as: foundation
+    directory: src/components/design-system/foundation/shimmer
+    addedAt: 2026-08-04T03:20:00.000Z
+  typeset:
+    kind: original
+    layer: design-system
+    as: foundation
+    directory: src/components/design-system/foundation/typeset
+    addedAt: 2026-08-03T14:45:00.000Z
+  content-container:
+    kind: original
+    layer: shell
+    as: layout
+    directory: src/components/shell/content-container
+    addedAt: 2026-08-04T00:55:00.000Z
+  layout-patterns:
+    kind: original
+    layer: design-system
+    as: layout
+    directory: src/components/design-system/layout/layout-patterns
+    addedAt: 2026-08-04T12:00:00.000Z
+  page-header:
+    kind: original
+    layer: shell
+    as: layout
+    directory: src/components/shell/page-header
+    addedAt: 2026-08-04T00:55:00.000Z
+  cursor-pagination:
+    kind: original
+    layer: app-starter
+    as: navigation
+    directory: src/components/app-starter/cursor-pagination
+    addedAt: 2026-08-03T14:45:00.000Z
+    dependencies:
+      - lucide-react
+  filter-bar:
+    kind: original
+    layer: patterns
+    as: navigation
+    directory: src/components/patterns/filter-bar
+    addedAt: 2026-08-03T14:45:00.000Z
+    dependencies:
+      - lucide-react
+      - next
+  rich-text-content:
+    kind: original
+    layer: design-system
+    as: rich-text
+    directory: src/components/design-system/rich-text/rich-text-content
+    addedAt: 2026-08-04T01:16:21Z
+    dependencies:
+      - hast-util-to-jsx-runtime
+  rich-text-editor:
+    kind: original
+    layer: design-system
+    as: rich-text
+    directory: src/components/design-system/rich-text/rich-text-editor
+    dependencies:
+      - "@tiptap/core"
+      - "@tiptap/extension-blockquote"
+      - "@tiptap/extension-bold"
+      - "@tiptap/extension-code"
+      - "@tiptap/extension-document"
+      - "@tiptap/extension-hard-break"
+      - "@tiptap/extension-heading"
+      - "@tiptap/extension-horizontal-rule"
+      - "@tiptap/extension-italic"
+      - "@tiptap/extension-link"
+      - "@tiptap/extension-list"
+      - "@tiptap/extension-paragraph"
+      - "@tiptap/extension-strike"
+      - "@tiptap/extension-text"
+      - "@tiptap/extensions"
+      - "@tiptap/react"
+      - lucide-react
+    addedAt: 2026-08-04T10:30:00.000Z
+  table-columns:
+    kind: original
+    layer: patterns
+    as: sugar
+    directory: src/components/patterns/table
+    addedAt: 2026-08-03T14:45:00.000Z
+  editable-data:
+    kind: original
+    layer: patterns
+    as: sugar
+    directory: src/components/patterns/table/editable-data
+    addedAt: 2026-08-03T14:45:00.000Z
+  row-actions:
+    kind: original
+    layer: patterns
+    as: sugar
+    directory: src/components/patterns/table/row-actions
+    addedAt: 2026-08-03T14:45:00.000Z
+    dependencies:
+      - lucide-react
+      - next
+  static-data:
+    kind: original
+    layer: patterns
+    as: sugar
+    directory: src/components/patterns/table/static-data
+    addedAt: 2026-08-03T14:45:00.000Z
+  button:
+    kind: copy-in
+    layer: design-system
+    as: action
+    registryItem: button
+    directory: src/components/design-system/action/button
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T01:06:43Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-slot"
+      - class-variance-authority
+      - next
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/button.tsx
+        localPath: src/components/design-system/action/button/button.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  button-group:
+    kind: copy-in
+    layer: design-system
+    as: action
+    registryItem: button-group
+    directory: src/components/design-system/action/button-group
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-05T06:16:08.350Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-slot"
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/button-group.tsx
+        localPath: src/components/design-system/action/button-group/button-group.tsx
+        commit: 958470353404a2ef36edec74ba8486256e310ce6
+        committedAt: 2026-03-02T09:08:24Z
+  copy-button:
+    kind: original
+    layer: design-system
+    as: action
+    directory: src/components/design-system/action/copy-button
+    dependencies:
+      - lucide-react
+    addedAt: 2026-08-04T07:00:00.000Z
+  toggle:
+    kind: reimplemented
+    layer: design-system
+    as: action
+    registryItem: toggle
+    directory: src/components/design-system/action/toggle
+    addedAt: 2026-08-03T10:49:07.038Z
+    dependencies:
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/toggle.tsx
+        localPath: src/components/design-system/action/toggle/toggle.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  accordion:
+    kind: reimplemented
+    layer: design-system
+    as: container
+    registryItem: accordion
+    directory: src/components/design-system/container/accordion
+    addedAt: 2026-08-03T10:49:00.202Z
+    dependencies:
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/accordion.tsx
+        localPath: src/components/design-system/container/accordion/accordion.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  aspect-ratio:
+    kind: reimplemented
+    layer: design-system
+    as: container
+    registryItem: aspect-ratio
+    directory: src/components/design-system/container/aspect-ratio
+    addedAt: 2026-08-03T12:31:14.497Z
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/aspect-ratio.tsx
+        localPath: src/components/design-system/container/aspect-ratio/aspect-ratio.tsx
+        commit: 5e92c160ddaf97b847b66a9af23b6993a37e1bd9
+        committedAt: 2026-01-31T17:18:49Z
+  carousel:
+    kind: reimplemented
+    layer: design-system
+    as: container
+    registryItem: carousel
+    directory: src/components/design-system/container/carousel
+    addedAt: 2026-08-03T12:05:11Z
+    dependencies:
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/carousel.tsx
+        localPath: src/components/design-system/container/carousel/carousel.tsx
+        commit: 475abbbb209fb207636346be8604566a12ec4192
+        committedAt: 2025-02-05T06:38:28Z
+  collapsible:
+    kind: reimplemented
+    layer: design-system
+    as: container
+    registryItem: collapsible
+    directory: src/components/design-system/container/collapsible
+    addedAt: 2026-08-03T10:49:01.583Z
+    dependencies:
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/collapsible.tsx
+        localPath: src/components/design-system/container/collapsible/collapsible.tsx
+        commit: 5e92c160ddaf97b847b66a9af23b6993a37e1bd9
+        committedAt: 2026-01-31T17:18:49Z
+  direction:
+    kind: copy-in
+    layer: design-system
+    as: container
+    registryItem: direction
+    directory: src/components/design-system/container/direction
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T11:28:32.574Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-direction"
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/direction.tsx
+        localPath: src/components/design-system/container/direction/direction.tsx
+        commit: 38de7fddc257f04901e98a5fd7821cb8729d54bf
+        committedAt: 2026-01-30T17:08:39Z
+  message-scroller:
+    kind: reimplemented
+    layer: design-system
+    as: container
+    registryItem: message-scroller
+    directory: src/components/design-system/container/message-scroller
+    addedAt: 2026-08-04T00:15:00Z
+    dependencies:
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/message-scroller.tsx
+        localPath: src/components/design-system/container/message-scroller/message-scroller.tsx
+        commit: 683073f102a44e7fa4245f46215480aaf3e8f78c
+        committedAt: 2026-06-29T16:56:50Z
+  resizable:
+    kind: copy-in
+    layer: design-system
+    as: container
+    registryItem: resizable
+    directory: src/components/design-system/container/resizable
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T16:03:27.945Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - lucide-react
+      - react-resizable-panels
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/resizable.tsx
+        localPath: src/components/design-system/container/resizable/resizable.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  saved-views:
+    kind: original
+    layer: app-starter
+    as: container
+    directory: src/components/app-starter/saved-views
+    dependencies:
+      - lucide-react
+    addedAt: 2026-08-04T14:33:46Z
+  scroll-area:
+    kind: reimplemented
+    layer: design-system
+    as: container
+    registryItem: scroll-area
+    directory: src/components/design-system/container/scroll-area
+    addedAt: 2026-08-03T10:49:04.214Z
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/scroll-area.tsx
+        localPath: src/components/design-system/container/scroll-area/scroll-area.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  selection-toolbar:
+    kind: original
+    layer: patterns
+    as: container
+    directory: src/components/patterns/selection-toolbar
+    addedAt: 2026-08-04T01:05:00.000Z
+  table-view-options:
+    kind: original
+    layer: patterns
+    as: container
+    directory: src/components/patterns/table-view-options
+    addedAt: 2026-08-04T02:10:00.000Z
+    dependencies:
+      - lucide-react
+  activity-timeline:
+    kind: original
+    layer: design-system
+    as: display
+    directory: src/components/design-system/display/activity-timeline
+    addedAt: 2026-08-04T06:10:00.000Z
+  attachment:
+    kind: copy-in
+    layer: app-starter
+    as: display
+    registryItem: attachment
+    directory: src/components/app-starter/attachment
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T15:22:37.339Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-slot"
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/attachment.tsx
+        localPath: src/components/app-starter/attachment/attachment.tsx
+        commit: 8d6553a7f5b11d87b8968ec47479ec310e4c09af
+        committedAt: 2026-06-29T17:29:49Z
+  avatar:
+    kind: copy-in
+    layer: design-system
+    as: display
+    registryItem: avatar
+    directory: src/components/design-system/display/avatar
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T09:38:41.106Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-avatar"
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/avatar.tsx
+        localPath: src/components/design-system/display/avatar/avatar.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  badge:
+    kind: copy-in
+    layer: design-system
+    as: display
+    registryItem: badge
+    directory: src/components/design-system/display/badge
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T01:30:58.696Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-slot"
+      - class-variance-authority
+      - next
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/badge.tsx
+        localPath: src/components/design-system/display/badge/badge.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  bubble:
+    kind: copy-in
+    layer: design-system
+    as: display
+    registryItem: bubble
+    directory: src/components/design-system/display/bubble
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T12:18:39.507Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-slot"
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/bubble.tsx
+        localPath: src/components/design-system/display/bubble/bubble.tsx
+        commit: 683073f102a44e7fa4245f46215480aaf3e8f78c
+        committedAt: 2026-06-29T16:56:50Z
+  card:
+    kind: copy-in
+    layer: design-system
+    as: display
+    registryItem: card
+    directory: src/components/design-system/display/card
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T01:26:45.940Z
+    shadcnCliVersion: 4.15.0
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/card.tsx
+        localPath: src/components/design-system/display/card/card.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  chart:
+    kind: copy-in
+    layer: design-system
+    as: display
+    registryItem: chart
+    directory: src/components/design-system/display/chart
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T10:38:39.837Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - recharts
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/chart.tsx
+        localPath: src/components/design-system/display/chart/chart.tsx
+        commit: bebc4356afd08822375cb08b80249bdaf50289c1
+        committedAt: 2026-03-23T11:58:15Z
+  kbd:
+    kind: copy-in
+    layer: design-system
+    as: display
+    registryItem: kbd
+    directory: src/components/design-system/display/kbd
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T09:45:39.859Z
+    shadcnCliVersion: 4.15.0
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/kbd.tsx
+        localPath: src/components/design-system/display/kbd/kbd.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  key-value-list:
+    kind: original
+    layer: design-system
+    as: display
+    directory: src/components/design-system/display/key-value-list
+    addedAt: 2026-08-03T11:52:00.000Z
+  keyboard-shortcut:
+    kind: original
+    layer: design-system
+    as: display
+    directory: src/components/design-system/display/keyboard-shortcut
+    addedAt: 2026-08-04T08:25:00.000Z
+  # CLI で copy-in したが、その後に構造ごと書き換えた。公開名を `Item*` から `List` /
+  # `ListItem*` へ総入れ替えし、`div` だった root を `ul` / `li` にして上流の `ItemGroup` が
+  # 抱えていた `aria-required-children` 違反を構造的に解消し、`ListItemLink` を足している。
+  # 上流の変更をそのまま取り込める関係にないため、要追従ではなく参考として扱う。
+  list:
+    kind: reimplemented
+    layer: design-system
+    as: display
+    registryItem: item
+    directory: src/components/design-system/display/list
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T10:59:15.442Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-slot"
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/item.tsx
+        localPath: src/components/design-system/display/list/list.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  marker:
+    kind: copy-in
+    layer: design-system
+    as: display
+    registryItem: marker
+    directory: src/components/design-system/display/marker
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T08:51:32.170Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-slot"
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/marker.tsx
+        localPath: src/components/design-system/display/marker/marker.tsx
+        commit: 683073f102a44e7fa4245f46215480aaf3e8f78c
+        committedAt: 2026-06-29T16:56:50Z
+  media-image:
+    kind: original
+    layer: design-system
+    as: display
+    directory: src/components/design-system/display/media-image
+    addedAt: 2026-08-03T10:49:02.844Z
+    dependencies:
+      - next
+  message:
+    kind: copy-in
+    layer: design-system
+    as: display
+    registryItem: message
+    directory: src/components/design-system/display/message
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T12:00:10.898Z
+    shadcnCliVersion: 4.15.0
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/message.tsx
+        localPath: src/components/design-system/display/message/message.tsx
+        commit: 683073f102a44e7fa4245f46215480aaf3e8f78c
+        committedAt: 2026-06-29T16:56:50Z
+  separator:
+    kind: reimplemented
+    layer: design-system
+    as: display
+    registryItem: separator
+    directory: src/components/design-system/display/separator
+    addedAt: 2026-08-03T10:49:04.827Z
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/separator.tsx
+        localPath: src/components/design-system/display/separator/separator.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  stepper:
+    kind: original
+    layer: design-system
+    as: display
+    dependencies:
+      - lucide-react
+    directory: src/components/design-system/display/stepper
+    addedAt: 2026-08-04T02:10:00.000Z
+  table:
+    kind: copy-in
+    layer: design-system
+    as: display
+    registryItem: table
+    directory: src/components/design-system/display/table
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T04:32:17.507Z
+    shadcnCliVersion: 4.15.0
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/table.tsx
+        localPath: src/components/design-system/display/table/table.tsx
+        commit: 44c09a19b0658cf8e72ac84bbba5b76e05192a0d
+        committedAt: 2026-03-31T18:24:48Z
+  text-highlight:
+    kind: original
+    layer: design-system
+    as: display
+    directory: src/components/design-system/display/text-highlight
+    addedAt: 2026-08-03T10:49:07.010Z
+  upload-preview:
+    kind: original
+    layer: app-starter
+    as: display
+    dependencies:
+      - lucide-react
+    directory: src/components/app-starter/upload-preview
+    addedAt: 2026-08-04T01:20:00.000Z
+  calendar:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: calendar
+    directory: src/components/design-system/form/calendar
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T05:13:10.687Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - lucide-react
+      - react-day-picker
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/calendar.tsx
+        localPath: src/components/design-system/form/calendar/calendar.tsx
+        commit: 3ffd3e1c7c801f5af5aa72f7c70e21ace3b356bc
+        committedAt: 2026-06-19T07:38:39Z
+  checkbox-client:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: checkbox
+    directory: src/components/design-system/form/checkbox-client
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T03:46:35.446Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-checkbox"
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/checkbox.tsx
+        localPath: src/components/design-system/form/checkbox-client/checkbox-client.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  checkbox-native:
+    kind: reimplemented
+    layer: design-system
+    as: form
+    registryItem: checkbox
+    directory: src/components/design-system/form/checkbox-native
+    addedAt: 2026-08-03T10:49:01.065Z
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/checkbox.tsx
+        localPath: src/components/design-system/form/checkbox-native/checkbox-native.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  combobox-client:
+    kind: reimplemented
+    layer: design-system
+    as: form
+    registryItem: combobox
+    directory: src/components/design-system/form/combobox-client
+    addedAt: 2026-08-03T10:49:02.239Z
+    dependencies:
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/combobox.tsx
+        localPath: src/components/design-system/form/combobox-client/combobox-client.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  date-picker-client:
+    kind: original
+    layer: design-system
+    as: form
+    directory: src/components/design-system/form/date-picker-client
+    addedAt: 2026-08-03T10:49:02.794Z
+    dependencies:
+      - lucide-react
+  editable-table:
+    kind: original
+    layer: design-system
+    as: form
+    directory: src/components/design-system/form/editable-table
+    addedAt: 2026-08-03T10:49:02.808Z
+  field:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: field
+    directory: src/components/design-system/form/field
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T13:13:01Z
+    shadcnCliVersion: 4.15.0
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/field.tsx
+        localPath: src/components/design-system/form/field/field.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  file-upload:
+    kind: original
+    layer: app-starter
+    as: form
+    dependencies:
+      - lucide-react
+    directory: src/components/app-starter/file-upload
+    addedAt: 2026-08-04T00:25:00Z
+  input:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: input
+    directory: src/components/design-system/form/input
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T02:32:18.098Z
+    shadcnCliVersion: 4.15.0
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/input.tsx
+        localPath: src/components/design-system/form/input/input.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  input-group:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: input-group
+    directory: src/components/design-system/form/input-group
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T02:03:28.408Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/input-group.tsx
+        localPath: src/components/design-system/form/input-group/input-group.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  label:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: label
+    directory: src/components/design-system/form/label
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T03:24:35.415Z
+    shadcnCliVersion: 4.15.0
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/label.tsx
+        localPath: src/components/design-system/form/label/label.tsx
+        commit: 5e92c160ddaf97b847b66a9af23b6993a37e1bd9
+        committedAt: 2026-01-31T17:18:49Z
+  radio-group-client:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: radio-group
+    directory: src/components/design-system/form/radio-group-client
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T04:01:17.140Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-radio-group"
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/radio-group.tsx
+        localPath: src/components/design-system/form/radio-group-client/radio-group-client.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  radio-group-native:
+    kind: reimplemented
+    layer: design-system
+    as: form
+    registryItem: radio-group
+    directory: src/components/design-system/form/radio-group-native
+    addedAt: 2026-08-03T10:49:03.709Z
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/radio-group.tsx
+        localPath: src/components/design-system/form/radio-group-native/radio-group-native.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  search-field-client:
+    kind: original
+    layer: design-system
+    as: form
+    directory: src/components/design-system/form/search-field-client
+    addedAt: 2026-08-03T10:49:04.761Z
+    dependencies:
+      - lucide-react
+  search-field-native:
+    kind: original
+    layer: design-system
+    as: form
+    directory: src/components/design-system/form/search-field-native
+    addedAt: 2026-08-03T10:49:04.790Z
+    dependencies:
+      - lucide-react
+  segmented-input:
+    kind: reimplemented
+    layer: design-system
+    as: form
+    registryItem: input-otp
+    directory: src/components/design-system/form/segmented-input
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T23:25:34.121Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - input-otp
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/input-otp.tsx
+        localPath: src/components/design-system/form/segmented-input/segmented-input.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  select-client:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: select
+    directory: src/components/design-system/form/select-client
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T03:35:28.433Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-select"
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/select.tsx
+        localPath: src/components/design-system/form/select-client/select-client.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  select-native:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: native-select
+    directory: src/components/design-system/form/select-native
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T03:32:21.754Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/native-select.tsx
+        localPath: src/components/design-system/form/select-native/select-native.tsx
+        commit: a7c3300d7a90f5930815c5b161a78ee2edc4efac
+        committedAt: 2026-03-31T07:41:40Z
+  slider-client:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: slider
+    directory: src/components/design-system/form/slider-client
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T07:54:09.865Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-slider"
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/slider.tsx
+        localPath: src/components/design-system/form/slider-client/slider-client.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  slider-native:
+    kind: reimplemented
+    layer: design-system
+    as: form
+    registryItem: slider
+    directory: src/components/design-system/form/slider-native
+    addedAt: 2026-08-03T10:49:05.367Z
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/slider.tsx
+        localPath: src/components/design-system/form/slider-native/slider-native.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  switch-client:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: switch
+    directory: src/components/design-system/form/switch-client
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T09:57:36.317Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-switch"
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/switch.tsx
+        localPath: src/components/design-system/form/switch-client/switch-client.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  switch-native:
+    kind: reimplemented
+    layer: design-system
+    as: form
+    registryItem: switch
+    directory: src/components/design-system/form/switch-native
+    addedAt: 2026-08-03T10:49:05.954Z
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/switch.tsx
+        localPath: src/components/design-system/form/switch-native/switch-native.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  textarea:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: textarea
+    directory: src/components/design-system/form/textarea
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T02:55:31.856Z
+    shadcnCliVersion: 4.15.0
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/textarea.tsx
+        localPath: src/components/design-system/form/textarea/textarea.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  toggle-group-client:
+    kind: copy-in
+    layer: design-system
+    as: form
+    registryItem: toggle-group
+    directory: src/components/design-system/form/toggle-group-client
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T11:01:15.700Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-toggle-group"
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/toggle-group.tsx
+        localPath: src/components/design-system/form/toggle-group-client/toggle-group-client.tsx
+        commit: 5e92c160ddaf97b847b66a9af23b6993a37e1bd9
+        committedAt: 2026-01-31T17:18:49Z
+  toggle-group-native:
+    kind: reimplemented
+    layer: design-system
+    as: form
+    registryItem: toggle-group
+    directory: src/components/design-system/form/toggle-group-native
+    addedAt: 2026-08-03T10:49:08.121Z
+    dependencies:
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/toggle-group.tsx
+        localPath: src/components/design-system/form/toggle-group-native/toggle-group-native.tsx
+        commit: 5e92c160ddaf97b847b66a9af23b6993a37e1bd9
+        committedAt: 2026-01-31T17:18:49Z
+  wizard-form:
+    kind: original
+    layer: patterns
+    as: form
+    directory: src/components/patterns/wizard-form
+    addedAt: 2026-08-04T08:00:00.000Z
+  breadcrumb:
+    kind: copy-in
+    layer: design-system
+    as: navigation
+    registryItem: breadcrumb
+    directory: src/components/design-system/navigation/breadcrumb
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T08:46:28.557Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-slot"
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/breadcrumb.tsx
+        localPath: src/components/design-system/navigation/breadcrumb/breadcrumb.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  menubar:
+    kind: copy-in
+    layer: design-system
+    as: navigation
+    registryItem: menubar
+    directory: src/components/design-system/navigation/menubar
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T11:51:01.273Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-menubar"
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/menubar.tsx
+        localPath: src/components/design-system/navigation/menubar/menubar.tsx
+        commit: 958470353404a2ef36edec74ba8486256e310ce6
+        committedAt: 2026-03-02T09:08:24Z
+  navigation-guard:
+    kind: original
+    layer: app-starter
+    as: navigation
+    directory: src/components/app-starter/navigation-guard
+    addedAt: 2026-08-03T13:05:00.000Z
+    dependencies:
+      - next
+  navigation-menu:
+    kind: copy-in
+    layer: design-system
+    as: navigation
+    registryItem: navigation-menu
+    directory: src/components/design-system/navigation/navigation-menu
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T10:25:39.796Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-navigation-menu"
+      - class-variance-authority
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/navigation-menu.tsx
+        localPath: src/components/design-system/navigation/navigation-menu/navigation-menu.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  pagination:
+    kind: copy-in
+    layer: design-system
+    as: navigation
+    registryItem: pagination
+    directory: src/components/design-system/navigation/pagination
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T04:45:48.555Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - lucide-react
+      - next
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/pagination.tsx
+        localPath: src/components/design-system/navigation/pagination/pagination.tsx
+        commit: 86d9b00084affa7010e6c7c7bd410ec62525caac
+        committedAt: 2025-12-12T17:01:44Z
+  tabs-client:
+    kind: copy-in
+    layer: design-system
+    as: navigation
+    registryItem: tabs
+    directory: src/components/design-system/navigation/tabs-client
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T09:39:36.077Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-tabs"
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/tabs.tsx
+        localPath: src/components/design-system/navigation/tabs-client/tabs-client.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  tabs-native:
+    kind: reimplemented
+    layer: design-system
+    as: navigation
+    registryItem: tabs
+    directory: src/components/design-system/navigation/tabs-native
+    addedAt: 2026-08-03T10:49:06.466Z
+    dependencies:
+      - next
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/tabs.tsx
+        localPath: src/components/design-system/navigation/tabs-native/tabs-native.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  unload-guard:
+    kind: original
+    layer: app-starter
+    as: navigation
+    directory: src/components/app-starter/unload-guard
+    addedAt: 2026-08-03T13:05:00.000Z
+  alert-dialog:
+    kind: copy-in
+    layer: design-system
+    as: overlay
+    registryItem: alert-dialog
+    directory: src/components/design-system/overlay/alert-dialog
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T15:23:17Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-alert-dialog"
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/alert-dialog.tsx
+        localPath: src/components/design-system/overlay/alert-dialog/alert-dialog.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  command:
+    kind: copy-in
+    layer: design-system
+    as: overlay
+    registryItem: command
+    directory: src/components/design-system/overlay/command
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T09:17:44.134Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - cmdk
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/command.tsx
+        localPath: src/components/design-system/overlay/command/command.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  context-menu:
+    kind: copy-in
+    layer: design-system
+    as: overlay
+    registryItem: context-menu
+    directory: src/components/design-system/overlay/context-menu
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T09:39:42.523Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-context-menu"
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/context-menu.tsx
+        localPath: src/components/design-system/overlay/context-menu/context-menu.tsx
+        commit: 958470353404a2ef36edec74ba8486256e310ce6
+        committedAt: 2026-03-02T09:08:24Z
+  dialog:
+    kind: copy-in
+    layer: design-system
+    as: overlay
+    registryItem: dialog
+    directory: src/components/design-system/overlay/dialog
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T01:26:34.376Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-dialog"
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/dialog.tsx
+        localPath: src/components/design-system/overlay/dialog/dialog.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  drawer:
+    kind: copy-in
+    layer: design-system
+    as: overlay
+    registryItem: drawer
+    directory: src/components/design-system/overlay/drawer
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T10:22:14.073Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - vaul
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/drawer.tsx
+        localPath: src/components/design-system/overlay/drawer/drawer.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  dropdown-menu:
+    kind: copy-in
+    layer: design-system
+    as: overlay
+    registryItem: dropdown-menu
+    directory: src/components/design-system/overlay/dropdown-menu
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T02:01:38.277Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-dropdown-menu"
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/dropdown-menu.tsx
+        localPath: src/components/design-system/overlay/dropdown-menu/dropdown-menu.tsx
+        commit: 958470353404a2ef36edec74ba8486256e310ce6
+        committedAt: 2026-03-02T09:08:24Z
+  hover-card:
+    kind: copy-in
+    layer: design-system
+    as: overlay
+    registryItem: hover-card
+    directory: src/components/design-system/overlay/hover-card
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T05:19:45.498Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-hover-card"
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/hover-card.tsx
+        localPath: src/components/design-system/overlay/hover-card/hover-card.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  popover:
+    kind: copy-in
+    layer: design-system
+    as: overlay
+    registryItem: popover
+    directory: src/components/design-system/overlay/popover
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T00:45:18.679Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-popover"
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/popover.tsx
+        localPath: src/components/design-system/overlay/popover/popover.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  sheet:
+    kind: copy-in
+    layer: design-system
+    as: overlay
+    registryItem: sheet
+    directory: src/components/design-system/overlay/sheet
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T02:02:58.871Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-dialog"
+      - class-variance-authority
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/sheet.tsx
+        localPath: src/components/design-system/overlay/sheet/sheet.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  tooltip:
+    kind: copy-in
+    layer: design-system
+    as: overlay
+    registryItem: tooltip
+    directory: src/components/design-system/overlay/tooltip
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T01:25:45.085Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-tooltip"
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/tooltip.tsx
+        localPath: src/components/design-system/overlay/tooltip/tooltip.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  alert:
+    kind: copy-in
+    layer: design-system
+    as: status
+    registryItem: alert
+    directory: src/components/design-system/status/alert
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T12:02:37.435Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - class-variance-authority
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/alert.tsx
+        localPath: src/components/design-system/status/alert/alert.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  import-export:
+    kind: original
+    layer: app-starter
+    as: status
+    directory: src/components/app-starter/import-export
+    dependencies:
+      - lucide-react
+    addedAt: 2026-08-04T09:40:00.000Z
+  notification-center:
+    kind: original
+    layer: app-starter
+    as: status
+    directory: src/components/app-starter/notification-center
+    dependencies:
+      - lucide-react
+    addedAt: 2026-08-04T09:00:00.000Z
+  progress-client:
+    kind: copy-in
+    layer: design-system
+    as: status
+    registryItem: progress
+    directory: src/components/design-system/status/progress-client
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T07:28:10.776Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - "@radix-ui/react-progress"
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/progress.tsx
+        localPath: src/components/design-system/status/progress-client/progress-client.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  progress-native:
+    kind: reimplemented
+    layer: design-system
+    as: status
+    registryItem: progress
+    directory: src/components/design-system/status/progress-native
+    addedAt: 2026-08-03T10:49:02.882Z
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/progress.tsx
+        localPath: src/components/design-system/status/progress-native/progress-native.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  skeleton:
+    kind: copy-in
+    layer: design-system
+    as: status
+    registryItem: skeleton
+    directory: src/components/design-system/status/skeleton
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-02T12:26:17.949Z
+    shadcnCliVersion: 4.15.0
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/skeleton.tsx
+        localPath: src/components/design-system/status/skeleton/skeleton.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  spinner:
+    kind: copy-in
+    layer: design-system
+    as: status
+    registryItem: spinner
+    directory: src/components/design-system/status/spinner
+    registry: https://ui.shadcn.com
+    addedAt: 2026-08-03T08:05:25.437Z
+    shadcnCliVersion: 4.15.0
+    dependencies:
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/spinner.tsx
+        localPath: src/components/design-system/status/spinner/spinner.tsx
+        commit: 04432835f91dbe0a3273f50ac829e0a377110e5f
+        committedAt: 2025-10-03T17:05:22Z
+  # registry の `empty` は非採用。画面状態は loading / empty / error / success を束ねる
+  # この component へ集約し、empty だけを別部品として重複させない（候補一覧の判断）。
+  feedback-state:
+    kind: reimplemented
+    layer: app-starter
+    as: view-state
+    registryItem: empty
+    directory: src/components/app-starter/feedback-state
+    addedAt: 2026-08-03T14:45:00.000Z
+    dependencies:
+      - lucide-react
+    source:
+      - repository: shadcn-ui/ui
+        path: apps/v4/registry/new-york-v4/ui/empty.tsx
+        localPath: src/components/app-starter/feedback-state/feedback-state.tsx
+        commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
+        committedAt: 2026-03-02T08:49:00Z
+  # ここから下は実体を持たない `not-adopted`。`as` を持たないため上の目的別の並びに入らない。
+  async-operation-state:
+    kind: not-adopted
+    reason: >-
+      列挙した項目すべてに既存の owner がある。pending は ADR 0061 の `useFormStatus`、retry は
+      `ApiErrorAlert`、undo と完了通知は `Toaster` の `ToastAction`、cancel は ADR 0071 の
+      `AbortSignal` が持つ。中核の optimistic update は client hook であり、`components` は
+      `capabilities` を import できないため、この層には置けない。
+    revisitWhen: >-
+      form 送信を経由しない非同期操作が複数画面に現れ、pending 表示と二重操作抑止の形が feature
+      ごとに割れ始めたとき。その場合も置き場は `components` ではなく `capabilities` の hook になる。
+    decidedAt: 2026-08-05T00:00:00.000Z

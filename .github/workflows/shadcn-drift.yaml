@@ -1,0 +1,127 @@
+name: shadcn Drift
+
+# src/components/shadcn-manifest.yaml records, for every design system component, whether it was
+# copied in from the shadcn/ui registry and which upstream commit it came from. Two things can rot:
+# the ledger itself (a component added or moved without updating its entry) and the upstream code
+# (a component that has changed since we copied it).
+#
+# The ledger check is hermetic and caused by the change under review, so it gates pull requests.
+# The upstream check needs the network and is not caused by the change under review, so it runs on
+# a schedule instead: failing a PR for it would block work for a reason the author cannot fix.
+
+on:
+  pull_request:
+    paths:
+      - "src/components/**"
+      - ".github/workflows/shadcn-drift.yaml"
+  schedule:
+    # Monday 03:00 UTC. Weekly is enough: acting on drift is a manual review either way.
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  manifest:
+    # The ledger check runs for every trigger. It needs no network.
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.7.12
+          install: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Node and pnpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise install core:node aqua:pnpm/pnpm
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify the component ledger
+        run: pnpm check:ui --offline
+
+  upstream:
+    # The upstream check is skipped on pull requests. See the note at the top of this file.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.7.12
+          install: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Node and pnpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise install core:node aqua:pnpm/pnpm
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # One request per recorded source file, so the unauthenticated rate limit is not enough.
+      # gh is preinstalled on the runner and picks up GH_TOKEN.
+      - name: Check the recorded upstream commits
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm check:ui
