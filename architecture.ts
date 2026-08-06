@@ -58,3 +58,22 @@ export const DEPENDENCIES = {
   logging: [],
   observability: [],
 } as const satisfies Record<Kernel, readonly Kernel[]>;
+
+/**
+ * 起動 / ビルド境界のエントリ。置き場を framework が決めるためカーネルの下へ入れられない。
+ *
+ * @remarks
+ * カーネルではないので README も層も持ちませんが、分類の外へ出すと「どの層でもない」ファイルが
+ * 正常系に紛れ、未分類を検出するガードが機能しなくなります。層と同じ表に載せて分類させます。
+ */
+export const ENTRY_POINTS = [
+  {
+    category: "bootstrap",
+    pattern: "src/instrumentation*",
+    dependencies: ["config", "logging", "observability"],
+  },
+] as const satisfies readonly {
+  category: string;
+  pattern: string;
+  dependencies: readonly Kernel[];
+}[];

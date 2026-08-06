@@ -5,7 +5,7 @@
 import boundaries from "eslint-plugin-boundaries";
 import tseslint from "typescript-eslint";
 
-import { DEPENDENCIES, KERNELS } from "./architecture";
+import { DEPENDENCIES, ENTRY_POINTS, KERNELS } from "./architecture";
 import noInternalAnchor from "./eslint-rules/no-internal-anchor.mjs";
 
 const elements = KERNELS.map((type) => ({ type, pattern: `src/${type}`, partialMatch: false }));
@@ -33,6 +33,7 @@ export default [
       "project-rules": { rules: { "no-internal-anchor": noInternalAnchor } },
     },
     settings: {
+      "boundaries/files": ENTRY_POINTS.map(({ category, pattern }) => ({ category, pattern })),
       // 境界検査は import 先を実ファイルまで解決できて初めて成立する。解決できない import は
       // 「どの層でもない」と見なされ、違反があっても黙って通る。`@/*` を含めて解決させる。
       "import/resolver": { typescript: { project: "./tsconfig.json" } },
@@ -44,12 +45,26 @@ export default [
         "error",
         {
           default: "disallow",
-          policies: Object.entries(DEPENDENCIES).map(([from, types]) => ({
-            from: { element: { type: from } },
-            allow: { to: { element: { types: { anyOf: types } } } },
-          })),
+          policies: [
+            ...Object.entries(DEPENDENCIES).map(([from, types]) => ({
+              from: { element: { type: from } },
+              allow: { to: { element: { types: { anyOf: types } } } },
+            })),
+            ...ENTRY_POINTS.map(({ category, dependencies }) => ({
+              from: { file: { categories: category } },
+              allow: { to: { element: { types: { anyOf: dependencies } } } },
+            })),
+            // co-location したテストが対象を読む経路。カーネル内では同一層の import に収まるが、
+            // エントリは層を持たないため category 内の相互参照として明示する。
+            ...ENTRY_POINTS.map(({ category }) => ({
+              from: { file: { categories: category } },
+              allow: { to: { file: { categories: category } } },
+            })),
+          ],
         },
       ],
+      "boundaries/no-unknown-files": "error",
+      "boundaries/no-unknown-dependencies": "error",
       "project-rules/no-internal-anchor": "error",
       "@typescript-eslint/consistent-type-assertions": [
         "error",
