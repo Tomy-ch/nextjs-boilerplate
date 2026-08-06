@@ -15,7 +15,7 @@ export default defineConfig({
     // アプリのコードではないが、壊れると生成物が黙って変わるため同じ suite で回す。
     // docs-viewer は別パッケージだが、同じ gate に載せる。別 suite にすると片方だけが
     // 緑という状態を作れてしまい、CI の判定が「全部通った」を意味しなくなる。
-    include: ["{src,scripts,tokens,docs-viewer}/**/*.test.{ts,tsx}"],
+    include: ["{src,scripts,tokens,docs-viewer,mocks}/**/*.test.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "v8",
@@ -49,6 +49,10 @@ export default defineConfig({
         "scripts/portal/gen-docs-json.ts",
         "scripts/portal/gen-portal-docs.ts",
         "scripts/portal/build-site.ts",
+        // 契約から生成される MSW ハンドラ。応答が契約を満たすかは mocks/contract-conformance.test.ts
+        // が全ハンドラに対して検査しており、行や分岐の網羅で測る対象ではない。手書きの配線
+        // （mocks 直下）はこの除外に含めない。
+        "mocks/*/**",
         // 契約から生成される wire 型と zod スキーマ（[0072](docs/adr/0072-api-type-generation.md)）。
         // 書き手が居ないコードにテストを課しても、検証しているのは生成器であって本リポの
         // 判断ではない。生成物の正しさは契約からの再生成が一致するか（drift ゲート）で担保する。

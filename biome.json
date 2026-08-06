@@ -100,7 +100,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/adapters/gen/**", "mocks/**"],
+      "includes": ["src/adapters/gen/**", "mocks/*/**"],
       "linter": {
         "enabled": false
       }

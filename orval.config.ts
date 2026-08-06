@@ -15,6 +15,29 @@ const NON_CLIENT_TAGS = [
   "internal/types/error-response",
 ];
 
+// pattern を持つ項目の値の作り方。
+//
+// orval は pattern を見つけると `faker.helpers.fromRegExp(パターン)` を出すが、この API は
+// `\d` のような短縮クラスもアンカーも解釈せず、パターンの文字列をほぼそのまま返す
+// (`^\d+(\.\d+)?$` → `^\dd(\.\d)?$`)。結果としてモックが、同じ契約から生成した zod 検証を
+// 通らない。契約に pattern を持つ項目が増えたときの取りこぼしは、全ハンドラの応答を対応する
+// zod で検証するテストが捕まえる。
+const PATTERNED_MOCK_PROPERTIES = {
+  // USD の decimal 文字列。サブセント精度を保つため数値ではなく文字列で表される。
+  //
+  // `amount` はここに入れられない。同名の項目が、為替レスポンス直下では pattern 付きの文字列、
+  // 参考換算額の中では最小単位の整数として存在し、名前でもパスでも区別できないためである
+  // （入れ子側は独立したスキーマとして生成され、パスが `#.amount` にリセットされる）。
+  // 購入集計の金額を正しく保つ側を採り、為替の 1 件は契約適合の検査で除外している。
+  // 上流での改名（go-boilerplate #987）が入れば `amount` をここへ足して除外を撤去する。
+  "/^(price|unitPrice|rate)$/": () => "19.99",
+  // 符号付きの decimal 文字列。
+  "/^converted$/": () => "-19.99",
+  // 先頭の + は任意で、以降は 10〜15 桁の数字。
+  "/^phone$/": () => "09012345678",
+  "/^postalCode$/": () => "100-0001",
+};
+
 const apiInput = {
   target: "./openapi/api.gen.yaml",
   filters: { mode: "exclude" as const, tags: NON_CLIENT_TAGS },
@@ -43,6 +66,7 @@ export default defineConfig({
       target: "./mocks/api/endpoints.ts",
       schemas: "./src/adapters/gen/api/model",
       mock: { generators: [{ type: "msw" }] },
+      override: { mock: { properties: PATTERNED_MOCK_PROPERTIES } },
     },
   },
   apiZod: {

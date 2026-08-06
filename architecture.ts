@@ -79,32 +79,30 @@ export const ENTRY_POINTS = [
 }[];
 
 /**
- * `src/` の外にあり、どの層からも import してはならない領域。
+ * 名指しした相手からしか import できない区画。
  *
  * @remarks
- * 境界検査が働くのは宣言された要素の間だけです。`src/` の外は要素を持たないため、宣言しない
- * 限り違反ではなく「検査の対象外」として黙って通ります。契約駆動モック([0027](docs/adr/0027-directory-structure.md))は
- * 生成された HTTP client を含み、それは本番が使わないもの([0071](docs/adr/0071-bff-api-integration.md))
- * であるため、import できないことを機械で示す必要があります。
- */
-export const FORBIDDEN_AREAS = [{ type: "mocks", pattern: "mocks" }] as const satisfies readonly {
-  type: string;
-  pattern: string;
-}[];
-
-/**
- * 層の内側にありながら、その層の一部だけが触れてよい区画。
+ * 境界検査が働くのは宣言された要素の間だけです。層より細かい単位や `src/` の外は、宣言しない
+ * 限り違反ではなく「検査の対象外」として黙って通ります。区画を独立した要素として宣言し、許す
+ * 相手を名指しすることで、層の粒度では表せない制約を機械で持ちます。
  *
- * @remarks
- * 契約から生成した wire 型は `adapters` の内側に置きますが、層としての `adapters` を
- * import できる層（`app` / `features` など）から素通しで届いてしまうと、生成型が内層へ
- * 漏れます([0020](docs/adr/0020-adopted-architecture.md) 設計原則 3)。区画を独立した要素として
- * 宣言し、許す層を名指しすることで、層の粒度では表せない制約を機械で持ちます。
+ * - `adapters-gen`: 契約から生成した wire 型。`adapters` の内側にあるため、層として `adapters` を
+ *   import できる `app` / `features` から素通しで届き、生成型が内層へ漏れます([0020](docs/adr/0020-adopted-architecture.md) 設計原則 3)
+ * - `mocks`: 契約駆動モック([0027](docs/adr/0027-directory-structure.md))。生成された HTTP client を
+ *   含み、それは本番が使わないもの([0071](docs/adr/0071-bff-api-integration.md))です。一方でモックの
+ *   起動そのものは起動境界の仕事であるため、そこからだけ届くようにします
  */
 export const RESTRICTED_AREAS = [
-  { type: "adapters-gen", pattern: "src/adapters/gen", allowedFrom: ["adapters"] },
+  {
+    type: "adapters-gen",
+    pattern: "src/adapters/gen",
+    allowedFrom: ["adapters"],
+    allowedFromCategories: [],
+  },
+  { type: "mocks", pattern: "mocks", allowedFrom: [], allowedFromCategories: ["bootstrap"] },
 ] as const satisfies readonly {
   type: string;
   pattern: string;
   allowedFrom: readonly Kernel[];
+  allowedFromCategories: readonly string[];
 }[];
