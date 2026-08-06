@@ -29,6 +29,7 @@ export default defineConfig({
         "src/**/*.{ts,tsx}",
         "docs-viewer/src/**/*.{ts,tsx}",
         "scripts/architecture/**/*.ts",
+        "scripts/openapi/**/*.ts",
         "scripts/portal/**/*.ts",
         "tokens/**/*.ts",
       ],
@@ -43,6 +44,7 @@ export default defineConfig({
         // CLI entry。判断は同ディレクトリの純粋関数側にあり、こちらは FS 入出力と
         // 引数の受け渡しだけを持つ。撤去条件は CLI 側が判断を持ち始めた時点。
         "scripts/architecture/check-boundaries.ts",
+        "scripts/openapi/fetch-api.ts",
         "scripts/portal/gen-docs-json.ts",
         "scripts/portal/gen-portal-docs.ts",
         "scripts/portal/build-site.ts",
