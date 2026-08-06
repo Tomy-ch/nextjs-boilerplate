@@ -11,10 +11,11 @@
 - `.makefiles/github` : GitHub 初期設定 / リリース / ラベル / ルール設定 / ワークフロー Lint
 - `.makefiles/tools` : 開発ツールの管理（mise）/ コミットメッセージ検証 / GitHub Actions の SHA ピン
 - `.makefiles/security` : シークレット / 依存脆弱性のスキャン
+- `.makefiles/testing` : テストの高速実行とカバレッジ付き完全実行
 
 アプリケーション側のコマンド（`dev` / `build` / `lint` / `typecheck`）は make ターゲットでは**なく**、
-`package.json` の scripts に置き pnpm から実行します（[ADR 0001](../docs/adr/0001-package-manager.md)）。
-`make` が受け持つのは pnpm scripts で表せない領域 — リポジトリ運用とツールチェーン整備 — だけです。
+`package.json` の scripts に置き pnpm から実行します（[ADR 0001](../docs/adr/0001-package-manager.md)）。テストだけは
+hook / CI の二層実行を明示するため `make` が入口となり、内部で pnpm script を呼びます。
 
 ## 規約
 
@@ -201,6 +202,13 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 承認コマンドを組み立てません（キーは 1 行ずつ上に並びます）。
 
 更新の運用手順は `actions-pin` スキルが持ちます。
+
+## `.makefiles/testing` 系
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make test-cached` | Vitest を cache 利用で実行します。 | pre-commit 用の高速フィードバック。coverage gate は実行しません。 |
+| `make test-full` | Vitest を cache 無効・coverage 付きで実行します。 | pre-push / CI 用。Statements / Branches / Functions / Lines の各 100% を下回ると失敗します。 |
 
 ## `.makefiles/security` 系
 

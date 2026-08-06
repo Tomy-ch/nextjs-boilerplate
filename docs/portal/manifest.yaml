@@ -1,0 +1,83 @@
+# ドキュメントポータルの構造を決める単一ソース（[ADR 0141](../adr/0141-portal-operations.md)）。
+#
+# ここが持つのは構造だけで、カードの中身は canonical なドキュメントが正。
+# 「キュレーション済みの手引きであって、全 README の辞書ではない」— 載せる価値のある
+# ものを人が選ぶ。未登録の README は drift ではなく、判断待ちの候補として扱う。
+#
+# meta 以外のキーは section で、値は canonical から portal へ複製する対。
+# `docs/<dir>/*.md` は複製せず走査で自動発見されるため、ここへ書くのはリポジトリの
+# 他の場所にある README だけになる。
+
+meta:
+  title: nextjs-boilerplate Documentation
+  subtitle: Next.js 表示層 boilerplate の設計判断と実装規約
+
+  groups:
+    - title: Get Started
+      sections: [overview]
+    - title: Architecture
+      sections: [layers, adr]
+    - title: Build & Operations
+      sections: [operations]
+    - title: Project
+      sections: [plan, templates]
+
+  section_titles:
+    overview: Overview
+    adr: Decisions (ADR)
+    layers: Layers
+    operations: Build & Operations
+    plan: Plan
+    templates: Templates
+
+  # portal と同じサイトへ並ぶが `docs/` 配下に無いため、section としては発見されない。
+  reference_links:
+    - title: Storybook
+      path: ../storybook/
+
+  subgroups:
+    layers:
+      - title: Composition Root
+        items: [app, features]
+      - title: Presentation
+        items: [components, model]
+      - title: Cross-Cutting
+        items: [capabilities, stores, config, errors, logging, observability]
+      - title: External Boundary
+        items: [adapters]
+
+layers:
+  - src: src/app/README.md
+    dst: docs/portal/guides/app.md
+  - src: src/features/README.md
+    dst: docs/portal/guides/features.md
+  - src: src/components/README.md
+    dst: docs/portal/guides/components.md
+  - src: src/model/README.md
+    dst: docs/portal/guides/model.md
+  - src: src/adapters/README.md
+    dst: docs/portal/guides/adapters.md
+  - src: src/capabilities/README.md
+    dst: docs/portal/guides/capabilities.md
+  - src: src/stores/README.md
+    dst: docs/portal/guides/stores.md
+  - src: src/config/README.md
+    dst: docs/portal/guides/config.md
+  - src: src/errors/README.md
+    dst: docs/portal/guides/errors.md
+  - src: src/logging/README.md
+    dst: docs/portal/guides/logging.md
+  - src: src/observability/README.md
+    dst: docs/portal/guides/observability.md
+
+operations:
+  - src: .github/workflows/README.md
+    dst: docs/portal/guides/workflows.md
+  - src: .makefiles/README.md
+    dst: docs/portal/guides/makefiles.md
+  - src: env/README.md
+    dst: docs/portal/guides/env.md
+  - src: tokens/README.md
+    dst: docs/portal/guides/tokens.md
+  - src: docs-viewer/README.md
+    dst: docs/portal/guides/docs-viewer.md

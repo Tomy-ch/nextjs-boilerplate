@@ -46,7 +46,7 @@ Accepted
 
 - ディレクトリ名 `<slug>` は **kebab-case**、動詞ベース
 - ユーザは `/<slug>` で起動する
-- 既存例: `commit` / `submit-pr` / `release-notes` / `tools-upgrade` / `tool-map`
+- 既存例: `commit` / `submit-pr` / `release-notes` / `tools-upgrade` / `tool-map` / `design-export`
 
 ## frontmatter
 
@@ -84,6 +84,7 @@ Accepted
 | `actions-pin` | GitHub Actions の SHA ピン監査 | `.github/actions-pin.toml` を SSOT に `uses:` の版を検疫付きで更新する。除外窓より新しいリリースは採らず、窓を通過済みの版へ step-back する。実体は `make actions-pin-{resolve,apply,check}` ([0153](0153-ci-configuration.md)) |
 | `repo-ops` | 運用 gotcha のランブック | mise ツールチェーン / pnpm lockfile / make `DRY_RUN` / `tmp/reviews` 等の再発しやすい躓きへの対処手順集。read-only の知識スキルで、状態は変更しない |
 | `tool-map` | `.claude/` 配下の inventory | commands / skills / agents の表 + Mermaid 依存マップを生成 |
+| `design-export` | デザインシステムの外部書き出し | `pnpm design:bundle` が作る `tmp/design-bundle`（shadcn registry / 目録 / トークン）を、送り先ごとの手順で運ぶ。依存の向きは repo → design の一本で、書き出した先の成果物を取り込む経路は持たない。特定 SaaS の手順は [0010](0010-standards-and-non-lockin.md) の非ロックインによりこのスキルの中だけに閉じる |
 
 新規追加は本 ADR の趣旨 (運用系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。
 

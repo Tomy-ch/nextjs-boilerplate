@@ -38,16 +38,41 @@ Bail out if any of the following:
 - `git status --porcelain` is non-empty → tell the user to run `/commit` (or stash) first.
 - `gh auth status` fails → tell the user to run `gh auth login`.
 
-The four valid working states going into Step 1:
+The four valid working states going into Step 2:
 
 | Upstream | Unpushed commits | Meaning |
 | --- | --- | --- |
 | none | n/a | First push case |
 | set | > 0 | Subsequent push case |
 | set | 0 | Nothing to push; PR may still need to be created |
-| set | 0 + PR open | Nothing to do (handled in Step 1) |
+| set | 0 + PR open | Nothing to do (handled in Step 2) |
 
-## Step 1. Detect Existing PR and Base Branch
+## Step 1. Pre-push Local Review Gate (confirm)
+
+Immediately after the pre-flight bail-outs pass — **before composing anything or pushing** — ask whether to run a pre-push `/impl-review`. This is the single decision point for local review: it inspects the local diff on a different model than the implementer and catches gaps that mocked tests miss, and it belongs before the change leaves the machine. Do NOT auto-run it.
+
+`AskUserQuestion`:
+
+- Question: 「push 前に `/impl-review`（実装者とは別モデルの独立・敵対レビュー）を実行しますか？」
+- Options:
+  - 「`/impl-review` を実行する（submit-pr はキャンセル）」 — cancel-and-guide, see below.
+  - 「実行済み / 不要（このまま進める）」 — continue to Step 2.
+  - 「キャンセル」 — abort.
+
+**On the review choice, cancel submit-pr and guide the user to review — do NOT chain `/impl-review` inline and do NOT try to resume this run.** Print:
+
+> submit-pr をキャンセルします。`/impl-review` を実行し、指摘を修正してから `/commit` で確定し、改めて `/submit-pr` を実行してください。（clean tree でないと push できないため、レビュー修正の commit を先に済ませる必要があります。次回はこの Step 1 で「実行済み」を選べばそのまま進みます。）
+
+Why a clean cancel rather than a pause-and-resume: a local review commonly produces fixes, which must be committed *before* submit-pr can run at all (the clean-tree precondition in Step 0, and the push in Step 6). Since the working tree will change anyway, there is nothing to "resume" — the next `/submit-pr` is a fresh, cheap run that flows straight through once the fixes are committed.
+
+**Depth by change type** — scale the recommendation to what the diff touches (this same scaling also drives the post-PR review at the final step):
+
+- **Behavior-affecting code** (`src/**` の `.ts` / `.tsx`、Server Action、Route Handler、`adapters`) → recommend the review by default.
+- **Docs / tooling-dominant changes** (`docs/**`、`*.md`、`.claude/**`、`AGENTS.md`、CI 設定 — 本番の振る舞いを変えない) → note the lower ROI so the user can decline quickly; still ask.
+
+Judge the dominant nature of the diff (changed paths / commit prefixes) for the default recommendation, but the user's choice always wins.
+
+## Step 2. Detect Existing PR and Base Branch
 
 ```sh
 gh pr view --json number,state,baseRefName,headRefName,url,title,body 2>/dev/null
@@ -70,11 +95,11 @@ For the "create" path, if multiple `release/*` branches exist locally and the us
 Special early-exit cases:
 
 - "update" path with 0 unpushed commits → tell the user there is nothing to push and stop. Print the existing PR URL.
-- "create" path with 0 unpushed commits but the remote branch exists → continue to Step 2 (we will create a PR for whatever is already on the remote).
+- "create" path with 0 unpushed commits but the remote branch exists → continue to Step 3 (we will create a PR for whatever is already on the remote).
 
-## Step 2. Gather Context and Read Template
+## Step 3. Gather Context and Read Template
 
-Collect the inputs needed to compose title and body. `<base>` is the base branch decided in Step 1.
+Collect the inputs needed to compose title and body. `<base>` is the base branch decided in Step 2.
 
 ```sh
 git log <base>..HEAD --pretty=format:'%h %s'                # commit titles
@@ -91,7 +116,7 @@ Read `.github/pull_request_template.md` and identify sections by `#` / `##` head
 
 Strip the HTML comment placeholders. If the template is absent, fall back to the same three-section structure inline.
 
-## Step 3. Compose Title and Body
+## Step 4. Compose Title and Body
 
 ### Title
 
@@ -110,13 +135,9 @@ Fill each template section in Japanese:
 
 If the branch name encodes an issue number, append `closes #N` at the bottom of the body (or fold it into 概要 if natural).
 
-## Step 4. Confirm with the User
+## Step 5. Confirm with the User
 
-Before the push confirmation, surface a **non-blocking** reminder that an independent, different-model review is recommended before the change leaves the local machine:
-
-> 推奨: push 前に `/local-review`（実装者とは別モデルの独立・敵対的レビュー）を実行しましたか？ 未実行なら一度回すと、モックテストでは出ない不具合（認証/IDOR・DI/SQL・共有スキーマ波及など）を PR 前に拾えます。
-
-This is a recommendation only — never block the push on it, and never auto-run the review. If the user has already reviewed or declines, continue.
+Local review was already decided at Step 1 — do not ask again here.
 
 Display the resolved title, base branch, push command, and full body.
 
@@ -140,7 +161,7 @@ Display the unpushed commit list and diff summary. Then ask with the wording req
 - Question: 「変更はローカルにコミット済みです。これらの変更をプルリクエストにプッシュしますか？」
 - Options: 「push する」 / 「キャンセル」
 
-## Step 5. Push
+## Step 6. Push
 
 ```sh
 # First push (no upstream)
@@ -150,11 +171,21 @@ git push -u origin <branch>
 git push
 ```
 
+A branch cut from `origin/release/*` (the merged-PR recovery flow in `commit`) has its upstream pointing at that **protected** base, so a bare `git push` would target the protected branch. Always do the first push with the explicit refspec `git push -u origin <branch>` to repoint the upstream at the feature branch; only after that is a bare `git push` safe.
+
 Never use `--force` or `--force-with-lease` unless the user has explicitly requested it.
 
 On push failure (non-fast-forward, permission denied, network error, etc.), report the error verbatim to the user and stop. Do not attempt automatic recovery.
 
-## Step 6. Create or Update the PR
+### The pre-push hook is the verification step — do not pre-empt it
+
+`pre-push` runs the heavy gates (`pnpm typecheck` / `make test-full` / `make secret-scan`) through lefthook. Let the hook make that call.
+
+Do **not** run `pnpm lint:ci` / `make test-full` by hand before pushing to "make sure" — with several windows open that is minutes of saturated host to rediscover what CI runs identically, and the saturation itself makes unrelated gates fail (`repo-ops` §7). **Pushing *is* the verification step.**
+
+**When the hook fails for a reason outside this change** — an uncommitted file another session is mid-edit on, two Vitest runs colliding over the same `coverage/` directory, a tool missing from `PATH` — the failure is not about the change being pushed. `repo-ops` §7 covers the `--no-verify` carve-out and its conditions. Report which gate failed and why it is outside the change, and let the user decide; never take the carve-out silently.
+
+## Step 7. Create or Update the PR
 
 ### Create the PR
 
@@ -170,7 +201,7 @@ EOF
 
 ### Update the PR
 
-Step 5's push already updated the PR's diff. Do NOT touch the PR's title or body by default.
+Step 6's push already updated the PR's diff. Do NOT touch the PR's title or body by default.
 
 Only if the user explicitly asked to update them, run:
 
@@ -181,7 +212,7 @@ EOF
 )"]
 ```
 
-## Step 7. Report
+## Step 8. Report
 
 Print the PR URL and a brief summary in Japanese.
 
@@ -201,13 +232,13 @@ PR を更新しました: <url>
 追加コミット数: N
 ```
 
-## Step 8. Post-PR Review (confirm)
+## Step 9. Post-PR Review (confirm)
 
 After the PR URL is reported, **always ask the user whether to run a review** — do not skip this, and do not auto-run a review. Use `AskUserQuestion`:
 
 - Question: 「PR を作成/更新しました。コードレビューを実行しますか？」
 - Options (offer the ones that apply):
-  - 「`/local-review` を実行」 — local diff, different-model adversarial review (strong on auth / IDOR / DI / SQL / shared-schema gaps that mocked tests miss); posts its surviving findings as inline PR comments by default (`--no-comment` to suppress)
+  - 「`/impl-review` を実行」 — local diff, different-model adversarial review (strong on auth / IDOR / DI / SQL / shared-schema gaps that mocked tests miss); posts its surviving findings as inline PR comments by default (`--no-comment` to suppress)
   - 「`/code-review <PR#>` を実行」 — PR-based review (can post inline comments with `--comment`)
   - 「ultrareview を案内」 — cloud multi-agent review; **user-triggered and billed**, so the skill cannot launch it — only surface the command for the user to run
   - 「レビューしない」
@@ -244,7 +275,7 @@ Before reporting completion, confirm:
 - [ ] PR template was read and reflected in the body
 - [ ] Title and body are Japanese
 - [ ] Title ≤ 70 characters
-- [ ] (推奨) push 前に `/local-review` の実行を確認した（非ブロッキング）
+- [ ] Step 1 で push 前の `/impl-review` 実行可否を確認した（レビューを選んだ場合は submit-pr をキャンセルして案内した）
 - [ ] User confirmation was obtained before the push (mandatory for update path per `CLAUDE.md`)
 - [ ] PR URL was reported to the user
 - [ ] (必須) PR 作成/更新後にレビュー実行可否を確認した（深さは変更種別でスケール）

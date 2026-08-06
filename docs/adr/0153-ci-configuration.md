@@ -12,7 +12,7 @@ Accepted
 
 AGENTS.md の `[TODO] CI Configuration`(BACKLOG B9)は、GitHub Actions の job 分割・required check・キャッシュ戦略・matrix・hooks との二重化を未決とし、暫定運用として「`.github/workflows/` を勝手に足さない / lint・typecheck・build をローカルで回す」を敷いていた。本 ADR がこれを確定させる。
 
-go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** で分割し、**SHA ピン**(**go 側**の ADR 0078)/ concurrency / 最小 permissions / **hooks mirror CI**(**go 側**の ADR 0073)/ upsert-pr-comment を共通ハードニングとする。本 ADR はこの骨格を言語非依存で翻案し、job 中身を biome / tsc / next build / vitest / playwright に差し替える。
+go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** で分割し、**SHA ピン**(**go 側**の ADR 0078)/ concurrency / 最小 permissions / **hooks mirror CI**(**go 側**の ADR 0073)/ PR レポートを共通ハードニングとする。本 ADR はこの骨格を言語非依存で翻案し、検査ログは upsert-pr-comment、coverage は octocov を用い、job 中身を biome / tsc / next build / vitest / playwright に差し替える。
 
 **注意**: 本 ADR が言う「no-Docker」は本リポの [0011](0011-no-docker.md) を指す(go 側の ADR 0004 は別内容 = modular monolith)。go 側の Docker 前提ジョブ(image-scan / migration / boot-check 等)は本リポでは対象外。
 
@@ -28,7 +28,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
   - **composite action の run シェルの lint**: composite action(`.github/actions/**`)は actionlint の直接の走査対象にできない(workflow として解釈される)ため、`action.yaml` を解析して `runs.steps[].run` を抽出し、`shell:` から決めた shebang を付けて shellcheck へ流す専用の検査(`make actions-shellcheck`)を持つ。指摘は `action.yaml` の行・列へ写し戻す。抽出に YAML パーサを使うのは、`run:` の本文が heredoc や `#` を含みうるため行単位の正規表現では終端を誤り、alias(`run: *anchor`)とマージキー(`<<: *base`)経由の `run:` も拾えないことによる。`bash` / `sh` 以外の `shell:` は検査せず、件数ではなく位置と方言を添えて報告する(見えない skip を作らない)。**抽出が壊れて「検査していないのに緑」になる状態は、パーサ自身の変換で数えた件数との突き合わせでファイルごとに落とす**(合計で見ると 1 ファイルの抽出失敗が他ファイルの成功に隠れる。手書きのノード走査とは経路が分かれるため、片方の破損が件数の差として出る)。`run:` の本文はリテラル(`|`)を要求し、ブロック折り畳み(`>`)は error にする(隣接行を空白へ畳むため指摘の位置を写し戻せず、畳まれた行がソースに無い構文を作って誤検知を生む)。actionlint と同じ「CI で実行するシェルが正しいか」を問う検査であるため、ワークフロー・PR コメント・required check は `actions-lint` に同居させる(分割の単位は関心事であり、コマンド数ではない)。actionlint の間接検査(workflows 側の `uses: ./.github/actions/...` 解決)が担うのは既に参照されている action の入力(`with:` と `inputs`)の整合で、そこは変わらない(撤回条件 W10 / [0151](0151-git-hooks.md))
   - **PR コメント投稿ジョブへの secret 混入の lint**: 下記 5 の「検査ステップに secret を渡さない」は actionlint では表現できないため、専用の検査(`make actions-comment-secret-lint`)で機械的に守る。走査単位は**ジョブ**とする — secret を渡すのがどのステップであれ、本文ファイルを作るステップと同じジョブにいれば届くため。投稿ジョブの同定は `uses:` から辿る到達可能性で行い、`upsert-pr-comment` を内側で呼ぶローカル action を経由するジョブも対象に含める(ラッパを 1 枚挟むだけで検査から消えることを避ける)。ジョブの切り出しに YAML パーサを使うのは、行単位の正規表現ではインデント幅やフロー記法の違いでジョブヘッダが 1 つも一致せず、**検査対象が空のまま緑になる**ため。**参照を探す対象はソースの範囲ではなくパース済みスカラーの値**とする — 範囲で切ると YAML コメントに書いた例示が実参照として拾われ、閉じない `${{` があればそこから次の `}}` までが 1 つの式と見なされて間にある本物の参照を呑み込み、alias で他のジョブへ退避させた値は逆に対象から外れる。値の単位で見て alias を辿れば、これらはいずれも構造的に消える。検出できるのは `${{ }}` 式に現れる secrets コンテキストの直接参照だけで、`needs.<job>.outputs` 経由の間接渡しは静的に追えない — **規約が正であり、この検査は規約が将来 `env:` 1 行で破られることへの退行ガード**という位置づけを崩さない。異常終了は 2 通りに分け、規約違反は exit 1、検査そのものが成立していない状態(ワークフロー 0 件 / `jobs:` が読めない / **action の定義があるのに投稿ジョブが 1 つも見つからない** / **ジョブが reusable workflow を呼び出している**)は exit 2 とする。前者は参照の同定が壊れて検査対象が消えたまま緑になるのを塞ぎ、後者は呼び出し先へ `with:` で渡る secret を追えない以上「投稿ジョブでない」に寄せると検査の届かない経路が緑のまま増えるため。`actions-lint` に同居させるのは、この検査が問うのも上の 2 つと同じく **「これから CI で実行する Actions の定義が正しいか」** だからで、シェルの正しさより一段広いこの括りが 3 者に共通する関心事にあたる(分割の単位は関心事であり、コマンド数ではない)
   - **起動スモーク**: go の boot-check(実 graph 起動検査)の翻案として、`pnpm build` → `next start` → `curl /` ポーリングの起動検査を持つ(設計フェーズの「決定不要」表 B9 / 移植計画 PR 2-1)
-  - **生成物 drift ゲート**(型生成。[0072](0072-api-type-generation.md))/ **カバレッジゲート**(90%。[0090](0090-testing-strategy.md))。カバレッジの **PR レポート**([0090](0090-testing-strategy.md) が B9 へ引き渡した項)は下記 5 の PR コメント upsert 基盤で出力する(go octocov 相当。具体ツールは実装 PR で確定)
+  - **生成物 drift ゲート**(型生成。[0072](0072-api-type-generation.md))/ **カバレッジゲート**(100%。[0090](0090-testing-strategy.md))。カバレッジの **PR レポート**([0090](0090-testing-strategy.md) が B9 へ引き渡した項)は **octocov** で出力する。ほかの検査ログは下記 5 の PR コメント upsert 基盤で出力する
 - go 固有ジョブ(migration / sql-lint / gen-go-check 等)は本リポでは対象外(言語・DB 固有。生成物 drift は上記の型生成 drift ゲートが担う)
 
 ### 2. trigger 戦略
@@ -39,18 +39,18 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 ### 3. CI ハードニング(言語非依存・go からそのまま)
 
 - **SHA ピン**: `uses: owner/repo@<40hex> # <tag>` 形式で actions を SHA ピンする(go ADR 0078 の翻案)。**版の SSOT は末尾コメントの tag** であり、tag→SHA の対応は `.github/actions-pin.toml` が持つ。解決 / 反映 / 検査は `make actions-pin-{resolve,apply,check}`(実体は `scripts/actions-pin/`)。`resolve` は `ACTIONS_PIN_MIN_AGE_DAYS`(既定 14)の検疫を掛け、公開直後のリリースを採用しない(既存ピンがあれば維持し、無ければ見送る)。`check` はネットワークに出ず、未登録 / 未固定 / ロックファイル不一致 / 参照されないエントリ / 解釈できない `uses:` 記法を fail-closed で落とす。よって `uses:` は 1 行 1 ステップのブロック記法で書く(flow mapping は検査の網に入らないため error)。pre-commit hook と CI の両方で走らせる。**検疫は自動化された乗っ取りに対して時間を稼ぐ仕組みであり、日付の偽装に耐える保証ではない** — tag 付け替えそのものの検知は `resolve` の fail-closed が担う。**不変を宣言した tag の解決先が変わったら `resolve` は exit 1 で落ち、ロックファイルを一切書かない**(承認済みの移動も他のエントリも書かない。付け替えられた SHA が一度入れば以降 `check` は「整合している」と答え続ける)。moving かどうかは**コメント tag の形を宣言として読む** — bare な major 番号(`# v6`)だけが moving で、`# v6.1.0` / `# v6.1` / `# main` は不変。上流の tag 運用の推測ではなく、その tag を書いた側の意思表示であり、宣言と上流が食い違う場合は停止する側へ倒れる(撤回条件 W14)。判定は検疫の適用**前**の候補 SHA で行う(検疫後の採用値で比べると、付け替え直後の SHA は最も新しいがゆえに検疫へ掛かり「既存ピンを維持」に化け、窓が明けるまで検知が遅れる)。意図した更新は `ACTIONS_PIN_ALLOW_MOVED` に対象キーを並べて承認する。この値は make のレシピへ展開せず**環境変数としてスクリプトへ渡す** — キーはコメント tag 由来であり、レシピ行へ埋めればリポジトリの中身がシェルの解釈対象になる。同じ理由で、検知の失敗出力はキーを埋め込んだ承認コマンドを組み立てない。moving の前進に承認を要求しない理由は、定期更新のたびに承認する運用が「落ちたらフラグを足して再実行」を反射にし、その一括承認へ付け替えが紛れるため。運用スキルは `actions-pin`(依存監査系のため [0154](0154-claude-skills-operations.md) 運用系の体系に置く — `tools-upgrade` と同系)
-- **concurrency**: 全ワークフローで `group: ${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`(古い実行をキャンセル)
+- **concurrency**: 既定は `group: ${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`(古い実行をキャンセル)。**配信系(Deployment / Documentation)だけは group に共有リソース名を置き `cancel-in-progress: false` とする** — 配信先は ref ごとではなく 1 つしかないため group を ref で割ると同時実行が競合し、走行中の deploy をキャンセルすると公開中のサイトが途中まで転送された成果物を配り続ける。既定が守っているのは「PR ごとに旧実行を積まない」ことであり、この二点はそれと衝突しない
 - **最小 permissions**: トップレベルを `contents: read` に絞り、job で必要分(`pull-requests: write` 等)のみ加算する二段構え
 - **runner ハードニング**: 全 job の冒頭で `step-security/harden-runner` を `egress-policy: audit` で走らせ、ランナーからの外向き通信を記録する(go の全 workflow と同形)。監査から遮断(`block`)への移行は、記録された通信先が出揃ってからの判断とする
 
 ### 4. hooks mirror CI(go ADR 0073 翻案)
 
-- lefthook([0151](0151-git-hooks.md))で「local == CI」を二重化する。**local hook = 高速フィードバック**(glob 絞り・キャッシュ有効)、**CI = 権威**(full・キャッシュ無効・drift ゲート)([0090](0090-testing-strategy.md) 二層実行と一致)
-- 設計原則: glob-scoped(変更ファイル種別で hook を絞る)+ bypass-then-verify-once(commit split 中は `--no-verify`、最後に 1 回検証)。pre-push ではテスト(キャッシュ有効)/ typecheck を回し CI 到達前に落とす([0151](0151-git-hooks.md) の段階責務・速度目標 < 30 秒に従う。go 0073 の「pre-push = full test・キャッシュ無効」は、速度目標と [0090](0090-testing-strategy.md) 二層実行(ローカル = キャッシュ有効)に合わせて翻案し、full・キャッシュ無効・drift ゲートは CI 側に置く)
+- lefthook([0151](0151-git-hooks.md))で「local == CI」を二重化する。**pre-commit = 高速フィードバック**(glob 絞り・キャッシュ有効)、**pre-push / CI = 権威**(full・キャッシュ無効・coverage gate)([0090](0090-testing-strategy.md) 二層実行と一致)
+- 設計原則: glob-scoped(変更ファイル種別で hook を絞る)+ bypass-then-verify-once(commit split 中は `--no-verify`、最後に 1 回検証)。pre-push では `make test-full` と typecheck を回して CI 到達前に落とす。pre-commit のみが cache を使うため、編集時の反復速度と push 前の完全検証を両立する
 
 ### 5. required check / PR ゲート
 
-- 解析ステップは即 fail させず結果を capture → **PR コメントを upsert**(HTML マーカーで既存コメント検出 → update / create。go `upsert-pr-comment` の翻案。言語非依存でほぼそのまま)→ 最後に fail-closed(`exit 1`)
+- **検査ログ**は即 fail させず結果を capture → **PR コメントを upsert**(HTML マーカーで既存コメント検出 → update / create。go `upsert-pr-comment` の翻案。言語非依存でほぼそのまま)→ 最後に fail-closed(`exit 1`)とする。**coverage** は Vitest 実行後に octocov が LCOV を構造化して PR に報告し、その後に gate の失敗を返す
 - **本文の組み立ては PR 提出者の入力として扱う**: 検査ログには linter やコンパイラがソース行をそのまま出力するため、本リポジトリが public である以上その中身は PR 提出者が制御できる。これを前提に 2 つを固定する
   - **折り畳みのフェンスは本文から決める**: 固定の 3 連バッククォートで囲むと本文自身がフェンスを閉じ、以降が生の Markdown としてレンダリングされる(第三者へ通知を飛ばす mention・偽の見出しやリンクが CI bot の名義で載る)。本文中の最長のバッククォート連より 1 本長いフェンスで囲む
   - **フェンスの外に置く値は静的リテラルに限る**: 無害化が効くのは本文だけで、`title` は生の Markdown、`details-summary` は生の HTML としてフェンスの外に置かれる。ログ由来の文字列(検査結果の要約行など)をここへ回すと、塞いだはずの注入がフェンスの外側から復活する。呼び出し側はどちらにもワークフロー定義に書いた固定の文字列だけを渡す

@@ -1,0 +1,98 @@
+// @vitest-environment jsdom
+
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
+
+import {
+  SelectClient,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "./select-client";
+
+beforeEach(() => {
+  // jsdom は scrollIntoView を実装しない。Radix Select は開くときに候補へこれを呼ぶ。
+  Element.prototype.scrollIntoView = vi.fn();
+});
+
+function SelectFixture({
+  disabled = false,
+  position = "popper",
+}: {
+  disabled?: boolean;
+  position?: "item-aligned" | "popper";
+}) {
+  return (
+    <SelectClient defaultValue="standard" disabled={disabled} name="display-mode">
+      <SelectTrigger aria-label="表示形式">
+        <SelectValue placeholder="選択してください" />
+      </SelectTrigger>
+      <SelectContent position={position}>
+        <SelectGroup>
+          <SelectLabel>表示形式</SelectLabel>
+          <SelectItem value="compact">簡潔</SelectItem>
+          <SelectSeparator />
+          <SelectItem value="standard">標準</SelectItem>
+        </SelectGroup>
+      </SelectContent>
+    </SelectClient>
+  );
+}
+
+describe("SelectClient", () => {
+  it("初期値を持つ client 選択 UI を表示する", () => {
+    render(<SelectFixture />);
+
+    expect(screen.getByRole("combobox", { name: "表示形式" })).toHaveTextContent("標準");
+  });
+
+  it("disabled 状態では trigger を操作不能にする", () => {
+    render(<SelectFixture disabled />);
+
+    expect(screen.getByRole("combobox", { name: "表示形式" })).toBeDisabled();
+  });
+
+  it("item-aligned の配置も明示的に選べる", () => {
+    render(<SelectFixture position="item-aligned" />);
+
+    expect(screen.getByRole("combobox", { name: "表示形式" })).toBeVisible();
+  });
+
+  it("開くと候補を一覧として示す", () => {
+    render(<SelectFixture />);
+
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "表示形式" }), { key: "ArrowDown" });
+
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "簡潔" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "表示形式" })).toBeInTheDocument();
+  });
+
+  it("候補を選ぶと値が変わり一覧を閉じる", () => {
+    render(<SelectFixture />);
+
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "表示形式" }), { key: "ArrowDown" });
+    fireEvent.click(screen.getByRole("option", { name: "簡潔" }));
+
+    expect(screen.getByRole("combobox", { name: "表示形式" })).toHaveTextContent("簡潔");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("aria-label を持つ選択 UI は a11y 自動検査に違反しない", async () => {
+    // Portal で body 直下へ描くため baseElement を渡す。container では trigger しか入らない。
+    const { baseElement } = render(<SelectFixture />);
+
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "表示形式" }), { key: "ArrowDown" });
+
+    const result = await axe(baseElement, {
+      rules: { "color-contrast": { enabled: false }, region: { enabled: false } },
+    });
+
+    expect(result.violations).toEqual([]);
+  });
+});

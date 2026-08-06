@@ -38,7 +38,7 @@ so the quality and format of findings stay consistent:
   follow.
 
 Output is in Japanese. Note this is for **whole-repository verification**, not diff review (for diffs
-use `local-review` / `/code-review`).
+use `impl-review` / `/code-review`).
 
 **The focus of verification is "implementation cleanliness" = readability, maintainability, and
 design straightforwardness.** Mechanical convention violations such as layer-boundary crossings,
@@ -69,13 +69,13 @@ as defects. `run.sh` auto-detects `js` as the primary language and picks up `AGE
 
 When not to use:
 
-- Diff/PR-scoped review → `local-review` / `/code-review`.
+- Diff/PR-scoped review → `impl-review` / `/code-review`.
 - Applying fixes → this skill is read-only. It reports only; it does not fix (use `full-apply`).
 
 ## Positioning (Division of Labor with Other Skills)
 
 `full-verify` (whole, non-diff **detection**) → `full-apply` (**application**) form a pair. Use these
-two when you want to take an overview of the whole and fix it. For diff scope use `local-review`
+two when you want to take an overview of the whole and fix it. For diff scope use `impl-review`
 (adversarial, different model) / `/code-review`.
 
 ## Arguments (with Defaults)

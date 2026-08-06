@@ -53,7 +53,7 @@
 | **W0: 前提整備** | | | | | |
 | IM-01 | 移植バックログ節をスナップショット 35/19 へ改訂 | A | — | なし | 完了(issue #38) |
 | **W1: レビュー体系の追随** | | | | | |
-| IM-02 | `local-review` を `impl-review` 現行仕様へ追随 | B | — | IM-01 | 完了(issue #40) |
+| IM-02 | `impl-review` を go 側現行仕様へ追随 | B | — | IM-01 | 完了(issue #40) |
 | **W2: AI 環境二重運用**(受け皿なし / 即着手可) | | | | | |
 | IM-03 | `manage-skill` 移植 | A | — | なし | 完了(issue #39) |
 | IM-04 | `.codex/` 基盤(README 対訳 / config.toml / スコープ規約) | B | — | なし | 未着手 |
@@ -86,9 +86,9 @@
 | IM-26 | GB-3(spec 駆動)の採否判断 | C | — | A1 Accepted。**P4-6 着手前に決着** | 未着手 |
 | IM-27 | GB-4 の骨格のみ P4-6 へ吸収 | C | P4-6 | IM-26 | 未着手 |
 | **W8: テスト**(v1 Phase 3 後) | | | | | |
-| IM-28 | `scaffold-test` / `test-review`(GB-5) | C | — | P3-6 完了 | 未着手 |
+| IM-28 | `scaffold-test` / `test-review`(GB-5) | C | — | P3-6 完了 | `test-review` 完了 / `scaffold-test` 未着手 |
 | **W9: docs portal**(v1 Phase 8) | | | | | |
-| IM-29 | `portal-manifest-sync` 復活 | A | P8-2 | P8-1 | 未着手 |
+| IM-29 | `portal-manifest-sync` 復活 | A | P8-2 | P5-16 | 未着手 |
 | IM-30 | `docs/maintenance/` の新設 | B | P3-10 | P3-10 | 未着手 |
 | **W10: 外部スキル** | | | | | |
 | IM-31 | graphify 導入(pin / bootstrap / 権限境界 / 除外) | B | — | go 側の検証決着 | 完了(issue #102) |
@@ -142,11 +142,11 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 
 ### W1: レビュー体系の追随
 
-#### IM-02: `local-review` を `impl-review` 現行仕様へ追随
+#### IM-02: `impl-review` を go 側現行仕様へ追随
 
 - **目的**: 移植後に go 側で拡張された 4 機能が本リポジトリに無い。レビュー品質の差がそのまま実装品質の差になる
 - **輸入元**: `.claude/skills/impl-review/SKILL.md`
-- **主な変更先**: `.claude/skills/local-review/SKILL.md`(+ `SKILL.ja.md`)、`.claude/agents/adversarial-reviewer.md`、`.claude/agents/comment-reviewer.md`
+- **主な変更先**: `.claude/skills/impl-review/SKILL.md`(+ `SKILL.ja.md`)、`.claude/agents/adversarial-reviewer.md`、`.claude/agents/comment-reviewer.md`
 - **輸入する 4 点**:
 
 | # | 機能 | 翻案メモ |
@@ -158,7 +158,7 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 
 - **完了条件**: 5 レンズ + comment-reviewer が走り、コメント指摘が自動修正され、残る指摘が PR へインライン投稿される。`--no-comment` / `--no-apply` が効く
 - **依存**: IM-01
-- **状態**: **完了**(issue #40)。PR インライン投稿は `gh api` の実行許可が前提で、これを許可する判断は issue #48 で別途決着させた。Step 1 の layer 検出・ランタイム検証段・`architecture` / `runtime-gap` のレンズ定義本文には go 由来の記述が残っており、未翻案分は BACKLOG の移植バックログ節が持つ
+- **状態**: **完了**(issue #40)。その後 `test-review` の移植(IM-28)に伴い、スキル名を `local-review` から go 側と同じ `impl-review` へ改名し、テスト観点は Step 4.5 で `test-review` へ委譲する形にした(`test-gap` レンズは委譲が動かない場合の fallback)。PR インライン投稿は `gh api` の実行許可が前提で、これを許可する判断は issue #48 で別途決着させた。Step 1 の layer 検出・ランタイム検証段・`architecture` / `runtime-gap` のレンズ定義本文には go 由来の記述が残っており、未翻案分は BACKLOG の移植バックログ節が持つ
 
 ### W2: AI 環境二重運用
 
@@ -342,6 +342,7 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
   - `scaffold-test` — **テスト観点を README から実行時に導出**する構造。「1 関数 = 1 テスト」「正常系 / 異常系のグループ分け」「table-driven 禁止」は [0090](../adr/0090-testing-strategy.md) / [0091](../adr/0091-test-verification-methods.md) の規約に置き換える
   - `test-review` — 5 レンズ二段レビュー(構造準拠 / 観点カバレッジ / 意味品質 / 分岐 × 意味網羅 / 対象シンボル完全性)。**既移植の `adversarial-reviewer` / `review-verifier` を再利用**する
 - **併せて見直す**: `full-apply` / `node-upgrade` / `repo-ops` に残る `pnpm test` の条件分岐(テスト基盤が無い前提で書かれている)
+- **状態**: `test-review` は移植済み(規則は go の規約でなく [0090](../adr/0090-testing-strategy.md) / [0091](../adr/0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む形へ翻案し、`impl-review` Step 4.5 の委譲先として結線した)。`scaffold-test` は未着手
 
 ### W9: docs portal
 
@@ -352,7 +353,7 @@ P8-2 に受け皿があり、そこへ書き足す: pair_drift preflight → N1(
 #### IM-30: `docs/maintenance/` の新設(受け皿 P3-10)
 
 - **目的**: スキルが実行時に読む手順書の置き場を作る。現在は手順がスキル本文に埋まっており、スキル改修なしに手順を直せない
-- **翻案メモ**: go 側の `docs/maintenance/` から、本リポジトリに実在するものだけを採る — `node-upgrade.md`(go-upgrade.md 相当)、`portal-manifest.md`(P8-1 と同時)、`docs-structure.md`。Docker / DB 系(`db-worktree-pool.md` / `local-environment.md`)は対象外
+- **翻案メモ**: go 側の `docs/maintenance/` から、本リポジトリに実在するものだけを採る — `node-upgrade.md`(go-upgrade.md 相当)、`portal-manifest.md`(P8-2 と同時)、`docs-structure.md`。Docker / DB 系(`db-worktree-pool.md` / `local-environment.md`)は対象外
 
 ### W10: 外部スキル
 

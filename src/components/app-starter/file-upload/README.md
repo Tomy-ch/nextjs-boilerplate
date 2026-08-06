@@ -1,0 +1,47 @@
+# FileUpload
+
+## 用途
+
+送信するファイルを選び、送る前に形式と大きさが要件に合っているかを利用者へ知らせます。
+
+## 役割と公開 component
+
+| Component | 役割 |
+| --- | --- |
+| `FileUpload` | ファイルを選ぶ領域です。ドラッグで落とすか、押して選択ダイアログから選びます。受け付けた分だけを `onSelect` へ、弾いた分を理由つきで `onReject` へ渡し、送信中は操作を止めて進捗を示します。client island です。 |
+
+`FILE_UPLOAD_REJECTION_REASON` は弾いた理由の値集合で、`type`（`accept` に合わない）と `size`（`maxSize` を超える）を持ちます。
+
+## 利用ケース
+
+- 形式や大きさに条件があり、送信して初めて弾かれるのを避けたい場合
+- 送信に時間がかかり、進行中であることと二重送信の抑止を見せたい場合
+- 選んだファイルが何だったかを、browser 既定の表示に頼らず自分の様式で見せたい場合
+
+条件が緩く、Server Action の検証結果を返すだけで足りる場合は使いません。`Field` と `Input type="file"` の組み合わせで済みます。
+
+## 責務境界
+
+SSR first の選定では、native の下地が `Field` + `Input type="file"` + Server Action にあたります。この component は、**送信前の検証・選択内容の表示・送信中の抑止と進捗**という、その下地では表せない部分だけを担う client island です。選択の保持のため hydration が必要で、Server Component からは直接 render できません。
+
+**送信経路を持ちません。** 実際の送信が presigned な直 PUT か multipart の proxy かをこの component は知りません。送信中かどうかは `pending`、進捗は `progress`、完了後の識別子の扱いは、すべて呼び出し元が props と callback で受け渡します。経路が決まるのを待たずに使えます。
+
+**エラーの文言を持ちません。** `onReject` が渡すのは弾いたファイルと理由の組だけです。利用者へ見せる文言は呼び出し元が組み立て、`FieldError` として表示します。`aria-invalid` も呼び出し元が決めます。server 側の検証結果と client 側の検証結果を一箇所で扱うためです。
+
+**大きさの整形を持ちません。** 表示するのは受け付けたファイルの名前だけです。「2 MB まで」のような文言は呼び出し元が組み立てます。
+
+**drop は加速手段であり、唯一の経路にしません。** ドラッグは pointer を持つ環境でしか使えず、touch にも keyboard にも効きません。領域全体が `input` の `label` なので、どこを押しても選択ダイアログが開き、`input` 自体は tab で到達して Enter で開けます。WCAG 2.5.7（Dragging Movements）が求めるドラッグ操作の代替はこれで満たします。
+
+落としたファイルは `input` の `files` へ書き戻すため、native form の送信にもそのまま載ります。`multiple` を指定しない場合、複数を落としても先頭の 1 件だけを受け付けます。
+
+領域の文言は `input` のアクセシブルな名前にも加わります。`Field` の `FieldLabel` と併せると名前が連なるため、`prompt` と `triggerLabel` は短い語にします。
+
+**preview・選択済みの削除は持ちません。** ファイル 1 件ぶんの行 UI と、preview や replace を含む組み立ては、それぞれ別の component が担います。
+
+`accept` と `multiple` は native の属性としてそのまま働き、同じ値が送信前の検証にも使われます。`accept` は `.png` のような拡張子、`image/*` のような総称、`image/png` のような完全一致のいずれでも判定します。`accept` を省略すると形式では弾きません。
+
+## Storybook とテスト
+
+Storybook は既定の形、複数選択、送信前の検証とエラー表示、送信中（進捗あり / 進捗なし）、操作できない状態、文言を差し替えた場合を確認します。
+
+テストは `type="file"` の control として公開すること、領域全体が `input` の `label` であること、`id` を渡さなければ自前で採番すること、落としたファイルも同じ検証を通して `input` の `files` へ書き戻すこと、`multiple` でなければ先頭 1 件だけを受け付けること、ドラッグ中の強調と領域内の移動では解かないこと、送信中は drop を受け付けないこと、受け付けたファイルの名前を並べて `onSelect` へ渡すこと、`accept` に合わない形式と `maxSize` を超える大きさを理由つきで `onReject` へ渡すこと、拡張子・総称・完全一致それぞれで `accept` を判定すること、`accept` の空の区切りと空白だけの指定の扱い、弾くものが無ければ `onReject` を呼ばないこと、選択の取り消し、呼び出し元の `onChange` も呼ぶこと、`pending` と `disabled` で操作できないこと、`progress` を渡したときだけ名前のある進捗を表示すること、a11y 自動検査を確認します。

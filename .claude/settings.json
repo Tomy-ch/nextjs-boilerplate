@@ -138,14 +138,6 @@
       "Bash(docker compose logs *)",
       "Bash(docker compose config *)"
     ],
-    "ask": [
-      "Edit(AGENTS.md)",
-      "Write(AGENTS.md)",
-      "Edit(LICENSE)",
-      "Write(LICENSE)",
-      "Edit(.claude/settings.json)",
-      "Write(.claude/settings.json)"
-    ],
     "deny": [
       "Bash(rm -rf *)",
       "Bash(rm -fr *)",
@@ -196,6 +188,25 @@
       "Bash(gh api *DELETE*)",
       "Bash(gh api *delete*)",
       "Bash(gh api *git/refs*)"
+    ],
+    "ask": [
+      "Edit(AGENTS.md)",
+      "Write(AGENTS.md)",
+      "Edit(LICENSE)",
+      "Write(LICENSE)",
+      "Edit(.claude/settings.json)",
+      "Write(.claude/settings.json)"
     ]
+  },
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true
   }
 }

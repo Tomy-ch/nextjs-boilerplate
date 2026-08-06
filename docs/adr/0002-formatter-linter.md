@@ -89,7 +89,7 @@ Biome は `next` / `react` の lint ドメインルールを内蔵しており�
 ### 現時点で ESLint 側に置く検査
 
 - **層境界の import 検査**（eslint-plugin-boundaries 等）。biome の `noRestrictedImports` + `overrides` では「import する側の層」を文脈に取る検査を表現できないため、現時点で biome 非対応の代表例である（`noImportCycles` が検出するのは循環のみで、層の依存方向違反は検出できない）
-- 具体プラグインの選定と層定義マッピングは、フロント内責務分離の ADR（[0021](0021-frontend-responsibility.md) = BACKLOG A3）の Enforcement 節で定める（2026-07-12 Accepted。プラグインは `eslint-plugin-boundaries`、層定義は同 ADR の依存マトリクス）。A3 が Accepted になった時点で、`eslint.config.mjs` の具体記述を伴う ESLint 実導入 PR を立てられる
+- 具体プラグインの選定と層定義マッピングは、フロント内責務分離の ADR（[0021](0021-frontend-responsibility.md) = BACKLOG A3）の Enforcement 節で定める（プラグインは `eslint-plugin-boundaries`、層定義は同 ADR の依存マトリクス）
 
 ### ESLint 利用の条件
 
@@ -97,7 +97,7 @@ ESLint およびそのルールをリポジトリに追加してよいのは、�
 
 1. **biome 非対応の検査であること**（能力ベース）。PR 本文に「biome で表現できないこと」の確認結果（該当ルールの有無・issue 等）を記す
 2. **stylistic / フォーマット系ルール、biome と重複する汎用ルールを入れない**。`eslint:recommended` / `eslint-config-next` 等のプリセット一括適用は行わない（biome の `next` / `react` ドメインおよび recommended ルール群と重複するため）。ルール単位の opt-in のみとする
-3. **flat config（`eslint.config.mjs`）で管理する**。Next.js 16 では `next lint` が廃止され `next build` も lint を実行しないため、ESLint CLI を直接実行する
+3. **flat config（`eslint.config.ts`）で管理する**。Next.js 16 では `next lint` が廃止され `next build` も lint を実行しないため、ESLint CLI を直接実行する
 4. **ESLint 本体・プラグインは devDependency として exact pin し、追加時に `pnpm audit` を実施する**（[0004](0004-library-management.md) の主要 dev ツール扱い）
 5. **biome が該当検査に対応した時点で ESLint 側から削除し biome へ移管する**。対応状況の確認は 0004 の定期監査サイクル（`pnpm outdated` の週次〜月次確認）および biome バージョン更新 PR のチェック項目に組み込む
 
@@ -115,7 +115,7 @@ Biome は npm devDependency として固定する。バージョンは `package.
 
 実体は `pnpm install` で取得され、ローカル / CI いずれでも同一バージョンで動作する（pnpm 採用方針については [0001-package-manager.md](0001-package-manager.md) を参照）。
 
-ESLint を導入する際も同様に、本体・プラグインとも devDependency の exact pin とする（0004）。
+ESLint 本体・プラグイン・設定の読み込みに要するツールも同様に、devDependency の exact pin とする（0004）。
 
 ## 設定方針
 
@@ -129,8 +129,6 @@ ESLint を導入する際も同様に、本体・プラグインとも devDepend
 | --- | --- | --- | --- |
 | 簡易版 | `biome.json` | エディタ保存時（format / organize imports / safe fix）。canonical 名のため biome / エディタが自動採用 | `pnpm lint` |
 | 完全版 | `biome.ci.jsonc` | CI / pre-commit。簡易版を `extends` し重いルールを上乗せ、warn もブロック | `pnpm lint:ci` |
-
-> 完全版プロファイル（`biome.ci.jsonc`）と `pnpm lint:ci` は**未導入**（予定 / 実装 PR で導入）。導入までは `pnpm lint` = biome 簡易版のみが動作し、実際の scripts は `lint` / `fix` / `format` の 3 つである。以下の完全版に関する記述は導入時の設計方針を表す。
 
 - 完全版は `extends: ["./biome.json"]` で簡易版を継承し、**差分ルールのみ**を記述する
 - 完全版でのみ `noImportCycles`（`project` ドメイン = 複数ファイル走査で重い）を有効化し、保存時の負荷を避ける
@@ -166,8 +164,8 @@ ESLint を導入する際も同様に、本体・プラグインとも devDepend
   - `noUndeclaredDependencies: error`
   - `noNestedComponentDefinitions: error` / `noNextAsyncClientComponent: error`
   - `noUnknownAtRules: off`（Tailwind ディレクティブ用）
-- バグ性検出ルール群（`noConstantBinaryExpressions` / `noLeakedRender` / `noShadow` / `useIframeSandbox` 等）の追加有効化は**未適用**（将来版で対応予定。適用時に本文の現行値を更新する）
-- 完全版のみで有効化（`biome.ci.jsonc`。完全版プロファイル自体が未導入）：
+- バグ性検出ルール群（`noConstantBinaryExpressions` / `noLeakedRender` / `noShadow` / `useIframeSandbox` 等）も有効化する
+- 完全版のみで有効化（`biome.ci.jsonc`）：
   - `noImportCycles: error`
 
 ### Assist
@@ -179,13 +177,15 @@ ESLint を導入する際も同様に、本体・プラグインとも devDepend
 - `.vscode/**` … JSON の `allowComments` を有効化（jsonc 用）
 - `**/*.d.ts` … `noExplicitAny` を off
 - `scripts/**` … `noConsole` / `noExplicitAny` を off（運用スクリプト用）
-- （予定 / 未適用）`public/**` … `noSvgWithoutTitle` を off（静的 SVG アセットは使用側の `alt` で代替テキストを担保。将来版で SVG 単体ファイルが lint 対象化した際に追加する）
+- `public/**` … `noSvgWithoutTitle` を off（静的 SVG アセットは使用側の `alt` で代替テキストを担保する）
 
-### ESLint（`eslint.config.mjs` — 補完分・導入は A3 Accepted 後）
+### ESLint（`eslint.config.ts` — 補完分）
 
-- flat config 1 ファイル（`eslint.config.mjs`）で管理する
+- flat config 1 ファイル（`eslint.config.ts`）で管理する。カスタムルールの実装だけは `eslint-rules/` へ分ける（設定と実装を同じファイルに積むと設定の見通しが落ちるため）
+- 依存マトリクスは `architecture.ts` を単一の正とし、flat config はそれを import して検査へ変換する。**マトリクスを config 側へ書き写さない**
 - 置くのは「ESLint 利用の条件」を満たす補完検査（現時点では層境界検査）のみ。formatter 連携・stylistic 系・biome 重複ルールは設定しない
 - 実行はプロファイル分割の**完全版フロー側**（pre-commit / CI = `pnpm lint:ci`）に直列で組み込む。層境界検査は TS resolver を伴い保存時実行には重いため、エディタでは拡張の診断並走のみとする
+- **import resolver を設定する**。層境界検査は import 先を実ファイルまで解決できて初めて成立し、解決できない import は「どの層でもない」として黙って通る。`@/*` を解く TypeScript resolver を設定し、**違反を仕込んで error になることを確認してから**検査を導入したと見なす
 - ignore 対象（`.next/` / `out/` / 生成物等）を flat config 内で宣言し、biome の除外方針と食い違わせない
 - 各ルールには「なぜ biome で表現できないか」を示すコメントを付し、移管判定を容易にする
 
@@ -197,7 +197,7 @@ ESLint を導入する際も同様に、本体・プラグインとも devDepend
 # Lint + Format チェック（簡易版 / エディタ相当）
 pnpm lint
 
-# Lint（完全版 / CI・pre-commit 用。warn もブロック。未導入 = 実装 PR で追加）
+# Lint（完全版 / CI・pre-commit 用。warn もブロック）
 pnpm lint:ci
 
 # Lint + Format を自動修正
@@ -233,7 +233,7 @@ VSCode を前提に統合を行う。`.vscode/extensions.json` で `biomejs.biom
 
 これにより、保存ごとに整形・import 整理・自動修正は biome（簡易版 `biome.json` を自動採用）が担い、ESLint は補完検査の診断を並行表示する。保存時は完全版の重いルールを実行しない。
 
-なお、`dbaeumer.vscode-eslint` の `.vscode/extensions.json` への推奨追加は ESLint 導入 PR で行う。`.vscode/settings.json` 側の ESLint 関連設定は導入前から置いてよい（拡張未導入時は単に無効なだけで、biome の動作に影響しない）。
+なお、`dbaeumer.vscode-eslint` は `.vscode/extensions.json` の推奨拡張に含める。フォーマットは biome が担うため、`.vscode/settings.json` では ESLint のフォーマッタ機能を無効にする。
 
 ### `.editorconfig`
 
@@ -251,7 +251,7 @@ repo ルートに `.editorconfig` を置く。担当範囲は **biome が整形�
 - biome が表現できる検査を ESLint 側に置くことは禁止（能力ベース・重複禁止。「ESLint 利用の条件」を満たさない ESLint ルール追加はすべて本 ADR 違反）
 - `eslint:recommended` / `eslint-config-next` 等のプリセット一括適用は禁止（ルール単位 opt-in のみ）
 - `biome.json` のフォーマッタ・リンタを個別案件理由で一方的に無効化しない（必要なら ADR 改訂で合意する）
-- 自動生成物や `node_modules` などは `biome.json` の `files.includes` / `eslint.config.mjs` の ignore で除外し、`biome-ignore` / `eslint-disable` コメントの多用は避ける
+- 自動生成物や `node_modules` などは `biome.json` の `files.includes` / `eslint.config.ts` の ignore で除外し、`biome-ignore` / `eslint-disable` コメントの多用は避ける
 - 完全版 `biome.ci.jsonc` に簡易版と重複するルールをコピーしない（`extends` の差分のみを記述する）
 
 ## 補足
@@ -265,8 +265,8 @@ repo ルートに `.editorconfig` を置く。担当範囲は **biome が整形�
 ## 今後の拡張
 
 - CI で完全版 `pnpm lint:ci` を必須化（PR チェックに組み込む。CI 構成自体は [0153](0153-ci-configuration.md) で決定済み）
-- pre-commit / pre-push フック（lefthook）は [0151-git-hooks.md](0151-git-hooks.md) で決定済み・**未導入**（実装 PR で導入）。段階責務は同 ADR を参照。ESLint 追加後に pre-commit の速度目標（< 5 秒）を超える場合の退避ルールも同 ADR に定める
-- 層境界検査の具体設定（プラグイン選定・層定義マッピング）は [0021](0021-frontend-responsibility.md)（A3）の Enforcement 節で定義済み（`eslint-plugin-boundaries` + 依存マトリクス）。残る `eslint.config.mjs` の記述は実導入 PR で行う
+- pre-commit / pre-push フック（lefthook）は [0151-git-hooks.md](0151-git-hooks.md) で決定済み。段階責務は同 ADR を参照。pre-commit の速度目標（< 5 秒）を超えた場合の退避ルールも同 ADR に定める
+- 層境界検査の具体設定（プラグイン選定・層定義マッピング）は [0021](0021-frontend-responsibility.md)（A3）の Enforcement 節で定義済み（`eslint-plugin-boundaries` + 依存マトリクス）。マトリクスの正は `architecture.ts` が持ち、flat config はそれを import する
 
 ## 関連 ADR
 

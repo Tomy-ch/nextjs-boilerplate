@@ -30,7 +30,7 @@ BACKLOG C5 は、`next/font` / `next/image` の使い方規約・`public/` の�
 - ストレージは **public storage**(匿名 read 可 / listing 不可)を前提とする。したがって本リポジトリに**配信プロキシ(Route Handler)を置かない**。持つのは配信オリジンを前置する純関数(`mediaUrl()`)と `next.config.ts` の `images.remotePatterns` のみで、最適化は `next/image` が単独で担う
 - 配信オリジンは env(`MEDIA_ORIGIN`)で供給する([0030](0030-environment-variable-management.md))。`remotePatterns` と CSP の `img-src`([0111](0111-csp-security-headers.md))の**両方**に同一オリジンを登録し、**ワイルドカードは使わない**
 - private なオブジェクトを扱う必要が生じた場合は、署名付き URL の発行を backend の責務とする([0075](0075-file-upload-seam.md) と同型)。フロントに配信レイヤを生やして解決しない
-- **blur プレースホルダ(`blurDataURL`)は採用しない** — 静的 import でしか自動生成されず、バックエンド由来画像では契約に載せる必要が生じて一覧レスポンスが件数分肥大するため。代替として `components` カーネルに**アスペクト比固定 + CSS スケルトン**の画像ローディングを置く(`"use client"` 不要)。LCP になる画像(一覧先頭・詳細のメイン)は `priority` を付け、スケルトンを挟まない
+- **EC サンプルの通常 API 契約に blur プレースホルダ(`blurDataURL`)は載せない** — バックエンド由来画像では自前供給が必要で、一覧レスポンスが件数分肥大するため。`MediaImage` は `next/image` 標準の `placeholder` / `blurDataURL` を明示的に渡す利用(静的 import を含む)は妨げない。一方、既定は `components` カーネルの**アスペクト比固定 + CSS Skeleton**によるローディングとし、`"use client"` を要しない。LCP になる画像(一覧先頭・詳細のメイン)は `preload` を指定して Skeleton を挟まない
 
 ### 3. `public/` の扱い
 

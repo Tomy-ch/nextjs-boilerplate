@@ -71,7 +71,7 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 | 系統 | ADR | 定義 | 既存例 |
 | --- | --- | --- | --- |
 | 運用系 | [0154](../../../docs/adr/0154-claude-skills-operations.md) | 開発プロセスを進めるためのオペレーション — Git / GitHub、リリース、依存・ツール監査、`.claude/` のメタ inventory。コード生成・編集を主目的としないもの | `commit` / `submit-pr` / `release-notes` / `tools-upgrade` / `node-upgrade` / `repo-ops` / `tool-map` |
-| 開発系 | [0155](../../../docs/adr/0155-claude-skills-development.md) | コード / ドキュメント / 設定の生成・編集・レビュー | `canonicalize-doc` / `sync-readme` / `readme-review` / `new-env` / `local-review` / `full-verify` / `full-apply` / `adr-scan` |
+| 開発系 | [0155](../../../docs/adr/0155-claude-skills-development.md) | コード / ドキュメント / 設定の生成・編集・レビュー | `canonicalize-doc` / `sync-readme` / `readme-review` / `new-env` / `impl-review` / `full-verify` / `full-apply` / `adr-scan` |
 
 提案されたスキルが、`BACKLOG.md` でまだ未決の領域に新しい規約・パターン・ライブラリを持ち込むことになる場合は、**そこで止めて ADR の判断をユーザへ委ねる**（`AGENTS.md`「Pending Decisions」）。スキルを、規約が暗黙に決まる場所にしてはならない。
 

@@ -1,0 +1,50 @@
+# 実装規約
+
+この文書は、ADR の決定を日々の実装で適用するための規約集である。ADR が判断の根拠、ここが実装時の行動規約である。両者が矛盾する場合は ADR を優先する。
+
+各規約の「強制手段」は、現時点で自動化済みのものと後続 PR で導入するものを区別する。`散文` はレビューで確認する規約であり、将来の自動化候補でもある。
+
+| # | 規約 | 強制手段 | Rationale |
+| --- | --- | --- | --- |
+| 4 | mutation 後は、データの所有境界で `revalidateTag`、`revalidatePath`、または `router.refresh()` により UI を更新する。 | P4-3 以降の adapter / feature テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 5 | 同一 render 内で重複し得る取得は adapters 側で `cache()` または fetch memoization を使い、呼び出し側に重複排除を委ねない。 | P4-3 の adapter テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 6 | `<Link>` の prefetch は既定で許可する。大量リンクを持つ一覧では `prefetch={false}` を明示する。 | 散文。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
+| 8 | Route Handler は Node runtime の薄い proxy に留め、業務ロジックを置かない。非同期の後処理には必要な場合だけ `waitUntil` を使う。 | ESLint boundaries と Route Handler テスト。 | [ADR 0070](adr/0070-backend-role-separation.md) |
+| 12 | mutation 中は submit を無効化して二重送信を防ぎ、必要な操作には idempotency key を付与する。`useOptimistic` はロールバックを実装できる場合に限る。 | feature テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 12b | 409 の楽観ロック競合では、再読み込み導線を表示する。差分提示はバックエンド契約が提供するときだけ行う。 | P5-12 の feature テスト。 | [ADR 0080](adr/0080-error-handling.md) |
+| 17 | loading は形状が近い skeleton を優先し、遅延表示と `aspect-ratio` で CLS を抑える。 | Storybook と visual regression。 | [ADR 0080](adr/0080-error-handling.md) |
+| 18 | 各画面は loading、empty、error、success の4状態を設計・実装・テストする。部分失敗は成功した領域を残して表示する。 | README 状態表、Storybook、feature テスト。 | [ADR 0080](adr/0080-error-handling.md) |
+| 20 | エラー画面は 404、認可失敗、その他の失敗を区別し、再試行可能な失敗には `reset()` と復帰導線を用意する。 | `error.tsx` / `not-found.tsx` のテスト。 | [ADR 0080](adr/0080-error-handling.md) |
+| 23 | z-index は token 化した段階値だけを使う。場当たりの数値増加を禁止する。 | P3-8 の token drift gate。 | [ADR 0050](adr/0050-styling-strategy.md) |
+| 24 | スクロール復元はルーティング既定を尊重する。modal / drawer は body scroll を適切に lock し、アニメーションだけのために全体へ `scroll-behavior` を強制しない。 | interaction テストと手動確認。 | — |
+| 26 | clipboard 操作には成功・失敗のフィードバックを付け、権限拒否や非対応環境のフォールバックを表示する。 | feature テスト。 | — |
+| 29 | 画面は viewport を明示し、safe area、十分なタッチターゲット、hover 非依存を満たす。 | a11y lint、Storybook、手動確認。 | [ADR 0044](adr/0044-seo-metadata-strategy.md) |
+| 33 | アイコンは `src/components/` の方針に従い、原則 lucide-react を使う。自作 SVG は `currentColor` を継承し、配置と用途を明示する。 | P3-8 の component review。 | [ADR 0052](adr/0052-ui-component-policy.md) |
+| 34 | Tailwind class は読みやすいまとまりで記述する。長い class 列は component / variant に分け、`@apply` は使わない。 | Biome formatter と review。 | [ADR 0050](adr/0050-styling-strategy.md) |
+| 35 | component API は意味のある props 名を使う。状態差分は variant、複合的な部品は compound component を検討し、無目的な `...rest` 転送を避ける。 | component テストと review。 | [ADR 0021](adr/0021-frontend-responsibility.md) |
+| 38 | TypeScript は `type` を優先し、`enum` と `namespace` を使わない。`any` と型アサーション (`as`) は全面禁止し、型ガード・`satisfies`・パースで表現する。 | `erasableSyntaxOnly`、Biome `noExplicitAny`、ESLint の型アサーション禁止。 | [ADR 0020](adr/0020-adopted-architecture.md) |
+| 38a | 値集合の公開定数は、`export const BUTTON_SIZE: Readonly<{ ... }> = { ... }` の形式で定義する。公開 API でなくても、複数ファイルが同じ概念の値を使う場合は所有モジュールを一つ決め、そこから参照する。native HTML 要素名など JSX／型構文そのものを表す値は直接記述してよい。 | review。 | [ADR 0028](adr/0028-naming-convention.md) |
+| 39 | 公開 API には TSDoc を書く。コメントは「なぜ」を日本語で記し、廃止予定の API は `@deprecated` を付ける。 | review。 | [ADR 0140](adr/0140-documentation-operations.md) |
+| 40 | 公開 API は `export function` を使う。値として渡す callback は arrow function を使い、React component / hook は既存の React 規約に従う。 | review。 | [ADR 0028](adr/0028-naming-convention.md) |
+| 42 | `searchParams` は zod で検証し、URL のシリアライズ形式と既定値を明示する。 | P4-6 scaffold と feature テスト。 | [ADR 0060](adr/0060-state-management.md) |
+| 43 | Web Storage には機微情報を保存しない。キー名を名前空間化し、SSR 安全な client 境界からだけ利用する。 | review と client component テスト。 | [ADR 0060](adr/0060-state-management.md) |
+| 44 | アプリ cookie は用途を接頭辞に含め、`Secure`、`HttpOnly`、`SameSite`、`Max-Age` を用途ごとに明示する。読み書きは server 境界へ閉じ込める。 | P5-4 の Route Handler テスト。 | [ADR 0131](adr/0131-cookie-consent.md) |
+| 47 | Server Action は `allowedOrigins` を設定し、Route Handler は state-changing request の origin を検証する。 | P5-4 と P6-2 のテスト / CI。 | [ADR 0070](adr/0070-backend-role-separation.md) |
+| 48 | `dangerouslySetInnerHTML` は原則禁止する。リッチテキストは sanitizer を通し、外部 URL も利用前に検証する。 | Biome `noDangerouslySetInnerHtml`。 | [ADR 0110](adr/0110-security-operations.md) |
+| 50 | 第三者 script は `next/script` の strategy を明示し、CSP と同時に設計する。`@next/third-parties` の採否は用途ごとに判断する。 | P6-2 の CSP 検証。 | [ADR 0131](adr/0131-cookie-consent.md) |
+| 53 | 日時は表示 timezone を明示し、server と client で異なる値を初期 render しない。`suppressHydrationWarning` は理由を記録した例外だけにする。 | hydration を含む component テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
+| 54 | 相対時刻は `Intl.RelativeTimeFormat` で表示し、更新が必要な client component だけを interval で再描画する。 | component テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
+| 55 | UI 文言は feature 内の定数へ寄せる。エラー文言は errors の分類・表示モデルに従い、画面ごとに再定義しない。 | review。 | [ADR 0121](adr/0121-i18n-strategy.md) |
+| 57 | polling は必要な場合だけ採用し、間隔・停止条件・バックグラウンドタブ抑制を定義する。 | feature テスト。 | [ADR 0060](adr/0060-state-management.md) |
+| 63 | preview / staging は `noindex` を強制し、環境識別バナーの有無は fork 先の要件として Config で決める。 | P6-3 の metadata テスト。 | [ADR 0044](adr/0044-seo-metadata-strategy.md) |
+| 65 | build info を露出するときは commit SHA と build time の出所を明示し、機微な環境変数を含めない。 | P4-2 の生成 / health endpoint テスト。 | [ADR 0072](adr/0072-api-type-generation.md) |
+| 66 | `next/dynamic` は初期表示に不要で大きい client-only 機能に限る。`ssr: false` は SSR が不可能な理由を持つ場合だけ使う。 | bundle 計測と review。 | [ADR 0101](adr/0101-performance-budget.md) |
+| 67 | server 専用モジュールは先頭で `import "server-only"` し、client component から参照させない。 | `server-only` の build-time failure と ESLint boundaries。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 68 | Server Action ID の version skew が起きたら、再試行を繰り返さず full reload へ誘導する。 | P5-7 の integration テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
+| 69 | 内部リンクは `next/link` を使い、生の `<a>` を使わない。外部リンクには必要な `rel` を付与する。 | ESLint の `project-rules/no-internal-anchor`。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
+
+## 運用
+
+- 新しい規約は、先に ADR で判断したうえでこの表へ追加する。
+- 規約を変更した実装 PR は、該当行と強制手段も同時に更新する。
+- P9-1 で、全行を実在するコード・設定・生成物と突合し、散文のみの規約を棚卸しする。

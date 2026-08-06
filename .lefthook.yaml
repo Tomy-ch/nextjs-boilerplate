@@ -25,6 +25,15 @@ pre-commit:
         - "Makefile"
         - ".makefiles/**/*.mk"
       run: pnpm md-lint
+    test-cached:
+      # pre-commit は Vitest のキャッシュを使い、CI のカバレッジ付き完全実行よりも
+      # 速くフィードバックする。対象の TypeScript・設定・依存定義が変わるときだけ起動する。
+      glob:
+        - "**/*.{ts,tsx}"
+        - "package.json"
+        - "pnpm-lock.yaml"
+        - "pnpm-workspace.yaml"
+      run: make test-cached
     actionlint:
       # ワークフロー定義の構文と run: ステップのシェルを検査する (ADR 0153)。
       # 検査が及ぶのは workflows だけだが、composite action の変更も呼び出し側の
@@ -74,6 +83,15 @@ commit-msg:
 pre-push:
   parallel: true
   commands:
+    test-full:
+      # pre-push は Vitest のキャッシュを使わず、CI のカバレッジ付き完全実行と同じ挙動で
+      # 検査する。対象の TypeScript・設定・依存定義が変わるときだけ起動する。
+      glob:
+        - "**/*.{ts,tsx}"
+        - "package.json"
+        - "pnpm-lock.yaml"
+        - "pnpm-workspace.yaml"
+      run: make test-full
     typecheck:
       run: pnpm typecheck
     secret-scan:

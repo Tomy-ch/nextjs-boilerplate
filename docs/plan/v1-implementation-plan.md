@@ -143,16 +143,16 @@ http://gobp-local.web.garage.localhost:3902/products/{uuid}.png
 - 爆破後の `public/` にフォールバック画像は同梱しない。favicon / app icon は App Router の metadata file 規約により `app/` 配下にあり、PWA は [0130](../adr/0130-pwa-strategy.md) で v1 非採用のため、`public/` はほぼ空になる
 - **`public/` は実行時書き込み不可**(ビルド時に焼き込まれ、PaaS のファイルシステムは読み取り専用)。よって爆破後の本線は「`MEDIA_ORIGIN` を実ストレージに向ける」であり、`public/` 配下からの配信はバックエンドを持たない開発時の逃げ道という位置づけ
 
-### 3.3 画像のローディング表現 — blur プレースホルダを採用しない
+### 3.3 画像のローディング表現 — CSS Skeleton を既定にする
 
-`blurDataURL` は静的 import でのみ自動生成され、バックエンド由来の画像では自前供給が必要になる。これを契約に載せると **一覧レスポンスが件数分肥大する**(1 件あたり数百バイト)ため採用しない。
+EC サンプルのバックエンド由来画像は `imagePath` だけを API 契約にし、`blurDataURL` は載せない。後者は自前供給が必要で、一覧レスポンスが件数分肥大するためである。ただし `MediaImage` は Next.js 標準の `placeholder` / `blurDataURL` を透過し、static import や fork 後のプロダクト判断で利用側が明示指定できるようにする。
 
 代わりに **`components` カーネルに画像用ローディングコンポーネント**を置く。
 
 - 既定は **CSS のみのスケルトン**(ラッパに `aspect-ratio` + スケルトン背景、その上に `<Image fill>`)。`"use client"` 不要で [0040](../adr/0040-routing-rendering-strategy.md) と整合
 - アスペクト比固定が CLS 対策を兼ねる(`rules.md` #17 の「スケルトンと実 UI の形状一致」)
 - エラー時フォールバックが必要な場合のみ `onError` を使う client 版を用意する(既定にはしない)
-- **LCP になる画像(一覧の先頭数枚・詳細のメイン画像)は `priority` を付け、スケルトンを挟まない**
+- **LCP になる画像(一覧の先頭数枚・詳細のメイン画像)は `preload` を指定し、Skeleton を挟まない**
 - OpenAPI の契約は `imagePath` のみで確定する
 
 ### 3.4 滑走路原則の改訂
@@ -244,7 +244,15 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 1. **TipTap の inline `style=` 属性に nonce は原理的に効かない** — nonce は要素(`<style>` / `<script>`)にしか付かず、属性は `style-src-attr` の管轄で `'unsafe-inline'` 以外に許可手段がない。つまり「リッチテキストのために `'unsafe-inline'`」は **nonce へ倒しても解消しない**
 2. **sanitizer で `style` 属性を落とせるなら、`'unsafe-inline'` 自体が不要になる** — 商品説明に必要なのは太字 / 斜体 / リスト / 見出し / リンク程度で、いずれも inline style ではなくクラスへ写像できる
 
-**よって順序を固定する**: P5-1(sanitizer 選定)で「`style` 属性を落として TipTap の要件を満たせるか」を先に検証し、その結果と **P6-8 の Cache Components 判断**を入力として、**0111 追補(seam A 維持 / seam B へ反転)を P6-2 で確定する**(P0-4 では扱わない)。静的を保ったまま script を厳格化したい場合の道は nonce ではなく **hash ベース**([0111](../adr/0111-csp-security-headers.md) が挙げる実験的 SRI)であり、採るなら別途判断する。
+**よって順序を固定する**: P3-8 の `rich-text` 実装(sanitizer と allowlist は §3.10 で確定済み)で「`style` 属性を落として TipTap の要件を満たせるか」を検証し、その結果と **P6-8 の Cache Components 判断**を入力として、**0111 追補(seam A 維持 / seam B へ反転)を P6-2 で確定する**(P0-4 では扱わない)。この検証には TipTap の出力サンプルがあれば足り、実 API や生成型を必要としないため、**Phase 4 / 5 の到達を待たない**。静的を保ったまま script を厳格化したい場合の道は nonce ではなく **hash ベース**([0111](../adr/0111-csp-security-headers.md) が挙げる実験的 SRI)であり、採るなら別途判断する。
+
+**検証結果は次のとおり(P3-8 で実施済み)。上の 2 と 1 の順に対応する。**
+
+1. **リッチテキストは inline `style` 属性を 1 つも出さない。** sanitizer の schema は `a` の `href` だけを通し、他のタグは属性を持たない。editor 側も、allowlist 相当の全書式を含む内容と toolbar の全操作を通した状態で、編集面配下の `[style]` 要素が 0 件・`getHTML()` の出力属性が `a[href]` と `hr[contenteditable]` だけだった。位置指定の inline style を注入する `Gapcursor` / `Dropcursor` を extension 集合から外していることがここに効いている(starter-kit を採らない判断の副次的な担保)。**よって「リッチテキストのために `'unsafe-inline'`」は成立しない。**
+2. **ただし `'unsafe-inline'` はリッチテキストと無関係に必要な状態が残る。** Radix の popper が `position` / `transform` / `minWidth` / `zIndex` / `--radix-popper-*` を**要素の `style` 属性**へ書き、`next/image` も `color: transparent` を img へ付ける。これらは `style-src-attr` の管轄で **nonce も hash も効かない**。Radix を import する component は現時点で 27 個あり、浮動 UI は全て popper 経由である。
+3. **TipTap が注入する `<style data-tiptap-style>` は別問題として残る。** `@tiptap/core` の `injectCSS`(既定 `true`)が runtime で style **要素**を 1 本挿す。要素なので nonce / hash が効き、`injectCSS: false` にして CSS を `globals.css` 側で持てば消える。
+
+**したがって判断の形が変わる**: 「`'unsafe-inline'` を外せるか」ではなく「`style-src-elem` と `style-src-attr` を割って、要素側だけ厳格にするか」になる。属性側は Radix を使う限り `'unsafe-inline'` から降りられない。**割る指定は Safari が未対応で `style-src` にフォールバックする**ため、その環境では強化が効かないことも織り込む。要素側を厳格にするなら `injectCSS: false` が前提条件になるが、CSP 本体を書くまで単体では防御が変わらない(効果は FOUC の解消に留まる)。
 
 ### 3.10 TypeScript / ライブラリの確定事項
 
@@ -252,9 +260,15 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 
 **`cn()` の実装 = `clsx` + `tailwind-merge`。** これは新規決定ではなく [0052](../adr/0052-ui-component-policy.md) の追認である(同 ADR が `clsx` / `tailwind-merge` を「shadcn が引き込む実 npm 依存」として exact-pin 対象に名指ししている)。責務が join / 衝突解決に 1 対 1 対応し、[0004](../adr/0004-library-management.md) の一次判定を各々単独で通る。`tailwind-variants` は責務を 1 語で言えず(variant + slots + responsive + merge の束)`cva` とも衝突するため**一次判定で落選**。
 
-> **`clsx` は定量基準に形式上抵触するが構造基準で通す**: 最新版 `2.1.1` はバージョンが上がっておらず 0004 の「直近 6 ヶ月以内に release」を満たさない。ただし実装が数十行で **fork コスト実質ゼロ**(最悪 `components` カーネルへコピーインすれば自前実装と等価)であり、`class-variance-authority@0.7.1` が `clsx ^2.1.1` に依存するため**どのみち推移依存に入る**。この偏差と補償根拠を採用 PR 本文に明記する。**0004 に足した fork コスト上限基準が実際に機能した最初の事例**である。
+> **`clsx` は release が止まっているが採用してよい**: 最新版 `2.1.1` から更新が無いが、未修正の既知脆弱性が無いため [0004](../adr/0004-library-management.md) の不採用理由に当たらない。実装が数十行で **fork コスト実質ゼロ**(最悪 `components` カーネルへコピーインすれば自前実装と等価)であり、`class-variance-authority@0.7.1` が `clsx ^2.1.1` に依存するため**どのみち推移依存に入る**。
 
 **`cva`(class-variance-authority): 採用。** shadcn/ui の公式コンポーネントは cva を使った状態で配布されるため、入れないと配布物を毎回書き換えることになる。[0010](../adr/0010-standards-and-non-lockin.md)「独自に機構を発明しない」とも整合する。`rules.md` #34 / #35 の規約はこれに従う形で埋まる。
+
+**リッチテキストの sanitize = `hast-util-from-html` + `hast-util-sanitize` + `hast-util-to-jsx-runtime`。** HTML 文字列を経由せず hast から直接 React 要素を組むため `dangerouslySetInnerHTML` を使わず、`rules.md` #48 と biome `noDangerouslySetInnerHtml` に抵触しない。`parse5` による仕様準拠パースの後に木を検査するので、文字列ベース sanitizer の parser differential(sanitizer とブラウザの解釈差)を構造的に避けられる。3 本とも単一責務・単一 upstream・MIT・未修正脆弱性ゼロで [0004](../adr/0004-library-management.md) を通る。**代替は `sanitize-html` + `html-react-parser`** — 推移依存が 1/3 に収まる一方、sanitizer 本体に advisory 11 件の履歴があり、allowlist がライブラリ固有形式になる。`interweave` は責務を 1 語で言えず一次判定で落選、`isomorphic-dompurify` は jsdom を引く bridge のため採らない。
+
+**TipTap は `@tiptap/starter-kit` を採らず extension を個別に入れる。** starter-kit は要件外を含む 24 個を引く。**editor が出せるタグ ⊆ sanitizer が通すタグ** を保たないと、入力できるのに保存後に落ちる不整合が生じるため、extension 集合は allowlist から導出する。
+
+**sanitize の port は `src/model/rich-text/` に置く。** 純粋な表示上の変換・検証規則であり `model` の責務に当たる(`adapters` は外部接続、`capabilities` は client hook のため不適合)。抜けと境界の曖昧化は **private field を持つ class による nominal type**(`eslint.config.mjs` が `as` を全面禁止しているため brand は使えない)と `boundaries/external` による `hast-util-*` の import 制限で塞ぎ、暴走は **入力サイズ・ノード数・深さの上限 + fail-closed** で塞ぐ。木ベースの sanitize は冪等なので、二重適用による content 破壊は起きない。
 
 **tsconfig の追加フラグ: 5 件を採用。**
 
@@ -312,11 +326,37 @@ shadcn/ui を import
 
 **ツール固有の手順は ADR / `rules.md` / master-plan に書かない。** 特定 SaaS の名前を恒久文書へ持ち込むことは [0010](../adr/0010-standards-and-non-lockin.md)(非ロックイン)に反する。書き出し・同期の具体手順は `.claude/skills/` のスキル 1 本に閉じ込め、[0154](../adr/0154-claude-skills-operations.md) / [0155](../adr/0155-claude-skills-development.md) の運用規約に従わせる。
 
+**実装の形**: `pnpm design:bundle`(`scripts/design-bundle.ts`)が送り先を知らない bundle を `tmp/design-bundle` へ出し、`design-export` スキルがそれを送り先へ運ぶ。bundle の中身は shadcn registry(各 component のソースとメタ)・目録(用途・責務境界・story 名)・生成済みトークンの 3 つで、いずれも取り込みで使っている形式か、リポジトリが既に持っている生成物である。**書き出し側で新しい形式を発明しない。**
+
+**Figma を書き出し先に選べる。** 上の「v1 は Figma を使わない」は、Figma を SSOT に据えず手順の途中に挟まないという判断であり、書き出し先として選べることと矛盾しない(依存の向きは repo → design のままで、Figma 側の成果物をリポジトリへ戻す経路は作らない)。ただし **Figma だけは bundle を渡す口が無い** — REST API はデザイン内容を作れず、frame / component / variable の作成は Figma エディタの中で動く Plugin API の担当である。したがって経路は script ではなくエージェント経由になり、スキルはそこだけ既存の Figma 向けスキルへ委譲する。
+
 **v1 で実施しないもの**: **B9(Figma → CSS 変数の同期パイプ)**。原則としては master-plan 1.3 の記述が正だが、v1 は Figma を使わないため搬送すべき上流が存在しない。v1 では `tokens.json` を手書きの SSOT とし、`tokens.json → Tailwind @theme` の後段のみを実装する。
 
 **B1 テンプレの「状態表 × デザイン参照」**: 参照先の形式は fork 先が決める(Figma フレーム / Storybook story)。**v1 では Storybook story を参照先とする** — story は実在し CI で検証できるため、この repo の手順では強い。
 
 **代わりに必要になる規律**: Figma で全画面を並べて見る場が無いため、一貫性は **Storybook が唯一の在庫リストであること**で担保する。「**Storybook に story を持たないコンポーネントを feature 配下に新規作成しない**」を B11(構造 CI ゲート・v1.x.x)の検査項目に含める。
+
+### 3.12 `src/app` は足場として扱い、画面実装で全面的に置き換える
+
+**`src/app` の現在の中身は足場であり、画面実装の段階で全面的に作り直す。** これは劣化ではなく意図した順序である。route segment の切り方・layout の階層・metadata の値は、いずれも app shell の情報設計と画面一覧に従属する。情報設計が決まる前にこの層へ構造を作り込むと、決まった時点で捨てる量が増えるだけであり、しかも「既にあるもの」に引きずられて情報設計そのものが歪む。
+
+したがってこの層では次の規律を採る。
+
+- **設置面が実在する配線だけを置く。** 3.4 の滑走路原則をこの層へ適用したものであり、将来必要になりそうな階層・Provider・segment を先回りで置かない
+- **判断が要るものは画面実装まで持ち越す。** 情報設計に踏み込む変更(route group の切り方・shell の分割・具体的なタイトル文言)は、この段階では確定させない
+- **この層を構造の参考にしない。** fork 先および後続の実装が参考にしてよいのは mount の作法だけである
+
+現時点で足場として置いてあるものと、置き換わる契機は次のとおり。
+
+| 対象 | 現状 | 置き換わる契機 |
+| --- | --- | --- |
+| `layout.tsx` の html / body | 言語と font 変数、`min-h-full` の骨格のみ | app shell の実装 |
+| 横断通知の Provider mount | root layout へ mount 済み([0026](../adr/0026-layout-shell-mount.md) の薄い mount) | app shell の実装時に配置を見直す |
+| `metadata` の `title` / `description` | リポジトリ名と一行説明の**仮値**。恒久的なのは `title.template` の枠だけ | fork 先または画面実装 |
+| `metadata` の `metadataBase` | **未設定** | 公開 URL を保持する config を足す時点([0030](../adr/0030-environment-variable-management.md)) |
+| `page.tsx` | 動作確認用の最小ページ | 画面実装 |
+
+3.5 の破棄境界における位置づけは**ジャーニー側**であり、`app/**` の route segment は破棄対象である。ただし root layout の mount 作法と metadata の枠組みは機構であり、残す。この区別は `src/app/README.md` にも置き、この層を最初に読む人へ直接届くようにする。
 
 ---
 
@@ -346,8 +386,9 @@ shadcn/ui を import
 | P3-6 | テスト基盤(Vitest + RTL + MSW) | 3 | P3-1, P2-1 |
 | P3-7 | styling 基盤(design token はコードが SSOT) | 3 | P3-1 |
 | P3-8 | components + Storybook + デザインシステム化 | 3 | P3-7 |
-| P3-9 | rules.md 骨格 34 エントリ | 3 | P0-4 |
+| P3-9 | rules.md 骨格 35 エントリ | 3 | P0-4 |
 | P3-10 | ドキュメントレール(B1 / B6 / B14) | 3 | P3-1 |
+| P4-0 | テスト関連 skill の回収 | 4 | P3-6 |
 | P4-1 | OpenAPI 取得機構 | 4 | P3-3 |
 | P4-2 | orval による型 + zod 生成 | 4 | P4-1 |
 | P4-3 | adapters — fetch wrapper | 4 | P4-2, P3-4, P3-2, P3-6 |
@@ -382,14 +423,14 @@ shadcn/ui を import
 | P7-1 | 爆破スクリプト移植 | 7 | P5-16 |
 | P7-2 | マーカー埋め込み + purge 検証 CI | 7 | P7-1, P6-4 |
 | P7-3 | `new-feature` スキル(B12) | 7 | P4-6, P3-10 |
-| P8-1 | portal 基盤移植 | 8 | P5-16 |
-| P8-2 | deploy-docs workflow + スキル復活 | 8 | P8-1, P2-1 |
+| P8-2 | portal 運用スキルの復活 + Pages 有効化 | 8 | P5-16 |
 | P9-1 | rules.md 磨き上げ | 9 | P7-2, Phase 6 全 PR, Phase 8 全 PR |
 | P9-2 | EN canonical 化 + `.ja.md` mirror | 9 | P9-1 |
 | P9-3 | ADR immutable 化 + 経緯除去 + 暫定運用の撤去 | 9 | P9-2 |
 | P9-4 | トレーサビリティ台帳(B10) | 9 | P9-1 |
 | P9-5 | Tier 5 後回し分の最終確認 | 9 | P9-3 |
-| P9-6 | v1.0.0 リリース | 9 | P9-6 を除く全 PR |
+| P9-6 | boilerplate 導入時の変更点を集約 | 9 | P9-2, P9-5 |
+| P9-7 | v1.0.0 リリース | 9 | P9-7 を除く全 PR |
 
 ### 4.1 依存マップ
 
@@ -602,7 +643,7 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
 - **目的**: 全レポーティングの背骨と基本検査を立てる
 - **対象 ADR**: [0153](../adr/0153-ci-configuration.md)
 - **主な変更先**:
-  - `.github/actions/upsert-pr-comment/` — composite action。go 側から as-is 移植。以降の全レポーティングがこれに乗る
+  - `.github/actions/upsert-pr-comment/` — composite action。go 側から as-is 移植。coverage 以外の検査ログを冪等に報告する
   - `.github/workflows/lint.yaml` / `typecheck.yaml` / `build.yaml` / `lockfile-drift.yaml`
   - `.github/workflows/smoke.yaml` — `next start` → `curl` の起動スモーク
   - `.github/workflows/README.md`
@@ -629,6 +670,8 @@ master-plan 旧 2.1 の残り。lefthook + markdownlint + mermaid-lint は導入
 
 垂直スライスを通すための土台。ここまで `src/` は `app/` のみで、実装コードがほぼ存在しない。
 
+ドキュメント portal([0141](../adr/0141-portal-operations.md))の生成基盤・ビューアー・配信 workflow も、デザインシステムの最初の利用者として P3-8 と同じ PR で着地させる。Storybook の中だけでは掛からない負荷(実データ量・実文書長・実際の組み合わせ)を部品へ掛けるためであり、Phase 8 には運用スキルと Pages 有効化だけが残る。
+
 ### P3-1: 11 カーネルの物理化 + 層別 README(B13)
 
 - **目的**: `src/` にカーネルを実体化し、責務と公開面を README で宣言する
@@ -653,15 +696,16 @@ test-requirement: unit
 - **目的**: 依存マトリクスを 1 箇所で宣言し、機械強制を生成する。宣言と強制の二重管理を作らない
 - **対象 ADR**: [0002](../adr/0002-formatter-linter.md) / [0021](../adr/0021-frontend-responsibility.md)
 - **主な変更先**:
-  - `architecture.ts` — 依存マトリクス / 公開面 / 禁止名の宣言(SSOT)
-  - `eslint.config.mjs` — **生成物・do-not-edit**
-  - `package.json` — eslint 本体 + `eslint-plugin-boundaries` を exact pin。`lint:eslint` を追加し `lint:ci` へ直列組込
-  - `.github/workflows/` — 生成物の drift ゲート
+  - `architecture.ts` — 依存マトリクスの宣言(SSOT)
+  - `eslint.config.ts` — `architecture.ts` を import して境界検査へ変換する
+  - `scripts/architecture/` — 層 README の frontmatter と `architecture.ts` の突合(食い違えば fail)
+  - `package.json` — eslint 本体 + `eslint-plugin-boundaries` + import resolver + `jiti` を exact pin。`lint:eslint` と `check:architecture` を追加し `lint:ci` へ直列組込
   - `.claude/skills/` — **`repo-ops` / `node-upgrade` / `full-apply` / `full-verify` の 4 本に残る「lint = biome 一本」前提の記述を更新する**
   - `.vscode/extensions.json` — `dbaeumer.vscode-eslint` を追加([0002](../adr/0002-formatter-linter.md) に記録済み)
-- **設計**: `architecture.ts` を SSOT とし `eslint.config.mjs` を生成する。P3-1 の README frontmatter との突合もここで行う(README と `architecture.ts` が食い違えば fail)
+- **設計**: マトリクスの表現を `architecture.ts` 1 箇所に閉じ、強制側は**生成物を挟まず直接 import する**。生成にすると生成物・drift ゲート・再生成手順が増えるが、宣言と強制の距離は縮まない。README frontmatter だけは人間向けに同じ内容を持つため、突合を機械検査として持つ
 - **注意**: [0002](../adr/0002-formatter-linter.md) の能力ベース分割を守る。ESLint はプリセット束(`eslint:recommended` / `eslint-config-next`)を入れず、biome が表現できない検査のみを担う
-- **完了条件**: 層境界違反が `lint:ci` で error になる。BACKLOG T2 が ✅ になる
+- **境界検査は import 解決に依存する**: 解決できない import は「どの層でもない」と分類され、違反があっても報告されない。**検査が空振りしていないことを、違反を仕込んで error になるところまで確認する**(相対パスと `@/*` の両方)
+- **完了条件**: 層境界違反が `lint:ci` で error になる。README の境界宣言が `architecture.ts` と食い違えば `lint:ci` で error になる。BACKLOG T2 が ✅ になる
 - **依存**: P3-1
 
 ### P3-3: env / 型付き Config
@@ -677,7 +721,8 @@ test-requirement: unit
 - **この PR で入る変数**: `APP_API_BASE_URL` / `APP_API_MODE` / `MEDIA_ORIGIN` / `OTEL_EXPORTER_OTLP_ENDPOINT` / 認証関連
 - **判断が要る点**: OTel の標準名 `OTEL_EXPORTER_OTLP_ENDPOINT` と [0028](../adr/0028-naming-convention.md) の `{SUBSYSTEM}_{NAME}` 規約が競合する。**標準名を優先**する([0010](../adr/0010-standards-and-non-lockin.md) の標準準拠)。0028 への例外条項追記は P0-4 で実施済み
 - **同時に実施**: `new-env` スキルの実装突合。スキルは既に本 ADR の構造(`src/config/` の目的別 config モジュール + 変数表)を対象に再設計済みで、`src/config/` 未着地の間は自らガードして停止する。本 PR では実際に着地した purpose 名 / スキーマ記述 / 変数表の配置とスキルの前提が一致するかを確認し、ずれていればスキル側を合わせる
-- **完了条件**: 必須 ENV 欠落でビルドが失敗する。`NEXT_PUBLIC_` 境界を越えた secret 参照が型で防がれる。BACKLOG A7 が ✅ になる
+- **fail-safe の検証は P4-3 で行う**: 「必須 ENV 欠落でビルドが失敗する」は、**その変数を実際に読む層が存在して初めて検証できる**。この PR の時点では config を読む呼び出し元が無く、欠落を仕込んでも落ちる先が無い。したがって本 PR は loader・Config・変数表・`noProcessEnv` までを置き、**欠落時の停止と `NEXT_PUBLIC_` 境界の型防御は、外部接続が入る P4-3 の完了条件として検証する**。BACKLOG A7 の実装済みが ✅ になるのもその時点である
+- **完了条件**: `src/config/` の loader と不変 Config が存在し、`env/README.md` と `src/config/README.md` が変数表と設定値の解説を持つ。`biome.json` の `noProcessEnv` により `process.env` の直読が config モジュール以外で error になる
 - **依存**: P3-1
 
 ### P3-4: errors カーネル
@@ -685,7 +730,7 @@ test-requirement: unit
 - **目的**: protocol-agnostic な分類を用意し、HTTP 語彙が上位層へ漏れないようにする
 - **対象 ADR**: [0080](../adr/0080-error-handling.md)
 - **主な変更先**: `src/errors/` — sentinel 分類 / cause chain / redact / 分類 → code + message のマッピング
-- **設計**: go の apperror 翻案。分類は protocol-agnostic(`NotFound` / `Unauthorized` / `Conflict` / `Internal` 等)で、HTTP status からの変換は adapters 境界(P4-3)が 1 回だけ行う
+- **設計**: go の apperror 翻案。分類は protocol-agnostic な13種(`InvalidArgument` / `Unauthenticated` / `PermissionDenied` / `NotFound` / `Conflict` / `Validation` / `UnsupportedMediaType` / `PayloadTooLarge` / `TooManyRequests` / `Canceled` / `Internal` / `Unimplemented` / `Unavailable`)で、HTTP status からの変換は adapters 境界(P4-3)が 1 回だけ行う
 - **注意**: swallow 禁止 / cause chain 必須 / 5xx=error・4xx=warn のログレベル規約。status を持たない失敗(timeout / abort / DNS)の分類は**未決 #8 のとおり P4-3 で確定する**ため、本 PR の網羅はその時点の分類集合に限る
 - **強制手段**: 型(分類は判別可能な union)+ ESLint boundaries(HTTP 語彙の混入検出)+ テスト
 - **完了条件**: 分類の網羅テストが通る。`errors` が HTTP 語彙を持たない(boundaries で検査)
@@ -710,15 +755,15 @@ test-requirement: unit
 - **主な変更先**:
   - `package.json` — Vitest + RTL + MSW を exact pin
   - `vitest.config.ts` — カバレッジ設定 / 環境分離
-  - `.makefiles/` — `make test`(CI 厳格・キャッシュ無効)/ `make test-cached`(pre-commit 高速)の二層
+  - `.makefiles/` — `make test-full`(CI 厳格・キャッシュ無効)/ `make test-cached`(pre-commit 高速)の二層
   - `.lefthook.yaml` — pre-commit へ `test-cached` を接続
-  - `.github/workflows/test.yaml` — カバレッジ 90% ゲート + PR レポート(`upsert-pr-comment` 経由)
+  - `.github/workflows/test.yaml` — カバレッジ 100% ゲート + PR レポート(octocov)
 - **規約**: co-location(`__tests__` 集約は否定)/ 正常系・異常系を分ける / table-driven 禁止 / 命名は kebab + `.test.ts` / integration は HTTP 境界を mock
-- **カバレッジ**: 90% ハードゲート。**到達不可能コード以外は全てテストする**方針のため閾値は維持できる想定(維持できない場合は相談)
+- **カバレッジ**: 100% ハードゲート。**到達不可能コード以外は全てテストする**方針のため閾値は維持できる想定(維持できない場合は相談)
 - **async RSC のテスト配置**: [0091](../adr/0091-test-verification-methods.md) に従う
-- **同時に実施**: BACKLOG GB-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルの `pnpm test` 条件分岐見直し
-- **強制手段**: CI(カバレッジ 90% ハードゲート)+ lefthook(pre-commit)
-- **完了条件**: `make test` が CI で緑。カバレッジゲートが PR にレポートされる。**BACKLOG B8 は Playwright を含む(P6-4)ため、ここでは ⚠️ に留め P6-4 で ✅ にする**
+- **持越し**: BACKLOG GB-5(テスト scaffold スキル)の移植、`full-apply` / `node-upgrade` / `repo-ops` スキルのテスト導入後の検証手順への更新は、Claude 利用可能後の **P4-0** で回収する
+- **強制手段**: CI(カバレッジ 100% ハードゲート)+ lefthook(pre-commit)
+- **完了条件**: `make test-full` が CI で緑。カバレッジゲートが PR にレポートされる。**BACKLOG B8 は Playwright を含む(P6-4)ため、ここでは ⚠️ に留め P6-4 で ✅ にする**
 - **依存**: P3-1, P2-1
 
 ### P3-7: styling 基盤(design token はコードが SSOT)
@@ -727,11 +772,15 @@ test-requirement: unit
 - **対象 ADR**: [0050](../adr/0050-styling-strategy.md) / [0051](../adr/0051-styling-system.md)
 - **主な変更先**:
   - `tokens/*.json` — **W3C Design Tokens 形式**。**これが SSOT**(手書き。Figma からの生成物ではない)
-  - `scripts/gen-tokens.ts` — `tokens.json` → Tailwind v4 `@theme`(**生成物・do-not-edit**)
+  - `tokens/scripts/gen-tokens.ts` — `tokens.json` → Tailwind v4 `@theme`(**生成物・do-not-edit**)
   - `src/app/globals.css` — design token = CSS 変数 / テーマ・ダークモード(`prefers-color-scheme` 追従 + token 切替)
   - `src/components/cn.ts` — `cn()` ヘルパ
   - `.github/workflows/` — token の drift ゲート
 - **B9 の前段は v1 では実装しない**: §3.11 のとおり v1 は Figma を使わないため搬送すべき上流が無い。**原則としては master-plan 1.3 の B9 が正**であり、fork 先が Figma を SSOT に据えるなら前段を足せば戻せる。v1 は `tokens.json` を手書き SSOT とし後段のみ実装する
+- **スクリプトの配置判断**:
+  - `scripts/`: リポジトリ全体に関わるが、特定のシステム・カーネル・機能の責務には属さない補助スクリプトを置く
+  - `**/scripts/`: 特定のシステム・カーネル・機能が守る生成、検査、変換などのスクリプトを、その責務の近くに co-location する
+  - token の生成・検査は `tokens/` の SSOT と生成物を扱う token システム自身の責務であるため、`tokens/scripts/` に置く
 - **`cn()` の実装は `clsx` + `tailwind-merge`**(§3.10 で確定)。実装時の注意 3 点:
   - **`tailwind-merge` は Tailwind のメジャーに連動する**(v3 → 2.6.0 / v4 → 3.x)。現行 `tailwindcss 4.3.2` に対し `tailwind-merge 3.6.0` が対応。**Tailwind のメジャー更新時は両者をセットで 1 PR に乗せる**([0004](../adr/0004-library-management.md) の「メジャー更新は別 PR」)
   - **shadcn の既定の置き場は `lib/utils` だが、[0050](../adr/0050-styling-strategy.md) は `components` カーネル内を指定**している(`utils/` / `lib/` は [0021](../adr/0021-frontend-responsibility.md) の命名規律で禁止)。copy-in 時に import パスの付け替えが要る
@@ -749,7 +798,11 @@ test-requirement: unit
   - `src/components/` — shadcn/ui + lucide-react + 複雑入力を import(`cva` 込み。§3.10)
   - `.storybook/` — builder / framework 統合
   - `*.stories.tsx` — 対象コンポーネントへ co-location([0027](../adr/0027-directory-structure.md))
-  - `src/components/README.md` — **「作り替えるもよし、捨てるもよし、あくまで参考」の但し書き**(本書 §3.5)
+  - `src/components/component-template.md` — component README の必須見出しを固定するコピー元
+  - `src/components/**/README.md` — template から作成する、component ごとの用途・役割・公開 component・利用ケース・責務境界・Storybook / test 確認範囲
+  - `src/components/README.md` — **「作り替えるもよし、捨てるもよし、あくまで参考」の但し書き**と component の配置・命名・SSR first 規約(本書 §3.5)
+  - `src/model/rich-text/` — sanitize の port(§3.10。`model` カーネルの最初の住人)
+  - `src/components/rich-text/` — `RichTextContent`(表示・Server Component)と `RichTextEditor`(TipTap・client island)
   - `scripts/design-bundle.ts` — **story からデザイン支援ツール向けのプレビューを書き出す**
   - `.claude/skills/` — 書き出し・同期のツール固有手順を**スキル 1 本に閉じ込める**(§3.11。[0154](../adr/0154-claude-skills-operations.md) / [0155](../adr/0155-claude-skills-development.md) に従う)
 - **工程**(§3.11 の順序):
@@ -757,18 +810,25 @@ test-requirement: unit
   2. Storybook で閲覧可能にする
   3. **Claude Code でデザインを改修し、デザインシステムとして成立させる** — ここが本 PR の実質。出力の質の上限をここが決めるため、時間はここへ配分する
   4. プレビューを書き出し、外部のデザイン支援ツールへ push する(**依存の向きは repo → design の一本**)
-- **同時に実施**: **画像用ローディングコンポーネント**(本書 §3.3)。CSS のみのスケルトン + `aspect-ratio`、client 版は opt-in
+- **同時に実施**: **`MediaImage`**(本書 §3.3)。CSS のみの Skeleton + `aspect-ratio` を既定にし、`placeholder` / `blurDataURL` は明示指定をそのまま通す。error fallback などの client 版は opt-in
 - **注意**: vendor 直参照を feature / component に散らさない([0010](../adr/0010-standards-and-non-lockin.md))。interaction a11y seam は [0053](../adr/0053-ui-component-interaction-seam.md) に従う
-- **強制手段**: Storybook の story 存在 + biome の a11y ルール + スキルによる同期手順の固定
-- **完了条件**: Storybook が起動する。基礎コンポーネントが 4 状態(loading / empty / error / success)の story を持つ。biome の a11y ルールが緑。**デザイン支援ツール側でデザインシステムが閲覧できる**
+- **Story の中立性**: `components` / `Foundations` の Story は boilerplate 自体のカタログであり、EC などサンプル固有の業務語彙・API・route を props / 文言 / link に埋め込まない。汎用的な表示値で component 自身の状態・利用方法を示し、業務文脈を伴う実例は feature の Story または画面実装へ置く。fork 後の portal URL のような repository 固有値は P7 の setup 置換対象とする
+- **Story と README の構成**: component は実装・test・Story・README を同じディレクトリへ置く。README は用途・役割・公開 component・利用ケース・責務境界・Storybook / test の確認範囲を見出しで示し、公開 component がある場合は名称と個別の役割を表にする。自身が状態を所有する UI だけが loading / empty / error / success を Story で示し、`Button` のように状態を所有しない UI は disabled / pending など当該部品の操作状態だけを示す。`native` / `client` の対は同じ選択肢・ラベル・配置で Story を作り、runtime の違いと見た目を比較できるようにする
+- **`rich-text` はここで完成させる**: port と両 component はいずれも業務型を持たず、実 API も生成型も参照しない。したがって **Phase 4 / 5 の到達を待たずに着手できる**。実装順は port の nominal type → sanitizer + allowlist → `RichTextContent` → allowlist から導出した extension 集合で `RichTextEditor`。feature 側の配線(description を渡す / Server Action で保存)だけが P5-1 / P5-12 に残る。§3.9 の CSP 検証もここで済ませる
+- **Typeset**: Markdown / sanitizer 済み HTML の組版は `typeset/` の CSS 基盤として持ち、Storybook は `Foundations/Typeset` に置く。renderer・sanitizer・layout の最大幅は持たず、`typeset` / preset・`not-typeset`・`typeset-scroll` を通じて適用範囲だけを定義する
+- **SSR first の部品選定**: 初期表示に置く基礎部品は native HTML と Server Component を既定にし、初期配置を理由に CSR へ寄せない。Radix・Portal・browser API を使う部品は native 要素で満たせない操作要件が確定した client island に限定する。静的な少数選択は `select-native` を優先し、カスタム popup や高度な keyboard interaction が必要になった時点で `select-client` を再評価する
+- **native / client の命名と文書化**: 同じ UI 概念に両実装が成立する場合は、`<concept>-native` / `<concept>-client` と `ConceptNative` / `ConceptClient` を使う。`client` は利用上の境界を表し、Radix など vendor 名は README の実装詳細に閉じる。README には hydration の要否と、native を選ぶ条件・client island を選ぶ条件を記す
+- **native / client の視覚設計**: 取り込み監査の時点でも、対になる native / client 部品のサイズ・semantic token・focus・disabled・invalid の基本設計を可能な限り揃え、SSR・form・a11y と公開 API を固める。layout・motion・visual regression を含む完全整合は、P3-8 のデザインシステム構築で Storybook を見ながら仕上げる。OS 固有の popup などは pixel-perfect な一致を求めない
+- **外部ツールへの反映は Phase 5 の直前に行う**: 書き出しの機構(`pnpm design:bundle` と `design-export` スキル)は本 PR で完成させるが、**実際に反映する作業はここでは行わない**。理由は 2 つある。第一に、高忠実度のインポートは全 component のプレビューを 1 つずつ描画して検証するため、実行に数時間とそれに見合う量のトークンを要し、**同じセッションで進む他の作業の速度を落とす**。第二に、反映の目的はデザインセンスを補って**画面を設計すること**であり、画面を作らない間は反映しても使い道が無い。したがって**画面実装に入る直前(Phase 5 の着手時)に一度反映する**。デザインシステム自体がその時点まで動き続けるため、遅らせるほど反映内容が実態に近づくという利点もある
+- **完了条件**: Storybook が起動する。基礎コンポーネントが 4 状態(loading / empty / error / success)の story を持つ。biome の a11y ルールが緑。**デザインシステムを外部ツールへ書き出す機構が動作する**(反映そのものは Phase 5 着手時)
 - **依存**: P3-7
 
-### P3-9: rules.md 骨格 34 エントリ
+### P3-9: rules.md 骨格 35 エントリ
 
 - **目的**: rule クラスの規約の置き場を作る。ADR にも AGENTS.md にも書かない規約の受け皿
 - **対象 ADR**: [0140](../adr/0140-documentation-operations.md)
 - **主な変更先**: `docs/rules.md` — master-plan 旧 2.7 由来の 33 エントリ
-- **方針**: **ここで 33 本を一度書き切る。荒削りで可。** 各レイヤーの実装 PR で精度を上げ、P9-1 で磨き上げる。各エントリに `> Rationale: [ADR-NNNN]` の逆参照を付す
+- **方針**: **ここで 35 本を一度書き切る。荒削りで可。** 各レイヤーの実装 PR で精度を上げ、P9-1 で磨き上げる。各エントリに `> Rationale: [ADR-NNNN]` の逆参照を付す
 - **エントリ一覧**(番号は master-plan 2.7 の監査番号を踏襲):
 
 | # | 項目 | 主 Rationale |
@@ -791,6 +851,7 @@ test-requirement: unit
 | 35 | コンポーネント API 設計(props 命名 / variant / compound / `...rest`) | [0021](../adr/0021-frontend-responsibility.md) |
 | 38 | TypeScript 言語規約(`type` 優先 / `enum` 可否 / `satisfies` / `any`・`as` 禁止度) | [0020](../adr/0020-adopted-architecture.md) |
 | 39 | TSDoc / コメント規約(公開面への TSDoc / 日本語コメント / `@deprecated`) | [0140](../adr/0140-documentation-operations.md) |
+| 40 | 関数 export の使い分け(公開 API は `export function`、値として渡す callback は arrow function。React component / hook は既存規約に従う) | [0028](../adr/0028-naming-convention.md) |
 | 42 | searchParams 型付け(zod 検証 / シリアライズ形式 / 既定値) | [0060](../adr/0060-state-management.md) |
 | 43 | Web Storage 利用規約(可否 / キー命名 / SSR 安全 / 機微情報の禁止) | [0060](../adr/0060-state-management.md) |
 | 44 | アプリ用 cookie 規約(命名 / SameSite・Secure・HttpOnly・Max-Age / 読み書き場所) | [0131](../adr/0131-cookie-consent.md) |
@@ -808,7 +869,7 @@ test-requirement: unit
 | 68 | version skew 対応(Server Action ID 不一致 → フルリロード誘導 or PaaS 依存) | [0040](../adr/0040-routing-rendering-strategy.md) |
 | 69 | typed routes / リンク規約(`typedRoutes` 有効化 / 生 `<a>` 禁止 / 外部リンクの `rel`) | [0040](../adr/0040-routing-rendering-strategy.md) |
 
-- **追加エントリ**: 33 件に加え、**#12b 楽観ロック競合(409)** を新設する([screens.md](../screens.md) A7 の要件。既存 33 件に該当項目がない)
+- **追加エントリ**: 33 件に加え、**#12b 楽観ロック競合(409)**([screens.md](../screens.md) A7 の要件。既存 33 件に該当項目がない)と、**#40 関数 export の使い分け**を新設する
 - **各エントリに「強制手段」列を必須にする**(§0.3 と同じ趣旨)。散文に逃がす前に機械強制の余地を検討させるため。実測で既に機械強制できるものがある:
 
 | rule | 強制手段 |
@@ -820,7 +881,7 @@ test-requirement: unit
 | #69(生 `<a>` 禁止) | **biome では落ちない**(実測確認済み)。`next/link` を必須にするため **ESLint 側(P3-2)で拾う**(確定) |
 
 - **強制手段**: markdownlint(構造)+ 各エントリの強制手段列(内容)
-- **完了条件**: 34 エントリが存在し、全てに Rationale と**強制手段列**がある。markdownlint が緑
+- **完了条件**: 35 エントリが存在し、全てに Rationale と**強制手段列**がある。markdownlint が緑
 - **依存**: P0-4
 
 ### P3-10: ドキュメントレール(B1 / B6 / B14)
@@ -831,9 +892,10 @@ test-requirement: unit
   - `docs/templates/feature-readme.md` — **B1**。必須セクション = route / 使う operationId / **状態表 × デザイン参照** / 依存カーネル / Action 戻り値契約 / テスト観点。参照先の形式は fork 先が決め、**v1 では Storybook story を使う**(§3.11)
   - `docs/playbook.md` — **B6**。意図 → 置き場 → 使う型 → 模範コードの逆引き + 決定木(「〜したくなったら」形式)
   - `.github/pull_request_template.md` — **B14**。DoD = 4 状態 / a11y 手動チェック / README 更新 / カバレッジ例外記録
-  - `.claude/skills/readme-review/` — 採点基準を B1 テンプレへ接続
+- `.claude/skills/readme-review/` — 採点基準を B1 テンプレへ接続
 - **注意**: B7(UI 状態契約)の 4 状態は B1 テンプレの「状態表」として実体化する。`rules.md` #18 と同じものを二重に定義しない
-- **完了条件**: テンプレートが存在し、`readme-review` が B1 必須セクションの欠落を検出する
+- **持越し**: `readme-review` の B1 必須節チェックは、Claude 利用可能後の P4-0 で接続する。P3-10 ではテンプレート・playbook・PR DoD を先行して整備する
+- **完了条件**: B1 テンプレート、B6 playbook、B14 PR DoD が存在する。`readme-review` による B1 必須節の欠落検出は P4-0 で完了する
 - **依存**: P3-1
 
 ---
@@ -841,6 +903,15 @@ test-requirement: unit
 ## Phase 4: 垂直スライス 1 本目(ユーザー向け商品一覧)
 
 **認証を必要としない公開画面**を選ぶことで、認証を最初の貫通に持ち込まずに済む。この Phase の終了時点で全カーネルと主要 ADR の交差点が 1 度は踏まれる。
+
+### P4-0: テスト関連 skill の回収
+
+- **目的**: P3-6 で導入したテスト基盤を、Claude の利用再開後に skill 運用へ反映する
+- **主な変更先**:
+  - BACKLOG GB-5 — `scaffold-test` / `scaffold-integration-test` / `test-review` を移植する
+  - `.claude/skills/full-apply/` / `node-upgrade/` / `repo-ops/` — テスト未導入を前提とした `pnpm test` の条件分岐を、`make test-full` を必須検証とする手順へ更新する
+- **完了条件**: 上記 skill が P3-6 のテスト基盤を前提に動作し、テスト未導入を前提にした条件分岐が残っていない
+- **依存**: P3-6
 
 ### P4-1: OpenAPI 取得機構
 
@@ -898,8 +969,9 @@ sources:
   - `import "server-only"`(`rules.md` #67)
 - **注意**: 型漏洩禁止。`gen/` の型を features / components へ渡さず adapters で変換する。POST の retry は opt-in
 - **強制手段**: 型(公開面は正規化済み型のみ受け付ける)+ ESLint boundaries(`gen/` の型漏洩検出)+ テスト
-- **完了条件**: 商品一覧の取得が動く。異常系(タイムアウト / 5xx / スキーマ不一致)のテストが通る。boundaries が `gen/` の型漏洩を検出する。**PATCH ペイロード正規化関数(§3.10)のテストが通る**
-- **依存**: P4-2, P3-4, P3-2(boundaries), P3-6(テスト基盤)
+- **P3-3 の fail-safe をここで検証する**: adapters が config を実際に読む最初の層であり、ここで初めて ENV の欠落が「落ちる先」を持つ。必須 ENV を落としてビルドが失敗すること、`NEXT_PUBLIC_` 境界を越えた secret 参照が型で防がれることを確認し、BACKLOG A7 の実装済みを ✅ にする
+- **完了条件**: 商品一覧の取得が動く。異常系(タイムアウト / 5xx / スキーマ不一致)のテストが通る。boundaries が `gen/` の型漏洩を検出する。**PATCH ペイロード正規化関数(§3.10)のテストが通る**。**必須 ENV 欠落でビルドが失敗し、`NEXT_PUBLIC_` 境界を越えた secret 参照が型で防がれる(P3-3 からの引き取り)**
+- **依存**: P4-2, P3-4, P3-2(boundaries), P3-6(テスト基盤), P3-3(config)
 
 ### P4-4: MSW モック(B3)
 
@@ -926,6 +998,10 @@ sources:
   - `src/model/media.ts` — `mediaUrl()`(本書 §3.2)
   - `next.config.ts` — `images.remotePatterns` に Garage の公開ホストを登録
 - **注意**: Server Components 既定。`"use client"` は feature の葉へ押し下げる
+- **app shell をここで作る**: `components` 側は `app-shell` / `sidebar` を未実装のまま残している。user 側と admin 側を共通の 1 枚にするか別 shell にするかが情報構造の決定であり、それが決まるまで着手できないためである。**`app-shell` が持つのは header / footer / nav / skip link と `main` 要素そのもの**で、`main` は full-bleed とし読み幅・左右余白は持たない(それは `ContentContainer` の責務。両方が幅を持つと二重管理になり、後から剥がすことになる)。admin 側の shell は P5-11、`sidebar` は admin の route・権限・操作項目が確定する P5-11 と一体で評価する
+- **header のモバイル導線をここで決める**: side menu を採るなら `Sheet` を使う。情報構造と不可分なので shell と同時に決める
+- **参照する Blocks**: `dashboard-01`(sidebar・header・card 群・data table を含む画面骨格)。dummy data と画面専用 component を含むため、user / admin の情報構造と API 接続は本リポジトリで定義する
+- **`components` へ上げないものの線引きをここで踏む**: 業務型(`Product` / `Purchase` / `User`)と遷移先に依存する UI(商品カード・一覧行・明細)は feature に置き、`card` / `table` などの primitive を feature 内で合成する。status badge の色・文言・許可操作は backend の状態遷移に依存するため feature が持ち、`components` が供給するのは汎用 `badge` の variant までである。金額・日時・割合の整形は `model/`、API error の分類と `details` / request ID の解釈は `errors/` と feature が持つ
 - **強制手段**: `lint:ci`(biome + boundaries)+ カバレッジゲート + Storybook の story 存在
 - **完了条件**: 商品一覧が表示される。4 状態が揃う。テストが通りカバレッジゲートを満たす。`lint:ci`(biome + boundaries)が緑。Storybook に一覧コンポーネントの story がある
 - **依存**: P4-3, P4-4, P3-8, **P3-2**(`lint:ci` の boundaries), **P3-6**(カバレッジゲート), **P3-10**(B1 README テンプレ)
@@ -947,6 +1023,23 @@ sources:
 
 **すべてサンプル = 破棄対象**(§3.5)。ただし**ディレクトリ名では隔離しない** — 破棄対象は爆破 manifest の明示パス宣言とマーカーで表現する。各 PR は「コア残留」と「破棄対象」を明記し、P7-1 の manifest 作成時の入力とする。
 
+**サンプルは component を実データ・実操作へ配線した実装例として作る。** `components` に持っている部品を、画面要件に直接現れないことだけを理由に使わずに終えない。API から取得した実データ・form の実入力・Server Action・4 状態へ接続した形で残すことが、fork 後に参照される実装パターンになる。部品を並べただけのカタログや固定ダミー値の story はこの代わりにならない(それは `components` 側の story の役割である)。主導線の UX を不自然に壊す部品は、画面内の補助導線・管理用の表示領域・専用のサンプル画面のいずれかへ置く。
+
+**shadcn/ui の Blocks は参照元として読む。** 完成したアプリ断片の copy-in であり、`components` としてそのまま採用しない。layout・responsive な部品合成・Story の実例を読み、依存境界・ディレクトリ規約・実 API 接続・型安全性の規約に合わせて必要な範囲だけを再構成する。`as React.CSSProperties` など規約に反する型指定は移植しない。どの Block を見るかは各 PR に記す。
+
+**この Phase の着手時に、デザインシステムを外部ツールへ反映する。** P3-8 が用意した `pnpm design:bundle` と `design-export` スキルを使い、一度だけ反映する。**画面の設計を始める前に済ませる**のは、反映の目的がデザインセンスを補って画面を設計することにあり、設計を始めてからでは間に合わないためである。高忠実度のインポートは全 component を 1 つずつ検証するため数時間を要するので、他の作業と並行させず単独で回す。反映後にデザインシステムを変更した場合は、再度の反映を Phase 5 の途中で行うのではなく、変更をまとめてから 1 回で行う。
+
+**画面を通す過程で App Parts の候補が出る。** 次の 4 つは、一般的な業務システム・toC システムで再利用性が高く、App Starter の完成度を上げる横断パターンである。いずれも情報構造が決まらないと形を固定できないため、この Phase で該当画面を組む中で必要性を判定する。**先回りで作らない。** 業務語彙・API 型・特定の業務状態は持たず、利用側から serializable な表示データと操作結果を受け取る形に限る。
+
+| 候補 | 主な用途 | 構成要素と、持たない責務 |
+| --- | --- | --- |
+| `settings-shell` | 設定・アカウント領域 | 設定カテゴリの navigation、section header、設定項目の key-value / form 表示、保存状態。認証情報と設定値の意味は feature が所有する。P4-5 の `app-shell` に従属する |
+| `master-detail-layout` | 一覧と詳細の併置 | responsive な一覧 / 詳細 pane、選択状態の URL 同期、mobile での route / drawer 切替。データ取得と選択対象の型は feature が所有する。P4-5 の `app-shell` に従属する |
+| `maintenance-state` | サービス運用状態 | メンテナンス、部分障害、rate limit、retry-after、復旧確認、status page への導線。障害判定と復旧時刻は運用層が所有する。`ApiErrorAlert` / `FeedbackState` との重複を先に判定する |
+| `offline-recovery` | 通信断からの復帰 | offline 表示、再接続、再試行、送信保留、競合時の案内。同期方式と再送保証は `capabilities` / feature が所有するため、`components` 単独では完結しない |
+
+置き場は `components/patterns` または `components/shell` の候補と、`features` に残す責務を先に分けてから決める。primitive の追加ではなく「アプリを運用可能な状態まで組み立てる」ための部品として扱う。
+
 ### P5-1: U3 商品詳細 + エラー境界の配置規約 + sanitizer
 
 - **目的**: 動的ルートと単一リソース取得を通し、エラー境界・ローディング境界の配置規約と sanitizer 経路を確定する
@@ -954,11 +1047,10 @@ sources:
 - **主な変更先**:
   - `src/app/(shop)/products/[id]/page.tsx` / `loading.tsx` / `error.tsx` / `not-found.tsx`
   - `src/app/global-error.tsx`
-  - `src/features/products/detail/`
-  - `src/components/rich-text/` — **sanitizer 経由の表示コンポーネント(コア残留)**
+  - `src/features/products/detail/` — `model/rich-text` の port を通した description を `RichTextContent` へ渡す配線(component と port 自体は P3-8 で完成済み)
 - **設計**: `error.tsx` / `not-found.tsx` / `global-error.tsx` は**表示のみ**([0080](../adr/0080-error-handling.md))。分類・正規化は adapters が済ませている。関連商品は一覧 API をカテゴリフィルタで再利用する(専用 API なし)
-- **注意**: description はリッチテキストなので**必ず sanitizer を通す**(`rules.md` #48。biome の `noDangerouslySetInnerHtml` が error で落ちることを実測確認済み)。sanitizer ライブラリの選定をここで行う([0004](../adr/0004-library-management.md) の一次判定にかける)
-- **CSP 判断の入力をここで出す(§3.9)**: **`style` 属性を落として TipTap の要件(太字 / 斜体 / リスト / 見出し / リンク)を満たせるか**を検証し、結果を記録する。落とせるなら `style-src` に `'unsafe-inline'` が不要になり、[0111](../adr/0111-csp-security-headers.md) の seam 反転の議論自体が消える
+- **注意**: description はリッチテキストなので**必ず sanitizer を通す**(`rules.md` #48)。sanitizer スタックと port の設計は §3.10 で確定済みであり、ここでは選定を行わない。feature は port の戻り値をそのまま component へ渡すだけで、生の HTML 文字列を扱わない
+- **画面判断**: **商品画像が単一か複数かをここで確定する。** 複数なら `Carousel` を使い、単一なら使わない(部品は `components` にあるので、判断は使う / 使わないだけである)
 - **完了条件**: 存在しない ID で `not-found.tsx` が出る。adapters が投げた分類ごとに適切なエラー画面が出る。`reset()` による再試行が動く。XSS ペイロードを含む description が無害化される
 - **依存**: P4-5
 
@@ -971,6 +1063,7 @@ sources:
   - `src/model/pagination.ts` — **cursor 型(コア残留)**
   - `src/features/products/` — フィルタ UI
 - **設計**: **`searchParams` が変わるたびに RSC が再取得する構成が主眼**。URL とフィルタ状態を同期させる。`searchParams` は zod で検証する(`rules.md` #42)
+- **画面判断**: **一覧を URL 遷移型で通すか、client island で即時反映にするかをここで確定する。**この決定は A2(P5-11)/ A5(P5-13)の一覧も従う基盤側の判断であり、画面ごとに割らない。即時反映へ倒す場合に使う部品(`ComboboxClient` / `PopoverContent` / table の client 拡張)は `components` に揃っているので、判断は方式の選択だけである
 - **完了条件**: フィルタ / sort / keyword が URL に反映され、リロード・共有で再現する。不正な `searchParams` で 400 相当の表示になる。ブラウザバックでスクロール位置が復元される(`rules.md` #24)
 - **依存**: P4-5
 
@@ -1002,6 +1095,7 @@ sources:
   - **authorize の subject が `user-john-doe` 固定で、その人は admin ロール保持者**。つまり **PKCE フローで取れるのは常に admin トークン**で、U1〜U12(一般ユーザー画面)を正規フローで検証できない。一般ユーザーは `POST /bypass/token {subject: "user-jane-smith"}` を使う
   - `end_session_endpoint` は **POST のみ**(ブラウザの GET ナビゲーションは 404)。CORS ヘッダも無い(= BFF 経由を維持すべき根拠)
 - **テスト用の認証経路をここで用意する**: 認証は Go API に存在せず OpenAPI 契約外のため **MSW では偽装できない**(P4-4)。また `mock_auth_server` は go 側 compose 内にあり、CI で compose を立てない方針(P6-4)と両立しない。したがって **テスト専用の session 発行経路**(go 側の `/bypass/token` を利用する、テスト環境限定の Route Handler)を本 PR で用意し、P6-4 の E2E がこれを使う。**本番モードでは起動を拒否する**ガードを付ける(go 側 `MOCK_AUTH_DEV_ENDPOINTS` と同型)
+- **参照する Blocks**: `login-03` / `login-04`(中央寄せ・狭い viewport・form 周辺のレイアウト)。認証は BFF 経由の OIDC redirect のため、Block の email/password form は導入せずレイアウトだけを読む
 - **強制手段**: 型(session 型は payload 最小)+ テスト(cookie 属性・リダイレクト・状態破棄)+ 環境ガード(本番で起動拒否)
 - **完了条件**: 未認証で保護ルートへアクセスすると `returnUrl` 付きでログインへリダイレクトされる。ログアウトで cookie と client 状態が破棄される。session cookie が httpOnly + Secure + SameSite で発行される。ブラウザの JS から Access Token が観測できない。**テスト専用経路が本番ビルドで無効化されることをテストで確認**
 - **依存**: P4-3, P4-5
@@ -1061,6 +1155,7 @@ sources:
 - **主な変更先**: `src/app/(shop)/mypage/page.tsx` / `mypage/edit/page.tsx` / `src/features/account/`
 - **設計**: U11 と U12 は**独立ルート**。U12 は「自分の情報 + 都道府県マスタ」を RSC 内 `Promise.all` で並置合成する。**合成にドメイン計算が要らないのでフロント合成でよい**(判断基準は [screens.md](../screens.md) §1)
 - **注意**: 退会は**確認モーダル必須**(不可逆操作)。退会後はキャンセル・在庫復元が非同期の結果整合で走るため、**即時反映を保証しない UI 文言**にする
+- **画面判断**: **U12 の各入力項目を、`SelectNative` の単純な選択で済ませるか `ComboboxClient` の候補検索にするかをここで決める。**静的で少数の選択肢は native を優先し(SSR first)、候補が多く絞り込みが要る項目だけ client island へ倒す
 - **完了条件**: プロフィール編集が動く。退会に確認モーダルがある。結果整合を前提とした文言になっている
 - **依存**: P5-4
 
@@ -1071,6 +1166,7 @@ sources:
 - **主な変更先**: `src/app/(auth)/onboarding/page.tsx` / `src/features/onboarding/`
 - **設計**: **郵便番号入力 → 住所自動補完、失敗時は都道府県手入力にフォールバック**(degrade)。段階的検証は [0062](../adr/0062-form-input-validation.md)
 - **未決**: **U10 の方式が未確定**(JIT 自動プロビジョニング / 明示オンボーディングフォーム)。[screens.md](../screens.md) §3 の推奨に従い**明示オンボーディング側で実装し、確定後に差分を吸収**する
+- **画面判断**: 都道府県などの選択項目も U12 と同じ基準で `SelectNative` / `ComboboxClient` を選ぶ(P5-9 の判断に揃える)
 - **完了条件**: 住所補完が動く。`addresses` API を落としても手入力で登録が完了する
 - **依存**: P5-9
 
@@ -1084,6 +1180,8 @@ sources:
   - `src/model/authz.ts` — **RBAC ヘルパ(コア残留)**
   - `src/proxy.ts` — admin ルートの optimistic 判定を追加
 - **設計**: 403 は「ログイン済みだが権限不足」。**UI 上は該当ボタン / 導線ごと出し分けるのが基本**([screens.md](../screens.md) §0)。確定認可はデータ取得時の 403
+- **admin shell と `sidebar` をここで確定する**: `components` は `sidebar` を未実装のまま残している。admin の route・権限・操作項目が確定しないと navigation 構造を固定できないためであり、その確定がこの PR に当たる。user 側 shell(P4-5)と共通の 1 枚にするか別 shell にするかもここで決める
+- **参照する Blocks**: `sidebar-03` / `sidebar-07`(submenu・折り畳み・breadcrumb と sidebar の組み合わせ)、`dashboard-01`(summary card と data table の併置)。いずれも固定 JSON を持つため、server-driven な検索・ページングへ差し替えて再構成する
 - **完了条件**: 非 admin が admin 画面へ到達しない(optimistic = proxy のリダイレクト / 確定 = データ取得時 403)。非 admin には admin 導線自体が出ない。RBAC ヘルパが manifest の破棄対象に入っていない
 - **依存**: P5-4, P5-2
 
@@ -1093,16 +1191,19 @@ sources:
 - **対象 ADR**: [0053](../adr/0053-ui-component-interaction-seam.md) / [0075](../adr/0075-file-upload-seam.md) / [0061](../adr/0061-form-mutation-ux.md) / [0071](../adr/0071-bff-api-integration.md)
 - **主な変更先**:
   - `src/app/(admin)/products/new/page.tsx` / `[id]/edit/page.tsx` — **破棄対象**
-  - `src/components/rich-text/editor.tsx` — **TipTap エディタ(コア残留・§3.8)**
+  - `src/features/admin/products/` — `RichTextEditor`(P3-8 で完成済み)を form へ載せ、送信値を `model/rich-text` の port へ通す配線
   - `src/features/admin/products/actions.ts` — Server Action(作成 / 更新 / 画像アップロード)
   - `next.config.ts` — **`serverActions.bodySizeLimit` を引き上げる**
 - **技術制約**: Server Action の body size limit は**既定 1MB**。アップロード上限 5MiB 想定のため引き上げ必須
 - **設計**:
-  - **画像**: `POST /v1/products/images`(multipart)へ Server Action 経由で転送し、返却された `imagePath` を保存する(go-boilerplate #651)。[0075](../adr/0075-file-upload-seam.md) は presigned direct PUT が既定だが**バックエンドが multipart を採用したため proxy 側に倒れる**(前提更新は P0-4 で実施済み)
+  - **画像**: `POST /v1/products/images`(multipart)へ Server Action 経由で転送し、返却された `imagePath` を保存する(go-boilerplate #651)。[0075](../adr/0075-file-upload-seam.md) は 2 経路を対等な seam として持ち**選択は backend の能力で決まる**ため、multipart 受け口しか持たないこの構成では proxy が正規経路である(劣った例外ではない)。この経路ではサイズ上限・content-type 検証を Route Handler / Server Action 側にも置く
   - **楽観ロック**: A7 の更新で **409 が返ったら「他の人が更新済み」の再読み込み導線**を出す
   - **在庫数はここでは編集不可**(A3 の担当)
   - price は USD セント単位で送信
-- **注意**: Server Action は進捗イベントを持たないため、アップロード進捗表示は実装しない。TipTap の inline style が CSP `style-src` に影響する(P6-2)
+- **画面判断**:
+  - **画像 upload の UI を、`FileUpload` + `UploadPreview` + `Attachment` の合成で組むか画面専用 UI にするかをここで決める。**部品は選択・検証・表示だけを持ち送信経路を持たないため、multipart proxy でもそのまま載る
+  - **admin の編集画面を、単一カラム・固定 table・可変ペインのどれにするかをここで決める。**可変ペインを採る場合だけ `Resizable` を使う(常用する部品ではないので、採らないなら入れない)
+- **注意**: Server Action は進捗イベントを持たないため、アップロード進捗表示は実装しない
 - **完了条件**: 商品の作成・編集が動く。画像をアップロードすると一覧に反映される。上限超過(413)/ 未対応 content-type(415)がエラー表示される。409 で再読み込み導線が出る
 - **依存**: P5-11
 
@@ -1120,7 +1221,8 @@ sources:
 - **目的**: **backend 合成**(1 画面 1 API)の実例を作る。U12 の CollectAll と対になる
 - **対象 ADR**: [0070](../adr/0070-backend-role-separation.md) / [0040](../adr/0040-routing-rendering-strategy.md)
 - **主な変更先**: `src/app/(admin)/page.tsx` / `src/app/(admin)/analytics/page.tsx` / `src/features/admin/dashboard/`
-- **設計**: サマリは **backend 側で合成済みの値をそのまま表示する**。フロント側で複数 API から計算しない([0070](../adr/0070-backend-role-separation.md) の「業務ロジックはバックエンド」)。**数値カード + 一覧のみ・グラフなし**
+- **設計**: サマリは **backend 側で合成済みの値をそのまま表示する**。フロント側で複数 API から計算しない([0070](../adr/0070-backend-role-separation.md) の「業務ロジックはバックエンド」)。主導線は**数値カード + 一覧**とする。`Chart` を配線する場合も主導線をグラフへ置き換えず、数値表を併置してグラフを唯一の伝達手段にしない
+- **参照する Blocks**: `dashboard-01`(summary card と data table の併置)。固定 JSON は使わず、backend 合成済みの値へ差し替える
 - **完了条件**: ダッシュボードが表示される。フロント側に集計ロジックが存在しない(コードレビューで確認)
 - **依存**: P5-11
 
@@ -1230,9 +1332,10 @@ sources:
   - 離脱ガード(navigation-block hook)— P5-7 の注文フォームで使用
   - `useConnectivity`(オンライン / オフライン検知)
   - Web Worker オフロード seam
-- **注意**: keyboard shortcut registry は据え置き除外(P0-4 で [0022](../adr/0022-capabilities-kernel.md) から削除済み)。**Web Worker はどの ADR にも記載がなく master-plan 1.2 が唯一の記録**のため、実装時に ADR 化の要否を判断する
+- **注意**: **Web Worker はどの ADR にも記載がなく master-plan 1.2 が唯一の記録**のため、実装時に ADR 化の要否を判断する
+- **キーボード shortcut の実行機構をここで判断する**: `keyboard-shortcut` component は「何が起きるか」と「どのキーか」の表示だけを持ち、キーの登録も `keydown` の待ち受けも持たない。任意の操作をキーへ結び付ける汎用機構は横断的な client hook であり置き場所は `capabilities` だが、`components` は `capabilities` を import できない(層境界。`eslint-plugin-boundaries` で強制)ため、component 側は構造的にこれを持てない。キーと handler の結線は両方を import できる `features` 以上の層が担う。その component 自身の UI 内で完結するキー操作は例外で、component の中に置いてよい(`toaster` の hotkey が先例)。**判断が済むまで「`⌘K` と表示されているのに何も起きない」状態を作れる余地が残り、担保は呼び出し元の責任である。** registry は [0022](../adr/0022-capabilities-kernel.md) から据え置き除外されている(P0-4)ため、採るなら 0022 の範囲判断から入る
 - **設計**: 本書 §3.4 の改訂滑走路原則に従い、**3 件とも設置面(実使用箇所)を伴って作る**。使われない hook は置かない
-- **完了条件**: 3 機構が動作し、それぞれサンプルから 1 箇所以上使われている
+- **完了条件**: 3 機構が動作し、それぞれサンプルから 1 箇所以上使われている。キーボード shortcut の実行機構の採否が決まっている(採るなら [0022](../adr/0022-capabilities-kernel.md) の範囲を広げて実装し、採らないなら BACKLOG の撤回条件へ記録する)
 - **依存**: P5-7
 
 ### P6-6: メンテナンスモード
@@ -1296,6 +1399,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
   - `scripts/setup/remove-sample.mjs`
   - `scripts/setup/verify-sample-removal.mjs`
   - `.makefiles/github/operation/setup-repository.mk` — `make setup-remove-sample`
+- **repository 固有 URL の置換**: `replace-repository-reference` の入力に portal URL を加える。既定は repository owner / name から GitHub Pages の project site URL を組み立て、custom domain を使う導入先は明示値で上書きする。`typeset` の Storybook 例を含む boilerplate 内の「詳細」リンクは、この値で portal への外部リンクへ置換する
 - **移植すべき設計判断 3 点**:
 
 | # | 設計 | 理由 |
@@ -1314,6 +1418,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **目的**: 実際に爆破できる状態にし、その状態が腐らないようにする
 - **主な変更先**:
   - 全サンプル箇所へのマーカー付与(`src/app/layout.tsx` の nav 配線 / `architecture.ts` の sample 層宣言 / `openapi/sources.yaml` の admin 契約 / `env/*` の `MEDIA_ORIGIN` 既定値 / `vitest.config.ts` の閾値・除外)
+  - `typeset` の Storybook 例に portal URL 用の置換マーカーを付与し、未設定時の汎用リンクと fork 後の portal リンクを切り替える
   - `.github/workflows/purge-verify.yaml`
   - `scripts/setup/lib/sample-manifest.mjs` — **P6-4 の `e2e/` など Phase 6 で追加された破棄対象を追記**(P7-1 は Phase 5 分しか集約していないため)
 - **設計**: 使い捨てチェックアウトで `purge → gen-api → fix → lint:ci → typecheck → build → test` を回す。go 側の `verify` は fork 先で一度きり自爆する設計のため、**boilerplate 自身の腐敗防止にはこの CI ジョブが必要**
@@ -1334,31 +1439,18 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 
 ## Phase 8: docs portal
 
-[0141](../adr/0141-portal-operations.md) の実装。README が出揃ってから着手する。
+[0141](../adr/0141-portal-operations.md) の残務。生成基盤(`docs/portal/manifest.yaml` / `scripts/portal/` / `docs-viewer/`)と GitHub Pages への配信 workflow は Phase 3 で着地済みで、ここに残るのは manifest のキュレーションを支える運用スキルと、リポジトリ設定である Pages の有効化だけである。スキルの判定対象が README である以上、README が出揃ってから着手する。
 
-### P8-1: portal 基盤移植
+### P8-2: portal 運用スキルの復活 + Pages 有効化
 
-- **目的**: ドキュメント portal の生成基盤を用意する
-- **対象 ADR**: [0141](../adr/0141-portal-operations.md) / [0004](../adr/0004-library-management.md) / [0140](../adr/0140-documentation-operations.md)
+- **目的**: manifest の同期をスキル化し、portal を公開する
+- **対象 ADR**: [0141](../adr/0141-portal-operations.md) / [0155](../adr/0155-claude-skills-development.md)
 - **主な変更先**:
-  - `docs/portal/manifest.yaml` — **構造制御のみ**(curated manual)。コード README は手動登録、`docs/*` は自動発見
-  - `scripts/portal/` — gen-portal-docs / gen-docs-json / build-portal
-  - React SPA 一式
-  - `package.json` — deps は devDependencies([0004](../adr/0004-library-management.md) 準拠)
-- **設計**: go 側から移植するが Go 結合はゼロ。manifest の中身と除外リストの差替のみ
-- **完了条件**: `make build-portal` でローカルに portal が生成され、閲覧できる
-- **依存**: P5-16
-
-### P8-2: deploy-docs workflow + スキル復活
-
-- **目的**: portal を公開し、manifest の同期をスキル化する
-- **対象 ADR**: [0141](../adr/0141-portal-operations.md) / [0153](../adr/0153-ci-configuration.md)
-- **主な変更先**:
-  - `.github/workflows/deploy-docs.yaml` — GitHub Pages
   - `.claude/skills/portal-manifest-sync/` — BACKLOG「対象外(D)」からの復活移植
   - `.claude/skills/readme-review/` — manual-worthy 判定から `portal-manifest-sync` への導線を接続
 - **完了条件**: GitHub Pages で portal が公開される(**Pages の有効化はユーザが実施**)。`portal-manifest-sync` が manifest の drift を検出する
-- **依存**: P8-1, P2-1
+- **URL 整合**: setup が書き込む portal URL（既定の GitHub Pages project site または導入先指定の custom domain）で、Typeset の Storybook 例から公開 portal へ到達できる
+- **依存**: P5-16
 
 ---
 
@@ -1368,11 +1460,11 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 
 ### P9-1: rules.md 磨き上げ
 
-- **目的**: P3-9 で荒削りに書いた 34 エントリを、実装済みコードと突合して精度を上げる
+- **目的**: P3-9 で荒削りに書いた 35 エントリを、実装済みコードと突合して精度を上げる
 - **対象 ADR**: [0140](../adr/0140-documentation-operations.md)
 - **主な変更先**: `docs/rules.md`
 - **設計**: 各エントリが**実在のコード / 設定 / 生成物を指す**状態にする。実装で採らなかった選択肢の記述を削る。Rationale ADR のリンクが生きていることを確認する
-- **完了条件**: 全 34 エントリが実在の参照先を持つ。**強制手段列に「散文のみ」が残るものが棚卸しされている**。`doc-reviewer` が accuracy の指摘を出さない
+- **完了条件**: 全 35 エントリが実在の参照先を持つ。**強制手段列に「散文のみ」が残るものが棚卸しされている**。`doc-reviewer` が accuracy の指摘を出さない
 - **依存**: P7-2, **Phase 6 全 PR / Phase 8 全 PR**(#44 / #50 は P6-7、#66 は P6-8 の実装を参照先にするため)
 
 ### P9-2: EN canonical 化 + `.ja.md` mirror
@@ -1424,13 +1516,24 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **完了条件**: 4 件について「v1 では現状のまま」または「対応 PR を切る」の判断が記録されている。§1 のとおり **BACKLOG に枠のない ADR 26 本の枠増設が完了している**
 - **依存**: P9-3
 
-### P9-6: v1.0.0 リリース
+### P9-6: boilerplate 導入時の変更点を集約
+
+- **目的**: 各 README に分散する「boilerplate 導入時の変更点」を、fork / setup 時に最初に読むルート README へ集約する
+- **対象 ADR**: [0140](../adr/0140-documentation-operations.md)
+- **主な変更先**:
+  - `README.md` — 導入先で見直す設定・契約・外部サービス・運用上の選択を集約する setup チェックリスト
+  - 各カーネル README — 個別の「boilerplate 導入時の変更点」節を正として保ち、ルート README の集約先への導線を整える
+- **設計**: ルート README は項目一覧と参照先だけを持ち、詳細な理由・変更手順は所有者である各 README に残す。各項目は「既定値」「導入先での判断 / 変更箇所」「参照先」を明示し、契約依存の設定を暗黙知にしない
+- **完了条件**: ルート README の setup チェックリストから、全カーネル README の導入時変更点へ到達できる。fork 後に変更すべき契約・環境・外部接続・運用設定が一覧で確認できる
+- **依存**: P9-2, P9-5
+
+### P9-7: v1.0.0 リリース
 
 - **目的**: v1.0.0 をリリースする
 - **対象 ADR**: [0150](../adr/0150-git-workflow.md)
 - **手順**: `release/v1.0.0` ブランチ → リリースノート(`release-notes` スキル)→ `make tag-major`
 - **完了条件**: §1 の完了条件がすべて満たされている
-- **依存**: **P9-6 を除く全 PR**
+- **依存**: **P9-7 を除く全 PR**
 
 > **v1 対象外**: B11(構造 CI ゲート = README 必須節 / feature 完全性 lint / README 列挙 export と実ファイルの突合)は v1.x.x で追加する。
 
@@ -1440,7 +1543,9 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 
 | # | 内容 | 決着させる時期 |
 | --- | --- | --- |
-| 1 | **CSP の enforce seam**(0111 seam A 維持 / seam B へ反転)。P5-1 の sanitizer 検証を入力とし、**P6-8 の Cache Components 判断と同時に決める**(両立しないため。§3.9) | P5-1 の検証後、P6-8 と同時 → **P6-2 で ADR 追補・実装** |
+| 1 | **CSP の enforce seam**(0111 seam A 維持 / seam B へ反転)。**sanitizer 検証は P3-8 で完了済み**(結果は §3.9)。残る判断は **P6-8 の Cache Components 判断と同時**に決める(両立しないため)。判断時に扱う論点は「`'unsafe-inline'` を外せるか」ではなく「`style-src-elem` / `style-src-attr` を割って要素側だけ厳格にするか」であり、属性側は Radix popper と `next/image` が要求するため降りられない | P6-8 と同時 → **P6-2 で ADR 追補・実装** |
+| 1b | **CSP 本体が未実装**。`next.config.ts` に `headers()` が無く、`src/proxy.ts` も存在しない。0111 は配置先を **seam A = `next.config.ts` `headers()`(既定)/ seam B = `src/proxy.ts`(nonce・opt-in)** と定めているが、どちらの実体も無い。`Content-Security-Policy-Report-Only` での段階導入(0111 §3)もこの実装に含める | #1 と同じ(P6-2) |
+| 1c | **`injectCSS: false` の採否**(`rich-text-editor` の `useEditor` options)。`style-src-elem` を厳格にする場合の前提条件。採る場合は ProseMirror の基礎 CSS を `globals.css` から持つ(0050「グローバル CSS は `globals.css` に集約」。`.ProseMirror` は library が生成する class 名のため CSS Modules ではスコープできない)。単体では防御が変わらず、効果は FOUC の解消に留まる | #1 の判断と同時 |
 | 2 | **認証 Resolver の具体化**(IF 形状 / 既定実装のライブラリ選定 / refresh の扱い / role の取得元)。refresh は mock に無いため実機検証できない | P5-4 |
 | 3 | **admin 判定の手段** — go 側の契約に `roles` が 1 度も出てこない(実測 0 件)。`UserResponse` にも roles が無く **admin かどうかを型から導けない**。[screens.md](../screens.md) §0 の「UI 上は導線ごと出し分ける」が実装できないため、go 側へ roles 露出を依頼するか別手段を設計する | **P5-11 着手前**(必要なら go 側へ起票) |
 | 4 | **`*.localhost` の名前解決** — `next/image` はサーバ側 fetch のため Next.js 実行ホストでの解決が要る。Linux コンテナ / CI では `/etc/hosts` 追記が必要な見込みで、IPv6(`::1`)解決の可能性もある(§3.2) | **P4-5 着手前に実測** |

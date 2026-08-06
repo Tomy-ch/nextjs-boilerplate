@@ -42,7 +42,7 @@ AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層�
 
 ### カバレッジゲート
 
-- **カバレッジ 90% のハードゲート**とする。除外は glob で管理し、**カバレッジ例外は所有パッケージ(層 / feature)の README に記録 + 承認**を要する(超法規的措置の統治。go 規約の翻案)
+- **カバレッジ 100% のハードゲート**とする。除外は glob で管理し、**カバレッジ例外は所有パッケージ(層 / feature)の README に記録 + 承認**を要する(超法規的措置の統治。go 規約の翻案)
 - カバレッジの **PR レポート**を出す。具体的なレポートツール(go の octocov 相当)と CI 組込みは **[0153](0153-ci-configuration.md)(CI 構成)** の責務として引き渡す
 
 ### 二層実行
@@ -70,7 +70,7 @@ AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層�
 ## 補足
 
 - 本 ADR の Accepted に伴い、AGENTS.md の `[TODO] Testing Strategy` 節の削除・書き換えを実施する(未実施 — AGENTS.md は Protected Documentation のため、変更案の提示とユーザ承認を経て適用する)
-- テストフレームワーク導入 + `make test` / `test-cached` 二層 + lefthook 接続 + カバレッジゲート CI は本 ADR Accepted 後の実装 PR(移植計画 Phase 5)で行う。GB-5(scaffold-test / test-review スキル)移植もこの時期
+- テストフレームワーク導入 + `make test-full` / `test-cached` 二層 + lefthook 接続 + カバレッジゲート CI は P3-6 で実装する。GB-5(scaffold-test / test-review スキル)移植と既存 skill の検証手順更新は P4-0 で行う
 - **実装中に不都合が出たら本 ADR を補正する**
 
 ## 関連 ADR

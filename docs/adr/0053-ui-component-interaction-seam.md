@@ -4,7 +4,7 @@
 
 ## Status
 
-Accepted (a11y interaction seam。一部に affirmative decision = native `<dialog>` 既定を含む)
+Accepted (a11y interaction seam)
 
 （**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は triage の interaction UI クラスタ(#15 / #16 / #22 / #25 / #27)を「相互作用 a11y seam(0052 の部品採用とは別主題)」として 1 主題に束ねるため **独立起票**したもの。内容自体はこの設計討議に基づく。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない。当初は 0052 の exclusion(本体非同梱)を前提に「非同梱境界 + a11y seam」として記していたが、v1 バッテリー採用への転換([0052](0052-ui-component-policy.md) / [master-plan §1.2](../plan/master-plan.md))に伴い、本 ADR の射程を「同梱可否」から相互作用 a11y seam へ純化した)
 
@@ -38,14 +38,19 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 
 - **WYSIWYG エディタは TipTap を v1 で採用**する(商品説明が実使用面)。エディタ本体は `components` カーネルに置き、[0052](0052-ui-component-policy.md) の配置・exact-pin 要件に従う
 - 「表示」側の拡張点(seam): **信頼できない HTML を安全な表示へ変換する sanitizer を、差し替え可能な named port(seam)として扱う**(rehype/rehype-sanitize / DOMPurify 等は port の実装であって本体前提ではない)。リッチテキスト表示は、この sanitizer port を必ず通す
-- sanitizer port は外部ライブラリの wrap であり、物理的な置き場は [0021](0021-frontend-responsibility.md) のカーネル受入基準(複数箇所参照 or 外部ライブラリ wrap → カーネル)に従って**実装 PR で確定**する(§7)。表示 seam(sanitize 済みコンテンツの描画)は `components` / feature 内 UI に置く
-- **sanitizer の許可リストは、TipTap が出力する `style` 属性を落とせる形を第一候補とする**。inline `style` を落とせれば CSP の `style-src-attr` に `'unsafe-inline'` を開ける必要がなくなる(太字 / 斜体 / リスト / 見出し / リンクはいずれもクラスへ写像できる)。この検証結果は [0111](0111-csp-security-headers.md) の enforce seam 判断の入力になる
+- sanitizer port は外部ライブラリの wrap であり、[0021](0021-frontend-responsibility.md) のカーネル受入基準(複数箇所参照 or 外部ライブラリ wrap → カーネル)に従って **`model` カーネル**に置く。表示 seam(sanitize 済みコンテンツの描画)は `components` に置く
+- **port は sanitize 済みであることを型で表す。** 通過後の値を nominal type として返し、表示側はその型だけを受け取る。生の HTML 文字列を props に取らないため、**sanitizer を迂回する経路が公開 API にも実装にも存在しない**。「通し忘れ」を規約ではなく型で塞ぐ形である
+- **描画は HTML 文字列を経由しない。** パース結果の木から直接 React 要素を組み立てる。これにより `dangerouslySetInnerHTML` を使う箇所自体が無くなり、[0110](0110-security-operations.md) の禁止規定に対して「使っていない」ではなく「使える形になっていない」状態を作る
+- **sanitizer の許可リストは inline `style` 属性を落とす。** 太字 / 斜体 / リスト / 見出し / リンクはいずれもクラスへ写像できるため、`style` を通す理由が無い。**この設計が成立することは実装で確認済みであり、リッチテキストを理由に CSP の `style-src-attr` へ `'unsafe-inline'` を開ける必要はない**([0111](0111-csp-security-headers.md) の enforce seam 判断の入力)。`class` / `id` も同様に落とす
+- **editor が出せるタグ ⊆ sanitizer が通すタグ**を保つ。この包含関係が崩れると、入力できるのに保存後に落ちるという不整合が生じる。エディタの extension 集合は allowlist から導出し、**包含関係を test で固定して extension の追加が検知されるようにする**
 - **XSS 規約との接続**: `dangerouslySetInnerHTML` の原則禁止と sanitizer 必須の**規約(rule)自体は [0110](0110-security-operations.md) が所有**(triage #48)。本 ADR は「sanitizer を差し替え可能な port として名前を付ける」構造側を敷き、規約は 0110 を正とする(二重決定しない)
 
-### 4. モーダル/ダイアログ = native `<dialog>` 既定 + a11y 契約(#22)
+### 4. モーダル/ダイアログ = a11y 契約が既定 + 実装手段は WAI-ARIA 準拠 primitive(#22)
 
-- **native `<dialog>` 要素(`showModal()`)を既定**とする(§1 built-in 優先の帰結 = affirmative decision)。ポータル自前実装 / ライブラリは、native `<dialog>` で要件を満たせないと判明した場合にのみ用途依存で fork 先が採る
-- 採用する modal は **a11y 契約**を満たす(native `<dialog>` が既定で供給する分 + 補う分。[0100](0100-accessibility-target.md) WCAG 2.x AA):focus trap / Escape 閉じ / 背景 scroll lock / フォーカス復帰
+- **modal が満たすべき a11y 契約を既定とする**([0100](0100-accessibility-target.md) WCAG 2.x AA):focus trap / Escape 閉じ / 背景 scroll lock / フォーカス復帰 / 名前と説明の関連付け。**実装手段ではなく契約を固定する**のは、契約が満たされるなら手段は差し替え可能だからである
+- **overlay は、§1 の built-in 優先が届かない領域である。** native の modal 要素は top-layer と backdrop を供給するが、**背景の scroll lock・フォーカス復帰・開閉の宣言的な制御**は結局 component 側で補うことになり、補った結果は [0052](0052-ui-component-policy.md) が採る WAI-ARIA 準拠 primitive が既に供給しているものと同じになる。**契約を満たすために自前で補い直すのは再発明である**
+- **これは built-in 優先の例外ではなく、その適用結果である。**「built-in で要件を満たせないと判明した時にのみライブラリ」(§1)という順序を実際に踏んだ結果が overlay の判定であり、単一 control・開閉・局所スクロールでは逆に built-in が勝つ。**領域ごとに判定し、片方の結論を全体へ広げない**
+- 判定軸は「契約を満たすためにどれだけ補うか」である。補う量が無視できる面では native を採る
 - **focus-trap / scroll-lock 等の UI 密着の挙動 hook は `capabilities` に上げず、その component に co-location する**([0022](0022-capabilities-kernel.md):runtime 能力ではなく UI 挙動のため)
 - **route-as-modal(intercepting routes `(.)` / parallel routes `@modal`)の採否は本 ADR で確定しない**。これは URL 設計に波及するルーティング判断であり [0040](0040-routing-rendering-strategy.md) の管轄。0040 は現状 intercepting / parallel routes に未言及のため、採否は **0040 の追補で決める**(本 ADR で決めると管轄と齟齬する。§補足 / flag)
 
@@ -54,10 +59,13 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 - **グローバルキーボードショートカットは v1 / v2 とも採らない**(exclusion)。後付けで散在実装すると input フォーカス時の誤発火等の事故が起きるが、それは採る場合の話であり、本体は機構も置かない
 - **登録機構(shortcut registry)の seam も置かない**。設置面(実使用箇所)が存在しない seam は敷かない方針のため、fork 先が採用する際に `capabilities` へ足す拡張点として名前だけを記録するに留める
 - 個々の UI のキーボード操作性(タブ順序 / Enter・Escape 等)は a11y 契約の一部であり、[0100](0100-accessibility-target.md)(WCAG 2.x AA)を正とする。本項が除外するのは**グローバルショートカット機構**のみ
+- **その component 自身の UI 内で完結するキー操作は例外で、component に置いてよい**(自身が出した領域へ focus を移す hotkey 等)。除外するのは、任意の操作を任意のキーへ結び付ける汎用の登録機構である
+- **キー操作の「案内」を表示する部品は持てる。** 何が起きるかとどのキーかの対を表示する UI は、登録も `keydown` の待ち受けも持たない純粋な表示 primitive であり、機構ではない。ただし **`components` はこの案内が実際に効くことを担保できない** —— 案内部品と結線は層が違い(`components` は `capabilities` を import できない)、キーと handler を結ぶのは両方を import できる `features` 以上である。したがって**案内を載せた側が、そのキーで実行できることまでを負う**。キーボードから実行できない操作を案内に載せない
 
 ### 6. ドラッグ&ドロップ = 非同梱 + WCAG 2.2 ドラッグ代替 seam(#27)
 
-- **並べ替え / ファイルドロップの DnD ライブラリ(dnd-kit 等)は v1 本体には同梱せず、[0052](0052-ui-component-policy.md) の区分で v2 局所ライブラリとして採用予定**である。まず native HTML Drag and Drop API を第一候補とする(§1)
+- **DnD ライブラリ(dnd-kit 等)は v1 本体には同梱せず、[0052](0052-ui-component-policy.md) の区分で v2 局所ライブラリとして採用予定**である。まず native HTML Drag and Drop API を第一候補とする(§1)
+- **ファイルのドロップは native API で満たせるため v1 で実装する。** 受け口を `input type="file"` の `label` として組めば、ドロップは加速手段になり、押下でも選択でき、`input` は tab で到達して Enter で開ける。落としたファイルは `input` の `files` へ書き戻し、native form の送信にも載せる。**ライブラリを要さずドラッグ代替を構造的に満たす**形であり、v2 待ちの対象ではない。ライブラリを要するのは並べ替え等の複雑な DnD である
 - 採用する DnD は **WCAG 2.2 の Dragging Movements(SC 2.5.7)を満たす a11y 契約**を必須とする = **ドラッグ以外の単一ポインタ / キーボードによる代替操作を必ず提供する**。この「ドラッグ代替」を named seam として扱い、DnD を採る feature は代替経路の実装を伴う(a11y 契約なしの DnD は禁止。§禁止事項)
 - DnD の挙動は UI 密着のため、focus-trap 同様に component co-location + feature 合成に置く([0022](0022-capabilities-kernel.md) の UI 挙動 hook 方針と同型)。a11y 目標は [0100](0100-accessibility-target.md)
 
@@ -65,13 +73,15 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 
 拡張点は **設置面(実使用箇所)が実在する場合にのみコードとして実体化する**。空の IF / port 定義は置かない(使われない IF は腐り、実装時に必ず書き直されるため)。
 
-- **sanitizer port は v1 で実体化する** — TipTap の採用により表示側の設置面が実在するため(§3)。実体化は最初の該当 feature 実装時
-- **DnD のドラッグ代替 IF / shortcut registry は v1 では置かない** — 設置面が無い。本 ADR は「名前 + 家 + a11y 契約」を記録し、fork 先 / v2 が採用する時点で実体化する
+- **sanitizer port は `model` カーネルに実体化済み**(§3)。エディタの採用により表示側の設置面が実在する
+- **shortcut registry は置かない** — 設置面が無い(§5)。本 ADR は「名前 + 家 + a11y 契約」を記録し、fork 先が採用する時点で実体化する
+- **DnD のドラッグ代替は、ライブラリを要さない範囲では component の実装として実体化済み**(§6)。ライブラリを要する DnD の代替 IF は、設置面が現れる v2 まで置かない
 
 ## 禁止事項
 
 - ❌ v2 局所ライブラリ区分の interaction UI(DnD 等)を、v2 を待たず **v1 本体へ前倒し同梱**すること([0052](0052-ui-component-policy.md) の v1/v2 区分に従う。複雑入力とリッチテキストは v1 採用済みのため本項の対象外)
-- ❌ native / built-in(native `<dialog>` / native input / native DnD API)で要件を満たせるのに、自前実装 / ライブラリで**再発明**すること(§1 built-in 優先を破る)
+- ❌ native / built-in(native input / `details` / `overflow` / native DnD API)で要件を満たせるのに、自前実装 / ライブラリで**再発明**すること(§1 built-in 優先を破る)
+- ❌ 逆に、built-in で要件を満たせないと判明した領域で、契約を自前で補い直すこと(overlay の focus / scroll lock がこれに当たる。§4)
 - ❌ 採用した interaction を **a11y 契約([0100](0100-accessibility-target.md))なしで実装**すること(modal の focus / scroll-lock / Escape、DnD の WCAG 2.2 ドラッグ代替、複雑入力のキーボード / ARIA)
 - ❌ リッチテキスト表示で **sanitizer port を通さず** `dangerouslySetInnerHTML` を使うこと(規約の正は [0110](0110-security-operations.md))
 - ❌ **route-as-modal(intercepting / parallel routes)の採否を本 ADR で確定**すること(ルーティング判断 = [0040](0040-routing-rendering-strategy.md) 管轄)
@@ -81,7 +91,7 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 ## 補足
 
 - **分類**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は a11y interaction seam(採用部品 / v2 局所ライブラリ共通の相互作用 a11y 契約 + 名前付き seam)を主とし、§4 の native `<dialog>` 既定という affirmative decision を内包する。いずれも ADR に属する分類(decision = ADR)であり、日常強制の粒度規約(rule)は 0110(XSS)/ 0100(a11y チェック)/ rules.md 側が持つ
-- **0052 との主題分担**: [0052](0052-ui-component-policy.md) は「どの UI 部品を v1/v2 で持つか(採用・同梱可否)」を所有し、本 ADR は「持った / 持つ interaction UI の相互作用 a11y 品質(seam + 契約)」を所有する。両者は主題が重複しない。0052 本体からの相互参照付与は、AGENTS.md 整合と同じ整理フェーズでまとめて行う(§関連 ADR / flag)
+- **0052 との主題分担**: [0052](0052-ui-component-policy.md) は「どの UI 部品を v1/v2 で持つか(採用・同梱可否)」を所有し、本 ADR は「持った / 持つ interaction UI の相互作用 a11y 品質(seam + 契約)」を所有する。両者は主題が重複しない
 - **採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**(独立起票)
 - **採用区分**: リッチテキスト(TipTap)= **v1 採用**(§3。実使用面は商品説明)。DnD(dnd-kit)= v2 局所採用([master-plan §1.2](../plan/master-plan.md))。キーボードショートカット = 据え置き除外(§5)。いずれの場合も本体は seam と a11y 契約を保持し、ライブラリは [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。§1 built-in 優先と §3〜6 の a11y 契約は採用区分によらず不変
 

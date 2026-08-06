@@ -121,13 +121,21 @@ git add package.json pnpm-lock.yaml
 
 ## 5. biome: `pnpm lint` vs `pnpm fix`(ADR 0002)
 
-biome が唯一のフォーマッタ/リンタ(ESLint / Prettier 不採用 ── ADR 0002)。入口は 2 つ:
+フォーマッタは biome 単独で、biome が表現できる lint 検査はすべて biome が持つ。Prettier は不採用。ESLint が
+持つのは biome で表現できない検査だけで、現時点では層境界の import 検査(`eslint-plugin-boundaries`)と
+`next/link` のルールに限られる(ADR 0002 の能力ベース分割)。入口は次のとおり:
 
 ```bash
 pnpm fix       # biome check --fix : 自動修正可能なものを直す
 pnpm lint      # biome check       : 残エラーを報告(手で直す)
 pnpm format    # biome format --write : フォーマットのみ
+pnpm lint:ci   # biome(完全版)+ ESLint 境界検査 + architecture 突合
 ```
+
+`pnpm lint:ci` は hook と CI が回すゲートで、3 段の直列である。`biome.ci.jsonc` + `--error-on-warnings` の
+biome、`pnpm lint:eslint`、`pnpm check:architecture`(層 README の `imports-allowed` frontmatter と、依存
+マトリクスの単一の正である `architecture.ts` の突合)。失敗はどの段かを名乗るので、整形の問題と決めつける前に
+読む。
 
 `noConsole` は既定 `warn` ── **`console.log` をコミットに残さない**(AGENTS.md / ADR 0002)。自動修正で直らない
 ものは手で直す。`// biome-ignore` を多用しない(スコープ付き `overrides` を `biome.json` に。ただし `biome.json` は
@@ -168,7 +176,7 @@ worktree にも継承されるが、**`node_modules` は継承されない** ─
 
 | 段階 | 入口 | 検査内容 |
 | --- | --- | --- |
-| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint`、workflow が staged なら `make actionlint` | biome 完全版 / markdownlint + mermaid 構文 + `.claude/**` の意味検査(`skill-lint`) / workflow 構文 + `run:` のシェル |
+| pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm md-lint`、workflow が staged なら `make actionlint` | biome 完全版 + ESLint 層境界 + `architecture.ts` 突合(§5) / markdownlint + mermaid 構文 + `.claude/**` の意味検査(`skill-lint`) / workflow 構文 + `run:` のシェル |
 | commit-msg | `make commitlint` | subject を ADR 0150 に照らす |
 | pre-push | `pnpm typecheck`、`make secret-scan` | `tsc --noEmit` / push 範囲の秘密(**fail-closed**) |
 
@@ -203,6 +211,21 @@ subject が空か、末尾が `。` で終わっている。
 ```bash
 echo "Feat: 説明" | pnpm exec commitlint
 ```
+
+### 変更外の理由で gate が落ちたとき
+
+hook の失敗が「その変更についての証拠」になるのは、失敗の原因がその変更にある場合だけである。次の 3 つは違う。
+
+- **別セッションのファイル。** `pnpm typecheck` と `make test-full` は commit 範囲ではなく作業ツリー全体を読む。別の窓が編集途中の未コミットファイルが、それを含まない push を落とす
+- **同じ出力先を共有する 2 つの実行。** Vitest は `coverage/.tmp` <!-- skill-lint-ignore --> へ書き、1 つ目が生きているうちに 2 つ目が始まると `Something removed the coverage directory` で落ちる。コードは何も壊れておらず、2 つの実行が互いの一時ファイルを消し合っただけである
+- **base ブランチに元からある失敗。** base を checkout して同じ gate を回せば分かる
+
+いずれも `--no-verify` が正しく、原因は別に直す。落ちていない gate を満たすために変更の形を変える方が、変更を悪くする。適用の条件は 2 つ。
+
+- **どの gate がなぜ変更外なのかを必ず言う。** 報告にも PR にも書く。黙って迂回すると、本物の失敗を握り潰したのと区別が付かない
+- **push 自体が不可逆にする gate には絶対に使わない。** `secret-scan` が fail-closed なのはこのためで、push した範囲に入った秘密は取り消せない。`commitlint` も同様に、件名は既に履歴へ入っている。この 2 つは迂回せず直す
+
+**重い gate を先回りして手で回さないこと。** hook と CI が同じものを回すのを再発見するために数分ホストを飽和させるだけで、その飽和自体が上の 2 つ目を生む。push が検証の工程である。
 
 ## 制約
 
