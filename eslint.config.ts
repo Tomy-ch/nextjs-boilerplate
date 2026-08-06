@@ -5,10 +5,19 @@
 import boundaries from "eslint-plugin-boundaries";
 import tseslint from "typescript-eslint";
 
-import { DEPENDENCIES, ENTRY_POINTS, FORBIDDEN_AREAS, KERNELS } from "./architecture";
+import {
+  DEPENDENCIES,
+  ENTRY_POINTS,
+  FORBIDDEN_AREAS,
+  KERNELS,
+  RESTRICTED_AREAS,
+} from "./architecture";
 import noInternalAnchor from "./eslint-rules/no-internal-anchor.mjs";
 
 const elements = [
+  // 層より先に並べる。区画は層の内側にあるため、層の要素が先に一致すると区画としては
+  // 見えなくなり、層の粒度の許可がそのまま区画への許可になる。
+  ...RESTRICTED_AREAS.map(({ type, pattern }) => ({ type, pattern, partialMatch: false })),
   ...KERNELS.map((type) => ({ type, pattern: `src/${type}`, partialMatch: false })),
   // 要素として宣言することが禁止の手段になる。どの層の policy にも現れないため、
   // default: "disallow" がそのまま「import できない」を意味する。
@@ -57,6 +66,10 @@ export default [
             ...Object.entries(DEPENDENCIES).map(([from, types]) => ({
               from: { element: { type: from } },
               allow: { to: { element: { types: { anyOf: types } } } },
+            })),
+            ...RESTRICTED_AREAS.map(({ type, allowedFrom }) => ({
+              from: { element: { types: { anyOf: allowedFrom } } },
+              allow: { to: { element: { type } } },
             })),
             ...ENTRY_POINTS.map(({ category, dependencies }) => ({
               from: { file: { categories: category } },

@@ -91,3 +91,20 @@ export const FORBIDDEN_AREAS = [{ type: "mocks", pattern: "mocks" }] as const sa
   type: string;
   pattern: string;
 }[];
+
+/**
+ * 層の内側にありながら、その層の一部だけが触れてよい区画。
+ *
+ * @remarks
+ * 契約から生成した wire 型は `adapters` の内側に置きますが、層としての `adapters` を
+ * import できる層（`app` / `features` など）から素通しで届いてしまうと、生成型が内層へ
+ * 漏れます([0020](docs/adr/0020-adopted-architecture.md) 設計原則 3)。区画を独立した要素として
+ * 宣言し、許す層を名指しすることで、層の粒度では表せない制約を機械で持ちます。
+ */
+export const RESTRICTED_AREAS = [
+  { type: "adapters-gen", pattern: "src/adapters/gen", allowedFrom: ["adapters"] },
+] as const satisfies readonly {
+  type: string;
+  pattern: string;
+  allowedFrom: readonly Kernel[];
+}[];
