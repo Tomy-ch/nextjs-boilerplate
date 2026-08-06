@@ -5,10 +5,15 @@
 import boundaries from "eslint-plugin-boundaries";
 import tseslint from "typescript-eslint";
 
-import { DEPENDENCIES, ENTRY_POINTS, KERNELS } from "./architecture";
+import { DEPENDENCIES, ENTRY_POINTS, FORBIDDEN_AREAS, KERNELS } from "./architecture";
 import noInternalAnchor from "./eslint-rules/no-internal-anchor.mjs";
 
-const elements = KERNELS.map((type) => ({ type, pattern: `src/${type}`, partialMatch: false }));
+const elements = [
+  ...KERNELS.map((type) => ({ type, pattern: `src/${type}`, partialMatch: false })),
+  // 要素として宣言することが禁止の手段になる。どの層の policy にも現れないため、
+  // default: "disallow" がそのまま「import できない」を意味する。
+  ...FORBIDDEN_AREAS.map(({ type, pattern }) => ({ type, pattern, partialMatch: false })),
+];
 
 export default [
   {
@@ -37,7 +42,10 @@ export default [
       // 境界検査は import 先を実ファイルまで解決できて初めて成立する。解決できない import は
       // 「どの層でもない」と見なされ、違反があっても黙って通る。`@/*` を含めて解決させる。
       "import/resolver": { typescript: { project: "./tsconfig.json" } },
-      "boundaries/include": ["src/**/*"],
+      "boundaries/include": [
+        "src/**/*",
+        ...FORBIDDEN_AREAS.map(({ pattern }) => `${pattern}/**/*`),
+      ],
       "boundaries/elements": elements,
     },
     rules: {

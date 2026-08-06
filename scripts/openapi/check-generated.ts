@@ -1,21 +1,29 @@
 #!/usr/bin/env node
 // 取得済みの契約と生成物の版が揃っているかを検査する（drift ゲートの観点 2）。
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
-import { findStampDrift, type GeneratedArtifact, stampedArtifactPaths } from "./generated-stamp";
+import { contractArtifactRoots, findStampDrift, type GeneratedArtifact } from "./generated-stamp";
 import { MANIFEST_PATH, parseSourcesManifest } from "./sources-manifest";
 
-const sources = parseSourcesManifest(readFileSync(MANIFEST_PATH, "utf8"));
-const artifacts: GeneratedArtifact[] = [];
-
-for (const source of sources) {
-  for (const path of stampedArtifactPaths(source.name)) {
-    if (existsSync(path)) {
-      artifacts.push({ path, content: readFileSync(path, "utf8") });
-    }
+function collectArtifacts(root: string): GeneratedArtifact[] {
+  if (!existsSync(root)) {
+    return [];
   }
+
+  return readdirSync(root, { withFileTypes: true, recursive: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+    .map((entry) => {
+      const path = join(entry.parentPath, entry.name);
+
+      return { path, content: readFileSync(path, "utf8") };
+    });
 }
 
+const sources = parseSourcesManifest(readFileSync(MANIFEST_PATH, "utf8"));
+const artifacts = sources.flatMap((source) =>
+  contractArtifactRoots(source.name).flatMap(collectArtifacts),
+);
 const drift = findStampDrift(sources, artifacts);
 
 if (drift.length > 0) {
@@ -29,4 +37,4 @@ if (drift.length > 0) {
   process.exit(1);
 }
 
-console.log(`✅ ${sources.length} 件の契約と生成物の版が一致しています`);
+console.log(`✅ ${sources.length} 件の契約と生成物 ${artifacts.length} 件の版が一致しています`);

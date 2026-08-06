@@ -74,8 +74,13 @@ jobs:
 
       - name: Verify the regenerated artifacts match what is committed
         shell: bash
+        # `git status --porcelain`, not `git diff`: a contract that adds a schema makes orval write a
+        # NEW file, and an untracked file is invisible to `git diff`. The gate would pass on exactly
+        # the change it exists to catch.
         run: |
-          if ! git diff --exit-code --stat -- src/adapters/gen mocks; then
+          drift="$(git status --porcelain -- src/adapters/gen mocks)"
+          if [[ -n "${drift}" ]]; then
+            echo "${drift}"
             echo "::error::生成物が契約と一致しません。make gen-api を実行して結果を commit してください。"
             exit 1
           fi
