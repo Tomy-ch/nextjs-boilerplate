@@ -39,12 +39,18 @@ go-boilerplate は OpenAPI-first(**go 側**の ADR 0009)でモジュラー spec 
 
 1. **セットアップ時(一度)**: **バックエンドのリポジトリ名** と **リポジトリルートからの `openapi.gen.yaml` へのパス** と **取得する ref** を、**静的なマニフェスト(設定ファイル)**として本リポに保存する。マニフェストは**複数の契約を宣言できる**。バックエンドが 1 リポジトリでも契約が 1 本とは限らず(例: 本体 API と認証 Provider は別サービスであり別契約)、契約ごとに版が独立して動くためである
 2. **取得時(`make` または `pnpm` コマンド)**: マニフェストの座標から **`gh` 経由で契約を取得**し本リポへコピーする。版の根拠には **GitHub Contents API が返す blob SHA** を使い、**full SHA をマニフェストへ、short SHA を取得した spec の `info.version` 末尾へ**スタンプする。blob SHA は契約ファイルの内容そのもののハッシュであり、内容が変われば変わり同じなら同じであるため、取り込み側でハッシュを計算し直さずに「どの契約を取り込んだか」が一意に定まる。**この SHA が指すのは契約の内容であってバックエンドのコミットではない**。どのコミットから取ったかはマニフェストの `ref` が持つ
-3. 取得した spec を入力に **orval で zod + 型を `src/adapters/gen/` に生成**する。生成後に typecheck / lint を回す(go の `setup-remove-sample-api` が `gen → fix → lint` を連鎖させる作法の翻案)
+3. 取得した spec を入力に **orval で zod + 型を `src/adapters/gen/<契約名>/` に生成**する。契約ごとに階層を切り、突合と再生成を契約単位で回せるようにする。生成後に整形 / typecheck / lint を回す(go の `setup-remove-sample-api` が `gen → fix → lint` を連鎖させる作法の翻案)
+4. 生成器は HTTP client の出力先を必須とするが、**生成された client は採用しない**。outbound の resilience は `adapters/server` の手書き wrapper が所有する([0071](0071-bff-api-integration.md))ため、生成 client は契約駆動モックと同じ `mocks/` 側へ置き、本番が参照する `src/adapters/gen/` には wire 型と zod スキーマだけを置く
+5. **生成物は linter の対象外とし、整形のみを掛ける**。書き手が居ないコードに規約を課すと、契約が変わるたびに生成器の出力作風で CI が止まり、直す手段が生成器へのパッチしか無くなる。生成物の正しさは drift ゲート(下記)が担保する
 
 ### 生成物 drift の CI ゲート(go ADR 0076 の翻案)
 
-- CI で**再生成 → `git diff` が出たら fail**(再生成し忘れ・生成入力の手編集を検出)+ PR にコメント(go `gen-oapi-artifacts-check` / `gen-*-artifacts-check` の翻案)
-- 具体ワークフロー・CI 組込みは **B9(CI 構成)** で行う。本 ADR は drift ゲートの存在と検査方式を定める
+検出したい失敗は 2 つあり、**再取得はしない**(契約の取得は意図した行為であり、ゲートが勝手に進めない)。
+
+1. **生成物が手編集された / 取り込んだ契約以外から生成された** — 取得済み契約から**再生成 → `git diff` が出たら fail**(go `gen-oapi-artifacts-check` / `gen-*-artifacts-check` の翻案)
+2. **契約を取得したのに生成していない** — マニフェストの blob SHA と、生成器が生成物のヘッダへ書き写す版スタンプを突合する。生成を伴わないため hook でも回せる
+
+1 は 2 を包含するが、2 は失敗の所在を名指しできる。両方を持つ。
 
 ## 禁止事項
 
