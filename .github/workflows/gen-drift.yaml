@@ -1,0 +1,81 @@
+name: Gen Drift
+
+# The generated API surface (wire types / zod schemas / MSW handlers) is committed so a contract
+# change is visible in review. This job refuses a PR on two distinct failures:
+#
+#   1. the committed artifacts were hand-edited, or were generated from something other than the
+#      committed contract — caught by regenerating and diffing;
+#   2. a contract was fetched but never regenerated from — caught by comparing the blob SHA in
+#      openapi/sources.yaml against the version stamp the generator copies into its output.
+#
+# The second check is cheap and names the failure precisely, so it runs first. Neither step reaches
+# the network: the contract itself is committed, and fetching it is a deliberate act (make fetch-api).
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gen-drift:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.7.12
+          install: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Node and pnpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise install core:node aqua:pnpm/pnpm
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify the contract and the generated artifacts carry the same version
+        run: make gen-api-check
+
+      - name: Regenerate from the committed contract
+        run: make gen-api
+
+      - name: Verify the regenerated artifacts match what is committed
+        shell: bash
+        run: |
+          if ! git diff --exit-code --stat -- src/adapters/gen mocks; then
+            echo "::error::生成物が契約と一致しません。make gen-api を実行して結果を commit してください。"
+            exit 1
+          fi
