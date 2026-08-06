@@ -239,6 +239,13 @@ async function main(): Promise<void> {
     sources.set(relative(repositoryRoot, file), collectClassCandidates(source));
   }
 
+  // 走査が壊れれば対象 0 件で緑になり、検査が消えたことに誰も気付かない。
+  if (files.length === 0) {
+    process.stderr.write(`走査が component を 1 件も拾っていません: ${componentsDirectoryPath}\n`);
+    process.exitCode = 1;
+    return;
+  }
+
   const missing = findMissingClasses(css, sources);
 
   if (missing.length === 0) {

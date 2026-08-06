@@ -62,7 +62,7 @@
 
 ### Tier 1 の実装ギャップ
 
-- **T2 (0002)**: 2026-07-12 改定で「biome 非対応検査は ESLint で補完」を採択。**A3 ([0021](0021-frontend-responsibility.md)) が同日 Accepted となり、プラグイン (`eslint-plugin-boundaries`)・層定義マッピング (依存マトリクス)・severity (error) まで確定した**。残るは ESLint 実導入 PR (`eslint.config.mjs` の具体記述 + 本体・プラグインの devDependency exact pin + `lint:eslint` 追加と `lint:ci` への直列組込) のみ。biome 側の設定は実装済みのため実装済みは ⚠️
+- **T2 (0002)**: 「biome 非対応検査は ESLint で補完」を採択し、A3 ([0021](0021-frontend-responsibility.md)) がプラグイン (`eslint-plugin-boundaries`)・層定義マッピング (依存マトリクス)・severity (error) を確定した。biome 側の設定に加えて ESLint も導入済みで、依存マトリクスは `architecture.ts` を正に `eslint.config.ts` が import し、層 README の frontmatter との突合は `check:architecture` が担う。いずれも `lint:ci` に直列で載る
 - **T4 (0004)**: ギャップ解消済み。主要 dev ツールは `typescript` を含め exact pin で整合し、PR テンプレート (`.github/pull_request_template.md`) に「ライブラリ採用チェック」節を組み込んだ
 
 ---

@@ -696,15 +696,16 @@ test-requirement: unit
 - **目的**: 依存マトリクスを 1 箇所で宣言し、機械強制を生成する。宣言と強制の二重管理を作らない
 - **対象 ADR**: [0002](../adr/0002-formatter-linter.md) / [0021](../adr/0021-frontend-responsibility.md)
 - **主な変更先**:
-  - `architecture.ts` — 依存マトリクス / 公開面 / 禁止名の宣言(SSOT)
-  - `eslint.config.mjs` — **生成物・do-not-edit**
-  - `package.json` — eslint 本体 + `eslint-plugin-boundaries` を exact pin。`lint:eslint` を追加し `lint:ci` へ直列組込
-  - `.github/workflows/` — 生成物の drift ゲート
+  - `architecture.ts` — 依存マトリクスの宣言(SSOT)
+  - `eslint.config.ts` — `architecture.ts` を import して境界検査へ変換する
+  - `scripts/architecture/` — 層 README の frontmatter と `architecture.ts` の突合(食い違えば fail)
+  - `package.json` — eslint 本体 + `eslint-plugin-boundaries` + import resolver + `jiti` を exact pin。`lint:eslint` と `check:architecture` を追加し `lint:ci` へ直列組込
   - `.claude/skills/` — **`repo-ops` / `node-upgrade` / `full-apply` / `full-verify` の 4 本に残る「lint = biome 一本」前提の記述を更新する**
   - `.vscode/extensions.json` — `dbaeumer.vscode-eslint` を追加([0002](../adr/0002-formatter-linter.md) に記録済み)
-- **設計**: `architecture.ts` を SSOT とし `eslint.config.mjs` を生成する。P3-1 の README frontmatter との突合もここで行う(README と `architecture.ts` が食い違えば fail)
+- **設計**: マトリクスの表現を `architecture.ts` 1 箇所に閉じ、強制側は**生成物を挟まず直接 import する**。生成にすると生成物・drift ゲート・再生成手順が増えるが、宣言と強制の距離は縮まない。README frontmatter だけは人間向けに同じ内容を持つため、突合を機械検査として持つ
 - **注意**: [0002](../adr/0002-formatter-linter.md) の能力ベース分割を守る。ESLint はプリセット束(`eslint:recommended` / `eslint-config-next`)を入れず、biome が表現できない検査のみを担う
-- **完了条件**: 層境界違反が `lint:ci` で error になる。BACKLOG T2 が ✅ になる
+- **境界検査は import 解決に依存する**: 解決できない import は「どの層でもない」と分類され、違反があっても報告されない。**検査が空振りしていないことを、違反を仕込んで error になるところまで確認する**(相対パスと `@/*` の両方)
+- **完了条件**: 層境界違反が `lint:ci` で error になる。README の境界宣言が `architecture.ts` と食い違えば `lint:ci` で error になる。BACKLOG T2 が ✅ になる
 - **依存**: P3-1
 
 ### P3-3: env / 型付き Config
@@ -818,7 +819,6 @@ test-requirement: unit
 - **SSR first の部品選定**: 初期表示に置く基礎部品は native HTML と Server Component を既定にし、初期配置を理由に CSR へ寄せない。Radix・Portal・browser API を使う部品は native 要素で満たせない操作要件が確定した client island に限定する。静的な少数選択は `select-native` を優先し、カスタム popup や高度な keyboard interaction が必要になった時点で `select-client` を再評価する
 - **native / client の命名と文書化**: 同じ UI 概念に両実装が成立する場合は、`<concept>-native` / `<concept>-client` と `ConceptNative` / `ConceptClient` を使う。`client` は利用上の境界を表し、Radix など vendor 名は README の実装詳細に閉じる。README には hydration の要否と、native を選ぶ条件・client island を選ぶ条件を記す
 - **native / client の視覚設計**: 取り込み監査の時点でも、対になる native / client 部品のサイズ・semantic token・focus・disabled・invalid の基本設計を可能な限り揃え、SSR・form・a11y と公開 API を固める。layout・motion・visual regression を含む完全整合は、P3-8 のデザインシステム構築で Storybook を見ながら仕上げる。OS 固有の popup などは pixel-perfect な一致を求めない
-- **申し送り: キーボード shortcut の実行機構は未決**: `keyboard-shortcut` は「何が起きるか」と「どのキーか」の表示だけを持ち、キーの登録も `keydown` の待ち受けも持たない。任意の操作をキーへ結び付ける汎用機構は横断的な client hook であり置き場所は `capabilities`([0022](../adr/0022-capabilities-kernel.md))だが、`components` は `capabilities` を import できない(層境界。`eslint-plugin-boundaries` で強制)ため、component 側は構造的にこれを持てない。キーと handler の結線は両方を import できる `features` 以上の層が担う。その component 自身の UI 内で完結するキー操作は例外で、component の中に置いてよい(`toaster` の hotkey が先例)。**採否が決まるまで「`⌘K` と表示されているのに何も起きない」状態を作れる余地が残り、担保は呼び出し元の責任である。** 決める場合は 0022 の範囲判断から入る
 - **外部ツールへの反映は Phase 5 の直前に行う**: 書き出しの機構(`pnpm design:bundle` と `design-export` スキル)は本 PR で完成させるが、**実際に反映する作業はここでは行わない**。理由は 2 つある。第一に、高忠実度のインポートは全 component のプレビューを 1 つずつ描画して検証するため、実行に数時間とそれに見合う量のトークンを要し、**同じセッションで進む他の作業の速度を落とす**。第二に、反映の目的はデザインセンスを補って**画面を設計すること**であり、画面を作らない間は反映しても使い道が無い。したがって**画面実装に入る直前(Phase 5 の着手時)に一度反映する**。デザインシステム自体がその時点まで動き続けるため、遅らせるほど反映内容が実態に近づくという利点もある
 - **完了条件**: Storybook が起動する。基礎コンポーネントが 4 状態(loading / empty / error / success)の story を持つ。biome の a11y ルールが緑。**デザインシステムを外部ツールへ書き出す機構が動作する**(反映そのものは Phase 5 着手時)
 - **依存**: P3-7
@@ -1332,9 +1332,10 @@ sources:
   - 離脱ガード(navigation-block hook)— P5-7 の注文フォームで使用
   - `useConnectivity`(オンライン / オフライン検知)
   - Web Worker オフロード seam
-- **注意**: keyboard shortcut registry は据え置き除外(P0-4 で [0022](../adr/0022-capabilities-kernel.md) から削除済み)。**Web Worker はどの ADR にも記載がなく master-plan 1.2 が唯一の記録**のため、実装時に ADR 化の要否を判断する
+- **注意**: **Web Worker はどの ADR にも記載がなく master-plan 1.2 が唯一の記録**のため、実装時に ADR 化の要否を判断する
+- **キーボード shortcut の実行機構をここで判断する**: `keyboard-shortcut` component は「何が起きるか」と「どのキーか」の表示だけを持ち、キーの登録も `keydown` の待ち受けも持たない。任意の操作をキーへ結び付ける汎用機構は横断的な client hook であり置き場所は `capabilities` だが、`components` は `capabilities` を import できない(層境界。`eslint-plugin-boundaries` で強制)ため、component 側は構造的にこれを持てない。キーと handler の結線は両方を import できる `features` 以上の層が担う。その component 自身の UI 内で完結するキー操作は例外で、component の中に置いてよい(`toaster` の hotkey が先例)。**判断が済むまで「`⌘K` と表示されているのに何も起きない」状態を作れる余地が残り、担保は呼び出し元の責任である。** registry は [0022](../adr/0022-capabilities-kernel.md) から据え置き除外されている(P0-4)ため、採るなら 0022 の範囲判断から入る
 - **設計**: 本書 §3.4 の改訂滑走路原則に従い、**3 件とも設置面(実使用箇所)を伴って作る**。使われない hook は置かない
-- **完了条件**: 3 機構が動作し、それぞれサンプルから 1 箇所以上使われている
+- **完了条件**: 3 機構が動作し、それぞれサンプルから 1 箇所以上使われている。キーボード shortcut の実行機構の採否が決まっている(採るなら [0022](../adr/0022-capabilities-kernel.md) の範囲を広げて実装し、採らないなら BACKLOG の撤回条件へ記録する)
 - **依存**: P5-7
 
 ### P6-6: メンテナンスモード

@@ -130,13 +130,23 @@ explicit user instruction; per [0004](../../../docs/adr/0004-library-management.
 
 ## 5. biome: `pnpm lint` vs `pnpm fix` (ADR 0002)
 
-biome is the single formatter/linter (ESLint / Prettier are not used — ADR 0002). Two entry points:
+biome is the only formatter, and carries every lint check it can express. Prettier is not used.
+ESLint holds exactly the checks biome cannot express — today the layer-boundary import check
+(`eslint-plugin-boundaries`) and the `next/link` rule — and nothing else (ADR 0002, capability-based
+split). Entry points:
 
 ```bash
 pnpm fix       # biome check --fix : auto-fix what can be fixed
 pnpm lint      # biome check       : report remaining errors (fix these by hand)
 pnpm format    # biome format --write : formatting only
+pnpm lint:ci   # biome (full profile) + ESLint boundaries + architecture cross-check
 ```
+
+`pnpm lint:ci` is the gate the hook and CI run, and it is three stages in series: biome with
+`biome.ci.jsonc` and `--error-on-warnings`, then `pnpm lint:eslint`, then `pnpm check:architecture`
+(the layer READMEs' `imports-allowed` frontmatter against `architecture.ts`, which is the single
+source of the dependency matrix). A failure names its own stage — read which one before assuming
+formatting.
 
 `noConsole` is `warn` by default — **do not leave `console.log` in commits** (AGENTS.md / ADR 0002).
 Fix items the auto-fixer cannot handle by hand; do not sprinkle `// biome-ignore` (prefer a scoped
@@ -177,7 +187,7 @@ in it or every hook fails with `command not found`.
 
 | Stage | Entry point | What it checks |
 | --- | --- | --- |
-| pre-commit | `pnpm lint:ci`; `pnpm md-lint` when `*.md` is staged; `make actionlint` when a workflow is staged | biome full profile; markdownlint + mermaid syntax + `.claude/**` semantics (`skill-lint`); workflow syntax + `run:` shell |
+| pre-commit | `pnpm lint:ci`; `pnpm md-lint` when `*.md` is staged; `make actionlint` when a workflow is staged | biome full profile + ESLint layer boundaries + `architecture.ts` cross-check (§5); markdownlint + mermaid syntax + `.claude/**` semantics (`skill-lint`); workflow syntax + `run:` shell |
 | commit-msg | `make commitlint` | the subject against ADR 0150 |
 | pre-push | `make test-full`; `pnpm typecheck`; `make secret-scan` | Vitest cache 無効 + カバレッジしきい値; `tsc --noEmit`; secrets in the range being pushed (**fail-closed**) |
 
