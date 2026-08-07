@@ -236,3 +236,118 @@ describe("AttachmentGroup", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("AttachmentMedia", () => {
+  // ----- 正常系 -----
+  it("見た目の枠として slot と variant を持つ要素を描画する", () => {
+    render(
+      <Attachment>
+        <AttachmentMedia data-testid="media" variant={ATTACHMENT_MEDIA_VARIANT.DEFAULT}>
+          <svg aria-hidden="true" />
+        </AttachmentMedia>
+      </Attachment>,
+    );
+
+    const media = screen.getByTestId("media");
+
+    expect(media).toHaveAttribute("data-slot", "attachment-media");
+    expect(media).toHaveAttribute("data-variant", ATTACHMENT_MEDIA_VARIANT.DEFAULT);
+  });
+});
+
+describe("AttachmentContent", () => {
+  // ----- 正常系 -----
+  it("本文の枠として slot を持つ要素を描画する", () => {
+    render(<Fixture />);
+
+    expect(screen.getByTestId("content")).toHaveAttribute("data-slot", "attachment-content");
+  });
+});
+
+describe("AttachmentTitle", () => {
+  // ----- 正常系 -----
+  it("名称として slot を持つ要素を描画する", () => {
+    render(<Fixture />);
+
+    expect(screen.getByText("仕様書.pdf")).toHaveAttribute("data-slot", "attachment-title");
+  });
+});
+
+describe("AttachmentDescription", () => {
+  // ----- 正常系 -----
+  it("補足として slot を持つ要素を描画する", () => {
+    render(<Fixture />);
+
+    expect(screen.getByText("1.2 MB")).toHaveAttribute("data-slot", "attachment-description");
+  });
+});
+
+describe("AttachmentActions", () => {
+  // ----- 正常系 -----
+  it("操作の枠として slot を持つ要素を描画する", () => {
+    render(
+      <Attachment>
+        <AttachmentActions data-testid="actions">
+          <AttachmentAction aria-label="取り消す">×</AttachmentAction>
+        </AttachmentActions>
+      </Attachment>,
+    );
+
+    expect(screen.getByTestId("actions")).toHaveAttribute("data-slot", "attachment-actions");
+  });
+});
+
+describe("AttachmentAction", () => {
+  // ----- 正常系 -----
+  it("名前を持つ操作として slot を持つ要素を描画する", () => {
+    const onClick = vi.fn();
+    render(
+      <Attachment>
+        <AttachmentActions>
+          <AttachmentAction aria-label="仕様書.pdf を取り消す" onClick={onClick}>
+            ×
+          </AttachmentAction>
+        </AttachmentActions>
+      </Attachment>,
+    );
+
+    const action = screen.getByRole("button", { name: "仕様書.pdf を取り消す" });
+
+    expect(action).toHaveAttribute("data-slot", "attachment-action");
+
+    fireEvent.click(action);
+
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+});
+
+describe("AttachmentTrigger", () => {
+  // ----- 正常系 -----
+  it("既定では button として全体を開く操作にする", () => {
+    render(
+      <Attachment>
+        <AttachmentTrigger aria-label="仕様書.pdf を開く" />
+      </Attachment>,
+    );
+
+    const trigger = screen.getByRole("button", { name: "仕様書.pdf を開く" });
+
+    expect(trigger).toHaveAttribute("data-slot", "attachment-trigger");
+    expect(trigger).toHaveAttribute("type", "button");
+  });
+
+  it("asChild で渡した要素を操作の実体にする", () => {
+    render(
+      <Attachment>
+        <AttachmentTrigger asChild>
+          <Link href="/files/1">仕様書.pdf を開く</Link>
+        </AttachmentTrigger>
+      </Attachment>,
+    );
+
+    const link = screen.getByRole("link", { name: "仕様書.pdf を開く" });
+
+    expect(link).toHaveAttribute("href", "/files/1");
+    expect(link).not.toHaveAttribute("type");
+  });
+});
