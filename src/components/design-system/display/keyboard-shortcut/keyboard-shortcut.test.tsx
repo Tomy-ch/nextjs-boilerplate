@@ -71,3 +71,19 @@ describe("KeyboardShortcutList", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("KeyboardShortcut", () => {
+  // ----- 正常系 -----
+  it("shortcut 1 件として slot を持つ要素を描画する", () => {
+    render(<Fixture />);
+
+    expect(screen.getByTestId("shortcut")).toHaveAttribute("data-slot", "keyboard-shortcut");
+  });
+
+  it("説明とキーの両方を表示する", () => {
+    render(<Fixture />);
+
+    expect(screen.getByTestId("shortcut")).toHaveTextContent("検索を開く");
+    expect(screen.getByTestId("shortcut")).toHaveTextContent("K");
+  });
+});

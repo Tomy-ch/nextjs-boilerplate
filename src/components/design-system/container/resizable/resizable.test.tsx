@@ -34,15 +34,15 @@ function TwoPanes({
   );
 }
 
+beforeEach(() => {
+  globalThis.ResizeObserver = ResizeObserverStub;
+});
+
+afterEach(() => {
+  globalThis.ResizeObserver = originalResizeObserver;
+});
+
 describe("ResizablePanelGroup", () => {
-  beforeEach(() => {
-    globalThis.ResizeObserver = ResizeObserverStub;
-  });
-
-  afterEach(() => {
-    globalThis.ResizeObserver = originalResizeObserver;
-  });
-
   it("pane の集合と、その中身を並べる", () => {
     const { container } = render(<TwoPanes />);
 
@@ -119,5 +119,32 @@ describe("ResizablePanelGroup", () => {
     const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
 
     expect(result.violations).toEqual([]);
+  });
+});
+
+describe("ResizablePanel", () => {
+  // ----- 正常系 -----
+  it("区画 1 つとして slot を持つ要素を描画する", () => {
+    const { container } = render(<TwoPanes />);
+
+    expect(container.querySelectorAll('[data-slot="resizable-panel"]')).toHaveLength(2);
+  });
+});
+
+describe("ResizableHandle", () => {
+  // ----- 正常系 -----
+  it("境界を動かす操作として slot を持つ要素を描画する", () => {
+    const { container } = render(<TwoPanes />);
+
+    expect(container.querySelector('[data-slot="resizable-handle"]')).not.toBeNull();
+  });
+
+  it("呼び出し側が与えた名前を separator として公開する", () => {
+    render(<TwoPanes handleLabel="区画の境界" />);
+
+    expect(screen.getByRole("separator", { name: "区画の境界" })).toHaveAttribute(
+      "data-slot",
+      "resizable-handle",
+    );
   });
 });

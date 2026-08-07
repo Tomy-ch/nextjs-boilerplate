@@ -263,3 +263,18 @@ describe("InputGroupTextarea", () => {
     expect(control).toHaveAttribute("name", "note");
   });
 });
+
+describe("InputGroupText", () => {
+  // ----- 正常系 -----
+  it("添える文言を span として描画する", () => {
+    render(<UnitInputGroup />);
+
+    expect(screen.getByText("kg").tagName).toBe("SPAN");
+  });
+
+  it("呼び出し側の class を既定の指定へ足す", () => {
+    render(<InputGroupText className="font-bold">kg</InputGroupText>);
+
+    expect(screen.getByText("kg")).toHaveClass("font-bold");
+  });
+});
