@@ -147,3 +147,114 @@ describe("Breadcrumb", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("BreadcrumbList", () => {
+  // ----- 正常系 -----
+  it("経路を並べるリストとして slot を持つ要素を描画する", () => {
+    render(
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>ホーム</BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>,
+    );
+
+    expect(screen.getByRole("list")).toHaveAttribute("data-slot", "breadcrumb-list");
+  });
+
+  it("呼び出し側の class を既定の指定へ足す", () => {
+    render(<BreadcrumbList className="mt-2" />);
+
+    expect(screen.getByRole("list")).toHaveClass("mt-2");
+  });
+});
+
+describe("BreadcrumbItem", () => {
+  // ----- 正常系 -----
+  it("経路 1 件として slot を持つ要素を描画する", () => {
+    render(<BreadcrumbItem>ホーム</BreadcrumbItem>);
+
+    expect(screen.getByText("ホーム")).toHaveAttribute("data-slot", "breadcrumb-item");
+  });
+
+  it("呼び出し側の class を既定の指定へ足す", () => {
+    render(<BreadcrumbItem className="gap-4">ホーム</BreadcrumbItem>);
+
+    expect(screen.getByText("ホーム")).toHaveClass("gap-4");
+  });
+});
+
+describe("BreadcrumbLink", () => {
+  // ----- 正常系 -----
+  it("遷移先を持つ link として描画する", () => {
+    render(<BreadcrumbLink href="/">ホーム</BreadcrumbLink>);
+
+    const link = screen.getByRole("link", { name: "ホーム" });
+
+    expect(link).toHaveAttribute("href", "/");
+    expect(link).toHaveAttribute("data-slot", "breadcrumb-link");
+  });
+
+  it("asChild で渡した要素を link の実体にする", () => {
+    render(
+      <BreadcrumbLink asChild>
+        <Link href="/categories">カテゴリ</Link>
+      </BreadcrumbLink>,
+    );
+
+    expect(screen.getByRole("link", { name: "カテゴリ" })).toHaveAttribute("href", "/categories");
+  });
+});
+
+describe("BreadcrumbPage", () => {
+  // ----- 正常系 -----
+  it("現在地を link ではない要素として示す", () => {
+    render(<BreadcrumbPage>デスク周り</BreadcrumbPage>);
+
+    const page = screen.getByText("デスク周り");
+
+    expect(page).toHaveAttribute("data-slot", "breadcrumb-page");
+    expect(page).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("呼び出し側の class を既定の指定へ足す", () => {
+    render(<BreadcrumbPage className="font-bold">デスク周り</BreadcrumbPage>);
+
+    expect(screen.getByText("デスク周り")).toHaveClass("font-bold");
+  });
+});
+
+describe("BreadcrumbSeparator", () => {
+  // ----- 正常系 -----
+  it("区切りを支援技術から隠して描画する", () => {
+    const { container } = render(<BreadcrumbSeparator />);
+    const separator = container.querySelector('[data-slot="breadcrumb-separator"]');
+
+    expect(separator).not.toBeNull();
+    expect(separator).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("渡した子要素で既定の区切り記号を差し替える", () => {
+    render(<BreadcrumbSeparator>/</BreadcrumbSeparator>);
+
+    expect(screen.getByText("/")).toBeInTheDocument();
+  });
+});
+
+describe("BreadcrumbEllipsis", () => {
+  // ----- 正常系 -----
+  it("省略を支援技術へ伝わる名前付きで示す", () => {
+    const { container } = render(<BreadcrumbEllipsis />);
+    const ellipsis = container.querySelector('[data-slot="breadcrumb-ellipsis"]');
+
+    expect(ellipsis).not.toBeNull();
+    expect(within(ellipsis as HTMLElement).getByText("省略された階層")).toBeInTheDocument();
+  });
+
+  it("呼び出し側の class を既定の指定へ足す", () => {
+    const { container } = render(<BreadcrumbEllipsis className="px-2" />);
+
+    expect(container.querySelector('[data-slot="breadcrumb-ellipsis"]')).toHaveClass("px-2");
+  });
+});

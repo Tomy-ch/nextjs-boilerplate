@@ -217,3 +217,136 @@ describe("List", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("ListItem", () => {
+  // ----- 正常系 -----
+  it("項目 1 件を listitem として描画する", () => {
+    render(
+      <List>
+        <ListItem>本文</ListItem>
+      </List>,
+    );
+
+    expect(screen.getByRole("listitem")).toHaveAttribute("data-slot", "list-item");
+  });
+
+  it("variant と size を data 属性として持たせる", () => {
+    render(
+      <List>
+        <ListItem size={LIST_ITEM_SIZE.DEFAULT} variant={LIST_ITEM_VARIANT.DEFAULT}>
+          本文
+        </ListItem>
+      </List>,
+    );
+
+    const item = screen.getByRole("listitem");
+
+    expect(item).toHaveAttribute("data-variant", LIST_ITEM_VARIANT.DEFAULT);
+    expect(item).toHaveAttribute("data-size", LIST_ITEM_SIZE.DEFAULT);
+  });
+});
+
+describe("ListItemLink", () => {
+  // ----- 正常系 -----
+  it("行全体を遷移先にする link を描画する", () => {
+    render(<ListItemLink href="/items/1">商品</ListItemLink>);
+
+    const link = screen.getByRole("link", { name: "商品" });
+
+    expect(link).toHaveAttribute("href", "/items/1");
+    expect(link).toHaveAttribute("data-slot", "list-item-link");
+  });
+
+  it("asChild で渡した要素を link の実体にする", () => {
+    render(
+      <ListItemLink asChild>
+        <Link href="/items/2">別の商品</Link>
+      </ListItemLink>,
+    );
+
+    expect(screen.getByRole("link", { name: "別の商品" })).toHaveAttribute("href", "/items/2");
+  });
+});
+
+describe("ListItemMedia", () => {
+  // ----- 正常系 -----
+  it("メディア枠として slot と variant を持つ要素を描画する", () => {
+    const { container } = render(
+      <ListItemMedia variant={LIST_ITEM_MEDIA_VARIANT.DEFAULT}>図</ListItemMedia>,
+    );
+    const media = container.querySelector('[data-slot="list-item-media"]');
+
+    expect(media).not.toBeNull();
+    expect(media).toHaveAttribute("data-variant", LIST_ITEM_MEDIA_VARIANT.DEFAULT);
+  });
+});
+
+describe("ListItemContent", () => {
+  // ----- 正常系 -----
+  it("本文枠として slot を持つ要素を描画する", () => {
+    render(<ListItemContent>本文</ListItemContent>);
+
+    expect(screen.getByText("本文")).toHaveAttribute("data-slot", "list-item-content");
+  });
+});
+
+describe("ListItemTitle", () => {
+  // ----- 正常系 -----
+  it("見出しとして slot を持つ要素を描画する", () => {
+    render(<ListItemTitle>題名</ListItemTitle>);
+
+    expect(screen.getByText("題名")).toHaveAttribute("data-slot", "list-item-title");
+  });
+});
+
+describe("ListItemDescription", () => {
+  // ----- 正常系 -----
+  it("補足として slot を持つ要素を描画する", () => {
+    render(<ListItemDescription>補足</ListItemDescription>);
+
+    expect(screen.getByText("補足")).toHaveAttribute("data-slot", "list-item-description");
+  });
+});
+
+describe("ListItemActions", () => {
+  // ----- 正常系 -----
+  it("操作枠として slot を持つ要素を描画する", () => {
+    render(<ListItemActions>操作</ListItemActions>);
+
+    expect(screen.getByText("操作")).toHaveAttribute("data-slot", "list-item-actions");
+  });
+});
+
+describe("ListItemHeader", () => {
+  // ----- 正常系 -----
+  it("上段の枠として slot を持つ要素を描画する", () => {
+    render(<ListItemHeader>上段</ListItemHeader>);
+
+    expect(screen.getByText("上段")).toHaveAttribute("data-slot", "list-item-header");
+  });
+});
+
+describe("ListItemFooter", () => {
+  // ----- 正常系 -----
+  it("下段の枠として slot を持つ要素を描画する", () => {
+    render(<ListItemFooter>下段</ListItemFooter>);
+
+    expect(screen.getByText("下段")).toHaveAttribute("data-slot", "list-item-footer");
+  });
+});
+
+describe("ListSeparator", () => {
+  // ----- 正常系 -----
+  it("区切りを支援技術から隠して描画する", () => {
+    const { container } = render(
+      <List>
+        <ListSeparator />
+      </List>,
+    );
+    const separator = container.querySelector('[data-slot="list-separator"]');
+
+    expect(separator).not.toBeNull();
+    expect(separator).toHaveAttribute("aria-hidden", "true");
+    expect(separator).toHaveAttribute("role", "presentation");
+  });
+});
