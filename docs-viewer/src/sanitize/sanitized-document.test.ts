@@ -66,7 +66,7 @@ describe("toDocumentRoot", () => {
   });
 });
 
-describe("SanitizedDocument.from", () => {
+describe("SanitizedDocument", () => {
   // ----- 正常系 -----
   it("表を構造ごと通す", () => {
     const { root } = SanitizedDocument.from(
