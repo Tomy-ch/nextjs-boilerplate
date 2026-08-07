@@ -54,6 +54,15 @@ export const NON_DECIDING_MODULES = [
 ] as const;
 
 /**
+ * テスト専用の組み立て。
+ *
+ * @remarks
+ * 判定を持たず、検証を通る入力一式を用意するだけ。テストが自分の分だけを組み立てると、
+ * 他の purpose の欠落で落ちて検査したい判定へ到達しないため 1 箇所に置いてあります。
+ */
+export const TEST_FIXTURE_MODULES = ["src/config/environment.fixture.ts"] as const;
+
+/**
  * 単体では回せないモジュール。
  *
  * @remarks
@@ -71,5 +80,6 @@ export const EXCLUDED_FROM_CHECKS = [
   ...ENTRYPOINT_PATTERNS,
   ...GENERATED_MODULES,
   ...NON_DECIDING_MODULES,
+  ...TEST_FIXTURE_MODULES,
   ...RUNTIME_ONLY_MODULES,
 ] as const;
