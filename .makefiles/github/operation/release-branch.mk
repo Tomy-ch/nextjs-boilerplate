@@ -44,7 +44,7 @@ hotfix-patch:
 		echo "➡️ 先に make release-tag などで初期タグを作成してから再実行してください。"; \
 		exit 1; \
 	fi; \
-	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V patch); \
+	NEXT=$$(pnpm exec tsx scripts/semver $$V patch); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,hotfix)
 
 branch-patch:
@@ -54,7 +54,7 @@ branch-patch:
 		echo "➡️ 先に make release-tag などで初期タグを作成してから再実行してください。"; \
 		exit 1; \
 	fi; \
-	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V patch); \
+	NEXT=$$(pnpm exec tsx scripts/semver $$V patch); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,release)
 
 branch-minor:
@@ -64,7 +64,7 @@ branch-minor:
 		echo "➡️ 先に make release-tag などで初期タグを作成してから再実行してください。"; \
 		exit 1; \
 	fi; \
-	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V minor); \
+	NEXT=$$(pnpm exec tsx scripts/semver $$V minor); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,release)
 
 branch-major:
@@ -74,5 +74,5 @@ branch-major:
 		echo "➡️ 先に make release-tag などで初期タグを作成してから再実行してください。"; \
 		exit 1; \
 	fi; \
-	NEXT=$$(pnpm exec tsx scripts/semver.ts $$V major); \
+	NEXT=$$(pnpm exec tsx scripts/semver $$V major); \
 	$(call do-generate-from-branch,$$V,$$NEXT,production,release)
