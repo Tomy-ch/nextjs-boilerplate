@@ -118,17 +118,23 @@ describe("FieldContent", () => {
   });
 });
 
+function LabelledField() {
+  const controlId = useId();
+
+  return (
+    <Field>
+      <FieldLabel htmlFor={controlId}>連絡先</FieldLabel>
+      <Input id={controlId} name="contact" />
+    </Field>
+  );
+}
+
 describe("FieldLabel", () => {
   // ----- 正常系 -----
   it("control と結び付く label として描画する", () => {
-    render(
-      <Field>
-        <FieldLabel htmlFor="contact">連絡先</FieldLabel>
-        <Input id="contact" name="contact" />
-      </Field>,
-    );
+    render(<LabelledField />);
 
-    expect(screen.getByLabelText("連絡先")).toHaveAttribute("id", "contact");
+    expect(screen.getByLabelText("連絡先")).toBeInTheDocument();
     expect(screen.getByText("連絡先")).toHaveAttribute("data-slot", "field-label");
   });
 });
