@@ -221,3 +221,22 @@ describe("BubbleReactions", () => {
     expect(screen.getByRole("button")).toHaveAccessibleName("祝う 1 件");
   });
 });
+
+describe("BubbleContent", () => {
+  // ----- 正常系 -----
+  it("本文として slot を持つ要素を描画する", () => {
+    render(
+      <Bubble>
+        <BubbleContent>受け取りました。</BubbleContent>
+      </Bubble>,
+    );
+
+    expect(screen.getByText("受け取りました。")).toHaveAttribute("data-slot", "bubble-content");
+  });
+
+  it("呼び出し側の class を既定の指定へ足す", () => {
+    render(<BubbleContent className="font-bold">受け取りました。</BubbleContent>);
+
+    expect(screen.getByText("受け取りました。")).toHaveClass("font-bold");
+  });
+});

@@ -350,3 +350,55 @@ describe("CarouselPrevious", () => {
     ).toEqual([]);
   });
 });
+
+describe("CarouselNext", () => {
+  beforeEach(() => {
+    scrollBy.mockClear();
+    Element.prototype.scrollBy = scrollBy;
+  });
+
+  afterEach(() => {
+    Element.prototype.scrollBy = originalScrollBy;
+  });
+
+  // ----- 正常系 -----
+  it("次のスライドを指す link として slot つきで描画する", () => {
+    render(<StepFixture />);
+
+    expect(screen.getAllByRole("link", { name: "次へ" })[0]).toHaveAttribute(
+      "data-slot",
+      "carousel-next",
+    );
+  });
+
+  it("呼び出し元の onClick も呼ぶ", () => {
+    const onClick = vi.fn();
+    const { container } = render(<StepFixture onClick={onClick} />);
+    layOutSlides(container);
+
+    fireEvent.click(screen.getAllByRole("link", { name: "次へ" })[0]);
+
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+});
+
+describe("CarouselLink", () => {
+  beforeEach(() => {
+    observed.length = 0;
+    vi.stubGlobal("IntersectionObserver", IntersectionObserverStub);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // ----- 正常系 -----
+  it("スライドを指す link として slot つきで、slide の数だけ描画する", () => {
+    const { container } = render(<ThumbnailFixture />);
+
+    const links = container.querySelectorAll('[data-slot="carousel-link"]');
+
+    expect(links).toHaveLength(SLIDES.length);
+    expect(links[0]?.tagName).toBe("A");
+  });
+});
