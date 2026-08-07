@@ -10,7 +10,8 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("正常系", () => {
+describe("register", () => {
+  // ----- 正常系 -----
   it("Edge runtime では Config bootstrap を呼ばない", async () => {
     vi.stubEnv("NEXT_RUNTIME", "edge");
     const bootstrapConfig = vi.fn();
@@ -125,9 +126,7 @@ describe("正常系", () => {
     });
     expect(end).toHaveBeenCalledOnce();
   });
-});
 
-describe("正常系", () => {
   it("mock モードでは API の interception を立てる", async () => {
     vi.stubEnv("NEXT_RUNTIME", "nodejs");
     const listen = vi.fn();

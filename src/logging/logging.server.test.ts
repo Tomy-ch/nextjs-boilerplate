@@ -5,12 +5,13 @@ const mocks = vi.hoisted(() => ({ createLogger: vi.fn() }));
 
 vi.mock("./pino.server", () => ({ createLogger: mocks.createLogger }));
 
-describe("logger singleton", () => {
+describe("initializeLogger", () => {
   beforeEach(() => {
     vi.resetModules();
     mocks.createLogger.mockReset();
   });
 
+  // ----- 正常系 -----
   it("起動時に一度だけ logger を生成する", async () => {
     const instance = { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() };
     mocks.createLogger.mockReturnValue(instance);
@@ -22,7 +23,15 @@ describe("logger singleton", () => {
 
     expect(mocks.createLogger).toHaveBeenCalledOnce();
   });
+});
 
+describe("getLogger", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    mocks.createLogger.mockReset();
+  });
+
+  // ----- 正常系 -----
   it("初期化済みの logger を返す", async () => {
     const instance = { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() };
     mocks.createLogger.mockReturnValue(instance);
@@ -33,6 +42,7 @@ describe("logger singleton", () => {
     expect(getLogger()).toBe(instance);
   });
 
+  // ----- 異常系 -----
   it("起動前に logger を取得すると失敗する", async () => {
     const { getLogger } = await import("./logging.server");
 
