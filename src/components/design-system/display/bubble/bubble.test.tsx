@@ -106,30 +106,30 @@ describe("Bubble", () => {
     expect(screen.getByTestId("message")).toHaveTextContent("自分 12:06お待ちしています。");
   });
 
-describe("Bubble の a11y", () => {
-  it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(
-      <BubbleGroup>
-        <Bubble variant={BUBBLE_VARIANT.MUTED}>
-          <BubbleContent>確認しました。</BubbleContent>
-        </Bubble>
-        <Bubble align={BUBBLE_ALIGN.END} variant={BUBBLE_VARIANT.OUTLINE}>
-          <BubbleContent asChild>
-            <button type="button">返信する</button>
-          </BubbleContent>
-          <BubbleReactions>
-            <span aria-hidden="true">👍</span>
-            <span>賛成 3 件</span>
-          </BubbleReactions>
-        </Bubble>
-      </BubbleGroup>,
-    );
+  describe("Bubble の a11y", () => {
+    it("a11y 自動検査に違反しない", async () => {
+      const { container } = render(
+        <BubbleGroup>
+          <Bubble variant={BUBBLE_VARIANT.MUTED}>
+            <BubbleContent>確認しました。</BubbleContent>
+          </Bubble>
+          <Bubble align={BUBBLE_ALIGN.END} variant={BUBBLE_VARIANT.OUTLINE}>
+            <BubbleContent asChild>
+              <button type="button">返信する</button>
+            </BubbleContent>
+            <BubbleReactions>
+              <span aria-hidden="true">👍</span>
+              <span>賛成 3 件</span>
+            </BubbleReactions>
+          </Bubble>
+        </BubbleGroup>,
+      );
 
-    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+      const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
 
-    expect(result.violations).toEqual([]);
+      expect(result.violations).toEqual([]);
+    });
   });
-});
 });
 
 describe("BubbleGroup", () => {
