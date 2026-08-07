@@ -69,3 +69,30 @@ describe("TabsNative", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("TabsNativeList", () => {
+  // ----- 正常系 -----
+  it("並びの枠として slot を持つ要素を描画する", () => {
+    const { container } = render(<Fixture />);
+
+    expect(container.querySelector('[data-slot="tabs-native-list"]')).not.toBeNull();
+  });
+});
+
+describe("TabsNativeLink", () => {
+  // ----- 正常系 -----
+  it("遷移先を持つ link として描画する", () => {
+    render(<Fixture />);
+
+    const link = screen.getByRole("link", { name: "明細" });
+
+    expect(link).toHaveAttribute("href", "?view=detail");
+    expect(link).toHaveAttribute("data-slot", "tabs-native-link");
+  });
+
+  it("現在地の link に aria-current を付ける", () => {
+    render(<Fixture />);
+
+    expect(screen.getByRole("link", { name: "サマリ" })).toHaveAttribute("aria-current", "page");
+  });
+});

@@ -82,3 +82,33 @@ describe("PageHeader", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("PageHeaderTitle", () => {
+  // ----- 正常系 -----
+  it("題名として slot を持つ要素を描画する", () => {
+    render(<Fixture />);
+
+    expect(screen.getByText("メンバー一覧")).toHaveAttribute("data-slot", "page-header-title");
+  });
+});
+
+describe("PageHeaderDescription", () => {
+  // ----- 正常系 -----
+  it("補足として slot を持つ要素を描画する", () => {
+    render(<Fixture />);
+
+    expect(screen.getByText("参加中のメンバーを確認します。")).toHaveAttribute(
+      "data-slot",
+      "page-header-description",
+    );
+  });
+});
+
+describe("PageHeaderActions", () => {
+  // ----- 正常系 -----
+  it("操作の枠として slot を持つ要素を描画する", () => {
+    const { container } = render(<Fixture />);
+
+    expect(container.querySelector('[data-slot="page-header-actions"]')).not.toBeNull();
+  });
+});
