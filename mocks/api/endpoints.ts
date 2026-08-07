@@ -12,7 +12,7 @@
  * This API is intended as a production-ready boilerplate that balances performance,
  * flexibility, and developer experience.
  *
- * OpenAPI spec version: 2.2.0+aa62bff
+ * OpenAPI spec version: 2.2.0+b648831
  */
 import type {
   AddressCandidatesResponse,
@@ -1860,7 +1860,7 @@ export const getGetExchangeRatesUrl = (params: GetExchangeRatesParams) => {
 };
 
 /**
- * base 通貨建ての amount を quote 通貨へ換算した結果を返します。
+ * base 通貨建ての original を quote 通貨へ換算した結果を返します。
  * 外部の為替レートサービスを gateway（DTO モード）経由で利用するサンプルエンドポイントです。
  * @summary 為替レートで金額を換算します。
  */
