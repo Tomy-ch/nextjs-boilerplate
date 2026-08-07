@@ -46,65 +46,61 @@ afterEach(() => {
 
 afterAll(() => server.close());
 
-describe("正常系", () => {
-  describe("mountPortal", () => {
-    it("生成物を取得してビューアーを描画する", async () => {
-      server.use(http.get("*/docs.json", () => HttpResponse.json(docs)));
+describe("mountPortal", () => {
+  // ----- 正常系 -----
+  it("生成物を取得してビューアーを描画する", async () => {
+    server.use(http.get("*/docs.json", () => HttpResponse.json(docs)));
 
-      await mountPortal(createContainer());
+    await mountPortal(createContainer());
 
-      await waitFor(() =>
-        expect(
-          screen.getByRole("heading", { level: 1, name: "Documentation" }),
-        ).toBeInTheDocument(),
-      );
-    });
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 1, name: "Documentation" })).toBeInTheDocument(),
+    );
   });
-});
+  // ----- 異常系 -----
+  it("取得に失敗したら読み込めなかったことと応答の状態を伝える", async () => {
+    server.use(http.get("*/docs.json", () => new HttpResponse(null, { status: 500 })));
 
-describe("異常系", () => {
-  describe("mountPortal", () => {
-    it("取得に失敗したら読み込めなかったことと応答の状態を伝える", async () => {
-      server.use(http.get("*/docs.json", () => new HttpResponse(null, { status: 500 })));
+    const container = createContainer();
 
-      const container = createContainer();
+    await mountPortal(container);
 
-      await mountPortal(container);
+    expect(container.textContent).toContain(PORTAL_LOAD_ERROR_MESSAGE);
+    expect(container.textContent).toContain("500");
+  });
 
-      expect(container.textContent).toContain(PORTAL_LOAD_ERROR_MESSAGE);
-      expect(container.textContent).toContain("500");
-    });
-    it("生成物の形が違えば読み込めなかったことを伝える", async () => {
-      server.use(http.get("*/docs.json", () => HttpResponse.json({ title: "x" })));
+  it("生成物の形が違えば読み込めなかったことを伝える", async () => {
+    server.use(http.get("*/docs.json", () => HttpResponse.json({ title: "x" })));
 
-      const container = createContainer();
+    const container = createContainer();
 
-      await mountPortal(container);
+    await mountPortal(container);
 
-      expect(container.textContent).toContain(PORTAL_LOAD_ERROR_MESSAGE);
-    });
-    it("取得そのものが失敗した場合も原因を画面へ残す", async () => {
-      server.use(http.get("*/docs.json", () => HttpResponse.error()));
+    expect(container.textContent).toContain(PORTAL_LOAD_ERROR_MESSAGE);
+  });
 
-      const container = createContainer();
+  it("取得そのものが失敗した場合も原因を画面へ残す", async () => {
+    server.use(http.get("*/docs.json", () => HttpResponse.error()));
 
-      await mountPortal(container);
+    const container = createContainer();
 
-      expect(container.textContent).toContain(PORTAL_LOAD_ERROR_MESSAGE);
-    });
-    it("Error ではない値が投げられても原因を画面へ残す", async () => {
-      // ここだけ fetch を直接差し替える。Error でない値が投げられる状況は HTTP の応答では
-      // 作れず、MSW では再現できない。防御的な分岐そのものを行使するための例外。
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(() => Promise.reject("想定外")),
-      );
+    await mountPortal(container);
 
-      const container = createContainer();
+    expect(container.textContent).toContain(PORTAL_LOAD_ERROR_MESSAGE);
+  });
 
-      await mountPortal(container);
+  it("Error ではない値が投げられても原因を画面へ残す", async () => {
+    // ここだけ fetch を直接差し替える。Error でない値が投げられる状況は HTTP の応答では
+    // 作れず、MSW では再現できない。防御的な分岐そのものを行使するための例外。
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject("想定外")),
+    );
 
-      expect(container.textContent).toContain("想定外");
-    });
+    const container = createContainer();
+
+    await mountPortal(container);
+
+    expect(container.textContent).toContain("想定外");
   });
 });

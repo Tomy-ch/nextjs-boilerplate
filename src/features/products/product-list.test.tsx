@@ -19,65 +19,66 @@ function product(overrides: Partial<Product> = {}): Product {
   };
 }
 
-describe("正常系", () => {
-  describe("ProductList", () => {
-    it("渡された商品を並べる", () => {
-      render(
-        <ProductList
-          items={[
-            { product: product(), imageUrl: null },
-            { product: product({ id: "b", name: "スマートウォッチ" }), imageUrl: null },
-          ]}
-        />,
-      );
+describe("ProductList", () => {
+  // ----- 正常系 -----
+  it("渡された商品を並べる", () => {
+    render(
+      <ProductList
+        items={[
+          { product: product(), imageUrl: null },
+          { product: product({ id: "b", name: "スマートウォッチ" }), imageUrl: null },
+        ]}
+      />,
+    );
 
-      expect(screen.getAllByTestId("product-card")).toHaveLength(2);
-    });
-    it("商品名と価格を示す", () => {
-      render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
-
-      expect(screen.getByText("ワイヤレスイヤホン")).toBeInTheDocument();
-      expect(screen.getByText("$19.99")).toBeInTheDocument();
-    });
-    it("カテゴリを示す", () => {
-      render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
-
-      expect(screen.getByText("オーディオ")).toBeInTheDocument();
-    });
-    it("画像 URL があれば画像を出す", () => {
-      render(
-        <ProductList
-          items={[{ product: product(), imageUrl: "https://media.example.test/products/a.png" }]}
-        />,
-      );
-
-      expect(screen.getByAltText("ワイヤレスイヤホン")).toBeInTheDocument();
-    });
-    it("在庫が無い商品にその旨を示す", () => {
-      render(<ProductList items={[{ product: product({ quantity: 0 }), imageUrl: null }]} />);
-
-      expect(screen.getByText("在庫なし")).toBeInTheDocument();
-    });
+    expect(screen.getAllByTestId("product-card")).toHaveLength(2);
   });
-});
 
-describe("異常系", () => {
-  describe("ProductList", () => {
-    it("商品が無いとき次にすべきことを示す", () => {
-      render(<ProductList items={[]} />);
+  it("商品名と価格を示す", () => {
+    render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
 
-      expect(screen.getByText("条件に合う商品がありません")).toBeInTheDocument();
-      expect(screen.getByText(/絞り込みを外して/)).toBeInTheDocument();
-    });
-    it("商品が無いときカードを出さない", () => {
-      render(<ProductList items={[]} />);
+    expect(screen.getByText("ワイヤレスイヤホン")).toBeInTheDocument();
+    expect(screen.getByText("$19.99")).toBeInTheDocument();
+  });
 
-      expect(screen.queryAllByTestId("product-card")).toHaveLength(0);
-    });
-    it("画像 URL が無ければ画像を出さない", () => {
-      render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
+  it("カテゴリを示す", () => {
+    render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
 
-      expect(screen.queryByAltText("ワイヤレスイヤホン")).not.toBeInTheDocument();
-    });
+    expect(screen.getByText("オーディオ")).toBeInTheDocument();
+  });
+
+  it("画像 URL があれば画像を出す", () => {
+    render(
+      <ProductList
+        items={[{ product: product(), imageUrl: "https://media.example.test/products/a.png" }]}
+      />,
+    );
+
+    expect(screen.getByAltText("ワイヤレスイヤホン")).toBeInTheDocument();
+  });
+
+  it("在庫が無い商品にその旨を示す", () => {
+    render(<ProductList items={[{ product: product({ quantity: 0 }), imageUrl: null }]} />);
+
+    expect(screen.getByText("在庫なし")).toBeInTheDocument();
+  });
+  // ----- 異常系 -----
+  it("商品が無いとき次にすべきことを示す", () => {
+    render(<ProductList items={[]} />);
+
+    expect(screen.getByText("条件に合う商品がありません")).toBeInTheDocument();
+    expect(screen.getByText(/絞り込みを外して/)).toBeInTheDocument();
+  });
+
+  it("商品が無いときカードを出さない", () => {
+    render(<ProductList items={[]} />);
+
+    expect(screen.queryAllByTestId("product-card")).toHaveLength(0);
+  });
+
+  it("画像 URL が無ければ画像を出さない", () => {
+    render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
+
+    expect(screen.queryByAltText("ワイヤレスイヤホン")).not.toBeInTheDocument();
   });
 });

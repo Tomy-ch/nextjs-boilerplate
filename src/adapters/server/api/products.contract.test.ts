@@ -22,24 +22,24 @@ vi.mock("@/config/environment", () => ({ getEnvironment }));
 
 import { getProducts } from "./products";
 
-describe("正常系", () => {
-  describe("getProducts", () => {
-    it("契約から生成したハンドラの応答を検証して受け取る", async () => {
-      const page = await getProducts({ keyword: "契約駆動" });
+describe("getProducts", () => {
+  // ----- 正常系 -----
+  it("契約から生成したハンドラの応答を検証して受け取る", async () => {
+    const page = await getProducts({ keyword: "契約駆動" });
 
-      expect(Array.isArray(page.products)).toBe(true);
-    });
-    it("生成ハンドラの応答が表示用の型を満たす", async () => {
-      const [product] = (await getProducts({ keyword: "型の確認" })).products;
+    expect(Array.isArray(page.products)).toBe(true);
+  });
 
-      expect(product).toMatchObject({
-        id: expect.any(String),
-        name: expect.any(String),
-        price: expect.any(String),
-        quantity: expect.any(Number),
-        status: { id: expect.any(String), name: expect.any(String) },
-        category: { id: expect.any(String), name: expect.any(String) },
-      });
+  it("生成ハンドラの応答が表示用の型を満たす", async () => {
+    const [product] = (await getProducts({ keyword: "型の確認" })).products;
+
+    expect(product).toMatchObject({
+      id: expect.any(String),
+      name: expect.any(String),
+      price: expect.any(String),
+      quantity: expect.any(Number),
+      status: { id: expect.any(String), name: expect.any(String) },
+      category: { id: expect.any(String), name: expect.any(String) },
     });
   });
 });
