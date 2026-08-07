@@ -25,7 +25,7 @@
     "portal:site": "pnpm portal:build && tsx scripts/portal/build-site.ts",
     "portal:preview": "pnpm portal:site && vite preview --outDir dist",
     "typecheck": "tsc --noEmit",
-    "md-lint": "markdownlint-cli2 && tsx scripts/mermaid-lint && tsx scripts/skill-lint.ts",
+    "md-lint": "markdownlint-cli2 && tsx scripts/mermaid-lint && tsx scripts/skill-lint",
     "md-fix": "markdownlint-cli2 --fix",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
