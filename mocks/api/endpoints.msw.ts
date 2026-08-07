@@ -12,7 +12,7 @@
  * This API is intended as a production-ready boilerplate that balances performance,
  * flexibility, and developer experience.
  *
- * OpenAPI spec version: 2.2.0+aa62bff
+ * OpenAPI spec version: 2.2.0+b648831
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
@@ -470,7 +470,7 @@ export const getGetExchangeRatesResponseMock = (
 ): ExchangeRateResponse => ({
   base: faker.string.alpha({ length: { min: 10, max: 20 } }),
   quote: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  amount: faker.helpers.fromRegExp("^\\d+(\\.\\d+)?$"),
+  original: (() => "19.99")(),
   converted: (() => "-19.99")(),
   referenceAmount: faker.helpers.arrayElement([
     {

@@ -12,7 +12,7 @@
  * This API is intended as a production-ready boilerplate that balances performance,
  * flexibility, and developer experience.
  *
- * OpenAPI spec version: 2.2.0+aa62bff
+ * OpenAPI spec version: 2.2.0+b648831
  */
 import * as zod from "zod";
 
@@ -1546,21 +1546,21 @@ export const PostProductsImagesResponse = zod
   );
 
 /**
- * base 通貨建ての amount を quote 通貨へ換算した結果を返します。
+ * base 通貨建ての original を quote 通貨へ換算した結果を返します。
  * 外部の為替レートサービスを gateway（DTO モード）経由で利用するサンプルエンドポイントです。
  * @summary 為替レートで金額を換算します。
  */
-export const getExchangeRatesQueryAmountMax = 40;
+export const getExchangeRatesQueryOriginalMax = 40;
 
-export const getExchangeRatesQueryAmountRegExp = new RegExp("^\\d{1,20}(\\.\\d{1,18})?$");
+export const getExchangeRatesQueryOriginalRegExp = new RegExp("^\\d{1,20}(\\.\\d{1,18})?$");
 
 export const GetExchangeRatesQueryParams = zod.object({
   base: zod.string().describe("換算元の通貨コード"),
   quote: zod.string().describe("換算先の通貨コード"),
-  amount: zod
+  original: zod
     .string()
-    .max(getExchangeRatesQueryAmountMax)
-    .regex(getExchangeRatesQueryAmountRegExp)
+    .max(getExchangeRatesQueryOriginalMax)
+    .regex(getExchangeRatesQueryOriginalRegExp)
     .describe(
       "換算する金額（base 通貨建て）。正確な十進量を保つため decimal 文字列で受け付けます。\nJSON number は IEEE754 double として復元され精度を失うため、金額・レート経路では文字列で表現します。\n",
     ),
@@ -1572,7 +1572,7 @@ export const GetExchangeRatesQueryParams = zod.object({
     ),
 });
 
-export const getExchangeRatesResponseAmountRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+export const getExchangeRatesResponseOriginalRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 export const getExchangeRatesResponseConvertedRegExp = new RegExp("^-?\\d+(\\.\\d+)?$");
 export const getExchangeRatesResponseReferenceAmountRateRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
@@ -1580,9 +1580,9 @@ export const GetExchangeRatesResponse = zod
   .object({
     base: zod.string().describe("換算元の通貨コード"),
     quote: zod.string().describe("換算先の通貨コード"),
-    amount: zod
+    original: zod
       .string()
-      .regex(getExchangeRatesResponseAmountRegExp)
+      .regex(getExchangeRatesResponseOriginalRegExp)
       .describe("換算元の金額。正確な十進量を保つため decimal 文字列で表します。"),
     converted: zod
       .string()
