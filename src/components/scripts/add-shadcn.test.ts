@@ -21,6 +21,7 @@ vi.mock("node:fs/promises", () => fileSystem);
 
 import {
   addShadcnComponents,
+  componentManifestEntries,
   splitShadcnAddArguments,
   upsertComponentManifest,
 } from "./add-shadcn";
@@ -510,5 +511,69 @@ describe("addShadcnComponents", () => {
 
     childProcess.spawn.mockImplementation(() => completeChild(0));
     await addShadcnComponents(["button", "--as=action", "--", "--overwrite=true"]);
+  });
+});
+
+describe("componentManifestEntries", () => {
+  // ----- 正常系 -----
+  it("部品ごとに層・見出し・配置先を備えた台帳項目を作る", () => {
+    const entries = componentManifestEntries(
+      ["dialog"],
+      "overlay",
+      "design-system",
+      "2026-08-08T00:00:00.000Z",
+      "4.15.0",
+      [],
+    );
+
+    expect(entries.dialog).toMatchObject({
+      kind: "copy-in",
+      layer: "design-system",
+      as: "overlay",
+      registryItem: "dialog",
+      directory: "src/components/design-system/overlay/dialog",
+      addedAt: "2026-08-08T00:00:00.000Z",
+      shadcnCliVersion: "4.15.0",
+    });
+  });
+
+  it("依存を渡すと台帳項目へ写す", () => {
+    const entries = componentManifestEntries(
+      ["dialog"],
+      "overlay",
+      "design-system",
+      "2026-08-08T00:00:00.000Z",
+      "4.15.0",
+      ["@radix-ui/react-dialog"],
+    );
+
+    expect(entries.dialog?.dependencies).toEqual(["@radix-ui/react-dialog"]);
+  });
+
+  // ----- 異常系 -----
+  it("依存が無ければ dependencies を持たせない", () => {
+    const entries = componentManifestEntries(
+      ["dialog"],
+      "overlay",
+      "design-system",
+      "2026-08-08T00:00:00.000Z",
+      "4.15.0",
+      [],
+    );
+
+    expect(entries.dialog).not.toHaveProperty("dependencies");
+  });
+
+  it("部品を渡さなければ空の台帳項目を返す", () => {
+    expect(
+      componentManifestEntries(
+        [],
+        "overlay",
+        "design-system",
+        "2026-08-08T00:00:00.000Z",
+        "4.15.0",
+        [],
+      ),
+    ).toEqual({});
   });
 });

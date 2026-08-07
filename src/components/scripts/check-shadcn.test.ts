@@ -9,9 +9,11 @@ import {
   checkExitCode,
   checkUpstreamDrift,
   collectComponentLayout,
+  componentDirectoryOf,
   fetchJson,
   formatCheckResult,
   formatIntegrityProblems,
+  packageOf,
   registryItemOf,
   storyHeadingOf,
   vendorImportsOf,
@@ -734,5 +736,33 @@ describe("storyHeadingOf", () => {
 
   it("title が無ければ取り出せないことを示す", () => {
     expect(storyHeadingOf("const meta = { component: Button };")).toBeUndefined();
+  });
+});
+
+describe("componentDirectoryOf", () => {
+  // ----- 正常系 -----
+  it("design-system では見出しを挟んだ配置先を返す", () => {
+    expect(componentDirectoryOf("design-system", "overlay", "dialog")).toBe(
+      "src/components/design-system/overlay/dialog",
+    );
+  });
+
+  it("design-system 以外では見出しを挟まない配置先を返す", () => {
+    expect(componentDirectoryOf("patterns", "overlay", "filter-bar")).toBe(
+      "src/components/patterns/filter-bar",
+    );
+  });
+});
+
+describe("packageOf", () => {
+  // ----- 正常系 -----
+  it("scope を持たない specifier から package 名を取り出す", () => {
+    expect(packageOf("clsx")).toBe("clsx");
+    expect(packageOf("date-fns/locale")).toBe("date-fns");
+  });
+
+  it("scope を持つ specifier では scope ごと取り出す", () => {
+    expect(packageOf("@radix-ui/react-dialog")).toBe("@radix-ui/react-dialog");
+    expect(packageOf("@radix-ui/react-dialog/dist/index")).toBe("@radix-ui/react-dialog");
   });
 });

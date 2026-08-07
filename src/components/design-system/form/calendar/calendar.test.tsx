@@ -51,3 +51,38 @@ describe("Calendar", () => {
     ).toEqual([]);
   });
 });
+
+describe("CalendarDayButton", () => {
+  // ----- 正常系 -----
+  it("日付ごとに、その日を data 属性として持つ button を描画する", () => {
+    render(<Calendar defaultMonth={calendarMonth} mode="single" />);
+
+    const dayButtons = screen
+      .getAllByRole("button")
+      .filter((button) => button.hasAttribute("data-day"));
+
+    expect(dayButtons.length).toBeGreaterThan(0);
+    expect(dayButtons[0]?.getAttribute("data-day")).not.toBe("");
+  });
+
+  it("選択した日を単独選択として印を付ける", () => {
+    render(<Calendar defaultMonth={calendarMonth} mode="single" selected={calendarMonth} />);
+
+    const selected = screen
+      .getAllByRole("button")
+      .find((button) => button.getAttribute("data-selected-single") === "true");
+
+    expect(selected).toBeDefined();
+  });
+
+  // ----- 異常系 -----
+  it("何も選んでいなければ単独選択の印を付けない", () => {
+    render(<Calendar defaultMonth={calendarMonth} mode="single" />);
+
+    const selected = screen
+      .getAllByRole("button")
+      .find((button) => button.getAttribute("data-selected-single") === "true");
+
+    expect(selected).toBeUndefined();
+  });
+});
