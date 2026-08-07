@@ -77,20 +77,6 @@ describe("initializeObservability", () => {
     expect(mocks.nodeSdk).toHaveBeenCalledOnce();
     expect(mocks.start).toHaveBeenCalledOnce();
   });
-
-  it("OTLP HTTP endpoint に signal ごとの resource path を付与する", async () => {
-    const { getSignalEndpoint, OtelSignal } = await import("./initialize.server");
-
-    expect(getSignalEndpoint("http://localhost:4318", OtelSignal.TRACES)).toBe(
-      "http://localhost:4318/v1/traces",
-    );
-    expect(getSignalEndpoint("http://localhost:4318/", OtelSignal.METRICS)).toBe(
-      "http://localhost:4318/v1/metrics",
-    );
-    expect(getSignalEndpoint("https://otel.example.test/base", OtelSignal.LOGS)).toBe(
-      "https://otel.example.test/base/v1/logs",
-    );
-  });
 });
 
 describe("getSignalEndpoint", () => {

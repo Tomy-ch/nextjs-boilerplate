@@ -703,15 +703,15 @@ describe("ToastProvider", () => {
   });
 });
 
+function ToastConsumer() {
+  useToast();
+
+  return null;
+}
+
 describe("useToast", () => {
   // ----- 異常系 -----
   it("Provider の外では利用を断る", () => {
-    function Outside() {
-      useToast();
-
-      return null;
-    }
-
-    expect(() => render(<Outside />)).toThrow();
+    expect(() => render(<ToastConsumer />)).toThrow();
   });
 });
