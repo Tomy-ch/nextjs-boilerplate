@@ -920,7 +920,7 @@ test-requirement: unit
 - **主な変更先**:
   - `openapi/sources.yaml` — 契約の宣言。複数契約に対応可能な形にしておく
   - `.makefiles/tools/gen-api.mk` — `gh` をラップした `make fetch-api`
-  - `scripts/fetch-api.ts`
+  - `scripts/openapi/` — CLI エントリと純粋関数(既存の `scripts/actions-pin/` / `scripts/portal/` と同じ粒度)
 
 ```yaml
 # openapi/sources.yaml
@@ -928,7 +928,13 @@ sources:
   - name: api
     repo: Tomy-ch/go-boilerplate
     path: openapi/openapi.gen.yaml
-    ref: release/v2.1.0
+    ref: <取得元のコミット SHA>
+    sha: <取得時の blob SHA>
+    fetchedAt: <ISO8601>
+  - name: auth
+    repo: Tomy-ch/go-boilerplate
+    path: docker/mock-auth-server/openapi/openapi.gen.yaml
+    ref: <取得元のコミット SHA>
     sha: <取得時の blob SHA>
     fetchedAt: <ISO8601>
 ```
@@ -936,9 +942,11 @@ sources:
 - **取得は GitHub Contents API を使う**: `gh api repos/<owner>/<repo>/contents/<path>?ref=<ref>`
   - レスポンスの **`sha` が blob SHA**(内容が変われば変わり、同じなら同じ)であり、[0072](../adr/0072-api-type-generation.md) の「short SHA スタンプ」を**自前でハッシュ計算せずに**満たせる
   - `gh` が認証を持つため private repo でも動く。`ref` でブランチ / タグ / コミットを固定できる
-  - **1MB 超で `content` が空になる制限**があるが、実測 **105.5 KB**(2794 行)で問題なし
-- **契約は 1 本で足りる(実測で確定)**: go 側の生成成果物は `openapi/openapi.gen.yaml` の 1 本のみ。**admin と一般が同居しており、tags でも `security` でも scope でも区別できない**ため、機械的に 2 本へ割ることはできない。`name` は `api` の 1 ユニットとする
-- **完了条件**: `make fetch-api` で契約が取得され、blob SHA が `sources.yaml` にスタンプされる。private repo でも `gh` の認証で通る
+  - **1MB 超で `content` が空になる制限**があるが、実測 **133.9 KB**(3376 行)で問題なし
+- **本体 API の契約は 1 本で足りる(実測で確定)**: go 側の本体契約は `openapi/openapi.gen.yaml` の 1 本のみ。**admin と一般が同居しており、tags でも `security` でも scope でも区別できない**ため、機械的に 2 本へ割ることはできない。`name` は `api` の 1 ユニットとする
+- **認証は別契約として並べる**: mock OIDC Provider は本体とは別サービスであり、本体契約に認証エンドポイントは存在しない([screens.md](../screens.md) §0)。`name: auth` として `sources.yaml` に並べ、契約ごとに blob SHA を独立してスタンプする
+- **ref はコミット SHA で固定する**: tag `v2.1.0` に `/v1/products` は存在せず(12 paths)、商品 API は未タグの `release/v2.2.0`(31 paths)にしかない。上流の進展の取り込みは `ref` の書き換えとして明示的に行う
+- **完了条件**: `make fetch-api` で全契約が取得され、blob SHA が `sources.yaml` にスタンプされる。private repo でも `gh` の認証で通る
 - **依存**: P3-3
 
 ### P4-2: orval による型 + zod 生成
@@ -1565,7 +1573,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 | 内容 | 結論 |
 | --- | --- |
 | Garage 公開エンドポイントのホスト形式 | **virtual-host 形式で確定**。`http://gobp-local.web.garage.localhost:3902/products/{uuid}.png`。パス形式は動作しない(§3.2)。派生の名前解決問題は上表 #4 |
-| OpenAPI 契約の本数 | **1 本で足りる**(実測 105.5 KB / 2794 行)。admin と一般が同居し tags / security / scope で区別できないため分割は不可能。`gen/api/` 1 ユニット |
+| OpenAPI 契約の本数 | **本体 API + 認証の 2 本**。本体(実測 133.9 KB / 3376 行)は admin と一般が同居し tags / security / scope で区別できないため分割不可能で `api` 1 ユニット。認証は別サービスの契約なので `auth` として並べる |
 | `mock_auth_server` の PKCE / OIDC discovery | **完全対応**。`redirect_uri` も nextjs 前提で登録済み。ただし refresh 無し / subject が admin 固定 / logout は POST のみ(P5-4 に反映済み) |
 | `cn()` の実装ライブラリ | **`clsx` + `tailwind-merge`**。[0052](../adr/0052-ui-component-policy.md) が既に名指ししており追認(§3.10) |
 | `rules.md` #69(生 `<a>` 禁止) | **ESLint で拾う**。`next/link` を必須にするため機械強制が要る(P3-2) |

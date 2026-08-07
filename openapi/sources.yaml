@@ -1,0 +1,23 @@
+# 取り込む契約の座標。`make fetch-api` がこの宣言に従って取得する。
+#
+# name / repo / path / ref は人が宣言する。sha / fetchedAt は取得時にスクリプトが
+# 書き戻すため手で編集しない。取得物は `openapi/<name>.gen.yaml` に落ちる。
+sources:
+  # go-boilerplate 本体の API 契約。admin と一般が同居しており、tags でも security でも
+  # scope でも機械的に分割できないため 1 ユニットとして扱う。
+  - name: api
+    repo: Tomy-ch/go-boilerplate
+    path: openapi/openapi.gen.yaml
+    # コミット SHA で固定する。tag v2.1.0 には /v1/products が存在せず、商品 API は未タグの
+    # release/v2.2.0 にしかない。上流の進展の取り込みはこの ref の書き換えとして明示的に行う。
+    ref: 130b179afd0146ce393626064ca2facaefa059f8
+    sha: aa62bff3e087b544494f012d5009702492e40d79
+    fetchedAt: 2026-08-06T16:23:46.019Z
+  # mock OIDC Provider の契約。go-boilerplate 本体とは別サービスであり、認証の契約はこちらが正
+  # (docs/screens.md §0)。本体の契約には認証エンドポイントが存在しない。
+  - name: auth
+    repo: Tomy-ch/go-boilerplate
+    path: docker/mock-auth-server/openapi/openapi.gen.yaml
+    ref: 130b179afd0146ce393626064ca2facaefa059f8
+    sha: 9be739a99afc691e446df2704d12b60e6e2431f1
+    fetchedAt: 2026-08-06T16:23:47.004Z
