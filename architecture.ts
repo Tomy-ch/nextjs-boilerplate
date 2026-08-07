@@ -77,3 +77,17 @@ export const ENTRY_POINTS = [
   pattern: string;
   dependencies: readonly Kernel[];
 }[];
+
+/**
+ * `src/` の外にあり、どの層からも import してはならない領域。
+ *
+ * @remarks
+ * 境界検査が働くのは宣言された要素の間だけです。`src/` の外は要素を持たないため、宣言しない
+ * 限り違反ではなく「検査の対象外」として黙って通ります。契約駆動モック([0027](docs/adr/0027-directory-structure.md))は
+ * 生成された HTTP client を含み、それは本番が使わないもの([0071](docs/adr/0071-bff-api-integration.md))
+ * であるため、import できないことを機械で示す必要があります。
+ */
+export const FORBIDDEN_AREAS = [{ type: "mocks", pattern: "mocks" }] as const satisfies readonly {
+  type: string;
+  pattern: string;
+}[];

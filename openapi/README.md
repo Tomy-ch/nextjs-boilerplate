@@ -20,6 +20,10 @@ make fetch-api            # sources.yaml の全契約を取得する
 make fetch-api NAME=auth  # 契約を 1 本だけ取得する
 ```
 
+取得は生成を伴いません。取得したら `make gen-api` で型 / zod / MSW ハンドラを生成します
+([src/adapters/gen/README.md](../src/adapters/gen/README.md))。取得したまま生成し忘れた状態は
+`make gen-api-check` が検出します。
+
 `gh` の認証を使うため private リポジトリでも通ります。取得は GitHub Contents API 経由で、
 レスポンスの `sha`(blob SHA)をそのまま版の根拠として使います。内容が変われば blob SHA も
 変わるため、取り込み側でハッシュを計算し直す必要はありません。

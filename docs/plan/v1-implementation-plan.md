@@ -954,15 +954,18 @@ sources:
 - **目的**: 契約から型と runtime validation を生成する。境界値所有(フロントが response 検証の最後の砦)を機械化する
 - **対象 ADR**: [0072](../adr/0072-api-type-generation.md)
 - **主な変更先**:
-  - `orval.config.ts` — 型 + zod スキーマを生成
-  - `gen/` — **do-not-edit**。`.gitattributes` で linguist-generated 指定
-  - `.makefiles/tools/gen-api.mk` — `make gen-api`
+  - `orval.config.ts` — 契約ごとに型 + zod スキーマ + MSW ハンドラを生成
+  - `src/adapters/gen/<契約名>/` — **do-not-edit**。`.gitattributes` で linguist-generated 指定
+  - `mocks/` — MSW ハンドラ。**P4-4 ではなくここで生成する**(orval の 1 回の実行で型 / zod / mock を出せば生成物間の不整合が起きず、drift ゲートも 1 本で済む)。P4-4 には配線と mock 時の画像戦略が残る
+  - `.makefiles/tools/gen-api.mk` — `make gen-api` / `make gen-api-check`
   - `.github/workflows/gen-drift.yaml`
 - **drift ゲートの観点は 2 つ**(**再取得はしない**):
   1. **生成物が手動で変更されていないか** — 取得済み契約から再生成して差分を検出
   2. **契約を取得したのに生成していないか** — `sources.yaml` の SHA と生成物のスタンプを突合
-- **クライアント生成から除外するもの**: `/_internal/types/error-response`(`ErrorResponse` 型を生成させるためだけの擬似エンドポイント)/ `/metrics`(BasicAuth)/ `/health` 系
-- **完了条件**: `make gen-api` で `gen/` が再生成される。上記 2 観点の drift ゲートが CI で fail する
+- **クライアント生成から除外するもの**: `/_internal/types/error-response`(`ErrorResponse` 型を生成させるためだけの擬似エンドポイント)/ `/metrics`(BasicAuth)/ `/health` 系。orval の `filters` は tag 単位で効き、契約側の tag がこれらのパスと 1 対 1 に対応する。除外しても `ErrorResponse` は各 operation の異常系レスポンスから参照されるため生成される
+- **生成された HTTP client は採用しない**: orval は client の出力先を必須とするが、resilience は P4-3 の手書き wrapper が所有する。生成 client は `mocks/` 側へ置き、本番が参照する `src/adapters/gen/` には wire 型と zod だけを置く
+- **生成物は linter の対象外にする**: 整形のみ掛ける。生成器の出力作風で CI が止まると、直す手段が生成器へのパッチしか無くなる
+- **完了条件**: `make gen-api` で `src/adapters/gen/<契約名>/` が再生成される。上記 2 観点の drift ゲートが CI で fail する
 - **依存**: P4-1
 
 ### P4-3: adapters — fetch wrapper

@@ -45,9 +45,14 @@ export default defineConfig({
         // 引数の受け渡しだけを持つ。撤去条件は CLI 側が判断を持ち始めた時点。
         "scripts/architecture/check-boundaries.ts",
         "scripts/openapi/fetch-api.ts",
+        "scripts/openapi/check-generated.ts",
         "scripts/portal/gen-docs-json.ts",
         "scripts/portal/gen-portal-docs.ts",
         "scripts/portal/build-site.ts",
+        // 契約から生成される wire 型と zod スキーマ（[0072](docs/adr/0072-api-type-generation.md)）。
+        // 書き手が居ないコードにテストを課しても、検証しているのは生成器であって本リポの
+        // 判断ではない。生成物の正しさは契約からの再生成が一致するか（drift ゲート）で担保する。
+        "src/adapters/gen/**",
       ],
       thresholds: {
         branches: 100,
