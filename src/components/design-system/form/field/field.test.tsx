@@ -72,3 +72,102 @@ describe("Field", () => {
     expect(screen.getByText("区切り")).toBeInTheDocument();
   });
 });
+
+describe("FieldSet", () => {
+  // ----- 正常系 -----
+  it("項目の束として fieldset の意味論と slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <FieldSet>
+        <FieldLegend>連絡先</FieldLegend>
+      </FieldSet>,
+    );
+
+    expect(container.querySelector("fieldset")).toHaveAttribute("data-slot", "field-set");
+  });
+});
+
+describe("FieldLegend", () => {
+  // ----- 正常系 -----
+  it("束の見出しとして group の名前になる", () => {
+    render(
+      <FieldSet>
+        <FieldLegend>連絡先</FieldLegend>
+      </FieldSet>,
+    );
+
+    expect(screen.getByRole("group", { name: "連絡先" })).toBeInTheDocument();
+    expect(screen.getByText("連絡先")).toHaveAttribute("data-slot", "field-legend");
+  });
+});
+
+describe("FieldGroup", () => {
+  // ----- 正常系 -----
+  it("複数の項目をまとめる枠として slot を持つ要素を描画する", () => {
+    render(<FieldGroup>まとまり</FieldGroup>);
+
+    expect(screen.getByText("まとまり")).toHaveAttribute("data-slot", "field-group");
+  });
+});
+
+describe("FieldContent", () => {
+  // ----- 正常系 -----
+  it("control と補足を収める枠として slot を持つ要素を描画する", () => {
+    render(<FieldContent>本文</FieldContent>);
+
+    expect(screen.getByText("本文")).toHaveAttribute("data-slot", "field-content");
+  });
+});
+
+describe("FieldLabel", () => {
+  // ----- 正常系 -----
+  it("control と結び付く label として描画する", () => {
+    render(
+      <Field>
+        <FieldLabel htmlFor="contact">連絡先</FieldLabel>
+        <Input id="contact" name="contact" />
+      </Field>,
+    );
+
+    expect(screen.getByLabelText("連絡先")).toHaveAttribute("id", "contact");
+    expect(screen.getByText("連絡先")).toHaveAttribute("data-slot", "field-label");
+  });
+});
+
+describe("FieldTitle", () => {
+  // ----- 正常系 -----
+  it("見出しとして slot を持つ要素を描画する", () => {
+    render(<FieldTitle>題名</FieldTitle>);
+
+    expect(screen.getByText("題名")).toHaveAttribute("data-slot", "field-title");
+  });
+});
+
+describe("FieldDescription", () => {
+  // ----- 正常系 -----
+  it("補足として slot を持つ要素を描画する", () => {
+    render(<FieldDescription>連絡に使います。</FieldDescription>);
+
+    expect(screen.getByText("連絡に使います。")).toHaveAttribute("data-slot", "field-description");
+  });
+});
+
+describe("FieldSeparator", () => {
+  // ----- 正常系 -----
+  it("区切りとして slot を持つ要素を描画する", () => {
+    const { container } = render(<FieldSeparator />);
+
+    expect(container.querySelector('[data-slot="field-separator"]')).not.toBeNull();
+  });
+});
+
+describe("FieldError", () => {
+  // ----- 正常系 -----
+  it("エラーを即時に読み上げられる領域として描画する", () => {
+    render(<FieldError>入力内容を確認してください。</FieldError>);
+
+    const error = screen.getByText("入力内容を確認してください。");
+
+    expect(error).toHaveAttribute("data-slot", "field-error");
+    expect(error).toHaveAttribute("role", "alert");
+  });
+});

@@ -96,3 +96,126 @@ describe("SelectClient", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("SelectTrigger", () => {
+  // ----- 正常系 -----
+  it("開閉を切り替える combobox として slot を持つ要素を描画する", () => {
+    render(<SelectFixture />);
+
+    expect(screen.getByRole("combobox", { name: "表示形式" })).toHaveAttribute(
+      "data-slot",
+      "select-trigger",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("disabled のときは操作できない", () => {
+    render(<SelectFixture disabled />);
+
+    expect(screen.getByRole("combobox", { name: "表示形式" })).toBeDisabled();
+  });
+});
+
+describe("SelectValue", () => {
+  // ----- 正常系 -----
+  it("選択済みの値を trigger の中へ表示する", () => {
+    render(<SelectFixture />);
+
+    expect(screen.getByRole("combobox", { name: "表示形式" })).toHaveTextContent("標準");
+  });
+});
+
+describe("SelectContent", () => {
+  // ----- 正常系 -----
+  it("開くと listbox として slot を持つ要素を描画する", () => {
+    render(<SelectFixture />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+
+    expect(screen.getByRole("listbox")).toHaveAttribute("data-slot", "select-content");
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は候補を描画しない", () => {
+    render(<SelectFixture />);
+
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+});
+
+describe("SelectGroup", () => {
+  // ----- 正常系 -----
+  it("候補の束として slot を持つ要素を描画する", () => {
+    render(<SelectFixture />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+
+    expect(document.querySelector('[data-slot="select-group"]')).not.toBeNull();
+  });
+});
+
+describe("SelectLabel", () => {
+  // ----- 正常系 -----
+  it("束の見出しとして slot を持つ要素を描画する", () => {
+    render(<SelectFixture />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+
+    expect(document.querySelector('[data-slot="select-label"]')).toHaveTextContent("表示形式");
+  });
+});
+
+describe("SelectItem", () => {
+  // ----- 正常系 -----
+  it("候補 1 件を option として描画する", () => {
+    render(<SelectFixture />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+
+    expect(screen.getByRole("option", { name: "簡潔" })).toHaveAttribute(
+      "data-slot",
+      "select-item",
+    );
+  });
+
+  it("選択済みの候補を選択状態として示す", () => {
+    render(<SelectFixture />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+
+    expect(screen.getByRole("option", { name: "標準" })).toHaveAttribute("data-state", "checked");
+  });
+});
+
+describe("SelectSeparator", () => {
+  // ----- 正常系 -----
+  it("区切りとして slot を持つ要素を描画する", () => {
+    render(<SelectFixture />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+
+    expect(document.querySelector('[data-slot="select-separator"]')).not.toBeNull();
+  });
+});
+
+describe("SelectScrollUpButton", () => {
+  // ----- 異常系 -----
+  it("候補があふれていなければスクロール操作を描画しない", () => {
+    render(<SelectFixture />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+
+    expect(document.querySelector('[data-slot="select-scroll-up-button"]')).toBeNull();
+  });
+});
+
+describe("SelectScrollDownButton", () => {
+  // ----- 異常系 -----
+  it("候補があふれていなければスクロール操作を描画しない", () => {
+    render(<SelectFixture />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+
+    expect(document.querySelector('[data-slot="select-scroll-down-button"]')).toBeNull();
+  });
+});
