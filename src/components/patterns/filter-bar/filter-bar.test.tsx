@@ -222,3 +222,12 @@ describe("FilterChip", () => {
     expect(removeNames).toEqual(["状態: 公開中 を解除", "価格帯: 1,000 円以上 を解除"]);
   });
 });
+
+describe("FilterBarControls", () => {
+  // ----- 正常系 -----
+  it("操作の枠として slot を持つ要素を描画する", () => {
+    render(<FilterBarControls>操作</FilterBarControls>);
+
+    expect(screen.getByText("操作")).toHaveAttribute("data-slot", "filter-bar-controls");
+  });
+});
