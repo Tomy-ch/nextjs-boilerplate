@@ -169,14 +169,14 @@ function countNewlines(text: string): number {
   return count;
 }
 
-// alias を参照先のノードへ置き換える。参照先の無い alias は YAML として不正だが、
-// パーサは errors に載せず未解決を返すため、ここで落とす。
+// alias を参照先のノードへ置き換える。参照先の無い alias は YAML として不正だが、パーサは
+// errors に載せず未解決を返す。これを落とすのは走査より前に通る toJS で、fail-close の点を
+// 1 つに寄せてある（ここにも同じ検査を置くと、到達しない分岐が検査対象に残る）。
+// 値を持たないキー（`key:` だけの行）のように走査対象にならないノードは null を返す。
 function resolveAlias(doc: ReturnType<typeof parseDocument>, node: unknown): Node | null {
   let current = node;
   while (isAlias(current)) {
-    const target = current.resolve(doc);
-    if (!target) throw new Error(`参照先の無い alias があります: *${current.source}`);
-    current = target;
+    current = current.resolve(doc);
   }
   return isScalar(current) || isMap(current) || isSeq(current) ? current : null;
 }

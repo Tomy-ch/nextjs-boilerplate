@@ -13,14 +13,22 @@ describe("findSecretReferences", () => {
     ]);
   });
 
-  it("二重引用符の角括弧記法から名前を取り出す", () => {
+  it("角括弧記法から名前を取り出す", () => {
+    expect(findSecretReferences(expr("secrets['MY_TOKEN']"))).toEqual([
+      { offset: 4, name: "MY_TOKEN" },
+    ]);
     expect(findSecretReferences(expr('secrets["MY_TOKEN"]'))).toEqual([
       { offset: 4, name: "MY_TOKEN" },
     ]);
   });
 
-  it("単引用符の角括弧記法は、名前を伏せたまま参照として拾う", () => {
-    expect(findSecretReferences(expr("secrets['MY_TOKEN']"))).toEqual([{ offset: 4, name: null }]);
+  it("添字の前後に空白を挟んでも名前を取り出す", () => {
+    expect(findSecretReferences(expr("secrets [ 'MY_TOKEN' ]"))).toEqual([
+      { offset: 4, name: "MY_TOKEN" },
+    ]);
+    expect(findSecretReferences(expr("secrets . MY_TOKEN"))).toEqual([
+      { offset: 4, name: "MY_TOKEN" },
+    ]);
   });
 
   it("大文字小文字を区別せずコンテキストを拾う", () => {

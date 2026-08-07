@@ -118,6 +118,16 @@ describe("parseWorkflow", () => {
     expect(block?.lineAt(block.text.indexOf("二行目"))).toBe(7);
   });
 
+  it("値を持たないキーがあっても走査を続ける", () => {
+    const source = postingWorkflow("    env:");
+
+    const inJob = parseWorkflow("w.yaml", source, commentDirs).texts.filter(
+      (scalar) => scalar.jobId === "report",
+    );
+
+    expect(inJob.map((scalar) => scalar.text)).toContain("env");
+  });
+
   it("リテラル以外のスカラーはスカラーの開始行を指す", () => {
     const scalar = parseWorkflow("w.yaml", postingWorkflow(), commentDirs).texts.find(
       (found) => found.text === `./${UPSERT_ACTION_DIR}`,
