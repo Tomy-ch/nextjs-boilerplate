@@ -68,7 +68,7 @@ These stay protected even during this skill's execution:
 The official `skill-creator` is the source of truth for the *how*. Ensure it is present:
 
 ```bash
-pnpm exec tsx scripts/bootstrap-plugins.ts
+pnpm exec tsx scripts/bootstrap-plugins
 ```
 
 The bootstrap declares the `claude-plugins-official` marketplace and enables the official plugins
@@ -137,7 +137,7 @@ ignores them does not fit this repo.
 - Bundled resources (`scripts/`, `references/`, `prompts/`, `assets/`) follow the official anatomy
   when needed. Keep `SKILL.md` under ~500 lines and push detail into `references/` with pointers.
 - Bundled **scripts** are TypeScript run through `pnpm exec tsx`, matching `scripts/*.ts` and
-  `scripts/bootstrap-plugins.ts`. The one exception is a headless driver that must run standalone before
+  `scripts/bootstrap-plugins`. The one exception is a headless driver that must run standalone before
   dependencies are installed (`full-verify/run.sh` is the existing case) — shell is allowed there.
 
 ### Frontmatter (ADR 0154)

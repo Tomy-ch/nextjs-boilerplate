@@ -32,7 +32,10 @@ const UNDOCUMENTED_PHONY_PATTERN = /^\.PHONY:(?!.*##)/;
 const TARGET_COLUMN_WIDTH = 24;
 
 /** 一覧の見出し。 */
-export const LISTING_HEADER = ["📦 Makeターゲット一覧", "-------------------------------------------"];
+export const LISTING_HEADER = [
+  "📦 Makeターゲット一覧",
+  "-------------------------------------------",
+];
 
 export function buildTargetListing(sources: readonly MakefileSource[]): TargetListing {
   const lines = [...LISTING_HEADER];

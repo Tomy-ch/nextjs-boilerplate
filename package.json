@@ -18,7 +18,7 @@
     "add:ui": "tsx src/components/scripts/add-shadcn.ts",
     "check:ui": "tsx src/components/scripts/check-shadcn.ts",
     "check:classes": "tsx src/components/scripts/check-classes.ts",
-    "design:bundle": "tsx scripts/design-bundle.ts",
+    "design:bundle": "tsx scripts/design-bundle",
     "portal:guides": "tsx scripts/portal/gen-portal-docs.ts",
     "portal:docs": "tsx scripts/portal/gen-docs-json.ts",
     "portal:build": "pnpm portal:guides && pnpm portal:docs && pnpm --filter docs-viewer build",

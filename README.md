@@ -44,8 +44,8 @@ pnpm install
 pnpm exec lefthook install   # 自動では入らない。clone 後に 1 度だけ実行する
 
 # 3. （任意）AI コーディングアシスタント向けの資産を導入する。開発・ビルドの必須経路ではない。
-pnpm exec tsx scripts/bootstrap-plugins.ts           # 公式プラグイン
-pnpm exec tsx scripts/bootstrap-external-skills.ts   # 外部スキル（graphify）
+pnpm exec tsx scripts/bootstrap-plugins           # 公式プラグイン
+pnpm exec tsx scripts/bootstrap-external-skills   # 外部スキル（graphify）
 
 # 4. 開発サーバーを起動する。
 pnpm dev

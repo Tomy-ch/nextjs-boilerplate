@@ -10,7 +10,7 @@ that design work happens with the real tokens and the real component inventory r
 guess at them.
 
 The reason it exists as a skill rather than a script is the split the plan draws: **the artifact is
-tool-agnostic, the delivery is not.** `scripts/design-bundle.ts` knows nothing about any SaaS, and
+tool-agnostic, the delivery is not.** `scripts/design-bundle` knows nothing about any SaaS, and
 must stay that way — naming a specific vendor in the repository's permanent documents conflicts with
 ADR [0010](../../../docs/adr/0010-standards-and-non-lockin.md) (standards conformance and
 non-lock-in). Everything vendor-shaped therefore lives here, in one place that can be replaced
