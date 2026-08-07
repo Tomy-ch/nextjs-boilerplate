@@ -24,9 +24,30 @@ AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層�
 ### 戦略(go-boilerplate 規約の翻案)
 
 - **co-location**: テストは実装の隣に置く([0027](0027-directory-structure.md))。`__tests__/` への一括集約はしない
-- **命名**: テストケースは **`正常系` / `異常系` の日本語命名**(振る舞い + 分岐条件を日本語で述べる)。最外グループは `正常系` / `異常系` のリテラル、内側にケースをネスト(AGENTS.md「テスト `describe` / `it` 文字列は日本語」と接続)
 - **table-driven 禁止**: `for` ループでケースを回さず、**sequential な sibling**(1 ケース 1 記述)で書く
 - **1 対象 1 テスト**: 関数 / メソッドごとにテストを対応させる
+
+### テストの構成: export ↔ describe の 1:1 対応
+
+`describe` が主語で `it` が述語という JS/TS の一般的な構成を採り、主語を **export 名**に固定する。
+
+- **最外 `describe` は export 名**とする。1 ファイルが複数の export を持つなら最外 `describe` も複数並べる
+- **呼べる export は、自分の名前の最上位 `describe` をちょうど 1 つ持つ**。呼べる値(関数 / クラス / React コンポーネント / `cva()` の戻り値など)が対象で、定数や zod スキーマは要求しない(書くことは許す)
+- **最上位 `describe` はいずれかの export に対応する**。対応しない束ね `describe` を置かない
+- **観点の束ねは `describe` の入れ子ではなくコメント区切りで行う**。`it` は export 名 `describe` の直下に並べ、`// ----- 正常系 -----` / `// ----- 異常系 -----` のようなコメントで区切る
+- `it` 文字列は**日本語**で、振る舞い + 分岐条件を述べる(AGENTS.md「テスト `describe` / `it` 文字列は日本語」と接続)
+
+```ts
+describe("resolveExchangeRate", () => {
+  // ----- 正常系 -----
+  it("基準通貨が一致するとき変換せずに返す", () => {});
+
+  // ----- 異常系 -----
+  it("レートが未取得のとき例外を投げる", () => {});
+});
+```
+
+対応は **`scripts/one-to-one.gate.test.ts` が機械判定する**。「export に `describe` が無い」と「`describe` に対応する export が無い」の両方向を見る。片方向だけだと、export を消してテストだけ残った状態や、テストを別名へ改名した状態が検査をすり抜ける。
 
 ### 層別責務
 
@@ -42,7 +63,8 @@ AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層�
 
 ### カバレッジゲート
 
-- **カバレッジ 100% のハードゲート**とする。除外は glob で管理し、**カバレッジ例外は所有パッケージ(層 / feature)の README に記録 + 承認**を要する(超法規的措置の統治。go 規約の翻案)
+- **カバレッジ 100% のハードゲート**とする。除外は `scripts/lib/untested-modules.ts` の宣言 1 箇所が持ち、カバレッジ母数と 1:1 ゲートの双方がそれを読む。2 箇所に書くと片方だけを直したときに黙ってずれ、「ゲートからは外れているのにカバレッジは要求する」向きのずれは気づかれないまま進む
+- 除外には**撤去条件**を宣言へ書く。**カバレッジ例外は所有パッケージ(層 / feature)の README にも記録 + 承認**を要する(超法規的措置の統治。go 規約の翻案)
 - カバレッジの **PR レポート**を出す。具体的なレポートツール(go の octocov 相当)と CI 組込みは **[0153](0153-ci-configuration.md)(CI 構成)** の責務として引き渡す
 
 ### 二層実行
@@ -57,14 +79,16 @@ AGENTS.md の `[TODO] Testing Strategy` は、フレームワーク選定・層�
 ### 配置・命名
 
 - テストファイルは実装の隣に co-location([0027](0027-directory-structure.md))。ファイル名の本体部分は **kebab-case + `.test.ts(x)`**([0028](0028-naming-convention.md) の統一方針に従う。例: `format-date.test.ts`)
-- `describe` / `it` 文字列は上記のとおり日本語(`正常系` / `異常系`)
+- `describe` は export 名、`it` 文字列は日本語(上記「export ↔ describe の 1:1 対応」)
 
 ## 禁止事項
 
 - ❌ テストを `__tests__/` へ一括集約すること(実装の隣に co-location)
 - ❌ table-driven(`for` ループでのケース列挙)。sequential sibling で書く
 - ❌ integration で HTTP 境界の内側まで実結合すること(内側は mock、型 / 形状アサート)
-- ❌ カバレッジ除外を README 記録・承認なしに増やすこと
+- ❌ 最上位に export 名以外の `describe`(`正常系` などの束ね)を置くこと。観点の束ねはコメント区切りで行う
+- ❌ 1 つの export に最上位 `describe` を 2 つ以上対応させること
+- ❌ カバレッジ除外を `scripts/lib/untested-modules.ts` の宣言以外の場所へ書くこと、および README 記録・承認なしに増やすこと
 - ❌ フレームワーク・テスト関連依存を exact pin / `pnpm audit` なしに追加すること([0004](0004-library-management.md))
 
 ## 補足
