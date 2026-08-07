@@ -1,25 +1,45 @@
 import { describe, expect, it } from "vitest";
 
-import { createErrorMeta, errorMetaFrom, withErrorDetails, withErrorMeta } from "./error-meta";
+import {
+  createErrorMeta,
+  ErrorMeta,
+  errorMetaFrom,
+  withErrorDetails,
+  withErrorMeta,
+} from "./error-meta";
 
-describe("正常系", () => {
-  it("入力配列と取得配列をコピーして不変に保つ", () => {
+describe("ErrorMeta", () => {
+  // ----- 正常系 -----
+  it("省略した項目を空値で補う", () => {
+    const meta = ErrorMeta.create();
+
+    expect(meta.code).toBe("");
+    expect(meta.message).toBe("");
+    expect(meta.requestId).toBe("");
+    expect(meta.details).toEqual([]);
+  });
+
+  it("生成時に渡した配列への後からの追加を映さない", () => {
     const details = ["email"];
-    const meta = createErrorMeta({ code: "INVALID_EMAIL", requestId: "req-123", details });
+    const meta = ErrorMeta.create({ details });
     details.push("password");
-    const extractedDetails = [...meta.details];
-    extractedDetails.push("name");
 
-    expect(meta.code).toBe("INVALID_EMAIL");
-    expect(meta.requestId).toBe("req-123");
+    expect(meta.details).toEqual(["email"]);
+  });
+
+  it("取得した配列への追加を自身へ映さない", () => {
+    const meta = ErrorMeta.create({ details: ["email"] });
+    (meta.details as string[]).push("name");
+
     expect(meta.details).toEqual(["email"]);
   });
 
   it("文言だけを上書きした新しいメタ情報を返す", () => {
-    const meta = createErrorMeta({
+    const meta = ErrorMeta.create({
       code: "INVALID_EMAIL",
       message: "既定文言",
       requestId: "req-123",
+      details: ["email"],
     });
     const overridden = meta.withMessage("入力内容を確認してください。");
 
@@ -27,9 +47,29 @@ describe("正常系", () => {
     expect(overridden.code).toBe("INVALID_EMAIL");
     expect(overridden.message).toBe("入力内容を確認してください。");
     expect(overridden.requestId).toBe("req-123");
+    expect(overridden.details).toEqual(["email"]);
   });
+});
 
-  it("メタ情報ラッパーが元の cause chain を保持する", () => {
+describe("createErrorMeta", () => {
+  // ----- 正常系 -----
+  it("指定した項目を保持したメタ情報を生成する", () => {
+    const meta = createErrorMeta({
+      code: "INVALID_EMAIL",
+      requestId: "req-123",
+      details: ["email"],
+    });
+
+    expect(meta).toBeInstanceOf(ErrorMeta);
+    expect(meta.code).toBe("INVALID_EMAIL");
+    expect(meta.requestId).toBe("req-123");
+    expect(meta.details).toEqual(["email"]);
+  });
+});
+
+describe("withErrorMeta", () => {
+  // ----- 正常系 -----
+  it("元の cause chain を保ったままメタ情報を付与する", () => {
     const cause = new Error("元エラー");
     const meta = createErrorMeta({ code: "INVALID_EMAIL" });
     const wrapped = withErrorMeta(cause, meta);
@@ -38,27 +78,50 @@ describe("正常系", () => {
     expect(errorMetaFrom(wrapped)).toBe(meta);
   });
 
+  // ----- 異常系 -----
+  it("undefined のエラーにはメタ情報を付与しない", () => {
+    expect(withErrorMeta(undefined, createErrorMeta({ code: "IGNORED" }))).toBeUndefined();
+  });
+});
+
+describe("withErrorDetails", () => {
+  // ----- 正常系 -----
+  it("詳細識別子だけを付与する", () => {
+    const wrapped = withErrorDetails(new Error("元エラー"), ["email"]);
+
+    expect(errorMetaFrom(wrapped)?.details).toEqual(["email"]);
+    expect(errorMetaFrom(wrapped)?.code).toBe("");
+  });
+
+  // ----- 異常系 -----
+  it("undefined のエラーには詳細識別子を付与しない", () => {
+    expect(withErrorDetails(undefined, ["email"])).toBeUndefined();
+  });
+});
+
+describe("errorMetaFrom", () => {
+  // ----- 正常系 -----
   it("最も外側のメタ情報と詳細識別子を優先する", () => {
     const inner = withErrorMeta(new Error("元エラー"), createErrorMeta({ code: "INNER" }));
     const outer = withErrorDetails(inner, ["email"]);
 
     expect(errorMetaFrom(outer)?.details).toEqual(["email"]);
-  });
-});
-
-describe("異常系", () => {
-  it("undefined のエラーにはメタ情報を付与しない", () => {
-    const meta = createErrorMeta({ code: "IGNORED" });
-
-    expect(withErrorMeta(undefined, meta)).toBeUndefined();
-    expect(withErrorDetails(undefined, ["email"])).toBeUndefined();
+    expect(errorMetaFrom(outer)?.code).toBe("");
   });
 
-  it("メタ情報を持たない値と循環した cause chain は解決しない", () => {
+  // ----- 異常系 -----
+  it("Error でない値からは解決しない", () => {
+    expect(errorMetaFrom("エラーではない")).toBeUndefined();
+  });
+
+  it("メタ情報を持たないエラーからは解決しない", () => {
+    expect(errorMetaFrom(new Error("メタ情報なし"))).toBeUndefined();
+  });
+
+  it("循環した cause chain の走査を停止する", () => {
     const error = new Error("循環");
     Object.defineProperty(error, "cause", { value: error });
 
-    expect(errorMetaFrom("エラーではない")).toBeUndefined();
     expect(errorMetaFrom(error)).toBeUndefined();
   });
 });
