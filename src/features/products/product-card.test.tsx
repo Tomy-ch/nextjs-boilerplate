@@ -4,14 +4,20 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
+import type { Product } from "@/model/product/product";
+
 import { ProductCard } from "./product-card";
 
-const PRODUCT = {
+const PRODUCT: Product = {
   id: "1",
   name: "スタンドライト",
+  description: null,
   price: "4980.00",
   quantity: 3,
+  status: { id: "1", name: "公開中" },
   category: { id: "10", name: "デスク周り" },
+  publishedAt: null,
+  imagePath: null,
 };
 
 describe("ProductCard", () => {

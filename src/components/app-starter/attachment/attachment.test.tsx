@@ -242,7 +242,7 @@ describe("AttachmentMedia", () => {
   it("見た目の枠として slot と variant を持つ要素を描画する", () => {
     render(
       <Attachment>
-        <AttachmentMedia data-testid="media" variant={ATTACHMENT_MEDIA_VARIANT.DEFAULT}>
+        <AttachmentMedia data-testid="media" variant={ATTACHMENT_MEDIA_VARIANT.ICON}>
           <svg aria-hidden="true" />
         </AttachmentMedia>
       </Attachment>,
@@ -251,7 +251,7 @@ describe("AttachmentMedia", () => {
     const media = screen.getByTestId("media");
 
     expect(media).toHaveAttribute("data-slot", "attachment-media");
-    expect(media).toHaveAttribute("data-variant", ATTACHMENT_MEDIA_VARIANT.DEFAULT);
+    expect(media).toHaveAttribute("data-variant", ATTACHMENT_MEDIA_VARIANT.ICON);
   });
 });
 
