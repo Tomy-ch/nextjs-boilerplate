@@ -47,3 +47,36 @@ describe("Alert", () => {
     ).toEqual([]);
   });
 });
+
+describe("AlertTitle", () => {
+  // ----- 正常系 -----
+  it("見出しとして slot を持つ要素を描画する", () => {
+    render(<AlertTitle>確認が必要です</AlertTitle>);
+
+    expect(screen.getByText("確認が必要です")).toHaveAttribute("data-slot", "alert-title");
+  });
+
+  it("呼び出し側の class を既定の指定へ足す", () => {
+    render(<AlertTitle className="mt-2">確認が必要です</AlertTitle>);
+
+    expect(screen.getByText("確認が必要です")).toHaveClass("mt-2");
+  });
+});
+
+describe("AlertDescription", () => {
+  // ----- 正常系 -----
+  it("本文として slot を持つ要素を描画する", () => {
+    render(<AlertDescription>内容を確認してください。</AlertDescription>);
+
+    expect(screen.getByText("内容を確認してください。")).toHaveAttribute(
+      "data-slot",
+      "alert-description",
+    );
+  });
+
+  it("呼び出し側の class を既定の指定へ足す", () => {
+    render(<AlertDescription className="mt-2">内容を確認してください。</AlertDescription>);
+
+    expect(screen.getByText("内容を確認してください。")).toHaveClass("mt-2");
+  });
+});
