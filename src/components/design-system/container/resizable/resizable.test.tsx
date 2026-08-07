@@ -34,7 +34,7 @@ function TwoPanes({
   );
 }
 
-describe("Resizable", () => {
+describe("ResizablePanelGroup", () => {
   beforeEach(() => {
     globalThis.ResizeObserver = ResizeObserverStub;
   });

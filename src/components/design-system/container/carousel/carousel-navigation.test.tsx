@@ -263,7 +263,7 @@ describe("CarouselThumbnails", () => {
   });
 });
 
-describe("CarouselPrevious / CarouselNext", () => {
+describe("CarouselPrevious", () => {
   beforeEach(() => {
     scrollBy.mockClear();
     Element.prototype.scrollBy = scrollBy;
