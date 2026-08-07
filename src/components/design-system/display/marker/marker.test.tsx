@@ -111,3 +111,30 @@ describe("Marker", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("MarkerIcon", () => {
+  // ----- 正常系 -----
+  it("印の枠として slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <Marker>
+        <MarkerIcon />
+        <MarkerContent>補足</MarkerContent>
+      </Marker>,
+    );
+
+    expect(container.querySelector('[data-slot="marker-icon"]')).not.toBeNull();
+  });
+});
+
+describe("MarkerContent", () => {
+  // ----- 正常系 -----
+  it("本文として slot を持つ要素を描画する", () => {
+    render(
+      <Marker>
+        <MarkerContent>補足</MarkerContent>
+      </Marker>,
+    );
+
+    expect(screen.getByText("補足")).toHaveAttribute("data-slot", "marker-content");
+  });
+});

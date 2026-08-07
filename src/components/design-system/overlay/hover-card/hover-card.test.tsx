@@ -46,3 +46,38 @@ describe("HoverCard", () => {
     ).toEqual([]);
   });
 });
+
+describe("HoverCardTrigger", () => {
+  // ----- 正常系 -----
+  it("asChild で渡した要素を対象の実体にする", () => {
+    render(<HoverCardFixture />);
+
+    const link = screen.getByRole("link", { name: "GitHub" });
+
+    expect(link).toHaveAttribute("href", "https://github.com/");
+    expect(link).toHaveAttribute("data-slot", "hover-card-trigger");
+  });
+});
+
+describe("HoverCardContent", () => {
+  // ----- 正常系 -----
+  it("開いている間は補足を描画する", () => {
+    render(<HoverCardFixture />);
+
+    expect(screen.getByText("公開されているプロジェクト情報を確認できます。")).toBeVisible();
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は補足を描画しない", () => {
+    render(
+      <HoverCard>
+        <HoverCardTrigger asChild>
+          <a href="https://github.com/">GitHub</a>
+        </HoverCardTrigger>
+        <HoverCardContent>公開されているプロジェクト情報を確認できます。</HoverCardContent>
+      </HoverCard>,
+    );
+
+    expect(screen.queryByText("公開されているプロジェクト情報を確認できます。")).toBeNull();
+  });
+});
