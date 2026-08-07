@@ -368,6 +368,257 @@ describe("verifyManifestIntegrity", () => {
     expect(problems).toContain("legacy: kind が copy-in なのに source がありません。");
     expect(problems).toContain("odd: kind が original なのに source があります。");
   });
+
+  describe("story title と as の検査", () => {
+    const source = manifest(copyInEntry("button"));
+
+    const directory = "src/components/design-system/display/button";
+
+    it("見出しが as と食い違えば検出する", () => {
+      const problems = verifyManifestIntegrity(
+        dirsOf("button"),
+        filesOf("button"),
+        source,
+        new Map(),
+        new Map([[directory, "Overlay"]]),
+      );
+
+      expect(problems).toContain(
+        "button: story の title が Overlay/ で始まっていますが、as は display なので Display/ です。",
+      );
+    });
+
+    it("title を持たない story を検出する", () => {
+      const problems = verifyManifestIntegrity(
+        dirsOf("button"),
+        filesOf("button"),
+        source,
+        new Map(),
+        new Map([[directory, undefined]]),
+      );
+
+      expect(problems).toContain(
+        "button: story の title に見出しがありません。Display/ で始めてください。",
+      );
+    });
+
+    it("見出しが as と一致すれば問題としない", () => {
+      const problems = verifyManifestIntegrity(
+        dirsOf("button"),
+        filesOf("button"),
+        source,
+        new Map(),
+        new Map([[directory, "Display"]]),
+      );
+
+      expect(problems).toEqual([]);
+    });
+
+    it("story を持たない component は検査しない", () => {
+      expect(verifyManifestIntegrity(dirsOf("button"), filesOf("button"), source)).toEqual([]);
+    });
+  });
+
+  describe("directory と layer / as の突合", () => {
+    it("layer と as から導いた場所と食い違えば検出する", () => {
+      const source = manifest(
+        copyInEntry("button").replace(
+          "directory: src/components/design-system/display/button",
+          "directory: src/components/patterns/button",
+        ),
+      );
+
+      const problems = verifyManifestIntegrity(
+        ["src/components/patterns/button"],
+        new Set(["src/components/design-system/display/button/button.tsx"]),
+        source,
+      );
+
+      expect(problems).toContain(
+        "button: directory が src/components/patterns/button ですが、layer が design-system で as が display なので src/components/design-system/display/button です。",
+      );
+    });
+
+    it("入れ子の component は親が置き場を決めるため導出と突き合わせない", () => {
+      const parent = copyInEntry("table")
+        .replace("layer: design-system", "layer: patterns")
+        .replace("as: display", "as: sugar")
+        .replace(
+          "directory: src/components/design-system/display/table",
+          "directory: src/components/patterns/table",
+        )
+        .replace(
+          "localPath: src/components/design-system/display/table/table.tsx",
+          "localPath: src/components/patterns/table/table.tsx",
+        );
+      const child = copyInEntry("row-actions")
+        .replace("layer: design-system", "layer: patterns")
+        .replace("as: display", "as: sugar")
+        .replace(
+          "directory: src/components/design-system/display/row-actions",
+          "directory: src/components/patterns/table/row-actions",
+        )
+        .replace(
+          "localPath: src/components/design-system/display/row-actions/row-actions.tsx",
+          "localPath: src/components/patterns/table/row-actions/row-actions.tsx",
+        );
+
+      const problems = verifyManifestIntegrity(
+        ["src/components/patterns/table", "src/components/patterns/table/row-actions"],
+        new Set([
+          "src/components/patterns/table/table.tsx",
+          "src/components/patterns/table/row-actions/row-actions.tsx",
+        ]),
+        manifest(parent + child),
+      );
+
+      expect(problems).toEqual([]);
+    });
+
+    it("目的で割らない層は直下を正とする", () => {
+      const source = manifest(
+        copyInEntry("saved-views")
+          .replace("layer: design-system", "layer: app-starter")
+          .replace(
+            "directory: src/components/design-system/display/saved-views",
+            "directory: src/components/app-starter/saved-views",
+          )
+          .replace(
+            "localPath: src/components/design-system/display/saved-views/saved-views.tsx",
+            "localPath: src/components/app-starter/saved-views/saved-views.tsx",
+          ),
+      );
+
+      const problems = verifyManifestIntegrity(
+        ["src/components/app-starter/saved-views"],
+        new Set(["src/components/app-starter/saved-views/saved-views.tsx"]),
+        source,
+      );
+
+      expect(problems).toEqual([]);
+    });
+  });
+
+  describe("dependencies の検査", () => {
+    const source = manifest(copyInEntry("button"));
+
+    it("宣言と実際の参照が食い違えば検出する", () => {
+      const problems = verifyManifestIntegrity(
+        dirsOf("button"),
+        filesOf("button"),
+        source,
+        new Map([["src/components/design-system/display/button", ["radix-ui"]]]),
+      );
+
+      expect(problems).toContain(
+        "button: dependencies の宣言 [] が、実際に参照している [radix-ui] と食い違っています。",
+      );
+    });
+
+    it("実際に何も参照していなければ、宣言が無いことを問題としない", () => {
+      const problems = verifyManifestIntegrity(
+        dirsOf("button"),
+        filesOf("button"),
+        source,
+        new Map([["src/components/design-system/display/button", []]]),
+      );
+
+      expect(problems).toEqual([]);
+    });
+
+    it("実参照を渡さなければ dependencies を検査しない", () => {
+      expect(verifyManifestIntegrity(dirsOf("button"), filesOf("button"), source)).toEqual([]);
+    });
+  });
+
+  describe("registryItem の検査", () => {
+    function entry(lines: string[]): string {
+      const declared = lines.some((line) => line.startsWith("as:"));
+      const withHeading = declared ? lines : ["layer: design-system", "as: display", ...lines];
+      return `  thing:\n${withHeading.map((line) => `    ${line}`).join("\n")}\n`;
+    }
+
+    const sourceLines = [
+      "source:",
+      "  - repository: shadcn-ui/ui",
+      "    path: apps/v4/registry/new-york-v4/ui/checkbox.tsx",
+      "    localPath: src/components/design-system/display/thing/thing.tsx",
+      `    commit: ${RECORDED}`,
+      "    committedAt: 2026-03-02T08:49:00Z",
+    ];
+
+    const directories = ["src/components/design-system/display/thing"];
+
+    const files = new Set(["src/components/design-system/display/thing/thing.tsx"]);
+
+    it("上流を持つのに registryItem が無ければ検出する", () => {
+      const problems = verifyManifestIntegrity(
+        directories,
+        files,
+        manifest(
+          entry([
+            "kind: reimplemented",
+            "directory: src/components/design-system/display/thing",
+            ...sourceLines,
+          ]),
+        ),
+      );
+
+      expect(problems).toContain("thing: kind が reimplemented なのに registryItem がありません。");
+    });
+
+    it("original に registryItem があれば検出する", () => {
+      const problems = verifyManifestIntegrity(
+        directories,
+        files,
+        manifest(
+          entry([
+            "kind: original",
+            "registryItem: checkbox",
+            "directory: src/components/design-system/display/thing",
+          ]),
+        ),
+      );
+
+      expect(problems).toContain("thing: kind が original なのに registryItem があります。");
+    });
+
+    it("registryItem と source の path が食い違えば検出する", () => {
+      const problems = verifyManifestIntegrity(
+        directories,
+        files,
+        manifest(
+          entry([
+            "kind: reimplemented",
+            "registryItem: switch",
+            "directory: src/components/design-system/display/thing",
+            ...sourceLines,
+          ]),
+        ),
+      );
+
+      expect(problems).toContain(
+        "thing: registryItem switch と source の path apps/v4/registry/new-york-v4/ui/checkbox.tsx が食い違っています。",
+      );
+    });
+
+    it("registryItem と source の path が揃っていれば問題としない", () => {
+      const problems = verifyManifestIntegrity(
+        directories,
+        files,
+        manifest(
+          entry([
+            "kind: reimplemented",
+            "registryItem: checkbox",
+            "directory: src/components/design-system/display/thing",
+            ...sourceLines,
+          ]),
+        ),
+      );
+
+      expect(problems).toEqual([]);
+    });
+  });
 });
 
 describe("formatIntegrityProblems", () => {
@@ -439,93 +690,6 @@ describe("collectComponentLayout", () => {
   });
 });
 
-describe("registryItem の検査", () => {
-  function entry(lines: string[]): string {
-    const declared = lines.some((line) => line.startsWith("as:"));
-    const withHeading = declared ? lines : ["layer: design-system", "as: display", ...lines];
-    return `  thing:\n${withHeading.map((line) => `    ${line}`).join("\n")}\n`;
-  }
-
-  const sourceLines = [
-    "source:",
-    "  - repository: shadcn-ui/ui",
-    "    path: apps/v4/registry/new-york-v4/ui/checkbox.tsx",
-    "    localPath: src/components/design-system/display/thing/thing.tsx",
-    `    commit: ${RECORDED}`,
-    "    committedAt: 2026-03-02T08:49:00Z",
-  ];
-  const directories = ["src/components/design-system/display/thing"];
-  const files = new Set(["src/components/design-system/display/thing/thing.tsx"]);
-
-  it("上流を持つのに registryItem が無ければ検出する", () => {
-    const problems = verifyManifestIntegrity(
-      directories,
-      files,
-      manifest(
-        entry([
-          "kind: reimplemented",
-          "directory: src/components/design-system/display/thing",
-          ...sourceLines,
-        ]),
-      ),
-    );
-
-    expect(problems).toContain("thing: kind が reimplemented なのに registryItem がありません。");
-  });
-
-  it("original に registryItem があれば検出する", () => {
-    const problems = verifyManifestIntegrity(
-      directories,
-      files,
-      manifest(
-        entry([
-          "kind: original",
-          "registryItem: checkbox",
-          "directory: src/components/design-system/display/thing",
-        ]),
-      ),
-    );
-
-    expect(problems).toContain("thing: kind が original なのに registryItem があります。");
-  });
-
-  it("registryItem と source の path が食い違えば検出する", () => {
-    const problems = verifyManifestIntegrity(
-      directories,
-      files,
-      manifest(
-        entry([
-          "kind: reimplemented",
-          "registryItem: switch",
-          "directory: src/components/design-system/display/thing",
-          ...sourceLines,
-        ]),
-      ),
-    );
-
-    expect(problems).toContain(
-      "thing: registryItem switch と source の path apps/v4/registry/new-york-v4/ui/checkbox.tsx が食い違っています。",
-    );
-  });
-
-  it("registryItem と source の path が揃っていれば問題としない", () => {
-    const problems = verifyManifestIntegrity(
-      directories,
-      files,
-      manifest(
-        entry([
-          "kind: reimplemented",
-          "registryItem: checkbox",
-          "directory: src/components/design-system/display/thing",
-          ...sourceLines,
-        ]),
-      ),
-    );
-
-    expect(problems).toEqual([]);
-  });
-});
-
 describe("registryItemOf", () => {
   it("上流ファイルのパスから item 名を取り出す", () => {
     expect(registryItemOf("apps/v4/registry/new-york-v4/ui/checkbox.tsx")).toBe("checkbox");
@@ -561,118 +725,6 @@ describe("vendorImportsOf", () => {
   });
 });
 
-describe("dependencies の検査", () => {
-  const source = manifest(copyInEntry("button"));
-
-  it("宣言と実際の参照が食い違えば検出する", () => {
-    const problems = verifyManifestIntegrity(
-      dirsOf("button"),
-      filesOf("button"),
-      source,
-      new Map([["src/components/design-system/display/button", ["radix-ui"]]]),
-    );
-
-    expect(problems).toContain(
-      "button: dependencies の宣言 [] が、実際に参照している [radix-ui] と食い違っています。",
-    );
-  });
-
-  it("実際に何も参照していなければ、宣言が無いことを問題としない", () => {
-    const problems = verifyManifestIntegrity(
-      dirsOf("button"),
-      filesOf("button"),
-      source,
-      new Map([["src/components/design-system/display/button", []]]),
-    );
-
-    expect(problems).toEqual([]);
-  });
-
-  it("実参照を渡さなければ dependencies を検査しない", () => {
-    expect(verifyManifestIntegrity(dirsOf("button"), filesOf("button"), source)).toEqual([]);
-  });
-});
-
-describe("directory と layer / as の突合", () => {
-  it("layer と as から導いた場所と食い違えば検出する", () => {
-    const source = manifest(
-      copyInEntry("button").replace(
-        "directory: src/components/design-system/display/button",
-        "directory: src/components/patterns/button",
-      ),
-    );
-
-    const problems = verifyManifestIntegrity(
-      ["src/components/patterns/button"],
-      new Set(["src/components/design-system/display/button/button.tsx"]),
-      source,
-    );
-
-    expect(problems).toContain(
-      "button: directory が src/components/patterns/button ですが、layer が design-system で as が display なので src/components/design-system/display/button です。",
-    );
-  });
-
-  it("入れ子の component は親が置き場を決めるため導出と突き合わせない", () => {
-    const parent = copyInEntry("table")
-      .replace("layer: design-system", "layer: patterns")
-      .replace("as: display", "as: sugar")
-      .replace(
-        "directory: src/components/design-system/display/table",
-        "directory: src/components/patterns/table",
-      )
-      .replace(
-        "localPath: src/components/design-system/display/table/table.tsx",
-        "localPath: src/components/patterns/table/table.tsx",
-      );
-    const child = copyInEntry("row-actions")
-      .replace("layer: design-system", "layer: patterns")
-      .replace("as: display", "as: sugar")
-      .replace(
-        "directory: src/components/design-system/display/row-actions",
-        "directory: src/components/patterns/table/row-actions",
-      )
-      .replace(
-        "localPath: src/components/design-system/display/row-actions/row-actions.tsx",
-        "localPath: src/components/patterns/table/row-actions/row-actions.tsx",
-      );
-
-    const problems = verifyManifestIntegrity(
-      ["src/components/patterns/table", "src/components/patterns/table/row-actions"],
-      new Set([
-        "src/components/patterns/table/table.tsx",
-        "src/components/patterns/table/row-actions/row-actions.tsx",
-      ]),
-      manifest(parent + child),
-    );
-
-    expect(problems).toEqual([]);
-  });
-
-  it("目的で割らない層は直下を正とする", () => {
-    const source = manifest(
-      copyInEntry("saved-views")
-        .replace("layer: design-system", "layer: app-starter")
-        .replace(
-          "directory: src/components/design-system/display/saved-views",
-          "directory: src/components/app-starter/saved-views",
-        )
-        .replace(
-          "localPath: src/components/design-system/display/saved-views/saved-views.tsx",
-          "localPath: src/components/app-starter/saved-views/saved-views.tsx",
-        ),
-    );
-
-    const problems = verifyManifestIntegrity(
-      ["src/components/app-starter/saved-views"],
-      new Set(["src/components/app-starter/saved-views/saved-views.tsx"]),
-      source,
-    );
-
-    expect(problems).toEqual([]);
-  });
-});
-
 describe("storyHeadingOf", () => {
   it("title の先頭セグメントを取り出す", () => {
     expect(storyHeadingOf('const meta = { title: "View State/FeedbackState" };')).toBe(
@@ -682,54 +734,5 @@ describe("storyHeadingOf", () => {
 
   it("title が無ければ取り出せないことを示す", () => {
     expect(storyHeadingOf("const meta = { component: Button };")).toBeUndefined();
-  });
-});
-
-describe("story title と as の検査", () => {
-  const source = manifest(copyInEntry("button"));
-  const directory = "src/components/design-system/display/button";
-
-  it("見出しが as と食い違えば検出する", () => {
-    const problems = verifyManifestIntegrity(
-      dirsOf("button"),
-      filesOf("button"),
-      source,
-      new Map(),
-      new Map([[directory, "Overlay"]]),
-    );
-
-    expect(problems).toContain(
-      "button: story の title が Overlay/ で始まっていますが、as は display なので Display/ です。",
-    );
-  });
-
-  it("title を持たない story を検出する", () => {
-    const problems = verifyManifestIntegrity(
-      dirsOf("button"),
-      filesOf("button"),
-      source,
-      new Map(),
-      new Map([[directory, undefined]]),
-    );
-
-    expect(problems).toContain(
-      "button: story の title に見出しがありません。Display/ で始めてください。",
-    );
-  });
-
-  it("見出しが as と一致すれば問題としない", () => {
-    const problems = verifyManifestIntegrity(
-      dirsOf("button"),
-      filesOf("button"),
-      source,
-      new Map(),
-      new Map([[directory, "Display"]]),
-    );
-
-    expect(problems).toEqual([]);
-  });
-
-  it("story を持たない component は検査しない", () => {
-    expect(verifyManifestIntegrity(dirsOf("button"), filesOf("button"), source)).toEqual([]);
   });
 });

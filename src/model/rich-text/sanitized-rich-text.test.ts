@@ -45,124 +45,7 @@ const allowedTagsHtml = [
   '<a href="https://example.com">リンク</a><br></p>',
 ].join("");
 
-describe("allowlist 内", () => {
-  it("通すと決めたタグをすべて残す", () => {
-    const { root } = SanitizedRichText.from(allowedTagsHtml);
-
-    expect(new Set(tagNamesOf(root))).toEqual(new Set(RICH_TEXT_TAG_NAMES));
-  });
-
-  it("a の href に http / https / mailto を残す", () => {
-    const { root } = SanitizedRichText.from(
-      [
-        '<a href="http://example.com">平文</a>',
-        '<a href="https://example.com">暗号化</a>',
-        '<a href="mailto:someone@example.com">メール</a>',
-      ].join(""),
-    );
-
-    expect(elementsOf(root).map((element) => element.properties.href)).toEqual([
-      "http://example.com",
-      "https://example.com",
-      "mailto:someone@example.com",
-    ]);
-  });
-
-  it("li を ul / ol の中でだけ残す", () => {
-    const nested = SanitizedRichText.from("<ul><li>入れ子</li></ul>");
-    const stray = SanitizedRichText.from("<li>単独</li>");
-
-    expect(tagNamesOf(nested.root)).toEqual(["ul", "li"]);
-    expect(tagNamesOf(stray.root)).toEqual([]);
-    expect(textOf(stray.root)).toBe("単独");
-  });
-});
-
-describe("allowlist 外", () => {
-  it("h1 を落とす", () => {
-    const { root } = SanitizedRichText.from("<h1>大見出し</h1>");
-
-    expect(tagNamesOf(root)).toEqual([]);
-    expect(textOf(root)).toBe("大見出し");
-  });
-
-  it("script / iframe / style / object を落とす", () => {
-    const { root } = SanitizedRichText.from(
-      [
-        "<script>alert(1)</script>",
-        '<iframe src="https://example.com"></iframe>',
-        "<style>body{color:red}</style>",
-        '<object data="/malicious"></object>',
-      ].join(""),
-    );
-
-    expect(tagNamesOf(root)).toEqual([]);
-  });
-
-  it("script / style の中身を本文へ残さない", () => {
-    const { root } = SanitizedRichText.from(
-      "<script>alert(1)</script><style>body{color:red}</style>",
-    );
-
-    expect(textOf(root)).toBe("");
-  });
-});
-
-describe("属性", () => {
-  it("イベントハンドラ属性を落とす", () => {
-    const { root } = SanitizedRichText.from('<p onclick="steal()" onerror="steal()">本文</p>');
-
-    expect(firstElement(root, "p")?.properties).toEqual({});
-  });
-
-  it("class / style / id を落とす", () => {
-    const { root } = SanitizedRichText.from(
-      '<p class="danger" style="position:fixed" id="overlay">本文</p>',
-    );
-
-    expect(firstElement(root, "p")?.properties).toEqual({});
-  });
-
-  it("href 以外の属性を a からも落とす", () => {
-    const { root } = SanitizedRichText.from(
-      '<a href="https://example.com" target="_blank" rel="opener">リンク</a>',
-    );
-
-    expect(firstElement(root, "a")?.properties).toEqual({ href: "https://example.com" });
-  });
-});
-
-describe("href のプロトコル", () => {
-  it("javascript: を落とす", () => {
-    const { root } = SanitizedRichText.from('<a href="javascript:alert(1)">リンク</a>');
-
-    expect(firstElement(root, "a")?.properties).toEqual({});
-  });
-
-  it("data:text/html を落とす", () => {
-    const { root } = SanitizedRichText.from(
-      '<a href="data:text/html,%3Cscript%3Ealert(1)%3C/script%3E">リンク</a>',
-    );
-
-    expect(firstElement(root, "a")?.properties).toEqual({});
-  });
-
-  it("外部ホストへ解決される protocol-relative な link を落とす", () => {
-    const { root } = SanitizedRichText.from(
-      '<a href="//attacker.example.com">内部パスに見える</a>',
-    );
-
-    expect(firstElement(root, "a")?.properties).toEqual({});
-  });
-
-  it("アプリ内を指す相対 link を通す", () => {
-    const { root } = SanitizedRichText.from('<a href="/products/1">商品</a>');
-
-    expect(firstElement(root, "a")?.properties.href).toBe("/products/1");
-  });
-});
-
-describe("parse", () => {
+describe("SanitizedRichText", () => {
   it("不正な入れ子を例外にせず正規化する", () => {
     const parse = () => SanitizedRichText.from("<p><div>段落の中のブロック</div></p>");
 
@@ -187,6 +70,123 @@ describe("parse", () => {
     const { root } = SanitizedRichText.from("<!-- 隠しコメント --><p>本文</p>");
 
     expect(textOf(root)).toBe("本文");
+  });
+
+  describe("href のプロトコル", () => {
+    it("javascript: を落とす", () => {
+      const { root } = SanitizedRichText.from('<a href="javascript:alert(1)">リンク</a>');
+
+      expect(firstElement(root, "a")?.properties).toEqual({});
+    });
+
+    it("data:text/html を落とす", () => {
+      const { root } = SanitizedRichText.from(
+        '<a href="data:text/html,%3Cscript%3Ealert(1)%3C/script%3E">リンク</a>',
+      );
+
+      expect(firstElement(root, "a")?.properties).toEqual({});
+    });
+
+    it("外部ホストへ解決される protocol-relative な link を落とす", () => {
+      const { root } = SanitizedRichText.from(
+        '<a href="//attacker.example.com">内部パスに見える</a>',
+      );
+
+      expect(firstElement(root, "a")?.properties).toEqual({});
+    });
+
+    it("アプリ内を指す相対 link を通す", () => {
+      const { root } = SanitizedRichText.from('<a href="/products/1">商品</a>');
+
+      expect(firstElement(root, "a")?.properties.href).toBe("/products/1");
+    });
+  });
+
+  describe("属性", () => {
+    it("イベントハンドラ属性を落とす", () => {
+      const { root } = SanitizedRichText.from('<p onclick="steal()" onerror="steal()">本文</p>');
+
+      expect(firstElement(root, "p")?.properties).toEqual({});
+    });
+
+    it("class / style / id を落とす", () => {
+      const { root } = SanitizedRichText.from(
+        '<p class="danger" style="position:fixed" id="overlay">本文</p>',
+      );
+
+      expect(firstElement(root, "p")?.properties).toEqual({});
+    });
+
+    it("href 以外の属性を a からも落とす", () => {
+      const { root } = SanitizedRichText.from(
+        '<a href="https://example.com" target="_blank" rel="opener">リンク</a>',
+      );
+
+      expect(firstElement(root, "a")?.properties).toEqual({ href: "https://example.com" });
+    });
+  });
+
+  describe("allowlist 外", () => {
+    it("h1 を落とす", () => {
+      const { root } = SanitizedRichText.from("<h1>大見出し</h1>");
+
+      expect(tagNamesOf(root)).toEqual([]);
+      expect(textOf(root)).toBe("大見出し");
+    });
+
+    it("script / iframe / style / object を落とす", () => {
+      const { root } = SanitizedRichText.from(
+        [
+          "<script>alert(1)</script>",
+          '<iframe src="https://example.com"></iframe>',
+          "<style>body{color:red}</style>",
+          '<object data="/malicious"></object>',
+        ].join(""),
+      );
+
+      expect(tagNamesOf(root)).toEqual([]);
+    });
+
+    it("script / style の中身を本文へ残さない", () => {
+      const { root } = SanitizedRichText.from(
+        "<script>alert(1)</script><style>body{color:red}</style>",
+      );
+
+      expect(textOf(root)).toBe("");
+    });
+  });
+
+  describe("allowlist 内", () => {
+    it("通すと決めたタグをすべて残す", () => {
+      const { root } = SanitizedRichText.from(allowedTagsHtml);
+
+      expect(new Set(tagNamesOf(root))).toEqual(new Set(RICH_TEXT_TAG_NAMES));
+    });
+
+    it("a の href に http / https / mailto を残す", () => {
+      const { root } = SanitizedRichText.from(
+        [
+          '<a href="http://example.com">平文</a>',
+          '<a href="https://example.com">暗号化</a>',
+          '<a href="mailto:someone@example.com">メール</a>',
+        ].join(""),
+      );
+
+      expect(elementsOf(root).map((element) => element.properties.href)).toEqual([
+        "http://example.com",
+        "https://example.com",
+        "mailto:someone@example.com",
+      ]);
+    });
+
+    it("li を ul / ol の中でだけ残す", () => {
+      const nested = SanitizedRichText.from("<ul><li>入れ子</li></ul>");
+      const stray = SanitizedRichText.from("<li>単独</li>");
+
+      expect(tagNamesOf(nested.root)).toEqual(["ul", "li"]);
+      expect(tagNamesOf(stray.root)).toEqual([]);
+      expect(textOf(stray.root)).toBe("単独");
+    });
   });
 });
 
