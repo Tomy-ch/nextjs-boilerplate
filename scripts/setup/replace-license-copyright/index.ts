@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { updateFile } from "./lib/file-utils.js";
-import { exitWithUsage, parseCommonFlags } from "./lib/runtime.js";
-import { ensureFourDigitYear } from "./lib/validators.js";
+import { updateFile } from "../lib/file-utils.js";
+import { exitWithUsage, parseCommonFlags } from "../lib/runtime.js";
+import { ensureFourDigitYear } from "../lib/validators.js";
 
 type Options = {
   holder?: string;
@@ -16,11 +16,11 @@ const LICENSE_FILE = "LICENSE";
 
 function printUsage(): void {
   console.log(`使用方法:
-  tsx scripts/setup/replace-license-copyright.ts --holder <name> [--year <yyyy>] [--dry-run]
+  tsx scripts/setup/replace-license-copyright --holder <name> [--year <yyyy>] [--dry-run]
 
 例:
-  tsx scripts/setup/replace-license-copyright.ts --holder "Example Inc."
-  tsx scripts/setup/replace-license-copyright.ts --holder "Example Inc." --year 2026 --dry-run
+  tsx scripts/setup/replace-license-copyright --holder "Example Inc."
+  tsx scripts/setup/replace-license-copyright --holder "Example Inc." --year 2026 --dry-run
 `);
 }
 
