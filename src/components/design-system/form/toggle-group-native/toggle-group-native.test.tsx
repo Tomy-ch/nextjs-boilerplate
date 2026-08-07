@@ -129,3 +129,23 @@ describe("ToggleGroupNative", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("ToggleGroupNativeItem", () => {
+  // ----- 正常系 -----
+  it("選択肢 1 件を label で包んだ radio として描画する", () => {
+    render(<SingleFixture />);
+
+    const item = screen.getByRole("radio", { name: "JPY" });
+
+    expect(item.closest('[data-slot="toggle-group-native-item"]')).not.toBeNull();
+    expect(item).toBeChecked();
+  });
+
+  it("type を checkbox にすると複数選択の選択肢になる", () => {
+    render(<MultipleFixture />);
+
+    const item = screen.getByRole("checkbox", { name: "価格" });
+
+    expect(item.closest('[data-slot="toggle-group-native-item"]')).not.toBeNull();
+  });
+});

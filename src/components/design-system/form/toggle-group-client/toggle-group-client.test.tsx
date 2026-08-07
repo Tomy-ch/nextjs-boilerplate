@@ -137,3 +137,22 @@ describe("ToggleGroupClient", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("ToggleGroupClientItem", () => {
+  // ----- 正常系 -----
+  it("選択肢 1 件を radio として slot つきで描画する", () => {
+    render(<SingleFixture />);
+
+    expect(screen.getByRole("radio", { name: "JPY" })).toHaveAttribute(
+      "data-slot",
+      "toggle-group-item",
+    );
+  });
+
+  it("選択中の項目を押下状態として示す", () => {
+    render(<SingleFixture />);
+
+    expect(screen.getByRole("radio", { name: "JPY" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "USD" })).not.toBeChecked();
+  });
+});

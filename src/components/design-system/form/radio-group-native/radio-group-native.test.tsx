@@ -70,3 +70,24 @@ describe("RadioGroupNative", () => {
     ).toEqual([]);
   });
 });
+
+describe("RadioGroupNativeItem", () => {
+  // ----- 正常系 -----
+  it("選択肢 1 件を radio として slot つきで描画する", () => {
+    render(<Fixture />);
+
+    expect(screen.getByRole("radio", { name: "簡潔" })).toHaveAttribute(
+      "data-slot",
+      "radio-group-native-item",
+    );
+  });
+
+  it("同じ name の中で排他的に切り替わる", () => {
+    render(<Fixture />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "簡潔" }));
+
+    expect(screen.getByRole("radio", { name: "簡潔" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "標準" })).not.toBeChecked();
+  });
+});

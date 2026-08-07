@@ -39,3 +39,21 @@ describe("RadioGroupClient", () => {
     ).toEqual([]);
   });
 });
+
+describe("RadioGroupClientItem", () => {
+  // ----- 正常系 -----
+  it("選択肢 1 件を radio として slot つきで描画する", () => {
+    render(<Fixture />);
+
+    expect(screen.getByRole("radio", { name: "簡潔" })).toHaveAttribute(
+      "data-slot",
+      "radio-group-item",
+    );
+  });
+
+  it("選択中の項目に印を表示する", () => {
+    const { container } = render(<Fixture />);
+
+    expect(container.querySelector('[data-slot="radio-group-indicator"]')).not.toBeNull();
+  });
+});
