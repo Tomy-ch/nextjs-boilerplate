@@ -5,13 +5,7 @@
 import boundaries from "eslint-plugin-boundaries";
 import tseslint from "typescript-eslint";
 
-import {
-  DEPENDENCIES,
-  ENTRY_POINTS,
-  FORBIDDEN_AREAS,
-  KERNELS,
-  RESTRICTED_AREAS,
-} from "./architecture";
+import { DEPENDENCIES, ENTRY_POINTS, KERNELS, RESTRICTED_AREAS } from "./architecture";
 import noInternalAnchor from "./eslint-rules/no-internal-anchor.mjs";
 
 const elements = [
@@ -19,9 +13,6 @@ const elements = [
   // 見えなくなり、層の粒度の許可がそのまま区画への許可になる。
   ...RESTRICTED_AREAS.map(({ type, pattern }) => ({ type, pattern, partialMatch: false })),
   ...KERNELS.map((type) => ({ type, pattern: `src/${type}`, partialMatch: false })),
-  // 要素として宣言することが禁止の手段になる。どの層の policy にも現れないため、
-  // default: "disallow" がそのまま「import できない」を意味する。
-  ...FORBIDDEN_AREAS.map(({ type, pattern }) => ({ type, pattern, partialMatch: false })),
 ];
 
 export default [
@@ -53,7 +44,7 @@ export default [
       "import/resolver": { typescript: { project: "./tsconfig.json" } },
       "boundaries/include": [
         "src/**/*",
-        ...FORBIDDEN_AREAS.map(({ pattern }) => `${pattern}/**/*`),
+        ...RESTRICTED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
       ],
       "boundaries/elements": elements,
     },
@@ -67,8 +58,16 @@ export default [
               from: { element: { type: from } },
               allow: { to: { element: { types: { anyOf: types } } } },
             })),
-            ...RESTRICTED_AREAS.map(({ type, allowedFrom }) => ({
-              from: { element: { types: { anyOf: allowedFrom } } },
+            ...RESTRICTED_AREAS.filter(({ allowedFrom }) => allowedFrom.length > 0).map(
+              ({ type, allowedFrom }) => ({
+                from: { element: { types: { anyOf: allowedFrom } } },
+                allow: { to: { element: { type } } },
+              }),
+            ),
+            ...RESTRICTED_AREAS.filter(
+              ({ allowedFromCategories }) => allowedFromCategories.length > 0,
+            ).map(({ type, allowedFromCategories }) => ({
+              from: { file: { categories: allowedFromCategories } },
               allow: { to: { element: { type } } },
             })),
             ...ENTRY_POINTS.map(({ category, dependencies }) => ({

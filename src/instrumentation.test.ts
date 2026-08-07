@@ -31,6 +31,7 @@ describe("正常系", () => {
     const createOtlpLogSink = vi.fn();
     const extractActiveTraceContext = vi.fn();
     vi.doMock("./config/bootstrap.server", () => ({ bootstrapConfig }));
+    vi.doMock("./config/api/api.server", () => ({ getApiConfig: () => ({ mode: "live" }) }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({
         otlpEndpoint: "http://localhost:4318",
@@ -65,6 +66,7 @@ describe("正常系", () => {
     const createOtlpLogSink = vi.fn(() => vi.fn());
     const extractActiveTraceContext = vi.fn();
     vi.doMock("./config/bootstrap.server", () => ({ bootstrapConfig }));
+    vi.doMock("./config/api/api.server", () => ({ getApiConfig: () => ({ mode: "live" }) }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({
         otlpEndpoint: "http://localhost:4318",
@@ -122,5 +124,35 @@ describe("正常系", () => {
       logs_enabled: true,
     });
     expect(end).toHaveBeenCalledOnce();
+  });
+});
+
+describe("正常系", () => {
+  it("mock モードでは API の interception を立てる", async () => {
+    vi.stubEnv("NEXT_RUNTIME", "nodejs");
+    const listen = vi.fn();
+    vi.doMock("./config/bootstrap.server", () => ({ bootstrapConfig: vi.fn() }));
+    vi.doMock("./config/api/api.server", () => ({ getApiConfig: () => ({ mode: "mock" }) }));
+    vi.doMock("../mocks/node", () => ({ mockServer: { listen } }));
+    vi.doMock("./config/observability/observability.server", () => ({
+      getObservabilityConfig: () => ({
+        otlpEndpoint: "http://localhost:4318",
+        tracesEnabled: false,
+        metricsEnabled: false,
+        logsEnabled: false,
+      }),
+    }));
+    vi.doMock("./observability/initialize.server", () => ({ initializeObservability: vi.fn() }));
+    vi.doMock("./logging/logging.server", () => ({
+      getLogger: vi.fn(),
+      initializeLogger: vi.fn(),
+    }));
+    vi.doMock("./observability/otlp-log-sink.server", () => ({ createOtlpLogSink: vi.fn() }));
+    vi.doMock("./observability/trace-context", () => ({ extractActiveTraceContext: vi.fn() }));
+    const { register } = await import("./instrumentation");
+
+    await register();
+
+    expect(listen).toHaveBeenCalledWith({ onUnhandledRequest: "bypass" });
   });
 });

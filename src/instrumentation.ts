@@ -25,6 +25,16 @@ export async function register(): Promise<void> {
 
     await bootstrapConfig();
 
+    // API のモックは Config の確定後に立てる。接続モードは検証済み ENV から決まり、
+    // 検証の前に判断すると未検証の値で本番の接続先を差し替えうる。
+    const { getApiConfig } = await import("./config/api/api.server");
+
+    if (getApiConfig().mode === "mock") {
+      const { mockServer } = await import("../mocks/node");
+
+      mockServer.listen({ onUnhandledRequest: "bypass" });
+    }
+
     const config = getObservabilityConfig();
     initializeObservability({
       otlpEndpoint: config.otlpEndpoint,
