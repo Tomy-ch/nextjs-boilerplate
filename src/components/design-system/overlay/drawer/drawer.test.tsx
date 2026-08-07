@@ -185,3 +185,124 @@ describe("Drawer", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("DrawerTrigger", () => {
+  // ----- 正常系 -----
+  it("開く操作として slot を持つ要素を描画する", () => {
+    render(<DrawerFixture />);
+
+    expect(screen.getByRole("button", { name: "補足を開く" })).toHaveAttribute(
+      "data-slot",
+      "drawer-trigger",
+    );
+  });
+
+  it("押すと内容を開く", () => {
+    render(<DrawerFixture />);
+
+    fireEvent.click(screen.getByRole("button", { name: "補足を開く" }));
+
+    expect(screen.getByRole("dialog")).toBeVisible();
+  });
+});
+
+describe("DrawerPortal", () => {
+  // ----- 正常系 -----
+  it("内容を呼び出し位置の外へ描画する", () => {
+    const { container } = render(<DrawerFixture defaultOpen />);
+
+    expect(screen.getByRole("dialog")).toBeVisible();
+    expect(container.querySelector('[data-slot="drawer-content"]')).toBeNull();
+  });
+});
+
+describe("DrawerOverlay", () => {
+  // ----- 正常系 -----
+  it("開いている間だけ背面の覆いを描画する", () => {
+    render(<DrawerFixture defaultOpen />);
+
+    expect(document.querySelector('[data-slot="drawer-overlay"]')).not.toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は背面の覆いを描画しない", () => {
+    render(<DrawerFixture />);
+
+    expect(document.querySelector('[data-slot="drawer-overlay"]')).toBeNull();
+  });
+});
+
+describe("DrawerContent", () => {
+  // ----- 正常系 -----
+  it("開いた内容として slot を持つ要素を描画する", () => {
+    render(<DrawerFixture defaultOpen />);
+
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-slot", "drawer-content");
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は内容を描画しない", () => {
+    render(<DrawerFixture />);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("DrawerHeader", () => {
+  // ----- 正常系 -----
+  it("見出し枠として slot を持つ要素を描画する", () => {
+    render(<DrawerFixture defaultOpen />);
+
+    expect(document.querySelector('[data-slot="drawer-header"]')).not.toBeNull();
+  });
+});
+
+describe("DrawerFooter", () => {
+  // ----- 正常系 -----
+  it("操作枠として slot を持つ要素を描画する", () => {
+    render(<DrawerFixture defaultOpen />);
+
+    expect(document.querySelector('[data-slot="drawer-footer"]')).not.toBeNull();
+  });
+});
+
+describe("DrawerTitle", () => {
+  // ----- 正常系 -----
+  it("題名として slot を持つ要素を描画する", () => {
+    render(<DrawerFixture defaultOpen />);
+
+    expect(screen.getByText("表示条件")).toHaveAttribute("data-slot", "drawer-title");
+  });
+});
+
+describe("DrawerDescription", () => {
+  // ----- 正常系 -----
+  it("補足として slot を持つ要素を描画する", () => {
+    render(<DrawerFixture defaultOpen />);
+
+    expect(screen.getByText("条件を満たす項目だけを一覧に表示します。")).toHaveAttribute(
+      "data-slot",
+      "drawer-description",
+    );
+  });
+});
+
+describe("DrawerClose", () => {
+  // ----- 正常系 -----
+  it("閉じる操作として slot を持つ要素を描画する", () => {
+    render(<DrawerFixture defaultOpen />);
+
+    expect(screen.getByRole("button", { name: "戻る" })).toHaveAttribute(
+      "data-slot",
+      "drawer-close",
+    );
+  });
+
+  it("押すと内容を閉じる", () => {
+    render(<DrawerFixture defaultOpen />);
+
+    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

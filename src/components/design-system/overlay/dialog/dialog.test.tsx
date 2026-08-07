@@ -132,3 +132,124 @@ describe("Dialog", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("DialogTrigger", () => {
+  // ----- 正常系 -----
+  it("開く操作として slot を持つ要素を描画する", () => {
+    render(<DialogFixture />);
+
+    expect(screen.getByRole("button", { name: "詳細を見る" })).toHaveAttribute(
+      "data-slot",
+      "dialog-trigger",
+    );
+  });
+
+  it("押すと内容を開く", () => {
+    render(<DialogFixture />);
+
+    fireEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
+
+    expect(screen.getByRole("dialog")).toBeVisible();
+  });
+});
+
+describe("DialogPortal", () => {
+  // ----- 正常系 -----
+  it("内容を呼び出し位置の外へ描画する", () => {
+    const { container } = render(<DialogFixture defaultOpen />);
+
+    expect(screen.getByRole("dialog")).toBeVisible();
+    expect(container.querySelector('[data-slot="dialog-content"]')).toBeNull();
+  });
+});
+
+describe("DialogOverlay", () => {
+  // ----- 正常系 -----
+  it("開いている間だけ背面の覆いを描画する", () => {
+    render(<DialogFixture defaultOpen />);
+
+    expect(document.querySelector('[data-slot="dialog-overlay"]')).not.toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は背面の覆いを描画しない", () => {
+    render(<DialogFixture />);
+
+    expect(document.querySelector('[data-slot="dialog-overlay"]')).toBeNull();
+  });
+});
+
+describe("DialogContent", () => {
+  // ----- 正常系 -----
+  it("開いた内容として slot を持つ要素を描画する", () => {
+    render(<DialogFixture defaultOpen />);
+
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-slot", "dialog-content");
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は内容を描画しない", () => {
+    render(<DialogFixture />);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("DialogHeader", () => {
+  // ----- 正常系 -----
+  it("見出し枠として slot を持つ要素を描画する", () => {
+    render(<DialogFixture defaultOpen />);
+
+    expect(document.querySelector('[data-slot="dialog-header"]')).not.toBeNull();
+  });
+});
+
+describe("DialogFooter", () => {
+  // ----- 正常系 -----
+  it("操作枠として slot を持つ要素を描画する", () => {
+    render(<DialogFixture defaultOpen />);
+
+    expect(document.querySelector('[data-slot="dialog-footer"]')).not.toBeNull();
+  });
+});
+
+describe("DialogTitle", () => {
+  // ----- 正常系 -----
+  it("題名として slot を持つ要素を描画する", () => {
+    render(<DialogFixture defaultOpen />);
+
+    expect(screen.getByText("表示条件")).toHaveAttribute("data-slot", "dialog-title");
+  });
+});
+
+describe("DialogDescription", () => {
+  // ----- 正常系 -----
+  it("補足として slot を持つ要素を描画する", () => {
+    render(<DialogFixture defaultOpen />);
+
+    expect(screen.getByText("条件を満たす項目だけを一覧に表示します。")).toHaveAttribute(
+      "data-slot",
+      "dialog-description",
+    );
+  });
+});
+
+describe("DialogClose", () => {
+  // ----- 正常系 -----
+  it("閉じる操作として slot を持つ要素を描画する", () => {
+    render(<DialogFixture defaultOpen />);
+
+    expect(screen.getByRole("button", { name: "戻る" })).toHaveAttribute(
+      "data-slot",
+      "dialog-close",
+    );
+  });
+
+  it("押すと内容を閉じる", () => {
+    render(<DialogFixture defaultOpen />);
+
+    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
