@@ -1,6 +1,9 @@
 import os from "node:os";
 import path from "node:path";
 
+/** 置き場の解決に使う環境変数。 */
+export type ClaudeEnv = Readonly<Record<string, string | undefined>>;
+
 /** 導入する外部スキル 1 件。 */
 export type ExternalSkill = {
   /** PATH から起動するコマンド名。 */
@@ -20,7 +23,7 @@ export type ExternalSkill = {
  * 着地検証はインストーラと同じ優先順位で解決しないと、導入は成功しているのに検証だけが
  * `~/.claude` を見て失敗します。
  */
-export function claudeConfigDir(env: NodeJS.ProcessEnv = process.env): string {
+export function claudeConfigDir(env: ClaudeEnv = process.env): string {
   return env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
 }
 
@@ -37,7 +40,7 @@ export function claudeConfigDir(env: NodeJS.ProcessEnv = process.env): string {
  * AGENTS.md が保護対象と定めているファイル群であり、`.claude/settings.json` の deny は
  * `install` 系統を丸ごと塞いでいます。この経路だけが例外で、スクリプトの外から叩かせません。
  */
-export function externalSkills(env: NodeJS.ProcessEnv = process.env): ExternalSkill[] {
+export function externalSkills(env: ClaudeEnv = process.env): ExternalSkill[] {
   return [
     {
       command: "graphify",
