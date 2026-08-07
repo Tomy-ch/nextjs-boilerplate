@@ -17,8 +17,11 @@ export type ActionRef = {
 
 // uses: [-] owner/repo[/sub]@<ref> [# <tag>]
 // 空白を `[ \t]` に限定するのは、`\s` だと改行を食って複数行が 1 マッチに結合するため。
+// 引用符を値から締め出すのは、含めると `uses: "owner/repo@v1"` が引用符ごと一致し、
+// `"owner` を owner として取り込んで固定対象に載せてしまうため。締め出せば一致しなくなり、
+// unparsedUsesLines が対応記法の外として拾う。
 export const USES_PATTERN =
-  /^([ \t]*(?:-[ \t]*)?uses:[ \t]*)([^@\s]+)@([^\s#]+)(?:[ \t]*#[ \t]*(\S+))?[ \t]*$/gm;
+  /^([ \t]*(?:-[ \t]*)?uses:[ \t]*)([^@\s'"]+)@([^\s#'"]+)(?:[ \t]*#[ \t]*(\S+))?[ \t]*$/gm;
 
 // 記法を問わず `uses:` とその値を拾う。USES_PATTERN の取りこぼし検出にのみ使う。
 const LOOSE_USES_PATTERN = /\buses[ \t]*:[ \t]*['"]?([^\s'",}#]+)/;
