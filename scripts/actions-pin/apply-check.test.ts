@@ -66,7 +66,7 @@ describe("rewritePins", () => {
   });
 
   it("固定対象外のローカル参照は書き換えず参照にも数えない", () => {
-    const line = "      - uses: ./.github/actions/setup\n";
+    const line = "      - uses: ./.github/actions/setup@v1\n";
     const result = rewritePins(line, lockOf());
 
     expect(result.out).toBe(line);

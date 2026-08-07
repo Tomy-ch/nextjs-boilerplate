@@ -171,6 +171,12 @@ describe("collectTestableExports", () => {
 
     expect(collectTestableExports(source, "sample.ts", callableOf())).toEqual([]);
   });
+
+  it("名前空間つきの再 export（`export * as ns from`）は返さない", () => {
+    const source = 'export * as helpers from "./other";';
+
+    expect(collectTestableExports(source, "sample.ts", callableOf("helpers"))).toEqual([]);
+  });
 });
 
 describe("checkFile", () => {
@@ -309,6 +315,12 @@ describe("formatViolations", () => {
     expect(formatViolations(violations)).toBe(
       ["a.test.ts:1: [unknown-describe] 先", "b.ts:2: [missing-describe] 後"].join("\n"),
     );
+  });
+
+  it("同じ行が並んでも順序を壊さない", () => {
+    const same: Violation = { kind: "missing-describe", file: "a.ts", line: 1, message: "同" };
+
+    expect(formatViolations([same, same]).split("\n")).toHaveLength(2);
   });
 
   // ----- 異常系 -----

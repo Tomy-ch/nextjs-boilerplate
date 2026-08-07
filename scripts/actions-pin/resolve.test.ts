@@ -54,6 +54,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   execFileMock.mockReset();
 });
@@ -209,6 +210,45 @@ describe("refAgeDays", () => {
     ]);
 
     await expect(refAgeDays("actions/checkout", "v7", SHA)).resolves.toBe(3);
+  });
+
+  it("トークンがあれば Authorization を添えて問い合わせる", async () => {
+    vi.stubEnv("GITHUB_TOKEN", "token-value");
+    stubFetch([
+      { match: "/releases/tags/", status: 404 },
+      {
+        match: "/commits/",
+        status: 200,
+        body: { commit: { committer: { date: "2026-08-02T00:00:00Z" } } },
+      },
+    ]);
+
+    await refAgeDays("actions/checkout", "v7", SHA);
+
+    const [, init] = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock
+      .calls[0] as [string, { headers: Record<string, string> }];
+
+    expect(init.headers.Authorization).toBe("Bearer token-value");
+  });
+
+  it("トークンが無ければ Authorization を添えない", async () => {
+    vi.stubEnv("GITHUB_TOKEN", "");
+    vi.stubEnv("GH_TOKEN", "");
+    stubFetch([
+      { match: "/releases/tags/", status: 404 },
+      {
+        match: "/commits/",
+        status: 200,
+        body: { commit: { committer: { date: "2026-08-02T00:00:00Z" } } },
+      },
+    ]);
+
+    await refAgeDays("actions/checkout", "v7", SHA);
+
+    const [, init] = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock
+      .calls[0] as [string, { headers: Record<string, string> }];
+
+    expect(init.headers).not.toHaveProperty("Authorization");
   });
 
   it("Release が無ければ commit の日付だけで判断する", async () => {

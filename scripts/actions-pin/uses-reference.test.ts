@@ -157,7 +157,7 @@ describe("collectRefs", () => {
 
   // ----- 異常系 -----
   it("固定対象外の参照を集めない", () => {
-    const file = place("a.yaml", "      - uses: ./.github/actions/setup\n");
+    const file = place("a.yaml", "      - uses: ./.github/actions/setup@v1\n");
 
     expect(collectRefs([file]).size).toBe(0);
   });

@@ -14,12 +14,6 @@
 const MAX_WILDCARDS = 8;
 const MAX_BRACE_EXPANSIONS = 64;
 
-// 検査する 1 行の長さの上限。行の内容も書き手が自由に決められ、正規表現の照合は行長に対して
-// 二次時間まで落ちる。このリポジトリは公開されており md-lint は fork からの PR でも走るため、
-// 極端に長い 1 行は CI と pre-commit を止める手段になる。上限超過は検査を飛ばさず違反として
-// 報告する（黙って通すと「長く書けば検査を外せる」抜け道になる）。
-const MAX_LINE_LENGTH = 4096;
-
 export function isTooComplex(text: string): boolean {
   const wildcards = text.match(/\*+|<[^>]*>/g)?.length ?? 0;
   if (wildcards > MAX_WILDCARDS) return true;

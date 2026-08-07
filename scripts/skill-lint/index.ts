@@ -13,7 +13,6 @@ import path from "node:path";
 import {
   eachLineOutsideFence,
   extractHeadings,
-  type Heading,
   parseFrontmatterKeys,
   splitFrontmatter,
 } from "./document-structure.js";

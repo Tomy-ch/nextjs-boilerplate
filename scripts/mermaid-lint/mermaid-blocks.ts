@@ -20,13 +20,13 @@ export function extractMermaidBlocks(content: string): MermaidBlock[] {
   const blocks: MermaidBlock[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const opening = FENCE_PATTERN.exec(lines[i] ?? "");
+    const opening = FENCE_PATTERN.exec(lines[i]);
 
     if (!opening) {
       continue;
     }
 
-    const marker = opening[2] ?? "";
+    const marker = opening[2];
     const closing = new RegExp(
       `^\\s*${marker.startsWith("`") ? "`" : "~"}{${marker.length},}\\s*$`,
     );
@@ -34,11 +34,11 @@ export function extractMermaidBlocks(content: string): MermaidBlock[] {
     let j = i + 1;
 
     for (; j < lines.length; j++) {
-      if (closing.test(lines[j] ?? "")) {
+      if (closing.test(lines[j])) {
         break;
       }
 
-      body.push(lines[j] ?? "");
+      body.push(lines[j]);
     }
 
     blocks.push({ startLine: i + 1, code: body.join("\n") });

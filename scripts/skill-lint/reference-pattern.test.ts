@@ -69,6 +69,19 @@ describe("placeholderToRegExp", () => {
     expect(pattern.test("scripts/a/b/index.ts")).toBe(true);
   });
 
+  it("区切りが続く `**` は 0 階層以上として扱う", () => {
+    const pattern = placeholderToRegExp("src/**/x.ts", { segmentSeparator: true });
+
+    expect(pattern.test("src/x.ts")).toBe(true);
+    expect(pattern.test("src/a/b/x.ts")).toBe(true);
+  });
+
+  it("区切りが続かない `**` は階層を跨ぐ任意文字列として扱う", () => {
+    const pattern = placeholderToRegExp("src/**x.ts", { segmentSeparator: true });
+
+    expect(pattern.test("src/a/b-x.ts")).toBe(true);
+  });
+
   it("`<name>` を書き手が埋める 1 セグメントとして扱う", () => {
     const pattern = placeholderToRegExp("scripts/<tool>/index.ts", { segmentSeparator: true });
 

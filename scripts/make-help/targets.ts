@@ -55,7 +55,7 @@ export function buildTargetListing(sources: readonly MakefileSource[]): TargetLi
       if (phony) {
         const comment = phony[2];
 
-        for (const target of (phony[1] ?? "").split(/\s+/)) {
+        for (const target of phony[1].split(/\s+/)) {
           lines.push(`🛠  ${target.padEnd(TARGET_COLUMN_WIDTH)} ${comment}`);
         }
 

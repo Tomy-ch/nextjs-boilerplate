@@ -43,7 +43,7 @@ export function findSecretReferences(text: string): SecretReference[] {
     // 文字列を囲むのは単引用符だけなので、潰した側から名前まで読もうとすると
     // `secrets['NAME']` の NAME が消え、実参照の名前が常に伏せられる。
     for (const match of maskStrings(body).matchAll(SECRET_CONTEXT)) {
-      const offset = match.index ?? 0;
+      const offset = match.index;
       const named = SECRET_NAME.exec(body.slice(offset));
 
       found.push({ offset: bodyStart + offset, name: named?.[1] ?? named?.[3] ?? null });

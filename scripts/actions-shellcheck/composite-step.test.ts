@@ -104,7 +104,31 @@ describe("parseActionFile", () => {
     expect(parseActionFile("a.yml", source).steps[0]?.columnBase).toBe(8);
   });
 
+  it("本文が空のリテラルでは列の基準を 0 にする", () => {
+    const source = composite("    - shell: bash", "      run: |");
+
+    expect(parseActionFile("a.yml", source).steps[0]?.columnBase).toBe(0);
+  });
+
   // ----- 異常系 -----
+  it("文字列でないキーを持つステップは対象外にする", () => {
+    const source = composite("    - ? [複合キー]", "      : 値");
+
+    expect(parseActionFile("a.yml", source).steps).toEqual([]);
+  });
+
+  it("マージキーの並びのどれもキーを持たなければ対象外にする", () => {
+    const source = [
+      "first: &first",
+      "  name: 名前だけ",
+      "second: &second",
+      "  id: 識別子だけ",
+      composite("    - <<: [*first, *second]"),
+    ].join("\n");
+
+    expect(parseActionFile("a.yml", source).steps).toEqual([]);
+  });
+
   it("YAML として読めない定義を落とす", () => {
     expect(() => parseActionFile("a.yml", "runs:\n  - a\n b: c\n")).toThrow(
       /^a\.yml: YAML として読めません: /,
@@ -145,5 +169,43 @@ describe("parseActionFile", () => {
     const source = composite("    - <<: *missing");
 
     expect(() => parseActionFile("a.yml", source)).toThrow(/YAML を解決できません/);
+  });
+
+  describe("引用符とマージキーの取り扱い", () => {
+    // ----- 正常系 -----
+    it("引用符つきの run は開き引用符の分だけ列の基準をずらす", () => {
+      const source = composite("    - shell: bash", '      run: "echo hello"');
+
+      expect(parseActionFile("a.yml", source).steps[0]).toMatchObject({
+        script: "echo hello",
+        columnBase: 12,
+      });
+    });
+
+    it("引用符を持たない run は列の基準を 1 つ戻す", () => {
+      const source = composite("    - shell: bash", "      run: echo hello");
+
+      expect(parseActionFile("a.yml", source).steps[0]?.columnBase).toBe(11);
+    });
+
+    it("マージキーが並びのときは先に当たったものを採る", () => {
+      const source = [
+        "first: &first",
+        "  shell: bash",
+        "second: &second",
+        "  run: |",
+        "    echo hello",
+        composite("    - <<: [*first, *second]"),
+      ].join("\n");
+
+      expect(parseActionFile("a.yml", source).steps).toHaveLength(1);
+    });
+
+    // ----- 異常系 -----
+    it("マージキーの参照先にキーが無ければ対象外にする", () => {
+      const source = ["base: &base", "  name: 名前だけ", composite("    - <<: *base")].join("\n");
+
+      expect(parseActionFile("a.yml", source).steps).toEqual([]);
+    });
   });
 });

@@ -63,4 +63,12 @@ describe("resolvedPluginPath", () => {
   it("marketplace ディレクトリが無ければ undefined を返す", () => {
     expect(resolvedPluginPath("skill-creator", home)).toBeUndefined();
   });
+
+  it("marketplace の並びに混ざったファイルへ降りない", () => {
+    const marketplaces = join(home, ".claude", "plugins", "marketplaces");
+    mkdirSync(marketplaces, { recursive: true });
+    writeFileSync(join(marketplaces, "README.md"), "");
+
+    expect(resolvedPluginPath("skill-creator", home)).toBeUndefined();
+  });
 });
