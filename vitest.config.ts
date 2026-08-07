@@ -49,6 +49,11 @@ export default defineConfig({
         "scripts/portal/gen-docs-json.ts",
         "scripts/portal/gen-portal-docs.ts",
         "scripts/portal/build-site.ts",
+        // async Server Component。描画がサーバランタイム上のデータ取得に依存するため、
+        // 健全性は HTTP 境界を含む通しでしか確かめられない（[0091](docs/adr/0091-test-verification-methods.md)）。
+        // unit で無理に回すと脆い server render mock を積むことになる。撤去条件は E2E の着地。
+        "src/app/**/page.tsx",
+        "src/features/**/*-page-content.tsx",
         // 契約から生成される MSW ハンドラ。応答が契約を満たすかは mocks/contract-conformance.test.ts
         // が全ハンドラに対して検査しており、行や分岐の網羅で測る対象ではない。手書きの配線
         // （mocks 直下）はこの除外に含めない。

@@ -1,0 +1,65 @@
+"use client";
+
+import { MenuIcon } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useState } from "react";
+
+import { Button } from "@/components/design-system/action/button/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/design-system/overlay/sheet/sheet";
+
+import type { AppShellNavItem } from "./app-shell.definition";
+
+/** `AppShellMenu` の props。 */
+export type AppShellMenuProps = {
+  /** 並べる導線。header の横並びと同じものを渡す。 */
+  items: readonly AppShellNavItem[];
+};
+
+/**
+ * 狭い画面での導線をまとめる side menu。
+ *
+ * @remarks
+ * shell の中で唯一の client island です。開閉の状態だけがブラウザ側の関心であり、それ以外は
+ * server で描けます。
+ *
+ * 選んだら閉じます。開いたまま遷移すると、遷移先の内容がメニューに覆われたままになります。
+ *
+ * @see Storybook `Layout/AppShell`
+ */
+export function AppShellMenu({ items }: AppShellMenuProps) {
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="sm" className="md:hidden" aria-label="メニューを開く">
+          <MenuIcon aria-hidden="true" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-72">
+        <SheetHeader>
+          <SheetTitle>メニュー</SheetTitle>
+        </SheetHeader>
+        <nav aria-label="メニュー" className="flex flex-col gap-1 px-4 pb-4">
+          {items.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+              onClick={close}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
+}
