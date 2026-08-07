@@ -12,7 +12,7 @@
  * This API is intended as a production-ready boilerplate that balances performance,
  * flexibility, and developer experience.
  *
- * OpenAPI spec version: 2.2.0+aa62bff
+ * OpenAPI spec version: 2.2.0+b648831
  */
 import type { ReferenceAmount } from "./referenceAmount";
 
@@ -28,7 +28,7 @@ export interface ExchangeRateResponse {
    * 換算元の金額。正確な十進量を保つため decimal 文字列で表します。
    * @pattern ^\d+(\.\d+)?$
    */
-  amount: string;
+  original: string;
   /**
    * 換算後の金額。正確な十進量を保つため decimal 文字列で表します。
    * @pattern ^-?\d+(\.\d+)?$

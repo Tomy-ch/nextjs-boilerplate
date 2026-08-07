@@ -12,7 +12,7 @@
  * This API is intended as a production-ready boilerplate that balances performance,
  * flexibility, and developer experience.
  *
- * OpenAPI spec version: 2.2.0+aa62bff
+ * OpenAPI spec version: 2.2.0+b648831
  */
 import type { GetExchangeRatesDisplayCurrency } from "./getExchangeRatesDisplayCurrency";
 
@@ -31,7 +31,7 @@ export type GetExchangeRatesParams = {
    * @maxLength 40
    * @pattern ^\d{1,20}(\.\d{1,18})?$
    */
-  amount: string;
+  original: string;
   /**
    * 指定時のみ、その通貨での参考換算額を referenceAmount として返します（非永続）。
    * 現状は JPY のみサポートします。
