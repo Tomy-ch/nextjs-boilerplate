@@ -209,6 +209,8 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 | --- | --- | --- |
 | `make test-cached` | Vitest を cache 利用で実行します。 | pre-commit 用の高速フィードバック。coverage gate は実行しません。 |
 | `make test-full` | Vitest を cache 無効・coverage 付きで実行します。 | pre-push / CI 用。Statements / Branches / Functions / Lines の各 100% を下回ると失敗します。 |
+| `make scripts-test-cached` | 補助スクリプト（`scripts/**`）の suite を cache 利用で実行します。 | pre-commit 用。export と describe の 1:1 ゲートを含みます。 |
+| `make scripts-test` | 補助スクリプトの suite を cache 無効・coverage 付きで実行します。 | pre-push / CI（`scripts-check`）用。アプリ本体の suite と分けるのは、`scripts/` に居るのが検査機構そのもので、落ちた理由を取り違えないためです（[0090](../docs/adr/0090-testing-strategy.md)）。 |
 
 ## `.makefiles/security` 系
 

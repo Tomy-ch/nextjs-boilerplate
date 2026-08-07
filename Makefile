@@ -19,6 +19,7 @@ include .makefiles/tools/gen-api.mk
 
 # テスト関連
 include .makefiles/testing/test.mk
+include .makefiles/testing/scripts.mk
 
 # セキュリティ関連
 include .makefiles/security/gitleaks.mk

@@ -34,13 +34,13 @@ describe("collectTopLevelDescribes", () => {
   });
 
   it("入れ子の describe へは降りない", () => {
-    const source = [
-      'describe("outer", () => {',
-      '  describe("inner", () => {});',
-      "});",
-    ].join("\n");
+    const source = ['describe("outer", () => {', '  describe("inner", () => {});', "});"].join(
+      "\n",
+    );
 
-    expect(collectTopLevelDescribes(source, "sample.test.ts")).toEqual([{ name: "outer", line: 1 }]);
+    expect(collectTopLevelDescribes(source, "sample.test.ts")).toEqual([
+      { name: "outer", line: 1 },
+    ]);
   });
 
   it("describe.only / describe.skip も最上位として拾う", () => {
@@ -72,7 +72,9 @@ describe("collectTopLevelDescribes", () => {
   it("タイトルがリテラル文字列でない describe は拾わず、内側の describe を最上位として扱う", () => {
     const source = ["describe(name, () => {", '  describe("inner", () => {});', "});"].join("\n");
 
-    expect(collectTopLevelDescribes(source, "sample.test.ts")).toEqual([{ name: "inner", line: 2 }]);
+    expect(collectTopLevelDescribes(source, "sample.test.ts")).toEqual([
+      { name: "inner", line: 2 },
+    ]);
   });
 
   it("引数の無い describe は拾わない", () => {
@@ -131,9 +133,9 @@ describe("collectTestableExports", () => {
   it("export していない宣言は返さない", () => {
     const source = "function hidden(): void {}\nconst value = 1;\nclass Local {}";
 
-    expect(collectTestableExports(source, "sample.ts", callableOf("hidden", "value", "Local"))).toEqual(
-      [],
-    );
+    expect(
+      collectTestableExports(source, "sample.ts", callableOf("hidden", "value", "Local")),
+    ).toEqual([]);
   });
 
   it("型だけの export は返さない", () => {
@@ -147,9 +149,11 @@ describe("collectTestableExports", () => {
   });
 
   it("個別に型指定された export 要素は返さない", () => {
-    const source = ["type Local = string;", "const value = () => {};", "export { type Local, value };"].join(
-      "\n",
-    );
+    const source = [
+      "type Local = string;",
+      "const value = () => {};",
+      "export { type Local, value };",
+    ].join("\n");
 
     expect(collectTestableExports(source, "sample.ts", callableOf("value"))).toEqual([
       { name: "value", line: 3, testable: true },
