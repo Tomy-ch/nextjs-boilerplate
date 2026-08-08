@@ -1,5 +1,6 @@
 // 抽出したシェルスクリプトを shellcheck へ流し、指摘を action.yaml の位置へ写し戻す。
 import { spawnSync } from "node:child_process";
+import { errorMessage } from "../lib/error-message.js";
 import type { CompositeStep } from "./composite-step.js";
 
 const SHELLCHECK_BIN = "shellcheck";
@@ -94,8 +95,7 @@ export function checkStep(step: CompositeStep, shebang: string): string[] {
   try {
     script = maskExpressions(step.script);
   } catch (e) {
-    const detail = e instanceof Error ? e.message : String(e);
-    throw new ShellcheckError(`${step.file}:${step.firstLine}: ${detail}`);
+    throw new ShellcheckError(`${step.file}:${step.firstLine}: ${errorMessage(e)}`);
   }
   const result = spawnSync(SHELLCHECK_BIN, ["--norc", "--format=gcc", "-"], {
     input: `${shebang}\n${script}`,

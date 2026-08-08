@@ -59,6 +59,21 @@ describe("NotificationTrigger", () => {
 
     expect(screen.getByRole("button", { name: "お知らせ 未読 1 件" })).toBeInTheDocument();
   });
+
+  describe("NotificationCenter 全体", () => {
+    it("a11y 自動検査に違反しない", async () => {
+      const { container } = render(
+        <div>
+          <NotificationTrigger unreadCount={2} />
+          <PanelFixture onMarkAllRead={vi.fn()} />
+        </div>,
+      );
+
+      const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+      expect(result.violations).toEqual([]);
+    });
+  });
 });
 
 describe("NotificationPanel", () => {
@@ -177,20 +192,5 @@ describe("NotificationEmpty", () => {
 
     expect(screen.getByText("お知らせなし")).toBeInTheDocument();
     expect(screen.getByText("新しい通知はここに並びます。")).toBeInTheDocument();
-  });
-});
-
-describe("NotificationCenter 全体", () => {
-  it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(
-      <div>
-        <NotificationTrigger unreadCount={2} />
-        <PanelFixture onMarkAllRead={vi.fn()} />
-      </div>,
-    );
-
-    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
-
-    expect(result.violations).toEqual([]);
   });
 });

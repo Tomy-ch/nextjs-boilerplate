@@ -57,3 +57,135 @@ describe("AlertDialog", () => {
     ).toEqual([]);
   });
 });
+
+describe("AlertDialogTrigger", () => {
+  // ----- 正常系 -----
+  it("押すと確認内容を開く", () => {
+    render(<Example />);
+
+    fireEvent.click(screen.getByRole("button", { name: "開く" }));
+
+    expect(screen.getByRole("alertdialog")).toBeVisible();
+  });
+});
+
+describe("AlertDialogPortal", () => {
+  // ----- 正常系 -----
+  it("内容を呼び出し位置の外へ描画する", () => {
+    const { container } = render(<Example defaultOpen />);
+
+    expect(screen.getByRole("alertdialog")).toBeVisible();
+    expect(container.querySelector('[data-slot="alert-dialog-content"]')).toBeNull();
+  });
+});
+
+describe("AlertDialogOverlay", () => {
+  // ----- 正常系 -----
+  it("開いている間だけ背面の覆いを描画する", () => {
+    render(<Example defaultOpen />);
+
+    expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).not.toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は背面の覆いを描画しない", () => {
+    render(<Example />);
+
+    expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).toBeNull();
+  });
+});
+
+describe("AlertDialogContent", () => {
+  // ----- 正常系 -----
+  it("開いた内容として slot を持つ要素を描画する", () => {
+    render(<Example defaultOpen />);
+
+    expect(screen.getByRole("alertdialog")).toHaveAttribute("data-slot", "alert-dialog-content");
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は内容を描画しない", () => {
+    render(<Example />);
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+});
+
+describe("AlertDialogHeader", () => {
+  // ----- 正常系 -----
+  it("見出し枠として slot を持つ要素を描画する", () => {
+    render(<Example defaultOpen />);
+
+    expect(document.querySelector('[data-slot="alert-dialog-header"]')).not.toBeNull();
+  });
+});
+
+describe("AlertDialogFooter", () => {
+  // ----- 正常系 -----
+  it("操作枠として slot を持つ要素を描画する", () => {
+    render(<Example defaultOpen />);
+
+    expect(document.querySelector('[data-slot="alert-dialog-footer"]')).not.toBeNull();
+  });
+});
+
+describe("AlertDialogTitle", () => {
+  // ----- 正常系 -----
+  it("題名として slot を持つ要素を描画する", () => {
+    render(<Example defaultOpen />);
+
+    expect(screen.getByText("確認")).toHaveAttribute("data-slot", "alert-dialog-title");
+  });
+});
+
+describe("AlertDialogDescription", () => {
+  // ----- 正常系 -----
+  it("補足として slot を持つ要素を描画する", () => {
+    render(<Example defaultOpen />);
+
+    expect(screen.getByText("続行しますか？")).toHaveAttribute(
+      "data-slot",
+      "alert-dialog-description",
+    );
+  });
+});
+
+describe("AlertDialogAction", () => {
+  // ----- 正常系 -----
+  it("続行の操作として slot を持つ要素を描画する", () => {
+    render(<Example defaultOpen />);
+
+    expect(screen.getByRole("button", { name: "続行" })).toHaveAttribute(
+      "data-slot",
+      "alert-dialog-action",
+    );
+  });
+
+  it("押すと確認内容を閉じる", () => {
+    render(<Example defaultOpen />);
+
+    fireEvent.click(screen.getByRole("button", { name: "続行" }));
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+});
+
+describe("AlertDialogCancel", () => {
+  // ----- 正常系 -----
+  it("取り消しの操作として slot を持つ要素を描画する", () => {
+    render(<Example defaultOpen />);
+
+    expect(screen.getByRole("button", { name: "戻る" })).toHaveAttribute(
+      "data-slot",
+      "alert-dialog-cancel",
+    );
+  });
+
+  it("押すと確認内容を閉じる", () => {
+    render(<Example defaultOpen />);
+
+    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+});

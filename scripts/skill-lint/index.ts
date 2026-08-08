@@ -10,22 +10,25 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import {
+  eachLineOutsideFence,
+  extractHeadings,
+  parseFrontmatterKeys,
+  splitFrontmatter,
+} from "./document-structure.js";
+import {
+  expandBraces,
+  isTooComplex,
+  placeholderToRegExp,
+  scanInlineCode,
+  WILDCARD_RE,
+} from "./reference-pattern.js";
+
 type Finding = {
   file: string;
   line: number;
   rule: string;
   message: string;
-};
-
-type Frontmatter = {
-  lines: string[];
-  endLine: number;
-};
-
-type Heading = {
-  level: number;
-  text: string;
-  lineNo: number;
 };
 
 type MakeTargets = {
@@ -59,29 +62,11 @@ const PATH_ROOT_DENY = new Set(["tmp", ".git", "graphify-out"]);
 // 意図的に実在しない参照（仮定の例示・任意配置）を抑止するための行内ディレクティブ。
 const IGNORE_DIRECTIVE = "<!-- skill-lint-ignore -->";
 
-// 参照 1 件あたりのワイルドカード数とブレース展開数の上限。
-// 参照文字列は Markdown 本文から取るため書き手が自由に決められ、pre-commit と CI は時間制限なしで
-// このスクリプトを回す。`*` を並べた参照は `.*` の連鎖になり、索引全件との照合で破局的バックトラッキングを
-// 起こす。`{a,b}` の並びは組み合わせ爆発を起こす。上限超過は検査を飛ばさず違反として報告する
-// （黙って通すと「複雑に書けば検査を外せる」抜け道になる）。
-const MAX_WILDCARDS = 8;
-const MAX_BRACE_EXPANSIONS = 64;
-
 // 検査する 1 行の長さの上限。行の内容も書き手が自由に決められ、正規表現の照合は行長に対して
 // 二次時間まで落ちる。このリポジトリは公開されており md-lint は fork からの PR でも走るため、
 // 極端に長い 1 行は CI と pre-commit を止める手段になる。上限超過は検査を飛ばさず違反として
 // 報告する（黙って通すと「長く書けば検査を外せる」抜け道になる）。
 const MAX_LINE_LENGTH = 4096;
-
-function isTooComplex(text: string): boolean {
-  const wildcards = text.match(/\*+|<[^>]*>/g)?.length ?? 0;
-  if (wildcards > MAX_WILDCARDS) return true;
-  const combinations = (text.match(/\{[^{}]*\}/g) ?? []).reduce(
-    (n, group) => n * Math.max(1, group.split(",").length),
-    1,
-  );
-  return combinations > MAX_BRACE_EXPANSIONS;
-}
 
 const findings: Finding[] = [];
 
@@ -127,170 +112,9 @@ function buildEntryIndex(): string[] {
   return entries;
 }
 
-// `{a,b}` を展開して候補文字列の配列にする。
-// make ターゲットでは実ターゲット名の列挙（全て実在すべき）、パスでは glob の選択（どれか 1 つ
-// 当たれば良い）と意味が異なるため、判定側で all / any を使い分ける。
-function expandBraces(text: string): string[] {
-  const m = /\{([^{}]*)\}/.exec(text);
-  if (!m) return [text];
-  return m[1]
-    .split(",")
-    .flatMap((alt) =>
-      expandBraces(text.slice(0, m.index) + alt + text.slice(m.index + m[0].length)),
-    );
-}
-
-const WILDCARD_RE = /[*<]/;
-
-// ドキュメント中のプレースホルダ表記を正規表現へ変換する。
-// `<name>` は書き手が埋める任意の 1 セグメント、`**` は任意階層、`*` は 1 セグメント内の任意文字列。
-function placeholderToRegExp(
-  text: string,
-  { segmentSeparator }: { segmentSeparator: boolean },
-): RegExp {
-  const anySegmentChars = segmentSeparator ? "[^/]*" : ".*";
-  const placeholderChars = segmentSeparator ? "[^/]+" : ".+";
-  let out = "";
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === "<") {
-      const close = text.indexOf(">", i);
-      if (close === -1) {
-        out += "<";
-        continue;
-      }
-      out += placeholderChars;
-      i = close;
-      continue;
-    }
-    if (ch === "*") {
-      // 連続する `*` は 1 つのワイルドカードとして扱う。1 個ずつ `.*` へ展開すると `.*` の連鎖ができ、
-      // 照合が破局的バックトラッキングに落ちる。
-      let run = 1;
-      while (text[i + run] === "*") run++;
-      i += run - 1;
-      if (segmentSeparator && run >= 2) {
-        if (text[i + 1] === "/") {
-          out += "(?:[^/]+/)*";
-          i++;
-        } else {
-          out += ".*";
-        }
-        continue;
-      }
-      out += anySegmentChars;
-      continue;
-    }
-    out += ch.replace(/[.+^${}()|[\]\\?]/g, "\\$&");
-  }
-  return new RegExp(`^${out}$`);
-}
-
-// 行を走査しつつコードフェンス（``` / ~~~）の内外を判定する。
-// フェンス内は例示・出力サンプルであり実在性を保証しない前提のため、検査対象から外す。
-// スキル本文は Markdown を含む Markdown（```markdown の中に ```json）を書くため、閉じ判定は
-// CommonMark どおり「情報文字列を持たない同種・同長以上のフェンス行」に限る。
-function* eachLineOutsideFence(content: string): Generator<{ line: string; lineNo: number }> {
-  const lines = content.split("\n");
-  let fence: string | null = null;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const marker = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
-    if (fence) {
-      const closes =
-        marker !== null &&
-        marker[1][0] === fence[0] &&
-        marker[1].length >= fence.length &&
-        marker[2].trim() === "";
-      if (closes) fence = null;
-      continue;
-    }
-    if (marker) {
-      fence = marker[1];
-      continue;
-    }
-    yield { line, lineNo: i + 1 };
-  }
-}
-
-// 1 行をインラインコードスパンの中身（spans）とスパンを除いた残り（withoutCode）へ分解する。
-// 閉じ判定は CommonMark どおり「開きと同じ長さのバッククォート列」に限る。長さを見ないと、単一
-// バッククォートを含む語句を二重で囲む書き方（`` `x` ``）が内側の 1 個で閉じたと解釈され、コード
-// スパンの中身が地の文として漏れる。
-// 抽出と除去を 1 つの走査で持つのは、解釈が食い違うと同じ記述が一方の検査では例示・他方では実在の
-// 主張になるため。走査は 1 パスで、正規表現の後方参照のようなバックトラッキングを持たない。
-function scanInlineCode(line: string): { spans: string[]; withoutCode: string } {
-  const spans: string[] = [];
-  let withoutCode = "";
-  let i = 0;
-  while (i < line.length) {
-    if (line[i] !== "`") {
-      withoutCode += line[i];
-      i++;
-      continue;
-    }
-    let open = 0;
-    while (line[i + open] === "`") open++;
-    let close = -1;
-    for (let j = i + open; j < line.length; ) {
-      if (line[j] !== "`") {
-        j++;
-        continue;
-      }
-      let run = 0;
-      while (line[j + run] === "`") run++;
-      if (run === open) {
-        close = j;
-        break;
-      }
-      j += run;
-    }
-    // 閉じないバッククォート列はコードスパンを開いていない。地の文として残す。
-    if (close === -1) {
-      withoutCode += line.slice(i, i + open);
-      i += open;
-      continue;
-    }
-    spans.push(line.slice(i + open, close).trim());
-    i = close + open;
-  }
-  return { spans, withoutCode };
-}
-
 // ---------------------------------------------------------------------------
 // frontmatter
 // ---------------------------------------------------------------------------
-
-// 先頭の `---` で囲まれた frontmatter を切り出す。無ければ null。
-function splitFrontmatter(content: string): Frontmatter | null {
-  const lines = content.split("\n");
-  if (lines[0] !== "---") return null;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i] === "---") return { lines: lines.slice(1, i), endLine: i + 1 };
-  }
-  return null;
-}
-
-// frontmatter のトップレベルキーと値を取り出す。折り畳みスカラ（`key: >-`）は後続の
-// インデント行を連結して値とする（YAML パーサを持ち込まずに済む範囲に限定した簡易解析）。
-function parseFrontmatterKeys(fmLines: string[]): Map<string, string> {
-  const keys = new Map<string, string>();
-  for (let i = 0; i < fmLines.length; i++) {
-    const m = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(fmLines[i]);
-    if (!m) continue;
-    let value = m[2].trim();
-    if (value === ">-" || value === ">" || value === "|" || value === "|-") {
-      const folded: string[] = [];
-      for (let j = i + 1; j < fmLines.length; j++) {
-        if (fmLines[j].trim() !== "" && !/^\s/.test(fmLines[j])) break;
-        folded.push(fmLines[j].trim());
-      }
-      value = folded.join(" ").trim();
-    }
-    keys.set(m[1], value);
-  }
-  return keys;
-}
 
 // name / description の必須検査と配置名（ディレクトリ名 / ファイル名）との一致検査。
 function checkFrontmatter(rel: string, content: string, expectedName: string): void {
@@ -321,15 +145,6 @@ function checkFrontmatter(rel: string, content: string, expectedName: string): v
 // ---------------------------------------------------------------------------
 
 // フェンス外の見出しを (レベル, テキスト) で抽出する。
-function extractHeadings(content: string): Heading[] {
-  const headings: Heading[] = [];
-  for (const { line, lineNo } of eachLineOutsideFence(content)) {
-    const m = /^(#{1,6})\s+(.*?)\s*$/.exec(line);
-    if (m) headings.push({ level: m[1].length, text: m[2], lineNo });
-  }
-  return headings;
-}
-
 // 対訳（SKILL.ja.md）が canonical（SKILL.md）と 1:1 であることを検査する。
 // ファイルの有無だけでは節の欠落・ずれを検出できないため、見出しレベル列の一致まで見る。
 function checkTranslationPair(canonicalRel: string, translationRel: string): void {

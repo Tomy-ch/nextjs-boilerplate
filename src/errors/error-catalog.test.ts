@@ -4,8 +4,9 @@ import { createAppError } from "./app-error";
 import { getDefaultErrorMeta, resolveErrorMeta } from "./error-catalog";
 import { createErrorMeta, withErrorMeta } from "./error-meta";
 
-describe("正常系", () => {
-  it("全分類に暫定コードと日本語の既定文言を定義する", () => {
+describe("getDefaultErrorMeta", () => {
+  // ----- 正常系 -----
+  it("全分類に暫定コードを定義する", () => {
     expect(getDefaultErrorMeta("invalid-argument").code).toBe("BAD_REQUEST");
     expect(getDefaultErrorMeta("unauthenticated").code).toBe("UNAUTHENTICATED");
     expect(getDefaultErrorMeta("permission-denied").code).toBe("FORBIDDEN");
@@ -19,11 +20,17 @@ describe("正常系", () => {
     expect(getDefaultErrorMeta("unavailable").code).toBe("SERVICE_UNAVAILABLE");
     expect(getDefaultErrorMeta("unimplemented").code).toBe("NOT_IMPLEMENTED");
     expect(getDefaultErrorMeta("internal").code).toBe("INTERNAL");
+  });
+
+  it("分類に日本語の既定文言を添える", () => {
     expect(getDefaultErrorMeta("internal").message).toBe(
       "問題が発生しました。時間をおいて再試行してください。",
     );
   });
+});
 
+describe("resolveErrorMeta", () => {
+  // ----- 正常系 -----
   it("分類から既定メタ情報を解決する", () => {
     const error = createAppError("validation");
 
@@ -66,9 +73,8 @@ describe("正常系", () => {
       details: ["userId"],
     });
   });
-});
 
-describe("異常系", () => {
+  // ----- 異常系 -----
   it("分類のないエラーからはメタ情報を解決しない", () => {
     expect(resolveErrorMeta(new Error("分類なし"))).toBeUndefined();
   });

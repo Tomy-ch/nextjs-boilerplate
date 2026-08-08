@@ -7,9 +7,9 @@ import {
   readUtf8File,
   toAbsolutePath,
   toRelativePath,
-} from "./lib/file-utils.js";
-import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "./lib/runtime.js";
-import { ensurePackageName, ensureRepositoryReference } from "./lib/validators.js";
+} from "../lib/file-utils.js";
+import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
+import { ensurePackageName, ensureRepositoryReference } from "../lib/validators.js";
 
 type Options = {
   repository?: string;
@@ -60,11 +60,11 @@ const EXCLUDED_PATH_PREFIXES = [`scripts${path.sep}setup${path.sep}`];
 
 function printUsage(): void {
   console.log(`使用方法:
-  tsx scripts/setup/replace-repository-reference.ts --repository <owner/repo> [--dry-run]
+  tsx scripts/setup/replace-repository-reference --repository <owner/repo> [--dry-run]
 
 例:
-  tsx scripts/setup/replace-repository-reference.ts --repository example-org/example-app
-  tsx scripts/setup/replace-repository-reference.ts --repository example-org/example-app --dry-run
+  tsx scripts/setup/replace-repository-reference --repository example-org/example-app
+  tsx scripts/setup/replace-repository-reference --repository example-org/example-app --dry-run
 
 補足:
   置換元は package.json の name（現在のプロジェクト名）です。

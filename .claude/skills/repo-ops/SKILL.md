@@ -171,8 +171,8 @@ of every tool that walks it, so the exclusion is written in five places and they
 | --- | --- |
 | `.gitignore` | `/.claude/worktrees/` |
 | `.markdownlint-cli2.yaml` | `ignores:` `.claude/worktrees/**` |
-| `scripts/mermaid-lint.ts` | `EXCLUDE_PREFIXES` |
-| `scripts/skill-lint.ts` | `EXCLUDE_PREFIXES` |
+| `scripts/mermaid-lint` | `EXCLUDE_PREFIXES` |
+| `scripts/skill-lint` | `EXCLUDE_PREFIXES` |
 | `.makefiles/security/trivy.mk` | `--skip-dirs .claude/worktrees` |
 
 None of these tools reads `.gitignore`, so ignoring a path there does not exclude it from any of the

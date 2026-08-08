@@ -7,7 +7,7 @@ import {
   renderCatalog,
   sectionOf,
   titleOf,
-} from "./design-bundle";
+} from "./catalog";
 
 const README = [
   "# Button",

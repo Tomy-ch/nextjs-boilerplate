@@ -66,3 +66,17 @@ describe("Kbd", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("KbdGroup", () => {
+  // ----- 正常系 -----
+  it("複数のキーをまとめる枠として slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <KbdGroup>
+        <Kbd>⌘</Kbd>
+        <Kbd>K</Kbd>
+      </KbdGroup>,
+    );
+
+    expect(container.querySelector('[data-slot="kbd-group"]')).not.toBeNull();
+  });
+});

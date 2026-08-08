@@ -38,67 +38,62 @@ function setUp(current: Record<string, string>, defaultKeyword?: string): void {
   render(<ProductSearch defaultKeyword={defaultKeyword} />);
 }
 
-describe("正常系", () => {
-  describe("ProductSearch", () => {
-    it("入力したキーワードを URL へ載せる", () => {
-      setUp({});
+describe("ProductSearch", () => {
+  // ----- 正常系 -----
+  it("入力したキーワードを URL へ載せる", () => {
+    setUp({});
 
-      search("イヤホン");
+    search("イヤホン");
 
-      expect(push).toHaveBeenCalledWith("/products?keyword=%E3%82%A4%E3%83%A4%E3%83%9B%E3%83%B3");
-    });
-    it("いまの条件を保ったまま書き換える", () => {
-      setUp({ sort: "-price" });
-
-      search("鞄");
-
-      expect(push.mock.calls[0]?.[0]).toContain("sort=-price");
-    });
-    it("現在のキーワードを初期値にする", () => {
-      setUp({}, "靴");
-
-      expect(screen.getByLabelText("キーワード")).toHaveValue("靴");
-    });
+    expect(push).toHaveBeenCalledWith("/products?keyword=%E3%82%A4%E3%83%A4%E3%83%9B%E3%83%B3");
   });
-});
 
-describe("異常系", () => {
-  describe("ProductSearch", () => {
-    it("キーワードを空にしたら条件から外す", () => {
-      setUp({ keyword: "靴" }, "靴");
+  it("いまの条件を保ったまま書き換える", () => {
+    setUp({ sort: "-price" });
 
-      search("");
+    search("鞄");
 
-      expect(push).toHaveBeenCalledWith("/products");
-    });
-    it("前のページのカーソルを持ち越さない", () => {
-      setUp({ after: "cursor-1" });
-
-      search("鞄");
-
-      expect(push.mock.calls[0]?.[0]).not.toContain("after=");
-    });
-    it("前後の空白だけの入力を条件にしない", () => {
-      setUp({});
-
-      search("   ");
-
-      expect(push).toHaveBeenCalledWith("/products");
-    });
+    expect(push.mock.calls[0]?.[0]).toContain("sort=-price");
   });
-});
 
-describe("異常系", () => {
-  describe("ProductSearch", () => {
-    it("入力欄を失った submit を空の検索として扱う", () => {
-      setUp({ keyword: "靴" }, "靴");
-      const field = screen.getByLabelText("キーワード");
-      const form = formOf(field);
+  it("現在のキーワードを初期値にする", () => {
+    setUp({}, "靴");
 
-      field.remove();
-      fireEvent.submit(form);
+    expect(screen.getByLabelText("キーワード")).toHaveValue("靴");
+  });
+  // ----- 異常系 -----
+  it("キーワードを空にしたら条件から外す", () => {
+    setUp({ keyword: "靴" }, "靴");
 
-      expect(push).toHaveBeenCalledWith("/products");
-    });
+    search("");
+
+    expect(push).toHaveBeenCalledWith("/products");
+  });
+
+  it("前のページのカーソルを持ち越さない", () => {
+    setUp({ after: "cursor-1" });
+
+    search("鞄");
+
+    expect(push.mock.calls[0]?.[0]).not.toContain("after=");
+  });
+
+  it("前後の空白だけの入力を条件にしない", () => {
+    setUp({});
+
+    search("   ");
+
+    expect(push).toHaveBeenCalledWith("/products");
+  });
+
+  it("入力欄を失った submit を空の検索として扱う", () => {
+    setUp({ keyword: "靴" }, "靴");
+    const field = screen.getByLabelText("キーワード");
+    const form = formOf(field);
+
+    field.remove();
+    fireEvent.submit(form);
+
+    expect(push).toHaveBeenCalledWith("/products");
   });
 });

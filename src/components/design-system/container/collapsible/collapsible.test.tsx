@@ -54,3 +54,34 @@ describe("Collapsible", () => {
     ).toEqual([]);
   });
 });
+
+describe("CollapsibleTrigger", () => {
+  // ----- 正常系 -----
+  it("開閉を切り替える summary として slot を持つ要素を描画する", () => {
+    render(<ExampleCollapsible />);
+
+    const trigger = screen.getByText("補足を表示");
+
+    expect(trigger).toHaveAttribute("data-slot", "collapsible-trigger");
+    expect(trigger.tagName).toBe("SUMMARY");
+  });
+});
+
+describe("CollapsibleContent", () => {
+  // ----- 正常系 -----
+  it("内容として slot を持つ要素を描画する", () => {
+    render(<ExampleCollapsible />);
+
+    expect(screen.getByText("確認する補足内容です。")).toHaveAttribute(
+      "data-slot",
+      "collapsible-content",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("既定では details が閉じた状態で始まる", () => {
+    const { container } = render(<ExampleCollapsible />);
+
+    expect(container.querySelector("details")).not.toHaveAttribute("open");
+  });
+});

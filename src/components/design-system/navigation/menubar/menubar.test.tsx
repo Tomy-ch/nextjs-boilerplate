@@ -74,6 +74,42 @@ function EditorMenubarFixture({
   );
 }
 
+function SelectionMenubarFixture() {
+  return (
+    <Menubar aria-label="表示設定" defaultValue="view">
+      <MenubarMenu value="view">
+        <MenubarTrigger>表示</MenubarTrigger>
+        <MenubarContent>
+          <MenubarCheckboxItem checked>行番号</MenubarCheckboxItem>
+          <MenubarCheckboxItem checked={false}>余白</MenubarCheckboxItem>
+          <MenubarRadioGroup value="comfortable">
+            <MenubarRadioItem value="comfortable">標準</MenubarRadioItem>
+            <MenubarRadioItem value="compact">高密度</MenubarRadioItem>
+          </MenubarRadioGroup>
+        </MenubarContent>
+      </MenubarMenu>
+    </Menubar>
+  );
+}
+
+function SubMenubarFixture() {
+  return (
+    <Menubar aria-label="ファイル操作" defaultValue="file">
+      <MenubarMenu value="file">
+        <MenubarTrigger>ファイル</MenubarTrigger>
+        <MenubarContent>
+          <MenubarSub>
+            <MenubarSubTrigger>書き出し</MenubarSubTrigger>
+            <MenubarSubContent>
+              <MenubarItem>PDF</MenubarItem>
+            </MenubarSubContent>
+          </MenubarSub>
+        </MenubarContent>
+      </MenubarMenu>
+    </Menubar>
+  );
+}
+
 describe("Menubar", () => {
   it("常に見えている trigger を menubar の意味論で並べる", () => {
     render(<EditorMenubarFixture />);
@@ -256,5 +292,186 @@ describe("Menubar", () => {
     });
 
     expect(result.violations).toEqual([]);
+  });
+});
+
+describe("MenubarMenu", () => {
+  // ----- 正常系 -----
+  it("menu 1 つ分の trigger を menubar の項目として並べる", () => {
+    render(<EditorMenubarFixture />);
+
+    expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+  });
+});
+
+describe("MenubarTrigger", () => {
+  // ----- 正常系 -----
+  it("開く操作として slot を持つ要素を描画する", () => {
+    render(<EditorMenubarFixture />);
+
+    expect(screen.getByRole("menuitem", { name: "ファイル" })).toHaveAttribute(
+      "data-slot",
+      "menubar-trigger",
+    );
+  });
+
+  it("既定で開く menu を指定できる", () => {
+    render(<EditorMenubarFixture defaultValue="file" />);
+
+    expect(screen.getByRole("menuitem", { name: "ファイル" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+});
+
+describe("MenubarPortal", () => {
+  // ----- 正常系 -----
+  it("内容を呼び出し位置の外へ描画する", () => {
+    const { container } = render(<EditorMenubarFixture defaultValue="file" />);
+
+    expect(container.querySelector('[data-slot="menubar-content"]')).toBeNull();
+    expect(document.querySelector('[data-slot="menubar-content"]')).not.toBeNull();
+  });
+});
+
+describe("MenubarContent", () => {
+  // ----- 正常系 -----
+  it("開いた menu として slot を持つ要素を描画する", () => {
+    render(<EditorMenubarFixture defaultValue="file" />);
+
+    expect(document.querySelector('[data-slot="menubar-content"]')).not.toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は内容を描画しない", () => {
+    render(<EditorMenubarFixture />);
+
+    expect(document.querySelector('[data-slot="menubar-content"]')).toBeNull();
+  });
+});
+
+describe("MenubarGroup", () => {
+  // ----- 正常系 -----
+  it("項目の束として slot を持つ要素を描画する", () => {
+    render(<EditorMenubarFixture defaultValue="file" />);
+
+    expect(document.querySelector('[data-slot="menubar-group"]')).not.toBeNull();
+  });
+});
+
+describe("MenubarLabel", () => {
+  // ----- 正常系 -----
+  it("見出しとして slot を持つ要素を描画する", () => {
+    render(<EditorMenubarFixture defaultValue="file" />);
+
+    expect(screen.getByText("この文書の操作")).toHaveAttribute("data-slot", "menubar-label");
+  });
+});
+
+describe("MenubarItem", () => {
+  // ----- 正常系 -----
+  it("menuitem として slot を持つ要素を描画する", () => {
+    render(<EditorMenubarFixture defaultValue="file" />);
+
+    expect(screen.getByRole("menuitem", { name: /新規作成/ })).toHaveAttribute(
+      "data-slot",
+      "menubar-item",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("disabled な項目を操作できないものとして示す", () => {
+    render(<EditorMenubarFixture defaultValue="file" />);
+
+    expect(screen.getByRole("menuitem", { name: "取り込む" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+});
+
+describe("MenubarSeparator", () => {
+  // ----- 正常系 -----
+  it("区切りとして separator の意味論を持つ要素を描画する", () => {
+    render(<EditorMenubarFixture defaultValue="file" />);
+
+    expect(screen.getByRole("separator")).toHaveAttribute("data-slot", "menubar-separator");
+  });
+});
+
+describe("MenubarShortcut", () => {
+  // ----- 正常系 -----
+  it("shortcut 表示を kbd の意味論で描画する", () => {
+    render(<EditorMenubarFixture defaultValue="file" />);
+
+    const shortcut = document.querySelector('[data-slot="menubar-shortcut"]');
+
+    expect(shortcut?.tagName).toBe("KBD");
+    expect(shortcut).toHaveTextContent("⌘N");
+  });
+});
+
+describe("MenubarCheckboxItem", () => {
+  // ----- 正常系 -----
+  it("選択状態を menuitemcheckbox として読み上げ可能にする", () => {
+    render(<SelectionMenubarFixture />);
+
+    expect(screen.getByRole("menuitemcheckbox", { name: "行番号" })).toBeChecked();
+    expect(screen.getByRole("menuitemcheckbox", { name: "余白" })).not.toBeChecked();
+  });
+});
+
+describe("MenubarRadioGroup", () => {
+  // ----- 正常系 -----
+  it("排他選択の束として slot を持つ要素を描画する", () => {
+    render(<SelectionMenubarFixture />);
+
+    expect(document.querySelector('[data-slot="menubar-radio-group"]')).not.toBeNull();
+  });
+});
+
+describe("MenubarRadioItem", () => {
+  // ----- 正常系 -----
+  it("群の値と一致するものが選択状態になる", () => {
+    render(<SelectionMenubarFixture />);
+
+    expect(screen.getByRole("menuitemradio", { name: "標準" })).toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "高密度" })).not.toBeChecked();
+  });
+});
+
+describe("MenubarSub", () => {
+  // ----- 正常系 -----
+  it("入れ子の menu を閉じた状態で用意する", () => {
+    render(<SubMenubarFixture />);
+
+    expect(screen.getByRole("menuitem", { name: "書き出し" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+});
+
+describe("MenubarSubTrigger", () => {
+  // ----- 正常系 -----
+  it("開く操作として slot を持つ要素を描画する", () => {
+    render(<SubMenubarFixture />);
+
+    expect(screen.getByRole("menuitem", { name: "書き出し" })).toHaveAttribute(
+      "data-slot",
+      "menubar-sub-trigger",
+    );
+  });
+});
+
+describe("MenubarSubContent", () => {
+  // ----- 正常系 -----
+  it("入れ子の menu を開くと項目を描画する", () => {
+    render(<SubMenubarFixture />);
+
+    fireEvent.keyDown(screen.getByRole("menuitem", { name: "書き出し" }), { key: "ArrowRight" });
+
+    expect(screen.getByRole("menuitem", { name: "PDF" })).toBeInTheDocument();
   });
 });

@@ -62,3 +62,33 @@ describe("Accordion", () => {
     ).toEqual([]);
   });
 });
+
+describe("AccordionItem", () => {
+  // ----- 正常系 -----
+  it("項目 1 件として slot を持つ要素を描画する", () => {
+    const { container } = render(<ExampleAccordion />);
+
+    expect(container.querySelector('[data-slot="accordion-item"]')).not.toBeNull();
+  });
+});
+
+describe("AccordionTrigger", () => {
+  // ----- 正常系 -----
+  it("開閉を切り替える操作として slot を持つ要素を描画する", () => {
+    render(<ExampleAccordion />);
+
+    expect(screen.getByText("補足情報")).toHaveAttribute("data-slot", "accordion-trigger");
+  });
+});
+
+describe("AccordionContent", () => {
+  // ----- 正常系 -----
+  it("内容として slot を持つ要素を描画する", () => {
+    render(<ExampleAccordion />);
+
+    expect(screen.getByText("必要なときに確認する内容です。")).toHaveAttribute(
+      "data-slot",
+      "accordion-content",
+    );
+  });
+});

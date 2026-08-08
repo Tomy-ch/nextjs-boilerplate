@@ -31,24 +31,24 @@ const pairs = Object.entries(apiMocks)
     )?.[1],
   }));
 
-describe("正常系", () => {
-  describe("契約駆動モック", () => {
-    it("応答を返すハンドラをすべて突合の対象にする", () => {
-      expect(pairs.length).toBeGreaterThan(0);
+describe("契約駆動モック", () => {
+  // ----- 正常系 -----
+  it("応答を返すハンドラをすべて突合の対象にする", () => {
+    expect(pairs.length).toBeGreaterThan(0);
+  });
+
+  it.each(pairs)("$name の応答が契約を満たす", ({ factory, schema }) => {
+    // 対応する zod が無いのは、生成物どうしの命名が食い違った状態であり検知したい変化。
+    expect(schema).toBeDefined();
+
+    const issues = SEEDS.flatMap((seed) => {
+      faker.seed(seed);
+
+      const parsed = (schema as ZodType).safeParse((factory as () => unknown)());
+
+      return parsed.success ? [] : parsed.error.issues;
     });
-    it.each(pairs)("$name の応答が契約を満たす", ({ factory, schema }) => {
-      // 対応する zod が無いのは、生成物どうしの命名が食い違った状態であり検知したい変化。
-      expect(schema).toBeDefined();
 
-      const issues = SEEDS.flatMap((seed) => {
-        faker.seed(seed);
-
-        const parsed = (schema as ZodType).safeParse((factory as () => unknown)());
-
-        return parsed.success ? [] : parsed.error.issues;
-      });
-
-      expect(issues).toEqual([]);
-    });
+    expect(issues).toEqual([]);
   });
 });

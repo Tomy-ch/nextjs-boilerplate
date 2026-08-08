@@ -20,6 +20,7 @@ import {
   Scalar,
 } from "yaml";
 import { COMPOSITE_ACTION_DIR, collectActionDefinitions } from "../lib/composite-action-files.js";
+import { errorMessage } from "../lib/error-message.js";
 
 const COMPOSITE = "composite";
 const MERGE_KEY = "<<";
@@ -92,9 +93,7 @@ function countRunSteps(file: string, doc: Document): number {
   try {
     js = doc.toJS({ merge: true });
   } catch (e) {
-    throw new Error(
-      `${file}: YAML を解決できません: ${e instanceof Error ? e.message : String(e)}`,
-    );
+    throw new Error(`${file}: YAML を解決できません: ${errorMessage(e)}`);
   }
   const steps = (js as { runs?: { steps?: unknown } } | null)?.runs?.steps;
   if (!Array.isArray(steps)) return 0;
@@ -169,6 +168,8 @@ function blockIndentWidth(source: string, firstLine: number): number {
 // （`<<`）の参照先を辿る。`get` は alias もマージキーも解決しないため手で行う。
 function mapValue(doc: Document, node: unknown, key: string): Node | null {
   const map = resolveAlias(doc, node);
+  /* v8 ignore next -- 呼び出し元が渡すのはマッピングか、解決できない値のどちらか。
+     前者は必ずマッピングとして解決されるため、両方が false になる経路は辿れない。 */
   if (!map || !isMap(map)) return null;
 
   let merged: unknown = null;
@@ -198,6 +199,8 @@ function resolveAlias(doc: Document, node: unknown): Node | null {
   let current = node;
   while (isAlias(current)) {
     const resolved = current.resolve(doc);
+    /* v8 ignore next -- 参照先の無い alias は走査より前に通る countRunSteps の toJS が
+       落とすため、ここへは届かない。走査の入口が増えたときに素通りさせないよう残す。 */
     if (!resolved) throw new Error(`参照先の無い alias があります: *${current.source}`);
     current = resolved;
   }
@@ -205,5 +208,7 @@ function resolveAlias(doc: Document, node: unknown): Node | null {
 }
 
 function position(lineCounter: LineCounter, node: Node): { line: number; col: number } {
+  /* v8 ignore next -- 位置を問うのは定義ファイルから読んだノードだけで、必ず range を持つ。
+     範囲を持たない合成ノードが混ざったときに 0 行目を指して黙らないよう残す。 */
   return node.range ? lineCounter.linePos(node.range[0]) : { line: 0, col: 1 };
 }

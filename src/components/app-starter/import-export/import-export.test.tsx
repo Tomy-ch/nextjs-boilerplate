@@ -53,6 +53,24 @@ describe("ImportSummary", () => {
 
     expect(screen.getByRole("button", { name: "失敗した行だけ再実行" })).toBeInTheDocument();
   });
+
+  describe("ImportExport 全体", () => {
+    it("a11y 自動検査に違反しない", async () => {
+      const { container } = render(
+        <div>
+          <ImportSummary failed={2} succeeded={118} total={120}>
+            <Button type="button">再実行</Button>
+          </ImportSummary>
+          <ImportErrorList errors={ERRORS} />
+          <ExportButton />
+        </div>,
+      );
+
+      const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+      expect(result.violations).toEqual([]);
+    });
+  });
 });
 
 describe("ImportErrorList", () => {
@@ -127,23 +145,5 @@ describe("ExportButton", () => {
     render(<ExportButton pending pendingLabel="生成中" />);
 
     expect(screen.getByRole("button", { name: "生成中" })).toBeInTheDocument();
-  });
-});
-
-describe("ImportExport 全体", () => {
-  it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(
-      <div>
-        <ImportSummary failed={2} succeeded={118} total={120}>
-          <Button type="button">再実行</Button>
-        </ImportSummary>
-        <ImportErrorList errors={ERRORS} />
-        <ExportButton />
-      </div>,
-    );
-
-    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
-
-    expect(result.violations).toEqual([]);
   });
 });

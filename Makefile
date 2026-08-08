@@ -19,6 +19,7 @@ include .makefiles/tools/gen-api.mk
 
 # テスト関連
 include .makefiles/testing/test.mk
+include .makefiles/testing/scripts.mk
 
 # セキュリティ関連
 include .makefiles/security/gitleaks.mk
@@ -31,4 +32,4 @@ include .makefiles/github/operation/setup-repository.mk
 .PHONY: help
 help:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
-	@pnpm exec tsx scripts/make-help.ts
+	@pnpm exec tsx scripts/make-help

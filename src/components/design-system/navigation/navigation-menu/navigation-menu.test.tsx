@@ -158,3 +158,113 @@ describe("NavigationMenu", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("NavigationMenuList", () => {
+  // ----- 正常系 -----
+  it("項目を並べるリストとして slot を持つ要素を描画する", () => {
+    render(<NavigationFixture />);
+
+    expect(screen.getAllByRole("list")[0]).toHaveAttribute("data-slot", "navigation-menu-list");
+  });
+});
+
+describe("NavigationMenuItem", () => {
+  // ----- 正常系 -----
+  it("項目 1 件として slot を持つ要素を描画する", () => {
+    render(<NavigationFixture />);
+
+    expect(document.querySelector('[data-slot="navigation-menu-item"]')).not.toBeNull();
+  });
+});
+
+describe("NavigationMenuLink", () => {
+  // ----- 正常系 -----
+  it("asChild で渡した link を実体にする", () => {
+    render(<NavigationFixture />);
+
+    const link = screen.getByRole("link", { name: "ホーム" });
+
+    expect(link).toHaveAttribute("href", "/");
+    expect(link).toHaveAttribute("data-slot", "navigation-menu-link");
+  });
+});
+
+describe("NavigationMenuTrigger", () => {
+  // ----- 正常系 -----
+  it("開く操作として slot を持つ要素を描画する", () => {
+    render(<NavigationFixture />);
+
+    expect(screen.getByRole("button", { name: /カテゴリ/ })).toHaveAttribute(
+      "data-slot",
+      "navigation-menu-trigger",
+    );
+  });
+
+  it("押すと下位の内容を開く", () => {
+    render(<NavigationFixture />);
+
+    const trigger = screen.getByRole("button", { name: /カテゴリ/ });
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    fireEvent.click(trigger);
+
+    expect(screen.getByRole("button", { name: /カテゴリ/ })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+});
+
+describe("NavigationMenuContent", () => {
+  // ----- 正常系 -----
+  it("開いた内容として slot を持つ要素を描画する", () => {
+    render(<NavigationFixture />);
+
+    const trigger = screen.getByRole("button", { name: /カテゴリ/ });
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    fireEvent.click(trigger);
+
+    expect(document.querySelector('[data-slot="navigation-menu-content"]')).not.toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は内容を描画しない", () => {
+    render(<NavigationFixture />);
+
+    expect(document.querySelector('[data-slot="navigation-menu-content"]')).toBeNull();
+  });
+});
+
+describe("NavigationMenuViewport", () => {
+  // ----- 正常系 -----
+  it("viewport を使う構成では、開いた内容の表示枠を用意する", () => {
+    render(<NavigationFixture />);
+    const trigger = screen.getByRole("button", { name: /カテゴリ/ });
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    fireEvent.click(trigger);
+
+    expect(document.querySelector('[data-slot="navigation-menu-viewport"]')).not.toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("viewport を使わない構成では表示枠を用意しない", () => {
+    render(<NavigationFixture viewport={false} />);
+
+    expect(document.querySelector('[data-slot="navigation-menu-viewport"]')).toBeNull();
+  });
+});
+
+describe("NavigationMenuIndicator", () => {
+  // ----- 異常系 -----
+  it("開いている項目が無ければ位置の印を描画しない", () => {
+    render(<NavigationFixture />);
+
+    expect(document.querySelector('[data-slot="navigation-menu-indicator"]')).toBeNull();
+  });
+});
+
+describe("navigationMenuTriggerStyle", () => {
+  // ----- 正常系 -----
+  it("trigger と同じ見た目の class を返す", () => {
+    expect(navigationMenuTriggerStyle()).toContain("inline-flex");
+  });
+});

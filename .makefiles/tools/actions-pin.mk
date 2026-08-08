@@ -14,7 +14,7 @@ ACTIONS_PIN_MIN_AGE_DAYS ?= 14
 ACTIONS_PIN_ALLOW_MOVED ?=
 export ACTIONS_PIN_ALLOW_MOVED
 
-ACTIONS_PIN := pnpm exec tsx scripts/actions-pin/main.ts
+ACTIONS_PIN := pnpm exec tsx scripts/actions-pin
 
 actions-pin-resolve:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }

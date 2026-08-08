@@ -2,14 +2,17 @@
 
 import { render, screen } from "@testing-library/react";
 import { type ComponentProps, useId } from "react";
+import * as RechartsPrimitive from "recharts";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import {
   type ChartConfig,
   ChartContainer,
+  ChartLegend,
   ChartLegendContent,
   ChartStyle,
+  ChartTooltip,
   ChartTooltipContent,
 } from "./chart";
 import { CHART_INDICATOR } from "./chart.definition";
@@ -128,6 +131,26 @@ describe("ChartContainer", () => {
       "data-chart",
       `chart-${generatedId()}`,
     );
+  });
+
+  it("初期の描画領域を呼び出し元が指定できる", () => {
+    const { container } = render(
+      <ChartContainer config={config} initialDimension={{ width: 640, height: 360 }}>
+        <div>内容</div>
+      </ChartContainer>,
+    );
+
+    expect(container.querySelector("[data-slot='chart']")).toBeInTheDocument();
+  });
+
+  it("ChartContainer の外で使うと例外になる", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    expect(() => render(<ChartLegendContent payload={[]} />)).toThrow(
+      "useChart は ChartContainer の配下でのみ使えます。",
+    );
+
+    consoleError.mockRestore();
   });
 });
 
@@ -405,156 +428,7 @@ describe("ChartTooltipContent", () => {
 
     expect(result.violations).toEqual([]);
   });
-});
 
-describe("ChartLegendContent", () => {
-  it("系列が無ければ何も描画しない", () => {
-    const { container } = render(
-      <Wrapper>
-        <ChartLegendContent payload={[]} />
-      </Wrapper>,
-    );
-
-    expect(container.querySelector("[data-slot='chart-legend-content']")).not.toBeInTheDocument();
-  });
-
-  it("系列の表示名を並べる", () => {
-    render(
-      <Wrapper>
-        <ChartLegendContent
-          payload={[
-            { dataKey: "opened", value: "opened", color: "#111" },
-            { dataKey: "closed", value: "closed", color: "#222" },
-          ]}
-        />
-      </Wrapper>,
-    );
-
-    expect(screen.getByText("受付")).toBeVisible();
-    expect(screen.getByText("完了")).toBeVisible();
-  });
-
-  it("verticalAlign が top のときは下側に余白を置く", () => {
-    const { container } = render(
-      <Wrapper>
-        <ChartLegendContent
-          payload={[{ dataKey: "opened", value: "opened", color: "#111" }]}
-          verticalAlign="top"
-        />
-      </Wrapper>,
-    );
-
-    expect(container.querySelector("[data-slot='chart-legend-content']")?.className).toContain(
-      "pb-3",
-    );
-  });
-
-  it("定義のアイコンを描画し、hideIcon で色の印へ戻す", () => {
-    const iconConfig = {
-      opened: { label: "受付", color: "#111", icon: () => <span>icon</span> },
-    } satisfies ChartConfig;
-
-    const { rerender } = render(
-      <ChartContainer config={iconConfig}>
-        <div>
-          <ChartLegendContent payload={[{ dataKey: "opened", value: "opened", color: "#111" }]} />
-        </div>
-      </ChartContainer>,
-    );
-
-    expect(screen.getByText("icon")).toBeVisible();
-
-    rerender(
-      <ChartContainer config={iconConfig}>
-        <div>
-          <ChartLegendContent
-            hideIcon
-            payload={[{ dataKey: "opened", value: "opened", color: "#111" }]}
-          />
-        </div>
-      </ChartContainer>,
-    );
-
-    expect(screen.queryByText("icon")).not.toBeInTheDocument();
-  });
-
-  it("type が none の系列は表示しない", () => {
-    render(
-      <Wrapper>
-        <ChartLegendContent
-          payload={[
-            { dataKey: "opened", value: "opened", color: "#111" },
-            { dataKey: "closed", value: "closed", color: "#222", type: "none" },
-          ]}
-        />
-      </Wrapper>,
-    );
-
-    expect(screen.getByText("受付")).toBeVisible();
-    expect(screen.queryByText("完了")).not.toBeInTheDocument();
-  });
-});
-
-describe("useChart", () => {
-  it("ChartContainer の外で使うと例外になる", () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    expect(() => render(<ChartLegendContent payload={[]} />)).toThrow(
-      "useChart は ChartContainer の配下でのみ使えます。",
-    );
-
-    consoleError.mockRestore();
-  });
-});
-
-describe("系列定義の解決", () => {
-  it("payload の直下にある文字列を定義名として使う", () => {
-    render(
-      <Wrapper>
-        <ChartTooltipContent
-          active
-          nameKey="dataKey"
-          payload={[tooltipItem({ dataKey: "closed", name: "x", value: 3, color: "#111" })]}
-        />
-      </Wrapper>,
-    );
-
-    expect(screen.getAllByText("完了").length).toBeGreaterThan(0);
-  });
-
-  it("payload の要素が object でない場合は定義を解決しない", () => {
-    const { container } = render(
-      <Wrapper>
-        <ChartTooltipContent active={false} payload={Array.from<never>({ length: 1 })} />
-      </Wrapper>,
-    );
-
-    expect(container.querySelector("[data-slot='chart-tooltip-content']")).not.toBeInTheDocument();
-  });
-
-  it("定義に無い系列は表示名を持たず、payload の name を表示する", () => {
-    render(
-      <Wrapper>
-        <ChartTooltipContent
-          active
-          payload={[
-            tooltipItem({
-              dataKey: "unknown",
-              name: "unknown",
-              value: 3,
-              color: "#111",
-              payload: {},
-            }),
-          ]}
-        />
-      </Wrapper>,
-    );
-
-    expect(screen.getByText("unknown")).toBeVisible();
-  });
-});
-
-describe("ChartTooltipContent の表示調整", () => {
   it("見出しの文字列に対応する定義が無ければ、その文字列をそのまま見出しにする", () => {
     render(
       <Wrapper>
@@ -757,9 +631,140 @@ describe("ChartTooltipContent の表示調整", () => {
 
     expect(screen.getAllByText("既定").length).toBeGreaterThan(0);
   });
+
+  it("payload の直下にある文字列を定義名として使う", () => {
+    render(
+      <Wrapper>
+        <ChartTooltipContent
+          active
+          nameKey="dataKey"
+          payload={[tooltipItem({ dataKey: "closed", name: "x", value: 3, color: "#111" })]}
+        />
+      </Wrapper>,
+    );
+
+    expect(screen.getAllByText("完了").length).toBeGreaterThan(0);
+  });
+
+  it("payload の要素が object でない場合は定義を解決しない", () => {
+    const { container } = render(
+      <Wrapper>
+        <ChartTooltipContent active={false} payload={Array.from<never>({ length: 1 })} />
+      </Wrapper>,
+    );
+
+    expect(container.querySelector("[data-slot='chart-tooltip-content']")).not.toBeInTheDocument();
+  });
+
+  it("定義に無い系列は表示名を持たず、payload の name を表示する", () => {
+    render(
+      <Wrapper>
+        <ChartTooltipContent
+          active
+          payload={[
+            tooltipItem({
+              dataKey: "unknown",
+              name: "unknown",
+              value: 3,
+              color: "#111",
+              payload: {},
+            }),
+          ]}
+        />
+      </Wrapper>,
+    );
+
+    expect(screen.getByText("unknown")).toBeVisible();
+  });
 });
 
-describe("ChartLegendContent の表示調整", () => {
+describe("ChartLegendContent", () => {
+  it("系列が無ければ何も描画しない", () => {
+    const { container } = render(
+      <Wrapper>
+        <ChartLegendContent payload={[]} />
+      </Wrapper>,
+    );
+
+    expect(container.querySelector("[data-slot='chart-legend-content']")).not.toBeInTheDocument();
+  });
+
+  it("系列の表示名を並べる", () => {
+    render(
+      <Wrapper>
+        <ChartLegendContent
+          payload={[
+            { dataKey: "opened", value: "opened", color: "#111" },
+            { dataKey: "closed", value: "closed", color: "#222" },
+          ]}
+        />
+      </Wrapper>,
+    );
+
+    expect(screen.getByText("受付")).toBeVisible();
+    expect(screen.getByText("完了")).toBeVisible();
+  });
+
+  it("verticalAlign が top のときは下側に余白を置く", () => {
+    const { container } = render(
+      <Wrapper>
+        <ChartLegendContent
+          payload={[{ dataKey: "opened", value: "opened", color: "#111" }]}
+          verticalAlign="top"
+        />
+      </Wrapper>,
+    );
+
+    expect(container.querySelector("[data-slot='chart-legend-content']")?.className).toContain(
+      "pb-3",
+    );
+  });
+
+  it("定義のアイコンを描画し、hideIcon で色の印へ戻す", () => {
+    const iconConfig = {
+      opened: { label: "受付", color: "#111", icon: () => <span>icon</span> },
+    } satisfies ChartConfig;
+
+    const { rerender } = render(
+      <ChartContainer config={iconConfig}>
+        <div>
+          <ChartLegendContent payload={[{ dataKey: "opened", value: "opened", color: "#111" }]} />
+        </div>
+      </ChartContainer>,
+    );
+
+    expect(screen.getByText("icon")).toBeVisible();
+
+    rerender(
+      <ChartContainer config={iconConfig}>
+        <div>
+          <ChartLegendContent
+            hideIcon
+            payload={[{ dataKey: "opened", value: "opened", color: "#111" }]}
+          />
+        </div>
+      </ChartContainer>,
+    );
+
+    expect(screen.queryByText("icon")).not.toBeInTheDocument();
+  });
+
+  it("type が none の系列は表示しない", () => {
+    render(
+      <Wrapper>
+        <ChartLegendContent
+          payload={[
+            { dataKey: "opened", value: "opened", color: "#111" },
+            { dataKey: "closed", value: "closed", color: "#222", type: "none" },
+          ]}
+        />
+      </Wrapper>,
+    );
+
+    expect(screen.getByText("受付")).toBeVisible();
+    expect(screen.queryByText("完了")).not.toBeInTheDocument();
+  });
+
   it("nameKey で系列名として読む key を差し替える", () => {
     render(
       <Wrapper>
@@ -786,14 +791,16 @@ describe("ChartLegendContent の表示調整", () => {
   });
 });
 
-describe("ChartContainer の描画領域", () => {
-  it("初期の描画領域を呼び出し元が指定できる", () => {
-    const { container } = render(
-      <ChartContainer config={config} initialDimension={{ width: 640, height: 360 }}>
-        <div>内容</div>
-      </ChartContainer>,
-    );
+describe("ChartTooltip", () => {
+  // ----- 正常系 -----
+  it("Recharts の Tooltip をそのまま提供する", () => {
+    expect(ChartTooltip).toBe(RechartsPrimitive.Tooltip);
+  });
+});
 
-    expect(container.querySelector("[data-slot='chart']")).toBeInTheDocument();
+describe("ChartLegend", () => {
+  // ----- 正常系 -----
+  it("Recharts の Legend をそのまま提供する", () => {
+    expect(ChartLegend).toBe(RechartsPrimitive.Legend);
   });
 });

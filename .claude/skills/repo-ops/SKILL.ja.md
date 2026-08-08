@@ -160,8 +160,8 @@ biome、`pnpm lint:eslint`、`pnpm check:architecture`(層 README の `imports-a
 | --- | --- |
 | `.gitignore` | `/.claude/worktrees/` |
 | `.markdownlint-cli2.yaml` | `ignores:` の `.claude/worktrees/**` |
-| `scripts/mermaid-lint.ts` | `EXCLUDE_PREFIXES` |
-| `scripts/skill-lint.ts` | `EXCLUDE_PREFIXES` |
+| `scripts/mermaid-lint` | `EXCLUDE_PREFIXES` |
+| `scripts/skill-lint` | `EXCLUDE_PREFIXES` |
 | `.makefiles/security/trivy.mk` | `--skip-dirs .claude/worktrees` |
 
 これらのツールはいずれも `.gitignore` を読まないため、そこで ignore しても他の 4 箇所の除外にはならない。

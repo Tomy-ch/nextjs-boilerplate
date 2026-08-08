@@ -62,6 +62,22 @@ function ActionMenuFixture({ onSelect }: { onSelect?: () => void }) {
   );
 }
 
+function SubMenuFixture() {
+  return (
+    <DropdownMenu defaultOpen>
+      <DropdownMenuTrigger>共有</DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>権限を変更</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuItem>閲覧のみ</DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 describe("DropdownMenu", () => {
   it("開くまで項目を表示しない", () => {
     render(
@@ -241,5 +257,197 @@ describe("DropdownMenu", () => {
     });
 
     expect(result.violations).toEqual([]);
+  });
+});
+
+describe("DropdownMenuTrigger", () => {
+  // ----- 正常系 -----
+  it("押すと menu を開く", () => {
+    render(
+      <DropdownMenu>
+        <DropdownMenuTrigger>操作</DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem>詳細を見る</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>,
+    );
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "操作" }), {
+      button: 0,
+      ctrlKey: false,
+    });
+
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+});
+
+describe("DropdownMenuPortal", () => {
+  // ----- 正常系 -----
+  it("内容を呼び出し位置の外へ描画する", () => {
+    const { container } = render(<ActionMenuFixture />);
+
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="dropdown-menu-content"]')).toBeNull();
+  });
+});
+
+describe("DropdownMenuContent", () => {
+  // ----- 正常系 -----
+  it("menu の意味論と slot を持つ要素を描画する", () => {
+    render(<ActionMenuFixture />);
+
+    expect(screen.getByRole("menu")).toHaveAttribute("data-slot", "dropdown-menu-content");
+  });
+});
+
+describe("DropdownMenuGroup", () => {
+  // ----- 正常系 -----
+  it("項目の束として slot を持つ要素を描画する", () => {
+    render(<ActionMenuFixture />);
+
+    expect(document.querySelector('[data-slot="dropdown-menu-group"]')).not.toBeNull();
+  });
+});
+
+describe("DropdownMenuLabel", () => {
+  // ----- 正常系 -----
+  it("見出しとして slot を持つ要素を描画する", () => {
+    render(<ActionMenuFixture />);
+
+    expect(screen.getByText("この行の操作")).toHaveAttribute("data-slot", "dropdown-menu-label");
+  });
+});
+
+describe("DropdownMenuItem", () => {
+  // ----- 正常系 -----
+  it("menuitem として slot を持つ要素を描画する", () => {
+    render(<ActionMenuFixture />);
+
+    expect(screen.getByRole("menuitem", { name: /詳細を見る/ })).toHaveAttribute(
+      "data-slot",
+      "dropdown-menu-item",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("disabled な項目を操作できないものとして示す", () => {
+    render(<ActionMenuFixture />);
+
+    expect(screen.getByRole("menuitem", { name: "公開する" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+});
+
+describe("DropdownMenuSeparator", () => {
+  // ----- 正常系 -----
+  it("区切りとして separator の意味論を持つ要素を描画する", () => {
+    render(<ActionMenuFixture />);
+
+    expect(screen.getByRole("separator")).toHaveAttribute("data-slot", "dropdown-menu-separator");
+  });
+});
+
+describe("DropdownMenuShortcut", () => {
+  // ----- 正常系 -----
+  it("shortcut 表示を kbd の意味論で描画する", () => {
+    render(<ActionMenuFixture />);
+
+    const shortcut = document.querySelector('[data-slot="dropdown-menu-shortcut"]');
+
+    expect(shortcut?.tagName).toBe("KBD");
+    expect(shortcut).toHaveTextContent("⇧D");
+  });
+});
+
+describe("DropdownMenuCheckboxItem", () => {
+  // ----- 正常系 -----
+  it("選択状態を menuitemcheckbox として読み上げ可能にする", () => {
+    render(
+      <DropdownMenu defaultOpen>
+        <DropdownMenuTrigger>表示設定</DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuCheckboxItem checked>名称</DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem checked={false}>更新日時</DropdownMenuCheckboxItem>
+        </DropdownMenuContent>
+      </DropdownMenu>,
+    );
+
+    expect(screen.getByRole("menuitemcheckbox", { name: "名称" })).toBeChecked();
+    expect(screen.getByRole("menuitemcheckbox", { name: "更新日時" })).not.toBeChecked();
+  });
+});
+
+describe("DropdownMenuRadioGroup", () => {
+  // ----- 正常系 -----
+  it("排他選択の束として slot を持つ要素を描画する", () => {
+    render(
+      <DropdownMenu defaultOpen>
+        <DropdownMenuTrigger>表示設定</DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup value="comfortable">
+            <DropdownMenuRadioItem value="comfortable">標準</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>,
+    );
+
+    expect(document.querySelector('[data-slot="dropdown-menu-radio-group"]')).not.toBeNull();
+  });
+});
+
+describe("DropdownMenuRadioItem", () => {
+  // ----- 正常系 -----
+  it("選択状態を menuitemradio として読み上げ可能にする", () => {
+    render(
+      <DropdownMenu defaultOpen>
+        <DropdownMenuTrigger>表示設定</DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup value="comfortable">
+            <DropdownMenuRadioItem value="comfortable">標準</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="compact">高密度</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>,
+    );
+
+    expect(screen.getByRole("menuitemradio", { name: "標準" })).toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "高密度" })).not.toBeChecked();
+  });
+});
+
+describe("DropdownMenuSub", () => {
+  // ----- 正常系 -----
+  it("入れ子の menu を閉じた状態で用意する", () => {
+    render(<SubMenuFixture />);
+
+    expect(screen.getByRole("menuitem", { name: "権限を変更" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+});
+
+describe("DropdownMenuSubTrigger", () => {
+  // ----- 正常系 -----
+  it("開く操作として slot を持つ要素を描画する", () => {
+    render(<SubMenuFixture />);
+
+    expect(screen.getByRole("menuitem", { name: "権限を変更" })).toHaveAttribute(
+      "data-slot",
+      "dropdown-menu-sub-trigger",
+    );
+  });
+});
+
+describe("DropdownMenuSubContent", () => {
+  // ----- 正常系 -----
+  it("入れ子の menu を開くと項目を描画する", () => {
+    render(<SubMenuFixture />);
+
+    fireEvent.keyDown(screen.getByRole("menuitem", { name: "権限を変更" }), { key: "ArrowRight" });
+
+    expect(screen.getByRole("menuitem", { name: "閲覧のみ" })).toBeInTheDocument();
   });
 });

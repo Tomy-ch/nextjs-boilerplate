@@ -32,55 +32,54 @@ afterEach(() => {
   rmSync(workspace, { force: true, recursive: true });
 });
 
-describe("正常系", () => {
-  describe("buildSiteTree", () => {
-    it("docs をサイトルートへ写し、自動発見の相対経路を成立させる", () => {
-      buildSiteTree(layout);
+describe("buildSiteTree", () => {
+  // ----- 正常系 -----
+  it("docs をサイトルートへ写し、自動発見の相対経路を成立させる", () => {
+    buildSiteTree(layout);
 
-      expect(existsSync(join(layout.siteRoot, "index.html"))).toBe(true);
-      expect(existsSync(join(layout.siteRoot, "adr", "0001.md"))).toBe(true);
-    });
+    expect(existsSync(join(layout.siteRoot, "index.html"))).toBe(true);
+    expect(existsSync(join(layout.siteRoot, "adr", "0001.md"))).toBe(true);
+  });
 
-    it("生成済みの guides と docs.json の上へビューアーを重ねる", () => {
-      buildSiteTree(layout);
+  it("生成済みの guides と docs.json の上へビューアーを重ねる", () => {
+    buildSiteTree(layout);
 
-      expect(existsSync(join(layout.siteRoot, "portal", "docs.json"))).toBe(true);
-      expect(existsSync(join(layout.siteRoot, "portal", "guides", "app.md"))).toBe(true);
-      expect(existsSync(join(layout.siteRoot, "portal", "index.html"))).toBe(true);
-    });
+    expect(existsSync(join(layout.siteRoot, "portal", "docs.json"))).toBe(true);
+    expect(existsSync(join(layout.siteRoot, "portal", "guides", "app.md"))).toBe(true);
+    expect(existsSync(join(layout.siteRoot, "portal", "index.html"))).toBe(true);
+  });
 
-    it("Storybook があれば兄弟として並べる", () => {
-      place("storybook/index.html", "storybook");
+  it("Storybook があれば兄弟として並べる", () => {
+    place("storybook/index.html", "storybook");
 
-      expect(buildSiteTree(layout).storybook).toBe(true);
-      expect(existsSync(join(layout.siteRoot, "storybook", "index.html"))).toBe(true);
-    });
+    expect(buildSiteTree(layout).storybook).toBe(true);
+    expect(existsSync(join(layout.siteRoot, "storybook", "index.html"))).toBe(true);
+  });
 
-    it("組み立てのたびに前回の出力を捨てる", () => {
-      mkdirSync(layout.siteRoot, { recursive: true });
-      writeFileSync(join(layout.siteRoot, "stale.html"), "前回の残り");
+  it("組み立てのたびに前回の出力を捨てる", () => {
+    mkdirSync(layout.siteRoot, { recursive: true });
+    writeFileSync(join(layout.siteRoot, "stale.html"), "前回の残り");
 
-      buildSiteTree(layout);
+    buildSiteTree(layout);
 
-      expect(existsSync(join(layout.siteRoot, "stale.html"))).toBe(false);
-    });
+    expect(existsSync(join(layout.siteRoot, "stale.html"))).toBe(false);
+  });
 
-    it("既定の配置は配信 workflow と手元の preview で共有する", () => {
-      expect(DEFAULT_SITE_TREE_LAYOUT).toEqual({
-        docsDir: "docs",
-        viewerDist: join("docs-viewer", "dist"),
-        storybookDist: "storybook-static",
-        siteRoot: "dist",
-      });
-    });
+  // ----- 異常系 -----
+  it("Storybook が無ければ /storybook/ を作らない", () => {
+    expect(buildSiteTree(layout).storybook).toBe(false);
+    expect(existsSync(join(layout.siteRoot, "storybook"))).toBe(false);
   });
 });
 
-describe("異常系", () => {
-  describe("buildSiteTree", () => {
-    it("Storybook が無ければ /storybook/ を作らない", () => {
-      expect(buildSiteTree(layout).storybook).toBe(false);
-      expect(existsSync(join(layout.siteRoot, "storybook"))).toBe(false);
+describe("DEFAULT_SITE_TREE_LAYOUT", () => {
+  // ----- 正常系 -----
+  it("既定の配置は配信 workflow と手元の preview で共有する", () => {
+    expect(DEFAULT_SITE_TREE_LAYOUT).toEqual({
+      docsDir: "docs",
+      viewerDist: join("docs-viewer", "dist"),
+      storybookDist: "storybook-static",
+      siteRoot: "dist",
     });
   });
 });

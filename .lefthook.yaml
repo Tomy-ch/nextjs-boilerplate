@@ -34,6 +34,13 @@ pre-commit:
         - "pnpm-lock.yaml"
         - "pnpm-workspace.yaml"
       run: make test-cached
+    scripts-test-cached:
+      # 補助スクリプトは別 suite なので別コマンドで回す (ADR 0090)。1:1 ゲートは
+      # src / docs-viewer / tokens / mocks も走査するため、発火条件は scripts/ に絞らない。
+      glob:
+        - "**/*.{ts,tsx}"
+        - "vitest.scripts.config.ts"
+      run: make scripts-test-cached
     actionlint:
       # ワークフロー定義の構文と run: ステップのシェルを検査する (ADR 0153)。
       # 検査が及ぶのは workflows だけだが、composite action の変更も呼び出し側の
@@ -102,6 +109,12 @@ pre-push:
         - "pnpm-lock.yaml"
         - "pnpm-workspace.yaml"
       run: make test-full
+    scripts-test:
+      # 補助スクリプトの suite も CI (scripts-check) と同じ完全実行で回す。
+      glob:
+        - "**/*.{ts,tsx}"
+        - "vitest.scripts.config.ts"
+      run: make scripts-test
     typecheck:
       run: pnpm typecheck
     secret-scan:

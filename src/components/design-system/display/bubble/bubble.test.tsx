@@ -105,6 +105,31 @@ describe("Bubble", () => {
 
     expect(screen.getByTestId("message")).toHaveTextContent("自分 12:06お待ちしています。");
   });
+
+  describe("Bubble の a11y", () => {
+    it("a11y 自動検査に違反しない", async () => {
+      const { container } = render(
+        <BubbleGroup>
+          <Bubble variant={BUBBLE_VARIANT.MUTED}>
+            <BubbleContent>確認しました。</BubbleContent>
+          </Bubble>
+          <Bubble align={BUBBLE_ALIGN.END} variant={BUBBLE_VARIANT.OUTLINE}>
+            <BubbleContent asChild>
+              <button type="button">返信する</button>
+            </BubbleContent>
+            <BubbleReactions>
+              <span aria-hidden="true">👍</span>
+              <span>賛成 3 件</span>
+            </BubbleReactions>
+          </Bubble>
+        </BubbleGroup>,
+      );
+
+      const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+      expect(result.violations).toEqual([]);
+    });
+  });
 });
 
 describe("BubbleGroup", () => {
@@ -197,27 +222,21 @@ describe("BubbleReactions", () => {
   });
 });
 
-describe("Bubble の a11y", () => {
-  it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(
-      <BubbleGroup>
-        <Bubble variant={BUBBLE_VARIANT.MUTED}>
-          <BubbleContent>確認しました。</BubbleContent>
-        </Bubble>
-        <Bubble align={BUBBLE_ALIGN.END} variant={BUBBLE_VARIANT.OUTLINE}>
-          <BubbleContent asChild>
-            <button type="button">返信する</button>
-          </BubbleContent>
-          <BubbleReactions>
-            <span aria-hidden="true">👍</span>
-            <span>賛成 3 件</span>
-          </BubbleReactions>
-        </Bubble>
-      </BubbleGroup>,
+describe("BubbleContent", () => {
+  // ----- 正常系 -----
+  it("本文として slot を持つ要素を描画する", () => {
+    render(
+      <Bubble>
+        <BubbleContent>受け取りました。</BubbleContent>
+      </Bubble>,
     );
 
-    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+    expect(screen.getByText("受け取りました。")).toHaveAttribute("data-slot", "bubble-content");
+  });
 
-    expect(result.violations).toEqual([]);
+  it("呼び出し側の class を既定の指定へ足す", () => {
+    render(<BubbleContent className="font-bold">受け取りました。</BubbleContent>);
+
+    expect(screen.getByText("受け取りました。")).toHaveClass("font-bold");
   });
 });

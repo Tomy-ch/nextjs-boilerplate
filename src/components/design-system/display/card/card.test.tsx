@@ -70,3 +70,57 @@ describe("Card", () => {
     ).toEqual([]);
   });
 });
+
+describe("CardHeader", () => {
+  // ----- 正常系 -----
+  it("上段の枠として slot を持つ要素を描画する", () => {
+    render(<CardHeader>上段</CardHeader>);
+
+    expect(screen.getByText("上段")).toHaveAttribute("data-slot", "card-header");
+  });
+});
+
+describe("CardTitle", () => {
+  // ----- 正常系 -----
+  it("題名として slot を持つ要素を描画する", () => {
+    render(<CardTitle>題名</CardTitle>);
+
+    expect(screen.getByText("題名")).toHaveAttribute("data-slot", "card-title");
+  });
+});
+
+describe("CardDescription", () => {
+  // ----- 正常系 -----
+  it("補足として slot を持つ要素を描画する", () => {
+    render(<CardDescription>補足</CardDescription>);
+
+    expect(screen.getByText("補足")).toHaveAttribute("data-slot", "card-description");
+  });
+});
+
+describe("CardAction", () => {
+  // ----- 正常系 -----
+  it("上段に添える操作枠として slot を持つ要素を描画する", () => {
+    render(<CardAction>操作</CardAction>);
+
+    expect(screen.getByText("操作")).toHaveAttribute("data-slot", "card-action");
+  });
+});
+
+describe("CardContent", () => {
+  // ----- 正常系 -----
+  it("本文の枠として slot を持つ要素を描画する", () => {
+    render(<CardContent>本文</CardContent>);
+
+    expect(screen.getByText("本文")).toHaveAttribute("data-slot", "card-content");
+  });
+});
+
+describe("CardFooter", () => {
+  // ----- 正常系 -----
+  it("下段の枠として slot を持つ要素を描画する", () => {
+    render(<CardFooter>下段</CardFooter>);
+
+    expect(screen.getByText("下段")).toHaveAttribute("data-slot", "card-footer");
+  });
+});

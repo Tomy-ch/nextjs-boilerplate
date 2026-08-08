@@ -702,3 +702,16 @@ describe("ToastProvider", () => {
     consoleError.mockRestore();
   });
 });
+
+function ToastConsumer() {
+  useToast();
+
+  return null;
+}
+
+describe("useToast", () => {
+  // ----- 異常系 -----
+  it("Provider の外では利用を断る", () => {
+    expect(() => render(<ToastConsumer />)).toThrow();
+  });
+});

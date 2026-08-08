@@ -74,15 +74,15 @@ function controlOf() {
   return screen.getByLabelText("確認コード");
 }
 
+beforeEach(() => {
+  globalThis.ResizeObserver = ResizeObserverStub;
+});
+
+afterEach(() => {
+  globalThis.ResizeObserver = originalResizeObserver;
+});
+
 describe("SegmentedInput", () => {
-  beforeEach(() => {
-    globalThis.ResizeObserver = ResizeObserverStub;
-  });
-
-  afterEach(() => {
-    globalThis.ResizeObserver = originalResizeObserver;
-  });
-
   it("名前のある単一の入力として公開し、補完の手掛かりを持つ", () => {
     render(<CodeFixture />);
 
@@ -204,5 +204,39 @@ describe("SegmentedInput", () => {
     const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
 
     expect(result.violations).toEqual([]);
+  });
+});
+
+describe("SegmentedInputGroup", () => {
+  // ----- 正常系 -----
+  it("桁の束として slot を持つ要素を描画する", () => {
+    const { container } = render(<CodeFixture />);
+
+    expect(container.querySelectorAll('[data-slot="segmented-input-group"]')).toHaveLength(2);
+  });
+});
+
+describe("SegmentedInputSlot", () => {
+  // ----- 正常系 -----
+  it("桁 1 つとして slot を持つ要素を、桁数分だけ描画する", () => {
+    const { container } = render(<CodeFixture />);
+
+    expect(container.querySelectorAll('[data-slot="segmented-input-slot"]')).toHaveLength(LENGTH);
+  });
+});
+
+describe("SegmentedInputSeparator", () => {
+  // ----- 正常系 -----
+  it("束の区切りとして slot を持つ要素を描画する", () => {
+    const { container } = render(<CodeFixture />);
+
+    expect(container.querySelector('[data-slot="segmented-input-separator"]')).not.toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("区切りを置かない構成では描画しない", () => {
+    const { container } = render(<CodeFixture withSeparator={false} />);
+
+    expect(container.querySelector('[data-slot="segmented-input-separator"]')).toBeNull();
   });
 });
