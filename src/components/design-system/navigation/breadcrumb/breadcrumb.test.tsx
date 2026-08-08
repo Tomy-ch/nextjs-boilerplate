@@ -249,7 +249,7 @@ describe("BreadcrumbEllipsis", () => {
     const ellipsis = container.querySelector('[data-slot="breadcrumb-ellipsis"]');
 
     expect(ellipsis).not.toBeNull();
-    expect(within(ellipsis as HTMLElement).getByText("省略された階層")).toBeInTheDocument();
+    expect(ellipsis).toHaveTextContent("省略された階層");
   });
 
   it("呼び出し側の class を既定の指定へ足す", () => {

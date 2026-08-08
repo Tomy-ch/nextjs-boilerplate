@@ -27,11 +27,13 @@ describe("ErrorMeta", () => {
     expect(meta.details).toEqual(["email"]);
   });
 
-  it("取得した配列への追加を自身へ映さない", () => {
+  it("取得のたびに複製を返し、呼び出し側の書き換えを自身へ届かせない", () => {
     const meta = ErrorMeta.create({ details: ["email"] });
-    (meta.details as string[]).push("name");
+    const taken = meta.details;
+    const retaken = meta.details;
 
-    expect(meta.details).toEqual(["email"]);
+    expect(taken).not.toBe(retaken);
+    expect(retaken).toEqual(["email"]);
   });
 
   it("文言だけを上書きした新しいメタ情報を返す", () => {
