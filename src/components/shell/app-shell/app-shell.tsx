@@ -40,7 +40,7 @@ export function AppShell({ siteName, navItems, children, footer, className }: Ap
     <>
       <a
         href={`#${APP_SHELL_MAIN_ID}`}
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:ring-2 focus:ring-ring"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
       >
         本文へスキップ
       </a>
