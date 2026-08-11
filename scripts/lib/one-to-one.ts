@@ -143,23 +143,30 @@ export function collectTestableExports(
   const source = ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.Latest, true);
   const found: ExportedSymbol[] = [];
 
-  const add = (name: string, node: ts.Node): void => {
-    found.push({ name, line: lineOf(source, node), testable: isCallable(name) });
+  const add = (name: string, node: ts.Node, exportedAs: string = name): void => {
+    found.push({ name, line: lineOf(source, node), testable: isCallable(exportedAs) });
   };
 
-  const exported = (node: ts.Node): boolean =>
-    ts.canHaveModifiers(node) &&
-    (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  const hasModifier = (node: ts.Node, kind: ts.SyntaxKind): boolean =>
+    ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((m) => m.kind === kind);
+
+  const exported = (node: ts.Node): boolean => hasModifier(node, ts.SyntaxKind.ExportKeyword);
+
+  // `export default function X` は module の export 名が `default` になる。呼べるかの判定は
+  // その名前で引き、describe に要求するのは宣言名の `X` 側。両者を分けないと Next.js の
+  // `layout.tsx` / `error.tsx` のような default export がまるごと検査から外れる。
+  const exportedName = (node: ts.Node, declaredName: string): string =>
+    hasModifier(node, ts.SyntaxKind.DefaultKeyword) ? "default" : declaredName;
 
   ts.forEachChild(source, (node) => {
     if (ts.isFunctionDeclaration(node) && exported(node) && node.name !== undefined) {
-      add(node.name.text, node);
+      add(node.name.text, node, exportedName(node, node.name.text));
 
       return;
     }
 
     if (ts.isClassDeclaration(node) && exported(node) && node.name !== undefined) {
-      add(node.name.text, node);
+      add(node.name.text, node, exportedName(node, node.name.text));
 
       return;
     }
@@ -168,6 +175,23 @@ export function collectTestableExports(
       for (const decl of node.declarationList.declarations) {
         if (ts.isIdentifier(decl.name)) {
           add(decl.name.text, decl);
+        }
+      }
+
+      return;
+    }
+
+    // `export default Foo`。宣言側に export 修飾子が付かないため上の分岐に掛からない。
+    // 公開名は `default` で、describe に要求するのは参照している識別子の側。arrow function を
+    // default export する形はこれしか書けないので、拾わないとその component がまるごと外れる。
+    // `export = Foo`(TS 独自の legacy 形)は default export ではないため対象外。
+    if (ts.isExportAssignment(node) && node.isExportEquals !== true) {
+      if (ts.isIdentifier(node.expression)) {
+        const name = node.expression.text;
+
+        // 同じ名前が `export const Foo` としても出ている場合は二重に数えない。
+        if (!found.some((symbol) => symbol.name === name)) {
+          add(name, node, "default");
         }
       }
 
@@ -193,6 +217,26 @@ export function collectTestableExports(
 }
 
 /**
+ * どの export にも対応しない最上位 describe を挙げる。
+ *
+ * @remarks
+ * describe を「要求する」のは呼べる export だけですが、「許す」のは export 全体です。
+ * 定数の契約テストは production の関数に対応しませんが、退行を単独で捕まえるので違反ではない。
+ */
+function unknownDescribes(input: FileInput, testFile: string): Violation[] {
+  const exportNames = new Set(input.exports.map((s) => s.name));
+
+  return input.describes
+    .filter((node) => !exportNames.has(node.name))
+    .map((node) => ({
+      kind: "unknown-describe" as const,
+      file: testFile,
+      line: node.line,
+      message: `describe("${node.name}") はどの export にも対応しません。最上位の describe は export 名にし、観点ごとの束ねは \`// ----- 正常系 -----\` のコメント区切りで行ってください`,
+    }));
+}
+
+/**
  * 1 ファイル分の 1:1 対応を検査する。
  *
  * @remarks
@@ -204,7 +248,16 @@ export function checkFile(input: FileInput): Violation[] {
   const required = input.exports.filter((s) => s.testable);
 
   if (required.length === 0) {
-    return [];
+    // 呼べる export が無いファイルは describe を要求されないが、テストが在るなら
+    // 「どの export にも対応しない最上位 describe」の検査だけは掛ける。ここで抜けると
+    // 定数だけを export するモジュールのテストが束ね describe を置き放題になる。
+    //
+    // ただし export が 1 つも無いモジュール(副作用だけを持つ起動用の入口など)は対応先が
+    // 存在しないので対象外。そこでの subject はモジュール自身であり、describe 名は
+    // モジュール名を採る。
+    return input.testFile === null || input.exports.length === 0
+      ? []
+      : unknownDescribes(input, input.testFile);
   }
 
   if (input.testFile === null) {
@@ -224,22 +277,7 @@ export function checkFile(input: FileInput): Violation[] {
     byName.set(node.name, [...(byName.get(node.name) ?? []), node]);
   }
 
-  // describe を「要求する」のは呼べる export だけですが、「許す」のは export 全体です。
-  // 定数の契約テストは production の関数に対応しませんが、退行を単独で捕まえるので違反ではない。
-  const exportNames = new Set(input.exports.map((s) => s.name));
-
-  for (const node of input.describes) {
-    if (exportNames.has(node.name)) {
-      continue;
-    }
-
-    violations.push({
-      kind: "unknown-describe",
-      file: testFile,
-      line: node.line,
-      message: `describe("${node.name}") はどの export にも対応しません。最上位の describe は export 名にし、観点ごとの束ねはその内側へ入れてください`,
-    });
-  }
+  violations.push(...unknownDescribes(input, testFile));
 
   for (const symbol of required) {
     const nodes = byName.get(symbol.name) ?? [];

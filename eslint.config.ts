@@ -6,7 +6,8 @@ import boundaries from "eslint-plugin-boundaries";
 import tseslint from "typescript-eslint";
 
 import { DEPENDENCIES, ENTRY_POINTS, KERNELS, RESTRICTED_AREAS } from "./architecture";
-import noInternalAnchor from "./eslint-rules/no-internal-anchor.mjs";
+import noAnonymousDefaultExport from "./eslint-rules/no-anonymous-default-export";
+import noInternalAnchor from "./eslint-rules/no-internal-anchor";
 
 const elements = [
   // 層より先に並べる。区画は層の内側にあるため、層の要素が先に一致すると区画としては
@@ -35,7 +36,12 @@ export default [
     plugins: {
       "@typescript-eslint": tseslint.plugin,
       boundaries,
-      "project-rules": { rules: { "no-internal-anchor": noInternalAnchor } },
+      "project-rules": {
+        rules: {
+          "no-anonymous-default-export": noAnonymousDefaultExport,
+          "no-internal-anchor": noInternalAnchor,
+        },
+      },
     },
     settings: {
       "boundaries/files": ENTRY_POINTS.map(({ category, pattern }) => ({ category, pattern })),
@@ -85,6 +91,7 @@ export default [
       ],
       "boundaries/no-unknown-files": "error",
       "boundaries/no-unknown-dependencies": "error",
+      "project-rules/no-anonymous-default-export": "error",
       "project-rules/no-internal-anchor": "error",
       "@typescript-eslint/consistent-type-assertions": [
         "error",

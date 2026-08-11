@@ -15,7 +15,8 @@ vi.mock("next/image", () => ({
   ),
 }));
 
-describe("正常系", () => {
+describe("Home", () => {
+  // ----- 正常系 -----
   it("初期画面に開始案内と主要リンクを表示する", () => {
     render(<Home />);
 
