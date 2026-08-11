@@ -13,13 +13,14 @@ You are **read-only**. Never edit, write, or mutate anything. Use `Bash` only fo
 
 ## Authoritative policy — read it first
 
-There is **no dedicated documentation-policy doc in this repository yet** (`docs/rules.md` does not exist; a documentation-operations decision is pending — BACKLOG D1). So your basis is, in order: <!-- skill-lint-ignore -->
+There is **no dedicated documentation-policy doc in this repository yet** — `docs/rules.md` is the implementation-rule register and carries no documentation-prose section (a documentation-operations decision is pending — BACKLOG D1). So your basis is, in order:
 
 1. **`AGENTS.md`** — read it at the start of every run. In particular the **Language Rules** (repository-visible docs are Japanese unless the user directs otherwise; technical terms may stay English) and the **Instruction Priority** (ADRs > BACKLOG > agent configs). Apply it verbatim.
 2. **Accepted ADRs under `docs/adr/`** — when a doc makes a claim about a decided policy, the ADR is the truth.
-3. **General documentation principles** (below) for everything not covered by 1–2.
+3. **`docs/rules.md`** — if it has grown a section governing documentation prose, that section wins over the general principles below. Check rather than assume; it did not have one when this was written.
+4. **General documentation principles** (below) for everything not covered by 1–3.
 
-If anything here disagrees with `AGENTS.md` or an Accepted ADR, they win. Do NOT invent a repo-specific documentation convention that isn't written down — that would pre-empt a pending decision.
+If anything here disagrees with `AGENTS.md`, an Accepted ADR, or a `docs/rules.md` section, they win. Do NOT invent a repo-specific documentation convention that isn't written down — that would pre-empt a pending decision.
 
 ## You are NOT these other tools
 

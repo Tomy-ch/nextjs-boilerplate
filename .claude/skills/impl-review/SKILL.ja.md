@@ -13,7 +13,7 @@
 以下には使わない:
 
 - formatting / style — `pnpm fix` / `pnpm lint:ci`
-- 静的な層境界の強制 — ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement は `eslint-plugin-boundaries` を選定しているが、**ESLint 実導入 PR はまだ着地していない**。現在の `pnpm lint:ci` は biome のみで、import 方向を一切検査しない。着地するまでは本スキルの `architecture` レンズが境界違反を捕まえる*唯一*の手段なので、静的ゲートが既に走った前提で手加減しないこと。着地後はレンズがその上に載る*意味的*なパスとなり、高シグナルな違反へ絞る。網羅的なレイヤ適合監査は専用の監査スキルの仕事だが、**こちらもまだ実体が無い**（BACKLOG GB-1）
+- 静的な層境界の強制 — `pnpm lint:ci` が `eslint-plugin-boundaries`（ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement）と `pnpm check:architecture` を走らせており、import 方向は静的に**ゲートされている**。よって `architecture` レンズはその上に載る*意味的*なパスであり、マトリクスで表現できない違反（正当な import を通って型が漏れている / 責務が別カーネルに置かれている / 名目上だけ依存を反転させた抽象）に使う。ESLint が既に落とすものを再導出することに使わない。網羅的なレイヤ適合監査は専用の監査スキルの仕事だが、**それはまだ実体が無い**（BACKLOG GB-1）
 - コメント以外の修正の適用 — コードレンズについてはソースに対し read-only。指摘するだけで直すのはユーザー。（例外: **コメント品質の指摘は Step 5.5 で自動適用する** — 冗長・ナレーション的なコメントは報告で終わらず実際に直す。）
 
 ## 中核アイデア — reviewer ≠ implementer
@@ -66,6 +66,11 @@
 - **リクエスト時の seam** が触られたか — Route Handler（`src/app/**/route.ts`）/ Server Action（`src/features/<name>/actions.ts`）/ `src/proxy.ts` / レスポンスヘッダ設定（`next.config.ts` の `headers()`）/ **layout shell・Provider 合成**（`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.md)。Provider の欠落は当該ルートが実際に描画されて初めて落ちる）。Step 4-2 を回すかの判定。 <!-- skill-lint-ignore -->
 - **生成 API 成果物**（`**/gen/**` — ADR [0072](../../../docs/adr/0072-api-type-generation.md) の型 / zod スキーマ）が触られたか。再生成は全 consumer に波及するので、変更ファイルだけでなくそれを import する `adapters` 変換と feature までレビュー範囲を広げる。
 - **`src/**` 配下の非生成な本番 `.ts` / `.tsx`** が触られたか（除外: `*.test.ts(x)` / `*.spec.ts(x)` / `**/gen/**` / `Code generated … DO NOT EDIT` バナーを持つファイル）— `test-gap` レンズへ渡す変更シンボル一覧の材料。
+- **`*.test.ts(x)` / `*.spec.ts(x)`** が触られたかを別に記録する。前項と合わせて**テスト観点の判定式**が決まる: `本番ソースが触られた OR テストファイルが触られた`。テストのみの変更は後者だけで成立し、それはまさに `test-gap` が見られないケースである（本番ソースを読むため）。4 状態のどれかで所管が決まる。
+  - 判定式が真 **かつ** Step 4.5 の委譲が動く → 委譲先の所管。`test-gap` は走らせない
+  - 判定式が真、委譲が不可、**本番ソースが触られた** → `test-gap` が高シグナルな部分集合として走る
+  - 判定式が真、委譲が不可、**テストファイルのみが触られた** → **どちらも走らせない。** `test-gap` は列挙するシンボルを持たず、空の結果が「監査済み」と読めてしまう。テスト観点が完全に未検査になる唯一の状態なので、空のレンズで代替せず `テスト観点:` 行にそう書く
+  - 判定式が偽 → どちらも走らせない。監査すべきテスト観点が無い
 - **そもそもテストランナーが構成されているか**を確認: `package.json` の `test` スクリプト、またはツリー内の `*.test.ts(x)` / `*.spec.ts(x)`。どちらも無ければ `test-gap` レンズは本実行で **無効**（Step 2 参照）— 黙ってスキップせず Step 5 のレポートに明記する。
 
 ## Step 2 — Finder の fan-out（別モデル、並列）
@@ -81,16 +86,16 @@
 | `security` | adversarial-reviewer | 常時（Route Handler / Server Action / `src/proxy.ts` / auth / 生成 API のリクエスト・レスポンス型が触られた時は特に） |
 | `architecture` | adversarial-reviewer | 常時 |
 | `runtime-gap` | adversarial-reviewer | Route Handler / Server Action / `src/proxy.ts` / Provider マウント / 生成 API 成果物が触られた時 — モックのコンポーネントテストが通らない継ぎ目 |
-| `test-gap` | adversarial-reviewer | `src/**` 配下の非生成な本番 `.ts` / `.tsx` が触られ、**かつ**テストランナーが構成されている時（Step 1） |
+| `test-gap` | adversarial-reviewer | **fallback のみ** — Step 4.5 の `/test-review` への委譲が動かせなかった時に spawn する。それ以外ではテスト観点は委譲先の所管 |
 | コメント品質 | **comment-reviewer** | diff がコードコメントを追加/変更した時（ほぼ常時） |
 
 各 `adversarial-reviewer` プロンプトに必ず含める: レンズ名 + その定義、ベース ref + 変更ファイル一覧 + diff、`AGENTS.md` / 該当 `README.md` / 根拠となる ADR へのポインタ。
 
 **`test-gap` レンズの定義**（このレンズは *code-origin* — テストファイルではなく変更された本番ソースを読む）: diff で追加/変更された本番シンボルごとに、論理分岐 / 送出するエラー型 / 境界条件 / null・undefined 防御を列挙し、対応するテストが各々へ到達し *区別可能な形で* アサートしているか確認する — 具体的なエラークラス（`await expect(fn()).rejects.toThrow(SpecificError)`）、区別可能な値や描画状態であって、素の `expect(fn).toThrow()` / `toBeTruthy()` では不足。報告する形は 2 つ: diff で変更された本番シンボルに **テストが一切無い**、および変更シンボルの到達可能な分岐が **未テストまたは空虚なアサート**。各 finding は diff 内の対象行へアンカーし、インライン投稿できるようにする。これは **高シグナルな部分集合** — *変更された*コードの到達可能なギャップを挙げるのであって、モジュール全体のシンボル網羅列挙は行わない。finding は read-only な提案（自動修正しない）。
 
-**`test-gap` はテスト基盤の存在を前提とするゲート付き。** 本リポジトリにはまだテストランナーが入っていない（ADR [0090](../../../docs/adr/0090-testing-strategy.md) は Vitest + RTL + MSW + Playwright を選定しているが、ツール自体は `package.json` に無い）。Step 1 が構成済みランナーを見つけるまで、このレンズを **spawn しない** — 読むテストが無い状態では変更シンボルすべてを「未テスト」と報告し、シグナルではなくノイズになる。有効化はランナーを入れるだけでよく、本スキルの編集は不要。
+**Step 4.5 が委譲している間、`test-gap` は抑止する。** テスト観点には専任の所管ができた — `/test-review` が同じ変更に対し 5 レンズの監査を回し、このレンズが標本抽出しているだけの subject シンボル網羅と分岐 × 意味を持つ。Step 4.5 が委譲を実行するときは `test-gap` を **spawn しない** — 所管は 1 つ、二重報告なし。`test-gap` は委譲が辞退・不可だった実行のための fallback としてのみ残す。その fallback にも Step 1 のランナー確認が掛かる。
 
-`comment-reviewer` プロンプトに必ず含める: ベース ref + 変更ファイル一覧 + diff、および **行ポリシー**（diff スコープでは変更行のコメントのみを判定する）。全言語一律の基準（TS/TSX も非 TS も同じ — shell / `.mjs` / CSS / YAML。非 TS は例外ではなく、むしろ高リスク）、`AGENTS.md` を実行時に権威として読むこと、機能ディレクティブ / export 宣言のガードは既にエージェント側が持っている — ここで再指定したり緩めたりしない。渡すファイル一覧はコメントを持つソースに限定する: 生成ファイル（`**/gen/**`、`// Code generated … DO NOT EDIT`）、deny リスト、Markdown / docs 散文（コメント規則が統べるのはソースコメントであって独立した文書ではない — そちらは `doc-reviewer` の担当）を除外する。
+`comment-reviewer` プロンプトに必ず含める: ベース ref + 変更ファイル一覧 + diff、および **行ポリシー**（diff スコープでは変更行のコメントのみを判定する）。全言語一律の基準（TS/TSX も非 TS も同じ — shell / `.mjs` / CSS / YAML。非 TS は例外ではなく、むしろ高リスク）、`docs/rules.md`（Comment Rules 節があればそれ）と `AGENTS.md` を実行時に権威として読むこと、機能ディレクティブ / export 宣言のガードは既にエージェント側が持っている — ここで再指定したり緩めたりしない。渡すファイル一覧はコメントを持つソースに限定する: 生成ファイル（`**/gen/**`、`// Code generated … DO NOT EDIT`）、deny リスト、Markdown / docs 散文（コメント規則が統べるのはソースコメントであって独立した文書ではない — そちらは `doc-reviewer` の担当）を除外する。
 
 ## Step 3 — 敵対的 verify
 
@@ -159,8 +164,8 @@ build 失敗は **それ自体が CONFIRMED な finding**。出力付きで報�
 ```text
 ## ローカルレビュー結果（reviewer: <model> / implementer: <model>）
 
-スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, runtime-gap, test-gap, comment-style
-未実行のレンズ: test-gap（テストランナー未導入のため無効）
+スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, runtime-gap, comment-style（テスト観点は /test-review へ委譲）
+テスト観点: <4 状態のいずれか。下記の定型から選ぶ>
 ランタイム検証: 4-1 build 実施 / 4-2 リクエスト検証 実施（curl）・対象外（リクエスト時 seam の変更なし）・到達不能（バックエンド不在で未検証の経路: <経路>）
 
 ### CONFIRMED（要対応）
@@ -179,6 +184,15 @@ build 失敗は **それ自体が CONFIRMED な finding**。出力付きで報�
 - ランタイム検証でカバーした経路 / スキップした経路
 ```
 
+**`テスト観点:` 行は必須**で、Step 1 が解決した状態に対応する次の 4 つのうち 1 つを厳密に取る。
+
+- `委譲実施（/test-review Lens 1-5 / CONFIRMED <n>・PLAUSIBLE <m>。レポートは別節に埋め込み）`
+- `test-gap レンズのみ（変更シンボルの高シグナル・サブセット。全シンボル網羅は未実施）`
+- `未実施（テストのみの変更で委譲できず、test-gap にも対象が無い）`
+- `未実施（テスト関連の変更なし）`
+
+この行が要るのはランタイム行と同じ理由である。無ければ `lens:` に `test-gap` が並んでいるだけで「テストは監査された」と読めてしまうが、実際には変更シンボルの部分集合しか見ていない。テスト分析が一切無い実行は痕跡すら残らない。弱い側の事実をそのまま書き、省略をカバレッジの代わりにしない。
+
 重大度順、CONFIRMED を PLAUSIBLE より先に。ランタイムで何を検査し何をスキップしたか、そして **どのレンズが動かなかったか・なぜか** は必ず明記（黙って省くと「全部見た」と誤読される）。レポート内では **コメント品質** の finding を独立した節に保つ — それらは Step 5.5 で*処理*されるものであって、PR へ投稿されるものではない。
 
 ## Step 5.5 — コメント修正の適用（既定。`--no-apply` でスキップ）
@@ -189,12 +203,12 @@ build 失敗は **それ自体が CONFIRMED な finding**。出力付きで報�
 
 - `AskUserQuestion`: 「コメント指摘 <N> 件をライフサイクル内で修正適用しますか？」 — 選択肢は「すべて適用」/「1件ずつ確認」/「適用しない（レポートのみ／PR コメント化）」。
 
-各 finding が持つアクションを適用する — 内容の悪いコメントは **削除**、正しい振る舞い記述への **書換**、薄い What / 欠けた非自明な契約 / 欠けた良い Why の **加筆**。`誤り/陳腐化` の finding（What がコードと矛盾）は削除ではなく訂正する。以下のガードを守る（ここでの誤削除は本物のリグレッション）:
+各 finding が持つアクションを適用する — 内容の悪いコメントは **削除**、正しい振る舞い記述への **書換**、薄い What / 欠けた非自明な契約 / 欠けた制約の **加筆**。`誤り/陳腐化` の finding（What がコードと矛盾）は削除ではなく訂正する。以下のガードを守る（ここでの誤削除は本物のリグレッション）:
 
 - **機能ディレクティブ / 指示コメントを決して削除しない**: `// @ts-expect-error`、`// @ts-ignore`、`// biome-ignore …`、`// eslint-disable` / `// eslint-disable-next-line` / `/* eslint-disable … */`（ADR [0002](../../../docs/adr/0002-formatter-linter.md) は biome が表現できない検査のために ESLint を残している）、`/** @jsxImportSource … */`、`// prettier-ignore`、`// Code generated … DO NOT EDIT`、shebang、shell / YAML のツールディレクティブ。（`"use client"` / `"use server"` はコメントではなく文字列ディレクティブ — こちらも触らない。）
 - **保護パスを決して編集しない。** `AGENTS.md` の *AI Modification Scope* と *Protected Documentation* が権威: `AGENTS.md` 自身 / Accepted な ADR 本文 / `LICENSE` / `.claude/settings.json` の `permissions.deny` に載るものは、スキル実行中であっても触らない。ルート設定（`package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/`）の保護解除は v1.0.0 未満の暫定運用によるものであり、コメント修正はそこへ手を入れる理由にならない。コメント指摘がこれらのパスに当たった場合は適用せず報告に留める。
 - **export 宣言**: doc コメントが実際の契約（エラー意味論 / 単位 / 境界 / 副作用）を述べているなら、**書換 or 加筆であって削除は不可** — 型シグネチャがその情報を運ばないため。削除してよいのは、名前と型の純粋な言い換えに留まる場合のみ。どちらのケースかは `comment-reviewer` が export 宣言の finding ごとに明記する。明記が無ければ契約ありとみなして書換にする。
-- **良いコメントは残す**: 正しく十分で実質のある What、および非自明な Why（根拠 / 効いている制約）は finding ではない — 剥ぎ取らない。書換・加筆は **What + 非自明な Why** を書き、**How** や開発の経緯は書かない。コメントは日本語で書く（AGENTS.md Language Rules）。編集はスコープ内のファイルのみ。生成ファイル / Markdown 散文 / deny リストには決して触れない。`Edit` を使い、finding（またはファイル）1 件ずつ進める。
+- **良いコメントは残す**: 正しく十分で実質のある What、および**前提がその呼び出し箇所に在る制約**は finding ではない — 剥ぎ取らない。書換・加筆は **What + その制約**を書き、**How** や開発の経緯は書かない。前提が遠い根拠（上流サービスの挙動 / 運用ポリシー）は、ここで要求も移設もしない — レビュアーの判定のまま残す。コメントは日本語で書く（AGENTS.md Language Rules）。編集はスコープ内のファイルのみ。生成ファイル / Markdown 散文 / deny リストには決して触れない。`Edit` を使い、finding（またはファイル）1 件ずつ進める。
 
 編集後に検証する:
 
@@ -285,11 +299,11 @@ GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ**
 - ✅ 投稿前に各 finding 本文から秘密らしき具体値を伏せ字化する — 本リポジトリは public で、投稿は取り消せない。
 - ❌ `gh api` が許可されているからと Step 6 の確認を省く — 安全性を担保しているのは権限規則ではなく確認のほう。
 - ❌ deny されたコマンドを許可済みインタプリタ経由で送り直す / `permissions.deny` を編集して解除する — ブロックを提示し、サマリコメントのフォールバックを提案すること。
-- ✅ どのレンズが動かなかったか・なぜかをレポートに明記（テストランナー未導入の間の `test-gap`）。
+- ✅ どのレンズが動かなかったか・なぜか、そしてテスト観点が `/test-review` の委譲から来たのか `test-gap` の fallback から来たのかをレポートに明記。
 - ❌ REFUTED を投稿する / `REQUEST_CHANGES` / `APPROVE` を使う — 投稿するレビューは助言的な `COMMENT` のみ。
 - ❌ コードレンズを自動修正する — 指摘まで、直すのはユーザー。自動適用はコメント品質のみ（Step 5.5）。
 - ❌ Step 5.5 で機能ディレクティブ（`// biome-ignore` 等）や契約を述べた export 宣言の doc コメントを削除する（書換にする）/ 生成ファイル・Markdown・deny リストに触れる / 自動 commit する。
-- ❌ テストランナーが存在しない状態で `test-gap` を spawn する — 読むものが無いため変更シンボルすべてを挙げてしまい、ノイズになる。
+- ❌ `/test-review` への委譲が走っている状態で `test-gap` を spawn する — 同じギャップを 2 つの語彙で二重報告することになる。
 - ❌ reviewer を implementer と同一モデルで回す。
 - ❌ 思いつきの style nit を finding として出す / 網羅に見せるための水増し。
 - ❌ verify 中に生成ファイルや deny リスト対象を編集する。
@@ -298,7 +312,7 @@ GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ**
 
 - [ ] `AskUserQuestion` でスコープ確認、ベース ref 解決。
 - [ ] Step 0 で reviewer モデルを選択し、implementer と異なることを確認（同一なら警告 + 確認）。
-- [ ] finder を並列 fan-out: コードレンズ（`adversarial-reviewer`）+ コメント品質（`comment-reviewer`）。`test-gap` はテストランナーが構成されている時のみ。
+- [ ] finder を並列 fan-out: コードレンズ（`adversarial-reviewer`）+ コメント品質（`comment-reviewer`）。`test-gap` は Step 4.5 の委譲が動かせなかった時の fallback としてのみ。
 - [ ] 全 finding を独立 verify、REFUTED は除外（件数は保持）。
 - [ ] アプリコードが触られたら Step 4-1 `pnpm build` 実施、リクエスト時 seam が触られたら Step 4-2 curl 実施。到達不能な経路は明記済み、状態を変える Server Action は事前確認済み。
 - [ ] 1つの日本語レポート: CONFIRMED → PLAUSIBLE、コメント finding は独立節、ランタイムのカバー範囲と未実行レンズを明記。

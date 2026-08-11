@@ -18,7 +18,7 @@ A Japanese reference translation of this skill lives at `SKILL.ja.md` in this di
 Do NOT use this skill for:
 
 - Style / formatting — `pnpm fix` / `pnpm lint:ci`.
-- Static layer-boundary enforcement — ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement selects `eslint-plugin-boundaries` for it, **but the ESLint introduction PR has not landed**: `pnpm lint:ci` today runs biome alone and checks no import direction at all. Until it does, this skill's `architecture` lens is the *only* thing catching a boundary violation, so do not soften it on the assumption a static gate already ran. Once ESLint lands, the lens becomes the *semantic* pass on top of it and narrows to high-signal violations. Exhaustive layer-compliance auditing belongs to a dedicated auditor skill, which **also does not exist yet** (BACKLOG GB-1).
+- Static layer-boundary enforcement — `pnpm lint:ci` runs `eslint-plugin-boundaries` (ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement) plus `pnpm check:architecture`, so import direction **is** statically gated. The `architecture` lens is therefore the *semantic* pass on top of that gate: spend it on violations the matrix cannot express (a type leaking through a legal import, responsibility placed in the wrong kernel, an abstraction that inverts the dependency only nominally), not on re-deriving what ESLint already fails on. Exhaustive layer-compliance auditing belongs to a dedicated auditor skill, which **does not exist yet** (BACKLOG GB-1).
 - Applying non-comment fixes — for the code lenses this skill is read-only; it reports, the user fixes. (Exception: **comment-style findings are auto-applied** in Step 5.5 — verbose / narrating comments are actually fixed, not just reported.)
 
 ## Core Idea — reviewer ≠ implementer
@@ -76,6 +76,11 @@ model is passed to every `adversarial-reviewer` / `comment-reviewer` / `review-v
 - Note whether a **request-time seam** is touched — a Route Handler (`src/app/**/route.ts`), a Server Action (`src/features/<name>/actions.ts`), `src/proxy.ts`, the response header configuration (`next.config.ts` `headers()`), or the **layout shell / Provider composition** (`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.md); a missing Provider only fails when the route actually renders). This decides whether Step 4-2 runs. <!-- skill-lint-ignore -->
 - Note whether a **generated API artifact** is touched (`**/gen/**` — the types / zod schemas of ADR [0072](../../../docs/adr/0072-api-type-generation.md)). A regenerated artifact ripples to every consumer, so widen the review to the `adapters` conversions and features that import it, not just the changed file.
 - Note whether any **non-generated production `.ts` / `.tsx` under `src/**`** is touched (exclude `*.test.ts(x)` / `*.spec.ts(x)` / `**/gen/**` / files carrying a `Code generated … DO NOT EDIT` banner) — this feeds the `test-gap` lens its changed-symbol list.
+- Note separately whether any **`*.test.ts(x)` / `*.spec.ts(x)`** is touched. Together with the previous bullet this resolves the **test-viewpoint predicate**: `production source touched OR test file touched`. A test-only change satisfies it through the second disjunct alone — which is exactly the case `test-gap` cannot see, since it reads production source. Which of four states holds decides who owns the viewpoint:
+  - Predicate true **and** the Step 4.5 delegation runs → the delegate owns it; `test-gap` does **not** run.
+  - Predicate true, delegation unavailable, **production source touched** → `test-gap` runs as the high-signal subset.
+  - Predicate true, delegation unavailable, **only test files touched** → **neither runs.** `test-gap` would have no symbol to enumerate and return an empty result that reads as a clean audit. This is the one state where the test viewpoint goes entirely unexamined — say so on the `テスト観点:` line instead of letting an empty lens stand in for it.
+  - Predicate false → neither runs; there is no test viewpoint to audit.
 - Check whether a **test runner is configured at all**: a `test` script in `package.json`, or any `*.test.ts(x)` / `*.spec.ts(x)` in the tree. If neither exists, the `test-gap` lens is **disabled** for this run (see Step 2) — say so in the Step 5 report rather than silently skipping it.
 
 ## Step 2 — Fan-out Finders (different model, concurrent)
@@ -100,7 +105,7 @@ Each `adversarial-reviewer` prompt MUST include: the lens name + its definition,
 
 **`test-gap` is suppressed while Step 4.5 delegates.** The test viewpoint now has a dedicated owner: `/test-review` runs a five-lens audit over the same change with the subject-symbol and branch×meaning lenses that this one only samples. When Step 4.5 runs the delegation, do **not** spawn `test-gap` — one owner, no double-reporting. Keep `test-gap` only as the fallback for a run where the delegation is declined or unavailable; the Step 1 runner check still gates that fallback.
 
-The `comment-reviewer` prompt MUST include: the base ref + changed-file list + the diff, and the **line policy** (judge only comments on changed lines for a diff scope). The agent already encodes the all-languages-uniform standard (TS/TSX and non-TS alike — shell / `.mjs` / CSS / YAML; non-TS is higher-risk, not exempt), reads `AGENTS.md` at runtime as its authoritative policy, and carries the functional-directive / exported-declaration guards — do not re-specify or soften them here. Restrict the file list it sees to comment-bearing source files: exclude generated files (`**/gen/**`, `// Code generated … DO NOT EDIT`), the deny list, and Markdown / docs prose (the comment rules govern source comments, not standalone documents — that is `doc-reviewer`'s job).
+The `comment-reviewer` prompt MUST include: the base ref + changed-file list + the diff, and the **line policy** (judge only comments on changed lines for a diff scope). The agent already encodes the all-languages-uniform standard (TS/TSX and non-TS alike — shell / `.mjs` / CSS / YAML; non-TS is higher-risk, not exempt), reads `docs/rules.md` (its Comment Rules section, if present) and `AGENTS.md` at runtime as its authoritative policy, and carries the functional-directive / exported-declaration guards — do not re-specify or soften them here. Restrict the file list it sees to comment-bearing source files: exclude generated files (`**/gen/**`, `// Code generated … DO NOT EDIT`), the deny list, and Markdown / docs prose (the comment rules govern source comments, not standalone documents — that is `doc-reviewer`'s job).
 
 ## Step 3 — Adversarial Verify
 
@@ -177,7 +182,7 @@ Produce one Japanese report:
 ## ローカルレビュー結果（reviewer: <model> / implementer: <model>）
 
 スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, runtime-gap, comment-style（テスト観点は /test-review へ委譲）
-テスト観点: /test-review へ委譲（レポートは別節に埋め込み）
+テスト観点: <4 状態のいずれか。下記の定型から選ぶ>
 ランタイム検証: 4-1 build 実施 / 4-2 リクエスト検証 実施（curl）・対象外（リクエスト時 seam の変更なし）・到達不能（バックエンド不在で未検証の経路: <経路>）
 
 ### CONFIRMED（要対応）
@@ -196,6 +201,15 @@ Produce one Japanese report:
 - ランタイム検証でカバーした経路 / スキップした経路
 ```
 
+The **`テスト観点:` line is mandatory** and takes exactly one of the four values below, matching the state Step 1 resolved:
+
+- `委譲実施（/test-review Lens 1-5 / CONFIRMED <n>・PLAUSIBLE <m>。レポートは別節に埋め込み）`
+- `test-gap レンズのみ（変更シンボルの高シグナル・サブセット。全シンボル網羅は未実施）`
+- `未実施（テストのみの変更で委譲できず、test-gap にも対象が無い）`
+- `未実施（テスト関連の変更なし）`
+
+It exists for the same reason the runtime line does: without it, a `lens:` list containing `test-gap` reads as "the tests were audited" when only a subset of the changed symbols was looked at, and a run with no test analysis at all leaves no trace. State the weaker case plainly rather than letting the omission pass for coverage.
+
 Order by severity, CONFIRMED before PLAUSIBLE. Always state what runtime checks ran, what was skipped, and **which lenses did not run and why** — silent omission reads as "covered everything" when it was not. In the report, keep the **comment quality** findings in their own subsection — they are *processed* in Step 5.5, not posted to the PR.
 
 ## Step 5.5 — Apply Comment Fixes (default; skip with `--no-apply`)
@@ -206,12 +220,12 @@ Confirm once before editing:
 
 - `AskUserQuestion`: 「コメント指摘 <N> 件をライフサイクル内で修正適用しますか？」 — options: 「すべて適用」 / 「1件ずつ確認」 / 「適用しない（レポートのみ／PR コメント化）」.
 
-Apply the action each finding carries — **削除 (delete)** a bad-content comment, **書換 (rewrite)** to a correct/behavioral What, or **加筆 (enrich)** a thin What / missing non-obvious contract / missing good Why. A `誤り/陳腐化` finding (the What contradicts the code) is corrected, not deleted. Obey these guards (a wrong deletion here is a real regression):
+Apply the action each finding carries — **削除 (delete)** a bad-content comment, **書換 (rewrite)** to a correct/behavioral What, or **加筆 (enrich)** a thin What / missing non-obvious contract / missing constraint. A `誤り/陳腐化` finding (the What contradicts the code) is corrected, not deleted. Obey these guards (a wrong deletion here is a real regression):
 
 - **Never delete functional / directive comments**: `// @ts-expect-error`, `// @ts-ignore`, `// biome-ignore …`, `// eslint-disable` / `// eslint-disable-next-line` / `/* eslint-disable … */` (ADR [0002](../../../docs/adr/0002-formatter-linter.md) keeps ESLint for the checks biome cannot express), `/** @jsxImportSource … */`, `// prettier-ignore`, `// Code generated … DO NOT EDIT`, shebangs, tool directives in shell / YAML. (`"use client"` / `"use server"` are string directives, not comments — never touch them either.)
 - **Never edit a protected path.** `AGENTS.md`'s *AI Modification Scope* and *Protected Documentation* are authoritative: `AGENTS.md` itself, Accepted ADR bodies, `LICENSE`, and anything listed under `.claude/settings.json`'s `permissions.deny` stay untouched even during skill execution. Root config (`package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/`) is lifted only by the temporary pre-v1.0.0 rules — a comment fix is never a good enough reason to reach into one. If a comment finding lands on such a path, report it instead of applying it.
 - **Exported declarations**: if the doc comment carries a real contract (error semantics / units / boundaries / side effects), **rewrite or enrich, never delete** — the type signature does not carry it. Delete only when the comment is a pure restatement of the name and type. The `comment-reviewer` marks which case applies on every exported-declaration finding; if it did not, treat it as contract-bearing and rewrite.
-- **Keep good comments**: a correct, sufficient What and a non-obvious Why (rationale / load-bearing constraint) are not findings — do not strip them. Rewrites/enrichments describe **What + non-obvious Why**, never **How** or development 経緯. Comments are written in Japanese (AGENTS.md Language Rules). Edit only in-scope files; never touch generated files, Markdown prose, or the deny list. Use `Edit`, one finding (or one file) at a time.
+- **Keep good comments**: a correct, sufficient What, and a constraint whose premise sits at that call site, are not findings — do not strip them. Rewrites/enrichments describe **What + such a constraint**, never **How** or development 経緯. A rationale whose premise is remote (an upstream service's behavior, an operational policy) is neither demanded nor relocated here — leave it as the reviewer judged it. Comments are written in Japanese (AGENTS.md Language Rules). Edit only in-scope files; never touch generated files, Markdown prose, or the deny list. Use `Edit`, one finding (or one file) at a time.
 
 After editing, verify:
 
