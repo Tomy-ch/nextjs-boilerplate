@@ -49,6 +49,7 @@ Accepted
 | `impl-review` | adversarial code review | 5 観点 (correctness / security / architecture / runtime-gap / test-gap) + コメント品質の subagent fanout + verifier による多段検証。コメント指摘のみライフサイクル内で自動修正し、残る指摘は PR へインライン投稿する |
 | `scaffold-test` | テストの新規作成 (unit / component) | テストを持たない対象について、対象自身の分岐からケースを導き `<subject>.test.ts(x)` を書く。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) / 最近傍 README の `test-requirement` / `scripts/lib/untested-modules.ts` を実行時に読む。対象は read-only で、検証できない分岐は skip せず所見として報告する |
 | `scaffold-integration-test` | HTTP 境界の結合テスト作成 | `adapters` のクライアントや Route Handler を、契約から生成された MSW ハンドラで動かすテストを書く。[0090](0090-testing-strategy.md) の「integration = HTTP 境界のみ / 内側は mock / 形と型をアサート」を保ち、ハンドラの手書きと `fetch` stub を禁じる |
+| `comment-sweep` | コメント在庫の管轄判定 | 蓄積したコメントを 維持 / 削除 / 書換 / **移設** の 4 判定で裁く。移設は根拠を ADR や層 README へ動かし、コードには効力のある残余と 1 行の参照を残す。read-only のレビュアーが出せない判定であり(移設先の文書を書く必要がある)、判断対象も差分ではなく在庫である。`impl-review` Step 4.6 の委譲先を兼ねる |
 | `test-review` | テストの品質レビュー | 5 レンズ (構造準拠 / 観点カバレッジ / 意味的品質 / 分岐×意味 / シンボル網羅) の fanout + verifier。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む。read-only で、`impl-review` Step 4.5 の委譲先を兼ねる |
 | `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
 | `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
@@ -106,6 +107,7 @@ subagent 自身が read-only である規約は `comment-reviewer` にも等し�
 
 | スキル | 入力 | 出力 | 用途 |
 | --- | --- | --- | --- |
+| `comment-sweep` | 1 ディレクトリのコメント在庫 | 4 判定の適用（コードと移設先の両方を書く） | 置き場所の誤りを在庫から抜く |
 | `scaffold-test` | テストを持たない対象 | `<subject>.test.ts(x)` 1 ファイル | 1:1 ゲートとカバレッジゲートを満たすテストの新規作成 |
 | `scaffold-integration-test` | HTTP 境界を持つ継ぎ目 | `<subject>.contract.test.ts` 1 ファイル | 契約駆動のハンドラで境界を固定する |
 | `canonicalize-doc` | EN または JA のドキュメント | 不足側を生成 / 両側の drift を同期 | 1 ドキュメントの 2 言語ペア管理 |
