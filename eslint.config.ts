@@ -6,7 +6,7 @@ import boundaries from "eslint-plugin-boundaries";
 import tseslint from "typescript-eslint";
 
 import { DEPENDENCIES, ENTRY_POINTS, KERNELS, RESTRICTED_AREAS } from "./architecture";
-import noInternalAnchor from "./eslint-rules/no-internal-anchor.mjs";
+import noInternalAnchor from "./eslint-rules/no-internal-anchor";
 
 const elements = [
   // 層より先に並べる。区画は層の内側にあるため、層の要素が先に一致すると区画としては

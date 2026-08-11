@@ -20,13 +20,18 @@ export default defineConfig({
     //
     // `scripts/` だけは [vitest.scripts.config.ts](vitest.scripts.config.ts) の別 suite で回す。
     // あちらに居るのは lint とゲートそのもので、落ちたときにアプリの退行と読み違えたくない。
-    include: ["{src,tokens,docs-viewer,mocks}/**/*.test.{ts,tsx}"],
+    include: ["{src,tokens,docs-viewer,mocks,eslint-rules}/**/*.test.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "v8",
       // テストを持つ範囲は実行対象と計測対象を揃える。片方だけ広げると、テストは走るのに
       // ゲートに載らない範囲ができ、未テストの分岐を足しても緑のまま通る（ADR 0090）。
-      include: ["src/**/*.{ts,tsx}", "docs-viewer/src/**/*.{ts,tsx}", "tokens/**/*.ts"],
+      include: [
+        "src/**/*.{ts,tsx}",
+        "docs-viewer/src/**/*.{ts,tsx}",
+        "tokens/**/*.ts",
+        "eslint-rules/**/*.ts",
+      ],
       // 検査対象から外すモジュールは scripts/lib/untested-modules.ts の宣言 1 箇所が持ち、
       // カバレッジ母数と 1:1 ゲートの双方がそれを読む（ADR 0090）。ここへ直接足すと、
       // ゲート側だけが要求し続ける／カバレッジ側だけが要求し続けるずれが黙って生まれる。
@@ -35,6 +40,7 @@ export default defineConfig({
         "src/**/*.stories.{ts,tsx}",
         "docs-viewer/src/**/*.test.{ts,tsx}",
         "docs-viewer/src/**/*.stories.{ts,tsx}",
+        "eslint-rules/**/*.test.ts",
         ...EXCLUDED_FROM_CHECKS,
       ],
       thresholds: {

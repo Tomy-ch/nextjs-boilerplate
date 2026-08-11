@@ -30,7 +30,14 @@ const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");
  * `lib/untested-modules.ts` へ理由付きで宣言してください。走査範囲を狭めて回避すると、
  * 外した記録がどこにも残りません。
  */
-const SCAN_ROOTS = ["src", "scripts", "tokens", "mocks", "docs-viewer/src"] as const;
+const SCAN_ROOTS = [
+  "src",
+  "scripts",
+  "tokens",
+  "mocks",
+  "docs-viewer/src",
+  "eslint-rules",
+] as const;
 
 /** 除外宣言を、リポジトリ相対パスに当てる正規表現へ変える。 */
 function toMatcher(pattern: string): RegExp {
