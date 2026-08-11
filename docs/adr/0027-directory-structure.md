@@ -26,7 +26,7 @@ go-boilerplate は物理配置を **per-package co-location**(実装・テスト
 src/
 ├── app/                    # route-segment(page/layout/loading/error)/ route-handler(route.ts)/ metadata(robots等)。[0025]
 ├── features/
-│   └── <name>/             # 1 feature = 1 ディレクトリ。内部はフラット共置(下記)
+│   └── <name>/             # 1 feature = 1 ディレクトリ。内部は画面 × 性質で掘る(下記)
 ├── model/                  # 表示用 VO / フォーマッタ / 表示結果型(ActionState<T> 等)(フラット共置)
 ├── components/             # 横断 UI(フラット共置)
 ├── adapters/               # 外部接続。server/・client/ の 2 element に分割([0024]・RSC 境界)
@@ -54,14 +54,36 @@ src/
 
 1 機能の変更が 1 スライスに閉じるよう、関連ファイルは実装の隣に共置する([0020](0020-adopted-architecture.md) が機能スライス採用の根拠とする修正の局所性(co-location)/ フラット共置基本)。
 
-- **feature 内はフラット共置を基本**とする。1 つの `features/<name>/` に、その feature の画面ユースケース・専用 UI・hooks・`actions.ts`(Server Action)を**サブディレクトリなしで並置**する(go の集約ディレクトリと同型。ネスト深化の防止)
+- **カーネル(`model` / `components` の各部品ディレクトリ / `stores` / `adapters` の element 内 等)はフラット共置を基本**とする。判定を持つモジュールを 1 ファイル 1 役割で並置し、サブディレクトリで種類分けしない
+- **`features/<name>/` は 2 つの軸だけで掘る**。第 1 軸は**画面(リソース)**、第 2 軸は**性質**である。恣意的な階層化を避けるためであり、この 2 軸以外(種類・レイヤ名・再利用予定など)では掘らない
+
+  ```text
+  features/<name>/
+  ├── README.md
+  └── <screen>/                     # 第 1 軸: 画面 = リソース単位
+      ├── <screen>-page-content.tsx #   取得と組み立て
+      ├── <screen>-query.ts         #   入力(URL / searchParams)の写し
+      ├── actions.ts                #   変更(Server Action)
+      └── ui/                       # 第 2 軸: 表示
+          └── <part>/               #   1 部品 = 1 ディレクトリ
+              ├── <part>.tsx
+              ├── <part>.test.tsx
+              ├── <part>.stories.tsx
+              └── <part>.definition.ts
+  ```
+
+- **性質で分けるのは、性質ごとに検証手段と import 可能な先が違うから**である。取得と組み立ては `adapters` を呼び、表示は呼ばない([0021](0021-frontend-responsibility.md) 依存マトリクス)。取得は module 境界の mock を伴い、表示は DOM を伴う([0091](0091-test-verification-methods.md))。置き場が性質を表していれば、そのファイルが何を呼べて何で検証されるかを読まずに決められる
+- **`ui/` の中は 1 部品 = 1 ディレクトリ**とし、実装・テスト・stories・定義・README を共置する。`components/design-system/<役割>/<部品>/` と同形であり、部品ごとに stories([0054](0054-ui-catalog-storybook.md))の置き場を確保するためにこの粒度を採る
+- **深さの上限は `features/<name>/<screen>/ui/<part>/`** とする。`ui/` の中をさらに種類で掘らない。画面が部品を抱えきれなくなった場合は、`ui/` を深くするのではなく**画面(第 1 軸)を分ける**か、[0021](0021-frontend-responsibility.md) の昇格ルールで `components` へ出す
+- **画面が 1 つの間は第 1 軸を省略してよい**。`features/<name>/` の直下に `*-page-content.tsx` と `ui/` を置く。2 つ目の画面が来た時点で画面ディレクトリへ割る
 - **テストは実装の隣に co-location する**(go `docs/rules.md` の「Co-locate tests with each layer's implementation」を翻案)。`__tests__/` への一括集約はしない。**テストファイルの拡張子・命名規約は B8(テスト戦略)で確定**する(本 ADR は配置方針のみ。`正常系` / `異常系` の日本語命名など戦略面は [0090](0090-testing-strategy.md) で go 準拠を確定済み)
 - **スタイルは Tailwind ユーティリティを既定**とし([0050](0050-styling-strategy.md))、別ファイルの CSS は最小化する。グローバル CSS は `src/app/globals.css` に集約する(既存踏襲)。design token / `cn()` ヘルパの置き場は B1 で確定する
 - **MSW 等のモック生成物**(triage #73 / #74・B3 orval 由来)は `src/` 外の **`mocks/`(または テストへ co-location)** に置き、生成型([0072](0072-api-type-generation.md) の do-not-edit)と分離する
 
 ### 共有モジュールの粒度
 
-- **per-file を基本**とし(1 ファイル 1 役割・フラット共置)、肥大化した時点で **per-folder へ昇格**する(ネスト深化の防止)。go `pkg/README.md` の「単一責務」+ 浅い層構成の翻案
+- **判定を持つモジュールは per-file を基本**とし(1 ファイル 1 役割・フラット共置)、肥大化した時点で **per-folder へ昇格**する(ネスト深化の防止)
+- **UI 部品は per-folder を基本**とする。実装のほかに stories・定義・README を伴い、それらを部品ごとに共置するため(`components/design-system/<役割>/<部品>/` と `features/<name>/<screen>/ui/<part>/` が同形)
 - feature を跨いで共有が必要になった要素は、フォルダを増やす前に [0021](0021-frontend-responsibility.md) の**昇格ルール**(`model` / `components` / `adapters` / `capabilities` / `stores` へ昇格)に従う。共有の受け皿となる汎用フォルダ(`common` / `utils` 等)は作らない([0021](0021-frontend-responsibility.md) 命名規律)
 
 ### 物理ディレクトリの作成タイミング
@@ -75,7 +97,9 @@ src/
 - ❌ 対応決定(A7 / B6 / B7)が下りる前に横断関心事カーネルの空ディレクトリを生やすこと
 - ❌ テストを `__tests__/` へ一括集約すること(実装の隣に co-location する)
 - ❌ feature / カーネルの境界を跨ぐ相対 import(`../../` で層を跨ぐ)。層跨ぎは `@/*` alias を使う
-- ❌ feature 内に不要なサブディレクトリ階層を作ること(フラット共置が基本。肥大時のみ分割)
+- ❌ feature 内を**画面(リソース)と性質以外の軸**で掘ること(種類・レイヤ名・再利用予定など)
+- ❌ `features/<name>/<screen>/ui/<part>/` より深く掘ること(画面を分けるか `components` へ昇格させる)
+- ❌ カーネル内をサブディレクトリで種類分けすること(フラット共置。UI 部品の per-folder は種類分けではなく 1 部品 1 ディレクトリ)
 - ❌ 11 カーネルの範囲外の新規ディレクトリを ADR 追補なしに `src/` 直下へ作ること
 - ❌ 共有の受け皿となる汎用フォルダ(`common` / `shared` / `utils` / `lib` 等)を作ること([0021](0021-frontend-responsibility.md) 命名規律)
 
