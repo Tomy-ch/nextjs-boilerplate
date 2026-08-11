@@ -22,6 +22,10 @@ test-requirement: unit
 | モジュール | 役割 |
 | --- | --- |
 | [`rich-text/`](rich-text/README.md) | リッチテキストの sanitize port。HTML 文字列を表示してよい範囲の木へ変換する |
+| `datetime.ts` | 日時の locale 対応フォーマッタ |
+| `locale.ts` | 既定 locale。フォーマッタが省略時に用いる単一の差し替え点 |
+| `media.ts` | 配信基盤のオブジェクトキーから表示 URL を組み立てる |
+| `product/product.ts` | サンプル画面が扱う商品の表示用の型 <!-- sample:line --> |
 
 ## 運用
 
