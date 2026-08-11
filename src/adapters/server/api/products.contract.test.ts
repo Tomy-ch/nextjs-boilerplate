@@ -20,7 +20,29 @@ const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => envir
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 
-import { getProducts } from "./products";
+import { getProduct, getProducts } from "./products";
+
+describe("getProduct", () => {
+  // ----- 正常系 -----
+  it("契約から生成したハンドラの応答を検証して受け取る", async () => {
+    const product = await getProduct("0195f0c2-0000-7000-8000-000000000001");
+
+    expect(product).toMatchObject({
+      id: expect.any(String),
+      name: expect.any(String),
+      price: expect.any(String),
+      quantity: expect.any(Number),
+      status: { id: expect.any(String), name: expect.any(String) },
+      category: { id: expect.any(String), name: expect.any(String) },
+    });
+  });
+
+  it("生成ハンドラの応答から画像を配列へ正規化する", async () => {
+    const product = await getProduct("0195f0c2-0000-7000-8000-000000000002");
+
+    expect(Array.isArray(product.imagePaths)).toBe(true);
+  });
+});
 
 describe("getProducts", () => {
   // ----- 正常系 -----

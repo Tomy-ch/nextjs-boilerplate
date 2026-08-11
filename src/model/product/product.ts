@@ -24,12 +24,22 @@ export type Product = {
    */
   price: string;
   quantity: number;
+  /**
+   * 在庫が少ないと見なす境界。設定が無ければ null。
+   *
+   * 何個から「少ない」かはバックエンドが持つ運用の値であり、表示側で決めない。
+   */
+  stockWarningThreshold: number | null;
   status: ProductRef;
   category: ProductRef;
   /** 公開日時。未公開なら null。 */
   publishedAt: Date | null;
-  /** 配信基盤上のオブジェクトキー。表示 URL はここから組み立てる。 */
-  imagePath: string | null;
+  /**
+   * 配信基盤上のオブジェクトキー。表示 URL はここから組み立てる。
+   *
+   * 画像が無い商品は空配列になる。表示の順序は配列の順序に従う。
+   */
+  imagePaths: readonly string[];
 };
 
 /** cursor 方式で取得した商品の 1 ページ。 */
