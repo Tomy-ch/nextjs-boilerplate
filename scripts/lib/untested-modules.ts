@@ -66,14 +66,14 @@ export const TEST_FIXTURE_MODULES = ["src/config/environment.fixture.ts"] as con
  * 単体では回せないモジュール。
  *
  * @remarks
- * async Server Component は描画がサーバランタイム上のデータ取得に依存するため、健全性は
- * HTTP 境界を含む通しでしか確かめられません([0091](../../docs/adr/0091-test-verification-methods.md))。
- * unit で無理に回すと脆い server render mock を積むことになります。撤去条件は E2E の着地。
+ * route segment は `params` / `searchParams` が Promise である App Router の規約と生成型に依存し、
+ * 検証は route の経路ごと通す必要があります([0091](../../docs/adr/0091-test-verification-methods.md))。
+ * 撤去条件は E2E の着地。
+ *
+ * feature 側の `*-page-content.tsx` はここに含めません。取得を `adapters` の module 境界で
+ * 差し替えれば `render(await Component(props))` で検証できるためです。
  */
-export const RUNTIME_ONLY_MODULES = [
-  "src/app/**/page.tsx",
-  "src/features/**/*-page-content.tsx",
-] as const;
+export const RUNTIME_ONLY_MODULES = ["src/app/**/page.tsx"] as const;
 
 /** カバレッジ母数と 1:1 ゲートの双方が外す対象(リポジトリルート相対)。 */
 export const EXCLUDED_FROM_CHECKS = [
