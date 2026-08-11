@@ -127,11 +127,15 @@ Review the `pnpm-lock.yaml` diff: it should be minimal (often empty). A large di
 
 ```sh
 pnpm lint             # biome check (ADR 0002)
+make test-full        # Vitest, coverage-gated — must be green on the new runtime
+make scripts-test     # the `scripts/` suite, same gate
 pnpm build            # next build — must succeed on the new runtime
 ```
 
-If a test script exists later (BACKLOG B8 pending), also run `pnpm test`. Optionally smoke-test the dev
-server (`pnpm dev`, then stop it) to confirm the runtime boots the app.
+The test suites are where a runtime change actually shows up: a Node major can move `Intl` output,
+timer resolution, or `structuredClone` semantics, and a build succeeding says nothing about any of
+them. Optionally smoke-test the dev server (`pnpm dev`, then stop it) to confirm the runtime boots
+the app.
 
 ### 6. Flag Follow-ups (do NOT bundle here)
 

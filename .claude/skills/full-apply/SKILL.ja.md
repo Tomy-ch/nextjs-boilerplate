@@ -158,9 +158,15 @@ pnpm lint         # biome check ── 残エラーはゼロに
 pnpm build        # next build ── 成功必須
 ```
 
-注: 本リポジトリはテストフレームワーク**未採用**(BACKLOG B8 保留)。`package.json` に `test` スクリプトが存在
-するようになったら併せて実行(`pnpm test`)しグリーン維持。それまでは `fix` / `lint` / `build` がゲート。これらで
-拾えないランタイム UI 挙動に触れる変更なら、`verify` / `run` スキルで実際に動かすか、残存リスクを台帳に記す。
+```sh
+make test-full    # Vitest。カバレッジゲート付き(4 指標 100%) ── 緑必須
+make scripts-test # scripts/ の suite。同じゲート
+```
+
+`make test-full` は**任意ではなく必須**である。修正の影響範囲を見えるようにしているのがカバレッジゲートであり、
+ADR [0090](../../../docs/adr/0090-testing-strategy.md) は呼べる export すべてに 1:1 の `describe` を要求する。
+分岐を未カバーのまま残した修正は、黙って通らずゲートで落ちる。これらで拾えないランタイム UI 挙動に触れる変更なら、
+`run` スキルで実際に動かすか、残存リスクを台帳に記す。
 
 グリーンにならない修正はコミットしない。原因に判断が要るなら見送りへ戻す。
 

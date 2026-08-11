@@ -105,11 +105,14 @@ pnpm install          # 解決が変われば pnpm-lock.yaml を更新
 
 ```sh
 pnpm lint             # biome check(ADR 0002)
+make test-full        # Vitest。カバレッジゲート付き ── 新ランタイムで緑必須
+make scripts-test     # scripts/ の suite。同じゲート
 pnpm build            # next build ── 新ランタイムで成功必須
 ```
 
-将来テストスクリプトが入ったら(BACKLOG B8 保留)`pnpm test` も実行。任意で dev サーバ(`pnpm dev` → 停止)を
-スモークし、ランタイムでアプリが起動するか確認。
+ランタイム変更が実際に現れるのはテスト suite である。Node のメジャーは `Intl` の出力・タイマー分解能・
+`structuredClone` の意味論を動かしうるが、build が通ることはそのどれについても何も言わない。任意で dev サーバ
+(`pnpm dev` → 停止)をスモークし、ランタイムでアプリが起動するか確認。
 
 ### 6. フォローアップの明示(ここでは束ねない)
 
