@@ -171,3 +171,94 @@ describe("Avatar", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("AvatarImage", () => {
+  // ----- 正常系 -----
+  it("読み込みに成功すると画像を表示する", async () => {
+    stubImageLoading("loaded");
+    render(
+      <Avatar>
+        <AvatarImage alt="担当者" src="/avatar.png" />
+        <AvatarFallback>担</AvatarFallback>
+      </Avatar>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("img", { name: "担当者" })).toHaveAttribute(
+        "data-slot",
+        "avatar-image",
+      );
+    });
+  });
+
+  // ----- 異常系 -----
+  it("読み込みに失敗すると画像を表示しない", async () => {
+    stubImageLoading("error");
+    render(
+      <Avatar>
+        <AvatarImage alt="担当者" src="/avatar.png" />
+        <AvatarFallback>担</AvatarFallback>
+      </Avatar>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("担")).toBeVisible();
+    });
+    expect(screen.queryByRole("img", { name: "担当者" })).toBeNull();
+  });
+});
+
+describe("AvatarFallback", () => {
+  // ----- 正常系 -----
+  it("代替表示として slot を持つ要素を描画する", () => {
+    render(
+      <Avatar>
+        <AvatarFallback>担</AvatarFallback>
+      </Avatar>,
+    );
+
+    expect(screen.getByText("担")).toHaveAttribute("data-slot", "avatar-fallback");
+  });
+});
+
+describe("AvatarBadge", () => {
+  // ----- 正常系 -----
+  it("状態を添える印として slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <Avatar>
+        <AvatarFallback>担</AvatarFallback>
+        <AvatarBadge />
+      </Avatar>,
+    );
+
+    expect(container.querySelector('[data-slot="avatar-badge"]')).not.toBeNull();
+  });
+});
+
+describe("AvatarGroup", () => {
+  // ----- 正常系 -----
+  it("複数の avatar をまとめる枠として slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <AvatarGroup>
+        <Avatar>
+          <AvatarFallback>担</AvatarFallback>
+        </Avatar>
+      </AvatarGroup>,
+    );
+
+    expect(container.querySelector('[data-slot="avatar-group"]')).not.toBeNull();
+  });
+});
+
+describe("AvatarGroupCount", () => {
+  // ----- 正常系 -----
+  it("表示しきれない人数として slot を持つ要素を描画する", () => {
+    render(
+      <AvatarGroup>
+        <AvatarGroupCount>+3</AvatarGroupCount>
+      </AvatarGroup>,
+    );
+
+    expect(screen.getByText("+3")).toHaveAttribute("data-slot", "avatar-group-count");
+  });
+});

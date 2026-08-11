@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { Toggle } from "./toggle";
+import { Toggle, toggleVariants } from "./toggle";
 
 function ControlledFixture() {
   const [pressed, setPressed] = useState(false);
@@ -117,5 +117,17 @@ describe("Toggle", () => {
     const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
 
     expect(result.violations).toEqual([]);
+  });
+});
+
+describe("toggleVariants", () => {
+  // ----- 正常系 -----
+  it("既定の見た目の class を返す", () => {
+    expect(toggleVariants()).toContain("inline-flex");
+  });
+
+  it("variant と size の指定を class へ反映する", () => {
+    expect(toggleVariants({ variant: "outline" })).not.toBe(toggleVariants());
+    expect(toggleVariants({ size: "sm" })).not.toBe(toggleVariants());
   });
 });

@@ -234,3 +234,38 @@ describe("Carousel", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("CarouselContent", () => {
+  // ----- 正常系 -----
+  it("スライドを並べる枠として slot を持つ要素を描画する", () => {
+    const { container } = render(<SlidesFixture />);
+
+    expect(container.querySelector('[data-slot="carousel-content"]')).not.toBeNull();
+  });
+});
+
+describe("CarouselItem", () => {
+  // ----- 正常系 -----
+  it("スライド 1 件として slot を持つ要素を、名前つきで描画する", () => {
+    render(<SlidesFixture />);
+
+    const item = screen.getByRole("group", { name: `1 / ${SLIDES.length}` });
+
+    expect(item).toHaveAttribute("data-slot", "carousel-item");
+  });
+
+  it("呼び出し側の class を既定の指定へ足す", () => {
+    render(<SlidesFixture itemClassName="basis-1/2" />);
+
+    expect(screen.getByRole("group", { name: `1 / ${SLIDES.length}` })).toHaveClass("basis-1/2");
+  });
+});
+
+describe("CarouselNav", () => {
+  // ----- 正常系 -----
+  it("操作の枠として slot を持つ要素を描画する", () => {
+    const { container } = render(<NavFixture />);
+
+    expect(container.querySelector('[data-slot="carousel-nav"]')).not.toBeNull();
+  });
+});

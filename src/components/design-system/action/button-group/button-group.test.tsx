@@ -8,7 +8,12 @@ import { axe } from "vitest-axe";
 import { Input } from "../../form/input/input";
 import { Button } from "../button/button";
 import { BUTTON_VARIANT } from "../button/button.definition";
-import { ButtonGroup, ButtonGroupSeparator, ButtonGroupText } from "./button-group";
+import {
+  ButtonGroup,
+  ButtonGroupSeparator,
+  ButtonGroupText,
+  buttonGroupVariants,
+} from "./button-group";
 import { BUTTON_GROUP_ORIENTATION } from "./button-group.definition";
 
 function AmountField() {
@@ -109,5 +114,34 @@ describe("ButtonGroup", () => {
     const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
 
     expect(result.violations).toEqual([]);
+  });
+});
+
+describe("buttonGroupVariants", () => {
+  // ----- 正常系 -----
+  it("既定の見た目の class を返す", () => {
+    expect(buttonGroupVariants()).toContain("flex");
+  });
+
+  it("orientation の指定を class へ反映する", () => {
+    expect(buttonGroupVariants({ orientation: "vertical" })).not.toBe(buttonGroupVariants());
+  });
+});
+
+describe("ButtonGroupText", () => {
+  // ----- 正常系 -----
+  it("文言の枠として slot を持つ要素を描画する", () => {
+    render(<ButtonGroupText>単位</ButtonGroupText>);
+
+    expect(screen.getByText("単位")).toHaveAttribute("data-slot", "button-group-text");
+  });
+});
+
+describe("ButtonGroupSeparator", () => {
+  // ----- 正常系 -----
+  it("区切りとして slot を持つ要素を描画する", () => {
+    const { container } = render(<ButtonGroupSeparator />);
+
+    expect(container.querySelector('[data-slot="button-group-separator"]')).not.toBeNull();
   });
 });

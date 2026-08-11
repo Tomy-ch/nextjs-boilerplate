@@ -41,7 +41,8 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("正常系", () => {
+describe("getEnvironment", () => {
+  // ----- 正常系 -----
   it("検証済みの環境変数を同じ singleton として返す", async () => {
     const { getEnvironment, validateEnvironment } = await import("./environment");
 
@@ -52,7 +53,10 @@ describe("正常系", () => {
     expect(first).toEqual(validEnvironment);
     expect(() => validateEnvironment()).not.toThrow();
   });
+});
 
+describe("validateEnvironment", () => {
+  // ----- 正常系 -----
   it("purpose ごとの Config getter が対応する値を返す", async () => {
     const [{ getApiConfig }, { getAuthConfig }, { getMediaConfig }, { getObservabilityConfig }] =
       await Promise.all([
@@ -87,9 +91,8 @@ describe("正常系", () => {
 
     await expect(bootstrapConfig()).resolves.toBeUndefined();
   });
-});
 
-describe("異常系", () => {
+  // ----- 異常系 -----
   it("必須の環境変数が欠落すると検証に失敗する", async () => {
     vi.stubEnv("AUTH_SESSION_SECRET", undefined);
     const { validateEnvironment } = await import("./environment");

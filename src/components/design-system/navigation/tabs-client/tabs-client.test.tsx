@@ -4,7 +4,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import { TabsClient, TabsClientContent, TabsClientList, TabsClientTrigger } from "./tabs-client";
+import {
+  TabsClient,
+  TabsClientContent,
+  TabsClientList,
+  TabsClientTrigger,
+  tabsClientListVariants,
+} from "./tabs-client";
 
 function Fixture({ defaultValue = "summary" }: { defaultValue?: string }) {
   return (
@@ -96,5 +102,53 @@ describe("TabsClient", () => {
     const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
 
     expect(result.violations).toEqual([]);
+  });
+});
+
+describe("TabsClientList", () => {
+  // ----- 正常系 -----
+  it("tablist として名前と slot を持つ要素を描画する", () => {
+    render(<Fixture />);
+
+    const list = screen.getByRole("tablist", { name: "表示する観点" });
+
+    expect(list).toHaveAttribute("data-slot", "tabs-list");
+  });
+});
+
+describe("TabsClientTrigger", () => {
+  // ----- 正常系 -----
+  it("選択中の tab を選択状態として示す", () => {
+    render(<Fixture />);
+
+    expect(screen.getByRole("tab", { name: "サマリ" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "明細" })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("押すと対応する内容へ切り替える", () => {
+    render(<Fixture />);
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "明細" }), { button: 0 });
+
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("明細の内容です。");
+  });
+});
+
+describe("TabsClientContent", () => {
+  // ----- 正常系 -----
+  it("選択中の内容だけを tabpanel として描画する", () => {
+    render(<Fixture />);
+
+    const panel = screen.getByRole("tabpanel");
+
+    expect(panel).toHaveAttribute("data-slot", "tabs-content");
+    expect(panel).toHaveTextContent("サマリの内容です。");
+  });
+});
+
+describe("tabsClientListVariants", () => {
+  // ----- 正常系 -----
+  it("tablist と同じ見た目の class を返す", () => {
+    expect(tabsClientListVariants()).toContain("inline-flex");
   });
 });

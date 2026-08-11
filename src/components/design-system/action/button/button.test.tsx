@@ -3,8 +3,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
-import { Button } from "./button";
-import { BUTTON_VARIANT } from "./button.definition";
+import { Button, buttonVariants } from "./button";
+import { BUTTON_SIZE, BUTTON_VARIANT } from "./button.definition";
 
 describe("Button", () => {
   it("既定の操作ボタンを表示する", () => {
@@ -46,5 +46,17 @@ describe("Button", () => {
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
+  });
+});
+
+describe("buttonVariants", () => {
+  // ----- 正常系 -----
+  it("既定の見た目の class を返す", () => {
+    expect(buttonVariants()).toContain("inline-flex");
+  });
+
+  it("variant と size の指定を class へ反映する", () => {
+    expect(buttonVariants({ variant: BUTTON_VARIANT.OUTLINE })).not.toBe(buttonVariants());
+    expect(buttonVariants({ size: BUTTON_SIZE.SMALL })).not.toBe(buttonVariants());
   });
 });

@@ -17,7 +17,7 @@ clone 後に 1 度実行する。手順の全体は [README.md](../README.md) �
 ### 公式プラグイン
 
 ```bash
-pnpm exec tsx scripts/bootstrap-plugins.ts
+pnpm exec tsx scripts/bootstrap-plugins
 ```
 
 project スコープで宣言するため、宣言そのものは `settings.json` に載って clone で届く。上のコマンドは
@@ -26,7 +26,7 @@ marketplace の実体をローカルへ解決する。
 ### 外部スキル
 
 ```bash
-pnpm exec tsx scripts/bootstrap-external-skills.ts
+pnpm exec tsx scripts/bootstrap-external-skills
 ```
 
 外部スキル = 上流が配布するスキル。プラグインと違い実体が **user スコープ**（`~/.claude/skills/`）へ入るため、
@@ -87,6 +87,6 @@ graphify uninstall --purge
 
 ### インストーラの副作用
 
-`bootstrap-external-skills.ts` は user スコープにしか書かないが、上流のインストーラは
+`bootstrap-external-skills` は user スコープにしか書かないが、上流のインストーラは
 **`~/.claude/CLAUDE.md`（user グローバル）** も作成し、`/graphify` のトリガを登録する。リポジトリの
 `CLAUDE.md` / `AGENTS.md` には触らない。

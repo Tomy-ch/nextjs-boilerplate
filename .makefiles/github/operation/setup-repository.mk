@@ -105,7 +105,7 @@ setup-replace-license-copyright:
 		echo "❌ COPYRIGHT_HOLDER を指定してください。例: make setup-replace-license-copyright COPYRIGHT_HOLDER='Example Inc.' COPYRIGHT_YEAR=2026"; \
 		exit 1; \
 	fi
-	@pnpm exec tsx scripts/setup/replace-license-copyright.ts \
+	@pnpm exec tsx scripts/setup/replace-license-copyright \
 		--holder "$$COPYRIGHT_HOLDER" \
 		$${COPYRIGHT_YEAR:+--year "$$COPYRIGHT_YEAR"} \
 		$(SETUP_DRY_RUN_FLAG)
@@ -115,6 +115,6 @@ setup-replace-repository-reference:
 		echo "❌ REPOSITORY を指定してください。例: make setup-replace-repository-reference REPOSITORY='example-org/example-app'"; \
 		exit 1; \
 	fi
-	@pnpm exec tsx scripts/setup/replace-repository-reference.ts \
+	@pnpm exec tsx scripts/setup/replace-repository-reference \
 		--repository "$$REPOSITORY" \
 		$(SETUP_DRY_RUN_FLAG)

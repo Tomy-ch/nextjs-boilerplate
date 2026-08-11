@@ -5,7 +5,7 @@
 # いない状態 (ワークフロー 0 件 / jobs: が読めない / 投稿ジョブの同定が壊れた) は exit 2。
 .PHONY: actions-comment-secret-lint ## PR コメントを投稿するジョブへの secret 混入を検査
 
-ACTIONS_COMMENT_SECRET_LINT := pnpm exec tsx scripts/actions-comment-secret-lint/main.ts
+ACTIONS_COMMENT_SECRET_LINT := pnpm exec tsx scripts/actions-comment-secret-lint
 
 actions-comment-secret-lint:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }

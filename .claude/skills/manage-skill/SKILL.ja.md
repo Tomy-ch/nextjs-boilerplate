@@ -39,7 +39,7 @@
 *どうやるか* の正典は公式の `skill-creator`。まずその存在を保証する:
 
 ```bash
-pnpm exec tsx scripts/bootstrap-plugins.ts
+pnpm exec tsx scripts/bootstrap-plugins
 ```
 
 この bootstrap は `claude-plugins-official` marketplace を宣言し、本リポジトリが依存する公式プラグイン（`skill-creator`）を **project スコープ**で有効化する。宣言が本リポジトリの `.claude/settings.json` に載るため、信頼済みの clone であれば開発者ごとのセットアップ無しに同じ資産が揃う。冪等であり、再実行は no-op。新たに有効化したプラグインが読み込まれるのは*次の*セッションからで、そのとき `skill-creator` は `/skill-creator` としても起動できるようになる。ただしこのラッパはそれに依存しない — パス指定でファイルを読むため、同一セッション内でも動く。

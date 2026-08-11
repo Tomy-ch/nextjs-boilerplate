@@ -362,7 +362,7 @@ shadcn/ui を import
 
 ## 4. PR 一覧
 
-全 64 PR。issue 化の単位はこの 1 行 = 1 issue。
+全 65 PR。issue 化の単位はこの 1 行 = 1 issue。
 
 | ID | タイトル | Phase | 依存 |
 | --- | --- | --- | --- |
@@ -412,6 +412,7 @@ shadcn/ui を import
 | P5-15 | purchases ステータス遷移(cancel / pay / ship / deliver) | 5 | P5-8, P5-11 |
 | P5-16 | ゴールデンパス README 整備(B5 完成) | 5 | P5-1〜P5-15 |
 | P5-17 | セキュリティ workflow(CodeQL / gitleaks / trivy / Dependabot) | 5 | P5-16 |
+| P5-18 | spec 駆動の採否判断(GB-3) | 5 | P5-16, P4-6 |
 | P6-1 | クライアント観測性 | 6 | P3-5, P4-5 |
 | P6-2 | CSP / セキュリティヘッダ + CI 適合ゲート | 6 | P5-16, P6-8 |
 | P6-3 | SEO / metadata + fonts | 6 | P5-1, P5-4 |
@@ -920,7 +921,7 @@ test-requirement: unit
 - **主な変更先**:
   - `openapi/sources.yaml` — 契約の宣言。複数契約に対応可能な形にしておく
   - `.makefiles/tools/gen-api.mk` — `gh` をラップした `make fetch-api`
-  - `scripts/fetch-api.ts`
+  - `scripts/openapi/` — CLI エントリと純粋関数(既存の `scripts/actions-pin/` / `scripts/portal/` と同じ粒度)
 
 ```yaml
 # openapi/sources.yaml
@@ -928,7 +929,13 @@ sources:
   - name: api
     repo: Tomy-ch/go-boilerplate
     path: openapi/openapi.gen.yaml
-    ref: release/v2.1.0
+    ref: <取得元のコミット SHA>
+    sha: <取得時の blob SHA>
+    fetchedAt: <ISO8601>
+  - name: auth
+    repo: Tomy-ch/go-boilerplate
+    path: docker/mock-auth-server/openapi/openapi.gen.yaml
+    ref: <取得元のコミット SHA>
     sha: <取得時の blob SHA>
     fetchedAt: <ISO8601>
 ```
@@ -936,9 +943,11 @@ sources:
 - **取得は GitHub Contents API を使う**: `gh api repos/<owner>/<repo>/contents/<path>?ref=<ref>`
   - レスポンスの **`sha` が blob SHA**(内容が変われば変わり、同じなら同じ)であり、[0072](../adr/0072-api-type-generation.md) の「short SHA スタンプ」を**自前でハッシュ計算せずに**満たせる
   - `gh` が認証を持つため private repo でも動く。`ref` でブランチ / タグ / コミットを固定できる
-  - **1MB 超で `content` が空になる制限**があるが、実測 **105.5 KB**(2794 行)で問題なし
-- **契約は 1 本で足りる(実測で確定)**: go 側の生成成果物は `openapi/openapi.gen.yaml` の 1 本のみ。**admin と一般が同居しており、tags でも `security` でも scope でも区別できない**ため、機械的に 2 本へ割ることはできない。`name` は `api` の 1 ユニットとする
-- **完了条件**: `make fetch-api` で契約が取得され、blob SHA が `sources.yaml` にスタンプされる。private repo でも `gh` の認証で通る
+  - **1MB 超で `content` が空になる制限**があるが、実測 **133.9 KB**(3376 行)で問題なし
+- **本体 API の契約は 1 本で足りる(実測で確定)**: go 側の本体契約は `openapi/openapi.gen.yaml` の 1 本のみ。**admin と一般が同居しており、tags でも `security` でも scope でも区別できない**ため、機械的に 2 本へ割ることはできない。`name` は `api` の 1 ユニットとする
+- **認証は別契約として並べる**: mock OIDC Provider は本体とは別サービスであり、本体契約に認証エンドポイントは存在しない([screens.md](../screens.md) §0)。`name: auth` として `sources.yaml` に並べ、契約ごとに blob SHA を独立してスタンプする
+- **ref はコミット SHA で固定する**: tag `v2.1.0` に `/v1/products` は存在せず(12 paths)、商品 API は未タグの `release/v2.2.0`(31 paths)にしかない。上流の進展の取り込みは `ref` の書き換えとして明示的に行う
+- **完了条件**: `make fetch-api` で全契約が取得され、blob SHA が `sources.yaml` にスタンプされる。private repo でも `gh` の認証で通る
 - **依存**: P3-3
 
 ### P4-2: orval による型 + zod 生成
@@ -946,15 +955,18 @@ sources:
 - **目的**: 契約から型と runtime validation を生成する。境界値所有(フロントが response 検証の最後の砦)を機械化する
 - **対象 ADR**: [0072](../adr/0072-api-type-generation.md)
 - **主な変更先**:
-  - `orval.config.ts` — 型 + zod スキーマを生成
-  - `gen/` — **do-not-edit**。`.gitattributes` で linguist-generated 指定
-  - `.makefiles/tools/gen-api.mk` — `make gen-api`
+  - `orval.config.ts` — 契約ごとに型 + zod スキーマ + MSW ハンドラを生成
+  - `src/adapters/gen/<契約名>/` — **do-not-edit**。`.gitattributes` で linguist-generated 指定
+  - `mocks/` — MSW ハンドラ。**P4-4 ではなくここで生成する**(orval の 1 回の実行で型 / zod / mock を出せば生成物間の不整合が起きず、drift ゲートも 1 本で済む)。P4-4 には配線と mock 時の画像戦略が残る
+  - `.makefiles/tools/gen-api.mk` — `make gen-api` / `make gen-api-check`
   - `.github/workflows/gen-drift.yaml`
 - **drift ゲートの観点は 2 つ**(**再取得はしない**):
   1. **生成物が手動で変更されていないか** — 取得済み契約から再生成して差分を検出
   2. **契約を取得したのに生成していないか** — `sources.yaml` の SHA と生成物のスタンプを突合
-- **クライアント生成から除外するもの**: `/_internal/types/error-response`(`ErrorResponse` 型を生成させるためだけの擬似エンドポイント)/ `/metrics`(BasicAuth)/ `/health` 系
-- **完了条件**: `make gen-api` で `gen/` が再生成される。上記 2 観点の drift ゲートが CI で fail する
+- **クライアント生成から除外するもの**: `/_internal/types/error-response`(`ErrorResponse` 型を生成させるためだけの擬似エンドポイント)/ `/metrics`(BasicAuth)/ `/health` 系。orval の `filters` は tag 単位で効き、契約側の tag がこれらのパスと 1 対 1 に対応する。除外しても `ErrorResponse` は各 operation の異常系レスポンスから参照されるため生成される
+- **生成された HTTP client は採用しない**: orval は client の出力先を必須とするが、resilience は P4-3 の手書き wrapper が所有する。生成 client は `mocks/` 側へ置き、本番が参照する `src/adapters/gen/` には wire 型と zod だけを置く
+- **生成物は linter の対象外にする**: 整形のみ掛ける。生成器の出力作風で CI が止まると、直す手段が生成器へのパッチしか無くなる
+- **完了条件**: `make gen-api` で `src/adapters/gen/<契約名>/` が再生成される。上記 2 観点の drift ゲートが CI で fail する
 - **依存**: P4-1
 
 ### P4-3: adapters — fetch wrapper
@@ -1012,6 +1024,7 @@ sources:
 - **対象 ADR**: [0027](../adr/0027-directory-structure.md) / [0028](../adr/0028-naming-convention.md) / [0021](../adr/0021-frontend-responsibility.md)
 - **主な変更先**: `scripts/gen/` — `pnpm gen feature` / `pnpm gen component` / `pnpm gen adapter`
 - **設計**: P4-5 で確定した構造をテンプレート化する。命名・配置・境界・テスト・README を**生成時点で正**にする。`architecture.ts`(P3-2)を読んで境界を決めるため、生成物が boundaries に違反しない
+- **spec 駆動は採らずに進める**: `docs/spec/<feature>/` の spec から生成する方式(BACKLOG GB-3)は**判断を P5-18 へ送る**。両方を持つと SSOT が二重化するため、本 PR の時点では `architecture.ts` を唯一の生成入力とする。P5-18 で spec 駆動を採る決定になった場合、本 PR の生成入力を差し替える改修が発生する
 - **完了条件**: `pnpm gen feature <name>` が出力した雛形が、無修正で `lint:ci` / boundaries / README 必須節 / カバレッジゲートを満たす
 - **依存**: P4-5
 
@@ -1264,6 +1277,16 @@ sources:
 - **完了条件**: 全 workflow が動作する。既知の脆弱依存を入れると trivy / audit が fail する
 - **依存**: P5-16
 
+### P5-18: spec 駆動の採否判断(GB-3)
+
+- **目的**: 実装済みの画面を材料に、spec 駆動を採るかを決める。画面が 1 枚も無い状態では、spec が実装のどれだけを言い当てられるかを測れない
+- **判断すべきこと**: `docs/spec/<feature>/` に spec を置き、そこから実装を生成する方式(BACKLOG GB-3)を採るか
+- **判断の材料**: Phase 5 で実装した 19 画面。**実装済みの feature を 1 つ選び、後から spec を書き起こしてみて**、(1) spec が実装を再現できるだけの情報を持てるか、(2) `architecture.ts` と重複しない情報だけで構成できるか、(3) 画面の追加時に spec を先に書くほうが速いか、を見る
+- **注意**: P4-6 は `architecture.ts` を唯一の生成入力として着地している。**採用する場合は P4-6 の生成入力を差し替える改修が発生する**。両方を残すと SSOT が二重化するため、どちらか一方に倒す
+- **不採用の場合**: GB-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
+- **完了条件**: 採否が BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の IM-26 へ反映されている。採用する場合は P4-6 の改修 PR が起票されている
+- **依存**: P5-16, P4-6
+
 ## Phase 6: 非機能
 
 機能が出揃ってから掛ける横断的関心事。
@@ -1409,6 +1432,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 | 3 | **`verify` が過不足を両方見て最後に自爆する** | 不足(登録パスの残留)/ 過剰(`git status` 上の登録外削除)/ make ターゲット消失 / 残留参照 grep。検証後に自身とスナップショットを削除しコアのみを残す |
 
 - **安全策**: `assertWithinRoot`(`..` / 絶対パス / ROOT 自体を指す manifest ミスを検出)を移植する。`DRY_RUN` はプレビュー(空でない値はすべてプレビュー扱い)
+- **P4-4 からの申し送り — 画像の配信元を爆破後に切り替える**: サンプル在時の mock モードは **API だけを MSW で差し替え、画像は実配信(Garage の公開エンドポイント)から取得する**。バックエンドと同じ compose に居る別コンテナが配信しており、実物が取れる間はプレースホルダで代用する理由が無いためである。サンプルを破棄すると Garage も go-boilerplate も前提から外れるので、**`MEDIA_ORIGIN` の既定値と画像の取得経路を MSW 側へ倒す**。上の設計判断 1（`sample:replace-begin` / `replace-with` / `replace-end`）が効く箇所であり、`env/.env.local` の `MEDIA_ORIGIN` と `next.config.ts` の `images.remotePatterns`(検証済み ENV から組み立てている)が対象になる
 - **BUILD_STEPS**: `gen-api → fix → lint:ci → typecheck → build → test`
 - **完了条件**: `DRY_RUN=1 make setup-remove-sample` がプレビューを出す。実行後に `verify` が過不足なしと判定する
 - **依存**: P5-16
@@ -1565,7 +1589,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 | 内容 | 結論 |
 | --- | --- |
 | Garage 公開エンドポイントのホスト形式 | **virtual-host 形式で確定**。`http://gobp-local.web.garage.localhost:3902/products/{uuid}.png`。パス形式は動作しない(§3.2)。派生の名前解決問題は上表 #4 |
-| OpenAPI 契約の本数 | **1 本で足りる**(実測 105.5 KB / 2794 行)。admin と一般が同居し tags / security / scope で区別できないため分割は不可能。`gen/api/` 1 ユニット |
+| OpenAPI 契約の本数 | **本体 API + 認証の 2 本**。本体(実測 133.9 KB / 3376 行)は admin と一般が同居し tags / security / scope で区別できないため分割不可能で `api` 1 ユニット。認証は別サービスの契約なので `auth` として並べる |
 | `mock_auth_server` の PKCE / OIDC discovery | **完全対応**。`redirect_uri` も nextjs 前提で登録済み。ただし refresh 無し / subject が admin 固定 / logout は POST のみ(P5-4 に反映済み) |
 | `cn()` の実装ライブラリ | **`clsx` + `tailwind-merge`**。[0052](../adr/0052-ui-component-policy.md) が既に名指ししており追認(§3.10) |
 | `rules.md` #69(生 `<a>` 禁止) | **ESLint で拾う**。`next/link` を必須にするため機械強制が要る(P3-2) |

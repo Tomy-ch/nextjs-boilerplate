@@ -117,3 +117,83 @@ describe("Popover", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("PopoverTrigger", () => {
+  // ----- 正常系 -----
+  it("開閉を切り替える操作として slot を持つ要素を描画する", () => {
+    render(
+      <Popover>
+        <PopoverTrigger>補足を開く</PopoverTrigger>
+      </Popover>,
+    );
+
+    expect(screen.getByRole("button", { name: "補足を開く" })).toHaveAttribute(
+      "data-slot",
+      "popover-trigger",
+    );
+  });
+
+  it("押すと内容を開く", () => {
+    render(<PopoverFixture />);
+
+    fireEvent.click(screen.getByRole("button", { name: "補足を開く" }));
+
+    expect(screen.getByRole("dialog")).toBeVisible();
+  });
+});
+
+describe("PopoverContent", () => {
+  // ----- 正常系 -----
+  it("開いた内容として slot を持つ要素を描画する", () => {
+    render(<PopoverFixture defaultOpen />);
+
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-slot", "popover-content");
+  });
+
+  // ----- 異常系 -----
+  it("閉じている間は内容を描画しない", () => {
+    render(<PopoverFixture />);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("PopoverAnchor", () => {
+  // ----- 正常系 -----
+  it("位置の基準として slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <Popover>
+        <PopoverAnchor>基準</PopoverAnchor>
+      </Popover>,
+    );
+
+    expect(container.querySelector('[data-slot="popover-anchor"]')).not.toBeNull();
+  });
+});
+
+describe("PopoverHeader", () => {
+  // ----- 正常系 -----
+  it("見出し枠として slot を持つ要素を描画する", () => {
+    render(<PopoverHeader>見出し枠</PopoverHeader>);
+
+    expect(screen.getByText("見出し枠")).toHaveAttribute("data-slot", "popover-header");
+  });
+});
+
+describe("PopoverTitle", () => {
+  // ----- 正常系 -----
+  it("題名として slot を持つ要素を描画する", () => {
+    render(<PopoverTitle>表示条件</PopoverTitle>);
+
+    expect(screen.getByText("表示条件")).toHaveAttribute("data-slot", "popover-title");
+  });
+});
+
+describe("PopoverDescription", () => {
+  // ----- 正常系 -----
+  it("補足として slot を持つ要素を描画する", () => {
+    render(<PopoverDescription>条件の説明</PopoverDescription>);
+
+    expect(screen.getByText("条件の説明")).toHaveAttribute("data-slot", "popover-description");
+  });
+});

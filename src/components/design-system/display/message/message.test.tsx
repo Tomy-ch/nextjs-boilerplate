@@ -174,3 +174,39 @@ describe("MessageGroup", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("MessageAvatar", () => {
+  // ----- 正常系 -----
+  it("発言者の枠として slot を持つ要素を描画する", () => {
+    const { container } = render(<MessageAvatar />);
+
+    expect(container.querySelector('[data-slot="message-avatar"]')).not.toBeNull();
+  });
+});
+
+describe("MessageHeader", () => {
+  // ----- 正常系 -----
+  it("上段の枠として slot を持つ要素を描画する", () => {
+    render(<MessageHeader>上段</MessageHeader>);
+
+    expect(screen.getByText("上段")).toHaveAttribute("data-slot", "message-header");
+  });
+});
+
+describe("MessageContent", () => {
+  // ----- 正常系 -----
+  it("本文の枠として slot を持つ要素を描画する", () => {
+    render(<MessageContent>本文</MessageContent>);
+
+    expect(screen.getByText("本文")).toHaveAttribute("data-slot", "message-content");
+  });
+});
+
+describe("MessageFooter", () => {
+  // ----- 正常系 -----
+  it("下段の枠として slot を持つ要素を描画する", () => {
+    render(<MessageFooter>下段</MessageFooter>);
+
+    expect(screen.getByText("下段")).toHaveAttribute("data-slot", "message-footer");
+  });
+});

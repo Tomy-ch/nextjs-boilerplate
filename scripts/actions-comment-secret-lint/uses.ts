@@ -5,6 +5,8 @@
 // 通した後なら同じように現れるため、記法ごとの取りこぼしが出ない。
 import { type Document, parseDocument } from "yaml";
 
+import { errorMessage } from "../lib/error-message.js";
+
 export function parseYaml(file: string, source: string): Document {
   const doc = parseDocument(source);
   if (doc.errors.length > 0) {
@@ -18,9 +20,7 @@ export function toJS(file: string, doc: Document): unknown {
   try {
     return doc.toJS({ merge: true });
   } catch (e) {
-    throw new Error(
-      `${file}: YAML を解決できません: ${e instanceof Error ? e.message : String(e)}`,
-    );
+    throw new Error(`${file}: YAML を解決できません: ${errorMessage(e)}`);
   }
 }
 

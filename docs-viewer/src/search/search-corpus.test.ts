@@ -23,47 +23,51 @@ const groups: PortalGroup[] = [
   },
 ];
 
-describe("正常系", () => {
-  describe("buildSearchCorpus", () => {
-    it("項目に所属する section と group の名前を畳み込む", () => {
-      const corpus = buildSearchCorpus(groups);
+describe("buildSearchCorpus", () => {
+  // ----- 正常系 -----
+  it("項目に所属する section と group の名前を畳み込む", () => {
+    const corpus = buildSearchCorpus(groups);
 
-      expect(corpus[0]).toMatchObject({
-        name: "0001",
-        sectionTitle: "ADR",
-        groupTitle: "Architecture",
-      });
-    });
-    it("subgroup 配下の項目も平坦化して含める", () => {
-      const corpus = buildSearchCorpus(groups);
-
-      expect(corpus.map((entry) => entry.name)).toEqual(["0001", "0021"]);
-    });
-    it("subgroups を持たない section を扱える", () => {
-      const corpus = buildSearchCorpus([
-        {
-          title: "Architecture",
-          slug: "architecture",
-          sections: [
-            {
-              id: "adr",
-              slug: "adr",
-              title: "ADR",
-              items: [{ name: "0001", path: "./guides/0001.md", lang: "ja" }],
-            },
-          ],
-        },
-      ]);
-
-      expect(corpus).toHaveLength(1);
-    });
-    it("group が無ければ空のコーパスを返す", () => {
-      expect(buildSearchCorpus([])).toEqual([]);
+    expect(corpus[0]).toMatchObject({
+      name: "0001",
+      sectionTitle: "ADR",
+      groupTitle: "Architecture",
     });
   });
-  describe("searchKeys", () => {
-    it("項目名と所属名と出所を検索対象に含める", () => {
-      expect(searchKeys).toEqual(["name", "sectionTitle", "groupTitle", "source", "path"]);
-    });
+
+  it("subgroup 配下の項目も平坦化して含める", () => {
+    const corpus = buildSearchCorpus(groups);
+
+    expect(corpus.map((entry) => entry.name)).toEqual(["0001", "0021"]);
+  });
+
+  it("subgroups を持たない section を扱える", () => {
+    const corpus = buildSearchCorpus([
+      {
+        title: "Architecture",
+        slug: "architecture",
+        sections: [
+          {
+            id: "adr",
+            slug: "adr",
+            title: "ADR",
+            items: [{ name: "0001", path: "./guides/0001.md", lang: "ja" }],
+          },
+        ],
+      },
+    ]);
+
+    expect(corpus).toHaveLength(1);
+  });
+
+  it("group が無ければ空のコーパスを返す", () => {
+    expect(buildSearchCorpus([])).toEqual([]);
+  });
+});
+
+describe("searchKeys", () => {
+  // ----- 正常系 -----
+  it("項目名と所属名と出所を検索対象に含める", () => {
+    expect(searchKeys).toEqual(["name", "sectionTitle", "groupTitle", "source", "path"]);
   });
 });

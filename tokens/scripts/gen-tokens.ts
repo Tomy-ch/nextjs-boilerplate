@@ -152,7 +152,6 @@ export function generateTokensCss(primitives: TokenGroup, themes: TokenGroup): s
   ].join("\n");
 }
 
-/* v8 ignore start -- ファイル入出力と CLI entry は pnpm gen:tokens / check:tokens が実地で通す。 */
 async function readTokenFile(path: string): Promise<TokenGroup> {
   return JSON.parse(await readFile(path, "utf8")) as TokenGroup;
 }
@@ -179,6 +178,7 @@ export async function generateOrCheckTokens(checkOnly: boolean): Promise<void> {
   }
 }
 
+/* v8 ignore start -- CLI entry。起動経路は pnpm gen:tokens / check:tokens が実地で通す。 */
 if (process.argv[1]?.endsWith("gen-tokens.ts")) {
   void generateOrCheckTokens(process.argv.includes("--check")).catch((error: unknown) => {
     process.stderr.write(`${String(error)}\n`);

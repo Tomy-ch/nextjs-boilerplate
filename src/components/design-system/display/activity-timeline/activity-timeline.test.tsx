@@ -121,3 +121,26 @@ describe("ActivityTimeline", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("ActivityTimelineItem", () => {
+  // ----- 正常系 -----
+  it("出来事 1 件として slot を持つ listitem を描画する", () => {
+    render(<TimelineFixture />);
+
+    expect(screen.getAllByRole("listitem")[0]).toHaveAttribute(
+      "data-slot",
+      "activity-timeline-item",
+    );
+  });
+});
+
+describe("ActivityTimelineTime", () => {
+  // ----- 正常系 -----
+  it("機械可読な日時を持つ time 要素として描画する", () => {
+    const { container } = render(<TimelineFixture />);
+    const time = container.querySelector('[data-slot="activity-timeline-time"]');
+
+    expect(time?.tagName).toBe("TIME");
+    expect(time).toHaveAttribute("datetime", EVENTS[0]?.at);
+  });
+});

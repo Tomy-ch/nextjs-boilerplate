@@ -8,7 +8,8 @@ vi.mock("next/font/google", () => ({
 
 import RootLayout, { metadata } from "./layout";
 
-describe("正常系", () => {
+describe("RootLayout", () => {
+  // ----- 正常系 -----
   it("HTML の言語と子要素を設定する", () => {
     const markup = renderToStaticMarkup(
       <RootLayout>
@@ -20,14 +21,6 @@ describe("正常系", () => {
     expect(markup).toContain("テスト用コンテンツ");
   });
 
-  it("各 route が差分だけを宣言できるよう、タイトルの雛形を置く", () => {
-    expect(metadata.title).toMatchObject({
-      default: "nextjs-boilerplate",
-      template: "%s | nextjs-boilerplate",
-    });
-    expect(metadata.description).toBeTypeOf("string");
-  });
-
   it("横断通知の Provider を配下へ供給する", () => {
     const markup = renderToStaticMarkup(
       <RootLayout>
@@ -36,5 +29,16 @@ describe("正常系", () => {
     );
 
     expect(markup).toContain('aria-live="polite"');
+  });
+});
+
+describe("metadata", () => {
+  // ----- 正常系 -----
+  it("各 route が差分だけを宣言できるよう、タイトルの雛形を置く", () => {
+    expect(metadata.title).toMatchObject({
+      default: "nextjs-boilerplate",
+      template: "%s | nextjs-boilerplate",
+    });
+    expect(metadata.description).toBeTypeOf("string");
   });
 });

@@ -140,3 +140,21 @@ describe("Stepper", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("StepperItem", () => {
+  // ----- 正常系 -----
+  it("段 1 件として slot を持つ listitem を描画する", () => {
+    render(<Fixture />);
+
+    expect(screen.getAllByRole("listitem")[0]).toHaveAttribute("data-slot", "stepper-item");
+  });
+
+  it("段の状態を data 属性として持たせる", () => {
+    render(<Fixture />);
+
+    expect(screen.getAllByRole("listitem")[0]).toHaveAttribute(
+      "data-state",
+      STEPPER_STATE.COMPLETE,
+    );
+  });
+});

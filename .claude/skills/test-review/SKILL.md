@@ -1,7 +1,7 @@
 ---
 name: test-review
 description: >-
-  Independent quality review of this repository's test files (`*.test.ts` / `*.test.tsx`), with an adversarial finder + skeptical verifier two-stage pipeline. Defaults to `git diff` HEAD-vs-working tree to surface the changed test files; alternative scopes (branch-vs-base, specific paths) selectable via `AskUserQuestion`. Hardcodes no rules — reads ADR 0090 (testing strategy: 正常系 / 異常系 naming, table-driven ban, one-test-per-subject, layer responsibilities), ADR 0091 (verification methods: async RSC placement, a11y automated checks), the kernel README's `test-requirement` frontmatter, and the subject source file at runtime as the source of truth, so the reviewer stays in sync as conventions evolve (README > Code > SKILL priority). Fans out five `adversarial-reviewer` subagents on `sonnet` by default (so reviewer ≠ an Opus implementer) — one per lens: (1) structural compliance (outermost `describe` groups are the literal strings `正常系` / `異常系`, Japanese case names, no table-driven `for` / `it.each`, one `describe` per subject, MSW at the HTTP boundary rather than hand-written fetch stubs); (2) viewpoint coverage (the layer's `test-requirement` and the ADRs' per-layer duties are actually exercised); (3) semantic quality (weak assertions, brittle internals coupling, over-mocking, snapshot-as-assertion, time pinning leaks); (4) branch × meaning completeness (code-origin: reads the subject source and builds a per-function two-axis matrix — Axis A 分岐網羅 every branch has a covering case, Axis B 意味網羅 each covered branch asserts its distinctive outcome rather than merely executing); (5) subject symbol completeness (code-origin: builds the subject's exported-symbol table and flags every symbol with no test at all). Lenses 4 and 5 are the code-origin finders; 1–3 are test-file / ADR-driven. Each surviving finding is verified by an independent `review-verifier` subagent that classifies CONFIRMED / PLAUSIBLE / REFUTED, defaulting to skepticism. Synthesizes a single Japanese report grouped by lens with per-finding severity (修正必須 / 補完推奨 / 再考 / 追加検討). Read-only — never edits test files. Use this whenever the user asks to review tests, check test quality or coverage viewpoints, or asks 「テストをレビューして」「テストの観点が足りているか見て」「このテストは意味があるか」; also the delegation target of `impl-review`'s test viewpoint. Do NOT use it to review implementation code (`impl-review`), to run the tests (`make test-full`), or to write tests.
+  Independent quality review of this repository's test files (`*.test.ts` / `*.test.tsx`), with an adversarial finder + skeptical verifier two-stage pipeline. Defaults to `git diff` HEAD-vs-working tree to surface the changed test files; alternative scopes (branch-vs-base, specific paths) selectable via `AskUserQuestion`. Hardcodes no rules — reads ADR 0090 (testing strategy: export-name `describe`, 正常系 / 異常系 comment separators, table-driven ban, one-test-per-subject, skip discipline, layer responsibilities), ADR 0091 (verification methods: async RSC placement, a11y automated checks), the kernel README's `test-requirement` frontmatter, and the subject source file at runtime as the source of truth, so the reviewer stays in sync as conventions evolve (README > Code > SKILL priority). Fans out five `adversarial-reviewer` subagents on `sonnet` by default (so reviewer ≠ an Opus implementer) — one per lens: (1) structural compliance (the outermost `describe` is the exported symbol's own name and viewpoints are divided by `// ----- 正常系 -----` / `// ----- 異常系 -----` comment separators rather than nested `describe`s, which side a case sits on follows whether the subject itself fails, Japanese case names, every case named individually (`it.each` / `it.for` with a name template is fine; a hand-rolled `for` / `forEach` around a bare `it` is not), nested `describe` only for a shared-setup context, `it.skip` only for what survives extracting the blocking side effect into a mockable module and never with a "covered elsewhere" reason, `it.todo` only when it names its resolving issue / phase, MSW at the HTTP boundary rather than hand-written fetch stubs, co-location — deferring the four name-level shapes the `one-to-one` gate already fails on); (2) viewpoint coverage (the layer's `test-requirement` and the ADRs' per-layer duties are actually exercised, with four adjudication rules when the declaration and the tests disagree); (3) semantic quality (weak assertions, over-mocking, snapshot-as-assertion, time pinning leaks, plus the Testing Library guiding principles for component targets — query priority, `user-event` over `fireEvent`, wait-not-sleep, semantic matchers); (4) branch × meaning completeness (code-origin: reads the subject source and builds a per-function two-axis matrix — Axis A 分岐網羅 every branch has a covering case, Axis B 意味網羅 each covered branch asserts its distinctive outcome rather than merely executing); (5) subject symbol completeness (code-origin: builds the subject's exported-symbol table and flags every symbol with no test at all). Lenses 4 and 5 are the code-origin finders; 1–3 are test-file / ADR-driven. Each surviving finding is verified by an independent `review-verifier` subagent that classifies CONFIRMED / PLAUSIBLE / REFUTED, defaulting to skepticism. Synthesizes a single Japanese report grouped by lens with per-finding severity (修正必須 / 補完推奨 / 再考 / 追加検討). Read-only — never edits test files. Use this whenever the user asks to review tests, check test quality or coverage viewpoints, or asks 「テストをレビューして」「テストの観点が足りているか見て」「このテストは意味があるか」; also the delegation target of `impl-review`'s test viewpoint. Do NOT use it to review implementation code (`impl-review`), to run the tests (`make test-full`), or to write tests.
 ---
 
 # Test Review
@@ -34,7 +34,7 @@ sources are the ADRs and the kernel READMEs, read at runtime:
 
 | Source | What it decides |
 | --- | --- |
-| [ADR 0090](../../../docs/adr/0090-testing-strategy.md) | Framework split (Vitest / RTL / MSW / Playwright), `正常系` / `異常系` naming, table-driven ban, one-test-per-subject, per-layer responsibilities, integration = HTTP boundary only |
+| [ADR 0090](../../../docs/adr/0090-testing-strategy.md) | Framework split (Vitest / RTL / MSW / Playwright), export-name `describe`, `正常系` / `異常系` comment separators, per-case naming, one-test-per-subject, skip / todo discipline, per-layer responsibilities, integration = HTTP boundary only |
 | [ADR 0091](../../../docs/adr/0091-test-verification-methods.md) | Where async RSC tests live, how a11y automated checks are integrated |
 | The kernel `README.md` frontmatter (`test-requirement: unit \| component \| integration \| route \| feature`) | Which test layer the target belongs to |
 | [AGENTS.md](../../../AGENTS.md) | `describe` / `it` strings are Japanese |
@@ -102,20 +102,50 @@ enters their field of view. That is the blind spot a test-file-first read struct
 
 Mechanical adherence to ADR 0090. As of this writing that means:
 
-- **Outermost `describe` groups are the literal strings `正常系` and `異常系`**, with the cases
-  nested inside. The `正常系_xxx` prefix form is a violation, and nested cases must not repeat the
-  prefix — the group already carries the axis.
+- **The outermost `describe` is the exported symbol's own name**, one per subject. A `正常系` /
+  `異常系` group at the top level is a violation, and so is bundling several subjects under one
+  `describe` or splitting one subject across two.
+- **Viewpoint grouping is comment separators, not nested `describe`s.** `it` calls sit directly under
+  the subject's `describe`, divided by `// ----- 正常系 -----` / `// ----- 異常系 -----`. Flag a file
+  with no separator at all once it has both success and failure cases — the axis has to be visible to a
+  reader scanning the file, and that is the whole reason the convention exists.
+- **Which side a case belongs on follows whether the subject itself fails**, not whether the input is
+  failure-flavored. A hook that swallows a fetch error and returns an error state never throws, so its
+  cases stay under `正常系`. `境界ケース` is a *viewpoint*, not a third section: boundary cases split
+  across the two by the outcome each side produces.
 - **Case names are Japanese**, stating the behavior and the branch condition.
-- **No table-driven cases.** A `for` / `forEach` / `it.each` over a case array is a violation
-  regardless of how much repetition it removes; the required form is sequential sibling `it` calls.
-- **One subject, one test.** A `describe` bundling several subjects (a shared `*_Accessors` style)
-  is a violation. Check both directions: a `describe` covering several subjects, and a subject split
-  across several `describe`s. **A subject with no test at all belongs to Lens 5** — this lens judges
-  only the shape of the tests that exist, so the two never double-report.
+- **Every case is named individually.** `it.each` / `it.for` with a name template
+  (`it.each(pairs)("$name の応答が契約を満たす", …)`) satisfies this and is **not** a violation — Vitest
+  reports each case under its own name. A hand-rolled `for` / `forEach` around a bare `it` is a
+  violation: the name is shared across cases so a failure does not identify which one, and the loop
+  body usually shares state.
+- **Nested `describe` only carries a shared-setup context**, named for that context
+  (`describe("ログイン済みのとき", …)`). A nested `describe("正常系")` / `describe("異常系")` is a
+  violation — that is viewpoint grouping, which belongs in the comment separators.
+- **`it.skip` requires the extraction first.** In TS `vi.mock` reaches module boundaries, so "cannot be
+  verified" is a narrow claim. Before accepting a skip, check whether the blocking side effect
+  (`process.exit`, a load-time env read, spawning a process) was **extracted into its own module** with
+  the subject merely calling it — then the test mocks that boundary and verifies the arguments and
+  branches up to it. A skip that could have been an extraction is a finding. The reason must say what
+  remains and why `vi.mock` / `vi.stubGlobal` cannot reach it. **"別のテストでカバー済み" is never a
+  valid reason** — it makes the subject depend on another test's implementation: it stays green after
+  the covering test shrinks or is deleted, nothing confirms the covering test really reaches the branch,
+  and a branch added later goes unverified in silence, reducing the 1:1 mapping to a name-only shell.
+- **`it.todo` must name where it gets resolved** (`it.todo("<behavior>(#123 で解消)")`). A bare
+  `it.todo` with no issue / phase is a violation: the correct form is a real test written as far as the
+  current conventions allow, with `暫定テスト：` prefixed to the `it` name.
 - **The HTTP boundary is mocked with MSW**, not with a hand-rolled `fetch` stub or a module mock of
   the adapter. ADR 0090 scopes integration tests to that boundary.
 - **Co-location.** Tests sit next to their subject; a `__tests__/` aggregation directory is a
   violation.
+
+**Do not re-report what the gate already fails on.** `scripts/one-to-one.gate.test.ts` mechanically
+catches the four name-level shapes — `missing-test-file`, `missing-describe`, `duplicate-describe`,
+`unknown-describe` (a top-level `正常系` bundle lands here). Those are already red in CI, so state them
+in one line at most and spend this lens on what the gate cannot read: separator grouping, which side a
+case sits on, case-name quality, per-case naming, skip / todo discipline, the MSW boundary, and co-location.
+**A subject with no test at all belongs to Lens 5** — this lens judges only the shape of the tests that
+exist, so the two never double-report.
 
 Read ADR 0090 at runtime and apply what it currently says — this list is its application, not a copy
 that may drift.
@@ -139,6 +169,29 @@ Compares what the layer owes to what the test actually exercises.
 viewpoints cannot be derived from the ADRs plus the frontmatter, report that as a documentation gap
 in 補遺 rather than silently returning nothing, which would read as a pass.
 
+**When the declaration and the tests disagree, adjudicate by these rules** rather than case by case, so
+the same situation is not decided two different ways in two directories. State which rule you applied.
+
+- **The tests are sound design → amend the declaration.** When the approach the tests take is
+  architecturally justified, it is the declaration that failed to describe reality. Propose fixing the
+  README — normally by giving the directory its own `test-requirement` — and propose **the criterion
+  that selects the approach**, not just the approach, so the next directory in the same situation
+  applies a rule instead of copying a precedent.
+- **The declaration is the correct intent → amend the tests.** When the deviation has no design
+  justification, the frontmatter states what should be true; bring the tests in line with it.
+- **An inherited declaration governs only where its premises hold.** The nearest ancestor's
+  `test-requirement` applies to a subdirectory only when its preconditions actually hold there — an
+  `integration` declaration written for an HTTP-boundary adapter does not govern a sibling of pure
+  formatting helpers. Resolving *formally* by the walk is not the same as the declaration applying:
+  treat an inapplicable nearest declaration exactly like a missing one, as a documentation gap closed
+  by giving that directory its own frontmatter.
+- **A directory that is not a kernel still owns its viewpoints.** `scripts/` / `tokens/` /
+  `docs-viewer/` have no kernel README above them by construction. Their viewpoints belong in their own
+  README, and their absence is a gap to report — not a licence to review them against nothing.
+
+Which side an adjudication took, and why, belongs in the PR that makes the change — not in the README
+and not in this report beyond the one-line rule name.
+
 Output: viewpoints the layer owes that the test does not exercise.
 
 ### Lens 3: Semantic Quality
@@ -150,11 +203,27 @@ apply these general principles and flag the missing catalogue itself in 補遺:
   already guarantees; `expect(fn).not.toThrow()` as the only assertion).
 - Snapshot used where a specific assertion belongs — a snapshot records whatever the code does,
   including the bug.
-- Coupling to internals the subject does not promise (querying by `data-slot` when a role and an
-  accessible name exist; asserting call order of a private helper).
 - Over-mocking: a test that mocks the very thing it claims to verify.
 - Time or randomness pinned by literal rather than injected, so the test rots on a date boundary.
 - A test whose name promises more than it asserts.
+
+For component / hook targets, hold them to the **Testing Library guiding principles** — these are the
+established practice for this stack, not a house style, so cite them by name in the finding:
+
+- **Query priority.** `getByRole` (with `name`) first, then `getByLabelText` / `getByPlaceholderText` /
+  `getByText`, and `getByTestId` / `data-*` only as a last resort for something with no accessible
+  handle. Querying by `data-slot` or a class name when a role and an accessible name exist is a
+  finding — it tests the implementation, not what a user can reach.
+- **`user-event` over `fireEvent`.** `user-event` replays the real input sequence (focus, keydown,
+  pointer events) that a `fireEvent.click` skips, so a component that breaks under real interaction can
+  still pass with `fireEvent`. Flag `fireEvent` where `user-event` covers the interaction.
+- **Wait for the assertion, do not sleep.** `await waitFor(...)` / `await screen.findBy...` rather than
+  an arbitrary timer; `vi.useFakeTimers` + `vi.advanceTimersByTime` when time itself is the subject. A
+  bare `setTimeout` / fixed-delay `await` is flaky by construction.
+- **Semantic matchers over truthiness.** `toBeVisible` / `toBeDisabled` / `toHaveAccessibleName` say
+  what is being asserted; `toBeTruthy()` on a queried element asserts almost nothing.
+- **Assert what the user observes**, not internal state — no reaching into a hook's internals or a
+  private helper's call order when the rendered output distinguishes the branches.
 
 Output: findings with `file:line` and a one-sentence reason the assertion is weak.
 
@@ -199,8 +268,9 @@ invisible to it.
    helpers are out of scope.
 2. Match each symbol to a test.
 3. Flag every unmatched symbol as **シンボル未カバー** → severity **補完推奨**, citing
-   `symbol @ file:line`, proposing the `describe` name and its `正常系` / `異常系` skeleton, and
-   attaching the same criticality score. Order by criticality descending.
+   `symbol @ file:line`, proposing the `describe` name (the symbol's own name) with its
+   `// ----- 正常系 -----` / `// ----- 異常系 -----` skeleton of `it` calls, and attaching the same
+   criticality score. Order by criticality descending.
 
 ## Step 3. Verify Each Finding
 

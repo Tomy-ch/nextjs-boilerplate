@@ -19,8 +19,11 @@ export type SecretReference = {
 const OPEN = "${{";
 const CLOSE = "}}";
 
-const SECRET_REFERENCE =
-  /(?<![\w.-])secrets(?![\w-])\s*(?:\.\s*([\w-]+)|\[\s*(['"])([\w-]+)\2\s*\])?/gi;
+// コンテキストの参照そのもの。名前の取り出しは別に行うため、ここは `secrets` の語だけを見る。
+const SECRET_CONTEXT = /(?<![\w.-])secrets(?![\w-])/gi;
+
+// 参照の直後に続く添字。`secrets.NAME` と `secrets['NAME']` / `secrets["NAME"]` を受ける。
+const SECRET_NAME = /^secrets\s*(?:\.\s*([\w-]+)|\[\s*(['"])([\w-]+)\2\s*\])/i;
 
 export function findSecretReferences(text: string): SecretReference[] {
   const found: SecretReference[] = [];
@@ -34,8 +37,16 @@ export function findSecretReferences(text: string): SecretReference[] {
     const bodyEnd = close === -1 ? text.length : close;
     index = close === -1 ? text.length : close + CLOSE.length;
 
-    for (const match of maskStrings(text.slice(bodyStart, bodyEnd)).matchAll(SECRET_REFERENCE)) {
-      found.push({ offset: bodyStart + (match.index ?? 0), name: match[1] ?? match[3] ?? null });
+    const body = text.slice(bodyStart, bodyEnd);
+
+    // 参照かどうかは文字列リテラルを潰した側で決め、名前は潰す前の値から取る。GitHub の式で
+    // 文字列を囲むのは単引用符だけなので、潰した側から名前まで読もうとすると
+    // `secrets['NAME']` の NAME が消え、実参照の名前が常に伏せられる。
+    for (const match of maskStrings(body).matchAll(SECRET_CONTEXT)) {
+      const offset = match.index;
+      const named = SECRET_NAME.exec(body.slice(offset));
+
+      found.push({ offset: bodyStart + offset, name: named?.[1] ?? named?.[3] ?? null });
     }
   }
 

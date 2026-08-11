@@ -48,3 +48,37 @@ describe("SelectNative", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("SelectNativeOptGroup", () => {
+  // ----- 正常系 -----
+  it("候補の束として optgroup を描画する", () => {
+    render(
+      <SelectNative aria-label="表示形式">
+        <SelectNativeOptGroup label="表示形式">
+          <SelectNativeOption value="standard">標準</SelectNativeOption>
+        </SelectNativeOptGroup>
+      </SelectNative>,
+    );
+
+    expect(screen.getByRole("group", { name: "表示形式" })).toHaveAttribute(
+      "data-slot",
+      "native-select-optgroup",
+    );
+  });
+});
+
+describe("SelectNativeOption", () => {
+  // ----- 正常系 -----
+  it("候補 1 件として option を描画する", () => {
+    render(
+      <SelectNative aria-label="表示形式">
+        <SelectNativeOption value="standard">標準</SelectNativeOption>
+      </SelectNative>,
+    );
+
+    const option = screen.getByRole("option", { name: "標準" });
+
+    expect(option).toHaveAttribute("value", "standard");
+    expect(option).toHaveAttribute("data-slot", "native-select-option");
+  });
+});

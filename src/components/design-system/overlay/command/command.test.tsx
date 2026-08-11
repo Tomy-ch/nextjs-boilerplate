@@ -267,3 +267,95 @@ describe("CommandDialog", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("CommandInput", () => {
+  // ----- 正常系 -----
+  it("検索欄として slot を持つ要素を描画する", () => {
+    render(<CommandFixture />);
+
+    expect(screen.getByPlaceholderText("操作を検索")).toHaveAttribute("data-slot", "command-input");
+  });
+
+  it("入力すると一致する候補だけを残す", () => {
+    render(<CommandFixture />);
+
+    fireEvent.change(screen.getByPlaceholderText("操作を検索"), { target: { value: "予定" } });
+
+    expect(screen.getByRole("option", { name: "予定を開く" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "一覧を開く" })).toBeNull();
+  });
+});
+
+describe("CommandList", () => {
+  // ----- 正常系 -----
+  it("候補の一覧として slot を持つ要素を描画する", () => {
+    render(<CommandFixture />);
+
+    expect(document.querySelector('[data-slot="command-list"]')).not.toBeNull();
+  });
+});
+
+describe("CommandGroup", () => {
+  // ----- 正常系 -----
+  it("見出し付きの束として slot を持つ要素を描画する", () => {
+    render(<CommandFixture />);
+
+    expect(document.querySelector('[data-slot="command-group"]')).not.toBeNull();
+    expect(screen.getByText("移動")).toBeInTheDocument();
+  });
+});
+
+describe("CommandItem", () => {
+  // ----- 正常系 -----
+  it("候補 1 件を option として描画する", () => {
+    render(<CommandFixture />);
+
+    expect(screen.getByRole("option", { name: "一覧を開く" })).toHaveAttribute(
+      "data-slot",
+      "command-item",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("disabled な候補を操作できないものとして示す", () => {
+    render(<CommandFixture />);
+
+    expect(screen.getByRole("option", { name: "権限の管理" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+});
+
+describe("CommandSeparator", () => {
+  // ----- 正常系 -----
+  it("区切りとして slot を持つ要素を描画する", () => {
+    render(<CommandFixture />);
+
+    expect(document.querySelector('[data-slot="command-separator"]')).not.toBeNull();
+  });
+});
+
+describe("CommandShortcut", () => {
+  // ----- 正常系 -----
+  it("shortcut 表示として slot を持つ要素を描画する", () => {
+    render(<CommandFixture />);
+
+    expect(document.querySelector('[data-slot="command-shortcut"]')).toHaveTextContent("⌘,");
+  });
+});
+
+describe("CommandEmpty", () => {
+  // ----- 異常系 -----
+  it("一致する候補が無いときだけ不在の案内を出す", () => {
+    render(<CommandFixture />);
+
+    expect(screen.queryByText("一致する操作はありません。")).toBeNull();
+
+    fireEvent.change(screen.getByPlaceholderText("操作を検索"), {
+      target: { value: "該当なし" },
+    });
+
+    expect(screen.getByText("一致する操作はありません。")).toBeInTheDocument();
+  });
+});

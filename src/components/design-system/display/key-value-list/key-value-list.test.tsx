@@ -106,3 +106,46 @@ describe("KeyValueList", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("KeyValueItem", () => {
+  // ----- 正常系 -----
+  it("項目 1 件として slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <KeyValueList>
+        <KeyValueItem>
+          <KeyValueLabel>名称</KeyValueLabel>
+          <KeyValueValue>標準プラン</KeyValueValue>
+        </KeyValueItem>
+      </KeyValueList>,
+    );
+
+    expect(container.querySelector('[data-slot="key-value-item"]')).not.toBeNull();
+  });
+});
+
+describe("KeyValueLabel", () => {
+  // ----- 正常系 -----
+  it("項目名として slot を持つ要素を描画する", () => {
+    render(<KeyValueLabel>名称</KeyValueLabel>);
+
+    expect(screen.getByText("名称")).toHaveAttribute("data-slot", "key-value-label");
+  });
+});
+
+describe("KeyValueValue", () => {
+  // ----- 正常系 -----
+  it("値として slot を持つ要素を描画する", () => {
+    render(<KeyValueValue>標準プラン</KeyValueValue>);
+
+    expect(screen.getByText("標準プラン")).toHaveAttribute("data-slot", "key-value-value");
+  });
+});
+
+describe("KeyValueEmpty", () => {
+  // ----- 正常系 -----
+  it("値が無いことを示す表示として slot を持つ要素を描画する", () => {
+    const { container } = render(<KeyValueEmpty />);
+
+    expect(container.querySelector('[data-slot="key-value-empty"]')).not.toBeNull();
+  });
+});

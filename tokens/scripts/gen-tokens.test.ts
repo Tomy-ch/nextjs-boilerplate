@@ -1,5 +1,35 @@
-import { describe, expect, it } from "vitest";
-import { generateTokensCss } from "./gen-tokens";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const { mkdir, readFile, writeFile } = vi.hoisted(() => ({
+  mkdir: vi.fn(),
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+}));
+
+vi.mock("node:fs/promises", () => ({ mkdir, readFile, writeFile }));
+
+import { generateOrCheckTokens, generateTokensCss } from "./gen-tokens";
+
+const primitives = {
+  color: { neutral: { 0: { $type: "color", $value: "#ffffff" } } },
+};
+const themes = {
+  theme: {
+    light: { color: { background: { $type: "color", $value: "{color.neutral.0}" } } },
+  },
+};
+
+/** 読み込むパスに応じて token SSOT を返す。 */
+const fileOf = (path: string) => (path.endsWith("primitives.json") ? primitives : themes);
+
+beforeEach(() => {
+  mkdir.mockResolvedValue(undefined);
+  writeFile.mockResolvedValue(undefined);
+});
+
+afterEach(() => {
+  vi.resetAllMocks();
+});
 
 describe("generateTokensCss", () => {
   it("primitive と semantic token を Tailwind v4 の theme CSS に変換する", () => {
@@ -102,5 +132,38 @@ describe("generateTokensCss", () => {
         },
       ),
     ).toThrow('既定の theme "light" が themes.json にありません');
+  });
+});
+
+describe("generateOrCheckTokens", () => {
+  // ----- 正常系 -----
+  it("生成では出力先を作ってから CSS を書き出す", async () => {
+    readFile.mockImplementation(async (path: string) => JSON.stringify(fileOf(path)));
+
+    await generateOrCheckTokens(false);
+
+    expect(mkdir).toHaveBeenCalledOnce();
+    expect(writeFile.mock.calls[0]?.[1]).toContain("--color-neutral-0");
+  });
+
+  it("検査では生成物が SSOT と一致していれば何も投げない", async () => {
+    const expected = generateTokensCss(primitives, themes);
+    readFile.mockImplementation(async (path: string) =>
+      path.endsWith(".css") ? expected : JSON.stringify(fileOf(path)),
+    );
+
+    await expect(generateOrCheckTokens(true)).resolves.toBeUndefined();
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  // ----- 異常系 -----
+  it("検査で生成物が SSOT と一致しなければ再生成を促して落とす", async () => {
+    readFile.mockImplementation(async (path: string) =>
+      path.endsWith(".css") ? "/* 古い生成物 */" : JSON.stringify(fileOf(path)),
+    );
+
+    await expect(generateOrCheckTokens(true)).rejects.toThrow(
+      "design token の生成物が SSOT と一致しません。pnpm gen:tokens を実行してください。",
+    );
   });
 });

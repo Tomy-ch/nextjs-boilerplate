@@ -52,3 +52,121 @@ describe("Table", () => {
     ).toEqual([]);
   });
 });
+
+describe("TableHeader", () => {
+  // ----- 正常系 -----
+  it("見出し行の束として slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">項目</TableHead>
+          </TableRow>
+        </TableHeader>
+      </Table>,
+    );
+
+    expect(container.querySelector("thead")).toHaveAttribute("data-slot", "table-header");
+  });
+});
+
+describe("TableBody", () => {
+  // ----- 正常系 -----
+  it("本体行の束として slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <Table>
+        <TableBody>
+          <TableRow>
+            <TableCell>値</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+
+    expect(container.querySelector("tbody")).toHaveAttribute("data-slot", "table-body");
+  });
+});
+
+describe("TableFooter", () => {
+  // ----- 正常系 -----
+  it("脚注行の束として slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <Table>
+        <TableFooter>
+          <TableRow>
+            <TableCell>合計</TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>,
+    );
+
+    expect(container.querySelector("tfoot")).toHaveAttribute("data-slot", "table-footer");
+  });
+});
+
+describe("TableRow", () => {
+  // ----- 正常系 -----
+  it("行として slot を持つ要素を描画する", () => {
+    render(
+      <Table>
+        <TableBody>
+          <TableRow>
+            <TableCell>値</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+
+    expect(screen.getByRole("row")).toHaveAttribute("data-slot", "table-row");
+  });
+});
+
+describe("TableHead", () => {
+  // ----- 正常系 -----
+  it("見出しセルとして slot を持つ要素を描画する", () => {
+    render(
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">項目</TableHead>
+          </TableRow>
+        </TableHeader>
+      </Table>,
+    );
+
+    const head = screen.getByRole("columnheader", { name: "項目" });
+
+    expect(head).toHaveAttribute("data-slot", "table-head");
+    expect(head).toHaveAttribute("scope", "col");
+  });
+});
+
+describe("TableCell", () => {
+  // ----- 正常系 -----
+  it("データセルとして slot を持つ要素を描画する", () => {
+    render(
+      <Table>
+        <TableBody>
+          <TableRow>
+            <TableCell>値</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+
+    expect(screen.getByRole("cell", { name: "値" })).toHaveAttribute("data-slot", "table-cell");
+  });
+});
+
+describe("TableCaption", () => {
+  // ----- 正常系 -----
+  it("表の説明として slot を持つ要素を描画する", () => {
+    const { container } = render(
+      <Table>
+        <TableCaption>最近の更新</TableCaption>
+      </Table>,
+    );
+
+    expect(container.querySelector("caption")).toHaveAttribute("data-slot", "table-caption");
+  });
+});

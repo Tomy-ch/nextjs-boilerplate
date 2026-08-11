@@ -37,6 +37,30 @@ describe("FilterBar", () => {
 
     expect(screen.getByLabelText("キーワード")).toBeInTheDocument();
   });
+
+  describe("FilterBar 全体", () => {
+    it("a11y 自動検査に違反しない", async () => {
+      const { container } = render(
+        <FilterBar>
+          <FilterBarControls>
+            <input aria-label="キーワード" type="search" />
+            <FilterBarTrigger count={2} />
+          </FilterBarControls>
+          <FilterBarActiveFilters>
+            <FilterChip label="状態" removeHref="/plans?price=1000" value="公開中" />
+            <FilterChip label="価格帯" removeHref="/plans?status=published" value="1,000 円以上" />
+          </FilterBarActiveFilters>
+          <FilterBarSummary count={12} total={340}>
+            <button type="button">条件をすべて解除</button>
+          </FilterBarSummary>
+        </FilterBar>,
+      );
+
+      const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+      expect(result.violations).toEqual([]);
+    });
+  });
 });
 
 describe("FilterBarTrigger", () => {
@@ -199,26 +223,11 @@ describe("FilterChip", () => {
   });
 });
 
-describe("FilterBar 全体", () => {
-  it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(
-      <FilterBar>
-        <FilterBarControls>
-          <input aria-label="キーワード" type="search" />
-          <FilterBarTrigger count={2} />
-        </FilterBarControls>
-        <FilterBarActiveFilters>
-          <FilterChip label="状態" removeHref="/plans?price=1000" value="公開中" />
-          <FilterChip label="価格帯" removeHref="/plans?status=published" value="1,000 円以上" />
-        </FilterBarActiveFilters>
-        <FilterBarSummary count={12} total={340}>
-          <button type="button">条件をすべて解除</button>
-        </FilterBarSummary>
-      </FilterBar>,
-    );
+describe("FilterBarControls", () => {
+  // ----- 正常系 -----
+  it("操作の枠として slot を持つ要素を描画する", () => {
+    render(<FilterBarControls>操作</FilterBarControls>);
 
-    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
-
-    expect(result.violations).toEqual([]);
+    expect(screen.getByText("操作")).toHaveAttribute("data-slot", "filter-bar-controls");
   });
 });

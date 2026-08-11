@@ -309,3 +309,33 @@ describe("MessageScroller", () => {
     expect(result.violations).toEqual([]);
   });
 });
+
+describe("MessageScrollerViewport", () => {
+  // ----- 正常系 -----
+  it("スクロールする枠として slot を持つ要素を、名前つきで描画する", () => {
+    render(<Fixture />);
+
+    expect(screen.getByRole("region", { name: "やり取り" })).toHaveAttribute(
+      "data-slot",
+      "message-scroller-viewport",
+    );
+  });
+});
+
+describe("MessageScrollerContent", () => {
+  // ----- 正常系 -----
+  it("やり取りの本体として slot を持つ要素を描画する", () => {
+    const { container } = render(<Fixture />);
+
+    expect(container.querySelector('[data-slot="message-scroller-content"]')).not.toBeNull();
+  });
+});
+
+describe("MessageScrollerButton", () => {
+  // ----- 異常系 -----
+  it("末尾に居る間は最新へ戻る操作を描画しない", () => {
+    const { container } = render(<Fixture />);
+
+    expect(container.querySelector('[data-slot="message-scroller-button"]')).toBeNull();
+  });
+});

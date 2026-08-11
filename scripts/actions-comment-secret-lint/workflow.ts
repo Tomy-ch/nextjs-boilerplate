@@ -69,6 +69,9 @@ export function parseWorkflow(file: string, source: string, commentDirs: Set<str
     throw new Error(`${file}: jobs: がマッピングとして読めません`);
   }
   const jobsValue = (toJS(file, doc) as { jobs?: unknown } | null)?.jobs;
+  /* v8 ignore next 3 -- 直前で jobs: がマッピングであることを確かめているため、解決結果が
+     オブジェクトでない経路はこの入口から辿れない。パーサ側の変更で崩れたときに黙って
+     「投稿ジョブなし」へ寄らないよう、検査自体は残す。 */
   if (jobsValue === null || typeof jobsValue !== "object") {
     throw new Error(`${file}: jobs: を解決できません`);
   }
@@ -124,6 +127,8 @@ function collectScalars(
   seen: Set<unknown>,
 ): void {
   const resolved = resolveAlias(doc, node);
+  /* v8 ignore next -- 循環した anchor は走査より前に通る toJS が解決に失敗して落ちるため、
+     この再訪ガードはこの入口から辿れない。走査の入口が増えたときに無限再帰へ落ちないよう残す。 */
   if (!resolved || seen.has(resolved)) return;
   seen.add(resolved);
 
@@ -143,6 +148,9 @@ function collectScalars(
     }
     return;
   }
+  /* v8 ignore next -- resolveAlias が返すのはスカラー・シーケンス・マッピングだけで、前 2 つは
+     上で return 済み。ここが false になる経路は無いが、返す種類が増えたときに黙って落とさない
+     よう分岐として残す。 */
   if (isMap(resolved)) {
     for (const pair of resolved.items) {
       collectScalars(doc, lineCounter, pair.key, jobId, out, seen);
@@ -155,6 +163,8 @@ function collectScalars(
 // 値の中の位置まで写せる。それ以外の書式は折り畳みや引用符で対応が崩れるので、
 // スカラーの開始行を指す。
 function lineResolver(lineCounter: LineCounter, scalar: Scalar): (offset: number) => number {
+  /* v8 ignore next -- 走査対象へ入るのは range を持つスカラーだけ（collectScalars が範囲で
+     絞っている）。範囲を持たない合成ノードが混ざったときに 0 行目を指して黙らないよう残す。 */
   const start = scalar.range ? lineCounter.linePos(scalar.range[0]).line : 0;
   if (scalar.type !== Scalar.BLOCK_LITERAL) return () => start;
   const firstLine = start + 1;
@@ -169,14 +179,16 @@ function countNewlines(text: string): number {
   return count;
 }
 
-// alias を参照先のノードへ置き換える。参照先の無い alias は YAML として不正だが、
-// パーサは errors に載せず未解決を返すため、ここで落とす。
+// alias を参照先のノードへ置き換える。参照先の無い alias は YAML として不正だが、パーサは
+// errors に載せず未解決を返す。これを落とすのは走査より前に通る toJS で、fail-close の点を
+// 1 つに寄せてある（ここにも同じ検査を置くと、到達しない分岐が検査対象に残る）。
+// 値を持たないキー（`key:` だけの行）のように走査対象にならないノードは null を返す。
 function resolveAlias(doc: ReturnType<typeof parseDocument>, node: unknown): Node | null {
   let current = node;
   while (isAlias(current)) {
-    const target = current.resolve(doc);
-    if (!target) throw new Error(`参照先の無い alias があります: *${current.source}`);
-    current = target;
+    current = current.resolve(doc);
   }
+  /* v8 ignore next -- スカラー・マッピング・シーケンスのいずれでもないノードは、この入口が
+     渡す木には現れない。パーサが新しいノード種を返したときに素通りさせないよう残す。 */
   return isScalar(current) || isMap(current) || isSeq(current) ? current : null;
 }

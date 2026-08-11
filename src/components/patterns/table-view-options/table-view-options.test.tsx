@@ -143,25 +143,27 @@ describe("TableViewOptions", () => {
 
     expect(result.violations).toEqual([]);
   });
-});
 
-describe("表へ適用する class", () => {
-  it("詰めるのは高さと上下の余白だけにする", () => {
-    expect(TABLE_DENSITY_CLASS[TABLE_DENSITY.COMFORTABLE]).toBe("");
-    expect(TABLE_DENSITY_CLASS[TABLE_DENSITY.COMPACT]).toContain("py-1");
-    expect(TABLE_DENSITY_CLASS[TABLE_DENSITY.COMPACT]).not.toContain("text-xs");
-    expect(TABLE_DENSITY_CLASS[TABLE_DENSITY.COMPACT]).not.toContain("px-");
-  });
+  describe("表へ適用する class", () => {
+    it("詰めるのは高さと上下の余白だけにする", () => {
+      expect(TABLE_DENSITY_CLASS[TABLE_DENSITY.COMFORTABLE]).toBe("");
+      expect(TABLE_DENSITY_CLASS[TABLE_DENSITY.COMPACT]).toContain("py-1");
+      expect(TABLE_DENSITY_CLASS[TABLE_DENSITY.COMPACT]).not.toContain("text-xs");
+      expect(TABLE_DENSITY_CLASS[TABLE_DENSITY.COMPACT]).not.toContain("px-");
+    });
 
-  it("優先度の低い列ほど広い画面でだけ出す", () => {
-    expect(TABLE_COLUMN_PRIORITY_CLASS[TABLE_COLUMN_PRIORITY.ALWAYS]).toBe("");
-    expect(TABLE_COLUMN_PRIORITY_CLASS[TABLE_COLUMN_PRIORITY.MEDIUM]).toBe("hidden md:table-cell");
-    expect(TABLE_COLUMN_PRIORITY_CLASS[TABLE_COLUMN_PRIORITY.LOW]).toBe("hidden lg:table-cell");
-  });
+    it("優先度の低い列ほど広い画面でだけ出す", () => {
+      expect(TABLE_COLUMN_PRIORITY_CLASS[TABLE_COLUMN_PRIORITY.ALWAYS]).toBe("");
+      expect(TABLE_COLUMN_PRIORITY_CLASS[TABLE_COLUMN_PRIORITY.MEDIUM]).toBe(
+        "hidden md:table-cell",
+      );
+      expect(TABLE_COLUMN_PRIORITY_CLASS[TABLE_COLUMN_PRIORITY.LOW]).toBe("hidden lg:table-cell");
+    });
 
-  it("固定列は行の色を引き継ぎ、行が不透明な基準色を持つ", () => {
-    expect(TABLE_STICKY_COLUMN_CLASS).toContain("sticky");
-    expect(TABLE_STICKY_COLUMN_CLASS).toContain("bg-inherit");
-    expect(TABLE_STICKY_ROW_CLASS).toContain("bg-background");
+    it("固定列は行の色を引き継ぎ、行が不透明な基準色を持つ", () => {
+      expect(TABLE_STICKY_COLUMN_CLASS).toContain("sticky");
+      expect(TABLE_STICKY_COLUMN_CLASS).toContain("bg-inherit");
+      expect(TABLE_STICKY_ROW_CLASS).toContain("bg-background");
+    });
   });
 });
