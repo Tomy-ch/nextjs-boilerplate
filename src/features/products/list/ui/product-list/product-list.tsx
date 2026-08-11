@@ -1,6 +1,6 @@
 import type { Product } from "@/model/product/product";
 
-import { ProductCard } from "./product-card";
+import { ProductCard } from "../product-card/product-card";
 
 /** 一覧に並べる 1 件と、その画像 URL の対。 */
 export type ProductListItem = {

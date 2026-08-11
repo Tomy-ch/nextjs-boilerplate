@@ -1,14 +1,13 @@
 import { getProducts } from "@/adapters/server/api/products";
 import { resolveMediaUrl } from "@/adapters/server/media/media-url";
-
-import { ProductList } from "./product-list";
-import { ProductPagination } from "./product-pagination";
 import type { RawSearchParams } from "./product-query";
 import { toProductQuery } from "./product-query";
-import { ProductSearch } from "./product-search";
+import { ProductList } from "./ui/product-list/product-list";
+import { ProductPagination } from "./ui/product-pagination/product-pagination";
+import { ProductSearch } from "./ui/product-search/product-search";
 
-/** `ProductsPageContent` の props。 */
-export type ProductsPageContentProps = {
+/** `ProductListPageContent` の props。 */
+export type ProductListPageContentProps = {
   /** page が受け取った素の検索条件。 */
   searchParams: RawSearchParams;
 };
@@ -24,12 +23,12 @@ export type ProductsPageContentProps = {
  * 画像 URL の解決をここでまとめているのは、`adapters` を呼べるのが feature までであり、
  * 表示部品に設定を持ち込まないためです。
  */
-export async function ProductsPageContent({ searchParams }: ProductsPageContentProps) {
+export async function ProductListPageContent({ searchParams }: ProductListPageContentProps) {
   const query = toProductQuery(searchParams);
   const page = await getProducts(query);
   const items = page.products.map((product) => ({
     product,
-    imageUrl: resolveMediaUrl(product.imagePath),
+    imageUrl: resolveMediaUrl(product.imagePaths[0] ?? null),
   }));
 
   return (

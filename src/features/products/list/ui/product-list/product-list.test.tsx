@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 import type { Product } from "@/model/product/product";
 import { ProductList } from "./product-list";
 
@@ -11,10 +12,11 @@ function product(overrides: Partial<Product> = {}): Product {
     description: null,
     price: "19.99",
     quantity: 12,
+    stockWarningThreshold: null,
     status: { id: "s1", name: "公開" },
     category: { id: "c1", name: "オーディオ" },
     publishedAt: null,
-    imagePath: null,
+    imagePaths: [],
     ...overrides,
   };
 }
@@ -62,7 +64,6 @@ describe("ProductList", () => {
 
     expect(screen.getByText("在庫なし")).toBeInTheDocument();
   });
-  // ----- 異常系 -----
   it("商品が無いとき次にすべきことを示す", () => {
     render(<ProductList items={[]} />);
 
@@ -76,9 +77,16 @@ describe("ProductList", () => {
     expect(screen.queryAllByTestId("product-card")).toHaveLength(0);
   });
 
-  it("画像 URL が無ければ画像を出さない", () => {
+  it("画像 URL が無ければ代替画像を出す", () => {
     render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
 
     expect(screen.queryByAltText("ワイヤレスイヤホン")).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "画像なし" })).toBeVisible();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

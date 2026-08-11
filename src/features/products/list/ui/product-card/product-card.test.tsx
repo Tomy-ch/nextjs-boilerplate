@@ -14,10 +14,11 @@ const PRODUCT: Product = {
   description: null,
   price: "4980.00",
   quantity: 3,
+  stockWarningThreshold: null,
   status: { id: "1", name: "公開中" },
   category: { id: "10", name: "デスク周り" },
   publishedAt: null,
-  imagePath: null,
+  imagePaths: [],
 };
 
 describe("ProductCard", () => {
@@ -45,11 +46,10 @@ describe("ProductCard", () => {
     ).toEqual([]);
   });
 
-  // ----- 異常系 -----
-  it("画像が無ければ画像を描画しない", () => {
+  it("画像が無ければ代替画像を出す", () => {
     render(<ProductCard imageUrl={null} product={PRODUCT} />);
 
-    expect(screen.queryByRole("img")).toBeNull();
+    expect(screen.getByRole("img", { name: "画像なし" })).toBeInTheDocument();
   });
 
   it("在庫が無ければ在庫なしを添える", () => {

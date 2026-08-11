@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/design-system/action/button/button";
 
-import type { RawSearchParams } from "./product-query";
+import type { RawSearchParams } from "../../product-query";
 
 /** `ProductPagination` の props。 */
 export type ProductPaginationProps = {

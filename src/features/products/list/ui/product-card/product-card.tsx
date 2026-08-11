@@ -7,13 +7,14 @@ import {
   CardTitle,
 } from "@/components/design-system/display/card/card";
 import { MediaImage } from "@/components/design-system/display/media-image/media-image";
+import { NO_IMAGE_URL } from "@/model/media";
 import type { Product } from "@/model/product/product";
 
 /** `ProductCard` の props。 */
 export type ProductCardProps = {
   /** 表示する商品。 */
   product: Product;
-  /** 画像の表示 URL。未設定なら画像を出さない。 */
+  /** 画像の表示 URL。未設定なら代替画像を出す。 */
   imageUrl: string | null;
   /** 一覧の先頭に並ぶ商品か。LCP 候補として画像を preload する。 */
   leading?: boolean;
@@ -32,14 +33,14 @@ export type ProductCardProps = {
 export function ProductCard({ product, imageUrl, leading = false }: ProductCardProps) {
   return (
     <Card className="overflow-hidden" data-testid="product-card">
-      {imageUrl === null ? null : (
-        <MediaImage
-          src={imageUrl}
-          alt={product.name}
-          preload={leading}
-          sizes="(min-width: 768px) 320px, 100vw"
-        />
-      )}
+      <MediaImage
+        alt={product.name}
+        fallbackAlt="画像なし"
+        fallbackSrc={NO_IMAGE_URL}
+        preload={leading}
+        sizes="(min-width: 768px) 320px, 100vw"
+        src={imageUrl}
+      />
       <CardHeader>
         <CardTitle>{product.name}</CardTitle>
       </CardHeader>

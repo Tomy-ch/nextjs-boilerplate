@@ -7,9 +7,9 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
-import { ProductListSkeleton } from "@/features/products/product-list-skeleton";
-import type { RawSearchParams } from "@/features/products/product-query";
-import { ProductsPageContent } from "@/features/products/products-page-content";
+import { ProductListPageContent } from "@/features/products/list/product-list-page-content";
+import type { RawSearchParams } from "@/features/products/list/product-query";
+import { ProductListSkeleton } from "@/features/products/list/ui/product-list-skeleton/product-list-skeleton";
 
 export const metadata: Metadata = {
   title: "商品一覧",
@@ -42,7 +42,7 @@ export default async function ProductsPage({
         </div>
       </PageHeader>
       <Suspense key={JSON.stringify(params)} fallback={<ProductListSkeleton />}>
-        <ProductsPageContent searchParams={params} />
+        <ProductListPageContent searchParams={params} />
       </Suspense>
     </ContentContainer>
   );
