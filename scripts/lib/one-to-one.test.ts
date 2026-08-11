@@ -121,6 +121,38 @@ describe("collectTestableExports", () => {
     ]);
   });
 
+  it("default export した関数宣言は、宣言名で返しつつ呼べるかは default で引く", () => {
+    const source = "export default function RootLayout(): void {}";
+
+    expect(collectTestableExports(source, "layout.tsx", callableOf("default"))).toEqual([
+      { name: "RootLayout", line: 1, testable: true },
+    ]);
+  });
+
+  it("default export したクラス宣言も、宣言名で返しつつ呼べるかは default で引く", () => {
+    const source = "export default class Loader {}";
+
+    expect(collectTestableExports(source, "loader.ts", callableOf("default"))).toEqual([
+      { name: "Loader", line: 1, testable: true },
+    ]);
+  });
+
+  it("`export default <識別子>` は、参照している名前で返しつつ呼べるかは default で引く", () => {
+    const source = "const handle = () => {};\nexport default handle;";
+
+    expect(collectTestableExports(source, "handler.ts", callableOf("default"))).toEqual([
+      { name: "handle", line: 2, testable: true },
+    ]);
+  });
+
+  it("`export default <識別子>` が名前つき export と重なっても二重に数えない", () => {
+    const source = "export const handle = () => {};\nexport default handle;";
+
+    expect(collectTestableExports(source, "handler.ts", callableOf("handle"))).toEqual([
+      { name: "handle", line: 1, testable: true },
+    ]);
+  });
+
   it("呼べない export は testable が false になる", () => {
     const source = "export const LIMIT = 10;";
 
@@ -166,6 +198,20 @@ describe("collectTestableExports", () => {
     expect(collectTestableExports(source, "sample.ts", callableOf("alpha", "beta"))).toEqual([]);
   });
 
+  it("`export = <識別子>` は default export ではないため返さない", () => {
+    const source = "const handle = () => {};\nexport = handle;";
+
+    expect(collectTestableExports(source, "handler.ts", callableOf("default", "handle"))).toEqual(
+      [],
+    );
+  });
+
+  it("`export default <式>` は名前を持たないため返さない", () => {
+    const source = "export default () => {};";
+
+    expect(collectTestableExports(source, "handler.ts", callableOf("default"))).toEqual([]);
+  });
+
   it("再 export（`export * from`）は名前を持たないため返さない", () => {
     const source = 'export * from "./other";';
 
@@ -198,6 +244,17 @@ describe("checkFile", () => {
       testFile: null,
       exports: [symbol("LIMIT", false)],
       describes: [],
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it("export を持たないモジュールでは、モジュール名の describe を違反にしない", () => {
+    const violations = checkFile({
+      file: "validate-environment.server.ts",
+      testFile: "validate-environment.server.test.ts",
+      exports: [],
+      describes: [{ name: "validate-environment.server", line: 7 }],
     });
 
     expect(violations).toEqual([]);
@@ -298,7 +355,26 @@ describe("checkFile", () => {
         file: "sample.test.ts",
         line: 30,
         message:
-          'describe("正常系") はどの export にも対応しません。最上位の describe は export 名にし、観点ごとの束ねはその内側へ入れてください',
+          'describe("正常系") はどの export にも対応しません。最上位の describe は export 名にし、観点ごとの束ねは `// ----- 正常系 -----` のコメント区切りで行ってください',
+      },
+    ]);
+  });
+
+  it("呼べる export が無くても、どの export にも対応しない describe は unknown-describe を返す", () => {
+    const violations = checkFile({
+      file: "error-kind.ts",
+      testFile: "error-kind.test.ts",
+      exports: [symbol("errorKinds", false)],
+      describes: [{ name: "正常系", line: 5 }],
+    });
+
+    expect(violations).toEqual([
+      {
+        kind: "unknown-describe",
+        file: "error-kind.test.ts",
+        line: 5,
+        message:
+          'describe("正常系") はどの export にも対応しません。最上位の describe は export 名にし、観点ごとの束ねは `// ----- 正常系 -----` のコメント区切りで行ってください',
       },
     ]);
   });
