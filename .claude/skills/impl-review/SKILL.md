@@ -174,6 +174,24 @@ would lose the distinction between "the rule is violated" and "this branch is un
 If the delegation cannot run, say so in the report and fall back to the `test-gap` lens for this run
 rather than leaving the viewpoint silently unexamined.
 
+## Step 4.6 — Delegate the Comment Stock to `/comment-sweep`
+
+`comment-reviewer` (Step 2) judges the comments this diff **added**. It cannot judge the comments the
+touched files already **carry**, and it cannot issue the verdict those often need — **移設**, moving a
+rationale into the ADR or README that owns it — because that requires writing the destination
+document, which a read-only reviewer must not do.
+
+Chain `/comment-sweep` with the touched files as its scope, so it skips its own scope question:
+
+- `scope` — the non-generated source files from Step 1 (exclude `**/gen/**`, Markdown, the deny list)
+
+Embed the returned report as a section of the Step 5 report. **Do not re-report what
+`comment-reviewer` already raised** — the sweep's contribution is jurisdiction over the stock, not a
+second opinion on the diff.
+
+Skip the delegation when the change touches no source comments at all, and say so on the
+`コメント在庫:` line rather than leaving it silent.
+
 ## Step 5 — Synthesize Report (Japanese)
 
 Produce one Japanese report:
@@ -183,6 +201,7 @@ Produce one Japanese report:
 
 スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, runtime-gap, comment-style（テスト観点は /test-review へ委譲）
 テスト観点: <4 状態のいずれか。下記の定型から選ぶ>
+コメント在庫: <3 状態のいずれか。下記の定型から選ぶ>
 ランタイム検証: 4-1 build 実施 / 4-2 リクエスト検証 実施（curl）・対象外（リクエスト時 seam の変更なし）・到達不能（バックエンド不在で未検証の経路: <経路>）
 
 ### CONFIRMED（要対応）
@@ -200,6 +219,12 @@ Produce one Japanese report:
 - REFUTED: <n> 件（finder が挙げたが verifier が否定）
 - ランタイム検証でカバーした経路 / スキップした経路
 ```
+
+The **`コメント在庫:` line is mandatory** and takes one of:
+
+- `掃引実施（/comment-sweep / 移設 <n>・削除 <m>・書換 <k>）`
+- `未実施（ソースのコメントに触れる変更なし）`
+- `未実施（委譲が動かせず、在庫は未判定）`
 
 The **`テスト観点:` line is mandatory** and takes exactly one of the four values below, matching the state Step 1 resolved:
 

@@ -238,7 +238,7 @@ After the PR URL is reported, **always ask the user whether to run a review** �
 
 - Question: 「PR を作成/更新しました。コードレビューを実行しますか？」
 - Options (offer the ones that apply):
-  - 「`/impl-review` を実行」 — local diff, different-model adversarial review (strong on auth / IDOR / DI / SQL / shared-schema gaps that mocked tests miss); posts its surviving findings as inline PR comments by default (`--no-comment` to suppress)
+  - 「`/impl-review` を実行」 — local diff, different-model adversarial review; it chains `/test-review` (test viewpoints) and `/comment-sweep` (the touched files' comment stock), so one invocation covers all three (strong on auth / IDOR / DI / SQL / shared-schema gaps that mocked tests miss); posts its surviving findings as inline PR comments by default (`--no-comment` to suppress)
   - 「`/code-review <PR#>` を実行」 — PR-based review (can post inline comments with `--comment`)
   - 「ultrareview を案内」 — cloud multi-agent review; **user-triggered and billed**, so the skill cannot launch it — only surface the command for the user to run
   - 「レビューしない」
