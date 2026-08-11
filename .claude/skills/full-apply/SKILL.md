@@ -188,10 +188,16 @@ pnpm lint         # biome check — remaining errors must be zero
 pnpm build        # next build — must succeed
 ```
 
-Note: a test framework is **not yet adopted** in this repository (BACKLOG B8 pending). If and when a
-`test` script exists in `package.json`, run it too (`pnpm test`) and keep it green; until then, `fix`
-/ `lint` / `build` are the gate. If a change touches runtime UI behavior that these cannot catch,
-consider driving it via the `verify` / `run` skill, or note the residual risk in the ledger.
+```sh
+make test-full    # Vitest, coverage-gated (100 % on all four metrics) — must be green
+make scripts-test # the `scripts/` suite, same gate
+```
+
+`make test-full` is **required**, not optional: the coverage gate is what makes a fix's blast radius
+visible, and ADR [0090](../../../docs/adr/0090-testing-strategy.md) holds every callable export to a
+1:1 `describe`. A fix that leaves a branch uncovered fails the gate rather than passing quietly. If a
+change touches runtime UI behavior that none of these can catch, drive it via the `run` skill, or
+note the residual risk in the ledger.
 
 Do not commit a fix that does not go green, and if the cause requires judgment, roll it back to
 deferred.

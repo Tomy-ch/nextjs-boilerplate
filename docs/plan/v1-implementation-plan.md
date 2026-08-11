@@ -362,7 +362,7 @@ shadcn/ui を import
 
 ## 4. PR 一覧
 
-全 64 PR。issue 化の単位はこの 1 行 = 1 issue。
+全 65 PR。issue 化の単位はこの 1 行 = 1 issue。
 
 | ID | タイトル | Phase | 依存 |
 | --- | --- | --- | --- |
@@ -412,6 +412,7 @@ shadcn/ui を import
 | P5-15 | purchases ステータス遷移(cancel / pay / ship / deliver) | 5 | P5-8, P5-11 |
 | P5-16 | ゴールデンパス README 整備(B5 完成) | 5 | P5-1〜P5-15 |
 | P5-17 | セキュリティ workflow(CodeQL / gitleaks / trivy / Dependabot) | 5 | P5-16 |
+| P5-18 | spec 駆動の採否判断(GB-3) | 5 | P5-16, P4-6 |
 | P6-1 | クライアント観測性 | 6 | P3-5, P4-5 |
 | P6-2 | CSP / セキュリティヘッダ + CI 適合ゲート | 6 | P5-16, P6-8 |
 | P6-3 | SEO / metadata + fonts | 6 | P5-1, P5-4 |
@@ -1023,6 +1024,7 @@ sources:
 - **対象 ADR**: [0027](../adr/0027-directory-structure.md) / [0028](../adr/0028-naming-convention.md) / [0021](../adr/0021-frontend-responsibility.md)
 - **主な変更先**: `scripts/gen/` — `pnpm gen feature` / `pnpm gen component` / `pnpm gen adapter`
 - **設計**: P4-5 で確定した構造をテンプレート化する。命名・配置・境界・テスト・README を**生成時点で正**にする。`architecture.ts`(P3-2)を読んで境界を決めるため、生成物が boundaries に違反しない
+- **spec 駆動は採らずに進める**: `docs/spec/<feature>/` の spec から生成する方式(BACKLOG GB-3)は**判断を P5-18 へ送る**。両方を持つと SSOT が二重化するため、本 PR の時点では `architecture.ts` を唯一の生成入力とする。P5-18 で spec 駆動を採る決定になった場合、本 PR の生成入力を差し替える改修が発生する
 - **完了条件**: `pnpm gen feature <name>` が出力した雛形が、無修正で `lint:ci` / boundaries / README 必須節 / カバレッジゲートを満たす
 - **依存**: P4-5
 
@@ -1274,6 +1276,16 @@ sources:
 - **注意**: image-scan / cosign / SBOM は [0011](../adr/0011-no-docker.md) の no-docker により exclusion
 - **完了条件**: 全 workflow が動作する。既知の脆弱依存を入れると trivy / audit が fail する
 - **依存**: P5-16
+
+### P5-18: spec 駆動の採否判断(GB-3)
+
+- **目的**: 実装済みの画面を材料に、spec 駆動を採るかを決める。画面が 1 枚も無い状態では、spec が実装のどれだけを言い当てられるかを測れない
+- **判断すべきこと**: `docs/spec/<feature>/` に spec を置き、そこから実装を生成する方式(BACKLOG GB-3)を採るか
+- **判断の材料**: Phase 5 で実装した 19 画面。**実装済みの feature を 1 つ選び、後から spec を書き起こしてみて**、(1) spec が実装を再現できるだけの情報を持てるか、(2) `architecture.ts` と重複しない情報だけで構成できるか、(3) 画面の追加時に spec を先に書くほうが速いか、を見る
+- **注意**: P4-6 は `architecture.ts` を唯一の生成入力として着地している。**採用する場合は P4-6 の生成入力を差し替える改修が発生する**。両方を残すと SSOT が二重化するため、どちらか一方に倒す
+- **不採用の場合**: GB-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
+- **完了条件**: 採否が BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の IM-26 へ反映されている。採用する場合は P4-6 の改修 PR が起票されている
+- **依存**: P5-16, P4-6
 
 ## Phase 6: 非機能
 

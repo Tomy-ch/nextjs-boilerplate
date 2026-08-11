@@ -47,6 +47,8 @@ Accepted
 | `readme-review` | README の portal 価値評価 | 単一 README を `docs/portal/manifest.yaml` 登録基準で採点 |
 | `new-env` | 環境変数の e2e 追加 | 目的別 config モジュール / env ファイル / 変数表 docs を一括で同期 (対象構造は A7 = [0030](0030-environment-variable-management.md)、後述) |
 | `impl-review` | adversarial code review | 5 観点 (correctness / security / architecture / runtime-gap / test-gap) + コメント品質の subagent fanout + verifier による多段検証。コメント指摘のみライフサイクル内で自動修正し、残る指摘は PR へインライン投稿する |
+| `scaffold-test` | テストの新規作成 (unit / component) | テストを持たない対象について、対象自身の分岐からケースを導き `<subject>.test.ts(x)` を書く。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) / 最近傍 README の `test-requirement` / `scripts/lib/untested-modules.ts` を実行時に読む。対象は read-only で、検証できない分岐は skip せず所見として報告する |
+| `scaffold-integration-test` | HTTP 境界の結合テスト作成 | `adapters` のクライアントや Route Handler を、契約から生成された MSW ハンドラで動かすテストを書く。[0090](0090-testing-strategy.md) の「integration = HTTP 境界のみ / 内側は mock / 形と型をアサート」を保ち、ハンドラの手書きと `fetch` stub を禁じる |
 | `test-review` | テストの品質レビュー | 5 レンズ (構造準拠 / 観点カバレッジ / 意味的品質 / 分岐×意味 / シンボル網羅) の fanout + verifier。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む。read-only で、`impl-review` Step 4.5 の委譲先を兼ねる |
 | `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
 | `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
@@ -104,6 +106,8 @@ subagent 自身が read-only である規約は `comment-reviewer` にも等し�
 
 | スキル | 入力 | 出力 | 用途 |
 | --- | --- | --- | --- |
+| `scaffold-test` | テストを持たない対象 | `<subject>.test.ts(x)` 1 ファイル | 1:1 ゲートとカバレッジゲートを満たすテストの新規作成 |
+| `scaffold-integration-test` | HTTP 境界を持つ継ぎ目 | `<subject>.contract.test.ts` 1 ファイル | 契約駆動のハンドラで境界を固定する |
 | `canonicalize-doc` | EN または JA のドキュメント | 不足側を生成 / 両側の drift を同期 | 1 ドキュメントの 2 言語ペア管理 |
 | `sync-readme` | README + そのディレクトリ | 実状に合わせて README を書き換え | README ↔ ディスク drift 解消 |
 | `readme-review` | README | 採点レポート (manual-worthy / borderline / 等) | portal 登録判断 |
