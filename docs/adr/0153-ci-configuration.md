@@ -45,7 +45,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 
 ### 4. hooks mirror CI(go ADR 0073 翻案)
 
-- lefthook([0151](0151-git-hooks.md))で「local == CI」を二重化する。**pre-commit = 高速フィードバック**(glob 絞り・キャッシュ有効)、**pre-push / CI = 権威**(full・キャッシュ無効・coverage gate)([0090](0090-testing-strategy.md) 二層実行と一致)
+- lefthook([0151](0151-git-hooks.md))で「local == CI」を二重化する。**pre-commit = 高速フィードバック**(glob 絞り・キャッシュ有効)、**pre-push / CI = 権威**(full・キャッシュ無効・coverage gate)([0090](0090-testing-strategy.md) 二層実行と一致)。ただし**ホストが飽和している間は pre-push 側の二重化を降りる** — 飽和時のゲートは失敗が信用できず、権威である CI へ委ねたほうが速く正しい。判定は実測の使用率で行い、設定はどの環境でも同一に保つ([0151](0151-git-hooks.md))
 - 設計原則: glob-scoped(変更ファイル種別で hook を絞る)+ bypass-then-verify-once(commit split 中は `--no-verify`、最後に 1 回検証)。pre-push では `make test-full` と typecheck を回して CI 到達前に落とす。pre-commit のみが cache を使うため、編集時の反復速度と push 前の完全検証を両立する
 
 ### 5. required check / PR ゲート

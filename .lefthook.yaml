@@ -103,20 +103,25 @@ pre-push:
     test-full:
       # pre-push は Vitest のキャッシュを使わず、CI のカバレッジ付き完全実行と同じ挙動で
       # 検査する。対象の TypeScript・設定・依存定義が変わるときだけ起動する。
+      #
+      # gate-* を通すのは、飽和したホストではゲートの失敗自体が信用できなくなるため
+      # (ADR 0151)。余力があれば手元で走り、無ければ CI が同じコマンドを持つものだけを
+      # 委ねて理由を出す。委ねるかどうかは計測で決まり、設定はどの環境でも同一である。
+      # 現在の判定は `make load-status` で確認できる。
       glob:
         - "**/*.{ts,tsx}"
         - "package.json"
         - "pnpm-lock.yaml"
         - "pnpm-workspace.yaml"
-      run: make test-full
+      run: make gate-test-full
     scripts-test:
       # 補助スクリプトの suite も CI (scripts-check) と同じ完全実行で回す。
       glob:
         - "**/*.{ts,tsx}"
         - "vitest.scripts.config.ts"
-      run: make scripts-test
+      run: make gate-scripts-test
     typecheck:
-      run: pnpm typecheck
+      run: make gate-typecheck
     secret-scan:
       # push 予定のコミット範囲に秘密が含まれていれば fail-closed で止める。
       # 依存脆弱性スキャン (make trivy-fs) をここに置かないのは ADR 0110 3.1 の判断による。
