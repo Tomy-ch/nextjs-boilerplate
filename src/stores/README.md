@@ -16,6 +16,14 @@ test-requirement: unit
 
 - server state、単一 feature の状態、UI マークアップ、secret、業務ロジック
 
+<!-- sample:begin -->
+## モジュール
+
+| モジュール | 役割 |
+| --- | --- |
+| `cart-store.ts` | サンプル画面が共有するカートの中身 |
+
+<!-- sample:end -->
 ## 運用
 
 - client-only の実装では `"use client"` を最小の境界に置く
