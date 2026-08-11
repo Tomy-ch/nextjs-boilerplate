@@ -39,14 +39,12 @@ Accepted
 | --- | --- | --- | --- |
 | pre-commit | 「壊れた diff を commit に乗せない」 | `pnpm lint:ci` (biome 完全版 = `biome.ci.jsonc` + `--error-on-warnings`。ESLint 導入後は境界検査も直列 — [0002](0002-formatter-linter.md)) / Markdown 検査 (`pnpm md-lint` = markdownlint + mermaid 構文 + `.claude/**` の意味検査 (`skill-lint`)。対象ファイルが staged のときのみ) / ワークフロー検査 (`make actionlint` = 構文 + `run:` のシェル / `make actions-shellcheck` = composite action の `run:` のシェル / `make actions-pin-check` = `uses:` の SHA ピン / `make actions-comment-secret-lint` = PR コメントを投稿するジョブへの secret 混入。ワークフロー / composite action の定義が staged のときのみ — [0153](0153-ci-configuration.md)) | < 5 秒 |
 | commit-msg | 「規約外のコミットメッセージを積ませない」 | commitlint ([0150](0150-git-workflow.md) の prefix 11 種を検証) | < 5 秒 |
-| pre-push | 「秘密を含む push を上げない」 | 秘密スキャン (`make secret-scan` = push 予定コミット範囲) | < 5 秒 |
+| pre-push | 「壊れた push・秘密を含む push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / 秘密スキャン (`make secret-scan` = push 予定コミット範囲) / テスト (整備後) | < 30 秒 |
 | (CI) | 権威ある検査 | lint / 型 / test / build / e2e 等 | 制約なし |
 
 - pre-commit で走らせる biome は、エディタ保存時の簡易版ではなく **完全版** (`pnpm lint:ci`)。保存時は軽量・commit 時は厳格という二段構え（プロファイル分割の詳細は [0002-formatter-linter.md](0002-formatter-linter.md)）
 - biome は Rust 実装で高速なため、完全版（`noImportCycles` の複数ファイル走査を含む）でも本リポジトリ規模では sub-second に収まり、速度目標を満たす
-- **pre-push は CI が持てない検査だけを持つ**。型 (`typecheck.yaml`) / テスト (`test.yaml` / `scripts-check.yaml`) は CI が同じコマンドで権威として回すため、pre-push で先回りしても出る答えは同じで、実測 115〜170 秒を消費して速度目標を 5 倍超過していた。並行して複数の作業ツリーを開くとホストが飽和し、その飽和自体が無関係な検査を落とす。**CI の資源で回すほうが速く、判定も同じである**
-- **秘密スキャンだけが残るのは、他の検査に無い性質を 2 つ持つため**。秘密は push された時点でリモートに残る不可逆な事故であり、CI で気づいても手遅れになる。そして CI に対応するワークフローがまだ無い (P5-17)。この 2 つが解消したときは、pre-push を空にするかどうかを改めて判断する
-- pre-push の commands は `parallel: true` を保つ。検査が 1 つでも、後から足すときの既定を直列にしないため
+- pre-push の commands は `parallel: true` で並列実行する。秘密スキャンは型チェックと独立しており、直列化すると速度目標を割るため
 - **秘密スキャンを pre-push に置く理由**は、秘密が push された時点で「リモートに残る」不可逆な事故になるためである。**この段階でしか「送られるコミット範囲」が確定しない**点も pre-push を選ぶ根拠になる。commit 段階では、その commit が最終的に push されるか・後続 commit で消されるかがまだ決まらない（走査対象の決め方そのものは [0110](0110-security-operations.md) が正）
 - **依存脆弱性スキャン (`make trivy-fs`) は hook に接続しない**。hook に載せてよいのは「当事者がその場で解消でき、かつ変更と共に結果が決まる」検査に限られる。依存の脆弱性はどちらも満たさない（上流待ちで解消できず、CVE の公開だけで結果が変わる）ため、報告は PR コメント・ブロックは昇格ゲートが持つ（判断の全文は [0110](0110-security-operations.md) 3.1）
 - 速度目標は**定常状態の実測**で判断する。各ツールのコールドスタートは初回に限って目標を超えるが、これを理由に目標を緩めない
@@ -54,7 +52,7 @@ Accepted
 ### 設計原則
 
 - **pre-commit は速さ優先**。重い処理 (テスト全件 / `pnpm build` / e2e) は入れない
-- **pre-push は CI が持てないものに限る**。push の機会が commit より少ないことは、CI と同じ検査を手元でもう一度回す理由にならない
+- **pre-push は中速まで許容**。push の機会は commit より少ないため
 - **CI が権威**。hook は「早く気づく」ための補助層であり、hook 通過 = 正しい状態ではない
 - **重複は意図的**。hook と CI で同じ lint を走らせる二重化は冗長ではなく仕様
 
