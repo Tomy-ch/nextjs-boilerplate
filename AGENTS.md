@@ -207,6 +207,8 @@ pnpm dev                   # Start the dev server
 pnpm build                 # Production build
 pnpm start                 # Start the production server
 
+pnpm gen <kind> <name>     # Scaffold a feature / component / adapter (ADR 0027 / 0028)
+
 pnpm lint                  # biome check, light profile (ADR 0002)
 pnpm lint:ci               # biome check, full profile (biome.ci.jsonc + --error-on-warnings; pre-commit / CI)
 pnpm typecheck             # tsc --noEmit (pre-push)
