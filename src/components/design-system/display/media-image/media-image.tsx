@@ -11,18 +11,24 @@ import {
 /** `MediaImage` の props。`blurDataURL` は明示時だけ `placeholder="blur"` と組み合わせて使う。 */
 export type MediaImageProps = Omit<
   ImageProps,
-  "className" | "fill" | "loader" | "onError" | "onLoad" | "preload" | "priority"
+  "className" | "fill" | "loader" | "onError" | "onLoad" | "preload" | "priority" | "src"
 > & {
   /** レイアウトシフトを防ぐ wrapper の比率。 */
   aspectRatio?: MediaImageAspectRatio;
   /** wrapper に追加する class 名。 */
   className?: string;
+  /** 代替画像の代替テキスト。既定は空文字で、装飾として扱われる。 */
+  fallbackAlt?: string;
+  /** `src` が無いときに表示する画像。これも無ければ何も描画しない。 */
+  fallbackSrc?: ImageProps["src"];
   /** 実画像に追加する class 名。 */
   imageClassName?: string;
   /** CSS Skeleton を表示するか。LCP 候補では既定で無効になる。 */
   showSkeleton?: boolean;
   /** LCP 候補として preload するか。 */
   preload?: boolean;
+  /** 表示する画像。未設定なら `fallbackSrc` を表示する。 */
+  src: ImageProps["src"] | null;
 };
 
 /**
@@ -36,18 +42,32 @@ export type MediaImageProps = Omit<
  * error fallback や読み込み完了に応じた表示切替が必要な場合は、これを包む client island を feature
  * 側に置く。`imagePath` から URL を組み立てる責務も feature / model 側に置く。
  *
+ * 画像が無いときに何を出すかは呼び出し元が決める。`src` に `null` を渡せる形にしてあるのは、
+ * 「無い」を分岐で表すと呼び出し側ごとに扱いが分かれるためである。差し替える画像は
+ * `fallbackSrc` で受け取り、この component は経路を選ぶだけで既定のパスを持たない。どちらも
+ * 無ければ枠ごと描画しない。
+ *
  * @see Storybook `Display/MediaImage`
  */
 export function MediaImage({
   alt,
   aspectRatio = MEDIA_IMAGE_ASPECT_RATIO.STANDARD,
   className,
+  fallbackAlt = "",
+  fallbackSrc,
   imageClassName,
   preload = false,
   showSkeleton = !preload,
   sizes = "100vw",
+  src,
   ...props
 }: MediaImageProps) {
+  const resolved = src ?? fallbackSrc;
+
+  if (resolved === undefined) {
+    return null;
+  }
+
   return (
     <div
       className={cn(
@@ -59,12 +79,13 @@ export function MediaImage({
     >
       {showSkeleton ? <Skeleton className="absolute inset-0 rounded-none" /> : null}
       <Image
-        alt={alt}
+        alt={src === null || src === undefined ? fallbackAlt : alt}
         className={cn("object-cover", imageClassName)}
         data-slot="media-image-image"
         fill
         preload={preload}
         sizes={sizes}
+        src={resolved}
         {...props}
       />
     </div>

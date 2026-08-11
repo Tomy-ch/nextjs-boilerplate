@@ -45,6 +45,20 @@ export const Preloaded: Story = {
 };
 
 /**
+ * 画像が未設定の場合。`src` に `null` を渡すと `fallbackSrc` の画像へ差し替わる。代わりに置く
+ * 画像は呼び出し元が決めるため、この component は既定のパスを持たない。`fallbackSrc` も無い場合は
+ * 枠ごと描画されない。
+ */
+export const Fallback: Story = {
+  args: {
+    aspectRatio: MEDIA_IMAGE_ASPECT_RATIO.STANDARD,
+    fallbackAlt: "画像なし",
+    fallbackSrc: "/no-image.webp",
+    src: null,
+  },
+};
+
+/**
  * ぼかした縮小画像を先に出す場合。`blurDataURL` を渡した場合だけ CSS Skeleton の代わりに使われる。
  * この story の値は 1px の透明 GIF なので、見た目は単色になる。
  */

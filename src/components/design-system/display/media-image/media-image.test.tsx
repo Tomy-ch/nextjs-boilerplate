@@ -36,6 +36,7 @@ vi.mock("next/image", () => ({
 }));
 
 describe("MediaImage", () => {
+  // ----- 正常系 -----
   it("比率固定の wrapper、実画像、CSS Skeleton を表示する", () => {
     render(<MediaImage alt="サンプル画像" src="/sample.svg" />);
 
@@ -154,5 +155,44 @@ describe("MediaImage", () => {
       .closest("[data-slot=media-image]");
 
     expect(wrapper?.querySelector("[data-slot=skeleton]")).toBeInTheDocument();
+  });
+
+  it("画像が無ければ代替画像へ差し替える", () => {
+    const { container } = render(
+      <MediaImage alt="サンプル画像" fallbackSrc="/no-image.webp" src={null} />,
+    );
+
+    expect(container.querySelector("[data-slot=media-image-image]")).toHaveAttribute(
+      "src",
+      "/no-image.webp",
+    );
+  });
+
+  it("代替画像は既定で装飾として扱う", () => {
+    const { container } = render(
+      <MediaImage alt="サンプル画像" fallbackSrc="/no-image.webp" src={null} />,
+    );
+
+    expect(container.querySelector("[data-slot=media-image-image]")).toHaveAttribute("alt", "");
+    expect(screen.queryByRole("img", { name: "サンプル画像" })).not.toBeInTheDocument();
+  });
+
+  it("代替画像の代替テキストを明示すれば従う", () => {
+    render(
+      <MediaImage
+        alt="サンプル画像"
+        fallbackAlt="画像なし"
+        fallbackSrc="/no-image.webp"
+        src={null}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "画像なし" })).toBeVisible();
+  });
+
+  it("画像も代替画像も無ければ枠ごと描画しない", () => {
+    const { container } = render(<MediaImage alt="サンプル画像" src={null} />);
+
+    expect(container).toBeEmptyDOMElement();
   });
 });
