@@ -15,6 +15,10 @@ export default defineConfig({
     include: ["scripts/**/*.test.ts"],
     coverage: {
       provider: "v8",
+      // アプリ本体の suite と出力先を分ける。pre-push は 2 つの suite を並列に走らせるため、
+      // 既定の `coverage/` を共有すると `clean` が相手の `.tmp/` を消し、双方が
+      // 「読もうとした中間ファイルが無い」で落ちる。CI はジョブが別なので衝突しない。
+      reportsDirectory: "coverage-scripts",
       // 母数はディレクトリの列挙ではなく全 `.ts` に取る。ツールのディレクトリを足したとき
       // 黙って母数から漏れるのを避ける。外すのは除外宣言だけ。
       include: ["scripts/**/*.ts"],
