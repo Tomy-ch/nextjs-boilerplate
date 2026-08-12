@@ -22,11 +22,13 @@ const WATCH: CartLineInput = {
   stockQuantity: 2,
 };
 
-function seed(lines: readonly CartLineInput[]) {
+/** 初期状態を作る。追加が立てた「見たい」要求は、種まきの副産物なので畳む。 */
+function seed(lines: readonly CartLineInput[], isOpen = false) {
   useCartStore.setState({ lines: [] });
   for (const line of lines) {
     useCartStore.getState().add(line);
   }
+  useCartStore.setState({ isOpen });
 }
 
 const meta = {
@@ -37,8 +39,8 @@ const meta = {
     docs: {
       description: {
         component: [
-          "header に置くカートの入口です。**幅で姿が変わります。** 脇に常設できる幅では点数だけを出し、",
-          "狭い幅では本文へ被せる drawer の引き手になります。canvas の幅を変えると切り替わります。",
+          "header に置くカートの入口です。**幅で姿が変わります。** 脇に常設できる PC では点数だけを出し、",
+          "タブレットとスマホでは本文へ被せる drawer の引き手になります（境界は `lg` = 1024px）。",
           "引き出す操作は押下だけで、画面端からの swipe は持ちません（browser の戻る操作と競合するため）。",
         ].join(""),
       },
@@ -56,16 +58,35 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** 脇に常設できる幅。点数だけを出し、開く操作を持たない。 */
-export const Wide: Story = {};
+/** PC。脇に常設できるため点数だけを出し、開く操作を持たない。 */
+export const PC: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
 
-/** 狭い幅。押すと本文へ被せて開き、背面の押下と「閉じる」のどちらでも閉じる。 */
-export const Narrow: Story = {
+/** タブレット。脇に常設できないため、スマホと同じく引き手になる。 */
+export const Tablet: Story = {
+  globals: { viewport: { value: "tablet", isRotated: false } },
+};
+
+/** スマホ。押すと本文へ被せて開き、背面の押下と「閉じる」のどちらでも閉じる。 */
+export const Mobile: Story = {
   globals: { viewport: { value: "mobile2", isRotated: false } },
 };
 
-/** 狭い幅でカートが空の場合。入っていないことを drawer の説明で伝える。 */
-export const NarrowEmpty: Story = {
+/** スマホで開いた状態。商品をカートへ入れたときもこの姿になる。 */
+export const MobileOpen: Story = {
+  globals: { viewport: { value: "mobile2", isRotated: false } },
+  decorators: [
+    (Story) => {
+      seed([EARPHONE, WATCH], true);
+
+      return <Story />;
+    },
+  ],
+};
+
+/** スマホでカートが空の場合。入っていないことを drawer の説明で伝える。 */
+export const MobileEmpty: Story = {
   globals: { viewport: { value: "mobile2", isRotated: false } },
   decorators: [
     (Story) => {

@@ -55,10 +55,13 @@ const DEFAULT_CART: readonly CartSeed[] = [{ line: WATCH }];
  *
  * カートは `parameters.cart` で story ごとに差し替える。空のカートでは脇の領域が消えて本文が
  * 全幅になるため、器の見え方そのものが変わる。
+ *
+ * 開いた状態は `parameters.cartOpen` で明示する。種まきは初期状態の再現であって追加操作ではないため、
+ * 追加が立てた要求はここで畳む。脇に常設できる幅ではこの値を見ないので、効くのはタブレットとスマホだけ。
  */
 function withPageFrame(
   Story: () => React.ReactElement,
-  context: { parameters: { cart?: readonly CartSeed[] } },
+  context: { parameters: { cart?: readonly CartSeed[]; cartOpen?: boolean } },
 ) {
   useCartStore.setState({ lines: [] });
 
@@ -69,6 +72,8 @@ function withPageFrame(
       useCartStore.getState().setQuantity(seed.line.productId, seed.quantity);
     }
   }
+
+  useCartStore.setState({ isOpen: context.parameters.cartOpen === true });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -183,29 +188,18 @@ export const ManyItems: Story = {
   },
 };
 
-/** カートが空の場合。脇の領域ごと消え、一覧が全幅になる。 */
+/** PC でカートが空の場合。脇の領域ごと消え、一覧が全幅になる。 */
 export const EmptyCart: Story = {
   args: { ...Default.args },
   parameters: { cart: [] },
 };
 
-/** カートに複数入っている場合。一覧の幅がカートのぶん狭まる。 */
-export const FilledCart: Story = {
-  args: { ...Default.args },
-  parameters: {
-    cart: [
-      { line: WATCH, quantity: 3 },
-      { line: HUB, quantity: 2 },
-      { line: CABLE, quantity: 12 },
-    ],
-  },
-};
-
 /**
- * 契約の上限いっぱいの値。カード内で商品名が折り返したときに、価格と在庫の行が押し出されないか、
+ * PC で契約の上限いっぱいの値。カード内で商品名が折り返したときに、価格と在庫の行が押し出されないか、
  * 段組みの高さが揃うかを見る。
  */
-export const MaxLength: Story = {
+export const MaxLengthPC: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
     items: [
       {
@@ -229,14 +223,41 @@ export const MaxLength: Story = {
   },
 };
 
-/** 狭い幅での最大長。カードが 1 列になり、折り返した商品名がカードの高さを押し広げる。 */
+/** タブレットでの最大長。カードの段組みが減り、カートは脇から drawer へ移る。 */
+export const MaxLengthTablet: Story = {
+  ...MaxLengthPC,
+  globals: { viewport: { value: "tablet", isRotated: false } },
+};
+
+/** スマホでの最大長。カードが 1 列になり、折り返した商品名がカードの高さを押し広げる。 */
 export const MaxLengthMobile: Story = {
-  ...MaxLength,
+  ...MaxLengthPC,
   globals: { viewport: { value: "mobile2", isRotated: false } },
 };
 
-/** 狭い幅でカートに複数入っている状態。カートが一覧の下へ回る。 */
+/** PC でカートに複数入っている場合。一覧の幅が脇のカートのぶん狭まる。 */
+export const FilledCartPC: Story = {
+  args: { ...Default.args },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  parameters: {
+    cart: [
+      { line: WATCH, quantity: 3 },
+      { line: HUB, quantity: 2 },
+      { line: CABLE, quantity: 12 },
+    ],
+  },
+};
+
+/** タブレットでカートに複数入っている状態。header の入口から一覧へ被せて開く。 */
+export const FilledCartTablet: Story = {
+  ...FilledCartPC,
+  globals: { viewport: { value: "tablet", isRotated: false } },
+  parameters: { ...FilledCartPC.parameters, cartOpen: true },
+};
+
+/** スマホでカートに複数入っている状態。カートは一覧へ被せて開く。 */
 export const FilledCartMobile: Story = {
-  ...FilledCart,
+  ...FilledCartPC,
   globals: { viewport: { value: "mobile2", isRotated: false } },
+  parameters: { ...FilledCartPC.parameters, cartOpen: true },
 };

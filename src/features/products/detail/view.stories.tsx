@@ -56,10 +56,13 @@ const DEFAULT_CART: readonly CartSeed[] = [{ line: WATCH }];
  *
  * カートは `parameters.cart` で story ごとに差し替える。空のカートでは脇の領域が消えて本文が
  * 全幅になるため、器の見え方そのものが変わる。
+ *
+ * 開いた状態は `parameters.cartOpen` で明示する。種まきは初期状態の再現であって追加操作ではないため、
+ * 追加が立てた要求はここで畳む。脇に常設できる幅ではこの値を見ないので、効くのはタブレットとスマホだけ。
  */
 function withPageFrame(
   Story: () => React.ReactElement,
-  context: { parameters: { cart?: readonly CartSeed[] } },
+  context: { parameters: { cart?: readonly CartSeed[]; cartOpen?: boolean } },
 ) {
   useCartStore.setState({ lines: [] });
 
@@ -70,6 +73,8 @@ function withPageFrame(
       useCartStore.getState().setQuantity(seed.line.productId, seed.quantity);
     }
   }
+
+  useCartStore.setState({ isOpen: context.parameters.cartOpen === true });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -180,18 +185,6 @@ export const EmptyCart: Story = {
   parameters: { cart: [] },
 };
 
-/** カートに複数入っている場合。明細が縦に伸び、小計と操作だけが残って明細が送られる。 */
-export const FilledCart: Story = {
-  args: { imageUrls: IMAGE_URLS, product: product() },
-  parameters: {
-    cart: [
-      { line: WATCH, quantity: 3 },
-      { line: HUB, quantity: 2 },
-      { line: CABLE, quantity: 12 },
-    ],
-  },
-};
-
 /** 表示中の商品がすでにカートへ入っている場合。在庫ぶん入ると追加操作が押せなくなる。 */
 export const AlreadyInCart: Story = {
   args: { imageUrls: IMAGE_URLS, product: product({ id: WATCH.productId, quantity: 4 }) },
@@ -199,10 +192,11 @@ export const AlreadyInCart: Story = {
 };
 
 /**
- * 契約の上限いっぱいの値。商品名 255 文字、上限の宣言が無い説明・分類・状態にも長い値を入れ、
+ * PC で契約の上限いっぱいの値。商品名 255 文字、上限の宣言が無い説明・分類・状態にも長い値を入れ、
  * 見出しの折り返し・バッジの並び・カート明細の器が耐えるかを見る。
  */
-export const MaxLength: Story = {
+export const MaxLengthPC: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
     imageUrls: IMAGE_URLS,
     product: product({
@@ -222,16 +216,46 @@ export const MaxLength: Story = {
 };
 
 /**
- * 狭い幅での最大長。2 カラムが縦積みになり、カートは本文の下へ回る。見出しの折り返しが
- * 何行になるか、carousel の送りとサムネイルが幅に収まるかを見る。
+ * タブレットでの最大長。2 カラムが縦積みになり、カートは脇から drawer へ移る。横幅に対して
+ * 長い値がどこまで伸びるかを見る。
+ */
+export const MaxLengthTablet: Story = {
+  ...MaxLengthPC,
+  globals: { viewport: { value: "tablet", isRotated: false } },
+};
+
+/**
+ * スマホでの最大長。見出しの折り返しが何行になるか、carousel の送りとサムネイルが幅に収まるか、
+ * 下部に固定した追加操作が本文を隠さないかを見る。
  */
 export const MaxLengthMobile: Story = {
-  ...MaxLength,
+  ...MaxLengthPC,
   globals: { viewport: { value: "mobile2", isRotated: false } },
 };
 
-/** 狭い幅でカートに複数入っている状態。明細が本文の下へ積まれ、局所スクロールが要らなくなる。 */
+/** PC でカートに複数入っている場合。脇に常設され、小計と操作だけが残って明細が送られる。 */
+export const FilledCartPC: Story = {
+  args: { imageUrls: IMAGE_URLS, product: product() },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  parameters: {
+    cart: [
+      { line: WATCH, quantity: 3 },
+      { line: HUB, quantity: 2 },
+      { line: CABLE, quantity: 12 },
+    ],
+  },
+};
+
+/** タブレットでカートに複数入っている状態。header の入口から本文へ被せて開く。 */
+export const FilledCartTablet: Story = {
+  ...FilledCartPC,
+  globals: { viewport: { value: "tablet", isRotated: false } },
+  parameters: { ...FilledCartPC.parameters, cartOpen: true },
+};
+
+/** スマホでカートに複数入っている状態。追加操作が下部に固定され、カートは本文へ被せて開く。 */
 export const FilledCartMobile: Story = {
-  ...FilledCart,
+  ...FilledCartPC,
   globals: { viewport: { value: "mobile2", isRotated: false } },
+  parameters: { ...FilledCartPC.parameters, cartOpen: true },
 };
