@@ -82,6 +82,10 @@ describe("resolveFilePath", () => {
   it("配信ディレクトリ自身を指す URL を拒む", () => {
     expect(resolveFilePath("/srv", "/")).toBeNull();
   });
+
+  it("URL を持たない要求を拒む", () => {
+    expect(resolveFilePath("/srv", undefined)).toBeNull();
+  });
 });
 
 describe("createStaticServer", () => {

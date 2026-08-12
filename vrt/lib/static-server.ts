@@ -32,14 +32,16 @@ export function contentType(file: string): string {
 }
 
 /**
- * URL を配信ディレクトリ内の絶対パスへ解決する。範囲外を指す URL は null を返す。
+ * URL を配信ディレクトリ内の絶対パスへ解決する。範囲外を指す URL と、URL を持たない要求は
+ * null を返す。
  *
  * @remarks
  * 上位ディレクトリの指定は URL の正規化が畳むため、`..` はここへ届く時点で配信ディレクトリ内へ
  * 収まっています。それでも解決結果が配信ディレクトリの下にあることを確かめるのは、この関数が
  * 受け取る文字列の出所を URL の解析結果だけに縛らないためです。
  */
-export function resolveFilePath(root: string, url: string): string | null {
+export function resolveFilePath(root: string, url: string | undefined): string | null {
+  if (url === undefined) return null;
   const pathname = decodeURIComponent(new URL(url, "http://localhost").pathname);
   const resolved = path.resolve(root, `.${pathname}`);
   const prefix = `${path.resolve(root)}${path.sep}`;
@@ -51,7 +53,7 @@ export function resolveFilePath(root: string, url: string): string | null {
 /** 配信ディレクトリを根として静的ファイルを返すサーバを作る。 */
 export function createStaticServer(root: string): Server {
   return createServer((request, response) => {
-    const file = resolveFilePath(root, request.url ?? "/");
+    const file = resolveFilePath(root, request.url);
     if (file === null || !isFile(file)) {
       response.writeHead(NOT_FOUND).end();
 

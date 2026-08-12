@@ -104,11 +104,60 @@ describe("collectFailures", () => {
     expect(collectFailures(json)[0].title).toBe("a--x");
   });
 
+  it("テーマを読めなければ空にして報告を続ける", () => {
+    const json = reportOf([
+      { title: "A", tests: [{ ...(test({ id: "a--x" }) as object), projectName: 42 }] },
+    ]);
+
+    expect(collectFailures(json)[0].theme).toBe("");
+  });
+
   // ----- 異常系 -----
   it("story の注記を持たないテストを対象にしない", () => {
     const json = reportOf([{ title: "A", tests: [test({})] }]);
 
     expect(collectFailures(json)).toEqual([]);
+  });
+
+  it("注記の説明が文字列でないテストを対象にしない", () => {
+    const json = reportOf([
+      {
+        title: "A",
+        tests: [{ status: "unexpected", annotations: [{ type: "story", description: 42 }] }],
+      },
+    ]);
+
+    expect(collectFailures(json)).toEqual([]);
+  });
+
+  it("配列でない tests / annotations / results を空として扱う", () => {
+    const json = reportOf([
+      { title: "A", tests: "壊れている" },
+      {
+        title: "B",
+        tests: [{ status: "unexpected", annotations: [{ type: "story", description: "b--x" }] }],
+      },
+    ]);
+
+    expect(collectFailures(json)).toEqual([
+      { id: "b--x", title: "B", theme: "", diffPixels: null },
+    ]);
+  });
+
+  it("文字列でないエラー本文から画素数を読み取らない", () => {
+    const json = reportOf([
+      {
+        title: "A",
+        tests: [
+          {
+            ...(test({ id: "a--x" }) as object),
+            results: [{ errors: [{ message: 42 }, { message: "差分の記述なし" }] }],
+          },
+        ],
+      },
+    ]);
+
+    expect(collectFailures(json)[0].diffPixels).toBeNull();
   });
 
   it("suites を持たないレポートを落とす", () => {
