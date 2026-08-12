@@ -72,6 +72,15 @@ export const ENTRY_POINTS = [
     pattern: "src/instrumentation*",
     dependencies: ["config", "logging", "observability"],
   },
+  {
+    // 画面の合成を見せる story。合成は `app` 層の管轄だが、`app` に story は置けない
+    // ([0027](docs/adr/0027-directory-structure.md) の route segment は薄い層)。そのため
+    // feature 配下の story にだけ、`app` と同じく feature を跨いで組む権限を与える。
+    // 対象は story ファイルのみで、実装は `features` の層として検査されたままになる。
+    category: "feature-story",
+    pattern: "src/features/**/*.stories.tsx",
+    dependencies: ["features", "components", "model", "stores", "capabilities", "errors"],
+  },
 ] as const satisfies readonly {
   category: string;
   pattern: string;
