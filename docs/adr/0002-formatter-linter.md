@@ -90,6 +90,10 @@ Biome は `next` / `react` の lint ドメインルールを内蔵しており�
 
 - **層境界の import 検査**（eslint-plugin-boundaries 等）。biome の `noRestrictedImports` + `overrides` では「import する側の層」を文脈に取る検査を表現できないため、現時点で biome 非対応の代表例である（`noImportCycles` が検出するのは循環のみで、層の依存方向違反は検出できない）
 - 具体プラグインの選定と層定義マッピングは、フロント内責務分離の ADR（[0021](0021-frontend-responsibility.md) = BACKLOG A3）の Enforcement 節で定める（プラグインは `eslint-plugin-boundaries`、層定義は同 ADR の依存マトリクス）
+- **React のレンダリング規律の検査**（`eslint-plugin-react-hooks`）。React Compiler が持つ診断をルールとして提供するもので、**effect の中で state を導出する形・描画中の副作用・描画中に構築した JSX を try/catch で囲む形**などを検出する。biome の `react` ドメインが持つのは依存の網羅（`useExhaustiveDependencies`）と hook 呼び出し位置（`useHookAtTopLevel`）の 2 つだけで、上記はいずれも表現できない
+  - **重複するルールは biome 側に残す**。このプラグインの `exhaustive-effect-dependencies` は biome の `useExhaustiveDependencies` と同じ検査であり、有効化しない。同じ検査を 2 つ持つと、片方だけ設定が変わったときにどちらが正か決まらない
+  - **preset は当てず、ルール単位で有効化する**（「ESLint 利用の条件」2 に従う）
+  - 既存コードで満たせない箇所は、**理由を添えた行単位の抑止**に留め、書き換えは別 PR に分ける。lint の導入とコンポーネントの再設計を同じ PR に混ぜると、どちらが原因の回帰か切り分けられない
 
 ### ESLint 利用の条件
 

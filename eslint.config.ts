@@ -3,6 +3,7 @@
 //
 // 依存マトリクスは architecture.ts が正であり、ここは宣言を写さず import して強制へ変換する。
 import boundaries from "eslint-plugin-boundaries";
+import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 import { DEPENDENCIES, ENTRY_POINTS, KERNELS, RESTRICTED_AREAS } from "./architecture";
@@ -36,6 +37,7 @@ export default [
     plugins: {
       "@typescript-eslint": tseslint.plugin,
       boundaries,
+      "react-hooks": reactHooks,
       "project-rules": {
         rules: {
           "no-anonymous-default-export": noAnonymousDefaultExport,
@@ -55,6 +57,30 @@ export default [
       "boundaries/elements": elements,
     },
     rules: {
+      // React Compiler 由来の診断。biome が表現できるのは依存の網羅（`useExhaustiveDependencies`）と
+      // hook 呼び出し位置（`useHookAtTopLevel`）の 2 つだけで、effect で state を導出する形や描画中の
+      // 副作用はそこに無い（[0002](docs/adr/0002-formatter-linter.md) の能力分担）。
+      //
+      // preset は当てず個別に有効化する。`exhaustive-effect-dependencies` は biome と重複するため
+      // 入れない — 同じ検査を 2 つ持つと、片方だけ設定が変わったときにどちらが正か決まらない。
+      "react-hooks/capitalized-calls": "error",
+      "react-hooks/error-boundaries": "error",
+      "react-hooks/gating": "error",
+      "react-hooks/globals": "error",
+      "react-hooks/immutability": "error",
+      "react-hooks/incompatible-library": "error",
+      "react-hooks/memo-dependencies": "error",
+      "react-hooks/memoized-effect-dependencies": "error",
+      "react-hooks/no-deriving-state-in-effects": "error",
+      "react-hooks/preserve-manual-memoization": "error",
+      "react-hooks/purity": "error",
+      "react-hooks/refs": "error",
+      "react-hooks/set-state-in-effect": "error",
+      "react-hooks/set-state-in-render": "error",
+      "react-hooks/static-components": "error",
+      "react-hooks/unsupported-syntax": "error",
+      "react-hooks/use-memo": "error",
+      "react-hooks/void-use-memo": "error",
       "boundaries/dependencies": [
         "error",
         {
