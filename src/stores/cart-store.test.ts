@@ -15,7 +15,7 @@ const OTHER: CartLineInput = { ...PRODUCT, productId: "other", name: "浅煎り�
 
 describe("useCartStore", () => {
   beforeEach(() => {
-    useCartStore.setState({ lines: [] });
+    useCartStore.setState({ lines: [], isOpen: false });
   });
 
   // ----- 正常系 -----
@@ -49,6 +49,19 @@ describe("useCartStore", () => {
     useCartStore.getState().add(PRODUCT);
 
     expect(useCartStore.getState().lines.map((line) => line.quantity)).toEqual([2, 1]);
+  });
+
+  it("追加を受け付けたら中身を見たい状態にする", () => {
+    useCartStore.getState().add(PRODUCT);
+
+    expect(useCartStore.getState().isOpen).toBe(true);
+  });
+
+  it("中身を見たいかどうかを指定できる", () => {
+    useCartStore.getState().setOpen(true);
+    useCartStore.getState().setOpen(false);
+
+    expect(useCartStore.getState().isOpen).toBe(false);
   });
 
   it("数量を指定した値にする", () => {
@@ -98,6 +111,12 @@ describe("useCartStore", () => {
     useCartStore.getState().add({ ...PRODUCT, stockQuantity: 2 });
 
     expect(useCartStore.getState().lines[0]?.quantity).toBe(2);
+  });
+
+  it("在庫が無い商品の追加では中身を見たい状態にしない", () => {
+    useCartStore.getState().add({ ...PRODUCT, stockQuantity: 0 });
+
+    expect(useCartStore.getState().isOpen).toBe(false);
   });
 
   it("在庫が無い商品は追加しない", () => {

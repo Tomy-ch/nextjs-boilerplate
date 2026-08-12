@@ -16,8 +16,13 @@ import { useCartStore } from "@/stores/cart-store";
 import { CartContents } from "../contents/contents";
 import { CartCount } from "../count/count";
 
-/** 脇に常設できない幅。`md` の下限（Tailwind の既定）に合わせる。 */
-const NARROW = "(max-width: 767px)";
+/**
+ * 脇に常設できない幅。`lg` の下限（Tailwind の既定）に合わせる。
+ *
+ * タブレットもここに含めます。`md`（768px）で分けると 768〜1023px の実機が脇に常設する側へ入り、
+ * 本文が rail のぶんだけ潰れます。
+ */
+const NARROW = "(max-width: 1023px)";
 
 /**
  * header に置くカートの入口。
@@ -30,19 +35,24 @@ const NARROW = "(max-width: 767px)";
  * のどちらでも閉じます。**引き出す操作は押下だけ**で、画面端からの swipe は持ちません。端からの
  * swipe は browser の戻る操作と競合し、どちらが起きるかが端末ごとに変わります。
  *
+ * 開閉は store の要求に従います。商品をカートへ入れたときも開く必要があり、その操作は別の feature に
+ * あるためです。この部品の内側に開閉を持つと、追加しても何も起きない幅ができます。
+ *
  * 出し分けを CSS ではなく media query の購読で行うのは、drawer が focus trap を持つためです。
  * CSS で隠しても DOM は残るため、広い幅でも focus が閉じ込められます。
  */
 export function CartHeaderAction() {
   const isNarrow = useMediaQuery(NARROW);
   const lines = useCartStore((state) => state.lines);
+  const isOpen = useCartStore((state) => state.isOpen);
+  const setOpen = useCartStore((state) => state.setOpen);
 
   if (!isNarrow) {
     return <CartCount />;
   }
 
   return (
-    <Drawer direction="right">
+    <Drawer direction="right" onOpenChange={setOpen} open={isOpen}>
       <DrawerTrigger asChild>
         <Button aria-label="カートを開く" size="sm" type="button" variant="ghost">
           <CartCount />

@@ -25,9 +25,15 @@ function stubViewport(narrow: boolean) {
   }));
 }
 
+/** 初期状態を作る。追加が立てた「見たい」要求は種まきの副産物なので畳む。 */
+function seed(line: CartLineInput) {
+  useCartStore.getState().add(line);
+  useCartStore.setState({ isOpen: false });
+}
+
 describe("CartHeaderAction", () => {
   beforeEach(() => {
-    useCartStore.setState({ lines: [] });
+    useCartStore.setState({ lines: [], isOpen: false });
   });
 
   afterEach(() => {
@@ -37,7 +43,7 @@ describe("CartHeaderAction", () => {
   // ----- 正常系 -----
   it("広い幅では点数だけを出し、開く操作を持たない", () => {
     stubViewport(false);
-    useCartStore.getState().add(COFFEE);
+    seed(COFFEE);
     render(<CartHeaderAction />);
 
     expect(screen.getByText("カート")).toBeVisible();
@@ -46,7 +52,7 @@ describe("CartHeaderAction", () => {
 
   it("狭い幅では開く操作になる", () => {
     stubViewport(true);
-    useCartStore.getState().add(COFFEE);
+    seed(COFFEE);
     render(<CartHeaderAction />);
 
     expect(screen.getByRole("button", { name: "カートを開く" })).toBeVisible();
@@ -54,7 +60,7 @@ describe("CartHeaderAction", () => {
 
   it("狭い幅で押すとカートを被せて開く", async () => {
     stubViewport(true);
-    useCartStore.getState().add(COFFEE);
+    seed(COFFEE);
     render(<CartHeaderAction />);
 
     fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
@@ -65,7 +71,7 @@ describe("CartHeaderAction", () => {
 
   it("開いた状態で明細と小計を出す", async () => {
     stubViewport(true);
-    useCartStore.getState().add(COFFEE);
+    seed(COFFEE);
     render(<CartHeaderAction />);
 
     fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
@@ -76,13 +82,21 @@ describe("CartHeaderAction", () => {
 
   it("閉じる操作で閉じる", async () => {
     stubViewport(true);
-    useCartStore.getState().add(COFFEE);
+    seed(COFFEE);
     render(<CartHeaderAction />);
 
     fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
     fireEvent.click(await screen.findByRole("button", { name: "閉じる" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("中身を見たい要求が立っていれば最初から開く", async () => {
+    stubViewport(true);
+    useCartStore.getState().add(COFFEE);
+    render(<CartHeaderAction />);
+
+    expect(await screen.findByRole("dialog", { name: "カート" })).toBeVisible();
   });
 
   it("カートが空のときは入っていないことを伝える", async () => {

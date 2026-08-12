@@ -22,7 +22,8 @@ export type AddToCartButtonProps = {
  * 在庫ぶんすべてカートに入っている場合は押せなくします。押しても何も起きない操作を残すと、
  * 反応が無いのか上限なのかが利用者から区別できません。在庫が無い商品もこの判定に含まれます。
  *
- * 押した結果はカートの表示が変わることで伝わります。この操作のためだけの通知は出しません。
+ * 押した結果はカートが開くことで伝わります。この操作のためだけの通知は出しません。開くのは store の
+ * 責務で、この部品は追加を頼むだけです（脇に常設できる幅では既に見えているため何も動きません）。
  */
 export function AddToCartButton({ line }: AddToCartButtonProps) {
   const add = useCartStore((state) => state.add);
@@ -33,7 +34,7 @@ export function AddToCartButton({ line }: AddToCartButtonProps) {
 
   return (
     <Button
-      className="w-full sm:w-auto"
+      className="w-full lg:w-auto"
       disabled={quantityInCart >= line.stockQuantity}
       onClick={addLine}
       size="lg"

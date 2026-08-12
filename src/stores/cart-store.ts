@@ -35,11 +35,22 @@ export type CartLineInput = Omit<CartLine, "quantity">;
 export type CartStore = {
   lines: readonly CartLine[];
   /**
+   * 中身を見たいという要求。
+   *
+   * 要求が表示に出るかは器が決める。脇に常設できる幅では中身が常に見えているため、この値を見ません。
+   */
+  isOpen: boolean;
+  /**
    * 1 つ追加する。同じ商品が既にあれば行を増やさず数量を上げる。
    *
    * 在庫数に達している行は増えない。在庫が無い商品は追加しない。
+   *
+   * 受け付けた場合は `isOpen` を立てる。入れた結果を見せるところまでが追加の一部であり、呼び出し側に
+   * 委ねると経路の数だけ忘れる余地ができる。
    */
   add: (line: CartLineInput) => void;
+  /** 中身を見たいかどうかを指定する。 */
+  setOpen: (isOpen: boolean) => void;
   /** 数量を指定する。在庫数で頭を打ち、0 以下を指定した場合は行を取り除く。 */
   setQuantity: (productId: string, quantity: number) => void;
   /** 行を取り除く。 */
@@ -60,6 +71,7 @@ export type CartStore = {
  */
 export const useCartStore = create<CartStore>((set) => ({
   lines: [],
+  isOpen: false,
 
   add: (line) =>
     set((state) => {
@@ -70,6 +82,7 @@ export const useCartStore = create<CartStore>((set) => ({
       const found = state.lines.some((existing) => existing.productId === line.productId);
 
       return {
+        isOpen: true,
         lines: found
           ? state.lines.map((existing) =>
               existing.productId === line.productId
@@ -81,6 +94,8 @@ export const useCartStore = create<CartStore>((set) => ({
           : [...state.lines, { ...line, quantity: 1 }],
       };
     }),
+
+  setOpen: (isOpen) => set({ isOpen }),
 
   setQuantity: (productId, quantity) =>
     set((state) => ({
