@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
@@ -11,6 +12,12 @@ import { type CartLine, useCartStore } from "@/stores/cart-store";
 
 import { cartSubtotal } from "../../total";
 import { CartQuantityStepper } from "../quantity-stepper/quantity-stepper";
+
+/** 購入手続きの入口。 */
+const CHECKOUT_PATH = "/checkout";
+
+/** カートページの入口。 */
+const CART_PATH = "/cart";
 
 function CartLineRow({ line }: { line: CartLine }) {
   const setQuantity = useCartStore((state) => state.setQuantity);
@@ -62,8 +69,12 @@ function CartLineRow({ line }: { line: CartLine }) {
  * 画像の代替テキストは空です。商品名を文字で隣に置いているため、画像に名前を持たせると同じ名前が
  * 二度読み上げられます。
  *
- * 小計と「カートに移動」は送りの外に置き、明細だけを局所スクロールさせます。高さを超えた明細を
+ * 小計と先へ進む導線は送りの外に置き、明細だけを局所スクロールさせます。高さを超えた明細を
  * 外側のスクロールに委ねると、器が固定されている場合に届かない行が出ます。
+ *
+ * 導線は 2 本あり、主が購入手続き、副がカートページです。この器は 280px 前後しかなく、明細が
+ * 増えると数量の変更も削除もここでは辛くなります。副の行き先はその全画面版で、**認証を要さない**
+ * ため、ログインの内側にある購入手続きへ進む前に中身を確かめ直せます。
  */
 export function CartContents() {
   const lines = useCartStore((state) => state.lines);
@@ -75,9 +86,14 @@ export function CartContents() {
         <strong className="text-lg">{`$${cartSubtotal(lines)}`}</strong>
       </p>
 
-      <Button className="w-full" size="sm" type="button" variant="outline">
-        カートに移動
-      </Button>
+      <div className="grid gap-2">
+        <Button asChild className="w-full" size="sm">
+          <Link href={CHECKOUT_PATH}>購入手続きへ</Link>
+        </Button>
+        <Button asChild className="w-full" size="sm" variant="outline">
+          <Link href={CART_PATH}>カートを見る</Link>
+        </Button>
+      </div>
 
       <ScrollArea aria-label="カートの明細" className="min-h-0 flex-1">
         <ul className="flex flex-col divide-y">
