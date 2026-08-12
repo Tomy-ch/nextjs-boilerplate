@@ -1,6 +1,6 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
-forbidden: [features]
+forbidden: [features] # 画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
 ---
 

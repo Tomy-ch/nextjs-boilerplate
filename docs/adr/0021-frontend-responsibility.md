@@ -68,6 +68,8 @@ feature 間の直接 import は**禁止**する。複数 feature から共有が
 
 feature を跨ぐ横断が必要になった時点で「どのカーネルへ昇格するか」を判断し、feature 間の横依存は作らない。
 
+**例外は画面まるごとの story(`src/features/**/*.stories.tsx`)だけ**とする。画面が実際に組み合わせている別 feature の部品を含まない story は、その画面の確認に使えない。story は実行時の依存を持たない確認専用の面であり、そこで合成しても製品コードの依存方向は変わらない。したがってこの 1 種のファイルには app 層と同じ合成の権限を与える(`architecture.ts` の `ENTRY_POINTS` の `feature-story` カテゴリが機械強制する)。**製品コード側の出口は上記 5 つのみで、story を経由して型や実装を渡すことは禁止**する。
+
 ## 命名規律
 
 カーネル・ディレクトリは **役割名のみ許可**する。名前だけから受入基準を推定できない名称は**禁止**する。
@@ -117,7 +119,7 @@ Server Action は **feature 内 `actions.ts`**(controller 相当)に置く。
 ## 禁止事項
 
 - ❌ 依存マトリクスにない import 方向(外向き依存 / `model` からの外部 import 等)
-- ❌ `features ↔ features` の直接 import(昇格ルールに従いカーネルへ上げる)
+- ❌ `features ↔ features` の直接 import(昇格ルールに従いカーネルへ上げる)。**画面まるごとの story のみ例外**(上記昇格ルール)
 - ❌ `server config` を `adapters/server`(+ 起動 / ビルド境界)以外の層から import すること(内側は値を引数で受け取る)。※ client config の NEXT_PUBLIC リテラルは client 側の層も import 可
 - ❌ 役割を名指ししない置き場(`common` / `shared` / `utils` / `lib` / `misc` 等)の作成
 - ❌ Server Action / `actions.ts` に業務ロジックを書くこと(編成のみ)
