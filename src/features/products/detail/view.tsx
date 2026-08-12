@@ -65,7 +65,7 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
     product.stockWarningThreshold !== null && product.quantity <= product.stockWarningThreshold;
 
   return (
-    <article className="flex flex-col gap-8">
+    <article className="flex flex-col gap-8 pb-24 lg:pb-0">
       <Button asChild className="self-start" size="sm" variant="ghost">
         <Link href="/products">
           <ArrowLeftIcon aria-hidden="true" className="size-4" />
@@ -124,8 +124,13 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
 
         <div className="flex flex-col items-start gap-6">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{product.category.name}</Badge>
-            <Badge variant="outline">{product.status.name}</Badge>
+            {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
+            <Badge className="whitespace-normal break-words" variant="secondary">
+              {product.category.name}
+            </Badge>
+            <Badge className="whitespace-normal break-words" variant="outline">
+              {product.status.name}
+            </Badge>
           </div>
 
           <h1 className="text-3xl font-semibold tracking-tight">{product.name}</h1>
@@ -155,16 +160,18 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
             </KeyValueItem>
           </KeyValueList>
 
-          <AddToCartButton
-            line={{
-              productId: product.id,
-              name: product.name,
-              price: product.price,
-              statusName: product.status.name,
-              imageUrl: imageUrls[0] ?? null,
-              stockQuantity: product.quantity,
-            }}
-          />
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background p-4 lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0">
+            <AddToCartButton
+              line={{
+                productId: product.id,
+                name: product.name,
+                price: product.price,
+                statusName: product.status.name,
+                imageUrl: imageUrls[0] ?? null,
+                stockQuantity: product.quantity,
+              }}
+            />
+          </div>
         </div>
       </div>
 
