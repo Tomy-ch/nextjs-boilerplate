@@ -61,7 +61,7 @@ copy of it.
 Take the scope from the argument, or ask with `AskUserQuestion`:
 
 - 「変更で触れたファイル」 — the caller passed a file list (see Chainability)
-- 「1 カーネル / 1 feature」 — e.g. `src/adapters/`, `src/features/products/`
+- 「1 カーネル / 1 feature」 — e.g. `src/adapters/`, `src/features/<name>/`
 - 「`scripts/` の 1 ツール」
 - 「パスを指定」
 

@@ -322,10 +322,10 @@ describe("RichTextEditor", () => {
 
       const input = screen.getByLabelText("リンク先");
 
-      fireEvent.change(input, { target: { value: "/products/1" } });
+      fireEvent.change(input, { target: { value: "/items/1" } });
       fireEvent.keyDown(input, { key: "Enter" });
 
-      expect(screen.getByRole("link", { name: "リンク" })).toHaveAttribute("href", "/products/1");
+      expect(screen.getByRole("link", { name: "リンク" })).toHaveAttribute("href", "/items/1");
     });
 
     it("Enter 以外のキーでは適用しない", () => {
@@ -461,7 +461,7 @@ describe("RichTextEditor", () => {
         [
           "<h2>見出し</h2>",
           '<p><strong>太字</strong><a href="https://example.com">リンク</a><br>改行</p>',
-          '<p><a href="mailto:info@example.com">メール</a><a href="/products/1">アプリ内</a></p>',
+          '<p><a href="mailto:info@example.com">メール</a><a href="/items/1">アプリ内</a></p>',
           "<ul><li>箇条書き</li></ul><blockquote><p>引用</p></blockquote><hr>",
         ].join(""),
       );

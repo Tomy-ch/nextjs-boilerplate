@@ -18,10 +18,10 @@ import { cn } from "@/components/cn";
  * @example
  * ```tsx
  * <Table>
- *   <TableCaption>直近の注文</TableCaption>
+ *   <TableCaption>直近の申請</TableCaption>
  *   <TableHeader>
  *     <TableRow>
- *       <TableHead scope="col">注文番号</TableHead>
+ *       <TableHead scope="col">申請番号</TableHead>
  *       <TableHead scope="col">金額</TableHead>
  *     </TableRow>
  *   </TableHeader>

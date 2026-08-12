@@ -47,6 +47,18 @@ async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> 
 
 describe("createHttpClient", () => {
   // ----- 正常系 -----
+  it("実装を渡さなければ呼び出し時の fetch を使う", async () => {
+    const globalFetch = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    vi.stubGlobal("fetch", globalFetch);
+
+    const client = createHttpClient({ baseUrl: "https://api.example.test", profile });
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(globalFetch).toHaveBeenCalledOnce();
+    vi.unstubAllGlobals();
+  });
+
   it("契約に沿う応答を検証して返す", async () => {
     const client = createClient(vi.fn(async () => jsonResponse(200, { ok: true })));
 
@@ -58,13 +70,13 @@ describe("createHttpClient", () => {
     const client = createClient(fetchImpl);
 
     await client.request({
-      path: "/v1/products",
+      path: "/v1/items",
       searchParams: { keyword: "本", categoryId: undefined },
       schema,
     });
 
     expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/v1/products?keyword=%E6%9C%AC",
+      "https://api.example.test/v1/items?keyword=%E6%9C%AC",
     );
   });
 
@@ -72,9 +84,9 @@ describe("createHttpClient", () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);
 
-    await client.request({ path: "/v1/products", schema, tags: ["products"] });
+    await client.request({ path: "/v1/items", schema, tags: ["items"] });
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: ["products"] } });
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: ["items"] } });
   });
 
   it("本文があれば JSON として送る", async () => {
@@ -82,14 +94,14 @@ describe("createHttpClient", () => {
     const client = createClient(fetchImpl);
 
     await client.request({
-      path: "/v1/products",
+      path: "/v1/items",
       method: "POST",
-      body: { name: "商品" },
+      body: { name: "名前" },
       schema,
     });
 
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
-      body: '{"name":"商品"}',
+      body: '{"name":"名前"}',
       headers: { "Content-Type": "application/json" },
     });
   });
@@ -162,7 +174,7 @@ describe("createHttpClient", () => {
   it("生の status を漏らさず分類で落とす", async () => {
     const client = createClient(vi.fn(async () => jsonResponse(404, {})));
 
-    expect(await kindOf(() => client.request({ path: "/v1/products/1", schema }))).toBe(
+    expect(await kindOf(() => client.request({ path: "/v1/items/1", schema }))).toBe(
       ErrorKind.NOT_FOUND,
     );
   });
@@ -171,7 +183,7 @@ describe("createHttpClient", () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(400, {}));
     const client = createClient(fetchImpl);
 
-    await kindOf(() => client.request({ path: "/v1/products", schema }));
+    await kindOf(() => client.request({ path: "/v1/items", schema }));
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });

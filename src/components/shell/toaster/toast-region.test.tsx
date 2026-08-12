@@ -48,6 +48,12 @@ describe("ToastRegion", () => {
     expect(screen.getByRole("region", { name: "通知" })).toHaveFocus();
   });
 
+  it("通知が無ければ項目を並べない", () => {
+    renderRegion([]);
+
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+
   // ----- 異常系 -----
   it("修飾キーが一致しない打鍵では焦点を移さない", () => {
     renderRegion();
@@ -55,11 +61,5 @@ describe("ToastRegion", () => {
     fireEvent.keyDown(window, { code: "KeyT", altKey: false });
 
     expect(screen.getByRole("region", { name: "通知" })).not.toHaveFocus();
-  });
-
-  it("通知が無ければ項目を並べない", () => {
-    renderRegion([]);
-
-    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
   });
 });

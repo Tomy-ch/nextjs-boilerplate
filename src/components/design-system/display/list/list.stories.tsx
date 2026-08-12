@@ -132,7 +132,7 @@ function QuantityRow({
  */
 export const WithInputs: Story = {
   render: () => (
-    <form action="/cart" className="w-96">
+    <form action="/submit" className="w-96">
       <List>
         <QuantityRow
           description="1 個あたり 1,200 円"
