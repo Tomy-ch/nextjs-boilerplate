@@ -14,25 +14,18 @@ export type ProductDetailPageContentProps = {
 };
 
 /**
- * 商品詳細の中身。取得と組み立てを行う。
+ * 商品を取得し、`not-found` だけを Next の境界へ渡す。
  *
  * @remarks
- * 取得を page ではなくここで行うのは、`adapters` を呼べるのが feature までであり、page は feature を
- * 薄く呼ぶだけの層だからです（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。画像 URL の
- * 解決も同じ理由でここに置きます。設定を読めるのは `adapters` までです。
+ * 分類ごとの分岐を持つと、画面が増えるたびに同じ分岐が写るため、`not-found` 以外はそのまま投げて
+ * `error.tsx` に委ねます（[0080](../../../../docs/adr/0080-error-handling.md)）。
  *
- * 分類のうち `not-found` だけを Next の境界へ渡し、残りはそのまま投げて `error.tsx` に委ねます。
- * 分類ごとの分岐を持つと、画面が増えるたびに同じ分岐が写ります
- * （[0080](../../../../docs/adr/0080-error-handling.md)）。
+ * try の範囲は取得だけです。**JSX の構築を try に入れても、描画中の例外はここでは捕まりません** —
+ * React が描画するのは戻り値を受け取った後だからです。捕まるように見える形にしないため分けています。
  */
-export async function ProductDetailPageContent({ id }: ProductDetailPageContentProps) {
+async function loadProduct(id: string) {
   try {
-    const product = await getProduct(id);
-    const imageUrls = product.imagePaths
-      .map((path) => resolveMediaUrl(path))
-      .filter((url): url is string => url !== null);
-
-    return <ProductDetail imageUrls={imageUrls} product={product} />;
+    return await getProduct(id);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.NOT_FOUND) {
       notFound();
@@ -40,4 +33,21 @@ export async function ProductDetailPageContent({ id }: ProductDetailPageContentP
 
     throw error;
   }
+}
+
+/**
+ * 商品詳細の中身。取得と組み立てを行う。
+ *
+ * @remarks
+ * 取得を page ではなくここで行うのは、`adapters` を呼べるのが feature までであり、page は feature を
+ * 薄く呼ぶだけの層だからです（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。画像 URL の
+ * 解決も同じ理由でここに置きます。設定を読めるのは `adapters` までです。
+ */
+export async function ProductDetailPageContent({ id }: ProductDetailPageContentProps) {
+  const product = await loadProduct(id);
+  const imageUrls = product.imagePaths
+    .map((path) => resolveMediaUrl(path))
+    .filter((url): url is string => url !== null);
+
+  return <ProductDetail imageUrls={imageUrls} product={product} />;
 }
