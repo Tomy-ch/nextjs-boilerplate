@@ -160,7 +160,7 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
             </KeyValueItem>
           </KeyValueList>
 
-          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background p-4 lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0">
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background px-4 pt-4 pb-[max(--spacing(4),env(safe-area-inset-bottom))] lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0">
             <AddToCartButton
               line={{
                 productId: product.id,
