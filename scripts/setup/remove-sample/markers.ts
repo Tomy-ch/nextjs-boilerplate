@@ -164,16 +164,12 @@ export function stripMarkers(content: string, marker: string): StripResult {
       cutJustBefore = true;
       continue;
     }
+    // ここに来る時点でブロックの外側なので、閉じだけが現れたことになる。深さの増減は上の
+    // ブロック内の分岐が担う。
     if (blockEnd.test(line)) {
-      if (depth === 0) {
-        throw new Error(`${marker}:end に対応する ${marker}:begin が見つかりません。`);
-      }
-      depth--;
-      removed++;
-      cutJustBefore = true;
-      continue;
+      throw new Error(`${marker}:end に対応する ${marker}:begin が見つかりません。`);
     }
-    if (depth > 0 || lineMarker.test(line)) {
+    if (lineMarker.test(line)) {
       removed++;
       cutJustBefore = true;
       continue;
