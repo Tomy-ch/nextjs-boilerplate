@@ -45,7 +45,10 @@ export function ProductCard({ product, imageUrl, leading = false }: ProductCardP
         <CardTitle>{product.name}</CardTitle>
       </CardHeader>
       <CardContent className="flex items-center gap-2">
-        <Badge variant="secondary">{product.category.name}</Badge>
+        {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
+        <Badge className="whitespace-normal break-words" variant="secondary">
+          {product.category.name}
+        </Badge>
         {product.quantity === 0 ? <Badge variant="destructive">在庫なし</Badge> : null}
       </CardContent>
       <CardFooter className="justify-between">

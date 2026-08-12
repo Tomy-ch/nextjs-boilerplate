@@ -30,7 +30,7 @@ function CartLineRow({ line }: { line: CartLine }) {
       />
       <div className="flex w-full items-start gap-2">
         <p className="line-clamp-2 font-medium text-sm">{line.name}</p>
-        <Badge className="shrink-0" variant="secondary">
+        <Badge className="whitespace-normal break-words" variant="secondary">
           {line.statusName}
         </Badge>
       </div>
