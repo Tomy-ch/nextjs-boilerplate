@@ -1,25 +1,21 @@
 name: Setup mise
 description: Install the pinned mise binary and the runtimes it manages, verifying the binary against a pinned digest
 
-# Replaces `jdx/mise-action`. Two things that action did not give us:
-#
-#   * a retry. A single 503 from the download host failed the whole job, and every
-#     job in the workflow set fetches mise on every push.
-#   * a cache that actually populates. Its restore reported a miss on every run with
-#     an unchanging key, so nothing was ever reused.
-#
-# The cache here holds an executable, and an Actions cache is not a trust boundary —
+# The cache holds an executable, and an Actions cache is not a trust boundary —
 # entries are shared across branches and can be written by anything with push
-# access. So the restored binary is verified against a digest pinned in this file
-# before it is ever executed, exactly as `uses:` is pinned to a SHA and container
-# images to a digest. A mismatch discards the cache and re-downloads; a mismatch
-# after that fails the job. The cache buys speed and availability, never trust.
+# access. The binary is therefore verified against the digest pinned below before it
+# is ever executed, as `uses:` is pinned to a SHA and container images to a digest.
+# A mismatch discards the cache and re-downloads; a mismatch after that fails.
 
 inputs:
   tools:
     required: false
     default: ""
-    description: Space-separated mise tool specifications to install (e.g. "core:node aqua:pnpm/pnpm"). Empty installs nothing.
+    description: >-
+      Space-separated mise tool specifications to install; empty installs nothing.
+      Versions come from mise.toml (ADR 0003), so only names appear here, and each
+      carries its backend prefix because every mise.toml key is backend-qualified —
+      a bare `node` does not match `core:node`.
   github-token:
     required: true
     description: Token used for the GitHub API rate limit while mise resolves tools

@@ -65,7 +65,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 ## mise の導入
 
-Node / pnpm などの供給は composite action [`../actions/setup-mise`](../actions/setup-mise/action.yaml) が行う。`jdx/mise-action` は使わない — **リトライを持たず、キャッシュが一度も効かなかった**ため、push のたびに全ジョブが素で mise を取りに行き、配信側の 503 がそのままジョブの失敗になっていた。
+Node / pnpm などの供給は composite action [`../actions/setup-mise`](../actions/setup-mise/action.yaml) が行う。全ジョブが mise を必要とするため、**取得は必ずリトライを持ち、一度取ったものは再利用できなければならない** — 配信側の一時的な不調が、そのまま全ジョブの失敗になる位置にある。
 
 この action が持つもの:
 

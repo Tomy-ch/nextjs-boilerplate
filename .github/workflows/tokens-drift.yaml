@@ -29,10 +29,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # mise.toml is the single source of truth for the tool versions (ADR
-      # 0003), so only the names appear here. They carry their backend prefix
-      # because every mise.toml entry is backend-qualified — a bare `node` would
-      # not match the `core:node` key.
       - name: Setup mise and the pinned tools
         uses: ./.github/actions/setup-mise
         with:
