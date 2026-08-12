@@ -9,9 +9,9 @@
 
 | | |
 | --- | --- |
-| [mise](https://mise.jdx.dev) | ツール / ランタイムの版管理。**シェルで activate しておくこと**（[0003](adr/0003-version-manager.md)） |
+| [mise](https://mise.jdx.dev) | ツール / ランタイムの版管理。**シェルで activate しておくこと**（[0003](../adr/0003-version-manager.md)） |
 | GitHub CLI (`gh`) | リポジトリ運用の make ターゲットが使う。`gh auth login` 済みであること |
-| Docker | 手順 6 でのみ使う。基準画像は digest 固定したコンテナの中でしか撮らない（[`vrt/README.md`](../vrt/README.md)） |
+| Docker | 手順 6 でのみ使う。基準画像は digest 固定したコンテナの中でしか撮らない（[`vrt/README.md`](../../vrt/README.md)） |
 
 ## 1. 手元を用意する
 
@@ -32,16 +32,16 @@ make setup-repo
 
 **破壊的**。既存タグをローカルと `origin` の両方から全削除し、`v0.0.0` を打ち直す。
 `develop` / `staging` / `production` を作り、デフォルトブランチ・ルールセット・ラベルを設定する。
-中身は [`.makefiles/README.md`](../.makefiles/README.md) を参照。
+中身は [`.makefiles/README.md`](../../.makefiles/README.md) を参照。
 
 ## 3. GitHub の画面で設定する（人手）
 
 `gh` では代行できないものだけ。
 
 1. **Actions を有効にする** — fork 直後は無効になっていることがある
-2. **GitHub Pages のソースを GitHub Actions にする** — ドキュメントサイトの配信先（[0141](adr/0141-portal-operations.md)）
+2. **GitHub Pages のソースを GitHub Actions にする** — ドキュメントサイトの配信先（[0141](../adr/0141-portal-operations.md)）
 3. **必須チェックを確認する** — `make setup-repo` が適用したルールセットの `required_status_checks` が、
-   1 度 CI を回した後に実際の context 名と一致しているか見る（[`.github/workflows/README.md`](../.github/workflows/README.md)）
+   1 度 CI を回した後に実際の context 名と一致しているか見る（[`.github/workflows/README.md`](../../.github/workflows/README.md)）
 
 ## 4. 名前を置き換える
 
@@ -153,7 +153,7 @@ after=<撮影したコミット>
 count=<動いた枚数>
 ```
 
-以降の運用（撮り直し・承認・掃除）は [`vrt/README.md`](../vrt/README.md) が正。
+以降の運用（撮り直し・承認・掃除）は [`vrt/README.md`](../../vrt/README.md) が正。
 
 ## 7. 自分の契約を入れる
 
@@ -171,5 +171,5 @@ pnpm lint:ci && pnpm typecheck && pnpm build && pnpm test
 ```
 
 CI 側は PR を 1 本立てれば全ジョブが回る。落ちたジョブの引き先は
-[`.github/workflows/README.md`](../.github/workflows/README.md)、詰まったときは
-[`.claude/skills/repo-ops`](../.claude/skills/repo-ops/SKILL.ja.md)。
+[`.github/workflows/README.md`](../../.github/workflows/README.md)、詰まったときは
+[`.claude/skills/repo-ops`](../../.claude/skills/repo-ops/SKILL.ja.md)。
