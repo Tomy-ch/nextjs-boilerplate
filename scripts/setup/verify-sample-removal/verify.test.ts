@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   buildDanglingCommand,
   collectFailures,
-  DANGLING_PATTERN,
   findDanglingReferences,
   findLeftoverMakeTarget,
   findUnregisteredDeletions,
@@ -17,30 +16,46 @@ const NOTHING_EXISTS = () => false;
 
 describe("buildDanglingCommand", () => {
   // ----- 正常系 -----
-  it("検出条件を含む grep を組む", () => {
-    expect(buildDanglingCommand()).toContain(DANGLING_PATTERN);
+  it("渡された語彙を検出条件に使う", () => {
+    expect(buildDanglingCommand("商品|カート")).toContain("商品|カート");
   });
 
   it("ヒットが無くても落ちないようにする", () => {
-    expect(buildDanglingCommand()).toContain("|| true");
+    expect(buildDanglingCommand("商品")).toContain("|| true");
   });
 });
 
 describe("parseSnapshot", () => {
   // ----- 正常系 -----
-  it("登録パスを取り出す", () => {
-    expect(parseSnapshot('{"registeredPaths":["src/features/products"]}')).toEqual([
-      "src/features/products",
-    ]);
+  it("登録パスと語彙を取り出す", () => {
+    expect(
+      parseSnapshot('{"registeredPaths":["src/features/products"],"danglingPattern":"商品"}'),
+    ).toEqual({ registeredPaths: ["src/features/products"], danglingPattern: "商品" });
   });
 
   // ----- 異常系 -----
   it("登録パスが空なら落とす", () => {
-    expect(() => parseSnapshot('{"registeredPaths":[]}')).toThrow("registeredPaths が空です");
+    expect(() => parseSnapshot('{"registeredPaths":[],"danglingPattern":"商品"}')).toThrow(
+      "registeredPaths が空です",
+    );
   });
 
   it("登録パスが配列でなければ落とす", () => {
-    expect(() => parseSnapshot('{"registeredPaths":"src"}')).toThrow("registeredPaths が空です");
+    expect(() => parseSnapshot('{"registeredPaths":"src","danglingPattern":"商品"}')).toThrow(
+      "registeredPaths が空です",
+    );
+  });
+
+  it("語彙が空なら落とす", () => {
+    expect(() => parseSnapshot('{"registeredPaths":["src"],"danglingPattern":""}')).toThrow(
+      "danglingPattern が空です",
+    );
+  });
+
+  it("語彙が文字列でなければ落とす", () => {
+    expect(() => parseSnapshot('{"registeredPaths":["src"],"danglingPattern":1}')).toThrow(
+      "danglingPattern が空です",
+    );
   });
 
   it("JSON として読めなければ落とす", () => {

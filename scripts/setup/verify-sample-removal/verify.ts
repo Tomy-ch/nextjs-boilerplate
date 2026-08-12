@@ -3,24 +3,20 @@
 //
 // このモジュールは検証成功後、入口と一緒に消える（理由は selfDestructTargets）。
 
-/**
- * 残留サンプル参照の検出条件。
- *
- * @remarks
- * 題材の語彙が実装に残っていないかを見ます。生成物とテストは除外しません — 破棄で両方消えるのが
- * 正しく、残っていれば消し漏れです。
- *
- * 英語の語には**語境界を付けます**。付けないと別語の一部に当たります（`recharts-cartesian` や
- * `CartesianGrid` が `cart` に一致し、題材と無関係な部品が消し残しとして報告されます）。
- */
-export const DANGLING_PATTERN = "商品|カート|在庫|購入|注文|\\bproducts\\b|\\bcart\\b";
-
 /** サンプル破棄を起動する make ターゲット。`.mk` のマーカー除去で消えるべきもの。 */
 const SAMPLE_MAKE_TARGET = "setup-remove-sample";
 
-/** 残留サンプル参照を洗い出す shell コマンド。ヒット無しでも非 0 で落ちないようにする。 */
-export function buildDanglingCommand(): string {
-  return `grep -rniE '${DANGLING_PATTERN}' src/ mocks/ --include='*.ts' --include='*.tsx' || true`;
+/**
+ * 残留サンプル参照を洗い出す shell コマンド。ヒット無しでも非 0 で落ちないようにする。
+ *
+ * @remarks
+ * 語彙は破棄する対象と同じ表から出す必要があるため、宣言は manifest が持ちます。**検証は削除の
+ * 後に走り、その時点で manifest は消えている**ので、スナップショット経由で受け取ります。
+ *
+ * @param danglingPattern - manifest が宣言した題材の語彙
+ */
+export function buildDanglingCommand(danglingPattern: string): string {
+  return `grep -rniE '${danglingPattern}' src/ mocks/ --include='*.ts' --include='*.tsx' || true`;
 }
 
 /**
@@ -28,15 +24,24 @@ export function buildDanglingCommand(): string {
  *
  * @throws JSON として読めない、または `registeredPaths` が配列でない・空の場合。
  */
-export function parseSnapshot(json: string): string[] {
-  const parsed: unknown = JSON.parse(json);
-  const registeredPaths = (parsed as { registeredPaths?: unknown }).registeredPaths;
+export function parseSnapshot(json: string): {
+  registeredPaths: string[];
+  danglingPattern: string;
+} {
+  const parsed = JSON.parse(json) as { registeredPaths?: unknown; danglingPattern?: unknown };
 
-  if (!Array.isArray(registeredPaths) || registeredPaths.length === 0) {
+  if (!Array.isArray(parsed.registeredPaths) || parsed.registeredPaths.length === 0) {
     throw new Error("スナップショットの registeredPaths が空です");
   }
 
-  return registeredPaths as string[];
+  if (typeof parsed.danglingPattern !== "string" || parsed.danglingPattern === "") {
+    throw new Error("スナップショットの danglingPattern が空です");
+  }
+
+  return {
+    registeredPaths: parsed.registeredPaths as string[],
+    danglingPattern: parsed.danglingPattern,
+  };
 }
 
 /** `git status --porcelain` の出力から削除エントリの相対パスを取り出す。 */
