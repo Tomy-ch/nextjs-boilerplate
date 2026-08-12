@@ -20,3 +20,5 @@ connectivity、media query、storage、clipboard など、複数 feature が使�
 
 - client-only の実装では `"use client"` を最小の境界に置く
 - 単一 feature 専用 hook は feature 内に置く
+- **サーバに値が無い能力は、サーバ側の初期値を hook の doc に明記する**。初期値と実際の環境がずれる
+  ぶんだけ hydration で表示が動くため、位置が動く出し分けには使わせない（CSS 側で表現する）

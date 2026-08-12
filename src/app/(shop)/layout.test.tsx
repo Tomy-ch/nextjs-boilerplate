@@ -1,10 +1,20 @@
 // @vitest-environment jsdom
 
 import { render, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
 import ShopLayout from "./layout";
+
+/** jsdom は `matchMedia` を持たない。この layout の検証は脇に常設できる幅を前提にする。 */
+function stubWideViewport() {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+}
 
 const COFFEE: CartLineInput = {
   productId: "0195f0c2-0000-7000-8000-000000000001",
@@ -17,7 +27,12 @@ const COFFEE: CartLineInput = {
 
 describe("ShopLayout", () => {
   beforeEach(() => {
+    stubWideViewport();
     useCartStore.setState({ lines: [] });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   // ----- 正常系 -----
