@@ -41,6 +41,10 @@ const NARROW = mediaBelow("lg");
  *
  * 出し分けを CSS ではなく media query の購読で行うのは、drawer が focus trap を持つためです。
  * CSS で隠しても DOM は残るため、広い幅でも focus が閉じ込められます。
+ *
+ * **その代わり、初回描画は常に常設側の姿です。** 押せるようになるのは hydration が終わってからで、
+ * この入れ替えは許容しています。押せる状態に見せるには出し分けを CSS へ移す必要があり、そうすると
+ * 点数が 2 か所に出て、幅ごとの姿を存在の有無で検証できなくなります。
  */
 export function CartHeaderAction() {
   const isNarrow = useMediaQuery(NARROW);
