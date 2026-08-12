@@ -46,6 +46,29 @@
       "parameters": {
         "severity": "errors"
       }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "actions-lint" },
+          { "context": "actions-pin" },
+          { "context": "build" },
+          { "context": "gen-drift" },
+          { "context": "images-pin" },
+          { "context": "lint" },
+          { "context": "lockfile-drift" },
+          { "context": "md-lint" },
+          { "context": "scripts-check" },
+          { "context": "smoke" },
+          { "context": "test" },
+          { "context": "tokens-drift" },
+          { "context": "typecheck" },
+          { "context": "vrt" }
+        ]
+      }
     }
   ],
   "bypass_actors": []

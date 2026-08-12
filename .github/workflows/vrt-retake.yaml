@@ -1,0 +1,192 @@
+name: VRT Retake
+
+# Retakes the baseline images for the stories the last VRT run reported, and pushes
+# them to the pull request branch. The push re-runs VRT, which then passes.
+#
+# This is NOT where the visual change is approved. The label only develops the
+# change into something reviewable: the baselines land as a commit, so the pixels
+# become a normal image diff in "Files changed". Approval happens there, and the
+# branch ruleset (`require_last_push_approval`) forces a human to approve after the
+# bot's push. Naming the label "approve" would put the word where the judgement is
+# not.
+#
+# The scope is read from the `vrt-report` artifact of that run, not recomputed here.
+# Bounding the retake to what was already reported means a story that never appeared
+# in the PR comment cannot enter the baselines through this path.
+#
+# The label is removed once handled, so a later change re-arms it.
+#
+# Fork pull requests cannot be served: `pull_request` grants a read-only token for
+# them and the head branch lives in another repository. Those contributors run
+# `make vrt-update` locally instead.
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  retake:
+    if: github.event.label.name == 'vrt-retake'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Refuse fork pull requests
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          # A fork pull request gets a read-only token whatever `permissions:` asks
+          # for, so the comment is best effort — the failed job is the real signal.
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
+            '❌ fork からの PR には基準画像を push できません。手元で make vrt-update を実行してコミットしてください。' || true
+          exit 1
+
+      # The check that must go green runs against `refs/pull/N/merge` — the branch
+      # merged into its base. Retaking on a head that is behind base would capture a
+      # different tree than the one being judged, so the label would never clear.
+      # Refusing is the honest move: the person merges base in and labels again.
+      - name: Refuse a branch that is behind its base
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          behind="$(gh api "repos/$GITHUB_REPOSITORY/compare/$BASE...$HEAD_SHA" --jq .behind_by)"
+          if [ "$behind" != "0" ]; then
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
+              "❌ base より ${behind} コミット遅れています。判定される木と撮る木が食い違うため、${BASE} を取り込んでからラベルを付け直してください。"
+            exit 1
+          fi
+
+      - name: Checkout the pull request branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          # The updated baselines are pushed back to this branch, so the credentials
+          # have to survive checkout. Every other workflow here keeps them off.
+          persist-credentials: true
+
+      # Nothing may be retaken without the set VRT reported for this exact commit.
+      # The three ways that set can be unavailable are told apart on purpose: a
+      # message that names the wrong cause sends the reader to the wrong fix, and
+      # "still running" is by far the most likely of the three.
+      - name: Download the reported failures
+        id: report
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          runs="$(gh run list --workflow vrt.yaml --repo "$GITHUB_REPOSITORY" \
+            --json databaseId,headSha,status --limit 100 \
+            --jq "[.[] | select(.headSha == \"$HEAD_SHA\")]")"
+
+          if [ "$(jq 'length' <<<"$runs")" -eq 0 ]; then
+            echo "reason=この commit で VRT がまだ実行されていません。実行の完了を待ってからラベルを付け直してください。" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          run_id="$(jq -r '[.[] | select(.status == "completed")][0].databaseId // empty' <<<"$runs")"
+          if [ -z "$run_id" ]; then
+            echo "reason=この commit の VRT がまだ完了していません。完了を待ってからラベルを付け直してください。" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name vrt-report --dir tmp/vrt || {
+            echo "reason=完了した VRT に差分の報告がありません。緑だったか、artifact の保持期限が切れています。" >> "$GITHUB_OUTPUT"
+            exit 1
+          }
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Retake the reported baselines
+        id: retake
+        shell: bash
+        run: |
+          ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json)"
+          if [ -z "$ids" ]; then
+            echo '❌ 報告に差分がありません。撮り直す対象がありません。'
+            exit 1
+          fi
+          echo "ids=${ids}" >> "$GITHUB_OUTPUT"
+
+          make vrt-update VRT_ONLY="$ids"
+
+      - name: Commit and push the retaken baselines
+        id: push
+        env:
+          IDS: ${{ steps.retake.outputs.ids }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vrt/__screenshots__
+
+          if git diff --cached --quiet; then
+            echo '❌ 撮り直した画像が既存と同じです。基準画像は更新していません。'
+            exit 1
+          fi
+
+          count="$(git diff --cached --name-only | wc -l | tr -d ' ')"
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+          git commit -m "Test: 報告された差分の基準画像を撮り直す" -m "撮り直し: vrt-retake ラベル / 対象: ${IDS}"
+          git push
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Report the retaken baselines
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          IDS: ${{ steps.retake.outputs.ids }}
+          COUNT: ${{ steps.push.outputs.count }}
+          SHA: ${{ steps.push.outputs.sha }}
+          REASON: ${{ steps.report.outputs.reason }}
+        run: |
+          {
+            if [ -n "$SHA" ]; then
+              echo "🎞️ 基準画像を ${COUNT} 枚撮り直しました (${SHA})。"
+              echo
+              echo "対象の story: ${IDS}"
+              echo
+              echo "**まだ承認ではありません。** Files changed の画像差分を見て、意図した変更であることを確かめたうえで PR を承認してください。"
+            else
+              echo "❌ 基準画像を撮り直せませんでした。${REASON:-詳細は実行ログを確認してください。}"
+            fi
+          } > /tmp/vrt-approve.md
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file /tmp/vrt-approve.md
+
+      # The label stands for one acceptance. Leaving it on would make the next
+      # labelling a no-op and hide that a later change was never approved.
+      - name: Remove the label
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-retake

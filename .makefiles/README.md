@@ -204,6 +204,30 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 
 更新の運用手順は `actions-pin` スキルが持ちます。
 
+### container image の digest ピン関連
+
+registry の tag は、同じ名前のまま別の中身を指せます。`image:` / `FROM` を tag のままにしておくと、
+指し先が差し替わったことに気づかないまま新しい中身を引きます。そこで参照は digest へ固定し、
+`image:tag` → digest の対応を `docker/images-pin.toml` が持ちます。**版の SSOT は tag 側**であり、
+digest ではありません。走査対象は `docker-compose*.{yml,yaml}` と `docker/<用途>/Dockerfile` です。
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make images-pin-resolve [IMAGES_PIN_MIN_AGE_DAYS=<days>]` | tag を `docker buildx imagetools inspect` で digest へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます（docker の認証情報を使います）。既定の検疫日数は 14。 |
+| `make images-pin-apply` | ロックファイルを元に参照を `image:tag@sha256:...` へ書き換えます。 | tag と行末コメントは保持します。 |
+| `make images-pin-check` | 参照がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `images-pin` job が実行します。未登録 / 未固定・不一致 / 参照されなくなったエントリ / 解釈できない記法を検出して exit 1（fail-closed）。 |
+
+参照は **1 行 1 件・引用符なし**で書いてください。`image: "alpine:3.24"` のような記法は検査の網に
+入らないため、素通りではなく error になります。
+
+`IMAGES_PIN_MIN_AGE_DAYS` は供給網検疫の窓で、経過日数は image config の `created` から見ます
+（マルチアーキでは最も古いものを採ります）。既存のピンがあればそれを維持し、無ければ tag のまま
+残さず失敗させます。tag だけの運用を許すと、未検証の digest をそのまま引くためです。
+
+**tag の付け替えは検知しません。** base image の tag は patch 版が出るたび前進するのが通例で、
+「解決先が変わったら止める」を入れると日常的な更新と区別が付かなくなります（Actions の SHA ピンとは
+ここだけ運用が異なります）。image に対して働く防壁は検疫と固定の 2 つです。
+
 ## `.makefiles/testing` 系
 
 | コマンド | 説明 | 補足 |
@@ -212,6 +236,10 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 | `make test-full` | Vitest を cache 無効・coverage 付きで実行します。 | pre-push / CI 用。Statements / Branches / Functions / Lines の各 100% を下回ると失敗します。 |
 | `make scripts-test-cached` | 補助スクリプト（`scripts/**`）の suite を cache 利用で実行します。 | pre-commit 用。export と describe の 1:1 ゲートを含みます。 |
 | `make scripts-test` | 補助スクリプトの suite を cache 無効・coverage 付きで実行します。 | pre-push / CI（`scripts-check`）用。アプリ本体の suite と分けるのは、`scripts/` に居るのが検査機構そのもので、落ちた理由を取り違えないためです（[0090](../docs/adr/0090-testing-strategy.md)）。 |
+| `make build-storybook` | Storybook を静的に build します。 | VRT の撮影対象。`make vrt` / `make vrt-update` が前段で呼びます。 |
+| `make vrt [VRT_ARGS=<args>]` | 全 story を基準画像と比較します。 | digest 固定した Playwright コンテナ内で実行します（[`vrt/README.md`](../vrt/README.md)）。ホスト直実行は比較の前に落ちます。 |
+| `make vrt-update [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>]` | 基準画像を撮り直します。 | `VRT_ONLY` は撮り直す story を id で絞ります（該当 0 件なら失敗）。CI 側の同じ操作は `vrt-retake` ラベルが起動し、直前の実行が報告した story だけを対象にします。撮り直しは承認ではなく、見た目の判断はコミットされた画像差分を見て PR レビューで行います。 |
+| `make vrt-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/vrt/`（追跡対象外）。 |
 
 ## `.makefiles/security` 系
 

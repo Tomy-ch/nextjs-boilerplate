@@ -13,9 +13,10 @@
 // コメント tag から再解決されるため resolve は冪等。ローカル参照（`uses: ./...`）は対象外。
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { quarantine } from "../lib/pin-quarantine.js";
 import { applyPins } from "./apply-check.js";
 import { LOCK_FILE, readLock, readLockOrEmpty, writeLock } from "./lockfile.js";
-import { classifyMoves, type MovedRef, quarantine, refAgeDays, resolveSHA } from "./resolve.js";
+import { classifyMoves, type MovedRef, refAgeDays, resolveSHA } from "./resolve.js";
 import { type ActionRef, collectRefs, targetFiles, unparsedUsesLines } from "./uses-reference.js";
 
 const USAGE = "usage: actions-pin <resolve|apply|check> [--min-age-days=N]";

@@ -16,12 +16,14 @@ include .makefiles/github/lint/actions-mise-pin-lint.mk
 include .makefiles/tools/setup.mk
 include .makefiles/tools/commitlint.mk
 include .makefiles/tools/actions-pin.mk
+include .makefiles/tools/images-pin.mk
 include .makefiles/tools/gen-api.mk
 
 # テスト関連
 include .makefiles/testing/test.mk
 include .makefiles/testing/load-band.mk
 include .makefiles/testing/scripts.mk
+include .makefiles/testing/vrt.mk
 
 # セキュリティ関連
 include .makefiles/security/gitleaks.mk

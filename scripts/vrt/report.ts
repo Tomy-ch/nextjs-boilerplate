@@ -1,0 +1,142 @@
+// Playwright の JSON レポートから、基準画像と食い違った story を取り出す。
+//
+// 取り出した集合は 2 つの用途を持つ。1 つは PR コメントの一覧表、もう 1 つは承認時に
+// 撮り直す範囲で、どちらも同じ集合であることに意味がある。表に出ていない story が承認で
+// 撮り直されると、報告されていない差分が黙って基準画像へ入る。
+
+/** 基準画像と食い違った story 1 件。 */
+export type Failure = {
+  /** story の id。基準画像のファイル名であり、撮り直す範囲の指定でもある。 */
+  id: string;
+  /** sidebar の見出しと story 名。人がどの部品かを読むために持つ。 */
+  title: string;
+  /** 配色テーマ（Playwright の project 名）。 */
+  theme: string;
+  /** 食い違った画素数。取り出せなければ null。 */
+  diffPixels: number | null;
+};
+
+type JSONTest = {
+  projectName?: unknown;
+  status?: unknown;
+  annotations?: unknown;
+  results?: unknown;
+};
+
+type JSONSpec = {
+  title?: unknown;
+  tests?: unknown;
+};
+
+type JSONSuite = {
+  suites?: unknown;
+  specs?: unknown;
+};
+
+const STORY_ANNOTATION = "story";
+const DIFF_PIXELS_PATTERN = /^\s*(\d+) pixels .* are different\.$/m;
+/** 一覧表に並べる上限。これを超えた分は件数だけを添える。 */
+export const TABLE_LIMIT = 20;
+
+/**
+ * JSON レポートから食い違った story を取り出す。
+ *
+ * @remarks
+ * 期待した形でなければ例外を投げます。0 件へ縮退させると、レポートの形が変わったときに
+ * 「差分なし」と読めてしまい、承認の範囲も空になります。
+ */
+export function collectFailures(json: string): Failure[] {
+  const report = JSON.parse(json) as { suites?: unknown };
+  if (!Array.isArray(report.suites)) throw new Error("JSON レポートに suites がありません");
+
+  const failures: Failure[] = [];
+  for (const spec of flattenSpecs(report.suites as JSONSuite[])) {
+    for (const test of asArray<JSONTest>(spec.tests)) {
+      if (test.status === "expected") continue;
+      const id = storyID(test.annotations);
+      if (id === null) continue;
+      failures.push({
+        id,
+        title: typeof spec.title === "string" ? spec.title : id,
+        theme: typeof test.projectName === "string" ? test.projectName : "",
+        diffPixels: diffPixels(test.results),
+      });
+    }
+  }
+
+  return failures.sort((a, b) => a.id.localeCompare(b.id) || a.theme.localeCompare(b.theme));
+}
+
+/** PR コメントへ載せる一覧表。 */
+export function formatTable(failures: Failure[]): string {
+  if (failures.length === 0) return "差分はありません。";
+
+  const shown = failures.slice(0, TABLE_LIMIT);
+  const rows = shown.map(
+    (failure) =>
+      `| ${failure.title} | ${failure.theme} | ${formatPixels(failure.diffPixels)} | \`${failure.id}\` |`,
+  );
+  const table = [
+    `${failures.length} 件の story が基準画像と食い違いました。`,
+    "",
+    "| story | テーマ | 差分 | id |",
+    "| --- | --- | --- | --- |",
+    ...rows,
+  ];
+  if (failures.length > shown.length) {
+    table.push(
+      "",
+      `ほか ${failures.length - shown.length} 件（全件は artifact のレポートで見る）。`,
+    );
+  }
+
+  return table.join("\n");
+}
+
+/** 撮り直す範囲として渡す story の id。テーマ違いは同じ id なので 1 件に畳む。 */
+export function formatStoryIDs(failures: Failure[]): string {
+  return [...new Set(failures.map((failure) => failure.id))].sort().join(",");
+}
+
+// suites は入れ子になる。spec は葉にしか無いので、たどって平らにする。
+function flattenSpecs(suites: JSONSuite[]): JSONSpec[] {
+  const specs: JSONSpec[] = [];
+  for (const suite of suites) {
+    specs.push(...asArray<JSONSpec>(suite.specs));
+    specs.push(...flattenSpecs(asArray<JSONSuite>(suite.suites)));
+  }
+
+  return specs;
+}
+
+// 注記から story の id を取る。注記が無いものは VRT の対象外なので飛ばす。
+function storyID(annotations: unknown): string | null {
+  for (const annotation of asArray<{ type?: unknown; description?: unknown }>(annotations)) {
+    if (annotation.type === STORY_ANNOTATION && typeof annotation.description === "string") {
+      return annotation.description;
+    }
+  }
+
+  return null;
+}
+
+// 食い違った画素数はエラー本文にしか出ない。取れなくても報告は続ける（件数と id は分かる）。
+function diffPixels(results: unknown): number | null {
+  for (const result of asArray<{ errors?: unknown }>(results)) {
+    for (const error of asArray<{ message?: unknown }>(result.errors)) {
+      if (typeof error.message !== "string") continue;
+      const match = DIFF_PIXELS_PATTERN.exec(error.message);
+      if (match) return Number(match[1]);
+    }
+  }
+
+  return null;
+}
+
+function formatPixels(pixels: number | null): string {
+  return pixels === null ? "—" : `${pixels.toLocaleString("en-US")} px`;
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}

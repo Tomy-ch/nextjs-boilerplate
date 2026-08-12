@@ -1,0 +1,32 @@
+# 開発を補助するツールのコンテナ。**配送物ではない**
+# ([0011](docs/adr/0011-no-docker.md))。アプリ本体は `pnpm dev` でホスト実行する。
+#
+# 無印の `docker-compose.yml` を使わないのは、本体配送と読み違えられないようにするため。
+# 起動も `docker compose up` 単独では成立せず、このファイルを名指しする形にしてある。
+services:
+  # visual regression のランナー。ブラウザとフォントをイメージ側に持ち、リポジトリは
+  # マウントで見せる。基準画像の一意性はこのイメージが担保するので、`image:` は tag では
+  # なく digest で固定する (`make images-pin-check`)。
+  #
+  # `platform` を明示するのは、フォントのラスタライズが CPU アーキテクチャでも変わるため。
+  # 省くと Apple Silicon が arm64、CI が amd64 を引き、基準画像が両者で一致しない。
+  vrt_runner:
+    image: mcr.microsoft.com/playwright:v1.62.0-noble@sha256:baed2032d533817f3dbe6425de795788430ba345e819a1201337009ba17c9d07
+    platform: linux/amd64
+    # 生成物をホストの所有者で書き出す。root で書くと、撮った基準画像を撮った本人が
+    # 消せない状態がリポジトリに残る。
+    user: "${VRT_UID:-1000}:${VRT_GID:-1000}"
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      # 非 root で走るため、ブラウザが書ける HOME を与える。
+      HOME: /tmp
+    # Chromium は既定の 64MB の /dev/shm を使い切ってタブごと落ちる。
+    ipc: host
+    init: true
+    entrypoint: []
+    # 実行結果の HTML レポートを配る口。`make vrt-report` が --service-ports で
+    # 明示したときだけ公開され、比較そのものの起動では開かない。
+    ports:
+      - "9323:9323"

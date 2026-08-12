@@ -89,6 +89,14 @@ pre-commit:
       # ロックファイルの 3 か所いずれの変更でも発火させる必要があるため。
       glob: ".github/**"
       run: make actions-pin-check
+    images-pin-check:
+      # container image の参照がロックファイル通りに digest 固定されているかを検査する。
+      # actions-pin-check と同じくネットワークに出ないため hook の速度目標に収まる。
+      # compose 定義・Dockerfile・ロックファイルのいずれの変更でも発火させる。
+      glob:
+        - "docker-compose*.{yml,yaml}"
+        - "docker/**"
+      run: make images-pin-check
 
 commit-msg:
   commands:

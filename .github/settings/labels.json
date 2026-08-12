@@ -10,5 +10,10 @@
   { "name": "test", "description": "テストコード関連", "color": "e4e669" },
   { "name": "security", "description": "セキュリティ関連", "color": "5fafe6" },
   { "name": "wontfix", "description": "対応なし", "color": "ffffff" },
-  { "name": "release", "description": "リリース用のラベル", "color": "c5def5" }
+  { "name": "release", "description": "リリース用のラベル", "color": "c5def5" },
+  {
+    "name": "vrt-retake",
+    "description": "報告された見た目の差分の基準画像を撮り直させる",
+    "color": "8b5cf6"
+  }
 ]
