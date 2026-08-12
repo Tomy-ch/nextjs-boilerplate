@@ -18,12 +18,9 @@ import {
   toConditions,
 } from "./query";
 import type { FilterGroup } from "./ui/filter-fields/filter-fields";
-import { ProductFilterSheet } from "./ui/filter-sheet/filter-sheet";
-import { ProductFilterSidebar } from "./ui/filter-sidebar/filter-sidebar";
 import { ProductInfiniteList } from "./ui/infinite-list/infinite-list";
 import { ProductInvalidQuery } from "./ui/invalid-query/invalid-query";
-import { ProductSearch } from "./ui/search/search";
-import { ProductSortSelect } from "./ui/sort-select/sort-select";
+import { ProductListView } from "./view";
 
 /** `ProductListPageContent` の props。 */
 export type ProductListPageContentProps = {
@@ -92,22 +89,8 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
       : selection;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 @lg:flex-row @lg:items-end @lg:justify-between">
-        <ProductSearch selection={displayed} />
-        <ProductSortSelect options={SORT_OPTIONS} selection={displayed} />
-      </div>
-      <div className="flex gap-8">
-        <aside className="hidden w-64 shrink-0 lg:block">
-          <ProductFilterSidebar groups={groups} selection={displayed} />
-        </aside>
-        <div className="min-w-0 flex-1">
-          <ProductInfiniteList initial={page} query={toConditions(selection)} />
-        </div>
-      </div>
-      <div className="lg:hidden">
-        <ProductFilterSheet groups={groups} selection={displayed} />
-      </div>
-    </div>
+    <ProductListView groups={groups} selection={displayed} sortOptions={SORT_OPTIONS}>
+      <ProductInfiniteList initial={page} query={toConditions(selection)} />
+    </ProductListView>
   );
 }

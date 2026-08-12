@@ -34,8 +34,8 @@ function productOf(overrides: Partial<Product> = {}): Product {
   };
 }
 
-function pageOf(products: readonly Product[], nextCursor: string | null = null): ProductPage {
-  return { products, nextCursor };
+function pageOf(items: readonly Product[], nextCursor: string | null = null): ProductPage {
+  return { items, nextCursor };
 }
 
 describe("ProductListPageContent", () => {

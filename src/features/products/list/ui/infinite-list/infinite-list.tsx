@@ -1,11 +1,10 @@
 "use client";
 
-import { Button } from "@/components/design-system/action/button/button";
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
 
 import { useInfiniteProducts } from "../../use-infinite-products";
-import { ProductList } from "../../view";
+import { ProductLoadMoreList } from "../load-more-list/load-more-list";
 
 /** `ProductInfiniteList` の props。 */
 export type ProductInfiniteListProps = {
@@ -19,15 +18,9 @@ export type ProductInfiniteListProps = {
  * 読み進められる商品の一覧。
  *
  * @remarks
- * 末尾に近づくと続きを読みますが、操作としての「もっと見る」も併せて置きます。scroll だけを
- * 引き金にすると、keyboard や支援技術で読む利用者に続きを読む手段が無くなります
- * （[0100](../../../../../docs/adr/0100-accessibility-target.md)）。
- *
- * 件数を「表示中」と書いて総件数を添えないのは、契約が総件数を返さないためです。読み込んだ数を
- * 「全体の何件中」の形に見せると、実際には知らない数を知っているように読めます。
- *
- * 読み込み状況を `aria-live` で伝えます。追加された商品は一覧の末尾に増えるだけなので、画面を
- * 見ていない利用者には何も起きていないのと区別が付きません。
+ * 取得と見た目をつなぐだけです。見た目は {@link ProductLoadMoreList} が持ち、取得と末尾到達の
+ * 検知は `useInfiniteProducts` が持ちます。分けてあるのは、見え方の確認に取得を必要としない
+ * ようにするためです。
  */
 export function ProductInfiniteList({ initial, query }: ProductInfiniteListProps) {
   const { items, hasNext, loading, failed, loadMore, sentinelRef } = useInfiniteProducts(
@@ -36,25 +29,13 @@ export function ProductInfiniteList({ initial, query }: ProductInfiniteListProps
   );
 
   return (
-    <div className="space-y-6">
-      <p aria-live="polite" className="text-muted-foreground text-sm">
-        {loading
-          ? `${items.length} 件を表示中（続きを読み込んでいます）`
-          : `${items.length} 件を表示中`}
-      </p>
-      <ProductList items={items} />
-      {hasNext ? (
-        <div className="flex flex-col items-center gap-3" ref={sentinelRef}>
-          {failed ? (
-            <p className="text-destructive text-sm">
-              続きを読み込めませんでした。もう一度お試しください。
-            </p>
-          ) : null}
-          <Button disabled={loading} onClick={loadMore} type="button" variant="outline">
-            {loading ? "読み込み中" : "もっと見る"}
-          </Button>
-        </div>
-      ) : null}
-    </div>
+    <ProductLoadMoreList
+      failed={failed}
+      hasNext={hasNext}
+      items={items}
+      loading={loading}
+      onLoadMore={loadMore}
+      sentinelRef={sentinelRef}
+    />
   );
 }

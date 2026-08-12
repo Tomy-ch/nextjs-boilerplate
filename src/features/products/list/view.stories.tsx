@@ -1,13 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { userEvent, within } from "storybook/test";
 
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
-import type { Product } from "@/model/product/product";
+import type { ProductListItem } from "@/model/product/product";
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
 
-import { ProductList } from "./view";
+import { FILTER_KEY, type FilterOption } from "./query";
+import type { FilterGroup } from "./ui/filter-fields/filter-fields";
+import { ProductLoadMoreList } from "./ui/load-more-list/load-more-list";
+import { ProductListView } from "./view";
 
 const FRONT_IMAGE_URL = "/src/components/design-system/display/media-image/invertocat.png";
 
@@ -28,24 +32,6 @@ const WATCH: CartLineInput = {
   stockQuantity: 4,
 };
 
-const HUB: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-0000000000f2",
-  name: "USB-C ハブ（7 ポート・100W PD 対応モデル）",
-  price: "45.50",
-  statusName: "残りわずか",
-  imageUrl: "/src/components/design-system/display/media-image/invertocat.png",
-  stockQuantity: 2,
-};
-
-const CABLE: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-0000000000f3",
-  name: "編組ケーブル 2m",
-  price: "0.99",
-  statusName: "公開",
-  imageUrl: null,
-  stockQuantity: 30,
-};
-
 /** 既定のカート。`parameters.cart` を渡した story はそれで上書きする。 */
 const DEFAULT_CART: readonly CartSeed[] = [{ line: WATCH }];
 
@@ -55,13 +41,10 @@ const DEFAULT_CART: readonly CartSeed[] = [{ line: WATCH }];
  *
  * カートは `parameters.cart` で story ごとに差し替える。空のカートでは脇の領域が消えて本文が
  * 全幅になるため、器の見え方そのものが変わる。
- *
- * 開いた状態は `parameters.cartOpen` で明示する。種まきは初期状態の再現であって追加操作ではないため、
- * 追加が立てた要求はここで畳む。脇に常設できる幅ではこの値を見ないので、効くのはタブレットとスマホだけ。
  */
 function withPageFrame(
   Story: () => React.ReactElement,
-  context: { parameters: { cart?: readonly CartSeed[]; cartOpen?: boolean } },
+  context: { parameters: { cart?: readonly CartSeed[] } },
 ) {
   useCartStore.setState({ lines: [] });
 
@@ -73,7 +56,7 @@ function withPageFrame(
     }
   }
 
-  useCartStore.setState({ isOpen: context.parameters.cartOpen === true });
+  useCartStore.setState({ isOpen: false });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -93,7 +76,7 @@ function withPageFrame(
 }
 
 /**
- * 契約が許す最大長。`name` は 255 で、`description` / 分類名 / 状態名に上限の宣言は無い
+ * 契約が許す最大長。`name` は 255 で、分類名・状態名に上限の宣言は無い
  * （`src/adapters/gen/api/endpoints.zod.ts`）。上限の無い項目は、器が折り返しで耐えるかを見る。
  */
 const MAX_NAME_LENGTH = 255;
@@ -105,159 +88,192 @@ function longText(length: number): string {
   return unit.repeat(Math.ceil(length / unit.length)).slice(0, length);
 }
 
-const meta = {
-  title: "Page/Products/List",
-  component: ProductList,
-  parameters: { layout: "fullscreen" },
-  decorators: [withPageFrame],
-} satisfies Meta<typeof ProductList>;
+let itemSeq = 0;
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+function item(overrides: Partial<ProductListItem> = {}): ProductListItem {
+  itemSeq += 1;
 
-function product(overrides: Partial<Product> = {}): Product {
   return {
-    id: crypto.randomUUID(),
+    id: `0195f0c2-0000-7000-8000-${String(itemSeq).padStart(12, "0")}`,
     name: "ワイヤレスイヤホン",
-    description: "<p>ノイズキャンセリング対応</p>",
     price: "19.99",
     quantity: 12,
-    stockWarningThreshold: null,
-    status: { id: "s1", name: "公開" },
-    category: { id: "c1", name: "オーディオ" },
-    publishedAt: new Date("2026-07-01T00:00:00.000Z"),
-    imagePaths: [],
+    categoryName: "オーディオ",
+    statusName: "公開",
+    imageUrl: null,
     ...overrides,
   };
 }
 
-/** 商品が並んでいる状態。 */
-export const Default: Story = {
+const ITEMS: readonly ProductListItem[] = [
+  item({ imageUrl: FRONT_IMAGE_URL }),
+  item({ name: "スマートウォッチ", price: "129.00", categoryName: "ウェアラブル" }),
+  item({ name: "USB-C ハブ", price: "45.50", quantity: 0, statusName: "在庫切れ" }),
+  item({
+    name: "ノイズキャンセリング ヘッドホン（over-ear・第 3 世代・ケース同梱）",
+    price: "349.00",
+    imageUrl: FRONT_IMAGE_URL,
+  }),
+  item({ name: "編組ケーブル 2m", price: "0.99", categoryName: "アクセサリ" }),
+  item({ name: "モバイルバッテリー", price: "59.99", quantity: 2 }),
+];
+
+const CATEGORY_OPTIONS: readonly FilterOption[] = [
+  { value: "", label: "すべて" },
+  { value: "c1", label: "オーディオ" },
+  { value: "c2", label: "ウェアラブル" },
+  { value: "c3", label: "アクセサリ" },
+];
+
+const STATUS_OPTIONS: readonly FilterOption[] = [
+  { value: "", label: "すべて" },
+  { value: "s1", label: "公開" },
+  { value: "s2", label: "在庫切れ" },
+  { value: "s3", label: "販売終了" },
+];
+
+const GROUPS: readonly FilterGroup[] = [
+  { key: FILTER_KEY.CATEGORY, legend: "カテゴリ", options: CATEGORY_OPTIONS },
+  { key: FILTER_KEY.STATUS, legend: "状態", options: STATUS_OPTIONS },
+];
+
+const SORT_OPTIONS: readonly FilterOption[] = [
+  { value: "", label: "新着順" },
+  { value: "publishedAt", label: "古い順" },
+];
+
+const meta = {
+  title: "Page/Products/List",
+  component: ProductListView,
+  parameters: { layout: "fullscreen" },
+  decorators: [withPageFrame],
   args: {
-    items: [
-      { product: product(), imageUrl: null },
-      { product: product({ name: "スマートウォッチ", price: "129.00" }), imageUrl: null },
-      {
-        product: product({ name: "USB-C ハブ", price: "45.50", quantity: 0 }),
-        imageUrl: null,
-      },
-    ],
+    groups: GROUPS,
+    sortOptions: SORT_OPTIONS,
+    selection: {},
+    children: <ProductLoadMoreList hasNext items={ITEMS} />,
   },
+} satisfies Meta<typeof ProductListView>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+/** 条件を付けずに開いた状態。PC では絞り込みが脇に常設される。 */
+export const Default: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** タブレット。脇の領域が消え、絞り込みは下端の操作から開く。 */
+export const DefaultTablet: Story = {
+  globals: { viewport: { value: "tablet", isRotated: false } },
+};
+
+/** スマホ。検索と並び替えが縦に積まれ、カードは 1 列になる。 */
+export const DefaultMobile: Story = {
+  globals: { viewport: { value: "mobile2", isRotated: false } },
 };
 
 /** 条件に合う商品が無い状態。次に何をすればよいかを添える。 */
 export const Empty: Story = {
-  args: { items: [] },
-};
-
-/** 件数が多い場合。段組みが折り返し、名前の長い商品が行の高さを揃えられるかを見る。 */
-export const ManyItems: Story = {
   args: {
-    items: [
-      { product: product(), imageUrl: FRONT_IMAGE_URL },
-      { product: product({ name: "スマートウォッチ", price: "129.00" }), imageUrl: null },
-      { product: product({ name: "USB-C ハブ", price: "45.50", quantity: 0 }), imageUrl: null },
-      {
-        product: product({
-          name: "ノイズキャンセリング ヘッドホン（over-ear・第 3 世代・ケース同梱）",
-          price: "349.00",
-        }),
-        imageUrl: FRONT_IMAGE_URL,
-      },
-      { product: product({ name: "編組ケーブル 2m", price: "0.99" }), imageUrl: null },
-      {
-        product: product({
-          name: "モバイルバッテリー",
-          price: "59.99",
-          quantity: 2,
-          stockWarningThreshold: 3,
-        }),
-        imageUrl: null,
-      },
-      {
-        product: product({
-          name: "スタンド",
-          price: "24.00",
-          status: { id: "s2", name: "非公開" },
-        }),
-        imageUrl: null,
-      },
-      { product: product({ name: "キーボード", price: "89.00" }), imageUrl: FRONT_IMAGE_URL },
-      { product: product({ name: "マウスパッド", price: "12.00" }), imageUrl: null },
-    ],
+    children: <ProductLoadMoreList hasNext={false} items={[]} />,
   },
 };
 
-/** PC でカートが空の場合。脇の領域ごと消え、一覧が全幅になる。 */
-export const EmptyCart: Story = {
-  args: { ...Default.args },
-  parameters: { cart: [] },
+/** 絞り込みと並び替えが効いている状態。脇の選択とキーワード欄に条件が残る。 */
+export const Filtered: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  args: {
+    selection: {
+      [FILTER_KEY.CATEGORY]: "c1",
+      [FILTER_KEY.STATUS]: "s1",
+      [FILTER_KEY.KEYWORD]: "イヤホン",
+      [FILTER_KEY.SORT]: "publishedAt",
+    },
+    children: <ProductLoadMoreList hasNext items={ITEMS.slice(0, 2)} />,
+  },
+};
+
+/** スマホで条件が効いている状態。効いている数が下端の操作に付く。 */
+export const FilteredMobile: Story = {
+  ...Filtered,
+  globals: { viewport: { value: "mobile2", isRotated: false } },
+};
+
+/** スマホで絞り込みを開いた状態。結果が隠れるため、確定するまで反映しない。 */
+export const FilterSheetOpenMobile: Story = {
+  globals: { viewport: { value: "mobile2", isRotated: false } },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: /絞り込み/ }));
+  },
+};
+
+/** 続きを読み込んでいる状態。読み込み中でも読み終えた分は残す。 */
+export const LoadingMore: Story = {
+  args: {
+    children: <ProductLoadMoreList hasNext items={ITEMS} loading />,
+  },
+};
+
+/** 続きの読み込みに失敗した状態。読み終えた分を捨てず、もう一度試せるようにする。 */
+export const LoadMoreFailed: Story = {
+  args: {
+    children: <ProductLoadMoreList failed hasNext items={ITEMS} />,
+  },
+};
+
+/** 最後まで読み終えた状態。続きが無いので操作を出さない。 */
+export const ReachedEnd: Story = {
+  args: {
+    children: <ProductLoadMoreList hasNext={false} items={ITEMS} />,
+  },
 };
 
 /**
- * PC で契約の上限いっぱいの値。カード内で商品名が折り返したときに、価格と在庫の行が押し出されないか、
- * 段組みの高さが揃うかを見る。
+ * 契約の上限いっぱいの値。カード内で商品名が折り返したときに価格と在庫の行が押し出されないか、
+ * 脇の絞り込みに長い分類名が並んだときに本文が潰れないかを見る。
  */
-export const MaxLengthPC: Story = {
+export const MaxLength: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
-    items: [
+    groups: [
       {
-        product: product({ name: longText(MAX_NAME_LENGTH), price: "999999999.999" }),
-        imageUrl: null,
+        key: FILTER_KEY.CATEGORY,
+        legend: "カテゴリ",
+        options: [
+          { value: "", label: "すべて" },
+          { value: "c1", label: longText(40) },
+        ],
       },
-      {
-        product: product({ name: longText(MAX_NAME_LENGTH), quantity: 0 }),
-        imageUrl: FRONT_IMAGE_URL,
-      },
-      {
-        product: product({ name: longText(60), category: { id: "c1", name: longText(40) } }),
-        imageUrl: null,
-      },
+      { key: FILTER_KEY.STATUS, legend: "状態", options: STATUS_OPTIONS },
     ],
-  },
-  parameters: {
-    cart: [
-      { line: { ...HUB, name: longText(MAX_NAME_LENGTH), price: "999999999.999" }, quantity: 2 },
-    ],
+    selection: { [FILTER_KEY.KEYWORD]: longText(60) },
+    children: (
+      <ProductLoadMoreList
+        hasNext
+        items={[
+          item({ name: longText(MAX_NAME_LENGTH), price: "999999999.999" }),
+          item({
+            name: longText(MAX_NAME_LENGTH),
+            quantity: 0,
+            imageUrl: FRONT_IMAGE_URL,
+            statusName: longText(20),
+          }),
+          item({ name: longText(60), categoryName: longText(40) }),
+        ]}
+      />
+    ),
   },
 };
 
-/** タブレットでの最大長。カードの段組みが減り、カートは脇から drawer へ移る。 */
+/** タブレットでの最大長。段組みが減り、絞り込みは下端へ移る。 */
 export const MaxLengthTablet: Story = {
-  ...MaxLengthPC,
+  ...MaxLength,
   globals: { viewport: { value: "tablet", isRotated: false } },
 };
 
 /** スマホでの最大長。カードが 1 列になり、折り返した商品名がカードの高さを押し広げる。 */
 export const MaxLengthMobile: Story = {
-  ...MaxLengthPC,
+  ...MaxLength,
   globals: { viewport: { value: "mobile2", isRotated: false } },
-};
-
-/** PC でカートに複数入っている場合。一覧の幅が脇のカートのぶん狭まる。 */
-export const FilledCartPC: Story = {
-  args: { ...Default.args },
-  globals: { viewport: { value: "desktop", isRotated: false } },
-  parameters: {
-    cart: [
-      { line: WATCH, quantity: 3 },
-      { line: HUB, quantity: 2 },
-      { line: CABLE, quantity: 12 },
-    ],
-  },
-};
-
-/** タブレットでカートに複数入っている状態。header の入口から一覧へ被せて開く。 */
-export const FilledCartTablet: Story = {
-  ...FilledCartPC,
-  globals: { viewport: { value: "tablet", isRotated: false } },
-  parameters: { ...FilledCartPC.parameters, cartOpen: true },
-};
-
-/** スマホでカートに複数入っている状態。カートは一覧へ被せて開く。 */
-export const FilledCartMobile: Story = {
-  ...FilledCartPC,
-  globals: { viewport: { value: "mobile2", isRotated: false } },
-  parameters: { ...FilledCartPC.parameters, cartOpen: true },
 };
