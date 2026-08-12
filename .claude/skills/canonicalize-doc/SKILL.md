@@ -20,7 +20,7 @@ Use this skill when:
 Supported document types:
 
 - Claude Code skill files: `SKILL.md` / `SKILL.ja.md` (under `.claude/skills/<name>/`)
-- READMEs: `README.md` / `README.ja.md` (co-located in the same directory, e.g. `docker/server/`)
+- READMEs: `README.md` / `README.ja.md` (co-located in the same directory, e.g. `docker/`)
 - Generic Markdown docs with the `*.ja.md` suffix convention (co-located).
 - `docs/**` documents using the parallel directory convention (`docs/**/foo.md` and `docs/ja/**/foo.ja.md`). <!-- skill-lint-ignore -->
 
