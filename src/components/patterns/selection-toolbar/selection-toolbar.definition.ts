@@ -1,3 +1,8 @@
+import {
+  ACTION_BAR_POSITION,
+  ACTION_BAR_POSITION_CLASS,
+} from "../action-bar/action-bar.definition";
+
 /**
  * 選択操作をどこに出すか。
  *
@@ -23,16 +28,11 @@ export type SelectionToolbarPosition =
 /**
  * 選択があるときだけ付ける見た目。
  *
- * `sticky` / `fixed` は内容の上へ重なるため、背景は必ず不透明にする。`bg-muted` のような
- * 面の色ではなく `bg-background` を使い、上辺の border だけで一覧と切り分ける。
- *
- * `fixed` の `z-40` は overlay（`z-50`）より下、一覧の中の重なりより上に置くための値である。
- * 下端の余白は iOS のホームバーを避けるため safe area と比較して大きいほうを採る。
+ * 位置ごとの見た目は [`ActionBar`](../action-bar/action-bar.definition.ts) が単独で宣言する。同じ
+ * 見た目を 2 か所で綴ると、重なり順や safe area の余白が片方だけ直る。
  */
 export const SELECTION_TOOLBAR_POSITION_CLASS: Record<SelectionToolbarPosition, string> = {
-  [SELECTION_TOOLBAR_POSITION.INLINE]: "rounded-md border border-border bg-muted px-3 py-2",
-  [SELECTION_TOOLBAR_POSITION.STICKY]:
-    "sticky bottom-0 z-10 border-t border-border bg-background px-3 py-2",
-  [SELECTION_TOOLBAR_POSITION.FIXED]:
-    "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background px-3 pt-2 pb-[max(--spacing(2),env(safe-area-inset-bottom))]",
+  [SELECTION_TOOLBAR_POSITION.INLINE]: ACTION_BAR_POSITION_CLASS[ACTION_BAR_POSITION.INLINE],
+  [SELECTION_TOOLBAR_POSITION.STICKY]: ACTION_BAR_POSITION_CLASS[ACTION_BAR_POSITION.STICKY],
+  [SELECTION_TOOLBAR_POSITION.FIXED]: ACTION_BAR_POSITION_CLASS[ACTION_BAR_POSITION.FIXED],
 };

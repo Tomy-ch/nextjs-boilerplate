@@ -24,6 +24,8 @@ import {
 import { MediaImage } from "@/components/design-system/display/media-image/media-image";
 import { MEDIA_IMAGE_ASPECT_RATIO } from "@/components/design-system/display/media-image/media-image.definition";
 import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
+import { ActionBar } from "@/components/patterns/action-bar/action-bar";
+import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
 import { formatDateTime } from "@/model/datetime";
 import { NO_IMAGE_URL } from "@/model/media";
 import type { Product } from "@/model/product/product";
@@ -160,7 +162,7 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
             </KeyValueItem>
           </KeyValueList>
 
-          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background px-4 pt-4 pb-[max(--spacing(4),env(safe-area-inset-bottom))] lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0">
+          <ActionBar className="w-full" position={ACTION_BAR_POSITION.FIXED_WITHOUT_ASIDE}>
             <AddToCartButton
               line={{
                 productId: product.id,
@@ -171,7 +173,7 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
                 stockQuantity: product.quantity,
               }}
             />
-          </div>
+          </ActionBar>
         </div>
       </div>
 
