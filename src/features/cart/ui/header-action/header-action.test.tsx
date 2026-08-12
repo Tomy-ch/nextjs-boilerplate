@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
@@ -58,7 +57,7 @@ describe("CartHeaderAction", () => {
     useCartStore.getState().add(COFFEE);
     render(<CartHeaderAction />);
 
-    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+    fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
 
     expect(await screen.findByRole("dialog", { name: "カート" })).toBeVisible();
     expect(screen.getByText("1 点入っています。")).toBeVisible();
@@ -69,7 +68,7 @@ describe("CartHeaderAction", () => {
     useCartStore.getState().add(COFFEE);
     render(<CartHeaderAction />);
 
-    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+    fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
 
     expect(await screen.findByText("深煎りブレンド")).toBeVisible();
     expect(within(screen.getByRole("list")).getByText("$12.34")).toBeVisible();
@@ -80,8 +79,8 @@ describe("CartHeaderAction", () => {
     useCartStore.getState().add(COFFEE);
     render(<CartHeaderAction />);
 
-    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
-    await userEvent.click(await screen.findByRole("button", { name: "閉じる" }));
+    fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+    fireEvent.click(await screen.findByRole("button", { name: "閉じる" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -90,7 +89,7 @@ describe("CartHeaderAction", () => {
     stubViewport(true);
     render(<CartHeaderAction />);
 
-    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+    fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
 
     expect(await screen.findByText("商品が入っていません。")).toBeVisible();
   });
