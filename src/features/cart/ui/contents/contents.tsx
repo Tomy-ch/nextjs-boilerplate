@@ -28,9 +28,11 @@ function CartLineRow({ line }: { line: CartLine }) {
         sizes="16rem"
         src={line.imageUrl}
       />
-      <div className="flex w-full items-start gap-2">
-        <p className="line-clamp-2 font-medium text-sm">{line.name}</p>
-        <Badge className="whitespace-normal break-words" variant="secondary">
+      {/* 状態名は上限の宣言が無いため、名前と横に並べたままだと長い状態名が名前の幅を奪う。
+          名前に最低限の幅を持たせ、収まらなくなった状態名だけを次の行へ送る。 */}
+      <div className="flex w-full flex-wrap items-start gap-x-2 gap-y-1">
+        <p className="line-clamp-2 min-w-0 flex-1 basis-32 font-medium text-sm">{line.name}</p>
+        <Badge className="max-w-full whitespace-normal break-words" variant="secondary">
           {line.statusName}
         </Badge>
       </div>

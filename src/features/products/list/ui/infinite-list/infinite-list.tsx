@@ -12,6 +12,8 @@ export type ProductInfiniteListProps = {
   initial: CursorPage<ProductListItem>;
   /** いま効いている検索条件。続きの取得へそのまま渡す。 */
   query: Readonly<Record<string, string>>;
+  /** 条件に一致する総数。分からなければ省く。 */
+  total?: number;
 };
 
 /**
@@ -22,7 +24,7 @@ export type ProductInfiniteListProps = {
  * 検知は `useInfiniteProducts` が持ちます。分けてあるのは、見え方の確認に取得を必要としない
  * ようにするためです。
  */
-export function ProductInfiniteList({ initial, query }: ProductInfiniteListProps) {
+export function ProductInfiniteList({ initial, query, total }: ProductInfiniteListProps) {
   const { items, hasNext, loading, failed, loadMore, sentinelRef } = useInfiniteProducts(
     initial,
     query,
@@ -36,6 +38,7 @@ export function ProductInfiniteList({ initial, query }: ProductInfiniteListProps
       loading={loading}
       onLoadMore={loadMore}
       sentinelRef={sentinelRef}
+      total={total}
     />
   );
 }

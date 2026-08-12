@@ -41,10 +41,14 @@ const DEFAULT_CART: readonly CartSeed[] = [{ line: WATCH }];
  *
  * カートは `parameters.cart` で story ごとに差し替える。空のカートでは脇の領域が消えて本文が
  * 全幅になるため、器の見え方そのものが変わる。
+ *
+ * 開いた状態は `parameters.cartOpen` で明示する。種まきは初期状態の再現であって追加操作ではないため、
+ * 追加が立てた要求はここで畳む。この値は幅を問わず効き、脇に常設できる幅では領域そのものの有無に、
+ * それ未満では drawer の開閉になる。
  */
 function withPageFrame(
   Story: () => React.ReactElement,
-  context: { parameters: { cart?: readonly CartSeed[] } },
+  context: { parameters: { cart?: readonly CartSeed[]; cartOpen?: boolean } },
 ) {
   useCartStore.setState({ lines: [] });
 
@@ -56,7 +60,7 @@ function withPageFrame(
     }
   }
 
-  useCartStore.setState({ isOpen: false });
+  useCartStore.setState({ isOpen: context.parameters.cartOpen === true });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -151,7 +155,7 @@ const meta = {
     groups: GROUPS,
     sortOptions: SORT_OPTIONS,
     selection: {},
-    children: <ProductLoadMoreList hasNext items={ITEMS} />,
+    children: <ProductLoadMoreList hasNext items={ITEMS} total={10} />,
   },
 } satisfies Meta<typeof ProductListView>;
 
@@ -176,7 +180,7 @@ export const DefaultMobile: Story = {
 /** 条件に合う商品が無い状態。次に何をすればよいかを添える。 */
 export const Empty: Story = {
   args: {
-    children: <ProductLoadMoreList hasNext={false} items={[]} />,
+    children: <ProductLoadMoreList hasNext={false} items={[]} total={0} />,
   },
 };
 
@@ -190,7 +194,7 @@ export const Filtered: Story = {
       [FILTER_KEY.KEYWORD]: "イヤホン",
       [FILTER_KEY.SORT]: "publishedAt",
     },
-    children: <ProductLoadMoreList hasNext items={ITEMS.slice(0, 2)} />,
+    children: <ProductLoadMoreList hasNext items={ITEMS.slice(0, 2)} total={2} />,
   },
 };
 
@@ -211,21 +215,21 @@ export const FilterSheetOpenMobile: Story = {
 /** 続きを読み込んでいる状態。読み込み中でも読み終えた分は残す。 */
 export const LoadingMore: Story = {
   args: {
-    children: <ProductLoadMoreList hasNext items={ITEMS} loading />,
+    children: <ProductLoadMoreList hasNext items={ITEMS} loading total={10} />,
   },
 };
 
 /** 続きの読み込みに失敗した状態。読み終えた分を捨てず、もう一度試せるようにする。 */
 export const LoadMoreFailed: Story = {
   args: {
-    children: <ProductLoadMoreList failed hasNext items={ITEMS} />,
+    children: <ProductLoadMoreList failed hasNext items={ITEMS} total={10} />,
   },
 };
 
 /** 最後まで読み終えた状態。続きが無いので操作を出さない。 */
 export const ReachedEnd: Story = {
   args: {
-    children: <ProductLoadMoreList hasNext={false} items={ITEMS} />,
+    children: <ProductLoadMoreList hasNext={false} items={ITEMS} total={6} />,
   },
 };
 
@@ -276,4 +280,10 @@ export const MaxLengthTablet: Story = {
 export const MaxLengthMobile: Story = {
   ...MaxLength,
   globals: { viewport: { value: "mobile2", isRotated: false } },
+};
+
+/** PC でカートを開いた状態。脇の領域が本文の幅を持っていく。 */
+export const WithCartPC: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  parameters: { cartOpen: true },
 };

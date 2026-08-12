@@ -1,6 +1,7 @@
 import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
 import {
   getProductListPage,
+  getProductTotalCount,
   PRODUCT_SORT,
   parseProductQuery,
 } from "@/adapters/server/api/products";
@@ -72,8 +73,9 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
     );
   }
 
-  const [page, categories, statuses] = await Promise.all([
+  const [page, total, categories, statuses] = await Promise.all([
     getProductListPage(parsed.query),
+    getProductTotalCount(),
     getProductCategories(),
     getProductStatuses(),
   ]);
@@ -90,7 +92,7 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
 
   return (
     <ProductListView groups={groups} selection={displayed} sortOptions={SORT_OPTIONS}>
-      <ProductInfiniteList initial={page} query={toConditions(selection)} />
+      <ProductInfiniteList initial={page} query={toConditions(selection)} total={total} />
     </ProductListView>
   );
 }
