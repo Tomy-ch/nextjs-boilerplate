@@ -1,0 +1,97 @@
+import { describe, expect, it } from "vitest";
+
+import { parseStoryIndex, storyURL, VRT_SKIP_TAG } from "./story-index";
+
+/** 目録 1 件分の JSON を組み立てる。 */
+function indexOf(entries: Record<string, unknown>): string {
+  return JSON.stringify({ v: 5, entries });
+}
+
+const story = (id: string, extra: Record<string, unknown> = {}) => ({
+  type: "story",
+  id,
+  title: "Action/Button",
+  name: "Default",
+  ...extra,
+});
+
+describe("VRT_SKIP_TAG", () => {
+  // ----- 正常系 -----
+  it("story 側が撮影対象から外れることを宣言するタグを示す", () => {
+    expect(VRT_SKIP_TAG).toBe("vrt-skip");
+  });
+});
+
+describe("parseStoryIndex", () => {
+  // ----- 正常系 -----
+  it("story を id 順で返す", () => {
+    const json = indexOf({ b: story("b--x"), a: story("a--x") });
+
+    expect(parseStoryIndex(json).map((entry) => entry.id)).toEqual(["a--x", "b--x"]);
+  });
+
+  it("見出しと表示名を持ち回る", () => {
+    const json = indexOf({ a: story("a--x") });
+
+    expect(parseStoryIndex(json)[0]).toEqual({
+      id: "a--x",
+      title: "Action/Button",
+      name: "Default",
+    });
+  });
+
+  it("docs ページを対象にしない", () => {
+    const json = indexOf({ d: { type: "docs", id: "a--docs" }, a: story("a--x") });
+
+    expect(parseStoryIndex(json).map((entry) => entry.id)).toEqual(["a--x"]);
+  });
+
+  it("撮影対象から外すタグを宣言した story を落とす", () => {
+    const json = indexOf({
+      a: story("a--x"),
+      b: story("b--x", { tags: ["dev", VRT_SKIP_TAG] }),
+    });
+
+    expect(parseStoryIndex(json).map((entry) => entry.id)).toEqual(["a--x"]);
+  });
+
+  it("タグを持つ story でも宣言が無ければ対象にする", () => {
+    const json = indexOf({ a: story("a--x", { tags: ["dev", "test"] }) });
+
+    expect(parseStoryIndex(json)).toHaveLength(1);
+  });
+
+  // ----- 異常系 -----
+  it("entries を持たない目録を落とす", () => {
+    expect(() => parseStoryIndex(JSON.stringify({ v: 5 }))).toThrow(
+      "story 目録に entries がありません",
+    );
+  });
+
+  it("entries が object でない目録を落とす", () => {
+    expect(() => parseStoryIndex(JSON.stringify({ entries: null }))).toThrow(
+      "story 目録に entries がありません",
+    );
+  });
+
+  it("撮影対象が 1 件も無い目録を落とす", () => {
+    expect(() => parseStoryIndex(indexOf({ d: { type: "docs", id: "a--docs" } }))).toThrow(
+      "story 目録に撮影対象がありません",
+    );
+  });
+
+  it("id / 見出し / 表示名を欠く entry を対象にしない", () => {
+    const json = indexOf({ broken: { type: "story", id: "a--x" }, a: story("b--x") });
+
+    expect(parseStoryIndex(json).map((entry) => entry.id)).toEqual(["b--x"]);
+  });
+});
+
+describe("storyURL", () => {
+  // ----- 正常系 -----
+  it("story の id と配色テーマを載せた URL を組み立てる", () => {
+    expect(storyURL("action-button--default", "dark")).toBe(
+      "/iframe.html?id=action-button--default&globals=theme%3Adark&viewMode=story",
+    );
+  });
+});

@@ -20,7 +20,7 @@ export default defineConfig({
     //
     // `scripts/` だけは [vitest.scripts.config.ts](vitest.scripts.config.ts) の別 suite で回す。
     // あちらに居るのは lint とゲートそのもので、落ちたときにアプリの退行と読み違えたくない。
-    include: ["{src,tokens,docs-viewer,mocks,eslint-rules}/**/*.test.{ts,tsx}"],
+    include: ["{src,tokens,docs-viewer,mocks,eslint-rules,vrt}/**/*.test.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "v8",
@@ -31,6 +31,7 @@ export default defineConfig({
         "docs-viewer/src/**/*.{ts,tsx}",
         "tokens/**/*.ts",
         "eslint-rules/**/*.ts",
+        "vrt/**/*.ts",
       ],
       // 検査対象から外すモジュールは scripts/lib/untested-modules.ts の宣言 1 箇所が持ち、
       // カバレッジ母数と 1:1 ゲートの双方がそれを読む（ADR 0090）。ここへ直接足すと、
@@ -41,6 +42,7 @@ export default defineConfig({
         "docs-viewer/src/**/*.test.{ts,tsx}",
         "docs-viewer/src/**/*.stories.{ts,tsx}",
         "eslint-rules/**/*.test.ts",
+        "vrt/**/*.test.ts",
         ...EXCLUDED_FROM_CHECKS,
       ],
       thresholds: {

@@ -166,6 +166,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["vrt/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noEmptyPattern": "off"
+          }
+        }
+      }
     }
   ],
   "css": {
