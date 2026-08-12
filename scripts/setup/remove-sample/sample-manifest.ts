@@ -19,8 +19,8 @@
  * 列挙から漏れ、消えたはずの道具の一部だけが fork 先へ居座るのを防ぐためです。
  *
  * `vrt/__screenshots__` はサブモジュールなので、ここからは中身を消せません。題材の基準画像は
- * fork 先が `make setup-vrt-images` で自分の置き場を用意した時点で参照が切れます。**破棄より
- * 先にそれを実行してください**（[vrt/README.md](../../../vrt/README.md)）。
+ * fork 先が `make setup-vrt-images` で自分の置き場へ張り替えた時点で参照が切れます
+ * （[vrt/README.md](../../../vrt/README.md)）。
  */
 export const SAMPLE_PATHS: readonly string[] = [
   // 画面
@@ -43,8 +43,6 @@ export const SAMPLE_PATHS: readonly string[] = [
   "mocks/contract-conformance.test.ts",
   // 破棄の道具（使い終わったら不要）。ディレクトリごと挙げれば、判定モジュールを足しても漏れない。
   "scripts/setup/remove-sample",
-  "scripts/setup/vrt-images",
-  ".github/settings/vrt-images",
 ];
 
 // verify 自身は検証の後に自分で消える（`selfDestructTargets`）。ここへ登録すると、検証の前に

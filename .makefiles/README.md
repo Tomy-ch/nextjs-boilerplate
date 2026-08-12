@@ -81,11 +81,9 @@ make help
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make setup-vrt-images` | 置き場を用意し、`vrt/__screenshots__` へ配線します。 | 既存リポジトリの指定を先に問います（組織では新規作成が権限で縛られていることがあるため）。新規作成時は README を置く初期コミットまで作ります。**`make setup-remove-sample` より先に実行してください。** |
+| `make setup-vrt-images` | 置き場を用意し、`vrt/__screenshots__` へ配線します。 | 既存リポジトリの指定を先に問います（組織では新規作成が権限で縛られていることがあるため）。新規作成時は README を置く初期コミットまで作ります。配線済みなら張り替えるので、組織の移動やリポジトリ名の変更でも同じコマンドで済みます。 |
 | `make setup-vrt-app` | 撮り直しに使う GitHub App を `VRT_APP_ID` / `VRT_APP_PRIVATE_KEY` へ登録します。 | App の作成と鍵の生成は自動化できません。App ID は slug から解決するので控える必要はなく、秘密鍵は標準入力へ貼るのでディスクにも履歴にも残りません。 |
 | `make vrt-images-prune [DRY_RUN=1]` | 生きた ref から指されていない基準画像の一式を置き場から消します。 | 取り消せません。実行を促すのは月次の [`vrt-images-prune.yaml`](../.github/workflows/vrt-images-prune.yaml) で、閾値を超えたときだけ issue を立てます。保持の条件は [`scripts/vrt-images/retention.ts`](../scripts/vrt-images/retention.ts)。 |
-
-`setup-vrt-images` / `setup-vrt-app` は同梱サンプルの破棄対象です（使い終わったら不要なため）。
 
 ### GitHub Actions Lint 関連
 

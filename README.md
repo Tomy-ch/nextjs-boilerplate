@@ -33,8 +33,8 @@
   [`.github/actions/setup-mise`](.github/actions/setup-mise/action.yaml) が版と SHA256 を持ち、
   実行前に照合します。上げ方は [`.github/workflows/README.md`](.github/workflows/README.md#mise-の導入)
 - **VRT の基準画像は別リポジトリにある** — `vrt/__screenshots__` はサブモジュールです。fork 後は
-  `make setup-vrt-images` / `make setup-vrt-app` で自分の置き場と GitHub App を用意します
-  （**サンプル破棄より先に**）。理由と運用は [`vrt/README.md`](vrt/README.md)
+  `make setup-vrt-images` / `make setup-vrt-app` で自分の置き場と GitHub App を用意します。
+  理由と運用は [`vrt/README.md`](vrt/README.md)
 
 詰まったときの引き先は [`.claude/skills/repo-ops`](.claude/skills/repo-ops/SKILL.ja.md) です。
 

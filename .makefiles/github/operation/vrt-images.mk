@@ -2,19 +2,15 @@
 #
 # 基準画像は別リポジトリに置き、vrt/__screenshots__ からサブモジュールとして参照する。
 # 置き場側は workflow もルールセットも持たず、更新も掃除もここから流し込む。
-# sample:begin
-.PHONY: setup-vrt-images ## 基準画像のリポジトリを用意し vrt/__screenshots__ へ配線 (初回のみ)
-.PHONY: setup-vrt-app ## 撮り直しに使う GitHub App を secret へ登録 (初回のみ)
-# sample:end
+.PHONY: setup-vrt-images ## 基準画像のリポジトリを用意し vrt/__screenshots__ へ配線 (張り替えも可)
+.PHONY: setup-vrt-app ## 撮り直しに使う GitHub App を secret へ登録
 .PHONY: vrt-images-prune ## 基準画像の履歴のうち、生きた ref から到達しないものを破棄
 
-# sample:begin
 setup-vrt-images:
 	@bash scripts/setup/vrt-images/setup-images.sh
 
 setup-vrt-app:
 	@bash scripts/setup/vrt-images/setup-app.sh
-# sample:end
 
 # 履歴の書き換えは取り消せない。保持すべきコミットの算出と実際の書き換えを 1 コマンドに
 # 束ねているのは、算出結果を人が見てから別のコマンドを叩く運用にすると、見た結果と書き換える
