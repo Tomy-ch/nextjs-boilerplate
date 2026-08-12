@@ -85,40 +85,41 @@ jobs:
           # have to survive checkout. Every other workflow here keeps them off.
           persist-credentials: true
 
-      # `if-no-files-found: error` on the producing side means a missing artifact is
-      # a real absence: VRT has not run for this commit, or the retention window
-      # closed. Either way the reported set is unknown, so nothing may be accepted.
+      # Nothing may be retaken without the set VRT reported for this exact commit.
+      # The three ways that set can be unavailable are told apart on purpose: a
+      # message that names the wrong cause sends the reader to the wrong fix, and
+      # "still running" is by far the most likely of the three.
       - name: Download the reported failures
         id: report
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          run_id="$(gh run list --workflow vrt.yaml --repo "$GITHUB_REPOSITORY" \
-            --json databaseId,headSha --limit 50 \
-            --jq "[.[] | select(.headSha == \"$HEAD_SHA\")][0].databaseId")"
+          runs="$(gh run list --workflow vrt.yaml --repo "$GITHUB_REPOSITORY" \
+            --json databaseId,headSha,status --limit 100 \
+            --jq "[.[] | select(.headSha == \"$HEAD_SHA\")]")"
 
-          if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
-            echo "reason=この commit に対する VRT の実行が見つかりません。VRT の完了後にもう一度ラベルを付けてください。" >> "$GITHUB_OUTPUT"
+          if [ "$(jq 'length' <<<"$runs")" -eq 0 ]; then
+            echo "reason=この commit で VRT がまだ実行されていません。実行の完了を待ってからラベルを付け直してください。" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          run_id="$(jq -r '[.[] | select(.status == "completed")][0].databaseId // empty' <<<"$runs")"
+          if [ -z "$run_id" ]; then
+            echo "reason=この commit の VRT がまだ完了していません。完了を待ってからラベルを付け直してください。" >> "$GITHUB_OUTPUT"
             exit 1
           fi
 
           gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name vrt-report --dir tmp/vrt || {
-            echo "reason=VRT の報告 (vrt-report) を取得できません。保持期限が切れている場合は VRT を再実行してください。" >> "$GITHUB_OUTPUT"
+            echo "reason=完了した VRT に差分の報告がありません。緑だったか、artifact の保持期限が切れています。" >> "$GITHUB_OUTPUT"
             exit 1
           }
 
-      - name: Setup mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.12
-          install: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Node and pnpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install core:node aqua:pnpm/pnpm
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

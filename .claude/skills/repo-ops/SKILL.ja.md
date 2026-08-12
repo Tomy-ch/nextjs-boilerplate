@@ -227,6 +227,40 @@ hook の失敗が「その変更についての証拠」になるのは、失敗
 
 **重い gate を先回りして手で回さないこと。** hook と CI が同じものを回すのを再発見するために数分ホストを飽和させるだけで、その飽和自体が上の 2 つ目を生む。push が検証の工程である。
 
+## 8. mise 自身の版を上げたい / 上げたら CI が落ちた
+
+`mise.toml` が宣言するのは mise が解決する対象であって、mise 自身は宣言できない。したがってバイナリの版は
+[`.github/actions/setup-mise/action.yaml`](../../../.github/actions/setup-mise/action.yaml) にあり、
+そこに **3 度**書かれている ── `MISE_VERSION` / `MISE_SHA256` / キャッシュキー。composite action は
+`with:` の値からステップの `env:` を参照できないため、キーはリテラルを持つしかない。
+
+digest は版に対応する release から取る。
+
+```bash
+curl -sSL "https://github.com/jdx/mise/releases/download/v<版>/SHASUMS256.txt" | grep 'linux-x64$'
+```
+
+3 箇所を揃えたら、揃っていることを確かめる。
+
+```bash
+make actions-mise-pin-lint
+```
+
+同じ検査が CI の `actions-lint` でも走るので、揃っていない状態はマージされない。片方だけを直したときの
+落ち方は次のとおり。
+
+| 直した側 | 起きること |
+| --- | --- |
+| 版だけ | キーが変わって何も復元されず、取得したものが digest 照合で落ちる |
+| digest だけ | キーが変わらず古いバイナリが復元され、digest 照合で落ちる |
+
+どちらも fail-closed(違うバイナリは実行されない)だが、どちらのメッセージも原因を名指ししない。検査を
+置いてあるのはそのため。digest は取得したものだけでなく**復元したものにも**照合する ── Actions の
+キャッシュはブランチを跨いで共有され、push 権限があれば書けるので、信頼境界ではない
+([0153](../../../docs/adr/0153-ci-configuration.md))。
+
+`mise.toml` の中のツールの版は別件で、`tools-upgrade` が担当し、mise 自身は意図的に触らない。
+
 ## 制約
 
 - ✅ read-only ナレッジ: 正確なコマンドを提示。実行はユーザが操作を頼んだ時のみ。

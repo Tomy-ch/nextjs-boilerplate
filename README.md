@@ -24,6 +24,17 @@
 - **ブランチ / コミット / リリース運用** — [ADR 0150](docs/adr/0150-git-workflow.md)
 - **リポジトリ運用の make ターゲット** — [`.makefiles/README.md`](.makefiles/README.md)
 
+## 運用が普通と違うところ
+
+ほとんどは見たままですが、**手順を知らないと詰まる**ところがいくつかあります。中身は所有者の側に
+あるので、ここは名前とリンクだけを置きます。
+
+- **CI のツールチェーンは digest で照合される** — mise 自身の版は `mise.toml` に書けないため
+  [`.github/actions/setup-mise`](.github/actions/setup-mise/action.yaml) が版と SHA256 を持ち、
+  実行前に照合します。上げ方は [`.github/workflows/README.md`](.github/workflows/README.md#mise-の導入)
+
+詰まったときの引き先は [`.claude/skills/repo-ops`](.claude/skills/repo-ops/SKILL.ja.md) です。
+
 ## 前提ツール
 
 - [mise](https://mise.jdx.dev) — ツール / ランタイムのバージョン管理（**必須**。シェルで activate しておくこと。`make` ターゲットは mise 経由でツールを解決します）

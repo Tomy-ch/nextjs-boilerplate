@@ -54,19 +54,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.12
-          install: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Node and pnpm are here for the composite-action check, which is a TypeScript
-      # script run through tsx.
-      - name: Install actionlint, shellcheck, Node and pnpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install aqua:rhysd/actionlint aqua:koalaman/shellcheck core:node aqua:pnpm/pnpm
+          tools: aqua:rhysd/actionlint aqua:koalaman/shellcheck core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve the pnpm store path
         id: pnpm-store
@@ -100,6 +92,7 @@ jobs:
           shellcheck_code=${PIPESTATUS[0]}
 
           make actions-comment-secret-lint 2>&1 | tee -a /tmp/actions-lint.log
+          make actions-mise-pin-lint 2>&1 | tee -a /tmp/actions-lint.log
           secret_lint_code=${PIPESTATUS[0]}
 
           summary="actionlint + composite-action shellcheck + pr-comment secret lint"
