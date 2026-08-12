@@ -1,4 +1,8 @@
 ## story 単位の visual regression
+#
+# 基準画像は別リポジトリに置き、vrt/__screenshots__ からサブモジュールとして参照する
+# (vrt/README.md)。取り込んでいない状態で回すと全 story が「基準画像が無い」で落ち、
+# 退行と見分けが付かないため手前で止める。
 .PHONY: vrt ## story の見た目を基準画像と比較する (コンテナ内で実行)
 .PHONY: vrt-update ## 基準画像を撮り直す (差分を意図した変更として受け入れる)
 .PHONY: vrt-report ## 直前の実行の HTML レポートを開く
@@ -19,10 +23,21 @@ VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T -e VRT_ONL
 
 # 比較する前に Storybook を build する。撮る対象は build 済みの静的な出力であり、
 # ソースではない。
+# 配線の確認。撮り直しは空の置き場から始められる必要があるので、中身までは要求しない。
+VRT_REQUIRE_WIRING = \
+	if [ ! -f .gitmodules ]; then \
+		echo "❌ 基準画像の置き場が配線されていません。make setup-vrt-images を実行してください（vrt/README.md）。"; exit 1; \
+	fi
+
 vrt: build-storybook
+	@$(VRT_REQUIRE_WIRING)
+	@if [ -z "$$(ls -A vrt/__screenshots__ 2>/dev/null)" ]; then \
+		echo "❌ vrt/__screenshots__ が空です。git submodule update --init vrt/__screenshots__ を実行してください。"; exit 1; \
+	fi
 	@$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_ARGS)
 
 vrt-update: build-storybook
+	@$(VRT_REQUIRE_WIRING)
 	@$(VRT_RUN) ./node_modules/.bin/playwright test --update-snapshots $(VRT_ARGS)
 
 # レポートもコンテナ内で配る。ホスト側の Playwright は比較の前に落とす設計なので、

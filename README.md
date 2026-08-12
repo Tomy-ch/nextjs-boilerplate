@@ -68,8 +68,8 @@ pnpm dev
 
 <http://localhost:3000> を開くと表示されます。`src/app/page.tsx` を編集すると自動で反映されます。
 
-このボイラープレートを新規プロジェクトへ fork する場合は追加の手順（リポジトリ初期化、プロジェクト名と
-著作権表記の置換）が必要です。[`.makefiles/README.md`](.makefiles/README.md) を参照してください。
+このボイラープレートを新規プロジェクトへ fork する場合は追加の手順が必要です。**順序に依存する箇所が
+あるので** [`docs/setup.md`](docs/setup.md) を上から辿ってください。
 
 ## コマンド
 
@@ -92,6 +92,7 @@ make help                       # 全 make ターゲットとその説明
 
 正は、それが規定する対象の隣にあります。ここを起点に、目的のトピックを所有するリンクを辿ってください。
 
+- [docs/setup.md](docs/setup.md) — fork してから動かすまでの手順（順序と、人手が要る箇所）
 - [AGENTS.md](AGENTS.md) — AI コーディングエージェント向けの運用ルールと、リポジトリ規約の要約
 - [docs/adr/](docs/adr/) — アーキテクチャ決定記録（ADR）。本リポジトリの規約はすべてここにある
 - [docs/adr/BACKLOG.md](docs/adr/BACKLOG.md) — 未決の決定領域
