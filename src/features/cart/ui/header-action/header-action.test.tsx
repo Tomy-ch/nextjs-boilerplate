@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -78,7 +79,7 @@ describe("CartHeaderAction", () => {
     seed(COFFEE);
     render(<CartHeaderAction />);
 
-    fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
 
     expect(await screen.findByRole("dialog", { name: "カート" })).toBeVisible();
     expect(screen.getByText("1 点入っています。")).toBeVisible();
@@ -89,7 +90,7 @@ describe("CartHeaderAction", () => {
     seed(COFFEE);
     render(<CartHeaderAction />);
 
-    fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
 
     expect(await screen.findByText("深煎りブレンド")).toBeVisible();
     expect(within(screen.getByRole("list")).getByText("$12.34")).toBeVisible();
@@ -100,8 +101,8 @@ describe("CartHeaderAction", () => {
     seed(COFFEE);
     render(<CartHeaderAction />);
 
-    fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
-    fireEvent.click(await screen.findByRole("button", { name: "閉じる" }));
+    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+    await userEvent.click(await screen.findByRole("button", { name: "閉じる" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -140,7 +141,7 @@ describe("CartHeaderAction", () => {
     stubViewport(true);
     render(<CartHeaderAction />);
 
-    fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
 
     expect(await screen.findByText("商品が入っていません。")).toBeVisible();
   });
@@ -157,7 +158,7 @@ describe("CartHeaderAction", () => {
     seed(COFFEE);
     const { container } = render(<CartHeaderAction />);
 
-    fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
     await screen.findByRole("dialog", { name: "カート" });
 
     expect((await axe(container)).violations).toEqual([]);

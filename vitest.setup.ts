@@ -22,3 +22,43 @@ afterAll(() => {
 });
 
 vi.mock("server-only", () => ({}));
+
+// jsdom は Pointer Events の capture API を実装しない。ドラッグを扱う部品（vaul の drawer など）は
+// pointerdown で setPointerCapture を呼ぶため、実際の入力列を再現する user-event がそこで落ちる。
+// 回避のために click だけを直接発火させると、ドラッグ判定の経路を 1 行も通らないテストになる。
+// jsdom は transform の計算値を空文字で返す。vaul は `style.transform || style.webkitTransform ||
+// style.mozTransform` の形で読むため、空文字だと undefined へ落ちて文字列操作で例外になる。
+if (typeof window !== "undefined") {
+  const computeStyle = window.getComputedStyle.bind(window);
+
+  window.getComputedStyle = ((element: Element, pseudoElement?: string | null) => {
+    const style = computeStyle(element, pseudoElement ?? undefined);
+
+    if (style.transform === "") {
+      style.transform = "none";
+    }
+
+    return style;
+  }) as typeof window.getComputedStyle;
+}
+
+if (typeof Element !== "undefined" && Element.prototype.setPointerCapture === undefined) {
+  const captured = new WeakMap<Element, Set<number>>();
+
+  Element.prototype.setPointerCapture = function setPointerCapture(pointerId: number): void {
+    const ids = captured.get(this) ?? new Set<number>();
+
+    ids.add(pointerId);
+    captured.set(this, ids);
+  };
+
+  Element.prototype.releasePointerCapture = function releasePointerCapture(
+    pointerId: number,
+  ): void {
+    captured.get(this)?.delete(pointerId);
+  };
+
+  Element.prototype.hasPointerCapture = function hasPointerCapture(pointerId: number): boolean {
+    return captured.get(this)?.has(pointerId) ?? false;
+  };
+}
