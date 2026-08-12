@@ -4,6 +4,7 @@ import {
   formatPrunePlan,
   isSnapshotRef,
   needsPrune,
+  parseDefaultBranch,
   planPrune,
   type SnapshotRef,
   selectLiveBranches,
@@ -87,6 +88,26 @@ describe("selectRetainedTags", () => {
   // ----- 異常系 -----
   it("本数に満たなければ全数を取る", () => {
     expect(selectRetainedTags(["v0.0.1"])).toEqual(["v0.0.1"]);
+  });
+});
+
+describe("parseDefaultBranch", () => {
+  // ----- 正常系 -----
+  it("symref 行から既定ブランチを取り出す", () => {
+    const output = "ref: refs/heads/main\tHEAD\n0123456789abcdef\tHEAD\n";
+
+    expect(parseDefaultBranch(output)).toBe("main");
+  });
+
+  it("区切りを含むブランチ名も取り出す", () => {
+    expect(parseDefaultBranch("ref: refs/heads/trunk/v2\tHEAD\n")).toBe("trunk/v2");
+  });
+
+  // ----- 異常系 -----
+  it("symref 行が無ければ拒む", () => {
+    expect(() => parseDefaultBranch("0123456789abcdef\tHEAD\n")).toThrow(
+      /既定ブランチを解決できません/,
+    );
   });
 });
 

@@ -46,7 +46,7 @@ vrt-update: build-storybook
 # 撮り直しどうしが繋がり、掃除でどれも落とせなくなる。
 vrt-push:
 	@$(VRT_REQUIRE_WIRING)
-	@bash scripts/vrt-images/push.sh $(VRT_BRANCH)
+	@pnpm exec tsx scripts/vrt-images push $(VRT_BRANCH)
 
 # レポートもコンテナ内で配る。ホスト側の Playwright は比較の前に落とす設計なので、
 # 実行系をここだけホストへ寄せない。--service-ports はこの起動でだけポートを公開する。

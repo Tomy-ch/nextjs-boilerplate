@@ -61,10 +61,11 @@ pre-commit:
         - "scripts/lib/*.ts"
       run: make actions-shellcheck
     shellcheck:
-      # 単体のシェルスクリプトを検査する (ADR 0153)。TypeScript ではないので 1:1 ゲートも
-      # カバレッジも掛からず、.github の外に居るので actionlint も届かない。静的検査だけが
-      # 唯一の網になる。
-      glob: "scripts/**/*.sh"
+      # 単体のシェルスクリプトを検査する (ADR 0153)。ここに居るのは、依存の導入前に走る
+      # 必要があってシェルで書くしかないもの (ADR 0155 の例外)。TypeScript ではないので
+      # 1:1 ゲートもカバレッジも掛からず、.github の外に居るので actionlint も届かない。
+      # 静的検査だけが唯一の網になる。
+      glob: "**/*.sh"
       run: make shellcheck
     actions-comment-secret-lint:
       # PR コメントを投稿するジョブに secret が渡っていないかを検査する (ADR 0153)。

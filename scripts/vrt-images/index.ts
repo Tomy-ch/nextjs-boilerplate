@@ -2,17 +2,19 @@
 
 // 基準画像の置き場に対する操作の入口。
 //
-//   ref <branch>   撮影を指す ref 名を出す（撮り直しの workflow が使う）
+//   ref <branch>   撮影を指す ref 名を出す
+//   push [branch]  撮り直した一式を置き場へ送り、サブモジュールのポインタを進める
 //   report         掃除の要否を判定して本文を出す。促すときだけ終了コード 10 を返す
 //   prune          消してよい ref を実際に消す
 //
 // 置き場側に workflow を持たせないため、GitHub への問い合わせはすべてここから出る。
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import {
   formatPrunePlan,
   needsPrune,
+  parseDefaultBranch,
   planPrune,
   type SnapshotRef,
   selectLiveBranches,
@@ -34,6 +36,9 @@ function main(argv: readonly string[]): void {
     case "ref":
       printSnapshotRef(rest[0]);
       break;
+    case "push":
+      push(rest[0]);
+      break;
     case "report":
       report();
       break;
@@ -41,13 +46,53 @@ function main(argv: readonly string[]): void {
       prune(rest.includes("--dry-run"));
       break;
     default:
-      fail("使い方: vrt-images <ref <branch> | report | prune [--dry-run]>");
+      fail("使い方: vrt-images <ref <branch> | push [branch] | report | prune [--dry-run]>");
   }
 }
 
 function printSnapshotRef(branch: string | undefined): void {
   if (!branch) fail("ブランチ名を渡してください。");
   console.log(snapshotRefName(branch));
+}
+
+/**
+ * 撮り直した一式を置き場へ送り、サブモジュールのポインタを進める。
+ *
+ * 一式まるごとを 1 コミットにし、親は常に置き場の根にする。撮り直しどうしを繋げると古い一式が
+ * 新しい一式の祖先になり、掃除でどれも落とせなくなる。根を共有させるのは、GitHub の compare が
+ * 無関係な履歴どうしを比較できないため。
+ *
+ * 手元と CI が同じ形の木を積むよう、`make vrt-push` も撮り直しの workflow もここを通る。
+ * 呼び出し側が読めるよう `before=` / `after=` / `count=` を出す。
+ */
+function push(branch: string | undefined): void {
+  if (!existsSync(`${SUBMODULE_PATH}/.git`)) {
+    fail(
+      `${SUBMODULE_PATH} が取り込まれていません。git submodule update --init ${SUBMODULE_PATH} を実行してください。`,
+    );
+  }
+
+  const target = branch ?? git(["rev-parse", "--abbrev-ref", "HEAD"]);
+  const ref = snapshotRefName(target);
+  const before = store(["rev-parse", "HEAD"]);
+
+  store(["add", "--all"]);
+  const staged = store(["diff", "--cached", "--name-only"]);
+  if (staged === "") {
+    fail("撮り直した画像が既存と同じです。基準画像は更新していません。");
+  }
+
+  const root = parseDefaultBranch(store(["ls-remote", "--symref", "origin", "HEAD"]));
+  store(["fetch", "--quiet", "--depth", "1", "origin", root]);
+  store(["reset", "--soft", "FETCH_HEAD"]);
+  store(["commit", "--quiet", "-m", `Test: ${target} の基準画像を撮り直す`]);
+  store(["push", "--quiet", "--force", "origin", `HEAD:refs/heads/${ref}`]);
+
+  git(["add", SUBMODULE_PATH]);
+
+  console.log(`before=${before}`);
+  console.log(`after=${store(["rev-parse", "HEAD"])}`);
+  console.log(`count=${staged.split("\n").length}`);
 }
 
 function report(): void {
@@ -165,6 +210,15 @@ function ghText(args: readonly string[]): string {
 
 function gh(args: readonly string[]): string {
   return execFileSync("gh", [...args], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+}
+
+function git(args: readonly string[]): string {
+  return execFileSync("git", [...args], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).trim();
+}
+
+/** 置き場（サブモジュール）の中で走らせる git。 */
+function store(args: readonly string[]): string {
+  return git(["-C", SUBMODULE_PATH, ...args]);
 }
 
 function fail(message: string): never {

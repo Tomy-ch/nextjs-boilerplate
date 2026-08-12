@@ -108,6 +108,21 @@ export function formatPrunePlan(plan: PrunePlan, repositoryMiB: number): string 
   return lines.join("\n");
 }
 
+/**
+ * `git ls-remote --symref origin HEAD` の出力から既定ブランチ名を取り出す。
+ *
+ * @remarks
+ * 撮影したコミットの親はここが指す**根**です。名前を宣言側から引かずサーバへ聞くのは、
+ * 置き場を作った人が既定ブランチ名を変えていても追随するためです。
+ */
+export function parseDefaultBranch(lsRemoteOutput: string): string {
+  const match = /^ref:\s+refs\/heads\/(\S+)\s+HEAD$/m.exec(lsRemoteOutput);
+  if (match === null) {
+    throw new Error("置き場の既定ブランチを解決できません。");
+  }
+  return match[1];
+}
+
 function escapeRegExp(literal: string): string {
   return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

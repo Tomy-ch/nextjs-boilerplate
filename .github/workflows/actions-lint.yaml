@@ -20,10 +20,12 @@ name: Actions Lint
 #   actions-mise-pin-…  — the mise version, its digest and the cache key agree. mise's
 #     …lint               own version cannot live in `mise.toml`, so it is declared in
 #                         `.github/actions/setup-mise` in three places at once.
-#   shellcheck          — standalone `scripts/**/*.sh`. Nothing else covers them: they
-#                         are not TypeScript, so neither the 1:1 gate nor coverage
-#                         applies, and they sit outside `.github` so actionlint and
-#                         actions-shellcheck both miss them.
+#   shellcheck          — every tracked standalone `*.sh`. What lives there is shell
+#                         only because it has to run before dependencies are installed
+#                         (the exception ADR 0155 allows). Nothing else covers it: it is
+#                         not TypeScript, so neither the 1:1 gate nor coverage applies,
+#                         and it sits outside `.github` so actionlint and
+#                         actions-shellcheck both miss it.
 #
 # All of them are reported through a single PR comment: they answer the same question
 # — is the automation we are about to execute correct — and splitting them would add

@@ -192,7 +192,7 @@ jobs:
 
           make vrt-update VRT_ONLY="$ids"
 
-      # The same script a developer runs as `make vrt-push`, so the shape of what lands
+      # The same command a developer runs as `make vrt-push`, so the shape of what lands
       # in the store does not depend on who took the screenshots.
       - name: Push the baselines to the store
         id: push-store
@@ -208,7 +208,7 @@ jobs:
           git -C vrt/__screenshots__ config user.name 'github-actions[bot]'
           git -C vrt/__screenshots__ config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-          bash scripts/vrt-images/push.sh "$BRANCH" >> "$GITHUB_OUTPUT"
+          pnpm exec tsx scripts/vrt-images push "$BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: Move the submodule pointer
         id: push

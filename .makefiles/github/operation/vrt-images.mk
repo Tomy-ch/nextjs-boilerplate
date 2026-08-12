@@ -7,10 +7,10 @@
 .PHONY: vrt-images-prune ## 基準画像の履歴のうち、生きた ref から到達しないものを破棄
 
 setup-vrt-images:
-	@bash scripts/setup/vrt-images/setup-images.sh
+	@pnpm exec tsx scripts/setup/vrt-images images
 
 setup-vrt-app:
-	@bash scripts/setup/vrt-images/setup-app.sh
+	@pnpm exec tsx scripts/setup/vrt-images app
 
 # 履歴の書き換えは取り消せない。保持すべきコミットの算出と実際の書き換えを 1 コマンドに
 # 束ねているのは、算出結果を人が見てから別のコマンドを叩く運用にすると、見た結果と書き換える
