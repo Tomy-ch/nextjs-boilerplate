@@ -101,6 +101,9 @@ export function Toaster({
   // 対象ごとに id を採る呼び出し元（同じ対象で再び失敗したら同じ id）では、二度目の
   // 通知が二度と出せなくなる。
   useEffect(() => {
+    // queue から外れたことの検出は「消えた」という遷移の観測であり、描画時の導出では表せない。
+    // TODO: 導出へ寄せられるかを #169 で判定する
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 遷移の観測のため
     setDismissedIds((current) => {
       const next = new Set([...current].filter((id) => currentIds.has(id)));
 
