@@ -56,6 +56,24 @@ jobs:
             '❌ fork からの PR には基準画像を push できません。手元で make vrt-update を実行してコミットしてください。' || true
           exit 1
 
+      # The check that must go green runs against `refs/pull/N/merge` — the branch
+      # merged into its base. Retaking on a head that is behind base would capture a
+      # different tree than the one being judged, so the label would never clear.
+      # Refusing is the honest move: the person merges base in and labels again.
+      - name: Refuse a branch that is behind its base
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          behind="$(gh api "repos/$GITHUB_REPOSITORY/compare/$BASE...$HEAD_SHA" --jq .behind_by)"
+          if [ "$behind" != "0" ]; then
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
+              "❌ base より ${behind} コミット遅れています。判定される木と撮る木が食い違うため、${BASE} を取り込んでからラベルを付け直してください。"
+            exit 1
+          fi
+
       - name: Checkout the pull request branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:

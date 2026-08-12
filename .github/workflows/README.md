@@ -65,6 +65,14 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 **GitHub Pages の有効化はユーザが Settings で実施する**（ワークフロー側で `actions/configure-pages` による自動有効化はしない）。有効化前に走った実行は deploy job で失敗する。
 
+## required status check
+
+[`../settings/branch-protection.json`](../settings/branch-protection.json) が **CI Checks 群を必須**にし、`strict` でブランチが最新であることを要求する。これは VRT が成立する条件でもある — 判定しているのは base へマージした結果の木（`refs/pull/N/merge`）なので、base が動いた後の緑をそのまま通すと、基準画像が「実際にマージされる木」とずれる。
+
+`paths:` フィルタを持つ 3 つ（`classes` / `manifest` / `deploy-docs` の `build`）は登録しない。触らない PR では context が報告されず、必須待ちで止まるため。
+
+> `deploy-docs.yaml` の job 名が `build.yaml` と衝突しており、必須に登録した `build` はどちらにも一致する。docs を触る PR では両方が緑である必要があり、実害は無いが名前は分けたほうがよい。
+
 ## hooks mirror CI
 
 `lint` / `md-lint` / `typecheck` / `actions-lint` / `actions-pin` / `images-pin` の 6 本は、[lefthook](../../.lefthook.yaml) が回すのと**同じコマンド**を実行する。`test` は二層実行で、pre-commit の `make test-cached` に対し、pre-push と CI は `make test-full` を実行する。hook は高速な第一段、CI は権威という二層（[0153](../../docs/adr/0153-ci-configuration.md) §4 / [0151](../../docs/adr/0151-git-hooks.md)）。
