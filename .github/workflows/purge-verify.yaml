@@ -12,6 +12,13 @@ name: Purge Verify
 # The checkout is disposable, so the job deliberately deletes tracked files and
 # never pushes anything back.
 #
+# A fork that has already purged no longer has the tooling this job drives, because
+# the purge manifest removes it. The job then fails on a missing script, which is
+# the intended signal: the guard step below turns that into an explicit instruction
+# instead of a puzzling "file not found". Deleting this workflow as part of the purge
+# was considered and rejected — a fork that later grows its own sample would have
+# lost the mechanism with no trace that it ever existed.
+#
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
 
@@ -73,6 +80,17 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Fails loudly with an actionable message when the sample is already gone, so a
+      # fork does not have to work out why a script is missing.
+      - name: Require the purge tooling to be present
+        shell: bash
+        run: |
+          if [ ! -d scripts/setup/remove-sample ]; then
+            echo "::error::The sample has already been purged, so this job has nothing to verify."
+            echo "::error::Delete .github/workflows/purge-verify.yaml — it only guards the boilerplate itself."
+            exit 1
+          fi
 
       # Preview first. A manifest entry pointing outside the repository, or a marker
       # block left unclosed, fails here before anything is deleted.
