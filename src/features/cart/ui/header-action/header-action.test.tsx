@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
 import { CartHeaderAction } from "./header-action";
@@ -15,14 +16,28 @@ const COFFEE: CartLineInput = {
   stockQuantity: 20,
 };
 
-/** jsdom は `matchMedia` を持たない。幅の想定を story ごとに明示するため per-test で置く。 */
+type Listener = () => void;
+
+/** jsdom は `matchMedia` を持たない。幅の想定をケースごとに明示するため、`it` ごとに置き換える。 */
 function stubViewport(narrow: boolean) {
+  const listeners = new Set<Listener>();
+  const state = { matches: narrow };
+
   vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: narrow,
+    matches: state.matches,
     media: query,
-    addEventListener: () => {},
-    removeEventListener: () => {},
+    addEventListener: (_: string, listener: Listener) => listeners.add(listener),
+    removeEventListener: (_: string, listener: Listener) => listeners.delete(listener),
   }));
+
+  return {
+    resize(toNarrow: boolean) {
+      state.matches = toNarrow;
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+  };
 }
 
 /** 初期状態を作る。追加が立てた「見たい」要求は種まきの副産物なので畳む。 */
@@ -99,6 +114,28 @@ describe("CartHeaderAction", () => {
     expect(await screen.findByRole("dialog", { name: "カート" })).toBeVisible();
   });
 
+  it("常設できる幅で追加してから狭めても操作なしには開かない", () => {
+    const media = stubViewport(false);
+    render(<CartHeaderAction />);
+    act(() => useCartStore.getState().add(COFFEE));
+
+    act(() => media.resize(true));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("開いたまま常設できる幅へ移り、狭い幅へ戻しても開かない", async () => {
+    const media = stubViewport(true);
+    render(<CartHeaderAction />);
+    act(() => useCartStore.getState().add(COFFEE));
+    await screen.findByRole("dialog");
+
+    act(() => media.resize(false));
+    act(() => media.resize(true));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("カートが空のときは入っていないことを伝える", async () => {
     stubViewport(true);
     render(<CartHeaderAction />);
@@ -106,5 +143,23 @@ describe("CartHeaderAction", () => {
     fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
 
     expect(await screen.findByText("商品が入っていません。")).toBeVisible();
+  });
+  it("閉じた状態が a11y 自動検査に違反しない", async () => {
+    stubViewport(true);
+    seed(COFFEE);
+    const { container } = render(<CartHeaderAction />);
+
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
+  it("開いた状態が a11y 自動検査に違反しない", async () => {
+    stubViewport(true);
+    seed(COFFEE);
+    const { container } = render(<CartHeaderAction />);
+
+    fireEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+    await screen.findByRole("dialog", { name: "カート" });
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

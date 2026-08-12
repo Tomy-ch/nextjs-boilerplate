@@ -59,6 +59,8 @@ describe("useCartStore", () => {
 
   it("中身を見たいかどうかを指定できる", () => {
     useCartStore.getState().setOpen(true);
+    expect(useCartStore.getState().isOpen).toBe(true);
+
     useCartStore.getState().setOpen(false);
 
     expect(useCartStore.getState().isOpen).toBe(false);
@@ -111,6 +113,14 @@ describe("useCartStore", () => {
     useCartStore.getState().add({ ...PRODUCT, stockQuantity: 2 });
 
     expect(useCartStore.getState().lines[0]?.quantity).toBe(2);
+  });
+
+  it("既に開いている状態で在庫が無い商品を追加しても開いたままにする", () => {
+    useCartStore.getState().setOpen(true);
+
+    useCartStore.getState().add({ ...PRODUCT, stockQuantity: 0 });
+
+    expect(useCartStore.getState().isOpen).toBe(true);
   });
 
   it("在庫が無い商品の追加では中身を見たい状態にしない", () => {

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { useMediaQuery } from "@/capabilities/use-media-query";
 import { Button } from "@/components/design-system/action/button/button";
 import {
@@ -17,10 +19,10 @@ import { CartContents } from "../contents/contents";
 import { CartCount } from "../count/count";
 
 /**
- * 脇に常設できない幅。`lg` の下限（Tailwind の既定）に合わせる。
+ * 脇に常設できない幅。タブレットを含む（[0051](../../../../docs/adr/0051-styling-system.md) §2）。
  *
- * タブレットもここに含めます。`md`（768px）で分けると 768〜1023px の実機が脇に常設する側へ入り、
- * 本文が rail のぶんだけ潰れます。
+ * `CartPanel` は同じ境界を Tailwind の `lg:` で表すため、`--breakpoint-lg` を差し替えるときは
+ * この値も合わせる。ずれると両方出る幅か、両方消える幅ができる。
  */
 const NARROW = "(max-width: 1023px)";
 
@@ -38,6 +40,9 @@ const NARROW = "(max-width: 1023px)";
  * 開閉は store の要求に従います。商品をカートへ入れたときも開く必要があり、その操作は別の feature に
  * あるためです。この部品の内側に開閉を持つと、追加しても何も起きない幅ができます。
  *
+ * 常設できる幅では要求をその場で畳みます。要求は幅を問わず立つため、畳まないと幅を狭めた時点で操作なしに
+ * 開きます。
+ *
  * 出し分けを CSS ではなく media query の購読で行うのは、drawer が focus trap を持つためです。
  * CSS で隠しても DOM は残るため、広い幅でも focus が閉じ込められます。
  */
@@ -46,6 +51,12 @@ export function CartHeaderAction() {
   const lines = useCartStore((state) => state.lines);
   const isOpen = useCartStore((state) => state.isOpen);
   const setOpen = useCartStore((state) => state.setOpen);
+
+  useEffect(() => {
+    if (!isNarrow && isOpen) {
+      setOpen(false);
+    }
+  }, [isNarrow, isOpen, setOpen]);
 
   if (!isNarrow) {
     return <CartCount />;
