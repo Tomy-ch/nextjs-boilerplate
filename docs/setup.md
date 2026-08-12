@@ -11,12 +11,12 @@
 | --- | --- |
 | [mise](https://mise.jdx.dev) | ツール / ランタイムの版管理。**シェルで activate しておくこと**（[0003](adr/0003-version-manager.md)） |
 | GitHub CLI (`gh`) | リポジトリ運用の make ターゲットが使う。`gh auth login` 済みであること |
-| Docker | VRT の撮影に使う。基準画像は digest 固定したコンテナの中でしか撮らない（[`vrt/README.md`](../vrt/README.md)） |
+| Docker | 手順 6 でのみ使う。基準画像は digest 固定したコンテナの中でしか撮らない（[`vrt/README.md`](../vrt/README.md)） |
 
 ## 1. 手元を用意する
 
 ```bash
-git clone <自分のリポジトリ>
+git clone --recurse-submodules <自分のリポジトリ>   # VRT の基準画像がサブモジュール
 cd <リポジトリ>
 
 make install-tools
@@ -72,21 +72,44 @@ EC の題材を持つ画面群と、その題材に固有の契約・モック�
 make setup-vrt-images
 ```
 
-置き場の既定名は `<リポジトリ名>-vrt-images`。組織で新規作成が縛られている場合は、
-先に出る「既存のリポジトリへ配置しますか?」へ `<org>/<repo>` を入力すると作成を飛ばす。
+3 つ聞かれる。既定でよければ Enter。
 
-**置き場にルールセットを掛けないこと。** 撮り直しは GitHub App の push で行うため、保護を掛けると
-更新経路そのものを塞ぐ。
+```text
+既存のリポジトリへ配置しますか? 空欄なら新規作成 [<org>/<repo>]:   ← 空欄で新規作成
+作成するリポジトリ名 [<リポジトリ名>-vrt-images]:
+公開範囲 (public / private / internal) [<親と同じ>]:
+```
+
+組織で新規作成が権限で縛られている場合は、最初の問いに既存の `<org>/<repo>` を入れる。
+
+終わったら配線をコミットする。
+
+```bash
+git add .gitmodules vrt/__screenshots__
+git commit -m "Build: 基準画像の置き場を配線する"
+```
+
+> **置き場にルールセットを掛けないこと。** 撮り直しは GitHub App の push で行うため、
+> 保護を掛けると更新経路そのものを塞ぐ。
 
 ### 6-2. GitHub App を作る（人手）
 
 自動化できない。REST に作成の口が無く、秘密鍵は生成時に一度しか表示されない。
 
-1. Settings → Developer settings → GitHub Apps → **New GitHub App**
-2. 名前は任意。**Webhook は Active を外す**
-3. Repository permissions → **Contents: Read and write** だけを付ける。他は No access のまま
-4. 作成後、**Install App** で **本体と置き場の 2 つだけ**を選ぶ（All repositories にしない）
-5. General → Private keys → **Generate a private key**。ダウンロードされる `.pem` を開いておく
+<https://github.com/settings/apps/new> で作る。
+
+| 項目 | 値 |
+| --- | --- |
+| GitHub App name | 任意（**global に一意**） |
+| Homepage URL | 任意 |
+| Webhook | **Active のチェックを外す** |
+| Repository permissions → Contents | **Read and write** |
+| その他の permissions | No access のまま |
+
+作成後、続けて 2 つ。
+
+1. **Install App** → **Only select repositories** で**本体と置き場の 2 つだけ**
+2. **General → Private keys → Generate a private key** → `.pem` がダウンロードされる
 
 ### 6-3. App を登録する
 
@@ -94,18 +117,40 @@ make setup-vrt-images
 make setup-vrt-app
 ```
 
-App の slug（`github.com/apps/<ここ>`）を聞かれる。App ID は slug から解決するので控える必要はない。
-続けて秘密鍵の貼り付けを求められるので、`.pem` の中身をそのまま貼って `Ctrl+D`。
-ディスクにもシェル履歴にも残らない。
+```text
+App の slug を入力 (github.com/apps/<ここ>):   ← slug でも URL 丸ごとでも可
 
-登録が済んだら `.pem` は手元から消してよい。
+  App 名 : ...
+  App ID : ...
+
+この App を登録しますか (y/N) [N]:            ← y
+
+秘密鍵 (.pem の中身) を貼り付けて Ctrl+D:      ← .pem の全文を貼って Ctrl+D
+```
+
+App ID は slug から解決するので控える必要はない。秘密鍵は `gh` の標準入力へ直接渡るので、
+ディスクにもシェル履歴にも残らない。登録後は `.pem` を消してよい。
+
+```bash
+gh secret list   # VRT_APP_ID / VRT_APP_PRIVATE_KEY が並ぶ
+```
 
 ### 6-4. 最初の基準画像を撮る
+
+Docker が要る。全 story を撮るので時間がかかる。
 
 ```bash
 make vrt-update   # 撮る
 make vrt-push     # 置き場へ送り、サブモジュールのポインタを進める
-git commit -m "Test: 基準画像を撮る"
+git commit -am "Test: 基準画像を撮る"
+```
+
+`make vrt-push` は送った結果を出す。
+
+```text
+before=<置き場の直前のコミット>
+after=<撮影したコミット>
+count=<動いた枚数>
 ```
 
 以降の運用（撮り直し・承認・掃除）は [`vrt/README.md`](../vrt/README.md) が正。
