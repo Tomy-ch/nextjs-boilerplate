@@ -41,14 +41,25 @@ export const SAMPLE_PATHS: readonly string[] = [
   "mocks/api",
   "mocks/auth",
   "mocks/contract-conformance.test.ts",
-  // 破棄の道具（使い終わったら不要）
+  // 破棄の道具（使い終わったら不要）。ディレクトリごと挙げれば、判定モジュールを足しても漏れない。
   "scripts/setup/remove-sample",
-  "scripts/setup/lib/markers.ts",
-  "scripts/setup/lib/markers.test.ts",
 ];
 
 // verify 自身は検証の後に自分で消える（`selfDestructTargets`）。ここへ登録すると、検証の前に
 // 消えて検証そのものが走らない。
+
+/**
+ * 破棄後に実装へ残っていてはいけない題材の語彙。
+ *
+ * @remarks
+ * 検証側はこれをスナップショット経由で受け取ります。**検証は削除の後に走り、その時点でこの
+ * モジュールは消えている**ため、import では渡せません。宣言をここに置くのは、破棄する対象と
+ * 残留を探す語彙が同じ表から出る必要があるからです。
+ *
+ * 英語の語には語境界を付けます。付けないと別語の一部に当たります（`CartesianGrid` が `cart` に
+ * 一致し、題材と無関係な部品が消し残しとして報告されます）。
+ */
+export const DANGLING_PATTERN = "商品|カート|在庫|購入|注文|\\bproducts\\b|\\bcart\\b";
 
 /** マーカーの名前。`sample:begin` / `sample:end` / `sample:line` / `sample:replace-*` を作る。 */
 export const SAMPLE_MARKER = "sample";
@@ -109,12 +120,14 @@ export const BINARY_EXTENSIONS: readonly string[] = [
  * 除去はリポジトリを走査します。対象ファイルの一覧を持たないのは、**一覧の外側にマーカーを
  * 書けてしまい、しかもその取りこぼしが無言だから**です。代わりに要るのがこの逆向きの宣言です。
  *
- * 非対称なのは、こちらの取りこぼしが**声を出す**点です。宣言し忘れたファイルは内容が壊れ、
- * purge 検証 CI の `lint:ci` / `md-lint` / `build` / `test` が落ちます。
+ * 非対称なのは、こちらの取りこぼしが**声を出す**点です。ただし声が出るのは**対応の取れていない
+ * マーカーを持つ場合**に限ります。閉じたペアを散文が持っていると、その区間は例外を出さずに消え、
+ * 文章が欠けただけでは検査を通ります。除去した行数を実行時に出しているのは、その場合に人が
+ * 気づけるようにするためです。
  */
 export const MARKER_LITERAL_FILES: readonly string[] = [
   // マーカー除去そのもののテスト。入力としてマーカーの形を持つ。
-  "scripts/setup/lib/markers.test.ts",
+  "scripts/setup/remove-sample/markers.test.ts",
   // マーカーの名前と形を宣言・説明している当ファイル自身。
   "scripts/setup/remove-sample/sample-manifest.ts",
   // 破棄の手順を説明する散文。マーカーの書き方をそのまま載せている。

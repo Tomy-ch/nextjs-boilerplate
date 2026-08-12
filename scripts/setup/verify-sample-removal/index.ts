@@ -34,12 +34,13 @@ function selfDestruct(): void {
 function main(): void {
   console.log("🔍 サンプル破棄の検証を開始します（過不足・残留参照・道具の自消滅）。");
 
+  const snapshot = parseSnapshot(fs.readFileSync(SNAPSHOT_PATH, "utf8"));
   const failures = collectFailures({
-    registeredPaths: parseSnapshot(fs.readFileSync(SNAPSHOT_PATH, "utf8")),
+    registeredPaths: snapshot.registeredPaths,
     pathExists: (relativePath) => fs.existsSync(path.join(ROOT_DIR, relativePath)),
     gitStatusPorcelain: readCommand("git", ["status", "--porcelain"]),
     makeHelpOutput: readCommand("make", ["help"]),
-    danglingHits: readCommand("bash", ["-c", buildDanglingCommand()]),
+    danglingHits: readCommand("bash", ["-c", buildDanglingCommand(snapshot.danglingPattern)]),
   });
 
   if (failures.length > 0) {

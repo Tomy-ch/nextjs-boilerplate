@@ -250,11 +250,10 @@ describe("NavigationMenuViewport", () => {
 
     expect(document.querySelector('[data-slot="navigation-menu-viewport"]')).toBeNull();
   });
-
-  // ----- 異常系 -----
 });
 
 describe("NavigationMenuIndicator", () => {
+  // ----- 正常系 -----
   it("開いている項目が無ければ位置の印を描画しない", () => {
     render(<NavigationFixture />);
 

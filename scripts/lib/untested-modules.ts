@@ -44,7 +44,7 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
 /**
  * 判定を持たないモジュール。
  *
- * - `scripts/setup/lib/runtime.ts` — リポジトリルートの解決と commander の生成だけ。
+ * - `scripts/setup/lib/runtime.ts` — リポジトリルートの解決と共通フラグ（`--dry-run` / `--help`）の解析だけ。
  * - `docs-viewer/src/main.tsx` — ビューアーの entry。読み込まれた時点で DOM を触るため、
  *   判断はすべて `mount/` 側に置いてある。
  */
