@@ -3,6 +3,7 @@
 # name / repo / path / ref は人が宣言する。sha / fetchedAt は取得時にスクリプトが
 # 書き戻すため手で編集しない。取得物は `openapi/<name>.gen.yaml` に落ちる。
 sources:
+  # sample:begin
   # go-boilerplate 本体の API 契約。admin と一般が同居しており、tags でも security でも
   # scope でも機械的に分割できないため 1 ユニットとして扱う。
   - name: api
@@ -21,3 +22,4 @@ sources:
     ref: d38429464b44e354e4386b0b0ed94d884003a008
     sha: 9be739a99afc691e446df2704d12b60e6e2431f1
     fetchedAt: 2026-08-07T09:16:03.273Z
+  # sample:end

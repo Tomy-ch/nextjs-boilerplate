@@ -1,0 +1,111 @@
+name: Purge Verify
+
+# Runs the sample purge on a throwaway checkout and proves the repository still
+# builds and passes every gate without the sample.
+#
+# This job exists because the fork-side verifier self-destructs after its single
+# successful run (`scripts/setup/verify-sample-removal`). Nothing else would notice
+# if the purge stopped working: a marker added outside a stripped region, a new
+# import that reaches into the sample, or a manifest entry that went stale would
+# all stay green until someone actually forked and ran it.
+#
+# The checkout is disposable, so the job deliberately deletes tracked files and
+# never pushes anything back.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  purge-verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          version: 2026.7.12
+          install: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Node and pnpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise install core:node aqua:pnpm/pnpm
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          # Assigned first so a failure inside the substitution fails the step; an
+          # `echo "$(...)"` would report success and hand the cache an empty path.
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Preview first. A manifest entry pointing outside the repository, or a marker
+      # block left unclosed, fails here before anything is deleted.
+      - name: Preview the purge
+        run: pnpm exec tsx scripts/setup/remove-sample --dry-run
+
+      - name: Purge the sample
+        run: pnpm exec tsx scripts/setup/remove-sample
+
+      # The gates run against the purged tree. A reference left behind by the
+      # manifest surfaces here and nowhere earlier.
+      - name: Format the purged tree
+        run: pnpm fix
+
+      - name: Lint the purged tree
+        run: pnpm lint:ci
+
+      - name: Typecheck the purged tree
+        run: pnpm typecheck
+
+      - name: Lint markdown of the purged tree
+        run: pnpm md-lint
+
+      - name: Build the purged tree
+        run: pnpm build
+
+      - name: Test the purged tree
+        run: pnpm test
+
+      - name: Test the scripts of the purged tree
+        run: pnpm test:scripts
+
+      # Runs last: it self-destructs on success, so anything after it would be
+      # verifying a tree whose verifier is already gone.
+      - name: Verify the purge left nothing behind
+        run: pnpm exec tsx scripts/setup/verify-sample-removal

@@ -7,8 +7,8 @@ import { axe } from "vitest-axe";
 import { AppShellMenu } from "./app-shell-menu";
 
 const ITEMS = [
-  { href: "/products", label: "商品" },
-  { href: "/orders", label: "注文" },
+  { href: "/reports", label: "レポート" },
+  { href: "/settings", label: "設定" },
 ];
 
 describe("AppShellMenu", () => {
@@ -25,17 +25,17 @@ describe("AppShellMenu", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
-    expect(screen.getByRole("link", { name: "商品" })).toHaveAttribute("href", "/products");
-    expect(screen.getByRole("link", { name: "注文" })).toHaveAttribute("href", "/orders");
+    expect(screen.getByRole("link", { name: "レポート" })).toHaveAttribute("href", "/reports");
+    expect(screen.getByRole("link", { name: "設定" })).toHaveAttribute("href", "/settings");
   });
 
   it("導線を選ぶと閉じる", () => {
     render(<AppShellMenu items={ITEMS} />);
     fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
-    fireEvent.click(screen.getByRole("link", { name: "商品" }));
+    fireEvent.click(screen.getByRole("link", { name: "レポート" }));
 
-    expect(screen.queryByRole("link", { name: "商品" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "レポート" })).toBeNull();
   });
 
   it("a11y 自動検査に違反しない", async () => {
