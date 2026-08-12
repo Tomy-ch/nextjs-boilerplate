@@ -47,7 +47,6 @@ describe("AppShellMenu", () => {
     ).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("導線が無くてもメニューを開ける", () => {
     render(<AppShellMenu items={[]} />);
 

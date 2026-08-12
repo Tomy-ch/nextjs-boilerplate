@@ -38,12 +38,13 @@ describe("ProductPagination", () => {
       "keyword=%E9%9D%B4",
     );
   });
-  // ----- 異常系 -----
   it("次ページが無ければ何も出さない", () => {
     const { container } = render(<ProductPagination nextCursor={null} searchParams={{}} />);
 
     expect(container).toBeEmptyDOMElement();
   });
+
+  // ----- 異常系 -----
 
   it("空の条件を引き継がない", () => {
     render(<ProductPagination nextCursor="cursor-1" searchParams={{ keyword: "" }} />);

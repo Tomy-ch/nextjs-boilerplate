@@ -10,10 +10,11 @@ describe("claudeConfigDir", () => {
     expect(claudeConfigDir({ CLAUDE_CONFIG_DIR: "/tmp/claude" })).toBe("/tmp/claude");
   });
 
-  // ----- 異常系 -----
   it("指定が無ければ home 配下の .claude を使う", () => {
     expect(claudeConfigDir({})).toBe(path.join(os.homedir(), ".claude"));
   });
+
+  // ----- 異常系 -----
 
   it("空文字の指定は無指定として扱う", () => {
     expect(claudeConfigDir({ CLAUDE_CONFIG_DIR: "" })).toBe(path.join(os.homedir(), ".claude"));
