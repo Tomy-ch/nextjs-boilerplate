@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, render, screen } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useMediaQuery } from "./use-media-query";
@@ -76,5 +77,9 @@ describe("useMediaQuery", () => {
     unmount();
 
     expect(media.listenerCount()).toBe(0);
+  });
+
+  it("サーバでは query を見ずに偽を返す", () => {
+    expect(renderToStaticMarkup(<Probe />)).toBe("<p>不一致</p>");
   });
 });
