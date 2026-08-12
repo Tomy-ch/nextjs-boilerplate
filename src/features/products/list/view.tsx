@@ -1,12 +1,6 @@
-import type { Product } from "@/model/product/product";
+import type { ProductListItem } from "@/model/product/product";
 
 import { ProductCard } from "./ui/card/card";
-
-/** 一覧に並べる 1 件と、その画像 URL の対。 */
-export type ProductListItem = {
-  product: Product;
-  imageUrl: string | null;
-};
 
 /** `ProductList` の props。 */
 export type ProductListProps = {
@@ -24,6 +18,10 @@ const LEADING_COUNT = 3;
  * 取得は行いません。渡されたものを並べるだけにしてあるのは、同じ並びを検索結果・カテゴリ別・
  * ランキングのいずれからも使うためです。
  *
+ * 段の数は器の幅で決めます。脇に絞り込みが常設される幅では本文の取り分がその分狭くなるため、
+ * viewport で決めると同じ viewport でも詰まって見える帯ができます
+ * （[0051](../../../docs/adr/0051-styling-system.md) §2）。
+ *
  * 空の場合に「0 件」とだけ出さないのは、利用者が次に何をすればよいか分からないためです。
  */
 export function ProductList({ items }: ProductListProps) {
@@ -39,12 +37,14 @@ export function ProductList({ items }: ProductListProps) {
   }
 
   return (
-    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map(({ product, imageUrl }, index) => (
-        <li key={product.id}>
-          <ProductCard product={product} imageUrl={imageUrl} leading={index < LEADING_COUNT} />
-        </li>
-      ))}
-    </ul>
+    <div className="@container/list">
+      <ul className="grid grid-cols-1 gap-4 @4xl/list:grid-cols-2">
+        {items.map((item, index) => (
+          <li key={item.id}>
+            <ProductCard item={item} leading={index < LEADING_COUNT} />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -1,16 +1,49 @@
-import { getProducts } from "@/adapters/server/api/products";
-import { resolveMediaUrl } from "@/adapters/server/media/media-url";
-import type { RawSearchParams } from "./query";
-import { toProductQuery } from "./query";
-import { ProductPagination } from "./ui/pagination/pagination";
+import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
+import {
+  getProductListPage,
+  PRODUCT_SORT,
+  parseProductQuery,
+} from "@/adapters/server/api/products";
+import { getDefaultErrorMeta } from "@/errors/error-catalog";
+import { ErrorKind } from "@/errors/error-kind";
+import type { ProductRef } from "@/model/product/product";
+
+import {
+  COUNT_KEY,
+  FILTER_KEY,
+  type FilterOption,
+  normalizeSearchParams,
+  PRODUCT_PAGE_SIZE,
+  type RawSearchParams,
+  toConditions,
+} from "./query";
+import type { FilterGroup } from "./ui/filter-fields/filter-fields";
+import { ProductFilterSheet } from "./ui/filter-sheet/filter-sheet";
+import { ProductFilterSidebar } from "./ui/filter-sidebar/filter-sidebar";
+import { ProductInfiniteList } from "./ui/infinite-list/infinite-list";
+import { ProductInvalidQuery } from "./ui/invalid-query/invalid-query";
 import { ProductSearch } from "./ui/search/search";
-import { ProductList } from "./view";
+import { ProductSortSelect } from "./ui/sort-select/sort-select";
 
 /** `ProductListPageContent` の props。 */
 export type ProductListPageContentProps = {
   /** page が受け取った素の検索条件。 */
   searchParams: RawSearchParams;
 };
+
+/** 並び替えの選択肢。既定の並びは URL に載せないため、値を空にしてある。 */
+const SORT_OPTIONS: readonly FilterOption[] = [
+  { value: "", label: "新着順" },
+  { value: PRODUCT_SORT.OLDEST, label: "古い順" },
+];
+
+/** マスタを「すべて」付きの選択肢へ直す。 */
+function toOptions(refs: readonly ProductRef[]): readonly FilterOption[] {
+  return [
+    { value: "", label: "すべて" },
+    ...refs.map(({ id, name }) => ({ value: id, label: name })),
+  ];
+}
 
 /**
  * 商品一覧の中身。取得と組み立てを行う。
@@ -20,22 +53,61 @@ export type ProductListPageContentProps = {
  * ためです（[0080](../../../docs/adr/0080-error-handling.md)）。page 全体を 1 つの待機表示で
  * 覆うと、検索欄まで一緒に消えて操作できなくなります。
  *
- * 画像 URL の解決をここでまとめているのは、`adapters` を呼べるのが feature までであり、
- * 表示部品に設定を持ち込まないためです。
+ * 一覧とマスタを並行して取得します。直列にすると、分類の一覧が返るまで商品の取得が始まりません。
+ *
+ * 絞り込みを幅ごとに 2 つ置き、CSS で出し分けます。位置が動く出し分けを JS の幅判定で行うと、
+ * サーバでは判定できないため hydration の前後で配置が動きます
+ * （[0051](../../../docs/adr/0051-styling-system.md) §2）。
  */
 export async function ProductListPageContent({ searchParams }: ProductListPageContentProps) {
-  const query = toProductQuery(searchParams);
-  const page = await getProducts(query);
-  const items = page.products.map((product) => ({
-    product,
-    imageUrl: resolveMediaUrl(product.imagePaths[0] ?? null),
-  }));
+  const selection = normalizeSearchParams(searchParams);
+  const parsed = parseProductQuery({
+    ...selection,
+    [COUNT_KEY]: selection[COUNT_KEY] ?? String(PRODUCT_PAGE_SIZE),
+  });
+
+  if (!parsed.ok) {
+    return (
+      <ProductInvalidQuery
+        invalidKeys={parsed.invalidKeys}
+        message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
+      />
+    );
+  }
+
+  const [page, categories, statuses] = await Promise.all([
+    getProductListPage(parsed.query),
+    getProductCategories(),
+    getProductStatuses(),
+  ]);
+
+  const groups: readonly FilterGroup[] = [
+    { key: FILTER_KEY.CATEGORY, legend: "カテゴリ", options: toOptions(categories) },
+    { key: FILTER_KEY.STATUS, legend: "状態", options: toOptions(statuses) },
+  ];
+  // 既定の並びは URL に載せないため、明示された既定値は選択肢側の「指定なし」へ寄せる。
+  const displayed =
+    selection[FILTER_KEY.SORT] === PRODUCT_SORT.NEWEST
+      ? { ...selection, [FILTER_KEY.SORT]: "" }
+      : selection;
 
   return (
     <div className="space-y-6">
-      <ProductSearch defaultKeyword={query.keyword ?? ""} />
-      <ProductList items={items} />
-      <ProductPagination nextCursor={page.nextCursor} searchParams={searchParams} />
+      <div className="flex flex-col gap-3 @lg:flex-row @lg:items-end @lg:justify-between">
+        <ProductSearch selection={displayed} />
+        <ProductSortSelect options={SORT_OPTIONS} selection={displayed} />
+      </div>
+      <div className="flex gap-8">
+        <aside className="hidden w-64 shrink-0 lg:block">
+          <ProductFilterSidebar groups={groups} selection={displayed} />
+        </aside>
+        <div className="min-w-0 flex-1">
+          <ProductInfiniteList initial={page} query={toConditions(selection)} />
+        </div>
+      </div>
+      <div className="lg:hidden">
+        <ProductFilterSheet groups={groups} selection={displayed} />
+      </div>
     </div>
   );
 }

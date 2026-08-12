@@ -26,13 +26,19 @@ test-requirement: feature
 | ファイル | 役割 |
 | --- | --- |
 | `list/page-content.tsx` | 一覧の取得と組み立て。待機表示の境界がここに掛かる |
-| `list/query.ts` | URL の検索条件を取得条件へ直す |
+| `list/query.ts` | URL のキーと、条件から一覧の URL を組む規則 |
+| `list/use-infinite-products.ts` | 末尾到達で続きを読む。読み進めた件数を URL へ書き戻す |
 | `list/view.tsx` | 一覧の表示。空のときの案内も持つ |
 | `list/ui/card/` | 1 件の見た目 |
 | `list/ui/search/` | キーワード検索。URL を書き換える client island |
-| `list/ui/pagination/` | cursor 方式のページ送り |
+| `list/ui/sort-select/` | 並び替え。幅によらず選んだ時点で反映する |
+| `list/ui/filter-fields/` | 絞り込みの入力欄。選択を持たず、確定の仕方は呼び出し元が決める |
+| `list/ui/filter-sidebar/` | 脇に常設する絞り込み。選ぶたびに反映する |
+| `list/ui/filter-sheet/` | 脇に領域を持てない幅の絞り込み。overlay の中でまとめて確定する |
+| `list/ui/infinite-list/` | 読み進められる一覧。件数の告知と「もっと見る」を持つ |
 | `list/ui/skeleton/` | 待機表示 |
-| `list/ui/error-state/` | 失敗表示 |
+| `list/ui/error-state/` | 取得に失敗したときの表示 |
+| `list/ui/invalid-query/` | URL の条件が契約を外れているときの表示 |
 | `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
 | `detail/view.tsx` | 1 件の詳細の表示。画像の carousel と説明文の描画を持つ |
 | `detail/ui/add-to-cart-button/` | カートへ入れる操作。状態は `stores` が持つ |
@@ -54,4 +60,16 @@ test-requirement: feature
 - **バックエンドが長さを決める値は 1 行に収まる前提を置きません**。分類名や状態名は上限の宣言が無く、
   `Badge` は既定で折り返さないため、折り返しを呼び出し側で許します
 - **ページ送りは cursor 方式**です。番号付きのページ送りは作れません（総件数も任意ページへの飛び先も
-  カーソルは持たないため）
+  カーソルは持たないため）。一覧は増分取得で読み進める形を採っており、これは
+  [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) §2 が限定例外として認めた経路です。
+  初回ページは Server Component が取得し、続きだけを `adapters/client` 経由で取ります
+- **絞り込みの確定の仕方を幅で変えます**。脇に常設できる幅（[0051](../../../docs/adr/0051-styling-system.md)
+  §2）は結果が同じ画面に見えているので選ぶたびに反映し、overlay で出す幅は結果が隠れているので
+  まとめて確定します。並び替えはどちらの幅でも即時です（単一選択は選ぶことが確定と同じため）
+- **読み進めた件数を URL に書き戻します**。書き戻さないと、戻る操作も再読み込みも先頭の 1 ページだけの
+  画面に戻り、読み進めた分がスクロール位置ごと失われます。契約が受け付ける件数の上限までが復元できる
+  範囲で、それを超えて読み進めた分は戻りません
+- **総件数は出しません**。契約が返すのは次のカーソルの有無だけで、読み込んだ件数を「全体の何件中」の
+  形に見せると、実際には知らない数を知っているように読めます
+- **状態（`statusId`）の絞り込みは選択肢を出しますが、結果は変わりません**。可視範囲の絞り込みが
+  バックエンド側で未実装のためです
