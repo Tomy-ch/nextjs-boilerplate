@@ -64,16 +64,18 @@ Biome は `next` / `react` の lint ドメインルールを内蔵しており�
 | `noImplicitOverride` | 採用 | 低摩擦で継承時の取り違えを防ぐ |
 | `noPropertyAccessFromIndexSignature` | 採用 | index signature へのドット参照を禁止。流入口（[0030](0030-environment-variable-management.md) の `process.env` / searchParams）は既に塞がれているため実質ゼロコスト |
 | `exactOptionalPropertyTypes` | **見送り** | React props との摩擦が高い。残る穴（「未指定」と「明示的 `undefined`」を型で区別できない）は下記の実行時機構で埋める |
-| `noUnusedLocals` / `noUnusedParameters` | **入れない** | biome が `correctness/noUnusedVariables` / `noUnusedFunctionParameters` で error として捕捉する（重複禁止） |
+| `noUnusedLocals` / `noUnusedParameters` | **入れない** | biome が `correctness/noUnusedVariables` / `noUnusedFunctionParameters` で error として捕捉する（同じ検査を 2 つ持つと食い違う） |
 
 - **`target` は Next.js 16 / [0102](0102-browser-support.md) のサポート範囲に合わせて引き上げる**（`ES2017` 据え置きは実態と釣り合わない）。具体値は実装 PR で確定する
 - **`exactOptionalPropertyTypes` 見送りの穴を埋める機構**: `JSON.stringify` は値が `undefined` のキーを落とすため、`{name: undefined}` と `{}` はワイヤ上で同一になる。危険が残るのは直列化より手前のローカル組み立てだけなので、**`adapters` に PATCH ペイロードの正規化関数を置いて閉じ込める**。「触らない」= キーを含めない / 「消す」= `null` を明示とし、`undefined` に意味を持たせない。adapters の公開面は正規化済みの型でしか受け付けない形にする（散文の規約にしない）
 
 ## ESLint による補完
 
-### 役割分担（能力ベース・重複禁止）
+### 役割分担（能力ベース・食い違いの排除）
 
 どちらのツールに検査を置くかは、**「biome がその検査を表現できるか」のみ**で決める（能力ベース）。好み・慣れ・プリセットの都合で ESLint 側に置いてはならない。
+
+**排すのは重複そのものではなく、食い違いである。**同じ検査が 2 回走るだけなら結論は一致するので害はない。害になるのは、(1) 実装が別なので判定や提示される修正候補が食い違う、(2) 設定が片方だけ緩められ、どちらが正か決まらない、の 2 つである。したがって判定軸は「重なっているか」ではなく **「食い違えるか」** であり、答えが是なら片方へ寄せる。
 
 | 責務 | 担当 |
 | --- | --- |
@@ -82,7 +84,7 @@ Biome は `next` / `react` の lint ドメインルールを内蔵しており�
 | biome が表現できる lint 検査 | biome（簡易版 / 完全版のプロファイル配置は「設定方針」参照） |
 | biome で表現できない検査 | ESLint |
 
-- **重複禁止**: 同じ検査を両方のツールに持たせない
+- **同じ検査を両方のツールに持たせない**（上記の食い違いが成立するため）
 - **biome が実装済みのルールは biome 側で有効化して使う**。「biome にルールは存在するが有効化していない」状態を理由に ESLint へ置くことは能力ベースに反する（例: import の循環検出は biome の `noImportCycles` を完全版で有効化済みのため、ESLint に持たせない）
 - **縮小方向での運用**: biome が対応した検査は ESLint から削除し biome へ移管する。ESLint 側は常に「biome の隙間」だけを持つ
 
@@ -90,13 +92,19 @@ Biome は `next` / `react` の lint ドメインルールを内蔵しており�
 
 - **層境界の import 検査**（eslint-plugin-boundaries 等）。biome の `noRestrictedImports` + `overrides` では「import する側の層」を文脈に取る検査を表現できないため、現時点で biome 非対応の代表例である（`noImportCycles` が検出するのは循環のみで、層の依存方向違反は検出できない）
 - 具体プラグインの選定と層定義マッピングは、フロント内責務分離の ADR（[0021](0021-frontend-responsibility.md) = BACKLOG A3）の Enforcement 節で定める（プラグインは `eslint-plugin-boundaries`、層定義は同 ADR の依存マトリクス）
+- **React のレンダリング規律の検査**（`eslint-plugin-react-hooks`）。React Compiler が持つ診断をルールとして提供するもので、**effect の中で state を導出する形・描画中の副作用・描画中に構築した JSX を try/catch で囲む形**などを検出する。biome の `react` ドメインが持つのは依存の網羅（`useExhaustiveDependencies`）と hook 呼び出し位置（`useHookAtTopLevel`）だけで、上記はいずれも表現できない
+  - **食い違いうるルールは biome 側に残す**。実装が別なので提示される修正候補が異なり、設定を片方だけ緩めたときにどちらが正か決まらない。
+    biome の `useExhaustiveDependencies` が既定で見るのは **`useEffect` / `useLayoutEffect` / `useInsertionEffect` / `useCallback` / `useMemo` / `useImperativeHandle`** であり、**effect だけでなく memo 系の依存も含む**。したがってこのプラグイン側では `exhaustive-effect-dependencies` と `memo-dependencies` の両方を有効化しない
+  - **ルールを増やすときは、この対象 hook の一覧と突き合わせて重複を確かめる**。「effect 用」「memo 用」と名前が分かれていても、biome 側は 1 つのルールで両方を見ている
+  - **preset は当てず、ルール単位で有効化する**（「ESLint 利用の条件」2 に従う）
+  - 既存コードで満たせない箇所は、**理由を添えた行単位の抑止**に留め、書き換えは別 PR に分ける。lint の導入とコンポーネントの再設計を同じ PR に混ぜると、どちらが原因の回帰か切り分けられない
 
 ### ESLint 利用の条件
 
 ESLint およびそのルールをリポジトリに追加してよいのは、以下をすべて満たす場合のみ。
 
 1. **biome 非対応の検査であること**（能力ベース）。PR 本文に「biome で表現できないこと」の確認結果（該当ルールの有無・issue 等）を記す
-2. **stylistic / フォーマット系ルール、biome と重複する汎用ルールを入れない**。`eslint:recommended` / `eslint-config-next` 等のプリセット一括適用は行わない（biome の `next` / `react` ドメインおよび recommended ルール群と重複するため）。ルール単位の opt-in のみとする
+2. **stylistic / フォーマット系ルール、biome と食い違いうる汎用ルールを入れない**。`eslint:recommended` / `eslint-config-next` 等のプリセット一括適用は行わない（biome の `next` / `react` ドメインおよび recommended ルール群と重複するため）。ルール単位の opt-in のみとする
 3. **flat config（`eslint.config.ts`）で管理する**。Next.js 16 では `next lint` が廃止され `next build` も lint を実行しないため、ESLint CLI を直接実行する
 4. **ESLint 本体・プラグインは devDependency として exact pin し、追加時に `pnpm audit` を実施する**（[0004](0004-library-management.md) の主要 dev ツール扱い）
 5. **biome が該当検査に対応した時点で ESLint 側から削除し biome へ移管する**。対応状況の確認は 0004 の定期監査サイクル（`pnpm outdated` の週次〜月次確認）および biome バージョン更新 PR のチェック項目に組み込む
@@ -248,7 +256,7 @@ repo ルートに `.editorconfig` を置く。担当範囲は **biome が整形�
 - Prettier の併用は禁止（フォーマッタは biome 単独）
 - ESLint をフォーマッタとして使うことは禁止（`eslint.format.enable` の有効化 / stylistic・フォーマット系ルールの導入を含む）
 - `.editorconfig` に biome の対象ファイル向けの独自値を書くことは禁止（整形の権威は `biome.json`。`.editorconfig` は biome が見ないファイルのみを担当する）
-- biome が表現できる検査を ESLint 側に置くことは禁止（能力ベース・重複禁止。「ESLint 利用の条件」を満たさない ESLint ルール追加はすべて本 ADR 違反）
+- biome が表現できる検査を ESLint 側に置くことは禁止（能力ベース。食い違いが成立する。「ESLint 利用の条件」を満たさない ESLint ルール追加はすべて本 ADR 違反）
 - `eslint:recommended` / `eslint-config-next` 等のプリセット一括適用は禁止（ルール単位 opt-in のみ）
 - `biome.json` のフォーマッタ・リンタを個別案件理由で一方的に無効化しない（必要なら ADR 改訂で合意する）
 - 自動生成物や `node_modules` などは `biome.json` の `files.includes` / `eslint.config.ts` の ignore で除外し、`biome-ignore` / `eslint-disable` コメントの多用は避ける

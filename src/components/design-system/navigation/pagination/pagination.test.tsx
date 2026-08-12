@@ -177,7 +177,6 @@ describe("PaginationPrevious", () => {
     expect(screen.getByRole("link", { name: "前のページ" })).toHaveAttribute("href", "?page=1");
   });
 
-  // ----- 異常系 -----
   it("遷移先が無ければ押せない操作にする", () => {
     render(<PaginationPrevious />);
 
@@ -193,7 +192,6 @@ describe("PaginationNext", () => {
     expect(screen.getByRole("link", { name: "次のページ" })).toHaveAttribute("href", "?page=3");
   });
 
-  // ----- 異常系 -----
   it("遷移先が無ければ押せない操作にする", () => {
     render(<PaginationNext />);
 

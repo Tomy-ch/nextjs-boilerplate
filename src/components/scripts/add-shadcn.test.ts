@@ -550,7 +550,6 @@ describe("componentManifestEntries", () => {
     expect(entries.dialog).toMatchObject({ dependencies: ["@radix-ui/react-dialog"] });
   });
 
-  // ----- 異常系 -----
   it("依存が無ければ dependencies を持たせない", () => {
     const entries = componentManifestEntries(
       ["dialog"],

@@ -46,7 +46,7 @@
 引数から範囲を採るか、`AskUserQuestion` で尋ねる。
 
 - 「変更で触れたファイル」 —— 呼び出し元がファイル一覧を渡した場合（Chainability を参照）
-- 「1 カーネル / 1 feature」 —— 例: `src/adapters/`、`src/features/products/`
+- 「1 カーネル / 1 feature」 —— 例: `src/adapters/`、`src/features/<name>/`
 - 「`scripts/` の 1 ツール」
 - 「パスを指定」
 

@@ -39,8 +39,8 @@ const NOTIFICATIONS: readonly Notification[] = [
   },
   {
     id: "2",
-    title: "在庫が下限を下回りました",
-    description: "スタンダードプランの在庫が 5 を下回りました。",
+    title: "使用量が上限に近づいています",
+    description: "今月の使用量が上限の 80% に達しました。",
     unread: true,
   },
   {

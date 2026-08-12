@@ -96,9 +96,9 @@ describe("SanitizedRichText", () => {
     });
 
     it("アプリ内を指す相対 link を通す", () => {
-      const { root } = SanitizedRichText.from('<a href="/products/1">商品</a>');
+      const { root } = SanitizedRichText.from('<a href="/items/1">項目</a>');
 
-      expect(firstElement(root, "a")?.properties.href).toBe("/products/1");
+      expect(firstElement(root, "a")?.properties.href).toBe("/items/1");
     });
   });
 

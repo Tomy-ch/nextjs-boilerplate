@@ -132,6 +132,7 @@
     "eslint": "10.8.0",
     "eslint-import-resolver-typescript": "4.4.5",
     "eslint-plugin-boundaries": "7.1.0",
+    "eslint-plugin-react-hooks": "7.1.1",
     "jiti": "2.7.0",
     "jsdom": "29.0.1",
     "lefthook": "2.1.10",

@@ -7,8 +7,8 @@ import { AppShell } from "./app-shell";
 import { APP_SHELL_MAIN_ID } from "./app-shell.definition";
 
 const NAV_ITEMS = [
-  { href: "/products", label: "商品" },
-  { href: "/purchases", label: "購入履歴" },
+  { href: "/reports", label: "レポート" },
+  { href: "/settings", label: "設定" },
 ];
 
 function renderShell() {
@@ -40,7 +40,7 @@ describe("AppShell", () => {
   it("導線を header に並べる", () => {
     renderShell();
 
-    expect(screen.getByRole("navigation", { name: "主要な導線" })).toHaveTextContent("商品");
+    expect(screen.getByRole("navigation", { name: "主要な導線" })).toHaveTextContent("レポート");
   });
 
   it("footer の内容を出す", () => {
@@ -54,7 +54,7 @@ describe("AppShell", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
-    expect(screen.getByRole("dialog")).toHaveTextContent("購入履歴");
+    expect(screen.getByRole("dialog")).toHaveTextContent("設定");
   });
 
   it("side menu の導線を選んだら閉じる", () => {

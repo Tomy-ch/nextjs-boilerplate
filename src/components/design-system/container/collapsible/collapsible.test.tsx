@@ -78,7 +78,6 @@ describe("CollapsibleContent", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("既定では details が閉じた状態で始まる", () => {
     const { container } = render(<ExampleCollapsible />);
 

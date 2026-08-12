@@ -36,7 +36,7 @@ const alertVariants = cva(
  * @example
  * ```tsx
  * <Alert variant="warning">
- *   <AlertTitle>在庫が残りわずかです</AlertTitle>
+ *   <AlertTitle>保存されていない変更があります</AlertTitle>
  *   <AlertDescription>数量を減らすか、入荷通知を受け取ってください。</AlertDescription>
  * </Alert>
  * ```

@@ -249,9 +249,9 @@ describe("ListItem", () => {
 describe("ListItemLink", () => {
   // ----- 正常系 -----
   it("行全体を遷移先にする link を描画する", () => {
-    render(<ListItemLink href="/items/1">商品</ListItemLink>);
+    render(<ListItemLink href="/items/1">項目</ListItemLink>);
 
-    const link = screen.getByRole("link", { name: "商品" });
+    const link = screen.getByRole("link", { name: "項目" });
 
     expect(link).toHaveAttribute("href", "/items/1");
     expect(link).toHaveAttribute("data-slot", "list-item-link");
@@ -260,11 +260,11 @@ describe("ListItemLink", () => {
   it("asChild で渡した要素を link の実体にする", () => {
     render(
       <ListItemLink asChild>
-        <Link href="/items/2">別の商品</Link>
+        <Link href="/items/2">別の項目</Link>
       </ListItemLink>,
     );
 
-    expect(screen.getByRole("link", { name: "別の商品" })).toHaveAttribute("href", "/items/2");
+    expect(screen.getByRole("link", { name: "別の項目" })).toHaveAttribute("href", "/items/2");
   });
 });
 
