@@ -25,16 +25,16 @@ test-requirement: feature
 
 | ファイル | 役割 |
 | --- | --- |
-| `list/product-list-page-content.tsx` | 一覧の取得と組み立て。待機表示の境界がここに掛かる |
-| `list/product-query.ts` | URL の検索条件を取得条件へ直す |
-| `list/ui/product-list/` | 並べる。空のときの案内も持つ |
-| `list/ui/product-card/` | 1 件の見た目 |
-| `list/ui/product-search/` | キーワード検索。URL を書き換える client island |
-| `list/ui/product-pagination/` | cursor 方式のページ送り |
-| `list/ui/product-list-skeleton/` | 待機表示 |
-| `list/ui/product-list-error/` | 失敗表示 |
-| `detail/product-detail-page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
-| `detail/ui/product-detail/` | 1 件の詳細の見た目。画像の carousel と説明文の描画を持つ |
+| `list/page-content.tsx` | 一覧の取得と組み立て。待機表示の境界がここに掛かる |
+| `list/query.ts` | URL の検索条件を取得条件へ直す |
+| `list/view.tsx` | 一覧の表示。空のときの案内も持つ |
+| `list/ui/card/` | 1 件の見た目 |
+| `list/ui/search/` | キーワード検索。URL を書き換える client island |
+| `list/ui/pagination/` | cursor 方式のページ送り |
+| `list/ui/skeleton/` | 待機表示 |
+| `list/ui/error-state/` | 失敗表示 |
+| `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
+| `detail/view.tsx` | 1 件の詳細の表示。画像の carousel と説明文の描画を持つ |
 | `detail/ui/add-to-cart-button/` | カートへ入れる操作。状態は `stores` が持つ |
 
 ## 運用

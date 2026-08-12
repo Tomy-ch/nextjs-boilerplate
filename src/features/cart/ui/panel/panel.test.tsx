@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
-import { CartPanel } from "./cart-panel";
+import { CartPanel } from "./panel";
 
 const COFFEE: CartLineInput = {
   productId: "0195f0c2-0000-7000-8000-000000000001",

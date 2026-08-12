@@ -16,7 +16,7 @@ vi.mock("@/adapters/server/media/media-url", () => ({
   resolveMediaUrl: (path: string | null) => (path === null ? null : `https://media.test/${path}`),
 }));
 
-import { ProductListPageContent } from "./product-list-page-content";
+import { ProductListPageContent } from "./page-content";
 
 function productOf(overrides: Partial<Product> = {}): Product {
   return {

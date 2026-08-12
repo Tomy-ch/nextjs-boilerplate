@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { CartQuantityStepper } from "./cart-quantity-stepper";
+import { CartQuantityStepper } from "./quantity-stepper";
 
 describe("CartQuantityStepper", () => {
   // ----- 正常系 -----

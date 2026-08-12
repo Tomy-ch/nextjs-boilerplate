@@ -49,7 +49,7 @@ Accepted
 
 - ❌ サーバランタイムを模した描画 mock を積んで async RSC を回すこと(取得は `adapters` を `vi.mock` で差し替える。それで足りない検証は E2E / integration の担当)
 - ❌ unit で mock した取得を「取得を検証した」と数えること(実 API 応答の形は integration、ブラウザ経路とステータスは E2E)
-- ❌ 検証できない前提で `*-page-content.tsx` をカバレッジ・1:1 ゲートの母数から外すこと(除外は「通しでしか確かめられない」ものに限る)
+- ❌ 検証できない前提で feature の `page-content.tsx` をカバレッジ・1:1 ゲートの母数から外すこと(除外は「通しでしか確かめられない」ものに限る)
 - ❌ #70 の MSW モックパイプライン機構を本 ADR で確定すること(B3〈#73/#74〉が所有。二重決定しない)
 - ❌ axe(`vitest-axe` / `@axe-core/playwright`)を理由なく無効化すること、a11y 自動検査を feature 実装から切り離して「後付け」にすること([0100](0100-accessibility-target.md) 実装 PR 時担保と接続)
 - ❌ a11y 関連依存を exact pin / `pnpm audit` なしに追加すること([0004](0004-library-management.md))

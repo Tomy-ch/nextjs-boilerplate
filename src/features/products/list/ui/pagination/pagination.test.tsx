@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ProductPagination } from "./product-pagination";
+import { ProductPagination } from "./pagination";
 
 describe("ProductPagination", () => {
   // ----- 正常系 -----

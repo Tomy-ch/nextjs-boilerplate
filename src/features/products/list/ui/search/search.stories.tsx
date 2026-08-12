@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { ProductSearch } from "./product-search";
+import { ProductSearch } from "./search";
 
 const meta = {
-  title: "Features/Products/ProductSearch",
+  title: "Features/Products/List/Search",
   component: ProductSearch,
   parameters: {
     layout: "padded",

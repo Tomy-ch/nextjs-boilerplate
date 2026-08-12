@@ -13,7 +13,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams.value,
 }));
 
-import { ProductSearch } from "./product-search";
+import { ProductSearch } from "./search";
 
 function formOf(field: HTMLElement): HTMLFormElement {
   const form = field.closest("form");

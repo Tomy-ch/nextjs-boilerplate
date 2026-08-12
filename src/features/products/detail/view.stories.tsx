@@ -2,13 +2,13 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { Product } from "@/model/product/product";
 
-import { ProductDetail } from "./product-detail";
+import { ProductDetail } from "./view";
 
 const FRONT_IMAGE_URL = "/src/components/design-system/display/media-image/invertocat.png";
 const IMAGE_URLS = [FRONT_IMAGE_URL, "/next.svg", "/globe.svg"];
 
 const meta = {
-  title: "Features/Products/ProductDetail",
+  title: "Features/Products/Detail/View",
   component: ProductDetail,
   parameters: {
     layout: "padded",

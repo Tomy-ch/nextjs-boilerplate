@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
 
-import { CartPanel } from "./cart-panel";
+import { CartPanel } from "./panel";
 
 const EARPHONE: CartLineInput = {
   productId: "0195f0c2-0000-7000-8000-000000000001",
@@ -35,7 +35,7 @@ function seed(lines: readonly CartLineInput[], quantities: readonly number[] = [
 }
 
 const meta = {
-  title: "Features/Cart/CartPanel",
+  title: "Features/Cart/Panel",
   component: CartPanel,
   parameters: {
     layout: "padded",

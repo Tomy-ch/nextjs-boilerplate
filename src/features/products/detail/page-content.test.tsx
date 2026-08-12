@@ -19,7 +19,7 @@ vi.mock("@/adapters/server/media/media-url", () => ({
 }));
 vi.mock("next/navigation", () => ({ notFound }));
 
-import { ProductDetailPageContent } from "./product-detail-page-content";
+import { ProductDetailPageContent } from "./page-content";
 
 class IntersectionObserverStub {
   observe() {}

@@ -2,7 +2,7 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ProductListError } from "./product-list-error";
+import { ProductListError } from "./error-state";
 
 describe("ProductListError", () => {
   // ----- 正常系 -----

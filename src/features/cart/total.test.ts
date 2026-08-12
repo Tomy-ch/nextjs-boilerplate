@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cartSubtotal } from "./cart-total";
+import { cartSubtotal } from "./total";
 
 describe("cartSubtotal", () => {
   // ----- 正常系 -----

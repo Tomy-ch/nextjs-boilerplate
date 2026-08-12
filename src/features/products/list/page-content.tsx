@@ -1,10 +1,10 @@
 import { getProducts } from "@/adapters/server/api/products";
 import { resolveMediaUrl } from "@/adapters/server/media/media-url";
-import type { RawSearchParams } from "./product-query";
-import { toProductQuery } from "./product-query";
-import { ProductList } from "./ui/product-list/product-list";
-import { ProductPagination } from "./ui/product-pagination/product-pagination";
-import { ProductSearch } from "./ui/product-search/product-search";
+import type { RawSearchParams } from "./query";
+import { toProductQuery } from "./query";
+import { ProductPagination } from "./ui/pagination/pagination";
+import { ProductSearch } from "./ui/search/search";
+import { ProductList } from "./view";
 
 /** `ProductListPageContent` の props。 */
 export type ProductListPageContentProps = {

@@ -7,7 +7,7 @@ import { axe } from "vitest-axe";
 
 import type { Product } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
-import { ProductDetail } from "./product-detail";
+import { ProductDetail } from "./view";
 
 const IMAGE_URL = "https://media.example.test/coffee-front.png";
 const IMAGE_URLS = [IMAGE_URL] as const;

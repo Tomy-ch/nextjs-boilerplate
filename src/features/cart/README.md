@@ -25,10 +25,10 @@ test-requirement: feature
 
 | ファイル | 役割 |
 | --- | --- |
-| `cart-total.ts` | 明細の小計。decimal 文字列のまま整数で合算する |
-| `ui/cart-panel/` | 脇に出すカートの領域。空なら描画しない |
-| `ui/cart-count/` | header に出す点数 |
-| `ui/cart-quantity-stepper/` | 明細 1 行の数量増減 |
+| `total.ts` | 明細の小計。decimal 文字列のまま整数で合算する |
+| `ui/panel/` | 脇に出すカートの領域。空なら描画しない |
+| `ui/count/` | header に出す点数 |
+| `ui/quantity-stepper/` | 明細 1 行の数量増減 |
 
 ## 運用
 

@@ -6,7 +6,7 @@ import { axe } from "vitest-axe";
 
 import type { Product } from "@/model/product/product";
 
-import { ProductCard } from "./product-card";
+import { ProductCard } from "./card";
 
 const PRODUCT: Product = {
   id: "1",

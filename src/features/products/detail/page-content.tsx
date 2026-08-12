@@ -5,7 +5,7 @@ import { resolveMediaUrl } from "@/adapters/server/media/media-url";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
-import { ProductDetail } from "./ui/product-detail/product-detail";
+import { ProductDetail } from "./view";
 
 /** `ProductDetailPageContent` の props。 */
 export type ProductDetailPageContentProps = {

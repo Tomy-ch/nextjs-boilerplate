@@ -60,12 +60,13 @@ src/
   ```text
   features/<name>/
   ├── README.md
-  └── <screen>/                     # 第 1 軸: 画面 = リソース単位
-      ├── <screen>-page-content.tsx #   取得と組み立て
-      ├── <screen>-query.ts         #   入力(URL / searchParams)の写し
-      ├── actions.ts                #   変更(Server Action)
-      └── ui/                       # 第 2 軸: 表示
-          └── <part>/               #   1 部品 = 1 ディレクトリ
+  └── <screen>/               # 第 1 軸: 画面 = リソース単位
+      ├── page-content.tsx    #   取得と組み立て
+      ├── query.ts            #   入力(URL / searchParams)の写し
+      ├── actions.ts          #   変更(Server Action)
+      ├── view.tsx            # 第 2 軸: 表示 — 画面の合成
+      └── ui/                 #   表示 — その部材
+          └── <part>/         #   1 部品 = 1 ディレクトリ
               ├── <part>.tsx
               ├── <part>.test.tsx
               ├── <part>.stories.tsx
@@ -73,9 +74,11 @@ src/
   ```
 
 - **性質で分けるのは、性質ごとに検証手段と import 可能な先が違うから**である。取得と組み立ては `adapters` を呼び、表示は呼ばない([0021](0021-frontend-responsibility.md) 依存マトリクス)。取得は module 境界の mock を伴い、表示は DOM を伴う([0091](0091-test-verification-methods.md))。置き場が性質を表していれば、そのファイルが何を呼べて何で検証されるかを読まずに決められる
+- **画面の表示は `view.tsx`(合成)と `ui/<part>/`(部材)に分ける**。`view.tsx` は `page-content.tsx` が取得した値を受けて画面を組み立てるもので、`ui/` の部品と同格ではない
+- **囲んでいるディレクトリの語をファイル名・ディレクトリ名で繰り返さない**。`features/products/list/ui/card/card.tsx` であり `product-card` とはしない。区別はパスが担い、識別子は PascalCase の側が担う([0028](0028-naming-convention.md) のファイル名と主 export は別軸)
 - **`ui/` の中は 1 部品 = 1 ディレクトリ**とし、実装・テスト・stories・定義・README を共置する。`components/design-system/<役割>/<部品>/` と同形であり、部品ごとに stories([0054](0054-ui-catalog-storybook.md))の置き場を確保するためにこの粒度を採る
 - **深さの上限は `features/<name>/<screen>/ui/<part>/`** とする。`ui/` の中をさらに種類で掘らない。画面が部品を抱えきれなくなった場合は、`ui/` を深くするのではなく**画面(第 1 軸)を分ける**か、[0021](0021-frontend-responsibility.md) の昇格ルールで `components` へ出す
-- **画面が 1 つの間は第 1 軸を省略してよい**。`features/<name>/` の直下に `*-page-content.tsx` と `ui/` を置く。2 つ目の画面が来た時点で画面ディレクトリへ割る
+- **画面が 1 つの間は第 1 軸を省略してよい**。`features/<name>/` の直下に `page-content.tsx` / `view.tsx` / `ui/` を置く。2 つ目の画面が来た時点で画面ディレクトリへ割る
 - **テストは実装の隣に co-location する**(go `docs/rules.md` の「Co-locate tests with each layer's implementation」を翻案)。`__tests__/` への一括集約はしない。**テストファイルの拡張子・命名規約は B8(テスト戦略)で確定**する(本 ADR は配置方針のみ。`正常系` / `異常系` の日本語命名など戦略面は [0090](0090-testing-strategy.md) で go 準拠を確定済み)
 - **スタイルは Tailwind ユーティリティを既定**とし([0050](0050-styling-strategy.md))、別ファイルの CSS は最小化する。グローバル CSS は `src/app/globals.css` に集約する(既存踏襲)。design token / `cn()` ヘルパの置き場は B1 で確定する
 - **MSW 等のモック生成物**(triage #73 / #74・B3 orval 由来)は `src/` 外の **`mocks/`(または テストへ co-location)** に置き、生成型([0072](0072-api-type-generation.md) の do-not-edit)と分離する

@@ -3,7 +3,7 @@
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
-import { ProductListError } from "@/features/products/list/ui/product-list-error/product-list-error";
+import { ProductListError } from "@/features/products/list/ui/error-state/error-state";
 
 /**
  * 商品詳細の error 境界。

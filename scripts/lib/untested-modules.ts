@@ -70,7 +70,7 @@ export const TEST_FIXTURE_MODULES = ["src/config/environment.fixture.ts"] as con
  * 検証は route の経路ごと通す必要があります([0091](../../docs/adr/0091-test-verification-methods.md))。
  * 撤去条件は E2E の着地。
  *
- * feature 側の `*-page-content.tsx` はここに含めません。取得を `adapters` の module 境界で
+ * feature 側の `page-content.tsx` はここに含めません。取得を `adapters` の module 境界で
  * 差し替えれば `render(await Component(props))` で検証できるためです。
  */
 export const RUNTIME_ONLY_MODULES = ["src/app/**/page.tsx"] as const;

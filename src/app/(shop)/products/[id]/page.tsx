@@ -1,5 +1,5 @@
 import { ContentContainer } from "@/components/shell/content-container/content-container";
-import { ProductDetailPageContent } from "@/features/products/detail/product-detail-page-content";
+import { ProductDetailPageContent } from "@/features/products/detail/page-content";
 
 /**
  * 商品詳細の route segment。

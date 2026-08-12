@@ -29,7 +29,7 @@ import { NO_IMAGE_URL } from "@/model/media";
 import type { Product } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 
-import { AddToCartButton } from "../add-to-cart-button/add-to-cart-button";
+import { AddToCartButton } from "./ui/add-to-cart-button/add-to-cart-button";
 
 const DESCRIPTION_HEADING_ID = "product-description";
 

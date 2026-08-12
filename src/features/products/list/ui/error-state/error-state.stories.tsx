@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { ProductListError } from "./product-list-error";
+import { ProductListError } from "./error-state";
 
 /** story では再試行の中身を持たない。押せることだけを見せる。 */
 const noop = () => {};
 
 const meta = {
-  title: "Features/Products/ProductListError",
+  title: "Features/Products/List/ErrorState",
   component: ProductListError,
   parameters: { layout: "padded" },
   args: {

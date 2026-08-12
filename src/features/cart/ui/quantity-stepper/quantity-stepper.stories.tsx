@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { CartQuantityStepper } from "./cart-quantity-stepper";
+import { CartQuantityStepper } from "./quantity-stepper";
 
 /** story では数量を保持しない。押せることと記号の切り替わりだけを見せる。 */
 const noop = () => {};
 
 const meta = {
-  title: "Features/Cart/CartQuantityStepper",
+  title: "Features/Cart/QuantityStepper",
   component: CartQuantityStepper,
   parameters: { layout: "centered" },
   args: { label: "ワイヤレスイヤホン", onChange: noop },

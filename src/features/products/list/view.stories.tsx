@@ -2,10 +2,10 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { Product } from "@/model/product/product";
 
-import { ProductList } from "./product-list";
+import { ProductList } from "./view";
 
 const meta = {
-  title: "Features/Products/ProductList",
+  title: "Features/Products/List/View",
   component: ProductList,
   parameters: { layout: "padded" },
 } satisfies Meta<typeof ProductList>;

@@ -14,7 +14,7 @@ const LINE = {
 };
 
 const meta = {
-  title: "Features/Products/AddToCartButton",
+  title: "Features/Products/Detail/AddToCartButton",
   component: AddToCartButton,
   parameters: {
     layout: "centered",

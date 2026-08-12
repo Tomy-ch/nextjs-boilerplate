@@ -8,8 +8,8 @@ import { Badge } from "@/components/design-system/display/badge/badge";
 import { MediaImage } from "@/components/design-system/display/media-image/media-image";
 import { NO_IMAGE_URL } from "@/model/media";
 import { type CartLine, useCartStore } from "@/stores/cart-store";
-import { cartSubtotal } from "../../cart-total";
-import { CartQuantityStepper } from "../cart-quantity-stepper/cart-quantity-stepper";
+import { cartSubtotal } from "../../total";
+import { CartQuantityStepper } from "../quantity-stepper/quantity-stepper";
 
 function CartLineRow({ line }: { line: CartLine }) {
   const setQuantity = useCartStore((state) => state.setQuantity);

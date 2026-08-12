@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 import type { Product } from "@/model/product/product";
-import { ProductList } from "./product-list";
+import { ProductList } from "./view";
 
 function product(overrides: Partial<Product> = {}): Product {
   return {

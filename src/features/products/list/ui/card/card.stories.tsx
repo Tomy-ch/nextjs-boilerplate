@@ -3,10 +3,10 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { NO_IMAGE_URL } from "@/model/media";
 import type { Product } from "@/model/product/product";
 
-import { ProductCard } from "./product-card";
+import { ProductCard } from "./card";
 
 const meta = {
-  title: "Features/Products/ProductCard",
+  title: "Features/Products/List/Card",
   component: ProductCard,
   parameters: { layout: "centered" },
 } satisfies Meta<typeof ProductCard>;

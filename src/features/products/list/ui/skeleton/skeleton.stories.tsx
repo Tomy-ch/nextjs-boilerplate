@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { ProductListSkeleton } from "./product-list-skeleton";
+import { ProductListSkeleton } from "./skeleton";
 
 const meta = {
-  title: "Features/Products/ProductListSkeleton",
+  title: "Features/Products/List/Skeleton",
   component: ProductListSkeleton,
   parameters: {
     layout: "padded",

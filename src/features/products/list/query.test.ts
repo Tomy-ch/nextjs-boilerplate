@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toProductQuery } from "./product-query";
+import { toProductQuery } from "./query";
 
 describe("toProductQuery", () => {
   // ----- 正常系 -----

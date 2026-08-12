@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/shell/app-shell/app-shell";
-import { CartCount } from "@/features/cart/ui/cart-count/cart-count";
-import { CartPanel } from "@/features/cart/ui/cart-panel/cart-panel";
+import { CartCount } from "@/features/cart/ui/count/count";
+import { CartPanel } from "@/features/cart/ui/panel/panel";
 
 const SITE_NAME = "nextjs-boilerplate";
 

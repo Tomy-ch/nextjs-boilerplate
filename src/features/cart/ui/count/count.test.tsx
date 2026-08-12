@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
-import { CartCount } from "./cart-count";
+import { CartCount } from "./count";
 
 const COFFEE: CartLineInput = {
   productId: "0195f0c2-0000-7000-8000-000000000001",

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { ProductPagination } from "./product-pagination";
+import { ProductPagination } from "./pagination";
 
 const meta = {
-  title: "Features/Products/ProductPagination",
+  title: "Features/Products/List/Pagination",
   component: ProductPagination,
   parameters: {
     layout: "padded",
