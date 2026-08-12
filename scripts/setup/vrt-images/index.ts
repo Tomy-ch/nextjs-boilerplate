@@ -82,7 +82,7 @@ function adoptRepository(repository: string): string {
 }
 
 async function createRepository(parent: string): Promise<string> {
-  const name = withDefault(await ask("作成するリポジトリ名"), defaultImagesName(parent));
+  const name = await ask("作成するリポジトリ名", defaultImagesName(parent));
   const target = targetRepository(parent, name);
 
   const parentVisibility = gh([
@@ -95,10 +95,7 @@ async function createRepository(parent: string): Promise<string> {
     ".visibility",
   ]);
   const visibility = normalizeVisibility(
-    withDefault(
-      await ask("公開範囲 (public / private / internal)"),
-      normalizeVisibility(parentVisibility),
-    ),
+    await ask("公開範囲 (public / private / internal)", normalizeVisibility(parentVisibility)),
   );
 
   if (repositoryExists(target)) {
@@ -178,7 +175,7 @@ async function setupApp(): Promise<void> {
   }
 
   console.log(`\n  App 名 : ${app.name}\n  App ID : ${app.id}\n`);
-  if (!isAffirmative(await ask("この App を登録しますか (y/N)"))) {
+  if (!isAffirmative(await ask("この App を登録しますか (y/N)", "N"))) {
     throw new Error("登録を中止しました。");
   }
 
@@ -233,12 +230,17 @@ function repositoryHasCommits(repository: string): boolean {
   }
 }
 
-function ask(question: string): Promise<string> {
+/**
+ * 1 行の入力を取る。既定値は `[...]` で見せる — 何を Enter で受け入れるのかが分からないと、
+ * 使う側は空欄で進めない。
+ */
+function ask(question: string, fallback = ""): Promise<string> {
+  const prompt = fallback === "" ? `${question}: ` : `${question} [${fallback}]: `;
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
-    rl.question(`${question}: `, (answer) => {
+    rl.question(prompt, (answer) => {
       rl.close();
-      resolve(answer);
+      resolve(withDefault(answer, fallback));
     });
   });
 }
@@ -289,5 +291,8 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
+// トップレベル await にしない。tsx は CJS へ落とすので変換の時点で落ちる。
+main().catch((error: unknown) => {
+  exitWithUsage(error instanceof Error ? error : new Error(String(error)), printUsage);
+});
 /* v8 ignore stop */
