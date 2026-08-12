@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseStoryIndex, storyURL, VRT_SKIP_TAG } from "./story-index";
+import { parseStoryIndex, selectStories, storyURL, VRT_SKIP_TAG } from "./story-index";
 
 /** 目録 1 件分の JSON を組み立てる。 */
 function indexOf(entries: Record<string, unknown>): string {
@@ -92,6 +92,37 @@ describe("storyURL", () => {
   it("story の id と配色テーマを載せた URL を組み立てる", () => {
     expect(storyURL("action-button--default", "dark")).toBe(
       "/iframe.html?id=action-button--default&globals=theme%3Adark&viewMode=story",
+    );
+  });
+});
+
+describe("selectStories", () => {
+  const stories = [
+    { id: "a--x", title: "A", name: "X" },
+    { id: "b--y", title: "B", name: "Y" },
+  ];
+
+  // ----- 正常系 -----
+  it("指定が無ければ全数を返す", () => {
+    expect(selectStories(stories, undefined)).toEqual(stories);
+  });
+
+  it("指定が空文字なら全数を返す", () => {
+    expect(selectStories(stories, "")).toEqual(stories);
+  });
+
+  it("id で撮影対象を絞る", () => {
+    expect(selectStories(stories, "b--y")).toEqual([stories[1]]);
+  });
+
+  it("区切りの前後の空白を無視する", () => {
+    expect(selectStories(stories, " a--x , b--y ")).toEqual(stories);
+  });
+
+  // ----- 異常系 -----
+  it("どの story にも当たらない指定を落とす", () => {
+    expect(() => selectStories(stories, "存在しない")).toThrow(
+      "VRT_ONLY に該当する story がありません: 存在しない",
     );
   });
 });

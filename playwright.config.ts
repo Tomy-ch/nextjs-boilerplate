@@ -24,14 +24,20 @@ export default defineConfig({
   outputDir: "tmp/vrt/results",
   snapshotPathTemplate: "vrt/__screenshots__/{projectName}/{arg}{ext}",
   fullyParallel: true,
-  // 撮る枚数が story 数 × テーマ数まで伸びるため、既定（コア数の半分）では CI の 2 コアで
-  // 1 並列まで落ちる。撮影は 1 件ずつが短く、待ちの大半が描画なので、コアを空けておく
-  // 意味がない。
-  workers: "100%",
+  // 1 件あたりの上限。撮影が収まるのを待つ猶予（下の expect）を内側に収める必要があり、
+  // 既定の 30 秒だと待ち切る前に上限へ当たる。負荷が高いときに「揺らぎで落ちた」のか
+  // 「順番待ちで落ちた」のか区別が付かなくなるため、外側を広く取る。
+  timeout: 60_000,
   // 撮り直しで通る差分は無い。再試行は不安定な story を隠すだけで、隠れた分は基準画像の
   // 側へ蓄積する。
   retries: 0,
-  reporter: [["list"], ["html", { outputFolder: "tmp/vrt/report", open: "never" }]],
+  // json は承認経路が読む。どの story がどれだけずれたかを機械可読で残しておかないと、
+  // ラベルでの承認が「今落ちているもの全部」まで広がる。
+  reporter: [
+    ["list"],
+    ["html", { outputFolder: "tmp/vrt/report", open: "never" }],
+    ["json", { outputFile: "tmp/vrt/report.json" }],
+  ],
   expect: {
     // 撮影は「同じ画面が 2 度続けて撮れる」まで待つ。既定の 5 秒では、描き終えるまでに
     // 間があるもの（mount 時に系列を描き足すグラフ、時間で閉じる通知）が収まりきらない。

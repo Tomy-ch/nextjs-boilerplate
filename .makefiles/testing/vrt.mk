@@ -11,7 +11,11 @@ VRT_GID ?= $(shell id -g)
 export VRT_UID
 export VRT_GID
 
-VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T vrt_runner
+# 撮り直す範囲。承認経路が「直前に落ちた story」だけを渡すために使う。空なら全数。
+VRT_ONLY ?=
+export VRT_ONLY
+
+VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T -e VRT_ONLY vrt_runner
 
 # 比較する前に Storybook を build する。撮る対象は build 済みの静的な出力であり、
 # ソースではない。

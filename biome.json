@@ -173,6 +173,9 @@
         "rules": {
           "correctness": {
             "noEmptyPattern": "off"
+          },
+          "style": {
+            "noProcessEnv": "off"
           }
         }
       }

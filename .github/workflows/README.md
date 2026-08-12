@@ -31,7 +31,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 | Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
-| VRT | `vrt.yaml` | `vrt` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分は artifact（`vrt-diff`）で出す |
+| VRT | `vrt.yaml` | `vrt` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す |
 
 ## ワークフロー一覧（Components）
 

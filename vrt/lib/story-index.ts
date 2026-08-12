@@ -83,3 +83,15 @@ export function storyURL(id: string, theme: string): string {
 
   return `/iframe.html?${params.toString()}`;
 }
+
+// 撮影対象を絞る。`VRT_ONLY` は基準画像を撮り直すときに、直前に落ちた story だけへ限るための
+// 入口で、指定が無ければ全数を撮る。空振り（該当 0 件）は落とす — 綴りを誤った指定が
+// 「差分なし」として緑で通ると、承認したはずの画像が更新されないまま残る。
+export function selectStories(stories: Story[], only: string | undefined): Story[] {
+  if (!only) return stories;
+  const wanted = new Set(only.split(",").map((id) => id.trim()));
+  const selected = stories.filter((story) => wanted.has(story.id));
+  if (selected.length === 0) throw new Error(`VRT_ONLY に該当する story がありません: ${only}`);
+
+  return selected;
+}

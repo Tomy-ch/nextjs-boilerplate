@@ -9,9 +9,10 @@ name: VRT
 # differs per OS and per CPU architecture, so the baseline is only reproducible
 # when the image — not the host — defines the environment.
 #
-# CI never writes baselines. Accepting a visual change is a local, deliberate act
-# (`make vrt-update`) that lands as a reviewable commit; a job with `contents:
-# write` that rewrites baselines would turn approval into "CI fixed it for us".
+# CI never writes baselines on its own. Accepting a visual change is a deliberate
+# human act — either `make vrt-update` locally, or the `approve-vrt` label handled
+# by `vrt-approve.yaml`. An unconditional write would turn approval into "CI fixed
+# it for us"; a write triggered by a person IS the approval.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
@@ -75,9 +76,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The log holds one line per story, so only the tail is quoted back into the
-      # PR comment. Playwright prints its failure summary last, which is the part a
-      # reviewer needs; the pixel evidence travels as an artifact instead.
       - name: Build Storybook and compare every story
         id: vrt
         continue-on-error: true
@@ -85,19 +83,40 @@ jobs:
         run: |
           set +e
 
-          make vrt 2>&1 | tee /tmp/vrt-full.log
-          code=${PIPESTATUS[0]}
-          tail -n 200 /tmp/vrt-full.log > /tmp/vrt.log
+          make vrt > /tmp/vrt-full.log 2>&1
+          code=$?
+          tail -n 40 /tmp/vrt-full.log
 
           if [ "${code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
             echo "title=## ✅ VRT: PASS (no visual change)" >> "$GITHUB_OUTPUT"
           else
             echo "status=failure" >> "$GITHUB_OUTPUT"
-            echo "title=## ❌ VRT: FAIL (see the diff artifact)" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ VRT: FAIL" >> "$GITHUB_OUTPUT"
           fi
 
           exit 0
+
+      # The raw log holds one line per story, which is unreadable in a comment. The
+      # JSON report is turned into a table of exactly which stories moved and by how
+      # much — the same set the `approve-vrt` label is allowed to retake.
+      - name: Summarise which stories changed
+        if: always() && steps.vrt.outputs.status != 'success'
+        shell: bash
+        run: |
+          {
+            pnpm exec tsx scripts/vrt table tmp/vrt/report.json \
+              || tail -n 60 /tmp/vrt-full.log
+            cat <<'NOTE'
+
+          `vrt-diff` artifact に期待 / 実際 / 差分の 3 枚と HTML レポートが入っています。
+          意図した変更なら `approve-vrt` ラベルを付けてください。上の story だけを撮り直して push します。
+          NOTE
+          } > /tmp/vrt.log
+
+      - name: Note that nothing changed
+        if: always() && steps.vrt.outputs.status == 'success'
+        run: echo '全 story が基準画像と一致しました。' > /tmp/vrt.log
 
       # Expected / actual / diff triplets per failing story. Without them the only
       # evidence of a visual change is the assertion text, which cannot be judged.
@@ -110,6 +129,17 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
+      # Read back by `vrt-approve.yaml` to bound what the label may retake. Kept
+      # separate from the diff bundle so the approval path downloads only the report.
+      - name: Upload the machine-readable report
+        if: always() && steps.vrt.outputs.status != 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vrt-report
+          path: tmp/vrt/report.json
+          retention-days: 7
+          if-no-files-found: error
+
       - name: Comment the VRT result on PR
         if: github.event_name == 'pull_request'
         continue-on-error: true
@@ -119,7 +149,7 @@ jobs:
           marker: '<!-- vrt-result -->'
           title: ${{ steps.vrt.outputs.title }}
           body-file: /tmp/vrt.log
-          details-summary: 'playwright log (tail)'
+          details-summary: '差分のあった story'
 
       - name: Fail if a story changed
         if: always() && steps.vrt.outputs.status != 'success'

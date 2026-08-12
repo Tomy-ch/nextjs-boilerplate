@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import { test as base, expect, type Page } from "@playwright/test";
 
 import { createStaticServer } from "./lib/static-server";
-import { parseStoryIndex, storyURL } from "./lib/story-index";
+import { parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
 
 /**
  * Storybook の全 story を基準画像と比べる。
@@ -19,7 +19,10 @@ import { parseStoryIndex, storyURL } from "./lib/story-index";
 /** 撮影対象。`pnpm build-storybook` の出力先。 */
 const STORYBOOK_DIR = "storybook-static";
 
-const stories = parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8"));
+const stories = selectStories(
+  parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
+  process.env.VRT_ONLY,
+);
 
 // 配信は worker ごとにポートを OS へ選ばせて立てる。単一のサーバを外から与えると、
 // 並列数とポートの空きがリポジトリの設定として固定され、worktree を並べた分だけ衝突する。
@@ -44,7 +47,11 @@ const test = base.extend<Record<never, never>, { storybookURL: string }>({
 });
 
 for (const story of stories) {
-  test(`${story.title} / ${story.name}`, async ({ page }, testInfo) => {
+  // story の id を注記として残す。承認経路は落ちた story を id で絞るため、見出しの文字列から
+  // 逆引きせずに済ませる。
+  const details = { annotation: { type: "story", description: story.id } };
+
+  test(`${story.title} / ${story.name}`, details, async ({ page }, testInfo) => {
     const crashes: Error[] = [];
     page.on("pageerror", (error) => crashes.push(error));
 

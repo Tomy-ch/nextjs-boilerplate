@@ -65,6 +65,9 @@ export const Destructive: Story = {
  * 表示時間を指定した場合。既定では自動で閉じないため、閉じてよい通知にだけ `duration` を渡す。
  */
 export const AutoClose: Story = {
+  // 残時間のバーが壁時計で動くため、見た目が撮る時刻の関数になる。基準画像を持てず、
+  // visual regression の対象から外す（vrt/README.md）。
+  tags: ["vrt-skip"],
   args: {
     toasts: [
       {
@@ -79,6 +82,8 @@ export const AutoClose: Story = {
 
 /** 通知から直接実行できる操作を添えた場合。選ぶと処理を実行して閉じる。 */
 export const WithAction: Story = {
+  // AutoClose と同じく残時間のバーを持つため、対象から外す。
+  tags: ["vrt-skip"],
   args: {
     toasts: [
       {

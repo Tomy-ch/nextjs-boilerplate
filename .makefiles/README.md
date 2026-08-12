@@ -237,7 +237,7 @@ digest ではありません。走査対象は `docker-compose*.{yml,yaml}` と 
 | `make scripts-test` | 補助スクリプトの suite を cache 無効・coverage 付きで実行します。 | pre-push / CI（`scripts-check`）用。アプリ本体の suite と分けるのは、`scripts/` に居るのが検査機構そのもので、落ちた理由を取り違えないためです（[0090](../docs/adr/0090-testing-strategy.md)）。 |
 | `make build-storybook` | Storybook を静的に build します。 | VRT の撮影対象。`make vrt` / `make vrt-update` が前段で呼びます。 |
 | `make vrt [VRT_ARGS=<args>]` | 全 story を基準画像と比較します。 | digest 固定した Playwright コンテナ内で実行します（[`vrt/README.md`](../vrt/README.md)）。ホスト直実行は比較の前に落ちます。 |
-| `make vrt-update [VRT_ARGS=<args>]` | 基準画像を撮り直します。 | 差分を意図した変更として受け入れる操作。CI は行わず、更新後の画像はコミットしてレビュー対象にします。 |
+| `make vrt-update [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>]` | 基準画像を撮り直します。 | 差分を意図した変更として受け入れる操作。`VRT_ONLY` は撮り直す story を id で絞ります（該当 0 件なら失敗）。CI 側の同じ操作は `approve-vrt` ラベルが起動し、直前の実行が報告した story だけを対象にします。 |
 | `make vrt-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/vrt/`（追跡対象外）。 |
 
 ## `.makefiles/security` 系
