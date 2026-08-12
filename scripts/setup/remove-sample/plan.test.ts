@@ -78,6 +78,27 @@ describe("findRedundantPaths", () => {
   });
 });
 
+describe("isScanTarget", () => {
+  // ----- 正常系 -----
+  it("除外に当たらないファイルは走査する", () => {
+    expect(isScanTarget("src/app/layout.tsx", ["tmp/"], [])).toBe(true);
+  });
+
+  it("マーカーをデータとして持つファイルは走査しない", () => {
+    expect(
+      isScanTarget("scripts/setup/lib/markers.test.ts", [], ["scripts/setup/lib/markers.test.ts"]),
+    ).toBe(false);
+  });
+
+  it("除外の接頭辞に当たるファイルは走査しない", () => {
+    expect(isScanTarget("tmp/work.ts", ["tmp/"], [])).toBe(false);
+  });
+
+  it("接頭辞が途中まで一致するだけなら走査する", () => {
+    expect(isScanTarget("tmpfile.ts", ["tmp/"], [])).toBe(true);
+  });
+});
+
 describe("canHoldMarker", () => {
   // ----- 正常系 -----
   it("コメントを書ける形式は走査する", () => {
