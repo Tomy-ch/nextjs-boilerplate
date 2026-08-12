@@ -39,9 +39,7 @@ async function loadProduct(id: string) {
  * 商品詳細の中身。取得と組み立てを行う。
  *
  * @remarks
- * 取得を page ではなくここで行うのは、`adapters` を呼べるのが feature までであり、page は feature を
- * 薄く呼ぶだけの層だからです（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。画像 URL の
- * 解決も同じ理由でここに置きます。設定を読めるのは `adapters` までです。
+ * 取得と画像 URL の解決をここで行います。理由は [feature の README](../README.md) が持ちます。
  */
 export async function ProductDetailPageContent({ id }: ProductDetailPageContentProps) {
   const product = await loadProduct(id);

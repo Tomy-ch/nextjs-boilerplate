@@ -161,7 +161,7 @@ export function MessageScroller({
     viewportElement.scrollTo({ behavior: "auto", top: viewportElement.scrollHeight });
     lastScrollTopRef.current = viewportElement.scrollTop;
     // DOM の scroll 位置を React 側へ写す同期であり、初期位置は要素が付くまで決まらない。
-    // TODO: 導出へ寄せられるかを #169 で判定する
+    // TODO: 要素のマウント待ちを ref callback などで表せるかを #169 で見る
     // eslint-disable-next-line react-hooks/set-state-in-effect -- DOM からの同期のため
     setAtEnd(true);
   }, [viewportElement]);
