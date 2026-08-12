@@ -26,6 +26,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Scripts Check | `scripts-check.yaml` | `scripts-check` | 補助スクリプト（`scripts/**`）の Vitest をカバレッジ 100% で実行し、export と describe の 1:1 対応ゲートをリポジトリ全体へ掛ける |
 | Build | `build.yaml` | `build` | `next build` が通ることを検査する |
 | Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
+| Purge Verify | `purge-verify.yaml` | `purge-verify` | 使い捨てチェックアウトで同梱サンプルを破棄し、破棄後のツリーで整形・検査・build・test が通ることと、過不足・残留参照が無いことを検査する |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
 | Tokens Drift | `tokens-drift.yaml` | `tokens-drift` | hand-written token SSOT と追跡する CSS 生成物が一致することを検査する |
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で検査する |
@@ -98,6 +99,7 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 | `build` / `smoke` | CI のみ | フルビルドは hook の速度目標（30 秒）に収まらない。収めようとすれば `--no-verify` の常用を招く |
 | `test` | pre-push + CI | pre-commit は開発中の反復を優先して cache を使い、push 前と CI は coverage を含む完全実行で gate を掛ける |
 | `scripts-check` | pre-push + CI | `test` と同じ二層。job を `test` と分けるのは、`scripts/` に居るのが検査機構そのもので、壊れると「違反なし」を報告する向きに倒れるため。赤の意味を「機構が壊れた」と「アプリが退行した」で取り違えない |
+| `purge-verify` | CI のみ | 破棄は取り消せないので、hook では走らせない。使い捨てチェックアウトを前提にした検査であり、手元のツリーで回すと作業中のサンプルが消える |
 | `lockfile-drift` | CI のみ | install が追跡ファイルを書き換えたことは、手元では「自分が触った変更」と区別が付かない。第三者の目で見る CI が持つ |
 | commitlint | hook のみ | コミット件名の検査。作り直しがコミット単位でしか効かず、PR 到達後に落としても直す手段が rebase になる |
 | secret-scan | hook のみ（現時点） | push 前に止めるのが本旨。CI 側は Security グループ（[0110](../../docs/adr/0110-security-operations.md)）で追加する |

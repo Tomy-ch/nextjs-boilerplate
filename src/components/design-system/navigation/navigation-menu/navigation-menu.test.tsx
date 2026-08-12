@@ -245,7 +245,6 @@ describe("NavigationMenuViewport", () => {
     expect(document.querySelector('[data-slot="navigation-menu-viewport"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("viewport を使わない構成では表示枠を用意しない", () => {
     render(<NavigationFixture viewport={false} />);
 
@@ -254,7 +253,7 @@ describe("NavigationMenuViewport", () => {
 });
 
 describe("NavigationMenuIndicator", () => {
-  // ----- 異常系 -----
+  // ----- 正常系 -----
   it("開いている項目が無ければ位置の印を描画しない", () => {
     render(<NavigationFixture />);
 

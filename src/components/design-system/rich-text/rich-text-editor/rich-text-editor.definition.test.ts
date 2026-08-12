@@ -15,10 +15,10 @@ describe("isRichTextHrefAllowed", () => {
   });
 
   it("protocol を持たない URL を通す", () => {
-    expect(isRichTextHrefAllowed("/products/1")).toBe(true);
+    expect(isRichTextHrefAllowed("/items/1")).toBe(true);
     expect(isRichTextHrefAllowed("#section")).toBe(true);
     expect(isRichTextHrefAllowed("?q=10:00")).toBe(true);
-    expect(isRichTextHrefAllowed("products#10:00")).toBe(true);
+    expect(isRichTextHrefAllowed("items#10:00")).toBe(true);
   });
 
   it("allowlist 外の protocol を通さない", () => {

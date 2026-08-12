@@ -33,7 +33,6 @@ describe("TableColumnGroup", () => {
     expect(cols[0]).toHaveStyle({ width: "12rem" });
   });
 
-  // ----- 異常系 -----
   it("列が無ければ col を並べない", () => {
     const { container } = render(
       <Table>
@@ -80,7 +79,6 @@ describe("tableColumnCellClass", () => {
     expect(tableColumnCellClass({ id: "a", header: "a", align: "end" })).toBe("text-right");
   });
 
-  // ----- 異常系 -----
   it("寄せの指定が無ければ左寄せを返す", () => {
     expect(tableColumnCellClass({ id: "a", header: "a" })).toBe("text-left");
   });

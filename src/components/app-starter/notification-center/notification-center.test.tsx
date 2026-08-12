@@ -15,7 +15,7 @@ import {
 
 const NOTIFICATIONS = [
   { id: "3", title: "申請が承認されました", unread: true },
-  { id: "2", title: "在庫が下限を下回りました", unread: true },
+  { id: "2", title: "使用量が上限に近づいています", unread: true },
   { id: "1", title: "月次レポートが生成されました", unread: false },
 ];
 

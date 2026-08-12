@@ -20,6 +20,10 @@ describe("toProductQuery", () => {
   it("同じキーが複数あれば先頭を採る", () => {
     expect(toProductQuery({ keyword: ["靴", "鞄"] })).toEqual({ keyword: "靴" });
   });
+  it("値の無い配列を無指定として扱う", () => {
+    expect(toProductQuery({ keyword: [] })).toEqual({});
+  });
+
   // ----- 異常系 -----
   it("契約にない並び順を捨てる", () => {
     expect(toProductQuery({ sort: "-unknown" })).toEqual({});
@@ -43,9 +47,5 @@ describe("toProductQuery", () => {
 
   it("空文字列の条件を無指定として扱う", () => {
     expect(toProductQuery({ keyword: "", categoryId: "" })).toEqual({});
-  });
-
-  it("値の無い配列を無指定として扱う", () => {
-    expect(toProductQuery({ keyword: [] })).toEqual({});
   });
 });

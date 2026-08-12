@@ -38,15 +38,14 @@ describe("ProductPagination", () => {
       "keyword=%E9%9D%B4",
     );
   });
-  // ----- 異常系 -----
   it("次ページが無ければ何も出さない", () => {
     const { container } = render(<ProductPagination nextCursor={null} searchParams={{}} />);
 
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("空の条件を引き継がない", () => {
-    render(<ProductPagination nextCursor="cursor-1" searchParams={{ keyword: "" }} />);
+  it("値の無い条件を引き継がない", () => {
+    render(<ProductPagination nextCursor="cursor-1" searchParams={{ keyword: undefined }} />);
 
     expect(screen.getByRole("link", { name: "次の商品を見る" })).toHaveAttribute(
       "href",
@@ -54,8 +53,10 @@ describe("ProductPagination", () => {
     );
   });
 
-  it("値の無い条件を引き継がない", () => {
-    render(<ProductPagination nextCursor="cursor-1" searchParams={{ keyword: undefined }} />);
+  // ----- 異常系 -----
+
+  it("空の条件を引き継がない", () => {
+    render(<ProductPagination nextCursor="cursor-1" searchParams={{ keyword: "" }} />);
 
     expect(screen.getByRole("link", { name: "次の商品を見る" })).toHaveAttribute(
       "href",

@@ -75,7 +75,6 @@ describe("CalendarDayButton", () => {
     expect(selected).toBeDefined();
   });
 
-  // ----- 異常系 -----
   it("何も選んでいなければ単独選択の印を付けない", () => {
     render(<Calendar defaultMonth={calendarMonth} mode="single" />);
 

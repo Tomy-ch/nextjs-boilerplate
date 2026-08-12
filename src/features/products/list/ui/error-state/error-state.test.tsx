@@ -26,7 +26,6 @@ describe("ProductListError", () => {
 
     expect(onRetry).toHaveBeenCalledOnce();
   });
-  // ----- 異常系 -----
   it("問い合わせ番号が無ければ枠ごと出さない", () => {
     render(<ProductListError message="失敗しました。" onRetry={vi.fn()} />);
 

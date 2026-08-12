@@ -26,7 +26,6 @@ describe("shortcutKeyLabel", () => {
     expect(shortcutKeyLabel(SHORTCUT_MODIFIER.CONTROL, SHORTCUT_PLATFORM.OTHER)).toBe("Ctrl");
   });
 
-  // ----- 異常系 -----
   it("修飾キーでないキーはそのまま返す", () => {
     expect(shortcutKeyLabel("K", SHORTCUT_PLATFORM.APPLE)).toBe("K");
     expect(shortcutKeyLabel("Escape", SHORTCUT_PLATFORM.OTHER)).toBe("Escape");
