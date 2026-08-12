@@ -64,6 +64,30 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 **GitHub Pages の有効化はユーザが Settings で実施する**（ワークフロー側で `actions/configure-pages` による自動有効化はしない）。有効化前に走った実行は deploy job で失敗する。
 
+## mise の導入
+
+Node / pnpm などの供給は composite action [`../actions/setup-mise`](../actions/setup-mise/action.yaml) が行う。全ジョブが mise を必要とするため、**取得は必ずリトライを持ち、一度取ったものは再利用できなければならない** — 配信側の一時的な不調が、そのまま全ジョブの失敗になる位置にある。
+
+この action が持つもの:
+
+| | |
+| --- | --- |
+| リトライ | `curl --retry 5 --retry-all-errors`。取得はファイルへ落としてから検証する（パイプのままだと部分受信分がシェルへ流れ込む） |
+| キャッシュ | 固定した版と digest をキーにバイナリを保持する |
+| **digest の照合** | 復元・取得のどちらの経路でも、実行前に SHA256 を照合する。合わなければ捨てて取り直し、それでも合わなければ落とす |
+
+**照合が要るのは、Actions のキャッシュが信頼境界ではないから。**キャッシュはブランチを跨いで共有され、push 権限があれば中身を差し替えられる。そこに置くのが実行可能バイナリなので、照合を挟まなければキャッシュ汚染がそのまま CI 内の任意コード実行になる。`uses:` を SHA で、container image を digest で固定しているのと同じ理由・同じ形。
+
+### mise の版を上げる
+
+1. 上流の `SHASUMS256.txt` から `mise-v<版>-linux-x64` の SHA256 を取る
+
+   ```bash
+   curl -sSL "https://github.com/jdx/mise/releases/download/v<版>/SHASUMS256.txt" | grep 'linux-x64$'
+   ```
+
+2. [`../actions/setup-mise/action.yaml`](../actions/setup-mise/action.yaml) の `MISE_VERSION` / `MISE_SHA256` と、キャッシュキーの版・digest 接頭辞を揃えて直す
+
 ## hooks mirror CI
 
 `lint` / `md-lint` / `typecheck` / `actions-lint` / `actions-pin` の 5 本は、[lefthook](../../.lefthook.yaml) が回すのと**同じコマンド**を実行する。`test` は二層実行で、pre-commit の `make test-cached` に対し、pre-push と CI は `make test-full` を実行する。hook は高速な第一段、CI は権威という二層（[0153](../../docs/adr/0153-ci-configuration.md) §4 / [0151](../../docs/adr/0151-git-hooks.md)）。
@@ -88,8 +112,8 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 - **最小 permissions** — トップレベルは `contents: read`。PR コメントを書く job だけが `pull-requests: write` を加算する
 - **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.md) §3）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る
 - **harden-runner** — 全 job 冒頭で egress を `audit` で記録する
-- **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck の版はワークフロー側に書かない。mise-action が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.md)）。`matrix` は使わず `ubuntu-latest` 単一
-- **例外は mise CLI 自身の版** — `mise.toml` は mise が解決する対象を宣言するもので、mise 自身の版を宣言できない。よって mise-action の `version:` だけが唯一ワークフロー側に書かれた版数であり、全ワークフローに複製されている。更新時は全ファイルを揃えて直すこと
+- **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck の版はワークフロー側に書かない。[`../actions/setup-mise`](../actions/setup-mise/action.yaml) が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.md)）。`matrix` は使わず `ubuntu-latest` 単一
+- **例外は mise CLI 自身の版** — `mise.toml` は mise が解決する対象を宣言するもので、mise 自身の版を宣言できない。この 1 つだけは `setup-mise` の中に**版と SHA256 の対で**書かれている（[下記](#mise-の導入)）
 
 ## `paths:` フィルタを使わない
 
@@ -129,5 +153,5 @@ context 名は**ワークフロー名ではなく job 名**である点に注意
 
 | 候補 | 判断 | 理由 |
 | --- | --- | --- |
-| `sync-versions-check` | 不採用 | `mise.toml` の版数を複製する下流が本リポに存在しない（Dockerfile 無し / CI は mise-action が `mise.toml` を直読み）。検査対象そのものが無い。`package.json` の `engines` / `packageManager` 等、版数の第二宣言を置いた時点で採用する |
+| `sync-versions-check` | 不採用 | `mise.toml` の版数を複製する下流が本リポに存在しない（Dockerfile 無し / CI は `setup-mise` が `mise.toml` を直読み）。検査対象そのものが無い。`package.json` の `engines` / `packageManager` 等、版数の第二宣言を置いた時点で採用する |
 | `auto-generate-docs` | 不採用 | portal の生成物（`guides/` / `docs.json`）は追跡せず配信時に組み立てるため、drift が発生しえない。追跡する生成物を持つのは型生成（[0072](../../docs/adr/0072-api-type-generation.md)）が入る時点で、そこで再検討する |

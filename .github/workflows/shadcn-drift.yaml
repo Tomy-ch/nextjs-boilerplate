@@ -42,17 +42,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.12
-          install: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Node and pnpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install core:node aqua:pnpm/pnpm
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve the pnpm store path
         id: pnpm-store
@@ -90,17 +84,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.12
-          install: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Node and pnpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install core:node aqua:pnpm/pnpm
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve the pnpm store path
         id: pnpm-store

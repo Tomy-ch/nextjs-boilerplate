@@ -41,24 +41,11 @@ jobs:
       # else to put it. Left unpinned it floats to whatever released today, which is
       # the resolver for every other tool. It is restated in each workflow — a bump
       # has to touch all of them.
-      - name: Setup mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.12
-          install: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      # mise.toml is the single source of truth for the Node / pnpm versions (ADR
-      # 0003), so only the tool names appear here. They carry their backend prefix
-      # because every mise.toml entry is backend-qualified — a bare `node` would not
-      # match the `core:node` key.
-      - name: Install Node and pnpm
-        env:
-          # The aqua backend resolves releases through the GitHub API. Unauthenticated,
-          # a hosted runner shares its IP quota with everyone else on it and the
-          # install fails intermittently on rate limiting.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install core:node aqua:pnpm/pnpm
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve the pnpm store path
         id: pnpm-store
