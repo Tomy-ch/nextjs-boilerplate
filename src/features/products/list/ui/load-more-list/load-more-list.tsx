@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
+import { Spinner } from "@/components/design-system/status/spinner/spinner";
 import type { ProductListItem } from "@/model/product/product";
 
 import { ProductGrid } from "../grid/grid";
@@ -15,7 +16,7 @@ export type ProductLoadMoreListProps = {
   loading?: boolean;
   /** 直前の取得に失敗したか。 */
   failed?: boolean;
-  /** 続きを読む操作。 */
+  /** 続きを読み直す操作。失敗したときだけ使う。 */
   onLoadMore?: () => void;
   /** 末尾到達を見張る目印を置く先。scroll で読み進める側が渡す。 */
   sentinelRef?: RefObject<HTMLDivElement | null>;
@@ -29,8 +30,14 @@ export type ProductLoadMoreListProps = {
  * 描き分けます。取得と末尾到達の検知は呼び出し元（{@link "../infinite-list/infinite-list"}）が
  * 持ちます。
  *
- * 「もっと見る」を常に置くのは、scroll だけを引き金にすると keyboard や支援技術で読む利用者に
- * 続きを読む手段が無くなるためです（[0100](../../../../../docs/adr/0100-accessibility-target.md)）。
+ * **続きを読む操作は失敗したときだけ出します。** 読み進めている間は末尾に近づくだけで次が
+ * 始まるため、同じことをする入口を並べても選ぶ手数が増えるだけです。失敗した後だけは事情が
+ * 違い、末尾到達の検知はその場に留まる限り二度と起きないので、操作が唯一の復帰口になります。
+ *
+ * この形でも scroll 以外の手段が失われないのは、keyboard の scroll も支援技術の読み進めも
+ * 表示位置を動かし、末尾到達の検知はそれで発火するためです
+ * （[0100](../../../../../docs/adr/0100-accessibility-target.md)）。動かしても直らない失敗の
+ * 場面にだけ操作を置くのは、この性質と表裏です。
  *
  * 件数に総数を添えないのは、契約が総件数を返さないためです。読み込んだ数を「全体の何件中」の形に
  * 見せると、実際には知らない数を知っているように読めます。
@@ -55,15 +62,16 @@ export function ProductLoadMoreList({
       </p>
       <ProductGrid items={items} />
       {hasNext ? (
-        <div className="flex flex-col items-center gap-3" ref={sentinelRef}>
+        <div className="flex min-h-12 flex-col items-center gap-3" ref={sentinelRef}>
           {failed ? (
-            <p className="text-destructive text-sm">
-              続きを読み込めませんでした。もう一度お試しください。
-            </p>
+            <>
+              <p className="text-destructive text-sm">続きを読み込めませんでした。</p>
+              <Button onClick={onLoadMore} type="button" variant="outline">
+                もう一度読み込む
+              </Button>
+            </>
           ) : null}
-          <Button disabled={loading} onClick={onLoadMore} type="button" variant="outline">
-            {loading ? "読み込み中" : "もっと見る"}
-          </Button>
+          {loading ? <Spinner className="size-6 text-muted-foreground" /> : null}
         </div>
       ) : null}
     </div>

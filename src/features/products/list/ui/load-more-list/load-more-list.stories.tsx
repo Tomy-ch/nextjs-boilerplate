@@ -46,17 +46,17 @@ const ITEMS: readonly ProductListItem[] = [
   item({ name: "USB-C ハブ", price: "45.50", quantity: 0, statusName: "在庫切れ" }),
 ];
 
-/** 続きがある状態。読み込み済みの件数と、続きを読む操作を出す。 */
+/** 続きがある状態。末尾に近づけば自動で読むため、操作は出さない。 */
 export const HasNext: Story = {
   args: { hasNext: true, items: ITEMS },
 };
 
-/** 続きを取得している最中。読み終えた分は残したまま操作だけを止める。 */
+/** 続きを取得している最中。読み終えた分は残したまま、末尾で進行を示す。 */
 export const Loading: Story = {
   args: { hasNext: true, items: ITEMS, loading: true },
 };
 
-/** 続きの取得に失敗した状態。読み終えた分を捨てず、もう一度試せるようにする。 */
+/** 続きの取得に失敗した状態。ここでだけ読み直す操作を出す。末尾に留まったままでは自動で直らない。 */
 export const Failed: Story = {
   args: { failed: true, hasNext: true, items: ITEMS },
 };
