@@ -58,6 +58,9 @@ const preview: Preview = {
         // sidebar の見出しは component 目録の見出し (shadcn-manifest.yaml の `as`) と同じ。
         // 目録の並びは sidebar には持ち込まず、見出し・story とも名前順で引けるようにする。
         method: "alphabetical",
+        // 画面を組んでいる間に開くのは Features であり、目録は参照物として後ろにある方が
+        // 探す手数が少ない。以降は名前順に戻す。
+        order: ["Features", "*"],
       },
     },
   },
