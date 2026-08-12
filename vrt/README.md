@@ -48,13 +48,17 @@ VRT が言えるのは「変わった」までで、「変わってよいか」�
 
 | | 操作 | 向き先 |
 | --- | --- | --- |
-| `vrt-retake` ラベル | PR にラベルを付ける | 表に出ていた story だけを CI が撮り直し、PR ブランチへ push する |
-| 手元 | `make vrt-update VRT_ONLY=<id>,<id>` | Docker がある環境で撮り直してコミットする。fork からの PR はこちらだけ |
+| `vrt-retake` ラベル | PR にラベルを付ける | 表に出ていた story だけを CI が撮り直し、置き場へ push してポインタを進める |
+| 手元 | `make vrt-update VRT_ONLY=<id>,<id>` | Docker がある環境で撮り直す。fork からの PR はこちらだけ |
 
-**どちらも承認ではない。**撮り直しは「画素を見られる形にする」操作でしかない。基準画像は追跡
-対象なので、コミットされた時点で **PR の Files changed に GitHub 標準の画像差分**(2-up /
-swipe / onion-skin)として出る。**見た目を判断するのはそこ**であり、ruleset の
+**どちらも承認ではない。**撮り直しは「画素を見られる形にする」操作でしかない。撮り直した一式は
+置き場へ push され、PR コメントに**置き場の compare ビューへのリンク**が付く。そこに GitHub 標準の
+画像差分（2-up / swipe / onion-skin）が出る。**見た目を判断するのはそこ**であり、ruleset の
 `require_last_push_approval` が「bot の push のあとに人が承認する」ことを強制する。
+
+compare のリンクを置くのは、画像そのものをコメントへ貼らないため。長すぎて読めないうえ、置き場が
+非公開だと **GitHub の画像プロキシが匿名でアクセスするので 404 になる**（見る人の権限は関係ない）。
+リンクなら GitHub の UI の中なので、見る人の認証がそのまま効く。
 
 撮り直しに掛かる制約は 2 つ。
 
@@ -101,13 +105,63 @@ swipe / onion-skin)として出る。**見た目を判断するのはそこ**で
 許容する差分は置いていない（`maxDiffPixels: 0`）。同じイメージで撮る前提が成り立っている以上、
 閾値を持たせるとその幅に収まる退行が黙って通る。
 
-## 基準画像は系統ごとに分かれている
+## 基準画像は別のリポジトリに置く
 
-`__screenshots__/<系統>/<テーマ>/<story id>.png` の形で、系統は story の見出しの先頭区画
-（`Action` / `Features` / `Page` …）。平らに 1186 枚を並べるより辿りやすいというのもあるが、
-主な理由は**消す単位を系統に取れる**ようにするため。題材に固有の系統（`Features` / `Page`）は
-fork 先で丸ごと不要になり、[破棄する対象の宣言](../scripts/setup/remove-sample/sample-manifest.ts)
-から 2 行で落とせる必要がある。画像にはマーカーを書けないので、境界をディレクトリで表す。
+`__screenshots__` は**サブモジュール**で、実体は基準画像だけを持つ別リポジトリ（以下「置き場」）に
+ある。中身は `<系統>/<テーマ>/<story id>.png` で、系統は story の見出しの先頭区画
+（`Action` / `Features` / `Page` …）。
+
+分けてあるのは PNG のためである。すでに圧縮済みなので git の delta も zlib も効かず、更新 1 回が
+ほぼ丸ごと 1 枚ぶんずつ**永久に**積まれる。design token を触れば全数が動くので、同じリポジトリに
+置くと本体の clone が数か月で使い物にならなくなる。
+
+置き場は**ただの置き場**で、workflow もルールセットもラベルも持たない。更新も掃除もすべて本体の
+make と workflow から流し込む。
+
+### 撮り直しは「一式まるごと 1 コミット」
+
+撮り直すたびに、置き場には**全数ぶんの木を持つコミットが 1 つ**増える。親は常に置き場の根
+（README だけのコミット）で、撮り直しどうしを繋げない。
+
+- 繋げると古い一式が新しい一式の祖先になり、掃除でどれも落とせなくなる
+- 根を共有させるのは、GitHub の compare が無関係な履歴どうしを比較できないため
+
+同じ内容の PNG は git が blob として共有するので、一式ぶんの実体が毎回増えるわけではない。
+
+### 掃除
+
+生きた ref（`production` / `staging` / `develop` / `release/*` / `hotfix/*` の先端、直近のタグ、
+開いている PR の head）が指す一式だけを残し、他は消す。**過去のコミットへ遡ると基準画像は揃わない**
+のが前提である。
+
+| | |
+| --- | --- |
+| 報告 | [`vrt-images-prune.yaml`](../.github/workflows/vrt-images-prune.yaml) が月次で測り、閾値を超えたときだけ issue を立てる |
+| 実行 | `make vrt-images-prune`（`DRY_RUN=1` で一覧だけ） |
+
+実行を人に残すのは、消したものを戻せないためである。保持の条件は
+[`scripts/vrt-images/retention.ts`](../scripts/vrt-images/retention.ts) に理由と撤去条件つきで置いてある。
+
+revert したときは、戻り先の一式が掃除で消えていることがある。そのため
+`revert-` で始まるブランチではラベル無しで撮り直しが走る。revert は定義上「以前に承認された状態へ
+戻す」操作なので、自動化しても承認の意味は壊れない。
+
+### 置き場を用意する
+
+fork 先は**自分の置き場を持つ**。上流の置き場には push できない。
+
+```bash
+make setup-vrt-images   # 置き場を作る / 既存を指定する → サブモジュールを張り直す
+make setup-vrt-app      # 撮り直しに使う GitHub App を secret へ登録する
+```
+
+GitHub App の作成と鍵の生成だけは自動化できない（REST に作成の口が無く、鍵は生成時に一度しか
+表示されない）。App は**本体と置き場の 2 つだけ**に installation を絞り、権限は
+**Contents: Read and write** のみにする。置き場にルールセットを掛けてはいけない — 撮り直しの
+push を自分で塞ぐことになる。
+
+> **`make setup-remove-sample` より先に実行すること。** サンプル破棄はサブモジュールの中へ届かず、
+> 題材の基準画像は上流の置き場に残っているだけである。自分の置き場へ張り替えた時点で参照が切れる。
 
 ## 構成
 
@@ -117,8 +171,10 @@ fork 先で丸ごと不要になり、[破棄する対象の宣言](../scripts/s
 | [`lib/story-index.ts`](lib/story-index.ts) | 目録から撮影対象を取り出す・story の URL を組み立てる |
 | [`lib/excluded-stories.ts`](lib/excluded-stories.ts) | 比較の対象から外す story の宣言（理由と撤去条件付き） |
 | [`lib/static-server.ts`](lib/static-server.ts) | build 済み Storybook を配る依存なしの静的サーバ |
-| `__screenshots__/<系統>/<theme>/<story id>.png` | 基準画像（追跡対象） |
+| `__screenshots__/` | 基準画像の置き場（サブモジュール） |
 | `../playwright.config.ts` | 実行環境と比較条件 |
-| `../scripts/vrt/` | 実行結果から一覧表と承認の範囲を取り出す |
+| `../scripts/vrt/` | 実行結果から一覧表と撮り直しの範囲を取り出す |
+| [`../scripts/vrt-images/`](../scripts/vrt-images/) | 置き場の ref 名と、掃除で消す対象の算出 |
+| [`../.github/actions/setup-vrt-baselines`](../.github/actions/setup-vrt-baselines/action.yaml) | CI が記録されたコミットだけを取ってくる |
 
 `tmp/vrt/` に出る実行結果（actual / diff / HTML レポート）は追跡しない。

@@ -11,6 +11,7 @@ include .makefiles/github/lint/actionlint.mk
 include .makefiles/github/lint/actions-shellcheck.mk
 include .makefiles/github/lint/actions-comment-secret-lint.mk
 include .makefiles/github/lint/actions-mise-pin-lint.mk
+include .makefiles/github/lint/shellcheck.mk
 include .makefiles/github/operation/vrt-images.mk
 
 # ツール関連
@@ -25,7 +26,6 @@ include .makefiles/testing/test.mk
 include .makefiles/testing/load-band.mk
 include .makefiles/testing/scripts.mk
 include .makefiles/testing/vrt.mk
-include .makefiles/testing/shellcheck.mk
 
 # セキュリティ関連
 include .makefiles/security/gitleaks.mk

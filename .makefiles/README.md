@@ -74,6 +74,19 @@ make help
 どちらの補助コマンドも `DRY_RUN=1` を付けると、書き換えずに変更予定だけを出力します。有効値は `1` のみで、
 それ以外（`DRY_RUN=0` や変数の省略）はすべて実際に書き換えます。
 
+### VRT 基準画像の置き場関連
+
+基準画像は別リポジトリに置き、`vrt/__screenshots__` からサブモジュールとして参照します
+（[`vrt/README.md`](../vrt/README.md)）。置き場側は workflow を持たないので、操作はすべてここから出ます。
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make setup-vrt-images` | 置き場を用意し、`vrt/__screenshots__` へ配線します。 | 既存リポジトリの指定を先に問います（組織では新規作成が権限で縛られていることがあるため）。新規作成時は README を置く初期コミットまで作ります。**`make setup-remove-sample` より先に実行してください。** |
+| `make setup-vrt-app` | 撮り直しに使う GitHub App を `VRT_APP_ID` / `VRT_APP_PRIVATE_KEY` へ登録します。 | App の作成と鍵の生成は自動化できません。App ID は slug から解決するので控える必要はなく、秘密鍵は標準入力へ貼るのでディスクにも履歴にも残りません。 |
+| `make vrt-images-prune [DRY_RUN=1]` | 生きた ref から指されていない基準画像の一式を置き場から消します。 | 取り消せません。実行を促すのは月次の [`vrt-images-prune.yaml`](../.github/workflows/vrt-images-prune.yaml) で、閾値を超えたときだけ issue を立てます。保持の条件は [`scripts/vrt-images/retention.ts`](../scripts/vrt-images/retention.ts)。 |
+
+`setup-vrt-images` / `setup-vrt-app` は同梱サンプルの破棄対象です（使い終わったら不要なため）。
+
 ### GitHub Actions Lint 関連
 
 | コマンド | 説明 | 補足 |
@@ -82,6 +95,7 @@ make help
 | `make actions-shellcheck` | composite action（`.github/actions/**/action.yaml`）の `run:` シェルを shellcheck で検査します。 | 指摘は `action.yaml` の行・列で報告します。`bash` / `sh` 以外の `shell:` は検査せず、位置と方言を添えて skip として出力します。 |
 | `make actions-mise-pin-lint` | `setup-mise` の版 / digest / キャッシュキーが揃っているか検査します。 | mise 自身の版は `mise.toml` に書けないため composite action が宣言を持ち、`with:` から `env:` を参照できない制約でキャッシュキーが同じ値を二度目に持ちます。片方だけ直した状態は落ちますが原因が遠いので検査します。整合違反は exit 1、検査が成立していない状態は exit 2。 |
 | `make actions-comment-secret-lint` | PR コメントを投稿するジョブに `GITHUB_TOKEN` 以外の secret が渡っていないか検査します。 | 規約違反は exit 1、検査そのものが成立していない状態は exit 2 で区別します。 |
+| `make shellcheck` | `scripts/**/*.sh` を shellcheck で検査します。 | TypeScript ではないので 1:1 ゲートもカバレッジも掛からず、`.github` の外なので actionlint も届きません。shellcheck が無ければ検査範囲が黙って縮むため落とします。 |
 
 actionlint は `run:` ステップのシェルも shellcheck 経由で検査するため、両バイナリを `mise.toml` で版固定して
 います（[ADR 0003](../docs/adr/0003-version-manager.md)）。先に `make install-tools` を実行してください。

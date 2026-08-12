@@ -29,10 +29,10 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Purge Verify | `purge-verify.yaml` | `purge-verify` | 使い捨てチェックアウトで同梱サンプルを破棄し、破棄後のツリーで整形・検査・build・test が通ることと、過不足・残留参照が無いことを検査する |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
 | Tokens Drift | `tokens-drift.yaml` | `tokens-drift` | hand-written token SSOT と追跡する CSS 生成物が一致することを検査する |
-| Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で検査する |
+| Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、`scripts/**/*.sh` を `make shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で、mise のピンの整合を `make actions-mise-pin-lint` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 | Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
-| VRT | `vrt.yaml` | `vrt` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す |
+| VRT | `vrt.yaml` | `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない） |
 
 ## ワークフロー一覧（Components）
 
@@ -49,8 +49,9 @@ PR ごとには走らず、ラベルや保護ブランチへの push で起動�
 
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
-| VRT Retake | `vrt-retake.yaml` | `retake` | `vrt-retake` ラベルで、直前の VRT が報告した story の基準画像を撮り直して PR ブランチへ push する。**承認ではない** — 画素の判断はコミットされた画像差分を見て PR レビューで行う |
+| VRT Retake | `vrt-retake.yaml` | `retake` / `report` | `vrt-retake` ラベルで、直前の VRT が報告した story の基準画像を撮り直し、置き場へ push してサブモジュールのポインタを進める。`revert-` で始まるブランチではラベル無しで全数を撮り直す（掃除で復帰先の一式が消えているため）。**承認ではない** — 画素の判断は置き場の compare ビューを見て PR レビューで行う |
 | VRT Guard | `vrt-guard.yaml` | `guard` | 保護ブランチへの push 後に story の比較をやり直す。通常は鳴らない（PR はマージ結果に対して判定され、ブランチは最新であることを要求されるため）。鳴ったら前提が崩れた合図として issue を立てる。**基準画像は撮り直さない** |
+| VRT Images Prune | `vrt-images-prune.yaml` | `report` | 月次で基準画像の置き場を測り、閾値を超えたときだけ掃除を促す issue を立てる。**消さない** — 履歴の書き換えは取り消せないので、実行は人が `make vrt-images-prune` で起こす |
 
 ## ワークフロー一覧（Documentation）
 

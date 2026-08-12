@@ -17,10 +17,17 @@ name: Actions Lint
 #                         bytes written to a file with `tee` pass through unmasked and
 #                         land verbatim in a public comment. actionlint cannot express
 #                         that rule, so it is checked here (ADR 0153 §5).
+#   actions-mise-pin-…  — the mise version, its digest and the cache key agree. mise's
+#     …lint               own version cannot live in `mise.toml`, so it is declared in
+#                         `.github/actions/setup-mise` in three places at once.
+#   shellcheck          — standalone `scripts/**/*.sh`. Nothing else covers them: they
+#                         are not TypeScript, so neither the 1:1 gate nor coverage
+#                         applies, and they sit outside `.github` so actionlint and
+#                         actions-shellcheck both miss them.
 #
-# All three are reported through a single PR comment: they answer the same question —
-# are the Actions definitions we are about to execute correct — and splitting them
-# would add further required checks for one concern.
+# All of them are reported through a single PR comment: they answer the same question
+# — is the automation we are about to execute correct — and splitting them would add
+# further required checks for one concern.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
@@ -92,13 +99,20 @@ jobs:
           shellcheck_code=${PIPESTATUS[0]}
 
           make actions-comment-secret-lint 2>&1 | tee -a /tmp/actions-lint.log
-          make actions-mise-pin-lint 2>&1 | tee -a /tmp/actions-lint.log
           secret_lint_code=${PIPESTATUS[0]}
 
-          summary="actionlint + composite-action shellcheck + pr-comment secret lint"
+          make actions-mise-pin-lint 2>&1 | tee -a /tmp/actions-lint.log
+          mise_pin_code=${PIPESTATUS[0]}
+
+          make shellcheck 2>&1 | tee -a /tmp/actions-lint.log
+          script_shellcheck_code=${PIPESTATUS[0]}
+
+          summary="actionlint + shellcheck + pr-comment secret lint + mise pin"
           if [ "${actionlint_code}" -eq 0 ] \
             && [ "${shellcheck_code}" -eq 0 ] \
-            && [ "${secret_lint_code}" -eq 0 ]; then
+            && [ "${secret_lint_code}" -eq 0 ] \
+            && [ "${mise_pin_code}" -eq 0 ] \
+            && [ "${script_shellcheck_code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
             echo "title=## ✅ Actions lint: PASS (${summary})" >> "$GITHUB_OUTPUT"
           else

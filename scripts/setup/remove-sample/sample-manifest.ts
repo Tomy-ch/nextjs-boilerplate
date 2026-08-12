@@ -17,6 +17,10 @@
  *
  * 破棄の道具そのものも対象です。**ディレクトリごと挙げる**のは、判定モジュールを足したときに
  * 列挙から漏れ、消えたはずの道具の一部だけが fork 先へ居座るのを防ぐためです。
+ *
+ * `vrt/__screenshots__` はサブモジュールなので、ここからは中身を消せません。題材の基準画像は
+ * fork 先が `make setup-vrt-images` で自分の置き場を用意した時点で参照が切れます。**破棄より
+ * 先にそれを実行してください**（[vrt/README.md](../../../vrt/README.md)）。
  */
 export const SAMPLE_PATHS: readonly string[] = [
   // 画面
@@ -33,16 +37,14 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/adapters/gen",
   "openapi/api.gen.yaml",
   "openapi/auth.gen.yaml",
-  // 題材の画面に対応する基準画像。系統ごとに分かれているので系統単位で落とせる
-  // （[story の系統](../../../vrt/lib/story-index.ts)）。
-  "vrt/__screenshots__/features",
-  "vrt/__screenshots__/page",
   // 契約から生成したモック
   "mocks/api",
   "mocks/auth",
   "mocks/contract-conformance.test.ts",
   // 破棄の道具（使い終わったら不要）。ディレクトリごと挙げれば、判定モジュールを足しても漏れない。
   "scripts/setup/remove-sample",
+  "scripts/setup/vrt-images",
+  ".github/settings/vrt-images",
 ];
 
 // verify 自身は検証の後に自分で消える（`selfDestructTargets`）。ここへ登録すると、検証の前に
