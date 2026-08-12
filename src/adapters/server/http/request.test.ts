@@ -47,6 +47,18 @@ async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> 
 
 describe("createHttpClient", () => {
   // ----- 正常系 -----
+  it("実装を渡さなければ呼び出し時の fetch を使う", async () => {
+    const globalFetch = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    vi.stubGlobal("fetch", globalFetch);
+
+    const client = createHttpClient({ baseUrl: "https://api.example.test", profile });
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(globalFetch).toHaveBeenCalledOnce();
+    vi.unstubAllGlobals();
+  });
+
   it("契約に沿う応答を検証して返す", async () => {
     const client = createClient(vi.fn(async () => jsonResponse(200, { ok: true })));
 
