@@ -400,7 +400,6 @@ describe("formatViolations", () => {
     expect(formatViolations([same, same]).split("\n")).toHaveLength(2);
   });
 
-  // ----- 異常系 -----
   it("違反が無ければ空文字を返す", () => {
     expect(formatViolations([])).toBe("");
   });

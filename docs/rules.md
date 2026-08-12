@@ -4,6 +4,8 @@
 
 各規約の「強制手段」は、現時点で自動化済みのものと後続 PR で導入するものを区別する。`散文` はレビューで確認する規約であり、将来の自動化候補でもある。
 
+テストの書き方とレビューの規約は分量が違うため、[テスト規約](testing-conventions.md)へ分けている。
+
 | # | 規約 | 強制手段 | Rationale |
 | --- | --- | --- | --- |
 | 4 | mutation 後は、データの所有境界で `revalidateTag`、`revalidatePath`、または `router.refresh()` により UI を更新する。 | P4-3 以降の adapter / feature テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
