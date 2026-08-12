@@ -217,4 +217,32 @@ describe("stripMarkers", () => {
 
     expect(() => stripMarkers(content, "sample")).toThrow("replace-end が見つかりません");
   });
+  it("ブロックの内側にある replace は外側の削除に従う", () => {
+    const content = doc(
+      "// sample:begin",
+      "// sample:replace-begin",
+      "const x = live();",
+      "// sample:replace-with",
+      "// = const x = replaced();",
+      "// sample:replace-end",
+      "// sample:end",
+    );
+
+    expect(stripMarkers(content, "sample").content).toBe("");
+  });
+
+  it("ブロックの内側の入れ子も外側の削除に従う", () => {
+    const content = doc(
+      "keep",
+      "# sample:begin",
+      "# sample:begin",
+      "drop",
+      "# sample:end",
+      "drop2",
+      "# sample:end",
+      "keep2",
+    );
+
+    expect(stripMarkers(content, "sample").content).toBe(doc("keep", "keep2"));
+  });
 });

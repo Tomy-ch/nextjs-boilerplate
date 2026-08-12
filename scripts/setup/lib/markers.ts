@@ -98,6 +98,21 @@ export function stripMarkers(content: string, marker: string): StripResult {
   };
 
   for (const line of lines) {
+    // ブロックの内側は replace マーカーも含めてすべて消す。外側の削除が勝つ。ここを replace の
+    // 判定より後ろに置くと、差し替え側の退避コードが depth を見ずに残り、丸ごと消えるはずの
+    // 領域に生きたコードが黙って混入する。
+    if (depth > 0) {
+      if (blockBegin.test(line)) {
+        depth++;
+      } else if (blockEnd.test(line)) {
+        depth--;
+      }
+
+      removed++;
+      cutJustBefore = true;
+      continue;
+    }
+
     if (replaceBegin.test(line)) {
       if (replaceState !== OUTSIDE) {
         throw new Error(`${marker}:replace ブロックは入れ子にできません。`);
