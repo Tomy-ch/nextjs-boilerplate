@@ -62,7 +62,7 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 
 ### 6. ランタイム供給 / キャッシュ / matrix
 
-- **ランタイム供給**: Node / pnpm は **mise-action** が `mise.toml` から供給する(go が setup-go に `go-version-file: go.mod` を渡すのと同じく、版数宣言は 1 箇所)。`actions/setup-node` は採らない — `node-version-file` が受け付けるのは `.nvmrc` / `.node-version` / `.tool-versions` / `package.json` だけで `mise.toml` を読めず、採用すれば版数の第二宣言を置くことになるため([0003](0003-version-manager.md))
+- **ランタイム供給**: Node / pnpm は **自前の composite action(`setup-mise`)** が `mise.toml` から供給する。mise 自身のバイナリは版と SHA256 を固定し、**実行前に照合する** — Actions のキャッシュは信頼境界ではなく(ブランチを跨いで共有され、push 権限があれば差し替えられる)、実行可能物をそこへ置く以上、照合しなければキャッシュ汚染が CI 内の任意コード実行になるため。`uses:` の SHA ピン・image の digest ピンと同じ形(go が setup-go に `go-version-file: go.mod` を渡すのと同じく、版数宣言は 1 箇所)。`actions/setup-node` は採らない — `node-version-file` が受け付けるのは `.nvmrc` / `.node-version` / `.tool-versions` / `package.json` だけで `mise.toml` を読めず、採用すれば版数の第二宣言を置くことになるため([0003](0003-version-manager.md))
 - **キャッシュ**: pnpm store(`pnpm store path` の解決結果)と `next build` キャッシュ(`.next/cache`)を `actions/cache` で保持する。キーは `pnpm-lock.yaml` の hash を先頭に置き、`.next/cache` はソースの hash を足したうえで restore-keys により前世代へフォールバックさせる(`.next/cache` の保持は go に相当なし・本リポ新設)
 - **matrix = 非採用**: `runs-on: ubuntu-latest` 単一、Node バージョンは `mise.toml` を SSOT とし matrix 展開しない(go の単一ランタイム方針の翻案。[0003](0003-version-manager.md))
 
