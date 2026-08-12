@@ -19,7 +19,12 @@ export type MediaImageProps = Omit<
   className?: string;
   /** 代替画像の代替テキスト。既定は空文字で、装飾として扱われる。 */
   fallbackAlt?: string;
-  /** `src` が無いときに表示する画像。これも無ければ何も描画しない。 */
+  /**
+   * `src` が無いときに表示する画像。これも無ければ何も描画しない。
+   *
+   * **最適化を通さないため、リポジトリ内の静的アセットを渡すこと。** 外部由来の URL を渡すと、
+   * 最適化の経路が持つ検査（SVG の拒否など）を通らずに描画される。
+   */
   fallbackSrc?: ImageProps["src"];
   /** 実画像に追加する class 名。 */
   imageClassName?: string;

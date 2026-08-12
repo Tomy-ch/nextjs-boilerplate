@@ -19,6 +19,9 @@ connectivity、media query、storage、clipboard など、複数 feature が使�
 ## 運用
 
 - client-only の実装では `"use client"` を最小の境界に置く
+- **hook のテストは Vitest + React Testing Library の `render` / `act` を使う**。`test-requirement`
+  は `unit` だが、React の hook API を内部で使うものは React のツリーを介してしか呼べないため、
+  純粋ロジックと同じ手段では検証できない（選択基準は「対象が hook API を使うか」）
 - 単一 feature 専用 hook は feature 内に置く
 - **サーバに値が無い能力は、サーバ側の初期値を hook の doc に明記する**。初期値と実際の環境がずれる
   ぶんだけ hydration で表示が動くため、位置が動く出し分けには使わせない（CSS 側で表現する）

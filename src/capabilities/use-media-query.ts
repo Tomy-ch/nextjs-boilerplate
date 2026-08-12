@@ -11,14 +11,13 @@ function serverSnapshot(): boolean {
  * media query の一致を購読する。
  *
  * @remarks
- * `useSyncExternalStore` を用いるのは、`matchMedia` の変化が React の外で起きるためです。
- * `useEffect` で state に写すと、最初の描画が常に一致していない側になり、そのぶん余計な
- * 再描画が挟まります。
- *
  * **サーバでは常に `false` を返します。** 一致した側にだけ現れる UI は hydration の後に現れ、
- * 一致した側でだけ消える UI は hydration まで残ります。したがって、この hook で出し分けるのは
- * 「有無で本文の位置が動かないもの」に限ります。本文の幅や順序が変わる出し分けは、CSS の
- * media query（Tailwind の `md:` など）で行ってください。
+ * 一致した側でだけ消える UI は hydration まで残ります。**初回描画は一致していない側の姿で、
+ * 操作できるかどうかもその姿に従います。**
+ *
+ * したがって本文の幅・順序が変わる出し分けや、押せる必要のある操作の有無は、この hook ではなく CSS の
+ * media query（Tailwind の `lg:` など）で行ってください。この hook を使うのは、focus trap のように
+ * DOM を残したままでは成立しないものに限ります。
  *
  * @param query - `matchMedia` へ渡す media query
  */
