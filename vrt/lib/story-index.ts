@@ -14,6 +14,8 @@ export type Story = {
   title: string;
   /** story の表示名。 */
   name: string;
+  /** 見出しの先頭区画。基準画像はこの単位でディレクトリに分かれる。 */
+  group: string;
 };
 
 type IndexEntry = {
@@ -44,7 +46,12 @@ export function parseStoryIndex(json: string): Story[] {
   const stories: Story[] = [];
   for (const entry of Object.values(entries as Record<string, IndexEntry>)) {
     if (!isStory(entry)) continue;
-    stories.push({ id: entry.id, title: entry.title, name: entry.name });
+    stories.push({
+      id: entry.id,
+      title: entry.title,
+      name: entry.name,
+      group: storyGroup(entry.title),
+    });
   }
   if (stories.length === 0) throw new Error("story 目録に撮影対象がありません");
 
@@ -86,6 +93,19 @@ function isStory(
     typeof entry.title === "string" &&
     typeof entry.name === "string"
   );
+}
+
+/**
+ * 見出しの先頭区画を、ディレクトリ名に使える形へ落とす。
+ *
+ * @remarks
+ * 基準画像を系統ごとに分けるのは、消す単位を系統に取れるようにするためです。題材に固有の
+ * 系統（`Features` / `Page`）は fork 先で丸ごと不要になり、1 枚ずつ列挙せずに落とせる必要が
+ * あります([破棄する対象の宣言](../../scripts/setup/remove-sample/sample-manifest.ts))。
+ * 系統ごとに分かれていること自体、593 枚を平らに並べるより辿りやすくもあります。
+ */
+export function storyGroup(title: string): string {
+  return title.split("/")[0].trim().toLowerCase().replace(/\s+/g, "-");
 }
 
 /**

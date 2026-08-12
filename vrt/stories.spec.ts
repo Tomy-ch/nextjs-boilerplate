@@ -65,7 +65,7 @@ for (const story of stories) {
     // 「見た目が変わっていない」で通さないため、画像より先に見る。
     expect(crashes.map((crash) => crash.message)).toEqual([]);
 
-    await expect(page).toHaveScreenshot(`${story.id}.png`);
+    await expect(page).toHaveScreenshot(`${story.group}/${testInfo.project.name}/${story.id}.png`);
   });
 }
 

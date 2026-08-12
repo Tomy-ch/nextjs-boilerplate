@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { ExcludedStory } from "./excluded-stories";
-import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./story-index";
+import {
+  excludeDeclared,
+  parseStoryIndex,
+  selectStories,
+  storyGroup,
+  storyURL,
+} from "./story-index";
 
 /** 目録 1 件分の JSON を組み立てる。 */
 function indexOf(entries: Record<string, unknown>): string {
@@ -31,6 +37,7 @@ describe("parseStoryIndex", () => {
       id: "a--x",
       title: "Action/Button",
       name: "Default",
+      group: "action",
     });
   });
 
@@ -77,8 +84,8 @@ describe("storyURL", () => {
 
 describe("selectStories", () => {
   const stories = [
-    { id: "a--x", title: "A", name: "X" },
-    { id: "b--y", title: "B", name: "Y" },
+    { id: "a--x", title: "A", name: "X", group: "a" },
+    { id: "b--y", title: "B", name: "Y", group: "b" },
   ];
 
   // ----- 正常系 -----
@@ -108,8 +115,8 @@ describe("selectStories", () => {
 
 describe("excludeDeclared", () => {
   const stories = [
-    { id: "a--x", title: "A", name: "X" },
-    { id: "b--y", title: "B", name: "Y" },
+    { id: "a--x", title: "A", name: "X", group: "a" },
+    { id: "b--y", title: "B", name: "Y", group: "b" },
   ];
   const declare = (id: string): ExcludedStory => ({ id, reason: "理由", removeWhen: "条件" });
 
@@ -133,5 +140,21 @@ describe("excludeDeclared", () => {
     expect(() => excludeDeclared(stories, [declare("a--x"), declare("b--y")])).toThrow(
       "除外の宣言が撮影対象を空にしました",
     );
+  });
+});
+
+describe("storyGroup", () => {
+  // ----- 正常系 -----
+  it("見出しの先頭区画をディレクトリ名へ落とす", () => {
+    expect(storyGroup("Action/Button")).toBe("action");
+  });
+
+  it("空白を含む区画を繋いだ形にする", () => {
+    expect(storyGroup("Rich Text/RichTextContent")).toBe("rich-text");
+    expect(storyGroup("View State/FeedbackState")).toBe("view-state");
+  });
+
+  it("区切りを持たない見出しはそのまま区画にする", () => {
+    expect(storyGroup("Foundation")).toBe("foundation");
   });
 });

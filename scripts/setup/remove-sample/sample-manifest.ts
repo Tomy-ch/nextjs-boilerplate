@@ -33,6 +33,10 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/adapters/gen",
   "openapi/api.gen.yaml",
   "openapi/auth.gen.yaml",
+  // 題材の画面に対応する基準画像。系統ごとに分かれているので系統単位で落とせる
+  // （[story の系統](../../../vrt/lib/story-index.ts)）。
+  "vrt/__screenshots__/features",
+  "vrt/__screenshots__/page",
   // 契約から生成したモック
   "mocks/api",
   "mocks/auth",

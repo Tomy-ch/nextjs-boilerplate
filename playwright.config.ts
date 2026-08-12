@@ -22,7 +22,8 @@ export default defineConfig({
   // 生成物はすべて追跡対象外へ落とす。差分画像は基準画像と同じ拡張子で出るため、
   // 追跡下に置くと「更新済みの基準画像」と見分けが付かなくなる。
   outputDir: "tmp/vrt/results",
-  snapshotPathTemplate: "vrt/__screenshots__/{projectName}/{arg}{ext}",
+  // 系統 / テーマ / story の順に畳む。名前は spec が組み立てるため、ここは受け取るだけ。
+  snapshotPathTemplate: "vrt/__screenshots__/{arg}{ext}",
   fullyParallel: true,
   // 1 件あたりの上限。撮影が収まるのを待つ猶予（下の expect）を内側に収める必要があり、
   // 既定の 30 秒だと待ち切る前に上限へ当たる。負荷が高いときに「揺らぎで落ちた」のか
@@ -63,6 +64,6 @@ export default defineConfig({
       reducedMotion: "reduce",
     },
   },
-  // プロジェクト名がそのまま配色テーマであり、基準画像の置き場になる。
+  // プロジェクト名がそのまま配色テーマであり、基準画像の置き場の一部になる。
   projects: [{ name: "light" }, { name: "dark" }],
 });
