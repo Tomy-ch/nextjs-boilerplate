@@ -96,7 +96,7 @@ jobs:
           exit 0
 
       - name: Upload the visual diff
-        if: always() && steps.vrt.outputs.status != 'success'
+        if: always() && steps.vrt.outputs.status == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-diff
@@ -118,7 +118,12 @@ jobs:
             --json number --jq '.[0].number')"
 
           {
-            pnpm exec tsx scripts/vrt table tmp/vrt/report.json || tail -n 60 /tmp/vrt-full.log
+            # The comparison may never have run — the baseline store can be
+            # unreachable. Raising the issue matters more than the table, so every
+            # fallback ends in something printable.
+            pnpm exec tsx scripts/vrt table tmp/vrt/report.json 2>/dev/null ||
+              tail -n 60 /tmp/vrt-full.log 2>/dev/null ||
+              echo '(比較そのものが実行できませんでした。実行ログを確認してください。)'
             echo
             echo "実行: ${RUN_URL}"
             echo

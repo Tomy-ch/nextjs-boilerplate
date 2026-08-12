@@ -109,7 +109,7 @@ jobs:
       # JSON report is turned into a table of exactly which stories moved and by how
       # much — the same set the `vrt-retake` label is allowed to retake.
       - name: Summarise which stories changed
-        if: always() && steps.vrt.outputs.status != 'success'
+        if: always() && steps.vrt.outputs.status == 'failure'
         shell: bash
         run: |
           {
@@ -129,7 +129,7 @@ jobs:
       # Expected / actual / diff triplets per failing story. Without them the only
       # evidence of a visual change is the assertion text, which cannot be judged.
       - name: Upload the visual diff
-        if: always() && steps.vrt.outputs.status != 'success'
+        if: always() && steps.vrt.outputs.status == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-diff
@@ -140,7 +140,7 @@ jobs:
       # Read back by `vrt-retake.yaml` to bound what the label may retake. Kept
       # separate from the diff bundle so the retake path downloads only the report.
       - name: Upload the machine-readable report
-        if: always() && steps.vrt.outputs.status != 'success'
+        if: always() && steps.vrt.outputs.status == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-report
@@ -151,7 +151,7 @@ jobs:
       # Handed to the commenting job through an artifact rather than a job output,
       # because the body is a file whose size is not bounded by the output limit.
       - name: Hand the comment body to the commenting job
-        if: always() && github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request' && steps.vrt.outputs.status != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-comment
