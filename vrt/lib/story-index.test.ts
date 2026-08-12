@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { parseStoryIndex, selectStories, storyURL, VRT_SKIP_TAG } from "./story-index";
+import type { ExcludedStory } from "./excluded-stories";
+import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./story-index";
 
 /** 目録 1 件分の JSON を組み立てる。 */
 function indexOf(entries: Record<string, unknown>): string {
@@ -13,13 +14,6 @@ const story = (id: string, extra: Record<string, unknown> = {}) => ({
   title: "Action/Button",
   name: "Default",
   ...extra,
-});
-
-describe("VRT_SKIP_TAG", () => {
-  // ----- 正常系 -----
-  it("story 側が撮影対象から外れることを宣言するタグを示す", () => {
-    expect(VRT_SKIP_TAG).toBe("vrt-skip");
-  });
 });
 
 describe("parseStoryIndex", () => {
@@ -44,21 +38,6 @@ describe("parseStoryIndex", () => {
     const json = indexOf({ d: { type: "docs", id: "a--docs" }, a: story("a--x") });
 
     expect(parseStoryIndex(json).map((entry) => entry.id)).toEqual(["a--x"]);
-  });
-
-  it("撮影対象から外すタグを宣言した story を落とす", () => {
-    const json = indexOf({
-      a: story("a--x"),
-      b: story("b--x", { tags: ["dev", VRT_SKIP_TAG] }),
-    });
-
-    expect(parseStoryIndex(json).map((entry) => entry.id)).toEqual(["a--x"]);
-  });
-
-  it("タグを持つ story でも宣言が無ければ対象にする", () => {
-    const json = indexOf({ a: story("a--x", { tags: ["dev", "test"] }) });
-
-    expect(parseStoryIndex(json)).toHaveLength(1);
   });
 
   // ----- 異常系 -----
@@ -123,6 +102,36 @@ describe("selectStories", () => {
   it("どの story にも当たらない指定を落とす", () => {
     expect(() => selectStories(stories, "存在しない")).toThrow(
       "VRT_ONLY に該当する story がありません: 存在しない",
+    );
+  });
+});
+
+describe("excludeDeclared", () => {
+  const stories = [
+    { id: "a--x", title: "A", name: "X" },
+    { id: "b--y", title: "B", name: "Y" },
+  ];
+  const declare = (id: string): ExcludedStory => ({ id, reason: "理由", removeWhen: "条件" });
+
+  // ----- 正常系 -----
+  it("宣言された story を撮影対象から外す", () => {
+    expect(excludeDeclared(stories, [declare("a--x")])).toEqual([stories[1]]);
+  });
+
+  it("宣言が無ければ全数をそのまま返す", () => {
+    expect(excludeDeclared(stories, [])).toEqual(stories);
+  });
+
+  // ----- 異常系 -----
+  it("どの story にも当たらない宣言を落とす", () => {
+    expect(() => excludeDeclared(stories, [declare("消えた--story")])).toThrow(
+      "除外の宣言が指す story がありません: 消えた--story",
+    );
+  });
+
+  it("撮影対象を空にする宣言を落とす", () => {
+    expect(() => excludeDeclared(stories, [declare("a--x"), declare("b--y")])).toThrow(
+      "除外の宣言が撮影対象を空にしました",
     );
   });
 });

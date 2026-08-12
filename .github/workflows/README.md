@@ -42,6 +42,15 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Component Classes | `component-classes.yaml` | `classes` | Tailwind が出力しない未定義 class を検出する |
 | shadcn Drift | `shadcn-drift.yaml` | `manifest` | 取り込み台帳と実体の乖離、および上流の更新を検出する |
 
+## ワークフロー一覧（イベント駆動）
+
+PR ごとには走らず、ラベルや保護ブランチへの push で起動する。**required status check には登録しない**（起動しない PR では context が報告されないため）。
+
+| ワークフロー | ファイル | job 名 | 内容 |
+| --- | --- | --- | --- |
+| VRT Retake | `vrt-retake.yaml` | `retake` | `vrt-retake` ラベルで、直前の VRT が報告した story の基準画像を撮り直して PR ブランチへ push する。**承認ではない** — 画素の判断はコミットされた画像差分を見て PR レビューで行う |
+| VRT Guard | `vrt-guard.yaml` | `guard` | 保護ブランチへの push 後に story の比較をやり直す。通常は鳴らない（PR はマージ結果に対して判定され、ブランチは最新であることを要求されるため）。鳴ったら前提が崩れた合図として issue を立てる。**基準画像は撮り直さない** |
+
 ## ワークフロー一覧（Documentation）
 
 | ワークフロー | ファイル | job 名 | 内容 |

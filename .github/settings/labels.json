@@ -12,8 +12,8 @@
   { "name": "wontfix", "description": "対応なし", "color": "ffffff" },
   { "name": "release", "description": "リリース用のラベル", "color": "c5def5" },
   {
-    "name": "approve-vrt",
-    "description": "見た目の差分を意図した変更として承認し、基準画像を撮り直させる",
+    "name": "vrt-retake",
+    "description": "報告された見た目の差分の基準画像を撮り直させる（承認は PR レビューで行う）",
     "color": "8b5cf6"
   }
 ]

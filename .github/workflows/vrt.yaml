@@ -9,10 +9,11 @@ name: VRT
 # differs per OS and per CPU architecture, so the baseline is only reproducible
 # when the image — not the host — defines the environment.
 #
-# CI never writes baselines on its own. Accepting a visual change is a deliberate
-# human act — either `make vrt-update` locally, or the `approve-vrt` label handled
-# by `vrt-approve.yaml`. An unconditional write would turn approval into "CI fixed
-# it for us"; a write triggered by a person IS the approval.
+# CI never writes baselines on its own. Producing new ones is a deliberate human act
+# — either `make vrt-update` locally, or the `vrt-retake` label handled by
+# `vrt-retake.yaml`. Neither is the approval: the baselines land as a commit and the
+# pixels are judged on the image diff in "Files changed", where the ruleset forces a
+# human approval after the push.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
@@ -99,7 +100,7 @@ jobs:
 
       # The raw log holds one line per story, which is unreadable in a comment. The
       # JSON report is turned into a table of exactly which stories moved and by how
-      # much — the same set the `approve-vrt` label is allowed to retake.
+      # much — the same set the `vrt-retake` label is allowed to retake.
       - name: Summarise which stories changed
         if: always() && steps.vrt.outputs.status != 'success'
         shell: bash
@@ -110,7 +111,7 @@ jobs:
             cat <<'NOTE'
 
           `vrt-diff` artifact に期待 / 実際 / 差分の 3 枚と HTML レポートが入っています。
-          意図した変更なら `approve-vrt` ラベルを付けてください。上の story だけを撮り直して push します。
+          意図した変更なら `vrt-retake` ラベルを付けてください。上の story だけを撮り直して push します（承認は画像差分を見てから PR で行います）。
           NOTE
           } > /tmp/vrt.log
 

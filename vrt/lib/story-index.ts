@@ -1,11 +1,10 @@
 // Storybook が build 時に書き出す story 目録 (`storybook-static/index.json`) から、
 // 撮影対象の story を取り出す。
 //
-// 対象は既定で全数であり、外れるのは `VRT_SKIP_TAG` を宣言した story だけ。列挙を story 側の
-// 申告 (撮影対象を明示するタグ) にすると、新しく足した story が黙って対象外になる。
-
-/** 撮影対象から外す story が宣言するタグ。 */
-export const VRT_SKIP_TAG = "vrt-skip";
+// 対象は既定で全数であり、外れるのは [excluded-stories](excluded-stories.ts) が理由付きで
+// 宣言したものだけ。列挙を story 側の申告 (撮影対象を明示するタグ) にすると、新しく足した
+// story が黙って対象外になる。
+import type { ExcludedStory } from "./excluded-stories";
 
 /** 撮影する story 1 件。 */
 export type Story = {
@@ -22,7 +21,6 @@ type IndexEntry = {
   id?: unknown;
   title?: unknown;
   name?: unknown;
-  tags?: unknown;
 };
 
 type StoryIndex = {
@@ -46,12 +44,35 @@ export function parseStoryIndex(json: string): Story[] {
   const stories: Story[] = [];
   for (const entry of Object.values(entries as Record<string, IndexEntry>)) {
     if (!isStory(entry)) continue;
-    if (hasSkipTag(entry.tags)) continue;
     stories.push({ id: entry.id, title: entry.title, name: entry.name });
   }
   if (stories.length === 0) throw new Error("story 目録に撮影対象がありません");
 
   return stories.sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/**
+ * 宣言された story を撮影対象から外す。
+ *
+ * @remarks
+ * どの story にも当たらない宣言があれば例外を投げます。story を消したり改名したりしたあとに
+ * 宣言だけが残ると、外した理由が実体を失ったまま宣言として居座ります。
+ */
+export function excludeDeclared(stories: Story[], excluded: readonly ExcludedStory[]): Story[] {
+  const known = new Set(stories.map((story) => story.id));
+  const stale = excluded
+    .map((entry) => entry.id)
+    .filter((id) => !known.has(id))
+    .sort();
+  if (stale.length > 0) {
+    throw new Error(`除外の宣言が指す story がありません: ${stale.join(", ")}`);
+  }
+
+  const ids = new Set(excluded.map((entry) => entry.id));
+  const kept = stories.filter((story) => !ids.has(story.id));
+  if (kept.length === 0) throw new Error("除外の宣言が撮影対象を空にしました");
+
+  return kept;
 }
 
 // 目録には docs ページも同じ entries に並ぶ。撮るのは story だけで、docs は story の再掲と
@@ -65,10 +86,6 @@ function isStory(
     typeof entry.title === "string" &&
     typeof entry.name === "string"
   );
-}
-
-function hasSkipTag(tags: unknown): boolean {
-  return Array.isArray(tags) && tags.includes(VRT_SKIP_TAG);
 }
 
 /**

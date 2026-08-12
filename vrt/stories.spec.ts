@@ -2,9 +2,9 @@ import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { test as base, expect, type Page } from "@playwright/test";
-
+import { EXCLUDED_STORIES } from "./lib/excluded-stories";
 import { createStaticServer } from "./lib/static-server";
-import { parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
+import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
 
 /**
  * Storybook の全 story を基準画像と比べる。
@@ -20,7 +20,10 @@ import { parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
 const STORYBOOK_DIR = "storybook-static";
 
 const stories = selectStories(
-  parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
+  excludeDeclared(
+    parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
+    EXCLUDED_STORIES,
+  ),
   process.env.VRT_ONLY,
 );
 
