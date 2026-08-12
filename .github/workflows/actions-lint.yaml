@@ -92,6 +92,7 @@ jobs:
           shellcheck_code=${PIPESTATUS[0]}
 
           make actions-comment-secret-lint 2>&1 | tee -a /tmp/actions-lint.log
+          make actions-mise-pin-lint 2>&1 | tee -a /tmp/actions-lint.log
           secret_lint_code=${PIPESTATUS[0]}
 
           summary="actionlint + composite-action shellcheck + pr-comment secret lint"

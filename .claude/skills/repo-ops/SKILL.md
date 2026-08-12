@@ -1,6 +1,6 @@
 ---
 name: repo-ops
-description: Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, and the lefthook git hooks. Read-only knowledge skill — it tells you the exact command to run; it does not silently mutate state. This is deliberately a SPARSE STARTER for the Next.js boilerplate: it carries only the gotchas that genuinely exist today (mise / pnpm / make DRY_RUN / scratch paths / lefthook hooks), and grows as new operational traps are discovered (in contrast to the go-boilerplate original, whose items were mostly Docker / sqlc / DB-runner specific and do not apply here — ADR 0011 no-docker). Triggers: "make install-tools が mise not found で落ちる", "DRY_RUN はどのターゲットで効くのか", "setup-repo を試しに実行したい", "pnpm install --frozen-lockfile が落ちる", "mise.toml を変えた後の反映", "pnpm のスクリプトが ERR_PNPM_IGNORED_BUILDS で落ちる", "pnpm-workspace.yaml に覚えのない allowBuilds が付いている", "スクラッチ出力をどこに置くか", "commit が commitlint に弾かれる", "hook が command not found で落ちる".
+description: Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, and the lefthook git hooks. Read-only knowledge skill — it tells you the exact command to run; it does not silently mutate state. This is deliberately a SPARSE STARTER for the Next.js boilerplate: it carries only the gotchas that genuinely exist today (mise / pnpm / make DRY_RUN / scratch paths / lefthook hooks), and grows as new operational traps are discovered (in contrast to the go-boilerplate original, whose items were mostly Docker / sqlc / DB-runner specific and do not apply here — ADR 0011 no-docker). Triggers: "make install-tools が mise not found で落ちる", "DRY_RUN はどのターゲットで効くのか", "setup-repo を試しに実行したい", "pnpm install --frozen-lockfile が落ちる", "mise.toml を変えた後の反映", "pnpm のスクリプトが ERR_PNPM_IGNORED_BUILDS で落ちる", "pnpm-workspace.yaml に覚えのない allowBuilds が付いている", "スクラッチ出力をどこに置くか", "commit が commitlint に弾かれる", "hook が command not found で落ちる", "mise 自身の版を上げたい", "mise を上げたら CI の digest 照合で落ちた".
 ---
 
 # Repo Ops Runbook
@@ -251,6 +251,41 @@ To check a message without committing:
 ```bash
 echo "Feat: 説明" | pnpm exec commitlint
 ```
+
+## 8. mise itself needs a version bump, or CI broke after one
+
+`mise.toml` declares what mise resolves; it cannot declare mise. The version of the binary therefore
+lives in [`.github/actions/setup-mise/action.yaml`](../../../.github/actions/setup-mise/action.yaml),
+and it is written **three times**: `MISE_VERSION`, `MISE_SHA256`, and the cache key. A composite
+action cannot read a step's `env:` from a `with:` value, so the key has to carry the literals.
+
+Take the digest from the release the version names:
+
+```bash
+curl -sSL "https://github.com/jdx/mise/releases/download/v<version>/SHASUMS256.txt" | grep 'linux-x64$'
+```
+
+Then edit all three to agree and confirm it:
+
+```bash
+make actions-mise-pin-lint
+```
+
+The same check runs in CI as part of `actions-lint`, so a half-finished bump does not merge. Reading
+the failure when only one side was edited:
+
+| What was edited | What happens |
+| --- | --- |
+| Version only | The key changes, so nothing is restored; the download then fails the digest check |
+| Digest only | The key does not change, so the old binary is restored and fails the digest check |
+
+Both are fail-closed — the wrong binary never executes — but neither message names the cause, which is
+why the lint exists. The digest is checked on the restored binary as well as the downloaded one: an
+Actions cache is shared across branches and writable by anything with push access, so it is not a
+trust boundary ([0153](../../../docs/adr/0153-ci-configuration.md)).
+
+Tool versions inside `mise.toml` are a different job — `tools-upgrade` owns those and deliberately
+does not touch mise itself.
 
 ## Constraints
 
