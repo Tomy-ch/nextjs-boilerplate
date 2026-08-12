@@ -206,4 +206,15 @@ describe("stripMarkers", () => {
 
     expect(() => stripMarkers(content, "m")).toThrow(/いずれかで書いてください/);
   });
+  it("replace-with に対応する replace-begin が無ければ落とす", () => {
+    const content = doc("keep", "// sample:replace-with", "// = alt", "// sample:replace-end");
+
+    expect(() => stripMarkers(content, "sample")).toThrow("replace-begin がありません");
+  });
+
+  it("replace-begin に対応する replace-end が無ければ落とす", () => {
+    const content = doc("keep", "// sample:replace-begin", "drop");
+
+    expect(() => stripMarkers(content, "sample")).toThrow("replace-end が見つかりません");
+  });
 });
