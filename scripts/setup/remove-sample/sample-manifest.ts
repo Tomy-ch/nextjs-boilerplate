@@ -23,12 +23,16 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/app/(shop)",
   "src/features/products",
   "src/features/cart",
+  // 題材の増分取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
+  // 認証の口（`src/app/api/auth`）は同じ場所にあるコア残留である。
+  "src/app/api/products",
   // 題材に固有のカーネルモジュール
   "src/model/product",
   "src/stores/cart-store.ts",
   "src/stores/cart-store.test.ts",
   // 題材の契約に固有の adapter
   "src/adapters/server/api",
+  "src/adapters/client/api",
   // 契約と生成物
   "src/adapters/gen",
   "openapi/api.gen.yaml",
