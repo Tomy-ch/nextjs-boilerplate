@@ -5,6 +5,7 @@
 # 退行と見分けが付かないため手前で止める。
 .PHONY: vrt ## story の見た目を基準画像と比較する (コンテナ内で実行)
 .PHONY: vrt-update ## 基準画像を撮り直す (差分を意図した変更として受け入れる)
+.PHONY: vrt-push ## 撮り直した基準画像を置き場へ送り、サブモジュールのポインタを進める
 .PHONY: vrt-report ## 直前の実行の HTML レポートを開く
 .PHONY: build-storybook ## Storybook を静的に build する (VRT の撮影対象)
 
@@ -39,6 +40,13 @@ vrt: build-storybook
 vrt-update: build-storybook
 	@$(VRT_REQUIRE_WIRING)
 	@$(VRT_RUN) ./node_modules/.bin/playwright test --update-snapshots $(VRT_ARGS)
+	@echo "🎞️ 撮り直しました。置き場へ送るには make vrt-push を実行してください。"
+
+# 撮り直した一式を置き場へ送るのはここだけ。手元でサブモジュール内を直接コミットすると
+# 撮り直しどうしが繋がり、掃除でどれも落とせなくなる。
+vrt-push:
+	@$(VRT_REQUIRE_WIRING)
+	@bash scripts/vrt-images/push.sh $(VRT_BRANCH)
 
 # レポートもコンテナ内で配る。ホスト側の Playwright は比較の前に落とす設計なので、
 # 実行系をここだけホストへ寄せない。--service-ports はこの起動でだけポートを公開する。

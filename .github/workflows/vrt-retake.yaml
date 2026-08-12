@@ -192,47 +192,23 @@ jobs:
 
           make vrt-update VRT_ONLY="$ids"
 
-      # Every baseline set in the store is a commit whose only parent is the store's
-      # root. Chaining them instead would make each set an ancestor of the next, and
-      # pruning could then never drop anything without invalidating a live pointer.
-      # Sharing one root keeps GitHub's compare view able to diff any two sets.
+      # The same script a developer runs as `make vrt-push`, so the shape of what lands
+      # in the store does not depend on who took the screenshots.
       - name: Push the baselines to the store
         id: push-store
         if: steps.mode.outputs.mode != 'none'
         env:
           BRANCH: ${{ github.event.pull_request.head.ref }}
-          IDS: ${{ steps.retake.outputs.ids }}
         shell: bash
         run: |
           set -euo pipefail
 
-          store='vrt/__screenshots__'
-          before="$(git -C "$store" rev-parse HEAD)"
-          ref="$(pnpm exec tsx scripts/vrt-images ref "$BRANCH")"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C vrt/__screenshots__ config user.name 'github-actions[bot]'
+          git -C vrt/__screenshots__ config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-          git -C "$store" config user.name 'github-actions[bot]'
-          git -C "$store" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git -C "$store" add --all
-
-          if git -C "$store" diff --cached --quiet; then
-            echo '❌ 撮り直した画像が既存と同じです。基準画像は更新していません。'
-            exit 1
-          fi
-
-          count="$(git -C "$store" diff --cached --name-only | wc -l | tr -d ' ')"
-          root="$(git -C "$store" ls-remote --symref origin HEAD |
-            awk '/^ref:/ { sub("refs/heads/", "", $2); print $2 }')"
-          git -C "$store" fetch --quiet --depth 1 origin "$root"
-          git -C "$store" reset --soft FETCH_HEAD
-          git -C "$store" commit --quiet \
-            -m "Test: ${BRANCH} の基準画像を撮り直す" -m "対象: ${IDS}"
-          git -C "$store" push --quiet --force origin "HEAD:refs/heads/${ref}"
-
-          {
-            echo "before=${before}"
-            echo "after=$(git -C "$store" rev-parse HEAD)"
-            echo "count=${count}"
-          } >> "$GITHUB_OUTPUT"
+          bash scripts/vrt-images/push.sh "$BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: Move the submodule pointer
         id: push
@@ -240,9 +216,6 @@ jobs:
         env:
           IDS: ${{ steps.retake.outputs.ids }}
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add vrt/__screenshots__
           git commit -m "Test: 報告された差分の基準画像を撮り直す" -m "撮り直し: ${{ github.event_name }} / 対象: ${IDS}"
           git push
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

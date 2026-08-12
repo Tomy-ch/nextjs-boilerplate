@@ -12,8 +12,12 @@ DOM のアサートでは「class 名が変わっていない」ことしか言�
 ```bash
 make vrt          # Storybook を build して全 story を比較する
 make vrt-update   # 基準画像を撮り直す（差分を意図した変更として受け入れる）
+make vrt-push     # 撮り直した一式を置き場へ送り、サブモジュールのポインタを進める
 make vrt-report   # 直前の実行の HTML レポートを開く
 ```
+
+**置き場へ送るのは `make vrt-push` だけ**である。サブモジュールの中で直接コミットすると撮り直し
+どうしが繋がり、掃除でどれも落とせなくなる（後述）。
 
 `VRT_ARGS` で Playwright へそのまま引数を渡せる。
 
@@ -49,7 +53,7 @@ VRT が言えるのは「変わった」までで、「変わってよいか」�
 | | 操作 | 向き先 |
 | --- | --- | --- |
 | `vrt-retake` ラベル | PR にラベルを付ける | 表に出ていた story だけを CI が撮り直し、置き場へ push してポインタを進める |
-| 手元 | `make vrt-update VRT_ONLY=<id>,<id>` | Docker がある環境で撮り直す。fork からの PR はこちらだけ |
+| 手元 | `make vrt-update VRT_ONLY=<id>,<id>` → `make vrt-push` | Docker がある環境で撮り直す。fork からの PR はこちらだけ |
 
 **どちらも承認ではない。**撮り直しは「画素を見られる形にする」操作でしかない。撮り直した一式は
 置き場へ push され、PR コメントに**置き場の compare ビューへのリンク**が付く。そこに GitHub 標準の

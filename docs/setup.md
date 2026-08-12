@@ -94,8 +94,8 @@ App の slug（`github.com/apps/<ここ>`）を聞かれる。App ID は slug �
 ### 5-4. 最初の基準画像を撮る
 
 ```bash
-make vrt-update
-git add vrt/__screenshots__
+make vrt-update   # 撮る
+make vrt-push     # 置き場へ送り、サブモジュールのポインタを進める
 git commit -m "Test: 基準画像を撮る"
 ```
 
