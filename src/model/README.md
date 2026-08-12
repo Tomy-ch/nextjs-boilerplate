@@ -22,6 +22,12 @@ test-requirement: unit
 | モジュール | 役割 |
 | --- | --- |
 | [`rich-text/`](rich-text/README.md) | リッチテキストの sanitize port。HTML 文字列を表示してよい範囲の木へ変換する |
+| `breakpoint.ts` | 段に達していない幅の media query を組む。幅は design token が持つ |
+| `datetime.ts` | 日時の locale 対応フォーマッタ |
+| `locale.ts` | 既定 locale。フォーマッタが省略時に用いる単一の差し替え点 |
+| `generated/breakpoint.ts` | 段の名前と幅。`tokens/` から生成する（手編集禁止） |
+| `media.ts` | 配信基盤のオブジェクトキーから表示 URL を組み立てる |
+| `product/product.ts` | サンプル画面が扱う商品の表示用の型 <!-- sample:line --> |
 
 ## 運用
 

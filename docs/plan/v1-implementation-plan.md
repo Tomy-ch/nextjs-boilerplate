@@ -1122,7 +1122,14 @@ sources:
   - `src/features/cart/` / `src/app/(shop)/cart/page.tsx`
 - **設計**: **永続化しない**([screens.md](../screens.md) U4。ページリロードで消える前提でよい)。購入確認へ渡す際に明細配列として組み立てる
 - **注意**: `stores` は**横断 client 状態のみ**。単一 feature に閉じる状態は feature 内 local に置く([0060](../adr/0060-state-management.md))。永続化しないため hydration mismatch(`rules.md` #53)の論点も発生しない
-- **完了条件**: 商品追加・数量変更・削除が動く。リロードで空になる。`stores` の store が乱立していない
+- **P5-1 で先行して着地した範囲(ユーザのデザインディレクション由来)**: カートの状態と**画面右に出現するサイドバー**は P5-1 で実装済み。`zustand` の導入(exact pin)もそこで済んでいる
+  - `src/stores/cart-store.ts` — 追加 / 数量指定 / 削除。同じ商品の再追加は行を増やさず数量を上げ、数量 0 以下の指定は行を落とす
+  - `src/features/cart/` — サイドバー(空なら描画しない)/ header の点数(0 点なら数字を出さない)/ 数量ステッパー(**数量 1 のときだけ `−` をゴミ箱にする**)/ 小計(decimal 文字列のまま整数で合算)
+  - `src/features/products/detail/add-to-cart-button.tsx` — 在庫 0 なら押せない
+  - `AppShell` に `sidebar` / `headerActions` の差込口を追加し、mount は `(shop)/layout.tsx`([0026](../adr/0026-layout-shell-mount.md))
+- **この PR に残る範囲**: `src/app/(shop)/cart/page.tsx`(U4 のカートページ)と、サイドバーの「カートに移動」からの遷移。購入確認へ渡す明細配列の組み立ても含む。**サイドバー側の実装は移設せず、そのまま使う**
+- **注意(先行分に対して)**: 数量の上限は**在庫数**で、判定は store が持つ(操作側に置くと経路の数だけ確認箇所が増える)。在庫はカートへ入れた時点の値であり、購入時点の最終判定はバックエンドが行う。数量ステッパーは 2 箇所目の参照が出るまで cart feature 内に置く([0021](../adr/0021-frontend-responsibility.md) 昇格ルール)
+- **完了条件**: カートページが動く。「カートに移動」が遷移する。リロードで空になる。`stores` の store が乱立していない
 - **依存**: P5-1
 
 ### P5-6: U5 購入確認 + 通貨・為替

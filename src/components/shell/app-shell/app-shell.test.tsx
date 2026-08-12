@@ -74,6 +74,32 @@ describe("AppShell", () => {
     expect(screen.getByRole("main").className).not.toContain("max-w-");
   });
 
+  it("header の導線の後ろに渡された要素を並べる", () => {
+    render(
+      <AppShell headerActions={<p>お知らせ</p>} navItems={NAV_ITEMS} siteName="サイト">
+        <p>本文</p>
+      </AppShell>,
+    );
+
+    expect(within(screen.getByRole("banner")).getByText("お知らせ")).toBeVisible();
+  });
+
+  it("main の脇に渡された領域を並べる", () => {
+    render(
+      <AppShell navItems={NAV_ITEMS} siteName="サイト" sidebar={<aside aria-label="補助情報" />}>
+        <p>本文</p>
+      </AppShell>,
+    );
+
+    expect(screen.getByRole("complementary", { name: "補助情報" })).toBeInTheDocument();
+  });
+
+  it("脇の領域を渡さなければ本文だけを置く", () => {
+    renderShell();
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
+
   it("a11y 検査を通る", async () => {
     const { container } = renderShell();
 
@@ -81,7 +107,6 @@ describe("AppShell", () => {
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
   });
-  // ----- 異常系 -----
   it("導線が無くても骨格を保つ", () => {
     render(
       <AppShell siteName="サイト" navItems={[]}>

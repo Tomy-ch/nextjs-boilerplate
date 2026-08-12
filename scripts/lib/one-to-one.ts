@@ -237,6 +237,27 @@ function unknownDescribes(input: FileInput, testFile: string): Violation[] {
 }
 
 /**
+ * ソースに対応するテストファイルの位置を決める。見つからなければ `null` を返す。
+ *
+ * @remarks
+ * 拡張子はソースに合わせるが、`.ts` のモジュールは `.test.tsx` も受け付ける。hook は本体に JSX を
+ * 持たないまま、検証には React のツリーが必要になる。テストの拡張子はハーネス側の性質であって
+ * subject の性質ではないため、どちらかへ寄せると本体か検証のどちらかが歪む。
+ *
+ * 逆向きは受け付けません。`.tsx` の subject を JSX 無しで描画する手段はありません。
+ */
+export function resolveTestFile(
+  sourcePath: string,
+  exists: (path: string) => boolean,
+): string | null {
+  const candidates = sourcePath.endsWith(".tsx")
+    ? [sourcePath.replace(/\.tsx$/, ".test.tsx")]
+    : [sourcePath.replace(/\.ts$/, ".test.ts"), sourcePath.replace(/\.ts$/, ".test.tsx")];
+
+  return candidates.find((candidate) => exists(candidate)) ?? null;
+}
+
+/**
  * 1 ファイル分の 1:1 対応を検査する。
  *
  * @remarks

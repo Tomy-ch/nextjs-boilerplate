@@ -6,7 +6,7 @@ import type { z } from "zod";
 import { getApiConfig } from "@/config/api/api.server";
 import type { Product, ProductPage } from "@/model/product/product";
 
-import { GetProductsResponse } from "../../gen/api/endpoints.zod";
+import { GetProductsDetailResponse, GetProductsResponse } from "../../gen/api/endpoints.zod";
 import { createHttpClient, type HttpClient } from "../http/request";
 
 /** 商品一覧の取得条件。契約のクエリと 1 対 1 に対応する。 */
@@ -46,10 +46,12 @@ export function toProduct(wire: WireProduct): Product {
     description: wire.description,
     price: wire.price,
     quantity: wire.quantity,
+    stockWarningThreshold: wire.stockWarningThreshold,
     status: { id: wire.status.id, name: wire.status.name },
     category: { id: wire.category.id, name: wire.category.name },
     publishedAt: wire.publishedAt === null ? null : new Date(wire.publishedAt),
-    imagePath: wire.imagePath,
+    // 契約は 1 枚だけを返すため、表示側の複数枚前提に合わせて 1 要素の配列へ正規化する。
+    imagePaths: wire.imagePath === null ? [] : [wire.imagePath],
   };
 }
 
@@ -83,4 +85,21 @@ export const getProducts = cache(async (query: ProductQuery = {}): Promise<Produ
   });
 
   return toProductPage(page);
+});
+
+/**
+ * 商品 1 件を取得する。
+ *
+ * @remarks
+ * 一覧と同じ経路を通すため、生 status の分類と応答の検証は fetch wrapper が済ませています。
+ * 存在しない ID は wrapper が `not-found` へ正規化するため、ここでは分岐を持ちません。
+ */
+export const getProduct = cache(async (id: string): Promise<Product> => {
+  const product = await getClient().request({
+    path: `/v1/products/${encodeURIComponent(id)}`,
+    schema: GetProductsDetailResponse,
+    tags: [PRODUCTS_TAG],
+  });
+
+  return toProduct(product);
 });

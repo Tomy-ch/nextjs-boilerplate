@@ -16,6 +16,7 @@ const repositoryRoot = resolve(import.meta.dirname, "../..");
 const primitivesPath = resolve(repositoryRoot, "tokens/primitives.json");
 const themesPath = resolve(repositoryRoot, "tokens/themes.json");
 const outputPath = resolve(repositoryRoot, "src/app/generated/tokens.css");
+const breakpointOutputPath = resolve(repositoryRoot, "src/model/generated/breakpoint.ts");
 
 function isToken(value: Token | TokenGroup): value is Token {
   return "$type" in value && "$value" in value;
@@ -116,6 +117,41 @@ function renderTheme(name: string, tokens: TokenGroup, declared: ReadonlySet<str
   ];
 }
 
+/**
+ * breakpoint の段を TypeScript の定数として生成する。
+ *
+ * @remarks
+ * CSS 側は `@theme` の `--breakpoint-*` を Tailwind が読み、`lg:` などの variant になります。JS から
+ * media query を組む経路はそこを読めないため、同じ SSOT から両方を出します。片方を手で書くと、段を
+ * 差し替えたときに CSS と JS で境界がずれ、両方出る幅か両方消える幅ができます。
+ */
+export function generateBreakpointTs(primitives: TokenGroup): string {
+  const group = primitives.breakpoint;
+
+  if (group === undefined || isToken(group)) {
+    throw new Error("primitives.json に breakpoint の段がありません");
+  }
+
+  // biome の整形結果と同じ綴りで出す。識別子として妥当な名前は引用符を付けない。付けたまま出すと
+  // `pnpm fix` が外し、生成物と SSOT の一致検査が落ちる。
+  const entries = flattenTokens(group).map(([path, token]) => {
+    const name = path.join("-");
+    const key = /^[A-Za-z_$][\w$]*$/.test(name) ? name : `"${name}"`;
+
+    return `  ${key}: "${toCssValue(token.$value)}",`;
+  });
+
+  return [
+    "// このファイルは tokens/scripts/gen-tokens.ts から生成されます。手編集禁止。",
+    "",
+    "/** 段の名前と幅。CSS の `--breakpoint-*` と同じ SSOT から生成される。 */",
+    "export const BREAKPOINT = {",
+    ...entries,
+    "} as const;",
+    "",
+  ].join("\n");
+}
+
 /** W3C Design Tokens 形式の入力から Tailwind v4 用 CSS を生成する。 */
 export function generateTokensCss(primitives: TokenGroup, themes: TokenGroup): string {
   const primitivePaths = flattenTokens(primitives);
@@ -163,15 +199,22 @@ export async function generateOrCheckTokens(checkOnly: boolean): Promise<void> {
     readTokenFile(themesPath),
   ]);
   const generatedCss = generateTokensCss(primitives, themes);
+  const generatedBreakpoint = generateBreakpointTs(primitives);
 
   if (!checkOnly) {
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(outputPath, generatedCss);
+    await mkdir(dirname(breakpointOutputPath), { recursive: true });
+    await writeFile(breakpointOutputPath, generatedBreakpoint);
     return;
   }
 
-  const currentCss = await readFile(outputPath, "utf8");
-  if (currentCss !== generatedCss) {
+  const [currentCss, currentBreakpoint] = await Promise.all([
+    readFile(outputPath, "utf8"),
+    readFile(breakpointOutputPath, "utf8"),
+  ]);
+
+  if (currentCss !== generatedCss || currentBreakpoint !== generatedBreakpoint) {
     throw new Error(
       "design token の生成物が SSOT と一致しません。pnpm gen:tokens を実行してください。",
     );

@@ -24,6 +24,12 @@
 # 作った場合に表現できなくなる。
 schemaVersion: 1
 components:
+  action-bar:
+    kind: original
+    layer: patterns
+    as: container
+    directory: src/components/patterns/action-bar
+    addedAt: 2026-08-12T14:30:00.000Z
   api-error-feedback:
     kind: original
     layer: app-starter

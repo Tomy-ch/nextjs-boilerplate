@@ -24,8 +24,12 @@ Accepted
 
 ### 1. RSC テストの寄せ先(#70 — 0090 保留の前倒し確定)
 
-- **async RSC は E2E(Playwright)/ integration(MSW)側へ寄せる**。unit(Vitest + RTL)の対象は **純粋ロジック(`model` / feature 内純関数。汎用 `utils` 置き場は作らない = [0021](0021-frontend-responsibility.md) 命名規律)に限定**する
-- **正当性材料(vendor-independent / [0010](0010-standards-and-non-lockin.md) §2)**: async Server Components はサーバランタイム上のデータ取得に依存して描画されるため、その健全性は **HTTP 境界を含む通し**(ブラウザ経路 = E2E / HTTP をモックした境界 = integration)でこそ検証できる。React Testing Library の `render` は async Server Component を素直に扱えないという **React / Next.js の構造的現実**([0010](0010-standards-and-non-lockin.md) §1「プラットフォームの現実に乗る」)がこの寄せ先を規定するのであって、フレームワークの推奨に明け渡すのではない。unit を純粋ロジックに閉じることで、脆い RSC 描画 mock を積まずに 90% ゲート(0090)を充足できる
+- **async RSC 自体は unit(Vitest + RTL)で検証する**。async Server Component は **JSX を返す async 関数**であり、`render(await Component(props))` の形で描画できる。React Testing Library が扱えないのは `render(<Component />)`(要素として渡す形)であって、関数として await してから渡す形はこの制約に当たらない
+- **取得は module 境界で差し替える**。`adapters` を `vi.mock` で置き換えると、`server-only` を含む import 鎖がそもそも読み込まれないため、サーバランタイムを模した描画 mock を積む必要がない([0090](0090-testing-strategy.md) の mock 戦略「モジュール境界の差し替えは `vi.mock`」に一致)
+- **unit が負うのは、取得結果をどう組み立てて渡すか**である。取得した値の写し方、`notFound()` などフレームワーク境界への振り分け、失敗分類の再 throw は、いずれも取得の実体を持たずに決まるため unit の対象とする
+- **E2E / integration が負うのは、通しでしか確かめられないもの**に限る。実 API 応答の形と契約適合は integration(MSW)、ブラウザ経路・streaming と HTTP ステータスの対応・hydration・cache の再検証は E2E(Playwright)である。unit で mock した取得を「取得を検証した」と数えない
+- **route segment(`src/app/**/page.tsx`)は別に判定する**。`params` / `searchParams` が Promise である App Router の規約と生成型に依存するため、unit の対象に含めるかは route 側の検証手段として個別に決める(現時点では E2E 側に置く)
+- **正当性材料(vendor-independent / [0010](0010-standards-and-non-lockin.md) §2)**: この線引きは「フレームワークが提供する描画経路をどこまで再現するか」ではなく、**検証対象が取得の実体を必要とするか**で決まる。したがって React / Next.js の実装詳細が変わっても線は動かず、Vitest / Playwright のどちらを使うかにも依存しない
 - 本 ADR が確定するのは**寄せ先(placement)**である。**MSW モックの具体パイプライン(orval→MSW の契約駆動モック)は B3(#73/#74)の責務**として引き渡し、本 ADR では二重に決めない([0090](0090-testing-strategy.md) の mock 戦略 = MSW / `vi.mock` と接続)
 
 ### 2. a11y 自動テストの組込(#72 — 0100 の検証手段の追補)
@@ -43,8 +47,9 @@ Accepted
 
 ## 禁止事項
 
-- ❌ async RSC を unit(Vitest + RTL)で無理に回すこと(脆い server render mock を積む)。E2E / integration へ寄せる
-- ❌ unit の対象を純粋ロジック(`model` / feature 内純関数。汎用 `utils` 置き場は作らない = [0021](0021-frontend-responsibility.md) 命名規律)以外へ広げること
+- ❌ サーバランタイムを模した描画 mock を積んで async RSC を回すこと(取得は `adapters` を `vi.mock` で差し替える。それで足りない検証は E2E / integration の担当)
+- ❌ unit で mock した取得を「取得を検証した」と数えること(実 API 応答の形は integration、ブラウザ経路とステータスは E2E)
+- ❌ 検証できない前提で feature の `page-content.tsx` をカバレッジ・1:1 ゲートの母数から外すこと(除外は「通しでしか確かめられない」ものに限る)
 - ❌ #70 の MSW モックパイプライン機構を本 ADR で確定すること(B3〈#73/#74〉が所有。二重決定しない)
 - ❌ axe(`vitest-axe` / `@axe-core/playwright`)を理由なく無効化すること、a11y 自動検査を feature 実装から切り離して「後付け」にすること([0100](0100-accessibility-target.md) 実装 PR 時担保と接続)
 - ❌ a11y 関連依存を exact pin / `pnpm audit` なしに追加すること([0004](0004-library-management.md))
@@ -61,7 +66,7 @@ Accepted
 - [0090-testing-strategy.md](0090-testing-strategy.md) — 層別責務 / mock 戦略 / カバレッジゲート(本 ADR が RSC 寄せ先と axe 組込を追補。RSC 保留の前倒し)
 - [0100-accessibility-target.md](0100-accessibility-target.md) — WCAG AA / biome 静的検査 + 手動チェック(本 ADR が実行時 a11y 自動検査 = axe を追加)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠 / 非ロックイン(axe・RSC 寄せ先の vendor-independent 正当性材料の根拠)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — utils 置き場を作らない命名規律(unit を純粋ロジックへ閉じる根拠)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 依存マトリクス(どの性質のファイルが `adapters` を呼べるか = unit で何を差し替えるかの根拠)
 - [0004-library-management.md](0004-library-management.md) — a11y 依存の exact pin / audit
 - [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — UI カタログ(Storybook)方針(本 ADR から分離した別主題)
 - [0071](0071-bff-api-integration.md)(B3・#73/#74)— MSW モックパイプライン(RSC integration テストの mock 機構の所有先。※ 0071 側に MSW の具体記述は未追記のため実装 PR で確定)/ [0153](0153-ci-configuration.md)(CI 構成)— axe の CI 組込

@@ -65,9 +65,14 @@ describe("resolveExchangeRate", () => {
 | --- | --- | --- |
 | unit | 純粋ロジック(`model` / feature 内純関数) | Vitest |
 | component | UI コンポーネントの描画・振る舞い | Vitest + RTL |
+| feature | 画面スライスの合成 UI と振る舞い(`features/**`) | Vitest + RTL |
+| route | route segment の合成(`app/**` の `layout.tsx` / `page.tsx`) | Vitest + RTL |
 | integration | **HTTP 境界のみ**(`adapters` の API クライアント / route handler の境界) | Vitest + MSW |
 | e2e | ブラウザ経路の通し | Playwright |
 
+各層は README frontmatter の `test-requirement` が宣言する。手段が同じ 3 層(`component` / `feature` / `route`)の判別は**対象の合成の度合い**で決める。単一コンポーネントの描画契約なら `component`、複数のカーネルや feature 内部品を画面単位で組み上げたものなら `feature`、その画面を route に載せる器なら `route` である。手段ではなく合成の度合いで分けるのは、負う観点が変わるためで、`feature` と `route` は「部品が揃って初めて成立する振る舞い」を負う。
+
+- **`unit` の対象が React の hook API を使う場合は RTL の `render` / `act` を用いてよい**。hook は React のツリーを介してしか呼べず、純粋ロジックと同じ手段では検証できない(`capabilities` カーネル)
 - **integration = HTTP 境界のみ**を対象とし、**内側は mock**、**型 / 形状をアサート**する(値の正しさは unit で担保。go 規約の翻案)
 - **Server Components のテスト方針 / RSC・route handler・E2E の線引き**は、Next.js の現実に合わせて**実装時に確定**する(本 ADR で先取りしない)
 

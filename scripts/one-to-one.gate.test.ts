@@ -8,6 +8,7 @@ import {
   collectTestableExports,
   collectTopLevelDescribes,
   formatViolations,
+  resolveTestFile,
   type Violation,
 } from "./lib/one-to-one";
 import { EXCLUDED_FROM_CHECKS } from "./lib/untested-modules";
@@ -144,22 +145,22 @@ function scanRepository(): Scan {
       }
     }
 
-    const testPath = absolute.replace(/\.(tsx?)$/, ".test.$1");
-    const hasTest = existsSync(testPath);
+    const testPath = resolveTestFile(absolute, existsSync);
 
     scan.checkedFiles += 1;
     scan.violations.push(
       ...checkFile({
         file: inRepository,
-        testFile: hasTest ? relative(REPOSITORY_ROOT, testPath) : null,
+        testFile: testPath === null ? null : relative(REPOSITORY_ROOT, testPath),
         exports: collectTestableExports(
           source.getFullText(),
           absolute,
           callablePredicate(checker, source),
         ),
-        describes: hasTest
-          ? collectTopLevelDescribes(readFileSync(testPath, "utf8"), testPath)
-          : [],
+        describes:
+          testPath === null
+            ? []
+            : collectTopLevelDescribes(readFileSync(testPath, "utf8"), testPath),
       }),
     );
   }

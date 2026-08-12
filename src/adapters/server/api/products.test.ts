@@ -20,7 +20,7 @@ const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => envir
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 
-import { getProducts, PRODUCTS_TAG, toProduct, toProductPage } from "./products";
+import { getProduct, getProducts, PRODUCTS_TAG, toProduct, toProductPage } from "./products";
 
 const wireProduct = {
   id: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11",
@@ -28,7 +28,7 @@ const wireProduct = {
   description: "<p>説明</p>",
   price: "19.99",
   quantity: 3,
-  stockWarningThreshold: null,
+  stockWarningThreshold: 2,
   status: { id: "1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12", name: "公開" },
   category: { id: "2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13", name: "雑貨" },
   publishedAt: "2026-08-07T00:00:00.000Z",
@@ -55,10 +55,11 @@ describe("toProduct", () => {
       description: "<p>説明</p>",
       price: "19.99",
       quantity: 3,
+      stockWarningThreshold: 2,
       status: { id: wireProduct.status.id, name: "公開" },
       category: { id: wireProduct.category.id, name: "雑貨" },
       publishedAt: new Date("2026-08-07T00:00:00.000Z"),
-      imagePath: "products/abc.png",
+      imagePaths: ["products/abc.png"],
     });
   });
 
@@ -68,6 +69,16 @@ describe("toProduct", () => {
 
   it("価格を decimal 文字列のまま持つ", () => {
     expect(toProduct({ ...wireProduct, price: "0.001" }).price).toBe("0.001");
+  });
+
+  it("画像が無い商品の画像を空配列にする", () => {
+    expect(toProduct({ ...wireProduct, imagePath: null }).imagePaths).toEqual([]);
+  });
+
+  it("在庫警告の境界が無い商品を null のまま持つ", () => {
+    expect(
+      toProduct({ ...wireProduct, stockWarningThreshold: null }).stockWarningThreshold,
+    ).toBeNull();
   });
 });
 
@@ -112,5 +123,40 @@ describe("getProducts", () => {
     stubFetch(wirePage);
 
     await expect(getProducts()).resolves.toMatchObject({ nextCursor: "next" });
+  });
+});
+
+describe("getProduct", () => {
+  // ----- 正常系 -----
+  it("契約の応答を表示用の商品にして返す", async () => {
+    stubFetch(wireProduct);
+
+    const product = await getProduct(wireProduct.id);
+
+    expect(product.name).toBe("商品");
+  });
+
+  it("ID をパスへ載せる", async () => {
+    const fetchImpl = stubFetch(wireProduct);
+
+    await getProduct(wireProduct.id);
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toContain(`/v1/products/${wireProduct.id}`);
+  });
+
+  it("再検証のタグを付ける", async () => {
+    const fetchImpl = stubFetch(wireProduct);
+
+    await getProduct(wireProduct.id);
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: [PRODUCTS_TAG] } });
+  });
+
+  it("ID をパスへ載せる前に URL として安全な形へ変換する", async () => {
+    const fetchImpl = stubFetch(wireProduct);
+
+    await getProduct("a/../b");
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toContain("a%2F..%2Fb");
   });
 });

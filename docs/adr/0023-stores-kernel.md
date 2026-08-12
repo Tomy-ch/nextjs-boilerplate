@@ -29,10 +29,22 @@ Accepted
 
 ### 受け入れないもの
 
-- **server state**(→ RSC fetch / [0071](0071-bff-api-integration.md) adapters)。store に API レスポンスを二重キャッシュしない
+- **server state**(→ RSC fetch / [0071](0071-bff-api-integration.md) adapters)。store に API レスポンスを二重キャッシュしない。**ただし「利用者が何を選んだか」自体を表す記録は例外**(下記)
 - **単一 feature の状態**(→ feature 内 local state。昇格しない)
 - **UI マークアップ**(→ `components`)/ `serverConfig` / secret / 業務ロジック(バックエンド責務。[0011](0011-no-docker.md))
 - **ポリシー状態**(consent/flag は各 seam。[0031](0031-policy-state-supply.md))
+
+### 選択の記録に含む表示値のスナップショット
+
+**利用者の選択そのものを表す記録**(選んで溜めた項目の一覧、比較対象に選んだ項目、下書きに引いてきた値など)は、選択した時点の表示値を **スナップショットとして store に持ってよい**。これは前項の二重キャッシュ禁止の例外ではなく、そもそも射程外である。
+
+禁じているのは **サーバが所有する最新値の写しを store に置き、鮮度管理を client 側で二重に持つこと**(= [0060](0060-state-management.md) が既定で外している client 取得・キャッシュ層の再発明)である。選択の記録は次の 3 点を満たす限りこれに当たらない。
+
+1. **再取得しない**。store は鮮度を追わず、無効化も購読も持たない
+2. **確定はバックエンドに委ねる**。値の妥当性と可否の最終判断は送信の時点でバックエンドが行い、store の値は表示と入力の材料にとどまる
+3. **記録の主体が利用者である**。サーバの状態を映すのではなく、利用者の操作の結果として増減する
+
+この 3 点のいずれかを外した時点で二重キャッシュになる。判定は store の型ではなく **鮮度の責任を誰が持つか** で行う。
 
 ### 依存
 
@@ -50,7 +62,7 @@ Zustand は de-facto の軽量 store で、`create()` + hook の標準形に乗�
 
 ## 禁止事項
 
-- ❌ `stores` に server state(API レスポンス)を二重キャッシュすること(server state は RSC/adapters)
+- ❌ `stores` に server state(API レスポンス)を二重キャッシュすること(server state は RSC/adapters)。**選択の記録に含む表示値のスナップショットはこれに当たらない**(§選択の記録)
 - ❌ 単一 feature の状態を `stores` へ上げること(横断性が無ければ feature 内 local)
 - ❌ `components` が `stores` を import すること(合成は feature 経由)
 - ❌ `stores` に UI マークアップ / secret / `serverConfig` / 業務ロジックを置くこと

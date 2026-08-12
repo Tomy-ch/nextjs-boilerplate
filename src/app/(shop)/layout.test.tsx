@@ -1,27 +1,91 @@
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+
+import { render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { type CartLineInput, useCartStore } from "@/stores/cart-store";
 import ShopLayout from "./layout";
 
+/** jsdom は `matchMedia` を持たない。この layout の検証は脇に常設できる幅を前提にする。 */
+function stubWideViewport() {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+}
+
+const COFFEE: CartLineInput = {
+  productId: "0195f0c2-0000-7000-8000-000000000001",
+  name: "深煎りブレンド",
+  price: "12.34",
+  statusName: "公開中",
+  imageUrl: null,
+  stockQuantity: 20,
+};
+
 describe("ShopLayout", () => {
+  beforeEach(() => {
+    stubWideViewport();
+    useCartStore.setState({ lines: [] });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   // ----- 正常系 -----
   it("利用者向けの外枠へ子要素を入れる", () => {
-    const markup = renderToStaticMarkup(
+    render(
       <ShopLayout>
         <p>テスト用コンテンツ</p>
       </ShopLayout>,
     );
 
-    expect(markup).toContain("テスト用コンテンツ");
-    expect(markup).toContain("<main");
+    expect(within(screen.getByRole("main")).getByText("テスト用コンテンツ")).toBeVisible();
   });
 
   it("商品への導線を持つ", () => {
-    const markup = renderToStaticMarkup(
+    render(
       <ShopLayout>
         <p>本文</p>
       </ShopLayout>,
     );
 
-    expect(markup).toContain('href="/products"');
+    expect(screen.getByRole("link", { name: "商品" })).toHaveAttribute("href", "/products");
+  });
+
+  it("カートの点数を header に置く", () => {
+    render(
+      <ShopLayout>
+        <p>本文</p>
+      </ShopLayout>,
+    );
+
+    expect(within(screen.getByRole("banner")).getByText("カート")).toBeVisible();
+  });
+
+  it("カートの中身を本文の脇に置く", () => {
+    useCartStore.getState().add(COFFEE);
+    render(
+      <ShopLayout>
+        <p>本文</p>
+      </ShopLayout>,
+    );
+    const cart = screen.getByRole("complementary", { name: "カート" });
+
+    expect(cart).toBeVisible();
+    expect(within(screen.getByRole("banner")).queryByRole("complementary")).not.toBeInTheDocument();
+  });
+
+  it("カートが空なら脇の領域を出さない", () => {
+    render(
+      <ShopLayout>
+        <p>本文</p>
+      </ShopLayout>,
+    );
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
 });
