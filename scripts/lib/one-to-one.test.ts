@@ -6,6 +6,7 @@ import {
   collectTopLevelDescribes,
   type ExportedSymbol,
   formatViolations,
+  resolveTestFile,
   type Violation,
 } from "./one-to-one";
 
@@ -402,5 +403,32 @@ describe("formatViolations", () => {
   // ----- 異常系 -----
   it("違反が無ければ空文字を返す", () => {
     expect(formatViolations([])).toBe("");
+  });
+});
+
+describe("resolveTestFile", () => {
+  // ----- 正常系 -----
+  it("tsx のソースには tsx のテストを対応させる", () => {
+    expect(resolveTestFile("src/ui/button.tsx", (path) => path === "src/ui/button.test.tsx")).toBe(
+      "src/ui/button.test.tsx",
+    );
+  });
+
+  it("ts のソースには同じ拡張子のテストを優先して対応させる", () => {
+    expect(resolveTestFile("src/lib/total.ts", () => true)).toBe("src/lib/total.test.ts");
+  });
+
+  it("ts のソースでも tsx のテストを受け付ける", () => {
+    expect(resolveTestFile("src/capabilities/use-x.ts", (path) => path.endsWith(".test.tsx"))).toBe(
+      "src/capabilities/use-x.test.tsx",
+    );
+  });
+
+  it("tsx のソースに ts のテストは対応させない", () => {
+    expect(resolveTestFile("src/ui/button.tsx", (path) => path.endsWith(".test.ts"))).toBeNull();
+  });
+
+  it("どちらも無ければ null を返す", () => {
+    expect(resolveTestFile("src/lib/total.ts", () => false)).toBeNull();
   });
 });
