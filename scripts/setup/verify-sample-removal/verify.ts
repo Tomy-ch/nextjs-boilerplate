@@ -9,8 +9,11 @@
  * @remarks
  * 題材の語彙が実装に残っていないかを見ます。生成物とテストは除外しません — 破棄で両方消えるのが
  * 正しく、残っていれば消し漏れです。
+ *
+ * 英語の語には**語境界を付けます**。付けないと別語の一部に当たります（`recharts-cartesian` や
+ * `CartesianGrid` が `cart` に一致し、題材と無関係な部品が消し残しとして報告されます）。
  */
-export const DANGLING_PATTERN = "商品|カート|在庫|購入|注文|products|cart";
+export const DANGLING_PATTERN = "商品|カート|在庫|購入|注文|\\bproducts\\b|\\bcart\\b";
 
 /** サンプル破棄を起動する make ターゲット。`.mk` のマーカー除去で消えるべきもの。 */
 const SAMPLE_MAKE_TARGET = "setup-remove-sample";

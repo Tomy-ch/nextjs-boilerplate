@@ -25,11 +25,11 @@ describe("createLogger", () => {
       traceContextExtractor: () => ({ traceId: "trace-1", spanId: "span-1" }),
     });
 
-    logger.info("注文を作成しました", { order_id: "order-1" });
+    logger.info("記録を作成しました", { record_id: "record-1" });
 
     expect(readLog(stream)).toMatchObject({
-      msg: "注文を作成しました",
-      order_id: "order-1",
+      msg: "記録を作成しました",
+      record_id: "record-1",
       trace_id: "trace-1",
       span_id: "span-1",
     });

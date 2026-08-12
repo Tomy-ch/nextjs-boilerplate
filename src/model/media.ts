@@ -11,7 +11,7 @@ export const NO_IMAGE_URL = "/no-image.svg";
  * バックエンドが返すオブジェクトキーから配信 URL を組み立てる。
  *
  * @remarks
- * API が返すのはキー（`products/{uuid}.png`）だけで、URL は返しません。
+ * API が返すのはキー（`items/{uuid}.png`）だけで、URL は返しません。
  *
  * @param origin - 配信元の origin。呼び出し側が設定から供給する
  * @param imagePath - バックエンドが返したオブジェクトキー。未設定なら null
