@@ -120,8 +120,5 @@ function isUsableBranchName(branch: string): boolean {
   if (branch.startsWith("-") || branch.endsWith(".lock")) return false;
   if (branch.includes("//") || branch.includes("..") || branch.includes("@{")) return false;
   if (/[\s~^:?*[\\]/.test(branch)) return false;
-  return ![...branch].some((character) => {
-    const code = character.codePointAt(0) ?? 0;
-    return code < 0x20 || code === 0x7f;
-  });
+  return ![...branch].some((character) => character < " " || character === "\u007f");
 }
