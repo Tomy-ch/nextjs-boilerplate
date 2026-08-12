@@ -1,5 +1,8 @@
-// tag → SHA の解決と、解決先に対する 2 つのゲート（供給網検疫・付け替え検知）。
-// ネットワークに出るのはこのモジュールだけで、apply / check は完全にオフラインで動く。
+// tag → SHA の解決と、付け替え検知・解決先の経過日数。ネットワークに出るのはこのモジュール
+// だけで、apply / check は完全にオフラインで動く。
+//
+// 供給網検疫そのものの判断は [pin-quarantine](../lib/pin-quarantine.ts) が持つ（container
+// image 側と共通）。ここが渡すのは経過日数の調べ方だけ。
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -16,12 +19,6 @@ type ReleaseResponse = { published_at?: string };
 type CommitResponse = { commit?: { committer?: { date?: string } } };
 
 type GitHubResponse<T> = { status: number; body: T | null };
-
-// 検疫の判定結果。use が null なら採用しない（ロックファイルへ書かない）。
-export type QuarantineResult = {
-  use: string | null;
-  note: string | null;
-};
 
 // 解決先がロックファイルの記録から変わったキー 1 件。
 export type MovedRef = {
@@ -139,32 +136,6 @@ export async function refAgeDays(repo: string, tag: string, sha: string): Promis
   const ages = [daysSince(commitDate)];
   if (release.body?.published_at) ages.push(daysSince(release.body.published_at));
   return Math.min(...ages);
-}
-
-// minAgeDays 未満の新しすぎる解決先は採用しない。既存ピンがあればそれを維持し、無ければ
-// 採用を見送る。minAgeDays が 0 以下なら検疫を行わず、経過日数の問い合わせもしない。
-export async function quarantine(
-  ageOf: () => Promise<number>,
-  key: string,
-  candidate: string,
-  minAgeDays: number,
-  existing: Map<string, string>,
-): Promise<QuarantineResult> {
-  if (minAgeDays <= 0) return { use: candidate, note: null };
-  const age = await ageOf();
-  if (age >= minAgeDays) return { use: candidate, note: null };
-
-  const previous = existing.get(key);
-  if (previous !== undefined) {
-    return {
-      use: previous,
-      note: `${key}: 解決先が ${age} 日 (<${minAgeDays}) のため既存ピンを維持`,
-    };
-  }
-  return {
-    use: null,
-    note: `${key}: 解決先が ${age} 日 (<${minAgeDays})・既存ピン無しのため skip`,
-  };
 }
 
 async function githubGet<T>(url: string): Promise<GitHubResponse<T>> {

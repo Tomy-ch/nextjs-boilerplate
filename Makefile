@@ -15,6 +15,7 @@ include .makefiles/github/lint/actions-comment-secret-lint.mk
 include .makefiles/tools/setup.mk
 include .makefiles/tools/commitlint.mk
 include .makefiles/tools/actions-pin.mk
+include .makefiles/tools/images-pin.mk
 include .makefiles/tools/gen-api.mk
 
 # テスト関連
