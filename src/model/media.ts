@@ -5,7 +5,7 @@
  * 配信基盤ではなく `public/` に置いています。画像が無いことを伝える表示は、配信基盤に到達できない
  * ときでも出せる必要があるためです。
  */
-export const NO_IMAGE_URL = "/no-image.webp";
+export const NO_IMAGE_URL = "/no-image.svg";
 
 /**
  * バックエンドが返すオブジェクトキーから配信 URL を組み立てる。

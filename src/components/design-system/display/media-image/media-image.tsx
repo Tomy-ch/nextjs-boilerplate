@@ -63,6 +63,7 @@ export function MediaImage({
   ...props
 }: MediaImageProps) {
   const resolved = src ?? fallbackSrc;
+  const isFallback = src === null || src === undefined;
 
   if (resolved === undefined) {
     return null;
@@ -79,13 +80,16 @@ export function MediaImage({
     >
       {showSkeleton ? <Skeleton className="absolute inset-0 rounded-none" /> : null}
       <Image
-        alt={src === null || src === undefined ? fallbackAlt : alt}
+        alt={isFallback ? fallbackAlt : alt}
         className={cn("object-cover", imageClassName)}
         data-slot="media-image-image"
         fill
         preload={preload}
         sizes={sizes}
         src={resolved}
+        // 代替画像は最適化を通さない。next/image は SVG を既定で最適化せず、通すには
+        // `dangerouslyAllowSVG` と CSP の考慮が要る。アプリ同梱の小さな画像に最適化の利は無い。
+        unoptimized={isFallback}
         {...props}
       />
     </div>

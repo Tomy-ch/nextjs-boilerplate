@@ -159,18 +159,18 @@ describe("MediaImage", () => {
 
   it("画像が無ければ代替画像へ差し替える", () => {
     const { container } = render(
-      <MediaImage alt="サンプル画像" fallbackSrc="/no-image.webp" src={null} />,
+      <MediaImage alt="サンプル画像" fallbackSrc="/no-image.svg" src={null} />,
     );
 
     expect(container.querySelector("[data-slot=media-image-image]")).toHaveAttribute(
       "src",
-      "/no-image.webp",
+      "/no-image.svg",
     );
   });
 
   it("代替画像は既定で装飾として扱う", () => {
     const { container } = render(
-      <MediaImage alt="サンプル画像" fallbackSrc="/no-image.webp" src={null} />,
+      <MediaImage alt="サンプル画像" fallbackSrc="/no-image.svg" src={null} />,
     );
 
     expect(container.querySelector("[data-slot=media-image-image]")).toHaveAttribute("alt", "");
@@ -182,7 +182,7 @@ describe("MediaImage", () => {
       <MediaImage
         alt="サンプル画像"
         fallbackAlt="画像なし"
-        fallbackSrc="/no-image.webp"
+        fallbackSrc="/no-image.svg"
         src={null}
       />,
     );

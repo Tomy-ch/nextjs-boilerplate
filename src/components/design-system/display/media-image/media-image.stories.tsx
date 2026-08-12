@@ -53,7 +53,7 @@ export const Fallback: Story = {
   args: {
     aspectRatio: MEDIA_IMAGE_ASPECT_RATIO.STANDARD,
     fallbackAlt: "画像なし",
-    fallbackSrc: "/no-image.webp",
+    fallbackSrc: "/no-image.svg",
     src: null,
   },
 };

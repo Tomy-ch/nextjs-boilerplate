@@ -95,10 +95,7 @@ describe("CartPanel", () => {
     useCartStore.getState().add(TEA);
     render(<CartPanel />);
 
-    expect(screen.getByAltText("")).toHaveAttribute(
-      "src",
-      expect.stringContaining(encodeURIComponent("/no-image.webp")),
-    );
+    expect(screen.getByAltText("")).toHaveAttribute("src", "/no-image.svg");
   });
 
   it("増やす操作で数量が上がる", async () => {

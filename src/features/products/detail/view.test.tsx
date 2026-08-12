@@ -220,10 +220,7 @@ describe("ProductDetail", () => {
   it("画像を持たない商品では代替画像を出す", () => {
     render(<ProductDetail imageUrls={[]} product={productOf({ imagePaths: [] })} />);
 
-    expect(screen.getByRole("img", { name: "画像なし" })).toHaveAttribute(
-      "src",
-      expect.stringContaining(encodeURIComponent("/no-image.webp")),
-    );
+    expect(screen.getByRole("img", { name: "画像なし" })).toHaveAttribute("src", "/no-image.svg");
   });
 
   it("在庫が無ければカートに追加できない", () => {
