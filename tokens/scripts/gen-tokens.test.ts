@@ -8,10 +8,14 @@ const { mkdir, readFile, writeFile } = vi.hoisted(() => ({
 
 vi.mock("node:fs/promises", () => ({ mkdir, readFile, writeFile }));
 
-import { generateOrCheckTokens, generateTokensCss } from "./gen-tokens";
+import { generateBreakpointTs, generateOrCheckTokens, generateTokensCss } from "./gen-tokens";
 
 const primitives = {
   color: { neutral: { 0: { $type: "color", $value: "#ffffff" } } },
+  breakpoint: {
+    lg: { $type: "dimension", $value: "64rem" },
+    "2xl": { $type: "dimension", $value: "96rem" },
+  },
 };
 const themes = {
   theme: {
@@ -21,6 +25,17 @@ const themes = {
 
 /** 読み込むパスに応じて token SSOT を返す。 */
 const fileOf = (path: string) => (path.endsWith("primitives.json") ? primitives : themes);
+
+/** 読み込むパスに応じて、SSOT と一致する生成物または SSOT そのものを返す。 */
+const generatedOf = (path: string): string => {
+  if (path.endsWith(".css")) {
+    return generateTokensCss(primitives, themes);
+  }
+
+  return path.endsWith("breakpoint.ts")
+    ? generateBreakpointTs(primitives)
+    : JSON.stringify(fileOf(path));
+};
 
 beforeEach(() => {
   mkdir.mockResolvedValue(undefined);
@@ -137,33 +152,66 @@ describe("generateTokensCss", () => {
 
 describe("generateOrCheckTokens", () => {
   // ----- 正常系 -----
-  it("生成では出力先を作ってから CSS を書き出す", async () => {
+  it("生成では出力先を作ってから CSS と breakpoint を書き出す", async () => {
     readFile.mockImplementation(async (path: string) => JSON.stringify(fileOf(path)));
 
     await generateOrCheckTokens(false);
 
-    expect(mkdir).toHaveBeenCalledOnce();
+    expect(mkdir).toHaveBeenCalledTimes(2);
     expect(writeFile.mock.calls[0]?.[1]).toContain("--color-neutral-0");
+    expect(writeFile.mock.calls[1]?.[1]).toContain("export const BREAKPOINT");
   });
 
   it("検査では生成物が SSOT と一致していれば何も投げない", async () => {
-    const expected = generateTokensCss(primitives, themes);
-    readFile.mockImplementation(async (path: string) =>
-      path.endsWith(".css") ? expected : JSON.stringify(fileOf(path)),
-    );
+    readFile.mockImplementation(async (path: string) => generatedOf(path));
 
     await expect(generateOrCheckTokens(true)).resolves.toBeUndefined();
     expect(writeFile).not.toHaveBeenCalled();
   });
 
   // ----- 異常系 -----
-  it("検査で生成物が SSOT と一致しなければ再生成を促して落とす", async () => {
+  it("検査で CSS が SSOT と一致しなければ再生成を促して落とす", async () => {
     readFile.mockImplementation(async (path: string) =>
-      path.endsWith(".css") ? "/* 古い生成物 */" : JSON.stringify(fileOf(path)),
+      path.endsWith(".css") ? "/* 古い生成物 */" : generatedOf(path),
     );
 
     await expect(generateOrCheckTokens(true)).rejects.toThrow(
       "design token の生成物が SSOT と一致しません。pnpm gen:tokens を実行してください。",
+    );
+  });
+
+  it("検査で breakpoint が SSOT と一致しなければ再生成を促して落とす", async () => {
+    readFile.mockImplementation(async (path: string) =>
+      path.endsWith("breakpoint.ts") ? "// 古い生成物\n" : generatedOf(path),
+    );
+
+    await expect(generateOrCheckTokens(true)).rejects.toThrow(
+      "design token の生成物が SSOT と一致しません。pnpm gen:tokens を実行してください。",
+    );
+  });
+});
+
+describe("generateBreakpointTs", () => {
+  // ----- 正常系 -----
+  it("段の名前と幅を定数として出す", () => {
+    const generated = generateBreakpointTs(primitives);
+
+    expect(generated).toContain("export const BREAKPOINT");
+    expect(generated).toContain('lg: "64rem",');
+  });
+
+  it("識別子として妥当でない名前だけ引用符を付ける", () => {
+    expect(generateBreakpointTs(primitives)).toContain('"2xl": "96rem",');
+  });
+
+  it("手編集を禁じる断り書きを先頭に置く", () => {
+    expect(generateBreakpointTs(primitives).startsWith("// このファイルは")).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("breakpoint の段が無ければ落とす", () => {
+    expect(() => generateBreakpointTs({ color: {} })).toThrow(
+      "primitives.json に breakpoint の段がありません",
     );
   });
 });

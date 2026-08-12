@@ -13,18 +13,14 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/design-system/overlay/drawer/drawer";
+import { mediaBelow } from "@/model/breakpoint";
 import { useCartStore } from "@/stores/cart-store";
 
 import { CartContents } from "../contents/contents";
 import { CartCount } from "../count/count";
 
-/**
- * 脇に常設できない幅。タブレットを含む（[0051](../../../../docs/adr/0051-styling-system.md) §2）。
- *
- * `CartPanel` は同じ境界を Tailwind の `lg:` で表すため、`--breakpoint-lg` を差し替えるときは
- * この値も合わせる。ずれると両方出る幅か、両方消える幅ができる。
- */
-const NARROW = "(max-width: 1023px)";
+/** 脇に常設できない幅。タブレットを含む（[0051](../../../../docs/adr/0051-styling-system.md) §2）。 */
+const NARROW = mediaBelow("lg");
 
 /**
  * header に置くカートの入口。
