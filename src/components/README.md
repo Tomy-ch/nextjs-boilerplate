@@ -226,7 +226,11 @@ components/
 
 - Story の `title` の先頭セグメントは、その component の**目録の見出しと同じ**にする。値は [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) の `as` が正で、`pnpm check:ui` が突合する。`Foundation` / `Action` / `Form` / `Overlay` / `Navigation` / `Display` / `Status` / `Container` / `Layout` / `Feedback` / `Rich Text` / `View State` / `Sugar` の 13 種で、ディレクトリ・目録・sidebar が同じ区画になる
 - 粒度（単体で最小の部品か、合成か）は sidebar の区画にしない。実装が育てば subcomponent は増えるため、粒度は変わる属性である。変わらない属性だけを配置に焼く
-- sidebar の並び順は [`.storybook/preview.ts`](../../.storybook/preview.ts) の `storySort` が持ち、見出し・story とも名前順である。目録の並びは sidebar に持ち込まない。目録は層と目的で読む順を作るが、sidebar は目当ての部品を名前で引く場所なので、二つの並びを揃える必要がない
+- **feature の story は上の 13 見出しに入れない。** 目録はこのカーネルの在庫であり、feature の部品は在庫ではないためである。feature 側は次の 2 つの先頭セグメントを使う
+  - `Page/<feature>/<画面>` — 画面の合成（`features/<name>/<screen>/view.tsx`）。取得を伴わない状態で画面全体の見え方を確かめる場所
+  - `Features/<feature>/…` — 画面固有の部品（`features/<name>/<screen>/ui/<part>/`）。以降のセグメントは実装のディレクトリと同じ形にする
+- **取得を行うもの（`page-content.tsx`）は story にしない。** story は取得の実体を持てないため、確かめられるのは合成した結果だけである。取得の検証は unit テストが持つ（[0091](../../docs/adr/0091-test-verification-methods.md)）
+- sidebar の並び順は [`.storybook/preview.ts`](../../.storybook/preview.ts) の `storySort` が持つ。**`Page` → `Features` → 目録**の順に置き、その中は名前順である。組んでいる間に開くのは前の 2 つで、目録は参照物として後ろにある方が探す手数が少ない。目録自身の並びは sidebar に持ち込まない。目録は層と目的で読む順を作るが、sidebar は目当ての部品を名前で引く場所なので、二つの並びを揃える必要がない
 - Storybook Canvas の座標や余白はアプリのレイアウト規約ではない。`layout: "centered"` は、小さな単体 UI を確認しやすくする story 側の表示指定である。画面・幅いっぱいに広がる部品には `fullscreen` または `padded` を story ごとに選ぶ
 - Controls が推論した props は任意の React 要素を生成できない。`asChild` のように単一の要素 child を必要とする props は Control を公開せず、必要な child を `render` で明示した専用 story を用意する
 - **どの story file にも component の説明と story ごとの説明を書く。** component の説明には、その部品が何のためにあるかと、**隣の似た部品との使い分け**を書く。`Accordion` と `Collapsible`、`Alert` と `Toaster` と `FeedbackState` のように、見た目が近く責務が違う部品は、並べて初めて選び分けられる。story の説明は、その story が何を示しているのかを書く
