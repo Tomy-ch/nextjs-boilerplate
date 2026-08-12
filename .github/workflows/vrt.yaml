@@ -15,6 +15,11 @@ name: VRT
 # pixels are judged on the image diff in "Files changed", where the ruleset forces a
 # human approval after the push.
 #
+# The comparison and the pull-request comment are separate jobs. The baseline store
+# may be private, which means the comparison job needs a GitHub App secret; a job
+# holding a secret must not also produce a comment body, because secret masking does
+# not survive a `tee` to a file (ADR 0153).
+#
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
 
@@ -35,7 +40,9 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      pull-requests: write
+
+    outputs:
+      title: ${{ steps.vrt.outputs.title }}
 
     steps:
       - name: Harden the runner
@@ -47,6 +54,12 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+
+      - name: Fetch the baseline images
+        uses: ./.github/actions/setup-vrt-baselines
+        with:
+          app-id: ${{ secrets.VRT_APP_ID }}
+          private-key: ${{ secrets.VRT_APP_PRIVATE_KEY }}
 
       - name: Setup mise and the pinned tools
         uses: ./.github/actions/setup-mise
@@ -124,8 +137,8 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-      # Read back by `vrt-approve.yaml` to bound what the label may retake. Kept
-      # separate from the diff bundle so the approval path downloads only the report.
+      # Read back by `vrt-retake.yaml` to bound what the label may retake. Kept
+      # separate from the diff bundle so the retake path downloads only the report.
       - name: Upload the machine-readable report
         if: always() && steps.vrt.outputs.status != 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -135,17 +148,56 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+      # Handed to the commenting job through an artifact rather than a job output,
+      # because the body is a file whose size is not bounded by the output limit.
+      - name: Hand the comment body to the commenting job
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vrt-comment
+          path: /tmp/vrt.log
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Fail if a story changed
+        if: always() && steps.vrt.outputs.status != 'success'
+        run: exit 1
+
+  # Holds no secret beyond `GITHUB_TOKEN`, so the body it publishes cannot carry one.
+  vrt-comment:
+    if: always() && github.event_name == 'pull_request'
+    needs: vrt
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Download the comment body
+        id: body
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: vrt-comment
+          path: /tmp/vrt-comment
+
       - name: Comment the VRT result on PR
-        if: github.event_name == 'pull_request'
+        if: steps.body.outcome == 'success'
         continue-on-error: true
         uses: ./.github/actions/upsert-pr-comment
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- vrt-result -->'
-          title: ${{ steps.vrt.outputs.title }}
-          body-file: /tmp/vrt.log
+          title: ${{ needs.vrt.outputs.title }}
+          body-file: /tmp/vrt-comment/vrt.log
           details-summary: '差分のあった story'
-
-      - name: Fail if a story changed
-        if: always() && steps.vrt.outputs.status != 'success'
-        run: exit 1
