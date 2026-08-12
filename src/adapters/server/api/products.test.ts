@@ -100,7 +100,7 @@ describe("getProducts", () => {
 
     const page = await getProducts({ keyword: "本", first: 20 });
 
-    expect(page.products[0]?.name).toBe("商品");
+    expect(page.items[0]?.name).toBe("商品");
   });
 
   it("取得条件をクエリへ載せる", async () => {

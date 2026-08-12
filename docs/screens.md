@@ -36,7 +36,7 @@
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
 | U1 | トップ | `GET /v1/products/ranking` / `GET /v1/products`(新着 sort) / `GET /v1/products/categories` | 売上ランキング・新着商品・カテゴリ導線を並べるだけのトップページ。パーソナライズなし | 3 系統のデータを並置するだけなので RSC 内で並行 fetch(`Promise.all`)で十分 |
-| U2 | 商品一覧 | `GET /v1/products`(`after` / `first` / `categoryId` / `keyword` / `sort`) | 検索・絞り込み・並び替え付き一覧 | `searchParams` が変わるたびに RSC が再取得する構成が主眼。`statusId` は契約にあるが、公開商品の可視範囲フィルタは backend 側で未実装のため UI に出さない |
+| U2 | 商品一覧 | `GET /v1/products`(`after` / `first` / `categoryId` / `statusId` / `keyword` / `sort`) / `GET /v1/products/categories` / `GET /v1/products/statuses` | 検索・絞り込み・並び替え付き一覧 | 条件は `searchParams` に載せ、変わるたびに RSC が再取得する。絞り込みは広い段ではサイドバーで選択即時、狭い段では sheet 内でまとめて確定する(並び替えはどちらの段でも即時)。増分取得は無限スクロール方式。`statusId` は選択肢を出すが、公開商品の可視範囲フィルタが backend 側で未実装のため結果は変わらない |
 | U3 | 商品詳細 | `GET /v1/products/{productId}` / `GET /v1/products`(`categoryId`) | 単一商品の詳細表示。関連商品は一覧 API をカテゴリフィルタで再利用(専用 API なし) | description はリッチテキストなので必ず sanitizer 経由で表示 |
 | U4 | カート | なし(client state) | 商品追加・数量変更・削除をブラウザ内で完結 | **永続化しない**。購入確認画面へ渡す際に明細配列として組み立てる |
 | U5 | 購入確認 | `GET /v1/exchange-rates?base=USD&quote=JPY&amount=` / `GET /v1/users/me` | カート内容の最終確認。JPY 表示切替可 | 為替 API の `amount` は decimal 文字列。為替取得失敗時は参考額なしで購入自体は継続できる(degrade) |
