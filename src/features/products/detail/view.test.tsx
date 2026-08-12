@@ -176,6 +176,17 @@ describe("ProductDetail", () => {
     expect(screen.getByText("残りわずか")).toBeVisible();
   });
 
+  it("境界が設定されていなければ残りわずかとは示さない", () => {
+    render(
+      <ProductDetail
+        imageUrls={[]}
+        product={productOf({ quantity: 5, stockWarningThreshold: null })}
+      />,
+    );
+
+    expect(screen.queryByText("残りわずか")).not.toBeInTheDocument();
+  });
+
   it("在庫が境界を上回れば残りわずかとは示さない", () => {
     render(
       <ProductDetail

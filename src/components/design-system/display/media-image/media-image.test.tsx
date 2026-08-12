@@ -13,6 +13,7 @@ vi.mock("next/image", () => ({
     fill,
     placeholder,
     preload,
+    unoptimized,
     alt,
     ...props
   }: {
@@ -21,6 +22,7 @@ vi.mock("next/image", () => ({
     fill?: boolean;
     placeholder?: string;
     preload?: boolean;
+    unoptimized?: boolean;
     src: string;
   }) => (
     // biome-ignore lint/performance/noImgElement: next/image の test mock として DOM の img を返す。
@@ -30,6 +32,7 @@ vi.mock("next/image", () => ({
       data-fill={String(fill)}
       data-placeholder={placeholder}
       data-preload={String(preload)}
+      data-unoptimized={String(unoptimized)}
       {...props}
     />
   ),
@@ -44,6 +47,7 @@ describe("MediaImage", () => {
     const wrapper = image.closest("[data-slot=media-image]");
 
     expect(image).toHaveAttribute("data-fill", "true");
+    expect(image).toHaveAttribute("data-unoptimized", "false");
     if (wrapper === null) {
       throw new Error("MediaImage wrapper が見つかりません");
     }
@@ -166,6 +170,25 @@ describe("MediaImage", () => {
       "src",
       "/no-image.svg",
     );
+  });
+
+  it("代替画像は最適化を通さない", () => {
+    const { container } = render(
+      <MediaImage alt="サンプル画像" fallbackSrc="/no-image.svg" src={null} />,
+    );
+
+    expect(container.querySelector("[data-slot=media-image-image]")).toHaveAttribute(
+      "data-unoptimized",
+      "true",
+    );
+  });
+
+  it("Skeleton の表示を明示的に無効化すれば preload なしでも省略する", () => {
+    const { container } = render(
+      <MediaImage alt="サンプル画像" showSkeleton={false} src="/sample.svg" />,
+    );
+
+    expect(container.querySelector("[data-slot=skeleton]")).toBeNull();
   });
 
   it("代替画像は既定で装飾として扱う", () => {

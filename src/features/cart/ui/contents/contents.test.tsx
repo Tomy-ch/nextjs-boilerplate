@@ -66,6 +66,16 @@ describe("CartContents", () => {
     expect(line.getByText("$12.34 / 個")).toBeVisible();
   });
 
+  it("画像を持つ明細はその画像を出す", () => {
+    useCartStore.getState().add(COFFEE);
+    render(<CartContents />);
+
+    expect(screen.getByAltText("")).toHaveAttribute(
+      "src",
+      expect.stringContaining(encodeURIComponent(COFFEE.imageUrl ?? "")),
+    );
+  });
+
   it("画像を持たない明細は代替画像を出す", () => {
     useCartStore.getState().add(TEA);
     render(<CartContents />);
@@ -89,7 +99,8 @@ describe("CartContents", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "深煎りブレンド を削除する" }));
 
-    expect(useCartStore.getState().lines).toEqual([]);
+    expect(screen.queryByText("深煎りブレンド")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("list")).queryAllByRole("listitem")).toHaveLength(0);
   });
 
   it("在庫数まで入っている明細は増やせない", () => {
