@@ -1,8 +1,12 @@
+import Link from "next/link";
+
 import { Badge } from "@/components/design-system/display/badge/badge";
 import { Card } from "@/components/design-system/display/card/card";
 import { MediaImage } from "@/components/design-system/display/media-image/media-image";
 import { NO_IMAGE_URL } from "@/model/media";
 import type { ProductListItem } from "@/model/product/product";
+
+import { AddToCartButton } from "../../../ui/add-to-cart-button/add-to-cart-button";
 
 /** `ProductCard` の props。 */
 export type ProductCardProps = {
@@ -23,13 +27,22 @@ export type ProductCardProps = {
  * 置かれた場所によらず同じ形になります（[0051](../../../../../docs/adr/0051-styling-system.md) §2）。
  * 狭い器では画像を上に積み、広い器では横へ並べます。
  *
+ * **カード全体が詳細への導線ですが、link で包んではいません。** 包むとカートへ入れる操作が link の
+ * 内側に入り、操作の中に操作が居る形になります。代わりに商品名の link を疑似要素でカードいっぱいに
+ * 広げ、支援技術には商品名だけが遷移先として見えるようにしています。読み上げられる名前が「カード
+ * 全体の文言」ではなく商品名になるのも、この形を採る理由です。
+ *
+ * カートへ入れる操作は link の後ろに置き、`relative` で重なりの上へ出します。DOM の順序が後ろに
+ * ある位置指定要素が上に描かれるため、段階値を持ち出さずに押せる状態を作れます
+ * （`rules.md` #23）。
+ *
  * 在庫の表現もここが持ちます。何をもって「残りわずか」とするかはバックエンドの状態遷移に
  * 属し、`components` が供給できるのは `Badge` の variant までです。
  */
 export function ProductCard({ item, leading = false }: ProductCardProps) {
   return (
     <Card
-      className="@container/card flex h-full flex-col gap-0 overflow-hidden py-0"
+      className="@container/card relative flex h-full flex-col gap-0 overflow-hidden py-0"
       data-testid="product-card"
     >
       <div className="flex flex-col @sm/card:flex-row">
@@ -43,7 +56,14 @@ export function ProductCard({ item, leading = false }: ProductCardProps) {
           src={item.imageUrl}
         />
         <div className="flex min-w-0 flex-1 flex-col gap-2 p-4">
-          <p className="font-medium break-words">{item.name}</p>
+          <p className="font-medium break-words">
+            <Link
+              className="rounded-xs after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+              href={`/products/${item.id}`}
+            >
+              {item.name}
+            </Link>
+          </p>
           <div className="flex flex-wrap items-center gap-2">
             {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
             <Badge className="whitespace-normal break-words" variant="secondary">
@@ -54,14 +74,31 @@ export function ProductCard({ item, leading = false }: ProductCardProps) {
             </Badge>
             {item.quantity === 0 ? <Badge variant="destructive">在庫なし</Badge> : null}
           </div>
-          <div className="mt-auto flex flex-wrap items-baseline justify-between gap-2">
-            {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
-                数値へ変換するとサブセント精度が落ちる。 */}
-            <span className="font-medium">${item.price}</span>
-            <span className="text-sm text-muted-foreground">在庫 {item.quantity}</span>
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
+                  数値へ変換するとサブセント精度が落ちる。 */}
+              <span className="font-medium">${item.price}</span>
+              <span className="text-muted-foreground text-sm">在庫 {item.quantity}</span>
+            </div>
+            <div className="relative">
+              <AddToCartButton compact line={toCartLine(item)} />
+            </div>
           </div>
         </div>
       </div>
     </Card>
   );
+}
+
+/** 一覧の 1 件を、カートが受け取る 1 行へ写す。 */
+function toCartLine(item: ProductListItem) {
+  return {
+    productId: item.id,
+    name: item.name,
+    price: item.price,
+    statusName: item.statusName,
+    imageUrl: item.imageUrl,
+    stockQuantity: item.quantity,
+  };
 }

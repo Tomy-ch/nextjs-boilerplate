@@ -22,6 +22,7 @@ test-requirement: feature
 ## 構成
 
 画面（`list` / `detail`）ごとに掘り、その中を性質で分けます（[0027](../../../docs/adr/0027-directory-structure.md)）。
+画面を跨いで使う部品だけは、どちらの画面にも属さないため feature 直下の `ui/` に置きます。
 
 | ファイル | 役割 |
 | --- | --- |
@@ -29,7 +30,7 @@ test-requirement: feature
 | `list/query.ts` | URL のキーと、条件から一覧の URL を組む規則 |
 | `list/use-infinite-products.ts` | 末尾到達で続きを読む。読み進めた件数を URL へ書き戻す |
 | `list/view.tsx` | 一覧の表示。空のときの案内も持つ |
-| `list/ui/card/` | 1 件の見た目 |
+| `list/ui/card/` | 1 件の見た目。カード全体が詳細への導線になる |
 | `list/ui/search/` | キーワード検索。URL を書き換える client island |
 | `list/ui/sort-select/` | 並び替え。幅によらず選んだ時点で反映する |
 | `list/ui/filter-fields/` | 絞り込みの入力欄。選択を持たず、確定の仕方は呼び出し元が決める |
@@ -41,7 +42,7 @@ test-requirement: feature
 | `list/ui/invalid-query/` | URL の条件が契約を外れているときの表示 |
 | `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
 | `detail/view.tsx` | 1 件の詳細の表示。画像の carousel と説明文の描画を持つ |
-| `detail/ui/add-to-cart-button/` | カートへ入れる操作。状態は `stores` が持つ |
+| `ui/add-to-cart-button/` | カートへ入れる操作。一覧と詳細の両方から使う。状態は `stores` が持つ |
 
 ## 運用
 
@@ -57,6 +58,10 @@ test-requirement: feature
 - **カートへ入れる操作は、脇の領域が無い帯で画面下端に固定します**（[0051](../../../docs/adr/0051-styling-system.md)
   §2）。詳細は縦に長く、読み進めた位置から操作へ戻れなくなるためです。固定するかどうかは画面の
   組み立ての判断なので `detail/view.tsx` が持ち、操作の部品は自分がどこに置かれたかを知りません
+- **カード全体を詳細への導線にしますが、link では包みません**。包むとカートへ入れる操作が link の
+  内側に入り、操作の中に操作が居る形になります。商品名の link を疑似要素でカードいっぱいに広げ、
+  操作は link より後ろに置いて `relative` で重なりの上へ出します。支援技術に見える遷移先が
+  「カード全体の文言」ではなく商品名になるのも、この形を採る理由です
 - **バックエンドが長さを決める値は 1 行に収まる前提を置きません**。分類名や状態名は上限の宣言が無く、
   `Badge` は既定で折り返さないため、折り返しを呼び出し側で許します
 - **ページ送りは cursor 方式**です。番号付きのページ送りは作れません（総件数も任意ページへの飛び先も
