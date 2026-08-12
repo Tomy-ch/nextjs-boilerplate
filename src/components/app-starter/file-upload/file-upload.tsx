@@ -164,6 +164,9 @@ export function FileUpload({
       transfer.items.add(file);
     }
 
+    // 書き換えているのは React の値ではなく DOM の側である。要素が付いた時点で effect を走らせるため、
+    // ref ではなく state に持つ形は React の作法どおり。
+    // eslint-disable-next-line react-hooks/immutability -- DOM 側への書き換えのため
     input.files = transfer.files;
   }, [dropped, input]);
 
