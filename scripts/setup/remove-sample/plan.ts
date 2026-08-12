@@ -38,8 +38,7 @@ export function assertWithinRoot(relativePath: string, rootDir: string): void {
  * 走査の対象に含めるかを判定する。
  *
  * @remarks
- * 一覧ではなく走査にするのは、一覧の外側へマーカーを書いたときに**無言で取りこぼす**ためです。
- * 代わりに外す側を宣言し、そちらの漏れは対象ファイルが壊れて検査が落ちる形で表に出します。
+ * 外す側だけを宣言する形にした理由は `sample-manifest.ts` の `MARKER_LITERAL_FILES` が持ちます。
  *
  * @param relativePath - リポジトリルート相対のパス（`/` 区切り）
  * @param excludedPrefixes - 外す相対パス接頭辞

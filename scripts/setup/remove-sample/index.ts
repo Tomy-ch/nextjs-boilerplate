@@ -11,11 +11,12 @@ import {
   toAbsolutePath,
   toRelativePath,
 } from "../lib/file-utils.js";
-import { stripMarkers } from "../lib/markers.js";
 import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
+import { stripMarkers } from "./markers.js";
 import { buildSteps, canHoldMarker, findRedundantPaths, isScanTarget } from "./plan.js";
 import {
   BINARY_EXTENSIONS,
+  DANGLING_PATTERN,
   EXCLUDED_DIRECTORIES,
   EXCLUDED_PATH_PREFIXES,
   MARKER_LITERAL_FILES,
@@ -92,7 +93,7 @@ function run(dryRun: boolean): void {
     fs.mkdirSync(toAbsolutePath("tmp"), { recursive: true });
     fs.writeFileSync(
       toAbsolutePath(SNAPSHOT_PATH),
-      `${JSON.stringify({ registeredPaths: SAMPLE_PATHS }, null, 2)}\n`,
+      `${JSON.stringify({ registeredPaths: SAMPLE_PATHS, danglingPattern: DANGLING_PATTERN }, null, 2)}\n`,
     );
   }
 
