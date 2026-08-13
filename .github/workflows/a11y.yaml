@@ -81,7 +81,10 @@ jobs:
         run: |
           set +e
 
-          make a11y > /tmp/a11y-full.log 2>&1
+          # Playwright defaults to half the cores, which leaves two of the runner's four
+          # idle for a run that is entirely CPU-bound (axe evaluates in-page, one story at
+          # a time per worker).
+          make a11y VRT_ARGS=--workers=4 > /tmp/a11y-full.log 2>&1
           code=$?
           tail -n 40 /tmp/a11y-full.log
 
