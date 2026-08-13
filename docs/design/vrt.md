@@ -68,6 +68,9 @@ sequenceDiagram
     participant store as 置き場
     actor rev as レビュアー
 
+    dev->>main: vrt-retake ラベルを付ける
+    Note over dev,main: 引き金ではない。VRT の完了時に読まれる条件
+
     dev->>main: 部品を変更して push
     main->>gha: vrt を起動
     gha->>store: 記録された 1 コミットだけを取得
@@ -76,9 +79,8 @@ sequenceDiagram
     gha->>gha: Storybook を build して全 story を撮る
     gha->>main: 差分の一覧表を PR へ / 赤で落とす
 
-    dev->>main: vrt-retake ラベルを付ける
-    main->>gha: vrt-retake を起動
-    gha->>gha: 報告された story だけ撮り直す
+    main->>gha: vrt の完了で vrt-retake を起動
+    gha->>gha: ラベルを読む → 報告された story だけ撮り直す
     gha->>store: 一式を push
     store-->>gha: 新しい sha
     gha->>main: gitlink を進めて push
@@ -104,6 +106,12 @@ head では撮り直させない。
 
 **撮り直しは承認ではない。** ラベルは画素を見られる形にするだけで、判断は置き場の compare ビューを
 見た人が PR で行う。ruleset の `require_last_push_approval` が bot の push の後に人の承認を強制する。
+
+**ラベルは引き金ではなく条件であり、消費されるのは撮り直しが届いたときだけ。** 読まれるのは VRT の
+完了時なので、人はいつ付けてもよく（PR 作成時を含む）、完了後に付けたぶんは次の実行まで効かない。
+外れるのはポインタが進んだときだけで、見送りも拒否も失敗もラベルを残す。**残った 1 枚は次の実行で
+そのまま使われる**ため、装填したまま放置すると意図しない変化まで撮り直す。この非対称は意図的で、
+逆に倒すと「人が承認したのに撮り直されない」状態を作る。
 
 **保持するのは生きた ref の先端が指す一式だけ。** 過去のコミットへ遡ると基準画像は揃わない。掃除は
 ブランチを消すだけで、履歴は書き換えない。
