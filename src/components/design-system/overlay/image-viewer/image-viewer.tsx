@@ -167,7 +167,6 @@ export function ImageViewer({ images, index, children, className }: ImageViewerP
                 id={slideIdOf(position)}
                 key={slideIdOf(position)}
               >
-                {position === 0 ? null : <CarouselPrevious href={`#${slideIdOf(position - 1)}`} />}
                 <div className="relative h-[min(78vh,72rem)] w-full">
                   <Image
                     alt={image.alt}
@@ -177,6 +176,9 @@ export function ImageViewer({ images, index, children, className }: ImageViewerP
                     src={image.src}
                   />
                 </div>
+                {/* 送る操作は画像より後ろに置く。位置指定要素は DOM の順で重なるため、
+                    前に置くと画像に覆われて押せない。 */}
+                {position === 0 ? null : <CarouselPrevious href={`#${slideIdOf(position - 1)}`} />}
                 {position === images.length - 1 ? null : (
                   <CarouselNext href={`#${slideIdOf(position + 1)}`} />
                 )}

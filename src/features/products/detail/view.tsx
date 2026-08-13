@@ -124,13 +124,6 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
                 id={slideIdOf(index)}
                 key={slideIdOf(index)}
               >
-                {index === 0 ? null : (
-                  <CarouselPrevious
-                    className="print-hidden"
-                    href={`#${slideIdOf(index - 1)}`}
-                    tabIndex={-1}
-                  />
-                )}
                 {src === null ? (
                   <MediaImage
                     alt={product.name}
@@ -151,6 +144,15 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
                       src={src}
                     />
                   </ImageViewer>
+                )}
+                {/* 送る操作は画像より後ろに置く。位置指定要素は DOM の順で重なるため、
+                    前に置くと画像に覆われて押せない。 */}
+                {index === 0 ? null : (
+                  <CarouselPrevious
+                    className="print-hidden"
+                    href={`#${slideIdOf(index - 1)}`}
+                    tabIndex={-1}
+                  />
                 )}
                 {index === slides.length - 1 ? null : (
                   <CarouselNext
