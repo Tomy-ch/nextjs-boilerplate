@@ -155,7 +155,7 @@ function wireSubmodule(target: string): void {
 }
 
 async function setupApp(): Promise<void> {
-  const slug = normalizeAppSlug(await ask("App の General ページの URL（または slug）を貼り付け"));
+  const slug = normalizeAppSlug(await ask("App の slug、または General ページの URL"));
 
   let app: { id: number; name: string };
   try {

@@ -129,18 +129,19 @@ make setup-vrt-app
 ```
 
 ```text
-App の General ページの URL（または slug）を貼り付け:   ← 6-2 で控えた URL
+App の slug、または General ページの URL:    ← 6-2 で控えた URL をそのまま貼ってよい
 
   App 名 : ...
   App ID : ...
 
-この App を登録しますか (y/N) [N]:                      ← y
+この App を登録しますか (y/N) [N]:           ← y
 
-秘密鍵 (.pem の中身) を貼り付けて Ctrl+D:               ← .pem の全文を貼って Ctrl+D
+秘密鍵 (.pem の中身) を貼り付けて Ctrl+D:    ← .pem の全文を貼って Ctrl+D
 ```
 
-App ID は URL から解決するので控える必要はない。秘密鍵は `gh` の標準入力へ直接渡るので、
-ディスクにもシェル履歴にも残らない。登録後は `.pem` を消してよい。
+最初の問いは **slug をそのまま打っても通る**（`my-app` でも
+`https://github.com/settings/apps/my-app` でもよい）。App ID はそこから解決するので控える必要はない。
+秘密鍵は `gh` の標準入力へ直接渡るので、ディスクにもシェル履歴にも残らない。登録後は `.pem` を消してよい。
 
 ```bash
 gh secret list   # VRT_APP_ID / VRT_APP_PRIVATE_KEY が並ぶ
