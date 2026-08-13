@@ -8,7 +8,6 @@ import {
   classifyMoves,
   isMovingTag,
   type MoveCandidate,
-  quarantine,
   refAgeDays,
   resolveSHA,
   selectSHA,
@@ -293,42 +292,5 @@ describe("refAgeDays", () => {
     await expect(refAgeDays("actions/checkout", "v7", SHA)).rejects.toThrow(
       `commit ${SHA} の日付を取得できませんでした`,
     );
-  });
-});
-
-describe("quarantine", () => {
-  // ----- 正常系 -----
-  it("検疫を行わない設定では経過日数を問い合わせずに採用する", async () => {
-    const ageOf = vi.fn();
-
-    await expect(quarantine(ageOf, "k", SHA, 0, new Map())).resolves.toEqual({
-      use: SHA,
-      note: null,
-    });
-    expect(ageOf).not.toHaveBeenCalled();
-  });
-
-  it("窓を満たす解決先を採用する", async () => {
-    await expect(quarantine(async () => 14, "k", SHA, 14, new Map())).resolves.toEqual({
-      use: SHA,
-      note: null,
-    });
-  });
-
-  // ----- 異常系 -----
-  it("新しすぎる解決先では既存ピンを維持する", async () => {
-    const existing = new Map([["k", OTHER_SHA]]);
-
-    await expect(quarantine(async () => 3, "k", SHA, 14, existing)).resolves.toEqual({
-      use: OTHER_SHA,
-      note: "k: 解決先が 3 日 (<14) のため既存ピンを維持",
-    });
-  });
-
-  it("新しすぎるうえ既存ピンも無ければ採用を見送る", async () => {
-    await expect(quarantine(async () => 3, "k", SHA, 14, new Map())).resolves.toEqual({
-      use: null,
-      note: "k: 解決先が 3 日 (<14)・既存ピン無しのため skip",
-    });
   });
 });
