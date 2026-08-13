@@ -1,0 +1,158 @@
+name: Accessibility
+
+# Runs axe over every Storybook story in a real browser, inside the same
+# digest-pinned container the screenshots use (ADR 0054: the automated a11y check
+# rides on the stories; ADR 0091 §3: no additional runner is introduced for it).
+#
+# Real browser is the point. The component suite's `vitest-axe` runs under jsdom,
+# which has no layout and no computed colour, so `color-contrast` is switched off
+# there — see the `rules: { "color-contrast": { enabled: false } }` scattered through
+# `src/**`. Here both themes are actually painted, so contrast violations that only
+# appear in dark mode are reachable.
+#
+# Kept out of `vrt.yaml` deliberately. An a11y failure landing in the VRT report
+# would enter the retake set, and retaking a screenshot does not fix an a11y
+# violation — it only marks the baseline as accepted.
+#
+# No baseline images are needed, so the submodule is not fetched.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  a11y:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    outputs:
+      title: ${{ steps.a11y.outputs.title }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook and run axe over every story
+        id: a11y
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+
+          make a11y > /tmp/a11y-full.log 2>&1
+          code=$?
+          tail -n 40 /tmp/a11y-full.log
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Accessibility: PASS (axe on every story)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Accessibility: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Upload the axe report
+        if: always() && steps.a11y.outputs.status == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: a11y-report
+          path: tmp/vrt
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Hand the comment body to the commenting job
+        if: always() && github.event_name == 'pull_request' && steps.a11y.outputs.status != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: a11y-comment
+          path: /tmp/a11y-full.log
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Fail if a story has a violation
+        if: always() && steps.a11y.outputs.status != 'success'
+        run: exit 1
+
+  # Holds no secret beyond `GITHUB_TOKEN`, matching how `vrt.yaml` splits reporting
+  # from the job that produces the body.
+  a11y-comment:
+    if: always() && github.event_name == 'pull_request'
+    needs: a11y
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Download the comment body
+        id: body
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: a11y-comment
+          path: /tmp/a11y-comment
+
+      - name: Comment the accessibility result on PR
+        if: steps.body.outcome == 'success'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- a11y-result -->'
+          title: ${{ needs.a11y.outputs.title }}
+          body-file: /tmp/a11y-comment/a11y-full.log
+          details-summary: 'axe log'

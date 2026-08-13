@@ -1,8 +1,9 @@
 import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect } from "@playwright/test";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
+import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
 
@@ -69,20 +70,4 @@ for (const story of stories) {
     // 系統ごとに分かれず 1 階層へ平置きされる。
     await expect(page).toHaveScreenshot([story.group, testInfo.project.name, `${story.id}.png`]);
   });
-}
-
-// 撮影前に、描画とフォントの読み込みが終わるのを待つ。
-//
-// 描画の完了は配色テーマが `:root` へ乗ったことで見る。テーマを載せるのが story を包む
-// decorator（`.storybook/preview.ts`）なので、乗っていれば story まで到達している。要素の
-// 出現で見ると、描画前の空の `#storybook-root` を「安定した画面」として撮ってしまう。
-//
-// フォントは差し替わった瞬間に字形が変わるため、待たずに撮ると同じ story が撮るたびに
-// 違う画像になる。
-async function settle(page: Page, theme: string): Promise<void> {
-  await page.waitForFunction(
-    (expected) => document.documentElement.dataset.theme === expected,
-    theme,
-  );
-  await page.evaluate(() => document.fonts.ready);
 }
