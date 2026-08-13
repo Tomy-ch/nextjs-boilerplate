@@ -11,10 +11,13 @@ DOM のアサートでは「class 名が変わっていない」ことしか言�
 
 ```bash
 make vrt          # Storybook を build して全 story を比較する
-make vrt-update   # 基準画像を撮り直す（差分を意図した変更として受け入れる）
-make vrt-push     # 撮り直した一式を置き場へ送り、サブモジュールのポインタを進める
+make vrt-retake   # 撮り直して置き場へ送る（手元からの撮り直しはこれ）
 make vrt-report   # 直前の実行の HTML レポートを開く
 ```
+
+`vrt-retake` は `vrt-update`（撮る）と `vrt-push`（送る）の 2 つを順に走らせる。片方だけ要る場面が
+あれば個別に呼べるが、**撮って送らないと親の gitlink が古いまま**になり、手元の `make vrt` は通るのに
+CI だけ落ちる。
 
 **置き場へ送るのは `make vrt-push` だけ**である。サブモジュールの中で直接コミットすると撮り直し
 どうしが繋がり、掃除でどれも落とせなくなる（後述）。
@@ -53,7 +56,7 @@ VRT が言えるのは「変わった」までで、「変わってよいか」�
 | | 操作 | 向き先 |
 | --- | --- | --- |
 | `vrt-retake` ラベル | PR にラベルを付ける | 表に出ていた story だけを CI が撮り直し、置き場へ push してポインタを進める |
-| 手元 | `make vrt-update VRT_ONLY=<id>,<id>` → `make vrt-push` | Docker がある環境で撮り直す。fork からの PR はこちらだけ |
+| 手元 | `make vrt-retake VRT_ONLY=<id>,<id>` | Docker がある環境で撮り直す。fork からの PR はこちらだけ |
 
 **どちらも承認ではない。**撮り直しは「画素を見られる形にする」操作でしかない。撮り直した一式は
 置き場へ push され、PR コメントに**置き場の compare ビューへのリンク**が付く。そこに GitHub 標準の

@@ -152,12 +152,11 @@ gh secret list   # VRT_APP_ID / VRT_APP_PRIVATE_KEY が並ぶ
 Docker が要る。全 story を撮るので時間がかかる。
 
 ```bash
-make vrt-update   # 撮る
-make vrt-push     # 置き場へ送り、サブモジュールのポインタを進める
+make vrt-retake   # 撮って置き場へ送る
 git commit -am "Test: 基準画像を撮る"
 ```
 
-`make vrt-push` は送った結果を出す。
+送った結果が出る。
 
 ```text
 before=<置き場の直前のコミット>

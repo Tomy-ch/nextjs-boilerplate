@@ -4,7 +4,8 @@
 # (vrt/README.md)。取り込んでいない状態で回すと全 story が「基準画像が無い」で落ち、
 # 退行と見分けが付かないため手前で止める。
 .PHONY: vrt ## story の見た目を基準画像と比較する (コンテナ内で実行)
-.PHONY: vrt-update ## 基準画像を撮り直す (差分を意図した変更として受け入れる)
+.PHONY: vrt-retake ## 基準画像を撮り直して置き場へ送る (手元からの撮り直しはこれ)
+.PHONY: vrt-update ## 基準画像を撮り直す (置き場へは送らない)
 .PHONY: vrt-push ## 撮り直した基準画像を置き場へ送り、サブモジュールのポインタを進める
 .PHONY: vrt-report ## 直前の実行の HTML レポートを開く
 .PHONY: build-storybook ## Storybook を静的に build する (VRT の撮影対象)
@@ -40,7 +41,14 @@ vrt: build-storybook
 vrt-update: build-storybook
 	@$(VRT_REQUIRE_WIRING)
 	@$(VRT_RUN) ./node_modules/.bin/playwright test --update-snapshots $(VRT_ARGS)
-	@echo "🎞️ 撮り直しました。置き場へ送るには make vrt-push を実行してください。"
+	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です。"
+
+# 手元から撮り直す唯一の入口。撮って送らないと、親の gitlink が古いまま作業ツリーだけ新しい
+# 状態になり、手元の make vrt は通るのに CI だけ落ちる。
+# 順に走らせるのは、-j 付きで呼ばれても前提の順序を崩さないため。
+vrt-retake:
+	@$(MAKE) vrt-update
+	@$(MAKE) vrt-push
 
 # 撮り直した一式を置き場へ送るのはここだけ。手元でサブモジュール内を直接コミットすると
 # 撮り直しどうしが繋がり、掃除でどれも落とせなくなる。
