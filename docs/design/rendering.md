@@ -99,6 +99,67 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 
 **器を Client にせず、島を差す。** 横断的な操作を足したくなったとき、外枠そのものを `"use client"` にすると、外枠が import しているものが全部ブラウザへ行く。外枠に props の口を開け、そこへ小さい Client Component を渡す形にすれば、外枠は Server のまま保てる。[`components/shell/app-shell`](../../src/components/shell/app-shell/) が `headerActions` / `sidebar` の口を持っているのはこのためである。
 
+## 他に踏みやすい語
+
+知らない語より、**知っている語が別の意味で使われている**ほうが危ない。以下は後者を優先して並べたものである。網羅ではなく、この構成を読むのに要るものに絞ってある。全語の定義は Next.js 同梱の用語集（`node_modules/next/dist/docs/01-app/04-glossary.md`）にある。
+
+### Server / Client
+
+| 語 | 意味 | 取り違え |
+| --- | --- | --- |
+| `"use server"` | **`"use client"` の反対ではない。** client から呼べるサーバ関数を宣言する印 | 「このファイルはサーバで動く」の意味だと読む。既定でサーバなので、そういう宣言は要らない |
+| Server Function | `"use server"` を付けた非同期関数。client から呼べる | — |
+| Server Action | Server Function のうち、form の `action` や Client Component の props として渡されたもの | Server Function との差は**呼ばれ方**だけ |
+| Client Bundles | ブラウザへ送られる JavaScript の塊 | Client Component の代償はここであって、SSR の可否ではない |
+| `server-only` / `client-only` | 反対側へ import したらビルドを落とす印 | 実行を止めるものではなく、依存の混線を build 時に気付かせるもの |
+
+### ルーティング
+
+| 語 | 意味 | 取り違え |
+| --- | --- | --- |
+| Route Segment | URL の 1 階層に対応するフォルダ | — |
+| Route Group `(name)` | **URL に現れない**フォルダ。器を分けるためだけに使う | `app/(marketing)/about/page.tsx` が `/marketing/about` になると読む。実際は `/about` |
+| Route Handler | `route.ts`。HTTP の口 | Pages Router の「API Routes」とは別物。同じ階層に `page.tsx` と共存できない |
+| Proxy | `proxy.ts`。route に届く前に通る層 | **Next 16 で `middleware.ts` から改称された。** 「middleware」で調べると旧名の情報に当たる |
+
+### 描画の決まり方
+
+| 語 | 意味 | 取り違え |
+| --- | --- | --- |
+| Static rendering | build 時に描いておく | 明示的に選ぶものではない |
+| Dynamic rendering | リクエストごとに描く | 同上。**使った API で自動的に決まる** |
+| Request-time API | `cookies()` / `headers()` / `searchParams` / `draftMode()`。触ると dynamic になる | 「読むだけ」のつもりが、そのページの描画方式を変えている |
+| Prerendering / Static Shell | 事前に描いてある部分。ブラウザへ即座に返る | — |
+| Streaming / Suspense boundary | 描けたところから順に送る仕組みと、その区切り | `loading.tsx` は「読み込み中の画面」ではなく、そのセグメントに Suspense を敷く宣言 |
+| Cache Components (PPR) | 静的な殻と動的な穴を 1 ページに混ぜる機構 | 採否は [ADR 0041](../adr/0041-cache-components-decision.md) が持つ |
+
+### キャッシュ（名前が似ていて寿命が違う）
+
+| 語 | 生存範囲 | 取り違え |
+| --- | --- | --- |
+| Memoization | **1 リクエストの描画中だけ**。同じ `fetch` GET は自動で 1 回にまとまる。`fetch` 以外は React の `cache()` を使う | 「キャッシュした」と言うと次のリクエストにも残ると読まれる。残らない |
+| Data Cache / Revalidation | **リクエストを跨いで残る**。`tags` を無効化して捨てる | 上と同じ「キャッシュ」の語で呼ばれる |
+| Client Cache | **ブラウザが持つ** RSC Payload の控え。戻る / 進むで再利用される | サーバ側のキャッシュと混同する。再読み込みで消える |
+
+**Route Handler は React の component tree の外にある。** `fetch` の自動 memoization が効くのは component tree の中なので、`route.ts` から呼ぶ経路では同じ前提を置かない。
+
+### 遷移
+
+| 語 | 意味 | 取り違え |
+| --- | --- | --- |
+| Client-side navigation | ページ全体を作り直さず、変わった部分だけ差し替える遷移 | `<a>` による通常の遷移とは別物。`Link` はこちら |
+| Prefetching | 遷移先を先読みしておくこと | — |
+| `router.refresh()` | サーバから描き直すが、**client state は保つ** | ブラウザの再読み込みとは別物。あちらは client state を捨てる |
+| Version skew | 利用者が開いたままの間に新しい版がデプロイされ、新旧が食い違うこと | 「たまに壊れる」で片付けられがちだが、原因の名前が付いている |
+
+### その他
+
+| 語 | 意味 | 取り違え |
+| --- | --- | --- |
+| `params` / `searchParams` は Promise | Next 15 以降、`await` してから読む | 同期で読めた頃のコード例が大量に残っている |
+| Edge runtime / Node.js runtime | 実行環境が 2 つある | [`instrumentation.ts`](../../src/instrumentation.ts) が `NEXT_RUNTIME` で分岐しているのはこのため |
+| Turbopack | 既定のバンドラ | webpack 前提の設定情報に当たることがある |
+
 ## 自分で確かめる
 
 思い込みで判断せず、次の 2 つで足りる。
