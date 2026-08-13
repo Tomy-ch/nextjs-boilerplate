@@ -60,7 +60,9 @@ for (const story of stories) {
     await page.goto(storyURL(story.id, testInfo.project.name));
     await settle(page, testInfo.project.name);
 
-    const { violations } = await new AxeBuilder({ page }).disableRules(disabledRuleIds()).analyze();
+    const { violations } = await new AxeBuilder({ page })
+      .disableRules(disabledRuleIds(story.id))
+      .analyze();
 
     // 件数ではなく違反そのものを並べる。どのルールがどの要素で落ちたかが出ないと、
     // 落ちた人は Storybook を開いて探し直すことになる。

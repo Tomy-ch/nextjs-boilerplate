@@ -2,9 +2,11 @@
  * story の a11y 検査で無効にする axe のルール。
  *
  * @remarks
- * 無効にしてよいのは、**story が部品を単独で描画していることの副作用**として鳴るものだけです。
- * 「いまは直せない」は理由になりません — 直せない違反は
+ * ここで全 story から外してよいのは、**story が部品を単独で描画していることの副作用**として鳴る
+ * ものだけです。「いまは直せない」は理由になりません — 直せない違反は
  * [`excluded-stories.ts`](excluded-stories.ts) で story ごと外すか、実装を直します。
+ *
+ * 特定の story でだけ外す宣言は {@link STORY_DISABLED_RULES} が持ちます。
  *
  * 宣言を 1 箇所に集めるのは、spec 側で `rules: { ... }` を書けるようにすると、story を足した
  * 人がその場で黙らせられてしまうためです（`untested-modules.ts` と同じ規律）。
@@ -37,7 +39,58 @@ export const DISABLED_RULES: readonly DisabledRule[] = [
   },
 ];
 
-/** axe へ渡す形へ畳む。 */
-export function disabledRuleIds(rules: readonly DisabledRule[] = DISABLED_RULES): string[] {
-  return rules.map((rule) => rule.id);
+/** story を名指しして外すルール 1 件。 */
+export type StoryDisabledRule = DisabledRule & {
+  /** 対象の story id（`storybook-static/index.json` の `id`）。 */
+  readonly stories: readonly string[];
+};
+
+/**
+ * story を名指しして無効にするルール。
+ *
+ * @remarks
+ * 全 story で外すほどの理由は無いが、その story では鳴らしても直しようがないものを置きます。
+ * 使う側の実装ではなく**取り除けない上流の実装が原因で、かつ実際には到達できない**ことが条件で、
+ * 根拠は宣言そのものが持ちます。story を名指しするため、他の story では同じルールが生きたままです。
+ */
+export const STORY_DISABLED_RULES: readonly StoryDisabledRule[] = [
+  {
+    id: "aria-hidden-focus",
+    stories: [
+      "action-buttongroup--split-button-open",
+      "container-tableviewoptions--menu-open",
+      "form-selectclient--open",
+      "overlay-dropdownmenu--grouped",
+      "overlay-dropdownmenu--icon-trigger",
+      "overlay-dropdownmenu--nested",
+      "overlay-dropdownmenu--open",
+      "overlay-dropdownmenu--with-selection",
+      "overlay-dropdownmenu--with-selection-kept-open",
+    ],
+    reason:
+      "Radix が modal の overlay を開くとき背景へ `aria-hidden` だけを当て、trigger は tabbable のまま残る。焦点は FocusScope が閉じ込めるため実際には届かない。axe も同じ場合を violation ではなく incomplete にする逃げ道を持つが、その判定は dialog しか見ないため menu では効かない。",
+    removeWhen:
+      "Radix が `aria-hidden` パッケージの `suppressOthers` へ移り、背景が `inert` になったとき。",
+  },
+  {
+    id: "aria-hidden-focus",
+    stories: ["navigation-navigationmenu--open", "navigation-navigationmenu--without-viewport"],
+    reason:
+      "Radix の NavigationMenu が `aria-hidden` と `tabIndex={0}` を併せ持つ focus proxy を描く。props で外せない内部実装で、keyboard で viewport へ入るための踏み台である。",
+    removeWhen: "Radix が focus proxy を `aria-hidden` に頼らない形へ変えたとき。",
+  },
+];
+
+/** axe へ渡す形へ畳む。`storyId` を渡すと、その story を名指しした宣言も併せて外す。 */
+export function disabledRuleIds(
+  storyId?: string,
+  rules: readonly DisabledRule[] = DISABLED_RULES,
+  storyRules: readonly StoryDisabledRule[] = STORY_DISABLED_RULES,
+): string[] {
+  const named =
+    storyId === undefined
+      ? []
+      : storyRules.filter((rule) => rule.stories.includes(storyId)).map((rule) => rule.id);
+
+  return [...new Set([...rules.map((rule) => rule.id), ...named])];
 }
