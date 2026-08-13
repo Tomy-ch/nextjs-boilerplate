@@ -118,8 +118,8 @@ owner 名などを足す。名前は後から変えられる（slug も追随す
 
 作成後、続けて 2 つ。
 
-1. **Install App** → **Only select repositories** で**本体と置き場の 2 つだけ**
-2. **General → Private keys → Generate a private key** → `.pem` がダウンロードされる
+1. **General → Private keys → Generate a private key** → `.pem` がダウンロードされる
+2. **Install App** → **Only select repositories** で**本体と置き場の 2 つだけ**
 
 ### 6-3. App を登録する
 
