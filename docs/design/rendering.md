@@ -114,6 +114,8 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 
 知らない語より、**知っている語が別の意味で使われている**ほうが危ない。以下は後者を優先して並べたものである。網羅ではなく、この構成を読むのに要るものに絞ってある。全語の定義は Next.js 同梱の用語集（`node_modules/next/dist/docs/01-app/04-glossary.md`）にある。
 
+1 行では足りないものは「[表では足りない語](#表では足りない語)」で扱う。
+
 ### Server / Client
 
 | 語 | 意味 | 取り違え |
@@ -129,7 +131,6 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 | 語 | 意味 | 取り違え |
 | --- | --- | --- |
 | Route Segment | URL の 1 階層に対応するフォルダ | — |
-| Route Group `(name)` | **URL に現れない**フォルダ。器を分けるためだけに使う | `app/(marketing)/about/page.tsx` が `/marketing/about` になると読む。実際は `/about` |
 | Route Handler | `route.ts`。HTTP の口 | Pages Router の「API Routes」とは別物。同じ階層に `page.tsx` と共存できない |
 | Proxy | `proxy.ts`。route に届く前に通る層 | **Next 16 で `middleware.ts` から改称された。** 「middleware」で調べると旧名の情報に当たる |
 
@@ -139,11 +140,10 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 | --- | --- | --- |
 | Static rendering | build 時に描いておく | 明示的に選ぶものではない |
 | Dynamic rendering | リクエストごとに描く | 同上。**使った API で自動的に決まる** |
-| Request-time API | `cookies()` / `headers()` / `searchParams` / `draftMode()`。触ると dynamic になる | 「読むだけ」のつもりが、そのページの描画方式を変えている |
+| Runtime rendering | Dynamic rendering の別名 | **3 つめの描画方式ではない。** 資料によって呼び名が揺れているだけ |
 | Prerendering / Static Shell | 事前に描いてある部分。ブラウザへ即座に返る | — |
 | Streaming / Suspense boundary | 描けたところから順に送る仕組みと、その区切り | — |
 | Loading UI | Suspense が解決するまで出る表示。`loading.tsx` がこれにあたる | `loading.tsx` は「読み込み中の画面」ではなく、**そのセグメントに Suspense を敷く宣言**である |
-| Cache Components / Partial Prerendering (PPR) | 静的な殻と動的な穴を 1 ページに混ぜる機構 | 採否は [ADR 0041](../adr/0041-cache-components-decision.md) が持つ |
 
 ### キャッシュ（名前が似ていて寿命が違う）
 
@@ -169,7 +169,6 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 | 語 | 意味 | 取り違え |
 | --- | --- | --- |
 | Error Boundary | 配下で投げられた例外を捕まえて代わりの表示を出す仕組み。`error.tsx` がこれにあたる | **Client Component でなければならない。** また production では Server Component から投げられた例外の本文が伏せられ、境界には汎用の文言と `digest` しか届かない（[ADR 0080](../adr/0080-error-handling.md)） |
-| `"use cache"` | 関数やコンポーネントの結果をキャッシュ対象だと宣言する指示子 | `"use client"` / `"use server"` と並ぶ 3 つめだが、**対称ではない**。あちらは実行場所と呼び出し可否、これはキャッシュ |
 
 ### ルーティングの残り
 
@@ -178,14 +177,11 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 | Dynamic route segment | `[id]`。値が入る階層 | — |
 | Catch-all segment | `[...slug]` / `[[...slug]]`。以降の階層をまとめて受ける | — |
 | Private Folder `_name` | **URL に現れない**フォルダ。ルーティングの対象から外す | **URL に出ないフォルダは 2 種類ある。** `(name)` は器を分けるため、`_name` はルーティングから外すため。目的が違う |
-| Parallel Routes `@slot` | 1 つの階層に複数の枠を並べて同時に描く | 存在を知らないと、同種のことを自前の state で組んでしまう |
-| Intercepting Routes | 遷移元によって同じ URL の描き方を変える。一覧から開いたらモーダル、直接開いたら全画面、といった作り | 同上 |
 
 ### ビルドと配信
 
 | 語 | 意味 | 取り違え |
 | --- | --- | --- |
-| Code Splitting / Tree Shaking | 必要な塊だけに分けて送る / 使っていない export を落とす | 「Client Component にすると全部送られる」ではない。ただし**削れるのは使っていないものだけ**で、使っていれば送られる |
 | ISR（Incremental Static Regeneration） | 静的に描いたものを期限付きで作り直す | 名前が難しいだけで、やっていることは「静的だが古くなったら描き直す」 |
 | Static Export | ページを全部静的ファイルとして出す構成 | 採るとサーバが無くなるため、Request-time API も Route Handler も使えなくなる |
 
@@ -197,7 +193,56 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 | Edge runtime / Node.js runtime | 実行環境が 2 つある | [`instrumentation.ts`](../../src/instrumentation.ts) が `NEXT_RUNTIME` で分岐しているのはこのため |
 | Turbopack | 既定のバンドラ | webpack 前提の設定情報に当たることがある |
 
-### ここでは扱わない語
+## 表では足りない語
+
+### Request-time API — 触ると描画方式が変わる
+
+`cookies()` / `headers()` / `searchParams` / `draftMode()` の 4 つ。これらに触れたコンポーネントは、その時点で **dynamic rendering へ倒れる**。
+
+倒れるのはページ全体ではなく、触れたコンポーネントを含む区画である。したがって木の深いところにある小さなコンポーネントが `cookies()` を読んだだけで、その区画は毎リクエスト描かれるようになる。
+
+**「読むだけ」という感覚と実際の影響が釣り合わない。** 静的に配れるはずだったところが動的になっていることに、書いた側は気付きにくい。静的に保ちたい部分とリクエストごとに変わる部分は、Suspense で区切って別々に扱う。
+
+### Route Group `(name)` — URL に出ないだけではない
+
+括弧で囲んだフォルダは URL に現れない。`app/(marketing)/about/page.tsx` は `/about` である。ここまでは知られているが、**副作用が 2 つある**。
+
+- **グループごとに root layout を分けられる。** 分けた場合、**異なる root layout を跨ぐ遷移はフルページリロードになる**（client-side navigation にならない）。器を分けたこと自体が遷移の質を変える
+- **別のグループが同じ URL へ解決するとエラーになる。** `(marketing)/about` と `(shop)/about` はどちらも `/about` なので共存できない
+
+### Partial Prerendering / Cache Components / `"use cache"` — 層が違う 3 つ
+
+字面が近いので同義に見えるが、道具・機構・結果の関係にある。
+
+| 語 | 位置づけ |
+| --- | --- |
+| `"use cache"` | **指示子**。route / コンポーネント / 関数に「キャッシュしてよい」と印を付ける。ファイル先頭なら全 export、関数の先頭ならその戻り値が対象 |
+| Cache Components | **機構**。`"use cache"` を軸に、静的・キャッシュ済み・動的を 1 つの route の中で混ぜられるようにする。寿命は `cacheLife()`、タグ付けは `cacheTag()`、無効化は `updateTag()` |
+| Partial Prerendering (PPR) | **その機構で得られる描画の形**。静的な殻を即座に返し、動的な部分は準備でき次第 streaming で流し込む |
+
+`"use client"` / `"use server"` と字面が揃っているが、**3 つで 1 組の選択肢ではない**。前 2 つは実行場所と呼び出し可否の話で、`"use cache"` はキャッシュの話である。
+
+**採否は [ADR 0041](../adr/0041-cache-components-decision.md) が持つ。** 有効化は設定 1 つで済むが、静的に見える部分の鮮度が設定に従うようになるため、勝手に入れない。
+
+### Code Splitting / Tree Shaking — 代償を見積もる道具
+
+- **Code Splitting**: **route 単位**で JavaScript を分割する。開いたページに届くのは、その route に要る分だけ
+- **Tree Shaking**: 使っていない export を build 時に落とす
+
+この 2 つがあるので、「Client Component を 1 つ足したらアプリ全部の JavaScript が届く」にはならない。**増えるのはその route の塊だけ**である。
+
+逆に言えば、**使っているものは落ちない**。大きなライブラリを Client Component から import すれば、その route の塊はその分だけ膨らむ。器を Client にせず島を差す形が効くのはここで、島が小さければ import も小さい。
+
+### Parallel Routes / Intercepting Routes — 知らないと自前で組んでしまう
+
+- **Parallel Routes**（`@folder`）: 1 つの layout の中に**複数のページを同時に**、あるいは条件によって描く。独立した区画が並ぶ画面で使う
+- **Intercepting Routes**: 遷移元によって同じ URL の描き方を変える
+
+組み合わせると、「一覧から押したときはその場にモーダルで開き、同じ URL を直接叩いたら全画面で開く。**URL は共有できる**」という形が、ルーティングの機能だけで成立する。
+
+**知らないと、同じことを client state とモーダルの出し分けで自前に組むことになる。** その場合 URL が変わらないので、共有も戻る操作も成立しない。まだ使っていないが、「一覧から詳細をモーダルで開きたい」と思った時点で最初に検討する選択肢である。
+
+## ここでは扱わない語
 
 次は Next.js 固有の語ではあるが、**判断を持っている ADR が別にある**。ここに定義を書くと二重管理になるため、誘導だけ置く。
 
