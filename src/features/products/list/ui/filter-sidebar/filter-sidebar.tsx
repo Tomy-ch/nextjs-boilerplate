@@ -3,8 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useTransition } from "react";
 
-import { FilterBar } from "@/components/patterns/filter-bar/filter-bar";
-
 import { toProductListHref } from "../../query";
 import { type FilterGroup, ProductFilterFields } from "../filter-fields/filter-fields";
 
@@ -26,6 +24,8 @@ export type ProductFilterSidebarProps = {
  *
  * 出す幅の判断は持ちません。脇の領域を出す下限は
  * [0051](../../../../../docs/adr/0051-styling-system.md) §2 が決めており、置く側が担います。
+ * landmark も持ちません。この画面には検索と条件をまとめた `FilterBar` が既にあり、入れ子にすると
+ * 同じ目的の landmark が 2 つ並びます。脇の領域そのものの名前は置く側が `aside` に与えます。
  *
  * 遷移を `useTransition` で包むのは、取得が終わるまで前の一覧を残すためです。包まないと選んだ
  * 瞬間に一覧が待機表示へ落ち、続けて絞り込む操作の足場が消えます。
@@ -44,8 +44,8 @@ export function ProductFilterSidebar({ groups, selection }: ProductFilterSidebar
   );
 
   return (
-    <FilterBar aria-busy={pending} label="絞り込み">
+    <div aria-busy={pending}>
       <ProductFilterFields groups={groups} onSelect={select} selection={selection} />
-    </FilterBar>
+    </div>
   );
 }
