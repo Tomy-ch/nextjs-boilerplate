@@ -55,6 +55,10 @@ function toCarriedParams(selection: Readonly<Record<string, string>>) {
  * overlay の中にあり、閉じている間は何で絞り込まれているかが画面から読めないためです。条件が
  * 増えるほどこの差は開きます。
  *
+ * すべてを解除する操作は右端に留めます。chip の後ろへ流すと、条件が増えて折り返すたびに操作の
+ * 位置が動き、同じ場所を狙って押せません。下端で揃えるのは、chip が複数行になったときに操作だけが
+ * 上に浮かないようにするためです。
+ *
  * 検索欄は hydration を必要としない形にしてあります。打鍵ごとに反映する必要が無く、送信結果は
  * URL に載るため、島にしても得るものがありません。
  *
@@ -89,8 +93,8 @@ export function ProductListView({
           />
           <ProductSortSelect options={sortOptions} selection={selection} />
         </FilterBarControls>
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterBarActiveFilters>
+        <div className="flex items-end justify-between gap-4">
+          <FilterBarActiveFilters className="min-w-0 flex-1">
             {activeFilters.map((filter) => (
               <FilterChip
                 key={filter.key}
@@ -102,7 +106,7 @@ export function ProductListView({
           </FilterBarActiveFilters>
           {/* 1 件しか効いていないときは、その chip の解除と行き先が同じになる。 */}
           {activeFilters.length > 1 ? (
-            <Button asChild size="sm" variant="ghost">
+            <Button asChild className="shrink-0" size="sm" variant="ghost">
               <Link href={PRODUCT_LIST_PATH}>条件をすべて解除</Link>
             </Button>
           ) : null}
