@@ -44,6 +44,7 @@
 | 67 | server 専用モジュールは先頭で `import "server-only"` し、client component から参照させない。 | `server-only` の build-time failure と ESLint boundaries。 | [ADR 0071](adr/0071-bff-api-integration.md) |
 | 68 | Server Action ID の version skew が起きたら、再試行を繰り返さず full reload へ誘導する。 | P5-7 の integration テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 69 | 内部リンクは `next/link` を使い、生の `<a>` を使わない。外部リンクには必要な `rel` を付与する。 | ESLint の `project-rules/no-internal-anchor`。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
+| 70 | DOM マークアップは UI を担う層（`app` / `features` / `components`）にだけ置く。`adapters` / `capabilities` / `stores` / `config` などの内側で画面を描かない。Provider の合成は許す（[ADR 0022](adr/0022-capabilities-kernel.md) / [ADR 0026](adr/0026-layout-shell-mount.md)）。 | ESLint の `project-rules/no-markup-outside-ui-layers`（置いてよい層の宣言は `architecture.ts` の `UI_KERNELS`）。 | [ADR 0021](adr/0021-frontend-responsibility.md) |
 
 ## 運用
 
