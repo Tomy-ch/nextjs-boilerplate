@@ -14,8 +14,7 @@ const EXTENSION = ".png";
  * 対応の検査に付ける Playwright のタグ。
  *
  * @remarks
- * 比較を省いた実行は、このタグで対応の検査だけを選び出します(`.makefiles/testing/vrt.mk`)。
- * 見出しの文字列で選ぶと、名前を変えた瞬間に何も走らないまま緑になります。
+ * 比較を省いた実行がこのタグで検査を選び出すため、`.makefiles/testing/vrt.mk` と対で変えます。
  */
 export const BASELINE_TAG = "@baselines";
 

@@ -15,12 +15,11 @@ name: VRT Retake
 # that run's report — labelling early only produced "the run has not finished yet".
 # Firing on the run's completion instead lets the label be applied whenever, PR
 # creation included, and takes the human off the critical path: VRT, retake, and the
-# confirming VRT re-run chain without anyone watching. Being a condition also means a
-# label applied after the run has completed does nothing until the next one.
+# confirming VRT re-run chain without anyone watching.
 #
-# The label is removed only once the pointer has actually moved. It survives a
-# deferral and every refusal, so a retake blocked by a failing check or a stale branch
-# happens by itself on the next run.
+# The label is spent only when the pointer moves; every other outcome leaves it on.
+# Both halves of that asymmetry are in docs/design/vrt.md, and what it means for the
+# person applying the label is in vrt/README.md.
 #
 # The scope is read from the `vrt-report` artifact of the run that triggered this
 # one. Bounding the retake to what was already reported means a story that never
@@ -343,12 +342,8 @@ jobs:
             echo 'VRT_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # The label stands for one acceptance, so it is removed once it has been spent —
-      # that is, once the pointer has actually moved. Every other outcome leaves it on
-      # (a deferral, a refusal, an expired report, a missing store token, a failed
-      # push), which is what lets the retake resume by itself on the next run once the
-      # cause is gone. Removing it on those paths would make the person re-apply a
-      # label they never spent.
+      # One label, one retake: removed only once the pointer has moved. Anything else
+      # leaves it on, so the retake resumes by itself once the cause is gone.
       - name: Remove the label
         if: always() && steps.mode.outputs.mode == 'reported' && steps.push.outputs.sha != ''
         continue-on-error: true

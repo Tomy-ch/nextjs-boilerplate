@@ -27,8 +27,7 @@ export default defineConfig({
   // 系統 / テーマ / story の順に畳む。名前は spec が組み立てるため、ここは受け取るだけ。
   snapshotPathTemplate: "vrt/screenshots/{arg}{ext}",
   fullyParallel: true,
-  // 並列度は実行環境ではなく設定で決める。既定は論理コア数の半分で、4 vCPU の runner では
-  // 2 になる。撮影はコンテナの中で完結し、story どうしは状態を共有しない。
+  // 並列度は実行環境ではなく設定で決める。既定は論理コア数の半分で、走る場所によって変わる。
   workers: 4,
   // 1 件あたりの上限。撮影が収まるのを待つ猶予（下の expect）を内側に収める必要があり、
   // 既定の 30 秒だと待ち切る前に上限へ当たる。負荷が高いときに「揺らぎで落ちた」のか
@@ -50,9 +49,8 @@ export default defineConfig({
     // 待つ時間を伸ばすのは差分を許すのとは別で、揺らぎが収まったことは同じ厳密さで見る。
     timeout: 20_000,
     toHaveScreenshot: {
-      // 同一イメージ・同一アーキテクチャで撮る前提なので、枚数に許容を置かない。
-      // 画素あたりの色差は Playwright 既定の 0.2 が効いており、これを下回る変化は 0 枚として
-      // 数えられる。0 まで落とすと、同じ入力でも 2〜3 画素が実行ごとに揺れる story が出る。
+      // 枚数に許容を置かない。画素あたりの色差は Playwright 既定の 0.2 が効いており、これを
+      // 下回る変化は 0 枚として数えられる([vrt/README.md](vrt/README.md))。
       maxDiffPixels: 0,
       animations: "disabled",
       caret: "hide",

@@ -23,8 +23,7 @@ export VRT_ONLY
 
 VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T -e VRT_ONLY vrt_runner
 
-# 基準画像を撮った時点の入力のハッシュ。置き場が画像と同じコミットで持つ。現在の入力と一致
-# すれば、撮っても前と同じ絵にしかならないので比較を省く。記録が無ければ省かない。
+# 基準画像を撮った時点の入力のハッシュ。置き場が画像と同じコミットで持つ (vrt/README.md)。
 VRT_INPUTS_FILE := vrt/screenshots/render-inputs.sha256
 
 # 比較を省いた実行でも走らせる検査。基準画像と撮影対象の 1 対 1 の対応だけを選ぶ。

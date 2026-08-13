@@ -104,8 +104,8 @@ function push(branch: string | undefined): void {
  * この一式を撮った時点の入力のハッシュを、一式と同じコミットへ入れる。
  *
  * @remarks
- * 次回以降の `make vrt` はこの値と現在の入力を突き合わせ、一致していれば比較を省きます。
- * 画像と同じコミットに載せるのは、両者がずれた状態を作らないためです。
+ * 画像より先に書きます。別のコミットへ分けると、画像とハッシュがずれた状態を置き場が持てて
+ * しまいます。値の使われ方は [vrt/README.md](../../vrt/README.md) にあります。
  */
 function recordRenderInputs(): void {
   const root = process.cwd();
