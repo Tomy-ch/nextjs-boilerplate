@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
+import { installFixedClock } from "./lib/clock";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
 import { expectedBaselines, listBaselines, orphanBaselines } from "./lib/orphan-baselines";
 import { createStaticServer } from "./lib/static-server";
@@ -59,6 +60,8 @@ for (const story of stories) {
     const crashes: Error[] = [];
     page.on("pageerror", (error) => crashes.push(error));
 
+    // 時計は開く前に固定する。開いてから差し替えても、初回の描画は実時刻で終わっている。
+    await installFixedClock(page);
     await page.goto(storyURL(story.id, testInfo.project.name));
     await settle(page, testInfo.project.name);
 

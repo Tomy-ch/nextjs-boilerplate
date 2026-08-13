@@ -113,6 +113,7 @@ compare のリンクを置くのは、画像そのものをコメントへ貼ら
 | フォントの遅延読み込み | `document.fonts.ready` を待ってから撮る |
 | テキストカーソル | 非表示（`caret: "hide"`） |
 | 日付・時刻の表示 | `timezoneId` と `locale` を固定 |
+| 部品が自分で読む「今日」 | 開く前に時計を固定（[`lib/clock.ts`](lib/clock.ts)） |
 
 許容する差分は置いていない（`maxDiffPixels: 0`）。同じイメージで撮る前提が成り立っている以上、
 閾値を持たせるとその幅に収まる退行が黙って通る。
@@ -189,6 +190,7 @@ push を自分で塞ぐことになる。
 | [`lib/story-index.ts`](lib/story-index.ts) | 目録から撮影対象を取り出す・story の URL を組み立てる |
 | [`lib/excluded-stories.ts`](lib/excluded-stories.ts) | 比較の対象から外す story の宣言（理由と撤去条件付き） |
 | [`lib/themes.ts`](lib/themes.ts) | 撮る配色テーマの一覧（Playwright の project 名） |
+| [`lib/clock.ts`](lib/clock.ts) | 撮影時に「今日」として読ませる時刻 |
 | [`lib/orphan-baselines.ts`](lib/orphan-baselines.ts) | 撮影対象と置き場の基準画像の対応を突き合わせる |
 | [`lib/static-server.ts`](lib/static-server.ts) | build 済み Storybook を配る依存なしの静的サーバ |
 | `screenshots/` | 基準画像の置き場（サブモジュール） |
