@@ -71,6 +71,11 @@ type ProductDetailProps = {
  * 祖先を持つためです（[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。示すのは辿った
  * 経路ではなくサイト構造上の階層です。
  *
+ * 現在地の商品名は幅で詰めます。契約の上限は 255 文字で、そのまま置くと現在地だけで数行を占め、
+ * 階層を一目で読み取るという役割が失われます。文字数で切らないのは、書記素の切れ目を跨いで
+ * 壊す形にしないためと、同じ文字数でも和文と欧文で占める幅が違うためです。詰めても情報は
+ * 落ちません。全文は真下の見出しにあり、読み上げには全文が渡ります。
+ *
  * 紙に出すのは内容だけです。押せない操作（パンくず・画像の送り・一覧・カートへの追加・印刷そのもの）
  * は紙面の場所を取るだけなので落とします。画像は先頭の 1 枚だけを残し、幅も抑えます。carousel は
  * 横に送って見る形で、紙では送れないため全部並べると同じ商品の写真が紙を埋め、幅を抑えないと
@@ -83,7 +88,7 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
 
   return (
     <article className="flex flex-col gap-8 pb-24 lg:pb-0">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         <Breadcrumb className="print-hidden">
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -95,7 +100,8 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>{product.name}</BreadcrumbPage>
+              {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
+              <BreadcrumbPage className="max-w-40 truncate">{product.name}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
