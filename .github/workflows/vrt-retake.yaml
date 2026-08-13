@@ -184,9 +184,11 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.pr.outputs.head_ref }}
-          # The updated pointer is pushed back to this branch, so the credentials
-          # have to survive checkout. Every other workflow here keeps them off.
-          persist-credentials: true
+          # The pointer is pushed with the App token instead, so `GITHUB_TOKEN` is
+          # dropped here as in every other workflow. A push made with `GITHUB_TOKEN`
+          # does not start a workflow run, and this design depends on the push
+          # starting the VRT run that confirms the new baselines.
+          persist-credentials: false
 
       - name: Fetch the baseline images
         id: baselines
@@ -268,15 +270,31 @@ jobs:
 
           pnpm exec tsx scripts/vrt-images push "$BRANCH" >> "$GITHUB_OUTPUT"
 
+      # Pushed with the App token, not `GITHUB_TOKEN`. Two things follow from that.
+      # The push starts the VRT run that confirms the baselines, which `GITHUB_TOKEN`
+      # would not do. And the run is attributed to the App rather than to
+      # `github-actions[bot]`, which keeps the repository's fork-PR approval policy
+      # out of an internal bot's way — relaxing that policy to unblock this push
+      # would pay in a dimension that has nothing to do with the problem.
       - name: Move the submodule pointer
         id: push
         if: steps.gate.outputs.deferred == 'false'
         env:
           IDS: ${{ steps.retake.outputs.ids }}
+          TOKEN: ${{ steps.baselines.outputs.token }}
         run: |
+          set -euo pipefail
+
+          # The value never appears in argv, so it stays out of `ps` and out of any
+          # process listing a later step might produce.
+          header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git config --local http.extraheader "$header"
+
           git commit -m "Test: 報告された差分の基準画像を撮り直す" -m "撮り直し: ${{ github.event_name }} / 対象: ${IDS}"
           git push
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+          git config --local --unset-all http.extraheader
 
       # The body is built here but published by a job that holds no App secret, so a
       # token cannot reach a public comment through the file (ADR 0153).
