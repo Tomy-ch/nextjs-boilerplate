@@ -1,7 +1,7 @@
 import type { CursorPage } from "../pagination";
 
 /** 商品に紐づく分類。ID と表示名だけを持つ。 */
-type ProductRef = {
+export type ProductRef = {
   id: string;
   name: string;
 };
