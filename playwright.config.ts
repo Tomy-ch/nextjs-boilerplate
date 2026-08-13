@@ -50,11 +50,10 @@ export default defineConfig({
     // 待つ時間を伸ばすのは差分を許すのとは別で、揺らぎが収まったことは同じ厳密さで見る。
     timeout: 20_000,
     toHaveScreenshot: {
-      // 同一イメージ・同一アーキテクチャで撮る前提なので、許容する差分は置かない。
-      // 枚数(maxDiffPixels)と画素あたりの色差(threshold)の両方を 0 にする。既定の
-      // threshold は 0.2 で、色差の小さい退行は 0 枚として数えられる。
+      // 同一イメージ・同一アーキテクチャで撮る前提なので、枚数に許容を置かない。
+      // 画素あたりの色差は Playwright 既定の 0.2 が効いており、これを下回る変化は 0 枚として
+      // 数えられる。0 まで落とすと、同じ入力でも 2〜3 画素が実行ごとに揺れる story が出る。
       maxDiffPixels: 0,
-      threshold: 0,
       animations: "disabled",
       caret: "hide",
       scale: "css",
