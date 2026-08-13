@@ -1,7 +1,7 @@
 import type { ResilienceProfile } from "./resilience-profile";
 
 /** 遮断器の状態。 */
-export type BreakerState = "closed" | "open" | "half-open";
+type BreakerState = "closed" | "open" | "half-open";
 
 /** 接続先 1 つ分の遮断器。 */
 export type CircuitBreaker = {

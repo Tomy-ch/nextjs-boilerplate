@@ -102,12 +102,14 @@ function columnClass(column: Column) {
 function PlanTable({
   columns,
   density = TABLE_DENSITY.COMFORTABLE,
+  label = "契約プランの一覧",
 }: {
   columns: readonly Column[];
   density?: TableDensity;
+  label?: string;
 }) {
   return (
-    <Table className={TABLE_DENSITY_CLASS[density]}>
+    <Table className={TABLE_DENSITY_CLASS[density]} label={label}>
       <TableHeader>
         <TableRow className={TABLE_STICKY_ROW_CLASS}>
           {columns.map((column) => (
@@ -214,11 +216,19 @@ export const DensityComparison: Story = {
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-2">
         <h3 className="font-medium text-sm">ゆったり（既定）</h3>
-        <PlanTable columns={COLUMNS} density={TABLE_DENSITY.COMFORTABLE} />
+        <PlanTable
+          columns={COLUMNS}
+          density={TABLE_DENSITY.COMFORTABLE}
+          label="契約プラン（ゆったり）"
+        />
       </section>
       <section className="flex flex-col gap-2">
         <h3 className="font-medium text-sm">詰めて表示</h3>
-        <PlanTable columns={COLUMNS} density={TABLE_DENSITY.COMPACT} />
+        <PlanTable
+          columns={COLUMNS}
+          density={TABLE_DENSITY.COMPACT}
+          label="契約プラン（詰めて表示）"
+        />
       </section>
     </div>
   ),

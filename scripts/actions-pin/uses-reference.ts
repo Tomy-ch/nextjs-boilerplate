@@ -26,6 +26,9 @@ export const USES_PATTERN =
 // 記法を問わず `uses:` とその値を拾う。USES_PATTERN の取りこぼし検出にのみ使う。
 const LOOSE_USES_PATTERN = /\buses[ \t]*:[ \t]*['"]?([^\s'",}#]+)/;
 
+// YAML の anchor（`&name`）と alias（`*name`）。値の先頭に付く。
+const ANCHOR_OR_ALIAS_PATTERN = /^[&*]/;
+
 const WORKFLOW_DIR = ".github/workflows";
 const YAML_EXTENSIONS = [".yml", ".yaml"];
 const REPO_SEGMENTS = 2;
@@ -88,7 +91,8 @@ export function collectRefs(files: string[]): Map<string, ActionRef> {
 // USES_PATTERN で解釈できなかった `uses:` の行番号を返す。
 //
 // USES_PATTERN が見るのは 1 行 1 ステップのブロック記法だけで、YAML として正当な
-// flow mapping（`- {name: X, uses: owner/repo@v1}`）には一致しない。一致しないものは
+// flow mapping（`- {name: X, uses: owner/repo@v1}`）や anchor / alias
+// （`uses: &co owner/repo@v1` / `uses: *co`）には一致しない。一致しないものは
 // 未登録としても未固定としても数えられず、検査が「異常なし」を返してしまう。固定の網から
 // 外れた参照を黙って通さないよう、対応記法の外を検出して呼び出し元に落とさせる。
 export function unparsedUsesLines(data: string): number[] {
@@ -98,10 +102,17 @@ export function unparsedUsesLines(data: string): number[] {
   for (const [index, line] of rest.split("\n").entries()) {
     // 行全体がコメントなら対象外。散文の中の `uses:` に反応させない。
     if (line.trimStart().startsWith("#")) continue;
-    const match = LOOSE_USES_PATTERN.exec(line);
+    const value = LOOSE_USES_PATTERN.exec(line)?.[1];
+    if (value === undefined) continue;
+    // anchor / alias は参照の実体が行の外にあり、値が `owner/repo@<ref>` の形を取らない。
+    // 版の有無で判定すると素通りするため、記法そのものを見て落とす。
+    if (ANCHOR_OR_ALIAS_PATTERN.test(value)) {
+      lines.push(index + 1);
+      continue;
+    }
     // 固定対象は `owner/repo@<ref>` の形の外部参照だけ。ローカル参照（`./...`）と
     // 版を持たない参照は parseUses でも対象外なので、取りこぼしには当たらない。
-    if (match && !match[1].startsWith(".") && match[1].includes("@")) lines.push(index + 1);
+    if (!value.startsWith(".") && value.includes("@")) lines.push(index + 1);
   }
   return lines;
 }

@@ -40,7 +40,7 @@ export const PRODUCT_SORT = {
 } as const satisfies Readonly<Record<string, WireProductQuery["sort"]>>;
 
 /** 一覧の並び順として指定できる値。 */
-export type ProductSort = (typeof PRODUCT_SORT)[keyof typeof PRODUCT_SORT];
+type ProductSort = (typeof PRODUCT_SORT)[keyof typeof PRODUCT_SORT];
 
 /** 商品一覧の取得条件。契約のクエリと 1 対 1 に対応する。 */
 export type ProductQuery = {

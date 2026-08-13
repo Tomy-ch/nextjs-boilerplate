@@ -7,7 +7,7 @@
  */
 
 /** ローカルゲートの帯。 */
-export type LoadBand = "full" | "low" | "ci-first";
+type LoadBand = "full" | "low" | "ci-first";
 
 /** 帯の解決結果。 */
 export type BandResolution = {

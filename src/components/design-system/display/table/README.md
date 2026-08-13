@@ -9,7 +9,7 @@
 
 | Component | 役割 |
 | --- | --- |
-| `Table` | 横幅が不足した場合に横スクロールする wrapper を伴う native `table` です。 |
+| `Table` | 横幅が不足した場合に横スクロールする [`ScrollArea`](../../container/scroll-area/README.md) を伴う native `table` です。 |
 | `TableHeader` | 列見出しを置く `thead` 領域です。 |
 | `TableBody` | 表の主なデータ行を置く `tbody` 領域です。 |
 | `TableFooter` | 集計などの補足行を置く `tfoot` 領域です。 |
@@ -22,6 +22,9 @@
 
 一覧、履歴、明細、集計など、複数の属性を同じ列で比較する画面に使います。caption と column header を
 置き、`TableHead` には `scope="col"` を指定します。
+
+横スクロールする領域は keyboard だけで送れるよう focus を受け取ります。`label` に `TableCaption` と
+同じ語を渡し、focus したときに何の領域へ入ったのかが判るようにします。
 
 ## 責務境界
 

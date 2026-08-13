@@ -181,6 +181,17 @@ Display the resolved title, base branch, push command, and full body. If Step 2 
 
 If the user chooses "修正したい", collect free-text feedback, regenerate the relevant section, and re-confirm.
 
+#### Offer the `vrt-retake` label when the diff changes rendering
+
+Judge from the diff whether the change can alter how a story renders — a `.tsx` under `src/components/**` or a feature's `ui/`, a design token, a Tailwind class, a new or renamed story. When it can, ask in the same confirmation round:
+
+- Question: 「見た目が変わる変更ですか？（`vrt-retake` ラベルを付けて PR を作成します）」
+- Options: 「付ける」 / 「付けない」
+
+Attach it with `gh pr create --label vrt-retake`. The label is a condition on the VRT Retake workflow, not its trigger: the workflow fires when VRT completes, so attaching the label up front means the baselines are retaken without anyone waiting for the run and labelling afterwards. It also survives a deferral — while another check is failing, the retake is skipped and the label stays on, so fixing that check resumes it on the next run.
+
+Do NOT present this as approving the visual change. The retake only turns the diff into a reviewable image diff; the user still has to look at the store's compare view before approving the PR. Say that when reporting at Step 9.
+
 ### Update path
 
 Display the unpushed commit list and diff summary. Then ask with the wording required by `CLAUDE.md`:
@@ -223,7 +234,7 @@ gh pr create \
   --body "$(cat <<'EOF'
 <body>
 EOF
-)" [--draft]
+)" [--draft] [--label vrt-retake]
 ```
 
 ### Update the PR
@@ -296,6 +307,8 @@ Judge the dominant nature of the diff (changed file paths / commit prefixes) to 
 - ✅ Japanese title and body
 - ✅ HEREDOC for the body when calling `gh pr create` / `gh pr edit`
 - ✅ Detect issue number from branch name and surface it in title / body
+- ✅ Offer the `vrt-retake` label at creation when the diff can change how a story renders
+- ❌ Present the `vrt-retake` label as approving the visual change (it only makes the diff reviewable)
 
 ## Checklist
 
@@ -310,6 +323,7 @@ Before reporting completion, confirm:
 - [ ] Title ≤ 70 characters
 - [ ] Step 3 で push 前の `/impl-review` 実行可否を確認した（レビューを選んだ場合は submit-pr をキャンセルして案内した）
 - [ ] User confirmation was obtained before the push (mandatory for update path per `CLAUDE.md`)
+- [ ] 見た目が変わりうる差分なら `vrt-retake` ラベルの要否を確認した（承認ではないことを添えて）
 - [ ] PR URL was reported to the user
 - [ ] (必須) PR 作成/更新後にレビュー実行可否を確認した（深さは変更種別でスケール）
 - [ ] No `--force` was used

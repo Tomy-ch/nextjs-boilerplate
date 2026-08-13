@@ -59,6 +59,9 @@ export type SegmentedInputSlotProps = ComponentProps<"div"> & {
  * - `inputMode` — 呼び出す keyboard
  * - `mask` — 入力した文字を伏せるか
  *
+ * **アクセシブルな名前は必ず与える。** 実体は 1 本の `input` で、桁の枠は名前を持たない。`Field` の
+ * `FieldLabel` を `htmlFor` で結ぶか、`aria-label` を渡す。
+ *
  * **`mask` は見た目だけを伏せる。** 実体は `text` の `input` のままなので、支援技術は値をそのまま
  * 読み上げ、password manager も文字列として扱う。肩越しに覗かれることは防げるが、秘密を扱う入力
  * そのものとしては扱わない。

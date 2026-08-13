@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { ScrollArea } from "../../container/scroll-area/scroll-area";
+
 const meta = {
   title: "Foundation/ScrollFade",
   parameters: {
@@ -39,9 +41,13 @@ function Cards() {
  */
 export const WithoutScrollbar: Story = {
   render: () => (
-    <div className="flex w-80 scroll-fade-x gap-3 overflow-x-auto scrollbar-none py-1">
+    <ScrollArea
+      aria-label="ぼかしのある横並び"
+      className="flex w-80 scroll-fade-x gap-3 scrollbar-none py-1"
+      orientation="horizontal"
+    >
       <Cards />
-    </div>
+    </ScrollArea>
   ),
 };
 
@@ -50,9 +56,13 @@ export const WithoutScrollbar: Story = {
  */
 export const WithScrollbar: Story = {
   render: () => (
-    <div className="flex w-80 gap-3 overflow-x-auto py-1">
+    <ScrollArea
+      aria-label="scrollbar のある横並び"
+      className="flex w-80 gap-3 py-1"
+      orientation="horizontal"
+    >
       <Cards />
-    </div>
+    </ScrollArea>
   ),
 };
 
@@ -62,9 +72,12 @@ export const WithScrollbar: Story = {
  */
 export const VerticalWithoutScrollbar: Story = {
   render: () => (
-    <div className="flex h-64 w-64 flex-col scroll-fade-y gap-3 overflow-y-auto scrollbar-none px-1">
+    <ScrollArea
+      aria-label="ぼかしのある縦並び"
+      className="flex h-64 w-64 flex-col scroll-fade-y gap-3 scrollbar-none px-1"
+    >
       <Cards />
-    </div>
+    </ScrollArea>
   ),
 };
 
@@ -74,9 +87,9 @@ export const VerticalWithoutScrollbar: Story = {
  */
 export const VerticalWithScrollbar: Story = {
   render: () => (
-    <div className="flex h-64 w-64 flex-col gap-3 overflow-y-auto px-1">
+    <ScrollArea aria-label="scrollbar のある縦並び" className="flex h-64 w-64 flex-col gap-3 px-1">
       <Cards />
-    </div>
+    </ScrollArea>
   ),
 };
 
@@ -86,10 +99,14 @@ export const VerticalWithScrollbar: Story = {
  */
 export const NoOverflow: Story = {
   render: () => (
-    <div className="flex w-80 scroll-fade-x gap-3 overflow-x-auto scrollbar-none py-1">
+    <ScrollArea
+      aria-label="収まりきる横並び"
+      className="flex w-80 scroll-fade-x gap-3 scrollbar-none py-1"
+      orientation="horizontal"
+    >
       <div className="flex size-24 flex-none items-center justify-center rounded-md border border-border bg-muted text-sm">
         項目 1
       </div>
-    </div>
+    </ScrollArea>
   ),
 };

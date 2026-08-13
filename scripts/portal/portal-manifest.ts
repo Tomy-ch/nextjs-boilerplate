@@ -4,7 +4,7 @@ import { z } from "zod";
 export const META_KEY = "meta";
 
 /** canonical なドキュメントと、portal 配下へ複製する先の対。 */
-export const copyEntrySchema = z.object({
+const copyEntrySchema = z.object({
   src: z.string(),
   dst: z.string(),
 });
@@ -20,8 +20,7 @@ export const portalManifestSchema = z.record(
   z.union([z.array(copyEntrySchema), z.record(z.string(), z.unknown())]),
 );
 
-export type CopyEntry = z.infer<typeof copyEntrySchema>;
-export type PortalManifest = z.infer<typeof portalManifestSchema>;
+type CopyEntry = z.infer<typeof copyEntrySchema>;
 
 /** section 名を添えたコピー対。どの section の記述が原因かを失敗時に示せるようにする。 */
 export type ResolvedCopyEntry = CopyEntry & { section: string };

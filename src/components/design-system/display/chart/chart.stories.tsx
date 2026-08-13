@@ -29,7 +29,7 @@ const config = {
 
 function DataTable() {
   return (
-    <Table>
+    <Table label="受付と完了の推移">
       <TableHeader>
         <TableRow>
           <TableHead>期間</TableHead>

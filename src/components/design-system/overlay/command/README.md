@@ -12,7 +12,7 @@
 | `CommandDialog` | `Command` を `Dialog` の中に置き、modal として開きます。開閉は呼び出し元が制御します。 |
 | `CommandInput` | 候補を絞り込む検索入力です。`role="combobox"` を持ちます。 |
 | `CommandList` | 絞り込まれた候補を並べる `role="listbox"` の領域です。高さの上限を超えるとここだけがスクロールします。 |
-| `CommandEmpty` | 一致する候補が無いときだけ表示される領域です。表示の切り替えは自動で行われます。 |
+| `CommandEmpty` | 一致する候補が無いときだけ表示される領域です。表示の切り替えは自動で行われます。`CommandList` の外、その兄弟として置きます。 |
 | `CommandGroup` | 候補を意味のあるまとまりへ分けます。`heading` が group のラベルになります。 |
 | `CommandItem` | 選択できる候補の一件です。`role="option"` を持ち、決定時は `onSelect` を呼びます。 |
 | `CommandSeparator` | group と group の間に引く区切り線です。支援技術からは隠れます。 |
