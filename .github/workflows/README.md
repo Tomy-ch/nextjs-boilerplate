@@ -33,7 +33,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、追跡下の `*.sh` を `make shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で、mise のピンの整合を `make actions-mise-pin-lint` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 | Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
-| VisualRegressionTest | `vrt.yaml` | `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、基準画像と撮影対象が 1 対 1 で対応することも併せて検査する。絵を動かしえない PR では重いステップを丸ごと落とし（下記「`paths:` フィルタを使わない」）、それを抜けた実行でも `make vrt` が入力のハッシュで比較の要否を判定する（[`vrt/README.md`](../../vrt/README.md)）。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない） |
+| VisualRegressionTest | `vrt.yaml` | `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、基準画像と撮影対象が 1 対 1 で対応することも併せて検査する。`make vrt` は絵を決める入力のハッシュを基準画像を撮った時点の値と突き合わせ、一致していれば比較を省く（[`vrt/README.md`](../../vrt/README.md)）。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない） |
 
 ## ワークフロー一覧（Components）
 
@@ -144,11 +144,7 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 本リポの CI Checks はどれも数分で終わり、実行コストよりも「本体と guard の 2 ファイルを常に裏返しの関係に保つ」保守コストのほうが高い。よってフィルタを付けず、全 PR で全 job を走らせる。
 
-将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか、job は起動させたまま中の重いステップを `if:` で落とすか**のどれかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
-
-3 つ目が `vrt` の採る形である。job 名を変えずに必ず起動するので context は常に報告され、guard も required からの除外も要らない。無関係な PR が払うのは checkout と判定ステップだけになる。
-
-**述語は「絵を動かさない」と言い切れるパスの allowlist にすること。** denylist は漏れた瞬間に fail-open する — 新しいパスが漏れた日から比較が黙って止まり、job は何も比べないまま「差分なし」を報告する。安全に書けるのは `docs/**` / `**/*.md` / `.claude/**` / `.agents/**` と `**/*.test.ts` / `**/*.test.tsx`（いずれも Storybook のバンドルに入らない）程度で、**「`.tsx` が変わったか」で発火させることはできない**。Tailwind の class 文字列は `*.definition.ts`、CSS 基盤は `foundation/*.css`、token の SSOT は `tokens/**`、フォントのラスタライズは `docker/images-pin.toml` の digest にあり、`.tsx` を触らずに絵が変わる経路が設計として複数ある（依存更新も同じ）。判定できなかったとき（API が答えない・一覧が切り詰められた）は必ず「実行する」側へ倒すこと。
+将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
 
 `component-classes` / `shadcn-drift` は `paths:` を持つため、**後者（required check から外す）を選んでいる**。この 2 本を required へ登録するなら、同時に裏返しの guard を対で用意すること。
 

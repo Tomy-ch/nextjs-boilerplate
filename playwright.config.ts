@@ -27,8 +27,8 @@ export default defineConfig({
   // 系統 / テーマ / story の順に畳む。名前は spec が組み立てるため、ここは受け取るだけ。
   snapshotPathTemplate: "vrt/screenshots/{arg}{ext}",
   fullyParallel: true,
-  // 並列度は実行環境ではなく設定で決める。既定は手元と CI で異なり、同じ `make vrt` の
-  // 所要時間が場所によって変わる。
+  // 並列度は実行環境ではなく設定で決める。既定は論理コア数の半分で、4 vCPU の runner では
+  // 2 になる。撮影はコンテナの中で完結し、story どうしは状態を共有しない。
   workers: 4,
   // 1 件あたりの上限。撮影が収まるのを待つ猶予（下の expect）を内側に収める必要があり、
   // 既定の 30 秒だと待ち切る前に上限へ当たる。負荷が高いときに「揺らぎで落ちた」のか
