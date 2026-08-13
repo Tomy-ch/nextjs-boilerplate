@@ -51,7 +51,6 @@ describe("ProductDetail", () => {
     vi.unstubAllGlobals();
   });
 
-  // ----- 正常系 -----
   it("商品名を見出しに出す", () => {
     render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
 

@@ -24,7 +24,6 @@ const ENTRIES: readonly ProductRankingEntry[] = [
 ];
 
 describe("RankingList", () => {
-  // ----- 正常系 -----
   it("順序に意味のある一覧として並べる", () => {
     render(<RankingList entries={ENTRIES} />);
 
@@ -71,7 +70,6 @@ describe("RankingList", () => {
     expect(separatorsIn(items[1])).toBe(1);
   });
 
-  // ----- 異常系 -----
   it("件数が無ければ節ごと描かない", () => {
     render(<RankingList entries={[]} />);
 

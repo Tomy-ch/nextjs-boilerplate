@@ -46,7 +46,6 @@ describe("ProductFilterSidebar", () => {
     push.mockClear();
   });
 
-  // ----- 正常系 -----
   it("選んだ時点で一覧の URL へ移る", async () => {
     render(<ProductFilterSidebar groups={GROUPS} selection={{}} />);
 
@@ -88,7 +87,6 @@ describe("ProductFilterSidebar", () => {
     expect(push).toHaveBeenCalledWith("/products?categoryId=c2");
   });
 
-  // ----- 異常系 -----
   it("「すべて」を選ぶとその条件を URL から外す", async () => {
     render(<ProductFilterSidebar groups={GROUPS} selection={{ [FILTER_KEY.CATEGORY]: "c1" }} />);
 

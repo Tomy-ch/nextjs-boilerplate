@@ -80,7 +80,6 @@ function showSlide(dialog: HTMLElement, position: number): void {
 }
 
 describe("ImageViewer", () => {
-  // ----- 正常系 -----
   it("縮小版を押せる操作として出す", () => {
     render(
       <ImageViewer images={IMAGES} index={0}>
@@ -233,7 +232,6 @@ describe("ImageViewer", () => {
     expect((await axe(container)).violations).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("枚数の外を指されたら何も描かない", () => {
     const { container } = render(
       <ImageViewer images={IMAGES} index={9}>

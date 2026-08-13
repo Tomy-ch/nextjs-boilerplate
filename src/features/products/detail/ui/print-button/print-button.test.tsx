@@ -12,7 +12,6 @@ afterEach(() => {
 });
 
 describe("PrintButton", () => {
-  // ----- 正常系 -----
   it("押すと印刷を始める", async () => {
     const print = vi.fn();
 

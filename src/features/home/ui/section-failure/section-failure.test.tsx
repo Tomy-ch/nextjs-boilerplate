@@ -7,7 +7,6 @@ import { axe } from "vitest-axe";
 import { SectionFailure } from "./section-failure";
 
 describe("SectionFailure", () => {
-  // ----- 正常系 -----
   it("落ちた節の名前を見出しに含める", () => {
     render(<SectionFailure label="売上ランキング" message="失敗しました。" />);
 

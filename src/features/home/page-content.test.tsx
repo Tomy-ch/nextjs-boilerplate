@@ -51,7 +51,6 @@ beforeEach(() => {
 });
 
 describe("HomePageContent", () => {
-  // ----- 正常系 -----
   it("3 系統を並べて描く", async () => {
     render(await HomePageContent());
 
@@ -100,7 +99,6 @@ describe("HomePageContent", () => {
     expect(screen.getByText("ワイヤレスイヤホン")).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("1 系統が落ちても残りを描く", async () => {
     getProductRanking.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 

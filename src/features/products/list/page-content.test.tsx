@@ -69,7 +69,6 @@ describe("ProductListPageContent", () => {
     vi.unstubAllGlobals();
   });
 
-  // ----- 正常系 -----
   it("取得した商品を一覧へ渡す", async () => {
     render(await ProductListPageContent({ searchParams: {} }));
 
@@ -130,7 +129,6 @@ describe("ProductListPageContent", () => {
     expect(screen.getByText("条件に合う商品がありません")).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("契約を外れた条件では一覧の代わりに案内を出す", async () => {
     render(await ProductListPageContent({ searchParams: { sort: "-price" } }));
 

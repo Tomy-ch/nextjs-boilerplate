@@ -42,7 +42,6 @@ function renderView(selection: Readonly<Record<string, string>> = {}) {
 }
 
 describe("ProductListView", () => {
-  // ----- 正常系 -----
   it("キーワードの検索欄を出す", () => {
     renderView();
 
@@ -142,7 +141,6 @@ describe("ProductListView", () => {
     expect((await axe(container)).violations).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("条件が無ければ「すべて」を選択済みにする", () => {
     renderView();
 

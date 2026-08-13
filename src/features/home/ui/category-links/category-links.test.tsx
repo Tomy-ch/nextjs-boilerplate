@@ -14,7 +14,6 @@ const CATEGORIES: readonly ProductRef[] = [
 ];
 
 describe("CategoryLinks", () => {
-  // ----- 正常系 -----
   it("分類ごとに一覧への導線を出す", () => {
     render(<CategoryLinks categories={CATEGORIES} />);
 
@@ -34,7 +33,6 @@ describe("CategoryLinks", () => {
     expect(screen.getByRole("heading", { name: "カテゴリから探す" })).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("分類が無ければ節ごと描かない", () => {
     render(<CategoryLinks categories={[]} />);
 

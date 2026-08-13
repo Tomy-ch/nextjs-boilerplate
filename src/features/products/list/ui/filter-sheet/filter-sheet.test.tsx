@@ -55,7 +55,6 @@ describe("ProductFilterSheet", () => {
     push.mockClear();
   });
 
-  // ----- 正常系 -----
   it("開くまで条件の入力欄を出さない", () => {
     render(<ProductFilterSheet groups={GROUPS} selection={{}} />);
 
@@ -120,7 +119,6 @@ describe("ProductFilterSheet", () => {
     expect(trigger()).toHaveAccessibleName(expect.stringContaining("2 件の条件が有効"));
   });
 
-  // ----- 異常系 -----
   it("効いている条件が無いときは数を付けない", () => {
     render(<ProductFilterSheet groups={GROUPS} selection={{ after: "cursor-1" }} />);
 

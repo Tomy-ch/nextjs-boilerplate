@@ -31,7 +31,6 @@ const OVER_LEADING: readonly ProductListItem[] = Array.from({ length: 5 }, (_, i
 );
 
 describe("NewArrivals", () => {
-  // ----- 正常系 -----
   it("渡された商品を並べる", () => {
     render(<NewArrivals items={ITEMS} />);
 
@@ -61,7 +60,6 @@ describe("NewArrivals", () => {
     expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(1);
   });
 
-  // ----- 異常系 -----
   it("商品が無ければ節ごと描かない", () => {
     render(<NewArrivals items={[]} />);
 

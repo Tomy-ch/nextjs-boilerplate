@@ -109,13 +109,22 @@ Mechanical adherence to ADR 0090. As of this writing that means:
   `異常系` group at the top level is a violation, and so is bundling several subjects under one
   `describe` or splitting one subject across two.
 - **Viewpoint grouping is comment separators, not nested `describe`s.** `it` calls sit directly under
-  the subject's `describe`, divided by `// ----- 正常系 -----` / `// ----- 異常系 -----`. Flag a file
-  with no separator at all once it has both success and failure cases — the axis has to be visible to a
-  reader scanning the file, and that is the whole reason the convention exists.
-- **Which side a case belongs on follows whether the subject itself fails**, not whether the input is
-  failure-flavored. A hook that swallows a fetch error and returns an error state never throws, so its
-  cases stay under `正常系`. `境界ケース` is a *viewpoint*, not a third section: boundary cases split
-  across the two by the outcome each side produces.
+  the subject's `describe`.
+- **The axis depends on what the subject returns** (ADR 0090).
+  - **A subject that returns a value** (pure function / adapter / store / Route Handler / Server
+    Action) is divided by `// ----- 正常系 -----` / `// ----- 異常系 -----`. Flag a file with no
+    separator once it has cases on both sides.
+  - **A subject that returns markup** (component / rendering hook / `page-content`) is **not divided
+    that way at all.** Flag a `正常系` / `異常系` separator in such a file as a violation. When the
+    file is long enough to want grouping, the axis is `rules.md` #18's loading / empty / error /
+    success, named for the state.
+- **For a value-returning subject, which side a case belongs on follows the happy path, not how the
+  failure is expressed.** ADR 0090 is explicit: throw / reject / returning an error state / dropping
+  the value / rendering nothing all sit under `異常系` when the input is outside the contract. Do not
+  substitute "does the subject throw" for this — that reading scatters failure-path cases into
+  `正常系`. And **absence has two kinds**: a declared optional (an optional prop, a nullable argument,
+  an empty list) is *inside* the contract and stays `正常系`; something that ought to exist (a required
+  setting, an expected response) is outside it and goes to `異常系`.
 - **Case names are Japanese**, stating the behavior and the branch condition.
 - **Every case is named individually.** `it.each` / `it.for` with a name template
   (`it.each(pairs)("$name の応答が契約を満たす", …)`) satisfies this and is **not** a violation — Vitest

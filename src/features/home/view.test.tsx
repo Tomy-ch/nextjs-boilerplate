@@ -41,7 +41,6 @@ function renderView(overrides: Partial<HomeViewProps> = {}) {
 }
 
 describe("HomeView", () => {
-  // ----- 正常系 -----
   it("3 つの節を積む", () => {
     renderView();
 
@@ -64,7 +63,6 @@ describe("HomeView", () => {
     expect((await axe(container)).violations).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("落ちた節だけを失敗表示へ差し替える", () => {
     renderView({ ranking: { status: "failed", message: FAILURE } });
 

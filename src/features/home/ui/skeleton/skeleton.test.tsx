@@ -7,7 +7,6 @@ import { axe } from "vitest-axe";
 import { HomeSkeleton } from "./skeleton";
 
 describe("HomeSkeleton", () => {
-  // ----- 正常系 -----
   it("節の見出しは枠にせず、そのまま出す", () => {
     render(<HomeSkeleton />);
 

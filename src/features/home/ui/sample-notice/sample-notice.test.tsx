@@ -7,7 +7,6 @@ import { axe } from "vitest-axe";
 import { SampleNotice } from "./sample-notice";
 
 describe("SampleNotice", () => {
-  // ----- 正常系 -----
   it("サンプルであることを見出しで伝える", () => {
     render(<SampleNotice />);
 

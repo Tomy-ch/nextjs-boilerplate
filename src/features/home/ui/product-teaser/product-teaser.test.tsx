@@ -22,7 +22,6 @@ function itemOf(overrides: Partial<ProductListItem> = {}): ProductListItem {
 }
 
 describe("ProductTeaser", () => {
-  // ----- 正常系 -----
   it("商品名と価格を示す", () => {
     render(<ProductTeaser item={itemOf()} />);
 
@@ -65,7 +64,6 @@ describe("ProductTeaser", () => {
     expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
   });
 
-  // ----- 異常系 -----
   it("画像が無い商品には代替画像を置く", () => {
     render(<ProductTeaser item={itemOf({ imageUrl: null })} />);
 

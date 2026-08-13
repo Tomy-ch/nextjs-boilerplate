@@ -66,7 +66,6 @@ function namesIn(label: string): readonly string[] {
 }
 
 describe("ProductFilterFields", () => {
-  // ----- 正常系 -----
   it("群ごとに見出しを付けて選択肢を並べる", () => {
     render(<ProductFilterFields groups={GROUPS} onSelect={vi.fn()} selection={{}} />);
 
