@@ -165,12 +165,14 @@ describe("normalizeAppSlug", () => {
     expect(normalizeAppSlug("my-vrt-app")).toBe("my-vrt-app");
   });
 
-  it("URL を貼られても slug を取り出す", () => {
-    expect(normalizeAppSlug("https://github.com/apps/my-vrt-app")).toBe("my-vrt-app");
-  });
-
-  it("末尾のスラッシュを落とす", () => {
-    expect(normalizeAppSlug("https://github.com/apps/my-vrt-app/")).toBe("my-vrt-app");
+  it.each([
+    ["個人の General ページ", "https://github.com/settings/apps/my-vrt-app"],
+    ["組織の General ページ", "https://github.com/organizations/acme/settings/apps/my-vrt-app"],
+    ["公開ページ", "https://github.com/apps/my-vrt-app"],
+    ["末尾にスラッシュ", "https://github.com/settings/apps/my-vrt-app/"],
+    ["下位ページ", "https://github.com/settings/apps/my-vrt-app/permissions"],
+  ])("%s の URL から slug を取り出す", (_label, input) => {
+    expect(normalizeAppSlug(input)).toBe("my-vrt-app");
   });
 
   // ----- 異常系 -----
@@ -178,7 +180,8 @@ describe("normalizeAppSlug", () => {
     ["空文字", ""],
     ["空白を含む", "my app"],
     ["余分な区切り", "owner/my-app"],
-  ])("slug の形でない %s を拒む", (_label, input) => {
-    expect(() => normalizeAppSlug(input)).toThrow(/slug の形ではありません/);
+    ["apps を含まない URL", "https://github.com/Tomy-ch/nextjs-boilerplate"],
+  ])("URL でも slug でもない %s を拒む", (_label, input) => {
+    expect(() => normalizeAppSlug(input)).toThrow(/App の URL か slug を入力してください/);
   });
 });

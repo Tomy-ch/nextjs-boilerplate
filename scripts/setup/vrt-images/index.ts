@@ -155,14 +155,14 @@ function wireSubmodule(target: string): void {
 }
 
 async function setupApp(): Promise<void> {
-  const slug = normalizeAppSlug(await ask("App の slug を入力 (github.com/apps/<ここ>)"));
+  const slug = normalizeAppSlug(await ask("App の General ページの URL（または slug）を貼り付け"));
 
   let app: { id: number; name: string };
   try {
     app = JSON.parse(gh(["api", `/apps/${slug}`])) as { id: number; name: string };
   } catch {
     throw new Error(
-      `App が見つかりません: ${slug}（URL の github.com/apps/ の後ろだけを入力してください）。`,
+      `App が見つかりません: ${slug}。App の General ページの URL を貼り付けてください。`,
     );
   }
 

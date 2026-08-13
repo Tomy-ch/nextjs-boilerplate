@@ -116,10 +116,11 @@ git commit -m "Build: 基準画像の置き場を配線する"
 owner 名などを足す。名前は後から変えられる（slug も追随するが、変えたら `make setup-vrt-app` を
 叩き直すこと）。
 
-作成後、続けて 2 つ。
+作成後、続けて 3 つ。作成直後に着地するのが **General** ページなので、上から順に済ませられる。
 
-1. **General → Private keys → Generate a private key** → `.pem` がダウンロードされる
-2. **Install App** → **Only select repositories** で**本体と置き場の 2 つだけ**
+1. **General ページの URL を控える** — `https://github.com/settings/apps/<slug>`。次の 6-3 で貼り付ける
+2. **General → Private keys → Generate a private key** → `.pem` がダウンロードされる
+3. **Install App** → **Only select repositories** で**本体と置き場の 2 つだけ**
 
 ### 6-3. App を登録する
 
@@ -128,17 +129,17 @@ make setup-vrt-app
 ```
 
 ```text
-App の slug を入力 (github.com/apps/<ここ>):   ← slug でも URL 丸ごとでも可
+App の General ページの URL（または slug）を貼り付け:   ← 6-2 で控えた URL
 
   App 名 : ...
   App ID : ...
 
-この App を登録しますか (y/N) [N]:            ← y
+この App を登録しますか (y/N) [N]:                      ← y
 
-秘密鍵 (.pem の中身) を貼り付けて Ctrl+D:      ← .pem の全文を貼って Ctrl+D
+秘密鍵 (.pem の中身) を貼り付けて Ctrl+D:               ← .pem の全文を貼って Ctrl+D
 ```
 
-App ID は slug から解決するので控える必要はない。秘密鍵は `gh` の標準入力へ直接渡るので、
+App ID は URL から解決するので控える必要はない。秘密鍵は `gh` の標準入力へ直接渡るので、
 ディスクにもシェル履歴にも残らない。登録後は `.pem` を消してよい。
 
 ```bash

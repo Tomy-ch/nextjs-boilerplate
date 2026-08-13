@@ -121,14 +121,23 @@ export function isAffirmative(answer: string): boolean {
   return ["y", "yes"].includes(answer.trim().toLowerCase());
 }
 
-/** `github.com/apps/<slug>` の貼り付けからも slug を取り出す。 */
+/**
+ * App の URL か slug から slug を取り出す。
+ *
+ * @remarks
+ * 人が控えるのは作成直後に居る **General ページの URL**（`/settings/apps/<slug>`、組織なら
+ * `/organizations/<org>/settings/apps/<slug>`）で、公開ページの `/apps/<slug>` ではありません。
+ * どこに `apps/` が現れても受けるのはそのためです。末尾に `/permissions` などが付いていても構いません。
+ */
 export function normalizeAppSlug(input: string): string {
   const trimmed = input.trim().replace(/\/+$/, "");
-  const fromUrl = /github\.com\/apps\/([^/?#]+)/.exec(trimmed);
+  const fromUrl = /github\.com\/(?:.*\/)?apps\/([^/?#]+)/.exec(trimmed);
   const slug = fromUrl === null ? trimmed : fromUrl[1];
 
   if (!/^[A-Za-z0-9-]+$/.test(slug)) {
-    throw new Error(`App の slug の形ではありません: ${JSON.stringify(input)}`);
+    throw new Error(
+      `App の URL か slug を入力してください（受け取った値: ${JSON.stringify(input)}）`,
+    );
   }
   return slug;
 }
