@@ -1,7 +1,8 @@
 # vrt
 
 Storybook の全 story を基準画像と比べ、**意図しない見た目の変化**を検知する
-（[0091](../docs/adr/0091-test-verification-methods.md) §3）。
+（[0091](../docs/adr/0091-test-verification-methods.md) §3）。ここは使い方が正で、
+部品どうしがどう組み上がっているかは [docs/design/vrt.md](../docs/design/vrt.md) にある。
 
 DOM のアサートでは「class 名が変わっていない」ことしか言えず、見た目が変わっていない保証には
 ならない。退行の主因は画面ごとの個別変更ではなく、design token や layout shell を触って全画面が

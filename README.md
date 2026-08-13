@@ -20,7 +20,7 @@
 - **lefthook による git hook**（pre-commit / commit-msg / pre-push）— [ADR 0151](docs/adr/0151-git-hooks.md)
 - **ローカルのセキュリティスキャン**（gitleaks / Trivy）と抑止ポリシー — [ADR 0110](docs/adr/0110-security-operations.md)
 - **GitHub Actions 定義の lint**（actionlint + shellcheck）— [ADR 0153](docs/adr/0153-ci-configuration.md)
-- **story 単位の visual regression**（digest 固定した Playwright コンテナで撮る）— [ADR 0091](docs/adr/0091-test-verification-methods.md) / [`vrt/README.md`](vrt/README.md)
+- **story 単位の visual regression**（digest 固定した Playwright コンテナで撮る）— [ADR 0091](docs/adr/0091-test-verification-methods.md) / [`vrt/README.md`](vrt/README.md) / [機構](docs/design/vrt.md)
 - **ブランチ / コミット / リリース運用** — [ADR 0150](docs/adr/0150-git-workflow.md)
 - **リポジトリ運用の make ターゲット** — [`.makefiles/README.md`](.makefiles/README.md)
 
