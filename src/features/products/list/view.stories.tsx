@@ -129,16 +129,8 @@ const CATEGORY_OPTIONS: readonly FilterOption[] = [
   { value: "c3", label: "アクセサリ" },
 ];
 
-const STATUS_OPTIONS: readonly FilterOption[] = [
-  { value: "", label: "すべて" },
-  { value: "s1", label: "公開" },
-  { value: "s2", label: "在庫切れ" },
-  { value: "s3", label: "販売終了" },
-];
-
 const GROUPS: readonly FilterGroup[] = [
   { key: FILTER_KEY.CATEGORY, legend: "カテゴリ", options: CATEGORY_OPTIONS },
-  { key: FILTER_KEY.STATUS, legend: "状態", options: STATUS_OPTIONS },
 ];
 
 const SORT_OPTIONS: readonly FilterOption[] = [
@@ -193,7 +185,6 @@ export const Filtered: Story = {
   args: {
     selection: {
       [FILTER_KEY.CATEGORY]: "c1",
-      [FILTER_KEY.STATUS]: "s1",
       [FILTER_KEY.KEYWORD]: "イヤホン",
       [FILTER_KEY.SORT]: "publishedAt",
     },
@@ -252,9 +243,8 @@ export const MaxLength: Story = {
           { value: "c1", label: longText(40) },
         ],
       },
-      { key: FILTER_KEY.STATUS, legend: "状態", options: STATUS_OPTIONS },
     ],
-    selection: { [FILTER_KEY.KEYWORD]: longText(60) },
+    selection: { [FILTER_KEY.CATEGORY]: "c1", [FILTER_KEY.KEYWORD]: longText(60) },
     children: (
       <ProductLoadMoreList
         hasNext

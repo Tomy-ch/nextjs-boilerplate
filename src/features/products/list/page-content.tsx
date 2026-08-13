@@ -1,4 +1,4 @@
-import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
+import { getProductCategories } from "@/adapters/server/api/product-masters";
 import {
   getProductListPage,
   getProductTotalCount,
@@ -69,16 +69,14 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
     );
   }
 
-  const [page, total, categories, statuses] = await Promise.all([
+  const [page, total, categories] = await Promise.all([
     getProductListPage(parsed.query),
     getProductTotalCount(),
     getProductCategories(),
-    getProductStatuses(),
   ]);
 
   const groups: readonly FilterGroup[] = [
     { key: FILTER_KEY.CATEGORY, legend: "カテゴリ", options: toOptions(categories) },
-    { key: FILTER_KEY.STATUS, legend: "状態", options: toOptions(statuses) },
   ];
   // 既定の並びは URL に載せないため、明示された既定値は選択肢側の「指定なし」へ寄せる。
   const displayed =

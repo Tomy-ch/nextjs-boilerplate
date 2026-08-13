@@ -20,7 +20,7 @@ const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => envir
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 
-import { getProductCategories, getProductStatuses } from "./product-masters";
+import { getProductCategories } from "./product-masters";
 
 describe("getProductCategories", () => {
   // ----- 正常系 -----
@@ -34,20 +34,5 @@ describe("getProductCategories", () => {
     const [category] = await getProductCategories();
 
     expect(category).toEqual({ id: expect.any(String), name: expect.any(String) });
-  });
-});
-
-describe("getProductStatuses", () => {
-  // ----- 正常系 -----
-  it("契約から生成したハンドラの応答を検証して受け取る", async () => {
-    const statuses = await getProductStatuses();
-
-    expect(statuses.length).toBeGreaterThan(0);
-  });
-
-  it("生成ハンドラの応答から表示に使う項目だけを残す", async () => {
-    const [status] = await getProductStatuses();
-
-    expect(status).toEqual({ id: expect.any(String), name: expect.any(String) });
   });
 });
