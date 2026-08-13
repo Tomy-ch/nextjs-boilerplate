@@ -114,3 +114,16 @@ if (typeof Element !== "undefined" && Element.prototype.setPointerCapture === un
     return captured.get(this)?.has(pointerId) ?? false;
   };
 }
+
+// jsdom はスクロールの API を実装しない。carousel の送りは領域の横スクロールそのものなので、
+// 送る操作・拡大表示・追従する一覧はいずれもここを通る。個別のテストで呼び出しを避けると、
+// 位置を合わせる経路を 1 行も通らないテストになる。
+//
+// 記録も再現もしないのは、jsdom がレイアウトを持たず矩形がすべて 0 になり、スクロール量に
+// 意味を与えられないためである。**量そのものが主題のテストは矩形を明示して単体で検証する**
+// （`carousel-scroll.test.ts`）。ここが担うのは、経路を通せるようにすることだけである。
+if (typeof Element !== "undefined" && Element.prototype.scrollBy === undefined) {
+  Element.prototype.scrollBy = function scrollBy(): void {
+    // 何もしない。経路を通せるようにすることだけが目的である。
+  };
+}

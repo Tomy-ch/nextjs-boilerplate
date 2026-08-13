@@ -23,10 +23,12 @@ vi.mock("@/config/environment", () => ({ getEnvironment }));
 import {
   getProduct,
   getProductListPage,
+  getProductRanking,
   getProducts,
   getProductTotalCount,
   PRODUCTS_TAG,
   parseProductQuery,
+  RANKING_PERIOD,
   toProduct,
   toProductPage,
 } from "./products";
@@ -339,5 +341,64 @@ describe("getProduct", () => {
     await getProduct("a/../b");
 
     expect(fetchImpl.mock.calls[0]?.[0]).toContain("a%2F..%2Fb");
+  });
+});
+
+const wireRanking = {
+  rankings: [
+    {
+      productId: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b21",
+      name: "よく売れた商品",
+      price: "19.99",
+      soldQuantity: 128,
+    },
+  ],
+};
+
+describe("getProductRanking", () => {
+  // ----- 正常系 -----
+  it("契約の応答を表示用の型へ写す", async () => {
+    stubFetch(wireRanking);
+
+    await expect(getProductRanking({ limit: 5 })).resolves.toEqual([
+      {
+        productId: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b21",
+        name: "よく売れた商品",
+        price: "19.99",
+        soldQuantity: 128,
+      },
+    ]);
+  });
+
+  it("件数と期間をクエリへ載せる", async () => {
+    const fetchImpl = stubFetch(wireRanking);
+
+    await getProductRanking({ limit: 5, period: RANKING_PERIOD.LAST_30_DAYS });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/v1/products/ranking?period=30d&limit=5",
+    );
+  });
+
+  it("条件を省略したら契約の既定値に任せ、クエリを付けない", async () => {
+    const fetchImpl = stubFetch(wireRanking);
+
+    await getProductRanking();
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/products/ranking");
+  });
+
+  it("キャッシュを指定しない", async () => {
+    const fetchImpl = stubFetch(wireRanking);
+
+    await getProductRanking({ limit: 5 });
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ cache: undefined, next: undefined });
+  });
+
+  it("対象が無ければ空の一覧を返す", async () => {
+    stubFetch({ rankings: [] });
+
+    await expect(getProductRanking({ limit: 5 })).resolves.toEqual([]);
   });
 });
