@@ -35,8 +35,10 @@ export type Kernel = (typeof KERNELS)[number];
  * `stores` / `config` の禁止事項に UI を挙げています。ここに無い層で描画を組み立てると、外部接続や
  * 横断状態の内側に画面が生まれ、置き場を辿れなくなります。
  *
- * 強制が届くのは **JSX だけ**です。層に class 名や見た目の定数を置く経路は残るため、これは
- * 「UI 禁止」の全部ではなく、機械で読める部分です。
+ * 強制が届くのは **DOM マークアップだけ**です。Provider の合成は
+ * [0022](docs/adr/0022-capabilities-kernel.md) / [0026](docs/adr/0026-layout-shell-mount.md) が
+ * 明示的に許しており、React 19 では Provider も JSX なので、JSX の有無では分けられません。層に
+ * class 名や見た目の定数を置く経路も残るため、これは「UI 禁止」の全部ではなく、機械で読める部分です。
  */
 export const UI_KERNELS = ["app", "features", "components"] as const satisfies readonly Kernel[];
 
