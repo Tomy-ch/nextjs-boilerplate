@@ -49,6 +49,7 @@ Accepted
 | 1 | Project Overview | リポジトリの役割 / ロール / バックエンド分離前提 |
 | 1.5 | Temporary Operating Rules until v1.0.0 | **v1.0.0 未満の期間限定節**。Protected Documentation / AI Modification Scope の一時解除を宣言する。v1.0.0 到達時に削除する([0140](0140-documentation-operations.md) の同名節と対) |
 | 2 | Instruction Priority | 指示の優先度 (後述) |
+| 2.5 | What to Recommend | **boilerplate 限定節**。推奨 (行為ではなく助言) を何に向けて最適化するかを定める。fork 作成時に節ごと削除する |
 | 3 | Accepted Rules (ADRs) | 確定済み ADR の表で要約。詳細は `docs/adr/` に委譲 |
 | 4 | Pending Decisions | 未策定領域のイントロ + `## [TODO]` セクション群 (後述) |
 | 5 | AI Modification Scope | 編集可 / 編集禁止 / エージェント設定保護 / Skill 実行時 Exception |
@@ -62,7 +63,7 @@ Accepted
 
 節の追加・順序変更は ADR 改訂を要する。表 (Accepted Rules) への ADR 追加や `[TODO]` セクションの追加・削除は軽微編集とし、ADR 改訂は不要。
 
-期間限定節 (#1.5) は本表に明示されたものだけを認め、v1.0.0 到達時に節ごと削除して本行と表の該当行も消す。
+**小数番号 (#1.5 / #2.5) は「いずれ削除される節」の印**である。削除しても 1〜12 の恒久節の番号が動かないことを保証する。削除の契機は節ごとに異なり (#1.5 は v1.0.0 到達時、#2.5 は fork 作成時)、いずれも節ごと削除して表の該当行も消す。削除される節は本表に明示されたものだけを認める。
 
 ## Instruction Priority
 
