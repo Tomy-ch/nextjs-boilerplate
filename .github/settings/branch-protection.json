@@ -57,6 +57,7 @@
           { "context": "actions-lint" },
           { "context": "actions-pin" },
           { "context": "build" },
+          { "context": "dead-code" },
           { "context": "gen-drift" },
           { "context": "images-pin" },
           { "context": "lint" },

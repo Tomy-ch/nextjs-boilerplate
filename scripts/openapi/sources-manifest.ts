@@ -3,7 +3,7 @@ import { parseDocument } from "yaml";
 import { z } from "zod";
 
 /** 契約の取得先ディレクトリ。取得物と宣言を同じ場所に置く。 */
-export const CONTRACT_DIR = "openapi";
+const CONTRACT_DIR = "openapi";
 
 export const MANIFEST_PATH = `${CONTRACT_DIR}/sources.yaml`;
 
