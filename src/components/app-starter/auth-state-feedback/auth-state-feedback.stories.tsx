@@ -16,7 +16,7 @@ import { AUTH_STATE, AUTH_STATE_MESSAGE } from "./auth-state-feedback.definition
 const meta = {
   title: "Feedback/AuthStateFeedback",
   component: AuthStateFeedback,
-  parameters: { layout: "centered" },
+  parameters: { layout: "centered", docs: { story: { inline: false, iframeHeight: 420 } } },
   args: { state: AUTH_STATE.UNAUTHENTICATED },
 } satisfies Meta<typeof AuthStateFeedback>;
 export default meta;

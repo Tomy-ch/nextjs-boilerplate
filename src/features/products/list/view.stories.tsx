@@ -149,7 +149,10 @@ const SORT_OPTIONS: readonly FilterOption[] = [
 const meta = {
   title: "Page/Products/List",
   component: ProductListView,
-  parameters: { layout: "fullscreen" },
+  parameters: {
+    docs: { story: { inline: false, iframeHeight: 900 } },
+    layout: "fullscreen",
+  },
   decorators: [withPageFrame],
   args: {
     groups: GROUPS,

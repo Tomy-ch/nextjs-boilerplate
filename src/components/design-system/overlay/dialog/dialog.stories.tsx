@@ -113,7 +113,10 @@ function CustomCloseDialog() {
 const meta = {
   title: "Overlay/Dialog",
   component: Dialog,
-  parameters: { layout: "centered" },
+  parameters: {
+    docs: { story: { inline: false, iframeHeight: 420 } },
+    layout: "centered",
+  },
 } satisfies Meta<typeof Dialog>;
 
 export default meta;

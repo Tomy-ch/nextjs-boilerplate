@@ -113,6 +113,7 @@ const meta = {
   parameters: {
     layout: "fullscreen",
     docs: {
+      story: { inline: false, iframeHeight: 900 },
       description: {
         component: [
           "商品 1 件の詳細です。画像は枚数によらず carousel に載せ、送り先の一覧を必ず下に並べます。",

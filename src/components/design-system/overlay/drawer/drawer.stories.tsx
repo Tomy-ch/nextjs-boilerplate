@@ -136,6 +136,7 @@ const meta = {
   parameters: {
     layout: "centered",
     docs: {
+      story: { inline: false, iframeHeight: 420 },
       description: {
         component: [
           "drag で閉じられる modal panel です。touch 前提の操作が要る場合に選び、pointer と keyboard だけで",
