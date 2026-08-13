@@ -1,13 +1,23 @@
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
+import { ScrollArea } from "../../container/scroll-area/scroll-area";
+
+/** {@link Table} の props。 */
+type TableProps = ComponentProps<"table"> & {
+  /** 横スクロールする領域の名前。 */
+  label?: string;
+};
 
 /**
  * 列と行の関係が読み取りに必要な、構造化データを表す表。
  *
  * @remarks
- * 横幅が不足したときに横スクロールする wrapper で native `table` を包む。表そのものは
+ * 横幅が不足したときに横スクロールする `ScrollArea` で native `table` を包む。表そのものは
  * `TableHeader` / `TableBody` / `TableFooter` を子として合成して組み立てる。
+ *
+ * 包んだ領域は keyboard だけで横へ送れるよう focus を受け取るため、**`label` で名前を与える**。
+ * 名前が無いと、focus したときに何の領域へ入ったのかが判らない。`TableCaption` と同じ語を渡す。
  *
  * 取得・並べ替え・filter・pagination・行ごとの操作・業務型は持たない。これらは feature が
  * この部品を合成して実装する。列定義から表の骨格を展開したい場合は `sugar/table` を使う。
@@ -17,7 +27,7 @@ import { cn } from "@/components/cn";
  *
  * @example
  * ```tsx
- * <Table>
+ * <Table label="直近の申請">
  *   <TableCaption>直近の申請</TableCaption>
  *   <TableHeader>
  *     <TableRow>
@@ -40,18 +50,23 @@ import { cn } from "@/components/cn";
  * </Table>
  * ```
  *
- * @param props - native `table` 属性。
+ * @param props - native `table` 属性と `label`。
  * @see Storybook `Display/Table`
  */
-function Table({ className, ...props }: ComponentProps<"table">) {
+function Table({ className, label, ...props }: TableProps) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <ScrollArea
+      aria-label={label}
+      className="relative w-full"
+      data-slot="table-container"
+      orientation="horizontal"
+    >
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
         {...props}
       />
-    </div>
+    </ScrollArea>
   );
 }
 
@@ -196,4 +211,5 @@ function TableCaption({ className, ...props }: ComponentProps<"caption">) {
   );
 }
 
+export type { TableProps };
 export { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow };

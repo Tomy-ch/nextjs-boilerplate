@@ -107,7 +107,7 @@ function PlanTable({
   density?: TableDensity;
 }) {
   return (
-    <Table className={TABLE_DENSITY_CLASS[density]}>
+    <Table className={TABLE_DENSITY_CLASS[density]} label="契約プランの一覧">
       <TableHeader>
         <TableRow className={TABLE_STICKY_ROW_CLASS}>
           {columns.map((column) => (

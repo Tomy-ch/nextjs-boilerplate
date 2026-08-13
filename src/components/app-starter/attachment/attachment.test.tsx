@@ -180,9 +180,9 @@ describe("Attachment", () => {
 });
 
 describe("AttachmentGroup", () => {
-  it("複数の添付をまとまりとして含み、自身は role を持たない", () => {
+  it("複数の添付を、名前を持つ group としてまとめる", () => {
     render(
-      <AttachmentGroup data-testid="group">
+      <AttachmentGroup data-testid="group" label="添付した資料">
         <Attachment data-testid="first">
           <AttachmentContent>
             <AttachmentTitle>仕様書.pdf</AttachmentTitle>
@@ -199,7 +199,8 @@ describe("AttachmentGroup", () => {
     const group = screen.getByTestId("group");
 
     expect(group).toHaveAttribute("data-slot", "attachment-group");
-    expect(group).not.toHaveAttribute("role");
+    expect(group).toHaveAttribute("role", "group");
+    expect(group).toHaveAccessibleName("添付した資料");
     expect(group).toContainElement(screen.getByTestId("first"));
     expect(group).toContainElement(screen.getByTestId("second"));
   });

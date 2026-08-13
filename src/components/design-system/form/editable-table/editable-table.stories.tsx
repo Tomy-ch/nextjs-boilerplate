@@ -62,7 +62,7 @@ const INLINE_EDIT_UNDERLINE_CLASS =
 /** 1 行だけの編集。送信は form 全体で 1 回行う。 */
 export const Default: Story = {
   render: () => (
-    <EditableTable action="/">
+    <EditableTable action="/" label="編集する行の一覧">
       <EditableTableCaption>表示名の編集</EditableTableCaption>
       <EditableTableHeader>
         <EditableTableRow>
@@ -91,7 +91,7 @@ export const Default: Story = {
 function InvalidTable() {
   const errorId = useId();
   return (
-    <EditableTable action="/">
+    <EditableTable action="/" label="編集する行の一覧">
       <EditableTableHeader>
         <EditableTableRow>
           <EditableTableHead scope="col">項目</EditableTableHead>
@@ -131,7 +131,7 @@ export const Invalid: Story = {
  */
 export const InputGroupCells: Story = {
   render: () => (
-    <EditableTable action="/">
+    <EditableTable action="/" label="編集する行の一覧">
       <EditableTableCaption>単位と行内操作を含む編集</EditableTableCaption>
       <EditableTableHeader>
         <EditableTableRow>
@@ -202,7 +202,7 @@ export const InputGroupCells: Story = {
  */
 export const DataTableLike: Story = {
   render: () => (
-    <EditableTable action="/">
+    <EditableTable action="/" label="編集する行の一覧">
       <EditableTableCaption>インライン編集</EditableTableCaption>
       <EditableTableHeader>
         <EditableTableRow>

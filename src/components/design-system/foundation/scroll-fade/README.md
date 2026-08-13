@@ -16,9 +16,11 @@
 要るのは `scrollbar-none` を当てた領域です。そこでは続きがあることを示す手掛かりが他にありません。`AttachmentGroup` がこれに当たります。
 
 ```tsx
-<div className="scroll-fade-x flex gap-3 overflow-x-auto scrollbar-none">…</div>
-<div className="scroll-fade-y flex flex-col gap-3 overflow-y-auto scrollbar-none">…</div>
+<ScrollArea aria-label="…" className="scroll-fade-x flex gap-3 scrollbar-none" orientation="horizontal">…</ScrollArea>
+<ScrollArea aria-label="…" className="scroll-fade-y flex flex-col gap-3 scrollbar-none">…</ScrollArea>
 ```
+
+スクロールする領域は keyboard だけで操作する利用者も到達できる必要があるため、`overflow-*` を直接当てず [`ScrollArea`](../../container/scroll-area/README.md) へ当てます。
 
 収まりきる領域に付けても端の飾りにしかなりません。溢れうる領域にだけ付けます。
 

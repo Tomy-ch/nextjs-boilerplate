@@ -37,7 +37,7 @@ SSR first の選定では `△` に当たります。既定は `Input` / `Textar
 
 **枠内の control は自分の focus 表示を持ちません。** focus 表示は `outline` で描かれるため、`InputGroupInput` / `InputGroupTextarea` は `outline` 側で打ち消します。`ring` を打ち消しても消えず、外枠の輪と二重になります。
 
-外枠は focus・invalid・disabled の三つを control の状態から導出します。枠線は control の `disabled` に反応して控えめな色へ落ちるため、呼び出し元の追加指定は要りません。addon も同時に減光したい場合だけ、外枠へ `data-disabled="true"` を渡します。
+外枠は focus・invalid・disabled の三つを control の状態から導出します。枠線は control の `disabled` に反応して控えめな色へ落ちるため、呼び出し元の追加指定は要りません。addon も同時に減光したい場合だけ、外枠へ `disabled` を渡します。減光の見た目を作る `data-disabled` と、枠ごと操作できないことを支援技術へ伝える `aria-disabled` の両方が付きます。
 
 `InputGroupInput` の枠は入力内容では伸縮しません。focus と invalid の ring はどちらも影として描かれ、枠線は太さを変えずに色だけが変わるため、状態が変わっても周囲のレイアウトは動きません。invalid でレイアウトが動くのは、feature がエラー文言を追加したときだけで、伸びる量は文言そのものの高さです。
 
@@ -51,6 +51,6 @@ SSR first の選定では `△` に当たります。既定は `Input` / `Textar
 
 ## Storybook とテスト
 
-Storybook は単位の addon、先頭のアイコン、前後両方の addon、button の四つの大きさ、上下へ積む配置と複数行入力、`aria-invalid`、そして操作できる状態・control だけ `disabled`・`data-disabled` も渡した状態の三つを並べた disabled を確認します。
+Storybook は単位の addon、先頭のアイコン、前後両方の addon、button の四つの大きさ、上下へ積む配置と複数行入力、`aria-invalid`、そして操作できる状態・control だけ `disabled`・枠ごと `disabled` の三つを並べた disabled を確認します。
 
 テストは group の構造、`Label` によるアクセシブルな名前と `aria-describedby` による説明、`align` の反映、addon から単一行・複数行それぞれの control への focus 委譲、addon 内 button を押したときに focus を奪わないこと、control を持たない枠と枠の外へ置いた addon で何も起きないこと、button の既定が form を送信しないこと、`type="submit"` のときに `name` と値が送信されること、native 属性と `disabled` / `aria-invalid` の伝播、a11y 自動検査を確認します。

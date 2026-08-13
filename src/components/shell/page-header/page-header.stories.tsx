@@ -28,7 +28,7 @@ type Story = StoryObj<typeof meta>;
 
 function Body() {
   return (
-    <Table>
+    <Table label="項目の一覧">
       <TableHeader>
         <TableRow>
           <TableHead>名称</TableHead>

@@ -44,7 +44,22 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 /** 縦積み。`orientation` が向きを決める。 */
-export const Vertical: Story = { args: { orientation: "vertical" } };
+export const Vertical: Story = {
+  args: {
+    children: (
+      <>
+        <ResizablePanel defaultSize="50%" minSize="20%">
+          <Note>上の pane です。</Note>
+        </ResizablePanel>
+        <ResizableHandle aria-label="上下の区切り" withHandle />
+        <ResizablePanel minSize="20%">
+          <Note>{DESCRIPTION}</Note>
+        </ResizablePanel>
+      </>
+    ),
+    orientation: "vertical",
+  },
+};
 
 /** 標識を置かない場合。境界は 1px しかないため、動かせることに気付きにくい。 */
 export const WithoutHandle: Story = {

@@ -180,6 +180,9 @@ function CommandList({
  * 表示の切り替えは cmdk が行うため、呼び出し元が候補数を数える必要はない。文言は
  * `children` として渡す。
  *
+ * **`CommandList` の外、その兄弟として置く。** listbox が持てるのは候補だけで、候補以外の
+ * 文言を中へ入れると、候補が無いあいだ listbox は「中身の役割が合わない listbox」になる。
+ *
  * @param props - cmdk `Command.Empty` の props。
  *
  * @see Storybook `Overlay/Command`

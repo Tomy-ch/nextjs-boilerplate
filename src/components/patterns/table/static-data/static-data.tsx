@@ -28,6 +28,8 @@ export type StaticDataTableProps<Row> = {
   columns: readonly StaticDataTableColumn<Row>[];
   emptyMessage?: ReactNode;
   getRowKey: (row: Row) => string;
+  /** 横スクロールする領域の名前。 */
+  label?: string;
   pagination?: ReactNode;
   rows: readonly Row[];
   toolbar?: ReactNode;
@@ -44,6 +46,7 @@ export function StaticDataTable<Row>({
   columns,
   emptyMessage = "表示する項目はありません。",
   getRowKey,
+  label,
   pagination,
   rows,
   toolbar,
@@ -51,7 +54,7 @@ export function StaticDataTable<Row>({
   return (
     <div className={cn("space-y-4", className)} data-slot="data-table">
       {toolbar ? <div data-slot="data-table-toolbar">{toolbar}</div> : null}
-      <Table>
+      <Table label={label}>
         <TableColumnGroup columns={columns} />
         {caption ? <TableCaption>{caption}</TableCaption> : null}
         <TableColumnHeaders columns={columns} />
