@@ -37,7 +37,7 @@ export type DescribeNode = {
   readonly line: number;
 };
 
-export type ViolationKind =
+type ViolationKind =
   /** export に対応する describe が無い。 */
   | "missing-describe"
   /** テストファイルそのものが無い。 */

@@ -1,5 +1,5 @@
 /** 商品に紐づく分類。ID と表示名だけを持つ。 */
-export type ProductRef = {
+type ProductRef = {
   id: string;
   name: string;
 };

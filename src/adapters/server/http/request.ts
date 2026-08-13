@@ -17,7 +17,7 @@ import {
 } from "./retry-policy";
 
 /** 呼び出し 1 件の指定。 */
-export type RequestSpec<T> = {
+type RequestSpec<T> = {
   /** base URL からの相対パス。 */
   path: string;
   /** HTTP メソッド。既定は GET。 */
