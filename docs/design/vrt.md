@@ -87,8 +87,9 @@ sequenceDiagram
     gha->>main: compare リンクを PR へ
 
     rev->>store: compare で画素を見る
-    rev->>main: PR を承認
-    Note over main,rev: bot の push の後に人が承認する
+    rev->>main: vrt-approve ラベルを付ける
+    main->>gha: vrt-approval が承認の時刻を検査
+    Note over main,gha: 撮り直しより後に付いたラベルだけを通す
 ```
 
 ## 全体が乗っている不変条件
@@ -104,8 +105,15 @@ sequenceDiagram
 行うので、required status checks を `strict` にしてブランチが最新であることを要求する。base に遅れた
 head では撮り直させない。
 
-**撮り直しは承認ではない。** ラベルは画素を見られる形にするだけで、判断は置き場の compare ビューを
-見た人が PR で行う。ruleset の `require_last_push_approval` が bot の push の後に人の承認を強制する。
+**撮り直しは承認ではない。** `vrt-retake` は画素を見られる形にするだけで、見た目を受け入れたことは
+`vrt-approve` が表す。基準画像が動いている PR では `vrt-approval` がこれを必須にする。承認の単位を
+PR のレビューではなくラベルに取るのは、判断の対象が PR 全体ではなく基準画像だからで、**1 人の
+リポジトリでも成立する**という性質はその帰結にすぎない。
+
+**承認は今の一式に対してだけ効く。** `vrt-approval` はラベルの有無に加えて、付いた時刻がポインタを
+動かした最後のコミットより後であることを見る。撮り直し側のラベル削除は人の手間を省くためのもので、
+保証はこの時刻の比較が持つ — 削除が動かない状況（fork の PR は token が read-only）でも古い承認は
+通らない。
 
 **ラベルは引き金ではなく条件であり、消費されるのは撮り直しが届いたときだけ。** 読まれるのは VRT の
 完了時なので、人はいつ付けてもよく（PR 作成時を含む）、完了後に付けたぶんは次の実行まで効かない。

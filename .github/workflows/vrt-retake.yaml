@@ -5,10 +5,10 @@ name: VRT Retake
 # That push re-runs VRT, which then passes.
 #
 # This is NOT where the visual change is approved. The label only develops the change
-# into something reviewable: the pixels become a real image diff in the store's
-# compare view, and the branch ruleset (`require_last_push_approval`) forces a human
-# to approve after the bot's push. Naming the label "approve" would put the word
-# where the judgement is not.
+# into something reviewable: the pixels become a real image diff in the store's compare
+# view, and accepting what is there is a separate act carrying its own label, required
+# by `vrt-approval.yaml`. Naming this label "approve" would put the word where the
+# judgement is not.
 #
 # The label is a CONDITION, not the trigger. Triggering on `labeled` forced the
 # person to wait for VRT to finish before labelling, because the scope is read from
@@ -330,7 +330,7 @@ jobs:
               echo
               echo "対象の story: ${IDS}"
               echo
-              echo "**まだ承認ではありません。** 上の画像差分を見て、意図した変更であることを確かめたうえで PR を承認してください。"
+              echo "**まだ承認ではありません。** 上の画像差分を見て、意図した変更であることを確かめたうえで \`vrt-approve\` ラベルを付けてください。"
             else
               echo "❌ 基準画像を撮り直せませんでした。${REASON:-詳細は実行ログを確認してください。}"
             fi
@@ -344,13 +344,21 @@ jobs:
 
       # One label, one retake: removed only once the pointer has moved. Anything else
       # leaves it on, so the retake resumes by itself once the cause is gone.
+      #
+      # `vrt-approve` goes with it, because the images it accepted are no longer the
+      # ones in the store. Dropping it here only saves the person a toggle — the gate
+      # itself compares timestamps and would refuse the stale acceptance anyway.
       - name: Remove the label
         if: always() && steps.mode.outputs.mode == 'reported' && steps.push.outputs.sha != ''
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ steps.pr.outputs.number }}
-        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-retake
+        run: |
+          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-retake
+          # Tolerated separately: the acceptance is often not on the pull request at
+          # all, and failing to drop it must not leave `vrt-retake` behind.
+          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-approve || true
 
   report:
     if: always() && needs.retake.result != 'skipped' && needs.retake.outputs.comment != ''
