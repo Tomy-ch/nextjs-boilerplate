@@ -13,10 +13,8 @@ import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib
  * Storybook の全 story を基準画像と比べる。
  *
  * @remarks
- * 比較単位を story に取るのは、story が部品の在庫リストそのものであり、画面より安定した
- * 単位になるためです([0091](../docs/adr/0091-test-verification-methods.md))。退行の主因は
- * 画面ごとの個別変更ではなく、design token や layout を触って全画面が動くことなので、
- * それを部品の側で捕まえます。
+ * 比較単位を story に取る理由は [README](README.md) と
+ * [0091](../docs/adr/0091-test-verification-methods.md) §3 にあります。
  */
 
 /** 撮影対象。`pnpm build-storybook` の出力先。 */
@@ -29,8 +27,8 @@ const shootable = excludeDeclared(
 
 const stories = selectStories(shootable, process.env.VRT_ONLY);
 
-// 配信は worker ごとにポートを OS へ選ばせて立てる。単一のサーバを外から与えると、
-// 並列数とポートの空きがリポジトリの設定として固定され、worktree を並べた分だけ衝突する。
+// ポートは OS に選ばせる。固定のポートで単一のサーバを外から与えると、worktree を並べた分だけ
+// 衝突する。
 const test = base.extend<Record<never, never>, { storybookURL: string }>({
   storybookURL: [
     // 第 1 引数は空の分割代入でなければならない。Playwright はここに並べた名前を
@@ -97,11 +95,8 @@ function baselineRoot(testInfo: TestInfo): string {
 // 撮影前に、描画とフォントの読み込みが終わるのを待つ。
 //
 // 描画の完了は配色テーマが `:root` へ乗ったことで見る。テーマを載せるのが story を包む
-// decorator（`.storybook/preview.ts`）なので、乗っていれば story まで到達している。要素の
-// 出現で見ると、描画前の空の `#storybook-root` を「安定した画面」として撮ってしまう。
-//
-// フォントは差し替わった瞬間に字形が変わるため、待たずに撮ると同じ story が撮るたびに
-// 違う画像になる。
+// decorator(`.storybook/preview.ts`)なので、乗っていれば story まで到達している。要素の出現で
+// 見ると、描画前の空の `#storybook-root` を「安定した画面」として撮ってしまう。
 async function settle(page: Page, theme: string): Promise<void> {
   await page.waitForFunction(
     (expected) => document.documentElement.dataset.theme === expected,
