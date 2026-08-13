@@ -65,7 +65,9 @@ for (const story of stories) {
     // 「見た目が変わっていない」で通さないため、画像より先に見る。
     expect(crashes.map((crash) => crash.message)).toEqual([]);
 
-    await expect(page).toHaveScreenshot(`${story.group}/${testInfo.project.name}/${story.id}.png`);
+    // 配列で渡す。1 本の文字列にすると Playwright が `/` をファイル名として無害化するので、
+    // 系統ごとに分かれず 1 階層へ平置きされる。
+    await expect(page).toHaveScreenshot([story.group, testInfo.project.name, `${story.id}.png`]);
   });
 }
 
