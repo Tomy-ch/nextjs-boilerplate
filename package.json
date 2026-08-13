@@ -6,6 +6,7 @@
   "scripts": {
     "add:ui": "tsx src/components/scripts/add-shadcn.ts",
     "build": "next build",
+    "bundle-budget": "tsx scripts/bundle-budget",
     "build-storybook": "storybook build",
     "check:architecture": "tsx scripts/architecture",
     "check:classes": "tsx src/components/scripts/check-classes.ts",
