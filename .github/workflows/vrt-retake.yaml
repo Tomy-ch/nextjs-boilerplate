@@ -1,7 +1,7 @@
 name: VRT Retake
 
-# Retakes the baseline images for the stories the last VRT run reported, pushes them
-# to the baseline store, and moves this branch's submodule pointer onto the result.
+# Retakes the baseline images for the stories the VRT run reported, pushes them to
+# the baseline store, and moves this branch's submodule pointer onto the result.
 # That push re-runs VRT, which then passes.
 #
 # This is NOT where the visual change is approved. The label only develops the change
@@ -10,35 +10,49 @@ name: VRT Retake
 # to approve after the bot's push. Naming the label "approve" would put the word
 # where the judgement is not.
 #
-# The scope is read from the `vrt-report` artifact of that run, not recomputed here.
-# Bounding the retake to what was already reported means a story that never appeared
-# in the pull-request comment cannot enter the baselines through this path.
+# The label is a CONDITION, not the trigger. Triggering on `labeled` forced the
+# person to wait for VRT to finish before labelling, because the scope is read from
+# that run's report — labelling early only produced "the run has not finished yet".
+# Firing on the run's completion instead lets the label be applied whenever, PR
+# creation included, and takes the human off the critical path: VRT, retake, and the
+# confirming VRT re-run chain without anyone watching. The label survives a refusal
+# and is removed only once it has actually been spent, so a retake deferred by a
+# failing check happens by itself on the next run.
+#
+# The scope is read from the `vrt-report` artifact of the run that triggered this
+# one. Bounding the retake to what was already reported means a story that never
+# appeared in the pull-request comment cannot enter the baselines through this path.
 #
 # A revert triggers the same retake without a label. Pruning the store drops the
 # commit the reverted state pointed at, so restoring the code alone would leave the
 # pointer dangling. A revert returns to a state that was approved once, so retaking
 # it automatically does not weaken what approval means.
 #
-# Fork pull requests cannot be served: `pull_request` grants a read-only token for
-# them and the head branch lives in another repository. Those contributors run
+# Fork pull requests cannot be served, and under `workflow_run` refusing them is a
+# security requirement rather than a limitation: this trigger runs in the context of
+# the base repository and would hand a fork's head a token with `contents: write`.
+# The refusal therefore runs before anything is checked out. Those contributors run
 # `make vrt-update` locally instead.
 
 on:
-  pull_request:
-    types: [labeled, opened, synchronize]
+  workflow_run:
+    workflows: [VRT]
+    types: [completed]
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: false
 
 jobs:
   retake:
+    # A green VRT has nothing to retake, and a run outside a pull request has no
+    # branch to push a pointer onto.
     if: >-
-      github.event.label.name == 'vrt-retake' ||
-      startsWith(github.event.pull_request.head.ref, 'revert-')
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -55,46 +69,128 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Refuse fork pull requests
-        if: github.event.pull_request.head.repo.full_name != github.repository
+      # `workflow_run` carries the commit but not the pull request, so everything the
+      # later steps branch on is resolved here in one API call.
+      - name: Resolve the pull request
+        id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          # A fork pull request gets a read-only token whatever `permissions:` asks
-          # for, so the comment is best effort — the failed job is the real signal.
+          set -euo pipefail
+
+          pr="$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/pulls" --jq '.[0] // empty')"
+          if [ -z "$pr" ]; then
+            echo 'ℹ️ この commit に対応する PR がありません。何もしません。'
+            echo 'found=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo 'found=true'
+            echo "number=$(jq -r '.number' <<<"$pr")"
+            echo "head_ref=$(jq -r '.head.ref' <<<"$pr")"
+            echo "head_repo=$(jq -r '.head.repo.full_name' <<<"$pr")"
+            echo "base_ref=$(jq -r '.base.ref' <<<"$pr")"
+            echo "labelled=$(jq -r '[.labels[].name] | index("vrt-retake") != null' <<<"$pr")"
+          } >> "$GITHUB_OUTPUT"
+
+      # Before any checkout: this trigger holds a writable token even for a fork.
+      - name: Refuse fork pull requests
+        if: >-
+          steps.pr.outputs.found == 'true' &&
+          steps.pr.outputs.head_repo != github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ steps.pr.outputs.number }}
+        run: |
           gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
             '❌ fork からの PR には基準画像を push できません。手元で make vrt-update を実行してコミットしてください。' || true
           exit 1
 
+      # A revert restores a pointer whose baselines the store may have pruned, so it
+      # retakes everything and needs no label. Everything else needs one.
+      - name: Decide what to retake
+        id: mode
+        if: steps.pr.outputs.found == 'true'
+        env:
+          LABELLED: ${{ steps.pr.outputs.labelled }}
+          HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+        run: |
+          if [ "$LABELLED" = 'true' ]; then
+            mode=reported
+          elif [ "${HEAD_REF#revert-}" != "$HEAD_REF" ]; then
+            mode=full
+          else
+            mode=none
+          fi
+          echo "mode=${mode}" >> "$GITHUB_OUTPUT"
+
+      # Baselines taken from a tree that is failing elsewhere bake that failure into
+      # the store. The cause is often the rendering itself — a story filed under the
+      # wrong heading is both a ledger failure and a different image path — so the
+      # pixels captured now would be discarded by the fix anyway.
+      #
+      # This costs no waiting: VRT is the slowest check here, so the rest have
+      # concluded by the time it completes. The label is deliberately left in place,
+      # which makes the deferral self-clearing: fixing the other check pushes a
+      # commit, VRT runs again, and this workflow fires again with the label still on.
+      - name: Defer while another check is failing
+        id: gate
+        if: steps.mode.outputs.mode != 'none' && steps.mode.outputs.mode != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          failed="$(gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
+            --jq '[.check_runs[]
+              | select(.conclusion == "failure" or .conclusion == "timed_out")
+              | select(.name != "vrt" and .name != "retake" and .name != "report")
+              | .name] | unique | join(", ")')"
+
+          if [ -n "$failed" ]; then
+            echo "deferred=true" >> "$GITHUB_OUTPUT"
+            echo "failed=${failed}" >> "$GITHUB_OUTPUT"
+            echo "⏸️ 他のチェックが落ちているため撮り直しません: ${failed}"
+          else
+            echo "deferred=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # The check that must go green runs against `refs/pull/N/merge` — the branch
       # merged into its base. Retaking on a head that is behind base would capture a
       # different tree than the one being judged, so the label would never clear.
-      # Refusing is the honest move: the person merges base in and labels again.
+      # Refusing is the honest move: the person merges base in and the next VRT run
+      # picks the label up again.
       - name: Refuse a branch that is behind its base
+        if: steps.gate.outputs.deferred == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR: ${{ github.event.pull_request.number }}
-          BASE: ${{ github.event.pull_request.base.ref }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ steps.pr.outputs.number }}
+          BASE: ${{ steps.pr.outputs.base_ref }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           behind="$(gh api "repos/$GITHUB_REPOSITORY/compare/$BASE...$HEAD_SHA" --jq .behind_by)"
           if [ "$behind" != "0" ]; then
             gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
-              "❌ base より ${behind} コミット遅れています。判定される木と撮る木が食い違うため、${BASE} を取り込んでからラベルを付け直してください。"
+              "❌ base より ${behind} コミット遅れています。判定される木と撮る木が食い違うため、${BASE} を取り込んでください。"
             exit 1
           fi
 
       - name: Checkout the pull request branch
+        if: steps.gate.outputs.deferred == 'false'
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ steps.pr.outputs.head_ref }}
           # The updated pointer is pushed back to this branch, so the credentials
           # have to survive checkout. Every other workflow here keeps them off.
           persist-credentials: true
 
       - name: Fetch the baseline images
         id: baselines
+        if: steps.gate.outputs.deferred == 'false'
         uses: ./.github/actions/setup-vrt-baselines
         with:
           app-id: ${{ secrets.VRT_APP_ID }}
@@ -102,77 +198,39 @@ jobs:
           persist-credentials: 'true'
 
       - name: Refuse without a token for the baseline store
-        if: steps.baselines.outputs.token == ''
+        if: steps.gate.outputs.deferred == 'false' && steps.baselines.outputs.token == ''
         run: |
           echo '❌ VRT_APP_ID / VRT_APP_PRIVATE_KEY が設定されていません。make setup-vrt-app を実行してください。' >&2
           exit 1
 
-      # A label retakes exactly what the last run reported. A revert instead retakes
-      # everything, because the pointer it restored has no baseline set left to
-      # compare against — there is no report to bound it to. A revert whose pointer
-      # still resolves needs nothing, and stopping there keeps the workflow from
-      # commenting on every revert.
-      - name: Decide what to retake
-        id: mode
-        env:
-          LABEL: ${{ github.event.label.name }}
-          MISSING: ${{ steps.baselines.outputs.missing }}
-        run: |
-          if [ "$LABEL" = 'vrt-retake' ]; then
-            mode=reported
-          elif [ "$MISSING" = 'true' ]; then
-            mode=full
-          else
-            mode=none
-            echo '✅ 復帰先の基準画像がそのまま残っています。撮り直しません。'
-          fi
-          echo "mode=${mode}" >> "$GITHUB_OUTPUT"
-
-      # Nothing may be retaken without the set VRT reported for this exact commit.
-      # The three ways that set can be unavailable are told apart on purpose: a
-      # message that names the wrong cause sends the reader to the wrong fix, and
-      # "still running" is by far the most likely of the three.
+      # The report belongs to the run that triggered this one, so there is nothing to
+      # search for and no way to pick up a different commit's failures.
       - name: Download the reported failures
         id: report
-        if: steps.mode.outputs.mode == 'reported'
+        if: steps.gate.outputs.deferred == 'false' && steps.mode.outputs.mode == 'reported'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
-          runs="$(gh run list --workflow vrt.yaml --repo "$GITHUB_REPOSITORY" \
-            --json databaseId,headSha,status --limit 100 \
-            --jq "[.[] | select(.headSha == \"$HEAD_SHA\")]")"
-
-          if [ "$(jq 'length' <<<"$runs")" -eq 0 ]; then
-            echo "reason=この commit で VRT がまだ実行されていません。実行の完了を待ってからラベルを付け直してください。" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
-
-          run_id="$(jq -r '[.[] | select(.status == "completed")][0].databaseId // empty' <<<"$runs")"
-          if [ -z "$run_id" ]; then
-            echo "reason=この commit の VRT がまだ完了していません。完了を待ってからラベルを付け直してください。" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
-
-          gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name vrt-report --dir tmp/vrt || {
-            echo "reason=完了した VRT に差分の報告がありません。緑だったか、artifact の保持期限が切れています。" >> "$GITHUB_OUTPUT"
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name vrt-report --dir tmp/vrt || {
+            echo "reason=VRT に差分の報告がありません。artifact の保持期限が切れているか、落ちた原因が比較以外です。" >> "$GITHUB_OUTPUT"
             exit 1
           }
 
       - name: Setup mise and the pinned tools
-        if: steps.mode.outputs.mode != 'none'
+        if: steps.gate.outputs.deferred == 'false'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
-        if: steps.mode.outputs.mode != 'none'
+        if: steps.gate.outputs.deferred == 'false'
         run: pnpm install --frozen-lockfile
 
       - name: Retake the baselines
         id: retake
-        if: steps.mode.outputs.mode != 'none'
+        if: steps.gate.outputs.deferred == 'false'
         env:
           MODE: ${{ steps.mode.outputs.mode }}
         shell: bash
@@ -196,9 +254,9 @@ jobs:
       # in the store does not depend on who took the screenshots.
       - name: Push the baselines to the store
         id: push-store
-        if: steps.mode.outputs.mode != 'none'
+        if: steps.gate.outputs.deferred == 'false'
         env:
-          BRANCH: ${{ github.event.pull_request.head.ref }}
+          BRANCH: ${{ steps.pr.outputs.head_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -212,7 +270,7 @@ jobs:
 
       - name: Move the submodule pointer
         id: push
-        if: steps.mode.outputs.mode != 'none'
+        if: steps.gate.outputs.deferred == 'false'
         env:
           IDS: ${{ steps.retake.outputs.ids }}
         run: |
@@ -224,7 +282,7 @@ jobs:
       # token cannot reach a public comment through the file (ADR 0153).
       - name: Build the outcome comment
         id: outcome
-        if: always() && steps.mode.outputs.mode != 'none'
+        if: always() && steps.mode.outputs.mode != 'none' && steps.mode.outputs.mode != ''
         continue-on-error: true
         env:
           IDS: ${{ steps.retake.outputs.ids }}
@@ -233,13 +291,19 @@ jobs:
           AFTER: ${{ steps.push-store.outputs.after }}
           SHA: ${{ steps.push.outputs.sha }}
           REASON: ${{ steps.report.outputs.reason }}
+          DEFERRED: ${{ steps.gate.outputs.deferred }}
+          FAILED: ${{ steps.gate.outputs.failed }}
         shell: bash
         run: |
           store_repo="$(git config --file .gitmodules --get submodule.vrt/screenshots.url |
             sed -e 's|^https://github.com/||' -e 's|\.git$||')"
 
           {
-            if [ -n "$SHA" ]; then
+            if [ "$DEFERRED" = 'true' ]; then
+              echo "⏸️ 他のチェックが落ちているため、基準画像は撮り直していません: ${FAILED}"
+              echo
+              echo "落ちている木から撮ると、その原因ごと基準画像に焼き込まれます。**ラベルは付けたままです** — 修正を push すれば VRT の完了に合わせて自動で撮り直します。"
+            elif [ -n "$SHA" ]; then
               echo "🎞️ 基準画像を ${COUNT} 枚撮り直しました (${SHA})。"
               echo
               echo "画像差分: https://github.com/${store_repo}/compare/${BEFORE}..${AFTER}"
@@ -258,14 +322,15 @@ jobs:
             echo 'VRT_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # The label stands for one acceptance. Leaving it on would make the next
-      # labelling a no-op and hide that a later change was never approved.
+      # The label stands for one acceptance, so it is removed once it has been spent.
+      # A deferral has not spent it: leaving it on is what makes the retake resume by
+      # itself after the failing check is fixed.
       - name: Remove the label
-        if: always() && github.event.label.name == 'vrt-retake'
+        if: always() && steps.mode.outputs.mode == 'reported' && steps.gate.outputs.deferred == 'false'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR: ${{ github.event.pull_request.number }}
+          PR: ${{ steps.pr.outputs.number }}
         run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-retake
 
   report:
@@ -282,10 +347,20 @@ jobs:
         with:
           egress-policy: audit
 
+      - name: Resolve the pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          number="$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/pulls" --jq '.[0].number // empty')"
+          echo "number=${number}" >> "$GITHUB_OUTPUT"
+
       - name: Comment the outcome on PR
+        if: steps.pr.outputs.number != ''
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR: ${{ github.event.pull_request.number }}
+          PR: ${{ steps.pr.outputs.number }}
           BODY: ${{ needs.retake.outputs.comment }}
         run: gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$BODY"
