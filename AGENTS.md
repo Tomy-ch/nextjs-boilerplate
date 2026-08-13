@@ -17,6 +17,8 @@ See [docs/adr/0011-no-docker.md](docs/adr/0011-no-docker.md) for details.
 
 This project adopts Next.js 16 / React 19, so APIs, conventions, and file structure may differ from your training data. Before writing any code, read the relevant guide under `node_modules/next/dist/docs/` and heed deprecation notices.
 
+The rendering model is where stale assumptions do the most damage — `"use client"` is a bundle boundary, not a "render on the client" instruction, and Client Components are still server-rendered. [docs/design/rendering.md](docs/design/rendering.md) collects the terms and the mistakes they cause, with commands to verify each claim yourself. Subject-scoped design references live under [docs/design/](docs/design/README.md).
+
 ## Temporary Operating Rules until v1.0.0
 
 > **TEMPORARY SECTION — delete it when v1.0.0 ships** (このセクションは v1.0.0 時には消すこと)

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Environment } from "@/config/environment";
 
 const environment: Environment = {
@@ -20,7 +20,16 @@ const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => envir
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 
-import { getProduct, getProducts, PRODUCTS_TAG, toProduct, toProductPage } from "./products";
+import {
+  getProduct,
+  getProductListPage,
+  getProducts,
+  getProductTotalCount,
+  PRODUCTS_TAG,
+  parseProductQuery,
+  toProduct,
+  toProductPage,
+} from "./products";
 
 const wireProduct = {
   id: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11",
@@ -45,6 +54,79 @@ function stubFetch(body: unknown): ReturnType<typeof vi.fn> {
 
   return fetchImpl;
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("parseProductQuery", () => {
+  // ----- 正常系 -----
+  it("契約に載る条件を取得条件へ写す", () => {
+    const result = parseProductQuery({
+      after: "cursor-1",
+      first: "20",
+      categoryId: wireProduct.category.id,
+      statusId: wireProduct.status.id,
+      keyword: "本",
+      sort: "publishedAt",
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      query: {
+        after: "cursor-1",
+        first: 20,
+        categoryId: wireProduct.category.id,
+        statusId: wireProduct.status.id,
+        keyword: "本",
+        sort: "publishedAt",
+      },
+    });
+  });
+
+  it("文字列の件数を数値へ写す", () => {
+    const result = parseProductQuery({ first: "20" });
+
+    expect(result).toMatchObject({ ok: true, query: { first: 20 } });
+  });
+
+  it("省略した条件を契約の既定値で埋める", () => {
+    const result = parseProductQuery({});
+
+    expect(result).toEqual({ ok: true, query: { first: 50, sort: "-publishedAt" } });
+  });
+
+  // ----- 異常系 -----
+  it("契約に無い並び順を写さず、外れたキーを返す", () => {
+    const result = parseProductQuery({ sort: "price" });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["sort"] });
+  });
+
+  it("上限を超えた件数を写さず、外れたキーを返す", () => {
+    const result = parseProductQuery({ first: "201" });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["first"] });
+  });
+
+  it("数値でない件数を写さず、外れたキーを返す", () => {
+    const result = parseProductQuery({ first: "たくさん" });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["first"] });
+  });
+
+  it("外れたキーが複数あればすべて返す", () => {
+    const result = parseProductQuery({ first: "0", sort: "price" });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["first", "sort"] });
+  });
+
+  it("同じキーが複数の規則に外れてもキーを 1 つだけ返す", () => {
+    const result = parseProductQuery({ categoryId: "zz" });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["categoryId"] });
+  });
+});
 
 describe("toProduct", () => {
   // ----- 正常系 -----
@@ -100,15 +182,34 @@ describe("getProducts", () => {
 
     const page = await getProducts({ keyword: "本", first: 20 });
 
-    expect(page.products[0]?.name).toBe("商品");
+    expect(page.items[0]?.name).toBe("商品");
   });
 
   it("取得条件をクエリへ載せる", async () => {
     const fetchImpl = stubFetch(wirePage);
 
-    await getProducts({ keyword: "鞄", first: 20 });
+    await getProducts({
+      after: "cursor-1",
+      first: 20,
+      categoryId: wireProduct.category.id,
+      statusId: wireProduct.status.id,
+      keyword: "鞄",
+      sort: "publishedAt",
+    });
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toContain("first=20");
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      `https://api.example.test/v1/products?after=cursor-1&first=20&categoryId=${wireProduct.category.id}&statusId=${wireProduct.status.id}&keyword=%E9%9E%84&sort=publishedAt`,
+    );
+  });
+
+  it("指定しなかった条件はクエリへ載せない", async () => {
+    const fetchImpl = stubFetch(wirePage);
+
+    await getProducts({ keyword: "鞄" });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/v1/products?keyword=%E9%9E%84",
+    );
   });
 
   it("再検証のタグを付ける", async () => {
@@ -123,6 +224,74 @@ describe("getProducts", () => {
     stubFetch(wirePage);
 
     await expect(getProducts()).resolves.toMatchObject({ nextCursor: "next" });
+  });
+});
+
+describe("getProductListPage", () => {
+  // ----- 正常系 -----
+  it("一覧に要る値だけを持つ 1 件へ落とす", async () => {
+    stubFetch(wirePage);
+
+    const page = await getProductListPage({ first: 20 });
+
+    expect(page.items[0]).toEqual({
+      id: wireProduct.id,
+      name: "商品",
+      price: "19.99",
+      quantity: 3,
+      categoryName: "雑貨",
+      statusName: "公開",
+      imageUrl: "https://media.example.test/products/abc.png",
+    });
+  });
+
+  it("取得条件を一覧の取得へ渡す", async () => {
+    const fetchImpl = stubFetch(wirePage);
+
+    await getProductListPage({
+      first: 20,
+      statusId: wireProduct.status.id,
+      keyword: "靴",
+    });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      `https://api.example.test/v1/products?first=20&statusId=${wireProduct.status.id}&keyword=%E9%9D%B4`,
+    );
+  });
+
+  it("次ページのカーソルを引き継ぐ", async () => {
+    stubFetch(wirePage);
+
+    await expect(getProductListPage({ first: 20 })).resolves.toMatchObject({ nextCursor: "next" });
+  });
+
+  it("最終ページのカーソルを null にする", async () => {
+    stubFetch({ ...wirePage, nextCursor: null, hasNext: false });
+
+    await expect(getProductListPage({ first: 20 })).resolves.toMatchObject({ nextCursor: null });
+  });
+
+  it("画像が無い商品の URL を null にする", async () => {
+    stubFetch({ ...wirePage, products: [{ ...wireProduct, imagePath: null }] });
+
+    const page = await getProductListPage({ first: 20 });
+
+    expect(page.items[0]?.imageUrl).toBeNull();
+  });
+
+  it("条件を省略しても取得できる", async () => {
+    stubFetch(wirePage);
+
+    const page = await getProductListPage();
+
+    expect(page.items[0]?.name).toBe("商品");
+  });
+});
+
+describe("getProductTotalCount", () => {
+  // ----- 正常系 -----
+  it("総数を返す取得口が生えるまでの暫定値を返す", async () => {
+    await expect(getProductTotalCount()).resolves.toBe(10);
   });
 });
 

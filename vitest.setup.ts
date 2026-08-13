@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { act, cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { mockServer } from "./mocks/node";
 
@@ -40,6 +40,58 @@ if (typeof window !== "undefined") {
 
     return style;
   }) as typeof window.getComputedStyle;
+}
+
+// jsdom は matchMedia を実装しない。幅や入力方式で見せ方を変える部品は購読の時点で例外になり、
+// 検証したい分岐まで届かない。個別のテストで補うと、同じ形のスタブが部品の数だけ増える。
+//
+// 既定を「一致しない」にするのは、jsdom がレイアウトを持たず、どの条件も評価できないためである。
+// 一致する側の振る舞いを確かめたいテストは、そのケースだけ `vi.stubGlobal` で上書きする
+// （幅や入力方式の想定はケースごとに明示する）。購読と解除を受け付けるのは、条件の変化を追う
+// 部品が effect の後片付けで `removeEventListener` を呼ぶためで、無いと unmount で落ちる。
+if (typeof window !== "undefined" && window.matchMedia === undefined) {
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    dispatchEvent: () => false,
+  })) as typeof window.matchMedia;
+}
+
+/** 疑似 touch の 1 点。ジェスチャーの判定が読む値だけを持つ。 */
+export type StubTouch = {
+  /** 指の識別子。複数指のうちどれが動いたかを判定に使う。 */
+  readonly identifier: number;
+  readonly clientY: number;
+};
+
+/**
+ * touch の入力列を発火する。
+ *
+ * @remarks
+ * jsdom は `TouchEvent` も `Touch` も実装しないため、`window` へ流す形をここで組み立てます。
+ * 個別のテストで発火方法を変えると、ジェスチャー判定の経路を通らないテストが生まれるので、
+ * 補いは 1 箇所に置きます。
+ *
+ * `touches` は画面に触れている指、`changedTouches` はその発火で状態が変わった指という
+ * ブラウザの区別をそのまま持ちます。省略時に前者を後者へ流用するのは、指が 1 本のときは
+ * 両者が一致するためです。
+ */
+export function dispatchTouch(
+  type: "touchstart" | "touchmove" | "touchend" | "touchcancel",
+  init: { touches?: readonly StubTouch[]; changedTouches?: readonly StubTouch[] } = {},
+): void {
+  const touches = init.touches ?? [];
+  const event = Object.assign(new Event(type), {
+    touches,
+    changedTouches: init.changedTouches ?? touches,
+  });
+
+  act(() => {
+    window.dispatchEvent(event);
+  });
 }
 
 if (typeof Element !== "undefined" && Element.prototype.setPointerCapture === undefined) {

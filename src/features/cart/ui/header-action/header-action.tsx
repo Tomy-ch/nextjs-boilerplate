@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback } from "react";
 
 import { useMediaQuery } from "@/capabilities/use-media-query";
 import { Button } from "@/components/design-system/action/button/button";
@@ -26,8 +26,7 @@ const NARROW = mediaBelow("lg");
  * header に置くカートの入口。
  *
  * @remarks
- * 広い幅では点数だけを出します。中身は脇の `CartPanel` が常設しているため、ここから開く必要が
- * ありません。
+ * 広い幅では脇の `CartPanel` を開け閉めする切り替えになります。中身はここには持ちません。
  *
  * 狭い幅では本文へ被せる drawer の引き手になります。背面は半透明で覆われ、背面の押下と「閉じる」
  * のどちらでも閉じます。**引き出す操作は押下だけ**で、画面端からの swipe は持ちません。端からの
@@ -36,8 +35,8 @@ const NARROW = mediaBelow("lg");
  * 開閉は store の要求に従います。商品をカートへ入れたときも開く必要があり、その操作は別の feature に
  * あるためです。この部品の内側に開閉を持つと、追加しても何も起きない幅ができます。
  *
- * 常設できる幅では要求をその場で畳みます。要求は幅を問わず立つため、畳まないと幅を狭めた時点で操作なしに
- * 開きます。
+ * 要求の意味は幅で変わりません。広い幅では脇の領域が出るか消えるか、狭い幅では drawer が開くか
+ * 閉じるかになるだけで、どちらも「中身を見たい」という同じ 1 つの要求です。
  *
  * 出し分けを CSS ではなく media query の購読で行うのは、drawer が focus trap を持つためです。
  * CSS で隠しても DOM は残るため、広い幅でも focus が閉じ込められます。
@@ -51,15 +50,21 @@ export function CartHeaderAction() {
   const lines = useCartStore((state) => state.lines);
   const isOpen = useCartStore((state) => state.isOpen);
   const setOpen = useCartStore((state) => state.setOpen);
-
-  useEffect(() => {
-    if (!isNarrow && isOpen) {
-      setOpen(false);
-    }
-  }, [isNarrow, isOpen, setOpen]);
+  const toggle = useCallback(() => setOpen(!isOpen), [isOpen, setOpen]);
 
   if (!isNarrow) {
-    return <CartCount />;
+    return (
+      <Button
+        aria-expanded={isOpen}
+        aria-label={isOpen ? "カートを閉じる" : "カートを開く"}
+        onClick={toggle}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        <CartCount />
+      </Button>
+    );
   }
 
   return (

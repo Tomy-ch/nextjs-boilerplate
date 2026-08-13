@@ -1,3 +1,5 @@
+import type { CursorPage } from "../pagination";
+
 /** 商品に紐づく分類。ID と表示名だけを持つ。 */
 export type ProductRef = {
   id: string;
@@ -43,8 +45,27 @@ export type Product = {
 };
 
 /** cursor 方式で取得した商品の 1 ページ。 */
-export type ProductPage = {
-  products: readonly Product[];
-  /** 次ページの取得に渡すカーソル。次が無ければ null。 */
-  nextCursor: string | null;
+export type ProductPage = CursorPage<Product>;
+
+/**
+ * 一覧に並べる 1 件分の表示データ。
+ *
+ * @remarks
+ * {@link Product} をそのまま並べないのは、一覧が増分取得で JSON を跨ぐためです。`Date` も
+ * `undefined` も JSON では往復せず、跨いだ先で型どおりに扱うと実際には文字列が入っています。
+ * 一覧に要るものだけを素の値で持つ形にして、往復しても壊れないことを型で示します。
+ *
+ * 画像は URL まで解決した状態で持ちます。オブジェクトキーから URL を組むには配信元の設定が
+ * 要り、設定を読めるのは `adapters` までだからです（[0021](../../../docs/adr/0021-frontend-responsibility.md)）。
+ */
+export type ProductListItem = {
+  readonly id: string;
+  readonly name: string;
+  /** USD の decimal 文字列。表示の直前まで数値へ変換しない。 */
+  readonly price: string;
+  readonly quantity: number;
+  readonly categoryName: string;
+  readonly statusName: string;
+  /** 画像の表示 URL。画像が無ければ null。 */
+  readonly imageUrl: string | null;
 };

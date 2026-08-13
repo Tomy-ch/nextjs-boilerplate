@@ -24,6 +24,7 @@ const meta = {
   parameters: {
     layout: "centered",
     docs: {
+      story: { inline: false, iframeHeight: 420 },
       description: {
         component: [
           "trigger に hover するか keyboard focus を当てたとき、その近くへ短い補足を開きます。",

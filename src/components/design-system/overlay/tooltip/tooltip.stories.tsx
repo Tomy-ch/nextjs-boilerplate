@@ -91,7 +91,10 @@ function LongContentTooltip() {
 const meta = {
   title: "Overlay/Tooltip",
   component: Tooltip,
-  parameters: { layout: "centered" },
+  parameters: {
+    docs: { story: { inline: false, iframeHeight: 420 } },
+    layout: "centered",
+  },
 } satisfies Meta<typeof Tooltip>;
 
 export default meta;

@@ -144,7 +144,10 @@ function CustomCloseSheet() {
 const meta = {
   title: "Overlay/Sheet",
   component: Sheet,
-  parameters: { layout: "centered" },
+  parameters: {
+    docs: { story: { inline: false, iframeHeight: 420 } },
+    layout: "centered",
+  },
 } satisfies Meta<typeof Sheet>;
 
 export default meta;

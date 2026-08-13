@@ -141,6 +141,7 @@ const meta = {
   parameters: {
     layout: "centered",
     docs: {
+      story: { inline: false, iframeHeight: 420 },
       description: {
         component: [
           "同じ対象への複数の操作を、隣り合う角丸と境界を繋いだ一続きの帯にまとめます。",
