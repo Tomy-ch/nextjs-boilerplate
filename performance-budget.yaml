@@ -1,0 +1,43 @@
+# client JavaScript の予算（[ADR 0101](docs/adr/0101-performance-budget.md)）。
+#
+# ## 何を測るか
+#
+# route を開いたときに browser が最初に読む client JavaScript を、gzip した合計。`next build` の
+# 出力にこの列は無いため、成果物（`.next`）の側から引く。route 固有の chunk（その route が参照する
+# client component）と、共有 chunk（framework の runtime と polyfill）の和集合で、静的 route が
+# 出力する HTML の script と一致する。CSS は含めない。
+#
+# ## 書き方
+#
+# routes.<route>.gzipKb  その route の上限（KB, gzip）。**宣言した route だけ**が上限で落ちる。
+#                        宣言の無い route は表に出るだけで判定されない
+# routes.<route>.reason  その値の根拠。空にできない（読み込み時に落ちる）
+# growth.gzipKb          base ブランチからの増分の上限（KB, gzip）。**全 route に効く**
+# growth.reason          同上
+#
+# 上限と増分は役割が違う。上限は総量の天井で、増分は「予算の余裕を小刻みに食い潰して、最後に
+# 線を越えた PR だけが赤くなる」を防ぐ。宣言の無い route を守るのも増分の側である。
+#
+# ## fork 先へ
+#
+# **routes の値はこのリポジトリの同梱サンプルの実測であり、そのままでは意味を持たない。** 自分の
+# アプリを build して測り直し、置き換えること（ADR 0101 は具体値を fork 先の判断としている）。
+# growth の値は用途に依らないため、そのまま使える。
+#
+# 同梱サンプルの route を宣言していないのは、サンプルが `make purge-sample` で消えるためである。
+# 消える route の名前をここに残すと、破棄後のツリーに残留参照が生じる。
+
+routes:
+  "/":
+    gzipKb: 230
+    reason: 実測 206.4 KB に約 10% の余裕。共有 chunk の入れ替えで数 KB は動くため、その幅では鳴らさない
+  "/_not-found":
+    gzipKb: 225
+    reason: 実測 200.8 KB に約 10% の余裕。同上
+  "/_global-error":
+    gzipKb: 205
+    reason: 実測 183.3 KB に約 10% の余裕。client component をほぼ持たない下限に近い route である
+
+growth:
+  gzipKb: 10
+  reason: 依存の patch 更新や chunk の切り直しで数 KB は動く。10 KB を超える増分は、重い依存の追加か `"use client"` の付け替えのような段差でしか起きない
