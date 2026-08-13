@@ -4,7 +4,7 @@
 //
 //   table <report.json>   食い違った story の一覧表（PR コメントの本文）
 //   ids <report.json>     撮り直す範囲として渡す story の id（カンマ区切り）
-//   hash                  絵を決める入力のハッシュ
+//   inputs                絵を決める入力のハッシュ
 //   gate <記録した値のファイル>  比較を省いてよいか（skip / run）
 //
 // table と ids を同じレポートから出すことで、表に出ていない story が承認で撮り直される余地を
@@ -13,7 +13,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { collectRenderInputs, decideGate, renderInputsHash } from "./render-hash.js";
 import { collectFailures, formatStoryIDs, formatTable } from "./report.js";
 
-const USAGE = "usage: vrt <table|ids <report.json>|hash|gate <file>>";
+const USAGE = "usage: vrt <table|ids <report.json>|inputs|gate <file>>";
 
 function main(): void {
   const [command, file] = process.argv.slice(2);
@@ -27,7 +27,7 @@ function main(): void {
       console.log(formatStoryIDs(failures(file)));
 
       return;
-    case "hash":
+    case "inputs":
       console.log(currentHash());
 
       return;

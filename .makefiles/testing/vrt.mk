@@ -52,9 +52,12 @@ vrt: build-storybook
 		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts $(VRT_ARGS); \
 	fi
 
+# 入力のハッシュは撮った直後に書く。送る側で書くと、撮らずに置き場を直した木でも「この入力で
+# 撮った」と記録でき、次の実行が比較を省いてしまう。
 vrt-update: build-storybook
 	@$(VRT_REQUIRE_WIRING)
 	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --update-snapshots $(VRT_ARGS)
+	@pnpm exec tsx scripts/vrt inputs > $(VRT_INPUTS_FILE)
 	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です。"
 
 # 手元から撮り直す唯一の入口。撮って送らないと、親の gitlink が古いまま作業ツリーだけ新しい
