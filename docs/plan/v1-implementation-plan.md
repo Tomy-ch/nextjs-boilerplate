@@ -362,7 +362,7 @@ shadcn/ui を import
 
 ## 4. PR 一覧
 
-全 65 PR。issue 化の単位はこの 1 行 = 1 issue。
+全 66 PR。issue 化の単位はこの 1 行 = 1 issue。
 
 | ID | タイトル | Phase | 依存 |
 | --- | --- | --- | --- |
@@ -413,6 +413,7 @@ shadcn/ui を import
 | P5-16 | ゴールデンパス README 整備(B5 完成) | 5 | P5-1〜P5-15 |
 | P5-17 | セキュリティ workflow(CodeQL / gitleaks / trivy / Dependabot) | 5 | P5-16 |
 | P5-18 | spec 駆動の採否判断(GB-3) | 5 | P5-16, P4-6 |
+| P5-19 | 一覧の総件数を実装へ差し替え | 5 | P5-2, P5-16 |
 | P6-1 | クライアント観測性 | 6 | P3-5, P4-5 |
 | P6-2 | CSP / セキュリティヘッダ + CI 適合ゲート | 6 | P5-16, P6-8 |
 | P6-3 | SEO / metadata + fonts | 6 | P5-1, P5-4 |
@@ -1296,6 +1297,16 @@ sources:
 - **不採用の場合**: GB-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
 - **完了条件**: 採否が BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の IM-26 へ反映されている。採用する場合は P4-6 の改修 PR が起票されている
 - **依存**: P5-16, P4-6
+
+### P5-19: 一覧の総件数を実装へ差し替え
+
+- **目的**: 「全 N 件中 M 件」の N を、固定値から実際の取得へ替える
+- **対象 ADR**: [0073](../adr/0073-pagination-fetch-boundary.md) / [0071](../adr/0071-bff-api-integration.md)
+- **主な変更先**: `src/adapters/server/api/products.ts` の `getProductTotalCount()`（**破棄対象**）
+- **設計**: cursor ページネーションは総数を持たないため、一覧の応答からは取り出せない。総数は別の取得口が返す。P5-2 の時点では取得口が契約に無く、固定値を返す実装に `// TODO:` を貼ってある
+- **注意**: **backend 側の契約追加が前提**であり、契約が生えるまで着手できない。フロント側の変更は取得関数 1 つに閉じており、画面側は変わらない（P5-2 で `total` を受け取る形にしてある）
+- **完了条件**: 条件を変えると総数が追随する。取得に失敗しても一覧そのものは出る（総数だけ落ちる）
+- **依存**: P5-2, P5-16
 
 ## Phase 6: 非機能
 

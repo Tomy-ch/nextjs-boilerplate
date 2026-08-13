@@ -92,7 +92,15 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
 
   return (
     <ProductListView groups={groups} selection={displayed} sortOptions={SORT_OPTIONS}>
-      <ProductInfiniteList initial={page} query={toConditions(selection)} total={total} />
+      <ProductInfiniteList
+        initial={page}
+        // 取り直した結果で積み上げを捨てるための鍵。読み進めた分は island の state にあり、
+        // props が変わっても入れ替わらない。中身から鍵を作れば、変わったときだけ積み直り、
+        // 変わっていなければ読み進めた位置が保たれる。
+        key={JSON.stringify(page.items)}
+        query={toConditions(selection)}
+        total={total}
+      />
     </ProductListView>
   );
 }
