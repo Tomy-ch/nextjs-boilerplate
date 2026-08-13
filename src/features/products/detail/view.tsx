@@ -88,6 +88,7 @@ type ProductDetailProps = {
  */
 export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
   const slides = imageUrls.length === 0 ? [null] : imageUrls;
+  const viewable = imageUrls.map((url) => ({ src: url, alt: product.name }));
   const isLowStock =
     product.stockWarningThreshold !== null && product.quantity <= product.stockWarningThreshold;
 
@@ -141,7 +142,7 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
                     src={null}
                   />
                 ) : (
-                  <ImageViewer alt={product.name} src={src}>
+                  <ImageViewer images={viewable} index={index}>
                     <MediaImage
                       alt={product.name}
                       className="rounded-lg border border-border"

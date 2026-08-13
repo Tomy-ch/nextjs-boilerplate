@@ -1,10 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { Carousel, CarouselContent, CarouselItem } from "../../container/carousel/carousel";
 import { MediaImage } from "../../display/media-image/media-image";
-import { MEDIA_IMAGE_ASPECT_RATIO } from "../../display/media-image/media-image.definition";
-import { ImageViewer } from "./image-viewer";
+import { ImageViewer, type ViewableImage } from "./image-viewer";
 
-const IMAGE_URL = "/src/components/design-system/display/media-image/invertocat.png";
+const PHOTO = "/src/components/design-system/display/media-image/invertocat.png";
+
+// 送った位置が見て分かるよう、枚数ぶん違う絵柄を並べる。
+const IMAGES: readonly ViewableImage[] = [
+  { src: PHOTO, alt: "1 枚目" },
+  { src: "/globe.svg", alt: "2 枚目" },
+  { src: "/window.svg", alt: "3 枚目" },
+];
 
 const meta = {
   title: "Overlay/ImageViewer",
@@ -14,50 +21,68 @@ const meta = {
     docs: {
       description: {
         component: [
-          "縮小版を押すと大きく開きます。**canvas 上で画像を押すと確認できます。**",
+          "縮小版を押すと大きく開き、開いたまま前後へ送れます。**canvas 上で画像を押すと確認できます。**",
           "枠と比率は呼び出し元が決めるため、この部品は trigger の中身を受け取るだけです。",
         ].join(""),
       },
     },
   },
-  args: {
-    alt: "招き猫",
-    src: IMAGE_URL,
-  },
+  args: { images: IMAGES, index: 0, children: null },
 } satisfies Meta<typeof ImageViewer>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** carousel に載せる想定の、比率を固定した縮小版。 */
+/** 単独で置いた縮小版。押すと 1 枚目から開く。 */
 export const Default: Story = {
+  args: { index: 0 },
   render: (args) => (
     <div className="w-72">
       <ImageViewer {...args}>
         <MediaImage
-          alt={args.alt}
+          alt={IMAGES[args.index]?.alt ?? ""}
           className="rounded-lg border border-border"
           sizes="18rem"
-          src={IMAGE_URL}
+          src={IMAGES[args.index]?.src ?? null}
         />
       </ImageViewer>
     </div>
   ),
 };
 
-/** 正方形の枠に収めた縮小版。枠が変わっても拡大版の見え方は変わらない。 */
-export const Square: Story = {
+/** 途中の 1 枚から開く。押した位置から始まる。 */
+export const OpensAtIndex: Story = {
+  args: { index: 2 },
+  render: Default.render,
+};
+
+/**
+ * carousel に載せた場合。拡大版で送ってから閉じると、背後の carousel が
+ * その位置へ寄る。**開いて右へ送り、閉じてから背後を見ると確認できる。**
+ */
+export const InsideCarousel: Story = {
   render: (args) => (
-    <div className="w-40">
-      <ImageViewer {...args}>
-        <MediaImage
-          alt={args.alt}
-          aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
-          className="rounded-lg border border-border"
-          sizes="10rem"
-          src={IMAGE_URL}
-        />
-      </ImageViewer>
+    <div className="w-96">
+      <Carousel aria-label="招き猫">
+        <CarouselContent>
+          {IMAGES.map((image, position) => (
+            <CarouselItem
+              aria-label={`${position + 1} / ${IMAGES.length}`}
+              id={`story-image-${position + 1}`}
+              key={image.alt}
+            >
+              <ImageViewer images={args.images} index={position}>
+                <MediaImage
+                  alt={image.alt}
+                  className="rounded-lg border border-border"
+                  sizes="24rem"
+                  src={image.src}
+                />
+              </ImageViewer>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
     </div>
   ),
 };
