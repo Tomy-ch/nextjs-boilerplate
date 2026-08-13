@@ -53,6 +53,7 @@ Follow instructions in this order. If conflicts occur, the higher-priority docum
 4. **`.github/copilot-instructions.md`** and other agent-specific configs
 5. User instructions
 
+<!-- boilerplate-only:begin -->
 ## What to Recommend
 
 This section governs what you **recommend**, never what you may change. Authority to act is
@@ -75,9 +76,7 @@ so a human can decline the scope while keeping the direction.
 
 Recommending is not deciding. Where BACKLOG still leaves an area blank, `Pending Decisions` below
 still applies: propose, and leave the ADR call to the user.
-
-Delete this section when creating a repository from this template — once the fork is the product,
-its premise no longer holds.
+<!-- boilerplate-only:end -->
 
 ## Accepted Rules (ADRs)
 
