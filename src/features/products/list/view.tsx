@@ -1,10 +1,20 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
-import type { FilterOption } from "./query";
+import { Button } from "@/components/design-system/action/button/button";
+import { SearchFieldNative } from "@/components/design-system/form/search-field-native/search-field-native";
+import {
+  FilterBar,
+  FilterBarActiveFilters,
+  FilterBarControls,
+  FilterChip,
+} from "@/components/patterns/filter-bar/filter-bar";
+
+import { toActiveFilters } from "./active-filters";
+import { FILTER_KEY, type FilterOption, PRODUCT_LIST_PATH, toConditions } from "./query";
 import type { FilterGroup } from "./ui/filter-fields/filter-fields";
 import { ProductFilterSheet } from "./ui/filter-sheet/filter-sheet";
 import { ProductFilterSidebar } from "./ui/filter-sidebar/filter-sidebar";
-import { ProductSearch } from "./ui/search/search";
 import { ProductSortSelect } from "./ui/sort-select/sort-select";
 
 /** `ProductListView` の props。 */
@@ -20,13 +30,35 @@ export type ProductListViewProps = {
 };
 
 /**
+ * 検索が引き継ぐ条件。
+ *
+ * @remarks
+ * GET の form は送信時に URL の query をすべて捨てるため、絞り込みと並び替えを hidden で
+ * 復元します。キーワードは入力欄そのものが持つので除きます。読み進めた位置は
+ * {@link toConditions} が落とします。検索し直した後の「続き」は前の条件の続きだからです。
+ */
+function toCarriedParams(selection: Readonly<Record<string, string>>) {
+  const { [FILTER_KEY.KEYWORD]: _keyword, ...carried } = toConditions(selection);
+
+  return carried;
+}
+
+/**
  * 商品一覧の画面。
  *
  * @remarks
  * 取得を持ちません。一覧本体を受け取る形にしてあるのは、画面の組み方の確認に取得を必要と
  * しないようにするためです。
  *
- * 絞り込みを 2 つ置き、CSS の段で出し分けます。位置が動く出し分けを JS の幅判定で行うと、
+ * 検索・並び替え・効いている条件を `FilterBar` にまとめます。landmark になるため、支援技術から
+ * 絞り込みへ直接移動できます。効いている条件を chip で出すのは、脇の領域を持てない幅では入力欄が
+ * overlay の中にあり、閉じている間は何で絞り込まれているかが画面から読めないためです。条件が
+ * 増えるほどこの差は開きます。
+ *
+ * 検索欄は hydration を必要としない形にしてあります。打鍵ごとに反映する必要が無く、送信結果は
+ * URL に載るため、島にしても得るものがありません。
+ *
+ * 絞り込みの入力欄を 2 つ置き、CSS の段で出し分けます。位置が動く出し分けを JS の幅判定で行うと、
  * サーバでは判定できないため hydration の前後で配置が動きます
  * （[0051](../../../docs/adr/0051-styling-system.md) §2）。脇に常設できる幅の下限も、
  * 脇に領域を持てない幅で操作を下端へ固定する判断も、その ADR が持ちます。
@@ -40,14 +72,44 @@ export function ProductListView({
   selection,
   children,
 }: ProductListViewProps) {
+  const activeFilters = toActiveFilters(groups, selection);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <ProductSearch selection={selection} />
-        <ProductSortSelect options={sortOptions} selection={selection} />
-      </div>
+      <FilterBar label="商品の検索と絞り込み">
+        <FilterBarControls className="justify-between">
+          <SearchFieldNative
+            action={PRODUCT_LIST_PATH}
+            className="max-w-xs flex-1"
+            defaultValue={selection[FILTER_KEY.KEYWORD] ?? ""}
+            hiddenParams={toCarriedParams(selection)}
+            label="商品名で探す"
+            name={FILTER_KEY.KEYWORD}
+            placeholder="商品名で探す"
+          />
+          <ProductSortSelect options={sortOptions} selection={selection} />
+        </FilterBarControls>
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterBarActiveFilters>
+            {activeFilters.map((filter) => (
+              <FilterChip
+                key={filter.key}
+                label={filter.label}
+                removeHref={filter.removeHref}
+                value={filter.value}
+              />
+            ))}
+          </FilterBarActiveFilters>
+          {/* 1 件しか効いていないときは、その chip の解除と行き先が同じになる。 */}
+          {activeFilters.length > 1 ? (
+            <Button asChild size="sm" variant="ghost">
+              <Link href={PRODUCT_LIST_PATH}>条件をすべて解除</Link>
+            </Button>
+          ) : null}
+        </div>
+      </FilterBar>
       <div className="flex gap-8">
-        <aside className="hidden w-64 shrink-0 lg:block">
+        <aside aria-label="絞り込み条件" className="hidden w-64 shrink-0 lg:block">
           <ProductFilterSidebar groups={groups} selection={selection} />
         </aside>
         <div className="min-w-0 flex-1">{children}</div>

@@ -75,12 +75,6 @@ describe("ProductFilterSidebar", () => {
     expect(group("カテゴリ").getByLabelText("ウェアラブル")).toBeChecked();
   });
 
-  it("絞り込みの領域として名前を持つ", () => {
-    render(<ProductFilterSidebar groups={GROUPS} selection={{}} />);
-
-    expect(screen.getByRole("region", { name: "絞り込み" })).toBeVisible();
-  });
-
   it("読み進めた位置を持ち越さない", async () => {
     render(
       <ProductFilterSidebar

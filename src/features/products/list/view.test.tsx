@@ -45,7 +45,7 @@ describe("ProductListView", () => {
   it("キーワードの検索欄を出す", () => {
     renderView();
 
-    expect(screen.getByRole("searchbox", { name: "キーワード" })).toBeVisible();
+    expect(screen.getByRole("searchbox", { name: "商品名で探す" })).toBeVisible();
   });
 
   it("並び替えの選択肢を出す", () => {
@@ -58,7 +58,7 @@ describe("ProductListView", () => {
   it("絞り込みを脇と下端の 2 か所に出す", () => {
     renderView();
 
-    expect(screen.getByRole("region", { name: "絞り込み" })).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "絞り込み条件" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "絞り込み" })).toBeVisible();
   });
 
@@ -80,7 +80,7 @@ describe("ProductListView", () => {
   it("いま効いているキーワードを検索欄に残す", () => {
     renderView({ [FILTER_KEY.KEYWORD]: "イヤホン" });
 
-    expect(screen.getByRole("searchbox", { name: "キーワード" })).toHaveValue("イヤホン");
+    expect(screen.getByRole("searchbox", { name: "商品名で探す" })).toHaveValue("イヤホン");
   });
 
   it("いま効いている並び順を選択済みにする", () => {

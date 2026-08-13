@@ -175,7 +175,7 @@ export const DefaultTablet: Story = {
   globals: { viewport: { value: "tablet", isRotated: false } },
 };
 
-/** スマホ。検索と並び替えが縦に積まれ、カードは 1 列になる。 */
+/** スマホ。検索と並び替えが折り返し、カードは 1 列になる。 */
 export const DefaultMobile: Story = {
   globals: { viewport: { value: "mobile2", isRotated: false } },
 };
@@ -187,7 +187,7 @@ export const Empty: Story = {
   },
 };
 
-/** 絞り込みと並び替えが効いている状態。脇の選択とキーワード欄に条件が残る。 */
+/** 絞り込みと並び替えが効いている状態。効いている条件が chip で並び、1 つずつ外せる。 */
 export const Filtered: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {

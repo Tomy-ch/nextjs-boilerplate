@@ -113,7 +113,7 @@ describe("ProductListPageContent", () => {
   it("検索欄に現在のキーワードを引き継ぐ", async () => {
     render(await ProductListPageContent({ searchParams: { keyword: "イヤホン" } }));
 
-    expect(screen.getByRole("searchbox", { name: "キーワード" })).toHaveValue("イヤホン");
+    expect(screen.getByRole("searchbox", { name: "商品名で探す" })).toHaveValue("イヤホン");
   });
 
   it("明示された並び順を選択済みにする", async () => {
