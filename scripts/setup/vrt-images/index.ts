@@ -17,6 +17,8 @@ import {
   DEFAULT_VISIBILITY,
   defaultImagesName,
   isAffirmative,
+  looksLikePrivateKey,
+  normalizeKeyPath,
   normalizeVisibility,
   parseAppId,
   renderReadme,
@@ -166,9 +168,7 @@ async function setupApp(): Promise<void> {
   gh(["secret", "set", "VRT_APP_ID", "--body", appId]);
   console.log("🔧 VRT_APP_ID を登録しました。");
 
-  // 鍵は gh の標準入力へ直接渡す。読み取らないので、ディスクにもこのプロセスにも残らない。
-  console.log("\n秘密鍵 (.pem の中身) を貼り付けて Ctrl+D:");
-  execFileSync("gh", ["secret", "set", "VRT_APP_PRIVATE_KEY"], { stdio: "inherit", cwd: ROOT_DIR });
+  setPrivateKey(normalizeKeyPath(await ask("秘密鍵 (.pem) のパス"), os.homedir()));
   console.log("🔧 VRT_APP_PRIVATE_KEY を登録しました。");
 
   console.log(
@@ -176,12 +176,48 @@ async function setupApp(): Promise<void> {
       "",
       "✅ secret の登録が完了しました。",
       "",
+      "手元の .pem はもう要りません。消してください。",
+      "",
       "残りは GitHub の画面でしか行えません。",
       "  1. App の Repository permissions を Contents: Read and write だけにする",
       "  2. App の installation を「このリポジトリ」と「基準画像のリポジトリ」の 2 つに限定する",
       "  3. 基準画像のリポジトリにルールセットを掛けない（App の push を自分で塞ぐことになる）",
     ].join("\n"),
   );
+}
+
+/**
+ * `.pem` を開いたまま `gh` の標準入力へ繋ぐ。
+ *
+ * 鍵の中身はカーネル経由で `gh` へ渡り、このプロセスの記憶には先頭の 1 行しか載らない。
+ * 端末へ貼り付けさせないのは、改行で終わらない貼り付けが 1 回目の Ctrl+D で EOF にならず、
+ * 「押しても終わらない」に見えるためである。
+ */
+function setPrivateKey(keyPath: string): void {
+  if (!fs.existsSync(keyPath)) {
+    throw new Error(`秘密鍵が見つかりません: ${keyPath}`);
+  }
+
+  const head = Buffer.alloc(64);
+  const probe = fs.openSync(keyPath, "r");
+  try {
+    fs.readSync(probe, head, 0, head.length, 0);
+  } finally {
+    fs.closeSync(probe);
+  }
+  if (!looksLikePrivateKey(head.toString("utf8"))) {
+    throw new Error(`秘密鍵の形式ではありません: ${keyPath}`);
+  }
+
+  const key = fs.openSync(keyPath, "r");
+  try {
+    execFileSync("gh", ["secret", "set", "VRT_APP_PRIVATE_KEY"], {
+      stdio: [key, "inherit", "inherit"],
+      cwd: ROOT_DIR,
+    });
+  } finally {
+    fs.closeSync(key);
+  }
 }
 
 function isWired(): boolean {

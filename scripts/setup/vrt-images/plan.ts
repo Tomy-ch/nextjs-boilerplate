@@ -110,6 +110,36 @@ export function renderReadme(
   return rendered;
 }
 
+/**
+ * 端末へ入力された `.pem` のパスを実際のパスへ均す。
+ *
+ * @remarks
+ * 端末へファイルをドラッグすると、空白を `\ ` で逃がした形や引用符で囲まれた形が入ります。
+ * `~` も展開します（シェルではなくこのプロセスが受け取るので、そのままでは開けません）。
+ */
+export function normalizeKeyPath(input: string, homeDirectory: string): string {
+  const unquoted = input.trim().replace(/^(['"])(.*)\1$/, "$2");
+  const unescaped = unquoted.replace(/\\(.)/g, "$1").trim();
+
+  if (unescaped === "") {
+    throw new Error("秘密鍵 (.pem) のパスを入力してください。");
+  }
+  return unescaped === "~" || unescaped.startsWith("~/")
+    ? `${homeDirectory}${unescaped.slice(1)}`
+    : unescaped;
+}
+
+/**
+ * 秘密鍵の中身に見えるか。
+ *
+ * @remarks
+ * パスを取り違えたまま secret を設定すると、失敗するのは数日後の撮り直しです。中身を全部
+ * 読まずに先頭だけ見るのは、鍵をこのプロセスの記憶へ載せないためです。
+ */
+export function looksLikePrivateKey(head: string): boolean {
+  return /^-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(head.trimStart());
+}
+
 /** 空の回答を既定値へ落とす。 */
 export function withDefault(answer: string, fallback: string): string {
   const trimmed = answer.trim();

@@ -6,6 +6,8 @@ import {
   DEFAULT_VISIBILITY,
   defaultImagesName,
   isAffirmative,
+  looksLikePrivateKey,
+  normalizeKeyPath,
   normalizeVisibility,
   parseAppId,
   renderReadme,
@@ -182,5 +184,62 @@ describe("parseAppId", () => {
     ["数字を含む文字列", "app-2168345"],
   ])("App ID でない %s を拒む", (_label, input) => {
     expect(() => parseAppId(input)).toThrow(/App ID（General ページに出ている数字）/);
+  });
+});
+
+describe("normalizeKeyPath", () => {
+  // ----- 正常系 -----
+  it("そのままのパスを受ける", () => {
+    expect(normalizeKeyPath("/tmp/app.pem", "/Users/me")).toBe("/tmp/app.pem");
+  });
+
+  it.each([
+    ["引用符で囲まれた形", "'/tmp/my app.pem'"],
+    ["空白を逃がした形", "/tmp/my\\ app.pem"],
+  ])("端末へドラッグした %s を均す", (_label, input) => {
+    expect(normalizeKeyPath(input, "/Users/me")).toBe("/tmp/my app.pem");
+  });
+
+  it("~ を展開する", () => {
+    expect(normalizeKeyPath("~/Downloads/app.pem", "/Users/me")).toBe(
+      "/Users/me/Downloads/app.pem",
+    );
+  });
+
+  it("~ 単体も展開する", () => {
+    expect(normalizeKeyPath("~", "/Users/me")).toBe("/Users/me");
+  });
+
+  // ----- 異常系 -----
+  it("先頭が ~ でも別名なら展開しない", () => {
+    expect(normalizeKeyPath("~other/app.pem", "/Users/me")).toBe("~other/app.pem");
+  });
+
+  it.each([
+    ["空文字", ""],
+    ["空白だけ", "   "],
+  ])("%s を拒む", (_label, input) => {
+    expect(() => normalizeKeyPath(input, "/Users/me")).toThrow(/パスを入力してください/);
+  });
+});
+
+describe("looksLikePrivateKey", () => {
+  // ----- 正常系 -----
+  it.each([
+    ["PKCS#1", "-----BEGIN RSA PRIVATE KEY-----\nMIIE"],
+    ["PKCS#8", "-----BEGIN PRIVATE KEY-----\nMIIE"],
+    ["先頭に空行", "\n-----BEGIN RSA PRIVATE KEY-----"],
+  ])("%s を鍵と見なす", (_label, head) => {
+    expect(looksLikePrivateKey(head)).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it.each([
+    ["公開鍵", "-----BEGIN PUBLIC KEY-----"],
+    ["証明書", "-----BEGIN CERTIFICATE-----"],
+    ["別のファイル", '{"name": "app"}'],
+    ["空", ""],
+  ])("%s を鍵と見なさない", (_label, head) => {
+    expect(looksLikePrivateKey(head)).toBe(false);
   });
 });
