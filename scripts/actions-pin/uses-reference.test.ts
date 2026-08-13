@@ -199,4 +199,16 @@ describe("unparsedUsesLines", () => {
   it("alias で書かれた uses を取りこぼしとして返す", () => {
     expect(unparsedUsesLines("  - uses: *co\n")).toEqual([1]);
   });
+
+  it("タグを付けて書かれた uses を取りこぼしとして返す", () => {
+    expect(unparsedUsesLines("  - uses: !!str actions/checkout@v7\n")).toEqual([1]);
+  });
+
+  it("値を次の行に置いた uses を取りこぼしとして返す", () => {
+    expect(unparsedUsesLines("  - uses:\n      actions/checkout@v7\n")).toEqual([1]);
+  });
+
+  it("折りたたみスカラーで書かれた uses を取りこぼしとして返す", () => {
+    expect(unparsedUsesLines("  - uses: >-\n      actions/checkout@v7\n")).toEqual([1]);
+  });
 });
