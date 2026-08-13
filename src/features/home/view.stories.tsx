@@ -12,6 +12,7 @@ import { CartPanel } from "@/features/cart/ui/panel/panel";
 import type { ProductListItem, ProductRankingEntry, ProductRef } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 
+import { SampleNotice } from "./ui/sample-notice/sample-notice";
 import { HomeView } from "./view";
 
 const FRONT_IMAGE_URL = "/src/components/design-system/display/media-image/invertocat.png";
@@ -29,6 +30,8 @@ const FAILURE_MESSAGE = "問題が発生しました。時間をおいて再試�
  *
  * カートは空にする。トップにはカートへ入れる操作が無く、脇の領域が出ていると本文の取り分が
  * 変わって段の見え方が実物とずれる。
+ *
+ * 断り書きも枠に含める。実画面では見出しより前に出るため、外すと余白と重心が実物とずれる。
  */
 function withPageFrame(Story: () => React.ReactElement) {
   useCartStore.setState({ lines: [], isOpen: false });
@@ -43,6 +46,7 @@ function withPageFrame(Story: () => React.ReactElement) {
         siteName="nextjs-boilerplate"
       >
         <ContentContainer className="py-8">
+          <SampleNotice />
           <PageHeader>
             <div>
               <PageHeaderTitle>ようこそ</PageHeaderTitle>
