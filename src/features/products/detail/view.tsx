@@ -27,6 +27,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/design-system/navigation/breadcrumb/breadcrumb";
+import { ImageViewer } from "@/components/design-system/overlay/image-viewer/image-viewer";
 import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
 import { ActionBar } from "@/components/patterns/action-bar/action-bar";
 import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
@@ -63,6 +64,10 @@ type ProductDetailProps = {
  * 画像は枚数によらず carousel に載せ、送り先の一覧を必ず下に並べます。枚数で構造を変えると境界で
  * 見た目が動き、1 枚の商品と複数枚の商品が別の画面に見えます。1 枚も無い場合は代替画像を 1 枚として
  * 置きます。
+ *
+ * 実画像だけを押して拡大できます。代替画像は「画像が無い」ことを伝える表示であり、拡大しても
+ * 得られるものがありません。押せる画像と押せない画像が混ざりますが、混ざるのは実画像が無い商品
+ * だけで、同じ商品の中で押せたり押せなかったりはしません。
  *
  * 在庫が少ないかどうかの境界はバックエンドが `stockWarningThreshold` で供給します。ここが持つのは
  * 境界を跨いだ時に何を見せるかだけです。
@@ -125,15 +130,27 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
                     tabIndex={-1}
                   />
                 )}
-                <MediaImage
-                  alt={product.name}
-                  className="rounded-lg border border-border"
-                  fallbackAlt="画像なし"
-                  fallbackSrc={NO_IMAGE_URL}
-                  preload={index === 0}
-                  sizes="(min-width: 1024px) 50vw, 100vw"
-                  src={src}
-                />
+                {src === null ? (
+                  <MediaImage
+                    alt={product.name}
+                    className="rounded-lg border border-border"
+                    fallbackAlt="画像なし"
+                    fallbackSrc={NO_IMAGE_URL}
+                    preload
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    src={null}
+                  />
+                ) : (
+                  <ImageViewer alt={product.name} src={src}>
+                    <MediaImage
+                      alt={product.name}
+                      className="rounded-lg border border-border"
+                      preload={index === 0}
+                      sizes="(min-width: 1024px) 50vw, 100vw"
+                      src={src}
+                    />
+                  </ImageViewer>
+                )}
                 {index === slides.length - 1 ? null : (
                   <CarouselNext
                     className="print-hidden"
