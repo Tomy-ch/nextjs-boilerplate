@@ -35,26 +35,58 @@ story 単位の visual regression が、どの部品でどう組み上がって�
 
 ## 流れ
 
-```mermaid
-flowchart TD
-    subgraph main["主リポジトリ"]
-        code["部品のソース"]
-        link["vrt/screenshots\n(gitlink)"]
-        ci["vrt / vrt-guard\n(比較)"]
-        retake["vrt-retake\n(ラベル or revert)"]
-    end
-    subgraph store["置き場"]
-        root["根\n(README だけ)"]
-        snap["snapshot/&lt;branch&gt;\n(一式まるごと)"]
-    end
+### 手元から撮る
 
-    code -->|build して撮る| snap
-    root -->|親| snap
-    snap -->|sha を記録| link
-    link -->|記録された 1 コミットを取得| ci
-    ci -->|差分の報告| retake
-    retake -->|撮り直して送る| snap
-    snap -->|compare リンク| review["PR レビューで画素を判断"]
+```mermaid
+sequenceDiagram
+    actor dev as 開発者
+    participant sb as Storybook 静的出力
+    participant runner as vrt_runner
+    participant store as 置き場
+    participant main as 主リポジトリ
+
+    dev->>sb: make vrt-retake
+    Note over sb: pnpm build-storybook
+    runner->>sb: iframe.html?id=... を開く
+    sb-->>runner: story を描画
+    runner->>runner: 全 story を撮る
+    Note over runner: digest 固定の container 内
+    runner-->>dev: vrt/screenshots へ書き出し
+    dev->>store: 一式を 1 コミットで push
+    Note over store: 親は根 / ref は snapshot/ブランチ名
+    store-->>dev: 撮影コミットの sha
+    dev->>main: gitlink を進めてコミット・push
+```
+
+### CI が比較し、撮り直して承認へ渡す
+
+```mermaid
+sequenceDiagram
+    actor dev as 開発者
+    participant main as 主リポジトリ
+    participant gha as GitHub Actions
+    participant store as 置き場
+    actor rev as レビュアー
+
+    dev->>main: 部品を変更して push
+    main->>gha: vrt を起動
+    gha->>store: 記録された 1 コミットだけを取得
+    Note over gha,store: 置き場が非公開なら App のトークンで読む
+    store-->>gha: 基準画像の一式
+    gha->>gha: Storybook を build して全 story を撮る
+    gha->>main: 差分の一覧表を PR へ / 赤で落とす
+
+    dev->>main: vrt-retake ラベルを付ける
+    main->>gha: vrt-retake を起動
+    gha->>gha: 報告された story だけ撮り直す
+    gha->>store: 一式を push
+    store-->>gha: 新しい sha
+    gha->>main: gitlink を進めて push
+    gha->>main: compare リンクを PR へ
+
+    rev->>store: compare で画素を見る
+    rev->>main: PR を承認
+    Note over main,rev: bot の push の後に人が承認する
 ```
 
 ## 全体が乗っている不変条件
