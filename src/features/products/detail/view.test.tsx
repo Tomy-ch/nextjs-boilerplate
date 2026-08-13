@@ -51,7 +51,6 @@ describe("ProductDetail", () => {
     vi.unstubAllGlobals();
   });
 
-  // ----- 正常系 -----
   it("商品名を見出しに出す", () => {
     render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
 
@@ -150,13 +149,26 @@ describe("ProductDetail", () => {
     expect(useCartStore.getState().lines[0]?.imageUrl).toBeNull();
   });
 
-  it("一覧へ戻る導線を出す", () => {
+  it("サイト構造上の階層を示す", () => {
     render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
 
-    expect(screen.getByRole("link", { name: "商品一覧へ戻る" })).toHaveAttribute(
-      "href",
-      "/products",
-    );
+    const breadcrumb = within(screen.getByRole("navigation", { name: "パンくずリスト" }));
+
+    expect(breadcrumb.getByRole("link", { name: "トップ" })).toHaveAttribute("href", "/");
+    expect(breadcrumb.getByRole("link", { name: "商品一覧" })).toHaveAttribute("href", "/products");
+    expect(breadcrumb.getByText("深煎りブレンド")).toBeVisible();
+  });
+
+  it("実画像には拡大する操作を出す", () => {
+    render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
+
+    expect(screen.getAllByRole("button", { name: /を拡大する/ }).length).toBe(IMAGE_URLS.length);
+  });
+
+  it("代替画像には拡大する操作を出さない", () => {
+    render(<ProductDetail imageUrls={[]} product={productOf()} />);
+
+    expect(screen.queryByRole("button", { name: /を拡大する/ })).not.toBeInTheDocument();
   });
 
   it("カートに追加する操作を出す", () => {

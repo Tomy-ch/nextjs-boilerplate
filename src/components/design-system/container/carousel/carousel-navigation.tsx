@@ -13,17 +13,12 @@ import {
 
 import { cn } from "@/components/cn";
 import { CarouselNav } from "./carousel";
+import { alignSlideToStart, CAROUSEL_CONTENT_SLOT, CAROUSEL_ITEM_SLOT } from "./carousel-scroll";
 
 const CarouselCurrentContext = createContext<string | null>(null);
 
 function slideIdOf(href: string) {
   return decodeURIComponent(href.slice(1));
-}
-
-function alignToStart(container: Element, target: Element) {
-  container.scrollBy({
-    left: target.getBoundingClientRect().left - container.getBoundingClientRect().left,
-  });
 }
 
 function keepVisible(container: Element, target: Element) {
@@ -47,14 +42,14 @@ export type CarouselNavigationProps = Omit<ComponentProps<"a">, "href"> & {
 
 function scrollToSlide(event: MouseEvent<HTMLAnchorElement>, href: string) {
   const target = document.getElementById(slideIdOf(href));
-  const content = target?.closest('[data-slot="carousel-content"]');
+  const content = target?.closest(CAROUSEL_CONTENT_SLOT);
 
   if (!target || !content) {
     return;
   }
 
   event.preventDefault();
-  alignToStart(content, target);
+  alignSlideToStart(content, target);
 }
 
 function handleSlideClick(href: string, onClick?: MouseEventHandler<HTMLAnchorElement>) {
@@ -95,6 +90,9 @@ const CAROUSEL_STEP_CLASS =
  * 見た目で残すより、送れる向きだけを見せるほうが誤解が少ない。
  *
  * 記号だけを描くため、アクセシブルな名前は `aria-label` が担う。省略時は「前へ」になる。
+ *
+ * **slide の中身より後ろに置く。** 位置指定要素は DOM の順で重なるため、`position` を持つ中身より
+ * 前に置くと覆われて押せない。
  *
  * 押しミスを防ぐため、当たり判定は見た目の円より一回り広い。円の半径ぶんだけ外周へ透明な領域を
  * 足しており、円の縁を外しても押せる。この領域は slide の内容に重なるので、**slide の中に link や
@@ -258,13 +256,11 @@ export function CarouselThumbnails({
   );
 
   useEffect(() => {
-    const content = strip
-      ?.closest('[data-slot="carousel"]')
-      ?.querySelector('[data-slot="carousel-content"]');
+    const content = strip?.closest('[data-slot="carousel"]')?.querySelector(CAROUSEL_CONTENT_SLOT);
     const slides =
       content === null || content === undefined
         ? []
-        : [...content.querySelectorAll('[data-slot="carousel-item"]')];
+        : [...content.querySelectorAll(CAROUSEL_ITEM_SLOT)];
 
     if (slides.length === 0) {
       return;

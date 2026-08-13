@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { FILTER_KEY } from "../../query";
+import { FILTER_KEY } from "../../../facade/list-url/list-url";
 import { type FilterGroup, ProductFilterFields } from "./filter-fields";
 
 const GROUPS: readonly FilterGroup[] = [
@@ -66,7 +66,6 @@ function namesIn(label: string): readonly string[] {
 }
 
 describe("ProductFilterFields", () => {
-  // ----- 正常系 -----
   it("群ごとに見出しを付けて選択肢を並べる", () => {
     render(<ProductFilterFields groups={GROUPS} onSelect={vi.fn()} selection={{}} />);
 

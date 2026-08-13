@@ -15,7 +15,8 @@ vi.mock("@/adapters/client/api/products", async (importOriginal) => ({
   fetchProductListPage,
 }));
 
-import { COUNT_KEY, CURSOR_KEY, PRODUCT_PAGE_SIZE } from "./query";
+import { COUNT_KEY, CURSOR_KEY } from "../facade/list-url/list-url";
+import { PRODUCT_PAGE_SIZE } from "./query";
 import { useInfiniteProducts } from "./use-infinite-products";
 
 type IntersectionCallback = (entries: readonly { isIntersecting: boolean }[]) => void;
@@ -151,7 +152,6 @@ describe("useInfiniteProducts", () => {
     vi.unstubAllGlobals();
   });
 
-  // ----- 正常系 -----
   it("続きを読むと読み込み済みへ積み上げる", async () => {
     fetchProductListPage.mockResolvedValue(pageOf(["スタンドライト"]));
     render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} />);
@@ -236,7 +236,6 @@ describe("useInfiniteProducts", () => {
     expect(loadedCountInUrl()).toBe(String(PRODUCT_LIST_MAX_ITEMS));
   });
 
-  // ----- 異常系 -----
   it("終端では続きを読まない", async () => {
     render(<Probe initial={pageOf(["折りたたみ椅子"], null)} />);
 

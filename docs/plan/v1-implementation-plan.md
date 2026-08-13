@@ -1167,6 +1167,7 @@ sources:
 - **目的**: 無限スクロール(増分取得)を確定する。P5-2 のページ送りと**対**になる実例
 - **対象 ADR**: [0073](../adr/0073-pagination-fetch-boundary.md) / [0040](../adr/0040-routing-rendering-strategy.md)
 - **主な変更先**: `src/app/(shop)/purchases/page.tsx` / `[id]/page.tsx` / `src/features/purchases/` / `src/capabilities/`(交差監視 hook があればコア残留)
+- **パンくずを置く**: U8 購入詳細(`購入履歴 > 注文番号`)。基準は [0026](../adr/0026-layout-shell-mount.md)「パンくずを置く画面」。U7 一覧は nav が直接指すので置かない
 - **設計**: **無限スクロール方式でページ送り UI ではない**([screens.md](../screens.md) U7)。[0073](../adr/0073-pagination-fetch-boundary.md) は client 増分取得を「**same-origin(`/api/*` BFF / Route Handler)への薄い fetch**」に限定しているため、**その Route Handler を本 PR で新設する**(`src/app/api/purchases/route.ts` 等。[0070](../adr/0070-backend-role-separation.md) の thin proxy 規約に従う)。Server Action 経由や「もっと見る」の RSC 化に倒す場合も、選択理由をここで記録する
 - **強制手段**: ESLint boundaries(client から外部オリジンへの直 fetch を禁止)+ テスト
 - **完了条件**: スクロールで追加読み込みされる。取得中・末尾到達・エラーの 3 状態が表示される。詳細で JOIN 済み明細が表示される。**client から外部オリジンへ直接 fetch していない**
@@ -1177,6 +1178,7 @@ sources:
 - **目的**: **CollectAll**(独立リソースをフロント側で並置合成)の実例を作る。A1 の backend 合成と対になる
 - **対象 ADR**: [0040](../adr/0040-routing-rendering-strategy.md) / [0061](../adr/0061-form-mutation-ux.md) / [0062](../adr/0062-form-input-validation.md)
 - **主な変更先**: `src/app/(shop)/mypage/page.tsx` / `mypage/edit/page.tsx` / `src/features/account/`
+- **パンくずを置く**: U12 ユーザー更新(`マイページ > プロフィール編集`)。基準は [0026](../adr/0026-layout-shell-mount.md)。U11 マイページは nav が直接指すので置かない
 - **設計**: U11 と U12 は**独立ルート**。U12 は「自分の情報 + 都道府県マスタ」を RSC 内 `Promise.all` で並置合成する。**合成にドメイン計算が要らないのでフロント合成でよい**(判断基準は [screens.md](../screens.md) §1)
 - **注意**: 退会は**確認モーダル必須**(不可逆操作)。退会後はキャンセル・在庫復元が非同期の結果整合で走るため、**即時反映を保証しない UI 文言**にする
 - **画面判断**: **U12 の各入力項目を、`SelectNative` の単純な選択で済ませるか `ComboboxClient` の候補検索にするかをここで決める。**静的で少数の選択肢は native を優先し(SSR first)、候補が多く絞り込みが要る項目だけ client island へ倒す
@@ -1218,6 +1220,7 @@ sources:
   - `src/features/admin/products/` — `RichTextEditor`(P3-8 で完成済み)を form へ載せ、送信値を `model/rich-text` の port へ通す配線
   - `src/features/admin/products/actions.ts` — Server Action(作成 / 更新 / 画像アップロード)
   - `next.config.ts` — **`serverActions.bodySizeLimit` を引き上げる**
+- **パンくずを置く**: A6 商品作成(`商品一覧 > 新規作成`)と A7 商品編集(`商品一覧 > 商品名 > 編集`)。基準は [0026](../adr/0026-layout-shell-mount.md)
 - **技術制約**: Server Action の body size limit は**既定 1MB**。アップロード上限 5MiB 想定のため引き上げ必須
 - **設計**:
   - **画像**: `POST /v1/products/images`(multipart)へ Server Action 経由で転送し、返却された `imagePath` を保存する(go-boilerplate #651)。[0075](../adr/0075-file-upload-seam.md) は 2 経路を対等な seam として持ち**選択は backend の能力で決まる**ため、multipart 受け口しか持たないこの構成では proxy が正規経路である(劣った例外ではない)。この経路ではサイズ上限・content-type 検証を Route Handler / Server Action 側にも置く
@@ -1236,6 +1239,7 @@ sources:
 - **目的**: 単一項目更新と、結果整合を前提とした一覧操作を作る
 - **対象 ADR**: [0061](../adr/0061-form-mutation-ux.md) / [0080](../adr/0080-error-handling.md)
 - **主な変更先**: `src/app/(admin)/products/[id]/stock/page.tsx` / `src/app/(admin)/users/page.tsx` / `src/features/admin/`
+- **パンくずを置く**: A3 在庫補充(`商品一覧 > 商品名 > 在庫補充`)。基準は [0026](../adr/0026-layout-shell-mount.md)。A5 ユーザー一覧は置かない
 - **設計**: A3 は**在庫数のみ**を更新する(他項目は A7 の担当)。A5 の退会は**確認モーダル必須**で、キャンセル・在庫復元は非同期の結果整合のため**即時反映を保証しない文言**にする
 - **完了条件**: 在庫補充が動く。退会に確認モーダルがある。進行中購入がある場合の 409 が表示される
 - **依存**: P5-11

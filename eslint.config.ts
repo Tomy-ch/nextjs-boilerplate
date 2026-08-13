@@ -6,7 +6,14 @@ import boundaries from "eslint-plugin-boundaries";
 import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
-import { DEPENDENCIES, ENTRY_POINTS, KERNELS, RESTRICTED_AREAS } from "./architecture";
+import {
+  DEPENDENCIES,
+  ENTRY_POINTS,
+  KERNEL_PATTERNS,
+  KERNELS,
+  RESTRICTED_AREAS,
+  SHARED_AREAS,
+} from "./architecture";
 import noAnonymousDefaultExport from "./eslint-rules/no-anonymous-default-export";
 import noInternalAnchor from "./eslint-rules/no-internal-anchor";
 import noMarkupOutsideUiLayers from "./eslint-rules/no-markup-outside-ui-layers";
@@ -15,7 +22,12 @@ const elements = [
   // 層より先に並べる。区画は層の内側にあるため、層の要素が先に一致すると区画としては
   // 見えなくなり、層の粒度の許可がそのまま区画への許可になる。
   ...RESTRICTED_AREAS.map(({ type, pattern }) => ({ type, pattern, partialMatch: false })),
-  ...KERNELS.map((type) => ({ type, pattern: `src/${type}`, partialMatch: false })),
+  ...SHARED_AREAS.map(({ type, pattern }) => ({ type, pattern, partialMatch: false })),
+  ...KERNELS.map((type) => ({
+    type,
+    pattern: KERNEL_PATTERNS[type] ?? `src/${type}`,
+    partialMatch: false,
+  })),
 ];
 
 export default [
@@ -55,6 +67,7 @@ export default [
       "boundaries/include": [
         "src/**/*",
         ...RESTRICTED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
+        ...SHARED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
       ],
       "boundaries/elements": elements,
     },
@@ -87,6 +100,23 @@ export default [
               from: { element: { type: from } },
               allow: { to: { element: { types: { anyOf: types } } } },
             })),
+            // 区画自身の依存。層としては `features` に居るが、要素としては別の型になるため、
+            // 層の policy が当たらない。
+            ...SHARED_AREAS.map(({ type, dependencies }) => ({
+              from: { element: { type } },
+              allow: { to: { element: { types: { anyOf: dependencies } } } },
+            })),
+            ...SHARED_AREAS.map(({ type, allowedFrom }) => ({
+              from: { element: { types: { anyOf: allowedFrom } } },
+              allow: { to: { element: { type } } },
+            })),
+            // 画面まるごとの story は feature を跨いで組むため、面にも届く必要がある。
+            ...SHARED_AREAS.flatMap(({ type, allowedFromCategories }) =>
+              allowedFromCategories.map((category) => ({
+                from: { file: { categories: category } },
+                allow: { to: { element: { type } } },
+              })),
+            ),
             ...RESTRICTED_AREAS.filter(({ allowedFrom }) => allowedFrom.length > 0).map(
               ({ type, allowedFrom }) => ({
                 from: { element: { types: { anyOf: allowedFrom } } },

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/design-system/action/button/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
 
-import { FILTER_KEY, PRODUCT_LIST_PATH } from "../../query";
+import { FILTER_KEY, PRODUCT_LIST_PATH } from "../../../facade/list-url/list-url";
 
 /** `ProductInvalidQuery` の props。 */
 export type ProductInvalidQueryProps = {

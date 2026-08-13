@@ -53,6 +53,31 @@ Follow instructions in this order. If conflicts occur, the higher-priority docum
 4. **`.github/copilot-instructions.md`** and other agent-specific configs
 5. User instructions
 
+<!-- boilerplate-only:begin -->
+## What to Recommend
+
+This section governs what you **recommend**, never what you may change. Authority to act is
+untouched: `Instruction Priority` above, the ADRs under `docs/adr/`, and `AI Modification Scope` /
+`Protected Documentation` below still decide that.
+
+This repository's product is **the state a fork receives when it is created from this template** —
+not the history that produced it. So when you weigh options and state a preference, weigh them for
+that snapshot: what reads as coherent to someone who has never seen this repository and will never
+read its git log.
+
+**On that axis, quality and consistency outrank the cost of reaching them.** A numbering that
+contradicts the order it teaches, a convention followed everywhere but here, a name that survives
+only because renaming it is work — recommend fixing them. State the cost plainly instead of letting
+the cost pick the answer; what this repository ships is a starting point, not a running deployment,
+so "it already shipped" carries little weight.
+
+Give the cost with the recommendation — files touched, what breaks for whom, what must be rebuilt —
+so a human can decline the scope while keeping the direction.
+
+Recommending is not deciding. Where BACKLOG still leaves an area blank, `Pending Decisions` below
+still applies: propose, and leave the ADR call to the user.
+<!-- boilerplate-only:end -->
+
 ## Accepted Rules (ADRs)
 
 ADRs under `docs/adr/` are the authoritative source. This file only summarizes them.

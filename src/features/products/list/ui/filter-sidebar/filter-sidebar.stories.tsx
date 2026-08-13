@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { FILTER_KEY } from "../../query";
+import { FILTER_KEY } from "../../../facade/list-url/list-url";
 import type { FilterGroup } from "../filter-fields/filter-fields";
 import { ProductFilterSidebar } from "./filter-sidebar";
 

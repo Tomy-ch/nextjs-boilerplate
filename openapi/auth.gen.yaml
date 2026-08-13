@@ -3,18 +3,18 @@
 openapi: 3.0.3
 info:
   title: Mock Auth Server (OIDC Provider)
-  version: 1.0.0+9be739a
+  version: 1.0.0+ceadce3
   description: |
-    ローカル開発用の疑似 OIDC Provider。Authorization Code Flow + PKCE(S256) を最小構成で提供する。
+    A mock OIDC Provider for local development.
+    It offers the Authorization Code Flow + PKCE (S256) in a minimal form.
 
-    本サービスは go-boilerplate 本体とは別サービスであり、OpenAPI をこのディレクトリ配下にローカルで持つ
-    （主 API 契約 `openapi/` は汚さない）。エンドポイントは 3 系統に分かれる:
+    The endpoints fall into three groups:
 
-    - `/oidc/*` — OAuth2 / OIDC 標準エンドポイント（authorize / token / userinfo / logout）。
-    - `/bypass/*` — テスト用ショートカット（固定 Profile での token / session 発行）。dev-gate 限定。
-    - `/admin/*` — 運用補助（fixture reset / users 一覧 / key rotate スタブ）。dev-gate 限定。
+    - `/oidc/*` — standard OAuth2 / OIDC endpoints (authorize / token / userinfo / logout).
+    - `/bypass/*` — test shortcuts (issuing a token / session for a fixed profile). dev-gate only.
+    - `/admin/*` — operational helpers (fixture reset / user listing / key rotation). dev-gate only.
 
-    パラメータ・フィールドは OAuth2(RFC 6749) / PKCE(RFC 7636) / RFC 9068 / OIDC Core に従い snake_case。
+    Parameters and fields are snake_case, following OAuth2 (RFC 6749) / PKCE (RFC 7636) / RFC 9068 / OIDC Core.
   license:
     name: MIT License
     url: https://opensource.org/licenses/MIT
@@ -280,7 +280,7 @@ paths:
         - bypass
       summary: 固定 Profile での access token 発行（テスト用）
       description: |
-        Authorization Code Flow を経ずに、subject と固定 Profile から access token を直接発行する。 異常系 Profile（expired / wrong-issuer 等）で Go 側検証を試験する。dev-gate 限定。旧 POST /test/token の移行先。
+        Authorization Code Flow を経ずに、subject と固定 Profile から access token を直接発行する。 異常系 Profile（expired / wrong-issuer 等）で Go 側検証を試験する。dev-gate 限定。
       security: []
       requestBody:
         required: false
@@ -367,7 +367,7 @@ paths:
       tags:
         - admin
       summary: 固定 User Fixture の一覧取得
-      description: 登録済みの疑似ユーザー一覧を返す。dev-gate 限定。旧 GET /test/users の移行先。
+      description: 登録済みの疑似ユーザー一覧を返す。dev-gate 限定。
       security: []
       responses:
         '200':
@@ -479,7 +479,7 @@ components:
           type: integer
           format: int32
           description: access_token の有効期間（秒）。
-          example: 300
+          example: 3600
         scope:
           type: string
           description: 付与されたスコープ（スペース区切り）。
@@ -562,6 +562,8 @@ components:
             - openid
             - profile
             - email
+            - api.read
+            - api.write
         token_endpoint_auth_methods_supported:
           type: array
           description: public client（PKCE）のみを許可するため none。

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
 
-import { FILTER_KEY } from "../../query";
+import { FILTER_KEY } from "../../../facade/list-url/list-url";
 import { type FilterGroup, ProductFilterFields } from "./filter-fields";
 
 const GROUPS: readonly FilterGroup[] = [

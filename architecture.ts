@@ -48,7 +48,8 @@ export const UI_KERNELS = ["app", "features", "components"] as const satisfies r
  * @remarks
  * 依存は内向きの一方向です。`app` が最も外側で、`errors` / `logging` / `observability` /
  * `config` は他の層を参照しない末端に置きます。`features` が `features` を含まないのは、
- * 機能スライス同士の相互参照を禁じているためです。
+ * 機能スライス同士の相互参照を禁じているためです。唯一の抜け道は {@link SHARED_AREAS} の
+ * `features-facade` で、層の粒度ではなく区画の粒度で許します。
  */
 export const DEPENDENCIES = {
   app: [
@@ -75,6 +76,19 @@ export const DEPENDENCIES = {
 } as const satisfies Record<Kernel, readonly Kernel[]>;
 
 /**
+ * 層を検査の要素へ切り出すときの経路。既定は `src/<kernel>` を 1 つの要素として扱う。
+ *
+ * @remarks
+ * 境界検査は**要素の間**しか見ません。同じ要素の中の import は、依存表に載っていなくても
+ * 「内部の参照」として通ります。層をディレクトリ 1 つに対応させると、`features` は
+ * 全スライスがまとめて 1 要素になり、feature 同士の直接 import が内部の参照として黙って
+ * 通ります。スライスごとに要素を切って、初めて依存表の禁止が効きます。
+ */
+export const KERNEL_PATTERNS: Partial<Readonly<Record<Kernel, string>>> = {
+  features: "src/features/*",
+};
+
+/**
  * 起動 / ビルド境界のエントリ。置き場を framework が決めるためカーネルの下へ入れられない。
  *
  * @remarks
@@ -99,6 +113,35 @@ export const ENTRY_POINTS = [
 ] as const satisfies readonly {
   category: string;
   pattern: string;
+  dependencies: readonly Kernel[];
+}[];
+
+/**
+ * 層の内側にありながら、外の層から import してよい区画。
+ *
+ * @remarks
+ * {@link RESTRICTED_AREAS} と向きが逆です。あちらは層の許可より狭め、ここは層の禁止より広げます。
+ *
+ * - `features-facade`: feature が他の feature へ見せる唯一の面（[0021](docs/adr/0021-frontend-responsibility.md)
+ *   「昇格できないもの」）。`features` 同士の import は禁じたまま、この区画だけを通します。
+ *   区画自身が import できるものは `features` と同じで、**`features` を含みません**。facade が
+ *   feature の内部を参照できると、内部が facade 経由で外へ素通しになり、面を分けた意味が消えます。
+ *   **区画同士も許しません。** 同じ feature の中は 1 つの要素なので宣言なしで通り、宣言を足すと
+ *   別の feature の面まで通ってしまいます
+ */
+export const SHARED_AREAS = [
+  {
+    type: "features-facade",
+    pattern: "src/features/*/facade",
+    allowedFrom: ["app", "features"],
+    allowedFromCategories: ["feature-story"],
+    dependencies: DEPENDENCIES.features,
+  },
+] as const satisfies readonly {
+  type: string;
+  pattern: string;
+  allowedFrom: readonly Kernel[];
+  allowedFromCategories: readonly string[];
   dependencies: readonly Kernel[];
 }[];
 

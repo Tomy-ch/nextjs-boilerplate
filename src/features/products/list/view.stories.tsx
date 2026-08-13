@@ -7,8 +7,8 @@ import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import type { ProductListItem } from "@/model/product/product";
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
-
-import { FILTER_KEY, type FilterOption } from "./query";
+import { FILTER_KEY } from "../facade/list-url/list-url";
+import type { FilterOption } from "./query";
 import type { FilterGroup } from "./ui/filter-fields/filter-fields";
 import { ProductLoadMoreList } from "./ui/load-more-list/load-more-list";
 import { ProductListView } from "./view";
@@ -129,16 +129,8 @@ const CATEGORY_OPTIONS: readonly FilterOption[] = [
   { value: "c3", label: "アクセサリ" },
 ];
 
-const STATUS_OPTIONS: readonly FilterOption[] = [
-  { value: "", label: "すべて" },
-  { value: "s1", label: "公開" },
-  { value: "s2", label: "在庫切れ" },
-  { value: "s3", label: "販売終了" },
-];
-
 const GROUPS: readonly FilterGroup[] = [
   { key: FILTER_KEY.CATEGORY, legend: "カテゴリ", options: CATEGORY_OPTIONS },
-  { key: FILTER_KEY.STATUS, legend: "状態", options: STATUS_OPTIONS },
 ];
 
 const SORT_OPTIONS: readonly FilterOption[] = [
@@ -175,7 +167,7 @@ export const DefaultTablet: Story = {
   globals: { viewport: { value: "tablet", isRotated: false } },
 };
 
-/** スマホ。検索と並び替えが縦に積まれ、カードは 1 列になる。 */
+/** スマホ。検索と並び替えが折り返し、カードは 1 列になる。 */
 export const DefaultMobile: Story = {
   globals: { viewport: { value: "mobile2", isRotated: false } },
 };
@@ -187,13 +179,12 @@ export const Empty: Story = {
   },
 };
 
-/** 絞り込みと並び替えが効いている状態。脇の選択とキーワード欄に条件が残る。 */
+/** 絞り込みと並び替えが効いている状態。効いている条件が chip で並び、1 つずつ外せる。 */
 export const Filtered: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
     selection: {
       [FILTER_KEY.CATEGORY]: "c1",
-      [FILTER_KEY.STATUS]: "s1",
       [FILTER_KEY.KEYWORD]: "イヤホン",
       [FILTER_KEY.SORT]: "publishedAt",
     },
@@ -252,9 +243,8 @@ export const MaxLength: Story = {
           { value: "c1", label: longText(40) },
         ],
       },
-      { key: FILTER_KEY.STATUS, legend: "状態", options: STATUS_OPTIONS },
     ],
-    selection: { [FILTER_KEY.KEYWORD]: longText(60) },
+    selection: { [FILTER_KEY.CATEGORY]: "c1", [FILTER_KEY.KEYWORD]: longText(60) },
     children: (
       <ProductLoadMoreList
         hasNext

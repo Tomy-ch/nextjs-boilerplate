@@ -315,6 +315,7 @@ trigger から本文の上へ面を開く部品。
 | [`drawer`](./design-system/overlay/drawer/README.md) | 画面端から引き出し、drag でも閉じられる modal panel |
 | [`dropdown-menu`](./design-system/overlay/dropdown-menu/README.md) | trigger から操作の一覧を開く |
 | [`hover-card`](./design-system/overlay/hover-card/README.md) | hover / keyboard focus で、trigger の近くへ短い補足を表示する |
+| [`image-viewer`](./design-system/overlay/image-viewer/README.md) | 縮小して並べた画像を、押したときに大きく表示する |
 | [`popover`](./design-system/overlay/popover/README.md) | trigger の近傍に補足内容や補助操作を開く |
 | [`sheet`](./design-system/overlay/sheet/README.md) | 補助的な navigation や絞り込み面を、画面端から現れる modal パネルとして開く |
 | [`tooltip`](./design-system/overlay/tooltip/README.md) | それだけでは意味が自明でない要素へ、短い補足を添える |
