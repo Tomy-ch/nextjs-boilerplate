@@ -40,6 +40,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+      pull-requests: read
 
     outputs:
       title: ${{ steps.vrt.outputs.title }}
@@ -55,13 +56,71 @@ jobs:
         with:
           persist-credentials: false
 
+      # Decides whether the expensive steps below run. The job itself always starts, so
+      # the required `vrt` context is always reported and no paired guard workflow is
+      # needed — a `paths:` filter cannot do that (README, "`paths:` フィルタを使わない").
+      #
+      # The predicate must stay an ALLOWLIST of paths that cannot move a pixel. A
+      # denylist fails open: anything that escapes it stops the comparison silently and
+      # the job reports "no visual change" without having compared anything.
+      #
+      # Extension-based rules do not belong here. Tailwind class strings live in
+      # `*.definition.ts`, the CSS base in `foundation/*.css`, the token SSOT in
+      # `tokens/**`, and font rasterisation in the image digest pinned by
+      # `docker/images-pin.toml`; a dependency bump moves the rendering as well.
+      - name: Decide whether the comparison can be skipped
+        id: scope
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Every failure mode below resolves to "compare": an unanswered question
+          # must never be read as "nothing to look at".
+          files="$(gh api --paginate "repos/${REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename' || true)"
+          listed="$(printf '%s' "${files}" | grep -c . || true)"
+
+          # The files endpoint truncates at 3000 entries. A list shorter than the pull
+          # request's own count means the allowlist would be applied to an unknown
+          # remainder. Compared as strings so an absent count cannot abort the step.
+          if [ -z "${files}" ] || [ "${listed}" != "${CHANGED_FILES:-0}" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          skip=true
+          while IFS= read -r file; do
+            case "${file}" in
+              docs/*|.claude/*|.agents/*|*.md) ;;
+              *)
+                skip=false
+                break
+                ;;
+            esac
+          done <<< "${files}"
+
+          echo "skip=${skip}" >> "$GITHUB_OUTPUT"
+
+      - name: Note that the comparison was skipped
+        if: steps.scope.outputs.skip == 'true'
+        shell: bash
+        run: |
+          echo '絵を動かしうるファイルに触れていないため、story の比較を省略しました。' >> "$GITHUB_STEP_SUMMARY"
+
       - name: Fetch the baseline images
+        if: steps.scope.outputs.skip != 'true'
         uses: ./.github/actions/setup-vrt-baselines
         with:
           app-id: ${{ secrets.VRT_APP_ID }}
           private-key: ${{ secrets.VRT_APP_PRIVATE_KEY }}
 
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.skip != 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
@@ -69,12 +128,14 @@ jobs:
 
       - name: Resolve the pnpm store path
         id: pnpm-store
+        if: steps.scope.outputs.skip != 'true'
         shell: bash
         run: |
           path="$(pnpm store path)"
           echo "path=${path}" >> "$GITHUB_OUTPUT"
 
       - name: Cache the pnpm store
+        if: steps.scope.outputs.skip != 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
@@ -82,10 +143,12 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        if: steps.scope.outputs.skip != 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build Storybook and compare every story
         id: vrt
+        if: steps.scope.outputs.skip != 'true'
         continue-on-error: true
         shell: bash
         run: |
@@ -159,8 +222,10 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+      # A skipped comparison leaves `status` empty, which must not read as a failure —
+      # the job still has to report a green `vrt` context for the required check.
       - name: Fail if a story changed
-        if: always() && steps.vrt.outputs.status != 'success'
+        if: always() && steps.scope.outputs.skip != 'true' && steps.vrt.outputs.status != 'success'
         run: exit 1
 
   # Holds no secret beyond `GITHUB_TOKEN`, so the body it publishes cannot carry one.
