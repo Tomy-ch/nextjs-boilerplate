@@ -1,7 +1,3 @@
-import { ArrowLeftIcon } from "lucide-react";
-import Link from "next/link";
-
-import { Button } from "@/components/design-system/action/button/button";
 import {
   Carousel,
   CarouselContent,
@@ -23,6 +19,14 @@ import {
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import { MediaImage } from "@/components/design-system/display/media-image/media-image";
 import { MEDIA_IMAGE_ASPECT_RATIO } from "@/components/design-system/display/media-image/media-image.definition";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/design-system/navigation/breadcrumb/breadcrumb";
 import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
 import { ActionBar } from "@/components/patterns/action-bar/action-bar";
 import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
@@ -31,7 +35,9 @@ import { NO_IMAGE_URL } from "@/model/media";
 import type { Product } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 
+import { PRODUCT_LIST_PATH } from "../facade/list-url/list-url";
 import { AddToCartButton } from "../ui/add-to-cart-button/add-to-cart-button";
+import { PrintButton } from "./ui/print-button/print-button";
 
 const DESCRIPTION_HEADING_ID = "product-description";
 
@@ -60,6 +66,15 @@ type ProductDetailProps = {
  *
  * 在庫が少ないかどうかの境界はバックエンドが `stockWarningThreshold` で供給します。ここが持つのは
  * 境界を跨いだ時に何を見せるかだけです。
+ *
+ * パンくずを置くのは、一覧・分類・トップのどこからでも入る画面で、global nav から 1 手で戻れない
+ * 祖先を持つためです（[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。示すのは辿った
+ * 経路ではなくサイト構造上の階層です。
+ *
+ * 紙に出すのは内容だけです。押せない操作（パンくず・画像の送り・一覧・カートへの追加・印刷そのもの）
+ * は紙面の場所を取るだけなので落とします。画像は先頭の 1 枚だけを残し、幅も抑えます。carousel は
+ * 横に送って見る形で、紙では送れないため全部並べると同じ商品の写真が紙を埋め、幅を抑えないと
+ * 1 枚でも紙 1 面を占めて肝心の値が次の紙へ送られます。
  */
 export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
   const slides = imageUrls.length === 0 ? [null] : imageUrls;
@@ -68,24 +83,41 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
 
   return (
     <article className="flex flex-col gap-8 pb-24 lg:pb-0">
-      <Button asChild className="self-start" size="sm" variant="ghost">
-        <Link href="/products">
-          <ArrowLeftIcon aria-hidden="true" className="size-4" />
-          商品一覧へ戻る
-        </Link>
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Breadcrumb className="print-hidden">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">トップ</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink href={PRODUCT_LIST_PATH}>商品一覧</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{product.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <PrintButton />
+      </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <Carousel aria-label={`${product.name}の画像`}>
+        <Carousel aria-label={`${product.name}の画像`} className="print:max-w-64">
           <CarouselContent>
             {slides.map((src, index) => (
               <CarouselItem
                 aria-label={`${index + 1} / ${slides.length}`}
+                className={index === 0 ? undefined : "print-hidden"}
                 id={slideIdOf(index)}
                 key={slideIdOf(index)}
               >
                 {index === 0 ? null : (
-                  <CarouselPrevious href={`#${slideIdOf(index - 1)}`} tabIndex={-1} />
+                  <CarouselPrevious
+                    className="print-hidden"
+                    href={`#${slideIdOf(index - 1)}`}
+                    tabIndex={-1}
+                  />
                 )}
                 <MediaImage
                   alt={product.name}
@@ -97,13 +129,21 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
                   src={src}
                 />
                 {index === slides.length - 1 ? null : (
-                  <CarouselNext href={`#${slideIdOf(index + 1)}`} tabIndex={-1} />
+                  <CarouselNext
+                    className="print-hidden"
+                    href={`#${slideIdOf(index + 1)}`}
+                    tabIndex={-1}
+                  />
                 )}
               </CarouselItem>
             ))}
           </CarouselContent>
 
-          <CarouselThumbnails aria-label="画像の一覧" defaultCurrentId={slideIdOf(0)}>
+          <CarouselThumbnails
+            aria-label="画像の一覧"
+            className="print-hidden"
+            defaultCurrentId={slideIdOf(0)}
+          >
             {slides.map((src, index) => (
               <CarouselLink
                 aria-label={`${index + 1} 枚目`}
@@ -162,7 +202,10 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
             </KeyValueItem>
           </KeyValueList>
 
-          <ActionBar className="w-full" position={ACTION_BAR_POSITION.FIXED_WITHOUT_ASIDE}>
+          <ActionBar
+            className="w-full print-hidden"
+            position={ACTION_BAR_POSITION.FIXED_WITHOUT_ASIDE}
+          >
             <AddToCartButton
               line={{
                 productId: product.id,
