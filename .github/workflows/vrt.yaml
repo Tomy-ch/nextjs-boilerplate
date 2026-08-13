@@ -1,4 +1,4 @@
-name: VRT
+name: VisualRegressionTest
 
 # Compares every Storybook story against its committed baseline image
 # (ADR 0091: visual regression runs on Playwright's screenshot comparison).

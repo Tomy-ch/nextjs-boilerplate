@@ -36,7 +36,7 @@ name: VRT Retake
 
 on:
   workflow_run:
-    workflows: [VRT]
+    workflows: [VisualRegressionTest]
     types: [completed]
 
 permissions:
