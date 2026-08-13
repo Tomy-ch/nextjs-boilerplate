@@ -32,8 +32,11 @@ const PUBLISHED_SURFACE = ["src/components/**/*.{ts,tsx}"];
  *   そのものを取り下げたとき。
  * - `@commitlint/cli` — `make commitlint` が binary として起動する。knip は Makefile を読まない。
  *   撤去条件は、起動元が TypeScript 側へ移ったとき。
+ * - `lefthook` — git hook から起動する。knip は `.git/hooks` の中身で使用を判定するため、hook を
+ *   入れていないチェックアウト（CI）でだけ未使用に見える。撤去条件は、hook の導入が
+ *   チェックアウトの時点で済むようになったとき。
  */
-const NON_IMPORTED_DEPENDENCIES = ["date-fns", "@commitlint/cli"];
+const NON_IMPORTED_DEPENDENCIES = ["date-fns", "@commitlint/cli", "lefthook"];
 
 const config: KnipConfig = {
   // playwright.config.ts はコンテナ外で読み込むと落ちるため、knip の plugin では扱えない。
