@@ -10,7 +10,7 @@ import { toPascalCase } from "./naming";
  */
 
 /** 生成できる雛形の種類。 */
-export const GENERATION_KINDS = ["feature", "component", "adapter"] as const;
+const GENERATION_KINDS = ["feature", "component", "adapter"] as const;
 
 export type GenerationKind = (typeof GENERATION_KINDS)[number];
 

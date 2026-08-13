@@ -27,7 +27,7 @@ const WORKFLOW_EXTENSIONS = [".yaml", ".yml"];
 const JOBS_KEY = "jobs";
 
 // 走査対象の文字列 1 件。
-export type ScalarText = {
+type ScalarText = {
   text: string;
   // この文字列を含むコメント投稿ジョブの ID。ワークフロー全体に及ぶ位置にある場合は null。
   jobId: string | null;

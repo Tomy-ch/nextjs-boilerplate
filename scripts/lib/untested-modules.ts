@@ -48,10 +48,7 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
  * - `docs-viewer/src/main.tsx` — ビューアーの entry。読み込まれた時点で DOM を触るため、
  *   判断はすべて `mount/` 側に置いてある。
  */
-export const NON_DECIDING_MODULES = [
-  "scripts/setup/lib/runtime.ts",
-  "docs-viewer/src/main.tsx",
-] as const;
+const NON_DECIDING_MODULES = ["scripts/setup/lib/runtime.ts", "docs-viewer/src/main.tsx"] as const;
 
 /**
  * テスト専用の組み立て。
@@ -60,7 +57,7 @@ export const NON_DECIDING_MODULES = [
  * 判定を持たず、検証を通る入力一式を用意するだけ。テストが自分の分だけを組み立てると、
  * 他の purpose の欠落で落ちて検査したい判定へ到達しないため 1 箇所に置いてあります。
  */
-export const TEST_FIXTURE_MODULES = ["src/config/environment.fixture.ts"] as const;
+const TEST_FIXTURE_MODULES = ["src/config/environment.fixture.ts"] as const;
 
 /**
  * 単体では回せないモジュール。
@@ -73,7 +70,7 @@ export const TEST_FIXTURE_MODULES = ["src/config/environment.fixture.ts"] as con
  * feature 側の `page-content.tsx` はここに含めません。取得を `adapters` の module 境界で
  * 差し替えれば `render(await Component(props))` で検証できるためです。
  */
-export const RUNTIME_ONLY_MODULES = ["src/app/**/page.tsx"] as const;
+const RUNTIME_ONLY_MODULES = ["src/app/**/page.tsx"] as const;
 
 /**
  * それ自体がテストであるモジュール。
@@ -83,7 +80,7 @@ export const RUNTIME_ONLY_MODULES = ["src/app/**/page.tsx"] as const;
  * 呼ばれません。テストにテストを課す形になるため母数から外し、代わりに判定を持つ部分を
  * `vrt/lib/` へ切り出して 1:1 の対象にしています。
  */
-export const TEST_SUITE_MODULES = ["vrt/*.spec.ts"] as const;
+const TEST_SUITE_MODULES = ["vrt/*.spec.ts"] as const;
 
 /** カバレッジ母数と 1:1 ゲートの双方が外す対象(リポジトリルート相対)。 */
 export const EXCLUDED_FROM_CHECKS = [

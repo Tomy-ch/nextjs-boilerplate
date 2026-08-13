@@ -5,7 +5,7 @@ import type { Schema } from "hast-util-sanitize";
  *
  * `h1` は含めません。本文の見出しが page の `h1` と競合するためです。
  */
-export const RICH_TEXT_BLOCK_TAG_NAMES: readonly string[] = [
+const RICH_TEXT_BLOCK_TAG_NAMES: readonly string[] = [
   "p",
   "h2",
   "h3",
@@ -18,14 +18,7 @@ export const RICH_TEXT_BLOCK_TAG_NAMES: readonly string[] = [
 ];
 
 /** インラインとして通すタグです。 */
-export const RICH_TEXT_INLINE_TAG_NAMES: readonly string[] = [
-  "strong",
-  "em",
-  "s",
-  "code",
-  "a",
-  "br",
-];
+const RICH_TEXT_INLINE_TAG_NAMES: readonly string[] = ["strong", "em", "s", "code", "a", "br"];
 
 /**
  * sanitize 後に残るタグの全体です。
@@ -46,7 +39,7 @@ export const RICH_TEXT_LINK_PROTOCOLS: readonly string[] = ["http", "https", "ma
  * allowlist 外のタグは既定では中身を残して展開されるため、テキスト子要素がそのまま本文へ混ざる
  * タグだけをここへ列挙します。
  */
-export const RICH_TEXT_STRIPPED_TAG_NAMES: readonly string[] = ["script", "style"];
+const RICH_TEXT_STRIPPED_TAG_NAMES: readonly string[] = ["script", "style"];
 
 /**
  * allowlist から導出した sanitize schema です。

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { DEPENDENCIES, KERNELS, type Kernel } from "../../architecture";
 
 /** 層 README の frontmatter が宣言する境界。`test-requirement` は境界の宣言ではないため見ない。 */
-export const boundaryFrontmatterSchema = z.object({
+const boundaryFrontmatterSchema = z.object({
   "imports-allowed": z.array(z.string()),
   forbidden: z.array(z.string()),
 });
