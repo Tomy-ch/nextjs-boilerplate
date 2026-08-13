@@ -67,10 +67,20 @@ describe("parseUses", () => {
     );
   });
 
+  it("多段のサブパスを区切りごと sub へ残す", () => {
+    expect(parseUses("owner/repo/first/second", "v1", undefined)).toEqual(
+      ref("owner/repo", "first/second", "v1"),
+    );
+  });
+
   it("固定済みの行では末尾コメントの版を採る", () => {
     expect(parseUses("actions/checkout", "9c091bb", "v7.0.0")).toEqual(
       ref("actions/checkout", "", "v7.0.0"),
     );
+  });
+
+  it("空のコメントは版として採らず ref 側を使う", () => {
+    expect(parseUses("actions/checkout", "v7", "")).toEqual(ref("actions/checkout", "", "v7"));
   });
 
   // ----- 異常系 -----
@@ -80,10 +90,6 @@ describe("parseUses", () => {
 
   it("owner/repo の形を成さない参照を固定対象外にする", () => {
     expect(parseUses("checkout", "v7", undefined)).toBeNull();
-  });
-
-  it("空のコメントは版として採らず ref 側を使う", () => {
-    expect(parseUses("actions/checkout", "v7", "")).toEqual(ref("actions/checkout", "", "v7"));
   });
 });
 
@@ -97,12 +103,23 @@ describe("USES_PATTERN", () => {
     expect(matches[0]?.slice(2, 5)).toEqual(["actions/checkout", "9c091bb", "v7.0.0"]);
   });
 
-  // ----- 異常系 -----
+  it("タブでインデントされた uses 行も解釈する", () => {
+    USES_PATTERN.lastIndex = 0;
+    const matches = [..."\t\t- uses: actions/checkout@9c091bb # v7.0.0\n".matchAll(USES_PATTERN)];
+
+    expect(matches[0]?.slice(2, 5)).toEqual(["actions/checkout", "9c091bb", "v7.0.0"]);
+  });
+
   it("複数行を 1 つのマッチへ結合しない", () => {
     USES_PATTERN.lastIndex = 0;
     const source = "      - uses: actions/checkout@v7\n      - uses: actions/cache@v6\n";
 
-    expect([...source.matchAll(USES_PATTERN)]).toHaveLength(2);
+    const matches = [...source.matchAll(USES_PATTERN)];
+
+    expect(matches.map((match) => match.slice(2, 5))).toEqual([
+      ["actions/checkout", "v7", undefined],
+      ["actions/cache", "v6", undefined],
+    ]);
   });
 });
 
@@ -125,6 +142,12 @@ describe("targetFiles", () => {
   // ----- 異常系 -----
   it("workflow ディレクトリの YAML 以外を集めない", () => {
     place(".github/workflows/README.md", "");
+
+    expect(targetFiles(root)).toEqual([]);
+  });
+
+  it("workflow ディレクトリ直下のディレクトリを集めない", () => {
+    mkdirSync(join(root, ".github", "workflows", "nested.yaml"), { recursive: true });
 
     expect(targetFiles(root)).toEqual([]);
   });
@@ -152,7 +175,7 @@ describe("collectRefs", () => {
       "      - uses: actions/checkout@v7\n      - uses: actions/checkout@v7\n",
     );
 
-    expect(collectRefs([file]).size).toBe(1);
+    expect([...collectRefs([file]).values()]).toEqual([ref("actions/checkout", "", "v7")]);
   });
 
   // ----- 異常系 -----
@@ -164,20 +187,16 @@ describe("collectRefs", () => {
 });
 
 describe("unparsedUsesLines", () => {
+  /** 解釈できるブロック記法の 1 行。報告された行番号が対象の行を指すことを確かめるために前置する。 */
+  const pinned = "  - uses: actions/checkout@9c091bb # v7.0.0\n";
+
   // ----- 正常系 -----
   it("解釈できたブロック記法の行を取りこぼしとして数えない", () => {
-    expect(unparsedUsesLines("      - uses: actions/checkout@v7\n")).toEqual([]);
+    expect(unparsedUsesLines(pinned)).toEqual([]);
   });
 
-  // ----- 異常系 -----
-  it("flow mapping で書かれた uses を取りこぼしとして返す", () => {
-    const source = "steps:\n  - {name: X, uses: actions/checkout@v7}\n";
-
-    expect(unparsedUsesLines(source)).toEqual([2]);
-  });
-
-  it("引用符付きで書かれた uses を取りこぼしとして返す", () => {
-    expect(unparsedUsesLines('    uses: "actions/checkout@v7"\n')).toEqual([1]);
+  it("uses を持たない行を取りこぼしとして数えない", () => {
+    expect(unparsedUsesLines("steps:\n  - name: checkout\n")).toEqual([]);
   });
 
   it("行全体がコメントなら取りこぼしとして扱わない", () => {
@@ -192,23 +211,32 @@ describe("unparsedUsesLines", () => {
     expect(unparsedUsesLines("  - {uses: actions/checkout}\n")).toEqual([]);
   });
 
+  // ----- 異常系 -----
+  it("flow mapping で書かれた uses を取りこぼしとして返す", () => {
+    expect(unparsedUsesLines(`${pinned}  - {name: X, uses: actions/checkout@v7}\n`)).toEqual([2]);
+  });
+
+  it("引用符付きで書かれた uses を取りこぼしとして返す", () => {
+    expect(unparsedUsesLines(`${pinned}  uses: "actions/checkout@v7"\n`)).toEqual([2]);
+  });
+
   it("anchor を付けて書かれた uses を取りこぼしとして返す", () => {
-    expect(unparsedUsesLines("  - uses: &co actions/checkout@v7\n")).toEqual([1]);
+    expect(unparsedUsesLines(`${pinned}  - uses: &co actions/checkout@v7\n`)).toEqual([2]);
   });
 
   it("alias で書かれた uses を取りこぼしとして返す", () => {
-    expect(unparsedUsesLines("  - uses: *co\n")).toEqual([1]);
+    expect(unparsedUsesLines(`${pinned}  - uses: *co\n`)).toEqual([2]);
   });
 
   it("タグを付けて書かれた uses を取りこぼしとして返す", () => {
-    expect(unparsedUsesLines("  - uses: !!str actions/checkout@v7\n")).toEqual([1]);
+    expect(unparsedUsesLines(`${pinned}  - uses: !!str actions/checkout@v7\n`)).toEqual([2]);
   });
 
   it("値を次の行に置いた uses を取りこぼしとして返す", () => {
-    expect(unparsedUsesLines("  - uses:\n      actions/checkout@v7\n")).toEqual([1]);
+    expect(unparsedUsesLines(`${pinned}  - uses:\n      actions/checkout@v7\n`)).toEqual([2]);
   });
 
   it("折りたたみスカラーで書かれた uses を取りこぼしとして返す", () => {
-    expect(unparsedUsesLines("  - uses: >-\n      actions/checkout@v7\n")).toEqual([1]);
+    expect(unparsedUsesLines(`${pinned}  - uses: >-\n      actions/checkout@v7\n`)).toEqual([2]);
   });
 });
