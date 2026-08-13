@@ -94,7 +94,7 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
 
   return (
     <article className="flex flex-col gap-8 pb-24 lg:pb-0">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Breadcrumb className="print-hidden">
           <BreadcrumbList>
             <BreadcrumbItem>
