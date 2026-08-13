@@ -51,8 +51,10 @@ export default defineConfig({
     timeout: 20_000,
     toHaveScreenshot: {
       // 同一イメージ・同一アーキテクチャで撮る前提なので、許容する差分は置かない。
-      // 閾値を持たせると、その幅に収まる退行(1px のずれ・わずかな色の変化)が通る。
+      // 枚数(maxDiffPixels)と画素あたりの色差(threshold)の両方を 0 にする。既定の
+      // threshold は 0.2 で、色差の小さい退行は 0 枚として数えられる。
       maxDiffPixels: 0,
+      threshold: 0,
       animations: "disabled",
       caret: "hide",
       scale: "css",

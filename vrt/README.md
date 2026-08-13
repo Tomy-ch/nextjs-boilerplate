@@ -119,8 +119,40 @@ compare のリンクを置くのは、画像そのものをコメントへ貼ら
 | 日付・時刻の表示 | `timezoneId` と `locale` を固定 |
 | 部品が自分で読む「今日」 | 開く前に時計を固定（[`lib/clock.ts`](lib/clock.ts)） |
 
-許容する差分は置いていない（`maxDiffPixels: 0`）。同じイメージで撮る前提が成り立っている以上、
-閾値を持たせるとその幅に収まる退行が黙って通る。
+許容する差分は置いていない。**枚数（`maxDiffPixels: 0`）と画素あたりの色差（`threshold: 0`）の
+両方**を落とす必要がある — `threshold` の既定は `0.2` で、`maxDiffPixels` が数えるのはそれを
+超えた画素だけなので、片方だけでは色差の小さい退行が 0 枚として通る。同じイメージで撮る前提が
+成り立っている以上、どちらにも幅を持たせない。
+
+## 絵が変わり得ないときは撮らない
+
+比較は 623 story × 2 テーマで、実行時間のほぼ全部を占める。**絵を決める入力が基準画像を撮った
+時点と同じなら、撮っても同じ絵にしかならない**ので、比較そのものを省く。
+
+入力は [`scripts/vrt/render-hash.ts`](../scripts/vrt/render-hash.ts) が 1 つのハッシュに畳む。
+
+| 入力 | 何を含むか |
+| --- | --- |
+| `storybook-static/` | 撮る対象そのもの。story・部品・design token・CSS はすべてここへ畳まれる |
+| `playwright.config.ts` | viewport / テーマ / timezone / locale / 比較条件 |
+| `vrt/**/*.ts` | 撮り方（待ち方・固定する時計・撮影対象の絞り込み） |
+| `docker-compose.dev-tools.yml` | フォントのラスタライズを決めるイメージの digest |
+
+`storybook-static/project.json` だけは build のたびに変わる（telemetry 用の metadata で描画には
+関わらない）ので外す。基準画像そのものも、入力ではなく出力なので入らない。
+
+撮った時点の値は `make vrt-push` が置き場の `render-inputs.sha256` へ**画像と同じコミットで**
+書く。両者がずれた状態を作らないため。
+
+**判定できないときは省かない。**記録が無い置き場、`VRT_ONLY` で範囲を絞った実行、入力が 1 つでも
+読めない状態は、すべて比較する側へ倒す。
+
+省いた実行でも**基準画像と撮影対象の 1 対 1 の対応だけは検査する**（`@baselines` タグ）。省くのは
+画素の比較であって、置き場の整合ではない。
+
+> パスの一覧ではなく中身のハッシュで判定するのは、`.tsx` を触らずに絵が変わる経路がこの
+> リポジトリの設計として複数あるため（design token の SSOT、`foundation/*.css`、依存の更新、
+> イメージの digest）。パスで絞ると、漏れた経路が黙って撮られなくなる。
 
 ## 基準画像は別のリポジトリに置く
 
@@ -204,7 +236,7 @@ push を自分で塞ぐことになる。
 | [`lib/static-server.ts`](lib/static-server.ts) | build 済み Storybook を配る依存なしの静的サーバ |
 | `screenshots/` | 基準画像の置き場（サブモジュール） |
 | `../playwright.config.ts` | 実行環境と比較条件 |
-| `../scripts/vrt/` | 実行結果から一覧表と撮り直しの範囲を取り出す |
+| `../scripts/vrt/` | 実行結果から一覧表と撮り直しの範囲を取り出す・絵を決める入力のハッシュ |
 | [`../scripts/vrt-images/`](../scripts/vrt-images/) | 置き場の ref 名と、掃除で消す対象の算出 |
 | [`../.github/actions/setup-vrt-baselines`](../.github/actions/setup-vrt-baselines/action.yaml) | CI が記録されたコミットだけを取ってくる |
 
