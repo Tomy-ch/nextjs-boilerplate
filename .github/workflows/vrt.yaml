@@ -1,0 +1,203 @@
+name: VRT
+
+# Compares every Storybook story against its committed baseline image
+# (ADR 0091: visual regression runs on Playwright's screenshot comparison).
+#
+# The run happens inside the digest-pinned Playwright container declared in
+# `docker-compose.dev-tools.yml`, invoked through the same `make vrt` a developer
+# runs locally. That is the whole point of the container: font rasterisation
+# differs per OS and per CPU architecture, so the baseline is only reproducible
+# when the image — not the host — defines the environment.
+#
+# CI never writes baselines on its own. Producing new ones is a deliberate human act
+# — either `make vrt-update` locally, or the `vrt-retake` label handled by
+# `vrt-retake.yaml`. Neither is the approval: the baselines land as a commit and the
+# pixels are judged on the image diff in "Files changed", where the ruleset forces a
+# human approval after the push.
+#
+# The comparison and the pull-request comment are separate jobs. The baseline store
+# may be private, which means the comparison job needs a GitHub App secret; a job
+# holding a secret must not also produce a comment body, because secret masking does
+# not survive a `tee` to a file (ADR 0153).
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vrt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    outputs:
+      title: ${{ steps.vrt.outputs.title }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Fetch the baseline images
+        uses: ./.github/actions/setup-vrt-baselines
+        with:
+          app-id: ${{ secrets.VRT_APP_ID }}
+          private-key: ${{ secrets.VRT_APP_PRIVATE_KEY }}
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook and compare every story
+        id: vrt
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+
+          make vrt > /tmp/vrt-full.log 2>&1
+          code=$?
+          tail -n 40 /tmp/vrt-full.log
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ VRT: PASS (no visual change)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ VRT: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # The raw log holds one line per story, which is unreadable in a comment. The
+      # JSON report is turned into a table of exactly which stories moved and by how
+      # much — the same set the `vrt-retake` label is allowed to retake.
+      - name: Summarise which stories changed
+        if: always() && steps.vrt.outputs.status == 'failure'
+        shell: bash
+        run: |
+          {
+            pnpm exec tsx scripts/vrt table tmp/vrt/report.json \
+              || tail -n 60 /tmp/vrt-full.log
+            cat <<'NOTE'
+
+          `vrt-diff` artifact に期待 / 実際 / 差分の 3 枚と HTML レポートが入っています。
+          意図した変更なら `vrt-retake` ラベルを付けてください。上の story だけを撮り直して push します（承認は画像差分を見てから PR で行います）。
+          NOTE
+          } > /tmp/vrt.log
+
+      - name: Note that nothing changed
+        if: always() && steps.vrt.outputs.status == 'success'
+        run: echo '全 story が基準画像と一致しました。' > /tmp/vrt.log
+
+      # Expected / actual / diff triplets per failing story. Without them the only
+      # evidence of a visual change is the assertion text, which cannot be judged.
+      - name: Upload the visual diff
+        if: always() && steps.vrt.outputs.status == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vrt-diff
+          path: tmp/vrt
+          retention-days: 7
+          if-no-files-found: warn
+
+      # Read back by `vrt-retake.yaml` to bound what the label may retake. Kept
+      # separate from the diff bundle so the retake path downloads only the report.
+      - name: Upload the machine-readable report
+        if: always() && steps.vrt.outputs.status == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vrt-report
+          path: tmp/vrt/report.json
+          retention-days: 7
+          if-no-files-found: error
+
+      # Handed to the commenting job through an artifact rather than a job output,
+      # because the body is a file whose size is not bounded by the output limit.
+      - name: Hand the comment body to the commenting job
+        if: always() && github.event_name == 'pull_request' && steps.vrt.outputs.status != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vrt-comment
+          path: /tmp/vrt.log
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Fail if a story changed
+        if: always() && steps.vrt.outputs.status != 'success'
+        run: exit 1
+
+  # Holds no secret beyond `GITHUB_TOKEN`, so the body it publishes cannot carry one.
+  vrt-comment:
+    if: always() && github.event_name == 'pull_request'
+    needs: vrt
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Download the comment body
+        id: body
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: vrt-comment
+          path: /tmp/vrt-comment
+
+      - name: Comment the VRT result on PR
+        if: steps.body.outcome == 'success'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- vrt-result -->'
+          title: ${{ needs.vrt.outputs.title }}
+          body-file: /tmp/vrt-comment/vrt.log
+          details-summary: '差分のあった story'

@@ -1356,16 +1356,18 @@ sources:
 
 ### P6-4: E2E + visual regression
 
+> **story 単位の visual regression は前倒しで着地済み**（issue #159）。画面の量産が始まる前に退行を捕まえる必要があり、story 単位の VRT の依存は P3-8 だけで P5-16 を待つ理由が無かったため。残りは E2E ジャーニーと画面単位の比較。
+
 - **目的**: ジャーニー全体の回帰検知と、視覚的回帰の検知を入れる
 - **対象 ADR**: [0090](../adr/0090-testing-strategy.md) / [0091](../adr/0091-test-verification-methods.md)
 - **主な変更先**:
   - `playwright.config.ts`
   - `e2e/` — 主要ジャーニー(一覧 → 詳細 → カート → 注文 / ログイン → 管理画面 → 画像アップロード)。**破棄対象**
-  - `e2e/visual/` — スクリーンショット比較
+  - `e2e/visual/` — ページ単位のスクリーンショット比較（story 単位は着地済みの `vrt/`。**破棄対象と分けてある**）
   - `.github/workflows/e2e.yaml`
-- **設計**: E2E は **MSW モードで実行**しバックエンド非依存にする(CI で go の compose を立てない)。visual regression は Storybook(P3-8)のコンポーネント単位と、E2E のページ単位の両方を対象にする
+- **設計**: E2E は **MSW モードで実行**しバックエンド非依存にする(CI で go の compose を立てない)。ページ単位の比較は既存の `vrt_runner`(digest 固定した Playwright コンテナ)へ相乗りする
 - **注意**: visual regression の採用は P0-4 で [0091](../adr/0091-test-verification-methods.md) の「tooling defer」を反転済み
-- **完了条件**: 主要ジャーニーの E2E が CI で緑。VR ベースラインが登録され、意図的な UI 変更で差分が検出される
+- **完了条件**: 主要ジャーニーの E2E が CI で緑。主要画面の VR ベースラインが登録される（story 単位は着地済み）
 - **依存**: P5-16, P3-8
 
 ### P6-5: capabilities カーネル

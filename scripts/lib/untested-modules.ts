@@ -75,6 +75,16 @@ export const TEST_FIXTURE_MODULES = ["src/config/environment.fixture.ts"] as con
  */
 export const RUNTIME_ONLY_MODULES = ["src/app/**/page.tsx"] as const;
 
+/**
+ * それ自体がテストであるモジュール。
+ *
+ * @remarks
+ * `vrt/*.spec.ts` は Playwright が実行する visual regression の本体で、Vitest からは
+ * 呼ばれません。テストにテストを課す形になるため母数から外し、代わりに判定を持つ部分を
+ * `vrt/lib/` へ切り出して 1:1 の対象にしています。
+ */
+export const TEST_SUITE_MODULES = ["vrt/*.spec.ts"] as const;
+
 /** カバレッジ母数と 1:1 ゲートの双方が外す対象(リポジトリルート相対)。 */
 export const EXCLUDED_FROM_CHECKS = [
   ...ENTRYPOINT_PATTERNS,
@@ -82,4 +92,5 @@ export const EXCLUDED_FROM_CHECKS = [
   ...NON_DECIDING_MODULES,
   ...TEST_FIXTURE_MODULES,
   ...RUNTIME_ONLY_MODULES,
+  ...TEST_SUITE_MODULES,
 ] as const;

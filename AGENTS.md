@@ -227,6 +227,11 @@ make actionlint            # Lint .github/workflows with actionlint (ADR 0153)
 make actions-pin-resolve   # Resolve every `uses:` comment tag to a SHA into the lockfile (ADR 0153)
 make actions-pin-apply     # Rewrite every `uses:` @<sha> from the lockfile
 make actions-pin-check     # Verify the pins match the lockfile — fails on drift (pre-commit / CI)
+make images-pin-resolve    # Resolve every container image tag to a digest into the lockfile (ADR 0011)
+make images-pin-apply      # Rewrite every image reference from the lockfile
+make images-pin-check      # Verify the image pins match the lockfile — fails on drift (pre-commit / CI)
+make vrt                   # Compare every Storybook story against its baseline image (ADR 0091)
+make vrt-update            # Retake the baseline images — accepting a visual change is a local, human act
 make secret-scan           # gitleaks over the commits about to be pushed — fails on detection (ADR 0110)
 make trivy-fs              # Trivy dependency vulnerability scan — on demand, report only (ADR 0110)
 make hotfix-patch          # Create a hotfix/v<patch> branch from production

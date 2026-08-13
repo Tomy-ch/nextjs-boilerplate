@@ -1,0 +1,102 @@
+name: Images Pin
+
+# Verifies every container image reference is pinned to the digest recorded in
+# `docker/images-pin.toml`. A registry tag can be repointed at different content
+# under the same name, so an unpinned or drifted reference fails the PR.
+#
+# The check never reaches the network: it compares the compose files and
+# Dockerfiles against the lockfile. Resolving tags to digests (the step that does
+# call out) is a deliberate local action — `make images-pin-resolve` — and is not
+# run in CI.
+#
+# A separate workflow from `actions-pin` on purpose: same discipline, different
+# supply chain (ADR 0153 §1, one concern per workflow).
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  images-pin:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run images-pin check
+        id: images-pin
+        shell: bash
+        run: |
+          set +e
+
+          make images-pin-check 2>&1 | tee /tmp/images-pin.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Images pin: PASS (digest pinned)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Images pin: FAIL (unpinned or drifted)" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment images pin result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- images-pin-result -->'
+          title: ${{ steps.images-pin.outputs.title }}
+          body-file: /tmp/images-pin.log
+          details-summary: 'images-pin log'
+
+      - name: Fail if the pin check failed
+        if: always() && steps.images-pin.outputs.status != 'success'
+        run: exit 1

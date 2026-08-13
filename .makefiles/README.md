@@ -74,6 +74,17 @@ make help
 どちらの補助コマンドも `DRY_RUN=1` を付けると、書き換えずに変更予定だけを出力します。有効値は `1` のみで、
 それ以外（`DRY_RUN=0` や変数の省略）はすべて実際に書き換えます。
 
+### VRT 基準画像の置き場関連
+
+基準画像は別リポジトリに置き、`vrt/screenshots` からサブモジュールとして参照します
+（[`vrt/README.md`](../vrt/README.md)）。置き場側は workflow を持たないので、操作はすべてここから出ます。
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make setup-vrt-images` | 置き場を用意し、`vrt/screenshots` へ配線します。 | 既存リポジトリの指定を先に問います（組織では新規作成が権限で縛られていることがあるため）。新規作成時は README を置く初期コミットまで作ります。配線済みなら張り替えるので、組織の移動やリポジトリ名の変更でも同じコマンドで済みます。 |
+| `make setup-vrt-app` | 撮り直しに使う GitHub App を `VRT_APP_ID` / `VRT_APP_PRIVATE_KEY` へ登録します。 | App の作成と鍵の生成は自動化できません。App ID は slug から解決するので控える必要はなく、秘密鍵は標準入力へ貼るのでディスクにも履歴にも残りません。 |
+| `make vrt-images-prune [DRY_RUN=1]` | 生きた ref から指されていない基準画像の一式を置き場から消します。 | 取り消せません。実行を促すのは月次の [`vrt-images-prune.yaml`](../.github/workflows/vrt-images-prune.yaml) で、閾値を超えたときだけ issue を立てます。保持の条件は [`scripts/vrt-images/retention.ts`](../scripts/vrt-images/retention.ts)。 |
+
 ### GitHub Actions Lint 関連
 
 | コマンド | 説明 | 補足 |
@@ -82,6 +93,7 @@ make help
 | `make actions-shellcheck` | composite action（`.github/actions/**/action.yaml`）の `run:` シェルを shellcheck で検査します。 | 指摘は `action.yaml` の行・列で報告します。`bash` / `sh` 以外の `shell:` は検査せず、位置と方言を添えて skip として出力します。 |
 | `make actions-mise-pin-lint` | `setup-mise` の版 / digest / キャッシュキーが揃っているか検査します。 | mise 自身の版は `mise.toml` に書けないため composite action が宣言を持ち、`with:` から `env:` を参照できない制約でキャッシュキーが同じ値を二度目に持ちます。片方だけ直した状態は落ちますが原因が遠いので検査します。整合違反は exit 1、検査が成立していない状態は exit 2。 |
 | `make actions-comment-secret-lint` | PR コメントを投稿するジョブに `GITHUB_TOKEN` 以外の secret が渡っていないか検査します。 | 規約違反は exit 1、検査そのものが成立していない状態は exit 2 で区別します。 |
+| `make shellcheck` | 追跡下の `*.sh` を shellcheck で検査します。 | 対象は「依存の導入前に走る必要があってシェルで書くしかないもの」（ADR 0155 の例外）です。TypeScript ではないので 1:1 ゲートもカバレッジも掛からず、`.github` の外なので actionlint も届きません。shellcheck が無ければ検査範囲が黙って縮むため落とします。 |
 
 actionlint は `run:` ステップのシェルも shellcheck 経由で検査するため、両バイナリを `mise.toml` で版固定して
 います（[ADR 0003](../docs/adr/0003-version-manager.md)）。先に `make install-tools` を実行してください。
@@ -204,6 +216,30 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 
 更新の運用手順は `actions-pin` スキルが持ちます。
 
+### container image の digest ピン関連
+
+registry の tag は、同じ名前のまま別の中身を指せます。`image:` / `FROM` を tag のままにしておくと、
+指し先が差し替わったことに気づかないまま新しい中身を引きます。そこで参照は digest へ固定し、
+`image:tag` → digest の対応を `docker/images-pin.toml` が持ちます。**版の SSOT は tag 側**であり、
+digest ではありません。走査対象は `docker-compose*.{yml,yaml}` と `docker/<用途>/Dockerfile` です。
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make images-pin-resolve [IMAGES_PIN_MIN_AGE_DAYS=<days>]` | tag を `docker buildx imagetools inspect` で digest へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます（docker の認証情報を使います）。既定の検疫日数は 14。 |
+| `make images-pin-apply` | ロックファイルを元に参照を `image:tag@sha256:...` へ書き換えます。 | tag と行末コメントは保持します。 |
+| `make images-pin-check` | 参照がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `images-pin` job が実行します。未登録 / 未固定・不一致 / 参照されなくなったエントリ / 解釈できない記法を検出して exit 1（fail-closed）。 |
+
+参照は **1 行 1 件・引用符なし**で書いてください。`image: "alpine:3.24"` のような記法は検査の網に
+入らないため、素通りではなく error になります。
+
+`IMAGES_PIN_MIN_AGE_DAYS` は供給網検疫の窓で、経過日数は image config の `created` から見ます
+（マルチアーキでは最も古いものを採ります）。既存のピンがあればそれを維持し、無ければ tag のまま
+残さず失敗させます。tag だけの運用を許すと、未検証の digest をそのまま引くためです。
+
+**tag の付け替えは検知しません。** base image の tag は patch 版が出るたび前進するのが通例で、
+「解決先が変わったら止める」を入れると日常的な更新と区別が付かなくなります（Actions の SHA ピンとは
+ここだけ運用が異なります）。image に対して働く防壁は検疫と固定の 2 つです。
+
 ## `.makefiles/testing` 系
 
 | コマンド | 説明 | 補足 |
@@ -212,6 +248,12 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 | `make test-full` | Vitest を cache 無効・coverage 付きで実行します。 | pre-push / CI 用。Statements / Branches / Functions / Lines の各 100% を下回ると失敗します。 |
 | `make scripts-test-cached` | 補助スクリプト（`scripts/**`）の suite を cache 利用で実行します。 | pre-commit 用。export と describe の 1:1 ゲートを含みます。 |
 | `make scripts-test` | 補助スクリプトの suite を cache 無効・coverage 付きで実行します。 | pre-push / CI（`scripts-check`）用。アプリ本体の suite と分けるのは、`scripts/` に居るのが検査機構そのもので、落ちた理由を取り違えないためです（[0090](../docs/adr/0090-testing-strategy.md)）。 |
+| `make build-storybook` | Storybook を静的に build します。 | VRT の撮影対象。`make vrt` / `make vrt-update` が前段で呼びます。 |
+| `make vrt [VRT_ARGS=<args>]` | 全 story を基準画像と比較します。 | digest 固定した Playwright コンテナ内で実行します（[`vrt/README.md`](../vrt/README.md)）。ホスト直実行は比較の前に落ちます。 |
+| `make vrt-retake [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>] [VRT_BRANCH=<branch>]` | 基準画像を撮り直して置き場へ送ります（`vrt-update` → `vrt-push`）。 | 手元から撮り直す入口はこれです。撮って送らないと親の gitlink が古いままになり、手元の `make vrt` は通るのに CI だけ落ちます。 |
+| `make vrt-update [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>]` | 基準画像を撮り直します（置き場へは送りません）。 | `VRT_ONLY` は撮り直す story を id で絞ります（該当 0 件なら失敗）。CI 側の同じ操作は `vrt-retake` ラベルが起動し、直前の実行が報告した story だけを対象にします。撮り直しは承認ではなく、見た目の判断は置き場の compare ビューを見て PR レビューで行います。 |
+| `make vrt-push [VRT_BRANCH=<branch>]` | 撮り直した一式を置き場へ送り、サブモジュールのポインタを進めます。 | 置き場へ送る経路はここだけです。サブモジュールの中で直接コミットすると撮り直しどうしが繋がり、掃除でどれも落とせなくなります。`VRT_BRANCH` の既定は現在のブランチ。 |
+| `make vrt-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/vrt/`（追跡対象外）。 |
 
 ## `.makefiles/security` 系
 

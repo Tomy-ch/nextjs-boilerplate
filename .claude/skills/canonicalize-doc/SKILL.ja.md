@@ -17,7 +17,7 @@
 対応ドキュメント種別:
 
 - Claude Code スキルファイル: `SKILL.md` / `SKILL.ja.md`（`.claude/skills/<name>/` 配下）
-- README: `README.md` / `README.ja.md`（同一ディレクトリ配置。例: `docker/server/`）
+- README: `README.md` / `README.ja.md`（同一ディレクトリ配置。例: `docker/`）
 - 一般的な `*.ja.md` サフィックス規約の Markdown（同一ディレクトリ配置）
 - `docs/**` のパラレルツリー規約のドキュメント（`docs/**/foo.md` と `docs/ja/**/foo.ja.md`） <!-- skill-lint-ignore -->
 

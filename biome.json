@@ -166,6 +166,29 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/adapters/server/http/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noAwaitInLoops": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["vrt/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noEmptyPattern": "off"
+          },
+          "style": {
+            "noProcessEnv": "off"
+          }
+        }
+      }
     }
   ],
   "css": {

@@ -60,6 +60,13 @@ pre-commit:
         - "scripts/actions-shellcheck/*.ts"
         - "scripts/lib/*.ts"
       run: make actions-shellcheck
+    shellcheck:
+      # 単体のシェルスクリプトを検査する (ADR 0153)。ここに居るのは、依存の導入前に走る
+      # 必要があってシェルで書くしかないもの (ADR 0155 の例外)。TypeScript ではないので
+      # 1:1 ゲートもカバレッジも掛からず、.github の外に居るので actionlint も届かない。
+      # 静的検査だけが唯一の網になる。
+      glob: "**/*.sh"
+      run: make shellcheck
     actions-comment-secret-lint:
       # PR コメントを投稿するジョブに secret が渡っていないかを検査する (ADR 0153)。
       # 規約 (検査ログをそのまま公開コメントへ複製するため本文を作るジョブに secret を
@@ -89,6 +96,14 @@ pre-commit:
       # ロックファイルの 3 か所いずれの変更でも発火させる必要があるため。
       glob: ".github/**"
       run: make actions-pin-check
+    images-pin-check:
+      # container image の参照がロックファイル通りに digest 固定されているかを検査する。
+      # actions-pin-check と同じくネットワークに出ないため hook の速度目標に収まる。
+      # compose 定義・Dockerfile・ロックファイルのいずれの変更でも発火させる。
+      glob:
+        - "docker-compose*.{yml,yaml}"
+        - "docker/**"
+      run: make images-pin-check
 
 commit-msg:
   commands:

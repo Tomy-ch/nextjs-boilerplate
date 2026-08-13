@@ -1,0 +1,151 @@
+name: VRT Guard
+
+# Re-runs the story comparison on a protected branch after a merge lands.
+#
+# In normal operation this never reports anything. Pull requests are judged against
+# `refs/pull/N/merge` and the ruleset requires the branch to be up to date, so what
+# merges is the tree that was already green. This job exists to catch the case where
+# that premise breaks — a story that renders non-deterministically, a merge that
+# bypassed the checks, a non-reproducible Storybook build.
+#
+# It deliberately does NOT retake baselines. Auto-accepting here would rewrite the
+# truth for the one situation in which nobody looked at the pixels, which is exactly
+# the situation the comparison exists to surface. A failure opens an issue instead.
+
+on:
+  push:
+    branches:
+      - production
+      - staging
+      - develop
+      - 'release/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Fetch the baseline images
+        uses: ./.github/actions/setup-vrt-baselines
+        with:
+          app-id: ${{ secrets.VRT_APP_ID }}
+          private-key: ${{ secrets.VRT_APP_PRIVATE_KEY }}
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook and compare every story
+        id: vrt
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+
+          make vrt > /tmp/vrt-full.log 2>&1
+          code=$?
+          tail -n 40 /tmp/vrt-full.log
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Upload the visual diff
+        if: always() && steps.vrt.outputs.status == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vrt-diff
+          path: tmp/vrt
+          retention-days: 30
+          if-no-files-found: warn
+
+      # One issue per branch, reopened rather than duplicated. A second failure on a
+      # branch that is already flagged is the same unresolved fact, not a new one.
+      - name: Raise the failure for a human
+        if: always() && steps.vrt.outputs.status != 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="[VRT] ${BRANCH} で基準画像と食い違いが出ている"
+          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" \
+            --json number --jq '.[0].number')"
+
+          {
+            # The comparison may never have run — the baseline store can be
+            # unreachable. Raising the issue matters more than the table, so every
+            # fallback ends in something printable.
+            pnpm exec tsx scripts/vrt table tmp/vrt/report.json 2>/dev/null ||
+              tail -n 60 /tmp/vrt-full.log 2>/dev/null ||
+              echo '(比較そのものが実行できませんでした。実行ログを確認してください。)'
+            echo
+            echo "実行: ${RUN_URL}"
+            echo
+            cat <<'NOTE'
+          マージ済みの木で差分が出ています。PR の判定はマージ結果に対して行われ、ブランチは最新である
+          ことを要求しているため、通常ここは鳴りません。鳴ったということは前提のどれかが崩れています。
+
+          - story の描画が決定的でない（撮るたび違う絵になる）
+          - 検査を迂回したマージがあった
+          - Storybook のビルドが再現しない
+
+          **基準画像をそのまま撮り直さないでください。**誰も画素を見ていない状態を正にすることになります。
+          NOTE
+          } > /tmp/vrt-guard.md
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/vrt-guard.md
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label test \
+              --body-file /tmp/vrt-guard.md
+          fi
+
+      - name: Fail if a story changed
+        if: always() && steps.vrt.outputs.status != 'success'
+        run: exit 1

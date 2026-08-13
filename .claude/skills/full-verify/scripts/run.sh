@@ -73,7 +73,7 @@ else
 fi
 # claude -p は cwd=REPO_ROOT で動くため、プロンプトに渡すパスは REPO_ROOT 相対にする
 # （リポジトリ外を --out 指定した場合のみ絶対パス）。--out を使っても前提文脈が正しい出力先を指す。
-case "$OUT" in "$REPO_ROOT"/*) OUTREL="${OUT#$REPO_ROOT/}" ;; *) OUTREL="$OUT" ;; esac
+case "$OUT" in "$REPO_ROOT"/*) OUTREL="${OUT#"$REPO_ROOT"/}" ;; *) OUTREL="$OUT" ;; esac
 STRUCT="$OUT/_structure"
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PROMPTS="$SKILL_DIR/prompts"
@@ -146,7 +146,8 @@ log "主要言語=$LANG (主要コード拡張子=.${PRIMARY_EXT:-?})"
 for pat in 'INTENT.md' 'CLAUDE.md' 'AGENTS.md' 'README.md' 'README.*' \
            'docs/architecture*' 'docs/rules*' 'docs/decisions*' 'docs/ADR*' \
            'docs/adr*' 'docs/**/*.md' 'ARCHITECTURE.md' 'DESIGN.md'; do
-  # shellcheck disable=SC2044
+  # $pat は glob なので、展開させるため意図的に分割させる
+  # shellcheck disable=SC2044,SC2086
   for f in $(cd "$REPO_ROOT" && ls -1 $pat 2>/dev/null); do
     [ -f "$REPO_ROOT/$f" ] && echo "$f" >> "$STRUCT/design_docs.txt"
   done
@@ -269,12 +270,16 @@ is_test_file() { # $1=path
 # 常に除外する生成物ディレクトリ（doc ポータル/各種ビルド出力）と無価値ファイル
 GEN_DIRS=( .next out coverage )
 is_generated_path() { # $1=path（REPO_ROOT 相対 or 絶対）
-  local rel="${1#$REPO_ROOT/}" d
+  local rel="${1#"$REPO_ROOT"/}" d
   for d in "${GEN_DIRS[@]}"; do case "$rel" in "$d"/*|"$d") return 0 ;; esac; done
+  # 後続は先行に含まれるが、対象を名指しで残して読めるようにしている
+  # shellcheck disable=SC2221,SC2222
   case "$1" in *.gen.*|*next-env.d.ts|*.sql.go|*_mock.go|*openapi.gen.yaml|*openapi.gen.yml) return 0 ;; esac
   return 1
 }
 is_junk_file() { # レビュー価値の無いメタ/ロック/バイナリ
+  # 後続は先行に含まれるが、対象を名指しで残して読めるようにしている
+  # shellcheck disable=SC2221,SC2222
   case "$(basename "$1")" in
     LICENSE|go.sum|go.mod|*.lock|package-lock.json|yarn.lock|pnpm-lock.yaml|\
     .gitignore|.gitattributes|.gitkeep|.dockerignore|.editorconfig|.DS_Store) return 0 ;;
@@ -316,7 +321,7 @@ enumerate_files() {
     is_junk_file "$f" && continue
     # パス除外（サンプル等）: rel 先頭が指定接頭辞に一致したら捨てる
     if [ -n "$EXCLUDE_PATH" ]; then
-      rel="${f#$REPO_ROOT/}"; rel="${rel#$SRC/}"
+      rel="${f#"$REPO_ROOT"/}"; rel="${rel#"$SRC"/}"
       local skip=0
       for xp in ${EXCLUDE_PATH//,/ }; do case "$rel" in "$xp"/*|"$xp") skip=1; break ;; esac; done
       [ "$skip" -eq 1 ] && continue
@@ -324,7 +329,7 @@ enumerate_files() {
     e="$(ext_of "$f")"
     if [ "$mode" = "exclude" ]; then
       # 拡張子なしファイル(Dockerfile/makefile 等)は残す。除外 csv に該当する拡張子のみ捨てる
-      [ -n "$e" ] && in_csv "$(echo "$EXCLUDE_EXT"|tr -d ' '|tr 'A-Z' 'a-z')" "$(echo "$e"|tr 'A-Z' 'a-z')" && continue
+      [ -n "$e" ] && in_csv "$(echo "$EXCLUDE_EXT"|tr -d ' '|tr '[:upper:]' '[:lower:]')" "$(echo "$e"|tr '[:upper:]' '[:lower:]')" && continue
     fi
     if is_test_file "$f"; then
       [ "$INCLUDE_TESTS" -eq 1 ] && tests+=("$f")
@@ -350,11 +355,11 @@ fi
 # ユニット一覧を記録（id とパスの対応）。id はファイル/ディレクトリ共通の安全名。
 : > "$STRUCT/modules.txt"
 mod_id() { # $1=path(file or dir) -> 安全な id
-  local rel="${1#$REPO_ROOT/}"; rel="${rel#$SRC/}"
+  local rel="${1#"$REPO_ROOT"/}"; rel="${rel#"$SRC"/}"
   echo "$rel" | sed 's#[/ ]#_#g; s#^_*##; s#__*#_#g' | sed 's#^$#root#'
 }
 for d in "${MODULES[@]}"; do
-  printf '%s\t%s\n' "$(mod_id "$d")" "${d#$REPO_ROOT/}" >> "$STRUCT/modules.txt"
+  printf '%s\t%s\n' "$(mod_id "$d")" "${d#"$REPO_ROOT"/}" >> "$STRUCT/modules.txt"
 done
 log "粒度=$GRANULARITY  ユニット数=${#MODULES[@]}  (include_tests=$INCLUDE_TESTS)"
 
@@ -420,6 +425,8 @@ gen_deps() {
     java|kotlin)
       if have jdeps; then
         local jars; jars="$(find "$SRC" -name '*.jar' 2>/dev/null | head -50)"
+        # jar を 1 つずつの引数として渡すため、意図的に分割させる
+        # shellcheck disable=SC2086
         [ -n "$jars" ] && jdeps $jars 2>/dev/null && return
       fi
       ;;
@@ -448,7 +455,7 @@ gen_deps > "$STRUCT/deps.txt" 2>/dev/null
 # --- メタ情報 ----------------------------------------------------------------
 {
   echo "# full-verify 検出メタ"
-  echo "- 解析起点(SRC): ${SRC#$REPO_ROOT/}"
+  echo "- 解析起点(SRC): ${SRC#"$REPO_ROOT"/}"
   echo "- 主要言語: $LANG (主要コード拡張子 .${PRIMARY_EXT:-?})"
   echo "- 粒度: $GRANULARITY / ユニット数: ${#MODULES[@]} (module-depth=$MODULE_DEPTH, include_tests=$INCLUDE_TESTS)"
   echo "- 基準(BASIS): $BASIS"
@@ -542,6 +549,8 @@ run_one() { # $1=prompt(文字列) $2=out(最終パス)
   local t0=$SECONDS
 
   # stdin を /dev/null にする（背景実行で claude -p が毎回 stdin を数秒待つのを防ぐ）。
+  # READONLY_TOOLS は空白区切りの引数列として渡すため、意図的に分割させる
+  # shellcheck disable=SC2086
   timeout "${TIMEOUT_MIN}m" claude -p "$prompt" \
     --effort "$EFFORT" \
     --allowedTools $READONLY_TOOLS \
@@ -597,7 +606,7 @@ attempt_module() { # $1=prompt $2=out $3=label
 # プロンプト合成: テンプレートのプレースホルダを置換
 render() { # $1=template_file ; 環境変数で渡した置換を適用
   local tpl; tpl="$(cat "$1")"
-  tpl="${tpl//\{\{SRC\}\}/${SRC#$REPO_ROOT/}}"
+  tpl="${tpl//\{\{SRC\}\}/${SRC#"$REPO_ROOT"/}}"
   tpl="${tpl//\{\{STRUCTURE_DIR\}\}/$OUTREL/_structure}"
   tpl="${tpl//\{\{ARCH_DOC\}\}/$OUTREL/architecture.md}"
   tpl="${tpl//\{\{BASIS\}\}/$BASIS}"
@@ -646,7 +655,7 @@ process_module() { # $1=dir
   local dir="$1"
   local id path md
   id="$(mod_id "$dir")"
-  path="${dir#$REPO_ROOT/}"
+  path="${dir#"$REPO_ROOT"/}"
   md="$OUT/mod_${id}.md"
 
   # 再開: 中身のある mod は飛ばす
@@ -698,7 +707,7 @@ if [ "$PARALLEL" -gt 1 ]; then
     [ -s "$OUT/mod_${id}.md" ] || { warmup_dir="$d"; break; }
   done
   if [ -n "$warmup_dir" ]; then
-    log "warm-up: 先頭1件を単独実行してキャッシュを温める: ${warmup_dir#$REPO_ROOT/}"
+    log "warm-up: 先頭1件を単独実行してキャッシュを温める: ${warmup_dir#"$REPO_ROOT"/}"
     process_module "$warmup_dir"; rc=$?
     write_progress
     if [ $rc -eq 99 ] || [ -f "$STOP_FLAG" ]; then

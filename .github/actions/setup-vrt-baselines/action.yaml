@@ -1,0 +1,115 @@
+name: Setup VRT baselines
+description: Fetch the baseline image submodule at exactly the recorded commit, minting a GitHub App token when one is configured.
+
+# The baselines live in their own repository (see `vrt/README.md`) and are joined
+# here as a submodule. Two things make the plain `submodules: true` input of
+# `actions/checkout` a poor fit:
+#
+# 1. The recorded commit is not the tip of any long-lived branch, and the store
+#    accumulates one branch per baseline set. A default submodule clone would drag
+#    every snapshot ever taken onto the runner. Fetching the single recorded commit
+#    keeps the cost at one baseline set regardless of how much history exists.
+# 2. `GITHUB_TOKEN` cannot read another repository. A private baseline store needs a
+#    GitHub App token, which fork pull requests never get — there the fetch falls
+#    back to anonymous HTTPS, which succeeds only while the store is public.
+
+inputs:
+  app-id:
+    description: GitHub App ID. Empty means fetch anonymously (public store only).
+    required: false
+    default: ''
+  private-key:
+    description: Private key of the same App.
+    required: false
+    default: ''
+  persist-credentials:
+    description: Leave the credentials in the submodule's git config so later steps can push.
+    required: false
+    default: 'false'
+
+outputs:
+  token:
+    description: The minted installation token, empty when no App was configured.
+    value: ${{ steps.token.outputs.token }}
+  missing:
+    description: '"true" when the recorded commit is gone from the store and the root was checked out instead.'
+    value: ${{ steps.fetch.outputs.missing }}
+
+runs:
+  using: composite
+  steps:
+    # `owner` without `repositories` scopes the token to everything the installation
+    # covers, which is the baseline store and this repository — the App is installed
+    # on exactly those two. Naming the store here instead would duplicate the wiring
+    # that `.gitmodules` already owns.
+    - name: Mint a token for the baseline store
+      id: token
+      if: inputs.app-id != ''
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.private-key }}
+        owner: ${{ github.repository_owner }}
+
+    - name: Fetch the baseline images
+      id: fetch
+      shell: bash
+      env:
+        TOKEN: ${{ steps.token.outputs.token }}
+        PERSIST: ${{ inputs.persist-credentials }}
+      run: |
+        set -euo pipefail
+
+        path='vrt/screenshots'
+
+        # `git config --get` on a missing key exits non-zero with no output, so without
+        # this the job dies on a bare "exit code 1" and the reader has to guess.
+        url="$(git config --file .gitmodules --get "submodule.${path}.url" || true)"
+        sha="$(git ls-tree HEAD "$path" | awk '{ print $3 }')"
+
+        if [ -z "$url" ] || [ -z "$sha" ]; then
+          echo "❌ 基準画像の置き場が配線されていません。make setup-vrt-images を実行してください（vrt/README.md）。" >&2
+          exit 1
+        fi
+
+        rm -rf "$path"
+        mkdir -p "$path"
+        git -C "$path" init --quiet
+        git -C "$path" remote add origin "$url"
+
+        if [ -n "$TOKEN" ]; then
+          header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          # The value never appears in argv, so it stays out of `ps` and out of any
+          # process listing a later step might produce.
+          git -C "$path" config --local http.extraheader "$header"
+        fi
+
+        # Fetching the single recorded commit is the whole point. The second attempt
+        # exists because a server may refuse a bare object request; a depth-1 fetch of
+        # every branch is still bounded, unlike a full clone.
+        #
+        # Failing both means the commit was pruned out of the store. That happens after
+        # a revert, which restores a pointer whose baseline set no longer exists.
+        # Checking out the root leaves no baselines at all, so every story reports as
+        # changed and the retake path has something to work from — the alternative is a
+        # job that dies before saying why.
+        missing=false
+        if git -C "$path" fetch --quiet --depth 1 origin "$sha" ||
+          git -C "$path" fetch --quiet --depth 1 origin '+refs/heads/*:refs/remotes/origin/*'; then
+          git -C "$path" checkout --quiet "$sha" || missing=true
+        else
+          missing=true
+        fi
+
+        if [ "$missing" = 'true' ]; then
+          echo "⚠️ 記録されたコミット ${sha} が置き場にありません。基準画像なしで続行します。" >&2
+          root="$(git -C "$path" ls-remote --symref origin HEAD |
+            awk '/^ref:/ { sub("refs/heads/", "", $2); print $2 }')"
+          git -C "$path" fetch --quiet --depth 1 origin "$root"
+          git -C "$path" checkout --quiet FETCH_HEAD
+        fi
+        echo "missing=${missing}" >> "$GITHUB_OUTPUT"
+
+        if [ "$PERSIST" != 'true' ]; then
+          git -C "$path" config --local --unset-all http.extraheader || true
+        fi
