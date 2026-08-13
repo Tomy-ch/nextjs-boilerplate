@@ -1,6 +1,6 @@
 ## story 単位の visual regression
 #
-# 基準画像は別リポジトリに置き、vrt/__screenshots__ からサブモジュールとして参照する
+# 基準画像は別リポジトリに置き、vrt/screenshots からサブモジュールとして参照する
 # (vrt/README.md)。取り込んでいない状態で回すと全 story が「基準画像が無い」で落ち、
 # 退行と見分けが付かないため手前で止める。
 .PHONY: vrt ## story の見た目を基準画像と比較する (コンテナ内で実行)
@@ -32,8 +32,8 @@ VRT_REQUIRE_WIRING = \
 
 vrt: build-storybook
 	@$(VRT_REQUIRE_WIRING)
-	@if [ -z "$$(ls -A vrt/__screenshots__ 2>/dev/null)" ]; then \
-		echo "❌ vrt/__screenshots__ が空です。git submodule update --init vrt/__screenshots__ を実行してください。"; exit 1; \
+	@if [ -z "$$(ls -A vrt/screenshots 2>/dev/null)" ]; then \
+		echo "❌ vrt/screenshots が空です。git submodule update --init vrt/screenshots を実行してください。"; exit 1; \
 	fi
 	@$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_ARGS)
 

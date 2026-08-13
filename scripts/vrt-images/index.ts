@@ -24,7 +24,7 @@ import {
 import { RETAINED_TAG_COUNT } from "./retention.js";
 
 /** 主リポジトリ側のサブモジュールの位置。ここの gitlink が保持すべきコミットを指す。 */
-const SUBMODULE_PATH = "vrt/__screenshots__";
+const SUBMODULE_PATH = "vrt/screenshots";
 
 /** 促すときの終了コード。1 は問い合わせ自体の失敗に取ってある。 */
 const NEEDS_PRUNE_EXIT_CODE = 10;

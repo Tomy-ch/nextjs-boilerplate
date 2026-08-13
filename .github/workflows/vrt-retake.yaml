@@ -205,8 +205,8 @@ jobs:
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git -C vrt/__screenshots__ config user.name 'github-actions[bot]'
-          git -C vrt/__screenshots__ config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C vrt/screenshots config user.name 'github-actions[bot]'
+          git -C vrt/screenshots config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
           pnpm exec tsx scripts/vrt-images push "$BRANCH" >> "$GITHUB_OUTPUT"
 
@@ -235,7 +235,7 @@ jobs:
           REASON: ${{ steps.report.outputs.reason }}
         shell: bash
         run: |
-          store_repo="$(git config --file .gitmodules --get submodule.vrt/__screenshots__.url |
+          store_repo="$(git config --file .gitmodules --get submodule.vrt/screenshots.url |
             sed -e 's|^https://github.com/||' -e 's|\.git$||')"
 
           {

@@ -111,7 +111,7 @@ compare のリンクを置くのは、画像そのものをコメントへ貼ら
 
 ## 基準画像は別のリポジトリに置く
 
-`__screenshots__` は**サブモジュール**で、実体は基準画像だけを持つ別リポジトリ（以下「置き場」）に
+`screenshots` は**サブモジュール**で、実体は基準画像だけを持つ別リポジトリ（以下「置き場」）に
 ある。中身は `<系統>/<テーマ>/<story id>.png` で、系統は story の見出しの先頭区画
 （`Action` / `Features` / `Page` …）。
 
@@ -152,7 +152,7 @@ revert したときは、戻り先の一式が掃除で消えていることが�
 
 ### 置き場を用意する
 
-fork 先は**自分の置き場を持つ**。上流の置き場には push できない。
+テンプレートから作った側は**自分の置き場を持つ**。上流の置き場には push できない。
 
 ```bash
 make setup-vrt-images   # 置き場を作る / 既存を指定する → サブモジュールを張り直す
@@ -163,6 +163,9 @@ GitHub App の作成と鍵の生成だけは自動化できない（REST に作�
 表示されない）。App は**本体と置き場の 2 つだけ**に installation を絞り、権限は
 **Contents: Read and write** のみにする。置き場にルールセットを掛けてはいけない — 撮り直しの
 push を自分で塞ぐことになる。
+
+置き場の公開範囲は既定で `private`。**非公開にすると、外部（fork）からの PR で `vrt` が落ちる**
+（fork の PR には secrets が渡らず、基準画像を読むトークンを取れない）。外部の PR を受けるなら `public`。
 
 配線済みの状態で実行すると張り替える。組織の移動やリポジトリ名の変更でも同じコマンドで済む。
 
@@ -178,7 +181,7 @@ push を自分で塞ぐことになる。
 | [`lib/story-index.ts`](lib/story-index.ts) | 目録から撮影対象を取り出す・story の URL を組み立てる |
 | [`lib/excluded-stories.ts`](lib/excluded-stories.ts) | 比較の対象から外す story の宣言（理由と撤去条件付き） |
 | [`lib/static-server.ts`](lib/static-server.ts) | build 済み Storybook を配る依存なしの静的サーバ |
-| `__screenshots__/` | 基準画像の置き場（サブモジュール） |
+| `screenshots/` | 基準画像の置き場（サブモジュール） |
 | `../playwright.config.ts` | 実行環境と比較条件 |
 | `../scripts/vrt/` | 実行結果から一覧表と撮り直しの範囲を取り出す |
 | [`../scripts/vrt-images/`](../scripts/vrt-images/) | 置き場の ref 名と、掃除で消す対象の算出 |

@@ -1,7 +1,7 @@
 // 基準画像の置き場と、それを更新する資格情報を用意する入口。判定は plan.ts が持ち、
 // ここは GitHub への問い合わせ・対話・git の操作・終了コードだけを担う。
 //
-//   images   置き場を用意し、vrt/__screenshots__ へ配線する（配線済みなら張り替える）
+//   images   置き場を用意し、vrt/screenshots へ配線する（配線済みなら張り替える）
 //   app      撮り直しに使う GitHub App を secret へ登録する
 
 import { execFileSync } from "node:child_process";
@@ -14,6 +14,7 @@ import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
 import {
   assertWritable,
   cloneUrl,
+  DEFAULT_VISIBILITY,
   defaultImagesName,
   isAffirmative,
   normalizeAppSlug,
@@ -24,7 +25,7 @@ import {
   withDefault,
 } from "./plan.js";
 
-const SUBMODULE_PATH = "vrt/__screenshots__";
+const SUBMODULE_PATH = "vrt/screenshots";
 const README_TEMPLATE = ".github/settings/vrt-images/readme-template.md";
 
 function printUsage(): void {
@@ -32,7 +33,7 @@ function printUsage(): void {
     [
       "使い方: pnpm exec tsx scripts/setup/vrt-images <images | app>",
       "",
-      "  images  基準画像の置き場を用意し、vrt/__screenshots__ へ配線する",
+      "  images  基準画像の置き場を用意し、vrt/screenshots へ配線する",
       "  app     撮り直しに使う GitHub App を VRT_APP_ID / VRT_APP_PRIVATE_KEY へ登録する",
       "",
       "  どちらも対話式で、gh のログインが要る。",
@@ -85,17 +86,8 @@ async function createRepository(parent: string): Promise<string> {
   const name = await ask("作成するリポジトリ名", defaultImagesName(parent));
   const target = targetRepository(parent, name);
 
-  const parentVisibility = gh([
-    "repo",
-    "view",
-    parent,
-    "--json",
-    "visibility",
-    "-q",
-    ".visibility",
-  ]);
   const visibility = normalizeVisibility(
-    await ask("公開範囲 (public / private / internal)", normalizeVisibility(parentVisibility)),
+    await ask("公開範囲 (public / private / internal)", DEFAULT_VISIBILITY),
   );
 
   if (repositoryExists(target)) {

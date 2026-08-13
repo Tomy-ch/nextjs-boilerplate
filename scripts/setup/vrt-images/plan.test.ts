@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertWritable,
   cloneUrl,
+  DEFAULT_VISIBILITY,
   defaultImagesName,
   isAffirmative,
   normalizeAppSlug,
@@ -93,6 +94,18 @@ describe("normalizeVisibility", () => {
   // ----- 異常系 -----
   it("知らない公開範囲を拒む", () => {
     expect(() => normalizeVisibility("secret")).toThrow(/公開範囲は/);
+  });
+});
+
+describe("DEFAULT_VISIBILITY", () => {
+  // ----- 正常系 -----
+  it("指定できる公開範囲のひとつである", () => {
+    expect(VISIBILITIES).toContain(DEFAULT_VISIBILITY);
+  });
+
+  // ----- 異常系 -----
+  it("公開側へ倒れない（基準画像は画面の見た目そのもの）", () => {
+    expect(DEFAULT_VISIBILITY).not.toBe("public");
   });
 });
 

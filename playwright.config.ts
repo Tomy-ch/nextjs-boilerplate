@@ -23,7 +23,7 @@ export default defineConfig({
   // 追跡下に置くと「更新済みの基準画像」と見分けが付かなくなる。
   outputDir: "tmp/vrt/results",
   // 系統 / テーマ / story の順に畳む。名前は spec が組み立てるため、ここは受け取るだけ。
-  snapshotPathTemplate: "vrt/__screenshots__/{arg}{ext}",
+  snapshotPathTemplate: "vrt/screenshots/{arg}{ext}",
   fullyParallel: true,
   // 1 件あたりの上限。撮影が収まるのを待つ猶予（下の expect）を内側に収める必要があり、
   // 既定の 30 秒だと待ち切る前に上限へ当たる。負荷が高いときに「揺らぎで落ちた」のか

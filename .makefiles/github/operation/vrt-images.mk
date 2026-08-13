@@ -1,8 +1,8 @@
 ## VRT 基準画像のリポジトリ操作
 #
-# 基準画像は別リポジトリに置き、vrt/__screenshots__ からサブモジュールとして参照する。
+# 基準画像は別リポジトリに置き、vrt/screenshots からサブモジュールとして参照する。
 # 置き場側は workflow もルールセットも持たず、更新も掃除もここから流し込む。
-.PHONY: setup-vrt-images ## 基準画像のリポジトリを用意し vrt/__screenshots__ へ配線 (張り替えも可)
+.PHONY: setup-vrt-images ## 基準画像のリポジトリを用意し vrt/screenshots へ配線 (張り替えも可)
 .PHONY: setup-vrt-app ## 撮り直しに使う GitHub App を secret へ登録
 .PHONY: vrt-images-prune ## 基準画像の履歴のうち、生きた ref から到達しないものを破棄
 

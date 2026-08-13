@@ -32,7 +32,7 @@
 - **CI のツールチェーンは digest で照合される** — mise 自身の版は `mise.toml` に書けないため
   [`.github/actions/setup-mise`](.github/actions/setup-mise/action.yaml) が版と SHA256 を持ち、
   実行前に照合します。上げ方は [`.github/workflows/README.md`](.github/workflows/README.md#mise-の導入)
-- **VRT の基準画像は別リポジトリにある** — `vrt/__screenshots__` はサブモジュールです。fork 後は
+- **VRT の基準画像は別リポジトリにある** — `vrt/screenshots` はサブモジュールです。テンプレートから作成した後は
   `make setup-vrt-images` / `make setup-vrt-app` で自分の置き場と GitHub App を用意します。
   理由と運用は [`vrt/README.md`](vrt/README.md)
 
@@ -68,7 +68,7 @@ pnpm dev
 
 <http://localhost:3000> を開くと表示されます。`src/app/page.tsx` を編集すると自動で反映されます。
 
-このボイラープレートを新規プロジェクトへ fork する場合は追加の手順が必要です。**順序に依存する箇所が
+このボイラープレートから新規プロジェクトを作る場合（**Use this template**）は追加の手順が必要です。**順序に依存する箇所が
 あるので** [`docs/get-started/setup-repository.md`](docs/get-started/setup-repository.md) を上から辿ってください。
 
 ## コマンド
@@ -92,7 +92,7 @@ make help                       # 全 make ターゲットとその説明
 
 正は、それが規定する対象の隣にあります。ここを起点に、目的のトピックを所有するリンクを辿ってください。
 
-- [docs/get-started/](docs/get-started/) — fork してから動かすまでの手順（順序と、人手が要る箇所）
+- [docs/get-started/](docs/get-started/) — テンプレートから作成して動かすまでの手順（順序と、人手が要る箇所）
 - [AGENTS.md](AGENTS.md) — AI コーディングエージェント向けの運用ルールと、リポジトリ規約の要約
 - [docs/adr/](docs/adr/) — アーキテクチャ決定記録（ADR）。本リポジトリの規約はすべてここにある
 - [docs/adr/BACKLOG.md](docs/adr/BACKLOG.md) — 未決の決定領域

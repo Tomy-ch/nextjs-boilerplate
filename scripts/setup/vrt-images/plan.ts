@@ -16,6 +16,19 @@ export const WRITABLE_PERMISSIONS: readonly string[] = ["ADMIN", "MAINTAIN", "WR
 /** 指定できる公開範囲。`internal` は組織のみ有効だが、可否は GitHub 側が判定する。 */
 export const VISIBILITIES: readonly string[] = ["public", "private", "internal"];
 
+/**
+ * 公開範囲の既定。
+ *
+ * @remarks
+ * 基準画像は画面の見た目そのものなので、公開側へ倒れる既定は取れません。親に合わせると、
+ * 公開リポジトリを fork した非公開プロジェクトが黙って画面を公開します。
+ *
+ * 代償として、**置き場が非公開だと fork からの PR で `vrt` が落ちます**。fork の PR には
+ * secrets が渡らず、App のトークンを取れないためです。公開のまま運用するリポジトリは、
+ * ここで `public` を選んでください。
+ */
+export const DEFAULT_VISIBILITY = "private";
+
 /** `owner/repo` を owner と repo に割る。 */
 export function splitRepository(repository: string): { owner: string; name: string } {
   const match = /^([^/\s]+)\/([^/\s]+)$/.exec(repository);

@@ -38,7 +38,7 @@ make setup-repo
 
 `gh` では代行できないものだけ。
 
-1. **Actions を有効にする** — fork 直後は無効になっていることがある
+1. **Actions を有効にする** — 作成直後は無効になっていることがある
 2. **GitHub Pages のソースを GitHub Actions にする** — ドキュメントサイトの配信先（[0141](../adr/0141-portal-operations.md)）
 3. **必須チェックを確認する** — `make setup-repo` が適用したルールセットの `required_status_checks` が、
    1 度 CI を回した後に実際の context 名と一致しているか見る（[`.github/workflows/README.md`](../../.github/workflows/README.md)）
@@ -76,16 +76,20 @@ make setup-vrt-images
 
 ```text
 既存のリポジトリへ配置しますか? 空欄なら新規作成 [<org>/<repo>]:   ← 空欄で新規作成
-作成するリポジトリ名 [<リポジトリ名>-vrt-images]:
-公開範囲 (public / private / internal) [<親と同じ>]:
+作成するリポジトリ名 [<現在のリポジトリ名>-vrt-images]:
+公開範囲 (public / private / internal) [private]:
 ```
 
 組織で新規作成が権限で縛られている場合は、最初の問いに既存の `<org>/<repo>` を入れる。
 
+**公開範囲は既定で `private`。** 基準画像は画面の見た目そのものなので、公開側へ倒れる既定は取らない。
+ただし**置き場を非公開にすると、外部（fork）からの PR で `vrt` が落ちる** — fork の PR には
+secrets が渡らず、基準画像を読む App トークンを取れないため。外部の PR を受けるリポジトリは `public`。
+
 終わったら配線をコミットする。
 
 ```bash
-git add .gitmodules vrt/__screenshots__
+git add .gitmodules vrt/screenshots
 git commit -m "Build: 基準画像の置き場を配線する"
 ```
 
