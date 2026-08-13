@@ -21,9 +21,10 @@ function delta(current: number, base: number | undefined): string {
     return "—";
   }
 
-  const diff = current - base;
+  // 丸めてから符号を決める。先に符号を見ると、1 byte 減っただけの route が `-0.0 KB` になる。
+  const rounded = Number(((current - base) / BYTES_PER_KB).toFixed(1)) || 0;
 
-  return `${diff >= 0 ? "+" : ""}${(diff / BYTES_PER_KB).toFixed(1)} KB`;
+  return `${rounded >= 0 ? "+" : ""}${rounded.toFixed(1)} KB`;
 }
 
 /** 1 行ぶんの判定を語にする。 */

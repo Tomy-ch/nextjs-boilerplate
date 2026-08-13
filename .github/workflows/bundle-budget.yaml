@@ -75,14 +75,6 @@ jobs:
             *.test.tsx
             *.stories.tsx
 
-      - name: Checkout the base branch
-        if: steps.scope.outputs.relevant == 'true' && github.event_name == 'pull_request'
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          ref: ${{ github.base_ref }}
-          path: base
-          persist-credentials: false
-
       - name: Setup mise and the pinned tools
         if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
@@ -113,6 +105,18 @@ jobs:
       - name: Build
         if: steps.scope.outputs.relevant == 'true'
         run: pnpm build
+
+      # After this branch's build, never before. `next build` type-checks everything the
+      # tsconfig reaches, and a second checkout inside the workspace is reached — with no
+      # dependencies installed under it yet, this branch's build fails on the other tree's
+      # imports.
+      - name: Checkout the base branch
+        if: steps.scope.outputs.relevant == 'true' && github.event_name == 'pull_request'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.base_ref }}
+          path: base
+          persist-credentials: false
 
       # Its failure is the base branch's problem, not this pull request's. Losing the
       # comparison is reported in the table as a missing delta rather than as a red mark.

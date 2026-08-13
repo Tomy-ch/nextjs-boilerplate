@@ -32,6 +32,10 @@ describe("renderReport", () => {
     expect(renderReport([verdict()])).toContain("| `/` | 90.0 KB | +5.0 KB | 100.0 KB | ✅ |");
   });
 
+  it("丸めて 0 になる増減を符号なしで出す", () => {
+    expect(renderReport([verdict({ gzip: 90 * KB - 1, baseGzip: 90 * KB })])).toContain("+0.0 KB");
+  });
+
   it("減った route の増分を負で出す", () => {
     expect(renderReport([verdict({ gzip: 80 * KB })])).toContain("-5.0 KB");
   });
