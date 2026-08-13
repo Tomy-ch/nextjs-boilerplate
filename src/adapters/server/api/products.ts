@@ -5,11 +5,18 @@ import type { z } from "zod";
 
 import { getApiConfig } from "@/config/api/api.server";
 import type { CursorPage } from "@/model/pagination";
-import type { Product, ProductListItem, ProductPage } from "@/model/product/product";
+import type {
+  Product,
+  ProductListItem,
+  ProductPage,
+  ProductRankingEntry,
+} from "@/model/product/product";
 
 import {
   GetProductsDetailResponse,
   GetProductsQueryParams,
+  type GetProductsRankingQueryParams,
+  GetProductsRankingResponse,
   GetProductsResponse,
 } from "../../gen/api/endpoints.zod";
 import { createHttpClient, type HttpClient } from "../http/request";
@@ -206,6 +213,58 @@ const PLACEHOLDER_TOTAL_COUNT = 10;
 export async function getProductTotalCount(): Promise<number> {
   return PLACEHOLDER_TOTAL_COUNT;
 }
+
+type WireRankingQuery = z.infer<typeof GetProductsRankingQueryParams>;
+
+/**
+ * 契約が受け付ける集計期間。
+ *
+ * @remarks
+ * 照合を型に持たせる理由は {@link PRODUCT_SORT} と同じです。
+ */
+export const RANKING_PERIOD = {
+  /** 全期間。契約の既定値。 */
+  ALL: "all",
+  /** 注文日時が直近 30 日以内の購入のみ。 */
+  LAST_30_DAYS: "30d",
+} as const satisfies Readonly<Record<string, WireRankingQuery["period"]>>;
+
+/** ランキングの集計期間として指定できる値。 */
+export type RankingPeriod = (typeof RANKING_PERIOD)[keyof typeof RANKING_PERIOD];
+
+/** 売上ランキングの取得条件。契約のクエリと 1 対 1 に対応する。 */
+export type ProductRankingQuery = {
+  period?: RankingPeriod;
+  limit?: number;
+};
+
+/**
+ * 売上ランキングを取得する。
+ *
+ * @remarks
+ * キャッシュを指定していません。ランキングは購入が発生するたびに変わる集計値であり、
+ * 無効化の引き金になるのは商品の更新ではなく購入です。商品のタグへ相乗りさせると、商品を
+ * 触らない限り古い集計が残り続けます（[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
+ *
+ * 件数と期間を既定へ寄せず呼び出し側から受けるのは、画面ごとに要る件数が違うためです。
+ * 省略時は契約の既定値（全期間・上位 10 件）が効きます。
+ */
+export const getProductRanking = cache(
+  async ({ period, limit }: ProductRankingQuery = {}): Promise<readonly ProductRankingEntry[]> => {
+    const response = await getClient().request({
+      path: "/v1/products/ranking",
+      searchParams: { period, limit: limit?.toString() },
+      schema: GetProductsRankingResponse,
+    });
+
+    return response.rankings.map((entry) => ({
+      productId: entry.productId,
+      name: entry.name,
+      price: entry.price,
+      soldQuantity: entry.soldQuantity,
+    }));
+  },
+);
 
 /**
  * 商品 1 件を取得する。

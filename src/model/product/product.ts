@@ -69,3 +69,20 @@ export type ProductListItem = {
   /** 画像の表示 URL。画像が無ければ null。 */
   readonly imageUrl: string | null;
 };
+
+/**
+ * 売上ランキングに並ぶ 1 件分の表示データ。
+ *
+ * @remarks
+ * {@link ProductListItem} と別の型にしているのは、ランキングの取得口が画像も分類も在庫も
+ * 返さないためです。同じ型へ寄せると、一覧では必ずある値がランキングでは常に欠けている形に
+ * なり、受け取る側が「この画面ではどれが入っているか」を毎回確かめることになります。
+ */
+export type ProductRankingEntry = {
+  readonly productId: string;
+  readonly name: string;
+  /** USD の decimal 文字列。表示の直前まで数値へ変換しない。 */
+  readonly price: string;
+  /** 集計期間内の販売数量。キャンセル済みの購入を除いた合算値。 */
+  readonly soldQuantity: number;
+};
