@@ -17,8 +17,9 @@ name: Bundle Budget
 # A base build that fails is not this workflow's business. It degrades to ceilings only
 # rather than reporting a failure that belongs to the base branch.
 #
-# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on every PR
-# is in README.md.
+# The job always starts and then asks `diff-scope` whether the diff can reach the bundle, so
+# the required context is reported even when the expensive steps stand down. A `paths:` filter
+# would not report it at all and would block the pull request forever (README.md).
 
 on:
   pull_request:
@@ -50,8 +51,32 @@ jobs:
         with:
           persist-credentials: false
 
+      # What cannot change the amount of client JavaScript. CSS, tokens, stories and tests are
+      # named here on purpose: this job measures `.js` only, and none of them reach the bundle.
+      # `.github/**` and `scripts/**` are deliberately absent — a change to this workflow or to
+      # the measurement has to be measured.
+      - name: Decide whether the diff can reach the bundle
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            vrt/*
+            .storybook/*
+            tokens/*
+            *.css
+            *.test.ts
+            *.test.tsx
+            *.stories.tsx
+
       - name: Checkout the base branch
-        if: github.event_name == 'pull_request'
+        if: steps.scope.outputs.relevant == 'true' && github.event_name == 'pull_request'
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ github.base_ref }}
@@ -59,6 +84,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
@@ -66,12 +92,14 @@ jobs:
 
       - name: Resolve the pnpm store path
         id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           path="$(pnpm store path)"
           echo "path=${path}" >> "$GITHUB_OUTPUT"
 
       - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
@@ -79,16 +107,18 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        if: steps.scope.outputs.relevant == 'true'
         run: pnpm build
 
       # Its failure is the base branch's problem, not this pull request's. Losing the
       # comparison is reported in the table as a missing delta rather than as a red mark.
       - name: Build the base branch
         id: base
-        if: github.event_name == 'pull_request'
+        if: steps.scope.outputs.relevant == 'true' && github.event_name == 'pull_request'
         continue-on-error: true
         working-directory: base
         run: |
@@ -97,6 +127,7 @@ jobs:
 
       - name: Measure and hold against the budget
         id: budget
+        if: steps.scope.outputs.relevant == 'true'
         continue-on-error: true
         shell: bash
         run: |
@@ -120,7 +151,7 @@ jobs:
           exit 0
 
       - name: Comment the measurement on PR
-        if: github.event_name == 'pull_request'
+        if: steps.scope.outputs.relevant == 'true' && github.event_name == 'pull_request'
         continue-on-error: true
         uses: ./.github/actions/upsert-pr-comment
         with:
@@ -131,5 +162,5 @@ jobs:
           details-summary: 'route ごとの client JS'
 
       - name: Fail if a route is over its budget
-        if: always() && steps.budget.outputs.status != 'success'
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.budget.outputs.status != 'success'
         run: exit 1

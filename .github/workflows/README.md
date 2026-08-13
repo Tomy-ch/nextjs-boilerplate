@@ -150,6 +150,10 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
 
+**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`bundle-budget` が使っている。
+
+渡すのは「**自分に影響しえないもの**」の一覧であって、影響するものの一覧ではない。書き漏らしは無駄な 1 回で済むが、書き間違いは job が黙って何も検査しなくなる方向へ倒れる。**検査しない gate は「違反なし」と見分けが付かない**。一覧はこの action を共有し、job ごとに書き起こさないこと — 3 本に割れた除外リストは必ずずれ、ずれは黙って進む。
+
 `component-classes` / `shadcn-drift` は `paths:` を持つため、**後者（required check から外す）を選んでいる**。この 2 本を required へ登録するなら、同時に裏返しの guard を対で用意すること。
 
 ## PR コメント（検査ログ: upsert-pr-comment）

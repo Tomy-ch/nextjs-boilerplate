@@ -1,0 +1,87 @@
+name: Diff scope
+description: Decide whether a pull request's diff can reach what a job inspects, so an expensive job can stand down without a `paths:` filter
+
+# `paths:` cannot be used on a required check: the workflow does not run, the context is never
+# reported, and GitHub blocks the pull request forever waiting for it (see workflows/README.md).
+# The job therefore always starts and asks this action whether the expensive steps are worth
+# running. The context is reported either way.
+#
+# The caller passes what CANNOT affect it, never what can. A missing entry costs a needless run;
+# a wrong entry silently stops the job from inspecting anything, and a gate that inspects nothing
+# looks exactly like a gate that found no problem. Anything the caller does not name runs.
+#
+# The same reasoning applies to every long job in this repository. Share this action rather than
+# writing a second predicate — three copies of an ignore list drift, and each drift is silent.
+
+inputs:
+  base-ref:
+    required: true
+    description: Branch the diff is taken against (`github.base_ref`)
+  ignore:
+    required: true
+    description: |
+      Newline-separated patterns for paths that cannot affect this job. Matched with bash `[[ ==
+      ]]`, where `*` also spans `/` — write `docs/*`, not `docs/**`.
+
+outputs:
+  relevant:
+    value: ${{ steps.decide.outputs.relevant }}
+    description: '`true` when at least one changed path is not covered by `ignore`, or when the diff could not be taken'
+
+runs:
+  using: composite
+  steps:
+    - name: Decide whether the diff can reach this job
+      id: decide
+      shell: bash
+      env:
+        BASE_REF: ${{ inputs.base-ref }}
+        IGNORE: ${{ inputs.ignore }}
+      run: |
+        set -euo pipefail
+
+        # Not being able to take the diff is not evidence of irrelevance. Run.
+        if [ -z "${BASE_REF}" ]; then
+          echo "relevant=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::No base ref; running."
+          exit 0
+        fi
+
+        git fetch --no-tags --depth=1 origin "${BASE_REF}" >/dev/null 2>&1 || true
+
+        # Two commits, not `...`. A merge base needs shared history, which a shallow checkout
+        # does not have; comparing the tips only needs both trees. The difference is that
+        # changes made on base since the branch diverged are counted too, which can only make
+        # the job run when it need not have.
+        if ! changed="$(git diff --name-only "origin/${BASE_REF}" HEAD 2>/dev/null)"; then
+          echo "relevant=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Could not diff against origin/${BASE_REF}; running."
+          exit 0
+        fi
+
+        if [ -z "${changed}" ]; then
+          echo "relevant=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Empty diff; running."
+          exit 0
+        fi
+
+        mapfile -t patterns <<< "${IGNORE}"
+
+        while IFS= read -r file; do
+          [ -n "${file}" ] || continue
+
+          for pattern in "${patterns[@]}"; do
+            [ -n "${pattern}" ] || continue
+            # shellcheck disable=SC2053 # the right-hand side is a pattern on purpose
+            if [[ "${file}" == ${pattern} ]]; then
+              continue 2
+            fi
+          done
+
+          echo "relevant=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::${file} can affect this job; running."
+          exit 0
+        done <<< "${changed}"
+
+        echo "relevant=false" >> "$GITHUB_OUTPUT"
+        echo "::notice::Every changed path is declared unable to affect this job; standing down."
