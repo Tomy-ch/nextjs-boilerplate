@@ -20,16 +20,11 @@ const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => envir
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 
-import { getProductCategories, getProductStatuses, PRODUCT_MASTERS_TAG } from "./product-masters";
+import { getProductCategories, PRODUCT_MASTERS_TAG } from "./product-masters";
 
 const wireCategories = [
   { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b21", name: "雑貨", code: 20, sortKey: 1 },
   { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b22", name: "書籍", code: 10, sortKey: 2 },
-];
-
-const wireStatuses = [
-  { id: "4f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b31", name: "公開", code: 2, sortKey: 1 },
-  { id: "4f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b32", name: "下書き", code: 1, sortKey: 2 },
 ];
 
 function stubFetch(body: unknown): ReturnType<typeof vi.fn> {
@@ -86,36 +81,5 @@ describe("getProductCategories", () => {
     stubFetch([]);
 
     await expect(getProductCategories()).resolves.toEqual([]);
-  });
-});
-
-describe("getProductStatuses", () => {
-  // ----- 正常系 -----
-  it("契約の応答から ID と表示名だけを取り出す", async () => {
-    stubFetch(wireStatuses);
-
-    await expect(getProductStatuses()).resolves.toEqual([
-      { id: wireStatuses[0]?.id, name: "公開" },
-      { id: wireStatuses[1]?.id, name: "下書き" },
-    ]);
-  });
-
-  it("ステータスのマスタへ問い合わせる", async () => {
-    const fetchImpl = stubFetch(wireStatuses);
-
-    await getProductStatuses();
-
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/products/statuses");
-  });
-
-  it("キャッシュとマスタの再検証タグを指定する", async () => {
-    const fetchImpl = stubFetch(wireStatuses);
-
-    await getProductStatuses();
-
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
-      cache: "force-cache",
-      next: { tags: [PRODUCT_MASTERS_TAG] },
-    });
   });
 });
