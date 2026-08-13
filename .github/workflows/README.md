@@ -148,7 +148,7 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 3 つ目が `vrt` の採る形である。job 名を変えずに必ず起動するので context は常に報告され、guard も required からの除外も要らない。無関係な PR が払うのは checkout と判定ステップだけになる。
 
-**述語は「絵を動かさない」と言い切れるパスの allowlist にすること。** denylist は漏れた瞬間に fail-open する — 新しいパスが漏れた日から比較が黙って止まり、job は何も比べないまま「差分なし」を報告する。安全に書けるのは `docs/**` / `**/*.md` / `.claude/**` / `.agents/**` 程度で、**拡張子による判定（`.tsx` を触ったか）は使えない**。Tailwind の class 文字列は `*.definition.ts`、CSS 基盤は `foundation/*.css`、token の SSOT は `tokens/**`、フォントのラスタライズは `docker/images-pin.toml` の digest にあり、`.tsx` を触らずに絵が変わる経路が設計として複数ある（依存更新も同じ）。判定できなかったとき（API が答えない・一覧が切り詰められた）は必ず「実行する」側へ倒すこと。
+**述語は「絵を動かさない」と言い切れるパスの allowlist にすること。** denylist は漏れた瞬間に fail-open する — 新しいパスが漏れた日から比較が黙って止まり、job は何も比べないまま「差分なし」を報告する。安全に書けるのは `docs/**` / `**/*.md` / `.claude/**` / `.agents/**` と `**/*.test.ts` / `**/*.test.tsx`（いずれも Storybook のバンドルに入らない）程度で、**「`.tsx` が変わったか」で発火させることはできない**。Tailwind の class 文字列は `*.definition.ts`、CSS 基盤は `foundation/*.css`、token の SSOT は `tokens/**`、フォントのラスタライズは `docker/images-pin.toml` の digest にあり、`.tsx` を触らずに絵が変わる経路が設計として複数ある（依存更新も同じ）。判定できなかったとき（API が答えない・一覧が切り詰められた）は必ず「実行する」側へ倒すこと。
 
 `component-classes` / `shadcn-drift` は `paths:` を持つため、**後者（required check から外す）を選んでいる**。この 2 本を required へ登録するなら、同時に裏返しの guard を対で用意すること。
 

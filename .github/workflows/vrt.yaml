@@ -60,9 +60,10 @@ jobs:
       # the required `vrt` context is always reported and no paired guard workflow is
       # needed — a `paths:` filter cannot do that (README, "`paths:` フィルタを使わない").
       #
-      # The predicate must stay an ALLOWLIST of paths that cannot move a pixel. A
-      # denylist fails open: anything that escapes it stops the comparison silently and
-      # the job reports "no visual change" without having compared anything.
+      # The predicate must stay an ALLOWLIST of paths that cannot move a pixel — prose,
+      # agent configuration, and test files, none of which enter the Storybook bundle.
+      # A denylist fails open: anything that escapes it stops the comparison silently
+      # and the job reports "no visual change" without having compared anything.
       #
       # Extension-based rules do not belong here. Tailwind class strings live in
       # `*.definition.ts`, the CSS base in `foundation/*.css`, the token SSOT in
@@ -96,7 +97,7 @@ jobs:
           skip=true
           while IFS= read -r file; do
             case "${file}" in
-              docs/*|.claude/*|.agents/*|*.md) ;;
+              docs/*|.claude/*|.agents/*|*.md|*.test.ts|*.test.tsx) ;;
               *)
                 skip=false
                 break
