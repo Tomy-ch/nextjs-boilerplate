@@ -141,8 +141,9 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 | Dynamic rendering | リクエストごとに描く | 同上。**使った API で自動的に決まる** |
 | Request-time API | `cookies()` / `headers()` / `searchParams` / `draftMode()`。触ると dynamic になる | 「読むだけ」のつもりが、そのページの描画方式を変えている |
 | Prerendering / Static Shell | 事前に描いてある部分。ブラウザへ即座に返る | — |
-| Streaming / Suspense boundary | 描けたところから順に送る仕組みと、その区切り | `loading.tsx` は「読み込み中の画面」ではなく、そのセグメントに Suspense を敷く宣言 |
-| Cache Components (PPR) | 静的な殻と動的な穴を 1 ページに混ぜる機構 | 採否は [ADR 0041](../adr/0041-cache-components-decision.md) が持つ |
+| Streaming / Suspense boundary | 描けたところから順に送る仕組みと、その区切り | — |
+| Loading UI | Suspense が解決するまで出る表示。`loading.tsx` がこれにあたる | `loading.tsx` は「読み込み中の画面」ではなく、**そのセグメントに Suspense を敷く宣言**である |
+| Cache Components / Partial Prerendering (PPR) | 静的な殻と動的な穴を 1 ページに混ぜる機構 | 採否は [ADR 0041](../adr/0041-cache-components-decision.md) が持つ |
 
 ### キャッシュ（名前が似ていて寿命が違う）
 
@@ -163,6 +164,31 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 | `router.refresh()` | サーバから描き直すが、**client state は保つ** | ブラウザの再読み込みとは別物。あちらは client state を捨てる |
 | Version skew | 利用者が開いたままの間に新しい版がデプロイされ、新旧が食い違うこと | 「たまに壊れる」で片付けられがちだが、原因の名前が付いている |
 
+### 境界とエラー
+
+| 語 | 意味 | 取り違え |
+| --- | --- | --- |
+| Error Boundary | 配下で投げられた例外を捕まえて代わりの表示を出す仕組み。`error.tsx` がこれにあたる | **Client Component でなければならない。** また production では Server Component から投げられた例外の本文が伏せられ、境界には汎用の文言と `digest` しか届かない（[ADR 0080](../adr/0080-error-handling.md)） |
+| `"use cache"` | 関数やコンポーネントの結果をキャッシュ対象だと宣言する指示子 | `"use client"` / `"use server"` と並ぶ 3 つめだが、**対称ではない**。あちらは実行場所と呼び出し可否、これはキャッシュ |
+
+### ルーティングの残り
+
+| 語 | 意味 | 取り違え |
+| --- | --- | --- |
+| Dynamic route segment | `[id]`。値が入る階層 | — |
+| Catch-all segment | `[...slug]` / `[[...slug]]`。以降の階層をまとめて受ける | — |
+| Private Folder `_name` | **URL に現れない**フォルダ。ルーティングの対象から外す | **URL に出ないフォルダは 2 種類ある。** `(name)` は器を分けるため、`_name` はルーティングから外すため。目的が違う |
+| Parallel Routes `@slot` | 1 つの階層に複数の枠を並べて同時に描く | 存在を知らないと、同種のことを自前の state で組んでしまう |
+| Intercepting Routes | 遷移元によって同じ URL の描き方を変える。一覧から開いたらモーダル、直接開いたら全画面、といった作り | 同上 |
+
+### ビルドと配信
+
+| 語 | 意味 | 取り違え |
+| --- | --- | --- |
+| Code Splitting / Tree Shaking | 必要な塊だけに分けて送る / 使っていない export を落とす | 「Client Component にすると全部送られる」ではない。ただし**削れるのは使っていないものだけ**で、使っていれば送られる |
+| ISR（Incremental Static Regeneration） | 静的に描いたものを期限付きで作り直す | 名前が難しいだけで、やっていることは「静的だが古くなったら描き直す」 |
+| Static Export | ページを全部静的ファイルとして出す構成 | 採るとサーバが無くなるため、Request-time API も Route Handler も使えなくなる |
+
 ### その他
 
 | 語 | 意味 | 取り違え |
@@ -170,6 +196,19 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 | `params` / `searchParams` は Promise | Next 15 以降、`await` してから読む | 同期で読めた頃のコード例が大量に残っている |
 | Edge runtime / Node.js runtime | 実行環境が 2 つある | [`instrumentation.ts`](../../src/instrumentation.ts) が `NEXT_RUNTIME` で分岐しているのはこのため |
 | Turbopack | 既定のバンドラ | webpack 前提の設定情報に当たることがある |
+
+### ここでは扱わない語
+
+次は Next.js 固有の語ではあるが、**判断を持っている ADR が別にある**。ここに定義を書くと二重管理になるため、誘導だけ置く。
+
+| 語 | 判断の在り処 |
+| --- | --- |
+| Metadata | [ADR 0044](../adr/0044-seo-metadata-strategy.md) |
+| Font Optimization / Image Optimization | [ADR 0045](../adr/0045-fonts-and-images.md) |
+| Redirect / Rewrite | [ADR 0043](../adr/0043-middleware-policy.md) |
+| Not Found | [ADR 0080](../adr/0080-error-handling.md) |
+| Environment Variables | [ADR 0030](../adr/0030-environment-variable-management.md) |
+| Import Aliases | [ADR 0027](../adr/0027-directory-structure.md) |
 
 ## 自分で確かめる
 
