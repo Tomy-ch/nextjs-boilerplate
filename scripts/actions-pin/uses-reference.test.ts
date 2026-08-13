@@ -191,4 +191,12 @@ describe("unparsedUsesLines", () => {
   it("版を持たない参照を取りこぼしとして扱わない", () => {
     expect(unparsedUsesLines("  - {uses: actions/checkout}\n")).toEqual([]);
   });
+
+  it("anchor を付けて書かれた uses を取りこぼしとして返す", () => {
+    expect(unparsedUsesLines("  - uses: &co actions/checkout@v7\n")).toEqual([1]);
+  });
+
+  it("alias で書かれた uses を取りこぼしとして返す", () => {
+    expect(unparsedUsesLines("  - uses: *co\n")).toEqual([1]);
+  });
 });
