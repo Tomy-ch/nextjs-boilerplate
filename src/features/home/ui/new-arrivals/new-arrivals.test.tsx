@@ -25,6 +25,11 @@ const ITEMS: readonly ProductListItem[] = [
   itemOf("0195f0c2-0000-7000-8000-000000000002", "スマートウォッチ"),
 ];
 
+/** 折り返し前として扱う件数の境界をまたぐだけ並べる。 */
+const OVER_LEADING: readonly ProductListItem[] = Array.from({ length: 5 }, (_, index) =>
+  itemOf(`0195f0c2-0000-7000-8000-00000000000${index + 1}`, `商品 ${index + 1}`),
+);
+
 describe("NewArrivals", () => {
   // ----- 正常系 -----
   it("渡された商品を並べる", () => {
@@ -47,6 +52,13 @@ describe("NewArrivals", () => {
     render(<NewArrivals items={ITEMS} />);
 
     expect(screen.getByRole("heading", { name: "新着商品" })).toBeVisible();
+  });
+
+  it("折り返し前の件数だけ画像を preload する", () => {
+    const { container } = render(<NewArrivals items={OVER_LEADING} />);
+
+    // preload した画像は待機表示を持たない。5 件目だけが枠を持つ。
+    expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(1);
   });
 
   // ----- 異常系 -----

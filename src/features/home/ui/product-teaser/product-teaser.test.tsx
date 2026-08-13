@@ -53,6 +53,18 @@ describe("ProductTeaser", () => {
     expect(screen.getByText("$0.001")).toBeVisible();
   });
 
+  it("折り返し前の位置では画像を preload し、待機表示を出さない", () => {
+    const { container } = render(<ProductTeaser item={itemOf()} leading />);
+
+    expect(container.querySelector('[data-slot="skeleton"]')).toBeNull();
+  });
+
+  it("折り返し後の位置では待機表示を出す", () => {
+    const { container } = render(<ProductTeaser item={itemOf()} />);
+
+    expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+  });
+
   // ----- 異常系 -----
   it("画像が無い商品には代替画像を置く", () => {
     render(<ProductTeaser item={itemOf({ imageUrl: null })} />);

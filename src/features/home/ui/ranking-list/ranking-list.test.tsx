@@ -60,6 +60,17 @@ describe("RankingList", () => {
     );
   });
 
+  it("先頭の行にだけ区切り線を出さない", () => {
+    render(<RankingList entries={ENTRIES} />);
+
+    const items = within(screen.getByRole("list")).getAllByRole("listitem");
+    const separatorsIn = (item: HTMLElement | undefined) =>
+      item === undefined ? -1 : within(item).queryAllByRole("separator").length;
+
+    expect(separatorsIn(items[0])).toBe(0);
+    expect(separatorsIn(items[1])).toBe(1);
+  });
+
   // ----- 異常系 -----
   it("件数が無ければ節ごと描かない", () => {
     render(<RankingList entries={[]} />);
