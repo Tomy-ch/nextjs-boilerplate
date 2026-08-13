@@ -118,7 +118,7 @@ owner 名などを足す。名前は後から変えられる（slug も追随す
 
 作成後、続けて 3 つ。作成直後に着地するのが **General** ページなので、上から順に済ませられる。
 
-1. **General ページの URL を控える** — `https://github.com/settings/apps/<slug>`。次の 6-3 で貼り付ける
+1. **App ID を控える** — General ページの上部に数字で出ている。次の 6-3 で貼り付ける
 2. **General → Private keys → Generate a private key** → `.pem` がダウンロードされる
 3. **Install App** → **Only select repositories** で**本体と置き場の 2 つだけ**
 
@@ -129,18 +129,22 @@ make setup-vrt-app
 ```
 
 ```text
-App の slug、または General ページの URL:    ← 6-2 で控えた URL をそのまま貼ってよい
+App ID（General ページの App ID）:           ← 6-2 で控えた数字
 
-  App 名 : ...
   App ID : ...
+  登録先 : <owner>/<repo>
 
-この App を登録しますか (y/N) [N]:           ← y
+この内容で登録しますか (y/N) [N]:            ← y
 
 秘密鍵 (.pem の中身) を貼り付けて Ctrl+D:    ← .pem の全文を貼って Ctrl+D
 ```
 
-最初の問いは **slug をそのまま打っても通る**（`my-app` でも
-`https://github.com/settings/apps/my-app` でもよい）。App ID はそこから解決するので控える必要はない。
+`App ID: 2168345` のようにラベルごと貼っても通る。
+
+**slug では引けない。** `GET /apps/<slug>` は公開されている App しか返さず、この App は
+`Only on this account` で作るため必ず 404 になる。ID を引ける他の API はどれも App 自身の鍵で
+署名した JWT を要求するので、鍵を登録する前には使えない。
+
 秘密鍵は `gh` の標準入力へ直接渡るので、ディスクにもシェル履歴にも残らない。登録後は `.pem` を消してよい。
 
 ```bash

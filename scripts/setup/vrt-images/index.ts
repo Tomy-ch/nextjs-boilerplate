@@ -17,8 +17,8 @@ import {
   DEFAULT_VISIBILITY,
   defaultImagesName,
   isAffirmative,
-  normalizeAppSlug,
   normalizeVisibility,
+  parseAppId,
   renderReadme,
   splitRepository,
   targetRepository,
@@ -155,23 +155,15 @@ function wireSubmodule(target: string): void {
 }
 
 async function setupApp(): Promise<void> {
-  const slug = normalizeAppSlug(await ask("App の slug、または General ページの URL"));
+  const appId = parseAppId(await ask("App ID（General ページの App ID）"));
 
-  let app: { id: number; name: string };
-  try {
-    app = JSON.parse(gh(["api", `/apps/${slug}`])) as { id: number; name: string };
-  } catch {
-    throw new Error(
-      `App が見つかりません: ${slug}。App の General ページの URL を貼り付けてください。`,
-    );
-  }
-
-  console.log(`\n  App 名 : ${app.name}\n  App ID : ${app.id}\n`);
-  if (!isAffirmative(await ask("この App を登録しますか (y/N)", "N"))) {
+  const target = gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]);
+  console.log(`\n  App ID : ${appId}\n  登録先 : ${target}\n`);
+  if (!isAffirmative(await ask("この内容で登録しますか (y/N)", "N"))) {
     throw new Error("登録を中止しました。");
   }
 
-  gh(["secret", "set", "VRT_APP_ID", "--body", String(app.id)]);
+  gh(["secret", "set", "VRT_APP_ID", "--body", appId]);
   console.log("🔧 VRT_APP_ID を登録しました。");
 
   // 鍵は gh の標準入力へ直接渡す。読み取らないので、ディスクにもこのプロセスにも残らない。

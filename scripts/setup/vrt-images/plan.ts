@@ -122,22 +122,23 @@ export function isAffirmative(answer: string): boolean {
 }
 
 /**
- * App の URL か slug から slug を取り出す。
+ * App ID を取り出す。ラベルごと貼り付けられても拾う。
  *
  * @remarks
- * 人が控えるのは作成直後に居る **General ページの URL**（`/settings/apps/<slug>`、組織なら
- * `/organizations/<org>/settings/apps/<slug>`）で、公開ページの `/apps/<slug>` ではありません。
- * どこに `apps/` が現れても受けるのはそのためです。末尾に `/permissions` などが付いていても構いません。
+ * slug から引かないのは、`GET /apps/{slug}` が**公開されている App しか返さない**ためです。
+ * この App は installation を 2 リポジトリに絞る前提で非公開に作るので、その経路は必ず 404 に
+ * なります。ID を引ける他の API はいずれも App 自身の鍵で署名した JWT を要求するため、
+ * 鍵を登録する前の時点では使えません。
+ *
+ * 番号は App の General ページに出ているので、控える手間は URL を控えるのと変わりません。
  */
-export function normalizeAppSlug(input: string): string {
-  const trimmed = input.trim().replace(/\/+$/, "");
-  const fromUrl = /github\.com\/(?:.*\/)?apps\/([^/?#]+)/.exec(trimmed);
-  const slug = fromUrl === null ? trimmed : fromUrl[1];
+export function parseAppId(input: string): string {
+  const matched = /^(?:App ID[:：]?\s*)?(\d+)$/.exec(input.trim());
 
-  if (!/^[A-Za-z0-9-]+$/.test(slug)) {
+  if (matched === null) {
     throw new Error(
-      `App の URL か slug を入力してください（受け取った値: ${JSON.stringify(input)}）`,
+      `App ID（General ページに出ている数字）を入力してください（受け取った値: ${JSON.stringify(input)}）`,
     );
   }
-  return slug;
+  return matched[1];
 }

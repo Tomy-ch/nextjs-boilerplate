@@ -6,8 +6,8 @@ import {
   DEFAULT_VISIBILITY,
   defaultImagesName,
   isAffirmative,
-  normalizeAppSlug,
   normalizeVisibility,
+  parseAppId,
   renderReadme,
   splitRepository,
   targetRepository,
@@ -159,29 +159,28 @@ describe("isAffirmative", () => {
   });
 });
 
-describe("normalizeAppSlug", () => {
+describe("parseAppId", () => {
   // ----- 正常系 -----
-  it("slug をそのまま受ける", () => {
-    expect(normalizeAppSlug("my-vrt-app")).toBe("my-vrt-app");
+  it("数字をそのまま受ける", () => {
+    expect(parseAppId("2168345")).toBe("2168345");
   });
 
   it.each([
-    ["個人の General ページ", "https://github.com/settings/apps/my-vrt-app"],
-    ["組織の General ページ", "https://github.com/organizations/acme/settings/apps/my-vrt-app"],
-    ["公開ページ", "https://github.com/apps/my-vrt-app"],
-    ["末尾にスラッシュ", "https://github.com/settings/apps/my-vrt-app/"],
-    ["下位ページ", "https://github.com/settings/apps/my-vrt-app/permissions"],
-  ])("%s の URL から slug を取り出す", (_label, input) => {
-    expect(normalizeAppSlug(input)).toBe("my-vrt-app");
+    ["前後の空白", "  2168345  "],
+    ["ラベルごと", "App ID: 2168345"],
+    ["全角コロン", "App ID： 2168345"],
+    ["コロン無し", "App ID 2168345"],
+  ])("%s の貼り付けからも取り出す", (_label, input) => {
+    expect(parseAppId(input)).toBe("2168345");
   });
 
   // ----- 異常系 -----
   it.each([
     ["空文字", ""],
-    ["空白を含む", "my app"],
-    ["余分な区切り", "owner/my-app"],
-    ["apps を含まない URL", "https://github.com/Tomy-ch/nextjs-boilerplate"],
-  ])("URL でも slug でもない %s を拒む", (_label, input) => {
-    expect(() => normalizeAppSlug(input)).toThrow(/App の URL か slug を入力してください/);
+    ["slug", "nextjs-boilerplate-vrt-images-app"],
+    ["General ページの URL", "https://github.com/settings/apps/my-app"],
+    ["数字を含む文字列", "app-2168345"],
+  ])("App ID でない %s を拒む", (_label, input) => {
+    expect(() => parseAppId(input)).toThrow(/App ID（General ページに出ている数字）/);
   });
 });
