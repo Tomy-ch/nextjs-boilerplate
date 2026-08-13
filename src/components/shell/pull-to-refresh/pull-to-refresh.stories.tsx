@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { PullToRefresh } from "./pull-to-refresh";
 
 const meta = {
-  title: "Shell/PullToRefresh",
+  title: "Feedback/PullToRefresh",
   component: PullToRefresh,
   parameters: {
     layout: "fullscreen",
