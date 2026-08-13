@@ -240,7 +240,7 @@ describe("InputGroupInput", () => {
 
   it("disabled の入力欄は操作を受け付けない", () => {
     render(
-      <InputGroup data-disabled="true">
+      <InputGroup disabled>
         <InputGroupInput aria-label="数量" disabled name="quantity" />
       </InputGroup>,
     );

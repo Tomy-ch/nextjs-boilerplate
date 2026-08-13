@@ -40,10 +40,11 @@
 | 57 | polling は必要な場合だけ採用し、間隔・停止条件・バックグラウンドタブ抑制を定義する。 | feature テスト。 | [ADR 0060](adr/0060-state-management.md) |
 | 63 | preview / staging は `noindex` を強制し、環境識別バナーの有無は fork 先の要件として Config で決める。 | P6-3 の metadata テスト。 | [ADR 0044](adr/0044-seo-metadata-strategy.md) |
 | 65 | build info を露出するときは commit SHA と build time の出所を明示し、機微な環境変数を含めない。 | P4-2 の生成 / health endpoint テスト。 | [ADR 0072](adr/0072-api-type-generation.md) |
-| 66 | `next/dynamic` は初期表示に不要で大きい client-only 機能に限る。`ssr: false` は SSR が不可能な理由を持つ場合だけ使う。 | bundle 計測と review。 | [ADR 0101](adr/0101-performance-budget.md) |
+| 66 | `next/dynamic` は初期表示に不要で大きい client-only 機能に限る。`ssr: false` は SSR が不可能な理由を持つ場合だけ使う。 | `bundle-budget` job と review。 | [ADR 0101](adr/0101-performance-budget.md) |
 | 67 | server 専用モジュールは先頭で `import "server-only"` し、client component から参照させない。 | `server-only` の build-time failure と ESLint boundaries。 | [ADR 0071](adr/0071-bff-api-integration.md) |
 | 68 | Server Action ID の version skew が起きたら、再試行を繰り返さず full reload へ誘導する。 | P5-7 の integration テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 69 | 内部リンクは `next/link` を使い、生の `<a>` を使わない。外部リンクには必要な `rel` を付与する。 | ESLint の `project-rules/no-internal-anchor`。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
+| 70 | DOM マークアップは UI を担う層（`app` / `features` / `components`）にだけ置く。`adapters` / `capabilities` / `stores` / `config` などの内側で画面を描かない。Provider の合成は許す（[ADR 0022](adr/0022-capabilities-kernel.md) / [ADR 0026](adr/0026-layout-shell-mount.md)）。 | ESLint の `project-rules/no-markup-outside-ui-layers`（置いてよい層の宣言は `architecture.ts` の `UI_KERNELS`）。 | [ADR 0021](adr/0021-frontend-responsibility.md) |
 
 ## 運用
 

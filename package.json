@@ -6,6 +6,7 @@
   "scripts": {
     "add:ui": "tsx src/components/scripts/add-shadcn.ts",
     "build": "next build",
+    "bundle-budget": "tsx scripts/bundle-budget",
     "build-storybook": "storybook build",
     "check:architecture": "tsx scripts/architecture",
     "check:classes": "tsx src/components/scripts/check-classes.ts",
@@ -17,6 +18,7 @@
     "format": "biome format --write",
     "gen": "tsx scripts/gen",
     "gen:tokens": "tsx tokens/scripts/gen-tokens.ts",
+    "knip": "knip",
     "lint": "biome check",
     "lint:ci": "biome check --config-path=./biome.ci.jsonc --error-on-warnings && pnpm lint:eslint && pnpm check:architecture",
     "lint:eslint": "eslint .",
@@ -110,6 +112,7 @@
     "zustand": "5.0.14"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
     "@biomejs/biome": "2.5.5",
     "@commitlint/cli": "21.2.1",
     "@commitlint/types": "21.2.0",
@@ -135,6 +138,7 @@
     "eslint-plugin-react-hooks": "7.1.1",
     "jiti": "2.7.0",
     "jsdom": "29.0.1",
+    "knip": "6.32.0",
     "lefthook": "2.1.10",
     "linkedom": "0.18.13",
     "markdownlint-cli2": "0.23.1",

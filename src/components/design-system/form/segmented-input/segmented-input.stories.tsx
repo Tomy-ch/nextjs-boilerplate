@@ -64,6 +64,7 @@ const meta = {
   component: SegmentedInput,
   parameters: { layout: "centered" },
   args: {
+    "aria-label": "確認コード",
     autoComplete: "one-time-code",
     children: <SplitSlots />,
     inputMode: "numeric",
@@ -88,6 +89,7 @@ export const Default: Story = {};
  */
 export const Pin: Story = {
   args: {
+    "aria-label": "暗証番号",
     autoComplete: "off",
     children: <Slots from={0} to={4} />,
     mask: true,
@@ -103,6 +105,7 @@ export const Pin: Story = {
  */
 export const LicenseKey: Story = {
   args: {
+    "aria-label": "ライセンスキー",
     autoComplete: "off",
     children: (
       <>
@@ -124,6 +127,7 @@ export const LicenseKey: Story = {
  */
 export const MaskedLicenseKey: Story = {
   args: {
+    "aria-label": "復旧キー",
     autoComplete: "off",
     children: <Slots from={0} to={8} />,
     inputMode: "text",
@@ -138,6 +142,7 @@ export const MaskedLicenseKey: Story = {
 /** 伏せ字に使う文字を差し替える場合。 */
 export const MaskedWithCustomChar: Story = {
   args: {
+    "aria-label": "暗証番号",
     autoComplete: "off",
     children: <Slots from={0} to={4} />,
     mask: true,
@@ -154,6 +159,7 @@ export const MaskedWithCustomChar: Story = {
  */
 export const PartiallyMasked: Story = {
   args: {
+    "aria-label": "暗証番号",
     autoComplete: "off",
     children: (
       <SegmentedInputGroup>

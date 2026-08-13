@@ -143,7 +143,10 @@ export type NotificationListProps = ComponentProps<"ul"> & {
  * 件数が増えるため高さを抑え、内側だけを scroll させる。開いた面がページごと伸びると、通知を読む
  * ために画面全体が動く。
  *
- * `tabIndex={-1}` は、すべて既読にしたあとの focus の受け皿である。focus は移すが輪は描かない。操作した直後に中身が目に見えて変わるため、輪が足す情報が無く、pointer で操作した人には押した場所と無関係な枠が現れることになる。行き先は要素の名前が伝える。
+ * `tabIndex={0}` は二つを兼ねる。内側だけが scroll するため keyboard だけで送れる必要があり、
+ * 同時に、すべて既読にしたあとの focus の受け皿にもなる。輪は `focus-visible` のときだけ描く。
+ * pointer で操作したあとに focus を移す場合は、押した場所と無関係な枠が現れることになるためで、
+ * 行き先は要素の名前が伝える。
  *
  * @param props.label - 一覧の名前。
  *
@@ -158,9 +161,13 @@ export function NotificationList({
     <List asChild>
       <ul
         aria-label={label}
-        className={cn("max-h-80 gap-0 overflow-y-auto outline-hidden", className)}
+        className={cn(
+          "max-h-80 gap-0 overflow-y-auto focus-visible:outline-2 focus-visible:outline-foreground focus-visible:-outline-offset-2",
+          className,
+        )}
         data-slot="notification-list"
-        tabIndex={-1}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: スクロール可能な領域は非対話でも focus 可能にする必要がある。外すと keyboard だけではスクロールできず WCAG 2.1.1 に反する
+        tabIndex={0}
         {...props}
       />
     </List>

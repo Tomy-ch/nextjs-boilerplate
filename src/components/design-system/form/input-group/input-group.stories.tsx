@@ -196,8 +196,8 @@ function DisabledInputGroup() {
         </InputGroup>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={groupDisabledId}>枠へ data-disabled も渡す</Label>
-        <InputGroup data-disabled="true">
+        <Label htmlFor={groupDisabledId}>枠ごと disabled にする</Label>
+        <InputGroup disabled>
           <InputGroupInput
             defaultValue="12"
             disabled
@@ -241,5 +241,5 @@ export const BlockAlign: Story = { render: () => <BlockAlignInputGroup /> };
 /** `aria-invalid` を指定した場合。外枠の枠線も invalid の表示へ変わる。 */
 export const Invalid: Story = { render: () => <InvalidInputGroup /> };
 
-/** control を `disabled` にすると枠線が控えめな色へ落ちる。`data-disabled` を渡すと addon も減光する。 */
+/** control を `disabled` にすると枠線が控えめな色へ落ちる。`disabled` を渡すと addon も減光し、枠ごと操作できないことが支援技術へ伝わる。 */
 export const Disabled: Story = { render: () => <DisabledInputGroup /> };

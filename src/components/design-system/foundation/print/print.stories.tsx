@@ -83,7 +83,7 @@ export const LongTable: Story = {
   render: () => (
     <div className="flex flex-col gap-3">
       <PrintButton />
-      <Table className="max-w-xl">
+      <Table className="max-w-xl" label="契約プランの一覧">
         <TableHeader>
           <TableRow>
             <TableHead>プラン名</TableHead>

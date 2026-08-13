@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 export const COMPOSITE_ACTION_DIR = ".github/actions";
-export const ACTION_FILENAMES = ["action.yml", "action.yaml"];
+const ACTION_FILENAMES = ["action.yml", "action.yaml"];
 
 // composite action は `uses: ./.github/actions/<group>/<name>` のように入れ子に置けるため
 // 走査は再帰する。1 階層で打ち切ると入れ子の定義が検査されないまま通る。

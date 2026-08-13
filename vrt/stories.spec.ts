@@ -2,7 +2,7 @@ import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
-import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
+import { test as base, expect, type TestInfo } from "@playwright/test";
 import { installFixedClock } from "./lib/clock";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
 import {
@@ -12,6 +12,7 @@ import {
   missingBaselines,
   orphanBaselines,
 } from "./lib/orphan-baselines";
+import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
 
@@ -98,17 +99,4 @@ if (!process.env.VRT_ONLY) {
 // 通してから 3 区画(系統 / テーマ / ファイル名)ぶん遡る。
 function baselineRoot(testInfo: TestInfo): string {
   return path.resolve(testInfo.snapshotPath("group", "theme", "story.png"), "../../..");
-}
-
-// 撮影前に、描画とフォントの読み込みが終わるのを待つ。
-//
-// 描画の完了は配色テーマが `:root` へ乗ったことで見る。テーマを載せるのが story を包む
-// decorator(`.storybook/preview.ts`)なので、乗っていれば story まで到達している。要素の出現で
-// 見ると、描画前の空の `#storybook-root` を「安定した画面」として撮ってしまう。
-async function settle(page: Page, theme: string): Promise<void> {
-  await page.waitForFunction(
-    (expected) => document.documentElement.dataset.theme === expected,
-    theme,
-  );
-  await page.evaluate(() => document.fonts.ready);
 }

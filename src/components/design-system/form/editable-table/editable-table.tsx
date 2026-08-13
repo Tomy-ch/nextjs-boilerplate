@@ -21,6 +21,8 @@ import {
 export type EditableTableProps = ComponentProps<"form"> & {
   /** table の中身。`EditableTableHeader` / `EditableTableBody` などを組み合わせて渡す。 */
   children: ReactNode;
+  /** 横スクロールする領域の名前。 */
+  label?: string;
   /** 内側の `table` 要素へ渡す class 名。外側の `form` には `className` が適用される。 */
   tableClassName?: string;
 };
@@ -57,18 +59,22 @@ export type EditableTableProps = ComponentProps<"form"> & {
  *
  * @param props - native `form` 属性と、以下の表示用 props。
  * @param props.children - table の中身。
+ * @param props.label - 横スクロールする領域の名前。
  * @param props.tableClassName - 内側の `table` 要素へ渡す class 名。
  * @see Storybook `Form/EditableTable`
  */
 export function EditableTable({
   children,
   className,
+  label,
   tableClassName,
   ...props
 }: EditableTableProps) {
   return (
     <form className={cn("w-full", className)} data-slot="editable-table" {...props}>
-      <Table className={tableClassName}>{children}</Table>
+      <Table className={tableClassName} label={label}>
+        {children}
+      </Table>
     </form>
   );
 }

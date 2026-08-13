@@ -7,6 +7,7 @@
 .PHONY: vrt-retake ## 基準画像を撮り直して置き場へ送る (手元からの撮り直しはこれ)
 .PHONY: vrt-update ## 基準画像を撮り直す (置き場へは送らない)
 .PHONY: vrt-push ## 撮り直した基準画像を置き場へ送り、サブモジュールのポインタを進める
+.PHONY: a11y ## 全 story に axe を掛ける (コンテナ内で実行)
 .PHONY: vrt-report ## 直前の実行の HTML レポートを開く
 .PHONY: build-storybook ## Storybook を静的に build する (VRT の撮影対象)
 
@@ -37,6 +38,8 @@ VRT_REQUIRE_WIRING = \
 		echo "❌ 基準画像の置き場が配線されていません。make setup-vrt-images を実行してください（vrt/README.md）。"; exit 1; \
 	fi
 
+# spec を名指しするのは、a11y の spec を同じ実行に巻き込まないため。混ざると a11y の失敗が
+# 撮り直しの対象に入り、撮り直しても直らないまま基準画像だけが承認済みになる。
 vrt: build-storybook
 	@$(VRT_REQUIRE_WIRING)
 	@if [ -z "$$(ls -A vrt/screenshots 2>/dev/null)" ]; then \
@@ -44,14 +47,14 @@ vrt: build-storybook
 	fi
 	@if [ -z "$(VRT_ONLY)" ] && [ "$$(pnpm exec tsx scripts/vrt gate $(VRT_INPUTS_FILE))" = "skip" ]; then \
 		echo "⏭️ 絵を決める入力が基準画像を撮った時点と同じです。比較を省き、対応の検査だけを行います。"; \
-		$(VRT_RUN) ./node_modules/.bin/playwright test --grep $(VRT_BASELINE_TAG) $(VRT_ARGS); \
+		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --grep $(VRT_BASELINE_TAG) $(VRT_ARGS); \
 	else \
-		$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_ARGS); \
+		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts $(VRT_ARGS); \
 	fi
 
 vrt-update: build-storybook
 	@$(VRT_REQUIRE_WIRING)
-	@$(VRT_RUN) ./node_modules/.bin/playwright test --update-snapshots $(VRT_ARGS)
+	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --update-snapshots $(VRT_ARGS)
 	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です。"
 
 # 手元から撮り直す唯一の入口。撮って送らないと、親の gitlink が古いまま作業ツリーだけ新しい
@@ -66,6 +69,10 @@ vrt-retake:
 vrt-push:
 	@$(VRT_REQUIRE_WIRING)
 	@pnpm exec tsx scripts/vrt-images push $(VRT_BRANCH)
+
+# 撮影と同じコンテナ・同じ story 列挙で走らせる。基準画像は要らないので配線も要求しない。
+a11y: build-storybook
+	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/a11y.spec.ts $(VRT_ARGS)
 
 # レポートもコンテナ内で配る。ホスト側の Playwright は比較の前に落とす設計なので、
 # 実行系をここだけホストへ寄せない。--service-ports はこの起動でだけポートを公開する。

@@ -119,7 +119,7 @@ export function ImportErrorList({
 }: ImportErrorListProps) {
   return (
     <div className={cn(className)} data-slot="import-error-list" {...props}>
-      <Table aria-label={label}>
+      <Table aria-label={label} label={label}>
         <TableHeader>
           <TableRow>
             <TableHead className="w-20">行</TableHead>

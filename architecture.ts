@@ -6,8 +6,8 @@
  * 宣言と強制を別々に書くと、片方だけを直したコミットが何にも咎められずに通ります。マトリクスの
  * 表現をこの 1 ファイルに閉じ、強制側は生成でも複製でもなく直接の import で受け取ります。
  *
- * 責務そのものは ADR で決まります。ここが持つのは「どの層がどの層を import できるか」だけで、
- * 各層が何を担うかは [0021](docs/adr/0021-frontend-responsibility.md) が正です。
+ * 責務そのものは ADR で決まります。ここが持つのは強制へ変換できる構造だけで、各層が何を担うかは
+ * [0021](docs/adr/0021-frontend-responsibility.md) が正です。
  */
 
 /** 物理化されている層。`src/<kernel>/` に 1 対 1 で対応する。 */
@@ -26,6 +26,21 @@ export const KERNELS = [
 ] as const;
 
 export type Kernel = (typeof KERNELS)[number];
+
+/**
+ * UI を置いてよい層。
+ *
+ * @remarks
+ * [0021](docs/adr/0021-frontend-responsibility.md) の層別責務表は、`adapters` / `capabilities` /
+ * `stores` / `config` の禁止事項に UI を挙げています。ここに無い層で描画を組み立てると、外部接続や
+ * 横断状態の内側に画面が生まれ、置き場を辿れなくなります。
+ *
+ * 強制が届くのは **DOM マークアップだけ**です。Provider の合成は
+ * [0022](docs/adr/0022-capabilities-kernel.md) / [0026](docs/adr/0026-layout-shell-mount.md) が
+ * 明示的に許しており、React 19 では Provider も JSX なので、JSX の有無では分けられません。層に
+ * class 名や見た目の定数を置く経路も残るため、これは「UI 禁止」の全部ではなく、機械で読める部分です。
+ */
+export const UI_KERNELS = ["app", "features", "components"] as const satisfies readonly Kernel[];
 
 /**
  * 層ごとに import を許す層。ここに無い組み合わせはすべて禁止される。

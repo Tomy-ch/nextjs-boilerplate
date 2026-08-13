@@ -10,7 +10,7 @@ import type { Environment } from "./environment";
  * 一式を揃える必要があります。各テストが自分の分だけを stub すると、他の purpose の欠落で
  * 落ちて検査したい判定へ到達しません。
  */
-export const VALID_ENVIRONMENT = {
+const VALID_ENVIRONMENT = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
   MEDIA_ORIGIN: "https://media.example.test",
