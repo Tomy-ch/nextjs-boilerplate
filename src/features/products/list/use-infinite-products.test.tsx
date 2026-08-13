@@ -15,7 +15,7 @@ vi.mock("@/adapters/client/api/products", async (importOriginal) => ({
   fetchProductListPage,
 }));
 
-import { COUNT_KEY, CURSOR_KEY } from "./query";
+import { COUNT_KEY, CURSOR_KEY, PRODUCT_PAGE_SIZE } from "./query";
 import { useInfiniteProducts } from "./use-infinite-products";
 
 type IntersectionCallback = (entries: readonly { isIntersecting: boolean }[]) => void;
@@ -179,7 +179,11 @@ describe("useInfiniteProducts", () => {
     await clickLoadMore();
 
     expect(fetchProductListPage).toHaveBeenCalledWith(
-      { keyword: "椅子", [CURSOR_KEY]: "cursor-1" },
+      {
+        keyword: "椅子",
+        [COUNT_KEY]: String(PRODUCT_PAGE_SIZE),
+        [CURSOR_KEY]: "cursor-1",
+      },
       expect.any(AbortSignal),
     );
   });

@@ -66,6 +66,14 @@ describe("ProductSortSelect", () => {
     expect(field()).toHaveValue("");
   });
 
+  it("読み進めた位置を持ち越さない", async () => {
+    render(<ProductSortSelect options={OPTIONS} selection={{ after: "cursor-1", first: "48" }} />);
+
+    await userEvent.selectOptions(field(), "publishedAt");
+
+    expect(push).toHaveBeenCalledWith("/products?sort=publishedAt");
+  });
+
   // ----- 異常系 -----
   it("既定の並びは URL に載せない", async () => {
     render(
@@ -75,14 +83,6 @@ describe("ProductSortSelect", () => {
     await userEvent.selectOptions(field(), "");
 
     expect(push).toHaveBeenCalledWith("/products");
-  });
-
-  it("読み進めた位置を持ち越さない", async () => {
-    render(<ProductSortSelect options={OPTIONS} selection={{ after: "cursor-1", first: "48" }} />);
-
-    await userEvent.selectOptions(field(), "publishedAt");
-
-    expect(push).toHaveBeenCalledWith("/products?sort=publishedAt");
   });
 
   it("a11y 自動検査に違反しない", async () => {

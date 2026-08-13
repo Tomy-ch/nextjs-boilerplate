@@ -74,6 +74,20 @@ describe("ProductLoadMoreList", () => {
     expect(screen.queryByRole("button", { name: "もう一度読み込む" })).not.toBeInTheDocument();
   });
 
+  it("続きが無ければ末尾を見張る目印を置かない", () => {
+    const sentinelRef = createRef<HTMLDivElement>();
+    render(<ProductLoadMoreList hasNext={false} items={ITEMS} sentinelRef={sentinelRef} />);
+
+    expect(sentinelRef.current).toBeNull();
+  });
+
+  it("1 件も無ければ 0 件として空の案内を出す", () => {
+    render(<ProductLoadMoreList hasNext={false} items={[]} total={0} />);
+
+    expect(screen.getByText("全 0 件中 0 件を表示中")).toBeVisible();
+    expect(screen.getByText("条件に合う商品がありません")).toBeVisible();
+  });
+
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(
       <ProductLoadMoreList failed hasNext items={ITEMS} onLoadMore={vi.fn()} total={10} />,
@@ -85,13 +99,6 @@ describe("ProductLoadMoreList", () => {
   });
 
   // ----- 異常系 -----
-  it("続きが無ければ末尾を見張る目印を置かない", () => {
-    const sentinelRef = createRef<HTMLDivElement>();
-    render(<ProductLoadMoreList hasNext={false} items={ITEMS} sentinelRef={sentinelRef} />);
-
-    expect(sentinelRef.current).toBeNull();
-  });
-
   it("失敗したときだけ読み直す操作を出す", () => {
     render(<ProductLoadMoreList failed hasNext items={ITEMS} onLoadMore={vi.fn()} />);
 
@@ -112,12 +119,5 @@ describe("ProductLoadMoreList", () => {
     render(<ProductLoadMoreList failed hasNext={false} items={ITEMS} onLoadMore={vi.fn()} />);
 
     expect(screen.queryByRole("button", { name: "もう一度読み込む" })).not.toBeInTheDocument();
-  });
-
-  it("1 件も無ければ 0 件として空の案内を出す", () => {
-    render(<ProductLoadMoreList hasNext={false} items={[]} total={0} />);
-
-    expect(screen.getByText("全 0 件中 0 件を表示中")).toBeVisible();
-    expect(screen.getByText("条件に合う商品がありません")).toBeVisible();
   });
 });

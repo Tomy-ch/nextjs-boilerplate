@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { getProductListPage as getProductListPageType } from "@/adapters/server/api/products";
+import { createAppError } from "@/errors/app-error";
+import { ErrorKind } from "@/errors/error-kind";
 
 const { getProductListPage } = vi.hoisted(() => ({
   getProductListPage: vi.fn<typeof getProductListPageType>(),
@@ -73,5 +75,36 @@ describe("GET", () => {
     await GET(requestFor("?sort=price"));
 
     expect(getProductListPage).not.toHaveBeenCalled();
+  });
+
+  it("接続先が応答しないとき 503 と正規化した文言を返す", async () => {
+    getProductListPage.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
+
+    const response = await GET(requestFor(""));
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      message: "現在サービスを利用できません。しばらくしてから再試行してください。",
+    });
+  });
+
+  it("対象が見つからないとき 404 と正規化した文言を返す", async () => {
+    getProductListPage.mockRejectedValue(createAppError(ErrorKind.NOT_FOUND));
+
+    const response = await GET(requestFor(""));
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ message: "対象が見つかりません。" });
+  });
+
+  it("分類の付いていない失敗のとき 500 へ矯正する", async () => {
+    getProductListPage.mockRejectedValue(new Error("想定外"));
+
+    const response = await GET(requestFor(""));
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      message: "問題が発生しました。時間をおいて再試行してください。",
+    });
   });
 });

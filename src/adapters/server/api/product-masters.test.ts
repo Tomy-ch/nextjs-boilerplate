@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Environment } from "@/config/environment";
 
 const environment: Environment = {
@@ -39,6 +39,10 @@ function stubFetch(body: unknown): ReturnType<typeof vi.fn> {
 
   return fetchImpl;
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("getProductCategories", () => {
   // ----- 正常系 -----

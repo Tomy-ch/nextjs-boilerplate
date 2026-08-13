@@ -194,14 +194,15 @@ export async function getProductListPage(
 const PLACEHOLDER_TOTAL_COUNT = 10;
 
 /**
- * 条件に一致する商品の総数を取得する。
+ * 総数として表示する値を返す。**いまは条件によらず固定値を返す。**
  *
  * @remarks
  * cursor ページネーションは総数を持たないため、一覧の応答からは取り出せません
- * （[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。総数は別の取得口が返します。
+ * （[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。総数を返す取得口は別に要りますが、
+ * まだ契約にありません。条件を受け取らないのはそのためで、絞り込んでも同じ値が返ります。
  */
-// TODO: 総数を返す API がまだ契約に無いため固定値を返している。生えたら取得条件を引数に受け、
-// 実際の取得へ差し替える（呼び出し側は条件を持っているので渡すだけで済む）。
+// TODO: 総数を返す API が契約に生えたら、取得条件を引数に受けて実際の取得へ差し替える
+// （呼び出し側は条件を持っているので渡すだけで済む）。
 export async function getProductTotalCount(): Promise<number> {
   return PLACEHOLDER_TOTAL_COUNT;
 }

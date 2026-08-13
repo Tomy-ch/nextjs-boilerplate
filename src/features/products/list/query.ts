@@ -61,14 +61,7 @@ export type FilterOption = {
   readonly label: string;
 };
 
-/**
- * URL に載せる検索条件。値が空文字のキーは「指定なし」を表す。
- *
- * @remarks
- * 「指定なし」をキーの不在ではなく空文字で表せるようにしてあるのは、絞り込みの操作が
- * 「すべて」を選び直す形を取るためです。選択肢の側が空文字を持てば、操作は値を差し替えるだけで
- * 済み、キーを消す分岐を UI が持たずに済みます。
- */
+/** URL に載せる検索条件。値が空文字のキーは「指定なし」を表す（{@link FilterOption}）。 */
 export type ProductListSelection = Readonly<Record<string, string>>;
 
 /**

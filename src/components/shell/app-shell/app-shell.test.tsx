@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 vi.mock("next/navigation", () => ({
@@ -10,20 +10,6 @@ vi.mock("next/navigation", () => ({
 
 import { AppShell } from "./app-shell";
 import { APP_SHELL_MAIN_ID } from "./app-shell.definition";
-
-/** jsdom は `matchMedia` を持たない。器の検証は引き下げを受け付けない幅を前提にする。 */
-beforeEach(() => {
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: false,
-    media: query,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }));
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 const NAV_ITEMS = [
   { href: "/reports", label: "レポート" },

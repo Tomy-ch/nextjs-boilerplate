@@ -56,15 +56,6 @@ describe("ProductGrid", () => {
     expect(screen.getByRole("img", { name: "商品4" })).toHaveAttribute("loading", "lazy");
   });
 
-  it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(<ProductGrid items={ITEMS} />);
-
-    expect(
-      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
-    ).toEqual([]);
-  });
-
-  // ----- 異常系 -----
   it("商品が無いとき次にすべきことを示す", () => {
     render(<ProductGrid items={[]} />);
 
@@ -76,5 +67,13 @@ describe("ProductGrid", () => {
     render(<ProductGrid items={[]} />);
 
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<ProductGrid items={ITEMS} />);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

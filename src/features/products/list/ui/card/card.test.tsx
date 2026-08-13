@@ -94,15 +94,6 @@ describe("ProductCard", () => {
     ]);
   });
 
-  it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(<ProductCard item={ITEM} />);
-
-    expect(
-      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
-    ).toEqual([]);
-  });
-
-  // ----- 異常系 -----
   it("在庫が無ければ在庫なしを添える", () => {
     render(<ProductCard item={{ ...ITEM, quantity: 0 }} />);
 
@@ -119,5 +110,13 @@ describe("ProductCard", () => {
     render(<ProductCard item={{ ...ITEM, quantity: 0 }} />);
 
     expect(screen.getByRole("button", { name: "カートに追加" })).toBeDisabled();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<ProductCard item={ITEM} />);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

@@ -128,7 +128,6 @@ describe("ProductListPageContent", () => {
     expect(screen.getByRole("option", { name: "新着順", selected: true })).toBeInTheDocument();
   });
 
-  // ----- 異常系 -----
   it("条件に合う商品が無ければ次にすべきことを示す", async () => {
     getProductListPage.mockResolvedValue(pageOf([]));
 
@@ -137,6 +136,7 @@ describe("ProductListPageContent", () => {
     expect(screen.getByText("条件に合う商品がありません")).toBeVisible();
   });
 
+  // ----- 異常系 -----
   it("契約を外れた条件では一覧の代わりに案内を出す", async () => {
     render(await ProductListPageContent({ searchParams: { sort: "-price" } }));
 

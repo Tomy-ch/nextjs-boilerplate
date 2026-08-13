@@ -81,15 +81,6 @@ describe("ProductFilterSidebar", () => {
     expect(screen.getByRole("region", { name: "絞り込み" })).toBeVisible();
   });
 
-  // ----- 異常系 -----
-  it("「すべて」を選ぶとその条件を URL から外す", async () => {
-    render(<ProductFilterSidebar groups={GROUPS} selection={{ [FILTER_KEY.CATEGORY]: "c1" }} />);
-
-    await userEvent.click(group("カテゴリ").getByLabelText("すべて"));
-
-    expect(push).toHaveBeenCalledWith("/products");
-  });
-
   it("読み進めた位置を持ち越さない", async () => {
     render(
       <ProductFilterSidebar
@@ -101,6 +92,15 @@ describe("ProductFilterSidebar", () => {
     await userEvent.click(group("カテゴリ").getByLabelText("ウェアラブル"));
 
     expect(push).toHaveBeenCalledWith("/products?categoryId=c2");
+  });
+
+  // ----- 異常系 -----
+  it("「すべて」を選ぶとその条件を URL から外す", async () => {
+    render(<ProductFilterSidebar groups={GROUPS} selection={{ [FILTER_KEY.CATEGORY]: "c1" }} />);
+
+    await userEvent.click(group("カテゴリ").getByLabelText("すべて"));
+
+    expect(push).toHaveBeenCalledWith("/products");
   });
 
   it("a11y 自動検査に違反しない", async () => {

@@ -52,10 +52,6 @@ function toOptions(refs: readonly ProductRef[]): readonly FilterOption[] {
  * 覆うと、検索欄まで一緒に消えて操作できなくなります。
  *
  * 一覧とマスタを並行して取得します。直列にすると、分類の一覧が返るまで商品の取得が始まりません。
- *
- * 絞り込みを幅ごとに 2 つ置き、CSS で出し分けます。位置が動く出し分けを JS の幅判定で行うと、
- * サーバでは判定できないため hydration の前後で配置が動きます
- * （[0051](../../../docs/adr/0051-styling-system.md) §2）。
  */
 export async function ProductListPageContent({ searchParams }: ProductListPageContentProps) {
   const selection = normalizeSearchParams(searchParams);

@@ -19,7 +19,13 @@ const COFFEE: CartLineInput = {
 
 type Listener = () => void;
 
-/** jsdom は `matchMedia` を持たない。幅の想定をケースごとに明示するため、`it` ごとに置き換える。 */
+/**
+ * 幅の想定を作る。
+ *
+ * @remarks
+ * 共有の補い（`vitest.setup.ts`）が与える既定は「一致しない」＝常設できる広い幅なので、
+ * 狭い幅を前提にするケースと、幅をまたいで動かすケースだけをここで上書きする。
+ */
 function stubViewport(narrow: boolean) {
   const listeners = new Set<Listener>();
   const state = { matches: narrow };
@@ -58,7 +64,6 @@ describe("CartHeaderAction", () => {
 
   // ----- 正常系 -----
   it("広い幅では点数を持つ切り替えになり、中身は持たない", () => {
-    stubViewport(false);
     seed(COFFEE);
     render(<CartHeaderAction />);
     const toggle = screen.getByRole("button", { name: "カートを開く" });
@@ -69,7 +74,6 @@ describe("CartHeaderAction", () => {
   });
 
   it("広い幅で押すと脇の領域を開く要求になる", async () => {
-    stubViewport(false);
     seed(COFFEE);
     render(<CartHeaderAction />);
 
@@ -82,7 +86,6 @@ describe("CartHeaderAction", () => {
   });
 
   it("広い幅で開いている状態から押すと要求を畳む", async () => {
-    stubViewport(false);
     useCartStore.getState().add(COFFEE);
     render(<CartHeaderAction />);
 

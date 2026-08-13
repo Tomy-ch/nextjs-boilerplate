@@ -27,9 +27,8 @@ export type PullGesture = {
  * 画面の上端から引き下げる操作を観測する。
  *
  * @remarks
- * この器の中だけで使うため、`components` の内側に置いています。複数の feature から使う browser
- * 能力になった時点で `capabilities` へ上げます（[0021](../../../../docs/adr/0021-frontend-responsibility.md)
- * の昇格ルール）。いまの利用者は器 1 つなので、その基準を満たしません。
+ * 使うのがこの器だけなので中へ置いています（[0021](../../../../docs/adr/0021-frontend-responsibility.md)
+ * の昇格ルール）。
  *
  * **ブラウザ既定の引き下げ更新を、この観測が生きている間だけ止めます。** 静的な CSS へ
  * `overscroll-behavior` を書くと、この機構を載せていないページでも既定が消え、引いても何も
@@ -55,6 +54,7 @@ export function usePullGesture(onRelease: () => void): PullGesture {
   const [state, setState] = useState<PullState>(PULL_STATE.IDLE);
   const [distance, setDistance] = useState(0);
   const originRef = useRef<number | null>(null);
+  const pointerRef = useRef<number | null>(null);
   const distanceRef = useRef(0);
   const releaseRef = useRef(onRelease);
 
@@ -92,17 +92,40 @@ export function usePullGesture(onRelease: () => void): PullGesture {
       return;
     }
 
+    const reset = () => {
+      originRef.current = null;
+      pointerRef.current = null;
+      distanceRef.current = 0;
+    };
+
     const start = (event: TouchEvent) => {
       // 上端にいないときは通常の scroll。ここで拾うと途中から引き戻す操作を奪う。
       // modal が開いている間も拾わない。背面の取り直しは利用者が求めた操作ではない。
-      const blocked = window.scrollY > 0 || document.querySelector('[aria-modal="true"]') !== null;
+      // 2 本目が触れた時点でも降りる。拡大や 2 本指の scroll を引き下げと取り違えない。
+      const blocked =
+        window.scrollY > 0 ||
+        event.touches.length > 1 ||
+        document.querySelector('[aria-modal="true"]') !== null;
+      const touch = blocked ? undefined : event.touches[0];
 
-      originRef.current = blocked ? null : (event.touches[0]?.clientY ?? null);
+      if (touch === undefined) {
+        reset();
+        setDistance(0);
+        setState(PULL_STATE.IDLE);
+
+        return;
+      }
+
+      originRef.current = touch.clientY;
+      pointerRef.current = touch.identifier;
     };
 
     const move = (event: TouchEvent) => {
       const origin = originRef.current;
-      const current = event.touches[0]?.clientY;
+      // 追うのは引き始めた指だけ。別の指を基準にすると、基準点が入れ替わって引き量が飛ぶ。
+      const current = [...event.touches].find(
+        (touch) => touch.identifier === pointerRef.current,
+      )?.clientY;
 
       if (origin === null || current === undefined) {
         return;
@@ -122,11 +145,19 @@ export function usePullGesture(onRelease: () => void): PullGesture {
       }
     };
 
-    const end = () => {
+    const end = (event: TouchEvent) => {
+      // 離れたのが引き始めた指でなければ、引き下げはまだ続いている。
+      const released = [...event.changedTouches].some(
+        (touch) => touch.identifier === pointerRef.current,
+      );
+
+      if (pointerRef.current === null || !released) {
+        return;
+      }
+
       const reached = distanceRef.current >= TRIGGER_DISTANCE;
 
-      originRef.current = null;
-      distanceRef.current = 0;
+      reset();
       setDistance(0);
       setState(PULL_STATE.IDLE);
 

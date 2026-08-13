@@ -6,7 +6,7 @@ import { fetchProductListPage, PRODUCT_LIST_MAX_ITEMS } from "@/adapters/client/
 import { appendCursorPage, type CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
 
-import { COUNT_KEY, CURSOR_KEY } from "./query";
+import { COUNT_KEY, CURSOR_KEY, PRODUCT_PAGE_SIZE } from "./query";
 
 /** 末尾に近づいたと見なす距離。画面に入り切る前に読み始めて、待たせる時間を短くする。 */
 const PREFETCH_MARGIN = "400px";
@@ -31,10 +31,8 @@ export type InfiniteProducts = {
  * 一覧を読み進める。
  *
  * @remarks
- * `features` の中に置いています。末尾到達で続きを読む形は今のところこの一覧にしかなく、横断が
- * 生じた時点で `capabilities` へ上げます（[0073](../../../docs/adr/0073-pagination-fetch-boundary.md)）。
- * 使う場所が 1 つのうちからカーネルへ置くと、2 つめが現れたときに最初の 1 つの都合が既定に
- * なっています。
+ * 使うのがこの一覧だけなので `features` の中へ置いています
+ * （[0073](../../../docs/adr/0073-pagination-fetch-boundary.md) の昇格ルール）。
  *
  * 初回ページは受け取るだけで取得しません。取得するのは Server Component であり、この hook が
  * 担うのは 2 ページ目以降だけです。
@@ -69,7 +67,12 @@ export function useInfiniteProducts(
     setLoading(true);
     setFailed(false);
 
-    fetchProductListPage({ ...query, [CURSOR_KEY]: cursor }, controller.signal)
+    fetchProductListPage(
+      // 件数を明示する。条件から落としてあるので、渡さないと契約の既定値になり、初回と
+      // 2 ページ目以降で 1 度に増える量が変わる。
+      { ...query, [COUNT_KEY]: String(PRODUCT_PAGE_SIZE), [CURSOR_KEY]: cursor },
+      controller.signal,
+    )
       .then((next) => {
         setPage((loaded) => appendCursorPage(loaded, next));
         setLoading(false);

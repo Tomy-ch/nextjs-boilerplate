@@ -2,22 +2,12 @@
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
 import ShopLayout from "./layout";
-
-/** jsdom は `matchMedia` を持たない。この layout の検証は脇に常設できる幅を前提にする。 */
-function stubWideViewport() {
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: false,
-    media: query,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }));
-}
 
 const COFFEE: CartLineInput = {
   productId: "0195f0c2-0000-7000-8000-000000000001",
@@ -30,12 +20,7 @@ const COFFEE: CartLineInput = {
 
 describe("ShopLayout", () => {
   beforeEach(() => {
-    stubWideViewport();
     useCartStore.setState({ lines: [], isOpen: false });
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   // ----- 正常系 -----

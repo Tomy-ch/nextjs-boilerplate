@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Environment } from "@/config/environment";
 
 const environment: Environment = {
@@ -54,6 +54,10 @@ function stubFetch(body: unknown): ReturnType<typeof vi.fn> {
 
   return fetchImpl;
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("parseProductQuery", () => {
   // ----- 正常系 -----
@@ -184,9 +188,28 @@ describe("getProducts", () => {
   it("取得条件をクエリへ載せる", async () => {
     const fetchImpl = stubFetch(wirePage);
 
-    await getProducts({ keyword: "鞄", first: 20 });
+    await getProducts({
+      after: "cursor-1",
+      first: 20,
+      categoryId: wireProduct.category.id,
+      statusId: wireProduct.status.id,
+      keyword: "鞄",
+      sort: "publishedAt",
+    });
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toContain("first=20");
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      `https://api.example.test/v1/products?after=cursor-1&first=20&categoryId=${wireProduct.category.id}&statusId=${wireProduct.status.id}&keyword=%E9%9E%84&sort=publishedAt`,
+    );
+  });
+
+  it("指定しなかった条件はクエリへ載せない", async () => {
+    const fetchImpl = stubFetch(wirePage);
+
+    await getProducts({ keyword: "鞄" });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/v1/products?keyword=%E9%9E%84",
+    );
   });
 
   it("再検証のタグを付ける", async () => {
@@ -225,9 +248,15 @@ describe("getProductListPage", () => {
   it("取得条件を一覧の取得へ渡す", async () => {
     const fetchImpl = stubFetch(wirePage);
 
-    await getProductListPage({ keyword: "鞄", first: 20 });
+    await getProductListPage({
+      first: 20,
+      statusId: wireProduct.status.id,
+      keyword: "靴",
+    });
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toContain("first=20");
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      `https://api.example.test/v1/products?first=20&statusId=${wireProduct.status.id}&keyword=%E9%9D%B4`,
+    );
   });
 
   it("次ページのカーソルを引き継ぐ", async () => {

@@ -55,6 +55,14 @@ describe("ProductSearch", () => {
     expect(screen.getByLabelText("キーワード")).toHaveValue("靴");
   });
 
+  it("読み進めた位置を持ち越さない", async () => {
+    render(<ProductSearch selection={{ after: "cursor-1", first: "48" }} />);
+
+    await search("鞄");
+
+    expect(push).toHaveBeenCalledWith("/products?keyword=%E9%9E%84");
+  });
+
   // ----- 異常系 -----
   it("キーワードを空にしたら条件から外す", async () => {
     render(<ProductSearch selection={{ [FILTER_KEY.KEYWORD]: "靴" }} />);
@@ -62,14 +70,6 @@ describe("ProductSearch", () => {
     await search("");
 
     expect(push).toHaveBeenCalledWith("/products");
-  });
-
-  it("読み進めた位置を持ち越さない", async () => {
-    render(<ProductSearch selection={{ after: "cursor-1", first: "48" }} />);
-
-    await search("鞄");
-
-    expect(push).toHaveBeenCalledWith("/products?keyword=%E9%9E%84");
   });
 
   it("前後の空白だけの入力を条件にしない", async () => {
