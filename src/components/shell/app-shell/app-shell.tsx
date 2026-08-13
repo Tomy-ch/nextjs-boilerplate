@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cn } from "@/components/cn";
+import { PullToRefresh } from "../pull-to-refresh/pull-to-refresh";
 import { APP_SHELL_MAIN_ID, type AppShellNavItem } from "./app-shell.definition";
 import { AppShellMenu } from "./app-shell-menu";
 
@@ -54,6 +55,7 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <>
+      <PullToRefresh />
       <a
         href={`#${APP_SHELL_MAIN_ID}`}
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"

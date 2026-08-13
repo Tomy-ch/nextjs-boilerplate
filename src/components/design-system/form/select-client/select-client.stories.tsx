@@ -33,7 +33,10 @@ function ClientSelect({ disabled = false, invalid = false, open = false }) {
 const meta = {
   title: "Form/SelectClient",
   component: SelectClient,
-  parameters: { layout: "centered" },
+  parameters: {
+    docs: { story: { inline: false, iframeHeight: 420 } },
+    layout: "centered",
+  },
   decorators: [
     (Story) => (
       <div className="w-80 max-w-[calc(100vw-2rem)]">

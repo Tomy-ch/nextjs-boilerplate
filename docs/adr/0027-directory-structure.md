@@ -60,6 +60,10 @@ src/
   ```text
   features/<name>/
   ├── README.md
+  ├── facade/                 # 他 feature が import してよい唯一の面([0021])
+  │   └── <part>/
+  ├── ui/                     # 画面を挟まない = feature 全体が所有する部材(内部)
+  │   └── <part>/
   └── <screen>/               # 第 1 軸: 画面 = リソース単位
       ├── page-content.tsx    #   取得と組み立て
       ├── query.ts            #   入力(URL / searchParams)の写し
@@ -79,6 +83,15 @@ src/
 - **`ui/` の中は 1 部品 = 1 ディレクトリ**とし、実装・テスト・stories・定義・README を共置する。`components/design-system/<役割>/<部品>/` と同形であり、部品ごとに stories([0054](0054-ui-catalog-storybook.md))の置き場を確保するためにこの粒度を採る
 - **深さの上限は `features/<name>/<screen>/ui/<part>/`** とする。`ui/` の中をさらに種類で掘らない。画面が部品を抱えきれなくなった場合は、`ui/` を深くするのではなく**画面(第 1 軸)を分ける**か、[0021](0021-frontend-responsibility.md) の昇格ルールで `components` へ出す
 - **画面が 1 つの間は第 1 軸を省略してよい**。`features/<name>/` の直下に `page-content.tsx` / `view.tsx` / `ui/` を置く。2 つ目の画面が来た時点で画面ディレクトリへ割る
+- **どの画面にも属さず feature 全体が所有するものは、画面を挟まず feature 直下の性質へ置く**(`features/<name>/ui/<part>/` 等)。これは第 3 の軸ではない。第 1 軸が「**どの画面が所有するか**」を表す以上、どの画面のものでもないものは 1 段上が所有する、という同じ軸の帰結である
+  - **判定は「現に 2 つ以上の画面が使っていること」**。禁止する 再利用予定 の軸は「後で使いそう」という**予測**で先に上げることを指す。予測は外れても誰も戻さないため禁じるのであって、**観測できる現在の事実**で置き場を決めることは禁止に当たらない
+  - 1 つの画面しか使っていないものは、その画面の下に置く。使う画面が 1 つに戻ったら戻す
+  - **feature を跨いだ場合はこの規則の対象外**であり、[0021](0021-frontend-responsibility.md) の昇格ルールへ移る。`features ↔ features` は禁止のため、**一方の feature から他方の内部を import して解決してはならない**
+  - feature 直下が部品で膨れたら、それは feature の切り方が合っていない兆候である。`ui/` を深くせず、feature を分けるか `components` へ昇格させる
+- **他の feature が使うものは `features/<name>/facade/<part>/` へ置く**。ここだけが外から import してよい面であり、画面の下も feature 直下の `ui/` も内部である(条件と規律は [0021](0021-frontend-responsibility.md)「昇格できないもの」が正)
+  - 置くのは**昇格先のカーネルがどれも受け取れないもの**に限る。題材の語彙を持つ UI がこれにあたる
+  - **2 つ目の feature が実際に必要としたとき**に `ui/` から上げ、1 つに戻ったら下ろす
+  - 深さは `features/<name>/facade/<part>/` までとし、`ui/` と同じく 1 部品 = 1 ディレクトリとする
 - **テストは実装の隣に co-location する**(go `docs/rules.md` の「Co-locate tests with each layer's implementation」を翻案)。`__tests__/` への一括集約はしない。**テストファイルの拡張子・命名規約は B8(テスト戦略)で確定**する(本 ADR は配置方針のみ。`正常系` / `異常系` の日本語命名など戦略面は [0090](0090-testing-strategy.md) で go 準拠を確定済み)
 - **スタイルは Tailwind ユーティリティを既定**とし([0050](0050-styling-strategy.md))、別ファイルの CSS は最小化する。グローバル CSS は `src/app/globals.css` に集約する(既存踏襲)。design token / `cn()` ヘルパの置き場は B1 で確定する
 - **MSW 等のモック生成物**(triage #73 / #74・B3 orval 由来)は `src/` 外の **`mocks/`(または テストへ co-location)** に置き、生成型([0072](0072-api-type-generation.md) の do-not-edit)と分離する
@@ -87,7 +100,8 @@ src/
 
 - **判定を持つモジュールは per-file を基本**とし(1 ファイル 1 役割・フラット共置)、肥大化した時点で **per-folder へ昇格**する(ネスト深化の防止)
 - **UI 部品は per-folder を基本**とする。実装のほかに stories・定義・README を伴い、それらを部品ごとに共置するため(`components/design-system/<役割>/<部品>/` と `features/<name>/<screen>/ui/<part>/` が同形)
-- feature を跨いで共有が必要になった要素は、フォルダを増やす前に [0021](0021-frontend-responsibility.md) の**昇格ルール**(`model` / `components` / `adapters` / `capabilities` / `stores` へ昇格)に従う。共有の受け皿となる汎用フォルダ(`common` / `utils` 等)は作らない([0021](0021-frontend-responsibility.md) 命名規律)
+- **feature を跨いで**共有が必要になった要素は、フォルダを増やす前に [0021](0021-frontend-responsibility.md) の**昇格ルール**(`model` / `components` / `adapters` / `capabilities` / `stores` へ昇格)に従う。共有の受け皿となる汎用フォルダ(`common` / `utils` 等)は作らない([0021](0021-frontend-responsibility.md) 命名規律)
+- **同じ feature の画面を跨ぐだけ**の共有は昇格の対象ではない。feature 直下へ置く(上記 co-location 方針)。**昇格も画面跨ぎも当てはまらない —— 他の feature が必要とするが、題材の語彙を持つためどのカーネルも受け取れない —— 場合だけ** `facade/` を使う([0021](0021-frontend-responsibility.md))
 
 ### 物理ディレクトリの作成タイミング
 

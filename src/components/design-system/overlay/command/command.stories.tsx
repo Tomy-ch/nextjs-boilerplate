@@ -115,7 +115,7 @@ function DialogCommand() {
 const meta = {
   title: "Overlay/Command",
   component: Command,
-  parameters: { layout: "centered" },
+  parameters: { layout: "centered", docs: { story: { inline: false, iframeHeight: 480 } } },
   decorators: [
     (Story) => (
       <div className="w-[28rem] max-w-[calc(100vw-2rem)]">

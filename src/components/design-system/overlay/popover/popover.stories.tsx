@@ -89,7 +89,10 @@ function AnchoredPopover() {
 const meta = {
   title: "Overlay/Popover",
   component: Popover,
-  parameters: { layout: "centered" },
+  parameters: {
+    docs: { story: { inline: false, iframeHeight: 420 } },
+    layout: "centered",
+  },
 } satisfies Meta<typeof Popover>;
 
 export default meta;

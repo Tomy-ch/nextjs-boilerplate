@@ -37,6 +37,7 @@ const meta = {
   parameters: {
     layout: "centered",
     docs: {
+      story: { inline: false, iframeHeight: 640 },
       description: {
         component: [
           "header に置くカートの入口です。**幅で姿が変わります。** 脇に常設できる PC では点数だけを出し、",

@@ -27,6 +27,7 @@ test-requirement: unit
 | `locale.ts` | 既定 locale。フォーマッタが省略時に用いる単一の差し替え点 |
 | `generated/breakpoint.ts` | 段の名前と幅。`tokens/` から生成する（手編集禁止） |
 | `media.ts` | 配信基盤のオブジェクトキーから表示 URL を組み立てる |
+| `pagination.ts` | cursor 方式の 1 ページを表す型と、増分取得での継ぎ足し |
 | `product/product.ts` | サンプル画面が扱う商品の表示用の型 <!-- sample:line --> |
 
 ## 運用

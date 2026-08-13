@@ -1,99 +1,97 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
-const { push, searchParams } = vi.hoisted(() => ({
-  push: vi.fn(),
-  searchParams: { value: new URLSearchParams() },
-}));
+import { FILTER_KEY } from "../../query";
+
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
-  useSearchParams: () => searchParams.value,
 }));
 
 import { ProductSearch } from "./search";
 
-function formOf(field: HTMLElement): HTMLFormElement {
-  const form = field.closest("form");
-
-  if (form === null) {
-    throw new Error("form が見つかりません");
-  }
-
-  return form;
-}
-
-function search(keyword: string): void {
+async function search(keyword: string): Promise<void> {
   const field = screen.getByLabelText("キーワード");
 
-  fireEvent.change(field, { target: { value: keyword } });
-  fireEvent.submit(formOf(field));
-}
+  await userEvent.clear(field);
 
-function setUp(current: Record<string, string>, defaultKeyword?: string): void {
-  push.mockClear();
-  searchParams.value = new URLSearchParams(current);
-  render(<ProductSearch defaultKeyword={defaultKeyword} />);
+  if (keyword !== "") {
+    await userEvent.type(field, keyword);
+  }
+
+  await userEvent.click(screen.getByRole("button", { name: "検索" }));
 }
 
 describe("ProductSearch", () => {
-  // ----- 正常系 -----
-  it("入力したキーワードを URL へ載せる", () => {
-    setUp({});
+  beforeEach(() => {
+    push.mockClear();
+  });
 
-    search("イヤホン");
+  // ----- 正常系 -----
+  it("入力したキーワードを URL へ載せる", async () => {
+    render(<ProductSearch selection={{}} />);
+
+    await search("イヤホン");
 
     expect(push).toHaveBeenCalledWith("/products?keyword=%E3%82%A4%E3%83%A4%E3%83%9B%E3%83%B3");
   });
 
-  it("いまの条件を保ったまま書き換える", () => {
-    setUp({ sort: "-price" });
+  it("いま効いている他の条件を保ったまま書き換える", async () => {
+    render(<ProductSearch selection={{ [FILTER_KEY.SORT]: "publishedAt" }} />);
 
-    search("鞄");
+    await search("鞄");
 
-    expect(push.mock.calls[0]?.[0]).toContain("sort=-price");
+    expect(push).toHaveBeenCalledWith("/products?keyword=%E9%9E%84&sort=publishedAt");
   });
 
-  it("現在のキーワードを初期値にする", () => {
-    setUp({}, "靴");
+  it("いま効いているキーワードを初期値にする", () => {
+    render(<ProductSearch selection={{ [FILTER_KEY.KEYWORD]: "靴" }} />);
 
     expect(screen.getByLabelText("キーワード")).toHaveValue("靴");
   });
+
+  it("読み進めた位置を持ち越さない", async () => {
+    render(<ProductSearch selection={{ after: "cursor-1", first: "48" }} />);
+
+    await search("鞄");
+
+    expect(push).toHaveBeenCalledWith("/products?keyword=%E9%9E%84");
+  });
+
   // ----- 異常系 -----
-  it("キーワードを空にしたら条件から外す", () => {
-    setUp({ keyword: "靴" }, "靴");
+  it("キーワードを空にしたら条件から外す", async () => {
+    render(<ProductSearch selection={{ [FILTER_KEY.KEYWORD]: "靴" }} />);
 
-    search("");
-
-    expect(push).toHaveBeenCalledWith("/products");
-  });
-
-  it("前のページのカーソルを持ち越さない", () => {
-    setUp({ after: "cursor-1" });
-
-    search("鞄");
-
-    expect(push.mock.calls[0]?.[0]).not.toContain("after=");
-  });
-
-  it("前後の空白だけの入力を条件にしない", () => {
-    setUp({});
-
-    search("   ");
+    await search("");
 
     expect(push).toHaveBeenCalledWith("/products");
   });
 
-  it("入力欄を失った submit を空の検索として扱う", () => {
-    setUp({ keyword: "靴" }, "靴");
-    const field = screen.getByLabelText("キーワード");
-    const form = formOf(field);
+  it("前後の空白だけの入力を条件にしない", async () => {
+    render(<ProductSearch selection={{}} />);
 
-    field.remove();
-    fireEvent.submit(form);
+    await search("   ");
 
     expect(push).toHaveBeenCalledWith("/products");
+  });
+
+  it("入力欄を失った submit を空の検索として扱う", async () => {
+    render(<ProductSearch selection={{ [FILTER_KEY.KEYWORD]: "靴" }} />);
+
+    screen.getByLabelText("キーワード").remove();
+    await userEvent.click(screen.getByRole("button", { name: "検索" }));
+
+    expect(push).toHaveBeenCalledWith("/products");
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<ProductSearch selection={{}} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

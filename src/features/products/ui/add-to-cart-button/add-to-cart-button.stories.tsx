@@ -14,7 +14,7 @@ const LINE = {
 };
 
 const meta = {
-  title: "Features/Products/Detail/AddToCartButton",
+  title: "Features/Products/AddToCartButton",
   component: AddToCartButton,
   parameters: {
     layout: "centered",
@@ -47,4 +47,16 @@ export const Default: Story = {
 /** 在庫が無い商品。押せない。 */
 export const OutOfStock: Story = {
   args: { line: { ...LINE, stockQuantity: 0 } },
+};
+
+/** 一覧の 1 件に添える形。幅を占めず、内容の幅に収まる。 */
+export const Compact: Story = {
+  args: { compact: true, line: LINE },
+};
+
+/** 狭い幅での既定の形。画面の主操作として幅いっぱいに広がる。 */
+export const PrimaryOnMobile: Story = {
+  args: { line: LINE },
+  globals: { viewport: { value: "mobile2", isRotated: false } },
+  parameters: { layout: "padded" },
 };
