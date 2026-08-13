@@ -109,6 +109,7 @@ git commit -m "Build: 基準画像の置き場を配線する"
 | Webhook | **Active のチェックを外す** |
 | Repository permissions → Contents | **Read and write** |
 | その他の permissions | No access のまま |
+| Where can this GitHub App be installed? | **Only on this account** |
 
 作成後、続けて 2 つ。
 
