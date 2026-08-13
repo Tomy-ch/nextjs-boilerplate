@@ -6,8 +6,8 @@
 //   apply   : ロックファイルを SSOT に `uses:` を `@<sha> # <tag>` へ書き換える
 //   check   : apply と同じ判定を書き換えなしで行い、ずれがあれば非ゼロ終了する（CI / hook 用）
 //
-// resolve は不変を宣言した tag の解決先が変わった時点で fail-closed に落ちる。付け替えられた
-// SHA がロックファイルへ入ってしまえば、以降 check は「整合している」と答え続けるため。
+// resolve は不変を宣言した tag の解決先が変わった時点で fail-closed に落ちる。この設計の根拠は
+// [0153](../../docs/adr/0153-ci-configuration.md) の SHA ピンが持つ。
 //
 // 版の SSOT は `uses:` 行末尾のコメント tag であり、`@` 側の SHA ではない。固定済みの行も
 // コメント tag から再解決されるため resolve は冪等。ローカル参照（`uses: ./...`）は対象外。
@@ -82,8 +82,8 @@ async function runResolve(root: string, files: string[], options: ResolveOptions
 }
 
 // 不変を宣言した tag の解決先が変わった件を報告して落ちる。ロックファイルは書かない
-// （承認済みの移動を含めて一切書かない）。書いてしまえば次の実行では移動が消え、同じ検知は
-// 二度と起きない。旧新の SHA を並べるのは、上流へ付け替えを報告するときにこの 2 値が要るため。
+// （承認済みの移動も他のエントリも一切書かない — [0153](../../docs/adr/0153-ci-configuration.md)）。
+// 旧新の SHA を並べるのは、上流へ付け替えを報告するときにこの 2 値が要るため。
 function failRepointed(repointed: MovedRef[]): never {
   printError(
     `不変を宣言した tag の解決先が変わりました（付け替えの疑い。${LOCK_FILE} は更新していません）:`,
@@ -91,8 +91,7 @@ function failRepointed(repointed: MovedRef[]): never {
   for (const move of repointed) {
     console.error(`   ${move.key}: ${move.from} -> ${move.to}`);
   }
-  // 承認コマンドにキーを埋め込まない。キーはコメント tag 由来でシェルのメタ文字を含みうるため、
-  // 貼り付けられる 1 行を組み立てれば、その内容をリポジトリ側が決められることになる。
+  // 承認コマンドにキーを埋め込まない（理由は [0153](../../docs/adr/0153-ci-configuration.md)）。
   console.error(`   意図した更新なら上記のキーを ${ALLOW_MOVED_ENV} へ並べて再実行してください:`);
   console.error(`   make actions-pin-resolve ${ALLOW_MOVED_ENV}="<キー> [<キー>...]"`);
   process.exit(1);
@@ -207,9 +206,8 @@ function parseMinAgeDays(args: string[]): number {
   return days;
 }
 
-// 承認リストはコマンドライン引数ではなく環境変数で受ける。キーは `uses:` のコメント tag に
-// 由来する（リポジトリの中身が決める）文字列であり、make のレシピへ展開すればシェルが
-// 再解釈する。環境変数ならシェルを一度も経由しない。
+// 承認リストはコマンドライン引数ではなく環境変数で受ける。環境変数ならシェルを一度も経由
+// しない（理由は [0153](../../docs/adr/0153-ci-configuration.md)）。
 function readAllowMoved(): Set<string> {
   const raw = process.env[ALLOW_MOVED_ENV] ?? "";
   return new Set(raw.split(/\s+/).filter((key) => key !== ""));
