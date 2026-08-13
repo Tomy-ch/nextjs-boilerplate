@@ -104,12 +104,17 @@ git commit -m "Build: 基準画像の置き場を配線する"
 
 | 項目 | 値 |
 | --- | --- |
-| GitHub App name | 任意（**global に一意**） |
-| Homepage URL | 任意 |
+| GitHub App name | `<現在のリポジトリ名>-vrt-images-app` |
+| Description | `<現在のリポジトリ名>-vrt-images の visual regression test 用` |
+| Homepage URL | `https://github.com/<owner>/<現在のリポジトリ名>` |
 | Webhook | **Active のチェックを外す** |
 | Repository permissions → Contents | **Read and write** |
 | その他の permissions | No access のまま |
 | Where can this GitHub App be installed? | **Only on this account** |
+
+App の名前は **GitHub 全体で一意**。`web` や `frontend` のようなありふれたリポジトリ名では既に取られて
+いることがあるので、その場合は owner 名などを足す。名前は後から変えられる（slug も追随するが、
+変えたら `make setup-vrt-app` を叩き直すこと）。
 
 作成後、続けて 2 つ。
 
