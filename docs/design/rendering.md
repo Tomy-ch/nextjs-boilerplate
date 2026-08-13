@@ -41,6 +41,102 @@
 
 この 2 つを除けば、**JavaScript が 1 行も動いていない時点で画面は完成している**。検索する側や、通信が細くて JavaScript の到着が遅れる利用者が見るのはこの状態である。
 
+## 描く時点の違い
+
+前節は「Server Component と Client Component が 1 リクエストの中でどう分担するか」だった。ここは別の軸で、**いつ・どの単位で描くか**を扱う。
+
+3 つの軸が別物であることを先に押さえる。混ぜると議論が噛み合わない。
+
+| 軸 | 問い | 値 |
+| --- | --- | --- |
+| どこで作るか | サーバか、ブラウザか | SSR / CSR |
+| いつ作るか | build 時か、リクエスト時か | Static rendering / Dynamic rendering |
+| どの単位で返すか | ページ丸ごとか、部分ごとか | 一括 / streaming |
+
+**PPR が触るのは 2 つめと 3 つめであって、CSR / SSR ではない。** サーバで描く話に閉じており、「ブラウザで描くか」には関与しない。
+
+### CSR — 比較のために置く（App Router の既定ではない）
+
+```mermaid
+sequenceDiagram
+  participant B as ブラウザ
+  participant S as サーバ
+  B->>S: リクエスト
+  S-->>B: ほぼ空の HTML
+  Note over B: 画面は空のまま
+  B->>S: JavaScript を取得
+  Note over B: JavaScript が DOM を組み立てる
+  B->>S: データを取得
+  Note over B: ここで初めて中身が見える
+```
+
+**中身が見えるまでに JavaScript の到着とデータ取得を待つ。** App Router でこの形になるのは `ssr: false` を明示したときだけである。
+
+### Static rendering — build 時に描いて置いておく
+
+```mermaid
+sequenceDiagram
+  participant D as ビルド
+  participant S as サーバ / CDN
+  participant B as ブラウザ
+  D->>S: build 時に描いた HTML を置く
+  B->>S: リクエスト
+  S-->>B: 置いてある HTML をそのまま返す
+  Note over B: 中身は見えている。まだ操作できない
+  B->>S: JavaScript を取得
+  Note over B: hydration して操作可能になる
+```
+
+**リクエスト時にサーバは何も描かない。** 速いが、build 時に決まらない情報は載せられない。
+
+### Dynamic rendering — リクエストごとに描く
+
+```mermaid
+sequenceDiagram
+  participant S as サーバ
+  participant B as ブラウザ
+  B->>S: リクエスト
+  Note over S: このリクエストのために描く
+  S-->>B: 中身入りの HTML
+  Note over B: 中身は見えている。まだ操作できない
+  B->>S: JavaScript を取得
+  Note over B: hydration して操作可能になる
+```
+
+**リクエスト固有の情報を載せられる。** 代わりに、描き終わるまで最初の 1 バイトも返せない。
+
+### PPR — 殻を先に返し、穴を後から埋める
+
+```mermaid
+sequenceDiagram
+  participant D as ビルド
+  participant S as サーバ
+  participant B as ブラウザ
+  D->>S: build 時に静的な殻を描いて置く
+  Note over D,S: 動的な部分は Suspense の位置で穴にする
+  B->>S: リクエスト
+  S-->>B: 静的な殻をすぐ返す。穴は待機表示
+  Note over B: 殻はもう見えている
+  Note over S: 穴の中身をこのリクエストのために描く
+  S-->>B: 穴の中身を streaming で流し込む
+  Note over B: 穴が埋まる
+  B->>S: JavaScript を取得
+  Note over B: hydration して操作可能になる
+```
+
+**Static の「すぐ返せる」と Dynamic の「リクエスト固有の情報を載せられる」を 1 つの route の中で両立させる。** 引き換えに、**どこが殻でどこが穴かを決めるのが `<Suspense>` の位置**になる。前の 3 つでは書いても書かなくても届く時刻が変わらなかったものが、ここでは配信の形そのものを決める。
+
+### 対称性
+
+| | 最初の HTML が出るまで | リクエスト固有の情報 | 境界を決めるもの |
+| --- | --- | --- | --- |
+| CSR | JavaScript とデータを待つ | 載る | — |
+| Static rendering | 待たない | 載らない | — |
+| Dynamic rendering | サーバが描き終わるまで待つ | 載る | — |
+| PPR | 待たない | 載る | **`<Suspense>` の位置** |
+
+**PPR だけが最後の列を持つ。** これが「Suspense が飾りから構造になる」ということであり、PPR の複雑さの出どころである。
+
 ## 間違えやすいこと
 
 ### `"use client"` は「CSR にする指示」ではない
@@ -212,7 +308,7 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 
 ### Partial Prerendering (PPR) — 1 つの機能ではなくモデルの切り替え
 
-**難しいのは機能そのものではなく、それまで前提にしていたモデルが崩れるところである。** 順に 4 つ崩れる。
+**難しいのは機能そのものではなく、それまで前提にしていたモデルが崩れるところである。** 順に 4 つ崩れる。配信の形そのものは「[描く時点の違い](#描く時点の違い)」の図で先に見ておくと早い。
 
 **1 つの route は静的か動的かのどちらか、という前提が消える。** PPR は 1 つの route の中に静的な部分と動的な部分を同居させる。build 時に描ける範囲を「静的な殻」として出力し、描けない部分には穴を空けておく。リクエスト時にその穴へ動的な中身を streaming で流し込む。
 
