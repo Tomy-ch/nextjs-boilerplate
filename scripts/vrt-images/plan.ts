@@ -8,7 +8,6 @@ import {
   LIVE_BRANCH_PATTERNS,
   PRUNE_THRESHOLDS,
   RETAINED_TAG_COUNT,
-  ROOT_BRANCH,
   SNAPSHOT_REF_PREFIX,
 } from "./retention.js";
 
@@ -68,15 +67,15 @@ export function selectRetainedTags(names: readonly string[]): string[] {
  * @param retained 主リポジトリの生きた ref が指すコミットの集合
  *
  * @remarks
- * 既定ブランチと、撮影以外の ref は常に残します。判らないものを消さないのは、掃除が
- * 取り消せないためです。
+ * 撮影以外の ref は常に残します。置き場の既定ブランチ（README を載せた根）もここに入るので、
+ * 名前を宣言して守る必要はありません。判らないものを消さないのは、掃除が取り消せないためです。
  */
 export function planPrune(refs: readonly SnapshotRef[], retained: ReadonlySet<string>): PrunePlan {
   const keep: SnapshotRef[] = [];
   const remove: SnapshotRef[] = [];
 
   for (const ref of refs) {
-    const removable = ref.name !== ROOT_BRANCH && isSnapshotRef(ref.name) && !retained.has(ref.sha);
+    const removable = isSnapshotRef(ref.name) && !retained.has(ref.sha);
     (removable ? remove : keep).push(ref);
   }
 

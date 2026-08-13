@@ -8,7 +8,7 @@
 ブランチにあり、1 本が 1 回ぶんの撮影に対応します。
 
 ```text
-main                          この README だけ（根）
+<既定ブランチ>                この README だけ（根）
 snapshot/develop              全 story ぶんの一式
 snapshot/release/v0.5.0       全 story ぶんの一式
 snapshot/feature/123-xxx      全 story ぶんの一式

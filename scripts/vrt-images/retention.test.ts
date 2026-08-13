@@ -4,7 +4,6 @@ import {
   LIVE_BRANCH_PATTERNS,
   PRUNE_THRESHOLDS,
   RETAINED_TAG_COUNT,
-  ROOT_BRANCH,
   SNAPSHOT_REF_PREFIX,
 } from "./retention";
 
@@ -23,10 +22,6 @@ describe("LIVE_BRANCH_PATTERNS", () => {
     );
 
     expect(conflicting).toEqual([]);
-  });
-
-  it("既定ブランチを保持対象として二重に数えない", () => {
-    expect(LIVE_BRANCH_PATTERNS).not.toContain(ROOT_BRANCH);
   });
 });
 
