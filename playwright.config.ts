@@ -27,10 +27,8 @@ export default defineConfig({
   // 系統 / テーマ / story の順に畳む。名前は spec が組み立てるため、ここは受け取るだけ。
   snapshotPathTemplate: "vrt/screenshots/{arg}{ext}",
   fullyParallel: true,
-  // 並列度を実行環境ではなく設定で決める。既定は手元が CPU の半分、CI では 1 で、同じ
-  // `make vrt` が場所によって桁違いの時間になる。撮影はコンテナの中で完結し、story どうしは
-  // 状態を共有しないため、揃えて困るのは負荷だけ。4 は 2 コアの runner でも溢れず、
-  // 待ち時間が撮影の猶予(下の expect)へ食い込まない範囲で選んでいる。
+  // 並列度は実行環境ではなく設定で決める。既定は手元と CI で異なり、同じ `make vrt` の
+  // 所要時間が場所によって変わる。
   workers: 4,
   // 1 件あたりの上限。撮影が収まるのを待つ猶予（下の expect）を内側に収める必要があり、
   // 既定の 30 秒だと待ち切る前に上限へ当たる。負荷が高いときに「揺らぎで落ちた」のか
@@ -71,7 +69,7 @@ export default defineConfig({
       reducedMotion: "reduce",
     },
   },
-  // プロジェクト名がそのまま配色テーマであり、基準画像の置き場の一部になる。一覧は
-  // [themes](vrt/lib/themes.ts) が持ち、在るべき基準画像を数える側と同じものを読む。
+  // プロジェクト名がそのまま配色テーマであり、基準画像の置き場の一部になる。一覧の宣言は
+  // [themes](vrt/lib/themes.ts)。
   projects: THEMES.map((name) => ({ name })),
 });

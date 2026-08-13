@@ -1,11 +1,7 @@
-// 置き場にある基準画像が、撮影対象の story と 1 対 1 で対応しているかを見る。
+// 置き場の基準画像と撮影対象の対応を見る。
 //
-// story を消す・改名する・撮影対象から外すと、どの story からも参照されない基準画像が置き場に
-// 残る。参照されない画像は比較に掛からないため、残り続けても誰も気づかず、置き場の中身が
-// 実態から離れていく。
-//
-// 見るのは「対応する story が無い画像」の側だけ。逆向き(画像を持たない story)は Playwright の
-// 比較そのものが落とすため、ここで重ねて見る必要が無い。
+// 扱うのは「対応する story を持たない画像」だけ。逆向き(画像を持たない story)は Playwright の
+// 比較そのものが落とす。
 import { readdirSync } from "node:fs";
 import path from "node:path";
 
@@ -19,7 +15,7 @@ const EXTENSION = ".png";
  *
  * @remarks
  * 区画の並びは `stories.spec.ts` が `toHaveScreenshot` へ渡すもの(系統 / テーマ / story の id)と
- * 同じです。撮る側と在るべき側で組み立てを分けると、片方だけを変えたときに全数が孤児になります。
+ * 一致していなければなりません。食い違うと全数が孤児として上がります。
  */
 export function expectedBaselines(stories: readonly Story[]): string[] {
   return stories
@@ -31,7 +27,7 @@ export function expectedBaselines(stories: readonly Story[]): string[] {
  * 置き場にある基準画像を相対パスで列挙する。
  *
  * @remarks
- * 画像以外は数えません。置き場は基準画像だけを持つリポジトリですが、README を根に持つため
+ * 数えるのは画像だけです。置き場は根に README を持つため
  * ([置き場の README](../../.github/settings/vrt-images/readme-template.md))、拡張子で絞らないと
  * それが孤児として上がります。
  */

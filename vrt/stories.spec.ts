@@ -60,7 +60,7 @@ for (const story of stories) {
     const crashes: Error[] = [];
     page.on("pageerror", (error) => crashes.push(error));
 
-    // 時計は開く前に固定する。開いてから差し替えても、初回の描画は実時刻で終わっている。
+    // 時計はページを開く前に固定する。
     await installFixedClock(page);
     await page.goto(storyURL(story.id, testInfo.project.name));
     await settle(page, testInfo.project.name);
@@ -75,8 +75,8 @@ for (const story of stories) {
   });
 }
 
-// 撮影対象と基準画像の対応。`VRT_ONLY` で範囲を絞った実行では見ない — 絞った側から見れば
-// 対象外の story の画像はすべて「対応しない画像」になり、孤児と区別が付かない。
+// 撮影対象と基準画像の対応。範囲を絞った実行(`VRT_ONLY`)では、対象外の story の画像と孤児を
+// 区別できないため見ない。
 if (!process.env.VRT_ONLY) {
   test("基準画像 / どの story からも参照されない画像が無い", ({}, testInfo) => {
     const orphans = orphanBaselines(
@@ -88,9 +88,8 @@ if (!process.env.VRT_ONLY) {
   });
 }
 
-// 置き場の位置は `playwright.config.ts` の `snapshotPathTemplate` が決める。ここへ綴りを重ねると
-// 置き場を動かしたときに検査だけが古い場所を見るため、撮影と同じ解決を通してから 3 区画
-// (系統 / テーマ / ファイル名)ぶん遡る。
+// 置き場の位置は `playwright.config.ts` の `snapshotPathTemplate` が決める。撮影と同じ解決を
+// 通してから 3 区画(系統 / テーマ / ファイル名)ぶん遡る。
 function baselineRoot(testInfo: TestInfo): string {
   return path.resolve(testInfo.snapshotPath("group", "theme", "story.png"), "../../..");
 }
