@@ -63,6 +63,7 @@
           { "context": "md-lint" },
           { "context": "scripts-check" },
           { "context": "smoke" },
+          { "context": "storybook-build" },
           { "context": "test" },
           { "context": "tokens-drift" },
           { "context": "typecheck" },
