@@ -1,8 +1,10 @@
 import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
-import { test as base, expect, type Page } from "@playwright/test";
+import path from "node:path";
+import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
+import { expectedBaselines, listBaselines, orphanBaselines } from "./lib/orphan-baselines";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
 
@@ -19,13 +21,12 @@ import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib
 /** 撮影対象。`pnpm build-storybook` の出力先。 */
 const STORYBOOK_DIR = "storybook-static";
 
-const stories = selectStories(
-  excludeDeclared(
-    parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
-    EXCLUDED_STORIES,
-  ),
-  process.env.VRT_ONLY,
+const shootable = excludeDeclared(
+  parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
+  EXCLUDED_STORIES,
 );
+
+const stories = selectStories(shootable, process.env.VRT_ONLY);
 
 // 配信は worker ごとにポートを OS へ選ばせて立てる。単一のサーバを外から与えると、
 // 並列数とポートの空きがリポジトリの設定として固定され、worktree を並べた分だけ衝突する。
@@ -69,6 +70,26 @@ for (const story of stories) {
     // 系統ごとに分かれず 1 階層へ平置きされる。
     await expect(page).toHaveScreenshot([story.group, testInfo.project.name, `${story.id}.png`]);
   });
+}
+
+// 撮影対象と基準画像の対応。`VRT_ONLY` で範囲を絞った実行では見ない — 絞った側から見れば
+// 対象外の story の画像はすべて「対応しない画像」になり、孤児と区別が付かない。
+if (!process.env.VRT_ONLY) {
+  test("基準画像 / どの story からも参照されない画像が無い", ({}, testInfo) => {
+    const orphans = orphanBaselines(
+      listBaselines(baselineRoot(testInfo)),
+      expectedBaselines(shootable),
+    );
+
+    expect(orphans, "撮り直して置き場へ送るか、対応する story を戻してください").toEqual([]);
+  });
+}
+
+// 置き場の位置は `playwright.config.ts` の `snapshotPathTemplate` が決める。ここへ綴りを重ねると
+// 置き場を動かしたときに検査だけが古い場所を見るため、撮影と同じ解決を通してから 3 区画
+// (系統 / テーマ / ファイル名)ぶん遡る。
+function baselineRoot(testInfo: TestInfo): string {
+  return path.resolve(testInfo.snapshotPath("group", "theme", "story.png"), "../../..");
 }
 
 // 撮影前に、描画とフォントの読み込みが終わるのを待つ。

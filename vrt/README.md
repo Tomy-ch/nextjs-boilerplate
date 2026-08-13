@@ -92,8 +92,12 @@ compare のリンクを置くのは、画像そのものをコメントへ貼ら
 - 外すときは [`lib/excluded-stories.ts`](lib/excluded-stories.ts) へ**理由と撤去条件を添えて**
   宣言する。story 側にタグを 1 行足すだけで黙らせられる状態は作らない。実体を失った宣言
   （消した / 改名した story を指すもの）は落ちる
-- 配色テーマは `light` / `dark` の 2 つを撮る。dark は token の切り替えでしか出ない見た目で、
-  他にこれを機械検証している層が無い
+- 配色テーマは [`lib/themes.ts`](lib/themes.ts) が持つ `light` / `dark` の 2 つを撮る。dark は
+  token の切り替えでしか出ない見た目で、他にこれを機械検証している層が無い
+- **どの story からも参照されない基準画像が置き場に残っていないことも見る**。story を消す・
+  改名する・除外を宣言すると、比較にも掛からない画像が残り、置き場の中身が実態から離れる。
+  検査するのは全数実行のときだけ（`VRT_ONLY` で絞った実行では、対象外の story の画像と孤児を
+  区別できない）。落ちたら `make vrt-retake` で撮り直すか、対応する story を戻す
 - viewport は 1 帯（1280×720）だけ。帯を増やす Responsive VRT と、ブラウザを増やす
   Cross Browser は別途扱う
 
@@ -184,6 +188,8 @@ push を自分で塞ぐことになる。
 | [`stories.spec.ts`](stories.spec.ts) | story を列挙して 1 件ずつ撮る本体 |
 | [`lib/story-index.ts`](lib/story-index.ts) | 目録から撮影対象を取り出す・story の URL を組み立てる |
 | [`lib/excluded-stories.ts`](lib/excluded-stories.ts) | 比較の対象から外す story の宣言（理由と撤去条件付き） |
+| [`lib/themes.ts`](lib/themes.ts) | 撮る配色テーマの一覧（Playwright の project 名） |
+| [`lib/orphan-baselines.ts`](lib/orphan-baselines.ts) | 撮影対象と置き場の基準画像の対応を突き合わせる |
 | [`lib/static-server.ts`](lib/static-server.ts) | build 済み Storybook を配る依存なしの静的サーバ |
 | `screenshots/` | 基準画像の置き場（サブモジュール） |
 | `../playwright.config.ts` | 実行環境と比較条件 |

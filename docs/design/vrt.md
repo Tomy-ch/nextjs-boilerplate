@@ -24,7 +24,7 @@ story 単位の visual regression が、どの部品でどう組み上がって�
 | どこ | 何 |
 | --- | --- |
 | `vrt/stories.spec.ts` | story を列挙して 1 件ずつ撮る本体 |
-| `vrt/lib/` | 目録の解釈・URL 組み立て・除外の宣言 |
+| `vrt/lib/` | 目録の解釈・URL 組み立て・除外の宣言・撮る配色テーマ・置き場との対応 |
 | `vrt/screenshots` | **サブモジュール**。基準画像の置き場を指す gitlink |
 | `playwright.config.ts` | 実行環境と比較条件（`maxDiffPixels: 0`） |
 | `docker-compose.dev-tools.yml` | `vrt_runner`（digest と platform を固定） |

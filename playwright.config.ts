@@ -1,5 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
+import { THEMES } from "./vrt/lib/themes";
+
 /**
  * story 単位の visual regression の設定([0091](docs/adr/0091-test-verification-methods.md))。
  *
@@ -64,6 +66,7 @@ export default defineConfig({
       reducedMotion: "reduce",
     },
   },
-  // プロジェクト名がそのまま配色テーマであり、基準画像の置き場の一部になる。
-  projects: [{ name: "light" }, { name: "dark" }],
+  // プロジェクト名がそのまま配色テーマであり、基準画像の置き場の一部になる。一覧は
+  // [themes](vrt/lib/themes.ts) が持ち、在るべき基準画像を数える側と同じものを読む。
+  projects: THEMES.map((name) => ({ name })),
 });
