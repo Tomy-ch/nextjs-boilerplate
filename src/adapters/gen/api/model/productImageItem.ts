@@ -11,14 +11,18 @@
  *
  * OpenAPI spec version: 2.2.0+15463a1
  */
-import type { ShippableLimitParamParameter } from "./shippableLimitParamParameter";
 
-export type GetPurchasesShippableParams = {
+/**
+ * 商品画像 1 件。表示 URL はフロントが配信ベース URL と imagePath から組み立てます
+ * （backend はフル URL を保持しません）。
+ */
+export interface ProductImageItem {
+  /** 格納されたオブジェクトのパス（オブジェクトキー）。 */
+  imagePath: string;
   /**
-   * 読み出す発送待ち購入の件数。注文日時の古い順で上位 limit 件を読み、まとめ判定はその範囲の中で行います。
-   * 範囲の外にある同一購入者の購入は別の便になります。
+   * 同一商品内での表示順。images は sortKey の昇順で返します。
    * @minimum 1
-   * @maximum 100
+   * @maximum 32767
    */
-  limit?: ShippableLimitParamParameter;
-};
+  sortKey: number;
+}

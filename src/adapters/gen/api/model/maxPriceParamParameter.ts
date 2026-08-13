@@ -11,14 +11,8 @@
  *
  * OpenAPI spec version: 2.2.0+15463a1
  */
-import type { ShippableLimitParamParameter } from "./shippableLimitParamParameter";
 
-export type GetPurchasesShippableParams = {
-  /**
-   * 読み出す発送待ち購入の件数。注文日時の古い順で上位 limit 件を読み、まとめ判定はその範囲の中で行います。
-   * 範囲の外にある同一購入者の購入は別の便になります。
-   * @minimum 1
-   * @maximum 100
-   */
-  limit?: ShippableLimitParamParameter;
-};
+/**
+ * 最高価格（この値以下）。負でない十進文字列で指定します。
+ */
+export type MaxPriceParamParameter = string;

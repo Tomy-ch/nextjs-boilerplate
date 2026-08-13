@@ -41,7 +41,7 @@ const wireProduct = {
   status: { id: "1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12", name: "公開" },
   category: { id: "2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13", name: "雑貨" },
   publishedAt: "2026-08-07T00:00:00.000Z",
-  imagePath: "products/abc.png",
+  images: [{ imagePath: "products/abc.png", sortKey: 1 }],
   version: 1,
 };
 
@@ -154,7 +154,19 @@ describe("toProduct", () => {
   });
 
   it("画像が無い商品の画像を空配列にする", () => {
-    expect(toProduct({ ...wireProduct, imagePath: null }).imagePaths).toEqual([]);
+    expect(toProduct({ ...wireProduct, images: [] }).imagePaths).toEqual([]);
+  });
+
+  it("複数の画像を契約の順序のまま持つ", () => {
+    const images = [
+      { imagePath: "products/first.png", sortKey: 1 },
+      { imagePath: "products/second.png", sortKey: 5 },
+    ];
+
+    expect(toProduct({ ...wireProduct, images }).imagePaths).toEqual([
+      "products/first.png",
+      "products/second.png",
+    ]);
   });
 
   it("在庫警告の境界が無い商品を null のまま持つ", () => {
@@ -272,7 +284,7 @@ describe("getProductListPage", () => {
   });
 
   it("画像が無い商品の URL を null にする", async () => {
-    stubFetch({ ...wirePage, products: [{ ...wireProduct, imagePath: null }] });
+    stubFetch({ ...wirePage, products: [{ ...wireProduct, images: [] }] });
 
     const page = await getProductListPage({ first: 20 });
 

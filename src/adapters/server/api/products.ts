@@ -124,8 +124,8 @@ export function toProduct(wire: WireProduct): Product {
     status: { id: wire.status.id, name: wire.status.name },
     category: { id: wire.category.id, name: wire.category.name },
     publishedAt: wire.publishedAt === null ? null : new Date(wire.publishedAt),
-    // 契約は 1 枚だけを返すため、表示側の複数枚前提に合わせて 1 要素の配列へ正規化する。
-    imagePaths: wire.imagePath === null ? [] : [wire.imagePath],
+    // 契約が sortKey 昇順で返すため、受け取った順序がそのまま表示の順序になる。
+    imagePaths: wire.images.map((image) => image.imagePath),
   };
 }
 
