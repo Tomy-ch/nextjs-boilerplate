@@ -3,7 +3,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { expectedBaselines, listBaselines, orphanBaselines } from "./orphan-baselines";
+import {
+  expectedBaselines,
+  listBaselines,
+  missingBaselines,
+  orphanBaselines,
+} from "./orphan-baselines";
 import type { Story } from "./story-index";
 
 let root: string;
@@ -90,5 +95,22 @@ describe("orphanBaselines", () => {
 
   it("在るべき画像が撮られていないことは孤児にしない", () => {
     expect(orphanBaselines([], expected)).toEqual([]);
+  });
+});
+
+describe("missingBaselines", () => {
+  const expected = ["action/dark/a--x.png", "action/light/a--x.png"];
+
+  // ----- 正常系 -----
+  it("撮られていない基準画像を挙げる", () => {
+    expect(missingBaselines(["action/light/a--x.png"], expected)).toEqual(["action/dark/a--x.png"]);
+  });
+
+  it("すべて撮られていれば空を返す", () => {
+    expect(missingBaselines(expected, expected)).toEqual([]);
+  });
+
+  it("対応する story を持たない画像は欠けとして挙げない", () => {
+    expect(missingBaselines([...expected, "action/light/消えた--story.png"], expected)).toEqual([]);
   });
 });

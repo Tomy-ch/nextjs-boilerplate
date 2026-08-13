@@ -28,10 +28,10 @@ story 単位の visual regression が、どの部品でどう組み上がって�
 | `vrt/screenshots` | **サブモジュール**。基準画像の置き場を指す gitlink |
 | `playwright.config.ts` | 実行環境と比較条件（`maxDiffPixels: 0`） |
 | `docker-compose.dev-tools.yml` | `vrt_runner`（digest と platform を固定） |
-| `scripts/vrt/` | 実行結果 → 一覧表 / 撮り直す id |
+| `scripts/vrt/` | 実行結果 → 一覧表 / 撮り直す id、絵を決める入力 → ハッシュ |
 | `scripts/vrt-images/` | 置き場の ref 名・送出・掃除の算出 |
 | `.github/actions/setup-vrt-baselines` | CI が記録されたコミット 1 つだけを取る |
-| 置き場（別リポジトリ） | `<系統>/<テーマ>/<story id>.png` を持つ `snapshot/*` ブランチ群 |
+| 置き場（別リポジトリ） | `<系統>/<テーマ>/<story id>.png` と、撮った時点の入力のハッシュ（`render-inputs.sha256`）を持つ `snapshot/*` ブランチ群 |
 
 ## 流れ
 

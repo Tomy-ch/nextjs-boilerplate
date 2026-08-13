@@ -23,6 +23,13 @@ export VRT_ONLY
 
 VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T -e VRT_ONLY vrt_runner
 
+# 基準画像を撮った時点の入力のハッシュ。置き場が画像と同じコミットで持つ。現在の入力と一致
+# すれば、撮っても前と同じ絵にしかならないので比較を省く。記録が無ければ省かない。
+VRT_INPUTS_FILE := vrt/screenshots/render-inputs.sha256
+
+# 比較を省いた実行でも走らせる検査。基準画像と撮影対象の 1 対 1 の対応だけを選ぶ。
+VRT_BASELINE_TAG := @baselines
+
 # 比較する前に Storybook を build する。撮る対象は build 済みの静的な出力であり、
 # ソースではない。
 # 配線の確認。撮り直しは空の置き場から始められる必要があるので、中身までは要求しない。
@@ -36,7 +43,12 @@ vrt: build-storybook
 	@if [ -z "$$(ls -A vrt/screenshots 2>/dev/null)" ]; then \
 		echo "❌ vrt/screenshots が空です。git submodule update --init vrt/screenshots を実行してください。"; exit 1; \
 	fi
-	@$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_ARGS)
+	@if [ -z "$(VRT_ONLY)" ] && [ "$$(pnpm exec tsx scripts/vrt gate $(VRT_INPUTS_FILE))" = "skip" ]; then \
+		echo "⏭️ 絵を決める入力が基準画像を撮った時点と同じです。比較を省き、対応の検査だけを行います。"; \
+		$(VRT_RUN) ./node_modules/.bin/playwright test --grep $(VRT_BASELINE_TAG) $(VRT_ARGS); \
+	else \
+		$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_ARGS); \
+	fi
 
 vrt-update: build-storybook
 	@$(VRT_REQUIRE_WIRING)

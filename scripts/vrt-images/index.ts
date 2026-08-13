@@ -9,8 +9,9 @@
 //
 // 置き場側に workflow を持たせないため、GitHub への問い合わせはすべてここから出る。
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
+import { collectRenderInputs, renderInputsHash } from "../vrt/render-hash.js";
 import {
   formatPrunePlan,
   needsPrune,
@@ -25,6 +26,9 @@ import { RETAINED_TAG_COUNT } from "./retention.js";
 
 /** 主リポジトリ側のサブモジュールの位置。ここの gitlink が保持すべきコミットを指す。 */
 const SUBMODULE_PATH = "vrt/screenshots";
+
+/** 置き場に残す、この一式を撮った時点の入力のハッシュ。 */
+const RENDER_INPUTS_FILE = "render-inputs.sha256";
 
 /** 促すときの終了コード。1 は問い合わせ自体の失敗に取ってある。 */
 const NEEDS_PRUNE_EXIT_CODE = 10;
@@ -76,6 +80,7 @@ function push(branch: string | undefined): void {
   const ref = snapshotRefName(target);
   const before = store(["rev-parse", "HEAD"]);
 
+  recordRenderInputs();
   store(["add", "--all"]);
   const staged = store(["diff", "--cached", "--name-only"]);
   if (staged === "") {
@@ -93,6 +98,25 @@ function push(branch: string | undefined): void {
   console.log(`before=${before}`);
   console.log(`after=${store(["rev-parse", "HEAD"])}`);
   console.log(`count=${staged.split("\n").length}`);
+}
+
+/**
+ * この一式を撮った時点の入力のハッシュを、一式と同じコミットへ入れる。
+ *
+ * @remarks
+ * 次回以降の `make vrt` はこの値と現在の入力を突き合わせ、一致していれば比較を省きます。
+ * 画像と同じコミットに載せるのは、両者がずれた状態を作らないためです。
+ */
+function recordRenderInputs(): void {
+  const root = process.cwd();
+  try {
+    const hash = renderInputsHash(root, collectRenderInputs(root));
+    writeFileSync(`${SUBMODULE_PATH}/${RENDER_INPUTS_FILE}`, `${hash}\n`);
+  } catch (e) {
+    fail(
+      `絵を決める入力を読めません(${e instanceof Error ? e.message : String(e)})。make vrt-update を先に実行してください。`,
+    );
+  }
 }
 
 function report(): void {

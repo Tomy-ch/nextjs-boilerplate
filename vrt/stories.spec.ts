@@ -5,7 +5,13 @@ import path from "node:path";
 import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
 import { installFixedClock } from "./lib/clock";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
-import { expectedBaselines, listBaselines, orphanBaselines } from "./lib/orphan-baselines";
+import {
+  BASELINE_TAG,
+  expectedBaselines,
+  listBaselines,
+  missingBaselines,
+  orphanBaselines,
+} from "./lib/orphan-baselines";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
 
@@ -74,15 +80,17 @@ for (const story of stories) {
 }
 
 // 撮影対象と基準画像の対応。範囲を絞った実行(`VRT_ONLY`)では、対象外の story の画像と孤児を
-// 区別できないため見ない。
+// 区別できないため見ない。比較を省いた実行でもここだけは走る(`make vrt`)。
 if (!process.env.VRT_ONLY) {
-  test("基準画像 / どの story からも参照されない画像が無い", ({}, testInfo) => {
-    const orphans = orphanBaselines(
-      listBaselines(baselineRoot(testInfo)),
-      expectedBaselines(shootable),
-    );
+  test("基準画像 / 撮影対象と 1 対 1 で対応する", { tag: BASELINE_TAG }, ({}, testInfo) => {
+    const present = listBaselines(baselineRoot(testInfo));
+    const expected = expectedBaselines(shootable);
 
-    expect(orphans, "撮り直して置き場へ送るか、対応する story を戻してください").toEqual([]);
+    expect(
+      orphanBaselines(present, expected),
+      "撮り直して置き場へ送るか、対応する story を戻してください",
+    ).toEqual([]);
+    expect(missingBaselines(present, expected), "make vrt-retake で撮り直してください").toEqual([]);
   });
 }
 
