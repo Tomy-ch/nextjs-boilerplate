@@ -168,6 +168,16 @@
       }
     },
     {
+      "includes": ["src/adapters/server/http/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noAwaitInLoops": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["vrt/**"],
       "linter": {
         "rules": {
