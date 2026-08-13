@@ -70,13 +70,21 @@ export function ResizablePanelGroup({ className, ...props }: ResizablePanelGroup
  * 大きさは `defaultSize` / `minSize` / `maxSize` で決める。`collapsible` を指定すると
  * `collapsedSize` まで畳める。いずれも `%` や `px` などの単位つきで渡す。
  *
- * 中身のスクロールは持たない。収まらない内容を持つ場合は `ScrollArea` を中に置く。
+ * 中身のスクロールは持たない。収まらない内容は溢れた分が切られるので、送って読ませる必要が
+ * あるものは `ScrollArea` を中に置く。pane 自体をスクロールさせないのは、そこへ keyboard の
+ * focus を与える手段が無く、送れない領域ができるためである。
  *
  * @param props - `react-resizable-panels` の Panel props。
  * @see Storybook `Container/Resizable`
  */
-export function ResizablePanel(props: ResizablePanelProps) {
-  return <ResizablePrimitive.Panel data-slot="resizable-panel" {...props} />;
+export function ResizablePanel({ style, ...props }: ResizablePanelProps) {
+  return (
+    <ResizablePrimitive.Panel
+      data-slot="resizable-panel"
+      style={{ overflow: "hidden", ...style }}
+      {...props}
+    />
+  );
 }
 
 /**

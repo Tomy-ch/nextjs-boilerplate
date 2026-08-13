@@ -34,6 +34,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、追跡下の `*.sh` を `make shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で、mise のピンの整合を `make actions-mise-pin-lint` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 | Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
+| Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナに相乗りするので追加のランナーを入れない（ADR 0091 §3）。**実ブラウザなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないまま基準画像だけが承認済みになるため |
 | VRT | `vrt.yaml` | `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない） |
 
 ## ワークフロー一覧（Components）

@@ -47,8 +47,15 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
  * - `scripts/setup/lib/runtime.ts` — リポジトリルートの解決と共通フラグ（`--dry-run` / `--help`）の解析だけ。
  * - `docs-viewer/src/main.tsx` — ビューアーの entry。読み込まれた時点で DOM を触るため、
  *   判断はすべて `mount/` 側に置いてある。
+ * - `vrt/lib/settle.ts` — Playwright の Page を 2 つの条件で待つだけ。分岐を持たず、
+ *   Vitest からは呼べない。撮影と a11y 検査が同じ待ち方をする必要があるため spec から
+ *   切り出してあるだけで、判断は持たない。
  */
-const NON_DECIDING_MODULES = ["scripts/setup/lib/runtime.ts", "docs-viewer/src/main.tsx"] as const;
+const NON_DECIDING_MODULES = [
+  "scripts/setup/lib/runtime.ts",
+  "docs-viewer/src/main.tsx",
+  "vrt/lib/settle.ts",
+] as const;
 
 /**
  * テスト専用の組み立て。

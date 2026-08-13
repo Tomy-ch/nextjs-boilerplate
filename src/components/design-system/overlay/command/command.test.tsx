@@ -37,7 +37,6 @@ function CommandFixture({
     <Command label="操作を検索" shouldFilter={shouldFilter}>
       <CommandInput placeholder="操作を検索" />
       <CommandList>
-        <CommandEmpty>一致する操作はありません。</CommandEmpty>
         <CommandGroup heading="移動">
           <CommandItem onSelect={onSelect}>一覧を開く</CommandItem>
           <CommandItem onSelect={onSelect}>予定を開く</CommandItem>
@@ -53,6 +52,7 @@ function CommandFixture({
           </CommandItem>
         </CommandGroup>
       </CommandList>
+      <CommandEmpty>一致する操作はありません。</CommandEmpty>
     </Command>
   );
 }
@@ -254,11 +254,11 @@ describe("CommandDialog", () => {
       <CommandDialog open title="操作の検索">
         <CommandInput placeholder="操作を検索" />
         <CommandList>
-          <CommandEmpty>一致する操作はありません。</CommandEmpty>
           <CommandGroup heading="移動">
             <CommandItem>一覧を開く</CommandItem>
           </CommandGroup>
         </CommandList>
+        <CommandEmpty>一致する操作はありません。</CommandEmpty>
       </CommandDialog>,
     );
 

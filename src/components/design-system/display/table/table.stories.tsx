@@ -13,7 +13,7 @@ import {
 
 function BasicTable() {
   return (
-    <Table>
+    <Table label="最近の更新">
       <TableCaption>最近の更新</TableCaption>
       <TableHeader>
         <TableRow>
@@ -40,7 +40,7 @@ function BasicTable() {
 
 function TableWithFooter() {
   return (
-    <Table>
+    <Table label="処理状況">
       <TableCaption>処理状況</TableCaption>
       <TableHeader>
         <TableRow>

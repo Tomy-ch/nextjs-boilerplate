@@ -6,6 +6,7 @@ import { cn } from "@/components/cn";
 
 import { Button } from "../../design-system/action/button/button";
 import { BUTTON_SIZE, BUTTON_VARIANT } from "../../design-system/action/button/button.definition";
+import { ScrollArea } from "../../design-system/container/scroll-area/scroll-area";
 import {
   ATTACHMENT_MEDIA_VARIANT,
   ATTACHMENT_ORIENTATION,
@@ -306,24 +307,43 @@ export function AttachmentTrigger({
   );
 }
 
+/** {@link AttachmentGroup} の props。 */
+export type AttachmentGroupProps = ComponentProps<"section"> & {
+  /** 領域の名前。 */
+  label?: string;
+};
+
 /**
  * 複数の添付を横に並べる領域。
  *
  * @remarks
  * 収まらない場合は横スクロールし、添付の先頭で止まる。件数・並び順・上限は持たない。
  *
- * @param props - native `div` 属性。
+ * スクロールは `ScrollArea` が引き受けるため、keyboard だけでも横へ送れる。添付そのものが
+ * focus を持つ構成では `tabIndex={-1}` を渡し、領域自体の tab stop を外す。
+ *
+ * focus できる領域には名前が要り、名前は role を伴わないと公開されないため `role="group"` を
+ * 当てる。landmark にはしない。添付のまとまりは画面の骨格ではない。
+ *
+ * @param props - native `section` 属性と `label`。
  *
  * @see Storybook `Display/Attachment`
  */
-export function AttachmentGroup({ className, ...props }: ComponentProps<"div">) {
+export function AttachmentGroup({
+  className,
+  label = "添付の一覧",
+  ...props
+}: AttachmentGroupProps) {
   return (
-    <div
+    <ScrollArea
+      aria-label={label}
       className={cn(
-        "flex min-w-0 scroll-fade-x snap-x snap-mandatory scroll-px-1 scrollbar-none gap-3 overflow-x-auto overscroll-x-contain py-1 *:data-[slot=attachment]:flex-none *:data-[slot=attachment]:snap-start",
+        "flex min-w-0 scroll-fade-x snap-x snap-mandatory scroll-px-1 scrollbar-none gap-3 py-1 *:data-[slot=attachment]:flex-none *:data-[slot=attachment]:snap-start",
         className,
       )}
       data-slot="attachment-group"
+      orientation="horizontal"
+      role="group"
       {...props}
     />
   );

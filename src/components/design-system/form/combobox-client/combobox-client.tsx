@@ -141,7 +141,6 @@ export function ComboboxClient({
           <Command label={ariaLabel ?? searchPlaceholder}>
             <CommandInput placeholder={searchPlaceholder} />
             <CommandList>
-              <CommandEmpty>{emptyMessage}</CommandEmpty>
               {options.map((option) => (
                 <CommandItem
                   disabled={option.disabled}
@@ -157,6 +156,7 @@ export function ComboboxClient({
                 </CommandItem>
               ))}
             </CommandList>
+            <CommandEmpty>{emptyMessage}</CommandEmpty>
           </Command>
         </PopoverContent>
       </Popover>
