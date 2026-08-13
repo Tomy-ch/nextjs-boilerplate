@@ -68,25 +68,36 @@ describe("HomePageContent", () => {
     );
   });
 
-  it("3 系統を直列にせず、いずれも取得を始めてから待つ", async () => {
-    const started: string[] = [];
-    const pending = <T,>(name: string, value: T) =>
-      vi.fn(async () => {
-        started.push(name);
+  it("3 系統を直列にせず、どれも解決を待たずに始める", async () => {
+    const started = new Set<string>();
+    const release: (() => void)[] = [];
+    const held = <T,>(name: string, value: T) =>
+      vi.fn(() => {
+        started.add(name);
 
-        // 3 つとも「開始済み」になってから解決させる。直列なら 1 つ目の解決まで 2 つ目が始まらない。
-        await Promise.resolve();
-
-        return value;
+        // 解決を保留したまま返す。直列なら 1 つ目が解決するまで 2 つ目が呼ばれない。
+        return new Promise<T>((resolve) => {
+          release.push(() => resolve(value));
+        });
       });
 
-    getProductListPage.mockImplementation(pending("newArrivals", PAGE));
-    getProductRanking.mockImplementation(pending("ranking", [ENTRY]));
-    getProductCategories.mockImplementation(pending("categories", CATEGORIES));
+    getProductListPage.mockImplementation(held("newArrivals", PAGE));
+    getProductRanking.mockImplementation(held("ranking", [ENTRY]));
+    getProductCategories.mockImplementation(held("categories", CATEGORIES));
 
-    await HomePageContent();
+    const rendering = HomePageContent();
 
-    expect(started).toEqual(["newArrivals", "ranking", "categories"]);
+    await vi.waitFor(() => {
+      expect(started).toEqual(new Set(["newArrivals", "ranking", "categories"]));
+    });
+
+    for (const resolve of release) {
+      resolve();
+    }
+
+    render(await rendering);
+
+    expect(screen.getByText("ワイヤレスイヤホン")).toBeVisible();
   });
 
   // ----- 異常系 -----

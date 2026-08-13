@@ -5,8 +5,8 @@ import { type ChangeEvent, useCallback, useId, useTransition } from "react";
 
 import { Label } from "@/components/design-system/form/label/label";
 import { SelectNative } from "@/components/design-system/form/select-native/select-native";
-
-import { FILTER_KEY, type FilterOption, toProductListHref } from "../../query";
+import { FILTER_KEY, toProductListHref } from "../../../facade/list-url/list-url";
+import type { FilterOption } from "../../query";
 
 /** `ProductSortSelect` の props。 */
 export type ProductSortSelectProps = {

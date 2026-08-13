@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { FILTER_KEY } from "../../query";
+import { FILTER_KEY } from "../../../facade/list-url/list-url";
 import { type FilterGroup, ProductFilterFields } from "./filter-fields";
 
 const GROUPS: readonly FilterGroup[] = [

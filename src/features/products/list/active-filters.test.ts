@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { FILTER_KEY } from "../facade/list-url/list-url";
 import { toActiveFilters } from "./active-filters";
-import { FILTER_KEY } from "./query";
 import type { FilterGroup } from "./ui/filter-fields/filter-fields";
 
 const CATEGORY_GROUP: FilterGroup = {

@@ -1,4 +1,8 @@
-import { FILTER_KEY, type ProductListSelection, toProductListHref } from "./query";
+import {
+  FILTER_KEY,
+  type ProductListSelection,
+  toProductListHref,
+} from "../facade/list-url/list-url";
 import type { FilterGroup } from "./ui/filter-fields/filter-fields";
 
 /** いま効いている条件 1 件。解除先まで含めて、表示側が組み立て直さずに済む形で持つ。 */

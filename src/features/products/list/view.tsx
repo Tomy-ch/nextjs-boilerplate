@@ -9,9 +9,9 @@ import {
   FilterBarControls,
   FilterChip,
 } from "@/components/patterns/filter-bar/filter-bar";
-
+import { FILTER_KEY, PRODUCT_LIST_PATH, toConditions } from "../facade/list-url/list-url";
 import { toActiveFilters } from "./active-filters";
-import { FILTER_KEY, type FilterOption, PRODUCT_LIST_PATH, toConditions } from "./query";
+import type { FilterOption } from "./query";
 import type { FilterGroup } from "./ui/filter-fields/filter-fields";
 import { ProductFilterSheet } from "./ui/filter-sheet/filter-sheet";
 import { ProductFilterSidebar } from "./ui/filter-sidebar/filter-sidebar";

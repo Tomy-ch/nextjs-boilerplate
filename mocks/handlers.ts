@@ -1,7 +1,8 @@
 // sample:replace-begin
-import type { RequestHandler } from "msw";
-
 import { getGoBoilerplateAPIMock } from "./api/endpoints.msw";
+
+/** 契約から生成したハンドラ 1 件。生成物は HTTP ハンドラだけを返す。 */
+type GeneratedHandler = ReturnType<typeof getGoBoilerplateAPIMock>[number];
 
 /**
  * パスが持つパラメータ区間の数。
@@ -9,11 +10,12 @@ import { getGoBoilerplateAPIMock } from "./api/endpoints.msw";
  * @remarks
  * 少ないほど具体的なパスです。`/v1/products/ranking` は 0、`/v1/products/:productId` は 1 で、
  * 前者は後者にも一致します。
+ *
+ * パスは常に文字列です。生成物は契約のパスをリテラルで渡すため、`RequestHandler` の union が
+ * 持つ GraphQL 側（パスを持たない）の形は現れません。防御を足すと、到達しない分岐が残ります。
  */
-function parameterCount(handler: RequestHandler): number {
-  const path = "path" in handler.info ? handler.info.path : "";
-
-  return typeof path === "string" ? (path.match(/:/g) ?? []).length : 0;
+function parameterCount(handler: GeneratedHandler): number {
+  return (String(handler.info.path).match(/:/g) ?? []).length;
 }
 // sample:replace-with
 // sample:replace-end

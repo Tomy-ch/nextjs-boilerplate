@@ -160,6 +160,18 @@ describe("ProductDetail", () => {
     expect(breadcrumb.getByText("深煎りブレンド")).toBeVisible();
   });
 
+  it("実画像には拡大する操作を出す", () => {
+    render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
+
+    expect(screen.getAllByRole("button", { name: /を拡大する/ }).length).toBe(IMAGE_URLS.length);
+  });
+
+  it("代替画像には拡大する操作を出さない", () => {
+    render(<ProductDetail imageUrls={[]} product={productOf()} />);
+
+    expect(screen.queryByRole("button", { name: /を拡大する/ })).not.toBeInTheDocument();
+  });
+
   it("カートに追加する操作を出す", () => {
     render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
 

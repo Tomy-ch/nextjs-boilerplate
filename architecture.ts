@@ -110,7 +110,9 @@ export const ENTRY_POINTS = [
  * - `features-facade`: feature が他の feature へ見せる唯一の面（[0021](docs/adr/0021-frontend-responsibility.md)
  *   「昇格できないもの」）。`features` 同士の import は禁じたまま、この区画だけを通します。
  *   区画自身が import できるものは `features` と同じで、**`features` を含みません**。facade が
- *   feature の内部を参照できると、内部が facade 経由で外へ素通しになり、面を分けた意味が消えます
+ *   feature の内部を参照できると、内部が facade 経由で外へ素通しになり、面を分けた意味が消えます。
+ *   **区画同士も許しません。** 同じ feature の中は 1 つの要素なので宣言なしで通り、宣言を足すと
+ *   別の feature の面まで通ってしまいます
  */
 export const SHARED_AREAS = [
   {

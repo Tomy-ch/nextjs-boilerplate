@@ -7,8 +7,8 @@ import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import type { ProductListItem } from "@/model/product/product";
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
-
-import { FILTER_KEY, type FilterOption } from "./query";
+import { FILTER_KEY } from "../facade/list-url/list-url";
+import type { FilterOption } from "./query";
 import type { FilterGroup } from "./ui/filter-fields/filter-fields";
 import { ProductLoadMoreList } from "./ui/load-more-list/load-more-list";
 import { ProductListView } from "./view";

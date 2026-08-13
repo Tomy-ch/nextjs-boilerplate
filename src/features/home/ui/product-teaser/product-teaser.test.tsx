@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { ProductListItem } from "@/model/product/product";
 
@@ -57,5 +58,11 @@ describe("ProductTeaser", () => {
     render(<ProductTeaser item={itemOf({ imageUrl: null })} />);
 
     expect(screen.getByRole("img", { name: "画像なし" })).toBeInTheDocument();
+  });
+
+  it("a11y 違反が無い", async () => {
+    const { container } = render(<ProductTeaser item={itemOf()} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

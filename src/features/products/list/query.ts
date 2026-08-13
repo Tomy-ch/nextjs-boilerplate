@@ -1,17 +1,3 @@
-/**
- * 一覧の URL 契約のうち、他の feature も使う分は面が持つ。この画面の側はここから引き、
- * 引き場所を 2 つに割らない（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
- */
-export {
-  COUNT_KEY,
-  CURSOR_KEY,
-  FILTER_KEY,
-  PRODUCT_LIST_PATH,
-  type ProductListSelection,
-  toConditions,
-  toProductListHref,
-} from "../facade/list-url/list-url";
-
 /** page が受け取る素の `searchParams`。 */
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 

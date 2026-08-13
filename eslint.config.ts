@@ -104,11 +104,6 @@ export default [
               from: { element: { type } },
               allow: { to: { element: { types: { anyOf: dependencies } } } },
             })),
-            // co-location したテストと story が対象を読む経路。区画の内側の相互参照にあたる。
-            ...SHARED_AREAS.map(({ type }) => ({
-              from: { element: { type } },
-              allow: { to: { element: { type } } },
-            })),
             ...SHARED_AREAS.map(({ type, allowedFrom }) => ({
               from: { element: { types: { anyOf: allowedFrom } } },
               allow: { to: { element: { type } } },

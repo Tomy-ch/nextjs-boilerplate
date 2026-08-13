@@ -2,6 +2,7 @@
 
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { ProductListItem } from "@/model/product/product";
 
@@ -53,5 +54,11 @@ describe("NewArrivals", () => {
     render(<NewArrivals items={[]} />);
 
     expect(screen.queryByRole("heading", { name: "新着商品" })).not.toBeInTheDocument();
+  });
+
+  it("a11y 違反が無い", async () => {
+    const { container } = render(<NewArrivals items={ITEMS} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

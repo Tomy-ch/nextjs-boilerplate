@@ -4,8 +4,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
-
-import { FILTER_KEY, type FilterOption } from "../../query";
+import { FILTER_KEY } from "../../../facade/list-url/list-url";
+import type { FilterOption } from "../../query";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 

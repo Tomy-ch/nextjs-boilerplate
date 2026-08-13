@@ -8,15 +8,12 @@ import {
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { ProductRef } from "@/model/product/product";
-
+import { COUNT_KEY, FILTER_KEY, toConditions } from "../facade/list-url/list-url";
 import {
-  COUNT_KEY,
-  FILTER_KEY,
   type FilterOption,
   normalizeSearchParams,
   PRODUCT_PAGE_SIZE,
   type RawSearchParams,
-  toConditions,
 } from "./query";
 import type { FilterGroup } from "./ui/filter-fields/filter-fields";
 import { ProductInfiniteList } from "./ui/infinite-list/infinite-list";

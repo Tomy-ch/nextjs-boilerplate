@@ -2,6 +2,7 @@
 
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { ProductRankingEntry } from "@/model/product/product";
 
@@ -64,5 +65,11 @@ describe("RankingList", () => {
     render(<RankingList entries={[]} />);
 
     expect(screen.queryByRole("heading", { name: "売上ランキング" })).not.toBeInTheDocument();
+  });
+
+  it("a11y 違反が無い", async () => {
+    const { container } = render(<RankingList entries={ENTRIES} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

@@ -46,6 +46,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "mocks/api",
   "mocks/auth",
   "mocks/contract-conformance.test.ts",
+  "mocks/handlers.test.ts",
   // 破棄の道具（使い終わったら不要）。ディレクトリごと挙げれば、判定モジュールを足しても漏れない。
   "scripts/setup/remove-sample",
 ];

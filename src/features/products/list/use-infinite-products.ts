@@ -5,8 +5,8 @@ import { type RefObject, useCallback, useEffect, useRef, useState } from "react"
 import { fetchProductListPage, PRODUCT_LIST_MAX_ITEMS } from "@/adapters/client/api/products";
 import { appendCursorPage, type CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
-
-import { COUNT_KEY, CURSOR_KEY, PRODUCT_PAGE_SIZE } from "./query";
+import { COUNT_KEY, CURSOR_KEY } from "../facade/list-url/list-url";
+import { PRODUCT_PAGE_SIZE } from "./query";
 
 /** 末尾に近づいたと見なす距離。画面に入り切る前に読み始めて、待たせる時間を短くする。 */
 const PREFETCH_MARGIN = "400px";

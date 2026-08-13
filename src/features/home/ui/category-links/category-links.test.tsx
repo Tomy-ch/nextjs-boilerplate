@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { ProductRef } from "@/model/product/product";
 
@@ -38,5 +39,11 @@ describe("CategoryLinks", () => {
     render(<CategoryLinks categories={[]} />);
 
     expect(screen.queryByRole("heading", { name: "カテゴリから探す" })).not.toBeInTheDocument();
+  });
+
+  it("a11y 違反が無い", async () => {
+    const { container } = render(<CategoryLinks categories={CATEGORIES} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

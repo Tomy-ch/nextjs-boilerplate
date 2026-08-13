@@ -27,7 +27,8 @@ test-requirement: feature
 | ファイル | 役割 |
 | --- | --- |
 | `list/page-content.tsx` | 一覧の取得と組み立て。待機表示の境界がここに掛かる |
-| `list/query.ts` | URL のキーと、条件から一覧の URL を組む規則 |
+| `facade/list-url/` | 一覧の URL 契約（パス・絞り込みのキー・URL の組み立て）。他の feature も引く |
+| `list/query.ts` | 素の `searchParams` の均し、件数、選択肢の型 |
 | `list/use-infinite-products.ts` | 末尾到達で続きを読む。読み進めた件数を URL へ書き戻す |
 | `list/view.tsx` | 一覧の表示。検索・並び替え・効いている条件を `FilterBar` にまとめる |
 | `list/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |

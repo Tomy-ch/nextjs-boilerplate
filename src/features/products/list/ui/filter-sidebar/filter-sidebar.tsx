@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useTransition } from "react";
 
-import { toProductListHref } from "../../query";
+import { toProductListHref } from "../../../facade/list-url/list-url";
 import { type FilterGroup, ProductFilterFields } from "../filter-fields/filter-fields";
 
 /** `ProductFilterSidebar` の props。 */

@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import { FILTER_KEY } from "../../query";
+import { FILTER_KEY } from "../../../facade/list-url/list-url";
 import { ProductInvalidQuery } from "./invalid-query";
 
 describe("ProductInvalidQuery", () => {

@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { FILTER_KEY } from "../../query";
+import { FILTER_KEY } from "../../../facade/list-url/list-url";
 import type { FilterGroup } from "../filter-fields/filter-fields";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));

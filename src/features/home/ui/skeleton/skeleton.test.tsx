@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { HomeSkeleton } from "./skeleton";
 
@@ -19,5 +20,11 @@ describe("HomeSkeleton", () => {
     const { container } = render(<HomeSkeleton />);
 
     expect(container.querySelector("[aria-hidden='true']")).toBeInTheDocument();
+  });
+
+  it("a11y 違反が無い", async () => {
+    const { container } = render(<HomeSkeleton />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });
