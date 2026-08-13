@@ -57,13 +57,41 @@ describe("CartHeaderAction", () => {
   });
 
   // ----- 正常系 -----
-  it("広い幅では点数だけを出し、開く操作を持たない", () => {
+  it("広い幅では点数を持つ切り替えになり、中身は持たない", () => {
+    stubViewport(false);
+    seed(COFFEE);
+    render(<CartHeaderAction />);
+    const toggle = screen.getByRole("button", { name: "カートを開く" });
+
+    expect(within(toggle).getByText("1")).toBeVisible();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("深煎りブレンド")).not.toBeInTheDocument();
+  });
+
+  it("広い幅で押すと脇の領域を開く要求になる", async () => {
     stubViewport(false);
     seed(COFFEE);
     render(<CartHeaderAction />);
 
-    expect(screen.getByText("カート")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "カートを開く" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
+
+    expect(screen.getByRole("button", { name: "カートを閉じる" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+
+  it("広い幅で開いている状態から押すと要求を畳む", async () => {
+    stubViewport(false);
+    useCartStore.getState().add(COFFEE);
+    render(<CartHeaderAction />);
+
+    await userEvent.click(screen.getByRole("button", { name: "カートを閉じる" }));
+
+    expect(screen.getByRole("button", { name: "カートを開く" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
   it("狭い幅では開く操作になる", () => {
@@ -115,25 +143,40 @@ describe("CartHeaderAction", () => {
     expect(await screen.findByRole("dialog", { name: "カート" })).toBeVisible();
   });
 
-  it("常設できる幅で追加してから狭めても操作なしには開かない", () => {
+  it("常設できる幅で立った要求は狭めた後も残る", async () => {
     const media = stubViewport(false);
     render(<CartHeaderAction />);
     act(() => useCartStore.getState().add(COFFEE));
 
     act(() => media.resize(true));
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "カート" })).toBeVisible();
   });
 
-  it("開いたまま常設できる幅へ移り、狭い幅へ戻しても開かない", async () => {
+  it("開いたまま常設できる幅へ移ると切り替えが開いた状態で引き継ぐ", async () => {
     const media = stubViewport(true);
     render(<CartHeaderAction />);
     act(() => useCartStore.getState().add(COFFEE));
     await screen.findByRole("dialog");
 
     act(() => media.resize(false));
+
+    expect(screen.getByRole("button", { name: "カートを閉じる" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("狭い幅で畳んだ要求は広げて戻しても畳まれたまま", () => {
+    const media = stubViewport(true);
+    seed(COFFEE);
+    render(<CartHeaderAction />);
+
+    act(() => media.resize(false));
     act(() => media.resize(true));
 
+    expect(screen.getByRole("button", { name: "カートを開く" })).toBeVisible();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

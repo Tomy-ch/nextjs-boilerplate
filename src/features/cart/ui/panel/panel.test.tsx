@@ -27,7 +27,7 @@ const TEA: CartLineInput = {
 
 describe("CartPanel", () => {
   beforeEach(() => {
-    useCartStore.setState({ lines: [] });
+    useCartStore.setState({ lines: [], isOpen: false });
   });
 
   // ----- 正常系 -----
@@ -38,6 +38,25 @@ describe("CartPanel", () => {
     expect(screen.getByRole("complementary", { name: "カート" })).toBeVisible();
   });
 
+  it("何の領域かを示す見出しと閉じる操作を添える", () => {
+    useCartStore.getState().add(COFFEE);
+    render(<CartPanel />);
+    const panel = within(screen.getByRole("complementary", { name: "カート" }));
+
+    expect(panel.getByText("カート")).toBeVisible();
+    expect(panel.getByRole("button", { name: "カートを閉じる" })).toBeVisible();
+  });
+
+  it("閉じる操作で領域が消え、中身は残る", async () => {
+    useCartStore.getState().add(COFFEE);
+    render(<CartPanel />);
+
+    await userEvent.click(screen.getByRole("button", { name: "カートを閉じる" }));
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    expect(useCartStore.getState().lines).toHaveLength(1);
+  });
+
   it("小計を明細から合算して出す", () => {
     useCartStore.getState().add(COFFEE);
     useCartStore.getState().add(TEA);
@@ -46,14 +65,7 @@ describe("CartPanel", () => {
     expect(screen.getByText("$13.00")).toBeVisible();
   });
 
-  it("カートへ移動する操作を出す", () => {
-    useCartStore.getState().add(COFFEE);
-    render(<CartPanel />);
-
-    expect(screen.getByRole("button", { name: "カートに移動" })).toBeVisible();
-  });
-
-  it("明細だけを局所スクロールの領域に入れ、小計と操作は外に置く", () => {
+  it("明細だけを局所スクロールの領域に入れ、小計と閉じる操作は外に置く", () => {
     useCartStore.getState().add(COFFEE);
     render(<CartPanel />);
     const scrollable = screen.getByRole("region", { name: "カートの明細" });
@@ -61,7 +73,7 @@ describe("CartPanel", () => {
     expect(within(scrollable).getByRole("list")).toBeVisible();
     expect(within(scrollable).queryByText("小計")).not.toBeInTheDocument();
     expect(
-      within(scrollable).queryByRole("button", { name: "カートに移動" }),
+      within(scrollable).queryByRole("button", { name: "カートを閉じる" }),
     ).not.toBeInTheDocument();
   });
 
@@ -134,6 +146,14 @@ describe("CartPanel", () => {
   });
 
   it("カートが空なら何も描画しない", () => {
+    const { container } = render(<CartPanel />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("中身が入っていても見たい要求が畳まれていれば描画しない", () => {
+    useCartStore.getState().add(COFFEE);
+    useCartStore.getState().setOpen(false);
     const { container } = render(<CartPanel />);
 
     expect(container).toBeEmptyDOMElement();

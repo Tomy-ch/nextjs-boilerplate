@@ -9,7 +9,7 @@ describe("ProductListSkeleton", () => {
   it("並ぶものと同じ段組みで枠を出す", () => {
     const { container } = render(<ProductListSkeleton />);
 
-    expect(container.querySelectorAll("li")).toHaveLength(6);
+    expect(container.querySelectorAll("li")).toHaveLength(4);
   });
 
   it("待機中の枠を支援技術へ読ませない", () => {

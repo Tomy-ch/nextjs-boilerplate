@@ -39,20 +39,27 @@ describe("CartContents", () => {
     expect(screen.getByText("$13.00")).toBeVisible();
   });
 
-  it("カートへ移動する操作を出す", () => {
+  it("先へ進む導線を購入手続きとカートページの 2 本出す", () => {
     useCartStore.getState().add(COFFEE);
     render(<CartContents />);
 
-    expect(screen.getByRole("button", { name: "カートに移動" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "購入手続きへ" })).toHaveAttribute("href", "/checkout");
+    expect(screen.getByRole("link", { name: "カートを見る" })).toHaveAttribute("href", "/cart");
   });
 
-  it("明細だけを局所スクロールの領域に入れ、小計と操作は外に置く", () => {
+  it("明細だけを局所スクロールの領域に入れ、小計と導線は外に置く", () => {
     useCartStore.getState().add(COFFEE);
     render(<CartContents />);
     const scrollable = screen.getByRole("region", { name: "カートの明細" });
 
     expect(within(scrollable).getByRole("list")).toBeVisible();
     expect(within(scrollable).queryByText("小計")).not.toBeInTheDocument();
+    expect(
+      within(scrollable).queryByRole("link", { name: "購入手続きへ" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(scrollable).queryByRole("link", { name: "カートを見る" }),
+    ).not.toBeInTheDocument();
   });
 
   it("明細の商品名・状態・金額・数量を並べる", () => {
@@ -110,11 +117,12 @@ describe("CartContents", () => {
     expect(screen.getByRole("button", { name: "深煎りブレンド を 1 つ増やす" })).toBeDisabled();
   });
 
-  it("カートが空でも小計と導線は出す", () => {
+  it("カートが空でも小計と 2 本の導線は出す", () => {
     render(<CartContents />);
 
     expect(screen.getByText("$0.00")).toBeVisible();
-    expect(screen.getByRole("button", { name: "カートに移動" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "購入手続きへ" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "カートを見る" })).toBeVisible();
   });
 
   it("a11y 自動検査に違反しない", async () => {

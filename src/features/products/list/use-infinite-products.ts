@@ -55,7 +55,6 @@ export function useInfiniteProducts(
   const [failed, setFailed] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const loadMoreRef = useRef<() => void>(() => undefined);
 
   const loadMore = useCallback(() => {
     const cursor = page.nextCursor;
@@ -83,6 +82,8 @@ export function useInfiniteProducts(
         }
       });
   }, [loading, page.nextCursor, query]);
+
+  const loadMoreRef = useRef(loadMore);
 
   useEffect(() => {
     loadMoreRef.current = loadMore;

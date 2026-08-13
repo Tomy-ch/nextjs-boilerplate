@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
 import { type CartLineInput, useCartStore } from "@/stores/cart-store";
 import ShopLayout from "./layout";
@@ -28,7 +31,7 @@ const COFFEE: CartLineInput = {
 describe("ShopLayout", () => {
   beforeEach(() => {
     stubWideViewport();
-    useCartStore.setState({ lines: [] });
+    useCartStore.setState({ lines: [], isOpen: false });
   });
 
   afterEach(() => {
@@ -56,14 +59,16 @@ describe("ShopLayout", () => {
     expect(screen.getByRole("link", { name: "商品" })).toHaveAttribute("href", "/products");
   });
 
-  it("カートの点数を header に置く", () => {
+  it("カートの入口を header に置く", () => {
     render(
       <ShopLayout>
         <p>本文</p>
       </ShopLayout>,
     );
 
-    expect(within(screen.getByRole("banner")).getByText("カート")).toBeVisible();
+    expect(
+      within(screen.getByRole("banner")).getByRole("button", { name: "カートを開く" }),
+    ).toBeVisible();
   });
 
   it("カートの中身を本文の脇に置く", () => {
@@ -77,6 +82,21 @@ describe("ShopLayout", () => {
 
     expect(cart).toBeVisible();
     expect(within(screen.getByRole("banner")).queryByRole("complementary")).not.toBeInTheDocument();
+  });
+
+  it("header の入口と脇の領域が同じ要求を読む", async () => {
+    useCartStore.getState().add(COFFEE);
+    render(
+      <ShopLayout>
+        <p>本文</p>
+      </ShopLayout>,
+    );
+
+    await userEvent.click(
+      within(screen.getByRole("banner")).getByRole("button", { name: "カートを閉じる" }),
+    );
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
 
   it("カートが空なら脇の領域を出さない", () => {
