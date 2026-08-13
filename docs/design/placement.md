@@ -22,11 +22,11 @@
 └─ 持つ → features（カーネルへは上げられない）
     ├─ 1 つの画面だけが使う          → features/<name>/<screen>/ui/<part>/
     ├─ 同じ feature の複数画面が使う → features/<name>/ui/<part>/
-    └─ 他の feature も使う           → features/<name>/exports/<part>/
+    └─ 他の feature も使う           → features/<name>/facade/<part>/
 ```
 
 - `components` の区分は [`components/README.md`](../../src/components/README.md) が正
-- feature 内の 3 段は [ADR 0027](../adr/0027-directory-structure.md) の co-location 方針、`exports/` の条件は [ADR 0021](../adr/0021-frontend-responsibility.md)「昇格できないもの」が正
+- feature 内の 3 段は [ADR 0027](../adr/0027-directory-structure.md) の co-location 方針、`facade/` の条件は [ADR 0021](../adr/0021-frontend-responsibility.md)「昇格できないもの」が正
 - **上げるのは実際に使われてからである。** 「使いそう」で先に上げない。使う側が 1 つに戻ったら下ろす
 
 ## hook
@@ -65,7 +65,7 @@
 
 ### 昇格できないものがある
 
-[ADR 0021](../adr/0021-frontend-responsibility.md) の昇格表は「UI → `components`」と書いているが、**題材の語彙を持つ UI にはこの行が使えない**。上げ先が無いまま複数 feature が必要とした場合だけ、`exports/` を使う。
+[ADR 0021](../adr/0021-frontend-responsibility.md) の昇格表は「UI → `components`」と書いているが、**題材の語彙を持つ UI にはこの行が使えない**。上げ先が無いまま複数 feature が必要とした場合だけ、`facade/` を使う。
 
 ### 「使いそう」で上げると戻らない
 
@@ -77,7 +77,7 @@
 
 ### `features` 同士は直接参照しない
 
-相手の内部を import して解決してはならない。使えるのは相手の `exports/` だけで、それも上げ先のカーネルが無い場合に限る。
+相手の内部を import して解決してはならない。使えるのは相手の `facade/` だけで、それも上げ先のカーネルが無い場合に限る。
 
 ## 迷ったときに戻る問い
 
