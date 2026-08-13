@@ -230,12 +230,9 @@ export const RANKING_PERIOD = {
   LAST_30_DAYS: "30d",
 } as const satisfies Readonly<Record<string, WireRankingQuery["period"]>>;
 
-/** ランキングの集計期間として指定できる値。 */
-export type RankingPeriod = (typeof RANKING_PERIOD)[keyof typeof RANKING_PERIOD];
-
 /** 売上ランキングの取得条件。契約のクエリと 1 対 1 に対応する。 */
 export type ProductRankingQuery = {
-  period?: RankingPeriod;
+  period?: (typeof RANKING_PERIOD)[keyof typeof RANKING_PERIOD];
   limit?: number;
 };
 
