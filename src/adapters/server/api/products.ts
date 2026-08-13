@@ -177,6 +177,7 @@ function toProductListItem(product: Product): ProductListItem {
     quantity: product.quantity,
     categoryName: product.category.name,
     statusName: product.status.name,
+    // 一覧は 1 件を 1 枚で表すため先頭を採る。どれを代表とするかは契約の順序が決めている。
     imageUrl: resolveMediaUrl(product.imagePaths[0] ?? null),
   };
 }
