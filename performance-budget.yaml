@@ -28,16 +28,18 @@
 # 消える route の名前をここに残すと、破棄後のツリーに残留参照が生じる。
 
 routes:
-  "/":
-    gzipKb: 230
-    reason: 実測 206.4 KB に約 10% の余裕。共有 chunk の入れ替えで数 KB は動くため、その幅では鳴らさない
   "/_not-found":
     gzipKb: 225
-    reason: 実測 200.8 KB に約 10% の余裕。同上
+    reason: 実測 200.8 KB に約 10% の余裕。共有 chunk の入れ替えで数 KB は動くため、その幅では鳴らさない
   "/_global-error":
     gzipKb: 205
     reason: 実測 183.3 KB に約 10% の余裕。client component をほぼ持たない下限に近い route である
 
 growth:
-  gzipKb: 10
-  reason: 依存の patch 更新や chunk の切り直しで数 KB は動く。10 KB を超える増分は、重い依存の追加か `"use client"` の付け替えのような段差でしか起きない
+  gzipKb: 30
+  reason: >-
+    依存の patch 更新や chunk の切り直しで数 KB は動くため、本来は 10 KB で足りる。30 KB へ広げて
+    あるのは、route を器（app shell）の内と外で移すと、その route が器の client 島をまとめて背負う
+    ためである。同梱サンプルではこれが 25 KB 前後で、器を持つ route と持たない route の差そのものに
+    あたる。**サンプルを破棄したら 10 KB へ戻すこと** —— fork 先が器を 1 つに保つ限り、この段差は
+    起きない

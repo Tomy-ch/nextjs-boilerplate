@@ -67,6 +67,10 @@ export const SAMPLE_PATHS: readonly string[] = [
  */
 export const DANGLING_PATTERN = "商品|カート|在庫|購入|注文|\\bproducts\\b|\\bcart\\b";
 
+// 破棄後に手で戻すもの（削除では表せない）:
+// - `performance-budget.yaml` の `growth.gzipKb` を 30 から 10 へ。広げてあるのは、器の内と外で
+//   route を移すとその route が器の client 島をまとめて背負うためで、サンプルが消えれば起きない
+
 /** マーカーの名前。`sample:begin` / `sample:end` / `sample:line` / `sample:replace-*` を作る。 */
 export const SAMPLE_MARKER = "sample";
 
