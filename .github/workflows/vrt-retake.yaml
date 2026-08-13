@@ -10,12 +10,10 @@ name: VRT Retake
 # by `vrt-approval.yaml`. Naming this label "approve" would put the word where the
 # judgement is not.
 #
-# The label is a CONDITION, not the trigger. Triggering on `labeled` forced the
-# person to wait for VRT to finish before labelling, because the scope is read from
-# that run's report — labelling early only produced "the run has not finished yet".
-# Firing on the run's completion instead lets the label be applied whenever, PR
-# creation included, and takes the human off the critical path: VRT, retake, and the
-# confirming VRT re-run chain without anyone watching.
+# The label is a CONDITION, not the trigger: it is read when a VRT run completes. It
+# can therefore be applied whenever, pull-request creation included, which takes the
+# human off the critical path — VRT, retake, and the confirming VRT re-run chain run
+# without anyone watching.
 #
 # The label is spent only when the pointer moves; every other outcome leaves it on.
 # Both halves of that asymmetry are in docs/design/vrt.md, and what it means for the
@@ -132,11 +130,6 @@ jobs:
       # the store. The cause is often the rendering itself — a story filed under the
       # wrong heading is both a ledger failure and a different image path — so the
       # pixels captured now would be discarded by the fix anyway.
-      #
-      # This costs no waiting: VRT is the slowest check here, so the rest have
-      # concluded by the time it completes. The label is deliberately left in place,
-      # which makes the deferral self-clearing: fixing the other check pushes a
-      # commit, VRT runs again, and this workflow fires again with the label still on.
       - name: Defer while another check is failing
         id: gate
         if: steps.mode.outputs.mode != 'none' && steps.mode.outputs.mode != ''
@@ -276,8 +269,7 @@ jobs:
       # The push starts the VRT run that confirms the baselines, which `GITHUB_TOKEN`
       # would not do. And the run is attributed to the App rather than to
       # `github-actions[bot]`, which keeps the repository's fork-PR approval policy
-      # out of an internal bot's way — relaxing that policy to unblock this push
-      # would pay in a dimension that has nothing to do with the problem.
+      # out of an internal bot's way.
       - name: Move the submodule pointer
         id: push
         if: steps.gate.outputs.deferred == 'false'

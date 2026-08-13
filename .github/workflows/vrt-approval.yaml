@@ -1,22 +1,13 @@
 name: VisualRegressionApproval
 
 # Requires a human to accept the pixels when a pull request moves the baseline images.
+# Why the acceptance is a label rather than a pull-request review is in
+# docs/design/vrt.md; what the person is expected to do is in vrt/README.md.
 #
-# The acceptance is a label rather than a pull-request review because the two differ in
-# what they judge. A review approves the whole pull request: an unrelated typo push
-# invalidates it, and nothing about it says the images were looked at. The label names
-# the one thing being judged, and a repository with a single maintainer can still apply
-# it — a pull-request author cannot approve their own pull request.
-#
-# Retaking (`vrt-retake`) and accepting (`vrt-approve`) are separate acts. Retaking only
-# develops the change into something reviewable in the store's compare view; this label
-# says a person went there and looked.
-#
-# A stale acceptance must not carry over to images taken later, which is what
-# `dismiss_stale_reviews_on_push` does for reviews. So the label's presence is not
-# enough: it has to have been applied AFTER the commit that last moved the pointer.
-# Deriving that from timestamps rather than from a label-removal step means the guard
-# still holds where the removal cannot run — a fork's token is read-only.
+# The label's presence is not enough: it has to have been applied AFTER the commit that
+# last moved the pointer, or it accepted different images. Deriving that from timestamps
+# rather than from a label-removal step keeps the guard where the removal cannot run —
+# a fork's token is read-only.
 #
 # Deliberately unfiltered by `paths`; the reason every required check runs on every pull
 # request is in README.md.
