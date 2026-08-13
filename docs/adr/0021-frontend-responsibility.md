@@ -68,6 +68,18 @@ feature 間の直接 import は**禁止**する。複数 feature から共有が
 
 feature を跨ぐ横断が必要になった時点で「どのカーネルへ昇格するか」を判断し、feature 間の横依存は作らない。
 
+#### 昇格できないもの — feature の `facade/`
+
+**題材のドメイン語彙を持つ UI は、層をどう緩めてもカーネルへ上げられない。** `components` はコア残留であり、サンプル除去の残留検査(`DANGLING_PATTERN`)が題材の語を弾く。`stores` に依存する UI も同じで、`components` は `stores` を import できない。つまり上の昇格表には**「特定ドメインの状態や語彙を持つ UI」の行を作れない**。
+
+この一群に限り、**feature が `facade/` に置いたものだけ**を他の feature から import してよい。
+
+- **昇格が先である。** `facade/` に置いてよいのは、上の表のどのカーネルも受け取れないものに限る。純粋な表示ロジックは `model`、題材を知らない UI は `components`、横断 hook は `capabilities` へ上げる
+- **置くのは 2 つ目の feature が実際に必要としたときだけ**。1 つの feature しか使わないものは、その feature の内側([0027](0027-directory-structure.md) の co-location 方針)に置く。使う feature が 1 つに戻ったら下ろす
+- **`facade/` 以外は外から見えない。** 画面の下も feature 直下も、その feature の内部である
+- **名前が指すのは「この feature が外へ見せる顔」**である。`public` を採らないのは、Next.js では静的配信のディレクトリを指す語であり「Web への公開」へ連想が寄るため。`exports` を採らないのは、制約しているのが**外から import してよいか**であって export の集積ではないため(どのファイルも export は持つ)。役割を名指ししているので `common` / `shared` 等の禁止名とは性質が異なる
+- **包んで単純化する層ではない。** 部品をそのまま置く面であり、`facade/` のために wrapper を作らない
+
 **例外は画面まるごとの story(`src/features/**/*.stories.tsx`)だけ**とする。画面が実際に組み合わせている別 feature の部品を含まない story は、その画面の確認に使えない。story は実行時の依存を持たない確認専用の面であり、そこで合成しても製品コードの依存方向は変わらない。したがってこの 1 種のファイルには app 層と同じ合成の権限を与える(`architecture.ts` の `ENTRY_POINTS` の `feature-story` カテゴリが機械強制する)。**製品コード側の出口は上記 5 つのみで、story を経由して型や実装を渡すことは禁止**する。
 
 ## 命名規律
@@ -119,7 +131,7 @@ Server Action は **feature 内 `actions.ts`**(controller 相当)に置く。
 ## 禁止事項
 
 - ❌ 依存マトリクスにない import 方向(外向き依存 / `model` からの外部 import 等)
-- ❌ `features ↔ features` の直接 import(昇格ルールに従いカーネルへ上げる)。**画面まるごとの story のみ例外**(上記昇格ルール)
+- ❌ `features ↔ features` の直接 import(昇格ルールに従いカーネルへ上げる)。**例外は 2 つ** —— 画面まるごとの story と、**相手の `facade/`**(上記「昇格できないもの」)
 - ❌ `server config` を `adapters/server`(+ 起動 / ビルド境界)以外の層から import すること(内側は値を引数で受け取る)。※ client config の NEXT_PUBLIC リテラルは client 側の層も import 可
 - ❌ 役割を名指ししない置き場(`common` / `shared` / `utils` / `lib` / `misc` 等)の作成
 - ❌ Server Action / `actions.ts` に業務ロジックを書くこと(編成のみ)

@@ -114,6 +114,14 @@ components:
     as: layout
     directory: src/components/shell/content-container
     addedAt: 2026-08-04T00:55:00.000Z
+  pull-to-refresh:
+    kind: original
+    layer: shell
+    as: feedback
+    dependencies:
+      - next
+    directory: src/components/shell/pull-to-refresh
+    addedAt: 2026-08-14T01:50:00.000Z
   layout-patterns:
     kind: original
     layer: design-system

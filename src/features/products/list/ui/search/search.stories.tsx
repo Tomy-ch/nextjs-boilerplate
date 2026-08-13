@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { FILTER_KEY } from "../../query";
 import { ProductSearch } from "./search";
 
 const meta = {
@@ -16,6 +17,7 @@ const meta = {
       },
     },
   },
+  args: { selection: {} },
 } satisfies Meta<typeof ProductSearch>;
 
 export default meta;
@@ -26,5 +28,5 @@ export const Default: Story = {};
 
 /** 条件が付いている状態。URL から引き継いだ語を初期値に置く。 */
 export const WithKeyword: Story = {
-  args: { defaultKeyword: "イヤホン" },
+  args: { selection: { [FILTER_KEY.KEYWORD]: "イヤホン" } },
 };

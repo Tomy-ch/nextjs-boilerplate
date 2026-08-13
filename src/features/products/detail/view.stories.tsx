@@ -58,7 +58,8 @@ const DEFAULT_CART: readonly CartSeed[] = [{ line: WATCH }];
  * 全幅になるため、器の見え方そのものが変わる。
  *
  * 開いた状態は `parameters.cartOpen` で明示する。種まきは初期状態の再現であって追加操作ではないため、
- * 追加が立てた要求はここで畳む。脇に常設できる幅ではこの値を見ないので、効くのはタブレットとスマホだけ。
+ * 追加が立てた要求はここで畳む。**この値は幅を問わず効く** —— 脇に常設できる幅では領域そのものの有無に、
+ * それ未満では drawer の開閉になる。中身を見たいという要求は 1 つで、幅で姿だけが変わる。
  */
 function withPageFrame(
   Story: () => React.ReactElement,
@@ -112,6 +113,7 @@ const meta = {
   parameters: {
     layout: "fullscreen",
     docs: {
+      story: { inline: false, iframeHeight: 900 },
       description: {
         component: [
           "商品 1 件の詳細です。画像は枚数によらず carousel に載せ、送り先の一覧を必ず下に並べます。",
@@ -209,6 +211,7 @@ export const MaxLengthPC: Story = {
     }),
   },
   parameters: {
+    cartOpen: true,
     cart: [
       { line: { ...HUB, name: longText(MAX_NAME_LENGTH), price: "999999999.999" }, quantity: 2 },
     ],
@@ -238,6 +241,7 @@ export const FilledCartPC: Story = {
   args: { imageUrls: IMAGE_URLS, product: product() },
   globals: { viewport: { value: "desktop", isRotated: false } },
   parameters: {
+    cartOpen: true,
     cart: [
       { line: WATCH, quantity: 3 },
       { line: HUB, quantity: 2 },

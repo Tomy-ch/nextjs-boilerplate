@@ -186,7 +186,10 @@ function NestedMenu() {
 const meta = {
   title: "Overlay/DropdownMenu",
   component: DropdownMenu,
-  parameters: { layout: "centered" },
+  parameters: {
+    docs: { story: { inline: false, iframeHeight: 420 } },
+    layout: "centered",
+  },
 } satisfies Meta<typeof DropdownMenu>;
 
 export default meta;

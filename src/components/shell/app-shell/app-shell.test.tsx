@@ -1,8 +1,13 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: () => {} }),
+}));
+
 import { AppShell } from "./app-shell";
 import { APP_SHELL_MAIN_ID } from "./app-shell.definition";
 

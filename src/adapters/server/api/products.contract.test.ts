@@ -49,11 +49,11 @@ describe("getProducts", () => {
   it("契約から生成したハンドラの応答を検証して受け取る", async () => {
     const page = await getProducts({ keyword: "契約駆動" });
 
-    expect(Array.isArray(page.products)).toBe(true);
+    expect(Array.isArray(page.items)).toBe(true);
   });
 
   it("生成ハンドラの応答が表示用の型を満たす", async () => {
-    const [product] = (await getProducts({ keyword: "型の確認" })).products;
+    const [product] = (await getProducts({ keyword: "型の確認" })).items;
 
     expect(product).toMatchObject({
       id: expect.any(String),

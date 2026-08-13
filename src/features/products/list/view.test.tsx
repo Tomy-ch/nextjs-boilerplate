@@ -1,92 +1,124 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { axe } from "vitest-axe";
-import type { Product } from "@/model/product/product";
-import { ProductList } from "./view";
 
-function product(overrides: Partial<Product> = {}): Product {
-  return {
-    id: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11",
-    name: "ワイヤレスイヤホン",
-    description: null,
-    price: "19.99",
-    quantity: 12,
-    stockWarningThreshold: null,
-    status: { id: "s1", name: "公開" },
-    category: { id: "c1", name: "オーディオ" },
-    publishedAt: null,
-    imagePaths: [],
-    ...overrides,
-  };
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
+
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+
+import { FILTER_KEY, type FilterOption } from "./query";
+import type { FilterGroup } from "./ui/filter-fields/filter-fields";
+import { ProductListView } from "./view";
+
+const CATEGORY_OPTIONS: readonly FilterOption[] = [
+  { value: "", label: "すべて" },
+  { value: "c1", label: "オーディオ" },
+];
+
+const STATUS_OPTIONS: readonly FilterOption[] = [
+  { value: "", label: "すべて" },
+  { value: "s1", label: "公開" },
+];
+
+const GROUPS: readonly FilterGroup[] = [
+  { key: FILTER_KEY.CATEGORY, legend: "カテゴリ", options: CATEGORY_OPTIONS },
+  { key: FILTER_KEY.STATUS, legend: "状態", options: STATUS_OPTIONS },
+];
+
+const SORT_OPTIONS: readonly FilterOption[] = [
+  { value: "", label: "新着順" },
+  { value: "publishedAt", label: "古い順" },
+];
+
+function renderView(selection: Readonly<Record<string, string>> = {}) {
+  return render(
+    <ProductListView groups={GROUPS} selection={selection} sortOptions={SORT_OPTIONS}>
+      <p>一覧本体</p>
+    </ProductListView>,
+  );
 }
 
-describe("ProductList", () => {
+describe("ProductListView", () => {
   // ----- 正常系 -----
-  it("渡された商品を並べる", () => {
-    render(
-      <ProductList
-        items={[
-          { product: product(), imageUrl: null },
-          { product: product({ id: "b", name: "スマートウォッチ" }), imageUrl: null },
-        ]}
-      />,
-    );
+  it("キーワードの検索欄を出す", () => {
+    renderView();
 
-    expect(screen.getAllByTestId("product-card")).toHaveLength(2);
+    expect(screen.getByRole("searchbox", { name: "キーワード" })).toBeVisible();
   });
 
-  it("商品名と価格を示す", () => {
-    render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
+  it("並び替えの選択肢を出す", () => {
+    renderView();
 
-    expect(screen.getByText("ワイヤレスイヤホン")).toBeInTheDocument();
-    expect(screen.getByText("$19.99")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "並び替え" })).toBeVisible();
+    expect(screen.getByRole("option", { name: "古い順" })).toBeInTheDocument();
   });
 
-  it("カテゴリを示す", () => {
-    render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
+  it("絞り込みを脇と下端の 2 か所に出す", () => {
+    renderView();
 
-    expect(screen.getByText("オーディオ")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "絞り込み" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "絞り込み" })).toBeVisible();
   });
 
-  it("画像 URL があれば画像を出す", () => {
-    render(
-      <ProductList
-        items={[{ product: product(), imageUrl: "https://media.example.test/products/a.png" }]}
-      />,
-    );
+  it("脇の絞り込みに群ごとの選択肢を並べる", () => {
+    renderView();
 
-    expect(screen.getByAltText("ワイヤレスイヤホン")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "カテゴリ" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "状態" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "オーディオ" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "公開" })).toBeInTheDocument();
   });
 
-  it("在庫が無い商品にその旨を示す", () => {
-    render(<ProductList items={[{ product: product({ quantity: 0 }), imageUrl: null }]} />);
+  it("一覧本体を受け取って描く", () => {
+    renderView();
 
-    expect(screen.getByText("在庫なし")).toBeInTheDocument();
-  });
-  it("商品が無いとき次にすべきことを示す", () => {
-    render(<ProductList items={[]} />);
-
-    expect(screen.getByText("条件に合う商品がありません")).toBeInTheDocument();
-    expect(screen.getByText(/絞り込みを外して/)).toBeInTheDocument();
+    expect(screen.getByText("一覧本体")).toBeVisible();
   });
 
-  it("商品が無いときカードを出さない", () => {
-    render(<ProductList items={[]} />);
+  it("いま効いているキーワードを検索欄に残す", () => {
+    renderView({ [FILTER_KEY.KEYWORD]: "イヤホン" });
 
-    expect(screen.queryAllByTestId("product-card")).toHaveLength(0);
+    expect(screen.getByRole("searchbox", { name: "キーワード" })).toHaveValue("イヤホン");
   });
 
-  it("画像 URL が無ければ代替画像を出す", () => {
-    render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
+  it("いま効いている並び順を選択済みにする", () => {
+    renderView({ [FILTER_KEY.SORT]: "publishedAt" });
 
-    expect(screen.queryByAltText("ワイヤレスイヤホン")).not.toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "画像なし" })).toBeVisible();
+    expect(screen.getByRole("option", { name: "古い順", selected: true })).toBeInTheDocument();
+  });
+
+  it("いま効いている絞り込みを脇で選択済みにする", () => {
+    renderView({ [FILTER_KEY.CATEGORY]: "c1" });
+
+    expect(screen.getByRole("radio", { name: "オーディオ" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "公開" })).not.toBeChecked();
+  });
+
+  it("効いている条件の数を下端の操作に添える", () => {
+    renderView({ [FILTER_KEY.CATEGORY]: "c1", [FILTER_KEY.STATUS]: "s1" });
+
+    expect(screen.getByLabelText("2 件の条件が有効")).toBeVisible();
   });
 
   it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(<ProductList items={[{ product: product(), imageUrl: null }]} />);
+    const { container } = renderView();
 
     expect((await axe(container)).violations).toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("条件が無ければ「すべて」を選択済みにする", () => {
+    renderView();
+
+    expect(screen.getAllByRole("radio", { checked: true, name: "すべて" })).toHaveLength(2);
+    expect(screen.getByRole("radio", { name: "オーディオ" })).not.toBeChecked();
+  });
+
+  it("条件が無ければ下端の操作に数を添えない", () => {
+    renderView();
+
+    expect(screen.queryByLabelText(/件の条件が有効/)).not.toBeInTheDocument();
   });
 });
