@@ -1,10 +1,20 @@
 // container image 参照の走査と解釈。固定対象ファイルの列挙と、行から参照 1 件を取り出す
 // 責務を持つ。
 //
-// 対象は compose の `image:` と Dockerfile の `FROM`。どちらも「接頭辞・参照・接尾辞」の
-// 3 つに割れるため、書き換えは同じ関数で扱える。
+// 対象は compose の `image:`、Dockerfile の `FROM`、workflow / composite action の
+// `uses: docker://`。いずれも「接頭辞・参照・接尾辞」の 3 つに割れるため、書き換えは同じ
+// 関数で扱える。
+//
+// `uses: docker://` をここが持つのは、それが registry の参照であり GitHub のリポジトリでは
+// ないため。actions-pin は tag を `git ls-remote` で commit SHA へ解決する機構で、registry に
+// 対しては意味を成さない。digest の解決はこちらの責務であり、両方に置けば二重実装になる。
 import fs from "node:fs";
 import path from "node:path";
+import {
+  COMPOSITE_ACTION_DIR,
+  collectActionDefinitions,
+  readDirOrEmpty,
+} from "../lib/composite-action-files.js";
 
 /** container image の参照 1 件。key は `image:tag`。 */
 export type ImageRef = {
@@ -22,22 +32,42 @@ export type PinTarget = {
   loose: RegExp;
 };
 
+// 走査用パターンは単一のインスタンスを共有せず、対象 1 件ごとに作る。`g` 付きの RegExp は
+// `lastIndex` を持ち回り、`matchAll` はその時点の値からの走査になるため、共有したインスタンスへ
+// 誰かが `test` / `exec` を呼んだ瞬間から collectRefs がファイル先頭付近の参照を黙って読み飛ばす。
+// 固定の網から参照が外れる向きに、間欠的に壊れる。
+
 // compose service の `image: <ref>`。接尾辞は行末の空白と行コメントを取り込んで保つ。
 // 引用符を参照から締め出すのは、含めると `image: "alpine:3.24"` が引用符ごと一致し、
 // `"alpine` を image 名として固定対象に載せてしまうため。締め出せば一致しなくなり、
 // unparsedLines が対応記法の外として拾う。
-export const COMPOSE_IMAGE_PATTERN = /^([ \t]+image:[ \t]+)([^\s'"]+)([ \t]*(?:#.*)?)$/gm;
+export function composeImagePattern(): RegExp {
+  return /^([ \t]+image:[ \t]+)([^\s'"]+)([ \t]*(?:#.*)?)$/gm;
+}
 const COMPOSE_IMAGE_LOOSE = /^[ \t]+image[ \t]*:[ \t]*\S/;
 
 // FROM [--platform=...] <ref> [AS <stage>]
-export const DOCKERFILE_FROM_PATTERN =
-  /^(FROM[ \t]+)(?:--platform=\S+[ \t]+)?([^\s'"]+)((?:[ \t]+[Aa][Ss][ \t]+\S+)?[ \t]*)$/gim;
+export function dockerfileFromPattern(): RegExp {
+  return /^(FROM[ \t]+)(?:--platform=\S+[ \t]+)?([^\s'"]+)((?:[ \t]+[Aa][Ss][ \t]+\S+)?[ \t]*)$/gim;
+}
 const DOCKERFILE_FROM_LOOSE = /^[ \t]*FROM[ \t]+\S/i;
+
+// workflow / composite action の `uses: [-] docker://<ref>`。GitHub Actions が registry の
+// image を直接実行するステップの記法で、参照先は GitHub のリポジトリではない。
+//
+// 参照側に tag を必須にしてあるのは、省略が `:latest` を意味するため。tag の無い参照を
+// 通すと parseRef が null を返して固定対象から静かに外れ、可動タグそのものが CI で走る。
+// 一致しなければ unparsedLines が対応記法の外として拾い、fail-closed で落ちる。
+export function usesDockerPattern(): RegExp {
+  return /^([ \t]*(?:-[ \t]*)?uses:[ \t]*docker:\/\/)((?:[^\s'"@]+\/)?[^\s'"@/:]+:[^\s'"@/]+(?:@[^\s'"]+)?)([ \t]*(?:#.*)?)$/gm;
+}
+const USES_DOCKER_LOOSE = /\buses[ \t]*:[ \t]*['"]?docker:\/\//;
 
 const COMPOSE_PREFIX = "docker-compose";
 const YAML_EXTENSIONS = [".yml", ".yaml"];
 const DOCKER_DIR = "docker";
 const DOCKERFILE = "Dockerfile";
+const WORKFLOW_DIR = ".github/workflows";
 
 export function refKey(ref: ImageRef): string {
   return `${ref.image}:${ref.tag}`;
@@ -67,9 +97,13 @@ export function parseRef(reference: string): ImageRef | null {
  * 固定対象ファイルの一覧。
  *
  * @remarks
- * リポジトリ直下の `docker-compose*.yml` / `*.yaml` と、`docker/<用途>/Dockerfile` を集めます。
- * 走査対象が静かに空になると、そこに書かれた image 参照が検疫・固定・drift 検査のいずれからも
- * 外れたまま「すべて固定済み」と報告されます。
+ * リポジトリ直下の `docker-compose*.yml` / `*.yaml`、`docker/<用途>/Dockerfile`、そして
+ * workflow 定義とリポジトリ内 composite action 定義を集めます。走査対象が静かに空になると、
+ * そこに書かれた image 参照が検疫・固定・drift 検査のいずれからも外れたまま「すべて固定済み」と
+ * 報告されます。
+ *
+ * workflow 側を含めるのは `uses: docker://` を拾うためだけで、`uses: owner/repo@<sha>` は
+ * actions-pin の担当です。同じファイルを 2 つの機構が走査しますが、掴む行は重なりません。
  */
 export function targetFiles(root: string): PinTarget[] {
   const targets: PinTarget[] = [];
@@ -79,7 +113,7 @@ export function targetFiles(root: string): PinTarget[] {
     if (!YAML_EXTENSIONS.some((extension) => entry.name.endsWith(extension))) continue;
     targets.push({
       file: path.join(root, entry.name),
-      pattern: COMPOSE_IMAGE_PATTERN,
+      pattern: composeImagePattern(),
       loose: COMPOSE_IMAGE_LOOSE,
     });
   }
@@ -89,7 +123,11 @@ export function targetFiles(root: string): PinTarget[] {
     if (!entry.isDirectory()) continue;
     const file = path.join(dockerDir, entry.name, DOCKERFILE);
     if (!fs.existsSync(file)) continue;
-    targets.push({ file, pattern: DOCKERFILE_FROM_PATTERN, loose: DOCKERFILE_FROM_LOOSE });
+    targets.push({ file, pattern: dockerfileFromPattern(), loose: DOCKERFILE_FROM_LOOSE });
+  }
+
+  for (const file of workflowFiles(root)) {
+    targets.push({ file, pattern: usesDockerPattern(), loose: USES_DOCKER_LOOSE });
   }
 
   return targets.sort((a, b) => a.file.localeCompare(b.file));
@@ -128,10 +166,18 @@ export function unparsedLines(data: string, target: PinTarget): number[] {
   return lines;
 }
 
-function readDirOrEmpty(dir: string): fs.Dirent[] {
-  try {
-    return fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return [];
+// workflow 定義とリポジトリ内 composite action 定義。対象の決め方は actions-pin と同一で
+// なければならないため、composite action の走査は共通の実装を使う。
+function workflowFiles(root: string): string[] {
+  const files: string[] = [];
+
+  const workflowDir = path.join(root, WORKFLOW_DIR);
+  for (const entry of readDirOrEmpty(workflowDir)) {
+    if (!entry.isFile()) continue;
+    if (!YAML_EXTENSIONS.some((extension) => entry.name.endsWith(extension))) continue;
+    files.push(path.join(workflowDir, entry.name));
   }
+  collectActionDefinitions(path.join(root, COMPOSITE_ACTION_DIR), files);
+
+  return files;
 }

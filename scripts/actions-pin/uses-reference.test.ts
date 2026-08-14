@@ -91,6 +91,14 @@ describe("parseUses", () => {
   it("owner/repo の形を成さない参照を固定対象外にする", () => {
     expect(parseUses("checkout", "v7", undefined)).toBeNull();
   });
+
+  it("container image 参照を固定対象外にする", () => {
+    expect(parseUses("docker://alpine", "3.24", undefined)).toBeNull();
+  });
+
+  it("registry を持つ container image 参照も固定対象外にする", () => {
+    expect(parseUses("docker://ghcr.io/owner/app", "1.0.0", undefined)).toBeNull();
+  });
 });
 
 describe("usesPattern", () => {
@@ -217,6 +225,14 @@ describe("unparsedUsesLines", () => {
 
   it("版を持たない参照を取りこぼしとして扱わない", () => {
     expect(unparsedUsesLines("  - {uses: actions/checkout}\n")).toEqual([]);
+  });
+
+  it("container image 参照を取りこぼしとして扱わない", () => {
+    expect(unparsedUsesLines("      - uses: docker://alpine:3.24\n")).toEqual([]);
+  });
+
+  it("対応記法の外にある container image 参照も取りこぼしとして扱わない", () => {
+    expect(unparsedUsesLines('      - uses: "docker://alpine:3.24"\n')).toEqual([]);
   });
 
   // ----- 異常系 -----

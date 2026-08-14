@@ -36,6 +36,15 @@ const LOOSE_USES_PATTERN = /\buses[ \t]*:[ \t]*['"]?([^\s'",}#]+)/;
 // `uses:` キーそのもの。値を取れなかった行でも、キーが残っていることを見るために使う。
 const USES_KEY_PATTERN = /\buses[ \t]*:/;
 
+// registry の image を直接実行するステップの記法。
+const DOCKER_SCHEME = "docker://";
+
+// container image への参照か。`git ls-remote` で解決できないため、この機構の対象ではない。
+// digest 固定は images-pin が担う（走査対象に workflow / composite action を含む）。
+function isDockerRef(value: string): boolean {
+  return value.startsWith(DOCKER_SCHEME);
+}
+
 // 固定対象になりうる値の形。owner/repo で始まるものだけを通す。
 const REPO_VALUE_PATTERN = /^[^/\s]+\/[^/\s]+/;
 
@@ -52,14 +61,16 @@ export function refPath(ref: ActionRef): string {
   return ref.sub === "" ? ref.repo : `${ref.repo}/${ref.sub}`;
 }
 
-// uses: 行の path / ref / 末尾コメントから参照を組み立てる。ローカル参照（`./...`）と
-// owner/repo の形を成さないものは固定対象外として null を返す。
+// uses: 行の path / ref / 末尾コメントから参照を組み立てる。ローカル参照（`./...`）、
+// container image 参照（`docker://...`）、owner/repo の形を成さないものは固定対象外として
+// null を返す。
 export function parseUses(
   usesPath: string,
   ref: string,
   comment: string | undefined,
 ): ActionRef | null {
   if (usesPath.startsWith(".")) return null;
+  if (isDockerRef(usesPath)) return null;
   const segments = usesPath.split("/");
   if (segments.length < REPO_SEGMENTS) return null;
   return {
@@ -124,6 +135,9 @@ export function unparsedUsesLines(data: string): number[] {
     }
     // ローカル参照は固定対象外。parseUses も対象外にする。
     if (value.startsWith(".")) continue;
+    // container image 参照は images-pin が固定する。ここで取りこぼしとして落とすと、
+    // 固定済みの参照を両機構が同時に拒む。
+    if (isDockerRef(value)) continue;
     // owner/repo の形を成さない値は、記法そのものが対応外。形を成していて版を持つものは、
     // 対応記法なら usesPattern が既に潰しているので、ここに残る時点で書き換えられない形。
     if (!REPO_VALUE_PATTERN.test(value) || value.includes("@")) lines.push(index + 1);
