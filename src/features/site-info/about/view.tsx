@@ -7,7 +7,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/
 
 import { TERMS_PATH } from "../facade/paths/paths";
 import { RepositoryCards } from "../ui/repository-cards/repository-cards";
-import { RepositorySupplement } from "../ui/repository-supplement/repository-supplement";
 
 /**
  * このサイトについての説明。
@@ -49,9 +48,6 @@ export function AboutView() {
           <strong>boilerplate の名のとおり基盤として使うため、サンプル部分を除去する機能</strong>
           を持ちます。
         </p>
-        <div className="self-start">
-          <RepositorySupplement />
-        </div>
         <RepositoryCards />
       </section>
 

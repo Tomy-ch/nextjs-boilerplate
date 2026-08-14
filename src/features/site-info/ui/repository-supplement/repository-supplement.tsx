@@ -5,60 +5,52 @@ import {
   BUTTON_SIZE,
   BUTTON_VARIANT,
 } from "@/components/design-system/action/button/button.definition";
-import { Separator } from "@/components/design-system/display/separator/separator";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/design-system/overlay/dialog/dialog";
+  Popover,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/design-system/overlay/popover/popover";
 
-import { REPOSITORIES } from "../../repositories";
+import type { Repository } from "../../repositories";
 
-const TITLE = "リポジトリの補足";
+const LABEL = "リポジトリの補足";
 
 /**
  * リポジトリの目的とできることを補足する面。
  *
  * @remarks
- * カードには「何であるか」だけを置き、目的と機能の一覧はここへ畳みます。並べて出すと、
- * このサイトが何かを知りたいだけの利用者にも、開発の関心事を最初から読ませることになります。
+ * カードには「何であるか」だけを置き、目的と機能の一覧はここへ畳みます。並べて出すと、この
+ * サイトが何かを知りたいだけの利用者にも、開発の関心事を最初から読ませることになります。
  *
- * 面の中に導線を置きません。ここに書いてあるのは補足で、リポジトリそのものへはカードの
- * ボタンから行けます。同じ行き先を 2 か所に置くと、どちらが正しい入口かが読み取れません。
+ * dialog ではなく popover を使います。読んだあとカードへ戻る前提の補足であり、画面を覆って
+ * 背後の操作を止めるほどの内容ではありません。
+ *
+ * 面の中に導線を置きません。リポジトリそのものへはカードを押せば行けます。同じ行き先を
+ * 2 か所に置くと、どちらが正しい入口かが読み取れません。
  */
-export function RepositorySupplement() {
+export function RepositorySupplement({ repository }: { readonly repository: Repository }) {
   return (
-    <Dialog>
-      <DialogTrigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <Button size={BUTTON_SIZE.SMALL} variant={BUTTON_VARIANT.OUTLINE}>
-          {TITLE}
+          {LABEL}
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{TITLE}</DialogTitle>
-          <DialogDescription>
-            それぞれが何のために作られ、何を備えているかを説明します。
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-6 text-sm leading-relaxed">
-          {REPOSITORIES.map((repository, index) => (
-            <section className="flex flex-col gap-3" key={repository.name}>
-              {index === 0 ? null : <Separator />}
-              <h3 className="font-mono text-base font-semibold">{repository.name}</h3>
-              <p>{repository.purpose}</p>
-              <ul className="flex list-disc flex-col gap-2 ps-5">
-                {repository.capabilities.map((capability) => (
-                  <li key={capability}>{capability}</li>
-                ))}
-              </ul>
-            </section>
-          ))}
+      </PopoverTrigger>
+      <PopoverContent className="w-80 text-sm leading-relaxed">
+        <PopoverHeader>
+          <PopoverTitle className="font-mono">{repository.name}</PopoverTitle>
+        </PopoverHeader>
+        <div className="flex flex-col gap-3">
+          <p>{repository.purpose}</p>
+          <ul className="flex list-disc flex-col gap-2 ps-5">
+            {repository.capabilities.map((capability) => (
+              <li key={capability}>{capability}</li>
+            ))}
+          </ul>
         </div>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   );
 }
