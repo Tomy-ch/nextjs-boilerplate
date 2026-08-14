@@ -94,12 +94,17 @@ export const KERNEL_PATTERNS: Partial<Readonly<Record<Kernel, string>>> = {
  * @remarks
  * カーネルではないので README も層も持ちませんが、分類の外へ出すと「どの層でもない」ファイルが
  * 正常系に紛れ、未分類を検出するガードが機能しなくなります。層と同じ表に載せて分類させます。
+ *
+ * 検証の要求（`testRequirement`）もここが持ちます。カーネルなら層 README の frontmatter が宣言
+ * しますが、エントリには README が無く、宣言する場所が他にありません。値の意味は
+ * [0090](docs/adr/0090-testing-strategy.md) の層別責務表と同じです。
  */
 export const ENTRY_POINTS = [
   {
     category: "bootstrap",
     pattern: "src/instrumentation*",
     dependencies: ["config", "logging", "observability"],
+    testRequirement: "unit",
   },
   {
     // リクエスト完了前に走る境界（[0043](docs/adr/0043-middleware-policy.md)）。`app` ではないので
@@ -108,6 +113,8 @@ export const ENTRY_POINTS = [
     category: "proxy",
     pattern: "src/proxy*",
     dependencies: ["model", "config", "errors"],
+    // 応答を返す境界なので、確かめるのは描画ではなくリクエストに対する結果である。
+    testRequirement: "integration",
   },
   {
     // 画面の合成を見せる story。合成は `app` 層の管轄だが、`app` に story は置けない
@@ -117,11 +124,15 @@ export const ENTRY_POINTS = [
     category: "feature-story",
     pattern: "src/features/**/*.stories.tsx",
     dependencies: ["features", "components", "model", "stores", "capabilities", "errors"],
+    // story 自体はテストの対象ではなく、story 全数を実ブラウザで検査する側の入力である
+    // （[0091](docs/adr/0091-test-verification-methods.md) §2）。
+    testRequirement: "none",
   },
 ] as const satisfies readonly {
   category: string;
   pattern: string;
   dependencies: readonly Kernel[];
+  testRequirement: "unit" | "component" | "integration" | "route" | "feature" | "none";
 }[];
 
 /**

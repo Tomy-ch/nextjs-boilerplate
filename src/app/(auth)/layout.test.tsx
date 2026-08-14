@@ -2,6 +2,7 @@
 
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
@@ -38,6 +39,19 @@ describe("AuthLayout", () => {
     expect(
       within(screen.getByRole("navigation", { name: "主要な導線" })).queryAllByRole("link"),
     ).toHaveLength(0);
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(
+      <AuthLayout>
+        <p>本文</p>
+      </AuthLayout>,
+    );
+
+    // jsdom は色を計算しないため、コントラストは story 側の実ブラウザ検査が見る（ADR 0091 §2）。
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 
   it("カートを出さない", () => {

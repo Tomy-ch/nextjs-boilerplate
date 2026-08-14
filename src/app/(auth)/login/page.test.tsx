@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 import LoginPage, { metadata } from "./page";
 
 /** RSC を描いて DOM を得る。 */
@@ -28,6 +29,15 @@ describe("LoginPage", () => {
     await renderPage({});
 
     expect(screen.getByRole("button", { name: "ログインへ進む" })).toBeVisible();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = await renderPage({});
+
+    // jsdom は色を計算しないため、コントラストは story 側の実ブラウザ検査が見る（ADR 0091 §2）。
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 
   it("復帰先が無ければルートへ戻す", async () => {
