@@ -20,7 +20,8 @@ snapshot/feature/123-xxx      全 story ぶんの一式
 <系統>/<テーマ>/<story id>.png
 ```
 
-系統は story 見出しの先頭区画（`action` / `features` / `page` …）、テーマは `light` / `dark` です。
+系統は story 見出しの先頭区画（`action` / `features` / `page` …）、テーマは親リポジトリが撮ると
+宣言したもの（`vrt/lib/themes.ts` の `SHOT_THEMES`）です。全 story を全テーマぶん撮ることはしません。
 
 ## 撮影どうしを繋げない
 

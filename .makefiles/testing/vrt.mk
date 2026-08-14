@@ -55,6 +55,11 @@ VRT_REQUIRE_WIRING = \
 
 # spec を名指しするのは、a11y の spec を同じ実行に巻き込まないため。混ざると a11y の失敗が
 # 撮り直しの対象に入り、撮り直しても直らないまま基準画像だけが承認済みになる。
+#
+# 配色トークンの検査は撮影と同じ実行に載せる。基準画像を持たないので撮り直しの対象にならず、
+# 見ている面(story を包む面の配色)が撮影と同じであるため。
+VRT_SPECS := vrt/stories.spec.ts vrt/theme-tokens.spec.ts
+
 vrt: build-storybook
 	@$(VRT_REQUIRE_WIRING)
 	@if [ -z "$$(ls -A vrt/screenshots 2>/dev/null)" ]; then \
@@ -66,7 +71,7 @@ vrt: build-storybook
 		echo "⏭️ 絵を決める入力が前に判定した時点と同じです。比較を省き、対応の検査だけを行います。"; \
 		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --grep $(VRT_BASELINE_TAG) $(VRT_ARGS); \
 	else \
-		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts $(VRT_ARGS) \
+		$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_SPECS) $(VRT_ARGS) \
 			&& $(call RECORD_VERIFIED,$(VRT_VERIFIED_FILE)); \
 	fi
 
