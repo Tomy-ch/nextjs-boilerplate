@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+e95da0c
+ * OpenAPI spec version: 2.2.0+53f5e11
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
@@ -777,6 +777,35 @@ export const getGetDashboardSummaryResponseMock = (
 });
 
 export const getGetCartsMeResponseMock = (
+  overrideResponse: Partial<Extract<CartResponse, object>> = {},
+): CartResponse => ({
+  sessionToken: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
+    undefined,
+  ]),
+  items: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+    productId: faker.string.uuid(),
+    productName: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
+      undefined,
+    ]),
+    quantity: faker.number.int(),
+    unitPrice: faker.helpers.arrayElement([(() => "19.99")(), null]),
+    issues: faker.helpers.arrayElements(Object.values(CartItemIssue)),
+    availableQuantity: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([faker.number.int(), null]),
+      undefined,
+    ]),
+  })),
+  subtotalAmount: faker.number.int(),
+  expiresAt: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + "Z", null]),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
+
+export const getPutCartsMeItemResponseMock = (
   overrideResponse: Partial<Extract<CartResponse, object>> = {},
 ): CartResponse => ({
   sessionToken: faker.helpers.arrayElement([
@@ -1639,6 +1668,68 @@ export const getGetCartsMeMockHandler = (
     options,
   );
 };
+
+export const getDeleteCartsMeMockHandler = (
+  overrideResponse?:
+    | void
+    | ((info: Parameters<Parameters<typeof http.delete>[1]>[0]) => Promise<void> | void),
+  options?: RequestHandlerOptions,
+) => {
+  return http.delete(
+    "*/v1/carts/me",
+    async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+
+      return new HttpResponse(null, { status: 204 });
+    },
+    options,
+  );
+};
+
+export const getPutCartsMeItemMockHandler = (
+  overrideResponse?:
+    | CartResponse
+    | ((
+        info: Parameters<Parameters<typeof http.put>[1]>[0],
+      ) => Promise<CartResponse> | CartResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.put(
+    "*/v1/carts/me/items/:productId",
+    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPutCartsMeItemResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
+export const getDeleteCartsMeItemMockHandler = (
+  overrideResponse?:
+    | void
+    | ((info: Parameters<Parameters<typeof http.delete>[1]>[0]) => Promise<void> | void),
+  options?: RequestHandlerOptions,
+) => {
+  return http.delete(
+    "*/v1/carts/me/items/:productId",
+    async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+
+      return new HttpResponse(null, { status: 204 });
+    },
+    options,
+  );
+};
 export const getGoBoilerplateAPIMock = () => [
   getGetUsersMockHandler(),
   getPostUsersMockHandler(),
@@ -1675,4 +1766,7 @@ export const getGoBoilerplateAPIMock = () => [
   getPatchPurchasesDeliverMockHandler(),
   getGetDashboardSummaryMockHandler(),
   getGetCartsMeMockHandler(),
+  getDeleteCartsMeMockHandler(),
+  getPutCartsMeItemMockHandler(),
+  getDeleteCartsMeItemMockHandler(),
 ];

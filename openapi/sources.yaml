@@ -11,9 +11,9 @@ sources:
     path: openapi/openapi.gen.yaml
     # コミット SHA で固定する。tag v2.1.0 には /v1/products が存在せず、商品 API は未タグの
     # release/v2.2.0 にしかない。上流の進展の取り込みはこの ref の書き換えとして明示的に行う。
-    ref: 17218de8f99fa4da36c3cbd1a1f995af18509592
-    sha: e95da0cfd2acc64493ff103fb506a28ed8af5ea9
-    fetchedAt: 2026-08-14T18:31:12.603Z
+    ref: 3bb4096738a0a5418e114b3e04e9a02b7603d0ce
+    sha: 53f5e11373fba8b5fa67414e9c57c1f0a58b7445
+    fetchedAt: 2026-08-14T23:25:15.422Z
   # mock OIDC Provider の契約。go-boilerplate 本体とは別サービスであり、認証の契約はこちらが正
   # (docs/screens.md §0)。本体の契約には認証エンドポイントが存在しない。
   - name: auth
