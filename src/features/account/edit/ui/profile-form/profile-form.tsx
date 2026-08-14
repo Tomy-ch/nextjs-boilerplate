@@ -11,6 +11,8 @@ import { useForm } from "react-hook-form";
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
+import { Badge } from "@/components/design-system/display/badge/badge";
+import { BADGE_VARIANT } from "@/components/design-system/display/badge/badge.definition";
 import {
   Field,
   FieldError,
@@ -38,7 +40,7 @@ import {
 import { useToast } from "@/components/shell/toaster/toaster";
 import { idleActionState } from "@/model/action-state";
 import type { ProfileField, ProfileInput } from "@/model/user/profile-schema";
-import { profileSchema } from "@/model/user/profile-schema";
+import { isRequiredProfileField, profileSchema } from "@/model/user/profile-schema";
 import type { Prefecture, UserProfile } from "@/model/user/user";
 
 import { updateProfileAction } from "../../../actions";
@@ -64,14 +66,21 @@ const COMPLETION_MESSAGES: Readonly<Record<AddressCompletionResult, string>> = {
 };
 
 /**
- * control とエラー表示の `id` の組。
+ * 項目 1 つぶんの、値に依らない属性。
  *
  * @remarks
- * 接頭辞を実行時に受け取ります。項目名をそのまま `id` にすると、同じフォームを 1 つの文書へ
- * 2 度置いたときに重複し、label がどちらの control を指すか決まらなくなります。
+ * `id` の接頭辞を実行時に受け取ります。項目名をそのまま `id` にすると、同じフォームを 1 つの
+ * 文書へ 2 度置いたときに重複し、label がどちらの control を指すか決まらなくなります。
+ *
+ * 必須かどうかはスキーマから引きます。ここで列挙すると、規則を緩めたのに画面が必須のままと
+ * いう状態を作れます。
  */
-function fieldIdsOf(prefix: string, field: ProfileField) {
-  return { controlId: `${prefix}-${field}`, errorId: `${prefix}-${field}-error` };
+function fieldPropsOf(prefix: string, field: ProfileField) {
+  return {
+    controlId: `${prefix}-${field}`,
+    errorId: `${prefix}-${field}-error`,
+    required: isRequiredProfileField(field),
+  };
 }
 
 type FieldFrameProps = {
@@ -80,13 +89,29 @@ type FieldFrameProps = {
   readonly errorId: string;
   readonly label: string;
   readonly message: string | undefined;
+  readonly required: boolean;
 };
 
-/** label・control・エラーの組。control だけを差し替えられるように外枠を分けている。 */
-function FieldFrame({ children, controlId, errorId, label, message }: FieldFrameProps) {
+/**
+ * label・control・エラーの組。
+ *
+ * @remarks
+ * control だけを差し替えられるように外枠を分けています。
+ *
+ * 必須の印は label の中へ置きます。外に出すと、支援技術が label を読み上げるときに印が付いて
+ * 来ず、目で見える情報と読み上げられる情報が食い違います。印だけでは伝わらないので、control
+ * 側にも `aria-required` を付けます（これは呼び出し元の仕事です）。
+ *
+ * 任意の項目に「任意」と書き添えません。必須を印で示す以上、印の無い項目が任意であることは
+ * 決まっており、両方に印を付けると読む量が倍になります。
+ */
+function FieldFrame({ children, controlId, errorId, label, message, required }: FieldFrameProps) {
   return (
     <Field data-invalid={message !== undefined}>
-      <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
+      <FieldLabel className="flex items-center gap-2" htmlFor={controlId}>
+        {label}
+        {required ? <Badge variant={BADGE_VARIANT.SECONDARY}>必須</Badge> : null}
+      </FieldLabel>
       {children}
       {message === undefined ? null : <FieldError id={errorId}>{message}</FieldError>}
     </Field>
@@ -111,15 +136,31 @@ type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placehold
   readonly label: string;
   readonly message: string | undefined;
   readonly registration: FieldRegistration;
+  readonly required: boolean;
 };
 
 /** 1 行入力の項目。 */
-function TextField({ controlId, errorId, label, message, registration, ...input }: TextFieldProps) {
+function TextField({
+  controlId,
+  errorId,
+  label,
+  message,
+  registration,
+  required,
+  ...input
+}: TextFieldProps) {
   return (
-    <FieldFrame controlId={controlId} errorId={errorId} label={label} message={message}>
+    <FieldFrame
+      controlId={controlId}
+      errorId={errorId}
+      label={label}
+      message={message}
+      required={required}
+    >
       <Input
         aria-describedby={message === undefined ? undefined : errorId}
         aria-invalid={message !== undefined}
+        aria-required={required}
         id={controlId}
         {...input}
         {...registration}
@@ -283,9 +324,9 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
   }
 
   const prefectureMessage = displayedMessageOf("prefecture");
-  const prefectureIds = fieldIdsOf(idPrefix, "prefecture");
+  const prefectureIds = fieldPropsOf(idPrefix, "prefecture");
   const postalCodeMessage = displayedMessageOf("postalCode");
-  const postalCodeIds = fieldIdsOf(idPrefix, "postalCode");
+  const postalCodeIds = fieldPropsOf(idPrefix, "postalCode");
 
   // 郵便番号だけ、検証のあとに補完も走らせる。register が返す onBlur は検証しか持たないので
   // 差し替えずに包む。落とすと、この項目だけ検証されなくなる。
@@ -313,14 +354,14 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
         <div className="grid gap-6 sm:grid-cols-2">
           <TextField
             autoComplete="family-name"
-            {...fieldIdsOf(idPrefix, "lastName")}
+            {...fieldPropsOf(idPrefix, "lastName")}
             label="姓"
             message={displayedMessageOf("lastName")}
             registration={registrationOf("lastName")}
           />
           <TextField
             autoComplete="given-name"
-            {...fieldIdsOf(idPrefix, "firstName")}
+            {...fieldPropsOf(idPrefix, "firstName")}
             label="名"
             message={displayedMessageOf("firstName")}
             registration={registrationOf("firstName")}
@@ -333,7 +374,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
         <FieldGroup>
           <TextField
             autoComplete="email"
-            {...fieldIdsOf(idPrefix, "email")}
+            {...fieldPropsOf(idPrefix, "email")}
             label="メールアドレス"
             message={displayedMessageOf("email")}
             registration={registrationOf("email")}
@@ -341,7 +382,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
           />
           <TextField
             autoComplete="tel"
-            {...fieldIdsOf(idPrefix, "phone")}
+            {...fieldPropsOf(idPrefix, "phone")}
             inputMode="tel"
             label="電話番号"
             message={displayedMessageOf("phone")}
@@ -368,6 +409,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
                   postalCodeMessage === undefined ? undefined : postalCodeIds.errorId
                 }
                 aria-invalid={postalCodeMessage !== undefined}
+                aria-required={postalCodeIds.required}
                 autoComplete="postal-code"
                 id={postalCodeIds.controlId}
                 inputMode="numeric"
@@ -390,6 +432,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
             <SelectNative
               aria-describedby={prefectureMessage === undefined ? undefined : prefectureIds.errorId}
               aria-invalid={prefectureMessage !== undefined}
+              aria-required={prefectureIds.required}
               autoComplete="address-level1"
               id={prefectureIds.controlId}
               {...registrationOf("prefecture")}
@@ -403,22 +446,22 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
           </FieldFrame>
           <TextField
             autoComplete="address-level2"
-            {...fieldIdsOf(idPrefix, "city")}
+            {...fieldPropsOf(idPrefix, "city")}
             label="市区町村"
             message={displayedMessageOf("city")}
             registration={registrationOf("city")}
           />
           <TextField
             autoComplete="address-line1"
-            {...fieldIdsOf(idPrefix, "street")}
+            {...fieldPropsOf(idPrefix, "street")}
             label="丁目・番地"
             message={displayedMessageOf("street")}
             registration={registrationOf("street")}
           />
           <TextField
             autoComplete="address-line2"
-            {...fieldIdsOf(idPrefix, "building")}
-            label="建物名・部屋番号（任意）"
+            {...fieldPropsOf(idPrefix, "building")}
+            label="建物名・部屋番号"
             message={displayedMessageOf("building")}
             registration={registrationOf("building")}
           />

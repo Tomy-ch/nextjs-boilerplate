@@ -58,3 +58,14 @@ export type ProfileInput = z.infer<typeof profileSchema>;
 
 /** 入力欄として現れる項目名。項目エラーのキーになる。 */
 export type ProfileField = keyof ProfileInput;
+
+/**
+ * 空欄を受け付けない項目かを返す。
+ *
+ * @remarks
+ * 必須かどうかを列挙せず、スキーマへ空文字を通して判定します。列挙すると、規則を緩めたのに
+ * 画面が必須のままという状態を作れます。**印と検証の出所を 1 つにするための判定**です。
+ */
+export function isRequiredProfileField(field: ProfileField): boolean {
+  return !profileSchema.shape[field].safeParse("").success;
+}
