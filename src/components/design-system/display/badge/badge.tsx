@@ -14,8 +14,10 @@ const badgeVariants = cva(
         [BADGE_VARIANT.DEFAULT]: "bg-foreground text-background",
         [BADGE_VARIANT.SECONDARY]: "bg-muted text-foreground",
         [BADGE_VARIANT.DESTRUCTIVE]: "bg-destructive text-destructive-foreground",
+        // 枠線は `border` ではなく `input` を使う。前者は仕切りのための控えめな色で、light では
+        // 地の色と同じ値であり、**縁だけで成り立つこの variant は枠が消えて素の文字列になる**。
         [BADGE_VARIANT.OUTLINE]:
-          "border-border text-foreground hover:bg-foreground hover:text-background",
+          "border-input text-foreground hover:bg-foreground hover:text-background",
         [BADGE_VARIANT.GHOST]: "text-foreground hover:bg-foreground hover:text-background",
         [BADGE_VARIANT.LINK]: "text-foreground underline-offset-4 hover:underline",
       },

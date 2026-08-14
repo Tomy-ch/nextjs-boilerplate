@@ -110,11 +110,7 @@ function RequirementBadge({ required }: { readonly required: boolean }) {
       必須
     </Badge>
   ) : (
-    <Badge
-      aria-hidden="true"
-      className="border-muted-foreground/40 text-muted-foreground"
-      variant={BADGE_VARIANT.OUTLINE}
-    >
+    <Badge aria-hidden="true" className="text-muted-foreground" variant={BADGE_VARIANT.OUTLINE}>
       任意
     </Badge>
   );
