@@ -29,6 +29,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/features/cart",
   "src/features/home",
   "src/features/account",
+  "src/features/site-info",
   // 題材の増分取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
   // 認証の口（`src/app/api/auth`）は同じ場所にあるコア残留である。
   "src/app/api/products",
