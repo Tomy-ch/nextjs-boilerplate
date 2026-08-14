@@ -8,8 +8,22 @@ import {
   authScopesValidator,
   authSessionSecretValidator,
 } from "./auth/auth.schema";
+import { findExplicitApplicationEnvironment } from "./load-environment";
 import { mediaOriginValidator } from "./media/media.schema";
 import { otlpEndpointValidator, otlpExporterValidator } from "./observability/observability.schema";
+
+/**
+ * 同梱の秘密値を許す環境。
+ *
+ * @remarks
+ * `clone` 直後に動かせることを保つための例外です。`APP_ENV` が明示されていない場合も許しません。
+ * 未設定を許すと、設定を忘れた実環境が例外側に落ちます。
+ */
+function allowsShippedSecrets(): boolean {
+  const environment = findExplicitApplicationEnvironment();
+
+  return environment === "local" || environment === "ci";
+}
 
 const environmentSchema = z.object({
   APP_API_BASE_URL: apiBaseUrlValidator(),
@@ -23,7 +37,7 @@ const environmentSchema = z.object({
   AUTH_CLIENT_ID: authClientIdValidator(),
   AUTH_REDIRECT_URI: authRedirectUriValidator(),
   AUTH_SCOPES: authScopesValidator(),
-  AUTH_SESSION_SECRET: authSessionSecretValidator(),
+  AUTH_SESSION_SECRET: authSessionSecretValidator(allowsShippedSecrets()),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

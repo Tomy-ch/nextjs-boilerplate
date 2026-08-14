@@ -259,6 +259,9 @@ make vrt                   # Compare every Storybook story against its baseline 
 make vrt-update            # Retake the baseline images — accepting a visual change is a local, human act
 make secret-scan           # gitleaks over the commits about to be pushed — fails on detection (ADR 0110)
 make trivy-fs              # Trivy dependency vulnerability scan — on demand, report only (ADR 0110)
+make test-full             # Full test run with coverage against the 100% threshold (ADR 0090)
+make test-cached           # Same tests through Vitest's cache — the pre-commit variant
+make load-status           # Show the current gate band and why (ADR 0151)
 make hotfix-patch          # Create a hotfix/v<patch> branch from production
 make tag-patch             # Tag production HEAD and create a GitHub Release
 make tag-minor             # Same (minor)
@@ -268,6 +271,22 @@ make tag-major             # Same (major)
 For release branches, follow 0150 (`git switch -c release/v<X.Y.Z> origin/develop`).
 
 See [`.makefiles/README.md`](.makefiles/README.md) for details.
+
+### Do not pre-run the gates
+
+**The hooks and CI run these for you, and CI is the authority** ([0151](docs/adr/0151-git-hooks.md)).
+`pre-commit` already runs the full lint profile and the cached tests; `pre-push` adds the type check,
+the full test run, and the secret scan. Running the same commands by hand before committing does not
+make the result more true — it only spends the time twice, and on a busy host the duplicate run is
+itself a source of failures that have nothing to do with the change.
+
+So: **commit, push, and read the verdict from the hook or CI.** Re-running a single file you just
+edited is fine; sweeping the whole suite, or the whole lint, is not.
+
+`make load-status` prints which gates run locally right now. When the host is loaded the band shifts
+and the heavy gates are delegated to CI automatically — that decision is measured, not guessed, so
+do not pre-empt it with `--no-verify`. Bypassing is governed by 0151's bypass policy, not by how
+slow the gate feels.
 
 ## Git Rules
 

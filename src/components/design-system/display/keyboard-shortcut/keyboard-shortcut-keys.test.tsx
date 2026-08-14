@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 import { SHORTCUT_MODIFIER, SHORTCUT_PLATFORM } from "./keyboard-shortcut.definition";
 import { KeyboardShortcutKeys } from "./keyboard-shortcut-keys";
 
@@ -95,5 +96,13 @@ describe("KeyboardShortcutKeys", () => {
 
     expect(group.tagName).toBe("KBD");
     expect(group).toHaveAttribute("data-slot", "keyboard-shortcut-keys");
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(<KeyboardShortcutKeys keys={[SHORTCUT_MODIFIER.MOD, "K"]} />);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

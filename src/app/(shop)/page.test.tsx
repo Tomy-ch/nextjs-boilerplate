@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 const { HomePageContent } = vi.hoisted(() => ({ HomePageContent: vi.fn() }));
 
@@ -54,5 +55,13 @@ describe("HomePage", () => {
     const { container } = render(<HomePage />);
 
     expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(<HomePage />);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

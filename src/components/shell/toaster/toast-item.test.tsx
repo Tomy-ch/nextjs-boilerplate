@@ -2,6 +2,7 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { ToastItem } from "./toast-item";
 import { TOAST_POSITION, TOAST_VARIANT, type Toast } from "./toaster.definition";
@@ -57,5 +58,13 @@ describe("ToastItem", () => {
     renderItem({ ...TOAST, variant: TOAST_VARIANT.DESTRUCTIVE });
 
     expect(screen.getByRole("alert")).toHaveTextContent("保存しました");
+  });
+
+  it("a11y 違反を持たない", async () => {
+    renderItem(TOAST);
+
+    expect(
+      (await axe(document.body, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

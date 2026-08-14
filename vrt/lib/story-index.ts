@@ -105,14 +105,35 @@ export function storyGroup(title: string): string {
 }
 
 /**
+ * a11y の addon に、story を描いたあとの自動検査をさせない指定。
+ *
+ * @remarks
+ * `@storybook/addon-a11y` は story を描くたびに axe を走らせます。撮影も a11y の検査も同じ
+ * 面を開くので、**1 story につき axe が 2 回走る**ことになります。撮影にとっては丸ごと無駄で、
+ * 検査にとっては自分の実行と衝突する相手です（axe は同時実行を拒み `Axe is already running`
+ * で落ちる。`a11y.spec.ts` が再試行を持つのはこのため）。
+ *
+ * 止め方に `globals` を選ぶのは、**この実行にだけ効く**からです。`.storybook/preview.ts` の
+ * parameter で止めると Storybook を開く人からも検査が消えます。addon 側が globals での
+ * 切り替えを口として持っているので、それに乗ります。
+ */
+const A11Y_MANUAL = "a11y.manual:!true";
+
+/**
  * story を開く URL を組み立てる。
  *
  * @remarks
  * `globals` で配色テーマを指定します。テーマは `:root` の `data-theme` を切り替える
  * `.storybook/preview.ts` の decorator が受け取るため、OS の設定ではなく URL で決まります。
+ *
+ * 併せて {@link A11Y_MANUAL} で addon の自動検査を止めます。
  */
 export function storyURL(id: string, theme: string): string {
-  const params = new URLSearchParams({ id, globals: `theme:${theme}`, viewMode: "story" });
+  const params = new URLSearchParams({
+    id,
+    globals: `theme:${theme};${A11Y_MANUAL}`,
+    viewMode: "story",
+  });
 
   return `/iframe.html?${params.toString()}`;
 }

@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
@@ -120,5 +121,15 @@ describe("ProductInfiniteList", () => {
     await userEvent.click(screen.getByRole("button", { name: "もう一度読み込む" }));
 
     expect(loadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it("a11y 違反を持たない", async () => {
+    observing();
+
+    const { container } = render(<ProductInfiniteList initial={INITIAL} query={QUERY} />);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

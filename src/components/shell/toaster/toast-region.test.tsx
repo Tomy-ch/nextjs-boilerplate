@@ -2,6 +2,7 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { ToastRegion } from "./toast-region";
 import { DEFAULT_TOAST_HOTKEY, TOAST_POSITION, type Toast } from "./toaster.definition";
@@ -59,5 +60,13 @@ describe("ToastRegion", () => {
     fireEvent.keyDown(window, { code: "KeyT", altKey: false });
 
     expect(screen.getByRole("region", { name: "通知" })).not.toHaveFocus();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    renderRegion();
+
+    expect(
+      (await axe(document.body, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });
