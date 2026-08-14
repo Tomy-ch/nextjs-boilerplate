@@ -1,11 +1,8 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useActionState, useCallback, useEffect, useId, useState } from "react";
+import { useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
-import type { UseFormRegisterReturn } from "react-hook-form";
-import { useForm } from "react-hook-form";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
@@ -30,70 +27,22 @@ import {
 import { FormField } from "@/components/patterns/form-field/form-field";
 import { useToast } from "@/components/shell/toaster/toaster";
 import { idleActionState } from "@/model/action-state";
-import type { ProfileField, ProfileInput } from "@/model/user/profile-schema";
-import { isRequiredProfileField, profileSchema } from "@/model/user/profile-schema";
 import type { Prefecture, UserProfile } from "@/model/user/user";
 
 import { updateProfileAction } from "../../../actions";
 import type { ProfileFormState } from "../../../form-state";
 import { MYPAGE_PATH } from "../../../paths";
-import type { AddressCompletion, AddressCompletionResult } from "../../use-address-completion";
-import { useAddressCompletion } from "../../use-address-completion";
+import { useAddressField } from "../../use-address-field";
+import type { ProfileFieldProps } from "../../use-profile-fields";
+import { useProfileFields } from "../../use-profile-fields";
 
 const SUBMIT_LABEL = "保存する";
 const PENDING_LABEL = "保存しています…";
 
-/**
- * 補完の結果に対応する読み上げ用の文言。
- *
- * @remarks
- * 待機中の文言を持ちません。取得の間だけ差し替えると、応答が速いときに直前の結果と入れ替わって
- * 戻り、文字が明滅します。進行中であることは操作の側（押せない状態）が示します。
- */
-const COMPLETION_MESSAGES: Readonly<Record<AddressCompletionResult, string>> = {
-  idle: "",
-  filled: "郵便番号から住所を補完しました。番地から先を入力してください。",
-  empty: "この郵便番号に該当する住所が見つかりませんでした。手入力を続けてください。",
-};
-
-/**
- * 項目 1 つぶんの、値に依らない属性。
- *
- * @remarks
- * `id` の接頭辞を実行時に受け取ります。項目名をそのまま `id` にすると、同じフォームを 1 つの
- * 文書へ 2 度置いたときに重複し、label がどちらの control を指すか決まらなくなります。
- *
- * 必須かどうかはスキーマから引きます。ここで列挙すると、規則を緩めたのに画面が必須のままと
- * いう状態を作れます。
- */
-function fieldPropsOf(prefix: string, field: ProfileField) {
-  return {
-    controlId: `${prefix}-${field}`,
-    errorId: `${prefix}-${field}-error`,
-    required: isRequiredProfileField(field),
+type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placeholder" | "type"> &
+  ProfileFieldProps & {
+    readonly label: string;
   };
-}
-
-/**
- * 入力欄へ渡す配線。
- *
- * @remarks
- * `register` が返すものに focus の通知を足した形です。**どの項目を編集中か**は
- * [0062](../../../../../docs/adr/0062-form-input-validation.md) の「focus 中は消える方向にだけ
- * 効かせる」の判定に要り、rhf は focus を追跡しません。
- */
-type FieldRegistration = UseFormRegisterReturn & {
-  readonly onFocus: () => void;
-};
-
-type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placeholder" | "type"> & {
-  readonly controlId: string;
-  readonly errorId: string;
-  readonly label: string;
-  readonly message: string | undefined;
-  readonly registration: FieldRegistration;
-  readonly required: boolean;
-};
 
 /** 1 行入力の項目。 */
 function TextField({
@@ -146,17 +95,12 @@ type ProfileFormProps = {
  * プロフィール編集フォーム。
  *
  * @remarks
+ * この部品が持つのは**並びだけ**です。検証といつ誤りを見せるかは `useProfileFields`、住所の
+ * 補完は `useAddressField` が持ちます。
+ *
  * 送信は `<form action>` に委ねます（[0061](../../../../../docs/adr/0061-form-mutation-ux.md)）。
  * react-hook-form が持つのは入力中の検証だけで、送信機構は置き換えません。JavaScript が動かない
  * 環境でも form はそのまま送信され、server 側が同じスキーマで検証します。
- *
- * 誤りを出すのは focus が外れた時点で、focus が当たっている間は消える方向にだけ効かせます
- * （[0062](../../../../../docs/adr/0062-form-input-validation.md)）。編集の途中に新しい誤りを
- * 出すと、書き直そうとして 1 文字消しただけの利用者を咎めることになります。一方、直したことは
- * その場で反映します。消えないと、focus を外すまで直ったかどうかを確かめられません。
- *
- * 文言は client 側を優先し、無ければ server の応答を使います。両方が出るのは client の検証を
- * 通った値が server で弾かれた場合だけで、そのときに読ませたいのは server の理由です。
  *
  * 成功は toast で伝えます。画面を移さない保存なので、この場に留まる通知が合います
  * （[0063](../../../../../docs/adr/0063-mutation-result-notification.md)）。
@@ -167,36 +111,8 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
     idleActionState(),
   );
   const { toast } = useToast();
-  const idPrefix = useId();
-  // 編集中の項目と、焦点を当てた時点に出ていた文言。1 つの値にするのは、片方だけが残ると
-  // 別の項目の文言を頭打ちに使ってしまうためである。
-  const [editing, setEditing] = useState<{
-    readonly field: ProfileField;
-    readonly messageAtFocus: string | undefined;
-  } | null>(null);
-  const {
-    formState: { errors },
-    getValues,
-    register,
-    setValue,
-  } = useForm<ProfileInput>({
-    resolver: zodResolver(profileSchema),
-    // 一度 focus が外れた項目は変更のたびに見直す。`reValidateMode` は submit のあとにしか
-    // 効かないため、これだけが「直したら消える」を submit 前から成立させる手段になる
-    // （[0062](../../../../../docs/adr/0062-form-input-validation.md) 補足）。
-    mode: "onTouched",
-    defaultValues: {
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      email: profile.email,
-      phone: profile.phone,
-      postalCode: profile.postalCode,
-      prefecture: profile.prefecture,
-      city: profile.city,
-      street: profile.street,
-      building: profile.building ?? "",
-    },
-  });
+  const fields = useProfileFields(profile, state);
+  const address = useAddressField(fields);
 
   useEffect(() => {
     if (state.status === "success") {
@@ -204,96 +120,8 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
     }
   }, [state, toast]);
 
-  const applyCompletion = useCallback(
-    ({ city, prefecture, town }: AddressCompletion) => {
-      if (prefecture !== undefined) {
-        setValue("prefecture", prefecture, { shouldValidate: true });
-      }
-
-      if (city !== undefined) {
-        setValue("city", city, { shouldValidate: true });
-      }
-
-      // 番地は補完に含まれない。既に書いてある町域と番地を町域だけで置き換えないよう、
-      // 空のときにだけ入れる。
-      if (town !== undefined && getValues("street") === "") {
-        setValue("street", town, { shouldValidate: true });
-      }
-    },
-    [getValues, setValue],
-  );
-
-  const {
-    complete,
-    loading: completionLoading,
-    result: completionResult,
-  } = useAddressCompletion(applyCompletion);
-  const handleSearchClick = useCallback(() => {
-    void complete(getValues("postalCode"), { force: true });
-  }, [complete, getValues]);
-
-  function messageOf(field: ProfileField): string | undefined {
-    const fromServer = state.status === "error" ? state.fieldErrors?.[field] : undefined;
-
-    return errors[field]?.message ?? fromServer?.[0];
-  }
-
-  /**
-   * 実際に出す文言。
-   *
-   * @remarks
-   * focus が当たっている項目では、**焦点を当てた時点に出ていた文言を上限にします**。直れば
-   * 消え、直っていなければ文言は変わりません。編集の途中で新しい誤りを出さないための頭打ちで、
-   * これが無いと 1 文字消しただけで「入力してください」が現れます
-   * （[0062](../../../../../docs/adr/0062-form-input-validation.md)）。
-   */
-  function displayedMessageOf(field: ProfileField): string | undefined {
-    const current = messageOf(field);
-
-    if (editing?.field !== field || current === undefined) {
-      return current;
-    }
-
-    return editing.messageAtFocus;
-  }
-
-  /**
-   * 入力欄 1 つぶんの配線を組む。
-   *
-   * @remarks
-   * focus の出入りを掴むために `register` の結果を包みます。焦点を当てた時点の文言を控えるのは
-   * このときで、描画からは読めません。
-   */
-  function registrationOf(field: ProfileField): FieldRegistration {
-    const registration = register(field);
-
-    return {
-      ...registration,
-      onFocus: () => {
-        setEditing({ field, messageAtFocus: messageOf(field) });
-      },
-      onBlur: async (event) => {
-        setEditing(null);
-        await registration.onBlur(event);
-      },
-    };
-  }
-
-  const prefectureMessage = displayedMessageOf("prefecture");
-  const prefectureIds = fieldPropsOf(idPrefix, "prefecture");
-  const postalCodeMessage = displayedMessageOf("postalCode");
-  const postalCodeIds = fieldPropsOf(idPrefix, "postalCode");
-
-  // 郵便番号だけ、検証のあとに補完も走らせる。register が返す onBlur は検証しか持たないので
-  // 差し替えずに包む。落とすと、この項目だけ検証されなくなる。
-  const postalCodeRegistration = registrationOf("postalCode");
-  const postalCodeWiring: FieldRegistration = {
-    ...postalCodeRegistration,
-    onBlur: async (event) => {
-      await postalCodeRegistration.onBlur(event);
-      await complete(String(event.target.value ?? ""));
-    },
-  };
+  const postalCode = fields.fieldOf("postalCode");
+  const prefecture = fields.fieldOf("prefecture");
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-8">
@@ -308,20 +136,8 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
       <FieldSet>
         <FieldLegend>基本情報</FieldLegend>
         <div className="grid gap-6 sm:grid-cols-2">
-          <TextField
-            autoComplete="family-name"
-            {...fieldPropsOf(idPrefix, "lastName")}
-            label="姓"
-            message={displayedMessageOf("lastName")}
-            registration={registrationOf("lastName")}
-          />
-          <TextField
-            autoComplete="given-name"
-            {...fieldPropsOf(idPrefix, "firstName")}
-            label="名"
-            message={displayedMessageOf("firstName")}
-            registration={registrationOf("firstName")}
-          />
+          <TextField autoComplete="family-name" label="姓" {...fields.fieldOf("lastName")} />
+          <TextField autoComplete="given-name" label="名" {...fields.fieldOf("firstName")} />
         </div>
       </FieldSet>
 
@@ -330,20 +146,16 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
         <FieldGroup>
           <TextField
             autoComplete="email"
-            {...fieldPropsOf(idPrefix, "email")}
             label="メールアドレス"
-            message={displayedMessageOf("email")}
-            registration={registrationOf("email")}
             type="email"
+            {...fields.fieldOf("email")}
           />
           <TextField
             autoComplete="tel"
-            {...fieldPropsOf(idPrefix, "phone")}
             inputMode="tel"
             label="電話番号"
-            message={displayedMessageOf("phone")}
-            registration={registrationOf("phone")}
             type="tel"
+            {...fields.fieldOf("phone")}
           />
         </FieldGroup>
       </FieldSet>
@@ -354,28 +166,32 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
           {/* 補完は focus が外れた時点で走る。起きたことを画面の変化だけで伝えると、
               入力欄を見ていない利用者には届かない。 */}
           <p className="text-sm text-muted-foreground" role="status">
-            {COMPLETION_MESSAGES[completionResult]}
+            {address.message}
           </p>
-          <FormField {...postalCodeIds} label="郵便番号" message={postalCodeMessage}>
-            {/* 補完は focus が外れた時点でも走る。操作を枠の中へ収めるのは、いつ走るのかを
-                利用者が決められるようにしつつ、どの入力に属する操作かを離さないためである。 */}
+          <FormField
+            controlId={postalCode.controlId}
+            errorId={postalCode.errorId}
+            label="郵便番号"
+            message={postalCode.message}
+            required={postalCode.required}
+          >
+            {/* 操作を枠の中へ収めるのは、いつ補完が走るのかを利用者が決められるようにしつつ、
+                どの入力に属する操作かを離さないためである。 */}
             <InputGroup className="sm:max-w-sm">
               <InputGroupInput
-                aria-describedby={
-                  postalCodeMessage === undefined ? undefined : postalCodeIds.errorId
-                }
-                aria-invalid={postalCodeMessage !== undefined}
-                aria-required={postalCodeIds.required}
+                aria-describedby={postalCode.message === undefined ? undefined : postalCode.errorId}
+                aria-invalid={postalCode.message !== undefined}
+                aria-required={postalCode.required}
                 autoComplete="postal-code"
-                id={postalCodeIds.controlId}
+                id={postalCode.controlId}
                 inputMode="numeric"
                 placeholder="150-0001"
-                {...postalCodeWiring}
+                {...address.registration}
               />
               <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
                 <InputGroupButton
-                  disabled={completionLoading}
-                  onClick={handleSearchClick}
+                  disabled={address.searching}
+                  onClick={address.onSearch}
                   size={INPUT_GROUP_BUTTON_SIZE.SMALL}
                   type="button"
                 >
@@ -384,42 +200,38 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
               </InputGroupAddon>
             </InputGroup>
           </FormField>
-          <FormField {...prefectureIds} label="都道府県" message={prefectureMessage}>
+          <FormField
+            controlId={prefecture.controlId}
+            errorId={prefecture.errorId}
+            label="都道府県"
+            message={prefecture.message}
+            required={prefecture.required}
+          >
             <SelectNative
-              aria-describedby={prefectureMessage === undefined ? undefined : prefectureIds.errorId}
-              aria-invalid={prefectureMessage !== undefined}
-              aria-required={prefectureIds.required}
+              aria-describedby={prefecture.message === undefined ? undefined : prefecture.errorId}
+              aria-invalid={prefecture.message !== undefined}
+              aria-required={prefecture.required}
               autoComplete="address-level1"
-              id={prefectureIds.controlId}
-              {...registrationOf("prefecture")}
+              id={prefecture.controlId}
+              {...prefecture.registration}
             >
-              {prefectures.map((prefecture) => (
-                <SelectNativeOption key={prefecture.id} value={prefecture.name}>
-                  {prefecture.name}
+              {prefectures.map((option) => (
+                <SelectNativeOption key={option.id} value={option.name}>
+                  {option.name}
                 </SelectNativeOption>
               ))}
             </SelectNative>
           </FormField>
-          <TextField
-            autoComplete="address-level2"
-            {...fieldPropsOf(idPrefix, "city")}
-            label="市区町村"
-            message={displayedMessageOf("city")}
-            registration={registrationOf("city")}
-          />
+          <TextField autoComplete="address-level2" label="市区町村" {...fields.fieldOf("city")} />
           <TextField
             autoComplete="address-line1"
-            {...fieldPropsOf(idPrefix, "street")}
             label="丁目・番地"
-            message={displayedMessageOf("street")}
-            registration={registrationOf("street")}
+            {...fields.fieldOf("street")}
           />
           <TextField
             autoComplete="address-line2"
-            {...fieldPropsOf(idPrefix, "building")}
             label="建物名・部屋番号"
-            message={displayedMessageOf("building")}
-            registration={registrationOf("building")}
+            {...fields.fieldOf("building")}
           />
         </FieldGroup>
       </FieldSet>
