@@ -139,6 +139,18 @@ describe("targetFiles", () => {
     expect(targetFiles(root)).toEqual([]);
   });
 
+  it("workflow ディレクトリの YAML 以外を対象にしない", () => {
+    write(".github/workflows/README.md", "");
+
+    expect(targetFiles(root)).toEqual([]);
+  });
+
+  it("workflow ディレクトリ直下のディレクトリを対象にしない", () => {
+    mkdirSync(join(root, ".github", "workflows", "nested.yaml"), { recursive: true });
+
+    expect(targetFiles(root)).toEqual([]);
+  });
+
   it("ディレクトリが無ければ空を返す", () => {
     expect(targetFiles(join(root, "不在"))).toEqual([]);
   });
