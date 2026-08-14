@@ -30,6 +30,13 @@ on:
       - .github/workflows/deploy-docs.yaml
   workflow_dispatch:
 
+# Select the CI environment file (env/.env.ci). Without this the loader falls back to
+# `local`, which ships a placeholder session secret that the config layer refuses outside
+# development. Storybook loads `next.config.ts` to build the preview, so the refusal lands
+# there — and `storybook build` reports success anyway, leaving a tree with no preview.
+env:
+  APP_ENV: ci
+
 permissions:
   contents: read
 
@@ -82,8 +89,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Through `make` rather than `pnpm` directly, so the same check the screenshots rely on
+      # also guards what gets published. `storybook build` returns 0 even when the preview
+      # build threw, and a site shipped from that tree carries a Storybook with no stories in
+      # it — a failure nobody sees until someone opens the published page.
       - name: Build Storybook
-        run: pnpm build-storybook
+        run: make build-storybook
 
       - name: Build the documentation portal and assemble the site tree
         # Generates the portal artifacts, bundles the viewer, and lays out dist/.
