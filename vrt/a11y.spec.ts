@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import AxeBuilder from "@axe-core/playwright";
 import { test as base, expect } from "@playwright/test";
-import { disabledRuleIds } from "./lib/a11y-rules";
+import { CONFORMANCE_TAGS, disabledRuleIds } from "./lib/a11y-rules";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
 import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
@@ -73,6 +73,7 @@ for (const story of stories) {
     expect(crashes.map((crash) => crash.message)).toEqual([]);
 
     const { violations } = await new AxeBuilder({ page })
+      .withTags([...CONFORMANCE_TAGS])
       .disableRules(disabledRuleIds(story.id))
       .analyze();
 
