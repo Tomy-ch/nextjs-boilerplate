@@ -85,12 +85,20 @@ async function showValidationErrors({
   await userEvent.tab();
 }
 
-/** 補完まで進める。操作で呼ぶのは、blur では検証と混ざって何が起きたか読み取れないため。 */
+/**
+ * 補完まで進める。
+ *
+ * @remarks
+ * 操作で呼ぶのは、blur では検証と混ざって何が起きたか読み取れないためです。
+ *
+ * 待つのは読み上げ領域の**中身**です。領域そのものは結果が出る前から在るので、要素の出現を
+ * 待っても取得の完了を待ったことになりません。
+ */
 async function searchAddress({ canvasElement }: { canvasElement: HTMLElement }): Promise<void> {
   const canvas = within(canvasElement);
 
   await userEvent.click(canvas.getByRole("button", { name: "住所を検索" }));
-  await canvas.findByRole("status");
+  await canvas.findByText(/補完しました|見つかりませんでした/);
 }
 
 const meta = {

@@ -10,10 +10,7 @@ import { useForm } from "react-hook-form";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
-import {
-  BUTTON_SIZE,
-  BUTTON_VARIANT,
-} from "@/components/design-system/action/button/button.definition";
+import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import {
   Field,
   FieldError,
@@ -24,6 +21,16 @@ import {
 } from "@/components/design-system/form/field/field";
 import type { InputProps } from "@/components/design-system/form/input/input";
 import { Input } from "@/components/design-system/form/input/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/design-system/form/input-group/input-group";
+import {
+  INPUT_GROUP_ADDON_ALIGN,
+  INPUT_GROUP_BUTTON_SIZE,
+} from "@/components/design-system/form/input-group/input-group.definition";
 import {
   SelectNative,
   SelectNativeOption,
@@ -37,16 +44,21 @@ import type { Prefecture, UserProfile } from "@/model/user/user";
 import { updateProfileAction } from "../../../actions";
 import type { ProfileFormState } from "../../../form-state";
 import { MYPAGE_PATH } from "../../../paths";
-import type { AddressCompletion, AddressCompletionStatus } from "../../use-address-completion";
+import type { AddressCompletion, AddressCompletionResult } from "../../use-address-completion";
 import { useAddressCompletion } from "../../use-address-completion";
 
 const SUBMIT_LABEL = "保存する";
 const PENDING_LABEL = "保存しています…";
 
-/** 補完の進み具合に対応する読み上げ用の文言。何も起きていない間は読み上げない。 */
-const COMPLETION_MESSAGES: Readonly<Record<AddressCompletionStatus, string>> = {
+/**
+ * 補完の結果に対応する読み上げ用の文言。
+ *
+ * @remarks
+ * 待機中の文言を持ちません。取得の間だけ差し替えると、応答が速いときに直前の結果と入れ替わって
+ * 戻り、文字が明滅します。進行中であることは操作の側（押せない状態）が示します。
+ */
+const COMPLETION_MESSAGES: Readonly<Record<AddressCompletionResult, string>> = {
   idle: "",
-  loading: "住所を探しています…",
   filled: "郵便番号から住所を補完しました。番地から先を入力してください。",
   empty: "この郵便番号に該当する住所が見つかりませんでした。手入力を続けてください。",
 };
@@ -193,15 +205,23 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
     [getValues, setValue],
   );
 
-  const { complete, status: completionStatus } = useAddressCompletion(applyCompletion);
+  const {
+    complete,
+    loading: completionLoading,
+    result: completionResult,
+  } = useAddressCompletion(applyCompletion);
   const postalCodeRegistration = register("postalCode");
 
   // 検証と補完の両方を blur で走らせる。register が返す onBlur は検証だけを持つので、
   // 差し替えずに包む。落とすと、この項目だけ検証されなくなる。
-  const handlePostalCodeBlur: ChangeHandler = async (event) => {
-    await postalCodeRegistration.onBlur(event);
-    await complete(String(event.target.value ?? ""));
-  };
+  const registeredBlur = postalCodeRegistration.onBlur;
+  const handlePostalCodeBlur = useCallback<ChangeHandler>(
+    async (event) => {
+      await registeredBlur(event);
+      await complete(String(event.target.value ?? ""));
+    },
+    [complete, registeredBlur],
+  );
 
   const handleSearchClick = useCallback(() => {
     void complete(getValues("postalCode"), { force: true });
@@ -215,6 +235,8 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
 
   const prefectureMessage = messageOf("prefecture");
   const prefectureIds = fieldIdsOf(idPrefix, "prefecture");
+  const postalCodeMessage = messageOf("postalCode");
+  const postalCodeIds = fieldIdsOf(idPrefix, "postalCode");
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-8">
@@ -275,50 +297,51 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
           {/* 補完は focus が外れた時点で走る。起きたことを画面の変化だけで伝えると、
               入力欄を見ていない利用者には届かない。 */}
           <p className="text-sm text-muted-foreground" role="status">
-            {COMPLETION_MESSAGES[completionStatus]}
+            {COMPLETION_MESSAGES[completionResult]}
           </p>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <TextField
-                autoComplete="postal-code"
-                {...fieldIdsOf(idPrefix, "postalCode")}
-                inputMode="numeric"
-                label="郵便番号"
-                message={messageOf("postalCode")}
-                placeholder="150-0001"
-                registration={{ ...postalCodeRegistration, onBlur: handlePostalCodeBlur }}
-              />
-              {/* 補完は focus が外れた時点でも走る。ボタンを置くのは、いつ走るのかを操作で
-                  決められるようにするためで、押さない利用者も補完を受けられる。 */}
-              <Button
-                className="self-start"
-                disabled={completionStatus === "loading"}
-                onClick={handleSearchClick}
-                size={BUTTON_SIZE.SMALL}
-                type="button"
-                variant={BUTTON_VARIANT.OUTLINE}
-              >
-                住所を検索
-              </Button>
-            </div>
-            <FieldFrame {...prefectureIds} label="都道府県" message={prefectureMessage}>
-              <SelectNative
+          <FieldFrame {...postalCodeIds} label="郵便番号" message={postalCodeMessage}>
+            {/* 補完は focus が外れた時点でも走る。操作を枠の中へ収めるのは、いつ走るのかを
+                利用者が決められるようにしつつ、どの入力に属する操作かを離さないためである。 */}
+            <InputGroup className="sm:max-w-sm">
+              <InputGroupInput
                 aria-describedby={
-                  prefectureMessage === undefined ? undefined : prefectureIds.errorId
+                  postalCodeMessage === undefined ? undefined : postalCodeIds.errorId
                 }
-                aria-invalid={prefectureMessage !== undefined}
-                autoComplete="address-level1"
-                id={prefectureIds.controlId}
-                {...register("prefecture")}
-              >
-                {prefectures.map((prefecture) => (
-                  <SelectNativeOption key={prefecture.id} value={prefecture.name}>
-                    {prefecture.name}
-                  </SelectNativeOption>
-                ))}
-              </SelectNative>
-            </FieldFrame>
-          </div>
+                aria-invalid={postalCodeMessage !== undefined}
+                autoComplete="postal-code"
+                id={postalCodeIds.controlId}
+                inputMode="numeric"
+                placeholder="150-0001"
+                {...postalCodeRegistration}
+                onBlur={handlePostalCodeBlur}
+              />
+              <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
+                <InputGroupButton
+                  disabled={completionLoading}
+                  onClick={handleSearchClick}
+                  size={INPUT_GROUP_BUTTON_SIZE.SMALL}
+                  type="button"
+                >
+                  住所を検索
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          </FieldFrame>
+          <FieldFrame {...prefectureIds} label="都道府県" message={prefectureMessage}>
+            <SelectNative
+              aria-describedby={prefectureMessage === undefined ? undefined : prefectureIds.errorId}
+              aria-invalid={prefectureMessage !== undefined}
+              autoComplete="address-level1"
+              id={prefectureIds.controlId}
+              {...register("prefecture")}
+            >
+              {prefectures.map((prefecture) => (
+                <SelectNativeOption key={prefecture.id} value={prefecture.name}>
+                  {prefecture.name}
+                </SelectNativeOption>
+              ))}
+            </SelectNative>
+          </FieldFrame>
           <TextField
             autoComplete="address-level2"
             {...fieldIdsOf(idPrefix, "city")}

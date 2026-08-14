@@ -5,8 +5,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchAddressCandidates } from "@/adapters/client/api/addresses";
 import type { AddressCandidate } from "@/model/user/user";
 
-/** 補完の進み具合。画面はこれを読み上げ用の文言へ写す。 */
-export type AddressCompletionStatus = "idle" | "loading" | "filled" | "empty";
+/**
+ * 直近の補完の結果。画面はこれを読み上げ用の文言へ写す。
+ *
+ * @remarks
+ * 進行中であることは含めません。取得の間だけ別の値へ移ると、応答が速いときに結果の文言が
+ * 消えて戻り、文字が明滅します。進行中かどうかは {@link useAddressCompletion} が別に返します。
+ */
+export type AddressCompletionResult = "idle" | "filled" | "empty";
 
 /** 補完で埋める値。候補が割れた項目は持たない。 */
 export type AddressCompletion = {
@@ -57,7 +63,8 @@ function agreedValue(
  * @param onCompleted - 埋める値を受け取る。フォームへの反映は呼び出し側が持つ
  */
 export function useAddressCompletion(onCompleted: (completion: AddressCompletion) => void) {
-  const [status, setStatus] = useState<AddressCompletionStatus>("idle");
+  const [result, setResult] = useState<AddressCompletionResult>("idle");
+  const [loading, setLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const lastPostalCodeRef = useRef<string | null>(null);
 
@@ -76,15 +83,17 @@ export function useAddressCompletion(onCompleted: (completion: AddressCompletion
       const controller = new AbortController();
       abortRef.current = controller;
 
-      setStatus("loading");
+      setLoading(true);
       const candidates = await fetchAddressCandidates(postalCode, controller.signal);
 
       if (controller.signal.aborted) {
         return;
       }
 
+      setLoading(false);
+
       if (candidates.length === 0) {
-        setStatus("empty");
+        setResult("empty");
 
         return;
       }
@@ -94,10 +103,10 @@ export function useAddressCompletion(onCompleted: (completion: AddressCompletion
         city: agreedValue(candidates, (candidate) => candidate.city),
         town: agreedValue(candidates, (candidate) => candidate.town),
       });
-      setStatus("filled");
+      setResult("filled");
     },
     [onCompleted],
   );
 
-  return { complete, status };
+  return { complete, loading, result };
 }
