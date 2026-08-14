@@ -40,10 +40,30 @@ test-requirement: feature
 | `mypage/ui/skeleton/` | マイページの待機表示 |
 | `edit/page-content.tsx` | 自分の情報と都道府県マスタの並置合成（CollectAll） |
 | `edit/view.tsx` | プロフィール編集の表示。パンくずをここが持つ |
+| `edit/parse-profile-form.ts` | 送信された `FormData` を更新に渡せる形へ解く |
+| `edit/use-error-visibility.ts` | 誤りをいつ見せるかだけを決める。検証はしない |
+| `edit/use-profile-fields.ts` | 検証を回し、入力欄 1 つぶんの props を組む |
 | `edit/use-address-completion.ts` | 郵便番号から住所を引き、埋める値を決める |
-| `edit/ui/profile-form/` | 入力・検証・送信。client island |
+| `edit/use-address-field.ts` | 補完をフォームへ当てる。blur の包み方と埋める先 |
+| `edit/ui/profile-form/` | 並び。client island |
+| `edit/ui/text-field/` | 1 行入力の項目。入力欄の ARIA 属性はここが与える |
 | `edit/ui/skeleton/` | プロフィール編集の待機表示 |
 | `account.fixture.ts` | story とテストが読む固定値 |
+
+### プロフィール編集の割り方
+
+変わる理由が違うものを分けてあります。どれか 1 つを直すのに他を読まずに済みます。
+
+| 関心 | 持ち主 | 変わる理由 |
+| --- | --- | --- |
+| どの値が正しいか | `model/user/profile-schema.ts` | 契約や業務上の制約 |
+| 誤りをいつ見せるか | `use-error-visibility.ts` | [0062](../../../docs/adr/0062-form-input-validation.md) の改訂 |
+| 検証を回し props を組む | `use-profile-fields.ts` | この画面の項目が増減したとき |
+| 住所を引く | `use-address-completion.ts` | 補完の契約や打ち切りの仕方 |
+| 補完をフォームへ当てる | `use-address-field.ts` | どの項目へ埋めるか |
+| 入力を解く | `parse-profile-form.ts` | 送信の形（`FormData`）が変わったとき |
+| 送信を編成する | `actions.ts` | 更新の手順が変わったとき |
+| 並び | `ui/profile-form/` | 見た目 |
 
 ## 運用
 

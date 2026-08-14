@@ -8,8 +8,6 @@ import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedba
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { FieldGroup, FieldLegend, FieldSet } from "@/components/design-system/form/field/field";
-import type { InputProps } from "@/components/design-system/form/input/input";
-import { Input } from "@/components/design-system/form/input/input";
 import {
   InputGroup,
   InputGroupAddon,
@@ -33,46 +31,11 @@ import { updateProfileAction } from "../../../actions";
 import type { ProfileFormState } from "../../../form-state";
 import { MYPAGE_PATH } from "../../../paths";
 import { useAddressField } from "../../use-address-field";
-import type { ProfileFieldProps } from "../../use-profile-fields";
 import { useProfileFields } from "../../use-profile-fields";
+import { TextField } from "../text-field/text-field";
 
 const SUBMIT_LABEL = "保存する";
 const PENDING_LABEL = "保存しています…";
-
-type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placeholder" | "type"> &
-  ProfileFieldProps & {
-    readonly label: string;
-  };
-
-/** 1 行入力の項目。 */
-function TextField({
-  controlId,
-  errorId,
-  label,
-  message,
-  registration,
-  required,
-  ...input
-}: TextFieldProps) {
-  return (
-    <FormField
-      controlId={controlId}
-      errorId={errorId}
-      label={label}
-      message={message}
-      required={required}
-    >
-      <Input
-        aria-describedby={message === undefined ? undefined : errorId}
-        aria-invalid={message !== undefined}
-        aria-required={required}
-        id={controlId}
-        {...input}
-        {...registration}
-      />
-    </FormField>
-  );
-}
 
 /** 送信ボタン。押している間の表示を持つため、`form` の子として切り出している。 */
 function SubmitButton() {
