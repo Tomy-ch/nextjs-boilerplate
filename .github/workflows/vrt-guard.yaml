@@ -83,9 +83,10 @@ jobs:
         run: |
           set +e
 
-          make vrt > /tmp/vrt-full.log 2>&1
-          code=$?
-          tail -n 40 /tmp/vrt-full.log
+          # Streamed for the same reason as `vrt.yaml`: a cancelled or timed-out run must
+          # still leave a log behind.
+          make vrt 2>&1 | tee /tmp/vrt-full.log
+          code=${PIPESTATUS[0]}
 
           if [ "${code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"

@@ -127,11 +127,8 @@ function assertAllowMovedReferenced(refs: Map<string, ActionRef>, allowMoved: Se
   }
 }
 
-// 全件を走らせ切ってから、失敗をまとめて 1 つの例外にする。
-//
-// Promise.all だと最初の 1 件が落ちた時点で全体が reject し、残りの結果が捨てられる。1 行の
-// 綴り誤りが無関係な参照の失敗として現れ、直しては再実行を繰り返すことになるため、どの参照が
-// 落ちたのかを一度に出す。fail-closed であること自体は変えない。
+// 全件を走らせ切ってから、失敗をまとめて 1 つの例外にする。1 件目で打ち切ると、残りが成功
+// したのか未実行なのかが出力から読めず、直しては再実行を繰り返すことになる。
 async function allOrAggregate<T>(tasks: readonly Promise<T>[]): Promise<T[]> {
   const settled = await Promise.allSettled(tasks);
   const values: T[] = [];

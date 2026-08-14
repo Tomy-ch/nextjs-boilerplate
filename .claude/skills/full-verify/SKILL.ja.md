@@ -64,9 +64,7 @@ A1 / A3 / A5 / A6)。`AGENTS.md` とその `## [TODO]` セクションが現時�
 /dotfiles)は常に除外。指摘ゼロのユニットは `mod_<id>.md` に `問題なし` の 1 行を残し、再開時にスキップ=完了
 マーカーになる。
 
-## 起動時の挙動
-
-### 1. リポジトリ検出(Claude が先に把握)
+## Step 1. リポジトリ検出(Claude が先に把握)
 
 `run.sh` も内部で同等の検出を行うが、起動前に Claude 自身も状況を把握し、基準の所在をユーザに確認する。
 Read/Grep/Glob/Bash(読み取り)で:
@@ -76,7 +74,7 @@ Read/Grep/Glob/Bash(読み取り)で:
   `src/` 直下を `--module-depth` の深さで列挙する。
 - **設計文書の有無**: `AGENTS.md` / `CLAUDE.md`、`docs/adr/**`、`README*` を検出する。
 
-### 2. 基準(正)の確定 — Pass 0
+## Step 2. 基準(正)の確定 — Pass 0
 
 - 設計文書がある(`AGENTS.md`、`docs/adr/**`)ので、**意図の正**として扱う。基準の所在(ファイルパス)は
   出力に明記させる。
@@ -86,7 +84,7 @@ Read/Grep/Glob/Bash(読み取り)で:
 > 基準が `AGENTS.md` + `docs/adr/**` でよいかは、ここで一度だけユーザに確認する。
 > 「そのままで」と言われたら即起動する。背景実行のため、以降は対話を求めない。
 
-### 3–4. 構造表現の生成とパス配置は `run.sh` に委譲
+## Step 3. 構造表現の生成とパス配置は `run.sh` に委譲
 
 `run.sh` が以下を順に行う(詳細は `README.md` と `scripts/run.sh`):
 
@@ -98,7 +96,7 @@ Read/Grep/Glob/Bash(読み取り)で:
 - **Pass3 集約** → `tmp/reviews/_index.md`(設計由来の問題と局所実装の問題を分け、深刻度順)。
   **全モジュールの完了後にのみ**実行する。
 
-### 5. バックグラウンド起動
+## Step 4. バックグラウンド起動
 
 `run.sh` は長時間走り得る(上限に当たると 5 時間 sleep して 1 回だけ再送する)ため、**必ず背景で起動する**。
 `nohup`(または `tmux`)で起動し、ログは `tmp/reviews/run.log`、失敗は `tmp/reviews/run.err` に置く。
@@ -117,7 +115,7 @@ echo "started pid=$!  -> tail -f tmp/reviews/run.log"
 起動後は「背景で開始した。進行は `tmp/reviews/run.log`、成果物は `tmp/reviews/` 配下」とユーザへ伝える。
 進捗を聞かれたら `tail -n 40 tmp/reviews/run.log` / `ls -la tmp/reviews/` を読むだけにする(ブロックして待たない)。
 
-### 6. セッション内 fast-path(`--inline` / 小スコープ・即時)
+## Step 5. セッション内 fast-path(`--inline` / 小スコープ・即時)
 
 対象が小さい(単一モジュール / 小リポジトリ)場合や、再開機構を使わず今すぐ結果が欲しい場合は、`run.sh` を
 起動せず**セッション内 fast-path**を使う(`--inline` 指定時。`--inline` はスキル本文が解釈し、`run.sh` へは渡さない):

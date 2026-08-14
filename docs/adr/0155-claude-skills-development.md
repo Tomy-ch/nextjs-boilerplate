@@ -49,8 +49,8 @@ Accepted
 | `impl-review` | adversarial code review | 5 観点 (correctness / security / architecture / runtime-gap / test-gap) + コメント品質の subagent fanout + verifier による多段検証。コメント指摘のみライフサイクル内で自動修正し、残る指摘は PR へインライン投稿する |
 | `scaffold-test` | テストの新規作成 (unit / component) | テストを持たない対象について、対象自身の分岐からケースを導き `<subject>.test.ts(x)` を書く。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) / 最近傍 README の `test-requirement` / `scripts/lib/untested-modules.ts` を実行時に読む。対象は read-only で、検証できない分岐は skip せず所見として報告する |
 | `scaffold-integration-test` | HTTP 境界の結合テスト作成 | `adapters` のクライアントや Route Handler を、契約から生成された MSW ハンドラで動かすテストを書く。[0090](0090-testing-strategy.md) の「integration = HTTP 境界のみ / 内側は mock / 形と型をアサート」を保ち、ハンドラの手書きと `fetch` stub を禁じる |
-| `comment-sweep` | コメント在庫の管轄判定 | 蓄積したコメントを 維持 / 削除 / 書換 / **移設** の 4 判定で裁く。移設は根拠を ADR や層 README へ動かし、コードには効力のある残余と 1 行の参照を残す。read-only のレビュアーが出せない判定であり(移設先の文書を書く必要がある)、判断対象も差分ではなく在庫である。`impl-review` Step 4.6 の委譲先を兼ねる |
-| `test-review` | テストの品質レビュー | 5 レンズ (構造準拠 / 観点カバレッジ / 意味的品質 / 分岐×意味 / シンボル網羅) の fanout + verifier。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む。報告は read-only だが、意味網羅の穴だけは確認 1 回で塞ぐ (Step 5.5)。`impl-review` Step 4.5 の委譲先を兼ねる |
+| `comment-sweep` | コメント在庫の管轄判定 | 蓄積したコメントを 維持 / 削除 / 書換 / **移設** の 4 判定で裁く。移設は根拠を ADR や層 README へ動かし、コードには効力のある残余と 1 行の参照を残す。read-only のレビュアーが出せない判定であり(移設先の文書を書く必要がある)、判断対象も差分ではなく在庫である。適用は 確認して適用 / 自動適用 (`--apply`) / 報告のみ (`--report-only`) の 3 モードで、自動適用は文書書き込みを伴う移設を適用しない。`impl-review` Step 6 の委譲先を兼ねる |
+| `test-review` | テストの品質レビュー | 5 レンズ (構造準拠 / 観点カバレッジ / 意味的品質 / 分岐×意味 / シンボル網羅) の fanout + verifier。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む。報告は read-only だが、意味網羅の穴だけは確認 1 回で塞ぐ (Step 5)。`impl-review` Step 5 の委譲先を兼ねる |
 | `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
 | `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
 | `adr-scan` | ADR 候補の全リポ発見 | de facto に存在するが BACKLOG 未追跡の設計判断を read-only で走査し、taxonomy (decision / exclusion / rule / inventory) と Tier / frame ID へ分類した候補 inventory を出力 (※ 暫定 / one-off。BACKLOG 反映後に削除・アーカイブ予定) |
@@ -84,7 +84,7 @@ full-verify (orchestrator / in-session fast-path)
 
 このほか、特定スキルへの固定 wiring を持たない **単独起動の read-only レビュー subagent** として `doc-reviewer` (ドキュメント散文の品質) が `.claude/agents/` に存在する。下記の subagent 規約 (read-only / sonnet 既定 / モデル分散) に従う。
 
-subagent 自身が read-only である規約は `comment-reviewer` にも等しく適用される。`impl-review` がコメント指摘を修正できるのは、**オーケストレーター側が適用する**からであって、subagent に編集権限を与えているからではない。
+subagent 自身が read-only である規約は `comment-reviewer` にも等しく適用される。`impl-review` がコメント指摘を修正できるのは、**オーケストレーター側が適用する**からであって、subagent に編集権限を与えているからではない。Step 6 が委譲する `comment-sweep` の書き込みも同じ位置にあり、委譲は 確認して適用 か 報告のみ に限る (自動適用は渡さない)。
 
 ### subagent 規約
 
@@ -107,7 +107,7 @@ subagent 自身が read-only である規約は `comment-reviewer` にも等し�
 
 | スキル | 入力 | 出力 | 用途 |
 | --- | --- | --- | --- |
-| `comment-sweep` | 1 ディレクトリのコメント在庫 | 4 判定の適用（コードと移設先の両方を書く） | 置き場所の誤りを在庫から抜く |
+| `comment-sweep` | 1 ディレクトリのコメント在庫 | 4 判定の適用（コードと移設先の両方を書く。3 適用モード） | 置き場所の誤りを在庫から抜く |
 | `scaffold-test` | テストを持たない対象 | `<subject>.test.ts(x)` 1 ファイル | 1:1 ゲートとカバレッジゲートを満たすテストの新規作成 |
 | `scaffold-integration-test` | HTTP 境界を持つ継ぎ目 | `<subject>.contract.test.ts` 1 ファイル | 契約駆動のハンドラで境界を固定する |
 | `canonicalize-doc` | EN または JA のドキュメント | 不足側を生成 / 両側の drift を同期 | 1 ドキュメントの 2 言語ペア管理 |

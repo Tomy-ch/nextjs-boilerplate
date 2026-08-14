@@ -39,13 +39,20 @@ const PUBLISHED_SURFACE = ["src/components/**/*.{ts,tsx}"];
 const NON_IMPORTED_DEPENDENCIES = ["date-fns", "@commitlint/cli", "lefthook"];
 
 const config: KnipConfig = {
-  // playwright.config.ts はコンテナ外で読み込むと落ちるため、knip の plugin では扱えない。
-  // spec は root の entry が直接指す。
+  // playwright.config.ts はコンテナ外で読み込むと落ちるため、knip の plugin では扱えない
+  // (plugin は設定を読み込む)。spec と設定は root の entry が直接指す — 静的に辿るだけなら
+  // 読み込みは起きない。ignore へ回すと、設定だけが使う宣言(撮る配色テーマなど)が
+  // 未使用に見える。
   playwright: false,
   workspaces: {
     ".": {
-      entry: [...ENTRYPOINT_PATTERNS, ...PUBLISHED_SURFACE, "vrt/*.spec.ts"],
-      ignore: [...GENERATED_MODULES, "playwright.config.ts"],
+      entry: [
+        ...ENTRYPOINT_PATTERNS,
+        ...PUBLISHED_SURFACE,
+        "vrt/*.spec.ts",
+        "playwright.config.ts",
+      ],
+      ignore: [...GENERATED_MODULES],
       ignoreDependencies: NON_IMPORTED_DEPENDENCIES,
     },
     "docs-viewer": {

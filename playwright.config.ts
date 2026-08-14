@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-import { THEMES } from "./vrt/lib/themes";
+import { SHOT_THEMES, THEMES } from "./vrt/lib/themes";
 
 /**
  * story 単位の visual regression の設定([0091](docs/adr/0091-test-verification-methods.md))。
@@ -70,5 +70,12 @@ export default defineConfig({
   },
   // プロジェクト名がそのまま配色テーマであり、基準画像の置き場の一部になる。一覧の宣言は
   // [themes](vrt/lib/themes.ts)。
-  projects: THEMES.map((name) => ({ name })),
+  //
+  // 全 story を撮り axe を掛けるのは `SHOT_THEMES` のテーマだけ。もう片方は配色が `:root` へ
+  // 届いているかだけを見る spec に絞る。両方で全 story を回すと実行が倍になり、fork 先の CI が
+  // その分だけ課金される。
+  projects: THEMES.map((name) => ({
+    name,
+    ...(SHOT_THEMES.some((shot) => shot === name) ? {} : { testMatch: "**/theme-tokens.spec.ts" }),
+  })),
 });

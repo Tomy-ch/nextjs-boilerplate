@@ -1,8 +1,8 @@
 ---
 name: comment-sweep
 description: >-
-  Sweep the accumulated stock of source-code comments in a chosen scope and decide, per comment, whether its content **belongs where it sits** — the jurisdiction question no other reviewer in this repository asks. Where `comment-reviewer` (inside `impl-review`) judges comments on a diff and can only answer 削除 or 書換, this skill runs over accumulated code and adds the missing verdict: **移設** — relocate a design rationale out of the comment and into the ADR or the layer README that owns it, leaving only the operative residue plus a one-line reference. Use it whenever comments feel bloated, verbose, or essay-like even though every line is individually true; when a doc comment has grown into a design argument or a rejected-alternative discussion; when the same rationale appears in both an ADR and the code that follows it; for a periodic hygiene sweep of a kernel, a feature, or `scripts/`; before a release or a fork cut where accumulated commentary would burden downstream readers; and when someone asks 「コメントが長すぎる」「コメントを整理して」「この Why はコードに置くべきか」「根拠を ADR に移したい」. It reads the comment standard at runtime — `docs/rules.md` if it grows a Comment Rules section, otherwise `AGENTS.md` plus the standard embedded in `.claude/agents/comment-reviewer.md` — and hardcodes no policy. It refuses the two classic misroutes: a library's specific behavior stays in the code, and business knowledge goes to the feature's own README, never to an ADR. It drives a per-item approval loop and performs the code **and** destination-document writes itself, so a relocated rationale never loses its home. Do NOT use it to review comments on a change you just wrote (`impl-review` with `comment-reviewer` owns diff scope), to judge README / docs prose quality (`doc-reviewer`), to fix README↔code structural drift (`sync-readme` / `back-prop`), or to review implementation or tests (`impl-review` / `test-review`).
-argument-hint: '[path or kernel to sweep]'
+  Sweep the accumulated stock of source-code comments in a chosen scope and decide, per comment, whether its content **belongs where it sits** — the jurisdiction question no other reviewer in this repository asks. Where `comment-reviewer` (inside `impl-review`) judges comments on a diff and can only answer 削除 or 書換, this skill runs over accumulated code and adds the missing verdict: **移設** — relocate a design rationale out of the comment and into the ADR or the layer README that owns it, leaving only the operative residue plus a one-line reference. Use it whenever comments feel bloated, verbose, or essay-like even though every line is individually true; when a doc comment has grown into a design argument or a rejected-alternative discussion; when the same rationale appears in both an ADR and the code that follows it; for a periodic hygiene sweep of a kernel, a feature, or `scripts/`; before a release or a fork cut where accumulated commentary would burden downstream readers; and when someone asks 「コメントが長すぎる」「コメントを整理して」「この Why はコードに置くべきか」「根拠を ADR に移したい」. It reads the comment standard at runtime — `docs/rules.md` if it grows a Comment Rules section, otherwise `AGENTS.md` plus the standard embedded in `.claude/agents/comment-reviewer.md` — and hardcodes no policy. It refuses the two classic misroutes: a library's specific behavior stays in the code, and business knowledge goes to the feature's own README, never to an ADR. It then applies the result in one of three modes, picked in Step 0 or fixed by a flag — 確認して適用 (default; approval per verdict group, then write), 自動適用 (`--apply`; writes 削除 / 書換 with no approval prompt and withholds every 移設 that needs a document write, because creating an ADR is a call `AGENTS.md` reserves for a prior user instruction and a no-question mode has no way to ask it), and 報告のみ (`--report-only`; renders every finding in full and writes nothing) — performing the code **and** destination-document writes itself, so a relocated rationale never loses its home. It is also the delegation target of `impl-review`: its Step 6 chains here with a `scope` / `mode` / `base_ref` / `hold` / `claimed` payload that skips the Step 0 questions and returns the report for the caller to embed. Do NOT use it to review comments on a change you just wrote (`impl-review` with `comment-reviewer` owns diff scope), to judge README / docs prose quality (`doc-reviewer`), to fix README↔code structural drift (`sync-readme` / `back-prop`), or to review implementation or tests (`impl-review` / `test-review`).
+argument-hint: '[path or kernel to sweep] [--apply | --report-only]'
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
@@ -56,17 +56,38 @@ copy of it.
 | `docs/adr/` | The candidate destinations, and what each ADR already says |
 | The layer / feature `README.md` above the swept path | The other candidate destination, and its declared responsibilities |
 
-## Step 0. Resolve the scope
+## Step 0. Resolve the scope and the apply mode
 
-Take the scope from the argument, or ask with `AskUserQuestion`:
+One `AskUserQuestion` call carrying **two** questions. Skip whichever one the argument, a flag, or a
+caller payload (see Chainability) has already answered; skip the call entirely when both are fixed.
 
-- 「変更で触れたファイル」 — the caller passed a file list (see Chainability)
-- 「1 カーネル / 1 feature」 — e.g. `src/adapters/`, `src/features/<name>/`
-- 「`scripts/` の 1 ツール」
-- 「パスを指定」
+- 「comment-sweep の対象スコープを選んでください」
+  - 「変更で触れたファイル」 — the caller passed a file list (see Chainability)
+  - 「1 カーネル / 1 feature」 — e.g. `src/adapters/`, `src/features/<name>/`
+  - 「`scripts/` の 1 ツール」
+  - 「パスを指定」
+- 「検出結果をどう適用しますか？」
+  - 「判定の束ごとに確認して書き換える」 ← default
+  - 「そのまま書き換える（確認を取らない。文書書き込みを伴う移設は対象外）」
+  - 「報告のみ（書き込まない）」
 
 **Sweep one directory at a time.** A repository-wide sweep produces an approval queue nobody
 finishes, and a half-finished queue is worse than none — the reader cannot tell swept from unswept.
+
+### Apply modes
+
+| Mode | Selected by | What Steps 3–4 do |
+| --- | --- | --- |
+| 確認して適用 | the default option, or `mode: confirm` | Step 3 takes approval per verdict group, then Step 4 writes — every verdict is reachable |
+| 自動適用 | `--apply`, or the second option | Step 4 writes 削除 / 書換 with no approval prompt; a 移設 that needs a document write is reported, not applied |
+| 報告のみ | `--report-only`, or `mode: report` | Step 3 renders the findings in full and the run ends; nothing is written |
+
+### Flags
+
+- `--apply` — 自動適用. Fixes the mode, so the mode question is not asked.
+- `--report-only` — 報告のみ. Detect and report; never write.
+- Both at once is a contradiction, not a precedence puzzle: say so and fall back to the mode
+  question rather than silently picking one.
 
 ## Step 1. Read the standard and the destinations
 
@@ -108,6 +129,11 @@ Two misroutes are common enough to name:
   record of architectural decisions. An ADR that accumulates business rules stops being readable as
   a decision log.
 
+Classification is **mode-independent**. Produce every finding, in full, whatever Step 0 resolved —
+the entire difference between the three modes lives in Steps 3–5. A run that classified less because
+it was only going to report would quietly disagree with a run that classified in order to apply, and
+nothing exists to detect that drift.
+
 ## Step 3. Drive the approval loop
 
 Present the findings **grouped by verdict**, most consequential first (移設 → 削除 → 書換), each with:
@@ -117,10 +143,48 @@ Present the findings **grouped by verdict**, most consequential first (移設 �
 - for 移設: the destination file, and the exact text proposed for it
 - the residue proposed for the code (never leave the call site silent when a constraint remains)
 
-Confirm with `AskUserQuestion` per group: 「この判定で適用しますか？」 / 「個別に確認したい」 /
-「この分類は見送る」. A sweep that applies 40 edits on one confirmation is not reviewable.
+In **確認して適用**, confirm with `AskUserQuestion` per group: 「この判定で適用しますか？」 /
+「個別に確認したい」 / 「この分類は見送る」. A sweep that applies 40 edits on one confirmation is not
+reviewable. In **自動適用**, take no confirmation here — Step 4 states afterwards what it wrote.
+
+**In 報告のみ the run ends here**, and the grouped summary above is not enough on its own. Render
+every non-`維持` finding in full — the evidence, the comment before and after, and for a 移設 the
+exact prose proposed for the destination — because no approval loop follows to reveal them one at a
+time. Close by saying how to act on the report: re-run with `--apply` for the 削除 / 書換, or in
+確認して適用 for those plus the 移設.
 
 ## Step 4. Apply — code and destination together
+
+Not reached in 報告のみ. Between the other two modes the write itself is identical; what differs is
+who approves it, and how much of the verdict set is in play.
+
+### 自動適用 — no approval prompt
+
+Apply **削除** and **書換** as Step 2 classified them, in one pass, and report what was written. Two
+exclusions come off that set first:
+
+- **A finding whose comment contradicts the code** is reported, never applied. Which side is wrong —
+  the comment or the code — is not a comment-cleanup call, and deleting the comment can erase the
+  only surviving evidence of a bug. The guard below already says to stop there; unattended, it is
+  the difference between a report and a defect nobody hears about again.
+- **A 移設 whose destination already states the content** is applied only after opening that document
+  and confirming the content is actually there. With a human in the loop that claim is checked at
+  approval time; unattended, a misread section would strip the rationale out of the code and point
+  the residue at a document that never says it. When the check fails, report the finding instead of
+  applying it. A 移設 that survives the check writes no document — it is really a shortening down to
+  the residue plus a reference.
+
+**Do not apply a 移設 that would write to a destination document.** Report those with their count and
+proposed landing form, and say that 確認して適用 is where they land. The reason is not caution in
+general: `AGENTS.md`'s *AI Modification Scope* permits editing `docs/adr/BACKLOG.md` but reserves
+**ADR file creation for a prior user instruction**, and whether a rationale becomes a new record or a
+rewrite of an existing one is exactly that call. A mode whose contract is "no questions" has no way
+to ask it. Keeping that one question alive would break the contract; answering it silently would
+settle a repository-policy question by generator.
+
+Every guard below still holds. 自動適用 removes the prompt, not the rules.
+
+### 確認して適用 — write what each approved group asked for
 
 For each approved item, write **both sides in the same step**:
 
@@ -132,7 +196,7 @@ For each approved item, write **both sides in the same step**:
 Never do one without the other. A rationale removed from code before its destination exists is
 information destroyed, and this skill is the only thing holding both ends.
 
-Guards that hold regardless of approval:
+Guards that hold regardless of approval or mode:
 
 - **Never remove a functional directive** — `// @ts-expect-error`, `// biome-ignore …`,
   `// eslint-disable*`, `/** @jsxImportSource … */`, `// Code generated … DO NOT EDIT`, shebangs.
@@ -145,6 +209,9 @@ Guards that hold regardless of approval:
   code is wrong, report it and stop.
 
 ## Step 5. Verify
+
+Run this only when something was written. 報告のみ has nothing to verify; 自動適用 needs it most,
+because nobody read the edits one at a time.
 
 ```sh
 pnpm fix
@@ -161,19 +228,51 @@ State per file what was 維持 / 削除 / 書換 / 移設, and where each reloca
 was **not** swept — a directory left for later, a finding deferred because it needed a design call.
 An unstated omission reads as "this directory is clean" when it is not.
 
+In **自動適用**, name every finding that was withheld and why — a comment that contradicts the code, a
+移設 that needs a document write, a 移設 whose destination could not be confirmed. A withheld finding
+that goes unmentioned reads as one that was never raised.
+
 ## Chainability
 
-`impl-review` delegates the comment **stock** of the files a change touched to this skill, alongside
-its delegation of test viewpoints to `test-review`. The division holds because the two look at
-different things: `comment-reviewer` judges the comments the diff *added*, and this skill judges the
-stock those files *carry*. When called that way, take the scope from the caller and skip Step 0.
+`impl-review` is this skill's caller: its Step 6 delegates the comment **stock** of the files a
+change touched, alongside its delegation of test viewpoints to `test-review`. The division holds
+because the two look at different things: `comment-reviewer` judges the comments the diff *added*,
+and this skill judges the stock those files *carry*. The two must never report the same comment — a
+comment on a changed line is `comment-reviewer`'s, and the caller names those in the `claimed`
+payload below.
+
+A caller passes a context payload with:
+
+- `scope` — the pre-resolved file list (skips the Step 0 scope question).
+- `mode` — `confirm` or `report` (skips the Step 0 mode question). `apply` is **not** passed on this
+  path. A review run that rewrites the tree with no approval prompt contradicts the caller's own
+  structure, in which every reviewer is read-only on source and every write is gated on an explicit
+  confirmation.
+- `base_ref` — when the caller resolved the scope as a branch-vs-base diff.
+- `hold` — files the caller is holding back because one of its own findings is likely to rewrite
+  them. Exclude them from the approval loop and name them in the returned report: a comment polished
+  onto code that is about to change is work done twice.
+- `claimed` — the `path:line` of every comment the caller's own reviewer already owns. Drop them
+  **before** the approval loop opens, so the user is never asked about one comment twice. One
+  exception: when the verdict here is **移設** and the caller's is 削除 / 書換, keep the 移設 and say
+  so in the report. 移設 already contains the shortening the caller wanted, while the reverse is not
+  true — dropping it would discard the only verdict that can move a rationale to the document that
+  owns it.
+
+Under a payload the report is returned for the caller to embed rather than rendered as a standalone
+deliverable, and it keeps this skill's verdict vocabulary (維持 / 削除 / 書換 / 移設) — the caller does
+not remap it.
 
 ## Constraints
 
 - ✅ Read the standard and the destination documents this run
 - ✅ One directory per sweep
-- ✅ Approve per verdict group, not per sweep
+- ✅ Classify every comment in full whatever the mode — the mode changes Steps 3–5, never Step 2
+- ✅ In 確認して適用, approve per verdict group, not per sweep
 - ✅ Write the destination document and the code in the same step
+- ✅ In 報告のみ, render every non-`維持` finding in full and write nothing
+- ❌ Apply a 移設 that writes a destination document while in 自動適用
+- ❌ Apply a finding whose comment contradicts the code, in any unattended mode
 - ❌ Relocate a library's specific behavior out of the code
 - ❌ Relocate business knowledge into an ADR
 - ❌ Remove a functional directive, touch a generated file, or edit a protected path
@@ -181,11 +280,13 @@ stock those files *carry*. When called that way, take the scope from the caller 
 
 ## Checklist
 
-- [ ] Scope resolved to one directory (or taken from the caller)
+- [ ] Scope and apply mode resolved (from the argument, a flag, the caller payload, or Step 0)
 - [ ] Standard and destination documents read this run
-- [ ] Every comment in scope classified into one of the four verdicts
-- [ ] Approval taken per verdict group
-- [ ] Each 移設 wrote both the destination and the code residue
-- [ ] `pnpm fix` / `pnpm lint:ci` / `pnpm md-lint` run
+- [ ] Every comment in scope classified into one of the four verdicts, mode-independently
+- [ ] 確認して適用: approval taken per verdict group / 自動適用: withheld findings named
+- [ ] 報告のみ: every non-`維持` finding rendered in full and nothing written
+- [ ] Each applied 移設 wrote both the destination and the code residue
+- [ ] Under a payload: `hold` files excluded, `claimed` comments dropped before the approval loop
+- [ ] `pnpm fix` / `pnpm lint:ci` / `pnpm md-lint` run when something was written
 - [ ] Diff confirmed to change only comments and documents
 - [ ] What was not swept stated explicitly

@@ -19,7 +19,7 @@ Use this skill when:
 
 Do NOT use this skill to recursively rewrite every README in a tree. It operates on exactly one README per invocation. To refresh a whole tree, invoke it once per directory.
 
-## First Step: Confirm Input
+## Step 0. Confirm Input
 
 This skill **MUST call `AskUserQuestion` immediately after invocation** to confirm:
 
@@ -83,9 +83,7 @@ The following remain protected even during skill execution:
 - Any path listed under `permissions.deny` in `.claude/settings.json`
 - All other files and directories under the scope root (the skill reads them but never modifies them).
 
-## Execution Steps
-
-### 1. Read the target README
+## Step 1. Read the target README
 
 Read the target README in full to understand:
 
@@ -93,7 +91,7 @@ Read the target README in full to understand:
 - The entries it currently documents (files, directories, links).
 - Any custom conventions (e.g., a "Directory Layout" table, a "Subprojects" list).
 
-### 2. Enumerate the actual file tree
+## Step 2. Enumerate the actual file tree
 
 List the entries directly inside the scope root. For each:
 
@@ -102,7 +100,7 @@ List the entries directly inside the scope root. For each:
 - For directories with their own README, read only the first paragraph of that nested README to extract a digest.
 - For directories without their own README, optionally list immediately-notable children (do not deep-recurse).
 
-### 3. Compute the diff
+## Step 3. Compute the diff
 
 Build three lists:
 
@@ -112,7 +110,7 @@ Build three lists:
 
 If any item in **To remove** is referenced from elsewhere (links from other docs), surface that to the user before deletion.
 
-### 4. Apply the update
+## Step 4. Apply the update
 
 Rewrite the README so it reflects reality:
 
@@ -122,13 +120,13 @@ Rewrite the README so it reflects reality:
 - For child directories with their own README, ensure the entry is a one-line digest with a relative link to the nested README (e.g., `- [sub/](sub/README.md) — short digest`).
 - Preserve unrelated sections (introduction, badges, license, etc.) verbatim.
 
-### 5. Verify the canonical update
+## Step 5. Verify the canonical update
 
 - Confirm every entry in the updated README maps to a real file or directory.
 - Confirm no real entry (other than ignored ones) is missing.
 - Confirm no nested README was inadvertently expanded.
 
-### 6. Chain into `canonicalize-doc` to sync the translation
+## Step 6. Chain into `canonicalize-doc` to sync the translation
 
 After the canonical README is written:
 
@@ -140,7 +138,7 @@ After the canonical README is written:
 
 The chained `canonicalize-doc` call will perform its own `AskUserQuestion` confirmation; that is expected and not redundant — it lets the user veto the translation sync if needed.
 
-### 7. Verify with Markdown Lint
+## Step 7. Verify with Markdown Lint
 
 After writing the canonical README (and after `canonicalize-doc` has produced any translation), run:
 
@@ -161,7 +159,7 @@ Do NOT report the skill as complete until `pnpm md-lint` exits cleanly.
 
 `pnpm md-fix` operates on the entire repository, so it may modify Markdown files unrelated to the README pair. List any such files when reporting completion so the user can review the broader change set.
 
-### 8. Final verification
+## Step 8. Final verification
 
 - Confirm both files (canonical and translation) have parity if the translation was synced.
 - Report which entries were added / removed / updated and which files were written.
