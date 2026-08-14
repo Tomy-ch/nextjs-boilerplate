@@ -77,8 +77,12 @@ describe("storyURL", () => {
   // ----- 正常系 -----
   it("story の id と配色テーマを載せた URL を組み立てる", () => {
     expect(storyURL("action-button--default", "dark")).toBe(
-      "/iframe.html?id=action-button--default&globals=theme%3Adark&viewMode=story",
+      "/iframe.html?id=action-button--default&globals=theme%3Adark%3Ba11y.manual%3A%21true&viewMode=story",
     );
+  });
+
+  it("addon の自動検査を止める指定を載せる", () => {
+    expect(decodeURIComponent(storyURL("a--x", "light"))).toContain("a11y.manual:!true");
   });
 });
 
