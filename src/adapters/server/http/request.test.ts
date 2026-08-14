@@ -132,6 +132,50 @@ describe("createHttpClient", () => {
     expect(fetchImpl.mock.calls[0]?.[1]?.headers).not.toHaveProperty("Content-Type");
   });
 
+  it("204 は本文を読まず、本文を持たない契約として通す", async () => {
+    // 空の本文を JSON として解釈しようとすると構文エラーになり、成功した呼び出しが失敗になる。
+    const fetchImpl = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
+    const client = createClient(fetchImpl);
+
+    await expect(
+      client.request({ path: "/v1/items/1", method: "DELETE", schema: z.void() }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("Bearer の取得口を渡さない接続先へ認証ヘッダを付けない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).not.toHaveProperty("Authorization");
+  });
+
+  it("Bearer を解決できたら Authorization を付ける", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { getBearerToken: async () => "access-token" });
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).toMatchObject({
+      Authorization: "Bearer access-token",
+    });
+  });
+
+  it("Bearer の解決を試行ごとに繰り返さない", async () => {
+    const getBearerToken = vi.fn(async () => "access-token");
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse(503, {}))
+      .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { getBearerToken });
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(getBearerToken).toHaveBeenCalledOnce();
+  });
+
   it("5xx のあとに成功すれば結果を返す", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
@@ -197,6 +241,16 @@ describe("createHttpClient", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
   // ----- 異常系 -----
+  it("認証が要る接続先で Bearer を解決できないとき、送らずに未認証で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { getBearerToken: async () => null });
+
+    expect(await kindOf(() => client.request({ path: "/v1/items", schema }))).toBe(
+      ErrorKind.UNAUTHENTICATED,
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("生の status を漏らさず分類で落とす", async () => {
     const client = createClient(vi.fn(async () => jsonResponse(404, {})));
 
