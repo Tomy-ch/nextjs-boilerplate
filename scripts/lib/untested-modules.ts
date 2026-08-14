@@ -63,8 +63,14 @@ const NON_DECIDING_MODULES = [
  * @remarks
  * 判定を持たず、検証を通る入力一式を用意するだけ。テストが自分の分だけを組み立てると、
  * 他の purpose の欠落で落ちて検査したい判定へ到達しないため 1 箇所に置いてあります。
+ *
+ * `account.fixture.ts` は story とテストの双方が読みます。都道府県の 47 件のように、
+ * 実物どおりの件数でなければ器の幅を確かめられない入力があるためです。
  */
-const TEST_FIXTURE_MODULES = ["src/config/environment.fixture.ts"] as const;
+const TEST_FIXTURE_MODULES = [
+  "src/config/environment.fixture.ts",
+  "src/features/account/account.fixture.ts",
+] as const;
 
 /**
  * 単体では回せないモジュール。
