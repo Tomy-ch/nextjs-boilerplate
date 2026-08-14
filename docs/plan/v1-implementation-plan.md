@@ -1106,7 +1106,7 @@ sources:
 - **注意**: `proxy.ts` は thin・last resort。既定 Node runtime で `runtime` 指定不可([0043](../adr/0043-middleware-policy.md))。matcher で静的アセット・metadata ルートを除外する
 - **`mock_auth_server` の実測結果(調査済み)**: Authorization Code + PKCE(S256)を**必須強制**、OIDC discovery / JWKS あり、`redirect_uri` は **`http://localhost:3000/api/auth/callback` が登録済み**(nextjs 前提で作られている)。**PKCE 設計はそのまま動く**
 - **ただし mock 側に無いものが 3 つあり、設計で吸収する**:
-  - **refresh token が無い**(`grant_types_supported` は `authorization_code` のみ。access token TTL は 300 秒)。Resolver の refresh 部分は mock では検証できない
+  - **refresh token が無い**(`grant_types_supported` は `authorization_code` のみ。access token TTL は 3600 秒)。Resolver の refresh 部分は mock では検証できない。失効は TTL の経過ではなく `/bypass/token` の `expired` プロファイルで到達する
   - **authorize の subject が `user-john-doe` 固定で、その人は admin ロール保持者**。つまり **PKCE フローで取れるのは常に admin トークン**で、U1〜U12(一般ユーザー画面)を正規フローで検証できない。一般ユーザーは `POST /bypass/token {subject: "user-jane-smith"}` を使う
   - `end_session_endpoint` は **POST のみ**(ブラウザの GET ナビゲーションは 404)。CORS ヘッダも無い(= BFF 経由を維持すべき根拠)
 - **テスト用の認証経路をここで用意する**: 認証は Go API に存在せず OpenAPI 契約外のため **MSW では偽装できない**(P4-4)。また `mock_auth_server` は go 側 compose 内にあり、CI で compose を立てない方針(P6-4)と両立しない。したがって **テスト専用の session 発行経路**(go 側の `/bypass/token` を利用する、テスト環境限定の Route Handler)を本 PR で用意し、P6-4 の E2E がこれを使う。**本番モードでは起動を拒否する**ガードを付ける(go 側 `MOCK_AUTH_DEV_ENDPOINTS` と同型)
