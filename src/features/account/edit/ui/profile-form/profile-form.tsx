@@ -83,6 +83,43 @@ function fieldPropsOf(prefix: string, field: ProfileField) {
   };
 }
 
+/**
+ * 必須か任意かの印。
+ *
+ * @remarks
+ * 読み上げからは外します（`aria-hidden`）。必須かどうかは control 側の `aria-required` が
+ * 伝えており、印まで読ませると二重になります。
+ *
+ * 塗りつぶさず、縁と淡い地で示します。**塗ると誤りの表示と同じ強さになり**、何も間違えて
+ * いない画面に赤い塊が項目の数だけ並びます。誤りは文言と枠の色で示すので、印はそこまで
+ * 強い必要がありません。
+ *
+ * 任意の側にも印を出します。印の有無で読み分けさせると、印が無いのが「任意」なのか「印を
+ * 付け忘れた」のかを利用者が区別できません。
+ *
+ * label の前に置きます。**どちらの文言も 2 文字なので、印の列と label の開始位置が同時に
+ * 揃います。**後ろに置くと、label の長さがまちまちなぶん印が階段状に散らばります。
+ */
+function RequirementBadge({ required }: { readonly required: boolean }) {
+  return required ? (
+    <Badge
+      aria-hidden="true"
+      className="border-destructive/40 bg-destructive/10 text-destructive"
+      variant={BADGE_VARIANT.OUTLINE}
+    >
+      必須
+    </Badge>
+  ) : (
+    <Badge
+      aria-hidden="true"
+      className="border-muted-foreground/40 text-muted-foreground"
+      variant={BADGE_VARIANT.OUTLINE}
+    >
+      任意
+    </Badge>
+  );
+}
+
 type FieldFrameProps = {
   readonly children: ReactNode;
   readonly controlId: string;
@@ -98,23 +135,16 @@ type FieldFrameProps = {
  * @remarks
  * control だけを差し替えられるように外枠を分けています。
  *
- * 必須の印は **視覚のためだけ**に置き、`label` の外へ並べます。必須であることは control 側の
+ * 印は **視覚のためだけ**に置き、`label` の外へ並べます。必須かどうかは control 側の
  * `aria-required` が伝えており（付けるのは呼び出し元です）、`label` の中に入れると項目の名前が
  * 「姓必須」に変わってしまいます。読み上げも「姓、必須、required」と二重になります。
- *
- * 任意の項目に「任意」と書き添えません。必須を印で示す以上、印の無い項目が任意であることは
- * 決まっており、両方に印を付けると読む量が倍になります。
  */
 function FieldFrame({ children, controlId, errorId, label, message, required }: FieldFrameProps) {
   return (
     <Field data-invalid={message !== undefined}>
       <div className="flex items-center gap-2">
+        <RequirementBadge required={required} />
         <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
-        {required ? (
-          <Badge aria-hidden="true" variant={BADGE_VARIANT.DESTRUCTIVE}>
-            必須
-          </Badge>
-        ) : null}
       </div>
       {children}
       {message === undefined ? null : <FieldError id={errorId}>{message}</FieldError>}

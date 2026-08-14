@@ -20,6 +20,10 @@ export type InputProps = ComponentProps<"input">;
  * どちらからも利用できる。入力値を React state で制御するか、native form に委ねるかは
  * 呼び出し側が選ぶ。
  *
+ * 枠線は `border` ではなく `input` を使う。前者は仕切りのための控えめな色で、light では地の
+ * 色と同じ値であり、**枠が見えない**。入力できる範囲の境界は WCAG 1.4.11 が 3:1 を求める
+ * 対象なので、控えめにしてよい線ではない（[0100](../../../../../docs/adr/0100-accessibility-target.md)）。
+ *
  * @example
  * ```tsx
  * <Input name="email" type="email" autoComplete="email" required />
@@ -40,7 +44,7 @@ export function Input({ className, type, ...props }: InputProps) {
   return (
     <input
       className={cn(
-        "h-10 w-full min-w-0 rounded-md border border-border bg-background px-3 py-2 text-base text-foreground shadow-xs transition-colors placeholder:text-muted-foreground selection:bg-foreground selection:text-background file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground aria-invalid:border-destructive aria-invalid:outline-destructive",
+        "h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-base text-foreground shadow-xs transition-colors placeholder:text-muted-foreground selection:bg-foreground selection:text-background file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground aria-invalid:border-destructive aria-invalid:outline-destructive",
         className,
       )}
       data-slot="input"
