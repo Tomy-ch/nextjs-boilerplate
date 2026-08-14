@@ -187,7 +187,6 @@ describe("Drawer", () => {
 });
 
 describe("DrawerTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<DrawerFixture />);
 
@@ -207,7 +206,6 @@ describe("DrawerTrigger", () => {
 });
 
 describe("DrawerPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<DrawerFixture defaultOpen />);
 
@@ -217,14 +215,12 @@ describe("DrawerPortal", () => {
 });
 
 describe("DrawerOverlay", () => {
-  // ----- 正常系 -----
   it("開いている間だけ背面の覆いを描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
     expect(document.querySelector('[data-slot="drawer-overlay"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は背面の覆いを描画しない", () => {
     render(<DrawerFixture />);
 
@@ -233,14 +229,12 @@ describe("DrawerOverlay", () => {
 });
 
 describe("DrawerContent", () => {
-  // ----- 正常系 -----
   it("開いた内容として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
     expect(screen.getByRole("dialog")).toHaveAttribute("data-slot", "drawer-content");
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<DrawerFixture />);
 
@@ -249,7 +243,6 @@ describe("DrawerContent", () => {
 });
 
 describe("DrawerHeader", () => {
-  // ----- 正常系 -----
   it("見出し枠として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
@@ -258,7 +251,6 @@ describe("DrawerHeader", () => {
 });
 
 describe("DrawerFooter", () => {
-  // ----- 正常系 -----
   it("操作枠として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
@@ -267,7 +259,6 @@ describe("DrawerFooter", () => {
 });
 
 describe("DrawerTitle", () => {
-  // ----- 正常系 -----
   it("題名として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
@@ -276,7 +267,6 @@ describe("DrawerTitle", () => {
 });
 
 describe("DrawerDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
@@ -288,7 +278,6 @@ describe("DrawerDescription", () => {
 });
 
 describe("DrawerClose", () => {
-  // ----- 正常系 -----
   it("閉じる操作として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 

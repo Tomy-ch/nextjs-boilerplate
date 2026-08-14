@@ -64,7 +64,6 @@ describe("Accordion", () => {
 });
 
 describe("AccordionItem", () => {
-  // ----- 正常系 -----
   it("項目 1 件として slot を持つ要素を描画する", () => {
     const { container } = render(<ExampleAccordion />);
 
@@ -73,7 +72,6 @@ describe("AccordionItem", () => {
 });
 
 describe("AccordionTrigger", () => {
-  // ----- 正常系 -----
   it("開閉を切り替える操作として slot を持つ要素を描画する", () => {
     render(<ExampleAccordion />);
 
@@ -82,7 +80,6 @@ describe("AccordionTrigger", () => {
 });
 
 describe("AccordionContent", () => {
-  // ----- 正常系 -----
   it("内容として slot を持つ要素を描画する", () => {
     render(<ExampleAccordion />);
 

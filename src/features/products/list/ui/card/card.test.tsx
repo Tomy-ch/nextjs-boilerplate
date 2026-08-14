@@ -25,7 +25,6 @@ describe("ProductCard", () => {
     useCartStore.setState({ lines: [], isOpen: false });
   });
 
-  // ----- 正常系 -----
   it("名称・分類・状態・価格・在庫数を表示する", () => {
     render(<ProductCard item={ITEM} />);
 

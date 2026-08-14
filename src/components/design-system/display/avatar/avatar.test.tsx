@@ -173,7 +173,6 @@ describe("Avatar", () => {
 });
 
 describe("AvatarImage", () => {
-  // ----- 正常系 -----
   it("読み込みに成功すると画像を表示する", async () => {
     stubImageLoading("loaded");
     render(
@@ -191,7 +190,6 @@ describe("AvatarImage", () => {
     });
   });
 
-  // ----- 異常系 -----
   it("読み込みに失敗すると画像を表示しない", async () => {
     stubImageLoading("error");
     render(
@@ -209,7 +207,6 @@ describe("AvatarImage", () => {
 });
 
 describe("AvatarFallback", () => {
-  // ----- 正常系 -----
   it("代替表示として slot を持つ要素を描画する", () => {
     render(
       <Avatar>
@@ -222,7 +219,6 @@ describe("AvatarFallback", () => {
 });
 
 describe("AvatarBadge", () => {
-  // ----- 正常系 -----
   it("状態を添える印として slot を持つ要素を描画する", () => {
     const { container } = render(
       <Avatar>
@@ -236,7 +232,6 @@ describe("AvatarBadge", () => {
 });
 
 describe("AvatarGroup", () => {
-  // ----- 正常系 -----
   it("複数の avatar をまとめる枠として slot を持つ要素を描画する", () => {
     const { container } = render(
       <AvatarGroup>
@@ -251,7 +246,6 @@ describe("AvatarGroup", () => {
 });
 
 describe("AvatarGroupCount", () => {
-  // ----- 正常系 -----
   it("表示しきれない人数として slot を持つ要素を描画する", () => {
     render(
       <AvatarGroup>

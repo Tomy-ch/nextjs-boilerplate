@@ -149,7 +149,6 @@ describe("Breadcrumb", () => {
 });
 
 describe("BreadcrumbList", () => {
-  // ----- 正常系 -----
   it("経路を並べるリストとして slot を持つ要素を描画する", () => {
     render(
       <Breadcrumb>
@@ -170,7 +169,6 @@ describe("BreadcrumbList", () => {
 });
 
 describe("BreadcrumbItem", () => {
-  // ----- 正常系 -----
   it("経路 1 件として slot を持つ要素を描画する", () => {
     render(<BreadcrumbItem>ホーム</BreadcrumbItem>);
 
@@ -185,7 +183,6 @@ describe("BreadcrumbItem", () => {
 });
 
 describe("BreadcrumbLink", () => {
-  // ----- 正常系 -----
   it("遷移先を持つ link として描画する", () => {
     render(<BreadcrumbLink href="/">ホーム</BreadcrumbLink>);
 
@@ -207,7 +204,6 @@ describe("BreadcrumbLink", () => {
 });
 
 describe("BreadcrumbPage", () => {
-  // ----- 正常系 -----
   it("現在地を link ではない要素として示す", () => {
     render(<BreadcrumbPage>デスク周り</BreadcrumbPage>);
 
@@ -226,7 +222,6 @@ describe("BreadcrumbPage", () => {
 });
 
 describe("BreadcrumbSeparator", () => {
-  // ----- 正常系 -----
   it("区切りを支援技術から隠して描画する", () => {
     const { container } = render(<BreadcrumbSeparator />);
     const separator = container.querySelector('[data-slot="breadcrumb-separator"]');
@@ -243,7 +238,6 @@ describe("BreadcrumbSeparator", () => {
 });
 
 describe("BreadcrumbEllipsis", () => {
-  // ----- 正常系 -----
   it("省略を支援技術へ伝わる名前付きで示す", () => {
     const { container } = render(<BreadcrumbEllipsis />);
     const ellipsis = container.querySelector('[data-slot="breadcrumb-ellipsis"]');

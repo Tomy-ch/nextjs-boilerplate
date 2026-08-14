@@ -5,7 +5,6 @@ import { describe, expect, it, vi } from "vitest";
 import { ProductListError } from "./error-state";
 
 describe("ProductListError", () => {
-  // ----- 正常系 -----
   it("正規化済みの文言を示す", () => {
     render(<ProductListError message="現在サービスを利用できません。" onRetry={vi.fn()} />);
 

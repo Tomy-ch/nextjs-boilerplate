@@ -106,7 +106,6 @@ describe("TabsClient", () => {
 });
 
 describe("TabsClientList", () => {
-  // ----- 正常系 -----
   it("tablist として名前と slot を持つ要素を描画する", () => {
     render(<Fixture />);
 
@@ -117,7 +116,6 @@ describe("TabsClientList", () => {
 });
 
 describe("TabsClientTrigger", () => {
-  // ----- 正常系 -----
   it("選択中の tab を選択状態として示す", () => {
     render(<Fixture />);
 
@@ -135,7 +133,6 @@ describe("TabsClientTrigger", () => {
 });
 
 describe("TabsClientContent", () => {
-  // ----- 正常系 -----
   it("選択中の内容だけを tabpanel として描画する", () => {
     render(<Fixture />);
 

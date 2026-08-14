@@ -53,7 +53,6 @@ describe("Calendar", () => {
 });
 
 describe("CalendarDayButton", () => {
-  // ----- 正常系 -----
   it("日付ごとに、その日を data 属性として持つ button を描画する", () => {
     render(<Calendar defaultMonth={calendarMonth} mode="single" />);
 

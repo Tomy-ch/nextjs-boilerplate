@@ -176,7 +176,6 @@ describe("MessageGroup", () => {
 });
 
 describe("MessageAvatar", () => {
-  // ----- 正常系 -----
   it("発言者の枠として slot を持つ要素を描画する", () => {
     const { container } = render(<MessageAvatar />);
 
@@ -185,7 +184,6 @@ describe("MessageAvatar", () => {
 });
 
 describe("MessageHeader", () => {
-  // ----- 正常系 -----
   it("上段の枠として slot を持つ要素を描画する", () => {
     render(<MessageHeader>上段</MessageHeader>);
 
@@ -194,7 +192,6 @@ describe("MessageHeader", () => {
 });
 
 describe("MessageContent", () => {
-  // ----- 正常系 -----
   it("本文の枠として slot を持つ要素を描画する", () => {
     render(<MessageContent>本文</MessageContent>);
 
@@ -203,7 +200,6 @@ describe("MessageContent", () => {
 });
 
 describe("MessageFooter", () => {
-  // ----- 正常系 -----
   it("下段の枠として slot を持つ要素を描画する", () => {
     render(<MessageFooter>下段</MessageFooter>);
 

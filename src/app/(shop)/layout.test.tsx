@@ -23,7 +23,6 @@ describe("ShopLayout", () => {
     useCartStore.setState({ lines: [], isOpen: false });
   });
 
-  // ----- 正常系 -----
   it("利用者向けの外枠へ子要素を入れる", () => {
     render(
       <ShopLayout>

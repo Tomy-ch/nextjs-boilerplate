@@ -119,7 +119,6 @@ describe("Popover", () => {
 });
 
 describe("PopoverTrigger", () => {
-  // ----- 正常系 -----
   it("開閉を切り替える操作として slot を持つ要素を描画する", () => {
     render(
       <Popover>
@@ -143,14 +142,12 @@ describe("PopoverTrigger", () => {
 });
 
 describe("PopoverContent", () => {
-  // ----- 正常系 -----
   it("開いた内容として slot を持つ要素を描画する", () => {
     render(<PopoverFixture defaultOpen />);
 
     expect(screen.getByRole("dialog")).toHaveAttribute("data-slot", "popover-content");
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<PopoverFixture />);
 
@@ -159,7 +156,6 @@ describe("PopoverContent", () => {
 });
 
 describe("PopoverAnchor", () => {
-  // ----- 正常系 -----
   it("位置の基準として slot を持つ要素を描画する", () => {
     const { container } = render(
       <Popover>
@@ -172,7 +168,6 @@ describe("PopoverAnchor", () => {
 });
 
 describe("PopoverHeader", () => {
-  // ----- 正常系 -----
   it("見出し枠として slot を持つ要素を描画する", () => {
     render(<PopoverHeader>見出し枠</PopoverHeader>);
 
@@ -181,7 +176,6 @@ describe("PopoverHeader", () => {
 });
 
 describe("PopoverTitle", () => {
-  // ----- 正常系 -----
   it("題名として slot を持つ要素を描画する", () => {
     render(<PopoverTitle>表示条件</PopoverTitle>);
 
@@ -190,7 +184,6 @@ describe("PopoverTitle", () => {
 });
 
 describe("PopoverDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<PopoverDescription>条件の説明</PopoverDescription>);
 

@@ -39,7 +39,6 @@ vi.mock("next/image", () => ({
 }));
 
 describe("MediaImage", () => {
-  // ----- 正常系 -----
   it("比率固定の wrapper、実画像、CSS Skeleton を表示する", () => {
     render(<MediaImage alt="サンプル画像" src="/sample.svg" />);
 

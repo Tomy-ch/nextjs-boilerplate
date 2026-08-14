@@ -239,7 +239,6 @@ describe("AttachmentGroup", () => {
 });
 
 describe("AttachmentMedia", () => {
-  // ----- 正常系 -----
   it("見た目の枠として slot と variant を持つ要素を描画する", () => {
     render(
       <Attachment>
@@ -257,7 +256,6 @@ describe("AttachmentMedia", () => {
 });
 
 describe("AttachmentContent", () => {
-  // ----- 正常系 -----
   it("本文の枠として slot を持つ要素を描画する", () => {
     render(<Fixture />);
 
@@ -266,7 +264,6 @@ describe("AttachmentContent", () => {
 });
 
 describe("AttachmentTitle", () => {
-  // ----- 正常系 -----
   it("名称として slot を持つ要素を描画する", () => {
     render(<Fixture />);
 
@@ -275,7 +272,6 @@ describe("AttachmentTitle", () => {
 });
 
 describe("AttachmentDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<Fixture />);
 
@@ -284,7 +280,6 @@ describe("AttachmentDescription", () => {
 });
 
 describe("AttachmentActions", () => {
-  // ----- 正常系 -----
   it("操作の枠として slot を持つ要素を描画する", () => {
     render(
       <Attachment>
@@ -299,7 +294,6 @@ describe("AttachmentActions", () => {
 });
 
 describe("AttachmentAction", () => {
-  // ----- 正常系 -----
   it("名前を持つ操作として slot を持つ要素を描画する", () => {
     const onClick = vi.fn();
     render(
@@ -323,7 +317,6 @@ describe("AttachmentAction", () => {
 });
 
 describe("AttachmentTrigger", () => {
-  // ----- 正常系 -----
   it("既定では button として全体を開く操作にする", () => {
     render(
       <Attachment>

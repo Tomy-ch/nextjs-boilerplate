@@ -296,7 +296,6 @@ describe("Menubar", () => {
 });
 
 describe("MenubarMenu", () => {
-  // ----- 正常系 -----
   it("menu 1 つ分の trigger を menubar の項目として並べる", () => {
     render(<EditorMenubarFixture />);
 
@@ -305,7 +304,6 @@ describe("MenubarMenu", () => {
 });
 
 describe("MenubarTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<EditorMenubarFixture />);
 
@@ -326,7 +324,6 @@ describe("MenubarTrigger", () => {
 });
 
 describe("MenubarPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -336,14 +333,12 @@ describe("MenubarPortal", () => {
 });
 
 describe("MenubarContent", () => {
-  // ----- 正常系 -----
   it("開いた menu として slot を持つ要素を描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
     expect(document.querySelector('[data-slot="menubar-content"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<EditorMenubarFixture />);
 
@@ -352,7 +347,6 @@ describe("MenubarContent", () => {
 });
 
 describe("MenubarGroup", () => {
-  // ----- 正常系 -----
   it("項目の束として slot を持つ要素を描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -361,7 +355,6 @@ describe("MenubarGroup", () => {
 });
 
 describe("MenubarLabel", () => {
-  // ----- 正常系 -----
   it("見出しとして slot を持つ要素を描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -370,7 +363,6 @@ describe("MenubarLabel", () => {
 });
 
 describe("MenubarItem", () => {
-  // ----- 正常系 -----
   it("menuitem として slot を持つ要素を描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -380,7 +372,6 @@ describe("MenubarItem", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("disabled な項目を操作できないものとして示す", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -392,7 +383,6 @@ describe("MenubarItem", () => {
 });
 
 describe("MenubarSeparator", () => {
-  // ----- 正常系 -----
   it("区切りとして separator の意味論を持つ要素を描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -401,7 +391,6 @@ describe("MenubarSeparator", () => {
 });
 
 describe("MenubarShortcut", () => {
-  // ----- 正常系 -----
   it("shortcut 表示を kbd の意味論で描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -413,7 +402,6 @@ describe("MenubarShortcut", () => {
 });
 
 describe("MenubarCheckboxItem", () => {
-  // ----- 正常系 -----
   it("選択状態を menuitemcheckbox として読み上げ可能にする", () => {
     render(<SelectionMenubarFixture />);
 
@@ -423,7 +411,6 @@ describe("MenubarCheckboxItem", () => {
 });
 
 describe("MenubarRadioGroup", () => {
-  // ----- 正常系 -----
   it("排他選択の束として slot を持つ要素を描画する", () => {
     render(<SelectionMenubarFixture />);
 
@@ -432,7 +419,6 @@ describe("MenubarRadioGroup", () => {
 });
 
 describe("MenubarRadioItem", () => {
-  // ----- 正常系 -----
   it("群の値と一致するものが選択状態になる", () => {
     render(<SelectionMenubarFixture />);
 
@@ -442,7 +428,6 @@ describe("MenubarRadioItem", () => {
 });
 
 describe("MenubarSub", () => {
-  // ----- 正常系 -----
   it("入れ子の menu を閉じた状態で用意する", () => {
     render(<SubMenubarFixture />);
 
@@ -454,7 +439,6 @@ describe("MenubarSub", () => {
 });
 
 describe("MenubarSubTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<SubMenubarFixture />);
 
@@ -466,7 +450,6 @@ describe("MenubarSubTrigger", () => {
 });
 
 describe("MenubarSubContent", () => {
-  // ----- 正常系 -----
   it("入れ子の menu を開くと項目を描画する", () => {
     render(<SubMenubarFixture />);
 

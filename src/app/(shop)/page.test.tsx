@@ -15,7 +15,6 @@ function pending() {
 }
 
 describe("HomePage", () => {
-  // ----- 正常系 -----
   it("この画面の名前と説明を metadata に持つ", () => {
     expect(metadata.title).toBe("トップ");
     expect(metadata.description).toBe("新着商品と売上ランキング、カテゴリから商品を探せます。");

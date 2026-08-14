@@ -9,7 +9,6 @@ vi.mock("next/font/google", () => ({
 import RootLayout, { metadata } from "./layout";
 
 describe("RootLayout", () => {
-  // ----- 正常系 -----
   it("HTML の言語と子要素を設定する", () => {
     const markup = renderToStaticMarkup(
       <RootLayout>

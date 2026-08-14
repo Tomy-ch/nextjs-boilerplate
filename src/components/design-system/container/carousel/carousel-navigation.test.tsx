@@ -361,7 +361,6 @@ describe("CarouselNext", () => {
     Element.prototype.scrollBy = originalScrollBy;
   });
 
-  // ----- 正常系 -----
   it("次のスライドを指す link として slot つきで描画する", () => {
     render(<StepFixture />);
 
@@ -392,7 +391,6 @@ describe("CarouselLink", () => {
     vi.unstubAllGlobals();
   });
 
-  // ----- 正常系 -----
   it("スライドを指す link として slot つきで、slide の数だけ描画する", () => {
     const { container } = render(<ThumbnailFixture />);
 

@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import NotFound from "./not-found";
 
 describe("NotFound", () => {
-  // ----- 正常系 -----
   it("見つからなかったことを見出しで伝える", () => {
     render(<NotFound />);
 

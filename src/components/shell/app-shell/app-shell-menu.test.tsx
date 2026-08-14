@@ -12,7 +12,6 @@ const ITEMS = [
 ];
 
 describe("AppShellMenu", () => {
-  // ----- 正常系 -----
   it("開く操作だけを最初に見せる", () => {
     render(<AppShellMenu items={ITEMS} />);
 

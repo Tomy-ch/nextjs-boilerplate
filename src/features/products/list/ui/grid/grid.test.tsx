@@ -29,7 +29,6 @@ describe("ProductGrid", () => {
     useCartStore.setState({ lines: [], isOpen: false });
   });
 
-  // ----- 正常系 -----
   it("渡された商品を並べる", () => {
     render(<ProductGrid items={ITEMS} />);
 

@@ -792,14 +792,12 @@ describe("ChartLegendContent", () => {
 });
 
 describe("ChartTooltip", () => {
-  // ----- 正常系 -----
   it("Recharts の Tooltip をそのまま提供する", () => {
     expect(ChartTooltip).toBe(RechartsPrimitive.Tooltip);
   });
 });
 
 describe("ChartLegend", () => {
-  // ----- 正常系 -----
   it("Recharts の Legend をそのまま提供する", () => {
     expect(ChartLegend).toBe(RechartsPrimitive.Legend);
   });

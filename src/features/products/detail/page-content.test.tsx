@@ -54,7 +54,6 @@ describe("ProductDetailPageContent", () => {
     vi.unstubAllGlobals();
   });
 
-  // ----- 正常系 -----
   it("取得した商品を詳細表示へ渡す", async () => {
     getProduct.mockResolvedValue(PRODUCT);
 

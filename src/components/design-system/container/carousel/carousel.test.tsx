@@ -236,7 +236,6 @@ describe("Carousel", () => {
 });
 
 describe("CarouselContent", () => {
-  // ----- 正常系 -----
   it("スライドを並べる枠として slot を持つ要素を描画する", () => {
     const { container } = render(<SlidesFixture />);
 
@@ -245,7 +244,6 @@ describe("CarouselContent", () => {
 });
 
 describe("CarouselItem", () => {
-  // ----- 正常系 -----
   it("スライド 1 件として slot を持つ要素を、名前つきで描画する", () => {
     render(<SlidesFixture />);
 
@@ -262,7 +260,6 @@ describe("CarouselItem", () => {
 });
 
 describe("CarouselNav", () => {
-  // ----- 正常系 -----
   it("操作の枠として slot を持つ要素を描画する", () => {
     const { container } = render(<NavFixture />);
 

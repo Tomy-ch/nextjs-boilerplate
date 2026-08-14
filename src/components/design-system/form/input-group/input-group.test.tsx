@@ -265,7 +265,6 @@ describe("InputGroupTextarea", () => {
 });
 
 describe("InputGroupText", () => {
-  // ----- 正常系 -----
   it("添える文言を span として描画する", () => {
     render(<UnitInputGroup />);
 

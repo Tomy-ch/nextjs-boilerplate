@@ -71,7 +71,6 @@ describe("TabsNative", () => {
 });
 
 describe("TabsNativeList", () => {
-  // ----- 正常系 -----
   it("並びの枠として slot を持つ要素を描画する", () => {
     const { container } = render(<Fixture />);
 
@@ -80,7 +79,6 @@ describe("TabsNativeList", () => {
 });
 
 describe("TabsNativeLink", () => {
-  // ----- 正常系 -----
   it("遷移先を持つ link として描画する", () => {
     render(<Fixture />);
 

@@ -62,7 +62,6 @@ describe("CartHeaderAction", () => {
     vi.unstubAllGlobals();
   });
 
-  // ----- 正常系 -----
   it("広い幅では点数を持つ切り替えになり、中身は持たない", () => {
     seed(COFFEE);
     render(<CartHeaderAction />);

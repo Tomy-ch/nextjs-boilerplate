@@ -131,7 +131,6 @@ describe("ToggleGroupNative", () => {
 });
 
 describe("ToggleGroupNativeItem", () => {
-  // ----- 正常系 -----
   it("選択肢 1 件を label で包んだ radio として描画する", () => {
     render(<SingleFixture />);
 
