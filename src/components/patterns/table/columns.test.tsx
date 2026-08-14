@@ -19,7 +19,6 @@ const COLUMNS: TableColumnDefinition[] = [
 ];
 
 describe("TableColumnGroup", () => {
-  // ----- 正常系 -----
   it("列の数だけ col を並べ、幅を持つ列へ幅を書く", () => {
     const { container } = render(
       <Table>
@@ -45,7 +44,6 @@ describe("TableColumnGroup", () => {
 });
 
 describe("TableColumnHeaders", () => {
-  // ----- 正常系 -----
   it("列定義の順に見出しセルを並べる", () => {
     render(
       <Table>

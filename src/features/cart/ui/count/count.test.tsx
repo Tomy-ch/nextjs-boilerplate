@@ -21,7 +21,6 @@ describe("CartCount", () => {
     useCartStore.setState({ lines: [] });
   });
 
-  // ----- 正常系 -----
   it("カートの点数を出す", () => {
     useCartStore.getState().add(COFFEE);
     useCartStore.getState().add({ ...COFFEE, productId: "other", name: "煎茶" });

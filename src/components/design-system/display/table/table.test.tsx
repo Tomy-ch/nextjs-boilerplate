@@ -54,7 +54,6 @@ describe("Table", () => {
 });
 
 describe("TableHeader", () => {
-  // ----- 正常系 -----
   it("見出し行の束として slot を持つ要素を描画する", () => {
     const { container } = render(
       <Table>
@@ -71,7 +70,6 @@ describe("TableHeader", () => {
 });
 
 describe("TableBody", () => {
-  // ----- 正常系 -----
   it("本体行の束として slot を持つ要素を描画する", () => {
     const { container } = render(
       <Table>
@@ -88,7 +86,6 @@ describe("TableBody", () => {
 });
 
 describe("TableFooter", () => {
-  // ----- 正常系 -----
   it("脚注行の束として slot を持つ要素を描画する", () => {
     const { container } = render(
       <Table>
@@ -105,7 +102,6 @@ describe("TableFooter", () => {
 });
 
 describe("TableRow", () => {
-  // ----- 正常系 -----
   it("行として slot を持つ要素を描画する", () => {
     render(
       <Table>
@@ -122,7 +118,6 @@ describe("TableRow", () => {
 });
 
 describe("TableHead", () => {
-  // ----- 正常系 -----
   it("見出しセルとして slot を持つ要素を描画する", () => {
     render(
       <Table>
@@ -142,7 +137,6 @@ describe("TableHead", () => {
 });
 
 describe("TableCell", () => {
-  // ----- 正常系 -----
   it("データセルとして slot を持つ要素を描画する", () => {
     render(
       <Table>
@@ -159,7 +153,6 @@ describe("TableCell", () => {
 });
 
 describe("TableCaption", () => {
-  // ----- 正常系 -----
   it("表の説明として slot を持つ要素を描画する", () => {
     const { container } = render(
       <Table>

@@ -119,7 +119,6 @@ describe("AuthStateFeedback", () => {
 });
 
 describe("AuthSignInAction", () => {
-  // ----- 正常系 -----
   it("サインイン先を指す link として既定の文言を出す", () => {
     render(<AuthSignInAction href="/auth/sign-in" />);
 

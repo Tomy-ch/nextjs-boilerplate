@@ -113,7 +113,6 @@ describe("Marker", () => {
 });
 
 describe("MarkerIcon", () => {
-  // ----- 正常系 -----
   it("印の枠として slot を持つ要素を描画する", () => {
     const { container } = render(
       <Marker>
@@ -127,7 +126,6 @@ describe("MarkerIcon", () => {
 });
 
 describe("MarkerContent", () => {
-  // ----- 正常系 -----
   it("本文として slot を持つ要素を描画する", () => {
     render(
       <Marker>

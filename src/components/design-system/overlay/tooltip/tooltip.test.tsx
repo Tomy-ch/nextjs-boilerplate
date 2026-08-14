@@ -107,12 +107,10 @@ describe("Tooltip", () => {
 });
 
 describe("TooltipProvider", () => {
-  // ----- 正常系 -----
   it("配下の tooltip を成立させる", () => {
     expect(() => render(<TooltipFixture />)).not.toThrow();
   });
 
-  // ----- 異常系 -----
   it("provider の外に置いた tooltip を成立させない", () => {
     expect(() =>
       render(
@@ -126,7 +124,6 @@ describe("TooltipProvider", () => {
 });
 
 describe("TooltipTrigger", () => {
-  // ----- 正常系 -----
   it("補足の対象として slot を持つ要素を描画する", () => {
     render(<TooltipFixture />);
 
@@ -138,14 +135,12 @@ describe("TooltipTrigger", () => {
 });
 
 describe("TooltipContent", () => {
-  // ----- 正常系 -----
   it("開いている間は補足を tooltip として描画する", () => {
     render(<TooltipFixture defaultOpen />);
 
     expect(screen.getAllByText("表示時点の参考レートで換算した概算です。")[0]).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は補足を描画しない", () => {
     render(<TooltipFixture />);
 

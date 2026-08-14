@@ -224,7 +224,6 @@ describe("FilterChip", () => {
 });
 
 describe("FilterBarControls", () => {
-  // ----- 正常系 -----
   it("操作の枠として slot を持つ要素を描画する", () => {
     render(<FilterBarControls>操作</FilterBarControls>);
 

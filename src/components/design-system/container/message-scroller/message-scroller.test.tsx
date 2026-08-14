@@ -311,7 +311,6 @@ describe("MessageScroller", () => {
 });
 
 describe("MessageScrollerViewport", () => {
-  // ----- 正常系 -----
   it("スクロールする枠として slot を持つ要素を、名前つきで描画する", () => {
     render(<Fixture />);
 
@@ -323,7 +322,6 @@ describe("MessageScrollerViewport", () => {
 });
 
 describe("MessageScrollerContent", () => {
-  // ----- 正常系 -----
   it("やり取りの本体として slot を持つ要素を描画する", () => {
     const { container } = render(<Fixture />);
 
@@ -332,7 +330,6 @@ describe("MessageScrollerContent", () => {
 });
 
 describe("MessageScrollerButton", () => {
-  // ----- 異常系 -----
   it("末尾に居る間は最新へ戻る操作を描画しない", () => {
     const { container } = render(<Fixture />);
 

@@ -50,7 +50,6 @@ describe("SelectNative", () => {
 });
 
 describe("SelectNativeOptGroup", () => {
-  // ----- 正常系 -----
   it("候補の束として optgroup を描画する", () => {
     render(
       <SelectNative aria-label="表示形式">
@@ -68,7 +67,6 @@ describe("SelectNativeOptGroup", () => {
 });
 
 describe("SelectNativeOption", () => {
-  // ----- 正常系 -----
   it("候補 1 件として option を描画する", () => {
     render(
       <SelectNative aria-label="表示形式">

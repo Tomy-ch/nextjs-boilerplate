@@ -269,7 +269,6 @@ describe("CommandDialog", () => {
 });
 
 describe("CommandInput", () => {
-  // ----- 正常系 -----
   it("検索欄として slot を持つ要素を描画する", () => {
     render(<CommandFixture />);
 
@@ -287,7 +286,6 @@ describe("CommandInput", () => {
 });
 
 describe("CommandList", () => {
-  // ----- 正常系 -----
   it("候補の一覧として slot を持つ要素を描画する", () => {
     render(<CommandFixture />);
 
@@ -296,7 +294,6 @@ describe("CommandList", () => {
 });
 
 describe("CommandGroup", () => {
-  // ----- 正常系 -----
   it("見出し付きの束として slot を持つ要素を描画する", () => {
     render(<CommandFixture />);
 
@@ -306,7 +303,6 @@ describe("CommandGroup", () => {
 });
 
 describe("CommandItem", () => {
-  // ----- 正常系 -----
   it("候補 1 件を option として描画する", () => {
     render(<CommandFixture />);
 
@@ -316,7 +312,6 @@ describe("CommandItem", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("disabled な候補を操作できないものとして示す", () => {
     render(<CommandFixture />);
 
@@ -328,7 +323,6 @@ describe("CommandItem", () => {
 });
 
 describe("CommandSeparator", () => {
-  // ----- 正常系 -----
   it("区切りとして slot を持つ要素を描画する", () => {
     render(<CommandFixture />);
 
@@ -337,7 +331,6 @@ describe("CommandSeparator", () => {
 });
 
 describe("CommandShortcut", () => {
-  // ----- 正常系 -----
   it("shortcut 表示として slot を持つ要素を描画する", () => {
     render(<CommandFixture />);
 
@@ -346,7 +339,6 @@ describe("CommandShortcut", () => {
 });
 
 describe("CommandEmpty", () => {
-  // ----- 異常系 -----
   it("一致する候補が無いときだけ不在の案内を出す", () => {
     render(<CommandFixture />);
 

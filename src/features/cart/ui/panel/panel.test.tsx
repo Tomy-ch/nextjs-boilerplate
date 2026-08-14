@@ -30,7 +30,6 @@ describe("CartPanel", () => {
     useCartStore.setState({ lines: [], isOpen: false });
   });
 
-  // ----- 正常系 -----
   it("名前のある領域として公開する", () => {
     useCartStore.getState().add(COFFEE);
     render(<CartPanel />);

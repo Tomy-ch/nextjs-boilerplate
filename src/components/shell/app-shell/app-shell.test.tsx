@@ -25,7 +25,6 @@ function renderShell() {
 }
 
 describe("AppShell", () => {
-  // ----- 正常系 -----
   it("本文を main へ入れる", () => {
     renderShell();
 

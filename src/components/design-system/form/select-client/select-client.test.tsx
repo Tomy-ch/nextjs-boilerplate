@@ -98,7 +98,6 @@ describe("SelectClient", () => {
 });
 
 describe("SelectTrigger", () => {
-  // ----- 正常系 -----
   it("開閉を切り替える combobox として slot を持つ要素を描画する", () => {
     render(<SelectFixture />);
 
@@ -108,7 +107,6 @@ describe("SelectTrigger", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("disabled のときは操作できない", () => {
     render(<SelectFixture disabled />);
 
@@ -117,7 +115,6 @@ describe("SelectTrigger", () => {
 });
 
 describe("SelectValue", () => {
-  // ----- 正常系 -----
   it("選択済みの値を trigger の中へ表示する", () => {
     render(<SelectFixture />);
 
@@ -126,7 +123,6 @@ describe("SelectValue", () => {
 });
 
 describe("SelectContent", () => {
-  // ----- 正常系 -----
   it("開くと listbox として slot を持つ要素を描画する", () => {
     render(<SelectFixture />);
 
@@ -135,7 +131,6 @@ describe("SelectContent", () => {
     expect(screen.getByRole("listbox")).toHaveAttribute("data-slot", "select-content");
   });
 
-  // ----- 異常系 -----
   it("閉じている間は候補を描画しない", () => {
     render(<SelectFixture />);
 
@@ -144,7 +139,6 @@ describe("SelectContent", () => {
 });
 
 describe("SelectGroup", () => {
-  // ----- 正常系 -----
   it("候補の束として slot を持つ要素を描画する", () => {
     render(<SelectFixture />);
 
@@ -155,7 +149,6 @@ describe("SelectGroup", () => {
 });
 
 describe("SelectLabel", () => {
-  // ----- 正常系 -----
   it("束の見出しとして slot を持つ要素を描画する", () => {
     render(<SelectFixture />);
 
@@ -166,7 +159,6 @@ describe("SelectLabel", () => {
 });
 
 describe("SelectItem", () => {
-  // ----- 正常系 -----
   it("候補 1 件を option として描画する", () => {
     render(<SelectFixture />);
 
@@ -188,7 +180,6 @@ describe("SelectItem", () => {
 });
 
 describe("SelectSeparator", () => {
-  // ----- 正常系 -----
   it("区切りとして slot を持つ要素を描画する", () => {
     render(<SelectFixture />);
 
@@ -199,7 +190,6 @@ describe("SelectSeparator", () => {
 });
 
 describe("SelectScrollUpButton", () => {
-  // ----- 異常系 -----
   it("候補があふれていなければスクロール操作を描画しない", () => {
     render(<SelectFixture />);
 
@@ -210,7 +200,6 @@ describe("SelectScrollUpButton", () => {
 });
 
 describe("SelectScrollDownButton", () => {
-  // ----- 異常系 -----
   it("候補があふれていなければスクロール操作を描画しない", () => {
     render(<SelectFixture />);
 

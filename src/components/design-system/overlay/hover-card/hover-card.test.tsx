@@ -48,7 +48,6 @@ describe("HoverCard", () => {
 });
 
 describe("HoverCardTrigger", () => {
-  // ----- 正常系 -----
   it("asChild で渡した要素を対象の実体にする", () => {
     render(<HoverCardFixture />);
 
@@ -60,14 +59,12 @@ describe("HoverCardTrigger", () => {
 });
 
 describe("HoverCardContent", () => {
-  // ----- 正常系 -----
   it("開いている間は補足を描画する", () => {
     render(<HoverCardFixture />);
 
     expect(screen.getByText("公開されているプロジェクト情報を確認できます。")).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は補足を描画しない", () => {
     render(
       <HoverCard>

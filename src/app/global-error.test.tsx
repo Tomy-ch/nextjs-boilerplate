@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from "vitest";
 import GlobalError from "./global-error";
 
 describe("GlobalError", () => {
-  // ----- 正常系 -----
   it("正規化済みの文言と問い合わせ番号を出す", () => {
     render(
       <GlobalError

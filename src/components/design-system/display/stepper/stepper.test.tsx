@@ -142,7 +142,6 @@ describe("Stepper", () => {
 });
 
 describe("StepperItem", () => {
-  // ----- 正常系 -----
   it("段 1 件として slot を持つ listitem を描画する", () => {
     render(<Fixture />);
 

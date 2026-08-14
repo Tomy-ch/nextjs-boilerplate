@@ -208,7 +208,6 @@ describe("SegmentedInput", () => {
 });
 
 describe("SegmentedInputGroup", () => {
-  // ----- 正常系 -----
   it("桁の束として slot を持つ要素を描画する", () => {
     const { container } = render(<CodeFixture />);
 
@@ -217,7 +216,6 @@ describe("SegmentedInputGroup", () => {
 });
 
 describe("SegmentedInputSlot", () => {
-  // ----- 正常系 -----
   it("桁 1 つとして slot を持つ要素を、桁数分だけ描画する", () => {
     const { container } = render(<CodeFixture />);
 
@@ -226,14 +224,12 @@ describe("SegmentedInputSlot", () => {
 });
 
 describe("SegmentedInputSeparator", () => {
-  // ----- 正常系 -----
   it("束の区切りとして slot を持つ要素を描画する", () => {
     const { container } = render(<CodeFixture />);
 
     expect(container.querySelector('[data-slot="segmented-input-separator"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("区切りを置かない構成では描画しない", () => {
     const { container } = render(<CodeFixture withSeparator={false} />);
 

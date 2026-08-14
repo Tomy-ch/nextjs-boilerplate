@@ -219,7 +219,6 @@ describe("List", () => {
 });
 
 describe("ListItem", () => {
-  // ----- 正常系 -----
   it("項目 1 件を listitem として描画する", () => {
     render(
       <List>
@@ -247,7 +246,6 @@ describe("ListItem", () => {
 });
 
 describe("ListItemLink", () => {
-  // ----- 正常系 -----
   it("行全体を遷移先にする link を描画する", () => {
     render(<ListItemLink href="/items/1">項目</ListItemLink>);
 
@@ -269,7 +267,6 @@ describe("ListItemLink", () => {
 });
 
 describe("ListItemMedia", () => {
-  // ----- 正常系 -----
   it("メディア枠として slot と variant を持つ要素を描画する", () => {
     const { container } = render(
       <ListItemMedia variant={LIST_ITEM_MEDIA_VARIANT.DEFAULT}>図</ListItemMedia>,
@@ -282,7 +279,6 @@ describe("ListItemMedia", () => {
 });
 
 describe("ListItemContent", () => {
-  // ----- 正常系 -----
   it("本文枠として slot を持つ要素を描画する", () => {
     render(<ListItemContent>本文</ListItemContent>);
 
@@ -291,7 +287,6 @@ describe("ListItemContent", () => {
 });
 
 describe("ListItemTitle", () => {
-  // ----- 正常系 -----
   it("見出しとして slot を持つ要素を描画する", () => {
     render(<ListItemTitle>題名</ListItemTitle>);
 
@@ -300,7 +295,6 @@ describe("ListItemTitle", () => {
 });
 
 describe("ListItemDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<ListItemDescription>補足</ListItemDescription>);
 
@@ -309,7 +303,6 @@ describe("ListItemDescription", () => {
 });
 
 describe("ListItemActions", () => {
-  // ----- 正常系 -----
   it("操作枠として slot を持つ要素を描画する", () => {
     render(<ListItemActions>操作</ListItemActions>);
 
@@ -318,7 +311,6 @@ describe("ListItemActions", () => {
 });
 
 describe("ListItemHeader", () => {
-  // ----- 正常系 -----
   it("上段の枠として slot を持つ要素を描画する", () => {
     render(<ListItemHeader>上段</ListItemHeader>);
 
@@ -327,7 +319,6 @@ describe("ListItemHeader", () => {
 });
 
 describe("ListItemFooter", () => {
-  // ----- 正常系 -----
   it("下段の枠として slot を持つ要素を描画する", () => {
     render(<ListItemFooter>下段</ListItemFooter>);
 
@@ -336,7 +327,6 @@ describe("ListItemFooter", () => {
 });
 
 describe("ListSeparator", () => {
-  // ----- 正常系 -----
   it("区切りを支援技術から隠して描画する", () => {
     const { container } = render(
       <List>
