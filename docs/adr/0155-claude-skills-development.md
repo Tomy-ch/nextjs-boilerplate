@@ -46,7 +46,7 @@ Accepted
 | `sync-readme` | README ↔ ディスク同期 | 単一 README の記述を実ディレクトリ状態に合わせて更新。子ディレクトリの README は digest + 参照リンクのみ |
 | `readme-review` | README の portal 価値評価 | 単一 README を `docs/portal/manifest.yaml` 登録基準で採点 |
 | `new-env` | 環境変数の e2e 追加 | 目的別 config モジュール / env ファイル / 変数表 docs を一括で同期 (対象構造は A7 = [0030](0030-environment-variable-management.md)、後述) |
-| `impl-review` | adversarial code review | 5 観点 (correctness / security / architecture / runtime-gap / test-gap) + コメント品質の subagent fanout + verifier による多段検証。コメント指摘のみライフサイクル内で自動修正し、残る指摘は PR へインライン投稿する |
+| `impl-review` | adversarial code review | 6 観点 (correctness / security / architecture / cohesion / runtime-gap / test-gap) + コメント品質の subagent fanout + verifier による多段検証。`cohesion` は「1 つの単位が変わる理由を複数持つ」を見る単位内の観点で、カーネル跨ぎの配置を持つ `architecture` とは重ならない。コメント指摘のみライフサイクル内で自動修正し、残る指摘は PR へインライン投稿する |
 | `scaffold-test` | テストの新規作成 (unit / component) | テストを持たない対象について、対象自身の分岐からケースを導き `<subject>.test.ts(x)` を書く。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) / 最近傍 README の `test-requirement` / `scripts/lib/untested-modules.ts` を実行時に読む。対象は read-only で、検証できない分岐は skip せず所見として報告する |
 | `scaffold-integration-test` | HTTP 境界の結合テスト作成 | `adapters` のクライアントや Route Handler を、契約から生成された MSW ハンドラで動かすテストを書く。[0090](0090-testing-strategy.md) の「integration = HTTP 境界のみ / 内側は mock / 形と型をアサート」を保ち、ハンドラの手書きと `fetch` stub を禁じる |
 | `comment-sweep` | コメント在庫の管轄判定 | 蓄積したコメントを 維持 / 削除 / 書換 / **移設** の 4 判定で裁く。移設は根拠を ADR や層 README へ動かし、コードには効力のある残余と 1 行の参照を残す。read-only のレビュアーが出せない判定であり(移設先の文書を書く必要がある)、判断対象も差分ではなく在庫である。適用は 確認して適用 / 自動適用 (`--apply`) / 報告のみ (`--report-only`) の 3 モードで、自動適用は文書書き込みを伴う移設を適用しない。`impl-review` Step 6 の委譲先を兼ねる |
