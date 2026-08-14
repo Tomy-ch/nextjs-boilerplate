@@ -45,6 +45,7 @@ export type ScreenDeclaration =
  * （[0091](../../docs/adr/0091-test-verification-methods.md) の除外の規律と同じ）。
  */
 export const SCREENS: readonly ScreenDeclaration[] = [
+  // sample:begin
   { route: "/", name: "home", path: "/" },
   { route: "/products", name: "products", path: "/products" },
   {
@@ -54,6 +55,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     // 中身も固定される。存在する ID である必要はない — 契約駆動のモックはどの ID にも応える。
     path: "/products/0195f0c2-0000-7000-8000-000000000001",
   },
+  // sample:end
   { route: "/login", name: "login", path: "/login" },
   { route: "/_not-found", name: "not-found", path: "/この経路は存在しない" },
   {

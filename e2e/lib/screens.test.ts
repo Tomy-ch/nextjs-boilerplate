@@ -11,8 +11,8 @@ describe("listScreenRoutes", () => {
   // ----- 正常系 -----
   it("面を持つ route だけを返す", () => {
     const json = manifest({
-      "/(shop)/page": "/",
-      "/api/products/route": "/api/products",
+      "/(alpha)/page": "/",
+      "/api/beta/route": "/api/beta",
       "/favicon.ico/route": "/favicon.ico",
     });
 
@@ -20,9 +20,9 @@ describe("listScreenRoutes", () => {
   });
 
   it("動的な区間を持つ route も返す", () => {
-    const json = manifest({ "/(shop)/products/[id]/page": "/products/[id]" });
+    const json = manifest({ "/(alpha)/gamma/[id]/page": "/gamma/[id]" });
 
-    expect(listScreenRoutes(json)).toEqual(["/products/[id]"]);
+    expect(listScreenRoutes(json)).toEqual(["/gamma/[id]"]);
   });
 
   it("並びを固定して返す", () => {
@@ -52,11 +52,11 @@ describe("resolveScreens", () => {
 
   it("動的な区間を宣言された URL へ置き換える", () => {
     const resolved = resolveScreens(
-      ["/products/[id]"],
-      [{ route: "/products/[id]", name: "detail", path: "/products/1" }],
+      ["/gamma/[id]"],
+      [{ route: "/gamma/[id]", name: "detail", path: "/gamma/1" }],
     );
 
-    expect(resolved[0]?.path).toBe("/products/1");
+    expect(resolved[0]?.path).toBe("/gamma/1");
   });
 
   // ----- 異常系 -----

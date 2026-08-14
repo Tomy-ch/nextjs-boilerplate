@@ -47,6 +47,9 @@ export const SAMPLE_PATHS: readonly string[] = [
   "mocks/auth",
   "mocks/contract-conformance.test.ts",
   "mocks/handlers.test.ts",
+  // 題材の画面を通す E2E。土台（`e2e/lib` / `e2e/visual`）と、題材に依らない認証の前捌きは残す。
+  "e2e/journeys/browse.spec.ts",
+  "e2e/journeys/responsive.spec.ts",
   // 破棄の道具（使い終わったら不要）。ディレクトリごと挙げれば、判定モジュールを足しても漏れない。
   "scripts/setup/remove-sample",
 ];

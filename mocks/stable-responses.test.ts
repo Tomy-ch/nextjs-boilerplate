@@ -8,49 +8,49 @@ import { seedFor, stableHandlers } from "./stable-responses";
 describe("seedFor", () => {
   // ----- 正常系 -----
   it("同じ要求に同じ値を返す", () => {
-    expect(seedFor("GET", "https://api.test/v1/products")).toBe(
-      seedFor("GET", "https://api.test/v1/products"),
+    expect(seedFor("GET", "https://api.test/v1/alpha")).toBe(
+      seedFor("GET", "https://api.test/v1/alpha"),
     );
   });
 
   it("method が違えば別の値を返す", () => {
-    expect(seedFor("GET", "https://api.test/v1/products")).not.toBe(
-      seedFor("POST", "https://api.test/v1/products"),
+    expect(seedFor("GET", "https://api.test/v1/alpha")).not.toBe(
+      seedFor("POST", "https://api.test/v1/alpha"),
     );
   });
 
   it("method の綴りの大小を区別しない", () => {
-    expect(seedFor("get", "https://api.test/v1/products")).toBe(
-      seedFor("GET", "https://api.test/v1/products"),
+    expect(seedFor("get", "https://api.test/v1/alpha")).toBe(
+      seedFor("GET", "https://api.test/v1/alpha"),
     );
   });
 
   it("パスが違えば別の値を返す", () => {
-    expect(seedFor("GET", "https://api.test/v1/products")).not.toBe(
-      seedFor("GET", "https://api.test/v1/users"),
+    expect(seedFor("GET", "https://api.test/v1/alpha")).not.toBe(
+      seedFor("GET", "https://api.test/v1/beta"),
     );
   });
 
   it("絞り込みの条件が違えば別の値を返す", () => {
-    expect(seedFor("GET", "https://api.test/v1/products?keyword=靴")).not.toBe(
-      seedFor("GET", "https://api.test/v1/products?keyword=鞄"),
+    expect(seedFor("GET", "https://api.test/v1/alpha?keyword=靴")).not.toBe(
+      seedFor("GET", "https://api.test/v1/alpha?keyword=鞄"),
     );
   });
 
   it("本文が違えば別の値を返す", () => {
-    expect(seedFor("POST", "https://api.test/v1/products", '{"name":"靴"}')).not.toBe(
-      seedFor("POST", "https://api.test/v1/products", '{"name":"鞄"}'),
+    expect(seedFor("POST", "https://api.test/v1/alpha", '{"name":"靴"}')).not.toBe(
+      seedFor("POST", "https://api.test/v1/alpha", '{"name":"鞄"}'),
     );
   });
 
   it("本文を持たない要求と空の本文を同じに扱う", () => {
-    expect(seedFor("GET", "https://api.test/v1/products")).toBe(
-      seedFor("GET", "https://api.test/v1/products", ""),
+    expect(seedFor("GET", "https://api.test/v1/alpha")).toBe(
+      seedFor("GET", "https://api.test/v1/alpha", ""),
     );
   });
 
   it("faker の seed として渡せる 32bit の非負整数を返す", () => {
-    const seed = seedFor("GET", "https://api.test/v1/products");
+    const seed = seedFor("GET", "https://api.test/v1/alpha");
 
     expect(Number.isInteger(seed)).toBe(true);
     expect(seed).toBeGreaterThanOrEqual(0);

@@ -14,8 +14,16 @@ describe("isTransportFailure", () => {
   });
 
   // ----- 異常系 -----
-  it("打ち切りを異常として数えない", () => {
+  it("Chromium が報せる打ち切りを異常として数えない", () => {
     expect(isTransportFailure("net::ERR_ABORTED")).toBe(false);
+  });
+
+  it("Firefox が報せる打ち切りを異常として数えない", () => {
+    expect(isTransportFailure("NS_BINDING_ABORTED")).toBe(false);
+  });
+
+  it("WebKit が報せる打ち切りを異常として数えない", () => {
+    expect(isTransportFailure("Load request cancelled")).toBe(false);
   });
 
   it("理由が読めない失敗を異常として数えない", () => {

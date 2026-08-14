@@ -13,20 +13,33 @@ export type BrowserProblem = {
 };
 
 /**
- * 通信失敗として数えない打ち切り。
+ * 通信失敗として数えない打ち切り。**描画エンジンごとに綴りが違う。**
  *
  * @remarks
- * 画面を離れた、あるいは条件が変わって取得をやめた要求はここへ落ちます。`AbortController` で
- * 打ち切る実装（`adapters/client`）は正しく動いているときほどこれを出すので、数えると
- * 「正しい実装ほど落ちる」向きになります。
+ * 画面を離れた、条件が変わって取得をやめた、router が先読みを捨てた —— どれも正しく動いて
+ * いるときほど出ます。数えると「正しい実装ほど落ちる」向きになります。
+ *
+ * 文言で見分けます。Playwright は打ち切りとそれ以外を区別して渡さず、残る手掛かりが
+ * `errorText` しかないためです。**綴りを取りこぼしたときに出るのは偽陽性（赤くなる）であって、
+ * 見逃し（緑のまま）ではありません。**沈黙に倒れない向きなので、ここは文言に頼れます。
+ *
+ * 一覧は回す描画エンジン（[browsers](browsers.ts)）に閉じます。増えるのはエンジンを足したとき
+ * だけで、際限なく伸びる除外表にはなりません。
  */
-const ABORTED = "net::ERR_ABORTED";
+const CANCELLED: readonly string[] = [
+  // Chromium
+  "net::ERR_ABORTED",
+  // Firefox
+  "NS_BINDING_ABORTED",
+  // WebKit
+  "Load request cancelled",
+];
 
 /**
  * 応答を異常として数える下限のステータス。
  *
  * @remarks
- * 4xx を数えないのは、それがアプリの**設計された結果**だからです。存在しない商品は 404 を返し、
+ * 4xx を数えないのは、それがアプリの**設計された結果**だからです。存在しない資源は 404 を返し、
  * 未認証は 401 を返します。どれも「そう返ること」を spec が名指しで確かめる対象であり、
  * 横断の見張りが一律に落とすと、確かめたい経路そのものを通せなくなります。
  *
@@ -37,7 +50,7 @@ const SERVER_ERROR_STATUS = 500;
 
 /** 打ち切りではない通信失敗か。 */
 export function isTransportFailure(errorText: string | undefined): boolean {
-  return errorText !== undefined && errorText !== ABORTED;
+  return errorText !== undefined && !CANCELLED.includes(errorText);
 }
 
 /**

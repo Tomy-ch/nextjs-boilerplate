@@ -66,6 +66,10 @@ E2E_HOSTNAME ?=
 .PHONY: e2e-build ## E2E が使う本番ビルドを作る (e2e から呼ばれる)
 e2e-build:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
+	@# 取得結果のキャッシュを捨ててから build する。`cache: "force-cache"` を指定した取得は
+	@# .next/cache へ残り、CI では別のブランチの build が作ったものが復元される。残したまま撮ると、
+	@# 絵が木の状態ではなく「前の build が何をキャッシュしたか」で決まる。
+	@rm -rf .next/cache/fetch-cache
 	@APP_ENV=$(E2E_APP_ENV) pnpm build
 	@if [ ! -d .next/server/app ]; then \
 		echo "❌ アプリの build 生成物がありません（.next/server/app）。"; exit 1; \
