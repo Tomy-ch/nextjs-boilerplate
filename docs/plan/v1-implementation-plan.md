@@ -1366,13 +1366,18 @@ sources:
 - **目的**: ジャーニー全体の回帰検知と、視覚的回帰の検知を入れる
 - **対象 ADR**: [0090](../adr/0090-testing-strategy.md) / [0091](../adr/0091-test-verification-methods.md)
 - **主な変更先**:
-  - `playwright.config.ts`
+  - `playwright.e2e.config.ts` — story 単位の撮影（`playwright.config.ts`）とは開く相手も走る単位も違うため分ける
   - `e2e/` — 主要ジャーニー(一覧 → 詳細 → カート → 注文 / ログイン → 管理画面 → 画像アップロード)。**破棄対象**
   - `e2e/visual/` — ページ単位のスクリーンショット比較（story 単位は着地済みの `vrt/`。**破棄対象と分けてある**）
   - `.github/workflows/e2e.yaml`
-- **設計**: E2E は **MSW モードで実行**しバックエンド非依存にする(CI で go の compose を立てない)。ページ単位の比較は既存の `vrt_runner`(digest 固定した Playwright コンテナ)へ相乗りする
+- **設計**: E2E は **MSW モードで実行**しバックエンド非依存にする(CI で go の compose を立てない)。ページ単位の比較は既存の `vrt_runner`(digest 固定した Playwright コンテナ)へ相乗りし、基準画像の置き場も共有する。**アプリはホストで起動し、コンテナで動かすのはブラウザだけ**にする（`node_modules` は入れた OS と CPU 向けに解決されるため、コンテナ内で `next start` を起動できない）
+- **射程に含める 3 件**（同じ Playwright の土台に乗るため、独立させずここで扱う）:
+  - **Browser Errors** — hydration の不一致 / 描画中の例外 / 通信の失敗を検出する。**hydration の不一致は build も型検査も通り、実機でしか出ない**
+  - **Responsive** — [0051](../adr/0051-styling-system.md) §2 の 3 段で見る。境界の値は design token が持ち、テストへ数値を書かない
+  - **Cross Browser** — [0102](../adr/0102-browser-support.md) が追認するモダンブラウザを 3 つの描画エンジンへ畳んだもの（Chromium / Firefox / WebKit）だけを見る。**銘柄も版も見ていない**ことを job に書く
+- **前提**: モックが**同じ要求へ同じ応答を返す**こと。生成物は faker で応答を組み立てるため素のままでは呼ぶたび中身が変わり、画面の基準画像も中身の検証も成立しない
 - **注意**: visual regression の採用は P0-4 で [0091](../adr/0091-test-verification-methods.md) の「tooling defer」を反転済み
-- **完了条件**: 主要ジャーニーの E2E が CI で緑。主要画面の VR ベースラインが登録される（story 単位は着地済み）
+- **完了条件**: 主要ジャーニーの E2E が 3 つの描画エンジンで CI で緑。ブラウザが報告する異常が全 spec で見張られる。主要画面の VR ベースラインが帯ごとに登録される（story 単位は着地済み）
 - **依存**: P5-16, P3-8
 
 ### P6-5: capabilities カーネル
