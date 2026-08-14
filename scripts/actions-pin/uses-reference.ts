@@ -22,10 +22,8 @@ export type ActionRef = {
 // `"owner` を owner として取り込んで固定対象に載せてしまうため。締め出せば一致しなくなり、
 // unparsedUsesLines が対応記法の外として拾う。
 //
-// 単一のインスタンスを共有せず呼び出しごとに作るのは、`g` 付きの RegExp が `lastIndex` を
-// 持ち回るため。`matchAll` はその時点の `lastIndex` からの走査になるので、共有インスタンスに
-// 対して誰かが `test` / `exec` を呼んだ瞬間から、collectRefs がファイル先頭付近の `uses:` を
-// 黙って読み飛ばす——固定の網から参照が外れる向きに、間欠的に壊れる。
+// 呼び出しごとに作るのは、`g` 付きの RegExp が `lastIndex` を持ち回り、`matchAll` はその時点の
+// 値から走査するため。共有すると collectRefs が先頭付近の `uses:` を黙って読み飛ばしうる。
 export function usesPattern(): RegExp {
   return /^([ \t]*(?:-[ \t]*)?uses:[ \t]*)([^@\s'"]+)@([^\s#'"]+)(?:[ \t]*#[ \t]*(\S+))?[ \t]*$/gm;
 }

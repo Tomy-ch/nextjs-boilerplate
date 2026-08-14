@@ -7,13 +7,8 @@
 //   apply   : ロックファイルを SSOT に参照を `image:tag@sha256:...` へ書き換える
 //   check   : apply と同じ判定を書き換えなしで行い、ずれがあれば非ゼロ終了する（CI / hook 用）
 //
-// 版の SSOT は tag 側に残し、digest をロックファイルが持つ。tag だけの運用を許さないのは、
-// registry の tag は同じ名前のまま別の中身を指せるため。固定してあれば、指し先が差し替わった
-// 時点で pull が失敗する。
-//
-// tag の付け替え検知は行わない。base image の tag（`alpine:3.24` など）は patch 版が出るたび
-// 前進するのが通例で、「解決先が変わったら止める」は日常的な更新と区別が付かない。image に
-// 対して働く防壁は検疫（新しすぎる digest を採らない）と、固定そのものである。
+// 版の SSOT は tag 側に残し、digest をロックファイルが持つ。tag の付け替え検知は行わず、
+// image に働く防壁は検疫と固定の 2 つ（根拠は [docker/README.md](../../docker/README.md)）。
 import path from "node:path";
 import { quarantine } from "../lib/pin-quarantine.js";
 import { applyPins } from "./apply-check.js";
