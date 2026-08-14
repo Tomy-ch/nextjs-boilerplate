@@ -48,14 +48,16 @@ make setup-repo
 ```bash
 make setup-replace-repository-reference REPOSITORY=<owner>/<repo>
 make setup-replace-license-copyright COPYRIGHT_HOLDER='<著作権者>'
-make setup-remove-boilerplate-only
+make setup-remove-boilerplate-only   # boilerplate-only:line
 ```
 
 いずれも `DRY_RUN=1` で書き換えずに予定だけ出せる。
 
-前の 2 つは名前を置き換え、3 つ目は**この template を配る側にしか意味を持たない記述**を剥がす
+<!-- boilerplate-only:begin -->
+3 つ目は**この template を配る側にしか意味を持たない記述**を剥がす
 （[0152](../adr/0152-agents-md-policy.md)）。飛ばす選択肢は無い —— fork を作った時点で前提が
 失効しているので、残すと自分に効かない規則に従うことになる。剥がし終えると道具自身も消える。
+<!-- boilerplate-only:end -->
 
 ## 5. 同梱サンプルを破棄する
 
