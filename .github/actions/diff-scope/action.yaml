@@ -1,17 +1,11 @@
 name: Diff scope
 description: Decide whether a pull request's diff can reach what a job inspects, so an expensive job can stand down without a `paths:` filter
 
-# `paths:` cannot be used on a required check: the workflow does not run, the context is never
-# reported, and GitHub blocks the pull request forever waiting for it (see workflows/README.md).
-# The job therefore always starts and asks this action whether the expensive steps are worth
-# running. The context is reported either way.
-#
 # The caller passes what CANNOT affect it, never what can. A missing entry costs a needless run;
 # a wrong entry silently stops the job from inspecting anything, and a gate that inspects nothing
 # looks exactly like a gate that found no problem. Anything the caller does not name runs.
 #
-# The same reasoning applies to every long job in this repository. Share this action rather than
-# writing a second predicate — three copies of an ignore list drift, and each drift is silent.
+# Why the job stands down from the inside rather than through `paths:` — see workflows/README.md.
 
 inputs:
   base-ref:

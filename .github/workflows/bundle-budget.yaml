@@ -52,9 +52,8 @@ jobs:
           persist-credentials: false
 
       # What cannot change the amount of client JavaScript. CSS, tokens, stories and tests are
-      # named here on purpose: this job measures `.js` only, and none of them reach the bundle.
-      # `.github/**` and `scripts/**` are deliberately absent — a change to this workflow or to
-      # the measurement has to be measured.
+      # listed because this job measures `.js` alone; `.github/**` and `scripts/**` are not,
+      # because a change to this workflow or to the measurement has to be measured.
       - name: Decide whether the diff can reach the bundle
         id: scope
         uses: ./.github/actions/diff-scope
