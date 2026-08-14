@@ -6,7 +6,7 @@ import { readdirSync } from "node:fs";
 import path from "node:path";
 
 import type { Story } from "./story-index";
-import { THEMES } from "./themes";
+import { SHOT_THEMES } from "./themes";
 
 const EXTENSION = ".png";
 
@@ -27,7 +27,9 @@ export const BASELINE_TAG = "@baselines";
  */
 export function expectedBaselines(stories: readonly Story[]): string[] {
   return stories
-    .flatMap((story) => THEMES.map((theme) => `${story.group}/${theme}/${story.id}${EXTENSION}`))
+    .flatMap((story) =>
+      SHOT_THEMES.map((theme) => `${story.group}/${theme}/${story.id}${EXTENSION}`),
+    )
     .sort();
 }
 
