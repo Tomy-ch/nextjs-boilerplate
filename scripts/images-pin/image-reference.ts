@@ -7,6 +7,7 @@
 // [0011](../../docs/adr/0011-no-docker.md) が持つ。
 import fs from "node:fs";
 import path from "node:path";
+import { blockScalarLines } from "../lib/block-scalar.js";
 import {
   COMPOSITE_ACTION_DIR,
   collectActionDefinitions,
@@ -27,6 +28,15 @@ export type PinTarget = {
   pattern: RegExp;
   /** 厳格なパターンで拾えなかった行を検出するパターン。 */
   loose: RegExp;
+  /**
+   * tag を持たなくても固定対象外として正当な参照値。
+   *
+   * @remarks
+   * tag の省略は `:latest` を意味するため、原則は取りこぼしとして落とします。Dockerfile だけは
+   * registry の image を指さない `FROM` が正当に存在する——先行する `AS` で宣言したビルド
+   * ステージと `scratch` で、どちらも固定のしようがありません。持たない対象では未定義です。
+   */
+  exemptTagless?: (data: string) => ReadonlySet<string>;
 };
 
 // 走査用パターンは対象 1 件ごとに作る。`g` 付きの RegExp は `lastIndex` を持ち回り、`matchAll`
@@ -46,6 +56,22 @@ export function dockerfileFromPattern(): RegExp {
   return /^(FROM[ \t]+)(?:--platform=\S+[ \t]+)?([^\s'"]+)((?:[ \t]+[Aa][Ss][ \t]+\S+)?[ \t]*)$/gim;
 }
 const DOCKERFILE_FROM_LOOSE = /^[ \t]*FROM[ \t]+\S/i;
+
+// `FROM <ref> AS <stage>` の接尾辞から宣言されたステージ名を取り出す。
+const FROM_STAGE_NAME = /[ \t]+[Aa][Ss][ \t]+(\S+)/;
+
+// registry の image を指さない `FROM` の値。ビルドステージ参照は Docker が大文字小文字を
+// 区別しないため、比較は小文字へ揃える。
+function dockerfileExemptTagless(data: string): ReadonlySet<string> {
+  const exempt = new Set(["scratch"]);
+  for (const match of data.matchAll(dockerfileFromPattern())) {
+    // 接尾辞のグループは空にも一致するため、常に文字列として得られる。
+    const stage = FROM_STAGE_NAME.exec(match[3])?.[1];
+    if (stage) exempt.add(stage.toLowerCase());
+  }
+
+  return exempt;
+}
 
 // workflow / composite action の `uses: [-] docker://<ref>`。
 //
@@ -115,7 +141,12 @@ export function targetFiles(root: string): PinTarget[] {
     if (!entry.isDirectory()) continue;
     const file = path.join(dockerDir, entry.name, DOCKERFILE);
     if (!fs.existsSync(file)) continue;
-    targets.push({ file, pattern: dockerfileFromPattern(), loose: DOCKERFILE_FROM_LOOSE });
+    targets.push({
+      file,
+      pattern: dockerfileFromPattern(),
+      loose: DOCKERFILE_FROM_LOOSE,
+      exemptTagless: dockerfileExemptTagless,
+    });
   }
 
   for (const file of workflowFiles(root)) {
@@ -149,13 +180,43 @@ export function collectRefs(targets: PinTarget[]): Map<string, ImageRef> {
  */
 export function unparsedLines(data: string, target: PinTarget): number[] {
   const rest = data.replace(target.pattern, (line) => " ".repeat(line.length));
+  // 範囲の判定は潰す前の内容で行う。潰した行は字下げごと空白になり、ブロックの終わりに見える。
+  const inBlockScalar = blockScalarLines(data);
   const lines: number[] = [];
   for (const [index, line] of rest.split("\n").entries()) {
     if (line.trimStart().startsWith("#")) continue;
+    // ブロックスカラーの中身は YAML の構造ではない。`run:` が出力する文字列に反応させない。
+    if (inBlockScalar.has(index + 1)) continue;
     if (target.loose.test(line)) lines.push(index + 1);
+  }
+  lines.push(...taglessLines(data, target));
+
+  return lines.sort((a, b) => a - b);
+}
+
+/**
+ * 厳格なパターンには一致したが tag を持たない参照の行番号を返す。
+ *
+ * @remarks
+ * この形は上の走査では拾えません——厳格なパターンに一致した時点で空白へ潰され、残らないためです。
+ * 一方 `parseRef` は tag が無ければ `null` を返すので固定対象にも載らず、**どの報告にも現れない**
+ * まま `:latest` が実行されます。固定の網から参照が黙って消える向きの穴なので、ここで塞ぎます。
+ */
+function taglessLines(data: string, target: PinTarget): number[] {
+  const exempt = target.exemptTagless?.(data) ?? new Set<string>();
+  const lines: number[] = [];
+  for (const match of data.matchAll(target.pattern)) {
+    const reference = match[2];
+    if (parseRef(reference) || exempt.has(reference.toLowerCase())) continue;
+    lines.push(lineNumberAt(data, match.index));
   }
 
   return lines;
+}
+
+// 文字位置が何行目にあたるか（1 始まり）。
+function lineNumberAt(data: string, index: number): number {
+  return data.slice(0, index).split("\n").length;
 }
 
 // workflow 定義とリポジトリ内 composite action 定義。対象の決め方は actions-pin と同一で

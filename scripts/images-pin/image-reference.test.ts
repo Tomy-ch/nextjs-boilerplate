@@ -323,6 +323,53 @@ describe("unparsedLines", () => {
     expect(unparsedLines('FROM "alpine:3.24" AS base extra\n', target())).toEqual([1]);
   });
 
+  it("tag を持たない compose の image を取りこぼしとして報告する", () => {
+    write("docker-compose.dev-tools.yml", "");
+
+    expect(unparsedLines("services:\n  a:\n    image: alpine\n", target())).toEqual([3]);
+  });
+
+  it("registry ポートを tag と誤認する compose の image を取りこぼしとして報告する", () => {
+    write("docker-compose.dev-tools.yml", "");
+
+    expect(unparsedLines("services:\n  a:\n    image: localhost:5000/app\n", target())).toEqual([
+      3,
+    ]);
+  });
+
+  it("記法違反と tag 無しが混ざっても行番号順に返す", () => {
+    write("docker-compose.dev-tools.yml", "");
+    const source = ["services:", "  a:", "    image: alpine", "  b:", '    image: "node:24"'].join(
+      "\n",
+    );
+
+    expect(unparsedLines(source, target())).toEqual([3, 5]);
+  });
+
+  it("tag を持たない Dockerfile の FROM を取りこぼしとして報告する", () => {
+    write("docker/tools/Dockerfile", "");
+
+    expect(unparsedLines("FROM alpine\n", target())).toEqual([1]);
+  });
+
+  it("宣言済みのビルドステージを参照する FROM は報告しない", () => {
+    write("docker/tools/Dockerfile", "");
+
+    expect(unparsedLines("FROM alpine:3.24 AS base\nFROM base AS final\n", target())).toEqual([]);
+  });
+
+  it("ビルドステージ名の大文字小文字が違っても報告しない", () => {
+    write("docker/tools/Dockerfile", "");
+
+    expect(unparsedLines("FROM alpine:3.24 AS Base\nFROM base\n", target())).toEqual([]);
+  });
+
+  it("scratch を参照する FROM は報告しない", () => {
+    write("docker/tools/Dockerfile", "");
+
+    expect(unparsedLines("FROM scratch\n", target())).toEqual([]);
+  });
+
   it("tag を持たない uses: docker:// を取りこぼしとして報告する", () => {
     write(".github/workflows/test.yaml", "");
 
@@ -345,5 +392,27 @@ describe("unparsedLines", () => {
     write(".github/workflows/test.yaml", "");
 
     expect(unparsedLines("      - uses: actions/checkout@v7\n", target())).toEqual([]);
+  });
+
+  it("run スクリプトが出力する uses: docker:// を取りこぼしとして報告しない", () => {
+    write(".github/workflows/test.yaml", "");
+    const source = ["steps:", "  - run: |", '      echo "- uses: docker://alpine:3.24"', ""].join(
+      "\n",
+    );
+
+    expect(unparsedLines(source, target())).toEqual([]);
+  });
+
+  it("ブロックが終わった後の uses: docker:// は取りこぼしとして報告する", () => {
+    write(".github/workflows/test.yaml", "");
+    const source = [
+      "steps:",
+      "  - run: |",
+      '      echo "- uses: docker://alpine:3.24"',
+      "  - uses: docker://busybox",
+      "",
+    ].join("\n");
+
+    expect(unparsedLines(source, target())).toEqual([4]);
   });
 });
