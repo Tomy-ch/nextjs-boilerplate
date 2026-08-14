@@ -91,6 +91,12 @@ subcomponent が多い compound では、root に `@example` で組み合わせ�
 - **同じ要素に `outline-none` を併記しない。** Tailwind v4 の `outline-none` は要素へ `--tw-outline-style: none` を立て、`focus-visible:outline-2` が出力する `outline-style: var(--tw-outline-style)` をそこで打ち消すため、focus ring が一切描画されなくなる。既定の outline を抑えたいだけなら `focus-visible` 側の指定だけで足りる
 - 面の focus を塗りで示す menu 項目（`dropdown-menu`、`context-menu`、`command`、`select-client` の item）は例外で、`outline-hidden` と `focus:bg-accent` の組み合わせを使う
 
+### 境界を示す線
+
+- **その線が要素の境界を示すなら `border-input`、区画の仕切りなら `border-border` を使う。** light では `border` が `background` と同じ値なので、境界に `border-border` を使った部品は枠を失う。`Input` / `Textarea` のように枠が無いと入力できる範囲が判らなくなるもの、`Badge` の `outline` のように縁だけで成り立つ variant は、いずれも `input` を取る
+- 入力できる範囲の境界は **WCAG 1.4.11 が隣接色との 3:1 を求める**対象であり、控えめにしてよい線ではない（[0100](../../docs/adr/0100-accessibility-target.md)）。仕切りは同条の対象外なので `border` のままでよい
+- 判断の根拠は token の値にあるため、配色を変えたときはこの節を先に確認する。呼び出し側のコメントに理由を書くと、token を直しても気づかれない
+
 ### 装飾的な輪
 
 `outline` は 1 要素に 1 本しか引けず、必ず外側に描かれる。次の要件は `outline` では満たせないため `ring-*` を使う。

@@ -20,9 +20,7 @@ export type InputProps = ComponentProps<"input">;
  * どちらからも利用できる。入力値を React state で制御するか、native form に委ねるかは
  * 呼び出し側が選ぶ。
  *
- * 枠線は `border` ではなく `input` を使う。前者は仕切りのための控えめな色で、light では地の
- * 色と同じ値であり、**枠が見えない**。入力できる範囲の境界は WCAG 1.4.11 が 3:1 を求める
- * 対象なので、控えめにしてよい線ではない（[0100](../../../../../docs/adr/0100-accessibility-target.md)）。
+ * 枠線は `border` ではなく `input` を取る（[`components/README.md`](../../../README.md)「境界を示す線」）。
  *
  * @example
  * ```tsx

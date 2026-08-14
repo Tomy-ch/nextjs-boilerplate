@@ -97,7 +97,6 @@ type ClientDeps = {
 const JSON_CONTENT_TYPE = "application/json";
 const FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
 
-/** 本文を持たないことが status で決まっている応答。 */
 const NO_CONTENT_STATUS = 204;
 
 /**
