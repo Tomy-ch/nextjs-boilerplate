@@ -17,6 +17,21 @@ minimumReleaseAgeStrict: true
 # 公開日時を返さないレジストリの依存は解決を失敗させる。
 minimumReleaseAgeIgnoreMissingTime: false
 
+# ----- 推移的依存の版の固定 -----
+# 直接依存でないパッケージの版を動かす唯一の手段。`pnpm update <pkg>` は直接依存にしか届かない。
+#
+# 宣言は「対象@脆弱な範囲: 置き換える範囲」の形で書き、脆弱な範囲を外れた版には当たらないようにする。
+# こうしておくと上流が自力で上げた時点で宣言が無効化され、撤去し忘れても古い版に固定し続けない。
+# 各行には理由と撤去条件をコメントで添える。
+#
+# **上流が宣言した範囲の内側でだけ使う。** 範囲の外へ動かすと、上流が検証していない組み合わせを
+# こちらで作ることになる ([ADR 0110](docs/adr/0110-security-operations.md))。
+overrides:
+  # ajv (commitlint / orval / shadcn / @hookform/resolvers が引く) の推移的依存。
+  # GHSA-7p8r-x3mc-p8w7 (high): authority 部のバックスラッシュで host の解釈が他のパーサとずれる。
+  # ajv の宣言は ^3.0.1 で 3.1.5 はその内側。ajv が 3.1.5 以上を要求したら撤去する。
+  "fast-uri@<3.1.5": ">=3.1.5 <4"
+
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
 verifyDepsBeforeRun: error
 
