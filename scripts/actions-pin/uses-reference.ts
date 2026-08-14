@@ -15,15 +15,22 @@ export type ActionRef = {
   tag: string;
 };
 
-// uses: [-] owner/repo[/sub]@<ref> [# <tag>]
+// uses: [-] owner/repo[/sub]@<ref> [# <tag>] に一致する走査用パターン。
+//
 // 空白を `[ \t]` に限定するのは、`\s` だと改行を食って複数行が 1 マッチに結合するため。
 // 引用符を値から締め出すのは、含めると `uses: "owner/repo@v1"` が引用符ごと一致し、
 // `"owner` を owner として取り込んで固定対象に載せてしまうため。締め出せば一致しなくなり、
 // unparsedUsesLines が対応記法の外として拾う。
-export const USES_PATTERN =
-  /^([ \t]*(?:-[ \t]*)?uses:[ \t]*)([^@\s'"]+)@([^\s#'"]+)(?:[ \t]*#[ \t]*(\S+))?[ \t]*$/gm;
+//
+// 単一のインスタンスを共有せず呼び出しごとに作るのは、`g` 付きの RegExp が `lastIndex` を
+// 持ち回るため。`matchAll` はその時点の `lastIndex` からの走査になるので、共有インスタンスに
+// 対して誰かが `test` / `exec` を呼んだ瞬間から、collectRefs がファイル先頭付近の `uses:` を
+// 黙って読み飛ばす——固定の網から参照が外れる向きに、間欠的に壊れる。
+export function usesPattern(): RegExp {
+  return /^([ \t]*(?:-[ \t]*)?uses:[ \t]*)([^@\s'"]+)@([^\s#'"]+)(?:[ \t]*#[ \t]*(\S+))?[ \t]*$/gm;
+}
 
-// 記法を問わず `uses:` とその値を拾う。USES_PATTERN の取りこぼし検出にのみ使う。
+// 記法を問わず `uses:` とその値を拾う。usesPattern の取りこぼし検出にのみ使う。
 const LOOSE_USES_PATTERN = /\buses[ \t]*:[ \t]*['"]?([^\s'",}#]+)/;
 
 // `uses:` キーそのもの。値を取れなかった行でも、キーが残っていることを見るために使う。
@@ -83,7 +90,7 @@ export function collectRefs(files: string[]): Map<string, ActionRef> {
   const refs = new Map<string, ActionRef>();
   for (const file of files) {
     const data = fs.readFileSync(file, "utf8");
-    for (const match of data.matchAll(USES_PATTERN)) {
+    for (const match of data.matchAll(usesPattern())) {
       const ref = parseUses(match[2], match[3], match[4]);
       if (ref) refs.set(refKey(ref), ref);
     }
@@ -91,9 +98,9 @@ export function collectRefs(files: string[]): Map<string, ActionRef> {
   return refs;
 }
 
-// USES_PATTERN で解釈できなかった `uses:` の行番号を返す。
+// usesPattern で解釈できなかった `uses:` の行番号を返す。
 //
-// USES_PATTERN が見るのは 1 行 1 ステップのブロック記法だけで、YAML として正当な他の書き方
+// usesPattern が見るのは 1 行 1 ステップのブロック記法だけで、YAML として正当な他の書き方
 // （flow mapping・引用符・anchor / alias・タグ・キーと値の行分け）には一致しない。一致しない
 // ものは未登録としても未固定としても数えられず、検査が「異常なし」を返してしまう。
 //
@@ -102,7 +109,7 @@ export function collectRefs(files: string[]): Map<string, ActionRef> {
 // 記法を落とす形にすると、列挙から漏れた書き方が黙って網をすり抜ける。
 export function unparsedUsesLines(data: string): number[] {
   // 解釈済みの `uses:` を同じ長さの空白へ潰し、残った `uses:` だけを緩いパターンで拾う。
-  const rest = data.replace(USES_PATTERN, (line) => " ".repeat(line.length));
+  const rest = data.replace(usesPattern(), (line) => " ".repeat(line.length));
   const lines: number[] = [];
   for (const [index, line] of rest.split("\n").entries()) {
     // 行全体がコメントなら対象外。散文の中の `uses:` に反応させない。
@@ -118,7 +125,7 @@ export function unparsedUsesLines(data: string): number[] {
     // ローカル参照は固定対象外。parseUses も対象外にする。
     if (value.startsWith(".")) continue;
     // owner/repo の形を成さない値は、記法そのものが対応外。形を成していて版を持つものは、
-    // 対応記法なら USES_PATTERN が既に潰しているので、ここに残る時点で書き換えられない形。
+    // 対応記法なら usesPattern が既に潰しているので、ここに残る時点で書き換えられない形。
     if (!REPO_VALUE_PATTERN.test(value) || value.includes("@")) lines.push(index + 1);
   }
   return lines;
