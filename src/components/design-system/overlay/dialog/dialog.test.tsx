@@ -134,7 +134,6 @@ describe("Dialog", () => {
 });
 
 describe("DialogTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<DialogFixture />);
 
@@ -154,7 +153,6 @@ describe("DialogTrigger", () => {
 });
 
 describe("DialogPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<DialogFixture defaultOpen />);
 
@@ -164,14 +162,12 @@ describe("DialogPortal", () => {
 });
 
 describe("DialogOverlay", () => {
-  // ----- 正常系 -----
   it("開いている間だけ背面の覆いを描画する", () => {
     render(<DialogFixture defaultOpen />);
 
     expect(document.querySelector('[data-slot="dialog-overlay"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は背面の覆いを描画しない", () => {
     render(<DialogFixture />);
 
@@ -180,14 +176,12 @@ describe("DialogOverlay", () => {
 });
 
 describe("DialogContent", () => {
-  // ----- 正常系 -----
   it("開いた内容として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
     expect(screen.getByRole("dialog")).toHaveAttribute("data-slot", "dialog-content");
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<DialogFixture />);
 
@@ -196,7 +190,6 @@ describe("DialogContent", () => {
 });
 
 describe("DialogHeader", () => {
-  // ----- 正常系 -----
   it("見出し枠として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
@@ -205,7 +198,6 @@ describe("DialogHeader", () => {
 });
 
 describe("DialogFooter", () => {
-  // ----- 正常系 -----
   it("操作枠として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
@@ -214,7 +206,6 @@ describe("DialogFooter", () => {
 });
 
 describe("DialogTitle", () => {
-  // ----- 正常系 -----
   it("題名として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
@@ -223,7 +214,6 @@ describe("DialogTitle", () => {
 });
 
 describe("DialogDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
@@ -235,7 +225,6 @@ describe("DialogDescription", () => {
 });
 
 describe("DialogClose", () => {
-  // ----- 正常系 -----
   it("閉じる操作として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 

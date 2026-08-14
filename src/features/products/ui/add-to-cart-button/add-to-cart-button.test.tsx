@@ -22,7 +22,6 @@ describe("AddToCartButton", () => {
     useCartStore.setState({ lines: [] });
   });
 
-  // ----- 正常系 -----
   it("押すとカートへ 1 行入る", async () => {
     render(<AddToCartButton line={LINE} />);
 

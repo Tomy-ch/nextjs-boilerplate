@@ -30,7 +30,6 @@ function renderRegion(toasts: Toast[] = TOASTS, expand = false) {
 }
 
 describe("ToastRegion", () => {
-  // ----- 正常系 -----
   it("名前を持つ region として通知を並べる", () => {
     renderRegion();
 
@@ -54,7 +53,6 @@ describe("ToastRegion", () => {
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
   });
 
-  // ----- 異常系 -----
   it("修飾キーが一致しない打鍵では焦点を移さない", () => {
     renderRegion();
 

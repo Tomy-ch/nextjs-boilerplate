@@ -30,7 +30,6 @@ describe("CartContents", () => {
     useCartStore.setState({ lines: [] });
   });
 
-  // ----- 正常系 -----
   it("小計を明細から合算して出す", () => {
     useCartStore.getState().add(COFFEE);
     useCartStore.getState().add(TEA);

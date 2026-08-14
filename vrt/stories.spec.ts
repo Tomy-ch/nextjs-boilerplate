@@ -1,8 +1,17 @@
 import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
-import { test as base, expect } from "@playwright/test";
+import path from "node:path";
+import { test as base, expect, type TestInfo } from "@playwright/test";
+import { installFixedClock } from "./lib/clock";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
+import {
+  BASELINE_TAG,
+  expectedBaselines,
+  listBaselines,
+  missingBaselines,
+  orphanBaselines,
+} from "./lib/orphan-baselines";
 import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
@@ -11,25 +20,22 @@ import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib
  * Storybook の全 story を基準画像と比べる。
  *
  * @remarks
- * 比較単位を story に取るのは、story が部品の在庫リストそのものであり、画面より安定した
- * 単位になるためです([0091](../docs/adr/0091-test-verification-methods.md))。退行の主因は
- * 画面ごとの個別変更ではなく、design token や layout を触って全画面が動くことなので、
- * それを部品の側で捕まえます。
+ * 比較単位を story に取る理由は [README](README.md) と
+ * [0091](../docs/adr/0091-test-verification-methods.md) §3 にあります。
  */
 
 /** 撮影対象。`pnpm build-storybook` の出力先。 */
 const STORYBOOK_DIR = "storybook-static";
 
-const stories = selectStories(
-  excludeDeclared(
-    parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
-    EXCLUDED_STORIES,
-  ),
-  process.env.VRT_ONLY,
+const shootable = excludeDeclared(
+  parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
+  EXCLUDED_STORIES,
 );
 
-// 配信は worker ごとにポートを OS へ選ばせて立てる。単一のサーバを外から与えると、
-// 並列数とポートの空きがリポジトリの設定として固定され、worktree を並べた分だけ衝突する。
+const stories = selectStories(shootable, process.env.VRT_ONLY);
+
+// ポートは OS に選ばせる。固定のポートで単一のサーバを外から与えると、worktree を並べた分だけ
+// 衝突する。
 const test = base.extend<Record<never, never>, { storybookURL: string }>({
   storybookURL: [
     // 第 1 引数は空の分割代入でなければならない。Playwright はここに並べた名前を
@@ -59,6 +65,8 @@ for (const story of stories) {
     const crashes: Error[] = [];
     page.on("pageerror", (error) => crashes.push(error));
 
+    // 時計はページを開く前に固定する。
+    await installFixedClock(page);
     await page.goto(storyURL(story.id, testInfo.project.name));
     await settle(page, testInfo.project.name);
 
@@ -70,4 +78,25 @@ for (const story of stories) {
     // 系統ごとに分かれず 1 階層へ平置きされる。
     await expect(page).toHaveScreenshot([story.group, testInfo.project.name, `${story.id}.png`]);
   });
+}
+
+// 撮影対象と基準画像の対応。範囲を絞った実行(`VRT_ONLY`)では、対象外の story の画像と孤児を
+// 区別できないため見ない。比較を省いた実行でもここだけは走る(`make vrt`)。
+if (!process.env.VRT_ONLY) {
+  test("基準画像 / 撮影対象と 1 対 1 で対応する", { tag: BASELINE_TAG }, ({}, testInfo) => {
+    const present = listBaselines(baselineRoot(testInfo));
+    const expected = expectedBaselines(shootable);
+
+    expect(
+      orphanBaselines(present, expected),
+      "撮り直して置き場へ送るか、対応する story を戻してください",
+    ).toEqual([]);
+    expect(missingBaselines(present, expected), "make vrt-retake で撮り直してください").toEqual([]);
+  });
+}
+
+// 置き場の位置は `playwright.config.ts` の `snapshotPathTemplate` が決める。撮影と同じ解決を
+// 通してから 3 区画(系統 / テーマ / ファイル名)ぶん遡る。
+function baselineRoot(testInfo: TestInfo): string {
+  return path.resolve(testInfo.snapshotPath("group", "theme", "story.png"), "../../..");
 }

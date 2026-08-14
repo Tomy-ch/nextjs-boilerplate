@@ -30,7 +30,6 @@ describe("ProductLoadMoreList", () => {
     useCartStore.setState({ lines: [], isOpen: false });
   });
 
-  // ----- 正常系 -----
   it("読み込み済みの商品を並べる", () => {
     render(<ProductLoadMoreList hasNext={false} items={ITEMS} />);
 
@@ -98,7 +97,6 @@ describe("ProductLoadMoreList", () => {
     ).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("失敗したときだけ読み直す操作を出す", () => {
     render(<ProductLoadMoreList failed hasNext items={ITEMS} onLoadMore={vi.fn()} />);
 

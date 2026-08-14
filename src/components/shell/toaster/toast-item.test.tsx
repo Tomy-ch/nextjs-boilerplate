@@ -23,7 +23,6 @@ function renderItem(toast: Toast, onDismiss = vi.fn()) {
 }
 
 describe("ToastItem", () => {
-  // ----- 正常系 -----
   it("既定では status として見出しを伝える", () => {
     renderItem(TOAST);
 
@@ -54,7 +53,6 @@ describe("ToastItem", () => {
     expect(onDismiss).toHaveBeenCalledWith("1");
   });
 
-  // ----- 異常系 -----
   it("destructive な通知は alert として即時に伝える", () => {
     renderItem({ ...TOAST, variant: TOAST_VARIANT.DESTRUCTIVE });
 

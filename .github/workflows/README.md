@@ -36,7 +36,8 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 | Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
 | Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナに相乗りするので追加のランナーを入れない（ADR 0091 §3）。**実ブラウザなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないまま基準画像だけが承認済みになるため |
-| VRT | `vrt.yaml` | `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない） |
+| VisualRegressionApproval | `vrt-approval.yaml` | `vrt-approval` | 基準画像が動いている PR で `vrt-approve` ラベルを要求する。ラベルの有無だけでなく、付いた時刻がポインタを動かした最後のコミットより後であることを見る（古い承認を新しい一式へ持ち越さない）。PR のレビュー承認を使わないのは、承認の対象が PR 全体ではなく基準画像であるため（[`vrt/README.md`](../../vrt/README.md)） |
+| VisualRegressionTest | `vrt.yaml` | `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、基準画像と撮影対象が 1 対 1 で対応することも併せて検査する。`make vrt` は絵を決める入力のハッシュを基準画像を撮った時点の値と突き合わせ、一致していれば比較を省く（[`vrt/README.md`](../../vrt/README.md)）。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない） |
 
 ## ワークフロー一覧（Components）
 
@@ -53,7 +54,7 @@ PR ごとには走らず、ラベルや保護ブランチへの push で起動�
 
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
-| VRT Retake | `vrt-retake.yaml` | `retake` / `report` | VRT の**完了**で発火し、`vrt-retake` ラベルが付いていれば、その実行が報告した story の基準画像を撮り直し、置き場へ push してサブモジュールのポインタを進める。ラベルはトリガではなく条件なので、PR 作成時に付けておける（VRT の完了を待つ必要がない）。他のチェックが落ちている間は撮らずに見送り、ラベルを残す（次の実行で自動的に再開する）。`revert-` で始まるブランチではラベル無しで全数を撮り直す（掃除で復帰先の一式が消えているため）。ポインタの push は `GITHUB_TOKEN` ではなく App のトークンで行う（`GITHUB_TOKEN` の push は実行を起こさないため、確認用の VRT が走らない）。**承認ではない** — 画素の判断は置き場の compare ビューを見て PR レビューで行う |
+| VRT Retake | `vrt-retake.yaml` | `retake` / `report` | VRT の**完了**で発火し、`vrt-retake` ラベルが付いていれば、その実行が報告した story の基準画像を撮り直し、置き場へ push してサブモジュールのポインタを進める。ラベルはトリガではなく条件なので、PR 作成時に付けておける（VRT の完了を待つ必要がない）。**絵を動かしうるチェック**（`vrt-retake.yaml` の `DECIDES_PIXELS` が名指しする）が落ちている間は撮らずに見送り、ラベルを残す（次の実行で自動的に再開する）。見るのは各チェックの最新の試行だけで、名指しは allowlist である — 落ちているもの全部を数えると、撮るまで存在しない画像を待つ `vrt-approval` と互いに待ち合う。`revert-` で始まるブランチではラベル無しで全数を撮り直す（掃除で復帰先の一式が消えているため）。ポインタの push は `GITHUB_TOKEN` ではなく App のトークンで行う（`GITHUB_TOKEN` の push は実行を起こさないため、確認用の VRT が走らない）。**承認ではない** — 画素の判断は置き場の compare ビューを見て PR レビューで行う |
 | VRT Guard | `vrt-guard.yaml` | `guard` | 保護ブランチへの push 後に story の比較をやり直す。通常は鳴らない（PR はマージ結果に対して判定され、ブランチは最新であることを要求されるため）。鳴ったら前提が崩れた合図として issue を立てる。**基準画像は撮り直さない** |
 | VRT Images Prune | `vrt-images-prune.yaml` | `report` | 月次で基準画像の置き場を測り、閾値を超えたときだけ掃除を促す issue を立てる。**消さない** — 履歴の書き換えは取り消せないので、実行は人が `make vrt-images-prune` で起こす |
 
@@ -136,8 +137,9 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 
 - **actions の SHA ピン** — `uses: owner/repo@<40hex> # <tag>`。moving tag は禁止。**版の SSOT は末尾コメントの tag** であり、tag → SHA の対応は [`../actions-pin.toml`](../actions-pin.toml) が持つ。`make actions-pin-resolve` で解決、`make actions-pin-apply` で反映、`make actions-pin-check` で検査する（`actions-pin` job と pre-commit hook が回す。詳細は [`.makefiles/README.md`](../../.makefiles/README.md)）
 - **最小 permissions** — トップレベルは `contents: read`。PR コメントを書く job だけが `pull-requests: write` を加算する
-- **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.md) §3）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る
+- **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.md) §3）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る。**保護ブランチの検査を積むために `false` へ倒すのも禁じる** — 古い木の結果が新しい木の結果を追い越して報告される。打ち切られた実行を失敗と読まないのは、条件式側（`!cancelled()`）の責任である
 - **harden-runner** — 全 job 冒頭で egress を `audit` で記録する
+- **絵を動かしうる検査は撮り直しへ登録する** — 落ちたときに story の見た目が変わりうる job を足したら、[`vrt-retake.yaml`](vrt-retake.yaml) の `DECIDES_PIXELS` へその job 名を加える。**書き漏らすと、壊れた木から撮った絵が基準画像になる**（allowlist なので、登録されていないものは黙って無視される）。逆に、落ちても絵が変わらない検査は入れない — 撮り直しが止まるだけで、止まった理由は撮り直しの側からは説明できない
 - **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck の版はワークフロー側に書かない。[`../actions/setup-mise`](../actions/setup-mise/action.yaml) が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.md)）。`matrix` は使わず `ubuntu-latest` 単一
 - **例外は mise CLI 自身の版** — `mise.toml` は mise が解決する対象を宣言するもので、mise 自身の版を宣言できない。この 1 つだけは `setup-mise` の中に**版と SHA256 の対で**書かれている（[下記](#mise-の導入)）
 

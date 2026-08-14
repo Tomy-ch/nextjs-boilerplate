@@ -24,14 +24,14 @@ story 単位の visual regression が、どの部品でどう組み上がって�
 | どこ | 何 |
 | --- | --- |
 | `vrt/stories.spec.ts` | story を列挙して 1 件ずつ撮る本体 |
-| `vrt/lib/` | 目録の解釈・URL 組み立て・除外の宣言 |
+| `vrt/lib/` | 目録の解釈・URL 組み立て・除外の宣言・撮る配色テーマ・置き場との対応 |
 | `vrt/screenshots` | **サブモジュール**。基準画像の置き場を指す gitlink |
 | `playwright.config.ts` | 実行環境と比較条件（`maxDiffPixels: 0`） |
 | `docker-compose.dev-tools.yml` | `vrt_runner`（digest と platform を固定） |
-| `scripts/vrt/` | 実行結果 → 一覧表 / 撮り直す id |
+| `scripts/vrt/` | 実行結果 → 一覧表 / 撮り直す id、絵を決める入力 → ハッシュ |
 | `scripts/vrt-images/` | 置き場の ref 名・送出・掃除の算出 |
 | `.github/actions/setup-vrt-baselines` | CI が記録されたコミット 1 つだけを取る |
-| 置き場（別リポジトリ） | `<系統>/<テーマ>/<story id>.png` を持つ `snapshot/*` ブランチ群 |
+| 置き場（別リポジトリ） | `<系統>/<テーマ>/<story id>.png` と、撮った時点の入力のハッシュ（`render-inputs.sha256`）を持つ `snapshot/*` ブランチ群 |
 
 ## 流れ
 
@@ -68,6 +68,9 @@ sequenceDiagram
     participant store as 置き場
     actor rev as レビュアー
 
+    dev->>main: vrt-retake ラベルを付ける
+    Note over dev,main: 引き金ではない。VRT の完了時に読まれる条件
+
     dev->>main: 部品を変更して push
     main->>gha: vrt を起動
     gha->>store: 記録された 1 コミットだけを取得
@@ -76,17 +79,17 @@ sequenceDiagram
     gha->>gha: Storybook を build して全 story を撮る
     gha->>main: 差分の一覧表を PR へ / 赤で落とす
 
-    dev->>main: vrt-retake ラベルを付ける
-    main->>gha: vrt-retake を起動
-    gha->>gha: 報告された story だけ撮り直す
+    main->>gha: vrt の完了で vrt-retake を起動
+    gha->>gha: ラベルを読む → 報告された story だけ撮り直す
     gha->>store: 一式を push
     store-->>gha: 新しい sha
     gha->>main: gitlink を進めて push
     gha->>main: compare リンクを PR へ
 
     rev->>store: compare で画素を見る
-    rev->>main: PR を承認
-    Note over main,rev: bot の push の後に人が承認する
+    rev->>main: vrt-approve ラベルを付ける
+    main->>gha: vrt-approval が承認の時刻を検査
+    Note over main,gha: 撮り直しより後に付いたラベルだけを通す
 ```
 
 ## 全体が乗っている不変条件
@@ -102,8 +105,28 @@ sequenceDiagram
 行うので、required status checks を `strict` にしてブランチが最新であることを要求する。base に遅れた
 head では撮り直させない。
 
-**撮り直しは承認ではない。** ラベルは画素を見られる形にするだけで、判断は置き場の compare ビューを
-見た人が PR で行う。ruleset の `require_last_push_approval` が bot の push の後に人の承認を強制する。
+**壊れた木からは撮らない。** 撮り直しは人が見ていない時刻に走るので、その瞬間の絵がそのまま正に
+なる。絵を決める入力が壊れたまま撮ると、壊れが基準画像へ焼き付く。判定に使うのは**絵を動かしうる
+検査を名指しした一覧**で、落ちているもの全部ではない。全部を数えると、撮るまで存在しない画像の承認を
+待つ `vrt-approval` が入り、承認は撮り直しを、撮り直しは承認を待つ。**見るのは各検査の最新の結果**
+でもある。試行を合算すると、一度揺らいだ検査はその commit が生きているあいだ落ちたままになり、
+再実行して緑にしても撮り直せない。
+
+**撮り直しは承認ではない。** `vrt-retake` は画素を見られる形にするだけで、見た目を受け入れたことは
+`vrt-approve` が表す。基準画像が動いている PR では `vrt-approval` がこれを必須にする。承認の単位を
+PR のレビューではなくラベルに取るのは、判断の対象が PR 全体ではなく基準画像だからで、**1 人の
+リポジトリでも成立する**という性質はその帰結にすぎない。
+
+**承認は今の一式に対してだけ効く。** `vrt-approval` はラベルの有無に加えて、付いた時刻がポインタを
+動かした最後のコミットより後であることを見る。撮り直し側のラベル削除は人の手間を省くためのもので、
+保証はこの時刻の比較が持つ — 削除が動かない状況（fork の PR は token が read-only）でも古い承認は
+通らない。
+
+**ラベルは引き金ではなく条件であり、消費されるのは撮り直しが届いたときだけ。** 読まれるのは VRT の
+完了時なので、人はいつ付けてもよく（PR 作成時を含む）、完了後に付けたぶんは次の実行まで効かない。
+外れるのはポインタが進んだときだけで、見送りも拒否も失敗もラベルを残す。**残った 1 枚は次の実行で
+そのまま使われる**ため、装填したまま放置すると意図しない変化まで撮り直す。この非対称は意図的で、
+逆に倒すと「人が承認したのに撮り直されない」状態を作る。
 
 **保持するのは生きた ref の先端が指す一式だけ。** 過去のコミットへ遡ると基準画像は揃わない。掃除は
 ブランチを消すだけで、履歴は書き換えない。

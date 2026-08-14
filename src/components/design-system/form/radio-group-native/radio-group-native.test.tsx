@@ -72,7 +72,6 @@ describe("RadioGroupNative", () => {
 });
 
 describe("RadioGroupNativeItem", () => {
-  // ----- 正常系 -----
   it("選択肢 1 件を radio として slot つきで描画する", () => {
     render(<Fixture />);
 

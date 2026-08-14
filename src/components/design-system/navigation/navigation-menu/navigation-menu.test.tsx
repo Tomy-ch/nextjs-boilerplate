@@ -160,7 +160,6 @@ describe("NavigationMenu", () => {
 });
 
 describe("NavigationMenuList", () => {
-  // ----- 正常系 -----
   it("項目を並べるリストとして slot を持つ要素を描画する", () => {
     render(<NavigationFixture />);
 
@@ -169,7 +168,6 @@ describe("NavigationMenuList", () => {
 });
 
 describe("NavigationMenuItem", () => {
-  // ----- 正常系 -----
   it("項目 1 件として slot を持つ要素を描画する", () => {
     render(<NavigationFixture />);
 
@@ -178,7 +176,6 @@ describe("NavigationMenuItem", () => {
 });
 
 describe("NavigationMenuLink", () => {
-  // ----- 正常系 -----
   it("asChild で渡した link を実体にする", () => {
     render(<NavigationFixture />);
 
@@ -190,7 +187,6 @@ describe("NavigationMenuLink", () => {
 });
 
 describe("NavigationMenuTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<NavigationFixture />);
 
@@ -215,7 +211,6 @@ describe("NavigationMenuTrigger", () => {
 });
 
 describe("NavigationMenuContent", () => {
-  // ----- 正常系 -----
   it("開いた内容として slot を持つ要素を描画する", () => {
     render(<NavigationFixture />);
 
@@ -226,7 +221,6 @@ describe("NavigationMenuContent", () => {
     expect(document.querySelector('[data-slot="navigation-menu-content"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<NavigationFixture />);
 
@@ -235,7 +229,6 @@ describe("NavigationMenuContent", () => {
 });
 
 describe("NavigationMenuViewport", () => {
-  // ----- 正常系 -----
   it("viewport を使う構成では、開いた内容の表示枠を用意する", () => {
     render(<NavigationFixture />);
     const trigger = screen.getByRole("button", { name: /カテゴリ/ });
@@ -253,7 +246,6 @@ describe("NavigationMenuViewport", () => {
 });
 
 describe("NavigationMenuIndicator", () => {
-  // ----- 正常系 -----
   it("開いている項目が無ければ位置の印を描画しない", () => {
     render(<NavigationFixture />);
 

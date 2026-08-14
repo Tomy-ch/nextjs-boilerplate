@@ -75,7 +75,6 @@ describe("PullToRefresh", () => {
     document.documentElement.style.overscrollBehaviorY = "";
   });
 
-  // ----- 正常系 -----
   it("touch を持つ環境では目印を伏せた状態で置く", () => {
     stubCoarsePointer();
 
@@ -107,7 +106,6 @@ describe("PullToRefresh", () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  // ----- 異常系 -----
   it("touch を持たない環境では何も描かない", () => {
     const { container } = render(<PullToRefresh />);
 

@@ -5,7 +5,6 @@ import { describe, expect, it, vi } from "vitest";
 import ProductsError from "./error";
 
 describe("ProductsError", () => {
-  // ----- 正常系 -----
   it("生のエラー本文を出さずに正規化済みの文言を出す", () => {
     render(
       <ProductsError

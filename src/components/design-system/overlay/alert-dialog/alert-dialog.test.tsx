@@ -59,7 +59,6 @@ describe("AlertDialog", () => {
 });
 
 describe("AlertDialogTrigger", () => {
-  // ----- 正常系 -----
   it("押すと確認内容を開く", () => {
     render(<Example />);
 
@@ -70,7 +69,6 @@ describe("AlertDialogTrigger", () => {
 });
 
 describe("AlertDialogPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<Example defaultOpen />);
 
@@ -80,14 +78,12 @@ describe("AlertDialogPortal", () => {
 });
 
 describe("AlertDialogOverlay", () => {
-  // ----- 正常系 -----
   it("開いている間だけ背面の覆いを描画する", () => {
     render(<Example defaultOpen />);
 
     expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は背面の覆いを描画しない", () => {
     render(<Example />);
 
@@ -96,14 +92,12 @@ describe("AlertDialogOverlay", () => {
 });
 
 describe("AlertDialogContent", () => {
-  // ----- 正常系 -----
   it("開いた内容として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
     expect(screen.getByRole("alertdialog")).toHaveAttribute("data-slot", "alert-dialog-content");
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<Example />);
 
@@ -112,7 +106,6 @@ describe("AlertDialogContent", () => {
 });
 
 describe("AlertDialogHeader", () => {
-  // ----- 正常系 -----
   it("見出し枠として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -121,7 +114,6 @@ describe("AlertDialogHeader", () => {
 });
 
 describe("AlertDialogFooter", () => {
-  // ----- 正常系 -----
   it("操作枠として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -130,7 +122,6 @@ describe("AlertDialogFooter", () => {
 });
 
 describe("AlertDialogTitle", () => {
-  // ----- 正常系 -----
   it("題名として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -139,7 +130,6 @@ describe("AlertDialogTitle", () => {
 });
 
 describe("AlertDialogDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -151,7 +141,6 @@ describe("AlertDialogDescription", () => {
 });
 
 describe("AlertDialogAction", () => {
-  // ----- 正常系 -----
   it("続行の操作として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -171,7 +160,6 @@ describe("AlertDialogAction", () => {
 });
 
 describe("AlertDialogCancel", () => {
-  // ----- 正常系 -----
   it("取り消しの操作として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 

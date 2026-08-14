@@ -49,7 +49,6 @@ describe("Alert", () => {
 });
 
 describe("AlertTitle", () => {
-  // ----- 正常系 -----
   it("見出しとして slot を持つ要素を描画する", () => {
     render(<AlertTitle>確認が必要です</AlertTitle>);
 
@@ -64,7 +63,6 @@ describe("AlertTitle", () => {
 });
 
 describe("AlertDescription", () => {
-  // ----- 正常系 -----
   it("本文として slot を持つ要素を描画する", () => {
     render(<AlertDescription>内容を確認してください。</AlertDescription>);
 

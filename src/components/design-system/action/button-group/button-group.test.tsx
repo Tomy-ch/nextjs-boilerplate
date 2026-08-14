@@ -129,7 +129,6 @@ describe("buttonGroupVariants", () => {
 });
 
 describe("ButtonGroupText", () => {
-  // ----- 正常系 -----
   it("文言の枠として slot を持つ要素を描画する", () => {
     render(<ButtonGroupText>単位</ButtonGroupText>);
 
@@ -138,7 +137,6 @@ describe("ButtonGroupText", () => {
 });
 
 describe("ButtonGroupSeparator", () => {
-  // ----- 正常系 -----
   it("区切りとして slot を持つ要素を描画する", () => {
     const { container } = render(<ButtonGroupSeparator />);
 

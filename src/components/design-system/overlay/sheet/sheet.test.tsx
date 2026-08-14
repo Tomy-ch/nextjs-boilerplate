@@ -204,7 +204,6 @@ describe("Sheet", () => {
 });
 
 describe("SheetTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<SheetFixture />);
 
@@ -224,7 +223,6 @@ describe("SheetTrigger", () => {
 });
 
 describe("SheetPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<SheetFixture defaultOpen />);
 
@@ -234,14 +232,12 @@ describe("SheetPortal", () => {
 });
 
 describe("SheetOverlay", () => {
-  // ----- 正常系 -----
   it("開いている間だけ背面の覆いを描画する", () => {
     render(<SheetFixture defaultOpen />);
 
     expect(document.querySelector('[data-slot="sheet-overlay"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は背面の覆いを描画しない", () => {
     render(<SheetFixture />);
 
@@ -250,14 +246,12 @@ describe("SheetOverlay", () => {
 });
 
 describe("SheetContent", () => {
-  // ----- 正常系 -----
   it("開いた内容として slot を持つ要素を描画する", () => {
     render(<SheetFixture defaultOpen />);
 
     expect(screen.getByRole("dialog")).toHaveAttribute("data-slot", "sheet-content");
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<SheetFixture />);
 
@@ -266,7 +260,6 @@ describe("SheetContent", () => {
 });
 
 describe("SheetHeader", () => {
-  // ----- 正常系 -----
   it("見出し枠として slot を持つ要素を描画する", () => {
     render(<SheetFixture defaultOpen />);
 
@@ -275,7 +268,6 @@ describe("SheetHeader", () => {
 });
 
 describe("SheetFooter", () => {
-  // ----- 正常系 -----
   it("操作枠として slot を持つ要素を描画する", () => {
     render(<SheetFixture defaultOpen />);
 
@@ -284,7 +276,6 @@ describe("SheetFooter", () => {
 });
 
 describe("SheetTitle", () => {
-  // ----- 正常系 -----
   it("題名として slot を持つ要素を描画する", () => {
     render(<SheetFixture defaultOpen />);
 
@@ -293,7 +284,6 @@ describe("SheetTitle", () => {
 });
 
 describe("SheetDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<SheetFixture defaultOpen />);
 
@@ -305,7 +295,6 @@ describe("SheetDescription", () => {
 });
 
 describe("SheetClose", () => {
-  // ----- 正常系 -----
   it("閉じる操作として slot を持つ要素を描画する", () => {
     render(<SheetFixture defaultOpen />);
 

@@ -261,7 +261,6 @@ describe("DropdownMenu", () => {
 });
 
 describe("DropdownMenuTrigger", () => {
-  // ----- 正常系 -----
   it("押すと menu を開く", () => {
     render(
       <DropdownMenu>
@@ -282,7 +281,6 @@ describe("DropdownMenuTrigger", () => {
 });
 
 describe("DropdownMenuPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<ActionMenuFixture />);
 
@@ -292,7 +290,6 @@ describe("DropdownMenuPortal", () => {
 });
 
 describe("DropdownMenuContent", () => {
-  // ----- 正常系 -----
   it("menu の意味論と slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -301,7 +298,6 @@ describe("DropdownMenuContent", () => {
 });
 
 describe("DropdownMenuGroup", () => {
-  // ----- 正常系 -----
   it("項目の束として slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -310,7 +306,6 @@ describe("DropdownMenuGroup", () => {
 });
 
 describe("DropdownMenuLabel", () => {
-  // ----- 正常系 -----
   it("見出しとして slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -319,7 +314,6 @@ describe("DropdownMenuLabel", () => {
 });
 
 describe("DropdownMenuItem", () => {
-  // ----- 正常系 -----
   it("menuitem として slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -329,7 +323,6 @@ describe("DropdownMenuItem", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("disabled な項目を操作できないものとして示す", () => {
     render(<ActionMenuFixture />);
 
@@ -341,7 +334,6 @@ describe("DropdownMenuItem", () => {
 });
 
 describe("DropdownMenuSeparator", () => {
-  // ----- 正常系 -----
   it("区切りとして separator の意味論を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -350,7 +342,6 @@ describe("DropdownMenuSeparator", () => {
 });
 
 describe("DropdownMenuShortcut", () => {
-  // ----- 正常系 -----
   it("shortcut 表示を kbd の意味論で描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -362,7 +353,6 @@ describe("DropdownMenuShortcut", () => {
 });
 
 describe("DropdownMenuCheckboxItem", () => {
-  // ----- 正常系 -----
   it("選択状態を menuitemcheckbox として読み上げ可能にする", () => {
     render(
       <DropdownMenu defaultOpen>
@@ -380,7 +370,6 @@ describe("DropdownMenuCheckboxItem", () => {
 });
 
 describe("DropdownMenuRadioGroup", () => {
-  // ----- 正常系 -----
   it("排他選択の束として slot を持つ要素を描画する", () => {
     render(
       <DropdownMenu defaultOpen>
@@ -398,7 +387,6 @@ describe("DropdownMenuRadioGroup", () => {
 });
 
 describe("DropdownMenuRadioItem", () => {
-  // ----- 正常系 -----
   it("選択状態を menuitemradio として読み上げ可能にする", () => {
     render(
       <DropdownMenu defaultOpen>
@@ -418,7 +406,6 @@ describe("DropdownMenuRadioItem", () => {
 });
 
 describe("DropdownMenuSub", () => {
-  // ----- 正常系 -----
   it("入れ子の menu を閉じた状態で用意する", () => {
     render(<SubMenuFixture />);
 
@@ -430,7 +417,6 @@ describe("DropdownMenuSub", () => {
 });
 
 describe("DropdownMenuSubTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<SubMenuFixture />);
 
@@ -442,7 +428,6 @@ describe("DropdownMenuSubTrigger", () => {
 });
 
 describe("DropdownMenuSubContent", () => {
-  // ----- 正常系 -----
   it("入れ子の menu を開くと項目を描画する", () => {
     render(<SubMenuFixture />);
 

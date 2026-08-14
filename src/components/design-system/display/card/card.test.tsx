@@ -72,7 +72,6 @@ describe("Card", () => {
 });
 
 describe("CardHeader", () => {
-  // ----- 正常系 -----
   it("上段の枠として slot を持つ要素を描画する", () => {
     render(<CardHeader>上段</CardHeader>);
 
@@ -81,7 +80,6 @@ describe("CardHeader", () => {
 });
 
 describe("CardTitle", () => {
-  // ----- 正常系 -----
   it("題名として slot を持つ要素を描画する", () => {
     render(<CardTitle>題名</CardTitle>);
 
@@ -90,7 +88,6 @@ describe("CardTitle", () => {
 });
 
 describe("CardDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<CardDescription>補足</CardDescription>);
 
@@ -99,7 +96,6 @@ describe("CardDescription", () => {
 });
 
 describe("CardAction", () => {
-  // ----- 正常系 -----
   it("上段に添える操作枠として slot を持つ要素を描画する", () => {
     render(<CardAction>操作</CardAction>);
 
@@ -108,7 +104,6 @@ describe("CardAction", () => {
 });
 
 describe("CardContent", () => {
-  // ----- 正常系 -----
   it("本文の枠として slot を持つ要素を描画する", () => {
     render(<CardContent>本文</CardContent>);
 
@@ -117,7 +112,6 @@ describe("CardContent", () => {
 });
 
 describe("CardFooter", () => {
-  // ----- 正常系 -----
   it("下段の枠として slot を持つ要素を描画する", () => {
     render(<CardFooter>下段</CardFooter>);
 

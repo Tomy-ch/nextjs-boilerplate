@@ -8,7 +8,6 @@ import { axe } from "vitest-axe";
 import { CartQuantityStepper } from "./quantity-stepper";
 
 describe("CartQuantityStepper", () => {
-  // ----- 正常系 -----
   it("現在の数量を表示する", () => {
     render(<CartQuantityStepper label="深煎りブレンド" max={9} onChange={vi.fn()} quantity={3} />);
 

@@ -62,7 +62,6 @@ describe("EditableTable", () => {
 });
 
 describe("EditableTableHeader", () => {
-  // ----- 正常系 -----
   it("表の見出し行の束をそのまま提供する", () => {
     const { container } = render(<Example />);
 
@@ -72,7 +71,6 @@ describe("EditableTableHeader", () => {
 });
 
 describe("EditableTableBody", () => {
-  // ----- 正常系 -----
   it("表の本体行の束をそのまま提供する", () => {
     const { container } = render(<Example />);
 
@@ -82,7 +80,6 @@ describe("EditableTableBody", () => {
 });
 
 describe("EditableTableFooter", () => {
-  // ----- 正常系 -----
   it("表の脚注行の束をそのまま提供する", () => {
     const { container } = render(
       <EditableTable action="/">
@@ -100,7 +97,6 @@ describe("EditableTableFooter", () => {
 });
 
 describe("EditableTableRow", () => {
-  // ----- 正常系 -----
   it("表の行をそのまま提供する", () => {
     render(<Example />);
 
@@ -110,7 +106,6 @@ describe("EditableTableRow", () => {
 });
 
 describe("EditableTableHead", () => {
-  // ----- 正常系 -----
   it("表の見出しセルをそのまま提供する", () => {
     render(<Example />);
 
@@ -123,7 +118,6 @@ describe("EditableTableHead", () => {
 });
 
 describe("EditableTableCell", () => {
-  // ----- 正常系 -----
   it("表のデータセルをそのまま提供する", () => {
     render(<Example />);
 
@@ -133,7 +127,6 @@ describe("EditableTableCell", () => {
 });
 
 describe("EditableTableCaption", () => {
-  // ----- 正常系 -----
   it("表の説明をそのまま提供する", () => {
     const { container } = render(<Example />);
 

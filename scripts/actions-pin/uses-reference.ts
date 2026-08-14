@@ -26,8 +26,11 @@ export const USES_PATTERN =
 // 記法を問わず `uses:` とその値を拾う。USES_PATTERN の取りこぼし検出にのみ使う。
 const LOOSE_USES_PATTERN = /\buses[ \t]*:[ \t]*['"]?([^\s'",}#]+)/;
 
-// YAML の anchor（`&name`）と alias（`*name`）。値の先頭に付く。
-const ANCHOR_OR_ALIAS_PATTERN = /^[&*]/;
+// `uses:` キーそのもの。値を取れなかった行でも、キーが残っていることを見るために使う。
+const USES_KEY_PATTERN = /\buses[ \t]*:/;
+
+// 固定対象になりうる値の形。owner/repo で始まるものだけを通す。
+const REPO_VALUE_PATTERN = /^[^/\s]+\/[^/\s]+/;
 
 const WORKFLOW_DIR = ".github/workflows";
 const YAML_EXTENSIONS = [".yml", ".yaml"];
@@ -90,11 +93,13 @@ export function collectRefs(files: string[]): Map<string, ActionRef> {
 
 // USES_PATTERN で解釈できなかった `uses:` の行番号を返す。
 //
-// USES_PATTERN が見るのは 1 行 1 ステップのブロック記法だけで、YAML として正当な
-// flow mapping（`- {name: X, uses: owner/repo@v1}`）や anchor / alias
-// （`uses: &co owner/repo@v1` / `uses: *co`）には一致しない。一致しないものは
-// 未登録としても未固定としても数えられず、検査が「異常なし」を返してしまう。固定の網から
-// 外れた参照を黙って通さないよう、対応記法の外を検出して呼び出し元に落とさせる。
+// USES_PATTERN が見るのは 1 行 1 ステップのブロック記法だけで、YAML として正当な他の書き方
+// （flow mapping・引用符・anchor / alias・タグ・キーと値の行分け）には一致しない。一致しない
+// ものは未登録としても未固定としても数えられず、検査が「異常なし」を返してしまう。
+//
+// そのため判定は許可制にしてある。残った `uses:` は原則すべて対応記法の外と見なし、固定対象に
+// なりえない 2 つ——ローカル参照（`./...`）と、版を持たない `owner/repo`——だけを通す。列挙した
+// 記法を落とす形にすると、列挙から漏れた書き方が黙って網をすり抜ける。
 export function unparsedUsesLines(data: string): number[] {
   // 解釈済みの `uses:` を同じ長さの空白へ潰し、残った `uses:` だけを緩いパターンで拾う。
   const rest = data.replace(USES_PATTERN, (line) => " ".repeat(line.length));
@@ -102,17 +107,19 @@ export function unparsedUsesLines(data: string): number[] {
   for (const [index, line] of rest.split("\n").entries()) {
     // 行全体がコメントなら対象外。散文の中の `uses:` に反応させない。
     if (line.trimStart().startsWith("#")) continue;
+    if (!USES_KEY_PATTERN.test(line)) continue;
+
     const value = LOOSE_USES_PATTERN.exec(line)?.[1];
-    if (value === undefined) continue;
-    // anchor / alias は参照の実体が行の外にあり、値が `owner/repo@<ref>` の形を取らない。
-    // 版の有無で判定すると素通りするため、記法そのものを見て落とす。
-    if (ANCHOR_OR_ALIAS_PATTERN.test(value)) {
+    // 値がこの行に無い。何を固定すべきかを行から決められない。
+    if (value === undefined) {
       lines.push(index + 1);
       continue;
     }
-    // 固定対象は `owner/repo@<ref>` の形の外部参照だけ。ローカル参照（`./...`）と
-    // 版を持たない参照は parseUses でも対象外なので、取りこぼしには当たらない。
-    if (!value.startsWith(".") && value.includes("@")) lines.push(index + 1);
+    // ローカル参照は固定対象外。parseUses も対象外にする。
+    if (value.startsWith(".")) continue;
+    // owner/repo の形を成さない値は、記法そのものが対応外。形を成していて版を持つものは、
+    // 対応記法なら USES_PATTERN が既に潰しているので、ここに残る時点で書き換えられない形。
+    if (!REPO_VALUE_PATTERN.test(value) || value.includes("@")) lines.push(index + 1);
   }
   return lines;
 }

@@ -1,7 +1,4 @@
-// build 済みの Storybook を配る静的サーバ。
-//
-// 依存を持たないのは、これを動かすのが VRT のコンテナだから。コンテナには repo の
-// `node_modules` を持ち込まず、Playwright の実行に要るものだけを置いている。
+// build 済みの Storybook を配る静的サーバ。標準モジュールだけで組む。
 //
 // `file://` で直接開けないのは、Storybook の entry が module script であり、ブラウザが
 // `file://` 由来の module を origin なしとして拒むため。

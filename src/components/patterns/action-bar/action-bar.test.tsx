@@ -8,7 +8,6 @@ import { ActionBar } from "./action-bar";
 import { ACTION_BAR_POSITION } from "./action-bar.definition";
 
 describe("ActionBar", () => {
-  // ----- 正常系 -----
   it("渡した操作を並べる", () => {
     render(
       <ActionBar>

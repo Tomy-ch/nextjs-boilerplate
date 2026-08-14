@@ -54,7 +54,6 @@ describe("ProductInfiniteList", () => {
     useInfiniteProducts.mockReset();
   });
 
-  // ----- 正常系 -----
   it("読み込み済みの商品を並べる", () => {
     observing();
 
@@ -103,7 +102,6 @@ describe("ProductInfiniteList", () => {
     expect(sentinelRef.current).toBeInstanceOf(HTMLDivElement);
   });
 
-  // ----- 異常系 -----
   it("取得に失敗したら読み直す操作を出す", () => {
     observing({ hasNext: true, failed: true });
 

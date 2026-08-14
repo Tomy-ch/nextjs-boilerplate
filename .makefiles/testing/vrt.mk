@@ -24,6 +24,12 @@ export VRT_ONLY
 
 VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T -e VRT_ONLY vrt_runner
 
+# 基準画像を撮った時点の入力のハッシュ。置き場が画像と同じコミットで持つ (vrt/README.md)。
+VRT_INPUTS_FILE := vrt/screenshots/render-inputs.sha256
+
+# 比較を省いた実行でも走らせる検査。基準画像と撮影対象の 1 対 1 の対応だけを選ぶ。
+VRT_BASELINE_TAG := @baselines
+
 # 比較する前に Storybook を build する。撮る対象は build 済みの静的な出力であり、
 # ソースではない。
 # 配線の確認。撮り直しは空の置き場から始められる必要があるので、中身までは要求しない。
@@ -39,11 +45,19 @@ vrt: build-storybook
 	@if [ -z "$$(ls -A vrt/screenshots 2>/dev/null)" ]; then \
 		echo "❌ vrt/screenshots が空です。git submodule update --init vrt/screenshots を実行してください。"; exit 1; \
 	fi
-	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts $(VRT_ARGS)
+	@if [ -z "$(VRT_ONLY)" ] && [ "$$(pnpm exec tsx scripts/vrt gate $(VRT_INPUTS_FILE))" = "skip" ]; then \
+		echo "⏭️ 絵を決める入力が基準画像を撮った時点と同じです。比較を省き、対応の検査だけを行います。"; \
+		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --grep $(VRT_BASELINE_TAG) $(VRT_ARGS); \
+	else \
+		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts $(VRT_ARGS); \
+	fi
 
+# 入力のハッシュは撮った直後に書く。送る側で書くと、撮らずに置き場を直した木でも「この入力で
+# 撮った」と記録でき、次の実行が比較を省いてしまう。
 vrt-update: build-storybook
 	@$(VRT_REQUIRE_WIRING)
 	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --update-snapshots $(VRT_ARGS)
+	@pnpm exec tsx scripts/vrt inputs > $(VRT_INPUTS_FILE)
 	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です。"
 
 # 手元から撮り直す唯一の入口。撮って送らないと、親の gitlink が古いまま作業ツリーだけ新しい

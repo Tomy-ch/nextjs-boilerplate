@@ -56,7 +56,6 @@ describe("Collapsible", () => {
 });
 
 describe("CollapsibleTrigger", () => {
-  // ----- 正常系 -----
   it("開閉を切り替える summary として slot を持つ要素を描画する", () => {
     render(<ExampleCollapsible />);
 
@@ -68,7 +67,6 @@ describe("CollapsibleTrigger", () => {
 });
 
 describe("CollapsibleContent", () => {
-  // ----- 正常系 -----
   it("内容として slot を持つ要素を描画する", () => {
     render(<ExampleCollapsible />);
 

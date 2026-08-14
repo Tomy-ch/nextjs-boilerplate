@@ -73,7 +73,6 @@ describe("KeyboardShortcutList", () => {
 });
 
 describe("KeyboardShortcut", () => {
-  // ----- 正常系 -----
   it("shortcut 1 件として slot を持つ要素を描画する", () => {
     render(<Fixture />);
 

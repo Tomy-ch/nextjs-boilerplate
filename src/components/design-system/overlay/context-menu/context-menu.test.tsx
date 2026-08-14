@@ -171,7 +171,6 @@ describe("ContextMenu", () => {
 });
 
 describe("ContextMenuCheckboxItem", () => {
-  // ----- 正常系 -----
   it("選択状態を読み上げ、選ぶと切り替わる", () => {
     render(<SelectionMenuFixture />);
     openMenu("表示設定");
@@ -189,7 +188,6 @@ describe("ContextMenuCheckboxItem", () => {
 });
 
 describe("ContextMenuRadioItem", () => {
-  // ----- 正常系 -----
   it("群の値と一致するものが選択状態になる", () => {
     render(<SelectionMenuFixture />);
     openMenu("表示設定");
@@ -213,7 +211,6 @@ describe("ContextMenuRadioItem", () => {
 });
 
 describe("ContextMenuSubContent", () => {
-  // ----- 正常系 -----
   it("入れ子の trigger を選ぶと下位の menu を描画する", () => {
     render(<SubMenuFixture />);
     openMenu("入れ子");
@@ -228,7 +225,6 @@ describe("ContextMenuSubContent", () => {
 });
 
 describe("ContextMenuTrigger", () => {
-  // ----- 正常系 -----
   it("右クリックで menu を開く", () => {
     render(<ActionMenuFixture />);
     openMenu("対象の行");
@@ -238,7 +234,6 @@ describe("ContextMenuTrigger", () => {
 });
 
 describe("ContextMenuPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<ActionMenuFixture />);
     openMenu("対象の行");
@@ -249,7 +244,6 @@ describe("ContextMenuPortal", () => {
 });
 
 describe("ContextMenuContent", () => {
-  // ----- 正常系 -----
   it("menu の意味論と slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
     openMenu("対象の行");
@@ -259,7 +253,6 @@ describe("ContextMenuContent", () => {
 });
 
 describe("ContextMenuGroup", () => {
-  // ----- 正常系 -----
   it("項目の束として slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
     openMenu("対象の行");
@@ -269,7 +262,6 @@ describe("ContextMenuGroup", () => {
 });
 
 describe("ContextMenuLabel", () => {
-  // ----- 正常系 -----
   it("見出しとして slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
     openMenu("対象の行");
@@ -279,7 +271,6 @@ describe("ContextMenuLabel", () => {
 });
 
 describe("ContextMenuItem", () => {
-  // ----- 正常系 -----
   it("menuitem として slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
     openMenu("対象の行");
@@ -290,7 +281,6 @@ describe("ContextMenuItem", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("disabled な項目を操作できないものとして示す", () => {
     render(<ActionMenuFixture />);
     openMenu("対象の行");
@@ -303,7 +293,6 @@ describe("ContextMenuItem", () => {
 });
 
 describe("ContextMenuSeparator", () => {
-  // ----- 正常系 -----
   it("区切りとして separator の意味論を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
     openMenu("対象の行");
@@ -313,7 +302,6 @@ describe("ContextMenuSeparator", () => {
 });
 
 describe("ContextMenuShortcut", () => {
-  // ----- 正常系 -----
   it("shortcut 表示として slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
     openMenu("対象の行");
@@ -323,7 +311,6 @@ describe("ContextMenuShortcut", () => {
 });
 
 describe("ContextMenuRadioGroup", () => {
-  // ----- 正常系 -----
   it("排他選択の束として slot を持つ要素を描画する", () => {
     render(<SelectionMenuFixture />);
     openMenu("表示設定");
@@ -333,7 +320,6 @@ describe("ContextMenuRadioGroup", () => {
 });
 
 describe("ContextMenuSub", () => {
-  // ----- 正常系 -----
   it("入れ子の menu を閉じた状態で用意する", () => {
     render(<SubMenuFixture />);
     openMenu("入れ子");
@@ -346,7 +332,6 @@ describe("ContextMenuSub", () => {
 });
 
 describe("ContextMenuSubTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<SubMenuFixture />);
     openMenu("入れ子");
