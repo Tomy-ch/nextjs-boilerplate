@@ -64,10 +64,10 @@
   color-scheme: light;
   --semantic-color-background: var(--color-neutral-100);
   --semantic-color-foreground: var(--color-neutral-900);
-  --semantic-color-muted: var(--color-neutral-100);
+  --semantic-color-muted: var(--color-neutral-300);
   --semantic-color-muted-foreground: var(--color-neutral-700);
-  --semantic-color-border: var(--color-neutral-100);
-  --semantic-color-accent: var(--color-neutral-100);
+  --semantic-color-border: var(--color-neutral-300);
+  --semantic-color-accent: var(--color-neutral-300);
   --semantic-color-accent-foreground: var(--color-neutral-900);
   --semantic-color-popover: var(--color-neutral-0);
   --semantic-color-popover-foreground: var(--color-neutral-900);

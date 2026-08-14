@@ -12,7 +12,7 @@
         },
         "muted": {
           "$type": "color",
-          "$value": "{color.neutral.100}"
+          "$value": "{color.neutral.300}"
         },
         "muted-foreground": {
           "$type": "color",
@@ -20,11 +20,11 @@
         },
         "border": {
           "$type": "color",
-          "$value": "{color.neutral.100}"
+          "$value": "{color.neutral.300}"
         },
         "accent": {
           "$type": "color",
-          "$value": "{color.neutral.100}"
+          "$value": "{color.neutral.300}"
         },
         "accent-foreground": {
           "$type": "color",
