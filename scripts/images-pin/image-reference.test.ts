@@ -346,4 +346,26 @@ describe("unparsedLines", () => {
 
     expect(unparsedLines("      - uses: actions/checkout@v7\n", target())).toEqual([]);
   });
+
+  it("run スクリプトが出力する uses: docker:// を取りこぼしとして報告しない", () => {
+    write(".github/workflows/test.yaml", "");
+    const source = ["steps:", "  - run: |", '      echo "- uses: docker://alpine:3.24"', ""].join(
+      "\n",
+    );
+
+    expect(unparsedLines(source, target())).toEqual([]);
+  });
+
+  it("ブロックが終わった後の uses: docker:// は取りこぼしとして報告する", () => {
+    write(".github/workflows/test.yaml", "");
+    const source = [
+      "steps:",
+      "  - run: |",
+      '      echo "- uses: docker://alpine:3.24"',
+      "  - uses: docker://busybox",
+      "",
+    ].join("\n");
+
+    expect(unparsedLines(source, target())).toEqual([4]);
+  });
 });

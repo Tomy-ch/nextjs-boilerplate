@@ -227,6 +227,26 @@ describe("unparsedUsesLines", () => {
     expect(unparsedUsesLines("  - {uses: actions/checkout}\n")).toEqual([]);
   });
 
+  it("run スクリプトが出力する uses を取りこぼしとして扱わない", () => {
+    const source = ["steps:", "  - run: |", '      echo "  - uses: actions/checkout@v7"', ""].join(
+      "\n",
+    );
+
+    expect(unparsedUsesLines(source)).toEqual([]);
+  });
+
+  it("ブロックが終わった後の uses は取りこぼしとして扱う", () => {
+    const source = [
+      "steps:",
+      "  - run: |",
+      '      echo "  - uses: actions/checkout@v7"',
+      '  - uses: "actions/cache@v6"',
+      "",
+    ].join("\n");
+
+    expect(unparsedUsesLines(source)).toEqual([4]);
+  });
+
   it("container image 参照を取りこぼしとして扱わない", () => {
     expect(unparsedUsesLines("      - uses: docker://alpine:3.24\n")).toEqual([]);
   });

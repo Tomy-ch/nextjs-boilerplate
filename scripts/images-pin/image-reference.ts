@@ -7,6 +7,7 @@
 // [0011](../../docs/adr/0011-no-docker.md) が持つ。
 import fs from "node:fs";
 import path from "node:path";
+import { blockScalarLines } from "../lib/block-scalar.js";
 import {
   COMPOSITE_ACTION_DIR,
   collectActionDefinitions,
@@ -149,9 +150,13 @@ export function collectRefs(targets: PinTarget[]): Map<string, ImageRef> {
  */
 export function unparsedLines(data: string, target: PinTarget): number[] {
   const rest = data.replace(target.pattern, (line) => " ".repeat(line.length));
+  // 範囲の判定は潰す前の内容で行う。潰した行は字下げごと空白になり、ブロックの終わりに見える。
+  const inBlockScalar = blockScalarLines(data);
   const lines: number[] = [];
   for (const [index, line] of rest.split("\n").entries()) {
     if (line.trimStart().startsWith("#")) continue;
+    // ブロックスカラーの中身は YAML の構造ではない。`run:` が出力する文字列に反応させない。
+    if (inBlockScalar.has(index + 1)) continue;
     if (target.loose.test(line)) lines.push(index + 1);
   }
 

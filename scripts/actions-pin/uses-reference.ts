@@ -1,6 +1,7 @@
 // `uses:` 行の走査と解釈。固定対象ファイルの列挙と、行から参照 1 件を取り出す責務を持つ。
 import fs from "node:fs";
 import path from "node:path";
+import { blockScalarLines } from "../lib/block-scalar.js";
 import {
   COMPOSITE_ACTION_DIR,
   collectActionDefinitions,
@@ -119,10 +120,14 @@ export function collectRefs(files: string[]): Map<string, ActionRef> {
 export function unparsedUsesLines(data: string): number[] {
   // 解釈済みの `uses:` を同じ長さの空白へ潰し、残った `uses:` だけを緩いパターンで拾う。
   const rest = data.replace(usesPattern(), (line) => " ".repeat(line.length));
+  // 範囲の判定は潰す前の内容で行う。潰した行は字下げごと空白になり、ブロックの終わりに見える。
+  const inBlockScalar = blockScalarLines(data);
   const lines: number[] = [];
   for (const [index, line] of rest.split("\n").entries()) {
     // 行全体がコメントなら対象外。散文の中の `uses:` に反応させない。
     if (line.trimStart().startsWith("#")) continue;
+    // ブロックスカラーの中身は YAML の構造ではない。`run:` が出力する文字列に反応させない。
+    if (inBlockScalar.has(index + 1)) continue;
     if (!USES_KEY_PATTERN.test(line)) continue;
 
     const value = LOOSE_USES_PATTERN.exec(line)?.[1];
