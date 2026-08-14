@@ -59,7 +59,8 @@ Accepted
 | 9 | Internal Processing | 内部処理は英語可。最終出力には日本語ルールを適用 |
 | 10 | Exception | ユーザが明示的に英語を指示した場合のみ英語可 |
 | 11 | Code Style | ADR 0002 を前提とした実行手順 |
-| 12 | Protected Documentation | 直接編集禁止ファイルの宣言 |
+| 12 | Review Phase Protocol | 「レビューして」が指す 3 つの subject (`impl-review` / `test-review` / `comment-sweep`) と、実行可否を見積もり付きで問う責務 |
+| 13 | Protected Documentation | 直接編集禁止ファイルの宣言 |
 
 節の追加・順序変更は ADR 改訂を要する。表 (Accepted Rules) への ADR 追加や `[TODO]` セクションの追加・削除は軽微編集とし、ADR 改訂は不要。
 
