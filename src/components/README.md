@@ -93,9 +93,9 @@ subcomponent が多い compound では、root に `@example` で組み合わせ�
 
 ### 境界を示す線
 
-- **その線が要素の境界を示すなら `border-input`、区画の仕切りなら `border-border` を使う。** light では `border` が `background` と同じ値なので、境界に `border-border` を使った部品は枠を失う。`Input` / `Textarea` のように枠が無いと入力できる範囲が判らなくなるもの、`Badge` の `outline` のように縁だけで成り立つ variant は、いずれも `input` を取る
-- 入力できる範囲の境界は **WCAG 1.4.11 が隣接色との 3:1 を求める**対象であり、控えめにしてよい線ではない（[0100](../../docs/adr/0100-accessibility-target.md)）。仕切りは同条の対象外なので `border` のままでよい
-- 判断の根拠は token の値にあるため、配色を変えたときはこの節を先に確認する。呼び出し側のコメントに理由を書くと、token を直しても気づかれない
+- **その線が要素の境界を示すなら `border-input`、区画の仕切りなら `border-border` を使う。** `Input` / `Textarea` のように枠が無いと入力できる範囲が判らなくなるもの、`Badge` の `outline` のように縁だけで成り立つ variant は、いずれも `input` を取る
+- 分けるのは**コントラストの要求が違う**ためである。入力できる範囲の境界は **WCAG 1.4.11 が隣接色との 3:1 を求める**対象で（[0100](../../docs/adr/0100-accessibility-target.md)）、light の地（`neutral.100`）に対して `border`（`neutral.300`）は **1.79:1** しかなく満たさない。`input`（`neutral.500`）は **4.05:1** で満たす。仕切りは同条の対象外なので `border` のままでよい
+- 判断の根拠は token の値にあるため、配色を変えたときはこの節を先に確認し、**比を測り直す**。呼び出し側のコメントに理由を書くと、token を直しても気づかれない
 
 ### 装飾的な輪
 
