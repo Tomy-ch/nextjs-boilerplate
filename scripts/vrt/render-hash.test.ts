@@ -20,6 +20,7 @@ function placeInputs(): void {
   place("playwright.config.ts", "config");
   place("vrt/stories.spec.ts", "spec");
   place("docker-compose.dev-tools.yml", "compose");
+  place("pnpm-lock.yaml", "lock");
 }
 
 const hashOf = (): string => renderInputsHash(root, collectRenderInputs(root));
@@ -34,12 +35,13 @@ afterEach(() => {
 
 describe("collectRenderInputs", () => {
   // ----- 正常系 -----
-  it("撮る対象・撮り方・撮る環境を列挙する", () => {
+  it("撮る対象・撮り方・撮る環境・検査の実装を列挙する", () => {
     placeInputs();
 
     expect(collectRenderInputs(root)).toEqual([
       "docker-compose.dev-tools.yml",
       "playwright.config.ts",
+      "pnpm-lock.yaml",
       "storybook-static/index.json",
       "vrt/stories.spec.ts",
     ]);
@@ -67,6 +69,7 @@ describe("collectRenderInputs", () => {
     expect(collectRenderInputs(root)).toEqual([
       "docker-compose.dev-tools.yml",
       "playwright.config.ts",
+      "pnpm-lock.yaml",
       "storybook-static/index.json",
       "vrt/stories.spec.ts",
     ]);
@@ -125,19 +128,31 @@ describe("renderInputsHash", () => {
 describe("decideGate", () => {
   // ----- 正常系 -----
   it("記録と現在が同じなら省く", () => {
-    expect(decideGate("abc", "abc")).toBe("skip");
+    expect(decideGate(["abc"], "abc")).toBe("skip");
   });
 
   it("記録の前後の空白を無視する", () => {
-    expect(decideGate("abc\n", "abc")).toBe("skip");
+    expect(decideGate(["abc\n"], "abc")).toBe("skip");
   });
 
   it("記録と現在が違えば撮る", () => {
-    expect(decideGate("abc", "def")).toBe("run");
+    expect(decideGate(["abc"], "def")).toBe("run");
+  });
+
+  it("複数の記録のどれか 1 つが一致すれば省く", () => {
+    expect(decideGate(["def", "abc"], "abc")).toBe("skip");
+  });
+
+  it("複数の記録がどれも違えば撮る", () => {
+    expect(decideGate(["def", "ghi"], "abc")).toBe("run");
   });
 
   // ----- 異常系 -----
   it("記録が無ければ撮る", () => {
-    expect(decideGate(null, "abc")).toBe("run");
+    expect(decideGate([null], "abc")).toBe("run");
+  });
+
+  it("記録を 1 つも渡されなければ撮る", () => {
+    expect(decideGate([], "abc")).toBe("run");
   });
 });

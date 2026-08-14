@@ -74,6 +74,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The record of which input state axe already cleared. `make a11y` hashes the rendering
+      # inputs itself and skips the run when they match, so the cache only has to carry the
+      # record forward — the newest one this branch (or its base) produced. A miss restores
+      # nothing and the run happens, which is the safe direction.
+      #
+      # This record is a11y's own. Reusing VRT's would report green for an input state where
+      # axe fails but the baselines happened to be retaken.
+      - name: Restore the last verified input state
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/a11y/verified-inputs.sha256
+          key: a11y-verified-${{ github.run_id }}
+          restore-keys: a11y-verified-
+
       - name: Build Storybook and run axe over every story
         id: a11y
         continue-on-error: true
@@ -81,22 +95,39 @@ jobs:
         run: |
           set +e
 
-          # Playwright defaults to half the cores, which leaves two of the runner's four
-          # idle for a run that is entirely CPU-bound (axe evaluates in-page, one story at
-          # a time per worker).
-          make a11y VRT_ARGS=--workers=4 > /tmp/a11y-full.log 2>&1
+          # The run is entirely CPU-bound (axe evaluates in-page, one story at a time per
+          # worker), so it asks for every core instead of Playwright's default half. The
+          # percentage form is deliberate: a core count is a fact about the runner, not
+          # about this project, and a standard runner has four cores on a public repository
+          # but two on a private one — which is what a fork gets.
+          make a11y VRT_ARGS=--workers=100% > /tmp/a11y-full.log 2>&1
           code=$?
           tail -n 40 /tmp/a11y-full.log
 
           if [ "${code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
-            echo "title=## ✅ Accessibility: PASS (axe on every story)" >> "$GITHUB_OUTPUT"
+            # Green because axe ran, or green because the inputs had already cleared it —
+            # the reader needs to be able to tell those apart.
+            if grep -qx 'vrt-gate: skip' /tmp/a11y-full.log; then
+              echo "title=## ✅ Accessibility: PASS (inputs unchanged, axe skipped)" >> "$GITHUB_OUTPUT"
+            else
+              echo "title=## ✅ Accessibility: PASS (axe on every story)" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "status=failure" >> "$GITHUB_OUTPUT"
             echo "title=## ❌ Accessibility: FAIL" >> "$GITHUB_OUTPUT"
           fi
 
           exit 0
+
+      # Only a clean run is worth carrying forward. The key is unique per run so the save
+      # always lands; `restore-keys` above then picks up the newest one.
+      - name: Save the verified input state
+        if: steps.a11y.outputs.status == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/a11y/verified-inputs.sha256
+          key: a11y-verified-${{ github.run_id }}
 
       - name: Upload the axe report
         if: always() && steps.a11y.outputs.status == 'failure'
