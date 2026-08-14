@@ -68,8 +68,10 @@ pnpm dev
 
 <http://localhost:3000> を開くと表示されます。`src/app/page.tsx` を編集すると自動で反映されます。
 
+<!-- boilerplate-only:begin -->
 このボイラープレートから新規プロジェクトを作る場合（**Use this template**）は追加の手順が必要です。**順序に依存する箇所が
 あるので** [`docs/get-started/setup-repository.md`](docs/get-started/setup-repository.md) を上から辿ってください。
+<!-- boilerplate-only:end -->
 
 ## コマンド
 
