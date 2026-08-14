@@ -105,14 +105,7 @@ jobs:
           # exact case worth diagnosing — the slow one — is the case that leaves no log at
           # all. Streaming also gets every line stamped with the runner's clock, which is
           # what tells apart a slow Storybook build, a slow image pull and a slow run.
-          # UNDER MEASUREMENT — see docs/survey/vrt-thread.md. Asking for twice the cores is a
-          # test of one hypothesis: raising workers to the core count changed nothing last time,
-          # which suggests the run is not CPU-saturated and is instead waiting (page load, fonts,
-          # settling). If that holds, oversubscribing raises throughput; if it does not, this
-          # reverts. `vrt` is deliberately left alone as the control — both jobs run on the same
-          # runner generation for a given push, so its duration normalises runner-to-runner
-          # variance, which is what defeated the previous measurement.
-          make a11y VRT_ARGS=--workers=200% 2>&1 | tee /tmp/a11y-full.log
+          make a11y VRT_ARGS=--workers=100% 2>&1 | tee /tmp/a11y-full.log
           code=${PIPESTATUS[0]}
 
           if [ "${code}" -eq 0 ]; then
