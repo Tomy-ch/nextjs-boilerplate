@@ -17,7 +17,7 @@ import { ActionBar } from "@/components/patterns/action-bar/action-bar";
 import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
 import { FilterBarTrigger } from "@/components/patterns/filter-bar/filter-bar";
 
-import { toProductListHref } from "../../query";
+import { toProductListHref } from "../../../facade/list-url/list-url";
 import { type FilterGroup, ProductFilterFields } from "../filter-fields/filter-fields";
 
 /** `ProductFilterSheet` の props。 */

@@ -6,14 +6,10 @@ import type { z } from "zod";
 import { getApiConfig } from "@/config/api/api.server";
 import type { ProductRef } from "@/model/product/product";
 
-import {
-  GetProductCategoriesResponse,
-  GetProductStatusesResponse,
-} from "../../gen/api/endpoints.zod";
+import { GetProductCategoriesResponse } from "../../gen/api/endpoints.zod";
 import { createHttpClient, type HttpClient } from "../http/request";
 
 type WireCategories = z.infer<typeof GetProductCategoriesResponse>;
-type WireStatuses = z.infer<typeof GetProductStatusesResponse>;
 
 /**
  * 商品マスタのキャッシュタグ。
@@ -40,7 +36,7 @@ function getClient(): HttpClient {
  * 値です。並びは契約が `sortKey` 昇順で返すと定めているため、受け取った順序がそのまま表示の順序に
  * なり、表示側が持ち直す理由がありません。
  */
-function toProductRefs(wire: WireCategories | WireStatuses): readonly ProductRef[] {
+function toProductRefs(wire: WireCategories): readonly ProductRef[] {
   return wire.map(({ id, name }) => ({ id, name }));
 }
 
@@ -60,16 +56,4 @@ export const getProductCategories = cache(async (): Promise<readonly ProductRef[
   });
 
   return toProductRefs(categories);
-});
-
-/** 商品ステータスのマスタを取得する。キャッシュの扱いはカテゴリと同じ。 */
-export const getProductStatuses = cache(async (): Promise<readonly ProductRef[]> => {
-  const statuses = await getClient().request({
-    path: "/v1/products/statuses",
-    schema: GetProductStatusesResponse,
-    cache: "force-cache",
-    tags: [PRODUCT_MASTERS_TAG],
-  });
-
-  return toProductRefs(statuses);
 });

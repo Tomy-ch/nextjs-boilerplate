@@ -1,7 +1,3 @@
-import { ArrowLeftIcon } from "lucide-react";
-import Link from "next/link";
-
-import { Button } from "@/components/design-system/action/button/button";
 import {
   Carousel,
   CarouselContent,
@@ -23,6 +19,15 @@ import {
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import { MediaImage } from "@/components/design-system/display/media-image/media-image";
 import { MEDIA_IMAGE_ASPECT_RATIO } from "@/components/design-system/display/media-image/media-image.definition";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/design-system/navigation/breadcrumb/breadcrumb";
+import { ImageViewer } from "@/components/design-system/overlay/image-viewer/image-viewer";
 import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
 import { ActionBar } from "@/components/patterns/action-bar/action-bar";
 import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
@@ -31,7 +36,9 @@ import { NO_IMAGE_URL } from "@/model/media";
 import type { Product } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 
+import { PRODUCT_LIST_PATH } from "../facade/list-url/list-url";
 import { AddToCartButton } from "../ui/add-to-cart-button/add-to-cart-button";
+import { PrintButton } from "./ui/print-button/print-button";
 
 const DESCRIPTION_HEADING_ID = "product-description";
 
@@ -58,52 +65,111 @@ type ProductDetailProps = {
  * 見た目が動き、1 枚の商品と複数枚の商品が別の画面に見えます。1 枚も無い場合は代替画像を 1 枚として
  * 置きます。
  *
+ * 実画像だけを押して拡大できます。代替画像は「画像が無い」ことを伝える表示であり、拡大しても
+ * 得られるものがありません。押せる画像と押せない画像が混ざりますが、混ざるのは実画像が無い商品
+ * だけで、同じ商品の中で押せたり押せなかったりはしません。
+ *
  * 在庫が少ないかどうかの境界はバックエンドが `stockWarningThreshold` で供給します。ここが持つのは
  * 境界を跨いだ時に何を見せるかだけです。
+ *
+ * パンくずを置くのは、一覧・分類・トップのどこからでも入る画面で、global nav から 1 手で戻れない
+ * 祖先を持つためです（[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。示すのは辿った
+ * 経路ではなくサイト構造上の階層です。
+ *
+ * 現在地の商品名は幅で詰めます。契約の上限は 255 文字で、そのまま置くと現在地だけで数行を占め、
+ * 階層を一目で読み取るという役割が失われます。文字数で切らないのは、書記素の切れ目を跨いで
+ * 壊す形にしないためと、同じ文字数でも和文と欧文で占める幅が違うためです。詰めても情報は
+ * 落ちません。全文は真下の見出しにあり、読み上げには全文が渡ります。
+ *
+ * 紙に出すのは内容だけです。押せない操作（パンくず・画像の送り・一覧・カートへの追加・印刷そのもの）
+ * は紙面の場所を取るだけなので落とします。画像は先頭の 1 枚だけを残し、幅も抑えます。carousel は
+ * 横に送って見る形で、紙では送れないため全部並べると同じ商品の写真が紙を埋め、幅を抑えないと
+ * 1 枚でも紙 1 面を占めて肝心の値が次の紙へ送られます。
  */
 export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
   const slides = imageUrls.length === 0 ? [null] : imageUrls;
+  const viewable = imageUrls.map((url) => ({ src: url, alt: product.name }));
   const isLowStock =
     product.stockWarningThreshold !== null && product.quantity <= product.stockWarningThreshold;
 
   return (
     <article className="flex flex-col gap-8 pb-24 lg:pb-0">
-      <Button asChild className="self-start" size="sm" variant="ghost">
-        <Link href="/products">
-          <ArrowLeftIcon aria-hidden="true" className="size-4" />
-          商品一覧へ戻る
-        </Link>
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumb className="print-hidden">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">トップ</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink href={PRODUCT_LIST_PATH}>商品一覧</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
+              <BreadcrumbPage className="max-w-40 truncate">{product.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <PrintButton />
+      </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <Carousel aria-label={`${product.name}の画像`}>
+        <Carousel aria-label={`${product.name}の画像`} className="print:max-w-64">
           <CarouselContent>
             {slides.map((src, index) => (
               <CarouselItem
                 aria-label={`${index + 1} / ${slides.length}`}
+                className={index === 0 ? undefined : "print-hidden"}
                 id={slideIdOf(index)}
                 key={slideIdOf(index)}
               >
-                {index === 0 ? null : (
-                  <CarouselPrevious href={`#${slideIdOf(index - 1)}`} tabIndex={-1} />
+                {src === null ? (
+                  <MediaImage
+                    alt={product.name}
+                    className="rounded-lg border border-border"
+                    fallbackAlt="画像なし"
+                    fallbackSrc={NO_IMAGE_URL}
+                    preload
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    src={null}
+                  />
+                ) : (
+                  <ImageViewer images={viewable} index={index}>
+                    <MediaImage
+                      alt={product.name}
+                      className="rounded-lg border border-border"
+                      preload={index === 0}
+                      sizes="(min-width: 1024px) 50vw, 100vw"
+                      src={src}
+                    />
+                  </ImageViewer>
                 )}
-                <MediaImage
-                  alt={product.name}
-                  className="rounded-lg border border-border"
-                  fallbackAlt="画像なし"
-                  fallbackSrc={NO_IMAGE_URL}
-                  preload={index === 0}
-                  sizes="(min-width: 1024px) 50vw, 100vw"
-                  src={src}
-                />
+                {/* 送る操作は画像より後ろに置く。位置指定要素は DOM の順で重なるため、
+                    前に置くと画像に覆われて押せない。 */}
+                {index === 0 ? null : (
+                  <CarouselPrevious
+                    className="print-hidden"
+                    href={`#${slideIdOf(index - 1)}`}
+                    tabIndex={-1}
+                  />
+                )}
                 {index === slides.length - 1 ? null : (
-                  <CarouselNext href={`#${slideIdOf(index + 1)}`} tabIndex={-1} />
+                  <CarouselNext
+                    className="print-hidden"
+                    href={`#${slideIdOf(index + 1)}`}
+                    tabIndex={-1}
+                  />
                 )}
               </CarouselItem>
             ))}
           </CarouselContent>
 
-          <CarouselThumbnails aria-label="画像の一覧" defaultCurrentId={slideIdOf(0)}>
+          <CarouselThumbnails
+            aria-label="画像の一覧"
+            className="print-hidden"
+            defaultCurrentId={slideIdOf(0)}
+          >
             {slides.map((src, index) => (
               <CarouselLink
                 aria-label={`${index + 1} 枚目`}
@@ -162,7 +228,10 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
             </KeyValueItem>
           </KeyValueList>
 
-          <ActionBar className="w-full" position={ACTION_BAR_POSITION.FIXED_WITHOUT_ASIDE}>
+          <ActionBar
+            className="w-full print-hidden"
+            position={ACTION_BAR_POSITION.FIXED_WITHOUT_ASIDE}
+          >
             <AddToCartButton
               line={{
                 productId: product.id,

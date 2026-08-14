@@ -4,8 +4,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
-
-import { FILTER_KEY, type FilterOption } from "../../query";
+import { FILTER_KEY } from "../../../facade/list-url/list-url";
+import type { FilterOption } from "../../query";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -29,7 +29,6 @@ describe("ProductSortSelect", () => {
     push.mockClear();
   });
 
-  // ----- 正常系 -----
   it("選んだ時点で一覧の URL へ移る", async () => {
     render(<ProductSortSelect options={OPTIONS} selection={{}} />);
 
@@ -74,7 +73,6 @@ describe("ProductSortSelect", () => {
     expect(push).toHaveBeenCalledWith("/products?sort=publishedAt");
   });
 
-  // ----- 異常系 -----
   it("既定の並びは URL に載せない", async () => {
     render(
       <ProductSortSelect options={OPTIONS} selection={{ [FILTER_KEY.SORT]: "publishedAt" }} />,

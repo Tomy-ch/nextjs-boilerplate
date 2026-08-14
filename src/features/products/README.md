@@ -27,15 +27,16 @@ test-requirement: feature
 | ファイル | 役割 |
 | --- | --- |
 | `list/page-content.tsx` | 一覧の取得と組み立て。待機表示の境界がここに掛かる |
-| `list/query.ts` | URL のキーと、条件から一覧の URL を組む規則 |
+| `facade/list-url/` | 一覧の URL 契約（パス・絞り込みのキー・URL の組み立て）。他の feature も引く |
+| `list/query.ts` | 素の `searchParams` の均し、件数、選択肢の型 |
 | `list/use-infinite-products.ts` | 末尾到達で続きを読む。読み進めた件数を URL へ書き戻す |
-| `list/view.tsx` | 一覧の表示。空のときの案内も持つ |
+| `list/view.tsx` | 一覧の表示。検索・並び替え・効いている条件を `FilterBar` にまとめる |
+| `list/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |
 | `list/ui/grid/` | 商品を並べる。取得も読み進めも持たず、空のときの案内もここが持つ |
 | `list/ui/card/` | 1 件の見た目。カード全体が詳細への導線になる |
-| `list/ui/search/` | キーワード検索。URL を書き換える client island |
 | `list/ui/sort-select/` | 並び替え。幅によらず選んだ時点で反映する |
 | `list/ui/filter-fields/` | 絞り込みの入力欄。選択を持たず、確定の仕方は呼び出し元が決める |
-| `list/ui/filter-sidebar/` | 脇に常設する絞り込み。選ぶたびに反映する |
+| `list/ui/filter-sidebar/` | 脇に常設する絞り込み。選ぶたびに反映する。landmark は持たない |
 | `list/ui/filter-sheet/` | 脇に領域を持てない幅の絞り込み。overlay の中でまとめて確定する |
 | `list/ui/infinite-list/` | 読み進められる一覧。取得と見た目をつなぐ |
 | `list/ui/load-more-list/` | 読み進めた一覧の見た目。件数の告知と、失敗したときの読み直しを持つ |
@@ -84,5 +85,6 @@ test-requirement: feature
   読み込んだ件数を「全体の何件中」の形に見せると、実際には知らない数を知っているように読めます。
   総数は別の取得口が返す前提で枠だけを置いてあり、**その取得口が契約に生えるまでは暫定の固定値**を
   出します（`getProductTotalCount()` の `// TODO:`）
-- **状態（`statusId`）の絞り込みは選択肢を出しますが、結果は変わりません**。可視範囲の絞り込みが
-  バックエンド側で未実装のためです
+- **状態（`statusId`）で絞り込む口は置きません**。契約はクエリを受け付けますが、可視範囲の
+  絞り込みがバックエンド側で未実装で結果が変わらないためです。選べるのに何も起きない操作は、
+  利用者に「壊れている」と読ませます。バックエンドが実装した時点で群を 1 つ足せば戻ります

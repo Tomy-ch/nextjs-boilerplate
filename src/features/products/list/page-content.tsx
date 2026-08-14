@@ -1,4 +1,4 @@
-import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
+import { getProductCategories } from "@/adapters/server/api/product-masters";
 import {
   getProductListPage,
   getProductTotalCount,
@@ -8,15 +8,12 @@ import {
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { ProductRef } from "@/model/product/product";
-
+import { COUNT_KEY, FILTER_KEY, toConditions } from "../facade/list-url/list-url";
 import {
-  COUNT_KEY,
-  FILTER_KEY,
   type FilterOption,
   normalizeSearchParams,
   PRODUCT_PAGE_SIZE,
   type RawSearchParams,
-  toConditions,
 } from "./query";
 import type { FilterGroup } from "./ui/filter-fields/filter-fields";
 import { ProductInfiniteList } from "./ui/infinite-list/infinite-list";
@@ -69,16 +66,14 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
     );
   }
 
-  const [page, total, categories, statuses] = await Promise.all([
+  const [page, total, categories] = await Promise.all([
     getProductListPage(parsed.query),
     getProductTotalCount(),
     getProductCategories(),
-    getProductStatuses(),
   ]);
 
   const groups: readonly FilterGroup[] = [
     { key: FILTER_KEY.CATEGORY, legend: "カテゴリ", options: toOptions(categories) },
-    { key: FILTER_KEY.STATUS, legend: "状態", options: toOptions(statuses) },
   ];
   // 既定の並びは URL に載せないため、明示された既定値は選択肢側の「指定なし」へ寄せる。
   const displayed =

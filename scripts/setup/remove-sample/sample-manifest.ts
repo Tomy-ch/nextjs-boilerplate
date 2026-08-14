@@ -27,6 +27,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/app/(shop)",
   "src/features/products",
   "src/features/cart",
+  "src/features/home",
   // 題材の増分取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
   // 認証の口（`src/app/api/auth`）は同じ場所にあるコア残留である。
   "src/app/api/products",
@@ -45,6 +46,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "mocks/api",
   "mocks/auth",
   "mocks/contract-conformance.test.ts",
+  "mocks/handlers.test.ts",
   // 破棄の道具（使い終わったら不要）。ディレクトリごと挙げれば、判定モジュールを足しても漏れない。
   "scripts/setup/remove-sample",
 ];
@@ -64,6 +66,10 @@ export const SAMPLE_PATHS: readonly string[] = [
  * 一致し、題材と無関係な部品が消し残しとして報告されます）。
  */
 export const DANGLING_PATTERN = "商品|カート|在庫|購入|注文|\\bproducts\\b|\\bcart\\b";
+
+// 破棄後に手で戻すもの（削除では表せない）:
+// - `performance-budget.yaml` の `growth.gzipKb` を 30 から 10 へ。広げてあるのは、器の内と外で
+//   route を移すとその route が器の client 島をまとめて背負うためで、サンプルが消えれば起きない
 
 /** マーカーの名前。`sample:begin` / `sample:end` / `sample:line` / `sample:replace-*` を作る。 */
 export const SAMPLE_MARKER = "sample";

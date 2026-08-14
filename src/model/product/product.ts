@@ -39,7 +39,8 @@ export type Product = {
   /**
    * 配信基盤上のオブジェクトキー。表示 URL はここから組み立てる。
    *
-   * 画像が無い商品は空配列になる。表示の順序は配列の順序に従う。
+   * 画像が無い商品は空配列になる。表示の順序は配列の順序に従う。**枚数で分岐しない** —
+   * 契約は常に配列で返し、0 枚も 1 枚も複数枚も同じ形で届く。
    */
   imagePaths: readonly string[];
 };
@@ -66,6 +67,28 @@ export type ProductListItem = {
   readonly quantity: number;
   readonly categoryName: string;
   readonly statusName: string;
-  /** 画像の表示 URL。画像が無ければ null。 */
+  /**
+   * 一覧に出す画像の表示 URL。画像が無ければ null。
+   *
+   * 商品は画像を複数持つが、一覧は 1 件を 1 枚で表すため**先頭の 1 枚だけ**を採る。
+   * どれを代表とするかは契約の順序（`sortKey` 昇順）が決めており、選び直さない。
+   */
   readonly imageUrl: string | null;
+};
+
+/**
+ * 売上ランキングに並ぶ 1 件分の表示データ。
+ *
+ * @remarks
+ * {@link ProductListItem} と別の型にしているのは、ランキングの取得口が画像も分類も在庫も
+ * 返さないためです。同じ型へ寄せると、一覧では必ずある値がランキングでは常に欠けている形に
+ * なり、受け取る側が「この画面ではどれが入っているか」を毎回確かめることになります。
+ */
+export type ProductRankingEntry = {
+  readonly productId: string;
+  readonly name: string;
+  /** USD の decimal 文字列。表示の直前まで数値へ変換しない。 */
+  readonly price: string;
+  /** 集計期間内の販売数量。キャンセル済みの購入を除いた合算値。 */
+  readonly soldQuantity: number;
 };

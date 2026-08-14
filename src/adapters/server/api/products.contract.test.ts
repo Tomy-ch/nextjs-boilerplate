@@ -20,7 +20,7 @@ const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => envir
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 
-import { getProduct, getProducts } from "./products";
+import { getProduct, getProductRanking, getProducts } from "./products";
 
 describe("getProduct", () => {
   // ----- 正常系 -----
@@ -62,6 +62,26 @@ describe("getProducts", () => {
       quantity: expect.any(Number),
       status: { id: expect.any(String), name: expect.any(String) },
       category: { id: expect.any(String), name: expect.any(String) },
+    });
+  });
+});
+
+describe("getProductRanking", () => {
+  // ----- 正常系 -----
+  it("契約から生成したハンドラの応答を検証して受け取る", async () => {
+    const rankings = await getProductRanking({ limit: 5 });
+
+    expect(rankings.length).toBeGreaterThan(0);
+  });
+
+  it("1 件の形が契約どおりである", async () => {
+    const [entry] = await getProductRanking({ limit: 5 });
+
+    expect(entry).toMatchObject({
+      productId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      name: expect.any(String),
+      price: expect.stringMatching(/^\d+(\.\d+)?$/),
+      soldQuantity: expect.any(Number),
     });
   });
 });

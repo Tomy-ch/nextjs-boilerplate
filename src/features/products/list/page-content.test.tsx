@@ -10,9 +10,8 @@ const { getProductListPage, getProductTotalCount } = vi.hoisted(() => ({
   getProductListPage: vi.fn(),
   getProductTotalCount: vi.fn(),
 }));
-const { getProductCategories, getProductStatuses } = vi.hoisted(() => ({
+const { getProductCategories } = vi.hoisted(() => ({
   getProductCategories: vi.fn(),
-  getProductStatuses: vi.fn(),
 }));
 
 vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
@@ -22,7 +21,6 @@ vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
 }));
 vi.mock("@/adapters/server/api/product-masters", () => ({
   getProductCategories,
-  getProductStatuses,
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
@@ -38,7 +36,6 @@ class IntersectionObserverStub {
 }
 
 const CATEGORIES: readonly ProductRef[] = [{ id: "c1", name: "オーディオ" }];
-const STATUSES: readonly ProductRef[] = [{ id: "s1", name: "公開" }];
 
 function itemOf(overrides: Partial<ProductListItem> = {}): ProductListItem {
   return {
@@ -66,14 +63,12 @@ describe("ProductListPageContent", () => {
     getProductListPage.mockReset().mockResolvedValue(pageOf([itemOf()]));
     getProductTotalCount.mockReset().mockResolvedValue(10);
     getProductCategories.mockReset().mockResolvedValue(CATEGORIES);
-    getProductStatuses.mockReset().mockResolvedValue(STATUSES);
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  // ----- 正常系 -----
   it("取得した商品を一覧へ渡す", async () => {
     render(await ProductListPageContent({ searchParams: {} }));
 
@@ -105,15 +100,13 @@ describe("ProductListPageContent", () => {
 
     expect(screen.getByRole("group", { name: "カテゴリ" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "オーディオ" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "状態" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "公開" })).toBeInTheDocument();
-    expect(screen.getAllByRole("radio", { checked: true, name: "すべて" })).toHaveLength(2);
+    expect(screen.getAllByRole("radio", { checked: true, name: "すべて" })).toHaveLength(1);
   });
 
   it("検索欄に現在のキーワードを引き継ぐ", async () => {
     render(await ProductListPageContent({ searchParams: { keyword: "イヤホン" } }));
 
-    expect(screen.getByRole("searchbox", { name: "キーワード" })).toHaveValue("イヤホン");
+    expect(screen.getByRole("searchbox", { name: "商品名で探す" })).toHaveValue("イヤホン");
   });
 
   it("明示された並び順を選択済みにする", async () => {
@@ -136,7 +129,6 @@ describe("ProductListPageContent", () => {
     expect(screen.getByText("条件に合う商品がありません")).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("契約を外れた条件では一覧の代わりに案内を出す", async () => {
     render(await ProductListPageContent({ searchParams: { sort: "-price" } }));
 

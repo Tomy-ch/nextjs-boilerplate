@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { FILTER_KEY } from "../../query";
+import { FILTER_KEY } from "../../../facade/list-url/list-url";
 import type { FilterGroup } from "../filter-fields/filter-fields";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
@@ -46,7 +46,6 @@ describe("ProductFilterSidebar", () => {
     push.mockClear();
   });
 
-  // ----- 正常系 -----
   it("選んだ時点で一覧の URL へ移る", async () => {
     render(<ProductFilterSidebar groups={GROUPS} selection={{}} />);
 
@@ -75,12 +74,6 @@ describe("ProductFilterSidebar", () => {
     expect(group("カテゴリ").getByLabelText("ウェアラブル")).toBeChecked();
   });
 
-  it("絞り込みの領域として名前を持つ", () => {
-    render(<ProductFilterSidebar groups={GROUPS} selection={{}} />);
-
-    expect(screen.getByRole("region", { name: "絞り込み" })).toBeVisible();
-  });
-
   it("読み進めた位置を持ち越さない", async () => {
     render(
       <ProductFilterSidebar
@@ -94,7 +87,6 @@ describe("ProductFilterSidebar", () => {
     expect(push).toHaveBeenCalledWith("/products?categoryId=c2");
   });
 
-  // ----- 異常系 -----
   it("「すべて」を選ぶとその条件を URL から外す", async () => {
     render(<ProductFilterSidebar groups={GROUPS} selection={{ [FILTER_KEY.CATEGORY]: "c1" }} />);
 

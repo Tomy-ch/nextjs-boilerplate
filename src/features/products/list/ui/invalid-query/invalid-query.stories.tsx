@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 
-import { FILTER_KEY } from "../../query";
+import { FILTER_KEY } from "../../../facade/list-url/list-url";
 import { ProductInvalidQuery } from "./invalid-query";
 
 const meta = {
