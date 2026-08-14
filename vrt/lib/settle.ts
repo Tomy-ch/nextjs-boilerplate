@@ -20,8 +20,6 @@ const RENDER_TIMEOUT_MS = 15_000;
  *
  * フォントは差し替わった瞬間に字形が変わるため、待たずに撮ると同じ story が撮るたびに違う
  * 画像になります。
- *
- * 撮影と a11y 検査の双方が同じ待ち方をする必要があるため、spec からは切り出してあります。
  */
 export async function settle(page: Page, theme: string): Promise<void> {
   try {

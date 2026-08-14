@@ -17,13 +17,10 @@ import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
 
-/**
- * Storybook の全 story を基準画像と比べる。
- *
- * @remarks
- * 比較単位を story に取る理由は [README](README.md) と
- * [0091](../docs/adr/0091-test-verification-methods.md) §3 にあります。
- */
+// Storybook の全 story を基準画像と比べる。
+//
+// 比較単位を story に取る理由は [README](README.md) と
+// [0091](../docs/adr/0091-test-verification-methods.md) §3 にある。
 
 /** 撮影対象。`pnpm build-storybook` の出力先。 */
 const STORYBOOK_DIR = "storybook-static";
