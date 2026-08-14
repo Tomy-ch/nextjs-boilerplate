@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 import { Button } from "@/components/design-system/action/button/button";
 import {
   BUTTON_SIZE,
@@ -31,6 +33,8 @@ const LABEL = "リポジトリの補足";
  * 2 か所に置くと、どちらが正しい入口かが読み取れません。
  */
 export function RepositorySupplement({ repository }: { readonly repository: Repository }) {
+  const titleId = useId();
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -38,9 +42,11 @@ export function RepositorySupplement({ repository }: { readonly repository: Repo
           {LABEL}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 text-sm leading-relaxed">
+      <PopoverContent aria-labelledby={titleId} className="w-80 text-sm leading-relaxed">
         <PopoverHeader>
-          <PopoverTitle className="font-mono">{repository.name}</PopoverTitle>
+          <PopoverTitle className="font-mono" id={titleId}>
+            {repository.name}
+          </PopoverTitle>
         </PopoverHeader>
         <div className="flex flex-col gap-3">
           <p>{repository.purpose}</p>

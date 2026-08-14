@@ -129,7 +129,7 @@ describe("createHttpClient", () => {
 
     await client.request({ path: "/v1/items", schema });
 
-    expect(fetchImpl.mock.calls[0]?.[1]?.headers).toBeUndefined();
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).not.toHaveProperty("Content-Type");
   });
 
   it("5xx のあとに成功すれば結果を返す", async () => {

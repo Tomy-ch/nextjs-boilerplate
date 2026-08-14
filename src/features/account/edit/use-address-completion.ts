@@ -32,15 +32,9 @@ function agreedValue(
   candidates: readonly AddressCandidate[],
   pick: (candidate: AddressCandidate) => string,
 ): string | undefined {
-  const [first] = candidates;
+  const values = new Set(candidates.map(pick));
 
-  if (first === undefined) {
-    return undefined;
-  }
-
-  const value = pick(first);
-
-  return candidates.every((candidate) => pick(candidate) === value) ? value : undefined;
+  return values.size === 1 ? values.values().next().value : undefined;
 }
 
 /**

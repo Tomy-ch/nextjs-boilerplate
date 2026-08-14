@@ -79,7 +79,7 @@ export function useAddressField({ fieldOf, getValues, setValue }: ProfileFields)
       ...validatingRegistration,
       onBlur: async (event) => {
         await validatingRegistration.onBlur(event);
-        await complete(String(event.target.value ?? ""));
+        await complete(String(event.target.value));
       },
     },
     onSearch,
