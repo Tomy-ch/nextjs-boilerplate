@@ -35,3 +35,4 @@ Route Handler だけを置く区画です。`app` の中にありますが、検
 | --- | --- |
 | [`auth/`](auth) | 認証の往復。IdP との認可コード交換と session cookie の発行・破棄 |
 | `products/` | 一覧の増分取得を中継する BFF |
+| `addresses/` | 郵便番号からの住所補完を中継する BFF。入力中の画面が叩く |

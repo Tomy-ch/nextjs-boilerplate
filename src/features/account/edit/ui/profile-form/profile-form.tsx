@@ -3,9 +3,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useActionState, useEffect, useId } from "react";
+import { useActionState, useCallback, useEffect, useId } from "react";
 import { useFormStatus } from "react-dom";
-import type { UseFormRegisterReturn } from "react-hook-form";
+import type { ChangeHandler, UseFormRegisterReturn } from "react-hook-form";
 import { useForm } from "react-hook-form";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
@@ -34,9 +34,19 @@ import type { Prefecture, UserProfile } from "@/model/user/user";
 import { updateProfileAction } from "../../../actions";
 import type { ProfileFormState } from "../../../form-state";
 import { MYPAGE_PATH } from "../../../paths";
+import type { AddressCompletion, AddressCompletionStatus } from "../../use-address-completion";
+import { useAddressCompletion } from "../../use-address-completion";
 
 const SUBMIT_LABEL = "保存する";
 const PENDING_LABEL = "保存しています…";
+
+/** 補完の進み具合に対応する読み上げ用の文言。何も起きていない間は読み上げない。 */
+const COMPLETION_MESSAGES: Readonly<Record<AddressCompletionStatus, string>> = {
+  idle: "",
+  loading: "住所を探しています…",
+  filled: "郵便番号から住所を補完しました。番地から先を入力してください。",
+  empty: "この郵便番号に該当する住所が見つかりませんでした。手入力を続けてください。",
+};
 
 /**
  * control とエラー表示の `id` の組。
@@ -135,10 +145,12 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
   const idPrefix = useId();
   const {
     formState: { errors },
+    getValues,
     register,
+    setValue,
   } = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
-    mode: "onSubmit",
+    mode: "onBlur",
     reValidateMode: "onChange",
     defaultValues: {
       firstName: profile.firstName,
@@ -158,6 +170,35 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
       toast({ title: "プロフィールを保存しました" });
     }
   }, [state, toast]);
+
+  const applyCompletion = useCallback(
+    ({ city, prefecture, town }: AddressCompletion) => {
+      if (prefecture !== undefined) {
+        setValue("prefecture", prefecture, { shouldValidate: true });
+      }
+
+      if (city !== undefined) {
+        setValue("city", city, { shouldValidate: true });
+      }
+
+      // 番地は補完に含まれない。既に書いてある町域と番地を町域だけで置き換えないよう、
+      // 空のときにだけ入れる。
+      if (town !== undefined && getValues("street") === "") {
+        setValue("street", town, { shouldValidate: true });
+      }
+    },
+    [getValues, setValue],
+  );
+
+  const { complete, status: completionStatus } = useAddressCompletion(applyCompletion);
+  const postalCodeRegistration = register("postalCode");
+
+  // 検証と補完の両方を blur で走らせる。register が返す onBlur は検証だけを持つので、
+  // 差し替えずに包む。落とすと、この項目だけ検証されなくなる。
+  const handlePostalCodeBlur: ChangeHandler = async (event) => {
+    await postalCodeRegistration.onBlur(event);
+    await complete(String(event.target.value ?? ""));
+  };
 
   function messageOf(field: ProfileField): string | undefined {
     const fromServer = state.status === "error" ? state.fieldErrors?.[field] : undefined;
@@ -224,6 +265,11 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
       <FieldSet>
         <FieldLegend>住所</FieldLegend>
         <FieldGroup>
+          {/* 補完は focus が外れた時点で走る。起きたことを画面の変化だけで伝えると、
+              入力欄を見ていない利用者には届かない。 */}
+          <p className="text-sm text-muted-foreground" role="status">
+            {COMPLETION_MESSAGES[completionStatus]}
+          </p>
           <div className="grid gap-6 sm:grid-cols-2">
             <TextField
               autoComplete="postal-code"
@@ -232,7 +278,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
               label="郵便番号"
               message={messageOf("postalCode")}
               placeholder="150-0001"
-              registration={register("postalCode")}
+              registration={{ ...postalCodeRegistration, onBlur: handlePostalCodeBlur }}
             />
             <FieldFrame {...prefectureIds} label="都道府県" message={prefectureMessage}>
               <SelectNative

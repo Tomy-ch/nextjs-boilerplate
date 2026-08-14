@@ -34,6 +34,20 @@ export type Prefecture = {
   readonly name: string;
 };
 
+/**
+ * 郵便番号から引いた住所の候補 1 件。
+ *
+ * @remarks
+ * 都道府県の識別子は落とします。プロフィールが持つのは名前の文字列で、識別子を送り返す口が
+ * ありません（[0070](../../../docs/adr/0070-backend-role-separation.md)）。
+ */
+export type AddressCandidate = {
+  readonly prefecture: string;
+  readonly city: string;
+  /** 町域。番地から先は利用者が続けて入力する。 */
+  readonly town: string;
+};
+
 /** 購入集計のステータス別内訳 1 件。 */
 export type PurchaseStatusBreakdown = {
   readonly statusId: string;

@@ -34,12 +34,16 @@ test-requirement: feature
 | `mypage/view.tsx` | マイページの表示。読む 2 枚と、区切りの下の退会を並べる |
 | `mypage/ui/profile-card/` | 登録情報の表示と、編集への導線 |
 | `mypage/ui/purchase-summary-card/` | 購入の集計。ステータス別の内訳を表で出す |
-| `mypage/ui/withdraw-band/` | 退会。確認 dialog と送信を持つ client island |
+| `mypage/ui/purchase-history-dialog/` | 購入履歴の一覧。局所スクロールを持つ dialog |
+| `mypage/ui/action-row/` | 下端の操作の並び。退会とサイト説明への導線 |
+| `mypage/ui/withdraw-button/` | 退会。確認 dialog と送信を持つ client island |
 | `mypage/ui/skeleton/` | マイページの待機表示 |
 | `edit/page-content.tsx` | 自分の情報と都道府県マスタの並置合成（CollectAll） |
 | `edit/view.tsx` | プロフィール編集の表示。パンくずをここが持つ |
+| `edit/use-address-completion.ts` | 郵便番号から住所を引き、埋める値を決める |
 | `edit/ui/profile-form/` | 入力・検証・送信。client island |
 | `edit/ui/skeleton/` | プロフィール編集の待機表示 |
+| `account.fixture.ts` | story とテストが読む固定値 |
 
 ## 運用
 
@@ -55,6 +59,13 @@ test-requirement: feature
 - **検証は client と server の両方で通します**。同じ表示検証スキーマ（`model/user/profile-schema.ts`）
   を使いますが、client 側は即時に返すためのもので、通ったことは何の保証にもなりません。契約に
   照らした検証は `adapters` の境界がさらに別に行います（[0062](../../../docs/adr/0062-form-input-validation.md)）
+- **住所の補完は候補が割れた項目を埋めません**。1 つの郵便番号が複数の町域を指すことがあり、
+  先頭を無条件に採ると利用者が選んでいない住所が黙って入ります。番地は補完に含まれないため、
+  町域を入れるのは丁目・番地が空のときだけです
+- **補完に失敗しても先へ進めます**。契約は外部 lookup の障害を `503` ではなく空の候補で返すと
+  定めており、画面は手入力を続けさせます（[0080](../../../docs/adr/0080-error-handling.md)）
+- **補完が起きたことを読み上げます**。入力欄の値が変わるだけでは、そこを見ていない利用者に
+  届きません
 - **保存は画面を移さず toast で伝え、退会は移します**。前者はフォームの文脈に留まる操作で、後者は
   成立した時点で留まる先が無くなるためです（[0063](../../../docs/adr/0063-mutation-result-notification.md)）
 - **退会の文言で即時の反映を約束しません**。取り消しと在庫の戻しは結果整合で走るため、直後に古い
