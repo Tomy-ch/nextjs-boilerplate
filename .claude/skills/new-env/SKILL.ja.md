@@ -54,7 +54,7 @@ ls src/config/ 2>/dev/null
 - `biome.json` — `noProcessEnv` の override は P3-3 の担当
 - `env/` と `src/config/` の外のすべて
 
-## 最初に行うこと: 仕様の収集
+## Step 0. 仕様の収集
 
 **スキル起動直後に必ず `AskUserQuestion` を呼ぶ**。env 変数の追加はユーザ確認を要する（[0030](../../../docs/adr/0030-environment-variable-management.md) §6）。まとめて聞く。
 

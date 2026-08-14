@@ -33,7 +33,7 @@ the release-note review + full rebuild, use this skill.
 - Updating npm dependencies (`package.json` `dependencies` / `devDependencies`) → out of scope here;
   per [0004](../../../docs/adr/0004-library-management.md), dependency majors go in their own PR.
 
-## First Step: Confirm the Target Version
+## Step 0. Confirm the Target Version
 
 This skill **MUST call `AskUserQuestion` immediately after invocation** to confirm the target version.
 Even if a version-like string is present in the skill arguments or the most recent user message, do NOT
@@ -70,9 +70,7 @@ Remaining protected even during this skill: `AGENTS.md` / `CLAUDE.md`, Accepted 
 `package.json` and other root configs (a `@types/node` change is a **separate PR** — see step 6),
 generated files, and anything under `.claude/settings.json` `permissions.deny`.
 
-## Execution Steps
-
-### 1. Check the Release Notes
+## Step 1. Check the Release Notes
 
 Review the release notes for the target Node line at <https://github.com/nodejs/node/releases> (and the
 Node.js changelog). Items to check:
@@ -85,7 +83,7 @@ Node.js changelog). Items to check:
 
 If the target is a major bump, surface the notable breaking changes to the user before proceeding.
 
-### 2. Update `mise.toml`
+## Step 2. Update `mise.toml`
 
 Edit `mise.toml` and set the `node` entry under `[tools]`:
 
@@ -99,7 +97,7 @@ pnpm = "…"   # unchanged
 a Go-boilerplate mechanism for `go.mod` / Dockerfiles, neither of which exists here —
 [0011](../../../docs/adr/0011-no-docker.md)).
 
-### 3. Update the Local Node Environment (user task)
+## Step 3. Update the Local Node Environment (user task)
 
 Ask the **user** to run `make install-tools` (which runs `mise install`, reading `[tools] node` from
 `mise.toml`) and to confirm the version:
@@ -112,7 +110,7 @@ node --version        # must print v<TARGET_VERSION>
 The AI agent must NOT run `mise install` itself (it mutates the machine's toolchain) — this is a user
 step, mirroring the go-upgrade convention.
 
-### 4. Rebuild the Lockfile / Dependencies
+## Step 4. Rebuild the Lockfile / Dependencies
 
 After the runtime is switched, reinstall so the lockfile reflects the new runtime and any engine
 constraints:
@@ -123,7 +121,7 @@ pnpm install          # updates pnpm-lock.yaml if resolution changed
 
 Review the `pnpm-lock.yaml` diff: it should be minimal (often empty). A large diff warrants a look.
 
-### 5. Verify
+## Step 5. Verify
 
 ```sh
 pnpm lint             # biome check (ADR 0002)
@@ -137,7 +135,7 @@ timer resolution, or `structuredClone` semantics, and a build succeeding says no
 them. Optionally smoke-test the dev server (`pnpm dev`, then stop it) to confirm the runtime boots
 the app.
 
-### 6. Flag Follow-ups (do NOT bundle here)
+## Step 6. Flag Follow-ups (do NOT bundle here)
 
 - **`@types/node`**: currently `^20` in `devDependencies` while the runtime is Node 24+. Aligning its
   major to the runtime is reasonable, but per **[0004](../../../docs/adr/0004-library-management.md)** a dependency **major** update belongs

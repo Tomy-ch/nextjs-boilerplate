@@ -59,7 +59,7 @@ Do NOT use this skill for:
 - `biome.json` — the `noProcessEnv` override belongs to P3-3.
 - Anything outside `env/` and `src/config/`.
 
-## First Step: Gather the Spec
+## Step 0. Gather the Spec
 
 This skill **MUST call `AskUserQuestion` immediately after invocation** — adding an env variable requires user confirmation ([0030](../../../docs/adr/0030-environment-variable-management.md) §6). Ask in batches to collect the spec.
 

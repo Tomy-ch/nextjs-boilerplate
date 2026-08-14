@@ -25,7 +25,7 @@
   宣言できないため、版は `.github/actions/setup-mise/action.yaml` にあり本スキルの射程外。揃えるべき
   3 箇所を含む手順は `repo-ops` runbook の項目 8
 
-## 最初に行うこと: `min_age_days` の確認
+## Step 0. `min_age_days` の確認
 
 このスキルでは、**スキル起動直後に必ず `AskUserQuestion` でしきい値を確認する**。
 
@@ -55,9 +55,7 @@
 - 生成物（`src/adapters/gen/**` と取り込んだ `openapi.gen.yaml` — [0072](../../../docs/adr/0072-api-type-generation.md)） <!-- skill-lint-ignore -->
 - バージョン bump と無関係な全てのファイル
 
-## 実行ステップ
-
-### 1. `mise.toml` のパース
+## Step 1. `mise.toml` のパース
 
 `mise.toml` を読み、`[tools]` 配下の全 key を列挙する。各 key について backend を判定する。
 
@@ -80,7 +78,7 @@ backend prefix の無い key は存在してはならない。[0003](../../../do
 
 GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証され rate limit が緩和される）。それ以外のエンドポイントは `curl -fsSL` で取得する。
 
-### 2. 分類
+## Step 2. 分類
 
 各ツールを以下のクラスに分類する。
 
@@ -93,7 +91,7 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
 
 セーフガード: semver で「downgrade」になる場合は `resolution_failed` 扱い（reason: "potential downgrade"）。
 
-### 3. サマリ表示
+## Step 3. サマリ表示
 
 分類結果を日本語で見出し別にまとめて表示する。例:
 
@@ -116,7 +114,7 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
   - pipx:sqlfluff: PyPI への接続失敗
 ```
 
-### 4. 適用候補の per-tool 確認
+## Step 4. 適用候補の per-tool 確認
 
 **eligible** が空ならステップ 6 へスキップし、書き換えは行わない。
 
@@ -124,7 +122,7 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
 
 ユーザーは個別 deselect 可能（特定 bump が既知の壊れもの等）。
 
-### 5. `mise.toml` の更新
+## Step 5. `mise.toml` の更新
 
 承認された各ツールについて:
 
@@ -134,7 +132,7 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
 
 全承認分の置換を memory 上で計算したあと、`mise.toml` を **1 回だけ書き出す**（atomic single-pass）。
 
-### 6. 承認したバージョンをインストール
+## Step 6. 承認したバージョンをインストール
 
 `make install-tools` を実行し、固定し直したバージョンを実際に `PATH` 上のものにする。これを回すまでは
 `mise.toml` と導入済みツールチェインが食い違い、以降の検証は古いバージョンを検証してしまう。
@@ -142,7 +140,7 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
 下流への伝播ステップは無い。`mise.toml` が単一の正であり、バージョンを二重に持つ配信層のファイルは
 存在しない（[0003](../../../docs/adr/0003-version-manager.md)）。
 
-### 7. 検証
+## Step 7. 検証
 
 ```sh
 pnpm install
@@ -152,7 +150,7 @@ pnpm build
 
 結果テーブル（OK / FAIL）をユーザーに報告する。失敗しても自動ロールバックはしない — どう扱うか（修正コミット追加 / revert / そのまま）はユーザーが判断する。
 
-### 8. 最終レポート
+## Step 8. 最終レポート
 
 以下をまとめて報告する。
 

@@ -110,9 +110,7 @@ with one leading item before fan-out, but if the budget is tight, serial wastes 
 limit is missed by string matching, a circuit breaker that detects consecutive immediate failures
 stops the run.
 
-## Behavior on Launch
-
-### 1. Repository Detection (Claude surveys first)
+## Step 1. Repository Detection (Claude surveys first)
 
 `run.sh` performs equivalent detection internally, but before launch Claude itself also grasps the
 situation and confirms with the user where the basis lives. Using Read/Grep/Glob/Bash (read):
@@ -123,7 +121,7 @@ situation and confirms with the user where the basis lives. Using Read/Grep/Glob
   enumerates the directories directly under `src/` to the depth of `--module-depth`.
 - **Presence of design documents**: detect `AGENTS.md` / `CLAUDE.md`, `docs/adr/**`, `README*`.
 
-### 2. Fixing the Basis (Source of Truth) — Pass 0
+## Step 2. Fixing the Basis (Source of Truth) — Pass 0
 
 - Design documents exist here (`AGENTS.md`, `docs/adr/**`), so **treat them as the source of truth for
   intent**. Have the basis location (file path) stated explicitly in the output.
@@ -135,7 +133,7 @@ situation and confirms with the user where the basis lives. Using Read/Grep/Glob
 > If the user says "go ahead as-is," launch immediately. Because the run is in the background, no
 > further dialogue is requested afterward.
 
-### 3–4. Structure-representation generation and path layout are delegated to `run.sh`
+## Step 3. Structure-representation generation and path layout are delegated to `run.sh`
 
 `run.sh` performs the following in order (see `README.md` and `scripts/run.sh` for details):
 
@@ -149,7 +147,7 @@ situation and confirms with the user where the basis lives. Using Read/Grep/Glob
 - **Pass3 aggregation** → `tmp/reviews/_index.md` (separating design-derived and local-implementation
   problems, by severity). Run **only after all modules are complete**.
 
-### 5. Background Launch
+## Step 4. Background Launch
 
 Because `run.sh` can run for a long time (on hitting a limit it sleeps 5 hours and resends once),
 **always launch it in the background**. Launch with `nohup` (or `tmux`), with logs at
@@ -170,7 +168,7 @@ After launch, tell the user "started in the background; progress is in `tmp/revi
 artifacts under `tmp/reviews/`." If asked for progress, just read `tail -n 40 tmp/reviews/run.log` /
 `ls -la tmp/reviews/` (do not block waiting).
 
-### 6. In-session Fast-path (`--inline` / small scope, immediate)
+## Step 5. In-session Fast-path (`--inline` / small scope, immediate)
 
 When the target is small (a single module / small repo) or you want results right now without the
 resume mechanism, use the **in-session fast-path** without launching `run.sh` (when `--inline` is
