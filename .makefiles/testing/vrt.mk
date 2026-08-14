@@ -116,6 +116,19 @@ vrt-report:
 	@docker compose -f docker-compose.dev-tools.yml run --rm --service-ports vrt_runner \
 		./node_modules/.bin/playwright show-report tmp/vrt/report --host 0.0.0.0
 
+# 終了コードだけでは build の成否を判定できない。preview の build は非同期で走り、そこで
+# 投げられた例外は未処理の rejection として出るだけで、`storybook build` は 0 を返す。
+# 生成物を見ないと、preview を 1 つも作れなかった木が「通った」として下流へ渡る。
+#
+# その状態は下流で最も高くつく形で現れる。story の目録は静的解析から作られるので全 story が
+# 列挙され、撮影も検査もその全数に対して `iframe.html` を開こうとし、無いので 1 件ずつ
+# 待ち時間の上限まで待つ。build の失敗が、全数のタイムアウトとして 30 分かけて現れる。
 build-storybook:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
 	@pnpm build-storybook
+	@if [ ! -f storybook-static/iframe.html ] || [ -z "$$(ls -A storybook-static/assets 2>/dev/null)" ]; then \
+		echo "❌ Storybook の preview が生成されていません（storybook-static/iframe.html または assets/ が空）。"; \
+		echo "   build は 0 を返していますが、preview の build は失敗しています。上のログで未処理の rejection を探してください。"; \
+		echo "   ENV の検証で落ちている場合は APP_ENV を明示してください（env/README.md）。"; \
+		exit 1; \
+	fi
