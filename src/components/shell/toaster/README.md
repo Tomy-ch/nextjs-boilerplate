@@ -45,6 +45,8 @@ queue の保持を呼び出し側で行いたい場合だけ、`Toaster` を直�
 
 Server Action の結果分類は feature が所有します。`Toaster` は queue を持たず、`ToastProvider` を使う場合も保持するのは表示中の通知だけで、永続化・再送・既読管理はしません。文脈内で必要な失敗表示や不可逆操作の確認は `FormFeedback` / `AlertDialog` を使います。
 
+閉じた通知は、呼び出し元が queue から外すまでのあいだ `Toaster` 側でも表示を止めます。呼び出し元の反映を待たずに消すためです。この抑制は **`toasts` からその `id` が消えた時点で解けます**。解かないと、対象ごとに `id` を採る呼び出し元（同じ対象で再び失敗したら同じ `id`）では、二度目の通知が二度と出せなくなります。
+
 同時に表示する件数は `visibleToasts`（既定 3）で抑えます。上限が無いと連続した失敗で画面の隅が覆われ、操作面を塞ぐためです。超えた分は queue に残り、表示中の通知が閉じると現れます。0 以下を渡すと何も表示しません。
 
 `ToastProvider` を使う場合、この上限は `defaultVisibleToasts` が初期値になり、以後は `useToast()` の `setVisibleToasts` で実行時に変えられます。一括処理の結果をまとめて見せたい画面のように、その画面でだけ広げたい場合に使います。**一時的に広げたら離脱時に戻すのは呼び出し元の責務**で、戻さないと以後すべての画面がその上限のままになります。
@@ -78,6 +80,6 @@ useEffect(() => {
 
 ## Storybook とテスト
 
-Storybook は variant 三種、auto-close、`action` つき、畳んだ状態と `expand`、`position` の違い、`visibleToasts` の上限、`ToastProvider` から命令的に出す場合、上限を実行時に増減する場合、表示中の通知を差し替える場合を確認します。テストは表示と dismiss、`destructive` だけが `role="alert"` になること、名前つき landmark へ収まること、hotkey での focus 移動と修飾キーが合わない場合、畳みと hover / focus での展開、`position` に応じた払いのけの向き（逆向き・中央・主ボタン以外では閉じないこと）、上限と超過分の繰り上がり、上限に 0 以下を渡した場合、`action` の実行と自動 dismiss、残り時間の減少と自動閉じ、`duration` が 0 以下の場合、hover / focus / 掴んでいるあいだ / タブが背面のあいだ計時が止まり離れると再開すること、Provider 経由の追加・削除・上限・差し替え、Provider の外で `useToast` を呼んだときの例外、a11y 自動検査を確認します。
+Storybook は variant 三種、auto-close、`action` つき、畳んだ状態と `expand`、`position` の違い、`visibleToasts` の上限、`ToastProvider` から命令的に出す場合、上限を実行時に増減する場合、表示中の通知を差し替える場合を確認します。テストは表示と dismiss、queue から外れた通知を同じ `id` で再び出せること、`destructive` だけが `role="alert"` になること、名前つき landmark へ収まること、hotkey での focus 移動と修飾キーが合わない場合、畳みと hover / focus での展開、`position` に応じた払いのけの向き（逆向き・中央・主ボタン以外では閉じないこと）、上限と超過分の繰り上がり、上限に 0 以下を渡した場合、`action` の実行と自動 dismiss、残り時間の減少と自動閉じ、`duration` が 0 以下の場合、hover / focus / 掴んでいるあいだ / タブが背面のあいだ計時が止まり離れると再開すること、Provider 経由の追加・削除・上限・差し替え、Provider の外で `useToast` を呼んだときの例外、a11y 自動検査を確認します。
 
 払いのけは jsdom で pointer イベントを直接発火して検証しています。実際の慣性やアニメーションは再現されないため、感触は Storybook で確認します。

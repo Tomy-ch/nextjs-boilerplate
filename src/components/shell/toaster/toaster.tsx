@@ -1,15 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 import { ToastRegion } from "./toast-region";
 import {
@@ -87,6 +79,7 @@ export function Toaster({
   visibleToasts?: number;
 } & ToastAppearance) {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => new Set());
+  const [queued, setQueued] = useState(toasts);
   const dismiss = useCallback(
     (id: string) => {
       setDismissedIds((current) => new Set(current).add(id));
@@ -95,22 +88,18 @@ export function Toaster({
     [onDismiss],
   );
 
-  const currentIds = useMemo(() => new Set(toasts.map((toast) => toast.id)), [toasts]);
-
   // 呼び出し元が queue から外した id を抑制対象からも落とす。積みっぱなしにすると、
   // 対象ごとに id を採る呼び出し元（同じ対象で再び失敗したら同じ id）では、二度目の
   // 通知が二度と出せなくなる。
-  useEffect(() => {
-    // queue から外れたことの検出は「消えた」という遷移の観測で、現時点ではこの effect でしか
-    // 取れていない。
-    // TODO: dismiss の遷移を導出で表せるか（抑制対象を id ではなく通知の世代で持つ等）を #169 で見る
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 遷移の観測のため
+  if (queued !== toasts) {
+    setQueued(toasts);
     setDismissedIds((current) => {
-      const next = new Set([...current].filter((id) => currentIds.has(id)));
+      const ids = new Set(toasts.map((toast) => toast.id));
+      const next = new Set([...current].filter((id) => ids.has(id)));
 
       return next.size === current.size ? current : next;
     });
-  }, [currentIds]);
+  }
 
   const visible = toasts
     .filter((toast) => !dismissedIds.has(toast.id))
