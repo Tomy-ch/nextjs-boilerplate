@@ -41,7 +41,7 @@ const DESTRUCTIVE_CLASS =
  *
  * @remarks
  * 送信中は押せなくします。二重送信の防止と、押した操作が進んでいることの表示を兼ねます
- * （[0061](../../../../../docs/adr/0061-form-mutation-ux.md)）。
+ * （[0061](../../../../../../docs/adr/0061-form-mutation-ux.md)）。
  *
  * `useFormStatus` は `form` の子でしか状態を読めないため、ボタンを別の部品に切り出しています。
  */

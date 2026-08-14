@@ -19,7 +19,7 @@ import { useCartStore } from "@/stores/cart-store";
 import { CartContents } from "../contents/contents";
 import { CartCount } from "../count/count";
 
-/** 脇に常設できない幅。タブレットを含む（[0051](../../../../docs/adr/0051-styling-system.md) §2）。 */
+/** 脇に常設できない幅。タブレットを含む（[0051](../../../../../docs/adr/0051-styling-system.md) §2）。 */
 const NARROW = mediaBelow("lg");
 
 /**

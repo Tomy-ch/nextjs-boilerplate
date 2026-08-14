@@ -38,7 +38,7 @@ export type ProductLoadMoreListProps = {
  *
  * この形でも scroll 以外の手段が失われないのは、keyboard の scroll も支援技術の読み進めも
  * 表示位置を動かし、末尾到達の検知はそれで発火するためです
- * （[0100](../../../../../docs/adr/0100-accessibility-target.md)）。動かしても直らない失敗の
+ * （[0100](../../../../../../docs/adr/0100-accessibility-target.md)）。動かしても直らない失敗の
  * 場面にだけ操作を置くのは、この性質と表裏です。
  *
  * 総数は一覧の応答から取れないため、分かる場合だけ受け取って添えます。読み込んだ数だけを

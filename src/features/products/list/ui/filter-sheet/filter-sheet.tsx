@@ -51,7 +51,7 @@ function countActive(
  * 表示されている一覧と入力欄の内容が食い違います。
  *
  * 開く操作を画面下端に固定するのは、一覧を読み進めた先でも絞り込みへ戻れるようにするためです
- * （[0051](../../../../../docs/adr/0051-styling-system.md) §2）。
+ * （[0051](../../../../../../docs/adr/0051-styling-system.md) §2）。
  */
 export function ProductFilterSheet({ groups, selection }: ProductFilterSheetProps) {
   const router = useRouter();

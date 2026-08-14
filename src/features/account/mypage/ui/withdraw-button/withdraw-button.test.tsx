@@ -108,6 +108,29 @@ describe("WithdrawButton", () => {
     expect(screen.getByText(CONFLICT_MESSAGE)).toBeVisible();
   });
 
+  it("送信中は押せなくなり、進行中であることを文言で示す", async () => {
+    const user = userEvent.setup();
+    let settle: (() => void) | undefined;
+
+    withdrawAction.mockReturnValue(
+      new Promise((resolve) => {
+        settle = () => resolve(failedActionState({ formError: CONFLICT_MESSAGE }));
+      }),
+    );
+
+    render(<WithdrawButton />);
+    const dialog = await open(user);
+    await user.click(confirmButton(dialog));
+
+    const pending = await within(dialog).findByRole("button", { name: "退会しています…" });
+
+    expect(pending).toBeDisabled();
+    expect(within(dialog).queryByRole("button", { name: "退会する" })).not.toBeInTheDocument();
+
+    settle?.();
+    expect(await screen.findByText("退会できませんでした")).toBeVisible();
+  });
+
   it("送信していない間は失敗の文言を出さない", () => {
     render(<WithdrawButton />);
 

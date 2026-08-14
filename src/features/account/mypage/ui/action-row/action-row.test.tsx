@@ -41,18 +41,20 @@ describe("MypageActionRow", () => {
     ).toBeVisible();
   });
 
-  it("横に並べられる幅では 3 つを同じ幅の段に収める", () => {
+  it("3 つの操作をそれぞれ独立して辿れるようにする", () => {
+    render(<MypageActionRow />);
+
+    expect(screen.getAllByRole("link")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "退会する" })).toBeEnabled();
+  });
+
+  // jsdom は media query を評価しないので、ここで固定できるのは class の付与までである。
+  // 実際にその幅でどう見えるかは VRT が持つ。
+  it("幅で並べ方を切り替える class を持つ", () => {
     render(<MypageActionRow />);
 
     expect(screen.getByRole("navigation", { name: "このサイトについての案内と退会" })).toHaveClass(
       "sm:grid-cols-3",
-    );
-  });
-
-  it("縦に積む幅では区切り線で 1 つずつに分ける", () => {
-    render(<MypageActionRow />);
-
-    expect(screen.getByRole("navigation", { name: "このサイトについての案内と退会" })).toHaveClass(
       "divide-y",
       "sm:divide-y-0",
     );

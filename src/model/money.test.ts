@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_LOCALE } from "./locale";
 import { formatMoney } from "./money";
 
 /** `de-DE` が記号の手前に挟む区切り。空白と見分けが付かないのでエスケープで書く。 */
@@ -8,6 +9,10 @@ const NBSP = "\u00a0";
 describe("formatMoney", () => {
   // ----- 正常系 -----
   it("既定の locale で最小単位の整数を主単位の通貨表記にする", () => {
+    // `USD` では `en-US` も同じ文字列を返すので、既定値そのものも突き合わせる。表記だけを見ると
+    // `DEFAULT_LOCALE` を取り違えても落ちない。
+    expect(DEFAULT_LOCALE).toBe("ja-JP");
+    expect(formatMoney(123_456)).toBe(formatMoney(123_456, DEFAULT_LOCALE));
     expect(formatMoney(123_456)).toBe("$1,234.56");
   });
 

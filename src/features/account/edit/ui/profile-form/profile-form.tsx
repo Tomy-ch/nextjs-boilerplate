@@ -8,21 +8,6 @@ import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedba
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { FieldGroup, FieldLegend, FieldSet } from "@/components/design-system/form/field/field";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@/components/design-system/form/input-group/input-group";
-import {
-  INPUT_GROUP_ADDON_ALIGN,
-  INPUT_GROUP_BUTTON_SIZE,
-} from "@/components/design-system/form/input-group/input-group.definition";
-import {
-  SelectNative,
-  SelectNativeOption,
-} from "@/components/design-system/form/select-native/select-native";
-import { FormField } from "@/components/patterns/form-field/form-field";
 import { useToast } from "@/components/shell/toaster/toaster";
 import { idleActionState } from "@/model/action-state";
 import type { Prefecture, UserProfile } from "@/model/user/user";
@@ -32,6 +17,8 @@ import type { ProfileFormState } from "../../../form-state";
 import { MYPAGE_PATH } from "../../../paths";
 import { useAddressField } from "../../use-address-field";
 import { useProfileFields } from "../../use-profile-fields";
+import { PostalCodeField } from "../postal-code-field/postal-code-field";
+import { PrefectureField } from "../prefecture-field/prefecture-field";
 import { TextField } from "../text-field/text-field";
 
 const SUBMIT_LABEL = "保存する";
@@ -61,12 +48,12 @@ type ProfileFormProps = {
  * この部品が持つのは**並びだけ**です。検証といつ誤りを見せるかは `useProfileFields`、住所の
  * 補完は `useAddressField` が持ちます。
  *
- * 送信は `<form action>` に委ねます（[0061](../../../../../docs/adr/0061-form-mutation-ux.md)）。
+ * 送信は `<form action>` に委ねます（[0061](../../../../../../docs/adr/0061-form-mutation-ux.md)）。
  * react-hook-form が持つのは入力中の検証だけで、送信機構は置き換えません。JavaScript が動かない
  * 環境でも form はそのまま送信され、server 側が同じスキーマで検証します。
  *
  * 成功は toast で伝えます。画面を移さない保存なので、この場に留まる通知が合います
- * （[0063](../../../../../docs/adr/0063-mutation-result-notification.md)）。
+ * （[0063](../../../../../../docs/adr/0063-mutation-result-notification.md)）。
  */
 export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
   const [state, formAction] = useActionState<ProfileFormState, FormData>(
@@ -131,60 +118,16 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
           <p className="text-sm text-muted-foreground" role="status">
             {address.message}
           </p>
-          <FormField
+          <PostalCodeField
             controlId={postalCode.controlId}
             errorId={postalCode.errorId}
-            label="郵便番号"
             message={postalCode.message}
+            onSearch={address.onSearch}
+            registration={address.registration}
             required={postalCode.required}
-          >
-            {/* 操作を枠の中へ収めるのは、いつ補完が走るのかを利用者が決められるようにしつつ、
-                どの入力に属する操作かを離さないためである。 */}
-            <InputGroup className="sm:max-w-sm">
-              <InputGroupInput
-                aria-describedby={postalCode.message === undefined ? undefined : postalCode.errorId}
-                aria-invalid={postalCode.message !== undefined}
-                aria-required={postalCode.required}
-                autoComplete="postal-code"
-                id={postalCode.controlId}
-                inputMode="numeric"
-                placeholder="150-0001"
-                {...address.registration}
-              />
-              <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
-                <InputGroupButton
-                  disabled={address.searching}
-                  onClick={address.onSearch}
-                  size={INPUT_GROUP_BUTTON_SIZE.SMALL}
-                  type="button"
-                >
-                  住所を検索
-                </InputGroupButton>
-              </InputGroupAddon>
-            </InputGroup>
-          </FormField>
-          <FormField
-            controlId={prefecture.controlId}
-            errorId={prefecture.errorId}
-            label="都道府県"
-            message={prefecture.message}
-            required={prefecture.required}
-          >
-            <SelectNative
-              aria-describedby={prefecture.message === undefined ? undefined : prefecture.errorId}
-              aria-invalid={prefecture.message !== undefined}
-              aria-required={prefecture.required}
-              autoComplete="address-level1"
-              id={prefecture.controlId}
-              {...prefecture.registration}
-            >
-              {prefectures.map((option) => (
-                <SelectNativeOption key={option.id} value={option.name}>
-                  {option.name}
-                </SelectNativeOption>
-              ))}
-            </SelectNative>
-          </FormField>
+            searching={address.searching}
+          />
+          <PrefectureField prefectures={prefectures} {...prefecture} />
           <TextField autoComplete="address-level2" label="市区町村" {...fields.fieldOf("city")} />
           <TextField
             autoComplete="address-line1"

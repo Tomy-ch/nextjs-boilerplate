@@ -335,6 +335,7 @@ describe("withdrawMe", () => {
     expect(signOut).toHaveBeenCalledOnce();
   });
 
+  // ----- 異常系 -----
   it("IdP 側の終了に失敗しても退会は成立として返し、記録を残す", async () => {
     stubFetch(json(wireUser), noContent());
     signOut.mockRejectedValue(new Error("idp down"));
@@ -346,7 +347,6 @@ describe("withdrawMe", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("識別子を解決できないとき退会を送らない", async () => {
     const fetchImpl = stubFetch(json({ ...wireUser, email: "メールではない" }));
 

@@ -23,7 +23,7 @@ export type ProductFilterSidebarProps = {
  * overlay 側は逆にまとめて確定します。
  *
  * 出す幅の判断は持ちません。脇の領域を出す下限は
- * [0051](../../../../../docs/adr/0051-styling-system.md) §2 が決めており、置く側が担います。
+ * [0051](../../../../../../docs/adr/0051-styling-system.md) §2 が決めており、置く側が担います。
  * landmark も持ちません。この画面には検索と条件をまとめた `FilterBar` が既にあり、入れ子にすると
  * 同じ目的の landmark が 2 つ並びます。脇の領域そのものの名前は置く側が `aside` に与えます。
  *

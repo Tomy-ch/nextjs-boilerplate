@@ -64,7 +64,7 @@ function toCarriedParams(selection: Readonly<Record<string, string>>) {
  *
  * 絞り込みの入力欄を 2 つ置き、CSS の段で出し分けます。位置が動く出し分けを JS の幅判定で行うと、
  * サーバでは判定できないため hydration の前後で配置が動きます
- * （[0051](../../../docs/adr/0051-styling-system.md) §2）。脇に常設できる幅の下限も、
+ * （[0051](../../../../docs/adr/0051-styling-system.md) §2）。脇に常設できる幅の下限も、
  * 脇に領域を持てない幅で操作を下端へ固定する判断も、その ADR が持ちます。
  *
  * 並び替えを絞り込みの側へ入れず、幅によらず同じ場所へ置きます。単一選択なので選ぶことが確定と

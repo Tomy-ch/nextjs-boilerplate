@@ -66,7 +66,9 @@ describe("MypageView", () => {
     expect(screen.getByRole("button", { name: "退会する" })).toBeVisible();
   });
 
-  it("段を 2 列までにする", () => {
+  // jsdom は media query を評価しないので、ここで固定できるのは class の付与までである。
+  // 実際にその幅でどう見えるかは VRT が持つ。
+  it("段を 3 列以上へ広げない class を持つ", () => {
     const { container } = renderView();
 
     expect(container.querySelector(".grid")).toHaveClass("lg:grid-cols-2");

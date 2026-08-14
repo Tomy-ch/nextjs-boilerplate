@@ -35,22 +35,26 @@ describe("ProfileEditPageContent", () => {
   });
 
   it("互いに依存しない 2 系統を並行で取る", async () => {
-    const order: string[] = [];
+    let releaseProfile: (() => void) | undefined;
 
-    getMyProfile.mockImplementation(async () => {
-      order.push("profile:start");
+    // 先頭の取得を止めたまま、後ろが既に出ているかを見る。呼び出しの「順序」を見ると逐次
+    // await でも同じ順に並ぶため、並行と逐次を区別できない。
+    getMyProfile.mockReturnValue(
+      new Promise((resolve) => {
+        releaseProfile = () => resolve(PROFILE);
+      }),
+    );
 
-      return PROFILE;
-    });
-    getPrefectures.mockImplementation(async () => {
-      order.push("prefectures:start");
+    const rendered = ProfileEditPageContent();
 
-      return PREFECTURES;
-    });
+    await Promise.resolve();
 
-    render(<ToastProvider>{await ProfileEditPageContent()}</ToastProvider>);
+    expect(getPrefectures).toHaveBeenCalled();
 
-    expect(order).toEqual(["profile:start", "prefectures:start"]);
+    releaseProfile?.();
+    render(<ToastProvider>{await rendered}</ToastProvider>);
+
+    expect(screen.getByLabelText("姓")).toHaveValue("山田");
   });
 
   it("合成にドメインの計算を挟まず、取得した値をそのまま渡す", async () => {

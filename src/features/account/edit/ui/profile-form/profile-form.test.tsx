@@ -152,6 +152,28 @@ describe("ProfileForm", () => {
     expect(screen.getByText("現在の状態ではこの操作を実行できません。")).toBeVisible();
   });
 
+  it("送信中は押せなくなり、進行中であることを文言で示す", async () => {
+    const user = userEvent.setup();
+    let settle: (() => void) | undefined;
+
+    updateProfileAction.mockReturnValue(
+      new Promise((resolve) => {
+        settle = () => resolve(succeededActionState(undefined));
+      }),
+    );
+
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "保存する" }));
+
+    const pending = await screen.findByRole("button", { name: "保存しています…" });
+
+    expect(pending).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "保存する" })).not.toBeInTheDocument();
+
+    settle?.();
+    expect(await screen.findByRole("button", { name: "保存する" })).toBeEnabled();
+  });
+
   it("送信していない間は失敗の文言を出さない", () => {
     renderForm();
 

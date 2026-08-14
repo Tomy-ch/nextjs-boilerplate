@@ -45,7 +45,7 @@ function toOptions(refs: readonly ProductRef[]): readonly FilterOption[] {
  *
  * @remarks
  * 取得を page ではなくここで行うのは、待機表示の境界を実際にデータを待つ部分の近くへ置く
- * ためです（[0080](../../../docs/adr/0080-error-handling.md)）。page 全体を 1 つの待機表示で
+ * ためです（[0080](../../../../docs/adr/0080-error-handling.md)）。page 全体を 1 つの待機表示で
  * 覆うと、検索欄まで一緒に消えて操作できなくなります。
  *
  * 一覧とマスタを並行して取得します。直列にすると、分類の一覧が返るまで商品の取得が始まりません。

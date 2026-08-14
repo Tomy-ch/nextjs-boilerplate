@@ -40,22 +40,27 @@ describe("MypagePageContent", () => {
   });
 
   it("互いに依存しない 3 系統を並行で取る", async () => {
-    const order: string[] = [];
+    let releaseProfile: (() => void) | undefined;
 
-    getMyProfile.mockImplementation(async () => {
-      order.push("profile:start");
+    // 先頭の取得を止めたまま、後ろの 2 つが既に出ているかを見る。呼び出しの「順序」を見ると
+    // 逐次 await でも同じ順に並ぶため、並行と逐次を区別できない。
+    getMyProfile.mockReturnValue(
+      new Promise((resolve) => {
+        releaseProfile = () => resolve(PROFILE);
+      }),
+    );
 
-      return PROFILE;
-    });
-    getMyPurchases.mockImplementation(async () => {
-      order.push("purchases:start");
+    const rendered = MypagePageContent();
 
-      return PURCHASE_HISTORY;
-    });
+    await Promise.resolve();
 
-    render(await MypagePageContent());
+    expect(getMyPurchaseSummary).toHaveBeenCalled();
+    expect(getMyPurchases).toHaveBeenCalled();
 
-    expect(order).toEqual(["profile:start", "purchases:start"]);
+    releaseProfile?.();
+    render(await rendered);
+
+    expect(screen.getByText("山田 太郎")).toBeVisible();
   });
 
   it("どれか 1 つでも失敗したら組み立てず、分類のまま投げる", async () => {

@@ -84,6 +84,27 @@ describe("useAddressField", () => {
     expect(fetchAddressCandidates).toHaveBeenCalledWith("", expect.any(AbortSignal));
   });
 
+  it("取得の最中は検索の操作を押せなくする", async () => {
+    const user = userEvent.setup();
+    let settle: (() => void) | undefined;
+
+    fetchAddressCandidates.mockReturnValue(
+      new Promise((resolve) => {
+        settle = () => resolve(ADDRESS_CANDIDATES);
+      }),
+    );
+
+    renderProbe();
+    await user.click(screen.getByRole("button", { name: "住所を検索" }));
+
+    expect(screen.getByRole("button", { name: "住所を検索" })).toBeDisabled();
+
+    settle?.();
+
+    expect(await screen.findByTestId("message")).not.toBeEmptyDOMElement();
+    expect(screen.getByRole("button", { name: "住所を検索" })).toBeEnabled();
+  });
+
   it("一致した都道府県と市区町村をフォームへ書き込む", async () => {
     const user = userEvent.setup();
 

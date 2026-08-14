@@ -55,6 +55,27 @@ describe("useAddressCompletion", () => {
     expect(screen.getByTestId("loading")).toHaveTextContent("待機");
   });
 
+  it("取得の最中は進行中であることを返し、応答が返ったら戻す", async () => {
+    const user = userEvent.setup();
+    let settle: (() => void) | undefined;
+
+    fetchAddressCandidates.mockReturnValue(
+      new Promise((resolve) => {
+        settle = () => resolve(ADDRESS_CANDIDATES);
+      }),
+    );
+
+    render(<Probe onCompleted={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "blur で引く" }));
+
+    expect(screen.getByTestId("loading")).toHaveTextContent("取得中");
+
+    settle?.();
+
+    expect(await screen.findByTestId("result")).toHaveTextContent("filled");
+    expect(screen.getByTestId("loading")).toHaveTextContent("待機");
+  });
+
   it("すべての候補で一致した項目を埋める値として渡す", async () => {
     const user = userEvent.setup();
     const onCompleted = vi.fn();
