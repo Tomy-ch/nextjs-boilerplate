@@ -1,0 +1,107 @@
+name: VisualRegressionApproval
+
+# Requires a human to accept the pixels when a pull request moves the baseline images.
+# Why the acceptance is a label rather than a pull-request review is in
+# docs/design/vrt.md; what the person is expected to do is in vrt/README.md.
+#
+# The label's presence is not enough: it has to have been applied AFTER the commit that
+# last moved the pointer, or it accepted different images. Deriving that from timestamps
+# rather than from a label-removal step keeps the guard where the removal cannot run —
+# a fork's token is read-only.
+#
+# Deliberately unfiltered by `paths`; the reason every required check runs on every pull
+# request is in README.md.
+
+on:
+  pull_request:
+    # `labeled` / `unlabeled` are what let the check turn green without a new push.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vrt-approval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Decide whether the baselines moved
+        id: moved
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --no-tags --depth=1 origin "${BASE_REF}" >/dev/null 2>&1 || true
+
+          # Two commits, not `...`. A merge base needs shared history, which a shallow
+          # checkout does not have. Not being able to answer means asking for the label.
+          if ! changed="$(git diff --name-only "origin/${BASE_REF}" HEAD -- vrt/screenshots 2>/dev/null)"; then
+            echo 'moved=true' >> "$GITHUB_OUTPUT"
+            echo '::notice::Could not diff the pointer; asking for the label.'
+            exit 0
+          fi
+
+          if [ -z "${changed}" ]; then
+            echo 'moved=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'moved=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Note that there is nothing to accept
+        if: steps.moved.outputs.moved == 'false'
+        run: echo '基準画像は動いていません。' >> "$GITHUB_STEP_SUMMARY"
+
+      # The label alone is not the gate: an acceptance given before the current images
+      # existed accepted something else. The pointer's own commit date is the line.
+      - name: Require an acceptance newer than the baselines
+        if: steps.moved.outputs.moved == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          taken="$(gh api "repos/${GITHUB_REPOSITORY}/commits?path=vrt/screenshots&sha=${HEAD_SHA}&per_page=1" \
+            --jq '.[0].commit.committer.date // empty')"
+          accepted="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/events?per_page=100" --paginate \
+            --jq '[.[] | select(.event == "labeled" and .label.name == "vrt-approve") | .created_at] | max // empty')"
+
+          if [ -z "${taken}" ]; then
+            echo '❌ 基準画像を動かしたコミットを特定できませんでした。' >&2
+            exit 1
+          fi
+
+          if [ -z "${accepted}" ]; then
+            echo "❌ 基準画像が変わっています。置き場の compare ビューで画素を確かめ、vrt-approve ラベルを付けてください。" >&2
+            exit 1
+          fi
+
+          # ISO 8601 in UTC throughout, so a lexical comparison is a chronological one.
+          if [[ "${accepted}" < "${taken}" ]]; then
+            echo "❌ vrt-approve は今の基準画像より前に付いています(承認 ${accepted} / 撮影 ${taken})。付け直してください。" >&2
+            exit 1
+          fi
+
+          echo "✅ ${accepted} に承認されています。" >> "$GITHUB_STEP_SUMMARY"
