@@ -3,9 +3,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useActionState, useCallback, useEffect, useId } from "react";
+import { useActionState, useCallback, useEffect, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
-import type { ChangeHandler, UseFormRegisterReturn } from "react-hook-form";
+import type { UseFormRegisterReturn } from "react-hook-form";
 import { useForm } from "react-hook-form";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
@@ -93,12 +93,24 @@ function FieldFrame({ children, controlId, errorId, label, message }: FieldFrame
   );
 }
 
+/**
+ * 入力欄へ渡す配線。
+ *
+ * @remarks
+ * `register` が返すものに focus の通知を足した形です。**どの項目を編集中か**は
+ * [0062](../../../../../docs/adr/0062-form-input-validation.md) の「focus 中は消える方向にだけ
+ * 効かせる」の判定に要り、rhf は focus を追跡しません。
+ */
+type FieldRegistration = UseFormRegisterReturn & {
+  readonly onFocus: () => void;
+};
+
 type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placeholder" | "type"> & {
   readonly controlId: string;
   readonly errorId: string;
   readonly label: string;
   readonly message: string | undefined;
-  readonly registration: UseFormRegisterReturn;
+  readonly registration: FieldRegistration;
 };
 
 /** 1 行入力の項目。 */
@@ -141,9 +153,10 @@ type ProfileFormProps = {
  * react-hook-form が持つのは入力中の検証だけで、送信機構は置き換えません。JavaScript が動かない
  * 環境でも form はそのまま送信され、server 側が同じスキーマで検証します。
  *
- * 検証の時機は submit 時、以後は誤りのあった項目だけを変更のたびに見ます
- * （[0062](../../../../../docs/adr/0062-form-input-validation.md)）。入力の最初の 1 文字から
- * 赤くすると、まだ書いている途中の項目を誤りとして知らせることになります。
+ * 誤りを出すのは focus が外れた時点で、focus が当たっている間は消える方向にだけ効かせます
+ * （[0062](../../../../../docs/adr/0062-form-input-validation.md)）。編集の途中に新しい誤りを
+ * 出すと、書き直そうとして 1 文字消しただけの利用者を咎めることになります。一方、直したことは
+ * その場で反映します。消えないと、focus を外すまで直ったかどうかを確かめられません。
  *
  * 文言は client 側を優先し、無ければ server の応答を使います。両方が出るのは client の検証を
  * 通った値が server で弾かれた場合だけで、そのときに読ませたいのは server の理由です。
@@ -158,6 +171,12 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
   );
   const { toast } = useToast();
   const idPrefix = useId();
+  // 編集中の項目と、焦点を当てた時点に出ていた文言。1 つの値にするのは、片方だけが残ると
+  // 別の項目の文言を頭打ちに使ってしまうためである。
+  const [editing, setEditing] = useState<{
+    readonly field: ProfileField;
+    readonly messageAtFocus: string | undefined;
+  } | null>(null);
   const {
     formState: { errors },
     getValues,
@@ -165,8 +184,10 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
     setValue,
   } = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    // 一度 focus が外れた項目は変更のたびに見直す。`reValidateMode` は submit のあとにしか
+    // 効かないため、これだけが「直したら消える」を submit 前から成立させる手段になる
+    // （[0062](../../../../../docs/adr/0062-form-input-validation.md) 補足）。
+    mode: "onTouched",
     defaultValues: {
       firstName: profile.firstName,
       lastName: profile.lastName,
@@ -210,19 +231,6 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
     loading: completionLoading,
     result: completionResult,
   } = useAddressCompletion(applyCompletion);
-  const postalCodeRegistration = register("postalCode");
-
-  // 検証と補完の両方を blur で走らせる。register が返す onBlur は検証だけを持つので、
-  // 差し替えずに包む。落とすと、この項目だけ検証されなくなる。
-  const registeredBlur = postalCodeRegistration.onBlur;
-  const handlePostalCodeBlur = useCallback<ChangeHandler>(
-    async (event) => {
-      await registeredBlur(event);
-      await complete(String(event.target.value ?? ""));
-    },
-    [complete, registeredBlur],
-  );
-
   const handleSearchClick = useCallback(() => {
     void complete(getValues("postalCode"), { force: true });
   }, [complete, getValues]);
@@ -233,10 +241,62 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
     return errors[field]?.message ?? fromServer?.[0];
   }
 
-  const prefectureMessage = messageOf("prefecture");
+  /**
+   * 実際に出す文言。
+   *
+   * @remarks
+   * focus が当たっている項目では、**焦点を当てた時点に出ていた文言を上限にします**。直れば
+   * 消え、直っていなければ文言は変わりません。編集の途中で新しい誤りを出さないための頭打ちで、
+   * これが無いと 1 文字消しただけで「入力してください」が現れます
+   * （[0062](../../../../../docs/adr/0062-form-input-validation.md)）。
+   */
+  function displayedMessageOf(field: ProfileField): string | undefined {
+    const current = messageOf(field);
+
+    if (editing?.field !== field || current === undefined) {
+      return current;
+    }
+
+    return editing.messageAtFocus;
+  }
+
+  /**
+   * 入力欄 1 つぶんの配線を組む。
+   *
+   * @remarks
+   * focus の出入りを掴むために `register` の結果を包みます。焦点を当てた時点の文言を控えるのは
+   * このときで、描画からは読めません。
+   */
+  function registrationOf(field: ProfileField): FieldRegistration {
+    const registration = register(field);
+
+    return {
+      ...registration,
+      onFocus: () => {
+        setEditing({ field, messageAtFocus: messageOf(field) });
+      },
+      onBlur: async (event) => {
+        setEditing(null);
+        await registration.onBlur(event);
+      },
+    };
+  }
+
+  const prefectureMessage = displayedMessageOf("prefecture");
   const prefectureIds = fieldIdsOf(idPrefix, "prefecture");
-  const postalCodeMessage = messageOf("postalCode");
+  const postalCodeMessage = displayedMessageOf("postalCode");
   const postalCodeIds = fieldIdsOf(idPrefix, "postalCode");
+
+  // 郵便番号だけ、検証のあとに補完も走らせる。register が返す onBlur は検証しか持たないので
+  // 差し替えずに包む。落とすと、この項目だけ検証されなくなる。
+  const postalCodeRegistration = registrationOf("postalCode");
+  const postalCodeWiring: FieldRegistration = {
+    ...postalCodeRegistration,
+    onBlur: async (event) => {
+      await postalCodeRegistration.onBlur(event);
+      await complete(String(event.target.value ?? ""));
+    },
+  };
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-8">
@@ -255,15 +315,15 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
             autoComplete="family-name"
             {...fieldIdsOf(idPrefix, "lastName")}
             label="姓"
-            message={messageOf("lastName")}
-            registration={register("lastName")}
+            message={displayedMessageOf("lastName")}
+            registration={registrationOf("lastName")}
           />
           <TextField
             autoComplete="given-name"
             {...fieldIdsOf(idPrefix, "firstName")}
             label="名"
-            message={messageOf("firstName")}
-            registration={register("firstName")}
+            message={displayedMessageOf("firstName")}
+            registration={registrationOf("firstName")}
           />
         </div>
       </FieldSet>
@@ -275,8 +335,8 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
             autoComplete="email"
             {...fieldIdsOf(idPrefix, "email")}
             label="メールアドレス"
-            message={messageOf("email")}
-            registration={register("email")}
+            message={displayedMessageOf("email")}
+            registration={registrationOf("email")}
             type="email"
           />
           <TextField
@@ -284,8 +344,8 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
             {...fieldIdsOf(idPrefix, "phone")}
             inputMode="tel"
             label="電話番号"
-            message={messageOf("phone")}
-            registration={register("phone")}
+            message={displayedMessageOf("phone")}
+            registration={registrationOf("phone")}
             type="tel"
           />
         </FieldGroup>
@@ -312,8 +372,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
                 id={postalCodeIds.controlId}
                 inputMode="numeric"
                 placeholder="150-0001"
-                {...postalCodeRegistration}
-                onBlur={handlePostalCodeBlur}
+                {...postalCodeWiring}
               />
               <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
                 <InputGroupButton
@@ -333,7 +392,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
               aria-invalid={prefectureMessage !== undefined}
               autoComplete="address-level1"
               id={prefectureIds.controlId}
-              {...register("prefecture")}
+              {...registrationOf("prefecture")}
             >
               {prefectures.map((prefecture) => (
                 <SelectNativeOption key={prefecture.id} value={prefecture.name}>
@@ -346,22 +405,22 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
             autoComplete="address-level2"
             {...fieldIdsOf(idPrefix, "city")}
             label="市区町村"
-            message={messageOf("city")}
-            registration={register("city")}
+            message={displayedMessageOf("city")}
+            registration={registrationOf("city")}
           />
           <TextField
             autoComplete="address-line1"
             {...fieldIdsOf(idPrefix, "street")}
             label="丁目・番地"
-            message={messageOf("street")}
-            registration={register("street")}
+            message={displayedMessageOf("street")}
+            registration={registrationOf("street")}
           />
           <TextField
             autoComplete="address-line2"
             {...fieldIdsOf(idPrefix, "building")}
             label="建物名・部屋番号（任意）"
-            message={messageOf("building")}
-            registration={register("building")}
+            message={displayedMessageOf("building")}
+            registration={registrationOf("building")}
           />
         </FieldGroup>
       </FieldSet>
