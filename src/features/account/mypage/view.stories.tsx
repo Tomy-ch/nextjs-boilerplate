@@ -7,7 +7,13 @@ import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import { useCartStore } from "@/stores/cart-store";
 
-import { EMPTY_PURCHASE_SUMMARY, PROFILE, PURCHASE_SUMMARY } from "../account.fixture";
+import {
+  EMPTY_PURCHASE_HISTORY,
+  EMPTY_PURCHASE_SUMMARY,
+  PROFILE,
+  PURCHASE_HISTORY,
+  PURCHASE_SUMMARY,
+} from "../account.fixture";
 import { MypageView } from "./view";
 
 const NAV_ITEMS = [
@@ -67,24 +73,24 @@ type Story = StoryObj<typeof meta>;
 
 /** 既定。PC 幅で 2 枚が横に並ぶ。 */
 export const Default: Story = {
-  args: { profile: PROFILE, summary: PURCHASE_SUMMARY },
+  args: { profile: PROFILE, purchases: PURCHASE_HISTORY, summary: PURCHASE_SUMMARY },
   globals: { viewport: { value: "desktop", isRotated: false } },
 };
 
 /** 購入がまだ無い場合。集計のカードは残し、表を案内へ置き換える。 */
 export const NoPurchases: Story = {
-  args: { profile: PROFILE, summary: EMPTY_PURCHASE_SUMMARY },
+  args: { profile: PROFILE, purchases: EMPTY_PURCHASE_HISTORY, summary: EMPTY_PURCHASE_SUMMARY },
   globals: { viewport: { value: "desktop", isRotated: false } },
 };
 
 /** タブレット幅。2 枚が縦に積まれる境界を見る。 */
 export const Tablet: Story = {
-  args: { profile: PROFILE, summary: PURCHASE_SUMMARY },
+  args: { profile: PROFILE, purchases: PURCHASE_HISTORY, summary: PURCHASE_SUMMARY },
   globals: { viewport: { value: "tablet", isRotated: false } },
 };
 
 /** スマホ幅。表が横スクロールへ移るか、住所が折り返して収まるかを見る。 */
 export const Mobile: Story = {
-  args: { profile: PROFILE, summary: PURCHASE_SUMMARY },
+  args: { profile: PROFILE, purchases: PURCHASE_HISTORY, summary: PURCHASE_SUMMARY },
   globals: { viewport: { value: "mobile2", isRotated: false } },
 };

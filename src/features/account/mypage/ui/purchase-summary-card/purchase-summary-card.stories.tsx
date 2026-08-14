@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { EMPTY_PURCHASE_SUMMARY, PURCHASE_SUMMARY } from "../../../account.fixture";
+import {
+  EMPTY_PURCHASE_HISTORY,
+  EMPTY_PURCHASE_SUMMARY,
+  PURCHASE_HISTORY,
+  PURCHASE_SUMMARY,
+} from "../../../account.fixture";
 import { PurchaseSummaryCard } from "./purchase-summary-card";
 
 const meta = {
@@ -23,17 +28,18 @@ type Story = StoryObj<typeof meta>;
 
 /** 既定。3 つのステータスに分かれている。 */
 export const Default: Story = {
-  args: { summary: PURCHASE_SUMMARY },
+  args: { purchases: PURCHASE_HISTORY, summary: PURCHASE_SUMMARY },
 };
 
 /** 購入が 1 件も無い場合。列だけの表を出さず、案内に置き換える。 */
 export const Empty: Story = {
-  args: { summary: EMPTY_PURCHASE_SUMMARY },
+  args: { purchases: EMPTY_PURCHASE_HISTORY, summary: EMPTY_PURCHASE_SUMMARY },
 };
 
 /** ステータスが 1 つだけの場合。合計行と本文が同じ値になる。 */
 export const SingleStatus: Story = {
   args: {
+    purchases: PURCHASE_HISTORY,
     summary: {
       totalCount: 2,
       totalAmount: 4_980,
@@ -54,6 +60,7 @@ export const SingleStatus: Story = {
  */
 export const LongStatusName: Story = {
   args: {
+    purchases: PURCHASE_HISTORY,
     summary: {
       ...PURCHASE_SUMMARY,
       breakdown: [

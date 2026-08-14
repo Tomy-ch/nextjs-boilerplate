@@ -1,3 +1,4 @@
+import type { PurchaseHistoryPage } from "@/model/purchase/purchase";
 import type { Prefecture, PurchaseSummary, UserProfile } from "@/model/user/user";
 
 /**
@@ -74,3 +75,31 @@ export const EMPTY_PURCHASE_SUMMARY: PurchaseSummary = {
   totalAmount: 0,
   breakdown: [],
 };
+
+const HISTORY_STATUS_NAMES = ["配達済み", "発送済み", "キャンセル"];
+
+/**
+ * 購入履歴の 1 ページ。
+ *
+ * @remarks
+ * 局所スクロールが効く高さを超える件数を置きます。数件では、dialog の中で読み進められるか
+ * どうかを確かめられません。
+ */
+export const PURCHASE_HISTORY: PurchaseHistoryPage = {
+  items: Array.from({ length: 24 }, (_, index) => ({
+    code: `0195f0c2-0000-7000-8000-${String(index + 1).padStart(12, "0")}`,
+    totalAmount: 4_980 + index * 1_100,
+    statusName: HISTORY_STATUS_NAMES[index % HISTORY_STATUS_NAMES.length] ?? "配達済み",
+    orderedAt: new Date(Date.UTC(2026, 6, 1 + index, 3, 0, 0)),
+  })),
+  nextCursor: null,
+};
+
+/** 続きがある 1 ページ。表示しているのが全部ではないことを伝える経路。 */
+export const TRUNCATED_PURCHASE_HISTORY: PurchaseHistoryPage = {
+  ...PURCHASE_HISTORY,
+  nextCursor: "0195f0c2-0000-7000-8000-000000000024",
+};
+
+/** 購入が 1 件も無い場合。 */
+export const EMPTY_PURCHASE_HISTORY: PurchaseHistoryPage = { items: [], nextCursor: null };

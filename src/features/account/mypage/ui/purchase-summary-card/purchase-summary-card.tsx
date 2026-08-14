@@ -1,5 +1,6 @@
 import {
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -7,7 +8,6 @@ import {
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableFooter,
   TableHead,
@@ -15,9 +15,17 @@ import {
   TableRow,
 } from "@/components/design-system/display/table/table";
 import { formatMoney } from "@/model/money";
+import type { PurchaseHistoryPage } from "@/model/purchase/purchase";
 import type { PurchaseSummary } from "@/model/user/user";
 
+import { PurchaseHistoryDialog } from "../purchase-history-dialog/purchase-history-dialog";
+
 const TABLE_LABEL = "ステータス別の購入内訳";
+
+type PurchaseSummaryCardProps = {
+  readonly summary: PurchaseSummary;
+  readonly purchases: PurchaseHistoryPage;
+};
 
 /**
  * 自分の購入の集計。
@@ -29,19 +37,24 @@ const TABLE_LABEL = "ステータス別の購入内訳";
  *
  * 購入が無い場合に表そのものを出しません。列だけが並んだ表は、集計が 0 であることよりも
  * 「読み込みに失敗した」に見えます。
+ *
+ * 表に caption を置きません。カードの見出しが同じことを言っており、`Table` の `label` が
+ * scroll 領域の名前を供給するので、支援技術から見た名前も失われません。
  */
-export function PurchaseSummaryCard({ summary }: { readonly summary: PurchaseSummary }) {
+export function PurchaseSummaryCard({ purchases, summary }: PurchaseSummaryCardProps) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>購入サマリ</CardTitle>
+        <CardAction>
+          <PurchaseHistoryDialog purchases={purchases} />
+        </CardAction>
       </CardHeader>
       <CardContent>
         {summary.breakdown.length === 0 ? (
           <p className="text-sm text-muted-foreground">まだ購入がありません。</p>
         ) : (
           <Table label={TABLE_LABEL}>
-            <TableCaption>{TABLE_LABEL}</TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead scope="col">ステータス</TableHead>

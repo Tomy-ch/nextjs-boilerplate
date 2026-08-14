@@ -1,4 +1,5 @@
 import { Separator } from "@/components/design-system/display/separator/separator";
+import type { PurchaseHistoryPage } from "@/model/purchase/purchase";
 import type { PurchaseSummary, UserProfile } from "@/model/user/user";
 
 import { MypageActionRow } from "./ui/action-row/action-row";
@@ -8,6 +9,7 @@ import { PurchaseSummaryCard } from "./ui/purchase-summary-card/purchase-summary
 type MypageViewProps = {
   readonly profile: UserProfile;
   readonly summary: PurchaseSummary;
+  readonly purchases: PurchaseHistoryPage;
 };
 
 /**
@@ -20,12 +22,12 @@ type MypageViewProps = {
  * 段は 2 列までにします。3 列へ広げると 1 枚あたりの幅が住所や表の 1 行を折り返す幅まで縮み、
  * 広い画面のほうが読みにくくなります。
  */
-export function MypageView({ profile, summary }: MypageViewProps) {
+export function MypageView({ profile, purchases, summary }: MypageViewProps) {
   return (
     <div className="flex flex-col gap-8">
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <ProfileCard profile={profile} />
-        <PurchaseSummaryCard summary={summary} />
+        <PurchaseSummaryCard purchases={purchases} summary={summary} />
       </div>
       <Separator />
       <MypageActionRow />
