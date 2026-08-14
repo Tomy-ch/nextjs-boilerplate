@@ -1,0 +1,44 @@
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/design-system/navigation/breadcrumb/breadcrumb";
+import type { Prefecture, UserProfile } from "@/model/user/user";
+
+import { MYPAGE_PATH } from "../paths";
+import { ProfileForm } from "./ui/profile-form/profile-form";
+
+type ProfileEditViewProps = {
+  readonly profile: UserProfile;
+  readonly prefectures: readonly Prefecture[];
+};
+
+/**
+ * プロフィール編集の表示。
+ *
+ * @remarks
+ * パンくずを置くのは、この画面が global nav から 1 手で戻れない祖先を持つためです
+ * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。nav が直接指すのはマイページまでで、
+ * ここはその下の階層にあります。
+ */
+export function ProfileEditView({ prefectures, profile }: ProfileEditViewProps) {
+  return (
+    <div className="flex flex-col gap-8">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href={MYPAGE_PATH}>マイページ</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>プロフィール編集</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <ProfileForm prefectures={prefectures} profile={profile} />
+    </div>
+  );
+}
