@@ -16,16 +16,39 @@ import {
   toErrorKind,
 } from "./retry-policy";
 
+/**
+ * 本文の符号化。JSON と form のどちらか一方だけを指定できる。
+ *
+ * @remarks
+ * 型で排他にしているのは、両方を渡した実装が「どちらが送られるか」を読む側に推測させるためです。
+ * 送る形は 1 つに決まっていなければなりません。
+ */
+type RequestPayload =
+  | {
+      /** 送信する本文。JSON として送る。 */
+      body?: unknown;
+      form?: never;
+    }
+  | {
+      body?: never;
+      /**
+       * 送信する本文。form として符号化して送る。
+       *
+       * @remarks
+       * OAuth / OIDC の token endpoint は `application/x-www-form-urlencoded` を要求します
+       * （RFC 6749 §4.1.3）。JSON を受け付けない相手が実在するため、符号化の選択をこの境界が持ちます。
+       */
+      form?: Readonly<Record<string, string>>;
+    };
+
 /** 呼び出し 1 件の指定。 */
-type RequestSpec<T> = {
+type RequestSpec<T> = RequestPayload & {
   /** base URL からの相対パス。 */
   path: string;
   /** HTTP メソッド。既定は GET。 */
   method?: string;
   /** クエリ文字列。 */
   searchParams?: Record<string, string | undefined>;
-  /** 送信する本文。JSON として送る。 */
-  body?: unknown;
   /**
    * 応答の検証スキーマ。
    *
@@ -61,6 +84,25 @@ type ClientDeps = {
 };
 
 const JSON_CONTENT_TYPE = "application/json";
+const FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
+
+/** 指定された本文を、送出できる形と Content-Type の組へ変換する。本文が無ければ undefined。 */
+function encodePayload(
+  spec: RequestPayload,
+): { headers: Record<string, string>; body: string } | undefined {
+  if (spec.form !== undefined) {
+    return {
+      headers: { "Content-Type": FORM_CONTENT_TYPE },
+      body: new URLSearchParams(spec.form).toString(),
+    };
+  }
+
+  if (spec.body !== undefined) {
+    return { headers: { "Content-Type": JSON_CONTENT_TYPE }, body: JSON.stringify(spec.body) };
+  }
+
+  return undefined;
+}
 
 function buildUrl(
   baseUrl: string,
@@ -109,12 +151,13 @@ export function createHttpClient({
     signal: AbortSignal,
   ): Promise<Response> {
     const timeout = AbortSignal.timeout(profile.perAttemptTimeoutMs);
+    const payload = encodePayload(spec);
 
     return fetchImpl(url, {
       method: spec.method ?? "GET",
       signal: AbortSignal.any([signal, timeout]),
-      headers: spec.body === undefined ? undefined : { "Content-Type": JSON_CONTENT_TYPE },
-      body: spec.body === undefined ? undefined : JSON.stringify(spec.body),
+      headers: payload?.headers,
+      body: payload?.body,
       cache: spec.cache,
       next: spec.tags === undefined ? undefined : { tags: [...spec.tags] },
     });

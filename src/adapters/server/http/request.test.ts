@@ -106,6 +106,32 @@ describe("createHttpClient", () => {
     });
   });
 
+  it("form を指定すれば URL 符号化して送る", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({
+      path: "/token",
+      method: "POST",
+      form: { grant_type: "authorization_code", code: "a b" },
+      schema,
+    });
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      body: "grant_type=authorization_code&code=a+b",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+  });
+
+  it("本文が無ければ Content-Type を付けない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).toBeUndefined();
+  });
+
   it("5xx のあとに成功すれば結果を返す", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()

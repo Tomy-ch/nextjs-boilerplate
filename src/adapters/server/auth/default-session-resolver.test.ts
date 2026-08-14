@@ -1,0 +1,290 @@
+import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { SESSION_ROLE } from "@/model/session";
+import { createDefaultSessionResolver } from "./default-session-resolver";
+
+const issuer = "https://idp.example.test";
+const clientId = "boilerplate-client";
+const redirectUri = "http://localhost:3000/api/auth/callback";
+const sessionSecret = "local-development-session-secret-change-before-production";
+const nowMs = Date.UTC(2026, 7, 14, 0, 0, 0);
+
+const discovery = {
+  issuer,
+  authorization_endpoint: `${issuer}/oidc/authorize`,
+  token_endpoint: `${issuer}/oidc/token`,
+  jwks_uri: `${issuer}/oidc/jwks`,
+  end_session_endpoint: `${issuer}/oidc/logout`,
+};
+
+let signingKey: CryptoKey;
+let otherKey: CryptoKey;
+let publicJwk: JWK;
+
+beforeAll(async () => {
+  const pair = await generateKeyPair("RS256", { extractable: true });
+  const other = await generateKeyPair("RS256", { extractable: true });
+
+  signingKey = pair.privateKey;
+  otherKey = other.privateKey;
+  publicJwk = await exportJWK(pair.publicKey);
+});
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+async function issueIdToken(
+  claims: Readonly<Record<string, unknown>>,
+  key: CryptoKey = signingKey,
+): Promise<string> {
+  return new SignJWT(claims)
+    .setProtectedHeader({ alg: "RS256", kid: "test-key" })
+    .setIssuer(issuer)
+    .setAudience(clientId)
+    .setIssuedAt(Math.floor(nowMs / 1000))
+    .setExpirationTime(Math.floor(nowMs / 1000) + 3600)
+    .sign(key);
+}
+
+/** token endpoint が返す ID Token。認可要求の後に確定するため、参照を差し替えられる形で渡す。 */
+type IssuedToken = { value: string };
+
+/** IdP の 4 つの口に応答する実装を組み立てる。 */
+function createIdp(issued: IssuedToken, expiresIn: number | undefined): typeof fetch {
+  return vi.fn<typeof fetch>(async (input) => {
+    const url = String(input);
+
+    if (url.endsWith("/.well-known/openid-configuration")) {
+      return json(discovery);
+    }
+    if (url.endsWith("/oidc/jwks")) {
+      return json({ keys: [{ ...publicJwk, kid: "test-key", alg: "RS256", use: "sig" }] });
+    }
+    if (url.endsWith("/oidc/token")) {
+      return json({ access_token: "access-token", id_token: issued.value, expires_in: expiresIn });
+    }
+    if (url.endsWith("/oidc/logout")) {
+      return json({ status: "logged_out" });
+    }
+
+    return json({ error: "not_found" }, 404);
+  });
+}
+
+function createResolver(fetchImpl: typeof fetch, at: number = nowMs) {
+  return createDefaultSessionResolver({
+    issuer,
+    clientId,
+    redirectUri,
+    scopes: "openid profile email",
+    sessionSecret,
+    fetchImpl,
+    now: () => at,
+  });
+}
+
+/**
+ * 認可要求を出し、その nonce を載せた ID Token を IdP に用意させるところまで進める。
+ *
+ * @remarks
+ * nonce は認可要求の時点で決まり、IdP はそれを ID Token へ載せて返します。実物と同じ順序を
+ * 踏まないと、nonce の検証を通れるケースが 1 つも作れません。
+ */
+async function startSignIn(
+  options: {
+    claims?: Readonly<Record<string, unknown>>;
+    key?: CryptoKey;
+    expiresIn?: number;
+    returnUrl?: string;
+  } = {},
+) {
+  const issued: IssuedToken = { value: "" };
+  const fetchImpl = createIdp(issued, "expiresIn" in options ? options.expiresIn : 3600);
+  const resolver = createResolver(fetchImpl);
+  const started = await resolver.startAuthorization(options.returnUrl ?? "/");
+
+  issued.value = await issueIdToken(
+    { sub: "user-1", nonce: started.transaction.nonce, ...options.claims },
+    options.key,
+  );
+
+  return {
+    ...started,
+    resolver,
+    fetchImpl,
+    complete: async () =>
+      resolver.completeAuthorization({
+        code: "authorization-code",
+        state: started.transaction.state,
+        transaction: started.transaction,
+      }),
+  };
+}
+
+describe("createDefaultSessionResolver", () => {
+  // ----- 正常系 -----
+  it("認可 URL に PKCE と一時状態を載せる", async () => {
+    const { authorizationUrl, transaction } = await startSignIn();
+    const params = new URL(authorizationUrl).searchParams;
+
+    expect(params.get("response_type")).toBe("code");
+    expect(params.get("client_id")).toBe(clientId);
+    expect(params.get("redirect_uri")).toBe(redirectUri);
+    expect(params.get("code_challenge_method")).toBe("S256");
+    expect(params.get("state")).toBe(transaction.state);
+    expect(params.get("nonce")).toBe(transaction.nonce);
+  });
+
+  it("認可 URL に検証子そのものを載せない", async () => {
+    const { authorizationUrl, transaction } = await startSignIn();
+
+    expect(authorizationUrl).not.toContain(transaction.codeVerifier);
+  });
+
+  it("復帰先を一時状態へ持ち回る", async () => {
+    const { transaction } = await startSignIn({ returnUrl: "/products?sort=new" });
+
+    expect(transaction.returnUrl).toBe("/products?sort=new");
+  });
+
+  it("認可コードを session へ交換する", async () => {
+    const { complete } = await startSignIn({ claims: { sub: "user-john-doe" } });
+
+    const record = await complete();
+
+    expect(record.session.userId).toBe("user-john-doe");
+    expect(record.accessToken).toBe("access-token");
+  });
+
+  it("access token の残り時間から失効時刻を決める", async () => {
+    const { complete } = await startSignIn({ expiresIn: 300 });
+
+    const record = await complete();
+
+    expect(record.session.expiresAt).toEqual(new Date(nowMs + 300 * 1000));
+  });
+
+  it("残り時間を返さない IdP では ID Token の失効時刻へ落とす", async () => {
+    const { complete } = await startSignIn({ expiresIn: undefined });
+
+    const record = await complete();
+
+    expect(record.session.expiresAt).toEqual(new Date(nowMs + 3600 * 1000));
+  });
+
+  it("役割の claim を持たない IdP では権限を持たない側へ倒す", async () => {
+    const { complete } = await startSignIn();
+
+    const record = await complete();
+
+    expect(record.session.role).toBe(SESSION_ROLE.user);
+  });
+
+  it("役割の claim があればそれを読む", async () => {
+    const { complete } = await startSignIn({ claims: { role: SESSION_ROLE.admin } });
+
+    const record = await complete();
+
+    expect(record.session.role).toBe(SESSION_ROLE.admin);
+  });
+
+  it("封緘した cookie を復元する", async () => {
+    const { resolver, complete } = await startSignIn();
+    const record = await complete();
+
+    const restored = await resolver.restore(await resolver.seal(record));
+
+    expect(restored).toEqual(record);
+  });
+
+  it("封緘した cookie にトークンを平文で置かない", async () => {
+    const { resolver, complete } = await startSignIn();
+    const record = await complete();
+
+    const sealed = await resolver.seal(record);
+
+    expect(sealed).not.toContain(record.accessToken);
+    expect(sealed).not.toContain(record.session.userId);
+  });
+
+  it("ログアウトで id_token_hint を渡す", async () => {
+    const { resolver, fetchImpl, complete } = await startSignIn();
+    const record = await complete();
+
+    await resolver.endSession(record);
+    const logout = vi
+      .mocked(fetchImpl)
+      .mock.calls.find(([input]) => String(input).endsWith("/oidc/logout"));
+
+    expect(String(logout?.[1]?.body)).toContain(
+      `id_token_hint=${encodeURIComponent(record.idToken)}`,
+    );
+  });
+
+  // ----- 異常系 -----
+  it("state が一致しなければ交換しない", async () => {
+    const { resolver, fetchImpl, transaction } = await startSignIn();
+
+    await expect(
+      resolver.completeAuthorization({ code: "code", state: "forged-state", transaction }),
+    ).rejects.toThrow();
+
+    expect(
+      vi.mocked(fetchImpl).mock.calls.some(([input]) => String(input).endsWith("/oidc/token")),
+    ).toBe(false);
+  });
+
+  it("nonce が一致しなければ落とす", async () => {
+    const { complete } = await startSignIn({ claims: { nonce: "forged-nonce" } });
+
+    await expect(complete()).rejects.toThrow();
+  });
+
+  it("JWKS に無い鍵で署名された ID Token を落とす", async () => {
+    const { complete } = await startSignIn({ key: otherKey });
+
+    await expect(complete()).rejects.toThrow();
+  });
+
+  it("subject を持たない ID Token を落とす", async () => {
+    const { complete } = await startSignIn({ claims: { sub: undefined } });
+
+    await expect(complete()).rejects.toThrow();
+  });
+
+  it("別の秘密値で封緘された cookie を復元しない", async () => {
+    const { resolver, fetchImpl, complete } = await startSignIn();
+    const sealed = await resolver.seal(await complete());
+
+    const other = createDefaultSessionResolver({
+      issuer,
+      clientId,
+      redirectUri,
+      scopes: "openid",
+      sessionSecret: "another-secret-value-that-differs-from-the-original",
+      fetchImpl,
+      now: () => nowMs,
+    });
+
+    expect(await other.restore(sealed)).toBeNull();
+  });
+
+  it("失効した cookie を復元しない", async () => {
+    const { resolver, fetchImpl, complete } = await startSignIn({ expiresIn: 300 });
+    const sealed = await resolver.seal(await complete());
+
+    const later = createResolver(fetchImpl, nowMs + 301 * 1000);
+
+    expect(await later.restore(sealed)).toBeNull();
+  });
+
+  it("壊れた cookie を復元しない", async () => {
+    const { resolver } = await startSignIn();
+
+    expect(await resolver.restore("not-a-sealed-value")).toBeNull();
+  });
+});
