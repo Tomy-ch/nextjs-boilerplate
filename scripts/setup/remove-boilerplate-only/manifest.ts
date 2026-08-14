@@ -19,10 +19,16 @@ export const BOILERPLATE_ONLY_MARKER = "boilerplate-only";
  * 必要があります。サンプルを残す fork は破棄の手順を飛ばすため、あちらへ相乗りさせると剥がしの
  * 道具だけが残るためです。
  *
+ * 剥がしを検証する CI（`.github/workflows/strip-verify.yaml`）も対象です。検証する相手が消えた
+ * あとに残すと、fork のすべての PR で「道具が無い」失敗を出し続けます。
+ *
  * 共有機構（`scripts/setup/lib/markers.ts`）は消しません。あちらはサンプル破棄も使い、破棄は
  * この後に走りうるからです。
  */
-export const SELF_DESTRUCT_PATHS: readonly string[] = ["scripts/setup/remove-boilerplate-only"];
+export const SELF_DESTRUCT_PATHS: readonly string[] = [
+  "scripts/setup/remove-boilerplate-only",
+  ".github/workflows/strip-verify.yaml",
+];
 
 /**
  * 走査から外すディレクトリ名。

@@ -32,6 +32,19 @@ describe("SELF_DESTRUCT_PATHS", () => {
     expect(SELF_DESTRUCT_PATHS).toContain("scripts/setup/remove-boilerplate-only");
   });
 
+  it("剥がしを起動する CI をすべて含む", () => {
+    const workflows = listFilesRecursive(path.join(ROOT_DIR, ".github/workflows"))
+      .map((filePath) => toRelativePath(filePath).split(path.sep).join("/"))
+      .filter((relativePath) => relativePath.endsWith(".yaml"));
+    const runners = workflows.filter((relativePath) =>
+      readUtf8File(path.join(ROOT_DIR, relativePath))?.includes(
+        "scripts/setup/remove-boilerplate-only",
+      ),
+    );
+
+    expect(runners.filter((runner) => !SELF_DESTRUCT_PATHS.includes(runner))).toEqual([]);
+  });
+
   it("共有機構は消さない", () => {
     const shared = "scripts/setup/lib/markers.ts";
 
