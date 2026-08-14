@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { SCREEN_AREA } from "./baseline-store";
 import {
   expectedBaselines,
   listBaselines,
@@ -63,6 +64,13 @@ describe("listBaselines", () => {
 
   it("画像以外を数えない", () => {
     place("README.md");
+    place("action/light/a--x.png");
+
+    expect(listBaselines(root)).toEqual(["action/light/a--x.png"]);
+  });
+
+  it("画面単位の撮影が使う区画を数えない", () => {
+    place(`${SCREEN_AREA}/mobile/home.png`);
     place("action/light/a--x.png");
 
     expect(listBaselines(root)).toEqual(["action/light/a--x.png"]);

@@ -1,0 +1,211 @@
+name: E2E
+
+# Drives the built application through its main journeys, and compares each screen
+# against its baseline image (ADR 0090 / 0091).
+#
+# What this job covers beyond the story-level checks (vrt.yaml / a11y.yaml):
+#
+#   * Journeys       — navigation, filters and the auth pre-dispatch across screens.
+#   * Browser errors — hydration mismatches, exceptions thrown while rendering, and
+#                      failed requests. A hydration mismatch compiles, type-checks and
+#                      only ever shows up in a real browser, so nothing else can see it.
+#   * Responsive     — the three bands ADR 0051 §2 fixes, read from the design tokens.
+#   * Cross browser  — Chromium, Firefox and WebKit. Those are the three rendering
+#                      engines modern browsers reduce to (ADR 0102 defers the version
+#                      floor to the fork), and they are ALL this job looks at: no
+#                      browser brands, no versions. The versions are whatever the
+#                      pinned Playwright image ships.
+#
+# The application runs on the runner and only the browsers run inside the digest-pinned
+# Playwright container. `node_modules` is resolved for the OS and CPU that installed it,
+# so starting the server inside the container would need a second, linux-specific tree.
+# Pinning the browsers and fonts is what the image is for; pinning the application's
+# runtime is not.
+#
+# Baselines are never written here. Producing them is a deliberate human act, the same
+# as for the story-level images (vrt/README.md).
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# Select the CI environment file (env/.env.ci), which is the one that puts the API in
+# mock mode. Without a mocked API the journeys would need a backend, and the failures
+# would stop being about this repository.
+env:
+  APP_ENV: ci
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    outputs:
+      title: ${{ steps.e2e.outputs.title }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Fetch the baseline images
+        uses: ./.github/actions/setup-vrt-baselines
+        with:
+          app-id: ${{ secrets.VRT_APP_ID }}
+          private-key: ${{ secrets.VRT_APP_PRIVATE_KEY }}
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      # Restored before `pnpm install`, and keyed, for the reasons spelled out on the
+      # same step in build.yaml. The three must stay identical to share a generation.
+      - name: Cache the Next.js build cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the app, start it and drive it
+        id: e2e
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+
+          # Streamed through `tee` rather than tailed at the end: a run that is cancelled
+          # or hits the job timeout never reaches the tail, so the slow case — the one
+          # worth diagnosing — would leave no log at all.
+          make e2e 2>&1 | tee /tmp/e2e-full.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ E2E: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ E2E: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Collect the comment body
+        if: always() && steps.e2e.outputs.status != ''
+        shell: bash
+        run: |
+          if [ "${{ steps.e2e.outputs.status }}" = "success" ]; then
+            echo '主要ジャーニーが 3 つの描画エンジンで通り、画面の見た目も基準画像と一致しました。' > /tmp/e2e.log
+          else
+            {
+              tail -n 80 /tmp/e2e-full.log
+              cat <<'NOTE'
+
+          `e2e-diff` artifact に HTML レポートと、失敗した検証の trace が入っています。
+          見た目の変化が意図したものなら、基準画像を撮り直してください（`make e2e-update` → `make vrt-push`）。撮り直しは承認ではありません（vrt/README.md）。
+          NOTE
+            } > /tmp/e2e.log
+          fi
+
+      # The HTML report and the traces. Without them the only evidence of a failure is
+      # the assertion text, which cannot be judged for a visual difference.
+      - name: Upload the report and traces
+        if: always() && steps.e2e.outputs.status == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-diff
+          path: tmp/e2e
+          retention-days: 7
+          if-no-files-found: warn
+
+      # Handed to the commenting job through an artifact rather than a job output,
+      # because the body is a file whose size is not bounded by the output limit.
+      - name: Hand the comment body to the commenting job
+        if: always() && github.event_name == 'pull_request' && steps.e2e.outputs.status != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-comment
+          path: /tmp/e2e.log
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Fail if a journey or a screen failed
+        if: always() && steps.e2e.outputs.status != 'success'
+        run: exit 1
+
+  # Holds no secret beyond `GITHUB_TOKEN`, so the body it publishes cannot carry one
+  # (ADR 0153: secret masking does not survive a `tee` to a file).
+  e2e-comment:
+    if: always() && github.event_name == 'pull_request'
+    needs: e2e
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Download the comment body
+        id: body
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: e2e-comment
+          path: /tmp/e2e-comment
+
+      - name: Comment the E2E result on PR
+        if: steps.body.outcome == 'success'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- e2e-result -->'
+          title: ${{ needs.e2e.outputs.title }}
+          body-file: /tmp/e2e-comment/e2e.log
+          details-summary: 'E2E の実行ログ'

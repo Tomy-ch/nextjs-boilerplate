@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import type { Environment } from "@/config/environment";
+import { serveJson } from "../../../../vitest.setup";
 
 const environment: Environment = {
   APP_API_BASE_URL: "https://api.example.test",
@@ -49,16 +50,23 @@ const wireProduct = {
 
 const wirePage = { products: [wireProduct], nextCursor: "next", hasNext: true };
 
-function stubFetch(body: unknown): ReturnType<typeof vi.fn> {
-  const fetchImpl = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }));
+const PRODUCTS_URL = `${environment.APP_API_BASE_URL}/v1/products`;
+const PRODUCT_URL = `${PRODUCTS_URL}/:id`;
+const RANKING_URL = `${PRODUCTS_URL}/ranking`;
 
-  vi.stubGlobal("fetch", fetchImpl);
-
-  return fetchImpl;
+/**
+ * `fetch` の呼び出しを記録する。**応答は差し替えない。**
+ *
+ * @remarks
+ * Next.js のキャッシュ指定（`cache` / `next.tags`）は要求として送出されないため、HTTP 境界からは
+ * 観測できません。ここで見るのはその指定だけで、応答は MSW のハンドラが返したものが通ります。
+ */
+function watchFetch(): MockInstance<typeof fetch> {
+  return vi.spyOn(globalThis, "fetch");
 }
 
 afterEach(() => {
-  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("parseProductQuery", () => {
@@ -192,7 +200,7 @@ describe("toProductPage", () => {
 describe("getProducts", () => {
   // ----- 正常系 -----
   it("契約の応答を表示用の一覧にして返す", async () => {
-    stubFetch(wirePage);
+    serveJson(PRODUCTS_URL, wirePage);
 
     const page = await getProducts({ keyword: "本", first: 20 });
 
@@ -200,7 +208,7 @@ describe("getProducts", () => {
   });
 
   it("取得条件をクエリへ載せる", async () => {
-    const fetchImpl = stubFetch(wirePage);
+    const requests = serveJson(PRODUCTS_URL, wirePage);
 
     await getProducts({
       after: "cursor-1",
@@ -211,23 +219,22 @@ describe("getProducts", () => {
       sort: "publishedAt",
     });
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      `https://api.example.test/v1/products?after=cursor-1&first=20&categoryId=${wireProduct.category.id}&statusId=${wireProduct.status.id}&keyword=%E9%9E%84&sort=publishedAt`,
+    expect(requests[0]?.url).toBe(
+      `${PRODUCTS_URL}?after=cursor-1&first=20&categoryId=${wireProduct.category.id}&statusId=${wireProduct.status.id}&keyword=%E9%9E%84&sort=publishedAt`,
     );
   });
 
   it("指定しなかった条件はクエリへ載せない", async () => {
-    const fetchImpl = stubFetch(wirePage);
+    const requests = serveJson(PRODUCTS_URL, wirePage);
 
     await getProducts({ keyword: "鞄" });
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/v1/products?keyword=%E9%9E%84",
-    );
+    expect(requests[0]?.url).toBe(`${PRODUCTS_URL}?keyword=%E9%9E%84`);
   });
 
   it("再検証のタグを付ける", async () => {
-    const fetchImpl = stubFetch(wirePage);
+    serveJson(PRODUCTS_URL, wirePage);
+    const fetchImpl = watchFetch();
 
     await getProducts({ keyword: "靴" });
 
@@ -235,7 +242,7 @@ describe("getProducts", () => {
   });
 
   it("条件を省略しても取得できる", async () => {
-    stubFetch(wirePage);
+    serveJson(PRODUCTS_URL, wirePage);
 
     await expect(getProducts()).resolves.toMatchObject({ nextCursor: "next" });
   });
@@ -244,7 +251,7 @@ describe("getProducts", () => {
 describe("getProductListPage", () => {
   // ----- 正常系 -----
   it("一覧に要る値だけを持つ 1 件へ落とす", async () => {
-    stubFetch(wirePage);
+    serveJson(PRODUCTS_URL, wirePage);
 
     const page = await getProductListPage({ first: 20 });
 
@@ -260,7 +267,7 @@ describe("getProductListPage", () => {
   });
 
   it("取得条件を一覧の取得へ渡す", async () => {
-    const fetchImpl = stubFetch(wirePage);
+    const requests = serveJson(PRODUCTS_URL, wirePage);
 
     await getProductListPage({
       first: 20,
@@ -268,25 +275,25 @@ describe("getProductListPage", () => {
       keyword: "靴",
     });
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      `https://api.example.test/v1/products?first=20&statusId=${wireProduct.status.id}&keyword=%E9%9D%B4`,
+    expect(requests[0]?.url).toBe(
+      `${PRODUCTS_URL}?first=20&statusId=${wireProduct.status.id}&keyword=%E9%9D%B4`,
     );
   });
 
   it("次ページのカーソルを引き継ぐ", async () => {
-    stubFetch(wirePage);
+    serveJson(PRODUCTS_URL, wirePage);
 
     await expect(getProductListPage({ first: 20 })).resolves.toMatchObject({ nextCursor: "next" });
   });
 
   it("最終ページのカーソルを null にする", async () => {
-    stubFetch({ ...wirePage, nextCursor: null, hasNext: false });
+    serveJson(PRODUCTS_URL, { ...wirePage, nextCursor: null, hasNext: false });
 
     await expect(getProductListPage({ first: 20 })).resolves.toMatchObject({ nextCursor: null });
   });
 
   it("画像が無い商品の URL を null にする", async () => {
-    stubFetch({ ...wirePage, products: [{ ...wireProduct, images: [] }] });
+    serveJson(PRODUCTS_URL, { ...wirePage, products: [{ ...wireProduct, images: [] }] });
 
     const page = await getProductListPage({ first: 20 });
 
@@ -294,7 +301,7 @@ describe("getProductListPage", () => {
   });
 
   it("条件を省略しても取得できる", async () => {
-    stubFetch(wirePage);
+    serveJson(PRODUCTS_URL, wirePage);
 
     const page = await getProductListPage();
 
@@ -312,7 +319,7 @@ describe("getProductTotalCount", () => {
 describe("getProduct", () => {
   // ----- 正常系 -----
   it("契約の応答を表示用の商品にして返す", async () => {
-    stubFetch(wireProduct);
+    serveJson(PRODUCT_URL, wireProduct);
 
     const product = await getProduct(wireProduct.id);
 
@@ -320,15 +327,16 @@ describe("getProduct", () => {
   });
 
   it("ID をパスへ載せる", async () => {
-    const fetchImpl = stubFetch(wireProduct);
+    const requests = serveJson(PRODUCT_URL, wireProduct);
 
     await getProduct(wireProduct.id);
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toContain(`/v1/products/${wireProduct.id}`);
+    expect(requests[0]?.url).toBe(`${PRODUCTS_URL}/${wireProduct.id}`);
   });
 
   it("再検証のタグを付ける", async () => {
-    const fetchImpl = stubFetch(wireProduct);
+    serveJson(PRODUCT_URL, wireProduct);
+    const fetchImpl = watchFetch();
 
     await getProduct(wireProduct.id);
 
@@ -336,11 +344,11 @@ describe("getProduct", () => {
   });
 
   it("ID をパスへ載せる前に URL として安全な形へ変換する", async () => {
-    const fetchImpl = stubFetch(wireProduct);
+    const requests = serveJson(PRODUCT_URL, wireProduct);
 
     await getProduct("a/../b");
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toContain("a%2F..%2Fb");
+    expect(requests[0]?.url).toBe(`${PRODUCTS_URL}/a%2F..%2Fb`);
   });
 });
 
@@ -358,7 +366,7 @@ const wireRanking = {
 describe("getProductRanking", () => {
   // ----- 正常系 -----
   it("契約の応答を表示用の型へ写す", async () => {
-    stubFetch(wireRanking);
+    serveJson(RANKING_URL, wireRanking);
 
     await expect(getProductRanking({ limit: 5 })).resolves.toEqual([
       {
@@ -371,25 +379,24 @@ describe("getProductRanking", () => {
   });
 
   it("件数と期間をクエリへ載せる", async () => {
-    const fetchImpl = stubFetch(wireRanking);
+    const requests = serveJson(RANKING_URL, wireRanking);
 
     await getProductRanking({ limit: 5, period: RANKING_PERIOD.LAST_30_DAYS });
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/v1/products/ranking?period=30d&limit=5",
-    );
+    expect(requests[0]?.url).toBe(`${RANKING_URL}?period=30d&limit=5`);
   });
 
   it("条件を省略したら契約の既定値に任せ、クエリを付けない", async () => {
-    const fetchImpl = stubFetch(wireRanking);
+    const requests = serveJson(RANKING_URL, wireRanking);
 
     await getProductRanking();
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/products/ranking");
+    expect(requests[0]?.url).toBe(RANKING_URL);
   });
 
   it("キャッシュを指定しない", async () => {
-    const fetchImpl = stubFetch(wireRanking);
+    serveJson(RANKING_URL, wireRanking);
+    const fetchImpl = watchFetch();
 
     await getProductRanking({ limit: 5 });
 
@@ -397,7 +404,7 @@ describe("getProductRanking", () => {
   });
 
   it("対象が無ければ空の一覧を返す", async () => {
-    stubFetch({ rankings: [] });
+    serveJson(RANKING_URL, { rankings: [] });
 
     await expect(getProductRanking({ limit: 5 })).resolves.toEqual([]);
   });

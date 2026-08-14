@@ -1,0 +1,66 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+import type { TestInfo } from "@playwright/test";
+
+import { isRetaking } from "../../vrt/lib/baseline-store";
+import { listBaselines, missingBaselines, orphanBaselines } from "../../vrt/lib/orphan-baselines";
+import { expectedScreenBaselines, SCREEN_BASELINE_TAG } from "../lib/screen-baselines";
+import { listScreenRoutes, resolveScreens, SCREEN_MANIFEST_FILE, SCREENS } from "../lib/screens";
+import { expect, test } from "../lib/test";
+import { loadBands } from "../lib/viewports";
+
+/**
+ * 画面 1 枚ぶんの見た目を基準画像と比べる。
+ *
+ * @remarks
+ * story 単位の撮影（`vrt/`）とは撮る対象が違います。あちらは部品を単独で描いた姿で、ここは
+ * 部品を組み上げた画面です。部品が個別に緑でも、並べたときに崩れる形は作れます。
+ *
+ * 帯（viewport の幅）ごとに撮ります。project 名がそのまま帯であり、基準画像を分ける区画にも
+ * なります（[viewports](../lib/viewports.ts)）。
+ *
+ * 中身が固定されるのは、モックが同じ要求へ同じ応答を返すからです（`mocks/stable-responses.ts`）。
+ * 応答が呼ぶたびに変わる状態では、この比較そのものが成立しません。
+ */
+
+const screens = resolveScreens(
+  listScreenRoutes(readFileSync(SCREEN_MANIFEST_FILE, "utf8")),
+  SCREENS,
+);
+const bands = loadBands();
+
+for (const screen of screens) {
+  test(screen.name, async ({ page }, testInfo) => {
+    await page.goto(screen.path);
+    // フォントは差し替わった瞬間に字形が変わる。待たずに撮ると同じ画面が撮るたび違う絵になる。
+    await page.evaluate(() => document.fonts.ready);
+
+    // 配列で渡す。1 本の文字列にすると Playwright が `/` をファイル名として無害化するので、
+    // 帯ごとに分かれず 1 階層へ平置きされる。
+    await expect(page).toHaveScreenshot([testInfo.project.name, `${screen.name}.png`], {
+      fullPage: true,
+    });
+  });
+}
+
+test("基準画像 / 撮影対象と 1 対 1 で対応する", { tag: SCREEN_BASELINE_TAG }, ({}, testInfo) => {
+  // 対応は置き場に対して 1 回見れば足りる。帯ごとに走らせると同じ失敗が帯の数だけ並ぶ。
+  test.skip(testInfo.project.name !== bands[0]?.name, "帯を 1 つ選んで 1 回だけ見る");
+  test.skip(isRetaking(process.env), "撮り直しの最中は対応を見ない");
+
+  const present = listBaselines(baselineRoot(testInfo));
+  const expected = expectedScreenBaselines(screens, bands);
+
+  expect(
+    orphanBaselines(present, expected),
+    "撮り直して置き場へ送るか、対応する画面を戻してください",
+  ).toEqual([]);
+  expect(missingBaselines(present, expected), "make e2e-update で撮り直してください").toEqual([]);
+});
+
+// 置き場の位置は `playwright.e2e.config.ts` の `snapshotPathTemplate` が決める。撮影と同じ解決を
+// 通してから 2 区画(帯 / ファイル名)ぶん遡る。
+function baselineRoot(testInfo: TestInfo): string {
+  return path.resolve(testInfo.snapshotPath("band", "screen.png"), "../..");
+}

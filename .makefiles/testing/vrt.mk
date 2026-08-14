@@ -22,7 +22,13 @@ export VRT_GID
 VRT_ONLY ?=
 export VRT_ONLY
 
-VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T -e VRT_ONLY vrt_runner
+# 撮り直しであることを撮る側へ伝える。置き場との対応の検査は、撮り直しの最中は他の撮影の
+# 途中経過を欠けとして読むため、そこだけ見送る (vrt/lib/baseline-store.ts)。
+BASELINE_RETAKE ?=
+export BASELINE_RETAKE
+
+VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
+	-e VRT_ONLY -e BASELINE_RETAKE vrt_runner
 
 # 基準画像を撮った時点の入力のハッシュ。置き場が画像と同じコミットで持つ (vrt/README.md)。
 VRT_INPUTS_FILE := vrt/screenshots/render-inputs.sha256
@@ -77,6 +83,7 @@ vrt: build-storybook
 
 # 入力のハッシュは撮った直後に書く。送る側で書くと、撮らずに置き場を直した木でも「この入力で
 # 撮った」と記録でき、次の実行が比較を省いてしまう。
+vrt-update: BASELINE_RETAKE := 1
 vrt-update: build-storybook
 	@$(VRT_REQUIRE_WIRING)
 	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --update-snapshots $(VRT_ARGS)

@@ -257,6 +257,8 @@ make images-pin-apply      # Rewrite every image reference from the lockfile
 make images-pin-check      # Verify the image pins match the lockfile — fails on drift (pre-commit / CI)
 make vrt                   # Compare every Storybook story against its baseline image (ADR 0091)
 make vrt-update            # Retake the baseline images — accepting a visual change is a local, human act
+make e2e                   # Drive the built app through its journeys and compare each screen (ADR 0090 / 0091)
+make e2e-update            # Retake the screen baselines — same discipline as vrt-update
 make secret-scan           # gitleaks over the commits about to be pushed — fails on detection (ADR 0110)
 make trivy-fs              # Trivy dependency vulnerability scan — on demand, report only (ADR 0110)
 make test-full             # Full test run with coverage against the 100% threshold (ADR 0090)

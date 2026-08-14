@@ -50,11 +50,15 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
  * - `vrt/lib/settle.ts` — Playwright の Page を 2 つの条件で待つだけ。分岐を持たず、
  *   Vitest からは呼べない。撮影と a11y 検査が同じ待ち方をする必要があるため spec から
  *   切り出してあるだけで、判断は持たない。
+ * - `e2e/lib/test.ts` — Playwright の Page へ購読を張り、fixture を組み立てるだけ。何を異常と
+ *   数えるかは `e2e/lib/browser-errors.ts` が持つ。全 spec へ同じ見張りを効かせるため spec から
+ *   切り出してあるだけで、Vitest からは呼べない。
  */
 const NON_DECIDING_MODULES = [
   "scripts/setup/lib/runtime.ts",
   "docs-viewer/src/main.tsx",
   "vrt/lib/settle.ts",
+  "e2e/lib/test.ts",
 ] as const;
 
 /**
@@ -78,7 +82,8 @@ const TEST_FIXTURE_MODULES = [
  * @remarks
  * route segment は `params` / `searchParams` が Promise である App Router の規約と生成型に依存し、
  * 検証は route の経路ごと通す必要があります([0091](../../docs/adr/0091-test-verification-methods.md))。
- * 撤去条件は E2E の着地。
+ * 通す先は `e2e/` で、開く画面は build の出力から列挙されるため、足した route は宣言を求められます
+ * （`e2e/lib/screens.ts`）。ここから外れるのは、route segment が単体で回せるようになったときです。
  *
  * feature 側の `page-content.tsx` はここに含めません。取得を `adapters` の module 境界で
  * 差し替えれば `render(await Component(props))` で検証できるためです。
@@ -89,11 +94,11 @@ const RUNTIME_ONLY_MODULES = ["src/app/**/page.tsx"] as const;
  * それ自体がテストであるモジュール。
  *
  * @remarks
- * `vrt/*.spec.ts` は Playwright が実行する visual regression の本体で、Vitest からは
+ * `vrt/*.spec.ts` と `e2e/**\/*.spec.ts` は Playwright が実行する本体で、Vitest からは
  * 呼ばれません。テストにテストを課す形になるため母数から外し、代わりに判定を持つ部分を
- * `vrt/lib/` へ切り出して 1:1 の対象にしています。
+ * `vrt/lib/` / `e2e/lib/` へ切り出して 1:1 の対象にしています。
  */
-const TEST_SUITE_MODULES = ["vrt/*.spec.ts"] as const;
+const TEST_SUITE_MODULES = ["vrt/*.spec.ts", "e2e/**/*.spec.ts"] as const;
 
 /** カバレッジ母数と 1:1 ゲートの双方が外す対象(リポジトリルート相対)。 */
 export const EXCLUDED_FROM_CHECKS = [

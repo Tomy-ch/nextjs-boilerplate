@@ -123,8 +123,10 @@ push すれば、次の VRT の完了で自動的に拾われる。
   改名する・除外を宣言すると、比較にも掛からない画像が残り、置き場の中身が実態から離れる。
   検査するのは全数実行のときだけ（`VRT_ONLY` で絞った実行では、対象外の story の画像と孤児を
   区別できない）。落ちたら `make vrt-retake` で撮り直すか、対応する story を戻す
-- viewport は 1 帯（1280×720）だけ。帯を増やす Responsive VRT と、ブラウザを増やす
-  Cross Browser は別途扱う
+- viewport は 1 帯（1280×720）だけ、ブラウザも 1 つだけ。帯を増やすのも描画エンジンを増やすのも
+  **画面単位の側**（[e2e/README.md](../e2e/README.md)）が持つ。部品の分岐は器の幅で行う規約なので
+  （[0051](../docs/adr/0051-styling-system.md) §2）、viewport で分岐しない部品を viewport の数だけ
+  撮っても、増えるのは実行時間だけである
 
 ## 揺らぎを止めてある
 
@@ -233,6 +235,11 @@ push すれば、次の VRT の完了で自動的に拾われる。
 ある。中身は `<系統>/<テーマ>/<story id>.png` で、系統は story の見出しの先頭区画
 （`Action` / `Features` / `Page` …）。
 
+置き場は**画面単位の撮影と共有する**（[e2e/README.md](../e2e/README.md)）。あちらは `screen/` 区画に
+閉じており、story の系統がその名前を名乗ると落ちる
+（[`lib/baseline-store.ts`](lib/baseline-store.ts)）。共有するのは、掃除も撮り直しも置き場 1 つに
+対して働くためで、分けると同じ機構を 2 組持つことになる。
+
 系統で分けるのは、**消す単位を系統に取れるようにする**ため。題材に固有の系統（`Features` /
 `Page`）は fork 先で丸ごと不要になり、1 枚ずつ列挙せずに落とせる必要がある
 （[破棄する対象の宣言](../scripts/setup/remove-sample/sample-manifest.ts)）。千枚単位の画像を
@@ -308,6 +315,7 @@ push を自分で塞ぐことになる。
 | [`lib/theme-tokens.ts`](lib/theme-tokens.ts) | 生成した CSS から配色の意味トークンの名前を取り出す |
 | [`lib/clock.ts`](lib/clock.ts) | 撮影時に「今日」として読ませる時刻 |
 | [`lib/orphan-baselines.ts`](lib/orphan-baselines.ts) | 撮影対象と置き場の基準画像の対応を突き合わせる |
+| [`lib/baseline-store.ts`](lib/baseline-store.ts) | 置き場の区画割り。画面単位の撮影との住み分け |
 | [`lib/static-server.ts`](lib/static-server.ts) | build 済み Storybook を配る依存なしの静的サーバ |
 | `screenshots/` | 基準画像の置き場（サブモジュール） |
 | `../playwright.config.ts` | 実行環境と比較条件 |

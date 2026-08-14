@@ -25,7 +25,7 @@ story 単位の visual regression が、どの部品でどう組み上がって�
 | --- | --- |
 | `vrt/stories.spec.ts` | story を列挙して 1 件ずつ撮る本体 |
 | `vrt/lib/` | 目録の解釈・URL 組み立て・除外の宣言・撮る配色テーマ・置き場との対応 |
-| `vrt/screenshots` | **サブモジュール**。基準画像の置き場を指す gitlink |
+| `vrt/screenshots` | **サブモジュール**。基準画像の置き場を指す gitlink。画面単位の撮影と共有し、あちらは `screen/` 区画に閉じる |
 | `playwright.config.ts` | 実行環境と比較条件（`maxDiffPixels: 0`） |
 | `docker-compose.dev-tools.yml` | `vrt_runner`（digest と platform を固定） |
 | `scripts/vrt/` | 実行結果 → 一覧表 / 撮り直す id、絵を決める入力 → ハッシュ |
@@ -135,7 +135,8 @@ PR のレビューではなくラベルに取るのは、判断の対象が PR �
 
 **本番を見ない。** 比較は story の描画で閉じているので、実行時の設定や feature flag で見た目が変わる
 部品は、story が与えた props の姿しか撮られない。「本番でだけ崩れている」は検知できない。これは
-赤くなる側ではなく**沈黙する側**の穴で、画面単位の比較を足しても、モックで回す以上は残る。
+赤くなる側ではなく**沈黙する側**の穴で、画面単位の比較（[e2e](../../e2e/README.md)）を足しても、
+モックで回す以上は残る。
 
 **大量の差分は人が見きれない。** design token を触ると全数が動く。件数を表の先頭に出す以上のことは
 仕組みでは塞げない。

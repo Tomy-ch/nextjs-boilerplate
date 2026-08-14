@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { passThroughOrigin } from "../../vitest.setup";
 import { contentType, createStaticServer, resolveFilePath } from "./static-server";
 
 let root: string;
@@ -21,6 +22,10 @@ async function get(path: string): Promise<{ status: number; type: string | null;
   const server = createStaticServer(root).listen(0, "127.0.0.1");
   await once(server, "listening");
   const { port } = server.address() as AddressInfo;
+
+  // 相手はこのテストが立てた本物のサーバであり、差し替える対象ではない。
+  passThroughOrigin(`http://127.0.0.1:${port}`);
+
   try {
     const response = await fetch(`http://127.0.0.1:${port}${path}`);
 

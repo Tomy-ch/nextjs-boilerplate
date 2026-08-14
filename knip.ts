@@ -51,6 +51,8 @@ const config: KnipConfig = {
         ...PUBLISHED_SURFACE,
         "vrt/*.spec.ts",
         "playwright.config.ts",
+        "e2e/**/*.spec.ts",
+        "playwright.e2e.config.ts",
       ],
       ignore: [...GENERATED_MODULES],
       ignoreDependencies: NON_IMPORTED_DEPENDENCIES,

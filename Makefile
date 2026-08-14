@@ -26,6 +26,7 @@ include .makefiles/testing/test.mk
 include .makefiles/testing/load-band.mk
 include .makefiles/testing/scripts.mk
 include .makefiles/testing/vrt.mk
+include .makefiles/testing/e2e.mk
 
 # セキュリティ関連
 include .makefiles/security/gitleaks.mk

@@ -39,6 +39,7 @@ const SCAN_ROOTS = [
   "docs-viewer/src",
   "eslint-rules",
   "vrt",
+  "e2e",
 ] as const;
 
 /** 除外宣言を、リポジトリ相対パスに当てる正規表現へ変える。 */
