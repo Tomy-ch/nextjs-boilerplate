@@ -115,8 +115,9 @@ push すれば、次の VRT の完了で自動的に拾われる。
   持てないので、比較そのものが成立しない。**「いまは直せない」は除外の理由にならない** —
   それは退行であり、直すか issue にするかのどちらかである。検査対象から外すモジュールの宣言
   （[`scripts/lib/untested-modules.ts`](../scripts/lib/untested-modules.ts)）と同じ規律
-- 配色テーマは [`lib/themes.ts`](lib/themes.ts) が持つ `light` / `dark` の 2 つを撮る。dark は
-  token の切り替えでしか出ない見た目で、他にこれを機械検証している層が無い
+- 撮るのは [`lib/themes.ts`](lib/themes.ts) の `SHOT_THEMES` ＝ **dark だけ**。暗い面を選ぶのは、
+  明るい面より崩れが目に付きにくいため。日々の動作確認は明るい面で行われるので、機械の目は
+  逆側へ置く。撮らない側は[配色テーマの適用だけを見る](#撮らない側のテーマは適用だけを見る)
 - **どの story からも参照されない基準画像が置き場に残っていないことも見る**。story を消す・
   改名する・除外を宣言すると、比較にも掛からない画像が残り、置き場の中身が実態から離れる。
   検査するのは全数実行のときだけ（`VRT_ONLY` で絞った実行では、対象外の story の画像と孤児を
@@ -145,9 +146,34 @@ push すれば、次の VRT の完了で自動的に拾われる。
 `threshold` を `0` へ落とすと、同じ入力でも実行ごとに 2〜3 画素が揺れる story が出る（撮り直しでは
 収束しない）。揺らぎの出所を先に潰す必要があるため、既定のまま置いている。
 
+## 撮らない側のテーマは適用だけを見る
+
+全 story を 2 テーマぶん撮ると実行が倍になる。fork 先の CI は private ランナー（2 コア）で課金
+されるので、そこは倍にしない。撮るのは dark だけにし、**light は配色テーマが面へ効いていることだけ**
+を見る（[`theme-tokens.spec.ts`](theme-tokens.spec.ts)、テーマごとに 2 件）。
+
+失うのは light 固有の見た目の退行 —— 明るい面でだけ崩れる部品と、明るい面でだけ出る低コントラスト。
+捕まえ続けるのは「light の配色が丸ごと壊れた」級である。
+
+ほかの壊れ方は既に別の検査が持っているので、ここでは見ない。
+
+| 壊れ方 | 誰が捕まえるか |
+| --- | --- |
+| SSOT と生成物がずれる（値の誤り・生成漏れ） | `tokens-drift`（`pnpm check:tokens`） |
+| 生成した CSS がそもそも読まれない | dark の全 story 撮影（全数が動く） |
+| 撮らない側のテーマの適用経路だけが壊れる | ここ |
+
+値そのものは持たない。SSOT から生成物までは `tokens-drift` が見ているので、ここで値を持つと同じ表を
+2 箇所に持つことになる。読むのは「`color-scheme` が project 名と一致すること」と「もう一方のテーマへ
+切り替えると配色が変わること」の 2 点だけ。
+
+> トークンは継承する色が違う 2 つの面で読む。宣言の無い custom property を使った宣言は計算時に無効に
+> なり、その property は**継承値**へ落ちる。継承値も色として読めるため、1 面だけでは届いた色と継承した
+> 色を区別できない。
+
 ## 絵が変わり得ないときは撮らない
 
-比較は 623 story × 2 テーマで、実行時間のほぼ全部を占める。**絵を決める入力が前に判定した時点と
+比較は 623 story ぶんあり、実行時間のほぼ全部を占める。**絵を決める入力が前に判定した時点と
 同じなら、撮っても同じ絵にしかならない**ので、比較そのものを省く。同じ判定を `make a11y` も使う
 （[`a11y.spec.ts`](a11y.spec.ts) は同じ入力から同じ違反を出す）。
 
@@ -273,7 +299,9 @@ push を自分で塞ぐことになる。
 | [`stories.spec.ts`](stories.spec.ts) | story を列挙して 1 件ずつ撮る本体 |
 | [`lib/story-index.ts`](lib/story-index.ts) | 目録から撮影対象を取り出す・story の URL を組み立てる |
 | [`lib/excluded-stories.ts`](lib/excluded-stories.ts) | 比較の対象から外す story の宣言（理由と撤去条件付き） |
-| [`lib/themes.ts`](lib/themes.ts) | 撮る配色テーマの一覧（Playwright の project 名） |
+| [`lib/themes.ts`](lib/themes.ts) | 在る配色テーマと、そのうち全 story を撮るテーマの宣言 |
+| [`theme-tokens.spec.ts`](theme-tokens.spec.ts) | 配色テーマが面へ効いていることを見る（撮らない側のテーマの受け皿） |
+| [`lib/theme-tokens.ts`](lib/theme-tokens.ts) | 生成した CSS から配色の意味トークンの名前を取り出す |
 | [`lib/clock.ts`](lib/clock.ts) | 撮影時に「今日」として読ませる時刻 |
 | [`lib/orphan-baselines.ts`](lib/orphan-baselines.ts) | 撮影対象と置き場の基準画像の対応を突き合わせる |
 | [`lib/static-server.ts`](lib/static-server.ts) | build 済み Storybook を配る依存なしの静的サーバ |
