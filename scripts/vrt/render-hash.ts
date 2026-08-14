@@ -22,6 +22,10 @@ const RENDER_INPUTS = [
   "vrt",
   // フォントのラスタライズを決めるイメージの digest。
   "docker-compose.dev-tools.yml",
+  // 検査そのものの実装。コンテナはリポジトリをマウントするだけなので、Playwright と axe は
+  // イメージではなく node_modules から来る(docker-compose.dev-tools.yml)。版が動けば、
+  // storybook-static が 1 バイトも変わらないまま結果だけが変わりうる。
+  "pnpm-lock.yaml",
 ] as const;
 
 /** 入力から外すもの。 */
@@ -61,14 +65,17 @@ export function renderInputsHash(root: string, files: readonly string[]): string
 }
 
 /**
- * 記録された値と現在の値から、比較を省いてよいかを決める。
+ * 記録された値と現在の値から、検査を省いてよいかを決める。
  *
  * @remarks
- * 記録が無いときは省きません。判定できないことを「変わっていない」と読むと、絵が変わった
- * まま緑で通ります。
+ * 記録は複数受け取り、1 つでも一致すれば省きます。同じ入力状態でも「基準画像を撮った時点」と
+ * 「検査が通った時点」は別々に記録されるためです。
+ *
+ * 記録が 1 つも無いときは省きません。判定できないことを「変わっていない」と読むと、絵が
+ * 変わったまま緑で通ります。
  */
-export function decideGate(recorded: string | null, current: string): "skip" | "run" {
-  return recorded !== null && recorded.trim() === current ? "skip" : "run";
+export function decideGate(recorded: readonly (string | null)[], current: string): "skip" | "run" {
+  return recorded.some((value) => value !== null && value.trim() === current) ? "skip" : "run";
 }
 
 function walk(root: string, entry: string): string[] {
