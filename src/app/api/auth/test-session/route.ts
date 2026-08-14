@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { storeSession } from "@/adapters/server/auth/session";
+import { issueTestSession } from "@/adapters/server/auth/test-session";
 import { findExplicitApplicationEnvironment } from "@/config/load-environment";
 import { SESSION_ROLE } from "@/model/session";
 
@@ -42,6 +42,9 @@ const IssueRequest = z.object({
  * 制御できる幅は広く取ってあります。役割も失効までの秒数も指定できるのは、テストが到達したい
  * 状態を実システムの都合で狭めないためです。危険は口を開ける環境で閉じます。
  *
+ * session の組み立ては `adapters/server` が持ちます。ここが持つのは、開ける環境の判定と
+ * 受け取った指定の検証だけです。
+ *
  * @returns 発行できたときは 204。開けていない環境では 404
  */
 export async function POST(request: Request): Promise<Response> {
@@ -58,17 +61,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ message: "session の指定が不正です" }, { status: 400 });
   }
 
-  const { subject, role, expiresInSeconds } = parsed.data;
-
-  await storeSession({
-    session: {
-      userId: subject,
-      role,
-      expiresAt: new Date(Date.now() + expiresInSeconds * 1000),
-    },
-    accessToken: `test-access-token:${subject}`,
-    idToken: `test-id-token:${subject}`,
-  });
+  await issueTestSession(parsed.data);
 
   return new Response(null, { status: 204 });
 }

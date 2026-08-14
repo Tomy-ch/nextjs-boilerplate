@@ -8,7 +8,6 @@ import type { Session } from "@/model/session";
 import { getSessionResolver } from "./resolver";
 import {
   baseCookieOptions,
-  parseTransactionCookie,
   SESSION_COOKIE_NAME,
   TRANSACTION_COOKIE_NAME,
   TRANSACTION_MAX_AGE_SECONDS,
@@ -102,9 +101,17 @@ export async function signOut(): Promise<void> {
   }
 }
 
-/** 認可要求の一時状態を cookie へ載せる。 */
+/**
+ * 認可要求の一時状態を cookie へ載せる。
+ *
+ * @remarks
+ * 中身は Resolver が封緘したまま扱います。ここが形を知っていると、認証方式を差し替えるたびに
+ * cookie を扱う側も書き直すことになります。
+ */
 export async function storeTransaction(transaction: AuthorizationTransaction): Promise<void> {
-  (await cookies()).set(TRANSACTION_COOKIE_NAME, JSON.stringify(transaction), {
+  const sealed = await getSessionResolver().sealTransaction(transaction);
+
+  (await cookies()).set(TRANSACTION_COOKIE_NAME, sealed, {
     ...baseCookieOptions(),
     maxAge: TRANSACTION_MAX_AGE_SECONDS,
   });
@@ -121,9 +128,13 @@ export async function storeTransaction(transaction: AuthorizationTransaction): P
  */
 export async function takeTransaction(): Promise<AuthorizationTransaction | null> {
   const store = await cookies();
-  const transaction = parseTransactionCookie(store.get(TRANSACTION_COOKIE_NAME)?.value);
+  const sealed = store.get(TRANSACTION_COOKIE_NAME)?.value;
 
   store.delete(TRANSACTION_COOKIE_NAME);
 
-  return transaction;
+  if (sealed === undefined) {
+    return null;
+  }
+
+  return getSessionResolver().restoreTransaction(sealed);
 }

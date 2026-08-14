@@ -1,23 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  baseCookieOptions,
-  parseTransactionCookie,
-  SESSION_COOKIE_NAME,
-  TRANSACTION_COOKIE_NAME,
-} from "./session-cookie";
+import { baseCookieOptions, SESSION_COOKIE_NAME, TRANSACTION_COOKIE_NAME } from "./session-cookie";
 
 const redirectUri = vi.hoisted(() => ({ value: "http://localhost:3000/api/auth/callback" }));
 
 vi.mock("@/config/auth/auth.server", () => ({
   getAuthConfig: () => ({ redirectUri: redirectUri.value }),
 }));
-
-const transaction = {
-  state: "state-value",
-  codeVerifier: "verifier-value",
-  nonce: "nonce-value",
-  returnUrl: "/products",
-};
 
 beforeEach(() => {
   redirectUri.value = "http://localhost:3000/api/auth/callback";
@@ -39,29 +27,8 @@ describe("baseCookieOptions", () => {
     expect(baseCookieOptions().secure).toBe(true);
   });
 
-  // ----- 異常系 -----
   it("http で配信されていれば secure を付けない", () => {
     expect(baseCookieOptions().secure).toBe(false);
-  });
-});
-
-describe("parseTransactionCookie", () => {
-  // ----- 正常系 -----
-  it("保存した一時状態を読み戻す", () => {
-    expect(parseTransactionCookie(JSON.stringify(transaction))).toEqual(transaction);
-  });
-
-  // ----- 異常系 -----
-  it("cookie が無ければ null にする", () => {
-    expect(parseTransactionCookie(undefined)).toBeNull();
-  });
-
-  it("JSON として壊れていれば null にする", () => {
-    expect(parseTransactionCookie("{")).toBeNull();
-  });
-
-  it("項目が欠けていれば null にする", () => {
-    expect(parseTransactionCookie(JSON.stringify({ state: "only-state" }))).toBeNull();
   });
 });
 

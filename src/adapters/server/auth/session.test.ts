@@ -17,6 +17,8 @@ const cookieStore = vi.hoisted(() => ({
 const resolver = vi.hoisted(() => ({
   restore: vi.fn(),
   seal: vi.fn(),
+  sealTransaction: vi.fn(),
+  restoreTransaction: vi.fn(),
   endSession: vi.fn(),
 }));
 
@@ -44,6 +46,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   cookieStore.get.mockReturnValue(undefined);
   resolver.restore.mockResolvedValue(null);
+  resolver.sealTransaction.mockResolvedValue("sealed-transaction");
+  resolver.restoreTransaction.mockResolvedValue(transaction);
 });
 
 describe("verifySession", () => {
@@ -153,27 +157,33 @@ describe("signOut", () => {
 
 describe("storeTransaction", () => {
   // ----- 正常系 -----
-  it("一時状態を短い寿命の cookie へ載せる", async () => {
+  it("封緘した一時状態を短い寿命の cookie へ載せる", async () => {
     await storeTransaction(transaction);
 
     expect(cookieStore.set).toHaveBeenCalledWith(
       "auth_tx",
-      JSON.stringify(transaction),
+      "sealed-transaction",
       expect.objectContaining({ httpOnly: true, maxAge: 600 }),
     );
+  });
+
+  it("cookie に一時状態を平文で置かない", async () => {
+    await storeTransaction(transaction);
+
+    expect(String(cookieStore.set.mock.calls[0]?.[1])).not.toContain(transaction.codeVerifier);
   });
 });
 
 describe("takeTransaction", () => {
   // ----- 正常系 -----
   it("保存した一時状態を返す", async () => {
-    cookieStore.get.mockReturnValue({ value: JSON.stringify(transaction) });
+    cookieStore.get.mockReturnValue({ value: "sealed-transaction" });
 
     expect(await takeTransaction()).toEqual(transaction);
   });
 
   it("取り出しと同時に破棄する", async () => {
-    cookieStore.get.mockReturnValue({ value: JSON.stringify(transaction) });
+    cookieStore.get.mockReturnValue({ value: "sealed-transaction" });
 
     await takeTransaction();
 
@@ -185,8 +195,9 @@ describe("takeTransaction", () => {
     expect(await takeTransaction()).toBeNull();
   });
 
-  it("解釈できない値でも cookie を破棄する", async () => {
-    cookieStore.get.mockReturnValue({ value: "{" });
+  it("復元できない値でも cookie を破棄する", async () => {
+    cookieStore.get.mockReturnValue({ value: "broken" });
+    resolver.restoreTransaction.mockResolvedValue(null);
 
     expect(await takeTransaction()).toBeNull();
     expect(cookieStore.delete).toHaveBeenCalledWith("auth_tx");

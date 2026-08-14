@@ -11,6 +11,7 @@ import { createHttpClient } from "../http/request";
 import { fetchOidcEndpoints, type OidcEndpoints } from "./oidc-discovery";
 import { toCodeChallenge } from "./pkce";
 import { createRandomToken } from "./random-token";
+import { TRANSACTION_MAX_AGE_SECONDS } from "./session-cookie";
 import type {
   AuthorizationRequest,
   AuthorizationTransaction,
@@ -29,6 +30,14 @@ const TokenResponse = z.object({
   access_token: z.string(),
   id_token: z.string(),
   expires_in: z.number().optional(),
+});
+
+/** 封緘した一時状態の中身。 */
+const SealedTransaction = z.object({
+  state: z.string(),
+  codeVerifier: z.string(),
+  nonce: z.string(),
+  returnUrl: z.string(),
 });
 
 /** 封緘した cookie の中身。 */
@@ -213,9 +222,33 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
       })
         .setProtectedHeader(SEAL_HEADER)
         .setSubject(record.session.userId)
-        .setIssuedAt()
+        .setIssuedAt(Math.floor(now() / 1000))
         .setExpirationTime(record.session.expiresAt)
         .encrypt(await deriveSealKey(deps.sessionSecret));
+    },
+
+    async sealTransaction(transaction: AuthorizationTransaction): Promise<string> {
+      // 相対指定（"600s"）は実時計を基準にするため使わない。この Resolver が受け取った時計で
+      // 絶対時刻を組み、封緘と復元が同じ時間軸に乗るようにする。
+      const issuedAt = Math.floor(now() / 1000);
+
+      return new EncryptJWT({ ...transaction })
+        .setProtectedHeader(SEAL_HEADER)
+        .setIssuedAt(issuedAt)
+        .setExpirationTime(issuedAt + TRANSACTION_MAX_AGE_SECONDS)
+        .encrypt(await deriveSealKey(deps.sessionSecret));
+    },
+
+    async restoreTransaction(sealed: string): Promise<AuthorizationTransaction | null> {
+      try {
+        const { payload } = await jwtDecrypt(sealed, await deriveSealKey(deps.sessionSecret), {
+          currentDate: new Date(now()),
+        });
+
+        return SealedTransaction.parse(payload);
+      } catch {
+        return null;
+      }
     },
 
     async restore(sealed: string): Promise<SessionRecord | null> {

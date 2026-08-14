@@ -227,6 +227,23 @@ describe("createDefaultSessionResolver", () => {
     expect(sealed).not.toContain(record.session.userId);
   });
 
+  it("封緘した一時状態を復元する", async () => {
+    const { resolver, transaction } = await startSignIn({ returnUrl: "/mypage" });
+
+    const restored = await resolver.restoreTransaction(await resolver.sealTransaction(transaction));
+
+    expect(restored).toEqual(transaction);
+  });
+
+  it("封緘した一時状態に検証子を平文で置かない", async () => {
+    const { resolver, transaction } = await startSignIn();
+
+    const sealed = await resolver.sealTransaction(transaction);
+
+    expect(sealed).not.toContain(transaction.codeVerifier);
+    expect(sealed).not.toContain(transaction.state);
+  });
+
   it("ログアウトで id_token_hint を渡す", async () => {
     const { resolver, fetchImpl, complete } = await startSignIn();
     const record = await complete();
@@ -385,5 +402,20 @@ describe("createDefaultSessionResolver", () => {
     const { resolver } = await startSignIn();
 
     expect(await resolver.restore("not-a-sealed-value")).toBeNull();
+  });
+
+  it("壊れた一時状態を復元しない", async () => {
+    const { resolver } = await startSignIn();
+
+    expect(await resolver.restoreTransaction("not-a-sealed-value")).toBeNull();
+  });
+
+  it("期限を過ぎた一時状態を復元しない", async () => {
+    const { resolver, fetchImpl, transaction } = await startSignIn();
+    const sealed = await resolver.sealTransaction(transaction);
+
+    const later = createResolver(fetchImpl, nowMs + 601 * 1000);
+
+    expect(await later.restoreTransaction(sealed)).toBeNull();
   });
 });

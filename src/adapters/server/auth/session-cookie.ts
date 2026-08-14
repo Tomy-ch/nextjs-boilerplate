@@ -1,7 +1,5 @@
 import "server-only";
 
-import { z } from "zod";
-
 import { getAuthConfig } from "@/config/auth/auth.server";
 
 /**
@@ -56,37 +54,4 @@ export function baseCookieOptions(): {
     sameSite: "lax",
     path: "/",
   };
-}
-
-/** 一時状態の cookie に載せる形。 */
-const TransactionCookie = z.object({
-  state: z.string(),
-  codeVerifier: z.string(),
-  nonce: z.string(),
-  returnUrl: z.string(),
-});
-
-/**
- * 一時状態の cookie 値を読み取る。
- *
- * @remarks
- * 一時状態は封緘しません。ここにあるのは認可コードと組み合わせて初めて意味を持つ値であり、
- * 単体では session になりません。逆に、形が壊れていれば認可要求の続きとして扱えないため、
- * 解釈できない値は `null` にして往復をやり直させます。
- *
- * @param raw - cookie に入っていた文字列
- * @returns 解釈できなければ null
- */
-export function parseTransactionCookie(
-  raw: string | undefined,
-): z.infer<typeof TransactionCookie> | null {
-  if (raw === undefined) {
-    return null;
-  }
-
-  try {
-    return TransactionCookie.parse(JSON.parse(raw));
-  } catch {
-    return null;
-  }
 }

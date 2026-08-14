@@ -95,11 +95,28 @@ export type SessionResolver = {
   seal(record: SessionRecord): Promise<string>;
 
   /**
+   * 認可要求の一時状態を、cookie へ載せる 1 つの文字列へ封緘する。
+   *
+   * @remarks
+   * session と同じく Resolver に閉じます。一時状態が何を含むかは方式ごとに違い
+   * （PKCE なら検証子、別方式なら別のもの）、cookie を扱う側がその形を知っていると、方式を
+   * 差し替えるたびに cookie 側も書き直すことになります。
+   */
+  sealTransaction(transaction: AuthorizationTransaction): Promise<string>;
+
+  /**
    * cookie の値から復元する。
    *
    * @returns 復元できなければ null。壊れた cookie と未ログインを呼び出し側で区別させない
    */
   restore(sealed: string): Promise<SessionRecord | null>;
+
+  /**
+   * cookie の値から一時状態を復元する。
+   *
+   * @returns 復元できなければ null。往復をやり直させる
+   */
+  restoreTransaction(sealed: string): Promise<AuthorizationTransaction | null>;
 
   /**
    * IdP 側の session を終わらせる。

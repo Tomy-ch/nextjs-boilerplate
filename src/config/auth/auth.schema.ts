@@ -30,9 +30,38 @@ export function authScopesValidator() {
   return z.string().trim().min(1);
 }
 
-/** BFF session を保護する秘密値を検証する。 */
-export function authSessionSecretValidator() {
-  return z.string().min(32);
+/**
+ * リポジトリに同梱している秘密値。
+ *
+ * @remarks
+ * 開発と CI を `git clone` 直後に動かすための値であり、**公開リポジトリに平文で載っています**。
+ * 誰でも読めるため、これで封緘した session cookie は誰でも偽造できます。
+ */
+const SHIPPED_SECRETS: readonly string[] = [
+  "local-development-session-secret-change-before-production",
+  "ci-session-secret-must-never-be-used-in-production",
+];
+
+/**
+ * BFF session を保護する秘密値を検証する。
+ *
+ * @remarks
+ * 同梱値をそのまま受け付けません。設定し忘れは「値が無い」ではなく「既知の値が入っている」形で
+ * 現れるため、長さだけを見る検証では通り抜けます。判定を起動時に置くのは、cookie を 1 枚でも
+ * 発行する前に止めるためです。
+ *
+ * 開発と CI では、その環境の env ファイルが同梱値を渡すので通ります。判定に環境を渡すのは
+ * 呼び出し側の責務です。
+ *
+ * @param allowShipped - 同梱値を許すか。local / ci だけ true
+ */
+export function authSessionSecretValidator(allowShipped: boolean) {
+  return z
+    .string()
+    .min(32)
+    .refine((value) => allowShipped || !SHIPPED_SECRETS.includes(value), {
+      error: "AUTH_SESSION_SECRET が同梱の値のままです。環境ごとの秘密値を設定してください",
+    });
 }
 
 export type AuthEnvironment = {
@@ -40,5 +69,5 @@ export type AuthEnvironment = {
   AUTH_CLIENT_ID: z.infer<ReturnType<typeof authClientIdValidator>>;
   AUTH_REDIRECT_URI: z.infer<ReturnType<typeof authRedirectUriValidator>>;
   AUTH_SCOPES: z.infer<ReturnType<typeof authScopesValidator>>;
-  AUTH_SESSION_SECRET: z.infer<ReturnType<typeof authSessionSecretValidator>>;
+  AUTH_SESSION_SECRET: string;
 };

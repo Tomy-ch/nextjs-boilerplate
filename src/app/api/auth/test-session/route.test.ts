@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SESSION_ROLE } from "@/model/session";
 import { POST } from "./route";
 
-const storeSession = vi.hoisted(() => vi.fn());
+const issueTestSession = vi.hoisted(() => vi.fn());
 const environment = vi.hoisted((): { value: string | null } => ({ value: "local" }));
 
-vi.mock("@/adapters/server/auth/session", () => ({ storeSession }));
+vi.mock("@/adapters/server/auth/test-session", () => ({ issueTestSession }));
 vi.mock("@/config/load-environment", () => ({
   findExplicitApplicationEnvironment: () => environment.value,
 }));
@@ -28,7 +28,7 @@ describe("POST", () => {
     const response = await POST(issue({}));
 
     expect(response.status).toBe(204);
-    expect(storeSession).toHaveBeenCalled();
+    expect(issueTestSession).toHaveBeenCalled();
   });
 
   it("CI でも発行する", async () => {
@@ -40,27 +40,25 @@ describe("POST", () => {
   it("指定した subject と役割で発行する", async () => {
     await POST(issue({ subject: "user-jane-smith", role: SESSION_ROLE.admin }));
 
-    expect(storeSession.mock.calls[0]?.[0].session).toMatchObject({
-      userId: "user-jane-smith",
-      role: SESSION_ROLE.admin,
-    });
+    expect(issueTestSession).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: "user-jane-smith", role: SESSION_ROLE.admin }),
+    );
   });
 
   it("指定が無ければ権限を持たない側で発行する", async () => {
     await POST(issue({}));
 
-    expect(storeSession.mock.calls[0]?.[0].session.role).toBe(SESSION_ROLE.user);
+    expect(issueTestSession).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: "user-john-doe", role: SESSION_ROLE.user }),
+    );
   });
 
   it("失効までの秒数を指定できる", async () => {
-    const before = Date.now();
-
     await POST(issue({ expiresInSeconds: 120 }));
 
-    const expiresAt: Date = storeSession.mock.calls[0]?.[0].session.expiresAt;
-
-    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + 120 * 1000);
-    expect(expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 120 * 1000);
+    expect(issueTestSession).toHaveBeenCalledWith(
+      expect.objectContaining({ expiresInSeconds: 120 }),
+    );
   });
 
   it("本文が無くても既定で発行する", async () => {
@@ -74,7 +72,7 @@ describe("POST", () => {
     const response = await POST(issue({}));
 
     expect(response.status).toBe(404);
-    expect(storeSession).not.toHaveBeenCalled();
+    expect(issueTestSession).not.toHaveBeenCalled();
   });
 
   it("staging でも開けない", async () => {
@@ -95,13 +93,13 @@ describe("POST", () => {
     const response = await POST(issue({}));
 
     expect(response.status).toBe(404);
-    expect(storeSession).not.toHaveBeenCalled();
+    expect(issueTestSession).not.toHaveBeenCalled();
   });
 
   it("指定が壊れていれば発行しない", async () => {
     const response = await POST(issue({ role: "superuser" }));
 
     expect(response.status).toBe(400);
-    expect(storeSession).not.toHaveBeenCalled();
+    expect(issueTestSession).not.toHaveBeenCalled();
   });
 });
