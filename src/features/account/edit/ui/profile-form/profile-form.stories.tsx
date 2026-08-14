@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
 import { ToastProvider } from "@/components/shell/toaster/toaster";
+import type { AddressCandidate } from "@/model/user/user";
 
 import {
   ADDRESS_CANDIDATES,
@@ -12,28 +13,45 @@ import {
 import { ProfileForm } from "./profile-form";
 
 /**
- * 住所補完の応答を固定する。
+ * カタログで引ける郵便番号。
+ *
+ * @remarks
+ * 宣言に無い番号は「該当なし」になります。外部の lookup が落ちているときと同じ経路で、
+ * どちらも手入力を続けさせます。
+ */
+const ADDRESS_BY_POSTAL_CODE: Readonly<Record<string, readonly AddressCandidate[]>> = {
+  /** 町域が割れる。都道府県と市区町村だけが埋まる。 */
+  "150-0001": ADDRESS_CANDIDATES,
+  /** 町域まで 1 つに定まる。丁目・番地が空なら町域まで埋まる。 */
+  "220-0012": SINGLE_ADDRESS_CANDIDATE,
+};
+
+/**
+ * 住所補完の応答を差し替える。
  *
  * @remarks
  * 補完は同一オリジンの `/api/addresses` を叩きます。カタログには Route Handler が無いため、
  * 差し替えないと**常に「見つかりませんでした」しか出せません**。
  *
+ * 固定値ではなく郵便番号で引き分けるのは、カタログを手で触って確かめられるようにするためです。
+ * どの番号でも同じ応答を返すと、入力と結果が対応しているかを読み取れません。
+ *
  * 差し替えを story の中に閉じるのは、カタログへネットワークを持ち込まないためです。取得を
  * 伴う部品を story にしない方針（`InfiniteList` に story が無いのと同じ）に沿えないのは、
  * 補完が入力欄と不可分だからで、代わりに応答の側を止めています。
- *
- * @param candidates - 返す候補。空にすると見つからなかった経路になる
  */
-function stubAddressLookup(candidates: typeof ADDRESS_CANDIDATES) {
+function stubAddressLookup(): () => void {
+  const original = globalThis.fetch;
+
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = new URL(String(input instanceof Request ? input.url : input), "http://catalog");
+    const candidates = ADDRESS_BY_POSTAL_CODE[url.searchParams.get("postalCode") ?? ""] ?? [];
+
+    return Promise.resolve(new Response(JSON.stringify({ candidates }), { status: 200 }));
+  };
+
   return () => {
-    const original = globalThis.fetch;
-
-    globalThis.fetch = () =>
-      Promise.resolve(new Response(JSON.stringify({ candidates }), { status: 200 }));
-
-    return () => {
-      globalThis.fetch = original;
-    };
+    globalThis.fetch = original;
   };
 }
 
@@ -78,6 +96,7 @@ async function searchAddress({ canvasElement }: { canvasElement: HTMLElement }):
 const meta = {
   title: "Features/Account/ProfileForm",
   component: ProfileForm,
+  beforeEach: stubAddressLookup,
   decorators: [
     // 保存の成功を伝えるのが toast であり、実物では root layout がこの Provider を持つ。
     (Story) => (
@@ -90,9 +109,10 @@ const meta = {
     docs: {
       description: {
         component: [
-          "プロフィールの入力欄です。検証は submit 時、以後は誤りのあった項目だけを変更のたびに見ます。",
-          "**保存はカタログでは動きません** —— 送信先は Server Action です。",
-          "確かめられるのは配置と、検証が出す文言までです。",
+          "プロフィールの入力欄です。検証は focus が外れた時点で走り、以後は誤りのあった項目だけを",
+          "変更のたびに見ます。**保存はカタログでは動きません** —— 送信先は Server Action です。",
+          "住所の補完は応答を差し替えてあり、`150-0001`（町域が割れる）と `220-0012`（町域まで定まる）",
+          "が引けます。それ以外の番号は該当なしになります。",
         ].join(""),
       },
     },
@@ -150,8 +170,7 @@ export const ValidationErrorsMobile: Story = {
  * 住所を補完した状態。候補が割れた町域は埋めず、一致した都道府県と市区町村だけが入る。
  */
 export const AddressCompleted: Story = {
-  args: { prefectures: PREFECTURES, profile: { ...PROFILE, building: null } },
-  beforeEach: stubAddressLookup(ADDRESS_CANDIDATES),
+  args: { prefectures: PREFECTURES, profile: { ...PROFILE, postalCode: "150-0001" } },
   play: searchAddress,
 };
 
@@ -159,16 +178,14 @@ export const AddressCompleted: Story = {
 export const AddressCompletedToTown: Story = {
   args: {
     prefectures: PREFECTURES,
-    profile: { ...PROFILE, building: null, street: "" },
+    profile: { ...PROFILE, postalCode: "220-0012", street: "", building: null },
   },
-  beforeEach: stubAddressLookup(SINGLE_ADDRESS_CANDIDATE),
   play: searchAddress,
 };
 
 /** 該当が無い場合。外部の lookup が落ちているときも同じ経路で、手入力を続けさせる。 */
 export const AddressNotFound: Story = {
-  args: { prefectures: PREFECTURES, profile: PROFILE },
-  beforeEach: stubAddressLookup([]),
+  args: { prefectures: PREFECTURES, profile: { ...PROFILE, postalCode: "999-9999" } },
   play: searchAddress,
 };
 
