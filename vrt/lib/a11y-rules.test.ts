@@ -1,6 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { DISABLED_RULES, disabledRuleIds, STORY_DISABLED_RULES } from "./a11y-rules";
+import {
+  CONFORMANCE_TAGS,
+  DISABLED_RULES,
+  disabledRuleIds,
+  STORY_DISABLED_RULES,
+} from "./a11y-rules";
+
+describe("CONFORMANCE_TAGS", () => {
+  // ----- 正常系 -----
+  it("適合目標の水準を挙げる", () => {
+    expect(CONFORMANCE_TAGS).toContain("wcag2aa");
+  });
+
+  it("目標より上の水準を含めない", () => {
+    expect(CONFORMANCE_TAGS.filter((tag) => tag.endsWith("aaa"))).toEqual([]);
+  });
+
+  it("適合水準として意味を持たないタグを含めない", () => {
+    expect(CONFORMANCE_TAGS.filter((tag) => !tag.startsWith("wcag"))).toEqual([]);
+  });
+});
 
 describe("DISABLED_RULES", () => {
   // ----- 正常系 -----

@@ -11,6 +11,19 @@
  * 宣言を 1 箇所に集めるのは、spec 側で `rules: { ... }` を書けるようにすると、story を足した
  * 人がその場で黙らせられてしまうためです（`untested-modules.ts` と同じ規律）。
  */
+/**
+ * 検査するルールの範囲。適合目標そのものを axe のタグで表す。
+ *
+ * @remarks
+ * 目標は **WCAG 2.x レベル AA**（[0100](../../docs/adr/0100-accessibility-target.md) §1）。axe は
+ * 既定で目標の外側（`best-practice` など）まで回すため、範囲を宣言しないと「目標として掲げて
+ * いない水準」を全 story ぶん評価することになります。
+ *
+ * ここに AAA を入れません。入れた時点で、宣言した目標と機械が要求する水準が食い違います。
+ * 目標を引き上げるなら 0100 を先に変えます。
+ */
+export const CONFORMANCE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] as const;
+
 export type DisabledRule = {
   /** axe のルール id。 */
   readonly id: string;
