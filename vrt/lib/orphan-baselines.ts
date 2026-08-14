@@ -5,6 +5,7 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
 
+import { SCREEN_AREA } from "./baseline-store";
 import type { Story } from "./story-index";
 import { SHOT_THEMES } from "./themes";
 
@@ -34,17 +35,20 @@ export function expectedBaselines(stories: readonly Story[]): string[] {
 }
 
 /**
- * 置き場にある基準画像を相対パスで列挙する。
+ * 置き場にある story の基準画像を相対パスで列挙する。
  *
  * @remarks
  * 数えるのは画像だけです。置き場は根に README を持つため
  * ([置き場の README](../../.github/settings/vrt-images/readme-template.md))、拡張子で絞らないと
  * それが孤児として上がります。
+ *
+ * 画面単位の区画（[baseline-store](baseline-store.ts)）も外します。置き場は 2 種類の撮影が
+ * 共有しており、story の対応だけを見るここからは、相手の画像は数えるべき対象ではありません。
  */
 export function listBaselines(root: string): string[] {
   return readdirSync(root, { recursive: true })
     .map((entry) => entry.toString().split(path.sep).join("/"))
-    .filter((entry) => entry.endsWith(EXTENSION))
+    .filter((entry) => entry.endsWith(EXTENSION) && !entry.startsWith(`${SCREEN_AREA}/`))
     .sort();
 }
 
