@@ -30,9 +30,10 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/features/home",
   "src/features/account",
   "src/features/site-info",
-  // 題材の増分取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
+  // 題材の取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
   // 認証の口（`src/app/api/auth`）は同じ場所にあるコア残留である。
   "src/app/api/products",
+  "src/app/api/addresses",
   // 題材に固有のカーネルモジュール
   "src/model/product",
   "src/model/purchase",

@@ -49,7 +49,7 @@ export type AddressCandidate = {
 };
 
 /** 購入集計のステータス別内訳 1 件。 */
-export type PurchaseStatusBreakdown = {
+type PurchaseStatusBreakdown = {
   readonly statusId: string;
   readonly statusName: string;
   readonly count: number;
@@ -61,10 +61,10 @@ export type PurchaseStatusBreakdown = {
  * 自分の購入の集計。
  *
  * @remarks
- * 総数と合計はキャンセル済みを含みます。内訳はキャンセルを 1 要素として持つため、除いた値が
- * 要るときは内訳から差し引けます。
+ * 総数と合計は**キャンセル済みを除いた**値です。契約がそう定めており、内訳にもキャンセルの
+ * 行は現れません。
  *
- * 内訳に並ぶのは購入に出現したステータスだけで、購入が 1 件も無ければ空になります。
+ * 内訳に並ぶのは対象に出現したステータスだけで、対象が 1 件も無ければ空になります。
  */
 export type PurchaseSummary = {
   readonly totalCount: number;

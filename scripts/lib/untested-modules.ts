@@ -73,7 +73,7 @@ const NON_DECIDING_MODULES = [
  */
 const TEST_FIXTURE_MODULES = [
   "src/config/environment.fixture.ts",
-  "src/features/account/account.fixture.ts",
+  "src/features/account/account.fixture.ts", // sample:line
 ] as const;
 
 /**

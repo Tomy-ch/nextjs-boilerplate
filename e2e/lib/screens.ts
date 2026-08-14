@@ -26,11 +26,24 @@ export type Screen = {
   readonly name: string;
   /** 実際に開く URL のパス。 */
   readonly path: string;
+  /**
+   * 開く前に session を作るか。
+   *
+   * @remarks
+   * 保護された経路は、session を持たずに開くとログインへ送られます。撮れるのはログイン画面で
+   * あって目的の画面ではないため、**保護された画面は撮れないのではなく、開き方が違うだけ**です。
+   */
+  readonly signedIn?: true;
 };
 
 /** route 1 つに対する宣言。開くか、開かない理由を持つ。 */
 export type ScreenDeclaration =
-  | { readonly route: string; readonly name: string; readonly path: string }
+  | {
+      readonly route: string;
+      readonly name: string;
+      readonly path: string;
+      readonly signedIn?: true;
+    }
   | {
       readonly route: string;
       /** 開かない理由と、その理由が消える条件。 */
@@ -55,6 +68,11 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     // 中身も固定される。存在する ID である必要はない — 契約駆動のモックはどの ID にも応える。
     path: "/products/0195f0c2-0000-7000-8000-000000000001",
   },
+  { route: "/mypage", name: "mypage", path: "/mypage", signedIn: true },
+  { route: "/mypage/edit", name: "profile-edit", path: "/mypage/edit", signedIn: true },
+  { route: "/about", name: "about", path: "/about" },
+  { route: "/privacy", name: "privacy", path: "/privacy" },
+  { route: "/terms", name: "terms", path: "/terms" },
   // sample:end
   { route: "/login", name: "login", path: "/login" },
   { route: "/_not-found", name: "not-found", path: "/この経路は存在しない" },
@@ -122,5 +140,5 @@ export function resolveScreens(
 
   return declarations
     .filter((entry): entry is Extract<ScreenDeclaration, { name: string }> => "name" in entry)
-    .map(({ route, name, path }) => ({ route, name, path }));
+    .map(({ route, name, path, signedIn }) => ({ route, name, path, signedIn }));
 }

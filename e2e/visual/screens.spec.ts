@@ -31,7 +31,11 @@ const screens = resolveScreens(
 const bands = loadBands();
 
 for (const screen of screens) {
-  test(screen.name, async ({ page }, testInfo) => {
+  test(screen.name, async ({ page, signIn }, testInfo) => {
+    if (screen.signedIn === true) {
+      await signIn();
+    }
+
     await page.goto(screen.path);
     // フォントは差し替わった瞬間に字形が変わる。待たずに撮ると同じ画面が撮るたび違う絵になる。
     await page.evaluate(() => document.fonts.ready);

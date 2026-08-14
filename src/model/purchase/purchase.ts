@@ -8,7 +8,7 @@ import type { CursorPage } from "../pagination";
  *
  * ステータスは ID と名称が解決済みで届くため、名称を引き直しません。
  */
-export type PurchaseHistoryEntry = {
+type PurchaseHistoryEntry = {
   /** 購入コード。利用者へ見せる識別子であり、問い合わせにも使う。 */
   readonly code: string;
   /** 合計。最小単位の整数で持ち、表示の直前に主単位へ戻す。 */
