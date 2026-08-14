@@ -1,8 +1,22 @@
-name: VRT Retake
+name: Baseline Retake
 
-# Retakes the baseline images for the stories the VRT run reported, pushes them to
-# the baseline store, and moves this branch's submodule pointer onto the result.
-# That push re-runs VRT, which then passes.
+# Retakes the baseline images, pushes them to the baseline store, and moves this
+# branch's submodule pointer onto the result. That push re-runs the comparisons,
+# which then pass.
+#
+# Both kinds of baseline are retaken together, because they are one thing everywhere
+# else: one store (`vrt/screenshots`, split into areas), one container, one push, and
+# one approval label covering whatever changed under that path. Splitting only the
+# retake would leave a fork asking why it takes two labels to retake what takes one to
+# approve — a question whose answer is in this repository's history rather than in the
+# tree it hands over.
+#
+#   * Stories (`make vrt-update`) — bounded to what the VRT run reported, so a story
+#     that never appeared in the pull-request comment cannot enter the baselines here.
+#   * Screens (`make e2e-update`) — always the full set. E2E publishes no per-screen
+#     report to bound it with, so an unchanged screen is re-shot and lands only if its
+#     pixels actually moved. The `full` story mode below already accepts that same
+#     trade for reverts.
 #
 # This is NOT where the visual change is approved. The label only develops the change
 # into something reviewable: the pixels become a real image diff in the store's compare
@@ -10,18 +24,18 @@ name: VRT Retake
 # by `vrt-approval.yaml`. Naming this label "approve" would put the word where the
 # judgement is not.
 #
-# The label is a CONDITION, not the trigger: it is read when a VRT run completes. It
-# can therefore be applied whenever, pull-request creation included, which takes the
-# human off the critical path — VRT, retake, and the confirming VRT re-run chain run
-# without anyone watching.
+# The label is a CONDITION, not the trigger: it is read when a comparison run
+# completes. It can therefore be applied whenever, pull-request creation included,
+# which takes the human off the critical path — the comparison, the retake, and the
+# confirming re-run chain without anyone watching.
 #
 # The label is spent only when the pointer moves; every other outcome leaves it on.
 # Both halves of that asymmetry are in docs/design/vrt.md, and what it means for the
 # person applying the label is in vrt/README.md.
 #
-# The scope is read from the `vrt-report` artifact of the run that triggered this
-# one. Bounding the retake to what was already reported means a story that never
-# appeared in the pull-request comment cannot enter the baselines through this path.
+# When both comparisons are red, the E2E-triggered run yields to the VRT-triggered one
+# rather than spending the label on half the change. Deferring is what keeps "one
+# label, one retake" true now that two runs can reach this workflow.
 #
 # A revert triggers the same retake without a label. Pruning the store drops the
 # commit the reverted state pointed at, so restoring the code alone would leave the
@@ -36,7 +50,7 @@ name: VRT Retake
 
 on:
   workflow_run:
-    workflows: [VisualRegressionTest]
+    workflows: [VisualRegressionTest, E2E]
     types: [completed]
 
 # Select the CI environment file (env/.env.ci). Without this the loader falls back to
@@ -133,6 +147,21 @@ jobs:
           fi
           echo "mode=${mode}" >> "$GITHUB_OUTPUT"
 
+      # Screens are retaken whichever comparison reported; stories only when the run
+      # that reported them is the one that triggered this, because their scope comes
+      # from that run's artifact.
+      - name: Note which comparison reported
+        id: trigger
+        if: steps.mode.outputs.mode != 'none' && steps.mode.outputs.mode != ''
+        env:
+          TRIGGER: ${{ github.event.workflow_run.name }}
+        run: |
+          if [ "$TRIGGER" = 'VisualRegressionTest' ]; then
+            echo 'stories=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'stories=false' >> "$GITHUB_OUTPUT"
+          fi
+
       # Baselines taken from a tree that is failing elsewhere bake that failure into
       # the store. The cause is often the rendering itself — a story filed under the
       # wrong heading is both a ledger failure and a different image path — so the
@@ -153,6 +182,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          STORIES: ${{ steps.trigger.outputs.stories }}
           # Everything whose failure can change what a story renders as.
           DECIDES_PIXELS: >-
             ["lint","typecheck","build","storybook-build","classes","tokens-drift","manifest"]
@@ -174,9 +204,28 @@ jobs:
             echo "deferred=true" >> "$GITHUB_OUTPUT"
             echo "failed=${failed}" >> "$GITHUB_OUTPUT"
             echo "⏸️ 他のチェックが落ちているため撮り直しません: ${failed}"
-          else
-            echo "deferred=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          # Triggered by E2E while the story comparison is also red: yield to the run
+          # VRT will trigger, which retakes both. Both kinds land in one pointer move,
+          # and the label — spent only when the pointer moves — stays on until then.
+          if [ "$STORIES" = 'false' ]; then
+            vrt="$(gh api --paginate --slurp \
+              "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
+              | jq -r '[.[].check_runs[] | select(.name == "vrt")]
+                | group_by(.name) | map(max_by(.started_at))
+                | map(select(.conclusion != "success")) | length')"
+
+            if [ "$vrt" != "0" ]; then
+              echo "deferred=true" >> "$GITHUB_OUTPUT"
+              echo "failed=vrt（story と画面をまとめて撮り直します）" >> "$GITHUB_OUTPUT"
+              echo '⏸️ story の比較も赤なので、VRT の完了に合わせてまとめて撮り直します。'
+              exit 0
+            fi
+          fi
+
+          echo "deferred=false" >> "$GITHUB_OUTPUT"
 
       # The check that must go green runs against `refs/pull/N/merge` — the branch
       # merged into its base. Retaking on a head that is behind base would capture a
@@ -228,7 +277,10 @@ jobs:
       # search for and no way to pick up a different commit's failures.
       - name: Download the reported failures
         id: report
-        if: steps.gate.outputs.deferred == 'false' && steps.mode.outputs.mode == 'reported'
+        if: >-
+          steps.gate.outputs.deferred == 'false' &&
+          steps.mode.outputs.mode == 'reported' &&
+          steps.trigger.outputs.stories == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.event.workflow_run.id }}
@@ -249,27 +301,48 @@ jobs:
         if: steps.gate.outputs.deferred == 'false'
         run: pnpm install --frozen-lockfile
 
+      # Stories and screens land in one commit, so the store's compare view shows the
+      # whole visual change of this branch in one place — which is what the reviewer
+      # has to look at before accepting it.
       - name: Retake the baselines
         id: retake
         if: steps.gate.outputs.deferred == 'false'
         env:
           MODE: ${{ steps.mode.outputs.mode }}
+          STORIES: ${{ steps.trigger.outputs.stories }}
         shell: bash
         run: |
-          if [ "$MODE" = 'full' ]; then
-            echo 'ids=全 story' >> "$GITHUB_OUTPUT"
-            make vrt-update
-            exit 0
+          set -euo pipefail
+          taken=()
+
+          if [ "$STORIES" = 'true' ]; then
+            # 孤児（改名・削除で参照を失った基準画像）は範囲を絞った撮り直しでは消えない。
+            # 絞った実行では孤児と対象外の画像を区別できないため、全数で撮り直す。
+            orphans=false
+            if [ "$MODE" != 'full' ]; then
+              orphans="$(pnpm exec tsx scripts/vrt orphans tmp/vrt/report.json)"
+            fi
+
+            if [ "$MODE" = 'full' ] || [ "$orphans" = 'true' ]; then
+              taken+=('全 story')
+              make vrt-update
+            else
+              ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json)"
+              if [ -z "$ids" ]; then
+                echo '❌ 報告に差分がありません。撮り直す対象がありません。'
+                exit 1
+              fi
+              taken+=("$ids")
+              make vrt-update VRT_ONLY="$ids"
+            fi
           fi
 
-          ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json)"
-          if [ -z "$ids" ]; then
-            echo '❌ 報告に差分がありません。撮り直す対象がありません。'
-            exit 1
-          fi
+          # Always the full set: E2E publishes no per-screen report to bound it with.
+          taken+=('全画面')
+          make e2e-update
+
+          ids="$(IFS=,; echo "${taken[*]}")"
           echo "ids=${ids}" >> "$GITHUB_OUTPUT"
-
-          make vrt-update VRT_ONLY="$ids"
 
       # The same command a developer runs as `make vrt-push`, so the shape of what lands
       # in the store does not depend on who took the screenshots.
@@ -308,7 +381,7 @@ jobs:
           header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
           git config --local http.extraheader "$header"
 
-          git commit -m "Test: 報告された差分の基準画像を撮り直す" -m "撮り直し: ${{ github.event_name }} / 対象: ${IDS}"
+          git commit -m "Test: 基準画像を撮り直す" -m "撮り直し: ${{ github.event.workflow_run.name }} / 対象: ${IDS}"
           git push
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
@@ -338,13 +411,13 @@ jobs:
             if [ "$DEFERRED" = 'true' ]; then
               echo "⏸️ 他のチェックが落ちているため、基準画像は撮り直していません: ${FAILED}"
               echo
-              echo "落ちている木から撮ると、その原因ごと基準画像に焼き込まれます。**ラベルは付けたままです** — 修正を push すれば VRT の完了に合わせて自動で撮り直します。"
+              echo "落ちている木から撮ると、その原因ごと基準画像に焼き込まれます。**ラベルは付けたままです** — 修正を push すれば、比較の完了に合わせて自動で撮り直します。"
             elif [ -n "$SHA" ]; then
               echo "🎞️ 基準画像を ${COUNT} 枚撮り直しました (${SHA})。"
               echo
               echo "画像差分: https://github.com/${store_repo}/compare/${BEFORE}..${AFTER}"
               echo
-              echo "対象の story: ${IDS}"
+              echo "対象: ${IDS}"
               echo
               echo "**まだ承認ではありません。** 上の画像差分を見て、意図した変更であることを確かめたうえで \`vrt-approve\` ラベルを付けてください。"
             else

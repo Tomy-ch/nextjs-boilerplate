@@ -17,7 +17,7 @@ export type CategoryLinksProps = {
  * @remarks
  * 遷移先の URL は一覧の面が組みます。キーの綴り（`categoryId`）を写して持つと、一覧が
  * 契約に合わせてキーを変えたときにこちら側だけが古いままになり、絞り込まれない一覧へ
- * 飛びます（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
+ * 飛びます（[0021](../../../../../docs/adr/0021-frontend-responsibility.md)）。
  *
  * 数が読めないので折り返します。分類はバックエンドが持つ運用の値で、いくつまでという上限を
  * 表示側が置けません。

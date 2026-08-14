@@ -14,8 +14,10 @@ const badgeVariants = cva(
         [BADGE_VARIANT.DEFAULT]: "bg-foreground text-background",
         [BADGE_VARIANT.SECONDARY]: "bg-muted text-foreground",
         [BADGE_VARIANT.DESTRUCTIVE]: "bg-destructive text-destructive-foreground",
+        // 縁だけで成り立つ variant なので、枠線は `border` ではなく `input` を取る
+        // （`components/README.md`「境界を示す線」）。
         [BADGE_VARIANT.OUTLINE]:
-          "border-border text-foreground hover:bg-foreground hover:text-background",
+          "border-input text-foreground hover:bg-foreground hover:text-background",
         [BADGE_VARIANT.GHOST]: "text-foreground hover:bg-foreground hover:text-background",
         [BADGE_VARIANT.LINK]: "text-foreground underline-offset-4 hover:underline",
       },

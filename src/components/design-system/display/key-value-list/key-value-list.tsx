@@ -53,7 +53,13 @@ export function KeyValueList({ className, ...props }: ComponentProps<"dl">) {
 export function KeyValueItem({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
-      className={cn("grid gap-1 sm:grid-cols-[minmax(6rem,12rem)_1fr] sm:gap-x-6", className)}
+      // 値の列は `minmax(0,1fr)`。`1fr` の最小値は `min-content` なので、区切りの無い長い値が
+      // 列ごと押し広げ、器から溢れる。`wrap-break-word` は min-content 幅を縮めないため、
+      // 折り返しの指定だけでは防げない。
+      className={cn(
+        "grid gap-1 sm:grid-cols-[minmax(6rem,12rem)_minmax(0,1fr)] sm:gap-x-6",
+        className,
+      )}
       data-slot="key-value-item"
       {...props}
     />

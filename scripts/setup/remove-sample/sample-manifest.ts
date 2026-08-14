@@ -28,11 +28,16 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/features/products",
   "src/features/cart",
   "src/features/home",
-  // 題材の増分取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
+  "src/features/account",
+  "src/features/site-info",
+  // 題材の取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
   // 認証の口（`src/app/api/auth`）は同じ場所にあるコア残留である。
   "src/app/api/products",
+  "src/app/api/addresses",
   // 題材に固有のカーネルモジュール
   "src/model/product",
+  "src/model/purchase",
+  "src/model/user",
   "src/stores/cart-store.ts",
   "src/stores/cart-store.test.ts",
   // 題材の契約に固有の adapter

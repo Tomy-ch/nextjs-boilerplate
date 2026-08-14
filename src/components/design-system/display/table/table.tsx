@@ -5,8 +5,17 @@ import { ScrollArea } from "../../container/scroll-area/scroll-area";
 
 /** {@link Table} の props。 */
 type TableProps = ComponentProps<"table"> & {
-  /** 横スクロールする領域の名前。 */
+  /** スクロールする領域の名前。 */
   label?: string;
+  /**
+   * スクロールする領域へ与える class 名。
+   *
+   * @remarks
+   * `className` は `table` に付くため、高さの上限（`max-h-*`）はこちらへ渡す。行数で縦に
+   * 伸ばしたくない表は、外側をもう 1 枚のスクロール領域で包むのではなくここを使う。包むと
+   * スクロール領域が入れ子になり、focus を受け取る領域も二重になる。
+   */
+  containerClassName?: string;
 };
 
 /**
@@ -18,6 +27,10 @@ type TableProps = ComponentProps<"table"> & {
  *
  * 包んだ領域は keyboard だけで横へ送れるよう focus を受け取るため、**`label` で名前を与える**。
  * 名前が無いと、focus したときに何の領域へ入ったのかが判らない。`TableCaption` と同じ語を渡す。
+ *
+ * 端まで来たらスクロールを外側へ渡す。`ScrollArea` の既定は内側で止める指定だが、表は本文の
+ * 途中に置かれるものであり、上端で止まると**表の上に指を置いている間だけページが動かない**
+ * 状態になる。内側で止める必要があるのは、独立した面として重なる領域だけである。
  *
  * 取得・並べ替え・filter・pagination・行ごとの操作・業務型は持たない。これらは feature が
  * この部品を合成して実装する。列定義から表の骨格を展開したい場合は `sugar/table` を使う。
@@ -53,11 +66,11 @@ type TableProps = ComponentProps<"table"> & {
  * @param props - native `table` 属性と `label`。
  * @see Storybook `Display/Table`
  */
-function Table({ className, label, ...props }: TableProps) {
+function Table({ className, containerClassName, label, ...props }: TableProps) {
   return (
     <ScrollArea
       aria-label={label}
-      className="relative w-full"
+      className={cn("relative w-full overscroll-auto", containerClassName)}
       data-slot="table-container"
       orientation="horizontal"
     >

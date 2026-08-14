@@ -9,6 +9,7 @@ import { LoginView } from "./login-view";
  * story 側でもそれを再現しないと、余白と重心が実物とずれる。
  */
 const meta = {
+  title: "Features/Auth/LoginView",
   component: LoginView,
   parameters: { layout: "fullscreen" },
   decorators: [

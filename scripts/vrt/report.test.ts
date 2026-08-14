@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { collectFailures, type Failure, formatStoryIDs, formatTable, TABLE_LIMIT } from "./report";
+import {
+  collectFailures,
+  type Failure,
+  formatStoryIDs,
+  formatTable,
+  hasBaselineFailure,
+  TABLE_LIMIT,
+} from "./report";
 
 /** 1 件分のテスト結果を組み立てる。 */
 function test(options: {
@@ -8,12 +15,14 @@ function test(options: {
   status?: string;
   project?: string;
   message?: string;
+  tags?: string[];
 }): unknown {
   return {
     projectName: options.project ?? "light",
     status: options.status ?? "unexpected",
     annotations: options.id === undefined ? [] : [{ type: "story", description: options.id }],
     results: options.message === undefined ? [] : [{ errors: [{ message: options.message }] }],
+    tags: options.tags ?? [],
   };
 }
 
@@ -206,5 +215,42 @@ describe("formatStoryIDs", () => {
   // ----- 異常系 -----
   it("差分が無ければ空文字を返す", () => {
     expect(formatStoryIDs([])).toBe("");
+  });
+});
+
+describe("hasBaselineFailure", () => {
+  // ----- 正常系 -----
+  it("1 対 1 対応の検査が落ちていれば true を返す", () => {
+    const json = reportOf([{ title: "基準画像", tests: [test({ tags: ["@baselines"] })] }]);
+
+    expect(hasBaselineFailure(json)).toBe(true);
+  });
+
+  it("story だけが食い違っているときは false を返す", () => {
+    expect(hasBaselineFailure(reportOf([{ title: "Button", tests: [test({ id: "a" })] }]))).toBe(
+      false,
+    );
+  });
+
+  it("1 対 1 対応の検査が通っていれば false を返す", () => {
+    const json = reportOf([
+      { title: "基準画像", tests: [test({ status: "expected", tags: ["@baselines"] })] },
+    ]);
+
+    expect(hasBaselineFailure(json)).toBe(false);
+  });
+
+  it("入れ子の suite にあっても見つける", () => {
+    const json = reportOf(
+      [],
+      [{ specs: [{ title: "基準画像", tests: [test({ tags: ["@baselines"] })] }] }],
+    );
+
+    expect(hasBaselineFailure(json)).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("suites が無いレポートを弾く", () => {
+    expect(() => hasBaselineFailure("{}")).toThrow("JSON レポートに suites がありません");
   });
 });

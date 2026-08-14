@@ -1,30 +1,8 @@
 import { getProductListPage, parseProductQuery } from "@/adapters/server/api/products";
+import { toHttpStatus } from "@/adapters/server/http/error-status";
 import { findAppError } from "@/errors/app-error";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
-import { ErrorKind, type ErrorKind as ErrorKindType } from "@/errors/error-kind";
-
-/**
- * 分類ごとの HTTP status。
- *
- * @remarks
- * 対応は [0080](../../../../docs/adr/0080-error-handling.md) §1 の表が正です。`errors` は
- * transport を知らない層なので、分類から status への変換はこの境界が持ちます。
- */
-const STATUS_BY_KIND: Readonly<Record<ErrorKindType, number>> = {
-  [ErrorKind.INVALID_ARGUMENT]: 400,
-  [ErrorKind.UNAUTHENTICATED]: 401,
-  [ErrorKind.PERMISSION_DENIED]: 403,
-  [ErrorKind.NOT_FOUND]: 404,
-  [ErrorKind.CONFLICT]: 409,
-  [ErrorKind.VALIDATION]: 422,
-  [ErrorKind.UNSUPPORTED_MEDIA_TYPE]: 415,
-  [ErrorKind.PAYLOAD_TOO_LARGE]: 413,
-  [ErrorKind.TOO_MANY_REQUESTS]: 429,
-  [ErrorKind.CANCELED]: 499,
-  [ErrorKind.UNAVAILABLE]: 503,
-  [ErrorKind.UNIMPLEMENTED]: 501,
-  [ErrorKind.INTERNAL]: 500,
-};
+import { ErrorKind } from "@/errors/error-kind";
 
 /** 分類から、返す status と文言を組む。分類の付いていない失敗は internal へ矯正する。 */
 function toErrorResponse(error: unknown): Response {
@@ -32,7 +10,7 @@ function toErrorResponse(error: unknown): Response {
 
   return Response.json(
     { message: getDefaultErrorMeta(kind).message },
-    { status: STATUS_BY_KIND[kind] },
+    { status: toHttpStatus(kind) },
   );
 }
 
@@ -58,7 +36,7 @@ export async function GET(request: Request): Promise<Response> {
   if (!parsed.ok) {
     return Response.json(
       { message: getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message },
-      { status: STATUS_BY_KIND[ErrorKind.INVALID_ARGUMENT] },
+      { status: toHttpStatus(ErrorKind.INVALID_ARGUMENT) },
     );
   }
 

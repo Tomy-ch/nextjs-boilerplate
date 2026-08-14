@@ -1033,6 +1033,18 @@ components:
     as: form
     directory: src/components/patterns/wizard-form
     addedAt: 2026-08-04T08:00:00.000Z
+  form-field:
+    kind: original
+    layer: patterns
+    as: form
+    directory: src/components/patterns/form-field
+    addedAt: 2026-08-15T00:00:00.000Z
+  requirement-badge:
+    kind: original
+    layer: design-system
+    as: form
+    directory: src/components/design-system/form/requirement-badge
+    addedAt: 2026-08-15T00:00:00.000Z
   breadcrumb:
     kind: copy-in
     layer: design-system

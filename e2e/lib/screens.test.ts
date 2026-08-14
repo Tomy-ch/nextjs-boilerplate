@@ -59,6 +59,21 @@ describe("resolveScreens", () => {
     expect(resolved[0]?.path).toBe("/gamma/1");
   });
 
+  it("session を要する宣言をそのまま運ぶ", () => {
+    const resolved = resolveScreens(
+      ["/delta"],
+      [{ route: "/delta", name: "delta", path: "/delta", signedIn: true }],
+    );
+
+    expect(resolved[0]?.signedIn).toBe(true);
+  });
+
+  it("session を要さない画面には印を立てない", () => {
+    expect(
+      resolveScreens(["/"], [{ route: "/", name: "home", path: "/" }])[0]?.signedIn,
+    ).toBeUndefined();
+  });
+
   // ----- 異常系 -----
   it("宣言の無い画面を落とす", () => {
     // 文言まで固定する。route 名だけを見ると、2 つの分岐が同じ文言へ壊れても気づけない。

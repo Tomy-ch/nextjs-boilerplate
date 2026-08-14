@@ -107,11 +107,16 @@
 | `correctness` | adversarial-reviewer | 常時 |
 | `security` | adversarial-reviewer | 常時（Route Handler / Server Action / `src/proxy.ts` / auth / 生成 API のリクエスト・レスポンス型が触られた時は特に） |
 | `architecture` | adversarial-reviewer | 常時 |
+| `cohesion` | adversarial-reviewer | 常時 |
 | `runtime-gap` | adversarial-reviewer | Route Handler / Server Action / `src/proxy.ts` / Provider マウント / 生成 API 成果物が触られた時 — モックのコンポーネントテストが通らない継ぎ目 |
 | `test-gap` | adversarial-reviewer | **fallback のみ** — Step 5 の `/test-review` への委譲が動かせなかった時に spawn する。それ以外ではテスト観点は委譲先の所管 |
 | コメント品質 | **comment-reviewer** | diff がコードコメントを追加/変更した時（ほぼ常時） |
 
 各 `adversarial-reviewer` プロンプトに必ず含める: レンズ名 + その定義、ベース ref + 変更ファイル一覧 + diff、`AGENTS.md` / 該当 `README.md` / 根拠となる ADR へのポインタ。
+
+**`cohesion` レンズの定義。** `architecture` が問うのは*どの層が持つか*、`cohesion` が問うのは*同じ関数やファイルに何種類の依頼が降ってくるか*である。両者は重ならず、その間に実際の隙間がある — ある単位が寸分違わず正しいカーネルに座り、`eslint-plugin-boundaries` も `pnpm check:architecture` も通ったうえで、エラー文言を直したい人にネットワークを叩くコードを読ませ続けることがある。ツールチェーンのどれもそれを見ておらず、きれいさ・保守性を実際に持っている `full-verify` の `impl-verifier` はリポジトリ全体の監査でしか走らない。このレンズが無いと、その指摘は「持ち込んだ diff」ではなく「いつかの監査」まで待つことになる。
+
+好みに堕ちないための規律: すべての finding が **異なる 2 つの変更理由と、それぞれを誰が依頼するか**を名指しし、そのうえで継ぎ目を名指しする。そう書けない finding は落とす — 失敗する入力を示せない `correctness` の finding を落とすのと同じである。分割は無料ではなく、継ぎ目が 1 つ増えるたびに全体を見るために開くファイルが 1 つ増える。その代金を払うのが 2 つの理由である。長さそのものは finding にならない。
 
 **`test-gap` レンズの定義**（このレンズは *code-origin* — テストファイルではなく変更された本番ソースを読む）: diff で追加/変更された本番シンボルごとに、論理分岐 / 送出するエラー型 / 境界条件 / null・undefined 防御を列挙し、対応するテストが各々へ到達し *区別可能な形で* アサートしているか確認する — 具体的なエラークラス（`await expect(fn()).rejects.toThrow(SpecificError)`）、区別可能な値や描画状態であって、素の `expect(fn).toThrow()` / `toBeTruthy()` では不足。報告する形は 2 つ: diff で変更された本番シンボルに **テストが一切無い**、および変更シンボルの到達可能な分岐が **未テストまたは空虚なアサート**。各 finding は diff 内の対象行へアンカーし、インライン投稿できるようにする。これは **高シグナルな部分集合** — *変更された*コードの到達可能なギャップを挙げるのであって、モジュール全体のシンボル網羅列挙は行わない。finding は read-only な提案（自動修正しない）。
 
@@ -210,7 +215,7 @@ Step 1 の掃引スコープが空でなく **かつ** Step 0 でユーザーが
 ```text
 ## ローカルレビュー結果（reviewer: <model> / implementer: <model>）
 
-スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, runtime-gap, comment-style（テスト観点は /test-review へ委譲）
+スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, cohesion, runtime-gap, comment-style（テスト観点は /test-review へ委譲）
 テスト観点: <4 状態のいずれか。下記の定型から選ぶ>
 コメント在庫: <3 状態のいずれか。下記の定型から選ぶ>
 ランタイム検証: 4-1 build 実施 / 4-2 リクエスト検証 実施（curl）・対象外（リクエスト時 seam の変更なし）・到達不能（バックエンド不在で未検証の経路: <経路>）
@@ -283,7 +288,7 @@ Step 1 の掃引スコープが空でなく **かつ** Step 0 でユーザーが
 
 ## Step 9 — finding を PR インラインコメントとして投稿（既定。`--no-comment` で opt out）
 
-既定では Step 8 の後、**コードレンズ**（correctness / security / architecture / runtime-gap / test-gap）で残った **CONFIRMED + PLAUSIBLE** の finding を、現ブランチの PR へ **インラインレビューコメント**として投稿する — 1 つの巨大コメントではなく、finding ごとに 1 件、その `path:line` へアンカーする。**REFUTED は決して投稿しない。** コメント品質の finding はここでは投稿しない — Step 8 で適用済みのため（`--no-apply` の場合のみ、この投稿に含める）。Step 7 のローカルレポートはいずれにせよ出力する。本ステップは追加分。
+既定では Step 8 の後、**コードレンズ**（correctness / security / architecture / cohesion / runtime-gap / test-gap）で残った **CONFIRMED + PLAUSIBLE** の finding を、現ブランチの PR へ **インラインレビューコメント**として投稿する — 1 つの巨大コメントではなく、finding ごとに 1 件、その `path:line` へアンカーする。**REFUTED は決して投稿しない。** コメント品質の finding はここでは投稿しない — Step 8 で適用済みのため（`--no-apply` の場合のみ、この投稿に含める）。Step 7 のローカルレポートはいずれにせよ出力する。本ステップは追加分。
 
 **掃引の finding（Step 6）は投稿しない。**在庫は本変更が持ち込んだものではなく、この PR が引き入れたのでもここで議論する場でもない既存の負債である —— 変更行に載っている分も含めて。件数はローカルレポートに書き、省略を見えるようにする。
 

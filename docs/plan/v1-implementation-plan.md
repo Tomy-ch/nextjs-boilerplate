@@ -1169,8 +1169,9 @@ sources:
 - **主な変更先**: `src/app/(shop)/purchases/page.tsx` / `[id]/page.tsx` / `src/features/purchases/` / `src/capabilities/`(交差監視 hook があればコア残留)
 - **パンくずを置く**: U8 購入詳細(`購入履歴 > 注文番号`)。基準は [0026](../adr/0026-layout-shell-mount.md)「パンくずを置く画面」。U7 一覧は nav が直接指すので置かない
 - **設計**: **無限スクロール方式でページ送り UI ではない**([screens.md](../screens.md) U7)。[0073](../adr/0073-pagination-fetch-boundary.md) は client 増分取得を「**same-origin(`/api/*` BFF / Route Handler)への薄い fetch**」に限定しているため、**その Route Handler を本 PR で新設する**(`src/app/api/purchases/route.ts` 等。[0070](../adr/0070-backend-role-separation.md) の thin proxy 規約に従う)。Server Action 経由や「もっと見る」の RSC 化に倒す場合も、選択理由をここで記録する
+- **期間で絞る操作はこの画面が持つ**。契約(`GET /v1/purchases`)は cursor(`after` / `first`)に加えて `period` / `from` / `to` / `month` / `days` を受け取る。**client 側で取得済みのページに日付の条件を掛けてはならない** —— 条件に合う古い購入が落ちた一覧になるためで、絞り込みは必ずクエリでサーバへ渡す。`period` の区分(`all` / `month` / `range` / `recent`)と DatePicker の対応、および区分ごとの必須パラメータが欠けたときの `400` の扱いをここで決める。P5-9 のマイページは集計の詳細を上位 10 件で打ち切ってこの画面へ送っているので、**ここに範囲選択が無いと「古い購入を見る」経路が閉じたままになる**
 - **強制手段**: ESLint boundaries(client から外部オリジンへの直 fetch を禁止)+ テスト
-- **完了条件**: スクロールで追加読み込みされる。取得中・末尾到達・エラーの 3 状態が表示される。詳細で JOIN 済み明細が表示される。**client から外部オリジンへ直接 fetch していない**
+- **完了条件**: スクロールで追加読み込みされる。取得中・末尾到達・エラーの 3 状態が表示される。詳細で JOIN 済み明細が表示される。**client から外部オリジンへ直接 fetch していない**。**期間で絞れる**(契約側のクエリ追加を含む)
 - **依存**: P5-7
 
 ### P5-9: U11 マイページ + U12 ユーザー更新(CollectAll)

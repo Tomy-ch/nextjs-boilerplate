@@ -9,17 +9,18 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+15463a1
+ * OpenAPI spec version: 2.2.0+e95da0c
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
 import { HttpResponse, http } from "msw";
-
 import type {
   AddressCandidatesResponse,
+  CartResponse,
   DashboardSummaryResponse,
   ExchangeRateResponse,
   PrefecturesResponse,
+  ProductCountResponse,
   ProductImageResponse,
   ProductListResponse,
   ProductLowStockResponse,
@@ -37,22 +38,25 @@ import type {
   PurchaseShippableResponse,
   PurchaseShipResponse,
   UserResponse,
+  UserRolesResponse,
   UsersFeedResponse,
   UsersResponse,
   UsersSearchResponse,
 } from "../../src/adapters/gen/api/model";
+import { CartItemIssue } from "../../src/adapters/gen/api/model";
 
 export const getGetUsersResponseMock = (): UsersResponse => ({
   ...{
     users: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
       () => ({
+        id: faker.string.uuid(),
         firstName: faker.string.alpha({ length: { min: 10, max: 100 } }),
         lastName: faker.string.alpha({ length: { min: 10, max: 100 } }),
         email: faker.internet.email(),
         phone: (() => "09012345678")(),
         postalCode: (() => "100-0001")(),
-        prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-        city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+        prefecture: (() => "神奈川県")(),
+        city: (() => "横浜市西区")(),
         street: faker.string.alpha({ length: { min: 10, max: 255 } }),
         building: faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -71,13 +75,14 @@ export const getGetUsersResponseMock = (): UsersResponse => ({
 export const getPostUsersResponseMock = (
   overrideResponse: Partial<Extract<UserResponse, object>> = {},
 ): UserResponse => ({
+  id: faker.string.uuid(),
   firstName: faker.string.alpha({ length: { min: 10, max: 100 } }),
   lastName: faker.string.alpha({ length: { min: 10, max: 100 } }),
   email: faker.internet.email(),
   phone: (() => "09012345678")(),
   postalCode: (() => "100-0001")(),
-  prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-  city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+  prefecture: (() => "神奈川県")(),
+  city: (() => "横浜市西区")(),
   street: faker.string.alpha({ length: { min: 10, max: 255 } }),
   building: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -90,13 +95,14 @@ export const getPostUsersResponseMock = (
 export const getGetUsersDetailResponseMock = (
   overrideResponse: Partial<Extract<UserResponse, object>> = {},
 ): UserResponse => ({
+  id: faker.string.uuid(),
   firstName: faker.string.alpha({ length: { min: 10, max: 100 } }),
   lastName: faker.string.alpha({ length: { min: 10, max: 100 } }),
   email: faker.internet.email(),
   phone: (() => "09012345678")(),
   postalCode: (() => "100-0001")(),
-  prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-  city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+  prefecture: (() => "神奈川県")(),
+  city: (() => "横浜市西区")(),
   street: faker.string.alpha({ length: { min: 10, max: 255 } }),
   building: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -109,13 +115,14 @@ export const getGetUsersDetailResponseMock = (
 export const getPutUsersDetailResponseMock = (
   overrideResponse: Partial<Extract<UserResponse, object>> = {},
 ): UserResponse => ({
+  id: faker.string.uuid(),
   firstName: faker.string.alpha({ length: { min: 10, max: 100 } }),
   lastName: faker.string.alpha({ length: { min: 10, max: 100 } }),
   email: faker.internet.email(),
   phone: (() => "09012345678")(),
   postalCode: (() => "100-0001")(),
-  prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-  city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+  prefecture: (() => "神奈川県")(),
+  city: (() => "横浜市西区")(),
   street: faker.string.alpha({ length: { min: 10, max: 255 } }),
   building: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -128,13 +135,14 @@ export const getPutUsersDetailResponseMock = (
 export const getPatchUsersDetailResponseMock = (
   overrideResponse: Partial<Extract<UserResponse, object>> = {},
 ): UserResponse => ({
+  id: faker.string.uuid(),
   firstName: faker.string.alpha({ length: { min: 10, max: 100 } }),
   lastName: faker.string.alpha({ length: { min: 10, max: 100 } }),
   email: faker.internet.email(),
   phone: (() => "09012345678")(),
   postalCode: (() => "100-0001")(),
-  prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-  city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+  prefecture: (() => "神奈川県")(),
+  city: (() => "横浜市西区")(),
   street: faker.string.alpha({ length: { min: 10, max: 255 } }),
   building: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -147,13 +155,14 @@ export const getPatchUsersDetailResponseMock = (
 export const getGetUsersMeResponseMock = (
   overrideResponse: Partial<Extract<UserResponse, object>> = {},
 ): UserResponse => ({
+  id: faker.string.uuid(),
   firstName: faker.string.alpha({ length: { min: 10, max: 100 } }),
   lastName: faker.string.alpha({ length: { min: 10, max: 100 } }),
   email: faker.internet.email(),
   phone: (() => "09012345678")(),
   postalCode: (() => "100-0001")(),
-  prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-  city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+  prefecture: (() => "神奈川県")(),
+  city: (() => "横浜市西区")(),
   street: faker.string.alpha({ length: { min: 10, max: 255 } }),
   building: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -166,8 +175,13 @@ export const getGetUsersMeResponseMock = (
 export const getGetUsersMePurchasesSummaryResponseMock = (
   overrideResponse: Partial<Extract<PurchaseAggregateResponse, object>> = {},
 ): PurchaseAggregateResponse => ({
+  period: {
+    from: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 10), null]),
+    to: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 10), null]),
+  },
   totalCount: faker.number.int(),
   totalAmount: faker.number.int(),
+  itemsTotal: faker.string.alpha({ length: { min: 10, max: 20 } }),
   statusBreakdown: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -175,6 +189,34 @@ export const getGetUsersMePurchasesSummaryResponseMock = (
     status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
     count: faker.number.int(),
     totalAmount: faker.number.int(),
+  })),
+  groups: faker.helpers.arrayElement([
+    {
+      [faker.string.alphanumeric(5)]: {
+        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        itemsTotal: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        groups: faker.helpers.arrayElement([
+          {
+            [faker.string.alphanumeric(5)]: {
+              name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+              itemsTotal: faker.string.alpha({ length: { min: 10, max: 20 } }),
+            },
+          },
+          undefined,
+        ]),
+      },
+    },
+    undefined,
+  ]),
+  ...overrideResponse,
+});
+
+export const getGetUsersMeRolesResponseMock = (
+  overrideResponse: Partial<Extract<UserRolesResponse, object>> = {},
+): UserRolesResponse => ({
+  roles: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+    code: faker.helpers.arrayElement(["admin", "general"] as const),
+    name: faker.string.alpha({ length: { min: 10, max: 100 } }),
   })),
   ...overrideResponse,
 });
@@ -184,13 +226,14 @@ export const getGetUsersSearchResponseMock = (): UsersSearchResponse => ({
     users: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
       () => ({
         ...{
+          id: faker.string.uuid(),
           firstName: faker.string.alpha({ length: { min: 10, max: 100 } }),
           lastName: faker.string.alpha({ length: { min: 10, max: 100 } }),
           email: faker.internet.email(),
           phone: (() => "09012345678")(),
           postalCode: (() => "100-0001")(),
-          prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-          city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+          prefecture: (() => "神奈川県")(),
+          city: (() => "横浜市西区")(),
           street: faker.string.alpha({ length: { min: 10, max: 255 } }),
           building: faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -212,13 +255,14 @@ export const getGetUsersFeedResponseMock = (): UsersFeedResponse => ({
   ...{
     users: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
       () => ({
+        id: faker.string.uuid(),
         firstName: faker.string.alpha({ length: { min: 10, max: 100 } }),
         lastName: faker.string.alpha({ length: { min: 10, max: 100 } }),
         email: faker.internet.email(),
         phone: (() => "09012345678")(),
         postalCode: (() => "100-0001")(),
-        prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-        city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+        prefecture: (() => "神奈川県")(),
+        city: (() => "横浜市西区")(),
         street: faker.string.alpha({ length: { min: 10, max: 255 } }),
         building: faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -240,12 +284,19 @@ export const getGetUsersFeedResponseMock = (): UsersFeedResponse => ({
   },
 });
 
-export const getGetPrefecturesResponseMock = (): PrefecturesResponse =>
-  Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
-    id: faker.string.uuid(),
-    code: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  }));
+export const getGetPrefecturesResponseMock = () => [
+  { id: "0195f0c2-0000-7000-8000-000000000001", code: 1, name: "北海道" },
+  { id: "0195f0c2-0000-7000-8000-000000000004", code: 4, name: "宮城県" },
+  { id: "0195f0c2-0000-7000-8000-000000000013", code: 13, name: "東京都" },
+  { id: "0195f0c2-0000-7000-8000-000000000014", code: 14, name: "神奈川県" },
+  { id: "0195f0c2-0000-7000-8000-000000000023", code: 23, name: "愛知県" },
+  { id: "0195f0c2-0000-7000-8000-000000000026", code: 26, name: "京都府" },
+  { id: "0195f0c2-0000-7000-8000-000000000027", code: 27, name: "大阪府" },
+  { id: "0195f0c2-0000-7000-8000-000000000034", code: 34, name: "広島県" },
+  { id: "0195f0c2-0000-7000-8000-000000000038", code: 38, name: "愛媛県" },
+  { id: "0195f0c2-0000-7000-8000-000000000040", code: 40, name: "福岡県" },
+  { id: "0195f0c2-0000-7000-8000-000000000047", code: 47, name: "沖縄県" },
+];
 
 export const getGetProductStatusesResponseMock = (): ProductsStatusesResponse =>
   Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
@@ -330,6 +381,10 @@ export const getPostProductsResponseMock = (
   version: faker.number.int(),
   ...overrideResponse,
 });
+
+export const getGetProductsCountResponseMock = (
+  overrideResponse: Partial<Extract<ProductCountResponse, object>> = {},
+): ProductCountResponse => ({ count: faker.number.int({ min: 0 }), ...overrideResponse });
 
 export const getGetProductsDetailResponseMock = (
   overrideResponse: Partial<Extract<ProductResponse, object>> = {},
@@ -500,7 +555,7 @@ export const getGetAddressesResponseMock = (
     () => ({
       prefectureId: faker.helpers.arrayElement([faker.string.uuid(), null]),
       prefectureName: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      city: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      city: (() => "横浜市西区")(),
       town: faker.string.alpha({ length: { min: 10, max: 20 } }),
     }),
   ),
@@ -721,6 +776,35 @@ export const getGetDashboardSummaryResponseMock = (
   ...overrideResponse,
 });
 
+export const getGetCartsMeResponseMock = (
+  overrideResponse: Partial<Extract<CartResponse, object>> = {},
+): CartResponse => ({
+  sessionToken: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
+    undefined,
+  ]),
+  items: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+    productId: faker.string.uuid(),
+    productName: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
+      undefined,
+    ]),
+    quantity: faker.number.int(),
+    unitPrice: faker.helpers.arrayElement([(() => "19.99")(), null]),
+    issues: faker.helpers.arrayElements(Object.values(CartItemIssue)),
+    availableQuantity: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([faker.number.int(), null]),
+      undefined,
+    ]),
+  })),
+  subtotalAmount: faker.number.int(),
+  expiresAt: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + "Z", null]),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
+
 export const getGetUsersMockHandler = (
   overrideResponse?:
     | UsersResponse
@@ -908,6 +992,30 @@ export const getGetUsersMePurchasesSummaryMockHandler = (
   );
 };
 
+export const getGetUsersMeRolesMockHandler = (
+  overrideResponse?:
+    | UserRolesResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<UserRolesResponse> | UserRolesResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/users/me/roles",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetUsersMeRolesResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
 export const getGetUsersSearchMockHandler = (
   overrideResponse?:
     | UsersSearchResponse
@@ -1070,6 +1178,30 @@ export const getPostProductsMockHandler = (
             : overrideResponse
           : getPostProductsResponseMock(),
         { status: 201 },
+      );
+    },
+    options,
+  );
+};
+
+export const getGetProductsCountMockHandler = (
+  overrideResponse?:
+    | ProductCountResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<ProductCountResponse> | ProductCountResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/products/count",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetProductsCountResponseMock(),
+        { status: 200 },
       );
     },
     options,
@@ -1483,6 +1615,30 @@ export const getGetDashboardSummaryMockHandler = (
     options,
   );
 };
+
+export const getGetCartsMeMockHandler = (
+  overrideResponse?:
+    | CartResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<CartResponse> | CartResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/carts/me",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetCartsMeResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
 export const getGoBoilerplateAPIMock = () => [
   getGetUsersMockHandler(),
   getPostUsersMockHandler(),
@@ -1492,6 +1648,7 @@ export const getGoBoilerplateAPIMock = () => [
   getDeleteUsersDetailMockHandler(),
   getGetUsersMeMockHandler(),
   getGetUsersMePurchasesSummaryMockHandler(),
+  getGetUsersMeRolesMockHandler(),
   getGetUsersSearchMockHandler(),
   getGetUsersFeedMockHandler(),
   getGetPrefecturesMockHandler(),
@@ -1499,6 +1656,7 @@ export const getGoBoilerplateAPIMock = () => [
   getGetProductCategoriesMockHandler(),
   getGetProductsMockHandler(),
   getPostProductsMockHandler(),
+  getGetProductsCountMockHandler(),
   getGetProductsDetailMockHandler(),
   getPatchProductsDetailMockHandler(),
   getPatchProductsStockMockHandler(),
@@ -1516,4 +1674,5 @@ export const getGoBoilerplateAPIMock = () => [
   getPatchPurchasesShipMockHandler(),
   getPatchPurchasesDeliverMockHandler(),
   getGetDashboardSummaryMockHandler(),
+  getGetCartsMeMockHandler(),
 ];

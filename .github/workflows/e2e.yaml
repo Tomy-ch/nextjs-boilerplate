@@ -139,7 +139,7 @@ jobs:
               cat <<'NOTE'
 
           `e2e-diff` artifact に HTML レポートと、失敗した検証の trace が入っています。
-          見た目の変化が意図したものなら、基準画像を撮り直してください（`make e2e-update` → `make vrt-push`）。撮り直しは承認ではありません（vrt/README.md）。
+          見た目の変化が意図したものなら、`vrt-retake` ラベルを付けてください。story と画面の基準画像をまとめて CI が撮り直します。手元で撮るなら `make e2e-update` → `make vrt-push` です。撮り直しは承認ではありません（vrt/README.md）。
           NOTE
             } > /tmp/e2e.log
           fi

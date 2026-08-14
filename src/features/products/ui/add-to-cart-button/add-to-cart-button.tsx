@@ -24,10 +24,10 @@ export type AddToCartButtonProps = {
  * 商品をカートへ入れる操作。
  *
  * @remarks
- * カートの状態は `stores` カーネルが持ちます（[0023](../../../docs/adr/0023-stores-kernel.md)）。
+ * カートの状態は `stores` カーネルが持ちます（[0023](../../../../../docs/adr/0023-stores-kernel.md)）。
  *
  * **在庫ぶんすべて入っている場合は押せません。** 在庫が無い商品もこの判定に含まれます
- * （理由は [cart の README](../../../features/cart/README.md)）。
+ * （理由は [cart の README](../../../cart/README.md)）。
  *
  * 押した結果はカートが開くことで伝わり、この操作のためだけの通知は出しません。開くのは store の
  * 責務で、この部品は追加を頼むだけです。

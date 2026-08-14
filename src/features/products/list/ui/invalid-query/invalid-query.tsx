@@ -31,7 +31,7 @@ const KEY_LABEL: Readonly<Record<string, string>> = {
  * 絞り込まれていない結果を見ることになります。
  *
  * 直せる導線を必ず添えます。条件は URL に入っており、画面の操作だけでは戻せない状態になり得る
- * ためです（[0080](../../../../../docs/adr/0080-error-handling.md)）。
+ * ためです（[0080](../../../../../../docs/adr/0080-error-handling.md)）。
  */
 export function ProductInvalidQuery({ message, invalidKeys }: ProductInvalidQueryProps) {
   const labels = invalidKeys.map((key) => KEY_LABEL[key] ?? key);

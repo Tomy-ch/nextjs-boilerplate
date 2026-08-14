@@ -3,12 +3,14 @@ import type { ReactNode } from "react";
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
+import { RepositoryLinks } from "@/features/site-info/ui/repository-links/repository-links";
 
 const SITE_NAME = "nextjs-boilerplate";
 
 const NAV_ITEMS = [
   { href: "/products", label: "商品" },
   { href: "/purchases", label: "購入履歴" },
+  { href: "/mypage", label: "マイページ" },
 ];
 
 /**
@@ -30,7 +32,12 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       navItems={NAV_ITEMS}
       headerActions={<CartHeaderAction />}
       sidebar={<CartPanel />}
-      footer={<p>Next.js / React のプレゼンテーション層 boilerplate です。</p>}
+      footer={
+        <div className="flex flex-col gap-3">
+          <p>Next.js / React のプレゼンテーション層 boilerplate です。</p>
+          <RepositoryLinks />
+        </div>
+      }
     >
       {children}
     </AppShell>

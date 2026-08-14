@@ -76,6 +76,17 @@ export type HttpClient = {
 
 type ClientDeps = {
   baseUrl: string;
+  /**
+   * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
+   *
+   * @remarks
+   * ヘッダの組み立てをこの境界が持つのは、呼び出し側が個別に `Authorization` を作らないよう
+   * にするためです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。接続先ごとに
+   * 認証が要るかどうかが決まるので、指定はクライアントの生成時に 1 度だけ行います。
+   *
+   * @returns 認証できないときは null
+   */
+  getBearerToken?: () => Promise<string | null>;
   profile?: ResilienceProfile;
   fetchImpl?: typeof fetch;
   now?: () => number;
@@ -85,6 +96,20 @@ type ClientDeps = {
 
 const JSON_CONTENT_TYPE = "application/json";
 const FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
+
+const NO_CONTENT_STATUS = 204;
+
+/**
+ * 応答の本文を読む。
+ *
+ * @remarks
+ * `204` は本文を持たないと HTTP が定めている（RFC 9110 §15.3.5）ため、読みに行きません。
+ * 空の本文を JSON として解釈しようとすると構文エラーになり、成功した呼び出しが失敗として
+ * 表に出ます。
+ */
+async function readBody(response: Response): Promise<unknown> {
+  return response.status === NO_CONTENT_STATUS ? undefined : response.json();
+}
 
 /** 指定された本文を、送出できる形と Content-Type の組へ変換する。本文が無ければ undefined。 */
 function encodePayload(
@@ -133,6 +158,7 @@ function buildUrl(
  */
 export function createHttpClient({
   baseUrl,
+  getBearerToken,
   profile = DEFAULT_PROFILE,
   // 既定を `fetch` そのものではなく呼び出し時の解決にする。クライアントは接続先ごとに
   // 1 つを長く使い回すため、生成時点の実装を握ると、後から差し込まれた実装（モックなど）に
@@ -145,10 +171,34 @@ export function createHttpClient({
   const breaker: CircuitBreaker = createCircuitBreaker(profile.breaker, now);
   const budget: RetryBudget = createRetryBudget(profile.retryBudgetRatio);
 
+  /**
+   * 認証ヘッダを解決する。認証を要求する接続先で認証できなければ、送らずに投げる。
+   *
+   * @remarks
+   * 再試行の外側で 1 度だけ呼びます。試行のたびに解決すると、認証できないことが接続の失敗と
+   * 同じ扱いになり、通るはずのない要求を最大試行回数ぶん送ります。
+   */
+  async function authorizationHeader(path: string): Promise<Record<string, string>> {
+    if (getBearerToken === undefined) {
+      return {};
+    }
+
+    const token = await getBearerToken();
+
+    if (token === null) {
+      throw createAppError(ErrorKind.UNAUTHENTICATED, {
+        cause: new Error(`認証が要る接続先です: ${path}`),
+      });
+    }
+
+    return { Authorization: `Bearer ${token}` };
+  }
+
   async function attempt(
     url: string,
     spec: RequestSpec<unknown>,
     signal: AbortSignal,
+    authorization: Record<string, string>,
   ): Promise<Response> {
     const timeout = AbortSignal.timeout(profile.perAttemptTimeoutMs);
     const payload = encodePayload(spec);
@@ -156,7 +206,7 @@ export function createHttpClient({
     return fetchImpl(url, {
       method: spec.method ?? "GET",
       signal: AbortSignal.any([signal, timeout]),
-      headers: payload?.headers,
+      headers: { ...payload?.headers, ...authorization },
       body: payload?.body,
       cache: spec.cache,
       next: spec.tags === undefined ? undefined : { tags: [...spec.tags] },
@@ -171,6 +221,7 @@ export function createHttpClient({
         });
       }
 
+      const authorization = await authorizationHeader(spec.path);
       const url = buildUrl(baseUrl, spec.path, spec.searchParams);
       const deadline = now() + profile.overallTimeoutMs;
       const overall = AbortSignal.timeout(profile.overallTimeoutMs);
@@ -182,7 +233,7 @@ export function createHttpClient({
         let response: Response | undefined;
 
         try {
-          response = await attempt(url, spec, overall);
+          response = await attempt(url, spec, overall, authorization);
         } catch (cause) {
           lastError = cause instanceof Error ? cause : new Error(String(cause));
           lastKind = overall.aborted ? ErrorKind.CANCELED : ErrorKind.UNAVAILABLE;
@@ -192,7 +243,7 @@ export function createHttpClient({
           breaker.record(true);
           budget.record(true);
 
-          return parse(spec.schema, await response.json(), spec.path);
+          return parse(spec.schema, await readBody(response), spec.path);
         }
 
         breaker.record(false);

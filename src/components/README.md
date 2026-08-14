@@ -91,6 +91,12 @@ subcomponent が多い compound では、root に `@example` で組み合わせ�
 - **同じ要素に `outline-none` を併記しない。** Tailwind v4 の `outline-none` は要素へ `--tw-outline-style: none` を立て、`focus-visible:outline-2` が出力する `outline-style: var(--tw-outline-style)` をそこで打ち消すため、focus ring が一切描画されなくなる。既定の outline を抑えたいだけなら `focus-visible` 側の指定だけで足りる
 - 面の focus を塗りで示す menu 項目（`dropdown-menu`、`context-menu`、`command`、`select-client` の item）は例外で、`outline-hidden` と `focus:bg-accent` の組み合わせを使う
 
+### 境界を示す線
+
+- **その線が要素の境界を示すなら `border-input`、区画の仕切りなら `border-border` を使う。** `Input` / `Textarea` のように枠が無いと入力できる範囲が判らなくなるもの、`Badge` の `outline` のように縁だけで成り立つ variant は、いずれも `input` を取る
+- 分けるのは**コントラストの要求が違う**ためである。入力できる範囲の境界は **WCAG 1.4.11 が隣接色との 3:1 を求める**対象で（[0100](../../docs/adr/0100-accessibility-target.md)）、light の地（`neutral.100`）に対して `border`（`neutral.300`）は **1.79:1** しかなく満たさない。`input`（`neutral.500`）は **4.05:1** で満たす。仕切りは同条の対象外なので `border` のままでよい
+- 判断の根拠は token の値にあるため、配色を変えたときはこの節を先に確認し、**比を測り直す**。呼び出し側のコメントに理由を書くと、token を直しても気づかれない
+
 ### 装飾的な輪
 
 `outline` は 1 要素に 1 本しか引けず、必ず外側に描かれる。次の要件は `outline` では満たせないため `ring-*` を使う。
@@ -288,6 +294,7 @@ UI を横断して支える CSS 基盤。React component を公開しない。
 | [`input-group`](./design-system/form/input-group/README.md) | 単位記号・アイコン・補助操作を入力欄と一続きの枠に収める |
 | [`label`](./design-system/form/label/README.md) | form control の項目名を利用者へ伝える |
 | [`radio-group-client`](./design-system/form/radio-group-client/README.md) | native radio では満たせない custom interaction の client island |
+| [`requirement-badge`](./design-system/form/requirement-badge/README.md) | 入力項目が必須か任意かを label の隣で示す |
 | [`radio-group-native`](./design-system/form/radio-group-native/README.md) | 静的な候補から一つを選び、native form として送信する |
 | [`search-field-client`](./design-system/form/search-field-client/README.md) | 打鍵に追従してキーワード検索を通知する検索欄 |
 | [`search-field-native`](./design-system/form/search-field-native/README.md) | キーワード検索欄を、JavaScript を必要としない GET form として置く |
@@ -408,6 +415,7 @@ trigger から本文の上へ面を開く部品。
 | component | 概要 |
 | --- | --- |
 | [`filter-bar`](./patterns/filter-bar/README.md) | 一覧の絞り込み操作と、いま効いている条件をまとめて表示する |
+| [`form-field`](./patterns/form-field/README.md) | 項目名・必須の印・入力欄・補足・誤りを、入力欄の種類によらず同じ並びで組む |
 | [`selection-toolbar`](./patterns/selection-toolbar/README.md) | 一覧で選んだ件数と、その選択に対して行える操作をまとめる |
 | [`table`](./patterns/table/README.md) | 列と行の関係が利用者の理解に必要な、構造化データを表示する |
 | [`table-view-options`](./patterns/table-view-options/README.md) | 表の表示する列・表示密度・固定列・画面幅ごとの出し分けをまとめて設定する |

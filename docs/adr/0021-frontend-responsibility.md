@@ -70,9 +70,10 @@ feature を跨ぐ横断が必要になった時点で「どのカーネルへ昇
 
 #### 昇格できないもの — feature の `facade/`
 
-**題材のドメイン語彙を持つ UI は、層をどう緩めてもカーネルへ上げられない。** `components` はコア残留であり、サンプル除去の残留検査(`DANGLING_PATTERN`)が題材の語を弾く。`stores` に依存する UI も同じで、`components` は `stores` を import できない。つまり上の昇格表には**「特定ドメインの状態や語彙を持つ UI」の行を作れない**。
+**どのカーネルも受け取れないのに、2 つ目の feature が要るものがある。** それだけを **feature が `facade/` に置き**、他の feature から import してよい。該当するのは次の 2 種で、いずれも「上げ先が無い」ことが条件である。
 
-この一群に限り、**feature が `facade/` に置いたものだけ**を他の feature から import してよい。
+- **題材のドメイン語彙を持つ UI。** `components` はコア残留であり、サンプル除去の残留検査(`DANGLING_PATTERN`)が題材の語を弾く。`stores` に依存する UI も同じで、`components` は `stores` を import できない。つまり上の昇格表には**「特定ドメインの状態や語彙を持つ UI」の行を作れない**
+- **その feature が所有するルートの識別子と、その組み立て。** パス定数や URL 構築は `model` の受け入れ範囲(表示用の値・変換・検証規則)ではなく、上げると `model` がアプリの URL 空間の登録簿になり、画面を足すたびに太る。ルートを所有しているのはその feature なので、外へ見せる口だけを `facade/` へ出す
 
 - **昇格が先である。** `facade/` に置いてよいのは、上の表のどのカーネルも受け取れないものに限る。純粋な表示ロジックは `model`、題材を知らない UI は `components`、横断 hook は `capabilities` へ上げる
 - **置くのは 2 つ目の feature が実際に必要としたときだけ**。1 つの feature しか使わないものは、その feature の内側([0027](0027-directory-structure.md) の co-location 方針)に置く。使う feature が 1 つに戻ったら下ろす

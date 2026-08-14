@@ -28,7 +28,11 @@ test-requirement: unit
 | `generated/breakpoint.ts` | 段の名前と幅。`tokens/` から生成する（手編集禁止） |
 | `media.ts` | 配信基盤のオブジェクトキーから表示 URL を組み立てる |
 | `pagination.ts` | cursor 方式の 1 ページを表す型と、増分取得での継ぎ足し |
+| `action-state.ts` | Server Action が画面へ返す結果の器。項目エラー・フォームエラー・成功値 |
+| `money.ts` | 最小単位の整数で持つ金額を、locale に沿った通貨表記へ整える |
 | `product/product.ts` | サンプル画面が扱う商品の表示用の型 <!-- sample:line --> |
+| `purchase/purchase.ts` | サンプル画面が扱う購入履歴の表示用の型 <!-- sample:line --> |
+| `user/` | サンプル画面が扱う利用者の表示用の型と、プロフィール入力の表示検証 <!-- sample:line --> |
 
 ## 運用
 
