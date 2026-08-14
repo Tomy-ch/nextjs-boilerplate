@@ -6,8 +6,8 @@ import {
   type ComponentProps,
   type DragEvent,
   useCallback,
-  useEffect,
   useId,
+  useRef,
   useState,
 } from "react";
 
@@ -147,28 +147,10 @@ export function FileUpload({
   const generatedId = useId();
   const progressId = useId();
   const controlId = id ?? generatedId;
-  const [input, setInput] = useState<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<File[]>([]);
-  const [dropped, setDropped] = useState<File[] | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const isBlocked = disabled === true || pending;
-
-  useEffect(() => {
-    if (input === null || dropped === null) {
-      return;
-    }
-
-    const transfer = new DataTransfer();
-
-    for (const file of dropped) {
-      transfer.items.add(file);
-    }
-
-    // 書き換えているのは React の値ではなく DOM の側である。要素が付いた時点で effect を走らせるため、
-    // ref ではなく state に持つ形は React の作法どおり。
-    // eslint-disable-next-line react-hooks/immutability -- DOM 側への書き換えのため
-    input.files = transfer.files;
-  }, [dropped, input]);
 
   const applySelection = useCallback(
     (chosen: File[]) => {
@@ -228,7 +210,19 @@ export function FileUpload({
         return;
       }
 
-      setDropped(applySelection([...event.dataTransfer.files]));
+      const accepted = applySelection([...event.dataTransfer.files]);
+      const input = inputRef.current;
+      /* v8 ignore next -- drop を受けるのは input を包む label で、要素が無い状態では起きない。TS の絞り込みのためだけの分岐。 */
+      if (input === null) return;
+
+      const transfer = new DataTransfer();
+
+      for (const file of accepted) {
+        transfer.items.add(file);
+      }
+
+      // 落としたファイルは選択ダイアログを通らないため、書き戻さないと native form の送信に載らない。
+      input.files = transfer.files;
     },
     [applySelection, isBlocked],
   );
@@ -258,7 +252,7 @@ export function FileUpload({
           id={controlId}
           multiple={multiple}
           onChange={handleChange}
-          ref={setInput}
+          ref={inputRef}
           type="file"
           {...props}
         />
