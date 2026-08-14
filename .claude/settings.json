@@ -208,5 +208,17 @@
   },
   "enabledPlugins": {
     "skill-creator@claude-plugins-official": true
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat docs/survey/vrt-thread.md 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
   }
 }
