@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   CONFORMANCE_TAGS,
+  DEFAULT_OFF_RULES,
   DISABLED_RULES,
   disabledRuleIds,
   STORY_DISABLED_RULES,
@@ -19,6 +20,22 @@ describe("CONFORMANCE_TAGS", () => {
 
   it("適合水準として意味を持たないタグを含めない", () => {
     expect(CONFORMANCE_TAGS.filter((tag) => !tag.startsWith("wcag"))).toEqual([]);
+  });
+});
+
+describe("DEFAULT_OFF_RULES", () => {
+  // ----- 正常系 -----
+  it("打ち消したルールが axe へ渡る", () => {
+    for (const rule of DEFAULT_OFF_RULES) {
+      expect(disabledRuleIds()).toContain(rule.id);
+    }
+  });
+
+  it("理由と撤去条件を持つ", () => {
+    for (const rule of DEFAULT_OFF_RULES) {
+      expect(rule.reason).not.toBe("");
+      expect(rule.removeWhen).not.toBe("");
+    }
   });
 });
 

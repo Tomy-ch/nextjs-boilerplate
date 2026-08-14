@@ -22,7 +22,34 @@
  * ここに AAA を入れません。入れた時点で、宣言した目標と機械が要求する水準が食い違います。
  * 目標を引き上げるなら 0100 を先に変えます。
  */
-export const CONFORMANCE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] as const;
+export const CONFORMANCE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] as const;
+
+/**
+ * 範囲の宣言によって**新たに有効化されてしまう**ルール。
+ *
+ * @remarks
+ * axe には既定で無効なルールがあります（誤検出が多い・手動確認が要るなど、axe 側の判断）。
+ * タグで範囲を宣言すると axe はその既定を無視し、**タグに一致するものを既定の可否に関わらず
+ * 走らせます**。範囲を絞る宣言が、絞ると同時に別のルールを増やすことになります。
+ *
+ * ここはその増分を打ち消し、**タグ指定の前後で走るルールが増えない**ことを保つためだけの宣言です。
+ * 増やす判断をするなら、この宣言から外すのが手順になります。
+ *
+ * 実体は {@link CONFORMANCE_TAGS} と axe の既定から決まるので、宣言の過不足は
+ * [テスト](a11y-rules.test.ts)が axe 本体と突き合わせて検出します。
+ */
+export const DEFAULT_OFF_RULES: readonly DisabledRule[] = [
+  {
+    id: "aria-roledescription",
+    reason: "axe が既定で無効にしている。タグ指定の副作用で有効化しないために打ち消す。",
+    removeWhen: "このルールを走らせる判断をしたとき。",
+  },
+  {
+    id: "audio-caption",
+    reason: "同上。",
+    removeWhen: "同上。",
+  },
+];
 
 export type DisabledRule = {
   /** axe のルール id。 */
@@ -97,7 +124,7 @@ export const STORY_DISABLED_RULES: readonly StoryDisabledRule[] = [
 /** axe へ渡す形へ畳む。`storyId` を渡すと、その story を名指しした宣言も併せて外す。 */
 export function disabledRuleIds(
   storyId?: string,
-  rules: readonly DisabledRule[] = DISABLED_RULES,
+  rules: readonly DisabledRule[] = [...DISABLED_RULES, ...DEFAULT_OFF_RULES],
   storyRules: readonly StoryDisabledRule[] = STORY_DISABLED_RULES,
 ): string[] {
   const named =
