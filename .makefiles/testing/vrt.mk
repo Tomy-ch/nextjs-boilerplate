@@ -89,7 +89,12 @@ vrt-update: build-storybook
 	@# 全数のときだけ先に区画を空にする。撮り直しは上書きするだけで stale なファイルを消さないため、
 	@# story を改名・削除すると旧名の画像が残り、対応の検査が孤児として落とす。範囲を絞った撮り直し
 	@# では消さない —— 撮らない story の画像まで消え、報告されていない差分が置き場へ入る。
-	@if [ -z "$(VRT_ONLY)" ]; then pnpm exec tsx scripts/vrt clear-stories; fi
+	@#
+	@# **引数が 1 つでも付いていたら消さない。** 絞り込みは `VRT_ONLY` だけでなく `VRT_ARGS` の
+	@# `--grep` / `--project` などでも起きる（vrt/README.md が案内している使い方）。どの引数が
+	@# 撮影対象を狭めるかを列挙して判定すると、列挙から漏れた引数がそのまま「全 story を消して
+	@# 一部だけ撮り直す」になる。知らない引数は安全側 —— 消さない —— へ倒す。
+	@if [ -z "$(VRT_ONLY)$(VRT_ARGS)" ]; then pnpm exec tsx scripts/vrt clear-stories; fi
 	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --update-snapshots $(VRT_ARGS)
 	@pnpm exec tsx scripts/vrt inputs > $(VRT_INPUTS_FILE)
 	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です。"

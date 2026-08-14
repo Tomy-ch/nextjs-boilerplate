@@ -129,8 +129,8 @@ jobs:
             '❌ fork からの PR には基準画像を push できません。手元で make vrt-update を実行してコミットしてください。' || true
           exit 1
 
-      # A revert restores a pointer whose baselines the store may have pruned, so it
-      # retakes everything and needs no label. Everything else needs one.
+      # A revert retakes everything and needs no label; everything else needs one. Why
+      # the exception is safe is in the workflow header.
       - name: Decide what to retake
         id: mode
         if: steps.pr.outputs.found == 'true'

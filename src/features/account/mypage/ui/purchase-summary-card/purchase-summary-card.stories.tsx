@@ -15,8 +15,8 @@ const meta = {
     docs: {
       description: {
         component: [
-          "購入の集計です。総数と合計にはキャンセル済みを含み、内訳がキャンセルを 1 行として持つため、",
-          "除いた値は表から読み取れます。",
+          "購入の集計です。総数と合計はキャンセル済みを除いた値で、内訳にもキャンセルの行は",
+          "現れません。契約がそう定めています。",
         ].join(""),
       },
     },
@@ -26,7 +26,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** 既定。3 つのステータスに分かれている。 */
+/** 既定。2 つのステータスに分かれている。 */
 export const Default: Story = {
   args: { purchases: PURCHASE_HISTORY, summary: PURCHASE_SUMMARY },
 };
