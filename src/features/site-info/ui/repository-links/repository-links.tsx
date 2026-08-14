@@ -9,33 +9,7 @@ import {
   HoverCardTrigger,
 } from "@/components/design-system/overlay/hover-card/hover-card";
 
-type Repository = {
-  readonly name: string;
-  readonly url: string;
-  readonly summary: string;
-};
-
-/**
- * このサイトを構成している 2 つのリポジトリ。
- *
- * @remarks
- * 説明は補足であって、押した先が何かはボタンの文言だけで判るようにしてあります。HoverCard は
- * hover でしか開かない面があり、touch では到達できないためです。
- */
-const REPOSITORIES: readonly Repository[] = [
-  {
-    name: "nextjs-boilerplate",
-    url: "https://github.com/Tomy-ch/nextjs-boilerplate",
-    summary:
-      "このサイトそのもの。Next.js / React のプレゼンテーション層の boilerplate で、画面の型・取得の境界・エラーの扱いを備えています。",
-  },
-  {
-    name: "go-boilerplate",
-    url: "https://github.com/Tomy-ch/go-boilerplate",
-    summary:
-      "このサイトが繋いでいるバックエンド。Go の Onion Architecture の boilerplate で、商品・購入・ユーザーの API を提供します。",
-  },
-];
+import { REPOSITORIES } from "../../repositories";
 
 /**
  * リポジトリへの導線。

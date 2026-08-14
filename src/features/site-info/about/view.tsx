@@ -1,15 +1,24 @@
 import { AlertTriangleIcon } from "lucide-react";
+import Link from "next/link";
 
+import { Button } from "@/components/design-system/action/button/button";
+import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
+
+import { TERMS_PATH } from "../facade/paths/paths";
+import { RepositoryCards } from "../ui/repository-cards/repository-cards";
 
 /**
  * このサイトについての説明。
  *
  * @remarks
  * トップの断り書きは「実在の取引と取り違えられない」ことだけを担い、短く保っています。ここは
- * その続きで、**何のためのサイトか・何が動かないか・使った結果に誰が責任を負うか**を書きます。
+ * その続きで、**何のためのサイトか・何で出来ているか・何が動かないか**を書きます。
  *
- * 免責を最後ではなく独立した見出しで置くのは、末尾の小さな注記にすると読まれないためです。
+ * 設計上の呼び名（層の分け方や責務の所在）は書きません。このサイトを触りに来た利用者にとって
+ * 判断材料にならず、読みたい人はリポジトリへ行くためです。
+ *
+ * 免責は利用規約が持ちます。同じ文を 2 か所に置くと、片方だけ直した状態を作れます。
  */
 export function AboutView() {
   return (
@@ -25,16 +34,16 @@ export function AboutView() {
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">何のためのサイトか</h2>
         <p>
-          Next.js / React のプレゼンテーション層 boilerplate のデモです。boilerplate が備えている
-          画面の型・データ取得の境界・エラーの扱い・アクセシビリティの水準を、実際に触って
-          確かめられる形で並べてあります。EC の題材を選んでいるのは、一覧・詳細・カート・
-          フォーム・認証・権限といった要素が一通り出てくるためで、EC を作ることが目的では
-          ありません。
+          作者が公開しているコードが、実際に動くとどうなるかを触って確かめるためのサイトです。 EC
+          を題材にしているのは、一覧・検索・カート・フォーム・ログイン・権限といった要素が
+          一通り出てくるためで、EC そのものを提供することが目的ではありません。
         </p>
-        <p>
-          同じ作者の Go 製バックエンド boilerplate と繋ぐと、商品の取得から購入までの一連の
-          流れを通しで試せます。繋がない場合はモックが応答するため、単体でも画面は動きます。
-        </p>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">何で出来ているか</h2>
+        <p>2 つのリポジトリで出来ています。どちらも公開しており、手元で動かせます。</p>
+        <RepositoryCards />
       </section>
 
       <section className="flex flex-col gap-3">
@@ -47,16 +56,24 @@ export function AboutView() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">免責</h2>
+        <h2 className="text-lg font-semibold">メンテナンスについて</h2>
         <p>
-          このサイトおよび boilerplate のコードは現状のまま提供されます。
-          <strong>利用した結果として生じたいかなる損害についても、作者は責任を負いません。</strong>
-          動作の正確性・完全性・特定の目的への適合性についても保証しません。
+          インターネット上で公開している場合、
+          <strong>予告なくメンテナンスを行うことがあります。</strong>
+          お知らせ画面での通知は行いません。保存した内容が残り続けることも、同じ画面が明日も
+          存在することも保証しません。
         </p>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">利用にあたって</h2>
         <p>
-          コードを自分の用途へ持ち込む場合は、そのまま本番で使えるものとしてではなく、判断の
-          出発点として扱ってください。
+          免責を含む利用上の条件は利用規約にまとめてあります。閲覧した時点で同意したものと
+          みなすため、先に読んでください。
         </p>
+        <Button asChild className="self-start" variant={BUTTON_VARIANT.OUTLINE}>
+          <Link href={TERMS_PATH}>利用規約を読む</Link>
+        </Button>
       </section>
     </div>
   );

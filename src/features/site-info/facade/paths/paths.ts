@@ -11,3 +11,6 @@ export const ABOUT_PATH = "/about";
 
 /** プライバシーポリシー。 */
 export const PRIVACY_PATH = "/privacy";
+
+/** 利用規約。 */
+export const TERMS_PATH = "/terms";
