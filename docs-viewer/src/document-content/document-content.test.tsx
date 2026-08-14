@@ -1,11 +1,17 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { SanitizedDocument } from "../sanitize/sanitized-document";
 import { DocumentContent } from "./document-content";
+
+// mermaid の描画そのものは MermaidDiagram の検査が持つ。ここで見るのは差し替えの配線だけで、
+// 実物を読み込むと browser を必要とする描画まで巻き込む。
+vi.mock("mermaid", () => ({
+  default: { initialize: () => undefined, run: async () => undefined },
+}));
 
 describe("DocumentContent", () => {
   // ----- 正常系 -----
@@ -70,6 +76,24 @@ describe("DocumentContent", () => {
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
   });
+  it("mermaid のコードフェンスを図の器へ差し替える", () => {
+    const html = '<pre><code class="language-mermaid">graph LR</code></pre>';
+
+    const { container } = render(<DocumentContent content={SanitizedDocument.from(html)} />);
+
+    expect(container.querySelector('[data-slot="mermaid-diagram"]')).toBeInTheDocument();
+    expect(container.querySelector("pre")).not.toBeInTheDocument();
+  });
+
+  it("別の言語のコードブロックは pre のまま描く", () => {
+    const html = '<pre><code class="language-ts">const a = 1;</code></pre>';
+
+    const { container } = render(<DocumentContent content={SanitizedDocument.from(html)} />);
+
+    expect(container.querySelector("pre")).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="mermaid-diagram"]')).not.toBeInTheDocument();
+  });
+
   // ----- 異常系 -----
   it("本文が空の場合は空の枠を描画する", () => {
     const { container } = render(<DocumentContent content={SanitizedDocument.from("")} />);
