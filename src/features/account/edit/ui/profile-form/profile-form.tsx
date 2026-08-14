@@ -98,9 +98,9 @@ type FieldFrameProps = {
  * @remarks
  * control だけを差し替えられるように外枠を分けています。
  *
- * 必須の印は label の中へ置きます。外に出すと、支援技術が label を読み上げるときに印が付いて
- * 来ず、目で見える情報と読み上げられる情報が食い違います。印だけでは伝わらないので、control
- * 側にも `aria-required` を付けます（これは呼び出し元の仕事です）。
+ * 必須の印は **視覚のためだけ**に置き、`label` の外へ並べます。必須であることは control 側の
+ * `aria-required` が伝えており（付けるのは呼び出し元です）、`label` の中に入れると項目の名前が
+ * 「姓必須」に変わってしまいます。読み上げも「姓、必須、required」と二重になります。
  *
  * 任意の項目に「任意」と書き添えません。必須を印で示す以上、印の無い項目が任意であることは
  * 決まっており、両方に印を付けると読む量が倍になります。
@@ -108,10 +108,14 @@ type FieldFrameProps = {
 function FieldFrame({ children, controlId, errorId, label, message, required }: FieldFrameProps) {
   return (
     <Field data-invalid={message !== undefined}>
-      <FieldLabel className="flex items-center gap-2" htmlFor={controlId}>
-        {label}
-        {required ? <Badge variant={BADGE_VARIANT.SECONDARY}>必須</Badge> : null}
-      </FieldLabel>
+      <div className="flex items-center gap-2">
+        <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
+        {required ? (
+          <Badge aria-hidden="true" variant={BADGE_VARIANT.DESTRUCTIVE}>
+            必須
+          </Badge>
+        ) : null}
+      </div>
       {children}
       {message === undefined ? null : <FieldError id={errorId}>{message}</FieldError>}
     </Field>
