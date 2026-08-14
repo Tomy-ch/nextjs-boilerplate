@@ -434,9 +434,13 @@ jobs:
       # One label, one retake: removed only once the pointer has moved. Anything else
       # leaves it on, so the retake resumes by itself once the cause is gone.
       #
-      # `vrt-approve` goes with it, because the images it accepted are no longer the
-      # ones in the store. Dropping it here only saves the person a toggle — the gate
-      # itself compares timestamps and would refuse the stale acceptance anyway.
+      # `vrt-approve` is NOT touched here. Whether an acceptance still holds is decided
+      # by `vrt-approval.yaml` comparing its timestamp against the pointer's commit, so
+      # removing the label changes no verdict — a stale acceptance is refused either way.
+      # What it does change is the noise: `vrt-approval` runs on `unlabeled`, so dropping
+      # the label starts a run whose only purpose is to report a state the next run would
+      # report anyway, and it reads to the person who applied it as though their
+      # acceptance had been revoked by someone else.
       - name: Remove the label
         if: always() && steps.mode.outputs.mode == 'reported' && steps.push.outputs.sha != ''
         continue-on-error: true
@@ -445,9 +449,6 @@ jobs:
           PR: ${{ steps.pr.outputs.number }}
         run: |
           gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-retake
-          # Tolerated separately: the acceptance is often not on the pull request at
-          # all, and failing to drop it must not leave `vrt-retake` behind.
-          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-approve || true
 
   report:
     if: always() && needs.retake.result != 'skipped' && needs.retake.outputs.comment != ''
