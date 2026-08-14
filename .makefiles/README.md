@@ -219,10 +219,16 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 
 ### container image の digest ピン関連
 
-registry の tag は、同じ名前のまま別の中身を指せます。`image:` / `FROM` を tag のままにしておくと、
-指し先が差し替わったことに気づかないまま新しい中身を引きます。そこで参照は digest へ固定し、
-`image:tag` → digest の対応を `docker/images-pin.toml` が持ちます。**版の SSOT は tag 側**であり、
-digest ではありません。走査対象は `docker-compose*.{yml,yaml}` と `docker/<用途>/Dockerfile` です。
+registry の tag は、同じ名前のまま別の中身を指せます。`image:` / `FROM` / `uses: docker://` を tag の
+ままにしておくと、指し先が差し替わったことに気づかないまま新しい中身を引きます。そこで参照は
+digest へ固定し、`image:tag` → digest の対応を `docker/images-pin.toml` が持ちます。**版の SSOT は
+tag 側**であり、digest ではありません。走査対象は `docker-compose*.{yml,yaml}`、
+`docker/<用途>/Dockerfile`、そして `.github/workflows/**` / `.github/actions/**` の
+`uses: docker://<image>:<tag>` です。
+
+最後のものは `uses:` の行ですが参照先は registry なので、SHA ピンを担う actions-pin ではなくこちらが
+固定します（actions-pin は tag を `git ls-remote` で commit へ解決する機構で、registry には効きません）。
+両機構は同じファイルを走査しますが、掴む行は重なりません。
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
@@ -230,8 +236,9 @@ digest ではありません。走査対象は `docker-compose*.{yml,yaml}` と 
 | `make images-pin-apply` | ロックファイルを元に参照を `image:tag@sha256:...` へ書き換えます。 | tag と行末コメントは保持します。 |
 | `make images-pin-check` | 参照がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `images-pin` job が実行します。未登録 / 未固定・不一致 / 参照されなくなったエントリ / 解釈できない記法を検出して exit 1（fail-closed）。 |
 
-参照は **1 行 1 件・引用符なし**で書いてください。`image: "alpine:3.24"` のような記法は検査の網に
-入らないため、素通りではなく error になります。
+参照は **1 行 1 件・引用符なし・tag 明示**で書いてください。`image: "alpine:3.24"` のような記法や、
+tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入らないため、素通りではなく error に
+なります。
 
 `IMAGES_PIN_MIN_AGE_DAYS` は供給網検疫の窓で、経過日数は image config の `created` から見ます
 （マルチアーキでは最も古いものを採ります）。既存のピンがあればそれを維持し、無ければ tag のまま

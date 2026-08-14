@@ -97,7 +97,7 @@ function runApplyOrCheck(root: string, dryRun: boolean): void {
   }
   if (report.unparsed.length > 0) {
     printError(
-      `解釈できない記法の image 参照があります（引用符を外し 1 行 1 参照の形へ直してください）: ${report.unparsed.join(", ")}`,
+      `解釈できない記法の image 参照があります（引用符を外し、1 行 1 参照・tag 明示の形へ直してください）: ${report.unparsed.join(", ")}`,
     );
     failed = true;
   }

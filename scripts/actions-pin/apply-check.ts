@@ -2,7 +2,7 @@
 // dryRun で共用し、「検査は通るのに適用結果が違う」乖離が構造的に起きないようにする。
 import fs from "node:fs";
 import path from "node:path";
-import { parseUses, refKey, refPath, USES_PATTERN, unparsedUsesLines } from "./uses-reference.js";
+import { parseUses, refKey, refPath, unparsedUsesLines, usesPattern } from "./uses-reference.js";
 
 const FILE_MODE = 0o644;
 
@@ -32,7 +32,7 @@ export function rewritePins(data: string, lock: Map<string, string>): RewriteRes
   const missing: string[] = [];
   const referenced: string[] = [];
   const out = data.replace(
-    USES_PATTERN,
+    usesPattern(),
     (line: string, prefix: string, usesPath: string, ref: string, comment?: string) => {
       const action = parseUses(usesPath, ref, comment);
       if (!action) return line;

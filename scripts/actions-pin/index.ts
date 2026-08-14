@@ -37,7 +37,7 @@ async function runResolve(root: string, files: string[], options: ResolveOptions
   assertAllowMovedReferenced(refs, options.allowMoved);
   const existing = readLockOrEmpty(path.join(root, LOCK_FILE));
 
-  const candidates = await Promise.all(
+  const candidates = await allOrAggregate(
     [...refs].map(async ([key, ref]) => ({
       key,
       ref,
@@ -53,7 +53,7 @@ async function runResolve(root: string, files: string[], options: ResolveOptions
   );
   if (moves.repointed.length > 0) failRepointed(moves.repointed);
 
-  const resolved = await Promise.all(
+  const resolved = await allOrAggregate(
     candidates.map(async ({ key, ref, sha }) => {
       const ageOf = () => refAgeDays(ref.repo, ref.tag, sha);
       const result = await withKey(key, () =>
@@ -125,6 +125,26 @@ function assertAllowMovedReferenced(refs: Map<string, ActionRef>, allowMoved: Se
   if (unknown.length > 0) {
     fail(`どの uses: からも参照されないキーが承認に含まれています: ${unknown.join(", ")}`);
   }
+}
+
+// 全件を走らせ切ってから、失敗をまとめて 1 つの例外にする。
+//
+// Promise.all だと最初の 1 件が落ちた時点で全体が reject し、残りの結果が捨てられる。1 行の
+// 綴り誤りが無関係な参照の失敗として現れ、直しては再実行を繰り返すことになるため、どの参照が
+// 落ちたのかを一度に出す。fail-closed であること自体は変えない。
+async function allOrAggregate<T>(tasks: readonly Promise<T>[]): Promise<T[]> {
+  const settled = await Promise.allSettled(tasks);
+  const values: T[] = [];
+  const reasons: string[] = [];
+  for (const result of settled) {
+    if (result.status === "fulfilled") values.push(result.value);
+    else reasons.push(errorMessage(result.reason));
+  }
+  if (reasons.length > 0) {
+    throw new Error(["解決に失敗した参照があります:", ...reasons.sort()].join("\n   "));
+  }
+
+  return values;
 }
 
 // 失敗したキーを例外に添える。どの参照で落ちたかが分からないと、tag の綴り誤りとネットワーク
