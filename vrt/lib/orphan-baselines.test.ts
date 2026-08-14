@@ -35,7 +35,7 @@ describe("expectedBaselines", () => {
   // ----- 正常系 -----
   it("系統 / テーマ / id の 3 区画で組み立てる", () => {
     expect(expectedBaselines([story("action-button--default", "action")])).toEqual([
-      "action/dark/action-button--default.png",
+      "action/light/action-button--default.png",
     ]);
   });
 
@@ -44,7 +44,7 @@ describe("expectedBaselines", () => {
   });
 
   it("撮らない配色テーマの基準画像は数えない", () => {
-    expect(expectedBaselines([story("a--x", "action")])).not.toContain("action/light/a--x.png");
+    expect(expectedBaselines([story("a--x", "action")])).not.toContain("action/dark/a--x.png");
   });
 
   it("撮影対象が空なら空を返す", () => {

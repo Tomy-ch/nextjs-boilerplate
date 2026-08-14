@@ -1,6 +1,16 @@
 import type { Page } from "@playwright/test";
 
 /**
+ * story が描き切るのを待つ上限。
+ *
+ * @remarks
+ * test 全体の上限（`playwright.config.ts` の `timeout`）より十分に短く取ります。同じ値に任せると、
+ * 描き切らない story 1 件が上限をまるごと使い、`retries` の回数だけそれを繰り返します。story 数が
+ * 多いので、数件の道連れで実行時間が倍近くまで伸び、ログには「時間切れ」しか残りません。
+ */
+const RENDER_TIMEOUT_MS = 15_000;
+
+/**
  * 描画とフォントの読み込みが終わるのを待つ。
  *
  * @remarks
@@ -14,9 +24,19 @@ import type { Page } from "@playwright/test";
  * 撮影と a11y 検査の双方が同じ待ち方をする必要があるため、spec からは切り出してあります。
  */
 export async function settle(page: Page, theme: string): Promise<void> {
-  await page.waitForFunction(
-    (expected) => document.documentElement.dataset.theme === expected,
-    theme,
-  );
+  try {
+    await page.waitForFunction(
+      (expected) => document.documentElement.dataset.theme === expected,
+      theme,
+      { timeout: RENDER_TIMEOUT_MS },
+    );
+  } catch (cause) {
+    throw new Error(
+      `story が描き切りませんでした（${RENDER_TIMEOUT_MS / 1000} 秒）。テーマを載せる decorator が` +
+        "一度も走っていません。story の module が読み込みに失敗していないか、Storybook で同じ" +
+        "story を開いて確かめてください。",
+      { cause },
+    );
+  }
   await page.evaluate(() => document.fonts.ready);
 }

@@ -61,8 +61,16 @@ for (const story of stories) {
   const details = { annotation: { type: "story", description: story.id } };
 
   test(`${story.title} / ${story.name}`, details, async ({ page }, testInfo) => {
+    // 描画中に投げた例外を先に見る。壊れた story は待ち合わせが成立せず時間切れになるが、
+    // 時間切れは原因を語らない。例外そのものを出しておかないと、読む人は Storybook を開いて
+    // 探し直すことになる。
+    const crashes: Error[] = [];
+    page.on("pageerror", (error) => crashes.push(error));
+
     await page.goto(storyURL(story.id, testInfo.project.name));
     await settle(page, testInfo.project.name);
+
+    expect(crashes.map((crash) => crash.message)).toEqual([]);
 
     const { violations } = await new AxeBuilder({ page })
       .disableRules(disabledRuleIds(story.id))
