@@ -33,9 +33,8 @@ export function MermaidDiagram({ source }: MermaidDiagramProps) {
   useEffect(() => {
     const node = container.current;
 
-    if (node === null) {
-      return;
-    }
+    /* v8 ignore next -- 器は同じ描画で必ず置かれるため、TS の絞り込みのためだけの分岐。 */
+    if (node === null) return;
 
     let alive = true;
 
