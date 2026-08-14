@@ -51,6 +51,9 @@ function agreedValue(
  * 通り過ぎただけでも要求が出ます。埋め直しても結果は同じで、見つからなかった旨の文言だけが
  * 触っていない項目に対して現れます。
  *
+ * **操作で呼ばれたときは引き直します**（`force`）。利用者が押した操作が何も起こさないと、
+ * 壊れていると読まれます。
+ *
  * @param onCompleted - 埋める値を受け取る。フォームへの反映は呼び出し側が持つ
  */
 export function useAddressCompletion(onCompleted: (completion: AddressCompletion) => void) {
@@ -63,8 +66,8 @@ export function useAddressCompletion(onCompleted: (completion: AddressCompletion
   }, []);
 
   const complete = useCallback(
-    async (postalCode: string) => {
-      if (lastPostalCodeRef.current === postalCode) {
+    async (postalCode: string, { force = false }: { force?: boolean } = {}) => {
+      if (!force && lastPostalCodeRef.current === postalCode) {
         return;
       }
 

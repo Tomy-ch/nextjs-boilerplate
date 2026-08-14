@@ -10,7 +10,10 @@ import { useForm } from "react-hook-form";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
-import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
+import {
+  BUTTON_SIZE,
+  BUTTON_VARIANT,
+} from "@/components/design-system/action/button/button.definition";
 import {
   Field,
   FieldError,
@@ -200,6 +203,10 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
     await complete(String(event.target.value ?? ""));
   };
 
+  const handleSearchClick = useCallback(() => {
+    void complete(getValues("postalCode"), { force: true });
+  }, [complete, getValues]);
+
   function messageOf(field: ProfileField): string | undefined {
     const fromServer = state.status === "error" ? state.fieldErrors?.[field] : undefined;
 
@@ -271,15 +278,29 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
             {COMPLETION_MESSAGES[completionStatus]}
           </p>
           <div className="grid gap-6 sm:grid-cols-2">
-            <TextField
-              autoComplete="postal-code"
-              {...fieldIdsOf(idPrefix, "postalCode")}
-              inputMode="numeric"
-              label="郵便番号"
-              message={messageOf("postalCode")}
-              placeholder="150-0001"
-              registration={{ ...postalCodeRegistration, onBlur: handlePostalCodeBlur }}
-            />
+            <div className="flex flex-col gap-2">
+              <TextField
+                autoComplete="postal-code"
+                {...fieldIdsOf(idPrefix, "postalCode")}
+                inputMode="numeric"
+                label="郵便番号"
+                message={messageOf("postalCode")}
+                placeholder="150-0001"
+                registration={{ ...postalCodeRegistration, onBlur: handlePostalCodeBlur }}
+              />
+              {/* 補完は focus が外れた時点でも走る。ボタンを置くのは、いつ走るのかを操作で
+                  決められるようにするためで、押さない利用者も補完を受けられる。 */}
+              <Button
+                className="self-start"
+                disabled={completionStatus === "loading"}
+                onClick={handleSearchClick}
+                size={BUTTON_SIZE.SMALL}
+                type="button"
+                variant={BUTTON_VARIANT.OUTLINE}
+              >
+                住所を検索
+              </Button>
+            </div>
             <FieldFrame {...prefectureIds} label="都道府県" message={prefectureMessage}>
               <SelectNative
                 aria-describedby={

@@ -2,8 +2,8 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
+import { cn } from "@/components/cn";
 import { Button } from "@/components/design-system/action/button/button";
 import {
   AlertDialog,
@@ -23,8 +23,18 @@ import type { WithdrawFormState } from "../../../form-state";
 const CONFIRM_LABEL = "退会する";
 const PENDING_LABEL = "退会しています…";
 
-/** 破壊的な操作であることを配色で示す。`Button` の variant には無い扱いなので呼び出し側が与える。 */
-const DESTRUCTIVE_CLASS = "bg-destructive text-destructive-foreground hover:bg-destructive/90";
+/**
+ * 破壊的な操作であることを配色で示す。
+ *
+ * @remarks
+ * `Button` の variant には無い扱いなので呼び出し側が与えます
+ * （`AlertDialog` の README）。
+ *
+ * hover と active の差を `Button` の既定（`/85` と `/70`）より大きく取ります。暗い配色の上では
+ * 不透明度をわずかに下げても背景との差が出ず、**押せることが hover で判りません**。
+ */
+const DESTRUCTIVE_CLASS =
+  "bg-destructive text-destructive-foreground hover:bg-destructive/75 active:bg-destructive/60";
 
 /**
  * 確認 dialog の中の実行ボタン。
@@ -67,7 +77,7 @@ export function WithdrawButton() {
     <>
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button className={DESTRUCTIVE_CLASS}>{CONFIRM_LABEL}</Button>
+          <Button className={cn(DESTRUCTIVE_CLASS, "w-full")}>{CONFIRM_LABEL}</Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <form action={formAction}>
