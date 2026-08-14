@@ -316,7 +316,14 @@ jobs:
           taken=()
 
           if [ "$STORIES" = 'true' ]; then
-            if [ "$MODE" = 'full' ]; then
+            # 孤児（改名・削除で参照を失った基準画像）は範囲を絞った撮り直しでは消えない。
+            # 絞った実行では孤児と対象外の画像を区別できないため、全数で撮り直す。
+            orphans=false
+            if [ "$MODE" != 'full' ]; then
+              orphans="$(pnpm exec tsx scripts/vrt orphans tmp/vrt/report.json)"
+            fi
+
+            if [ "$MODE" = 'full' ] || [ "$orphans" = 'true' ]; then
               taken+=('全 story')
               make vrt-update
             else

@@ -17,6 +17,32 @@ export const SCREEN_AREA = "screen";
 export const RETAKE_ENV = "BASELINE_RETAKE";
 
 /**
+ * story の全数撮り直しでも消さない置き場の要素。
+ *
+ * @remarks
+ * `screen` は画面単位の撮影が持つ区画で、story の撮影は 1 枚も書きません。残りは置き場自身の
+ * 説明と、絵を決める入力のハッシュです。
+ */
+const PRESERVED_ENTRIES: readonly string[] = [SCREEN_AREA, "README.md", "render-inputs.sha256"];
+
+/**
+ * story の全数撮り直しの前に消す要素を返す。
+ *
+ * @remarks
+ * **撮り直しは stale なファイルを消しません。** Playwright の `--update-snapshots` は撮った
+ * ぶんを書くだけなので、story を改名・削除すると旧名の画像が置き場に残り、対応の検査が孤児
+ * として落とします。撮り直しても直らないため、全数のときだけ先に区画を空にします。
+ *
+ * **範囲を絞った撮り直し（`VRT_ONLY`）では呼びません。** 撮らない story の画像まで消え、
+ * 報告されていない差分が置き場へ入ります。
+ *
+ * @param entries - 置き場の直下にある要素の名前
+ */
+export function clearableStoryEntries(entries: readonly string[]): string[] {
+  return entries.filter((entry) => !entry.startsWith(".") && !PRESERVED_ENTRIES.includes(entry));
+}
+
+/**
  * いま撮り直している最中か。
  *
  * @remarks

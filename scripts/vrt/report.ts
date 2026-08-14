@@ -3,6 +3,7 @@
 // 取り出した集合は 2 つの用途を持つ。1 つは PR コメントの一覧表、もう 1 つは承認時に
 // 撮り直す範囲で、どちらも同じ集合であることに意味がある。表に出ていない story が承認で
 // 撮り直されると、報告されていない差分が黙って基準画像へ入る。
+import { BASELINE_TAG } from "../../vrt/lib/orphan-baselines.js";
 
 /** 基準画像と食い違った story 1 件。 */
 export type Failure = {
@@ -21,6 +22,7 @@ type JSONTest = {
   status?: unknown;
   annotations?: unknown;
   results?: unknown;
+  tags?: unknown;
 };
 
 type JSONSpec = {
@@ -91,6 +93,27 @@ export function formatTable(failures: Failure[]): string {
   }
 
   return table.join("\n");
+}
+
+/**
+ * 基準画像と撮影対象の 1 対 1 対応が落ちたか。
+ *
+ * @remarks
+ * この検査は story ではないので {@link collectFailures} は拾いません（id の注記を持たない）。
+ * それでいて、落ちたときに要るのは**全数の撮り直し**です。孤児は範囲を絞った撮り直しでは
+ * 消えず、絞った実行では孤児と対象外の画像を区別できないためです。
+ *
+ * @param json - Playwright の JSON レポート
+ */
+export function hasBaselineFailure(json: string): boolean {
+  const report = JSON.parse(json) as { suites?: unknown };
+  if (!Array.isArray(report.suites)) throw new Error("JSON レポートに suites がありません");
+
+  return flattenSpecs(report.suites as JSONSuite[]).some((spec) =>
+    asArray<JSONTest>(spec.tests).some(
+      (test) => test.status !== "expected" && asArray<string>(test.tags).includes(BASELINE_TAG),
+    ),
+  );
 }
 
 /** 撮り直す範囲として渡す story の id。テーマ違いは同じ id なので 1 件に畳む。 */

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { assertAreaUnclaimed, isRetaking, RETAKE_ENV, SCREEN_AREA } from "./baseline-store";
+import {
+  assertAreaUnclaimed,
+  clearableStoryEntries,
+  isRetaking,
+  RETAKE_ENV,
+  SCREEN_AREA,
+} from "./baseline-store";
 
 describe("isRetaking", () => {
   // ----- 正常系 -----
@@ -31,5 +37,34 @@ describe("assertAreaUnclaimed", () => {
   // ----- 異常系 -----
   it("予約区画を名乗る系統を落とす", () => {
     expect(() => assertAreaUnclaimed(["action", SCREEN_AREA])).toThrow();
+  });
+});
+
+describe("clearableStoryEntries", () => {
+  // ----- 正常系 -----
+  it("story の系統を消す対象として返す", () => {
+    expect(clearableStoryEntries(["action", "form", "features"])).toEqual([
+      "action",
+      "form",
+      "features",
+    ]);
+  });
+
+  it("画面単位の区画を残す", () => {
+    expect(clearableStoryEntries(["action", SCREEN_AREA])).toEqual(["action"]);
+  });
+
+  it("置き場自身の説明と入力のハッシュを残す", () => {
+    expect(clearableStoryEntries(["README.md", "render-inputs.sha256", "display"])).toEqual([
+      "display",
+    ]);
+  });
+
+  it("git の管理下を残す", () => {
+    expect(clearableStoryEntries([".git", ".gitignore", "overlay"])).toEqual(["overlay"]);
+  });
+
+  it("消すものが無ければ空を返す", () => {
+    expect(clearableStoryEntries([SCREEN_AREA, "README.md"])).toEqual([]);
   });
 });
