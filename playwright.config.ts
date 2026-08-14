@@ -49,8 +49,12 @@ export default defineConfig({
     // 待つ時間を伸ばすのは差分を許すのとは別で、揺らぎが収まったことは同じ厳密さで見る。
     timeout: 20_000,
     toHaveScreenshot: {
-      // 枚数に許容を置かない。画素あたりの色差は Playwright 既定の 0.2 が効いており、これを
-      // 下回る変化は 0 枚として数えられる([vrt/README.md](vrt/README.md))。
+      // 画素あたりの色差の許容。Playwright は YIQ 距離の上限を `35215 × threshold²` に取るため、
+      // グレースケールでは `264 × threshold` までの差が 0 枚として数えられる。既定の `0.2` は
+      // 上限 52.8 で、`neutral-400` と `neutral-500`（差 48）を取り違えても通ってしまう。
+      // `0.01` の上限は 2.6 で、外れるのは並列実行時のラスタライズが出す ±1 の丸めだけになる。
+      threshold: 0.01,
+      // 枚数に許容は置かない。色差の側で下限を切ってあるので、残った差分は実在する。
       maxDiffPixels: 0,
       animations: "disabled",
       caret: "hide",
