@@ -8,16 +8,15 @@ name: Strip Verify
 # (`scripts/setup/remove-boilerplate-only`). Nothing else would notice if it stopped
 # working: a marker whose pair was lost, a stripped section that takes a heading another
 # document links to, or a manifest entry gone stale would all stay green until someone
-# actually forked and ran it. The unit test beside the manifest only proves the markers
-# pair up — it never runs the strip, so it cannot see what the stripped tree looks like.
+# actually forked and ran it. The unit tests beside the manifest never run the strip, so
+# they cannot see the tree it leaves behind.
 #
 # The checkout is disposable, so the job deliberately deletes tracked files and never
 # pushes anything back.
 #
-# Unlike the sample purge, the strip is a mandatory setup step, so a fork always arrives
-# with the tooling already gone. That is why the strip deletes this file too, instead of
-# carrying the guard step `purge-verify.yaml` has: a guard would fail on every fork PR
-# forever, and there is no "fork that later grows one" case to preserve the mechanism for.
+# The strip deletes this file too — it is declared in `SELF_DESTRUCT_PATHS`. Do not
+# add the guard step `purge-verify.yaml` carries: the strip is mandatory, so every fork
+# would fail it on every PR forever.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
@@ -97,8 +96,7 @@ jobs:
             fi
           done
 
-          # Mirrors the strip's own scan exclusions (EXCLUDED_DIRECTORIES in the manifest);
-          # writing into a regenerated artifact would be undone by the next generation anyway.
+          # Mirrors the strip's own scan exclusions (`EXCLUDED_DIRECTORIES` in the manifest).
           survivors="$(grep -rIl 'boilerplate-only' . \
             --exclude-dir=.git \
             --exclude-dir=node_modules \

@@ -4,9 +4,8 @@
  * マーカーの名前。`boilerplate-only:begin` / `:end` / `:line` / `:replace-*` を作る。
  *
  * @remarks
- * `sample` 族と別の名前にしてあるのは、消える契機が違うためです。サンプルは「題材を使うか」で
- * 選べる任意の破棄ですが、boilerplate 限定の散文は**fork を作った時点で前提が失効する**ので、
- * 選択の余地がありません。同じ名前にすると、サンプルを残す fork が両方を残してしまいます。
+ * `sample` 族と同じ名前にはできません。族を分ける理由は
+ * [0152](../../../docs/adr/0152-agents-md-policy.md) が持ちます。
  */
 export const BOILERPLATE_ONLY_MARKER = "boilerplate-only";
 
@@ -14,10 +13,8 @@ export const BOILERPLATE_ONLY_MARKER = "boilerplate-only";
  * 剥がし終えたあとに自分を消す対象（リポジトリルート相対）。
  *
  * @remarks
- * この道具自身が boilerplate 限定です。fork では二度と走らないので、残すと「実行してよいのか」の
- * 判断を fork 先へ負わせます。サンプル破棄（`scripts/setup/remove-sample/`）とは**独立に**消える
- * 必要があります。サンプルを残す fork は破棄の手順を飛ばすため、あちらへ相乗りさせると剥がしの
- * 道具だけが残るためです。
+ * サンプル破棄（`scripts/setup/remove-sample/`）へ相乗りさせず、**独立に**消える必要があります。
+ * 独立させる理由は [0152](../../../docs/adr/0152-agents-md-policy.md) が持ちます。
  *
  * 剥がしを検証する CI（`.github/workflows/strip-verify.yaml`）も対象です。検証する相手が消えた
  * あとに残すと、fork のすべての PR で「道具が無い」失敗を出し続けます。
