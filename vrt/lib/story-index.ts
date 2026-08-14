@@ -1,9 +1,8 @@
 // Storybook が build 時に書き出す story 目録 (`storybook-static/index.json`) から、
 // 撮影対象の story を取り出す。
 //
-// 対象は既定で全数であり、外れるのは [excluded-stories](excluded-stories.ts) が理由付きで
-// 宣言したものだけ。列挙を story 側の申告 (撮影対象を明示するタグ) にすると、新しく足した
-// story が黙って対象外になる。
+// 対象は既定で全数で、外れるのは [excluded-stories](excluded-stories.ts) が宣言したものだけ
+// ([README](../README.md#何を撮るか))。
 import type { ExcludedStory } from "./excluded-stories";
 
 /** 撮影する story 1 件。 */
@@ -99,10 +98,7 @@ function isStory(
  * 見出しの先頭区画を、ディレクトリ名に使える形へ落とす。
  *
  * @remarks
- * 基準画像を系統ごとに分けるのは、消す単位を系統に取れるようにするためです。題材に固有の
- * 系統（`Features` / `Page`）は fork 先で丸ごと不要になり、1 枚ずつ列挙せずに落とせる必要が
- * あります([破棄する対象の宣言](../../scripts/setup/remove-sample/sample-manifest.ts))。
- * 系統ごとに分かれていること自体、593 枚を平らに並べるより辿りやすくもあります。
+ * 基準画像を系統ごとに分ける理由は [README](../README.md#基準画像は別のリポジトリに置く)。
  */
 export function storyGroup(title: string): string {
   return title.split("/")[0].trim().toLowerCase().replace(/\s+/g, "-");

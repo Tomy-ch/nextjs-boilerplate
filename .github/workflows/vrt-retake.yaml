@@ -5,19 +5,19 @@ name: VRT Retake
 # That push re-runs VRT, which then passes.
 #
 # This is NOT where the visual change is approved. The label only develops the change
-# into something reviewable: the pixels become a real image diff in the store's
-# compare view, and the branch ruleset (`require_last_push_approval`) forces a human
-# to approve after the bot's push. Naming the label "approve" would put the word
-# where the judgement is not.
+# into something reviewable: the pixels become a real image diff in the store's compare
+# view, and accepting what is there is a separate act carrying its own label, required
+# by `vrt-approval.yaml`. Naming this label "approve" would put the word where the
+# judgement is not.
 #
-# The label is a CONDITION, not the trigger. Triggering on `labeled` forced the
-# person to wait for VRT to finish before labelling, because the scope is read from
-# that run's report — labelling early only produced "the run has not finished yet".
-# Firing on the run's completion instead lets the label be applied whenever, PR
-# creation included, and takes the human off the critical path: VRT, retake, and the
-# confirming VRT re-run chain without anyone watching. The label survives a refusal
-# and is removed only once it has actually been spent, so a retake deferred by a
-# failing check happens by itself on the next run.
+# The label is a CONDITION, not the trigger: it is read when a VRT run completes. It
+# can therefore be applied whenever, pull-request creation included, which takes the
+# human off the critical path — VRT, retake, and the confirming VRT re-run chain run
+# without anyone watching.
+#
+# The label is spent only when the pointer moves; every other outcome leaves it on.
+# Both halves of that asymmetry are in docs/design/vrt.md, and what it means for the
+# person applying the label is in vrt/README.md.
 #
 # The scope is read from the `vrt-report` artifact of the run that triggered this
 # one. Bounding the retake to what was already reported means a story that never
@@ -36,7 +36,7 @@ name: VRT Retake
 
 on:
   workflow_run:
-    workflows: [VRT]
+    workflows: [VisualRegressionTest]
     types: [completed]
 
 permissions:
@@ -131,25 +131,37 @@ jobs:
       # wrong heading is both a ledger failure and a different image path — so the
       # pixels captured now would be discarded by the fix anyway.
       #
-      # This costs no waiting: VRT is the slowest check here, so the rest have
-      # concluded by the time it completes. The label is deliberately left in place,
-      # which makes the deferral self-clearing: fixing the other check pushes a
-      # commit, VRT runs again, and this workflow fires again with the label still on.
-      - name: Defer while another check is failing
+      # Only the checks that can move a pixel are named. A denylist would have to grow
+      # a new entry every time a check is added, and the entry it is missing is the one
+      # that stops the retake; worse, it catches `vrt-approval`, which is red until a
+      # human accepts images that do not exist until this step has run — the approval
+      # would then be waiting on the retake and the retake on the approval.
+      #
+      # Only the latest attempt of each check counts. The API returns every attempt for
+      # the commit, so summing them means one flake makes a check "failing" for as long
+      # as the commit lives: re-running it green would never clear the gate.
+      - name: Defer while a check that decides the pixels is failing
         id: gate
         if: steps.mode.outputs.mode != 'none' && steps.mode.outputs.mode != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          # Everything whose failure can change what a story renders as.
+          DECIDES_PIXELS: >-
+            ["lint","typecheck","build","storybook-build","classes","tokens-drift","manifest"]
         run: |
           set -euo pipefail
 
-          failed="$(gh api --paginate \
+          # `--slurp` and a real jq: `gh api --jq` takes no `--argjson`, and applies its
+          # filter per page, so the names would be deduplicated within a page instead of
+          # across the commit.
+          failed="$(gh api --paginate --slurp \
             "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
-            --jq '[.check_runs[]
-              | select(.conclusion == "failure" or .conclusion == "timed_out")
-              | select(.name != "vrt" and .name != "retake" and .name != "report")
-              | .name] | unique | join(", ")')"
+            | jq -r --argjson names "$DECIDES_PIXELS" '[.[].check_runs[]
+              | select(.name | IN($names[]))]
+              | group_by(.name) | map(max_by(.started_at))
+              | map(select(.conclusion == "failure" or .conclusion == "timed_out"))
+              | map(.name) | unique | join(", ")')"
 
           if [ -n "$failed" ]; then
             echo "deferred=true" >> "$GITHUB_OUTPUT"
@@ -274,8 +286,7 @@ jobs:
       # The push starts the VRT run that confirms the baselines, which `GITHUB_TOKEN`
       # would not do. And the run is attributed to the App rather than to
       # `github-actions[bot]`, which keeps the repository's fork-PR approval policy
-      # out of an internal bot's way — relaxing that policy to unblock this push
-      # would pay in a dimension that has nothing to do with the problem.
+      # out of an internal bot's way.
       - name: Move the submodule pointer
         id: push
         if: steps.gate.outputs.deferred == 'false'
@@ -328,7 +339,7 @@ jobs:
               echo
               echo "対象の story: ${IDS}"
               echo
-              echo "**まだ承認ではありません。** 上の画像差分を見て、意図した変更であることを確かめたうえで PR を承認してください。"
+              echo "**まだ承認ではありません。** 上の画像差分を見て、意図した変更であることを確かめたうえで \`vrt-approve\` ラベルを付けてください。"
             else
               echo "❌ 基準画像を撮り直せませんでした。${REASON:-詳細は実行ログを確認してください。}"
             fi
@@ -340,16 +351,23 @@ jobs:
             echo 'VRT_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # The label stands for one acceptance, so it is removed once it has been spent.
-      # A deferral has not spent it: leaving it on is what makes the retake resume by
-      # itself after the failing check is fixed.
+      # One label, one retake: removed only once the pointer has moved. Anything else
+      # leaves it on, so the retake resumes by itself once the cause is gone.
+      #
+      # `vrt-approve` goes with it, because the images it accepted are no longer the
+      # ones in the store. Dropping it here only saves the person a toggle — the gate
+      # itself compares timestamps and would refuse the stale acceptance anyway.
       - name: Remove the label
-        if: always() && steps.mode.outputs.mode == 'reported' && steps.gate.outputs.deferred == 'false'
+        if: always() && steps.mode.outputs.mode == 'reported' && steps.push.outputs.sha != ''
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ steps.pr.outputs.number }}
-        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-retake
+        run: |
+          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-retake
+          # Tolerated separately: the acceptance is often not on the pull request at
+          # all, and failing to drop it must not leave `vrt-retake` behind.
+          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-approve || true
 
   report:
     if: always() && needs.retake.result != 'skipped' && needs.retake.outputs.comment != ''

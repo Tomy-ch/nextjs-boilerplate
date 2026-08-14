@@ -70,7 +70,8 @@
           { "context": "test" },
           { "context": "tokens-drift" },
           { "context": "typecheck" },
-          { "context": "vrt" }
+          { "context": "vrt" },
+          { "context": "vrt-approval" }
         ]
       }
     }
