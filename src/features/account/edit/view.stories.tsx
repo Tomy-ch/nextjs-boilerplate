@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
+import { ToastProvider } from "@/components/shell/toaster/toaster";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import { useCartStore } from "@/stores/cart-store";
@@ -16,24 +17,32 @@ const NAV_ITEMS = [
   { href: "/mypage", label: "マイページ" },
 ];
 
-/** route と同じ器で包む。マイページの story と同じ理由でカートは空にする。 */
+/**
+ * route と同じ器で包む。
+ *
+ * @remarks
+ * カートはマイページの story と同じ理由で空にします。`ToastProvider` を置くのは、保存の成功を
+ * 伝えるのが toast だからで、実物では root layout がこれを持ちます。
+ */
 function withPageFrame(Story: () => ReactElement) {
   useCartStore.setState({ lines: [], isOpen: false });
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <AppShell
-        footer={<p>Next.js / React のプレゼンテーション層 boilerplate です。</p>}
-        headerActions={<CartHeaderAction />}
-        navItems={NAV_ITEMS}
-        sidebar={<CartPanel />}
-        siteName="nextjs-boilerplate"
-      >
-        <ContentContainer className="py-8">
-          <Story />
-        </ContentContainer>
-      </AppShell>
-    </div>
+    <ToastProvider>
+      <div className="flex min-h-screen flex-col">
+        <AppShell
+          footer={<p>Next.js / React のプレゼンテーション層 boilerplate です。</p>}
+          headerActions={<CartHeaderAction />}
+          navItems={NAV_ITEMS}
+          sidebar={<CartPanel />}
+          siteName="nextjs-boilerplate"
+        >
+          <ContentContainer className="py-8">
+            <Story />
+          </ContentContainer>
+        </AppShell>
+      </div>
+    </ToastProvider>
   );
 }
 

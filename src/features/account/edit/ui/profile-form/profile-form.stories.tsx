@@ -1,11 +1,21 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { ToastProvider } from "@/components/shell/toaster/toaster";
+
 import { PREFECTURES, PROFILE } from "../../../account.fixture";
 import { ProfileForm } from "./profile-form";
 
 const meta = {
   title: "Features/Account/ProfileForm",
   component: ProfileForm,
+  decorators: [
+    // 保存の成功を伝えるのが toast であり、実物では root layout がこの Provider を持つ。
+    (Story) => (
+      <ToastProvider>
+        <Story />
+      </ToastProvider>
+    ),
+  ],
   parameters: {
     docs: {
       description: {
