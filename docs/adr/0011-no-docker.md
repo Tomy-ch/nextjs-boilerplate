@@ -145,6 +145,8 @@ Docker を維持する場合、以下を毎リリースで同期する必要が�
 
 補助ツールの image は tag ではなく digest で固定する。registry の tag は同じ名前のまま別の中身を指せるため、tag だけの参照では実行環境が黙って変わる。運用は [`docker/README.md`](../../docker/README.md)。
 
+**registry の image を指す参照は、書かれた場所によらずこの機構が固定する。**対象は compose の `image:` と Dockerfile の `FROM` に加え、workflow / composite action の `uses: docker://<image>:<tag>`（GitHub Actions が registry の image を直接実行するステップ記法）。`uses:` の行であっても参照先は GitHub のリポジトリではないため、tag を `git ls-remote` で commit SHA へ解決する actions-pin（[0153](0153-ci-configuration.md)）では扱えない。走査するファイルは両機構で重なるが、掴む行は重ならない。`docker://` 参照に tag を必須とし、省略（＝`:latest`）は fail-closed で落とす。
+
 ### 採用する場合のルール
 
 1. **ファイル名で本体配送と区別する** — 例: `docker-compose.dev-tools.yml` / `docker-compose.docs.yml`。`docker-compose.yml`（無印）は本体配送と誤解されやすいため使わない

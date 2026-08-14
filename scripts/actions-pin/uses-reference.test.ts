@@ -10,8 +10,8 @@ import {
   refKey,
   refPath,
   targetFiles,
-  USES_PATTERN,
   unparsedUsesLines,
+  usesPattern,
 } from "./uses-reference";
 
 let root: string;
@@ -91,35 +91,51 @@ describe("parseUses", () => {
   it("owner/repo の形を成さない参照を固定対象外にする", () => {
     expect(parseUses("checkout", "v7", undefined)).toBeNull();
   });
+
+  it("container image 参照を固定対象外にする", () => {
+    expect(parseUses("docker://alpine", "3.24", undefined)).toBeNull();
+  });
+
+  it("registry を持つ container image 参照も固定対象外にする", () => {
+    expect(parseUses("docker://ghcr.io/owner/app", "1.0.0", undefined)).toBeNull();
+  });
 });
 
-describe("USES_PATTERN", () => {
+describe("usesPattern", () => {
   // ----- 正常系 -----
   it("ブロック記法の uses 行から path・ref・コメントを取り出す", () => {
-    USES_PATTERN.lastIndex = 0;
-    const matches = [..."      - uses: actions/checkout@9c091bb # v7.0.0\n".matchAll(USES_PATTERN)];
+    const matches = [
+      ..."      - uses: actions/checkout@9c091bb # v7.0.0\n".matchAll(usesPattern()),
+    ];
 
     expect(matches).toHaveLength(1);
     expect(matches[0]?.slice(2, 5)).toEqual(["actions/checkout", "9c091bb", "v7.0.0"]);
   });
 
   it("タブでインデントされた uses 行も解釈する", () => {
-    USES_PATTERN.lastIndex = 0;
-    const matches = [..."\t\t- uses: actions/checkout@9c091bb # v7.0.0\n".matchAll(USES_PATTERN)];
+    const matches = [..."\t\t- uses: actions/checkout@9c091bb # v7.0.0\n".matchAll(usesPattern())];
 
     expect(matches[0]?.slice(2, 5)).toEqual(["actions/checkout", "9c091bb", "v7.0.0"]);
   });
 
+  // ----- 異常系 -----
   it("複数行を 1 つのマッチへ結合しない", () => {
-    USES_PATTERN.lastIndex = 0;
     const source = "      - uses: actions/checkout@v7\n      - uses: actions/cache@v6\n";
 
-    const matches = [...source.matchAll(USES_PATTERN)];
+    const matches = [...source.matchAll(usesPattern())];
 
     expect(matches.map((match) => match.slice(2, 5))).toEqual([
       ["actions/checkout", "v7", undefined],
       ["actions/cache", "v6", undefined],
     ]);
+  });
+
+  it("進めた lastIndex を次の呼び出しへ持ち越さない", () => {
+    const source = "      - uses: actions/checkout@v7\n      - uses: actions/cache@v6\n";
+    const used = usesPattern();
+    used.exec(source);
+
+    expect([...source.matchAll(usesPattern())]).toHaveLength(2);
   });
 });
 
@@ -209,6 +225,14 @@ describe("unparsedUsesLines", () => {
 
   it("版を持たない参照を取りこぼしとして扱わない", () => {
     expect(unparsedUsesLines("  - {uses: actions/checkout}\n")).toEqual([]);
+  });
+
+  it("container image 参照を取りこぼしとして扱わない", () => {
+    expect(unparsedUsesLines("      - uses: docker://alpine:3.24\n")).toEqual([]);
+  });
+
+  it("対応記法の外にある container image 参照も取りこぼしとして扱わない", () => {
+    expect(unparsedUsesLines('      - uses: "docker://alpine:3.24"\n')).toEqual([]);
   });
 
   // ----- 異常系 -----

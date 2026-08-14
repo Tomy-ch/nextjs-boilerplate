@@ -26,7 +26,7 @@ Do NOT use this skill for:
   version lives in `.github/actions/setup-mise/action.yaml` and is out of this skill's reach. The
   procedure, including the three places that must agree, is item 8 of the `repo-ops` runbook
 
-## First Step: Confirm `min_age_days`
+## Step 0. Confirm `min_age_days`
 
 This skill **MUST call `AskUserQuestion` immediately after invocation** to confirm the quarantine threshold.
 
@@ -56,9 +56,7 @@ The following remain protected even during skill execution:
 - Generated artifacts (`src/adapters/gen/**` and the imported `openapi.gen.yaml` — [0072](../../../docs/adr/0072-api-type-generation.md)) <!-- skill-lint-ignore -->
 - Any file unrelated to the version bump
 
-## Execution Steps
-
-### 1. Parse `mise.toml`
+## Step 1. Parse `mise.toml`
 
 Read `mise.toml` and enumerate every key under `[tools]`. For each key, determine the backend:
 
@@ -81,7 +79,7 @@ For each tool, fetch:
 
 Prefer the `gh` CLI (it handles `GITHUB_TOKEN` automatically and raises the rate limit). For non-GitHub endpoints, use `curl -fsSL`.
 
-### 2. Classify
+## Step 2. Classify
 
 For each tool:
 
@@ -94,7 +92,7 @@ For each tool:
 
 Sanity rule: refuse to "upgrade" to a strictly lower version per semver — if the parsed latest is `<` the pinned version, classify as `resolution_failed` with reason "potential downgrade".
 
-### 3. Display Summary
+## Step 3. Display Summary
 
 Print a Japanese-language summary grouped by class. Example:
 
@@ -117,7 +115,7 @@ Print a Japanese-language summary grouped by class. Example:
   - pipx:sqlfluff: PyPI への接続失敗
 ```
 
-### 4. Confirm Per-tool Update Set
+## Step 4. Confirm Per-tool Update Set
 
 If **eligible** is empty, skip to step 6 with no writes.
 
@@ -125,7 +123,7 @@ Otherwise invoke `AskUserQuestion` with `multiSelect: true`. Each option corresp
 
 The user may deselect individual entries (e.g., if a specific bump is known-broken).
 
-### 5. Update `mise.toml`
+## Step 5. Update `mise.toml`
 
 For each approved tool:
 
@@ -135,7 +133,7 @@ For each approved tool:
 
 After computing all approved changes, write `mise.toml` **once** (atomic single-pass write). Read the file → apply all replacements in memory → write.
 
-### 6. Install the Approved Versions
+## Step 6. Install the Approved Versions
 
 Run `make install-tools` so the freshly pinned versions are the ones actually on `PATH`. Until this
 runs, `mise.toml` and the installed toolchain disagree and every later step verifies the old versions.
@@ -143,7 +141,7 @@ runs, `mise.toml` and the installed toolchain disagree and every later step veri
 There is no downstream propagation step: `mise.toml` is the single source of truth and no delivery-layer
 file carries a duplicated version ([0003](../../../docs/adr/0003-version-manager.md)).
 
-### 7. Verify
+## Step 7. Verify
 
 ```sh
 pnpm install
@@ -153,7 +151,7 @@ pnpm build
 
 Report the result table to the user (OK / FAIL per command). Do NOT automatically roll back on failure — the user decides whether to amend, revert, or proceed.
 
-### 8. Final Report
+## Step 8. Final Report
 
 Summarize:
 

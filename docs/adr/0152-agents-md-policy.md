@@ -63,8 +63,16 @@ Accepted
 
 節の追加・順序変更は ADR 改訂を要する。表 (Accepted Rules) への ADR 追加や `[TODO]` セクションの追加・削除は軽微編集とし、ADR 改訂は不要。
 
-<!-- boilerplate-only:begin -->
 **小数番号は「いずれ削除される節」の印**である。削除しても 1〜12 の恒久節の番号が動かないことを保証する。削除の契機は節ごとに異なるので上の表に書き、削除時は節ごと消して表の該当行も消す。削除される節は本表に明示されたものだけを認める。
+
+<!-- boilerplate-only:begin -->
+### boilerplate 限定の記述
+
+**この template を配る側にしか意味を持たない記述**は `boilerplate-only` マーカーで囲み、fork 作成時に剥がす。#2.5 がその筆頭だが、対象は AGENTS.md に限らずリポジトリ全体である。
+
+マーカーの形は `sample` 族と同一で、`boilerplate-only:begin` / `:end` / `:line` / `:replace-begin` / `:replace-with` / `:replace-end` を持つ。機構は `scripts/setup/lib/markers.ts` が共有し、剥がしは `make setup-remove-boilerplate-only` が行う。
+
+**族を分けてあるのは、消える契機が違うためである。** サンプルは題材を使うかで選べる任意の破棄だが、boilerplate 限定の記述は fork を作った時点で前提が失効するので選択の余地が無い。同じ族にすると、サンプルを残す fork が両方を残す。剥がしの道具そのものも、この理由から破棄の道具とは独立に自消滅する。
 <!-- boilerplate-only:end -->
 
 ## Instruction Priority

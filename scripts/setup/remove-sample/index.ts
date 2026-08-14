@@ -11,8 +11,8 @@ import {
   toAbsolutePath,
   toRelativePath,
 } from "../lib/file-utils.js";
+import { stripMarkers } from "../lib/markers.js";
 import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
-import { stripMarkers } from "./markers.js";
 import { buildSteps, canHoldMarker, findRedundantPaths, isScanTarget } from "./plan.js";
 import {
   BINARY_EXTENSIONS,

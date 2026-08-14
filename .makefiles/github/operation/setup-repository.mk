@@ -2,6 +2,9 @@
 .PHONY: setup-repo ## リポジトリの初期化
 .PHONY: setup-replace-license-copyright ## LICENSEの著作権表示を更新
 .PHONY: setup-replace-repository-reference ## リポジトリ参照とプロジェクト名をフォーク先へ置換
+# boilerplate-only:begin
+.PHONY: setup-remove-boilerplate-only ## boilerplate 限定の記述を剥がす
+# boilerplate-only:end
 # sample:begin
 .PHONY: setup-remove-sample ## 同梱サンプルを一括破棄し、検証まで実行
 # sample:end
@@ -121,6 +124,23 @@ setup-replace-repository-reference:
 	@pnpm exec tsx scripts/setup/replace-repository-reference \
 		--repository "$$REPOSITORY" \
 		$(SETUP_DRY_RUN_FLAG)
+
+# boilerplate-only:begin
+# boilerplate 限定の記述（この template を配る側にしか意味を持たない規則・注記）を剥がす。
+#
+# サンプル破棄と違い、飛ばす選択肢が無い。fork を作った時点で前提が失効するため、残すと fork 先が
+# 自分に効かない規則に従うことになる。破棄と同じく、剥がしの道具そのものも消える。
+#
+# 剥がすのは散文だけなので build / test は連鎖させない。手順の最後の確認でまとめて通す。
+setup-remove-boilerplate-only:
+	@pnpm exec tsx scripts/setup/remove-boilerplate-only $(SETUP_DRY_RUN_FLAG)
+	@if [ -n "$(filter 1,$(DRY_RUN))" ]; then \
+		echo "🟡 DRY_RUN のため整形・検査はスキップしました。"; \
+	else \
+		pnpm md-fix && pnpm md-lint && \
+		echo "✅ boilerplate 限定の記述を剥がしました。"; \
+	fi
+# boilerplate-only:end
 
 # sample:begin
 # 同梱サンプル（EC の題材を持つ画面群と、その題材に固有の契約・モック）の破棄。

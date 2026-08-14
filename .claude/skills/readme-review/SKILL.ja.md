@@ -50,7 +50,7 @@ Step 2 のキーワード集合は、`portal-manifest-sync` の実行で false-n
 - P3: `Conventions`, `Naming Convention`, `Naming`, `Policy`
 - P5: `Workflow List`, `Command List`, `File List`, `Module List`
 
-## 最初のステップ: ターゲット確認
+## Step 0. ターゲット確認
 
 `AskUserQuestion`:
 

@@ -1,0 +1,136 @@
+name: Strip Verify
+
+# Runs the boilerplate-only strip on a throwaway checkout and proves the repository still
+# builds and passes every gate once the prose that only the distributing side can honour
+# is gone.
+#
+# This job exists because the strip is a one-shot tool that deletes itself
+# (`scripts/setup/remove-boilerplate-only`). Nothing else would notice if it stopped
+# working: a marker whose pair was lost, a stripped section that takes a heading another
+# document links to, or a manifest entry gone stale would all stay green until someone
+# actually forked and ran it. The unit tests beside the manifest never run the strip, so
+# they cannot see the tree it leaves behind.
+#
+# The checkout is disposable, so the job deliberately deletes tracked files and never
+# pushes anything back.
+#
+# The strip deletes this file too — it is declared in `SELF_DESTRUCT_PATHS`. Do not
+# add the guard step `purge-verify.yaml` carries: the strip is mandatory, so every fork
+# would fail it on every PR forever.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  strip-verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          # Assigned first so a failure inside the substitution fails the step; an
+          # `echo "$(...)"` would report success and hand the cache an empty path.
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Preview first. An unclosed marker block, or a replacement region holding anything
+      # but commented-out lines, fails here before anything is rewritten.
+      - name: Preview the strip
+        run: pnpm exec tsx scripts/setup/remove-boilerplate-only --dry-run
+
+      - name: Strip the boilerplate-only prose
+        run: pnpm exec tsx scripts/setup/remove-boilerplate-only
+
+      # Runs before the gates: a survivor is cheaper to read here than as a lint failure
+      # ten minutes later. Every occurrence of the marker token in this repository sits
+      # either inside a stripped region or inside a self-destructing path, so one survivor
+      # means the strip missed something.
+      - name: Verify the strip left nothing behind
+        shell: bash
+        run: |
+          for target in scripts/setup/remove-boilerplate-only .github/workflows/strip-verify.yaml; do
+            if [ -e "${target}" ]; then
+              echo "::error::${target} outlived the strip, but it is declared in SELF_DESTRUCT_PATHS."
+              exit 1
+            fi
+          done
+
+          # Mirrors the strip's own scan exclusions (`EXCLUDED_DIRECTORIES` in the manifest).
+          survivors="$(grep -rIl 'boilerplate-only' . \
+            --exclude-dir=.git \
+            --exclude-dir=node_modules \
+            --exclude-dir=.next \
+            --exclude-dir=coverage \
+            --exclude-dir=dist \
+            --exclude-dir=storybook-static \
+            --exclude-dir=tmp || true)"
+
+          if [ -n "${survivors}" ]; then
+            echo "::error::The marker token survived the strip in the files below."
+            echo "${survivors}"
+            exit 1
+          fi
+
+      # The gates run against the stripped tree. A heading the strip took away, or a link
+      # that pointed into it, surfaces here and nowhere earlier.
+      - name: Format the stripped tree
+        run: pnpm fix
+
+      - name: Lint the stripped tree
+        run: pnpm lint:ci
+
+      - name: Typecheck the stripped tree
+        run: pnpm typecheck
+
+      - name: Lint markdown of the stripped tree
+        run: pnpm md-lint
+
+      - name: Build the stripped tree
+        run: pnpm build
+
+      - name: Test the stripped tree
+        run: pnpm test
+
+      - name: Test the scripts of the stripped tree
+        run: pnpm test:scripts

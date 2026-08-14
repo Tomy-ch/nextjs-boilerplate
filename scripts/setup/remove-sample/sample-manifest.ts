@@ -137,7 +137,7 @@ export const BINARY_EXTENSIONS: readonly string[] = [
  */
 export const MARKER_LITERAL_FILES: readonly string[] = [
   // マーカー除去そのもののテスト。入力としてマーカーの形を持つ。
-  "scripts/setup/remove-sample/markers.test.ts",
+  "scripts/setup/lib/markers.test.ts",
   // マーカーの名前と形を宣言・説明している当ファイル自身。
   "scripts/setup/remove-sample/sample-manifest.ts",
   // 破棄の手順を説明する散文。マーカーの書き方をそのまま載せている。

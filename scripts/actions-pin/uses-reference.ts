@@ -15,19 +15,33 @@ export type ActionRef = {
   tag: string;
 };
 
-// uses: [-] owner/repo[/sub]@<ref> [# <tag>]
+// uses: [-] owner/repo[/sub]@<ref> [# <tag>] に一致する走査用パターン。
+//
 // 空白を `[ \t]` に限定するのは、`\s` だと改行を食って複数行が 1 マッチに結合するため。
 // 引用符を値から締め出すのは、含めると `uses: "owner/repo@v1"` が引用符ごと一致し、
 // `"owner` を owner として取り込んで固定対象に載せてしまうため。締め出せば一致しなくなり、
 // unparsedUsesLines が対応記法の外として拾う。
-export const USES_PATTERN =
-  /^([ \t]*(?:-[ \t]*)?uses:[ \t]*)([^@\s'"]+)@([^\s#'"]+)(?:[ \t]*#[ \t]*(\S+))?[ \t]*$/gm;
+//
+// 呼び出しごとに作るのは、`g` 付きの RegExp が `lastIndex` を持ち回り、`matchAll` はその時点の
+// 値から走査するため。共有すると collectRefs が先頭付近の `uses:` を黙って読み飛ばしうる。
+export function usesPattern(): RegExp {
+  return /^([ \t]*(?:-[ \t]*)?uses:[ \t]*)([^@\s'"]+)@([^\s#'"]+)(?:[ \t]*#[ \t]*(\S+))?[ \t]*$/gm;
+}
 
-// 記法を問わず `uses:` とその値を拾う。USES_PATTERN の取りこぼし検出にのみ使う。
+// 記法を問わず `uses:` とその値を拾う。usesPattern の取りこぼし検出にのみ使う。
 const LOOSE_USES_PATTERN = /\buses[ \t]*:[ \t]*['"]?([^\s'",}#]+)/;
 
 // `uses:` キーそのもの。値を取れなかった行でも、キーが残っていることを見るために使う。
 const USES_KEY_PATTERN = /\buses[ \t]*:/;
+
+// registry の image を直接実行するステップの記法。
+const DOCKER_SCHEME = "docker://";
+
+// container image への参照か。`git ls-remote` で解決できないため、この機構の対象ではない。
+// digest 固定は images-pin が担う（走査対象に workflow / composite action を含む）。
+function isDockerRef(value: string): boolean {
+  return value.startsWith(DOCKER_SCHEME);
+}
 
 // 固定対象になりうる値の形。owner/repo で始まるものだけを通す。
 const REPO_VALUE_PATTERN = /^[^/\s]+\/[^/\s]+/;
@@ -45,14 +59,16 @@ export function refPath(ref: ActionRef): string {
   return ref.sub === "" ? ref.repo : `${ref.repo}/${ref.sub}`;
 }
 
-// uses: 行の path / ref / 末尾コメントから参照を組み立てる。ローカル参照（`./...`）と
-// owner/repo の形を成さないものは固定対象外として null を返す。
+// uses: 行の path / ref / 末尾コメントから参照を組み立てる。ローカル参照（`./...`）、
+// container image 参照（`docker://...`）、owner/repo の形を成さないものは固定対象外として
+// null を返す。
 export function parseUses(
   usesPath: string,
   ref: string,
   comment: string | undefined,
 ): ActionRef | null {
   if (usesPath.startsWith(".")) return null;
+  if (isDockerRef(usesPath)) return null;
   const segments = usesPath.split("/");
   if (segments.length < REPO_SEGMENTS) return null;
   return {
@@ -83,7 +99,7 @@ export function collectRefs(files: string[]): Map<string, ActionRef> {
   const refs = new Map<string, ActionRef>();
   for (const file of files) {
     const data = fs.readFileSync(file, "utf8");
-    for (const match of data.matchAll(USES_PATTERN)) {
+    for (const match of data.matchAll(usesPattern())) {
       const ref = parseUses(match[2], match[3], match[4]);
       if (ref) refs.set(refKey(ref), ref);
     }
@@ -91,9 +107,9 @@ export function collectRefs(files: string[]): Map<string, ActionRef> {
   return refs;
 }
 
-// USES_PATTERN で解釈できなかった `uses:` の行番号を返す。
+// usesPattern で解釈できなかった `uses:` の行番号を返す。
 //
-// USES_PATTERN が見るのは 1 行 1 ステップのブロック記法だけで、YAML として正当な他の書き方
+// usesPattern が見るのは 1 行 1 ステップのブロック記法だけで、YAML として正当な他の書き方
 // （flow mapping・引用符・anchor / alias・タグ・キーと値の行分け）には一致しない。一致しない
 // ものは未登録としても未固定としても数えられず、検査が「異常なし」を返してしまう。
 //
@@ -102,7 +118,7 @@ export function collectRefs(files: string[]): Map<string, ActionRef> {
 // 記法を落とす形にすると、列挙から漏れた書き方が黙って網をすり抜ける。
 export function unparsedUsesLines(data: string): number[] {
   // 解釈済みの `uses:` を同じ長さの空白へ潰し、残った `uses:` だけを緩いパターンで拾う。
-  const rest = data.replace(USES_PATTERN, (line) => " ".repeat(line.length));
+  const rest = data.replace(usesPattern(), (line) => " ".repeat(line.length));
   const lines: number[] = [];
   for (const [index, line] of rest.split("\n").entries()) {
     // 行全体がコメントなら対象外。散文の中の `uses:` に反応させない。
@@ -117,8 +133,11 @@ export function unparsedUsesLines(data: string): number[] {
     }
     // ローカル参照は固定対象外。parseUses も対象外にする。
     if (value.startsWith(".")) continue;
+    // container image 参照は images-pin が固定する。ここで取りこぼしとして落とすと、
+    // 固定済みの参照を両機構が同時に拒む。
+    if (isDockerRef(value)) continue;
     // owner/repo の形を成さない値は、記法そのものが対応外。形を成していて版を持つものは、
-    // 対応記法なら USES_PATTERN が既に潰しているので、ここに残る時点で書き換えられない形。
+    // 対応記法なら usesPattern が既に潰しているので、ここに残る時点で書き換えられない形。
     if (!REPO_VALUE_PATTERN.test(value) || value.includes("@")) lines.push(index + 1);
   }
   return lines;
