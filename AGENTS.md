@@ -145,7 +145,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0142](docs/adr/0142-license.md) | License | MIT / OSS contribution policy / `private` flag alignment |
 | [0150](docs/adr/0150-git-workflow.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
 | [0151](docs/adr/0151-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
-| [0152](docs/adr/0152-agents-md-policy.md) | AGENTS.md policy | File placement / language / 12-section structure / Instruction Priority / `## [TODO]` convention |
+| [0152](docs/adr/0152-agents-md-policy.md) | AGENTS.md policy | File placement / language / 13-section structure / Instruction Priority / `## [TODO]` convention |
 | [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / workflow-definition lint (actionlint) / hooks mirror CI / required checks / caching |
 | [0154](docs/adr/0154-claude-skills-operations.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
 | [0155](docs/adr/0155-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` target structure |
@@ -433,6 +433,37 @@ Fix items the auto-fixer could not handle by hand.
 - Adding ESLint rules that biome can express, applying preset bundles (`eslint:recommended` / `eslint-config-next`), or using ESLint as a formatter (ADR 0002: capability-based split — biome-first, ESLint only fills the checks biome cannot express, e.g. layer-boundary imports)
 - Locally disabling biome's formatter / linter for case-specific reasons (require ADR revision and consensus instead)
 - Heavy use of `biome-ignore` comments (consider scoped `overrides` first)
+
+## Review Phase Protocol
+
+A request to review work that has already been implemented — 「レビューして」 or any equivalent —
+names **three** subjects this repository ships a skill for, not one:
+
+| Skill | Subject |
+| --- | --- |
+| `/impl-review` | the change itself — correctness / security / architecture / runtime gap |
+| `/test-review` | the tests that pin the change down |
+| `/comment-sweep` | the comment stock carried by the files the change touched |
+
+Do not silently pick one. **Estimate each skill's return from the context you already hold** — which
+layers the change touched, whether tests or comments moved at all, what an earlier skill in this
+session already covered — then **ask the user per skill whether to run it, stating that estimate and
+its reason**, and run what they approve.
+
+The estimate is the work. 「三つとも回しますか」 is not a question; it hands the cost back to the user
+unpriced. Say which pass you expect to pay off, which you expect to return nothing, and why.
+
+Two of the three are normally reached **through** `/impl-review` rather than beside it, and that is
+what keeps one subject to one owner:
+
+- the **test viewpoint** goes to `/test-review` in Step 5, and the `test-gap` lens is suppressed
+  while that delegation runs
+- the **comment stock** goes to `/comment-sweep` in Step 6, on the question Step 0 asks
+
+Where `/impl-review` already asks, that ask **is** the per-skill question above — do not put a second
+one beside it. Invoke `/test-review` or `/comment-sweep` directly only when `/impl-review` is not
+being run, or when its delegation could not run and the subject still needs an owner — never so that
+the same subject is audited twice.
 
 ## Protected Documentation
 
