@@ -96,7 +96,7 @@ jobs:
           exit 0
 
       - name: Upload the visual diff
-        if: always() && steps.vrt.outputs.status == 'failure'
+        if: ${{ !cancelled() && steps.vrt.outputs.status == 'failure' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-diff
@@ -106,8 +106,12 @@ jobs:
 
       # One issue per branch, reopened rather than duplicated. A second failure on a
       # branch that is already flagged is the same unresolved fact, not a new one.
+      #
+      # `!= 'success'`, not `== 'failure'`: the comparison can fail to start at all — the
+      # baseline store may be unreachable — and that has to raise too. `!cancelled()` is
+      # what keeps a run superseded by the next merge out of that same net.
       - name: Raise the failure for a human
-        if: always() && steps.vrt.outputs.status != 'success'
+        if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: ${{ github.ref_name }}
@@ -147,5 +151,5 @@ jobs:
           fi
 
       - name: Fail if a story changed
-        if: always() && steps.vrt.outputs.status != 'success'
+        if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}
         run: exit 1
