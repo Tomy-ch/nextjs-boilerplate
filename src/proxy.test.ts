@@ -36,7 +36,7 @@ describe("proxy", () => {
   it("session があれば保護されたパスも通す", async () => {
     readOptimisticSession.mockResolvedValue(session);
 
-    const response = await proxy(request("/mypage", "sealed"));
+    const response = await proxy(request("/account", "sealed"));
 
     expect(response.headers.get("location")).toBeNull();
   });
@@ -44,30 +44,30 @@ describe("proxy", () => {
   it("cookie の値を判定へ渡す", async () => {
     readOptimisticSession.mockResolvedValue(session);
 
-    await proxy(request("/mypage", "sealed-value"));
+    await proxy(request("/account", "sealed-value"));
 
     expect(readOptimisticSession).toHaveBeenCalledWith("sealed-value");
   });
 
   // ----- 異常系 -----
   it("未認証で保護されたパスへ来たらログインへ送る", async () => {
-    const response = await proxy(request("/mypage"));
+    const response = await proxy(request("/account"));
 
     expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/login?returnUrl=%2Fmypage",
+      "http://localhost:3000/login?returnUrl=%2Faccount",
     );
   });
 
   it("復帰先にクエリを含める", async () => {
-    const response = await proxy(request("/checkout?step=2"));
+    const response = await proxy(request("/account?tab=security"));
 
     expect(new URL(String(response.headers.get("location"))).searchParams.get("returnUrl")).toBe(
-      "/checkout?step=2",
+      "/account?tab=security",
     );
   });
 
-  it("管理画面も保護の対象にする", async () => {
-    const response = await proxy(request("/admin/reports"));
+  it("接頭辞の下のパスも保護の対象にする", async () => {
+    const response = await proxy(request("/account/sessions"));
 
     expect(response.headers.get("location")).toContain("/login");
   });

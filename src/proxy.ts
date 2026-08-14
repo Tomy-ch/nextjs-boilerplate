@@ -11,8 +11,16 @@ import { toSafeReturnUrl } from "@/model/return-url";
  * @remarks
  * 保護されている側を列挙します。公開側を列挙する書き方だと、新しく足した画面が既定で公開になり、
  * 書き忘れがそのまま漏洩になります。
+ *
+ * `/account` は fork 先が最初に書き換える置き場です。同梱サンプルの画面は破棄と一緒に消えますが、
+ * 保護の宣言そのものは残す必要があるため、1 つだけ中立な接頭辞を置いています。
  */
-const PROTECTED_PREFIXES = ["/mypage", "/checkout", "/admin"];
+const PROTECTED_PREFIXES = [
+  "/account",
+  "/mypage", // sample:line
+  "/checkout", // sample:line
+  "/admin", // sample:line
+];
 
 /** 認証をやり直させる先。 */
 const LOGIN_PATH = "/login";
