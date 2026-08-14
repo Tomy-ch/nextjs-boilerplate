@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+15463a1
+ * OpenAPI spec version: 2.2.0+e95da0c
  */
 import * as zod from "zod";
 
@@ -63,6 +63,7 @@ export const GetUsersResponse = zod
     users: zod.array(
       zod
         .object({
+          id: zod.uuid().describe("ユーザーID"),
           firstName: zod.string().max(getUsersResponseOneUsersItemFirstNameMax).describe("名前"),
           lastName: zod.string().max(getUsersResponseOneUsersItemLastNameMax).describe("苗字"),
           email: zod.email().describe("メールアドレス"),
@@ -169,6 +170,7 @@ export const postUsersResponseBuildingMax = 255;
 
 export const PostUsersResponse = zod
   .object({
+    id: zod.uuid().describe("ユーザーID"),
     firstName: zod.string().max(postUsersResponseFirstNameMax).describe("名前"),
     lastName: zod.string().max(postUsersResponseLastNameMax).describe("苗字"),
     email: zod.email().describe("メールアドレス"),
@@ -223,6 +225,7 @@ export const getUsersDetailResponseBuildingMax = 255;
 
 export const GetUsersDetailResponse = zod
   .object({
+    id: zod.uuid().describe("ユーザーID"),
     firstName: zod.string().max(getUsersDetailResponseFirstNameMax).describe("名前"),
     lastName: zod.string().max(getUsersDetailResponseLastNameMax).describe("苗字"),
     email: zod.email().describe("メールアドレス"),
@@ -324,6 +327,7 @@ export const putUsersDetailResponseBuildingMax = 255;
 
 export const PutUsersDetailResponse = zod
   .object({
+    id: zod.uuid().describe("ユーザーID"),
     firstName: zod.string().max(putUsersDetailResponseFirstNameMax).describe("名前"),
     lastName: zod.string().max(putUsersDetailResponseLastNameMax).describe("苗字"),
     email: zod.email().describe("メールアドレス"),
@@ -423,6 +427,7 @@ export const patchUsersDetailResponseBuildingMax = 255;
 
 export const PatchUsersDetailResponse = zod
   .object({
+    id: zod.uuid().describe("ユーザーID"),
     firstName: zod.string().max(patchUsersDetailResponseFirstNameMax).describe("名前"),
     lastName: zod.string().max(patchUsersDetailResponseLastNameMax).describe("苗字"),
     email: zod.email().describe("メールアドレス"),
@@ -489,6 +494,7 @@ export const getUsersMeResponseBuildingMax = 255;
 
 export const GetUsersMeResponse = zod
   .object({
+    id: zod.uuid().describe("ユーザーID"),
     firstName: zod.string().max(getUsersMeResponseFirstNameMax).describe("名前"),
     lastName: zod.string().max(getUsersMeResponseLastNameMax).describe("苗字"),
     email: zod.email().describe("メールアドレス"),
@@ -511,27 +517,100 @@ export const GetUsersMeResponse = zod
 
 /**
  * 認証コンテキスト（Bearer トークン）の内部 UserID に該当するユーザー自身の購入を集計して取得します。
- * マイページの集計カード表示を想定した最小集計で、購入一覧そのものは返しません（履歴は購入履歴一覧 API）。
+ * マイページの集計カード表示を想定した集計で、購入一覧そのものは返しません（履歴は購入履歴一覧 API）。
  * パスに他者の識別子を持たないため、他ユーザーの集計は取得できません。
- * 合計金額は USD セント単位の整数です。キャンセル済みの購入も総件数・合計金額に含めます
- * （キャンセルはステータス別内訳の 1 要素として件数・金額とも返るため、キャンセルを除いた値が必要な
- * クライアントは内訳から差し引けます）。
- * 購入が 1 件もない場合はエラーではなくゼロ値（件数 0・合計 0・内訳は空配列）を返します。
+ * 集計対象期間は period で切り替えます（既定は全期間）。month / range / recent の境界はサーバの
+ * タイムゾーン（Asia/Tokyo）の暦日基準で算出し、両端の暦日を含みます。実際に用いた期間は要求した区分に
+ * 関わらず period として返すため、クライアントは相対指定を自前で解決する必要がありません。
+ * 区分ごとの必須パラメータ（month / from と to / days）の欠落、および to が from より前の場合は 400 を返します。
+ * キャンセル済みの購入はすべての集計値から除外します（ステータス別内訳にもキャンセルは現れません）。
+ * 金額は 2 種類返します。totalAmount は支払金額（小計 + 税額 + 送料）の合計、itemsTotal は明細金額
+ * （単価 × 数量）の合計で、税額・送料は明細に按分できないため両者は一致しません。
+ * groupBy を指定すると itemsTotal をその単位へ分解した groups を返します（未指定なら groups を返しません）。
+ * 対象の購入が 1 件もない場合はエラーではなくゼロ値（件数 0・合計 0・内訳は空配列）を返します。
  * 本 op 自体は DB の集計 SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
  * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
  * @summary 認証ユーザー自身の購入集計の取得
  */
+export const getUsersMePurchasesSummaryQueryPeriodDefault = `all`;
+export const getUsersMePurchasesSummaryQueryMonthRegExp = new RegExp("^\\d{4}-(0[1-9]|1[0-2])$");
+export const getUsersMePurchasesSummaryQueryDaysMax = 365;
+
+export const getUsersMePurchasesSummaryQueryGroupByMax = 2;
+
+export const GetUsersMePurchasesSummaryQueryParams = zod.object({
+  period: zod
+    .enum(["all", "month", "range", "recent"])
+    .default(getUsersMePurchasesSummaryQueryPeriodDefault)
+    .describe(
+      "集計・絞り込み対象期間の区分。`all`（既定）は全期間、`month` は `month` で指定した暦月、\n`range` は `from` \/ `to` で指定した期間、`recent` は今日から `days` 日前までを対象とします。\n各区分の境界はサーバのタイムゾーン（Asia\/Tokyo）の暦日基準で算出し、両端の暦日を含みます。\n区分ごとの必須パラメータ（`month` \/ `from` と `to` \/ `days`）が欠落している場合は 400 を返します。\n",
+    ),
+  from: zod.iso
+    .date()
+    .optional()
+    .describe(
+      "対象期間の開始日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。\n日付はサーバのタイムゾーン（Asia\/Tokyo）の暦日として解釈します。\n",
+    ),
+  to: zod.iso
+    .date()
+    .optional()
+    .describe(
+      "対象期間の終了日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。\n日付はサーバのタイムゾーン（Asia\/Tokyo）の暦日として解釈します。`from` より前の日付を指定した場合は 400 を返します。\n",
+    ),
+  month: zod
+    .string()
+    .regex(getUsersMePurchasesSummaryQueryMonthRegExp)
+    .optional()
+    .describe(
+      "対象とする暦月（`YYYY-MM`）。`period=month` のときのみ必須で、それ以外の区分では無視します。\n月初日から月末日までを、サーバのタイムゾーン（Asia\/Tokyo）の暦日基準で対象とします。\n",
+    ),
+  days: zod
+    .int()
+    .min(1)
+    .max(getUsersMePurchasesSummaryQueryDaysMax)
+    .optional()
+    .describe(
+      "今日から遡る日数。`period=recent` のときのみ必須で、それ以外の区分では無視します。\n今日を終了日、今日の `days` 日前を開始日とし、両端の暦日を含みます\n（2026-01-31 に `days=10` を指定した場合の対象は 2026-01-21 〜 2026-01-31 です）。\n暦日はサーバのタイムゾーン（Asia\/Tokyo）基準です。\n",
+    ),
+  groupBy: zod
+    .array(zod.enum(["category", "product"]))
+    .max(getUsersMePurchasesSummaryQueryGroupByMax)
+    .optional()
+    .describe(
+      "集計のグループ化単位（カンマ区切り）。指定順がそのままネストの階層順になります\n（`category,product` ならカテゴリで分け、その中を商品で分けます）。\n未指定の場合はグループ化せず、レスポンスに groups を含めません。同じ単位を 2 回指定した場合は 400 を返します。\n",
+    ),
+});
+
 export const GetUsersMePurchasesSummaryResponse = zod
   .object({
+    period: zod
+      .object({
+        from: zod.iso
+          .date()
+          .nullable()
+          .describe("対象期間の開始日（この日を含みます）。全期間の場合は null です。"),
+        to: zod.iso
+          .date()
+          .nullable()
+          .describe("対象期間の終了日（この日を含みます）。全期間の場合は null です。"),
+      })
+      .describe(
+        "集計に実際に用いた対象期間。両端の暦日を含みます（サーバのタイムゾーン Asia\/Tokyo 基準）。\n相対指定（period=recent）や暦月指定（period=month）を解決した後の値なので、\nクライアントは要求した区分に関わらずこの 2 日付で対象期間を確定できます。\nperiod=all（全期間）のときは期間で絞り込んでいないため、いずれも null です。\n",
+      ),
     totalCount: zod
       .int()
       .describe(
-        "購入総件数（キャンセル済みを含む）。statusBreakdown の count の総和と一致します。購入がない場合は 0 です。",
+        "対象期間の購入件数（キャンセル済みを除く）。statusBreakdown の count の総和と一致します。\n対象がない場合は 0 です。\n",
       ),
     totalAmount: zod
       .int()
       .describe(
-        "購入金額の合計（キャンセル済みを含む）。statusBreakdown の totalAmount の総和と一致します。\nUSD セント単位の整数です。購入がない場合は 0 です。\n",
+        "対象期間の支払金額の合計（小計 + 税額 + 送料、キャンセル済みを除く）。\nstatusBreakdown の totalAmount の総和と一致します。USD セント単位の整数です。対象がない場合は 0 です。\n",
+      ),
+    itemsTotal: zod
+      .string()
+      .describe(
+        '対象期間の明細金額の合計（単価 × 数量の総和、キャンセル済みを除く）。税額・送料は明細に按分できない\nため含まず、totalAmount とは一致しません。groups の itemsTotal の総和と正確に一致します。\n価格スケール（USD ドルの正確な decimal）を文字列で表現します。決済スケール（セント整数）の\ntotalAmount とは尺度が異なる点に注意してください。対象がない場合は \"0\" です。\n',
       ),
     statusBreakdown: zod
       .array(
@@ -555,11 +634,92 @@ export const GetUsersMePurchasesSummaryResponse = zod
           ),
       )
       .describe(
-        "ステータス別の内訳（購入ステータスマスタの表示順）。購入に出現したステータスのみを含むため、\n購入がない場合は空配列です。\n",
+        "ステータス別の内訳（購入ステータスマスタの表示順）。対象期間に出現したステータスのみを含むため、\n対象がない場合は空配列です。キャンセル済みは集計対象外のため、キャンセルのステータスは現れません。\n",
+      ),
+    groups: zod
+      .record(
+        zod.string(),
+        zod
+          .object({
+            name: zod.string().describe("グループの表示名（カテゴリ名称・商品名称）"),
+            itemsTotal: zod
+              .string()
+              .describe(
+                "当該グループの明細金額の合計（単価 × 数量の総和）。税額・送料は明細に按分できないため含みません。\n価格スケール（USD ドルの正確な decimal）を文字列で表現します。決済スケール（セント整数）へは\n丸めません（丸めは決済確定の 1 箇所のみ）。下位グループを持つ場合、その itemsTotal の総和と正確に一致します。\n",
+              ),
+            groups: zod
+              .record(
+                zod.string(),
+                zod
+                  .object({
+                    name: zod.string().describe("グループの表示名（カテゴリ名称・商品名称）"),
+                    itemsTotal: zod
+                      .string()
+                      .describe(
+                        "当該グループの明細金額の合計（単価 × 数量の総和）。税額・送料は明細に按分できないため含みません。\n価格スケール（USD ドルの正確な decimal）を文字列で表現します。決済スケール（セント整数）へは\n丸めません（丸めは決済確定の 1 箇所のみ）。\n",
+                      ),
+                  })
+                  .describe(
+                    "グループ化した購入集計の下位ノード（groupBy の 2 番目の単位）。これ以上の階層は持ちません。\nマップのキーはグループ化単位の識別子（category はカテゴリ名称、product は商品 ID）で、\n表示名は常に name で返すため、キーの形に関わらず name をそのまま表示できます。\n",
+                  ),
+              )
+              .optional()
+              .describe(
+                "下位のグループ化単位ごとのノード。groupBy に 2 番目の単位が指定されている場合のみ含みます。\nキーはグループ化単位の識別子（category はカテゴリ名称、product は商品 ID）です。\n",
+              ),
+          })
+          .describe(
+            "グループ化した購入集計の最上位ノード（groupBy の 1 番目の単位）。groupBy に 2 番目の単位が\n指定されている場合のみ groups に下位ノードを持ちます。階層はグループ化単位の上限（2）と同じ深さで、\n再帰はしません。マップのキーはグループ化単位の識別子（category はカテゴリ名称、product は商品 ID）で、\n表示名は常に name で返すため、キーの形に関わらず name をそのまま表示できます。\n",
+          ),
+      )
+      .optional()
+      .describe(
+        "groupBy で指定した最上位のグループ化単位ごとのノード。groupBy 未指定の場合は含みません。\nキーはグループ化単位の識別子（category はカテゴリ名称、product は商品 ID）です。\n対象がない場合は空オブジェクトです。\n",
       ),
   })
   .describe(
-    "認証ユーザー自身の購入集計のレスポンススキーマ。件数・合計金額・ステータス別内訳のみを返し、\n購入一覧・明細は含みません。金額は USD セント単位の整数です。\n",
+    "認証ユーザー自身の購入集計のレスポンススキーマ。対象期間・件数・合計金額・ステータス別内訳と、\nグループ化を指定した場合はその内訳のみを返し、購入一覧・明細は含みません。金額は USD セント単位の整数です。\nすべての集計値はキャンセル済みを除外した同一の母集団から算出します。\n",
+  );
+
+/**
+ * 認証コンテキスト（Bearer トークン）の内部 UserID に該当するユーザー自身に割り当てられたロールを取得します。
+ * パスに他者の識別子を持たないため、他ユーザーのロールは取得できません。
+ * 用途はクライアント側の楽観的な権限分岐（管理者向け導線を表示するかどうか等）であり、
+ * 確定的な認可判断はサーバーが各操作で行います。したがって本 op が返すロールは、
+ * クライアントが権限のある操作を組み立てるための材料であって、操作の可否そのものではありません。
+ * ロールが 1 つも割り当てられていない場合はエラーではなく空配列を返します。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
+ * @summary 認証ユーザー自身のロールの取得
+ */
+export const getUsersMeRolesResponseRolesItemNameMax = 100;
+
+export const GetUsersMeRolesResponse = zod
+  .object({
+    roles: zod
+      .array(
+        zod
+          .object({
+            code: zod
+              .enum(["admin", "general"])
+              .describe(
+                "ロールの安定コード。永続化されたロールコードに 1:1 で対応し、表示名の変更では変わりません。\nクライアントの権限分岐はこの値で行います。\n",
+              ),
+            name: zod
+              .string()
+              .max(getUsersMeRolesResponseRolesItemNameMax)
+              .describe("ロール名。表示専用であり、分岐の判定には用いません。"),
+          })
+          .describe(
+            "ユーザーに割り当てられたロール（コードと名称）。code は分岐に用いる機械可読な安定キー、\nname は表示用の名称です。ロールの追加は code の enum 拡張として表れます。\n",
+          ),
+      )
+      .describe(
+        "認証ユーザー自身に割り当てられた全ロール。ロールが 1 つも割り当てられていない場合は空配列です。",
+      ),
+  })
+  .describe(
+    "認証ユーザー自身に割り当てられたロールのレスポンススキーマ。\nクライアントの楽観的な権限分岐（導線の出し分け）を用途とし、確定的な認可判断はサーバー側が行います。\n",
   );
 
 /**
@@ -622,6 +782,7 @@ export const GetUsersSearchResponse = zod
     users: zod.array(
       zod
         .object({
+          id: zod.uuid().describe("ユーザーID"),
           firstName: zod
             .string()
             .max(getUsersSearchResponseOneUsersItemOneFirstNameMax)
@@ -720,6 +881,7 @@ export const GetUsersFeedResponse = zod
     users: zod.array(
       zod
         .object({
+          id: zod.uuid().describe("ユーザーID"),
           firstName: zod
             .string()
             .max(getUsersFeedResponseOneUsersItemFirstNameMax)
@@ -1153,6 +1315,88 @@ export const PostProductsResponse = zod
       ),
   })
   .describe("商品情報のレスポンススキーマ");
+
+/**
+ * 公開済み商品のうち、指定した検索条件に一致する件数のみを返します。認証不要の公開エンドポイントです。
+ * categoryId / statusId / keyword / minPrice / maxPrice / minQuantity / maxQuantity の意味は
+ * GET /v1/products と同一です。検索条件を指定しない場合は公開済み商品の総数を返します。
+ * @summary 商品検索の一致件数の取得
+ */
+export const getProductsCountQueryCategoryIdMax = 36;
+
+export const getProductsCountQueryCategoryIdRegExp = new RegExp(
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+);
+export const getProductsCountQueryStatusIdMax = 36;
+
+export const getProductsCountQueryStatusIdRegExp = new RegExp(
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+);
+export const getProductsCountQueryKeywordMax = 255;
+
+export const getProductsCountQueryMinPriceMax = 40;
+
+export const getProductsCountQueryMinPriceRegExp = new RegExp("^\\d{1,20}(\\.\\d{1,18})?$");
+export const getProductsCountQueryMaxPriceMax = 40;
+
+export const getProductsCountQueryMaxPriceRegExp = new RegExp("^\\d{1,20}(\\.\\d{1,18})?$");
+export const getProductsCountQueryMinQuantityMin = 0;
+
+export const getProductsCountQueryMaxQuantityMin = 0;
+
+export const GetProductsCountQueryParams = zod.object({
+  categoryId: zod
+    .uuid()
+    .max(getProductsCountQueryCategoryIdMax)
+    .regex(getProductsCountQueryCategoryIdRegExp)
+    .optional()
+    .describe("商品カテゴリIDでフィルタします。指定しない場合は全カテゴリを対象とします。"),
+  statusId: zod
+    .uuid()
+    .max(getProductsCountQueryStatusIdMax)
+    .regex(getProductsCountQueryStatusIdRegExp)
+    .optional()
+    .describe("商品ステータスIDでフィルタします。指定しない場合は全ステータスを対象とします。"),
+  keyword: zod
+    .string()
+    .min(1)
+    .max(getProductsCountQueryKeywordMax)
+    .optional()
+    .describe("全文検索キーワード。商品名・商品説明への部分一致で絞り込みます。"),
+  minPrice: zod
+    .string()
+    .max(getProductsCountQueryMinPriceMax)
+    .regex(getProductsCountQueryMinPriceRegExp)
+    .optional()
+    .describe("最低価格（この値以上）。負でない十進文字列で指定します。"),
+  maxPrice: zod
+    .string()
+    .max(getProductsCountQueryMaxPriceMax)
+    .regex(getProductsCountQueryMaxPriceRegExp)
+    .optional()
+    .describe("最高価格（この値以下）。負でない十進文字列で指定します。"),
+  minQuantity: zod
+    .int()
+    .min(getProductsCountQueryMinQuantityMin)
+    .optional()
+    .describe("最低在庫数（この値以上）。"),
+  maxQuantity: zod
+    .int()
+    .min(getProductsCountQueryMaxQuantityMin)
+    .optional()
+    .describe("最高在庫数（この値以下）。"),
+});
+
+export const getProductsCountResponseCountMin = 0;
+
+export const GetProductsCountResponse = zod
+  .object({
+    count: zod
+      .int()
+      .min(getProductsCountResponseCountMin)
+      .describe("検索条件に一致する公開商品の件数。対象がない場合は 0 です。"),
+  })
+  .describe("商品検索の一致件数レスポンス");
 
 /**
  * 指定された UUID に該当する公開済み商品の詳細情報を取得します。認証不要の公開エンドポイントです。
@@ -1822,6 +2066,10 @@ export const GetAddressesResponse = zod
  * nextCursor を after に渡して次ページを取得します（無限スクロール）。
  * 一覧は概要（code / totalAmount / status / orderedAt）のみを返し、明細は含みません。
  * 他ユーザーの購入は返しません（所有権フィルタで閉じるため、対象がなければ空一覧です）。
+ * period で注文日時の対象期間を絞り込めます（既定は全期間）。month / range / recent の境界は
+ * サーバのタイムゾーン（Asia/Tokyo）の暦日基準で算出し、両端の暦日を含みます。区分ごとの必須
+ * パラメータ（month / from と to / days）の欠落、および to が from より前の場合は 400 を返します。
+ * ページ送りの間は同じ絞り込み条件を渡してください（条件が変わると keyset の連続性は保証されません）。
  * totalAmount は USD セント単位の整数です。
  * @summary 購入履歴一覧の取得
  */
@@ -1830,6 +2078,10 @@ export const getPurchasesQueryAfterMax = 512;
 export const getPurchasesQueryAfterRegExp = new RegExp("^[A-Za-z0-9_-]+$");
 export const getPurchasesQueryFirstDefault = 50;
 export const getPurchasesQueryFirstMax = 200;
+
+export const getPurchasesQueryPeriodDefault = `all`;
+export const getPurchasesQueryMonthRegExp = new RegExp("^\\d{4}-(0[1-9]|1[0-2])$");
+export const getPurchasesQueryDaysMax = 365;
 
 export const GetPurchasesQueryParams = zod.object({
   after: zod
@@ -1844,6 +2096,39 @@ export const GetPurchasesQueryParams = zod.object({
     .max(getPurchasesQueryFirstMax)
     .default(getPurchasesQueryFirstDefault)
     .describe("取得件数の上限"),
+  period: zod
+    .enum(["all", "month", "range", "recent"])
+    .default(getPurchasesQueryPeriodDefault)
+    .describe(
+      "集計・絞り込み対象期間の区分。`all`（既定）は全期間、`month` は `month` で指定した暦月、\n`range` は `from` \/ `to` で指定した期間、`recent` は今日から `days` 日前までを対象とします。\n各区分の境界はサーバのタイムゾーン（Asia\/Tokyo）の暦日基準で算出し、両端の暦日を含みます。\n区分ごとの必須パラメータ（`month` \/ `from` と `to` \/ `days`）が欠落している場合は 400 を返します。\n",
+    ),
+  from: zod.iso
+    .date()
+    .optional()
+    .describe(
+      "対象期間の開始日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。\n日付はサーバのタイムゾーン（Asia\/Tokyo）の暦日として解釈します。\n",
+    ),
+  to: zod.iso
+    .date()
+    .optional()
+    .describe(
+      "対象期間の終了日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。\n日付はサーバのタイムゾーン（Asia\/Tokyo）の暦日として解釈します。`from` より前の日付を指定した場合は 400 を返します。\n",
+    ),
+  month: zod
+    .string()
+    .regex(getPurchasesQueryMonthRegExp)
+    .optional()
+    .describe(
+      "対象とする暦月（`YYYY-MM`）。`period=month` のときのみ必須で、それ以外の区分では無視します。\n月初日から月末日までを、サーバのタイムゾーン（Asia\/Tokyo）の暦日基準で対象とします。\n",
+    ),
+  days: zod
+    .int()
+    .min(1)
+    .max(getPurchasesQueryDaysMax)
+    .optional()
+    .describe(
+      "今日から遡る日数。`period=recent` のときのみ必須で、それ以外の区分では無視します。\n今日を終了日、今日の `days` 日前を開始日とし、両端の暦日を含みます\n（2026-01-31 に `days=10` を指定した場合の対象は 2026-01-21 〜 2026-01-31 です）。\n暦日はサーバのタイムゾーン（Asia\/Tokyo）基準です。\n",
+    ),
 });
 
 export const GetPurchasesResponse = zod
@@ -2487,4 +2772,112 @@ export const GetDashboardSummaryResponse = zod
   })
   .describe(
     "admin ダッシュボードの横断集計レスポンススキーマ。売上・購入ステータス別件数・商品数を 1 レスポンスに\n合成して返し、購入・商品の一覧そのものは含みません。金額は USD セント単位の整数です。\n指標ごとに集計母集団が異なるため、各プロパティの description を参照してください。\n",
+  );
+
+/**
+ * 呼び出し主体のカートを、明細ごとの再評価つきで取得します。
+ * 主体は認証済みユーザー（Bearer トークンの内部 UserID）か、ゲスト（X-Cart-Session ヘッダ）の
+ * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
+ * パスに他者の識別子を持たないため、他人のカートは取得できません。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0019 (optional-authentication-fail-closed)）。
+ * 明細ごとに商品の現在値を突き合わせ、買えないもの・値の変わったものに issues を立てます。
+ * 問題のある明細があっても 200 で返します。取得は成功しており、問題があるのは明細であって
+ * 要求ではないためで、エラーにすると買える明細が何であったかを利用者に見せられなくなります。
+ * 在庫は押さえず、商品行もロックしません。再評価は参考情報であり、返した瞬間から古くなります。
+ * カートがまだ無い主体、および有効期限を過ぎたカートの主体には、空のカートを 200 で返します。
+ * **この操作はカート行を作りません**（したがって sessionToken は常に null、expiresAt は
+ * カートが無ければ null です）。
+ * 本 op 自体は DB の SELECT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分のカートの取得（明細ごとの再評価つき）
+ */
+export const getCartsMeHeaderXCartSessionMin = 43;
+export const getCartsMeHeaderXCartSessionMax = 43;
+
+export const getCartsMeHeaderXCartSessionRegExp = new RegExp("^[A-Za-z0-9_-]{43}$");
+
+export const GetCartsMeHeader = zod.object({
+  "X-Cart-Session": zod
+    .string()
+    .min(getCartsMeHeaderXCartSessionMin)
+    .max(getCartsMeHeaderXCartSessionMax)
+    .regex(getCartsMeHeaderXCartSessionRegExp)
+    .optional()
+    .describe(
+      "ゲストカートのセッショントークン。所有者が未確定のカートへ到達する唯一の手段で、\n未認証の呼び出し側はこのヘッダで自分のカートを指定する。\n認証済みの呼び出し側では無視される（カートは内部 UserID から解決されるため）。\n値は 256 ビットを base64url（パディング無し）で表現した 43 文字。\n",
+    ),
+});
+
+export const getCartsMeResponseItemsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const GetCartsMeResponse = zod
+  .object({
+    sessionToken: zod
+      .string()
+      .nullish()
+      .describe(
+        "ゲストカートのセッショントークン。以降のリクエストで X-Cart-Session ヘッダに載せます。\n所有者が確定済みのカート、および新規発行が起きなかった操作では null です。\n\*\*取得（GET）ではカート行を作らないため、この操作では常に null です。\*\*\n",
+      ),
+    items: zod
+      .array(
+        zod
+          .object({
+            productId: zod.uuid().describe("商品 ID。カート内で明細を一意に指す自然キー。"),
+            productName: zod
+              .string()
+              .nullish()
+              .describe("商品名。商品を引けなかった場合（issues に notFound）は null です。"),
+            quantity: zod.int().describe("カートに入れた数量。"),
+            unitPrice: zod
+              .string()
+              .regex(getCartsMeResponseItemsItemUnitPriceRegExp)
+              .nullish()
+              .describe(
+                '取得時点の商品の単価。サブセント精度を保持する decimal 文字列（USD ドル）で表します（例 \"19.99\"）。\n商品を引けなかった場合（issues に notFound）は null です。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+              ),
+            issues: zod
+              .array(
+                zod
+                  .enum([
+                    "notFound",
+                    "unpublished",
+                    "outOfStock",
+                    "insufficientStock",
+                    "priceIncreased",
+                    "priceDecreased",
+                  ])
+                  .describe(
+                    "カート明細の再評価結果。取得のたびに商品の現在値と突き合わせて判定される。\n1 つの明細に複数同時に立ちうるが、notFound は単独で立ち（商品が引けない以上、在庫も価格も\n判定材料が無い）、outOfStock と insufficientStock は排他（在庫 0 は「不足」ではなく「無い」）。\nいずれの値もカートの取得を失敗にしない。買えない明細があることは要求の不正ではないため。\n",
+                  ),
+              )
+              .describe(
+                "この明細の再評価結果。空配列なら現時点で購入可能です。\nsubtotalAmount の合算対象になるのは、この配列が空の明細だけです。\n",
+              ),
+            availableQuantity: zod
+              .int()
+              .nullish()
+              .describe(
+                "issues に insufficientStock がある場合の、今買える上限（商品の在庫数）。\nそれ以外の場合は null です。\n",
+              ),
+          })
+          .describe(
+            "カート明細 1 件。商品の現在値との突き合わせ結果を issues に添える。\nカートは商品の名前も価格も保持しないため、productName \/ unitPrice は取得時点の商品の値であり、\n購入時の金額を拘束しない（請求額を確定するのは購入明細のスナップショット）。\n",
+          ),
+      )
+      .describe("カートの明細。1 件も入っていない場合、およびカートがまだ無い場合は空配列です。\n"),
+    subtotalAmount: zod
+      .int()
+      .describe(
+        "小計。issues が空の明細（現時点で購入可能なもの）だけを単価×数量で合算した参考値で、\nUSD セント単位の整数です。請求額ではありません。\n合算は decimal のまま行い、最後に一度だけ最小単位へ丸めます。\n合算対象が 1 件も無い場合は 0 です。\n",
+      ),
+    expiresAt: zod.iso
+      .datetime({ offset: true })
+      .nullish()
+      .describe(
+        "カートの有効期限。操作のたびに延長されます。\nカートがまだ無い場合は行そのものが存在しないため null です\n（明細を空にしただけの場合はカート行が残るため null になりません）。\n",
+      ),
+  })
+  .describe(
+    "カートのレスポンススキーマ。カート参照・投入・削除の各操作で共有します。\nカートは在庫を押さえず、確定単価も持ちません。買うつもりの控えであって、\n売り越しの禁止も請求額の確定も購入成立時の関心です。\n",
   );

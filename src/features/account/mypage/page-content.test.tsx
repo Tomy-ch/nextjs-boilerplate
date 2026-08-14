@@ -29,7 +29,7 @@ describe("MypagePageContent", () => {
     render(await MypagePageContent());
 
     expect(screen.getByText("山田 太郎")).toBeVisible();
-    expect(screen.getByRole("row", { name: /合計/ })).toHaveTextContent("12 件");
+    expect(screen.getByRole("row", { name: /合計/ })).toHaveTextContent("11 件");
     expect(screen.getByRole("button", { name: "もっと見る" })).toBeEnabled();
   });
 

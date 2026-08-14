@@ -21,7 +21,7 @@ describe("PurchaseSummaryCard", () => {
       .map((header) => header.textContent)
       .filter((name) => name !== "合計");
 
-    expect(statusNames).toEqual(["配達済み", "発送済み", "キャンセル"]);
+    expect(statusNames).toEqual(["配達済み", "発送済み"]);
   });
 
   it("件数と金額を内訳の行ごとに出す", () => {
@@ -33,13 +33,13 @@ describe("PurchaseSummaryCard", () => {
     expect(within(row).getByText("$820.00")).toBeVisible();
   });
 
-  it("キャンセルを含んだ総数と合計を最後の行に出す", () => {
+  it("キャンセルを除いた総数と合計を最後の行に出す", () => {
     render(<PurchaseSummaryCard purchases={PURCHASE_HISTORY} summary={PURCHASE_SUMMARY} />);
 
     const total = screen.getByRole("row", { name: /合計/ });
 
-    expect(within(total).getByText("12 件")).toBeVisible();
-    expect(within(total).getByText("$1,240.00")).toBeVisible();
+    expect(within(total).getByText("11 件")).toBeVisible();
+    expect(within(total).getByText("$1,150.00")).toBeVisible();
   });
 
   it("caption を置かず、表のスクロール領域の名前で支援技術に伝える", () => {

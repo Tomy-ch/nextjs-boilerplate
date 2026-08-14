@@ -41,7 +41,7 @@ describe("MypageView", () => {
   it("受け取った集計をカードへ渡す", () => {
     renderView();
 
-    expect(screen.getByRole("row", { name: /合計/ })).toHaveTextContent("12 件");
+    expect(screen.getByRole("row", { name: /合計/ })).toHaveTextContent("11 件");
   });
 
   it("受け取った履歴を集計のカードへ渡す", () => {

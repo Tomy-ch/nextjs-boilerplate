@@ -65,9 +65,12 @@ const profile = {
   building: "サンプルマンション 101",
 };
 
+/** 契約はキャンセル済みを集計から除くため、内訳にキャンセルの行は現れない。 */
 const wireSummary = {
+  period: { from: null, to: null },
   totalCount: 3,
   totalAmount: 300_000,
+  itemsTotal: "2800.00",
   statusBreakdown: [
     {
       status: { id: "0195f0c2-0000-7000-8000-0000000000b1", name: "発送済み" },
@@ -75,7 +78,7 @@ const wireSummary = {
       totalAmount: 200_000,
     },
     {
-      status: { id: "0195f0c2-0000-7000-8000-0000000000b2", name: "キャンセル" },
+      status: { id: "0195f0c2-0000-7000-8000-0000000000b2", name: "配達済み" },
       count: 1,
       totalAmount: 100_000,
     },
@@ -208,7 +211,7 @@ describe("getMyPurchaseSummary", () => {
         },
         {
           statusId: "0195f0c2-0000-7000-8000-0000000000b2",
-          statusName: "キャンセル",
+          statusName: "配達済み",
           count: 1,
           totalAmount: 100_000,
         },
@@ -233,14 +236,19 @@ describe("getMyPurchaseSummary", () => {
 
     const summary = await getMyPurchaseSummary();
 
-    expect(summary.breakdown.map(({ statusName }) => statusName)).toEqual([
-      "キャンセル",
-      "発送済み",
-    ]);
+    expect(summary.breakdown.map(({ statusName }) => statusName)).toEqual(["配達済み", "発送済み"]);
   });
 
   it("購入が 1 件も無いときゼロ値と空の内訳を返す", async () => {
-    stubFetch(json({ totalCount: 0, totalAmount: 0, statusBreakdown: [] }));
+    stubFetch(
+      json({
+        period: { from: null, to: null },
+        totalCount: 0,
+        totalAmount: 0,
+        itemsTotal: "0",
+        statusBreakdown: [],
+      }),
+    );
 
     await expect(getMyPurchaseSummary()).resolves.toEqual({
       totalCount: 0,

@@ -9,11 +9,12 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+15463a1
+ * OpenAPI spec version: 2.2.0+e95da0c
  */
 import type {
   AddressCandidatesResponse,
   BadRequest400Response,
+  CartResponse,
   Conflict409Response,
   DashboardSummaryResponse,
   ExchangeRateResponse,
@@ -21,12 +22,14 @@ import type {
   GetAddressesParams,
   GetDashboardSummaryParams,
   GetExchangeRatesParams,
+  GetProductsCountParams,
   GetProductsLowStockParams,
   GetProductsParams,
   GetProductsRankingParams,
   GetPurchasesParams,
   GetPurchasesShippableParams,
   GetUsersFeedParams,
+  GetUsersMePurchasesSummaryParams,
   GetUsersParams,
   GetUsersSearchParams,
   InternalServerError500Response,
@@ -35,6 +38,7 @@ import type {
   PayloadTooLarge413Response,
   PostPurchasesParams,
   PrefecturesResponse,
+  ProductCountResponse,
   ProductImagePostRequest,
   ProductImageResponse,
   ProductListResponse,
@@ -63,6 +67,7 @@ import type {
   UserPatchRequest,
   UserPutRequest,
   UserResponse,
+  UserRolesResponse,
   UsersFeedResponse,
   UsersPostRequest,
   UsersResponse,
@@ -677,6 +682,11 @@ export type getUsersMePurchasesSummaryResponse200 = {
   status: 200;
 };
 
+export type getUsersMePurchasesSummaryResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
 export type getUsersMePurchasesSummaryResponse401 = {
   data: Unauthorized401Response;
   status: 401;
@@ -701,6 +711,7 @@ export type getUsersMePurchasesSummaryResponseSuccess = getUsersMePurchasesSumma
   headers: Headers;
 };
 export type getUsersMePurchasesSummaryResponseError = (
+  | getUsersMePurchasesSummaryResponse400
   | getUsersMePurchasesSummaryResponse401
   | getUsersMePurchasesSummaryResponse405
   | getUsersMePurchasesSummaryResponse500
@@ -713,26 +724,44 @@ export type getUsersMePurchasesSummaryResponse =
   | getUsersMePurchasesSummaryResponseSuccess
   | getUsersMePurchasesSummaryResponseError;
 
-export const getGetUsersMePurchasesSummaryUrl = () => {
-  return `/v1/users/me/purchases/summary`;
+export const getGetUsersMePurchasesSummaryUrl = (params?: GetUsersMePurchasesSummaryParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/v1/users/me/purchases/summary?${stringifiedParams}`
+    : `/v1/users/me/purchases/summary`;
 };
 
 /**
  * 認証コンテキスト（Bearer トークン）の内部 UserID に該当するユーザー自身の購入を集計して取得します。
- * マイページの集計カード表示を想定した最小集計で、購入一覧そのものは返しません（履歴は購入履歴一覧 API）。
+ * マイページの集計カード表示を想定した集計で、購入一覧そのものは返しません（履歴は購入履歴一覧 API）。
  * パスに他者の識別子を持たないため、他ユーザーの集計は取得できません。
- * 合計金額は USD セント単位の整数です。キャンセル済みの購入も総件数・合計金額に含めます
- * （キャンセルはステータス別内訳の 1 要素として件数・金額とも返るため、キャンセルを除いた値が必要な
- * クライアントは内訳から差し引けます）。
- * 購入が 1 件もない場合はエラーではなくゼロ値（件数 0・合計 0・内訳は空配列）を返します。
+ * 集計対象期間は period で切り替えます（既定は全期間）。month / range / recent の境界はサーバの
+ * タイムゾーン（Asia/Tokyo）の暦日基準で算出し、両端の暦日を含みます。実際に用いた期間は要求した区分に
+ * 関わらず period として返すため、クライアントは相対指定を自前で解決する必要がありません。
+ * 区分ごとの必須パラメータ（month / from と to / days）の欠落、および to が from より前の場合は 400 を返します。
+ * キャンセル済みの購入はすべての集計値から除外します（ステータス別内訳にもキャンセルは現れません）。
+ * 金額は 2 種類返します。totalAmount は支払金額（小計 + 税額 + 送料）の合計、itemsTotal は明細金額
+ * （単価 × 数量）の合計で、税額・送料は明細に按分できないため両者は一致しません。
+ * groupBy を指定すると itemsTotal をその単位へ分解した groups を返します（未指定なら groups を返しません）。
+ * 対象の購入が 1 件もない場合はエラーではなくゼロ値（件数 0・合計 0・内訳は空配列）を返します。
  * 本 op 自体は DB の集計 SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
  * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
  * @summary 認証ユーザー自身の購入集計の取得
  */
 export const getUsersMePurchasesSummary = async (
+  params?: GetUsersMePurchasesSummaryParams,
   options?: RequestInit,
 ): Promise<getUsersMePurchasesSummaryResponse> => {
-  const res = await fetch(getGetUsersMePurchasesSummaryUrl(), {
+  const res = await fetch(getGetUsersMePurchasesSummaryUrl(params), {
     ...options,
     method: "GET",
   });
@@ -741,6 +770,72 @@ export const getUsersMePurchasesSummary = async (
 
   const data: getUsersMePurchasesSummaryResponse["data"] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as getUsersMePurchasesSummaryResponse;
+};
+
+export type getUsersMeRolesResponse200 = {
+  data: UserRolesResponse;
+  status: 200;
+};
+
+export type getUsersMeRolesResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getUsersMeRolesResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getUsersMeRolesResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getUsersMeRolesResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getUsersMeRolesResponseSuccess = getUsersMeRolesResponse200 & {
+  headers: Headers;
+};
+export type getUsersMeRolesResponseError = (
+  | getUsersMeRolesResponse401
+  | getUsersMeRolesResponse405
+  | getUsersMeRolesResponse500
+  | getUsersMeRolesResponse503
+) & {
+  headers: Headers;
+};
+
+export type getUsersMeRolesResponse = getUsersMeRolesResponseSuccess | getUsersMeRolesResponseError;
+
+export const getGetUsersMeRolesUrl = () => {
+  return `/v1/users/me/roles`;
+};
+
+/**
+ * 認証コンテキスト（Bearer トークン）の内部 UserID に該当するユーザー自身に割り当てられたロールを取得します。
+ * パスに他者の識別子を持たないため、他ユーザーのロールは取得できません。
+ * 用途はクライアント側の楽観的な権限分岐（管理者向け導線を表示するかどうか等）であり、
+ * 確定的な認可判断はサーバーが各操作で行います。したがって本 op が返すロールは、
+ * クライアントが権限のある操作を組み立てるための材料であって、操作の可否そのものではありません。
+ * ロールが 1 つも割り当てられていない場合はエラーではなく空配列を返します。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
+ * @summary 認証ユーザー自身のロールの取得
+ */
+export const getUsersMeRoles = async (options?: RequestInit): Promise<getUsersMeRolesResponse> => {
+  const res = await fetch(getGetUsersMeRolesUrl(), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getUsersMeRolesResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getUsersMeRolesResponse;
 };
 
 export type getUsersSearchResponse200 = {
@@ -1244,6 +1339,84 @@ export const postProducts = async (
 
   const data: postProductsResponse["data"] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as postProductsResponse;
+};
+
+export type getProductsCountResponse200 = {
+  data: ProductCountResponse;
+  status: 200;
+};
+
+export type getProductsCountResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type getProductsCountResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getProductsCountResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getProductsCountResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getProductsCountResponseSuccess = getProductsCountResponse200 & {
+  headers: Headers;
+};
+export type getProductsCountResponseError = (
+  | getProductsCountResponse400
+  | getProductsCountResponse405
+  | getProductsCountResponse500
+  | getProductsCountResponse503
+) & {
+  headers: Headers;
+};
+
+export type getProductsCountResponse =
+  | getProductsCountResponseSuccess
+  | getProductsCountResponseError;
+
+export const getGetProductsCountUrl = (params?: GetProductsCountParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/v1/products/count?${stringifiedParams}`
+    : `/v1/products/count`;
+};
+
+/**
+ * 公開済み商品のうち、指定した検索条件に一致する件数のみを返します。認証不要の公開エンドポイントです。
+ * categoryId / statusId / keyword / minPrice / maxPrice / minQuantity / maxQuantity の意味は
+ * GET /v1/products と同一です。検索条件を指定しない場合は公開済み商品の総数を返します。
+ * @summary 商品検索の一致件数の取得
+ */
+export const getProductsCount = async (
+  params?: GetProductsCountParams,
+  options?: RequestInit,
+): Promise<getProductsCountResponse> => {
+  const res = await fetch(getGetProductsCountUrl(params), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getProductsCountResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getProductsCountResponse;
 };
 
 export type getProductsDetailResponse200 = {
@@ -2018,6 +2191,10 @@ export const getGetPurchasesUrl = (params?: GetPurchasesParams) => {
  * nextCursor を after に渡して次ページを取得します（無限スクロール）。
  * 一覧は概要（code / totalAmount / status / orderedAt）のみを返し、明細は含みません。
  * 他ユーザーの購入は返しません（所有権フィルタで閉じるため、対象がなければ空一覧です）。
+ * period で注文日時の対象期間を絞り込めます（既定は全期間）。month / range / recent の境界は
+ * サーバのタイムゾーン（Asia/Tokyo）の暦日基準で算出し、両端の暦日を含みます。区分ごとの必須
+ * パラメータ（month / from と to / days）の欠落、および to が from より前の場合は 400 を返します。
+ * ページ送りの間は同じ絞り込み条件を渡してください（条件が変わると keyset の連続性は保証されません）。
  * totalAmount は USD セント単位の整数です。
  * @summary 購入履歴一覧の取得
  */
@@ -2748,4 +2925,83 @@ export const getDashboardSummary = async (
 
   const data: getDashboardSummaryResponse["data"] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as getDashboardSummaryResponse;
+};
+
+export type getCartsMeResponse200 = {
+  data: CartResponse;
+  status: 200;
+};
+
+export type getCartsMeResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type getCartsMeResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getCartsMeResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getCartsMeResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getCartsMeResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getCartsMeResponseSuccess = getCartsMeResponse200 & {
+  headers: Headers;
+};
+export type getCartsMeResponseError = (
+  | getCartsMeResponse400
+  | getCartsMeResponse401
+  | getCartsMeResponse405
+  | getCartsMeResponse500
+  | getCartsMeResponse503
+) & {
+  headers: Headers;
+};
+
+export type getCartsMeResponse = getCartsMeResponseSuccess | getCartsMeResponseError;
+
+export const getGetCartsMeUrl = () => {
+  return `/v1/carts/me`;
+};
+
+/**
+ * 呼び出し主体のカートを、明細ごとの再評価つきで取得します。
+ * 主体は認証済みユーザー（Bearer トークンの内部 UserID）か、ゲスト（X-Cart-Session ヘッダ）の
+ * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
+ * パスに他者の識別子を持たないため、他人のカートは取得できません。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0019 (optional-authentication-fail-closed)）。
+ * 明細ごとに商品の現在値を突き合わせ、買えないもの・値の変わったものに issues を立てます。
+ * 問題のある明細があっても 200 で返します。取得は成功しており、問題があるのは明細であって
+ * 要求ではないためで、エラーにすると買える明細が何であったかを利用者に見せられなくなります。
+ * 在庫は押さえず、商品行もロックしません。再評価は参考情報であり、返した瞬間から古くなります。
+ * カートがまだ無い主体、および有効期限を過ぎたカートの主体には、空のカートを 200 で返します。
+ * **この操作はカート行を作りません**（したがって sessionToken は常に null、expiresAt は
+ * カートが無ければ null です）。
+ * 本 op 自体は DB の SELECT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分のカートの取得（明細ごとの再評価つき）
+ */
+export const getCartsMe = async (options?: RequestInit): Promise<getCartsMeResponse> => {
+  const res = await fetch(getGetCartsMeUrl(), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getCartsMeResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getCartsMeResponse;
 };

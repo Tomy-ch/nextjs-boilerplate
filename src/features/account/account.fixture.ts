@@ -43,10 +43,16 @@ export const PROFILE: UserProfile = {
   building: "パークサイドレジデンス 1201",
 };
 
-/** 購入がある場合の集計。内訳には出現したステータスだけが並ぶ。 */
+/**
+ * 購入がある場合の集計。
+ *
+ * @remarks
+ * 内訳には出現したステータスだけが並びます。**キャンセルの行は置きません** —— 契約が集計から
+ * キャンセル済みを除くと定めており、内訳にも現れないためです。
+ */
 export const PURCHASE_SUMMARY: PurchaseSummary = {
-  totalCount: 12,
-  totalAmount: 124_000,
+  totalCount: 11,
+  totalAmount: 115_000,
   breakdown: [
     {
       statusId: "0195f0c2-0000-7000-8000-0000000000a1",
@@ -59,12 +65,6 @@ export const PURCHASE_SUMMARY: PurchaseSummary = {
       statusName: "発送済み",
       count: 3,
       totalAmount: 33_000,
-    },
-    {
-      statusId: "0195f0c2-0000-7000-8000-0000000000a3",
-      statusName: "キャンセル",
-      count: 1,
-      totalAmount: 9_000,
     },
   ],
 };

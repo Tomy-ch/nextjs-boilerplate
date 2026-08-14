@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+15463a1
+ * OpenAPI spec version: 2.2.0+e95da0c
  */
 import type { DashboardPurchaseStatusCountResponse } from "./dashboardPurchaseStatusCountResponse";
 
