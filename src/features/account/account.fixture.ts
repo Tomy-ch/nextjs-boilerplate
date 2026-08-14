@@ -1,5 +1,5 @@
 import type { PurchaseHistoryPage } from "@/model/purchase/purchase";
-import type { Prefecture, PurchaseSummary, UserProfile } from "@/model/user/user";
+import type { AddressCandidate, Prefecture, PurchaseSummary, UserProfile } from "@/model/user/user";
 
 /**
  * 都道府県マスタ。
@@ -103,3 +103,20 @@ export const TRUNCATED_PURCHASE_HISTORY: PurchaseHistoryPage = {
 
 /** 購入が 1 件も無い場合。 */
 export const EMPTY_PURCHASE_HISTORY: PurchaseHistoryPage = { items: [], nextCursor: null };
+
+/**
+ * 郵便番号から引いた住所の候補。
+ *
+ * @remarks
+ * 都道府県と市区町村が一致し、町域だけが割れる形にしてあります。1 つの郵便番号が複数の町域を
+ * 指すのは実際に起きることで、**一致した項目だけを埋める**判定はこの形でしか確かめられません。
+ */
+export const ADDRESS_CANDIDATES: readonly AddressCandidate[] = [
+  { prefecture: "東京都", city: "渋谷区", town: "神宮前" },
+  { prefecture: "東京都", city: "渋谷区", town: "千駄ヶ谷" },
+];
+
+/** 町域まで 1 つに定まる候補。丁目・番地が空なら町域まで埋まる。 */
+export const SINGLE_ADDRESS_CANDIDATE: readonly AddressCandidate[] = [
+  { prefecture: "神奈川県", city: "横浜市西区", town: "みなとみらい" },
+];

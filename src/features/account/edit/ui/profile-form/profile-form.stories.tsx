@@ -3,8 +3,39 @@ import { userEvent, within } from "storybook/test";
 
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 
-import { PREFECTURES, PROFILE } from "../../../account.fixture";
+import {
+  ADDRESS_CANDIDATES,
+  PREFECTURES,
+  PROFILE,
+  SINGLE_ADDRESS_CANDIDATE,
+} from "../../../account.fixture";
 import { ProfileForm } from "./profile-form";
+
+/**
+ * 住所補完の応答を固定する。
+ *
+ * @remarks
+ * 補完は同一オリジンの `/api/addresses` を叩きます。カタログには Route Handler が無いため、
+ * 差し替えないと**常に「見つかりませんでした」しか出せません**。
+ *
+ * 差し替えを story の中に閉じるのは、カタログへネットワークを持ち込まないためです。取得を
+ * 伴う部品を story にしない方針（`InfiniteList` に story が無いのと同じ）に沿えないのは、
+ * 補完が入力欄と不可分だからで、代わりに応答の側を止めています。
+ *
+ * @param candidates - 返す候補。空にすると見つからなかった経路になる
+ */
+function stubAddressLookup(candidates: typeof ADDRESS_CANDIDATES) {
+  return () => {
+    const original = globalThis.fetch;
+
+    globalThis.fetch = () =>
+      Promise.resolve(new Response(JSON.stringify({ candidates }), { status: 200 }));
+
+    return () => {
+      globalThis.fetch = original;
+    };
+  };
+}
 
 /**
  * 検証に落ちた状態まで進める。
@@ -34,6 +65,14 @@ async function showValidationErrors({
   await userEvent.clear(phone);
   await userEvent.type(phone, "0901");
   await userEvent.tab();
+}
+
+/** 補完まで進める。操作で呼ぶのは、blur では検証と混ざって何が起きたか読み取れないため。 */
+async function searchAddress({ canvasElement }: { canvasElement: HTMLElement }): Promise<void> {
+  const canvas = within(canvasElement);
+
+  await userEvent.click(canvas.getByRole("button", { name: "住所を検索" }));
+  await canvas.findByRole("status");
 }
 
 const meta = {
@@ -105,6 +144,32 @@ export const ValidationErrorsMobile: Story = {
   args: { prefectures: PREFECTURES, profile: PROFILE },
   globals: { viewport: { value: "mobile2", isRotated: false } },
   play: showValidationErrors,
+};
+
+/**
+ * 住所を補完した状態。候補が割れた町域は埋めず、一致した都道府県と市区町村だけが入る。
+ */
+export const AddressCompleted: Story = {
+  args: { prefectures: PREFECTURES, profile: { ...PROFILE, building: null } },
+  beforeEach: stubAddressLookup(ADDRESS_CANDIDATES),
+  play: searchAddress,
+};
+
+/** 候補が 1 つに定まる場合。丁目・番地が空なので町域まで埋まる。 */
+export const AddressCompletedToTown: Story = {
+  args: {
+    prefectures: PREFECTURES,
+    profile: { ...PROFILE, building: null, street: "" },
+  },
+  beforeEach: stubAddressLookup(SINGLE_ADDRESS_CANDIDATE),
+  play: searchAddress,
+};
+
+/** 該当が無い場合。外部の lookup が落ちているときも同じ経路で、手入力を続けさせる。 */
+export const AddressNotFound: Story = {
+  args: { prefectures: PREFECTURES, profile: PROFILE },
+  beforeEach: stubAddressLookup([]),
+  play: searchAddress,
 };
 
 /** タブレット幅。横並びにしていた組が縦へ落ちる境界を見る。 */
