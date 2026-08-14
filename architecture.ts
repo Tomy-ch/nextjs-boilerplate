@@ -102,6 +102,14 @@ export const ENTRY_POINTS = [
     dependencies: ["config", "logging", "observability"],
   },
   {
+    // リクエスト完了前に走る境界（[0043](docs/adr/0043-middleware-policy.md)）。`app` ではないので
+    // 層の表には載らず、置き場も framework が決める。参照できるのは cookie から身元を読むための
+    // 境界アダプタと、その判定に使う表示用の型だけで、feature も UI も持たせない。
+    category: "proxy",
+    pattern: "src/proxy*",
+    dependencies: ["adapters", "model", "config", "errors"],
+  },
+  {
     // 画面の合成を見せる story。合成は `app` 層の管轄だが、`app` に story は置けない
     // ([0027](docs/adr/0027-directory-structure.md) の route segment は薄い層)。そのため
     // feature 配下の story にだけ、`app` と同じく feature を跨いで組む権限を与える。
