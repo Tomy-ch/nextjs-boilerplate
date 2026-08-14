@@ -48,7 +48,6 @@ describe("AuthLayout", () => {
       </AuthLayout>,
     );
 
-    // jsdom は色を計算しないため、コントラストは story 側の実ブラウザ検査が見る（ADR 0091 §2）。
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);

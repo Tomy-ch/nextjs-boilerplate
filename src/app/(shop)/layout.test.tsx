@@ -3,6 +3,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
@@ -91,5 +92,17 @@ describe("ShopLayout", () => {
     );
 
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(
+      <ShopLayout>
+        <p>テスト用コンテンツ</p>
+      </ShopLayout>,
+    );
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

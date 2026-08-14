@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 import ProductDetailNotFound from "./not-found";
 
 describe("ProductDetailNotFound", () => {
@@ -18,5 +19,13 @@ describe("ProductDetailNotFound", () => {
       "href",
       "/products",
     );
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(<ProductDetailNotFound />);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });
