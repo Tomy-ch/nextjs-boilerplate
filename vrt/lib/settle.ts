@@ -33,8 +33,8 @@ export async function settle(page: Page, theme: string): Promise<void> {
   } catch (cause) {
     throw new Error(
       `story が描き切りませんでした（${RENDER_TIMEOUT_MS / 1000} 秒）。テーマを載せる decorator が` +
-        "一度も走っていません。story の module が読み込みに失敗していないか、Storybook で同じ" +
-        "story を開いて確かめてください。",
+        "一度も走っていません。story の module が読み込みに失敗していないか、Storybook で" +
+        "同じ story を開いて確かめてください。",
       { cause },
     );
   }
