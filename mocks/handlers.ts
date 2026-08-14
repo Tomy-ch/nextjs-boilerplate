@@ -1,8 +1,9 @@
 // sample:replace-begin
-import { getGoBoilerplateAPIMock } from "./api/endpoints.msw";
+import * as generated from "./api/endpoints.msw";
+import { stableHandlers } from "./stable-responses";
 
 /** 契約から生成したハンドラ 1 件。生成物は HTTP ハンドラだけを返す。 */
-type GeneratedHandler = ReturnType<typeof getGoBoilerplateAPIMock>[number];
+type GeneratedHandler = ReturnType<typeof stableHandlers>[number];
 
 /**
  * パスが持つパラメータ区間の数。
@@ -26,16 +27,22 @@ function parameterCount(handler: GeneratedHandler): number {
  * ハンドラを手書きしません。契約が変われば生成物が変わり、モックも一緒に動きます。手で足すと、
  * 契約とモックが別々に動き始め、モックが通るのに実際の API では通らない状態を作れてしまいます。
  *
- * 並べ替えるのは、MSW が登録順に照合するためです。生成物の順序は契約のパス順なので、
- * パラメータ区間を持つパス（`/x/:id`）が、それにも一致する具体的なパス（`/x/latest`）より
- * 前に来ることがあります。その並びでは後者への要求が前者に食われ、別の応答が返ります。
- * 具体的なパスを先に置けば、パラメータ区間は他に一致するものが無かったときだけ拾います。
- * 並べ替えは安定なので、同じ具体度どうしの順序は生成物のままです。
+ * 並べ替えるのは、MSW が登録順に照合するためです。パラメータ区間を持つパス（`/x/:id`）が、
+ * それにも一致する具体的なパス（`/x/latest`）より前に来ると、後者への要求が前者に食われて別の
+ * 応答が返ります。具体的なパスを先に置けば、パラメータ区間は他に一致するものが無かったときだけ
+ * 拾います。
+ *
+ * 同じ具体度どうしの順序は、並べ替えが安定なので
+ * [stable-responses](stable-responses.ts) が返した並び —— 生成関数の名前順 —— のままです。
+ * **契約に書かれた順ではありません。**
+ *
+ * 組み立てを [stable-responses](stable-responses.ts) に通すのは、同じ要求へ同じ応答を返させる
+ * ためです。応答の形は生成物のままで、手で組み立てたものは含みません。
  *
  * mock が差し替えるのは API だけです。画像は配信元（`MEDIA_ORIGIN`）から実物を取得します。
  */
 // sample:replace-begin
-export const handlers = [...getGoBoilerplateAPIMock()].sort(
+export const handlers = stableHandlers(generated).sort(
   (left, right) => parameterCount(left) - parameterCount(right),
 );
 // sample:replace-with

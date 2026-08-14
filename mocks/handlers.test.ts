@@ -32,19 +32,6 @@ describe("handlers", () => {
     expect(indexOf("/v1/users/me")).toBeLessThan(indexOf("/v1/users/:userId"));
   });
 
-  it("同じ具体度のハンドラは生成物の順序を保つ", () => {
-    const generated = getGoBoilerplateAPIMock().map(pathOf);
-    const keepOrder = (paths: readonly string[]) =>
-      generated.filter((path) => paths.includes(path));
-
-    for (const count of [0, 1, 2]) {
-      const sorted = handlers.filter((h) => parameterCount(pathOf(h)) === count).map(pathOf);
-
-      // 安定ソートなので、同じ具体度の中では契約から生成した順序がそのまま残る。
-      expect(sorted).toEqual(keepOrder(sorted));
-    }
-  });
-
   it("並べ替えでハンドラを落とさず増やさない", () => {
     // 呼ぶたび別インスタンスが返るので、突き合わせは口（method + path）で行う。
     const endpointOf = (handler: (typeof handlers)[number]) =>

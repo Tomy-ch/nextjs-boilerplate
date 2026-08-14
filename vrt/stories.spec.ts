@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { test as base, expect, type TestInfo } from "@playwright/test";
+import { assertAreaUnclaimed, isRetaking } from "./lib/baseline-store";
 import { installFixedClock } from "./lib/clock";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
 import {
@@ -31,6 +32,10 @@ const shootable = excludeDeclared(
   parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
   EXCLUDED_STORIES,
 );
+
+// 置き場は画面単位の撮影と共有している。系統が相手の区画を名乗ったまま撮ると、両者の画像が
+// 同じ場所に混ざる。
+assertAreaUnclaimed(shootable.map((story) => story.group));
 
 const stories = selectStories(shootable, process.env.VRT_ONLY);
 
@@ -84,6 +89,8 @@ for (const story of stories) {
 // 区別できないため見ない。比較を省いた実行でもここだけは走る(`make vrt`)。
 if (!process.env.VRT_ONLY) {
   test("基準画像 / 撮影対象と 1 対 1 で対応する", { tag: BASELINE_TAG }, ({}, testInfo) => {
+    test.skip(isRetaking(process.env), "撮り直しの最中は対応を見ない");
+
     const present = listBaselines(baselineRoot(testInfo));
     const expected = expectedBaselines(shootable);
 

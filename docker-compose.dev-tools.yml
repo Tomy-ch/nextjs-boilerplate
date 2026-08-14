@@ -26,6 +26,14 @@ services:
     ipc: host
     init: true
     entrypoint: []
+    # 画面を通した検証（`make e2e`）はホストで起動したアプリへ当てる。`node_modules` は実行した
+    # OS と CPU 向けに解決されるため、macOS で入れた木のままコンテナ内で `next start` を起動すると
+    # linux 向けのネイティブモジュールが無く、その場で取りに行って失敗する。ブラウザとフォントを
+    # 固定するのがこのイメージの役目であり、アプリの実行環境を固定するのは役目ではない。
+    #
+    # Docker Desktop はこの名前を自分で解決するが、Linux では明示しないと引けない。
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # 実行結果の HTML レポートを配る口。`make vrt-report` が --service-ports で
     # 明示したときだけ公開され、比較そのものの起動では開かない。
     ports:

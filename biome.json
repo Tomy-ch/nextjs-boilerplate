@@ -178,7 +178,7 @@
       }
     },
     {
-      "includes": ["vrt/**"],
+      "includes": ["vrt/**", "e2e/**", "playwright.e2e.config.ts"],
       "linter": {
         "rules": {
           "correctness": {

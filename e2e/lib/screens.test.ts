@@ -1,0 +1,90 @@
+import { describe, expect, it } from "vitest";
+
+import { listScreenRoutes, resolveScreens, SCREENS, type ScreenDeclaration } from "./screens";
+
+/** build が書き出す対応表と同じ形を組み立てる。 */
+function manifest(entries: Record<string, string>): string {
+  return JSON.stringify(entries);
+}
+
+describe("listScreenRoutes", () => {
+  // ----- 正常系 -----
+  it("面を持つ route だけを返す", () => {
+    const json = manifest({
+      "/(alpha)/page": "/",
+      "/api/beta/route": "/api/beta",
+      "/favicon.ico/route": "/favicon.ico",
+    });
+
+    expect(listScreenRoutes(json)).toEqual(["/"]);
+  });
+
+  it("動的な区間を持つ route も返す", () => {
+    const json = manifest({ "/(alpha)/gamma/[id]/page": "/gamma/[id]" });
+
+    expect(listScreenRoutes(json)).toEqual(["/gamma/[id]"]);
+  });
+
+  it("並びを固定して返す", () => {
+    const json = manifest({ "/b/page": "/b", "/a/page": "/a" });
+
+    expect(listScreenRoutes(json)).toEqual(["/a", "/b"]);
+  });
+
+  // ----- 異常系 -----
+  it("面が 1 つも無い対応表を落とす", () => {
+    expect(() => listScreenRoutes(manifest({ "/api/x/route": "/api/x" }))).toThrow();
+  });
+});
+
+describe("resolveScreens", () => {
+  const declarations: readonly ScreenDeclaration[] = [
+    { route: "/", name: "home", path: "/" },
+    { route: "/_global-error", skip: "URL では開けない" },
+  ];
+
+  // ----- 正常系 -----
+  it("開く画面だけを返す", () => {
+    expect(resolveScreens(["/", "/_global-error"], declarations)).toEqual([
+      { route: "/", name: "home", path: "/" },
+    ]);
+  });
+
+  it("動的な区間を宣言された URL へ置き換える", () => {
+    const resolved = resolveScreens(
+      ["/gamma/[id]"],
+      [{ route: "/gamma/[id]", name: "detail", path: "/gamma/1" }],
+    );
+
+    expect(resolved[0]?.path).toBe("/gamma/1");
+  });
+
+  // ----- 異常系 -----
+  it("宣言の無い画面を落とす", () => {
+    // 文言まで固定する。route 名だけを見ると、2 つの分岐が同じ文言へ壊れても気づけない。
+    expect(() => resolveScreens(["/", "/新しい画面", "/_global-error"], declarations)).toThrow(
+      /^画面の宣言がありません: \/新しい画面/,
+    );
+  });
+
+  it("実体を失った宣言を落とす", () => {
+    expect(() => resolveScreens(["/"], declarations)).toThrow(
+      /^宣言が指す画面がありません: \/_global-error$/,
+    );
+  });
+});
+
+describe("SCREENS", () => {
+  // ----- 正常系 -----
+  it("同じ route を 2 度宣言しない", () => {
+    const routes = SCREENS.map((entry) => entry.route);
+
+    expect(new Set(routes).size).toBe(routes.length);
+  });
+
+  it("撮る画面の名前が重ならない", () => {
+    const names = SCREENS.filter((entry) => "name" in entry).map((entry) => entry.name);
+
+    expect(new Set(names).size).toBe(names.length);
+  });
+});
