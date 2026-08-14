@@ -31,6 +31,7 @@ test-requirement: feature
 | `terms/view.tsx` | 閲覧の同意・セキュリティ上のリスク・サービスの提供条件・免責 |
 | `ui/repository-links/` | フッターへ置く 2 リポジトリへの導線。説明は補足として HoverCard に載せる |
 | `ui/repository-cards/` | このサイトについて に置く、リポジトリ 2 つの説明 |
+| `ui/repository-supplement/` | それぞれの目的とできることを畳んだ面 |
 
 ## 運用
 

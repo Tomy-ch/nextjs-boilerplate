@@ -31,10 +31,10 @@ export function TermsView() {
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">セキュリティについて</h2>
         <p>
-          このサイトの構成は、将来的に <span className="font-mono">infra-boilerplate</span> として
-          公開する予定です。その中で一般的なセキュリティ対策は行いますが、
+          このサイトの構成は、将来的に一連の boilerplate のサンプルとして公開する予定です。その
+          中で一般的なセキュリティ対策は行いますが、
           <strong>
-            設定値を含めて内容がすべて公開されるため、攻撃の難易度は通常のサイトより 低くなります。
+            設定値を含めて内容がすべて公開されるため、攻撃の難易度は通常のサイトより低くなります。
           </strong>
         </p>
         <p>
