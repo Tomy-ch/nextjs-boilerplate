@@ -358,11 +358,39 @@ shadcn/ui を import
 
 3.5 の破棄境界における位置づけは**ジャーニー側**であり、`app/**` の route segment は破棄対象である。ただし root layout の mount 作法と metadata の枠組みは機構であり、残す。この区別は `src/app/README.md` にも置き、この層を最初に読む人へ直接届くようにする。
 
+### 3.13 双方向/ストリーム通信 — 設置面が実在する場合に限り seam を実体化する
+
+3.4 により、[0074](../adr/0074-runtime-communication-seam.md) の購読 seam は v1 では何も置かない。設置面が無いためである。
+
+backend が server→client push の入口機構(SSE)と、その配信基盤である Pub/Sub を正式な機構として持つ場合、この設置面が生まれる(`go-boilerplate #1180`)。輸入 EC サンプルの「お問い合わせチャット」がその実使用箇所になる。
+
+**ただし v1.0.0 の完了条件には含めない。** backend 側の作り込みが大きく、こちらの着手がその機構実装に従属するためである。1 の完了条件に対しては必要条件ではなく、満たせば質が上がる十分条件として扱う。この位置づけの PR には `EX` を付す。
+
+実体化する場合の契約は次のとおり確定している。
+
+| 項目 | 内容 |
+| --- | --- |
+| transport | SSE。長寿命接続の hosting は backend が持ち、本体は同梱しない([0011](../adr/0011-no-docker.md) / [0074](../adr/0074-runtime-communication-seam.md) のまま) |
+| 認証 | BFF が発行する短命 ticket(user / thread / stream scope に束縛)を query に載せ、ブラウザが backend の endpoint を直接叩く。one-time にはしない — `EventSource` の標準再接続と競合するため |
+| stream が運ぶもの | message ではなく event(`message.created` 等)。意味ごとに event 名を分け、本文変更と状態変更を同居させる広い名前は使わない |
+| 順序 | event sequence は thread 単位で単調増加。**歯抜けを許容し、SSE の到達順は保証しない**。整列と重複排除はフロント側の責務 |
+| 初期表示 | History API が message projection を返す。応答の `eventCursor.sequence` が購読開始位置になる |
+| 送信 | REST + `Idempotency-Key`。`clientMessageId` の echo で、楽観追加した自分の発言と突合する |
+| 添付 | 初期実装では扱わない |
+
+**責務分界**: 順序・重複・再接続・cursor・接続状態は transport 都合であり `adapters/client` が持つ。`message.created` のようなドメインイベントの畳み込みは feature が持つ。`adapters` は境界であって状態の所有者ではない([0021](../adr/0021-frontend-responsibility.md) / [0024](../adr/0024-adapters-server-client-split.md))。
+
+**mock**: SSE は契約から MSW ハンドラを生成できない。`mocks/` の「生成物だけを置く」一方向を守り、**SSE は差し替えず実 compose に依存させる**。画像を差し替えない扱いと同じ列に置く。したがって開発時にオペレータ返信を発生させる手段は backend 側が持つ。
+
+**backend 側に残る未確定**: resume cursor を渡す query パラメータ名、heartbeat の形式(コメント行 / `event: ping`)と間隔の契約値、開発用モックオペレータの方式。いずれも着手を止めないが、実装 PR の入力として要る。
+
 ---
 
 ## 4. PR 一覧
 
 全 66 PR。issue 化の単位はこの 1 行 = 1 issue。
+
+`EX` を付した行は**拡張枠**であり、この 66 本には含めない。v1.0.0 の完了条件から外れる(3.13)。
 
 | ID | タイトル | Phase | 依存 |
 | --- | --- | --- | --- |
@@ -414,6 +442,9 @@ shadcn/ui を import
 | P5-17 | セキュリティ workflow(CodeQL / gitleaks / trivy / Dependabot) | 5 | P5-16 |
 | P5-18 | spec 駆動の採否判断(GB-3) | 5 | P5-16, P4-6 |
 | P5-19 | 一覧の総件数を実装へ差し替え | 5 | P5-2, P5-16 |
+| P5-EX1 | ストリーム前提の文書反映(0074 / screens.md / mocks) | 5 (EX) | — |
+| P5-EX2 | 購読 seam の実体化(subscription adapter) | 5 (EX) | P5-EX1, P4-3 |
+| P5-EX3 | U13 お問い合わせ一覧 + U14 チャット画面 | 5 (EX) | P5-EX2, P5-4 |
 | P6-1 | クライアント観測性 | 6 | P3-5, P4-5 |
 | P6-2 | CSP / セキュリティヘッダ + CI 適合ゲート | 6 | P5-16, P6-8 |
 | P6-3 | SEO / metadata + fonts | 6 | P5-1, P5-4 |
@@ -1313,6 +1344,51 @@ sources:
 - **注意**: **backend 側の契約追加が前提**であり、契約が生えるまで着手できない。フロント側の変更は取得関数 1 つに閉じており、画面側は変わらない（P5-2 で `total` を受け取る形にしてある）
 - **完了条件**: 条件を変えると総数が追随する。取得に失敗しても一覧そのものは出る（総数だけ落ちる）
 - **依存**: P5-2, P5-16
+
+### 拡張枠(EX): リアルタイム型お問い合わせチャット
+
+3.13 の位置づけに従う枠であり、**v1.0.0 の完了条件に含めない**。着手は backend の stream 機構が契約として公開されることを前提とする。
+
+3 本に割るのは、寿命が違うものを同じ diff に混ぜないためである。EX1 は前提文書、EX2 は fork 後も残る機構、EX3 は fork 時に破棄するサンプルであり、破棄 manifest(P7-1)への入力もそれぞれ異なる。
+
+会話系の component(`Message` / `Bubble` / `MessageScroller` / `Marker`)は、この枠以外に設置面を持たない。admin 画面をいくら積んでも埋まらないため、Phase 5 の他の PR では代替できない。
+
+### P5-EX1: ストリーム前提の文書反映
+
+- **目的**: stream 機構の設置面が確定したことを、前提側の文書へ反映する
+- **対象 ADR**: [0074](../adr/0074-runtime-communication-seam.md)
+- **主な変更先**: `docs/adr/0074-runtime-communication-seam.md` / `docs/screens.md` / `mocks/README.md`
+- **設計**: 0074 の「v1 では購読 seam をコードとして置かない」は、設置面が無いことを理由にしている。理由が消えるので、**設置面が実在する場合に実体化する**形へ書き換える。3.4 の滑走路原則そのものは変えない — 原則の適用結果が変わるだけである
+- **強制手段**: 散文のみ
+- **完了条件**: 0074 の本文が実体化の前提と契約(3.13 の表)を持つ。`docs/screens.md` の除外事項からリアルタイム機能が外れ、画面一覧に U13 / U14 が入る。`mocks/README.md` に SSE を差し替えない旨と、その理由が入る
+- **依存**: —
+
+### P5-EX2: 購読 seam の実体化(subscription adapter)
+
+- **目的**: [0074](../adr/0074-runtime-communication-seam.md) が座標だけ持っていた購読 seam を、動く実体として置く。**コア残留**
+- **対象 ADR**: [0074](../adr/0074-runtime-communication-seam.md) / [0024](../adr/0024-adapters-server-client-split.md) / [0021](../adr/0021-frontend-responsibility.md) / [0080](../adr/0080-error-handling.md)
+- **主な変更先**: `src/adapters/client/stream/` / `src/errors/redact.ts` / ticket 発行の Route Handler(`src/app/api/`)
+- **設計**: `EventSource` の組み込み再接続は使わない。backoff と jitter を自前で持つ以上、間隔をサーバの `retry:` でしか動かせない組み込み再接続とは共存できないため、`onerror` で即 `close()` して自前で張り直す。結果として `Last-Event-ID` ヘッダは使わず、cursor は毎回明示的に渡す
+- **設計**: 到達順が保証されないため、受信を短い時間窓で溜めて sequence 昇順へ整列してから上へ流す。窓を超えて遅れて届いたものは、描画済みの位置へ挿入すると append-only が崩れるので History を取り直して整合させる。歯抜けが正常である以上「穴が埋まるまで待つ」判断は成立しない
+- **設計**: 再接続ループが止まらない経路を作らない。ticket 取得の 401 はセッション切れとして打ち切り、再ログイン導線へ落とす。stream の 403 は権限喪失として打ち切る。5xx とネットワーク断だけが backoff の対象になる
+- **注意**: ticket は URL に載るため、接続エラーを `logging` へ送る経路で `redact` の対象に加える
+- **強制手段**: ESLint boundaries(`features` / `components` からの直接購読を禁止)+ テスト
+- **完了条件**: 切断 → 再接続 → resume で状態が復元される。重複配信と順不同到達を注入したテストが通る。ticket がログへ出ない。生の接続エラーが `errors` の分類へ正規化され、上位へ漏れない
+- **依存**: P5-EX1, P4-3
+
+### P5-EX3: U13 お問い合わせ一覧 + U14 チャット画面
+
+- **目的**: 会話系 component を実データ・実操作へ配線する。**破棄対象**
+- **対象 ADR**: [0061](../adr/0061-form-mutation-ux.md) / [0063](../adr/0063-mutation-result-notification.md) / [0060](../adr/0060-state-management.md) / [0091](../adr/0091-test-verification-methods.md)
+- **主な変更先**: `src/app/(shop)/inquiries/page.tsx` / `[threadId]/page.tsx` / `src/features/inquiry/`
+- **設計**: 初期表示は RSC が History API の message projection を取得する。以降は購読が渡す差分を feature の reducer が畳む。メッセージ列は feature の local state に置き、`stores` へは載せない — server state の二重キャッシュを禁じる [0060](../adr/0060-state-management.md) / [0023](../adr/0023-stores-kernel.md) に対し、差分は「まだ取り直していない追記分」であって server state の写しではないためである。画面を離れれば RSC が最新を返すので、消えても正しさが壊れない
+- **設計**: 送信は Server Action + `Idempotency-Key`。`clientMessageId` の echo で、楽観追加した自分の発言と受信したものを突合する。突合できないと自分の発言が二重に並ぶ
+- **使う component**: `Message` / `Bubble` / `MessageScroller` / `Marker` / `Avatar`。一覧側に `List` / `CursorPagination` / `FeedbackState`
+- **画面判断**: 送信欄は `Textarea` を使う。`RichTextEditor` の設置面は商品登録(P5-12)であり、問い合わせの入力に書式は要らない
+- **a11y**: `MessageScrollerContent` の `log` は追加だけを通知する。配送状態・既読の変化は `MessageFooter` の表示更新に留め、`log` で読み上げさせない
+- **範囲外**: admin 返信画面は作らない。開発時の返信は backend の dev モックオペレータに依存する。添付も扱わない(3.13)
+- **完了条件**: 送信 → オペレータ返信の受信 → 切断 → 復帰 が通る。楽観追加した自分の発言が二重表示されない。`APP_API_MODE=mock` ではこの画面が動かないことが `docs/screens.md` に書かれている
+- **依存**: P5-EX2, P5-4
 
 ## Phase 6: 非機能
 
