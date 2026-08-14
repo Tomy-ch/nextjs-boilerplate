@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { AppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
@@ -85,5 +86,15 @@ describe("ProductDetailPageContent", () => {
 
     await expect(ProductDetailPageContent({ id: PRODUCT.id })).rejects.toBeInstanceOf(AppError);
     expect(notFound).not.toHaveBeenCalled();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    getProduct.mockResolvedValue(PRODUCT);
+
+    const { container } = render(await ProductDetailPageContent({ id: PRODUCT.id }));
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

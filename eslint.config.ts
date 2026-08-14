@@ -117,6 +117,13 @@ export default [
                 allow: { to: { element: { type } } },
               })),
             ),
+            // 区画自身の依存。層の許可は要素の型に当たるため、区画へ切り出すと層の許可が届かない。
+            ...RESTRICTED_AREAS.filter(({ dependencies }) => dependencies.length > 0).map(
+              ({ type, dependencies }) => ({
+                from: { element: { type } },
+                allow: { to: { element: { types: { anyOf: dependencies } } } },
+              }),
+            ),
             ...RESTRICTED_AREAS.filter(({ allowedFrom }) => allowedFrom.length > 0).map(
               ({ type, allowedFrom }) => ({
                 from: { element: { types: { anyOf: allowedFrom } } },

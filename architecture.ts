@@ -94,12 +94,27 @@ export const KERNEL_PATTERNS: Partial<Readonly<Record<Kernel, string>>> = {
  * @remarks
  * カーネルではないので README も層も持ちませんが、分類の外へ出すと「どの層でもない」ファイルが
  * 正常系に紛れ、未分類を検出するガードが機能しなくなります。層と同じ表に載せて分類させます。
+ *
+ * 検証の要求（`testRequirement`）もここが持ちます。カーネルなら層 README の frontmatter が宣言
+ * しますが、エントリには README が無く、宣言する場所が他にありません。値の意味は
+ * [0090](docs/adr/0090-testing-strategy.md) の層別責務表と同じです。
  */
 export const ENTRY_POINTS = [
   {
     category: "bootstrap",
     pattern: "src/instrumentation*",
     dependencies: ["config", "logging", "observability"],
+    testRequirement: "unit",
+  },
+  {
+    // リクエスト完了前に走る境界（[0043](docs/adr/0043-middleware-policy.md)）。`app` ではないので
+    // 層の表には載らず、置き場も framework が決める。参照できるのは cookie から身元を読むための
+    // 境界アダプタと、その判定に使う表示用の型だけで、feature も UI も持たせない。
+    category: "proxy",
+    pattern: "src/proxy*",
+    dependencies: ["model", "config", "errors"],
+    // 応答を返す境界なので、確かめるのは描画ではなくリクエストに対する結果である。
+    testRequirement: "integration",
   },
   {
     // 画面の合成を見せる story。合成は `app` 層の管轄だが、`app` に story は置けない
@@ -109,11 +124,15 @@ export const ENTRY_POINTS = [
     category: "feature-story",
     pattern: "src/features/**/*.stories.tsx",
     dependencies: ["features", "components", "model", "stores", "capabilities", "errors"],
+    // story 自体はテストの対象ではなく、story 全数を実ブラウザで検査する側の入力である
+    // （[0091](docs/adr/0091-test-verification-methods.md) §2）。
+    testRequirement: "none",
   },
 ] as const satisfies readonly {
   category: string;
   pattern: string;
   dependencies: readonly Kernel[];
+  testRequirement: "unit" | "component" | "integration" | "route" | "feature" | "none";
 }[];
 
 /**
@@ -158,6 +177,12 @@ export const SHARED_AREAS = [
  * - `mocks`: 契約駆動モック([0027](docs/adr/0027-directory-structure.md))。生成された HTTP client を
  *   含み、それは本番が使わないもの([0071](docs/adr/0071-bff-api-integration.md))です。一方でモックの
  *   起動そのものは起動境界の仕事であるため、そこからだけ届くようにします
+ * - `adapters-auth`: session の封緘と復元。入口の楽観判定([0043](docs/adr/0043-middleware-policy.md))が
+ *   ここだけを必要とするため、`proxy` へ `adapters` 全体を開けずに済ませます。開けてしまうと、
+ *   ADR 0043 が禁じる「Proxy でのデータ取得」が境界検査を通り抜けます
+ *
+ * 区画は自分が何を import してよいかも宣言します。層の許可は要素の型に対して当たるため、区画へ
+ * 切り出した時点で層の許可が届かなくなり、宣言しないと自分自身の import がすべて禁止になります。
  */
 export const RESTRICTED_AREAS = [
   {
@@ -165,11 +190,26 @@ export const RESTRICTED_AREAS = [
     pattern: "src/adapters/gen",
     allowedFrom: ["adapters"],
     allowedFromCategories: [],
+    dependencies: [],
   },
-  { type: "mocks", pattern: "mocks", allowedFrom: [], allowedFromCategories: ["bootstrap"] },
+  {
+    type: "adapters-auth",
+    pattern: "src/adapters/server/auth",
+    allowedFrom: ["app", "adapters"],
+    allowedFromCategories: ["proxy"],
+    dependencies: ["adapters", "model", "errors", "logging", "config"],
+  },
+  {
+    type: "mocks",
+    pattern: "mocks",
+    allowedFrom: [],
+    allowedFromCategories: ["bootstrap"],
+    dependencies: [],
+  },
 ] as const satisfies readonly {
   type: string;
   pattern: string;
   allowedFrom: readonly Kernel[];
   allowedFromCategories: readonly string[];
+  dependencies: readonly Kernel[];
 }[];

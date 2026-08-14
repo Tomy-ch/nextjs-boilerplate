@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem, ProductRef } from "@/model/product/product";
@@ -141,5 +142,13 @@ describe("ProductListPageContent", () => {
 
     expect(getProductListPage).not.toHaveBeenCalled();
     expect(screen.queryByRole("searchbox", { name: "キーワード" })).not.toBeInTheDocument();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(await ProductListPageContent({ searchParams: {} }));
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

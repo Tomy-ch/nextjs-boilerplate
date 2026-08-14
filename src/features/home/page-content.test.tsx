@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
@@ -136,5 +137,13 @@ describe("HomePageContent", () => {
     render(await HomePageContent());
 
     expect(screen.getAllByRole("alert")).toHaveLength(3);
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(await HomePageContent());
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

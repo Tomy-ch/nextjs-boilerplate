@@ -63,13 +63,37 @@ describe("authScopesValidator", () => {
 describe("authSessionSecretValidator", () => {
   // ----- 正常系 -----
   it("32 文字の session secret を受け入れる", () => {
-    expect(authSessionSecretValidator().safeParse("01234567890123456789012345678901").success).toBe(
-      true,
-    );
+    expect(
+      authSessionSecretValidator(false).safeParse("01234567890123456789012345678901").success,
+    ).toBe(true);
+  });
+
+  it("開発と CI では同梱の値を受け入れる", () => {
+    expect(
+      authSessionSecretValidator(true).safeParse(
+        "local-development-session-secret-change-before-production",
+      ).success,
+    ).toBe(true);
   });
 
   // ----- 異常系 -----
   it("32 文字に満たない session secret を拒否する", () => {
-    expect(authSessionSecretValidator().safeParse("too-short").success).toBe(false);
+    expect(authSessionSecretValidator(false).safeParse("too-short").success).toBe(false);
+  });
+
+  it("同梱の値のままなら拒否する", () => {
+    expect(
+      authSessionSecretValidator(false).safeParse(
+        "local-development-session-secret-change-before-production",
+      ).success,
+    ).toBe(false);
+  });
+
+  it("CI 用の同梱値も本番では拒否する", () => {
+    expect(
+      authSessionSecretValidator(false).safeParse(
+        "ci-session-secret-must-never-be-used-in-production",
+      ).success,
+    ).toBe(false);
   });
 });

@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 import ProductDetailError from "./error";
 
 describe("ProductDetailError", () => {
@@ -27,5 +28,20 @@ describe("ProductDetailError", () => {
     await userEvent.click(screen.getByRole("button"));
 
     expect(reset).toHaveBeenCalledOnce();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(
+      <ProductDetailError
+        error={Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:8080"), {
+          digest: "2741564515",
+        })}
+        reset={vi.fn()}
+      />,
+    );
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });
