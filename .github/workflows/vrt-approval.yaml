@@ -17,9 +17,8 @@ on:
     # `labeled` is what lets the check turn green without a new push. `unlabeled` is the
     # other direction: withdrawing an acceptance has to re-run the check, or the last
     # green verdict would stand over a pull request whose acceptance is gone. Only a
-    # person reaches this trigger — the retake deliberately leaves `vrt-approve` alone
-    # (`vrt-retake.yaml`), because dropping it changes no verdict and reads as someone
-    # else revoking the acceptance.
+    # person reaches this trigger — the retake leaves `vrt-approve` alone
+    # (`vrt-retake.yaml`).
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
 permissions:

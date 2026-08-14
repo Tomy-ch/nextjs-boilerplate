@@ -4,43 +4,25 @@ name: Baseline Retake
 # branch's submodule pointer onto the result. That push re-runs the comparisons,
 # which then pass.
 #
-# Both kinds of baseline are retaken together, because they are one thing everywhere
-# else: one store (`vrt/screenshots`, split into areas), one container, one push, and
-# one approval label covering whatever changed under that path. Splitting only the
-# retake would leave a fork asking why it takes two labels to retake what takes one to
-# approve — a question whose answer is in this repository's history rather than in the
-# tree it hands over.
+# Both kinds of baseline are retaken together — one store, one push, one approval
+# label. Why that follows from the store's shape is in docs/design/vrt.md. How each
+# is bounded differs:
 #
 #   * Stories (`make vrt-update`) — bounded to what the VRT run reported, so a story
 #     that never appeared in the pull-request comment cannot enter the baselines here.
 #   * Screens (`make e2e-update`) — always the full set. E2E publishes no per-screen
 #     report to bound it with, so an unchanged screen is re-shot and lands only if its
-#     pixels actually moved. The `full` story mode below already accepts that same
-#     trade for reverts.
+#     pixels actually moved.
 #
-# This is NOT where the visual change is approved. The label only develops the change
-# into something reviewable: the pixels become a real image diff in the store's compare
-# view, and accepting what is there is a separate act carrying its own label, required
-# by `vrt-approval.yaml`. Naming this label "approve" would put the word where the
-# judgement is not.
-#
-# The label is a CONDITION, not the trigger: it is read when a comparison run
-# completes. It can therefore be applied whenever, pull-request creation included,
-# which takes the human off the critical path — the comparison, the retake, and the
-# confirming re-run chain without anyone watching.
+# The label is NOT an approval and NOT a trigger. It develops the pixels into a
+# reviewable image diff, and accepting them is a separate label required by
+# `vrt-approval.yaml`; it is read when a comparison run completes, so it may be applied
+# at any time, pull-request creation included. Both properties are in
+# docs/design/vrt.md.
 #
 # The label is spent only when the pointer moves; every other outcome leaves it on.
 # Both halves of that asymmetry are in docs/design/vrt.md, and what it means for the
 # person applying the label is in vrt/README.md.
-#
-# When both comparisons are red, the E2E-triggered run yields to the VRT-triggered one
-# rather than spending the label on half the change. Deferring is what keeps "one
-# label, one retake" true now that two runs can reach this workflow.
-#
-# A revert triggers the same retake without a label. Pruning the store drops the
-# commit the reverted state pointed at, so restoring the code alone would leave the
-# pointer dangling. A revert returns to a state that was approved once, so retaking
-# it automatically does not weaken what approval means.
 #
 # Fork pull requests cannot be served, and under `workflow_run` refusing them is a
 # security requirement rather than a limitation: this trigger runs in the context of
@@ -130,7 +112,7 @@ jobs:
           exit 1
 
       # A revert retakes everything and needs no label; everything else needs one. Why
-      # the exception is safe is in the workflow header.
+      # the exception is safe is in docs/design/vrt.md.
       - name: Decide what to retake
         id: mode
         if: steps.pr.outputs.found == 'true'
@@ -162,20 +144,12 @@ jobs:
             echo 'stories=false' >> "$GITHUB_OUTPUT"
           fi
 
-      # Baselines taken from a tree that is failing elsewhere bake that failure into
-      # the store. The cause is often the rendering itself — a story filed under the
-      # wrong heading is both a ledger failure and a different image path — so the
-      # pixels captured now would be discarded by the fix anyway.
-      #
-      # Only the checks that can move a pixel are named. A denylist would have to grow
-      # a new entry every time a check is added, and the entry it is missing is the one
-      # that stops the retake; worse, it catches `vrt-approval`, which is red until a
-      # human accepts images that do not exist until this step has run — the approval
-      # would then be waiting on the retake and the retake on the approval.
-      #
-      # Only the latest attempt of each check counts. The API returns every attempt for
-      # the commit, so summing them means one flake makes a check "failing" for as long
-      # as the commit lives: re-running it green would never clear the gate.
+      # Baselines taken from a failing tree bake that failure into the store, so the
+      # retake waits. Why the gate names the checks that can move a pixel instead of
+      # counting every red one, and why only each check's latest attempt is read, are
+      # in docs/design/vrt.md. The allowlist also keeps `vrt-approval` out: it is red
+      # until a human accepts images this step has not produced yet, so counting it
+      # would leave the approval waiting on the retake and the retake on the approval.
       - name: Defer while a check that decides the pixels is failing
         id: gate
         if: steps.mode.outputs.mode != 'none' && steps.mode.outputs.mode != ''

@@ -100,8 +100,7 @@ export function formatTable(failures: Failure[]): string {
  *
  * @remarks
  * この検査は story ではないので {@link collectFailures} は拾いません（id の注記を持たない）。
- * それでいて、落ちたときに要るのは**全数の撮り直し**です。孤児は範囲を絞った撮り直しでは
- * 消えず、絞った実行では孤児と対象外の画像を区別できないためです。
+ * それでいて、落ちたときに要るのは**全数の撮り直し**です（理由は `vrt/lib/baseline-store.ts`）。
  *
  * @param json - Playwright の JSON レポート
  */
