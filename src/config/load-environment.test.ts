@@ -5,7 +5,11 @@ async function loadSubject(result: { error?: Error } = {}) {
   vi.doMock("dotenv", () => ({ config }));
 
   const module = await import("./load-environment");
-  return { config, loadEnvironment: module.loadEnvironment };
+  return {
+    config,
+    loadEnvironment: module.loadEnvironment,
+    getApplicationEnvironment: module.getApplicationEnvironment,
+  };
 }
 
 beforeEach(() => {
@@ -56,5 +60,36 @@ describe("loadEnvironment", () => {
     const { loadEnvironment } = await loadSubject({ error: new Error("not found") });
 
     expect(() => loadEnvironment()).toThrow("環境変数ファイルを読み込めません");
+  });
+});
+
+describe("getApplicationEnvironment", () => {
+  it("APP_ENV 未指定時は local を返す", async () => {
+    const { getApplicationEnvironment } = await loadSubject();
+
+    expect(getApplicationEnvironment()).toBe("local");
+  });
+
+  it("指定された環境を返す", async () => {
+    vi.stubEnv("APP_ENV", "stg");
+    const { getApplicationEnvironment } = await loadSubject();
+
+    expect(getApplicationEnvironment()).toBe("stg");
+  });
+
+  it("ENV ファイルを読み込まなくても解決する", async () => {
+    vi.stubEnv("APP_ENV", "prd");
+    const { config, getApplicationEnvironment } = await loadSubject();
+
+    getApplicationEnvironment();
+
+    expect(config).not.toHaveBeenCalled();
+  });
+
+  it("選べない環境名を拒否する", async () => {
+    vi.stubEnv("APP_ENV", "production");
+    const { getApplicationEnvironment } = await loadSubject();
+
+    expect(() => getApplicationEnvironment()).toThrow("APP_ENV は local, ci, dev, stg, prd");
   });
 });
