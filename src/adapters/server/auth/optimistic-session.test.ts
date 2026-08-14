@@ -26,7 +26,6 @@ describe("readOptimisticSession", () => {
     expect(await readOptimisticSession("sealed")).not.toHaveProperty("accessToken");
   });
 
-  // ----- 異常系 -----
   it("cookie が無ければ復元を試みない", async () => {
     restore.mockClear();
 
@@ -34,6 +33,7 @@ describe("readOptimisticSession", () => {
     expect(restore).not.toHaveBeenCalled();
   });
 
+  // ----- 異常系 -----
   it("復元できなければ null にする", async () => {
     restore.mockResolvedValueOnce(null);
 

@@ -32,7 +32,9 @@ export const TRANSACTION_MAX_AGE_SECONDS = 600;
  * cookie に共通で付ける属性。
  *
  * @remarks
- * `httpOnly` は client-side JS からの読み出しを塞ぎ、XSS 起点の session 窃取を緩和します。
+ * 属性の既定は `docs/rules.md` #44 と [0079](../../../../docs/adr/0079-auth-frontend-seam.md) §1 が
+ * 持ちます。ここに書くのは、この口に固有の判断だけです。
+ *
  * `sameSite: "lax"` は他サイトからの POST に cookie を載せない一方、IdP からのリダイレクト
  * （トップレベルの GET ナビゲーション）では送出されます。`strict` にすると callback で
  * cookie が届かず、認証が成立しません。

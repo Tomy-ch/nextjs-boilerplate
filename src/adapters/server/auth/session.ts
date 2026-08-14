@@ -23,8 +23,8 @@ import type { AuthorizationTransaction, SessionRecord } from "./session-resolver
  * これを呼べると「うっかり client へ渡す」経路が生まれます。内側が使うのは
  * {@link verifySession} です。
  *
- * 1 リクエストの中で何度呼んでも復号は 1 度で済むよう memo 化します。認可の検査はデータ源の
- * 近くで何度も行われる想定であり、その都度復号すると回数がそのまま費用になります。
+ * 復号を 1 リクエストにつき 1 度へ畳むために memo 化します。認可の検査はデータ源の近くで
+ * 何度も行われる想定であり、その都度復号すると回数がそのまま費用になります。
  */
 const readSessionRecord = cache(async (): Promise<SessionRecord | null> => {
   const sealed = (await cookies()).get(SESSION_COOKIE_NAME)?.value;

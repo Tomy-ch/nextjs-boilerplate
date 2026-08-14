@@ -90,8 +90,9 @@ function toSessionRole(claim: unknown): SessionRole {
  * boilerplate が同梱する 1 つの実装です（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。
  * 差し替えの単位は `SessionResolver` の面であって、この関数の中身ではありません。
  *
- * Discovery の結果は生成した Resolver が抱えます。process 単位で握らないのは、鍵や口の入れ替えを
- * 反映できなくなるためで、抱える範囲を Resolver の寿命に合わせています。
+ * Discovery の結果は生成した Resolver が抱えます。**取得に失敗したときは抱え込みません。**
+ * 失敗した結果を保持すると、IdP の一時的な不調で最初の 1 回が失敗しただけで、以後この Resolver を
+ * 使うすべての操作が同じ失敗を返し続けます。
  */
 export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): SessionResolver {
   const now = deps.now ?? Date.now;
@@ -101,7 +102,13 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
   let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
 
   const resolveEndpoints = (): Promise<OidcEndpoints> => {
-    endpoints ??= fetchOidcEndpoints(deps.issuer, deps.fetchImpl);
+    // 失敗した Promise は捨てる。`??=` は undefined のときしか代入しないため、reject した
+    // Promise を残すと次の呼び出しも同じ失敗を返し、プロセスを入れ替えるまで回復しない。
+    endpoints ??= fetchOidcEndpoints(deps.issuer, deps.fetchImpl).catch((cause: unknown) => {
+      endpoints = undefined;
+
+      throw cause;
+    });
 
     return endpoints;
   };
@@ -161,14 +168,21 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
         schema: TokenResponse,
       });
 
-      const { payload } = await jwtVerify(tokens.id_token, await resolveJwks(), {
+      const verified = await jwtVerify(tokens.id_token, await resolveJwks(), {
         issuer: deps.issuer,
         audience: deps.clientId,
         algorithms: ID_TOKEN_ALGORITHMS,
         // 時刻の判定もこの Resolver が受け取った時計で行う。ここだけ実時計を見ると、
         // 有効期限まわりの検証が実時間に依存し、境界のケースを再現できない。
         currentDate: new Date(now()),
+      }).catch((cause: unknown) => {
+        // 署名・iss・aud・exp のどれで落ちても、呼び出し側から見れば「認証されていない」で同じ。
+        // ここで分類しないと、この経路だけが検証ライブラリの例外型を外へ漏らす。
+        throw createAppError(ErrorKind.UNAUTHENTICATED, {
+          cause: cause instanceof Error ? cause : new Error(String(cause)),
+        });
       });
+      const payload = verified.payload;
 
       if (payload.nonce !== transaction.nonce) {
         throw createAppError(ErrorKind.UNAUTHENTICATED, {

@@ -15,7 +15,6 @@ describe("toSafeReturnUrl", () => {
     expect(toSafeReturnUrl("/")).toBe("/");
   });
 
-  // ----- 異常系 -----
   it("復帰先が無ければルートへ倒す", () => {
     expect(toSafeReturnUrl(null)).toBe("/");
   });
@@ -28,6 +27,7 @@ describe("toSafeReturnUrl", () => {
     expect(toSafeReturnUrl("")).toBe("/");
   });
 
+  // ----- 異常系 -----
   it("scheme 付きの絶対 URL を落とす", () => {
     expect(toSafeReturnUrl("https://example.com/steal")).toBe("/");
   });
@@ -38,6 +38,18 @@ describe("toSafeReturnUrl", () => {
 
   it("バックスラッシュで始まる protocol-relative URL を落とす", () => {
     expect(toSafeReturnUrl("/\\example.com/steal")).toBe("/");
+  });
+
+  it("タブを挟んで protocol-relative に化ける形を落とす", () => {
+    expect(toSafeReturnUrl("/\t/example.com/steal")).toBe("/");
+  });
+
+  it("改行を挟んで protocol-relative に化ける形を落とす", () => {
+    expect(toSafeReturnUrl("/\n/example.com/steal")).toBe("/");
+  });
+
+  it("復帰改行を挟んで protocol-relative に化ける形を落とす", () => {
+    expect(toSafeReturnUrl("/\r/example.com/steal")).toBe("/");
   });
 
   it("先頭が / でないパスを落とす", () => {

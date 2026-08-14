@@ -41,7 +41,6 @@ describe("isSessionExpired", () => {
     expect(isSessionExpired(session, new Date("2026-08-14T00:05:00.001Z"))).toBe(true);
   });
 
-  // ----- 異常系 -----
   it("失効時刻ちょうどを失効とみなす", () => {
     expect(isSessionExpired(session, new Date("2026-08-14T00:05:00.000Z"))).toBe(true);
   });

@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { findAppError } from "@/errors/app-error";
+import { ErrorKind } from "@/errors/error-kind";
 import { fetchOidcEndpoints } from "./oidc-discovery";
 
 const issuer = "https://idp.example.test";
@@ -10,6 +12,17 @@ const document = {
   jwks_uri: `${issuer}/oidc/jwks`,
   end_session_endpoint: `${issuer}/oidc/logout`,
 };
+
+/** 失敗の分類を取り出す。分類の付かない失敗は undefined になる。 */
+async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
+  try {
+    await run();
+  } catch (error) {
+    return findAppError(error)?.kind;
+  }
+
+  return undefined;
+}
 
 function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -49,22 +62,28 @@ describe("fetchOidcEndpoints", () => {
 
   // ----- 異常系 -----
   it("issuer が設定と一致しなければ落とす", async () => {
-    await expect(
+    const kind = await kindOf(() =>
       fetchOidcEndpoints(issuer, async () =>
         respond({ ...document, issuer: "https://attacker.example.test" }),
       ),
-    ).rejects.toThrow();
+    );
+
+    expect(kind).toBe(ErrorKind.INTERNAL);
   });
 
-  it("使う口が欠けていれば落とす", async () => {
-    await expect(
+  it("使う口が欠けていれば契約破れとして落とす", async () => {
+    const kind = await kindOf(() =>
       fetchOidcEndpoints(issuer, async () => respond({ ...document, token_endpoint: undefined })),
-    ).rejects.toThrow();
+    );
+
+    expect(kind).toBe(ErrorKind.INTERNAL);
   });
 
-  it("取得に失敗すれば落とす", async () => {
-    await expect(
+  it("取得に失敗すれば応答の status に応じた分類で落とす", async () => {
+    const kind = await kindOf(() =>
       fetchOidcEndpoints(issuer, async () => respond({ error: "not found" }, 404)),
-    ).rejects.toThrow();
+    );
+
+    expect(kind).toBe(ErrorKind.NOT_FOUND);
   });
 });

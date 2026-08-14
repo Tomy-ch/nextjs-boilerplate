@@ -146,7 +146,7 @@ describe("signOut", () => {
     resolver.restore.mockResolvedValue(record);
     resolver.endSession.mockRejectedValue(new Error("IdP が応答しません"));
 
-    await expect(signOut()).rejects.toThrow();
+    await expect(signOut()).rejects.toThrow("IdP が応答しません");
     expect(cookieStore.delete).toHaveBeenCalledWith("auth_session");
   });
 });

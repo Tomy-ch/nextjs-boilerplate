@@ -18,7 +18,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     await signOut();
   } catch {
-    // 手元の破棄は完了している。IdP 側に session が残ったことは利用者の操作では解けない。
+    // 意図的に握り潰す: 手元の cookie は破棄済み。
   }
 
   return Response.redirect(new URL(HOME_PATH, request.url), 303);

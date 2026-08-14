@@ -47,18 +47,31 @@ describe("GET", () => {
     expect(storeTransaction).toHaveBeenCalledWith(transaction);
   });
 
-  // ----- 異常系 -----
   it("復帰先が無ければルートへ戻す前提で組む", async () => {
     await GET(new Request("http://localhost:3000/api/auth/login"));
 
     expect(startAuthorization).toHaveBeenCalledWith("/");
   });
 
+  // ----- 異常系 -----
   it("外部 URL の復帰先を落とす", async () => {
     await GET(
       new Request("http://localhost:3000/api/auth/login?returnUrl=https%3A%2F%2Fevil.example.test"),
     );
 
     expect(startAuthorization).toHaveBeenCalledWith("/");
+  });
+
+  it("IdP へ到達できなければログインへ戻して再試行させる", async () => {
+    startAuthorization.mockRejectedValue(new Error("IdP へ到達できません"));
+
+    const response = await GET(
+      new Request("http://localhost:3000/api/auth/login?returnUrl=%2Fmypage"),
+    );
+    const location = new URL(String(response.headers.get("location")));
+
+    expect(location.pathname).toBe("/login");
+    expect(location.searchParams.get("returnUrl")).toBe("/mypage");
+    expect(storeTransaction).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,7 @@
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { findAppError } from "@/errors/app-error";
+import { ErrorKind } from "@/errors/error-kind";
 import { SESSION_ROLE } from "@/model/session";
 import { createDefaultSessionResolver } from "./default-session-resolver";
 
@@ -30,6 +32,17 @@ beforeAll(async () => {
   publicJwk = await exportJWK(pair.publicKey);
 });
 
+/** 失敗の分類を取り出す。分類の付かない失敗は undefined になる。 */
+async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
+  try {
+    await run();
+  } catch (error) {
+    return findAppError(error)?.kind;
+  }
+
+  return undefined;
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -40,14 +53,15 @@ function json(body: unknown, status = 200): Response {
 async function issueIdToken(
   claims: Readonly<Record<string, unknown>>,
   key: CryptoKey = signingKey,
+  withExpiry = true,
 ): Promise<string> {
-  return new SignJWT(claims)
+  const token = new SignJWT(claims)
     .setProtectedHeader({ alg: "RS256", kid: "test-key" })
     .setIssuer(issuer)
     .setAudience(clientId)
-    .setIssuedAt(Math.floor(nowMs / 1000))
-    .setExpirationTime(Math.floor(nowMs / 1000) + 3600)
-    .sign(key);
+    .setIssuedAt(Math.floor(nowMs / 1000));
+
+  return (withExpiry ? token.setExpirationTime(Math.floor(nowMs / 1000) + 3600) : token).sign(key);
 }
 
 /** token endpoint が返す ID Token。認可要求の後に確定するため、参照を差し替えられる形で渡す。 */
@@ -100,6 +114,7 @@ async function startSignIn(
     key?: CryptoKey;
     expiresIn?: number;
     returnUrl?: string;
+    withIdTokenExpiry?: boolean;
   } = {},
 ) {
   const issued: IssuedToken = { value: "" };
@@ -110,6 +125,7 @@ async function startSignIn(
   issued.value = await issueIdToken(
     { sub: "user-1", nonce: started.transaction.nonce, ...options.claims },
     options.key,
+    options.withIdTokenExpiry ?? true,
   );
 
   return {
@@ -225,14 +241,70 @@ describe("createDefaultSessionResolver", () => {
     );
   });
 
+  it("実装を渡さなければ環境の fetch で鍵を取りに行く", async () => {
+    const issued: IssuedToken = { value: "" };
+    const environmentFetch = createIdp(issued, 3600);
+    vi.stubGlobal("fetch", environmentFetch);
+
+    const resolver = createDefaultSessionResolver({
+      issuer,
+      clientId,
+      redirectUri,
+      scopes: "openid",
+      sessionSecret,
+      now: () => nowMs,
+    });
+    const started = await resolver.startAuthorization("/");
+    issued.value = await issueIdToken({ sub: "user-1", nonce: started.transaction.nonce });
+
+    await resolver.completeAuthorization({
+      code: "authorization-code",
+      state: started.transaction.state,
+      transaction: started.transaction,
+    });
+
+    expect(
+      vi
+        .mocked(environmentFetch)
+        .mock.calls.some(([input]) => String(input).endsWith("/oidc/jwks")),
+    ).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it("ログアウトの口を持たない IdP には何も送らない", async () => {
+    const issued: IssuedToken = { value: "" };
+    const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
+      if (String(input).endsWith("/.well-known/openid-configuration")) {
+        return json({ ...discovery, end_session_endpoint: undefined });
+      }
+
+      return createIdp(issued, 3600)(input, init);
+    });
+    const resolver = createResolver(fetchImpl);
+    const started = await resolver.startAuthorization("/");
+    issued.value = await issueIdToken({ sub: "user-1", nonce: started.transaction.nonce });
+    const record = await resolver.completeAuthorization({
+      code: "authorization-code",
+      state: started.transaction.state,
+      transaction: started.transaction,
+    });
+
+    await resolver.endSession(record);
+
+    expect(fetchImpl.mock.calls.some(([input]) => String(input).endsWith("/oidc/logout"))).toBe(
+      false,
+    );
+  });
+
   // ----- 異常系 -----
   it("state が一致しなければ交換しない", async () => {
     const { resolver, fetchImpl, transaction } = await startSignIn();
 
-    await expect(
+    const kind = await kindOf(() =>
       resolver.completeAuthorization({ code: "code", state: "forged-state", transaction }),
-    ).rejects.toThrow();
+    );
 
+    expect(kind).toBe(ErrorKind.UNAUTHENTICATED);
     expect(
       vi.mocked(fetchImpl).mock.calls.some(([input]) => String(input).endsWith("/oidc/token")),
     ).toBe(false);
@@ -241,19 +313,46 @@ describe("createDefaultSessionResolver", () => {
   it("nonce が一致しなければ落とす", async () => {
     const { complete } = await startSignIn({ claims: { nonce: "forged-nonce" } });
 
-    await expect(complete()).rejects.toThrow();
+    expect(await kindOf(complete)).toBe(ErrorKind.UNAUTHENTICATED);
   });
 
   it("JWKS に無い鍵で署名された ID Token を落とす", async () => {
     const { complete } = await startSignIn({ key: otherKey });
 
-    await expect(complete()).rejects.toThrow();
+    expect(await kindOf(complete)).toBe(ErrorKind.UNAUTHENTICATED);
   });
 
   it("subject を持たない ID Token を落とす", async () => {
     const { complete } = await startSignIn({ claims: { sub: undefined } });
 
-    await expect(complete()).rejects.toThrow();
+    expect(await kindOf(complete)).toBe(ErrorKind.UNAUTHENTICATED);
+  });
+
+  it("失効時刻を決められなければ落とす", async () => {
+    const { complete } = await startSignIn({ expiresIn: undefined, withIdTokenExpiry: false });
+
+    expect(await kindOf(complete)).toBe(ErrorKind.UNAUTHENTICATED);
+  });
+
+  it("Discovery に失敗しても次の呼び出しで取り直す", async () => {
+    const issued: IssuedToken = { value: "" };
+    let idpIsDown = true;
+    const flaky = vi.fn<typeof fetch>(async (input, init) => {
+      if (idpIsDown && String(input).endsWith("/.well-known/openid-configuration")) {
+        return json({ error: "unavailable" }, 503);
+      }
+
+      return createIdp(issued, 3600)(input, init);
+    });
+    const resolver = createResolver(flaky);
+
+    await expect(resolver.startAuthorization("/")).rejects.toThrow();
+
+    idpIsDown = false;
+
+    await expect(resolver.startAuthorization("/")).resolves.toMatchObject({
+      authorizationUrl: expect.stringContaining(issuer),
+    });
   });
 
   it("別の秘密値で封緘された cookie を復元しない", async () => {

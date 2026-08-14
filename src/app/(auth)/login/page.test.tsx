@@ -10,13 +10,11 @@ async function renderPage(searchParams: Record<string, string | string[] | undef
 }
 
 describe("LoginPage", () => {
-  // ----- 正常系 -----
   it("この画面の名前と説明を metadata に持つ", () => {
     expect(metadata.title).toBe("ログイン");
   });
 
   it("検索エンジンに拾わせない", () => {
-    // 復帰先の数だけ別 URL として索引され、そのどれもが単独では意味を持たない。
     expect(metadata.robots).toMatchObject({ index: false });
   });
 
@@ -32,7 +30,6 @@ describe("LoginPage", () => {
     expect(screen.getByRole("button", { name: "ログインへ進む" })).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("復帰先が無ければルートへ戻す", async () => {
     const { container } = await renderPage({});
 

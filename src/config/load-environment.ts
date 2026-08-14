@@ -22,16 +22,24 @@ function isApplicationEnvironment(value: string): value is ApplicationEnvironmen
 }
 
 /**
- * いま選択されている環境を返す。
+ * `APP_ENV` に明示された環境を返す。指定が無ければ null。
  *
  * @remarks
- * ENV ファイルの選択と同じ規則で解きます。環境を条件にする判断（開発専用の口を閉じる等）が
- * 独自に `APP_ENV` を読むと、既定値や綴りの解釈が 2 通りに分かれます。
+ * **既定値へ落としません。** 環境を条件にして開発専用の口を閉じる判断は、「未設定」を安全側へ
+ * 倒せなければ意味を失います。既定値を返す関数で判定すると、`APP_ENV` を設定し忘れた実環境が
+ * `local` として扱われ、閉じたはずの口が開きます。
+ *
+ * ENV ファイルの選択（{@link loadEnvironment}）はこの結果を既定値で補って使います。読み込む
+ * ファイルが無いのは起動できない状態であり、そちらは既定値がある方が正しいためです。
  *
  * @throws `APP_ENV` が選べる値でないとき
  */
-export function getApplicationEnvironment(): ApplicationEnvironment {
-  const applicationEnvironment = process.env.APP_ENV ?? defaultApplicationEnvironment;
+export function findExplicitApplicationEnvironment(): ApplicationEnvironment | null {
+  const applicationEnvironment = process.env.APP_ENV;
+
+  if (applicationEnvironment === undefined) {
+    return null;
+  }
 
   if (!isApplicationEnvironment(applicationEnvironment)) {
     throw new Error(
@@ -53,7 +61,11 @@ export function loadEnvironment(): void {
     return;
   }
 
-  const environmentPath = path.join(process.cwd(), "env", `.env.${getApplicationEnvironment()}`);
+  const environmentPath = path.join(
+    process.cwd(),
+    "env",
+    `.env.${findExplicitApplicationEnvironment() ?? defaultApplicationEnvironment}`,
+  );
   const result = config({ path: environmentPath, override: false, quiet: true });
   if (result.error !== undefined) {
     throw new Error(`環境変数ファイルを読み込めません: ${environmentPath}`, {

@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import { LoginView } from "./login-view";
 
 describe("LoginView", () => {
-  // ----- 正常系 -----
   it("認証を始める操作を出す", () => {
     render(<LoginView returnUrl="/" />);
 
@@ -36,11 +35,9 @@ describe("LoginView", () => {
     expect(screen.getByText(/元の操作に戻ります/)).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("資格情報の入力欄を持たない", () => {
     const { container } = render(<LoginView returnUrl="/" />);
 
-    // 入力欄を置くと、ID とパスワードがこのアプリを通ることになる（ADR 0079 §6）。
     expect(container.querySelector('input[type="password"]')).toBeNull();
     expect(container.querySelector('input[type="email"]')).toBeNull();
   });
@@ -48,7 +45,6 @@ describe("LoginView", () => {
   it("リンクで認証を始めない", () => {
     render(<LoginView returnUrl="/" />);
 
-    // リンクにすると prefetch で、利用者が押していないのに一時状態が発行される。
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 

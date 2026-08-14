@@ -2,6 +2,15 @@
 const FALLBACK_RETURN_URL = "/";
 
 /**
+ * 解決先を確かめるための、到達し得ない origin。
+ *
+ * @remarks
+ * `.invalid` は名前解決されないことが保証された予約 TLD（RFC 6761）です。判定に使うだけで
+ * 接続はしませんが、実在の名前を借りると、その名前が将来別の意味を持ったときに判定が変わります。
+ */
+const PROBE_ORIGIN = "http://internal.invalid";
+
+/**
  * 未認証で弾いた利用者を、認証後に戻す先を検証する。
  *
  * @remarks
@@ -9,30 +18,33 @@ const FALLBACK_RETURN_URL = "/";
  * しまいます（open redirect）。同一 origin の相対パスだけを通し、それ以外は既定の行き先へ倒します
  * （[0079](../../docs/adr/0079-auth-frontend-seam.md)）。
  *
- * `//example.com` と `/\example.com` を弾くのは、どちらもブラウザが protocol-relative URL として
- * 解釈し、先頭が `/` であるという見た目の検査を通り抜けるためです。`http://` のような scheme 付きも
- * 同様に弾きます。
+ * **判定は文字列の見た目ではなく、URL パーサに解かせた結果で行います。** 文字列を先頭から検査する
+ * 書き方は、パーサ側の正規化を再現できません。たとえば `/\t/evil.com` はタブが解析時に除去されて
+ * `//evil.com`（protocol-relative URL）になり、「2 文字目が `/` か」という検査を素通りします。
+ * 実際にリダイレクトへ渡るのは解決後の形なので、検査もその形に対して行う必要があります。
  *
- * 判定は「通す形を列挙する」側で書いています。危険な形を数え上げる書き方は、数え漏らした形が
- * 黙って通ります。
+ * 先頭が `/` であることも併せて要求します。origin の一致だけを見ると `products/1` のような
+ * 相対パスも通り、呼び出し側がどこを基準に解決するかで行き先が変わります。
  *
  * @param candidate - クエリ等から受け取った復帰先候補
- * @returns 安全と判定した相対パス。判定に落ちたときは `/`
+ * @returns 安全と判定した、解決済みの相対パス。判定に落ちたときは `/`
  */
 export function toSafeReturnUrl(candidate: string | null | undefined): string {
-  if (candidate === null || candidate === undefined || candidate === "") {
+  if (candidate === null || candidate === undefined || !candidate.startsWith("/")) {
     return FALLBACK_RETURN_URL;
   }
 
-  if (!candidate.startsWith("/")) {
+  let resolved: URL;
+
+  try {
+    resolved = new URL(candidate, PROBE_ORIGIN);
+  } catch {
     return FALLBACK_RETURN_URL;
   }
 
-  // 2 文字目が `/` または `\` なら、ブラウザは別 origin として解決する。
-  const second = candidate.charAt(1);
-  if (second === "/" || second === "\\") {
+  if (resolved.origin !== PROBE_ORIGIN) {
     return FALLBACK_RETURN_URL;
   }
 
-  return candidate;
+  return `${resolved.pathname}${resolved.search}${resolved.hash}`;
 }

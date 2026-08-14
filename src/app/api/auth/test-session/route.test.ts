@@ -3,11 +3,11 @@ import { SESSION_ROLE } from "@/model/session";
 import { POST } from "./route";
 
 const storeSession = vi.hoisted(() => vi.fn());
-const environment = vi.hoisted(() => ({ value: "local" }));
+const environment = vi.hoisted((): { value: string | null } => ({ value: "local" }));
 
 vi.mock("@/adapters/server/auth/session", () => ({ storeSession }));
 vi.mock("@/config/load-environment", () => ({
-  getApplicationEnvironment: () => environment.value,
+  findExplicitApplicationEnvironment: () => environment.value,
 }));
 
 function issue(body?: unknown): Request {
@@ -53,11 +53,18 @@ describe("POST", () => {
   });
 
   it("失効までの秒数を指定できる", async () => {
-    await POST(issue({ expiresInSeconds: 1 }));
+    const before = Date.now();
+
+    await POST(issue({ expiresInSeconds: 120 }));
 
     const expiresAt: Date = storeSession.mock.calls[0]?.[0].session.expiresAt;
 
-    expect(expiresAt.getTime() - Date.now()).toBeLessThanOrEqual(1000);
+    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + 120 * 1000);
+    expect(expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 120 * 1000);
+  });
+
+  it("本文が無くても既定で発行する", async () => {
+    expect((await POST(issue())).status).toBe(204);
   });
 
   // ----- 異常系 -----
@@ -82,14 +89,19 @@ describe("POST", () => {
     expect((await POST(issue({}))).status).toBe(404);
   });
 
+  it("APP_ENV が明示されていなければ開けない", async () => {
+    environment.value = null;
+
+    const response = await POST(issue({}));
+
+    expect(response.status).toBe(404);
+    expect(storeSession).not.toHaveBeenCalled();
+  });
+
   it("指定が壊れていれば発行しない", async () => {
     const response = await POST(issue({ role: "superuser" }));
 
     expect(response.status).toBe(400);
     expect(storeSession).not.toHaveBeenCalled();
-  });
-
-  it("本文が無くても既定で発行する", async () => {
-    expect((await POST(issue())).status).toBe(204);
   });
 });

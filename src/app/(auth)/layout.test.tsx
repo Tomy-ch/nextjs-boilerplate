@@ -8,7 +8,6 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }))
 import AuthLayout from "./layout";
 
 describe("AuthLayout", () => {
-  // ----- 正常系 -----
   it("外枠へ子要素を入れる", () => {
     render(
       <AuthLayout>
@@ -29,7 +28,6 @@ describe("AuthLayout", () => {
     expect(within(screen.getByRole("banner")).getByText("nextjs-boilerplate")).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("他の画面への導線を並べない", () => {
     render(
       <AuthLayout>
@@ -37,8 +35,9 @@ describe("AuthLayout", () => {
       </AuthLayout>,
     );
 
-    // 認証を促している最中に離脱させると、元の操作へ戻れなくなる。
-    expect(within(screen.getByRole("banner")).queryByRole("link", { name: "商品" })).toBeNull();
+    expect(
+      within(screen.getByRole("navigation", { name: "主要な導線" })).queryAllByRole("link"),
+    ).toHaveLength(0);
   });
 
   it("カートを出さない", () => {
