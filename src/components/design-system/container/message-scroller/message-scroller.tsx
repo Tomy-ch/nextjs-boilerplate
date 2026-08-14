@@ -110,6 +110,8 @@ export function MessageScroller({
 }: MessageScrollerProps) {
   const [viewportElement, setViewportElement] = useState<HTMLElement | null>(null);
   const [contentElement, setContentElement] = useState<HTMLElement | null>(null);
+  // 要素が付くまで scroll 位置は測れない。初期表示は末尾を映すため、その間も末尾にいるものとして
+  // 扱う。false から始めると、末尾へ戻す操作が一瞬現れる。
   const [atEnd, setAtEnd] = useState(true);
   const followingRef = useRef(true);
   const lastScrollTopRef = useRef(0);
@@ -160,10 +162,6 @@ export function MessageScroller({
 
     viewportElement.scrollTo({ behavior: "auto", top: viewportElement.scrollHeight });
     lastScrollTopRef.current = viewportElement.scrollTop;
-    // DOM の scroll 位置を React 側へ写す同期であり、初期位置は要素が付くまで決まらない。
-    // TODO: 要素のマウント待ちを ref callback などで表せるかを #169 で見る
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- DOM からの同期のため
-    setAtEnd(true);
   }, [viewportElement]);
 
   useEffect(() => {
