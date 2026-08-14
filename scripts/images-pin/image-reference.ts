@@ -3,11 +3,8 @@
 //
 // 対象は compose の `image:`、Dockerfile の `FROM`、workflow / composite action の
 // `uses: docker://`。いずれも「接頭辞・参照・接尾辞」の 3 つに割れるため、書き換えは同じ
-// 関数で扱える。
-//
-// `uses: docker://` をここが持つのは、それが registry の参照であり GitHub のリポジトリでは
-// ないため。actions-pin は tag を `git ls-remote` で commit SHA へ解決する機構で、registry に
-// 対しては意味を成さない。digest の解決はこちらの責務であり、両方に置けば二重実装になる。
+// 関数で扱える。`uses: docker://` をこちらが持つ責務線は
+// [0011](../../docs/adr/0011-no-docker.md) が持つ。
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -32,10 +29,8 @@ export type PinTarget = {
   loose: RegExp;
 };
 
-// 走査用パターンは単一のインスタンスを共有せず、対象 1 件ごとに作る。`g` 付きの RegExp は
-// `lastIndex` を持ち回り、`matchAll` はその時点の値からの走査になるため、共有したインスタンスへ
-// 誰かが `test` / `exec` を呼んだ瞬間から collectRefs がファイル先頭付近の参照を黙って読み飛ばす。
-// 固定の網から参照が外れる向きに、間欠的に壊れる。
+// 走査用パターンは対象 1 件ごとに作る。`g` 付きの RegExp は `lastIndex` を持ち回り、`matchAll`
+// はその時点の値から走査するため、共有すると collectRefs が先頭付近の参照を黙って読み飛ばしうる。
 
 // compose service の `image: <ref>`。接尾辞は行末の空白と行コメントを取り込んで保つ。
 // 引用符を参照から締め出すのは、含めると `image: "alpine:3.24"` が引用符ごと一致し、
@@ -52,12 +47,10 @@ export function dockerfileFromPattern(): RegExp {
 }
 const DOCKERFILE_FROM_LOOSE = /^[ \t]*FROM[ \t]+\S/i;
 
-// workflow / composite action の `uses: [-] docker://<ref>`。GitHub Actions が registry の
-// image を直接実行するステップの記法で、参照先は GitHub のリポジトリではない。
+// workflow / composite action の `uses: [-] docker://<ref>`。
 //
-// 参照側に tag を必須にしてあるのは、省略が `:latest` を意味するため。tag の無い参照を
-// 通すと parseRef が null を返して固定対象から静かに外れ、可動タグそのものが CI で走る。
-// 一致しなければ unparsedLines が対応記法の外として拾い、fail-closed で落ちる。
+// tag を必須にしてあるのは、省略した参照を通すと parseRef が null を返し、固定対象から静かに
+// 外れるため。一致しなければ unparsedLines が対応記法の外として拾う。
 export function usesDockerPattern(): RegExp {
   return /^([ \t]*(?:-[ \t]*)?uses:[ \t]*docker:\/\/)((?:[^\s'"@]+\/)?[^\s'"@/:]+:[^\s'"@/]+(?:@[^\s'"]+)?)([ \t]*(?:#.*)?)$/gm;
 }
@@ -102,8 +95,7 @@ export function parseRef(reference: string): ImageRef | null {
  * そこに書かれた image 参照が検疫・固定・drift 検査のいずれからも外れたまま「すべて固定済み」と
  * 報告されます。
  *
- * workflow 側を含めるのは `uses: docker://` を拾うためだけで、`uses: owner/repo@<sha>` は
- * actions-pin の担当です。同じファイルを 2 つの機構が走査しますが、掴む行は重なりません。
+ * workflow 側で拾うのは `uses: docker://` の行だけです。
  */
 export function targetFiles(root: string): PinTarget[] {
   const targets: PinTarget[] = [];
