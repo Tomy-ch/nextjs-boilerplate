@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Environment } from "@/config/environment";
+import { serveJson } from "../../../../vitest.setup";
 
 const environment: Environment = {
   APP_API_BASE_URL: "https://api.example.test",
@@ -27,22 +28,16 @@ const wireCategories = [
   { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b22", name: "書籍", code: 10, sortKey: 2 },
 ];
 
-function stubFetch(body: unknown): ReturnType<typeof vi.fn> {
-  const fetchImpl = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }));
-
-  vi.stubGlobal("fetch", fetchImpl);
-
-  return fetchImpl;
-}
+const CATEGORIES_URL = `${environment.APP_API_BASE_URL}/v1/products/categories`;
 
 afterEach(() => {
-  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("getProductCategories", () => {
   // ----- 正常系 -----
   it("契約の応答から ID と表示名だけを取り出す", async () => {
-    stubFetch(wireCategories);
+    serveJson(CATEGORIES_URL, wireCategories);
 
     await expect(getProductCategories()).resolves.toEqual([
       { id: wireCategories[0]?.id, name: "雑貨" },
@@ -51,7 +46,7 @@ describe("getProductCategories", () => {
   });
 
   it("契約が返した並びをそのまま保つ", async () => {
-    stubFetch(wireCategories);
+    serveJson(CATEGORIES_URL, wireCategories);
 
     const categories = await getProductCategories();
 
@@ -59,15 +54,18 @@ describe("getProductCategories", () => {
   });
 
   it("カテゴリのマスタへ問い合わせる", async () => {
-    const fetchImpl = stubFetch(wireCategories);
+    const requests = serveJson(CATEGORIES_URL, wireCategories);
 
     await getProductCategories();
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/products/categories");
+    expect(requests[0]?.url).toBe(CATEGORIES_URL);
   });
 
   it("キャッシュとマスタの再検証タグを指定する", async () => {
-    const fetchImpl = stubFetch(wireCategories);
+    serveJson(CATEGORIES_URL, wireCategories);
+    // キャッシュ指定は要求として送出されないため、HTTP 境界からは観測できない。応答は
+    // 差し替えず、`fetch` へ渡された指定だけを見る。
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
 
     await getProductCategories();
 
@@ -78,7 +76,7 @@ describe("getProductCategories", () => {
   });
 
   it("マスタが空でも空の一覧を返す", async () => {
-    stubFetch([]);
+    serveJson(CATEGORIES_URL, []);
 
     await expect(getProductCategories()).resolves.toEqual([]);
   });

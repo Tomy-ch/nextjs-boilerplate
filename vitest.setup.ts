@@ -1,15 +1,17 @@
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup } from "@testing-library/react";
+import { HttpResponse, http, type JsonBodyType, passthrough } from "msw";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { mockServer } from "./mocks/node";
 
 // dev サーバーと同じ契約駆動ハンドラをテストでも使う。テスト専用のスタブを別に持つと、
 // 契約が変わってもテストだけが古い形のまま通り続ける。
 //
-// 素通しを既定にするのは、ハンドラの無い宛先を落とすと、fetch を直接差し替えて検証している
-// 単体テストまでモックの管轄に引き込まれるため。
+// ハンドラの無い宛先は落とす。素通しにすると、宛先を打ち間違えた取得が本物の網へ出ていき、
+// 手元では届いて CI では時間切れになるという形で現れる。fetch を直接差し替えているテストは
+// MSW に届く前に自分で応答を作るため、この判定には掛からない。
 beforeAll(() => {
-  mockServer.listen({ onUnhandledRequest: "bypass" });
+  mockServer.listen({ onUnhandledRequest: "error" });
 });
 
 afterEach(() => {
@@ -20,6 +22,55 @@ afterEach(() => {
 afterAll(() => {
   mockServer.close();
 });
+
+/**
+ * 契約のパス 1 本に応答を割り当て、そこへ届いた要求を記録する。
+ *
+ * @remarks
+ * HTTP を止めるのは MSW だけです（`docs/testing-conventions.md`）。応答の形を手で組み立てる
+ * スタブを `fetch` へ被せると、契約が変わってもテストだけが古い形のまま通り続けます。ここが
+ * 差し替えるのは「この 1 本がこの応答を返す」ことだけで、止める位置は契約駆動のハンドラと
+ * 同じ HTTP 境界に揃ったままです。
+ *
+ * 記録を返すのは、組み立てたクエリを確かめる先が要求そのものだからです。`fetch` へ渡した引数を
+ * 見ると、URL を組み立てる責務が誰にあるかと無関係に「呼び方」を固定してしまいます。
+ *
+ * 追加したハンドラは `resetHandlers()` が毎テスト後に取り除きます。
+ *
+ * @param url - 割り当てる絶対 URL。クエリ文字列は照合に使われない
+ * @param body - JSON として返す応答本文
+ * @returns 届いた要求。呼び出しの順に積まれる
+ */
+export function serveJson(url: string, body: JsonBodyType): readonly Request[] {
+  const requests: Request[] = [];
+
+  mockServer.use(
+    http.get(url, ({ request }) => {
+      requests.push(request);
+
+      return HttpResponse.json(body);
+    }),
+  );
+
+  return requests;
+}
+
+/**
+ * 指定した origin 宛の要求を素通しさせる。
+ *
+ * @remarks
+ * ハンドラの無い宛先を落とす既定（`onUnhandledRequest: "error"`）に対する、唯一の逃げ道です。
+ * テスト自身が立てた本物のサーバへ出す要求は、差し替えるべき外部ではなく検証対象そのものなので、
+ * 宛先を名指しして開けます。
+ *
+ * 既定の側を緩めて済ませないのは、緩めると宛先を打ち間違えた取得まで一緒に通ってしまい、
+ * 手元では本物の網へ届き CI では時間切れになるという形でしか現れなくなるためです。
+ *
+ * @param origin - 素通しさせる scheme + host + port
+ */
+export function passThroughOrigin(origin: string): void {
+  mockServer.use(http.all(`${origin}/*`, () => passthrough()));
+}
 
 vi.mock("server-only", () => ({}));
 
