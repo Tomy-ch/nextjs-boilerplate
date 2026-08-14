@@ -26,6 +26,7 @@ test-requirement: feature
 | `facade/paths/` | 2 つのルート。マイページ（別 feature）の導線が参照するため facade へ出す |
 | `about/view.tsx` | 何のためのサイトか・何が動かないか・免責 |
 | `privacy/view.tsx` | 入力した情報がどこに残るかを、起動のしかたごとに説明する |
+| `ui/repository-links/` | フッターへ置く 2 リポジトリへの導線。説明は補足として HoverCard に載せる |
 
 ## 運用
 
@@ -40,3 +41,6 @@ test-requirement: feature
   後です
 - **トップの断り書きとは役割を分けます**。あちら（`features/home` の `SampleNotice`）は
   「実在の取引と取り違えられない」ことだけを担って短く保ち、詳しい説明はここが持ちます
+- **リポジトリの説明を HoverCard にしか置きません**。常時出すとフッターが本文と同じ量の文字を
+  持ちます。押した先が何かはボタンの文言だけで判るようにしてあるので、補足を読めなくても
+  導線としては成立します（[0053](../../../docs/adr/0053-ui-component-interaction-seam.md)）
