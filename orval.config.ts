@@ -33,7 +33,44 @@ const PATTERNED_MOCK_PROPERTIES = {
   // 先頭の + は任意で、以降は 10〜15 桁の数字。
   "/^phone$/": () => "09012345678",
   "/^postalCode$/": () => "100-0001",
+  // 住所は pattern を持たないが、faker の既定は 10〜100 文字のランダム英字を返す。実在しない
+  // 地名では、選択部品の幅も住所 1 行の折り返しも実物と違う姿で確かめることになる。
+  "/^prefecture$/": () => "神奈川県",
+  "/^city$/": () => "横浜市西区",
 };
+
+/**
+ * 都道府県マスタのモック応答。
+ *
+ * @remarks
+ * この operation だけ応答そのものを差し替えます。項目名が汎用の `name` なので、上の
+ * 項目名による指定では商品名や状態名まで巻き込みます。
+ *
+ * 全 47 件は置かず、地方の散った 11 件に絞ります。`code` は JIS X 0401 の実際の値であり、
+ * 連番ではありません。**間引いても選択部品の幅は変わりません** —— 47 件の最長は 4 文字で、
+ * 残す中の神奈川県が同じ 4 文字だからです。
+ *
+ * 契約は件数もコード体系も宣言していないため、生成器には本物を出す手がかりがありません。
+ * ここに書いた値が実データと一致していることの保証はこの宣言だけで、**出所はバックエンドでは
+ * ありません**。
+ */
+const PREFECTURES = [
+  { code: 1, name: "北海道" },
+  { code: 4, name: "宮城県" },
+  { code: 13, name: "東京都" },
+  { code: 14, name: "神奈川県" },
+  { code: 23, name: "愛知県" },
+  { code: 26, name: "京都府" },
+  { code: 27, name: "大阪府" },
+  { code: 34, name: "広島県" },
+  { code: 38, name: "愛媛県" },
+  { code: 40, name: "福岡県" },
+  { code: 47, name: "沖縄県" },
+].map(({ code, name }) => ({
+  id: `0195f0c2-0000-7000-8000-${String(code).padStart(12, "0")}`,
+  code,
+  name,
+}));
 
 const apiInput = {
   target: "./openapi/api.gen.yaml",
@@ -63,7 +100,10 @@ export default defineConfig({
       target: "./mocks/api/endpoints.ts",
       schemas: "./src/adapters/gen/api/model",
       mock: { generators: [{ type: "msw" }] },
-      override: { mock: { properties: PATTERNED_MOCK_PROPERTIES } },
+      override: {
+        mock: { properties: PATTERNED_MOCK_PROPERTIES },
+        operations: { GetPrefectures: { mock: { data: PREFECTURES } } },
+      },
     },
   },
   apiZod: {

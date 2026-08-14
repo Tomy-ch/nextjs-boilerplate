@@ -21,7 +21,7 @@ triage 上、#10 の native 管轄は [0072](0072-api-type-generation.md)(zod �
 ### 1. client 表示検証と検証タイミング
 
 - **入力検証を server round-trip 前提にしない**。表示レベルの入力検証(必須 / 形式 / 文字数など UX 用)は client でも行い、即時フィードバックする
-- 検証タイミングの既定 = **submit 時 + 一度エラーになったフィールドは blur / change で再検証**(過剰な early error を避ける)。エラー文言は日本語(AGENTS.md Language Rules)
+- 検証タイミングの既定 = **項目から focus が外れた時点 + 一度エラーになった項目は change で再検証**。入力の 1 文字目から赤くしないのは、まだ書いている途中の項目を誤りとして知らせないためであり、focus が外れた時点は「その項目を書き終えた」と見なせる最も早い機会である。submit まで待つ形を既定にしない —— 誤りの数だけ往復させることになり、どこを直すかも submit するまで判らない。エラー文言は日本語(AGENTS.md Language Rules)
 - 検証結果は送信メカニクス([0061](0061-form-mutation-ux.md))の `ActionState` の fieldErrors / formError として表示層へ渡る(通知手段の使い分けは [0063](0063-mutation-result-notification.md))
 
 ### 2. 検証の二層分離(表示規則 vs 契約検証)
@@ -41,7 +41,7 @@ triage 上、#10 の native 管轄は [0072](0072-api-type-generation.md)(zod �
 - ❌ 入力検証を server round-trip でしか出さない UX(client でも表示検証する)
 - ❌ 表示バリデーション規則(`model`・手書き)と生成 wire スキーマ(`adapters/gen`)を混同し、生成スキーマを `model` / feature のドメインロジックへ漏らすこと([0072](0072-api-type-generation.md) 型漏洩禁止)
 - ❌ 生成 zod の client 再利用の具体的許容範囲を、本 ADR で([0072](0072-api-type-generation.md) 追補を経ずに)確定すること
-- ❌ 検証タイミングを feature ごとにばらつかせること(既定 = submit 時 + エラー後フィールドの再検証)
+- ❌ 検証タイミングを feature ごとにばらつかせること(既定 = focus が外れた時点 + エラー後フィールドの再検証)
 
 ## 補足
 

@@ -51,8 +51,8 @@ export const getGetUsersResponseMock = (): UsersResponse => ({
         email: faker.internet.email(),
         phone: (() => "09012345678")(),
         postalCode: (() => "100-0001")(),
-        prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-        city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+        prefecture: (() => "神奈川県")(),
+        city: (() => "横浜市西区")(),
         street: faker.string.alpha({ length: { min: 10, max: 255 } }),
         building: faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -76,8 +76,8 @@ export const getPostUsersResponseMock = (
   email: faker.internet.email(),
   phone: (() => "09012345678")(),
   postalCode: (() => "100-0001")(),
-  prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-  city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+  prefecture: (() => "神奈川県")(),
+  city: (() => "横浜市西区")(),
   street: faker.string.alpha({ length: { min: 10, max: 255 } }),
   building: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -95,8 +95,8 @@ export const getGetUsersDetailResponseMock = (
   email: faker.internet.email(),
   phone: (() => "09012345678")(),
   postalCode: (() => "100-0001")(),
-  prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-  city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+  prefecture: (() => "神奈川県")(),
+  city: (() => "横浜市西区")(),
   street: faker.string.alpha({ length: { min: 10, max: 255 } }),
   building: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -114,8 +114,8 @@ export const getPutUsersDetailResponseMock = (
   email: faker.internet.email(),
   phone: (() => "09012345678")(),
   postalCode: (() => "100-0001")(),
-  prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-  city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+  prefecture: (() => "神奈川県")(),
+  city: (() => "横浜市西区")(),
   street: faker.string.alpha({ length: { min: 10, max: 255 } }),
   building: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -133,8 +133,8 @@ export const getPatchUsersDetailResponseMock = (
   email: faker.internet.email(),
   phone: (() => "09012345678")(),
   postalCode: (() => "100-0001")(),
-  prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-  city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+  prefecture: (() => "神奈川県")(),
+  city: (() => "横浜市西区")(),
   street: faker.string.alpha({ length: { min: 10, max: 255 } }),
   building: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -152,8 +152,8 @@ export const getGetUsersMeResponseMock = (
   email: faker.internet.email(),
   phone: (() => "09012345678")(),
   postalCode: (() => "100-0001")(),
-  prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-  city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+  prefecture: (() => "神奈川県")(),
+  city: (() => "横浜市西区")(),
   street: faker.string.alpha({ length: { min: 10, max: 255 } }),
   building: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -189,8 +189,8 @@ export const getGetUsersSearchResponseMock = (): UsersSearchResponse => ({
           email: faker.internet.email(),
           phone: (() => "09012345678")(),
           postalCode: (() => "100-0001")(),
-          prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-          city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+          prefecture: (() => "神奈川県")(),
+          city: (() => "横浜市西区")(),
           street: faker.string.alpha({ length: { min: 10, max: 255 } }),
           building: faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -217,8 +217,8 @@ export const getGetUsersFeedResponseMock = (): UsersFeedResponse => ({
         email: faker.internet.email(),
         phone: (() => "09012345678")(),
         postalCode: (() => "100-0001")(),
-        prefecture: faker.string.alpha({ length: { min: 10, max: 100 } }),
-        city: faker.string.alpha({ length: { min: 10, max: 100 } }),
+        prefecture: (() => "神奈川県")(),
+        city: (() => "横浜市西区")(),
         street: faker.string.alpha({ length: { min: 10, max: 255 } }),
         building: faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 255 } }),
@@ -240,12 +240,19 @@ export const getGetUsersFeedResponseMock = (): UsersFeedResponse => ({
   },
 });
 
-export const getGetPrefecturesResponseMock = (): PrefecturesResponse =>
-  Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
-    id: faker.string.uuid(),
-    code: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  }));
+export const getGetPrefecturesResponseMock = () => [
+  { id: "0195f0c2-0000-7000-8000-000000000001", code: 1, name: "北海道" },
+  { id: "0195f0c2-0000-7000-8000-000000000004", code: 4, name: "宮城県" },
+  { id: "0195f0c2-0000-7000-8000-000000000013", code: 13, name: "東京都" },
+  { id: "0195f0c2-0000-7000-8000-000000000014", code: 14, name: "神奈川県" },
+  { id: "0195f0c2-0000-7000-8000-000000000023", code: 23, name: "愛知県" },
+  { id: "0195f0c2-0000-7000-8000-000000000026", code: 26, name: "京都府" },
+  { id: "0195f0c2-0000-7000-8000-000000000027", code: 27, name: "大阪府" },
+  { id: "0195f0c2-0000-7000-8000-000000000034", code: 34, name: "広島県" },
+  { id: "0195f0c2-0000-7000-8000-000000000038", code: 38, name: "愛媛県" },
+  { id: "0195f0c2-0000-7000-8000-000000000040", code: 40, name: "福岡県" },
+  { id: "0195f0c2-0000-7000-8000-000000000047", code: 47, name: "沖縄県" },
+];
 
 export const getGetProductStatusesResponseMock = (): ProductsStatusesResponse =>
   Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
@@ -500,7 +507,7 @@ export const getGetAddressesResponseMock = (
     () => ({
       prefectureId: faker.helpers.arrayElement([faker.string.uuid(), null]),
       prefectureName: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      city: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      city: (() => "横浜市西区")(),
       town: faker.string.alpha({ length: { min: 10, max: 20 } }),
     }),
   ),
