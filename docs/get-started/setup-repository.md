@@ -43,14 +43,21 @@ make setup-repo
 3. **必須チェックを確認する** — `make setup-repo` が適用したルールセットの `required_status_checks` が、
    1 度 CI を回した後に実際の context 名と一致しているか見る（[`.github/workflows/README.md`](../../.github/workflows/README.md)）
 
-## 4. 名前を置き換える
+## 4. 自分のリポジトリの姿にする
 
 ```bash
 make setup-replace-repository-reference REPOSITORY=<owner>/<repo>
 make setup-replace-license-copyright COPYRIGHT_HOLDER='<著作権者>'
+make setup-remove-boilerplate-only   # boilerplate-only:line
 ```
 
-どちらも `DRY_RUN=1` で書き換えずに予定だけ出せる。
+いずれも `DRY_RUN=1` で書き換えずに予定だけ出せる。
+
+<!-- boilerplate-only:begin -->
+3 つ目は**この template を配る側にしか意味を持たない記述**を剥がす
+（[0152](../adr/0152-agents-md-policy.md)）。飛ばす選択肢は無い —— fork を作った時点で前提が
+失効しているので、残すと自分に効かない規則に従うことになる。剥がし終えると道具自身も消える。
+<!-- boilerplate-only:end -->
 
 ## 5. 同梱サンプルを破棄する
 

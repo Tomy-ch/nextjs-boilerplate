@@ -4,13 +4,16 @@ name: Images Pin
 # `docker/images-pin.toml`. A registry tag can be repointed at different content
 # under the same name, so an unpinned or drifted reference fails the PR.
 #
-# The check never reaches the network: it compares the compose files and
-# Dockerfiles against the lockfile. Resolving tags to digests (the step that does
+# The check never reaches the network: it compares the compose files, the
+# Dockerfiles, and the `uses: docker://` steps in workflow / composite action
+# definitions against the lockfile. Resolving tags to digests (the step that does
 # call out) is a deliberate local action — `make images-pin-resolve` — and is not
 # run in CI.
 #
 # A separate workflow from `actions-pin` on purpose: same discipline, different
-# supply chain (ADR 0153 §1, one concern per workflow).
+# supply chain (ADR 0153 §1, one concern per workflow). The two scan some of the
+# same files but never the same lines — a `docker://` step is a registry
+# reference, which `actions-pin` cannot resolve through `git ls-remote`.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
