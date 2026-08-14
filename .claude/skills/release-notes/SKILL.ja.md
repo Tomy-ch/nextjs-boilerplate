@@ -11,7 +11,7 @@
 - `.github/release/v0.0.6.md`
 - `.github/release/v0.0.5.md`
 
-## 最初に行うこと: FROM タグと新バージョンの確認
+## Step 0. FROM タグと新バージョンの確認
 
 このスキルでは、**スキル起動直後に必ず `AskUserQuestion` で 2 つの値を順に確認する**。
 スキル引数や直近メッセージに値らしき文字列があっても、それを採用して即実行に進んではならない（誤指定を防ぐため、明示的な確認を必須とする）。
@@ -46,7 +46,8 @@
     - 選択肢: `scripts/semver` の patch / minor / major 候補と、存在すればブランチ由来候補。
 4. 受け取った回答が `^v[0-9]+\.[0-9]+\.[0-9]+$` にマッチすることを検証する。値を `<NEW_VERSION>` として後段で使用する。
 
-両方の値が確定するまで、git 履歴の解析やファイル書き込みは一切行わないこと。
+両方の値が確定するまで、git 履歴の解析やファイル書き込みは一切行わないこと。Step 1 以降は `<FROM_TAG>` と
+`<NEW_VERSION>` の両方が確定してから実行する。
 
 ## 前提
 
@@ -67,11 +68,7 @@
 - 生成物（`**/*.gen.go`, `*.sql.go`, `*_mock.go`, `**/openapi.gen.yaml`, `docs/` 配下の生成物）
 - `.github/release/` 以外のすべて
 
-## 実行手順
-
-`<FROM_TAG>` と `<NEW_VERSION>` が確定したあとに以下を実行する。
-
-### 1. ガード: 出力先ファイルが存在しないこと
+## Step 1. ガード: 出力先ファイルが存在しないこと
 
 ```sh
 test ! -e .github/release/<NEW_VERSION>.md
@@ -79,7 +76,7 @@ test ! -e .github/release/<NEW_VERSION>.md
 
 既に存在する場合は処理を中止し、進め方をユーザーに確認する（無断で上書きしないこと）。
 
-### 2. 差分メタデータを収集する
+## Step 2. 差分メタデータを収集する
 
 `<FROM_TAG>..HEAD` から以下を取得する:
 
@@ -104,7 +101,7 @@ git diff --name-only <FROM_TAG>..HEAD | awk -F/ '{print $1}' | sort -u
 git log --no-merges --pretty=format:'%h%n%s%n%b%n---' <FROM_TAG>..HEAD
 ```
 
-### 3. コミットを分類する
+## Step 3. コミットを分類する
 
 各非マージコミットの subject を確認し、バケットに振り分ける。このリポジトリで使われている英語／日本語スタイルのプレフィックス（`Feat:` / `Fix:` / `Refactor:` / `Docs:` / `Chore:` / `Test:` など）に両対応する:
 
@@ -118,7 +115,7 @@ git log --no-merges --pretty=format:'%h%n%s%n%b%n---' <FROM_TAG>..HEAD
 
 判断が曖昧な場合は、手順 2 で取得した変更ファイルパスからスコープを推定する（例: `database/` → DB 周り、`openapi/` → API、`.github/workflows/` → CI など）。
 
-### 4. リリースノートを作成する
+## Step 4. リリースノートを作成する
 
 `.github/release/<NEW_VERSION>.md` を**日本語で**、`v1.1.0` 形式に従って書き出す。必須のトップレベル構造は以下:
 
@@ -174,7 +171,7 @@ git log --no-merges --pretty=format:'%h%n%s%n%b%n---' <FROM_TAG>..HEAD
 - **空セクションを捏造しない。** 該当する変更がなければ `- 該当なし` と書く。
 - **既存のトーンに合わせる。** `.github/release/v0.0.6.md` の文体を比較対象として参考にする。
 
-### 5. 書き込み前にプレビューを提示する
+## Step 5. 書き込み前にプレビューを提示する
 
 `Write` を呼ぶ前に、作成内容をユーザーに提示し（インライン、または要約 + ファイルパス）、最後にもう一度 `AskUserQuestion` で確定する:
 
@@ -183,7 +180,7 @@ git log --no-merges --pretty=format:'%h%n%s%n%b%n---' <FROM_TAG>..HEAD
 
 ユーザーが確定したあとに限り `Write` を実行する。
 
-### 6. Markdown Lint による検証
+## Step 6. Markdown Lint による検証
 
 書き込み後、以下を実行する。
 
@@ -204,7 +201,7 @@ pnpm md-lint
 
 `pnpm md-fix` はリポジトリ全体を対象にするため、本リリースノートとは無関係な Markdown も自動修正される可能性がある。その場合、変更された他ファイルの一覧を完了報告時にユーザーへ提示し、レビューできるようにする。
 
-### 7. 最終確認
+## Step 7. 最終確認
 
 書き込みおよび lint 後:
 

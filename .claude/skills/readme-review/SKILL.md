@@ -57,7 +57,7 @@ Examples already added:
 - P3: `Conventions`, `Naming Convention`, `Naming`, `Policy`
 - P5: `Workflow List`, `Command List`, `File List`, `Module List`
 
-## First Step: Confirm Target
+## Step 0. Confirm Target
 
 This skill **MUST call `AskUserQuestion` immediately after invocation** to confirm:
 
