@@ -53,10 +53,6 @@ const test = base.extend<Record<never, never>, { storybookURL: string }>({
   },
 });
 
-// axe の注入は稀に前の実行と重なり、検査そのものが `Axe is already running` で落ちる。違反は
-// 何度走らせても同じ場所で出るため、再実行で緑になったものは検査が届かなかっただけである。
-test.describe.configure({ retries: 2 });
-
 for (const story of stories) {
   const details = { annotation: { type: "story", description: story.id } };
 
