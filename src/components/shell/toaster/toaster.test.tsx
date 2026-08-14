@@ -21,6 +21,16 @@ describe("Toaster", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
+  it("queue から外れた通知は、同じ id で再び出せる", () => {
+    const { rerender } = render(<Toaster toasts={[{ id: "1", title: "保存に失敗しました" }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
+
+    rerender(<Toaster toasts={[]} />);
+    rerender(<Toaster toasts={[{ id: "1", title: "保存に失敗しました" }]} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("保存に失敗しました");
+  });
+
   it("失敗だけを割り込みで読み上げ、ほかは順番を待たせる", () => {
     render(
       <Toaster

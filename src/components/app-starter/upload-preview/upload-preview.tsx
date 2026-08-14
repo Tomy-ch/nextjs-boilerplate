@@ -40,8 +40,8 @@ function UploadPreviewRow({
   useEffect(() => {
     if (preview === undefined || typeof preview === "string") return;
     const url = URL.createObjectURL(preview);
-    // object URL は解放が要る資源で、描画中に作ると解放されない参照が残る。
-    // TODO: 資源の生成を描画から切り離したまま導出へ寄せられるかを #169 で見る
+    // object URL は解放が要る資源で、破棄と対になるのは commit だけである。描画中に作ると、
+    // 捨てられた描画のぶんが破棄されずに残る。
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 資源の生成を伴う同期のため
     setObjectUrl(url);
     // 生成した URL は破棄しないと、選択をやり直すたびに解放されない参照が積み上がる。
