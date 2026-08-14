@@ -22,7 +22,7 @@
 - npm 依存(`package.json` の `dependencies` / `devDependencies`)更新 → ここでは対象外。[0004](../../../docs/adr/0004-library-management.md) に従い
   依存のメジャーは別 PR。
 
-## 最初のステップ: ターゲットバージョンの確認
+## Step 0. ターゲットバージョンの確認
 
 本スキルは**起動直後に必ず `AskUserQuestion` を呼ぶ**。引数や直近メッセージにバージョンらしき文字列があっても、
 黙って採用して進めない(設定ミス防止のため明示確認が必須)。
@@ -55,9 +55,7 @@ AGENTS.md「例外: スキル実行」により、通常の AI 変更スコー�
 ルート設定(`@types/node` 変更は**別 PR** ── ステップ 6 参照)、生成ファイル、`.claude/settings.json` の
 `permissions.deny` 配下。
 
-## 実行ステップ
-
-### 1. リリースノート確認
+## Step 1. リリースノート確認
 
 対象 Node ラインのリリースノートを <https://github.com/nodejs/node/releases>(と Node.js changelog)で確認:
 
@@ -68,7 +66,7 @@ AGENTS.md「例外: スキル実行」により、通常の AI 変更スコー�
 
 メジャー更新なら、進める前に主要な破壊的変更をユーザに提示する。
 
-### 2. `mise.toml` 更新
+## Step 2. `mise.toml` 更新
 
 ```toml
 [tools]
@@ -79,7 +77,7 @@ pnpm = "…"   # 変更なし
 `mise.toml` が単一の正。本リポジトリに `sync-versions` は無い(あれは Go-boilerplate の `go.mod` /
 Dockerfile 用機構で、どちらも本リポジトリには存在しない ── [0011](../../../docs/adr/0011-no-docker.md))。
 
-### 3. ローカル Node 環境の更新(ユーザ作業)
+## Step 3. ローカル Node 環境の更新(ユーザ作業)
 
 **ユーザ**に `make install-tools`(`mise install` を実行し `[tools] node` を読む)を実行してもらい、バージョンを確認:
 
@@ -91,7 +89,7 @@ node --version        # v<TARGET_VERSION> であること
 AI エージェントは `mise install` を自分で実行しない(マシンのツールチェーンを変更するため)── go-upgrade 規約と同様
 ユーザ作業。
 
-### 4. ロックファイル/依存の再構築
+## Step 4. ロックファイル/依存の再構築
 
 ランタイム切替後、ロックファイルを新ランタイム・engine 制約に合わせて再インストール:
 
@@ -101,7 +99,7 @@ pnpm install          # 解決が変われば pnpm-lock.yaml を更新
 
 `pnpm-lock.yaml` の diff を確認(多くは最小/空)。大きな diff は要確認。
 
-### 5. 検証
+## Step 5. 検証
 
 ```sh
 pnpm lint             # biome check(ADR 0002)
@@ -114,7 +112,7 @@ pnpm build            # next build ── 新ランタイムで成功必須
 `structuredClone` の意味論を動かしうるが、build が通ることはそのどれについても何も言わない。任意で dev サーバ
 (`pnpm dev` → 停止)をスモークし、ランタイムでアプリが起動するか確認。
 
-### 6. フォローアップの明示(ここでは束ねない)
+## Step 6. フォローアップの明示(ここでは束ねない)
 
 - **`@types/node`**: 現状 `devDependencies` で `^20` だがランタイムは Node 24+。メジャーをランタイムに合わせるのは
   妥当だが、**[0004](../../../docs/adr/0004-library-management.md)** により依存**メジャー**更新は**別 PR**。推奨フォローアップとして報告し、本スキルでは

@@ -1,6 +1,7 @@
 // `uses:` 行の走査と解釈。固定対象ファイルの列挙と、行から参照 1 件を取り出す責務を持つ。
 import fs from "node:fs";
 import path from "node:path";
+import { blockScalarLines } from "../lib/block-scalar.js";
 import {
   COMPOSITE_ACTION_DIR,
   collectActionDefinitions,
@@ -22,10 +23,8 @@ export type ActionRef = {
 // `"owner` を owner として取り込んで固定対象に載せてしまうため。締め出せば一致しなくなり、
 // unparsedUsesLines が対応記法の外として拾う。
 //
-// 単一のインスタンスを共有せず呼び出しごとに作るのは、`g` 付きの RegExp が `lastIndex` を
-// 持ち回るため。`matchAll` はその時点の `lastIndex` からの走査になるので、共有インスタンスに
-// 対して誰かが `test` / `exec` を呼んだ瞬間から、collectRefs がファイル先頭付近の `uses:` を
-// 黙って読み飛ばす——固定の網から参照が外れる向きに、間欠的に壊れる。
+// 呼び出しごとに作るのは、`g` 付きの RegExp が `lastIndex` を持ち回り、`matchAll` はその時点の
+// 値から走査するため。共有すると collectRefs が先頭付近の `uses:` を黙って読み飛ばしうる。
 export function usesPattern(): RegExp {
   return /^([ \t]*(?:-[ \t]*)?uses:[ \t]*)([^@\s'"]+)@([^\s#'"]+)(?:[ \t]*#[ \t]*(\S+))?[ \t]*$/gm;
 }
@@ -121,10 +120,14 @@ export function collectRefs(files: string[]): Map<string, ActionRef> {
 export function unparsedUsesLines(data: string): number[] {
   // 解釈済みの `uses:` を同じ長さの空白へ潰し、残った `uses:` だけを緩いパターンで拾う。
   const rest = data.replace(usesPattern(), (line) => " ".repeat(line.length));
+  // 範囲の判定は潰す前の内容で行う。潰した行は字下げごと空白になり、ブロックの終わりに見える。
+  const inBlockScalar = blockScalarLines(data);
   const lines: number[] = [];
   for (const [index, line] of rest.split("\n").entries()) {
     // 行全体がコメントなら対象外。散文の中の `uses:` に反応させない。
     if (line.trimStart().startsWith("#")) continue;
+    // ブロックスカラーの中身は YAML の構造ではない。`run:` が出力する文字列に反応させない。
+    if (inBlockScalar.has(index + 1)) continue;
     if (!USES_KEY_PATTERN.test(line)) continue;
 
     const value = LOOSE_USES_PATTERN.exec(line)?.[1];

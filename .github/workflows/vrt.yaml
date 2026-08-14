@@ -27,6 +27,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Select the CI environment file (env/.env.ci). Without this the loader falls back to
+# `local`, which ships a placeholder session secret that the config layer refuses outside
+# development. Storybook loads `next.config.ts` to build the preview, so the refusal lands
+# there — and `storybook build` reports success anyway, leaving a tree with no preview.
+env:
+  APP_ENV: ci
+
 permissions:
   contents: read
 
@@ -84,6 +91,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The record of which input state already compared clean. `make vrt` hashes the
+      # rendering inputs itself and skips the comparison when they match, so the cache only
+      # has to carry the record forward — the newest one this branch (or its base) produced.
+      # A miss restores nothing and the comparison runs, which is the safe direction.
+      - name: Restore the last verified input state
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/vrt/verified-inputs.sha256
+          key: vrt-verified-${{ github.run_id }}
+          restore-keys: vrt-verified-
+
       - name: Build Storybook and compare every story
         id: vrt
         continue-on-error: true
@@ -91,19 +109,38 @@ jobs:
         run: |
           set +e
 
-          make vrt > /tmp/vrt-full.log 2>&1
-          code=$?
-          tail -n 40 /tmp/vrt-full.log
+          # Stream through `tee` rather than redirecting to a file and tailing at the end.
+          # A run that is cancelled or hits the job timeout never reaches the tail, so the
+          # exact case worth diagnosing — the slow one — is the case that leaves no log at
+          # all. Streaming also gets every line stamped with the runner's clock, which is
+          # what tells apart a slow Storybook build, a slow image pull and a slow comparison.
+          make vrt 2>&1 | tee /tmp/vrt-full.log
+          code=${PIPESTATUS[0]}
 
           if [ "${code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
-            echo "title=## ✅ VRT: PASS (no visual change)" >> "$GITHUB_OUTPUT"
+            # Green because every story was compared, or green because the inputs had already
+            # compared clean — the reader needs to be able to tell those apart.
+            if grep -qx 'vrt-gate: skip' /tmp/vrt-full.log; then
+              echo "title=## ✅ VRT: PASS (inputs unchanged, comparison skipped)" >> "$GITHUB_OUTPUT"
+            else
+              echo "title=## ✅ VRT: PASS (no visual change)" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "status=failure" >> "$GITHUB_OUTPUT"
             echo "title=## ❌ VRT: FAIL" >> "$GITHUB_OUTPUT"
           fi
 
           exit 0
+
+      # Only a clean comparison is worth carrying forward. The key is unique per run so the
+      # save always lands; `restore-keys` above then picks up the newest one.
+      - name: Save the verified input state
+        if: steps.vrt.outputs.status == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/vrt/verified-inputs.sha256
+          key: vrt-verified-${{ github.run_id }}
 
       # The raw log holds one line per story, which is unreadable in a comment. The
       # JSON report is turned into a table of exactly which stories moved and by how

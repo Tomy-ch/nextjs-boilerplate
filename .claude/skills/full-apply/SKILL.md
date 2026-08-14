@@ -62,9 +62,7 @@ but fixing the whole-verification md set by severity, ledger-driven. For diff sc
 | `--pace` | `dir` | Stop granularity. `dir`=stop each time a directory is done / `file`=per file / `all`=continuous to the end |
 | `--dry-run` | off | Emit only the "fix/defer" judgment to the ledger, without fixing or committing |
 
-## Procedure
-
-### 0. Prerequisite Check and Environment Prep
+## Step 0. Prerequisite Check and Environment Prep
 
 1. Confirm `mod_*.md` exists in `--reviews-dir` (default `tmp/reviews`). If not, tell the user "run
    `full-verify` first" and exit.
@@ -77,7 +75,7 @@ but fixing the whole-verification md set by severity, ledger-driven. For diff sc
    pin mismatch you may ask the user whether to "align `mise.toml` to reality" (`mise.toml` is a
    protected root config — do not edit it on your own).
 
-### 1. Confirm Scope / Severity / Stop Granularity (Once)
+## Step 1. Confirm Scope / Severity / Stop Granularity (Once)
 
 If `--scope` etc. are unspecified, confirm them all at once via `AskUserQuestion`. Items to confirm:
 
@@ -91,7 +89,7 @@ If `--scope` etc. are unspecified, confirm them all at once via `AskUserQuestion
 
 Record the confirmation results in the ledger at the top (they become the premise on resume).
 
-### 2. Reconstruct the Priority List
+## Step 2. Reconstruct the Priority List
 
 `_index.md` may be cut off midway (only the tail), so **do not over-trust it**. Reconstruct the
 severity-ordered processing targets from `mod_*.md` each time:
@@ -112,7 +110,7 @@ ones, and leave the rest deferred with a reason.
 Processing order is **Critical → High → Medium → Low**, and within each band by file-path order
 (= the same directory clusters together, consistent with stop granularity `dir`).
 
-### 3. Prepare the Ledger (working.md)
+## Step 3. Prepare the Ledger (working.md)
 
 Create `<REVIEWS_DIR>/working.md` (append-update if it exists). At minimum:
 
@@ -125,7 +123,7 @@ Create `<REVIEWS_DIR>/working.md` (append-update if it exists). At minimum:
 Deferred rows **must always have a reason** (e.g. "pending ADR (BACKLOG A5) — needs a directory
 decision," "test depends on a closure, so a structural refactor's ripple must be judged").
 
-### 4. Per-finding Processing Loop
+## Step 4. Per-finding Processing Loop
 
 Process each `mod_*.md` top-down (in the severity-selected order). Per file:
 
@@ -178,7 +176,7 @@ When in doubt, defer. Deferral is not a demerit; leaving a reason is the value.
   one commit (on condition the public API is not broken). Create a ledger row per finding, and the
   commit shares the same hash.
 
-### 5. Verify
+## Step 5. Verify
 
 For the changed code, pass at minimum **fix → lint → build** (and tests when the repo has them):
 
@@ -202,7 +200,7 @@ note the residual risk in the ledger.
 Do not commit a fix that does not go green, and if the cause requires judgment, roll it back to
 deferred.
 
-### 6. Commit
+## Step 6. Commit
 
 The commit mechanism (prefix convention, `--no-verify` during splitting, the `Co-Authored-By` footer,
 the protected-branch prohibition, pre-push confirmation, base = latest release/*, git identity) is
@@ -216,7 +214,7 @@ full-apply-specific points:
 
 After committing, get the short hash `git rev-parse --short HEAD` (used in the 7. record).
 
-### 7. Record (Entity → Ledger)
+## Step 7. Record (Entity → Ledger)
 
 1. Append a status comment at the **top** of the target `mod_*.md` (as an HTML comment so it does not
    pollute the body):
@@ -232,7 +230,7 @@ After committing, get the short hash `git rev-parse --short HEAD` (used in the 7
 2. Update the relevant row in `working.md` with ✅/⏭️ and the commit hash / reason. Update the
    progress summary too.
 
-### 8. Stop Per Stop Granularity
+## Step 8. Stop Per Stop Granularity
 
 With `--pace dir` (default), **stop once one directory is cleared** and report to the user (a
 done/deferred table + commits). Show the next planned start (next severity/directory) so the user can

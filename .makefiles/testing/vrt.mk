@@ -27,6 +27,21 @@ VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T -e VRT_ONL
 # 基準画像を撮った時点の入力のハッシュ。置き場が画像と同じコミットで持つ (vrt/README.md)。
 VRT_INPUTS_FILE := vrt/screenshots/render-inputs.sha256
 
+# 検査が通った時点の入力のハッシュ。撮った時点と別に持つのは、絵を変えない変更でも
+# storybook-static のバイト列は動くため。撮り直しは起きないので撮影時点の記録は取り残され、
+# 一致する窓がほとんど閉じる。通った時点なら実行のたびに前へ進む。
+# 追跡下に置かないのは、これが木の状態ではなく「その木を検査した」という実行の履歴であるため。
+# CI は cache で持ち回る (.github/workflows/vrt.yaml)。
+VRT_VERIFIED_FILE := tmp/vrt/verified-inputs.sha256
+A11Y_VERIFIED_FILE := tmp/a11y/verified-inputs.sha256
+
+# 記録は検査が通った後にだけ書く。手前で書くと、落ちた状態を「通った」として残す。
+RECORD_VERIFIED = mkdir -p "$$(dirname $(1))" && pnpm exec tsx scripts/vrt inputs > $(1)
+
+# 省いたのか走ったのかを機械可読で残す。CI の報告文言がこれを読む。緑の理由が「検査して
+# 通った」なのか「前と同じだから見ていない」なのかは、読む人にとって別物である。
+VRT_GATE_MARKER := vrt-gate:
+
 # 比較を省いた実行でも走らせる検査。基準画像と撮影対象の 1 対 1 の対応だけを選ぶ。
 VRT_BASELINE_TAG := @baselines
 
@@ -40,16 +55,24 @@ VRT_REQUIRE_WIRING = \
 
 # spec を名指しするのは、a11y の spec を同じ実行に巻き込まないため。混ざると a11y の失敗が
 # 撮り直しの対象に入り、撮り直しても直らないまま基準画像だけが承認済みになる。
+#
+# 配色トークンの検査は撮影と同じ実行に載せる。基準画像を持たないので撮り直しの対象にならず、
+# 見ている面(story を包む面の配色)が撮影と同じであるため。
+VRT_SPECS := vrt/stories.spec.ts vrt/theme-tokens.spec.ts
+
 vrt: build-storybook
 	@$(VRT_REQUIRE_WIRING)
 	@if [ -z "$$(ls -A vrt/screenshots 2>/dev/null)" ]; then \
 		echo "❌ vrt/screenshots が空です。git submodule update --init vrt/screenshots を実行してください。"; exit 1; \
 	fi
-	@if [ -z "$(VRT_ONLY)" ] && [ "$$(pnpm exec tsx scripts/vrt gate $(VRT_INPUTS_FILE))" = "skip" ]; then \
-		echo "⏭️ 絵を決める入力が基準画像を撮った時点と同じです。比較を省き、対応の検査だけを行います。"; \
+	@decision="$$(if [ -n "$(VRT_ONLY)" ]; then echo run; else pnpm exec tsx scripts/vrt gate $(VRT_INPUTS_FILE) $(VRT_VERIFIED_FILE); fi)"; \
+	echo "$(VRT_GATE_MARKER) $$decision"; \
+	if [ "$$decision" = "skip" ]; then \
+		echo "⏭️ 絵を決める入力が前に判定した時点と同じです。比較を省き、対応の検査だけを行います。"; \
 		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --grep $(VRT_BASELINE_TAG) $(VRT_ARGS); \
 	else \
-		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts $(VRT_ARGS); \
+		$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_SPECS) $(VRT_ARGS) \
+			&& $(call RECORD_VERIFIED,$(VRT_VERIFIED_FILE)); \
 	fi
 
 # 入力のハッシュは撮った直後に書く。送る側で書くと、撮らずに置き場を直した木でも「この入力で
@@ -74,8 +97,18 @@ vrt-push:
 	@pnpm exec tsx scripts/vrt-images push $(VRT_BRANCH)
 
 # 撮影と同じコンテナ・同じ story 列挙で走らせる。基準画像は要らないので配線も要求しない。
+#
+# 見る記録は自前のものだけ。基準画像を撮った時点の記録を流用すると、axe が落ちる状態で
+# 撮り直しが起きたときに、以後その状態を「一致」と読んで緑を報告する。
 a11y: build-storybook
-	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/a11y.spec.ts $(VRT_ARGS)
+	@decision="$$(pnpm exec tsx scripts/vrt gate $(A11Y_VERIFIED_FILE))"; \
+	echo "$(VRT_GATE_MARKER) $$decision"; \
+	if [ "$$decision" = "skip" ]; then \
+		echo "⏭️ 絵を決める入力が前に axe が通った時点と同じです。検査を省きます。"; \
+	else \
+		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/a11y.spec.ts $(VRT_ARGS) \
+			&& $(call RECORD_VERIFIED,$(A11Y_VERIFIED_FILE)); \
+	fi
 
 # レポートもコンテナ内で配る。ホスト側の Playwright は比較の前に落とす設計なので、
 # 実行系をここだけホストへ寄せない。--service-ports はこの起動でだけポートを公開する。
@@ -83,6 +116,19 @@ vrt-report:
 	@docker compose -f docker-compose.dev-tools.yml run --rm --service-ports vrt_runner \
 		./node_modules/.bin/playwright show-report tmp/vrt/report --host 0.0.0.0
 
+# 終了コードだけでは build の成否を判定できない。preview の build は非同期で走り、そこで
+# 投げられた例外は未処理の rejection として出るだけで、`storybook build` は 0 を返す。
+# 生成物を見ないと、preview を 1 つも作れなかった木が「通った」として下流へ渡る。
+#
+# その状態は下流で最も高くつく形で現れる。story の目録は静的解析から作られるので全 story が
+# 列挙され、撮影も検査もその全数に対して `iframe.html` を開こうとし、無いので 1 件ずつ
+# 待ち時間の上限まで待つ。build の失敗が、全数のタイムアウトとして 30 分かけて現れる。
 build-storybook:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
 	@pnpm build-storybook
+	@if [ ! -f storybook-static/iframe.html ] || [ -z "$$(ls -A storybook-static/assets 2>/dev/null)" ]; then \
+		echo "❌ Storybook の preview が生成されていません（storybook-static/iframe.html または assets/ が空）。"; \
+		echo "   build は 0 を返していますが、preview の build は失敗しています。上のログで未処理の rejection を探してください。"; \
+		echo "   ENV の検証で落ちている場合は APP_ENV を明示してください（env/README.md）。"; \
+		exit 1; \
+	fi
