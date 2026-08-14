@@ -187,9 +187,7 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
       }).catch((cause: unknown) => {
         // 署名・iss・aud・exp のどれで落ちても、呼び出し側から見れば「認証されていない」で同じ。
         // ここで分類しないと、この経路だけが検証ライブラリの例外型を外へ漏らす。
-        throw createAppError(ErrorKind.UNAUTHENTICATED, {
-          cause: cause instanceof Error ? cause : new Error(String(cause)),
-        });
+        throw createAppError(ErrorKind.UNAUTHENTICATED, { cause });
       });
       const payload = verified.payload;
 

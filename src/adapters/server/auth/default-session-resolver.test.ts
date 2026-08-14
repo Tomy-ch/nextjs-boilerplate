@@ -288,6 +288,25 @@ describe("createDefaultSessionResolver", () => {
     vi.unstubAllGlobals();
   });
 
+  it("時計を渡さなければ実時計で封緘する", async () => {
+    const issued: IssuedToken = { value: "" };
+    const resolver = createDefaultSessionResolver({
+      issuer,
+      clientId,
+      redirectUri,
+      scopes: "openid",
+      sessionSecret,
+      fetchImpl: createIdp(issued, 3600),
+    });
+    const started = await resolver.startAuthorization("/");
+
+    const restored = await resolver.restoreTransaction(
+      await resolver.sealTransaction(started.transaction),
+    );
+
+    expect(restored).toEqual(started.transaction);
+  });
+
   it("ログアウトの口を持たない IdP には何も送らない", async () => {
     const issued: IssuedToken = { value: "" };
     const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {

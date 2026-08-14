@@ -34,13 +34,9 @@ export function toSafeReturnUrl(candidate: string | null | undefined): string {
     return FALLBACK_RETURN_URL;
   }
 
-  let resolved: URL;
-
-  try {
-    resolved = new URL(candidate, PROBE_ORIGIN);
-  } catch {
-    return FALLBACK_RETURN_URL;
-  }
+  // 先頭が `/` である相対参照は、基準 URL が妥当なら解析に失敗しない。ここを try で囲むと、
+  // 到達できない分岐が残る。
+  const resolved = new URL(candidate, PROBE_ORIGIN);
 
   if (resolved.origin !== PROBE_ORIGIN) {
     return FALLBACK_RETURN_URL;
