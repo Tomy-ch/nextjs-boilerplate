@@ -9,6 +9,7 @@ const SITE_NAME = "nextjs-boilerplate";
 const NAV_ITEMS = [
   { href: "/products", label: "商品" },
   { href: "/purchases", label: "購入履歴" },
+  { href: "/mypage", label: "マイページ" },
 ];
 
 /**
