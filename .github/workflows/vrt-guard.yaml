@@ -107,17 +107,9 @@ jobs:
       # One issue per branch, reopened rather than duplicated. A second failure on a
       # branch that is already flagged is the same unresolved fact, not a new one.
       #
-      # `!cancelled()` rather than `always()`. A run superseded by the next merge leaves
-      # the comparison's `status` output unset, and `always()` reads that empty value as
-      # "not success" — which files an issue saying the comparison could not run, on a
-      # branch where nothing is wrong. An empty status still has to raise when the job
-      # genuinely failed (the baseline store can be unreachable before the comparison
-      # starts), so the distinction that has to be drawn is failed vs cancelled, not
-      # empty vs set. Protected branches take merges back to back, so with
-      # `cancel-in-progress` this fires structurally rather than occasionally.
-      #
-      # Do not reach for `cancel-in-progress: false` instead: queueing comparisons on a
-      # protected branch lets an older tree's result land after a newer tree's.
+      # `!= 'success'`, not `== 'failure'`: the comparison can fail to start at all — the
+      # baseline store may be unreachable — and that has to raise too. `!cancelled()` is
+      # what keeps a run superseded by the next merge out of that same net.
       - name: Raise the failure for a human
         if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}
         env:
