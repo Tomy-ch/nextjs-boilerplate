@@ -100,9 +100,12 @@ pre-commit:
       # container image の参照がロックファイル通りに digest 固定されているかを検査する。
       # actions-pin-check と同じくネットワークに出ないため hook の速度目標に収まる。
       # compose 定義・Dockerfile・ロックファイルのいずれの変更でも発火させる。
+      # .github/** を含めるのは、workflow / composite action の `uses: docker://` も
+      # この機構が digest 固定するため。
       glob:
         - "docker-compose*.{yml,yaml}"
         - "docker/**"
+        - ".github/**"
       run: make images-pin-check
 
 commit-msg:
