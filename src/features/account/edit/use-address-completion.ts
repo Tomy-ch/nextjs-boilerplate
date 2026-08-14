@@ -47,11 +47,16 @@ function agreedValue(
  * 前の取得は打ち切ります。郵便番号を続けて直すと、遅れて返った古い応答が新しい入力を
  * 上書きします。
  *
+ * 同じ郵便番号では 2 度引きません。補完は focus が外れるたびに走るため、値を変えずに項目を
+ * 通り過ぎただけでも要求が出ます。埋め直しても結果は同じで、見つからなかった旨の文言だけが
+ * 触っていない項目に対して現れます。
+ *
  * @param onCompleted - 埋める値を受け取る。フォームへの反映は呼び出し側が持つ
  */
 export function useAddressCompletion(onCompleted: (completion: AddressCompletion) => void) {
   const [status, setStatus] = useState<AddressCompletionStatus>("idle");
   const abortRef = useRef<AbortController | null>(null);
+  const lastPostalCodeRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -59,6 +64,11 @@ export function useAddressCompletion(onCompleted: (completion: AddressCompletion
 
   const complete = useCallback(
     async (postalCode: string) => {
+      if (lastPostalCodeRef.current === postalCode) {
+        return;
+      }
+
+      lastPostalCodeRef.current = postalCode;
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;

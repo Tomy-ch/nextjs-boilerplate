@@ -1,9 +1,40 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { userEvent, within } from "storybook/test";
 
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 
 import { PREFECTURES, PROFILE } from "../../../account.fixture";
 import { ProfileForm } from "./profile-form";
+
+/**
+ * 検証に落ちた状態まで進める。
+ *
+ * @remarks
+ * 検証は focus が外れた時点で走るため、値を書き換えたうえで別の項目へ移します。props では
+ * 到達できない状態で、操作を経ないと出ません。
+ *
+ * 3 種類を混ぜるのは、必須・形式・桁数のどれも同じ見た目で出るかを 1 つの story で見るためです。
+ */
+async function showValidationErrors({
+  canvasElement,
+}: {
+  canvasElement: HTMLElement;
+}): Promise<void> {
+  const canvas = within(canvasElement);
+
+  await userEvent.clear(canvas.getByLabelText("姓"));
+  await userEvent.tab();
+
+  const email = canvas.getByLabelText("メールアドレス");
+  await userEvent.clear(email);
+  await userEvent.type(email, "not-an-email");
+  await userEvent.tab();
+
+  const phone = canvas.getByLabelText("電話番号");
+  await userEvent.clear(phone);
+  await userEvent.type(phone, "0901");
+  await userEvent.tab();
+}
 
 const meta = {
   title: "Features/Account/ProfileForm",
@@ -58,6 +89,22 @@ export const MaxLength: Story = {
       building: "パークサイドレジデンス".repeat(18),
     },
   },
+};
+
+/**
+ * 検証に落ちた状態。必須・形式・桁数の 3 種類が同時に出る。項目名を主語にした文言と、
+ * 赤くなる範囲（label・入力欄・文言）を見る。
+ */
+export const ValidationErrors: Story = {
+  args: { prefectures: PREFECTURES, profile: PROFILE },
+  play: showValidationErrors,
+};
+
+/** 検証に落ちた状態をスマホ幅で。文言が入力欄の幅で折り返しても、次の項目と混ざらないかを見る。 */
+export const ValidationErrorsMobile: Story = {
+  args: { prefectures: PREFECTURES, profile: PROFILE },
+  globals: { viewport: { value: "mobile2", isRotated: false } },
+  play: showValidationErrors,
 };
 
 /** タブレット幅。横並びにしていた組が縦へ落ちる境界を見る。 */
