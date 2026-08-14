@@ -14,6 +14,19 @@ Docker で動かさない（[0011](../docs/adr/0011-no-docker.md)）。無印の
 | `images-pin.toml` | `image:tag` → digest のロックファイル（SSOT）。手で書かない |
 | `<用途>/Dockerfile` | 補助ツールを自前で組む場合の置き場。現時点では無く、上流 image をそのまま使う |
 
+ロックファイルの守備範囲はこのディレクトリの外にも及ぶ。走査するのは以下の 3 か所。
+
+| 場所 | 記法 |
+| --- | --- |
+| リポジトリ直下の `docker-compose*.{yml,yaml}` | `image: <image>:<tag>` |
+| `docker/<用途>/Dockerfile` | `FROM <image>:<tag>` |
+| `.github/workflows/**` / `.github/actions/**` | `uses: docker://<image>:<tag>` |
+
+3 つ目は GitHub Actions が registry の image を直接実行するステップの記法で、`uses:` の行ではあるが
+参照先は GitHub のリポジトリではない。SHA 固定を担う actions-pin は tag を `git ls-remote` で
+commit へ解決する機構なので registry には効かず、digest を扱うこちらが持つ（[0153](../docs/adr/0153-ci-configuration.md)）。
+**tag は必須**で、省略すると `:latest` を指してしまうため取りこぼしとして落とす。
+
 ## image は digest で固定する
 
 registry の tag は、同じ名前のまま別の中身を指せる。tag だけで参照していると、指し先が
