@@ -102,9 +102,13 @@ jobs:
         run: |
           set +e
 
-          make vrt > /tmp/vrt-full.log 2>&1
-          code=$?
-          tail -n 40 /tmp/vrt-full.log
+          # Stream through `tee` rather than redirecting to a file and tailing at the end.
+          # A run that is cancelled or hits the job timeout never reaches the tail, so the
+          # exact case worth diagnosing — the slow one — is the case that leaves no log at
+          # all. Streaming also gets every line stamped with the runner's clock, which is
+          # what tells apart a slow Storybook build, a slow image pull and a slow comparison.
+          make vrt 2>&1 | tee /tmp/vrt-full.log
+          code=${PIPESTATUS[0]}
 
           if [ "${code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"

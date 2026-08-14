@@ -12,7 +12,10 @@ export const THEMES = ["light", "dark"] as const;
  * 全 story を撮り、axe を掛けるテーマ。基準画像を分けるディレクトリ名でもある。
  *
  * @remarks
- * 暗い面を選ぶのは、明るい面より崩れが目に付きにくいためです。日々の動作確認は明るい面で
- * 行われるので、機械の目は逆側へ置きます。
+ * 明るい面を選ぶのは、基準画像を**人が画像として承認する**ためです。判断は置き場の compare
+ * ビューで行い、その画面自体が明るいので、暗い画像の差分は読み取りづらくなります。
+ *
+ * `:root` が light で、dark は `data-theme` か `prefers-color-scheme` を要する側でもあります。
+ * 既定の姿を撮る方が「この部品はこう見える」という記録として素直です。
  */
-export const SHOT_THEMES = ["dark"] as const;
+export const SHOT_THEMES = ["light"] as const;
