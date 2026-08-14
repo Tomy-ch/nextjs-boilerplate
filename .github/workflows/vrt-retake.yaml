@@ -130,21 +130,38 @@ jobs:
       # the store. The cause is often the rendering itself — a story filed under the
       # wrong heading is both a ledger failure and a different image path — so the
       # pixels captured now would be discarded by the fix anyway.
-      - name: Defer while another check is failing
+      #
+      # Only the checks that can move a pixel are named. A denylist would have to grow
+      # a new entry every time a check is added, and the entry it is missing is the one
+      # that stops the retake; worse, it catches `vrt-approval`, which is red until a
+      # human accepts images that do not exist until this step has run — the approval
+      # would then be waiting on the retake and the retake on the approval.
+      #
+      # Only the latest attempt of each check counts. The API returns every attempt for
+      # the commit, so summing them means one flake makes a check "failing" for as long
+      # as the commit lives: re-running it green would never clear the gate.
+      - name: Defer while a check that decides the pixels is failing
         id: gate
         if: steps.mode.outputs.mode != 'none' && steps.mode.outputs.mode != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          # Everything whose failure can change what a story renders as.
+          DECIDES_PIXELS: >-
+            ["lint","typecheck","build","storybook-build","classes","tokens-drift","manifest"]
         run: |
           set -euo pipefail
 
-          failed="$(gh api --paginate \
+          # `--slurp` and a real jq: `gh api --jq` takes no `--argjson`, and applies its
+          # filter per page, so the names would be deduplicated within a page instead of
+          # across the commit.
+          failed="$(gh api --paginate --slurp \
             "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
-            --jq '[.check_runs[]
-              | select(.conclusion == "failure" or .conclusion == "timed_out")
-              | select(.name != "vrt" and .name != "retake" and .name != "report")
-              | .name] | unique | join(", ")')"
+            | jq -r --argjson names "$DECIDES_PIXELS" '[.[].check_runs[]
+              | select(.name | IN($names[]))]
+              | group_by(.name) | map(max_by(.started_at))
+              | map(select(.conclusion == "failure" or .conclusion == "timed_out"))
+              | map(.name) | unique | join(", ")')"
 
           if [ -n "$failed" ]; then
             echo "deferred=true" >> "$GITHUB_OUTPUT"
