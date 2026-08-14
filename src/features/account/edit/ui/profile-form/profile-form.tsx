@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { useActionState, useCallback, useEffect, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { UseFormRegisterReturn } from "react-hook-form";
@@ -11,16 +10,7 @@ import { useForm } from "react-hook-form";
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
-import { Badge } from "@/components/design-system/display/badge/badge";
-import { BADGE_VARIANT } from "@/components/design-system/display/badge/badge.definition";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from "@/components/design-system/form/field/field";
+import { FieldGroup, FieldLegend, FieldSet } from "@/components/design-system/form/field/field";
 import type { InputProps } from "@/components/design-system/form/input/input";
 import { Input } from "@/components/design-system/form/input/input";
 import {
@@ -37,6 +27,7 @@ import {
   SelectNative,
   SelectNativeOption,
 } from "@/components/design-system/form/select-native/select-native";
+import { FormField } from "@/components/patterns/form-field/form-field";
 import { useToast } from "@/components/shell/toaster/toaster";
 import { idleActionState } from "@/model/action-state";
 import type { ProfileField, ProfileInput } from "@/model/user/profile-schema";
@@ -84,71 +75,6 @@ function fieldPropsOf(prefix: string, field: ProfileField) {
 }
 
 /**
- * 必須か任意かの印。
- *
- * @remarks
- * 読み上げからは外します（`aria-hidden`）。必須かどうかは control 側の `aria-required` が
- * 伝えており、印まで読ませると二重になります。
- *
- * 塗りつぶさず、縁と淡い地で示します。**塗ると誤りの表示と同じ強さになり**、何も間違えて
- * いない画面に赤い塊が項目の数だけ並びます。誤りは文言と枠の色で示すので、印はそこまで
- * 強い必要がありません。
- *
- * 任意の側にも印を出します。印の有無で読み分けさせると、印が無いのが「任意」なのか「印を
- * 付け忘れた」のかを利用者が区別できません。
- *
- * label の前に置きます。**どちらの文言も 2 文字なので、印の列と label の開始位置が同時に
- * 揃います。**後ろに置くと、label の長さがまちまちなぶん印が階段状に散らばります。
- */
-function RequirementBadge({ required }: { readonly required: boolean }) {
-  return required ? (
-    <Badge
-      aria-hidden="true"
-      className="border-destructive/40 bg-destructive/10 text-destructive"
-      variant={BADGE_VARIANT.OUTLINE}
-    >
-      必須
-    </Badge>
-  ) : (
-    <Badge aria-hidden="true" className="text-muted-foreground" variant={BADGE_VARIANT.OUTLINE}>
-      任意
-    </Badge>
-  );
-}
-
-type FieldFrameProps = {
-  readonly children: ReactNode;
-  readonly controlId: string;
-  readonly errorId: string;
-  readonly label: string;
-  readonly message: string | undefined;
-  readonly required: boolean;
-};
-
-/**
- * label・control・エラーの組。
- *
- * @remarks
- * control だけを差し替えられるように外枠を分けています。
- *
- * 印は **視覚のためだけ**に置き、`label` の外へ並べます。必須かどうかは control 側の
- * `aria-required` が伝えており（付けるのは呼び出し元です）、`label` の中に入れると項目の名前が
- * 「姓必須」に変わってしまいます。読み上げも「姓、必須、required」と二重になります。
- */
-function FieldFrame({ children, controlId, errorId, label, message, required }: FieldFrameProps) {
-  return (
-    <Field data-invalid={message !== undefined}>
-      <div className="flex items-center gap-2">
-        <RequirementBadge required={required} />
-        <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
-      </div>
-      {children}
-      {message === undefined ? null : <FieldError id={errorId}>{message}</FieldError>}
-    </Field>
-  );
-}
-
-/**
  * 入力欄へ渡す配線。
  *
  * @remarks
@@ -180,7 +106,7 @@ function TextField({
   ...input
 }: TextFieldProps) {
   return (
-    <FieldFrame
+    <FormField
       controlId={controlId}
       errorId={errorId}
       label={label}
@@ -195,7 +121,7 @@ function TextField({
         {...input}
         {...registration}
       />
-    </FieldFrame>
+    </FormField>
   );
 }
 
@@ -430,7 +356,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
           <p className="text-sm text-muted-foreground" role="status">
             {COMPLETION_MESSAGES[completionResult]}
           </p>
-          <FieldFrame {...postalCodeIds} label="郵便番号" message={postalCodeMessage}>
+          <FormField {...postalCodeIds} label="郵便番号" message={postalCodeMessage}>
             {/* 補完は focus が外れた時点でも走る。操作を枠の中へ収めるのは、いつ走るのかを
                 利用者が決められるようにしつつ、どの入力に属する操作かを離さないためである。 */}
             <InputGroup className="sm:max-w-sm">
@@ -457,8 +383,8 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
                 </InputGroupButton>
               </InputGroupAddon>
             </InputGroup>
-          </FieldFrame>
-          <FieldFrame {...prefectureIds} label="都道府県" message={prefectureMessage}>
+          </FormField>
+          <FormField {...prefectureIds} label="都道府県" message={prefectureMessage}>
             <SelectNative
               aria-describedby={prefectureMessage === undefined ? undefined : prefectureIds.errorId}
               aria-invalid={prefectureMessage !== undefined}
@@ -473,7 +399,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
                 </SelectNativeOption>
               ))}
             </SelectNative>
-          </FieldFrame>
+          </FormField>
           <TextField
             autoComplete="address-level2"
             {...fieldPropsOf(idPrefix, "city")}

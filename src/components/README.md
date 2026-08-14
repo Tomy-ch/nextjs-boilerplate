@@ -288,6 +288,7 @@ UI を横断して支える CSS 基盤。React component を公開しない。
 | [`input-group`](./design-system/form/input-group/README.md) | 単位記号・アイコン・補助操作を入力欄と一続きの枠に収める |
 | [`label`](./design-system/form/label/README.md) | form control の項目名を利用者へ伝える |
 | [`radio-group-client`](./design-system/form/radio-group-client/README.md) | native radio では満たせない custom interaction の client island |
+| [`requirement-badge`](./design-system/form/requirement-badge/README.md) | 入力項目が必須か任意かを label の隣で示す |
 | [`radio-group-native`](./design-system/form/radio-group-native/README.md) | 静的な候補から一つを選び、native form として送信する |
 | [`search-field-client`](./design-system/form/search-field-client/README.md) | 打鍵に追従してキーワード検索を通知する検索欄 |
 | [`search-field-native`](./design-system/form/search-field-native/README.md) | キーワード検索欄を、JavaScript を必要としない GET form として置く |
@@ -408,6 +409,7 @@ trigger から本文の上へ面を開く部品。
 | component | 概要 |
 | --- | --- |
 | [`filter-bar`](./patterns/filter-bar/README.md) | 一覧の絞り込み操作と、いま効いている条件をまとめて表示する |
+| [`form-field`](./patterns/form-field/README.md) | 項目名・必須の印・入力欄・補足・誤りを、入力欄の種類によらず同じ並びで組む |
 | [`selection-toolbar`](./patterns/selection-toolbar/README.md) | 一覧で選んだ件数と、その選択に対して行える操作をまとめる |
 | [`table`](./patterns/table/README.md) | 列と行の関係が利用者の理解に必要な、構造化データを表示する |
 | [`table-view-options`](./patterns/table-view-options/README.md) | 表の表示する列・表示密度・固定列・画面幅ごとの出し分けをまとめて設定する |
