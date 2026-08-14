@@ -39,7 +39,7 @@ const transaction = {
   state: "state-value",
   codeVerifier: "verifier-value",
   nonce: "nonce-value",
-  returnUrl: "/products",
+  returnUrl: "/settings",
 };
 
 beforeEach(() => {

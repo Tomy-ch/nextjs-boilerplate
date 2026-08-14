@@ -4,11 +4,11 @@ import { toSafeReturnUrl } from "./return-url";
 describe("toSafeReturnUrl", () => {
   // ----- 正常系 -----
   it("同一 origin の相対パスをそのまま通す", () => {
-    expect(toSafeReturnUrl("/products/1")).toBe("/products/1");
+    expect(toSafeReturnUrl("/reports/1")).toBe("/reports/1");
   });
 
   it("クエリとフラグメントを保つ", () => {
-    expect(toSafeReturnUrl("/products?sort=new#list")).toBe("/products?sort=new#list");
+    expect(toSafeReturnUrl("/reports?sort=new#list")).toBe("/reports?sort=new#list");
   });
 
   it("ルートのパスを通す", () => {
@@ -53,6 +53,6 @@ describe("toSafeReturnUrl", () => {
   });
 
   it("先頭が / でないパスを落とす", () => {
-    expect(toSafeReturnUrl("products/1")).toBe("/");
+    expect(toSafeReturnUrl("reports/1")).toBe("/");
   });
 });

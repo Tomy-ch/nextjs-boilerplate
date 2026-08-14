@@ -53,7 +53,7 @@ describe("AuthLayout", () => {
     ).toEqual([]);
   });
 
-  it("カートを出さない", () => {
+  it("本文の脇に何も置かない", () => {
     render(
       <AuthLayout>
         <p>本文</p>

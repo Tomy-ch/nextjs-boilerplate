@@ -27,7 +27,7 @@ beforeEach(() => {
 describe("proxy", () => {
   // ----- 正常系 -----
   it("保護されていないパスは素通しする", async () => {
-    const response = await proxy(request("/products"));
+    const response = await proxy(request("/help"));
 
     expect(response.headers.get("location")).toBeNull();
     expect(readOptimisticSession).not.toHaveBeenCalled();
@@ -67,7 +67,7 @@ describe("proxy", () => {
   });
 
   it("管理画面も保護の対象にする", async () => {
-    const response = await proxy(request("/admin/products"));
+    const response = await proxy(request("/admin/reports"));
 
     expect(response.headers.get("location")).toContain("/login");
   });

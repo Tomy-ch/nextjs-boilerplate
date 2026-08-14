@@ -162,9 +162,9 @@ describe("createDefaultSessionResolver", () => {
   });
 
   it("復帰先を一時状態へ持ち回る", async () => {
-    const { transaction } = await startSignIn({ returnUrl: "/products?sort=new" });
+    const { transaction } = await startSignIn({ returnUrl: "/settings?tab=general" });
 
-    expect(transaction.returnUrl).toBe("/products?sort=new");
+    expect(transaction.returnUrl).toBe("/settings?tab=general");
   });
 
   it("認可コードを session へ交換する", async () => {
