@@ -99,7 +99,7 @@ Now apply the early exits that depend on the post-merge commit count:
 
 ## Step 3. Pre-push Local Review Gate (confirm)
 
-With the base merged in and **before composing anything or pushing**, ask whether to run a pre-push `/impl-review`. This is the single decision point for local review: it inspects the local diff on a different model than the implementer and catches gaps that mocked tests miss, and it belongs before the change leaves the machine. Do NOT auto-run it.
+With the base merged in and **before composing anything or pushing**, ask whether to run a pre-push `/impl-review`. This is the single decision point for local review: it inspects the local diff on a different model than the implementer and catches gaps that mocked tests miss, and it belongs before the change leaves the machine. It also offers, defaulting to yes, to chain `/test-review` (test viewpoint) and `/comment-sweep` (the touched files' comment stock), so one run covers all three. Do NOT auto-run it.
 
 Placing it after Step 2 is deliberate — reviewing the pre-merge state would judge a tree that never reaches CI.
 
