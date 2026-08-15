@@ -1,3 +1,4 @@
+import { clearCartSession } from "@/adapters/server/api/cart-session"; // sample:line
 import { signOut } from "@/adapters/server/auth/session";
 
 /** ログアウト後に見せる画面。 */
@@ -15,6 +16,8 @@ const HOME_PATH = "/";
  * ログアウトできており、ここで失敗を見せても取れる行動がありません。
  */
 export async function POST(request: Request): Promise<Response> {
+  await clearCartSession(); // sample:line
+
   try {
     await signOut();
   } catch {

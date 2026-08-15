@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { getMyCart } from "@/adapters/server/api/cart";
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
@@ -24,14 +25,20 @@ const NAV_ITEMS = [
  *
  * カートを画面ごとではなくここへ置くのは、どの画面から追加しても同じ場所に出る必要があるためです。
  * 画面側に置くと、追加できる画面の数だけ mount が増えます。
+ *
+ * カートの中身をここで取ります。器は client ですが、明細の出所はバックエンドであり、client の
+ * 状態として持ち回りません（[0023](../../../docs/adr/0023-stores-kernel.md)）。この取得は cookie を
+ * 読むため、この route group の画面は動的描画になります。
  */
-export default function ShopLayout({ children }: { children: ReactNode }) {
+export default async function ShopLayout({ children }: { children: ReactNode }) {
+  const cart = await getMyCart();
+
   return (
     <AppShell
       siteName={SITE_NAME}
       navItems={NAV_ITEMS}
-      headerActions={<CartHeaderAction />}
-      sidebar={<CartPanel />}
+      headerActions={<CartHeaderAction cart={cart} />}
+      sidebar={<CartPanel cart={cart} />}
       footer={
         <div className="flex flex-col gap-3">
           <p>Next.js / React のプレゼンテーション層 boilerplate です。</p>

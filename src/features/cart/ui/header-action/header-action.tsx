@@ -14,6 +14,7 @@ import {
   DrawerTrigger,
 } from "@/components/design-system/overlay/drawer/drawer";
 import { mediaBelow } from "@/model/breakpoint";
+import type { Cart } from "@/model/cart/cart";
 import { useCartStore } from "@/stores/cart-store";
 
 import { CartContents } from "../contents/contents";
@@ -21,6 +22,12 @@ import { CartCount } from "../count/count";
 
 /** 脇に常設できない幅。タブレットを含む（[0051](../../../../../docs/adr/0051-styling-system.md) §2）。 */
 const NARROW = mediaBelow("lg");
+
+/** `CartHeaderAction` の props。 */
+export type CartHeaderActionProps = {
+  /** 表示するカート。 */
+  cart: Cart;
+};
 
 /**
  * header に置くカートの入口。
@@ -45,9 +52,8 @@ const NARROW = mediaBelow("lg");
  * この入れ替えは許容しています。押せる状態に見せるには出し分けを CSS へ移す必要があり、そうすると
  * 点数が 2 か所に出て、幅ごとの姿を存在の有無で検証できなくなります。
  */
-export function CartHeaderAction() {
+export function CartHeaderAction({ cart }: CartHeaderActionProps) {
   const isNarrow = useMediaQuery(NARROW);
-  const lines = useCartStore((state) => state.lines);
   const isOpen = useCartStore((state) => state.isOpen);
   const setOpen = useCartStore((state) => state.setOpen);
   const toggle = useCallback(() => setOpen(!isOpen), [isOpen, setOpen]);
@@ -62,7 +68,7 @@ export function CartHeaderAction() {
         type="button"
         variant="ghost"
       >
-        <CartCount />
+        <CartCount count={cart.lines.length} />
       </Button>
     );
   }
@@ -71,18 +77,20 @@ export function CartHeaderAction() {
     <Drawer direction="right" onOpenChange={setOpen} open={isOpen}>
       <DrawerTrigger asChild>
         <Button aria-label="カートを開く" size="sm" type="button" variant="ghost">
-          <CartCount />
+          <CartCount count={cart.lines.length} />
         </Button>
       </DrawerTrigger>
       <DrawerContent className="flex flex-col">
         <DrawerHeader>
           <DrawerTitle>カート</DrawerTitle>
           <DrawerDescription>
-            {lines.length === 0 ? "商品が入っていません。" : `${lines.length} 点入っています。`}
+            {cart.lines.length === 0
+              ? "商品が入っていません。"
+              : `${cart.lines.length} 点入っています。`}
           </DrawerDescription>
         </DrawerHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4">
-          <CartContents />
+          <CartContents cart={cart} />
           <DrawerClose asChild>
             <Button className="w-full" size="sm" type="button" variant="ghost">
               閉じる

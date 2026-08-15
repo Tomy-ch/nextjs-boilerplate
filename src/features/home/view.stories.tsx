@@ -7,6 +7,7 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { EMPTY_CART } from "@/features/cart/cart.fixture";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import type { ProductListItem, ProductRankingEntry, ProductRef } from "@/model/product/product";
@@ -34,15 +35,15 @@ const FAILURE_MESSAGE = "問題が発生しました。時間をおいて再試�
  * 断り書きも枠に含める。実画面では見出しより前に出るため、外すと余白と重心が実物とずれる。
  */
 function withPageFrame(Story: () => React.ReactElement) {
-  useCartStore.setState({ lines: [], isOpen: false });
+  useCartStore.setState({ isOpen: false });
 
   return (
     <div className="flex min-h-screen flex-col">
       <AppShell
         footer={<p>Next.js / React のプレゼンテーション層 boilerplate です。</p>}
-        headerActions={<CartHeaderAction />}
+        headerActions={<CartHeaderAction cart={EMPTY_CART} />}
         navItems={NAV_ITEMS}
-        sidebar={<CartPanel />}
+        sidebar={<CartPanel cart={EMPTY_CART} />}
         siteName="nextjs-boilerplate"
       >
         <ContentContainer className="py-8">

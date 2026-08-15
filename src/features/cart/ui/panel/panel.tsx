@@ -4,9 +4,16 @@ import { XIcon } from "lucide-react";
 import { useCallback } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
+import type { Cart } from "@/model/cart/cart";
 import { useCartStore } from "@/stores/cart-store";
 
 import { CartContents } from "../contents/contents";
+
+/** `CartPanel` の props。 */
+export type CartPanelProps = {
+  /** 表示するカート。 */
+  cart: Cart;
+};
 
 /**
  * カートの中身を本文の脇に常設する領域。
@@ -25,13 +32,12 @@ import { CartContents } from "../contents/contents";
  * 280px 前後を持っていきます。閉じられないと、一度カートへ入れた利用者は一覧を狭いまま読み続けることに
  * なります。閉じた後は header の入口から開き直せます。
  */
-export function CartPanel() {
-  const lines = useCartStore((state) => state.lines);
+export function CartPanel({ cart }: CartPanelProps) {
   const isOpen = useCartStore((state) => state.isOpen);
   const setOpen = useCartStore((state) => state.setOpen);
   const close = useCallback(() => setOpen(false), [setOpen]);
 
-  if (lines.length === 0 || !isOpen) {
+  if (cart.lines.length === 0 || !isOpen) {
     return null;
   }
 
@@ -54,7 +60,7 @@ export function CartPanel() {
             <XIcon aria-hidden="true" className="size-4" />
           </Button>
         </div>
-        <CartContents />
+        <CartContents cart={cart} />
       </div>
     </aside>
   );

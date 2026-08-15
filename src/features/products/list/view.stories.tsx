@@ -3,10 +3,12 @@ import { userEvent, within } from "storybook/test";
 
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
+import { CART } from "@/features/cart/cart.fixture";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
+import type { Cart } from "@/model/cart/cart";
 import type { ProductListItem } from "@/model/product/product";
-import { type CartLineInput, useCartStore } from "@/stores/cart-store";
+import { useCartStore } from "@/stores/cart-store";
 import { FILTER_KEY } from "../facade/list-url/list-url";
 import type { FilterOption } from "./query";
 import type { FilterGroup } from "./ui/filter-fields/filter-fields";
@@ -19,21 +21,6 @@ const NAV_ITEMS = [
   { href: "/products", label: "商品" },
   { href: "/purchases", label: "購入履歴" },
 ];
-
-/** カートへ積む 1 行。数量を省くと 1 個として積む。 */
-type CartSeed = { line: CartLineInput; quantity?: number };
-
-const WATCH: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-0000000000f1",
-  name: "スマートウォッチ",
-  price: "129.00",
-  statusName: "公開",
-  imageUrl: null,
-  stockQuantity: 4,
-};
-
-/** 既定のカート。`parameters.cart` を渡した story はそれで上書きする。 */
-const DEFAULT_CART: readonly CartSeed[] = [{ line: WATCH }];
 
 /**
  * route と同じ器で包む。`(shop)/layout.tsx` が置く shell とカート、`page.tsx` が置く読み幅を
@@ -48,17 +35,9 @@ const DEFAULT_CART: readonly CartSeed[] = [{ line: WATCH }];
  */
 function withPageFrame(
   Story: () => React.ReactElement,
-  context: { parameters: { cart?: readonly CartSeed[]; cartOpen?: boolean } },
+  context: { parameters: { cart?: Cart; cartOpen?: boolean } },
 ) {
-  useCartStore.setState({ lines: [] });
-
-  for (const seed of context.parameters.cart ?? DEFAULT_CART) {
-    useCartStore.getState().add(seed.line);
-
-    if (seed.quantity !== undefined) {
-      useCartStore.getState().setQuantity(seed.line.productId, seed.quantity);
-    }
-  }
+  const cart = context.parameters.cart ?? CART;
 
   useCartStore.setState({ isOpen: context.parameters.cartOpen === true });
 
@@ -66,9 +45,9 @@ function withPageFrame(
     <div className="flex min-h-screen flex-col">
       <AppShell
         footer={<p>Next.js / React のプレゼンテーション層 boilerplate です。</p>}
-        headerActions={<CartHeaderAction />}
+        headerActions={<CartHeaderAction cart={cart} />}
         navItems={NAV_ITEMS}
-        sidebar={<CartPanel />}
+        sidebar={<CartPanel cart={cart} />}
         siteName="nextjs-boilerplate"
       >
         <ContentContainer className="py-8">
