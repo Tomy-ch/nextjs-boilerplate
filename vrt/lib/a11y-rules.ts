@@ -1,16 +1,10 @@
-/**
- * story の a11y 検査で無効にする axe のルール。
- *
- * @remarks
- * ここで全 story から外してよいのは、**story が部品を単独で描画していることの副作用**として鳴る
- * ものだけです。「いまは直せない」は理由になりません — 直せない違反は
- * [`excluded-stories.ts`](excluded-stories.ts) で story ごと外すか、実装を直します。
- *
- * 特定の story でだけ外す宣言は {@link STORY_DISABLED_RULES} が持ちます。
- *
- * 宣言を 1 箇所に集めるのは、spec 側で `rules: { ... }` を書けるようにすると、story を足した
- * 人がその場で黙らせられてしまうためです（`untested-modules.ts` と同じ規律）。
- */
+// story の a11y 検査で無効にする axe のルール。無効化の宣言はここだけが持つ —— spec 側で
+// `rules: { ... }` を書けるようにすると、story を足した人がその場で黙らせられる。
+//
+// 全 story から外してよいのは、story が部品を単独で描画していることの副作用として鳴るものだけ。
+// 「いまは直せない」は理由にならない —— 直せない違反は [excluded-stories](excluded-stories.ts) で
+// story ごと外すか、実装を直す。特定の story でだけ外す宣言は STORY_DISABLED_RULES が持つ。
+
 /**
  * 検査するルールの範囲。適合目標そのものを axe のタグで表す。
  *

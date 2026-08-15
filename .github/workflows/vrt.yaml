@@ -11,9 +11,10 @@ name: VisualRegressionTest
 #
 # CI never writes baselines on its own. Producing new ones is a deliberate human act
 # — either `make vrt-update` locally, or the `vrt-retake` label handled by
-# `vrt-retake.yaml`. Neither is the approval: the baselines land as a commit and the
-# pixels are judged on the image diff in "Files changed", where the ruleset forces a
-# human approval after the push.
+# `vrt-retake.yaml`. Neither is the approval: the images live in the store, so this
+# repository only ever shows a moved submodule pointer, and the pixels are judged in
+# the store's compare view and accepted with the `vrt-approve` label that
+# `vrt-approval.yaml` requires.
 #
 # The comparison and the pull-request comment are separate jobs. The baseline store
 # may be private, which means the comparison job needs a GitHub App secret; a job

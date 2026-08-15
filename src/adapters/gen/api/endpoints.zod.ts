@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+e95da0c
+ * OpenAPI spec version: 2.2.0+53f5e11
  */
 import * as zod from "zod";
 
@@ -2817,7 +2817,7 @@ export const GetCartsMeResponse = zod
       .string()
       .nullish()
       .describe(
-        "ゲストカートのセッショントークン。以降のリクエストで X-Cart-Session ヘッダに載せます。\n所有者が確定済みのカート、および新規発行が起きなかった操作では null です。\n\*\*取得（GET）ではカート行を作らないため、この操作では常に null です。\*\*\n",
+        "ゲストカートのセッショントークン。以降のリクエストで X-Cart-Session ヘッダに載せます。\n所有者が確定済みのカート、および新規発行が起きなかった操作では null です。\n値が入るのは、その操作がゲストカートを新しく作った場合だけです\n（取得はカート行を作らないため、常に null になります）。\n",
       ),
     items: zod
       .array(
@@ -2881,3 +2881,232 @@ export const GetCartsMeResponse = zod
   .describe(
     "カートのレスポンススキーマ。カート参照・投入・削除の各操作で共有します。\nカートは在庫を押さえず、確定単価も持ちません。買うつもりの控えであって、\n売り越しの禁止も請求額の確定も購入成立時の関心です。\n",
   );
+
+/**
+ * 呼び出し主体のカートから、明細をすべて取り除きます。カート画面の「カートを空にする」に当たります。
+ * **カートの行と有効期限は残ります**。空のカートは正当な状態であり、行ごと消すと直後の操作で
+ * セッショントークンが発行し直され、利用者の同一性が切れます。カート行そのものの削除は
+ * 期限切れの掃除とログイン時のマージ後の破棄に限り、API としては公開しません。
+ * 主体の決まり方は取得（GET）と同じで、両方が提示された場合は認証済みユーザーが優先されます。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0019 (optional-authentication-fail-closed)）。
+ * **既に空のカートを空にしても、カートを持たない主体が呼んでも成功します**。カートを持たない
+ * 主体にカートを作ることはなく、提示されたセッショントークンでカートを引けなかった場合も
+ * 採番し直しません（応答が本文を持たないため、新しいトークンを返す場所がありません）。
+ * **明細ごとの再評価を行いません**。この応答は本文を持たず価格を 1 つも提示していないため、
+ * 提示価格を記録すると次の取得で立つはずの priceIncreased を消してしまいます。
+ * 有効期限は延びます（空にするのも利用のため）。
+ * 本 op 自体は DB の SELECT / UPDATE / DELETE のみで外部依存を持ちませんが、認証段
+ * （外部 IdP の JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分のカートを空にする
+ */
+export const deleteCartsMeHeaderXCartSessionMin = 43;
+export const deleteCartsMeHeaderXCartSessionMax = 43;
+
+export const deleteCartsMeHeaderXCartSessionRegExp = new RegExp("^[A-Za-z0-9_-]{43}$");
+
+export const DeleteCartsMeHeader = zod.object({
+  "X-Cart-Session": zod
+    .string()
+    .min(deleteCartsMeHeaderXCartSessionMin)
+    .max(deleteCartsMeHeaderXCartSessionMax)
+    .regex(deleteCartsMeHeaderXCartSessionRegExp)
+    .optional()
+    .describe(
+      "ゲストカートのセッショントークン。所有者が未確定のカートへ到達する唯一の手段で、\n未認証の呼び出し側はこのヘッダで自分のカートを指定する。\n認証済みの呼び出し側では無視される（カートは内部 UserID から解決されるため）。\n値は 256 ビットを base64url（パディング無し）で表現した 43 文字。\n",
+    ),
+});
+
+export const DeleteCartsMeResponse = zod.void();
+
+/**
+ * 呼び出し主体のカートに、指定した商品の数量を設定します。加算ではなく設定なので、
+ * 同じ要求を何回送っても結果は変わりません。**冪等性は明細の自然キー (cart_id, product_id) から
+ * 来るため、Idempotency-Key を必要としません**（自然キーを持たない POST /v1/purchases との対比）。
+ * 主体は認証済みユーザー（Bearer トークンの内部 UserID）か、ゲスト（X-Cart-Session ヘッダ）の
+ * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0019 (optional-authentication-fail-closed)）。
+ * **カートがまだ無い主体にはこの操作がカートを作ります**。ゲストの場合はセッショントークンを
+ * 発行して sessionToken に載せて返すので、以降のリクエストで X-Cart-Session に載せてください。
+ * 提示されたトークンでカートを引けなかった場合、その値では作らず新しい値を発行します
+ * （トークンの秘匿だけがゲストカートへの到達を守っているため、値をクライアントに選ばせません）。
+ * **有効期限を過ぎたカートは空から始まります**。所有者が確定したカートは行を保ったまま明細を捨て、
+ * ゲストは新しいカートを作ります。いずれも取得（GET）が期限切れを空のカートとして見せる契約と一致します。
+ * 設定後、応答はカート全体を明細ごとの再評価つきで返します（GET と同じ内容です）。
+ * 在庫は押さえません。在庫不足は投入を拒む理由ではなく、明細の issues として現れます。
+ * 本 op 自体は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段
+ * （外部 IdP の JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分のカートへの明細の設定（数量の upsert）
+ */
+export const putCartsMeItemPathProductIdMax = 36;
+
+export const putCartsMeItemPathProductIdRegExp = new RegExp(
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+);
+
+export const PutCartsMeItemParams = zod.object({
+  productId: zod
+    .uuid()
+    .max(putCartsMeItemPathProductIdMax)
+    .regex(putCartsMeItemPathProductIdRegExp)
+    .describe("商品のUUID"),
+});
+
+export const putCartsMeItemHeaderXCartSessionMin = 43;
+export const putCartsMeItemHeaderXCartSessionMax = 43;
+
+export const putCartsMeItemHeaderXCartSessionRegExp = new RegExp("^[A-Za-z0-9_-]{43}$");
+
+export const PutCartsMeItemHeader = zod.object({
+  "X-Cart-Session": zod
+    .string()
+    .min(putCartsMeItemHeaderXCartSessionMin)
+    .max(putCartsMeItemHeaderXCartSessionMax)
+    .regex(putCartsMeItemHeaderXCartSessionRegExp)
+    .optional()
+    .describe(
+      "ゲストカートのセッショントークン。所有者が未確定のカートへ到達する唯一の手段で、\n未認証の呼び出し側はこのヘッダで自分のカートを指定する。\n認証済みの呼び出し側では無視される（カートは内部 UserID から解決されるため）。\n値は 256 ビットを base64url（パディング無し）で表現した 43 文字。\n",
+    ),
+});
+
+export const putCartsMeItemBodyQuantityMax = 99;
+
+export const PutCartsMeItemBody = zod
+  .object({
+    quantity: zod
+      .int()
+      .min(1)
+      .max(putCartsMeItemBodyQuantityMax)
+      .describe(
+        "設定する数量。現在の数量に加算するのではなく、この値で置き換えます。 範囲外の値はドメインに届く前に 400 で拒否されます。",
+      ),
+  })
+  .describe(
+    "カート明細の数量設定リクエスト（application\/json）。対象の商品はパスで指定します。\n数量は加算ではなく設定です。同じ要求を 2 回送っても結果は変わりません。\n0 は削除ではなく範囲外として 400 を返します（削除は DELETE が担い、1 つの操作に 2 つの意味を持たせません）。\n",
+  );
+
+export const putCartsMeItemResponseItemsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const PutCartsMeItemResponse = zod
+  .object({
+    sessionToken: zod
+      .string()
+      .nullish()
+      .describe(
+        "ゲストカートのセッショントークン。以降のリクエストで X-Cart-Session ヘッダに載せます。\n所有者が確定済みのカート、および新規発行が起きなかった操作では null です。\n値が入るのは、その操作がゲストカートを新しく作った場合だけです\n（取得はカート行を作らないため、常に null になります）。\n",
+      ),
+    items: zod
+      .array(
+        zod
+          .object({
+            productId: zod.uuid().describe("商品 ID。カート内で明細を一意に指す自然キー。"),
+            productName: zod
+              .string()
+              .nullish()
+              .describe("商品名。商品を引けなかった場合（issues に notFound）は null です。"),
+            quantity: zod.int().describe("カートに入れた数量。"),
+            unitPrice: zod
+              .string()
+              .regex(putCartsMeItemResponseItemsItemUnitPriceRegExp)
+              .nullish()
+              .describe(
+                '取得時点の商品の単価。サブセント精度を保持する decimal 文字列（USD ドル）で表します（例 \"19.99\"）。\n商品を引けなかった場合（issues に notFound）は null です。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+              ),
+            issues: zod
+              .array(
+                zod
+                  .enum([
+                    "notFound",
+                    "unpublished",
+                    "outOfStock",
+                    "insufficientStock",
+                    "priceIncreased",
+                    "priceDecreased",
+                  ])
+                  .describe(
+                    "カート明細の再評価結果。取得のたびに商品の現在値と突き合わせて判定される。\n1 つの明細に複数同時に立ちうるが、notFound は単独で立ち（商品が引けない以上、在庫も価格も\n判定材料が無い）、outOfStock と insufficientStock は排他（在庫 0 は「不足」ではなく「無い」）。\nいずれの値もカートの取得を失敗にしない。買えない明細があることは要求の不正ではないため。\n",
+                  ),
+              )
+              .describe(
+                "この明細の再評価結果。空配列なら現時点で購入可能です。\nsubtotalAmount の合算対象になるのは、この配列が空の明細だけです。\n",
+              ),
+            availableQuantity: zod
+              .int()
+              .nullish()
+              .describe(
+                "issues に insufficientStock がある場合の、今買える上限（商品の在庫数）。\nそれ以外の場合は null です。\n",
+              ),
+          })
+          .describe(
+            "カート明細 1 件。商品の現在値との突き合わせ結果を issues に添える。\nカートは商品の名前も価格も保持しないため、productName \/ unitPrice は取得時点の商品の値であり、\n購入時の金額を拘束しない（請求額を確定するのは購入明細のスナップショット）。\n",
+          ),
+      )
+      .describe("カートの明細。1 件も入っていない場合、およびカートがまだ無い場合は空配列です。\n"),
+    subtotalAmount: zod
+      .int()
+      .describe(
+        "小計。issues が空の明細（現時点で購入可能なもの）だけを単価×数量で合算した参考値で、\nUSD セント単位の整数です。請求額ではありません。\n合算は decimal のまま行い、最後に一度だけ最小単位へ丸めます。\n合算対象が 1 件も無い場合は 0 です。\n",
+      ),
+    expiresAt: zod.iso
+      .datetime({ offset: true })
+      .nullish()
+      .describe(
+        "カートの有効期限。操作のたびに延長されます。\nカートがまだ無い場合は行そのものが存在しないため null です\n（明細を空にしただけの場合はカート行が残るため null になりません）。\n",
+      ),
+  })
+  .describe(
+    "カートのレスポンススキーマ。カート参照・投入・削除の各操作で共有します。\nカートは在庫を押さえず、確定単価も持ちません。買うつもりの控えであって、\n売り越しの禁止も請求額の確定も購入成立時の関心です。\n",
+  );
+
+/**
+ * 呼び出し主体のカートから、指定した商品の明細を取り除きます。
+ * **対象の明細が無くても成功します**。「無かった」と「消した」を呼び出し側に区別させないため、
+ * 404 を持ちません。主体の決まり方は設定（PUT）と同じで、両方が提示された場合は認証済みユーザーが
+ * 優先されます。認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0019 (optional-authentication-fail-closed)）。
+ * **カートを持たない主体が呼んでもカートは作りません**。提示されたセッショントークンでカートを
+ * 引けなかった場合も採番し直さず、何もせずに成功を返します（応答が本文を持たないため、新しい
+ * トークンを返す場所がありません）。
+ * **商品の存在も公開状態も確認しません**。非公開になった商品こそカートから外したいので、ここで
+ * 拒むと再評価で unpublished が立った明細を利用者が取り除けなくなります（設定は 422 で拒むのに対し、
+ * こちらは取り除けます）。
+ * **明細ごとの再評価を行いません**。この応答は本文を持たず価格を 1 つも提示していないため、提示価格を
+ * 記録すると、次の取得で立つはずの priceIncreased を消してしまいます。
+ * 有効期限は延びます（削除も利用のため）。明細が 0 件になってもカート自体は残ります。
+ * 本 op 自体は DB の SELECT / UPDATE / DELETE のみで外部依存を持ちませんが、認証段
+ * （外部 IdP の JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分のカートからの明細の削除
+ */
+export const deleteCartsMeItemPathProductIdMax = 36;
+
+export const deleteCartsMeItemPathProductIdRegExp = new RegExp(
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+);
+
+export const DeleteCartsMeItemParams = zod.object({
+  productId: zod
+    .uuid()
+    .max(deleteCartsMeItemPathProductIdMax)
+    .regex(deleteCartsMeItemPathProductIdRegExp)
+    .describe("商品のUUID"),
+});
+
+export const deleteCartsMeItemHeaderXCartSessionMin = 43;
+export const deleteCartsMeItemHeaderXCartSessionMax = 43;
+
+export const deleteCartsMeItemHeaderXCartSessionRegExp = new RegExp("^[A-Za-z0-9_-]{43}$");
+
+export const DeleteCartsMeItemHeader = zod.object({
+  "X-Cart-Session": zod
+    .string()
+    .min(deleteCartsMeItemHeaderXCartSessionMin)
+    .max(deleteCartsMeItemHeaderXCartSessionMax)
+    .regex(deleteCartsMeItemHeaderXCartSessionRegExp)
+    .optional()
+    .describe(
+      "ゲストカートのセッショントークン。所有者が未確定のカートへ到達する唯一の手段で、\n未認証の呼び出し側はこのヘッダで自分のカートを指定する。\n認証済みの呼び出し側では無視される（カートは内部 UserID から解決されるため）。\n値は 256 ビットを base64url（パディング無し）で表現した 43 文字。\n",
+    ),
+});
+
+export const DeleteCartsMeItemResponse = zod.void();

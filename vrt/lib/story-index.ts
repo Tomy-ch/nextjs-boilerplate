@@ -114,8 +114,7 @@ export function storyGroup(title: string): string {
  * で落ちる。`a11y.spec.ts` が再試行を持つのはこのため）。
  *
  * 止め方に `globals` を選ぶのは、**この実行にだけ効く**からです。`.storybook/preview.ts` の
- * parameter で止めると Storybook を開く人からも検査が消えます。addon 側が globals での
- * 切り替えを口として持っているので、それに乗ります。
+ * parameter で止めると Storybook を開く人からも検査が消えます。
  */
 const A11Y_MANUAL = "a11y.manual:!true";
 

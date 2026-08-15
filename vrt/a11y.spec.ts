@@ -9,21 +9,13 @@ import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
 
-/**
- * Storybook の全 story に axe を掛ける。
- *
- * @remarks
- * ADR [0054](../docs/adr/0054-ui-catalog-storybook.md) の「a11y の自動検査を story に効かせる」を、
- * 追加のランナーを入れずに満たすための経路です（[0091](../docs/adr/0091-test-verification-methods.md) §3）。
- * 撮影と同じコンテナ・同じ story 列挙を使い、実ブラウザで検査します。
- *
- * **実ブラウザであることが本質**です。component テストの `vitest-axe` は jsdom で走るため
- * 色コントラストを検査できず、実際に無効化されています。ここは light / dark の両方を実描画
- * するので、テーマの切り替えでしか出ない contrast の違反まで届きます。
- *
- * spec を撮影と分けてあるのは、a11y の失敗が VRT の報告へ混ざると、撮り直しの経路がそれを
- * 撮り直そうとするためです。撮り直しても a11y は直らず、基準画像だけが承認済みになります。
- */
+// Storybook の全 story に axe を掛ける。ADR [0054](../docs/adr/0054-ui-catalog-storybook.md) の
+// 「a11y の自動検査を story に効かせる」を、追加のランナーを入れずに満たす経路
+// （[0091](../docs/adr/0091-test-verification-methods.md) §3）。
+//
+// **実ブラウザであることが本質。** component テストの `vitest-axe` は jsdom で走るため色コント
+// ラストを検査できず、実際に無効化されている。ここは light / dark の両方を実描画するので、
+// テーマの切り替えでしか出ない contrast の違反まで届く。
 
 const STORYBOOK_DIR = "storybook-static";
 

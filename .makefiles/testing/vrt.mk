@@ -51,8 +51,6 @@ VRT_GATE_MARKER := vrt-gate:
 # 比較を省いた実行でも走らせる検査。基準画像と撮影対象の 1 対 1 の対応だけを選ぶ。
 VRT_BASELINE_TAG := @baselines
 
-# 比較する前に Storybook を build する。撮る対象は build 済みの静的な出力であり、
-# ソースではない。
 # 配線の確認。撮り直しは空の置き場から始められる必要があるので、中身までは要求しない。
 VRT_REQUIRE_WIRING = \
 	if [ ! -f .gitmodules ]; then \
@@ -86,10 +84,14 @@ vrt: build-storybook
 vrt-update: BASELINE_RETAKE := 1
 vrt-update: build-storybook
 	@$(VRT_REQUIRE_WIRING)
-	@# 全数のときだけ先に区画を空にする。撮り直しは上書きするだけで stale なファイルを消さないため、
-	@# story を改名・削除すると旧名の画像が残り、対応の検査が孤児として落とす。範囲を絞った撮り直し
-	@# では消さない —— 撮らない story の画像まで消え、報告されていない差分が置き場へ入る。
-	@if [ -z "$(VRT_ONLY)" ]; then pnpm exec tsx scripts/vrt clear-stories; fi
+	@# 全数のときだけ先に区画を空にする。全数と絞り込みで扱いが分かれる理由は clearableStoryEntries
+	@# (vrt/lib/baseline-store.ts) が持つ。
+	@#
+	@# **引数が 1 つでも付いていたら消さない。** 絞り込みは `VRT_ONLY` だけでなく `VRT_ARGS` の
+	@# `--grep` / `--project` などでも起きる（vrt/README.md が案内している使い方）。どの引数が
+	@# 撮影対象を狭めるかを列挙して判定すると、列挙から漏れた引数がそのまま「全 story を消して
+	@# 一部だけ撮り直す」になる。知らない引数は安全側 —— 消さない —— へ倒す。
+	@if [ -z "$(VRT_ONLY)$(VRT_ARGS)" ]; then pnpm exec tsx scripts/vrt clear-stories; fi
 	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --update-snapshots $(VRT_ARGS)
 	@pnpm exec tsx scripts/vrt inputs > $(VRT_INPUTS_FILE)
 	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です。"

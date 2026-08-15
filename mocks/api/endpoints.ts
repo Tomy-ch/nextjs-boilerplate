@@ -9,11 +9,12 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+e95da0c
+ * OpenAPI spec version: 2.2.0+53f5e11
  */
 import type {
   AddressCandidatesResponse,
   BadRequest400Response,
+  CartItemPutRequest,
   CartResponse,
   Conflict409Response,
   DashboardSummaryResponse,
@@ -3004,4 +3005,267 @@ export const getCartsMe = async (options?: RequestInit): Promise<getCartsMeRespo
 
   const data: getCartsMeResponse["data"] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as getCartsMeResponse;
+};
+
+export type deleteCartsMeResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type deleteCartsMeResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type deleteCartsMeResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type deleteCartsMeResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type deleteCartsMeResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type deleteCartsMeResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type deleteCartsMeResponseSuccess = deleteCartsMeResponse204 & {
+  headers: Headers;
+};
+export type deleteCartsMeResponseError = (
+  | deleteCartsMeResponse400
+  | deleteCartsMeResponse401
+  | deleteCartsMeResponse405
+  | deleteCartsMeResponse500
+  | deleteCartsMeResponse503
+) & {
+  headers: Headers;
+};
+
+export type deleteCartsMeResponse = deleteCartsMeResponseSuccess | deleteCartsMeResponseError;
+
+export const getDeleteCartsMeUrl = () => {
+  return `/v1/carts/me`;
+};
+
+/**
+ * 呼び出し主体のカートから、明細をすべて取り除きます。カート画面の「カートを空にする」に当たります。
+ * **カートの行と有効期限は残ります**。空のカートは正当な状態であり、行ごと消すと直後の操作で
+ * セッショントークンが発行し直され、利用者の同一性が切れます。カート行そのものの削除は
+ * 期限切れの掃除とログイン時のマージ後の破棄に限り、API としては公開しません。
+ * 主体の決まり方は取得（GET）と同じで、両方が提示された場合は認証済みユーザーが優先されます。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0019 (optional-authentication-fail-closed)）。
+ * **既に空のカートを空にしても、カートを持たない主体が呼んでも成功します**。カートを持たない
+ * 主体にカートを作ることはなく、提示されたセッショントークンでカートを引けなかった場合も
+ * 採番し直しません（応答が本文を持たないため、新しいトークンを返す場所がありません）。
+ * **明細ごとの再評価を行いません**。この応答は本文を持たず価格を 1 つも提示していないため、
+ * 提示価格を記録すると次の取得で立つはずの priceIncreased を消してしまいます。
+ * 有効期限は延びます（空にするのも利用のため）。
+ * 本 op 自体は DB の SELECT / UPDATE / DELETE のみで外部依存を持ちませんが、認証段
+ * （外部 IdP の JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分のカートを空にする
+ */
+export const deleteCartsMe = async (options?: RequestInit): Promise<deleteCartsMeResponse> => {
+  const res = await fetch(getDeleteCartsMeUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: deleteCartsMeResponse["data"] = body ? JSON.parse(body) : undefined;
+  return { data, status: res.status, headers: res.headers } as deleteCartsMeResponse;
+};
+
+export type putCartsMeItemResponse200 = {
+  data: CartResponse;
+  status: 200;
+};
+
+export type putCartsMeItemResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type putCartsMeItemResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type putCartsMeItemResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type putCartsMeItemResponse409 = {
+  data: Conflict409Response;
+  status: 409;
+};
+
+export type putCartsMeItemResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type putCartsMeItemResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type putCartsMeItemResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type putCartsMeItemResponseSuccess = putCartsMeItemResponse200 & {
+  headers: Headers;
+};
+export type putCartsMeItemResponseError = (
+  | putCartsMeItemResponse400
+  | putCartsMeItemResponse401
+  | putCartsMeItemResponse405
+  | putCartsMeItemResponse409
+  | putCartsMeItemResponse422
+  | putCartsMeItemResponse500
+  | putCartsMeItemResponse503
+) & {
+  headers: Headers;
+};
+
+export type putCartsMeItemResponse = putCartsMeItemResponseSuccess | putCartsMeItemResponseError;
+
+export const getPutCartsMeItemUrl = (productId: string) => {
+  return `/v1/carts/me/items/${productId}`;
+};
+
+/**
+ * 呼び出し主体のカートに、指定した商品の数量を設定します。加算ではなく設定なので、
+ * 同じ要求を何回送っても結果は変わりません。**冪等性は明細の自然キー (cart_id, product_id) から
+ * 来るため、Idempotency-Key を必要としません**（自然キーを持たない POST /v1/purchases との対比）。
+ * 主体は認証済みユーザー（Bearer トークンの内部 UserID）か、ゲスト（X-Cart-Session ヘッダ）の
+ * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0019 (optional-authentication-fail-closed)）。
+ * **カートがまだ無い主体にはこの操作がカートを作ります**。ゲストの場合はセッショントークンを
+ * 発行して sessionToken に載せて返すので、以降のリクエストで X-Cart-Session に載せてください。
+ * 提示されたトークンでカートを引けなかった場合、その値では作らず新しい値を発行します
+ * （トークンの秘匿だけがゲストカートへの到達を守っているため、値をクライアントに選ばせません）。
+ * **有効期限を過ぎたカートは空から始まります**。所有者が確定したカートは行を保ったまま明細を捨て、
+ * ゲストは新しいカートを作ります。いずれも取得（GET）が期限切れを空のカートとして見せる契約と一致します。
+ * 設定後、応答はカート全体を明細ごとの再評価つきで返します（GET と同じ内容です）。
+ * 在庫は押さえません。在庫不足は投入を拒む理由ではなく、明細の issues として現れます。
+ * 本 op 自体は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段
+ * （外部 IdP の JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分のカートへの明細の設定（数量の upsert）
+ */
+export const putCartsMeItem = async (
+  productId: string,
+  cartItemPutRequest: CartItemPutRequest,
+  options?: RequestInit,
+): Promise<putCartsMeItemResponse> => {
+  const res = await fetch(getPutCartsMeItemUrl(productId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(cartItemPutRequest),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: putCartsMeItemResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as putCartsMeItemResponse;
+};
+
+export type deleteCartsMeItemResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type deleteCartsMeItemResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type deleteCartsMeItemResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type deleteCartsMeItemResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type deleteCartsMeItemResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type deleteCartsMeItemResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type deleteCartsMeItemResponseSuccess = deleteCartsMeItemResponse204 & {
+  headers: Headers;
+};
+export type deleteCartsMeItemResponseError = (
+  | deleteCartsMeItemResponse400
+  | deleteCartsMeItemResponse401
+  | deleteCartsMeItemResponse405
+  | deleteCartsMeItemResponse500
+  | deleteCartsMeItemResponse503
+) & {
+  headers: Headers;
+};
+
+export type deleteCartsMeItemResponse =
+  | deleteCartsMeItemResponseSuccess
+  | deleteCartsMeItemResponseError;
+
+export const getDeleteCartsMeItemUrl = (productId: string) => {
+  return `/v1/carts/me/items/${productId}`;
+};
+
+/**
+ * 呼び出し主体のカートから、指定した商品の明細を取り除きます。
+ * **対象の明細が無くても成功します**。「無かった」と「消した」を呼び出し側に区別させないため、
+ * 404 を持ちません。主体の決まり方は設定（PUT）と同じで、両方が提示された場合は認証済みユーザーが
+ * 優先されます。認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0019 (optional-authentication-fail-closed)）。
+ * **カートを持たない主体が呼んでもカートは作りません**。提示されたセッショントークンでカートを
+ * 引けなかった場合も採番し直さず、何もせずに成功を返します（応答が本文を持たないため、新しい
+ * トークンを返す場所がありません）。
+ * **商品の存在も公開状態も確認しません**。非公開になった商品こそカートから外したいので、ここで
+ * 拒むと再評価で unpublished が立った明細を利用者が取り除けなくなります（設定は 422 で拒むのに対し、
+ * こちらは取り除けます）。
+ * **明細ごとの再評価を行いません**。この応答は本文を持たず価格を 1 つも提示していないため、提示価格を
+ * 記録すると、次の取得で立つはずの priceIncreased を消してしまいます。
+ * 有効期限は延びます（削除も利用のため）。明細が 0 件になってもカート自体は残ります。
+ * 本 op 自体は DB の SELECT / UPDATE / DELETE のみで外部依存を持ちませんが、認証段
+ * （外部 IdP の JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分のカートからの明細の削除
+ */
+export const deleteCartsMeItem = async (
+  productId: string,
+  options?: RequestInit,
+): Promise<deleteCartsMeItemResponse> => {
+  const res = await fetch(getDeleteCartsMeItemUrl(productId), {
+    ...options,
+    method: "DELETE",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: deleteCartsMeItemResponse["data"] = body ? JSON.parse(body) : undefined;
+  return { data, status: res.status, headers: res.headers } as deleteCartsMeItemResponse;
 };

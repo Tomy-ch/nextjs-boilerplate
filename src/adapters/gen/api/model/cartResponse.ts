@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+e95da0c
+ * OpenAPI spec version: 2.2.0+53f5e11
  */
 import type { CartItemResponse } from "./cartItemResponse";
 
@@ -22,7 +22,8 @@ export interface CartResponse {
   /**
    * ゲストカートのセッショントークン。以降のリクエストで X-Cart-Session ヘッダに載せます。
    * 所有者が確定済みのカート、および新規発行が起きなかった操作では null です。
-   * **取得（GET）ではカート行を作らないため、この操作では常に null です。**
+   * 値が入るのは、その操作がゲストカートを新しく作った場合だけです
+   * （取得はカート行を作らないため、常に null になります）。
    * @nullable
    */
   sessionToken?: string | null;
