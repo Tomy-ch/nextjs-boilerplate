@@ -11,13 +11,9 @@ sources:
     path: openapi/openapi.gen.yaml
     # コミット SHA で固定する。tag v2.1.0 には /v1/products が存在せず、商品 API は未タグの
     # release/v2.2.0 にしかない。上流の進展の取り込みはこの ref の書き換えとして明示的に行う。
-    #
-    # 今の ref は上流の feature/1117-carts-me-merge の先端であり、まだ release 線へ入っていない。
-    # カートの引き継ぎ (POST /v1/carts/me/merge) がこの枝にしか無いためで、上流がマージした時点で
-    # その commit へ差し替える。
-    ref: 7b8a76992f0af50ed7e1ad305983129284adf34c
+    ref: 820c920d1d5333d8d6293a6f470c062c91ae039d
     sha: c5703b770c8983caafb62fd7cbef439c85111693
-    fetchedAt: 2026-08-15T07:35:00.838Z
+    fetchedAt: 2026-08-15T07:38:59.593Z
   # mock OIDC Provider の契約。go-boilerplate 本体とは別サービスであり、認証の契約はこちらが正
   # (docs/screens.md §0)。本体の契約には認証エンドポイントが存在しない。
   - name: auth
