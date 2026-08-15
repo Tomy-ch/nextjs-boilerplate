@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+53f5e11
+ * OpenAPI spec version: 2.2.0+c5703b7
  */
 import * as zod from "zod";
 
@@ -3110,3 +3110,70 @@ export const DeleteCartsMeItemHeader = zod.object({
 });
 
 export const DeleteCartsMeItemResponse = zod.void();
+
+/**
+ * ログイン直後に、ゲストカートを認証済みユーザーへ引き継ぎます。
+ * 引き継ぎ元はヘッダの X-Cart-Session、引き継ぎ先は Bearer トークンの主体で、要求本文を持ちません。
+ * **この操作だけが認証必須です**（所有者を確定させる操作のため、匿名では成り立ちません）。
+ * **引き継ぎは失敗しません**。同一商品の数量合算が上限を超えたら上限へ丸め、明細数が上限を超えたら
+ * 先に入っていたものを優先して残し、後から来たものを切り捨てます。ログインは認証の成否で決まるべきで、
+ * カートの都合で失敗させません。**失われた分は clamped / dropped として報告します**。
+ * ユーザー側にカートが無い場合は所有者を付け替えるだけで、明細の内容は変わりません。
+ * 引き継ぎ元のゲストカートが引けない場合（既に引き継ぎ済み、期限切れ、未知のトークン）は、
+ * clamped と dropped がいずれも空の成功として返します。
+ * **引き継ぎ後、元のセッショントークンでそのカートへ到達する経路は状態として残りません**
+ * （所有者の確定とトークンの破棄は不可分に行われ、合流時はゲストカートの行ごと消えます）。
+ * 応答に引き継ぎ後のカートは含めません。カートの中身は取得（GET /v1/carts/me）でいつでも引けますが、
+ * clamped / dropped はこの応答でしか得られないためです。
+ * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返し、報告が失われません。
+ * 同一キーを内容の異なる要求で使い回した場合は 422 で拒否します（冪等性の一般的な扱いであり、
+ * 引き継ぎそのものの失敗ではありません）。
+ * カートの 5 つの操作でこれを採るのはここだけで、他は明細の自然キーが冪等性を供給します。
+ * 本 op 自体は DB の SELECT / UPDATE / DELETE のみで外部依存を持ちませんが、認証段
+ * （外部 IdP の JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary ゲストカートの引き継ぎ（所有者の確定）
+ */
+export const postCartsMeMergeHeaderXCartSessionMin = 43;
+export const postCartsMeMergeHeaderXCartSessionMax = 43;
+
+export const postCartsMeMergeHeaderXCartSessionRegExp = new RegExp("^[A-Za-z0-9_-]{43}$");
+export const postCartsMeMergeHeaderIdempotencyKeyMax = 255;
+
+export const postCartsMeMergeHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const PostCartsMeMergeHeader = zod.object({
+  "X-Cart-Session": zod
+    .string()
+    .min(postCartsMeMergeHeaderXCartSessionMin)
+    .max(postCartsMeMergeHeaderXCartSessionMax)
+    .regex(postCartsMeMergeHeaderXCartSessionRegExp)
+    .describe(
+      "引き継ぎ元のゲストカートのセッショントークン。\nログイン前に持っていた値をそのまま渡す。\n値は 256 ビットを base64url（パディング無し）で表現した 43 文字。\n\n必須である点が CartSessionParam との違い。引き継ぎ元を指定しない引き継ぎは要求として成り立たず、\n省略を許すと「引き継ぐものが無い」と「引き継ぎ元を書き忘れた」を区別できなくなる。\nOpenAPI 3.0 は $ref の兄弟キーを無視するため、共有定義に required を上書きすることはできない。\n",
+    ),
+  "Idempotency-Key": zod
+    .string()
+    .min(1)
+    .max(postCartsMeMergeHeaderIdempotencyKeyMax)
+    .regex(postCartsMeMergeHeaderIdempotencyKeyRegExp)
+    .optional()
+    .describe(
+      "冪等キー。非冪等な変更操作（作成系など）で、同一キーによるリトライを重複実行なく\n安全にするための識別子。サーバは同一 (認証主体, キー) の再送を初回結果のリプレイとして扱う。\nこのヘッダを宣言する操作は、ハンドラが必ず idempotency.Run 経由で処理する契約（完全性テストで機械検証）。\n",
+    ),
+});
+
+export const PostCartsMeMergeResponse = zod
+  .object({
+    clamped: zod
+      .array(zod.uuid())
+      .describe(
+        "数量を合算した結果が 1 明細あたりの上限を超え、上限へ丸めた商品の ID。\n引き継ぎは失敗させないため、超過分は捨てて成功として返します。\n",
+      ),
+    dropped: zod
+      .array(zod.uuid())
+      .describe(
+        "明細数が上限を超えたため取り込まれなかった商品の ID。\n先にカートへ入っていたものを優先して残し、後から来たものを切り捨てます。\n",
+      ),
+  })
+  .describe(
+    "ログイン時のカート引き継ぎの結果。\*\*引き継ぎで失われた分だけ\*\*を報告します。\n引き継ぎ後のカートの中身は含めません。取得（GET \/v1\/carts\/me）でいつでも引ける一方、\nここで失われた分はこの応答でしか得られないためです。\n",
+  );
