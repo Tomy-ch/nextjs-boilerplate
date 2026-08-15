@@ -5,7 +5,7 @@ import type { Cart } from "@/model/cart/cart";
 
 import { CartClearButton } from "./ui/clear-button/clear-button";
 import { CartLineRow } from "./ui/line-row/line-row";
-import { CartRemovalNotice, CartRemovalNoticeProvider } from "./ui/removal-notice/removal-notice";
+import { CartRemovalNotice } from "./ui/removal-notice/removal-notice";
 import { CartSummaryCard } from "./ui/summary-card/summary-card";
 import { CartSummaryDock } from "./ui/summary-dock/summary-dock";
 
@@ -32,9 +32,12 @@ const PRODUCTS_PATH = "/products";
  * 明細の下端には引き出しのぶんの余白を空けます。空けないと、最後の行の操作が引き出しに隠れます。
  */
 export function CartView({ cart }: CartViewProps) {
+  const presentProductIds = cart.lines.map((line) => line.productId);
+
   if (cart.lines.length === 0) {
     return (
       <div className="flex flex-col items-start gap-4 py-8">
+        <CartRemovalNotice presentProductIds={presentProductIds} />
         <p className="text-muted-foreground">カートに商品が入っていません。</p>
         <Button asChild variant="outline">
           <Link href={PRODUCTS_PATH}>商品を探す</Link>
@@ -43,10 +46,8 @@ export function CartView({ cart }: CartViewProps) {
     );
   }
 
-  const presentProductIds = cart.lines.map((line) => line.productId);
-
   return (
-    <CartRemovalNoticeProvider>
+    <>
       <div className="flex flex-col gap-8 pb-24 lg:flex-row lg:items-start lg:pb-0">
         <section aria-label="カートの明細" className="flex min-w-0 flex-1 flex-col gap-4">
           <CartRemovalNotice presentProductIds={presentProductIds} />
@@ -71,6 +72,6 @@ export function CartView({ cart }: CartViewProps) {
       <CartSummaryDock>
         <CartSummaryCard cart={cart} />
       </CartSummaryDock>
-    </CartRemovalNoticeProvider>
+    </>
   );
 }

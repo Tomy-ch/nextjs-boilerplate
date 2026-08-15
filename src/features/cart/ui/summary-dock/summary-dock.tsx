@@ -33,6 +33,10 @@ const CLOSE_LABEL = "小計を隠す";
  * **引き手はいつでも出ています。** 向きに任せるだけだと、下へ動かせない位置（末尾や短い一覧）で
  * 小計へ到達する手段が無くなります。引き手で開いた状態はスクロールの向きより優先し、閉じるのも
  * 引き手で行います。自分で開けたものが勝手に消えると、操作と結果が対応しません。
+ *
+ * **引き手と中身は一緒に動きます。** 動かすのを中身だけにすると、隠れているあいだ引き手が中身の
+ * 高さぶん浮いて、画面の途中に取り残されます。隠れた状態で画面の下端に残るのが引き手の高さぶんだけに
+ * なるよう、器ごと送ります。
  */
 export function CartSummaryDock({ children }: CartSummaryDockProps) {
   const [pinned, setPinned] = useState(false);
@@ -42,7 +46,11 @@ export function CartSummaryDock({ children }: CartSummaryDockProps) {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-30 flex flex-col items-center lg:hidden"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-30 flex flex-col items-center transition-transform motion-reduce:transition-none lg:hidden",
+        // 隠すときは引き手の高さ（h-6 = 1.5rem）だけを残して器ごと下げる。
+        shown ? "translate-y-0" : "translate-y-[calc(100%-1.5rem)]",
+      )}
       data-slot="cart-summary-dock"
     >
       <button
@@ -61,10 +69,7 @@ export function CartSummaryDock({ children }: CartSummaryDockProps) {
         />
       </button>
       <div
-        className={cn(
-          "w-full border-t bg-background p-4 transition-transform motion-reduce:transition-none",
-          shown ? "translate-y-0" : "translate-y-full",
-        )}
+        className="w-full border-t bg-background p-4"
         // 隠れているあいだは送りの対象から外す。画面の外に出ているだけの操作へ focus が入ると、
         // 見えない場所で入力を受けることになる。
         inert={!shown}

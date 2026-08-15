@@ -4,6 +4,7 @@ import { getMyCart } from "@/adapters/server/api/cart";
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
+import { CartRemovalNoticeProvider } from "@/features/cart/ui/removal-notice/removal-notice";
 import { RepositoryLinks } from "@/features/site-info/ui/repository-links/repository-links";
 
 const SITE_NAME = "nextjs-boilerplate";
@@ -29,24 +30,29 @@ const NAV_ITEMS = [
  * カートの中身をここで取ります。器は client ですが、明細の出所はバックエンドであり、client の
  * 状態として持ち回りません（[0023](../../../docs/adr/0023-stores-kernel.md)）。この取得は cookie を
  * 読むため、この route group の画面は動的描画になります。
+ *
+ * 取り消しの記憶も**カートの器より外**へ置きます。最後の 1 件を取り除くと脇の領域もカートの画面も
+ * 空の姿へ変わるため、器の内側に持つとその切り替わりで記憶ごと失われます。
  */
 export default async function ShopLayout({ children }: { children: ReactNode }) {
   const cart = await getMyCart();
 
   return (
-    <AppShell
-      siteName={SITE_NAME}
-      navItems={NAV_ITEMS}
-      headerActions={<CartHeaderAction cart={cart} />}
-      sidebar={<CartPanel cart={cart} />}
-      footer={
-        <div className="flex flex-col gap-3">
-          <p>Next.js / React のプレゼンテーション層 boilerplate です。</p>
-          <RepositoryLinks />
-        </div>
-      }
-    >
-      {children}
-    </AppShell>
+    <CartRemovalNoticeProvider>
+      <AppShell
+        siteName={SITE_NAME}
+        navItems={NAV_ITEMS}
+        headerActions={<CartHeaderAction cart={cart} />}
+        sidebar={<CartPanel cart={cart} />}
+        footer={
+          <div className="flex flex-col gap-3">
+            <p>Next.js / React のプレゼンテーション層 boilerplate です。</p>
+            <RepositoryLinks />
+          </div>
+        }
+      >
+        {children}
+      </AppShell>
+    </CartRemovalNoticeProvider>
   );
 }

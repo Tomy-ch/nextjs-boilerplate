@@ -8,6 +8,7 @@ import type { Cart } from "@/model/cart/cart";
 import { useCartStore } from "@/stores/cart-store";
 
 import { CartContents } from "../contents/contents";
+import { useHasPendingRemoval } from "../removal-notice/removal-notice";
 
 /** `CartPanel` の props。 */
 export type CartPanelProps = {
@@ -28,6 +29,9 @@ export type CartPanelProps = {
  *
  * 出し分けを CSS で行うのは、本文の幅がカートの有無で変わるためです（hydration を待つと幅が動きます）。
  *
+ * **取り消しを抱えているあいだは、空でも枠を残します。** 最後の 1 件を取り除いた直後に枠ごと消すと、
+ * 戻す手段が同時に消えます。
+ *
  * **開いているかどうかは幅によらず store の要求に従います。** 脇に常設できる幅でも、この領域は本文から
  * 280px 前後を持っていきます。閉じられないと、一度カートへ入れた利用者は一覧を狭いまま読み続けることに
  * なります。閉じた後は header の入口から開き直せます。
@@ -36,8 +40,9 @@ export function CartPanel({ cart }: CartPanelProps) {
   const isOpen = useCartStore((state) => state.isOpen);
   const setOpen = useCartStore((state) => state.setOpen);
   const close = useCallback(() => setOpen(false), [setOpen]);
+  const hasPendingRemoval = useHasPendingRemoval(cart.lines.map((line) => line.productId));
 
-  if (cart.lines.length === 0 || !isOpen) {
+  if ((cart.lines.length === 0 && !hasPendingRemoval) || !isOpen) {
     return null;
   }
 
