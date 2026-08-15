@@ -17,7 +17,11 @@ const meta = {
       },
     },
   },
-  args: { label: EARPHONE_LINE.name ?? "", productId: EARPHONE_LINE.productId },
+  args: {
+    label: EARPHONE_LINE.name ?? "",
+    productId: EARPHONE_LINE.productId,
+    quantity: EARPHONE_LINE.quantity,
+  },
 } satisfies Meta<typeof CartRemoveButton>;
 
 export default meta;

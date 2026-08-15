@@ -67,7 +67,7 @@ export function CartLineRow({ line }: CartLineRowProps) {
           productId={line.productId}
           quantity={line.quantity}
         />
-        <CartRemoveButton label={label} productId={line.productId} />
+        <CartRemoveButton label={label} productId={line.productId} quantity={line.quantity} />
       </div>
     </li>
   );

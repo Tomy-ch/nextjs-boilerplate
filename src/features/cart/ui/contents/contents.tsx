@@ -9,6 +9,7 @@ import { isPurchasable } from "../../issue-notice";
 import { CART_PATH, CHECKOUT_PATH } from "../../paths";
 import { CartClearButton } from "../clear-button/clear-button";
 import { CartLineRow } from "../line-row/line-row";
+import { CartRemovalNotice, CartRemovalNoticeProvider } from "../removal-notice/removal-notice";
 
 /** `CartContents` の props。 */
 export type CartContentsProps = {
@@ -27,7 +28,8 @@ export type CartContentsProps = {
  * 足し直しません（[0070](../../../../../docs/adr/0070-backend-role-separation.md)）。
  *
  * 小計と先へ進む導線は送りの外に置き、明細だけを局所スクロールさせます。高さを超えた明細を
- * 外側のスクロールに委ねると、器が固定されている場合に届かない行が出ます。
+ * 外側のスクロールに委ねると、器が固定されている場合に届かない行が出ます。**この器では小計が
+ * 常に見えているため、全画面の側にある引き出しは要りません。**
  *
  * 導線は 2 本あり、主が購入手続き、副がカートページです（それぞれの理由は
  * [cart の README](../../README.md)）。
@@ -38,36 +40,40 @@ export function CartContents({ cart }: CartContentsProps) {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <p className="flex items-baseline justify-between gap-2">
-        <span className="text-muted-foreground text-sm">小計</span>
-        <strong className="text-lg">{formatMoney(cart.subtotalAmount)}</strong>
-      </p>
+    <CartRemovalNoticeProvider>
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <p className="flex items-baseline justify-between gap-2">
+          <span className="text-muted-foreground text-sm">小計</span>
+          <strong className="text-lg">{formatMoney(cart.subtotalAmount)}</strong>
+        </p>
 
-      <div className="grid gap-2">
-        {cart.lines.some(isPurchasable) ? (
-          <Button asChild className="w-full" size="sm">
-            <Link href={CHECKOUT_PATH}>購入手続きへ</Link>
+        <div className="grid gap-2">
+          {cart.lines.some(isPurchasable) ? (
+            <Button asChild className="w-full" size="sm">
+              <Link href={CHECKOUT_PATH}>購入手続きへ</Link>
+            </Button>
+          ) : (
+            <Button className="w-full" disabled size="sm" type="button">
+              購入手続きへ
+            </Button>
+          )}
+          <Button asChild className="w-full" size="sm" variant="outline">
+            <Link href={CART_PATH}>カートを見る</Link>
           </Button>
-        ) : (
-          <Button className="w-full" disabled size="sm" type="button">
-            購入手続きへ
-          </Button>
-        )}
-        <Button asChild className="w-full" size="sm" variant="outline">
-          <Link href={CART_PATH}>カートを見る</Link>
-        </Button>
+        </div>
+
+        <CartRemovalNotice presentProductIds={cart.lines.map((line) => line.productId)} />
+
+        <ScrollArea aria-label="カートの明細" className="min-h-0 flex-1">
+          <ul className="flex flex-col divide-y">
+            {cart.lines.map((line) => (
+              <CartLineRow key={line.productId} line={line} />
+            ))}
+          </ul>
+        </ScrollArea>
+
+        <CartClearButton />
       </div>
-
-      <ScrollArea aria-label="カートの明細" className="min-h-0 flex-1">
-        <ul className="flex flex-col divide-y">
-          {cart.lines.map((line) => (
-            <CartLineRow key={line.productId} line={line} />
-          ))}
-        </ul>
-      </ScrollArea>
-
-      <CartClearButton />
-    </div>
+    </CartRemovalNoticeProvider>
   );
 }

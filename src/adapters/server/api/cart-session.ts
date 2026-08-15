@@ -17,10 +17,16 @@ export const CART_SESSION_COOKIE_NAME = "cart_session";
 /**
  * ゲストのカートを指す識別子を取り出す。
  *
+ * @remarks
+ * 空の値は持っていないものとして扱います。cookie は残っているが中身が空という状態は起こりえて、
+ * そのまま送るとバックエンドが形の違反として拒み、カートの取得ごと失敗します。
+ *
  * @returns まだ発行されていなければ null
  */
 export async function readCartSession(): Promise<string | null> {
-  return (await cookies()).get(CART_SESSION_COOKIE_NAME)?.value ?? null;
+  const value = (await cookies()).get(CART_SESSION_COOKIE_NAME)?.value;
+
+  return value === undefined || value === "" ? null : value;
 }
 
 /**

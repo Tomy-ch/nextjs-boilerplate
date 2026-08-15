@@ -2,12 +2,12 @@ import Link from "next/link";
 
 import { Button } from "@/components/design-system/action/button/button";
 import type { Cart } from "@/model/cart/cart";
-import { formatMoney } from "@/model/money";
 
-import { isPurchasable } from "./issue-notice";
-import { CHECKOUT_PATH } from "./paths";
 import { CartClearButton } from "./ui/clear-button/clear-button";
 import { CartLineRow } from "./ui/line-row/line-row";
+import { CartRemovalNotice, CartRemovalNoticeProvider } from "./ui/removal-notice/removal-notice";
+import { CartSummaryCard } from "./ui/summary-card/summary-card";
+import { CartSummaryDock } from "./ui/summary-dock/summary-dock";
 
 /** `CartView` の props。 */
 export type CartViewProps = {
@@ -23,14 +23,13 @@ const PRODUCTS_PATH = "/products";
  *
  * @remarks
  * 明細と集計を左右に分け、広い幅では集計を貼り付けます。明細が伸びても小計と先へ進む導線が
- * 画面の中に残るためで、狭い幅では縦に積みます（帯の定義は
- * [0051](../../../docs/adr/0051-styling-system.md) §2）。
+ * 画面の中に残るためで、脇に置けない幅では画面の下から出す引き出しが同じ役割を持ちます
+ * （帯の定義は [0051](../../../docs/adr/0051-styling-system.md) §2）。
  *
- * 小計はバックエンドが返した値をそのまま出します。買える明細だけを合算した参考値であり、
- * 買えない明細を含む合計はどこにもありません。
+ * 同じ集計を 2 か所に置いていますが、**出るのはどちらか一方だけ**です。器の出し分けは CSS で行い、
+ * 中身は `CartSummaryCard` に 1 つだけ持ちます。
  *
- * **買える明細が 1 つも無い状態では購入手続きへ進ませません。** 進んだ先で「買えるものがない」と
- * 伝えるより、進めない理由をこの画面で見せるほうが、利用者が次に取る行動に近い場所にあります。
+ * 明細の下端には引き出しのぶんの余白を空けます。空けないと、最後の行の操作が引き出しに隠れます。
  */
 export function CartView({ cart }: CartViewProps) {
   if (cart.lines.length === 0) {
@@ -44,47 +43,34 @@ export function CartView({ cart }: CartViewProps) {
     );
   }
 
-  const purchasableCount = cart.lines.filter(isPurchasable).length;
+  const presentProductIds = cart.lines.map((line) => line.productId);
 
   return (
-    <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-      <section aria-label="カートの明細" className="min-w-0 flex-1">
-        <ul className="flex flex-col divide-y border-y">
-          {cart.lines.map((line) => (
-            <CartLineRow key={line.productId} line={line} />
-          ))}
-        </ul>
-        <div className="flex justify-end pt-4">
-          <CartClearButton />
-        </div>
-      </section>
+    <CartRemovalNoticeProvider>
+      <div className="flex flex-col gap-8 pb-24 lg:flex-row lg:items-start lg:pb-0">
+        <section aria-label="カートの明細" className="flex min-w-0 flex-1 flex-col gap-4">
+          <CartRemovalNotice presentProductIds={presentProductIds} />
+          <ul className="flex flex-col divide-y border-y">
+            {cart.lines.map((line) => (
+              <CartLineRow key={line.productId} line={line} />
+            ))}
+          </ul>
+          <div className="flex justify-end">
+            <CartClearButton />
+          </div>
+        </section>
 
-      <aside
-        aria-label="お支払い金額"
-        className="flex w-full flex-col gap-4 rounded-lg border p-4 lg:sticky lg:top-20 lg:w-80"
-      >
-        <p className="flex items-baseline justify-between gap-2">
-          <span className="text-muted-foreground text-sm">小計</span>
-          <strong className="text-2xl">{formatMoney(cart.subtotalAmount)}</strong>
-        </p>
-        <p className="text-muted-foreground text-xs">
-          買える明細だけを合算した金額です。送料や税は購入手続きで確定します。
-        </p>
-        {purchasableCount === 0 ? (
-          <>
-            <p className="text-destructive text-sm">
-              今すぐ買える商品がありません。買えない明細を取り除くか、数量を減らしてください。
-            </p>
-            <Button className="w-full" disabled type="button">
-              購入手続きへ
-            </Button>
-          </>
-        ) : (
-          <Button asChild className="w-full">
-            <Link href={CHECKOUT_PATH}>購入手続きへ</Link>
-          </Button>
-        )}
-      </aside>
-    </div>
+        <aside
+          aria-label="お支払い金額"
+          className="hidden w-full rounded-lg border p-4 lg:sticky lg:top-20 lg:block lg:w-80"
+        >
+          <CartSummaryCard cart={cart} />
+        </aside>
+      </div>
+
+      <CartSummaryDock>
+        <CartSummaryCard cart={cart} />
+      </CartSummaryDock>
+    </CartRemovalNoticeProvider>
   );
 }
