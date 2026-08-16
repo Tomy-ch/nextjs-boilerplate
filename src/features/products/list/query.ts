@@ -1,3 +1,5 @@
+import type { ProductListSelection } from "../facade/list-url/list-url";
+
 /** page が受け取る素の `searchParams`。 */
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 
@@ -17,24 +19,33 @@ export type FilterOption = {
 };
 
 /**
- * 素の `searchParams` を、1 つのキーに 1 つの文字列へ均す。
+ * 素の `searchParams` を、条件として読める形へ均す。
  *
  * @remarks
- * 同じキーが複数回現れたときは先頭だけを採ります。どれを採るかを決めておかないと、リンクの
- * 組み方次第で同じ URL が違う結果になります。
+ * 同じキーが複数回現れたら、並びのまま残します。複数選べる条件はその形で URL に載っており、
+ * 先頭だけを採ると選んだうちの 1 つしか効きません。
  *
  * 前後の空白を落とし、残りが空なら未指定として扱います。入力欄を空にして送った form は
  * `?keyword=` を URL に残すため、これを不正な入力と扱うと、消しただけで検索できなくなります。
  */
-export function normalizeSearchParams(params: RawSearchParams): Readonly<Record<string, string>> {
-  const normalized: Record<string, string> = {};
+export function normalizeSearchParams(params: RawSearchParams): ProductListSelection {
+  const normalized: Record<string, string | readonly string[]> = {};
 
   for (const [key, value] of Object.entries(params)) {
-    const found = Array.isArray(value) ? value[0] : value;
-    const trimmed = found?.trim();
+    const values: string[] = [];
 
-    if (trimmed !== undefined && trimmed !== "") {
-      normalized[key] = trimmed;
+    for (const found of Array.isArray(value) ? value : [value]) {
+      const trimmed = found?.trim();
+
+      if (trimmed !== undefined && trimmed !== "") {
+        values.push(trimmed);
+      }
+    }
+
+    const [single] = values;
+
+    if (single !== undefined) {
+      normalized[key] = values.length === 1 ? single : values;
     }
   }
 

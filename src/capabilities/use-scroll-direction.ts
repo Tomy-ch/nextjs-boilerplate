@@ -74,9 +74,6 @@ function serverSnapshot(): ScrollDirection {
  *
  * 購読は全体で 1 つに畳みます。向きは画面に 1 つしかない値で、購読する部品の数だけ listener を
  * 張ると、スクロールのたびに同じ計算がその数だけ走ります。
- *
- * 2 箇所目の利用者が出た時点で `capabilities` へ上げます
- * （[0021](../../../docs/adr/0021-frontend-responsibility.md) の昇格ルール）。
  */
 export function useScrollDirection(): ScrollDirection {
   return useSyncExternalStore(subscribe, snapshot, serverSnapshot);

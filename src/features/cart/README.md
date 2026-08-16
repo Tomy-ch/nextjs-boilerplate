@@ -35,7 +35,6 @@ test-requirement: feature
 | `parse-cart-form.ts` | 送信された内容から商品と数量を取り出す |
 | `removal-memory.tsx` | 取り除いた明細と、画面が見せていた並びの記憶 |
 | `use-dock-visibility.ts` | 画面の下から出す器を、出すかどうかの判断 |
-| `use-scroll-direction.ts` | 直近のスクロールの向き。集計の引き出しが出るかを決める |
 | `paths.ts` | この feature が指す行き先（カート・購入手続き） |
 | `facade/add-to-cart/` | 商品をカートへ入れる操作。**他の feature が使う口** |
 | `ui/contents/` | カートの中身（小計・導線・明細）。器を持たず、置き場所は呼び出し元が決める |

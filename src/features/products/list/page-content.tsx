@@ -1,23 +1,20 @@
+import { Suspense } from "react";
+
 import { getProductCategories } from "@/adapters/server/api/product-masters";
-import {
-  getProductListPage,
-  getProductTotalCount,
-  PRODUCT_SORT,
-  parseProductQuery,
-} from "@/adapters/server/api/products";
+import { PRODUCT_SORT, parseProductQuery } from "@/adapters/server/api/products";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { ProductRef } from "@/model/product/product";
-import { COUNT_KEY, FILTER_KEY, toConditions } from "../facade/list-url/list-url";
+import { COUNT_KEY, FILTER_KEY, toProductListSearchParams } from "../facade/list-url/list-url";
 import {
   type FilterOption,
   normalizeSearchParams,
   PRODUCT_PAGE_SIZE,
   type RawSearchParams,
 } from "./query";
-import type { FilterGroup } from "./ui/filter-fields/filter-fields";
-import { ProductInfiniteList } from "./ui/infinite-list/infinite-list";
+import { ProductListResults } from "./results";
 import { ProductInvalidQuery } from "./ui/invalid-query/invalid-query";
+import { ProductListSkeleton } from "./ui/skeleton/skeleton";
 import { ProductListView } from "./view";
 
 /** `ProductListPageContent` の props。 */
@@ -32,23 +29,22 @@ const SORT_OPTIONS: readonly FilterOption[] = [
   { value: PRODUCT_SORT.OLDEST, label: "古い順" },
 ];
 
-/** マスタを「すべて」付きの選択肢へ直す。 */
+/** マスタを選択肢へ直す。 */
 function toOptions(refs: readonly ProductRef[]): readonly FilterOption[] {
-  return [
-    { value: "", label: "すべて" },
-    ...refs.map(({ id, name }) => ({ value: id, label: name })),
-  ];
+  return refs.map(({ id, name }) => ({ value: id, label: name }));
 }
 
 /**
- * 商品一覧の中身。取得と組み立てを行う。
+ * 商品一覧の枠。取得条件の解釈と、画面の組み立てを行う。
  *
  * @remarks
- * 取得を page ではなくここで行うのは、待機表示の境界を実際にデータを待つ部分の近くへ置く
- * ためです（[0080](../../../../docs/adr/0080-error-handling.md)）。page 全体を 1 つの待機表示で
- * 覆うと、検索欄まで一緒に消えて操作できなくなります。
+ * **条件によって変わらないものだけを取得します。** 分類の一覧は絞り込みの入力欄そのもので、
+ * 検索条件では変わりません。ここで一覧まで取ると、条件が変わるたびに入力欄まで待機表示へ落ち、
+ * 続けて絞り込む操作の足場が消えます。条件で変わるものは
+ * {@link ProductListResults} が持ち、待機表示の境界もそこに掛かります。
  *
- * 一覧とマスタを並行して取得します。直列にすると、分類の一覧が返るまで商品の取得が始まりません。
+ * 待機表示の境界に条件を鍵として与えるのは、条件が変われば一覧が総入れ替えになるためです。
+ * 鍵を与えないと、次の一覧が届くまで前の条件の一覧が残ります。
  */
 export async function ProductListPageContent({ searchParams }: ProductListPageContentProps) {
   const selection = normalizeSearchParams(searchParams);
@@ -66,15 +62,7 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
     );
   }
 
-  const [page, total, categories] = await Promise.all([
-    getProductListPage(parsed.query),
-    getProductTotalCount(),
-    getProductCategories(),
-  ]);
-
-  const groups: readonly FilterGroup[] = [
-    { key: FILTER_KEY.CATEGORY, legend: "カテゴリ", options: toOptions(categories) },
-  ];
+  const categories = toOptions(await getProductCategories());
   // 既定の並びは URL に載せないため、明示された既定値は選択肢側の「指定なし」へ寄せる。
   const displayed =
     selection[FILTER_KEY.SORT] === PRODUCT_SORT.NEWEST
@@ -82,16 +70,13 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
       : selection;
 
   return (
-    <ProductListView groups={groups} selection={displayed} sortOptions={SORT_OPTIONS}>
-      <ProductInfiniteList
-        initial={page}
-        // 取り直した結果で積み上げを捨てるための鍵。読み進めた分は island の state にあり、
-        // props が変わっても入れ替わらない。中身から鍵を作れば、変わったときだけ積み直り、
-        // 変わっていなければ読み進めた位置が保たれる。
-        key={JSON.stringify(page.items)}
-        query={toConditions(selection)}
-        total={total}
-      />
+    <ProductListView categories={categories} selection={displayed} sortOptions={SORT_OPTIONS}>
+      <Suspense
+        fallback={<ProductListSkeleton />}
+        key={toProductListSearchParams(selection).toString()}
+      >
+        <ProductListResults query={parsed.query} selection={selection} />
+      </Suspense>
     </ProductListView>
   );
 }

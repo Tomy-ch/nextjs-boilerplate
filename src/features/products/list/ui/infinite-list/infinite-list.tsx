@@ -3,6 +3,8 @@
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
 
+import type { ProductListSelection } from "../../../facade/list-url/list-url";
+
 import { useInfiniteProducts } from "../../use-infinite-products";
 import { ProductLoadMoreList } from "../load-more-list/load-more-list";
 
@@ -11,7 +13,7 @@ export type ProductInfiniteListProps = {
   /** Server Component が取得した最初のページ。 */
   initial: CursorPage<ProductListItem>;
   /** いま効いている検索条件。続きの取得へそのまま渡す。 */
-  query: Readonly<Record<string, string>>;
+  query: ProductListSelection;
   /** 条件に一致する総数。分からなければ省く。 */
   total?: number;
 };

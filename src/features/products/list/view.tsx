@@ -9,22 +9,26 @@ import {
   FilterBarControls,
   FilterChip,
 } from "@/components/patterns/filter-bar/filter-bar";
-import { FILTER_KEY, PRODUCT_LIST_PATH, toConditions } from "../facade/list-url/list-url";
+import {
+  FILTER_KEY,
+  PRODUCT_LIST_PATH,
+  type ProductListSelection,
+  toConditions,
+} from "../facade/list-url/list-url";
 import { toActiveFilters } from "./active-filters";
 import type { FilterOption } from "./query";
-import type { FilterGroup } from "./ui/filter-fields/filter-fields";
 import { ProductFilterSheet } from "./ui/filter-sheet/filter-sheet";
 import { ProductFilterSidebar } from "./ui/filter-sidebar/filter-sidebar";
 import { ProductSortSelect } from "./ui/sort-select/sort-select";
 
 /** `ProductListView` の props。 */
 export type ProductListViewProps = {
-  /** 絞り込みの群。 */
-  groups: readonly FilterGroup[];
+  /** 選べる分類。 */
+  categories: readonly FilterOption[];
   /** 並び替えの選択肢。 */
   sortOptions: readonly FilterOption[];
   /** いま効いている条件。 */
-  selection: Readonly<Record<string, string>>;
+  selection: ProductListSelection;
   /** 一覧本体。取得の仕方で差し替えられるよう外から受け取る。 */
   children: ReactNode;
 };
@@ -36,11 +40,19 @@ export type ProductListViewProps = {
  * GET の form は送信時に URL の query をすべて捨てるため、絞り込みと並び替えを hidden で
  * 復元します。キーワードは入力欄そのものが持つので除きます。読み進めた位置は
  * {@link toConditions} が落とします。検索し直した後の「続き」は前の条件の続きだからです。
+ *
  */
-function toCarriedParams(selection: Readonly<Record<string, string>>) {
+function toCarriedParams(selection: ProductListSelection): ProductListSelection {
   const { [FILTER_KEY.KEYWORD]: _keyword, ...carried } = toConditions(selection);
 
   return carried;
+}
+
+/** 入力欄に戻すキーワード。複数回現れた場合は条件として読めないため、空として扱う。 */
+function toKeyword(selection: ProductListSelection): string {
+  const keyword = selection[FILTER_KEY.KEYWORD];
+
+  return typeof keyword === "string" ? keyword : "";
 }
 
 /**
@@ -48,7 +60,8 @@ function toCarriedParams(selection: Readonly<Record<string, string>>) {
  *
  * @remarks
  * 取得を持ちません。一覧本体を受け取る形にしてあるのは、画面の組み方の確認に取得を必要と
- * しないようにするためです。
+ * しないようにするためです。**同時に、条件が変わったときに取り直す範囲をここで区切っています。**
+ * 検索欄・条件の chip・絞り込みの入力欄はこの外側にあり、一覧が取り直されても待機表示に落ちません。
  *
  * 検索・並び替え・効いている条件を `FilterBar` にまとめます。landmark になるため、支援技術から
  * 絞り込みへ直接移動できます。効いている条件を chip で出すのは、脇の領域を持てない幅では入力欄が
@@ -68,15 +81,15 @@ function toCarriedParams(selection: Readonly<Record<string, string>>) {
  * 脇に領域を持てない幅で操作を下端へ固定する判断も、その ADR が持ちます。
  *
  * 並び替えを絞り込みの側へ入れず、幅によらず同じ場所へ置きます。単一選択なので選ぶことが確定と
- * 同じであり、まとめて確定する overlay の中に入れると確定の操作が 2 段になります。
+ * 同じであり、まとめて確定する絞り込みの中に入れると確定の操作が 2 段になります。
  */
 export function ProductListView({
-  groups,
+  categories,
   sortOptions,
   selection,
   children,
 }: ProductListViewProps) {
-  const activeFilters = toActiveFilters(groups, selection);
+  const activeFilters = toActiveFilters(categories, selection);
 
   return (
     <div className="space-y-6">
@@ -85,7 +98,7 @@ export function ProductListView({
           <SearchFieldNative
             action={PRODUCT_LIST_PATH}
             className="max-w-xs flex-1"
-            defaultValue={selection[FILTER_KEY.KEYWORD] ?? ""}
+            defaultValue={toKeyword(selection)}
             hiddenParams={toCarriedParams(selection)}
             label="商品名で探す"
             name={FILTER_KEY.KEYWORD}
@@ -114,12 +127,12 @@ export function ProductListView({
       </FilterBar>
       <div className="flex gap-8">
         <aside aria-label="絞り込み条件" className="hidden w-64 shrink-0 lg:block">
-          <ProductFilterSidebar groups={groups} selection={selection} />
+          <ProductFilterSidebar categories={categories} selection={selection} />
         </aside>
         <div className="min-w-0 flex-1">{children}</div>
       </div>
       <div className="lg:hidden">
-        <ProductFilterSheet groups={groups} selection={selection} />
+        <ProductFilterSheet categories={categories} selection={selection} />
       </div>
     </div>
   );

@@ -23,16 +23,44 @@ export const FILTER_KEY: Readonly<{
   CATEGORY: "categoryId";
   STATUS: "statusId";
   KEYWORD: "keyword";
+  MIN_PRICE: "minPrice";
+  MAX_PRICE: "maxPrice";
+  MIN_QUANTITY: "minQuantity";
+  MAX_QUANTITY: "maxQuantity";
   SORT: "sort";
 }> = {
   CATEGORY: "categoryId",
   STATUS: "statusId",
   KEYWORD: "keyword",
+  MIN_PRICE: "minPrice",
+  MAX_PRICE: "maxPrice",
+  MIN_QUANTITY: "minQuantity",
+  MAX_QUANTITY: "maxQuantity",
   SORT: "sort",
 };
 
-/** URL に載せる検索条件。値が空文字のキーは「指定なし」を表す。 */
-export type ProductListSelection = Readonly<Record<string, string>>;
+/**
+ * URL に載せる検索条件。
+ *
+ * @remarks
+ * 値が空文字と空の並びは、どちらも「指定なし」を表します。操作の側が値を差し替えるだけで
+ * 済むよう、キーを消す分岐を持たせていません。
+ *
+ * 複数選べる条件は並びで持ちます。区切り文字で連結すると、区切り文字を含む値が現れた時点で
+ * 分解できなくなり、契約が受け取る形（同じキーの繰り返し）とも食い違います。
+ */
+export type ProductListSelection = Readonly<Record<string, string | readonly string[]>>;
+
+/** 条件 1 つを、値の有無によらず並びとして読む。 */
+export function toSelectedValues(selection: ProductListSelection, key: string): readonly string[] {
+  const value = selection[key];
+
+  if (value === undefined) {
+    return [];
+  }
+
+  return typeof value === "string" ? (value === "" ? [] : [value]) : value;
+}
 
 /**
  * 読み進めた位置を落として、条件だけを取り出す。
@@ -55,17 +83,35 @@ export function toConditions(selection: ProductListSelection): ProductListSelect
  * 側の役目で、こちらは条件が変わる場面だけを扱います。
  *
  * キーを並べ替えてから組み立てます。同じ条件が選択の順序で違う URL になると、共有されたリンクも
- * ブラウザの履歴も同じ画面を別物として扱います。
+ * ブラウザの履歴も同じ画面を別物として扱います。複数選べる条件は値どうしも並べ替えます。選んだ
+ * 順序は条件の一部ではないため、順序だけが違う URL は同じ画面を指しています。
  */
 export function toProductListHref(selection: ProductListSelection): string {
-  const params = new URLSearchParams();
-  const entries = Object.entries(selection)
-    .filter(([key, value]) => !POSITION_KEYS.includes(key) && value !== "")
-    .sort(([left], [right]) => left.localeCompare(right));
-
-  for (const [key, value] of entries) {
-    params.set(key, value);
-  }
+  const params = toProductListSearchParams(selection);
 
   return params.size === 0 ? PRODUCT_LIST_PATH : `${PRODUCT_LIST_PATH}?${params.toString()}`;
+}
+
+/**
+ * 検索条件をクエリ文字列へ組む。
+ *
+ * @remarks
+ * 並べ替えの規則は {@link toProductListHref} と同じものです。取得の口へ渡す条件と、画面が指す
+ * URL とで並べ方が違うと、同じ条件が別の文字列になり、取得結果を URL で見分けられなくなります。
+ */
+export function toProductListSearchParams(selection: ProductListSelection): URLSearchParams {
+  const params = new URLSearchParams();
+  const keys = Object.keys(selection)
+    .filter((key) => !POSITION_KEYS.includes(key))
+    .sort((left, right) => left.localeCompare(right));
+
+  for (const key of keys) {
+    for (const value of [...toSelectedValues(selection, key)].sort((left, right) =>
+      left.localeCompare(right),
+    )) {
+      params.append(key, value);
+    }
+  }
+
+  return params;
 }

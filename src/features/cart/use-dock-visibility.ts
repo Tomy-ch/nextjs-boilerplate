@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-import { useScrollDirection } from "./use-scroll-direction";
+import { useScrollDirection } from "@/capabilities/use-scroll-direction";
 
 /** 引き出しを出すかどうかと、その切り替え。 */
 export type DockVisibility = {

@@ -23,8 +23,10 @@ export const metadata: Metadata = {
  * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
  * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
  *
- * `Suspense` を検索欄より内側ではなく中身の全体に掛けているのは、条件が変われば一覧が
- * 総入れ替えになるためです。見出しと枠は待たずに出ます。
+ * `Suspense` に鍵を与えません。条件が変わったときに取り直す範囲は
+ * [`page-content.tsx`](../../../features/products/list/page-content.tsx) の内側で区切られており、
+ * ここで鍵を与えると絞り込みの入力欄まで待機表示へ落ちます。この境界が受け持つのは初回の
+ * 組み立てだけです。
  */
 export default async function ProductsPage({
   searchParams,
@@ -41,7 +43,7 @@ export default async function ProductsPage({
           <PageHeaderDescription>取り扱っている商品を検索できます。</PageHeaderDescription>
         </div>
       </PageHeader>
-      <Suspense key={JSON.stringify(params)} fallback={<ProductListSkeleton />}>
+      <Suspense fallback={<ProductListSkeleton />}>
         <ProductListPageContent searchParams={params} />
       </Suspense>
     </ContentContainer>
