@@ -1,13 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 
-const { signOut, clearCartSession } = vi.hoisted(() => ({
-  signOut: vi.fn(),
-  clearCartSession: vi.fn(),
-}));
+const { signOut } = vi.hoisted(() => ({ signOut: vi.fn() }));
+const { clearCartSession } = vi.hoisted(() => ({ clearCartSession: vi.fn() })); // sample:line
 
 vi.mock("@/adapters/server/auth/session", () => ({ signOut }));
-vi.mock("@/adapters/server/api/cart-session", () => ({ clearCartSession }));
+vi.mock("@/adapters/server/api/cart-session", () => ({ clearCartSession })); // sample:line
 
 function logout(): Request {
   return new Request("http://localhost:3000/api/auth/logout", { method: "POST" });
@@ -16,7 +14,7 @@ function logout(): Request {
 beforeEach(() => {
   vi.clearAllMocks();
   signOut.mockResolvedValue(undefined);
-  clearCartSession.mockResolvedValue(undefined);
+  clearCartSession.mockResolvedValue(undefined); // sample:line
 });
 
 describe("POST", () => {
@@ -27,11 +25,13 @@ describe("POST", () => {
     expect(signOut).toHaveBeenCalled();
   });
 
+  // sample:begin
   it("ゲストのカートの識別子も破棄する", async () => {
     await POST(logout());
 
     expect(clearCartSession).toHaveBeenCalledOnce();
   });
+  // sample:end
 
   it("トップへ戻す", async () => {
     const response = await POST(logout());
