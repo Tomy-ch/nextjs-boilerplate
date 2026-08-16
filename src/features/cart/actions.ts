@@ -2,12 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import {
-  clearMyCart,
-  getMyCart,
-  removeMyCartItem,
-  setMyCartItem,
-} from "@/adapters/server/api/cart";
+import { clearMyCart, removeMyCartItem, setMyCartItem } from "@/adapters/server/api/cart";
 import {
   type ActionState,
   actionStateFromError,
@@ -62,39 +57,6 @@ export async function setCartItemQuantityAction(
 
   try {
     await setMyCartItem(productId, quantity);
-  } catch (error) {
-    return actionStateFromError(error);
-  }
-
-  revalidateCart();
-
-  return succeededActionState(undefined);
-}
-
-/**
- * 商品をカートへ 1 つ入れる。
- *
- * @remarks
- * 既に入っている商品は行を増やさず数量を上げます。契約の設定（PUT）は絶対値を取るため、
- * 現在の数量を読んでから 1 を足した値を送ります。**読んでから送るまでの間に別の窓が同じ
- * 商品を操作した場合、後から届いた側の数量になります。** カートは購入の控えであり、最終的な
- * 数量は利用者がカートの画面で確かめられます。
- */
-export async function addToCartAction(
-  _previous: CartActionState,
-  formData: FormData,
-): Promise<CartActionState> {
-  const productId = readProductId(formData);
-
-  if (productId === null) {
-    return failedActionState({ formError: MALFORMED_MESSAGE });
-  }
-
-  try {
-    const { lines } = await getMyCart();
-    const inCart = lines.find((line) => line.productId === productId)?.quantity ?? 0;
-
-    await setMyCartItem(productId, inCart + 1);
   } catch (error) {
     return actionStateFromError(error);
   }
