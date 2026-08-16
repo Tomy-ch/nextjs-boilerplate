@@ -47,8 +47,14 @@ type RequestSpec<T> = RequestPayload & {
   path: string;
   /** HTTP メソッド。既定は GET。 */
   method?: string;
-  /** クエリ文字列。 */
-  searchParams?: Record<string, string | undefined>;
+  /**
+   * クエリ文字列。
+   *
+   * @remarks
+   * 配列を渡すと同じキーを繰り返して並べます。1 つの条件に複数の値を許す契約は、値を区切り
+   * 文字で連結した 1 つの値ではなく繰り返しで受け取るためです。空配列は未指定として扱います。
+   */
+  searchParams?: Record<string, string | readonly string[] | undefined>;
   /**
    * この呼び出しに固有のヘッダ。
    *
@@ -155,8 +161,12 @@ function buildUrl(
   const url = new URL(path, baseUrl);
 
   for (const [key, value] of Object.entries(searchParams ?? {})) {
-    if (value !== undefined) {
-      url.searchParams.set(key, value);
+    if (value === undefined) {
+      continue;
+    }
+
+    for (const single of typeof value === "string" ? [value] : value) {
+      url.searchParams.append(key, single);
     }
   }
 

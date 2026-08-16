@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import type { z } from "zod";
+import { z } from "zod";
 
 import { getApiConfig } from "@/config/api/api.server";
 import type { CursorPage } from "@/model/pagination";
@@ -13,6 +13,7 @@ import type {
 } from "@/model/product/product";
 
 import {
+  GetProductsCountResponse,
   GetProductsDetailResponse,
   GetProductsQueryParams,
   type GetProductsRankingQueryParams,
@@ -42,18 +43,68 @@ export const PRODUCT_SORT = {
 /** 一覧の並び順として指定できる値。 */
 type ProductSort = (typeof PRODUCT_SORT)[keyof typeof PRODUCT_SORT];
 
+/**
+ * 分類を複数受け取れるようにした取得条件のスキーマ。
+ *
+ * @remarks
+ * 制約は生成スキーマの宣言をそのまま持ち出しています。書き写すと、契約が形式を変えたときに
+ * ここだけ古い制約で通してしまいます。
+ */
+// TODO: 契約の categoryId が複数受けになったら、この上書きを外して生成スキーマを直接使う。
+const ProductQueryParams = GetProductsQueryParams.extend({
+  categoryId: z
+    .union([
+      GetProductsQueryParams.shape.categoryId.unwrap(),
+      z.array(GetProductsQueryParams.shape.categoryId.unwrap()),
+    ])
+    .transform((value) => (Array.isArray(value) ? value : [value]))
+    .optional(),
+});
+
 /** 商品一覧の取得条件。契約のクエリと 1 対 1 に対応する。 */
 export type ProductQuery = {
   after?: string;
   first?: number;
-  categoryId?: string;
+  categoryId?: readonly string[];
   statusId?: string;
   keyword?: string;
+  /** 最低価格。契約が decimal 文字列で受けるため、数値へ直さず持ち回る。 */
+  minPrice?: string;
+  /** 最高価格。 */
+  maxPrice?: string;
+  /** 最低在庫数。 */
+  minQuantity?: number;
+  /** 最高在庫数。 */
+  maxQuantity?: number;
   sort?: ProductSort;
 };
 
-/** URL 由来の検索条件。1 つのキーに 1 つの文字列へ正規化済みであることを前提とする。 */
-export type RawProductQuery = Readonly<Record<string, string>>;
+/**
+ * URL 由来の検索条件。
+ *
+ * @remarks
+ * 1 つのキーに複数の値が並ぶことを許します。分類のように複数選べる条件は、区切り文字で連結
+ * した 1 つの値ではなく同じキーの繰り返しで表すためです。
+ */
+export type RawProductQuery = Readonly<Record<string, string | readonly string[]>>;
+
+/**
+ * 契約が整数で宣言しているキー。
+ *
+ * @remarks
+ * URL の値は常に文字列なので、そのまま渡すと整数の宣言に当たって落ちます。
+ */
+const INTEGER_KEYS: readonly string[] = ["first", "minQuantity", "maxQuantity"];
+
+/** 整数で宣言されたキーだけを数値へ直す。 */
+function toTypedQuery(raw: RawProductQuery): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(raw).map(([key, value]) => [
+      key,
+      INTEGER_KEYS.includes(key) && typeof value === "string" ? Number(value) : value,
+    ]),
+  );
+}
 
 /** URL の検索条件を契約に照らした結果。 */
 export type ProductQueryParseResult =
@@ -76,11 +127,7 @@ export type ProductQueryParseResult =
  * 省略したときの結果が画面によって変わります。
  */
 export function parseProductQuery(raw: RawProductQuery): ProductQueryParseResult {
-  const parsed = GetProductsQueryParams.safeParse({
-    ...raw,
-    // URL の値は常に文字列だが、契約は件数を整数で宣言している。
-    ...(raw.first === undefined ? {} : { first: Number(raw.first) }),
-  });
+  const parsed = ProductQueryParams.safeParse(toTypedQuery(raw));
 
   if (!parsed.success) {
     return {
@@ -97,6 +144,27 @@ type WireProduct = WireProductPage["products"][number];
 
 /** 商品一覧のキャッシュタグ。ミューテーション後の再検証はこのタグを無効化する。 */
 export const PRODUCTS_TAG = "products";
+
+/**
+ * 一致する対象を決める条件だけを、クエリ文字列の形へ写す。
+ *
+ * @remarks
+ * 一覧と件数がどちらもこの一式を送ります。取り出す位置（`after` / `first`）と並び順は件数に
+ * 効かないため含めません。片方だけに条件を足すと、出ている件数と一覧の中身が食い違います。
+ */
+function toFilterParams(
+  query: ProductQuery,
+): Record<string, string | readonly string[] | undefined> {
+  return {
+    categoryId: query.categoryId,
+    statusId: query.statusId,
+    keyword: query.keyword,
+    minPrice: query.minPrice,
+    maxPrice: query.maxPrice,
+    minQuantity: query.minQuantity?.toString(),
+    maxQuantity: query.maxQuantity?.toString(),
+  };
+}
 
 let client: HttpClient | undefined;
 
@@ -148,11 +216,9 @@ export const getProducts = cache(async (query: ProductQuery = {}): Promise<Produ
   const page = await getClient().request({
     path: "/v1/products",
     searchParams: {
+      ...toFilterParams(query),
       after: query.after,
       first: query.first?.toString(),
-      categoryId: query.categoryId,
-      statusId: query.statusId,
-      keyword: query.keyword,
       sort: query.sort,
     },
     schema: GetProductsResponse,
@@ -198,22 +264,26 @@ export async function getProductListPage(
   return { items: page.items.map(toProductListItem), nextCursor: page.nextCursor };
 }
 
-/** 総数を返す取得口が生えるまでの暫定値。 */
-const PLACEHOLDER_TOTAL_COUNT = 10;
-
 /**
- * 総数として表示する値を返す。**いまは条件によらず固定値を返す。**
+ * 条件に一致する商品の総数を取得する。
  *
  * @remarks
  * cursor ページネーションは総数を持たないため、一覧の応答からは取り出せません
- * （[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。総数を返す取得口は別に要りますが、
- * まだ契約にありません。条件を受け取らないのはそのためで、絞り込んでも同じ値が返ります。
+ * （[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。総数はこの取得口だけが返します。
+ *
+ * 一覧と同じ条件を受け取ります。条件を渡さない口にすると、絞り込んだ後も絞り込む前の数が出て、
+ * 一覧に並んでいる件数と食い違います。
  */
-// TODO: 総数を返す API が契約に生えたら、取得条件を引数に受けて実際の取得へ差し替える
-// （呼び出し側は条件を持っているので渡すだけで済む）。
-export async function getProductTotalCount(): Promise<number> {
-  return PLACEHOLDER_TOTAL_COUNT;
-}
+export const getProductCount = cache(async (query: ProductQuery = {}): Promise<number> => {
+  const { count } = await getClient().request({
+    path: "/v1/products/count",
+    searchParams: toFilterParams(query),
+    schema: GetProductsCountResponse,
+    tags: [PRODUCTS_TAG],
+  });
+
+  return count;
+});
 
 type WireRankingQuery = z.infer<typeof GetProductsRankingQueryParams>;
 

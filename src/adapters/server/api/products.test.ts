@@ -23,10 +23,10 @@ vi.mock("@/config/environment", () => ({ getEnvironment }));
 
 import {
   getProduct,
+  getProductCount,
   getProductListPage,
   getProductRanking,
   getProducts,
-  getProductTotalCount,
   PRODUCTS_TAG,
   parseProductQuery,
   RANKING_PERIOD,
@@ -53,6 +53,7 @@ const wirePage = { products: [wireProduct], nextCursor: "next", hasNext: true };
 const PRODUCTS_URL = `${environment.APP_API_BASE_URL}/v1/products`;
 const PRODUCT_URL = `${PRODUCTS_URL}/:id`;
 const RANKING_URL = `${PRODUCTS_URL}/ranking`;
+const COUNT_URL = `${PRODUCTS_URL}/count`;
 
 /**
  * `fetch` の呼び出しを記録する。**応答は差し替えない。**
@@ -78,6 +79,10 @@ describe("parseProductQuery", () => {
       categoryId: wireProduct.category.id,
       statusId: wireProduct.status.id,
       keyword: "本",
+      minPrice: "10",
+      maxPrice: "50.5",
+      minQuantity: "1",
+      maxQuantity: "9",
       sort: "publishedAt",
     });
 
@@ -86,12 +91,33 @@ describe("parseProductQuery", () => {
       query: {
         after: "cursor-1",
         first: 20,
-        categoryId: wireProduct.category.id,
+        categoryId: [wireProduct.category.id],
         statusId: wireProduct.status.id,
         keyword: "本",
+        minPrice: "10",
+        maxPrice: "50.5",
+        minQuantity: 1,
+        maxQuantity: 9,
         sort: "publishedAt",
       },
     });
+  });
+
+  it("繰り返された分類をそのまま並びとして写す", () => {
+    const another = "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b14";
+
+    const result = parseProductQuery({ categoryId: [wireProduct.category.id, another] });
+
+    expect(result).toMatchObject({
+      ok: true,
+      query: { categoryId: [wireProduct.category.id, another] },
+    });
+  });
+
+  it("1 つだけの分類も並びへ揃える", () => {
+    const result = parseProductQuery({ categoryId: wireProduct.category.id });
+
+    expect(result).toMatchObject({ ok: true, query: { categoryId: [wireProduct.category.id] } });
   });
 
   it("文字列の件数を数値へ写す", () => {
@@ -135,6 +161,24 @@ describe("parseProductQuery", () => {
     const result = parseProductQuery({ categoryId: "zz" });
 
     expect(result).toEqual({ ok: false, invalidKeys: ["categoryId"] });
+  });
+
+  it("並びの中に契約を外れた分類が 1 つでもあれば写さない", () => {
+    const result = parseProductQuery({ categoryId: [wireProduct.category.id, "zz"] });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["categoryId"] });
+  });
+
+  it("十進の形を外れた価格を写さず、外れたキーを返す", () => {
+    const result = parseProductQuery({ minPrice: "やすい" });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["minPrice"] });
+  });
+
+  it("負の在庫数を写さず、外れたキーを返す", () => {
+    const result = parseProductQuery({ minQuantity: "-1" });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["minQuantity"] });
   });
 });
 
@@ -213,14 +257,29 @@ describe("getProducts", () => {
     await getProducts({
       after: "cursor-1",
       first: 20,
-      categoryId: wireProduct.category.id,
+      categoryId: [wireProduct.category.id],
       statusId: wireProduct.status.id,
       keyword: "鞄",
+      minPrice: "10",
+      maxPrice: "50",
+      minQuantity: 1,
+      maxQuantity: 9,
       sort: "publishedAt",
     });
 
     expect(requests[0]?.url).toBe(
-      `${PRODUCTS_URL}?after=cursor-1&first=20&categoryId=${wireProduct.category.id}&statusId=${wireProduct.status.id}&keyword=%E9%9E%84&sort=publishedAt`,
+      `${PRODUCTS_URL}?categoryId=${wireProduct.category.id}&statusId=${wireProduct.status.id}&keyword=%E9%9E%84&minPrice=10&maxPrice=50&minQuantity=1&maxQuantity=9&after=cursor-1&first=20&sort=publishedAt`,
+    );
+  });
+
+  it("複数の分類を同じキーの繰り返しで載せる", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+    const another = "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b14";
+
+    await getProducts({ categoryId: [wireProduct.category.id, another] });
+
+    expect(requests[0]?.url).toBe(
+      `${PRODUCTS_URL}?categoryId=${wireProduct.category.id}&categoryId=${another}`,
     );
   });
 
@@ -276,7 +335,7 @@ describe("getProductListPage", () => {
     });
 
     expect(requests[0]?.url).toBe(
-      `${PRODUCTS_URL}?first=20&statusId=${wireProduct.status.id}&keyword=%E9%9D%B4`,
+      `${PRODUCTS_URL}?statusId=${wireProduct.status.id}&keyword=%E9%9D%B4&first=20`,
     );
   });
 
@@ -309,10 +368,26 @@ describe("getProductListPage", () => {
   });
 });
 
-describe("getProductTotalCount", () => {
+describe("getProductCount", () => {
   // ----- 正常系 -----
-  it("総数を返す取得口が生えるまでの暫定値を返す", async () => {
-    await expect(getProductTotalCount()).resolves.toBe(10);
+  it("契約が返した件数をそのまま返す", async () => {
+    serveJson(COUNT_URL, { count: 42 });
+
+    await expect(getProductCount({ keyword: "鞄" })).resolves.toBe(42);
+  });
+
+  it("一致する対象を決める条件だけをクエリへ載せる", async () => {
+    const requests = serveJson(COUNT_URL, { count: 0 });
+
+    await getProductCount({ keyword: "靴", minPrice: "10", after: "cursor-1", first: 20 });
+
+    expect(requests[0]?.url).toBe(`${COUNT_URL}?keyword=%E9%9D%B4&minPrice=10`);
+  });
+
+  it("条件を省略しても取得できる", async () => {
+    serveJson(COUNT_URL, { count: 7 });
+
+    await expect(getProductCount()).resolves.toBe(7);
   });
 });
 

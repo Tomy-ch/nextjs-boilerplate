@@ -80,6 +80,21 @@ describe("createHttpClient", () => {
     );
   });
 
+  it("並びで渡した値を同じキーの繰り返しにする", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({
+      path: "/v1/items",
+      searchParams: { categoryId: ["a", "b"], statusId: [] },
+      schema,
+    });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/v1/items?categoryId=a&categoryId=b",
+    );
+  });
+
   it("再検証のタグを渡す", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);

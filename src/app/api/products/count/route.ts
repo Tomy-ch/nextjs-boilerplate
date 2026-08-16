@@ -1,4 +1,4 @@
-import { getProductListPage, parseProductQuery } from "@/adapters/server/api/products";
+import { getProductCount, parseProductQuery } from "@/adapters/server/api/products";
 import { toHttpStatus } from "@/adapters/server/http/error-status";
 import { toRawQuery } from "@/adapters/server/http/search-params";
 import { findAppError } from "@/errors/app-error";
@@ -16,19 +16,14 @@ function toErrorResponse(error: unknown): Response {
 }
 
 /**
- * 一覧の増分取得。
+ * 絞り込みを確定する前の件数。
  *
  * @remarks
- * 無限スクロールが 2 ページ目以降を取りに来る口です。初回ページは Server Component が直接
- * 取得するため、ここは通りません（[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。
+ * 脇の絞り込みが、まだ URL に載っていない条件で何件になるかを問い合わせる口です。確定した条件
+ * ぶんは Server Component が取得するため、ここは通りません。
  *
- * 取得も検証も画像 URL の解決も `adapters/server` が済ませています。このハンドラが持つのは、
- * 済んだ分類を HTTP へ写すところだけです（[0025](../../../../docs/adr/0025-app-layer-elements.md)）。
- *
- * 失敗を捕まえるのは、握り潰すためではなく**正規化した形で返す**ためです。投げたままにすると
- * 応答の中身が framework の既定になり、内側の事情がそのまま外へ出ます
- * （[0080](../../../../docs/adr/0080-error-handling.md)）。分類とログは `adapters` の境界が
- * 済ませているので、ここでは記録し直しません。
+ * 一覧の増分取得と同じ組み立てです。持つのは、済んだ分類を HTTP へ写すところだけで、取得も
+ * 検証も `adapters/server` が済ませています（[0025](../../../../../docs/adr/0025-app-layer-elements.md)）。
  */
 export async function GET(request: Request): Promise<Response> {
   const parsed = parseProductQuery(toRawQuery(new URL(request.url).searchParams));
@@ -41,7 +36,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    return Response.json(await getProductListPage(parsed.query));
+    return Response.json({ count: await getProductCount(parsed.query) });
   } catch (error) {
     return toErrorResponse(error);
   }
