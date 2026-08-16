@@ -6,9 +6,8 @@ import { useCallback } from "react";
 import { Button } from "@/components/design-system/action/button/button";
 import type { Cart } from "@/model/cart/cart";
 import { useCartStore } from "@/stores/cart-store";
-
+import { usePendingRemovals } from "../../removal-memory";
 import { CartContents } from "../contents/contents";
-import { usePendingRemovals } from "../removal-notice/removal-notice";
 
 /** `CartPanel` の props。 */
 export type CartPanelProps = {

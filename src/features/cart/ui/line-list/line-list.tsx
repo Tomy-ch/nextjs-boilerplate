@@ -4,12 +4,9 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/components/cn";
 
-import {
-  CartDisplayedOrder,
-  CartRemovalNotice,
-  useCartRemovalNotice,
-  usePendingRemovals,
-} from "../removal-notice/removal-notice";
+import { toCartLineOrder } from "../../line-order";
+import { CartDisplayedOrder, useCartRemovalNotice, usePendingRemovals } from "../../removal-memory";
+import { CartRemovalNotice } from "../removal-notice/removal-notice";
 
 /** 並べる明細 1 つ。行の組み立ては server 側で済ませ、この器は並べる順だけを持つ。 */
 export type CartLineSlot = {
@@ -24,23 +21,6 @@ export type CartLineListProps = {
   /** 器の見た目。呼び出し元が渡す。 */
   className?: string;
 };
-
-/**
- * 覚えている並びと、いま並んでいる明細を突き合わせて、描く順を決める。
- *
- * @remarks
- * 覚えている並びは削除の時点で撮ったものです。そこに載っていない明細（その後に足されたもの）は
- * 末尾へ回します。載っているが今は居ない明細は、戻せるあいだだけ場所を保ちます。
- */
-function toSequence(
-  remembered: readonly string[],
-  present: readonly string[],
-  pending: ReadonlyMap<string, unknown>,
-): readonly string[] {
-  const kept = remembered.filter((id) => present.includes(id) || pending.has(id));
-
-  return [...kept, ...present.filter((id) => !kept.includes(id))];
-}
 
 /**
  * 明細を並べ、取り除いた行があった場所に取り消しを差し込む器。
@@ -61,7 +41,7 @@ export function CartLineList({ slots, className }: CartLineListProps) {
   const present = slots.map((slot) => slot.productId);
   const remembered = useCartRemovalNotice()?.order ?? [];
   const pending = usePendingRemovals(present);
-  const sequence = toSequence(remembered, present, pending);
+  const sequence = toCartLineOrder(remembered, present, new Set(pending.keys()));
   const rows = new Map(slots.map((slot) => [slot.productId, slot.row]));
 
   return (

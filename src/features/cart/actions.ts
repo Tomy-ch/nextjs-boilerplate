@@ -15,6 +15,8 @@ import {
   succeededActionState,
 } from "@/model/action-state";
 
+import { readProductId, readQuantity } from "./parse-cart-form";
+
 /**
  * カートを出しているすべての画面を取り直させる。
  *
@@ -37,38 +39,6 @@ export type CartActionState = ActionState<void>;
 
 /** 送信された内容を解けなかったときの文言。 */
 const MALFORMED_MESSAGE = "操作を受け付けられませんでした。画面を読み込み直してください。";
-
-/** フォームが対象の商品を指すときの項目名。 */
-const PRODUCT_ID_FIELD = "productId";
-
-/** フォームが数量を指すときの項目名。 */
-const QUANTITY_FIELD = "quantity";
-
-/**
- * 送信された内容から商品を指す値を取り出す。
- *
- * @returns 値が無い、または文字列でなければ null
- */
-function readProductId(formData: FormData): string | null {
-  const value = formData.get(PRODUCT_ID_FIELD);
-
-  return typeof value === "string" && value !== "" ? value : null;
-}
-
-/**
- * 送信された内容から数量を取り出す。
- *
- * @remarks
- * 取り出せる形かどうかだけを見ます。受け付ける範囲を決めているのは契約であり、範囲外の数量は
- * バックエンドが拒みます（[0070](../../../docs/adr/0070-backend-role-separation.md)）。
- *
- * @returns 整数として読めなければ null
- */
-function readQuantity(formData: FormData): number | null {
-  const value = Number(formData.get(QUANTITY_FIELD));
-
-  return Number.isInteger(value) ? value : null;
-}
 
 /**
  * 明細の数量を設定する。

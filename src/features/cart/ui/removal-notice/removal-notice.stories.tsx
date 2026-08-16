@@ -4,13 +4,10 @@ import { useEffect } from "react";
 import type { CartLine } from "@/model/cart/cart";
 
 import { EARPHONE_LINE, INSUFFICIENT_LINE, WATCH_LINE } from "../../cart.fixture";
+import { CartRemovalNoticeProvider, useCartRemovalNotice } from "../../removal-memory";
 import { CartLineList } from "../line-list/line-list";
 import { CartLineRow } from "../line-row/line-row";
-import {
-  CartRemovalNoticeList,
-  CartRemovalNoticeProvider,
-  useCartRemovalNotice,
-} from "./removal-notice";
+import { CartRemovalNoticeList } from "./removal-notice";
 
 const LINES = [EARPHONE_LINE, WATCH_LINE, INSUFFICIENT_LINE];
 

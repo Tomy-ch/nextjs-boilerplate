@@ -30,6 +30,10 @@ test-requirement: feature
 | `view.tsx` | 全画面の表示。明細と集計を左右に分ける |
 | `actions.ts` | 数量の設定・明細の削除・全消しの Server Action |
 | `issue-notice.ts` | 明細に立った事情を画面に出す一文へ写す |
+| `checkout.ts` | 購入手続きへ進めるかの判定 |
+| `line-order.ts` | 明細を描く順。覚えている並びと、いま居る明細を突き合わせる |
+| `parse-cart-form.ts` | 送信された内容から商品と数量を取り出す |
+| `removal-memory.tsx` | 取り除いた明細と、画面が見せていた並びの記憶 |
 | `use-scroll-direction.ts` | 直近のスクロールの向き。集計の引き出しが出るかを決める |
 | `paths.ts` | この feature が指す行き先（カート・購入手続き） |
 | `facade/add-to-cart/` | 商品をカートへ入れる操作。**他の feature が使う口** |
@@ -40,9 +44,10 @@ test-requirement: feature
 | `ui/line-list/` | 明細を並べ、取り除いた行があった場所に取り消しを差し込む器 |
 | `ui/line-row/` | 明細 1 行。脇の領域と全画面の両方が使う |
 | `ui/line-issues/` | 明細に立った事情の表示 |
+| `ui/checkout-link/` | 購入手続きへ進む操作。進めないときは押せない |
 | `ui/summary-card/` | 小計と先へ進む導線。器を持たない |
 | `ui/summary-dock/` | 集計を画面の下から出す引き出し。脇に領域を置けない幅だけ |
-| `ui/removal-notice/` | 直近に取り除いた明細を戻す案内と、その記憶 |
+| `ui/removal-notice/` | 取り除いた明細を戻す案内の表示 |
 | `ui/quantity-stepper/` | 明細 1 行の数量増減 |
 | `ui/remove-button/` | 明細 1 行の削除 |
 | `ui/clear-button/` | カートを空にする。確認を挟む |

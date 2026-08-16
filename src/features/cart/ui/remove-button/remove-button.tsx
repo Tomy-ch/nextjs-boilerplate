@@ -8,8 +8,8 @@ import { Button } from "@/components/design-system/action/button/button";
 import { idleActionState } from "@/model/action-state";
 
 import { type CartActionState, removeCartItemAction } from "../../actions";
+import { useCartRemovalNotice, useDisplayedOrder } from "../../removal-memory";
 import { CartActionError } from "../action-error/action-error";
-import { useCartRemovalNotice, useDisplayedOrder } from "../removal-notice/removal-notice";
 
 /** `CartRemoveButton` の props。 */
 export type CartRemoveButtonProps = {

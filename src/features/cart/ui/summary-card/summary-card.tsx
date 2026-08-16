@@ -1,11 +1,8 @@
-import Link from "next/link";
-
-import { Button } from "@/components/design-system/action/button/button";
 import type { Cart } from "@/model/cart/cart";
 import { formatMoney } from "@/model/money";
 
-import { isPurchasable } from "../../issue-notice";
-import { CHECKOUT_PATH } from "../../paths";
+import { canCheckout } from "../../checkout";
+import { CartCheckoutLink } from "../checkout-link/checkout-link";
 
 /** `CartSummaryCard` の props。 */
 export type CartSummaryCardProps = {
@@ -27,7 +24,7 @@ export type CartSummaryCardProps = {
  * 伝えるより、進めない理由を明細の隣で見せるほうが、利用者が次に取る行動に近い場所にあります。
  */
 export function CartSummaryCard({ cart }: CartSummaryCardProps) {
-  const purchasable = cart.lines.some(isPurchasable);
+  const purchasable = canCheckout(cart);
 
   return (
     <div className="flex flex-col gap-4" data-slot="cart-summary-card">
@@ -39,20 +36,12 @@ export function CartSummaryCard({ cart }: CartSummaryCardProps) {
         <p>買える明細だけを合算した金額です。</p>
         <p>送料や税は購入手続きで確定します。</p>
       </div>
-      {purchasable ? (
-        <Button asChild className="w-full">
-          <Link href={CHECKOUT_PATH}>購入手続きへ</Link>
-        </Button>
-      ) : (
-        <>
-          <p className="text-destructive text-sm">
-            今すぐ買える商品がありません。買えない明細を取り除くか、数量を減らしてください。
-          </p>
-          <Button className="w-full" disabled type="button">
-            購入手続きへ
-          </Button>
-        </>
+      {purchasable ? null : (
+        <p className="text-destructive text-sm">
+          今すぐ買える商品がありません。買えない明細を取り除くか、数量を減らしてください。
+        </p>
       )}
+      <CartCheckoutLink cart={cart} />
     </div>
   );
 }

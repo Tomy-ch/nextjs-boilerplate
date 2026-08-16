@@ -1,12 +1,13 @@
 import Link from "next/link";
 
 import { Button } from "@/components/design-system/action/button/button";
+import { BUTTON_SIZE } from "@/components/design-system/action/button/button.definition";
 import { ScrollArea } from "@/components/design-system/container/scroll-area/scroll-area";
 import type { Cart } from "@/model/cart/cart";
 import { formatMoney } from "@/model/money";
 
-import { isPurchasable } from "../../issue-notice";
-import { CART_PATH, CHECKOUT_PATH } from "../../paths";
+import { CART_PATH } from "../../paths";
+import { CartCheckoutLink } from "../checkout-link/checkout-link";
 import { CartClearButton } from "../clear-button/clear-button";
 import { CartLineList } from "../line-list/line-list";
 import { CartLineRow } from "../line-row/line-row";
@@ -55,15 +56,7 @@ export function CartContents({ cart }: CartContentsProps) {
       </p>
 
       <div className="grid gap-2">
-        {cart.lines.some(isPurchasable) ? (
-          <Button asChild className="w-full" size="sm">
-            <Link href={CHECKOUT_PATH}>購入手続きへ</Link>
-          </Button>
-        ) : (
-          <Button className="w-full" disabled size="sm" type="button">
-            購入手続きへ
-          </Button>
-        )}
+        <CartCheckoutLink cart={cart} size={BUTTON_SIZE.SMALL} />
         <Button asChild className="w-full" size="sm" variant="outline">
           <Link href={CART_PATH}>カートを見る</Link>
         </Button>

@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 
 import { getMyCart } from "@/adapters/server/api/cart";
 import { AppShell } from "@/components/shell/app-shell/app-shell";
+import { CartRemovalNoticeProvider } from "@/features/cart/removal-memory";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
-import { CartRemovalNoticeProvider } from "@/features/cart/ui/removal-notice/removal-notice";
 import { RepositoryLinks } from "@/features/site-info/ui/repository-links/repository-links";
 
 const SITE_NAME = "nextjs-boilerplate";
