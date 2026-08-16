@@ -127,6 +127,7 @@ describe("resolveExchangeRate", () => {
 - ❌ 名前を持たない default export(`export default () => {}` など)。1:1 の対象になれない(強制: ESLint `project-rules/no-anonymous-default-export`)
 - ❌ カバレッジ除外を `scripts/lib/untested-modules.ts` の宣言以外の場所へ書くこと、および README 記録・承認なしに増やすこと
 - ❌ フレームワーク・テスト関連依存を exact pin / `pnpm audit` なしに追加すること([0004](0004-library-management.md))
+- ❌ テストのために本番コードへ印(`data-*` 等)を足すこと(掴み手は role と accessible name。印が要るのは**画面要件がスタイルの掛かり先として要求するとき**だけで、そのとき印は本番コードの都合として存在する)
 
 ## 補足
 

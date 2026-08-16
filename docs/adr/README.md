@@ -29,6 +29,7 @@
 - [0026-layout-shell-mount.md](0026-layout-shell-mount.md) - layout の横断 UI / Provider mount（app シェル合成 = S4）
 - [0027-directory-structure.md](0027-directory-structure.md) - ディレクトリ構造（物理配置 / `@/*` alias / co-location / 共有粒度）
 - [0028-naming-convention.md](0028-naming-convention.md) - 命名規則（ファイル名 / 識別子 / route セグメント / 環境変数 / ADR ファイル）
+- [0029-type-design-discipline.md](0029-type-design-discipline.md) - 型設計の規律（判別可能 union / 境界での確定 / branded type / `satisfies`）
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) - 環境変数管理（目的別 config / server・client 分割 / `NEXT_PUBLIC_` 境界 / secret）
 - [0031-policy-state-supply.md](0031-policy-state-supply.md) - ポリシー状態（consent / feature-flag）の供給方針（source adapter + no-op 既定 + stateless props = S3）
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) - ルーティング・レンダリング戦略（App Router / Server Components 既定 / Server Actions / route-as-modal）
