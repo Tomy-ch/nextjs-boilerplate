@@ -5,8 +5,16 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
+import type { ActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
-import { useCartStore } from "@/stores/cart-store";
+
+const { addToCartAction } = vi.hoisted(() => ({
+  addToCartAction:
+    vi.fn<(previous: ActionState<void>, formData: FormData) => Promise<ActionState<void>>>(),
+}));
+
+vi.mock("@/features/cart/facade/add-to-cart/add-to-cart", () => ({ addToCartAction }));
+
 import { ProductDetail } from "./view";
 
 const IMAGE_URL = "https://media.example.test/coffee-front.png";
@@ -131,22 +139,22 @@ describe("ProductDetail", () => {
     expect(within(last).queryByRole("link", { name: "次へ" })).not.toBeInTheDocument();
   });
 
-  it("カートへ渡す明細に先頭の画像を載せる", async () => {
-    useCartStore.setState({ lines: [] });
+  it("カートへは商品を指す値だけを渡す", async () => {
+    addToCartAction.mockResolvedValue({ status: "success", value: undefined });
     render(<ProductDetail imageUrls={THREE_IMAGE_URLS} product={productOf()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "カートに追加" }));
 
-    expect(useCartStore.getState().lines[0]?.imageUrl).toBe(IMAGE_URL);
+    const formData = addToCartAction.mock.calls.at(-1)?.[1];
+
+    expect([...(formData?.keys() ?? [])]).toEqual(["productId"]);
+    expect(formData?.get("productId")).toBe(productOf().id);
   });
 
-  it("画像を持たない商品ではカートへ渡す明細の画像を空にする", async () => {
-    useCartStore.setState({ lines: [] });
-    render(<ProductDetail imageUrls={[]} product={productOf({ imagePaths: [] })} />);
+  it("在庫が無い商品ではカートへ入れられない", () => {
+    render(<ProductDetail imageUrls={[]} product={productOf({ quantity: 0, imagePaths: [] })} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "カートに追加" }));
-
-    expect(useCartStore.getState().lines[0]?.imageUrl).toBeNull();
+    expect(screen.getByRole("button", { name: "カートに追加" })).toBeDisabled();
   });
 
   it("サイト構造上の階層を示す", () => {

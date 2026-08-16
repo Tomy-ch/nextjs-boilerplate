@@ -124,7 +124,7 @@ export const getMyCart = cache(async (): Promise<Cart> => {
  */
 export async function setMyCartItem(productId: string, quantity: number): Promise<Cart> {
   const wire = await getClient().request({
-    path: `${CART_PATH}/items/${productId}`,
+    path: `${CART_PATH}/items/${encodeURIComponent(productId)}`,
     method: "PUT",
     headers: await cartSessionHeader(),
     body: { quantity } satisfies CartItemPutRequest,
@@ -145,7 +145,7 @@ export async function setMyCartItem(productId: string, quantity: number): Promis
  */
 export async function removeMyCartItem(productId: string): Promise<void> {
   await getClient().request({
-    path: `${CART_PATH}/items/${productId}`,
+    path: `${CART_PATH}/items/${encodeURIComponent(productId)}`,
     method: "DELETE",
     headers: await cartSessionHeader(),
     schema: DeleteCartsMeItemResponse,

@@ -26,7 +26,7 @@ const ITEMS: readonly ProductListItem[] = [item(1), item(2), item(3), item(4)];
 
 describe("ProductGrid", () => {
   beforeEach(() => {
-    useCartStore.setState({ lines: [], isOpen: false });
+    useCartStore.setState({ isOpen: false });
   });
 
   it("渡された商品を並べる", () => {

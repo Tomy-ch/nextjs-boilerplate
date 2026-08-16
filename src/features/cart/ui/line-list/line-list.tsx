@@ -42,26 +42,23 @@ export function CartLineList({ slots, className }: CartLineListProps) {
   const remembered = useCartRemovalNotice()?.order ?? [];
   const pending = usePendingRemovals(present);
   const sequence = toCartLineOrder(remembered, present, new Set(pending.keys()));
-  const rows = new Map(slots.map((slot) => [slot.productId, slot.row]));
+  // 並べる順に対して、その場所へ置くものを 1 つの表から引く。行と取り消しは同時に立たない
+  // （戻せる明細は、カートに居ない明細だけ）。
+  const nodes = new Map<string, ReactNode>(slots.map((slot) => [slot.productId, slot.row]));
+
+  for (const [productId, removed] of pending) {
+    nodes.set(
+      productId,
+      <li className="py-4" key={`removed-${productId}`}>
+        <CartRemovalNotice removed={removed} />
+      </li>,
+    );
+  }
 
   return (
     <CartDisplayedOrder order={present}>
       <ul className={cn("flex flex-col divide-y", className)}>
-        {sequence.map((productId) => {
-          const row = rows.get(productId);
-
-          if (row !== undefined) {
-            return row;
-          }
-
-          const removed = pending.get(productId);
-
-          return removed === undefined ? null : (
-            <li className="py-4" key={`removed-${productId}`}>
-              <CartRemovalNotice removed={removed} />
-            </li>
-          );
-        })}
+        {sequence.map((productId) => nodes.get(productId))}
       </ul>
     </CartDisplayedOrder>
   );

@@ -1,4 +1,6 @@
-# `/about` このサイトについて
+# `/about` このサイトについて（画面要件）
+
+> 機能要件は [`page.function.md`](page.function.md)。
 
 このサイトが何のためのもので、何で出来ていて、何が動かないかを説明する画面。
 
@@ -18,7 +20,7 @@
 **設計上の呼び名を出さない。** 層の分け方や責務の所在は、このサイトを触りに来た利用者の判断
 材料にならない。読みたい人はリポジトリへ行くので、フッターの導線で足りる。
 
-**免責を書かない。** [`/terms`](terms.md) が持つ。同じ文を 2 か所に置くと、片方だけ直した状態を
+**免責を書かない。** [`/terms`](../terms/page.screen.md) が持つ。同じ文を 2 か所に置くと、片方だけ直した状態を
 作れる。ここからは導線だけを出す。
 
 ## リポジトリのカード
@@ -36,16 +38,7 @@
 **リポジトリの宣言は 1 つの表**（`features/site-info/repositories.ts`）。フッターの導線・カード・
 補足の面が同じものを読む。別々に持つと片方だけ名前や URL が古いまま残る。
 
-## レンダリング
-
-取得を持たないため静的に描画される。内容が変わるのはコードを書き換えたときだけ
-（[0040](../../adr/0040-routing-rendering-strategy.md)）。
-
-## 認可
-
-**保護の対象にしない。** 何のためのサイトかは、ログインする前に読めなければ意味を持たない。
-
 ## 関連
 
-- 実装 `src/features/site-info/about/` — [README](../../../src/features/site-info/README.md)
-- [`/terms`](terms.md) / [`/privacy`](privacy.md)
+- 実装 `src/features/site-info/about/` — [README](../../../../../src/features/site-info/README.md)
+- [`/terms`](../terms/page.screen.md) / [`/privacy`](../privacy/page.screen.md)

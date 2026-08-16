@@ -22,10 +22,19 @@ export function readProductId(formData: FormData): string | null {
  * 取り出せる形かどうかだけを見ます。受け付ける範囲を決めているのは契約であり、範囲外の数量は
  * バックエンドが拒みます（[0070](../../../docs/adr/0070-backend-role-separation.md)）。
  *
+ * 空の値を数へ変換しません。`Number` は項目の欠落も空文字も `0` と読むため、変換に任せると
+ * 「送られてこなかった」が「0 が送られてきた」になります。
+ *
  * @returns 整数として読めなければ null
  */
 export function readQuantity(formData: FormData): number | null {
-  const value = Number(formData.get(QUANTITY_FIELD));
+  const raw = formData.get(QUANTITY_FIELD);
+
+  if (typeof raw !== "string" || raw.trim() === "") {
+    return null;
+  }
+
+  const value = Number(raw);
 
   return Number.isInteger(value) ? value : null;
 }

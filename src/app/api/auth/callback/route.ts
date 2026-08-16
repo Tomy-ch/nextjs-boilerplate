@@ -1,7 +1,7 @@
 import { mergeGuestCart } from "@/adapters/server/api/cart"; // sample:line
 import { getSessionResolver } from "@/adapters/server/auth/resolver";
 import { storeSession, takeTransaction } from "@/adapters/server/auth/session";
-import { getLogger } from "@/logging/logging.server";
+import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { toSafeReturnUrl } from "@/model/return-url";
 
 /** 認証をやり直させる先。 */
@@ -27,16 +27,19 @@ async function takeOverGuestState(): Promise<void> {
       result !== null &&
       (result.clampedProductIds.length > 0 || result.droppedProductIds.length > 0)
     ) {
-      getLogger().info("ゲストのカートの一部を引き継げませんでした", {
-        clamped: result.clampedProductIds.length,
-        dropped: result.droppedProductIds.length,
-      });
+      reportQuietly(() =>
+        getLogger().info("ゲストのカートの一部を引き継げませんでした", {
+          clamped: result.clampedProductIds.length,
+          dropped: result.droppedProductIds.length,
+        }),
+      );
     }
   } catch (cause) {
-    getLogger().warn("ゲストのカートを引き継げませんでした", { cause: String(cause) });
+    reportQuietly(() =>
+      getLogger().warn("ゲストのカートを引き継げませんでした", { cause: String(cause) }),
+    );
   }
 }
-// sample:end
 
 /**
  * 認可コードを受け取り、session を確立して元の画面へ戻す。

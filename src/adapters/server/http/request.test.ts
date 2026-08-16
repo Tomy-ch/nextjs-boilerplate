@@ -255,6 +255,45 @@ describe("createHttpClient", () => {
 
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
+
+  it("呼び出し固有のヘッダを送る", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({ path: "/v1/cart", headers: { "X-Cart-Session": "token" }, schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({ "X-Cart-Session": "token" }),
+    });
+  });
+
+  it("認証を任意にした接続先は、資格情報が無くても認証なしで送る", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, {
+      allowAnonymous: true,
+      getBearerToken: async () => null,
+    });
+
+    await expect(client.request({ path: "/v1/cart", schema })).resolves.toEqual({ ok: true });
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.not.objectContaining({ Authorization: expect.anything() }),
+    });
+  });
+
+  it("認証を任意にした接続先でも、取得できた資格情報は載せる", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, {
+      allowAnonymous: true,
+      getBearerToken: async () => "token",
+    });
+
+    await client.request({ path: "/v1/cart", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({ Authorization: "Bearer token" }),
+    });
+  });
+
   // ----- 異常系 -----
   it("認証が要る接続先で Bearer を解決できないとき、送らずに未認証で落とす", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
