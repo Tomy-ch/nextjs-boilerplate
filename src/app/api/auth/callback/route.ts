@@ -1,7 +1,7 @@
 import { mergeGuestCart } from "@/adapters/server/api/cart"; // sample:line
 import { getSessionResolver } from "@/adapters/server/auth/resolver";
 import { storeSession, takeTransaction } from "@/adapters/server/auth/session";
-import { getLogger, reportQuietly } from "@/logging/logging.server";
+import { getLogger, reportQuietly } from "@/logging/logging.server"; // sample:line
 import { toSafeReturnUrl } from "@/model/return-url";
 
 /** 認証をやり直させる先。 */
