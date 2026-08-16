@@ -245,10 +245,10 @@ describe("createHttpClient", () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);
 
-    await client.request({ path: "/v1/cart", headers: { "X-Cart-Session": "token" }, schema });
+    await client.request({ path: "/v1/ping", headers: { "X-Session-Token": "token" }, schema });
 
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
-      headers: expect.objectContaining({ "X-Cart-Session": "token" }),
+      headers: expect.objectContaining({ "X-Session-Token": "token" }),
     });
   });
 
@@ -259,7 +259,7 @@ describe("createHttpClient", () => {
       getBearerToken: async () => null,
     });
 
-    await expect(client.request({ path: "/v1/cart", schema })).resolves.toEqual({ ok: true });
+    await expect(client.request({ path: "/v1/ping", schema })).resolves.toEqual({ ok: true });
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
       headers: expect.not.objectContaining({ Authorization: expect.anything() }),
     });
@@ -272,7 +272,7 @@ describe("createHttpClient", () => {
       getBearerToken: async () => "token",
     });
 
-    await client.request({ path: "/v1/cart", schema });
+    await client.request({ path: "/v1/ping", schema });
 
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
       headers: expect.objectContaining({ Authorization: "Bearer token" }),
