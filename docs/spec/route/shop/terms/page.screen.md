@@ -1,4 +1,6 @@
-# `/terms` 利用規約
+# `/terms` 利用規約（画面要件）
+
+> 機能要件は [`page.function.md`](page.function.md)。
 
 閲覧・利用の条件と免責を置く画面。
 
@@ -30,7 +32,7 @@
 
 ## 免責はここだけが持つ
 
-[`/about`](about.md) には置かない。同じ文を 2 か所に置くと、片方だけ直した状態を作れる。
+[`/about`](../about/page.screen.md) には置かない。同じ文を 2 か所に置くと、片方だけ直した状態を作れる。
 
 ## 導線
 
@@ -38,16 +40,7 @@
 同意とみなす以上、同意の対象へ最初に届く必要があり、フッターまで下りないと辿れない位置では
 成立しない。**
 
-## レンダリング
-
-取得を持たないため静的に描画される。
-
-## 認可
-
-**保護の対象にしない。** 閲覧した時点で同意とみなす以上、ログインする前に読めなければ成立
-しない。
-
 ## 関連
 
-- 実装 `src/features/site-info/terms/` — [README](../../../src/features/site-info/README.md)
-- [`/about`](about.md) / [`/privacy`](privacy.md)
+- 実装 `src/features/site-info/terms/` — [README](../../../../../src/features/site-info/README.md)
+- [`/about`](../about/page.screen.md) / [`/privacy`](../privacy/page.screen.md)

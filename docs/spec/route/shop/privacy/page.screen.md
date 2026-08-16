@@ -1,4 +1,6 @@
-# `/privacy` プライバシーポリシー
+# `/privacy` プライバシーポリシー（画面要件）
+
+> 機能要件は [`page.function.md`](page.function.md)。
 
 入力した情報がどこに残るかを説明する画面。
 
@@ -22,15 +24,7 @@
 
 追跡（アクセス解析・広告）を行わないこと、第三者提供をしないことを書く。
 
-## レンダリング
-
-取得を持たないため静的に描画される。
-
-## 認可
-
-**保護の対象にしない。** 情報の保存先は、入力する前に読めなければ意味を持たない。
-
 ## 関連
 
-- 実装 `src/features/site-info/privacy/` — [README](../../../src/features/site-info/README.md)
-- [`/terms`](terms.md) が同意条件と免責を持つ
+- 実装 `src/features/site-info/privacy/` — [README](../../../../../src/features/site-info/README.md)
+- [`/terms`](../terms/page.screen.md) が同意条件と免責を持つ
