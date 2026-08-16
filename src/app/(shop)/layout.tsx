@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
-import { getMyCart } from "@/adapters/server/api/cart";
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { CartRemovalNoticeProvider } from "@/features/cart/removal-memory";
+import { readShellCart } from "@/features/cart/shell-cart";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import { RepositoryLinks } from "@/features/site-info/ui/repository-links/repository-links";
@@ -28,22 +28,32 @@ const NAV_ITEMS = [
  * 画面側に置くと、追加できる画面の数だけ mount が増えます。
  *
  * カートの中身をここで取ります。器は client ですが、明細の出所はバックエンドであり、client の
- * 状態として持ち回りません（[0023](../../../docs/adr/0023-stores-kernel.md)）。この取得は cookie を
- * 読むため、この route group の画面は動的描画になります。
+ * 状態として持ち回りません（[0023](../../../docs/adr/0023-stores-kernel.md)）。
+ *
+ * **この取得は cookie を読むため、この route group の画面はすべて動的描画になります。** 取得を
+ * 持たない `/about` `/privacy` `/terms` も含みます。静的な殻と動的な穴を分ける仕組み（PPR）は
+ * 採っていないため（[0041](../../../docs/adr/0041-cache-components-decision.md)）、どの画面にも
+ * 同じカートを出すことと引き換えに払う代償です。
+ *
+ * **読めなかったときはカートを出さずに続けます。** ここで投げると、同じ段の layout を包む
+ * `error` 境界が無いため（子の `error.tsx` は親 layout の失敗を捕まえません）、header も nav も
+ * 消えた画面まで落ちます。カートが読めない状況ではカートの画面自体も開けないので、外枠から
+ * 入口を落としても到達できる場所は減りません
+ * （[0080](../../../docs/adr/0080-error-handling.md)）。
  *
  * 取り消しの記憶も**カートの器より外**へ置きます。最後の 1 件を取り除くと脇の領域もカートの画面も
  * 空の姿へ変わるため、器の内側に持つとその切り替わりで記憶ごと失われます。
  */
 export default async function ShopLayout({ children }: { children: ReactNode }) {
-  const cart = await getMyCart();
+  const cart = await readShellCart();
 
   return (
     <CartRemovalNoticeProvider>
       <AppShell
         siteName={SITE_NAME}
         navItems={NAV_ITEMS}
-        headerActions={<CartHeaderAction cart={cart} />}
-        sidebar={<CartPanel cart={cart} />}
+        headerActions={cart === null ? null : <CartHeaderAction cart={cart} />}
+        sidebar={cart === null ? null : <CartPanel cart={cart} />}
         footer={
           <div className="flex flex-col gap-3">
             <p>Next.js / React のプレゼンテーション層 boilerplate です。</p>

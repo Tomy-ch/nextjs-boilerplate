@@ -18,6 +18,10 @@ const { getMyCart, useMediaQuery } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/adapters/server/api/cart", () => ({ getMyCart }));
+vi.mock("@/logging/logging.server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/logging/logging.server")>()),
+  getLogger: () => ({ warn: vi.fn() }),
+}));
 vi.mock("@/capabilities/use-media-query", () => ({ useMediaQuery }));
 
 import { CART, EMPTY_CART } from "@/features/cart/cart.fixture";
@@ -84,6 +88,17 @@ describe("ShopLayout", () => {
     await renderLayout();
 
     expect(screen.queryByRole("complementary", { name: "カート" })).not.toBeInTheDocument();
+  });
+
+  it("カートを読めなかったとき、カートを出さずに本文を出す", async () => {
+    getMyCart.mockRejectedValue(new Error("上流が応答しません"));
+
+    await renderLayout(<p>本文</p>);
+
+    expect(screen.getByText("本文")).toBeVisible();
+    expect(screen.getByRole("link", { name: "商品" })).toBeVisible();
+    expect(screen.queryByRole("complementary", { name: "カート" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /カートを/ })).not.toBeInTheDocument();
   });
 
   it("a11y 違反を持たない", async () => {
