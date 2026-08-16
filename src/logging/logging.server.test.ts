@@ -49,3 +49,26 @@ describe("getLogger", () => {
     expect(() => getLogger()).toThrow("logger は起動時に初期化されていません");
   });
 });
+
+describe("reportQuietly", () => {
+  // ----- 正常系 -----
+  it("渡された記録を実行する", async () => {
+    const { reportQuietly } = await import("./logging.server");
+    const report = vi.fn();
+
+    reportQuietly(report);
+
+    expect(report).toHaveBeenCalledOnce();
+  });
+
+  // ----- 異常系 -----
+  it("記録が失敗しても投げない", async () => {
+    const { reportQuietly } = await import("./logging.server");
+
+    expect(() =>
+      reportQuietly(() => {
+        throw new Error("logger は起動時に初期化されていません");
+      }),
+    ).not.toThrow();
+  });
+});

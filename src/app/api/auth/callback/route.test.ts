@@ -13,7 +13,10 @@ vi.mock("@/adapters/server/auth/resolver", () => ({
 }));
 vi.mock("@/adapters/server/auth/session", () => ({ storeSession, takeTransaction }));
 vi.mock("@/adapters/server/api/cart", () => ({ mergeGuestCart }));
-vi.mock("@/logging/logging.server", () => ({ getLogger: () => logger }));
+vi.mock("@/logging/logging.server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/logging/logging.server")>()),
+  getLogger: () => logger,
+}));
 
 const transaction = {
   state: "state-value",

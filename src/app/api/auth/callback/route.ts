@@ -1,7 +1,7 @@
 import { mergeGuestCart } from "@/adapters/server/api/cart"; // sample:line
 import { getSessionResolver } from "@/adapters/server/auth/resolver";
 import { storeSession, takeTransaction } from "@/adapters/server/auth/session";
-import { getLogger } from "@/logging/logging.server";
+import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { toSafeReturnUrl } from "@/model/return-url";
 
 /** 認証をやり直させる先。 */
@@ -40,22 +40,6 @@ async function takeOverGuestState(): Promise<void> {
     );
   }
 }
-
-/**
- * 記録できないことでログインを止めない。
- *
- * @remarks
- * 記録は引き継ぎの失敗を後から辿るための手段で、利用者に見せる結果ではありません。書き出す側が
- * 落ちるとログイン自体が失敗するため、ここで止めます。
- */
-function reportQuietly(report: () => void): void {
-  try {
-    report();
-  } catch {
-    // 意図的に握り潰す: 記録の失敗を利用者へ持ち出さない。
-  }
-}
-// sample:end
 
 /**
  * 認可コードを受け取り、session を確立して元の画面へ戻す。
