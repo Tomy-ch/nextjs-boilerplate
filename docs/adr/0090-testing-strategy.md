@@ -110,6 +110,7 @@ describe("resolveExchangeRate", () => {
 
 - テストファイルは実装の隣に co-location([0027](0027-directory-structure.md))。ファイル名の本体部分は **kebab-case + `.test.ts(x)`**([0028](0028-naming-convention.md) の統一方針に従う。例: `format-date.test.ts`)
 - `describe` は export 名、`it` 文字列は日本語(上記「export ↔ describe の 1:1 対応」)
+- **入力一式は `<name>.fixture.ts` として、それを使う範囲の直下に置く。** テストと story の双方が同じ入力を読むためで、片方が自分のぶんだけを組み立てると、器の幅や件数の前提が 2 つに割れる。判定を持たないため 1:1 のテストは求めず、除外はスクリプトの宣言が持つ
 
 ## 禁止事項
 

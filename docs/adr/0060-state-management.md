@@ -26,6 +26,7 @@ AGENTS.md の `[TODO]`(BACKLOG B5)は、Server state(TanStack Query 等)/ Client
 ### Client state = local-first(既定を維持)
 
 - クライアント状態は **local state(`useState` / `useReducer`)を起点**とする。Context は濫用せず、真に木を跨ぐ共有が必要な範囲に限る
+- **深い受け渡しは、まず合成で解く。** 中間の部品が値を素通しするだけなら、その部品へ `children` を渡して受け渡しの経路そのものを無くす。Context を使うのは、受け取る側が木のどこに現れるか呼び出し側から決められないときに限る
 - URL state(search params / route params)は Next.js の標準機構で扱う([0040](0040-routing-rendering-strategy.md))
 - **`nuqs` 等の searchParams 同期ヘルパは v1 では採らない**。[0004](0004-library-management.md) の一次判定は通るが、一覧のフィルタ / sort / ページングは **URL 変更 → RSC 再取得**で成立しており、client state と URL を同期させる層を必要としないため。実装して不足を感じてから入れる
 - **ただし「入れない」= 各画面が独自実装してよい、ではない**。`searchParams` の標準形(zod によるパーススキーマ / パース関数 / URL 更新ヘルパの置き場)は **scaffold の生成物に含める**ことで揃える(実装は [v1 実装計画](../plan/v1-implementation-plan.md) P4-6)
