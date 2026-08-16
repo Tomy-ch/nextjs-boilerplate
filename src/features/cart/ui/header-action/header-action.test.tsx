@@ -44,7 +44,7 @@ describe("CartHeaderAction", () => {
     useMediaQuery.mockReturnValue(true);
 
     render(<CartHeaderAction cart={CART} />);
-    await user.click(screen.getByRole("button", { name: /カートを開く/ }));
+    await user.click(await screen.findByRole("button", { name: /カートを開く/ }));
 
     expect(await screen.findByRole("dialog")).toBeVisible();
   });

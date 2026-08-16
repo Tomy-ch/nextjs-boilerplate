@@ -85,7 +85,7 @@ describe("CartPanel", () => {
     await user.click(screen.getByRole("button", { name: "取り除いたことにする" }));
 
     expect(screen.getByRole("complementary", { name: "カート" })).toBeVisible();
-    expect(screen.getByRole("status")).toHaveTextContent("イヤホン を削除しました");
+    expect(await screen.findByRole("status")).toHaveTextContent("イヤホン を削除しました");
   });
 
   it("a11y 自動検査に違反しない", async () => {

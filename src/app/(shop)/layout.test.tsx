@@ -68,7 +68,7 @@ describe("ShopLayout", () => {
     const cart = screen.getByRole("complementary", { name: "カート" });
 
     expect(getMyCart).toHaveBeenCalledOnce();
-    expect(within(cart).getByText("小計")).toBeVisible();
+    expect(await within(cart).findByText("小計")).toBeVisible();
   });
 
   it("header の入口と脇の領域が同じ要求を読む", async () => {
