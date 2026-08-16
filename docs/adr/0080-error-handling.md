@@ -76,6 +76,12 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - エラーのログは **境界で 1 回**(`adapters` の正規化点 / route の error 境界)出力し、二重ログを抑止する(go errorhandler の翻案)
 - **5xx(システム起因)= error レベル / 4xx(ユーザ起因)= warn レベル**(go の `errorLevelBoundHTTPStatus=500` の翻案)。ログの具体(スキーマ・出力先・trace 相関)は **B7([0081](0081-observability-logging.md))** が正
 
+### 境界の粒度
+
+`error.tsx` は**失われて困る範囲の外側**に置く。境界の内側は丸ごと差し替わるため、境界が広いほど、1 つの取得の失敗で消える導線が増える。route 直下に置くのは、その route の本文が失敗しても header・nav・footer を残すためである。
+
+**部分的な失敗を許す画面では、境界ではなく表示で受ける。** 落ちてよい 1 系統のために画面全体を差し替えない([0063](0063-mutation-result-notification.md) の通知手段を使う)。
+
 ## 禁止事項
 
 - ❌ `errors` カーネルに HTTP status / レスポンス形式を持たせること(分類は transport 非依存。変換は境界)

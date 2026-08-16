@@ -65,6 +65,12 @@ Accepted
 
 - App Router の `loading.tsx` / `error.tsx` / `not-found.tsx` / `global-error.tsx` の配置・責務は **B6([0080](0080-error-handling.md))が確定済み**(`error.tsx` 系 = 同 3 節 / `loading.tsx`・Suspense 境界 = 同 4 節)。本 ADR は特殊ファイルの命名([0028](0028-naming-convention.md))と「driving adapter に業務ロジックを置かない」原則のみを敷く
 
+### 境界の粒度
+
+`Suspense` の境界は**待つものの単位**で置く。1 つの境界が複数の取得を覆うと、最も遅い 1 つが他を止める。逆に、同時に届くものを別々の境界へ割ると、画面が何度も継ぎ足されて読み始めた位置が動く。
+
+境界の内側は**待っているあいだ操作できない**。操作できる必要があるものを内側へ入れない(検索欄・絞り込み・戻る導線)。
+
 ## 禁止事項
 
 - ❌ Pages Router の追加(App Router 単独)
