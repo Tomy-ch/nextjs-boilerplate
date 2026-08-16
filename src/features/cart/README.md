@@ -57,7 +57,6 @@ test-requirement: feature
 | `ui/remove-button/` | 明細 1 行の削除 |
 | `ui/clear-button/` | カートを空にする。確認を挟む |
 | `ui/action-error/` | 操作が失敗したことを、その操作の隣に出す |
-| `ui/skeleton/` | 待機表示 |
 
 ## 運用
 
