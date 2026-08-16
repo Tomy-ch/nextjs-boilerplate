@@ -35,9 +35,9 @@ export type CartLineListProps = {
 function toSequence(
   remembered: readonly string[],
   present: readonly string[],
-  pendingIds: readonly string[],
+  pending: ReadonlyMap<string, unknown>,
 ): readonly string[] {
-  const kept = remembered.filter((id) => present.includes(id) || pendingIds.includes(id));
+  const kept = remembered.filter((id) => present.includes(id) || pending.has(id));
 
   return [...kept, ...present.filter((id) => !kept.includes(id))];
 }
@@ -61,13 +61,8 @@ export function CartLineList({ slots, className }: CartLineListProps) {
   const present = slots.map((slot) => slot.productId);
   const remembered = useCartRemovalNotice()?.order ?? [];
   const pending = usePendingRemovals(present);
-  const sequence = toSequence(
-    remembered,
-    present,
-    pending.map((line) => line.productId),
-  );
+  const sequence = toSequence(remembered, present, pending);
   const rows = new Map(slots.map((slot) => [slot.productId, slot.row]));
-  const removals = new Map(pending.map((line) => [line.productId, line]));
 
   return (
     <CartDisplayedOrder order={present}>
@@ -79,7 +74,7 @@ export function CartLineList({ slots, className }: CartLineListProps) {
             return row;
           }
 
-          const removed = removals.get(productId);
+          const removed = pending.get(productId);
 
           return removed === undefined ? null : (
             <li className="py-4" key={`removed-${productId}`}>

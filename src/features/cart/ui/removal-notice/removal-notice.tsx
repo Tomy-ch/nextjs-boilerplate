@@ -19,8 +19,8 @@ export type RemovedCartLine = {
 };
 
 type RemovalNotice = {
-  /** 取り除いた明細。取り除いた順に並ぶ。 */
-  removed: readonly RemovedCartLine[];
+  /** 取り除いた明細。商品で引ける。 */
+  removed: ReadonlyMap<string, RemovedCartLine>;
   /** 画面が見せていた並び。取り除いた明細も、消える前に居た場所に残る。 */
   order: readonly string[];
   /** 取り除いたことと、そのとき画面が並べていた順を知らせる。 */
@@ -41,7 +41,8 @@ const DisplayedOrderContext = createContext<readonly string[]>([]);
  * そのまま覚えます（[0060](../../../../../docs/adr/0060-state-management.md) の線引き）。
  *
  * **1 件ずつではなく溜めます。** 続けて 2 件取り除いたときに先の 1 件を忘れると、戻す手段が
- * 消えた側だけ失われます。同じ商品を取り除き直した場合は、数量が変わっているため古い記録を捨てます。
+ * 消えた側だけ失われます。商品で引ける形にしてあるのは、取り除き直したときに古い記録を置き換える
+ * ためです（数量が変わっています）。
  *
  * **カートの器よりも外に置きます。** 最後の 1 件を取り除くとカートの表示自体が空の姿へ変わるため、
  * 中身の側に持つとその切り替わりで記憶ごと失われます。
@@ -50,23 +51,30 @@ const DisplayedOrderContext = createContext<readonly string[]>([]);
  * （[0023](../../../../../docs/adr/0023-stores-kernel.md) の受入基準）。
  */
 export function CartRemovalNoticeProvider({ children }: { children: ReactNode }) {
-  const [removed, setRemoved] = useState<readonly RemovedCartLine[]>([]);
-  const [order, setOrder] = useState<readonly string[]>([]);
+  const [state, setState] = useState<{
+    removed: ReadonlyMap<string, RemovedCartLine>;
+    order: readonly string[];
+  }>({ removed: new Map(), order: [] });
 
+  // 取り除いた明細と並びは 1 つの更新で動かす。別々に持つと、並びを詰め直す側が「今どれを取り除いて
+  // いるか」を知らないまま走り、まだ戻せる明細を並びから落とす。
   const notify = useCallback((line: RemovedCartLine, displayedOrder: readonly string[]) => {
-    setRemoved((current) => [...current.filter((it) => it.productId !== line.productId), line]);
-    setOrder((current) => {
-      // 戻された明細は画面から出ていくため、覚えている並びからも落とす。残すのは今も並んでいるものと、
-      // 取り除いたばかりのものだけ。
-      const kept = current.filter((id) => displayedOrder.includes(id) || id === line.productId);
+    setState((current) => {
+      const removed = new Map(current.removed).set(line.productId, line);
+      // 残すのは、今も画面に並んでいるものと、まだ戻せるもの。どちらでもないものは戻された明細で、
+      // 覚えておく理由が無い。
+      const kept = current.order.filter((id) => displayedOrder.includes(id) || removed.has(id));
 
-      return [...kept, ...displayedOrder.filter((id) => !kept.includes(id))];
+      return {
+        removed,
+        order: [...kept, ...displayedOrder.filter((id) => !kept.includes(id))],
+      };
     });
   }, []);
 
   const value = useMemo<RemovalNotice>(
-    () => ({ removed, order, notify }),
-    [removed, order, notify],
+    () => ({ removed: state.removed, order: state.order, notify }),
+    [state, notify],
   );
 
   return <RemovalNoticeContext.Provider value={value}>{children}</RemovalNoticeContext.Provider>;
@@ -119,12 +127,17 @@ export function useDisplayedOrder(): readonly string[] {
  */
 export function usePendingRemovals(
   presentProductIds: readonly string[],
-): readonly RemovedCartLine[] {
+): ReadonlyMap<string, RemovedCartLine> {
   const notice = useCartRemovalNotice();
   const removed = notice?.removed;
 
   return useMemo(
-    () => (removed ?? []).filter((line) => !presentProductIds.includes(line.productId)),
+    () =>
+      new Map(
+        [...(removed ?? new Map<string, RemovedCartLine>())].filter(
+          ([productId]) => !presentProductIds.includes(productId),
+        ),
+      ),
     [removed, presentProductIds],
   );
 }
@@ -192,13 +205,13 @@ export type CartRemovalNoticeListProps = {
 export function CartRemovalNoticeList({ presentProductIds }: CartRemovalNoticeListProps) {
   const pending = usePendingRemovals(presentProductIds);
 
-  if (pending.length === 0) {
+  if (pending.size === 0) {
     return null;
   }
 
   return (
     <div className="flex w-full flex-col gap-2">
-      {pending.map((line) => (
+      {[...pending.values()].map((line) => (
         <CartRemovalNotice key={line.productId} removed={line} />
       ))}
     </div>

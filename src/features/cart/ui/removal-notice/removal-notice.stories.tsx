@@ -28,11 +28,15 @@ function SeedRemovals({ lines }: { lines: readonly CartLine[] }) {
   const notify = notice?.notify;
 
   useEffect(() => {
+    // 実物と同じ順で与える。2 件目を取り除く時点では、1 件目は既に画面から消えている。
+    let displayed = ALL_IDS;
+
     for (const line of lines) {
       notify?.(
         { productId: line.productId, name: line.name ?? "", quantity: line.quantity },
-        ALL_IDS,
+        displayed,
       );
+      displayed = displayed.filter((id) => id !== line.productId);
     }
   }, [notify, lines]);
 

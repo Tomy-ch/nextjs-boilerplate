@@ -42,7 +42,7 @@ export function CartPanel({ cart }: CartPanelProps) {
   const close = useCallback(() => setOpen(false), [setOpen]);
   const pendingRemovals = usePendingRemovals(cart.lines.map((line) => line.productId));
 
-  if ((cart.lines.length === 0 && pendingRemovals.length === 0) || !isOpen) {
+  if ((cart.lines.length === 0 && pendingRemovals.size === 0) || !isOpen) {
     return null;
   }
 
