@@ -1,8 +1,8 @@
 import type { Cart } from "@/model/cart/cart";
-import { formatMoney } from "@/model/money";
 
 import { canCheckout } from "../../checkout";
 import { CartCheckoutLink } from "../checkout-link/checkout-link";
+import { CartSubtotal } from "../subtotal/subtotal";
 
 /** `CartSummaryCard` の props。 */
 export type CartSummaryCardProps = {
@@ -28,10 +28,7 @@ export function CartSummaryCard({ cart }: CartSummaryCardProps) {
 
   return (
     <div className="flex flex-col gap-4" data-slot="cart-summary-card">
-      <p className="flex items-baseline justify-between gap-2">
-        <span className="text-muted-foreground text-sm">小計</span>
-        <strong className="text-2xl">{formatMoney(cart.subtotalAmount)}</strong>
-      </p>
+      <CartSubtotal amount={cart.subtotalAmount} />
       <div className="flex flex-col gap-1 text-muted-foreground text-xs">
         <p>買える明細だけを合算した金額です。</p>
         <p>送料や税は購入手続きで確定します。</p>

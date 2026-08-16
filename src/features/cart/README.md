@@ -34,18 +34,23 @@ test-requirement: feature
 | `line-order.ts` | 明細を描く順。覚えている並びと、いま居る明細を突き合わせる |
 | `parse-cart-form.ts` | 送信された内容から商品と数量を取り出す |
 | `removal-memory.tsx` | 取り除いた明細と、画面が見せていた並びの記憶 |
+| `use-dock-visibility.ts` | 画面の下から出す器を、出すかどうかの判断 |
 | `use-scroll-direction.ts` | 直近のスクロールの向き。集計の引き出しが出るかを決める |
 | `paths.ts` | この feature が指す行き先（カート・購入手続き） |
 | `facade/add-to-cart/` | 商品をカートへ入れる操作。**他の feature が使う口** |
 | `ui/contents/` | カートの中身（小計・導線・明細）。器を持たず、置き場所は呼び出し元が決める |
 | `ui/panel/` | 中身を脇に出す領域。空か閉じていれば描画しない。PC だけ |
-| `ui/header-action/` | header に置く入口。PC は点数だけ、それ未満は被せる drawer の引き手 |
+| `ui/header-action/` | header に置く入口。帯でどちらの姿を出すかを決める |
+| `ui/header-toggle/` | 脇に常設できる幅の入口。脇の領域を開け閉めする |
+| `ui/header-drawer/` | 脇に常設できない幅の入口と中身。本文へ被せる |
 | `ui/count/` | header に出す点数 |
 | `ui/line-list/` | 明細を並べ、取り除いた行があった場所に取り消しを差し込む器 |
 | `ui/line-row/` | 明細 1 行。脇の領域と全画面の両方が使う |
 | `ui/line-issues/` | 明細に立った事情の表示 |
 | `ui/checkout-link/` | 購入手続きへ進む操作。進めないときは押せない |
-| `ui/summary-card/` | 小計と先へ進む導線。器を持たない |
+| `ui/summary-card/` | 小計と注記と先へ進む導線。器を持たない |
+| `ui/subtotal/` | 小計の表示 |
+| `ui/dock-handle/` | 画面の下から出す器のつまみ |
 | `ui/summary-dock/` | 集計を画面の下から出す引き出し。脇に領域を置けない幅だけ |
 | `ui/removal-notice/` | 取り除いた明細を戻す案内の表示 |
 | `ui/quantity-stepper/` | 明細 1 行の数量増減 |

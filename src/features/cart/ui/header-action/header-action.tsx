@@ -1,24 +1,11 @@
 "use client";
 
-import { useCallback } from "react";
-
 import { useMediaQuery } from "@/capabilities/use-media-query";
-import { Button } from "@/components/design-system/action/button/button";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/design-system/overlay/drawer/drawer";
 import { mediaBelow } from "@/model/breakpoint";
 import type { Cart } from "@/model/cart/cart";
-import { useCartStore } from "@/stores/cart-store";
 
-import { CartContents } from "../contents/contents";
-import { CartCount } from "../count/count";
+import { CartHeaderDrawer } from "../header-drawer/header-drawer";
+import { CartHeaderToggle } from "../header-toggle/header-toggle";
 
 /** 脇に常設できない幅。タブレットを含む（[0051](../../../../../docs/adr/0051-styling-system.md) §2）。 */
 const NARROW = mediaBelow("lg");
@@ -30,17 +17,12 @@ export type CartHeaderActionProps = {
 };
 
 /**
- * header に置くカートの入口。
+ * header に置くカートの入口。帯に応じてどちらの姿を出すかだけを決める。
  *
  * @remarks
- * 広い幅では脇の `CartPanel` を開け閉めする切り替えになります。中身はここには持ちません。
- *
- * 狭い幅では本文へ被せる drawer の引き手になります。背面は半透明で覆われ、背面の押下と「閉じる」
- * のどちらでも閉じます。**引き出す操作は押下だけ**で、画面端からの swipe は持ちません。端からの
- * swipe は browser の戻る操作と競合し、どちらが起きるかが端末ごとに変わります。
- *
- * 開閉は store の要求に従います。商品をカートへ入れたときも開く必要があり、その操作は別の feature に
- * あるためです。この部品の内側に開閉を持つと、追加しても何も起きない幅ができます。
+ * **姿が 2 つあります。** 脇に常設できる幅では脇の領域を開け閉めする切り替えになり、それ未満では
+ * 本文へ被せる drawer になります。中身も操作も別物なので、部品も分けてあります。ここが持つのは
+ * どちらを出すかだけです。
  *
  * 要求の意味は幅で変わりません。広い幅では脇の領域が出るか消えるか、狭い幅では drawer が開くか
  * 閉じるかになるだけで、どちらも「中身を見たい」という同じ 1 つの要求です。
@@ -54,50 +36,10 @@ export type CartHeaderActionProps = {
  */
 export function CartHeaderAction({ cart }: CartHeaderActionProps) {
   const isNarrow = useMediaQuery(NARROW);
-  const isOpen = useCartStore((state) => state.isOpen);
-  const setOpen = useCartStore((state) => state.setOpen);
-  const toggle = useCallback(() => setOpen(!isOpen), [isOpen, setOpen]);
 
-  if (!isNarrow) {
-    return (
-      <Button
-        aria-expanded={isOpen}
-        aria-label={isOpen ? "カートを閉じる" : "カートを開く"}
-        onClick={toggle}
-        size="sm"
-        type="button"
-        variant="ghost"
-      >
-        <CartCount count={cart.lines.length} />
-      </Button>
-    );
-  }
-
-  return (
-    <Drawer direction="right" onOpenChange={setOpen} open={isOpen}>
-      <DrawerTrigger asChild>
-        <Button aria-label="カートを開く" size="sm" type="button" variant="ghost">
-          <CartCount count={cart.lines.length} />
-        </Button>
-      </DrawerTrigger>
-      <DrawerContent className="flex flex-col">
-        <DrawerHeader>
-          <DrawerTitle>カート</DrawerTitle>
-          <DrawerDescription>
-            {cart.lines.length === 0
-              ? "商品が入っていません。"
-              : `${cart.lines.length} 点入っています。`}
-          </DrawerDescription>
-        </DrawerHeader>
-        <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4">
-          <CartContents cart={cart} />
-          <DrawerClose asChild>
-            <Button className="w-full" size="sm" type="button" variant="ghost">
-              閉じる
-            </Button>
-          </DrawerClose>
-        </div>
-      </DrawerContent>
-    </Drawer>
+  return isNarrow ? (
+    <CartHeaderDrawer cart={cart} />
+  ) : (
+    <CartHeaderToggle count={cart.lines.length} />
   );
 }

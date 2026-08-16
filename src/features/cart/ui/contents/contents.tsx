@@ -4,7 +4,6 @@ import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_SIZE } from "@/components/design-system/action/button/button.definition";
 import { ScrollArea } from "@/components/design-system/container/scroll-area/scroll-area";
 import type { Cart } from "@/model/cart/cart";
-import { formatMoney } from "@/model/money";
 
 import { CART_PATH } from "../../paths";
 import { CartCheckoutLink } from "../checkout-link/checkout-link";
@@ -12,6 +11,7 @@ import { CartClearButton } from "../clear-button/clear-button";
 import { CartLineList } from "../line-list/line-list";
 import { CartLineRow } from "../line-row/line-row";
 import { CartRemovalNoticeList } from "../removal-notice/removal-notice";
+import { CartSubtotal } from "../subtotal/subtotal";
 
 /** `CartContents` の props。 */
 export type CartContentsProps = {
@@ -50,10 +50,7 @@ export function CartContents({ cart }: CartContentsProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <p className="flex items-baseline justify-between gap-2">
-        <span className="text-muted-foreground text-sm">小計</span>
-        <strong className="text-lg">{formatMoney(cart.subtotalAmount)}</strong>
-      </p>
+      <CartSubtotal amount={cart.subtotalAmount} size="compact" />
 
       <div className="grid gap-2">
         <CartCheckoutLink cart={cart} size={BUTTON_SIZE.SMALL} />
