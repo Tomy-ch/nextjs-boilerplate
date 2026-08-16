@@ -40,6 +40,7 @@ async function takeOverGuestState(): Promise<void> {
     );
   }
 }
+// sample:end
 
 /**
  * 認可コードを受け取り、session を確立して元の画面へ戻す。
