@@ -38,7 +38,6 @@ function NotifyButton({
   );
 }
 
-/** 器が配っている並びを出す。 */
 function DisplayedOrderProbe() {
   return <p data-testid="displayed">{useDisplayedOrder().join(",")}</p>;
 }
@@ -50,7 +49,6 @@ function OrderProbe() {
   return <p data-testid="order">{(notice?.order ?? []).join(",")}</p>;
 }
 
-/** いま戻せる明細を出す。 */
 function PendingProbe({ present }: { present: readonly string[] }) {
   const pending = usePendingRemovals(present);
 

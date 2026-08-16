@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { BUTTON_SIZE } from "@/components/design-system/action/button/button.definition";
 
@@ -38,5 +39,11 @@ describe("CartCheckoutLink", () => {
     render(<CartCheckoutLink cart={CART} />);
 
     expect(screen.getByRole("link", { name: "購入手続きへ" })).toHaveClass("h-10");
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<CartCheckoutLink cart={CART} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

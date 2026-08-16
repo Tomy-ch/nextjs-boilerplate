@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 vi.mock("../../actions", () => ({
   clearCartAction: vi.fn(),
@@ -84,5 +85,11 @@ describe("CartContents", () => {
     await user.click(screen.getByRole("button", { name: "取り除いたことにする" }));
 
     expect(screen.getByRole("status")).toHaveTextContent("イヤホン を削除しました");
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<CartContents cart={CART} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

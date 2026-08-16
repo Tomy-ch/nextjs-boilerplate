@@ -3,6 +3,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 vi.mock("../../actions", () => ({
   clearCartAction: vi.fn(),
@@ -72,5 +73,15 @@ describe("CartHeaderDrawer", () => {
     await user.click(within(dialog).getByRole("button", { name: "閉じる" }));
 
     expect(useCartStore.getState().isOpen).toBe(false);
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    useCartStore.setState({ isOpen: true });
+
+    const { baseElement } = render(<CartHeaderDrawer cart={CART} />);
+
+    await screen.findByRole("dialog");
+
+    expect((await axe(baseElement)).violations).toEqual([]);
   });
 });

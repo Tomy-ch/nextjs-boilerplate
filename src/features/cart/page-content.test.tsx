@@ -3,7 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAppError } from "@/errors/app-error";
+import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
 const { getMyCart } = vi.hoisted(() => ({ getMyCart: vi.fn() }));
@@ -42,6 +42,8 @@ describe("CartPageContent", () => {
   it("取得に失敗したとき、握り潰さず境界へ渡す", async () => {
     getMyCart.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 
-    await expect(CartPageContent()).rejects.toThrow();
+    await expect(CartPageContent()).rejects.toSatisfy(
+      (error: unknown) => findAppError(error)?.kind === ErrorKind.UNAVAILABLE,
+    );
   });
 });

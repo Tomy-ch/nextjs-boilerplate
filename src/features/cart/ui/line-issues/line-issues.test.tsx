@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { CartLineIssues } from "./line-issues";
 
@@ -15,7 +16,7 @@ describe("CartLineIssues", () => {
   it("在庫が足りないとき、今買える数を添えて伝える", () => {
     render(<CartLineIssues availableQuantity={2} issues={["insufficientStock"]} />);
 
-    expect(screen.getByText(/2/)).toBeVisible();
+    expect(screen.getByText("在庫が 2 個までです。")).toBeVisible();
   });
 
   it("同時に立った事情を、畳まずに並べる", () => {
@@ -46,5 +47,13 @@ describe("CartLineIssues", () => {
     render(<CartLineIssues availableQuantity={null} issues={["priceIncreased"]} />);
 
     expect(screen.getByText("小計には含めていません。")).toBeVisible();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(
+      <CartLineIssues availableQuantity={2} issues={["insufficientStock"]} />,
+    );
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

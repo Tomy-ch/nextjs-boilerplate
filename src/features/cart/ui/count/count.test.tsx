@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { CartCount } from "./count";
 
@@ -17,5 +18,11 @@ describe("CartCount", () => {
 
     expect(screen.queryByText("0")).not.toBeInTheDocument();
     expect(screen.getByText("カート")).toBeVisible();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<CartCount count={3} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

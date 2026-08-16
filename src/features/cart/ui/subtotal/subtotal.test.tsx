@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { CartSubtotal } from "./subtotal";
 
@@ -29,5 +30,11 @@ describe("CartSubtotal", () => {
     render(<CartSubtotal amount={100} size="compact" />);
 
     expect(screen.getByText("$1.00")).toHaveClass("text-lg");
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<CartSubtotal amount={18897} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

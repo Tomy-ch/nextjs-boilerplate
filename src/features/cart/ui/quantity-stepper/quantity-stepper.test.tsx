@@ -5,6 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
+import { CART_ITEM_MAX_QUANTITY } from "@/adapters/client/api/cart";
+
 import { type ActionState, failedActionState, succeededActionState } from "@/model/action-state";
 
 const { setCartItemQuantityAction } = vi.hoisted(() => ({
@@ -66,10 +68,28 @@ describe("CartQuantityStepper", () => {
     expect(screen.getByRole("button", { name: "イヤホン を 1 つ増やす" })).toBeDisabled();
   });
 
-  it("上限を渡さないとき、契約の上限まで増やせる", () => {
-    render(<CartQuantityStepper label="イヤホン" productId={PRODUCT_ID} quantity={99} />);
+  it("上限を渡さないとき、契約の上限で頭打ちにする", () => {
+    render(
+      <CartQuantityStepper
+        label="イヤホン"
+        productId={PRODUCT_ID}
+        quantity={CART_ITEM_MAX_QUANTITY}
+      />,
+    );
 
     expect(screen.getByRole("button", { name: "イヤホン を 1 つ増やす" })).toBeDisabled();
+  });
+
+  it("契約の上限の 1 つ手前までは増やせる", () => {
+    render(
+      <CartQuantityStepper
+        label="イヤホン"
+        productId={PRODUCT_ID}
+        quantity={CART_ITEM_MAX_QUANTITY - 1}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "イヤホン を 1 つ増やす" })).toBeEnabled();
   });
 
   it("送信中はどちらの向きも押せなくする", async () => {

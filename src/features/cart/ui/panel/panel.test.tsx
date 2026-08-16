@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 vi.mock("../../actions", () => ({
   clearCartAction: vi.fn(),
@@ -85,5 +86,11 @@ describe("CartPanel", () => {
 
     expect(screen.getByRole("complementary", { name: "カート" })).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent("イヤホン を削除しました");
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<CartPanel cart={CART} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { CartDockHandle } from "./dock-handle";
 
@@ -31,5 +32,11 @@ describe("CartDockHandle", () => {
     await user.click(screen.getByRole("button"));
 
     expect(onToggle).toHaveBeenCalledOnce();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<CartDockHandle onToggle={vi.fn()} shown={false} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

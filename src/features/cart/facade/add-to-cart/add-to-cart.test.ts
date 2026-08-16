@@ -18,6 +18,9 @@ import { addToCartAction } from "./add-to-cart";
 
 const PRODUCT_ID = "0195f0c2-0000-7000-8000-000000000001";
 
+/** 送信された内容を解けなかったときの文言。実装が持つリテラルと同じでなければならない。 */
+const MALFORMED_MESSAGE = "操作を受け付けられませんでした。画面を読み込み直してください。";
+
 const emptyCart: Cart = { lines: [], subtotalAmount: 0 };
 
 /** 送信された内容を組み立てる。 */
@@ -76,14 +79,14 @@ describe("addToCartAction", () => {
     const state = await addToCartAction(idleActionState(), formOf({}));
 
     expect(getMyCart).not.toHaveBeenCalled();
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({ status: "error", formError: MALFORMED_MESSAGE });
   });
 
   it("商品を指す値が空のとき、読まずに文言を返す", async () => {
     const state = await addToCartAction(idleActionState(), formOf({ productId: "" }));
 
     expect(getMyCart).not.toHaveBeenCalled();
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({ status: "error", formError: MALFORMED_MESSAGE });
   });
 
   it("文字列でない値が届いたとき、読まずに文言を返す", async () => {
@@ -93,7 +96,7 @@ describe("addToCartAction", () => {
     );
 
     expect(getMyCart).not.toHaveBeenCalled();
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({ status: "error", formError: MALFORMED_MESSAGE });
   });
 
   it("現在の数量を読めなかったとき、送らずに文言を返す", async () => {
@@ -102,7 +105,10 @@ describe("addToCartAction", () => {
     const state = await addToCartAction(idleActionState(), formOf({ productId: PRODUCT_ID }));
 
     expect(setMyCartItem).not.toHaveBeenCalled();
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({
+      status: "error",
+      formError: "現在サービスを利用できません。しばらくしてから再試行してください。",
+    });
   });
 
   it("設定が拒まれたとき、取り直させずに文言を返す", async () => {
@@ -111,6 +117,6 @@ describe("addToCartAction", () => {
     const state = await addToCartAction(idleActionState(), formOf({ productId: PRODUCT_ID }));
 
     expect(revalidatePath).not.toHaveBeenCalled();
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({ status: "error", formError: "入力内容が正しくありません。" });
   });
 });

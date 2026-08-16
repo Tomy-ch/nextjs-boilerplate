@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { ScrollDirection } from "../../use-scroll-direction";
 
@@ -89,5 +90,15 @@ describe("CartSummaryDock", () => {
     );
 
     expect(dock(container)).toHaveClass("lg:hidden");
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(
+      <CartSummaryDock>
+        <p>小計</p>
+      </CartSummaryDock>,
+    );
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

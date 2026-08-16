@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
 
@@ -48,5 +49,16 @@ describe("CartActionError", () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(
+      <CartActionError
+        state={failedActionState({ formError: "現在サービスを利用できません。" })}
+        title="数量を変更できませんでした"
+      />,
+    );
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

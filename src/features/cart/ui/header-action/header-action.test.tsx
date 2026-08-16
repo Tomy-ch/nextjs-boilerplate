@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 vi.mock("../../actions", () => ({
   clearCartAction: vi.fn(),
@@ -58,5 +59,11 @@ describe("CartHeaderAction", () => {
     render(<CartHeaderAction cart={CART} />);
 
     expect(useMediaQuery).toHaveBeenCalledWith(mediaBelow("lg"));
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<CartHeaderAction cart={CART} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

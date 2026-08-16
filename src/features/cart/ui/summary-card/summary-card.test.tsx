@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { CART, CART_WITHOUT_PURCHASABLE } from "../../cart.fixture";
 import { CartSummaryCard } from "./summary-card";
@@ -32,5 +33,11 @@ describe("CartSummaryCard", () => {
 
     expect(screen.getByText(/今すぐ買える商品がありません/)).toBeVisible();
     expect(screen.getByRole("button", { name: "購入手続きへ" })).toBeDisabled();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<CartSummaryCard cart={CART} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

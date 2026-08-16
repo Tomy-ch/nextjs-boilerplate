@@ -13,7 +13,6 @@ vi.mock("../../actions", () => ({ clearCartAction }));
 
 import { CartClearButton } from "./clear-button";
 
-/** 確認 dialog を開く。 */
 async function open(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "カートを空にする" }));
 

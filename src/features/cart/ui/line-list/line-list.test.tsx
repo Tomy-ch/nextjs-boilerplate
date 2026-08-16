@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { succeededActionState } from "@/model/action-state";
 
@@ -168,5 +169,15 @@ describe("CartLineList", () => {
     await user.click(screen.getByRole("button", { name: "イヤホンを取り除く" }));
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(
+      <CartRemovalNoticeProvider>
+        <CartLineList slots={[slotOf(EARPHONE), slotOf(KEYBOARD)]} />
+      </CartRemovalNoticeProvider>,
+    );
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

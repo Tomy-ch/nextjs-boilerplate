@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { useCartStore } from "@/stores/cart-store";
 
@@ -56,5 +57,11 @@ describe("CartHeaderToggle", () => {
     await user.click(screen.getByRole("button"));
 
     expect(useCartStore.getState().isOpen).toBe(false);
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<CartHeaderToggle count={2} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

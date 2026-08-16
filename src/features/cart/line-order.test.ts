@@ -24,11 +24,11 @@ describe("toCartLineOrder", () => {
     expect(toCartLineOrder(["a", "b", "c"], ["a", "c"], new Set())).toEqual(["a", "c"]);
   });
 
-  // ----- 異常系 -----
   it("いま並んでいる明細が 1 件も無くても、戻せる明細は位置を保つ", () => {
     expect(toCartLineOrder(["a", "b"], [], new Set(["a", "b"]))).toEqual(["a", "b"]);
   });
 
+  // ----- 異常系 -----
   it("覚えている並びに無い明細だけが残ったとき、いまの順を返す", () => {
     expect(toCartLineOrder(["a"], ["y", "z"], new Set())).toEqual(["y", "z"]);
   });
