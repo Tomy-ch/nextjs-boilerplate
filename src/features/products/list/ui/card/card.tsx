@@ -81,7 +81,7 @@ export function ProductCard({ item, leading = false }: ProductCardProps) {
               <span className="text-muted-foreground text-sm">在庫 {item.quantity}</span>
             </div>
             <div className="relative">
-              <AddToCartButton compact productId={item.id} stockQuantity={item.quantity} />
+              <AddToCartButton placement="list" productId={item.id} stockQuantity={item.quantity} />
             </div>
           </div>
         </div>

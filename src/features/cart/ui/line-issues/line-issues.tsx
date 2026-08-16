@@ -33,7 +33,7 @@ export function CartLineIssues({ issues, availableQuantity }: CartLineIssuesProp
   }
 
   return (
-    <ul className="flex flex-col gap-0.5" data-slot="cart-line-issues">
+    <ul className="flex flex-col gap-0.5">
       {issues.map((issue) => {
         const notice = cartIssueNotice(issue, availableQuantity);
 

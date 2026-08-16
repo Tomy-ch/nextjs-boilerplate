@@ -46,7 +46,7 @@ export function CartLineList({ slots, className }: CartLineListProps) {
 
   return (
     <CartDisplayedOrder order={present}>
-      <ul className={cn("flex flex-col divide-y", className)} data-slot="cart-line-list">
+      <ul className={cn("flex flex-col divide-y", className)}>
         {sequence.map((productId) => {
           const row = rows.get(productId);
 

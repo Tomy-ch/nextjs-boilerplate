@@ -39,7 +39,6 @@ export function CartSummaryDock({ children }: CartSummaryDockProps) {
         // 隠すときはつまみの高さ（h-6 = 1.5rem）だけを残して器ごと下げる。
         shown ? "translate-y-0" : "translate-y-[calc(100%-1.5rem)]",
       )}
-      data-slot="cart-summary-dock"
     >
       <CartDockHandle onToggle={toggle} shown={shown} />
       <div

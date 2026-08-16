@@ -18,13 +18,13 @@ export type AddToCartButtonProps = {
   /** 在庫数。0 なら押せない。 */
   stockQuantity: number;
   /**
-   * 一覧の 1 件に添える形で出すか。
+   * どこに置かれるか。
    *
-   * 既定は画面の主操作としての形で、幅を占めて大きく出す。一覧では 1 件ぶんの枠に他の情報と
-   * 並ぶため、内容の幅に収める。小さくしすぎないのは、一覧でも指で押す対象であることが
+   * `detail` は画面の主操作として幅を占めて大きく出す。`list` は 1 件ぶんの枠に他の情報と
+   * 並ぶため内容の幅に収める。小さくしすぎないのは、一覧でも指で押す対象であることが
    * 変わらないためで、`size` は既定より下げない。
    */
-  compact?: boolean;
+  placement?: "detail" | "list";
 };
 
 const LABEL = "カートに追加";
@@ -39,7 +39,7 @@ const PENDING_LABEL = "追加しています…";
  *
  * `useFormStatus` は form の子でしか状態を読めないため、別の部品に切り出しています。
  */
-function AddSubmit({ disabled, compact }: { disabled: boolean; compact: boolean }) {
+function AddSubmit({ disabled, placement }: { disabled: boolean; placement: "detail" | "list" }) {
   const { pending } = useFormStatus();
   const setOpen = useCartStore((state) => state.setOpen);
   const open = useCallback(() => setOpen(true), [setOpen]);
@@ -47,10 +47,10 @@ function AddSubmit({ disabled, compact }: { disabled: boolean; compact: boolean 
 
   return (
     <Button
-      className={compact ? undefined : "w-full lg:w-auto"}
+      className={placement === "list" ? undefined : "w-full lg:w-auto"}
       disabled={disabled || pending}
       onClick={open}
-      size={compact ? "default" : "lg"}
+      size={placement === "list" ? "default" : "lg"}
       type="submit"
     >
       <ShoppingCartIcon aria-hidden="true" className="size-4" />
@@ -75,7 +75,7 @@ function AddSubmit({ disabled, compact }: { disabled: boolean; compact: boolean 
 export function AddToCartButton({
   productId,
   stockQuantity,
-  compact = false,
+  placement = "detail",
 }: AddToCartButtonProps) {
   const [state, formAction] = useActionState<ActionState<void>, FormData>(
     addToCartAction,
@@ -83,9 +83,9 @@ export function AddToCartButton({
   );
 
   return (
-    <form action={formAction} className={compact ? undefined : "w-full lg:w-auto"}>
+    <form action={formAction} className={placement === "list" ? undefined : "w-full lg:w-auto"}>
       <input name="productId" type="hidden" value={productId} />
-      <AddSubmit compact={compact} disabled={stockQuantity <= 0} />
+      <AddSubmit disabled={stockQuantity <= 0} placement={placement} />
       {state.status === "error" && state.formError !== null ? (
         <FormFeedback
           description={state.formError}

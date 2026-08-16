@@ -30,6 +30,10 @@ export type CartRemovalNoticeProps = {
  * が持ちます。
  *
  * 戻すのは数量の設定です。取り除いた時点の数量をそのまま入れ直すため、専用の口を持ちません。
+ *
+ * 操作の名前に商品名を含めます。案内は同時に複数並ぶため、文言だけではどれを戻す操作かを
+ * 区別できません（[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md) の
+ * 「1 つの操作に 1 つの role」）。
  */
 export function CartRemovalNotice({ removed }: CartRemovalNoticeProps) {
   const [, formAction] = useActionState<CartActionState, FormData>(
@@ -40,14 +44,18 @@ export function CartRemovalNotice({ removed }: CartRemovalNoticeProps) {
   return (
     <div
       className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
-      data-slot="cart-removal-notice"
       role="status"
     >
       <p className="min-w-0 text-sm">{`${removed.name} を削除しました`}</p>
       <form action={formAction}>
         <input name="productId" type="hidden" value={removed.productId} />
         <input name="quantity" type="hidden" value={removed.quantity} />
-        <Button size="sm" type="submit" variant="outline">
+        <Button
+          aria-label={`${removed.name} をカートに戻す`}
+          size="sm"
+          type="submit"
+          variant="outline"
+        >
           <Undo2Icon aria-hidden="true" className="size-4" />
           カートに戻す
         </Button>

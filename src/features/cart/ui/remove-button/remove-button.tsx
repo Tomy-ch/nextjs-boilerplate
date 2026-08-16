@@ -68,7 +68,7 @@ export function CartRemoveButton({ productId, label, quantity }: CartRemoveButto
   );
 
   return (
-    <div className="flex flex-col gap-1" data-slot="cart-remove-button">
+    <div className="flex flex-col gap-1">
       <form action={formAction}>
         <input name="productId" type="hidden" value={productId} />
         <RemoveSubmit label={label} onSubmit={announce} />

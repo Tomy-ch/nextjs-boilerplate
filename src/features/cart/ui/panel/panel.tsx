@@ -46,11 +46,7 @@ export function CartPanel({ cart }: CartPanelProps) {
   }
 
   return (
-    <aside
-      aria-label="カート"
-      className="hidden lg:block lg:w-72 lg:shrink-0 lg:border-l"
-      data-slot="cart-panel"
-    >
+    <aside aria-label="カート" className="hidden lg:block lg:w-72 lg:shrink-0 lg:border-l">
       <div className="sticky top-14 flex max-h-[calc(100dvh-3.5rem)] flex-col gap-3 p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="font-medium text-sm">カート</p>

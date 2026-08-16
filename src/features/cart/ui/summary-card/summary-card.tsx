@@ -27,7 +27,7 @@ export function CartSummaryCard({ cart }: CartSummaryCardProps) {
   const purchasable = canCheckout(cart);
 
   return (
-    <div className="flex flex-col gap-4" data-slot="cart-summary-card">
+    <div className="flex flex-col gap-4">
       <CartSubtotal amount={cart.subtotalAmount} />
       <div className="flex flex-col gap-1 text-muted-foreground text-xs">
         <p>買える明細だけを合算した金額です。</p>

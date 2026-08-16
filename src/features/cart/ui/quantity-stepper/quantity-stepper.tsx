@@ -87,7 +87,7 @@ export function CartQuantityStepper({
   );
 
   return (
-    <div className="flex flex-col gap-1" data-slot="cart-quantity-stepper">
+    <div className="flex flex-col gap-1">
       <form action={formAction} className="flex items-center gap-1">
         <input name="productId" type="hidden" value={productId} />
         <StepButton

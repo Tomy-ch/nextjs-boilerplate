@@ -38,7 +38,7 @@ export function CartLineRow({ line }: CartLineRowProps) {
   const label = line.name ?? UNKNOWN_NAME;
 
   return (
-    <li className="flex flex-wrap items-start gap-x-4 gap-y-2 py-4" data-slot="cart-line-row">
+    <li className="flex flex-wrap items-start gap-x-4 gap-y-2 py-4">
       <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
         {line.name === null ? (
           <p className="font-medium text-muted-foreground text-sm">{UNKNOWN_NAME}</p>

@@ -62,7 +62,7 @@ export function CartClearButton() {
   );
 
   return (
-    <div className="flex flex-col gap-2" data-slot="cart-clear-button">
+    <div className="flex flex-col gap-2">
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button className="w-full" size="sm" variant="ghost">

@@ -25,7 +25,7 @@ export type CartSubtotalProps = {
  */
 export function CartSubtotal({ amount, size = "prominent" }: CartSubtotalProps) {
   return (
-    <p className="flex items-baseline justify-between gap-2" data-slot="cart-subtotal">
+    <p className="flex items-baseline justify-between gap-2">
       <span className="text-muted-foreground text-sm">小計</span>
       <strong className={cn(size === "compact" ? "text-lg" : "text-2xl")}>
         {formatMoney(amount)}

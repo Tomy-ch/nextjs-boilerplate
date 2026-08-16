@@ -18,7 +18,7 @@ export type CartCountProps = {
  */
 export function CartCount({ count }: CartCountProps) {
   return (
-    <p className="flex items-center gap-1.5 px-3 py-2 text-sm" data-slot="cart-count">
+    <p className="flex items-center gap-1.5 px-3 py-2 text-sm">
       <ShoppingCartIcon aria-hidden="true" className="size-4" />
       カート
       {count === 0 ? null : (
