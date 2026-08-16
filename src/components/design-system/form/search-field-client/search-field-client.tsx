@@ -1,7 +1,14 @@
 "use client";
 
 import { SearchIcon, XIcon } from "lucide-react";
-import { type ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type SyntheticEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   InputGroup,
@@ -13,6 +20,7 @@ import {
   INPUT_GROUP_ADDON_ALIGN,
   INPUT_GROUP_BUTTON_SIZE,
 } from "../input-group/input-group.definition";
+import { SEARCH_FIELD_COMMIT, type SearchFieldCommit } from "./search-field-client.definition";
 
 /**
  * 入力が止まってから {@link SearchFieldClient} が通知するまでの既定の待ち時間（ミリ秒）。
@@ -31,51 +39,88 @@ export type SearchFieldClientProps = {
    */
   label: string;
   /**
-   * 入力が止まったときに呼ばれる。
+   * 検索語が確定したときに呼ばれる。
    *
-   * 引数は現在の検索語で、消去された場合は空文字列になる。URL の更新、取得、遷移はここで
-   * 呼び出し元が行う。
+   * 引数は現在の検索語で、消去された場合は空文字列になる。いつ確定と見なすかは `commit` が
+   * 決める。URL の更新、取得、遷移はここで呼び出し元が行う。
    */
   onSearch: (value: string) => void;
-  /** 初期表示する検索語。現在の検索条件を反映する場合に、呼び出し元が `searchParams` から渡す。 */
+  /**
+   * 確定と見なす契機。既定は打鍵が止まった時点。
+   *
+   * ほかの条件と一緒にまとめて確定する画面では `submit` を選ぶ。打鍵のたびに確定すると、
+   * 検索語だけが先に効いた中途半端な条件で結果が入れ替わる。
+   */
+  commit?: SearchFieldCommit;
+  /**
+   * 現在の検索語。
+   *
+   * 渡すと制御 component として動き、入力の保持は呼び出し元の責務になる。ほかの条件と同じ
+   * 場所に検索語を持つ画面で使う。渡さなければ内部で保持する。
+   */
+  value?: string;
+  /** 打鍵のたびに呼ばれる。制御 component として使う場合に渡す。 */
+  onValueChange?: (value: string) => void;
+  /** 初期表示する検索語。非制御の場合に使う。 */
   defaultValue?: string;
   /** 入力例を示す補助文。 */
   placeholder?: string;
-  /** 入力が止まってから `onSearch` を呼ぶまでの待ち時間（ミリ秒）。 */
+  /** 入力が止まってから `onSearch` を呼ぶまでの待ち時間（ミリ秒）。`commit` が `typing` のときだけ効く。 */
   debounceMs?: number;
   /** 消去ボタンのアクセシブルな名前。 */
   clearLabel?: string;
+  /** 送信ボタンのラベル。`commit` が `submit` のときだけ出る。 */
+  submitLabel?: string;
+  /**
+   * 送信を押せなくするか。`commit` が `submit` のときだけ効く。
+   *
+   * 押しても結果が変わらないと呼び出し元が判っている場合に渡す。部品の側は「空かどうか」で
+   * 判断しない —— 空の送信が意味を持つか（効いている検索語を外す）は画面が決める。
+   */
+  submitDisabled?: boolean;
   /** 追加の class。 */
   className?: string;
 };
 
 /**
- * 打鍵に追従してキーワード検索を通知する client island。
+ * キーワード検索の入力を保持する client island。
  *
  * @remarks
- * 入力の保持と待ち時間の制御を browser 側で行うため hydration が必要で、Server Component からは
- * 直接 render できない。JavaScript が無くても送信できる形が要る場合や、検索が主導線でない場合は
- * `SearchFieldNative` を選ぶ。
+ * 入力の保持を browser 側で行うため hydration が必要で、Server Component からは直接 render
+ * できない。JavaScript が無くても送信できる形が要る場合は `SearchFieldNative` を選ぶ。
  *
- * 検索の実行、結果の取得、URL の組み立ては持たない。入力が止まると `onSearch` を呼ぶだけで、
- * router の操作も行わない。この分担は `Pagination` と同じで、`components` は URL を解釈しない。
- * 呼び出し元は受け取った検索語を `searchParams` へ載せ、結果は Server Component で描画する。
- * 結果まで client 側で取得すると、共有・履歴・戻る操作が URL と一致しなくなる。
+ * **いつ確定するかは `commit` が決める。** 既定は打鍵が止まった時点で、検索語だけで絞り込みが
+ * 完結し結果がその場に見えている画面向け。ほかの条件と一緒にまとめて確定する画面は `submit` を
+ * 選び、送信の操作でだけ通知させる。
  *
- * `onSearch` は入力が止まってから呼ばれる。参照が変わるたびに待ち時間が測り直されるため、
- * 呼び出し元は `useCallback` などで安定した関数を渡す。
+ * 検索の実行、結果の取得、URL の組み立ては持たない。確定したら `onSearch` を呼ぶだけで、router の
+ * 操作も行わない。この分担は `Pagination` と同じで、`components` は URL を解釈しない。呼び出し元は
+ * 受け取った検索語を `searchParams` へ載せ、結果は Server Component で描画する。結果まで client 側で
+ * 取得すると、共有・履歴・戻る操作が URL と一致しなくなる。
+ *
+ * `commit` が `typing` のとき、`onSearch` は入力が止まってから呼ばれる。参照が変わるたびに待ち時間が
+ * 測り直されるため、呼び出し元は `useCallback` などで安定した関数を渡す。
+ *
+ * `value` を渡すと制御 component として動く。ほかの条件と同じ場所に検索語を持つ画面では、消去や
+ * 一括解除で外から値が変わるため、内部に持つと画面の条件と入力欄が食い違う。
  *
  * HTML の `search` 要素で囲むため、支援技術の landmark 一覧から到達できる。同じ画面に検索欄を
  * 複数置く場合は、`aria-label` で landmark を区別する。
  *
  * @example
  * ```tsx
- * const handleSearch = useCallback(
- *   (value: string) => router.replace(value ? `?q=${encodeURIComponent(value)}` : "?"),
- *   [router],
- * );
- *
+ * // 打鍵に追従する（既定）
  * <SearchFieldClient label="項目を検索" onSearch={handleSearch} />
+ *
+ * // ほかの条件と一緒に確定する
+ * <SearchFieldClient
+ *   commit={SEARCH_FIELD_COMMIT.SUBMIT}
+ *   label="項目を検索"
+ *   onSearch={handleSearch}
+ *   onValueChange={setKeyword}
+ *   submitDisabled={keyword === "" && applied === ""}
+ *   value={keyword}
+ * />
  * ```
  *
  * @see Storybook `Form/SearchFieldClient`
@@ -83,17 +128,38 @@ export type SearchFieldClientProps = {
 export function SearchFieldClient({
   className,
   clearLabel = "検索語を消去",
+  commit = SEARCH_FIELD_COMMIT.TYPING,
   debounceMs = SEARCH_FIELD_DEBOUNCE_MS,
   defaultValue = "",
   label,
   onSearch,
+  onValueChange,
   placeholder,
+  submitDisabled = false,
+  submitLabel = "検索",
+  value: controlled,
 }: SearchFieldClientProps) {
-  const [value, setValue] = useState(defaultValue);
+  const [internal, setInternal] = useState(defaultValue);
   const inputRef = useRef<HTMLInputElement>(null);
   const isFirstRender = useRef(true);
+  const value = controlled ?? internal;
+
+  const change = useCallback(
+    (next: string) => {
+      if (controlled === undefined) {
+        setInternal(next);
+      }
+
+      onValueChange?.(next);
+    },
+    [controlled, onValueChange],
+  );
 
   useEffect(() => {
+    if (commit !== SEARCH_FIELD_COMMIT.TYPING) {
+      return;
+    }
+
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
@@ -102,47 +168,78 @@ export function SearchFieldClient({
     const timer = setTimeout(() => onSearch(value), debounceMs);
 
     return () => clearTimeout(timer);
-  }, [debounceMs, onSearch, value]);
+  }, [commit, debounceMs, onSearch, value]);
 
   const clear = useCallback(() => {
-    setValue("");
+    change("");
     inputRef.current?.focus();
-  }, []);
+  }, [change]);
 
   const handleChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => setValue(event.target.value),
-    [],
+    (event: ChangeEvent<HTMLInputElement>) => change(event.target.value),
+    [change],
+  );
+
+  const handleSubmit = useCallback(
+    (event: SyntheticEvent<HTMLFormElement>) => {
+      // 既定の送信は画面ごと再読み込みする。確定の通知だけを行い、その後どうするかは呼び出し元が決める。
+      event.preventDefault();
+      onSearch(value);
+    },
+    [onSearch, value],
+  );
+
+  const field = (
+    <InputGroup>
+      <InputGroupAddon>
+        <SearchIcon aria-hidden="true" />
+      </InputGroupAddon>
+      <InputGroupInput
+        aria-label={label}
+        data-slot="search-field-input"
+        onChange={handleChange}
+        placeholder={placeholder}
+        ref={inputRef}
+        type="search"
+        value={value}
+      />
+      {value ? (
+        <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
+          <InputGroupButton
+            aria-label={clearLabel}
+            data-slot="search-field-clear"
+            onClick={clear}
+            size={INPUT_GROUP_BUTTON_SIZE.ICON_EXTRA_SMALL}
+            type="button"
+          >
+            <XIcon aria-hidden="true" />
+          </InputGroupButton>
+        </InputGroupAddon>
+      ) : null}
+      {commit === SEARCH_FIELD_COMMIT.SUBMIT ? (
+        <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
+          <InputGroupButton
+            data-slot="search-field-submit"
+            disabled={submitDisabled}
+            size={INPUT_GROUP_BUTTON_SIZE.EXTRA_SMALL}
+            type="submit"
+          >
+            {submitLabel}
+          </InputGroupButton>
+        </InputGroupAddon>
+      ) : null}
+    </InputGroup>
   );
 
   return (
     <search className={className} data-slot="search-field">
-      <InputGroup>
-        <InputGroupAddon>
-          <SearchIcon aria-hidden="true" />
-        </InputGroupAddon>
-        <InputGroupInput
-          aria-label={label}
-          data-slot="search-field-input"
-          onChange={handleChange}
-          placeholder={placeholder}
-          ref={inputRef}
-          type="search"
-          value={value}
-        />
-        {value ? (
-          <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
-            <InputGroupButton
-              aria-label={clearLabel}
-              data-slot="search-field-clear"
-              onClick={clear}
-              size={INPUT_GROUP_BUTTON_SIZE.ICON_EXTRA_SMALL}
-              type="button"
-            >
-              <XIcon aria-hidden="true" />
-            </InputGroupButton>
-          </InputGroupAddon>
-        ) : null}
-      </InputGroup>
+      {commit === SEARCH_FIELD_COMMIT.SUBMIT ? (
+        <form data-slot="search-field-form" onSubmit={handleSubmit}>
+          {field}
+        </form>
+      ) : (
+        field
+      )}
     </search>
   );
 }

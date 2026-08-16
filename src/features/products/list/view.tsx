@@ -2,23 +2,19 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
-import { SearchFieldNative } from "@/components/design-system/form/search-field-native/search-field-native";
 import {
   FilterBar,
   FilterBarActiveFilters,
   FilterBarControls,
   FilterChip,
 } from "@/components/patterns/filter-bar/filter-bar";
-import {
-  FILTER_KEY,
-  PRODUCT_LIST_PATH,
-  type ProductListSelection,
-  toConditions,
-} from "../facade/list-url/list-url";
+import { PRODUCT_LIST_PATH, type ProductListSelection } from "../facade/list-url/list-url";
 import { toActiveFilters } from "./active-filters";
+import { ProductFilterDraftProvider } from "./filter-draft";
 import type { FilterOption } from "./query";
 import { ProductFilterSheet } from "./ui/filter-sheet/filter-sheet";
 import { ProductFilterSidebar } from "./ui/filter-sidebar/filter-sidebar";
+import { ProductKeywordField } from "./ui/keyword-field/keyword-field";
 import { ProductSortSelect } from "./ui/sort-select/sort-select";
 
 /** `ProductListView` の props。 */
@@ -32,28 +28,6 @@ export type ProductListViewProps = {
   /** 一覧本体。取得の仕方で差し替えられるよう外から受け取る。 */
   children: ReactNode;
 };
-
-/**
- * 検索が引き継ぐ条件。
- *
- * @remarks
- * GET の form は送信時に URL の query をすべて捨てるため、絞り込みと並び替えを hidden で
- * 復元します。キーワードは入力欄そのものが持つので除きます。読み進めた位置は
- * {@link toConditions} が落とします。検索し直した後の「続き」は前の条件の続きだからです。
- *
- */
-function toCarriedParams(selection: ProductListSelection): ProductListSelection {
-  const { [FILTER_KEY.KEYWORD]: _keyword, ...carried } = toConditions(selection);
-
-  return carried;
-}
-
-/** 入力欄に戻すキーワード。複数回現れた場合は条件として読めないため、空として扱う。 */
-function toKeyword(selection: ProductListSelection): string {
-  const keyword = selection[FILTER_KEY.KEYWORD];
-
-  return typeof keyword === "string" ? keyword : "";
-}
 
 /**
  * 商品一覧の画面。
@@ -72,8 +46,9 @@ function toKeyword(selection: ProductListSelection): string {
  * 位置が動き、同じ場所を狙って押せません。下端で揃えるのは、chip が複数行になったときに操作だけが
  * 上に浮かないようにするためです。
  *
- * 検索欄は hydration を必要としない形にしてあります。打鍵ごとに反映する必要が無く、送信結果は
- * URL に載るため、島にしても得るものがありません。
+ * **確定の操作は複数あっても、確定するものは 1 つです。** キーワードの入力欄と絞り込みの入力欄は
+ * 画面の別の場所にあり、幅によって後者は脇にも overlay にも現れます。組み立て中の条件を 1 つに
+ * 保つ供給でこの部分木を包み、どの操作から確定しても同じ条件が飛ぶようにしてあります。
  *
  * 絞り込みの入力欄を 2 つ置き、CSS の段で出し分けます。位置が動く出し分けを JS の幅判定で行うと、
  * サーバでは判定できないため hydration の前後で配置が動きます
@@ -92,48 +67,42 @@ export function ProductListView({
   const activeFilters = toActiveFilters(categories, selection);
 
   return (
-    <div className="space-y-6">
-      <FilterBar label="商品の検索と絞り込み">
-        <FilterBarControls className="justify-between">
-          <SearchFieldNative
-            action={PRODUCT_LIST_PATH}
-            className="max-w-xs flex-1"
-            defaultValue={toKeyword(selection)}
-            hiddenParams={toCarriedParams(selection)}
-            label="商品名で探す"
-            name={FILTER_KEY.KEYWORD}
-            placeholder="商品名で探す"
-          />
-          <ProductSortSelect options={sortOptions} selection={selection} />
-        </FilterBarControls>
-        <div className="flex items-end justify-between gap-4">
-          <FilterBarActiveFilters className="min-w-0 flex-1">
-            {activeFilters.map((filter) => (
-              <FilterChip
-                key={filter.key}
-                label={filter.label}
-                removeHref={filter.removeHref}
-                value={filter.value}
-              />
-            ))}
-          </FilterBarActiveFilters>
-          {/* 1 件しか効いていないときは、その chip の解除と行き先が同じになる。 */}
-          {activeFilters.length > 1 ? (
-            <Button asChild className="shrink-0" size="sm" variant="ghost">
-              <Link href={PRODUCT_LIST_PATH}>条件をすべて解除</Link>
-            </Button>
-          ) : null}
+    <ProductFilterDraftProvider selection={selection}>
+      <div className="space-y-6">
+        <FilterBar label="商品の検索と絞り込み">
+          <FilterBarControls className="justify-between">
+            <ProductKeywordField selection={selection} />
+            <ProductSortSelect options={sortOptions} selection={selection} />
+          </FilterBarControls>
+          <div className="flex items-end justify-between gap-4">
+            <FilterBarActiveFilters className="min-w-0 flex-1">
+              {activeFilters.map((filter) => (
+                <FilterChip
+                  key={filter.key}
+                  label={filter.label}
+                  removeHref={filter.removeHref}
+                  value={filter.value}
+                />
+              ))}
+            </FilterBarActiveFilters>
+            {/* 1 件しか効いていないときは、その chip の解除と行き先が同じになる。 */}
+            {activeFilters.length > 1 ? (
+              <Button asChild className="shrink-0" size="sm" variant="ghost">
+                <Link href={PRODUCT_LIST_PATH}>条件をすべて解除</Link>
+              </Button>
+            ) : null}
+          </div>
+        </FilterBar>
+        <div className="flex gap-8">
+          <aside aria-label="絞り込み条件" className="hidden w-64 shrink-0 lg:block">
+            <ProductFilterSidebar categories={categories} />
+          </aside>
+          <div className="min-w-0 flex-1">{children}</div>
         </div>
-      </FilterBar>
-      <div className="flex gap-8">
-        <aside aria-label="絞り込み条件" className="hidden w-64 shrink-0 lg:block">
-          <ProductFilterSidebar categories={categories} selection={selection} />
-        </aside>
-        <div className="min-w-0 flex-1">{children}</div>
+        <div className="lg:hidden">
+          <ProductFilterSheet categories={categories} selection={selection} />
+        </div>
       </div>
-      <div className="lg:hidden">
-        <ProductFilterSheet categories={categories} selection={selection} />
-      </div>
-    </div>
+    </ProductFilterDraftProvider>
   );
 }

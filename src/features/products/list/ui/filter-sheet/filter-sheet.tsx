@@ -21,10 +21,10 @@ import {
   type ProductListSelection,
   toSelectedValues,
 } from "../../../facade/list-url/list-url";
+import { useProductFilterDraft } from "../../filter-draft";
 import { PRICE_RANGE_MAX, PRICE_RANGE_MIN, toPriceRange } from "../../price-range";
 import type { FilterOption } from "../../query";
 import { STOCK_AVAILABILITY, toStockAvailability } from "../../stock-availability";
-import { useFilterDraft } from "../../use-filter-draft";
 import { useFilteredCount } from "../../use-filtered-count";
 import { ProductFilterFields } from "../filter-fields/filter-fields";
 
@@ -54,27 +54,17 @@ function countActive(selection: ProductListSelection): number {
  * 確定の仕方は脇に常設する側と同じです。**違うのは、条件を組んでいる間に一覧が見えないこと
  * だけ**なので、確定の操作を overlay の下端へ置き、開いている間の件数もそこへ出します。
  *
- * 開くたびに下書きを一覧の状態へ戻します。閉じたときの中途半端な選択が次に開いたとき残っていると、
- * 表示されている一覧と入力欄の内容が食い違います。
+ * **開くときに下書きを捨てません。** 下書きは画面で 1 つで、閉じている間もキーワードの入力欄が
+ * その一部を見せています。ここで戻すと、打ち込んだ検索語まで一緒に消えます。一覧に効いている条件が
+ * 変われば下書きはそちらへ揃うので、確定した後に古い選択が残ることはありません。
  *
  * 開く操作を画面下端に固定するのは、一覧を読み進めた先でも絞り込みへ戻れるようにするためです
  * （[0051](../../../../../../docs/adr/0051-styling-system.md) §2）。
  */
 export function ProductFilterSheet({ categories, selection }: ProductFilterSheetProps) {
   const [open, setOpen] = useState(false);
-  const { draft, change, clear, apply } = useFilterDraft(selection);
+  const { draft, change, clear, apply } = useProductFilterDraft();
   const { count } = useFilteredCount(draft);
-
-  const changeOpen = useCallback(
-    (next: boolean) => {
-      if (next) {
-        change(selection);
-      }
-
-      setOpen(next);
-    },
-    [change, selection],
-  );
 
   const confirm = useCallback(() => {
     setOpen(false);
@@ -82,7 +72,7 @@ export function ProductFilterSheet({ categories, selection }: ProductFilterSheet
   }, [apply]);
 
   return (
-    <Sheet onOpenChange={changeOpen} open={open}>
+    <Sheet onOpenChange={setOpen} open={open}>
       <ActionBar position={ACTION_BAR_POSITION.FIXED}>
         <SheetTrigger asChild>
           <FilterBarTrigger className="w-full" count={countActive(selection)} />
