@@ -5,13 +5,13 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import type { ScrollDirection } from "../../use-scroll-direction";
+import type { ScrollDirection } from "@/capabilities/use-scroll-direction";
 
 const { useScrollDirection } = vi.hoisted(() => ({
   useScrollDirection: vi.fn<() => ScrollDirection>(),
 }));
 
-vi.mock("../../use-scroll-direction", () => ({ useScrollDirection }));
+vi.mock("@/capabilities/use-scroll-direction", () => ({ useScrollDirection }));
 
 import { CartSummaryDock } from "./summary-dock";
 

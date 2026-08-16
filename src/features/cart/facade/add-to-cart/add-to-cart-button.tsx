@@ -40,9 +40,12 @@ const PENDING_LABEL = "カートに追加しています";
  *
  * `useFormStatus` は form の子でしか状態を読めないため、別の部品に切り出しています。
  *
- * **送信中は絵柄だけを差し替え、文言は据え置きます。** 文言を「追加しています…」へ変えると
- * 幅が伸び、一覧では隣の値までまとめて動きます。送信中であることは spinner が示し、支援技術へは
- * その名前が伝えます。
+ * **送信中は絵柄だけを差し替え、見えている文言は据え置きます。** 文言を「追加しています…」へ
+ * 変えると幅が伸び、一覧では隣の値までまとめて動きます。
+ *
+ * 支援技術へは操作そのものの名前で伝えます。`Spinner` は button の中では装飾で、状態を伝えるのは
+ * 周囲の文言だと部品の側が決めているためです。名前は見えている文言で始まるので、その文言で呼び
+ * かける音声操作からも届きます。
  */
 function AddSubmit({ disabled, placement }: { disabled: boolean; placement: "detail" | "list" }) {
   const { pending } = useFormStatus();
@@ -51,6 +54,7 @@ function AddSubmit({ disabled, placement }: { disabled: boolean; placement: "det
 
   return (
     <Button
+      aria-label={pending ? PENDING_LABEL : undefined}
       className={placement === "list" ? undefined : "w-full lg:w-auto"}
       disabled={disabled || pending}
       onClick={open}
@@ -58,7 +62,7 @@ function AddSubmit({ disabled, placement }: { disabled: boolean; placement: "det
       type="submit"
     >
       {pending ? (
-        <Spinner className="size-4" label={PENDING_LABEL} />
+        <Spinner className="size-4" />
       ) : (
         <ShoppingCartIcon aria-hidden="true" className="size-4" />
       )}

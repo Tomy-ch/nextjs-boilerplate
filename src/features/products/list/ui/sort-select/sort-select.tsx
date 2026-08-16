@@ -5,7 +5,11 @@ import { type ChangeEvent, useCallback, useId, useTransition } from "react";
 
 import { Label } from "@/components/design-system/form/label/label";
 import { SelectNative } from "@/components/design-system/form/select-native/select-native";
-import { FILTER_KEY, toProductListHref } from "../../../facade/list-url/list-url";
+import {
+  FILTER_KEY,
+  type ProductListSelection,
+  toProductListHref,
+} from "../../../facade/list-url/list-url";
 import type { FilterOption } from "../../query";
 
 /** `ProductSortSelect` の props。 */
@@ -13,8 +17,15 @@ export type ProductSortSelectProps = {
   /** 選べる並び順。 */
   options: readonly FilterOption[];
   /** いま効いている条件。並び替え以外もそのまま引き継ぐ。 */
-  selection: Readonly<Record<string, string>>;
+  selection: ProductListSelection;
 };
+
+/** いま効いている並び順。複数回現れた場合は並び順として読めないため、既定として扱う。 */
+function toSort(selection: ProductListSelection): string {
+  const sort = selection[FILTER_KEY.SORT];
+
+  return typeof sort === "string" ? sort : "";
+}
 
 /**
  * 一覧の並び替え。
@@ -48,12 +59,7 @@ export function ProductSortSelect({ options, selection }: ProductSortSelectProps
       <Label className="shrink-0" htmlFor={fieldId}>
         並び替え
       </Label>
-      <SelectNative
-        disabled={pending}
-        id={fieldId}
-        onChange={change}
-        value={selection[FILTER_KEY.SORT] ?? ""}
-      >
+      <SelectNative disabled={pending} id={fieldId} onChange={change} value={toSort(selection)}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
