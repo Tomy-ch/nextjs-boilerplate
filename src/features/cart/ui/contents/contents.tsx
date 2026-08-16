@@ -10,7 +10,7 @@ import { CART_PATH, CHECKOUT_PATH } from "../../paths";
 import { CartClearButton } from "../clear-button/clear-button";
 import { CartLineList } from "../line-list/line-list";
 import { CartLineRow } from "../line-row/line-row";
-import { CartRemovalNotice } from "../removal-notice/removal-notice";
+import { CartRemovalNoticeList } from "../removal-notice/removal-notice";
 
 /** `CartContents` の props。 */
 export type CartContentsProps = {
@@ -41,7 +41,7 @@ export function CartContents({ cart }: CartContentsProps) {
   if (cart.lines.length === 0) {
     return (
       <div className="flex flex-col gap-3">
-        <CartRemovalNotice presentProductIds={presentProductIds} />
+        <CartRemovalNoticeList presentProductIds={presentProductIds} />
         <p className="text-muted-foreground text-sm">カートに商品が入っていません。</p>
       </div>
     );

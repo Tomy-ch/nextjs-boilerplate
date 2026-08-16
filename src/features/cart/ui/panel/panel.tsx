@@ -8,7 +8,7 @@ import type { Cart } from "@/model/cart/cart";
 import { useCartStore } from "@/stores/cart-store";
 
 import { CartContents } from "../contents/contents";
-import { useHasPendingRemoval } from "../removal-notice/removal-notice";
+import { usePendingRemovals } from "../removal-notice/removal-notice";
 
 /** `CartPanel` の props。 */
 export type CartPanelProps = {
@@ -40,9 +40,9 @@ export function CartPanel({ cart }: CartPanelProps) {
   const isOpen = useCartStore((state) => state.isOpen);
   const setOpen = useCartStore((state) => state.setOpen);
   const close = useCallback(() => setOpen(false), [setOpen]);
-  const hasPendingRemoval = useHasPendingRemoval(cart.lines.map((line) => line.productId));
+  const pendingRemovals = usePendingRemovals(cart.lines.map((line) => line.productId));
 
-  if ((cart.lines.length === 0 && !hasPendingRemoval) || !isOpen) {
+  if ((cart.lines.length === 0 && pendingRemovals.length === 0) || !isOpen) {
     return null;
   }
 

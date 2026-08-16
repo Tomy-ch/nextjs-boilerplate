@@ -6,7 +6,7 @@ import type { Cart } from "@/model/cart/cart";
 import { CartClearButton } from "./ui/clear-button/clear-button";
 import { CartLineList } from "./ui/line-list/line-list";
 import { CartLineRow } from "./ui/line-row/line-row";
-import { CartRemovalNotice } from "./ui/removal-notice/removal-notice";
+import { CartRemovalNoticeList } from "./ui/removal-notice/removal-notice";
 import { CartSummaryCard } from "./ui/summary-card/summary-card";
 import { CartSummaryDock } from "./ui/summary-dock/summary-dock";
 
@@ -38,7 +38,7 @@ export function CartView({ cart }: CartViewProps) {
   if (cart.lines.length === 0) {
     return (
       <div className="flex flex-col items-start gap-4 py-8">
-        <CartRemovalNotice presentProductIds={presentProductIds} />
+        <CartRemovalNoticeList presentProductIds={presentProductIds} />
         <p className="text-muted-foreground">カートに商品が入っていません。</p>
         <Button asChild variant="outline">
           <Link href={PRODUCTS_PATH}>商品を探す</Link>
