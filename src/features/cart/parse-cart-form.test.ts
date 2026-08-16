@@ -44,6 +44,18 @@ describe("readQuantity", () => {
   });
 
   // ----- 異常系 -----
+  it("項目が無いとき null を返す", () => {
+    expect(readQuantity(formOf({}))).toBeNull();
+  });
+
+  it("空文字のとき null を返す", () => {
+    expect(readQuantity(formOf({ quantity: "" }))).toBeNull();
+  });
+
+  it("空白だけのとき null を返す", () => {
+    expect(readQuantity(formOf({ quantity: "   " }))).toBeNull();
+  });
+
   it("整数として読めないとき null を返す", () => {
     expect(readQuantity(formOf({ quantity: "いくつか" }))).toBeNull();
   });

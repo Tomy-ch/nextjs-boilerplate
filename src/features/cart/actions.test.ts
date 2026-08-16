@@ -18,6 +18,9 @@ import { clearCartAction, removeCartItemAction, setCartItemQuantityAction } from
 
 const PRODUCT_ID = "0195f0c2-0000-7000-8000-000000000001";
 
+/** 送信された内容を解けなかったときの文言。実装が持つリテラルと同じでなければならない。 */
+const MALFORMED_MESSAGE = "操作を受け付けられませんでした。画面を読み込み直してください。";
+
 /** 送信された内容を組み立てる。 */
 function formOf(entries: Readonly<Record<string, string>>): FormData {
   const formData = new FormData();
@@ -59,7 +62,17 @@ describe("setCartItemQuantityAction", () => {
     const state = await setCartItemQuantityAction(idleActionState(), formOf({ quantity: "1" }));
 
     expect(setMyCartItem).not.toHaveBeenCalled();
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({ status: "error", formError: MALFORMED_MESSAGE });
+  });
+
+  it("数量の項目が無いとき、送らずに文言を返す", async () => {
+    const state = await setCartItemQuantityAction(
+      idleActionState(),
+      formOf({ productId: PRODUCT_ID }),
+    );
+
+    expect(setMyCartItem).not.toHaveBeenCalled();
+    expect(state).toMatchObject({ status: "error", formError: MALFORMED_MESSAGE });
   });
 
   it("数量が整数として読めないとき、送らずに文言を返す", async () => {
@@ -69,7 +82,7 @@ describe("setCartItemQuantityAction", () => {
     );
 
     expect(setMyCartItem).not.toHaveBeenCalled();
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({ status: "error", formError: MALFORMED_MESSAGE });
   });
 
   it("バックエンドが拒んだとき、分類に応じた文言を返し取り直させない", async () => {
@@ -80,7 +93,7 @@ describe("setCartItemQuantityAction", () => {
       formOf({ productId: PRODUCT_ID, quantity: "1" }),
     );
 
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({ status: "error", formError: "入力内容が正しくありません。" });
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });
@@ -100,7 +113,7 @@ describe("removeCartItemAction", () => {
     const state = await removeCartItemAction(idleActionState(), formOf({}));
 
     expect(removeMyCartItem).not.toHaveBeenCalled();
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({ status: "error", formError: MALFORMED_MESSAGE });
   });
 
   it("バックエンドが落ちたとき文言を返す", async () => {
@@ -108,7 +121,10 @@ describe("removeCartItemAction", () => {
 
     const state = await removeCartItemAction(idleActionState(), formOf({ productId: PRODUCT_ID }));
 
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({
+      status: "error",
+      formError: "現在サービスを利用できません。しばらくしてから再試行してください。",
+    });
   });
 });
 
@@ -128,6 +144,9 @@ describe("clearCartAction", () => {
 
     const state = await clearCartAction(idleActionState(), formOf({}));
 
-    expect(state).toMatchObject({ status: "error", formError: expect.any(String) });
+    expect(state).toMatchObject({
+      status: "error",
+      formError: "問題が発生しました。時間をおいて再試行してください。",
+    });
   });
 });
