@@ -4,6 +4,7 @@ import { Button } from "@/components/design-system/action/button/button";
 import type { Cart } from "@/model/cart/cart";
 
 import { CartClearButton } from "./ui/clear-button/clear-button";
+import { CartLineList } from "./ui/line-list/line-list";
 import { CartLineRow } from "./ui/line-row/line-row";
 import { CartRemovalNotice } from "./ui/removal-notice/removal-notice";
 import { CartSummaryCard } from "./ui/summary-card/summary-card";
@@ -50,12 +51,13 @@ export function CartView({ cart }: CartViewProps) {
     <>
       <div className="flex flex-col gap-8 pb-24 lg:flex-row lg:items-start lg:pb-0">
         <section aria-label="カートの明細" className="flex min-w-0 flex-1 flex-col gap-4">
-          <CartRemovalNotice presentProductIds={presentProductIds} />
-          <ul className="flex flex-col divide-y border-y">
-            {cart.lines.map((line) => (
-              <CartLineRow key={line.productId} line={line} />
+          <CartLineList
+            className="border-y"
+            presentProductIds={presentProductIds}
+            rows={cart.lines.map((line, index) => (
+              <CartLineRow index={index} key={line.productId} line={line} />
             ))}
-          </ul>
+          />
           <div className="flex justify-end">
             <CartClearButton />
           </div>

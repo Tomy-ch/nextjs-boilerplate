@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
-import { EARPHONE_LINE, WATCH_LINE } from "../../cart.fixture";
+import { EARPHONE_LINE, INSUFFICIENT_LINE, WATCH_LINE } from "../../cart.fixture";
+import { CartLineList } from "../line-list/line-list";
 import { CartLineRow } from "../line-row/line-row";
 import { CartRemovalNotice, CartRemovalNoticeProvider } from "./removal-notice";
+
+const LINES = [EARPHONE_LINE, WATCH_LINE, INSUFFICIENT_LINE];
 
 const meta = {
   title: "Features/Cart/RemovalNotice",
@@ -13,23 +16,20 @@ const meta = {
     docs: {
       description: {
         component: [
-          "1 行を取り除いた直後に、戻せることを伝える表示です。**取り除いた行はその瞬間に消える**ため、",
-          "覚えておく場所を行の外に置いています。",
+          "1 行を取り除いた直後に、戻せることを伝える表示です。**消えた行と同じ位置に出ます** —— ",
+          "押した場所と案内の出る場所がずれると、どの行が消えたのかを目で辿り直すことになります。",
+          "覚えておく場所は行の外（カートの器より外）にあります。取り除いた行はその瞬間に消えるためです。",
           "**明細がまだカートに居るなら出しません** —— 削除が通らなかった場合と、戻した直後がこれに当たります。",
           "カートを空にする操作では出しません（確認を挟んでいるため）。",
         ].join(""),
       },
     },
   },
+  args: { presentProductIds: LINES.map((line) => line.productId) },
   decorators: [
     (Story) => (
       <CartRemovalNoticeProvider>
-        <div className="flex flex-col gap-3">
-          <Story />
-          <ul className="flex flex-col divide-y border-y">
-            <CartLineRow line={EARPHONE_LINE} />
-          </ul>
-        </div>
+        <Story />
       </CartRemovalNoticeProvider>
     ),
   ],
@@ -38,31 +38,50 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** まだ何も取り除いていない状態。何も出さない。 */
+/** まだ何も取り除いていない状態。明細だけが並ぶ。 */
 export const Idle: Story = {
-  args: { presentProductIds: [EARPHONE_LINE.productId] },
+  render: (args) => (
+    <CartLineList
+      presentProductIds={args.presentProductIds}
+      rows={LINES.map((line, index) => (
+        <CartLineRow index={index} key={line.productId} line={line} />
+      ))}
+    />
+  ),
 };
 
 /**
- * 取り除いた直後。
+ * 真ん中の行を取り除いた直後。案内が消えた行の位置に出る。
  *
- * カタログでは削除そのものは通らないため、既にカートから消えている商品を指した状態で出しています。
+ * カタログには送信先が無いため、押した行はその場に残り、削除の失敗もあわせて出ます。実物では行が
+ * 消えて案内に差し替わります。
  */
 export const AfterRemoval: Story = {
-  args: { presentProductIds: [EARPHONE_LINE.productId] },
+  ...Idle,
+  args: {
+    presentProductIds: LINES.filter((line) => line !== WATCH_LINE).map((line) => line.productId),
+  },
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement).getByRole("button", { name: `${WATCH_LINE.name} を削除する` }),
     );
   },
+};
+
+/** 明細が 1 つも無くなった場合。案内だけが単独で出る。 */
+export const WithoutLines: Story = {
+  args: { presentProductIds: [] },
+  render: (args) => <CartRemovalNotice presentProductIds={args.presentProductIds} />,
+  play: AfterRemoval.play,
   decorators: [
     (Story) => (
       <CartRemovalNoticeProvider>
         <div className="flex flex-col gap-3">
+          <CartLineList
+            presentProductIds={[]}
+            rows={[<CartLineRow index={0} key={WATCH_LINE.productId} line={WATCH_LINE} />]}
+          />
           <Story />
-          <ul className="flex flex-col divide-y border-y">
-            <CartLineRow line={WATCH_LINE} />
-          </ul>
         </div>
       </CartRemovalNoticeProvider>
     ),

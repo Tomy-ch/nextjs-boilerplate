@@ -19,6 +19,8 @@ export type CartRemoveButtonProps = {
   label: string;
   /** 取り除く時点の数量。取り消しはこの数量で入れ直す。 */
   quantity: number;
+  /** 取り除く時点で何番目にあったか。取り消しはこの位置へ出る。 */
+  index: number;
 };
 
 /** 送信中は押せなくする実行部。`useFormStatus` は form の子でしか状態を読めない。 */
@@ -53,15 +55,15 @@ function RemoveSubmit({ label, onSubmit }: { label: string; onSubmit: () => void
  * 買えない明細にも出します。公開が止まった商品こそ取り除きたく、契約もこの操作だけは商品の
  * 状態を問いません。
  */
-export function CartRemoveButton({ productId, label, quantity }: CartRemoveButtonProps) {
+export function CartRemoveButton({ productId, label, quantity, index }: CartRemoveButtonProps) {
   const notice = useCartRemovalNotice();
   const [state, formAction] = useActionState<CartActionState, FormData>(
     removeCartItemAction,
     idleActionState(),
   );
   const announce = useCallback(
-    () => notice?.notify({ productId, name: label, quantity }),
-    [notice, productId, label, quantity],
+    () => notice?.notify({ productId, name: label, quantity, index }),
+    [notice, productId, label, quantity, index],
   );
 
   return (

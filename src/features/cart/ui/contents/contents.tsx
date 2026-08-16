@@ -8,6 +8,7 @@ import { formatMoney } from "@/model/money";
 import { isPurchasable } from "../../issue-notice";
 import { CART_PATH, CHECKOUT_PATH } from "../../paths";
 import { CartClearButton } from "../clear-button/clear-button";
+import { CartLineList } from "../line-list/line-list";
 import { CartLineRow } from "../line-row/line-row";
 import { CartRemovalNotice } from "../removal-notice/removal-notice";
 
@@ -68,14 +69,13 @@ export function CartContents({ cart }: CartContentsProps) {
         </Button>
       </div>
 
-      <CartRemovalNotice presentProductIds={presentProductIds} />
-
       <ScrollArea aria-label="カートの明細" className="min-h-0 flex-1">
-        <ul className="flex flex-col divide-y">
-          {cart.lines.map((line) => (
-            <CartLineRow key={line.productId} line={line} />
+        <CartLineList
+          presentProductIds={presentProductIds}
+          rows={cart.lines.map((line, index) => (
+            <CartLineRow index={index} key={line.productId} line={line} />
           ))}
-        </ul>
+        />
       </ScrollArea>
 
       <CartClearButton />
