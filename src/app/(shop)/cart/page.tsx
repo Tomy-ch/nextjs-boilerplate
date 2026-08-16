@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
@@ -7,6 +8,7 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { CartPageContent } from "@/features/cart/page-content";
+import { CartSkeleton } from "@/features/cart/ui/skeleton/skeleton";
 
 export const metadata: Metadata = {
   title: "カート",
@@ -22,9 +24,6 @@ export const metadata: Metadata = {
  *
  * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
  * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
- *
- * **待機の境界を置いていません。** 境界の内側が client 側で解決されず、待機表示のまま止まる
- * 不具合が出ているためです（`#250`）。原因が判るまでは、取得を待ってから画面ごと返します。
  */
 export default function CartPage() {
   return (
@@ -37,7 +36,9 @@ export default function CartPage() {
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <CartPageContent />
+      <Suspense fallback={<CartSkeleton />}>
+        <CartPageContent />
+      </Suspense>
     </ContentContainer>
   );
 }
