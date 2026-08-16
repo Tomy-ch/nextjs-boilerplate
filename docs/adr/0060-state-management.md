@@ -37,6 +37,22 @@ AGENTS.md の `[TODO]`(BACKLOG B5)は、Server state(TanStack Query 等)/ Client
 - zod スキーマは**二層に分離**する([0062](0062-form-input-validation.md) の二層分離が権威)。client の `zodResolver` に食わせるのは **`model` の手書き表示検証スキーマ**(UX 用フィールド規則の SSOT。wire contract ではない)であり、同一の表示検証スキーマは Server Action 側の再検証でも共有できる(検証ルール・型の一元化はこの層で成立)。一方 **server との契約検証は `adapters` 境界の生成スキーマ**([0072](0072-api-type-generation.md) / [0071](0071-bff-api-integration.md))が担い、生成 wire スキーマを resolver へ直接食わせない
 - 入力状態の手法を混在させない。複数フィールド・バリデーション・エラー表示を伴うフォームは react-hook-form(client 入力状態・検証)に寄せ、ごく単純な単一入力は素の uncontrolled(`<form>` + `FormData`)のままでよい。**いずれの場合も送信そのものは [0061](0061-form-mutation-ux.md) の `<form action>` + `useActionState`(Server Actions 機構)に合流**させ、rhf で送信機構を置換して二重化しない(rhf を使う場合も `FormData` は `<form action>` 経由で Server Action へ直送)
 
+### server で処理するか client で処理するかの線引き
+
+Server Actions と Server Component fetch を既定に置くのは、**画面側で面倒を見る処理をサーバへ肩代わりさせる**ためである。したがって、サーバへ寄せることがかえって処理を増やす場合、それは client の関心である。判定は難易度の感覚ではなく、次の 1 点で行う。
+
+**その情報をサーバが持っているか。**
+
+- **状態を変える操作はサーバ**。結果の正はバックエンドが持つ([0061](0061-form-mutation-ux.md) / [0070](0070-backend-role-separation.md))
+- **表示に要るデータの取得もサーバ**。client は写しを持たない(本 ADR の既定 / [0023](0023-stores-kernel.md))
+- **画面が今どう見えているかは client**。サーバが知らず、知る必要もないもの
+
+**線を越えた合図は、サーバの応答から画面の直前の姿を組み立て直す必要が出たときである。** 組み立て直しの手掛かりはサーバが一度も持っておらず、client が最初から知っている。手掛かりを client 側で番号や順序として持ち回り始めたら、それは server 主導で書けない処理を server 主導で書いている。
+
+逆向きの越境もある。**client へ持たせた時点で再取得・無効化・購読といった鮮度の管理が要るものは server の関心**であり、降ろしてはならない([0023](0023-stores-kernel.md) の 3 条件)。
+
+この線引きは、変更の経路と参照の経路を分ける設計と同じ発想である。**どちらにも属さない「画面の見え方」を、そのどちらかへ混ぜない。**
+
 ### 横断 client 状態 = Zustand(家は `stores` カーネル)
 
 - **真に横断する(複数 feature が共有する)client 状態のみ Zustand ストアへ昇格**し、家は [0023](0023-stores-kernel.md) の **`stores` カーネル** とする([0021](0021-frontend-responsibility.md) 昇格ルールの 5 つ目の出口)

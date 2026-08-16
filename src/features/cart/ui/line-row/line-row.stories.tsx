@@ -31,7 +31,6 @@ const meta = {
       </ul>
     ),
   ],
-  args: { index: 0 },
 } satisfies Meta<typeof CartLineRow>;
 
 export default meta;

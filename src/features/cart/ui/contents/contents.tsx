@@ -71,10 +71,10 @@ export function CartContents({ cart }: CartContentsProps) {
 
       <ScrollArea aria-label="カートの明細" className="min-h-0 flex-1">
         <CartLineList
-          presentProductIds={presentProductIds}
-          rows={cart.lines.map((line, index) => (
-            <CartLineRow index={index} key={line.productId} line={line} />
-          ))}
+          slots={cart.lines.map((line) => ({
+            productId: line.productId,
+            row: <CartLineRow key={line.productId} line={line} />,
+          }))}
         />
       </ScrollArea>
 

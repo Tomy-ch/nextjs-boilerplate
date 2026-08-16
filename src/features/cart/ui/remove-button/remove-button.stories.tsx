@@ -18,7 +18,6 @@ const meta = {
     },
   },
   args: {
-    index: 0,
     label: EARPHONE_LINE.name ?? "",
     productId: EARPHONE_LINE.productId,
     quantity: EARPHONE_LINE.quantity,

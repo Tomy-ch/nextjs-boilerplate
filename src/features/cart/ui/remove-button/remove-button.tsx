@@ -9,7 +9,7 @@ import { idleActionState } from "@/model/action-state";
 
 import { type CartActionState, removeCartItemAction } from "../../actions";
 import { CartActionError } from "../action-error/action-error";
-import { useCartRemovalNotice } from "../removal-notice/removal-notice";
+import { useCartRemovalNotice, useDisplayedOrder } from "../removal-notice/removal-notice";
 
 /** `CartRemoveButton` の props。 */
 export type CartRemoveButtonProps = {
@@ -19,8 +19,6 @@ export type CartRemoveButtonProps = {
   label: string;
   /** 取り除く時点の数量。取り消しはこの数量で入れ直す。 */
   quantity: number;
-  /** 取り除く時点で何番目にあったか。取り消しはこの位置へ出る。 */
-  index: number;
 };
 
 /** 送信中は押せなくする実行部。`useFormStatus` は form の子でしか状態を読めない。 */
@@ -50,20 +48,23 @@ function RemoveSubmit({ label, onSubmit }: { label: string; onSubmit: () => void
  * 状態は器（`CartRemovalNoticeProvider`）が持ちます。
  *
  * 知らせるのは押した時点で、結果を待ちません。待つと、行が消えてからひと呼吸おいて案内が現れます。
- * 失敗した場合の取り下げは器の側が持ちます（明細が残っているかどうかで決まるため）。
+ * このとき画面が並べていた順も一緒に渡します。**消えた行がどこに居たかを知っているのは画面だけ**で、
+ * サーバの応答からは判りません。失敗した場合の取り下げは器の側が持ちます（明細が残っているかどうかで
+ * 決まるため）。
  *
  * 買えない明細にも出します。公開が止まった商品こそ取り除きたく、契約もこの操作だけは商品の
  * 状態を問いません。
  */
-export function CartRemoveButton({ productId, label, quantity, index }: CartRemoveButtonProps) {
+export function CartRemoveButton({ productId, label, quantity }: CartRemoveButtonProps) {
   const notice = useCartRemovalNotice();
+  const displayedOrder = useDisplayedOrder();
   const [state, formAction] = useActionState<CartActionState, FormData>(
     removeCartItemAction,
     idleActionState(),
   );
   const announce = useCallback(
-    () => notice?.notify({ productId, name: label, quantity, index }),
-    [notice, productId, label, quantity, index],
+    () => notice?.notify({ productId, name: label, quantity }, displayedOrder),
+    [notice, displayedOrder, productId, label, quantity],
   );
 
   return (

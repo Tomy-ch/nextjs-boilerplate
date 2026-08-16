@@ -12,8 +12,6 @@ import { CartRemoveButton } from "../remove-button/remove-button";
 export type CartLineRowProps = {
   /** 表示する明細。 */
   line: CartLine;
-  /** 明細の中で何番目か。取り消しを同じ位置へ戻すために要る。 */
-  index: number;
 };
 
 /** 商品を引けなかった明細に出す名前。 */
@@ -35,7 +33,7 @@ const UNKNOWN_NAME = "取得できない商品";
  * 買えない明細は弱めて見せます。**取り除く操作は弱めません** — 買えない明細に対して利用者が取れる
  * 行動がそれだからです。
  */
-export function CartLineRow({ line, index }: CartLineRowProps) {
+export function CartLineRow({ line }: CartLineRowProps) {
   const blocked = hasBlockingIssue(line);
   const label = line.name ?? UNKNOWN_NAME;
 
@@ -69,12 +67,7 @@ export function CartLineRow({ line, index }: CartLineRowProps) {
           productId={line.productId}
           quantity={line.quantity}
         />
-        <CartRemoveButton
-          index={index}
-          label={label}
-          productId={line.productId}
-          quantity={line.quantity}
-        />
+        <CartRemoveButton label={label} productId={line.productId} quantity={line.quantity} />
       </div>
     </li>
   );

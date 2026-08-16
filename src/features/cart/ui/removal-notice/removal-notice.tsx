@@ -16,32 +16,32 @@ export type RemovedCartLine = {
   name: string;
   /** 取り除いた時点の数量。戻すときはこの数量で入れ直す。 */
   quantity: number;
-  /**
-   * 取り除いた時点で何番目にあったか。
-   *
-   * 案内をその位置へ戻すために要る。押した場所と案内の出る場所がずれると、どの行が消えたのかを
-   * 利用者が目で辿り直すことになる。
-   */
-  index: number;
 };
 
 type RemovalNotice = {
+  /** 取り除いた明細。取り除いた順に並ぶ。 */
   removed: readonly RemovedCartLine[];
-  notify: (line: RemovedCartLine) => void;
+  /** 画面が見せていた並び。取り除いた明細も、消える前に居た場所に残る。 */
+  order: readonly string[];
+  /** 取り除いたことと、そのとき画面が並べていた順を知らせる。 */
+  notify: (line: RemovedCartLine, displayedOrder: readonly string[]) => void;
 };
 
 const RemovalNoticeContext = createContext<RemovalNotice | null>(null);
 
+/** 今まさに画面が並べている順。取り除いた時点の姿を覚えるために読む。 */
+const DisplayedOrderContext = createContext<readonly string[]>([]);
+
 /**
- * 取り除いた明細を覚えておく器。
+ * 取り除いた明細と、画面が見せていた並びを覚えておく器。
  *
  * @remarks
- * 覚える場所が行の外にあるのは、**取り除いた行がその瞬間に消えるため**です。行の中に持つと、
- * 取り消しを出したい相手と一緒に居なくなります。
+ * **どちらもサーバが持たない情報です。** 取り除いた明細はサーバの応答から既に消えており、並びは
+ * 画面の見え方そのものです。サーバの応答から直前の姿を組み立て直すのではなく、見せていた側が
+ * そのまま覚えます（[0060](../../../../../docs/adr/0060-state-management.md) の線引き）。
  *
  * **1 件ずつではなく溜めます。** 続けて 2 件取り除いたときに先の 1 件を忘れると、戻す手段が
- * 消えた側だけ失われます。同じ商品を取り除き直した場合は、古い記録を新しいもので置き換えます
- * （数量も位置も変わっているため）。
+ * 消えた側だけ失われます。同じ商品を取り除き直した場合は、数量が変わっているため古い記録を捨てます。
  *
  * **カートの器よりも外に置きます。** 最後の 1 件を取り除くとカートの表示自体が空の姿へ変わるため、
  * 中身の側に持つとその切り替わりで記憶ごと失われます。
@@ -51,10 +51,23 @@ const RemovalNoticeContext = createContext<RemovalNotice | null>(null);
  */
 export function CartRemovalNoticeProvider({ children }: { children: ReactNode }) {
   const [removed, setRemoved] = useState<readonly RemovedCartLine[]>([]);
-  const notify = useCallback((line: RemovedCartLine) => {
+  const [order, setOrder] = useState<readonly string[]>([]);
+
+  const notify = useCallback((line: RemovedCartLine, displayedOrder: readonly string[]) => {
     setRemoved((current) => [...current.filter((it) => it.productId !== line.productId), line]);
+    setOrder((current) => {
+      // 戻された明細は画面から出ていくため、覚えている並びからも落とす。残すのは今も並んでいるものと、
+      // 取り除いたばかりのものだけ。
+      const kept = current.filter((id) => displayedOrder.includes(id) || id === line.productId);
+
+      return [...kept, ...displayedOrder.filter((id) => !kept.includes(id))];
+    });
   }, []);
-  const value = useMemo<RemovalNotice>(() => ({ removed, notify }), [removed, notify]);
+
+  const value = useMemo<RemovalNotice>(
+    () => ({ removed, order, notify }),
+    [removed, order, notify],
+  );
 
   return <RemovalNoticeContext.Provider value={value}>{children}</RemovalNoticeContext.Provider>;
 }
@@ -70,6 +83,28 @@ export function CartRemovalNoticeProvider({ children }: { children: ReactNode })
  */
 export function useCartRemovalNotice(): RemovalNotice | null {
   return useContext(RemovalNoticeContext);
+}
+
+/**
+ * 今まさに画面が並べている順を配る。
+ *
+ * @remarks
+ * 並びを知っているのは並べている器だけです。行 1 つずつに順を持たせると、行の数だけ同じ一覧を
+ * 運ぶことになります。
+ */
+export function CartDisplayedOrder({
+  order,
+  children,
+}: {
+  order: readonly string[];
+  children: ReactNode;
+}) {
+  return <DisplayedOrderContext.Provider value={order}>{children}</DisplayedOrderContext.Provider>;
+}
+
+/** 今まさに画面が並べている順。器の外では空。 */
+export function useDisplayedOrder(): readonly string[] {
+  return useContext(DisplayedOrderContext);
 }
 
 /**
@@ -152,7 +187,7 @@ export type CartRemovalNoticeListProps = {
  *
  * @remarks
  * 明細が 1 つも無い姿で使います。並べる相手が無いため位置を持てず、取り除いた順に積みます。
- * 明細が残っている場合は `CartLineList` が位置ごとに差し込みます。
+ * 明細が残っている場合は `CartLineList` が並びの中へ差し込みます。
  */
 export function CartRemovalNoticeList({ presentProductIds }: CartRemovalNoticeListProps) {
   const pending = usePendingRemovals(presentProductIds);
