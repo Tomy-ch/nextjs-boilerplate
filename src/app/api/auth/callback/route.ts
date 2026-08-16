@@ -27,13 +27,32 @@ async function takeOverGuestState(): Promise<void> {
       result !== null &&
       (result.clampedProductIds.length > 0 || result.droppedProductIds.length > 0)
     ) {
-      getLogger().info("ゲストのカートの一部を引き継げませんでした", {
-        clamped: result.clampedProductIds.length,
-        dropped: result.droppedProductIds.length,
-      });
+      reportQuietly(() =>
+        getLogger().info("ゲストのカートの一部を引き継げませんでした", {
+          clamped: result.clampedProductIds.length,
+          dropped: result.droppedProductIds.length,
+        }),
+      );
     }
   } catch (cause) {
-    getLogger().warn("ゲストのカートを引き継げませんでした", { cause: String(cause) });
+    reportQuietly(() =>
+      getLogger().warn("ゲストのカートを引き継げませんでした", { cause: String(cause) }),
+    );
+  }
+}
+
+/**
+ * 記録できないことでログインを止めない。
+ *
+ * @remarks
+ * 記録は引き継ぎの失敗を後から辿るための手段で、利用者に見せる結果ではありません。書き出す側が
+ * 落ちるとログイン自体が失敗するため、ここで止めます。
+ */
+function reportQuietly(report: () => void): void {
+  try {
+    report();
+  } catch {
+    // 意図的に握り潰す: 記録の失敗を利用者へ持ち出さない。
   }
 }
 // sample:end
