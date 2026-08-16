@@ -27,7 +27,7 @@ const ITEMS: readonly ProductListItem[] = [item(1), item(2), item(3)];
 
 describe("ProductLoadMoreList", () => {
   beforeEach(() => {
-    useCartStore.setState({ lines: [], isOpen: false });
+    useCartStore.setState({ isOpen: false });
   });
 
   it("読み込み済みの商品を並べる", () => {

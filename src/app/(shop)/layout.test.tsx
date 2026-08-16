@@ -6,100 +6,88 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+vi.mock("@/features/cart/actions", () => ({
+  clearCartAction: vi.fn(),
+  removeCartItemAction: vi.fn(),
+  setCartItemQuantityAction: vi.fn(),
+}));
 
-import { type CartLineInput, useCartStore } from "@/stores/cart-store";
+const { getMyCart, useMediaQuery } = vi.hoisted(() => ({
+  getMyCart: vi.fn(),
+  useMediaQuery: vi.fn<() => boolean>(),
+}));
+
+vi.mock("@/adapters/server/api/cart", () => ({ getMyCart }));
+vi.mock("@/capabilities/use-media-query", () => ({ useMediaQuery }));
+
+import { CART, EMPTY_CART } from "@/features/cart/cart.fixture";
+import { useCartStore } from "@/stores/cart-store";
+
 import ShopLayout from "./layout";
 
-const COFFEE: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-000000000001",
-  name: "深煎りブレンド",
-  price: "12.34",
-  statusName: "公開中",
-  imageUrl: null,
-  stockQuantity: 20,
-};
+/** 外枠を組み立てる。取得は server 側で済むため、await してから描く。 */
+async function renderLayout(children = <p>本文</p>) {
+  return render(await ShopLayout({ children }));
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  getMyCart.mockResolvedValue(CART);
+  useMediaQuery.mockReturnValue(false);
+  useCartStore.setState({ isOpen: true });
+});
 
 describe("ShopLayout", () => {
-  beforeEach(() => {
-    useCartStore.setState({ lines: [], isOpen: false });
-  });
-
-  it("利用者向けの外枠へ子要素を入れる", () => {
-    render(
-      <ShopLayout>
-        <p>テスト用コンテンツ</p>
-      </ShopLayout>,
-    );
+  it("利用者向けの外枠へ子要素を入れる", async () => {
+    await renderLayout(<p>テスト用コンテンツ</p>);
 
     expect(within(screen.getByRole("main")).getByText("テスト用コンテンツ")).toBeVisible();
   });
 
-  it("商品への導線を持つ", () => {
-    render(
-      <ShopLayout>
-        <p>本文</p>
-      </ShopLayout>,
-    );
+  it("商品への導線を持つ", async () => {
+    await renderLayout();
 
     expect(screen.getByRole("link", { name: "商品" })).toHaveAttribute("href", "/products");
   });
 
-  it("カートの入口を header に置く", () => {
-    render(
-      <ShopLayout>
-        <p>本文</p>
-      </ShopLayout>,
-    );
+  it("カートの入口を header に置く", async () => {
+    await renderLayout();
 
     expect(
-      within(screen.getByRole("banner")).getByRole("button", { name: "カートを開く" }),
+      within(screen.getByRole("banner")).getByRole("button", { name: "カートを閉じる" }),
     ).toBeVisible();
   });
 
-  it("カートの中身を本文の脇に置く", () => {
-    useCartStore.getState().add(COFFEE);
-    render(
-      <ShopLayout>
-        <p>本文</p>
-      </ShopLayout>,
-    );
+  it("カートの中身をサーバから取り、本文の脇に置く", async () => {
+    await renderLayout();
+
     const cart = screen.getByRole("complementary", { name: "カート" });
 
-    expect(cart).toBeVisible();
-    expect(within(screen.getByRole("banner")).queryByRole("complementary")).not.toBeInTheDocument();
+    expect(getMyCart).toHaveBeenCalledOnce();
+    expect(within(cart).getByText("小計")).toBeVisible();
   });
 
   it("header の入口と脇の領域が同じ要求を読む", async () => {
-    useCartStore.getState().add(COFFEE);
-    render(
-      <ShopLayout>
-        <p>本文</p>
-      </ShopLayout>,
-    );
+    const user = userEvent.setup();
 
-    await userEvent.click(
+    await renderLayout();
+    await user.click(
       within(screen.getByRole("banner")).getByRole("button", { name: "カートを閉じる" }),
     );
 
-    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    expect(screen.queryByRole("complementary", { name: "カート" })).not.toBeInTheDocument();
   });
 
-  it("カートが空なら脇の領域を出さない", () => {
-    render(
-      <ShopLayout>
-        <p>本文</p>
-      </ShopLayout>,
-    );
+  it("カートが空なら脇の領域を出さない", async () => {
+    getMyCart.mockResolvedValue(EMPTY_CART);
 
-    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    await renderLayout();
+
+    expect(screen.queryByRole("complementary", { name: "カート" })).not.toBeInTheDocument();
   });
 
   it("a11y 違反を持たない", async () => {
-    const { container } = render(
-      <ShopLayout>
-        <p>テスト用コンテンツ</p>
-      </ShopLayout>,
-    );
+    const { container } = await renderLayout(<p>テスト用コンテンツ</p>);
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
