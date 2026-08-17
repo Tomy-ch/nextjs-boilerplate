@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+650e8bb
+ * OpenAPI spec version: 2.2.0+9abecab
  */
 import type { CategoryCodesParamParameter } from "./categoryCodesParamParameter";
 import type { CategoryIdParamParameter } from "./categoryIdParamParameter";
@@ -54,7 +54,8 @@ export type GetProductsParams = {
    */
   statusId?: StatusIdParamParameter;
   /**
-   * 商品カテゴリコードでフィルタします（同じキーの繰り返し）。指定したコードのいずれかに一致する商品を返します。
+   * 商品カテゴリコードでフィルタします（複数指定は同じ名前を繰り返します: `categoryCodes=1&categoryCodes=2`）。
+   * 指定したコードのいずれかに一致する商品を返します。
    * 指定しない場合は全カテゴリを対象とします。存在しないコードは 0 件として扱い、エラーにはしません。
    * コードは商品カテゴリマスタ（GET /v1/products/categories）が返す code で、マスタ行を指す静的な別名です。
    * 非推奨の categoryId と同時に指定した場合は 400 を返します。
@@ -64,7 +65,8 @@ export type GetProductsParams = {
    */
   categoryCodes?: CategoryCodesParamParameter;
   /**
-   * 商品ステータスコードでフィルタします（カンマ区切り）。指定したコードのいずれかに一致する商品を返します。
+   * 商品ステータスコードでフィルタします（複数指定は同じ名前を繰り返します: `statusCodes=1&statusCodes=5`）。
+   * 指定したコードのいずれかに一致する商品を返します。
    * 指定しない場合は全ステータスを対象とします。存在しないコードは 0 件として扱い、エラーにはしません。
    * コードは商品ステータスマスタ（GET /v1/products/statuses）が返す code で、マスタ行を指す静的な別名です。
    * 非推奨の statusId と同時に指定した場合は 400 を返します。

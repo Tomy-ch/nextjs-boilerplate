@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+650e8bb
+ * OpenAPI spec version: 2.2.0+9abecab
  */
 import type {
   AddressCandidatesResponse,
@@ -730,6 +730,15 @@ export const getGetUsersMePurchasesSummaryUrl = (params?: GetUsersMePurchasesSum
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["groupBy"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }
@@ -1223,7 +1232,7 @@ export const getGetProductsUrl = (params?: GetProductsParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    const explodeParameters = ["categoryCodes"];
+    const explodeParameters = ["categoryCodes", "statusCodes"];
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {
@@ -1245,7 +1254,7 @@ export const getGetProductsUrl = (params?: GetProductsParams) => {
 /**
  * 公開済みの商品を cursor ページネーションで取得します。認証不要の公開エンドポイントです。
  * 既定では公開日時の降順（publishedAt DESC, id DESC）で並び、sort=publishedAt で昇順に切り替えられます。
- * categoryCodes / statusCodes でフィルタ（カンマ区切りで複数指定可）、keyword で商品名・説明の部分一致検索ができます。
+ * categoryCodes / statusCodes でフィルタ（同じ名前を繰り返して複数指定可）、keyword で商品名・説明の部分一致検索ができます。
  * categoryId / statusId は非推奨で、後継の categoryCodes / statusCodes と同時に指定すると 400 を返します。
  * minPrice / maxPrice で価格、minQuantity / maxQuantity で在庫数を境界値を含めて範囲検索できます。
  * いずれの範囲も下限が上限を超える場合は 400 を返します。
@@ -1398,7 +1407,7 @@ export const getGetProductsCountUrl = (params?: GetProductsCountParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    const explodeParameters = ["categoryCodes"];
+    const explodeParameters = ["categoryCodes", "statusCodes"];
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {
@@ -3004,7 +3013,7 @@ export const getGetCartsMeUrl = () => {
  * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
  * パスに他者の識別子を持たないため、他人のカートは取得できません。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0019 (optional-authentication-fail-closed)）。
+ * （ADR-0020 (optional-authentication-fail-closed)）。
  * 明細ごとに商品の現在値を突き合わせ、買えないもの・値の変わったものに issues を立てます。
  * 問題のある明細があっても 200 で返します。取得は成功しており、問題があるのは明細であって
  * 要求ではないためで、エラーにすると買える明細が何であったかを利用者に見せられなくなります。
@@ -3084,7 +3093,7 @@ export const getDeleteCartsMeUrl = () => {
  * 期限切れの掃除とログイン時のマージ後の破棄に限り、API としては公開しません。
  * 主体の決まり方は取得（GET）と同じで、両方が提示された場合は認証済みユーザーが優先されます。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0019 (optional-authentication-fail-closed)）。
+ * （ADR-0020 (optional-authentication-fail-closed)）。
  * **既に空のカートを空にしても、カートを持たない主体が呼んでも成功します**。カートを持たない
  * 主体にカートを作ることはなく、提示されたセッショントークンでカートを引けなかった場合も
  * 採番し直しません（応答が本文を持たないため、新しいトークンを返す場所がありません）。
@@ -3175,7 +3184,7 @@ export const getPutCartsMeItemUrl = (productId: string) => {
  * 主体は認証済みユーザー（Bearer トークンの内部 UserID）か、ゲスト（X-Cart-Session ヘッダ）の
  * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0019 (optional-authentication-fail-closed)）。
+ * （ADR-0020 (optional-authentication-fail-closed)）。
  * **カートがまだ無い主体にはこの操作がカートを作ります**。ゲストの場合はセッショントークンを
  * 発行して sessionToken に載せて返すので、以降のリクエストで X-Cart-Session に載せてください。
  * 提示されたトークンでカートを引けなかった場合、その値では作らず新しい値を発行します
@@ -3262,7 +3271,7 @@ export const getDeleteCartsMeItemUrl = (productId: string) => {
  * **対象の明細が無くても成功します**。「無かった」と「消した」を呼び出し側に区別させないため、
  * 404 を持ちません。主体の決まり方は設定（PUT）と同じで、両方が提示された場合は認証済みユーザーが
  * 優先されます。認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0019 (optional-authentication-fail-closed)）。
+ * （ADR-0020 (optional-authentication-fail-closed)）。
  * **カートを持たない主体が呼んでもカートは作りません**。提示されたセッショントークンでカートを
  * 引けなかった場合も採番し直さず、何もせずに成功を返します（応答が本文を持たないため、新しい
  * トークンを返す場所がありません）。
