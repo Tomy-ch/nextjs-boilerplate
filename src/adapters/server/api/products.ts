@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { z } from "zod";
+import type { z } from "zod";
 
 import { getApiConfig } from "@/config/api/api.server";
 import type { CursorPage } from "@/model/pagination";
@@ -19,6 +19,7 @@ import {
   type GetProductsRankingQueryParams,
   GetProductsRankingResponse,
   GetProductsResponse,
+  getProductsQueryCategoryCodesMax,
 } from "../../gen/api/endpoints.zod";
 import { createHttpClient, type HttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
@@ -44,29 +45,32 @@ export const PRODUCT_SORT = {
 type ProductSort = (typeof PRODUCT_SORT)[keyof typeof PRODUCT_SORT];
 
 /**
- * 分類を複数受け取れるようにした取得条件のスキーマ。
+ * 一度に指定できる分類の数。
  *
  * @remarks
- * 制約は生成スキーマの宣言をそのまま持ち出しています。書き写すと、契約が形式を変えたときに
- * ここだけ古い制約で通してしまいます。
+ * 契約の宣言をそのまま持ち出しています。画面が上限を書き写すと、契約が動いたときにそこだけ
+ * 古い数のまま利用者を止めます。契約は重複を許さないため、これは種類の数の上限です。
  */
-// TODO: 契約の categoryId が複数受けになったら、この上書きを外して生成スキーマを直接使う。
-const ProductQueryParams = GetProductsQueryParams.extend({
-  categoryId: z
-    .union([
-      GetProductsQueryParams.shape.categoryId.unwrap(),
-      z.array(GetProductsQueryParams.shape.categoryId.unwrap()),
-    ])
-    .transform((value) => (Array.isArray(value) ? value : [value]))
-    .optional(),
-});
+export const PRODUCT_CATEGORY_LIMIT: number = getProductsQueryCategoryCodesMax;
+
+/**
+ * この面が受け付ける取得条件のスキーマ。
+ *
+ * @remarks
+ * 分類と状態は後継の `categoryCodes` / `statusCodes` だけを受けます。契約は非推奨の
+ * `categoryId` / `statusId` も残していますが、後継と同時に送ると 400 になる関係にあり、
+ * 片方だけを窓口にしないと URL の書き方次第で取得そのものが落ちます。
+ */
+const ProductQueryParams = GetProductsQueryParams.omit({ categoryId: true, statusId: true });
 
 /** 商品一覧の取得条件。契約のクエリと 1 対 1 に対応する。 */
 export type ProductQuery = {
   after?: string;
   first?: number;
-  categoryId?: readonly string[];
-  statusId?: string;
+  /** 分類のコード。マスタ行を指す静的な番号で、UUID ではない。 */
+  categoryCodes?: readonly number[];
+  /** 状態のコード。分類と同じくマスタ行を指す静的な番号。 */
+  statusCodes?: readonly number[];
   keyword?: string;
   /** 最低価格。契約が decimal 文字列で受けるため、数値へ直さず持ち回る。 */
   minPrice?: string;
@@ -96,14 +100,32 @@ export type RawProductQuery = Readonly<Record<string, string | readonly string[]
  */
 const INTEGER_KEYS: readonly string[] = ["first", "minQuantity", "maxQuantity"];
 
-/** 整数で宣言されたキーだけを数値へ直す。 */
+/**
+ * 契約が整数の並びで宣言しているキー。
+ *
+ * @remarks
+ * 1 つだけ選ばれた条件は URL に 1 回しか現れず、素の値としては単一の文字列で届きます。
+ * 並びへ揃えないと、1 つ選んだときだけ契約の宣言に当たって落ちます。
+ *
+ * 契約はこれらを重複の無い並びとして宣言しています。同じ値が 2 度届くのは URL を直接編集した
+ * ときで、指している条件は 1 度のときと同じです。畳んでから照らさないと、意味の同じ条件が
+ * 契約を外れた要求として backend まで届きます。
+ */
+const INTEGER_ARRAY_KEYS: readonly string[] = ["categoryCodes", "statusCodes"];
+
+/** 素の値を、契約が宣言した型へ直す。 */
 function toTypedQuery(raw: RawProductQuery): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(raw).map(([key, value]) => [
-      key,
-      INTEGER_KEYS.includes(key) && typeof value === "string" ? Number(value) : value,
-    ]),
+    Object.entries(raw).map(([key, value]) => [key, toTypedValue(key, value)]),
   );
+}
+
+function toTypedValue(key: string, value: string | readonly string[]): unknown {
+  if (INTEGER_ARRAY_KEYS.includes(key)) {
+    return [...new Set((typeof value === "string" ? [value] : value).map(Number))];
+  }
+
+  return INTEGER_KEYS.includes(key) && typeof value === "string" ? Number(value) : value;
 }
 
 /** URL の検索条件を契約に照らした結果。 */
@@ -156,8 +178,9 @@ function toFilterParams(
   query: ProductQuery,
 ): Record<string, string | readonly string[] | undefined> {
   return {
-    categoryId: query.categoryId,
-    statusId: query.statusId,
+    // 契約は整数の並びで宣言しているが、クエリ文字列に載せる時点で文字列へ戻る。
+    categoryCodes: query.categoryCodes?.map(String),
+    statusCodes: query.statusCodes?.map(String),
     keyword: query.keyword,
     minPrice: query.minPrice,
     maxPrice: query.maxPrice,
@@ -192,7 +215,7 @@ export function toProduct(wire: WireProduct): Product {
     status: { id: wire.status.id, name: wire.status.name },
     category: { id: wire.category.id, name: wire.category.name },
     publishedAt: wire.publishedAt === null ? null : new Date(wire.publishedAt),
-    // 契約が sortKey 昇順で返すため、受け取った順序がそのまま表示の順序になる。
+    // 契約が displaySort 昇順で返すため、受け取った順序がそのまま表示の順序になる。
     imagePaths: wire.images.map((image) => image.imagePath),
   };
 }

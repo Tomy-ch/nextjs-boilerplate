@@ -89,6 +89,23 @@ describe("ProductListResults", () => {
     expect(getProductCount).toHaveBeenCalledTimes(1);
   });
 
+  it("件数が取れなくても一覧は出し、総数だけを落とす", async () => {
+    getProductCount.mockRejectedValue(new Error("count unavailable"));
+
+    render(await ProductListResults({ query: {}, selection: {} }));
+
+    expect(screen.getByRole("link", { name: "ワイヤレスイヤホン" })).toBeVisible();
+    expect(screen.getByText("1 件を表示中")).toBeVisible();
+  });
+
+  it("一覧そのものが取れなければ失敗を通す", async () => {
+    getProductListPage.mockRejectedValue(new Error("list unavailable"));
+
+    await expect(ProductListResults({ query: {}, selection: {} })).rejects.toThrow(
+      "list unavailable",
+    );
+  });
+
   it("読み進めた位置を落とした条件を続きの取得へ渡す", async () => {
     render(
       await ProductListResults({

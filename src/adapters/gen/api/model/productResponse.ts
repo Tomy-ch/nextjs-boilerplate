@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+9abecab
  */
 import type { ProductCategoryRef } from "./productCategoryRef";
 import type { ProductImageItem } from "./productImageItem";
@@ -50,7 +50,7 @@ export interface ProductResponse {
    * @nullable
    */
   publishedAt: string | null;
-  /** 商品画像。sortKey の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。 */
+  /** 商品画像。displaySort の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。 */
   images: ProductImageItem[];
   /** 楽観ロック用のバージョン。更新のたびに 1 つ進みます。 部分更新（PATCH /v1/products/{productId}）へそのまま渡すことで、 読み込み後に他者が更新していた場合の上書き（lost update）を 409 として検出できます。 */
   version: number;

@@ -32,6 +32,8 @@ import { ProductFilterFields } from "../filter-fields/filter-fields";
 export type ProductFilterSheetProps = {
   /** 選べる分類。 */
   categories: readonly FilterOption[];
+  /** 一度に選べる分類の数。 */
+  categoryLimit: number;
   /** いま効いている条件。 */
   selection: ProductListSelection;
 };
@@ -51,8 +53,9 @@ function countActive(selection: ProductListSelection): number {
  * 脇に領域を持てない幅での絞り込み。overlay の中で条件を組み、まとめて確定する。
  *
  * @remarks
- * 確定の仕方は脇に常設する側と同じです。**違うのは、条件を組んでいる間に一覧が見えないこと
- * だけ**なので、確定の操作を overlay の下端へ置き、開いている間の件数もそこへ出します。
+ * **条件を組んでいる間、一覧は overlay の裏に隠れます。** 脇に常設する側と違って選んだ結果が
+ * 見えないので、選んだ時点では反映せず、確定の操作を overlay の下端へ置きます。反映を待たずに
+ * 結果の大きさが分かるよう、開いている間の該当件数もそこへ出します。
  *
  * **開くときに下書きを捨てません。** 下書きは画面で 1 つで、閉じている間もキーワードの入力欄が
  * その一部を見せています。ここで戻すと、打ち込んだ検索語まで一緒に消えます。一覧に効いている条件が
@@ -61,7 +64,11 @@ function countActive(selection: ProductListSelection): number {
  * 開く操作を画面下端に固定するのは、一覧を読み進めた先でも絞り込みへ戻れるようにするためです
  * （[0051](../../../../../../docs/adr/0051-styling-system.md) §2）。
  */
-export function ProductFilterSheet({ categories, selection }: ProductFilterSheetProps) {
+export function ProductFilterSheet({
+  categories,
+  categoryLimit,
+  selection,
+}: ProductFilterSheetProps) {
   const [open, setOpen] = useState(false);
   const { draft, change, clear, apply } = useProductFilterDraft();
   const { count } = useFilteredCount(draft);
@@ -84,7 +91,12 @@ export function ProductFilterSheet({ categories, selection }: ProductFilterSheet
           <SheetDescription>条件を選んでから、下の操作で一覧に反映します。</SheetDescription>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-4">
-          <ProductFilterFields categories={categories} draft={draft} onChange={change} />
+          <ProductFilterFields
+            categories={categories}
+            categoryLimit={categoryLimit}
+            draft={draft}
+            onChange={change}
+          />
         </div>
         <SheetFooter>
           <Button onClick={confirm} type="button">

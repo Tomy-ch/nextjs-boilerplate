@@ -101,9 +101,9 @@ const ITEMS: readonly ProductListItem[] = [
 ];
 
 const CATEGORIES: readonly FilterOption[] = [
-  { value: "c1", label: "オーディオ" },
-  { value: "c2", label: "ウェアラブル" },
-  { value: "c3", label: "アクセサリ" },
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
+  { value: "30", label: "アクセサリ" },
 ];
 
 const SORT_OPTIONS: readonly FilterOption[] = [
@@ -119,8 +119,8 @@ const meta = {
       story: { inline: false, iframeHeight: 900 },
       description: {
         component: [
-          "商品一覧の画面です。**canvas では遷移も取得も起きません** —— 絞り込みの該当件数が空",
-          "なのはそのためで、実際は条件を変えるたびにその場で数が入ります。",
+          "商品一覧の画面です。**canvas では遷移も取得も起きません** —— 絞り込みを選んでも一覧が",
+          "変わらないのはそのためで、実際は選んだ時点でその条件の一覧へ移ります。",
         ].join(""),
       },
     },
@@ -129,6 +129,7 @@ const meta = {
   decorators: [withPageFrame],
   args: {
     categories: CATEGORIES,
+    categoryLimit: 32,
     sortOptions: SORT_OPTIONS,
     selection: {},
     children: <ProductLoadMoreList hasNext items={ITEMS} total={10} />,
@@ -165,7 +166,7 @@ export const Filtered: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
     selection: {
-      [FILTER_KEY.CATEGORY]: ["c1", "c3"],
+      [FILTER_KEY.CATEGORY]: ["10", "30"],
       [FILTER_KEY.MIN_PRICE]: "25",
       [FILTER_KEY.MAX_PRICE]: "250",
       [FILTER_KEY.MIN_QUANTITY]: "1",
@@ -218,8 +219,8 @@ export const ReachedEnd: Story = {
 export const MaxLength: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
-    categories: [{ value: "c1", label: longText(40) }],
-    selection: { [FILTER_KEY.CATEGORY]: ["c1"], [FILTER_KEY.KEYWORD]: longText(60) },
+    categories: [{ value: "10", label: longText(40) }],
+    selection: { [FILTER_KEY.CATEGORY]: ["10"], [FILTER_KEY.KEYWORD]: longText(60) },
     children: (
       <ProductLoadMoreList
         hasNext

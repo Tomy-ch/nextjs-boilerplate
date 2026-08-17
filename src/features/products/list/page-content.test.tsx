@@ -92,7 +92,7 @@ describe("ProductListPageContent", () => {
   });
 
   it("契約を外れた条件では取得へ進まない", async () => {
-    render(await ProductListPageContent({ searchParams: { categoryId: "not-a-uuid" } }));
+    render(await ProductListPageContent({ searchParams: { categoryCodes: "not-a-uuid" } }));
 
     expect(ProductListResults).not.toHaveBeenCalled();
     expect(screen.queryByRole("searchbox", { name: "商品名で探す" })).not.toBeInTheDocument();

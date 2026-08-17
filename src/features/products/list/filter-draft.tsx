@@ -22,12 +22,12 @@ const FIELD_KEYS: readonly string[] = [
 export type FilterDraft = {
   /** いま組み立てている条件。 */
   readonly draft: ProductListSelection;
-  /** 一覧に効いている条件と違うか。 */
-  readonly dirty: boolean;
   /** 反映の取得が終わっていないか。 */
   readonly pending: boolean;
-  /** 条件を差し替える。 */
+  /** 条件を差し替える。一覧はまだ変わらない。 */
   readonly change: (next: ProductListSelection) => void;
+  /** 条件を差し替え、そのまま一覧へ反映する。 */
+  readonly commit: (next: ProductListSelection) => void;
   /** 入力欄が受け持つ条件をすべて外す。 */
   readonly clear: () => void;
   /** 組み立てた条件を一覧へ反映する。 */
@@ -48,8 +48,9 @@ export type ProductFilterDraftProviderProps = {
  * 組み立て中の条件を持ち、画面で 1 つに保つ。
  *
  * @remarks
- * **選んだ時点では一覧を取り直しません。** 条件を 1 つ変えるたびに取得が走ると、3 つ選ぶ間に
- * 捨てられる取得が 2 回起きます。値の範囲を選ぶ操作ではその比ではありません。
+ * **反映の契機を 2 つ持ちます。** 選んだ時点で反映する形と、組み立ててからまとめて反映する形の
+ * どちらを使うかは、置く側が決めます。一覧を見ながら選べる幅では前者、一覧が overlay に隠れる
+ * 幅では後者になります（[画面要件](../../../../docs/spec/route/shop/products/page.screen.md)）。
  *
  * **下書きをそれぞれの入力欄が持つと、片方で確定したときにもう片方の入力途中が捨てられます。**
  * 確定の操作が画面のどこに何個あるかは画面が決めます
@@ -77,9 +78,26 @@ export function ProductFilterDraftProvider({
     setDraft(selection);
   }
 
+  const navigate = useCallback(
+    (next: ProductListSelection) => {
+      startTransition(() => {
+        router.push(toProductListHref(next));
+      });
+    },
+    [router],
+  );
+
   const change = useCallback((next: ProductListSelection) => {
     setDraft(next);
   }, []);
+
+  const commit = useCallback(
+    (next: ProductListSelection) => {
+      setDraft(next);
+      navigate(next);
+    },
+    [navigate],
+  );
 
   const clear = useCallback(() => {
     setDraft((current) => ({
@@ -89,18 +107,16 @@ export function ProductFilterDraftProvider({
   }, []);
 
   const apply = useCallback(() => {
-    startTransition(() => {
-      router.push(toProductListHref(draft));
-    });
-  }, [draft, router]);
+    navigate(draft);
+  }, [draft, navigate]);
 
   return (
     <FilterDraftContext
       value={{
         draft,
-        dirty: toProductListHref(draft) !== appliedHref,
         pending,
         change,
+        commit,
         clear,
         apply,
       }}

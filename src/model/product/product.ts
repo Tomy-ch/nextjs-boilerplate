@@ -7,6 +7,18 @@ export type ProductRef = {
 };
 
 /**
+ * 分類のマスタ 1 件。
+ *
+ * @remarks
+ * 商品に紐づく {@link ProductRef} と分けてあります。マスタだけが `code` を持ち、絞り込みは
+ * この番号で行うためです。商品の側に載る分類は表示のための参照で、番号を持ちません。
+ */
+export type ProductCategory = ProductRef & {
+  /** マスタ行を指す静的な番号。UUID と違い、絞り込みの条件として URL に載せられる。 */
+  code: number;
+};
+
+/**
  * 画面が扱う商品。
  *
  * @remarks
@@ -71,7 +83,7 @@ export type ProductListItem = {
    * 一覧に出す画像の表示 URL。画像が無ければ null。
    *
    * 商品は画像を複数持つが、一覧は 1 件を 1 枚で表すため**先頭の 1 枚だけ**を採る。
-   * どれを代表とするかは契約の順序（`sortKey` 昇順）が決めており、選び直さない。
+   * どれを代表とするかは契約の順序（`displaySort` 昇順）が決めており、選び直さない。
    */
   readonly imageUrl: string | null;
 };

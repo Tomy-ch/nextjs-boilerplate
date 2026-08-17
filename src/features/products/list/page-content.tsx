@@ -1,10 +1,14 @@
 import { Suspense } from "react";
 
 import { getProductCategories } from "@/adapters/server/api/product-masters";
-import { PRODUCT_SORT, parseProductQuery } from "@/adapters/server/api/products";
+import {
+  PRODUCT_CATEGORY_LIMIT,
+  PRODUCT_SORT,
+  parseProductQuery,
+} from "@/adapters/server/api/products";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
-import type { ProductRef } from "@/model/product/product";
+import type { ProductCategory } from "@/model/product/product";
 import { COUNT_KEY, FILTER_KEY, toProductListSearchParams } from "../facade/list-url/list-url";
 import {
   type FilterOption,
@@ -29,9 +33,14 @@ const SORT_OPTIONS: readonly FilterOption[] = [
   { value: PRODUCT_SORT.OLDEST, label: "古い順" },
 ];
 
-/** マスタを選択肢へ直す。 */
-function toOptions(refs: readonly ProductRef[]): readonly FilterOption[] {
-  return refs.map(({ id, name }) => ({ value: id, label: name }));
+/**
+ * 分類のマスタを選択肢へ直す。
+ *
+ * @remarks
+ * 値に `code` を使います。契約が分類の絞り込みで受け取るのは UUID ではなくこの番号です。
+ */
+function toOptions(categories: readonly ProductCategory[]): readonly FilterOption[] {
+  return categories.map(({ code, name }) => ({ value: String(code), label: name }));
 }
 
 /**
@@ -70,7 +79,12 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
       : selection;
 
   return (
-    <ProductListView categories={categories} selection={displayed} sortOptions={SORT_OPTIONS}>
+    <ProductListView
+      categories={categories}
+      categoryLimit={PRODUCT_CATEGORY_LIMIT}
+      selection={displayed}
+      sortOptions={SORT_OPTIONS}
+    >
       <Suspense
         fallback={<ProductListSkeleton />}
         key={toProductListSearchParams(selection).toString()}

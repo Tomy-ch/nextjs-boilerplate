@@ -33,6 +33,10 @@ describe("getProductCategories", () => {
   it("生成ハンドラの応答から表示に使う項目だけを残す", async () => {
     const [category] = await getProductCategories();
 
-    expect(category).toEqual({ id: expect.any(String), name: expect.any(String) });
+    expect(category).toEqual({
+      id: expect.any(String),
+      code: expect.any(Number),
+      name: expect.any(String),
+    });
   });
 });

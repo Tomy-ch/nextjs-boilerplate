@@ -309,12 +309,12 @@ describe("useInfiniteProducts", () => {
     render(
       <Probe
         initial={pageOf(["折りたたみ椅子"], "cursor-1")}
-        query={{ categoryId: ["c1", "c2"] }}
+        query={{ categoryCodes: ["10", "20"] }}
       />,
     );
 
     await clickLoadMore();
 
-    expect(fetchProductListPage.mock.calls[0]?.[0].getAll("categoryId")).toEqual(["c1", "c2"]);
+    expect(fetchProductListPage.mock.calls[0]?.[0].getAll("categoryCodes")).toEqual(["10", "20"]);
   });
 });

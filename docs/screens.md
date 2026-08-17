@@ -36,8 +36,8 @@
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
 | U1 | トップ | `GET /v1/products/ranking` / `GET /v1/products`(新着 sort) / `GET /v1/products/categories` | 売上ランキング・新着商品・カテゴリ導線を並べるだけのトップページ。パーソナライズなし | 3 系統のデータを並置するだけなので RSC 内で並行 fetch(`Promise.all`)で十分 |
-| U2 | 商品一覧 | `GET /v1/products`(`after` / `first` / `categoryId` / `statusId` / `keyword` / `sort`) / `GET /v1/products/categories` | 検索・絞り込み・並び替え付き一覧 | 条件は `searchParams` に載せ、変わるたびに RSC が再取得する。絞り込みは広い段ではサイドバーで選択即時、狭い段では sheet 内でまとめて確定する(並び替えはどちらの段でも即時)。増分取得は無限スクロール方式。`statusId` で絞り込む口は置かない。契約はクエリを受け付けるが、公開商品の可視範囲フィルタが backend 側で未実装で結果が変わらないため |
-| U3 | 商品詳細 | `GET /v1/products/{productId}` / `GET /v1/products`(`categoryId`) | 単一商品の詳細表示。関連商品は一覧 API をカテゴリフィルタで再利用(専用 API なし) | description はリッチテキストなので必ず sanitizer 経由で表示 |
+| U2 | 商品一覧 | `GET /v1/products`(`after` / `first` / `categoryCodes` / `keyword` / `sort`) / `GET /v1/products/categories` | 検索・絞り込み・並び替え付き一覧 | 条件は `searchParams` に載せ、変わるたびに RSC が再取得する。絞り込みは広い段ではサイドバーで選択即時、狭い段では sheet 内でまとめて確定する(並び替えはどちらの段でも即時)。増分取得は無限スクロール方式。状態で絞り込む口は置かない。契約はクエリを受け付けるが、公開商品の可視範囲フィルタが backend 側で未実装で結果が変わらないため |
+| U3 | 商品詳細 | `GET /v1/products/{productId}` / `GET /v1/products`(`categoryCodes`) | 単一商品の詳細表示。関連商品は一覧 API をカテゴリフィルタで再利用(専用 API なし) | description はリッチテキストなので必ず sanitizer 経由で表示 |
 | U4 | カート | `GET /v1/carts/me` / `PUT /v1/carts/me/items/{productId}` / `DELETE /v1/carts/me/items/{productId}` / `DELETE /v1/carts/me` | 商品追加・数量変更・削除・全消し | **リロードで消えない**。数量は加算ではなく設定(upsert)で、自然キーが冪等性を持つため `Idempotency-Key` は要らない。買えない明細・値の変わった明細は `issues` として画面に出す。カートのサイドバー / drawer の副導線「カートを見る」から入る。**認証を要さない**ため、未ログインでも中身を全画面で確かめられる唯一の経路である |
 | U5 | 購入確認 | `GET /v1/carts/me` / `GET /v1/exchange-rates?base=USD&quote=JPY&amount=` / `GET /v1/users/me` | カート内容の最終確認。JPY 表示切替可 | 明細は client から引き継がず**この画面で取り直す**。再評価が入るため、U4 で見た時点から買えなくなった明細・値の変わった明細がここで現れうる。為替 API の `amount` は decimal 文字列。為替取得失敗時は参考額なしで購入自体は継続できる(degrade)。カートのサイドバー / drawer の主導線「購入手続きへ」から入る。認証の内側にある |
 | U6 | 購入完了 | `POST /v1/purchases?displayCurrency=JPY` | 購入確定。`details` に `productId` と `quantity` を送信 | OpenAPI 上の `Idempotency-Key` は任意だが、フロントは常に設定する。二重クリック / リロードを防ぎ、`ActionState<T>` で送信状態を管理する |
@@ -73,7 +73,7 @@
 
 | Method / Path | 認証 | 用途 | フロントが送る主な項目 | 主なレスポンス項目 | 主なエラー |
 | --- | --- | --- | --- | --- | --- |
-| `GET /v1/products` | 不要 | 一覧(cursor + フィルタ + keyword + sort) | after, first, categoryId, statusId, keyword, sort | items[], nextCursor | 400 |
+| `GET /v1/products` | 不要 | 一覧(cursor + フィルタ + keyword + sort) | after, first, categoryCodes, statusCodes, keyword, sort | items[], nextCursor | 400 |
 | `GET /v1/products/{productId}` | 不要 | 詳細 | — | 商品詳細(description 含む) | 400, 404 |
 | `GET /v1/products/categories` | 不要 | カテゴリマスタ | — | categories[] | — |
 | `GET /v1/products/statuses` | 不要 | ステータスマスタ | — | statuses[] | — |

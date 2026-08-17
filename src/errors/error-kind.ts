@@ -13,6 +13,7 @@ export type ErrorKind =
   | "validation"
   | "unsupported-media-type"
   | "payload-too-large"
+  | "uri-too-long"
   | "too-many-requests"
   | "canceled"
   | "unavailable"
@@ -29,6 +30,7 @@ export const ErrorKind = {
   VALIDATION: "validation",
   UNSUPPORTED_MEDIA_TYPE: "unsupported-media-type",
   PAYLOAD_TOO_LARGE: "payload-too-large",
+  URI_TOO_LONG: "uri-too-long",
   TOO_MANY_REQUESTS: "too-many-requests",
   CANCELED: "canceled",
   UNAVAILABLE: "unavailable",
@@ -44,6 +46,7 @@ export const ErrorKind = {
     | "VALIDATION"
     | "UNSUPPORTED_MEDIA_TYPE"
     | "PAYLOAD_TOO_LARGE"
+    | "URI_TOO_LONG"
     | "TOO_MANY_REQUESTS"
     | "CANCELED"
     | "UNAVAILABLE"

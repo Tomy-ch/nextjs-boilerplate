@@ -9,13 +9,13 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+9abecab
  */
 import type { PurchaseGroupByParamParameterItem } from "./purchaseGroupByParamParameterItem";
 
 /**
- * 集計のグループ化単位（カンマ区切り）。指定順がそのままネストの階層順になります
- * （`category,product` ならカテゴリで分け、その中を商品で分けます）。
+ * 集計のグループ化単位（複数指定は同じ名前を繰り返します: `groupBy=category&groupBy=product`）。
+ * 指定順がそのままネストの階層順になります（上の例ならカテゴリで分け、その中を商品で分けます）。
  * 未指定の場合はグループ化せず、レスポンスに groups を含めません。同じ単位を 2 回指定した場合は 400 を返します。
  */
 export type PurchaseGroupByParamParameter = PurchaseGroupByParamParameterItem[];

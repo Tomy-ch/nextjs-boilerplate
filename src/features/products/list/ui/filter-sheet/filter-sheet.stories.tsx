@@ -4,40 +4,47 @@ import { userEvent, within } from "storybook/test";
 import { FILTER_KEY } from "../../../facade/list-url/list-url";
 import { ProductFilterDraftProvider } from "../../filter-draft";
 import type { FilterOption } from "../../query";
-import { ProductFilterSheet } from "./filter-sheet";
+import { ProductFilterSheet, type ProductFilterSheetProps } from "./filter-sheet";
 
 const CATEGORIES: readonly FilterOption[] = [
-  { value: "c1", label: "オーディオ" },
-  { value: "c2", label: "ウェアラブル" },
-  { value: "c3", label: "アクセサリ" },
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
+  { value: "30", label: "アクセサリ" },
 ];
+
+/**
+ * 画面と同じ器に置く。
+ *
+ * @remarks
+ * 下書きは画面で 1 つのものを読み、供給の外では失敗させてあります。器を decorator ではなく
+ * component にしてあるのは、効いている条件を story の引数として型のまま扱うためです。
+ */
+function SheetInPage(props: ProductFilterSheetProps) {
+  return (
+    <ProductFilterDraftProvider selection={props.selection}>
+      <ProductFilterSheet {...props} />
+    </ProductFilterDraftProvider>
+  );
+}
 
 const meta = {
   title: "Features/Products/List/FilterSheet",
-  component: ProductFilterSheet,
+  component: SheetInPage,
   parameters: {
     layout: "fullscreen",
     docs: {
       description: {
         component: [
           "脇に領域を持てない幅の絞り込みです。**canvas では遷移せず、該当件数も出ません**",
-          "（数えるには取得の口が要ります）。確定の仕方は脇に常設する側と同じで、違うのは",
-          "条件を組んでいる間に一覧が見えないことだけです。",
+          "（数えるには取得の口が要ります）。一覧が overlay の裏に隠れるため、脇に常設する側と違って",
+          "選んだ時点では反映せず、下端の操作で確定します。",
         ].join(""),
       },
     },
   },
   globals: { viewport: { value: "mobile2", isRotated: false } },
-  // 下書きの供給は画面（`view.tsx`）が持つ。この部品は読む側なので、canvas でも同じ供給を置く。
-  decorators: [
-    (Story, context) => (
-      <ProductFilterDraftProvider selection={context.args.selection}>
-        {Story()}
-      </ProductFilterDraftProvider>
-    ),
-  ],
-  args: { categories: CATEGORIES, selection: {} },
-} satisfies Meta<typeof ProductFilterSheet>;
+  args: { categoryLimit: 32, categories: CATEGORIES, selection: {} },
+} satisfies Meta<typeof SheetInPage>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -49,7 +56,7 @@ export const Closed: Story = {};
 export const WithActiveCount: Story = {
   args: {
     selection: {
-      [FILTER_KEY.CATEGORY]: ["c1", "c3"],
+      [FILTER_KEY.CATEGORY]: ["10", "30"],
       [FILTER_KEY.MIN_PRICE]: "25",
       [FILTER_KEY.MIN_QUANTITY]: "1",
     },

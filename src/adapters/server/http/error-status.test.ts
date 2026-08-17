@@ -13,6 +13,7 @@ describe("toHttpStatus", () => {
     { kind: ErrorKind.NOT_FOUND, status: 404 },
     { kind: ErrorKind.CONFLICT, status: 409 },
     { kind: ErrorKind.PAYLOAD_TOO_LARGE, status: 413 },
+    { kind: ErrorKind.URI_TOO_LONG, status: 414 },
     { kind: ErrorKind.UNSUPPORTED_MEDIA_TYPE, status: 415 },
     { kind: ErrorKind.VALIDATION, status: 422 },
     { kind: ErrorKind.TOO_MANY_REQUESTS, status: 429 },

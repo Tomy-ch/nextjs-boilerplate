@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+9abecab
  */
 
 /**
@@ -20,9 +20,9 @@ export interface ProductImageItem {
   /** 格納されたオブジェクトのパス（オブジェクトキー）。 */
   imagePath: string;
   /**
-   * 同一商品内での表示順。images は sortKey の昇順で返します。
+   * 同一商品内での表示順。images は displaySort の昇順で返します。
    * @minimum 1
    * @maximum 32767
    */
-  sortKey: number;
+  displaySort: number;
 }
