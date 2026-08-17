@@ -107,7 +107,9 @@ describe("retryAfterDelayMs", () => {
 describe("toErrorKind", () => {
   // ----- 正常系 -----
   it("契約が定める status を対応する分類へ写す", () => {
-    const kinds = [400, 401, 403, 404, 409, 413, 415, 422, 429, 499, 501, 503].map(toErrorKind);
+    const kinds = [400, 401, 403, 404, 409, 413, 414, 415, 422, 429, 499, 501, 503].map(
+      toErrorKind,
+    );
 
     expect(kinds).toEqual([
       ErrorKind.INVALID_ARGUMENT,
@@ -116,6 +118,7 @@ describe("toErrorKind", () => {
       ErrorKind.NOT_FOUND,
       ErrorKind.CONFLICT,
       ErrorKind.PAYLOAD_TOO_LARGE,
+      ErrorKind.URI_TOO_LONG,
       ErrorKind.UNSUPPORTED_MEDIA_TYPE,
       ErrorKind.VALIDATION,
       ErrorKind.TOO_MANY_REQUESTS,

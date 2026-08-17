@@ -17,6 +17,7 @@ const STATUS_BY_KIND: Readonly<Record<ErrorKindType, number>> = {
   [ErrorKind.VALIDATION]: 422,
   [ErrorKind.UNSUPPORTED_MEDIA_TYPE]: 415,
   [ErrorKind.PAYLOAD_TOO_LARGE]: 413,
+  [ErrorKind.URI_TOO_LONG]: 414,
   [ErrorKind.TOO_MANY_REQUESTS]: 429,
   [ErrorKind.CANCELED]: 499,
   [ErrorKind.UNAVAILABLE]: 503,
