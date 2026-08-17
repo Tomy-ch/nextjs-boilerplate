@@ -51,9 +51,9 @@ export type ProductFilterDraftProviderProps = {
  * **選んだ時点では一覧を取り直しません。** 条件を 1 つ変えるたびに取得が走ると、3 つ選ぶ間に
  * 捨てられる取得が 2 回起きます。値の範囲を選ぶ操作ではその比ではありません。
  *
- * **確定の操作が複数あっても、確定するものは 1 つでなければなりません。** キーワードの入力欄と
- * 絞り込みの入力欄は画面の別の場所にあり、幅によって後者は脇にも overlay にも現れます。下書きを
- * それぞれが持つと、片方で確定したときにもう片方の入力途中が捨てられます。
+ * **下書きをそれぞれの入力欄が持つと、片方で確定したときにもう片方の入力途中が捨てられます。**
+ * 確定の操作が画面のどこに何個あるかは画面が決めます
+ * （[README](../README.md) / [画面要件](../../../../docs/spec/route/shop/products/page.screen.md)）。
  *
  * 反映を `useTransition` で包むのは、取得が終わるまで前の一覧を残すためです。包まないと押した
  * 瞬間に一覧が待機表示へ落ち、続けて絞り込む操作の足場が消えます。
@@ -113,7 +113,11 @@ export function ProductFilterDraftProvider({
 /**
  * 組み立て中の条件を読む。
  *
- * @throws 供給の外で呼んだとき。下書きを持たない場所で条件を変えると、確定しても何も起きません
+ * @remarks
+ * 供給の外では既定値を返さず、その場で失敗させます。返してしまうと、条件を変えても確定が何も
+ * 起こさない画面ができ、壊れていることが誰の目にも見えません。
+ *
+ * @throws {Error} {@link ProductFilterDraftProvider} の外で呼んだとき
  */
 export function useProductFilterDraft(): FilterDraft {
   const draft = use(FilterDraftContext);
