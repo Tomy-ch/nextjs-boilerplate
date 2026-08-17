@@ -1,133 +1,94 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { useCallback } from "react";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { type CartLineInput, useCartStore } from "@/stores/cart-store";
+vi.mock("../../actions", () => ({
+  clearCartAction: vi.fn(),
+  removeCartItemAction: vi.fn(),
+  setCartItemQuantityAction: vi.fn(),
+}));
+
+import { CART, CART_WITHOUT_PURCHASABLE, EMPTY_CART } from "../../cart.fixture";
+import { CartRemovalNoticeProvider, useCartRemovalNotice } from "../../removal-memory";
 import { CartContents } from "./contents";
 
-const COFFEE: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-000000000001",
-  name: "深煎りブレンド",
-  price: "12.34",
-  statusName: "公開中",
-  imageUrl: "https://media.example.test/coffee.png",
-  stockQuantity: 20,
-};
+/** 取り除きを器へ知らせる引き手。 */
+function NotifyButton() {
+  const notice = useCartRemovalNotice();
+  const notify = useCallback(
+    () => notice?.notify({ productId: "p-9", name: "イヤホン", quantity: 1 }, []),
+    [notice],
+  );
 
-const TEA: CartLineInput = {
-  ...COFFEE,
-  productId: "0195f0c2-0000-7000-8000-000000000002",
-  name: "煎茶",
-  price: "0.66",
-  imageUrl: null,
-};
+  return (
+    <button type="button" onClick={notify}>
+      取り除いたことにする
+    </button>
+  );
+}
 
 describe("CartContents", () => {
-  beforeEach(() => {
-    useCartStore.setState({ lines: [] });
+  it("小計と明細を並べる", () => {
+    render(<CartContents cart={CART} />);
+
+    expect(screen.getByText("小計")).toBeVisible();
+    expect(screen.getByText("$188.97")).toBeVisible();
+    expect(screen.getAllByRole("listitem")).toHaveLength(CART.lines.length);
   });
 
-  it("小計を明細から合算して出す", () => {
-    useCartStore.getState().add(COFFEE);
-    useCartStore.getState().add(TEA);
-    render(<CartContents />);
+  it("購入手続きとカートページの 2 本の導線を出す", () => {
+    render(<CartContents cart={CART} />);
 
-    expect(screen.getByText("$13.00")).toBeVisible();
-  });
-
-  it("先へ進む導線を購入手続きとカートページの 2 本出す", () => {
-    useCartStore.getState().add(COFFEE);
-    render(<CartContents />);
-
-    expect(screen.getByRole("link", { name: "購入手続きへ" })).toHaveAttribute("href", "/checkout");
+    expect(screen.getByRole("link", { name: "購入手続きへ" })).toBeVisible();
     expect(screen.getByRole("link", { name: "カートを見る" })).toHaveAttribute("href", "/cart");
   });
 
-  it("明細だけを局所スクロールの領域に入れ、小計と導線は外に置く", () => {
-    useCartStore.getState().add(COFFEE);
-    render(<CartContents />);
-    const scrollable = screen.getByRole("region", { name: "カートの明細" });
+  it("明細だけを局所スクロールさせる", () => {
+    render(<CartContents cart={CART} />);
 
-    expect(within(scrollable).getByRole("list")).toBeVisible();
-    expect(within(scrollable).queryByText("小計")).not.toBeInTheDocument();
-    expect(
-      within(scrollable).queryByRole("link", { name: "購入手続きへ" }),
-    ).not.toBeInTheDocument();
-    expect(
-      within(scrollable).queryByRole("link", { name: "カートを見る" }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "カートの明細" })).toBeInTheDocument();
   });
 
-  it("明細の商品名・状態・金額・数量を並べる", () => {
-    useCartStore.getState().add(COFFEE);
-    render(<CartContents />);
-    const line = within(screen.getByRole("list"));
+  it("カートを空にする操作を出す", () => {
+    render(<CartContents cart={CART} />);
 
-    expect(line.getByText("深煎りブレンド")).toBeVisible();
-    expect(line.getByText("公開中")).toBeVisible();
-    expect(line.getByText("$12.34")).toBeVisible();
-    expect(line.getByText("$12.34 / 個")).toBeVisible();
+    expect(screen.getByRole("button", { name: "カートを空にする" })).toBeVisible();
   });
 
-  it("画像を持つ明細はその画像を出す", () => {
-    useCartStore.getState().add(COFFEE);
-    render(<CartContents />);
+  it("買える明細が無いとき、購入手続きへ進ませない", () => {
+    render(<CartContents cart={CART_WITHOUT_PURCHASABLE} />);
 
-    expect(screen.getByAltText("")).toHaveAttribute(
-      "src",
-      expect.stringContaining(encodeURIComponent(COFFEE.imageUrl ?? "")),
+    expect(screen.getByRole("button", { name: "購入手続きへ" })).toBeDisabled();
+  });
+
+  it("空のとき、入っていないことだけを伝える", () => {
+    render(<CartContents cart={EMPTY_CART} />);
+
+    expect(screen.getByText("カートに商品が入っていません。")).toBeVisible();
+    expect(screen.queryByText("小計")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "購入手続きへ" })).not.toBeInTheDocument();
+  });
+
+  it("空になった後も、戻せる明細があれば取り消しを出す", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <CartRemovalNoticeProvider>
+        <NotifyButton />
+        <CartContents cart={EMPTY_CART} />
+      </CartRemovalNoticeProvider>,
     );
-  });
+    await user.click(screen.getByRole("button", { name: "取り除いたことにする" }));
 
-  it("画像を持たない明細は代替画像を出す", () => {
-    useCartStore.getState().add(TEA);
-    render(<CartContents />);
-
-    expect(screen.getByAltText("")).toHaveAttribute("src", "/no-image.svg");
-  });
-
-  it("増やす操作で数量と行の小計が上がる", async () => {
-    useCartStore.getState().add(COFFEE);
-    render(<CartContents />);
-
-    await userEvent.click(screen.getByRole("button", { name: "深煎りブレンド を 1 つ増やす" }));
-
-    expect(within(screen.getByRole("list")).getByText("2")).toBeVisible();
-    expect(within(screen.getByRole("list")).getByText("$24.68")).toBeVisible();
-  });
-
-  it("数量 1 から減らすと明細が消える", async () => {
-    useCartStore.getState().add(COFFEE);
-    render(<CartContents />);
-
-    await userEvent.click(screen.getByRole("button", { name: "深煎りブレンド を削除する" }));
-
-    expect(screen.queryByText("深煎りブレンド")).not.toBeInTheDocument();
-    expect(within(screen.getByRole("list")).queryAllByRole("listitem")).toHaveLength(0);
-  });
-
-  it("在庫数まで入っている明細は増やせない", () => {
-    useCartStore.getState().add({ ...COFFEE, stockQuantity: 1 });
-    render(<CartContents />);
-
-    expect(screen.getByRole("button", { name: "深煎りブレンド を 1 つ増やす" })).toBeDisabled();
-  });
-
-  it("カートが空でも小計と 2 本の導線は出す", () => {
-    render(<CartContents />);
-
-    expect(screen.getByText("$0.00")).toBeVisible();
-    expect(screen.getByRole("link", { name: "購入手続きへ" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "カートを見る" })).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("イヤホン を削除しました");
   });
 
   it("a11y 自動検査に違反しない", async () => {
-    useCartStore.getState().add(COFFEE);
-    useCartStore.getState().add(TEA);
-    const { container } = render(<CartContents />);
+    const { container } = render(<CartContents cart={CART} />);
 
     expect((await axe(container)).violations).toEqual([]);
   });

@@ -9,20 +9,18 @@ import {
   TABLE_LIMIT,
 } from "./report";
 
-/** 1 件分のテスト結果を組み立てる。 */
+/** 1 件分のテスト結果を組み立てる。tag は spec が持つため、ここには入れない。 */
 function test(options: {
   id?: string;
   status?: string;
   project?: string;
   message?: string;
-  tags?: string[];
 }): unknown {
   return {
     projectName: options.project ?? "light",
     status: options.status ?? "unexpected",
     annotations: options.id === undefined ? [] : [{ type: "story", description: options.id }],
     results: options.message === undefined ? [] : [{ errors: [{ message: options.message }] }],
-    tags: options.tags ?? [],
   };
 }
 
@@ -221,20 +219,44 @@ describe("formatStoryIDs", () => {
 describe("hasBaselineFailure", () => {
   // ----- 正常系 -----
   it("1 対 1 対応の検査が落ちていれば true を返す", () => {
-    const json = reportOf([{ title: "基準画像", tests: [test({ tags: ["@baselines"] })] }]);
+    const json = reportOf([{ title: "基準画像", tags: ["baselines"], tests: [test({})] }]);
 
     expect(hasBaselineFailure(json)).toBe(true);
   });
 
+  it("宣言どおり `@` 付きで載っていても見つける", () => {
+    const json = reportOf([{ title: "基準画像", tags: ["@baselines"], tests: [test({})] }]);
+
+    expect(hasBaselineFailure(json)).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("tag がどの spec にも無ければ、孤児なしと答えずに落とす", () => {
+    const json = reportOf([{ title: "Button", tests: [test({ id: "a" })] }]);
+
+    expect(() => hasBaselineFailure(json)).toThrow(/@baselines/);
+  });
+
+  it("tag が test の側にしか載っていないときも落とす", () => {
+    const json = reportOf([
+      { title: "基準画像", tests: [{ ...(test({}) as object), tags: ["baselines"] }] },
+    ]);
+
+    expect(() => hasBaselineFailure(json)).toThrow(/@baselines/);
+  });
+
   it("story だけが食い違っているときは false を返す", () => {
-    expect(hasBaselineFailure(reportOf([{ title: "Button", tests: [test({ id: "a" })] }]))).toBe(
-      false,
-    );
+    const json = reportOf([
+      { title: "Button", tests: [test({ id: "a" })] },
+      { title: "基準画像", tags: ["baselines"], tests: [test({ status: "expected" })] },
+    ]);
+
+    expect(hasBaselineFailure(json)).toBe(false);
   });
 
   it("1 対 1 対応の検査が通っていれば false を返す", () => {
     const json = reportOf([
-      { title: "基準画像", tests: [test({ status: "expected", tags: ["@baselines"] })] },
+      { title: "基準画像", tags: ["baselines"], tests: [test({ status: "expected" })] },
     ]);
 
     expect(hasBaselineFailure(json)).toBe(false);
@@ -243,7 +265,7 @@ describe("hasBaselineFailure", () => {
   it("入れ子の suite にあっても見つける", () => {
     const json = reportOf(
       [],
-      [{ specs: [{ title: "基準画像", tests: [test({ tags: ["@baselines"] })] }] }],
+      [{ specs: [{ title: "基準画像", tags: ["baselines"], tests: [test({})] }] }],
     );
 
     expect(hasBaselineFailure(json)).toBe(true);

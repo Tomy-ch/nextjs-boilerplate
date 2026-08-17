@@ -2,11 +2,19 @@
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
+import type { ActionState } from "@/model/action-state";
 import type { ProductListItem } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
+
+const { addToCartAction } = vi.hoisted(() => ({
+  addToCartAction:
+    vi.fn<(previous: ActionState<void>, formData: FormData) => Promise<ActionState<void>>>(),
+}));
+
+vi.mock("@/features/cart/facade/add-to-cart/add-to-cart", () => ({ addToCartAction }));
 
 import { ProductCard } from "./card";
 
@@ -22,7 +30,9 @@ const ITEM: ProductListItem = {
 
 describe("ProductCard", () => {
   beforeEach(() => {
-    useCartStore.setState({ lines: [], isOpen: false });
+    vi.clearAllMocks();
+    addToCartAction.mockResolvedValue({ status: "success", value: undefined });
+    useCartStore.setState({ isOpen: false });
   });
 
   it("名称・分類・状態・価格・在庫数を表示する", () => {
@@ -80,17 +90,9 @@ describe("ProductCard", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "カートに追加" }));
 
-    expect(useCartStore.getState().lines).toEqual([
-      {
-        productId: "0195f0c2-0000-7000-8000-000000000001",
-        name: "スタンドライト",
-        price: "4980.00",
-        statusName: "公開中",
-        imageUrl: null,
-        stockQuantity: 3,
-        quantity: 1,
-      },
-    ]);
+    const formData = addToCartAction.mock.calls.at(-1)?.[1];
+
+    expect(formData?.get("productId")).toBe(ITEM.id);
   });
 
   it("在庫が無ければ在庫なしを添える", () => {

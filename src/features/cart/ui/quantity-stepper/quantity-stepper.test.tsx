@@ -1,66 +1,143 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
+
+import { CART_ITEM_MAX_QUANTITY } from "@/adapters/client/api/cart";
+
+import { type ActionState, failedActionState, succeededActionState } from "@/model/action-state";
+
+const { setCartItemQuantityAction } = vi.hoisted(() => ({
+  setCartItemQuantityAction:
+    vi.fn<(previous: ActionState<void>, formData: FormData) => Promise<ActionState<void>>>(),
+}));
+
+vi.mock("../../actions", () => ({ setCartItemQuantityAction }));
 
 import { CartQuantityStepper } from "./quantity-stepper";
 
+const PRODUCT_ID = "0195f0c2-0000-7000-8000-000000000001";
+
+/** 直近の送信内容。 */
+function submitted(): FormData | undefined {
+  return setCartItemQuantityAction.mock.calls.at(-1)?.[1];
+}
+
+beforeEach(() => {
+  setCartItemQuantityAction.mockReset();
+  setCartItemQuantityAction.mockResolvedValue(succeededActionState(undefined));
+});
+
 describe("CartQuantityStepper", () => {
-  it("現在の数量を表示する", () => {
-    render(<CartQuantityStepper label="深煎りブレンド" max={9} onChange={vi.fn()} quantity={3} />);
+  it("現在の数量を出す", () => {
+    render(<CartQuantityStepper label="イヤホン" productId={PRODUCT_ID} quantity={3} />);
 
     expect(screen.getByText("3")).toBeVisible();
   });
 
-  it("増やす操作で 1 つ多い数量を渡す", async () => {
-    const onChange = vi.fn();
-    render(<CartQuantityStepper label="深煎りブレンド" max={9} onChange={onChange} quantity={3} />);
+  it("増やす操作で 1 つ多い数量を送る", async () => {
+    const user = userEvent.setup();
 
-    await userEvent.click(screen.getByRole("button", { name: "深煎りブレンド を 1 つ増やす" }));
+    render(<CartQuantityStepper label="イヤホン" productId={PRODUCT_ID} quantity={3} />);
+    await user.click(screen.getByRole("button", { name: "イヤホン を 1 つ増やす" }));
 
-    expect(onChange).toHaveBeenCalledWith(4);
+    expect(submitted()?.get("productId")).toBe(PRODUCT_ID);
+    expect(submitted()?.get("quantity")).toBe("4");
   });
 
-  it("減らす操作で 1 つ少ない数量を渡す", async () => {
-    const onChange = vi.fn();
-    render(<CartQuantityStepper label="深煎りブレンド" max={9} onChange={onChange} quantity={3} />);
+  it("減らす操作で 1 つ少ない数量を送る", async () => {
+    const user = userEvent.setup();
 
-    await userEvent.click(screen.getByRole("button", { name: "深煎りブレンド を 1 つ減らす" }));
+    render(<CartQuantityStepper label="イヤホン" productId={PRODUCT_ID} quantity={3} />);
+    await user.click(screen.getByRole("button", { name: "イヤホン を 1 つ減らす" }));
 
-    expect(onChange).toHaveBeenCalledWith(2);
+    expect(submitted()?.get("quantity")).toBe("2");
   });
 
-  it("数量が 1 なら減らす操作を削除として示す", () => {
-    render(<CartQuantityStepper label="深煎りブレンド" max={9} onChange={vi.fn()} quantity={1} />);
+  it("1 のときは減らせない", () => {
+    render(<CartQuantityStepper label="イヤホン" productId={PRODUCT_ID} quantity={1} />);
 
-    expect(screen.getByRole("button", { name: "深煎りブレンド を削除する" })).toBeVisible();
-    expect(
-      screen.queryByRole("button", { name: "深煎りブレンド を 1 つ減らす" }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "イヤホン を 1 つ減らす" })).toBeDisabled();
   });
 
-  it("削除として示している操作は 0 を渡す", async () => {
-    const onChange = vi.fn();
-    render(<CartQuantityStepper label="深煎りブレンド" max={9} onChange={onChange} quantity={1} />);
+  it("渡された上限に達したら増やせない", () => {
+    render(<CartQuantityStepper label="イヤホン" max={2} productId={PRODUCT_ID} quantity={2} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "深煎りブレンド を削除する" }));
+    expect(screen.getByRole("button", { name: "イヤホン を 1 つ増やす" })).toBeDisabled();
+  });
 
-    expect(onChange).toHaveBeenCalledWith(0);
+  it("上限を渡さないとき、契約の上限で頭打ちにする", () => {
+    render(
+      <CartQuantityStepper
+        label="イヤホン"
+        productId={PRODUCT_ID}
+        quantity={CART_ITEM_MAX_QUANTITY}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "イヤホン を 1 つ増やす" })).toBeDisabled();
+  });
+
+  it("契約の上限の 1 つ手前までは増やせる", () => {
+    render(
+      <CartQuantityStepper
+        label="イヤホン"
+        productId={PRODUCT_ID}
+        quantity={CART_ITEM_MAX_QUANTITY - 1}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "イヤホン を 1 つ増やす" })).toBeEnabled();
+  });
+
+  it("送信中はどちらの向きも押せなくする", async () => {
+    const user = userEvent.setup();
+    let settle: (() => void) | undefined;
+
+    setCartItemQuantityAction.mockReturnValue(
+      new Promise((resolve) => {
+        settle = () => resolve(succeededActionState(undefined));
+      }),
+    );
+
+    render(<CartQuantityStepper label="イヤホン" productId={PRODUCT_ID} quantity={3} />);
+    await user.click(screen.getByRole("button", { name: "イヤホン を 1 つ増やす" }));
+
+    expect(await screen.findByRole("button", { name: "イヤホン を 1 つ減らす" })).toBeDisabled();
+
+    settle?.();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "イヤホン を 1 つ増やす" })).toBeEnabled(),
+    );
+  });
+
+  it("失敗したとき、その操作の隣に理由を出す", async () => {
+    const user = userEvent.setup();
+
+    setCartItemQuantityAction.mockResolvedValue(
+      failedActionState({ formError: "現在サービスを利用できません。" }),
+    );
+
+    render(<CartQuantityStepper label="イヤホン" productId={PRODUCT_ID} quantity={3} />);
+    await user.click(screen.getByRole("button", { name: "イヤホン を 1 つ増やす" }));
+
+    expect(await screen.findByText("数量を変更できませんでした")).toBeVisible();
+    expect(screen.getByText("現在サービスを利用できません。")).toBeVisible();
+  });
+
+  it("送信していない間は失敗の文言を出さない", () => {
+    render(<CartQuantityStepper label="イヤホン" productId={PRODUCT_ID} quantity={3} />);
+
+    expect(screen.queryByText("数量を変更できませんでした")).not.toBeInTheDocument();
   });
 
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(
-      <CartQuantityStepper label="深煎りブレンド" max={9} onChange={vi.fn()} quantity={2} />,
+      <CartQuantityStepper label="イヤホン" productId={PRODUCT_ID} quantity={3} />,
     );
 
     expect((await axe(container)).violations).toEqual([]);
-  });
-
-  it("上限に達していたら増やす操作を押せなくする", () => {
-    render(<CartQuantityStepper label="深煎りブレンド" max={3} onChange={vi.fn()} quantity={3} />);
-
-    expect(screen.getByRole("button", { name: "深煎りブレンド を 1 つ増やす" })).toBeDisabled();
   });
 });

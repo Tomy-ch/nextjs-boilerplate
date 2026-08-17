@@ -3,10 +3,9 @@ import Link from "next/link";
 import { Badge } from "@/components/design-system/display/badge/badge";
 import { Card } from "@/components/design-system/display/card/card";
 import { MediaImage } from "@/components/design-system/display/media-image/media-image";
+import { AddToCartButton } from "@/features/cart/facade/add-to-cart/add-to-cart-button";
 import { NO_IMAGE_URL } from "@/model/media";
 import type { ProductListItem } from "@/model/product/product";
-
-import { AddToCartButton } from "../../../ui/add-to-cart-button/add-to-cart-button";
 
 /** `ProductCard` の props。 */
 export type ProductCardProps = {
@@ -82,23 +81,11 @@ export function ProductCard({ item, leading = false }: ProductCardProps) {
               <span className="text-muted-foreground text-sm">在庫 {item.quantity}</span>
             </div>
             <div className="relative">
-              <AddToCartButton compact line={toCartLine(item)} />
+              <AddToCartButton placement="list" productId={item.id} stockQuantity={item.quantity} />
             </div>
           </div>
         </div>
       </div>
     </Card>
   );
-}
-
-/** 一覧の 1 件を、カートが受け取る 1 行へ写す。 */
-function toCartLine(item: ProductListItem) {
-  return {
-    productId: item.id,
-    name: item.name,
-    price: item.price,
-    statusName: item.statusName,
-    imageUrl: item.imageUrl,
-    stockQuantity: item.quantity,
-  };
 }

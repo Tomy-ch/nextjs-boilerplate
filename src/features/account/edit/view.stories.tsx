@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import { ToastProvider } from "@/components/shell/toaster/toaster";
+import { EMPTY_CART } from "@/features/cart/cart.fixture";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import { useCartStore } from "@/stores/cart-store";
@@ -25,16 +26,16 @@ const NAV_ITEMS = [
  * 伝えるのが toast だからで、実物では root layout がこれを持ちます。
  */
 function withPageFrame(Story: () => ReactElement) {
-  useCartStore.setState({ lines: [], isOpen: false });
+  useCartStore.setState({ isOpen: false });
 
   return (
     <ToastProvider>
       <div className="flex min-h-screen flex-col">
         <AppShell
           footer={<p>Next.js / React のプレゼンテーション層 boilerplate です。</p>}
-          headerActions={<CartHeaderAction />}
+          headerActions={<CartHeaderAction cart={EMPTY_CART} />}
           navItems={NAV_ITEMS}
-          sidebar={<CartPanel />}
+          sidebar={<CartPanel cart={EMPTY_CART} />}
           siteName="nextjs-boilerplate"
         >
           <ContentContainer className="py-8">

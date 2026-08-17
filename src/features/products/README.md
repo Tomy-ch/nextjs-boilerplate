@@ -45,7 +45,6 @@ test-requirement: feature
 | `list/ui/invalid-query/` | URL の条件が契約を外れているときの表示 |
 | `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
 | `detail/view.tsx` | 1 件の詳細の表示。画像の carousel と説明文の描画を持つ |
-| `ui/add-to-cart-button/` | カートへ入れる操作。一覧と詳細の両方が使うため画面を挟まない。状態は `stores` が持つ |
 
 ## 運用
 
@@ -58,7 +57,10 @@ test-requirement: feature
   page 全体を 1 つの待機表示で覆うと検索欄まで消えて操作できなくなります
 - **検索条件は URL に置きます**。結果を共有でき、戻る操作で前の条件に戻り、再読み込みでも同じ画面が
   出ます。client state に持つとそのどれも成立しません
-- **カートへ入れる操作は、脇の領域が無い帯で画面下端に固定します**（[0051](../../../docs/adr/0051-styling-system.md)
+- **カートへ入れる操作そのものは `cart` が持ちます**。カートへの変更であり、この feature は
+  [`cart/facade/add-to-cart/`](../cart/facade/add-to-cart/) を置くだけです（feature 同士は直接
+  参照しないため、口は区画として公開されています）
+- **その操作は、脇の領域が無い帯で画面下端に固定します**（[0051](../../../docs/adr/0051-styling-system.md)
   §2）。詳細は縦に長く、読み進めた位置から操作へ戻れなくなるためです。固定するかどうかは画面の
   組み立ての判断なので `detail/view.tsx` が持ち、操作の部品は自分がどこに置かれたかを知りません
 - **カード全体を詳細への導線にしますが、link では包みません**。包むとカートへ入れる操作が link の

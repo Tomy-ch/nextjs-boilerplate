@@ -427,7 +427,7 @@ backend が server→client push の入口機構(SSE)と、その配信基盤で
 | P5-2 | U2 商品一覧の完成(フィルタ / sort / cursor)+ ページネーション基盤 | 5 | P4-5 |
 | P5-3 | U1 トップ(並行 fetch)+ マスタ API | 5 | P5-2 |
 | P5-4 | 認証基盤(U9・PKCE + BFF Route Handler + 保護ルート) | 5 | P4-3, P4-5 |
-| P5-5 | U4 カート(stores カーネル・永続化なし) | 5 | P5-1 |
+| P5-5 | U4 カート(サーバカート + 明細の再評価) | 5 | P5-1, P5-4 |
 | P5-6 | U5 購入確認 + 通貨・為替(USD セント / `display_currency` / degrade) | 5 | P5-5, P5-4 |
 | P5-7 | U6 購入完了 + `ActionState<T>`(B8)+ Idempotency-Key | 5 | P5-6 |
 | P5-8 | U7 購入履歴(無限スクロール)+ U8 購入詳細 | 5 | P5-7 |
@@ -1056,7 +1056,7 @@ sources:
 - **対象 ADR**: [0027](../adr/0027-directory-structure.md) / [0028](../adr/0028-naming-convention.md) / [0021](../adr/0021-frontend-responsibility.md)
 - **主な変更先**: `scripts/gen/` — `pnpm gen feature` / `pnpm gen component` / `pnpm gen adapter`
 - **設計**: P4-5 で確定した構造をテンプレート化する。命名・配置・境界・テスト・README を**生成時点で正**にする。`architecture.ts`(P3-2)を読んで境界を決めるため、生成物が boundaries に違反しない
-- **spec 駆動は採らずに進める**: `docs/spec/<feature>/` の spec から生成する方式(BACKLOG GB-3)は**判断を P5-18 へ送る**。両方を持つと SSOT が二重化するため、本 PR の時点では `architecture.ts` を唯一の生成入力とする。P5-18 で spec 駆動を採る決定になった場合、本 PR の生成入力を差し替える改修が発生する
+- **spec 駆動は採らずに進める**: 仕様書(`docs/spec/route/**`)から生成する方式(BACKLOG GB-3)は**判断を P5-18 へ送る**。両方を持つと SSOT が二重化するため、本 PR の時点では `architecture.ts` を唯一の生成入力とする。P5-18 で spec 駆動を採る決定になった場合、本 PR の生成入力を差し替える改修が発生する
 - **完了条件**: `pnpm gen feature <name>` が出力した雛形が、無修正で `lint:ci` / boundaries / README 必須節 / カバレッジゲートを満たす
 - **依存**: P4-5
 
@@ -1148,23 +1148,26 @@ sources:
 
 ### P5-5: U4 カート(stores カーネル)
 
-- **目的**: 横断 client 状態のカーネルを実体化する
-- **対象 ADR**: [0023](../adr/0023-stores-kernel.md) / [0060](../adr/0060-state-management.md)
+- **目的**: server state と横断 client 状態の境界を、同じ画面の中で引いて見せる
+- **対象 ADR**: [0023](../adr/0023-stores-kernel.md) / [0060](../adr/0060-state-management.md) / [0071](../adr/0071-bff-api-integration.md) / [0079](../adr/0079-auth-frontend-seam.md) §7
 - **主な変更先**:
-  - `src/stores/cart-store.ts` — Zustand。**破棄対象**(manifest 宣言)
   - `src/features/cart/` / `src/app/(shop)/cart/page.tsx`
-- **設計**: **永続化しない**([screens.md](../screens.md) U4。ページリロードで消える前提でよい)。購入確認へ渡す際に明細配列として組み立てる
-- **注意**: `stores` は**横断 client 状態のみ**。単一 feature に閉じる状態は feature 内 local に置く([0060](../adr/0060-state-management.md))。永続化しないため hydration mismatch(`rules.md` #53)の論点も発生しない
+  - `src/stores/cart-store.ts` — Zustand。**「中身を見たいという要求」だけを持つ**。**破棄対象**(manifest 宣言)
+  - BFF — ゲストトークン(`X-Cart-Session`)の cookie 持ち回りと、callback からの引き継ぎ
+- **設計**: **カートはバックエンドが持つ**([screens.md](../screens.md) U4)。取得は明細ごとの再評価つきで、買えない明細・値の変わった明細に `issues` が立ち、小計は `issues` が空の明細だけの合算(参考値)である。数量は加算ではなく設定(upsert)で、自然キーが冪等性を持つため `Idempotency-Key` を要さない
+- **注意**: **「買えるか / 値が変わったか」の判定をフロントに持たない**([0070](../adr/0070-backend-role-separation.md))。client がスナップショットを持ち回ると、在庫切れと値上がりに気づけないまま U5 へ渡ることになり、それを塞ぐためにフロントへ業務ロジックを書くことになる。この画面が server state の側にある理由がここにある
+- **注意**: `stores` に残るのは「中身を見たい」という**要求**だけである。商品側の「カートに追加」がこれを立てるため feature を跨ぎ、README が挙げる「グローバル UI トグル」に当たる。明細そのものを store へ写すと [0023](../adr/0023-stores-kernel.md) の二重キャッシュ禁止に触れる
 - **P5-1 で先行して着地した範囲(ユーザのデザインディレクション由来)**: カートの状態と**画面右に出現するサイドバー**は P5-1 で実装済み。`zustand` の導入(exact pin)もそこで済んでいる
   - `src/stores/cart-store.ts` — 追加 / 数量指定 / 削除。同じ商品の再追加は行を増やさず数量を上げ、数量 0 以下の指定は行を落とす
   - `src/features/cart/` — サイドバー(空なら描画しない)/ header の点数(0 点なら数字を出さない)/ 数量ステッパー(**数量 1 のときだけ `−` をゴミ箱にする**)/ 小計(decimal 文字列のまま整数で合算)
   - `src/features/products/detail/add-to-cart-button.tsx` — 在庫 0 なら押せない
   - `AppShell` に `sidebar` / `headerActions` の差込口を追加し、mount は `(shop)/layout.tsx`([0026](../adr/0026-layout-shell-mount.md))
-- **この PR に残る範囲**: `src/app/(shop)/cart/page.tsx`(U4 のカートページ)と、サイドバーの「カートを見る」からの遷移。購入確認へ渡す明細配列の組み立ても含む。**サイドバー側の実装は移設せず、そのまま使う**
+- **この PR に残る範囲**: `src/app/(shop)/cart/page.tsx`(U4 のカートページ)と、サイドバーの「カートを見る」からの遷移。**先行分をサーバカートへ載せ替える**ぶんもここに含む — 明細と小計の出所、数量上限の判定、追加の経路が入れ替わる。**器(サイドバー / drawer / header の入口)の実装は移設せず、そのまま使う**
 - **サイドバー / drawer の導線は 2 本**: 主が「購入手続きへ」(U5)、副が「カートを見る」(U4)。ドロワーを持つ実装の定型に合わせる。**副を落とさない**のは、U5 が `GET /v1/users/me` を使う認証の内側にあり、未ログインの利用者がカートの中身を全画面で確かめられる経路が U4 しか無いためである。明細が増えたときの数量変更・削除も 280px 前後のレールでは辛い
-- **注意(先行分に対して)**: 数量の上限は**在庫数**で、判定は store が持つ(操作側に置くと経路の数だけ確認箇所が増える)。在庫はカートへ入れた時点の値であり、購入時点の最終判定はバックエンドが行う。数量ステッパーは 2 箇所目の参照が出るまで cart feature 内に置く([0021](../adr/0021-frontend-responsibility.md) 昇格ルール)
-- **完了条件**: カートページが動く。サイドバーの「カートを見る」が U4 へ、「購入手続きへ」が U5 へ遷移する。リロードで空になる。`stores` の store が乱立していない
-- **依存**: P5-1
+- **注意(先行分に対して)**: 数量の上限も `issues` の判定も**バックエンドが持つ**。先行分は在庫数を追加時点のスナップショットとして store に持ち、上限の判定も store に置いていたが、どちらも載せ替えで落ちる。`total.ts`(decimal 文字列のまま合算)は `subtotalAmount` が返るため用済みになる。数量ステッパーは 2 箇所目の参照が出るまで cart feature 内に置く([0021](../adr/0021-frontend-responsibility.md) 昇格ルール)
+- **この PR で併せて確定したこと(計画外)**: 画面仕様の置き場と構造。`docs/spec/route/**` へ `src/app` の階層を写し、画面ごとに**機能要件(`*.function.md`)と画面要件(`*.screen.md`)の 2 層**へ分ける。layout の仕様は配下すべてに効く。仕様書は契約 / token / `rules.md` / 部品カタログ / ADR を指すだけで写さない。既存の 5 本(account 2 / site-info 3)も同じ形へ移した。**P5-18 に残るのは生成 scaffold の採否だけ**になる(詳細は [`docs/spec/README.md`](../spec/README.md))
+- **完了条件**: カートページが動く。サイドバーの「カートを見る」が U4 へ、「購入手続きへ」が U5 へ遷移する。**リロードで消えない**。未ログイン(ゲスト)でも使える。買えない明細・値の変わった明細が画面に出て、小計は買える明細だけの合算である。ログイン時にゲストのカートが引き継がれる。`stores` の store が乱立していない
+- **依存**: P5-1, P5-4(ゲストトークンの持ち回りと引き継ぎが BFF に入るため)
 
 ### P5-6: U5 購入確認 + 通貨・為替
 
@@ -1177,7 +1180,8 @@ sources:
 - **設計**: 保存・表示の基準は **USD**。円換算は `display_currency=JPY` 指定時のみ `reference_amount` として付与される**参考値**であり、UI 上「参考」であることを明示する
 - **注意**: **為替取得失敗時は参考額なしで購入自体は継続できる(degrade)**。ここが [0080](../adr/0080-error-handling.md) の「部分エラーで全体を落とさない」の実例になる
 - **注意**: カートのサイドバー / drawer の主操作「購入手続きへ」がこの画面の入口である。**認証の内側にある**ため、未ログインで踏んだ場合は P5-4 の保護ルート判定に乗って `returnUrl` 付きで戻る
-- **完了条件**: JPY 表示切替が動く。`exchange-rates` を落としても購入導線が生きている。金額の丸め・桁区切りがロケール依存で正しい。カートからの「購入手続きへ」が着地する
+- **注意**: **明細は client から引き継がず、この画面が `GET /v1/carts/me` で取り直す**。再評価が入るため、U4 で見た時点から買えなくなった明細・値の変わった明細がここで初めて現れうる。買える明細が 1 件も無い状態で購入へ進ませない
+- **完了条件**: JPY 表示切替が動く。`exchange-rates` を落としても購入導線が生きている。金額の丸め・桁区切りがロケール依存で正しい。カートからの「購入手続きへ」が着地する。**U4 から遷移する間に買えなくなった明細が、この画面で利用者に伝わる**
 - **依存**: P5-5, P5-4
 
 ### P5-7: U6 購入完了 + `ActionState<T>`(B8)
@@ -1328,8 +1332,9 @@ sources:
 ### P5-18: spec 駆動の採否判断(GB-3)
 
 - **目的**: 実装済みの画面を材料に、spec 駆動を採るかを決める。画面が 1 枚も無い状態では、spec が実装のどれだけを言い当てられるかを測れない
-- **判断すべきこと**: `docs/spec/<feature>/` に spec を置き、そこから実装を生成する方式(BACKLOG GB-3)を採るか
-- **判断の材料**: Phase 5 で実装した 19 画面。**実装済みの feature を 1 つ選び、後から spec を書き起こしてみて**、(1) spec が実装を再現できるだけの情報を持てるか、(2) `architecture.ts` と重複しない情報だけで構成できるか、(3) 画面の追加時に spec を先に書くほうが速いか、を見る
+- **判断すべきこと**: 仕様書から実装を**生成する**方式(BACKLOG GB-3)を採るか。**spec の置き場と構造は P5-5 で確定済み**(下記)であり、ここに残るのは生成 scaffold の採否だけである
+- **確定済み(P5-5)**: 仕様書は `docs/spec/route/**` に置き、`src/app` の階層をそのまま写す。画面ごとに **機能要件(`*.function.md`)と画面要件(`*.screen.md`)の 2 層**へ分け、振り分けは「契約と利用者の目的が同じまま、その記述だけが違う画面があり得るか」で決める。layout の仕様はその配下すべてに効く。仕様書は契約 / token / `rules.md` / 部品カタログ / ADR を**指すだけ**で写さない(部品名・単位つきの数値・層をまたぐ規約を書かない)。詳細は [`docs/spec/README.md`](../spec/README.md)
+- **判断の材料**: Phase 5 で実装した 19 画面。**実装済みの feature を 1 つ選び、後から spec を書き起こしてみて**、(1) spec が実装を再現できるだけの情報を持てるか、(2) `architecture.ts` と重複しない情報だけで構成できるか、(3) 画面の追加時に spec を先に書くほうが速いか、を見る。**カート(P5-5)と account の 2 画面が書き起こし済み**なので、(1)(2) はその 3 本で測れる
 - **注意**: P4-6 は `architecture.ts` を唯一の生成入力として着地している。**採用する場合は P4-6 の生成入力を差し替える改修が発生する**。両方を残すと SSOT が二重化するため、どちらか一方に倒す
 - **不採用の場合**: GB-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
 - **完了条件**: 採否が BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の IM-26 へ反映されている。採用する場合は P4-6 の改修 PR が起票されている
@@ -1384,6 +1389,7 @@ sources:
 - **設計**: 初期表示は RSC が History API の message projection を取得する。以降は購読が渡す差分を feature の reducer が畳む。メッセージ列は feature の local state に置き、`stores` へは載せない — server state の二重キャッシュを禁じる [0060](../adr/0060-state-management.md) / [0023](../adr/0023-stores-kernel.md) に対し、差分は「まだ取り直していない追記分」であって server state の写しではないためである。画面を離れれば RSC が最新を返すので、消えても正しさが壊れない
 - **設計**: 送信は Server Action + `Idempotency-Key`。`clientMessageId` の echo で、楽観追加した自分の発言と受信したものを突合する。突合できないと自分の発言が二重に並ぶ
 - **使う component**: `Message` / `Bubble` / `MessageScroller` / `Marker` / `Avatar`。一覧側に `List` / `CursorPagination` / `FeedbackState`
+- **入口**: 商品一覧(U2)の在庫なしの商品に置く「お問い合わせ」がこの画面へ入る。**在庫の再入荷を尋ねる先が要る**ためで、この枠が着地するまでは押しても案内だけを出す。入口を先に置いておくのは、後から導線を足すと在庫なしのカードの構成を組み直すことになるからである
 - **画面判断**: 送信欄は `Textarea` を使う。`RichTextEditor` の設置面は商品登録(P5-12)であり、問い合わせの入力に書式は要らない
 - **a11y**: `MessageScrollerContent` の `log` は追加だけを通知する。配送状態・既読の変化は `MessageFooter` の表示更新に留め、`log` で読み上げさせない
 - **範囲外**: admin 返信画面は作らない。開発時の返信は backend の dev モックオペレータに依存する。添付も扱わない(3.13)

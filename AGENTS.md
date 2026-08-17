@@ -99,6 +99,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0026](docs/adr/0026-layout-shell-mount.md) | Layout shell mount | cross-cutting UI / Provider mount (app shell composition) |
 | [0027](docs/adr/0027-directory-structure.md) | Directory structure | Physical layout under `src/` / co-location policy |
 | [0028](docs/adr/0028-naming-convention.md) | Naming convention | All-source kebab-case files / identifier casing / route segments / env `{SUBSYSTEM}_{NAME}` |
+| [0029](docs/adr/0029-type-design-discipline.md) | Type design | Discriminated union / parse at the boundary / branded id / `satisfies` |
 | [0030](docs/adr/0030-environment-variable-management.md) | Env variables | `env/` structure / typed config loader / `NEXT_PUBLIC_` boundary / secrets |
 | [0031](docs/adr/0031-policy-state-supply.md) | Policy state supply | consent / feature-flag state supply policy |
 | [0040](docs/adr/0040-routing-rendering-strategy.md) | Routing / rendering | App Router / Server vs Client Components / CSR-SSR-SSG-ISR / Server Actions |

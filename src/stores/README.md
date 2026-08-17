@@ -21,7 +21,7 @@ test-requirement: unit
 
 | モジュール | 役割 |
 | --- | --- |
-| `cart-store.ts` | サンプル画面が共有するカートの中身 |
+| `cart-store.ts` | サンプル画面が共有する「カートを開いているか」という要求 |
 
 <!-- sample:end -->
 ## 運用

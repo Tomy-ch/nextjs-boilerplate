@@ -31,13 +31,12 @@ import { ImageViewer } from "@/components/design-system/overlay/image-viewer/ima
 import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
 import { ActionBar } from "@/components/patterns/action-bar/action-bar";
 import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
+import { AddToCartButton } from "@/features/cart/facade/add-to-cart/add-to-cart-button";
 import { formatDateTime } from "@/model/datetime";
 import { NO_IMAGE_URL } from "@/model/media";
 import type { Product } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
-
 import { PRODUCT_LIST_PATH } from "../facade/list-url/list-url";
-import { AddToCartButton } from "../ui/add-to-cart-button/add-to-cart-button";
 import { PrintButton } from "./ui/print-button/print-button";
 
 const DESCRIPTION_HEADING_ID = "product-description";
@@ -232,16 +231,7 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
             className="w-full print-hidden"
             position={ACTION_BAR_POSITION.FIXED_WITHOUT_ASIDE}
           >
-            <AddToCartButton
-              line={{
-                productId: product.id,
-                name: product.name,
-                price: product.price,
-                statusName: product.status.name,
-                imageUrl: imageUrls[0] ?? null,
-                stockQuantity: product.quantity,
-              }}
-            />
+            <AddToCartButton productId={product.id} stockQuantity={product.quantity} />
           </ActionBar>
         </div>
       </div>

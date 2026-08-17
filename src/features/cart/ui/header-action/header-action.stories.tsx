@@ -1,33 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { type CartLineInput, useCartStore } from "@/stores/cart-store";
+import { useCartStore } from "@/stores/cart-store";
 
+import { CART, CART_WITH_ISSUES, EMPTY_CART } from "../../cart.fixture";
 import { CartHeaderAction } from "./header-action";
 
-const EARPHONE: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-000000000001",
-  name: "ワイヤレスイヤホン",
-  price: "19.99",
-  statusName: "公開",
-  imageUrl: null,
-  stockQuantity: 12,
-};
-
-const WATCH: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-000000000002",
-  name: "スマートウォッチ（第 2 世代・GPS 搭載モデル）",
-  price: "129.00",
-  statusName: "残りわずか",
-  imageUrl: null,
-  stockQuantity: 2,
-};
-
-/** 初期状態を作る。追加が立てた「見たい」要求は、種まきの副産物なので畳む。 */
-function seed(lines: readonly CartLineInput[], isOpen = false) {
-  useCartStore.setState({ lines: [] });
-  for (const line of lines) {
-    useCartStore.getState().add(line);
-  }
+/** 中身を見たいという要求を、story の初期状態として指定する。 */
+function seedOpen(isOpen: boolean) {
   useCartStore.setState({ isOpen });
 }
 
@@ -47,9 +26,10 @@ const meta = {
       },
     },
   },
+  args: { cart: CART },
   decorators: [
     (Story) => {
-      seed([EARPHONE, WATCH]);
+      seedOpen(false);
 
       return <Story />;
     },
@@ -79,7 +59,20 @@ export const MobileOpen: Story = {
   globals: { viewport: { value: "mobile2", isRotated: false } },
   decorators: [
     (Story) => {
-      seed([EARPHONE, WATCH], true);
+      seedOpen(true);
+
+      return <Story />;
+    },
+  ],
+};
+
+/** スマホで買えない明細を含む場合。事情は行ごとに出る。 */
+export const MobileWithIssues: Story = {
+  args: { cart: CART_WITH_ISSUES },
+  globals: { viewport: { value: "mobile2", isRotated: false } },
+  decorators: [
+    (Story) => {
+      seedOpen(true);
 
       return <Story />;
     },
@@ -88,12 +81,6 @@ export const MobileOpen: Story = {
 
 /** スマホでカートが空の場合。入っていないことを drawer の説明で伝える。 */
 export const MobileEmpty: Story = {
+  args: { cart: EMPTY_CART },
   globals: { viewport: { value: "mobile2", isRotated: false } },
-  decorators: [
-    (Story) => {
-      seed([]);
-
-      return <Story />;
-    },
-  ],
 };

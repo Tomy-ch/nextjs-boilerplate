@@ -9,12 +9,13 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+53f5e11
+ * OpenAPI spec version: 2.2.0+c5703b7
  */
 import type {
   AddressCandidatesResponse,
   BadRequest400Response,
   CartItemPutRequest,
+  CartMergeResponse,
   CartResponse,
   Conflict409Response,
   DashboardSummaryResponse,
@@ -3268,4 +3269,103 @@ export const deleteCartsMeItem = async (
 
   const data: deleteCartsMeItemResponse["data"] = body ? JSON.parse(body) : undefined;
   return { data, status: res.status, headers: res.headers } as deleteCartsMeItemResponse;
+};
+
+export type postCartsMeMergeResponse200 = {
+  data: CartMergeResponse;
+  status: 200;
+};
+
+export type postCartsMeMergeResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postCartsMeMergeResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postCartsMeMergeResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postCartsMeMergeResponse409 = {
+  data: Conflict409Response;
+  status: 409;
+};
+
+export type postCartsMeMergeResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type postCartsMeMergeResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postCartsMeMergeResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postCartsMeMergeResponseSuccess = postCartsMeMergeResponse200 & {
+  headers: Headers;
+};
+export type postCartsMeMergeResponseError = (
+  | postCartsMeMergeResponse400
+  | postCartsMeMergeResponse401
+  | postCartsMeMergeResponse405
+  | postCartsMeMergeResponse409
+  | postCartsMeMergeResponse422
+  | postCartsMeMergeResponse500
+  | postCartsMeMergeResponse503
+) & {
+  headers: Headers;
+};
+
+export type postCartsMeMergeResponse =
+  | postCartsMeMergeResponseSuccess
+  | postCartsMeMergeResponseError;
+
+export const getPostCartsMeMergeUrl = () => {
+  return `/v1/carts/me/merge`;
+};
+
+/**
+ * ログイン直後に、ゲストカートを認証済みユーザーへ引き継ぎます。
+ * 引き継ぎ元はヘッダの X-Cart-Session、引き継ぎ先は Bearer トークンの主体で、要求本文を持ちません。
+ * **この操作だけが認証必須です**（所有者を確定させる操作のため、匿名では成り立ちません）。
+ * **引き継ぎは失敗しません**。同一商品の数量合算が上限を超えたら上限へ丸め、明細数が上限を超えたら
+ * 先に入っていたものを優先して残し、後から来たものを切り捨てます。ログインは認証の成否で決まるべきで、
+ * カートの都合で失敗させません。**失われた分は clamped / dropped として報告します**。
+ * ユーザー側にカートが無い場合は所有者を付け替えるだけで、明細の内容は変わりません。
+ * 引き継ぎ元のゲストカートが引けない場合（既に引き継ぎ済み、期限切れ、未知のトークン）は、
+ * clamped と dropped がいずれも空の成功として返します。
+ * **引き継ぎ後、元のセッショントークンでそのカートへ到達する経路は状態として残りません**
+ * （所有者の確定とトークンの破棄は不可分に行われ、合流時はゲストカートの行ごと消えます）。
+ * 応答に引き継ぎ後のカートは含めません。カートの中身は取得（GET /v1/carts/me）でいつでも引けますが、
+ * clamped / dropped はこの応答でしか得られないためです。
+ * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返し、報告が失われません。
+ * 同一キーを内容の異なる要求で使い回した場合は 422 で拒否します（冪等性の一般的な扱いであり、
+ * 引き継ぎそのものの失敗ではありません）。
+ * カートの 5 つの操作でこれを採るのはここだけで、他は明細の自然キーが冪等性を供給します。
+ * 本 op 自体は DB の SELECT / UPDATE / DELETE のみで外部依存を持ちませんが、認証段
+ * （外部 IdP の JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary ゲストカートの引き継ぎ（所有者の確定）
+ */
+export const postCartsMeMerge = async (
+  options?: RequestInit,
+): Promise<postCartsMeMergeResponse> => {
+  const res = await fetch(getPostCartsMeMergeUrl(), {
+    ...options,
+    method: "POST",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postCartsMeMergeResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as postCartsMeMergeResponse;
 };

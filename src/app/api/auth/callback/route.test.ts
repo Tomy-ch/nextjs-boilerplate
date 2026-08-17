@@ -5,11 +5,20 @@ import { GET } from "./route";
 const completeAuthorization = vi.hoisted(() => vi.fn());
 const storeSession = vi.hoisted(() => vi.fn());
 const takeTransaction = vi.hoisted(() => vi.fn());
+const mergeGuestCart = vi.hoisted(() => vi.fn()); // sample:line
+const logger = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn() })); // sample:line
 
 vi.mock("@/adapters/server/auth/resolver", () => ({
   getSessionResolver: () => ({ completeAuthorization }),
 }));
 vi.mock("@/adapters/server/auth/session", () => ({ storeSession, takeTransaction }));
+// sample:begin
+vi.mock("@/adapters/server/api/cart", () => ({ mergeGuestCart }));
+vi.mock("@/logging/logging.server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/logging/logging.server")>()),
+  getLogger: () => logger,
+}));
+// sample:end
 
 const transaction = {
   state: "state-value",
@@ -36,6 +45,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   takeTransaction.mockResolvedValue(transaction);
   completeAuthorization.mockResolvedValue(record);
+  mergeGuestCart.mockResolvedValue(null); // sample:line
 });
 
 describe("GET", () => {
@@ -50,6 +60,30 @@ describe("GET", () => {
     });
     expect(storeSession).toHaveBeenCalledWith(record);
   });
+
+  // sample:begin
+  it("session を確立した後に、ゲストのカートを引き継ぐ", async () => {
+    await GET(callback("?code=authorization-code&state=state-value"));
+
+    expect(mergeGuestCart).toHaveBeenCalledOnce();
+  });
+
+  it("引き継げなかった明細があれば記録に残す", async () => {
+    mergeGuestCart.mockResolvedValue({ clampedProductIds: ["p-1"], droppedProductIds: [] });
+
+    await GET(callback("?code=authorization-code&state=state-value"));
+
+    expect(logger.info).toHaveBeenCalledWith(expect.any(String), { clamped: 1, dropped: 0 });
+  });
+
+  it("すべて引き継げたときは記録を残さない", async () => {
+    mergeGuestCart.mockResolvedValue({ clampedProductIds: [], droppedProductIds: [] });
+
+    await GET(callback("?code=authorization-code&state=state-value"));
+
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+  // sample:end
 
   it("元の画面へ戻す", async () => {
     const response = await GET(callback("?code=authorization-code&state=state-value"));
@@ -82,6 +116,28 @@ describe("GET", () => {
     expect(response.headers.get("location")).toBe("http://localhost:3000/login");
     expect(storeSession).not.toHaveBeenCalled();
   });
+
+  // sample:begin
+  it("カートを引き継げなくてもログインは成功させる", async () => {
+    mergeGuestCart.mockRejectedValue(new Error("上流が応答しません"));
+
+    const response = await GET(callback("?code=authorization-code&state=state-value"));
+
+    expect(response.headers.get("location")).toBe("http://localhost:3000/mypage");
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it("記録そのものが失敗してもログインは成功させる", async () => {
+    mergeGuestCart.mockRejectedValue(new Error("上流が応答しません"));
+    logger.warn.mockImplementation(() => {
+      throw new Error("logger は初期化されていません");
+    });
+
+    const response = await GET(callback("?code=authorization-code&state=state-value"));
+
+    expect(response.headers.get("location")).toBe("http://localhost:3000/mypage");
+  });
+  // sample:end
 
   it("一時状態の復帰先が外部 URL でも自分の中へ戻す", async () => {
     takeTransaction.mockResolvedValue({ ...transaction, returnUrl: "https://evil.example.test" });

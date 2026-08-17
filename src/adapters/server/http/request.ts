@@ -50,6 +50,15 @@ type RequestSpec<T> = RequestPayload & {
   /** クエリ文字列。 */
   searchParams?: Record<string, string | undefined>;
   /**
+   * この呼び出しに固有のヘッダ。
+   *
+   * @remarks
+   * 認証ヘッダはここで組みません。認証は接続先ごとに決まるものなので、クライアントの生成時に
+   * 渡した取得口が持ちます（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。
+   * ここに置くのは、呼び出しごとに値の変わる契約上のヘッダだけです。
+   */
+  headers?: Readonly<Record<string, string>>;
+  /**
    * 応答の検証スキーマ。
    *
    * 契約に載っている形であることを、内層へ渡す前にここで確かめる。バックエンドの応答には
@@ -87,6 +96,15 @@ type ClientDeps = {
    * @returns 認証できないときは null
    */
   getBearerToken?: () => Promise<string | null>;
+  /**
+   * 認証を伴わない呼び出しを認める接続先の宣言。
+   *
+   * @remarks
+   * 契約が資格情報の無い呼び出しを受け付ける場合だけ立てます。立てても、取得できた資格情報は
+   * 常に載せます。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として
+   * 扱われるためです。
+   */
+  allowAnonymous?: boolean;
   profile?: ResilienceProfile;
   fetchImpl?: typeof fetch;
   now?: () => number;
@@ -159,6 +177,7 @@ function buildUrl(
 export function createHttpClient({
   baseUrl,
   getBearerToken,
+  allowAnonymous = false,
   profile = DEFAULT_PROFILE,
   // 既定を `fetch` そのものではなく呼び出し時の解決にする。クライアントは接続先ごとに
   // 1 つを長く使い回すため、生成時点の実装を握ると、後から差し込まれた実装（モックなど）に
@@ -186,6 +205,10 @@ export function createHttpClient({
     const token = await getBearerToken();
 
     if (token === null) {
+      if (allowAnonymous) {
+        return {};
+      }
+
       throw createAppError(ErrorKind.UNAUTHENTICATED, {
         cause: new Error(`認証が要る接続先です: ${path}`),
       });
@@ -206,7 +229,7 @@ export function createHttpClient({
     return fetchImpl(url, {
       method: spec.method ?? "GET",
       signal: AbortSignal.any([signal, timeout]),
-      headers: { ...payload?.headers, ...authorization },
+      headers: { ...payload?.headers, ...spec.headers, ...authorization },
       body: payload?.body,
       cache: spec.cache,
       next: spec.tags === undefined ? undefined : { tags: [...spec.tags] },

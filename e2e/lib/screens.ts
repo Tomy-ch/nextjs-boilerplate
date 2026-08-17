@@ -68,6 +68,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     // 中身も固定される。存在する ID である必要はない — 契約駆動のモックはどの ID にも応える。
     path: "/products/0195f0c2-0000-7000-8000-000000000001",
   },
+  { route: "/cart", name: "cart", path: "/cart" },
   { route: "/mypage", name: "mypage", path: "/mypage", signedIn: true },
   { route: "/mypage/edit", name: "profile-edit", path: "/mypage/edit", signedIn: true },
   { route: "/about", name: "about", path: "/about" },

@@ -21,7 +21,7 @@
 - 401 は「未ログイン / セッション切れ」として扱い、ログイン画面(U9、BFF route)へリダイレクト
 - 403 は「ログイン済みだが権限不足」。admin 系画面(A 系)で非 admin ユーザーがアクセスした場合に発生。UI 上は該当ボタン / 導線ごと出し分けるのが基本
 - 通貨: 商品の `price` は USD の decimal 文字列、購入集計の金額は USD セント整数である。`displayCurrency=JPY` を明示指定した時だけ `referenceAmount` が参考値として付与される。フロントは「参考」であることを表示上明示する
-- カート(U4)は API 経由ではなく **フロント内 client state** で完結する。**ページリロードで消える前提でよい(永続化なし)**
+- カート(U4)は **バックエンドが持つ**(`/v1/carts/me`)。未ログインでも使え、主体はゲストが `X-Cart-Session`、ログイン済みが Bearer で、両方あればログイン済みが優先される。**取得は明細ごとの再評価つき**で、買えない明細・値の変わった明細に `issues` が立ち、小計は `issues` が空の明細だけの合算(参考値)である。ログイン時のゲストからの引き継ぎは BFF が callback で起こす([ADR 0079](adr/0079-auth-frontend-seam.md) §7)
 - ~~画像は URL 文字列として保存・表示するのみ。アップロード機能は存在しない~~ → **冒頭の注記を参照(#651 で改訂)**。`next/image` の `remotePatterns` には Garage の公開エンドポイントを allowlist 登録する。**ワイルドカードは使わない**
 - 商品説明(description)は **リッチテキスト**(TipTap で作成)。表示側は必ず sanitizer を通す(生の `dangerouslySetInnerHTML` 直接使用は禁止。`rules.md` #48)
 - ページネーションは基本 **cursor 方式**。無限スクロール(増分取得)の画面とページ送り相当の画面が混在するので、画面ごとの実装パターンに注意
@@ -38,8 +38,8 @@
 | U1 | トップ | `GET /v1/products/ranking` / `GET /v1/products`(新着 sort) / `GET /v1/products/categories` | 売上ランキング・新着商品・カテゴリ導線を並べるだけのトップページ。パーソナライズなし | 3 系統のデータを並置するだけなので RSC 内で並行 fetch(`Promise.all`)で十分 |
 | U2 | 商品一覧 | `GET /v1/products`(`after` / `first` / `categoryId` / `statusId` / `keyword` / `sort`) / `GET /v1/products/categories` | 検索・絞り込み・並び替え付き一覧 | 条件は `searchParams` に載せ、変わるたびに RSC が再取得する。絞り込みは広い段ではサイドバーで選択即時、狭い段では sheet 内でまとめて確定する(並び替えはどちらの段でも即時)。増分取得は無限スクロール方式。`statusId` で絞り込む口は置かない。契約はクエリを受け付けるが、公開商品の可視範囲フィルタが backend 側で未実装で結果が変わらないため |
 | U3 | 商品詳細 | `GET /v1/products/{productId}` / `GET /v1/products`(`categoryId`) | 単一商品の詳細表示。関連商品は一覧 API をカテゴリフィルタで再利用(専用 API なし) | description はリッチテキストなので必ず sanitizer 経由で表示 |
-| U4 | カート | なし(client state) | 商品追加・数量変更・削除をブラウザ内で完結 | **永続化しない**。購入確認画面へ渡す際に明細配列として組み立てる。カートのサイドバー / drawer の副導線「カートを見る」から入る。**認証を要さない**ため、未ログインでも中身を全画面で確かめられる唯一の経路である |
-| U5 | 購入確認 | `GET /v1/exchange-rates?base=USD&quote=JPY&amount=` / `GET /v1/users/me` | カート内容の最終確認。JPY 表示切替可 | 為替 API の `amount` は decimal 文字列。為替取得失敗時は参考額なしで購入自体は継続できる(degrade)。カートのサイドバー / drawer の主導線「購入手続きへ」から入る。認証の内側にある |
+| U4 | カート | `GET /v1/carts/me` / `PUT /v1/carts/me/items/{productId}` / `DELETE /v1/carts/me/items/{productId}` / `DELETE /v1/carts/me` | 商品追加・数量変更・削除・全消し | **リロードで消えない**。数量は加算ではなく設定(upsert)で、自然キーが冪等性を持つため `Idempotency-Key` は要らない。買えない明細・値の変わった明細は `issues` として画面に出す。カートのサイドバー / drawer の副導線「カートを見る」から入る。**認証を要さない**ため、未ログインでも中身を全画面で確かめられる唯一の経路である |
+| U5 | 購入確認 | `GET /v1/carts/me` / `GET /v1/exchange-rates?base=USD&quote=JPY&amount=` / `GET /v1/users/me` | カート内容の最終確認。JPY 表示切替可 | 明細は client から引き継がず**この画面で取り直す**。再評価が入るため、U4 で見た時点から買えなくなった明細・値の変わった明細がここで現れうる。為替 API の `amount` は decimal 文字列。為替取得失敗時は参考額なしで購入自体は継続できる(degrade)。カートのサイドバー / drawer の主導線「購入手続きへ」から入る。認証の内側にある |
 | U6 | 購入完了 | `POST /v1/purchases?displayCurrency=JPY` | 購入確定。`details` に `productId` と `quantity` を送信 | OpenAPI 上の `Idempotency-Key` は任意だが、フロントは常に設定する。二重クリック / リロードを防ぎ、`ActionState<T>` で送信状態を管理する |
 | U7 | 購入履歴 | `GET /v1/purchases`(`after` / `first`) | 自分の購入一覧 | **無限スクロール(増分取得)方式**。前ページの `nextCursor` を `after` に渡す |
 | U8 | 購入詳細 | `GET /v1/purchases/{purchaseId}` | 購入 1 件の明細・商品情報 | 明細には products と結合した現在の商品名、購入時点の `unitPrice` が含まれる |

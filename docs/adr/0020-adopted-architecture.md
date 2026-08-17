@@ -144,6 +144,8 @@ go は横断関心事を `internal/` 直下の独立パッケージとする(`co
 | --- | --- | --- |
 | **onion 直訳(層ディレクトリ型)** | `src/{app, domain, usecase, adapter, components}` と go の層を 1:1 でディレクトリ化 | 表示層では domain / usecase が薄く**形骸化**する。1 機能の修正が複数ディレクトリに散らばり co-location が弱い。view と usecase の関係は onion に無い軸で結局独自ルールが要る。Next.js 慣行から遠い。加えて `domain/` が業務ロジックの誘導路になる([0011](0011-no-docker.md) 緊張点) |
 | **Next.js 慣行ミニマル** | `src/{app, components, hooks, lib, types}` の最小構成 | usecase の置き場が曖昧で `hooks` が何でも屋化し、境界検査も粗くしか書けない。層別 README・GB-1〜GB-4 の監査 / scaffold **監査体系が載らず**、go-boilerplate 準拠の完成基準に届かない |
+| **Atomic Design** | atoms / molecules / organisms / templates / pages と、**粒度**で UI を分類する | 粒度は責務を表さない。organism が肥大し、ロジックの滞留先になる。置き場所の判断が「どちらの粒度か」という主観へ移り、名前から責務が読めなくなる。本リポジトリが優先するのは**責務の明瞭さと、それが名前に出ていること**である |
+| **Feature-Sliced Design (FSD)** | shared / entities / features / widgets / pages / app の 6 層 | 機能スライスという第一軸は同じだが、`entities` / `widgets` が本リポジトリの層と**二重の語彙**になる。同じものを 2 通りに分類できる構造は、置き場所の判断を毎回揺らす |
 
 採用パターン(機能スライス × カーネル)は、go の不変原則(内向き依存・境界強制・型漏洩禁止・README 正)を全て維持したまま、表示層の現実(機能単位の変更が支配的・RSC の server/client 混在)に最適化できる。go の **de facto レイアウト**(層ファースト)とは意図的に軸を反転させているが、これは翻案上の設計判断であり、上記マッピング表で go との対応を担保する。
 

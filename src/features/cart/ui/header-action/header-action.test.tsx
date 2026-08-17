@@ -1,210 +1,68 @@
 // @vitest-environment jsdom
 
-import { act, render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { type CartLineInput, useCartStore } from "@/stores/cart-store";
+vi.mock("../../actions", () => ({
+  clearCartAction: vi.fn(),
+  removeCartItemAction: vi.fn(),
+  setCartItemQuantityAction: vi.fn(),
+}));
+
+const { useMediaQuery } = vi.hoisted(() => ({ useMediaQuery: vi.fn<() => boolean>() }));
+
+vi.mock("@/capabilities/use-media-query", () => ({ useMediaQuery }));
+
+import { mediaBelow } from "@/model/breakpoint";
+import { useCartStore } from "@/stores/cart-store";
+
+import { CART } from "../../cart.fixture";
 import { CartHeaderAction } from "./header-action";
 
-const COFFEE: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-000000000001",
-  name: "深煎りブレンド",
-  price: "12.34",
-  statusName: "公開中",
-  imageUrl: null,
-  stockQuantity: 20,
-};
-
-type Listener = () => void;
-
-/**
- * 幅の想定を作る。
- *
- * @remarks
- * 共有の補い（`vitest.setup.ts`）が与える既定は「一致しない」＝常設できる広い幅なので、
- * 狭い幅を前提にするケースと、幅をまたいで動かすケースだけをここで上書きする。
- */
-function stubViewport(narrow: boolean) {
-  const listeners = new Set<Listener>();
-  const state = { matches: narrow };
-
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: state.matches,
-    media: query,
-    addEventListener: (_: string, listener: Listener) => listeners.add(listener),
-    removeEventListener: (_: string, listener: Listener) => listeners.delete(listener),
-  }));
-
-  return {
-    resize(toNarrow: boolean) {
-      state.matches = toNarrow;
-      for (const listener of listeners) {
-        listener();
-      }
-    },
-  };
-}
-
-/** 初期状態を作る。追加が立てた「見たい」要求は種まきの副産物なので畳む。 */
-function seed(line: CartLineInput) {
-  useCartStore.getState().add(line);
+beforeEach(() => {
+  vi.clearAllMocks();
+  useMediaQuery.mockReturnValue(false);
   useCartStore.setState({ isOpen: false });
-}
+});
 
 describe("CartHeaderAction", () => {
-  beforeEach(() => {
-    useCartStore.setState({ lines: [], isOpen: false });
-  });
+  it("脇に常設できる幅では、中身を被せずに要求だけを立てる", async () => {
+    const user = userEvent.setup();
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+    render(<CartHeaderAction cart={CART} />);
+    await user.click(screen.getByRole("button", { name: "カートを開く" }));
 
-  it("広い幅では点数を持つ切り替えになり、中身は持たない", () => {
-    seed(COFFEE);
-    render(<CartHeaderAction />);
-    const toggle = screen.getByRole("button", { name: "カートを開く" });
-
-    expect(within(toggle).getByText("1")).toBeVisible();
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("深煎りブレンド")).not.toBeInTheDocument();
-  });
-
-  it("広い幅で押すと脇の領域を開く要求になる", async () => {
-    seed(COFFEE);
-    render(<CartHeaderAction />);
-
-    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
-
-    expect(screen.getByRole("button", { name: "カートを閉じる" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-  });
-
-  it("広い幅で開いている状態から押すと要求を畳む", async () => {
-    useCartStore.getState().add(COFFEE);
-    render(<CartHeaderAction />);
-
-    await userEvent.click(screen.getByRole("button", { name: "カートを閉じる" }));
-
-    expect(screen.getByRole("button", { name: "カートを開く" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-  });
-
-  it("狭い幅では開く操作になる", () => {
-    stubViewport(true);
-    seed(COFFEE);
-    render(<CartHeaderAction />);
-
-    expect(screen.getByRole("button", { name: "カートを開く" })).toBeVisible();
-  });
-
-  it("狭い幅で押すとカートを被せて開く", async () => {
-    stubViewport(true);
-    seed(COFFEE);
-    render(<CartHeaderAction />);
-
-    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
-
-    expect(await screen.findByRole("dialog", { name: "カート" })).toBeVisible();
-    expect(screen.getByText("1 点入っています。")).toBeVisible();
-  });
-
-  it("開いた状態で明細と小計を出す", async () => {
-    stubViewport(true);
-    seed(COFFEE);
-    render(<CartHeaderAction />);
-
-    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
-
-    expect(await screen.findByText("深煎りブレンド")).toBeVisible();
-    expect(within(screen.getByRole("list")).getByText("$12.34")).toBeVisible();
-  });
-
-  it("閉じる操作で閉じる", async () => {
-    stubViewport(true);
-    seed(COFFEE);
-    render(<CartHeaderAction />);
-
-    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
-    await userEvent.click(await screen.findByRole("button", { name: "閉じる" }));
-
+    expect(useCartStore.getState().isOpen).toBe(true);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("中身を見たい要求が立っていれば最初から開く", async () => {
-    stubViewport(true);
-    useCartStore.getState().add(COFFEE);
-    render(<CartHeaderAction />);
+  it("脇に常設できない幅では、本文へ中身を被せる", async () => {
+    const user = userEvent.setup();
 
-    expect(await screen.findByRole("dialog", { name: "カート" })).toBeVisible();
+    useMediaQuery.mockReturnValue(true);
+
+    render(<CartHeaderAction cart={CART} />);
+    await user.click(await screen.findByRole("button", { name: /カートを開く/ }));
+
+    expect(await screen.findByRole("dialog")).toBeVisible();
   });
 
-  it("常設できる幅で立った要求は狭めた後も残る", async () => {
-    const media = stubViewport(false);
-    render(<CartHeaderAction />);
-    act(() => useCartStore.getState().add(COFFEE));
+  it("どちらの姿でも点数は 1 か所だけに出す", () => {
+    render(<CartHeaderAction cart={CART} />);
 
-    act(() => media.resize(true));
-
-    expect(await screen.findByRole("dialog", { name: "カート" })).toBeVisible();
+    expect(screen.getAllByText(String(CART.lines.length))).toHaveLength(1);
   });
 
-  it("開いたまま常設できる幅へ移ると切り替えが開いた状態で引き継ぐ", async () => {
-    const media = stubViewport(true);
-    render(<CartHeaderAction />);
-    act(() => useCartStore.getState().add(COFFEE));
-    await screen.findByRole("dialog");
+  it("帯の判定は脇に置ける幅の境界で行う", () => {
+    render(<CartHeaderAction cart={CART} />);
 
-    act(() => media.resize(false));
-
-    expect(screen.getByRole("button", { name: "カートを閉じる" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(useMediaQuery).toHaveBeenCalledWith(mediaBelow("lg"));
   });
 
-  it("狭い幅で畳んだ要求は広げて戻しても畳まれたまま", () => {
-    const media = stubViewport(true);
-    seed(COFFEE);
-    render(<CartHeaderAction />);
-
-    act(() => media.resize(false));
-    act(() => media.resize(true));
-
-    expect(screen.getByRole("button", { name: "カートを開く" })).toBeVisible();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("カートが空のときは入っていないことを伝える", async () => {
-    stubViewport(true);
-    render(<CartHeaderAction />);
-
-    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
-
-    expect(await screen.findByText("商品が入っていません。")).toBeVisible();
-  });
-  it("閉じた状態が a11y 自動検査に違反しない", async () => {
-    stubViewport(true);
-    seed(COFFEE);
-    const { container } = render(<CartHeaderAction />);
-
-    expect((await axe(container)).violations).toEqual([]);
-  });
-
-  it("開いた状態が a11y 自動検査に違反しない", async () => {
-    stubViewport(true);
-    seed(COFFEE);
-    const { container } = render(<CartHeaderAction />);
-
-    await userEvent.click(screen.getByRole("button", { name: "カートを開く" }));
-    await screen.findByRole("dialog", { name: "カート" });
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<CartHeaderAction cart={CART} />);
 
     expect((await axe(container)).violations).toEqual([]);
   });

@@ -9,13 +9,14 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+53f5e11
+ * OpenAPI spec version: 2.2.0+c5703b7
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
 import { HttpResponse, http } from "msw";
 import type {
   AddressCandidatesResponse,
+  CartMergeResponse,
   CartResponse,
   DashboardSummaryResponse,
   ExchangeRateResponse,
@@ -831,6 +832,18 @@ export const getPutCartsMeItemResponseMock = (
     faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + "Z", null]),
     undefined,
   ]),
+  ...overrideResponse,
+});
+
+export const getPostCartsMeMergeResponseMock = (
+  overrideResponse: Partial<Extract<CartMergeResponse, object>> = {},
+): CartMergeResponse => ({
+  clamped: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() =>
+    faker.string.uuid(),
+  ),
+  dropped: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() =>
+    faker.string.uuid(),
+  ),
   ...overrideResponse,
 });
 
@@ -1730,6 +1743,30 @@ export const getDeleteCartsMeItemMockHandler = (
     options,
   );
 };
+
+export const getPostCartsMeMergeMockHandler = (
+  overrideResponse?:
+    | CartMergeResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<CartMergeResponse> | CartMergeResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/carts/me/merge",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostCartsMeMergeResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
 export const getGoBoilerplateAPIMock = () => [
   getGetUsersMockHandler(),
   getPostUsersMockHandler(),
@@ -1769,4 +1806,5 @@ export const getGoBoilerplateAPIMock = () => [
   getDeleteCartsMeMockHandler(),
   getPutCartsMeItemMockHandler(),
   getDeleteCartsMeItemMockHandler(),
+  getPostCartsMeMergeMockHandler(),
 ];

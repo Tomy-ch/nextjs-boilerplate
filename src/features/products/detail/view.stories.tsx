@@ -2,10 +2,12 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
+import { CART, EMPTY_CART } from "@/features/cart/cart.fixture";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
+import type { Cart } from "@/model/cart/cart";
 import type { Product } from "@/model/product/product";
-import { type CartLineInput, useCartStore } from "@/stores/cart-store";
+import { useCartStore } from "@/stores/cart-store";
 
 import { ProductDetail } from "./view";
 
@@ -17,38 +19,38 @@ const NAV_ITEMS = [
   { href: "/purchases", label: "購入履歴" },
 ];
 
-/** カートへ積む 1 行。数量を省くと 1 個として積む。 */
-type CartSeed = { line: CartLineInput; quantity?: number };
+const WATCH_ID = "0195f0c2-0000-7000-8000-0000000000f1";
 
-const WATCH: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-0000000000f1",
-  name: "スマートウォッチ",
-  price: "129.00",
-  statusName: "公開",
-  imageUrl: null,
-  stockQuantity: 4,
+/** 明細が複数あるカート。脇の領域が送りを持つ姿を見るために 3 行入れる。 */
+const FILLED_CART: Cart = {
+  lines: [
+    {
+      productId: WATCH_ID,
+      name: "スマートウォッチ",
+      unitPrice: "129.00",
+      quantity: 3,
+      issues: [],
+      availableQuantity: null,
+    },
+    {
+      productId: "0195f0c2-0000-7000-8000-0000000000f2",
+      name: "USB-C ハブ（7 ポート・100W PD 対応モデル）",
+      unitPrice: "45.50",
+      quantity: 2,
+      issues: [],
+      availableQuantity: null,
+    },
+    {
+      productId: "0195f0c2-0000-7000-8000-0000000000f3",
+      name: "編組ケーブル 2m",
+      unitPrice: "0.99",
+      quantity: 12,
+      issues: [],
+      availableQuantity: null,
+    },
+  ],
+  subtotalAmount: 49966,
 };
-
-const HUB: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-0000000000f2",
-  name: "USB-C ハブ（7 ポート・100W PD 対応モデル）",
-  price: "45.50",
-  statusName: "残りわずか",
-  imageUrl: "/src/components/design-system/display/media-image/invertocat.png",
-  stockQuantity: 2,
-};
-
-const CABLE: CartLineInput = {
-  productId: "0195f0c2-0000-7000-8000-0000000000f3",
-  name: "編組ケーブル 2m",
-  price: "0.99",
-  statusName: "公開",
-  imageUrl: null,
-  stockQuantity: 30,
-};
-
-/** 既定のカート。`parameters.cart` を渡した story はそれで上書きする。 */
-const DEFAULT_CART: readonly CartSeed[] = [{ line: WATCH }];
 
 /**
  * route と同じ器で包む。`(shop)/layout.tsx` が置く shell とカート、`page.tsx` が置く読み幅を
@@ -63,17 +65,9 @@ const DEFAULT_CART: readonly CartSeed[] = [{ line: WATCH }];
  */
 function withPageFrame(
   Story: () => React.ReactElement,
-  context: { parameters: { cart?: readonly CartSeed[]; cartOpen?: boolean } },
+  context: { parameters: { cart?: Cart; cartOpen?: boolean } },
 ) {
-  useCartStore.setState({ lines: [] });
-
-  for (const seed of context.parameters.cart ?? DEFAULT_CART) {
-    useCartStore.getState().add(seed.line);
-
-    if (seed.quantity !== undefined) {
-      useCartStore.getState().setQuantity(seed.line.productId, seed.quantity);
-    }
-  }
+  const cart = context.parameters.cart ?? CART;
 
   useCartStore.setState({ isOpen: context.parameters.cartOpen === true });
 
@@ -81,9 +75,9 @@ function withPageFrame(
     <div className="flex min-h-screen flex-col">
       <AppShell
         footer={<p>Next.js / React のプレゼンテーション層 boilerplate です。</p>}
-        headerActions={<CartHeaderAction />}
+        headerActions={<CartHeaderAction cart={cart} />}
         navItems={NAV_ITEMS}
-        sidebar={<CartPanel />}
+        sidebar={<CartPanel cart={cart} />}
         siteName="nextjs-boilerplate"
       >
         <ContentContainer className="py-8">
@@ -184,13 +178,18 @@ export const Unpublished: Story = {
 /** カートが空の場合。脇の領域ごと消え、本文が全幅になる。 */
 export const EmptyCart: Story = {
   args: { imageUrls: IMAGE_URLS, product: product() },
-  parameters: { cart: [] },
+  parameters: { cart: EMPTY_CART },
 };
 
-/** 表示中の商品がすでにカートへ入っている場合。在庫ぶん入ると追加操作が押せなくなる。 */
+/**
+ * 表示中の商品がすでにカートへ入っている場合。
+ *
+ * 追加操作は押せたままにする。もう一度押せば数量が上がり、在庫を超えるかどうかの判定は
+ * バックエンドが明細の事情として返す。
+ */
 export const AlreadyInCart: Story = {
-  args: { imageUrls: IMAGE_URLS, product: product({ id: WATCH.productId, quantity: 4 }) },
-  parameters: { cart: [{ line: WATCH, quantity: 4 }] },
+  args: { imageUrls: IMAGE_URLS, product: product({ id: WATCH_ID, quantity: 4 }) },
+  parameters: { cart: FILLED_CART },
 };
 
 /**
@@ -212,9 +211,19 @@ export const MaxLengthPC: Story = {
   },
   parameters: {
     cartOpen: true,
-    cart: [
-      { line: { ...HUB, name: longText(MAX_NAME_LENGTH), price: "999999999.999" }, quantity: 2 },
-    ],
+    cart: {
+      lines: [
+        {
+          productId: "0195f0c2-0000-7000-8000-0000000000f2",
+          name: longText(MAX_NAME_LENGTH),
+          unitPrice: "999999999.999",
+          quantity: 2,
+          issues: [],
+          availableQuantity: null,
+        },
+      ],
+      subtotalAmount: 199999999999,
+    } satisfies Cart,
   },
 };
 
@@ -240,14 +249,7 @@ export const MaxLengthMobile: Story = {
 export const FilledCartPC: Story = {
   args: { imageUrls: IMAGE_URLS, product: product() },
   globals: { viewport: { value: "desktop", isRotated: false } },
-  parameters: {
-    cartOpen: true,
-    cart: [
-      { line: WATCH, quantity: 3 },
-      { line: HUB, quantity: 2 },
-      { line: CABLE, quantity: 12 },
-    ],
-  },
+  parameters: { cartOpen: true, cart: FILLED_CART },
 };
 
 /** タブレットでカートに複数入っている状態。header の入口から本文へ被せて開く。 */

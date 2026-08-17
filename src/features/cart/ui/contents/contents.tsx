@@ -1,103 +1,74 @@
-"use client";
-
 import Link from "next/link";
-import { useCallback } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
+import { BUTTON_SIZE } from "@/components/design-system/action/button/button.definition";
 import { ScrollArea } from "@/components/design-system/container/scroll-area/scroll-area";
-import { Badge } from "@/components/design-system/display/badge/badge";
-import { MediaImage } from "@/components/design-system/display/media-image/media-image";
-import { NO_IMAGE_URL } from "@/model/media";
-import { type CartLine, useCartStore } from "@/stores/cart-store";
+import type { Cart } from "@/model/cart/cart";
 
-import { cartSubtotal } from "../../total";
-import { CartQuantityStepper } from "../quantity-stepper/quantity-stepper";
+import { CART_PATH } from "../../paths";
+import { CartCheckoutLink } from "../checkout-link/checkout-link";
+import { CartClearButton } from "../clear-button/clear-button";
+import { CartLineList } from "../line-list/line-list";
+import { CartLineRow } from "../line-row/line-row";
+import { CartRemovalNoticeList } from "../removal-notice/removal-notice";
+import { CartSubtotal } from "../subtotal/subtotal";
 
-const CHECKOUT_PATH = "/checkout";
-const CART_PATH = "/cart";
-
-function CartLineRow({ line }: { line: CartLine }) {
-  const setQuantity = useCartStore((state) => state.setQuantity);
-  const changeQuantity = useCallback(
-    (quantity: number) => setQuantity(line.productId, quantity),
-    [setQuantity, line.productId],
-  );
-
-  return (
-    <li className="flex flex-col items-start gap-2 py-4">
-      <MediaImage
-        alt=""
-        className="w-full rounded-md"
-        fallbackSrc={NO_IMAGE_URL}
-        sizes="16rem"
-        src={line.imageUrl}
-      />
-      {/* 状態名は上限の宣言が無いため、名前と横に並べたままだと長い状態名が名前の幅を奪う。
-          名前に最低限の幅を持たせ、収まらなくなった状態名だけを次の行へ送る。 */}
-      <div className="flex w-full flex-wrap items-start gap-x-2 gap-y-1">
-        <p className="line-clamp-2 min-w-0 flex-1 basis-32 font-medium text-sm">{line.name}</p>
-        <Badge className="max-w-full whitespace-normal break-words" variant="secondary">
-          {line.statusName}
-        </Badge>
-      </div>
-      <p className="font-medium">{`$${cartSubtotal([line])}`}</p>
-      <p className="text-muted-foreground text-xs">{`$${line.price} / 個`}</p>
-      <CartQuantityStepper
-        label={line.name}
-        max={line.stockQuantity}
-        onChange={changeQuantity}
-        quantity={line.quantity}
-      />
-    </li>
-  );
-}
+/** `CartContents` の props。 */
+export type CartContentsProps = {
+  /** 表示するカート。 */
+  cart: Cart;
+};
 
 /**
- * カートの中身。小計・カートへの導線・明細を縦に並べる。
+ * カートの中身。小計・導線・明細を縦に並べる。
  *
  * @remarks
  * 器を持ちません。脇の領域として常設する場合と、狭い幅で本文へ被せる場合の両方から使うため、
  * 位置と大きさは呼び出し元が決めます。
  *
- * 明細の金額は単価ではなくその行の小計です。数量を変えたときに動く値が単価だと、何を見せられて
- * いるのか判りません。単価は数量によらず常に添えます。数量 1 で省くと、増減のたびに行の高さが
- * 変わって下の内容が飛びます。
- *
- * 画像の代替テキストは空です。商品名を文字で隣に置いているため、画像に名前を持たせると同じ名前が
- * 二度読み上げられます。
+ * 小計はバックエンドが返した値です。買える明細だけを合算した参考値であり、この画面では
+ * 足し直しません（[0070](../../../../../docs/adr/0070-backend-role-separation.md)）。
  *
  * 小計と先へ進む導線は送りの外に置き、明細だけを局所スクロールさせます。高さを超えた明細を
- * 外側のスクロールに委ねると、器が固定されている場合に届かない行が出ます。
+ * 外側のスクロールに委ねると、器が固定されている場合に届かない行が出ます。**この器では小計が
+ * 常に見えているため、全画面の側にある引き出しは要りません。**
  *
  * 導線は 2 本あり、主が購入手続き、副がカートページです（それぞれの理由は
  * [cart の README](../../README.md)）。
  */
-export function CartContents() {
-  const lines = useCartStore((state) => state.lines);
+export function CartContents({ cart }: CartContentsProps) {
+  const presentProductIds = cart.lines.map((line) => line.productId);
+
+  if (cart.lines.length === 0) {
+    return (
+      <div className="flex flex-col gap-3">
+        <CartRemovalNoticeList presentProductIds={presentProductIds} />
+        <p className="text-muted-foreground text-sm">カートに商品が入っていません。</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <p className="flex items-baseline justify-between gap-2">
-        <span className="text-muted-foreground text-sm">小計</span>
-        <strong className="text-lg">{`$${cartSubtotal(lines)}`}</strong>
-      </p>
+      <CartSubtotal amount={cart.subtotalAmount} size="compact" />
 
       <div className="grid gap-2">
-        <Button asChild className="w-full" size="sm">
-          <Link href={CHECKOUT_PATH}>購入手続きへ</Link>
-        </Button>
+        <CartCheckoutLink cart={cart} size={BUTTON_SIZE.SMALL} />
         <Button asChild className="w-full" size="sm" variant="outline">
           <Link href={CART_PATH}>カートを見る</Link>
         </Button>
       </div>
 
       <ScrollArea aria-label="カートの明細" className="min-h-0 flex-1">
-        <ul className="flex flex-col divide-y">
-          {lines.map((line) => (
-            <CartLineRow key={line.productId} line={line} />
-          ))}
-        </ul>
+        <CartLineList
+          slots={cart.lines.map((line) => ({
+            productId: line.productId,
+            row: <CartLineRow key={line.productId} line={line} />,
+          }))}
+        />
       </ScrollArea>
+
+      <CartClearButton />
     </div>
   );
 }

@@ -1,9 +1,46 @@
+import { mergeGuestCart } from "@/adapters/server/api/cart"; // sample:line
 import { getSessionResolver } from "@/adapters/server/auth/resolver";
 import { storeSession, takeTransaction } from "@/adapters/server/auth/session";
+import { getLogger, reportQuietly } from "@/logging/logging.server"; // sample:line
 import { toSafeReturnUrl } from "@/model/return-url";
 
 /** 認証をやり直させる先。 */
 const LOGIN_PATH = "/login";
+
+// sample:begin
+/**
+ * 未認証のまま貯めた状態を、確立した session の主体へ引き継ぐ。
+ *
+ * @remarks
+ * **失敗させません。** ログインの成否は認証の成否で決まり、それに付随する処理の結果を従属させません
+ * （[0079](../../../../../docs/adr/0079-auth-frontend-seam.md) §7）。利用者から見えるのはログインの
+ * 成功だけで、引き継げなかったことは記録から辿ります。
+ *
+ * 起こすのはここだけです。未認証時の識別子と確立直後の session が同時に手元にあるのはこの 1 箇所で、
+ * 複数の起点を持つと同じ状態遷移に二重適用と競合の面が増えます。
+ */
+async function takeOverGuestState(): Promise<void> {
+  try {
+    const result = await mergeGuestCart();
+
+    if (
+      result !== null &&
+      (result.clampedProductIds.length > 0 || result.droppedProductIds.length > 0)
+    ) {
+      reportQuietly(() =>
+        getLogger().info("ゲストのカートの一部を引き継げませんでした", {
+          clamped: result.clampedProductIds.length,
+          dropped: result.droppedProductIds.length,
+        }),
+      );
+    }
+  } catch (cause) {
+    reportQuietly(() =>
+      getLogger().warn("ゲストのカートを引き継げませんでした", { cause: String(cause) }),
+    );
+  }
+}
+// sample:end
 
 /**
  * 認可コードを受け取り、session を確立して元の画面へ戻す。
@@ -29,6 +66,7 @@ export async function GET(request: Request): Promise<Response> {
     const record = await getSessionResolver().completeAuthorization({ code, state, transaction });
 
     await storeSession(record);
+    await takeOverGuestState(); // sample:line
 
     // 復帰先は認可要求の時点で検証済みだが、cookie を経由して戻ってきた値なのでもう一度通す。
     // 検証を入口の 1 回に頼ると、cookie を差し替えられる経路が見つかった時点で外部へ飛ばせる。

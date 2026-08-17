@@ -65,6 +65,21 @@ Accepted
 
 - App Router の `loading.tsx` / `error.tsx` / `not-found.tsx` / `global-error.tsx` の配置・責務は **B6([0080](0080-error-handling.md))が確定済み**(`error.tsx` 系 = 同 3 節 / `loading.tsx`・Suspense 境界 = 同 4 節)。本 ADR は特殊ファイルの命名([0028](0028-naming-convention.md))と「driving adapter に業務ロジックを置かない」原則のみを敷く
 
+### 採らない分割モデル
+
+次は**採らない**。RSC が同じ分割をより細かい単位で提供しており、語彙を二重に持つと境界の判断が揺れる。**同じ発想に至ったときは、ここを見て RSC の枠へ戻ること。**
+
+| モデル | 採らない理由 |
+| --- | --- |
+| Islands architecture | 「静的な面の中に動く島を置く」分割は、Server Component の中に Client Component を置く形と同じである。島の単位を別に宣言する必要がない |
+| render-as-you-fetch | 取得と描画を分けて先に走らせる手法は、取得が描画の内側にある RSC では前提が成立しない。取得は Server Component が行い、待つ範囲は `Suspense` の境界が決める |
+
+### 境界の粒度
+
+`Suspense` の境界は**待つものの単位**で置く。1 つの境界が複数の取得を覆うと、最も遅い 1 つが他を止める。逆に、同時に届くものを別々の境界へ割ると、画面が何度も継ぎ足されて読み始めた位置が動く。
+
+境界の内側は**待っているあいだ操作できない**。操作できる必要があるものを内側へ入れない(検索欄・絞り込み・戻る導線)。
+
 ## 禁止事項
 
 - ❌ Pages Router の追加(App Router 単独)
