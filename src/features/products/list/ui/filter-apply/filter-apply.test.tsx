@@ -57,10 +57,12 @@ describe("ProductFilterApply", () => {
     expect(screen.getByRole("button", { name: "絞り込み" })).toBeDisabled();
   });
 
-  it("件数の変化を、読み上げへ割り込ませない領域として知らせる", () => {
+  it("件数を、読み上げへ割り込まずに知らせる領域として出す", () => {
     render(<ProductFilterApply count={12} onApply={vi.fn()} />);
 
-    expect(summary()).toBeInTheDocument();
+    // status role は暗黙に polite。割り込む alert role でないことがこの表示の要件。
+    expect(summary()).toHaveAttribute("role", "status");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("a11y 自動検査に違反しない", async () => {

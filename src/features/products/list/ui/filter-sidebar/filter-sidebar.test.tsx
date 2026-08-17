@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { FILTER_KEY, type ProductListSelection } from "../../../facade/list-url/list-url";
 import type { FilterOption } from "../../query";
@@ -66,5 +67,11 @@ describe("ProductFilterSidebar", () => {
     renderSidebar({ [FILTER_KEY.CATEGORY]: ["c2"] });
 
     expect(screen.getByLabelText("ウェアラブル")).toBeChecked();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = renderSidebar();
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

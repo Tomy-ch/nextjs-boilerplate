@@ -174,6 +174,38 @@ describe("SearchFieldClient", () => {
     expect(onSearch).toHaveBeenCalledWith("本");
   });
 
+  it("Enter でも確定する", () => {
+    const onSearch = vi.fn();
+    render(
+      <SearchFieldClient
+        commit={SEARCH_FIELD_COMMIT.SUBMIT}
+        label="項目を検索"
+        onSearch={onSearch}
+      />,
+    );
+
+    type("本");
+    fireEvent.keyDown(screen.getByRole("searchbox", { name: "項目を検索" }), { key: "Enter" });
+
+    expect(onSearch).toHaveBeenCalledWith("本");
+  });
+
+  it("Enter 以外のキーでは確定しない", () => {
+    const onSearch = vi.fn();
+    render(
+      <SearchFieldClient
+        commit={SEARCH_FIELD_COMMIT.SUBMIT}
+        label="項目を検索"
+        onSearch={onSearch}
+      />,
+    );
+
+    type("本");
+    fireEvent.keyDown(screen.getByRole("searchbox", { name: "項目を検索" }), { key: "a" });
+
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
   it("送信ボタンの文言を差し替えられる", () => {
     render(
       <SearchFieldClient

@@ -71,6 +71,15 @@ describe("ProductPriceField", () => {
     expect(onChange).toHaveBeenCalledWith([2, 2]);
   });
 
+  it("下限以降の上限を選んでも、下限は動かさない", async () => {
+    const onChange = vi.fn();
+    render(<ProductPriceField onChange={onChange} value={[2, PRICE_RANGE_MAX]} />);
+
+    await userEvent.selectOptions(high(), "5");
+
+    expect(onChange).toHaveBeenCalledWith([2, 5]);
+  });
+
   it("外から来た位置を選択が映す", () => {
     render(<ProductPriceField onChange={vi.fn()} value={[2, 5]} />);
 
@@ -95,13 +104,27 @@ describe("ProductPriceField", () => {
     expect(onChange).toHaveBeenCalledWith([PRICE_RANGE_MIN + 1, PRICE_RANGE_MAX]);
   });
 
-  it("スライダーで動かした位置を、確定するまで自分で映す", async () => {
+  it("スライダーで動かした位置を、外から来る位置より優先して映す", async () => {
+    // 外からは常に端を渡す。動かした位置を自分で持っていなければ、表示は端のままになる。
     render(<ProductPriceField onChange={vi.fn()} value={[PRICE_RANGE_MIN, PRICE_RANGE_MAX]} />);
 
     screen.getByRole("slider", { name: "価格の上限" }).focus();
     await userEvent.keyboard("{ArrowLeft}");
 
-    expect(low()).toHaveValue(String(PRICE_RANGE_MIN));
+    expect(high()).toHaveValue(String(PRICE_RANGE_MAX - 1));
+  });
+
+  it("セレクトボックスで選び直すと、スライダーが持っていた位置を捨てる", async () => {
+    const { rerender } = render(
+      <ProductPriceField onChange={vi.fn()} value={[PRICE_RANGE_MIN, PRICE_RANGE_MAX]} />,
+    );
+
+    screen.getByRole("slider", { name: "価格の上限" }).focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    await userEvent.selectOptions(low(), "2");
+    rerender(<ProductPriceField onChange={vi.fn()} value={[2, PRICE_RANGE_MAX]} />);
+
+    expect(high()).toHaveValue(String(PRICE_RANGE_MAX));
   });
 
   it("a11y 自動検査に違反しない", async () => {

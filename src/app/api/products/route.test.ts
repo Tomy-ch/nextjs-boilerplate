@@ -57,6 +57,17 @@ describe("GET", () => {
     });
   });
 
+  it("繰り返された分類を並びのまま取得へ渡す", async () => {
+    const first = "0195f0c2-0000-7000-8000-000000000011";
+    const second = "0195f0c2-0000-7000-8000-000000000012";
+
+    await GET(requestFor(`?categoryId=${first}&categoryId=${second}`));
+
+    expect(getProductListPage).toHaveBeenCalledWith(
+      expect.objectContaining({ categoryId: [first, second] }),
+    );
+  });
+
   it("条件が無いとき契約の既定値で取得する", async () => {
     await GET(requestFor(""));
 

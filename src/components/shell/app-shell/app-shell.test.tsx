@@ -9,7 +9,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { AppShell } from "./app-shell";
-import { APP_SHELL_MAIN_ID } from "./app-shell.definition";
+import { APP_SHELL_HEADER_HEIGHT, APP_SHELL_MAIN_ID } from "./app-shell.definition";
 
 const NAV_ITEMS = [
   { href: "/reports", label: "レポート" },
@@ -120,5 +120,11 @@ describe("AppShell", () => {
 
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "主要な導線" })).toBeEmptyDOMElement();
+  });
+
+  it("header を、下へ貼り付ける側が参照する高さのとおりに描く", () => {
+    renderShell();
+
+    expect(screen.getByRole("banner")).toHaveStyle({ height: `${APP_SHELL_HEADER_HEIGHT}px` });
   });
 });

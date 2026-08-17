@@ -45,8 +45,8 @@ function renderProbe(selection: ProductListSelection = {}) {
   );
 }
 
-function draftText(): string {
-  return screen.getAllByText(/^\{/)[0]?.textContent ?? "";
+function shownDraft(): Record<string, string | readonly string[]> {
+  return JSON.parse(screen.getAllByText(/^\{/)[0]?.textContent ?? "{}");
 }
 
 beforeEach(() => push.mockReset());
@@ -55,7 +55,7 @@ describe("ProductFilterDraftProvider", () => {
   it("いま効いている条件を下書きの初期値にする", () => {
     renderProbe({ [FILTER_KEY.KEYWORD]: "鞄" });
 
-    expect(draftText()).toContain("鞄");
+    expect(shownDraft()).toEqual({ [FILTER_KEY.KEYWORD]: "鞄" });
   });
 
   it("条件を変えると下書きだけが変わり、一覧へは移らない", async () => {
@@ -63,7 +63,7 @@ describe("ProductFilterDraftProvider", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "分類を選ぶ" }));
 
-    expect(draftText()).toContain("c1");
+    expect(shownDraft()).toEqual({ [FILTER_KEY.CATEGORY]: ["c1"] });
     expect(push).not.toHaveBeenCalled();
   });
 
@@ -81,8 +81,14 @@ describe("ProductFilterDraftProvider", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "外す" }));
 
-    expect(draftText()).toContain("鞄");
-    expect(draftText()).not.toContain("c1");
+    expect(shownDraft()).toEqual({
+      [FILTER_KEY.KEYWORD]: "鞄",
+      [FILTER_KEY.CATEGORY]: "",
+      [FILTER_KEY.MIN_PRICE]: "",
+      [FILTER_KEY.MAX_PRICE]: "",
+      [FILTER_KEY.MIN_QUANTITY]: "",
+      [FILTER_KEY.MAX_QUANTITY]: "",
+    });
   });
 
   it("効いている条件と違えば、そのことを伝える", async () => {
@@ -99,7 +105,7 @@ describe("ProductFilterDraftProvider", () => {
     const { rerender } = renderProbe();
 
     await userEvent.click(screen.getByRole("button", { name: "分類を選ぶ" }));
-    expect(draftText()).toContain("c1");
+    expect(shownDraft()).toEqual({ [FILTER_KEY.CATEGORY]: ["c1"] });
 
     rerender(
       <ProductFilterDraftProvider selection={{ [FILTER_KEY.KEYWORD]: "靴" }}>
@@ -107,8 +113,7 @@ describe("ProductFilterDraftProvider", () => {
       </ProductFilterDraftProvider>,
     );
 
-    expect(draftText()).toContain("靴");
-    expect(draftText()).not.toContain("c1");
+    expect(shownDraft()).toEqual({ [FILTER_KEY.KEYWORD]: "靴" });
   });
 });
 
@@ -116,10 +121,10 @@ describe("useProductFilterDraft", () => {
   it("供給の中では下書きを返す", () => {
     renderProbe({ [FILTER_KEY.KEYWORD]: "鞄" });
 
-    expect(draftText()).toContain("鞄");
+    expect(shownDraft()).toEqual({ [FILTER_KEY.KEYWORD]: "鞄" });
   });
 
-  // ----- 異常系 -----
+  // ----- 供給の外で読んだとき -----
   it("供給の外で呼ぶと例外を投げる", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 

@@ -83,7 +83,7 @@ describe("ProductKeywordField", () => {
     expect(submit()).toBeEnabled();
   });
 
-  // ----- 異常系 -----
+  // ----- 検索語が空のとき -----
   it("何も効いていないとき、空の送信は押せない", () => {
     renderField();
 

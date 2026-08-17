@@ -53,10 +53,13 @@ export function useFilteredCount(conditions: ProductListSelection): FilteredCoun
     const timer = setTimeout(() => {
       fetchProductCount(new URLSearchParams(search), controller.signal)
         .then((count) => setFound({ search, count }))
-        // 数えられなかったことも、その条件に対する結果として記録する。記録しないと 1 つ前の
-        // 条件の件数が残り続け、いまの条件の件数として読まれる。打ち切りの場合は条件が既に
-        // 変わっているため、この記録は次の取得の結果に上書きされる。
-        .catch(() => setFound({ search }));
+        .catch(() => {
+          // 打ち切りは失敗ではない。条件が既に変わっており、記録すると 1 つ前の件数まで消えて
+          // 数が現れては消える。数えられなかったことだけを、その条件の結果として記録する。
+          if (!controller.signal.aborted) {
+            setFound({ search });
+          }
+        });
     }, SETTLE_MS);
 
     return () => {

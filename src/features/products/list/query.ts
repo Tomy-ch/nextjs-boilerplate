@@ -1,4 +1,4 @@
-import type { ProductListSelection } from "../facade/list-url/list-url";
+import { MULTI_VALUE_KEYS, type ProductListSelection } from "../facade/list-url/list-url";
 
 /** page が受け取る素の `searchParams`。 */
 export type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -22,8 +22,13 @@ export type FilterOption = {
  * 素の `searchParams` を、条件として読める形へ均す。
  *
  * @remarks
- * 同じキーが複数回現れたら、並びのまま残します。複数選べる条件はその形で URL に載っており、
- * 先頭だけを採ると選んだうちの 1 つしか効きません。
+ * 同じキーが複数回現れたときの扱いは、その条件が複数の値を受け取れるかで変わります。受け取れる
+ * 条件（{@link MULTI_VALUE_KEYS}）は並びのまま残します。先頭だけを採ると、選んだうちの 1 つしか
+ * 効きません。
+ *
+ * **受け取れない条件は、指定なしとして落とします。** どれを採るかを条件ごとに決めると、同じ URL が
+ * 画面の場所によって違う条件に見えます。契約が単一の値しか宣言していない条件へ並びを渡すと取得
+ * そのものが弾かれるため、一覧全体が「条件が正しくない」表示に変わってしまいます。
  *
  * 前後の空白を落とし、残りが空なら未指定として扱います。入力欄を空にして送った form は
  * `?keyword=` を URL に残すため、これを不正な入力と扱うと、消しただけで検索できなくなります。
@@ -44,8 +49,14 @@ export function normalizeSearchParams(params: RawSearchParams): ProductListSelec
 
     const [single] = values;
 
-    if (single !== undefined) {
-      normalized[key] = values.length === 1 ? single : values;
+    if (single === undefined) {
+      continue;
+    }
+
+    if (values.length === 1) {
+      normalized[key] = single;
+    } else if (MULTI_VALUE_KEYS.includes(key)) {
+      normalized[key] = values;
     }
   }
 

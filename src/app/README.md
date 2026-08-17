@@ -34,6 +34,13 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 
 ## 運用
 
+- **`route` の宣言が掛かるのは route segment の合成（`page.tsx` / `layout.tsx`）です**。
+  **Route Handler（`api/**/route.ts`）は `integration` として扱います** ——
+  [0090](../../docs/adr/0090-testing-strategy.md) の層別責務表が integration を「HTTP 境界のみ
+  （`adapters` の API クライアント / route handler の境界）」と定めており、器の合成ではなく境界の
+  検証だからです。実際の書き方も、モジュール境界を `vi.mock` で差し替え、応答の status と形を
+  確かめる形になります
+
 - 層をまたぐ import は `@/*` alias を使う
 - 役割を示さない `common`、`shared`、`utils`、`lib` 等の置き場は作らない
 - 単一 feature 専用のコードは `features/<name>/` に置く

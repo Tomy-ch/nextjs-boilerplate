@@ -78,6 +78,12 @@ describe("ProductFilterSheet", () => {
     expect(trigger()).toHaveTextContent("1");
   });
 
+  it("価格の範囲を選んでいれば 1 件として数える", () => {
+    renderSheet({ [FILTER_KEY.MIN_PRICE]: "25" });
+
+    expect(trigger()).toHaveTextContent("1");
+  });
+
   it("効いている条件が無いときは数を付けない", () => {
     renderSheet();
 

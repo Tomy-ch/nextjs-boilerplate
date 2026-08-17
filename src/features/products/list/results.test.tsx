@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
@@ -106,5 +107,11 @@ describe("ProductListResults", () => {
     render(await ProductListResults({ query: {}, selection: {} }));
 
     expect(screen.getByText("条件に合う商品がありません")).toBeVisible();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(await ProductListResults({ query: {}, selection: {} }));
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

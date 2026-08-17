@@ -3,7 +3,7 @@
 import { SearchIcon, XIcon } from "lucide-react";
 import {
   type ChangeEvent,
-  type SyntheticEvent,
+  type KeyboardEvent,
   useCallback,
   useEffect,
   useRef,
@@ -93,6 +93,10 @@ export type SearchFieldClientProps = {
  * 完結し結果がその場に見えている画面向け。ほかの条件と一緒にまとめて確定する画面は `submit` を
  * 選び、送信の操作でだけ通知させる。
  *
+ * **`submit` でも form は使わない。** form にすると、hydration が終わる前に押されたとき browser の
+ * 既定の送信が走り、いま効いている条件を伴わないまま現在の URL へ遷移する —— 押した結果として
+ * 条件が消える。form を持たなければ、hydration 前の操作は何も起こさずに済む。
+ *
  * 検索の実行、結果の取得、URL の組み立ては持たない。確定したら `onSearch` を呼ぶだけで、router の
  * 操作も行わない。この分担は `Pagination` と同じで、`components` は URL を解釈しない。呼び出し元は
  * 受け取った検索語を `searchParams` へ載せ、結果は Server Component で描画する。結果まで client 側で
@@ -180,13 +184,17 @@ export function SearchFieldClient({
     [change],
   );
 
-  const handleSubmit = useCallback(
-    (event: SyntheticEvent<HTMLFormElement>) => {
-      // 既定の送信は画面ごと再読み込みする。確定の通知だけを行い、その後どうするかは呼び出し元が決める。
-      event.preventDefault();
-      onSearch(value);
+  const commitValue = useCallback(() => {
+    onSearch(value);
+  }, [onSearch, value]);
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") {
+        commitValue();
+      }
     },
-    [onSearch, value],
+    [commitValue],
   );
 
   const field = (
@@ -198,6 +206,7 @@ export function SearchFieldClient({
         aria-label={label}
         data-slot="search-field-input"
         onChange={handleChange}
+        onKeyDown={commit === SEARCH_FIELD_COMMIT.SUBMIT ? handleKeyDown : undefined}
         placeholder={placeholder}
         ref={inputRef}
         type="search"
@@ -221,8 +230,9 @@ export function SearchFieldClient({
           <InputGroupButton
             data-slot="search-field-submit"
             disabled={submitDisabled}
+            onClick={commitValue}
             size={INPUT_GROUP_BUTTON_SIZE.EXTRA_SMALL}
-            type="submit"
+            type="button"
           >
             {submitLabel}
           </InputGroupButton>
@@ -233,13 +243,7 @@ export function SearchFieldClient({
 
   return (
     <search className={className} data-slot="search-field">
-      {commit === SEARCH_FIELD_COMMIT.SUBMIT ? (
-        <form data-slot="search-field-form" onSubmit={handleSubmit}>
-          {field}
-        </form>
-      ) : (
-        field
-      )}
+      {field}
     </search>
   );
 }

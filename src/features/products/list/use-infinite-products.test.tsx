@@ -15,6 +15,7 @@ vi.mock("@/adapters/client/api/products", async (importOriginal) => ({
   fetchProductListPage,
 }));
 
+import type { ProductListSelection } from "../facade/list-url/list-url";
 import { COUNT_KEY, CURSOR_KEY } from "../facade/list-url/list-url";
 import { PRODUCT_PAGE_SIZE } from "./query";
 import { useInfiniteProducts } from "./use-infinite-products";
@@ -84,7 +85,7 @@ function deferredPage() {
 
 type ProbeProps = {
   initial: CursorPage<ProductListItem>;
-  query?: Readonly<Record<string, string>>;
+  query?: ProductListSelection;
   sentinel?: boolean;
 };
 
@@ -301,5 +302,19 @@ describe("useInfiniteProducts", () => {
     });
 
     expect(signal.aborted).toBe(true);
+  });
+
+  it("複数選んだ分類を、続きの取得へ同じキーの繰り返しで引き継ぐ", async () => {
+    fetchProductListPage.mockResolvedValue(pageOf(["スタンドライト"]));
+    render(
+      <Probe
+        initial={pageOf(["折りたたみ椅子"], "cursor-1")}
+        query={{ categoryId: ["c1", "c2"] }}
+      />,
+    );
+
+    await clickLoadMore();
+
+    expect(fetchProductListPage.mock.calls[0]?.[0].getAll("categoryId")).toEqual(["c1", "c2"]);
   });
 });

@@ -40,6 +40,17 @@ export const FILTER_KEY: Readonly<{
 };
 
 /**
+ * 複数の値を受け取れる条件のキー。
+ *
+ * @remarks
+ * ここに無いキーは、URL に同じキーが 2 度現れても 1 つの値としてしか読めません。**URL は利用者が
+ * 直接編集できる**ので、単一の条件にも繰り返しが届き得ます。どの条件が繰り返しを持てるかを 1 か所
+ * で宣言するのは、読む側それぞれが判断すると、同じ URL が画面の場所によって違う条件に見えるため
+ * です。
+ */
+export const MULTI_VALUE_KEYS: readonly string[] = [FILTER_KEY.CATEGORY];
+
+/**
  * URL に載せる検索条件。
  *
  * @remarks

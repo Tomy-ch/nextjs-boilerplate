@@ -20,6 +20,10 @@ describe("normalizeSearchParams", () => {
     expect(normalizeSearchParams({ categoryId: ["c1"] })).toEqual({ categoryId: "c1" });
   });
 
+  it("複数の値を受け取れない条件が重複したら、指定なしとして落とす", () => {
+    expect(normalizeSearchParams({ keyword: ["本", "雑誌"] })).toEqual({});
+  });
+
   it("並びの中の空白だけの値を落とす", () => {
     expect(normalizeSearchParams({ categoryId: ["c1", "  "] })).toEqual({ categoryId: "c1" });
   });

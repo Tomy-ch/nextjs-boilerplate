@@ -175,6 +175,12 @@ describe("parseProductQuery", () => {
     expect(result).toEqual({ ok: false, invalidKeys: ["minPrice"] });
   });
 
+  it("同じキーが複数回現れた件数を写さず、外れたキーを返す", () => {
+    const result = parseProductQuery({ first: ["20", "30"] });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["first"] });
+  });
+
   it("負の在庫数を写さず、外れたキーを返す", () => {
     const result = parseProductQuery({ minQuantity: "-1" });
 

@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { ScrollDirection } from "@/capabilities/use-scroll-direction";
 import { APP_SHELL_HEADER_HEIGHT } from "@/components/shell/app-shell/app-shell.definition";
@@ -79,7 +80,7 @@ describe("ProductStickyRegion", () => {
     expect(screen.getByText("絞り込み")).toBeInTheDocument();
   });
 
-  // ----- 異常系 -----
+  // ----- 供給の外で使われたとき -----
   it("外で貼り付きの状態を読むと例外を投げる", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 
@@ -144,5 +145,11 @@ describe("ProductStickyAside", () => {
 
     expect(asideInner().className).toContain("overflow-y-auto");
     expect(asideInner().style.maxHeight).toContain("100dvh");
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = renderRegion();
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });
