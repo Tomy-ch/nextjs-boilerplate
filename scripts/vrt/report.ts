@@ -22,12 +22,13 @@ type JSONTest = {
   status?: unknown;
   annotations?: unknown;
   results?: unknown;
-  tags?: unknown;
 };
 
 type JSONSpec = {
   title?: unknown;
   tests?: unknown;
+  /** tag は spec が持つ。同じ spec の project 違いは同じ tag になるため、test の側には無い。 */
+  tags?: unknown;
 };
 
 type JSONSuite = {
@@ -96,6 +97,17 @@ export function formatTable(failures: Failure[]): string {
 }
 
 /**
+ * tag をレポートに載る形へ揃える。
+ *
+ * @remarks
+ * 宣言は `@` 付きで書きますが、レポートには `@` の無い名前で載ります。宣言の綴りのまま突き合わせ
+ * ると、どの tag にも当たりません。
+ */
+function tagName(tag: string): string {
+  return tag.startsWith("@") ? tag.slice(1) : tag;
+}
+
+/**
  * 基準画像と撮影対象の 1 対 1 対応が落ちたか。
  *
  * @remarks
@@ -108,10 +120,10 @@ export function hasBaselineFailure(json: string): boolean {
   const report = JSON.parse(json) as { suites?: unknown };
   if (!Array.isArray(report.suites)) throw new Error("JSON レポートに suites がありません");
 
-  return flattenSpecs(report.suites as JSONSuite[]).some((spec) =>
-    asArray<JSONTest>(spec.tests).some(
-      (test) => test.status !== "expected" && asArray<string>(test.tags).includes(BASELINE_TAG),
-    ),
+  return flattenSpecs(report.suites as JSONSuite[]).some(
+    (spec) =>
+      asArray<string>(spec.tags).some((tag) => tagName(tag) === tagName(BASELINE_TAG)) &&
+      asArray<JSONTest>(spec.tests).some((test) => test.status !== "expected"),
   );
 }
 
