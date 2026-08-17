@@ -1,0 +1,95 @@
+import Link from "next/link";
+
+import { Button } from "@/components/design-system/action/button/button";
+import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
+import { ActionBar } from "@/components/patterns/action-bar/action-bar";
+import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
+import type { Cart } from "@/model/cart/cart";
+import type { ReferenceAmount } from "@/model/money";
+import type { UserProfile } from "@/model/user/user";
+
+import { PRODUCTS_PATH } from "../paths";
+import { OrderLines } from "./ui/order-lines/order-lines";
+import { OrderSummary } from "./ui/order-summary/order-summary";
+import { ShippingCard } from "./ui/shipping-card/shipping-card";
+
+/** `CheckoutConfirmView` の props。 */
+export type CheckoutConfirmViewProps = {
+  /** 確定しようとしているカート。 */
+  cart: Cart;
+  /** 届け先として使う登録情報。 */
+  profile: UserProfile;
+  /** 小計の参考換算額。読めなければ null。 */
+  reference: ReferenceAmount | null;
+  /** この画面の確定 1 回ぶんを表す鍵。 */
+  idempotencyKey: string;
+};
+
+/**
+ * 購入確認の表示。
+ *
+ * @remarks
+ * 届け先と内容を左に積み、集計と確定を右へ置きます。内容が伸びても確定の操作が画面の中に
+ * 残るためで、脇に置けない幅では画面の下端に固定した帯が同じ役割を持ちます
+ * （帯の定義は [0051](../../../docs/adr/0051-styling-system.md) §2）。
+ *
+ * 同じ集計を 2 か所に置いていますが、**出るのはどちらか一方だけ**です。器の出し分けは CSS で
+ * 行い、hydration を待ちません。待つと、読み始めた後に画面の下へ器が現れて内容が動きます。
+ *
+ * 本文の下端には帯のぶんの余白を空けます。空けないと、最後の行が帯に隠れます。
+ */
+export function CheckoutConfirmView({
+  cart,
+  profile,
+  reference,
+  idempotencyKey,
+}: CheckoutConfirmViewProps) {
+  if (cart.lines.length === 0) {
+    return (
+      <div className="flex flex-col items-start gap-4 py-8">
+        <p className="text-muted-foreground">
+          カートに商品が入っていないため、確定できる注文がありません。
+        </p>
+        <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
+          <Link href={PRODUCTS_PATH}>商品を探す</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex flex-col gap-8 pb-40 lg:flex-row lg:items-start lg:pb-0">
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
+          <ShippingCard profile={profile} />
+          <OrderLines lines={cart.lines} />
+        </div>
+
+        <aside
+          aria-label="お支払い金額"
+          className="hidden w-full rounded-lg border p-4 lg:sticky lg:top-20 lg:block lg:w-80"
+        >
+          <OrderSummary
+            cart={cart}
+            idempotencyKey={idempotencyKey}
+            reference={reference}
+            size="compact"
+          />
+        </aside>
+      </div>
+
+      <ActionBar
+        aria-label="お支払い金額"
+        className="flex-col items-stretch gap-2 lg:hidden"
+        position={ACTION_BAR_POSITION.FIXED}
+      >
+        <OrderSummary
+          cart={cart}
+          idempotencyKey={idempotencyKey}
+          reference={reference}
+          size="compact"
+        />
+      </ActionBar>
+    </>
+  );
+}
