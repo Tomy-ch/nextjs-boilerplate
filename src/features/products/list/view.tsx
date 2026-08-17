@@ -16,6 +16,11 @@ import { ProductFilterSheet } from "./ui/filter-sheet/filter-sheet";
 import { ProductFilterSidebar } from "./ui/filter-sidebar/filter-sidebar";
 import { ProductKeywordField } from "./ui/keyword-field/keyword-field";
 import { ProductSortSelect } from "./ui/sort-select/sort-select";
+import {
+  ProductStickyAside,
+  ProductStickyBar,
+  ProductStickyRegion,
+} from "./ui/sticky-region/sticky-region";
 
 /** `ProductListView` の props。 */
 export type ProductListViewProps = {
@@ -68,41 +73,45 @@ export function ProductListView({
 
   return (
     <ProductFilterDraftProvider selection={selection}>
-      <div className="space-y-6">
-        <FilterBar label="商品の検索と絞り込み">
-          <FilterBarControls className="justify-between">
-            <ProductKeywordField selection={selection} />
-            <ProductSortSelect options={sortOptions} selection={selection} />
-          </FilterBarControls>
-          <div className="flex items-end justify-between gap-4">
-            <FilterBarActiveFilters className="min-w-0 flex-1">
-              {activeFilters.map((filter) => (
-                <FilterChip
-                  key={filter.key}
-                  label={filter.label}
-                  removeHref={filter.removeHref}
-                  value={filter.value}
-                />
-              ))}
-            </FilterBarActiveFilters>
-            {/* 1 件しか効いていないときは、その chip の解除と行き先が同じになる。 */}
-            {activeFilters.length > 1 ? (
-              <Button asChild className="shrink-0" size="sm" variant="ghost">
-                <Link href={PRODUCT_LIST_PATH}>条件をすべて解除</Link>
-              </Button>
-            ) : null}
+      <ProductStickyRegion>
+        <div className="space-y-6">
+          <ProductStickyBar>
+            <FilterBar label="商品の検索と絞り込み">
+              <FilterBarControls className="justify-between">
+                <ProductKeywordField selection={selection} />
+                <ProductSortSelect options={sortOptions} selection={selection} />
+              </FilterBarControls>
+              <div className="flex items-end justify-between gap-4">
+                <FilterBarActiveFilters className="min-w-0 flex-1">
+                  {activeFilters.map((filter) => (
+                    <FilterChip
+                      key={filter.key}
+                      label={filter.label}
+                      removeHref={filter.removeHref}
+                      value={filter.value}
+                    />
+                  ))}
+                </FilterBarActiveFilters>
+                {/* 1 件しか効いていないときは、その chip の解除と行き先が同じになる。 */}
+                {activeFilters.length > 1 ? (
+                  <Button asChild className="shrink-0" size="sm" variant="ghost">
+                    <Link href={PRODUCT_LIST_PATH}>条件をすべて解除</Link>
+                  </Button>
+                ) : null}
+              </div>
+            </FilterBar>
+          </ProductStickyBar>
+          <div className="flex gap-8">
+            <ProductStickyAside>
+              <ProductFilterSidebar categories={categories} />
+            </ProductStickyAside>
+            <div className="min-w-0 flex-1">{children}</div>
           </div>
-        </FilterBar>
-        <div className="flex gap-8">
-          <aside aria-label="絞り込み条件" className="hidden w-64 shrink-0 lg:block">
-            <ProductFilterSidebar categories={categories} />
-          </aside>
-          <div className="min-w-0 flex-1">{children}</div>
+          <div className="lg:hidden">
+            <ProductFilterSheet categories={categories} selection={selection} />
+          </div>
         </div>
-        <div className="lg:hidden">
-          <ProductFilterSheet categories={categories} selection={selection} />
-        </div>
-      </div>
+      </ProductStickyRegion>
     </ProductFilterDraftProvider>
   );
 }
