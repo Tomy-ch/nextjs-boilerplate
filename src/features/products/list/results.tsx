@@ -24,9 +24,18 @@ export type ProductListResultsProps = {
  * 取り直され、絞り込みの操作面ごと待機表示へ落ちます。
  *
  * 一覧と件数を並行して取得します。直列にすると、件数が返るまで一覧の取得が始まりません。
+ *
+ * **件数が取れなくても一覧は出します。** 件数は一覧に添える数であり、これを取れないことを理由に
+ * 一覧ごとエラー境界へ送ると、手元にある読める結果まで消えます。逆に一覧が取れなければ画面の
+ * 中身が無いので、そちらは通します。
  */
+// TODO: 落ちた件数の取得を記録する。`logging` の singleton が instrumentation と server component
+// で共有されておらず、`getLogger()` がこの位置から使えない。
 export async function ProductListResults({ query, selection }: ProductListResultsProps) {
-  const [page, total] = await Promise.all([getProductListPage(query), getProductCount(query)]);
+  const [page, total] = await Promise.all([
+    getProductListPage(query),
+    getProductCount(query).catch(() => undefined),
+  ]);
 
   return (
     <ProductInfiniteList
