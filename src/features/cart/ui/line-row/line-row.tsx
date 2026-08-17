@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cn } from "@/components/cn";
 import type { CartLine } from "@/model/cart/cart";
 
-import { hasBlockingIssue } from "../../issue-notice";
+import { hasBlockingIssue } from "@/model/cart/issue-notice";
 import { CartLineIssues } from "../line-issues/line-issues";
 import { CartQuantityStepper } from "../quantity-stepper/quantity-stepper";
 import { CartRemoveButton } from "../remove-button/remove-button";

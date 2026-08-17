@@ -1,12 +1,47 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  EARPHONE_LINE,
-  INSUFFICIENT_LINE,
-  NOT_FOUND_LINE,
-  PRICE_INCREASED_LINE,
-} from "./cart.fixture";
+import type { CartLine } from "./cart";
 import { cartIssueNotice, hasBlockingIssue, isPurchasable } from "./issue-notice";
+
+/** 事情の無い明細。 */
+const EARPHONE_LINE = {
+  productId: "0195f0c2-0000-7000-8000-000000000001",
+  name: "ワイヤレスイヤホン",
+  unitPrice: "19.99",
+  quantity: 3,
+  issues: [],
+  availableQuantity: null,
+} satisfies CartLine;
+
+/** 在庫が数量に足りない明細。 */
+const INSUFFICIENT_LINE = {
+  productId: "0195f0c2-0000-7000-8000-000000000003",
+  name: "編組ケーブル 2m",
+  unitPrice: "0.99",
+  quantity: 5,
+  issues: ["insufficientStock"],
+  availableQuantity: 2,
+} satisfies CartLine;
+
+/** 値上がりした明細。 */
+const PRICE_INCREASED_LINE = {
+  productId: "0195f0c2-0000-7000-8000-000000000005",
+  name: "ノイズキャンセリングヘッドホン",
+  unitPrice: "249.00",
+  quantity: 1,
+  issues: ["priceIncreased"],
+  availableQuantity: null,
+} satisfies CartLine;
+
+/** 商品を引けなくなった明細。 */
+const NOT_FOUND_LINE = {
+  productId: "0195f0c2-0000-7000-8000-000000000006",
+  name: null,
+  unitPrice: null,
+  quantity: 2,
+  issues: ["notFound"],
+  availableQuantity: null,
+} satisfies CartLine;
 
 describe("cartIssueNotice", () => {
   // ----- 正常系 -----

@@ -1,4 +1,4 @@
-import type { CartLine, CartLineIssue } from "@/model/cart/cart";
+import type { CartLine, CartLineIssue } from "./cart";
 
 /** 明細に立った事情 1 件の見せ方。 */
 export type CartIssueNotice = {

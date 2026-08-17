@@ -3,7 +3,7 @@ import { AlertTriangleIcon, InfoIcon } from "lucide-react";
 import { cn } from "@/components/cn";
 import type { CartLineIssue } from "@/model/cart/cart";
 
-import { cartIssueNotice } from "../../issue-notice";
+import { cartIssueNotice } from "@/model/cart/issue-notice";
 
 /** `CartLineIssues` の props。 */
 export type CartLineIssuesProps = {
