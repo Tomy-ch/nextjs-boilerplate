@@ -96,6 +96,10 @@ const INTEGER_KEYS: readonly string[] = ["first", "minQuantity", "maxQuantity"];
  * @remarks
  * 1 つだけ選ばれた条件は URL に 1 回しか現れず、素の値としては単一の文字列で届きます。
  * 並びへ揃えないと、1 つ選んだときだけ契約の宣言に当たって落ちます。
+ *
+ * 契約はこれらを重複の無い並びとして宣言しています。同じ値が 2 度届くのは URL を直接編集した
+ * ときで、指している条件は 1 度のときと同じです。畳んでから照らさないと、意味の同じ条件が
+ * 契約を外れた要求として backend まで届きます。
  */
 const INTEGER_ARRAY_KEYS: readonly string[] = ["categoryCodes", "statusCodes"];
 
@@ -108,7 +112,7 @@ function toTypedQuery(raw: RawProductQuery): Record<string, unknown> {
 
 function toTypedValue(key: string, value: string | readonly string[]): unknown {
   if (INTEGER_ARRAY_KEYS.includes(key)) {
-    return (typeof value === "string" ? [value] : value).map(Number);
+    return [...new Set((typeof value === "string" ? [value] : value).map(Number))];
   }
 
   return INTEGER_KEYS.includes(key) && typeof value === "string" ? Number(value) : value;

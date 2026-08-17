@@ -109,6 +109,12 @@ describe("parseProductQuery", () => {
     expect(result).toMatchObject({ ok: true, query: { categoryCodes: [10, 20] } });
   });
 
+  it("同じ分類が 2 度届いても 1 つとして写す", () => {
+    const result = parseProductQuery({ categoryCodes: ["10", "10"] });
+
+    expect(result).toMatchObject({ ok: true, query: { categoryCodes: [10] } });
+  });
+
   it("1 つだけの分類も並びへ揃える", () => {
     const result = parseProductQuery({ categoryCodes: "10" });
 
