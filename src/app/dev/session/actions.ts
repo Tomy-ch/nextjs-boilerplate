@@ -2,9 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
+import { isDevelopmentAccessAllowed } from "@/adapters/server/auth/development-access";
 import { discardTestSession, issueTestSession } from "@/adapters/server/auth/test-session";
-import { isDevelopmentOnlyEndpointOpen } from "@/config/load-environment";
 import type {
   DevSessionFormState,
   DiscardSessionFormState,
@@ -18,7 +17,7 @@ import {
 } from "@/model/action-state";
 import { toSafeReturnUrl } from "@/model/return-url";
 
-const CLOSED_MESSAGE = "この口は開発と CI でだけ開きます。";
+const CLOSED_MESSAGE = "この口は、開発と CI の手元の宛先でだけ開きます。";
 const INVALID_INPUT_MESSAGE = "指定を確認してください。";
 
 /**
@@ -39,7 +38,7 @@ export async function issueDevSessionAction(
   _previous: DevSessionFormState,
   formData: FormData,
 ): Promise<DevSessionFormState> {
-  if (!isDevelopmentOnlyEndpointOpen()) {
+  if (!(await isDevelopmentAccessAllowed())) {
     return failedActionState({ formError: CLOSED_MESSAGE });
   }
 
@@ -72,7 +71,7 @@ export async function discardDevSessionAction(
   _previous: DiscardSessionFormState,
   _formData: FormData,
 ): Promise<DiscardSessionFormState> {
-  if (!isDevelopmentOnlyEndpointOpen()) {
+  if (!(await isDevelopmentAccessAllowed())) {
     return failedActionState({ formError: CLOSED_MESSAGE });
   }
 

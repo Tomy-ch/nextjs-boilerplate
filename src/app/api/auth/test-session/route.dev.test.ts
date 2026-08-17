@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SESSION_ROLE } from "@/model/session";
-import { POST } from "./route";
+import { POST } from "./route.dev";
 
 const issueTestSession = vi.hoisted(() => vi.fn());
 const environment = vi.hoisted((): { value: string | null } => ({ value: "local" }));

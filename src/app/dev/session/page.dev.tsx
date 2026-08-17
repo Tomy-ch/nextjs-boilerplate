@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-
+import { isDevelopmentAccessAllowed } from "@/adapters/server/auth/development-access";
 import { verifySession } from "@/adapters/server/auth/session";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
@@ -8,7 +8,6 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
-import { isDevelopmentOnlyEndpointOpen } from "@/config/load-environment";
 import { RETURN_URL_PARAM } from "@/features/dev-session/paths";
 import { DevSessionView } from "@/features/dev-session/view";
 import { toSafeReturnUrl } from "@/model/return-url";
@@ -41,7 +40,7 @@ export default async function DevSessionPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  if (!isDevelopmentOnlyEndpointOpen()) {
+  if (!(await isDevelopmentAccessAllowed())) {
     notFound();
   }
 

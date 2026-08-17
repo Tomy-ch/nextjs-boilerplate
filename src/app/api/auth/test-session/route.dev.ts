@@ -1,7 +1,6 @@
 import { z } from "zod";
-
+import { isDevelopmentAccessAllowed } from "@/adapters/server/auth/development-access";
 import { issueTestSession } from "@/adapters/server/auth/test-session";
-import { isDevelopmentOnlyEndpointOpen } from "@/config/load-environment";
 import { SESSION_ROLE } from "@/model/session";
 
 /** 発行する session の指定。 */
@@ -35,7 +34,7 @@ const IssueRequest = z.object({
  * @returns 発行できたときは 204。開けていない環境では 404
  */
 export async function POST(request: Request): Promise<Response> {
-  if (!isDevelopmentOnlyEndpointOpen()) {
+  if (!(await isDevelopmentAccessAllowed())) {
     // 403 にしない。存在を知らせないほうが、設定を誤ったまま公開したときの被害が小さい。
     return new Response(null, { status: 404 });
   }
