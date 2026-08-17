@@ -1,7 +1,7 @@
 import { mergeGuestCart } from "@/adapters/server/api/cart"; // sample:line
 import { getSessionResolver } from "@/adapters/server/auth/resolver";
 import { storeSession, takeTransaction } from "@/adapters/server/auth/session";
-import { getLogger, reportQuietly } from "@/logging/logging.server";
+import { getLogger, reportQuietly } from "@/logging/logging.server"; // sample:line
 import { toSafeReturnUrl } from "@/model/return-url";
 
 /** 認証をやり直させる先。 */
@@ -40,6 +40,7 @@ async function takeOverGuestState(): Promise<void> {
     );
   }
 }
+// sample:end
 
 /**
  * 認可コードを受け取り、session を確立して元の画面へ戻す。

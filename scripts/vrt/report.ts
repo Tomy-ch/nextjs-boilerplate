@@ -22,12 +22,13 @@ type JSONTest = {
   status?: unknown;
   annotations?: unknown;
   results?: unknown;
-  tags?: unknown;
 };
 
 type JSONSpec = {
   title?: unknown;
   tests?: unknown;
+  /** tag は spec が持つ。同じ spec の project 違いは同じ tag になるため、test の側には無い。 */
+  tags?: unknown;
 };
 
 type JSONSuite = {
@@ -96,6 +97,17 @@ export function formatTable(failures: Failure[]): string {
 }
 
 /**
+ * tag をレポートに載る形へ揃える。
+ *
+ * @remarks
+ * 宣言は `@` 付きで書きますが、レポートには `@` の無い名前で載ります。宣言の綴りのまま突き合わせ
+ * ると、どの tag にも当たりません。
+ */
+function tagName(tag: string): string {
+  return tag.startsWith("@") ? tag.slice(1) : tag;
+}
+
+/**
  * 基準画像と撮影対象の 1 対 1 対応が落ちたか。
  *
  * @remarks
@@ -108,10 +120,21 @@ export function hasBaselineFailure(json: string): boolean {
   const report = JSON.parse(json) as { suites?: unknown };
   if (!Array.isArray(report.suites)) throw new Error("JSON レポートに suites がありません");
 
-  return flattenSpecs(report.suites as JSONSuite[]).some((spec) =>
-    asArray<JSONTest>(spec.tests).some(
-      (test) => test.status !== "expected" && asArray<string>(test.tags).includes(BASELINE_TAG),
-    ),
+  const checks = flattenSpecs(report.suites as JSONSuite[]).filter((spec) =>
+    asArray<string>(spec.tags).some((tag) => tagName(tag) === tagName(BASELINE_TAG)),
+  );
+
+  // 見つからないことを「孤児なし」と答えない。1 対 1 の検査は全数の撮影に必ず含まれるので、
+  // 当たらないのはレポートの形か tag の綴りが変わったときである。false を返すと、撮り直しは
+  // 絞り込み側へ落ちて「差分がありません」で止まり、原因の見えない失敗になる。
+  if (checks.length === 0) {
+    throw new Error(
+      `レポートに ${BASELINE_TAG} の spec がありません。全数の報告でないか、tag の載り方が変わっています`,
+    );
+  }
+
+  return checks.some((spec) =>
+    asArray<JSONTest>(spec.tests).some((test) => test.status !== "expected"),
   );
 }
 

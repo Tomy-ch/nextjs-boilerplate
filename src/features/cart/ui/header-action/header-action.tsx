@@ -1,11 +1,24 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
 import { useMediaQuery } from "@/capabilities/use-media-query";
 import { mediaBelow } from "@/model/breakpoint";
 import type { Cart } from "@/model/cart/cart";
 
-import { CartHeaderDrawer } from "../header-drawer/header-drawer";
 import { CartHeaderToggle } from "../header-toggle/header-toggle";
+
+/**
+ * 本文へ被せる姿は、脇に常設できない幅でしか描かれない。
+ *
+ * @remarks
+ * 静的に import すると、被せる器（overlay の機構と中身一式）がどの画面の最初の読み込みにも乗ります。
+ * 出るのは `lg` 未満だけなので、そこへ来たときに読みます
+ * （[0101](../../../../../docs/adr/0101-performance-budget.md)）。
+ */
+const CartHeaderDrawer = dynamic(() =>
+  import("../header-drawer/header-drawer").then((module) => module.CartHeaderDrawer),
+);
 
 /** 脇に常設できない幅。タブレットを含む（[0051](../../../../../docs/adr/0051-styling-system.md) §2）。 */
 const NARROW = mediaBelow("lg");

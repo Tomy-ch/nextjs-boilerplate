@@ -12,7 +12,7 @@ import { baseCookieOptions } from "../auth/session-cookie";
  * 発行され、寿命も主体も session と一致しないためです
  * （[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §7）。
  */
-export const CART_SESSION_COOKIE_NAME = "cart_session";
+const CART_SESSION_COOKIE_NAME = "cart_session";
 
 /**
  * ゲストのカートを指す識別子を取り出す。
