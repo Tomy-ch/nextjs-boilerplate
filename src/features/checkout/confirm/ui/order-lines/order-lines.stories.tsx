@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { ORDERABLE_CART, PARTIALLY_ORDERABLE_CART } from "../../../checkout.fixture";
+import { LONG_CART, ORDERABLE_CART, PARTIALLY_ORDERABLE_CART } from "../../../checkout.fixture";
 import { OrderLines } from "./order-lines";
 
 const meta = {
@@ -37,4 +37,9 @@ export const Default: Story = {
 /** 一部が載らない状態。載らない行に理由が付く。 */
 export const WithExcluded: Story = {
   args: { lines: PARTIALLY_ORDERABLE_CART.lines },
+};
+
+/** 畳む数を超える明細。10 件までを出し、残りはその場で開く。 */
+export const Folded: Story = {
+  args: { lines: LONG_CART.lines },
 };

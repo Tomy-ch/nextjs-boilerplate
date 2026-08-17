@@ -11,6 +11,7 @@ import { useCartStore } from "@/stores/cart-store";
 import {
   BLOCKED_CART,
   EMPTY_CART,
+  LONG_CART,
   ORDERABLE_CART,
   PARTIALLY_ORDERABLE_CART,
   PROFILE,
@@ -102,6 +103,12 @@ export const Mobile: Story = {
 /** 一部の明細が今回の購入から外れる状態。 */
 export const WithExcludedLines: Story = {
   args: { ...Default.args, cart: PARTIALLY_ORDERABLE_CART },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** 明細が多い状態。10 件までを出し、残りはその場で開く。 */
+export const LongOrder: Story = {
+  args: { ...Default.args, cart: LONG_CART },
   globals: { viewport: { value: "desktop", isRotated: false } },
 };
 

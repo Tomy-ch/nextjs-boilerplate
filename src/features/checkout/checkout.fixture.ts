@@ -67,6 +67,17 @@ export const EMPTY_CART: Cart = {
   subtotalAmount: 0,
 };
 
+/** 畳む数を超えるカート。1 件ずつ書き並べても違いが出ないため、同じ形の明細を並べて作る。 */
+export const LONG_CART: Cart = {
+  lines: Array.from({ length: 14 }, (_, index) => ({
+    ...EARPHONE_LINE,
+    productId: `0195f0c2-0000-7000-8000-0000000100${String(index).padStart(2, "0")}`,
+    name: `サンプル商品 ${index + 1}`,
+    quantity: 1,
+  })),
+  subtotalAmount: 27_986,
+};
+
 /** 届け先に使う登録情報。 */
 export const PROFILE: UserProfile = {
   firstName: "太郎",
