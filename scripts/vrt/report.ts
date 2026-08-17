@@ -3,6 +3,14 @@
 // 取り出した集合は 2 つの用途を持つ。1 つは PR コメントの一覧表、もう 1 つは承認時に
 // 撮り直す範囲で、どちらも同じ集合であることに意味がある。表に出ていない story が承認で
 // 撮り直されると、報告されていない差分が黙って基準画像へ入る。
+import type {
+  JSONReport,
+  JSONReportSpec,
+  JSONReportSuite,
+  JSONReportTest,
+  JSONReportTestResult,
+} from "@playwright/test/reporter";
+
 import { BASELINE_TAG } from "../../vrt/lib/orphan-baselines.js";
 
 /** 基準画像と食い違った story 1 件。 */
@@ -17,24 +25,23 @@ export type Failure = {
   diffPixels: number | null;
 };
 
-type JSONTest = {
-  projectName?: unknown;
-  status?: unknown;
-  annotations?: unknown;
-  results?: unknown;
-};
+/**
+ * 読むときの形。**キーの名前は Playwright の型から導き、値は信用しない。**
+ *
+ * @remarks
+ * 与えられる JSON は外から来るため、どのキーも欠けうるものとして受けます。一方でキーの名前は
+ * 実物が決めるので、手で書き写しません。写すと**実在しないキーを宣言できてしまい**、型に守られて
+ * いるつもりのまま常に空を読みます（`tags` は spec が持つのに test 側へ宣言していた、が実例）。
+ */
+type Loose<T> = { [K in keyof T]?: unknown };
 
-type JSONSpec = {
-  title?: unknown;
-  tests?: unknown;
-  /** tag は spec が持つ。同じ spec の project 違いは同じ tag になるため、test の側には無い。 */
-  tags?: unknown;
-};
+type JSONTest = Loose<JSONReportTest>;
+type JSONSpec = Loose<JSONReportSpec>;
+type JSONSuite = Loose<JSONReportSuite>;
 
-type JSONSuite = {
-  suites?: unknown;
-  specs?: unknown;
-};
+/** 入れ子の要素は、公開名ではなく持ち主の項目から導く。名前だけの export に依らずに済む。 */
+type JSONAnnotation = Loose<JSONReportTest["annotations"][number]>;
+type JSONError = Loose<JSONReportTestResult["errors"][number]>;
 
 const STORY_ANNOTATION = "story";
 const DIFF_PIXELS_PATTERN = /^\s*(\d+) pixels .* are different\.$/m;
@@ -49,7 +56,7 @@ export const TABLE_LIMIT = 20;
  * 「差分なし」と読めてしまい、承認の範囲も空になります。
  */
 export function collectFailures(json: string): Failure[] {
-  const report = JSON.parse(json) as { suites?: unknown };
+  const report = JSON.parse(json) as Loose<JSONReport>;
   if (!Array.isArray(report.suites)) throw new Error("JSON レポートに suites がありません");
 
   const failures: Failure[] = [];
@@ -117,7 +124,7 @@ function tagName(tag: string): string {
  * @param json - Playwright の JSON レポート
  */
 export function hasBaselineFailure(json: string): boolean {
-  const report = JSON.parse(json) as { suites?: unknown };
+  const report = JSON.parse(json) as Loose<JSONReport>;
   if (!Array.isArray(report.suites)) throw new Error("JSON レポートに suites がありません");
 
   const checks = flattenSpecs(report.suites as JSONSuite[]).filter((spec) =>
@@ -156,7 +163,7 @@ function flattenSpecs(suites: JSONSuite[]): JSONSpec[] {
 
 // 注記から story の id を取る。注記が無いものは VRT の対象外なので飛ばす。
 function storyID(annotations: unknown): string | null {
-  for (const annotation of asArray<{ type?: unknown; description?: unknown }>(annotations)) {
+  for (const annotation of asArray<JSONAnnotation>(annotations)) {
     if (annotation.type === STORY_ANNOTATION && typeof annotation.description === "string") {
       return annotation.description;
     }
@@ -167,8 +174,8 @@ function storyID(annotations: unknown): string | null {
 
 // 食い違った画素数はエラー本文にしか出ない。取れなくても報告は続ける（件数と id は分かる）。
 function diffPixels(results: unknown): number | null {
-  for (const result of asArray<{ errors?: unknown }>(results)) {
-    for (const error of asArray<{ message?: unknown }>(result.errors)) {
+  for (const result of asArray<Loose<JSONReportTestResult>>(results)) {
+    for (const error of asArray<JSONError>(result.errors)) {
       if (typeof error.message !== "string") continue;
       const match = DIFF_PIXELS_PATTERN.exec(error.message);
       if (match) return Number(match[1]);
