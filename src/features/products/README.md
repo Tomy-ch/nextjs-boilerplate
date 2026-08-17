@@ -58,6 +58,7 @@ test-requirement: feature
 | `list/ui/invalid-query/` | URL の条件が契約を外れているときの表示 |
 | `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
 | `detail/view.tsx` | 1 件の詳細の表示。画像の carousel と説明文の描画を持つ |
+| `detail/ui/print-button/` | 紙に出す操作。押せない操作は紙面へ出さない |
 
 ## 運用
 

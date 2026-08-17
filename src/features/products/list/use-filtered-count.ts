@@ -15,8 +15,11 @@ export type FilteredCount = {
    * 一致する件数。
    *
    * @remarks
-   * 数え直している間は 1 つ前の条件の件数が入ります。まだ一度も数えていなければ `undefined`
-   * です。取得のたびに消すと、条件を選ぶたびに数が現れては消え、読み取る前に入れ替わります。
+   * 数え直している間は 1 つ前の条件の件数が入ります。取得のたびに消すと、条件を選ぶたびに数が
+   * 現れては消え、読み取る前に入れ替わります。
+   *
+   * **数えられなかったときは `undefined` になります。** 前の条件の件数を残すと、いまの条件の
+   * 件数として読まれます。まだ一度も数えていないときも同じです。
    */
   readonly count: number | undefined;
   /** いまの条件で数え終えていないか。 */
@@ -43,16 +46,17 @@ export function useFilteredCount(conditions: ProductListSelection): FilteredCoun
   // 条件そのものではなく、条件を表す 1 つの文字列で見張る。条件は描画のたびに別の object に
   // なるため、そのまま見張ると毎回取り直しになる。
   const search = toProductListSearchParams(conditions).toString();
-  const [found, setFound] = useState<{ search: string; count: number } | undefined>(undefined);
+  const [found, setFound] = useState<{ search: string; count?: number } | undefined>(undefined);
 
   useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(() => {
       fetchProductCount(new URLSearchParams(search), controller.signal)
         .then((count) => setFound({ search, count }))
-        // 打ち切りも失敗も、件数が分からないことに変わりはない。数の代わりに何かを出すと、
-        // それが件数として読まれる。
-        .catch(() => undefined);
+        // 数えられなかったことも、その条件に対する結果として記録する。記録しないと 1 つ前の
+        // 条件の件数が残り続け、いまの条件の件数として読まれる。打ち切りの場合は条件が既に
+        // 変わっているため、この記録は次の取得の結果に上書きされる。
+        .catch(() => setFound({ search }));
     }, SETTLE_MS);
 
     return () => {
