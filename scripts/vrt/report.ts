@@ -120,10 +120,21 @@ export function hasBaselineFailure(json: string): boolean {
   const report = JSON.parse(json) as { suites?: unknown };
   if (!Array.isArray(report.suites)) throw new Error("JSON レポートに suites がありません");
 
-  return flattenSpecs(report.suites as JSONSuite[]).some(
-    (spec) =>
-      asArray<string>(spec.tags).some((tag) => tagName(tag) === tagName(BASELINE_TAG)) &&
-      asArray<JSONTest>(spec.tests).some((test) => test.status !== "expected"),
+  const checks = flattenSpecs(report.suites as JSONSuite[]).filter((spec) =>
+    asArray<string>(spec.tags).some((tag) => tagName(tag) === tagName(BASELINE_TAG)),
+  );
+
+  // 見つからないことを「孤児なし」と答えない。1 対 1 の検査は全数の撮影に必ず含まれるので、
+  // 当たらないのはレポートの形か tag の綴りが変わったときである。false を返すと、撮り直しは
+  // 絞り込み側へ落ちて「差分がありません」で止まり、原因の見えない失敗になる。
+  if (checks.length === 0) {
+    throw new Error(
+      `レポートに ${BASELINE_TAG} の spec がありません。全数の報告でないか、tag の載り方が変わっています`,
+    );
+  }
+
+  return checks.some((spec) =>
+    asArray<JSONTest>(spec.tests).some((test) => test.status !== "expected"),
   );
 }
 

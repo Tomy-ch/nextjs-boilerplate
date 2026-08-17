@@ -230,18 +230,28 @@ describe("hasBaselineFailure", () => {
     expect(hasBaselineFailure(json)).toBe(true);
   });
 
-  it("tag が test の側に載っていても、spec に無ければ拾わない", () => {
+  // ----- 異常系 -----
+  it("tag がどの spec にも無ければ、孤児なしと答えずに落とす", () => {
+    const json = reportOf([{ title: "Button", tests: [test({ id: "a" })] }]);
+
+    expect(() => hasBaselineFailure(json)).toThrow(/@baselines/);
+  });
+
+  it("tag が test の側にしか載っていないときも落とす", () => {
     const json = reportOf([
       { title: "基準画像", tests: [{ ...(test({}) as object), tags: ["baselines"] }] },
     ]);
 
-    expect(hasBaselineFailure(json)).toBe(false);
+    expect(() => hasBaselineFailure(json)).toThrow(/@baselines/);
   });
 
   it("story だけが食い違っているときは false を返す", () => {
-    expect(hasBaselineFailure(reportOf([{ title: "Button", tests: [test({ id: "a" })] }]))).toBe(
-      false,
-    );
+    const json = reportOf([
+      { title: "Button", tests: [test({ id: "a" })] },
+      { title: "基準画像", tags: ["baselines"], tests: [test({ status: "expected" })] },
+    ]);
+
+    expect(hasBaselineFailure(json)).toBe(false);
   });
 
   it("1 対 1 対応の検査が通っていれば false を返す", () => {
