@@ -31,7 +31,7 @@ export type Failure = {
  * @remarks
  * 与えられる JSON は外から来るため、どのキーも欠けうるものとして受けます。一方でキーの名前は
  * 実物が決めるので、手で書き写しません。写すと**実在しないキーを宣言できてしまい**、型に守られて
- * いるつもりのまま常に空を読みます（`tags` は spec が持つのに test 側へ宣言していた、が実例）。
+ * いるつもりのまま常に空を読みます。
  */
 type Loose<T> = { [K in keyof T]?: unknown };
 
@@ -39,7 +39,7 @@ type JSONTest = Loose<JSONReportTest>;
 type JSONSpec = Loose<JSONReportSpec>;
 type JSONSuite = Loose<JSONReportSuite>;
 
-/** 入れ子の要素は、公開名ではなく持ち主の項目から導く。名前だけの export に依らずに済む。 */
+/** 入れ子の要素は持ち主の項目から導く。注記の要素型は個別に公開されていないため、両方を揃える。 */
 type JSONAnnotation = Loose<JSONReportTest["annotations"][number]>;
 type JSONError = Loose<JSONReportTestResult["errors"][number]>;
 
