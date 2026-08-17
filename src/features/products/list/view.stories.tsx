@@ -129,6 +129,7 @@ const meta = {
   decorators: [withPageFrame],
   args: {
     categories: CATEGORIES,
+    categoryLimit: 32,
     sortOptions: SORT_OPTIONS,
     selection: {},
     children: <ProductLoadMoreList hasNext items={ITEMS} total={10} />,

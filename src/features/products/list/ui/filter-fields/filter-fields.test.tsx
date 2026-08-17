@@ -10,12 +10,19 @@ import type { FilterOption } from "../../query";
 import { ProductFilterFields } from "./filter-fields";
 
 const CATEGORIES: readonly FilterOption[] = [
-  { value: "c1", label: "オーディオ" },
-  { value: "c2", label: "ウェアラブル" },
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
 ];
 
 function renderFields(draft: ProductListSelection = {}, onChange = vi.fn()) {
-  render(<ProductFilterFields categories={CATEGORIES} draft={draft} onChange={onChange} />);
+  render(
+    <ProductFilterFields
+      categories={CATEGORIES}
+      categoryLimit={32}
+      draft={draft}
+      onChange={onChange}
+    />,
+  );
 
   return onChange;
 }
@@ -37,7 +44,7 @@ describe("ProductFilterFields", () => {
   });
 
   it("効いている分類に印を付ける", () => {
-    renderFields({ [FILTER_KEY.CATEGORY]: ["c2"] });
+    renderFields({ [FILTER_KEY.CATEGORY]: ["20"] });
 
     expect(screen.getByLabelText("ウェアラブル")).toBeChecked();
   });
@@ -59,12 +66,12 @@ describe("ProductFilterFields", () => {
   });
 
   it("分類を選ぶと、選んだ並びを条件として伝える", async () => {
-    const onChange = renderFields({ [FILTER_KEY.CATEGORY]: ["c1"] });
+    const onChange = renderFields({ [FILTER_KEY.CATEGORY]: ["10"] });
 
     await userEvent.click(screen.getByLabelText("ウェアラブル"));
 
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ [FILTER_KEY.CATEGORY]: ["c1", "c2"] }),
+      expect.objectContaining({ [FILTER_KEY.CATEGORY]: ["10", "20"] }),
     );
   });
 
@@ -94,10 +101,16 @@ describe("ProductFilterFields", () => {
       <>
         <ProductFilterFields
           categories={CATEGORIES}
+          categoryLimit={32}
           draft={{ [FILTER_KEY.MIN_QUANTITY]: "1" }}
           onChange={vi.fn()}
         />
-        <ProductFilterFields categories={CATEGORIES} draft={{}} onChange={vi.fn()} />
+        <ProductFilterFields
+          categories={CATEGORIES}
+          categoryLimit={32}
+          draft={{}}
+          onChange={vi.fn()}
+        />
       </>,
     );
 
@@ -109,7 +122,8 @@ describe("ProductFilterFields", () => {
     const { container } = render(
       <ProductFilterFields
         categories={CATEGORIES}
-        draft={{ [FILTER_KEY.CATEGORY]: ["c1"] }}
+        categoryLimit={32}
+        draft={{ [FILTER_KEY.CATEGORY]: ["10"] }}
         onChange={vi.fn()}
       />,
     );

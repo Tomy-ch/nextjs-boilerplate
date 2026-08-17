@@ -23,7 +23,7 @@ const CATEGORIES: readonly FilterOption[] = [
 function renderSidebar(selection: ProductListSelection = {}) {
   return render(
     <ProductFilterDraftProvider selection={selection}>
-      <ProductFilterSidebar categories={CATEGORIES} />
+      <ProductFilterSidebar categories={CATEGORIES} categoryLimit={32} />
     </ProductFilterDraftProvider>,
   );
 }

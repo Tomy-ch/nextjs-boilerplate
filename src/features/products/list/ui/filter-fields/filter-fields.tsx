@@ -22,6 +22,8 @@ import { ProductStockField } from "../stock-field/stock-field";
 export type ProductFilterFieldsProps = {
   /** 選べる分類。 */
   categories: readonly FilterOption[];
+  /** 一度に選べる分類の数。 */
+  categoryLimit: number;
   /** いま組み立てている条件。 */
   draft: ProductListSelection;
   /** 条件が変わったときに呼ぶ。 */
@@ -43,7 +45,12 @@ export type ProductFilterFieldsProps = {
  * 在庫状況を最後に置くのは、これが結果を絞るための条件というより、出てきた結果から買えないものを
  * 外す条件だからです。
  */
-export function ProductFilterFields({ categories, draft, onChange }: ProductFilterFieldsProps) {
+export function ProductFilterFields({
+  categories,
+  categoryLimit,
+  draft,
+  onChange,
+}: ProductFilterFieldsProps) {
   const changePrice = useCallback(
     (range: PriceRange) => {
       onChange(applyPriceRange(draft, range));
@@ -70,6 +77,7 @@ export function ProductFilterFields({ categories, draft, onChange }: ProductFilt
       <ProductPriceField onChange={changePrice} value={toPriceRange(draft)} />
       <ProductCategoryField
         onChange={changeCategories}
+        limit={categoryLimit}
         options={categories}
         selected={toSelectedValues(draft, FILTER_KEY.CATEGORY)}
       />

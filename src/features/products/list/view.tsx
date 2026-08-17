@@ -26,6 +26,8 @@ import {
 export type ProductListViewProps = {
   /** 選べる分類。 */
   categories: readonly FilterOption[];
+  /** 一度に選べる分類の数。 */
+  categoryLimit: number;
   /** 並び替えの選択肢。 */
   sortOptions: readonly FilterOption[];
   /** いま効いている条件。 */
@@ -65,6 +67,7 @@ export type ProductListViewProps = {
  */
 export function ProductListView({
   categories,
+  categoryLimit,
   sortOptions,
   selection,
   children,
@@ -103,12 +106,16 @@ export function ProductListView({
           </ProductStickyBar>
           <div className="flex gap-8">
             <ProductStickyAside>
-              <ProductFilterSidebar categories={categories} />
+              <ProductFilterSidebar categories={categories} categoryLimit={categoryLimit} />
             </ProductStickyAside>
             <div className="min-w-0 flex-1">{children}</div>
           </div>
           <div className="lg:hidden">
-            <ProductFilterSheet categories={categories} selection={selection} />
+            <ProductFilterSheet
+              categories={categories}
+              categoryLimit={categoryLimit}
+              selection={selection}
+            />
           </div>
         </div>
       </ProductStickyRegion>

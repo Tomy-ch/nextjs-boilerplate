@@ -19,6 +19,7 @@ import {
   type GetProductsRankingQueryParams,
   GetProductsRankingResponse,
   GetProductsResponse,
+  getProductsQueryCategoryCodesMax,
 } from "../../gen/api/endpoints.zod";
 import { createHttpClient, type HttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
@@ -42,6 +43,15 @@ export const PRODUCT_SORT = {
 
 /** 一覧の並び順として指定できる値。 */
 type ProductSort = (typeof PRODUCT_SORT)[keyof typeof PRODUCT_SORT];
+
+/**
+ * 一度に指定できる分類の数。
+ *
+ * @remarks
+ * 契約の宣言をそのまま持ち出しています。画面が上限を書き写すと、契約が動いたときにそこだけ
+ * 古い数のまま利用者を止めます。契約は重複を許さないため、これは種類の数の上限です。
+ */
+export const PRODUCT_CATEGORY_LIMIT: number = getProductsQueryCategoryCodesMax;
 
 /**
  * この面が受け付ける取得条件のスキーマ。

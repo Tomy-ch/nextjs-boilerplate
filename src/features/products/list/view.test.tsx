@@ -28,7 +28,12 @@ const SORT_OPTIONS: readonly FilterOption[] = [
 
 function renderView(selection: ProductListSelection = {}) {
   return render(
-    <ProductListView categories={CATEGORIES} selection={selection} sortOptions={SORT_OPTIONS}>
+    <ProductListView
+      categories={CATEGORIES}
+      categoryLimit={32}
+      selection={selection}
+      sortOptions={SORT_OPTIONS}
+    >
       <p>一覧本体</p>
     </ProductListView>,
   );

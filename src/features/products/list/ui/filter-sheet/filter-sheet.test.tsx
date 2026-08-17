@@ -32,7 +32,7 @@ const CATEGORIES: readonly FilterOption[] = [
 function renderSheet(selection: ProductListSelection = {}) {
   return render(
     <ProductFilterDraftProvider selection={selection}>
-      <ProductFilterSheet categories={CATEGORIES} selection={selection} />
+      <ProductFilterSheet categories={CATEGORIES} categoryLimit={32} selection={selection} />
     </ProductFilterDraftProvider>,
   );
 }

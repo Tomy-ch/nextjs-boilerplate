@@ -8,6 +8,8 @@ import { ProductFilterFields } from "../filter-fields/filter-fields";
 export type ProductFilterSidebarProps = {
   /** 選べる分類。 */
   categories: readonly FilterOption[];
+  /** 一度に選べる分類の数。 */
+  categoryLimit: number;
 };
 
 /**
@@ -31,12 +33,17 @@ export type ProductFilterSidebarProps = {
  * landmark も持ちません。この画面には検索と条件をまとめた `FilterBar` が既にあり、入れ子にすると
  * 同じ目的の landmark が 2 つ並びます。脇の領域そのものの名前は置く側が `aside` に与えます。
  */
-export function ProductFilterSidebar({ categories }: ProductFilterSidebarProps) {
+export function ProductFilterSidebar({ categories, categoryLimit }: ProductFilterSidebarProps) {
   const { draft, pending, commit } = useProductFilterDraft();
 
   return (
     <div aria-busy={pending}>
-      <ProductFilterFields categories={categories} draft={draft} onChange={commit} />
+      <ProductFilterFields
+        categories={categories}
+        categoryLimit={categoryLimit}
+        draft={draft}
+        onChange={commit}
+      />
     </div>
   );
 }

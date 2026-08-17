@@ -26,7 +26,7 @@ const meta = {
       },
     },
   },
-  args: { categories: CATEGORIES, draft: {}, onChange: fn() },
+  args: { categoryLimit: 32, categories: CATEGORIES, draft: {}, onChange: fn() },
 } satisfies Meta<typeof ProductFilterFields>;
 
 export default meta;

@@ -1,7 +1,11 @@
 import { Suspense } from "react";
 
 import { getProductCategories } from "@/adapters/server/api/product-masters";
-import { PRODUCT_SORT, parseProductQuery } from "@/adapters/server/api/products";
+import {
+  PRODUCT_CATEGORY_LIMIT,
+  PRODUCT_SORT,
+  parseProductQuery,
+} from "@/adapters/server/api/products";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { ProductCategory } from "@/model/product/product";
@@ -75,7 +79,12 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
       : selection;
 
   return (
-    <ProductListView categories={categories} selection={displayed} sortOptions={SORT_OPTIONS}>
+    <ProductListView
+      categories={categories}
+      categoryLimit={PRODUCT_CATEGORY_LIMIT}
+      selection={displayed}
+      sortOptions={SORT_OPTIONS}
+    >
       <Suspense
         fallback={<ProductListSkeleton />}
         key={toProductListSearchParams(selection).toString()}

@@ -32,6 +32,8 @@ import { ProductFilterFields } from "../filter-fields/filter-fields";
 export type ProductFilterSheetProps = {
   /** 選べる分類。 */
   categories: readonly FilterOption[];
+  /** 一度に選べる分類の数。 */
+  categoryLimit: number;
   /** いま効いている条件。 */
   selection: ProductListSelection;
 };
@@ -62,7 +64,11 @@ function countActive(selection: ProductListSelection): number {
  * 開く操作を画面下端に固定するのは、一覧を読み進めた先でも絞り込みへ戻れるようにするためです
  * （[0051](../../../../../../docs/adr/0051-styling-system.md) §2）。
  */
-export function ProductFilterSheet({ categories, selection }: ProductFilterSheetProps) {
+export function ProductFilterSheet({
+  categories,
+  categoryLimit,
+  selection,
+}: ProductFilterSheetProps) {
   const [open, setOpen] = useState(false);
   const { draft, change, clear, apply } = useProductFilterDraft();
   const { count } = useFilteredCount(draft);
@@ -85,7 +91,12 @@ export function ProductFilterSheet({ categories, selection }: ProductFilterSheet
           <SheetDescription>条件を選んでから、下の操作で一覧に反映します。</SheetDescription>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-4">
-          <ProductFilterFields categories={categories} draft={draft} onChange={change} />
+          <ProductFilterFields
+            categories={categories}
+            categoryLimit={categoryLimit}
+            draft={draft}
+            onChange={change}
+          />
         </div>
         <SheetFooter>
           <Button onClick={confirm} type="button">
