@@ -9,8 +9,9 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+650e8bb
  */
+import type { CategoryCodesParamParameter } from "./categoryCodesParamParameter";
 import type { CategoryIdParamParameter } from "./categoryIdParamParameter";
 import type { CursorAfterParamParameter } from "./cursorAfterParamParameter";
 import type { CursorFirstParamParameter } from "./cursorFirstParamParameter";
@@ -20,6 +21,7 @@ import type { MaxQuantityParamParameter } from "./maxQuantityParamParameter";
 import type { MinPriceParamParameter } from "./minPriceParamParameter";
 import type { MinQuantityParamParameter } from "./minQuantityParamParameter";
 import type { SortParamParameter } from "./sortParamParameter";
+import type { StatusCodesParamParameter } from "./statusCodesParamParameter";
 import type { StatusIdParamParameter } from "./statusIdParamParameter";
 
 export type GetProductsParams = {
@@ -37,16 +39,40 @@ export type GetProductsParams = {
   first?: CursorFirstParamParameter;
   /**
    * 商品カテゴリIDでフィルタします。指定しない場合は全カテゴリを対象とします。
+   * 後継は categoryCodes で、マスタ行を指すのは UUID ではなく code です。categoryCodes と
+   * 同時に指定した場合は 400 を返します。
    * @maxLength 36
    * @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
    */
   categoryId?: CategoryIdParamParameter;
   /**
    * 商品ステータスIDでフィルタします。指定しない場合は全ステータスを対象とします。
+   * 後継は statusCodes で、マスタ行を指すのは UUID ではなく code です。statusCodes と
+   * 同時に指定した場合は 400 を返します。
    * @maxLength 36
    * @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
    */
   statusId?: StatusIdParamParameter;
+  /**
+   * 商品カテゴリコードでフィルタします（同じキーの繰り返し）。指定したコードのいずれかに一致する商品を返します。
+   * 指定しない場合は全カテゴリを対象とします。存在しないコードは 0 件として扱い、エラーにはしません。
+   * コードは商品カテゴリマスタ（GET /v1/products/categories）が返す code で、マスタ行を指す静的な別名です。
+   * 非推奨の categoryId と同時に指定した場合は 400 を返します。
+   * @maxItems 32
+   * @items.minimum 1
+   * @items.maximum 32767
+   */
+  categoryCodes?: CategoryCodesParamParameter;
+  /**
+   * 商品ステータスコードでフィルタします（カンマ区切り）。指定したコードのいずれかに一致する商品を返します。
+   * 指定しない場合は全ステータスを対象とします。存在しないコードは 0 件として扱い、エラーにはしません。
+   * コードは商品ステータスマスタ（GET /v1/products/statuses）が返す code で、マスタ行を指す静的な別名です。
+   * 非推奨の statusId と同時に指定した場合は 400 を返します。
+   * @maxItems 32
+   * @items.minimum 1
+   * @items.maximum 32767
+   */
+  statusCodes?: StatusCodesParamParameter;
   /**
    * 全文検索キーワード。商品名・商品説明への部分一致で絞り込みます。
    * @minLength 1

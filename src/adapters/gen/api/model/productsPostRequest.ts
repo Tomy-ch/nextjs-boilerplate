@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+650e8bb
  */
 import type { ProductImageInput } from "./productImageInput";
 
@@ -58,6 +58,6 @@ export interface ProductsPostRequest {
    * @nullable
    */
   publishedAt?: string | null;
-  /** 商品画像。未指定の場合は画像を持たない商品として作成します。 同じ商品の中で sortKey が重複する場合は業務不変条件違反として 422 を返します。 */
+  /** 商品画像。未指定の場合は画像を持たない商品として作成します。 同じ商品の中で displaySort が重複する場合は業務不変条件違反として 422 を返します。 */
   images?: ProductImageInput[];
 }

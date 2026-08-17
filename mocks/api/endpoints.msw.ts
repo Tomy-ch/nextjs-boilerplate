@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+650e8bb
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
@@ -302,13 +302,13 @@ export const getGetPrefecturesResponseMock = () => [
 export const getGetProductStatusesResponseMock = (): ProductsStatusesResponse =>
   Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
     ...{ id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
-    ...{ code: faker.number.int(), sortKey: faker.number.int() },
+    ...{ code: faker.number.int() },
   }));
 
 export const getGetProductCategoriesResponseMock = (): ProductsCategoriesResponse =>
   Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
     ...{ id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
-    ...{ code: faker.number.int(), sortKey: faker.number.int() },
+    ...{ code: faker.number.int() },
   }));
 
 export const getGetProductsResponseMock = (): ProductListResponse => ({
@@ -339,7 +339,7 @@ export const getGetProductsResponseMock = (): ProductListResponse => ({
         images: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
           () => ({
             imagePath: faker.string.alpha({ length: { min: 10, max: 20 } }),
-            sortKey: faker.number.int({ min: 1, max: 32767 }),
+            displaySort: faker.number.int({ min: 1, max: 32767 }),
           }),
         ),
         version: faker.number.int(),
@@ -376,7 +376,7 @@ export const getPostProductsResponseMock = (
   images: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       imagePath: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      sortKey: faker.number.int({ min: 1, max: 32767 }),
+      displaySort: faker.number.int({ min: 1, max: 32767 }),
     }),
   ),
   version: faker.number.int(),
@@ -408,7 +408,7 @@ export const getGetProductsDetailResponseMock = (
   images: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       imagePath: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      sortKey: faker.number.int({ min: 1, max: 32767 }),
+      displaySort: faker.number.int({ min: 1, max: 32767 }),
     }),
   ),
   version: faker.number.int(),
@@ -436,7 +436,7 @@ export const getPatchProductsDetailResponseMock = (
   images: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       imagePath: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      sortKey: faker.number.int({ min: 1, max: 32767 }),
+      displaySort: faker.number.int({ min: 1, max: 32767 }),
     }),
   ),
   version: faker.number.int(),
@@ -464,7 +464,7 @@ export const getPatchProductsStockResponseMock = (
   images: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       imagePath: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      sortKey: faker.number.int({ min: 1, max: 32767 }),
+      displaySort: faker.number.int({ min: 1, max: 32767 }),
     }),
   ),
   version: faker.number.int(),
@@ -514,7 +514,7 @@ export const getGetProductsLowStockResponseMock = (
       images: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
         () => ({
           imagePath: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          sortKey: faker.number.int({ min: 1, max: 32767 }),
+          displaySort: faker.number.int({ min: 1, max: 32767 }),
         }),
       ),
       version: faker.number.int(),

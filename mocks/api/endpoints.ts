@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+650e8bb
  */
 import type {
   AddressCandidatesResponse,
@@ -1223,6 +1223,15 @@ export const getGetProductsUrl = (params?: GetProductsParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["categoryCodes"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }
@@ -1236,7 +1245,8 @@ export const getGetProductsUrl = (params?: GetProductsParams) => {
 /**
  * 公開済みの商品を cursor ページネーションで取得します。認証不要の公開エンドポイントです。
  * 既定では公開日時の降順（publishedAt DESC, id DESC）で並び、sort=publishedAt で昇順に切り替えられます。
- * categoryId / statusId でフィルタ、keyword で商品名・説明の部分一致検索ができます。
+ * categoryCodes / statusCodes でフィルタ（カンマ区切りで複数指定可）、keyword で商品名・説明の部分一致検索ができます。
+ * categoryId / statusId は非推奨で、後継の categoryCodes / statusCodes と同時に指定すると 400 を返します。
  * minPrice / maxPrice で価格、minQuantity / maxQuantity で在庫数を境界値を含めて範囲検索できます。
  * いずれの範囲も下限が上限を超える場合は 400 を返します。
  * 公開日時が未設定（未公開）の商品は返しません。ステータスによる可視範囲の絞り込みは今後対応予定です。
@@ -1388,6 +1398,15 @@ export const getGetProductsCountUrl = (params?: GetProductsCountParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["categoryCodes"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }
@@ -1402,8 +1421,9 @@ export const getGetProductsCountUrl = (params?: GetProductsCountParams) => {
 
 /**
  * 公開済み商品のうち、指定した検索条件に一致する件数のみを返します。認証不要の公開エンドポイントです。
- * categoryId / statusId / keyword / minPrice / maxPrice / minQuantity / maxQuantity の意味は
+ * categoryCodes / statusCodes / keyword / minPrice / maxPrice / minQuantity / maxQuantity の意味は
  * GET /v1/products と同一です。検索条件を指定しない場合は公開済み商品の総数を返します。
+ * categoryId / statusId は非推奨で、後継の categoryCodes / statusCodes と同時に指定すると 400 を返します。
  * @summary 商品検索の一致件数の取得
  */
 export const getProductsCount = async (
