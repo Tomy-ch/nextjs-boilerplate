@@ -1,4 +1,8 @@
-import { FILTER_KEY, type ProductListSelection } from "../facade/list-url/list-url";
+import {
+  FILTER_KEY,
+  type ProductListSelection,
+  toSelectedValue,
+} from "../facade/list-url/list-url";
 
 /**
  * 価格の目盛り。下限と上限をこの位置から選ぶ。
@@ -41,12 +45,8 @@ function toBound(index: number): string | undefined {
 }
 
 /** 十進文字列がどの位置に当たるかを探す。目盛りに無い値は `undefined`。 */
-function toIndex(value: string | undefined): number | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  const found = PRICE_SCALE.indexOf(Number(value));
+function toIndex(value: string): number | undefined {
+  const found = value === "" ? -1 : PRICE_SCALE.indexOf(Number(value));
 
   return found === -1 ? undefined : found;
 }
@@ -60,12 +60,9 @@ function toIndex(value: string | undefined): number | undefined {
  * 操作面の側は、次に動かしたときどの値になるかを見せられる位置に置きます。
  */
 export function toPriceRange(selection: ProductListSelection): PriceRange {
-  const min = selection[FILTER_KEY.MIN_PRICE];
-  const max = selection[FILTER_KEY.MAX_PRICE];
-
   return [
-    toIndex(typeof min === "string" ? min : undefined) ?? PRICE_RANGE_MIN,
-    toIndex(typeof max === "string" ? max : undefined) ?? PRICE_RANGE_MAX,
+    toIndex(toSelectedValue(selection, FILTER_KEY.MIN_PRICE)) ?? PRICE_RANGE_MIN,
+    toIndex(toSelectedValue(selection, FILTER_KEY.MAX_PRICE)) ?? PRICE_RANGE_MAX,
   ];
 }
 

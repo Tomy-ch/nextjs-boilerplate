@@ -5,7 +5,11 @@ import { useCallback } from "react";
 import { SearchFieldClient } from "@/components/design-system/form/search-field-client/search-field-client";
 import { SEARCH_FIELD_COMMIT } from "@/components/design-system/form/search-field-client/search-field-client.definition";
 
-import { FILTER_KEY, type ProductListSelection } from "../../../facade/list-url/list-url";
+import {
+  FILTER_KEY,
+  type ProductListSelection,
+  toSelectedValue,
+} from "../../../facade/list-url/list-url";
 import { useProductFilterDraft } from "../../filter-draft";
 
 /** `ProductKeywordField` の props。 */
@@ -13,13 +17,6 @@ export type ProductKeywordFieldProps = {
   /** いま一覧に効いている条件。押しても結果が変わらないかの判断に使う。 */
   selection: ProductListSelection;
 };
-
-/** 条件 1 つを、単一の文字列として読む。複数回現れた場合は条件として読めないため空として扱う。 */
-function toText(selection: ProductListSelection, key: string): string {
-  const value = selection[key];
-
-  return typeof value === "string" ? value : "";
-}
 
 /**
  * キーワードの入力欄。
@@ -46,7 +43,7 @@ export function ProductKeywordField({ selection }: ProductKeywordFieldProps) {
     [change, draft],
   );
 
-  const keyword = toText(draft, FILTER_KEY.KEYWORD);
+  const keyword = toSelectedValue(draft, FILTER_KEY.KEYWORD);
 
   return (
     <SearchFieldClient
@@ -56,7 +53,7 @@ export function ProductKeywordField({ selection }: ProductKeywordFieldProps) {
       onSearch={apply}
       onValueChange={setKeyword}
       placeholder="商品名で探す"
-      submitDisabled={keyword === "" && toText(selection, FILTER_KEY.KEYWORD) === ""}
+      submitDisabled={keyword === "" && toSelectedValue(selection, FILTER_KEY.KEYWORD) === ""}
       value={keyword}
     />
   );

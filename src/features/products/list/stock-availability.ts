@@ -1,4 +1,8 @@
-import { FILTER_KEY, type ProductListSelection } from "../facade/list-url/list-url";
+import {
+  FILTER_KEY,
+  type ProductListSelection,
+  toSelectedValue,
+} from "../facade/list-url/list-url";
 
 /**
  * 在庫の有無で選べる状態。
@@ -48,14 +52,14 @@ export const STOCK_AVAILABILITY_LABEL = "在庫状況";
  * 選んでいない状態が選ばれているように見えます。
  */
 export function toStockAvailability(selection: ProductListSelection): StockAvailability {
-  const min = selection[FILTER_KEY.MIN_QUANTITY];
-  const max = selection[FILTER_KEY.MAX_QUANTITY];
+  const min = toSelectedValue(selection, FILTER_KEY.MIN_QUANTITY);
+  const max = toSelectedValue(selection, FILTER_KEY.MAX_QUANTITY);
 
-  if (min === "1" && (max === undefined || max === "")) {
+  if (min === "1" && max === "") {
     return STOCK_AVAILABILITY.IN_STOCK;
   }
 
-  if (max === "0" && (min === undefined || min === "")) {
+  if (max === "0" && min === "") {
     return STOCK_AVAILABILITY.OUT_OF_STOCK;
   }
 

@@ -32,8 +32,7 @@ test-requirement: feature
 | `list/query.ts` | 素の `searchParams` の均し、件数、選択肢の型 |
 | `list/price-range.ts` | 価格の目盛りと、URL の下限・上限との写し |
 | `list/stock-availability.ts` | 在庫の有無と、URL の在庫数の条件との写し |
-| `list/use-filter-draft.ts` | 組み立て中の条件と、一覧へ反映する手段 |
-| `list/filter-draft.tsx` | 組み立て中の条件を画面で 1 つに保つ供給 |
+| `list/filter-draft.tsx` | 組み立て中の条件を持ち、画面で 1 つに保つ |
 | `list/use-filtered-count.ts` | 確定していない条件で一致する件数を数える |
 | `list/use-infinite-products.ts` | 末尾到達で続きを読む。読み進めた件数を URL へ書き戻す |
 | `list/view.tsx` | 一覧の表示。条件で取り直す範囲をここで区切る |

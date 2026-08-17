@@ -51,6 +51,20 @@ export const FILTER_KEY: Readonly<{
  */
 export type ProductListSelection = Readonly<Record<string, string | readonly string[]>>;
 
+/**
+ * 条件 1 つを、単一の文字列として読む。
+ *
+ * @remarks
+ * 複数回現れた条件は単一の値として読めないため、空として扱います。**URL は利用者が直接編集
+ * できる**ので、1 つしか受け取らない条件にも並びが届き得ます。読み方をここに 1 つだけ置くのは、
+ * 読む側それぞれが独自に畳むと、同じ URL が場所によって違う条件に見えるためです。
+ */
+export function toSelectedValue(selection: ProductListSelection, key: string): string {
+  const value = selection[key];
+
+  return typeof value === "string" ? value : "";
+}
+
 /** 条件 1 つを、値の有無によらず並びとして読む。 */
 export function toSelectedValues(selection: ProductListSelection, key: string): readonly string[] {
   const value = selection[key];
