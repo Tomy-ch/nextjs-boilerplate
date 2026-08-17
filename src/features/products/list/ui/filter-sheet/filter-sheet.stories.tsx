@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
 import { FILTER_KEY } from "../../../facade/list-url/list-url";
+import { ProductFilterDraftProvider } from "../../filter-draft";
 import type { FilterOption } from "../../query";
 import { ProductFilterSheet } from "./filter-sheet";
 
@@ -27,6 +28,14 @@ const meta = {
     },
   },
   globals: { viewport: { value: "mobile2", isRotated: false } },
+  // 下書きの供給は画面（`view.tsx`）が持つ。この部品は読む側なので、canvas でも同じ供給を置く。
+  decorators: [
+    (Story, context) => (
+      <ProductFilterDraftProvider selection={context.args.selection}>
+        {Story()}
+      </ProductFilterDraftProvider>
+    ),
+  ],
   args: { categories: CATEGORIES, selection: {} },
 } satisfies Meta<typeof ProductFilterSheet>;
 

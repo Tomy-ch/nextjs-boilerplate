@@ -1,4 +1,7 @@
 import type { Preview } from "@storybook/nextjs-vite";
+import { createElement } from "react";
+
+import { ToastProvider } from "../src/components/shell/toaster/toaster";
 
 import "../src/app/globals.css";
 import "./preview.css";
@@ -37,6 +40,11 @@ const preview: Preview = {
 
       return Story(context);
     },
+    // 通知の供給は root layout（`src/app/layout.tsx`）が持つ。カタログでも同じ位置に置くのは、
+    // 部品の側が「どこかに Provider が居る」前提で `useToast` を呼ぶためで、置かないと通知を
+    // 出しうる部品を含む story が開いた時点で落ちる。JSX を使わないのは、この設定が `.ts`
+    // だからである。
+    (Story, context) => createElement(ToastProvider, null, Story(context)),
   ],
   parameters: {
     a11y: {
