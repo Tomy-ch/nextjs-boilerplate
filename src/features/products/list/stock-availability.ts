@@ -27,6 +27,19 @@ export const STOCK_AVAILABILITY: Readonly<{
 /** {@link STOCK_AVAILABILITY} のいずれか。 */
 export type StockAvailability = (typeof STOCK_AVAILABILITY)[keyof typeof STOCK_AVAILABILITY];
 
+/**
+ * 状態ごとの表示名。
+ *
+ * @remarks
+ * 状態を漏れなく並べた表として持ちます。探して見つからなければ既定へ落ちる形にすると、状態を
+ * 増やしたときに名前の無い選択肢が黙って出ます。
+ */
+const STOCK_AVAILABILITY_TEXT: Readonly<Record<StockAvailability, string>> = {
+  [STOCK_AVAILABILITY.ALL]: "すべて",
+  [STOCK_AVAILABILITY.IN_STOCK]: "在庫あり",
+  [STOCK_AVAILABILITY.OUT_OF_STOCK]: "在庫なし",
+};
+
 /** 在庫状況の選択肢 1 件。 */
 export type StockAvailabilityOption = {
   readonly value: StockAvailability;
@@ -34,11 +47,14 @@ export type StockAvailabilityOption = {
 };
 
 /** 在庫状況の選択肢。 */
-export const STOCK_AVAILABILITY_OPTIONS: readonly StockAvailabilityOption[] = [
-  { value: STOCK_AVAILABILITY.ALL, label: "すべて" },
-  { value: STOCK_AVAILABILITY.IN_STOCK, label: "在庫あり" },
-  { value: STOCK_AVAILABILITY.OUT_OF_STOCK, label: "在庫なし" },
-];
+export const STOCK_AVAILABILITY_OPTIONS: readonly StockAvailabilityOption[] = Object.values(
+  STOCK_AVAILABILITY,
+).map((value) => ({ value, label: STOCK_AVAILABILITY_TEXT[value] }));
+
+/** 在庫状況の表示名。 */
+export function formatStockAvailability(availability: StockAvailability): string {
+  return STOCK_AVAILABILITY_TEXT[availability];
+}
 
 /** 在庫状況の条件名。条件の chip に出す。 */
 export const STOCK_AVAILABILITY_LABEL = "在庫状況";

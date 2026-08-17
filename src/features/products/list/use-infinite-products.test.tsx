@@ -178,12 +178,15 @@ describe("useInfiniteProducts", () => {
 
     await clickLoadMore();
 
-    expect(fetchProductListPage).toHaveBeenCalledWith(
-      {
+    expect(fetchProductListPage.mock.calls[0]?.[0].toString()).toBe(
+      new URLSearchParams({
         keyword: "椅子",
         [COUNT_KEY]: String(PRODUCT_PAGE_SIZE),
         [CURSOR_KEY]: "cursor-1",
-      },
+      }).toString(),
+    );
+    expect(fetchProductListPage).toHaveBeenCalledWith(
+      expect.any(URLSearchParams),
       expect.any(AbortSignal),
     );
   });

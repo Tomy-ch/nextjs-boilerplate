@@ -2,15 +2,16 @@ import {
   FILTER_KEY,
   type ProductListSelection,
   toProductListHref,
+  toSelectedValue,
   toSelectedValues,
 } from "../facade/list-url/list-url";
 import { formatPriceBound, PRICE_RANGE_MAX, PRICE_RANGE_MIN, toPriceRange } from "./price-range";
 import type { FilterOption } from "./query";
 import {
   applyStockAvailability,
+  formatStockAvailability,
   STOCK_AVAILABILITY,
   STOCK_AVAILABILITY_LABEL,
-  STOCK_AVAILABILITY_OPTIONS,
   toStockAvailability,
 } from "./stock-availability";
 
@@ -104,15 +105,14 @@ export function toActiveFilters(
     filters.push({
       key: FILTER_KEY.MIN_QUANTITY,
       label: STOCK_AVAILABILITY_LABEL,
-      value:
-        STOCK_AVAILABILITY_OPTIONS.find((option) => option.value === availability)?.label ?? "",
+      value: formatStockAvailability(availability),
       removeHref: toProductListHref(applyStockAvailability(selection, STOCK_AVAILABILITY.ALL)),
     });
   }
 
-  const keyword = selection[FILTER_KEY.KEYWORD];
+  const keyword = toSelectedValue(selection, FILTER_KEY.KEYWORD);
 
-  if (typeof keyword === "string" && keyword !== "") {
+  if (keyword !== "") {
     filters.push({
       key: FILTER_KEY.KEYWORD,
       label: KEYWORD_LABEL,

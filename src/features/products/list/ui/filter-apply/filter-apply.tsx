@@ -38,19 +38,16 @@ export function ProductFilterApply({
   onApply,
 }: ProductFilterApplyProps) {
   return (
-    <div
-      className="sticky bottom-0 z-10 grid gap-2 rounded-lg border bg-background p-3 shadow-sm"
-      data-testid="product-filter-apply"
-    >
+    <div className="sticky bottom-0 z-10 grid gap-2 rounded-lg border bg-background p-3 shadow-sm">
       <Button disabled={pending} onClick={onApply} type="button">
         絞り込み
       </Button>
       <p
-        aria-live="polite"
         className={cn(
           "min-h-5 text-center text-muted-foreground text-sm transition-opacity",
           counting && "opacity-60",
         )}
+        role="status"
       >
         {count === undefined ? null : `該当件数 ${count} 件`}
       </p>

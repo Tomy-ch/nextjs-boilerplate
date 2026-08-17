@@ -16,6 +16,8 @@ const { addToCartAction } = vi.hoisted(() => ({
 
 vi.mock("@/features/cart/facade/add-to-cart/add-to-cart", () => ({ addToCartAction }));
 
+import { ToastProvider } from "@/components/shell/toaster/toaster";
+
 import { ProductCard } from "./card";
 
 const ITEM: ProductListItem = {
@@ -27,6 +29,15 @@ const ITEM: ProductListItem = {
   statusName: "公開中",
   imageUrl: null,
 };
+
+/** 問い合わせの入口が通知を出すため、通知の器ごと描く。 */
+function renderCard(item: ProductListItem, leading?: boolean) {
+  return render(
+    <ToastProvider>
+      <ProductCard item={item} leading={leading} />
+    </ToastProvider>,
+  );
+}
 
 describe("ProductCard", () => {
   beforeEach(() => {
@@ -96,7 +107,7 @@ describe("ProductCard", () => {
   });
 
   it("在庫が無ければ在庫なしを添える", () => {
-    render(<ProductCard item={{ ...ITEM, quantity: 0 }} />);
+    renderCard({ ...ITEM, quantity: 0 });
 
     expect(screen.getByText("在庫なし")).toBeVisible();
   });
@@ -108,9 +119,21 @@ describe("ProductCard", () => {
   });
 
   it("在庫が無ければカートへ入れられない", () => {
-    render(<ProductCard item={{ ...ITEM, quantity: 0 }} />);
+    renderCard({ ...ITEM, quantity: 0 });
 
     expect(screen.getByRole("button", { name: "カートに追加" })).toBeDisabled();
+  });
+
+  it("在庫が無ければ問い合わせの入口を並べる", () => {
+    renderCard({ ...ITEM, quantity: 0 });
+
+    expect(screen.getByRole("button", { name: "お問い合わせ" })).toBeEnabled();
+  });
+
+  it("在庫があれば問い合わせの入口を出さない", () => {
+    renderCard(ITEM);
+
+    expect(screen.queryByRole("button", { name: "お問い合わせ" })).not.toBeInTheDocument();
   });
 
   it("a11y 自動検査に違反しない", async () => {

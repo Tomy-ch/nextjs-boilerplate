@@ -33,6 +33,18 @@ const HIGH_INDEXES: readonly number[] = PRICE_SCALE.map((_, index) => index).sli
 );
 
 /**
+ * 操作面が返した位置を、下限と上限の組として読む。
+ *
+ * @remarks
+ * 端の位置へ落とす分岐は、渡した値と同じ数の位置が返るため実際には通りません。要素の有無を
+ * 型が保証しないぶんの補いです。
+ */
+function toRange(values: number[]): PriceRange {
+  /* v8 ignore next 2 -- 端は TS の絞り込みのためだけで、操作面は渡した数と同じ数の位置を返す。 */
+  return [values[0] ?? PRICE_RANGE_MIN, values[1] ?? PRICE_RANGE_MAX];
+}
+
+/**
  * 価格の絞り込み。
  *
  * @remarks
@@ -54,13 +66,13 @@ export function ProductPriceField({ value, onChange }: ProductPriceFieldProps) {
   const [low, high] = sliding ?? value;
 
   const slide = useCallback((next: number[]) => {
-    setSliding([next[0] ?? PRICE_RANGE_MIN, next[1] ?? PRICE_RANGE_MAX]);
+    setSliding(toRange(next));
   }, []);
 
   const commit = useCallback(
     (next: number[]) => {
       setSliding(null);
-      onChange([next[0] ?? PRICE_RANGE_MIN, next[1] ?? PRICE_RANGE_MAX]);
+      onChange(toRange(next));
     },
     [onChange],
   );

@@ -10,8 +10,18 @@ describe("normalizeSearchParams", () => {
     });
   });
 
-  it("同じキーが複数あれば先頭を採る", () => {
-    expect(normalizeSearchParams({ keyword: ["靴", "鞄"] })).toEqual({ keyword: "靴" });
+  it("同じキーが複数あれば並びのまま残す", () => {
+    expect(normalizeSearchParams({ categoryId: ["c1", "c2"] })).toEqual({
+      categoryId: ["c1", "c2"],
+    });
+  });
+
+  it("同じキーが 1 つだけなら文字列のまま残す", () => {
+    expect(normalizeSearchParams({ categoryId: ["c1"] })).toEqual({ categoryId: "c1" });
+  });
+
+  it("並びの中の空白だけの値を落とす", () => {
+    expect(normalizeSearchParams({ categoryId: ["c1", "  "] })).toEqual({ categoryId: "c1" });
   });
 
   it("前後の空白を落とす", () => {

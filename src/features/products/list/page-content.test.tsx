@@ -4,104 +4,66 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import type { CursorPage } from "@/model/pagination";
-import type { ProductListItem, ProductRef } from "@/model/product/product";
+import type { ProductRef } from "@/model/product/product";
 
-const { getProductListPage, getProductTotalCount } = vi.hoisted(() => ({
-  getProductListPage: vi.fn(),
-  getProductTotalCount: vi.fn(),
-}));
-const { getProductCategories } = vi.hoisted(() => ({
-  getProductCategories: vi.fn(),
+const { getProductCategories } = vi.hoisted(() => ({ getProductCategories: vi.fn() }));
+const { ProductListResults } = vi.hoisted(() => ({
+  ProductListResults: vi.fn(() => <p>一覧と件数</p>),
 }));
 
-vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/adapters/server/api/products")>()),
-  getProductListPage,
-  getProductTotalCount,
-}));
-vi.mock("@/adapters/server/api/product-masters", () => ({
-  getProductCategories,
-}));
+vi.mock("@/adapters/server/api/product-masters", () => ({ getProductCategories }));
+vi.mock("./results", () => ({ ProductListResults }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("@/adapters/client/api/products", () => ({ fetchProductCount: vi.fn(async () => 0) }));
 
 import { ProductListPageContent } from "./page-content";
 
-class IntersectionObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-  takeRecords() {
-    return [];
-  }
-}
+const CATEGORIES: readonly ProductRef[] = [
+  { id: "0195f0c2-0000-7000-8000-0000000000c1", name: "オーディオ" },
+  { id: "0195f0c2-0000-7000-8000-0000000000c2", name: "ウェアラブル" },
+];
 
-const CATEGORIES: readonly ProductRef[] = [{ id: "c1", name: "オーディオ" }];
+beforeEach(() => {
+  getProductCategories.mockReset().mockResolvedValue(CATEGORIES);
+  ProductListResults.mockClear();
+});
 
-function itemOf(overrides: Partial<ProductListItem> = {}): ProductListItem {
-  return {
-    id: "0195f0c2-0000-7000-8000-000000000001",
-    name: "ワイヤレスイヤホン",
-    price: "19.99",
-    quantity: 12,
-    categoryName: "オーディオ",
-    statusName: "公開",
-    imageUrl: null,
-    ...overrides,
-  };
-}
-
-function pageOf(
-  items: readonly ProductListItem[],
-  nextCursor: string | null = null,
-): CursorPage<ProductListItem> {
-  return { items, nextCursor };
-}
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("ProductListPageContent", () => {
-  beforeEach(() => {
-    vi.stubGlobal("IntersectionObserver", IntersectionObserverStub);
-    getProductListPage.mockReset().mockResolvedValue(pageOf([itemOf()]));
-    getProductTotalCount.mockReset().mockResolvedValue(10);
-    getProductCategories.mockReset().mockResolvedValue(CATEGORIES);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("取得した商品を一覧へ渡す", async () => {
+  it("条件で変わらない分類を絞り込みへ並べる", async () => {
     render(await ProductListPageContent({ searchParams: {} }));
 
-    expect(screen.getByRole("link", { name: "ワイヤレスイヤホン" })).toBeVisible();
+    expect(screen.getAllByRole("group", { name: "カテゴリ" })[0]).toBeInTheDocument();
+    expect(screen.getAllByLabelText("オーディオ")[0]).toBeInTheDocument();
   });
 
-  it("総数と読み込み済みの件数を添える", async () => {
+  it("条件で変わるものを待機表示の境界の内側へ置く", async () => {
     render(await ProductListPageContent({ searchParams: {} }));
 
-    expect(screen.getByText("全 10 件中 1 件を表示中")).toBeVisible();
+    expect(await screen.findByText("一覧と件数")).toBeVisible();
   });
 
   it("URL の条件を契約に照らして取得条件へ渡す", async () => {
     render(await ProductListPageContent({ searchParams: { keyword: "イヤホン", first: "20" } }));
 
-    expect(getProductListPage).toHaveBeenCalledWith(
-      expect.objectContaining({ keyword: "イヤホン", first: 20 }),
+    expect(ProductListResults).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ keyword: "イヤホン", first: 20 }),
+      }),
+      undefined,
     );
   });
 
   it("件数の指定が無ければ 1 度に読み込む件数を補う", async () => {
     render(await ProductListPageContent({ searchParams: {} }));
 
-    expect(getProductListPage).toHaveBeenCalledWith(expect.objectContaining({ first: 24 }));
-  });
-
-  it("マスタを「すべて」付きの絞り込みへ並べる", async () => {
-    render(await ProductListPageContent({ searchParams: {} }));
-
-    expect(screen.getByRole("group", { name: "カテゴリ" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "オーディオ" })).toBeInTheDocument();
-    expect(screen.getAllByRole("radio", { checked: true, name: "すべて" })).toHaveLength(1);
+    expect(ProductListResults).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ first: 24 }) }),
+      undefined,
+    );
   });
 
   it("検索欄に現在のキーワードを引き継ぐ", async () => {
@@ -122,14 +84,6 @@ describe("ProductListPageContent", () => {
     expect(screen.getByRole("option", { name: "新着順", selected: true })).toBeInTheDocument();
   });
 
-  it("条件に合う商品が無ければ次にすべきことを示す", async () => {
-    getProductListPage.mockResolvedValue(pageOf([]));
-
-    render(await ProductListPageContent({ searchParams: {} }));
-
-    expect(screen.getByText("条件に合う商品がありません")).toBeVisible();
-  });
-
   it("契約を外れた条件では一覧の代わりに案内を出す", async () => {
     render(await ProductListPageContent({ searchParams: { sort: "-price" } }));
 
@@ -137,11 +91,17 @@ describe("ProductListPageContent", () => {
     expect(screen.getByText("確認する条件: 並び替え")).toBeVisible();
   });
 
-  it("契約を外れた条件では取得しない", async () => {
+  it("契約を外れた条件では取得へ進まない", async () => {
     render(await ProductListPageContent({ searchParams: { categoryId: "not-a-uuid" } }));
 
-    expect(getProductListPage).not.toHaveBeenCalled();
-    expect(screen.queryByRole("searchbox", { name: "キーワード" })).not.toBeInTheDocument();
+    expect(ProductListResults).not.toHaveBeenCalled();
+    expect(screen.queryByRole("searchbox", { name: "商品名で探す" })).not.toBeInTheDocument();
+  });
+
+  it("契約を外れた条件の呼び名を、画面上の言葉へ直して出す", async () => {
+    render(await ProductListPageContent({ searchParams: { minPrice: "やすい" } }));
+
+    expect(screen.getByText("確認する条件: 価格の下限")).toBeVisible();
   });
 
   it("a11y 違反を持たない", async () => {

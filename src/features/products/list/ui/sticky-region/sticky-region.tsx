@@ -80,6 +80,7 @@ export function ProductStickyBar({ children }: { children: ReactNode }) {
   useEffect(() => {
     const target = ref.current;
 
+    /* v8 ignore next 3 -- 器と同時に描かれるため外れていることは無い。TS の絞り込みのためだけの分岐。 */
     if (target === null) {
       return;
     }
@@ -94,7 +95,6 @@ export function ProductStickyBar({ children }: { children: ReactNode }) {
   return (
     <div
       className={cn("z-30 bg-background", shown ? "sticky" : "static")}
-      data-testid="product-sticky-bar"
       ref={ref}
       style={shown ? { top: APP_SHELL_HEADER_HEIGHT } : undefined}
     >
