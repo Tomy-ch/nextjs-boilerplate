@@ -4,20 +4,20 @@ import { normalizeSearchParams } from "./query";
 describe("normalizeSearchParams", () => {
   // ----- 正常系 -----
   it("1 つのキーに 1 つの文字列を残す", () => {
-    expect(normalizeSearchParams({ keyword: "イヤホン", categoryId: "c1" })).toEqual({
+    expect(normalizeSearchParams({ keyword: "イヤホン", categoryCodes: "10" })).toEqual({
       keyword: "イヤホン",
-      categoryId: "c1",
+      categoryCodes: "10",
     });
   });
 
   it("同じキーが複数あれば並びのまま残す", () => {
-    expect(normalizeSearchParams({ categoryId: ["c1", "c2"] })).toEqual({
-      categoryId: ["c1", "c2"],
+    expect(normalizeSearchParams({ categoryCodes: ["10", "20"] })).toEqual({
+      categoryCodes: ["10", "20"],
     });
   });
 
   it("同じキーが 1 つだけなら文字列のまま残す", () => {
-    expect(normalizeSearchParams({ categoryId: ["c1"] })).toEqual({ categoryId: "c1" });
+    expect(normalizeSearchParams({ categoryCodes: ["10"] })).toEqual({ categoryCodes: "10" });
   });
 
   it("複数の値を受け取れない条件が重複したら、指定なしとして落とす", () => {
@@ -25,7 +25,7 @@ describe("normalizeSearchParams", () => {
   });
 
   it("並びの中の空白だけの値を落とす", () => {
-    expect(normalizeSearchParams({ categoryId: ["c1", "  "] })).toEqual({ categoryId: "c1" });
+    expect(normalizeSearchParams({ categoryCodes: ["10", "  "] })).toEqual({ categoryCodes: "10" });
   });
 
   it("前後の空白を落とす", () => {
@@ -34,23 +34,27 @@ describe("normalizeSearchParams", () => {
 
   // ----- 異常系 -----
   it("空文字のキーを未指定として落とす", () => {
-    expect(normalizeSearchParams({ keyword: "", categoryId: "c1" })).toEqual({ categoryId: "c1" });
+    expect(normalizeSearchParams({ keyword: "", categoryCodes: "10" })).toEqual({
+      categoryCodes: "10",
+    });
   });
 
   it("空白だけのキーを未指定として落とす", () => {
-    expect(normalizeSearchParams({ keyword: "   ", categoryId: "c1" })).toEqual({
-      categoryId: "c1",
+    expect(normalizeSearchParams({ keyword: "   ", categoryCodes: "10" })).toEqual({
+      categoryCodes: "10",
     });
   });
 
   it("値の無いキーを未指定として落とす", () => {
-    expect(normalizeSearchParams({ keyword: undefined, categoryId: "c1" })).toEqual({
-      categoryId: "c1",
+    expect(normalizeSearchParams({ keyword: undefined, categoryCodes: "10" })).toEqual({
+      categoryCodes: "10",
     });
   });
 
   it("空の配列を未指定として落とす", () => {
-    expect(normalizeSearchParams({ keyword: [], categoryId: "c1" })).toEqual({ categoryId: "c1" });
+    expect(normalizeSearchParams({ keyword: [], categoryCodes: "10" })).toEqual({
+      categoryCodes: "10",
+    });
   });
 
   it("キーが 1 つも無ければ空にする", () => {

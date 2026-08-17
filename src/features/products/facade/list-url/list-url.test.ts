@@ -52,14 +52,14 @@ describe("toSelectedValues", () => {
 describe("toProductListSearchParams", () => {
   // ----- 正常系 -----
   it("条件をクエリ文字列へ組む", () => {
-    expect(toProductListSearchParams({ [FILTER_KEY.CATEGORY]: "c1" }).toString()).toBe(
-      "categoryId=c1",
+    expect(toProductListSearchParams({ [FILTER_KEY.CATEGORY]: "10" }).toString()).toBe(
+      "categoryCodes=10",
     );
   });
 
   it("複数選べる条件を同じキーの繰り返しにする", () => {
-    expect(toProductListSearchParams({ [FILTER_KEY.CATEGORY]: ["c2", "c1"] }).toString()).toBe(
-      "categoryId=c1&categoryId=c2",
+    expect(toProductListSearchParams({ [FILTER_KEY.CATEGORY]: ["20", "10"] }).toString()).toBe(
+      "categoryCodes=10&categoryCodes=20",
     );
   });
 
@@ -79,12 +79,12 @@ describe("toConditions", () => {
   it("絞り込みと並び替えをそのまま残す", () => {
     expect(
       toConditions({
-        [FILTER_KEY.CATEGORY]: "c1",
+        [FILTER_KEY.CATEGORY]: "10",
         [FILTER_KEY.KEYWORD]: "鞄",
         [FILTER_KEY.SORT]: "publishedAt",
       }),
     ).toEqual({
-      [FILTER_KEY.CATEGORY]: "c1",
+      [FILTER_KEY.CATEGORY]: "10",
       [FILTER_KEY.KEYWORD]: "鞄",
       [FILTER_KEY.SORT]: "publishedAt",
     });
@@ -92,8 +92,8 @@ describe("toConditions", () => {
 
   it("読み進めた位置を落とす", () => {
     expect(
-      toConditions({ [CURSOR_KEY]: "cursor-1", [COUNT_KEY]: "48", [FILTER_KEY.CATEGORY]: "c1" }),
-    ).toEqual({ [FILTER_KEY.CATEGORY]: "c1" });
+      toConditions({ [CURSOR_KEY]: "cursor-1", [COUNT_KEY]: "48", [FILTER_KEY.CATEGORY]: "10" }),
+    ).toEqual({ [FILTER_KEY.CATEGORY]: "10" });
   });
 
   it("条件が無ければ空のまま返す", () => {
@@ -104,20 +104,20 @@ describe("toConditions", () => {
 describe("toProductListHref", () => {
   // ----- 正常系 -----
   it("条件をクエリへ載せる", () => {
-    expect(toProductListHref({ [FILTER_KEY.CATEGORY]: "c1" })).toBe("/products?categoryId=c1");
+    expect(toProductListHref({ [FILTER_KEY.CATEGORY]: "10" })).toBe("/products?categoryCodes=10");
   });
 
   it("キーを並べ替えて、選んだ順序によらず同じ URL にする", () => {
     const sortedFirst = toProductListHref({
-      [FILTER_KEY.CATEGORY]: "c1",
+      [FILTER_KEY.CATEGORY]: "10",
       [FILTER_KEY.SORT]: "publishedAt",
     });
     const sortedLast = toProductListHref({
       [FILTER_KEY.SORT]: "publishedAt",
-      [FILTER_KEY.CATEGORY]: "c1",
+      [FILTER_KEY.CATEGORY]: "10",
     });
 
-    expect(sortedFirst).toBe("/products?categoryId=c1&sort=publishedAt");
+    expect(sortedFirst).toBe("/products?categoryCodes=10&sort=publishedAt");
     expect(sortedLast).toBe(sortedFirst);
   });
 
@@ -126,9 +126,9 @@ describe("toProductListHref", () => {
       toProductListHref({
         [CURSOR_KEY]: "cursor-1",
         [COUNT_KEY]: "48",
-        [FILTER_KEY.CATEGORY]: "c1",
+        [FILTER_KEY.CATEGORY]: "10",
       }),
-    ).toBe("/products?categoryId=c1");
+    ).toBe("/products?categoryCodes=10");
   });
 
   it("値を URL 用に符号化する", () => {
@@ -137,8 +137,8 @@ describe("toProductListHref", () => {
 
   // ----- 異常系 -----
   it("指定なしの条件を載せない", () => {
-    expect(toProductListHref({ [FILTER_KEY.CATEGORY]: "", [FILTER_KEY.STATUS]: "s1" })).toBe(
-      "/products?statusId=s1",
+    expect(toProductListHref({ [FILTER_KEY.CATEGORY]: "", [FILTER_KEY.STATUS]: "5" })).toBe(
+      "/products?statusCodes=5",
     );
   });
 

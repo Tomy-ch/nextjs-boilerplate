@@ -17,8 +17,8 @@ import type { FilterOption } from "./query";
 import { ProductListView } from "./view";
 
 const CATEGORIES: readonly FilterOption[] = [
-  { value: "c1", label: "オーディオ" },
-  { value: "c2", label: "ウェアラブル" },
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
 ];
 
 const SORT_OPTIONS: readonly FilterOption[] = [
@@ -103,20 +103,20 @@ describe("ProductListView", () => {
   });
 
   it("いま効いている絞り込みを脇で選択済みにする", () => {
-    renderView({ [FILTER_KEY.CATEGORY]: ["c1"] });
+    renderView({ [FILTER_KEY.CATEGORY]: ["10"] });
 
     expect(within(aside()).getByLabelText("オーディオ")).toBeChecked();
   });
 
   it("効いている条件を 1 つずつ外せる形で並べる", () => {
-    renderView({ [FILTER_KEY.CATEGORY]: ["c1"], [FILTER_KEY.KEYWORD]: "鞄" });
+    renderView({ [FILTER_KEY.CATEGORY]: ["10"], [FILTER_KEY.KEYWORD]: "鞄" });
 
     expect(screen.getByRole("link", { name: /オーディオ/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /鞄/ })).toBeInTheDocument();
   });
 
   it("条件が 2 件以上のときだけ、すべて解除する導線を出す", () => {
-    renderView({ [FILTER_KEY.CATEGORY]: ["c1"], [FILTER_KEY.KEYWORD]: "鞄" });
+    renderView({ [FILTER_KEY.CATEGORY]: ["10"], [FILTER_KEY.KEYWORD]: "鞄" });
 
     expect(screen.getByRole("link", { name: "条件をすべて解除" })).toBeInTheDocument();
   });
@@ -142,11 +142,11 @@ describe("ProductListView", () => {
     await user.type(screen.getByRole("searchbox", { name: "商品名で探す" }), "鞄");
     await user.click(screen.getByRole("button", { name: "検索" }));
 
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c1&keyword=%E9%9E%84");
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");
   });
 
   it("a11y 自動検査に違反しない", async () => {
-    const { container } = renderView({ [FILTER_KEY.CATEGORY]: ["c1"] });
+    const { container } = renderView({ [FILTER_KEY.CATEGORY]: ["10"] });
 
     expect((await axe(container)).violations).toEqual([]);
   });

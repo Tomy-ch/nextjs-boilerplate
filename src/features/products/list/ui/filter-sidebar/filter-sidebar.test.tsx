@@ -16,8 +16,8 @@ import { ProductFilterDraftProvider } from "../../filter-draft";
 import { ProductFilterSidebar } from "./filter-sidebar";
 
 const CATEGORIES: readonly FilterOption[] = [
-  { value: "c1", label: "オーディオ" },
-  { value: "c2", label: "ウェアラブル" },
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
 ];
 
 function renderSidebar(selection: ProductListSelection = {}) {
@@ -38,7 +38,7 @@ describe("ProductFilterSidebar", () => {
 
     await userEvent.click(screen.getByLabelText("オーディオ"));
 
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c1");
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10");
   });
 
   it("確定の操作を置かない", () => {
@@ -52,11 +52,11 @@ describe("ProductFilterSidebar", () => {
 
     await userEvent.click(screen.getByLabelText("オーディオ"));
 
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c1&keyword=%E9%9E%84");
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");
   });
 
   it("いま効いている条件を入力欄へ映す", () => {
-    renderSidebar({ [FILTER_KEY.CATEGORY]: ["c2"] });
+    renderSidebar({ [FILTER_KEY.CATEGORY]: ["20"] });
 
     expect(screen.getByLabelText("ウェアラブル")).toBeChecked();
   });

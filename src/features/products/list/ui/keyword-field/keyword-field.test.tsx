@@ -58,12 +58,12 @@ describe("ProductKeywordField", () => {
   });
 
   it("送信で、絞り込みの側で組み立てた条件も一緒に飛ばす", async () => {
-    renderField({ [FILTER_KEY.CATEGORY]: ["c1"] });
+    renderField({ [FILTER_KEY.CATEGORY]: ["10"] });
 
     await userEvent.type(input(), "鞄");
     await userEvent.click(submit());
 
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c1&keyword=%E9%9E%84");
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");
   });
 
   it("効いている検索語を空にして外せる", async () => {

@@ -4,13 +4,13 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import type { ProductRef } from "@/model/product/product";
+import type { ProductCategory } from "@/model/product/product";
 
 import { CategoryLinks } from "./category-links";
 
-const CATEGORIES: readonly ProductRef[] = [
-  { id: "c1", name: "オーディオ" },
-  { id: "c2", name: "ウェアラブル" },
+const CATEGORIES: readonly ProductCategory[] = [
+  { id: "10", code: 10, name: "オーディオ" },
+  { id: "20", code: 20, name: "ウェアラブル" },
 ];
 
 describe("CategoryLinks", () => {
@@ -19,11 +19,11 @@ describe("CategoryLinks", () => {
 
     expect(screen.getByRole("link", { name: "オーディオ" })).toHaveAttribute(
       "href",
-      "/products?categoryId=c1",
+      "/products?categoryCodes=10",
     );
     expect(screen.getByRole("link", { name: "ウェアラブル" })).toHaveAttribute(
       "href",
-      "/products?categoryId=c2",
+      "/products?categoryCodes=20",
     );
   });
 

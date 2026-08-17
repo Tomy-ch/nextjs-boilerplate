@@ -10,7 +10,11 @@ import {
 import { EMPTY_CART } from "@/features/cart/cart.fixture";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
-import type { ProductListItem, ProductRankingEntry, ProductRef } from "@/model/product/product";
+import type {
+  ProductCategory,
+  ProductListItem,
+  ProductRankingEntry,
+} from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 
 import { SampleNotice } from "./ui/sample-notice/sample-notice";
@@ -116,13 +120,13 @@ const RANKING: readonly ProductRankingEntry[] = [
   entry({ name: "モバイルバッテリー", price: "1299.00", soldQuantity: 3 }),
 ];
 
-const CATEGORIES: readonly ProductRef[] = [
-  { id: "c1", name: "オーディオ" },
-  { id: "c2", name: "ウェアラブル" },
-  { id: "c3", name: "アクセサリ" },
-  { id: "c4", name: "PC 周辺機器" },
-  { id: "c5", name: "スマートホーム" },
-  { id: "c6", name: "カメラ・映像機器" },
+const CATEGORIES: readonly ProductCategory[] = [
+  { id: "c1", code: 10, name: "オーディオ" },
+  { id: "c2", code: 20, name: "ウェアラブル" },
+  { id: "c3", code: 30, name: "アクセサリ" },
+  { id: "c4", code: 40, name: "PC 周辺機器" },
+  { id: "c5", code: 50, name: "スマートホーム" },
+  { id: "c6", code: 60, name: "カメラ・映像機器" },
 ];
 
 const meta = {

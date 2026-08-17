@@ -101,9 +101,9 @@ const ITEMS: readonly ProductListItem[] = [
 ];
 
 const CATEGORIES: readonly FilterOption[] = [
-  { value: "c1", label: "オーディオ" },
-  { value: "c2", label: "ウェアラブル" },
-  { value: "c3", label: "アクセサリ" },
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
+  { value: "30", label: "アクセサリ" },
 ];
 
 const SORT_OPTIONS: readonly FilterOption[] = [
@@ -165,7 +165,7 @@ export const Filtered: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
     selection: {
-      [FILTER_KEY.CATEGORY]: ["c1", "c3"],
+      [FILTER_KEY.CATEGORY]: ["10", "30"],
       [FILTER_KEY.MIN_PRICE]: "25",
       [FILTER_KEY.MAX_PRICE]: "250",
       [FILTER_KEY.MIN_QUANTITY]: "1",
@@ -218,8 +218,8 @@ export const ReachedEnd: Story = {
 export const MaxLength: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
-    categories: [{ value: "c1", label: longText(40) }],
-    selection: { [FILTER_KEY.CATEGORY]: ["c1"], [FILTER_KEY.KEYWORD]: longText(60) },
+    categories: [{ value: "10", label: longText(40) }],
+    selection: { [FILTER_KEY.CATEGORY]: ["10"], [FILTER_KEY.KEYWORD]: longText(60) },
     children: (
       <ProductLoadMoreList
         hasNext

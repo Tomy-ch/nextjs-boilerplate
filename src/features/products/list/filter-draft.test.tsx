@@ -17,10 +17,10 @@ import { ProductFilterDraftProvider, useProductFilterDraft } from "./filter-draf
 function Probe() {
   const { draft, pending, change, commit, clear, apply } = useProductFilterDraft();
   const select = useCallback(() => {
-    change({ ...draft, [FILTER_KEY.CATEGORY]: ["c1"] });
+    change({ ...draft, [FILTER_KEY.CATEGORY]: ["10"] });
   }, [change, draft]);
   const selectNow = useCallback(() => {
-    commit({ ...draft, [FILTER_KEY.CATEGORY]: ["c2"] });
+    commit({ ...draft, [FILTER_KEY.CATEGORY]: ["20"] });
   }, [commit, draft]);
 
   return (
@@ -69,7 +69,7 @@ describe("ProductFilterDraftProvider", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "分類を選ぶ" }));
 
-    expect(shownDraft()).toEqual({ [FILTER_KEY.CATEGORY]: ["c1"] });
+    expect(shownDraft()).toEqual({ [FILTER_KEY.CATEGORY]: ["10"] });
     expect(push).not.toHaveBeenCalled();
   });
 
@@ -79,7 +79,7 @@ describe("ProductFilterDraftProvider", () => {
     await userEvent.click(screen.getByRole("button", { name: "分類を選ぶ" }));
     await userEvent.click(screen.getByRole("button", { name: "反映" }));
 
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c1&keyword=%E9%9E%84");
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");
   });
 
   it("差し替えと同時に反映すると、その条件の URL へ移る", async () => {
@@ -87,7 +87,7 @@ describe("ProductFilterDraftProvider", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "分類を選んで反映" }));
 
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c2&keyword=%E9%9E%84");
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=20&keyword=%E9%9E%84");
   });
 
   it("差し替えと同時に反映しても、下書きは差し替えた条件を保つ", async () => {
@@ -95,11 +95,11 @@ describe("ProductFilterDraftProvider", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "分類を選んで反映" }));
 
-    expect(shownDraft()).toEqual({ [FILTER_KEY.CATEGORY]: ["c2"] });
+    expect(shownDraft()).toEqual({ [FILTER_KEY.CATEGORY]: ["20"] });
   });
 
   it("入力欄が受け持つ条件だけをまとめて外す", async () => {
-    renderProbe({ [FILTER_KEY.KEYWORD]: "鞄", [FILTER_KEY.CATEGORY]: ["c1"] });
+    renderProbe({ [FILTER_KEY.KEYWORD]: "鞄", [FILTER_KEY.CATEGORY]: ["10"] });
 
     await userEvent.click(screen.getByRole("button", { name: "外す" }));
 
@@ -117,7 +117,7 @@ describe("ProductFilterDraftProvider", () => {
     const { rerender } = renderProbe();
 
     await userEvent.click(screen.getByRole("button", { name: "分類を選ぶ" }));
-    expect(shownDraft()).toEqual({ [FILTER_KEY.CATEGORY]: ["c1"] });
+    expect(shownDraft()).toEqual({ [FILTER_KEY.CATEGORY]: ["10"] });
 
     rerender(
       <ProductFilterDraftProvider selection={{ [FILTER_KEY.KEYWORD]: "靴" }}>

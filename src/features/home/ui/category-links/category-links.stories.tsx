@@ -1,16 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import type { ProductRef } from "@/model/product/product";
+import type { ProductCategory } from "@/model/product/product";
 
 import { CategoryLinks } from "./category-links";
 
-const CATEGORIES: readonly ProductRef[] = [
-  { id: "c1", name: "オーディオ" },
-  { id: "c2", name: "ウェアラブル" },
-  { id: "c3", name: "アクセサリ" },
-  { id: "c4", name: "PC 周辺機器" },
-  { id: "c5", name: "スマートホーム" },
-  { id: "c6", name: "カメラ・映像機器" },
+const CATEGORIES: readonly ProductCategory[] = [
+  { id: "c1", code: 10, name: "オーディオ" },
+  { id: "c2", code: 20, name: "ウェアラブル" },
+  { id: "c3", code: 30, name: "アクセサリ" },
+  { id: "c4", code: 40, name: "PC 周辺機器" },
+  { id: "c5", code: 50, name: "スマートホーム" },
+  { id: "c6", code: 60, name: "カメラ・映像機器" },
 ];
 
 const meta = {
@@ -41,8 +41,8 @@ export const LongNames: Story = {
   args: {
     categories: [
       ...CATEGORIES,
-      { id: "c7", name: "ノイズキャンセリング対応ワイヤレスオーディオ機器" },
-      { id: "c8", name: "スマートホーム連携デバイス（ハブ・センサー類）" },
+      { id: "c7", code: 70, name: "ノイズキャンセリング対応ワイヤレスオーディオ機器" },
+      { id: "c8", code: 80, name: "スマートホーム連携デバイス（ハブ・センサー類）" },
     ],
   },
 };

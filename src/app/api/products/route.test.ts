@@ -58,13 +58,10 @@ describe("GET", () => {
   });
 
   it("繰り返された分類を並びのまま取得へ渡す", async () => {
-    const first = "0195f0c2-0000-7000-8000-000000000011";
-    const second = "0195f0c2-0000-7000-8000-000000000012";
-
-    await GET(requestFor(`?categoryId=${first}&categoryId=${second}`));
+    await GET(requestFor("?categoryCodes=10&categoryCodes=20"));
 
     expect(getProductListPage).toHaveBeenCalledWith(
-      expect.objectContaining({ categoryId: [first, second] }),
+      expect.objectContaining({ categoryCodes: [10, 20] }),
     );
   });
 

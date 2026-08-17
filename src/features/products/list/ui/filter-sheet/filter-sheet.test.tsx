@@ -25,8 +25,8 @@ import { ProductFilterDraftProvider } from "../../filter-draft";
 import { ProductFilterSheet } from "./filter-sheet";
 
 const CATEGORIES: readonly FilterOption[] = [
-  { value: "c1", label: "オーディオ" },
-  { value: "c2", label: "ウェアラブル" },
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
 ];
 
 function renderSheet(selection: ProductListSelection = {}) {
@@ -67,13 +67,13 @@ describe("ProductFilterSheet", () => {
   });
 
   it("効いている条件の数を開く操作に添える", () => {
-    renderSheet({ [FILTER_KEY.CATEGORY]: ["c1"], [FILTER_KEY.MIN_QUANTITY]: "1" });
+    renderSheet({ [FILTER_KEY.CATEGORY]: ["10"], [FILTER_KEY.MIN_QUANTITY]: "1" });
 
     expect(trigger()).toHaveTextContent("2");
   });
 
   it("入力欄 1 つを 1 件と数え、複数選んだ分類をまとめて 1 件にする", () => {
-    renderSheet({ [FILTER_KEY.CATEGORY]: ["c1", "c2"] });
+    renderSheet({ [FILTER_KEY.CATEGORY]: ["10", "20"] });
 
     expect(trigger()).toHaveTextContent("1");
   });
@@ -106,7 +106,7 @@ describe("ProductFilterSheet", () => {
     await userEvent.click(screen.getByLabelText("オーディオ"));
     await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
 
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c1");
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10");
   });
 
   it("確定した URL に他の条件を引き継ぎ、読み進めた位置を落とす", async () => {
@@ -120,11 +120,11 @@ describe("ProductFilterSheet", () => {
     await userEvent.click(screen.getByLabelText("オーディオ"));
     await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
 
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c1&keyword=%E9%9E%84");
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");
   });
 
   it("条件をすべて外すと、入力欄が受け持つ条件だけが外れる", async () => {
-    renderSheet({ [FILTER_KEY.CATEGORY]: ["c1"], [FILTER_KEY.KEYWORD]: "鞄" });
+    renderSheet({ [FILTER_KEY.CATEGORY]: ["10"], [FILTER_KEY.KEYWORD]: "鞄" });
 
     await open();
     await userEvent.click(screen.getByRole("button", { name: "条件をすべて外す" }));

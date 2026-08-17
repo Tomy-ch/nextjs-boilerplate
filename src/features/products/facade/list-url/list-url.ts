@@ -20,8 +20,8 @@ const POSITION_KEYS: readonly string[] = [CURSOR_KEY, COUNT_KEY];
 
 /** 絞り込みと並び替えを載せる URL のキー。契約のクエリ名と揃える。 */
 export const FILTER_KEY: Readonly<{
-  CATEGORY: "categoryId";
-  STATUS: "statusId";
+  CATEGORY: "categoryCodes";
+  STATUS: "statusCodes";
   KEYWORD: "keyword";
   MIN_PRICE: "minPrice";
   MAX_PRICE: "maxPrice";
@@ -29,8 +29,8 @@ export const FILTER_KEY: Readonly<{
   MAX_QUANTITY: "maxQuantity";
   SORT: "sort";
 }> = {
-  CATEGORY: "categoryId",
-  STATUS: "statusId",
+  CATEGORY: "categoryCodes",
+  STATUS: "statusCodes",
   KEYWORD: "keyword",
   MIN_PRICE: "minPrice",
   MAX_PRICE: "maxPrice",
@@ -48,7 +48,7 @@ export const FILTER_KEY: Readonly<{
  * で宣言するのは、読む側それぞれが判断すると、同じ URL が画面の場所によって違う条件に見えるため
  * です。
  */
-export const MULTI_VALUE_KEYS: readonly string[] = [FILTER_KEY.CATEGORY];
+export const MULTI_VALUE_KEYS: readonly string[] = [FILTER_KEY.CATEGORY, FILTER_KEY.STATUS];
 
 /**
  * URL に載せる検索条件。

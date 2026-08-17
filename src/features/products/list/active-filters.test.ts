@@ -5,23 +5,23 @@ import { toActiveFilters } from "./active-filters";
 import type { FilterOption } from "./query";
 
 const CATEGORIES: readonly FilterOption[] = [
-  { value: "c1", label: "オーディオ" },
-  { value: "c2", label: "ウェアラブル" },
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
 ];
 
 describe("toActiveFilters", () => {
   // ----- 正常系 -----
   it("分類を選んだ表示名で出す", () => {
-    expect(toActiveFilters(CATEGORIES, { [FILTER_KEY.CATEGORY]: "c1" })).toEqual([
-      { key: "categoryId:c1", label: "カテゴリ", value: "オーディオ", removeHref: "/products" },
+    expect(toActiveFilters(CATEGORIES, { [FILTER_KEY.CATEGORY]: "10" })).toEqual([
+      { key: "categoryCodes:10", label: "カテゴリ", value: "オーディオ", removeHref: "/products" },
     ]);
   });
 
   it("選んだ分類の数だけ並べ、外す先はその 1 つだけを落とす", () => {
-    const filters = toActiveFilters(CATEGORIES, { [FILTER_KEY.CATEGORY]: ["c1", "c2"] });
+    const filters = toActiveFilters(CATEGORIES, { [FILTER_KEY.CATEGORY]: ["10", "20"] });
 
     expect(filters.map((filter) => filter.value)).toEqual(["オーディオ", "ウェアラブル"]);
-    expect(filters[0]?.removeHref).toBe("/products?categoryId=c2");
+    expect(filters[0]?.removeHref).toBe("/products?categoryCodes=20");
   });
 
   it("価格を下限と上限で 1 つにまとめ、外す先は両方を落とす", () => {
@@ -62,7 +62,7 @@ describe("toActiveFilters", () => {
   it("外す先に、他の条件は残す", () => {
     expect(
       toActiveFilters(CATEGORIES, {
-        [FILTER_KEY.CATEGORY]: "c1",
+        [FILTER_KEY.CATEGORY]: "10",
         [FILTER_KEY.KEYWORD]: "鞄",
       })[0]?.removeHref,
     ).toBe("/products?keyword=%E9%9E%84");

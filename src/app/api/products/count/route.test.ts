@@ -14,9 +14,6 @@ vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
 
 import { GET } from "./route";
 
-const CATEGORY_ID = "0195f0c2-0000-7000-8000-000000000001";
-const ANOTHER_CATEGORY_ID = "0195f0c2-0000-7000-8000-000000000002";
-
 function requestFor(search: string): Request {
   return new Request(`http://localhost/api/products/count${search}`);
 }
@@ -44,10 +41,10 @@ describe("GET", () => {
   });
 
   it("繰り返された分類を並びのまま取得へ渡す", async () => {
-    await GET(requestFor(`?categoryId=${CATEGORY_ID}&categoryId=${ANOTHER_CATEGORY_ID}`));
+    await GET(requestFor("?categoryCodes=10&categoryCodes=20"));
 
     expect(getProductCount).toHaveBeenCalledWith(
-      expect.objectContaining({ categoryId: [CATEGORY_ID, ANOTHER_CATEGORY_ID] }),
+      expect.objectContaining({ categoryCodes: [10, 20] }),
     );
   });
 
