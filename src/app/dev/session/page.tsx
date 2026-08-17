@@ -1,0 +1,68 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+
+import { verifySession } from "@/adapters/server/auth/session";
+import { ContentContainer } from "@/components/shell/content-container/content-container";
+import {
+  PageHeader,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from "@/components/shell/page-header/page-header";
+import { isDevelopmentOnlyEndpointOpen } from "@/config/load-environment";
+import { RETURN_URL_PARAM } from "@/features/dev-session/paths";
+import { DevSessionView } from "@/features/dev-session/view";
+import { toSafeReturnUrl } from "@/model/return-url";
+
+import { discardDevSessionAction, issueDevSessionAction } from "./actions";
+
+export const metadata: Metadata = {
+  title: "開発用 session",
+  robots: { index: false, follow: false },
+};
+
+/**
+ * 開発用 session の発行。
+ *
+ * @remarks
+ * **開発と CI でだけ開きます。** それ以外の環境では `not-found` になり、面ごと存在しません。
+ * 403 にしないのは、存在を知らせないほうが設定を誤ったまま公開したときの被害が小さいためです。
+ *
+ * 外枠（`(shop)` の layout）の内側に置きません。買い物の導線とは別物で、header の nav に並べる
+ * ものでもないためです。
+ *
+ * **session の読み取りと送信先をここが持ちます。** `adapters/server/auth` へ触れてよいのは app 層で
+ * （`architecture.ts` の `adapters-auth`）、画面の側は受け取った値と送信先を使うだけです。
+ *
+ * 戻り先は同じ生成元の中だけに絞ります。受け取った値をそのまま渡すと、発行した直後に外部の
+ * サイトへ送る導線になります。
+ */
+export default async function DevSessionPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  if (!isDevelopmentOnlyEndpointOpen()) {
+    notFound();
+  }
+
+  const returnUrl = (await searchParams)[RETURN_URL_PARAM];
+
+  return (
+    <ContentContainer className="py-8">
+      <PageHeader>
+        <div>
+          <PageHeaderTitle>開発用 session</PageHeaderTitle>
+          <PageHeaderDescription>
+            IdP を通さずに session を発行します。この画面は開発と CI でだけ開きます。
+          </PageHeaderDescription>
+        </div>
+      </PageHeader>
+      <DevSessionView
+        discardAction={discardDevSessionAction}
+        issueAction={issueDevSessionAction}
+        returnUrl={toSafeReturnUrl(typeof returnUrl === "string" ? returnUrl : undefined)}
+        session={await verifySession()}
+      />
+    </ContentContainer>
+  );
+}

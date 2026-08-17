@@ -1,21 +1,8 @@
 import { z } from "zod";
 
 import { issueTestSession } from "@/adapters/server/auth/test-session";
-import { findExplicitApplicationEnvironment } from "@/config/load-environment";
+import { isDevelopmentOnlyEndpointOpen } from "@/config/load-environment";
 import { SESSION_ROLE } from "@/model/session";
-
-/**
- * この口を開ける環境。
- *
- * @remarks
- * 開発と CI だけです。ここに `dev` / `stg` / `prd` を足すと、**誰でも任意の役割の session を
- * 発行できる口**が実環境に開きます。判定を API の接続モードではなく環境そのものに置いているのは、
- * 接続モードが「mock を実環境に置かない」という散文の約束でしか守られていないためです。
- *
- * **`APP_ENV` が明示されていることも要求します。** 未設定を既定値へ落とすと、設定を忘れた実環境が
- * `local` として扱われ、この口が開きます。開発機で使うときは `APP_ENV=local` を明示してください。
- */
-const OPEN_ENVIRONMENTS: readonly string[] = ["local", "ci"];
 
 /** 発行する session の指定。 */
 const IssueRequest = z.object({
@@ -48,9 +35,7 @@ const IssueRequest = z.object({
  * @returns 発行できたときは 204。開けていない環境では 404
  */
 export async function POST(request: Request): Promise<Response> {
-  const environment = findExplicitApplicationEnvironment();
-
-  if (environment === null || !OPEN_ENVIRONMENTS.includes(environment)) {
+  if (!isDevelopmentOnlyEndpointOpen()) {
     // 403 にしない。存在を知らせないほうが、設定を誤ったまま公開したときの被害が小さい。
     return new Response(null, { status: 404 });
   }
