@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 import { ProductLoadMoreList } from "./load-more-list";
 
@@ -29,7 +30,7 @@ function item(overrides: Partial<ProductListItem> = {}): ProductListItem {
   seq += 1;
 
   return {
-    id: `0195f0c2-0000-7000-8000-${String(seq).padStart(12, "0")}`,
+    id: toProductId(`0195f0c2-0000-7000-8000-${String(seq).padStart(12, "0")}`),
     name: "ワイヤレスイヤホン",
     price: "19.99",
     quantity: 12,
@@ -48,30 +49,30 @@ const ITEMS: readonly ProductListItem[] = [
 
 /** 続きがある状態。末尾に近づけば自動で読むため、操作は出さない。 */
 export const HasNext: Story = {
-  args: { hasNext: true, items: ITEMS, total: 10 },
+  args: { items: ITEMS, loadMore: { status: "idle" }, total: 10 },
 };
 
 /** 続きを取得している最中。読み終えた分は残したまま、末尾で進行を示す。 */
 export const Loading: Story = {
-  args: { hasNext: true, items: ITEMS, loading: true, total: 10 },
+  args: { items: ITEMS, loadMore: { status: "loading" }, total: 10 },
 };
 
 /** 続きの取得に失敗した状態。ここでだけ読み直す操作を出す。末尾に留まったままでは自動で直らない。 */
 export const Failed: Story = {
-  args: { failed: true, hasNext: true, items: ITEMS, total: 10 },
+  args: { items: ITEMS, loadMore: { status: "failed", onRetry: () => {} }, total: 10 },
 };
 
 /** 最後まで読み終えた状態。続きが無いので操作を出さない。 */
 export const ReachedEnd: Story = {
-  args: { hasNext: false, items: ITEMS, total: 3 },
+  args: { items: ITEMS, loadMore: { status: "exhausted" }, total: 3 },
 };
 
 /** 1 件も無い状態。件数は 0 のまま、空の案内を出す。 */
 export const Empty: Story = {
-  args: { hasNext: false, items: [], total: 0 },
+  args: { items: [], loadMore: { status: "exhausted" }, total: 0 },
 };
 
 /** 総数が分からない場合。読み込み済みの件数だけを出す。 */
 export const WithoutTotal: Story = {
-  args: { hasNext: true, items: ITEMS },
+  args: { items: ITEMS, loadMore: { status: "idle" } },
 };

@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PRODUCT_LIST_MAX_ITEMS } from "@/adapters/client/api/products";
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 const { fetchProductListPage } = vi.hoisted(() => ({ fetchProductListPage: vi.fn() }));
 
@@ -54,7 +55,7 @@ const NO_QUERY: Readonly<Record<string, string>> = {};
 
 function itemOf(name: string): ProductListItem {
   return {
-    id: name,
+    id: toProductId(name),
     name,
     price: "1980.00",
     quantity: 4,
@@ -90,10 +91,7 @@ type ProbeProps = {
 };
 
 function Probe({ initial, query = NO_QUERY, sentinel = true }: ProbeProps) {
-  const { items, hasNext, loading, failed, loadMore, sentinelRef } = useInfiniteProducts(
-    initial,
-    query,
-  );
+  const { items, loadMore, sentinelRef } = useInfiniteProducts(initial, query);
 
   return (
     <div>
@@ -102,12 +100,12 @@ function Probe({ initial, query = NO_QUERY, sentinel = true }: ProbeProps) {
           <li key={item.id}>{item.name}</li>
         ))}
       </ul>
-      <p>{hasNext ? "続きあり" : "終端"}</p>
-      <p>{loading ? "取得中" : "停止中"}</p>
-      <p>{failed ? "失敗" : "変わりなし"}</p>
-      <button onClick={loadMore} type="button">
-        続きを読む
-      </button>
+      <p>{loadMore.status}</p>
+      {loadMore.status === "failed" ? (
+        <button onClick={loadMore.onRetry} type="button">
+          読み直す
+        </button>
+      ) : null}
       {sentinel ? <div data-testid="sentinel" ref={sentinelRef} /> : null}
     </div>
   );
@@ -127,8 +125,8 @@ function loadedCountInUrl(): string | null {
   return new URL(window.location.href).searchParams.get(COUNT_KEY);
 }
 
-async function clickLoadMore(): Promise<void> {
-  await userEvent.click(screen.getByRole("button", { name: "続きを読む" }));
+async function clickRetry(): Promise<void> {
+  await userEvent.click(screen.getByRole("button", { name: "読み直す" }));
 }
 
 function signalOfLastFetch(): AbortSignal {
@@ -157,27 +155,27 @@ describe("useInfiniteProducts", () => {
     fetchProductListPage.mockResolvedValue(pageOf(["スタンドライト"]));
     render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} />);
 
-    await clickLoadMore();
+    seeSentinel(true);
 
+    expect(await screen.findByText("スタンドライト")).toBeVisible();
     expect(screen.getByText("折りたたみ椅子")).toBeVisible();
-    expect(screen.getByText("スタンドライト")).toBeVisible();
   });
 
-  it("続きを読み終えたら次の位置を引き継ぐ", async () => {
+  it("続きを読み終えたら読み終えた姿になる", async () => {
     fetchProductListPage.mockResolvedValue(pageOf(["スタンドライト"], null));
     render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} />);
 
-    await clickLoadMore();
+    seeSentinel(true);
 
-    expect(screen.getByText("終端")).toBeVisible();
-    expect(screen.getByText("停止中")).toBeVisible();
+    expect(await screen.findByText("exhausted")).toBeVisible();
   });
 
   it("いまの検索条件を続きの取得へ引き継ぐ", async () => {
     fetchProductListPage.mockResolvedValue(pageOf(["スタンドライト"]));
     render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} query={{ keyword: "椅子" }} />);
 
-    await clickLoadMore();
+    seeSentinel(true);
+    await screen.findByText("スタンドライト");
 
     expect(fetchProductListPage.mock.calls[0]?.[0].toString()).toBe(
       new URLSearchParams({
@@ -226,9 +224,10 @@ describe("useInfiniteProducts", () => {
     render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} />);
     expect(loadedCountInUrl()).toBe("1");
 
-    await clickLoadMore();
+    seeSentinel(true);
+    await screen.findByText("スタンドライト");
 
-    expect(loadedCountInUrl()).toBe("2");
+    await waitFor(() => expect(loadedCountInUrl()).toBe("2"));
     expect(window.location.pathname).toBe("/products");
   });
 
@@ -240,50 +239,61 @@ describe("useInfiniteProducts", () => {
     expect(loadedCountInUrl()).toBe(String(PRODUCT_LIST_MAX_ITEMS));
   });
 
-  it("終端では続きを読まない", async () => {
-    render(<Probe initial={pageOf(["折りたたみ椅子"], null)} />);
+  it("読み終えた後に目印が見えても読まない", async () => {
+    fetchProductListPage.mockResolvedValue(pageOf(["スタンドライト"], null));
+    render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} />);
+    seeSentinel(true);
+    await screen.findByText("exhausted");
 
-    await clickLoadMore();
+    seeSentinel(true);
 
-    expect(fetchProductListPage).not.toHaveBeenCalled();
-    expect(screen.getByText("停止中")).toBeVisible();
+    expect(fetchProductListPage).toHaveBeenCalledTimes(1);
   });
 
-  it("取得中は二重に読まない", async () => {
+  it("取得中は二重に読まない", () => {
     const pending = deferredPage();
 
     fetchProductListPage.mockReturnValue(pending.promise);
     render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} />);
 
-    await clickLoadMore();
-    await clickLoadMore();
+    seeSentinel(true);
+    seeSentinel(true);
 
     expect(fetchProductListPage).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("取得中")).toBeVisible();
+    expect(screen.getByText("loading")).toBeVisible();
   });
 
   it("取得に失敗したら失敗を伝え、読み込み済みは消さない", async () => {
     fetchProductListPage.mockRejectedValue(new Error("取得できません"));
     render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} />);
 
-    await clickLoadMore();
+    seeSentinel(true);
 
-    expect(await screen.findByText("失敗")).toBeVisible();
+    expect(await screen.findByText("failed")).toBeVisible();
     expect(screen.getByText("折りたたみ椅子")).toBeVisible();
-    expect(screen.getByText("停止中")).toBeVisible();
+  });
+
+  it("失敗したときだけ読み直す手段を渡す", async () => {
+    fetchProductListPage.mockRejectedValue(new Error("取得できません"));
+    render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} />);
+    expect(screen.queryByRole("button", { name: "読み直す" })).not.toBeInTheDocument();
+
+    seeSentinel(true);
+
+    expect(await screen.findByRole("button", { name: "読み直す" })).toBeVisible();
   });
 
   it("読み直せば失敗の表示が消える", async () => {
     fetchProductListPage.mockRejectedValueOnce(new Error("取得できません"));
-    fetchProductListPage.mockResolvedValueOnce(pageOf(["スタンドライト"]));
+    fetchProductListPage.mockResolvedValueOnce(pageOf(["スタンドライト"], "cursor-2"));
     render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} />);
-    await clickLoadMore();
-    expect(await screen.findByText("失敗")).toBeVisible();
+    seeSentinel(true);
+    await screen.findByText("failed");
 
-    await clickLoadMore();
+    await clickRetry();
 
     expect(await screen.findByText("スタンドライト")).toBeVisible();
-    expect(screen.getByText("変わりなし")).toBeVisible();
+    expect(screen.getByText("idle")).toBeVisible();
   });
 
   it("画面を離れたら取得中の要求を打ち切る", async () => {
@@ -291,7 +301,7 @@ describe("useInfiniteProducts", () => {
 
     fetchProductListPage.mockReturnValue(pending.promise);
     const view = render(<Probe initial={pageOf(["折りたたみ椅子"], "cursor-1")} />);
-    await clickLoadMore();
+    seeSentinel(true);
     const signal = signalOfLastFetch();
     expect(signal.aborted).toBe(false);
 
@@ -313,7 +323,8 @@ describe("useInfiniteProducts", () => {
       />,
     );
 
-    await clickLoadMore();
+    seeSentinel(true);
+    await screen.findByText("スタンドライト");
 
     expect(fetchProductListPage.mock.calls[0]?.[0].getAll("categoryCodes")).toEqual(["10", "20"]);
   });
