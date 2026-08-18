@@ -50,13 +50,22 @@ const ACCEPT_LABEL = "はい";
  * 送信中は押せなくします。もう一度押しても鍵が同じなので購入は増えませんが、待っているあいだに
  * 押せる操作を残すと、受け付けられたのかどうかが利用者から判りません。
  */
-function PlaceOrderSubmit({ disabled, label }: { disabled: boolean; label: string }) {
+function PlaceOrderSubmit({
+  disabled,
+  label,
+  fullWidth,
+}: {
+  disabled: boolean;
+  label: string;
+  /** 器の幅いっぱいに広げるか。集計の中では主操作として広げ、確かめの footer では文言の幅に収める。 */
+  fullWidth: boolean;
+}) {
   const { pending } = useFormStatus();
 
   return (
     <Button
       aria-label={pending ? PENDING_LABEL : undefined}
-      className="w-full"
+      className={fullWidth ? "w-full" : undefined}
       disabled={disabled || pending}
       type="submit"
     >
@@ -95,6 +104,10 @@ function PlaceOrderError({ state }: { state: PlaceOrderFormState }) {
  * 確かめは `AlertDialogAction` ではなく form の submit で行います。`AlertDialogAction` は押した
  * 時点で dialog を閉じるため、送信中の表示も失敗の文言も利用者の見ていない場所に出ます。
  *
+ * **確かめの中では、どちらの操作も文言の幅に収めます。** 集計の中の確定は画面の主操作なので幅を
+ * 占めますが、footer に 2 つ並ぶ操作を片方だけ広げると、短い文言のほうが大きく見えて重さが
+ * 文言と合いません。
+ *
  * 成立したときの表示を持ちません。成立したら完了画面へ送るためです。
  */
 export function PlaceOrderForm({
@@ -111,7 +124,7 @@ export function PlaceOrderForm({
     return (
       <form action={formAction} className="flex flex-col gap-2">
         <input name={IDEMPOTENCY_KEY_FIELD} type="hidden" value={idempotencyKey} />
-        <PlaceOrderSubmit disabled={!orderable} label={LABEL} />
+        <PlaceOrderSubmit disabled={!orderable} fullWidth label={LABEL} />
         <PlaceOrderError state={state} />
       </form>
     );
@@ -143,7 +156,7 @@ export function PlaceOrderForm({
             <AlertDialogCancel asChild>
               <Link href={CART_PATH}>カートを修正する</Link>
             </AlertDialogCancel>
-            <PlaceOrderSubmit disabled={!orderable} label={ACCEPT_LABEL} />
+            <PlaceOrderSubmit disabled={!orderable} fullWidth={false} label={ACCEPT_LABEL} />
           </AlertDialogFooter>
           <PlaceOrderError state={state} />
         </form>
