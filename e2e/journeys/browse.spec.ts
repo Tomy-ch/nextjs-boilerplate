@@ -17,7 +17,7 @@ test("トップから一覧へ入り、1 件の詳細まで辿り着く", async 
   // ため、着いた直後の URL に条件が付く。
   await expect(page).toHaveURL(/\/products(\?|$)/);
 
-  const link = page.getByTestId("product-card").first().getByRole("link").first();
+  const link = page.getByRole("list", { name: "商品の一覧" }).getByRole("link").first();
   // 遷移先は一覧が組み立てた href そのもの。名前で照合しないのは、モックが口ごとに独立して応答を
   // 組み立てるためで、一覧の 1 件と詳細の 1 件が同じ商品を指す保証は契約の側に無い。
   const href = await link.getAttribute("href");

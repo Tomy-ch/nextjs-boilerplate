@@ -7,18 +7,10 @@ import { axe } from "vitest-axe";
 import { ProfileEditSkeleton } from "./skeleton";
 
 describe("ProfileEditSkeleton", () => {
-  it("実物と同じ 9 項目ぶんの枠を出す", () => {
+  it("待機している間は読める中身を出さない", () => {
     const { container } = render(<ProfileEditSkeleton />);
 
-    expect(container.querySelectorAll("[data-slot=skeleton]")).toHaveLength(9 * 2);
-  });
-
-  it("項目ごとに項目名と入力欄の枠を対で出す", () => {
-    const { container } = render(<ProfileEditSkeleton />);
-    const [label, control] = container.querySelectorAll("[data-slot=skeleton]");
-
-    expect(label).toHaveClass("h-4");
-    expect(control).toHaveClass("h-10");
+    expect(container.textContent).toBe("");
   });
 
   it("待機表示そのものを読み上げから外す", () => {

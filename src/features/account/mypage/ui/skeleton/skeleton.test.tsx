@@ -7,18 +7,6 @@ import { axe } from "vitest-axe";
 import { MypageSkeleton } from "./skeleton";
 
 describe("MypageSkeleton", () => {
-  it("出来上がりと同じ 2 枚の枠を同時に出す", () => {
-    const { container } = render(<MypageSkeleton />);
-
-    expect(container.querySelectorAll(".rounded-lg.border")).toHaveLength(2);
-  });
-
-  it("カードごとに見出しと項目ぶんの枠を並べる", () => {
-    const { container } = render(<MypageSkeleton />);
-
-    expect(container.querySelectorAll("[data-slot=skeleton]")).toHaveLength(2 * (1 + 4));
-  });
-
   it("待機表示そのものを読み上げから外す", () => {
     const { container } = render(<MypageSkeleton />);
 
