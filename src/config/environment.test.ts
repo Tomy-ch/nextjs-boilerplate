@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Environment } from "./environment";
 
+/** リポジトリが同梱している秘密値。`env/.env.local` が積んでいるものと同じ。 */
+const SHIPPED_SESSION_SECRET = "local-development-session-secret-change-before-production";
+
 const validEnvironment = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
@@ -87,14 +90,32 @@ describe("validateEnvironment", () => {
   });
 
   it("起動 bootstrap が全 server Config を評価する", async () => {
+    vi.stubEnv("APP_ENV", "local");
     const { bootstrapConfig } = await import("./bootstrap.server");
 
     await expect(bootstrapConfig()).resolves.toBeUndefined();
   });
 
+  it("local では同梱の秘密値をそのまま通す", async () => {
+    vi.stubEnv("APP_ENV", "local");
+    vi.stubEnv("AUTH_SESSION_SECRET", SHIPPED_SESSION_SECRET);
+    const { getEnvironment, validateEnvironment } = await import("./environment");
+
+    expect(() => validateEnvironment()).not.toThrow();
+    expect(getEnvironment().AUTH_SESSION_SECRET).toBe(SHIPPED_SESSION_SECRET);
+  });
+
   // ----- 異常系 -----
   it("必須の環境変数が欠落すると検証に失敗する", async () => {
     vi.stubEnv("AUTH_SESSION_SECRET", undefined);
+    const { validateEnvironment } = await import("./environment");
+
+    expect(() => validateEnvironment()).toThrow("AUTH_SESSION_SECRET");
+  });
+
+  it("local / ci 以外では同梱の秘密値を拒否する", async () => {
+    vi.stubEnv("APP_ENV", "prd");
+    vi.stubEnv("AUTH_SESSION_SECRET", SHIPPED_SESSION_SECRET);
     const { validateEnvironment } = await import("./environment");
 
     expect(() => validateEnvironment()).toThrow("AUTH_SESSION_SECRET");

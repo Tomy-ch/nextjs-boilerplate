@@ -29,6 +29,7 @@ test-requirement: feature
 | `page-content.tsx` | カートの取得と組み立て |
 | `view.tsx` | 全画面の表示。明細と集計を左右に分ける |
 | `actions.ts` | 数量の設定・明細の削除・全消しの Server Action |
+| `__mocks__/actions.ts` | カタログでの Server Action の差し替え（[0054](../../../docs/adr/0054-ui-catalog-storybook.md)） |
 | `issue-notice.ts` | 明細に立った事情を画面に出す一文へ写す |
 | `checkout.ts` | 購入手続きへ進めるかの判定 |
 | `line-order.ts` | 明細を描く順。覚えている並びと、いま居る明細を突き合わせる |
@@ -38,6 +39,7 @@ test-requirement: feature
 | `paths.ts` | この feature が指す行き先（カート・購入手続き） |
 | `shell-cart.ts` | 外枠に出すカートの取得。読めなくても投げない |
 | `facade/add-to-cart/` | 商品をカートへ入れる操作。**他の feature が使う口** |
+| `facade/add-to-cart/__mocks__/` | 同じ口のカタログでの差し替え |
 | `facade/line-issues/` | 明細に立った事情の表示。**購入確認も同じ強さと言い方で出すための口** |
 | `ui/contents/` | カートの中身（小計・導線・明細）。器を持たず、置き場所は呼び出し元が決める |
 | `ui/panel/` | 中身を脇に出す領域。空か閉じていれば描画しない。PC だけ |

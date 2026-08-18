@@ -28,6 +28,7 @@ test-requirement: feature
 | ファイル | 役割 |
 | --- | --- |
 | `actions.ts` | プロフィール更新と退会の Server Action。検証と分類だけを持ち、通信は `adapters` が行う |
+| `__mocks__/actions.ts` | カタログでの Server Action の差し替え（[0054](../../../docs/adr/0054-ui-catalog-storybook.md)）。押せる操作を成立させるためだけに置く |
 | `form-state.ts` | 2 つの Server Action の戻り値の型。`ActionState<T>` を画面の項目名で閉じる |
 | `paths.ts` | この feature が持つ 2 つのルート。パンくずと戻り先が参照する |
 | `mypage/page-content.tsx` | 自分の情報と購入の集計の並行取得 |
@@ -93,9 +94,9 @@ test-requirement: feature
   定めており、画面は手入力を続けさせます（[0080](../../../docs/adr/0080-error-handling.md)）
 - **補完が起きたことを読み上げます**。入力欄の値が変わるだけでは、そこを見ていない利用者に
   届きません
-- **カタログでは補完の応答を差し替えています**。`/api/addresses` は Route Handler なので
-  Storybook には存在せず、差し替えないと該当なししか出せません。引ける郵便番号は次の 2 つで、
-  それ以外は該当なしになります（`profile-form.stories.tsx`）
+- **カタログでは補完の応答をカタログ自身が返します**。`/api/addresses` は Route Handler なので
+  Storybook には存在せず、答える相手が居ないと該当なししか出せません。宛先を横取りするのは
+  `.storybook/msw/handlers.ts` で、引ける郵便番号は次の 2 つ、それ以外は該当なしになります
 
   | 郵便番号 | 返る候補 | 確かめられること |
   | --- | --- | --- |

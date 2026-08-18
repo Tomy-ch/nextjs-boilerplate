@@ -8,7 +8,7 @@ import {
   authScopesValidator,
   authSessionSecretValidator,
 } from "./auth/auth.schema";
-import { findExplicitApplicationEnvironment } from "./load-environment";
+import { findApplicationEnvironment } from "./load-environment";
 import { mediaOriginValidator } from "./media/media.schema";
 import { otlpEndpointValidator, otlpExporterValidator } from "./observability/observability.schema";
 
@@ -16,11 +16,11 @@ import { otlpEndpointValidator, otlpExporterValidator } from "./observability/ob
  * 同梱の秘密値を許す環境。
  *
  * @remarks
- * `clone` 直後に動かせることを保つための例外です。`APP_ENV` が明示されていない場合も許しません。
- * 未設定を許すと、設定を忘れた実環境が例外側に落ちます。
+ * 開発と CI の ENV ファイルが積む同梱値を通すための例外です。`APP_ENV` の未指定は許しません
+ * —— 未指定は `null` で返り、`local` にも `ci` にも一致しないためです。
  */
 function allowsShippedSecrets(): boolean {
-  const environment = findExplicitApplicationEnvironment();
+  const environment = findApplicationEnvironment();
 
   return environment === "local" || environment === "ci";
 }

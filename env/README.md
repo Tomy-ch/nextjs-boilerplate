@@ -3,9 +3,14 @@
 環境別の実体は `env/.env.<環境>` に置きます。`src/config/load-environment.ts` が Next.js の
 起動・build 前に選択したファイルを読み込みます。
 
-`APP_ENV` が選択子であり、未指定時は `local` です。CI と PaaS は環境設定で `APP_ENV` を
-それぞれ `ci`、`dev`、`stg`、`prd` に設定します。PaaS の環境変数はファイルの値より優先
-されます。
+`APP_ENV` が選択子であり、**指定は必須です**。未指定のまま起動すると、読み込むファイルを
+選べないものとして落とします。既定を持たせると、設定を忘れた実環境が同梱の `env/.env.local`
+を読み、注入し忘れた変数だけが手元向けの値で埋まった状態で起動します。
+
+CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、`prd` に設定します。PaaS の
+環境変数はファイルの値より優先されます。手元の開発では `pnpm dev` / `pnpm storybook` /
+`pnpm build-storybook` が `local` を渡すため、clone 直後はそのまま動きます。配信物を作る
+`pnpm build` と `pnpm start` は既定を持たないので、`APP_ENV=local pnpm build` のように指定します。
 
 `dev` / `stg` / `prd` の required 値は PaaS の環境設定または secret store から供給します。
 そのため、これらのファイルは変数名と既定値候補だけをコメントで保持します。

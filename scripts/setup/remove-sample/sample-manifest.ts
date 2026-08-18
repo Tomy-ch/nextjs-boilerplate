@@ -103,6 +103,7 @@ export const EXCLUDED_DIRECTORIES: Set<string> = new Set([
 
 /** 走査から外す相対パス接頭辞。いずれも生成物か作業用の置き場。 */
 export const EXCLUDED_PATH_PREFIXES: readonly string[] = [
+  ".storybook/public/",
   "docs/portal/guides/",
   "graphify-out/",
   "tmp/",

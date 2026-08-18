@@ -38,6 +38,8 @@ export default [
       "node_modules/**",
       "out/**",
       "storybook-static/**",
+      // カタログへ配る資材の置き場。中身は依存が持つ生成物で、書き手が居ない。
+      ".storybook/public/**",
       "graphify-out/**",
       // 配信ツリーの組み立て先。docs の複製と Storybook / ビューアーのバンドルが入る。
       // ワークスペースのパッケージ配下にも出るため先頭を固定しない。

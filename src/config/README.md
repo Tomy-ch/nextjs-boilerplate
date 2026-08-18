@@ -41,7 +41,7 @@ singleton を作り、以後は import で配線します。
 build / Next.js 初期化
   next.config.ts
     ├─ loadEnvironment()
-    │    └─ APP_ENV (未指定なら local) から env/.env.<環境> を選択
+    │    └─ APP_ENV (指定必須) から env/.env.<環境> を選択
     └─ validateEnvironment()
          └─ getEnvironment() で全 ENV を一度だけ検証
 

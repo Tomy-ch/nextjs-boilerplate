@@ -6,6 +6,10 @@
 
 `src/` の外に置くのは [0027](../docs/adr/0027-directory-structure.md) の規定によります。
 
+カタログ（Storybook）が自分で答える `/api/*` のハンドラはここには置きません。あれが返すのは
+バックエンドの応答ではなく Route Handler が組み立てた表示用の形で、契約からは生成できないため
+です（[0054](../docs/adr/0054-ui-catalog-storybook.md)）。置き場は `.storybook/msw/` です。
+
 ## 構成
 
 | パス | 中身 |
