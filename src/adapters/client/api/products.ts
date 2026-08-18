@@ -42,6 +42,14 @@ const ProductListPagePayload = z.object({
 });
 
 /**
+ * BFF が返す件数の形。
+ *
+ * @remarks
+ * 検証する理由は {@link ProductListPagePayload} と同じです。
+ */
+const ProductCountPayload = z.object({ count: z.int() });
+
+/**
  * 一覧の続きを取得する。
  *
  * @remarks
@@ -56,19 +64,44 @@ const ProductListPagePayload = z.object({
  * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る
  */
 export async function fetchProductListPage(
-  query: Readonly<Record<string, string>>,
+  query: URLSearchParams,
   signal?: AbortSignal,
 ): Promise<CursorPage<ProductListItem>> {
-  const response = await fetch(`/api/products?${new URLSearchParams(query).toString()}`, {
-    headers: { accept: "application/json" },
+  return request(`/api/products?${query.toString()}`, ProductListPagePayload, signal);
+}
+
+/**
+ * 条件に一致する件数だけを取得する。
+ *
+ * @remarks
+ * 絞り込みを確定する前に、その条件で何件になるかを見せるための口です。一覧そのものは取りません。
+ * 確定していない条件で一覧まで取ると、捨てるための取得が操作のたびに走ります。
+ *
+ * @param query - URL へ載せる検索条件。読み進めた位置は含めない
+ * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る
+ */
+export async function fetchProductCount(
+  query: URLSearchParams,
+  signal?: AbortSignal,
+): Promise<number> {
+  const { count } = await request(
+    `/api/products/count?${query.toString()}`,
+    ProductCountPayload,
     signal,
-  });
+  );
+
+  return count;
+}
+
+/** 同一オリジンの BFF を叩き、応答を検証して返す。 */
+async function request<T>(url: string, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(url, { headers: { accept: "application/json" }, signal });
 
   if (!response.ok) {
     throw createAppError(response.status === 400 ? ErrorKind.INVALID_ARGUMENT : ErrorKind.INTERNAL);
   }
 
-  const parsed = ProductListPagePayload.safeParse(await response.json());
+  const parsed = schema.safeParse(await response.json());
 
   if (!parsed.success) {
     throw createAppError(ErrorKind.INTERNAL, { cause: parsed.error });

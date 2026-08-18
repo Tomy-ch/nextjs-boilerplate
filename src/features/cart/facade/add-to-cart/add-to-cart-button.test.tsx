@@ -76,7 +76,7 @@ describe("AddToCartButton", () => {
     render(<AddToCartButton productId={PRODUCT_ID} stockQuantity={3} />);
     await user.click(screen.getByRole("button", { name: "カートに追加" }));
 
-    const pending = await screen.findByRole("button", { name: "追加しています…" });
+    const pending = await screen.findByRole("button", { name: "カートに追加しています" });
 
     expect(pending).toBeDisabled();
 

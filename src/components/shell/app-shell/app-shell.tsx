@@ -3,7 +3,11 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/components/cn";
 import { PullToRefresh } from "../pull-to-refresh/pull-to-refresh";
-import { APP_SHELL_MAIN_ID, type AppShellNavItem } from "./app-shell.definition";
+import {
+  APP_SHELL_HEADER_HEIGHT,
+  APP_SHELL_MAIN_ID,
+  type AppShellNavItem,
+} from "./app-shell.definition";
 import { AppShellMenu } from "./app-shell-menu";
 
 /** `AppShell` の props。 */
@@ -71,8 +75,11 @@ export function AppShell({
       >
         本文へスキップ
       </a>
-      <header className="print-hidden sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-2 px-4 md:px-6">
+      <header
+        className="print-hidden sticky top-0 z-40 border-b bg-background/95 backdrop-blur"
+        style={{ height: APP_SHELL_HEADER_HEIGHT }}
+      >
+        <div className="mx-auto flex h-full w-full max-w-5xl items-center gap-2 px-4 md:px-6">
           <AppShellMenu items={navItems} />
           <Link href="/" className="font-semibold">
             {siteName}

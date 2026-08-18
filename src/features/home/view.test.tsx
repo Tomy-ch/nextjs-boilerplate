@@ -4,7 +4,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import type { ProductListItem, ProductRankingEntry, ProductRef } from "@/model/product/product";
+import type {
+  ProductCategory,
+  ProductListItem,
+  ProductRankingEntry,
+} from "@/model/product/product";
 
 import { HomeView, type HomeViewProps } from "./view";
 
@@ -25,7 +29,7 @@ const ENTRY: ProductRankingEntry = {
   soldQuantity: 96,
 };
 
-const CATEGORY: ProductRef = { id: "c1", name: "オーディオ" };
+const CATEGORY: ProductCategory = { id: "c1", code: 10, name: "オーディオ" };
 
 const FAILURE = "現在サービスを利用できません。";
 

@@ -9,10 +9,13 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+9abecab
  */
 
 /**
  * 商品カテゴリIDでフィルタします。指定しない場合は全カテゴリを対象とします。
+ * 後継は categoryCodes で、マスタ行を指すのは UUID ではなく code です。categoryCodes と
+ * 同時に指定した場合は 400 を返します。
+ * @deprecated
  */
 export type CategoryIdParamParameter = string;

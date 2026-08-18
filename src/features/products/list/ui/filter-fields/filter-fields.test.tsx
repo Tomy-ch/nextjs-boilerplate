@@ -1,163 +1,130 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useCallback, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { FILTER_KEY } from "../../../facade/list-url/list-url";
-import { type FilterGroup, ProductFilterFields } from "./filter-fields";
+import { FILTER_KEY, type ProductListSelection } from "../../../facade/list-url/list-url";
+import type { FilterOption } from "../../query";
+import { ProductFilterFields } from "./filter-fields";
 
-const GROUPS: readonly FilterGroup[] = [
-  {
-    key: FILTER_KEY.CATEGORY,
-    legend: "カテゴリ",
-    options: [
-      { value: "", label: "すべて" },
-      { value: "c1", label: "オーディオ" },
-      { value: "c2", label: "ウェアラブル" },
-    ],
-  },
-  {
-    key: FILTER_KEY.STATUS,
-    legend: "状態",
-    options: [
-      { value: "", label: "すべて" },
-      { value: "s1", label: "公開" },
-      { value: "s2", label: "在庫切れ" },
-    ],
-  },
+const CATEGORIES: readonly FilterOption[] = [
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
 ];
 
-function StatefulFields({
-  label,
-  initial = {},
-}: {
-  label: string;
-  initial?: Readonly<Record<string, string>>;
-}) {
-  const [selection, setSelection] = useState(initial);
-  const select = useCallback((key: string, value: string) => {
-    setSelection((current) => ({ ...current, [key]: value }));
-  }, []);
-
-  return (
-    <section aria-label={label}>
-      <ProductFilterFields groups={GROUPS} onSelect={select} selection={selection} />
-    </section>
+function renderFields(draft: ProductListSelection = {}, onChange = vi.fn()) {
+  render(
+    <ProductFilterFields
+      categories={CATEGORIES}
+      categoryLimit={32}
+      draft={draft}
+      onChange={onChange}
+    />,
   );
-}
 
-function group(legend: string) {
-  return within(screen.getByRole("group", { name: legend }));
-}
-
-function groupIn(label: string, legend: string) {
-  return within(
-    within(screen.getByRole("region", { name: label })).getByRole("group", { name: legend }),
-  );
-}
-
-function namesIn(label: string): readonly string[] {
-  return within(screen.getByRole("region", { name: label }))
-    .getAllByRole("radio")
-    .map((radio) => radio.getAttribute("name") ?? "");
+  return onChange;
 }
 
 describe("ProductFilterFields", () => {
-  it("群ごとに見出しを付けて選択肢を並べる", () => {
-    render(<ProductFilterFields groups={GROUPS} onSelect={vi.fn()} selection={{}} />);
+  it("価格・カテゴリ・在庫状況を見出し付きで並べる", () => {
+    renderFields();
 
-    expect(group("カテゴリ").getAllByRole("radio")).toHaveLength(3);
-    expect(group("状態").getByLabelText("在庫切れ")).toBeVisible();
+    expect(screen.getByRole("group", { name: "価格" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "カテゴリ" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "在庫状況" })).toBeInTheDocument();
   });
 
-  it("効いている値に印を付ける", () => {
-    render(
-      <ProductFilterFields
-        groups={GROUPS}
-        onSelect={vi.fn()}
-        selection={{ [FILTER_KEY.CATEGORY]: "c1" }}
-      />,
+  it("効いている価格を目盛りの位置として映す", () => {
+    renderFields({ [FILTER_KEY.MIN_PRICE]: "25", [FILTER_KEY.MAX_PRICE]: "250" });
+
+    expect(screen.getByLabelText("価格の下限", { selector: "select" })).toHaveValue("2");
+    expect(screen.getByLabelText("価格の上限", { selector: "select" })).toHaveValue("5");
+  });
+
+  it("効いている分類に印を付ける", () => {
+    renderFields({ [FILTER_KEY.CATEGORY]: ["20"] });
+
+    expect(screen.getByLabelText("ウェアラブル")).toBeChecked();
+  });
+
+  it("効いている在庫状況に印を付ける", () => {
+    renderFields({ [FILTER_KEY.MIN_QUANTITY]: "1" });
+
+    expect(screen.getByLabelText("在庫あり")).toBeChecked();
+  });
+
+  it("価格を選ぶと、契約のキーへ写した条件を伝える", async () => {
+    const onChange = renderFields();
+
+    await userEvent.selectOptions(screen.getByLabelText("価格の下限", { selector: "select" }), "2");
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ [FILTER_KEY.MIN_PRICE]: "25" }),
     );
-
-    expect(group("カテゴリ").getByLabelText("オーディオ")).toBeChecked();
-    expect(group("カテゴリ").getByLabelText("すべて")).not.toBeChecked();
   });
 
-  it("値の指定が無い群は「すべて」を選んだ状態にする", () => {
-    render(<ProductFilterFields groups={GROUPS} onSelect={vi.fn()} selection={{}} />);
+  it("分類を選ぶと、選んだ並びを条件として伝える", async () => {
+    const onChange = renderFields({ [FILTER_KEY.CATEGORY]: ["10"] });
 
-    expect(group("状態").getByLabelText("すべて")).toBeChecked();
-    expect(group("状態").getByLabelText("公開")).not.toBeChecked();
-  });
+    await userEvent.click(screen.getByLabelText("ウェアラブル"));
 
-  it("選ぶと群のキーと値を伝える", async () => {
-    const onSelect = vi.fn<(key: string, value: string) => void>();
-    render(<ProductFilterFields groups={GROUPS} onSelect={onSelect} selection={{}} />);
-
-    await userEvent.click(group("カテゴリ").getByLabelText("ウェアラブル"));
-
-    expect(onSelect).toHaveBeenCalledTimes(1);
-    expect(onSelect).toHaveBeenCalledWith(FILTER_KEY.CATEGORY, "c2");
-  });
-
-  it("「すべて」を選ぶと空の値を伝える", async () => {
-    const onSelect = vi.fn<(key: string, value: string) => void>();
-    render(
-      <ProductFilterFields
-        groups={GROUPS}
-        onSelect={onSelect}
-        selection={{ [FILTER_KEY.CATEGORY]: "c1" }}
-      />,
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ [FILTER_KEY.CATEGORY]: ["10", "20"] }),
     );
-
-    await userEvent.click(group("カテゴリ").getByLabelText("すべて"));
-
-    expect(onSelect).toHaveBeenCalledWith(FILTER_KEY.CATEGORY, "");
   });
 
-  it("同じ群では 1 つの値しか選べない", async () => {
-    render(<StatefulFields label="脇" />);
+  it("在庫状況を選ぶと、契約の在庫数の条件へ写して伝える", async () => {
+    const onChange = renderFields();
 
-    await userEvent.click(group("カテゴリ").getByLabelText("オーディオ"));
-    await userEvent.click(group("カテゴリ").getByLabelText("ウェアラブル"));
+    await userEvent.click(screen.getByLabelText("在庫なし"));
 
-    expect(group("カテゴリ").getByLabelText("ウェアラブル")).toBeChecked();
-    expect(group("カテゴリ").getByLabelText("オーディオ")).not.toBeChecked();
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [FILTER_KEY.MIN_QUANTITY]: "",
+        [FILTER_KEY.MAX_QUANTITY]: "0",
+      }),
+    );
   });
 
-  it("別の群の選択は互いに外れない", async () => {
-    render(<StatefulFields label="脇" />);
+  it("触っていない条件はそのまま引き継ぐ", async () => {
+    const onChange = renderFields({ [FILTER_KEY.KEYWORD]: "鞄" });
 
-    await userEvent.click(group("カテゴリ").getByLabelText("オーディオ"));
-    await userEvent.click(group("状態").getByLabelText("公開"));
+    await userEvent.click(screen.getByLabelText("オーディオ"));
 
-    expect(group("カテゴリ").getByLabelText("オーディオ")).toBeChecked();
-    expect(group("状態").getByLabelText("公開")).toBeChecked();
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ [FILTER_KEY.KEYWORD]: "鞄" }));
   });
 
-  it("同じ入力欄が 2 組同時にあっても radio の群が混ざらない", async () => {
+  it("同じ入力欄が 2 組同時にあっても、在庫状況の群が混ざらない", () => {
     render(
       <>
-        <StatefulFields label="脇" />
-        <StatefulFields initial={{ [FILTER_KEY.CATEGORY]: "c2" }} label="overlay" />
+        <ProductFilterFields
+          categories={CATEGORIES}
+          categoryLimit={32}
+          draft={{ [FILTER_KEY.MIN_QUANTITY]: "1" }}
+          onChange={vi.fn()}
+        />
+        <ProductFilterFields
+          categories={CATEGORIES}
+          categoryLimit={32}
+          draft={{}}
+          onChange={vi.fn()}
+        />
       </>,
     );
 
-    await userEvent.click(groupIn("脇", "カテゴリ").getByLabelText("オーディオ"));
-
-    expect(groupIn("overlay", "カテゴリ").getByLabelText("ウェアラブル")).toBeChecked();
-    expect(namesIn("脇").some((name) => namesIn("overlay").includes(name))).toBe(false);
+    expect(screen.getAllByLabelText("在庫あり")[0]).toBeChecked();
+    expect(screen.getAllByLabelText("在庫あり")[1]).not.toBeChecked();
   });
 
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(
       <ProductFilterFields
-        groups={GROUPS}
-        onSelect={vi.fn()}
-        selection={{ [FILTER_KEY.CATEGORY]: "c1" }}
+        categories={CATEGORIES}
+        categoryLimit={32}
+        draft={{ [FILTER_KEY.CATEGORY]: ["10"] }}
+        onChange={vi.fn()}
       />,
     );
 

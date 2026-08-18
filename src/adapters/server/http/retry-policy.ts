@@ -108,6 +108,8 @@ export function toErrorKind(status: number): ErrorKind {
       return ErrorKind.CONFLICT;
     case 413:
       return ErrorKind.PAYLOAD_TOO_LARGE;
+    case 414:
+      return ErrorKind.URI_TOO_LONG;
     case 415:
       return ErrorKind.UNSUPPORTED_MEDIA_TYPE;
     case 422:

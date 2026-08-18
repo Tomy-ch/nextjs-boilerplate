@@ -1,185 +1,165 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { FILTER_KEY } from "../../../facade/list-url/list-url";
-import type { FilterGroup } from "../filter-fields/filter-fields";
+import {
+  COUNT_KEY,
+  CURSOR_KEY,
+  FILTER_KEY,
+  type ProductListSelection,
+} from "../../../facade/list-url/list-url";
+import type { FilterOption } from "../../query";
 
-const { push } = vi.hoisted(() => ({ push: vi.fn() }));
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
+const { push, fetchProductCount } = vi.hoisted(() => ({
+  push: vi.fn(),
+  fetchProductCount: vi.fn(),
 }));
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+vi.mock("@/adapters/client/api/products", () => ({ fetchProductCount }));
+
+import { ProductFilterDraftProvider } from "../../filter-draft";
 import { ProductFilterSheet } from "./filter-sheet";
 
-const GROUPS: readonly FilterGroup[] = [
-  {
-    key: FILTER_KEY.CATEGORY,
-    legend: "カテゴリ",
-    options: [
-      { value: "", label: "すべて" },
-      { value: "c1", label: "オーディオ" },
-      { value: "c2", label: "ウェアラブル" },
-    ],
-  },
-  {
-    key: FILTER_KEY.STATUS,
-    legend: "状態",
-    options: [
-      { value: "", label: "すべて" },
-      { value: "s1", label: "公開" },
-      { value: "s2", label: "在庫切れ" },
-    ],
-  },
+const CATEGORIES: readonly FilterOption[] = [
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
 ];
 
+function renderSheet(selection: ProductListSelection = {}) {
+  return render(
+    <ProductFilterDraftProvider selection={selection}>
+      <ProductFilterSheet categories={CATEGORIES} categoryLimit={32} selection={selection} />
+    </ProductFilterDraftProvider>,
+  );
+}
+
 function trigger(): HTMLElement {
-  return screen.getByRole("button", { name: /^絞り込み/ });
+  return screen.getByRole("button", { name: /絞り込み/ });
 }
 
 async function open(): Promise<void> {
   await userEvent.click(trigger());
-  await screen.findByRole("dialog", { name: "絞り込み" });
 }
 
-function group(legend: string) {
-  return within(screen.getByRole("group", { name: legend }));
-}
+beforeEach(() => {
+  push.mockReset();
+  fetchProductCount.mockReset();
+  fetchProductCount.mockResolvedValue(7);
+});
 
 describe("ProductFilterSheet", () => {
-  beforeEach(() => {
-    push.mockClear();
-  });
-
   it("開くまで条件の入力欄を出さない", () => {
-    render(<ProductFilterSheet groups={GROUPS} selection={{}} />);
+    renderSheet();
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(trigger()).toBeVisible();
+    expect(screen.queryByRole("group", { name: "カテゴリ" })).not.toBeInTheDocument();
   });
 
   it("開く操作で条件の入力欄を出す", async () => {
-    render(<ProductFilterSheet groups={GROUPS} selection={{}} />);
+    renderSheet();
 
     await open();
 
-    expect(group("カテゴリ").getByLabelText("オーディオ")).toBeVisible();
-    expect(group("状態").getByLabelText("在庫切れ")).toBeVisible();
+    expect(screen.getByRole("group", { name: "カテゴリ" })).toBeInTheDocument();
   });
 
-  it("選んだだけでは一覧へ反映しない", async () => {
-    render(<ProductFilterSheet groups={GROUPS} selection={{}} />);
-    await open();
+  it("効いている条件の数を開く操作に添える", () => {
+    renderSheet({ [FILTER_KEY.CATEGORY]: ["10"], [FILTER_KEY.MIN_QUANTITY]: "1" });
 
-    await userEvent.click(group("カテゴリ").getByLabelText("オーディオ"));
-
-    expect(push).not.toHaveBeenCalled();
-    expect(group("カテゴリ").getByLabelText("オーディオ")).toBeChecked();
+    expect(trigger()).toHaveTextContent("2");
   });
 
-  it("確定して初めて選んだ条件で一覧へ移る", async () => {
-    render(<ProductFilterSheet groups={GROUPS} selection={{}} />);
-    await open();
-    await userEvent.click(group("カテゴリ").getByLabelText("オーディオ"));
+  it("入力欄 1 つを 1 件と数え、複数選んだ分類をまとめて 1 件にする", () => {
+    renderSheet({ [FILTER_KEY.CATEGORY]: ["10", "20"] });
 
-    await userEvent.click(screen.getByRole("button", { name: "この条件で見る" }));
-
-    expect(push).toHaveBeenCalledTimes(1);
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c1");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger()).toHaveTextContent("1");
   });
 
-  it("確定した URL に他の条件を引き継ぎ、読み進めた位置を落とす", async () => {
-    render(
-      <ProductFilterSheet
-        groups={GROUPS}
-        selection={{ [FILTER_KEY.KEYWORD]: "鞄", after: "cursor-1", first: "48" }}
-      />,
-    );
-    await open();
-    await userEvent.click(group("状態").getByLabelText("在庫切れ"));
+  it("価格の範囲を選んでいれば 1 件として数える", () => {
+    renderSheet({ [FILTER_KEY.MIN_PRICE]: "25" });
 
-    await userEvent.click(screen.getByRole("button", { name: "この条件で見る" }));
-
-    expect(push).toHaveBeenCalledWith("/products?keyword=%E9%9E%84&statusId=s2");
-  });
-
-  it("効いている条件の数を開く操作に付ける", () => {
-    render(
-      <ProductFilterSheet
-        groups={GROUPS}
-        selection={{ [FILTER_KEY.CATEGORY]: "c1", [FILTER_KEY.STATUS]: "s2" }}
-      />,
-    );
-
-    expect(trigger()).toHaveAccessibleName(expect.stringContaining("2 件の条件が有効"));
+    expect(trigger()).toHaveTextContent("1");
   });
 
   it("効いている条件が無いときは数を付けない", () => {
-    render(<ProductFilterSheet groups={GROUPS} selection={{ after: "cursor-1" }} />);
+    renderSheet();
 
-    expect(trigger()).toHaveAccessibleName("絞り込み");
+    expect(trigger()).not.toHaveTextContent("0");
   });
 
-  it("確定せずに閉じた選択は、開き直すと URL の状態へ戻る", async () => {
-    render(<ProductFilterSheet groups={GROUPS} selection={{ [FILTER_KEY.CATEGORY]: "c1" }} />);
-    await open();
-    await userEvent.click(group("カテゴリ").getByLabelText("ウェアラブル"));
-    await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
+  it("選んだだけでは一覧へ反映しない", async () => {
+    renderSheet();
 
     await open();
+    await userEvent.click(screen.getByLabelText("オーディオ"));
 
-    expect(group("カテゴリ").getByLabelText("オーディオ")).toBeChecked();
-    expect(group("カテゴリ").getByLabelText("ウェアラブル")).not.toBeChecked();
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("条件をすべて外すと、どの群も「すべて」に戻る", async () => {
-    render(
-      <ProductFilterSheet
-        groups={GROUPS}
-        selection={{ [FILTER_KEY.CATEGORY]: "c1", [FILTER_KEY.STATUS]: "s2" }}
-      />,
-    );
+  it("確定して初めて選んだ条件で一覧へ移る", async () => {
+    renderSheet();
+
     await open();
+    await userEvent.click(screen.getByLabelText("オーディオ"));
+    await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
 
-    await userEvent.click(screen.getByRole("button", { name: "条件をすべて外す" }));
-
-    expect(group("カテゴリ").getByLabelText("すべて")).toBeChecked();
-    expect(group("状態").getByLabelText("すべて")).toBeChecked();
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10");
   });
 
-  it("条件をすべて外して確定すると、絞り込み以外の条件だけが残る", async () => {
-    render(
-      <ProductFilterSheet
-        groups={GROUPS}
-        selection={{
-          [FILTER_KEY.CATEGORY]: "c1",
-          [FILTER_KEY.STATUS]: "s2",
-          [FILTER_KEY.KEYWORD]: "鞄",
-        }}
-      />,
-    );
+  it("確定した URL に他の条件を引き継ぎ、読み進めた位置を落とす", async () => {
+    renderSheet({
+      [FILTER_KEY.KEYWORD]: "鞄",
+      [CURSOR_KEY]: "cursor-1",
+      [COUNT_KEY]: "48",
+    });
+
+    await open();
+    await userEvent.click(screen.getByLabelText("オーディオ"));
+    await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
+
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");
+  });
+
+  it("条件をすべて外すと、入力欄が受け持つ条件だけが外れる", async () => {
+    renderSheet({ [FILTER_KEY.CATEGORY]: ["10"], [FILTER_KEY.KEYWORD]: "鞄" });
+
     await open();
     await userEvent.click(screen.getByRole("button", { name: "条件をすべて外す" }));
 
-    await userEvent.click(screen.getByRole("button", { name: "この条件で見る" }));
+    expect(screen.getByLabelText("オーディオ")).not.toBeChecked();
+
+    await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
 
     expect(push).toHaveBeenCalledWith("/products?keyword=%E9%9E%84");
   });
 
-  it("開いた状態が a11y 自動検査に違反しない", async () => {
-    const { baseElement } = render(
-      <ProductFilterSheet groups={GROUPS} selection={{ [FILTER_KEY.CATEGORY]: "c1" }} />,
-    );
+  it("確定する前の件数を確定の操作へ添える", async () => {
+    renderSheet();
+
     await open();
 
-    const result = await axe(baseElement, { rules: { "color-contrast": { enabled: false } } });
+    expect(await screen.findByRole("button", { name: /該当件数 7 件/ })).toBeInTheDocument();
+  });
 
-    expect(result.violations).toEqual([]);
+  it("開き直しても、組み立て中の条件を捨てない", async () => {
+    renderSheet();
+
+    await open();
+    await userEvent.click(screen.getByLabelText("オーディオ"));
+    await userEvent.keyboard("{Escape}");
+    await open();
+
+    expect(screen.getByLabelText("オーディオ")).toBeChecked();
+  });
+
+  it("開いた状態が a11y 自動検査に違反しない", async () => {
+    const { container } = renderSheet();
+
+    await open();
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

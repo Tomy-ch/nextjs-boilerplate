@@ -29,15 +29,20 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 | PermissionDenied | `FORBIDDEN` | 403 | ユーザ起因 |
 | NotFound | `NOT_FOUND` | 404 | ユーザ起因 |
 | Conflict | `RESOURCE_CONFLICT` | 409 | ユーザ起因 |
+| PayloadTooLarge | `PAYLOAD_TOO_LARGE` | 413 | ユーザ起因 |
+| UriTooLong | `URI_TOO_LONG` | 414 | ユーザ起因 |
+| UnsupportedMediaType | `UNSUPPORTED_MEDIA_TYPE` | 415 | ユーザ起因 |
 | Validation | `VALIDATION_FAILED` | 422 | ユーザ起因 |
 | TooManyRequests | `TOO_MANY_REQUESTS` | 429 | ユーザ起因 |
+| Canceled | `CANCELED` | 499 | ユーザ起因 |
 | Unavailable | `SERVICE_UNAVAILABLE` | 503 | システム起因(リトライ含意) |
 | Unimplemented | `NOT_IMPLEMENTED` | 501 | システム起因 |
 | Internal | `INTERNAL` | 500 | システム起因 |
 
 - go の worker 分類 sentinel(`ErrRetryable` / `ErrPermanent` / `ErrFatal`)はメッセージング worker 固有のため**採用しない**(表示層は HTTP taxonomy のみ翻案)
 - **エラーコード語彙は wire 契約に整合させる(独自語彙を発明しない)**: 上表の安定エラーコード文字列は暫定ラベルであり、**バックエンドが実際に `ErrorResponse.code` で返すコード enum(契約 SSOT = バックエンドリポの `openapi.gen.yaml`。[0070](0070-backend-role-separation.md) A2 / [0072](0072-api-type-generation.md) B4)に実装時に整合させる**。エラーコードは「ソースファイル / 識別子の命名」ではなく **wire contract の値**であるため、[0028](0028-naming-convention.md) の「命名の権威を go に置かない」方針の対象外であり、契約忠実(= バックエンドの語彙に従う)を優先する。フロント内部で追加の分類ラベルが要る場合も、wire コードと別語彙を競合させない。※上表(gRPC canonical 寄りの暫定名)と go 実体(`UNAUTHORIZED` / `ACCESS_DENIED` / `INTERNAL_ERROR` 等)の差異は、実際の契約が判明した実装時に解消する
-- go の HTTP taxonomy には 11 個目の分類 **`Canceled`(コード `CLIENT_CLOSED_REQUEST` / status 499・非標準)** が存在するが、本表には含めていない。fetch の中断([0071](0071-bff-api-integration.md) の dual timeout / `AbortSignal`)を独立分類として扱うかは実装 PR で判断し、採用時は本表へ追補する
+- **`Canceled`(status 499・非標準)を独立分類として採る**。fetch の中断([0071](0071-bff-api-integration.md) の dual timeout / `AbortSignal`)は失敗ではなく打ち切りであり、システム起因の失敗へ畳むと再試行の対象になる
+- **`UriTooLong`(414)を `PayloadTooLarge`(413)と分けて持つ**。要求の本体が大きいのと、条件を載せた URL が長いのとでは、利用者が減らすべきものが違う。畳むと「送信するデータが大きすぎます」しか出せず、条件を減らせばよいことが伝わらない
 
 ### 2. 境界での HTTP status 正規化(1 回のみ)
 

@@ -28,8 +28,10 @@
 | `(shop)/layout.tsx` | `route/shop/layout.{screen,function}.md` |
 | `(shop)/cart/page.tsx` | `route/shop/cart/page.{screen,function}.md` |
 | `(shop)/mypage/edit/page.tsx` | `route/shop/mypage/edit/page.{screen,function}.md` |
+| `(shop)/products/[id]/page.tsx` | `route/shop/products/[id]/page.{screen,function}.md` |
 
-route group は URL に現れないため、括弧を外した名前で置きます（`(shop)` → `shop/`）。
+route group は URL に現れないため、括弧を外した名前で置きます（`(shop)` → `shop/`）。動的
+セグメントは URL に現れるため、角括弧を含む名前のまま置きます。
 
 **layout の仕様はその配下すべてに効きます。** 画面をまたぐ約束（外枠に出るカート、認証の扱い）は
 上位の `layout.*.md` に 1 回だけ書き、各画面はそこからの差分を書きます。
@@ -42,6 +44,8 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | ルート | 仕様書 |
 | --- | --- |
 | `(shop)` 外枠 | [`layout.screen.md`](route/shop/layout.screen.md) / [`layout.function.md`](route/shop/layout.function.md) |
+| `/products` | [`screen`](route/shop/products/page.screen.md) / [`function`](route/shop/products/page.function.md) |
+| `/products/[id]` | [`screen`](<route/shop/products/[id]/page.screen.md>) / [`function`](<route/shop/products/[id]/page.function.md>) |
 | `/cart` | [`screen`](route/shop/cart/page.screen.md) / [`function`](route/shop/cart/page.function.md) |
 | `/mypage` | [`screen`](route/shop/mypage/page.screen.md) / [`function`](route/shop/mypage/page.function.md) |
 | `/mypage/edit` | [`screen`](route/shop/mypage/edit/page.screen.md) / [`function`](route/shop/mypage/edit/page.function.md) |

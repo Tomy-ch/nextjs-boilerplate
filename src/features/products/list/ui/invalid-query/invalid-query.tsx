@@ -3,7 +3,12 @@ import Link from "next/link";
 import { Button } from "@/components/design-system/action/button/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
 
-import { FILTER_KEY, PRODUCT_LIST_PATH } from "../../../facade/list-url/list-url";
+import {
+  COUNT_KEY,
+  CURSOR_KEY,
+  FILTER_KEY,
+  PRODUCT_LIST_PATH,
+} from "../../../facade/list-url/list-url";
 
 /** `ProductInvalidQuery` の props。 */
 export type ProductInvalidQueryProps = {
@@ -18,9 +23,13 @@ const KEY_LABEL: Readonly<Record<string, string>> = {
   [FILTER_KEY.CATEGORY]: "カテゴリ",
   [FILTER_KEY.STATUS]: "状態",
   [FILTER_KEY.KEYWORD]: "キーワード",
+  [FILTER_KEY.MIN_PRICE]: "価格の下限",
+  [FILTER_KEY.MAX_PRICE]: "価格の上限",
+  [FILTER_KEY.MIN_QUANTITY]: "在庫数の下限",
+  [FILTER_KEY.MAX_QUANTITY]: "在庫数の上限",
   [FILTER_KEY.SORT]: "並び替え",
-  after: "読み込み位置",
-  first: "読み込む件数",
+  [CURSOR_KEY]: "読み込み位置",
+  [COUNT_KEY]: "読み込む件数",
 };
 
 /**

@@ -1,4 +1,8 @@
-import type { ProductListItem, ProductRankingEntry, ProductRef } from "@/model/product/product";
+import type {
+  ProductCategory,
+  ProductListItem,
+  ProductRankingEntry,
+} from "@/model/product/product";
 
 import { CategoryLinks } from "./ui/category-links/category-links";
 import { NewArrivals } from "./ui/new-arrivals/new-arrivals";
@@ -23,7 +27,7 @@ export type HomeViewProps = {
   /** 売上ランキング。 */
   ranking: SectionState<readonly ProductRankingEntry[]>;
   /** 分類の導線。 */
-  categories: SectionState<readonly ProductRef[]>;
+  categories: SectionState<readonly ProductCategory[]>;
 };
 
 /**

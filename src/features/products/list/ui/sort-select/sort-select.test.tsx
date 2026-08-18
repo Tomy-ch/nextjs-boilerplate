@@ -42,13 +42,15 @@ describe("ProductSortSelect", () => {
     render(
       <ProductSortSelect
         options={OPTIONS}
-        selection={{ [FILTER_KEY.KEYWORD]: "鞄", [FILTER_KEY.CATEGORY]: "c1" }}
+        selection={{ [FILTER_KEY.KEYWORD]: "鞄", [FILTER_KEY.CATEGORY]: "10" }}
       />,
     );
 
     await userEvent.selectOptions(field(), "publishedAt");
 
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c1&keyword=%E9%9E%84&sort=publishedAt");
+    expect(push).toHaveBeenCalledWith(
+      "/products?categoryCodes=10&keyword=%E9%9E%84&sort=publishedAt",
+    );
   });
 
   it("いま効いている並びを選択状態にする", () => {

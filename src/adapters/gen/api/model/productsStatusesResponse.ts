@@ -9,11 +9,11 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+9abecab
  */
 import type { ProductStatusResponse } from "./productStatusResponse";
 
 /**
- * 商品ステータスマスタの一覧（sortKey 昇順）。全件を返し、ページネーションは行いません。
+ * 商品ステータスマスタの一覧。マスタが定める表示順で並べて全件を返し、ページネーションは行いません。
  */
 export type ProductsStatusesResponse = ProductStatusResponse[];

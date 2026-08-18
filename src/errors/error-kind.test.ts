@@ -14,6 +14,7 @@ describe("errorKinds", () => {
       "validation",
       "unsupported-media-type",
       "payload-too-large",
+      "uri-too-long",
       "too-many-requests",
       "canceled",
       "unavailable",

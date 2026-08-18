@@ -57,6 +57,14 @@ describe("GET", () => {
     });
   });
 
+  it("繰り返された分類を並びのまま取得へ渡す", async () => {
+    await GET(requestFor("?categoryCodes=10&categoryCodes=20"));
+
+    expect(getProductListPage).toHaveBeenCalledWith(
+      expect.objectContaining({ categoryCodes: [10, 20] }),
+    );
+  });
+
   it("条件が無いとき契約の既定値で取得する", async () => {
     await GET(requestFor(""));
 

@@ -7,6 +7,8 @@ import { AddToCartButton } from "@/features/cart/facade/add-to-cart/add-to-cart-
 import { NO_IMAGE_URL } from "@/model/media";
 import type { ProductListItem } from "@/model/product/product";
 
+import { ProductContactButton } from "../contact-button/contact-button";
+
 /** `ProductCard` の props。 */
 export type ProductCardProps = {
   /** 表示する商品。 */
@@ -37,11 +39,17 @@ export type ProductCardProps = {
  *
  * 在庫の表現もここが持ちます。何をもって「残りわずか」とするかはバックエンドの状態遷移に
  * 属し、`components` が供給できるのは `Badge` の variant までです。
+ *
+ * **指を乗せたことを面で返します。** カード全体が詳細への導線でありながら link で包んでいないため、
+ * 返さないと押せる範囲が商品名の文字だけに見えます。link そのものの focus 表示とは別に要ります。
+ *
+ * **在庫が無い商品には問い合わせの入口を並べます。** カートへ入れる操作は押せないままにしてあり、
+ * それだけでは「買えない」ことしか伝わりません。入荷を待つ以外の道をその場に出します。
  */
 export function ProductCard({ item, leading = false }: ProductCardProps) {
   return (
     <Card
-      className="@container/card relative flex h-full flex-col gap-0 overflow-hidden py-0"
+      className="@container/card relative flex h-full flex-col gap-0 overflow-hidden py-0 transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-md"
       data-testid="product-card"
     >
       <div className="flex flex-col @sm/card:flex-row">
@@ -80,7 +88,8 @@ export function ProductCard({ item, leading = false }: ProductCardProps) {
               <span className="font-medium">${item.price}</span>
               <span className="text-muted-foreground text-sm">在庫 {item.quantity}</span>
             </div>
-            <div className="relative">
+            <div className="relative flex flex-wrap items-center gap-2">
+              {item.quantity === 0 ? <ProductContactButton /> : null}
               <AddToCartButton placement="list" productId={item.id} stockQuantity={item.quantity} />
             </div>
           </div>

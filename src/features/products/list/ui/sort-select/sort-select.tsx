@@ -5,7 +5,12 @@ import { type ChangeEvent, useCallback, useId, useTransition } from "react";
 
 import { Label } from "@/components/design-system/form/label/label";
 import { SelectNative } from "@/components/design-system/form/select-native/select-native";
-import { FILTER_KEY, toProductListHref } from "../../../facade/list-url/list-url";
+import {
+  FILTER_KEY,
+  type ProductListSelection,
+  toProductListHref,
+  toSelectedValue,
+} from "../../../facade/list-url/list-url";
 import type { FilterOption } from "../../query";
 
 /** `ProductSortSelect` の props。 */
@@ -13,7 +18,7 @@ export type ProductSortSelectProps = {
   /** 選べる並び順。 */
   options: readonly FilterOption[];
   /** いま効いている条件。並び替え以外もそのまま引き継ぐ。 */
-  selection: Readonly<Record<string, string>>;
+  selection: ProductListSelection;
 };
 
 /**
@@ -52,7 +57,7 @@ export function ProductSortSelect({ options, selection }: ProductSortSelectProps
         disabled={pending}
         id={fieldId}
         onChange={change}
-        value={selection[FILTER_KEY.SORT] ?? ""}
+        value={toSelectedValue(selection, FILTER_KEY.SORT)}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

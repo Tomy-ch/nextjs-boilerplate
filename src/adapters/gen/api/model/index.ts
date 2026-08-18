@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+9abecab
  */
 
 export * from "./activeParamParameter";
@@ -23,6 +23,7 @@ export * from "./cartMergeResponse";
 export * from "./cartResponse";
 export * from "./cartSessionParamParameter";
 export * from "./cartSessionRequiredParamParameter";
+export * from "./categoryCodesParamParameter";
 export * from "./categoryIdParamParameter";
 export * from "./conflict409Response";
 export * from "./cursorAfterParamParameter";
@@ -127,6 +128,7 @@ export * from "./roleRefCode";
 export * from "./serviceUnavailable503Response";
 export * from "./shippableLimitParamParameter";
 export * from "./sortParamParameter";
+export * from "./statusCodesParamParameter";
 export * from "./statusIdParamParameter";
 export * from "./unauthorized401Response";
 export * from "./unprocessableEntity422Response";

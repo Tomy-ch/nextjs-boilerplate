@@ -5,7 +5,12 @@ import { type RefObject, useCallback, useEffect, useRef, useState } from "react"
 import { fetchProductListPage, PRODUCT_LIST_MAX_ITEMS } from "@/adapters/client/api/products";
 import { appendCursorPage, type CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
-import { COUNT_KEY, CURSOR_KEY } from "../facade/list-url/list-url";
+import {
+  COUNT_KEY,
+  CURSOR_KEY,
+  type ProductListSelection,
+  toProductListSearchParams,
+} from "../facade/list-url/list-url";
 import { PRODUCT_PAGE_SIZE } from "./query";
 
 /** 末尾に近づいたと見なす距離。画面に入り切る前に読み始めて、待たせる時間を短くする。 */
@@ -46,7 +51,7 @@ export type InfiniteProducts = {
  */
 export function useInfiniteProducts(
   initial: CursorPage<ProductListItem>,
-  query: Readonly<Record<string, string>>,
+  query: ProductListSelection,
 ): InfiniteProducts {
   const [page, setPage] = useState(initial);
   const [loading, setLoading] = useState(false);
@@ -67,12 +72,14 @@ export function useInfiniteProducts(
     setLoading(true);
     setFailed(false);
 
-    fetchProductListPage(
-      // 件数を明示する。条件から落としてあるので、渡さないと契約の既定値になり、初回と
-      // 2 ページ目以降で 1 度に増える量が変わる。
-      { ...query, [COUNT_KEY]: String(PRODUCT_PAGE_SIZE), [CURSOR_KEY]: cursor },
-      controller.signal,
-    )
+    const params = toProductListSearchParams(query);
+
+    // 件数を明示する。条件から落としてあるので、渡さないと契約の既定値になり、初回と
+    // 2 ページ目以降で 1 度に増える量が変わる。
+    params.set(COUNT_KEY, String(PRODUCT_PAGE_SIZE));
+    params.set(CURSOR_KEY, cursor);
+
+    fetchProductListPage(params, controller.signal)
       .then((next) => {
         setPage((loaded) => appendCursorPage(loaded, next));
         setLoading(false);

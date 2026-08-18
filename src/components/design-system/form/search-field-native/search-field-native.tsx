@@ -35,8 +35,11 @@ export type SearchFieldNativeProps = Omit<
    *
    * GET の form は送信時に URL の query をすべて捨てるため、並び順や絞り込みを保ちたい場合は
    * ここへ渡す。ページ番号のように検索し直すと意味を失う query は、渡さないことで初期化する。
+   *
+   * 同じキーが複数の値を取る query は、値を並びで渡す。query 文字列は 1 つのキーに 1 つの値と
+   * 決まっていないため、map で表すと表せない条件が出る。
    */
-  hiddenParams?: Readonly<Record<string, string>>;
+  hiddenParams?: Readonly<Record<string, string | readonly string[]>>;
   /** 送信ボタンのラベル。 */
   submitLabel?: string;
 };
@@ -82,9 +85,11 @@ export function SearchFieldNative({
   return (
     <search className={className} data-slot="search-field">
       <form data-slot="search-field-form" method="get" {...props}>
-        {Object.entries(hiddenParams ?? {}).map(([key, value]) => (
-          <input key={key} name={key} type="hidden" value={value} />
-        ))}
+        {Object.entries(hiddenParams ?? {}).flatMap(([key, value]) =>
+          (typeof value === "string" ? [value] : value).map((single) => (
+            <input key={`${key}:${single}`} name={key} type="hidden" value={single} />
+          )),
+        )}
         <InputGroup>
           <InputGroupAddon>
             <SearchIcon aria-hidden="true" />

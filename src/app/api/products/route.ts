@@ -1,5 +1,6 @@
 import { getProductListPage, parseProductQuery } from "@/adapters/server/api/products";
 import { toHttpStatus } from "@/adapters/server/http/error-status";
+import { toRawQuery } from "@/adapters/server/http/search-params";
 import { findAppError } from "@/errors/app-error";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
@@ -30,8 +31,7 @@ function toErrorResponse(error: unknown): Response {
  * 済ませているので、ここでは記録し直しません。
  */
 export async function GET(request: Request): Promise<Response> {
-  const raw = Object.fromEntries(new URL(request.url).searchParams);
-  const parsed = parseProductQuery(raw);
+  const parsed = parseProductQuery(toRawQuery(new URL(request.url).searchParams));
 
   if (!parsed.ok) {
     return Response.json(

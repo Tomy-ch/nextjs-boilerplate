@@ -441,7 +441,6 @@ backend が server→client push の入口機構(SSE)と、その配信基盤で
 | P5-16 | ゴールデンパス README 整備(B5 完成) | 5 | P5-1〜P5-15 |
 | P5-17 | セキュリティ workflow(CodeQL / gitleaks / trivy / Dependabot) | 5 | P5-16 |
 | P5-18 | spec 駆動の採否判断(GB-3) | 5 | P5-16, P4-6 |
-| P5-19 | 一覧の総件数を実装へ差し替え | 5 | P5-2, P5-16 |
 | P5-EX1 | ストリーム前提の文書反映(0074 / screens.md / mocks) | 5 (EX) | — |
 | P5-EX2 | 購読 seam の実体化(subscription adapter) | 5 (EX) | P5-EX1, P4-3 |
 | P5-EX3 | U13 お問い合わせ一覧 + U14 チャット画面 | 5 (EX) | P5-EX2, P5-4 |
@@ -1107,10 +1106,12 @@ sources:
   - `src/app/(shop)/products/page.tsx` — filter / sort / keyword / cursor を `searchParams` から
   - `src/model/pagination.ts` — **cursor 型(コア残留)**
   - `src/features/products/` — フィルタ UI
+  - `src/adapters/server/api/products.ts` — 一覧と総件数の取得口
 - **設計**: **`searchParams` が変わるたびに RSC が再取得する構成が主眼**。URL とフィルタ状態を同期させる。`searchParams` は zod で検証する(`rules.md` #42)
 - **画面判断**: **一覧を URL 遷移型で通すか、client island で即時反映にするかをここで確定する。**この決定は A2(P5-11)/ A5(P5-13)の一覧も従う基盤側の判断であり、画面ごとに割らない。即時反映へ倒す場合に使う部品(`ComboboxClient` / `PopoverContent` / table の client 拡張)は `components` に揃っているので、判断は方式の選択だけである
 - **確定した方式**: 絞り込みは脇に常設できる幅では選ぶたびに反映し、それ未満では overlay の中でまとめて確定する(帯の境界は [0051](../adr/0051-styling-system.md) §2)。並び替えは幅によらず即時。増分取得は無限スクロールで、続きを読む操作は失敗したときだけ出す。読み進めた件数を `first` として URL へ書き戻し、戻る操作と再読み込みで復元する(契約の `first` 上限までが復元できる範囲)
-- **完了条件**: フィルタ / sort / keyword が URL に反映され、リロード・共有で再現する。不正な `searchParams` で 400 相当の表示になる。ブラウザバックでスクロール位置が復元される(`rules.md` #24)
+- **総件数**: cursor ページネーションは総数を持たないため、一覧の応答からは取り出せない。`GET /v1/products/count` が一覧と同じ条件を受け取って返す。条件を渡さない口にすると、絞り込んだ後も絞り込む前の数が出て並んでいる件数と食い違う
+- **完了条件**: フィルタ / sort / keyword が URL に反映され、リロード・共有で再現する。不正な `searchParams` で 400 相当の表示になる。ブラウザバックでスクロール位置が復元される(`rules.md` #24)。条件を変えると総件数が追随し、総件数の取得だけが失敗しても一覧は出る
 - **依存**: P4-5
 
 ### P5-3: U1 トップ + マスタ API
@@ -1339,16 +1340,6 @@ sources:
 - **不採用の場合**: GB-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
 - **完了条件**: 採否が BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の IM-26 へ反映されている。採用する場合は P4-6 の改修 PR が起票されている
 - **依存**: P5-16, P4-6
-
-### P5-19: 一覧の総件数を実装へ差し替え
-
-- **目的**: 「全 N 件中 M 件」の N を、固定値から実際の取得へ替える
-- **対象 ADR**: [0073](../adr/0073-pagination-fetch-boundary.md) / [0071](../adr/0071-bff-api-integration.md)
-- **主な変更先**: `src/adapters/server/api/products.ts` の `getProductTotalCount()`（**破棄対象**）
-- **設計**: cursor ページネーションは総数を持たないため、一覧の応答からは取り出せない。総数は別の取得口が返す。P5-2 の時点では取得口が契約に無く、固定値を返す実装に `// TODO:` を貼ってある
-- **注意**: **backend 側の契約追加が前提**であり、契約が生えるまで着手できない。フロント側の変更は取得関数 1 つに閉じており、画面側は変わらない（P5-2 で `total` を受け取る形にしてある）
-- **完了条件**: 条件を変えると総数が追随する。取得に失敗しても一覧そのものは出る（総数だけ落ちる）
-- **依存**: P5-2, P5-16
 
 ### 拡張枠(EX): リアルタイム型お問い合わせチャット
 

@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
+import { Spinner } from "@/components/design-system/status/spinner/spinner";
 import { type ActionState, idleActionState } from "@/model/action-state";
 import { useCartStore } from "@/stores/cart-store";
 
@@ -28,7 +29,7 @@ export type AddToCartButtonProps = {
 };
 
 const LABEL = "カートに追加";
-const PENDING_LABEL = "追加しています…";
+const PENDING_LABEL = "カートに追加しています";
 
 /**
  * 送信部。
@@ -38,23 +39,34 @@ const PENDING_LABEL = "追加しています…";
  * 失敗した場合はこのボタンの下に理由が出ます。
  *
  * `useFormStatus` は form の子でしか状態を読めないため、別の部品に切り出しています。
+ *
+ * **送信中は絵柄だけを差し替え、見えている文言は据え置きます。** 文言を「追加しています…」へ
+ * 変えると幅が伸び、一覧では隣の値までまとめて動きます。
+ *
+ * 支援技術へは操作そのものの名前で伝えます。`Spinner` は button の中では装飾で、状態を伝えるのは
+ * 周囲の文言だと部品の側が決めているためです。名前は見えている文言で始まるので、その文言で呼び
+ * かける音声操作からも届きます。
  */
 function AddSubmit({ disabled, placement }: { disabled: boolean; placement: "detail" | "list" }) {
   const { pending } = useFormStatus();
   const setOpen = useCartStore((state) => state.setOpen);
   const open = useCallback(() => setOpen(true), [setOpen]);
-  const label = pending ? PENDING_LABEL : LABEL;
 
   return (
     <Button
+      aria-label={pending ? PENDING_LABEL : undefined}
       className={placement === "list" ? undefined : "w-full lg:w-auto"}
       disabled={disabled || pending}
       onClick={open}
       size={placement === "list" ? "default" : "lg"}
       type="submit"
     >
-      <ShoppingCartIcon aria-hidden="true" className="size-4" />
-      {label}
+      {pending ? (
+        <Spinner className="size-4" />
+      ) : (
+        <ShoppingCartIcon aria-hidden="true" className="size-4" />
+      )}
+      {LABEL}
     </Button>
   );
 }

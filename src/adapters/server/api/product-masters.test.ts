@@ -24,8 +24,8 @@ vi.mock("@/config/environment", () => ({ getEnvironment }));
 import { getProductCategories, PRODUCT_MASTERS_TAG } from "./product-masters";
 
 const wireCategories = [
-  { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b21", name: "雑貨", code: 20, sortKey: 1 },
-  { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b22", name: "書籍", code: 10, sortKey: 2 },
+  { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b21", name: "雑貨", code: 20, displaySort: 1 },
+  { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b22", name: "書籍", code: 10, displaySort: 2 },
 ];
 
 const CATEGORIES_URL = `${environment.APP_API_BASE_URL}/v1/products/categories`;
@@ -36,12 +36,12 @@ afterEach(() => {
 
 describe("getProductCategories", () => {
   // ----- 正常系 -----
-  it("契約の応答から ID と表示名だけを取り出す", async () => {
+  it("契約の応答から ID・コード・表示名だけを取り出す", async () => {
     serveJson(CATEGORIES_URL, wireCategories);
 
     await expect(getProductCategories()).resolves.toEqual([
-      { id: wireCategories[0]?.id, name: "雑貨" },
-      { id: wireCategories[1]?.id, name: "書籍" },
+      { id: wireCategories[0]?.id, code: 20, name: "雑貨" },
+      { id: wireCategories[1]?.id, code: 10, name: "書籍" },
     ]);
   });
 

@@ -1,104 +1,76 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { FILTER_KEY } from "../../../facade/list-url/list-url";
-import type { FilterGroup } from "../filter-fields/filter-fields";
+import { FILTER_KEY, type ProductListSelection } from "../../../facade/list-url/list-url";
+import type { FilterOption } from "../../query";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
-}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
+import { ProductFilterDraftProvider } from "../../filter-draft";
 import { ProductFilterSidebar } from "./filter-sidebar";
 
-const GROUPS: readonly FilterGroup[] = [
-  {
-    key: FILTER_KEY.CATEGORY,
-    legend: "カテゴリ",
-    options: [
-      { value: "", label: "すべて" },
-      { value: "c1", label: "オーディオ" },
-      { value: "c2", label: "ウェアラブル" },
-    ],
-  },
-  {
-    key: FILTER_KEY.STATUS,
-    legend: "状態",
-    options: [
-      { value: "", label: "すべて" },
-      { value: "s1", label: "公開" },
-      { value: "s2", label: "在庫切れ" },
-    ],
-  },
+const CATEGORIES: readonly FilterOption[] = [
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
 ];
 
-function group(legend: string) {
-  return within(screen.getByRole("group", { name: legend }));
+function renderSidebar(selection: ProductListSelection = {}) {
+  return render(
+    <ProductFilterDraftProvider selection={selection}>
+      <ProductFilterSidebar categories={CATEGORIES} categoryLimit={32} />
+    </ProductFilterDraftProvider>,
+  );
 }
 
+beforeEach(() => {
+  push.mockReset();
+});
+
 describe("ProductFilterSidebar", () => {
-  beforeEach(() => {
-    push.mockClear();
+  it("選んだ時点で、その条件の URL へ移る", async () => {
+    renderSidebar();
+
+    await userEvent.click(screen.getByLabelText("オーディオ"));
+
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10");
   });
 
-  it("選んだ時点で一覧の URL へ移る", async () => {
-    render(<ProductFilterSidebar groups={GROUPS} selection={{}} />);
+  it("確定の操作を置かない", () => {
+    renderSidebar();
 
-    await userEvent.click(group("カテゴリ").getByLabelText("オーディオ"));
-
-    expect(push).toHaveBeenCalledTimes(1);
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c1");
+    expect(screen.queryByRole("button", { name: "絞り込み" })).not.toBeInTheDocument();
   });
 
-  it("いま効いている他の条件を引き継ぐ", async () => {
-    render(
-      <ProductFilterSidebar
-        groups={GROUPS}
-        selection={{ [FILTER_KEY.KEYWORD]: "鞄", [FILTER_KEY.SORT]: "publishedAt" }}
-      />,
-    );
+  it("キーワードなど、入力欄が受け持たない条件は落とさずに反映する", async () => {
+    renderSidebar({ [FILTER_KEY.KEYWORD]: "鞄" });
 
-    await userEvent.click(group("状態").getByLabelText("在庫切れ"));
+    await userEvent.click(screen.getByLabelText("オーディオ"));
 
-    expect(push).toHaveBeenCalledWith("/products?keyword=%E9%9E%84&sort=publishedAt&statusId=s2");
+    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");
   });
 
-  it("効いている条件を選択済みとして出す", () => {
-    render(<ProductFilterSidebar groups={GROUPS} selection={{ [FILTER_KEY.CATEGORY]: "c2" }} />);
+  it("いま効いている条件を入力欄へ映す", () => {
+    renderSidebar({ [FILTER_KEY.CATEGORY]: ["20"] });
 
-    expect(group("カテゴリ").getByLabelText("ウェアラブル")).toBeChecked();
+    expect(screen.getByLabelText("ウェアラブル")).toBeChecked();
   });
 
-  it("読み進めた位置を持ち越さない", async () => {
-    render(
-      <ProductFilterSidebar
-        groups={GROUPS}
-        selection={{ after: "cursor-1", first: "48", [FILTER_KEY.CATEGORY]: "c1" }}
-      />,
-    );
+  it("反映を待っている間も入力欄を押せる", async () => {
+    renderSidebar();
 
-    await userEvent.click(group("カテゴリ").getByLabelText("ウェアラブル"));
+    await userEvent.click(screen.getByLabelText("オーディオ"));
 
-    expect(push).toHaveBeenCalledWith("/products?categoryId=c2");
-  });
-
-  it("「すべて」を選ぶとその条件を URL から外す", async () => {
-    render(<ProductFilterSidebar groups={GROUPS} selection={{ [FILTER_KEY.CATEGORY]: "c1" }} />);
-
-    await userEvent.click(group("カテゴリ").getByLabelText("すべて"));
-
-    expect(push).toHaveBeenCalledWith("/products");
+    expect(screen.getByLabelText("ウェアラブル")).toBeEnabled();
   });
 
   it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(
-      <ProductFilterSidebar groups={GROUPS} selection={{ [FILTER_KEY.CATEGORY]: "c1" }} />,
-    );
+    const { container } = renderSidebar();
 
     expect((await axe(container)).violations).toEqual([]);
   });

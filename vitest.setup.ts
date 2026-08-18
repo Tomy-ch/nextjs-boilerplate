@@ -111,6 +111,17 @@ if (typeof window !== "undefined" && window.matchMedia === undefined) {
   })) as typeof window.matchMedia;
 }
 
+// jsdom は ResizeObserver も実装しない。自分の大きさを測ってから描く部品は mount の時点で例外に
+// なる。何も通知しないのは、jsdom がレイアウトを持たず大きさが変わる瞬間そのものが存在しない
+// ためで、大きさに依存する分岐を確かめたいテストはそのケースだけ上書きする。
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  } as unknown as typeof ResizeObserver;
+}
+
 /** 疑似 touch の 1 点。ジェスチャーの判定が読む値だけを持つ。 */
 export type StubTouch = {
   /** 指の識別子。複数指のうちどれが動いたかを判定に使う。 */

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { SEARCH_FIELD_DEBOUNCE_MS, SearchFieldClient } from "./search-field-client";
+import { SEARCH_FIELD_COMMIT } from "./search-field-client.definition";
 
 const noop = () => undefined;
 
@@ -138,5 +139,149 @@ describe("SearchFieldClient", () => {
     const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
 
     expect(result.violations).toEqual([]);
+  });
+
+  // ----- 確定の契機を送信にした場合 -----
+  it("送信でだけ確定する形では、打鍵しても通知しない", () => {
+    const onSearch = vi.fn();
+    render(
+      <SearchFieldClient
+        commit={SEARCH_FIELD_COMMIT.SUBMIT}
+        label="項目を検索"
+        onSearch={onSearch}
+      />,
+    );
+
+    type("本");
+    advance(SEARCH_FIELD_DEBOUNCE_MS * 2);
+
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  it("送信の操作で、そのときの検索語を通知する", () => {
+    const onSearch = vi.fn();
+    render(
+      <SearchFieldClient
+        commit={SEARCH_FIELD_COMMIT.SUBMIT}
+        label="項目を検索"
+        onSearch={onSearch}
+      />,
+    );
+
+    type("本");
+    fireEvent.click(screen.getByRole("button", { name: "検索" }));
+
+    expect(onSearch).toHaveBeenCalledWith("本");
+  });
+
+  it("Enter でも確定する", () => {
+    const onSearch = vi.fn();
+    render(
+      <SearchFieldClient
+        commit={SEARCH_FIELD_COMMIT.SUBMIT}
+        label="項目を検索"
+        onSearch={onSearch}
+      />,
+    );
+
+    type("本");
+    fireEvent.keyDown(screen.getByRole("searchbox", { name: "項目を検索" }), { key: "Enter" });
+
+    expect(onSearch).toHaveBeenCalledWith("本");
+  });
+
+  it("Enter 以外のキーでは確定しない", () => {
+    const onSearch = vi.fn();
+    render(
+      <SearchFieldClient
+        commit={SEARCH_FIELD_COMMIT.SUBMIT}
+        label="項目を検索"
+        onSearch={onSearch}
+      />,
+    );
+
+    type("本");
+    fireEvent.keyDown(screen.getByRole("searchbox", { name: "項目を検索" }), { key: "a" });
+
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  it("送信ボタンの文言を差し替えられる", () => {
+    render(
+      <SearchFieldClient
+        commit={SEARCH_FIELD_COMMIT.SUBMIT}
+        label="項目を検索"
+        onSearch={vi.fn()}
+        submitLabel="絞り込む"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "絞り込む" })).toBeInTheDocument();
+  });
+
+  it("呼び出し元が押せないと決めたとき、送信を押せなくする", () => {
+    render(
+      <SearchFieldClient
+        commit={SEARCH_FIELD_COMMIT.SUBMIT}
+        label="項目を検索"
+        onSearch={vi.fn()}
+        submitDisabled
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "検索" })).toBeDisabled();
+  });
+
+  it("打鍵で確定する形では送信ボタンを出さない", () => {
+    render(<SearchFieldClient label="項目を検索" onSearch={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "検索" })).not.toBeInTheDocument();
+  });
+
+  // ----- 制御 component として使う場合 -----
+  it("外から渡された検索語を映す", () => {
+    render(<SearchFieldClient label="項目を検索" onSearch={vi.fn()} value="鞄" />);
+
+    expect(screen.getByRole("searchbox", { name: "項目を検索" })).toHaveValue("鞄");
+  });
+
+  it("打鍵のたびに、呼び出し元へ入力を渡す", () => {
+    const onValueChange = vi.fn();
+    render(
+      <SearchFieldClient
+        label="項目を検索"
+        onSearch={vi.fn()}
+        onValueChange={onValueChange}
+        value=""
+      />,
+    );
+
+    type("鞄");
+
+    expect(onValueChange).toHaveBeenCalledWith("鞄");
+  });
+
+  it("外から渡されている間は、自分では入力を保持しない", () => {
+    render(<SearchFieldClient label="項目を検索" onSearch={vi.fn()} value="鞄" />);
+
+    type("靴");
+
+    expect(screen.getByRole("searchbox", { name: "項目を検索" })).toHaveValue("鞄");
+  });
+
+  it("消去の操作でも、空を呼び出し元へ渡す", () => {
+    const onValueChange = vi.fn();
+    render(
+      <SearchFieldClient
+        label="項目を検索"
+        onSearch={vi.fn()}
+        onValueChange={onValueChange}
+        value="鞄"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "検索語を消去" }));
+
+    expect(onValueChange).toHaveBeenCalledWith("");
   });
 });

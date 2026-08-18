@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+9abecab
  */
 import * as zod from "zod";
 
@@ -577,7 +577,7 @@ export const GetUsersMePurchasesSummaryQueryParams = zod.object({
     .max(getUsersMePurchasesSummaryQueryGroupByMax)
     .optional()
     .describe(
-      "集計のグループ化単位（カンマ区切り）。指定順がそのままネストの階層順になります\n（`category,product` ならカテゴリで分け、その中を商品で分けます）。\n未指定の場合はグループ化せず、レスポンスに groups を含めません。同じ単位を 2 回指定した場合は 400 を返します。\n",
+      "集計のグループ化単位（複数指定は同じ名前を繰り返します: `groupBy=category&groupBy=product`）。\n指定順がそのままネストの階層順になります（上の例ならカテゴリで分け、その中を商品で分けます）。\n未指定の場合はグループ化せず、レスポンスに groups を含めません。同じ単位を 2 回指定した場合は 400 を返します。\n",
     ),
 });
 
@@ -958,7 +958,6 @@ export const GetProductStatusesResponseItem = zod
     zod
       .object({
         code: zod.int().describe("商品ステータスコード（正の SMALLINT）"),
-        sortKey: zod.int().describe("表示順（sortKey 昇順で一覧を並べる。code とは非連動）"),
       })
       .describe("商品ステータスマスタの詳細情報です。"),
   )
@@ -980,7 +979,6 @@ export const GetProductCategoriesResponseItem = zod
     zod
       .object({
         code: zod.int().describe("商品カテゴリコード"),
-        sortKey: zod.int().describe("表示順"),
       })
       .describe("商品カテゴリマスタの詳細情報です。"),
   )
@@ -990,7 +988,8 @@ export const GetProductCategoriesResponse = zod.array(GetProductCategoriesRespon
 /**
  * 公開済みの商品を cursor ページネーションで取得します。認証不要の公開エンドポイントです。
  * 既定では公開日時の降順（publishedAt DESC, id DESC）で並び、sort=publishedAt で昇順に切り替えられます。
- * categoryId / statusId でフィルタ、keyword で商品名・説明の部分一致検索ができます。
+ * categoryCodes / statusCodes でフィルタ（同じ名前を繰り返して複数指定可）、keyword で商品名・説明の部分一致検索ができます。
+ * categoryId / statusId は非推奨で、後継の categoryCodes / statusCodes と同時に指定すると 400 を返します。
  * minPrice / maxPrice で価格、minQuantity / maxQuantity で在庫数を境界値を含めて範囲検索できます。
  * いずれの範囲も下限が上限を超える場合は 400 を返します。
  * 公開日時が未設定（未公開）の商品は返しません。ステータスによる可視範囲の絞り込みは今後対応予定です。
@@ -1013,6 +1012,14 @@ export const getProductsQueryStatusIdMax = 36;
 export const getProductsQueryStatusIdRegExp = new RegExp(
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
 );
+export const getProductsQueryCategoryCodesItemMax = 32767;
+
+export const getProductsQueryCategoryCodesMax = 32;
+
+export const getProductsQueryStatusCodesItemMax = 32767;
+
+export const getProductsQueryStatusCodesMax = 32;
+
 export const getProductsQueryKeywordMax = 255;
 
 export const getProductsQueryMinPriceMax = 40;
@@ -1045,13 +1052,31 @@ export const GetProductsQueryParams = zod.object({
     .max(getProductsQueryCategoryIdMax)
     .regex(getProductsQueryCategoryIdRegExp)
     .optional()
-    .describe("商品カテゴリIDでフィルタします。指定しない場合は全カテゴリを対象とします。"),
+    .describe(
+      "商品カテゴリIDでフィルタします。指定しない場合は全カテゴリを対象とします。\n後継は categoryCodes で、マスタ行を指すのは UUID ではなく code です。categoryCodes と\n同時に指定した場合は 400 を返します。\n",
+    ),
   statusId: zod
     .uuid()
     .max(getProductsQueryStatusIdMax)
     .regex(getProductsQueryStatusIdRegExp)
     .optional()
-    .describe("商品ステータスIDでフィルタします。指定しない場合は全ステータスを対象とします。"),
+    .describe(
+      "商品ステータスIDでフィルタします。指定しない場合は全ステータスを対象とします。\n後継は statusCodes で、マスタ行を指すのは UUID ではなく code です。statusCodes と\n同時に指定した場合は 400 を返します。\n",
+    ),
+  categoryCodes: zod
+    .array(zod.int().min(1).max(getProductsQueryCategoryCodesItemMax))
+    .max(getProductsQueryCategoryCodesMax)
+    .optional()
+    .describe(
+      "商品カテゴリコードでフィルタします（複数指定は同じ名前を繰り返します: `categoryCodes=1&categoryCodes=2`）。\n指定したコードのいずれかに一致する商品を返します。\n指定しない場合は全カテゴリを対象とします。存在しないコードは 0 件として扱い、エラーにはしません。\nコードは商品カテゴリマスタ（GET \/v1\/products\/categories）が返す code で、マスタ行を指す静的な別名です。\n非推奨の categoryId と同時に指定した場合は 400 を返します。\n",
+    ),
+  statusCodes: zod
+    .array(zod.int().min(1).max(getProductsQueryStatusCodesItemMax))
+    .max(getProductsQueryStatusCodesMax)
+    .optional()
+    .describe(
+      "商品ステータスコードでフィルタします（複数指定は同じ名前を繰り返します: `statusCodes=1&statusCodes=5`）。\n指定したコードのいずれかに一致する商品を返します。\n指定しない場合は全ステータスを対象とします。存在しないコードは 0 件として扱い、エラーにはしません。\nコードは商品ステータスマスタ（GET \/v1\/products\/statuses）が返す code で、マスタ行を指す静的な別名です。\n非推奨の statusId と同時に指定した場合は 400 を返します。\n",
+    ),
   keyword: zod
     .string()
     .min(1)
@@ -1091,7 +1116,7 @@ export const GetProductsQueryParams = zod.object({
 export const getProductsResponseOneProductsItemNameMax = 255;
 
 export const getProductsResponseOneProductsItemPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
-export const getProductsResponseOneProductsItemImagesItemSortKeyMax = 32767;
+export const getProductsResponseOneProductsItemImagesItemDisplaySortMax = 32767;
 
 export const GetProductsResponse = zod
   .object({
@@ -1135,18 +1160,18 @@ export const GetProductsResponse = zod
                   imagePath: zod
                     .string()
                     .describe("格納されたオブジェクトのパス（オブジェクトキー）。"),
-                  sortKey: zod
+                  displaySort: zod
                     .int()
                     .min(1)
-                    .max(getProductsResponseOneProductsItemImagesItemSortKeyMax)
-                    .describe("同一商品内での表示順。images は sortKey の昇順で返します。"),
+                    .max(getProductsResponseOneProductsItemImagesItemDisplaySortMax)
+                    .describe("同一商品内での表示順。images は displaySort の昇順で返します。"),
                 })
                 .describe(
                   "商品画像 1 件。表示 URL はフロントが配信ベース URL と imagePath から組み立てます\n（backend はフル URL を保持しません）。\n",
                 ),
             )
             .describe(
-              "商品画像。sortKey の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
+              "商品画像。displaySort の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
             ),
           version: zod
             .int()
@@ -1191,7 +1216,7 @@ export const postProductsBodyStatusIdRegExp = new RegExp(
 export const postProductsBodyImagesItemImagePathRegExp = new RegExp(
   "^products/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(png|jpg|webp)$",
 );
-export const postProductsBodyImagesItemSortKeyMax = 32767;
+export const postProductsBodyImagesItemDisplaySortMax = 32767;
 
 export const PostProductsBody = zod
   .object({
@@ -1232,10 +1257,10 @@ export const PostProductsBody = zod
               .describe(
                 "画像パス。画像アップロード（POST \/v1\/products\/images）で得たパスを渡します。 アップロード API が採番したキーだけを受け付けるよう形式を固定しています。未参照オブジェクトの回収（product-image-gc）は、この値がストレージのキーと完全一致することを前提に孤児を判定するためです。UUID を小文字に限るのは、categoryId \/ statusId と違いこの値が UUID として解釈されず文字列のまま突き合わされるためで、大文字表記を許すと同じキーを指しながら一致せず、生きている画像を孤児と誤判定します。",
               ),
-            sortKey: zod
+            displaySort: zod
               .int()
               .min(1)
-              .max(postProductsBodyImagesItemSortKeyMax)
+              .max(postProductsBodyImagesItemDisplaySortMax)
               .describe(
                 "同一商品内での表示順。1 から数えます。同じ商品の中で重複する値を送ると業務不変条件違反として 422 を返します。 欠番は許容し、送られた値をそのまま保持します。",
               ),
@@ -1246,7 +1271,7 @@ export const PostProductsBody = zod
       )
       .optional()
       .describe(
-        "商品画像。未指定の場合は画像を持たない商品として作成します。 同じ商品の中で sortKey が重複する場合は業務不変条件違反として 422 を返します。",
+        "商品画像。未指定の場合は画像を持たない商品として作成します。 同じ商品の中で displaySort が重複する場合は業務不変条件違反として 422 を返します。",
       ),
   })
   .describe(
@@ -1256,7 +1281,7 @@ export const PostProductsBody = zod
 export const postProductsResponseNameMax = 255;
 
 export const postProductsResponsePriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
-export const postProductsResponseImagesItemSortKeyMax = 32767;
+export const postProductsResponseImagesItemDisplaySortMax = 32767;
 
 export const PostProductsResponse = zod
   .object({
@@ -1295,18 +1320,18 @@ export const PostProductsResponse = zod
         zod
           .object({
             imagePath: zod.string().describe("格納されたオブジェクトのパス（オブジェクトキー）。"),
-            sortKey: zod
+            displaySort: zod
               .int()
               .min(1)
-              .max(postProductsResponseImagesItemSortKeyMax)
-              .describe("同一商品内での表示順。images は sortKey の昇順で返します。"),
+              .max(postProductsResponseImagesItemDisplaySortMax)
+              .describe("同一商品内での表示順。images は displaySort の昇順で返します。"),
           })
           .describe(
             "商品画像 1 件。表示 URL はフロントが配信ベース URL と imagePath から組み立てます\n（backend はフル URL を保持しません）。\n",
           ),
       )
       .describe(
-        "商品画像。sortKey の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
+        "商品画像。displaySort の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
       ),
     version: zod
       .int()
@@ -1318,8 +1343,9 @@ export const PostProductsResponse = zod
 
 /**
  * 公開済み商品のうち、指定した検索条件に一致する件数のみを返します。認証不要の公開エンドポイントです。
- * categoryId / statusId / keyword / minPrice / maxPrice / minQuantity / maxQuantity の意味は
+ * categoryCodes / statusCodes / keyword / minPrice / maxPrice / minQuantity / maxQuantity の意味は
  * GET /v1/products と同一です。検索条件を指定しない場合は公開済み商品の総数を返します。
+ * categoryId / statusId は非推奨で、後継の categoryCodes / statusCodes と同時に指定すると 400 を返します。
  * @summary 商品検索の一致件数の取得
  */
 export const getProductsCountQueryCategoryIdMax = 36;
@@ -1332,6 +1358,14 @@ export const getProductsCountQueryStatusIdMax = 36;
 export const getProductsCountQueryStatusIdRegExp = new RegExp(
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
 );
+export const getProductsCountQueryCategoryCodesItemMax = 32767;
+
+export const getProductsCountQueryCategoryCodesMax = 32;
+
+export const getProductsCountQueryStatusCodesItemMax = 32767;
+
+export const getProductsCountQueryStatusCodesMax = 32;
+
 export const getProductsCountQueryKeywordMax = 255;
 
 export const getProductsCountQueryMinPriceMax = 40;
@@ -1350,13 +1384,31 @@ export const GetProductsCountQueryParams = zod.object({
     .max(getProductsCountQueryCategoryIdMax)
     .regex(getProductsCountQueryCategoryIdRegExp)
     .optional()
-    .describe("商品カテゴリIDでフィルタします。指定しない場合は全カテゴリを対象とします。"),
+    .describe(
+      "商品カテゴリIDでフィルタします。指定しない場合は全カテゴリを対象とします。\n後継は categoryCodes で、マスタ行を指すのは UUID ではなく code です。categoryCodes と\n同時に指定した場合は 400 を返します。\n",
+    ),
   statusId: zod
     .uuid()
     .max(getProductsCountQueryStatusIdMax)
     .regex(getProductsCountQueryStatusIdRegExp)
     .optional()
-    .describe("商品ステータスIDでフィルタします。指定しない場合は全ステータスを対象とします。"),
+    .describe(
+      "商品ステータスIDでフィルタします。指定しない場合は全ステータスを対象とします。\n後継は statusCodes で、マスタ行を指すのは UUID ではなく code です。statusCodes と\n同時に指定した場合は 400 を返します。\n",
+    ),
+  categoryCodes: zod
+    .array(zod.int().min(1).max(getProductsCountQueryCategoryCodesItemMax))
+    .max(getProductsCountQueryCategoryCodesMax)
+    .optional()
+    .describe(
+      "商品カテゴリコードでフィルタします（複数指定は同じ名前を繰り返します: `categoryCodes=1&categoryCodes=2`）。\n指定したコードのいずれかに一致する商品を返します。\n指定しない場合は全カテゴリを対象とします。存在しないコードは 0 件として扱い、エラーにはしません。\nコードは商品カテゴリマスタ（GET \/v1\/products\/categories）が返す code で、マスタ行を指す静的な別名です。\n非推奨の categoryId と同時に指定した場合は 400 を返します。\n",
+    ),
+  statusCodes: zod
+    .array(zod.int().min(1).max(getProductsCountQueryStatusCodesItemMax))
+    .max(getProductsCountQueryStatusCodesMax)
+    .optional()
+    .describe(
+      "商品ステータスコードでフィルタします（複数指定は同じ名前を繰り返します: `statusCodes=1&statusCodes=5`）。\n指定したコードのいずれかに一致する商品を返します。\n指定しない場合は全ステータスを対象とします。存在しないコードは 0 件として扱い、エラーにはしません。\nコードは商品ステータスマスタ（GET \/v1\/products\/statuses）が返す code で、マスタ行を指す静的な別名です。\n非推奨の statusId と同時に指定した場合は 400 を返します。\n",
+    ),
   keyword: zod
     .string()
     .min(1)
@@ -1421,7 +1473,7 @@ export const GetProductsDetailParams = zod.object({
 export const getProductsDetailResponseNameMax = 255;
 
 export const getProductsDetailResponsePriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
-export const getProductsDetailResponseImagesItemSortKeyMax = 32767;
+export const getProductsDetailResponseImagesItemDisplaySortMax = 32767;
 
 export const GetProductsDetailResponse = zod
   .object({
@@ -1460,18 +1512,18 @@ export const GetProductsDetailResponse = zod
         zod
           .object({
             imagePath: zod.string().describe("格納されたオブジェクトのパス（オブジェクトキー）。"),
-            sortKey: zod
+            displaySort: zod
               .int()
               .min(1)
-              .max(getProductsDetailResponseImagesItemSortKeyMax)
-              .describe("同一商品内での表示順。images は sortKey の昇順で返します。"),
+              .max(getProductsDetailResponseImagesItemDisplaySortMax)
+              .describe("同一商品内での表示順。images は displaySort の昇順で返します。"),
           })
           .describe(
             "商品画像 1 件。表示 URL はフロントが配信ベース URL と imagePath から組み立てます\n（backend はフル URL を保持しません）。\n",
           ),
       )
       .describe(
-        "商品画像。sortKey の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
+        "商品画像。displaySort の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
       ),
     version: zod
       .int()
@@ -1520,7 +1572,7 @@ export const patchProductsDetailBodyStatusIdRegExp = new RegExp(
 export const patchProductsDetailBodyImagesItemImagePathRegExp = new RegExp(
   "^products/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(png|jpg|webp)$",
 );
-export const patchProductsDetailBodyImagesItemSortKeyMax = 32767;
+export const patchProductsDetailBodyImagesItemDisplaySortMax = 32767;
 
 export const PatchProductsDetailBody = zod
   .object({
@@ -1575,10 +1627,10 @@ export const PatchProductsDetailBody = zod
               .describe(
                 "画像パス。画像アップロード（POST \/v1\/products\/images）で得たパスを渡します。 アップロード API が採番したキーだけを受け付けるよう形式を固定しています。未参照オブジェクトの回収（product-image-gc）は、この値がストレージのキーと完全一致することを前提に孤児を判定するためです。UUID を小文字に限るのは、categoryId \/ statusId と違いこの値が UUID として解釈されず文字列のまま突き合わされるためで、大文字表記を許すと同じキーを指しながら一致せず、生きている画像を孤児と誤判定します。",
               ),
-            sortKey: zod
+            displaySort: zod
               .int()
               .min(1)
-              .max(patchProductsDetailBodyImagesItemSortKeyMax)
+              .max(patchProductsDetailBodyImagesItemDisplaySortMax)
               .describe(
                 "同一商品内での表示順。1 から数えます。同じ商品の中で重複する値を送ると業務不変条件違反として 422 を返します。 欠番は許容し、送られた値をそのまま保持します。",
               ),
@@ -1589,7 +1641,7 @@ export const PatchProductsDetailBody = zod
       )
       .nullish()
       .describe(
-        "商品画像。送ると集合ごと置き換えます（差分更新ではありません）。null を指定すると画像を全て取り除きます。 同じ商品の中で sortKey が重複する場合は業務不変条件違反として 422 を返します。 置き換えで外れた画像は、猶予期間の経過後に未参照オブジェクトの回収（product-image-gc）が ストレージから削除します。",
+        "商品画像。送ると集合ごと置き換えます（差分更新ではありません）。null を指定すると画像を全て取り除きます。 同じ商品の中で displaySort が重複する場合は業務不変条件違反として 422 を返します。 置き換えで外れた画像は、猶予期間の経過後に未参照オブジェクトの回収（product-image-gc）が ストレージから削除します。",
       ),
   })
   .describe(
@@ -1599,7 +1651,7 @@ export const PatchProductsDetailBody = zod
 export const patchProductsDetailResponseNameMax = 255;
 
 export const patchProductsDetailResponsePriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
-export const patchProductsDetailResponseImagesItemSortKeyMax = 32767;
+export const patchProductsDetailResponseImagesItemDisplaySortMax = 32767;
 
 export const PatchProductsDetailResponse = zod
   .object({
@@ -1638,18 +1690,18 @@ export const PatchProductsDetailResponse = zod
         zod
           .object({
             imagePath: zod.string().describe("格納されたオブジェクトのパス（オブジェクトキー）。"),
-            sortKey: zod
+            displaySort: zod
               .int()
               .min(1)
-              .max(patchProductsDetailResponseImagesItemSortKeyMax)
-              .describe("同一商品内での表示順。images は sortKey の昇順で返します。"),
+              .max(patchProductsDetailResponseImagesItemDisplaySortMax)
+              .describe("同一商品内での表示順。images は displaySort の昇順で返します。"),
           })
           .describe(
             "商品画像 1 件。表示 URL はフロントが配信ベース URL と imagePath から組み立てます\n（backend はフル URL を保持しません）。\n",
           ),
       )
       .describe(
-        "商品画像。sortKey の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
+        "商品画像。displaySort の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
       ),
     version: zod
       .int()
@@ -1701,7 +1753,7 @@ export const PatchProductsStockBody = zod
 export const patchProductsStockResponseNameMax = 255;
 
 export const patchProductsStockResponsePriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
-export const patchProductsStockResponseImagesItemSortKeyMax = 32767;
+export const patchProductsStockResponseImagesItemDisplaySortMax = 32767;
 
 export const PatchProductsStockResponse = zod
   .object({
@@ -1740,18 +1792,18 @@ export const PatchProductsStockResponse = zod
         zod
           .object({
             imagePath: zod.string().describe("格納されたオブジェクトのパス（オブジェクトキー）。"),
-            sortKey: zod
+            displaySort: zod
               .int()
               .min(1)
-              .max(patchProductsStockResponseImagesItemSortKeyMax)
-              .describe("同一商品内での表示順。images は sortKey の昇順で返します。"),
+              .max(patchProductsStockResponseImagesItemDisplaySortMax)
+              .describe("同一商品内での表示順。images は displaySort の昇順で返します。"),
           })
           .describe(
             "商品画像 1 件。表示 URL はフロントが配信ベース URL と imagePath から組み立てます\n（backend はフル URL を保持しません）。\n",
           ),
       )
       .describe(
-        "商品画像。sortKey の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
+        "商品画像。displaySort の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
       ),
     version: zod
       .int()
@@ -1846,7 +1898,7 @@ export const GetProductsLowStockQueryParams = zod.object({
 export const getProductsLowStockResponseProductsItemNameMax = 255;
 
 export const getProductsLowStockResponseProductsItemPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
-export const getProductsLowStockResponseProductsItemImagesItemSortKeyMax = 32767;
+export const getProductsLowStockResponseProductsItemImagesItemDisplaySortMax = 32767;
 
 export const GetProductsLowStockResponse = zod
   .object({
@@ -1894,18 +1946,18 @@ export const GetProductsLowStockResponse = zod
                     imagePath: zod
                       .string()
                       .describe("格納されたオブジェクトのパス（オブジェクトキー）。"),
-                    sortKey: zod
+                    displaySort: zod
                       .int()
                       .min(1)
-                      .max(getProductsLowStockResponseProductsItemImagesItemSortKeyMax)
-                      .describe("同一商品内での表示順。images は sortKey の昇順で返します。"),
+                      .max(getProductsLowStockResponseProductsItemImagesItemDisplaySortMax)
+                      .describe("同一商品内での表示順。images は displaySort の昇順で返します。"),
                   })
                   .describe(
                     "商品画像 1 件。表示 URL はフロントが配信ベース URL と imagePath から組み立てます\n（backend はフル URL を保持しません）。\n",
                   ),
               )
               .describe(
-                "商品画像。sortKey の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
+                "商品画像。displaySort の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。",
               ),
             version: zod
               .int()
@@ -2780,7 +2832,7 @@ export const GetDashboardSummaryResponse = zod
  * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
  * パスに他者の識別子を持たないため、他人のカートは取得できません。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0019 (optional-authentication-fail-closed)）。
+ * （ADR-0020 (optional-authentication-fail-closed)）。
  * 明細ごとに商品の現在値を突き合わせ、買えないもの・値の変わったものに issues を立てます。
  * 問題のある明細があっても 200 で返します。取得は成功しており、問題があるのは明細であって
  * 要求ではないためで、エラーにすると買える明細が何であったかを利用者に見せられなくなります。
@@ -2889,7 +2941,7 @@ export const GetCartsMeResponse = zod
  * 期限切れの掃除とログイン時のマージ後の破棄に限り、API としては公開しません。
  * 主体の決まり方は取得（GET）と同じで、両方が提示された場合は認証済みユーザーが優先されます。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0019 (optional-authentication-fail-closed)）。
+ * （ADR-0020 (optional-authentication-fail-closed)）。
  * **既に空のカートを空にしても、カートを持たない主体が呼んでも成功します**。カートを持たない
  * 主体にカートを作ることはなく、提示されたセッショントークンでカートを引けなかった場合も
  * 採番し直しません（応答が本文を持たないため、新しいトークンを返す場所がありません）。
@@ -2926,7 +2978,7 @@ export const DeleteCartsMeResponse = zod.void();
  * 主体は認証済みユーザー（Bearer トークンの内部 UserID）か、ゲスト（X-Cart-Session ヘッダ）の
  * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0019 (optional-authentication-fail-closed)）。
+ * （ADR-0020 (optional-authentication-fail-closed)）。
  * **カートがまだ無い主体にはこの操作がカートを作ります**。ゲストの場合はセッショントークンを
  * 発行して sessionToken に載せて返すので、以降のリクエストで X-Cart-Session に載せてください。
  * 提示されたトークンでカートを引けなかった場合、その値では作らず新しい値を発行します
@@ -3064,7 +3116,7 @@ export const PutCartsMeItemResponse = zod
  * **対象の明細が無くても成功します**。「無かった」と「消した」を呼び出し側に区別させないため、
  * 404 を持ちません。主体の決まり方は設定（PUT）と同じで、両方が提示された場合は認証済みユーザーが
  * 優先されます。認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0019 (optional-authentication-fail-closed)）。
+ * （ADR-0020 (optional-authentication-fail-closed)）。
  * **カートを持たない主体が呼んでもカートは作りません**。提示されたセッショントークンでカートを
  * 引けなかった場合も採番し直さず、何もせずに成功を返します（応答が本文を持たないため、新しい
  * トークンを返す場所がありません）。

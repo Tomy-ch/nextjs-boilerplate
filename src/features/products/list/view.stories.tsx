@@ -11,7 +11,6 @@ import type { ProductListItem } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 import { FILTER_KEY } from "../facade/list-url/list-url";
 import type { FilterOption } from "./query";
-import type { FilterGroup } from "./ui/filter-fields/filter-fields";
 import { ProductLoadMoreList } from "./ui/load-more-list/load-more-list";
 import { ProductListView } from "./view";
 
@@ -101,15 +100,10 @@ const ITEMS: readonly ProductListItem[] = [
   item({ name: "モバイルバッテリー", price: "59.99", quantity: 2 }),
 ];
 
-const CATEGORY_OPTIONS: readonly FilterOption[] = [
-  { value: "", label: "すべて" },
-  { value: "c1", label: "オーディオ" },
-  { value: "c2", label: "ウェアラブル" },
-  { value: "c3", label: "アクセサリ" },
-];
-
-const GROUPS: readonly FilterGroup[] = [
-  { key: FILTER_KEY.CATEGORY, legend: "カテゴリ", options: CATEGORY_OPTIONS },
+const CATEGORIES: readonly FilterOption[] = [
+  { value: "10", label: "オーディオ" },
+  { value: "20", label: "ウェアラブル" },
+  { value: "30", label: "アクセサリ" },
 ];
 
 const SORT_OPTIONS: readonly FilterOption[] = [
@@ -121,12 +115,21 @@ const meta = {
   title: "Page/Products/List",
   component: ProductListView,
   parameters: {
-    docs: { story: { inline: false, iframeHeight: 900 } },
+    docs: {
+      story: { inline: false, iframeHeight: 900 },
+      description: {
+        component: [
+          "商品一覧の画面です。**canvas では遷移も取得も起きません** —— 絞り込みを選んでも一覧が",
+          "変わらないのはそのためで、実際は選んだ時点でその条件の一覧へ移ります。",
+        ].join(""),
+      },
+    },
     layout: "fullscreen",
   },
   decorators: [withPageFrame],
   args: {
-    groups: GROUPS,
+    categories: CATEGORIES,
+    categoryLimit: 32,
     sortOptions: SORT_OPTIONS,
     selection: {},
     children: <ProductLoadMoreList hasNext items={ITEMS} total={10} />,
@@ -163,7 +166,10 @@ export const Filtered: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
     selection: {
-      [FILTER_KEY.CATEGORY]: "c1",
+      [FILTER_KEY.CATEGORY]: ["10", "30"],
+      [FILTER_KEY.MIN_PRICE]: "25",
+      [FILTER_KEY.MAX_PRICE]: "250",
+      [FILTER_KEY.MIN_QUANTITY]: "1",
       [FILTER_KEY.KEYWORD]: "イヤホン",
       [FILTER_KEY.SORT]: "publishedAt",
     },
@@ -213,17 +219,8 @@ export const ReachedEnd: Story = {
 export const MaxLength: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
-    groups: [
-      {
-        key: FILTER_KEY.CATEGORY,
-        legend: "カテゴリ",
-        options: [
-          { value: "", label: "すべて" },
-          { value: "c1", label: longText(40) },
-        ],
-      },
-    ],
-    selection: { [FILTER_KEY.CATEGORY]: "c1", [FILTER_KEY.KEYWORD]: longText(60) },
+    categories: [{ value: "10", label: longText(40) }],
+    selection: { [FILTER_KEY.CATEGORY]: ["10"], [FILTER_KEY.KEYWORD]: longText(60) },
     children: (
       <ProductLoadMoreList
         hasNext
@@ -258,4 +255,22 @@ export const MaxLengthMobile: Story = {
 export const WithCartPC: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   parameters: { cartOpen: true },
+};
+
+/** 在庫の無い商品だけを絞った状態。カードに問い合わせの入口が並ぶ。 */
+export const OutOfStockOnly: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  args: {
+    selection: { [FILTER_KEY.MAX_QUANTITY]: "0" },
+    children: (
+      <ProductLoadMoreList
+        hasNext={false}
+        items={[
+          item({ name: "USB-C ハブ", price: "45.50", quantity: 0, statusName: "在庫切れ" }),
+          item({ name: "有線イヤホン", price: "12.00", quantity: 0, statusName: "在庫切れ" }),
+        ]}
+        total={2}
+      />
+    ),
+  },
 };

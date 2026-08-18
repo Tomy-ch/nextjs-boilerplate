@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+c5703b7
+ * OpenAPI spec version: 2.2.0+9abecab
  */
 import type { ProductCategoryRef } from "./productCategoryRef";
 
@@ -19,6 +19,4 @@ import type { ProductCategoryRef } from "./productCategoryRef";
 export type ProductCategoryResponse = ProductCategoryRef & {
   /** 商品カテゴリコード */
   code: number;
-  /** 表示順 */
-  sortKey: number;
 };
