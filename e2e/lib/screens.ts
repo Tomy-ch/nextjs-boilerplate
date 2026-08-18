@@ -69,6 +69,15 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     path: "/products/0195f0c2-0000-7000-8000-000000000001",
   },
   { route: "/cart", name: "cart", path: "/cart" },
+  { route: "/checkout", name: "checkout", path: "/checkout", signedIn: true },
+  {
+    route: "/checkout/complete",
+    name: "checkout-complete",
+    // 完了は成立した購入 1 件を指して開く。モックは同じ URL へ同じ応答を返すため、ID を固定
+    // すれば中身も固定される（`mocks/stable-responses.ts`）。
+    path: "/checkout/complete?purchase=0195f0c2-0000-7000-9000-000000000001",
+    signedIn: true,
+  },
   { route: "/mypage", name: "mypage", path: "/mypage", signedIn: true },
   { route: "/mypage/edit", name: "profile-edit", path: "/mypage/edit", signedIn: true },
   { route: "/about", name: "about", path: "/about" },
@@ -76,6 +85,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   { route: "/terms", name: "terms", path: "/terms" },
   // sample:end
   { route: "/login", name: "login", path: "/login" },
+  { route: "/dev/session", name: "dev-session", path: "/dev/session" },
   { route: "/_not-found", name: "not-found", path: "/この経路は存在しない" },
   {
     route: "/_global-error",
