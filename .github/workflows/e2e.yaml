@@ -140,6 +140,8 @@ jobs:
 
           `e2e-diff` artifact に HTML レポートと、失敗した検証の trace が入っています。
           見た目の変化が意図したものなら、`vrt-retake` ラベルを付けてください。story と画面の基準画像をまとめて CI が撮り直します。手元で撮るなら `make e2e-update` → `make vrt-push` です。撮り直しは承認ではありません（vrt/README.md）。
+
+          **落ちた画面それぞれについて、なぜ変わったかを言えるまで撮り直さないでください。** 全画面が一度に落ちる形は原因が 1 つとは限らず、混ざっている不具合ごと撮り直すとそれが次の正になります（`docs/design/vrt.md` の「限界」）。
           NOTE
             } > /tmp/e2e.log
           fi
