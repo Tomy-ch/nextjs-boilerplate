@@ -41,6 +41,20 @@ make e2e E2E_ARGS='--project=chromium --grep "ログイン"'
 `make e2e` が解決する（Docker Desktop はホストの loopback、Linux は bridge の gateway）。
 明示したいときは `E2E_HOSTNAME` を渡す。
 
+## 落ちたときにどれをやるか
+
+**落ち方は 3 つあり、次にやることが違う。**撮り直しが直すのは画素だけで、残る 2 つは撮り直しても
+直らない。宣言が足りていないまま撮り直すと、その状態が次の正になる。
+
+| 落ち方 | 目印 | やること |
+| --- | --- | --- |
+| 画面の宣言が足りない | `画面の宣言がありません` | [`lib/screens.ts`](lib/screens.ts) へ宣言を足す（後述「何を開くか」） |
+| ジャーニーが落ちた | `✘ … e2e/journeys/…` | trace を開いて原因を特定する。1 つの描画エンジンだけなら engine 固有の挙動か実行環境のゆらぎ |
+| 画素が違う | `toHaveScreenshot` / `A snapshot doesn't exist` | 変化が意図したものか確かめてから撮り直す（後述「基準画像は story 単位と同じ置き場に入る」） |
+
+CI の失敗コメントもこの 3 つで出し分ける。**落ちた画面それぞれについて、なぜ変わったかを言える
+までは撮り直さない**（[docs/design/vrt.md](../docs/design/vrt.md) の「限界」）。
+
 ## アプリはホスト、ブラウザはコンテナ
 
 ブラウザとフォントは digest を固定した Playwright 公式イメージが持つ

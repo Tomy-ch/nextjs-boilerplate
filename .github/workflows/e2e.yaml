@@ -127,24 +127,87 @@ jobs:
 
           exit 0
 
+      # The guidance is split by what actually failed. A retake fixes a changed pixel and
+      # nothing else, so printing the retake note unconditionally tells the reader to
+      # retake a journey failure or a missing screen declaration — neither of which a
+      # retake can repair, and the second of which a retake would bake in as the truth.
       - name: Collect the comment body
         if: always() && steps.e2e.outputs.status != ''
         shell: bash
         run: |
           if [ "${{ steps.e2e.outputs.status }}" = "success" ]; then
             echo '主要ジャーニーが 3 つの描画エンジンで通り、画面の見た目も基準画像と一致しました。' > /tmp/e2e.log
-          else
-            {
-              tail -n 80 /tmp/e2e-full.log
-              cat <<'NOTE'
+            exit 0
+          fi
+
+          # Markers, not exit codes: one run can fail in several kinds at once, and the
+          # kinds are what decide which next step is the right one.
+          undeclared=false
+          journey=false
+          pixels=false
+
+          if grep -q '画面の宣言がありません' /tmp/e2e-full.log; then
+            undeclared=true
+          fi
+
+          if grep -qE '✘.*e2e/journeys/' /tmp/e2e-full.log; then
+            journey=true
+          fi
+
+          if grep -qE "toHaveScreenshot|A snapshot doesn't exist|@screen-baselines" /tmp/e2e-full.log; then
+            pixels=true
+          fi
+
+          {
+            tail -n 80 /tmp/e2e-full.log
+
+            cat <<'ARTIFACT'
 
           `e2e-diff` artifact に HTML レポートと、失敗した検証の trace が入っています。
-          見た目の変化が意図したものなら、`vrt-retake` ラベルを付けてください。story と画面の基準画像をまとめて CI が撮り直します。手元で撮るなら `make e2e-update` → `make vrt-push` です。撮り直しは承認ではありません（vrt/README.md）。
+          ARTIFACT
+
+            if [ "${undeclared}" = 'true' ]; then
+              cat <<'UNDECLARED'
+
+          ### 画面の宣言が足りていません
+
+          `e2e/lib/screens.ts` へ宣言を足してください。巡回の対象は build の出力から取り、宣言と突き合わせています。**撮り直しでは直りません。**
+          UNDECLARED
+            fi
+
+            if [ "${journey}" = 'true' ]; then
+              cat <<'JOURNEY'
+
+          ### ジャーニーが落ちています
+
+          trace を開いて原因を特定してください。**撮り直しでは直りません。** 1 つの描画エンジンだけが落ちているなら、その engine 固有の挙動か実行環境のゆらぎです。落ちた検証を名指しで実行し直して切り分けてください。
+          JOURNEY
+            fi
+
+            if [ "${pixels}" = 'true' ]; then
+              cat <<'PIXELS'
+
+          ### 画面の見た目が基準画像と違います
+
+          変化が意図したものなら `vrt-retake` ラベルを付けてください。story と画面の基準画像をまとめて CI が撮り直します。手元で撮るなら `make e2e-update` → `make vrt-push` です。
+
+          - **ラベルは引き金ではありません。** VRT / E2E の完了時に読まれる条件なので、完了したあとに付けたなら再実行が要ります（`gh run rerun <run-id>`）
+          - **ラベルは撮り直しが置き場へ push した時点で外れます。** もう一度撮るには付け直してください
+          - **撮り直しは承認ではありません。** 画素を見て `vrt-approve` を付けるのが承認です（`vrt/README.md` の「撮り直しと承認は別の操作」）
 
           **落ちた画面それぞれについて、なぜ変わったかを言えるまで撮り直さないでください。** 全画面が一度に落ちる形は原因が 1 つとは限らず、混ざっている不具合ごと撮り直すとそれが次の正になります（`docs/design/vrt.md` の「限界」）。
-          NOTE
-            } > /tmp/e2e.log
-          fi
+          PIXELS
+            fi
+
+            if [ "${undeclared}" = 'false' ] && [ "${journey}" = 'false' ] && [ "${pixels}" = 'false' ]; then
+              cat <<'UNKNOWN'
+
+          ### 種別を判定できませんでした
+
+          上のログと artifact を見てください。ここに案内が出ないのは、build か起動の段で落ちているか、判定に使っている目印が変わったときです。
+          UNKNOWN
+            fi
+          } > /tmp/e2e.log
 
       # The HTML report and the traces. Without them the only evidence of a failure is
       # the assertion text, which cannot be judged for a visual difference.
