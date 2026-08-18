@@ -1,14 +1,10 @@
 import type { Cart } from "@/model/cart/cart";
 import type { ReferenceAmount } from "@/model/money";
 
-import {
-  hasExcludedLines,
-  hasPriceChangedLines,
-  orderLinesOf,
-  priceChangedNames,
-} from "../../../order";
+import { hasExcludedLines, orderLinesOf, priceChangedNames } from "../../../order";
 import { AmountWithReference } from "../../../ui/amount-with-reference/amount-with-reference";
 import { PlaceOrderForm } from "../place-order-form/place-order-form";
+import { PriceChangeConfirm } from "../price-change-confirm/price-change-confirm";
 
 /** `OrderSummary` の props。 */
 export type OrderSummaryProps = {
@@ -38,6 +34,7 @@ export type OrderSummaryProps = {
  */
 export function OrderSummary({ cart, reference, idempotencyKey, size }: OrderSummaryProps) {
   const orderable = orderLinesOf(cart).length > 0;
+  const changedNames = priceChangedNames(cart);
 
   return (
     <div className="flex flex-col gap-4">
@@ -50,15 +47,19 @@ export function OrderSummary({ cart, reference, idempotencyKey, size }: OrderSum
       <div className="flex flex-col gap-1 text-muted-foreground text-xs">
         <p>税と送料は、注文を確定した時点で決まります。</p>
         {hasExcludedLines(cart) ? <p>買えない明細は今回の購入から外れます。</p> : null}
-        {hasPriceChangedLines(cart) ? (
+        {changedNames.length === 0 ? null : (
           <p>金額の変わった明細は小計に入っていません。確定のときに確かめます。</p>
-        ) : null}
+        )}
       </div>
-      <PlaceOrderForm
-        idempotencyKey={idempotencyKey}
-        orderable={orderable}
-        priceChangedNames={priceChangedNames(cart)}
-      />
+      {changedNames.length === 0 ? (
+        <PlaceOrderForm idempotencyKey={idempotencyKey} orderable={orderable} />
+      ) : (
+        <PriceChangeConfirm
+          changedNames={changedNames}
+          idempotencyKey={idempotencyKey}
+          orderable={orderable}
+        />
+      )}
     </div>
   );
 }

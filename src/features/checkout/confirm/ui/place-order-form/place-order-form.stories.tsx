@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { userEvent, within } from "storybook/test";
 
 import { PlaceOrderForm } from "./place-order-form";
 
@@ -14,9 +13,9 @@ const meta = {
     docs: {
       description: {
         component: [
-          "購入を確定する操作です。**鍵は画面が組んだ時点の値を送ります** —— 押すたびに作り直すと、",
-          "二重に押したぶんだけ購入が増えます。金額が変わっているときは、押した先で進んでよいかを",
-          "確かめます。**カタログでは購入は実行されません。**",
+          "購入をそのまま確定する操作です。**鍵は画面が組んだ時点の値を送ります** —— 押すたびに",
+          "作り直すと、二重に押したぶんだけ購入が増えます。金額が変わっているときは別の姿",
+          "（`PriceChangeConfirm`）を使います。**カタログでは購入は実行されません。**",
         ].join(""),
       },
     },
@@ -35,22 +34,10 @@ type Story = StoryObj<typeof meta>;
 
 /** 確定できる状態。押すとそのまま送る。 */
 export const Default: Story = {
-  args: { idempotencyKey: IDEMPOTENCY_KEY, orderable: true, priceChangedNames: [] },
+  args: { idempotencyKey: IDEMPOTENCY_KEY, orderable: true },
 };
 
 /** 確定できる明細が無い状態。押せない。 */
 export const Disabled: Story = {
-  args: { idempotencyKey: IDEMPOTENCY_KEY, orderable: false, priceChangedNames: [] },
-};
-
-/** 金額が変わっている状態。押すと、進んでよいかを確かめる。 */
-export const PriceChanged: Story = {
-  args: {
-    idempotencyKey: IDEMPOTENCY_KEY,
-    orderable: true,
-    priceChangedNames: ["ノイズキャンセリングヘッドホン"],
-  },
-  play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole("button", { name: "注文を確定する" }));
-  },
+  args: { idempotencyKey: IDEMPOTENCY_KEY, orderable: false },
 };

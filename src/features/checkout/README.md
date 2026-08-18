@@ -42,7 +42,9 @@ test-requirement: feature
 | `confirm/ui/order-lines/` | 確定する内容の再掲と、カートへ戻る導線 |
 | `confirm/ui/order-line-row/` | 再掲の 1 行。買えない明細と値の変わった明細を書き分ける |
 | `confirm/ui/order-summary/` | 小計・注記・確定の操作。器は呼び出し元が決める |
-| `confirm/ui/place-order-form/` | 確定の送信。冪等キーを載せる client island |
+| `confirm/ui/place-order-form/` | 確定の送信。そのまま送る姿 |
+| `confirm/ui/price-change-confirm/` | 金額が変わったときに確かめてから送る姿 |
+| `confirm/ui/place-order-submit/` | 送信部と失敗の表示。2 つの姿が共有する |
 | `confirm/ui/skeleton/` | 購入確認の待機表示 |
 | `complete/page-content.tsx` | 成立した購入の取得。指し先が読めなければ `not-found` |
 | `complete/purchase-id.ts` | 完了画面が見せる購入を検索条件から読む |
