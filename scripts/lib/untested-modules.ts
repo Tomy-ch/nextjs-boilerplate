@@ -90,6 +90,7 @@ const CATALOG_MOCK_MODULES = [
   "src/features/account/__mocks__/**", // sample:line
   "src/features/cart/__mocks__/**", // sample:line
   "src/features/cart/facade/add-to-cart/__mocks__/**", // sample:line
+  "src/features/checkout/__mocks__/**", // sample:line
 ] as const;
 
 /**
