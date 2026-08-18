@@ -31,11 +31,11 @@ A Japanese reference translation of this skill is available at `SKILL.ja.md` in 
 
 ## What this skill reads
 
-There is no `docs/testing-conventions.md` <!-- skill-lint-ignore --> in this repository and no test generator skill. The rule
-sources are the ADRs and the kernel READMEs, read at runtime:
+The rule sources are the ADRs, `docs/testing-conventions.md`, and the kernel READMEs, read at runtime:
 
 | Source | What it decides |
 | --- | --- |
+| [testing-conventions](../../../docs/testing-conventions.md) | Semantic coverage over line coverage, assertion strength, the Testing Library principles for component / hook targets, the mock boundary, what goes where |
 | [ADR 0090](../../../docs/adr/0090-testing-strategy.md) | Framework split (Vitest / RTL / MSW / Playwright), export-name `describe`, `正常系` / `異常系` comment separators, per-case naming, one-test-per-subject, skip / todo discipline, per-layer responsibilities, integration = HTTP boundary only |
 | [ADR 0091](../../../docs/adr/0091-test-verification-methods.md) | Where async RSC tests live, how a11y automated checks are integrated |
 | The kernel `README.md` frontmatter (`test-requirement: unit \| component \| integration \| route \| feature`) | Which test layer the target belongs to |
@@ -47,11 +47,10 @@ sources are the ADRs and the kernel READMEs, read at runtime:
 here — `t.Parallel()`, the `require` vs `assert` split, generated `*_mock.go` — it does not apply.
 Vitest runs files in parallel by default and has a single `expect`; the mock boundary is MSW.
 
-**Where the rule sources are silent, say so rather than inventing a rule.** The go-side original
-reads a semantic-quality anti-pattern catalogue that this repository has no counterpart for. Lens 3
-therefore applies general principles and reports the absence itself as a documentation gap in 補遺 —
-it must not smuggle in a catalogue as if it were repository policy (`AGENTS.md`, "Pending
-Decisions": do not introduce conventions on your own).
+**Where the rule sources are silent, say so rather than inventing a rule.** `docs/testing-conventions.md`
+carries the semantic-quality standard, so Lens 3 applies *it* rather than a general principle — but
+where it does not reach, report the gap in 補遺 instead of smuggling in a rule as if it were repository
+policy (`AGENTS.md`, "Pending Decisions": do not introduce conventions on your own).
 
 ## Writes
 
@@ -206,8 +205,9 @@ Output: viewpoints the layer owes that the test does not exercise.
 
 ### Lens 3: Semantic Quality
 
-Whether the assertions mean anything. **This repository has no anti-pattern catalogue document**, so
-apply these general principles and flag the missing catalogue itself in 補遺:
+Whether the assertions mean anything. **`docs/testing-conventions.md` is the standard here** — read it
+this run and apply what it currently says. The principles below are its application, not a copy that
+may drift; where it is silent, flag the gap in 補遺 rather than inventing a rule:
 
 - Assertions that cannot fail in practice (`expect(x).toBeDefined()` on a value the type system
   already guarantees; `expect(fn).not.toThrow()` as the only assertion).
@@ -217,8 +217,8 @@ apply these general principles and flag the missing catalogue itself in 補遺:
 - Time or randomness pinned by literal rather than injected, so the test rots on a date boundary.
 - A test whose name promises more than it asserts.
 
-For component / hook targets, hold them to the **Testing Library guiding principles** — these are the
-established practice for this stack, not a house style, so cite them by name in the finding:
+For component / hook targets, hold them to the **Testing Library guiding principles**, which
+`docs/testing-conventions.md` adopts by name — cite the document and the principle in the finding:
 
 - **Query priority.** `getByRole` (with `name`) first, then `getByLabelText` / `getByPlaceholderText` /
   `getByText`, and `getByTestId` / `data-*` only as a last resort for something with no accessible
@@ -317,7 +317,7 @@ verifier 通過: CONFIRMED <n> 件 / PLAUSIBLE <m> 件 / REFUTED <k> 件（除�
 ## 意味網羅（再考）
 
 ## 補遺
-- <ADR / README の補完候補。意味的品質のカタログが未整備であることを含む>
+- <ADR / README / testing-conventions.md の補完候補>
 ```
 
 Severity mapping:
