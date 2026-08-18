@@ -60,6 +60,12 @@ describe("fetchSessionRole", () => {
     expect(await fetchSessionRole("access-token")).toBe(SESSION_ROLE.user);
   });
 
+  it("ロールを 1 つも持たない主体は権限を持たない側へ倒す", async () => {
+    stubFetch({ roles: [] });
+
+    expect(await fetchSessionRole("access-token")).toBe(SESSION_ROLE.user);
+  });
+
   it("渡されたトークンを Bearer として載せる", async () => {
     const fetchImpl = stubFetch({ roles: [] });
 
@@ -71,12 +77,6 @@ describe("fetchSessionRole", () => {
   });
 
   // ----- 異常系 -----
-  it("ロールを 1 つも持たない主体は権限を持たない側へ倒す", async () => {
-    stubFetch({ roles: [] });
-
-    expect(await fetchSessionRole("access-token")).toBe(SESSION_ROLE.user);
-  });
-
   it("契約に無い形の応答を内層へ渡さない", async () => {
     stubFetch({ roles: [{ code: "owner", name: "所有者" }] });
 

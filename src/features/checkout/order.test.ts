@@ -61,15 +61,15 @@ describe("orderLinesOf", () => {
     expect(orderLinesOf(cartOf([PRICE_INCREASED, PRICE_DECREASED]))).toHaveLength(2);
   });
 
+  it("空のカートでは何も載せない", () => {
+    expect(orderLinesOf(cartOf([]))).toEqual([]);
+  });
+
   // ----- 異常系 -----
   it("買えない事情のある明細を外す", () => {
     const lines = orderLinesOf(cartOf([PURCHASABLE, OUT_OF_STOCK, NOT_FOUND]));
 
     expect(lines).toEqual([{ productId: PURCHASABLE.productId, quantity: PURCHASABLE.quantity }]);
-  });
-
-  it("空のカートでは何も載せない", () => {
-    expect(orderLinesOf(cartOf([]))).toEqual([]);
   });
 });
 

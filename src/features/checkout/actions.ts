@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { RedirectType, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { getMyCart, removeMyCartItem, setMyCartItem } from "@/adapters/server/api/cart";
@@ -70,6 +70,10 @@ async function acceptPriceChanges(lines: readonly PurchaseOrderLine[]): Promise<
  *
  * 成立したら完了画面へ送ります。同じ画面で完了を見せると、再読み込みで完了が消え、戻る操作が
  * 確定前の画面へ帰ります（[0063](../../../docs/adr/0063-mutation-result-notification.md)）。
+ *
+ * **送るのは積み増しではなく置き換えです。** 確定した後の確認画面はもう見せる内容を持たず、
+ * 被せた overlay の中から確定したときは、その overlay が積んだ 1 件が戻り先として残ります
+ * （[0053](../../../docs/adr/0053-ui-component-interaction-seam.md)）。
  */
 export async function placeOrderAction(
   _previous: PlaceOrderFormState,
@@ -121,5 +125,5 @@ export async function placeOrderAction(
   // layout の段で無効にする。買った直後の画面に、買った物が残って見えることになる。
   revalidatePath("/", "layout");
 
-  redirect(purchaseCompletePath(purchaseId));
+  redirect(purchaseCompletePath(purchaseId), RedirectType.replace);
 }

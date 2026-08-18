@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -17,7 +18,6 @@ import { OrderSummary } from "./order-summary";
 const KEY = "0195f0c2-0000-7000-a000-000000000001";
 
 describe("OrderSummary", () => {
-  // ----- 正常系 -----
   it("小計と、税と送料がいつ決まるかを出す", () => {
     render(<OrderSummary cart={ORDERABLE_CART} idempotencyKey={KEY} reference={null} />);
 
@@ -39,16 +39,18 @@ describe("OrderSummary", () => {
     expect(screen.queryByText(/外れます|確かめます/)).not.toBeInTheDocument();
   });
 
-  it("金額が変わった明細があるとき、確かめる姿の操作を出す", () => {
+  it("金額が変わった明細があるとき、押すと確かめる面を出す", async () => {
+    const user = userEvent.setup();
+
     render(<OrderSummary cart={PARTIALLY_ORDERABLE_CART} idempotencyKey={KEY} reference={null} />);
 
     expect(
       screen.getByText("金額の変わった明細は小計に入っていません。確定のときに確かめます。"),
     ).toBeVisible();
-    expect(screen.getByRole("button", { name: "注文を確定する" })).toHaveAttribute(
-      "type",
-      "button",
-    );
+
+    await user.click(screen.getByRole("button", { name: "注文を確定する" }));
+
+    expect(await screen.findByRole("alertdialog")).toBeVisible();
   });
 
   it("買えない明細があるとき、外れることを添える", () => {
@@ -56,8 +58,6 @@ describe("OrderSummary", () => {
 
     expect(screen.getByText("買えない明細は今回の購入から外れます。")).toBeVisible();
   });
-
-  // ----- 異常系 -----
   it("確定できる明細が無ければ押せない", () => {
     render(<OrderSummary cart={BLOCKED_CART} idempotencyKey={KEY} reference={null} />);
 

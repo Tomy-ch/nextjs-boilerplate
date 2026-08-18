@@ -8,7 +8,6 @@ import { PURCHASE, TOTAL_REFERENCE } from "../checkout.fixture";
 import { CheckoutCompleteView } from "./view";
 
 describe("CheckoutCompleteView", () => {
-  // ----- 正常系 -----
   it("成立したことを先に伝える", () => {
     render(<CheckoutCompleteView purchase={PURCHASE} reference={TOTAL_REFERENCE} />);
 
@@ -35,8 +34,6 @@ describe("CheckoutCompleteView", () => {
       "/mypage",
     );
   });
-
-  // ----- 異常系 -----
   it("参考換算額が無くても成り立つ", () => {
     render(<CheckoutCompleteView purchase={PURCHASE} reference={null} />);
 

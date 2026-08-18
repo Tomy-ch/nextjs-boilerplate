@@ -14,7 +14,6 @@ import { DevSessionForm } from "./session-form";
 const issue: IssueDevSessionAction = async () => idleActionState();
 
 describe("DevSessionForm", () => {
-  // ----- 正常系 -----
   it("発行の指定を並べる", () => {
     render(<DevSessionForm action={issue} returnUrl="/" />);
 
@@ -54,8 +53,6 @@ describe("DevSessionForm", () => {
       expect(screen.getByRole("button", { name: "この内容で入る" })).toBeEnabled(),
     );
   });
-
-  // ----- 異常系 -----
   it("項目ごとの理由は、その項目の隣に出す", async () => {
     const user = userEvent.setup();
     const failingIssue: IssueDevSessionAction = async () =>

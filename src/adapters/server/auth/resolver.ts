@@ -12,8 +12,7 @@ let resolver: SessionResolver | undefined;
  * 同梱している既定 Resolver を返す。
  *
  * @remarks
- * fork 先が認証方式を替えるときに差し替えるのはこの 1 か所です。呼び出し側は
- * `SessionResolver` の面しか知らないため、ここを書き換えても他は動きません。
+ * fork 先の差し替え単位は `SessionResolver` です（[README](./README.md) の「差し替え点」）。
  *
  * cookie を触る側（`session.ts`）と入口の楽観判定（`optimistic-session.ts`）の両方から使うため、
  * どちらにも寄せずに独立させています。片方へ置くと、もう片方が `next/headers` のような
@@ -28,7 +27,6 @@ export function getSessionResolver(): SessionResolver {
     redirectUri: config.redirectUri,
     scopes: config.scopes,
     sessionSecret: config.sessionSecret,
-    // 役割はバックエンドから引く。IdP が持つのは身元だけで、何をしてよいかは業務側のデータである。
     resolveRole: fetchSessionRole,
   });
 

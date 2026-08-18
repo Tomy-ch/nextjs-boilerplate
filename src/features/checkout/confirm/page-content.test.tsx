@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
@@ -28,7 +29,12 @@ beforeEach(() => {
 });
 
 describe("CheckoutConfirmPageContent", () => {
-  // ----- 正常系 -----
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(await CheckoutConfirmPageContent());
+
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
   it("届け先と明細を組み立てる", async () => {
     render(await CheckoutConfirmPageContent());
 
@@ -53,8 +59,6 @@ describe("CheckoutConfirmPageContent", () => {
 
     expect(keyOf(first)).not.toBe(keyOf(second));
   });
-
-  // ----- 異常系 -----
   it("参考換算額を引けなくても組み立てる", async () => {
     convertToReferenceAmount.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 

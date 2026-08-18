@@ -12,7 +12,6 @@ import { PlaceOrderForm } from "./place-order-form";
 const KEY = "0195f0c2-0000-7000-a000-000000000001";
 
 describe("PlaceOrderForm", () => {
-  // ----- 正常系 -----
   it("確定の操作を出す", () => {
     render(<PlaceOrderForm idempotencyKey={KEY} orderable />);
 
@@ -30,8 +29,6 @@ describe("PlaceOrderForm", () => {
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
-
-  // ----- 異常系 -----
   it("確定できる明細が無ければ押せない", () => {
     render(<PlaceOrderForm idempotencyKey={KEY} orderable={false} />);
 

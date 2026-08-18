@@ -1,6 +1,6 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
-forbidden: [features] # 画面まるごとの story は例外 (ADR 0021)
+forbidden: [features] # 相手の facade/ と、画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
 ---
 
@@ -40,7 +40,7 @@ test-requirement: feature
 | `confirm/view.tsx` | 購入確認の表示。内容と集計を左右に分ける |
 | `confirm/ui/shipping-card/` | 届け先の確認と、登録情報へ変えに行く導線 |
 | `confirm/ui/order-lines/` | 確定する内容の再掲と、カートへ戻る導線 |
-| `confirm/ui/order-line-row/` | 再掲の 1 行。買えない明細と値の変わった明細を書き分ける |
+| `confirm/ui/order-line-row/` | 再掲の 1 行。事情の表示は `cart` の [`facade/line-issues/`](../cart/facade/line-issues/) を借りる |
 | `confirm/ui/order-summary/` | 小計・注記・確定の操作。器は呼び出し元が決める |
 | `confirm/ui/place-order-form/` | 確定の送信。そのまま送る姿 |
 | `confirm/ui/price-change-confirm/` | 金額が変わったときに確かめてから送る姿 |

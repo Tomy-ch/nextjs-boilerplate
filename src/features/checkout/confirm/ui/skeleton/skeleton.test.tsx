@@ -7,7 +7,6 @@ import { axe } from "vitest-axe";
 import { CheckoutConfirmSkeleton } from "./skeleton";
 
 describe("CheckoutConfirmSkeleton", () => {
-  // ----- 正常系 -----
   it("出来上がりと同じ段組みで枠だけを出す", () => {
     const { container } = render(<CheckoutConfirmSkeleton />);
 

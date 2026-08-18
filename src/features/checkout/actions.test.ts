@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAppError } from "@/errors/app-error";
+import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 
@@ -25,7 +26,10 @@ const {
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath }));
-vi.mock("next/navigation", () => ({ redirect }));
+vi.mock("next/navigation", () => ({
+  RedirectType: { push: "push", replace: "replace" },
+  redirect,
+}));
 vi.mock("@/adapters/server/api/cart", () => ({ getMyCart, removeMyCartItem, setMyCartItem }));
 vi.mock("@/adapters/server/api/purchases", () => ({ createPurchase }));
 vi.mock("@/logging/logging.server", () => ({
@@ -105,6 +109,12 @@ describe("placeOrderAction", () => {
     expect((await run(formDataOf())).to).toBe(`/checkout/complete?purchase=${PURCHASE_ID}`);
   });
 
+  it("送るのは積み増しではなく置き換えにする", async () => {
+    await run(formDataOf());
+
+    expect(redirect).toHaveBeenLastCalledWith(expect.any(String), "replace");
+  });
+
   it("買った明細だけをカートから取り除く", async () => {
     await run(formDataOf());
 
@@ -127,7 +137,11 @@ describe("placeOrderAction", () => {
     await run(formDataOf({ [ACCEPT_PRICE_CHANGE_FIELD]: "1" }));
 
     expect(setMyCartItem).toHaveBeenCalledWith("0195f0c2-0000-7000-8000-000000000005", 1);
-    expect(createPurchase).toHaveBeenCalled();
+    // 置き直したあとのカートで購入する。取り直しが抜けると、置き直す前の明細のまま送られる。
+    expect(createPurchase).toHaveBeenCalledWith(
+      ORDERABLE_CART.lines.map((line) => ({ productId: line.productId, quantity: line.quantity })),
+      KEY,
+    );
   });
 
   // ----- 異常系 -----
@@ -136,7 +150,10 @@ describe("placeOrderAction", () => {
 
     const { state } = await run(formData);
 
-    expect(state).toMatchObject({ status: "error" });
+    expect(state).toMatchObject({
+      formError: expect.stringContaining("開き直して"),
+      status: "error",
+    });
     expect(createPurchase).not.toHaveBeenCalled();
   });
 
@@ -164,14 +181,20 @@ describe("placeOrderAction", () => {
 
     const { state } = await run(formDataOf());
 
-    expect(state).toMatchObject({ status: "error" });
+    expect(state).toMatchObject({
+      formError: expect.stringContaining("購入できる商品がありません"),
+      status: "error",
+    });
     expect(createPurchase).not.toHaveBeenCalled();
   });
 
   it("空のカートでも送らない", async () => {
     getMyCart.mockResolvedValue(EMPTY_CART);
 
-    expect((await run(formDataOf())).state).toMatchObject({ status: "error" });
+    expect((await run(formDataOf())).state).toMatchObject({
+      formError: expect.stringContaining("購入できる商品がありません"),
+      status: "error",
+    });
   });
 
   it("在庫や価格が確定の瞬間に変わったときは、確かめ直させる", async () => {
@@ -188,7 +211,10 @@ describe("placeOrderAction", () => {
   it("それ以外の失敗は分類ごとの文言で返す", async () => {
     createPurchase.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 
-    expect((await run(formDataOf())).state).toMatchObject({ status: "error" });
+    expect((await run(formDataOf())).state).toMatchObject({
+      formError: getDefaultErrorMeta(ErrorKind.UNAVAILABLE).message,
+      status: "error",
+    });
   });
 
   it("後始末が通らなくても完了へ送る", async () => {

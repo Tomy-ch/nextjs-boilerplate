@@ -15,7 +15,6 @@ import type { PurchasesPostRequest } from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
 import { createHttpClient, type HttpClient } from "../http/request";
 
-/** 冪等キーを載せるヘッダの名前。 */
 const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
 const PURCHASES_PATH = "/v1/purchases";
@@ -34,7 +33,6 @@ function getClient(): HttpClient {
   return client;
 }
 
-/** 契約の応答を表示用の 1 ページへ写す。 */
 function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
   return {
     items: wire.items.map(({ code, totalAmount, status, orderedAt }) => ({
@@ -51,8 +49,10 @@ function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
  * 自分の購入履歴を取得する。
  *
  * @remarks
- * 注文日時の降順で返ります。並べ替えも絞り込みも契約が受け付けないため、取得側で条件を作れません
- * （受け取るのは cursor の 2 つだけ）。
+ * 注文日時の降順で返ります。並べ替えの条件は契約が受け付けません。
+ *
+ * **先頭の 1 ページだけを返します。** 契約は期間の絞り込み（`period`）とページ送り（`after`）も
+ * 受け付けますが、どちらもまだ渡していません。次ページの鍵は応答の `nextCursor` に載ります。
  *
  * @param first - 取得件数の上限。契約の上限は 200
  */
@@ -66,7 +66,6 @@ export const getMyPurchases = cache(async (first: number): Promise<PurchaseHisto
   return toPurchaseHistoryPage(wire);
 });
 
-/** 契約の応答を表示用の購入 1 件へ写す。 */
 function toPurchase(wire: WirePurchaseDetail): Purchase {
   return {
     id: wire.id,

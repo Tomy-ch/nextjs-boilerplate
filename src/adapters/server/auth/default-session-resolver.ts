@@ -90,15 +90,6 @@ async function deriveSealKey(secret: string): Promise<Uint8Array> {
 }
 
 /**
- * ID Token の claim から役割を決める。
- *
- * @remarks
- * IdP が役割を出さない構成では、権限を持たない側に倒します。持たない側へ倒すのは、判定材料が
- * 無いときに与えてしまうと、確定認可が拒否するまで権限のある画面が見えてしまうためです。
- */
-// TODO: IdP が role claim を出すようになったら分岐を実値へ差し替える（go-boilerplate #1157）。
-
-/**
  * Authorization Code + PKCE と JWE 封緘による既定の Resolver を作る。
  *
  * @remarks

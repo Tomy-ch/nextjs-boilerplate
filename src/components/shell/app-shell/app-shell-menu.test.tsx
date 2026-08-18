@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
+
+const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/") }));
+
+vi.mock("next/navigation", () => ({ usePathname }));
 
 import { AppShellMenu } from "./app-shell-menu";
 
@@ -28,13 +32,27 @@ describe("AppShellMenu", () => {
     expect(screen.getByRole("link", { name: "設定" })).toHaveAttribute("href", "/settings");
   });
 
-  it("導線を選ぶと閉じる", () => {
+  it("移った先で閉じる", () => {
+    usePathname.mockReturnValue("/");
+
+    const { rerender } = render(<AppShellMenu items={ITEMS} />);
+    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+
+    usePathname.mockReturnValue("/reports");
+    rerender(<AppShellMenu items={ITEMS} />);
+
+    expect(screen.queryByRole("link", { name: "レポート" })).toBeNull();
+  });
+
+  it("押した時点では閉じない", () => {
+    usePathname.mockReturnValue("/");
+
     render(<AppShellMenu items={ITEMS} />);
     fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
     fireEvent.click(screen.getByRole("link", { name: "レポート" }));
 
-    expect(screen.queryByRole("link", { name: "レポート" })).toBeNull();
+    expect(screen.getByRole("link", { name: "レポート" })).toBeVisible();
   });
 
   it("a11y 自動検査に違反しない", async () => {

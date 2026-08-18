@@ -22,15 +22,13 @@ const actions = {
 };
 
 describe("DevSessionView", () => {
-  // ----- 正常系 -----
   it("いまの状態を先に置き、発行の指定を後に置く", () => {
-    const { container } = render(<DevSessionView {...actions} returnUrl="/" session={SESSION} />);
+    render(<DevSessionView {...actions} returnUrl="/" session={SESSION} />);
 
-    const titles = [...container.querySelectorAll('[data-slot="card-title"]')].map(
-      (title) => title.textContent,
-    );
+    const current = screen.getByText("いまの session");
+    const issuing = screen.getByText("session を発行する");
 
-    expect(titles).toEqual(["いまの session", "session を発行する"]);
+    expect(current.compareDocumentPosition(issuing)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it("受け取った送信先を両方の操作へ配る", () => {
@@ -39,8 +37,6 @@ describe("DevSessionView", () => {
     expect(screen.getByRole("button", { name: "session を捨てる" })).toBeVisible();
     expect(screen.getByRole("button", { name: "この内容で入る" })).toBeVisible();
   });
-
-  // ----- 異常系 -----
   it("session を持っていなくても発行の指定は出す", () => {
     render(<DevSessionView {...actions} returnUrl="/" session={null} />);
 

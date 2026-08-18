@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
@@ -31,7 +32,12 @@ beforeEach(() => {
 });
 
 describe("CheckoutCompletePageContent", () => {
-  // ----- 正常系 -----
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(await CheckoutCompletePageContent({ searchParams }));
+
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
   it("URL が指す購入を取り直して描く", async () => {
     render(await CheckoutCompletePageContent({ searchParams }));
 
@@ -44,8 +50,6 @@ describe("CheckoutCompletePageContent", () => {
 
     expect(convertToReferenceAmount).toHaveBeenCalledWith(PURCHASE.totalAmount);
   });
-
-  // ----- 異常系 -----
   it("指し先が読めなければ見つからないにする", async () => {
     await expect(CheckoutCompletePageContent({ searchParams: {} })).rejects.toThrow(
       "NEXT_NOT_FOUND",

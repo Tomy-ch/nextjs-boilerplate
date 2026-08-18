@@ -46,31 +46,45 @@ describe("parseDevSessionForm", () => {
 
     formData.set("subject", new File([], "subject.txt"));
 
-    expect(parseDevSessionForm(formData)).toMatchObject({ ok: false });
+    expect(parseDevSessionForm(formData)).toMatchObject({
+      fieldErrors: { subject: ["誰として入るかを指定してください。"] },
+      ok: false,
+    });
   });
 
   it("誰として入るかが空なら受け付けない", () => {
     const result = parseDevSessionForm(formDataOf({ subject: "  " }));
 
-    expect(result).toMatchObject({ ok: false });
+    expect(result).toMatchObject({
+      fieldErrors: { subject: ["誰として入るかを指定してください。"] },
+      ok: false,
+    });
   });
 
   it("役割が集合の外なら受け付けない", () => {
-    expect(parseDevSessionForm(formDataOf({ role: "owner" }))).toMatchObject({ ok: false });
+    expect(parseDevSessionForm(formDataOf({ role: "owner" }))).toMatchObject({
+      fieldErrors: { role: expect.any(Array) },
+      ok: false,
+    });
   });
 
   it("秒数が整数でなければ受け付けない", () => {
     expect(parseDevSessionForm(formDataOf({ expiresInSeconds: "1.5" }))).toMatchObject({
+      fieldErrors: { expiresInSeconds: ["秒数は整数で指定してください。"] },
       ok: false,
     });
   });
 
   it("秒数が 0 以下なら受け付けない", () => {
-    expect(parseDevSessionForm(formDataOf({ expiresInSeconds: "0" }))).toMatchObject({ ok: false });
+    expect(parseDevSessionForm(formDataOf({ expiresInSeconds: "0" }))).toMatchObject({
+      fieldErrors: { expiresInSeconds: ["秒数は 1 以上で指定してください。"] },
+      ok: false,
+    });
   });
 
   it("開発機に長く残る長さは受け付けない", () => {
     expect(parseDevSessionForm(formDataOf({ expiresInSeconds: "86401" }))).toMatchObject({
+      fieldErrors: { expiresInSeconds: ["秒数は 86400 以下で指定してください。"] },
       ok: false,
     });
   });

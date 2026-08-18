@@ -31,7 +31,6 @@ beforeEach(() => {
 });
 
 describe("CartMatchStockButton", () => {
-  // ----- 正常系 -----
   it("合わせる先の数を文言に出す", () => {
     renderButton();
 
@@ -70,8 +69,6 @@ describe("CartMatchStockButton", () => {
     settle?.();
     await waitFor(() => expect(screen.getByRole("button")).toBeEnabled());
   });
-
-  // ----- 異常系 -----
   it("失敗したとき、その操作の隣に理由を出す", async () => {
     const user = userEvent.setup();
 

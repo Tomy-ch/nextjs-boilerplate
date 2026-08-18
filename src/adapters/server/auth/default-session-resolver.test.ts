@@ -238,7 +238,7 @@ describe("createDefaultSessionResolver", () => {
       claims: { aud: [clientId, "another-client"], azp: "another-client" },
     });
 
-    await expect(complete()).rejects.toThrow();
+    expect(await kindOf(complete)).toBe(ErrorKind.UNAUTHENTICATED);
   });
 
   it("宛先が多値でも、azp が client と一致すれば受け入れる", async () => {

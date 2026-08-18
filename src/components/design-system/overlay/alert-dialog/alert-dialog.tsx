@@ -10,10 +10,6 @@ import { useOverlayHistory } from "../use-overlay-history";
 /**
  * 確認 dialog の開閉状態を提供する client island root。
  *
- * @remarks
- * 開いているあいだは履歴を 1 つ持ち、戻る操作で自分だけを閉じます
- * （[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
- *
  * @see Storybook `Overlay/AlertDialog`
  */
 export function AlertDialog({
@@ -58,6 +54,11 @@ export function AlertDialogOverlay({
 }
 /**
  * overlay・Portal とともに dialog 本体を描画する。
+ *
+ * @remarks
+ * アクセシブルな名前として `AlertDialogTitle` を必ず子に置く。説明が要る場合は
+ * `AlertDialogDescription` を添え、不要な場合は `aria-describedby={undefined}` を明示する。
+ * どちらも無いと Radix が警告する。
  *
  * @see Storybook `Overlay/AlertDialog`
  */
@@ -110,6 +111,9 @@ export function AlertDialogFooter({ className, ...props }: ComponentProps<"div">
 /**
  * dialog の名称を提供する title。
  *
+ * @remarks
+ * Radix が `aria-labelledby` を自動で結び付けるため、`id` を手で振る必要はない。
+ *
  * @see Storybook `Overlay/AlertDialog`
  */
 export function AlertDialogTitle({ className, ...props }: ComponentProps<typeof Primitive.Title>) {
@@ -123,6 +127,9 @@ export function AlertDialogTitle({ className, ...props }: ComponentProps<typeof 
 }
 /**
  * dialog の影響と次の操作を説明する本文。
+ *
+ * @remarks
+ * Radix が `aria-describedby` を自動で結び付けるため、`id` を手で振る必要はない。
  *
  * @see Storybook `Overlay/AlertDialog`
  */

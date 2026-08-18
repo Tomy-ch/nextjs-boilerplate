@@ -8,7 +8,6 @@ import { PURCHASE } from "../../../checkout.fixture";
 import { PurchaseLines } from "./purchase-lines";
 
 describe("PurchaseLines", () => {
-  // ----- 正常系 -----
   it("商品名・購入時点の単価・数量を出す", () => {
     render(<PurchaseLines lines={PURCHASE.lines} />);
 
@@ -16,8 +15,6 @@ describe("PurchaseLines", () => {
     expect(screen.getByText("$19.99 / 個")).toBeVisible();
     expect(screen.getByText("3 個")).toBeVisible();
   });
-
-  // ----- 異常系 -----
   it("行ごとの金額を作らない", () => {
     render(<PurchaseLines lines={PURCHASE.lines} />);
 

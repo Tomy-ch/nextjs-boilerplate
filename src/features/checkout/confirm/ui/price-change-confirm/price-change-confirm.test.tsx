@@ -24,7 +24,6 @@ async function open() {
 }
 
 describe("PriceChangeConfirm", () => {
-  // ----- 正常系 -----
   it("押すまで確かめを出さない", () => {
     renderConfirm();
 
@@ -69,8 +68,6 @@ describe("PriceChangeConfirm", () => {
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
-
-  // ----- 異常系 -----
   it("確定できる明細が無ければ、確かめを開けない", () => {
     renderConfirm(false);
 

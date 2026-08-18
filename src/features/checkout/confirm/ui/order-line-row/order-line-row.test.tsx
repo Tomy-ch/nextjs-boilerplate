@@ -30,7 +30,6 @@ function renderRow(line: CartLine) {
 }
 
 describe("OrderLineRow", () => {
-  // ----- 正常系 -----
   it("商品名・単価・数量を出す", () => {
     renderRow(EARPHONE_LINE);
 
@@ -50,8 +49,6 @@ describe("OrderLineRow", () => {
 
     expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
-
-  // ----- 異常系 -----
   it("買えない明細には、理由と外れることを添える", () => {
     renderRow(INSUFFICIENT_LINE);
 

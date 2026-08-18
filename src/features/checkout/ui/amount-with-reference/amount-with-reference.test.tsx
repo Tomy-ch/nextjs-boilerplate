@@ -9,12 +9,30 @@ import { SUBTOTAL_REFERENCE } from "../../checkout.fixture";
 import { AmountWithReference } from "./amount-with-reference";
 
 describe("AmountWithReference", () => {
-  // ----- 正常系 -----
   it("見出しと基準通貨の金額を出す", () => {
     render(<AmountWithReference amount={18_897} label="小計" reference={SUBTOTAL_REFERENCE} />);
 
     expect(screen.getByText("小計")).toBeVisible();
     expect(screen.getByText("$188.97")).toBeVisible();
+  });
+
+  it("脇や帯へ収めるときは、金額を小さい方の大きさで出す", () => {
+    render(
+      <AmountWithReference
+        amount={18_897}
+        label="小計"
+        reference={SUBTOTAL_REFERENCE}
+        size="compact"
+      />,
+    );
+
+    expect(screen.getByText("$188.97")).toHaveClass("text-lg");
+  });
+
+  it("指定が無ければ、金額を主役の大きさで出す", () => {
+    render(<AmountWithReference amount={18_897} label="小計" reference={SUBTOTAL_REFERENCE} />);
+
+    expect(screen.getByText("$188.97")).toHaveClass("text-2xl");
   });
 
   it("切り替える前は参考換算額を出さない", () => {
@@ -43,8 +61,6 @@ describe("AmountWithReference", () => {
 
     expect(screen.getByText("$188.97")).toBeVisible();
   });
-
-  // ----- 異常系 -----
   it("参考換算額が無いときは切り替えごと出さない", () => {
     render(<AmountWithReference amount={18_897} label="小計" reference={null} />);
 

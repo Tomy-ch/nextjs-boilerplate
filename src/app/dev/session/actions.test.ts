@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAppError } from "@/errors/app-error";
+import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE } from "@/model/session";
@@ -114,7 +115,10 @@ describe("issueDevSessionAction", () => {
 
     const state = await issueDevSessionAction(idleActionState(), submission());
 
-    expect(state).toMatchObject({ status: "error" });
+    expect(state).toMatchObject({
+      formError: getDefaultErrorMeta(ErrorKind.INTERNAL).message,
+      status: "error",
+    });
     expect(redirect).not.toHaveBeenCalled();
   });
 });
@@ -155,7 +159,10 @@ describe("discardDevSessionAction", () => {
 
     const state = await discardDevSessionAction(idleActionState(), new FormData());
 
-    expect(state).toMatchObject({ status: "error" });
+    expect(state).toMatchObject({
+      formError: getDefaultErrorMeta(ErrorKind.INTERNAL).message,
+      status: "error",
+    });
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

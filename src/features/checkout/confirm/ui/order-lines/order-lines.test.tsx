@@ -9,7 +9,6 @@ import { LONG_CART, ORDERABLE_CART } from "../../../checkout.fixture";
 import { OrderLines } from "./order-lines";
 
 describe("OrderLines", () => {
-  // ----- 正常系 -----
   it("明細を並べ、総数を見出しに出す", () => {
     render(<OrderLines lines={ORDERABLE_CART.lines} />);
 
@@ -59,8 +58,6 @@ describe("OrderLines", () => {
 
     expect(screen.getAllByRole("listitem")).toHaveLength(10);
   });
-
-  // ----- 異常系 -----
   it("明細が無くても総数を出す", () => {
     render(<OrderLines lines={[]} />);
 

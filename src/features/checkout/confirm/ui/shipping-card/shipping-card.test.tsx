@@ -8,7 +8,6 @@ import { PROFILE } from "../../../checkout.fixture";
 import { ShippingCard } from "./shipping-card";
 
 describe("ShippingCard", () => {
-  // ----- 正常系 -----
   it("届け先として使う登録情報を出す", () => {
     render(<ShippingCard profile={PROFILE} />);
 
@@ -30,8 +29,6 @@ describe("ShippingCard", () => {
 
     expect(screen.queryAllByRole("textbox")).toHaveLength(0);
   });
-
-  // ----- 異常系 -----
   it("建物名が無ければ、その区切りごと落とす", () => {
     render(<ShippingCard profile={{ ...PROFILE, building: null }} />);
 

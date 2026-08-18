@@ -65,7 +65,6 @@ describe("formatReferenceAmount", () => {
     expect(formatReferenceAmount(reference(28_346, "JPY"))).not.toMatch(/約/);
   });
 
-  // ----- 異常系 -----
   it("0 を渡すと 0 の通貨表記になる", () => {
     expect(formatReferenceAmount(reference(0, "JPY"))).toBe("￥0");
   });

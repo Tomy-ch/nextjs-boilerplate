@@ -78,7 +78,6 @@ describe("cartIssueNotice", () => {
     expect(cartIssueNotice("priceDecreased", null).blocking).toBe(false);
   });
 
-  // ----- 異常系 -----
   it("在庫が足りないのに上限が判らないとき、数を伏せて伝える", () => {
     expect(cartIssueNotice("insufficientStock", null).message).toBe("在庫が足りません。");
   });
@@ -106,12 +105,12 @@ describe("hasBlockingIssue", () => {
     expect(hasBlockingIssue(INSUFFICIENT_LINE)).toBe(true);
   });
 
+  it("事情が 1 つも無い明細は買えない事情を持たない", () => {
+    expect(hasBlockingIssue(EARPHONE_LINE)).toBe(false);
+  });
+
   // ----- 異常系 -----
   it("値が変わっただけの明細は買えない事情を持たない", () => {
     expect(hasBlockingIssue(PRICE_INCREASED_LINE)).toBe(false);
-  });
-
-  it("事情が 1 つも無い明細は買えない事情を持たない", () => {
-    expect(hasBlockingIssue(EARPHONE_LINE)).toBe(false);
   });
 });

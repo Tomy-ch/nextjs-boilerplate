@@ -21,7 +21,6 @@ const SESSION: Session = {
 const discard: DiscardDevSessionAction = async () => idleActionState();
 
 describe("CurrentSession", () => {
-  // ----- 正常系 -----
   it("いまの session の身元・役割・失効を出す", () => {
     render(<CurrentSession action={discard} session={SESSION} />);
 
@@ -54,8 +53,6 @@ describe("CurrentSession", () => {
       expect(screen.getByRole("button", { name: "session を捨てる" })).toBeEnabled(),
     );
   });
-
-  // ----- 異常系 -----
   it("持っていないときは、その旨だけを出す", () => {
     render(<CurrentSession action={discard} session={null} />);
 

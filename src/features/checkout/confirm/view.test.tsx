@@ -23,7 +23,6 @@ function renderView(cart = ORDERABLE_CART) {
 }
 
 describe("CheckoutConfirmView", () => {
-  // ----- 正常系 -----
   it("届け先と注文内容を並べる", () => {
     renderView();
 
@@ -43,8 +42,6 @@ describe("CheckoutConfirmView", () => {
 
     expect(screen.getAllByRole("complementary", { name: "お支払い金額" })).toHaveLength(1);
   });
-
-  // ----- 異常系 -----
   it("カートが空なら、確かめる対象が無いことと商品を探す導線を出す", () => {
     renderView(EMPTY_CART);
 

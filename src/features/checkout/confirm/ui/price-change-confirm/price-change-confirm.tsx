@@ -50,6 +50,9 @@ const FIX_CART_LABEL = "カートを修正する";
  *
  * **出口を 3 つ置きます。** 進む（はい）・見直す（確認へ戻る）・直す（カートを修正する）で、
  * 閉じるだけの操作が無いと、確かめから元の画面へ戻る手段がありません。
+ *
+ * カートへ移る導線は置き換えで移ります。被せている間の履歴 1 件は現在地の複製で、戻り先として
+ * 残すと戻る操作が 1 回空回りします（[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
  */
 export function PriceChangeConfirm({
   idempotencyKey,
@@ -86,7 +89,9 @@ export function PriceChangeConfirm({
           <AlertDialogFooter>
             <AlertDialogCancel>{BACK_LABEL}</AlertDialogCancel>
             <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
-              <Link href={CART_PATH}>{FIX_CART_LABEL}</Link>
+              <Link href={CART_PATH} replace>
+                {FIX_CART_LABEL}
+              </Link>
             </Button>
             <PlaceOrderSubmit label={ACCEPT_LABEL} orderable={orderable} />
           </AlertDialogFooter>

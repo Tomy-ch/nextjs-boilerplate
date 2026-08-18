@@ -10,7 +10,6 @@ import { failedActionState, idleActionState, succeededActionState } from "@/mode
 import { PlaceOrderError, PlaceOrderSubmit } from "./place-order-submit";
 
 describe("PlaceOrderSubmit", () => {
-  // ----- 正常系 -----
   it("受け取った文言で送信する操作を出す", () => {
     render(
       <form>
@@ -56,8 +55,6 @@ describe("PlaceOrderSubmit", () => {
       expect(screen.getByRole("button", { name: "注文を確定する" })).toBeEnabled(),
     );
   });
-
-  // ----- 異常系 -----
   it("確定できる明細が無ければ押せない", () => {
     render(
       <form>
@@ -70,15 +67,12 @@ describe("PlaceOrderSubmit", () => {
 });
 
 describe("PlaceOrderError", () => {
-  // ----- 正常系 -----
   it("失敗の理由を出す", () => {
     render(<PlaceOrderError state={failedActionState({ formError: "在庫が変わりました。" })} />);
 
     expect(screen.getByText("在庫が変わりました。")).toBeVisible();
     expect(screen.getByText("注文を確定できませんでした")).toBeVisible();
   });
-
-  // ----- 異常系 -----
   it("まだ送っていない状態では何も出さない", () => {
     const { container } = render(<PlaceOrderError state={idleActionState()} />);
 
