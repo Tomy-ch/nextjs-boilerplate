@@ -4,6 +4,10 @@ import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { ActionBar } from "@/components/patterns/action-bar/action-bar";
 import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
+import {
+  APP_SHELL_HEADER_HEIGHT,
+  APP_SHELL_STICKY_GAP,
+} from "@/components/shell/app-shell/app-shell.definition";
 import type { Cart } from "@/model/cart/cart";
 import type { ReferenceAmount } from "@/model/money";
 import type { UserProfile } from "@/model/user/user";
@@ -67,7 +71,8 @@ export function CheckoutConfirmView({
 
         <aside
           aria-label="お支払い金額"
-          className="hidden w-full rounded-lg border p-4 lg:sticky lg:top-20 lg:block lg:w-80"
+          className="hidden w-full rounded-lg border p-4 lg:sticky lg:block lg:w-80"
+          style={{ top: APP_SHELL_HEADER_HEIGHT + APP_SHELL_STICKY_GAP }}
         >
           <OrderSummary
             cart={cart}

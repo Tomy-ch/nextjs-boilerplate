@@ -13,7 +13,10 @@ import {
 
 import { useScrollDirection } from "@/capabilities/use-scroll-direction";
 import { cn } from "@/components/cn";
-import { APP_SHELL_HEADER_HEIGHT } from "@/components/shell/app-shell/app-shell.definition";
+import {
+  APP_SHELL_HEADER_HEIGHT,
+  APP_SHELL_STICKY_GAP,
+} from "@/components/shell/app-shell/app-shell.definition";
 
 /** 貼り付いている帯と、その下に続く領域が止まる位置。 */
 type StickyRegion = {
@@ -24,9 +27,6 @@ type StickyRegion = {
   /** 検索の帯が自分の高さを知らせる。 */
   readonly reportBarHeight: (height: number) => void;
 };
-
-/** 止まった要素と、その上にあるものとの間に空ける余白（px）。 */
-const GAP = 12;
 
 const StickyRegionContext = createContext<StickyRegion | null>(null);
 
@@ -118,13 +118,13 @@ export function ProductStickyBar({ children }: { children: ReactNode }) {
  */
 export function ProductStickyAside({ children }: { children: ReactNode }) {
   const { shown, barHeight } = useRegion();
-  const top = APP_SHELL_HEADER_HEIGHT + (shown ? barHeight : 0) + GAP;
+  const top = APP_SHELL_HEADER_HEIGHT + (shown ? barHeight : 0) + APP_SHELL_STICKY_GAP;
 
   return (
     <aside aria-label="絞り込み条件" className="hidden w-64 shrink-0 lg:block">
       <div
         className="sticky overflow-y-auto"
-        style={{ maxHeight: `calc(100dvh - ${top + GAP}px)`, top }}
+        style={{ maxHeight: `calc(100dvh - ${top + APP_SHELL_STICKY_GAP}px)`, top }}
       >
         {children}
       </div>
