@@ -54,6 +54,7 @@ test-requirement: feature
 | `ui/summary-dock/` | 集計を画面の下から出す引き出し。脇に領域を置けない幅だけ |
 | `ui/removal-notice/` | 取り除いた明細を戻す案内の表示 |
 | `ui/quantity-stepper/` | 明細 1 行の数量増減 |
+| `ui/match-stock-button/` | 在庫が足りない明細を、いま買える数へ合わせる |
 | `ui/remove-button/` | 明細 1 行の削除 |
 | `ui/clear-button/` | カートを空にする。確認を挟む |
 | `ui/action-error/` | 操作が失敗したことを、その操作の隣に出す |
