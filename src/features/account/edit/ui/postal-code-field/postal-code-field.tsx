@@ -26,8 +26,8 @@ type PostalCodeFieldProps = Pick<
  * 郵便番号の項目。住所を検索する操作を枠の中に持つ。
  *
  * @remarks
- * `TextField` と同じ理由で切り出してあります。入力欄が `Input` ではなく `InputGroup` に
- * なるだけで、配線の規則は変わりません。
+ * 入力欄が `Input` ではなく `InputGroup` になるだけで、`TextField` と配線の規則は変わりません。
+ * 与える属性は `fieldControlAttributes` が組みます。
  *
  * 操作を枠の中へ収めるのは、いつ補完が走るのかを利用者が決められるようにしつつ、どの入力に
  * 属する操作かを離さないためです。

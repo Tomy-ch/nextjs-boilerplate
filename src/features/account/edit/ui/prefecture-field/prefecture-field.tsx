@@ -18,8 +18,8 @@ type PrefectureFieldProps = ProfileFieldProps & {
  * 都道府県の項目。
  *
  * @remarks
- * `TextField` と同じ理由で切り出してあります。入力欄が `Input` ではなく `SelectNative` に
- * なるだけで、配線の規則は変わりません。
+ * 入力欄が `Input` ではなく `SelectNative` になるだけで、`TextField` と配線の規則は変わりません。
+ * 与える属性は `fieldControlAttributes` が組みます。
  *
  * 検索つきの client island を使いません。契約が全 47 件を固定で返す静的な候補なので、
  * 持ち込む理由がありません（[0053](../../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
