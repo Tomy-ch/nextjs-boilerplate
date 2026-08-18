@@ -5,12 +5,13 @@ import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 import { NewArrivals } from "./new-arrivals";
 
 function itemOf(id: string, name: string): ProductListItem {
   return {
-    id,
+    id: toProductId(id),
     name,
     price: "19.99",
     quantity: 12,
@@ -53,11 +54,13 @@ describe("NewArrivals", () => {
     expect(screen.getByRole("heading", { name: "新着商品" })).toBeVisible();
   });
 
-  it("折り返し前の件数だけ画像を preload する", () => {
-    const { container } = render(<NewArrivals items={OVER_LEADING} />);
+  it("折り返し前の件数だけ画像を後回しにしない", () => {
+    render(<NewArrivals items={OVER_LEADING} />);
 
-    // preload した画像は待機表示を持たない。5 件目だけが枠を持つ。
-    expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(1);
+    const images = screen.getAllByRole("img", { name: "画像なし" });
+
+    expect(images).toHaveLength(5);
+    expect(images.filter((image) => image.hasAttribute("loading"))).toEqual([images.at(-1)]);
   });
 
   it("商品が無ければ節ごと描かない", () => {

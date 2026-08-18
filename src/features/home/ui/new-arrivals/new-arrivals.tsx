@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { MEDIA_IMAGE_PRIORITY } from "@/components/design-system/display/media-image/media-image.definition";
 import { PRODUCT_LIST_PATH } from "@/features/products/facade/list-url/list-url";
 import type { ProductListItem } from "@/model/product/product";
 
@@ -44,7 +45,12 @@ export function NewArrivals({ items }: NewArrivalsProps) {
         <ul className="grid grid-cols-2 gap-4 @2xl/new-arrivals:grid-cols-4">
           {items.map((item, index) => (
             <li key={item.id}>
-              <ProductTeaser item={item} leading={index < LEADING_COUNT} />
+              <ProductTeaser
+                imagePriority={
+                  index < LEADING_COUNT ? MEDIA_IMAGE_PRIORITY.PRELOAD : MEDIA_IMAGE_PRIORITY.LAZY
+                }
+                item={item}
+              />
             </li>
           ))}
         </ul>

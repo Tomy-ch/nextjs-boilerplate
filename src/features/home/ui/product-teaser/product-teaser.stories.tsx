@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 import { ProductTeaser } from "./product-teaser";
 
@@ -19,7 +20,7 @@ function longText(length: number): string {
 }
 
 const ITEM: ProductListItem = {
-  id: "0195f0c2-0000-7000-8000-000000000001",
+  id: toProductId("0195f0c2-0000-7000-8000-000000000001"),
   name: "ワイヤレスイヤホン",
   price: "19.99",
   quantity: 12,

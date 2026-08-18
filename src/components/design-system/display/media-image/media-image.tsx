@@ -5,7 +5,9 @@ import { Skeleton } from "../../status/skeleton/skeleton";
 import {
   MEDIA_IMAGE_ASPECT_RATIO,
   MEDIA_IMAGE_ASPECT_RATIO_CLASS,
+  MEDIA_IMAGE_PRIORITY,
   type MediaImageAspectRatio,
+  type MediaImagePriority,
 } from "./media-image.definition";
 
 /** `MediaImage` の props。`blurDataURL` は明示時だけ `placeholder="blur"` と組み合わせて使う。 */
@@ -30,8 +32,8 @@ export type MediaImageProps = Omit<
   imageClassName?: string;
   /** CSS Skeleton を表示するか。LCP 候補では既定で無効になる。 */
   showSkeleton?: boolean;
-  /** LCP 候補として preload するか。 */
-  preload?: boolean;
+  /** 読み込みの優先度。既定は `lazy`。 */
+  priority?: MediaImagePriority;
   /** 表示する画像。未設定なら `fallbackSrc` を表示する。 */
   src: ImageProps["src"] | null;
 };
@@ -41,8 +43,8 @@ export type MediaImageProps = Omit<
  *
  * @remarks
  * 既定は CSS Skeleton を実画像の下に置き、画像が描画されるまで形状だけを表示する。LCP 候補は
- * `preload` を指定して Skeleton を省略する。`placeholder="blur"` と `blurDataURL` は API として
- * 透過するが、バックエンド由来画像の通常経路ではレスポンスを肥大させないため既定にしない。
+ * `priority` に `preload` を指定して Skeleton を省略する。`placeholder="blur"` と `blurDataURL` は
+ * API として透過するが、バックエンド由来画像の通常経路ではレスポンスを肥大させないため既定にしない。
  *
  * error fallback や読み込み完了に応じた表示切替が必要な場合は、これを包む client island を feature
  * 側に置く。`imagePath` から URL を組み立てる責務も feature / model 側に置く。
@@ -61,8 +63,8 @@ export function MediaImage({
   fallbackAlt = "",
   fallbackSrc,
   imageClassName,
-  preload = false,
-  showSkeleton = !preload,
+  priority = MEDIA_IMAGE_PRIORITY.LAZY,
+  showSkeleton = priority !== MEDIA_IMAGE_PRIORITY.PRELOAD,
   sizes = "100vw",
   src,
   ...props
@@ -89,7 +91,7 @@ export function MediaImage({
         className={cn("object-cover", imageClassName)}
         data-slot="media-image-image"
         fill
-        preload={preload}
+        preload={priority === MEDIA_IMAGE_PRIORITY.PRELOAD}
         sizes={sizes}
         src={resolved}
         // 代替画像は最適化を通さない。next/image は SVG を既定で最適化せず、通すには

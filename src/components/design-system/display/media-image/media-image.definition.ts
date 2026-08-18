@@ -18,6 +18,22 @@ export type MediaImageAspectRatio =
   (typeof MEDIA_IMAGE_ASPECT_RATIO)[keyof typeof MEDIA_IMAGE_ASPECT_RATIO];
 
 /**
+ * `MediaImage` が画像を読み込む優先度。
+ *
+ * - `PRELOAD`: LCP 候補として先に読み込む。既定では待機表示を置かない
+ * - `LAZY`: 表示位置へ近づいてから読み込む
+ *
+ * @see Storybook `Display/MediaImage`
+ */
+export const MEDIA_IMAGE_PRIORITY = {
+  PRELOAD: "preload",
+  LAZY: "lazy",
+} as const;
+
+/** {@link MEDIA_IMAGE_PRIORITY} のいずれかを表す優先度の値。 */
+export type MediaImagePriority = (typeof MEDIA_IMAGE_PRIORITY)[keyof typeof MEDIA_IMAGE_PRIORITY];
+
+/**
  * 比率から、枠へ与える Tailwind の class を引く表。
  *
  * @remarks

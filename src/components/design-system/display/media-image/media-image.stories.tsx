@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { MediaImage } from "./media-image";
-import { MEDIA_IMAGE_ASPECT_RATIO } from "./media-image.definition";
+import { MEDIA_IMAGE_ASPECT_RATIO, MEDIA_IMAGE_PRIORITY } from "./media-image.definition";
 
 const SAMPLE_SRC = "/src/components/design-system/display/media-image/invertocat.png";
 
@@ -37,11 +37,14 @@ export const FixedAspectRatio: Story = {
 };
 
 /**
- * LCP になる画像。`preload` を指定した画像だけが先に取得される。**画面で最も大きい 1 枚に限る。**
- * 複数へ付けると帯域を奪い合い、どれも遅くなる。
+ * LCP になる画像。`priority` に `preload` を指定した画像だけが先に取得される。**画面で最も大きい
+ * 1 枚に限る。** 複数へ付けると帯域を奪い合い、どれも遅くなる。
  */
 export const Preloaded: Story = {
-  args: { aspectRatio: MEDIA_IMAGE_ASPECT_RATIO.WIDE, preload: true },
+  args: {
+    aspectRatio: MEDIA_IMAGE_ASPECT_RATIO.WIDE,
+    priority: MEDIA_IMAGE_PRIORITY.PRELOAD,
+  },
 };
 
 /**
