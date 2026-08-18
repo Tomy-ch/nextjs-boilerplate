@@ -33,7 +33,7 @@ test-requirement: feature
 | `form-state.ts` | 確定の戻り値の型。`ActionState<T>` をこの画面の形で閉じる |
 | `idempotency-key.ts` | 確定 1 回ぶんを表す鍵と、それを載せるフォーム項目の名前 |
 | `order.ts` | 購入に載せる明細の取り出しと、金額が変わった明細の判定 |
-| `paths.ts` | この feature が持つ 2 つのルートと、そこから出る先 |
+| `paths.ts` | 完了画面の場所と、そこへ載せる検索条件。あわせてこの画面から出る先 |
 | `reference-amount.ts` | 参考換算額の読み取り。読めなくても投げない |
 | `ui/amount-with-reference/` | 金額と、切り替えで現れる参考換算額。両画面が使う |
 | `confirm/page-content.tsx` | カートと登録情報の並行取得、参考換算額の付与 |

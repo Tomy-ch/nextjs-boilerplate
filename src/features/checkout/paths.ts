@@ -1,6 +1,3 @@
-/** 購入の内容を確かめ、確定する画面。認証の内側にある。 */
-export const CHECKOUT_PATH = "/checkout";
-
 /** 購入が成立したことを伝える画面。 */
 const CHECKOUT_COMPLETE_PATH = "/checkout/complete";
 

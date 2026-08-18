@@ -93,7 +93,7 @@ function createIdp(issued: IssuedToken, expiresIn: number | undefined): typeof f
 function createResolver(
   fetchImpl: typeof fetch,
   at: number = nowMs,
-  resolveRole: (accessToken: string) => Promise<SessionRole> = async () => SESSION_ROLE.user,
+  resolveRole?: (accessToken: string) => Promise<SessionRole>,
 ) {
   return createDefaultSessionResolver({
     issuer,
@@ -239,6 +239,12 @@ describe("createDefaultSessionResolver", () => {
     });
 
     expect(await kindOf(complete)).toBe(ErrorKind.UNAUTHENTICATED);
+  });
+
+  it("役割の取得口を渡さなければ、権限を持たない側に倒す", async () => {
+    const { complete } = await startSignIn();
+
+    expect((await complete()).session.role).toBe(SESSION_ROLE.user);
   });
 
   it("宛先が多値でも、azp が client と一致すれば受け入れる", async () => {

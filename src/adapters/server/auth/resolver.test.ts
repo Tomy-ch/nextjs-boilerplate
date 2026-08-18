@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchSessionRole } from "../api/user-roles";
+import { fetchSessionRole } from "../api/user-roles"; // sample:line
 import { getSessionResolver } from "./resolver";
 
 const config = {
@@ -24,10 +24,11 @@ describe("getSessionResolver", () => {
 
     expect(createDefaultSessionResolver).toHaveBeenCalledWith({
       ...config,
-      resolveRole: expect.any(Function),
+      resolveRole: expect.any(Function), // sample:line
     });
   });
 
+  // sample:begin
   it("役割の取得口を渡す", () => {
     getSessionResolver();
 
@@ -35,6 +36,7 @@ describe("getSessionResolver", () => {
 
     expect(deps?.resolveRole).toBe(fetchSessionRole);
   });
+  // sample:end
 
   it("同じ実体を返し続ける", () => {
     expect(getSessionResolver()).toBe(getSessionResolver());

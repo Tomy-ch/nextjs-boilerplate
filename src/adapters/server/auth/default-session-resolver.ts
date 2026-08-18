@@ -70,8 +70,11 @@ export type DefaultSessionResolverDeps = {
    * **役割の正本は IdP ではありません。** ID Token の claim から読むと、IdP を差し替えるたびに
    * 役割の出所が変わります。誰であるかは IdP が、何をしてよいかはバックエンドが持ちます
    * （[0070](../../../../docs/adr/0070-backend-role-separation.md)）。
+   *
+   * 渡さなければ、権限を持たない側に倒します。判定材料が無いときに与えると、確定認可が拒否する
+   * まで権限のある画面が見えてしまいます。
    */
-  readonly resolveRole: (accessToken: string) => Promise<SessionRole>;
+  readonly resolveRole?: (accessToken: string) => Promise<SessionRole>;
   /** 現在時刻。既定は `Date.now`。 */
   readonly now?: () => number;
 };
@@ -212,7 +215,7 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
 
       const session: Session = {
         userId: payload.sub,
-        role: await deps.resolveRole(tokens.access_token),
+        role: await (deps.resolveRole?.(tokens.access_token) ?? SESSION_ROLE.user),
         expiresAt: toExpiry(tokens.expires_in, payload.exp, now()),
       };
 

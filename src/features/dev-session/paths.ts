@@ -6,8 +6,5 @@
  */
 export const DEV_SESSION_PATH = "/dev/session";
 
-/** 発行したあとの既定の戻り先。 */
-export const DEFAULT_RETURN_PATH = "/";
-
 /** 戻り先を持ち回るための検索条件の名前。 */
 export const RETURN_URL_PARAM = "returnUrl";

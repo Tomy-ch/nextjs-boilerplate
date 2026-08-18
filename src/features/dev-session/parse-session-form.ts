@@ -7,7 +7,7 @@ import { SESSION_ROLE, type SessionRole } from "@/model/session";
 export type DevSessionField = "subject" | "role" | "expiresInSeconds" | "accessToken";
 
 /** 発行する session の指定。 */
-export type DevSessionInput = {
+type DevSessionInput = {
   readonly subject: string;
   readonly role: SessionRole;
   readonly expiresInSeconds: number;
