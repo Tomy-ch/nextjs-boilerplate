@@ -1,8 +1,7 @@
-import { AlertTriangleIcon, InfoIcon } from "lucide-react";
-
 import { cn } from "@/components/cn";
+import { CartLineIssues } from "@/features/cart/facade/line-issues/line-issues";
 import type { CartLine } from "@/model/cart/cart";
-import { cartIssueNotice, hasBlockingIssue } from "@/model/cart/issue-notice";
+import { hasBlockingIssue } from "@/model/cart/issue-notice";
 
 /** `OrderLineRow` の props。 */
 export type OrderLineRowProps = {
@@ -45,31 +44,11 @@ export function OrderLineRow({ line }: OrderLineRowProps) {
         {line.unitPrice === null ? null : (
           <p className="text-muted-foreground text-sm">{`$${line.unitPrice} / 個`}</p>
         )}
-        {line.issues.length === 0 ? null : (
-          <ul className="flex flex-col gap-0.5">
-            {line.issues.map((issue) => {
-              const notice = cartIssueNotice(issue, line.availableQuantity);
-
-              return (
-                <li
-                  className={cn(
-                    "flex items-start gap-1.5 text-xs",
-                    notice.blocking ? "text-destructive" : "text-muted-foreground",
-                  )}
-                  key={issue}
-                >
-                  {notice.blocking ? (
-                    <AlertTriangleIcon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-                  ) : (
-                    <InfoIcon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-                  )}
-                  {notice.message}
-                </li>
-              );
-            })}
-            <li className="text-muted-foreground text-xs">{note}</li>
-          </ul>
-        )}
+        <CartLineIssues
+          availableQuantity={line.availableQuantity}
+          issues={line.issues}
+          note={note}
+        />
       </div>
       <p className="text-sm tabular-nums">{`${line.quantity} 個`}</p>
     </li>

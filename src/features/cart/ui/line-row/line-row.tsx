@@ -4,7 +4,7 @@ import { cn } from "@/components/cn";
 import type { CartLine } from "@/model/cart/cart";
 
 import { hasBlockingIssue } from "@/model/cart/issue-notice";
-import { CartLineIssues } from "../line-issues/line-issues";
+import { CartLineIssues } from "../../facade/line-issues/line-issues";
 import { CartMatchStockButton } from "../match-stock-button/match-stock-button";
 import { CartQuantityStepper } from "../quantity-stepper/quantity-stepper";
 import { CartRemoveButton } from "../remove-button/remove-button";
@@ -17,6 +17,9 @@ export type CartLineRowProps = {
 
 /** 商品を引けなかった明細に出す名前。 */
 const UNKNOWN_NAME = "取得できない商品";
+
+/** 事情の立った明細に添える、この画面での帰結。 */
+const SUBTOTAL_NOTE = "小計には含めていません。";
 
 /**
  * カートの明細 1 行。
@@ -63,7 +66,11 @@ export function CartLineRow({ line }: CartLineRowProps) {
             {`$${line.unitPrice} / 個`}
           </p>
         )}
-        <CartLineIssues availableQuantity={line.availableQuantity} issues={line.issues} />
+        <CartLineIssues
+          availableQuantity={line.availableQuantity}
+          issues={line.issues}
+          note={SUBTOTAL_NOTE}
+        />
         {line.availableQuantity === null || line.availableQuantity <= 0 ? null : (
           <CartMatchStockButton
             availableQuantity={line.availableQuantity}
