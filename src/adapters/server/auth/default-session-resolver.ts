@@ -63,6 +63,15 @@ export type DefaultSessionResolverDeps = {
   readonly sessionSecret: string;
   /** 取得に使う実装。既定は環境の `fetch`。 */
   readonly fetchImpl?: typeof fetch;
+  /**
+   * 確立しようとしている session の役割を決める口。
+   *
+   * @remarks
+   * **役割の正本は IdP ではありません。** ID Token の claim から読むと、IdP を差し替えるたびに
+   * 役割の出所が変わります。誰であるかは IdP が、何をしてよいかはバックエンドが持ちます
+   * （[0070](../../../../docs/adr/0070-backend-role-separation.md)）。
+   */
+  readonly resolveRole: (accessToken: string) => Promise<SessionRole>;
   /** 現在時刻。既定は `Date.now`。 */
   readonly now?: () => number;
 };
@@ -88,9 +97,6 @@ async function deriveSealKey(secret: string): Promise<Uint8Array> {
  * 無いときに与えてしまうと、確定認可が拒否するまで権限のある画面が見えてしまうためです。
  */
 // TODO: IdP が role claim を出すようになったら分岐を実値へ差し替える（go-boilerplate #1157）。
-function toSessionRole(claim: unknown): SessionRole {
-  return claim === SESSION_ROLE.admin ? SESSION_ROLE.admin : SESSION_ROLE.user;
-}
 
 /**
  * Authorization Code + PKCE と JWE 封緘による既定の Resolver を作る。
@@ -191,6 +197,16 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
       });
       const payload = verified.payload;
 
+      const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+
+      // aud が多値のときは、どの client のために出されたトークンかを azp が名指しする。
+      // 含まれてさえいれば通す形にすると、別の client 向けのトークンを持ち込まれても通る。
+      if (audiences.length > 1 && payload.azp !== deps.clientId) {
+        throw createAppError(ErrorKind.UNAUTHENTICATED, {
+          cause: new Error("ID Token の azp が client と一致しません"),
+        });
+      }
+
       if (payload.nonce !== transaction.nonce) {
         throw createAppError(ErrorKind.UNAUTHENTICATED, {
           cause: new Error("ID Token の nonce が要求時のものと一致しません"),
@@ -205,7 +221,7 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
 
       const session: Session = {
         userId: payload.sub,
-        role: toSessionRole(payload.role),
+        role: await deps.resolveRole(tokens.access_token),
         expiresAt: toExpiry(tokens.expires_in, payload.exp, now()),
       };
 

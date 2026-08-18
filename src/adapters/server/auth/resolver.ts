@@ -2,6 +2,7 @@ import "server-only";
 
 import { getAuthConfig } from "@/config/auth/auth.server";
 
+import { fetchSessionRole } from "../api/user-roles";
 import { createDefaultSessionResolver } from "./default-session-resolver";
 import type { SessionResolver } from "./session-resolver";
 
@@ -27,6 +28,8 @@ export function getSessionResolver(): SessionResolver {
     redirectUri: config.redirectUri,
     scopes: config.scopes,
     sessionSecret: config.sessionSecret,
+    // 役割はバックエンドから引く。IdP が持つのは身元だけで、何をしてよいかは業務側のデータである。
+    resolveRole: fetchSessionRole,
   });
 
   return resolver;

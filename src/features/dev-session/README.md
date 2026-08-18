@@ -53,10 +53,20 @@ APP_ENV=ci pnpm dev
 APP_ENV=local pnpm dev
 ```
 
-バックエンドを起動したうえで、その発行口で取った Access Token を「Access Token（任意）」へ貼ります。
-IdP のリダイレクトを通らずに、実データの保護画面へ入れます。**通常のログイン（`/api/auth/login`）が
-使えるならそちらが正**で、この欄はリダイレクトを通せないとき（登録済みの戻り先と手元のポートが
-噛み合わない等）の代わりです。
+**通常のログイン（`/api/auth/login`）が使えるならそちらが正**です。この欄は、リダイレクトを通せない
+ときや、特定の主体で入り直したいときの代わりに使います。トークンは IdP のトークンエンドポイントから
+直接取れます。
+
+```sh
+curl -s -X POST http://localhost:2010/default/token \
+  -d 'grant_type=password' \
+  -d 'client_id=go-boilerplate-client' \
+  -d 'password=unused' \
+  --data-urlencode 'username=user-jane-smith' | jq -r .access_token
+```
+
+`username` がそのまま主体になります。バックエンドに登録されていない主体はトークンこそ出ますが、
+API の側で解決できず 401 になります。
 
 ### 3. 失効の見え方を確かめる
 
