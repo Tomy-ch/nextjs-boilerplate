@@ -26,7 +26,7 @@
 
 補助的な詳細表示や通常の編集には使いません。それらは [`Dialog`](../dialog/README.md) の担当です。`AlertDialog` は確認のための専用の形であり、確認を要さない内容に使うと操作の妨げになります。
 
-破壊的な操作であることは配色だけでなく文言で示します。`AlertDialogAction` の既定は通常の `Button` なので、破壊的に見せる場合は呼び出し元が `className` で配色を与えます。
+破壊的な操作であることは配色だけでなく文言で示します。`AlertDialogAction` の既定は通常の `Button` なので、破壊的に見せる場合は呼び出し元が [`Button`](../../action/button/README.md) の `destructive` variant を指定します。
 
 ## 責務境界
 

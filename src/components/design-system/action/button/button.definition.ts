@@ -1,6 +1,7 @@
 const DEFAULT_BUTTON_VARIANT = "default";
 const OUTLINE_BUTTON_VARIANT = "outline";
 const GHOST_BUTTON_VARIANT = "ghost";
+const DESTRUCTIVE_BUTTON_VARIANT = "destructive";
 const DEFAULT_BUTTON_SIZE = "default";
 const SMALL_BUTTON_SIZE = "sm";
 const LARGE_BUTTON_SIZE = "lg";
@@ -14,10 +15,12 @@ export const BUTTON_VARIANT: Readonly<{
   DEFAULT: "default";
   OUTLINE: "outline";
   GHOST: "ghost";
+  DESTRUCTIVE: "destructive";
 }> = {
   DEFAULT: DEFAULT_BUTTON_VARIANT,
   OUTLINE: OUTLINE_BUTTON_VARIANT,
   GHOST: GHOST_BUTTON_VARIANT,
+  DESTRUCTIVE: DESTRUCTIVE_BUTTON_VARIANT,
 };
 
 /**

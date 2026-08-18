@@ -5,6 +5,10 @@ import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/design-system/action/button/button";
 import {
+  BUTTON_SIZE,
+  BUTTON_VARIANT,
+} from "@/components/design-system/action/button/button.definition";
+import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
@@ -22,22 +26,13 @@ import { CartActionError } from "../action-error/action-error";
 const CONFIRM_LABEL = "カートを空にする";
 const PENDING_LABEL = "空にしています…";
 
-/**
- * 取り消せない側の操作であることを配色で示す。
- *
- * @remarks
- * `Button` の variant には無い扱いなので呼び出し側が与えます（`AlertDialog` の README）。
- */
-const DESTRUCTIVE_CLASS =
-  "bg-destructive text-destructive-foreground hover:bg-destructive/75 active:bg-destructive/60";
-
 /** 確認 dialog の中の実行ボタン。送信中は押せなくする。 */
 function ClearSubmit() {
   const { pending } = useFormStatus();
   const label = pending ? PENDING_LABEL : CONFIRM_LABEL;
 
   return (
-    <Button className={DESTRUCTIVE_CLASS} disabled={pending} type="submit">
+    <Button disabled={pending} type="submit" variant={BUTTON_VARIANT.DESTRUCTIVE}>
       {label}
     </Button>
   );
@@ -65,7 +60,7 @@ export function CartClearButton() {
     <div className="flex flex-col gap-2">
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button className="w-full" size="sm" variant="ghost">
+          <Button className="w-full" size={BUTTON_SIZE.SMALL} variant={BUTTON_VARIANT.GHOST}>
             {CONFIRM_LABEL}
           </Button>
         </AlertDialogTrigger>
