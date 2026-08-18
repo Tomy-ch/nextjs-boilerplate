@@ -28,6 +28,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/features/products",
   "src/features/cart",
   "src/features/checkout",
+  "src/features/purchases",
   "src/features/home",
   "src/features/account",
   "src/features/site-info",
