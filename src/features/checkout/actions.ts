@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -115,6 +116,10 @@ export async function placeOrderAction(
   }
 
   await removeOrderedLines(lines);
+
+  // カートは外枠（header の点数と脇の領域）にも出る。経路を 1 つ指定しても外枠は古いままなので、
+  // layout の段で無効にする。買った直後の画面に、買った物が残って見えることになる。
+  revalidatePath("/", "layout");
 
   redirect(purchaseCompletePath(purchaseId));
 }
