@@ -1,3 +1,5 @@
+import type { ProductId } from "../product/product";
+
 /**
  * カート明細の再評価結果。
  *
@@ -23,7 +25,7 @@ export type CartLineIssue =
 
 /** カートに入っている 1 行。 */
 export type CartLine = {
-  readonly productId: string;
+  readonly productId: ProductId;
   /** 商品名。商品を引けなければ（`notFound`）null。 */
   readonly name: string | null;
   /**
@@ -50,9 +52,9 @@ export type CartLine = {
  */
 export type CartMergeResult = {
   /** 数量が上限を超え、上限へ丸められた商品。 */
-  readonly clampedProductIds: readonly string[];
+  readonly clampedProductIds: readonly ProductId[];
   /** 明細数の上限を超え、取り込まれなかった商品。 */
-  readonly droppedProductIds: readonly string[];
+  readonly droppedProductIds: readonly ProductId[];
 };
 
 /**

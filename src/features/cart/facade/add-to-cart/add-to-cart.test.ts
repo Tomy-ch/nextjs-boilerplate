@@ -14,9 +14,10 @@ const { getMyCart, setMyCartItem, revalidatePath } = vi.hoisted(() => ({
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/adapters/server/api/cart", () => ({ getMyCart, setMyCartItem }));
 
+import { toProductId } from "@/model/product/product";
 import { addToCartAction } from "./add-to-cart";
 
-const PRODUCT_ID = "0195f0c2-0000-7000-8000-000000000001";
+const PRODUCT_ID = toProductId("0195f0c2-0000-7000-8000-000000000001");
 
 /** 送信された内容を解けなかったときの文言。実装が持つリテラルと同じでなければならない。 */
 const MALFORMED_MESSAGE = "操作を受け付けられませんでした。画面を読み込み直してください。";

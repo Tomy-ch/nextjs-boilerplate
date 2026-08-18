@@ -5,13 +5,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 
 import { ProductGrid } from "./grid";
 
 function item(index: number, overrides: Partial<ProductListItem> = {}): ProductListItem {
   return {
-    id: `0195f0c2-0000-7000-8000-${String(index).padStart(12, "0")}`,
+    id: toProductId(`0195f0c2-0000-7000-8000-${String(index).padStart(12, "0")}`),
     name: `商品${index}`,
     price: "19.99",
     quantity: 12,
@@ -35,6 +36,12 @@ describe("ProductGrid", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(4);
     expect(screen.getByRole("link", { name: "商品1" })).toBeVisible();
     expect(screen.getByRole("link", { name: "商品4" })).toBeVisible();
+  });
+
+  it("結果の並びであることを名前で示す", () => {
+    render(<ProductGrid items={ITEMS} />);
+
+    expect(screen.getByRole("list", { name: "商品の一覧" })).toBeVisible();
   });
 
   it("並べた商品それぞれが詳細を指す", () => {

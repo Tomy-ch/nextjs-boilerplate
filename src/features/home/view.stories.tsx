@@ -15,6 +15,7 @@ import type {
   ProductListItem,
   ProductRankingEntry,
 } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 
 import { SampleNotice } from "./ui/sample-notice/sample-notice";
@@ -73,7 +74,7 @@ function item(overrides: Partial<ProductListItem> = {}): ProductListItem {
   itemSeq += 1;
 
   return {
-    id: `0195f0c2-0000-7000-8000-${String(itemSeq).padStart(12, "0")}`,
+    id: toProductId(`0195f0c2-0000-7000-8000-${String(itemSeq).padStart(12, "0")}`),
     name: "ワイヤレスイヤホン",
     price: "19.99",
     quantity: 12,
@@ -104,7 +105,7 @@ function entry(overrides: Partial<ProductRankingEntry> = {}): ProductRankingEntr
   entrySeq += 1;
 
   return {
-    productId: `0195f0c2-0000-7000-8000-${String(entrySeq).padStart(12, "0")}`,
+    productId: toProductId(`0195f0c2-0000-7000-8000-${String(entrySeq).padStart(12, "0")}`),
     name: "ワイヤレスイヤホン",
     price: "19.99",
     soldQuantity: 128,

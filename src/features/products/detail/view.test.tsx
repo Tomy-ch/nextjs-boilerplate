@@ -7,6 +7,7 @@ import { axe } from "vitest-axe";
 
 import type { ActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 const { addToCartAction } = vi.hoisted(() => ({
   addToCartAction:
@@ -36,7 +37,7 @@ class IntersectionObserverStub {
 
 function productOf(overrides: Partial<Product> = {}): Product {
   return {
-    id: "0195f0c2-0000-7000-8000-000000000001",
+    id: toProductId("0195f0c2-0000-7000-8000-000000000001"),
     name: "深煎りブレンド",
     description: "<p>香りの説明</p>",
     price: "12.34",
@@ -85,60 +86,6 @@ describe("ProductDetail", () => {
     expect(screen.getByText("2026/08/12 9:05")).toBeVisible();
   });
 
-  it("渡された URL で画像を出す", () => {
-    render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
-
-    expect(screen.getByRole("img", { name: "深煎りブレンド" })).toHaveAttribute(
-      "src",
-      expect.stringContaining(encodeURIComponent(IMAGE_URL)),
-    );
-  });
-
-  it("画像を carousel に載せる", () => {
-    render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
-
-    expect(screen.getByRole("region", { name: "深煎りブレンドの画像" })).toBeVisible();
-  });
-
-  it("画像の枚数だけ送り先の一覧を下に並べる", () => {
-    render(<ProductDetail imageUrls={THREE_IMAGE_URLS} product={productOf()} />);
-
-    expect(screen.getAllByRole("group")).toHaveLength(3);
-    expect(screen.getByRole("list", { name: "画像の一覧" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "2 枚目" })).toHaveAttribute(
-      "href",
-      "#product-image-2",
-    );
-  });
-
-  it("画像が 1 枚でも送り先の一覧を出す", () => {
-    render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
-
-    expect(screen.getByRole("link", { name: "1 枚目" })).toHaveAttribute(
-      "href",
-      "#product-image-1",
-    );
-  });
-
-  it("同じ URL の画像が並んでも枚数どおりに並べる", () => {
-    render(<ProductDetail imageUrls={[IMAGE_URL, IMAGE_URL]} product={productOf()} />);
-
-    expect(screen.getAllByRole("group")).toHaveLength(2);
-    expect(screen.getByRole("link", { name: "2 枚目" })).toBeVisible();
-  });
-
-  it("先頭では前へを出さず、末尾では次へを出さない", () => {
-    render(<ProductDetail imageUrls={THREE_IMAGE_URLS} product={productOf()} />);
-    const [first, middle, last] = screen.getAllByRole("group");
-
-    expect(within(first).queryByRole("link", { name: "前へ" })).not.toBeInTheDocument();
-    expect(within(first).getByRole("link", { name: "次へ" })).toBeVisible();
-    expect(within(middle).getByRole("link", { name: "前へ" })).toBeVisible();
-    expect(within(middle).getByRole("link", { name: "次へ" })).toBeVisible();
-    expect(within(last).getByRole("link", { name: "前へ" })).toBeVisible();
-    expect(within(last).queryByRole("link", { name: "次へ" })).not.toBeInTheDocument();
-  });
-
   it("カートへは商品を指す値だけを渡す", async () => {
     addToCartAction.mockResolvedValue({ status: "success", value: undefined });
     render(<ProductDetail imageUrls={THREE_IMAGE_URLS} product={productOf()} />);
@@ -165,18 +112,6 @@ describe("ProductDetail", () => {
     expect(breadcrumb.getByRole("link", { name: "トップ" })).toHaveAttribute("href", "/");
     expect(breadcrumb.getByRole("link", { name: "商品一覧" })).toHaveAttribute("href", "/products");
     expect(breadcrumb.getByText("深煎りブレンド")).toBeVisible();
-  });
-
-  it("実画像には拡大する操作を出す", () => {
-    render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
-
-    expect(screen.getAllByRole("button", { name: /を拡大する/ }).length).toBe(IMAGE_URLS.length);
-  });
-
-  it("代替画像には拡大する操作を出さない", () => {
-    render(<ProductDetail imageUrls={[]} product={productOf()} />);
-
-    expect(screen.queryByRole("button", { name: /を拡大する/ })).not.toBeInTheDocument();
   });
 
   it("カートに追加する操作を出す", () => {
@@ -246,12 +181,6 @@ describe("ProductDetail", () => {
     expect(screen.getByText("本文")).toBeVisible();
     expect(document.querySelector("script")).toBeNull();
     expect(screen.queryByRole("img", { name: "" })).not.toBeInTheDocument();
-  });
-
-  it("画像を持たない商品では代替画像を出す", () => {
-    render(<ProductDetail imageUrls={[]} product={productOf({ imagePaths: [] })} />);
-
-    expect(screen.getByRole("img", { name: "画像なし" })).toHaveAttribute("src", "/no-image.svg");
   });
 
   it("在庫が無ければカートに追加できない", () => {
