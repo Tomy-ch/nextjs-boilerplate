@@ -6,9 +6,8 @@ import type { CursorPage } from "../pagination";
  * 商品の識別子を確定させるスキーマ。
  *
  * @remarks
- * brand を与えるのは検証の出口であり、与える主体は zod です
- * （[0029](../../../docs/adr/0029-type-design-discipline.md) §3）。生成スキーマの中で組み合わせる
- * 呼び出しがこれを直接使い、それ以外は {@link toProductId} を通します。
+ * 生成スキーマの中で組み合わせる呼び出しがこれを直接使い、それ以外は {@link toProductId} を
+ * 通します（[0029](../../../docs/adr/0029-type-design-discipline.md) §3）。
  */
 export const productIdSchema = z.string().brand<"product">();
 
@@ -17,10 +16,8 @@ export const productIdSchema = z.string().brand<"product">();
  *
  * @remarks
  * 素の `string` を代入できない形にしてあります。商品・利用者・購入の識別子はいずれも UUID の
- * 文字列で、取り違えても型では止まらないためです。
- *
- * バックエンド側が同じ識別子を型で守っていても、境界を跨いだ時点で保証は切れています。
- * このリポジトリは応答を信用せず、こちら側で付け直します。
+ * 文字列で、取り違えても型では止まらないためです
+ * （[0029](../../../docs/adr/0029-type-design-discipline.md) §3）。
  */
 export type ProductId = z.infer<typeof productIdSchema>;
 

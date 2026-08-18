@@ -4,9 +4,8 @@ import { z } from "zod";
  * 検証を通った復帰先を確定させるスキーマ。
  *
  * @remarks
- * 素の `string` を代入できない形にすることで、検証を通していない候補が復帰先として流通しえない
- * 状態を型で保証します（[0029](../../docs/adr/0029-type-design-discipline.md) §2）。「検証済みで
- * あること」を呼び出し側の規律に委ねると、通し忘れは実行時にしか現れません。
+ * {@link toSafeReturnUrl} を通った値だけがこの型になります
+ * （[0029](../../docs/adr/0029-type-design-discipline.md) §2）。
  */
 const safeReturnUrlSchema = z.string().brand<"safeReturnUrl">();
 
