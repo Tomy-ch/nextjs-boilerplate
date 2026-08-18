@@ -4,6 +4,7 @@ import { getProduct } from "@/adapters/server/api/products";
 import { resolveMediaUrl } from "@/adapters/server/media/media-url";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { toProductId } from "@/model/product/product";
 
 import { ProductDetail } from "./view";
 
@@ -25,7 +26,7 @@ export type ProductDetailPageContentProps = {
  */
 async function loadProduct(id: string) {
   try {
-    return await getProduct(id);
+    return await getProduct(toProductId(id));
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.NOT_FOUND) {
       notFound();

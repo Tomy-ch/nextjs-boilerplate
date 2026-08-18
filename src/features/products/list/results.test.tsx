@@ -6,6 +6,7 @@ import { axe } from "vitest-axe";
 
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 const { getProductListPage, getProductCount } = vi.hoisted(() => ({
   getProductListPage: vi.fn(),
@@ -32,7 +33,7 @@ class IntersectionObserverStub {
 
 function itemOf(overrides: Partial<ProductListItem> = {}): ProductListItem {
   return {
-    id: "0195f0c2-0000-7000-8000-000000000001",
+    id: toProductId("0195f0c2-0000-7000-8000-000000000001"),
     name: "ワイヤレスイヤホン",
     price: "19.99",
     quantity: 12,

@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
-import { ToastProvider } from "@/components/shell/toaster/toaster";
 import type { AddressCandidate } from "@/model/user/user";
 
 import {
@@ -105,14 +104,6 @@ const meta = {
   title: "Features/Account/ProfileForm",
   component: ProfileForm,
   beforeEach: stubAddressLookup,
-  decorators: [
-    // 保存の成功を伝えるのが toast であり、実物では root layout がこの Provider を持つ。
-    (Story) => (
-      <ToastProvider>
-        <Story />
-      </ToastProvider>
-    ),
-  ],
   parameters: {
     docs: {
       description: {

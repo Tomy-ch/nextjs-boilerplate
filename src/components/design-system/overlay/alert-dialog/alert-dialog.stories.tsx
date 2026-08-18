@@ -39,12 +39,7 @@ function DeleteConfirmation({ defaultOpen = false }: { defaultOpen?: boolean }) 
   return (
     <AlertDialog defaultOpen={defaultOpen}>
       <AlertDialogTrigger asChild>
-        <Button
-          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          variant={BUTTON_VARIANT.DEFAULT}
-        >
-          削除する
-        </Button>
+        <Button variant={BUTTON_VARIANT.DESTRUCTIVE}>削除する</Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -53,12 +48,7 @@ function DeleteConfirmation({ defaultOpen = false }: { defaultOpen?: boolean }) 
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            variant={BUTTON_VARIANT.DEFAULT}
-          >
-            削除する
-          </AlertDialogAction>
+          <AlertDialogAction variant={BUTTON_VARIANT.DESTRUCTIVE}>削除する</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

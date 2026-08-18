@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 import { ProductGrid } from "./grid";
 
@@ -29,7 +30,7 @@ function item(overrides: Partial<ProductListItem> = {}): ProductListItem {
   seq += 1;
 
   return {
-    id: `0195f0c2-0000-7000-8000-${String(seq).padStart(12, "0")}`,
+    id: toProductId(`0195f0c2-0000-7000-8000-${String(seq).padStart(12, "0")}`),
     name: "ワイヤレスイヤホン",
     price: "19.99",
     quantity: 12,

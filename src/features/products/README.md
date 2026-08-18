@@ -55,7 +55,8 @@ test-requirement: feature
 | `list/ui/error-state/` | 取得に失敗したときの表示 |
 | `list/ui/invalid-query/` | URL の条件が契約を外れているときの表示 |
 | `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
-| `detail/view.tsx` | 1 件の詳細の表示。画像の carousel と説明文の描画を持つ |
+| `detail/view.tsx` | 1 件の詳細の表示。骨格と値の表示を持ち、画像の面は下へ渡す |
+| `detail/ui/gallery/` | 画像を送りながら見る面。枚数によらず carousel に載せ、拡大は実画像だけに出す |
 | `detail/ui/print-button/` | 紙に出す操作。押せない操作は紙面へ出さない |
 
 ## 運用

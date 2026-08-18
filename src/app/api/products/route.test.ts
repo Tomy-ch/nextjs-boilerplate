@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { getProductListPage as getProductListPageType } from "@/adapters/server/api/products";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { toProductId } from "@/model/product/product";
 
 const { getProductListPage } = vi.hoisted(() => ({
   getProductListPage: vi.fn<typeof getProductListPageType>(),
@@ -17,7 +18,7 @@ import { GET } from "./route";
 const page = {
   items: [
     {
-      id: "0195f0c2-0000-7000-8000-000000000001",
+      id: toProductId("0195f0c2-0000-7000-8000-000000000001"),
       name: "商品",
       price: "19.99",
       quantity: 3,

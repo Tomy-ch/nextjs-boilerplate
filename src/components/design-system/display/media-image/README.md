@@ -13,7 +13,7 @@
 
 ## 利用ケース
 
-一覧・詳細・説明内の画像に使います。通常画像は Skeleton を既定にし、LCP 候補だけは `preload` を指定して Skeleton を省略します。`placeholder="blur"` と `blurDataURL` も明示時に使えます。
+一覧・詳細・説明内の画像に使います。通常画像は Skeleton を既定にし、LCP 候補だけは `priority` に `preload` を指定して Skeleton を省略します。`placeholder="blur"` と `blurDataURL` も明示時に使えます。
 
 画像が未設定の対象を並べる場所では、`src` に `null` を渡したうえで `fallbackSrc` に代替画像を指定します。
 

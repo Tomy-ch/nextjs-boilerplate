@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { MEDIA_IMAGE_PRIORITY } from "@/components/design-system/display/media-image/media-image.definition";
 import { NO_IMAGE_URL } from "@/model/media";
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 import { ProductCard } from "./card";
 
@@ -26,7 +28,7 @@ type Story = StoryObj<typeof meta>;
 
 function item(overrides: Partial<ProductListItem> = {}): ProductListItem {
   return {
-    id: "0195f0c2-0000-7000-8000-000000000001",
+    id: toProductId("0195f0c2-0000-7000-8000-000000000001"),
     name: "ワイヤレスイヤホン",
     price: "19.99",
     quantity: 12,
@@ -54,7 +56,7 @@ export const OutOfStock: Story = {
 
 /** 一覧の先頭に置く場合。LCP 候補として画像を preload する。 */
 export const Leading: Story = {
-  args: { item: item({ imageUrl: NO_IMAGE_URL }), leading: true },
+  args: { imagePriority: MEDIA_IMAGE_PRIORITY.PRELOAD, item: item({ imageUrl: NO_IMAGE_URL }) },
 };
 
 /** 狭い器に置いた場合。画像が上へ回り、1 列に積まれる。 */

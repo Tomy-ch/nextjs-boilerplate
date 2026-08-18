@@ -5,18 +5,19 @@ import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { ProductRankingEntry } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 import { RankingList } from "./ranking-list";
 
 const ENTRIES: readonly ProductRankingEntry[] = [
   {
-    productId: "0195f0c2-0000-7000-8000-000000000001",
+    productId: toProductId("0195f0c2-0000-7000-8000-000000000001"),
     name: "ワイヤレスイヤホン",
     price: "19.99",
     soldQuantity: 128,
   },
   {
-    productId: "0195f0c2-0000-7000-8000-000000000002",
+    productId: toProductId("0195f0c2-0000-7000-8000-000000000002"),
     name: "スマートウォッチ",
     price: "129.00",
     soldQuantity: 96,

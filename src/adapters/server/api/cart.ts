@@ -5,6 +5,8 @@ import type { z } from "zod";
 
 import { getApiConfig } from "@/config/api/api.server";
 import type { Cart, CartMergeResult } from "@/model/cart/cart";
+import type { ProductId } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 import {
   DeleteCartsMeItemResponse,
@@ -61,7 +63,7 @@ async function cartSessionHeader(): Promise<Readonly<Record<string, string>> | u
 function toCart(wire: WireCart): Cart {
   return {
     lines: wire.items.map((item) => ({
-      productId: item.productId,
+      productId: toProductId(item.productId),
       name: item.productName ?? null,
       unitPrice: item.unitPrice ?? null,
       quantity: item.quantity,
@@ -122,7 +124,7 @@ export const getMyCart = cache(async (): Promise<Cart> => {
  *
  * @returns 設定後のカート（取得と同じく再評価つき）
  */
-export async function setMyCartItem(productId: string, quantity: number): Promise<Cart> {
+export async function setMyCartItem(productId: ProductId, quantity: number): Promise<Cart> {
   const wire = await getClient().request({
     path: `${CART_PATH}/items/${encodeURIComponent(productId)}`,
     method: "PUT",
@@ -143,7 +145,7 @@ export async function setMyCartItem(productId: string, quantity: number): Promis
  * 対象が無くても成功します。公開が止まった商品も取り除けます（そうでないと、買えない明細を
  * 利用者が片付けられません）。
  */
-export async function removeMyCartItem(productId: string): Promise<void> {
+export async function removeMyCartItem(productId: ProductId): Promise<void> {
   await getClient().request({
     path: `${CART_PATH}/items/${encodeURIComponent(productId)}`,
     method: "DELETE",
@@ -187,7 +189,10 @@ export async function mergeGuestCart(): Promise<CartMergeResult | null> {
 
   await clearCartSession();
 
-  return { clampedProductIds: wire.clamped, droppedProductIds: wire.dropped };
+  return {
+    clampedProductIds: wire.clamped.map(toProductId),
+    droppedProductIds: wire.dropped.map(toProductId),
+  };
 }
 
 /**

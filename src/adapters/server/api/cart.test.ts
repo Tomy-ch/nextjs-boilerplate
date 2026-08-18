@@ -32,9 +32,10 @@ vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("../auth/session", () => ({ getAccessToken }));
 vi.mock("./cart-session", () => ({ readCartSession, storeCartSession, clearCartSession }));
 
+import { toProductId } from "@/model/product/product";
 import { clearMyCart, getMyCart, mergeGuestCart, removeMyCartItem, setMyCartItem } from "./cart";
 
-const PRODUCT_ID = "0195f0c2-0000-7000-8000-000000000001";
+const PRODUCT_ID = toProductId("0195f0c2-0000-7000-8000-000000000001");
 const TOKEN = "2LOUdXuXEQ7Yg2nJRAgDA9yQbLyjGvoITuwDse3u9Z0";
 
 const wireCart = {

@@ -4,13 +4,15 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
+import { MEDIA_IMAGE_PRIORITY } from "@/components/design-system/display/media-image/media-image.definition";
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 import { ProductTeaser } from "./product-teaser";
 
 function itemOf(overrides: Partial<ProductListItem> = {}): ProductListItem {
   return {
-    id: "0195f0c2-0000-7000-8000-000000000001",
+    id: toProductId("0195f0c2-0000-7000-8000-000000000001"),
     name: "ワイヤレスイヤホン",
     price: "19.99",
     quantity: 12,
@@ -52,16 +54,19 @@ describe("ProductTeaser", () => {
     expect(screen.getByText("$0.001")).toBeVisible();
   });
 
-  it("折り返し前の位置では画像を preload し、待機表示を出さない", () => {
-    const { container } = render(<ProductTeaser item={itemOf()} leading />);
+  it("折り返し前の位置では画像を後回しにしない", () => {
+    render(<ProductTeaser imagePriority={MEDIA_IMAGE_PRIORITY.PRELOAD} item={itemOf()} />);
 
-    expect(container.querySelector('[data-slot="skeleton"]')).toBeNull();
+    expect(screen.getByRole("img", { name: "ワイヤレスイヤホン" })).not.toHaveAttribute("loading");
   });
 
-  it("折り返し後の位置では待機表示を出す", () => {
-    const { container } = render(<ProductTeaser item={itemOf()} />);
+  it("折り返し後の位置では画像を見えてから読み込む", () => {
+    render(<ProductTeaser item={itemOf()} />);
 
-    expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "ワイヤレスイヤホン" })).toHaveAttribute(
+      "loading",
+      "lazy",
+    );
   });
 
   it("画像が無い商品には代替画像を置く", () => {

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { MediaImage } from "./media-image";
-import { MEDIA_IMAGE_ASPECT_RATIO } from "./media-image.definition";
+import { MEDIA_IMAGE_ASPECT_RATIO, MEDIA_IMAGE_PRIORITY } from "./media-image.definition";
 
 vi.mock("next/image", () => ({
   default: ({
@@ -60,7 +60,7 @@ describe("MediaImage", () => {
       <MediaImage
         alt="サンプル画像"
         aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.WIDE}
-        preload
+        priority={MEDIA_IMAGE_PRIORITY.PRELOAD}
         src="/sample.svg"
       />,
     );
@@ -151,7 +151,14 @@ describe("MediaImage", () => {
   });
 
   it("preload でも Skeleton の表示を明示すれば従う", () => {
-    render(<MediaImage alt="サンプル画像" preload showSkeleton src="/sample.svg" />);
+    render(
+      <MediaImage
+        alt="サンプル画像"
+        priority={MEDIA_IMAGE_PRIORITY.PRELOAD}
+        showSkeleton
+        src="/sample.svg"
+      />,
+    );
 
     const wrapper = screen
       .getByRole("img", { name: "サンプル画像" })

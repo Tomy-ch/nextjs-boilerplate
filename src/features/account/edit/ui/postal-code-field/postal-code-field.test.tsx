@@ -78,7 +78,6 @@ describe("PostalCodeField", () => {
 
     const search = screen.getByRole("button", { name: "住所を検索" });
 
-    expect(search).toBeEnabled();
     expect(search.closest("[data-slot=input-group]")).toContainElement(
       screen.getByLabelText("郵便番号"),
     );

@@ -1,9 +1,13 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { profileSchema } from "@/model/user/profile-schema";
 
-/** 枠だけを出す入力項目の数。実際の項目数と揃える。 */
-const PLACEHOLDER_FIELDS = 9;
-
-const FIELDS = Array.from({ length: PLACEHOLDER_FIELDS }, (_, index) => index);
+/**
+ * 枠だけを出す入力項目。
+ *
+ * @remarks
+ * 数を書かずに入力規則から引きます。書き写すと、項目が増えても待機表示だけが古い数で残ります。
+ */
+const FIELDS = Object.keys(profileSchema.shape);
 
 /**
  * プロフィール編集の待機表示。

@@ -8,6 +8,7 @@ import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import type { Cart } from "@/model/cart/cart";
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 import { FILTER_KEY } from "../facade/list-url/list-url";
 import type { FilterOption } from "./query";
@@ -76,7 +77,7 @@ function item(overrides: Partial<ProductListItem> = {}): ProductListItem {
   itemSeq += 1;
 
   return {
-    id: `0195f0c2-0000-7000-8000-${String(itemSeq).padStart(12, "0")}`,
+    id: toProductId(`0195f0c2-0000-7000-8000-${String(itemSeq).padStart(12, "0")}`),
     name: "ワイヤレスイヤホン",
     price: "19.99",
     quantity: 12,
@@ -132,7 +133,7 @@ const meta = {
     categoryLimit: 32,
     sortOptions: SORT_OPTIONS,
     selection: {},
-    children: <ProductLoadMoreList hasNext items={ITEMS} total={10} />,
+    children: <ProductLoadMoreList items={ITEMS} loadMore={{ status: "idle" }} total={10} />,
   },
 } satisfies Meta<typeof ProductListView>;
 
@@ -157,7 +158,7 @@ export const DefaultMobile: Story = {
 /** 条件に合う商品が無い状態。次に何をすればよいかを添える。 */
 export const Empty: Story = {
   args: {
-    children: <ProductLoadMoreList hasNext={false} items={[]} total={0} />,
+    children: <ProductLoadMoreList items={[]} loadMore={{ status: "exhausted" }} total={0} />,
   },
 };
 
@@ -173,7 +174,9 @@ export const Filtered: Story = {
       [FILTER_KEY.KEYWORD]: "イヤホン",
       [FILTER_KEY.SORT]: "publishedAt",
     },
-    children: <ProductLoadMoreList hasNext items={ITEMS.slice(0, 2)} total={2} />,
+    children: (
+      <ProductLoadMoreList items={ITEMS.slice(0, 2)} loadMore={{ status: "idle" }} total={2} />
+    ),
   },
 };
 
@@ -194,21 +197,27 @@ export const FilterSheetOpenMobile: Story = {
 /** 続きを読み込んでいる状態。読み込み中でも読み終えた分は残す。 */
 export const LoadingMore: Story = {
   args: {
-    children: <ProductLoadMoreList hasNext items={ITEMS} loading total={10} />,
+    children: <ProductLoadMoreList items={ITEMS} loadMore={{ status: "loading" }} total={10} />,
   },
 };
 
 /** 続きの読み込みに失敗した状態。読み終えた分を捨てず、もう一度試せるようにする。 */
 export const LoadMoreFailed: Story = {
   args: {
-    children: <ProductLoadMoreList failed hasNext items={ITEMS} total={10} />,
+    children: (
+      <ProductLoadMoreList
+        items={ITEMS}
+        loadMore={{ status: "failed", onRetry: () => {} }}
+        total={10}
+      />
+    ),
   },
 };
 
 /** 最後まで読み終えた状態。続きが無いので操作を出さない。 */
 export const ReachedEnd: Story = {
   args: {
-    children: <ProductLoadMoreList hasNext={false} items={ITEMS} total={6} />,
+    children: <ProductLoadMoreList items={ITEMS} loadMore={{ status: "exhausted" }} total={6} />,
   },
 };
 
@@ -223,7 +232,6 @@ export const MaxLength: Story = {
     selection: { [FILTER_KEY.CATEGORY]: ["10"], [FILTER_KEY.KEYWORD]: longText(60) },
     children: (
       <ProductLoadMoreList
-        hasNext
         items={[
           item({ name: longText(MAX_NAME_LENGTH), price: "999999999.999" }),
           item({
@@ -234,6 +242,7 @@ export const MaxLength: Story = {
           }),
           item({ name: longText(60), categoryName: longText(40) }),
         ]}
+        loadMore={{ status: "idle" }}
       />
     ),
   },
@@ -264,11 +273,11 @@ export const OutOfStockOnly: Story = {
     selection: { [FILTER_KEY.MAX_QUANTITY]: "0" },
     children: (
       <ProductLoadMoreList
-        hasNext={false}
         items={[
           item({ name: "USB-C ハブ", price: "45.50", quantity: 0, statusName: "在庫切れ" }),
           item({ name: "有線イヤホン", price: "12.00", quantity: 0, statusName: "在庫切れ" }),
         ]}
+        loadMore={{ status: "exhausted" }}
         total={2}
       />
     ),

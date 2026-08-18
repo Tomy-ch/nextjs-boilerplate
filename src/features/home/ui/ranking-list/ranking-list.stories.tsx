@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { ProductRankingEntry } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 import { RankingList } from "./ranking-list";
 
@@ -19,7 +20,7 @@ function entry(overrides: Partial<ProductRankingEntry> = {}): ProductRankingEntr
   seq += 1;
 
   return {
-    productId: `0195f0c2-0000-7000-8000-${String(seq).padStart(12, "0")}`,
+    productId: toProductId(`0195f0c2-0000-7000-8000-${String(seq).padStart(12, "0")}`),
     name: "ワイヤレスイヤホン",
     price: "19.99",
     soldQuantity: 128,

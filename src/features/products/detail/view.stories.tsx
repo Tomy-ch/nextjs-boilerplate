@@ -7,6 +7,7 @@ import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import type { Cart } from "@/model/cart/cart";
 import type { Product } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 
 import { ProductDetail } from "./view";
@@ -25,7 +26,7 @@ const WATCH_ID = "0195f0c2-0000-7000-8000-0000000000f1";
 const FILLED_CART: Cart = {
   lines: [
     {
-      productId: WATCH_ID,
+      productId: toProductId(WATCH_ID),
       name: "スマートウォッチ",
       unitPrice: "129.00",
       quantity: 3,
@@ -33,7 +34,7 @@ const FILLED_CART: Cart = {
       availableQuantity: null,
     },
     {
-      productId: "0195f0c2-0000-7000-8000-0000000000f2",
+      productId: toProductId("0195f0c2-0000-7000-8000-0000000000f2"),
       name: "USB-C ハブ（7 ポート・100W PD 対応モデル）",
       unitPrice: "45.50",
       quantity: 2,
@@ -41,7 +42,7 @@ const FILLED_CART: Cart = {
       availableQuantity: null,
     },
     {
-      productId: "0195f0c2-0000-7000-8000-0000000000f3",
+      productId: toProductId("0195f0c2-0000-7000-8000-0000000000f3"),
       name: "編組ケーブル 2m",
       unitPrice: "0.99",
       quantity: 12,
@@ -125,7 +126,7 @@ type Story = StoryObj<typeof meta>;
 
 function product(overrides: Partial<Product> = {}): Product {
   return {
-    id: crypto.randomUUID(),
+    id: toProductId(crypto.randomUUID()),
     name: "ワイヤレスイヤホン",
     description: "<p>ノイズキャンセリング対応。連続再生 30 時間。</p>",
     price: "19.99",
@@ -188,7 +189,7 @@ export const EmptyCart: Story = {
  * バックエンドが明細の事情として返す。
  */
 export const AlreadyInCart: Story = {
-  args: { imageUrls: IMAGE_URLS, product: product({ id: WATCH_ID, quantity: 4 }) },
+  args: { imageUrls: IMAGE_URLS, product: product({ id: toProductId(WATCH_ID), quantity: 4 }) },
   parameters: { cart: FILLED_CART },
 };
 
@@ -214,7 +215,7 @@ export const MaxLengthPC: Story = {
     cart: {
       lines: [
         {
-          productId: "0195f0c2-0000-7000-8000-0000000000f2",
+          productId: toProductId("0195f0c2-0000-7000-8000-0000000000f2"),
           name: longText(MAX_NAME_LENGTH),
           unitPrice: "999999999.999",
           quantity: 2,

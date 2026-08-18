@@ -8,6 +8,9 @@ import { axe } from "vitest-axe";
 
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
+
+import type { ProductLoadMoreState } from "../load-more-list/load-more-list";
 
 const { useInfiniteProducts } = vi.hoisted(() => ({ useInfiniteProducts: vi.fn() }));
 
@@ -16,7 +19,7 @@ vi.mock("../../use-infinite-products", () => ({ useInfiniteProducts }));
 import { ProductInfiniteList } from "./infinite-list";
 
 const ITEM: ProductListItem = {
-  id: "0195f0c2-0000-7000-8000-000000000001",
+  id: toProductId("0195f0c2-0000-7000-8000-000000000001"),
   name: "スタンドライト",
   price: "4980.00",
   quantity: 3,
@@ -30,22 +33,13 @@ const QUERY: Readonly<Record<string, string>> = { keyword: "ライト" };
 
 type Observed = {
   items?: readonly ProductListItem[];
-  hasNext?: boolean;
-  loading?: boolean;
-  failed?: boolean;
-  loadMore?: () => void;
+  loadMore?: ProductLoadMoreState;
 };
 
-function observing({
-  items = [ITEM],
-  hasNext = false,
-  loading = false,
-  failed = false,
-  loadMore = vi.fn(),
-}: Observed = {}) {
+function observing({ items = [ITEM], loadMore = { status: "exhausted" } }: Observed = {}) {
   const sentinelRef = createRef<HTMLDivElement>();
 
-  useInfiniteProducts.mockReturnValue({ items, hasNext, loading, failed, loadMore, sentinelRef });
+  useInfiniteProducts.mockReturnValue({ items, loadMore, sentinelRef });
 
   return sentinelRef;
 }
@@ -88,7 +82,7 @@ describe("ProductInfiniteList", () => {
   });
 
   it("取得中は読み込み中であることを伝える", () => {
-    observing({ hasNext: true, loading: true });
+    observing({ loadMore: { status: "loading" } });
 
     render(<ProductInfiniteList initial={INITIAL} query={QUERY} />);
 
@@ -96,7 +90,7 @@ describe("ProductInfiniteList", () => {
   });
 
   it("末尾を見張る目印へ観測先を渡す", () => {
-    const sentinelRef = observing({ hasNext: true });
+    const sentinelRef = observing({ loadMore: { status: "idle" } });
 
     render(<ProductInfiniteList initial={INITIAL} query={QUERY} />);
 
@@ -104,7 +98,7 @@ describe("ProductInfiniteList", () => {
   });
 
   it("取得に失敗したら読み直す操作を出す", () => {
-    observing({ hasNext: true, failed: true });
+    observing({ loadMore: { status: "failed", onRetry: vi.fn() } });
 
     render(<ProductInfiniteList initial={INITIAL} query={QUERY} />);
 
@@ -113,14 +107,14 @@ describe("ProductInfiniteList", () => {
   });
 
   it("読み直す操作は続きの取得を呼ぶ", async () => {
-    const loadMore = vi.fn();
+    const onRetry = vi.fn();
 
-    observing({ hasNext: true, failed: true, loadMore });
+    observing({ loadMore: { status: "failed", onRetry } });
     render(<ProductInfiniteList initial={INITIAL} query={QUERY} />);
 
     await userEvent.click(screen.getByRole("button", { name: "もう一度読み込む" }));
 
-    expect(loadMore).toHaveBeenCalledTimes(1);
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it("a11y 違反を持たない", async () => {

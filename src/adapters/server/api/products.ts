@@ -7,10 +7,12 @@ import { getApiConfig } from "@/config/api/api.server";
 import type { CursorPage } from "@/model/pagination";
 import type {
   Product,
+  ProductId,
   ProductListItem,
   ProductPage,
   ProductRankingEntry,
 } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 import {
   GetProductsCountResponse,
@@ -206,7 +208,7 @@ function getClient(): HttpClient {
  */
 export function toProduct(wire: WireProduct): Product {
   return {
-    id: wire.id,
+    id: toProductId(wire.id),
     name: wire.name,
     description: wire.description,
     price: wire.price,
@@ -349,7 +351,7 @@ export const getProductRanking = cache(
     });
 
     return response.rankings.map((entry) => ({
-      productId: entry.productId,
+      productId: toProductId(entry.productId),
       name: entry.name,
       price: entry.price,
       soldQuantity: entry.soldQuantity,
@@ -364,7 +366,7 @@ export const getProductRanking = cache(
  * 一覧と同じ経路を通すため、生 status の分類と応答の検証は fetch wrapper が済ませています。
  * 存在しない ID は wrapper が `not-found` へ正規化するため、ここでは分岐を持ちません。
  */
-export const getProduct = cache(async (id: string): Promise<Product> => {
+export const getProduct = cache(async (id: ProductId): Promise<Product> => {
   const product = await getClient().request({
     path: `/v1/products/${encodeURIComponent(id)}`,
     schema: GetProductsDetailResponse,
