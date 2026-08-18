@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
+import { PrintButton } from "@/components/design-system/action/print-button/print-button";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -40,22 +41,31 @@ export type PurchaseDetailViewProps = {
  *
  * 金額の内訳を脇へ貼り付けません。この画面には送信の操作が無く、読み進めるあいだ画面に残して
  * おきたい操作が無いためです。
+ *
+ * 紙に出すのは控えと内訳と明細だけです。押せない操作（パンくず・次の行き先・印刷そのもの・
+ * 円の切り替え）は紙面の場所を取るだけなので落とします。この購入の控えは手元へ残す対象なので、
+ * 印刷の操作はパンくずと同じ段の右端に置きます。
  */
 export function PurchaseDetailView({ purchase, reference }: PurchaseDetailViewProps) {
   return (
     <article className="flex flex-col gap-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href={PURCHASE_HISTORY_PATH}>購入履歴</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            {/* 契約が返すのは UUID なので、1 行に収まる前提を置けない。 */}
-            <BreadcrumbPage className="max-w-40 truncate font-mono">{purchase.code}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumb className="print-hidden">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={PURCHASE_HISTORY_PATH}>購入履歴</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              {/* 契約が返すのは UUID なので、1 行に収まる前提を置けない。 */}
+              <BreadcrumbPage className="max-w-40 truncate font-mono">
+                {purchase.code}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <PrintButton />
+      </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <PurchaseReceiptCard purchase={purchase} />
@@ -66,7 +76,7 @@ export function PurchaseDetailView({ purchase, reference }: PurchaseDetailViewPr
 
       <PurchaseLineList lines={purchase.lines} />
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 print-hidden">
         <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
           <Link href={PURCHASE_HISTORY_PATH}>購入履歴へ戻る</Link>
         </Button>

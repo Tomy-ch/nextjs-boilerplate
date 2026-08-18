@@ -275,6 +275,7 @@ UI を横断して支える CSS 基盤。React component を公開しない。
 | [`button`](./design-system/action/button/README.md) | 利用者の操作を開始する |
 | [`button-group`](./design-system/action/button-group/README.md) | 同じ対象への複数の操作を、隣接した一続きの帯としてまとめる |
 | [`copy-button`](./design-system/action/copy-button/README.md) | 値を clipboard へ写す |
+| [`print-button`](./design-system/action/print-button/README.md) | 表示中の文書を印刷する |
 | [`toggle`](./design-system/action/toggle/README.md) | 今その表示が適用されているかを押下状態として示し、切り替える |
 
 #### form

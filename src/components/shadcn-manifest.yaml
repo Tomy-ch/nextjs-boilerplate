@@ -263,6 +263,14 @@ components:
     dependencies:
       - lucide-react
     addedAt: 2026-08-04T07:00:00.000Z
+  print-button:
+    kind: original
+    layer: design-system
+    as: action
+    directory: src/components/design-system/action/print-button
+    dependencies:
+      - lucide-react
+    addedAt: 2026-08-19T00:00:00.000Z
   toggle:
     kind: reimplemented
     layer: design-system

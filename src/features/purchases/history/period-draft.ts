@@ -68,3 +68,27 @@ export function toAppliedPeriod(draft: PeriodDraft): PeriodSelection | null {
 
   return { kind: "recent", days: draft.days };
 }
+
+/**
+ * まだ条件として成り立っていない理由を、利用者の言葉で表す。
+ *
+ * @remarks
+ * 成り立っていれば `null` を返します。確定を押せなくするだけでは、何を入れれば押せるのかが
+ * 画面から読み取れません。判定と同じ場所に置くのは、片方だけを直した画面（押せないのに理由が
+ * 出ない、または理由が実際の判定とずれている）を作らないためです。
+ */
+export function describeMissing(draft: PeriodDraft): string | null {
+  if (toAppliedPeriod(draft) !== null) {
+    return null;
+  }
+
+  if (draft.kind === "month") {
+    return "対象の月を選ぶと絞り込めます。";
+  }
+
+  if (draft.kind === "range") {
+    return "開始日と、それ以降の終了日を選ぶと絞り込めます。";
+  }
+
+  return "遡る日数を選ぶと絞り込めます。";
+}

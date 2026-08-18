@@ -67,7 +67,7 @@ export function PurchaseAmountSummary({ purchase, reference }: PurchaseAmountSum
           <strong className="text-2xl">{formatMoney(purchase.totalAmount)}</strong>
         </p>
         {reference === null ? null : (
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col items-end gap-1 print-hidden">
             <Toggle
               aria-controls={referenceId}
               onClick={toggle}

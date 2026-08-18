@@ -32,7 +32,10 @@ test-requirement: feature
 | `history/period.ts` | 期間の条件。URL のキー・読み取り・URL の組み立て・利用者への言い換え |
 | `history/period-draft.ts` | 組み立て中の期間。入力欄が経由する途中の姿と、確定できるかの判定 |
 | `history/view.tsx` | 一覧の画面。絞り込みと一覧本体を組む |
-| `history/ui/period-filter/` | 期間で絞る操作。区分と、その区分が使う入力欄 |
+| `history/filter-draft.tsx` | 組み立て中の期間の供給。幅で 2 か所に現れる入力欄を 1 つに保つ |
+| `history/ui/period-fields/` | 期間の入力欄。区分と、その区分が使う入力欄。確定は持たない |
+| `history/ui/period-bar/` | 帯の中に常設する絞り込み。一覧が隣に見えている幅で使う |
+| `history/ui/period-sheet/` | 帯を常設できない幅の絞り込み。下端に固定した操作から overlay を開く |
 | `history/ui/purchase-row/` | 履歴の 1 行。行そのものが詳細への行き先 |
 | `history/ui/purchase-list/` | 読み進めた一覧の見た目。取得中・末尾到達・失敗を描き分ける |
 | `history/ui/empty/` | 並べるものが無いときの表示 |
