@@ -27,6 +27,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/app/(shop)",
   "src/features/products",
   "src/features/cart",
+  "src/features/checkout",
   "src/features/home",
   "src/features/account",
   "src/features/site-info",
@@ -56,6 +57,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   // 題材の画面を通す E2E。土台（`e2e/lib` / `e2e/visual`）と、題材に依らない認証の前捌きは残す。
   "e2e/journeys/browse.spec.ts",
   "e2e/journeys/responsive.spec.ts",
+  "e2e/journeys/overlay.spec.ts",
   // 破棄の道具（使い終わったら不要）。ディレクトリごと挙げれば、判定モジュールを足しても漏れない。
   "scripts/setup/remove-sample",
 ];

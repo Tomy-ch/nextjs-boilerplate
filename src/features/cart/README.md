@@ -38,6 +38,7 @@ test-requirement: feature
 | `paths.ts` | この feature が指す行き先（カート・購入手続き） |
 | `shell-cart.ts` | 外枠に出すカートの取得。読めなくても投げない |
 | `facade/add-to-cart/` | 商品をカートへ入れる操作。**他の feature が使う口** |
+| `facade/line-issues/` | 明細に立った事情の表示。**購入確認も同じ強さと言い方で出すための口** |
 | `ui/contents/` | カートの中身（小計・導線・明細）。器を持たず、置き場所は呼び出し元が決める |
 | `ui/panel/` | 中身を脇に出す領域。空か閉じていれば描画しない。PC だけ |
 | `ui/header-action/` | header に置く入口。帯でどちらの姿を出すかを決める |
@@ -46,7 +47,6 @@ test-requirement: feature
 | `ui/count/` | header に出す点数 |
 | `ui/line-list/` | 明細を並べ、取り除いた行があった場所に取り消しを差し込む器 |
 | `ui/line-row/` | 明細 1 行。脇の領域と全画面の両方が使う |
-| `ui/line-issues/` | 明細に立った事情の表示 |
 | `ui/checkout-link/` | 購入手続きへ進む操作。進めないときは押せない |
 | `ui/summary-card/` | 小計と注記と先へ進む導線。器を持たない |
 | `ui/subtotal/` | 小計の表示 |
@@ -54,6 +54,7 @@ test-requirement: feature
 | `ui/summary-dock/` | 集計を画面の下から出す引き出し。脇に領域を置けない幅だけ |
 | `ui/removal-notice/` | 取り除いた明細を戻す案内の表示 |
 | `ui/quantity-stepper/` | 明細 1 行の数量増減 |
+| `ui/match-stock-button/` | 在庫が足りない明細を、いま買える数へ合わせる |
 | `ui/remove-button/` | 明細 1 行の削除 |
 | `ui/clear-button/` | カートを空にする。確認を挟む |
 | `ui/action-error/` | 操作が失敗したことを、その操作の隣に出す |

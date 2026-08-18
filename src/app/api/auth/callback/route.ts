@@ -1,7 +1,7 @@
 import { mergeGuestCart } from "@/adapters/server/api/cart"; // sample:line
 import { getSessionResolver } from "@/adapters/server/auth/resolver";
 import { storeSession, takeTransaction } from "@/adapters/server/auth/session";
-import { getLogger, reportQuietly } from "@/logging/logging.server"; // sample:line
+import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { toSafeReturnUrl } from "@/model/return-url";
 
 /** 認証をやり直させる先。 */
@@ -59,6 +59,16 @@ export async function GET(request: Request): Promise<Response> {
   const transaction = await takeTransaction();
 
   if (code === null || state === null || transaction === null) {
+    // 何が欠けたのかは記録に残す。認可要求から戻るまでに時間が空いて一時状態が切れた場合と、
+    // IdP がエラーを返した場合とで、運用側の打ち手が違う。
+    reportQuietly(() =>
+      getLogger().warn("認可の応答を受け取れませんでした", {
+        hasCode: code !== null,
+        hasState: state !== null,
+        hasTransaction: transaction !== null,
+      }),
+    );
+
     return Response.redirect(new URL(LOGIN_PATH, request.url), 302);
   }
 
@@ -71,7 +81,11 @@ export async function GET(request: Request): Promise<Response> {
     // 復帰先は認可要求の時点で検証済みだが、cookie を経由して戻ってきた値なのでもう一度通す。
     // 検証を入口の 1 回に頼ると、cookie を差し替えられる経路が見つかった時点で外部へ飛ばせる。
     return Response.redirect(new URL(toSafeReturnUrl(transaction.returnUrl), request.url), 302);
-  } catch {
+  } catch (cause) {
+    // 画面へは理由を出さないが、記録には残す。残さないと、IdP 側の設定違いで全員が入れない状態に
+    // なっても、手掛かりが「ログイン画面へ戻る」だけになる（[0081](../../../../../docs/adr/0081-observability-logging.md)）。
+    reportQuietly(() => getLogger().warn("認可の完了に失敗しました", { cause: String(cause) }));
+
     return Response.redirect(new URL(LOGIN_PATH, request.url), 302);
   }
 }

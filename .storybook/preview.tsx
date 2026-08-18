@@ -2,6 +2,8 @@ import type { Preview } from "@storybook/nextjs-vite";
 
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 
+import { StoryErrorBoundary } from "./story-error-boundary";
+
 import "../src/app/globals.css";
 import "./preview.css";
 
@@ -43,6 +45,10 @@ const preview: Preview = {
     // （[0026](../docs/adr/0026-layout-shell-mount.md)）。story ごとに包むと、包み忘れた story は
     // 部品ではなく Storybook のエラー画面を描き、それが基準画像として承認されうる。
     (Story) => <ToastProvider>{Story()}</ToastProvider>,
+    // 例外はカタログの中で受け止める。赤いスタックの画面は fork 先への説明にならない一方、
+    // 無かったことにすると壊れた story が緑のまま残る。見え方だけを穏やかにし、起きたことは
+    // 文言・`data-story-error`・console に残す。story ごとに作り直すため key を与える。
+    (Story, context) => <StoryErrorBoundary key={context.id}>{Story()}</StoryErrorBoundary>,
   ],
   parameters: {
     a11y: {

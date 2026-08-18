@@ -4,7 +4,10 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/",
+  useRouter: () => ({ refresh: () => {} }),
+}));
 
 import AuthLayout from "./layout";
 

@@ -18,7 +18,7 @@ test-requirement: unit
 
 | 外部通信を持つ（`integration`） | 持たない（`unit`） |
 | --- | --- |
-| `oidc-discovery.ts` / `default-session-resolver.ts` | `pkce.ts` / `random-token.ts` / `session-cookie.ts` / `session.ts` / `resolver.ts` / `optimistic-session.ts` / `test-session.ts` |
+| `oidc-discovery.ts` / `default-session-resolver.ts` | `pkce.ts` / `random-token.ts` / `session-cookie.ts` / `session.ts` / `resolver.ts` / `optimistic-session.ts` / `test-session.ts` / `development-access.ts` |
 
 宣言を `unit` にしているのは、多数派がそちらであるためです。上の 2 つは HTTP 境界を持つので
 `integration` の要求も併せて満たします。判定は「そのモジュールが外へ出るか」で行い、

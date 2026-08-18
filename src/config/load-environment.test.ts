@@ -9,6 +9,7 @@ async function loadSubject(result: { error?: Error } = {}) {
     config,
     loadEnvironment: module.loadEnvironment,
     findExplicitApplicationEnvironment: module.findExplicitApplicationEnvironment,
+    isDevelopmentOnlyEndpointOpen: module.isDevelopmentOnlyEndpointOpen,
   };
 }
 
@@ -100,5 +101,36 @@ describe("findExplicitApplicationEnvironment", () => {
     expect(() => findExplicitApplicationEnvironment()).toThrow(
       "APP_ENV は local, ci, dev, stg, prd",
     );
+  });
+});
+
+describe("isDevelopmentOnlyEndpointOpen", () => {
+  // ----- 正常系 -----
+  it("開発では開ける", async () => {
+    vi.stubEnv("APP_ENV", "local");
+    const { isDevelopmentOnlyEndpointOpen } = await loadSubject();
+
+    expect(isDevelopmentOnlyEndpointOpen()).toBe(true);
+  });
+
+  it("CI でも開ける", async () => {
+    vi.stubEnv("APP_ENV", "ci");
+    const { isDevelopmentOnlyEndpointOpen } = await loadSubject();
+
+    expect(isDevelopmentOnlyEndpointOpen()).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("実環境では開けない", async () => {
+    vi.stubEnv("APP_ENV", "prd");
+    const { isDevelopmentOnlyEndpointOpen } = await loadSubject();
+
+    expect(isDevelopmentOnlyEndpointOpen()).toBe(false);
+  });
+
+  it("APP_ENV が明示されていなければ開けない", async () => {
+    const { isDevelopmentOnlyEndpointOpen } = await loadSubject();
+
+    expect(isDevelopmentOnlyEndpointOpen()).toBe(false);
   });
 });

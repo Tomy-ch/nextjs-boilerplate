@@ -2,7 +2,7 @@ import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { SESSION_ROLE } from "@/model/session";
+import { SESSION_ROLE, type SessionRole } from "@/model/session";
 import { createDefaultSessionResolver } from "./default-session-resolver";
 
 const issuer = "https://idp.example.test";
@@ -55,11 +55,12 @@ async function issueIdToken(
   key: CryptoKey = signingKey,
   withExpiry = true,
 ): Promise<string> {
-  const token = new SignJWT(claims)
+  const signed = new SignJWT(claims)
     .setProtectedHeader({ alg: "RS256", kid: "test-key" })
     .setIssuer(issuer)
-    .setAudience(clientId)
     .setIssuedAt(Math.floor(nowMs / 1000));
+  // 宛先を claims で渡された場合はそちらを使う。多値の宛先を扱う経路を確かめるため。
+  const token = "aud" in claims ? signed : signed.setAudience(clientId);
 
   return (withExpiry ? token.setExpirationTime(Math.floor(nowMs / 1000) + 3600) : token).sign(key);
 }
@@ -89,13 +90,18 @@ function createIdp(issued: IssuedToken, expiresIn: number | undefined): typeof f
   });
 }
 
-function createResolver(fetchImpl: typeof fetch, at: number = nowMs) {
+function createResolver(
+  fetchImpl: typeof fetch,
+  at: number = nowMs,
+  resolveRole?: (accessToken: string) => Promise<SessionRole>,
+) {
   return createDefaultSessionResolver({
     issuer,
     clientId,
     redirectUri,
     scopes: "openid profile email",
     sessionSecret,
+    resolveRole,
     fetchImpl,
     now: () => at,
   });
@@ -115,11 +121,12 @@ async function startSignIn(
     expiresIn?: number;
     returnUrl?: string;
     withIdTokenExpiry?: boolean;
+    resolveRole?: (accessToken: string) => Promise<SessionRole>;
   } = {},
 ) {
   const issued: IssuedToken = { value: "" };
   const fetchImpl = createIdp(issued, "expiresIn" in options ? options.expiresIn : 3600);
-  const resolver = createResolver(fetchImpl);
+  const resolver = createResolver(fetchImpl, nowMs, options.resolveRole);
   const started = await resolver.startAuthorization(options.returnUrl ?? "/");
 
   issued.value = await issueIdToken(
@@ -192,20 +199,62 @@ describe("createDefaultSessionResolver", () => {
     expect(record.session.expiresAt).toEqual(new Date(nowMs + 3600 * 1000));
   });
 
-  it("役割の claim を持たない IdP では権限を持たない側へ倒す", async () => {
-    const { complete } = await startSignIn();
+  it("役割は取得口が返した値になる", async () => {
+    const { complete } = await startSignIn({ resolveRole: async () => SESSION_ROLE.admin });
+
+    const record = await complete();
+
+    expect(record.session.role).toBe(SESSION_ROLE.admin);
+  });
+
+  it("ID Token の役割の claim は読まない", async () => {
+    const { complete } = await startSignIn({
+      claims: { role: SESSION_ROLE.admin },
+      resolveRole: async () => SESSION_ROLE.user,
+    });
 
     const record = await complete();
 
     expect(record.session.role).toBe(SESSION_ROLE.user);
   });
 
-  it("役割の claim があればそれを読む", async () => {
-    const { complete } = await startSignIn({ claims: { role: SESSION_ROLE.admin } });
+  it("取得口へ Access Token を渡す", async () => {
+    const seen: string[] = [];
+    const { complete } = await startSignIn({
+      resolveRole: async (accessToken) => {
+        seen.push(accessToken);
+
+        return SESSION_ROLE.user;
+      },
+    });
 
     const record = await complete();
 
-    expect(record.session.role).toBe(SESSION_ROLE.admin);
+    expect(seen).toEqual([record.accessToken]);
+  });
+
+  it("宛先が多値のとき、azp が client と一致しなければ受け入れない", async () => {
+    const { complete } = await startSignIn({
+      claims: { aud: [clientId, "another-client"], azp: "another-client" },
+    });
+
+    expect(await kindOf(complete)).toBe(ErrorKind.UNAUTHENTICATED);
+  });
+
+  it("役割の取得口を渡さなければ、権限を持たない側に倒す", async () => {
+    const { complete } = await startSignIn();
+
+    expect((await complete()).session.role).toBe(SESSION_ROLE.user);
+  });
+
+  it("宛先が多値でも、azp が client と一致すれば受け入れる", async () => {
+    const { complete } = await startSignIn({
+      claims: { aud: [clientId, "go-boilerplate-api"], azp: clientId },
+    });
+
+    const record = await complete();
+
+    expect(record.session.userId).toBe("user-1");
   });
 
   it("封緘した cookie を復元する", async () => {
@@ -269,6 +318,7 @@ describe("createDefaultSessionResolver", () => {
       redirectUri,
       scopes: "openid",
       sessionSecret,
+      resolveRole: async () => SESSION_ROLE.user,
       now: () => nowMs,
     });
     const started = await resolver.startAuthorization("/");
@@ -296,6 +346,7 @@ describe("createDefaultSessionResolver", () => {
       redirectUri,
       scopes: "openid",
       sessionSecret,
+      resolveRole: async () => SESSION_ROLE.user,
       fetchImpl: createIdp(issued, 3600),
     });
     const started = await resolver.startAuthorization("/");
@@ -402,6 +453,7 @@ describe("createDefaultSessionResolver", () => {
       scopes: "openid",
       sessionSecret: "another-secret-value-that-differs-from-the-original",
       fetchImpl,
+      resolveRole: async () => SESSION_ROLE.user,
       now: () => nowMs,
     });
 
