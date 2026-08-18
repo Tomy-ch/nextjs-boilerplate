@@ -1,3 +1,18 @@
+import { z } from "zod";
+
+/**
+ * 検証を通った復帰先を確定させるスキーマ。
+ *
+ * @remarks
+ * 素の `string` を代入できない形にすることで、検証を通していない候補が復帰先として流通しえない
+ * 状態を型で保証します（[0029](../../docs/adr/0029-type-design-discipline.md) §2）。「検証済みで
+ * あること」を呼び出し側の規律に委ねると、通し忘れは実行時にしか現れません。
+ */
+const safeReturnUrlSchema = z.string().brand<"safeReturnUrl">();
+
+/** {@link toSafeReturnUrl} を通った復帰先。同一 origin の相対パスであることが保証される。 */
+export type SafeReturnUrl = z.infer<typeof safeReturnUrlSchema>;
+
 /** 復帰先が無いときに送る先。 */
 const FALLBACK_RETURN_URL = "/";
 
@@ -29,7 +44,12 @@ const PROBE_ORIGIN = "http://internal.invalid";
  * @param candidate - クエリ等から受け取った復帰先候補
  * @returns 安全と判定した、解決済みの相対パス。判定に落ちたときは `/`
  */
-export function toSafeReturnUrl(candidate: string | null | undefined): string {
+export function toSafeReturnUrl(candidate: string | null | undefined): SafeReturnUrl {
+  return safeReturnUrlSchema.parse(resolveReturnUrl(candidate));
+}
+
+/** 候補を、通ってよい形へ倒す。 */
+function resolveReturnUrl(candidate: string | null | undefined): string {
   if (candidate === null || candidate === undefined || !candidate.startsWith("/")) {
     return FALLBACK_RETURN_URL;
   }
