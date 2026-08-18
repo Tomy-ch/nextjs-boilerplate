@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
+import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -37,6 +38,8 @@ export type PlaceOrderFormProps = {
 const LABEL = "注文を確定する";
 const PENDING_LABEL = "注文を確定しています";
 const ACCEPT_LABEL = "はい";
+const BACK_LABEL = "確認へ戻る";
+const FIX_CART_LABEL = "カートを修正する";
 
 /**
  * 送信部。
@@ -104,9 +107,13 @@ function PlaceOrderError({ state }: { state: PlaceOrderFormState }) {
  * 確かめは `AlertDialogAction` ではなく form の submit で行います。`AlertDialogAction` は押した
  * 時点で dialog を閉じるため、送信中の表示も失敗の文言も利用者の見ていない場所に出ます。
  *
- * **確かめの中では、どちらの操作も文言の幅に収めます。** 集計の中の確定は画面の主操作なので幅を
- * 占めますが、footer に 2 つ並ぶ操作を片方だけ広げると、短い文言のほうが大きく見えて重さが
- * 文言と合いません。
+ * **確かめの中では、どの操作も文言の幅に収めます。** 集計の中の確定は画面の主操作なので幅を
+ * 占めますが、footer に並ぶ操作を 1 つだけ広げると、短い文言のほうが大きく見えて重さが文言と
+ * 合いません。
+ *
+ * **閉じるだけの操作を置きます。** 確かめから出る先が「購入する」と「カートへ行く」しか無いと、
+ * **見直すために元の画面へ戻る手段がありません**。取り消しの位置に置くのはこの操作で、カートへ
+ * 行くのは画面を移す操作なので別に並べます。
  *
  * 成立したときの表示を持ちません。成立したら完了画面へ送るためです。
  */
@@ -153,9 +160,10 @@ export function PlaceOrderForm({
             ))}
           </ul>
           <AlertDialogFooter>
-            <AlertDialogCancel asChild>
-              <Link href={CART_PATH}>カートを修正する</Link>
-            </AlertDialogCancel>
+            <AlertDialogCancel>{BACK_LABEL}</AlertDialogCancel>
+            <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
+              <Link href={CART_PATH}>{FIX_CART_LABEL}</Link>
+            </Button>
             <PlaceOrderSubmit disabled={!orderable} fullWidth={false} label={ACCEPT_LABEL} />
           </AlertDialogFooter>
           <PlaceOrderError state={state} />

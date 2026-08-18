@@ -5,13 +5,27 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
 import { Button, type ButtonProps } from "../../action/button/button";
+import { useOverlayHistory } from "../use-overlay-history";
 
 /**
  * 確認 dialog の開閉状態を提供する client island root。
  *
+ * @remarks
+ * 開いているあいだは履歴を 1 つ持ち、戻る操作で自分だけを閉じます
+ * （[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
+ *
  * @see Storybook `Overlay/AlertDialog`
  */
-export const AlertDialog = Primitive.Root;
+export function AlertDialog({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: ComponentProps<typeof Primitive.Root>) {
+  const history = useOverlayHistory({ defaultOpen, onOpenChange, open });
+
+  return <Primitive.Root onOpenChange={history.setOpen} open={history.open} {...props} />;
+}
 /**
  * dialog を開く操作を包む trigger。
  *

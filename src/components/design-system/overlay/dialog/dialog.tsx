@@ -6,6 +6,8 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
 
+import { useOverlayHistory } from "../use-overlay-history";
+
 /**
  * 内容の補助表示や通常の編集操作を、画面を覆う modal として開く client island root。
  *
@@ -22,8 +24,22 @@ import { cn } from "@/components/cn";
  *
  * @see Storybook `Overlay/Dialog`
  */
-function Dialog({ ...props }: ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+function Dialog({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: ComponentProps<typeof DialogPrimitive.Root>) {
+  const history = useOverlayHistory({ defaultOpen, onOpenChange, open });
+
+  return (
+    <DialogPrimitive.Root
+      data-slot="dialog"
+      onOpenChange={history.setOpen}
+      open={history.open}
+      {...props}
+    />
+  );
 }
 
 /**

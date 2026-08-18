@@ -30,6 +30,8 @@
 
 ## 責務境界
 
+開いているあいだは履歴を 1 つ持ち、**戻る操作で自分だけを閉じます**（[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
+
 Client island として開閉・focus trap・Escape を担い、確認内容・Server Action・実行結果は feature が children として渡します。
 
 何を消すのか、実行後にどこへ遷移するのか、失敗したときに何を出すのかは持ちません。`AlertDialogAction` は dialog を閉じるところまでで、実行そのものは呼び出し元の handler または `form` の送信が担います。
