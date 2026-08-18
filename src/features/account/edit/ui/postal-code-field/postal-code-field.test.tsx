@@ -73,6 +73,16 @@ describe("PostalCodeField", () => {
     expect(screen.getByLabelText("郵便番号")).toHaveAttribute("autocomplete", "postal-code");
   });
 
+  it("検索の操作を入力欄と同じ枠の中に置く", () => {
+    renderField();
+
+    const search = screen.getByRole("button", { name: "住所を検索" });
+
+    expect(search.closest("[data-slot=input-group]")).toContainElement(
+      screen.getByLabelText("郵便番号"),
+    );
+  });
+
   it("検索の操作を押すと呼び出し側へ通す", async () => {
     const user = userEvent.setup();
     const onSearch = vi.fn();

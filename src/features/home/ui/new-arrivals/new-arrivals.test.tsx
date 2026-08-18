@@ -58,9 +58,12 @@ describe("NewArrivals", () => {
     render(<NewArrivals items={OVER_LEADING} />);
 
     const images = screen.getAllByRole("img", { name: "画像なし" });
+    const [first, , , fourth, fifth] = images;
 
     expect(images).toHaveLength(5);
-    expect(images.filter((image) => image.hasAttribute("loading"))).toEqual([images.at(-1)]);
+    expect(first).not.toHaveAttribute("loading");
+    expect(fourth).not.toHaveAttribute("loading");
+    expect(fifth).toHaveAttribute("loading", "lazy");
   });
 
   it("商品が無ければ節ごと描かない", () => {

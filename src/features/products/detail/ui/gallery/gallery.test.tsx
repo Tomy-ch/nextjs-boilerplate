@@ -87,6 +87,13 @@ describe("ProductGallery", () => {
     expect(within(last).queryByRole("link", { name: "次へ" })).not.toBeInTheDocument();
   });
 
+  it("画像が 1 枚なら前へも次へも出さない", () => {
+    render(<ProductGallery imageUrls={IMAGE_URLS} productName={PRODUCT_NAME} />);
+
+    expect(screen.queryByRole("link", { name: "前へ" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "次へ" })).not.toBeInTheDocument();
+  });
+
   it("先頭の画像だけ後回しにしない", () => {
     render(<ProductGallery imageUrls={THREE_IMAGE_URLS} productName={PRODUCT_NAME} />);
 

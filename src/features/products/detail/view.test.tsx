@@ -86,6 +86,16 @@ describe("ProductDetail", () => {
     expect(screen.getByText("2026/08/12 9:05")).toBeVisible();
   });
 
+  it("画像の面へ商品名と URL を渡す", () => {
+    render(<ProductDetail imageUrls={IMAGE_URLS} product={productOf()} />);
+
+    expect(screen.getByRole("region", { name: "深煎りブレンドの画像" })).toBeVisible();
+    expect(screen.getByRole("img", { name: "深煎りブレンド" })).toHaveAttribute(
+      "src",
+      expect.stringContaining(encodeURIComponent(IMAGE_URL)),
+    );
+  });
+
   it("カートへは商品を指す値だけを渡す", async () => {
     addToCartAction.mockResolvedValue({ status: "success", value: undefined });
     render(<ProductDetail imageUrls={THREE_IMAGE_URLS} product={productOf()} />);
