@@ -1,5 +1,7 @@
 import type { Preview } from "@storybook/nextjs-vite";
 
+import { ToastProvider } from "@/components/shell/toaster/toaster";
+
 import "../src/app/globals.css";
 import "./preview.css";
 
@@ -37,6 +39,10 @@ const preview: Preview = {
 
       return Story(context);
     },
+    // 実アプリが横断 Provider を layout shell へ mount するのと同じ位置に置く
+    // （[0026](../docs/adr/0026-layout-shell-mount.md)）。story ごとに包むと、包み忘れた story は
+    // 部品ではなく Storybook のエラー画面を描き、それが基準画像として承認されうる。
+    (Story) => <ToastProvider>{Story()}</ToastProvider>,
   ],
   parameters: {
     a11y: {

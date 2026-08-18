@@ -113,7 +113,7 @@ export function storyGroup(title: string): string {
  * 検査にとっては自分の実行と衝突する相手です（axe は同時実行を拒み `Axe is already running`
  * で落ちる。`a11y.spec.ts` が再試行を持つのはこのため）。
  *
- * 止め方に `globals` を選ぶのは、**この実行にだけ効く**からです。`.storybook/preview.ts` の
+ * 止め方に `globals` を選ぶのは、**この実行にだけ効く**からです。`.storybook/preview.tsx` の
  * parameter で止めると Storybook を開く人からも検査が消えます。
  */
 const A11Y_MANUAL = "a11y.manual:!true";
@@ -123,7 +123,7 @@ const A11Y_MANUAL = "a11y.manual:!true";
  *
  * @remarks
  * `globals` で配色テーマを指定します。テーマは `:root` の `data-theme` を切り替える
- * `.storybook/preview.ts` の decorator が受け取るため、OS の設定ではなく URL で決まります。
+ * `.storybook/preview.tsx` の decorator が受け取るため、OS の設定ではなく URL で決まります。
  *
  * 併せて {@link A11Y_MANUAL} で addon の自動検査を止めます。
  */

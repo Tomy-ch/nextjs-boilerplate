@@ -109,7 +109,7 @@ export function componentDirectoryOf(
  * 見出しに対応する Storybook sidebar の表示名。
  *
  * @remarks
- * sidebar の区画は目録の見出しと同じである。並び順は `.storybook/preview.ts` の `storySort` が持つ。
+ * sidebar の区画は目録の見出しと同じである。並び順は `.storybook/preview.tsx` の `storySort` が持つ。
  */
 export const CATALOG_HEADING_TITLE: Readonly<Record<CatalogHeading, string>> = {
   [CATALOG_HEADING.ACTION]: "Action",

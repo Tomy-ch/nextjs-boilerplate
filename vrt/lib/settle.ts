@@ -15,7 +15,7 @@ const RENDER_TIMEOUT_MS = 15_000;
  *
  * @remarks
  * 描画の完了は配色テーマが `:root` へ乗ったことで見ます。テーマを載せるのが story を包む
- * decorator（`.storybook/preview.ts`）なので、乗っていれば story まで到達しています。要素の
+ * decorator（`.storybook/preview.tsx`）なので、乗っていれば story まで到達しています。要素の
  * 出現で見ると、描画前の空の `#storybook-root` を「安定した画面」として扱ってしまいます。
  *
  * フォントは差し替わった瞬間に字形が変わるため、待たずに撮ると同じ story が撮るたびに違う

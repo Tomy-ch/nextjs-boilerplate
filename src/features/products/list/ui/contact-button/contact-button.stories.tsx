@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { ToastProvider } from "@/components/shell/toaster/toaster";
-
 import { ProductContactButton } from "./contact-button";
 
 const meta = {
@@ -19,7 +17,6 @@ const meta = {
       },
     },
   },
-  decorators: [(Story) => <ToastProvider>{Story()}</ToastProvider>],
 } satisfies Meta<typeof ProductContactButton>;
 
 export default meta;
