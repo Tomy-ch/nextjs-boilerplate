@@ -78,6 +78,20 @@ const TEST_FIXTURE_MODULES = [
 ] as const;
 
 /**
+ * カタログ専用の差し替え。
+ *
+ * @remarks
+ * server の無いカタログで、押せる操作を押しても壊れない状態にするためだけの module です
+ * ([0054](../../docs/adr/0054-ui-catalog-storybook.md))。判定は持たず、隣にある本物の
+ * Server Action がテストの対象です。
+ */
+const CATALOG_MOCK_MODULES = [
+  "src/features/account/__mocks__/**", // sample:line
+  "src/features/cart/__mocks__/**", // sample:line
+  "src/features/cart/facade/add-to-cart/__mocks__/**", // sample:line
+] as const;
+
+/**
  * 単体では回せないモジュール。
  *
  * @remarks
@@ -107,6 +121,7 @@ export const EXCLUDED_FROM_CHECKS = [
   ...GENERATED_MODULES,
   ...NON_DECIDING_MODULES,
   ...TEST_FIXTURE_MODULES,
+  ...CATALOG_MOCK_MODULES,
   ...RUNTIME_ONLY_MODULES,
   ...TEST_SUITE_MODULES,
 ] as const;

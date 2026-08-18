@@ -1,5 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { mocked, userEvent, within } from "storybook/test";
 
+import { getDefaultErrorMeta } from "@/errors/error-catalog";
+import { ErrorKind } from "@/errors/error-kind";
+import { failedActionState } from "@/model/action-state";
+
+import { setCartItemQuantityAction } from "../../actions";
 import { EARPHONE_LINE } from "../../cart.fixture";
 import { CartQuantityStepper } from "./quantity-stepper";
 
@@ -37,4 +43,28 @@ export const AtMinimum: Story = {
 /** 在庫が足りない場合。今買える上限で増やす操作を押せなくする。 */
 export const AtAvailableMax: Story = {
   args: { max: 3, quantity: 3 },
+};
+
+/**
+ * 変更が通らなかった場合。操作の隣に、何ができなかったかと理由が出る。
+ *
+ * @remarks
+ * 送信先は Server Action で、カタログでは差し替えてあります（[0054](../../../../../docs/adr/0054-ui-catalog-storybook.md)）。
+ * 失敗は props では作れないため、戻り値の側から作ります。
+ */
+export const Failed: Story = {
+  args: { quantity: 3 },
+  beforeEach: () => {
+    mocked(setCartItemQuantityAction).mockResolvedValue(
+      failedActionState({ formError: getDefaultErrorMeta(ErrorKind.UNAVAILABLE).message }),
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.click(
+      canvas.getByRole("button", { name: `${EARPHONE_LINE.name} を 1 つ増やす` }),
+    );
+    await canvas.findByText("数量を変更できませんでした");
+  },
 };
