@@ -72,7 +72,8 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 - 認証フローは **Authorization Code + PKCE** とし、**Route Handler(`/api/auth/*`)が IdP と直接やりとりする**。ブラウザが持つのは httpOnly の BFF session cookie のみで、**Access Token をブラウザへ露出しない**。画面側の実装は「ログインボタン → `/api/auth/login` へ遷移」に留める
 - 認証が要る API 呼び出しは、**BFF 経由で Bearer が自動付与される前提**で実装する(個別に Authorization ヘッダを組み立てない)
 - **401 = 未ログイン / セッション切れ → サインインへ**、**403 = 権限不足 → 導線ごと出し分け**([0080](0080-error-handling.md) の分類に対応させる)
-- Resolver の IF 形状 / 既定実装のライブラリ選定 / refresh の扱い / role の取得元は**実装 PR で確定**する([v1 実装計画](../plan/v1-implementation-plan.md) P5-4)
+- Resolver の IF 形状 / 既定実装のライブラリ選定 / refresh の扱いは実装で確定済み
+- **role の取得元はバックエンドとする。** IdP が持つのは身元（誰であるか）で、何をしてよいかは業務側のデータである([0070](0070-backend-role-separation.md))。ID Token の claim から読むと、IdP を差し替えるたびに役割の出所が変わり、IdP 側に業務の役割体系を持たせる圧力が生まれる。既定 Resolver は取得口を依存として受け取り、session を確立する途中で 1 度だけ引く。役割が 1 つも無い主体は権限を持たない側へ倒す
 
 ### 7. 未認証時の状態を、ログイン成立の時点で引き継ぐ
 

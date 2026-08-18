@@ -153,12 +153,29 @@ function encodePayload(
   return undefined;
 }
 
+/** 絶対 URL かどうか。scheme から始まるものを絶対と見なす。 */
+const ABSOLUTE_URL_PATTERN = /^https?:\/\//i;
+
+/**
+ * 接続先とパスを繋ぐ。
+ *
+ * @remarks
+ * **接続先が持つパスを残します。** `new URL(path, baseUrl)` は絶対パスを渡すと base の path を
+ * 捨てるため、`https://idp.example.com/realms/foo` のようにパスを持つ接続先では、その部分が
+ * 落ちた URL を叩くことになります。OIDC の issuer は路を持ち得るもので（Discovery 1.0 §4 は
+ * issuer にパスを連結した位置を well-known の場所と定めています）、実物の IdP でも起こります。
+ *
+ * **絶対 URL はそのまま使います。** Discovery が返す各エンドポイントは絶対 URL であり、それを
+ * 接続先へ繋ぎ直す意味がありません。
+ */
 function buildUrl(
   baseUrl: string,
   path: string,
   searchParams?: RequestSpec<unknown>["searchParams"],
 ): string {
-  const url = new URL(path, baseUrl);
+  const url = ABSOLUTE_URL_PATTERN.test(path)
+    ? new URL(path)
+    : new URL(`${baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`);
 
   for (const [key, value] of Object.entries(searchParams ?? {})) {
     if (value === undefined) {
@@ -206,9 +223,13 @@ export function createHttpClient({
    * @remarks
    * 再試行の外側で 1 度だけ呼びます。試行のたびに解決すると、認証できないことが接続の失敗と
    * 同じ扱いになり、通るはずのない要求を最大試行回数ぶん送ります。
+   *
+   * **接続先と生成元が違えば載せません。** 絶対 URL を渡された要求は接続先を離れるため、
+   * 載せると資格情報がその宛先へ渡ります。宛先は Discovery のような外の応答から来ることが
+   * あり、呼び出し側が相対パスしか渡さない慣習だけでは止まりません。
    */
-  async function authorizationHeader(path: string): Promise<Record<string, string>> {
-    if (getBearerToken === undefined) {
+  async function authorizationHeader(url: string): Promise<Record<string, string>> {
+    if (getBearerToken === undefined || new URL(url).origin !== new URL(baseUrl).origin) {
       return {};
     }
 
@@ -220,7 +241,7 @@ export function createHttpClient({
       }
 
       throw createAppError(ErrorKind.UNAUTHENTICATED, {
-        cause: new Error(`認証が要る接続先です: ${path}`),
+        cause: new Error(`認証が要る接続先です: ${url}`),
       });
     }
 
@@ -254,8 +275,8 @@ export function createHttpClient({
         });
       }
 
-      const authorization = await authorizationHeader(spec.path);
       const url = buildUrl(baseUrl, spec.path, spec.searchParams);
+      const authorization = await authorizationHeader(url);
       const deadline = now() + profile.overallTimeoutMs;
       const overall = AbortSignal.timeout(profile.overallTimeoutMs);
       const retryable = isRetryableMethod(spec.method ?? "GET", spec.idempotent ?? false);

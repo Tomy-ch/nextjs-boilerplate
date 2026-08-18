@@ -80,6 +80,33 @@ describe("createHttpClient", () => {
     );
   });
 
+  it("base URL の path を残したまま繋ぐ", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { baseUrl: "https://api.example.test/api/" });
+
+    await client.request({ path: "v1/items", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/api/v1/items");
+  });
+
+  it("接続先を離れる要求には資格情報を載せない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { getBearerToken: async () => "token" });
+
+    await client.request({ path: "https://idp.example.test/default/token", schema });
+
+    expect(new Headers(fetchImpl.mock.calls[0]?.[1]?.headers).has("Authorization")).toBe(false);
+  });
+
+  it("絶対 URL を渡されたら base URL へ繋がない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({ path: "https://idp.example.test/default/token", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://idp.example.test/default/token");
+  });
+
   it("並びで渡した値を同じキーの繰り返しにする", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);

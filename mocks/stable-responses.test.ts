@@ -1,7 +1,7 @@
 import { faker } from "@faker-js/faker";
 import { type HttpHandler, HttpResponse, http, type RequestHandler } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { seedFor, stableHandlers } from "./stable-responses";
 
@@ -107,6 +107,8 @@ function randomBody(): Record<string, unknown> {
   return {
     value: faker.string.alpha({ length: 16 }),
     count: faker.number.int({ min: 1, max: 100 }),
+    // 日付は「いま」を基準に振れる。時刻が動いても応答が動かないことを確かめるために混ぜる。
+    at: faker.date.recent().toISOString(),
   };
 }
 
@@ -173,6 +175,19 @@ describe("stableHandlers", () => {
   it("同じ要求へ何度でも同じ応答を返す", async () => {
     const first = await fetch("https://mock.test/alpha").then((response) => response.text());
     const second = await fetch("https://mock.test/alpha").then((response) => response.text());
+
+    expect(second).toBe(first);
+  });
+
+  it("時刻が進んでも、同じ要求には同じ応答を返す", async () => {
+    const first = await fetch("https://mock.test/alpha").then((response) => response.text());
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2027-03-04T05:06:07.000Z"));
+
+    const second = await fetch("https://mock.test/alpha").then((response) => response.text());
+
+    vi.useRealTimers();
 
     expect(second).toBe(first);
   });

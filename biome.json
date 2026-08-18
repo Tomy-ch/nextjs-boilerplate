@@ -144,6 +144,16 @@
       }
     },
     {
+      "includes": [".storybook/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["scripts/**"],
       "linter": {
         "rules": {

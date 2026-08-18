@@ -4,7 +4,10 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
+const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/") }));
+
 vi.mock("next/navigation", () => ({
+  usePathname,
   useRouter: () => ({ refresh: () => {} }),
 }));
 
@@ -16,12 +19,16 @@ const NAV_ITEMS = [
   { href: "/settings", label: "設定" },
 ];
 
-function renderShell() {
-  return render(
+function shell() {
+  return (
     <AppShell siteName="サイト" navItems={NAV_ITEMS} footer={<p>フッター</p>}>
       <p>本文</p>
-    </AppShell>,
+    </AppShell>
   );
+}
+
+function renderShell() {
+  return render(shell());
 }
 
 describe("AppShell", () => {
@@ -61,13 +68,16 @@ describe("AppShell", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent("設定");
   });
 
-  it("side menu の導線を選んだら閉じる", () => {
-    renderShell();
+  it("side menu は移った先で閉じる", () => {
+    usePathname.mockReturnValue("/");
+
+    const { rerender } = renderShell();
     fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
-    const [link] = within(screen.getByRole("dialog")).getAllByRole("link");
+    expect(within(screen.getByRole("dialog")).getAllByRole("link").length).toBeGreaterThan(0);
 
-    fireEvent.click(link);
+    usePathname.mockReturnValue("/reports");
+    rerender(shell());
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });

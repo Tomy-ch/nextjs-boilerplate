@@ -5,7 +5,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/",
+  useRouter: () => ({ refresh: () => {} }),
+}));
 vi.mock("@/features/cart/actions", () => ({
   clearCartAction: vi.fn(),
   removeCartItemAction: vi.fn(),

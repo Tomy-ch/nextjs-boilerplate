@@ -47,6 +47,9 @@ const config: KnipConfig = {
   workspaces: {
     ".": {
       entry: [
+        // 開発と CI の build にだけ含まれる route segment（`next.config.ts` の `pageExtensions`）。
+        // Next の plugin は既定の拡張子しか入口と見なさないため、ここで名指しする。
+        "src/app/**/page.dev.tsx",
         ...ENTRYPOINT_PATTERNS,
         ...PUBLISHED_SURFACE,
         "vrt/*.spec.ts",

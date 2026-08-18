@@ -20,3 +20,12 @@ export const APP_SHELL_MAIN_ID = "main-content";
  * 描くと、境界線のぶん header 自身が縮み、下に続く画面がまるごと 1px せり上がる。
  */
 export const APP_SHELL_HEADER_HEIGHT = 57;
+
+/**
+ * header の下に貼り付ける要素と、header との間に空ける余白（px）。
+ *
+ * @remarks
+ * 貼り付く位置は「header が占める高さ + この余白」で決まります。画面ごとに数えると、header の
+ * 高さが動いたときに追随する場所としない場所が生まれ、貼り付いた要素が header へ食い込みます。
+ */
+export const APP_SHELL_STICKY_GAP = 12;

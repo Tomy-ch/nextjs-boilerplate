@@ -1,6 +1,6 @@
 import type { Cart } from "@/model/cart/cart";
 
-import { isPurchasable } from "./issue-notice";
+import { isPurchasable } from "@/model/cart/issue-notice";
 
 /**
  * 購入手続きへ進めるか。

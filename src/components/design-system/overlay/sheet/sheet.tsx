@@ -7,6 +7,8 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
 
+import { useOverlayHistory } from "../use-overlay-history";
+
 import { SHEET_SIDE, type SheetSide } from "./sheet.definition";
 
 const sheetContentVariants = cva(
@@ -46,8 +48,22 @@ const sheetContentVariants = cva(
  *
  * @see Storybook `Overlay/Sheet`
  */
-function Sheet({ ...props }: ComponentProps<typeof SheetPrimitive.Root>) {
-  return <SheetPrimitive.Root data-slot="sheet" {...props} />;
+function Sheet({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: ComponentProps<typeof SheetPrimitive.Root>) {
+  const history = useOverlayHistory({ defaultOpen, onOpenChange, open });
+
+  return (
+    <SheetPrimitive.Root
+      data-slot="sheet"
+      onOpenChange={history.setOpen}
+      open={history.open}
+      {...props}
+    />
+  );
 }
 
 /**

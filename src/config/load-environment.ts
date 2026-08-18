@@ -45,6 +45,32 @@ export function findApplicationEnvironment(): ApplicationEnvironment | null {
 }
 
 /**
+ * 開発専用の口を開ける環境。
+ *
+ * @remarks
+ * ここに `dev` / `stg` / `prd` を足すと、**誰でも任意の役割の session を発行できる口**が実環境に
+ * 開きます。判定を API の接続モードではなく環境そのものに置いているのは、接続モードが
+ * 「mock を実環境に置かない」という散文の約束でしか守られていないためです。
+ */
+const developmentOnlyEnvironments: readonly ApplicationEnvironment[] = ["local", "ci"];
+
+/**
+ * 開発専用の口を開けてよい環境か。
+ *
+ * @remarks
+ * **`APP_ENV` が指定されていることも要求します。** 未指定を既定値へ落とすと、設定を忘れた実環境が
+ * `local` として扱われ、この種の口が開きます（[0030](../../docs/adr/0030-environment-variable-management.md)）。
+ *
+ * 判定をここに置くのは、口が増えるたびに同じ条件が写るのを避けるためです。開ける環境の一覧が
+ * 2 か所にあると、片方だけを広げた変更が黙って通ります。
+ */
+export function isDevelopmentOnlyEndpointOpen(): boolean {
+  const environment = findApplicationEnvironment();
+
+  return environment !== null && developmentOnlyEnvironments.includes(environment);
+}
+
+/**
  * `APP_ENV` が示す `env/.env.<環境>` を一度だけ `process.env` へ読み込む。
  *
  * @remarks

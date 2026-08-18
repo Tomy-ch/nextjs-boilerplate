@@ -40,6 +40,16 @@ export function seedFor(method: string, url: string, body = ""): number {
   return hash >>> 0;
 }
 
+/**
+ * 日付の基準時刻。
+ *
+ * @remarks
+ * faker の日付生成は「いま」を基準に前後へ振ります。seed は振れ幅を決めるだけなので、基準が
+ * 実行時刻のままだと、同じ要求でも撮る時刻がずれた分だけ日付と時刻が動きます。基準まで固定して
+ * はじめて、同じ木から同じ絵が撮れます。
+ */
+const REFERENCE_DATE = new Date("2026-01-01T00:00:00.000Z");
+
 /** 生成物が口ごとに公開するハンドラ生成関数の名前の末尾。 */
 const HANDLER_SUFFIX = "MockHandler";
 
@@ -100,6 +110,7 @@ export function stableHandlers(generated: Readonly<Record<string, unknown>>): Ht
         const body = await request.clone().text();
 
         faker.seed(seedFor(request.method, request.url, body));
+        faker.setDefaultRefDate(REFERENCE_DATE);
 
         return (respond as () => unknown)();
       }),
