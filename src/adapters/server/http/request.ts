@@ -153,12 +153,29 @@ function encodePayload(
   return undefined;
 }
 
+/** 絶対 URL かどうか。scheme から始まるものを絶対と見なす。 */
+const ABSOLUTE_URL_PATTERN = /^https?:\/\//i;
+
+/**
+ * 接続先とパスを繋ぐ。
+ *
+ * @remarks
+ * **接続先が持つパスを残します。** `new URL(path, baseUrl)` は絶対パスを渡すと base の path を
+ * 捨てるため、`https://idp.example.com/realms/foo` のようにパスを持つ接続先では、その部分が
+ * 落ちた URL を叩くことになります。OIDC の issuer は路を持ち得るもので（Discovery 1.0 §4 は
+ * issuer にパスを連結した位置を well-known の場所と定めています）、実物の IdP でも起こります。
+ *
+ * **絶対 URL はそのまま使います。** Discovery が返す各エンドポイントは絶対 URL であり、それを
+ * 接続先へ繋ぎ直す意味がありません。
+ */
 function buildUrl(
   baseUrl: string,
   path: string,
   searchParams?: RequestSpec<unknown>["searchParams"],
 ): string {
-  const url = new URL(path, baseUrl);
+  const url = ABSOLUTE_URL_PATTERN.test(path)
+    ? new URL(path)
+    : new URL(`${baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`);
 
   for (const [key, value] of Object.entries(searchParams ?? {})) {
     if (value === undefined) {
