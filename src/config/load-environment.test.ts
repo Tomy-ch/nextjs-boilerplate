@@ -8,7 +8,7 @@ async function loadSubject(result: { error?: Error } = {}) {
   return {
     config,
     loadEnvironment: module.loadEnvironment,
-    findExplicitApplicationEnvironment: module.findExplicitApplicationEnvironment,
+    findApplicationEnvironment: module.findApplicationEnvironment,
   };
 }
 
@@ -26,19 +26,7 @@ afterEach(() => {
 
 describe("loadEnvironment", () => {
   // ----- 正常系 -----
-  it("APP_ENV 未指定時は local の env file を外部 ENV を上書きせずに読み込む", async () => {
-    const { config, loadEnvironment } = await loadSubject();
-
-    loadEnvironment();
-
-    expect(config).toHaveBeenCalledWith({
-      path: `${process.cwd()}/env/.env.local`,
-      override: false,
-      quiet: true,
-    });
-  });
-
-  it("指定された APP_ENV の env file を読み込む", async () => {
+  it("指定された APP_ENV の env file を外部 ENV を上書きせずに読み込む", async () => {
     vi.stubEnv("APP_ENV", "stg");
     const { config, loadEnvironment } = await loadSubject();
 
@@ -52,6 +40,7 @@ describe("loadEnvironment", () => {
   });
 
   it("同じプロセスでは env file を一度だけ読み込む", async () => {
+    vi.stubEnv("APP_ENV", "local");
     const { config, loadEnvironment } = await loadSubject();
 
     loadEnvironment();
@@ -61,33 +50,51 @@ describe("loadEnvironment", () => {
   });
 
   // ----- 異常系 -----
-  it("env file の読み込みエラーを起動エラーとして返す", async () => {
-    const { loadEnvironment } = await loadSubject({ error: new Error("not found") });
+  it("APP_ENV 未指定を起動エラーとして返す", async () => {
+    const { config, loadEnvironment } = await loadSubject();
+
+    expect(() => loadEnvironment()).toThrow("APP_ENV を指定してください");
+    expect(config).not.toHaveBeenCalled();
+  });
+
+  it("選べない APP_ENV では env file を読まずに落とす", async () => {
+    vi.stubEnv("APP_ENV", "production");
+    const { config, loadEnvironment } = await loadSubject();
+
+    expect(() => loadEnvironment()).toThrow("APP_ENV は local, ci, dev, stg, prd");
+    expect(config).not.toHaveBeenCalled();
+  });
+
+  it("env file の読み込みエラーを、原因を連ねた起動エラーとして返す", async () => {
+    vi.stubEnv("APP_ENV", "local");
+    const cause = new Error("not found");
+    const { loadEnvironment } = await loadSubject({ error: cause });
 
     expect(() => loadEnvironment()).toThrow("環境変数ファイルを読み込めません");
+    expect(() => loadEnvironment()).toThrow(expect.objectContaining({ cause }));
   });
 });
 
-describe("findExplicitApplicationEnvironment", () => {
+describe("findApplicationEnvironment", () => {
   // ----- 正常系 -----
   it("指定された環境を返す", async () => {
     vi.stubEnv("APP_ENV", "stg");
-    const { findExplicitApplicationEnvironment } = await loadSubject();
+    const { findApplicationEnvironment } = await loadSubject();
 
-    expect(findExplicitApplicationEnvironment()).toBe("stg");
+    expect(findApplicationEnvironment()).toBe("stg");
   });
 
-  it("APP_ENV 未指定時は既定値へ落とさず null を返す", async () => {
-    const { findExplicitApplicationEnvironment } = await loadSubject();
+  it("APP_ENV 未指定時は null を返す", async () => {
+    const { findApplicationEnvironment } = await loadSubject();
 
-    expect(findExplicitApplicationEnvironment()).toBeNull();
+    expect(findApplicationEnvironment()).toBeNull();
   });
 
   it("ENV ファイルを読み込まなくても解決する", async () => {
     vi.stubEnv("APP_ENV", "prd");
-    const { config, findExplicitApplicationEnvironment } = await loadSubject();
+    const { config, findApplicationEnvironment } = await loadSubject();
 
-    findExplicitApplicationEnvironment();
+    findApplicationEnvironment();
 
     expect(config).not.toHaveBeenCalled();
   });
@@ -95,10 +102,8 @@ describe("findExplicitApplicationEnvironment", () => {
   // ----- 異常系 -----
   it("選べない環境名を拒否する", async () => {
     vi.stubEnv("APP_ENV", "production");
-    const { findExplicitApplicationEnvironment } = await loadSubject();
+    const { findApplicationEnvironment } = await loadSubject();
 
-    expect(() => findExplicitApplicationEnvironment()).toThrow(
-      "APP_ENV は local, ci, dev, stg, prd",
-    );
+    expect(() => findApplicationEnvironment()).toThrow("APP_ENV は local, ci, dev, stg, prd");
   });
 });

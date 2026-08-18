@@ -7,7 +7,7 @@ const environment = vi.hoisted((): { value: string | null } => ({ value: "local"
 
 vi.mock("@/adapters/server/auth/test-session", () => ({ issueTestSession }));
 vi.mock("@/config/load-environment", () => ({
-  findExplicitApplicationEnvironment: () => environment.value,
+  findApplicationEnvironment: () => environment.value,
 }));
 
 function issue(body?: unknown): Request {

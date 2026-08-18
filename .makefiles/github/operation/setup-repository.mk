@@ -161,7 +161,7 @@ setup-remove-sample:
 		pnpm lint:ci && \
 		pnpm typecheck && \
 		pnpm md-lint && \
-		pnpm build && \
+		APP_ENV=local pnpm build && \
 		pnpm test && \
 		echo "🔍 過不足と残留参照を検証します..." && \
 		pnpm exec tsx scripts/setup/verify-sample-removal && \

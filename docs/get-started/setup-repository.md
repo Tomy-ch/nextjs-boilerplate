@@ -195,7 +195,7 @@ make gen-api
 ## 確認
 
 ```bash
-pnpm lint:ci && pnpm typecheck && pnpm build && pnpm test
+pnpm lint:ci && pnpm typecheck && APP_ENV=local pnpm build && pnpm test
 ```
 
 CI 側は PR を 1 本立てれば全ジョブが回る。落ちたジョブの引き先は

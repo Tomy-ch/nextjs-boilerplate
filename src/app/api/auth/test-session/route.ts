@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { issueTestSession } from "@/adapters/server/auth/test-session";
-import { findExplicitApplicationEnvironment } from "@/config/load-environment";
+import { findApplicationEnvironment } from "@/config/load-environment";
 import { SESSION_ROLE } from "@/model/session";
 
 /**
@@ -12,8 +12,8 @@ import { SESSION_ROLE } from "@/model/session";
  * 発行できる口**が実環境に開きます。判定を API の接続モードではなく環境そのものに置いているのは、
  * 接続モードが「mock を実環境に置かない」という散文の約束でしか守られていないためです。
  *
- * **`APP_ENV` が明示されていることも要求します。** 未設定を既定値へ落とすと、設定を忘れた実環境が
- * `local` として扱われ、この口が開きます。開発機で使うときは `APP_ENV=local` を明示してください。
+ * **`APP_ENV` が指定されていることも要求します。** 未設定を既定値へ落とすと、設定を忘れた実環境が
+ * `local` として扱われ、この口が開きます（[0030](../../../../../docs/adr/0030-environment-variable-management.md)）。
  */
 const OPEN_ENVIRONMENTS: readonly string[] = ["local", "ci"];
 
@@ -48,7 +48,7 @@ const IssueRequest = z.object({
  * @returns 発行できたときは 204。開けていない環境では 404
  */
 export async function POST(request: Request): Promise<Response> {
-  const environment = findExplicitApplicationEnvironment();
+  const environment = findApplicationEnvironment();
 
   if (environment === null || !OPEN_ENVIRONMENTS.includes(environment)) {
     // 403 にしない。存在を知らせないほうが、設定を誤ったまま公開したときの被害が小さい。

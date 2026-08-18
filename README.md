@@ -79,7 +79,7 @@ pnpm dev
 ツールチェーン整備は `make` ターゲットが受け持ちます。
 
 ```bash
-pnpm dev / build / start        # 開発 / ビルド / 本番起動
+pnpm dev / build / start        # 開発 / ビルド / 本番起動（build と start は APP_ENV を指定する）
 pnpm lint / lint:ci / fix       # biome — エディタ相当 / 完全版 / 自動修正
 pnpm typecheck                  # tsc --noEmit
 pnpm md-lint                    # markdownlint + mermaid 構文検査
