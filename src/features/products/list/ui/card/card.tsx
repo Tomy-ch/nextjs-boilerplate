@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Badge } from "@/components/design-system/display/badge/badge";
 import { Card } from "@/components/design-system/display/card/card";
 import { MediaImage } from "@/components/design-system/display/media-image/media-image";
+import type { MediaImagePriority } from "@/components/design-system/display/media-image/media-image.definition";
 import { AddToCartButton } from "@/features/cart/facade/add-to-cart/add-to-cart-button";
 import { NO_IMAGE_URL } from "@/model/media";
 import type { ProductListItem } from "@/model/product/product";
@@ -13,8 +14,8 @@ import { ProductContactButton } from "../contact-button/contact-button";
 export type ProductCardProps = {
   /** 表示する商品。 */
   item: ProductListItem;
-  /** 一覧の先頭に並ぶ商品か。LCP 候補として画像を preload する。 */
-  leading?: boolean;
+  /** 画像の読み込み優先度。折り返し前に見える位置なら `preload` を渡す。 */
+  imagePriority?: MediaImagePriority;
 };
 
 /**
@@ -46,19 +47,16 @@ export type ProductCardProps = {
  * **在庫が無い商品には問い合わせの入口を並べます。** カートへ入れる操作は押せないままにしてあり、
  * それだけでは「買えない」ことしか伝わりません。入荷を待つ以外の道をその場に出します。
  */
-export function ProductCard({ item, leading = false }: ProductCardProps) {
+export function ProductCard({ item, imagePriority }: ProductCardProps) {
   return (
-    <Card
-      className="@container/card relative flex h-full flex-col gap-0 overflow-hidden py-0 transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-md"
-      data-testid="product-card"
-    >
+    <Card className="@container/card relative flex h-full flex-col gap-0 overflow-hidden py-0 transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-md">
       <div className="flex flex-col @sm/card:flex-row">
         <MediaImage
           alt={item.name}
           className="@sm/card:w-40 @sm/card:shrink-0"
           fallbackAlt="画像なし"
           fallbackSrc={NO_IMAGE_URL}
-          preload={leading}
+          priority={imagePriority}
           sizes="(min-width: 1024px) 160px, 100vw"
           src={item.imageUrl}
         />

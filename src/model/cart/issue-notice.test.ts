@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-
+import { toProductId } from "../product/product";
 import type { CartLine } from "./cart";
 import { cartIssueNotice, hasBlockingIssue, isPurchasable } from "./issue-notice";
 
 /** 事情の無い明細。 */
 const EARPHONE_LINE = {
-  productId: "0195f0c2-0000-7000-8000-000000000001",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000001"),
   name: "ワイヤレスイヤホン",
   unitPrice: "19.99",
   quantity: 3,
@@ -15,7 +15,7 @@ const EARPHONE_LINE = {
 
 /** 在庫が数量に足りない明細。 */
 const INSUFFICIENT_LINE = {
-  productId: "0195f0c2-0000-7000-8000-000000000003",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000003"),
   name: "編組ケーブル 2m",
   unitPrice: "0.99",
   quantity: 5,
@@ -25,7 +25,7 @@ const INSUFFICIENT_LINE = {
 
 /** 値上がりした明細。 */
 const PRICE_INCREASED_LINE = {
-  productId: "0195f0c2-0000-7000-8000-000000000005",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000005"),
   name: "ノイズキャンセリングヘッドホン",
   unitPrice: "249.00",
   quantity: 1,
@@ -35,7 +35,7 @@ const PRICE_INCREASED_LINE = {
 
 /** 商品を引けなくなった明細。 */
 const NOT_FOUND_LINE = {
-  productId: "0195f0c2-0000-7000-8000-000000000006",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000006"),
   name: null,
   unitPrice: null,
   quantity: 2,

@@ -1,3 +1,5 @@
+import { type ProductId, toProductId } from "@/model/product/product";
+
 /** フォームが対象の商品を指すときの項目名。 */
 const PRODUCT_ID_FIELD = "productId";
 
@@ -7,12 +9,16 @@ const QUANTITY_FIELD = "quantity";
 /**
  * 送信された内容から商品を指す値を取り出す。
  *
+ * @remarks
+ * フォームは外から来る入力なので、ここが識別子を確定させる境界です。実在するかどうかは
+ * バックエンドが判断します（[0029](../../../docs/adr/0029-type-design-discipline.md) §2）。
+ *
  * @returns 値が無い、または文字列でなければ null
  */
-export function readProductId(formData: FormData): string | null {
+export function readProductId(formData: FormData): ProductId | null {
   const value = formData.get(PRODUCT_ID_FIELD);
 
-  return typeof value === "string" && value !== "" ? value : null;
+  return typeof value === "string" && value !== "" ? toProductId(value) : null;
 }
 
 /**

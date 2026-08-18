@@ -1,14 +1,3 @@
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/design-system/container/carousel/carousel";
-import {
-  CarouselLink,
-  CarouselNext,
-  CarouselPrevious,
-  CarouselThumbnails,
-} from "@/components/design-system/container/carousel/carousel-navigation";
 import { Badge } from "@/components/design-system/display/badge/badge";
 import {
   KeyValueEmpty,
@@ -17,8 +6,6 @@ import {
   KeyValueList,
   KeyValueValue,
 } from "@/components/design-system/display/key-value-list/key-value-list";
-import { MediaImage } from "@/components/design-system/display/media-image/media-image";
-import { MEDIA_IMAGE_ASPECT_RATIO } from "@/components/design-system/display/media-image/media-image.definition";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -27,24 +14,18 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/design-system/navigation/breadcrumb/breadcrumb";
-import { ImageViewer } from "@/components/design-system/overlay/image-viewer/image-viewer";
 import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
 import { ActionBar } from "@/components/patterns/action-bar/action-bar";
 import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
 import { AddToCartButton } from "@/features/cart/facade/add-to-cart/add-to-cart-button";
 import { formatDateTime } from "@/model/datetime";
-import { NO_IMAGE_URL } from "@/model/media";
 import type { Product } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 import { PRODUCT_LIST_PATH } from "../facade/list-url/list-url";
+import { ProductGallery } from "./ui/gallery/gallery";
 import { PrintButton } from "./ui/print-button/print-button";
 
 const DESCRIPTION_HEADING_ID = "product-description";
-
-/** slide を指す `id`。送り操作と一覧の双方が同じ規則で参照する。 */
-function slideIdOf(index: number): string {
-  return `product-image-${index + 1}`;
-}
 
 type ProductDetailProps = {
   readonly product: Product;
@@ -60,14 +41,6 @@ type ProductDetailProps = {
  * `RichTextContent` へ渡します。feature が文字列を持つと、渡す前に sanitize したかどうかが
  * 呼び出し側の規律の問題になります。
  *
- * 画像は枚数によらず carousel に載せ、送り先の一覧を必ず下に並べます。枚数で構造を変えると境界で
- * 見た目が動き、1 枚の商品と複数枚の商品が別の画面に見えます。1 枚も無い場合は代替画像を 1 枚として
- * 置きます。
- *
- * 実画像だけを押して拡大できます。代替画像は「画像が無い」ことを伝える表示であり、拡大しても
- * 得られるものがありません。押せる画像と押せない画像が混ざりますが、混ざるのは実画像が無い商品
- * だけで、同じ商品の中で押せたり押せなかったりはしません。
- *
  * 在庫が少ないかどうかの境界はバックエンドが `stockWarningThreshold` で供給します。ここが持つのは
  * 境界を跨いだ時に何を見せるかだけです。
  *
@@ -81,13 +54,9 @@ type ProductDetailProps = {
  * 落ちません。全文は真下の見出しにあり、読み上げには全文が渡ります。
  *
  * 紙に出すのは内容だけです。押せない操作（パンくず・画像の送り・一覧・カートへの追加・印刷そのもの）
- * は紙面の場所を取るだけなので落とします。画像は先頭の 1 枚だけを残し、幅も抑えます。carousel は
- * 横に送って見る形で、紙では送れないため全部並べると同じ商品の写真が紙を埋め、幅を抑えないと
- * 1 枚でも紙 1 面を占めて肝心の値が次の紙へ送られます。
+ * は紙面の場所を取るだけなので落とします。
  */
 export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
-  const slides = imageUrls.length === 0 ? [null] : imageUrls;
-  const viewable = imageUrls.map((url) => ({ src: url, alt: product.name }));
   const isLowStock =
     product.stockWarningThreshold !== null && product.quantity <= product.stockWarningThreshold;
 
@@ -114,80 +83,7 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <Carousel aria-label={`${product.name}の画像`} className="print:max-w-64">
-          <CarouselContent>
-            {slides.map((src, index) => (
-              <CarouselItem
-                aria-label={`${index + 1} / ${slides.length}`}
-                className={index === 0 ? undefined : "print-hidden"}
-                id={slideIdOf(index)}
-                key={slideIdOf(index)}
-              >
-                {src === null ? (
-                  <MediaImage
-                    alt={product.name}
-                    className="rounded-lg border border-border"
-                    fallbackAlt="画像なし"
-                    fallbackSrc={NO_IMAGE_URL}
-                    preload
-                    sizes="(min-width: 1024px) 50vw, 100vw"
-                    src={null}
-                  />
-                ) : (
-                  <ImageViewer images={viewable} index={index}>
-                    <MediaImage
-                      alt={product.name}
-                      className="rounded-lg border border-border"
-                      preload={index === 0}
-                      sizes="(min-width: 1024px) 50vw, 100vw"
-                      src={src}
-                    />
-                  </ImageViewer>
-                )}
-                {/* 送る操作は画像より後ろに置く。位置指定要素は DOM の順で重なるため、
-                    前に置くと画像に覆われて押せない。 */}
-                {index === 0 ? null : (
-                  <CarouselPrevious
-                    className="print-hidden"
-                    href={`#${slideIdOf(index - 1)}`}
-                    tabIndex={-1}
-                  />
-                )}
-                {index === slides.length - 1 ? null : (
-                  <CarouselNext
-                    className="print-hidden"
-                    href={`#${slideIdOf(index + 1)}`}
-                    tabIndex={-1}
-                  />
-                )}
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-
-          <CarouselThumbnails
-            aria-label="画像の一覧"
-            className="print-hidden"
-            defaultCurrentId={slideIdOf(0)}
-          >
-            {slides.map((src, index) => (
-              <CarouselLink
-                aria-label={`${index + 1} 枚目`}
-                className="w-20 shrink-0 p-0"
-                href={`#${slideIdOf(index)}`}
-                key={slideIdOf(index)}
-              >
-                <MediaImage
-                  alt=""
-                  aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
-                  className="w-full rounded-sm"
-                  fallbackSrc={NO_IMAGE_URL}
-                  sizes="5rem"
-                  src={src}
-                />
-              </CarouselLink>
-            ))}
-          </CarouselThumbnails>
-        </Carousel>
+        <ProductGallery imageUrls={imageUrls} productName={product.name} />
 
         <div className="flex flex-col items-start gap-6">
           <div className="flex flex-wrap items-center gap-2">

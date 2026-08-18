@@ -21,6 +21,8 @@ const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => envir
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 
+import { toProductId } from "@/model/product/product";
+
 import {
   getProduct,
   getProductCount,
@@ -398,7 +400,7 @@ describe("getProduct", () => {
   it("契約の応答を表示用の商品にして返す", async () => {
     serveJson(PRODUCT_URL, wireProduct);
 
-    const product = await getProduct(wireProduct.id);
+    const product = await getProduct(toProductId(wireProduct.id));
 
     expect(product.name).toBe("商品");
   });
@@ -406,7 +408,7 @@ describe("getProduct", () => {
   it("ID をパスへ載せる", async () => {
     const requests = serveJson(PRODUCT_URL, wireProduct);
 
-    await getProduct(wireProduct.id);
+    await getProduct(toProductId(wireProduct.id));
 
     expect(requests[0]?.url).toBe(`${PRODUCTS_URL}/${wireProduct.id}`);
   });
@@ -415,7 +417,7 @@ describe("getProduct", () => {
     serveJson(PRODUCT_URL, wireProduct);
     const fetchImpl = watchFetch();
 
-    await getProduct(wireProduct.id);
+    await getProduct(toProductId(wireProduct.id));
 
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: [PRODUCTS_TAG] } });
   });
@@ -423,7 +425,7 @@ describe("getProduct", () => {
   it("ID をパスへ載せる前に URL として安全な形へ変換する", async () => {
     const requests = serveJson(PRODUCT_URL, wireProduct);
 
-    await getProduct("a/../b");
+    await getProduct(toProductId("a/../b"));
 
     expect(requests[0]?.url).toBe(`${PRODUCTS_URL}/a%2F..%2Fb`);
   });

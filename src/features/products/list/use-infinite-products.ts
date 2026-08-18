@@ -12,22 +12,20 @@ import {
   toProductListSearchParams,
 } from "../facade/list-url/list-url";
 import { PRODUCT_PAGE_SIZE } from "./query";
+import type { ProductLoadMoreState } from "./ui/load-more-list/load-more-list";
 
 /** 末尾に近づいたと見なす距離。画面に入り切る前に読み始めて、待たせる時間を短くする。 */
 const PREFETCH_MARGIN = "400px";
+
+/** 続きの取得が今どこに居るか。終端かどうかは読み込んだページが決めるため含めない。 */
+type FetchPhase = "idle" | "loading" | "failed";
 
 /** 読み進めた一覧の状態と、続きを読む手段。 */
 export type InfiniteProducts = {
   /** 読み込み済みのすべての商品。 */
   readonly items: readonly ProductListItem[];
-  /** まだ続きがあるか。 */
-  readonly hasNext: boolean;
-  /** 続きを取得している最中か。 */
-  readonly loading: boolean;
-  /** 直前の取得に失敗したか。 */
-  readonly failed: boolean;
-  /** 続きを読む。取得中と終端では何もしない。 */
-  readonly loadMore: () => void;
+  /** 続きの読み込みの状態。読み直す操作は失敗したときだけ載る。 */
+  readonly loadMore: ProductLoadMoreState;
   /** 一覧の末尾に置く目印。ここが見えたら続きを読む。 */
   readonly sentinelRef: RefObject<HTMLDivElement | null>;
 };
@@ -54,23 +52,21 @@ export function useInfiniteProducts(
   query: ProductListSelection,
 ): InfiniteProducts {
   const [page, setPage] = useState(initial);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [phase, setPhase] = useState<FetchPhase>("idle");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const loadMore = useCallback(() => {
     const cursor = page.nextCursor;
 
-    if (cursor === null || loading) {
+    if (cursor === null || phase === "loading") {
       return;
     }
 
     const controller = new AbortController();
 
     abortRef.current = controller;
-    setLoading(true);
-    setFailed(false);
+    setPhase("loading");
 
     const params = toProductListSearchParams(query);
 
@@ -82,16 +78,15 @@ export function useInfiniteProducts(
     fetchProductListPage(params, controller.signal)
       .then((next) => {
         setPage((loaded) => appendCursorPage(loaded, next));
-        setLoading(false);
+        setPhase("idle");
       })
       .catch(() => {
         // 打ち切りは失敗ではない。条件が変わったか画面を離れたかで、伝える相手がもういない。
         if (!controller.signal.aborted) {
-          setFailed(true);
-          setLoading(false);
+          setPhase("failed");
         }
       });
-  }, [loading, page.nextCursor, query]);
+  }, [page.nextCursor, phase, query]);
 
   const loadMoreRef = useRef(loadMore);
 
@@ -131,12 +126,13 @@ export function useInfiniteProducts(
     window.history.replaceState(window.history.state, "", url);
   }, [loadedCount]);
 
+  if (page.nextCursor === null) {
+    return { items: page.items, loadMore: { status: "exhausted" }, sentinelRef };
+  }
+
   return {
     items: page.items,
-    hasNext: page.nextCursor !== null,
-    loading,
-    failed,
-    loadMore,
+    loadMore: phase === "failed" ? { status: "failed", onRetry: loadMore } : { status: phase },
     sentinelRef,
   };
 }

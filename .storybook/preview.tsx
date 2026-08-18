@@ -1,7 +1,7 @@
 import type { Preview } from "@storybook/nextjs-vite";
-import { createElement } from "react";
 
-import { ToastProvider } from "../src/components/shell/toaster/toaster";
+import { ToastProvider } from "@/components/shell/toaster/toaster";
+
 import { StoryErrorBoundary } from "./story-error-boundary";
 
 import "../src/app/globals.css";
@@ -41,15 +41,14 @@ const preview: Preview = {
 
       return Story(context);
     },
-    // 通知の供給は root layout（`src/app/layout.tsx`）が持つ。カタログでも同じ位置に置くのは、
-    // 部品の側が「どこかに Provider が居る」前提で `useToast` を呼ぶためで、置かないと通知を
-    // 出しうる部品を含む story が開いた時点で落ちる。JSX を使わないのは、この設定が `.ts`
-    // だからである。
-    (Story, context) => createElement(ToastProvider, null, Story(context)),
+    // 実アプリが横断 Provider を layout shell へ mount するのと同じ位置に置く
+    // （[0026](../docs/adr/0026-layout-shell-mount.md)）。story ごとに包むと、包み忘れた story は
+    // 部品ではなく Storybook のエラー画面を描き、それが基準画像として承認されうる。
+    (Story) => <ToastProvider>{Story()}</ToastProvider>,
     // 例外はカタログの中で受け止める。赤いスタックの画面は fork 先への説明にならない一方、
     // 無かったことにすると壊れた story が緑のまま残る。見え方だけを穏やかにし、起きたことは
     // 文言・`data-story-error`・console に残す。story ごとに作り直すため key を与える。
-    (Story, context) => createElement(StoryErrorBoundary, { key: context.id }, Story(context)),
+    (Story, context) => <StoryErrorBoundary key={context.id}>{Story()}</StoryErrorBoundary>,
   ],
   parameters: {
     a11y: {

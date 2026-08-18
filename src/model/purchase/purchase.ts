@@ -1,4 +1,5 @@
 import type { CursorPage } from "../pagination";
+import type { ProductId } from "../product/product";
 
 /**
  * 履歴に並ぶ購入 1 件。
@@ -28,7 +29,7 @@ export type PurchaseHistoryPage = CursorPage<PurchaseHistoryEntry>;
  * 名称で解決されて届くため、名前と単価は別の時点を指しています。
  */
 export type PurchaseLine = {
-  readonly productId: string;
+  readonly productId: ProductId;
   readonly productName: string;
   readonly quantity: number;
   /** 購入時点の単価。基準通貨の decimal 文字列。 */
@@ -69,6 +70,6 @@ export type Purchase = {
  * 提示した金額を送り返す口がありません（送れたとしても、それは古い値になり得ます）。
  */
 export type PurchaseOrderLine = {
-  readonly productId: string;
+  readonly productId: ProductId;
   readonly quantity: number;
 };

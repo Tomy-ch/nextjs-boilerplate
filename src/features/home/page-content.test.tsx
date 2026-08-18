@@ -8,6 +8,7 @@ import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem, ProductRankingEntry, ProductRef } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 
 const { getProductListPage, getProductRanking } = vi.hoisted(() => ({
   getProductListPage: vi.fn(),
@@ -25,7 +26,7 @@ vi.mock("@/adapters/server/api/product-masters", () => ({ getProductCategories }
 import { HomePageContent } from "./page-content";
 
 const ITEM: ProductListItem = {
-  id: "0195f0c2-0000-7000-8000-000000000001",
+  id: toProductId("0195f0c2-0000-7000-8000-000000000001"),
   name: "ワイヤレスイヤホン",
   price: "19.99",
   quantity: 12,
@@ -37,7 +38,7 @@ const ITEM: ProductListItem = {
 const PAGE: CursorPage<ProductListItem> = { items: [ITEM], nextCursor: null };
 
 const ENTRY: ProductRankingEntry = {
-  productId: "0195f0c2-0000-7000-8000-000000000002",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000002"),
   name: "スマートウォッチ",
   price: "129.00",
   soldQuantity: 96,

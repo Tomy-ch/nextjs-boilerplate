@@ -1,11 +1,12 @@
 import type { Cart, CartLine } from "@/model/cart/cart";
 import type { ReferenceAmount } from "@/model/money";
+import { toProductId } from "@/model/product/product";
 import type { Purchase } from "@/model/purchase/purchase";
 import type { UserProfile } from "@/model/user/user";
 
 /** 事情の無い明細。 */
 export const EARPHONE_LINE = {
-  productId: "0195f0c2-0000-7000-8000-000000000001",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000001"),
   name: "ワイヤレスイヤホン",
   unitPrice: "19.99",
   quantity: 3,
@@ -15,7 +16,7 @@ export const EARPHONE_LINE = {
 
 /** 名前が長い明細。器の幅を確かめるために実物どおりの長さを持つ。 */
 const WATCH_LINE = {
-  productId: "0195f0c2-0000-7000-8000-000000000002",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000002"),
   name: "スマートウォッチ（第 2 世代・GPS 搭載モデル・ステンレスバンド付き）",
   unitPrice: "129.00",
   quantity: 1,
@@ -25,7 +26,7 @@ const WATCH_LINE = {
 
 /** 在庫が数量に足りない明細。今回の購入からは外れる。 */
 export const INSUFFICIENT_LINE = {
-  productId: "0195f0c2-0000-7000-8000-000000000003",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000003"),
   name: "編組ケーブル 2m",
   unitPrice: "0.99",
   quantity: 5,
@@ -35,7 +36,7 @@ export const INSUFFICIENT_LINE = {
 
 /** 在庫が無くなった明細。取り除く以外にできることが無い。 */
 const OUT_OF_STOCK_LINE = {
-  productId: "0195f0c2-0000-7000-8000-000000000004",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000004"),
   name: "USB-C 充電器 65W",
   unitPrice: "39.50",
   quantity: 1,
@@ -45,7 +46,7 @@ const OUT_OF_STOCK_LINE = {
 
 /** 値上がりした明細。買えるが、確定のときに金額を確かめる。 */
 const PRICE_INCREASED_LINE = {
-  productId: "0195f0c2-0000-7000-8000-000000000005",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000005"),
   name: "ノイズキャンセリングヘッドホン",
   unitPrice: "249.00",
   quantity: 1,
@@ -81,7 +82,7 @@ export const EMPTY_CART: Cart = {
 export const LONG_CART: Cart = {
   lines: Array.from({ length: 14 }, (_, index) => ({
     ...EARPHONE_LINE,
-    productId: `0195f0c2-0000-7000-8000-0000000100${String(index).padStart(2, "0")}`,
+    productId: toProductId(`0195f0c2-0000-7000-8000-0000000100${String(index).padStart(2, "0")}`),
     name: `サンプル商品 ${index + 1}`,
     quantity: 1,
   })),

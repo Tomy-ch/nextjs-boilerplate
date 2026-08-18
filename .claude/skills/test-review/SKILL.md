@@ -1,7 +1,7 @@
 ---
 name: test-review
 description: >-
-  Independent quality review of this repository's test files (`*.test.ts` / `*.test.tsx`), with an adversarial finder + skeptical verifier two-stage pipeline. Defaults to `git diff` HEAD-vs-working tree to surface the changed test files; alternative scopes (branch-vs-base, specific paths) selectable via `AskUserQuestion`. Hardcodes no rules — reads ADR 0090 (testing strategy: export-name `describe`, 正常系 / 異常系 comment separators, table-driven ban, one-test-per-subject, skip discipline, layer responsibilities), ADR 0091 (verification methods: async RSC placement, a11y automated checks), the kernel README's `test-requirement` frontmatter, and the subject source file at runtime as the source of truth, so the reviewer stays in sync as conventions evolve (README > Code > SKILL priority). Fans out five `adversarial-reviewer` subagents on `sonnet` by default (so reviewer ≠ an Opus implementer) — one per lens: (1) structural compliance (the outermost `describe` is the exported symbol's own name and viewpoints are divided by `// ----- 正常系 -----` / `// ----- 異常系 -----` comment separators rather than nested `describe`s, which side a case sits on follows whether the subject itself fails, Japanese case names, every case named individually (`it.each` / `it.for` with a name template is fine; a hand-rolled `for` / `forEach` around a bare `it` is not), nested `describe` only for a shared-setup context, `it.skip` only for what survives extracting the blocking side effect into a mockable module and never with a "covered elsewhere" reason, `it.todo` only when it names its resolving issue / phase, MSW at the HTTP boundary rather than hand-written fetch stubs, co-location — deferring the four name-level shapes the `one-to-one` gate already fails on); (2) viewpoint coverage (the layer's `test-requirement` and the ADRs' per-layer duties are actually exercised, with four adjudication rules when the declaration and the tests disagree); (3) semantic quality (weak assertions, over-mocking, snapshot-as-assertion, time pinning leaks, plus the Testing Library guiding principles for component targets — query priority, `user-event` over `fireEvent`, wait-not-sleep, semantic matchers); (4) branch × meaning completeness (code-origin: reads the subject source and builds a per-function two-axis matrix — Axis A 分岐網羅 every branch has a covering case, Axis B 意味網羅 each covered branch asserts its distinctive outcome rather than merely executing); (5) subject symbol completeness (code-origin: builds the subject's exported-symbol table and flags every symbol with no test at all). Lenses 4 and 5 are the code-origin finders; 1–3 are test-file / ADR-driven. Each surviving finding is verified by an independent `review-verifier` subagent that classifies CONFIRMED / PLAUSIBLE / REFUTED, defaulting to skepticism. Synthesizes a single Japanese report grouped by lens with per-finding severity (修正必須 / 補完推奨 / 再考 / 追加検討). Reporting is read-only, but the semantic gaps it finds are not left as a report: Step 5 adds the missing cases to the working tree after one `AskUserQuestion` confirmation, because this repository's tests are written by AI and a gap that is only reported gets reproduced. Use this whenever the user asks to review tests, check test quality or coverage viewpoints, or asks 「テストをレビューして」「テストの観点が足りているか見て」「このテストは意味があるか」; also the delegation target of `impl-review`'s test viewpoint. Do NOT use it to review implementation code (`impl-review`) or to run the tests (`make test-full`).
+  Independent quality review of this repository's test files (`*.test.ts` / `*.test.tsx`), with an adversarial finder + skeptical verifier two-stage pipeline. Defaults to `git diff` HEAD-vs-working tree to surface the changed test files; alternative scopes (branch-vs-base, specific paths) selectable via `AskUserQuestion`. Hardcodes no rules — reads ADR 0090 (testing strategy: export-name `describe`, 正常系 / 異常系 comment separators, table-driven ban, one-test-per-subject, skip discipline, layer responsibilities), ADR 0091 (verification methods: async RSC placement, a11y automated checks), the kernel README's `test-requirement` frontmatter, and the subject source file at runtime as the source of truth, so the reviewer stays in sync as conventions evolve (README > Code > SKILL priority). Fans out five `adversarial-reviewer` subagents on `sonnet` by default (so reviewer ≠ an Opus implementer) — one per lens: (1) structural compliance (the outermost `describe` is the exported symbol's own name and viewpoints are divided by `// ----- 正常系 -----` / `// ----- 異常系 -----` comment separators rather than nested `describe`s, which side a case sits on follows whether the subject itself fails, Japanese case names, every case named individually (`it.each` / `it.for` with a name template is fine; a hand-rolled `for` / `forEach` around a bare `it` is not), nested `describe` only for a shared-setup context, `it.skip` only for what survives extracting the blocking side effect into a mockable module and never with a "covered elsewhere" reason, `it.todo` only when it names its resolving issue / phase, MSW at the HTTP boundary rather than hand-written fetch stubs, co-location — deferring the four name-level shapes the `one-to-one` gate already fails on); (2) viewpoint coverage (the layer's `test-requirement` and the ADRs' per-layer duties are actually exercised, with four adjudication rules when the declaration and the tests disagree); (3) semantic quality (weak assertions, over-mocking, snapshot-as-assertion, time pinning leaks, plus the Testing Library guiding principles for component targets — query priority, `user-event` over `fireEvent`, wait-not-sleep, semantic matchers); (4) branch × meaning completeness (code-origin: reads the subject source and builds a per-function two-axis matrix — Axis A 分岐網羅 every branch has a covering case, Axis B 意味網羅 each covered branch asserts its distinctive outcome rather than merely executing); (5) subject symbol completeness (code-origin: builds the subject's exported-symbol table and flags every symbol with no test at all). Lenses 4 and 5 are the code-origin finders; 1–3 are test-file / ADR-driven. Each surviving finding is verified by an independent `review-verifier` subagent that classifies CONFIRMED / PLAUSIBLE / REFUTED, defaulting to skepticism. Synthesizes a single Japanese report grouped by lens with per-finding severity (修正必須 / 補完推奨 / 再考 / 追加検討). Reporting is read-only, but the semantic gaps it finds are not left as a report: Step 5 adds the missing cases to the working tree after one `AskUserQuestion` confirmation, because this repository's tests are written by AI and a gap that is only reported gets reproduced. Use this whenever the user asks to review tests, check test quality or coverage viewpoints, or asks 「テストをレビューして」「テストの観点が足りているか見て」「このテストは意味があるか」. It is the sole owner of the test subject — no other review skill carries a test lens — and it is invoked in its own right beside `/impl-review` (the change) and `/comment-sweep` (the comment stock), never from inside them. Do NOT use it to review implementation code (`impl-review`) or to run the tests (`make test-full`).
 ---
 
 # Test Review
@@ -31,11 +31,11 @@ A Japanese reference translation of this skill is available at `SKILL.ja.md` in 
 
 ## What this skill reads
 
-There is no `docs/testing-conventions.md` <!-- skill-lint-ignore --> in this repository and no test generator skill. The rule
-sources are the ADRs and the kernel READMEs, read at runtime:
+The rule sources are the ADRs, `docs/testing-conventions.md`, and the kernel READMEs, read at runtime:
 
 | Source | What it decides |
 | --- | --- |
+| [testing-conventions](../../../docs/testing-conventions.md) | Semantic coverage over line coverage, assertion strength, the Testing Library principles for component / hook targets, the mock boundary, what goes where |
 | [ADR 0090](../../../docs/adr/0090-testing-strategy.md) | Framework split (Vitest / RTL / MSW / Playwright), export-name `describe`, `正常系` / `異常系` comment separators, per-case naming, one-test-per-subject, skip / todo discipline, per-layer responsibilities, integration = HTTP boundary only |
 | [ADR 0091](../../../docs/adr/0091-test-verification-methods.md) | Where async RSC tests live, how a11y automated checks are integrated |
 | The kernel `README.md` frontmatter (`test-requirement: unit \| component \| integration \| route \| feature`) | Which test layer the target belongs to |
@@ -47,11 +47,10 @@ sources are the ADRs and the kernel READMEs, read at runtime:
 here — `t.Parallel()`, the `require` vs `assert` split, generated `*_mock.go` — it does not apply.
 Vitest runs files in parallel by default and has a single `expect`; the mock boundary is MSW.
 
-**Where the rule sources are silent, say so rather than inventing a rule.** The go-side original
-reads a semantic-quality anti-pattern catalogue that this repository has no counterpart for. Lens 3
-therefore applies general principles and reports the absence itself as a documentation gap in 補遺 —
-it must not smuggle in a catalogue as if it were repository policy (`AGENTS.md`, "Pending
-Decisions": do not introduce conventions on your own).
+**Where the rule sources are silent, say so rather than inventing a rule.** `docs/testing-conventions.md`
+carries the semantic-quality standard, so Lens 3 applies *it* rather than a general principle — but
+where it does not reach, report the gap in 補遺 instead of smuggling in a rule as if it were repository
+policy (`AGENTS.md`, "Pending Decisions": do not introduce conventions on your own).
 
 ## Writes
 
@@ -59,9 +58,6 @@ The Japanese report, always. Plus — after one confirmation in Step 5 — the t
 semantic findings point at. The reviewer subagents stay read-only; the orchestrator does the writes.
 
 ## Step 0. Resolve Scope
-
-**Skip this question entirely when a caller passed a `scope` payload** (see Chainability) — the file
-list is already resolved.
 
 `AskUserQuestion`:
 
@@ -72,9 +68,10 @@ list is already resolved.
   - 「特定パス / ディレクトリ (free-text)」
   - 「キャンセル」
 
-If no test files are in scope, stop — there is nothing to review. **Standalone only**: under a
-caller payload an untested production file is the point rather than an empty scope, so the run
-continues.
+If no test files are in scope, stop — there is nothing to review. The one case that keeps running is
+a scope of **production files with no paired test**: an untested subject is precisely Lens 5's
+subject, and Lenses 1–3 simply have nothing to read for it (skip them for that file rather than
+returning an empty result that reads as a pass).
 
 For each target test file, resolve its **subject source file** — the same directory, the basename
 without `.test`. Required by Lenses 4 and 5.
@@ -208,8 +205,9 @@ Output: viewpoints the layer owes that the test does not exercise.
 
 ### Lens 3: Semantic Quality
 
-Whether the assertions mean anything. **This repository has no anti-pattern catalogue document**, so
-apply these general principles and flag the missing catalogue itself in 補遺:
+Whether the assertions mean anything. **`docs/testing-conventions.md` is the standard here** — read it
+this run and apply what it currently says. The principles below are its application, not a copy that
+may drift; where it is silent, flag the gap in 補遺 rather than inventing a rule:
 
 - Assertions that cannot fail in practice (`expect(x).toBeDefined()` on a value the type system
   already guarantees; `expect(fn).not.toThrow()` as the only assertion).
@@ -219,8 +217,8 @@ apply these general principles and flag the missing catalogue itself in 補遺:
 - Time or randomness pinned by literal rather than injected, so the test rots on a date boundary.
 - A test whose name promises more than it asserts.
 
-For component / hook targets, hold them to the **Testing Library guiding principles** — these are the
-established practice for this stack, not a house style, so cite them by name in the finding:
+For component / hook targets, hold them to the **Testing Library guiding principles**, which
+`docs/testing-conventions.md` adopts by name — cite the document and the principle in the finding:
 
 - **Query priority.** `getByRole` (with `name`) first, then `getByLabelText` / `getByPlaceholderText` /
   `getByText`, and `getByTestId` / `data-*` only as a last resort for something with no accessible
@@ -319,7 +317,7 @@ verifier 通過: CONFIRMED <n> 件 / PLAUSIBLE <m> 件 / REFUTED <k> 件（除�
 ## 意味網羅（再考）
 
 ## 補遺
-- <ADR / README の補完候補。意味的品質のカタログが未整備であることを含む>
+- <ADR / README / testing-conventions.md の補完候補>
 ```
 
 Severity mapping:
@@ -372,29 +370,15 @@ End with one concrete suggestion covering what Step 5 did **not** close — the 
 findings. Name the files and the specific cases, and point a symbol with no test at all at
 `scaffold-test`. If nothing survives verification, say so (「verifier 通過後 0 件です」).
 
-## Chainability
+## Relationship to the other review skills
 
-`impl-review` is this skill's caller: its Step 5 delegates the test viewpoint here and suppresses
-its own `test-gap` lens for the run, so Lens 5 owns "no test at all", Lens 4 owns branch × meaning,
-and no third reporter exists for either.
+This skill owns the **tests**, and it owns them alone: no other review skill carries a test lens, and
+this one is invoked in its own right rather than from inside another. `/impl-review` (the change) and
+`/comment-sweep` (the comment stock) are its peers under the Review Phase Protocol in `AGENTS.md` —
+asked for separately, decided separately, and never delegating to one another.
 
-A caller passes:
-
-- `scope` — pre-resolved file list (skips the Step 0 question).
-- `base_ref` — when running branch-vs-base.
-- `reviewer_model` — apply to both finders and verifiers, overriding the `sonnet` default.
-- `skip_verifier` — boolean, default `false`.
-
-Under a payload, two behaviors differ:
-
-- **A production file with no paired test stays in scope** — it is precisely Lens 5's subject.
-  Lenses 1-3 have nothing to read for it; skip them for that file rather than returning an empty
-  result that reads as a pass.
-- **The report is returned for the caller to embed.** Keep this skill's severity vocabulary
-  (修正必須 / 補完推奨 / 再考 / 追加検討 + criticality) — remapping onto the caller's would lose the
-  distinction between "the rule is violated" and "this branch is unverified".
-
-This skill never chains onward and never calls back into `impl-review`.
+Lens 5 owns "no test at all" and Lens 4 owns branch × meaning, so both shapes have exactly one
+reporter. This skill never chains onward.
 
 ## Constraints
 

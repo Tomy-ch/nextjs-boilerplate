@@ -27,18 +27,12 @@ export type ProductInfiniteListProps = {
  * ようにするためです。
  */
 export function ProductInfiniteList({ initial, query, total }: ProductInfiniteListProps) {
-  const { items, hasNext, loading, failed, loadMore, sentinelRef } = useInfiniteProducts(
-    initial,
-    query,
-  );
+  const { items, loadMore, sentinelRef } = useInfiniteProducts(initial, query);
 
   return (
     <ProductLoadMoreList
-      failed={failed}
-      hasNext={hasNext}
       items={items}
-      loading={loading}
-      onLoadMore={loadMore}
+      loadMore={loadMore}
       sentinelRef={sentinelRef}
       total={total}
     />

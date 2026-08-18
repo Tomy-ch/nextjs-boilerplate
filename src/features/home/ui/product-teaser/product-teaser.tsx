@@ -2,7 +2,10 @@ import Link from "next/link";
 
 import { Card } from "@/components/design-system/display/card/card";
 import { MediaImage } from "@/components/design-system/display/media-image/media-image";
-import { MEDIA_IMAGE_ASPECT_RATIO } from "@/components/design-system/display/media-image/media-image.definition";
+import {
+  MEDIA_IMAGE_ASPECT_RATIO,
+  type MediaImagePriority,
+} from "@/components/design-system/display/media-image/media-image.definition";
 import { NO_IMAGE_URL } from "@/model/media";
 import type { ProductListItem } from "@/model/product/product";
 
@@ -10,8 +13,8 @@ import type { ProductListItem } from "@/model/product/product";
 export type ProductTeaserProps = {
   /** 表示する商品。 */
   item: ProductListItem;
-  /** 折り返し前に見える位置か。LCP 候補として画像を preload する。 */
-  leading?: boolean;
+  /** 画像の読み込み優先度。折り返し前に見える位置なら `preload` を渡す。 */
+  imagePriority?: MediaImagePriority;
 };
 
 /**
@@ -27,7 +30,7 @@ export type ProductTeaserProps = {
  *
  * 段の中での大きさは器が決めます。この部品は幅を持たず、置かれた枠に従います。
  */
-export function ProductTeaser({ item, leading = false }: ProductTeaserProps) {
+export function ProductTeaser({ item, imagePriority }: ProductTeaserProps) {
   return (
     <Card className="h-full gap-0 overflow-hidden py-0 transition-colors hover:bg-muted/50">
       <Link
@@ -39,7 +42,7 @@ export function ProductTeaser({ item, leading = false }: ProductTeaserProps) {
           aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
           fallbackAlt="画像なし"
           fallbackSrc={NO_IMAGE_URL}
-          preload={leading}
+          priority={imagePriority}
           sizes="(min-width: 1024px) 240px, 45vw"
           src={item.imageUrl}
         />

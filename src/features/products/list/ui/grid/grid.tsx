@@ -1,3 +1,4 @@
+import { MEDIA_IMAGE_PRIORITY } from "@/components/design-system/display/media-image/media-image.definition";
 import type { ProductListItem } from "@/model/product/product";
 
 import { ProductCard } from "../card/card";
@@ -23,6 +24,9 @@ const LEADING_COUNT = 3;
  * （[0051](../../../../../../docs/adr/0051-styling-system.md) §2）。
  *
  * 空の場合に「0 件」とだけ出さないのは、利用者が次に何をすればよいか分からないためです。
+ *
+ * 並び自体に名前を与えます。1 つの画面には絞り込みの選択肢や global nav といった別の一覧も
+ * 並ぶため、名前が無いと支援技術からはどれが結果の一覧かを言い分けられません。
  */
 export function ProductGrid({ items }: ProductGridProps) {
   if (items.length === 0) {
@@ -38,10 +42,15 @@ export function ProductGrid({ items }: ProductGridProps) {
 
   return (
     <div className="@container/list">
-      <ul className="grid grid-cols-1 gap-4 @4xl/list:grid-cols-2">
+      <ul aria-label="商品の一覧" className="grid grid-cols-1 gap-4 @4xl/list:grid-cols-2">
         {items.map((item, index) => (
           <li key={item.id}>
-            <ProductCard item={item} leading={index < LEADING_COUNT} />
+            <ProductCard
+              imagePriority={
+                index < LEADING_COUNT ? MEDIA_IMAGE_PRIORITY.PRELOAD : MEDIA_IMAGE_PRIORITY.LAZY
+              }
+              item={item}
+            />
           </li>
         ))}
       </ul>

@@ -4,6 +4,7 @@ import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
+import { productIdSchema } from "@/model/product/product";
 
 import { getProductsQueryFirstMax } from "../../gen/api/endpoints.zod";
 
@@ -29,7 +30,7 @@ export const PRODUCT_LIST_MAX_ITEMS = getProductsQueryFirstMax;
 const ProductListPagePayload = z.object({
   items: z.array(
     z.object({
-      id: z.string(),
+      id: productIdSchema,
       name: z.string(),
       price: z.string(),
       quantity: z.int(),

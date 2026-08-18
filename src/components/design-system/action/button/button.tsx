@@ -35,6 +35,10 @@ export const buttonVariants = cva(
           "border border-border bg-background text-foreground hover:bg-foreground hover:text-background active:bg-foreground/80",
         [BUTTON_VARIANT.GHOST]:
           "bg-transparent text-foreground hover:bg-foreground hover:text-background active:bg-foreground/80",
+        // hover と active の差を他の variant（`/85` と `/70`）より大きく取る。暗い配色の上では
+        // 不透明度をわずかに下げても背景との差が出ず、押せることが hover で判らない。
+        [BUTTON_VARIANT.DESTRUCTIVE]:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/75 active:bg-destructive/60",
       },
       size: {
         [BUTTON_SIZE.DEFAULT]: "h-10 px-4 py-2",
@@ -69,6 +73,7 @@ export type ButtonProps = ComponentProps<"button"> &
      * - `default`: 画面の主要操作
      * - `outline`: 主要操作に並ぶ副次操作
      * - `ghost`: 表示の主張を抑える補助操作
+     * - `destructive`: 取り消せない結果を伴う操作
      */
     variant?: ButtonVariant;
     /**
@@ -88,8 +93,8 @@ export type ButtonProps = ComponentProps<"button"> &
  *
  * @remarks
  * `variant` は操作の優先度を表す。既定の `default` は主要操作、`outline` は副次操作、
- * `ghost` は周囲の情報量を増やさない補助操作に使う。画面固有の配色を直接指定せず、
- * variant の追加または design token の見直しで扱う。
+ * `ghost` は周囲の情報量を増やさない補助操作、`destructive` は取り消せない結果を伴う操作に
+ * 使う。画面固有の配色を直接指定せず、variant の追加または design token の見直しで扱う。
  *
  * disabled 状態は native `disabled` 属性で指定する。`asChild` でリンクを使う場合、
  * HTML の link には `disabled` が存在しないため、遷移禁止の状態を表す別の UI を選ぶ。

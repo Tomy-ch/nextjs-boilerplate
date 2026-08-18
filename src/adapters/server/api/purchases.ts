@@ -4,6 +4,7 @@ import { cache } from "react";
 import type { z } from "zod";
 
 import { getApiConfig } from "@/config/api/api.server";
+import { toProductId } from "@/model/product/product";
 import type { Purchase, PurchaseHistoryPage, PurchaseOrderLine } from "@/model/purchase/purchase";
 
 import {
@@ -76,7 +77,7 @@ function toPurchase(wire: WirePurchaseDetail): Purchase {
     shippingFee: wire.shippingFee,
     totalAmount: wire.totalAmount,
     lines: wire.details.map(({ productId, productName, quantity, unitPrice }) => ({
-      productId,
+      productId: toProductId(productId),
       productName,
       quantity,
       unitPrice,

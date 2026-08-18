@@ -3,8 +3,8 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
-import { cn } from "@/components/cn";
 import { Button } from "@/components/design-system/action/button/button";
+import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -24,19 +24,6 @@ const CONFIRM_LABEL = "退会する";
 const PENDING_LABEL = "退会しています…";
 
 /**
- * 破壊的な操作であることを配色で示す。
- *
- * @remarks
- * `Button` の variant には無い扱いなので呼び出し側が与えます
- * （`AlertDialog` の README）。
- *
- * hover と active の差を `Button` の既定（`/85` と `/70`）より大きく取ります。暗い配色の上では
- * 不透明度をわずかに下げても背景との差が出ず、**押せることが hover で判りません**。
- */
-const DESTRUCTIVE_CLASS =
-  "bg-destructive text-destructive-foreground hover:bg-destructive/75 active:bg-destructive/60";
-
-/**
  * 確認 dialog の中の実行ボタン。
  *
  * @remarks
@@ -50,7 +37,7 @@ function WithdrawSubmit() {
   const label = pending ? PENDING_LABEL : CONFIRM_LABEL;
 
   return (
-    <Button className={DESTRUCTIVE_CLASS} disabled={pending} type="submit">
+    <Button disabled={pending} type="submit" variant={BUTTON_VARIANT.DESTRUCTIVE}>
       {label}
     </Button>
   );
@@ -77,7 +64,9 @@ export function WithdrawButton() {
     <>
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button className={cn(DESTRUCTIVE_CLASS, "w-full")}>{CONFIRM_LABEL}</Button>
+          <Button className="w-full" variant={BUTTON_VARIANT.DESTRUCTIVE}>
+            {CONFIRM_LABEL}
+          </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <form action={formAction}>

@@ -50,6 +50,14 @@ export const Ghost: Story = {
   },
 };
 
+/** 取り消せない結果を伴う操作。配色だけに頼らず、文言でも何が起きるかを示す。 */
+export const Destructive: Story = {
+  args: {
+    children: "削除する",
+    variant: BUTTON_VARIANT.DESTRUCTIVE,
+  },
+};
+
 /** 表や密度の高い領域へ置く場合。 */
 export const Small: Story = {
   args: {

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { Cart, CartLine } from "@/model/cart/cart";
 
+import { toProductId } from "@/model/product/product";
+
 import {
   hasExcludedLines,
   hasPriceChangedLines,
@@ -12,7 +14,7 @@ import {
 
 function lineOf(overrides: Partial<CartLine> = {}): CartLine {
   return {
-    productId: "0195f0c2-0000-7000-8000-000000000001",
+    productId: toProductId("0195f0c2-0000-7000-8000-000000000001"),
     name: "ワイヤレスイヤホン",
     unitPrice: "19.99",
     quantity: 2,
@@ -28,22 +30,22 @@ function cartOf(lines: readonly CartLine[]): Cart {
 
 const PURCHASABLE = lineOf();
 const PRICE_INCREASED = lineOf({
-  productId: "0195f0c2-0000-7000-8000-000000000002",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000002"),
   name: "ヘッドホン",
   issues: ["priceIncreased"],
 });
 const PRICE_DECREASED = lineOf({
-  productId: "0195f0c2-0000-7000-8000-000000000003",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000003"),
   name: "ケーブル",
   issues: ["priceDecreased"],
 });
 const OUT_OF_STOCK = lineOf({
-  productId: "0195f0c2-0000-7000-8000-000000000004",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000004"),
   name: "充電器",
   issues: ["outOfStock"],
 });
 const NOT_FOUND = lineOf({
-  productId: "0195f0c2-0000-7000-8000-000000000005",
+  productId: toProductId("0195f0c2-0000-7000-8000-000000000005"),
   name: null,
   unitPrice: null,
   issues: ["notFound"],

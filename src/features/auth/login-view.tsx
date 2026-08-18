@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/design-system/display/card/card";
+import type { SafeReturnUrl } from "@/model/return-url";
 
 /** `LoginView` の props。 */
 export type LoginViewProps = {
@@ -13,10 +14,10 @@ export type LoginViewProps = {
    * 認証後に戻る先。
    *
    * @remarks
-   * 検証済みの相対パスであること。この画面は受け取った値をそのまま送り出すだけで、
-   * 妥当性は判断しません。
+   * この画面は受け取った値をそのまま送り出すだけで、妥当性は判断しません。検証済みで
+   * あることは型が示します（`toSafeReturnUrl`）。
    */
-  returnUrl: string;
+  returnUrl: SafeReturnUrl;
 };
 
 /**

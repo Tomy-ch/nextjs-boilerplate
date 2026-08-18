@@ -27,6 +27,7 @@ const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("../auth/session", () => ({ getAccessToken }));
 
+import { toProductId } from "@/model/product/product";
 import { createPurchase, getMyPurchase, getMyPurchases } from "./purchases";
 
 const wireItem = {
@@ -164,7 +165,7 @@ const wireDetail = {
   totalAmount: 21_287,
   details: [
     {
-      productId: "0195f0c2-0000-7000-8000-000000000001",
+      productId: toProductId("0195f0c2-0000-7000-8000-000000000001"),
       productName: "ワイヤレスイヤホン",
       quantity: 3,
       unitPrice: "19.99",
@@ -229,7 +230,7 @@ const wireCreated = {
   totalAmount: 21_287,
   details: [
     {
-      productId: "0195f0c2-0000-7000-8000-000000000001",
+      productId: toProductId("0195f0c2-0000-7000-8000-000000000001"),
       quantity: 3,
       unitPrice: "19.99",
     },
@@ -238,7 +239,9 @@ const wireCreated = {
   referenceAmount: null,
 };
 
-const orderLines = [{ productId: "0195f0c2-0000-7000-8000-000000000001", quantity: 3 }];
+const orderLines = [
+  { productId: toProductId("0195f0c2-0000-7000-8000-000000000001"), quantity: 3 },
+];
 
 describe("createPurchase", () => {
   // ----- 正常系 -----

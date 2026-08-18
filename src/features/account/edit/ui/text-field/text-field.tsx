@@ -4,6 +4,7 @@ import type { InputProps } from "@/components/design-system/form/input/input";
 import { Input } from "@/components/design-system/form/input/input";
 import { FormField } from "@/components/patterns/form-field/form-field";
 
+import { fieldControlAttributes } from "../../field-attributes";
 import type { ProfileFieldProps } from "../../use-profile-fields";
 
 type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placeholder" | "type"> &
@@ -15,9 +16,8 @@ type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placehold
  * 1 行入力の項目。
  *
  * @remarks
- * `useProfileFields` が組んだ props を、そのまま `FormField` と `Input` へ配ります。**入力欄の
- * ARIA 属性を与えるのはここ**です。`FormField` は children を受け取る形なので入力欄へ触れず、
- * かといって呼び出し側で毎回書くと、項目が増えるたびに `aria-invalid` の付け忘れが起きます。
+ * `useProfileFields` が組んだ props を、そのまま `FormField` と `Input` へ配ります。入力欄へ
+ * 与える属性は `fieldControlAttributes` が組みます。
  */
 export function TextField({
   controlId,
@@ -37,10 +37,7 @@ export function TextField({
       required={required}
     >
       <Input
-        aria-describedby={message === undefined ? undefined : errorId}
-        aria-invalid={message !== undefined}
-        aria-required={required}
-        id={controlId}
+        {...fieldControlAttributes({ controlId, errorId, message, required })}
         {...input}
         {...registration}
       />

@@ -5,8 +5,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
+import { MEDIA_IMAGE_PRIORITY } from "@/components/design-system/display/media-image/media-image.definition";
 import type { ActionState } from "@/model/action-state";
 import type { ProductListItem } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 
 const { addToCartAction } = vi.hoisted(() => ({
@@ -21,7 +23,7 @@ import { ToastProvider } from "@/components/shell/toaster/toaster";
 import { ProductCard } from "./card";
 
 const ITEM: ProductListItem = {
-  id: "0195f0c2-0000-7000-8000-000000000001",
+  id: toProductId("0195f0c2-0000-7000-8000-000000000001"),
   name: "スタンドライト",
   price: "4980.00",
   quantity: 3,
@@ -31,10 +33,10 @@ const ITEM: ProductListItem = {
 };
 
 /** 問い合わせの入口が通知を出すため、通知の器ごと描く。 */
-function renderCard(item: ProductListItem, leading?: boolean) {
+function renderCard(item: ProductListItem) {
   return render(
     <ToastProvider>
-      <ProductCard item={item} leading={leading} />
+      <ProductCard item={item} />
     </ToastProvider>,
   );
 }
@@ -85,7 +87,12 @@ describe("ProductCard", () => {
   });
 
   it("先頭に並ぶ商品の画像は後回しにしない", () => {
-    render(<ProductCard item={{ ...ITEM, imageUrl: "/products/1.png" }} leading />);
+    render(
+      <ProductCard
+        imagePriority={MEDIA_IMAGE_PRIORITY.PRELOAD}
+        item={{ ...ITEM, imageUrl: "/products/1.png" }}
+      />,
+    );
 
     expect(screen.getByRole("img", { name: "スタンドライト" })).not.toHaveAttribute("loading");
   });

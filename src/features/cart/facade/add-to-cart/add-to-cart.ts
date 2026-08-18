@@ -9,6 +9,7 @@ import {
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
+import { toProductId } from "@/model/product/product";
 
 /** 送信された内容を解けなかったときの文言。 */
 const MALFORMED_MESSAGE = "操作を受け付けられませんでした。画面を読み込み直してください。";
@@ -32,11 +33,13 @@ export async function addToCartAction(
   _previous: ActionState<void>,
   formData: FormData,
 ): Promise<ActionState<void>> {
-  const productId = formData.get("productId");
+  const raw = formData.get("productId");
 
-  if (typeof productId !== "string" || productId === "") {
+  if (typeof raw !== "string" || raw === "") {
     return failedActionState({ formError: MALFORMED_MESSAGE });
   }
+
+  const productId = toProductId(raw);
 
   try {
     const { lines } = await getMyCart();

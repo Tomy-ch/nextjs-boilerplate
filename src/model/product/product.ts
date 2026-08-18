@@ -1,4 +1,40 @@
+import { z } from "zod";
+
 import type { CursorPage } from "../pagination";
+
+/**
+ * 商品の識別子を確定させるスキーマ。
+ *
+ * @remarks
+ * 生成スキーマの中で組み合わせる呼び出しがこれを直接使い、それ以外は {@link toProductId} を
+ * 通します（[0029](../../../docs/adr/0029-type-design-discipline.md) §3）。
+ */
+export const productIdSchema = z.string().brand<"product">();
+
+/**
+ * 商品を指す識別子。
+ *
+ * @remarks
+ * 素の `string` を代入できない形にしてあります。商品・利用者・購入の識別子はいずれも UUID の
+ * 文字列で、取り違えても型では止まらないためです
+ * （[0029](../../../docs/adr/0029-type-design-discipline.md) §3）。
+ */
+export type ProductId = z.infer<typeof productIdSchema>;
+
+/**
+ * 文字列を商品の識別子として確定させる。
+ *
+ * @remarks
+ * **呼んでよいのは境界だけ**です。外から来た値を確定させる場所（`adapters` の検証の出口・
+ * フォームの受け取り・route の動的セグメント）で 1 度だけ通し、内側では確定した型を持ち回ります。
+ *
+ * 実在するかは検査しません。識別子を知っているのはバックエンドであり、存在しない値は取得が
+ * `not-found` として返します（[0070](../../../docs/adr/0070-backend-role-separation.md)）。
+ * ここが担うのは、どの種類の識別子かを型に載せることだけです。
+ */
+export function toProductId(value: string): ProductId {
+  return productIdSchema.parse(value);
+}
 
 /** 商品に紐づく分類。ID と表示名だけを持つ。 */
 export type ProductRef = {
@@ -26,7 +62,7 @@ export type ProductCategory = ProductRef & {
  * 別の理由で動くためです（[0070](../../../docs/adr/0070-backend-role-separation.md)）。
  */
 export type Product = {
-  id: string;
+  id: ProductId;
   name: string;
   /** 商品説明。リッチテキストであり、表示側は必ず sanitizer を通す。 */
   description: string | null;
@@ -72,7 +108,7 @@ export type ProductPage = CursorPage<Product>;
  * 要り、設定を読めるのは `adapters` までだからです（[0021](../../../docs/adr/0021-frontend-responsibility.md)）。
  */
 export type ProductListItem = {
-  readonly id: string;
+  readonly id: ProductId;
   readonly name: string;
   /** USD の decimal 文字列。表示の直前まで数値へ変換しない。 */
   readonly price: string;
@@ -97,7 +133,7 @@ export type ProductListItem = {
  * なり、受け取る側が「この画面ではどれが入っているか」を毎回確かめることになります。
  */
 export type ProductRankingEntry = {
-  readonly productId: string;
+  readonly productId: ProductId;
   readonly name: string;
   /** USD の decimal 文字列。表示の直前まで数値へ変換しない。 */
   readonly price: string;
