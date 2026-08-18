@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 /**
- * 履歴に積んだ 1 件が overlay のものであることを示す印。
+ * 履歴に積んだ 1 件が、どの overlay のものかを示す印。
  *
  * @remarks
- * 戻ったときに「自分が積んだ 1 件か」を判定するために置きます。画面遷移が起きると別の状態へ
- * 置き換わるため、印の有無がそのまま「まだ自分が最前面か」を表します。
+ * 印は overlay ごとに異なる値を持ちます。有無だけを見ると、重ねて開いた内側から戻ったときに
+ * 外側の印を自分のものと読み違えます。
  */
 const OVERLAY_HISTORY_MARKER = "overlayHistory";
 
@@ -49,6 +49,7 @@ export function useOverlayHistory({
   defaultOpen = false,
   onOpenChange,
 }: OverlayHistoryOptions): OverlayHistory {
+  const historyId = useId();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
   const isControlled = open !== undefined;
   const currentOpen = isControlled ? open : uncontrolledOpen;
@@ -65,6 +66,15 @@ export function useOverlayHistory({
     [isControlled, onOpenChange],
   );
 
+  // 積むのは開いた 1 回だけにする。切り替え口を効果の依存に置くと、呼び出し側が毎回作り直す
+  // `onOpenChange` を渡しただけで積み直しが起き、打ち消しのために積んだぶんを戻す動きが遅れて
+  // 届いて overlay がひとりでに閉じる。
+  const setOpenRef = useRef(setOpen);
+
+  useEffect(() => {
+    setOpenRef.current = setOpen;
+  }, [setOpen]);
+
   useEffect(() => {
     if (!currentOpen) {
       return;
@@ -72,12 +82,18 @@ export function useOverlayHistory({
 
     const pushedHref = window.location.href;
 
-    window.history.pushState({ ...window.history.state, [OVERLAY_HISTORY_MARKER]: true }, "");
+    window.history.pushState({ ...window.history.state, [OVERLAY_HISTORY_MARKER]: historyId }, "");
     pushedRef.current = true;
 
     const handlePopState = () => {
+      // 自分の印が残っているなら、離れたのは自分の 1 件ではない。同じ文書の中での移動でも
+      // popstate は届くため、届いたことだけを閉じる合図にすると、開いた直後に閉じる。
+      if (window.history.state?.[OVERLAY_HISTORY_MARKER] === historyId) {
+        return;
+      }
+
       pushedRef.current = false;
-      setOpen(false);
+      setOpenRef.current(false);
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -88,7 +104,7 @@ export function useOverlayHistory({
       const isStillOnTop =
         pushedRef.current &&
         window.location.href === pushedHref &&
-        window.history.state?.[OVERLAY_HISTORY_MARKER] === true;
+        window.history.state?.[OVERLAY_HISTORY_MARKER] === historyId;
 
       pushedRef.current = false;
 
@@ -96,7 +112,7 @@ export function useOverlayHistory({
         window.history.back();
       }
     };
-  }, [currentOpen, setOpen]);
+  }, [currentOpen, historyId]);
 
   return { open: currentOpen, setOpen };
 }

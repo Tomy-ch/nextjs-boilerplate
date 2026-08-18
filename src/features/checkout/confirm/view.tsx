@@ -40,6 +40,10 @@ export type CheckoutConfirmViewProps = {
  * 同じ集計を 2 か所に置いていますが、**出るのはどちらか一方だけ**です。器の出し分けは CSS で
  * 行い、hydration を待ちません。待つと、読み始めた後に画面の下へ器が現れて内容が動きます。
  *
+ * **区画として名乗るのは脇に置く側だけ**です。両方が同じ名前で名乗ると、CSS で片方が消えていても
+ * 検査の上では同名の区画が 2 つ並びます。下端の帯は器であって区画ではなく、中身の集計が自分で
+ * 何であるかを示します。
+ *
  * 本文の下端には帯のぶんの余白を空けます。空けないと、最後の行が帯に隠れます。
  */
 export function CheckoutConfirmView({
@@ -84,7 +88,6 @@ export function CheckoutConfirmView({
       </div>
 
       <ActionBar
-        aria-label="お支払い金額"
         className="flex-col items-stretch gap-2 lg:hidden"
         position={ACTION_BAR_POSITION.FIXED}
       >

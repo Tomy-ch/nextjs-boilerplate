@@ -1,3 +1,4 @@
+import type { Mock } from "vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Environment } from "@/config/environment";
 import { findAppError } from "@/errors/app-error";
@@ -26,7 +27,7 @@ const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("../auth/session", () => ({ getAccessToken }));
 
-import { getMyPurchases } from "./purchases";
+import { createPurchase, getMyPurchase, getMyPurchases } from "./purchases";
 
 const wireItem = {
   code: "0195f0c2-0000-7000-8000-0000000000c1",
@@ -37,8 +38,10 @@ const wireItem = {
 
 const wirePage = { items: [wireItem], nextCursor: "next", hasNext: true };
 
-function stubFetch(body: unknown): ReturnType<typeof vi.fn> {
-  const fetchImpl = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }));
+function stubFetch(body: unknown): Mock<typeof fetch> {
+  const fetchImpl = vi.fn<typeof fetch>(
+    async () => new Response(JSON.stringify(body), { status: 200 }),
+  );
 
   vi.stubGlobal("fetch", fetchImpl);
 
@@ -147,5 +150,130 @@ describe("getMyPurchases", () => {
     });
 
     await expect(kindOf(() => getMyPurchases(10))).resolves.toBe(ErrorKind.INTERNAL);
+  });
+});
+
+const wireDetail = {
+  id: "0195f0c2-0000-7000-9000-000000000001",
+  code: "0195f0c2-0000-7000-9000-0000000000b1",
+  userId: "0195f0c2-0000-7000-9000-0000000000a1",
+  status: { id: "0195f0c2-0000-7000-8000-0000000000d1", name: "未処理" },
+  subtotalAmount: 18_897,
+  taxAmount: 1_890,
+  shippingFee: 500,
+  totalAmount: 21_287,
+  details: [
+    {
+      productId: "0195f0c2-0000-7000-8000-000000000001",
+      productName: "ワイヤレスイヤホン",
+      quantity: 3,
+      unitPrice: "19.99",
+    },
+  ],
+  orderedAt: "2026-08-17T01:30:00.000Z",
+  paidAt: null,
+  canceledAt: null,
+};
+
+describe("getMyPurchase", () => {
+  // ----- 正常系 -----
+  it("契約の応答を表示用の購入へ写す", async () => {
+    stubFetch(wireDetail);
+
+    const purchase = await getMyPurchase(wireDetail.id);
+
+    expect(purchase).toEqual({
+      id: wireDetail.id,
+      code: wireDetail.code,
+      statusName: "未処理",
+      subtotalAmount: 18_897,
+      taxAmount: 1_890,
+      shippingFee: 500,
+      totalAmount: 21_287,
+      lines: [
+        {
+          productId: wireDetail.details[0]?.productId,
+          productName: "ワイヤレスイヤホン",
+          quantity: 3,
+          unitPrice: "19.99",
+        },
+      ],
+      orderedAt: new Date("2026-08-17T01:30:00.000Z"),
+    });
+  });
+
+  it("購入の ID を経路へ載せる", async () => {
+    const fetchImpl = stubFetch(wireDetail);
+
+    await getMyPurchase(wireDetail.id);
+
+    expect(String(fetchImpl.mock.calls[0]?.[0])).toContain(`/v1/purchases/${wireDetail.id}`);
+  });
+
+  // ----- 異常系 -----
+  it("契約に無い形の応答を内層へ渡さない", async () => {
+    stubFetch({ ...wireDetail, totalAmount: "21287" });
+
+    expect(await kindOf(() => getMyPurchase(wireDetail.id))).toBe(ErrorKind.INTERNAL);
+  });
+});
+
+const wireCreated = {
+  id: "0195f0c2-0000-7000-9000-000000000002",
+  code: "0195f0c2-0000-7000-9000-0000000000b2",
+  userId: "0195f0c2-0000-7000-9000-0000000000a1",
+  statusId: "0195f0c2-0000-7000-8000-0000000000d1",
+  subtotalAmount: 18_897,
+  taxAmount: 1_890,
+  shippingFee: 500,
+  totalAmount: 21_287,
+  details: [
+    {
+      productId: "0195f0c2-0000-7000-8000-000000000001",
+      quantity: 3,
+      unitPrice: "19.99",
+    },
+  ],
+  orderedAt: "2026-08-17T01:30:00.000Z",
+  referenceAmount: null,
+};
+
+const orderLines = [{ productId: "0195f0c2-0000-7000-8000-000000000001", quantity: 3 }];
+
+describe("createPurchase", () => {
+  // ----- 正常系 -----
+  it("成立した購入の ID を返す", async () => {
+    stubFetch(wireCreated);
+
+    expect(await createPurchase(orderLines, "idempotency-key")).toBe(wireCreated.id);
+  });
+
+  it("冪等キーをヘッダへ載せる", async () => {
+    const fetchImpl = stubFetch(wireCreated);
+
+    await createPurchase(orderLines, "idempotency-key");
+
+    const init = fetchImpl.mock.calls[0]?.[1];
+
+    expect(new Headers(init?.headers).get("Idempotency-Key")).toBe("idempotency-key");
+  });
+
+  it("送るのは商品と数量だけで、金額を送らない", async () => {
+    const fetchImpl = stubFetch(wireCreated);
+
+    await createPurchase(orderLines, "idempotency-key");
+
+    const init = fetchImpl.mock.calls[0]?.[1];
+
+    expect(JSON.parse(String(init?.body))).toEqual({ details: orderLines });
+  });
+
+  // ----- 異常系 -----
+  it("契約に無い形の応答を内層へ渡さない", async () => {
+    stubFetch({ ...wireCreated, id: "not-a-uuid" });
+
+    expect(await kindOf(() => createPurchase(orderLines, "idempotency-key"))).toBe(
+      ErrorKind.INTERNAL,
+    );
   });
 });

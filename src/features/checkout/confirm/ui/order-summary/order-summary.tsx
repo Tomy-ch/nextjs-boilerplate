@@ -31,6 +31,9 @@ export type OrderSummaryProps = {
  *
  * **値の変わった明細は小計に入っていません。** 合算はバックエンドが事情の無い明細だけで行うため
  * です。その明細も購入には載るので、金額が変わったことは確定の操作が押された時点で確かめます。
+ *
+ * **確定できないときは確かめの姿を出しません。** 載せる明細が 1 つも無い状態で「このまま進んで
+ * よいか」を問うても、答えたところで進めません。
  */
 export function OrderSummary({ cart, reference, idempotencyKey, size }: OrderSummaryProps) {
   const orderable = orderLinesOf(cart).length > 0;
@@ -51,7 +54,7 @@ export function OrderSummary({ cart, reference, idempotencyKey, size }: OrderSum
           <p>金額の変わった明細は小計に入っていません。確定のときに確かめます。</p>
         )}
       </div>
-      {changedNames.length === 0 ? (
+      {!orderable || changedNames.length === 0 ? (
         <PlaceOrderForm idempotencyKey={idempotencyKey} orderable={orderable} />
       ) : (
         <PriceChangeConfirm

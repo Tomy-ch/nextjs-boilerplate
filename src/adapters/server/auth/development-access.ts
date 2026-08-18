@@ -27,9 +27,7 @@ function toHostname(value: string): string {
     return trimmed.slice(1, trimmed.indexOf("]"));
   }
 
-  const [hostname] = trimmed.split(":");
-
-  return hostname ?? "";
+  return trimmed.replace(/:.*$/, "");
 }
 
 /**

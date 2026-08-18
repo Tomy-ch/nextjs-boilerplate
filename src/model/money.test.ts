@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_LOCALE } from "./locale";
-import { formatMoney } from "./money";
+import type { ReferenceAmount } from "./money";
+import { formatMoney, formatReferenceAmount } from "./money";
 
 /** `de-DE` が記号の手前に挟む区切り。空白と見分けが付かないのでエスケープで書く。 */
 const NBSP = "\u00a0";
@@ -35,5 +36,37 @@ describe("formatMoney", () => {
 
   it("負の金額を符号つきで表す", () => {
     expect(formatMoney(-1_500)).toBe("-$15.00");
+  });
+});
+
+describe("formatReferenceAmount", () => {
+  /** 参考換算額の一式。金額以外は表記に効かない。 */
+  const reference = (amount: number, currency: string): ReferenceAmount => ({
+    amount,
+    currency,
+    rate: "150.00",
+    rateDate: "2026-08-17",
+  });
+
+  // ----- 正常系 -----
+  it("換算先の通貨の表記にする", () => {
+    expect(formatReferenceAmount(reference(28_346, "JPY"))).toBe("￥28,346");
+  });
+
+  it("最小単位を持つ通貨では、その桁を落とさない", () => {
+    expect(formatReferenceAmount(reference(123_456, "EUR"))).toBe("€1,234.56");
+  });
+
+  it("locale を明示すると、その locale の表記になる", () => {
+    expect(formatReferenceAmount(reference(123_456, "EUR"), "de-DE")).toBe(`1.234,56${NBSP}€`);
+  });
+
+  it("参考であることを書式には混ぜない", () => {
+    expect(formatReferenceAmount(reference(28_346, "JPY"))).not.toMatch(/約/);
+  });
+
+  // ----- 異常系 -----
+  it("0 を渡すと 0 の通貨表記になる", () => {
+    expect(formatReferenceAmount(reference(0, "JPY"))).toBe("￥0");
   });
 });

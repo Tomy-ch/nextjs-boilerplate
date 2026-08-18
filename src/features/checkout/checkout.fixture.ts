@@ -33,7 +33,17 @@ export const INSUFFICIENT_LINE = {
   availableQuantity: 2,
 } satisfies CartLine;
 
-/** 値上がりした明細。買えるが小計の合算から外れるため、今回の購入にも載らない。 */
+/** 在庫が無くなった明細。取り除く以外にできることが無い。 */
+const OUT_OF_STOCK_LINE = {
+  productId: "0195f0c2-0000-7000-8000-000000000004",
+  name: "USB-C 充電器 65W",
+  unitPrice: "39.50",
+  quantity: 1,
+  issues: ["outOfStock"],
+  availableQuantity: null,
+} satisfies CartLine;
+
+/** 値上がりした明細。買えるが、確定のときに金額を確かめる。 */
 const PRICE_INCREASED_LINE = {
   productId: "0195f0c2-0000-7000-8000-000000000005",
   name: "ノイズキャンセリングヘッドホン",
@@ -55,9 +65,9 @@ export const PARTIALLY_ORDERABLE_CART: Cart = {
   subtotalAmount: 5_997,
 };
 
-/** 確定できる明細が 1 つも無いカート。 */
+/** 確定できる明細が 1 つも無いカート。買えない事情だけが並ぶ。 */
 export const BLOCKED_CART: Cart = {
-  lines: [INSUFFICIENT_LINE, PRICE_INCREASED_LINE],
+  lines: [INSUFFICIENT_LINE, OUT_OF_STOCK_LINE],
   subtotalAmount: 0,
 };
 

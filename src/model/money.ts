@@ -51,7 +51,7 @@ function formatterOf(locale: string, currency: string): Intl.NumberFormat {
  */
 function formatMinorUnits(minorUnits: number, currency: string, locale: string): string {
   const formatter = formatterOf(locale, currency);
-  // 通貨の指定がある整形器は小数桁を必ず解決するが、型の上では省略可能なので既定を置く。
+  /* v8 ignore next -- 通貨を指定した整形器は小数桁を必ず解決する。TS の絞り込みのためだけの分岐。 */
   const digits = formatter.resolvedOptions().maximumFractionDigits ?? 0;
 
   return formatter.format(minorUnits / 10 ** digits);

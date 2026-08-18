@@ -75,6 +75,7 @@ const TEST_FIXTURE_MODULES = [
   "src/config/environment.fixture.ts",
   "src/features/account/account.fixture.ts", // sample:line
   "src/features/cart/cart.fixture.ts", // sample:line
+  "src/features/checkout/checkout.fixture.ts", // sample:line
 ] as const;
 
 /**
@@ -88,8 +89,11 @@ const TEST_FIXTURE_MODULES = [
  *
  * feature 側の `page-content.tsx` はここに含めません。取得を `adapters` の module 境界で
  * 差し替えれば `render(await Component(props))` で検証できるためです。
+ *
+ * `page.dev.tsx` は開発と CI の build にしか含まれない route segment です（`next.config.ts` の
+ * `pageExtensions`）。単体で回せない理由は `page.tsx` と同じで、含まれる build が違うだけです。
  */
-const RUNTIME_ONLY_MODULES = ["src/app/**/page.tsx"] as const;
+const RUNTIME_ONLY_MODULES = ["src/app/**/page.tsx", "src/app/**/page.dev.tsx"] as const;
 
 /**
  * それ自体がテストであるモジュール。

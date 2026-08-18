@@ -3,12 +3,10 @@ import { SESSION_ROLE } from "@/model/session";
 import { POST } from "./route.dev";
 
 const issueTestSession = vi.hoisted(() => vi.fn());
-const environment = vi.hoisted((): { value: string | null } => ({ value: "local" }));
+const isDevelopmentAccessAllowed = vi.hoisted(() => vi.fn());
 
 vi.mock("@/adapters/server/auth/test-session", () => ({ issueTestSession }));
-vi.mock("@/config/load-environment", () => ({
-  findExplicitApplicationEnvironment: () => environment.value,
-}));
+vi.mock("@/adapters/server/auth/development-access", () => ({ isDevelopmentAccessAllowed }));
 
 function issue(body?: unknown): Request {
   return new Request("http://localhost:3000/api/auth/test-session", {
@@ -19,22 +17,16 @@ function issue(body?: unknown): Request {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  environment.value = "local";
+  isDevelopmentAccessAllowed.mockResolvedValue(true);
 });
 
 describe("POST", () => {
   // ----- 正常系 -----
-  it("開発環境では session を発行する", async () => {
+  it("開けている宛先では session を発行する", async () => {
     const response = await POST(issue({}));
 
     expect(response.status).toBe(204);
     expect(issueTestSession).toHaveBeenCalled();
-  });
-
-  it("CI でも発行する", async () => {
-    environment.value = "ci";
-
-    expect((await POST(issue({}))).status).toBe(204);
   });
 
   it("指定した subject と役割で発行する", async () => {
@@ -66,29 +58,8 @@ describe("POST", () => {
   });
 
   // ----- 異常系 -----
-  it("本番では口の存在を知らせない", async () => {
-    environment.value = "prd";
-
-    const response = await POST(issue({}));
-
-    expect(response.status).toBe(404);
-    expect(issueTestSession).not.toHaveBeenCalled();
-  });
-
-  it("staging でも開けない", async () => {
-    environment.value = "stg";
-
-    expect((await POST(issue({}))).status).toBe(404);
-  });
-
-  it("開発向けの共有環境でも開けない", async () => {
-    environment.value = "dev";
-
-    expect((await POST(issue({}))).status).toBe(404);
-  });
-
-  it("APP_ENV が明示されていなければ開けない", async () => {
-    environment.value = null;
+  it("開けない宛先では口の存在を知らせない", async () => {
+    isDevelopmentAccessAllowed.mockResolvedValue(false);
 
     const response = await POST(issue({}));
 
