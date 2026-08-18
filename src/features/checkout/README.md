@@ -30,6 +30,7 @@ test-requirement: feature
 | ファイル | 役割 |
 | --- | --- |
 | `actions.ts` | 購入確定の Server Action。編成と分類だけを持ち、通信は `adapters` が行う |
+| `__mocks__/actions.ts` | カタログでの Server Action の差し替え（[0054](../../../docs/adr/0054-ui-catalog-storybook.md)） |
 | `form-state.ts` | 確定の戻り値の型。`ActionState<T>` をこの画面の形で閉じる |
 | `idempotency-key.ts` | 確定 1 回ぶんを表す鍵と、それを載せるフォーム項目の名前 |
 | `order.ts` | 購入に載せる明細の取り出しと、金額が変わった明細の判定 |

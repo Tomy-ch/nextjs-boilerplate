@@ -2,13 +2,8 @@ import type { RequestHandler } from "msw";
 
 // sample:replace-begin
 import { HttpResponse, http } from "msw";
-
+import { ADDRESS_CANDIDATES, SINGLE_ADDRESS_CANDIDATE } from "@/features/account/account.fixture";
 import type { AddressCandidate } from "@/model/user/user";
-
-import {
-  ADDRESS_CANDIDATES,
-  SINGLE_ADDRESS_CANDIDATE,
-} from "../../src/features/account/account.fixture";
 
 /**
  * カタログで引ける郵便番号。
