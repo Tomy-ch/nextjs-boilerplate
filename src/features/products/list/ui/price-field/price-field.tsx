@@ -99,7 +99,7 @@ export function ProductPriceField({ value, onChange }: ProductPriceFieldProps) {
 
   return (
     <fieldset className="grid gap-3">
-      <legend className="mb-3 font-medium text-sm">価格</legend>
+      <legend className="mb-3 font-emphasis text-sm">価格</legend>
       <div className="flex items-center gap-2">
         <Label className="sr-only" htmlFor={`${scope}-low`}>
           価格の下限

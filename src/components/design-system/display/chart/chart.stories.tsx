@@ -23,8 +23,8 @@ const data: readonly Point[] = [
 ];
 
 const config = {
-  opened: { label: "受付", color: "var(--color-foreground)" },
-  closed: { label: "完了", color: "var(--color-muted-foreground)" },
+  opened: { label: "受付", color: "var(--semantic-color-foreground)" },
+  closed: { label: "完了", color: "var(--semantic-color-muted-foreground)" },
 } satisfies ChartConfig;
 
 function DataTable() {

@@ -34,7 +34,7 @@ export function ProductTeaser({ item, imagePriority }: ProductTeaserProps) {
   return (
     <Card className="h-full gap-0 overflow-hidden py-0 transition-colors hover:bg-muted/50">
       <Link
-        className="flex h-full flex-col rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+        className="flex h-full flex-col rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary"
         href={`/products/${item.id}`}
       >
         <MediaImage
@@ -47,10 +47,10 @@ export function ProductTeaser({ item, imagePriority }: ProductTeaserProps) {
           src={item.imageUrl}
         />
         <div className="flex flex-1 flex-col gap-1 p-3">
-          <p className="line-clamp-2 text-sm font-medium break-words">{item.name}</p>
+          <p className="line-clamp-2 text-sm font-emphasis break-words">{item.name}</p>
           {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
               数値へ変換するとサブセント精度が落ちる。 */}
-          <p className="mt-auto font-medium">${item.price}</p>
+          <p className="mt-auto font-emphasis">${item.price}</p>
         </div>
       </Link>
     </Card>

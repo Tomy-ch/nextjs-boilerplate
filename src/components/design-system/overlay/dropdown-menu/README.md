@@ -48,7 +48,7 @@ menu は touch device と screen reader で到達コストが高いため、主�
 
 選択項目は既定で、選ぶたびに menu が閉じます。表示する列の切り替えのように続けて操作したい場合は、`DropdownMenuCheckboxItem` / `DropdownMenuRadioItem` の `onSelect` で `event.preventDefault()` を呼ぶと開いたままになり、枠外の操作や Escape で閉じます。どちらが適切かは用途で変わるため、component 側では既定を変えません。
 
-項目の focus / hover は `bg-accent` / `text-accent-foreground` で示します。この semantic token は `tokens/themes.json` に定義があり、light は `neutral-100`、dark は `neutral-700` を面に使います。キーボードで項目を移動したときに現在位置が分かる唯一の手がかりなので、`className` でこの指定を打ち消しません。
+項目の focus / hover は `bg-accent` / `text-accent-foreground` で示します。この semantic token は `tokens/themes/<系統>/<配色>.json` に定義があり、地から一段離れた淡い面を使います。キーボードで項目を移動したときに現在位置が分かる唯一の手がかりなので、`className` でこの指定を打ち消しません。
 
 vendor は現在 Radix と lucide ですが、公開 API に vendor 名は含めません。
 

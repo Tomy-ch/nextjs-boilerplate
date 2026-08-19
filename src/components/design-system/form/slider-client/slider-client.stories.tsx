@@ -11,7 +11,7 @@ function RangeSlider() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
-        <span className="font-medium text-sm" id={labelId}>
+        <span className="font-emphasis text-sm" id={labelId}>
           価格帯
         </span>
         <span className="text-muted-foreground text-sm">

@@ -32,7 +32,7 @@ export function AboutView() {
       </Alert>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">何のためのサイトか</h2>
+        <h2 className="text-lg font-strong">何のためのサイトか</h2>
         <p>
           作者が公開しているコードが、実際に動くとどうなるかを触って確かめるためのサイトです。 EC
           を題材にしているのは、一覧・検索・カート・フォーム・ログイン・権限といった要素が
@@ -41,7 +41,7 @@ export function AboutView() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">何で出来ているか</h2>
+        <h2 className="text-lg font-strong">何で出来ているか</h2>
         <p>2 つのリポジトリで出来ています。どちらも公開しており、手元で動かせます。</p>
         <p>
           どちらも、このサンプルサイトとしての機能のほかに、
@@ -52,7 +52,7 @@ export function AboutView() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">動かないもの</h2>
+        <h2 className="text-lg font-strong">動かないもの</h2>
         <p>
           購入と決済は成立しません。注文しても商品は届かず、請求も発生しません。メールの送信、
           問い合わせ、配送状況の追跡も動きません。表示される日時・件数・金額は、いずれも
@@ -61,7 +61,7 @@ export function AboutView() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">メンテナンスについて</h2>
+        <h2 className="text-lg font-strong">メンテナンスについて</h2>
         <p>
           インターネット上で公開している場合、
           <strong>予告なくメンテナンスを行うことがあります。</strong>
@@ -71,7 +71,7 @@ export function AboutView() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">利用にあたって</h2>
+        <h2 className="text-lg font-strong">利用にあたって</h2>
         <p>
           免責を含む利用上の条件は利用規約にまとめてあります。閲覧した時点で同意したものと
           みなすため、先に読んでください。

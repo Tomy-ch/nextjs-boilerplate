@@ -136,7 +136,7 @@ function MenubarTrigger({ className, ...props }: ComponentProps<typeof MenubarPr
   return (
     <MenubarPrimitive.Trigger
       className={cn(
-        "flex items-center rounded-sm px-2 py-1 text-sm font-medium outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
+        "flex items-center rounded-sm px-2 py-1 text-sm font-emphasis outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
         className,
       )}
       data-slot="menubar-trigger"
@@ -324,7 +324,7 @@ function MenubarLabel({
 }) {
   return (
     <MenubarPrimitive.Label
-      className={cn("px-2 py-1.5 text-sm font-medium data-[inset]:pl-8", className)}
+      className={cn("px-2 py-1.5 text-sm font-emphasis data-[inset]:pl-8", className)}
       data-inset={inset}
       data-slot="menubar-label"
       {...props}

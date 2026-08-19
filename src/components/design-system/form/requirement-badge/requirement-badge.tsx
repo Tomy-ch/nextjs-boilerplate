@@ -18,8 +18,11 @@ export type RequirementBadgeProps = {
  * `label` の中へ入れない。入れると項目の名前が「姓必須」に変わり、`getByLabelText("姓")` のような
  * 名前での取得も一致しなくなる。`label` の隣へ並べる。
  *
- * **塗りつぶさない。** 塗ると誤りの表示と同じ強さになり、何も間違えていない画面に赤い塊が項目の
- * 数だけ並ぶ。誤りは文言と枠の色が示すので、印はそこまで強い必要がない。
+ * **塗りつぶさず、状態の色も使わない。** 塗ると誤りの表示と同じ強さになり、何も間違えていない
+ * 画面に強い塊が項目の数だけ並ぶ。誤りの色（`destructive`）は誤りが起きたときのために取ってあり、
+ * 注意の色（`emphasis`）は面と図形のための色で本文には置けないため、必須と任意は
+ * **色相ではなく強さ**で分ける。
+ * どちらであるかは文言が持つ（この印は読み上げから外れるため、色は情報を担っていない）。
  *
  * 任意の側にも印を出す。印の有無で読み分けさせると、印が無いのが「任意」なのか「印を付け忘れた」
  * のかを利用者が区別できない。どちらの文言も 2 文字なので、`label` の前に置けば印の列と label の
@@ -38,15 +41,15 @@ export type RequirementBadgeProps = {
  */
 export function RequirementBadge({ required }: RequirementBadgeProps) {
   return required ? (
-    <Badge
-      aria-hidden="true"
-      className="border-destructive/40 bg-destructive/10 text-destructive"
-      variant={BADGE_VARIANT.OUTLINE}
-    >
+    <Badge aria-hidden="true" className="text-foreground" variant={BADGE_VARIANT.OUTLINE}>
       必須
     </Badge>
   ) : (
-    <Badge aria-hidden="true" className="text-muted-foreground" variant={BADGE_VARIANT.OUTLINE}>
+    <Badge
+      aria-hidden="true"
+      className="border-border text-muted-foreground"
+      variant={BADGE_VARIANT.OUTLINE}
+    >
       任意
     </Badge>
   );

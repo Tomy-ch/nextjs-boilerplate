@@ -203,7 +203,7 @@ function StepPanel({
       id={id}
       tabIndex={-1}
     >
-      <legend className="mb-3 font-medium text-base">{title}</legend>
+      <legend className="mb-3 font-emphasis text-base">{title}</legend>
       {children}
     </fieldset>
   );

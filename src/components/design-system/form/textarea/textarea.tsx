@@ -34,7 +34,7 @@ export function Textarea({ className, ...props }: TextareaProps) {
   return (
     <textarea
       className={cn(
-        "field-sizing-content min-h-24 w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-base text-foreground shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground aria-invalid:border-destructive aria-invalid:outline-destructive",
+        "field-sizing-content min-h-24 w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-base text-foreground shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary aria-invalid:border-destructive aria-invalid:outline-destructive",
         className,
       )}
       data-slot="textarea"

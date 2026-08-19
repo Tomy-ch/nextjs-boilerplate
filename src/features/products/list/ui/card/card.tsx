@@ -60,9 +60,9 @@ export function ProductCard({ item, imagePriority }: ProductCardProps) {
           src={item.imageUrl}
         />
         <div className="flex min-w-0 flex-1 flex-col gap-2 p-4">
-          <p className="font-medium break-words">
+          <p className="font-emphasis break-words">
             <Link
-              className="rounded-xs after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+              className="rounded-xs after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary"
               href={`/products/${item.id}`}
             >
               {item.name}
@@ -82,7 +82,7 @@ export function ProductCard({ item, imagePriority }: ProductCardProps) {
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
                   数値へ変換するとサブセント精度が落ちる。 */}
-              <span className="font-medium">${item.price}</span>
+              <span className="font-emphasis">${item.price}</span>
               <span className="text-muted-foreground text-sm">在庫 {item.quantity}</span>
             </div>
             <div className="relative flex flex-wrap items-center gap-2">

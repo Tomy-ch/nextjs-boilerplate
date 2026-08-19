@@ -142,7 +142,7 @@ export function ImageViewer({ images, index, children, className }: ImageViewerP
       <DialogTrigger
         aria-label={`${current.alt}を拡大する`}
         className={cn(
-          "print-hidden block w-full cursor-zoom-in rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+          "print-hidden block w-full cursor-zoom-in rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary",
           className,
         )}
         ref={triggerRef}

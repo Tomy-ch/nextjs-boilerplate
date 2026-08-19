@@ -74,7 +74,7 @@ export function ToggleGroupNativeItem({
     <label
       className={cn(
         toggleVariants({ size, variant }),
-        "-ml-px cursor-pointer rounded-none px-3 first:ml-0 first:rounded-l-md last:rounded-r-md has-[:checked]:bg-accent has-[:checked]:text-accent-foreground has-[:disabled]:pointer-events-none has-[:disabled]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-foreground has-[:focus-visible]:outline-offset-2",
+        "-ml-px cursor-pointer rounded-none px-3 first:ml-0 first:rounded-l-md last:rounded-r-md has-[:checked]:bg-accent has-[:checked]:text-accent-foreground has-[:disabled]:pointer-events-none has-[:disabled]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-active has-[:focus-visible]:outline-offset-2",
         className,
       )}
       data-slot="toggle-group-native-item"

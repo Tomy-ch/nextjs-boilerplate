@@ -94,7 +94,7 @@ export function StepperItem({
     >
       <ListItemMedia
         className={cn(
-          "size-6 shrink-0 rounded-full border border-border text-xs font-medium",
+          "size-6 shrink-0 rounded-full border border-border text-xs font-emphasis",
           complete ? "bg-foreground text-background" : "bg-background text-muted-foreground",
           state === STEPPER_STATE.CURRENT ? "border-foreground text-foreground" : "",
         )}

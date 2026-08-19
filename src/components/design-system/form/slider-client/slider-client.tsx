@@ -86,7 +86,7 @@ export function SliderClient({
       {thumbs.map((thumb) => (
         <SliderPrimitive.Thumb
           aria-label={thumb.label}
-          className="block size-4 shrink-0 rounded-full border border-foreground bg-background shadow-sm outline-solid outline-0 outline-foreground/50 transition-[outline-width] hover:outline-4 focus-visible:outline-4 disabled:pointer-events-none disabled:opacity-50"
+          className="block size-4 shrink-0 rounded-full border border-foreground bg-background shadow-sm outline-solid outline-0 outline-active/50 transition-[outline-width] hover:outline-4 focus-visible:outline-4 disabled:pointer-events-none disabled:opacity-50"
           data-slot="slider-thumb"
           key={thumb.key}
         />

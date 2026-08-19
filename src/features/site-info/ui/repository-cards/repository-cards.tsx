@@ -28,7 +28,7 @@ function RepositoryCard({ repository }: { readonly repository: Repository }) {
       <CardHeader>
         <CardTitle className="font-mono text-base">
           <a
-            className="rounded-xs after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+            className="rounded-xs after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary"
             href={repository.url}
             rel="noreferrer"
             target="_blank"

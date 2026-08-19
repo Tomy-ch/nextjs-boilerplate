@@ -185,7 +185,7 @@ function SheetContent({
         {children}
         {showCloseButton ? (
           <SheetPrimitive.Close
-            className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none data-[state=open]:bg-accent"
+            className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary disabled:pointer-events-none data-[state=open]:bg-accent"
             data-slot="sheet-close"
           >
             <XIcon className="size-4" />
@@ -249,7 +249,7 @@ function SheetFooter({ className, ...props }: ComponentProps<"div">) {
 function SheetTitle({ className, ...props }: ComponentProps<typeof SheetPrimitive.Title>) {
   return (
     <SheetPrimitive.Title
-      className={cn("font-semibold text-foreground", className)}
+      className={cn("font-strong text-foreground", className)}
       data-slot="sheet-title"
       {...props}
     />

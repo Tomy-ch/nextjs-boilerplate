@@ -38,7 +38,7 @@ export function OrderLineRow({ line }: OrderLineRowProps) {
   return (
     <li className="flex flex-wrap items-start gap-x-4 gap-y-1 py-4">
       <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
-        <p className={cn("font-medium text-sm", blocked && "text-muted-foreground")}>
+        <p className={cn("font-emphasis text-sm", blocked && "text-muted-foreground")}>
           {line.name ?? UNKNOWN_NAME}
         </p>
         {line.unitPrice === null ? null : (

@@ -42,7 +42,7 @@ function SiteNavigation({
                 <li key={category.href}>
                   <NavigationMenuLink asChild>
                     <Link href={category.href}>
-                      <span className="font-medium">{category.label}</span>
+                      <span className="font-emphasis">{category.label}</span>
                       <span className="text-muted-foreground">{category.description}</span>
                     </Link>
                   </NavigationMenuLink>

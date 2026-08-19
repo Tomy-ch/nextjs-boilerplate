@@ -118,7 +118,7 @@ function ListItemLink({
   return (
     <Comp
       className={cn(
-        "-m-2 flex flex-1 flex-wrap items-center gap-4 rounded-md p-2 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+        "-m-2 flex flex-1 flex-wrap items-center gap-4 rounded-md p-2 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary",
         className,
       )}
       data-slot="list-item-link"
@@ -204,7 +204,7 @@ function ListItemContent({ className, ...props }: ComponentProps<"div">) {
 function ListItemTitle({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
-      className={cn("flex w-fit items-center gap-2 text-sm leading-snug font-medium", className)}
+      className={cn("flex w-fit items-center gap-2 text-sm leading-snug font-emphasis", className)}
       data-slot="list-item-title"
       {...props}
     />
@@ -226,7 +226,7 @@ function ListItemDescription({ className, ...props }: ComponentProps<"p">) {
     <p
       className={cn(
         "line-clamp-2 text-sm leading-normal font-normal text-balance text-muted-foreground",
-        "[&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
+        "[&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-secondary",
         className,
       )}
       data-slot="list-item-description"

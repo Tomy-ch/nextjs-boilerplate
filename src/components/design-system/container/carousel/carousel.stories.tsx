@@ -221,7 +221,7 @@ export const TextContent: Story = {
         {SLIDES.map((position) => (
           <CarouselItem aria-label={`${position} / ${SLIDE_COUNT}`} key={position}>
             <div className="rounded-md border border-border p-4">
-              <p className="font-medium text-sm">見出し {position}</p>
+              <p className="font-emphasis text-sm">見出し {position}</p>
               <p className="mt-1 text-muted-foreground text-sm">
                 slide の中身は carousel が決めない。要約・数値・操作など、順に読ませたい内容を置く。
               </p>

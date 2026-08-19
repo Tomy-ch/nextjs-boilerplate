@@ -1,13 +1,17 @@
 /* Markdown などから得た HTML を整える、低詳細度の組版基盤。 */
 .typeset {
-  --typeset-font-body: var(--font-sans);
-  --typeset-font-heading: var(--font-sans);
-  --typeset-font-mono: var(--font-mono);
+  /*
+   * `@theme inline` が出す `--font-*` の別名は `:root` で解決済みのため、系統を切り替えた
+   * 部分木では再解決されない。意味トークンを直接引くこと。
+   */
+  --typeset-font-body: var(--semantic-font-sans);
+  --typeset-font-heading: var(--semantic-font-sans);
+  --typeset-font-mono: var(--semantic-font-mono);
   --typeset-size: 1em;
   --typeset-leading: 1.75;
   --typeset-flow: 1.25em;
 
-  color: var(--color-foreground);
+  color: var(--semantic-color-foreground);
   font-family: var(--typeset-font-body);
   font-size: var(--typeset-size);
   line-height: var(--typeset-leading);
@@ -63,9 +67,9 @@
   :where(h1, h2, h3, h4, h5, h6):not(.not-typeset):not(.not-typeset *):not([data-not-typeset]):not(
     [data-not-typeset] *
   ) {
-  color: var(--color-foreground);
+  color: var(--semantic-color-foreground);
   font-family: var(--typeset-font-heading);
-  font-weight: 700;
+  font-weight: var(--semantic-font-weight-strong);
   line-height: 1.25;
   text-wrap: balance;
 }
@@ -153,8 +157,8 @@
   :where(blockquote):not(.not-typeset):not(.not-typeset *):not([data-not-typeset]):not(
     [data-not-typeset] *
   ) {
-  border-inline-start: 0.25rem solid var(--color-border);
-  color: var(--color-muted-foreground);
+  border-inline-start: 0.25rem solid var(--semantic-color-border);
+  color: var(--semantic-color-muted-foreground);
   padding-inline-start: 1em;
 }
 
@@ -180,8 +184,8 @@
   :where(:not(pre) > code):not(.not-typeset):not(.not-typeset *):not([data-not-typeset]):not(
     [data-not-typeset] *
   ) {
-  background: var(--color-muted);
-  color: var(--color-foreground);
+  background: var(--semantic-color-muted);
+  color: var(--semantic-color-foreground);
   padding: 0.1em 0.3em;
 }
 
@@ -189,9 +193,9 @@
   :where(pre):not(.not-typeset):not(.not-typeset *):not([data-not-typeset]):not(
     [data-not-typeset] *
   ) {
-  background: var(--color-muted);
+  background: var(--semantic-color-muted);
   border-radius: var(--radius-md);
-  color: var(--color-foreground);
+  color: var(--semantic-color-foreground);
   overflow-x: auto;
   padding: 1em;
 }
@@ -224,7 +228,7 @@
   :where(th, td):not(.not-typeset):not(.not-typeset *):not([data-not-typeset]):not(
     [data-not-typeset] *
   ) {
-  border-block-start: 1px solid var(--color-border);
+  border-block-start: 1px solid var(--semantic-color-border);
   padding: 0.6em 0.75em;
   text-align: start;
   vertical-align: top;
@@ -234,7 +238,7 @@
   :where(th):not(.not-typeset):not(.not-typeset *):not([data-not-typeset]):not(
     [data-not-typeset] *
   ) {
-  font-weight: 700;
+  font-weight: var(--semantic-font-weight-strong);
 }
 
 .typeset
@@ -242,7 +246,7 @@
     [data-not-typeset] *
   ) {
   border: 0;
-  border-block-start: 1px solid var(--color-border);
+  border-block-start: 1px solid var(--semantic-color-border);
 }
 
 .typeset-scroll {

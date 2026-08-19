@@ -96,9 +96,9 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
             </Badge>
           </div>
 
-          <h1 className="text-3xl font-semibold tracking-tight">{product.name}</h1>
+          <h1 className="text-3xl font-strong tracking-tight">{product.name}</h1>
 
-          <p className="text-3xl font-semibold">{`$${product.price}`}</p>
+          <p className="text-3xl font-strong">{`$${product.price}`}</p>
 
           <KeyValueList className="w-full">
             <KeyValueItem>
@@ -134,7 +134,7 @@ export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
 
       {product.description === null ? null : (
         <section aria-labelledby={DESCRIPTION_HEADING_ID} className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold" id={DESCRIPTION_HEADING_ID}>
+          <h2 className="text-lg font-strong" id={DESCRIPTION_HEADING_ID}>
             商品説明
           </h2>
           <RichTextContent content={SanitizedRichText.from(product.description)} />

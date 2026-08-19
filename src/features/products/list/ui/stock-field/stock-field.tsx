@@ -38,7 +38,7 @@ export function ProductStockField({ value, onChange }: ProductStockFieldProps) {
 
   return (
     <RadioGroupNative>
-      <legend className="mb-3 font-medium text-sm">{STOCK_AVAILABILITY_LABEL}</legend>
+      <legend className="mb-3 font-emphasis text-sm">{STOCK_AVAILABILITY_LABEL}</legend>
       {STOCK_AVAILABILITY_OPTIONS.map((option) => (
         <StockOption
           checked={value === option.value}

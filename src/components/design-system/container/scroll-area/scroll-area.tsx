@@ -37,7 +37,7 @@ export function ScrollArea({ className, orientation = "vertical", ...props }: Sc
   return (
     <section
       className={cn(
-        "overscroll-contain focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2",
+        "overscroll-contain focus-visible:outline-2 focus-visible:outline-active focus-visible:shadow-glow-primary focus-visible:outline-offset-2",
         orientation === "vertical" && "overflow-y-auto",
         orientation === "horizontal" && "overflow-x-auto",
         orientation === "both" && "overflow-auto",

@@ -12,5 +12,5 @@
  */
 :root {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-muted-foreground) transparent;
+  scrollbar-color: var(--semantic-color-muted-foreground) transparent;
 }

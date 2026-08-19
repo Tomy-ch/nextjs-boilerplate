@@ -23,7 +23,7 @@ export function HomeSkeleton() {
   return (
     <div aria-hidden="true" className="space-y-10 py-4">
       <section>
-        <h2 className="text-lg font-semibold">新着商品</h2>
+        <h2 className="text-lg font-strong">新着商品</h2>
         <div className="@container/new-arrivals mt-4">
           <ul className="grid grid-cols-2 gap-4 @2xl/new-arrivals:grid-cols-4">
             {Array.from({ length: TEASER_COUNT }, (_, index) => index).map((index) => (
@@ -39,7 +39,7 @@ export function HomeSkeleton() {
         </div>
       </section>
       <section>
-        <h2 className="text-lg font-semibold">売上ランキング</h2>
+        <h2 className="text-lg font-strong">売上ランキング</h2>
         <ul className="mt-4 space-y-1">
           {Array.from({ length: RANKING_ROW_COUNT }, (_, index) => index).map((index) => (
             <li className="flex items-center gap-4 py-3" key={index}>
@@ -52,7 +52,7 @@ export function HomeSkeleton() {
         </ul>
       </section>
       <section>
-        <h2 className="text-lg font-semibold">カテゴリから探す</h2>
+        <h2 className="text-lg font-strong">カテゴリから探す</h2>
         <ul className="mt-4 flex flex-wrap gap-2">
           {Array.from({ length: CATEGORY_COUNT }, (_, index) => index).map((index) => (
             <li key={index}>

@@ -37,7 +37,7 @@ export const InNativeElements: Story = {
         defaultValue={LINES.join("\n")}
       />
       <pre
-        className="h-24 overflow-auto rounded-md border border-border p-2 text-xs focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2"
+        className="h-24 overflow-auto rounded-md border border-border p-2 text-xs focus-visible:outline-2 focus-visible:outline-active focus-visible:shadow-glow-primary focus-visible:outline-offset-2"
         // biome-ignore lint/a11y/noNoninteractiveTabindex: スクロール可能な領域は非対話でも focus 可能にする必要がある。外すと keyboard だけではスクロールできず WCAG 2.1.1 に反する
         tabIndex={0}
       >

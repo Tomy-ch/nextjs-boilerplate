@@ -493,7 +493,7 @@ describe("ChartTooltipContent", () => {
     );
 
     expect(
-      container.querySelector("[data-slot='chart-tooltip-content'] > .font-medium"),
+      container.querySelector("[data-slot='chart-tooltip-content'] > .font-emphasis"),
     ).not.toBeInTheDocument();
   });
 

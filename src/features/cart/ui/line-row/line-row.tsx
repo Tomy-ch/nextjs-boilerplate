@@ -49,11 +49,11 @@ export function CartLineRow({ line }: CartLineRowProps) {
     <li className="flex flex-wrap items-start gap-x-4 gap-y-2 py-4">
       <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
         {line.name === null ? (
-          <p className="font-medium text-muted-foreground text-sm">{UNKNOWN_NAME}</p>
+          <p className="font-emphasis text-muted-foreground text-sm">{UNKNOWN_NAME}</p>
         ) : (
           <Link
             className={cn(
-              "line-clamp-2 font-medium text-sm hover:underline",
+              "line-clamp-2 font-emphasis text-sm hover:underline",
               blocked && "text-muted-foreground",
             )}
             href={`/products/${line.productId}`}
