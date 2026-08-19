@@ -2,7 +2,7 @@ import { getMyCart } from "@/adapters/server/api/cart";
 import { readReferenceAmount } from "@/adapters/server/api/exchange-rates";
 import { getMyProfile } from "@/adapters/server/api/users";
 
-import { newIdempotencyKey } from "../idempotency-key";
+import { newIdempotencyKey } from "@/model/idempotency-key";
 import { CheckoutConfirmView } from "./view";
 
 /**

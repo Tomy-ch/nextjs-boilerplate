@@ -10,10 +10,10 @@ import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { actionStateFromError, failedActionState } from "@/model/action-state";
+import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import type { PurchaseOrderLine } from "@/model/purchase/purchase";
-
+import { ACCEPT_PRICE_CHANGE_FIELD } from "./form-fields";
 import type { PlaceOrderFormState } from "./form-state";
-import { ACCEPT_PRICE_CHANGE_FIELD, IDEMPOTENCY_KEY_FIELD } from "./idempotency-key";
 import { hasPriceChangedLines, orderLinesOf, priceChangedLines } from "./order";
 import { purchaseCompletePath } from "./paths";
 

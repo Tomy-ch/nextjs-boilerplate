@@ -9,7 +9,7 @@ const { fetchAddressCandidates } = vi.hoisted(() => ({ fetchAddressCandidates: v
 
 vi.mock("@/adapters/client/api/addresses", () => ({ fetchAddressCandidates }));
 
-import { ADDRESS_CANDIDATES, SINGLE_ADDRESS_CANDIDATE } from "../account.fixture";
+import { ADDRESS_CANDIDATES, SINGLE_ADDRESS_CANDIDATE } from "./account.fixture";
 import type { AddressCompletion } from "./use-address-completion";
 import { useAddressCompletion } from "./use-address-completion";
 

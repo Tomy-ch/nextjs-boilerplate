@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { verifySession } from "@/adapters/server/auth/session";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -12,7 +10,7 @@ import {
 import { ProfileEditPageContent } from "@/features/account/edit/page-content";
 import { ProfileEditSkeleton } from "@/features/account/edit/ui/skeleton/skeleton";
 import { PROFILE_EDIT_PATH } from "@/features/account/paths";
-import { toSafeReturnUrl } from "@/model/return-url";
+import { requireRegisteredUser } from "@/features/account/registration-gate";
 
 export const metadata: Metadata = {
   title: "プロフィール編集",
@@ -27,9 +25,7 @@ export const metadata: Metadata = {
  * 開いているかが URL から失われ、戻る操作も共有もできなくなります。
  */
 export default async function ProfileEditPage() {
-  if ((await verifySession()) === null) {
-    redirect(`/login?returnUrl=${encodeURIComponent(toSafeReturnUrl(PROFILE_EDIT_PATH))}`);
-  }
+  await requireRegisteredUser(PROFILE_EDIT_PATH);
 
   return (
     <ContentContainer className="py-8">

@@ -4,6 +4,17 @@ import { succeededActionState } from "@/model/action-state";
 
 import type { ProfileFormState, WithdrawFormState } from "../form-state";
 
+/**
+ * カタログでの [registerAction](../actions.ts)。
+ *
+ * @remarks
+ * 本物は成立した時点で戻り先へ送るため、成功の状態は画面に現れません。カタログには送り先が
+ * 無いので、成功を返して押した後の画面に留まります。
+ */
+export const registerAction = fn(
+  async (): Promise<ProfileFormState> => succeededActionState(undefined),
+).mockName("registerAction");
+
 /** カタログでの [updateProfileAction](../actions.ts)。 */
 export const updateProfileAction = fn(
   async (): Promise<ProfileFormState> => succeededActionState(undefined),

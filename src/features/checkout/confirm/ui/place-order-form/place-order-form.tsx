@@ -3,10 +3,9 @@
 import { useActionState } from "react";
 
 import { idleActionState } from "@/model/action-state";
-
+import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { placeOrderAction } from "../../../actions";
 import type { PlaceOrderFormState } from "../../../form-state";
-import { IDEMPOTENCY_KEY_FIELD } from "../../../idempotency-key";
 import { PlaceOrderError, PlaceOrderSubmit } from "../place-order-submit/place-order-submit";
 
 /** `PlaceOrderForm` の props。 */

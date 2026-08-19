@@ -8,8 +8,8 @@ import { failedActionState, idleActionState } from "@/model/action-state";
 import type { ProfileField } from "@/model/user/profile-schema";
 import type { UserProfile } from "@/model/user/user";
 
-import { PROFILE } from "../account.fixture";
-import type { ProfileFormState } from "../form-state";
+import { PROFILE } from "./account.fixture";
+import type { ProfileFormState } from "./form-state";
 import { useProfileFields } from "./use-profile-fields";
 
 /** 2 項目ぶんの入力欄と、組まれた props をそのまま描画する。 */

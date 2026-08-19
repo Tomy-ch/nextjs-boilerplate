@@ -43,6 +43,7 @@ const ROUTE_POLICIES: readonly RoutePolicy[] = [
   { prefix: "/admin", allowed: ADMIN_ROLES },
   { prefix: "/checkout", allowed: AUTHENTICATED_ROLES }, // sample:line
   { prefix: "/mypage", allowed: AUTHENTICATED_ROLES }, // sample:line
+  { prefix: "/onboarding", allowed: AUTHENTICATED_ROLES }, // sample:line
   { prefix: "/purchases", allowed: AUTHENTICATED_ROLES }, // sample:line
 ];
 

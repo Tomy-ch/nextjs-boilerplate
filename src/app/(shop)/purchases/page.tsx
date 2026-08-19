@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
-import { verifySession } from "@/adapters/server/auth/session";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { PURCHASE_HISTORY_PATH } from "@/features/purchases/facade/paths/paths";
 import { PurchaseHistoryPageContent } from "@/features/purchases/history/page-content";
 import type { RawSearchParams } from "@/features/purchases/history/query";
-import { toSafeReturnUrl } from "@/model/return-url";
 
 export const metadata: Metadata = {
   title: "購入履歴",
@@ -36,9 +34,7 @@ export default async function PurchaseHistoryPage({
 }: {
   searchParams: Promise<RawSearchParams>;
 }) {
-  if ((await verifySession()) === null) {
-    redirect(`/login?returnUrl=${encodeURIComponent(toSafeReturnUrl(PURCHASE_HISTORY_PATH))}`);
-  }
+  await requireRegisteredUser(PURCHASE_HISTORY_PATH);
 
   return (
     <ContentContainer className="py-8">

@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { PREFECTURES } from "../../../account.fixture";
+import { PREFECTURES } from "../../account.fixture";
 import type { FieldRegistration } from "../../use-profile-fields";
 import { PrefectureField } from "./prefecture-field";
 

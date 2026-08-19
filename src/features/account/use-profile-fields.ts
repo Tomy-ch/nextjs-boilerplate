@@ -2,14 +2,19 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useId } from "react";
-import type { UseFormGetValues, UseFormRegisterReturn, UseFormSetValue } from "react-hook-form";
+import type {
+  Control,
+  UseFormGetValues,
+  UseFormRegisterReturn,
+  UseFormSetValue,
+} from "react-hook-form";
 import { useForm } from "react-hook-form";
 
 import type { ProfileField, ProfileInput } from "@/model/user/profile-schema";
 import { isRequiredProfileField, profileSchema } from "@/model/user/profile-schema";
 import type { UserProfile } from "@/model/user/user";
 
-import type { ProfileFormState } from "../form-state";
+import type { ProfileFormState } from "./form-state";
 import { useErrorVisibility } from "./use-error-visibility";
 
 /**
@@ -39,6 +44,15 @@ export type ProfileFields = {
   readonly fieldOf: (field: ProfileField) => ProfileFieldProps;
   readonly getValues: UseFormGetValues<ProfileInput>;
   readonly setValue: UseFormSetValue<ProfileInput>;
+  /**
+   * 入力中の値を購読するための control。
+   *
+   * @remarks
+   * 入力のたびに読み直したい表示（送る前に内容を見せる確認）だけが使います。`getValues` は
+   * 呼んだ時点の値を返すだけで、変わったことを知らせないためです。購読する側だけが描き直せば
+   * よいので、フォーム全体を `watch` しません。
+   */
+  readonly control: Control<ProfileInput>;
 };
 
 /**
@@ -58,13 +72,17 @@ export type ProfileFields = {
  * `id` の接頭辞は `useId()` から取ります。項目名をそのまま `id` にすると、同じフォームを 1 つの
  * 文書へ 2 度置いたときに重複し、label がどちらの control を指すか決まらなくなります。
  *
- * @param profile - 入力欄の初期値
+ * @param profile - 入力欄の初期値。まだ登録が無ければ null
  * @param state - server の応答。項目ごとの文言を client 側の検証より後ろに置く
  */
-export function useProfileFields(profile: UserProfile, state: ProfileFormState): ProfileFields {
+export function useProfileFields(
+  profile: UserProfile | null,
+  state: ProfileFormState,
+): ProfileFields {
   const idPrefix = useId();
   const errorVisibility = useErrorVisibility<ProfileField>();
   const {
+    control,
     formState: { errors },
     getValues,
     register,
@@ -72,17 +90,7 @@ export function useProfileFields(profile: UserProfile, state: ProfileFormState):
   } = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
     mode: "onTouched",
-    defaultValues: {
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      email: profile.email,
-      phone: profile.phone,
-      postalCode: profile.postalCode,
-      prefecture: profile.prefecture,
-      city: profile.city,
-      street: profile.street,
-      building: profile.building ?? "",
-    },
+    defaultValues: toDefaultValues(profile),
   });
 
   /** 検証の結果。client 側を優先し、無ければ server の応答を使う。 */
@@ -113,5 +121,26 @@ export function useProfileFields(profile: UserProfile, state: ProfileFormState):
     };
   }
 
-  return { fieldOf, getValues, setValue };
+  return { fieldOf, getValues, setValue, control };
+}
+
+/**
+ * 入力欄の初期値を組む。
+ *
+ * @remarks
+ * まだ登録が無い場合は全項目を空で開きます。`undefined` を渡すと rhf は入力欄を非制御のまま
+ * 扱い、初回の送信で項目そのものが欠けます。
+ */
+function toDefaultValues(profile: UserProfile | null): ProfileInput {
+  return {
+    firstName: profile?.firstName ?? "",
+    lastName: profile?.lastName ?? "",
+    email: profile?.email ?? "",
+    phone: profile?.phone ?? "",
+    postalCode: profile?.postalCode ?? "",
+    prefecture: profile?.prefecture ?? "",
+    city: profile?.city ?? "",
+    street: profile?.street ?? "",
+    building: profile?.building ?? "",
+  };
 }

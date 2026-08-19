@@ -48,6 +48,20 @@ export type AddressCandidate = {
   readonly town: string;
 };
 
+/**
+ * 郵便番号を引いた結果。
+ *
+ * @remarks
+ * 候補が無いことには 2 つの意味があり、契約はそれを `isFallback` で区別します。該当する住所が
+ * 無かっただけなら手で埋めれば済みますが、lookup 機構そのものが動いていないなら、郵便番号を
+ * 直して引き直しても永久に埋まりません。画面が言うべきことが変わるため、ここまで区別を運びます。
+ */
+export type AddressLookup = {
+  readonly candidates: readonly AddressCandidate[];
+  /** lookup 機構が機能しなかったか。該当なしは false。 */
+  readonly isFallback: boolean;
+};
+
 /** 購入集計のステータス別内訳 1 件。 */
 type PurchaseStatusBreakdown = {
   readonly statusId: string;

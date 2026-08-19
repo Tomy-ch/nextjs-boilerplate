@@ -37,6 +37,7 @@ vi.mock("@/logging/logging.server", () => ({
   reportQuietly: (task: () => void) => task(),
 }));
 
+import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { placeOrderAction } from "./actions";
 import {
   BLOCKED_CART,
@@ -44,8 +45,8 @@ import {
   ORDERABLE_CART,
   PARTIALLY_ORDERABLE_CART,
 } from "./checkout.fixture";
+import { ACCEPT_PRICE_CHANGE_FIELD } from "./form-fields";
 import type { PlaceOrderFormState } from "./form-state";
-import { ACCEPT_PRICE_CHANGE_FIELD, IDEMPOTENCY_KEY_FIELD } from "./idempotency-key";
 
 const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const PURCHASE_ID = "0195f0c2-0000-7000-9000-000000000001";

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { verifySession } from "@/adapters/server/auth/session";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -12,7 +10,7 @@ import {
 import { MypagePageContent } from "@/features/account/mypage/page-content";
 import { MypageSkeleton } from "@/features/account/mypage/ui/skeleton/skeleton";
 import { MYPAGE_PATH } from "@/features/account/paths";
-import { toSafeReturnUrl } from "@/model/return-url";
+import { requireRegisteredUser } from "@/features/account/registration-gate";
 
 export const metadata: Metadata = {
   title: "マイページ",
@@ -30,9 +28,7 @@ export const metadata: Metadata = {
  * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
  */
 export default async function MypagePage() {
-  if ((await verifySession()) === null) {
-    redirect(`/login?returnUrl=${encodeURIComponent(toSafeReturnUrl(MYPAGE_PATH))}`);
-  }
+  await requireRegisteredUser(MYPAGE_PATH);
 
   return (
     <ContentContainer className="py-8">

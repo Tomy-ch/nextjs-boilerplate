@@ -20,7 +20,7 @@ type PostalCodeFieldProps = Pick<
   ProfileFieldProps,
   "controlId" | "errorId" | "message" | "required"
 > &
-  Pick<AddressField, "onSearch" | "registration" | "searching">;
+  Pick<AddressField, "onSearch" | "registration" | "searching" | "unavailable">;
 
 /**
  * 郵便番号の項目。住所を検索する操作を枠の中に持つ。
@@ -31,6 +31,10 @@ type PostalCodeFieldProps = Pick<
  *
  * 操作を枠の中へ収めるのは、いつ補完が走るのかを利用者が決められるようにしつつ、どの入力に
  * 属する操作かを離さないためです。
+ *
+ * 補完の機構が使えないと判ったら操作を閉じます。押しても永久に何も起きない操作を残すと、
+ * 利用者は自分の入力した郵便番号を疑って何度も試します。手入力へ促す文言は呼び出し側の
+ * 読み上げ領域が出します。
  */
 export function PostalCodeField({
   controlId,
@@ -40,6 +44,7 @@ export function PostalCodeField({
   registration,
   required,
   searching,
+  unavailable,
 }: PostalCodeFieldProps) {
   return (
     <FormField
@@ -59,7 +64,7 @@ export function PostalCodeField({
         />
         <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
           <InputGroupButton
-            disabled={searching}
+            disabled={searching || unavailable}
             onClick={onSearch}
             size={INPUT_GROUP_BUTTON_SIZE.SMALL}
             type="button"

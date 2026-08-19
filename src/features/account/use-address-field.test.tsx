@@ -12,7 +12,7 @@ import { idleActionState } from "@/model/action-state";
 import type { ProfileField } from "@/model/user/profile-schema";
 import type { UserProfile } from "@/model/user/user";
 
-import { ADDRESS_CANDIDATES, PROFILE, SINGLE_ADDRESS_CANDIDATE } from "../account.fixture";
+import { ADDRESS_CANDIDATES, PROFILE, SINGLE_ADDRESS_CANDIDATE } from "./account.fixture";
 import { useAddressField } from "./use-address-field";
 import { useProfileFields } from "./use-profile-fields";
 

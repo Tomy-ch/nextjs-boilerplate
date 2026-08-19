@@ -19,6 +19,7 @@ const COMPLETION_MESSAGES: Readonly<Record<AddressCompletionResult, string>> = {
   idle: "",
   filled: "郵便番号から住所を補完しました。番地から先を入力してください。",
   empty: "この郵便番号に該当する住所が見つかりませんでした。手入力を続けてください。",
+  unavailable: "住所の自動入力がいま使えません。都道府県から先を手入力してください。",
 };
 
 /** {@link useAddressField} が返すもの。 */
@@ -29,6 +30,14 @@ export type AddressField = {
   readonly onSearch: () => void;
   /** 取得の最中か。操作を押せなくするのに使う。 */
   readonly searching: boolean;
+  /**
+   * 補完の機構が使えないと判った状態か。
+   *
+   * @remarks
+   * 該当なしとは分けます。押しても永久に何も起きない操作を押せるままにすると、利用者は
+   * 郵便番号を疑って何度も試します。
+   */
+  readonly unavailable: boolean;
   /** 読み上げ用の文言。何も起きていなければ空。 */
   readonly message: string;
 };
@@ -84,6 +93,7 @@ export function useAddressField({ fieldOf, getValues, setValue }: ProfileFields)
     },
     onSearch,
     searching: loading,
+    unavailable: result === "unavailable",
     message: COMPLETION_MESSAGES[result],
   };
 }

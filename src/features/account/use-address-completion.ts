@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { fetchAddressCandidates } from "@/adapters/client/api/addresses";
+import { fetchAddresses } from "@/adapters/client/api/addresses";
 import type { AddressCandidate } from "@/model/user/user";
 
 /**
@@ -11,8 +11,12 @@ import type { AddressCandidate } from "@/model/user/user";
  * @remarks
  * 進行中であることは含めません。取得の間だけ別の値へ移ると、応答が速いときに結果の文言が
  * 消えて戻り、文字が明滅します。進行中かどうかは {@link useAddressCompletion} が別に返します。
+ *
+ * 候補が無い場合を 2 つに分けます。`empty` は該当する住所が無かっただけで、郵便番号を直せば
+ * 埋まります。`unavailable` は lookup 機構そのものが動いておらず、何度引いても埋まりません。
+ * 画面が利用者へ言うべきことが変わるため、同じ「埋まらなかった」で畳みません。
  */
-export type AddressCompletionResult = "idle" | "filled" | "empty";
+export type AddressCompletionResult = "idle" | "filled" | "empty" | "unavailable";
 
 /** 補完で埋める値。候補が割れた項目は持たない。 */
 export type AddressCompletion = {
@@ -78,7 +82,7 @@ export function useAddressCompletion(onCompleted: (completion: AddressCompletion
       abortRef.current = controller;
 
       setLoading(true);
-      const candidates = await fetchAddressCandidates(postalCode, controller.signal);
+      const { candidates, isFallback } = await fetchAddresses(postalCode, controller.signal);
 
       if (controller.signal.aborted) {
         return;
@@ -87,7 +91,7 @@ export function useAddressCompletion(onCompleted: (completion: AddressCompletion
       setLoading(false);
 
       if (candidates.length === 0) {
-        setResult("empty");
+        setResult(isFallback ? "unavailable" : "empty");
 
         return;
       }

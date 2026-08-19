@@ -15,11 +15,11 @@ import type { Prefecture, UserProfile } from "@/model/user/user";
 import { updateProfileAction } from "../../../actions";
 import type { ProfileFormState } from "../../../form-state";
 import { MYPAGE_PATH } from "../../../paths";
-import { useAddressField } from "../../use-address-field";
-import { useProfileFields } from "../../use-profile-fields";
-import { PostalCodeField } from "../postal-code-field/postal-code-field";
-import { PrefectureField } from "../prefecture-field/prefecture-field";
-import { TextField } from "../text-field/text-field";
+import { PostalCodeField } from "../../../ui/postal-code-field/postal-code-field";
+import { PrefectureField } from "../../../ui/prefecture-field/prefecture-field";
+import { TextField } from "../../../ui/text-field/text-field";
+import { useAddressField } from "../../../use-address-field";
+import { useProfileFields } from "../../../use-profile-fields";
 
 const SUBMIT_LABEL = "保存する";
 const PENDING_LABEL = "保存しています…";
@@ -126,6 +126,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
             registration={address.registration}
             required={postalCode.required}
             searching={address.searching}
+            unavailable={address.unavailable}
           />
           <PrefectureField prefectures={prefectures} {...prefecture} />
           <TextField autoComplete="address-level2" label="市区町村" {...fields.fieldOf("city")} />
