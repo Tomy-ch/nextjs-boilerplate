@@ -1,0 +1,204 @@
+import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import Link from "next/link";
+
+import { Button } from "@/components/design-system/action/button/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/design-system/navigation/breadcrumb/breadcrumb";
+import { AdminShell } from "@/components/shell/admin-shell/admin-shell";
+import type { AdminShellNavGroup } from "@/components/shell/admin-shell/admin-shell.definition";
+import { ContentContainer } from "@/components/shell/content-container/content-container";
+import {
+  PageHeader,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from "@/components/shell/page-header/page-header";
+import { failedActionState, idleActionState } from "@/model/action-state";
+import type { Product } from "@/model/product/product";
+import { toProductId } from "@/model/product/product";
+
+import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
+import type { ProductSelectOption } from "../form/ui/select-field/select-field";
+import { AdminProductEditView } from "./view";
+
+const NAV_GROUPS: readonly AdminShellNavGroup[] = [
+  { label: "商品", items: [{ href: ADMIN_PRODUCT_LIST_PATH, label: "商品一覧管理" }] },
+];
+
+const CATEGORY_ID = "01936f6d-0000-7000-8000-000000000001";
+const STATUS_ID = "01936f6d-0000-7000-8000-000000000101";
+
+const CATEGORY_OPTIONS: readonly ProductSelectOption[] = [
+  { value: CATEGORY_ID, label: "電子機器" },
+  { value: "01936f6d-0000-7000-8000-000000000002", label: "書籍" },
+  { value: "01936f6d-0000-7000-8000-000000000004", label: "食品" },
+];
+
+const STATUS_OPTIONS: readonly ProductSelectOption[] = [
+  { value: STATUS_ID, label: "在庫あり" },
+  { value: "01936f6d-0000-7000-8000-000000000102", label: "在庫切れ" },
+  { value: "01936f6d-0000-7000-8000-000000000106", label: "入荷待ち" },
+];
+
+/** 4 MiB。config が配る既定と同じ値を、story でも同じ意味で使う。 */
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+
+const PRODUCT: Product = {
+  id: toProductId("0195f0c2-0000-7000-8000-000000000001"),
+  name: "ワイヤレスイヤホン",
+  description: "<h2>特長</h2><ul><li>ノイズキャンセリング</li><li>最長 30 時間の再生</li></ul>",
+  price: "19.99",
+  quantity: 12,
+  stockWarningThreshold: 3,
+  status: { id: STATUS_ID, name: "在庫あり" },
+  category: { id: CATEGORY_ID, name: "電子機器" },
+  publishedAt: new Date("2026-08-07T09:00:00.000Z"),
+  imagePaths: [],
+  version: 4,
+};
+
+/** canvas では送らない。押した先で何も起きないことを、待ち続けない形で示す。 */
+const idle = () => Promise.resolve(idleActionState<void>());
+
+/** 送信が弾かれた状態を作る。 */
+const rejecting =
+  (
+    fieldErrors: Record<string, readonly string[]>,
+    formError: string | null = "入力内容を確認してください。",
+  ) =>
+  () =>
+    Promise.resolve(failedActionState<void>({ fieldErrors, formError }));
+
+/** 画像は送らずに終わったことにする。canvas で外へ出さないため。 */
+const uploaded = () =>
+  Promise.resolve(failedActionState<string>({ formError: "canvas では画像を保存しません。" }));
+
+/** route と同じ器で包む。`admin/layout.tsx` の shell と `page.tsx` の見出し・階層を再現する。 */
+function withPageFrame(Story: () => React.ReactElement) {
+  return (
+    <AdminShell
+      breadcrumb={
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={ADMIN_PRODUCT_LIST_PATH}>商品一覧管理</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{PRODUCT.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>編集</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      }
+      consoleName="管理"
+      headerActions={
+        <Button asChild size="sm" variant="outline">
+          <Link href="/products">ユーザー画面へ</Link>
+        </Button>
+      }
+      homeHref={ADMIN_PRODUCT_LIST_PATH}
+      navGroups={NAV_GROUPS}
+      siteHref="/"
+      siteName="nextjs-boilerplate"
+    >
+      <ContentContainer className="py-8">
+        <PageHeader>
+          <div>
+            <PageHeaderTitle>商品の編集</PageHeaderTitle>
+            <PageHeaderDescription>
+              観点を選んで直します。更新すると一覧へ戻ります。
+            </PageHeaderDescription>
+          </div>
+        </PageHeader>
+        <Story />
+      </ContentContainer>
+    </AdminShell>
+  );
+}
+
+const meta = {
+  title: "Page/Admin/Products/Edit",
+  component: AdminProductEditView,
+  parameters: {
+    docs: {
+      story: { inline: false, iframeHeight: 900 },
+      description: {
+        component: [
+          "商品を編集する画面です。**canvas では送信も保存も起きません** —— 観点はどこからでも",
+          "選べ、選んでいない観点も DOM に残るので入力途中の値が消えません。在庫数は扱いません",
+          "（在庫は加算で動かす別の口が持ちます）。",
+        ].join(""),
+      },
+    },
+    layout: "fullscreen",
+    nextjs: { navigation: { pathname: `${ADMIN_PRODUCT_LIST_PATH}/${PRODUCT.id}/edit` } },
+  },
+  decorators: [withPageFrame],
+  args: {
+    product: PRODUCT,
+    categoryOptions: CATEGORY_OPTIONS,
+    statusOptions: STATUS_OPTIONS,
+    maxUploadBytes: MAX_UPLOAD_BYTES,
+    updateAction: idle,
+    uploadAction: uploaded,
+  },
+} satisfies Meta<typeof AdminProductEditView>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+/** 最初の観点。読み込んだ内容が各欄に入っている。 */
+export const Default: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** タブレット。観点の並びはそのまま、入力欄が読み幅で頭打ちになる。 */
+export const DefaultTablet: Story = {
+  globals: { viewport: { value: "tablet", isRotated: false } },
+};
+
+/** スマホ。観点の並びは横スクロールへ、脇の一覧は overlay へ畳まれる。 */
+export const DefaultMobile: Story = {
+  globals: { viewport: { value: "mobile2", isRotated: false } },
+};
+
+/**
+ * 送信が弾かれた状態。誤りのある観点へ自動で移る。
+ *
+ * 観点を切り替える器は進む前に止める仕組みを持たないため、移らないと「画面のどこも赤くないのに
+ * 送信だけ通らない」状態になる。
+ */
+export const Rejected: Story = {
+  args: {
+    updateAction: rejecting({ statusId: ["状態を選んでください。"] }),
+  },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** 版が食い違って拒まれた状態。読み込み直す導線を添える。 */
+export const Conflicted: Story = {
+  args: {
+    updateAction: rejecting(
+      {},
+      "この商品は別の人が更新しました。読み込み直して、最新の内容に対して編集し直してください。",
+    ),
+  },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** 説明が空の商品。編集面は空のまま開き、保存済みの内容が無いことが判る。 */
+export const WithoutDescription: Story = {
+  args: { product: { ...PRODUCT, description: null, publishedAt: null } },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
