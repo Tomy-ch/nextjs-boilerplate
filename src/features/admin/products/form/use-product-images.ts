@@ -10,6 +10,25 @@ import { PRODUCT_FORM_NAMES } from "./parse-product-form";
 
 const UPLOAD_FAILED_MESSAGE = "送信できませんでした。";
 
+/** 保存済みのキーから、利用者へ見せる名前を取り出す。 */
+function nameOf(imagePath: string): string {
+  return imagePath.slice(imagePath.lastIndexOf("/") + 1);
+}
+
+/**
+ * 読み込んだ時点で保存されている画像 1 枚。
+ *
+ * @remarks
+ * 表示 URL まで解決した状態で受け取ります。組み立てに要る配信元は起動時の設定で、画面の層は
+ * それを読めません（`architecture.ts`）。
+ */
+export type ProductSavedImage = {
+  /** 送信に載せるオブジェクトキー。 */
+  readonly imagePath: string;
+  /** 縮小表示に使う URL。 */
+  readonly url: string;
+};
+
 /**
  * 送信に載せる 1 枚。
  *
@@ -20,8 +39,11 @@ const UPLOAD_FAILED_MESSAGE = "送信できませんでした。";
 export type ProductImageEntry = {
   readonly id: string;
   readonly name: string;
-  readonly file: File;
+  /** 選び直したファイル。保存済みのものを読み込んだ場合は持たない。 */
+  readonly file?: File;
   readonly imagePath?: string;
+  /** 保存済みの枚の縮小表示。選び直したファイルを持つ枚は持たない。 */
+  readonly url?: string;
   readonly failure?: string;
 };
 
@@ -33,6 +55,8 @@ export type ProductImages = {
   readonly imagePaths: readonly string[];
   /** まだ送り終わっていない枚があるか。 */
   readonly uploading: boolean;
+  /** 読み込んだ時点から並びか顔ぶれが変わっているか。 */
+  readonly dirty: boolean;
   readonly add: (files: readonly File[]) => void;
   readonly remove: (id: string) => void;
   readonly retry: (id: string) => void;
@@ -72,12 +96,30 @@ function swap(
  *
  * 表示順は配列の並びそのものです。番号を別に持つと、動かしたときに並びと番号のどちらが正かが
  * 決まりません。
+ *
+ * **保存済みの画像も同じ一覧に載せます。**契約は画像を集合ごと置き換えるため、載せずに送ると
+ * 既にある画像が消えます。保存済みの枚は選び直したファイルを持たないので、送り直しません。
+ *
+ * @param upload - 画像を送る送信先
+ * @param saved - 読み込んだ時点で保存されている画像。作る画面では空
  */
-export function useProductImages(upload: UploadProductImageAction): ProductImages {
-  const [entries, setEntries] = useState<readonly ProductImageEntry[]>([]);
+export function useProductImages(
+  upload: UploadProductImageAction,
+  saved: readonly ProductSavedImage[] = [],
+): ProductImages {
+  const [entries, setEntries] = useState<readonly ProductImageEntry[]>(() =>
+    saved.map(({ imagePath, url }) => ({
+      id: imagePath,
+      imagePath,
+      name: nameOf(imagePath),
+      url,
+    })),
+  );
 
   const send = useCallback(
     async (entry: ProductImageEntry) => {
+      if (entry.file === undefined) return;
+
       const formData = new FormData();
       formData.append(PRODUCT_FORM_NAMES.images, entry.file);
 
@@ -145,7 +187,7 @@ export function useProductImages(upload: UploadProductImageAction): ProductImage
       description: entry.failure ?? (entry.imagePath === undefined ? "送信中" : undefined),
       id: entry.id,
       name: entry.name,
-      preview: entry.file,
+      preview: entry.file ?? entry.url,
       state:
         entry.failure !== undefined
           ? ATTACHMENT_STATE.ERROR
@@ -159,6 +201,9 @@ export function useProductImages(upload: UploadProductImageAction): ProductImage
     uploading: entries.some(
       (entry) => entry.imagePath === undefined && entry.failure === undefined,
     ),
+    dirty:
+      entries.length !== saved.length ||
+      entries.some((entry, index) => entry.imagePath !== saved[index]?.imagePath),
     add,
     remove,
     retry,

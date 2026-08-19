@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback } from "react";
+
 import {
   SelectNative,
   SelectNativeOption,
@@ -25,8 +27,10 @@ export type ProductSelectFieldProps = {
   label: string;
   /** 選べる候補。 */
   options: readonly ProductSelectOption[];
-  /** 最初に選ばれている値。 */
-  defaultValue?: string;
+  /** 今の値。 */
+  value: string;
+  /** 値が変わったことを伝える。 */
+  onValueChange: (value: string) => void;
   /** 誤りの文言。 */
   message?: string;
 };
@@ -41,16 +45,24 @@ export type ProductSelectFieldProps = {
  *
  * 空の候補を先頭へ置くのは、既定で先頭が選ばれたことにしないためです。選ばれていない状態を
  * 表せないと、利用者が確かめずに送った値と、意図して選んだ値が区別できません。
+ *
+ * 選ぶことが即ち触れることなので、`onBlur` を待たずに誤りを出せます。
  */
 export function ProductSelectField({
   controlId,
-  defaultValue,
   label,
   message,
   name,
+  onValueChange,
   options,
+  value,
 }: ProductSelectFieldProps) {
   const errorId = toErrorId(controlId);
+
+  const change = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => onValueChange(event.target.value),
+    [onValueChange],
+  );
 
   return (
     <FormField
@@ -63,8 +75,9 @@ export function ProductSelectField({
       <SelectNative
         {...fieldControlAttributes({ controlId, errorId, message, required: true })}
         className="w-full"
-        defaultValue={defaultValue ?? ""}
         name={name}
+        onChange={change}
+        value={value}
       >
         <SelectNativeOption value="">選んでください</SelectNativeOption>
         {options.map((option) => (

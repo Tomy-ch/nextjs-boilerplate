@@ -18,6 +18,7 @@ import type {
   ProductFormState,
   ProductImageUploadState,
 } from "@/features/admin/products/form/form-state";
+import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "@/features/admin/products/form/form-state";
 import {
   PRODUCT_FORM_NAMES,
   parseProductDraftForm,
@@ -32,8 +33,7 @@ import { isAdmin } from "@/model/authz";
 import { toProductId } from "@/model/product/product";
 
 const INVALID_INPUT_MESSAGE = "入力内容を確認してください。";
-const CONFLICT_MESSAGE =
-  "この商品は別の人が更新しました。読み込み直して、最新の内容に対して編集し直してください。";
+
 const MISSING_IMAGE_MESSAGE = "画像が選ばれていません。";
 const UNSUPPORTED_IMAGE_MESSAGE = "PNG / JPEG / WebP のいずれかを選んでください。";
 const OVERSIZED_IMAGE_MESSAGE = "画像が大きすぎます。もっと小さいものを選んでください。";
@@ -126,10 +126,9 @@ export async function createProductAction(
   const parsed = parseProductDraftForm(formData);
 
   if (!parsed.ok) {
-    return failedActionState({
-      formError: INVALID_INPUT_MESSAGE,
-      fieldErrors: parsed.fieldErrors,
-    });
+    // 項目ごとの誤りがあるときは全体の文言を出さない。要約が同じことを言うため、同じ指摘が
+    // 2 か所に並ぶ。
+    return failedActionState({ formError: null, fieldErrors: parsed.fieldErrors });
   }
 
   try {
@@ -162,18 +161,19 @@ export async function updateProductAction(
   const id = formData.get("id");
   const parsed = parseProductEditForm(formData);
 
-  if (typeof id !== "string" || id === "" || !parsed.ok) {
-    return failedActionState({
-      formError: INVALID_INPUT_MESSAGE,
-      fieldErrors: parsed.ok ? undefined : parsed.fieldErrors,
-    });
+  if (!parsed.ok) {
+    return failedActionState({ formError: null, fieldErrors: parsed.fieldErrors });
+  }
+
+  if (typeof id !== "string" || id === "") {
+    return failedActionState({ formError: INVALID_INPUT_MESSAGE });
   }
 
   try {
     await updateProduct(toProductId(id), parsed.value);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
-      return failedActionState({ formError: CONFLICT_MESSAGE });
+      return failedActionState({ formError: PRODUCT_VERSION_CONFLICT_MESSAGE });
     }
 
     return actionStateFromError(error);

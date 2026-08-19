@@ -41,6 +41,34 @@ export type WizardStep = {
  */
 export type WizardSteps = readonly [WizardStep, ...WizardStep[]];
 
+/**
+ * 通過済みの段階へ戻る操作。
+ *
+ * @remarks
+ * 段階ごとに切り出すのは、行き先を閉じ込めた handler を段階の数だけ作らないためです。
+ */
+function WizardStepLink({
+  index,
+  onSelect,
+  title,
+}: {
+  index: number;
+  onSelect: (index: number) => void;
+  title: string;
+}) {
+  const select = useCallback(() => onSelect(index), [index, onSelect]);
+
+  return (
+    <button
+      className="cursor-pointer underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+      onClick={select}
+      type="button"
+    >
+      {title}
+    </button>
+  );
+}
+
 /** {@link WizardForm} の props。 */
 export type WizardFormProps = {
   /** この入力全体のアクセシブルな名前。 */
@@ -71,6 +99,10 @@ export type WizardFormProps = {
  * 最後の段階で置く操作と「次へ」には別々の `key` を与える。同じ位置の `button` として reconcile
  * されると React が DOM 要素を使い回し、押した瞬間に `type` が `button` から `submit` へ書き換わる。
  * click の既定動作は handler の後に走るため、進んだうえで form まで送信されてしまう。
+ *
+ * **通過済みの段階へは進捗から直接戻れる。** 順に辿り直させる理由が無く、確認の段から 1 か所だけ
+ * 直しに行く動きが最短で済む。まだ到達していない段階は押せない —— 進んでよいかの判定は呼び出し元
+ * の `blocked` が持っており、飛ばして到達できると、その判定を迂回できてしまう。
  *
  * 段階が変わったら、その段階の領域へ focus を移す。移さないと操作した button に focus が残り、
  * keyboard と読み上げの利用者には何が変わったのか伝わらない。最初の表示では移さない。
@@ -105,6 +137,9 @@ export function WizardForm({
   className,
 }: WizardFormProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  // 一度でも通った段は通ったままにする。前へ戻って入力を消しても、その先へ戻れなくなると
+  // 「戻ったせいで進めなくなった」ことになり、戻る操作が罠になる。
+  const [furthestIndex, setFurthestIndex] = useState(0);
   const panelId = useId();
   const movedRef = useRef(false);
   const currentPanelId = `${panelId}-${steps[currentIndex].id}`;
@@ -123,8 +158,19 @@ export function WizardForm({
 
   const goNext = useCallback(() => {
     movedRef.current = true;
-    setCurrentIndex((index) => Math.min(steps.length - 1, index + 1));
+    setCurrentIndex((index) => {
+      const next = Math.min(steps.length - 1, index + 1);
+
+      setFurthestIndex((furthest) => Math.max(furthest, next));
+
+      return next;
+    });
   }, [steps.length]);
+
+  const goTo = useCallback((index: number) => {
+    movedRef.current = true;
+    setCurrentIndex(index);
+  }, []);
 
   const current = steps[currentIndex];
   const isLast = currentIndex === steps.length - 1;
@@ -135,7 +181,13 @@ export function WizardForm({
         {steps.map((step, index) => (
           <StepperItem key={step.id} marker={index + 1} state={stepState(index, currentIndex)}>
             <ListItemContent>
-              <ListItemTitle>{step.title}</ListItemTitle>
+              <ListItemTitle>
+                {index < furthestIndex && index !== currentIndex ? (
+                  <WizardStepLink index={index} onSelect={goTo} title={step.title} />
+                ) : (
+                  step.title
+                )}
+              </ListItemTitle>
             </ListItemContent>
           </StepperItem>
         ))}

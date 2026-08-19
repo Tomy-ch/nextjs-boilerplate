@@ -39,6 +39,39 @@ const next = () => fireEvent.click(screen.getByRole("button", { name: "次へ" }
 const previous = () => fireEvent.click(screen.getByRole("button", { name: "戻る" }));
 
 describe("WizardForm", () => {
+  it("通過した段階へは進捗から直接戻れる", () => {
+    render(
+      <WizardForm
+        label="利用申請"
+        steps={[
+          { id: "a", title: "入力", content: <p>入力の中身</p> },
+          { id: "b", title: "確認", content: <p>確認の中身</p> },
+        ]}
+        submit={<button type="submit">申請する</button>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    fireEvent.click(screen.getByRole("button", { name: "入力" }));
+
+    expect(screen.getByText("入力の中身")).toBeVisible();
+  });
+
+  it("まだ到達していない段階は進捗から押せない", () => {
+    render(
+      <WizardForm
+        label="利用申請"
+        steps={[
+          { id: "a", title: "入力", content: <p>入力の中身</p> },
+          { id: "b", title: "確認", content: <p>確認の中身</p> },
+        ]}
+        submit={<button type="submit">申請する</button>}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "確認" })).not.toBeInTheDocument();
+  });
+
   it("段階が持つ文言があれば、その段階の次へだけ差し替える", async () => {
     render(
       <WizardForm

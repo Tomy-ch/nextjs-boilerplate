@@ -8,6 +8,7 @@ import { AdminShell } from "@/components/shell/admin-shell/admin-shell";
 import type { AdminShellNavGroup } from "@/components/shell/admin-shell/admin-shell.definition";
 import { ADMIN_PRODUCT_LIST_PATH } from "@/features/admin/paths";
 import { isAdmin } from "@/model/authz";
+import { UnsavedChangesGuard } from "./unsaved-changes-guard";
 
 const SITE_NAME = "nextjs-boilerplate";
 const CONSOLE_NAME = "管理";
@@ -37,6 +38,10 @@ const NAV_GROUPS: readonly AdminShellNavGroup[] = [
  * が、何段目に何を出すかは画面ごとに違うため、画面と同じ形の route に持たせます。page から
  * layout へ props は渡せないので、slot がその橋渡しになります。
  *
+ * **書きかけのまま離れる操作を、器ごと見張ります。** 離れる操作の起点（パンくず・脇の一覧）は
+ * 画面より上にあり、画面の内側から包めません。書きかけかどうかを決めるのは入力を持つ画面で、
+ * ここはその申告を読むだけです。
+ *
  * 導線の顔ぶれをこの層が持つのは、admin にどの画面があるかが route の構成そのものだからです。
  * 器（`AdminShell`）は並べ方だけを知り、何を並べるかは知りません
  * （[0026](../../../docs/adr/0026-layout-shell-mount.md)）。
@@ -56,20 +61,22 @@ export default async function AdminLayout({
   }
 
   return (
-    <AdminShell
-      breadcrumb={breadcrumb}
-      consoleName={CONSOLE_NAME}
-      headerActions={
-        <Button asChild size="sm" variant="outline">
-          <Link href={USER_SITE_PATH}>ユーザー画面へ</Link>
-        </Button>
-      }
-      homeHref={ADMIN_PRODUCT_LIST_PATH}
-      navGroups={NAV_GROUPS}
-      siteHref={SITE_PATH}
-      siteName={SITE_NAME}
-    >
-      {children}
-    </AdminShell>
+    <UnsavedChangesGuard>
+      <AdminShell
+        breadcrumb={breadcrumb}
+        consoleName={CONSOLE_NAME}
+        headerActions={
+          <Button asChild size="sm" variant="outline">
+            <Link href={USER_SITE_PATH}>ユーザー画面へ</Link>
+          </Button>
+        }
+        homeHref={ADMIN_PRODUCT_LIST_PATH}
+        navGroups={NAV_GROUPS}
+        siteHref={SITE_PATH}
+        siteName={SITE_NAME}
+      >
+        {children}
+      </AdminShell>
+    </UnsavedChangesGuard>
   );
 }

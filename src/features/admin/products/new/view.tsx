@@ -1,11 +1,10 @@
 "use client";
 
-import type { SyntheticEvent } from "react";
-import { useActionState, useCallback, useId, useState } from "react";
+import { useActionState, useCallback, useId, useMemo, useState } from "react";
+
 import { WizardForm } from "@/components/patterns/wizard-form/wizard-form";
 import { idleActionState } from "@/model/action-state";
-import type { ProductFormSnapshot } from "../form/form-snapshot";
-import { readProductFormSnapshot } from "../form/form-snapshot";
+
 import type {
   CreateProductAction,
   ProductFormState,
@@ -21,6 +20,8 @@ import type { ProductSelectOption } from "../form/ui/select-field/select-field";
 import { ProductSubmitButton } from "../form/ui/submit-button/submit-button";
 import { useImageRejection } from "../form/use-image-rejection";
 import { useProductImages } from "../form/use-product-images";
+import { emptyProductValues, useProductValues } from "../form/use-product-values";
+import { useUnsavedChanges } from "../form/use-unsaved-changes";
 
 /** `AdminProductCreateView` の props。 */
 export type AdminProductCreateViewProps = {
@@ -43,13 +44,16 @@ export type AdminProductCreateViewProps = {
  * **段階に分けて進みます。**初めての入力では「あとどれだけで送れるか」が要るためで、進捗と行き来
  * だけを `WizardForm` が持ちます。段の中身は編集の画面と同じ部品で、器だけが違います。
  *
- * **最後に確認の段を置きます。**作成は取り消せる操作ではなく、送る前に全体を一度読める場所が
- * 要ります。確認は入力欄を持たず、form そのものから読んだ値を出すため、確認に出る内容と送られる
- * 内容が食い違いません。
+ * **埋まっていない段からは進めません。**同じ規則を Server Action も通りますが、往復して初めて
+ * 「入っていない」と言われるより、その場で判る方が直しやすいためです。誤りの文言は触れた項目から
+ * 出します。開いた直後に空欄をすべて赤くすると、まだ何もしていない人に落ち度を告げることに
+ * なります。
  *
- * 表示していない段も DOM に残るので、送信は最後に 1 回で全段ぶんまとまります。そのため入力欄へ
- * native の `required` を与えません。隠れた段の欄が空だとブラウザが focus できず、送信が理由も
- * 示さずに止まります。空欄の指摘は送信の結果として返します。
+ * **最後に確認の段を置きます。**作成は取り消せる操作ではなく、送る前に全体を一度読める場所が
+ * 要ります。確認は入力欄を持たず、送ろうとしている値をそのまま出します。
+ *
+ * 入力欄へ native の `required` を与えません。隠れた段の欄が空だとブラウザが focus できず、送信が
+ * 理由も示さずに止まります。
  *
  * 画像を送り終わるまで送信を止めます。載るのは保存済みのキーだけなので、途中で送ると、上げた
  * つもりの画像を持たない商品ができます。
@@ -66,29 +70,44 @@ export function AdminProductCreateView({
     createAction,
     idleActionState(),
   );
+  const initialValues = useMemo(() => emptyProductValues(), []);
+  const form = useProductValues(initialValues, { withQuantity: true });
   const images = useProductImages(uploadAction);
   const { onReject, rejection } = useImageRejection(maxUploadBytes);
-  const [snapshot, setSnapshot] = useState<ProductFormSnapshot>({});
+  const [dismissed, setDismissed] = useState(false);
 
-  // 確認の段は form そのものを読む。入力欄を 1 つずつ写しに持つと、写し忘れた欄が確認に
-  // 現れないまま送られる。
-  const captureSnapshot = useCallback((event: SyntheticEvent<HTMLFormElement>) => {
-    setSnapshot(readProductFormSnapshot(event.currentTarget));
-  }, []);
+  useUnsavedChanges(form.dirty || images.items.length > 0);
+
+  // 入力を直した時点で、直前の送信の結果は古くなる。出し続けると、直したのに直っていないよう
+  // に見える。
+  const dismiss = useCallback(() => setDismissed(true), []);
+  const changeDescription = useCallback(
+    (value: string) => {
+      form.setValue("description", value);
+      dismiss();
+    },
+    [dismiss, form],
+  );
 
   return (
-    <form action={formAction} className="grid gap-8" onInput={captureSnapshot}>
-      <ProductFormFeedback idPrefix={idPrefix} state={state} title="登録できませんでした" />
+    <form action={formAction} className="grid gap-8" onInput={dismiss}>
+      <ProductFormFeedback
+        dismissed={dismissed}
+        idPrefix={idPrefix}
+        state={state}
+        title="登録できませんでした"
+      />
       <WizardForm
         label="商品の登録"
         steps={[
           {
             id: "basics",
             title: "基本情報",
+            blocked: form.isSectionBlocked("basics"),
             content: (
               <ProductBasicsSection
                 categoryOptions={categoryOptions}
-                fieldErrors={state.status === "error" ? state.fieldErrors : undefined}
+                form={form}
                 idPrefix={idPrefix}
                 withQuantity={true}
               />
@@ -97,7 +116,13 @@ export function AdminProductCreateView({
           {
             id: "description",
             title: "説明",
-            content: <ProductDescriptionSection />,
+            content: (
+              <ProductDescriptionSection
+                initialValue={initialValues.description}
+                onValueChange={changeDescription}
+                value={form.values.description}
+              />
+            ),
           },
           {
             id: "images",
@@ -115,10 +140,11 @@ export function AdminProductCreateView({
           {
             id: "publish",
             title: "公開",
+            blocked: form.isSectionBlocked("publish"),
             nextLabel: "確認",
             content: (
               <ProductPublishSection
-                fieldErrors={state.status === "error" ? state.fieldErrors : undefined}
+                form={form}
                 idPrefix={idPrefix}
                 statusOptions={statusOptions}
               />
@@ -131,8 +157,8 @@ export function AdminProductCreateView({
               <ProductConfirmSection
                 categoryOptions={categoryOptions}
                 imageCount={images.imagePaths.length}
-                snapshot={snapshot}
                 statusOptions={statusOptions}
+                values={form.values}
               />
             ),
           },

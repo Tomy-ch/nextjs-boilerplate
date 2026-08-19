@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useId, useState } from "react";
+import { useActionState, useCallback, useId, useMemo, useState } from "react";
+
 import { Button } from "@/components/design-system/action/button/button";
 import {
   TabsClient,
@@ -18,6 +19,7 @@ import type {
   UpdateProductAction,
   UploadProductImageAction,
 } from "../form/form-state";
+import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "../form/form-state";
 import { PRODUCT_FORM_NAMES } from "../form/parse-product-form";
 import { ProductBasicsSection } from "../form/ui/basics-section/basics-section";
 import { ProductDescriptionSection } from "../form/ui/description-section/description-section";
@@ -27,13 +29,18 @@ import { ProductPublishSection } from "../form/ui/publish-section/publish-sectio
 import type { ProductSelectOption } from "../form/ui/select-field/select-field";
 import { ProductSubmitButton } from "../form/ui/submit-button/submit-button";
 import { useImageRejection } from "../form/use-image-rejection";
+import type { ProductSavedImage } from "../form/use-product-images";
 import { useProductImages } from "../form/use-product-images";
+import { productValuesOf, useProductValues } from "../form/use-product-values";
+import { useUnsavedChanges } from "../form/use-unsaved-changes";
 import { findFirstInvalidSection, PRODUCT_FORM_SECTIONS } from "../form/validation-errors";
 
 /** `AdminProductEditView` の props。 */
 export type AdminProductEditViewProps = {
   /** 編集する商品。読み込んだ時点の版を含む。 */
   product: Product;
+  /** 読み込んだ時点で保存されている画像。表示 URL まで解決済み。 */
+  savedImages: readonly ProductSavedImage[];
   /** 選べる分類。 */
   categoryOptions: readonly ProductSelectOption[];
   /** 選べる状態。 */
@@ -68,13 +75,18 @@ const TAB_LABELS = {
  * だけが通らない状態になります。順番を持たない器は、進む前に止める `wizard` の仕組みを持たない
  * ためです。
  *
+ * **観点を移すか入力を直した時点で、直前の結果は下げます。**結果は次の送信まで残り続けるため、
+ * 出し続けると直したのに直っていないように見えます。
+ *
  * 読み込んだ時点の版を hidden の欄で持ち回ります。その間に別の人が更新していれば送信が拒まれ、
- * 読み込み直す導線を出します。
+ * **そのときだけ**読み込み直す導線を出します。権限や通信の失敗にまで添えると、やり直せば直る
+ * ものとして読めてしまいます。
  */
 export function AdminProductEditView({
   categoryOptions,
   maxUploadBytes,
   product,
+  savedImages,
   statusOptions,
   updateAction,
   uploadAction,
@@ -84,15 +96,21 @@ export function AdminProductEditView({
     updateAction,
     idleActionState(),
   );
-  const images = useProductImages(uploadAction);
+  const initialValues = useMemo(() => productValuesOf(product), [product]);
+  const form = useProductValues(initialValues, { withQuantity: false });
+  const images = useProductImages(uploadAction, savedImages);
   const { onReject, rejection } = useImageRejection(maxUploadBytes);
   const [section, setSection] = useState<string>(PRODUCT_FORM_SECTIONS[0]);
   const [seenState, setSeenState] = useState(state);
+  const [dismissed, setDismissed] = useState(false);
+
+  useUnsavedChanges(form.dirty || images.dirty);
 
   // 送信の結果が入れ替わった描画で観点を寄せる。effect にすると寄せる前の描画が一度挟まり、
   // 誤りのある欄が隠れたまま「どこも赤くないのに送信だけ通らない」画面が一瞬現れる。
   if (seenState !== state) {
     setSeenState(state);
+    setDismissed(false);
 
     const invalidSection =
       state.status === "error" ? findFirstInvalidSection(state.fieldErrors) : undefined;
@@ -100,20 +118,48 @@ export function AdminProductEditView({
     if (invalidSection !== undefined) setSection(invalidSection);
   }
 
-  const fieldErrors = state.status === "error" ? state.fieldErrors : undefined;
+  // 読み込み直す導線は版が食い違ったときだけ添える。どの失敗にも出すと、読み込み直しても
+  // 変わらない失敗（権限・通信）にまで「やり直せば直る」と読める導線が付く。
+  const conflicted =
+    state.status === "error" && state.formError === PRODUCT_VERSION_CONFLICT_MESSAGE;
+
+  const dismiss = useCallback(() => setDismissed(true), []);
+
+  const changeSection = useCallback(
+    (next: string) => {
+      setSection(next);
+      dismiss();
+    },
+    [dismiss],
+  );
+
+  const changeDescription = useCallback(
+    (value: string) => {
+      form.setValue("description", value);
+      dismiss();
+    },
+    [dismiss, form],
+  );
 
   return (
-    <form action={formAction} className="grid gap-8">
+    <form action={formAction} className="grid gap-8" onInput={dismiss}>
       <input name="id" type="hidden" value={product.id} />
       <input name={PRODUCT_FORM_NAMES.version} type="hidden" value={product.version} />
 
-      <ProductFormFeedback idPrefix={idPrefix} state={state} title="更新できませんでした">
-        <Button asChild size="sm" variant="outline">
-          <Link href={adminProductEditPath(product.id)}>読み込み直す</Link>
-        </Button>
+      <ProductFormFeedback
+        dismissed={dismissed}
+        idPrefix={idPrefix}
+        state={state}
+        title="更新できませんでした"
+      >
+        {conflicted ? (
+          <Button asChild size="sm" variant="outline">
+            <Link href={adminProductEditPath(product.id)}>読み込み直す</Link>
+          </Button>
+        ) : null}
       </ProductFormFeedback>
 
-      <TabsClient onValueChange={setSection} value={section}>
+      <TabsClient onValueChange={changeSection} value={section}>
         <TabsClientList aria-label="編集する観点">
           {PRODUCT_FORM_SECTIONS.map((value) => (
             <TabsClientTrigger key={value} value={value}>
@@ -124,19 +170,17 @@ export function AdminProductEditView({
         <TabsClientContent forceMount={true} hidden={section !== "basics"} value="basics">
           <ProductBasicsSection
             categoryOptions={categoryOptions}
-            defaults={{
-              categoryId: product.category.id,
-              name: product.name,
-              price: product.price,
-              stockWarningThreshold: product.stockWarningThreshold,
-            }}
-            fieldErrors={fieldErrors}
+            form={form}
             idPrefix={idPrefix}
             withQuantity={false}
           />
         </TabsClientContent>
         <TabsClientContent forceMount={true} hidden={section !== "description"} value="description">
-          <ProductDescriptionSection defaultValue={product.description} />
+          <ProductDescriptionSection
+            initialValue={initialValues.description}
+            onValueChange={changeDescription}
+            value={form.values.description}
+          />
         </TabsClientContent>
         <TabsClientContent forceMount={true} hidden={section !== "images"} value="images">
           <ProductImagesSection
@@ -147,12 +191,7 @@ export function AdminProductEditView({
           />
         </TabsClientContent>
         <TabsClientContent forceMount={true} hidden={section !== "publish"} value="publish">
-          <ProductPublishSection
-            defaults={{ publishedAt: product.publishedAt, statusId: product.status.id }}
-            fieldErrors={fieldErrors}
-            idPrefix={idPrefix}
-            statusOptions={statusOptions}
-          />
+          <ProductPublishSection form={form} idPrefix={idPrefix} statusOptions={statusOptions} />
         </TabsClientContent>
       </TabsClient>
 

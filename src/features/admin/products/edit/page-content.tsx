@@ -1,5 +1,6 @@
 import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
 import { getProduct } from "@/adapters/server/api/products";
+import { resolveMediaUrl } from "@/adapters/server/media/media-url";
 import type { ProductId } from "@/model/product/product";
 import type { UpdateProductAction, UploadProductImageAction } from "../form/form-state";
 import { toMasterOptions } from "../form/master-option";
@@ -36,11 +37,19 @@ export async function AdminProductEditPageContent({
     getProductStatuses(),
   ]);
 
+  // 表示 URL の組み立てには配信元が要り、画面の層はそれを読めない。境界のこちら側で解決する。
+  const savedImages = product.imagePaths.flatMap((imagePath) => {
+    const url = resolveMediaUrl(imagePath);
+
+    return url === null ? [] : [{ imagePath, url }];
+  });
+
   return (
     <AdminProductEditView
       categoryOptions={toMasterOptions(categories)}
       maxUploadBytes={maxUploadBytes}
       product={product}
+      savedImages={savedImages}
       statusOptions={toMasterOptions(statuses)}
       updateAction={updateAction}
       uploadAction={uploadAction}

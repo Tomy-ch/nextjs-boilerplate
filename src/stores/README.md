@@ -16,8 +16,14 @@ test-requirement: unit
 
 - server state、単一 feature の状態、UI マークアップ、secret、業務ロジック
 
-<!-- sample:begin -->
 ## モジュール
+
+| モジュール | 役割 |
+| --- | --- |
+| `unsaved-changes-store.ts` | 入力を持つ画面が申告する「まだ送っていない書きかけがあるか」 |
+
+<!-- sample:begin -->
+同梱のサンプルが加えるもの:
 
 | モジュール | 役割 |
 | --- | --- |

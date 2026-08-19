@@ -59,3 +59,14 @@ export type UploadProductImageAction = (
   state: ProductImageUploadState,
   formData: FormData,
 ) => Promise<ProductImageUploadState>;
+
+/**
+ * 版が食い違って拒まれたときの文言。
+ *
+ * @remarks
+ * 送る側（Server Action）と受ける側（画面）の両方が参照します。画面はこの結果のときだけ
+ * 「読み込み直す」導線を添えるため、文言そのものが両者の合図になります。**片方に書き写すと、
+ * 文言を直した側だけが合図を失います。**
+ */
+export const PRODUCT_VERSION_CONFLICT_MESSAGE =
+  "この商品は別の人が更新しました。読み込み直して、最新の内容に対して編集し直してください。";

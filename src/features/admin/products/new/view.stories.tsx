@@ -157,10 +157,15 @@ export const Confirm: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
+    // 必須が埋まるまで次へ進めないので、埋めてから進む。
     await userEvent.type(canvas.getByLabelText("商品名"), "ワイヤレスイヤホン Pro");
+    await userEvent.type(canvas.getByLabelText("価格"), "24.99");
+    await userEvent.type(canvas.getByLabelText("在庫数"), "25");
+    await userEvent.selectOptions(canvas.getByLabelText("分類"), "電子機器");
     await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
     await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
     await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
+    await userEvent.selectOptions(canvas.getByLabelText("状態"), "在庫あり");
     await userEvent.click(canvas.getByRole("button", { name: "確認" }));
   },
 };
@@ -168,25 +173,25 @@ export const Confirm: Story = {
 /**
  * 送信が弾かれた状態。要約が全体像と導線を、欄のそばの文言がその場での指摘を担う。
  *
- * 誤りのある欄が別の段にあると、要約の link は隠れた段を指す。段を持つ器は進む前に止められる
- * ため、通常はここへ至らない。
+ * 形の上での誤りは段を進む前に止まるため、ここへ至るのは**受け取る側でしか判らない誤り**の
+ * ときだけになる。
  */
 export const Rejected: Story = {
   args: {
-    createAction: rejecting({
-      name: ["商品名を入力してください。"],
-      price: ["価格は 0 以上の数値で入力してください。"],
-      categoryId: ["分類を選んでください。"],
-    }),
+    createAction: rejecting({ price: ["この価格では登録できません。"] }),
   },
   globals: { viewport: { value: "desktop", isRotated: false } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // 送信は最後の段にしか無い。空欄のまま最後まで進め、弾かれた状態を出す。
+    await userEvent.type(canvas.getByLabelText("商品名"), "ワイヤレスイヤホン Pro");
+    await userEvent.type(canvas.getByLabelText("価格"), "24.99");
+    await userEvent.type(canvas.getByLabelText("在庫数"), "25");
+    await userEvent.selectOptions(canvas.getByLabelText("分類"), "電子機器");
     await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
     await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
     await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
+    await userEvent.selectOptions(canvas.getByLabelText("状態"), "在庫あり");
     await userEvent.click(canvas.getByRole("button", { name: "確認" }));
     await userEvent.click(canvas.getByRole("button", { name: "登録する" }));
   },

@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
-import type { FieldErrors } from "@/model/action-state";
 
-import type { ProductFormField } from "../../form-state";
 import { PRODUCT_FORM_NAMES } from "../../parse-product-form";
+import type { ProductFormValues } from "../../use-product-values";
 import type { ProductSelectOption } from "../select-field/select-field";
 import { ProductSelectField } from "../select-field/select-field";
 import { ProductTextField } from "../text-field/text-field";
@@ -17,23 +16,9 @@ export type ProductPublishSectionProps = {
   idPrefix: string;
   /** 選べる状態。 */
   statusOptions: readonly ProductSelectOption[];
-  /** 直前の送信で見つかった、項目ごとの誤り。 */
-  fieldErrors?: FieldErrors<ProductFormField>;
-  /** 最初に入っている値。 */
-  defaults?: {
-    readonly statusId?: string;
-    readonly publishedAt?: Date | null;
-  };
+  /** 入力の状態と操作。 */
+  form: ProductFormValues;
 };
-
-/** `datetime-local` が受け取る形へ写す。秒より下は扱わない。 */
-function toLocalInputValue(value: Date | null | undefined): string | undefined {
-  if (value === null || value === undefined) return undefined;
-
-  const offset = value.getTimezoneOffset() * 60_000;
-
-  return new Date(value.getTime() - offset).toISOString().slice(0, 16);
-}
 
 /**
  * 公開の扱い。
@@ -50,46 +35,58 @@ function toLocalInputValue(value: Date | null | undefined): string | undefined {
  * 複数回要るのは、意図と操作の粒度が合っていません。
  */
 export function ProductPublishSection({
-  defaults,
-  fieldErrors,
+  form,
   idPrefix,
   statusOptions,
 }: ProductPublishSectionProps) {
-  const publishedAtRef = useRef<HTMLDivElement>(null);
+  const { errors, setValue, touch, values } = form;
 
-  const unpublish = useCallback(() => {
-    const input = publishedAtRef.current?.querySelector("input");
-
-    if (input === null || input === undefined) return;
-
-    input.value = "";
-    // 値を直に書いても form へは伝わるが、確認の段が読む合図は出ない。同じ経路へ載せる。
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-  }, []);
+  const changeStatus = useCallback(
+    (value: string) => {
+      setValue("statusId", value);
+      touch("statusId");
+    },
+    [setValue, touch],
+  );
+  const changePublishedAt = useCallback(
+    (value: string) => setValue("publishedAt", value),
+    [setValue],
+  );
+  const leavePublishedAt = useCallback(() => touch("publishedAt"), [touch]);
+  const unpublish = useCallback(() => setValue("publishedAt", ""), [setValue]);
 
   return (
     <div className="grid gap-6">
       <ProductSelectField
         controlId={`${idPrefix}-status`}
-        defaultValue={defaults?.statusId}
         label="状態"
-        message={fieldErrors?.statusId?.[0]}
+        message={errors.statusId?.[0]}
         name={PRODUCT_FORM_NAMES.statusId}
+        onValueChange={changeStatus}
         options={statusOptions}
+        value={values.statusId}
       />
-      <div className="grid gap-2" ref={publishedAtRef}>
+      <div className="grid gap-2">
         <ProductTextField
           controlId={`${idPrefix}-published-at`}
-          defaultValue={toLocalInputValue(defaults?.publishedAt)}
           description="空欄のままにすると未公開です。"
           label="公開日時"
-          message={fieldErrors?.publishedAt?.[0]}
+          message={errors.publishedAt?.[0]}
           name={PRODUCT_FORM_NAMES.publishedAt}
+          onLeave={leavePublishedAt}
+          onValueChange={changePublishedAt}
           required={false}
           type="datetime-local"
+          value={values.publishedAt}
         />
         <div>
-          <Button onClick={unpublish} size="sm" type="button" variant="outline">
+          <Button
+            disabled={values.publishedAt === ""}
+            onClick={unpublish}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
             非公開にする
           </Button>
         </div>

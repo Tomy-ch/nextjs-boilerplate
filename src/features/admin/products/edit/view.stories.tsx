@@ -63,6 +63,14 @@ const PRODUCT: Product = {
   version: 4,
 };
 
+/** 読み込んだ時点で保存されている画像。表示 URL は route が解決したものが届く。 */
+const SAVED_IMAGES = [
+  {
+    imagePath: "products/0195f0c2-0000-7000-8000-000000000001.png",
+    url: "/src/components/design-system/display/media-image/invertocat.png",
+  },
+] as const;
+
 /** canvas では送らない。押した先で何も起きないことを、待ち続けない形で示す。 */
 const idle = () => Promise.resolve(idleActionState<void>());
 
@@ -148,6 +156,7 @@ const meta = {
   decorators: [withPageFrame],
   args: {
     product: PRODUCT,
+    savedImages: SAVED_IMAGES,
     categoryOptions: CATEGORY_OPTIONS,
     statusOptions: STATUS_OPTIONS,
     maxUploadBytes: MAX_UPLOAD_BYTES,
@@ -206,6 +215,6 @@ export const Conflicted: Story = {
 
 /** 説明が空の商品。編集面は空のまま開き、保存済みの内容が無いことが判る。 */
 export const WithoutDescription: Story = {
-  args: { product: { ...PRODUCT, description: null, publishedAt: null } },
+  args: { product: { ...PRODUCT, description: null, publishedAt: null }, savedImages: [] },
   globals: { viewport: { value: "desktop", isRotated: false } },
 };
