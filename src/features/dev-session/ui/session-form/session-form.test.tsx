@@ -15,7 +15,14 @@ const issue: IssueDevSessionAction = async () => idleActionState();
 
 describe("DevSessionForm", () => {
   it("発行の指定を並べる", () => {
-    render(<DevSessionForm action={issue} returnUrl="/" />);
+    render(
+      <DevSessionForm
+        action={issue}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
 
     expect(screen.getByLabelText("誰として入るか")).toHaveValue("dev-user");
     expect(screen.getByLabelText("失効までの秒数")).toHaveValue("3600");
@@ -23,14 +30,28 @@ describe("DevSessionForm", () => {
   });
 
   it("役割は一般利用者を既定にする", () => {
-    render(<DevSessionForm action={issue} returnUrl="/" />);
+    render(
+      <DevSessionForm
+        action={issue}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
 
     expect(screen.getByRole("radio", { name: "一般利用者" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "管理者" })).not.toBeChecked();
   });
 
   it("戻り先を送信へ載せる", () => {
-    const { container } = render(<DevSessionForm action={issue} returnUrl="/checkout" />);
+    const { container } = render(
+      <DevSessionForm
+        action={issue}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/checkout"
+      />,
+    );
 
     expect(container.querySelector('input[name="returnUrl"]')).toHaveValue("/checkout");
   });
@@ -43,7 +64,14 @@ describe("DevSessionForm", () => {
         settle = () => resolve(idleActionState());
       });
 
-    render(<DevSessionForm action={pendingIssue} returnUrl="/" />);
+    render(
+      <DevSessionForm
+        action={pendingIssue}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "この内容で入る" }));
 
     expect(await screen.findByRole("button", { name: "session を発行しています" })).toBeDisabled();
@@ -64,7 +92,14 @@ describe("DevSessionForm", () => {
         },
       });
 
-    render(<DevSessionForm action={failingIssue} returnUrl="/" />);
+    render(
+      <DevSessionForm
+        action={failingIssue}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "この内容で入る" }));
 
     expect(await screen.findByText("誰として入るかを指定してください。")).toBeVisible();
@@ -81,7 +116,14 @@ describe("DevSessionForm", () => {
     const failingIssue: IssueDevSessionAction = async () =>
       failedActionState({ fieldErrors: { subject: ["誰として入るかを指定してください。"] } });
 
-    render(<DevSessionForm action={failingIssue} returnUrl="/" />);
+    render(
+      <DevSessionForm
+        action={failingIssue}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "この内容で入る" }));
 
     expect(await screen.findByText("誰として入るかを指定してください。")).toBeVisible();
@@ -94,7 +136,14 @@ describe("DevSessionForm", () => {
     const failingIssue: IssueDevSessionAction = async () =>
       failedActionState({ formError: "この口は、開発と CI の手元の宛先でだけ開きます。" });
 
-    render(<DevSessionForm action={failingIssue} returnUrl="/" />);
+    render(
+      <DevSessionForm
+        action={failingIssue}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "この内容で入る" }));
 
     expect(await screen.findByText("session を発行できませんでした")).toBeVisible();
@@ -102,14 +151,83 @@ describe("DevSessionForm", () => {
   });
 
   it("貼ったトークンを読み返す口を持たない", () => {
-    render(<DevSessionForm action={issue} returnUrl="/" />);
+    render(
+      <DevSessionForm
+        action={issue}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
 
     expect(screen.getByLabelText("Access Token（任意）")).toHaveAttribute("name", "accessToken");
     expect(screen.queryByText(/いまのトークン/)).not.toBeInTheDocument();
   });
 
+  it("実物の API へ繋いでいるときは、取りに行く指定を既定にする", () => {
+    render(
+      <DevSessionForm
+        action={issue}
+        connectsLiveApi
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
+
+    expect(screen.getByLabelText("API 接続モード")).toBeChecked();
+  });
+
+  it("モックへ繋いでいるときは、取りに行かない", () => {
+    render(
+      <DevSessionForm
+        action={issue}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
+
+    expect(screen.getByLabelText("API 接続モード")).not.toBeChecked();
+  });
+
+  it("取りに行く間は、貼る欄を出さない", () => {
+    render(
+      <DevSessionForm
+        action={issue}
+        connectsLiveApi
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
+
+    expect(screen.queryByLabelText("Access Token（任意）")).not.toBeInTheDocument();
+  });
+
+  it("取りに行くのをやめると、貼る欄が戻る", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <DevSessionForm
+        action={issue}
+        connectsLiveApi
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
+    await user.click(screen.getByLabelText("API 接続モード"));
+
+    expect(screen.getByLabelText("Access Token（任意）")).toBeVisible();
+  });
+
   it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(<DevSessionForm action={issue} returnUrl="/" />);
+    const { container } = render(
+      <DevSessionForm
+        action={issue}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
 
     expect((await axe(container)).violations).toEqual([]);
   });

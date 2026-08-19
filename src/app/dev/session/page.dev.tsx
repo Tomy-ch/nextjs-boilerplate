@@ -8,6 +8,8 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { getApiConfig } from "@/config/api/api.server";
+import { getAuthConfig } from "@/config/auth/auth.server";
 import { RETURN_URL_PARAM } from "@/features/dev-session/paths";
 import { DevSessionView } from "@/features/dev-session/view";
 import { toSafeReturnUrl } from "@/model/return-url";
@@ -57,6 +59,8 @@ export default async function DevSessionPage({
         </div>
       </PageHeader>
       <DevSessionView
+        connectsLiveApi={getApiConfig().mode === "live"}
+        defaultIssuer={getAuthConfig().issuer}
         discardAction={discardDevSessionAction}
         issueAction={issueDevSessionAction}
         returnUrl={toSafeReturnUrl(typeof returnUrl === "string" ? returnUrl : undefined)}

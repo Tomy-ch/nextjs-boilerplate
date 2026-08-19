@@ -40,7 +40,13 @@ const meta = {
       </ContentContainer>
     ),
   ],
-  args: { discardAction: noopDiscard, issueAction: noopIssue, returnUrl: "/" },
+  args: {
+    connectsLiveApi: false,
+    defaultIssuer: "https://idp.example.test",
+    discardAction: noopDiscard,
+    issueAction: noopIssue,
+    returnUrl: "/",
+  },
 } satisfies Meta<typeof DevSessionView>;
 
 export default meta;

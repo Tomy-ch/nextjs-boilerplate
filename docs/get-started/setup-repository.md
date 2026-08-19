@@ -192,6 +192,25 @@ make fetch-api
 make gen-api
 ```
 
+## 8. 認証済みの画面を手元で見る
+
+手元では `/dev/session` が開いており、**IdP のリダイレクトを通さずに session を発行できる**。
+主体と役割を決めて「この内容で入る」を押すと、指定した画面へ着地する。この口は開発と CI の手元の
+宛先でだけ開き、production build には route ごと入らない。
+
+実物のバックエンドへ繋いでいるときは、**「API 接続モード」を入れる**とアクセストークンもこの画面が
+取る。「IdP の接続先」は設定（`AUTH_ISSUER`）を初期値に置いているが書き換えられるので、**いま叩いて
+いる API と同じ組の IdP** を指すこと。口を分けて並行して立てていると、設定の値とずれる。
+
+トークンの取り方は
+[`src/adapters/server/auth/development-token.ts`](../../src/adapters/server/auth/development-token.ts)
+が 1 か所で持つ。相手は同じ作者の `go-boilerplate` が立てる mock OIDC サーバで、**標準の手順では
+ない**（本物の IdP で使ってはならない付与方式を、照合する相手が居ないから使っている）。**別の mock
+認証を使うなら、書き換えるのはこのファイルだけ**でよい。画面も Server Action も「主体と接続先を
+渡すとトークンが返る」ことしか知らない。
+
+詳しい使い方は [`src/features/dev-session/README.md`](../../src/features/dev-session/README.md)。
+
 ## 確認
 
 ```bash
