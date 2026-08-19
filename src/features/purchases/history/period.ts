@@ -4,7 +4,7 @@ import { PURCHASE_HISTORY_PATH } from "../facade/paths/paths";
 import type { RawSearchParams } from "./query";
 
 /** 期間の条件を載せる URL のキー。契約のクエリ名と揃える。 */
-export const PERIOD_KEY: Readonly<{
+const PERIOD_KEY: Readonly<{
   PERIOD: "period";
   FROM: "from";
   TO: "to";

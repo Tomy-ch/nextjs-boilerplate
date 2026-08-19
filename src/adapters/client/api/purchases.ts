@@ -6,7 +6,6 @@ import type { PurchaseHistoryPage } from "@/model/purchase/purchase";
 
 import {
   getPurchasesQueryDaysMax,
-  getPurchasesQueryFirstMax,
   getPurchasesQueryMonthRegExp,
 } from "../../gen/api/endpoints.zod";
 
@@ -21,9 +20,6 @@ export const PURCHASE_MONTH_PATTERN = getPurchasesQueryMonthRegExp;
 
 /** 直近 N 日で遡れる日数の上限。理由は {@link PURCHASE_MONTH_PATTERN} と同じ。 */
 export const PURCHASE_MAX_RECENT_DAYS = getPurchasesQueryDaysMax;
-
-/** 1 度の取得で読める件数の上限。理由は {@link PURCHASE_MONTH_PATTERN} と同じ。 */
-export const PURCHASE_LIST_MAX_ITEMS = getPurchasesQueryFirstMax;
 
 /**
  * BFF が返す履歴 1 ページの形。
