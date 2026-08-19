@@ -30,6 +30,12 @@ import { PurchasePeriodFields } from "../period-fields/period-fields";
  * **反映を待っている間も入力欄を押せるままにします。** 待っている間を塞ぐと、条件を続けて選ぶ
  * 操作がそのたびに止まります。代わりに支援技術へは `aria-busy` で伝えます。
  *
+ * **効いている期間は入力欄そのものが示します。** 条件が 1 つしか無いので、別に chip を並べても
+ * 同じことを 2 度言うだけです。確定していない下書きが入っている間だけ両者はずれますが、それは
+ * 「いま何に変えようとしているか」であって、隣に古い条件を置いても混乱が増えます。
+ *
+ * 名前を持たせて landmark にします。支援技術から絞り込みへ直接移動できます。
+ *
  * 出す幅の判断は持ちません。この帯を出す下限は
  * [0051](../../../../../../docs/adr/0051-styling-system.md) §2 が決めており、置く側が担います。
  */
@@ -47,7 +53,12 @@ export function PurchasePeriodBar() {
   );
 
   return (
-    <form aria-busy={pending} className="flex flex-col gap-3" onSubmit={submit}>
+    <form
+      aria-busy={pending}
+      aria-label="購入履歴の絞り込み"
+      className="flex flex-col gap-3"
+      onSubmit={submit}
+    >
       <PurchasePeriodFields draft={draft} onChange={change} />
       <div className="flex flex-wrap items-center gap-3">
         <Button

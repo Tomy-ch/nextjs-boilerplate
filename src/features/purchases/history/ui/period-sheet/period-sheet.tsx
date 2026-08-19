@@ -1,5 +1,6 @@
 "use client";
 
+import { ListFilterIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
@@ -15,16 +16,15 @@ import {
 } from "@/components/design-system/overlay/sheet/sheet";
 import { ActionBar } from "@/components/patterns/action-bar/action-bar";
 import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
-import { FilterBarTrigger } from "@/components/patterns/filter-bar/filter-bar";
 
 import { usePurchaseFilterDraft } from "../../filter-draft";
-import type { PeriodSelection } from "../../period";
+import { describePeriod, type PeriodSelection } from "../../period";
 import { describeMissing } from "../../period-draft";
 import { PurchasePeriodFields } from "../period-fields/period-fields";
 
 /** `PurchasePeriodSheet` の props。 */
 export type PurchasePeriodSheetProps = {
-  /** いま一覧に効いている期間。効いている数を操作へ出すために受け取る。 */
+  /** いま一覧に効いている期間。開く操作の文言に出すために受け取る。 */
   period: PeriodSelection;
 };
 
@@ -42,12 +42,14 @@ export type PurchasePeriodSheetProps = {
  * **開くときに下書きを捨てません。** 下書きは画面で 1 つで、一覧に効いている期間が変われば
  * そちらへ揃います。ここで戻すと、閉じる前に組みかけていた期間が消えます。
  *
- * 効いている条件の数を操作の中に出すのは、閉じている入力欄の中身が見えないためです。期間は
- * 1 つだけなので数は 0 か 1 で、何で絞られているかは帯の chip が示します。
+ * **効いている期間を開く操作の文言そのものにします。** 閉じているあいだ入力欄は見えないので、
+ * ここが唯一の表示になります。件数の印だけでは「何かで絞られている」までしか伝わらず、
+ * 何で絞られているかを見るために開くことになります。
  */
 export function PurchasePeriodSheet({ period }: PurchasePeriodSheetProps) {
   const [open, setOpen] = useState(false);
-  const { draft, applied, change, apply, reset } = usePurchaseFilterDraft();
+  const { draft, applied: draftPeriod, change, apply, reset } = usePurchaseFilterDraft();
+  const applied = describePeriod(period);
   const missing = describeMissing(draft);
 
   const confirm = useCallback(() => {
@@ -64,9 +66,10 @@ export function PurchasePeriodSheet({ period }: PurchasePeriodSheetProps) {
     <Sheet onOpenChange={setOpen} open={open}>
       <ActionBar position={ACTION_BAR_POSITION.FIXED}>
         <SheetTrigger asChild>
-          <FilterBarTrigger className="w-full" count={period.kind === "all" ? 0 : 1}>
-            期間で絞り込む
-          </FilterBarTrigger>
+          <Button className="w-full" variant={BUTTON_VARIANT.OUTLINE}>
+            <ListFilterIcon aria-hidden="true" />
+            {applied === null ? "期間で絞り込む" : `期間: ${applied}`}
+          </Button>
         </SheetTrigger>
       </ActionBar>
       <SheetContent className="flex flex-col" side="bottom">
@@ -81,7 +84,7 @@ export function PurchasePeriodSheet({ period }: PurchasePeriodSheetProps) {
           )}
         </div>
         <SheetFooter>
-          <Button disabled={applied === null} onClick={confirm} type="button">
+          <Button disabled={draftPeriod === null} onClick={confirm} type="button">
             この期間で見る
           </Button>
           <Button
