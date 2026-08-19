@@ -36,6 +36,7 @@ Accepted
 
 ```text
 src/adapters/
+├── http/     区画: adapters-http(実行文脈を持たない、両 element が従う規則)
 ├── server/   element: adapters/server
 └── client/   element: adapters/client
 ```
@@ -47,6 +48,7 @@ src/adapters/
 
 - **local ブラウザ API(#43 Web Storage・#44 client cookie 読み)は `adapters` でなく `capabilities`**([0022](0022-capabilities-kernel.md))。clipboard(#26)と同型 = browser runtime API であり外部システムではない
 - **宛先オリジン**: 同一オリジン BFF(`/api/*`)が主経路。**同一オリジン外への送信も、ADR が明示に許す場合に限り `adapters/client` が所有する**(#56 realtime のバックエンド直結 / managed サービス([0074](0074-runtime-communication-seam.md))・#13 presigned 直 PUT([0075](0075-file-upload-seam.md)。backend が multipart しか受けない構成では宛先は同一オリジン BFF になる))。telemetry / analytics は [0081](0081-observability-logging.md) により BFF 中継(外部直送禁止)
+- **実行文脈を持たない規則は、element の下ではなく区画へ置く**(`src/adapters/http/`)。要求 URL の予算のように server / client のどちらの送信にも等しく効く規則は、片方の element に置くともう片方から import できず、規則が 2 つに割れる。`architecture.ts` が `adapters-http` として宣言し、`adapters` の中からだけ届く
 - `features` は両 element の公開面を import 可。`capabilities` は `adapters` を import しない
 - ESLint boundaries を 2 element に割り、**secret / RSC 境界を機械強制**(server-only に client hook 混入・client に config import はエラー)
 
