@@ -56,7 +56,7 @@ export type DashboardQueryParseResult =
  *
  * **`range` のときに日付が揃っているかは見ません。** 契約はそれを満たさない要求を 400 で返し
  * ますが、日付をこれから選ぶ状態も同じ形になります。区別が付くのは画面の側なので、揃っているか
- * どうかの判断は `features/admin/dashboard/period.ts` が持ちます。
+ * どうかの判断は `features/admin/analytics/period.ts` が持ちます。
  */
 export function parseDashboardQuery(raw: RawDashboardQuery): DashboardQueryParseResult {
   const parsed = GetDashboardSummaryQueryParams.safeParse(raw);

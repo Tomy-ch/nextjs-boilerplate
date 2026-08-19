@@ -10,7 +10,7 @@ const CARD_COUNT = 4;
  * カードの枠と、その下に続く帯の高さを出します。スピナー 1 つで代用すると、描画された瞬間に
  * 高さが変わり、下に置いたものの位置が動きます。
  */
-export function AdminDashboardSkeleton() {
+export function AdminSummarySkeleton() {
   return (
     <div aria-hidden="true" className="space-y-8">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">

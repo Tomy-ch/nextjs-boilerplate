@@ -9,7 +9,7 @@ import {
 import {
   AdminAnalyticsPageContent,
   type RawSearchParams,
-} from "@/features/admin/dashboard/analytics-content";
+} from "@/features/admin/analytics/page-content";
 
 export const metadata: Metadata = {
   title: "集計",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
  *
  * **待機の境界をここに置きません。** 期間を選び直したときに待つのは集計だけで、選択肢まで
  * 置き換わると押したものが消えてから戻ってきます。境界の位置は中身が持ちます
- * （`features/admin/dashboard/analytics-content.tsx`）。
+ * （`features/admin/analytics/page-content.tsx`）。
  */
 export default async function AdminAnalyticsPage({
   searchParams,

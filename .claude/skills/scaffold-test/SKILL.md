@@ -202,7 +202,7 @@ its planned path and case list, so the agreement covers all of them at once:
 ```txt
 群: src/features/admin/dashboard/（test-requirement: feature）
 
-書き出し先: src/features/admin/dashboard/period.test.ts
+書き出し先: src/features/admin/analytics/period.test.ts
   describe("toPeriodRequest")
     ----- 正常系 -----
     - 日付の要らない区分はそのまま求められる形になる
@@ -213,7 +213,7 @@ its planned path and case list, so the agreement covers all of them at once:
     ----- 正常系 -----
     - 日付を持ち越さない
 
-書き出し先: src/features/admin/dashboard/ui/ranking-table/ranking-table.test.tsx
+書き出し先: src/features/admin/analytics/ui/ranking-table/ranking-table.test.tsx
   describe("RankingTable")
     ----- 空のとき -----
     - 行が無ければ、無いと判る文言を出す

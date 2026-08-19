@@ -4,9 +4,9 @@ import { Button } from "@/components/design-system/action/button/button";
 import type { DashboardSummary } from "@/model/dashboard/dashboard";
 
 import { ADMIN_ANALYTICS_PATH } from "../paths";
-import { toSummaryCards } from "./summary-cards";
-import { StatCards } from "./ui/stat-cards/stat-cards";
-import { StatusBreakdown } from "./ui/status-breakdown/status-breakdown";
+import { toSummaryCards } from "../summary-cards";
+import { StatCards } from "../ui/stat-cards/stat-cards";
+import { StatusBreakdown } from "../ui/status-breakdown/status-breakdown";
 
 /** `DashboardView` の props。 */
 export type DashboardViewProps = {

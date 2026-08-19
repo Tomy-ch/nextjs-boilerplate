@@ -1,8 +1,7 @@
 import type { DashboardSummary } from "@/model/dashboard/dashboard";
 import { formatMoney } from "@/model/money";
-
-import { ADMIN_PRODUCT_LIST_PATH } from "../paths";
 import { formatCount } from "./count";
+import { ADMIN_PRODUCT_LIST_PATH } from "./paths";
 
 /**
  * 数値カード 1 枚分。
@@ -43,7 +42,7 @@ export type SummaryCard = {
  * 期間に反応するのかが位置で読めます。
  *
  * 合計や割合を作りません。足し合わせてよい組み合わせがこの中に無いためで、画面が作れる数は
- * バックエンドが返していない数です（[0070](../../../../docs/adr/0070-backend-role-separation.md)）。
+ * バックエンドが返していない数です（[0070](../../../docs/adr/0070-backend-role-separation.md)）。
  *
  * **行き先は、数と母集団が一致するものにだけ添えます。** 押した先の件数が数と違うと、どちらかが
  * 誤っているように読めます。

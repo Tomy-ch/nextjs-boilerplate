@@ -1,9 +1,8 @@
 import { getDashboardSummary } from "@/adapters/server/api/dashboard";
-
+import { toSummaryCards } from "../summary-cards";
+import { StatCards } from "../ui/stat-cards/stat-cards";
+import { StatusBreakdown } from "../ui/status-breakdown/status-breakdown";
 import type { PeriodRequest } from "./period";
-import { toSummaryCards } from "./summary-cards";
-import { StatCards } from "./ui/stat-cards/stat-cards";
-import { StatusBreakdown } from "./ui/status-breakdown/status-breakdown";
 
 /** `AnalyticsSummarySection` の props。 */
 export type AnalyticsSummarySectionProps = {

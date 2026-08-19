@@ -7,7 +7,7 @@ import { axe } from "vitest-axe";
 
 import { DASHBOARD_PERIOD, type DashboardSummaryQuery } from "@/model/dashboard/dashboard";
 
-import { AnalyticsView } from "./analytics-view";
+import { AnalyticsView } from "./view";
 
 function renderView(query: DashboardSummaryQuery, window?: { from: string; to: string }) {
   return render(

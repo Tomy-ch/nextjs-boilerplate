@@ -5,12 +5,12 @@ import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-fee
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import { ADMIN_ANALYTICS_PATH } from "../paths";
-import { AnalyticsView } from "./analytics-view";
+import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
 import { PERIOD_KEY_LABEL, toPeriodRequest } from "./period";
 import { toPeriodWindow } from "./period-window";
 import { AnalyticsRankingSection } from "./ranking-section";
 import { AnalyticsSummarySection } from "./summary-section";
-import { AdminDashboardSkeleton } from "./ui/skeleton/skeleton";
+import { AnalyticsView } from "./view";
 
 /** page が受け取る素の `searchParams`。 */
 export type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -68,7 +68,7 @@ export function AdminAnalyticsPageContent({ searchParams }: { searchParams: RawS
         </Suspense>
       }
       summary={
-        <Suspense fallback={<AdminDashboardSkeleton />} key={JSON.stringify(request)}>
+        <Suspense fallback={<AdminSummarySkeleton />} key={JSON.stringify(request)}>
           <AnalyticsSummarySection request={request} />
         </Suspense>
       }

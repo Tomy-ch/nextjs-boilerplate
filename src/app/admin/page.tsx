@@ -8,7 +8,7 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { AdminDashboardPageContent } from "@/features/admin/dashboard/page-content";
-import { AdminDashboardSkeleton } from "@/features/admin/dashboard/ui/skeleton/skeleton";
+import { AdminSummarySkeleton } from "@/features/admin/ui/skeleton/skeleton";
 
 export const metadata: Metadata = {
   title: "ダッシュボード",
@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
           <PageHeaderDescription>今日の売上と、注文の状況を確認します。</PageHeaderDescription>
         </div>
       </PageHeader>
-      <Suspense fallback={<AdminDashboardSkeleton />}>
+      <Suspense fallback={<AdminSummarySkeleton />}>
         <AdminDashboardPageContent />
       </Suspense>
     </ContentContainer>

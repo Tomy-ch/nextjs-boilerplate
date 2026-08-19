@@ -4,9 +4,8 @@ import {
   StaticDataTable,
   type StaticDataTableColumn,
 } from "@/components/patterns/table/static-data/static-data";
-
+import { formatCount } from "../../../count";
 import { productDetailPath } from "../../../paths";
-import { formatCount } from "../../count";
 import type { AdminRankingRow } from "../../ranking-rows";
 
 /** `RankingTable` の props。 */

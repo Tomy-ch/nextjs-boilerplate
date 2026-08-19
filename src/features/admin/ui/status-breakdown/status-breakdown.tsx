@@ -30,13 +30,13 @@ const TITLE = "ステータス別の件数";
  * **合計を出しません。** ここに並ぶ件数はキャンセルを含み、数値カードの「売上の件数」は
  * キャンセルを除きます。足し合わせた数はどちらの母集団にも属さない第三の数になるため、
  * 画面が作れる数を置かない側に倒しています
- * （[0070](../../../../../../docs/adr/0070-backend-role-separation.md)）。
+ * （[0070](../../../../../docs/adr/0070-backend-role-separation.md)）。
  *
  * **並べ替えません。** 契約はステータスマスタの表示順で返します。件数の多い順へ組み替えると、
  * 期間を切り替えるたびに行の位置が動き、同じステータスを追えなくなります。
  *
  * 描くのは client island（`../status-chart/`）だけで、表はサーバに残します
- * （[0040](../../../../../../docs/adr/0040-routing-rendering-strategy.md)）。
+ * （[0040](../../../../../docs/adr/0040-routing-rendering-strategy.md)）。
  *
  * @see Storybook `Page/Admin/Dashboard`
  */

@@ -21,7 +21,7 @@ const CHART_CONFIG = {
  * @remarks
  * **これは補助であって、唯一の伝達手段ではありません。** 同じ内容は隣の表が数で持ちます
  * （`../status-breakdown/`）。形と色でしか読めない情報をここに置きません
- * （[0100](../../../../../../docs/adr/0100-accessibility-target.md)）。
+ * （[0100](../../../../../docs/adr/0100-accessibility-target.md)）。
  *
  * **tooltip も凡例も置きません。** tooltip は pointer を合わせている間だけ現れるため touch と
  * keyboard から到達できず、凡例は系列が 1 本しかない場では色の対応を説明する相手がいません。
@@ -32,10 +32,10 @@ const CHART_CONFIG = {
  *
  * **登場の動きを止めています。** 帯は幅 0 から伸びる動きを持ちますが、伸びきる前の姿も
  * 「その件数の帯」として読めてしまいます。止めれば基準画像も撮った時点に依存しません
- * （[0051](../../../../../../docs/adr/0051-styling-system.md) §3）。
+ * （[0051](../../../../../docs/adr/0051-styling-system.md) §3）。
  *
  * recharts が描画に実寸を要するため client island です
- * （[0040](../../../../../../docs/adr/0040-routing-rendering-strategy.md)）。取得も並べ替えも
+ * （[0040](../../../../../docs/adr/0040-routing-rendering-strategy.md)）。取得も並べ替えも
  * 持たず、渡された配列をそのまま描きます。
  *
  * @see Storybook `Page/Admin/Dashboard`

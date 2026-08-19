@@ -20,13 +20,13 @@ import {
 import { toProductId } from "@/model/product/product";
 
 import { ADMIN_ANALYTICS_PATH, ADMIN_DASHBOARD_PATH, ADMIN_PRODUCT_LIST_PATH } from "../paths";
-import { AnalyticsView } from "./analytics-view";
+import { toSummaryCards } from "../summary-cards";
+import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
+import { StatCards } from "../ui/stat-cards/stat-cards";
+import { StatusBreakdown } from "../ui/status-breakdown/status-breakdown";
 import type { AdminRankingRow } from "./ranking-rows";
-import { toSummaryCards } from "./summary-cards";
 import { RankingTable } from "./ui/ranking-table/ranking-table";
-import { AdminDashboardSkeleton } from "./ui/skeleton/skeleton";
-import { StatCards } from "./ui/stat-cards/stat-cards";
-import { StatusBreakdown } from "./ui/status-breakdown/status-breakdown";
+import { AnalyticsView } from "./view";
 
 const NAV_GROUPS: readonly AdminShellNavGroup[] = [
   {
@@ -223,7 +223,7 @@ export const SummaryPending: Story = {
   args: {
     query: { period: DASHBOARD_PERIOD.MONTH },
     window: { from: "2026-08-01", to: "2026-08-31" },
-    summary: <AdminDashboardSkeleton />,
+    summary: <AdminSummarySkeleton />,
   },
 };
 
