@@ -78,6 +78,15 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     path: "/checkout/complete?purchase=0195f0c2-0000-7000-9000-000000000001",
     signedIn: true,
   },
+  { route: "/purchases", name: "purchases", path: "/purchases", signedIn: true },
+  {
+    route: "/purchases/[id]",
+    name: "purchase-detail",
+    // モックは同じ URL へ同じ応答を返すため（`mocks/stable-responses.ts`）、ID を固定すれば
+    // 中身も固定される。存在する ID である必要はない — 契約駆動のモックはどの ID にも応える。
+    path: "/purchases/0195f0c2-0000-7000-9000-000000000001",
+    signedIn: true,
+  },
   { route: "/mypage", name: "mypage", path: "/mypage", signedIn: true },
   { route: "/mypage/edit", name: "profile-edit", path: "/mypage/edit", signedIn: true },
   { route: "/about", name: "about", path: "/about" },
