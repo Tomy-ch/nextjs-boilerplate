@@ -136,6 +136,7 @@ function product(overrides: Partial<Product> = {}): Product {
     category: { id: "c1", name: "オーディオ" },
     publishedAt: new Date("2026-07-01T00:00:00.000Z"),
     imagePaths: ["earphone.png"],
+    version: 1,
     ...overrides,
   };
 }

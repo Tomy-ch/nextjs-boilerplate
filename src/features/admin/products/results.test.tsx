@@ -42,6 +42,7 @@ function product(): Product {
     category: { id: "c1", name: "電子機器" },
     publishedAt: null,
     imagePaths: [],
+    version: 1,
   };
 }
 
