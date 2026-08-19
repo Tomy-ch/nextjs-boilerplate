@@ -42,16 +42,18 @@ export type WizardStep = {
 export type WizardSteps = readonly [WizardStep, ...WizardStep[]];
 
 /**
- * 通過済みの段階へ戻る操作。
+ * 到達済みの段階へ移る操作。
  *
  * @remarks
  * 段階ごとに切り出すのは、行き先を閉じ込めた handler を段階の数だけ作らないためです。
  */
 function WizardStepLink({
+  disabled,
   index,
   onSelect,
   title,
 }: {
+  disabled: boolean;
   index: number;
   onSelect: (index: number) => void;
   title: string;
@@ -60,7 +62,8 @@ function WizardStepLink({
 
   return (
     <button
-      className="cursor-pointer underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+      className="cursor-pointer underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+      disabled={disabled}
       onClick={select}
       type="button"
     >
@@ -105,7 +108,13 @@ export type WizardFormProps = {
  * は呼び出し元の `blocked` が持っており、飛ばして到達できると、その判定を迂回できてしまう。
  *
  * 印（通過済みかどうか）と押せるかどうかは別の条件で決まる。**到達しただけで通過はしていない
- * 段階**があるためで、そこへは行けるが印は付かない。
+ * 段階**があるためで、そこへは行けるが印は付かない。逆に、済ませた段階へ戻ったときは現在地に
+ * なっても印を残す —— 済ませたことと今どこに居るかは別の事実で、印が消えると済ませた入力まで
+ * 無かったことになったように見える。
+ *
+ * **今の段階を終えられないあいだは、先へは進捗からも行けない。** 「次へ」だけを止めても、
+ * 進捗から飛べては同じことになる。前へ戻る側は止めない —— 戻ることはその段階を済ませたと
+ * 主張しないため。
  *
  * 段階が変わったら、その段階の領域へ focus を移す。移さないと操作した button に focus が残り、
  * keyboard と読み上げの利用者には何が変わったのか伝わらない。最初の表示では移さない。
@@ -184,12 +193,18 @@ export function WizardForm({
           <StepperItem
             key={step.id}
             marker={index + 1}
+            passed={index < furthestIndex}
             state={stepState(index, currentIndex, furthestIndex)}
           >
             <ListItemContent>
               <ListItemTitle>
                 {index <= furthestIndex && index !== currentIndex ? (
-                  <WizardStepLink index={index} onSelect={goTo} title={step.title} />
+                  <WizardStepLink
+                    disabled={current.blocked === true && index > currentIndex}
+                    index={index}
+                    onSelect={goTo}
+                    title={step.title}
+                  />
                 ) : (
                   step.title
                 )}

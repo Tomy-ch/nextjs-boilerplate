@@ -128,6 +128,45 @@ describe("WizardForm", () => {
     expect(screen.queryByRole("button", { name: "完了" })).not.toBeInTheDocument();
   });
 
+  it("済ませた段階へ戻っても印は残る", () => {
+    render(
+      <WizardForm
+        label="利用申請"
+        steps={[
+          { id: "a", title: "入力", content: <p>入力の中身</p> },
+          { id: "b", title: "確認", content: <p>確認の中身</p> },
+        ]}
+        submit={<button type="submit">申請する</button>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    fireEvent.click(screen.getByRole("button", { name: "入力" }));
+
+    const [first] = screen.getAllByRole("listitem");
+
+    // 現在地であることは状態で示したまま、済ませた印を残す。
+    expect(first).toHaveAttribute("data-state", "current");
+    expect(first?.querySelector('[data-slot="stepper-item-marker"] svg')).toBeInTheDocument();
+    expect(first).toHaveTextContent("現在の段階・完了");
+  });
+
+  it("今の段階を終えられないあいだは、先の段階へ進捗からも行けない", () => {
+    render(
+      <WizardForm
+        label="利用申請"
+        steps={[
+          { id: "a", title: "入力", content: <p>入力の中身</p>, blocked: true },
+          { id: "b", title: "確認", content: <p>確認の中身</p> },
+        ]}
+        submit={<button type="submit">申請する</button>}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "次へ" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "確認" })).not.toBeInTheDocument();
+  });
+
   it("まだ到達していない段階は進捗から押せない", () => {
     render(
       <WizardForm

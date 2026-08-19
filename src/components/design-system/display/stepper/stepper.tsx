@@ -6,6 +6,7 @@ import { List, ListItem, ListItemMedia } from "@/components/design-system/displa
 import type { StepperOrientation } from "./stepper.definition";
 import {
   STEPPER_ORIENTATION,
+  STEPPER_PASSED_CURRENT_LABEL,
   STEPPER_STATE,
   STEPPER_STATE_LABEL,
   type StepperState,
@@ -83,6 +84,8 @@ export function Stepper({
  * 添える。
  *
  * @param props.state - 今どの位置にあるか。値の一覧は {@link STEPPER_STATE}。
+ * @param props.passed - 現在地であっても、既に済ませた段階か。印だけを `complete` と同じにし、
+ *   状態そのものは `current` のまま残す（現在地は 1 つに定まっている必要がある）。
  * @param props.marker - 印に出す番号。省略すると `complete` 以外の印は空になる。
  * @param props.stateLabel - 状態を読み上げへ伝える語。省略すると {@link STEPPER_STATE_LABEL}
  *   の既定を使う。「承認済み」「差し戻し」のように段階の呼び名が決まっている場合へ寄せられる。
@@ -94,6 +97,7 @@ export function StepperItem({
   state = STEPPER_STATE.UPCOMING,
   marker,
   stateLabel,
+  passed = false,
   children,
   className,
   ...props
@@ -101,8 +105,16 @@ export function StepperItem({
   state?: StepperState;
   marker?: ReactNode;
   stateLabel?: string;
+  passed?: boolean;
 }) {
   const complete = state === STEPPER_STATE.COMPLETE;
+  // 済ませたことと今どこに居るかは別の事実。現在地へ戻ったときに印が消えると、済ませた入力まで
+  // 無かったことになったように見える。
+  const showsCheck = complete || passed;
+  const defaultStateLabel =
+    passed && state === STEPPER_STATE.CURRENT
+      ? STEPPER_PASSED_CURRENT_LABEL
+      : STEPPER_STATE_LABEL[state];
 
   return (
     <ListItem
@@ -115,13 +127,13 @@ export function StepperItem({
       <ListItemMedia
         className={cn(
           "size-6 shrink-0 rounded-full border border-border text-xs font-emphasis",
-          complete ? "bg-foreground text-background" : "bg-background text-muted-foreground",
+          showsCheck ? "bg-foreground text-background" : "bg-background text-muted-foreground",
           state === STEPPER_STATE.CURRENT ? "border-foreground text-foreground" : "",
         )}
         data-slot="stepper-item-marker"
       >
-        {complete ? <CheckIcon aria-hidden="true" className="size-3.5" /> : (marker ?? null)}
-        <span className="sr-only">{stateLabel ?? STEPPER_STATE_LABEL[state]}</span>
+        {showsCheck ? <CheckIcon aria-hidden="true" className="size-3.5" /> : (marker ?? null)}
+        <span className="sr-only">{stateLabel ?? defaultStateLabel}</span>
       </ListItemMedia>
       {children}
     </ListItem>
