@@ -33,12 +33,11 @@ Accepted
 
 ### 2. レスポンシブ = viewport ブレークポイント(mobile-first)+ コンテナクエリ
 
-- **Tailwind v4 の既定ブレークポイント**(`sm` 40rem / `md` 48rem / `lg` 64rem / `xl` 80rem / `2xl` 96rem)を追認する。fork 先がカスタムスケールへ差し替える場合も `@theme` の `--breakpoint-*` で行う(値の選択は fork 先の嗜好)。
+- **Tailwind v4 の既定ブレークポイント**(`sm` / `md` / `lg` / `xl` / `2xl`)を追認する。**境界の値は design token が持ち、本 ADR は持たない** —— SSOT は `tokens/primitives.json` の `breakpoint` であり、そこから `@theme` の `--breakpoint-*` と `BREAKPOINT`(`src/model/generated/breakpoint.ts`)が生成される(§1 の生成物規律)。fork 先がカスタムスケールへ差し替える場合も token に対して行う(値の選択は fork 先の嗜好)。
 - **mobile-first(min-width 基準)を明文化**する。これは Tailwind の既定挙動であると同時に CSS の一般作法であり、Tailwind 固有ではない(0010 §2)。無印がモバイル、`md:` 等で上書き加算していく。
-- **段の呼び名を 3 つに固定する**: `md`(768px) 未満をモバイル、`md` 以上 `lg`(1024px) 未満をタブレット、`lg` 以上を PC とする。境界値は上の既定をそのまま使い、ここでは既定のどこに段の名前を割り当てるかだけを決める。
-  - **`md` ではなく `lg` を PC の下限に置く**根拠は、実機の縦持ち幅が 768〜1023px に集中する(768 / 820 / 834 が現行世代のタブレットに実在する)ことと、Storybook の既定 viewport が tablet を 834px と定義していることの 2 点。`md` を PC の下限にすると、その帯の実機が「脇に領域を持てる幅」として扱われる。
-  - **本文の脇に常設する領域(サイドバー・レール)は `lg` 以上でのみ出す。** 幅を占める領域を `md` から出すと、その帯で本文に残るのが 480px 前後になり、本文側が先に破綻する。`lg` 未満では本文へ**被せて**出す(overlay)。
-  - **常に届く必要がある操作は、脇の領域が無い帯(`lg` 未満)で画面下端に固定する。** 脇に常設できる幅では通常配置に戻す。同じ操作を 2 か所に置かないための帯の切り方であり、値は上の 1 本と揃える。
+- **段の呼び名を 3 つに固定する**: `md` 未満をモバイル、`md` 以上 `lg` 未満をタブレット、`lg` 以上を PC とする。境界は上の既定をそのまま使い、ここでは既定のどこに段の名前を割り当てるかだけを決める。
+  - **`md` ではなく `lg` を PC の下限に置く**根拠は、タブレットの縦持ち幅が `md` 以上 `lg` 未満の帯に集中することと、Storybook の既定 viewport が tablet をその帯に置いていることの 2 点。`md` を PC の下限にすると、その帯の実機が「脇に領域を持てる幅」として扱われる。
+  - **`lg` 未満は、本文の脇に幅を割けない帯である。** 幅を占める領域をこの帯から出すと、本文に残る幅がモバイルとほとんど変わらなくなり、本文側が先に破綻する。脇に常設できる帯とそうでない帯を分ける根拠はここにあり、そこから導かれる出し分け(常設か overlay か / 通常配置か下端固定か)は行動規約として [`docs/rules.md`](../rules.md) が持つ。
 - **コンテナクエリ(`@container`)を採用**する。これは Tailwind v4 のコア機能(プラグイン不要)であり、実体は **CSS 標準の `@container` / `container-type`**(Tailwind を抜いても成立 = 0010 §2)。
   - **使い分け**: ページ骨格・レイアウトシェル([0026](0026-layout-shell-mount.md))は **viewport ブレークポイント**、feature スライス内の再利用コンポーネントは **コンテナクエリ既定**。理由 = 機能スライスのコンポーネントは再利用文脈で割り当て幅が変わるため、viewport より「自分が置かれた器の幅」で分岐する方が局所推論に合う([0020](0020-adopted-architecture.md) の局所性原則)。
 
@@ -80,9 +79,7 @@ component 層を認めるのは、破棄の機構が入ったためである。*
 | **帯(viewport)** | 画面の骨格。どこに何を置くか、出すか出さないか | 脇の領域の有無、段組みの向き、被せるか並べるか |
 | **器の幅(container query)** | 部品の中身。同じ部品が広い場所にも狭い場所にも置かれるとき | カードの内部配置、行の折り返し |
 
-**部品の中身を帯で決めない。** 同じ部品が本文にも脇の狭い領域にも並ぶため、viewport で分けると置かれた場所によらず同じ形になる。
-
-**画面の骨格を器で決めない。** 骨格は帯の定義(§2)が持ち、器の幅に従わせると帯の宣言が二重になる。
+対象で決まるとしたのは、同じ部品が本文にも脇の狭い領域にも並ぶためである。部品の中身を viewport で分けると、置かれた場所によらず同じ形になる。逆に骨格を器の幅へ従わせると、帯の定義(§2)と器の宣言で境界が二重になる。**この 2 つを行動規約の形で持つのは [`docs/rules.md`](../rules.md) である。**
 
 器の幅で決める部品は、**親が `container-type` を持つことを前提にする**。その前提は story でも満たすこと(器を固定せずに撮った基準画像は実物と一致しない)。
 
@@ -90,7 +87,8 @@ component 層を認めるのは、破棄の機構が入ったためである。*
 
 - ❌ semantic 層を飛ばして primitive(生スケール)や色リテラルをコンポーネントに直接撒くこと(テーマ切替が token 差し替えに閉じなくなる。§1)
 - ❌ token 命名層(primitive / semantic)を無視した ad-hoc な CSS 変数を各所に増やすこと。新規 token は `@theme` の primitive か semantic 別名として定義する
-- ❌ feature スライス内の再利用コンポーネントのレスポンシブを、器の幅で分岐すべき箇所で viewport ブレークポイントに固定すること(§2 の使い分けに反する)
+- ❌ ブレークポイントの値(`rem` / `px`)を本 ADR 本文へ書くこと。段は名前(`sm` 〜 `2xl`)でだけ指し、値は design token を正とする(併記した時点で token を差し替えても ADR だけが取り残される。§2)
+- ❌ レスポンシブの**日常 rule**(脇に常設する領域を出す帯・常時到達させる操作の置き場・帯と器の使い分けを実装でどう守るか 等)を本 ADR や ADR 本文へ書き込むこと(rule は `rules.md` へ。[0140](0140-documentation-operations.md))
 - ❌ モーションを `prefers-reduced-motion` 分岐なしで実装すること(§3 / [0100](0100-accessibility-target.md))
 - ❌ CSS transition / animation / View Transitions で足りる単純モーションに Framer Motion を持ち出すこと(既定は標準手段。Framer は exit / layout / gesture / orchestration / spring の複雑ケースに限る。§3)
 - ❌ Framer Motion(`motion.*` / `AnimatePresence` 等)の vendor 直参照を feature スライスに散らすこと(vendor 参照は `components` 層に閉じ、差し替え可能に保つ。§3 / [0010](0010-standards-and-non-lockin.md))
@@ -103,7 +101,7 @@ component 層を認めるのは、破棄の機構が入ったためである。*
 - **モーションライブラリ採用の帰属**は 0050 系(本 ADR)と [0052](0052-ui-component-policy.md)(UI ライブラリ)で射程が重なる。モーション手段(既定 = CSS / View Transitions、複雑ケース = Framer Motion)の**採用決定は本 ADR が所有**する。0052 が扱う UI コンポーネントライブラリ(shadcn/ui 等)とは関心が別のため、モーションは本 ADR 側で一元管理する。
 - **`prefers-reduced-motion` 必須化の根拠水準**は本 ADR で明記する。reduced-motion 尊重は WCAG SC 2.3.3(**Level AAA**)に対応し、AA には直接の該当 SC がない —— したがって [0100](0100-accessibility-target.md)(a11y AA 目標)は motion 尊重を直接の義務としては持たない。本 ADR は AA 準拠とは独立に、ユーザ体験配慮として `prefers-reduced-motion` を必須とする立場を採り、その強制根拠水準(AAA)は本 ADR 側で明記して齟齬を残さない。
 - **reduced-motion で「止める」と決めた表現は、止めた状態で何も伝わらなくならないことまでを含む。** 動きだけで進行中を示す表現(帯の流れ等)は、停止時に代替の手掛かり(骨格表示・待機文言)を併用する前提で設計する。
-- 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーにおいて **decision** 分類に属する(体系の決定であり、日常強制される rule = Tailwind クラス順序等は `docs/rules.md` 側 / triage #34)。
+- 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーにおいて **decision** 分類に属する(体系の決定であり、日常強制される rule = Tailwind クラス順序・帯ごとの出し分け等は [`docs/rules.md`](../rules.md) 側)。**value** はさらに別で、ブレークポイントの幅は `tokens/primitives.json` が持つ。3 者を同じ本文に同居させると、token を差し替えたときに ADR の記述だけが取り残される。
 
 ## 関連 ADR
 
