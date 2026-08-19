@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import type { AddressCandidate } from "@/model/user/user";
 
+import { request } from "../http/request";
+
 /**
  * BFF が返す候補の形。
  *
@@ -36,17 +38,13 @@ export async function fetchAddressCandidates(
   signal?: AbortSignal,
 ): Promise<readonly AddressCandidate[]> {
   try {
-    const response = await fetch(`/api/addresses?postalCode=${encodeURIComponent(postalCode)}`, {
+    const { candidates } = await request(
+      `/api/addresses?postalCode=${encodeURIComponent(postalCode)}`,
+      AddressCandidatesPayload,
       signal,
-    });
+    );
 
-    if (!response.ok) {
-      return [];
-    }
-
-    const parsed = AddressCandidatesPayload.safeParse(await response.json());
-
-    return parsed.success ? parsed.data.candidates : [];
+    return candidates;
   } catch {
     return [];
   }

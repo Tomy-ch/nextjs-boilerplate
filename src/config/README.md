@@ -90,5 +90,5 @@ OTel SDK と logger へ値を注入します。Config 自身は logger / observa
 
 - `process.env` の直読はこのカーネルだけに置く。
 - server config は `import "server-only"` で保護し、`adapters/server` と起動・ビルド境界だけが import する。
-- client config は `NEXT_PUBLIC_` の静的ドット参照だけを持つ `*.client.ts` に置く（`http/http.client.ts`）。server config の値を props として client へ渡さない。
+- client config は `NEXT_PUBLIC_` の静的ドット参照だけを持つ `*.client.ts` に置く（`http/http.client.ts`）。読み取りは遅延させ、import しただけでは評価しない。server config の値を props として client へ渡さない。
 - 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.md) を正とする。

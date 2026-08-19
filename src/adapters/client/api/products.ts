@@ -1,12 +1,11 @@
 import { z } from "zod";
 
-import { createAppError } from "@/errors/app-error";
-import { ErrorKind } from "@/errors/error-kind";
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
 import { productIdSchema } from "@/model/product/product";
 
 import { getProductsQueryFirstMax } from "../../gen/api/endpoints.zod";
+import { request } from "../http/request";
 
 /**
  * 1 度の取得で読める件数の上限。
@@ -92,21 +91,4 @@ export async function fetchProductCount(
   );
 
   return count;
-}
-
-/** 同一オリジンの BFF を叩き、応答を検証して返す。 */
-async function request<T>(url: string, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(url, { headers: { accept: "application/json" }, signal });
-
-  if (!response.ok) {
-    throw createAppError(response.status === 400 ? ErrorKind.INVALID_ARGUMENT : ErrorKind.INTERNAL);
-  }
-
-  const parsed = schema.safeParse(await response.json());
-
-  if (!parsed.success) {
-    throw createAppError(ErrorKind.INTERNAL, { cause: parsed.error });
-  }
-
-  return parsed.data;
 }

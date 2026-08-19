@@ -2,7 +2,7 @@ import "server-only";
 
 import type { ZodType } from "zod";
 
-import { assertUrlWithinBudget } from "@/adapters/http/url-budget";
+import { assertRequestTargetWithinBudget } from "@/adapters/http/url-budget";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
@@ -182,7 +182,7 @@ function buildUrl(
   baseUrl: string,
   path: string,
   searchParams?: RequestSpec<unknown>["searchParams"],
-): string {
+): URL {
   const url = ABSOLUTE_URL_PATTERN.test(path)
     ? new URL(path)
     : new URL(`${baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`);
@@ -197,7 +197,7 @@ function buildUrl(
     }
   }
 
-  return url.toString();
+  return url;
 }
 
 /**
@@ -239,8 +239,8 @@ export function createHttpClient({
    * 載せると資格情報がその宛先へ渡ります。宛先は Discovery のような外の応答から来ることが
    * あり、呼び出し側が相対パスしか渡さない慣習だけでは止まりません。
    */
-  async function authorizationHeader(url: string): Promise<Record<string, string>> {
-    if (getBearerToken === undefined || new URL(url).origin !== new URL(baseUrl).origin) {
+  async function authorizationHeader(url: URL): Promise<Record<string, string>> {
+    if (getBearerToken === undefined || url.origin !== new URL(baseUrl).origin) {
       return {};
     }
 
@@ -260,7 +260,7 @@ export function createHttpClient({
   }
 
   async function attempt(
-    url: string,
+    url: URL,
     spec: RequestSpec<unknown>,
     signal: AbortSignal,
     authorization: Record<string, string>,
@@ -268,7 +268,7 @@ export function createHttpClient({
     const timeout = AbortSignal.timeout(profile.perAttemptTimeoutMs);
     const payload = encodePayload(spec);
 
-    return fetchImpl(url, {
+    return fetchImpl(url.toString(), {
       method: spec.method ?? "GET",
       signal: AbortSignal.any([signal, timeout]),
       headers: { ...payload?.headers, ...spec.headers, ...authorization },
@@ -282,9 +282,9 @@ export function createHttpClient({
     async request<T>(spec: RequestSpec<T>): Promise<T> {
       const url = buildUrl(baseUrl, spec.path, spec.searchParams);
 
-      // 遮断の判定より先に確かめる。予算を超えた URL は接続先の状態によらず通らないため、
+      // 遮断の判定より先に確かめる。予算を超えた要求は接続先の状態によらず通らないため、
       // 遮断中に投げる `unavailable` で覆うと、直せる入力の誤りが一時的な障害に見える。
-      assertUrlWithinBudget(url, maxUrlBytes);
+      assertRequestTargetWithinBudget(`${url.pathname}${url.search}`, maxUrlBytes);
 
       if (!breaker.canAttempt()) {
         throw createAppError(ErrorKind.UNAVAILABLE, {

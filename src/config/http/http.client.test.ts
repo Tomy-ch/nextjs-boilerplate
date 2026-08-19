@@ -9,20 +9,27 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("MAX_URL_BYTES", () => {
+describe("getMaxUrlBytes", () => {
   // ----- 正常系 -----
   it("ブラウザへ渡された上限をバイト数として読む", async () => {
     vi.stubEnv("NEXT_PUBLIC_HTTP_MAX_URL_BYTES", "8000");
+    const { getMaxUrlBytes } = await import("./http.client");
 
-    const { MAX_URL_BYTES } = await import("./http.client");
+    expect(getMaxUrlBytes()).toBe(8000);
+  });
 
-    expect(MAX_URL_BYTES).toBe(8000);
+  it("2 度目以降は同じ値を返す", async () => {
+    vi.stubEnv("NEXT_PUBLIC_HTTP_MAX_URL_BYTES", "8000");
+    const { getMaxUrlBytes } = await import("./http.client");
+
+    expect(getMaxUrlBytes()).toBe(getMaxUrlBytes());
   });
 
   // ----- 異常系 -----
-  it("上限が届いていなければ読み込みを断る", async () => {
+  it("上限が届いていなければ読み取りを断る", async () => {
     vi.stubEnv("NEXT_PUBLIC_HTTP_MAX_URL_BYTES", undefined);
+    const { getMaxUrlBytes } = await import("./http.client");
 
-    await expect(import("./http.client")).rejects.toThrow();
+    expect(() => getMaxUrlBytes()).toThrow();
   });
 });

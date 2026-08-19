@@ -22,6 +22,11 @@ export default defineConfig({
     // あちらに居るのは lint とゲートそのもので、落ちたときにアプリの退行と読み違えたくない。
     include: ["{src,tokens,docs-viewer,mocks,eslint-rules,vrt,e2e}/**/*.test.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],
+    // `NEXT_PUBLIC_` の値はビルド時にリテラルへ置換される。テストの実行もその置換を行う側なので、
+    // ここで供給しないと client config を読む経路が値を受け取れない。
+    env: {
+      NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
+    },
     coverage: {
       provider: "v8",
       // テストを持つ範囲は実行対象と計測対象を揃える。片方だけ広げると、テストは走るのに
