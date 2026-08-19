@@ -3,13 +3,13 @@
 import { useCallback, useId, useState } from "react";
 
 import { cn } from "@/components/cn";
-import { Toggle } from "@/components/design-system/action/toggle/toggle";
 import {
   BASE_CURRENCY,
   formatMoney,
   formatReferenceAmount,
   type ReferenceAmount,
 } from "@/model/money";
+import { Toggle } from "../../action/toggle/toggle";
 
 /** `AmountWithReference` の props。 */
 export type AmountWithReferenceProps = {
@@ -36,6 +36,21 @@ const SHOW_REFERENCE_LABEL = "円で見る";
  * 対応していないのかを利用者から区別できません。
  *
  * レートと基準日を添えるのは、いつの相場による目安かが判らなければ参考にならないためです。
+ *
+ * 何の金額かは持ちません。見出しは呼び出し側が渡します。
+ *
+ * @example
+ * ```tsx
+ * import { AmountWithReference } from "@/components/design-system/display/amount-with-reference/amount-with-reference";
+ *
+ * <AmountWithReference amount={21_287} label="合計" reference={reference} />;
+ * ```
+ *
+ * @param props.label - 金額の見出し。
+ * @param props.amount - 基準通貨の金額。最小単位の整数。
+ * @param props.reference - 表示通貨での参考換算額。読めなければ null。
+ * @param props.size - 金額の大きさ。
+ * @see Storybook `Display/AmountWithReference`
  */
 export function AmountWithReference({
   label,

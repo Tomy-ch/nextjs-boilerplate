@@ -90,12 +90,14 @@ describe("getMyPurchases", () => {
     expect(page.items[0]).not.toHaveProperty("statusId");
   });
 
-  it("取得件数の上限をクエリへ載せる", async () => {
+  it("取得件数の上限と期間の区分をクエリへ載せる", async () => {
     const fetchImpl = stubFetch(wirePage);
 
     await getMyPurchases(HISTORY_QUERY);
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/purchases?first=10");
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/v1/purchases?first=10&period=all",
+    );
   });
 
   it("次ページのカーソルを引き継ぐ", async () => {

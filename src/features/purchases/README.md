@@ -28,11 +28,18 @@ test-requirement: feature
 | ファイル | 役割 |
 | --- | --- |
 | `facade/paths/` | この feature が持つ 2 つのルート。マイページと購入完了（別 feature）の導線が参照する |
+| `facade/receipt/` | 購入の控え（注文番号・注文日時・状況）。**購入完了も同じ形で出す** |
+| `facade/lines/` | 結合済みの明細。**購入完了も同じ形で出す** |
+| `facade/amount-summary/` | 請求額の内訳と円の参考換算額。**購入完了も同じ形で出す** |
+| `facade/status-emphasis/` | ステータスの名称から badge の見た目を選ぶ。3 つに束ねる |
 | `purchases.fixture.ts` | story とテストが使う固定の購入 |
-| `status-emphasis.ts` | ステータスの名称から badge の見た目を選ぶ。3 つに束ねる |
+| `history/query.ts` | 画面が受け取る素の条件と、ページ送りの寸法（件数・カーソルのキー） |
 | `history/period.ts` | 期間の条件。URL のキー・読み取り・URL の組み立て・利用者への言い換え |
 | `history/period-draft.ts` | 組み立て中の期間。入力欄が経由する途中の姿と、確定できるかの判定 |
+| `history/page-content.tsx` | 先頭ページの取得と組み立て |
+| `history/use-infinite-purchases.ts` | 2 ページ目以降の取得と末尾到達の検知 |
 | `history/view.tsx` | 一覧の画面。絞り込みと一覧本体を組む |
+| `history/ui/infinite-list/` | 読み進められる一覧。取得と見た目をつなぐ |
 | `history/filter-draft.tsx` | 組み立て中の期間の供給。幅で 2 か所に現れる入力欄を 1 つに保つ |
 | `history/ui/period-fields/` | 期間の入力欄。区分と、その区分が使う入力欄。確定は持たない |
 | `history/ui/period-bar/` | 帯の中に常設する絞り込み。一覧が隣に見えている幅で使う |
@@ -41,10 +48,8 @@ test-requirement: feature
 | `history/ui/purchase-list/` | 読み進めた一覧の見た目。取得中・末尾到達・失敗を描き分ける |
 | `history/ui/empty/` | 並べるものが無いときの表示 |
 | `history/ui/skeleton/` | 一覧の待機表示 |
-| `detail/view.tsx` | 詳細の画面。パンくずと 3 つの塊を組む |
-| `detail/ui/receipt/` | 購入の控え（注文番号・注文日時・状況） |
-| `detail/ui/amount-summary/` | 請求額の内訳と、円の参考換算額の切り替え |
-| `detail/ui/lines/` | 結合済みの明細 |
+| `detail/page-content.tsx` | 1 件の取得。`not-found` の分類もここで受ける |
+| `detail/view.tsx` | 詳細の画面。パンくずと `facade` の 3 つの塊を組む |
 | `detail/ui/skeleton/` | 詳細の待機表示 |
 
 ## 設計
@@ -66,5 +71,9 @@ test-requirement: feature
   chip で並べてまとめて解除する導線を持ちます。期間ひとつなら入力欄そのものが効いている条件の表示に
   なり、chip はその写しにしかなりません。overlay の中にあって入力欄が見えない幅では、開く操作の文言に
   効いている期間を出します
+- **購入の表示は `facade` が持ちます。** 控え・明細・内訳は購入完了（`checkout`）も同じものを出します。
+  同じ購入が画面によって違う見え方になると、控えとして突き合わせられません。`components` へ上げられない
+  のは、いずれも題材の語彙（注文・購入）を持ち、コア残留の検査に弾かれるためです
+  （[0021](../../../docs/adr/0021-frontend-responsibility.md)）
 - **続きを読む操作は失敗したときだけ出します。** 読み進めている間は末尾に近づくだけで次が始まるため、
   同じことをする入口を並べても選ぶ手数が増えるだけです

@@ -1,3 +1,4 @@
+import { Badge } from "@/components/design-system/display/badge/badge";
 import {
   Card,
   CardContent,
@@ -13,9 +14,11 @@ import {
 import { formatDateTime } from "@/model/datetime";
 import type { Purchase } from "@/model/purchase/purchase";
 
-/** `PurchaseReceipt` の props。 */
-export type PurchaseReceiptProps = {
-  /** 成立した購入。 */
+import { toStatusEmphasis } from "../status-emphasis/status-emphasis";
+
+/** `PurchaseReceiptCard` の props。 */
+export type PurchaseReceiptCardProps = {
+  /** 表示する購入。 */
   purchase: Purchase;
 };
 
@@ -25,8 +28,16 @@ export type PurchaseReceiptProps = {
  * @remarks
  * 見せる識別子は購入コードです。取得に使う ID は利用者が問い合わせに持ち出せる値ではないため、
  * 画面には出しません。
+ *
+ * 折り返しを許すのは、契約が返すのが UUID で、狭い幅では 1 行に収まらないためです。詰めて隠すと、
+ * 問い合わせのときに全文を読み取れません。
+ *
+ * 状況だけ badge にするのは、一覧の行と同じ色で同じ状態を示すためです。一覧で赤かった購入が
+ * 詳細では地の文になっていると、同じことを言っているのかが読み取れません。
+ *
+ * 購入完了と購入詳細の両方がこれを出すため `facade` に置いています。
  */
-export function PurchaseReceipt({ purchase }: PurchaseReceiptProps) {
+export function PurchaseReceiptCard({ purchase }: PurchaseReceiptCardProps) {
   return (
     <Card>
       <CardHeader>
@@ -36,7 +47,7 @@ export function PurchaseReceipt({ purchase }: PurchaseReceiptProps) {
         <KeyValueList>
           <KeyValueItem>
             <KeyValueLabel>注文番号</KeyValueLabel>
-            <KeyValueValue className="break-all">{purchase.code}</KeyValueValue>
+            <KeyValueValue className="break-all font-mono">{purchase.code}</KeyValueValue>
           </KeyValueItem>
           <KeyValueItem>
             <KeyValueLabel>注文日時</KeyValueLabel>
@@ -44,7 +55,9 @@ export function PurchaseReceipt({ purchase }: PurchaseReceiptProps) {
           </KeyValueItem>
           <KeyValueItem>
             <KeyValueLabel>状況</KeyValueLabel>
-            <KeyValueValue>{purchase.statusName}</KeyValueValue>
+            <KeyValueValue>
+              <Badge variant={toStatusEmphasis(purchase.statusName)}>{purchase.statusName}</Badge>
+            </KeyValueValue>
           </KeyValueItem>
         </KeyValueList>
       </CardContent>

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { PURCHASE_DETAIL, TOTAL_REFERENCE } from "../../../purchases.fixture";
+import { PURCHASE_DETAIL, TOTAL_REFERENCE } from "../purchase.fixture";
 import { PurchaseAmountSummary } from "./amount-summary";
 
 const meta = {

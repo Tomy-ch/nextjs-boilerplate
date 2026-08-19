@@ -10,7 +10,7 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { PURCHASE_HISTORY_PATH } from "@/features/purchases/facade/paths/paths";
 import { PurchaseHistoryPageContent } from "@/features/purchases/history/page-content";
-import type { RawSearchParams } from "@/features/purchases/history/period";
+import type { RawSearchParams } from "@/features/purchases/history/query";
 import { toSafeReturnUrl } from "@/model/return-url";
 
 export const metadata: Metadata = {

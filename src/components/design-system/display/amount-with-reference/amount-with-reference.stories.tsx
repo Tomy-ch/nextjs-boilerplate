@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { SUBTOTAL_REFERENCE } from "../../checkout.fixture";
 import { AmountWithReference } from "./amount-with-reference";
 
 const meta = {
-  title: "Features/Checkout/AmountWithReference",
+  title: "Display/AmountWithReference",
   component: AmountWithReference,
   parameters: {
     layout: "centered",
@@ -27,12 +26,20 @@ const meta = {
   ],
 } satisfies Meta<typeof AmountWithReference>;
 
+/** 参考換算額の例。レートと基準日は「いつの相場か」を示すために必ず添える。 */
+const REFERENCE = {
+  currency: "JPY",
+  amount: 28_346,
+  rate: "150.00",
+  rateDate: "2026-08-17",
+};
+
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** 参考換算額を引けた状態。切り替えを押すと参考の行が現れる。 */
 export const WithReference: Story = {
-  args: { amount: 18_897, label: "小計", reference: SUBTOTAL_REFERENCE },
+  args: { amount: 18_897, label: "小計", reference: REFERENCE },
 };
 
 /** 参考換算額を引けなかった状態。切り替えを出さない。 */
@@ -42,5 +49,5 @@ export const WithoutReference: Story = {
 
 /** 脇に添える大きさ。器の中で他の情報と並ぶときに使う。 */
 export const Compact: Story = {
-  args: { amount: 21_287, label: "合計", reference: SUBTOTAL_REFERENCE, size: "compact" },
+  args: { amount: 21_287, label: "合計", reference: REFERENCE, size: "compact" },
 };

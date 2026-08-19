@@ -6,7 +6,8 @@ import { fetchPurchaseHistoryPage } from "@/adapters/client/api/purchases";
 import { appendCursorPage, type CursorPage } from "@/model/pagination";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
 
-import { COUNT_KEY, CURSOR_KEY, type PeriodSelection, toPeriodSearchParams } from "./period";
+import { type PeriodSelection, toPeriodSearchParams } from "./period";
+import { COUNT_KEY, CURSOR_KEY } from "./query";
 import type { PurchaseLoadMoreState } from "./ui/purchase-list/purchase-list";
 
 /** 末尾に近づいたと見なす距離。画面に入り切る前に読み始めて、待たせる時間を短くする。 */

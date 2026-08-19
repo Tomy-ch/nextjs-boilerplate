@@ -6,9 +6,9 @@ import {
 } from "@/components/design-system/display/card/card";
 import type { PurchaseLine } from "@/model/purchase/purchase";
 
-/** `PurchaseLines` の props。 */
-export type PurchaseLinesProps = {
-  /** 成立した購入の明細。 */
+/** `PurchaseLineList` の props。 */
+export type PurchaseLineListProps = {
+  /** 購入した明細。 */
   lines: readonly PurchaseLine[];
 };
 
@@ -19,10 +19,12 @@ export type PurchaseLinesProps = {
  * 単価は**購入した時点の値**です。商品の現在価格が変わっても動きません。商品名だけは現在の
  * 名称で解決されて届くため、名前と単価は別の時点を指しています。
  *
+ * 購入完了と購入詳細の両方がこれを出すため `facade` に置いています。
+ *
  * 行ごとの金額は出しません。単価と数量を掛けると、画面が金額を作ることになります。合算した
- * 値は内訳が持ちます（[0070](../../../../../docs/adr/0070-backend-role-separation.md)）。
+ * 値は内訳が持ちます（[0070](../../../../docs/adr/0070-backend-role-separation.md)）。
  */
-export function PurchaseLines({ lines }: PurchaseLinesProps) {
+export function PurchaseLineList({ lines }: PurchaseLineListProps) {
   return (
     <Card>
       <CardHeader>

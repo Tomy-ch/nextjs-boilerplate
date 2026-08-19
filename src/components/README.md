@@ -348,6 +348,7 @@ trigger から本文の上へ面を開く部品。
 | component | 概要 |
 | --- | --- |
 | [`activity-timeline`](./design-system/display/activity-timeline/README.md) | 起きた出来事を時刻順に並べて表示する |
+| [`amount-with-reference`](./design-system/display/amount-with-reference/README.md) | 金額と、切り替えで現れる別通貨の参考換算額を表示する |
 | [`avatar`](./design-system/display/avatar/README.md) | 利用者や組織を小さな円形で識別する |
 | [`badge`](./design-system/display/badge/README.md) | 短い分類や状態を視覚的に補助する |
 | [`bubble`](./design-system/display/bubble/README.md) | 発話や通知の 1 かたまりを吹き出しとして表示する。`Message` の中では送信者の向きへ追従する |

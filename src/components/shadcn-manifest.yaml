@@ -470,6 +470,13 @@ components:
         localPath: src/components/design-system/display/avatar/avatar.tsx
         commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
         committedAt: 2026-03-02T08:49:00Z
+  amount-with-reference:
+    kind: original
+    layer: design-system
+    as: display
+    directory: src/components/design-system/display/amount-with-reference
+    dependencies: []
+    addedAt: 2026-08-19T00:00:00.000Z
   badge:
     kind: copy-in
     layer: design-system

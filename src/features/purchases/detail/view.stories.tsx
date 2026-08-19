@@ -8,7 +8,7 @@ import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import { useCartStore } from "@/stores/cart-store";
 
-import { PURCHASE_DETAIL, SINGLE_LINE_PURCHASE, TOTAL_REFERENCE } from "../purchases.fixture";
+import { PURCHASE_DETAIL, SINGLE_LINE_PURCHASE, TOTAL_REFERENCE } from "../facade/purchase.fixture";
 import { PurchaseDetailView } from "./view";
 
 const NAV_ITEMS = [

@@ -1,18 +1,7 @@
 import { PURCHASE_MAX_RECENT_DAYS, PURCHASE_MONTH_PATTERN } from "@/adapters/client/api/purchases";
 
 import { PURCHASE_HISTORY_PATH } from "../facade/paths/paths";
-
-/** page が受け取る素の `searchParams`。 */
-export type RawSearchParams = Record<string, string | string[] | undefined>;
-
-/** 一覧が 1 度に読み込む件数。 */
-export const PURCHASE_PAGE_SIZE = 20;
-
-/** ページ送りのカーソルを載せる URL のキー。契約のクエリ名と揃える。 */
-export const CURSOR_KEY = "after";
-
-/** 読み込む件数を載せる URL のキー。契約のクエリ名と揃える。 */
-export const COUNT_KEY = "first";
+import type { RawSearchParams } from "./query";
 
 /** 期間の条件を載せる URL のキー。契約のクエリ名と揃える。 */
 export const PERIOD_KEY: Readonly<{

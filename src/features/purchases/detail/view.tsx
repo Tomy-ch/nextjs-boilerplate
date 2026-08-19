@@ -14,11 +14,10 @@ import {
 import { PRODUCT_LIST_PATH } from "@/features/products/facade/list-url/list-url";
 import type { ReferenceAmount } from "@/model/money";
 import type { Purchase } from "@/model/purchase/purchase";
-
+import { PurchaseAmountSummary } from "../facade/amount-summary/amount-summary";
+import { PurchaseLineList } from "../facade/lines/lines";
 import { PURCHASE_HISTORY_PATH } from "../facade/paths/paths";
-import { PurchaseAmountSummary } from "./ui/amount-summary/amount-summary";
-import { PurchaseLineList } from "./ui/lines/lines";
-import { PurchaseReceiptCard } from "./ui/receipt/receipt";
+import { PurchaseReceiptCard } from "../facade/receipt/receipt";
 
 /** `PurchaseDetailView` の props。 */
 export type PurchaseDetailViewProps = {

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { PURCHASE_DETAIL, SINGLE_LINE_PURCHASE } from "../../../purchases.fixture";
+import { PURCHASE_DETAIL, SINGLE_LINE_PURCHASE } from "../purchase.fixture";
 import { PurchaseLineList } from "./lines";
 
 const meta = {

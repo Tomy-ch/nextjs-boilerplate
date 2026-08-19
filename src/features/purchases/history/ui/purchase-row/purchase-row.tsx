@@ -6,7 +6,7 @@ import { formatDateTime } from "@/model/datetime";
 import { formatMoney } from "@/model/money";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
 
-import { toStatusEmphasis } from "../../../status-emphasis";
+import { toStatusEmphasis } from "../../../facade/status-emphasis/status-emphasis";
 
 /** `PurchaseRow` の props。 */
 export type PurchaseRowProps = {

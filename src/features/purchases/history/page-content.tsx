@@ -4,13 +4,12 @@ import { getMyPurchases } from "@/adapters/server/api/purchases";
 
 import {
   type PeriodSelection,
-  PURCHASE_PAGE_SIZE,
-  type RawSearchParams,
   toPeriodSearchParams,
   toPeriodSelection,
   toPurchaseHistoryHref,
   toPurchaseHistoryQuery,
 } from "./period";
+import { PURCHASE_PAGE_SIZE, type RawSearchParams } from "./query";
 import { PurchaseHistoryEmpty } from "./ui/empty/empty";
 import { PurchaseInfiniteList } from "./ui/infinite-list/infinite-list";
 import { PurchaseHistorySkeleton } from "./ui/skeleton/skeleton";
