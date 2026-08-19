@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 const { getMyPurchases } = vi.hoisted(() => ({ getMyPurchases: vi.fn() }));
 
@@ -61,5 +62,19 @@ describe("PurchaseHistoryResults", () => {
       "href",
       "/purchases",
     );
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(await PurchaseHistoryResults({ period: { kind: "all" } }));
+
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
+  it("並べるものが無いときも a11y 自動検査に違反しない", async () => {
+    getMyPurchases.mockResolvedValue({ items: [], nextCursor: null });
+
+    const { container } = render(await PurchaseHistoryResults({ period: { kind: "all" } }));
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

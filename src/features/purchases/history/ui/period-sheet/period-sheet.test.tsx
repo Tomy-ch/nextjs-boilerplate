@@ -63,6 +63,14 @@ describe("PurchasePeriodSheet", () => {
     expect(await screen.findByRole("button", { name: "全期間に戻す" })).toBeDisabled();
   });
 
+  it("全期間のまま区分だけ選び替えたら、全期間へ戻す操作を押せる", async () => {
+    renderSheet();
+    await userEvent.click(screen.getByRole("button", { name: /期間で絞り込む/ }));
+    await userEvent.click(await screen.findByRole("radio", { name: "月で指定" }));
+
+    expect(screen.getByRole("button", { name: "全期間に戻す" })).toBeEnabled();
+  });
+
   it("確定で、組み立てた期間の URL へ送る", async () => {
     renderSheet();
     await userEvent.click(screen.getByRole("button", { name: /期間で絞り込む/ }));

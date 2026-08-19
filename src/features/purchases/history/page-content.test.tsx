@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("./results", () => ({
@@ -31,9 +32,15 @@ describe("PurchaseHistoryPageContent", () => {
     expect(screen.getByText("一覧（all）")).toBeVisible();
   });
 
-  it("待機表示に落ちるのは一覧だけで、絞り込みは残す", () => {
+  it("条件が無くても絞り込みは出す", () => {
     render(<PurchaseHistoryPageContent searchParams={{}} />);
 
     expect(screen.getByRole("form", { name: "購入履歴の絞り込み" })).toBeInTheDocument();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<PurchaseHistoryPageContent searchParams={{}} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

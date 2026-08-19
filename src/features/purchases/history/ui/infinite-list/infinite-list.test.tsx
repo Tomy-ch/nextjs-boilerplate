@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { CursorPage } from "@/model/pagination";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
@@ -57,5 +58,19 @@ describe("PurchaseInfiniteList", () => {
     render(<PurchaseInfiniteList initial={INITIAL} pageSize={20} period={{ kind: "all" }} />);
 
     expect(screen.getByRole("status", { name: "続きを読み込んでいます" })).toBeInTheDocument();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    useInfinitePurchases.mockReturnValue({
+      items: [ENTRY],
+      loadMore: { status: "exhausted" },
+      sentinelRef: { current: null },
+    });
+
+    const { container } = render(
+      <PurchaseInfiniteList initial={INITIAL} pageSize={20} period={{ kind: "all" }} />,
+    );
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAppError } from "@/errors/app-error";
@@ -185,7 +186,7 @@ describe("useInfinitePurchases", () => {
     await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("failed"));
 
     fetchPurchaseHistoryPage.mockResolvedValue(pageOf(["b"], null));
-    screen.getByRole("button", { name: "読み直す" }).click();
+    await userEvent.click(screen.getByRole("button", { name: "読み直す" }));
 
     await waitFor(() => expect(screen.getByTestId("codes")).toHaveTextContent("a,b"));
   });

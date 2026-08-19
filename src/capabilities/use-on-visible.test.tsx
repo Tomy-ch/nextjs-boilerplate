@@ -74,6 +74,12 @@ describe("useOnVisible", () => {
     expect(second).toHaveBeenCalledOnce();
   });
 
+  it("見張らない指定では購読を持たない", () => {
+    render(<Subject enabled={false} onVisible={noop} />);
+
+    expect(observed).toEqual([]);
+  });
+
   // ----- 異常系 -----
   it("交差していない知らせでは呼ばない", () => {
     const onVisible = vi.fn();
@@ -82,12 +88,6 @@ describe("useOnVisible", () => {
     fire([{ isIntersecting: false }]);
 
     expect(onVisible).not.toHaveBeenCalled();
-  });
-
-  it("見張らない指定では購読を持たない", () => {
-    render(<Subject enabled={false} onVisible={noop} />);
-
-    expect(observed).toEqual([]);
   });
 
   it("外れるときに購読を解く", () => {

@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
@@ -74,5 +75,11 @@ describe("PurchaseDetailPageContent", () => {
 
     await expect(PurchaseDetailPageContent({ purchaseId: "無い" })).rejects.toThrow();
     expect(readReferenceAmount).not.toHaveBeenCalled();
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(await PurchaseDetailPageContent({ purchaseId: "0195f0c2" }));
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });
