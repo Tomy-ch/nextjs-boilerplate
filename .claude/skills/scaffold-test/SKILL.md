@@ -1,7 +1,7 @@
 ---
 name: scaffold-test
 description: >-
-  Write the Vitest test files for existing symbols in this repository — one symbol or a whole screen's worth at once — the counterpart to `test-review`, which only judges tests that already exist. Use it whenever a callable export has no test and the 1:1 gate is about to fail (`missing-test-file` / `missing-describe`), when a screen has just been implemented and its twenty-odd modules need their tests placed together, when a new function / component / hook / Server Action lands and its test still has to be written, when coverage falls below the 100 % gate and the uncovered branches need cases, or when someone asks 「テストを書いて」「このコンポーネントのテストを足して」「カバレッジが足りないので埋めて」. It hardcodes no viewpoints and no conventions: ADR 0090 (structure, naming, skip discipline, per-layer duties), ADR 0091 (async RSC placement, a11y automated checks), the nearest ancestor README's `test-requirement` frontmatter, the 1:1 gate itself (the authority on what is deliberately out of scope, including the `RUNTIME_ONLY_MODULES` globs that exclude `src/app/**/page.tsx`), sibling tests in the same directory, and the subject source are all read at runtime, so the generated test tracks the conventions as they evolve rather than freezing a copy. Derives the case set from the subject's own branches — every conditional, thrown error kind, boundary pair and null/undefined guard — and asserts each branch's distinctive outcome rather than merely executing it, because a repository with a 100 % coverage gate gets no information from coverage alone. Emits Japanese `it` names, the export-name `describe` the 1:1 gate requires, and `// ----- 正常系 -----` / `// ----- 異常系 -----` separators. Strictly read-only on the subject: it never edits, renames, or "makes testable" the implementation — when a symbol cannot be verified without changing it, that is reported as a finding for the user to decide. Do NOT use it to review or critique existing tests (`test-review`), to write HTTP-boundary integration tests for an adapter client or Route Handler (`scaffold-integration-test`), to run the suite (`make test-full`), or to fix a failing test whose subject changed (that is ordinary work on the change that broke it).
+  Write the Vitest test files for existing symbols in this repository — one symbol or a whole screen's worth at once — the counterpart to `test-review`, which only judges tests that already exist. Use it whenever a callable export has no test and the 1:1 gate is about to fail (`missing-test-file` / `missing-describe`), when a screen has just been implemented and its twenty-odd modules need their tests placed together, when a new function / component / hook / Server Action lands and its test still has to be written, when coverage falls below the 100 % gate and the uncovered branches need cases, or when someone asks 「テストを書いて」「このコンポーネントのテストを足して」「カバレッジが足りないので埋めて」. It hardcodes no viewpoints and no conventions: ADR 0090 (structure, naming, skip discipline, per-layer duties), ADR 0091 (async RSC placement, a11y automated checks), the nearest ancestor README's `test-requirement` frontmatter, the 1:1 gate itself (the authority on what is deliberately out of scope, including the `RUNTIME_ONLY_MODULES` globs that exclude `src/app/**/page.tsx`), sibling tests in the same directory, and the subject source are all read at runtime, so the generated test tracks the conventions as they evolve rather than freezing a copy. Derives the case set from the subject's own branches — every conditional, thrown error kind, boundary pair and null/undefined guard — and asserts each branch's distinctive outcome rather than merely executing it, because a repository with a 100 % coverage gate gets no information from coverage alone. Emits Japanese `it` names, the export-name `describe` the 1:1 gate requires, and comment separators on whichever axis ADR 0090 assigns to that kind of subject (`正常系` / `異常系` for a value, display states for rendering). Strictly read-only on the subject: it never edits, renames, or "makes testable" the implementation — when a symbol cannot be verified without changing it, that is reported as a finding for the user to decide. Do NOT use it to review or critique existing tests (`test-review`), to write HTTP-boundary integration tests for an adapter client or Route Handler (`scaffold-integration-test`), to run the suite (`make test-full`), or to fix a failing test whose subject changed (that is ordinary work on the change that broke it).
 argument-hint: '[path/to/subject.ts[:symbol] | path/to/dir/ | (省略で未テストを一括解決)]'
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
@@ -44,7 +44,7 @@ because a copy drifts and the gates follow the sources, not this skill.
 
 | Source | What it decides |
 | --- | --- |
-| [ADR 0090](../../../docs/adr/0090-testing-strategy.md) | `describe` = export name, `正常系` / `異常系` comment separators, per-case naming, skip / todo discipline, per-layer duties, mock boundaries |
+| [ADR 0090](../../../docs/adr/0090-testing-strategy.md) | `describe` = export name, which axis the comment separators use, per-case naming, skip / todo discipline, per-layer duties, mock boundaries |
 | [ADR 0091](../../../docs/adr/0091-test-verification-methods.md) | Where async RSC tests live, how the a11y automated check is integrated |
 | The nearest ancestor `README.md` frontmatter (`test-requirement`) | Which layer duty the subject is held to |
 | `scripts/lib/untested-modules.ts` | What is deliberately excluded — a subject listed there does not get a test |
@@ -129,29 +129,35 @@ not one.
 | --- | --- |
 | `unit` | Pure logic. Assert returned values and thrown error kinds |
 | `component` | Rendering and behavior through Testing Library, **plus the `axe` assertion ADR 0091 requires** |
-| `integration` | HTTP boundary only — inside is mocked, shape and type are asserted. Consider `scaffold-integration-test` instead |
+| `integration` | HTTP boundary only — inside is mocked, shape and type are asserted |
 | `route` / `feature` | Per ADR 0090's table — read it rather than assuming |
 
 ### The duty follows the symbol, not the directory
 
-A declaration describes what the directory is *for*, and a directory holds symbols that are not all
-the same. `src/adapters` declares `integration` because its reason to exist is the HTTP boundary — but
-a module there can also export a pure parser that never touches the network, and an `integration`
-duty says nothing useful about it.
+`test-requirement` is one word in frontmatter, and a directory holds symbols that are not all the
+same. **The README body is where the layer says which of its symbols the declaration actually
+covers** — `src/adapters` declares `integration` and then its body narrows that to modules with an
+external round-trip, sending pure transforms to `unit`. Read the body, not just the frontmatter;
+step 1 above asks for both because this is what the body is for.
 
-Decide per symbol, by what the symbol actually crosses:
+That decides the *duty* a symbol owes. It does not hand the symbol to another skill.
 
-| The symbol | Duty | Who writes it |
+### An `integration` duty is not a handoff
+
+`scaffold-integration-test` is not the other half of this file — it writes a **second, separate**
+file asking a different question. Check the split against a directory that already has both
+(`src/adapters/server/api/products.{test,contract.test}.ts`) rather than assuming:
+
+| File | Question | Owner |
 | --- | --- | --- |
-| Crosses an HTTP boundary | `integration` | `scaffold-integration-test` |
-| Renders | `component` | this skill |
-| Crosses nothing — input to output | `unit` | this skill |
+| `<subject>.test.ts` | Does each export behave as written? | **this skill — every callable export, boundary-crossing ones included** |
+| `<subject>.contract.test.ts` | Does the boundary match the generated contract? | `scaffold-integration-test` |
 
-**One file can therefore be shared between the two skills.** When a module exports both, this skill
-writes the pure symbols' `describe` blocks into the test file and leaves the boundary-crossing ones
-to `scaffold-integration-test`, which adds its own blocks without touching these. Say plainly in the
-closing report which symbols were left and to which skill, so the 1:1 gate's remaining red is
-expected rather than a surprise.
+**The 1:1 gate only resolves `<subject>.test.ts`** — confirm this in `resolveTestFile`
+(`scripts/lib/one-to-one.ts`) before relying on it. So a `describe` living only in the contract test
+never satisfies the gate, and leaving a boundary-crossing symbol "to the other skill" leaves the gate
+red permanently. Write it here, mocking HTTP at the layer's own boundary, and say in the closing
+report whether a contract test is also warranted.
 
 **When no ancestor declares `test-requirement` at all**, derive the duty from sibling tests plus
 ADR 0090, and report the missing declaration. Do not invent a duty silently — the gap is the finding.
@@ -177,9 +183,16 @@ that distinguishes *this* branch from its neighbours: which error, which rendere
 **A symbol with no branches still gets a test.** A component that only forwards props still has a
 contract — where it forwards them and what its defaults are.
 
-Assign each case to `正常系` or `異常系` by **whether the subject itself fails**, not by whether the
-input looks like a failure. A hook that swallows a fetch error and returns an error state never
-throws, so all of its cases are `正常系`.
+**The axis the cases are grouped on depends on what the subject returns, and ADR 0090 decides it** —
+read its 軸の選び方 rather than reaching for a fixed pair. As it stands, a subject that returns a
+*value* splits on `正常系` / `異常系`, and a subject that returns *rendering* must not be split that
+way at all: for it an upstream failure is one of the states it displays, so the axis is the state
+(`// ----- 空のとき -----` and its siblings). Grouping a component's cases into `正常系` / `異常系`
+is on the ADR's ❌ list.
+
+Where the `正常系` / `異常系` axis does apply, assign by **whether the case sits inside or outside the
+happy path**, not by how the subject expresses the failure — the ADR is explicit that a thrown error,
+a returned error state and a silently dropped value all belong on the same side.
 
 ## Step 3. Plan and confirm, one group at a time
 
@@ -200,10 +213,18 @@ its planned path and case list, so the agreement covers all of them at once:
     ----- 正常系 -----
     - 日付を持ち越さない
 
-書き出し先: src/features/admin/dashboard/count.test.ts
-  describe("formatCount")
-    …
+書き出し先: src/features/admin/dashboard/ui/ranking-table/ranking-table.test.tsx
+  describe("RankingTable")
+    ----- 空のとき -----
+    - 行が無ければ、無いと判る文言を出す
+    ----- 揃っているとき -----
+    - 契約の並び順のまま順位を出す
+    - 表として読み上げられる（axe）
 ```
+
+The two subjects above are grouped together and still carry **different separators** — the axis
+follows what each subject returns, per Step 2. A group is a unit of confirmation, not a unit of
+uniformity.
 
 Confirm with `AskUserQuestion`: 「この構成で書きますか？」 / 「ケースを追加・修正したい」 /
 「この群は飛ばす」 / 「ここで止める」. The plan is cheap to change; a written file is not.
@@ -221,9 +242,9 @@ Apply what Step 1 read. As the conventions stand today that means:
 
 - **The outermost `describe` is the exported symbol's own name**, one per subject. Multiple exports in
   one file get multiple top-level `describe`s, in source order.
-- **Viewpoints are divided by `// ----- 正常系 -----` / `// ----- 異常系 -----` comments**, with the
-  `it` calls directly under the subject's `describe`. Nested `describe` is for a shared-setup context
-  only, named for that context.
+- **Viewpoints are divided by comment separators on the axis Step 2 settled**, with the `it` calls
+  directly under the subject's `describe`. Nested `describe` is for a shared-setup context only,
+  named for that context — never for the viewpoints themselves.
 - **`it` strings are Japanese**, stating the behavior *and* the branch condition.
 - **One case per `it`.** `it.each` / `it.for` is fine when it carries a name template that identifies
   each case; a hand-rolled `for` / `forEach` around a bare `it` is not.
@@ -288,9 +309,9 @@ pnpm exec vitest run --config vitest.scripts.config.ts scripts/one-to-one.gate.t
 ```
 
 It proves the `describe` names satisfy the 1:1 mapping. Expect it to still report the subjects Step 0
-excluded as another session's, and the boundary-crossing symbols Step 1 left to
-`scaffold-integration-test`. **Name those in the report** — an unexplained red gate reads as a
-failure of this run.
+excluded as another session's — **name those in the report**, because an unexplained red gate reads
+as a failure of this run. Nothing else should remain: every subject this run took, boundary-crossing
+symbols included, is expected to be green here.
 
 ## Step 7. Hand off to review
 
@@ -302,7 +323,7 @@ whether the layer's duty is actually exercised.
 ## Constraints
 
 - ✅ Read ADR 0090 / 0091, the `test-requirement` frontmatter, and sibling tests at runtime
-- ✅ Japanese `it` strings; export-name `describe`; comment separators
+- ✅ Japanese `it` strings; export-name `describe`; separators on the axis ADR 0090 assigns
 - ✅ Confirm the case plan before writing, per group
 - ✅ Narrow the set to this branch's files; leave another session's subjects alone
 - ✅ Verify with the 1:1 gate and per-subject coverage
