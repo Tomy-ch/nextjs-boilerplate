@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/admin/products") }));
+const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/admin/reports") }));
 
 vi.mock("next/navigation", () => ({ usePathname }));
 
@@ -14,10 +14,10 @@ import { AdminShellNav } from "./admin-shell-nav";
 
 const GROUPS: readonly AdminShellNavGroup[] = [
   {
-    label: "商品",
+    label: "レポート",
     items: [
-      { href: "/admin/products", label: "商品一覧管理" },
-      { href: "/admin/products/new", label: "商品を作成" },
+      { href: "/admin/reports", label: "レポート一覧" },
+      { href: "/admin/reports/new", label: "レポートを作成" },
     ],
   },
   { label: "利用者", items: [{ href: "/admin/users", label: "利用者一覧" }] },
@@ -43,7 +43,7 @@ describe("AdminShellNav", () => {
   it("いま開いている画面に印を付ける", () => {
     renderNav();
 
-    expect(screen.getByRole("link", { name: "商品一覧管理" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "レポート一覧" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -52,11 +52,13 @@ describe("AdminShellNav", () => {
   it("同じ接頭辞を持つだけの導線には印を付けない", () => {
     renderNav();
 
-    expect(screen.getByRole("link", { name: "商品を作成" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "レポートを作成" })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 
   it("どの導線とも一致しない場所では印が付かない", () => {
-    usePathname.mockReturnValueOnce("/admin/products/1/edit");
+    usePathname.mockReturnValueOnce("/admin/reports/1/edit");
     renderNav();
 
     expect(screen.queryByRole("link", { current: "page" })).not.toBeInTheDocument();
@@ -65,20 +67,20 @@ describe("AdminShellNav", () => {
   it("まとまりの見出しは遷移させない", () => {
     renderNav();
 
-    expect(screen.queryByRole("link", { name: "商品" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "レポート" })).not.toBeInTheDocument();
   });
 
   it("既定ではまとまりが開いている", () => {
     renderNav();
 
-    expect(screen.getByText("商品").closest("details")).toHaveAttribute("open");
+    expect(screen.getByText("レポート").closest("details")).toHaveAttribute("open");
   });
 
   it("見出しを押すとまとまりが畳まれる", async () => {
     renderNav();
-    const group = screen.getByText("商品").closest("details");
+    const group = screen.getByText("レポート").closest("details");
 
-    await userEvent.click(screen.getByText("商品"));
+    await userEvent.click(screen.getByText("レポート"));
 
     expect(group).not.toHaveAttribute("open");
   });

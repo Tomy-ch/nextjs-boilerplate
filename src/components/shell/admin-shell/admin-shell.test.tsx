@@ -5,20 +5,20 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/admin/products" }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/admin/reports" }));
 
 import { AdminShell } from "./admin-shell";
 import { ADMIN_SHELL_MAIN_ID, type AdminShellNavGroup } from "./admin-shell.definition";
 
 const NAV_GROUPS: readonly AdminShellNavGroup[] = [
-  { label: "商品", items: [{ href: "/admin/products", label: "商品一覧管理" }] },
+  { label: "レポート", items: [{ href: "/admin/reports", label: "レポート一覧" }] },
 ];
 
 function renderShell(props: Partial<Parameters<typeof AdminShell>[0]> = {}) {
   return render(
     <AdminShell
       consoleName="管理"
-      homeHref="/admin/products"
+      homeHref="/admin/reports"
       navGroups={NAV_GROUPS}
       siteHref="/"
       siteName="サイト"
@@ -49,13 +49,13 @@ describe("AdminShell", () => {
     renderShell();
 
     expect(screen.getByRole("link", { name: "サイト" })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("link", { name: "管理" })).toHaveAttribute("href", "/admin/products");
+    expect(screen.getByRole("link", { name: "管理" })).toHaveAttribute("href", "/admin/reports");
   });
 
   it("脇の一覧へ渡された導線を並べる", () => {
     renderShell();
 
-    expect(screen.getByRole("link", { name: "商品一覧管理" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "レポート一覧" })).toBeInTheDocument();
   });
 
   it("header の右へ渡された要素を出す", () => {
@@ -102,7 +102,7 @@ describe("AdminShell", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "メニューの開閉" }));
 
-    expect(screen.getByRole("link", { name: "商品一覧管理" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "レポート一覧" })).toBeInTheDocument();
   });
 
   it("a11y 検査を通る", async () => {

@@ -10,10 +10,10 @@ import type { AdminShellNavGroup } from "./admin-shell.definition";
 
 const NAV_GROUPS: readonly AdminShellNavGroup[] = [
   {
-    label: "商品",
+    label: "レポート",
     items: [
-      { href: "/admin/products", label: "商品一覧" },
-      { href: "/admin/products/new", label: "商品を作成" },
+      { href: "/admin/reports", label: "レポート一覧" },
+      { href: "/admin/reports/new", label: "レポートを作成" },
     ],
   },
   { label: "利用者", items: [{ href: "/admin/users", label: "利用者一覧" }] },
@@ -45,18 +45,18 @@ const meta = {
       },
     },
     layout: "fullscreen",
-    nextjs: { navigation: { pathname: "/admin/products" } },
+    nextjs: { navigation: { pathname: "/admin/reports" } },
   },
   args: {
     siteName: "nextjs-boilerplate",
     siteHref: "/",
     consoleName: "管理",
-    homeHref: "/admin/products",
+    homeHref: "/admin/reports",
     navGroups: NAV_GROUPS,
     children: <Body />,
     headerActions: (
       <Button asChild size="sm" variant="outline">
-        <Link href="/products">ユーザー画面へ</Link>
+        <Link href="/">ユーザー画面へ</Link>
       </Button>
     ),
   },
@@ -82,7 +82,7 @@ export const NavCollapsed: Story = {
 export const NavGroupClosed: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByText("商品"));
+    await userEvent.click(within(canvasElement).getByText("レポート"));
   },
 };
 

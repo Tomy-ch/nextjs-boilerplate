@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/admin/products") }));
+const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/admin/reports") }));
 
 vi.mock("next/navigation", () => ({ usePathname }));
 
@@ -13,7 +13,7 @@ import type { AdminShellNavGroup } from "./admin-shell.definition";
 import { AdminShellMenu } from "./admin-shell-menu";
 
 const GROUPS: readonly AdminShellNavGroup[] = [
-  { label: "商品", items: [{ href: "/admin/products", label: "商品一覧管理" }] },
+  { label: "レポート", items: [{ href: "/admin/reports", label: "レポート一覧" }] },
 ];
 
 function renderMenu() {
@@ -29,7 +29,7 @@ describe("AdminShellMenu", () => {
   it("開く操作だけを出す", () => {
     renderMenu();
 
-    expect(screen.queryByRole("link", { name: "商品一覧管理" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "レポート一覧" })).not.toBeInTheDocument();
   });
 
   it("記号だけの操作に読める名前を与える", () => {
@@ -44,7 +44,7 @@ describe("AdminShellMenu", () => {
 
     await userEvent.click(trigger());
 
-    expect(await screen.findByRole("link", { name: "商品一覧管理" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "レポート一覧" })).toBeInTheDocument();
   });
 
   it("何の overlay かを見出しで示す", async () => {
