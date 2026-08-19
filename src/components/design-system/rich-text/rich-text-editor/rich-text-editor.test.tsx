@@ -57,6 +57,33 @@ afterEach(() => {
 });
 
 describe("RichTextEditor", () => {
+  it("プレビューへ切り替えると、表示側と同じ形で読める", async () => {
+    render(<RichTextEditor label="商品説明" defaultValue="<h2>見出し</h2>" onChange={noop} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "プレビュー" }));
+
+    expect(screen.getByRole("heading", { name: "見出し", level: 2 })).toBeInTheDocument();
+  });
+
+  it("プレビュー中は書式の操作を出さない", async () => {
+    render(<RichTextEditor label="商品説明" onChange={noop} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "プレビュー" }));
+
+    expect(screen.queryByRole("button", { name: "リンク" })).not.toBeInTheDocument();
+  });
+
+  it("プレビューから戻ると書きかけが残っている", async () => {
+    render(<RichTextEditor label="商品説明" defaultValue="<p>書きかけ</p>" onChange={noop} />);
+
+    const preview = await screen.findByRole("button", { name: "プレビュー" });
+
+    fireEvent.click(preview);
+    fireEvent.click(preview);
+
+    expect(screen.getByRole("textbox", { name: "商品説明" })).toHaveTextContent("書きかけ");
+  });
+
   it("書式の toolbar と、名前を持つ編集面を描画する", () => {
     renderEditor();
 

@@ -169,10 +169,9 @@ export const Rejected: Story = {
     const canvas = within(canvasElement);
 
     // 送信は最後の段にしか無い。空欄のまま最後まで進め、弾かれた状態を出す。
-    for (let step = 0; step < 3; step += 1) {
-      await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
-    }
-
+    await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
+    await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
+    await userEvent.click(canvas.getByRole("button", { name: "確認へ" }));
     await userEvent.click(canvas.getByRole("button", { name: "登録する" }));
   },
 };

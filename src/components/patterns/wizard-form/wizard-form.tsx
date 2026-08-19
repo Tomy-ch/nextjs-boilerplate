@@ -8,7 +8,10 @@ import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { ListItemContent, ListItemTitle } from "@/components/design-system/display/list/list";
 import { Stepper, StepperItem } from "@/components/design-system/display/stepper/stepper";
-import { STEPPER_STATE } from "@/components/design-system/display/stepper/stepper.definition";
+import {
+  STEPPER_ORIENTATION,
+  STEPPER_STATE,
+} from "@/components/design-system/display/stepper/stepper.definition";
 
 /** 入力の段階 1 つ。 */
 export type WizardStep = {
@@ -20,6 +23,14 @@ export type WizardStep = {
   content: ReactNode;
   /** この段階を終えられないか。次へ進む操作を押せなくする。 */
   blocked?: boolean;
+  /**
+   * この段階から次へ進む操作の文言。
+   *
+   * @remarks
+   * 省略すると全体の既定を使います。行き先が「次の段階」以上のことを意味する段階でだけ与えます
+   * （最後の 1 つ手前が確認へ進む、など）。
+   */
+  nextLabel?: string;
 };
 
 /**
@@ -64,7 +75,8 @@ export type WizardFormProps = {
  * 段階が変わったら、その段階の領域へ focus を移す。移さないと操作した button に focus が残り、
  * keyboard と読み上げの利用者には何が変わったのか伝わらない。最初の表示では移さない。
  *
- * 進捗の表示は `Stepper` を合成する。段階の並びと現在位置の意味論はそちらが持つ。
+ * 進捗の表示は `Stepper` を合成し、**横に並べる**。段階の並びと現在位置の意味論はそちらが持つ。
+ * 縦へ積むと、段階の数だけ入力欄より上が伸び、入力を始める前に画面を送ることになる。
  *
  * @example
  * ```tsx
@@ -119,7 +131,7 @@ export function WizardForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} data-slot="wizard-form">
-      <Stepper label={`${label}の進捗`}>
+      <Stepper label={`${label}の進捗`} orientation={STEPPER_ORIENTATION.HORIZONTAL}>
         {steps.map((step, index) => (
           <StepperItem key={step.id} marker={index + 1} state={stepState(index, currentIndex)}>
             <ListItemContent>
@@ -156,7 +168,7 @@ export function WizardForm({
           <Fragment key="submit">{submit}</Fragment>
         ) : (
           <Button disabled={current.blocked} key="next" onClick={goNext} type="button">
-            {nextLabel}
+            {current.nextLabel ?? nextLabel}
           </Button>
         )}
       </div>

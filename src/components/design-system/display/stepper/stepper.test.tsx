@@ -37,6 +37,21 @@ function Fixture() {
 }
 
 describe("Stepper", () => {
+  it("横に並べる指定では、向きを属性としても示す", () => {
+    render(
+      <Stepper label="申請の進捗" orientation="horizontal">
+        <StepperItem marker={1} state="current">
+          入力
+        </StepperItem>
+      </Stepper>,
+    );
+
+    const list = screen.getByRole("list", { name: "申請の進捗" });
+
+    expect(list).toHaveAttribute("data-orientation", "horizontal");
+    expect(list).toHaveClass("flex-row");
+  });
+
   it("並び順に意味のある一覧として、名前つきで並べる", () => {
     render(<Fixture />);
 

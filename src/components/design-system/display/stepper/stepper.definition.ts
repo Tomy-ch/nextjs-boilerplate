@@ -32,3 +32,12 @@ export const STEPPER_STATE_LABEL: Readonly<Record<StepperState, string>> = {
   [STEPPER_STATE.CURRENT]: "現在の段階",
   [STEPPER_STATE.UPCOMING]: "未着手",
 };
+
+/** 段階の並べ方。 */
+export const STEPPER_ORIENTATION: Readonly<{ HORIZONTAL: "horizontal"; VERTICAL: "vertical" }> = {
+  HORIZONTAL: "horizontal",
+  VERTICAL: "vertical",
+};
+
+/** {@link STEPPER_ORIENTATION} のいずれか。 */
+export type StepperOrientation = (typeof STEPPER_ORIENTATION)[keyof typeof STEPPER_ORIENTATION];

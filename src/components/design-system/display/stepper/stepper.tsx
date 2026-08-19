@@ -3,8 +3,13 @@ import type { ComponentProps, ReactNode } from "react";
 
 import { cn } from "@/components/cn";
 import { List, ListItem, ListItemMedia } from "@/components/design-system/display/list/list";
-
-import { STEPPER_STATE, STEPPER_STATE_LABEL, type StepperState } from "./stepper.definition";
+import type { StepperOrientation } from "./stepper.definition";
+import {
+  STEPPER_ORIENTATION,
+  STEPPER_STATE,
+  STEPPER_STATE_LABEL,
+  type StepperState,
+} from "./stepper.definition";
 
 /**
  * 既知で有限の段階を定義順に並べ、現在位置と未到達を示す SSR first の表示 component。
@@ -41,12 +46,27 @@ import { STEPPER_STATE, STEPPER_STATE_LABEL, type StepperState } from "./stepper
  */
 export function Stepper({
   label,
+  orientation = STEPPER_ORIENTATION.VERTICAL,
   className,
   ...props
-}: Omit<ComponentProps<"ol">, "aria-label"> & { label: string }) {
+}: Omit<ComponentProps<"ol">, "aria-label"> & {
+  label: string;
+  orientation?: StepperOrientation;
+}) {
   return (
     <List asChild>
-      <ol aria-label={label} className={cn("gap-0", className)} data-slot="stepper" {...props} />
+      <ol
+        aria-label={label}
+        className={cn(
+          orientation === STEPPER_ORIENTATION.HORIZONTAL
+            ? "flex-row flex-wrap items-center gap-x-5 gap-y-2"
+            : "gap-0",
+          className,
+        )}
+        data-orientation={orientation}
+        data-slot="stepper"
+        {...props}
+      />
     </List>
   );
 }

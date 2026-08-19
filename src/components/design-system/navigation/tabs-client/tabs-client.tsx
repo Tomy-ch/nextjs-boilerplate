@@ -121,8 +121,12 @@ export function TabsClientTrigger({
  * tab に対応するパネル。
  *
  * @remarks
- * `role="tabpanel"` を持ち、選択中の 1 枚だけが render される。既定では非選択のパネルが DOM から
+ * `role="tabpanel"` を持ち、選択中の 1 枚だけが見える。既定では非選択のパネルが DOM から
  * 外れるため、入力途中の値を保持したい場合は呼び出し元が state を持つか `forceMount` を指定する。
+ *
+ * **`forceMount` は「DOM へ残す」だけで、隠すのはこちらの責務。** vendor は `forceMount` を
+ * 「常に在る」と解釈して非表示の指定を落とすため、選択状態から自分で隠す。落とすと、値は残る
+ * ものの全パネルが同時に見え、tab が切り替えではなく飾りになる。
  *
  * @param props - Radix `Tabs.Content` の props。`value` は必須で、対応する tab と一致させる。
  * @see Storybook `Navigation/TabsClient`
@@ -135,6 +139,9 @@ export function TabsClientContent({
     <TabsPrimitive.Content
       className={cn(
         "flex-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary",
+        // 選んでいないパネルを隠す。`forceMount` を渡すと vendor は常に「在る」と見なして
+        // `hidden` を付けないため、これが無いと全パネルが同時に見え、tab が飾りになる。
+        "data-[state=inactive]:hidden",
         className,
       )}
       data-slot="tabs-content"

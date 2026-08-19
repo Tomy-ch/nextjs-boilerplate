@@ -101,6 +101,29 @@ describe("FileUpload", () => {
     expect(input).toHaveAttribute("data-slot", "file-upload-input");
   });
 
+  it("空へ戻す指定では、渡し終えた名前を自分では並べない", () => {
+    const onSelect = vi.fn();
+
+    renderUpload({ multiple: true, onSelect, resetOnSelect: true });
+
+    choose(inputOf(), [pngOf("front.png", 10)]);
+
+    expect(onSelect).toHaveBeenCalledWith([expect.objectContaining({ name: "front.png" })]);
+    expect(screen.queryByText("front.png")).not.toBeInTheDocument();
+  });
+
+  it("空へ戻す指定では、同じファイルを選び直せる", () => {
+    const onSelect = vi.fn();
+
+    renderUpload({ onSelect, resetOnSelect: true });
+
+    choose(inputOf(), [pngOf("front.png", 10)]);
+    choose(inputOf(), [pngOf("front.png", 10)]);
+
+    expect(onSelect).toHaveBeenCalledTimes(2);
+    expect(inputOf()).toHaveValue("");
+  });
+
   it("受け付けたファイルの名前を並べ、onSelect へ渡す", () => {
     const onSelect = vi.fn();
 

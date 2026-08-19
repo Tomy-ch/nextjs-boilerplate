@@ -34,6 +34,17 @@ export const AllActions: Story = {
 /** 操作を渡さない場合。確認だけの一覧になる。 */
 export const ReadOnly: Story = { args: { items: ITEMS } };
 
+/** 横の束。件数が増えても縦を取らない。縮小表示を上、操作を右上へ重ねる。 */
+export const Row: Story = {
+  args: {
+    items: ITEMS,
+    onMoveDown: () => {},
+    onMoveUp: () => {},
+    onRemove: () => {},
+    orientation: "row",
+  },
+};
+
 /** 並び順が意味を持つ場面。端の項目は、その先へ動かす操作を押せない。 */
 export const Reorderable: Story = {
   args: { items: ITEMS, onMoveDown: () => {}, onMoveUp: () => {}, onRemove: () => {} },
