@@ -215,7 +215,7 @@ export const DensityComparison: Story = {
   render: () => (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-2">
-        <h3 className="font-medium text-sm">ゆったり（既定）</h3>
+        <h3 className="font-emphasis text-sm">ゆったり（既定）</h3>
         <PlanTable
           columns={COLUMNS}
           density={TABLE_DENSITY.COMFORTABLE}
@@ -223,7 +223,7 @@ export const DensityComparison: Story = {
         />
       </section>
       <section className="flex flex-col gap-2">
-        <h3 className="font-medium text-sm">詰めて表示</h3>
+        <h3 className="font-emphasis text-sm">詰めて表示</h3>
         <PlanTable
           columns={COLUMNS}
           density={TABLE_DENSITY.COMPACT}

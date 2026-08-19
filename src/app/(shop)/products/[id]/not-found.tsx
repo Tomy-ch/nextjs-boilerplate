@@ -14,7 +14,7 @@ import { ErrorKind } from "@/errors/error-kind";
 export default function ProductDetailNotFound() {
   return (
     <ContentContainer className="flex flex-col items-start gap-4 py-8">
-      <h1 className="text-xl font-semibold">{getDefaultErrorMeta(ErrorKind.NOT_FOUND).message}</h1>
+      <h1 className="text-xl font-strong">{getDefaultErrorMeta(ErrorKind.NOT_FOUND).message}</h1>
       <Link className="underline" href="/products">
         商品一覧へ戻る
       </Link>

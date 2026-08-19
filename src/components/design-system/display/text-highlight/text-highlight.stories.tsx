@@ -59,7 +59,7 @@ export const EmptyQuery: Story = {
 /** 本文の見た目を呼び出し元が指定する場合。`span` の属性はそのまま渡せる。 */
 export const InheritsTextStyle: Story = {
   args: {
-    className: "font-medium text-muted-foreground",
+    className: "font-emphasis text-muted-foreground",
     query: "本文",
     text: SAMPLE_TEXT,
   },

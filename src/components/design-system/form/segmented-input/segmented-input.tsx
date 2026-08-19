@@ -164,7 +164,7 @@ export function SegmentedInputSlot({ className, index, mask, ...props }: Segment
   return (
     <div
       className={cn(
-        "relative flex h-9 w-9 items-center justify-center border-input border-y border-r text-sm shadow-xs transition-all first:rounded-l-md first:border-l last:rounded-r-md aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-foreground data-[active=true]:outline-2 data-[active=true]:outline-foreground data-[active=true]:outline-offset-2 data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:outline-destructive dark:bg-input/30",
+        "relative flex h-9 w-9 items-center justify-center border-input border-y border-r text-sm shadow-xs transition-all first:rounded-l-md first:border-l last:rounded-r-md aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-foreground data-[active=true]:outline-2 data-[active=true]:outline-active data-[active=true]:outline-offset-2 data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:outline-destructive dark:bg-input/30",
         className,
       )}
       data-active={isActive}

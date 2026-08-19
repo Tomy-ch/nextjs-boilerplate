@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
+import { BADGE_VARIANT } from "../../display/badge/badge.definition";
 import { RequirementBadge } from "./requirement-badge";
 
 describe("RequirementBadge", () => {
@@ -31,10 +32,13 @@ describe("RequirementBadge", () => {
     expect(screen.getByText("必須")).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("誤りの表示と同じ強さにならないよう塗りつぶさない", () => {
+  it("誤りの表示と同じ強さにならないよう、塗らず状態の色も使わない", () => {
     render(<RequirementBadge required />);
+    const mark = screen.getByText("必須");
 
-    expect(screen.getByText("必須")).toHaveClass("bg-destructive/10", "text-destructive");
+    expect(mark).toHaveAttribute("data-variant", BADGE_VARIANT.OUTLINE);
+    expect(mark).toHaveClass("text-foreground");
+    expect(mark.className.replace(/(^|\s)\S+:\S+/g, "")).not.toMatch(/\bbg-/);
   });
 
   it("任意の印を注意を引かない色にする", () => {

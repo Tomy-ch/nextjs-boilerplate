@@ -29,25 +29,25 @@ export function PrivacyView() {
       </Alert>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">入力した情報がどこに残るか</h2>
+        <h2 className="text-lg font-strong">入力した情報がどこに残るか</h2>
         <p>
           このサイトをどう起動しているかで、保存先が変わります。自分がどれに当たるかを確かめて
           ください。
         </p>
 
-        <h3 className="mt-2 font-semibold">1. 自分で clone して Go 側と繋いでいる場合</h3>
+        <h3 className="mt-2 font-strong">1. 自分で clone して Go 側と繋いでいる場合</h3>
         <p>
           入力した情報は、自分の手元で動いているデータベースに保存されます。外部へは送られません。
           消したい場合は、そのデータベースごと破棄してください。
         </p>
 
-        <h3 className="mt-2 font-semibold">2. 自分で clone してモックのまま動かしている場合</h3>
+        <h3 className="mt-2 font-strong">2. 自分で clone してモックのまま動かしている場合</h3>
         <p>
           入力した情報は<strong>どこにも保存されません</strong>。応答は契約から生成したモックが
           その場で組み立てており、保存する先そのものがありません。画面を再読み込みすると消えます。
         </p>
 
-        <h3 className="mt-2 font-semibold">3. 公開されているサンプルサイトを見ている場合</h3>
+        <h3 className="mt-2 font-strong">3. 公開されているサンプルサイトを見ている場合</h3>
         <p>
           入力した情報は<strong>サンプル用のデータベースへ保存されます</strong>。デモの表示に
           使うための保存であり、暗号化・アクセス制限・保存期間の管理といった対策は行っていません。
@@ -56,7 +56,7 @@ export function PrivacyView() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">追跡と第三者提供</h2>
+        <h2 className="text-lg font-strong">追跡と第三者提供</h2>
         <p>
           アクセス解析・広告・その他の追跡は行っていません。入力された情報を第三者へ提供する
           こともありません。

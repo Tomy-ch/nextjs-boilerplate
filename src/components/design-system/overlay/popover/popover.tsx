@@ -133,7 +133,7 @@ function PopoverHeader({ className, ...props }: ComponentProps<"div">) {
  * @see Storybook `Overlay/Popover`
  */
 function PopoverTitle({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("font-medium", className)} data-slot="popover-title" {...props} />;
+  return <div className={cn("font-emphasis", className)} data-slot="popover-title" {...props} />;
 }
 
 /**

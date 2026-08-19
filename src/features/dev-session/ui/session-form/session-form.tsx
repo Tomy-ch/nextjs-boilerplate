@@ -99,7 +99,7 @@ export function DevSessionForm({ returnUrl, action }: DevSessionFormProps) {
       </FormField>
 
       <RadioGroupNative>
-        <legend className="mb-3 font-medium text-sm">役割</legend>
+        <legend className="mb-3 font-emphasis text-sm">役割</legend>
         {Object.values(SESSION_ROLE).map((role) => (
           <div className="flex items-center gap-2" key={role}>
             <RadioGroupNativeItem

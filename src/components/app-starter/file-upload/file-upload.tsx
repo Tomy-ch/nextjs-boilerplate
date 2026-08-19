@@ -234,7 +234,7 @@ export function FileUpload({
           "flex flex-col items-center gap-2 rounded-md border-2 border-border border-dashed px-4 py-6 text-center transition-colors",
           isBlocked ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-foreground",
           isDraggingOver && "border-foreground bg-accent",
-          "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-foreground has-[input:focus-visible]:outline-offset-2",
+          "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-active has-[input:focus-visible]:outline-offset-2",
           "has-[input[aria-invalid=true]]:border-destructive",
         )}
         data-dragging={isDraggingOver ? "true" : undefined}
@@ -259,7 +259,7 @@ export function FileUpload({
         <UploadIcon aria-hidden="true" className="size-6 text-muted-foreground" />
         <span className="text-muted-foreground text-sm">{prompt}</span>
         <span
-          className="inline-flex h-9 items-center justify-center rounded-md border border-border px-4 font-medium text-foreground text-sm"
+          className="inline-flex h-9 items-center justify-center rounded-md border border-border px-4 font-emphasis text-foreground text-sm"
           data-slot="file-upload-trigger"
         >
           {triggerLabel}

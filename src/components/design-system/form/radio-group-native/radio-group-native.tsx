@@ -28,7 +28,7 @@ export function RadioGroupNativeItem({ className, ...props }: RadioGroupNativeIt
   return (
     <input
       className={cn(
-        "aspect-square size-4 shrink-0 appearance-none rounded-full border border-input bg-background shadow-xs transition-[border-color,box-shadow] checked:border-[5px] checked:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40",
+        "aspect-square size-4 shrink-0 appearance-none rounded-full border border-input bg-background shadow-xs transition-[border-color,box-shadow] checked:border-[5px] checked:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40",
         className,
       )}
       data-slot="radio-group-native-item"

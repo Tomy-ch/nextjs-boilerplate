@@ -31,7 +31,7 @@ function PlatformComparison() {
     <div className="flex gap-10">
       {[SHORTCUT_PLATFORM.APPLE, SHORTCUT_PLATFORM.OTHER].map((platform) => (
         <KeyboardShortcutList className="w-64" key={platform}>
-          <KeyboardShortcut className="font-medium" keys={["?"]} platform={platform}>
+          <KeyboardShortcut className="font-emphasis" keys={["?"]} platform={platform}>
             {platform}
           </KeyboardShortcut>
           {SAMPLE_SHORTCUTS.slice(0, 3).map((shortcut) => (

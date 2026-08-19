@@ -19,7 +19,7 @@ export function CheckboxNative({ className, ...props }: CheckboxNativeProps) {
   return (
     <input
       className={cn(
-        "size-4 shrink-0 appearance-none rounded-[4px] border border-input bg-background shadow-xs transition-[color,box-shadow] checked:border-primary checked:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40",
+        "size-4 shrink-0 appearance-none rounded-md border border-input bg-background shadow-xs transition-[color,box-shadow] checked:border-primary checked:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40",
         className,
       )}
       data-slot="native-checkbox"

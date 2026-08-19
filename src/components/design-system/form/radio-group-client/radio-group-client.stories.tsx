@@ -11,7 +11,7 @@ function ClientGroup({ disabled = false }) {
 
   return (
     <div className="grid gap-3">
-      <p className="text-sm font-medium" id={labelId}>
+      <p className="text-sm font-emphasis" id={labelId}>
         表示形式
       </p>
       <RadioGroupClient aria-labelledby={labelId} defaultValue="standard" disabled={disabled}>

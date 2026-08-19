@@ -15,12 +15,16 @@ export type CartCountProps = {
  *
  * 数量の合計ではなく行数を出します。同じ商品を 3 個入れた状態で「3」と出ると、3 種類あるように
  * 読めるためです。
+ *
+ * 狭い帯では文字を出さず記号だけにします。header は銘と主要な導線が並ぶ場所で、そこへ文字を
+ * 足すと銘が折り返します。読み上げの名前は呼び出し元の `aria-label` が持つため、文字を隠しても
+ * 名前は失われません。
  */
 export function CartCount({ count }: CartCountProps) {
   return (
     <p className="flex items-center gap-1.5 px-3 py-2 text-sm">
       <ShoppingCartIcon aria-hidden="true" className="size-4" />
-      カート
+      <span className="hidden md:inline">カート</span>
       {count === 0 ? null : (
         <span className="min-w-5 rounded-full bg-foreground px-1.5 text-center text-background text-xs leading-5">
           {count}

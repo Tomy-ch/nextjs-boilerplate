@@ -4,7 +4,23 @@
 // 2 箇所に持つことになる。名前だけを取り、実ブラウザで読んだ結果の突き合わせに使う。
 
 /** 意味トークンの別名の宣言。primitive(`--color-neutral-100: #ededed`)とはこの形で分かれる。 */
-const SEMANTIC_ALIAS = /^\s*(--color-[a-z0-9-]+):\s*var\(--semantic-color-[a-z0-9-]+\);/gm;
+const SEMANTIC_ALIAS = /^\s*--color-[a-z0-9-]+:\s*var\((--semantic-color-[a-z0-9-]+)\);/gm;
+
+/**
+ * 色以外の意味トークンと、その値を読むために使う CSS プロパティ。
+ *
+ * @remarks
+ * 系統は色だけでなく書体・太さ・影も替えます。色だけを見ると、`--font-*` の別名を手書き CSS から
+ * 直接引いた箇所のように**その系統だけ届かない**壊れ方を素通しします。プロパティを添えるのは、
+ * 値の読み取りが型ごとに違うためです（色は `color`、書体は `font-family`）。
+ */
+const SEMANTIC_ALIAS_BY_PROPERTY: ReadonlyArray<readonly [RegExp, string]> = [
+  // `--font-weight-*` を書体として読まないよう、先頭で除く
+  [/^\s*--font-(?!weight-)[a-z0-9-]+:\s*var\((--semantic-font-[a-z0-9-]+)\);/gm, "fontFamily"],
+  [/^\s*--font-weight-[a-z0-9-]+:\s*var\((--semantic-font-weight-[a-z0-9-]+)\);/gm, "fontWeight"],
+  [/^\s*--shadow-[a-z0-9-]+:\s*var\((--semantic-shadow-[a-z0-9-]+)\);/gm, "boxShadow"],
+  [/^\s*--text-shadow-[a-z0-9-]+:\s*var\((--semantic-text-shadow-[a-z0-9-]+)\);/gm, "textShadow"],
+];
 
 /**
  * 継承する色を変えた 2 つの面で読んだ、同じトークンの解決結果。
@@ -20,6 +36,10 @@ export type TokenReadings = readonly [string, string];
  * 生成した CSS から配色の意味トークンの名前を取り出す。
  *
  * @remarks
+ * 取り出すのは**別名(`--color-*`)ではなく実体(`--semantic-color-*`)の名前**です。別名は
+ * `@theme inline` が `:root` で 1 度だけ解決するため、系統(`data-surface`)を切り替えた部分木では
+ * 再解決されません。別名を読むと、系統の再束縛が届いていても値が変わらず見えます。
+ *
  * 1 つも見つからなければ例外を投げます。0 件へ縮退させると、検査する対象が無い状態が
  * 「すべて届いている」として緑で通ります。
  */
@@ -28,4 +48,24 @@ export function semanticColorTokens(css: string): string[] {
   if (names.length === 0) throw new Error("配色の意味トークンが 1 つも見つかりません");
 
   return names;
+}
+
+/** 変数名と、その値を読むための CSS プロパティの対。 */
+export type TokenProbe = { readonly name: string; readonly property: string };
+
+/**
+ * 生成した CSS から、色以外の意味トークンの名前を、読み取りに使うプロパティとともに取り出す。
+ *
+ * @remarks
+ * 1 つも見つからなければ例外を投げます。0 件へ縮退させると、検査する対象が無い状態が
+ * 「すべて届いている」として緑で通ります。
+ */
+export function semanticNonColorTokens(css: string): TokenProbe[] {
+  const probes = SEMANTIC_ALIAS_BY_PROPERTY.flatMap(([pattern, property]) =>
+    [...css.matchAll(pattern)].map(([, name]) => ({ name: name as string, property })),
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  if (probes.length === 0) throw new Error("色以外の意味トークンが 1 つも見つかりません");
+
+  return probes;
 }

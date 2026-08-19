@@ -31,7 +31,7 @@ export function CollapsibleTrigger({ className, children, ...props }: ComponentP
   return (
     <summary
       className={cn(
-        "flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-foreground hover:text-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground [&::-webkit-details-marker]:hidden",
+        "flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-left text-sm font-emphasis transition-colors hover:bg-foreground hover:text-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary [&::-webkit-details-marker]:hidden",
         className,
       )}
       data-slot="collapsible-trigger"

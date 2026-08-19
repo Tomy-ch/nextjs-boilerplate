@@ -25,20 +25,24 @@ import {
  * @see Storybook `Action/Button`
  */
 export const buttonVariants = cva(
-  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:cursor-default disabled:opacity-50",
+  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-md font-emphasis tracking-wide transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary disabled:pointer-events-none disabled:cursor-default disabled:opacity-50",
   {
     variants: {
       variant: {
+        // 主行動だけは休止時から光らせる。画面の中で「いま生きている操作」は 1 つなので、
+        // 常時の装飾ではなく状態の表示にあたる。
         [BUTTON_VARIANT.DEFAULT]:
-          "bg-foreground text-background hover:bg-foreground/85 active:bg-foreground/70",
+          "bg-primary text-primary-foreground shadow-glow-primary hover:bg-primary/85 active:bg-primary/70",
         [BUTTON_VARIANT.OUTLINE]:
           "border border-border bg-background text-foreground hover:bg-foreground hover:text-background active:bg-foreground/80",
         [BUTTON_VARIANT.GHOST]:
           "bg-transparent text-foreground hover:bg-foreground hover:text-background active:bg-foreground/80",
         // hover と active の差を他の variant（`/85` と `/70`）より大きく取る。暗い配色の上では
         // 不透明度をわずかに下げても背景との差が出ず、押せることが hover で判らない。
+        //
+        // 自分の色で、hover / focus-visible にだけ光らせる（`src/components/README.md`「発光」）
         [BUTTON_VARIANT.DESTRUCTIVE]:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/75 active:bg-destructive/60",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/75 hover:shadow-glow-destructive focus-visible:shadow-glow-destructive active:bg-destructive/60",
       },
       size: {
         [BUTTON_SIZE.DEFAULT]: "h-10 px-4 py-2",

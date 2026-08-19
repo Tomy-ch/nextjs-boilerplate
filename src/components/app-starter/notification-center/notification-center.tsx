@@ -162,7 +162,7 @@ export function NotificationList({
       <ul
         aria-label={label}
         className={cn(
-          "max-h-80 gap-0 overflow-y-auto focus-visible:outline-2 focus-visible:outline-foreground focus-visible:-outline-offset-2",
+          "max-h-80 gap-0 overflow-y-auto focus-visible:outline-2 focus-visible:outline-active focus-visible:shadow-glow-primary focus-visible:-outline-offset-2",
           className,
         )}
         data-slot="notification-list"

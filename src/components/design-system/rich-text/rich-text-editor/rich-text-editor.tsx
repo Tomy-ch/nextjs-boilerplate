@@ -24,7 +24,7 @@ import {
 const EDITOR_EXTENSIONS = [...RICH_TEXT_EDITOR_EXTENSIONS];
 
 const EDITOR_CONTENT_CLASS_NAME =
-  "typeset typeset-docs min-h-40 px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-foreground";
+  "typeset typeset-docs min-h-40 px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-active focus-visible:shadow-glow-primary";
 
 const TOOLBAR_BUTTON_CLASS_NAME = "size-8 min-w-8 p-0 [&_svg]:size-4";
 

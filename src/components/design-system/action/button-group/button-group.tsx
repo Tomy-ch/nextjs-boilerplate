@@ -122,7 +122,7 @@ export function ButtonGroupText({ className, asChild = false, ...props }: Button
   return (
     <Component
       className={cn(
-        "flex items-center gap-2 rounded-md border border-border bg-muted px-4 font-medium text-sm shadow-xs",
+        "flex items-center gap-2 rounded-md border border-border bg-muted px-4 font-emphasis text-sm shadow-xs",
         "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
         className,
       )}

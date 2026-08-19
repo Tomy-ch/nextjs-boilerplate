@@ -71,7 +71,7 @@ export function AppShell({
       <PullToRefresh />
       <a
         href={`#${APP_SHELL_MAIN_ID}`}
-        className="print-hidden sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+        className="print-hidden sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary"
       >
         本文へスキップ
       </a>
@@ -81,7 +81,8 @@ export function AppShell({
       >
         <div className="mx-auto flex h-full w-full max-w-5xl items-center gap-2 px-4 md:px-6">
           <AppShellMenu items={navItems} />
-          <Link href="/" className="font-semibold">
+          {/* 銘はラテンのみの書体を当てる。和文を含む文字列に当てると 1 語の中で書体が変わる */}
+          <Link href="/" className="font-brand tracking-wider">
             {siteName}
           </Link>
           <div className="ml-auto flex items-center gap-1">

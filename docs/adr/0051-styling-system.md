@@ -27,9 +27,15 @@ Accepted
   - **semantic(意味別名)**: 用途を名指しした別名。接頭辞は `--semantic-color-*`(`background` / `foreground` / `muted` / `border` / `accent` 等)とし、primitive を `var()` で参照する。**参照面(コンポーネント)の既定は semantic 層**とする。接頭辞を分けるのは、生成した CSS に対する検出で primitive 直参照と semantic 参照を機械的に見分けるためである。
 - **色は semantic 経由でのみ参照**する(0050「色をハードコードせず token 経由」の具体化)。primitive を直接コンポーネントに撒かない。
 - **token の SSOT は `tokens/*.json`**([W3C Design Tokens](https://www.w3.org/community/design-tokens/) 形式・手書き)であり、デザインツールからの生成物ではない。`tokens/scripts/gen-tokens.ts` が primitive の `@theme` 登録と semantic 別名を含む CSS を生成し、`src/app/globals.css` がそれを import する。**生成物は編集しない**([0072](0072-api-type-generation.md) の生成物規律と同型)。CSS を直接書き換えると SSOT が二重化するため、token の追加・変更は必ず `tokens/*.json` に対して行う。
-- **テーマ切替(ライト/ダーク等)は semantic 別名の再束縛だけで完結**させる。これが 0050 のダークモード決定を体系として成立させる要である。切替の経路は 2 つで、既定は OS 設定(`prefers-color-scheme`)、`data-theme` 属性が置かれている場合はそちらを優先する。**Tailwind の `dark:` variant も同じ 2 経路で発火させる**(`@custom-variant`)。片方だけを見る条件にすると、面の色だけが切り替わって `dark:` 付きの class が追従しない状態になる。
+- **テーマ切替(ライト/ダーク等)は semantic 別名の再束縛だけで完結**させる。これが 0050 のダークモード決定を体系として成立させる要である。切替の経路は 2 つで、既定は OS 設定(`prefers-color-scheme`)、`data-theme` 属性が置かれている場合はそちらを優先する。**Tailwind の `dark:` variant も同じ 2 経路で発火させる**(`@custom-variant`)。片方だけを見る条件にすると、塗りの色だけが切り替わって `dark:` 付きの class が追従しない状態になる。
+- **発光を状態の唯一の手掛かりにしない。** forced-colors モードでは UA が `box-shadow` を `none` にするため、影で作った発光は完全に消える。状態は色か文言と併せて示す。
 - **既定以外の theme は `screen` メディアへ限定する。** 限定しないと dark の配色が印刷にも一致し、紙面が読めなくなる(§4)。
-- **スケールの対象軸**: color / spacing / typography(size・line-height・weight)/ radius / shadow。z-index スケールの token 化は本 ADR の 2 層モデルに乗る同型の関心だが、レイヤリング規約(triage #23)として `docs/rules.md` 側で扱う(本 ADR は「z も token 化する」土台のみ示す)。
+- **切替の軸は配色と系統の 2 本とする。** 配色(light / dark)は文書全体の軸で `:root` に出し、**系統**(利用者向け / 管理向け等)は部分木の軸で `[data-surface]` に出す。系統を分けるのは、同じ semantic token に対して置かれた場所ごとに別の値を当てる関心が、配色とは独立に立つためである。両者は直交するので、片方を選ぶともう片方が決まる形(4 通りを平置きする等)にはしない。
+  - **系統は semantic 別名の再束縛だけで完結させる**(配色と同じ機構)。部品は自分がどの系統に置かれたかを知らない。系統ごとに別の部品を持つと、系統の数だけ同じ部品が増える。
+  - **系統は `:root` ではなく部分木に置く。** App Router では入れ子の layout から `<html>` の属性を触れないため、経路として成立するのは部分木だけである。ただし **Portal の出口を含む位置でなければならない** —— overlay は `document.body` 直下へ出るため、本文の内側に置くと overlay だけ既定の系統で描かれる。
+  - **既定の系統は属性を置かない木に出す。** 詳細度は系統が `(0,1,0)`、配色が `(0,2,0)`、両方揃った範囲が `(0,3,0)` と積み上がり、同じ木では系統と配色の両方を指定した宣言が勝つ。
+  - **`color-scheme` は配色の軸だけが宣言する。** 系統の側にも出すと同じ条件を二重に持ち、片方だけがずれる。
+- **スケールの対象軸**: color / spacing / typography(size・line-height・weight・tracking)/ radius / shadow / text-shadow / blur。z-index スケールの token 化は本 ADR の 2 層モデルに乗る同型の関心だが、レイヤリング規約(triage #23)として `docs/rules.md` 側で扱う(本 ADR は「z も token 化する」土台のみ示す)。
 
 ### 2. レスポンシブ = viewport ブレークポイント(mobile-first)+ コンテナクエリ
 
@@ -63,8 +69,10 @@ Accepted
 ### token は 3 層。部品固有の層はサンプルと同じ扱いで破棄できるようにする
 
 - **primitive**(`tokens/primitives.json`) —— 生の値。部品から直接参照しない
-- **semantic**(`tokens/themes.json`) —— primitive を指す別名。部品が参照するのはこの層
+- **semantic**(`tokens/themes/<系統>/<配色>.json`) —— primitive を指す別名。部品が参照するのはこの層
 - **component** —— 1 つの部品でしか意味を持たない値。**semantic を参照して定義する**(primitive を直接参照しない)
+
+semantic 層は系統と配色の組ごとに 1 枚を持ち、**すべての組が同じ token を宣言する**。欠けた token は宣言が無いだけでは済まず、カスケードにより隣の組の値を引き継ぐため、系統を切り替えたつもりの箇所だけが元のまま残る。この一致は生成時に強制する。
 
 component 層を認めるのは、破棄の機構が入ったためである。**題材(サンプル)のために足した token は `sample` マーカーで囲み、破棄の対象に含める**。デザインシステムとして残す token と、サンプルサイトのために足した token を、同じ表の中で見分けられる状態にしておく。
 
@@ -86,6 +94,8 @@ component 層を認めるのは、破棄の機構が入ったためである。*
 ## 禁止事項
 
 - ❌ semantic 層を飛ばして primitive(生スケール)や色リテラルをコンポーネントに直接撒くこと(テーマ切替が token 差し替えに閉じなくなる。§1)
+- ❌ 系統ごとに別の部品を持つこと、および部品に自分の置かれた系統を判定させること(系統は semantic 別名の再束縛だけで完結する。§1)
+- ❌ 系統と配色を掛け合わせた組を平置きして 1 本の軸として扱うこと(直交する 2 軸を畳むと、片方を足すたびに組が掛け算で増える。§1)
 - ❌ token 命名層(primitive / semantic)を無視した ad-hoc な CSS 変数を各所に増やすこと。新規 token は `@theme` の primitive か semantic 別名として定義する
 - ❌ ブレークポイントの値(`rem` / `px`)を本 ADR 本文へ書くこと。段は名前(`sm` 〜 `2xl`)でだけ指し、値は design token を正とする(併記した時点で token を差し替えても ADR だけが取り残される。§2)
 - ❌ レスポンシブの**日常 rule**(脇に常設する領域を出す帯・常時到達させる操作の置き場・帯と器の使い分けを実装でどう守るか 等)を本 ADR や ADR 本文へ書き込むこと(rule は `rules.md` へ。[0140](0140-documentation-operations.md))

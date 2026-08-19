@@ -48,7 +48,7 @@ export function ProductCategoryField({
 
   return (
     <fieldset aria-describedby={reachedLimit ? noticeId : undefined} className="grid gap-3">
-      <legend className="mb-3 font-medium text-sm">カテゴリ</legend>
+      <legend className="mb-3 font-emphasis text-sm">カテゴリ</legend>
       {options.map((option) => (
         <CategoryOption
           checked={selected.includes(option.value)}

@@ -71,7 +71,7 @@ function handleSlideClick(href: string, onClick?: MouseEventHandler<HTMLAnchorEl
 }
 
 const CAROUSEL_STEP_CLASS =
-  "-translate-y-1/2 absolute top-1/2 inline-flex size-9 items-center justify-center rounded-full border border-border/70 bg-background/70 text-foreground transition-colors after:absolute after:-inset-4.5 after:content-[''] hover:border-border hover:bg-background focus-visible:border-border focus-visible:bg-background focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
+  "-translate-y-1/2 absolute top-1/2 inline-flex size-9 items-center justify-center rounded-full border border-border/70 bg-background/70 text-foreground transition-colors after:absolute after:-inset-4.5 after:content-[''] hover:border-border hover:bg-background focus-visible:border-border focus-visible:bg-background focus-visible:outline-2 focus-visible:outline-active focus-visible:shadow-glow-primary focus-visible:outline-offset-2";
 
 /**
  * 一つ前の slide へ送る、slide の左端に重なる操作。
@@ -192,7 +192,7 @@ export function CarouselLink({ className, href, onClick, ...props }: CarouselNav
       <a
         aria-current={isCurrent ? "true" : undefined}
         className={cn(
-          "inline-flex items-center rounded-md border-2 border-transparent px-3 py-1 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2 aria-[current=true]:border-foreground aria-[current=true]:text-foreground",
+          "inline-flex items-center rounded-md border-2 border-transparent px-3 py-1 font-emphasis text-muted-foreground text-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-active focus-visible:shadow-glow-primary focus-visible:outline-offset-2 aria-[current=true]:border-foreground aria-[current=true]:text-foreground",
           className,
         )}
         data-slot="carousel-link"

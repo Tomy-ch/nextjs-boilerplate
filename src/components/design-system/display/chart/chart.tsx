@@ -147,7 +147,7 @@ export function ChartStyle({ id, config }: { id: string; config: ChartConfig }) 
  *
  * @example
  * ```tsx
- * <ChartContainer config={{ visits: { label: "訪問", color: "var(--color-foreground)" } }}>
+ * <ChartContainer config={{ visits: { label: "訪問", color: "var(--semantic-color-foreground)" } }}>
  *   <BarChart data={data}>
  *     <Bar dataKey="visits" fill="var(--color-visits)" />
  *   </BarChart>
@@ -261,7 +261,7 @@ export function ChartTooltipContent({
 
     if (labelFormatter) {
       return (
-        <div className={cn("font-medium", labelClassName)}>{labelFormatter(value, payload)}</div>
+        <div className={cn("font-emphasis", labelClassName)}>{labelFormatter(value, payload)}</div>
       );
     }
 
@@ -269,7 +269,7 @@ export function ChartTooltipContent({
       return null;
     }
 
-    return <div className={cn("font-medium", labelClassName)}>{value}</div>;
+    return <div className={cn("font-emphasis", labelClassName)}>{value}</div>;
   }, [label, labelFormatter, payload, hideLabel, labelClassName, config, labelKey]);
 
   if (!active || !payload?.length) {
@@ -315,7 +315,7 @@ export function ChartTooltipContent({
                     {itemConfig?.icon || hideIndicator ? null : (
                       <div
                         className={cn(
-                          "shrink-0 rounded-[2px] border-(--color-border) bg-(--color-bg)",
+                          "shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)",
                           {
                             "h-2.5 w-2.5": indicator === CHART_INDICATOR.DOT,
                             "w-1": indicator === CHART_INDICATOR.LINE,
@@ -340,7 +340,7 @@ export function ChartTooltipContent({
                         </span>
                       </div>
                       {item.value == null ? null : (
-                        <span className="font-mono font-medium text-foreground tabular-nums">
+                        <span className="font-mono font-emphasis text-foreground tabular-nums">
                           {typeof item.value === "number"
                             ? item.value.toLocaleString()
                             : String(item.value)}
@@ -419,7 +419,7 @@ export function ChartLegendContent({
                 <itemConfig.icon />
               ) : (
                 <div
-                  className="h-2 w-2 shrink-0 rounded-[2px]"
+                  className="h-2 w-2 shrink-0 rounded-xs"
                   style={{ backgroundColor: item.color }}
                 />
               )}

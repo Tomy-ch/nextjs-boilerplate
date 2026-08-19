@@ -36,11 +36,11 @@ export const WithSkeleton: Story = {
   render: () => (
     <div className="flex w-72 flex-col gap-4">
       <section className="flex flex-col gap-2">
-        <h3 className="font-medium text-sm">Skeleton だけ</h3>
+        <h3 className="font-emphasis text-sm">Skeleton だけ</h3>
         <Skeleton className="h-16 w-full" />
       </section>
       <section className="flex flex-col gap-2">
-        <h3 className="font-medium text-sm">shimmer を重ねる</h3>
+        <h3 className="font-emphasis text-sm">shimmer を重ねる</h3>
         <Skeleton className="h-16 w-full">
           <div className="shimmer size-full rounded-md" />
         </Skeleton>

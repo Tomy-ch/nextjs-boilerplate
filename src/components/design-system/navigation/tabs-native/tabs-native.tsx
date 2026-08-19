@@ -75,7 +75,7 @@ export function TabsNativeLink({ className, isActive = false, ...props }: TabsNa
       <Link
         aria-current={isActive ? "page" : undefined}
         className={cn(
-          "-mb-px inline-flex items-center border-transparent border-b-2 px-3 py-2 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2",
+          "-mb-px inline-flex items-center border-transparent border-b-2 px-3 py-2 font-emphasis text-muted-foreground text-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-active focus-visible:shadow-glow-primary focus-visible:outline-offset-2",
           isActive && "border-foreground text-foreground",
           className,
         )}

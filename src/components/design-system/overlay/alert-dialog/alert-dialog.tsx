@@ -119,7 +119,7 @@ export function AlertDialogFooter({ className, ...props }: ComponentProps<"div">
 export function AlertDialogTitle({ className, ...props }: ComponentProps<typeof Primitive.Title>) {
   return (
     <Primitive.Title
-      className={cn("text-lg font-semibold", className)}
+      className={cn("text-lg font-strong", className)}
       data-slot="alert-dialog-title"
       {...props}
     />

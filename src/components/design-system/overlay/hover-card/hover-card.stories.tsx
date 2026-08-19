@@ -9,7 +9,7 @@ function HoverCardExample({ open }: { open?: boolean }) {
         <a href="https://github.com/">GitHub</a>
       </HoverCardTrigger>
       <HoverCardContent>
-        <p className="font-medium">GitHub</p>
+        <p className="font-emphasis">GitHub</p>
         <p className="mt-1 text-sm text-muted-foreground">
           公開されているプロジェクト情報を確認できます。
         </p>

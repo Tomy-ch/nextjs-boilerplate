@@ -86,15 +86,34 @@ subcomponent が多い compound では、root に `@example` で組み合わせ�
 
 ### focus 表示
 
-- focus ring は `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground` に統一する。shadcn 生成物が使う `ring-ring` / `border-ring` / `outline-ring` の `ring` トークンは採らず、取り込み時にこの指定へ置換する
+- focus ring は `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary` に統一する。shadcn 生成物が使う `ring-ring` / `border-ring` / `outline-ring` の `ring` トークンは採らず、取り込み時にこの指定へ置換する
+- 色に `active` を使うのは、休止時の枠（`input`）と focus とを見分けられるようにするためである。`active` はどの地の上でも **4.5:1** を満たし、`input` の **3:1** より一段強い
+- **`shadow-glow-primary` は装飾であり、focus を示しているのは `outline` である。** forced-colors モードでは UA が `box-shadow` を `none` にするため光は消えるが、`outline` は残るので focus は失われない。光を焦点の唯一の手掛かりにしてはならない理由もここにある
 - `ring` を focus に使わない理由は二つある。**forced-colors モードでは UA が `box-shadow` を強制的に `none` にする**ため focus ring が完全に消えること、および **`ring-offset` の隙間は透明ではなく `ring-offset-color` で塗った帯**であり、その色と一致しない面の上では帯が露出することである
 - **同じ要素に `outline-none` を併記しない。** Tailwind v4 の `outline-none` は要素へ `--tw-outline-style: none` を立て、`focus-visible:outline-2` が出力する `outline-style: var(--tw-outline-style)` をそこで打ち消すため、focus ring が一切描画されなくなる。既定の outline を抑えたいだけなら `focus-visible` 側の指定だけで足りる
 - 面の focus を塗りで示す menu 項目（`dropdown-menu`、`context-menu`、`command`、`select-client` の item）は例外で、`outline-hidden` と `focus:bg-accent` の組み合わせを使う
 
+### 文字の太さ
+
+- **強調は `font-emphasis` / `font-strong` で書く。`font-medium` / `font-semibold` を使わない。** 書体ごとに持っている太さが違い、持っていない段を指定しても丸められるだけで強調にならない（`tokens/README.md`「強調は段の名前で持つ」）
+- `font-bold` は「太字そのもの」を指す場合にだけ使う。段としての強調ではない
+
+### 系統（`data-surface`）と Portal
+
+- **系統の属性は Portal の出口を含む位置に置く。** `overlay/` の部品は Radix の Portal で `document.body` 直下へ出るため、本文の内側の要素に属性を置くと overlay の中身だけ既定の系統で描かれる（`tokens/README.md`「属性を置く場所は、Portal を含む位置でなければならない」）
+- 部品側で `container` を差し替える場合も同じ制約が掛かる。**どちらを採るかは系統を導入する画面が決める**
+
+### 発光
+
+- **光ってよい色は決まっている。** `shadow-glow-primary` / `-info` / `-success` / `-warning` / `-destructive` の 5 つだけが存在し、`secondary` と `emphasis` には token が無い（`tokens/README.md`「発光の可否と時機」）
+- **`warning` と `destructive` は休止時に光らせない。** `hover:` / `focus-visible:` に付ける。危険な操作が常時光っていると「いま押せる」と読める
+- **面の色と違う色で光らせない。** 赤い面を主色の光で囲むと、光でできた世界では破綻して見える
+
 ### 境界を示す線
 
 - **その線が要素の境界を示すなら `border-input`、区画の仕切りなら `border-border` を使う。** `Input` / `Textarea` のように枠が無いと入力できる範囲が判らなくなるもの、`Badge` の `outline` のように縁だけで成り立つ variant は、いずれも `input` を取る
-- 分けるのは**コントラストの要求が違う**ためである。入力できる範囲の境界は **WCAG 1.4.11 が隣接色との 3:1 を求める**対象で（[0100](../../docs/adr/0100-accessibility-target.md)）、light の地（`neutral.100`）に対して `border`（`neutral.300`）は **1.79:1** しかなく満たさない。`input`（`neutral.500`）は **4.05:1** で満たす。仕切りは同条の対象外なので `border` のままでよい
+- 分けるのは**コントラストの要求が違う**ためである。入力できる範囲の境界は **WCAG 1.4.11 が隣接色との 3:1 を求める**対象で（[0100](../../docs/adr/0100-accessibility-target.md)）、`border` は仕切りとしてどの面でも 1.2〜1.6:1 しかなく満たさない。`input` は `background` / `card` / `popover` / `muted` / `accent` のすべての上で 3:1 を満たすよう定めてある。仕切りは同条の対象外なので `border` のままでよい
+- **`primary` と `emphasis` を本文の色に使わない。** この 2 つは面と図形のための色で、WCAG 1.4.11 の **3:1** しか満たさない。文字に置くと AA の 4.5:1 を割る。リンクや状態の文言には `secondary` / `success` / `warning` / `destructive` / `info` を使う（いずれも 4.5:1 を満たす）。アイコンは非テキストなので 3:1 で足り、`primary` を置いてよい
 - 判断の根拠は token の値にあるため、配色を変えたときはこの節を先に確認し、**比を測り直す**。呼び出し側のコメントに理由を書くと、token を直しても気づかれない
 
 ### 装飾的な輪
@@ -238,7 +257,8 @@ components/
   - `Page/<feature>/<画面>` — 画面の合成（`features/<name>/<screen>/view.tsx`）。取得を伴わない状態で画面全体の見え方を確かめる場所
   - `Features/<feature>/…` — 画面固有の部品（`features/<name>/<screen>/ui/<part>/`）。以降のセグメントは実装のディレクトリと同じ形にする
 - **取得を行うもの（`page-content.tsx`）は story にしない。** story は取得の実体を持てないため、確かめられるのは合成した結果だけである。取得の検証は unit テストが持つ（[0091](../../docs/adr/0091-test-verification-methods.md)）
-- sidebar の並び順は [`.storybook/preview.ts`](../../.storybook/preview.ts) の `storySort` が持つ。**`Page` → `Features` → 目録**の順に置き、その中は名前順である。組んでいる間に開くのは前の 2 つで、目録は参照物として後ろにある方が探す手数が少ない。目録自身の並びは sidebar に持ち込まない。目録は層と目的で読む順を作るが、sidebar は目当ての部品を名前で引く場所なので、二つの並びを揃える必要がない
+- **`Tokens/` は component の見出しではない。** design token の目録（[`.storybook/design-token.stories.tsx`](../../.storybook/design-token.stories.tsx)）で、アプリが描画する部品ではないため `components/` の層にも目録にも載らない。`components/` 直下は「誰が書き換えるか」で層を分ける規約なので、そこへ 5 つ目の層として足すと規約が嘘になる。Storybook 自身の資料として `.storybook/` に置き、`main.ts` の `stories` が拾う
+- sidebar の並び順は [`.storybook/preview.ts`](../../.storybook/preview.ts) の `storySort` が持つ。**`Page` → `Features` → `Tokens` → 目録**の順に置き、その中は名前順である。組んでいる間に開くのは前の 2 つで、目録は参照物として後ろにある方が探す手数が少ない。目録自身の並びは sidebar に持ち込まない。目録は層と目的で読む順を作るが、sidebar は目当ての部品を名前で引く場所なので、二つの並びを揃える必要がない
 - Storybook Canvas の座標や余白はアプリのレイアウト規約ではない。`layout: "centered"` は、小さな単体 UI を確認しやすくする story 側の表示指定である。画面・幅いっぱいに広がる部品には `fullscreen` または `padded` を story ごとに選ぶ
 - Controls が推論した props は任意の React 要素を生成できない。`asChild` のように単一の要素 child を必要とする props は Control を公開せず、必要な child を `render` で明示した専用 story を用意する
 - **どの story file にも component の説明と story ごとの説明を書く。** component の説明には、その部品が何のためにあるかと、**隣の似た部品との使い分け**を書く。`Accordion` と `Collapsible`、`Alert` と `Toaster` と `FeedbackState` のように、見た目が近く責務が違う部品は、並べて初めて選び分けられる。story の説明は、その story が何を示しているのかを書く

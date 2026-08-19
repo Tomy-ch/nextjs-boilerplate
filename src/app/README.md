@@ -28,6 +28,7 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 | 対象 | 現状 | 置き換わる契機 |
 | --- | --- | --- |
 | `layout.tsx` の html / body | 言語と font 変数、`min-h-full` の骨格のみ | app shell の実装 |
+| `fonts.ts` | `next/font` の書体定義と、変数を配る class 名 | どの要素にどの書体を当てるか（token と部品が持つ） |
 | `metadata` の `title` / `description` | リポジトリ名と一行説明の**仮値**。`title.template` の雛形だけが恒久的な枠 | fork 先または画面実装 |
 | `metadata` の `metadataBase` | **未設定**。公開 URL を保持する config が無いため | 公開 URL を config へ足す時点 |
 | `page.tsx` | 動作確認用の最小ページ | 画面実装 |

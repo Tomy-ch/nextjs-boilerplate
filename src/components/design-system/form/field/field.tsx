@@ -31,7 +31,7 @@ export function FieldSet({ className, ...props }: ComponentProps<"fieldset">) {
 export function FieldLegend({ className, ...props }: ComponentProps<"legend">) {
   return (
     <legend
-      className={cn("mb-3 text-base font-medium", className)}
+      className={cn("mb-3 text-base font-emphasis", className)}
       data-slot="field-legend"
       {...props}
     />
@@ -160,7 +160,7 @@ export function FieldLabel({ className, ...props }: ComponentProps<typeof Label>
 export function FieldTitle({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
-      className={cn("text-sm font-medium leading-snug", className)}
+      className={cn("text-sm font-emphasis leading-snug", className)}
       data-slot="field-title"
       {...props}
     />

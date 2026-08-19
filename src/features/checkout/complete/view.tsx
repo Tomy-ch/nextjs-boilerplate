@@ -31,7 +31,7 @@ export type CheckoutCompleteViewProps = {
 export function CheckoutCompleteView({ purchase, reference }: CheckoutCompleteViewProps) {
   return (
     <div className="flex flex-col gap-6">
-      <p className="flex items-center gap-2 font-medium text-lg">
+      <p className="flex items-center gap-2 font-emphasis text-lg">
         <CheckCircle2Icon aria-hidden="true" className="size-5 text-primary" />
         ご注文ありがとうございます。
       </p>

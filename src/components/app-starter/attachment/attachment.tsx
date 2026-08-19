@@ -19,7 +19,7 @@ import {
 } from "./attachment.definition";
 
 const attachmentVariants = cva(
-  "group/attachment relative flex w-fit max-w-full min-w-0 shrink-0 flex-wrap rounded-xl border border-border bg-card text-card-foreground transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-foreground has-[>a,>button]:hover:bg-muted/50 data-[state=error]:border-destructive/30 data-[state=idle]:border-dashed data-[state=processing]:shimmer data-[state=uploading]:shimmer",
+  "group/attachment relative flex w-fit max-w-full min-w-0 shrink-0 flex-wrap rounded-xl border border-border bg-card backdrop-blur-panel text-card-foreground transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-active has-[>a,>button]:hover:bg-muted/50 data-[state=error]:border-destructive/30 data-[state=idle]:border-dashed data-[state=processing]:shimmer data-[state=uploading]:shimmer",
   {
     variants: {
       size: {
@@ -186,7 +186,7 @@ export function AttachmentContent({ className, ...props }: ComponentProps<"div">
 export function AttachmentTitle({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
-      className={cn("block max-w-full min-w-0 truncate font-medium", className)}
+      className={cn("block max-w-full min-w-0 truncate font-emphasis", className)}
       data-slot="attachment-title"
       {...props}
     />
@@ -207,7 +207,7 @@ export function AttachmentDescription({ className, ...props }: ComponentProps<"s
   return (
     <span
       className={cn(
-        "mt-0.5 block min-w-0 truncate text-xs text-muted-foreground group-data-[state=error]/attachment:text-destructive/80",
+        "mt-0.5 block min-w-0 truncate text-xs text-muted-foreground group-data-[state=error]/attachment:text-destructive",
         "max-w-full",
         className,
       )}

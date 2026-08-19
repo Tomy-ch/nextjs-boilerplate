@@ -84,7 +84,7 @@ export function CarouselContent({ className, ...props }: ComponentProps<"div">) 
   return (
     <div
       className={cn(
-        "flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2",
+        "flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-active focus-visible:shadow-glow-primary focus-visible:outline-offset-2",
         className,
       )}
       data-slot="carousel-content"

@@ -30,18 +30,18 @@ export function RankingList({ entries }: RankingListProps) {
 
   return (
     <section>
-      <h2 className="text-lg font-semibold">売上ランキング</h2>
+      <h2 className="text-lg font-strong">売上ランキング</h2>
       <ol className="mt-4">
         {entries.map((entry, index) => (
           <li key={entry.productId}>
             {index === 0 ? null : <Separator />}
             <div className="flex items-center gap-4 py-3">
-              <span className="w-6 shrink-0 text-center text-lg font-semibold tabular-nums">
+              <span className="w-6 shrink-0 text-center text-lg font-strong tabular-nums">
                 {index + 1}
               </span>
               <span className="min-w-0 flex-1 break-words">
                 <Link
-                  className="rounded-xs font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                  className="rounded-xs font-emphasis hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary"
                   href={`/products/${entry.productId}`}
                 >
                   {entry.name}
@@ -52,7 +52,7 @@ export function RankingList({ entries }: RankingListProps) {
               </span>
               {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
                   数値へ変換するとサブセント精度が落ちる。 */}
-              <span className="w-20 shrink-0 text-right font-medium tabular-nums">
+              <span className="w-20 shrink-0 text-right font-emphasis tabular-nums">
                 {`$${entry.price}`}
               </span>
             </div>

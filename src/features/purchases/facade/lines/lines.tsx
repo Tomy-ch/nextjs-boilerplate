@@ -34,7 +34,7 @@ export function PurchaseLineList({ lines }: PurchaseLineListProps) {
           {lines.map((line) => (
             <li className="flex flex-wrap items-start gap-x-4 gap-y-1 py-4" key={line.productId}>
               <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
-                <p className="font-medium text-sm">{line.productName}</p>
+                <p className="font-emphasis text-sm">{line.productName}</p>
                 <p className="text-muted-foreground text-sm">{`$${line.unitPrice} / 個`}</p>
               </div>
               <p className="text-sm tabular-nums">{`${line.quantity} 個`}</p>

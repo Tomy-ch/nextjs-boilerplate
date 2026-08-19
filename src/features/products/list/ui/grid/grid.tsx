@@ -31,7 +31,7 @@ export function ProductGrid({ items }: ProductGridProps) {
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-12 text-center">
-        <p className="font-medium">条件に合う商品がありません</p>
+        <p className="font-emphasis">条件に合う商品がありません</p>
         <p className="mt-2 text-muted-foreground text-sm">
           キーワードを短くするか、絞り込みを外してください。
         </p>
