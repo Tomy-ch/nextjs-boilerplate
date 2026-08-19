@@ -1,3 +1,4 @@
+import { Badge } from "@/components/design-system/display/badge/badge";
 import {
   Card,
   CardContent,
@@ -12,6 +13,8 @@ import {
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import { formatDateTime } from "@/model/datetime";
 import type { Purchase } from "@/model/purchase/purchase";
+
+import { toStatusEmphasis } from "../../../status-emphasis";
 
 /** `PurchaseReceiptCard` の props。 */
 export type PurchaseReceiptCardProps = {
@@ -28,6 +31,9 @@ export type PurchaseReceiptCardProps = {
  *
  * 折り返しを許すのは、契約が返すのが UUID で、狭い幅では 1 行に収まらないためです。詰めて隠すと、
  * 問い合わせのときに全文を読み取れません。
+ *
+ * 状況だけ badge にするのは、一覧の行と同じ色で同じ状態を示すためです。一覧で赤かった購入が
+ * 詳細では地の文になっていると、同じことを言っているのかが読み取れません。
  */
 export function PurchaseReceiptCard({ purchase }: PurchaseReceiptCardProps) {
   return (
@@ -47,7 +53,9 @@ export function PurchaseReceiptCard({ purchase }: PurchaseReceiptCardProps) {
           </KeyValueItem>
           <KeyValueItem>
             <KeyValueLabel>状況</KeyValueLabel>
-            <KeyValueValue>{purchase.statusName}</KeyValueValue>
+            <KeyValueValue>
+              <Badge variant={toStatusEmphasis(purchase.statusName)}>{purchase.statusName}</Badge>
+            </KeyValueValue>
           </KeyValueItem>
         </KeyValueList>
       </CardContent>

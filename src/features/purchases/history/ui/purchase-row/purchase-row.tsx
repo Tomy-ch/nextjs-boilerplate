@@ -2,10 +2,11 @@ import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/design-system/display/badge/badge";
-import { BADGE_VARIANT } from "@/components/design-system/display/badge/badge.definition";
 import { formatDateTime } from "@/model/datetime";
 import { formatMoney } from "@/model/money";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
+
+import { toStatusEmphasis } from "../../../status-emphasis";
 
 /** `PurchaseRow` の props。 */
 export type PurchaseRowProps = {
@@ -28,6 +29,9 @@ export type PurchaseRowProps = {
  * 状況・金額・行き先の目印は 1 つの塊にして右へ寄せます。ばらばらに折り返すと、行によって
  * 目印だけが次の行へ落ち、同じ形の行が違う高さで並びます。
  *
+ * 状況の色は届いたか止まったかで変えます。何十件も並ぶ一覧では、1 行ずつ文字を読まずに
+ * 目的の購入を絞り込めることのほうが効きます。色の割り当ては `status-emphasis.ts` が持ちます。
+ *
  * 購入コードは折り返さずに詰めます。契約が返すのは UUID で、折り返すと 1 行の高さが 2 倍になり、
  * 一覧を読み進める密度が落ちます。全文は詳細の控えにあります。
  */
@@ -43,7 +47,7 @@ export function PurchaseRow({ purchase, href }: PurchaseRowProps) {
           <span className="truncate font-mono text-muted-foreground text-xs">{purchase.code}</span>
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <Badge variant={BADGE_VARIANT.SECONDARY}>{purchase.statusName}</Badge>
+          <Badge variant={toStatusEmphasis(purchase.statusName)}>{purchase.statusName}</Badge>
           <span className="tabular-nums">{formatMoney(purchase.totalAmount)}</span>
           <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
         </div>
