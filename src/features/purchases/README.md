@@ -36,7 +36,8 @@ test-requirement: feature
 | `history/query.ts` | 画面が受け取る素の条件と、ページ送りの寸法（件数・カーソルのキー） |
 | `history/period.ts` | 期間の条件。URL のキー・読み取り・URL の組み立て・利用者への言い換え |
 | `history/period-draft.ts` | 組み立て中の期間。入力欄が経由する途中の姿と、確定できるかの判定 |
-| `history/page-content.tsx` | 先頭ページの取得と組み立て |
+| `history/page-content.tsx` | 条件の解釈と、画面と待機の境界の組み立て |
+| `history/results.tsx` | 先頭ページの取得。期間が変わったときに取り直す範囲 |
 | `history/use-infinite-purchases.ts` | 2 ページ目以降の取得と末尾到達の検知 |
 | `history/view.tsx` | 一覧の画面。絞り込みと一覧本体を組む |
 | `history/ui/infinite-list/` | 読み進められる一覧。取得と見た目をつなぐ |

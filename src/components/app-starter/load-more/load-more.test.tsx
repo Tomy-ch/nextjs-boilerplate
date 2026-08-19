@@ -8,7 +8,6 @@ import { axe } from "vitest-axe";
 import { LoadMore } from "./load-more";
 
 describe("LoadMore", () => {
-  // ----- 正常系 -----
   it("続きがあるあいだは、操作も進行も出さずに目印だけを置く", () => {
     render(<LoadMore state={{ status: "idle" }} />);
 
@@ -41,7 +40,6 @@ describe("LoadMore", () => {
     expect(screen.getByRole("button", { name: "読み直す" })).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("失敗したときだけ読み直す操作を出す", async () => {
     const onRetry = vi.fn();
 

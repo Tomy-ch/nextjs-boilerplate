@@ -8,7 +8,6 @@ import { PURCHASE_DETAIL } from "../purchase.fixture";
 import { PurchaseLineList } from "./lines";
 
 describe("PurchaseLineList", () => {
-  // ----- 正常系 -----
   it("商品名・購入時点の単価・数量を出す", () => {
     render(<PurchaseLineList lines={PURCHASE_DETAIL.lines} />);
 
@@ -23,7 +22,6 @@ describe("PurchaseLineList", () => {
     expect(screen.queryByText("$59.97")).not.toBeInTheDocument();
   });
 
-  // ----- 異常系 -----
   it("明細が無くても器だけを出す", () => {
     render(<PurchaseLineList lines={[]} />);
 

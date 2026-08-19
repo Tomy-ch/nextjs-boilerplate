@@ -24,6 +24,26 @@ export const RECENT_DAYS_OPTIONS: readonly number[] = [7, 30, 90, 365];
 const DATE_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 /**
+ * 暦の上に実在する日付か。
+ *
+ * @remarks
+ * 書式の照合だけでは通ってしまう日（`2026-06-31` など）を弾きます。**日付の入力欄からは出て
+ * こないが、URL は利用者が直接編集できる**ため届きます。そのまま契約へ渡すと拒まれ、一覧
+ * そのものが出せません。
+ *
+ * 組み直して同じ文字列に戻るかで判定します。実在しない日は繰り上がって別の日になります。
+ */
+function isCalendarDate(value: string): boolean {
+  if (!DATE_PATTERN.test(value)) {
+    return false;
+  }
+
+  const parsed = new Date(`${value}T00:00:00Z`);
+
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
+}
+
+/**
  * いま効いている期間の条件。
  *
  * @remarks
@@ -79,7 +99,7 @@ export function toPeriodSelection(params: RawSearchParams): PeriodSelection {
     const from = toSingleValue(params, PERIOD_KEY.FROM);
     const to = toSingleValue(params, PERIOD_KEY.TO);
 
-    if (!DATE_PATTERN.test(from) || !DATE_PATTERN.test(to) || to < from) {
+    if (!isCalendarDate(from) || !isCalendarDate(to) || to < from) {
       return ALL_PERIOD;
     }
 

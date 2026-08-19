@@ -9,7 +9,6 @@ import { PURCHASE_DETAIL, TOTAL_REFERENCE } from "../purchase.fixture";
 import { PurchaseAmountSummary } from "./amount-summary";
 
 describe("PurchaseAmountSummary", () => {
-  // ----- 正常系 -----
   it("小計・税・送料・合計を出す", () => {
     render(<PurchaseAmountSummary purchase={PURCHASE_DETAIL} reference={null} />);
 
@@ -27,7 +26,6 @@ describe("PurchaseAmountSummary", () => {
     expect(screen.getAllByText(/参考/)).toHaveLength(1);
   });
 
-  // ----- 異常系 -----
   it("参考換算額が無いときは切り替えを出さない", () => {
     render(<PurchaseAmountSummary purchase={PURCHASE_DETAIL} reference={null} />);
 

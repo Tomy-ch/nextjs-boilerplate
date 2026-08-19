@@ -1,0 +1,65 @@
+// @vitest-environment jsdom
+
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { getMyPurchases } = vi.hoisted(() => ({ getMyPurchases: vi.fn() }));
+
+vi.mock("@/adapters/server/api/purchases", () => ({ getMyPurchases }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
+import { HISTORY_ENTRIES } from "../purchases.fixture";
+import { PURCHASE_PAGE_SIZE } from "./query";
+import { PurchaseHistoryResults } from "./results";
+
+beforeEach(() => {
+  getMyPurchases.mockReset().mockResolvedValue({ items: HISTORY_ENTRIES, nextCursor: null });
+});
+
+describe("PurchaseHistoryResults", () => {
+  it("全期間の条件で先頭ページを引く", async () => {
+    render(await PurchaseHistoryResults({ period: { kind: "all" } }));
+
+    expect(getMyPurchases).toHaveBeenCalledWith({ first: PURCHASE_PAGE_SIZE, period: "all" });
+  });
+
+  it("効いている期間をそのまま取得条件へ渡す", async () => {
+    render(await PurchaseHistoryResults({ period: { kind: "recent", days: 30 } }));
+
+    expect(getMyPurchases).toHaveBeenCalledWith({
+      first: PURCHASE_PAGE_SIZE,
+      period: "recent",
+      days: 30,
+    });
+  });
+
+  it("取れた購入を、詳細への行き先つきで並べる", async () => {
+    render(await PurchaseHistoryResults({ period: { kind: "all" } }));
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(HISTORY_ENTRIES.length);
+    expect(screen.getAllByRole("link")[0]).toHaveAttribute(
+      "href",
+      `/purchases/${HISTORY_ENTRIES[0]?.code}`,
+    );
+  });
+
+  it("購入が 1 件も無ければ、買い物へ戻る導線を出す", async () => {
+    getMyPurchases.mockResolvedValue({ items: [], nextCursor: null });
+
+    render(await PurchaseHistoryResults({ period: { kind: "all" } }));
+
+    expect(screen.getByText("購入がまだありません。")).toBeVisible();
+  });
+
+  it("絞り込んだ結果が 0 件なら、全期間で見直す導線を出す", async () => {
+    getMyPurchases.mockResolvedValue({ items: [], nextCursor: null });
+
+    render(await PurchaseHistoryResults({ period: { kind: "recent", days: 7 } }));
+
+    expect(screen.getByText("この期間の購入はありません。")).toBeVisible();
+    expect(screen.getByRole("link", { name: "全期間で見る" })).toHaveAttribute(
+      "href",
+      "/purchases",
+    );
+  });
+});

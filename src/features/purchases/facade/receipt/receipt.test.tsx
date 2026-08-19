@@ -8,7 +8,6 @@ import { PURCHASE_DETAIL } from "../purchase.fixture";
 import { PurchaseReceiptCard } from "./receipt";
 
 describe("PurchaseReceiptCard", () => {
-  // ----- 正常系 -----
   it("注文番号・注文日時・状況を出す", () => {
     render(<PurchaseReceiptCard purchase={PURCHASE_DETAIL} />);
 
@@ -23,7 +22,6 @@ describe("PurchaseReceiptCard", () => {
     expect(screen.getByText("配達済み")).toHaveAttribute("data-variant", "success");
   });
 
-  // ----- 異常系 -----
   it("取得に使う識別子は出さない", () => {
     render(
       <PurchaseReceiptCard

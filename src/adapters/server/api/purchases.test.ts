@@ -28,7 +28,12 @@ vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("../auth/session", () => ({ getAccessToken }));
 
 import { toProductId } from "@/model/product/product";
-import { createPurchase, getMyPurchase, getMyPurchases } from "./purchases";
+import {
+  createPurchase,
+  getMyPurchase,
+  getMyPurchases,
+  parsePurchaseHistoryQuery,
+} from "./purchases";
 
 const wireItem = {
   code: "0195f0c2-0000-7000-8000-0000000000c1",
@@ -285,5 +290,49 @@ describe("createPurchase", () => {
     expect(await kindOf(() => createPurchase(orderLines, "idempotency-key"))).toBe(
       ErrorKind.INTERNAL,
     );
+  });
+});
+
+describe("parsePurchaseHistoryQuery", () => {
+  // ----- 正常系 -----
+  it("素のクエリを契約の型へ照らす", () => {
+    expect(parsePurchaseHistoryQuery({ first: "20", period: "recent", days: "30" })).toEqual({
+      ok: true,
+      query: expect.objectContaining({ first: 20, period: "recent", days: 30 }),
+    });
+  });
+
+  it("指定が無ければ契約の既定で埋める", () => {
+    const parsed = parsePurchaseHistoryQuery({});
+
+    expect(parsed.ok && parsed.query.period).toBe("all");
+  });
+
+  it("繰り返された条件は指定なしとして落とす", () => {
+    const parsed = parsePurchaseHistoryQuery({ month: ["2026-07", "2026-08"] });
+
+    expect(parsed.ok && parsed.query.month).toBeUndefined();
+  });
+
+  // ----- 異常系 -----
+  it("範囲を外れた件数は読めなかったキーとして返す", () => {
+    expect(parsePurchaseHistoryQuery({ first: "0" })).toEqual({
+      ok: false,
+      invalidKeys: ["first"],
+    });
+  });
+
+  it("知らない区分も読めなかったキーとして返す", () => {
+    expect(parsePurchaseHistoryQuery({ period: "yesterday" })).toEqual({
+      ok: false,
+      invalidKeys: ["period"],
+    });
+  });
+
+  it("読めなかったキーを重複させない", () => {
+    const parsed = parsePurchaseHistoryQuery({ first: "0", period: "yesterday" });
+
+    expect(parsed.ok).toBe(false);
+    expect(!parsed.ok && parsed.invalidKeys).toEqual(["first", "period"]);
   });
 });
