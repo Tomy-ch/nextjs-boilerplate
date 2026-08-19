@@ -28,10 +28,16 @@ describe("assertRequestTargetWithinBudget", () => {
     );
   });
 
-  it("符号化していない多バイト文字を、文字数ではなくバイト数で数える", () => {
-    const raw = "/v1/products?keyword=靴";
+  it("多バイト文字を 1 文字としてではなく、バイト数で数える", () => {
+    const multibyte = "/v1/products?keyword=靴";
 
-    expect(kindOf(() => assertRequestTargetWithinBudget(raw, raw.length))).toBe(
+    expect(kindOf(() => assertRequestTargetWithinBudget(multibyte, multibyte.length))).toBe(
+      ErrorKind.URI_TOO_LONG,
+    );
+  });
+
+  it("上限が数値として届いていない要求を通さない", () => {
+    expect(kindOf(() => assertRequestTargetWithinBudget(target, Number.NaN))).toBe(
       ErrorKind.URI_TOO_LONG,
     );
   });

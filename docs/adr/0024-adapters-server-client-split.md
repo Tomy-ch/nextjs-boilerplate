@@ -36,6 +36,7 @@ Accepted
 
 ```text
 src/adapters/
+├── gen/      区画: adapters-gen(契約からの生成物。[0072](0072-api-type-generation.md))
 ├── http/     区画: adapters-http(実行文脈を持たない、両 element が従う規則)
 ├── server/   element: adapters/server
 └── client/   element: adapters/client

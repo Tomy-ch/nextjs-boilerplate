@@ -30,6 +30,7 @@ src/
 ├── model/                  # 表示用 VO / フォーマッタ / 表示結果型(ActionState<T> 等)(フラット共置)
 ├── components/             # 横断 UI(フラット共置)
 ├── adapters/               # 外部接続。server/・client/ の 2 element に分割([0024]・RSC 境界)
+│   ├── gen/                #   契約から生成した wire 型([0072]。手で編集しない区画)
 │   ├── http/               #   両 element が従う要求の形の規則(実行文脈を持たない区画)
 │   ├── server/             #   server-only(backend client・secret・config 可)
 │   └── client/             #   "use client"(同一オリジン BFF fetch / WS / telemetry 送信・secret 不可)

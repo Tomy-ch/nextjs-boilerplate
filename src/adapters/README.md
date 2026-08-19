@@ -7,7 +7,7 @@ test-requirement: integration
 # adapters
 
 バックエンド API、BFF fetch、analytics など外部接続だけを置く境界アダプタです。`server/` と `client/` の 2 element に分けます。
-実行文脈を持たない規則——どちらの element が送る要求にも等しく効くもの——は `http/` に置き、`adapters` の中からだけ import できます。
+実行文脈を持たない規則——どちらの element が送る要求にも等しく効くもの——は `http/` に置き、契約からの生成物は `gen/` に置きます。どちらも `adapters` の中からだけ import できます。
 
 ## 受け入れるもの
 

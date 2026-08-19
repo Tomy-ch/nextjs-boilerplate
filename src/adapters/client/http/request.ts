@@ -1,7 +1,7 @@
 import type { ZodType } from "zod";
 
 import { assertRequestTargetWithinBudget } from "@/adapters/http/url-budget";
-import { getMaxUrlBytes } from "@/config/http/http.client";
+import { MAX_URL_BYTES } from "@/config/http/http.client";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind, type ErrorKind as ErrorKindType } from "@/errors/error-kind";
 
@@ -34,7 +34,7 @@ const KIND_BY_STATUS: Readonly<Partial<Record<number, ErrorKindType>>> = {
  * 生の status を投げ直さず分類へ写します。呼び出し側は「入力が悪いのか、取得できなかったのか」
  * だけを見て表示を決めます（[0080](../../../../docs/adr/0080-error-handling.md)）。
  *
- * @param path - 同一オリジンの絶対パス。クエリを含む
+ * @param path - 同一オリジンの絶対パス。クエリを含み、percent-encode 済みであること
  * @param schema - 応答の検証スキーマ
  * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る
  */
@@ -43,7 +43,7 @@ export async function request<T>(
   schema: ZodType<T>,
   signal?: AbortSignal,
 ): Promise<T> {
-  assertRequestTargetWithinBudget(path, getMaxUrlBytes());
+  assertRequestTargetWithinBudget(path, MAX_URL_BYTES);
 
   const response = await fetch(path, { headers: { accept: "application/json" }, signal });
 
