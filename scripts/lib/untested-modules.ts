@@ -53,7 +53,7 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
  *   SSOT と一致することは `check:tokens` の再生成比較が見ている。
  * - `docs-viewer/src/main.tsx` — ビューアーの entry。読み込まれた時点で DOM を触るため、
  *   判断はすべて `mount/` 側に置いてある。
- * - `vrt/lib/settle.ts` — Playwright の Page を 2 つの条件で待つだけ。分岐を持たず、
+ * - `vrt/lib/settle.ts` — Playwright の Page を 3 つの条件で待つだけ。分岐を持たず、
  *   Vitest からは呼べない。撮影と a11y 検査が同じ待ち方をする必要があるため spec から
  *   切り出してあるだけで、判断は持たない。
  * - `e2e/lib/test.ts` — Playwright の Page へ購読を張り、fixture を組み立てるだけ。何を異常と
