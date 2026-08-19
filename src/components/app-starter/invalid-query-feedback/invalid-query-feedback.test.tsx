@@ -4,13 +4,13 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import { AdminInvalidQuery, type AdminInvalidQueryProps } from "./invalid-query";
+import { InvalidQueryFeedback, type InvalidQueryFeedbackProps } from "./invalid-query-feedback";
 
 const KEY_LABELS = { categoryCodes: "分類", keyword: "キーワード" };
 
-function renderQuery(props: Partial<AdminInvalidQueryProps> = {}) {
+function renderQuery(props: Partial<InvalidQueryFeedbackProps> = {}) {
   return render(
-    <AdminInvalidQuery
+    <InvalidQueryFeedback
       invalidKeys={[]}
       keyLabels={KEY_LABELS}
       message="不正です。"
@@ -22,7 +22,7 @@ function renderQuery(props: Partial<AdminInvalidQueryProps> = {}) {
   );
 }
 
-describe("AdminInvalidQuery", () => {
+describe("InvalidQueryFeedback", () => {
   // ----- 正常系 -----
   it("何を出せないのかを題で示す", () => {
     renderQuery({ title: "この期間では集計を表示できません" });

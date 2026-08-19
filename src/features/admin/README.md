@@ -65,7 +65,6 @@ test-requirement: feature
 | `products/ui/filter-sheet/` | 狭い段の絞り込み。下端の操作から開き、overlay の中でまとめて確定する |
 | `products/ui/skeleton/` | 表の待機表示 |
 | `ui/error-state/` | 取得に失敗したときの表示。`/admin` の error 境界が使う。境界は 1 枚なので画面を名指ししない |
-| `ui/invalid-query/` | URL の条件が契約を外れているときの表示。題・行き先・キーの呼び名は画面が渡す |
 
 ## 認可
 

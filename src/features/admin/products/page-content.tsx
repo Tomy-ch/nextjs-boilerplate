@@ -2,10 +2,10 @@ import { Suspense } from "react";
 
 import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
 import { parseProductQuery } from "@/adapters/server/api/products";
+import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-feedback/invalid-query-feedback";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import { ADMIN_PRODUCT_LIST_PATH } from "../paths";
-import { AdminInvalidQuery } from "../ui/invalid-query/invalid-query";
 import { toFilterOptions } from "./filter-option";
 import { ADMIN_PRODUCT_PAGE_SIZE } from "./page-size";
 import {
@@ -35,7 +35,7 @@ export type AdminProductListPageContentProps = {
  * 2 つのマスタを並行して取ります。直列にすると、片方が返るまでもう片方の取得が始まりません。
  *
  * URL の条件は `parseProductQuery`（取得の口）へ通し、独自の変換を持ちません。写せなかった条件は
- * 一覧の代わりに {@link AdminInvalidQuery} へ渡します（検証の契約は
+ * 一覧の代わりに {@link InvalidQueryFeedback} へ渡します（検証の契約は
  * `src/features/admin/README.md`「条件の検証と失敗」）。
  *
  * 待機表示の境界に鍵を与えるのは、条件やページが変われば表が総入れ替えになるためです。鍵を
@@ -59,7 +59,7 @@ export async function AdminProductListPageContent({
 
   if (!parsed.ok) {
     return (
-      <AdminInvalidQuery
+      <InvalidQueryFeedback
         invalidKeys={parsed.invalidKeys}
         keyLabels={FILTER_KEY_LABEL}
         message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}

@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Button } from "@/components/design-system/action/button/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
 
-/** `AdminInvalidQuery` の props。 */
-export type AdminInvalidQueryProps = {
+/** `InvalidQueryFeedback` の props。 */
+export type InvalidQueryFeedbackProps = {
   /** 何を出せないのかを述べる題。画面ごとに違う。 */
   title: string;
   /** 表示する文言。境界で正規化済みのものを渡す。 */
@@ -27,22 +27,22 @@ export type AdminInvalidQueryProps = {
  * 絞り込まれていない結果を、指定したつもりの期間とは違う数を、それと判らないまま読みます。
  *
  * **直せる導線を必ず添えます。** 条件は URL に入っており、画面の操作だけでは戻せない状態になり得る
- * ためです（[0080](../../../../../docs/adr/0080-error-handling.md)）。
+ * ためです（[0080](../../../../docs/adr/0080-error-handling.md)）。
  *
- * **キーの呼び名を持ちません。** どのキーが何を指すかは URL の契約を持つ画面の側が知っています。
- * ここが持つのは、表に無いキーをそのまま出すという**落とし方**だけです —— 呼び名を書き写した表が
- * 各画面にあると、契約にキーが増えたとき生の名前が出る画面と出ない画面に割れます。
+ * **キーの呼び名も、どこへ戻すかも持ちません。** どのキーが何を指すかは URL の契約を持つ画面が
+ * 知っています。ここが持つのは、表に無いキーをそのまま出すという**落とし方**だけです —— 呼び名を
+ * 書き写した表が各画面にあると、契約にキーが増えたとき生の名前が出る画面と出ない画面に割れます。
  *
- * @see Storybook `Page/Admin/Products/List`
+ * @see Storybook `Feedback/InvalidQueryFeedback`
  */
-export function AdminInvalidQuery({
+export function InvalidQueryFeedback({
   title,
   message,
   invalidKeys,
   keyLabels,
   resetHref,
   resetLabel,
-}: AdminInvalidQueryProps) {
+}: InvalidQueryFeedbackProps) {
   const labels = invalidKeys.map((key) => keyLabels[key] ?? key);
 
   return (

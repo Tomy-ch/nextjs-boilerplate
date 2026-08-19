@@ -1,11 +1,10 @@
 import { Suspense } from "react";
 
 import { parseDashboardQuery, type RawDashboardQuery } from "@/adapters/server/api/dashboard";
+import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-feedback/invalid-query-feedback";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
-
 import { ADMIN_ANALYTICS_PATH } from "../paths";
-import { AdminInvalidQuery } from "../ui/invalid-query/invalid-query";
 import { AnalyticsView } from "./analytics-view";
 import { PERIOD_KEY_LABEL, toPeriodRequest } from "./period";
 import { toPeriodWindow } from "./period-window";
@@ -37,7 +36,7 @@ function toRawQuery(params: RawSearchParams): RawDashboardQuery {
  * 連結すると、値に区切り文字が現れた時点で別の期間が同じ鍵になります。
  *
  * URL の条件は `parseDashboardQuery`（取得の口）へ通し、独自の変換を持ちません。契約に照らして
- * 読めない期間は集計の代わりに {@link AdminInvalidQuery} が引き受けます。
+ * 読めない期間は集計の代わりに {@link InvalidQueryFeedback} が引き受けます。
  *
  * **いまの時刻をここで読みます。** どの暦日を見ているかの表示に要りますが、描画のたびに実時計を
  * 読む部品にすると、基準画像が撮った時刻に依存します。
@@ -47,7 +46,7 @@ export function AdminAnalyticsPageContent({ searchParams }: { searchParams: RawS
 
   if (!parsed.ok) {
     return (
-      <AdminInvalidQuery
+      <InvalidQueryFeedback
         invalidKeys={parsed.invalidKeys}
         keyLabels={PERIOD_KEY_LABEL}
         message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}

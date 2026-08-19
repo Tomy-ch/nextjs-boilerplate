@@ -465,6 +465,7 @@ trigger から本文の上へ面を開く部品。
 
 | component | 概要 |
 | --- | --- |
+| [`invalid-query-feedback`](./app-starter/invalid-query-feedback/README.md) | URL の条件が契約を外れているときに、本体の代わりに理由と解除の導線を出す |
 | [`api-error-feedback`](./app-starter/api-error-feedback/README.md) | client-side の API 失敗を、文脈内の Alert または操作を止める Dialog として表示する |
 | [`attachment`](./app-starter/attachment/README.md) | 選択済みのファイル 1 件を、種類・名前・進行状況・取り消し操作として表示する |
 | [`auth-state-feedback`](./app-starter/auth-state-feedback/README.md) | サインインが必要・権限が足りない・見つからない状態と、そこから抜け出す導線を表示する |

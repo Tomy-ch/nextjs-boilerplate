@@ -30,6 +30,14 @@ components:
     as: container
     directory: src/components/patterns/action-bar
     addedAt: 2026-08-12T14:30:00.000Z
+  invalid-query-feedback:
+    kind: original
+    layer: app-starter
+    as: feedback
+    directory: src/components/app-starter/invalid-query-feedback
+    addedAt: 2026-08-20T03:20:00.000Z
+    dependencies:
+      - next
   api-error-feedback:
     kind: original
     layer: app-starter
