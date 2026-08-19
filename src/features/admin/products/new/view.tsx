@@ -1,14 +1,18 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import type { SyntheticEvent } from "react";
+import { useActionState, useCallback, useId, useState } from "react";
 import { WizardForm } from "@/components/patterns/wizard-form/wizard-form";
 import { idleActionState } from "@/model/action-state";
+import type { ProductFormSnapshot } from "../form/form-snapshot";
+import { readProductFormSnapshot } from "../form/form-snapshot";
 import type {
   CreateProductAction,
   ProductFormState,
   UploadProductImageAction,
 } from "../form/form-state";
 import { ProductBasicsSection } from "../form/ui/basics-section/basics-section";
+import { ProductConfirmSection } from "../form/ui/confirm-section/confirm-section";
 import { ProductDescriptionSection } from "../form/ui/description-section/description-section";
 import { ProductFormFeedback } from "../form/ui/form-feedback/form-feedback";
 import { ProductImagesSection } from "../form/ui/images-section/images-section";
@@ -39,6 +43,10 @@ export type AdminProductCreateViewProps = {
  * **段階に分けて進みます。**初めての入力では「あとどれだけで送れるか」が要るためで、進捗と行き来
  * だけを `WizardForm` が持ちます。段の中身は編集の画面と同じ部品で、器だけが違います。
  *
+ * **最後に確認の段を置きます。**作成は取り消せる操作ではなく、送る前に全体を一度読める場所が
+ * 要ります。確認は入力欄を持たず、form そのものから読んだ値を出すため、確認に出る内容と送られる
+ * 内容が食い違いません。
+ *
  * 表示していない段も DOM に残るので、送信は最後に 1 回で全段ぶんまとまります。そのため入力欄へ
  * native の `required` を与えません。隠れた段の欄が空だとブラウザが focus できず、送信が理由も
  * 示さずに止まります。空欄の指摘は送信の結果として返します。
@@ -60,9 +68,16 @@ export function AdminProductCreateView({
   );
   const images = useProductImages(uploadAction);
   const { onReject, rejection } = useImageRejection(maxUploadBytes);
+  const [snapshot, setSnapshot] = useState<ProductFormSnapshot>({});
+
+  // 確認の段は form そのものを読む。入力欄を 1 つずつ写しに持つと、写し忘れた欄が確認に
+  // 現れないまま送られる。
+  const captureSnapshot = useCallback((event: SyntheticEvent<HTMLFormElement>) => {
+    setSnapshot(readProductFormSnapshot(event.currentTarget));
+  }, []);
 
   return (
-    <form action={formAction} className="grid gap-8">
+    <form action={formAction} className="grid gap-8" onInput={captureSnapshot}>
       <ProductFormFeedback idPrefix={idPrefix} state={state} title="登録できませんでした" />
       <WizardForm
         label="商品の登録"
@@ -100,10 +115,23 @@ export function AdminProductCreateView({
           {
             id: "publish",
             title: "公開",
+            nextLabel: "確認",
             content: (
               <ProductPublishSection
                 fieldErrors={state.status === "error" ? state.fieldErrors : undefined}
                 idPrefix={idPrefix}
+                statusOptions={statusOptions}
+              />
+            ),
+          },
+          {
+            id: "confirm",
+            title: "確認",
+            content: (
+              <ProductConfirmSection
+                categoryOptions={categoryOptions}
+                imageCount={images.imagePaths.length}
+                snapshot={snapshot}
                 statusOptions={statusOptions}
               />
             ),

@@ -90,16 +90,16 @@ describe("UploadPreview", () => {
     expect(screen.getByRole("button", { name: "cover.png を後ろへ移動する" })).toBeEnabled();
   });
 
-  it("横の束では、1 件ずつを縮小表示を上にした形で並べる", () => {
+  it("横の束では、件を折り返して並べる", () => {
     render(<UploadPreview items={ITEMS} orientation="row" />);
 
-    const list = screen.getByRole("list", { name: "選択中のファイル" });
+    expect(screen.getByRole("list", { name: "選択中のファイル" })).toHaveClass("flex-wrap");
+  });
 
-    expect(list).toHaveClass("flex-wrap");
-    expect(list.querySelector('[data-slot="attachment"]')).toHaveAttribute(
-      "data-orientation",
-      "vertical",
-    );
+  it("既定では縦の一覧として並べる", () => {
+    render(<UploadPreview items={ITEMS} />);
+
+    expect(screen.getByRole("list", { name: "選択中のファイル" })).toHaveClass("grid");
   });
 
   it("送信中は操作を止めるが、一覧は残す", () => {

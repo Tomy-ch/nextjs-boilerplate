@@ -116,6 +116,7 @@ const meta = {
           "商品を作る画面です。**canvas では送信も保存も起きません** —— 段は行き来でき、",
           "隠れている段も DOM に残るので、最後の 1 回で全段ぶんがまとまって送られます。",
           "画像は選んだ時点で送る作りで、送り終わるまで登録を押せません。",
+          "最後の確認の段は入力欄を持たず、form そのものから読んだ値を出します。",
         ].join(""),
       },
     },
@@ -135,7 +136,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** 最初の段。進捗は 4 段のうち 1 段目を指し、戻る操作は出ない。 */
+/** 最初の段。進捗は 5 段のうち 1 段目を指し、戻る操作は押せない。 */
 export const Default: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
 };
@@ -148,6 +149,20 @@ export const DefaultTablet: Story = {
 /** スマホ。脇の一覧は overlay へ畳まれ、段の行き来だけが残る。 */
 export const DefaultMobile: Story = {
   globals: { viewport: { value: "mobile2", isRotated: false } },
+};
+
+/** 確認の段。入力欄を持たず、送る内容だけを読ませる。空欄は「—」で示す。 */
+export const Confirm: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.type(canvas.getByLabelText("商品名"), "ワイヤレスイヤホン Pro");
+    await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
+    await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
+    await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
+    await userEvent.click(canvas.getByRole("button", { name: "確認" }));
+  },
 };
 
 /**
@@ -171,7 +186,8 @@ export const Rejected: Story = {
     // 送信は最後の段にしか無い。空欄のまま最後まで進め、弾かれた状態を出す。
     await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
     await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
-    await userEvent.click(canvas.getByRole("button", { name: "確認へ" }));
+    await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
+    await userEvent.click(canvas.getByRole("button", { name: "確認" }));
     await userEvent.click(canvas.getByRole("button", { name: "登録する" }));
   },
 };

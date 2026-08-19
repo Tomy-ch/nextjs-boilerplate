@@ -12,10 +12,7 @@ import {
   AttachmentMedia,
   AttachmentTitle,
 } from "@/components/app-starter/attachment/attachment";
-import {
-  ATTACHMENT_ORIENTATION,
-  ATTACHMENT_STATE,
-} from "@/components/app-starter/attachment/attachment.definition";
+import { ATTACHMENT_STATE } from "@/components/app-starter/attachment/attachment.definition";
 import { cn } from "@/components/cn";
 import { Spinner } from "@/components/design-system/status/spinner/spinner";
 
@@ -27,7 +24,6 @@ type ItemHandler = (id: string) => void;
 /** 1 件ぶんの表示。表示用 URL の生涯と、操作の束ねをここで持つ。 */
 function UploadPreviewRow({
   item,
-  orientation,
   pending,
   onRemove,
   onRetry,
@@ -38,7 +34,6 @@ function UploadPreviewRow({
   atEnd,
 }: {
   item: UploadPreviewItem;
-  orientation: UploadPreviewOrientation;
   pending: boolean;
   onRemove?: ItemHandler;
   onRetry?: ItemHandler;
@@ -68,6 +63,15 @@ function UploadPreviewRow({
   const inFlight =
     item.state === ATTACHMENT_STATE.UPLOADING || item.state === ATTACHMENT_STATE.PROCESSING;
   const previewUrl = typeof preview === "string" ? preview : objectUrl;
+  const media =
+    previewUrl === undefined ? null : (
+      <AttachmentMedia>
+        {/* 表示用の URL は object URL にもなり、寸法も配信元も事前に判らないため next/image は使えない。 */}
+        {/* biome-ignore lint/performance/noImgElement: 選択直後のファイルは object URL でしか描画できない。 */}
+        <img alt="" className="size-full object-cover" src={previewUrl} />
+      </AttachmentMedia>
+    );
+
   const remove = useCallback(() => onRemove?.(item.id), [item.id, onRemove]);
   const retry = useCallback(() => onRetry?.(item.id), [item.id, onRetry]);
   const replace = useCallback(() => onReplace?.(item.id), [item.id, onReplace]);
@@ -75,22 +79,9 @@ function UploadPreviewRow({
   const moveDown = useCallback(() => onMoveDown?.(item.id), [item.id, onMoveDown]);
 
   return (
-    <li className={orientation === UPLOAD_PREVIEW_ORIENTATION.ROW ? "w-36 shrink-0" : undefined}>
-      <Attachment
-        orientation={
-          orientation === UPLOAD_PREVIEW_ORIENTATION.ROW
-            ? ATTACHMENT_ORIENTATION.VERTICAL
-            : ATTACHMENT_ORIENTATION.HORIZONTAL
-        }
-        state={item.state}
-      >
-        {previewUrl === undefined ? null : (
-          <AttachmentMedia>
-            {/* 表示用の URL は object URL にもなり、寸法も配信元も事前に判らないため next/image は使えない。 */}
-            {/* biome-ignore lint/performance/noImgElement: 選択直後のファイルは object URL でしか描画できない。 */}
-            <img alt="" className="size-full object-cover" src={previewUrl} />
-          </AttachmentMedia>
-        )}
+    <li>
+      <Attachment state={item.state}>
+        {media}
         <AttachmentContent>
           <AttachmentTitle>{item.name}</AttachmentTitle>
           {item.description === undefined ? null : (
@@ -250,7 +241,6 @@ export function UploadPreview({
           onRemove={onRemove}
           onReplace={onReplace}
           onRetry={onRetry}
-          orientation={orientation}
           pending={pending}
         />
       ))}

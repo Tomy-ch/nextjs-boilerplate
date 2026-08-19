@@ -61,7 +61,8 @@ const TAB_LABELS = {
  * 直したい所へ行くのに段を踏まされます。段の中身は作る画面と同じ部品で、器だけが違います。
  *
  * **選んでいない観点も DOM に残します**（`forceMount`）。既定では外れるため、観点を切り替えた
- * 時点で入力途中の値が消え、送信にも載りません。
+ * 時点で入力途中の値が消え、送信にも載りません。残したうえで `hidden` を自分で渡すのは、
+ * 「DOM に在る」ことと「見えている」ことが別だからです。
  *
  * **送信が弾かれたら、誤りのある観点へ移ります。**そうしないと、画面のどこも赤くないのに送信
  * だけが通らない状態になります。順番を持たない器は、進む前に止める `wizard` の仕組みを持たない
@@ -120,7 +121,7 @@ export function AdminProductEditView({
             </TabsClientTrigger>
           ))}
         </TabsClientList>
-        <TabsClientContent forceMount={true} value="basics">
+        <TabsClientContent forceMount={true} hidden={section !== "basics"} value="basics">
           <ProductBasicsSection
             categoryOptions={categoryOptions}
             defaults={{
@@ -134,10 +135,10 @@ export function AdminProductEditView({
             withQuantity={false}
           />
         </TabsClientContent>
-        <TabsClientContent forceMount={true} value="description">
+        <TabsClientContent forceMount={true} hidden={section !== "description"} value="description">
           <ProductDescriptionSection defaultValue={product.description} />
         </TabsClientContent>
-        <TabsClientContent forceMount={true} value="images">
+        <TabsClientContent forceMount={true} hidden={section !== "images"} value="images">
           <ProductImagesSection
             images={images}
             maxUploadBytes={maxUploadBytes}
@@ -145,7 +146,7 @@ export function AdminProductEditView({
             rejection={rejection}
           />
         </TabsClientContent>
-        <TabsClientContent forceMount={true} value="publish">
+        <TabsClientContent forceMount={true} hidden={section !== "publish"} value="publish">
           <ProductPublishSection
             defaults={{ publishedAt: product.publishedAt, statusId: product.status.id }}
             fieldErrors={fieldErrors}

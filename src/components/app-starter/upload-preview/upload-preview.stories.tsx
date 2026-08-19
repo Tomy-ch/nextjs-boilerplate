@@ -37,7 +37,21 @@ export const ReadOnly: Story = { args: { items: ITEMS } };
 /** 横の束。件数が増えても縦を取らない。縮小表示を上、操作を右上へ重ねる。 */
 export const Row: Story = {
   args: {
-    items: ITEMS,
+    items: [
+      {
+        description: "1.2 MB",
+        id: "1",
+        name: "cover.png",
+        preview: "/src/components/design-system/display/media-image/invertocat.png",
+      },
+      {
+        description: "0.9 MB",
+        id: "2",
+        name: "diagram-of-the-whole-system.png",
+        preview: "/src/components/design-system/display/media-image/invertocat.png",
+      },
+      { description: "0.4 MB", id: "3", name: "notes.png" },
+    ],
     onMoveDown: () => {},
     onMoveUp: () => {},
     onRemove: () => {},
