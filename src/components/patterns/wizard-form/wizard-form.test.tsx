@@ -57,6 +57,77 @@ describe("WizardForm", () => {
     expect(screen.getByText("入力の中身")).toBeVisible();
   });
 
+  it("前へ戻っても、通過した段階の印は残る", () => {
+    render(
+      <WizardForm
+        label="利用申請"
+        steps={[
+          { id: "a", title: "入力", content: <p>入力の中身</p> },
+          { id: "b", title: "確認", content: <p>確認の中身</p> },
+          { id: "c", title: "送信", content: <p>送信の中身</p> },
+        ]}
+        submit={<button type="submit">申請する</button>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    fireEvent.click(screen.getByRole("button", { name: "入力" }));
+
+    const [first, second] = screen.getAllByRole("listitem");
+
+    expect(first).toHaveAttribute("data-state", "current");
+    expect(second).toHaveAttribute("data-state", "complete");
+  });
+
+  it("到達した段階へは、印が付いていなくても行ける", () => {
+    render(
+      <WizardForm
+        label="利用申請"
+        steps={[
+          { id: "a", title: "入力", content: <p>入力の中身</p> },
+          { id: "b", title: "確認", content: <p>確認の中身</p> },
+        ]}
+        submit={<button type="submit">申請する</button>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    fireEvent.click(screen.getByRole("button", { name: "入力" }));
+
+    // 「確認」は到達しただけで通過はしていないため印は付かないが、行けるようにする。
+    const [, second] = screen.getAllByRole("listitem");
+    expect(second).toHaveAttribute("data-state", "upcoming");
+
+    fireEvent.click(screen.getByRole("button", { name: "確認" }));
+
+    expect(screen.getByText("確認の中身")).toBeVisible();
+  });
+
+  it("進んだ数より先の段階は到達済みにならない", () => {
+    render(
+      <WizardForm
+        label="利用申請"
+        steps={[
+          { id: "a", title: "入力", content: <p>入力の中身</p> },
+          { id: "b", title: "確認", content: <p>確認の中身</p> },
+          { id: "c", title: "送信", content: <p>送信の中身</p> },
+          { id: "d", title: "完了", content: <p>完了の中身</p> },
+        ]}
+        submit={<button type="submit">申請する</button>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    fireEvent.click(screen.getByRole("button", { name: "入力" }));
+
+    expect(
+      [...screen.getAllByRole("listitem")].map((item) => item.getAttribute("data-state")),
+    ).toEqual(["current", "complete", "upcoming", "upcoming"]);
+    expect(screen.queryByRole("button", { name: "完了" })).not.toBeInTheDocument();
+  });
+
   it("まだ到達していない段階は進捗から押せない", () => {
     render(
       <WizardForm

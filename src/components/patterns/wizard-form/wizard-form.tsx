@@ -100,9 +100,12 @@ export type WizardFormProps = {
  * されると React が DOM 要素を使い回し、押した瞬間に `type` が `button` から `submit` へ書き換わる。
  * click の既定動作は handler の後に走るため、進んだうえで form まで送信されてしまう。
  *
- * **通過済みの段階へは進捗から直接戻れる。** 順に辿り直させる理由が無く、確認の段から 1 か所だけ
- * 直しに行く動きが最短で済む。まだ到達していない段階は押せない —— 進んでよいかの判定は呼び出し元
- * の `blocked` が持っており、飛ばして到達できると、その判定を迂回できてしまう。
+ * **一度でも到達した段階へは進捗から直接行ける。** 順に辿り直させる理由が無く、確認の段から
+ * 1 か所だけ直しに行く動きが最短で済む。まだ到達していない段階は押せない —— 進んでよいかの判定
+ * は呼び出し元の `blocked` が持っており、飛ばして到達できると、その判定を迂回できてしまう。
+ *
+ * 印（通過済みかどうか）と押せるかどうかは別の条件で決まる。**到達しただけで通過はしていない
+ * 段階**があるためで、そこへは行けるが印は付かない。
  *
  * 段階が変わったら、その段階の領域へ focus を移す。移さないと操作した button に focus が残り、
  * keyboard と読み上げの利用者には何が変わったのか伝わらない。最初の表示では移さない。
@@ -136,10 +139,11 @@ export function WizardForm({
   nextLabel = "次へ",
   className,
 }: WizardFormProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  // 一度でも通った段は通ったままにする。前へ戻って入力を消しても、その先へ戻れなくなると
-  // 「戻ったせいで進めなくなった」ことになり、戻る操作が罠になる。
-  const [furthestIndex, setFurthestIndex] = useState(0);
+  // 現在地と最も先まで進んだ位置を 1 つの状態で持つ。別々に持って片方の更新関数の中でもう片方を
+  // 更新すると、更新関数が再実行されたときに副作用も繰り返され、進んでいない段まで到達済みに
+  // なる。更新関数は状態から次の状態を返すだけにする。
+  const [progress, setProgress] = useState({ currentIndex: 0, furthestIndex: 0 });
+  const { currentIndex, furthestIndex } = progress;
   const panelId = useId();
   const movedRef = useRef(false);
   const currentPanelId = `${panelId}-${steps[currentIndex].id}`;
@@ -153,23 +157,21 @@ export function WizardForm({
 
   const goPrevious = useCallback(() => {
     movedRef.current = true;
-    setCurrentIndex((index) => Math.max(0, index - 1));
+    setProgress((moved) => ({ ...moved, currentIndex: Math.max(0, moved.currentIndex - 1) }));
   }, []);
 
   const goNext = useCallback(() => {
     movedRef.current = true;
-    setCurrentIndex((index) => {
-      const next = Math.min(steps.length - 1, index + 1);
+    setProgress((moved) => {
+      const next = Math.min(steps.length - 1, moved.currentIndex + 1);
 
-      setFurthestIndex((furthest) => Math.max(furthest, next));
-
-      return next;
+      return { currentIndex: next, furthestIndex: Math.max(moved.furthestIndex, next) };
     });
   }, [steps.length]);
 
   const goTo = useCallback((index: number) => {
     movedRef.current = true;
-    setCurrentIndex(index);
+    setProgress((moved) => ({ ...moved, currentIndex: index }));
   }, []);
 
   const current = steps[currentIndex];
@@ -179,10 +181,14 @@ export function WizardForm({
     <div className={cn("flex flex-col gap-6", className)} data-slot="wizard-form">
       <Stepper label={`${label}の進捗`} orientation={STEPPER_ORIENTATION.HORIZONTAL}>
         {steps.map((step, index) => (
-          <StepperItem key={step.id} marker={index + 1} state={stepState(index, currentIndex)}>
+          <StepperItem
+            key={step.id}
+            marker={index + 1}
+            state={stepState(index, currentIndex, furthestIndex)}
+          >
             <ListItemContent>
               <ListItemTitle>
-                {index < furthestIndex && index !== currentIndex ? (
+                {index <= furthestIndex && index !== currentIndex ? (
                   <WizardStepLink index={index} onSelect={goTo} title={step.title} />
                 ) : (
                   step.title
@@ -229,9 +235,16 @@ export function WizardForm({
 }
 
 /** 進捗の状態を現在位置から導く。 */
-function stepState(index: number, currentIndex: number) {
-  if (index < currentIndex) return STEPPER_STATE.COMPLETE;
+/**
+ * 進捗に出す段階の状態。
+ *
+ * @remarks
+ * 通過したことは **`currentIndex` ではなく `furthestIndex` で見る**。現在地だけで決めると、前へ
+ * 戻った時点で通過済みの印が消え、済ませた入力までやり直しに見える。
+ */
+function stepState(index: number, currentIndex: number, furthestIndex: number) {
   if (index === currentIndex) return STEPPER_STATE.CURRENT;
+  if (index < furthestIndex) return STEPPER_STATE.COMPLETE;
 
   return STEPPER_STATE.UPCOMING;
 }
