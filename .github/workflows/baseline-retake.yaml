@@ -16,7 +16,7 @@ name: Baseline Retake
 #
 # The label is NOT an approval and NOT a trigger. It develops the pixels into a
 # reviewable image diff, and accepting them is a separate label required by
-# `vrt-approval.yaml`; it is read when a comparison run completes, so it may be applied
+# `baseline-approval.yaml`; it is read when a comparison run completes, so it may be applied
 # at any time, pull-request creation included. Both properties are in
 # docs/design/vrt.md.
 #
@@ -95,7 +95,7 @@ jobs:
             echo "head_ref=$(jq -r '.head.ref' <<<"$pr")"
             echo "head_repo=$(jq -r '.head.repo.full_name' <<<"$pr")"
             echo "base_ref=$(jq -r '.base.ref' <<<"$pr")"
-            echo "labelled=$(jq -r '[.labels[].name] | index("vrt-retake") != null' <<<"$pr")"
+            echo "labelled=$(jq -r '[.labels[].name] | index("baseline-retake") != null' <<<"$pr")"
           } >> "$GITHUB_OUTPUT"
 
       # Before any checkout: this trigger holds a writable token even for a fork.
@@ -147,7 +147,7 @@ jobs:
       # Baselines taken from a failing tree bake that failure into the store, so the
       # retake waits. Why the gate names the checks that can move a pixel instead of
       # counting every red one, and why only each check's latest attempt is read, are
-      # in docs/design/vrt.md. The allowlist also keeps `vrt-approval` out: it is red
+      # in docs/design/vrt.md. The allowlist also keeps `baseline-approval` out: it is red
       # until a human accepts images this step has not produced yet, so counting it
       # would leave the approval waiting on the retake and the retake on the approval.
       - name: Defer while a check that decides the pixels is failing
@@ -235,16 +235,16 @@ jobs:
       - name: Fetch the baseline images
         id: baselines
         if: steps.gate.outputs.deferred == 'false'
-        uses: ./.github/actions/setup-vrt-baselines
+        uses: ./.github/actions/setup-baselines
         with:
-          app-id: ${{ secrets.VRT_APP_ID }}
-          private-key: ${{ secrets.VRT_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.BASELINE_APP_ID }}
+          private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
           persist-credentials: 'true'
 
       - name: Refuse without a token for the baseline store
         if: steps.gate.outputs.deferred == 'false' && steps.baselines.outputs.token == ''
         run: |
-          echo '❌ VRT_APP_ID / VRT_APP_PRIVATE_KEY が設定されていません。make setup-vrt-app を実行してください。' >&2
+          echo '❌ BASELINE_APP_ID / BASELINE_APP_PRIVATE_KEY が設定されていません。make setup-baseline-app を実行してください。' >&2
           exit 1
 
       # The report belongs to the run that triggered this one, so there is nothing to
@@ -318,7 +318,7 @@ jobs:
           ids="$(IFS=,; echo "${taken[*]}")"
           echo "ids=${ids}" >> "$GITHUB_OUTPUT"
 
-      # The same command a developer runs as `make vrt-push`, so the shape of what lands
+      # The same command a developer runs as `make baseline-push`, so the shape of what lands
       # in the store does not depend on who took the screenshots.
       - name: Push the baselines to the store
         id: push-store
@@ -331,10 +331,10 @@ jobs:
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git -C vrt/screenshots config user.name 'github-actions[bot]'
-          git -C vrt/screenshots config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C baseline/images config user.name 'github-actions[bot]'
+          git -C baseline/images config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-          pnpm exec tsx scripts/vrt-images push "$BRANCH" >> "$GITHUB_OUTPUT"
+          pnpm exec tsx scripts/baseline-store push "$BRANCH" >> "$GITHUB_OUTPUT"
 
       # Pushed with the App token, not `GITHUB_TOKEN`. Two things follow from that.
       # The push starts the VRT run that confirms the baselines, which `GITHUB_TOKEN`
@@ -378,7 +378,7 @@ jobs:
           FAILED: ${{ steps.gate.outputs.failed }}
         shell: bash
         run: |
-          store_repo="$(git config --file .gitmodules --get submodule.vrt/screenshots.url |
+          store_repo="$(git config --file .gitmodules --get submodule.baseline/images.url |
             sed -e 's|^https://github.com/||' -e 's|\.git$||')"
 
           {
@@ -393,9 +393,9 @@ jobs:
               echo
               echo "対象: ${IDS}"
               echo
-              echo "**まだ承認ではありません。** 上の画像差分を見て、意図した変更であることを確かめたうえで \`vrt-approve\` ラベルを付けてください。"
+              echo "**まだ承認ではありません。** 上の画像差分を見て、意図した変更であることを確かめたうえで \`baseline-approve\` ラベルを付けてください。"
               echo
-              echo "**\`vrt-retake\` は外しました。** 1 回の依頼につき 1 回だけ撮ります。もう一度撮るには、付け直したうえで比較（VRT / E2E）を実行し直してください（ラベルは引き金ではなく、完了時に読まれる条件です）。"
+              echo "**\`baseline-retake\` は外しました。** 1 回の依頼につき 1 回だけ撮ります。もう一度撮るには、付け直したうえで比較（VRT / E2E）を実行し直してください（ラベルは引き金ではなく、完了時に読まれる条件です）。"
             else
               echo "❌ 基準画像を撮り直せませんでした。${REASON:-詳細は実行ログを確認してください。}"
             fi
@@ -410,10 +410,10 @@ jobs:
       # One label, one retake: removed only once the pointer has moved. Anything else
       # leaves it on, so the retake resumes by itself once the cause is gone.
       #
-      # `vrt-approve` is NOT touched here. Whether an acceptance still holds is decided
-      # by `vrt-approval.yaml` comparing its timestamp against the pointer's commit, so
+      # `baseline-approve` is NOT touched here. Whether an acceptance still holds is decided
+      # by `baseline-approval.yaml` comparing its timestamp against the pointer's commit, so
       # removing the label changes no verdict — a stale acceptance is refused either way.
-      # What it does change is the noise: `vrt-approval` runs on `unlabeled`, so dropping
+      # What it does change is the noise: `baseline-approval` runs on `unlabeled`, so dropping
       # the label starts a run whose only purpose is to report a state the next run would
       # report anyway, and it reads to the person who applied it as though their
       # acceptance had been revoked by someone else.
@@ -424,7 +424,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ steps.pr.outputs.number }}
         run: |
-          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label vrt-retake
+          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label baseline-retake
 
   report:
     if: always() && needs.retake.result != 'skipped' && needs.retake.outputs.comment != ''

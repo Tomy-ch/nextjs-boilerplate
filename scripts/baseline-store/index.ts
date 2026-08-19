@@ -24,7 +24,7 @@ import {
 import { RETAINED_TAG_COUNT } from "./retention.js";
 
 /** 主リポジトリ側のサブモジュールの位置。ここの gitlink が保持すべきコミットを指す。 */
-const SUBMODULE_PATH = "vrt/screenshots";
+const SUBMODULE_PATH = "baseline/images";
 
 /** 促すときの終了コード。1 は問い合わせ自体の失敗に取ってある。 */
 const NEEDS_PRUNE_EXIT_CODE = 10;
@@ -46,7 +46,7 @@ function main(argv: readonly string[]): void {
       prune(rest.includes("--dry-run"));
       break;
     default:
-      fail("使い方: vrt-images <ref <branch> | push [branch] | report | prune [--dry-run]>");
+      fail("使い方: baseline-store <ref <branch> | push [branch] | report | prune [--dry-run]>");
   }
 }
 
@@ -62,7 +62,7 @@ function printSnapshotRef(branch: string | undefined): void {
  * 新しい一式の祖先になり、掃除でどれも落とせなくなる。根を共有させるのは、GitHub の compare が
  * 無関係な履歴どうしを比較できないため。
  *
- * 手元と CI が同じ形の木を積むよう、`make vrt-push` も撮り直しの workflow もここを通る。
+ * 手元と CI が同じ形の木を積むよう、`make baseline-push` も撮り直しの workflow もここを通る。
  * 呼び出し側が読めるよう `before=` / `after=` / `count=` を出す。
  */
 function push(branch: string | undefined): void {

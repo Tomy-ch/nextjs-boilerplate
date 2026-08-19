@@ -12,7 +12,7 @@ include .makefiles/github/lint/actions-shellcheck.mk
 include .makefiles/github/lint/actions-comment-secret-lint.mk
 include .makefiles/github/lint/actions-mise-pin-lint.mk
 include .makefiles/github/lint/shellcheck.mk
-include .makefiles/github/operation/vrt-images.mk
+include .makefiles/github/operation/baseline-store.mk
 
 # ツール関連
 include .makefiles/tools/setup.mk

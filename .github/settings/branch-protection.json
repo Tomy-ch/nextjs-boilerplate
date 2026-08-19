@@ -71,7 +71,7 @@
           { "context": "tokens-drift" },
           { "context": "typecheck" },
           { "context": "vrt" },
-          { "context": "vrt-approval" }
+          { "context": "baseline-approval" }
         ]
       }
     }

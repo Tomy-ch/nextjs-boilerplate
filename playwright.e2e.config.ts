@@ -1,10 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
-
+import { SCREEN_AREA } from "./baseline/lib/store";
 import { deviceFor, ENGINES, SHOT_ENGINE } from "./e2e/lib/browsers";
 import { loadBands, VIEWPORT_HEIGHT } from "./e2e/lib/viewports";
 import { getEnvironment } from "./src/config/environment";
 import { loadEnvironment } from "./src/config/load-environment";
-import { SCREEN_AREA } from "./vrt/lib/baseline-store";
 
 /**
  * 画面を通した検証の設定（[0090](docs/adr/0090-testing-strategy.md) / [0091](docs/adr/0091-test-verification-methods.md)）。
@@ -51,8 +50,8 @@ export default defineConfig({
   testDir: "./e2e",
   testMatch: "**/*.spec.ts",
   outputDir: "tmp/e2e/results",
-  // 画面単位の基準画像は story 単位と同じ置き場の、専用の区画に入る（vrt/lib/baseline-store.ts）。
-  snapshotPathTemplate: `vrt/screenshots/${SCREEN_AREA}/{arg}{ext}`,
+  // 画面単位の基準画像は story 単位と同じ置き場の、専用の区画に入る（baseline/lib/store.ts）。
+  snapshotPathTemplate: `baseline/images/${SCREEN_AREA}/{arg}{ext}`,
   fullyParallel: true,
   workers: 4,
   timeout: 60_000,

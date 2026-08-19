@@ -2,9 +2,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import type { TestInfo } from "@playwright/test";
-
-import { isRetaking } from "../../vrt/lib/baseline-store";
-import { listBaselines, missingBaselines, orphanBaselines } from "../../vrt/lib/orphan-baselines";
+import { listBaselines, missingBaselines, orphanBaselines } from "../../baseline/lib/orphans";
+import { isRetaking } from "../../baseline/lib/store";
 import { expectedScreenBaselines, SCREEN_BASELINE_TAG } from "../lib/screen-baselines";
 import { listScreenRoutes, resolveScreens, SCREEN_MANIFEST_FILE, SCREENS } from "../lib/screens";
 import { expect, test } from "../lib/test";

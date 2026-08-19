@@ -3,16 +3,11 @@ import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { test as base, expect, type TestInfo } from "@playwright/test";
-import { assertAreaUnclaimed, isRetaking } from "./lib/baseline-store";
+import { listBaselines, missingBaselines, orphanBaselines } from "../baseline/lib/orphans";
+import { assertAreaUnclaimed, isRetaking } from "../baseline/lib/store";
 import { installFixedClock } from "./lib/clock";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
-import {
-  BASELINE_TAG,
-  expectedBaselines,
-  listBaselines,
-  missingBaselines,
-  orphanBaselines,
-} from "./lib/orphan-baselines";
+import { BASELINE_TAG, expectedBaselines } from "./lib/expected-baselines";
 import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";

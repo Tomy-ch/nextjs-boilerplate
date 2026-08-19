@@ -11,7 +11,7 @@ import type {
   JSONReportTestResult,
 } from "@playwright/test/reporter";
 
-import { BASELINE_TAG } from "../../vrt/lib/orphan-baselines.js";
+import { BASELINE_TAG } from "../../vrt/lib/expected-baselines.js";
 
 /** 基準画像と食い違った story 1 件。 */
 export type Failure = {
@@ -119,7 +119,7 @@ function tagName(tag: string): string {
  *
  * @remarks
  * この検査は story ではないので {@link collectFailures} は拾いません（id の注記を持たない）。
- * それでいて、落ちたときに要るのは**全数の撮り直し**です（理由は `vrt/lib/baseline-store.ts`）。
+ * それでいて、落ちたときに要るのは**全数の撮り直し**です（理由は `baseline/lib/store.ts`）。
  *
  * @param json - Playwright の JSON レポート
  */

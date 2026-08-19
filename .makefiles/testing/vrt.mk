@@ -1,37 +1,37 @@
 ## story 単位の visual regression
 #
-# 基準画像は別リポジトリに置き、vrt/screenshots からサブモジュールとして参照する
+# 基準画像は別リポジトリに置き、baseline/images からサブモジュールとして参照する
 # (vrt/README.md)。取り込んでいない状態で回すと全 story が「基準画像が無い」で落ち、
 # 退行と見分けが付かないため手前で止める。
 .PHONY: vrt ## story の見た目を基準画像と比較する (コンテナ内で実行)
-.PHONY: vrt-retake ## 基準画像を撮り直して置き場へ送る (手元からの撮り直しはこれ)
-.PHONY: vrt-update ## 基準画像を撮り直す (置き場へは送らない)
-.PHONY: vrt-push ## 撮り直した基準画像を置き場へ送り、サブモジュールのポインタを進める
+.PHONY: vrt-retake ## story の基準画像を撮り直して置き場へ送る (手元からの撮り直しはこれ)
+.PHONY: vrt-update ## story の基準画像を撮り直す (置き場へは送らない)
+.PHONY: baseline-push ## 撮り直した基準画像を置き場へ送り、サブモジュールのポインタを進める
 .PHONY: a11y ## 全 story に axe を掛ける (コンテナ内で実行)
 .PHONY: vrt-report ## 直前の実行の HTML レポートを開く
 .PHONY: build-storybook ## Storybook を静的に build する (VRT の撮影対象)
 
 # 生成物をホストの所有者で書き出すために渡す。compose 側の既定 (1000) は Linux の初回
 # ユーザであって、実行者と一致する保証が無い。
-VRT_UID ?= $(shell id -u)
-VRT_GID ?= $(shell id -g)
-export VRT_UID
-export VRT_GID
+RUNNER_UID ?= $(shell id -u)
+RUNNER_GID ?= $(shell id -g)
+export RUNNER_UID
+export RUNNER_GID
 
 # 撮り直す範囲。承認経路が「直前に落ちた story」だけを渡すために使う。空なら全数。
 VRT_ONLY ?=
 export VRT_ONLY
 
 # 撮り直しであることを撮る側へ伝える。置き場との対応の検査は、撮り直しの最中は他の撮影の
-# 途中経過を欠けとして読むため、そこだけ見送る (vrt/lib/baseline-store.ts)。
+# 途中経過を欠けとして読むため、そこだけ見送る (baseline/lib/store.ts)。
 BASELINE_RETAKE ?=
 export BASELINE_RETAKE
 
 VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
-	-e VRT_ONLY -e BASELINE_RETAKE vrt_runner
+	-e VRT_ONLY -e BASELINE_RETAKE browser_runner
 
 # 基準画像を撮った時点の入力のハッシュ。置き場が画像と同じコミットで持つ (vrt/README.md)。
-VRT_INPUTS_FILE := vrt/screenshots/render-inputs.sha256
+VRT_INPUTS_FILE := baseline/images/render-inputs.sha256
 
 # 検査が通った時点の入力のハッシュ。撮った時点と別に持つのは、絵を変えない変更でも
 # storybook-static のバイト列は動くため。撮り直しは起きないので撮影時点の記録は取り残され、
@@ -54,7 +54,7 @@ VRT_BASELINE_TAG := @baselines
 # 配線の確認。撮り直しは空の置き場から始められる必要があるので、中身までは要求しない。
 VRT_REQUIRE_WIRING = \
 	if [ ! -f .gitmodules ]; then \
-		echo "❌ 基準画像の置き場が配線されていません。make setup-vrt-images を実行してください（vrt/README.md）。"; exit 1; \
+		echo "❌ 基準画像の置き場が配線されていません。make setup-baseline-store を実行してください（vrt/README.md）。"; exit 1; \
 	fi
 
 # spec を名指しするのは、a11y の spec を同じ実行に巻き込まないため。混ざると a11y の失敗が
@@ -66,8 +66,8 @@ VRT_SPECS := vrt/stories.spec.ts vrt/theme-tokens.spec.ts
 
 vrt: build-storybook
 	@$(VRT_REQUIRE_WIRING)
-	@if [ -z "$$(ls -A vrt/screenshots 2>/dev/null)" ]; then \
-		echo "❌ vrt/screenshots が空です。git submodule update --init vrt/screenshots を実行してください。"; exit 1; \
+	@if [ -z "$$(ls -A baseline/images 2>/dev/null)" ]; then \
+		echo "❌ baseline/images が空です。git submodule update --init baseline/images を実行してください。"; exit 1; \
 	fi
 	@decision="$$(if [ -n "$(VRT_ONLY)" ]; then echo run; else pnpm exec tsx scripts/vrt gate $(VRT_INPUTS_FILE) $(VRT_VERIFIED_FILE); fi)"; \
 	echo "$(VRT_GATE_MARKER) $$decision"; \
@@ -85,7 +85,7 @@ vrt-update: BASELINE_RETAKE := 1
 vrt-update: build-storybook
 	@$(VRT_REQUIRE_WIRING)
 	@# 全数のときだけ先に区画を空にする。全数と絞り込みで扱いが分かれる理由は clearableStoryEntries
-	@# (vrt/lib/baseline-store.ts) が持つ。
+	@# (baseline/lib/store.ts) が持つ。
 	@#
 	@# **引数が 1 つでも付いていたら消さない。** 絞り込みは `VRT_ONLY` だけでなく `VRT_ARGS` の
 	@# `--grep` / `--project` などでも起きる（vrt/README.md が案内している使い方）。どの引数が
@@ -101,13 +101,13 @@ vrt-update: build-storybook
 # 順に走らせるのは、-j 付きで呼ばれても前提の順序を崩さないため。
 vrt-retake:
 	@$(MAKE) vrt-update
-	@$(MAKE) vrt-push
+	@$(MAKE) baseline-push
 
 # 撮り直した一式を置き場へ送るのはここだけ。手元でサブモジュール内を直接コミットすると
 # 撮り直しどうしが繋がり、掃除でどれも落とせなくなる。
-vrt-push:
+baseline-push:
 	@$(VRT_REQUIRE_WIRING)
-	@pnpm exec tsx scripts/vrt-images push $(VRT_BRANCH)
+	@pnpm exec tsx scripts/baseline-store push $(BASELINE_BRANCH)
 
 # 撮影と同じコンテナ・同じ story 列挙で走らせる。基準画像は要らないので配線も要求しない。
 #
@@ -126,7 +126,7 @@ a11y: build-storybook
 # レポートもコンテナ内で配る。ホスト側の Playwright は比較の前に落とす設計なので、
 # 実行系をここだけホストへ寄せない。--service-ports はこの起動でだけポートを公開する。
 vrt-report:
-	@docker compose -f docker-compose.dev-tools.yml run --rm --service-ports vrt_runner \
+	@docker compose -f docker-compose.dev-tools.yml run --rm --service-ports browser_runner \
 		./node_modules/.bin/playwright show-report tmp/vrt/report --host 0.0.0.0
 
 # 終了コードだけでは build の成否を判定できない。preview の build は非同期で走り、そこで
