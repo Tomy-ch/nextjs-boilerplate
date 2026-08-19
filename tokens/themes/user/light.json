@@ -50,7 +50,7 @@
     },
     "active": {
       "$type": "color",
-      "$value": "{color.cyan.770}"
+      "$value": "{color.cyan.775}"
     },
     "primary": {
       "$type": "color",
@@ -110,7 +110,7 @@
     },
     "info": {
       "$type": "color",
-      "$value": "{color.cyan.770}"
+      "$value": "{color.cyan.775}"
     },
     "info-foreground": {
       "$type": "color",
@@ -164,7 +164,7 @@
     },
     "glow-info": {
       "$type": "shadow",
-      "$value": "0 0 5px color-mix(in srgb, {color.cyan.770} 14%, transparent), 0 0 14px color-mix(in srgb, {color.cyan.770} 7%, transparent)"
+      "$value": "0 0 5px color-mix(in srgb, {color.cyan.775} 14%, transparent), 0 0 14px color-mix(in srgb, {color.cyan.775} 7%, transparent)"
     },
     "glow-success": {
       "$type": "shadow",

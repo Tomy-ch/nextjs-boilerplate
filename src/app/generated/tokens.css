@@ -12,7 +12,8 @@
   --color-cyan-595: #5d96a5;
   --color-cyan-645: #5a898f;
   --color-cyan-655: #3e8994;
-  --color-cyan-770: #1e6d79;
+  --color-cyan-770: #226d77;
+  --color-cyan-775: #1e6d79;
   --color-gold-420: #d9aa42;
   --color-gold-425: #dfa80f;
   --color-gold-760: #805e02;
@@ -21,7 +22,8 @@
   --color-green-775: #137336;
   --color-orange-540: #e27818;
   --color-orange-620: #c86703;
-  --color-red-555: #f95440;
+  --color-red-565: #d96f5f;
+  --color-red-570: #e26554;
   --color-red-730: #c61a0a;
   --color-slate-35: #f5fafc;
   --color-slate-50: #e6fcff;
@@ -158,7 +160,7 @@
   --semantic-color-accent-foreground: var(--color-slate-965);
   --semantic-color-border: var(--color-cyan-190);
   --semantic-color-input: var(--color-cyan-645);
-  --semantic-color-active: var(--color-cyan-770);
+  --semantic-color-active: var(--color-cyan-775);
   --semantic-color-primary: var(--color-cyan-655);
   --semantic-color-primary-foreground: var(--color-slate-995);
   --semantic-color-primary-light: var(--color-cyan-325);
@@ -173,7 +175,7 @@
   --semantic-color-warning-foreground: var(--color-slate-35);
   --semantic-color-destructive: var(--color-red-730);
   --semantic-color-destructive-foreground: var(--color-slate-35);
-  --semantic-color-info: var(--color-cyan-770);
+  --semantic-color-info: var(--color-cyan-775);
   --semantic-color-info-foreground: var(--color-slate-35);
   --semantic-font-sans: var(--font-line-seed);
   --semantic-font-brand: var(--font-michroma);
@@ -185,7 +187,7 @@
   --semantic-shadow-glow-primary: 0 0 5px color-mix(in srgb, var(--color-cyan-325) 30%, transparent), 0 0 14px color-mix(in srgb, var(--color-cyan-325) 16%, transparent);
   --semantic-shadow-glow-outer: 0 0 28px color-mix(in srgb, var(--color-blue-760) 10%, transparent);
   --semantic-shadow-glow-edge: 0 0 4px color-mix(in srgb, var(--color-cyan-325) 18%, transparent), inset 0 0 3px color-mix(in srgb, var(--color-cyan-325) 10%, transparent);
-  --semantic-shadow-glow-info: 0 0 5px color-mix(in srgb, var(--color-cyan-770) 14%, transparent), 0 0 14px color-mix(in srgb, var(--color-cyan-770) 7%, transparent);
+  --semantic-shadow-glow-info: 0 0 5px color-mix(in srgb, var(--color-cyan-775) 14%, transparent), 0 0 14px color-mix(in srgb, var(--color-cyan-775) 7%, transparent);
   --semantic-shadow-glow-success: 0 0 5px color-mix(in srgb, var(--color-green-775) 14%, transparent), 0 0 14px color-mix(in srgb, var(--color-green-775) 7%, transparent);
   --semantic-shadow-glow-warning: 0 0 5px color-mix(in srgb, var(--color-gold-760) 30%, transparent), 0 0 14px color-mix(in srgb, var(--color-gold-760) 16%, transparent);
   --semantic-shadow-glow-destructive: 0 0 5px color-mix(in srgb, var(--color-red-730) 30%, transparent), 0 0 14px color-mix(in srgb, var(--color-red-730) 16%, transparent);
@@ -220,7 +222,7 @@
     --semantic-color-success-foreground: var(--color-slate-990);
     --semantic-color-warning: var(--color-gold-425);
     --semantic-color-warning-foreground: var(--color-slate-990);
-    --semantic-color-destructive: var(--color-red-555);
+    --semantic-color-destructive: var(--color-red-570);
     --semantic-color-destructive-foreground: var(--color-slate-990);
     --semantic-color-info: var(--color-cyan-415);
     --semantic-color-info-foreground: var(--color-slate-990);
@@ -237,7 +239,7 @@
     --semantic-shadow-glow-info: 0 0 6px color-mix(in srgb, var(--color-cyan-415) 29%, transparent), 0 0 18px color-mix(in srgb, var(--color-cyan-415) 18%, transparent);
     --semantic-shadow-glow-success: 0 0 6px color-mix(in srgb, var(--color-green-585) 29%, transparent), 0 0 18px color-mix(in srgb, var(--color-green-585) 18%, transparent);
     --semantic-shadow-glow-warning: 0 0 6px color-mix(in srgb, var(--color-gold-425) 65%, transparent), 0 0 18px color-mix(in srgb, var(--color-gold-425) 40%, transparent);
-    --semantic-shadow-glow-destructive: 0 0 6px color-mix(in srgb, var(--color-red-555) 65%, transparent), 0 0 18px color-mix(in srgb, var(--color-red-555) 40%, transparent);
+    --semantic-shadow-glow-destructive: 0 0 6px color-mix(in srgb, var(--color-red-570) 65%, transparent), 0 0 18px color-mix(in srgb, var(--color-red-570) 40%, transparent);
     --semantic-text-shadow-glow: 0 0 8px color-mix(in srgb, var(--color-cyan-205) 45%, transparent);
     --semantic-text-shadow-glow-strong: 0 0 4px color-mix(in srgb, var(--color-slate-50) 70%, transparent), 0 0 14px color-mix(in srgb, var(--color-cyan-205) 50%, transparent);
   }
@@ -270,7 +272,7 @@
     --semantic-color-success-foreground: var(--color-slate-990);
     --semantic-color-warning: var(--color-gold-425);
     --semantic-color-warning-foreground: var(--color-slate-990);
-    --semantic-color-destructive: var(--color-red-555);
+    --semantic-color-destructive: var(--color-red-570);
     --semantic-color-destructive-foreground: var(--color-slate-990);
     --semantic-color-info: var(--color-cyan-415);
     --semantic-color-info-foreground: var(--color-slate-990);
@@ -287,7 +289,7 @@
     --semantic-shadow-glow-info: 0 0 6px color-mix(in srgb, var(--color-cyan-415) 29%, transparent), 0 0 18px color-mix(in srgb, var(--color-cyan-415) 18%, transparent);
     --semantic-shadow-glow-success: 0 0 6px color-mix(in srgb, var(--color-green-585) 29%, transparent), 0 0 18px color-mix(in srgb, var(--color-green-585) 18%, transparent);
     --semantic-shadow-glow-warning: 0 0 6px color-mix(in srgb, var(--color-gold-425) 65%, transparent), 0 0 18px color-mix(in srgb, var(--color-gold-425) 40%, transparent);
-    --semantic-shadow-glow-destructive: 0 0 6px color-mix(in srgb, var(--color-red-555) 65%, transparent), 0 0 18px color-mix(in srgb, var(--color-red-555) 40%, transparent);
+    --semantic-shadow-glow-destructive: 0 0 6px color-mix(in srgb, var(--color-red-570) 65%, transparent), 0 0 18px color-mix(in srgb, var(--color-red-570) 40%, transparent);
     --semantic-text-shadow-glow: 0 0 8px color-mix(in srgb, var(--color-cyan-205) 45%, transparent);
     --semantic-text-shadow-glow-strong: 0 0 4px color-mix(in srgb, var(--color-slate-50) 70%, transparent), 0 0 14px color-mix(in srgb, var(--color-cyan-205) 50%, transparent);
   }
@@ -320,7 +322,7 @@
   --semantic-color-warning-foreground: var(--color-steel-55);
   --semantic-color-destructive: var(--color-red-730);
   --semantic-color-destructive-foreground: var(--color-steel-55);
-  --semantic-color-info: var(--color-cyan-770);
+  --semantic-color-info: var(--color-cyan-775);
   --semantic-color-info-foreground: var(--color-steel-55);
   --semantic-font-sans: var(--font-plex-jp);
   --semantic-font-brand: var(--font-michroma);
@@ -332,7 +334,7 @@
   --semantic-shadow-glow-primary: 0 0 4px color-mix(in srgb, var(--color-cyan-325) 24%, transparent), 0 0 12px color-mix(in srgb, var(--color-cyan-325) 12%, transparent);
   --semantic-shadow-glow-outer: 0 0 22px color-mix(in srgb, var(--color-blue-760) 8%, transparent);
   --semantic-shadow-glow-edge: 0 0 3px color-mix(in srgb, var(--color-cyan-325) 14%, transparent), inset 0 0 2px color-mix(in srgb, var(--color-cyan-325) 8%, transparent);
-  --semantic-shadow-glow-info: 0 0 4px color-mix(in srgb, var(--color-cyan-770) 11%, transparent), 0 0 12px color-mix(in srgb, var(--color-cyan-770) 5%, transparent);
+  --semantic-shadow-glow-info: 0 0 4px color-mix(in srgb, var(--color-cyan-775) 11%, transparent), 0 0 12px color-mix(in srgb, var(--color-cyan-775) 5%, transparent);
   --semantic-shadow-glow-success: 0 0 4px color-mix(in srgb, var(--color-green-775) 11%, transparent), 0 0 12px color-mix(in srgb, var(--color-green-775) 5%, transparent);
   --semantic-shadow-glow-warning: 0 0 4px color-mix(in srgb, var(--color-gold-760) 24%, transparent), 0 0 12px color-mix(in srgb, var(--color-gold-760) 12%, transparent);
   --semantic-shadow-glow-destructive: 0 0 4px color-mix(in srgb, var(--color-red-730) 24%, transparent), 0 0 12px color-mix(in srgb, var(--color-red-730) 12%, transparent);
@@ -366,7 +368,7 @@
     --semantic-color-success-foreground: var(--color-steel-985);
     --semantic-color-warning: var(--color-gold-420);
     --semantic-color-warning-foreground: var(--color-steel-985);
-    --semantic-color-destructive: var(--color-red-555);
+    --semantic-color-destructive: var(--color-red-565);
     --semantic-color-destructive-foreground: var(--color-steel-985);
     --semantic-color-info: var(--color-cyan-415);
     --semantic-color-info-foreground: var(--color-steel-985);
@@ -383,7 +385,7 @@
     --semantic-shadow-glow-info: 0 0 5px color-mix(in srgb, var(--color-cyan-415) 23%, transparent), 0 0 15px color-mix(in srgb, var(--color-cyan-415) 13%, transparent);
     --semantic-shadow-glow-success: 0 0 5px color-mix(in srgb, var(--color-green-580) 23%, transparent), 0 0 15px color-mix(in srgb, var(--color-green-580) 13%, transparent);
     --semantic-shadow-glow-warning: 0 0 5px color-mix(in srgb, var(--color-gold-420) 50%, transparent), 0 0 15px color-mix(in srgb, var(--color-gold-420) 28%, transparent);
-    --semantic-shadow-glow-destructive: 0 0 5px color-mix(in srgb, var(--color-red-555) 50%, transparent), 0 0 15px color-mix(in srgb, var(--color-red-555) 28%, transparent);
+    --semantic-shadow-glow-destructive: 0 0 5px color-mix(in srgb, var(--color-red-565) 50%, transparent), 0 0 15px color-mix(in srgb, var(--color-red-565) 28%, transparent);
     --semantic-text-shadow-glow: 0 0 6px color-mix(in srgb, var(--color-cyan-205) 34%, transparent);
     --semantic-text-shadow-glow-strong: 0 0 3px color-mix(in srgb, var(--color-steel-50) 55%, transparent), 0 0 11px color-mix(in srgb, var(--color-cyan-205) 38%, transparent);
   }
@@ -415,7 +417,7 @@
     --semantic-color-success-foreground: var(--color-steel-985);
     --semantic-color-warning: var(--color-gold-420);
     --semantic-color-warning-foreground: var(--color-steel-985);
-    --semantic-color-destructive: var(--color-red-555);
+    --semantic-color-destructive: var(--color-red-565);
     --semantic-color-destructive-foreground: var(--color-steel-985);
     --semantic-color-info: var(--color-cyan-415);
     --semantic-color-info-foreground: var(--color-steel-985);
@@ -432,7 +434,7 @@
     --semantic-shadow-glow-info: 0 0 5px color-mix(in srgb, var(--color-cyan-415) 23%, transparent), 0 0 15px color-mix(in srgb, var(--color-cyan-415) 13%, transparent);
     --semantic-shadow-glow-success: 0 0 5px color-mix(in srgb, var(--color-green-580) 23%, transparent), 0 0 15px color-mix(in srgb, var(--color-green-580) 13%, transparent);
     --semantic-shadow-glow-warning: 0 0 5px color-mix(in srgb, var(--color-gold-420) 50%, transparent), 0 0 15px color-mix(in srgb, var(--color-gold-420) 28%, transparent);
-    --semantic-shadow-glow-destructive: 0 0 5px color-mix(in srgb, var(--color-red-555) 50%, transparent), 0 0 15px color-mix(in srgb, var(--color-red-555) 28%, transparent);
+    --semantic-shadow-glow-destructive: 0 0 5px color-mix(in srgb, var(--color-red-565) 50%, transparent), 0 0 15px color-mix(in srgb, var(--color-red-565) 28%, transparent);
     --semantic-text-shadow-glow: 0 0 6px color-mix(in srgb, var(--color-cyan-205) 34%, transparent);
     --semantic-text-shadow-glow-strong: 0 0 3px color-mix(in srgb, var(--color-steel-50) 55%, transparent), 0 0 11px color-mix(in srgb, var(--color-cyan-205) 38%, transparent);
   }

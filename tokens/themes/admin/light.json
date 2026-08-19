@@ -110,7 +110,7 @@
     },
     "info": {
       "$type": "color",
-      "$value": "{color.cyan.770}"
+      "$value": "{color.cyan.775}"
     },
     "info-foreground": {
       "$type": "color",
@@ -164,7 +164,7 @@
     },
     "glow-info": {
       "$type": "shadow",
-      "$value": "0 0 4px color-mix(in srgb, {color.cyan.770} 11%, transparent), 0 0 12px color-mix(in srgb, {color.cyan.770} 5%, transparent)"
+      "$value": "0 0 4px color-mix(in srgb, {color.cyan.775} 11%, transparent), 0 0 12px color-mix(in srgb, {color.cyan.775} 5%, transparent)"
     },
     "glow-success": {
       "$type": "shadow",

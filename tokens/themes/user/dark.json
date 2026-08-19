@@ -102,7 +102,7 @@
     },
     "destructive": {
       "$type": "color",
-      "$value": "{color.red.555}"
+      "$value": "{color.red.570}"
     },
     "destructive-foreground": {
       "$type": "color",
@@ -176,7 +176,7 @@
     },
     "glow-destructive": {
       "$type": "shadow",
-      "$value": "0 0 6px color-mix(in srgb, {color.red.555} 65%, transparent), 0 0 18px color-mix(in srgb, {color.red.555} 40%, transparent)"
+      "$value": "0 0 6px color-mix(in srgb, {color.red.570} 65%, transparent), 0 0 18px color-mix(in srgb, {color.red.570} 40%, transparent)"
     }
   },
   "text-shadow": {
