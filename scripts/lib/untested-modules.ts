@@ -45,6 +45,9 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
  * 判定を持たないモジュール。
  *
  * - `scripts/setup/lib/runtime.ts` — リポジトリルートの解決と共通フラグ（`--dry-run` / `--help`）の解析だけ。
+ * - `src/app/fonts.ts` — `next/font` の呼び出しと、返った変数名を連結するだけ。分岐を持たず、
+ *   単体で回しても `next/font` の mock が返した値をそのまま読むことにしかならない。変数が
+ *   `<html>` へ届くことは `layout.test.tsx` が見ている。
  * - `docs-viewer/src/main.tsx` — ビューアーの entry。読み込まれた時点で DOM を触るため、
  *   判断はすべて `mount/` 側に置いてある。
  * - `vrt/lib/settle.ts` — Playwright の Page を 2 つの条件で待つだけ。分岐を持たず、
@@ -56,6 +59,7 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
  */
 const NON_DECIDING_MODULES = [
   "scripts/setup/lib/runtime.ts",
+  "src/app/fonts.ts",
   "docs-viewer/src/main.tsx",
   "vrt/lib/settle.ts",
   "e2e/lib/test.ts",
