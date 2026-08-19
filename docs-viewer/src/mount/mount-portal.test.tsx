@@ -1,11 +1,31 @@
 // @vitest-environment jsdom
 
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
+import type { Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { mountPortal, PORTAL_LOAD_ERROR_MESSAGE } from "./mount-portal";
+
+const { mountedRoots } = vi.hoisted(() => ({ mountedRoots: [] as Root[] }));
+
+// `mountPortal` は root を返さないので、`createRoot` を差し替えて生成物を捕まえる。畳む理由は
+// `docs/testing-conventions.md` の「テストが起こしたものはテストが畳む」が持つ。
+vi.mock("react-dom/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-dom/client")>();
+
+  return {
+    ...actual,
+    createRoot: ((...args: Parameters<typeof actual.createRoot>) => {
+      const root = actual.createRoot(...args);
+
+      mountedRoots.push(root);
+
+      return root;
+    }) as typeof actual.createRoot,
+  };
+});
 
 const docs = {
   title: "Documentation",
@@ -39,6 +59,11 @@ function createContainer(): HTMLElement {
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 
 afterEach(() => {
+  act(() => {
+    for (const root of mountedRoots.splice(0)) {
+      root.unmount();
+    }
+  });
   server.resetHandlers();
   vi.unstubAllGlobals();
   document.body.replaceChildren();
