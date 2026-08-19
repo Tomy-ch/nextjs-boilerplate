@@ -55,6 +55,19 @@ export type ProductCategory = ProductRef & {
 };
 
 /**
+ * 状態のマスタ 1 件。
+ *
+ * @remarks
+ * 形は {@link ProductCategory} と同じですが、名前を分けています。どちらのマスタも番号で絞り込む
+ * という契約の都合が揃っているだけで、公開・非公開といった状態の体系と商品の分類体系は別々に
+ * 動きます。1 つの型にまとめると、片方の都合でもう片方の宣言が動きます。
+ */
+export type ProductStatus = ProductRef & {
+  /** マスタ行を指す静的な番号。分類と同じく、絞り込みの条件として URL に載せられる。 */
+  code: number;
+};
+
+/**
  * 画面が扱う商品。
  *
  * @remarks

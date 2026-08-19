@@ -15,12 +15,14 @@ vi.mock("@/features/cart/actions", () => ({
   setCartItemQuantityAction: vi.fn(),
 }));
 
-const { getMyCart, useMediaQuery } = vi.hoisted(() => ({
+const { getMyCart, useMediaQuery, verifySession } = vi.hoisted(() => ({
   getMyCart: vi.fn(),
   useMediaQuery: vi.fn<() => boolean>(),
+  verifySession: vi.fn(),
 }));
 
 vi.mock("@/adapters/server/api/cart", () => ({ getMyCart }));
+vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/logging/logging.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/logging/logging.server")>()),
   getLogger: () => ({ warn: vi.fn() }),
@@ -28,6 +30,7 @@ vi.mock("@/logging/logging.server", async (importOriginal) => ({
 vi.mock("@/capabilities/use-media-query", () => ({ useMediaQuery }));
 
 import { CART, EMPTY_CART } from "@/features/cart/cart.fixture";
+import { SESSION_ROLE } from "@/model/session";
 import { useCartStore } from "@/stores/cart-store";
 
 import ShopLayout from "./layout";
@@ -41,6 +44,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getMyCart.mockResolvedValue(CART);
   useMediaQuery.mockReturnValue(false);
+  verifySession.mockResolvedValue(null);
   useCartStore.setState({ isOpen: true });
 });
 
@@ -55,6 +59,36 @@ describe("ShopLayout", () => {
     await renderLayout();
 
     expect(screen.getByRole("link", { name: "商品" })).toHaveAttribute("href", "/products");
+  });
+
+  it("役割を持たない主体には管理への入口を出さない", async () => {
+    verifySession.mockResolvedValue({
+      userId: "user-1",
+      role: SESSION_ROLE.user,
+      expiresAt: new Date("2026-01-01T00:00:00Z"),
+    });
+
+    await renderLayout();
+
+    expect(screen.queryByRole("link", { name: "管理" })).not.toBeInTheDocument();
+  });
+
+  it("未認証にも管理への入口を出さない", async () => {
+    await renderLayout();
+
+    expect(screen.queryByRole("link", { name: "管理" })).not.toBeInTheDocument();
+  });
+
+  it("管理の役割を持つ主体には管理への入口を出す", async () => {
+    verifySession.mockResolvedValue({
+      userId: "admin-1",
+      role: SESSION_ROLE.admin,
+      expiresAt: new Date("2026-01-01T00:00:00Z"),
+    });
+
+    await renderLayout();
+
+    expect(screen.getByRole("link", { name: "管理" })).toHaveAttribute("href", "/admin/products");
   });
 
   it("カートの入口を header に置く", async () => {

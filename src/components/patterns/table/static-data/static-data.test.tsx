@@ -43,6 +43,25 @@ describe("StaticDataTable", () => {
     expect(screen.getByRole("form", { name: "項目を検索" })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "ページ移動" })).toBeInTheDocument();
   });
+  it("行へ class 名を渡すと各行に付く", () => {
+    render(
+      <StaticDataTable
+        columns={columns}
+        getRowKey={getRowKey}
+        rowClassName="relative"
+        rows={[
+          { id: "one", name: "概要" },
+          { id: "two", name: "詳細" },
+        ]}
+      />,
+    );
+    expect(
+      screen
+        .getAllByRole("row")
+        .slice(1)
+        .every((row) => row.classList.contains("relative")),
+    ).toBe(true);
+  });
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(
       <StaticDataTable columns={columns} getRowKey={getRowKey} rows={[]} />,

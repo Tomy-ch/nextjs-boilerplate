@@ -3,38 +3,24 @@ import { NextResponse } from "next/server";
 
 import { readOptimisticSession } from "@/adapters/server/auth/optimistic-session";
 import { SESSION_COOKIE_NAME } from "@/adapters/server/auth/session-cookie";
+import { allowedRolesFor } from "@/model/authz";
 import { toSafeReturnUrl } from "@/model/return-url";
-
-/**
- * 認証を要求するパスの接頭辞。
- *
- * @remarks
- * 保護されている側を列挙します。公開側を列挙する書き方だと、新しく足した画面が既定で公開になり、
- * 書き忘れがそのまま漏洩になります。
- *
- * `/account` は fork 先が最初に書き換える置き場です。同梱サンプルの画面は破棄と一緒に消えますが、
- * 保護の宣言そのものは残す必要があるため、1 つだけ中立な接頭辞を置いています。
- */
-/**
- * 前捌きの対象にする経路の先頭。
- *
- * @remarks
- * 公開しているのは、宣言したすべてが実際に前捌きへ届くかを検査できるようにするためです。
- * 検査側が一覧を書き写すと、ここへ足した経路が検査を素通りします。
- */
-export const PROTECTED_PREFIXES = [
-  "/account",
-  "/mypage", // sample:line
-  "/checkout", // sample:line
-  "/purchases", // sample:line
-  "/admin", // sample:line
-];
+import { hasAllowedRole } from "@/model/session";
 
 /** 認証をやり直させる先。 */
 const LOGIN_PATH = "/login";
 
 /**
- * 入口の楽観的な認可。未認証らしきリクエストをログインへ前捌きする。
+ * 役割が足りないときに送る先。
+ *
+ * @remarks
+ * ログインへは送りません。認証はすでに済んでおり、やり直しても同じ結果になります。403 の面を
+ * 出さない理由は `docs/spec/route/admin/layout.function.md`「入れない主体をどこへ送るか」。
+ */
+const FALLBACK_PATH = "/";
+
+/**
+ * 入口の楽観的な認可。到達してよい役割を持たないリクエストを前捌きする。
  *
  * @remarks
  * **ここは防御線ではありません。** cookie を読むだけの前捌きであり、確定認可はデータ源に最も
@@ -44,24 +30,36 @@ const LOGIN_PATH = "/login";
  *
  * prefetch を含む全リクエストで走るため、データ源を参照しません。cookie の復号だけに留めるのは
  * 費用の問題であると同時に、Proxy が CDN へ配置され得るという配置上の制約でもあります。
+ *
+ * **どの経路に何の役割が要るかは持ちません。** 宣言は `model/authz` にあり、確定認可の側も同じ
+ * 宣言を引きます。ここに書き写すと、前捌きと確定認可が別々の条件で判定するようになります。
+ *
+ * 未認証と役割不足を分けます。前者はやり直せるのでログインへ戻し、後者はやり直しても同じ結果に
+ * なるため戻しません。
  */
 export async function proxy(request: NextRequest): Promise<Response> {
   const url = new URL(request.url);
+  const allowed = allowedRolesFor(url.pathname);
 
-  if (!PROTECTED_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))) {
+  if (allowed === null) {
     return NextResponse.next();
   }
 
   const sealed = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const session = await readOptimisticSession(sealed);
 
-  if ((await readOptimisticSession(sealed)) !== null) {
-    return NextResponse.next();
+  if (session === null) {
+    const login = new URL(LOGIN_PATH, url);
+    login.searchParams.set("returnUrl", toSafeReturnUrl(`${url.pathname}${url.search}`));
+
+    return NextResponse.redirect(login);
   }
 
-  const login = new URL(LOGIN_PATH, url);
-  login.searchParams.set("returnUrl", toSafeReturnUrl(`${url.pathname}${url.search}`));
+  if (!hasAllowedRole(session, allowed)) {
+    return NextResponse.redirect(new URL(FALLBACK_PATH, url));
+  }
 
-  return NextResponse.redirect(login);
+  return NextResponse.next();
 }
 
 /**
@@ -71,8 +69,7 @@ export async function proxy(request: NextRequest): Promise<Response> {
  * 静的アセットと画像最適化の経路を外します。認証の判断が要らないうえリクエスト数が最も多く、
  * ここへ処理を挟むと配信そのものが遅くなります。
  *
- * `/api` は外しません。Route Handler も保護の対象になり得るためです。ただし Route Handler 側は
- * 確定認可を自分で通すので、ここでの判定は前捌きに留まります。
+ * `/api` は外しません。Route Handler も保護の対象になり得るためです。
  */
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],

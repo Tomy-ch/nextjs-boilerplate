@@ -88,7 +88,11 @@ describe("STORY_DISABLED_RULES", () => {
   // ----- 異常系 -----
   it("名指しの無効化が増え続けないよう、対象 story の数を目に見える形に保つ", () => {
     // 増やすときはこの数を更新する。更新が要ること自体が、無効化を足した事実を差分へ出す。
-    expect(STORY_DISABLED_RULES.flatMap((rule) => rule.stories)).toHaveLength(11);
+    // sample:replace-begin
+    expect(STORY_DISABLED_RULES.flatMap((rule) => rule.stories)).toHaveLength(12);
+    // sample:replace-with
+    // = expect(STORY_DISABLED_RULES.flatMap((rule) => rule.stories)).toHaveLength(11);
+    // sample:replace-end
   });
 });
 

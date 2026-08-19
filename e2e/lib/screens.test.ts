@@ -62,10 +62,10 @@ describe("resolveScreens", () => {
   it("session を要する宣言をそのまま運ぶ", () => {
     const resolved = resolveScreens(
       ["/delta"],
-      [{ route: "/delta", name: "delta", path: "/delta", signedIn: true }],
+      [{ route: "/delta", name: "delta", path: "/delta", signedIn: "user" }],
     );
 
-    expect(resolved[0]?.signedIn).toBe(true);
+    expect(resolved[0]?.signedIn).toBe("user");
   });
 
   it("session を要さない画面には印を立てない", () => {
