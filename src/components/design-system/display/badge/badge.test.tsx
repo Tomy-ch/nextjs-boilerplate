@@ -15,6 +15,7 @@ describe("Badge", () => {
         <Badge>公開中</Badge>
         <Badge variant={BADGE_VARIANT.SECONDARY}>準備中</Badge>
         <Badge variant={BADGE_VARIANT.DESTRUCTIVE}>利用停止</Badge>
+        <Badge variant={BADGE_VARIANT.WARNING}>入荷待ち</Badge>
         <Badge variant={BADGE_VARIANT.OUTLINE}>カテゴリ</Badge>
         <Badge variant={BADGE_VARIANT.GHOST}>補足</Badge>
       </>,
@@ -23,6 +24,7 @@ describe("Badge", () => {
     expect(screen.getByText("公開中")).toHaveAttribute("data-slot", "badge");
     expect(screen.getByText("準備中")).toHaveAttribute("data-variant", BADGE_VARIANT.SECONDARY);
     expect(screen.getByText("利用停止")).toHaveAttribute("data-variant", BADGE_VARIANT.DESTRUCTIVE);
+    expect(screen.getByText("入荷待ち")).toHaveAttribute("data-variant", BADGE_VARIANT.WARNING);
     expect(screen.getByText("カテゴリ")).toHaveAttribute("data-variant", BADGE_VARIANT.OUTLINE);
     expect(screen.getByText("補足")).toHaveAttribute("data-variant", BADGE_VARIANT.GHOST);
   });

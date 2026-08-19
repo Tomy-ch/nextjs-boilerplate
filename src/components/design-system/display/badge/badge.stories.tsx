@@ -51,6 +51,14 @@ export const Destructive: Story = {
   },
 };
 
+/** 進めてはいるが確認が要る状態。`destructive` ほど強くない段として使う。 */
+export const Warning: Story = {
+  args: {
+    children: "入荷待ち",
+    variant: BADGE_VARIANT.WARNING,
+  },
+};
+
 /** 面を塗らず枠線だけで示す場合。密に並べても背景がうるさくならない。 */
 export const Outline: Story = {
   args: {
