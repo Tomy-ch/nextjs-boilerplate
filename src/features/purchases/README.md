@@ -45,7 +45,7 @@ test-requirement: feature
 | `history/ui/period-bar/` | 帯の中に常設する絞り込み。一覧が隣に見えている幅で使う |
 | `history/ui/period-sheet/` | 帯を常設できない幅の絞り込み。下端に固定した操作から overlay を開く |
 | `history/ui/purchase-row/` | 履歴の 1 行。行そのものが詳細への行き先 |
-| `history/ui/purchase-list/` | 読み進めた一覧の見た目。取得中・末尾到達・失敗を描き分ける |
+| `history/ui/purchase-list/` | 読み進めた一覧の見た目。続きの状態は `LoadMore` が持つ |
 | `history/ui/empty/` | 並べるものが無いときの表示 |
 | `history/ui/skeleton/` | 一覧の待機表示 |
 | `detail/page-content.tsx` | 1 件の取得。`not-found` の分類もここで受ける |
@@ -75,5 +75,7 @@ test-requirement: feature
   同じ購入が画面によって違う見え方になると、控えとして突き合わせられません。`components` へ上げられない
   のは、いずれも題材の語彙（注文・購入）を持ち、コア残留の検査に弾かれるためです
   （[0021](../../../docs/adr/0021-frontend-responsibility.md)）
-- **続きを読む操作は失敗したときだけ出します。** 読み進めている間は末尾に近づくだけで次が始まるため、
-  同じことをする入口を並べても選ぶ手数が増えるだけです
+- **増分取得の部品は商品一覧と共有です。** 続きの読み込みの状態は
+  [`LoadMore`](../../components/app-starter/load-more/README.md)、目印が見えたことを知るのは
+  [`use-on-visible`](../../capabilities/use-on-visible.ts) が持ちます。積み上げの状態機械だけが
+  feature に残るのは、読み進めた位置を URL へ書き戻すかどうかも、積み直す契機も画面ごとに違うためです

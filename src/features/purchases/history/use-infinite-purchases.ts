@@ -1,14 +1,13 @@
 "use client";
 
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
-
 import { fetchPurchaseHistoryPage } from "@/adapters/client/api/purchases";
+import { useOnVisible } from "@/capabilities/use-on-visible";
+import type { LoadMoreState } from "@/components/app-starter/load-more/load-more.definition";
 import { appendCursorPage, type CursorPage } from "@/model/pagination";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
-
 import { type PeriodSelection, toPeriodSearchParams } from "./period";
 import { COUNT_KEY, CURSOR_KEY } from "./query";
-import type { PurchaseLoadMoreState } from "./ui/purchase-list/purchase-list";
 
 /** 末尾に近づいたと見なす距離。画面に入り切る前に読み始めて、待たせる時間を短くする。 */
 const PREFETCH_MARGIN = "400px";
@@ -21,7 +20,7 @@ export type InfinitePurchases = {
   /** 読み込み済みのすべての購入。 */
   readonly items: readonly PurchaseHistoryEntry[];
   /** 続きの読み込みの状態。読み直す操作は失敗したときだけ載る。 */
-  readonly loadMore: PurchaseLoadMoreState;
+  readonly loadMore: LoadMoreState;
   /** 一覧の末尾に置く目印。ここが見えたら続きを読む。 */
   readonly sentinelRef: RefObject<HTMLDivElement | null>;
 };
@@ -50,7 +49,6 @@ export function useInfinitePurchases(
 ): InfinitePurchases {
   const [page, setPage] = useState(initial);
   const [phase, setPhase] = useState<FetchPhase>("idle");
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   // 期間が変われば別の一覧になる。初回ページごと差し替えて、前の条件の続きを読まないようにする。
@@ -92,34 +90,12 @@ export function useInfinitePurchases(
       });
   }, [page.nextCursor, pageSize, period, phase]);
 
-  const loadMoreRef = useRef(loadMore);
-
-  useEffect(() => {
-    loadMoreRef.current = loadMore;
-  }, [loadMore]);
-
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  useEffect(() => {
-    const target = sentinelRef.current;
-
-    if (target === null || page.nextCursor === null) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          loadMoreRef.current();
-        }
-      },
-      { rootMargin: PREFETCH_MARGIN },
-    );
-
-    observer.observe(target);
-
-    return () => observer.disconnect();
-  }, [page.nextCursor]);
+  const sentinelRef = useOnVisible(loadMore, {
+    enabled: page.nextCursor !== null,
+    rootMargin: PREFETCH_MARGIN,
+  });
 
   if (page.nextCursor === null) {
     return { items: page.items, loadMore: { status: "exhausted" }, sentinelRef };

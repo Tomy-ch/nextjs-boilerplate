@@ -150,6 +150,13 @@ components:
     addedAt: 2026-08-03T14:45:00.000Z
     dependencies:
       - lucide-react
+  load-more:
+    kind: original
+    layer: app-starter
+    as: navigation
+    directory: src/components/app-starter/load-more
+    dependencies: []
+    addedAt: 2026-08-19T00:00:00.000Z
   filter-bar:
     kind: original
     layer: patterns

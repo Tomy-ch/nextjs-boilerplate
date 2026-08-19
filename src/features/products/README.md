@@ -50,7 +50,7 @@ test-requirement: feature
 | `list/ui/filter-sidebar/` | 脇に常設する絞り込み。選んだ時点で反映する。landmark は持たない |
 | `list/ui/filter-sheet/` | 脇に領域を持てない幅の絞り込み。overlay の中でまとめて確定する |
 | `list/ui/infinite-list/` | 読み進められる一覧。取得と見た目をつなぐ |
-| `list/ui/load-more-list/` | 読み進めた一覧の見た目。件数の告知と、失敗したときの読み直しを持つ |
+| `list/ui/load-more-list/` | 読み進めた一覧の見た目。件数を告知し、続きの状態は `LoadMore` が持つ |
 | `list/ui/skeleton/` | 待機表示 |
 | `list/ui/error-state/` | 取得に失敗したときの表示 |
 | `list/ui/invalid-query/` | URL の条件が契約を外れているときの表示 |

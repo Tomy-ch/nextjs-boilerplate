@@ -5,12 +5,10 @@ import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
-
+import type { LoadMoreState } from "@/components/app-starter/load-more/load-more.definition";
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
-
-import type { ProductLoadMoreState } from "../load-more-list/load-more-list";
 
 const { useInfiniteProducts } = vi.hoisted(() => ({ useInfiniteProducts: vi.fn() }));
 
@@ -33,7 +31,7 @@ const QUERY: Readonly<Record<string, string>> = { keyword: "ライト" };
 
 type Observed = {
   items?: readonly ProductListItem[];
-  loadMore?: ProductLoadMoreState;
+  loadMore?: LoadMoreState;
 };
 
 function observing({ items = [ITEM], loadMore = { status: "exhausted" } }: Observed = {}) {

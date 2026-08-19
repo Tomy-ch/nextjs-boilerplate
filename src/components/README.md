@@ -448,6 +448,7 @@ trigger から本文の上へ面を開く部品。
 | [`auth-state-feedback`](./app-starter/auth-state-feedback/README.md) | サインインが必要・権限が足りない・見つからない状態と、そこから抜け出す導線を表示する |
 | [`cursor-pagination`](./app-starter/cursor-pagination/README.md) | cursor 方式の一覧で前後のページへ移動する |
 | [`feedback-state`](./app-starter/feedback-state/README.md) | loading / empty / error / success の表示状態を一貫して伝える |
+| [`load-more`](./app-starter/load-more/README.md) | 読み進めて積み増す一覧の末尾で、続きの読み込みの状態を示す |
 | [`file-upload`](./app-starter/file-upload/README.md) | 送信するファイルを選び、送る前に形式と大きさが要件に合っているかを知らせる |
 | [`form-feedback`](./app-starter/form-feedback/README.md) | Server Action や native form の結果を、要約と次の行動として表示する |
 | [`form-validation-summary`](./app-starter/form-validation-summary/README.md) | form 全体の検証エラーを一箇所に要約し、各入力欄への link を並べる |
