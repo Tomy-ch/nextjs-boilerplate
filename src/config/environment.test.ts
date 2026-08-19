@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Environment } from "./environment";
 
+/** リポジトリが同梱している秘密値。`env/.env.local` が積んでいるものと同じ。 */
+const SHIPPED_SESSION_SECRET = "local-development-session-secret-change-before-production";
+
 const validEnvironment = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
@@ -14,7 +17,8 @@ const validEnvironment = {
   AUTH_REDIRECT_URI: "https://app.example.test/auth/callback",
   AUTH_SCOPES: "openid profile",
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
-} satisfies Environment;
+  NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
+} satisfies Record<keyof Environment, string>;
 
 function stubValidEnvironment(): void {
   vi.stubEnv("APP_API_BASE_URL", validEnvironment.APP_API_BASE_URL);
@@ -29,6 +33,7 @@ function stubValidEnvironment(): void {
   vi.stubEnv("AUTH_REDIRECT_URI", validEnvironment.AUTH_REDIRECT_URI);
   vi.stubEnv("AUTH_SCOPES", validEnvironment.AUTH_SCOPES);
   vi.stubEnv("AUTH_SESSION_SECRET", validEnvironment.AUTH_SESSION_SECRET);
+  vi.stubEnv("NEXT_PUBLIC_HTTP_MAX_URL_BYTES", validEnvironment.NEXT_PUBLIC_HTTP_MAX_URL_BYTES);
 }
 
 beforeEach(() => {
@@ -50,7 +55,7 @@ describe("getEnvironment", () => {
     const second = getEnvironment();
 
     expect(first).toBe(second);
-    expect(first).toEqual(validEnvironment);
+    expect(first).toEqual({ ...validEnvironment, NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000 });
     expect(() => validateEnvironment()).not.toThrow();
   });
 });
@@ -58,13 +63,19 @@ describe("getEnvironment", () => {
 describe("validateEnvironment", () => {
   // ----- 正常系 -----
   it("purpose ごとの Config getter が対応する値を返す", async () => {
-    const [{ getApiConfig }, { getAuthConfig }, { getMediaConfig }, { getObservabilityConfig }] =
-      await Promise.all([
-        import("./api/api.server"),
-        import("./auth/auth.server"),
-        import("./media/media.server"),
-        import("./observability/observability.server"),
-      ]);
+    const [
+      { getApiConfig },
+      { getAuthConfig },
+      { getHttpConfig },
+      { getMediaConfig },
+      { getObservabilityConfig },
+    ] = await Promise.all([
+      import("./api/api.server"),
+      import("./auth/auth.server"),
+      import("./http/http.server"),
+      import("./media/media.server"),
+      import("./observability/observability.server"),
+    ]);
 
     expect(getApiConfig()).toMatchObject({
       baseUrl: validEnvironment.APP_API_BASE_URL,
@@ -77,6 +88,9 @@ describe("validateEnvironment", () => {
       scopes: validEnvironment.AUTH_SCOPES,
       sessionSecret: validEnvironment.AUTH_SESSION_SECRET,
     });
+    expect(getHttpConfig()).toMatchObject({
+      maxUrlBytes: Number(validEnvironment.NEXT_PUBLIC_HTTP_MAX_URL_BYTES),
+    });
     expect(getMediaConfig()).toMatchObject({ origin: validEnvironment.MEDIA_ORIGIN });
     expect(getObservabilityConfig()).toMatchObject({
       otlpEndpoint: validEnvironment.OTEL_EXPORTER_OTLP_ENDPOINT,
@@ -87,14 +101,32 @@ describe("validateEnvironment", () => {
   });
 
   it("起動 bootstrap が全 server Config を評価する", async () => {
+    vi.stubEnv("APP_ENV", "local");
     const { bootstrapConfig } = await import("./bootstrap.server");
 
     await expect(bootstrapConfig()).resolves.toBeUndefined();
   });
 
+  it("local では同梱の秘密値をそのまま通す", async () => {
+    vi.stubEnv("APP_ENV", "local");
+    vi.stubEnv("AUTH_SESSION_SECRET", SHIPPED_SESSION_SECRET);
+    const { getEnvironment, validateEnvironment } = await import("./environment");
+
+    expect(() => validateEnvironment()).not.toThrow();
+    expect(getEnvironment().AUTH_SESSION_SECRET).toBe(SHIPPED_SESSION_SECRET);
+  });
+
   // ----- 異常系 -----
   it("必須の環境変数が欠落すると検証に失敗する", async () => {
     vi.stubEnv("AUTH_SESSION_SECRET", undefined);
+    const { validateEnvironment } = await import("./environment");
+
+    expect(() => validateEnvironment()).toThrow("AUTH_SESSION_SECRET");
+  });
+
+  it("local / ci 以外では同梱の秘密値を拒否する", async () => {
+    vi.stubEnv("APP_ENV", "prd");
+    vi.stubEnv("AUTH_SESSION_SECRET", SHIPPED_SESSION_SECRET);
     const { validateEnvironment } = await import("./environment");
 
     expect(() => validateEnvironment()).toThrow("AUTH_SESSION_SECRET");

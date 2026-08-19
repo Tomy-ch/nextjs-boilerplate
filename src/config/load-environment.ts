@@ -1,8 +1,6 @@
 import path from "node:path";
 import { config } from "dotenv";
 
-const defaultApplicationEnvironment = "local";
-
 /** `APP_ENV` が選べる環境。 */
 export type ApplicationEnvironment = "local" | "ci" | "dev" | "stg" | "prd";
 
@@ -16,25 +14,21 @@ const applicationEnvironments: readonly ApplicationEnvironment[] = [
 
 let isLoaded = false;
 
-/** `APP_ENV` が選択可能な環境名かを判定する。 */
 function isApplicationEnvironment(value: string): value is ApplicationEnvironment {
   return applicationEnvironments.some((environment) => environment === value);
 }
 
 /**
- * `APP_ENV` に明示された環境を返す。指定が無ければ null。
+ * `APP_ENV` に指定された環境を返す。指定が無ければ null。
  *
  * @remarks
- * **既定値へ落としません。** 環境を条件にして開発専用の口を閉じる判断は、「未設定」を安全側へ
- * 倒せなければ意味を失います。既定値を返す関数で判定すると、`APP_ENV` を設定し忘れた実環境が
- * `local` として扱われ、閉じたはずの口が開きます。
- *
- * ENV ファイルの選択（{@link loadEnvironment}）はこの結果を既定値で補って使います。読み込む
- * ファイルが無いのは起動できない状態であり、そちらは既定値がある方が正しいためです。
+ * **既定値へ落としません。** 環境を条件にして開発専用の口を閉じる判断も、同梱の秘密値を許す
+ * 判断も、「未設定」を安全側へ倒せなければ意味を失います。既定値を返すと、`APP_ENV` を設定し
+ * 忘れた実環境が `local` として扱われ、閉じたはずの口が開きます。
  *
  * @throws `APP_ENV` が選べる値でないとき
  */
-export function findExplicitApplicationEnvironment(): ApplicationEnvironment | null {
+export function findApplicationEnvironment(): ApplicationEnvironment | null {
   const applicationEnvironment = process.env.APP_ENV;
 
   if (applicationEnvironment === undefined) {
@@ -64,14 +58,14 @@ const developmentOnlyEnvironments: readonly ApplicationEnvironment[] = ["local",
  * 開発専用の口を開けてよい環境か。
  *
  * @remarks
- * **`APP_ENV` が明示されていることも要求します。** 未設定を既定値へ落とすと、設定を忘れた実環境が
- * `local` として扱われ、この種の口が開きます。開発機で使うときは `APP_ENV=local` を明示します。
+ * **`APP_ENV` が指定されていることも要求します。** 未指定を既定値へ落とすと、設定を忘れた実環境が
+ * `local` として扱われ、この種の口が開きます（[0030](../../docs/adr/0030-environment-variable-management.md)）。
  *
  * 判定をここに置くのは、口が増えるたびに同じ条件が写るのを避けるためです。開ける環境の一覧が
  * 2 か所にあると、片方だけを広げた変更が黙って通ります。
  */
 export function isDevelopmentOnlyEndpointOpen(): boolean {
-  const environment = findExplicitApplicationEnvironment();
+  const environment = findApplicationEnvironment();
 
   return environment !== null && developmentOnlyEnvironments.includes(environment);
 }
@@ -79,19 +73,29 @@ export function isDevelopmentOnlyEndpointOpen(): boolean {
 /**
  * `APP_ENV` が示す `env/.env.<環境>` を一度だけ `process.env` へ読み込む。
  *
- * `override: false` により CI・PaaS が注入した値を常に優先する。`APP_ENV` の未指定時は
- * local を選ぶため、ローカルでは通常の `pnpm dev` / `pnpm build` だけで動作する。
+ * @remarks
+ * `override: false` により CI・PaaS が注入した値を常に優先します。
+ *
+ * **指定を要求します。** 既定を持つと、設定を忘れた実環境が同梱の `env/.env.local` を読み、
+ * 注入し忘れた変数だけが手元向けの値で埋まった状態で起動します。開発の入口（`pnpm dev` /
+ * `pnpm storybook`）は script が `local` を渡すため、clone 直後はそのまま動きます。
+ *
+ * @throws `APP_ENV` が未指定のとき / 指す ENV ファイルを読めないとき
  */
 export function loadEnvironment(): void {
   if (isLoaded) {
     return;
   }
 
-  const environmentPath = path.join(
-    process.cwd(),
-    "env",
-    `.env.${findExplicitApplicationEnvironment() ?? defaultApplicationEnvironment}`,
-  );
+  const applicationEnvironment = findApplicationEnvironment();
+
+  if (applicationEnvironment === null) {
+    throw new Error(
+      `APP_ENV を指定してください: ${applicationEnvironments.join(", ")}（例: APP_ENV=local）`,
+    );
+  }
+
+  const environmentPath = path.join(process.cwd(), "env", `.env.${applicationEnvironment}`);
   const result = config({ path: environmentPath, override: false, quiet: true });
   if (result.error !== undefined) {
     throw new Error(`環境変数ファイルを読み込めません: ${environmentPath}`, {

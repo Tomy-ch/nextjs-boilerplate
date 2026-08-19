@@ -3,9 +3,14 @@
 環境別の実体は `env/.env.<環境>` に置きます。`src/config/load-environment.ts` が Next.js の
 起動・build 前に選択したファイルを読み込みます。
 
-`APP_ENV` が選択子であり、未指定時は `local` です。CI と PaaS は環境設定で `APP_ENV` を
-それぞれ `ci`、`dev`、`stg`、`prd` に設定します。PaaS の環境変数はファイルの値より優先
-されます。
+`APP_ENV` が選択子であり、**指定は必須です**。未指定のまま起動すると、読み込むファイルを
+選べないものとして落とします。既定を持たせると、設定を忘れた実環境が同梱の `env/.env.local`
+を読み、注入し忘れた変数だけが手元向けの値で埋まった状態で起動します。
+
+CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、`prd` に設定します。PaaS の
+環境変数はファイルの値より優先されます。手元の開発では `pnpm dev` / `pnpm storybook` /
+`pnpm build-storybook` が `local` を渡すため、clone 直後はそのまま動きます。配信物を作る
+`pnpm build` と `pnpm start` は既定を持たないので、`APP_ENV=local pnpm build` のように指定します。
 
 `dev` / `stg` / `prd` の required 値は PaaS の環境設定または secret store から供給します。
 そのため、これらのファイルは変数名と既定値候補だけをコメントで保持します。
@@ -44,8 +49,15 @@
 | `AUTH_SCOPES` | 認可リクエストの space-delimited scope | string | `openid profile email api.read api.write` | Required |
 | `AUTH_SESSION_SECRET` | BFF session cookie を保護する秘密値 | string | `local-development-session-secret-change-before-production` | **Secret management required**。32 文字以上。`local` / `ci` に同梱している値は公開リポジトリに載っているため、それ以外の環境では起動時に拒否される |
 
+### HTTP
+
+| Variable Name | Description | Type | Example | Notes |
+| --- | --- | --- | --- | --- |
+| `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | 1 つの要求 URL に許すバイト数の上限 | integer | `8000` | Required。ブラウザ / CDN / リバースプロキシ / backend のうち、経路上で最も小さい上限を入れる。既定値はどれも持たない |
+
 ## 運用
 
 - config を経由して利用する変数は `src/config/` のスキーマで、ビルド時とサーバー起動時に検証される。
-- `NEXT_PUBLIC_` 変数は現時点で定義しない。必要になった場合も secret を置いてはならない。
+- `NEXT_PUBLIC_` 変数にはブラウザへ露出してよい公開値だけを置く。secret を置いてはならない。
+- `NEXT_PUBLIC_` はビルド時にリテラルへ置換されるため、値の変更には再ビルドが要る。起動時の差し替えは効かない。
 - 新しい変数を追加する前に、利用目的・server/client 境界・required/default・secret 管理ラベルを確認する。

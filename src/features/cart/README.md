@@ -29,6 +29,7 @@ test-requirement: feature
 | `page-content.tsx` | カートの取得と組み立て |
 | `view.tsx` | 全画面の表示。明細と集計を左右に分ける |
 | `actions.ts` | 数量の設定・明細の削除・全消しの Server Action |
+| `__mocks__/actions.ts` | カタログでの Server Action の差し替え（[0054](../../../docs/adr/0054-ui-catalog-storybook.md)） |
 | `issue-notice.ts` | 明細に立った事情を画面に出す一文へ写す |
 | `checkout.ts` | 購入手続きへ進めるかの判定 |
 | `line-order.ts` | 明細を描く順。覚えている並びと、いま居る明細を突き合わせる |
@@ -38,6 +39,7 @@ test-requirement: feature
 | `paths.ts` | この feature が指す行き先（カート・購入手続き） |
 | `shell-cart.ts` | 外枠に出すカートの取得。読めなくても投げない |
 | `facade/add-to-cart/` | 商品をカートへ入れる操作。**他の feature が使う口** |
+| `facade/add-to-cart/__mocks__/` | 同じ口のカタログでの差し替え |
 | `facade/line-issues/` | 明細に立った事情の表示。**購入確認も同じ強さと言い方で出すための口** |
 | `ui/contents/` | カートの中身（小計・導線・明細）。器を持たず、置き場所は呼び出し元が決める |
 | `ui/panel/` | 中身を脇に出す領域。空か閉じていれば描画しない。PC だけ |
@@ -94,7 +96,7 @@ test-requirement: feature
 - **mount は `(shop)/layout.tsx`** です。どの画面から追加しても同じ場所に出る必要があるため、
   画面ごとには置きません（[0026](../../../docs/adr/0026-layout-shell-mount.md)）
 - **中身の置き場所は帯で変えます**。PC では脇に出し、タブレットとスマホでは本文へ被せます
-  （帯の定義は [0051](../../../docs/adr/0051-styling-system.md) §2）。本文の下へ積むと内側の
+  （[`docs/rules.md`](../../../docs/rules.md) #71）。本文の下へ積むと内側の
   スクロールが外側のスクロールを奪い、本文へ戻れなくなるためです。中身は `ui/contents/` に 1 つだけ
   持ち、置き場所の違いは器の側で吸収します
 - **開くかどうかは `stores` が持ちます**。カートへ入れた直後は開いた状態にする必要があり、その操作は

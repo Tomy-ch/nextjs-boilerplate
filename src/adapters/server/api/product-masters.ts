@@ -4,6 +4,7 @@ import { cache } from "react";
 import type { z } from "zod";
 
 import { getApiConfig } from "@/config/api/api.server";
+import { getHttpConfig } from "@/config/http/http.server";
 import type { ProductCategory } from "@/model/product/product";
 
 import { GetProductCategoriesResponse } from "../../gen/api/endpoints.zod";
@@ -23,7 +24,10 @@ export const PRODUCT_MASTERS_TAG = "product-masters";
 let client: HttpClient | undefined;
 
 function getClient(): HttpClient {
-  client ??= createHttpClient({ baseUrl: getApiConfig().baseUrl });
+  client ??= createHttpClient({
+    baseUrl: getApiConfig().baseUrl,
+    maxUrlBytes: getHttpConfig().maxUrlBytes,
+  });
 
   return client;
 }

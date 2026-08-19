@@ -46,6 +46,10 @@
 | 68 | Server Action ID の version skew が起きたら、再試行を繰り返さず full reload へ誘導する。 | P5-7 の integration テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 69 | 内部リンクは `next/link` を使い、生の `<a>` を使わない。外部リンクには必要な `rel` を付与する。 | ESLint の `project-rules/no-internal-anchor`。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 70 | DOM マークアップは UI を担う層（`app` / `features` / `components`）にだけ置く。`adapters` / `capabilities` / `stores` / `config` などの内側で画面を描かない。Provider の合成は許す（[ADR 0022](adr/0022-capabilities-kernel.md) / [ADR 0026](adr/0026-layout-shell-mount.md)）。 | ESLint の `project-rules/no-markup-outside-ui-layers`（置いてよい層の宣言は `architecture.ts` の `UI_KERNELS`）。 | [ADR 0021](adr/0021-frontend-responsibility.md) |
+| 71 | 本文の脇に常設する領域(サイドバー・レール)は `lg` 以上でだけ出す。`lg` 未満では本文へ被せて出す(overlay)。 | e2e の Responsive ジャーニー(`e2e/journeys/responsive.spec.ts`)。 | [ADR 0051](adr/0051-styling-system.md) |
+| 72 | 常に届く必要がある操作は、脇の領域が無い帯(`lg` 未満)で画面下端に固定し、脇に常設できる幅では通常配置へ戻す。同じ操作を 2 か所に置かない。 | `components/patterns/action-bar` の component テスト。 | [ADR 0051](adr/0051-styling-system.md) |
+| 73 | 部品の中身は帯(viewport)で分岐させない。同じ部品が広い場所にも狭い場所にも置かれる分岐はコンテナクエリで書く。 | 散文。 | [ADR 0051](adr/0051-styling-system.md) |
+| 74 | 画面の骨格は器の幅(container query)で分岐させない。どこに何を置くか・出すか出さないかは帯で決める。 | 散文。 | [ADR 0051](adr/0051-styling-system.md) |
 
 ## 運用
 

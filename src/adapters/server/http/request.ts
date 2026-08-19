@@ -2,6 +2,7 @@ import "server-only";
 
 import type { ZodType } from "zod";
 
+import { assertRequestTargetWithinBudget } from "@/adapters/http/url-budget";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
@@ -43,7 +44,13 @@ type RequestPayload =
 
 /** 呼び出し 1 件の指定。 */
 type RequestSpec<T> = RequestPayload & {
-  /** base URL からの相対パス。 */
+  /**
+   * 呼び出し先。base URL からの相対パス、または絶対 URL。
+   *
+   * @remarks
+   * 絶対 URL は base URL へ繋がず、そのまま叩きます（{@link buildUrl}）。Discovery が返す
+   * エンドポイントがこの形で届きます。
+   */
   path: string;
   /** HTTP メソッド。既定は GET。 */
   method?: string;
@@ -59,9 +66,8 @@ type RequestSpec<T> = RequestPayload & {
    * この呼び出しに固有のヘッダ。
    *
    * @remarks
-   * 認証ヘッダはここで組みません。認証は接続先ごとに決まるものなので、クライアントの生成時に
-   * 渡した取得口が持ちます（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。
-   * ここに置くのは、呼び出しごとに値の変わる契約上のヘッダだけです。
+   * 認証ヘッダはここで組みません（`getBearerToken` が持ちます）。ここに置くのは、呼び出しごとに
+   * 値の変わる契約上のヘッダだけです。
    */
   headers?: Readonly<Record<string, string>>;
   /**
@@ -86,11 +92,24 @@ type RequestSpec<T> = RequestPayload & {
 
 /** 接続先ごとの実行環境。 */
 export type HttpClient = {
+  /**
+   * 要求を 1 件送り、契約の形へ通した応答を返す。
+   *
+   * @throws 失敗はすべて分類済みのエラーになる。生の status は表に出ません
+   *   （[0080](../../../../docs/adr/0080-error-handling.md)）。
+   */
   request<T>(spec: RequestSpec<T>): Promise<T>;
 };
 
 type ClientDeps = {
   baseUrl: string;
+  /**
+   * 1 つの要求 URL に許すバイト数の上限。既定を持たない。
+   *
+   * @remarks
+   * 何を数え、閾値をどこが持つかは [adapters](../../README.md) の「URL の予算」節が持ちます。
+   */
+  maxUrlBytes: number;
   /**
    * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
    *
@@ -172,7 +191,7 @@ function buildUrl(
   baseUrl: string,
   path: string,
   searchParams?: RequestSpec<unknown>["searchParams"],
-): string {
+): URL {
   const url = ABSOLUTE_URL_PATTERN.test(path)
     ? new URL(path)
     : new URL(`${baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`);
@@ -187,7 +206,7 @@ function buildUrl(
     }
   }
 
-  return url.toString();
+  return url;
 }
 
 /**
@@ -203,6 +222,7 @@ function buildUrl(
  */
 export function createHttpClient({
   baseUrl,
+  maxUrlBytes,
   getBearerToken,
   allowAnonymous = false,
   profile = DEFAULT_PROFILE,
@@ -228,8 +248,8 @@ export function createHttpClient({
    * 載せると資格情報がその宛先へ渡ります。宛先は Discovery のような外の応答から来ることが
    * あり、呼び出し側が相対パスしか渡さない慣習だけでは止まりません。
    */
-  async function authorizationHeader(url: string): Promise<Record<string, string>> {
-    if (getBearerToken === undefined || new URL(url).origin !== new URL(baseUrl).origin) {
+  async function authorizationHeader(url: URL): Promise<Record<string, string>> {
+    if (getBearerToken === undefined || url.origin !== new URL(baseUrl).origin) {
       return {};
     }
 
@@ -249,7 +269,7 @@ export function createHttpClient({
   }
 
   async function attempt(
-    url: string,
+    url: URL,
     spec: RequestSpec<unknown>,
     signal: AbortSignal,
     authorization: Record<string, string>,
@@ -257,7 +277,7 @@ export function createHttpClient({
     const timeout = AbortSignal.timeout(profile.perAttemptTimeoutMs);
     const payload = encodePayload(spec);
 
-    return fetchImpl(url, {
+    return fetchImpl(url.toString(), {
       method: spec.method ?? "GET",
       signal: AbortSignal.any([signal, timeout]),
       headers: { ...payload?.headers, ...spec.headers, ...authorization },
@@ -269,13 +289,18 @@ export function createHttpClient({
 
   return {
     async request<T>(spec: RequestSpec<T>): Promise<T> {
+      const url = buildUrl(baseUrl, spec.path, spec.searchParams);
+
+      // 遮断の判定より先に確かめる。予算を超えた要求は接続先の状態によらず通らないため、
+      // 遮断中に投げる `unavailable` で覆うと、直せる入力の誤りが一時的な障害に見える。
+      assertRequestTargetWithinBudget(`${url.pathname}${url.search}`, maxUrlBytes);
+
       if (!breaker.canAttempt()) {
         throw createAppError(ErrorKind.UNAVAILABLE, {
           cause: new Error(`接続先が遮断されています: ${spec.path}`),
         });
       }
 
-      const url = buildUrl(baseUrl, spec.path, spec.searchParams);
       const authorization = await authorizationHeader(url);
       const deadline = now() + profile.overallTimeoutMs;
       const overall = AbortSignal.timeout(profile.overallTimeoutMs);

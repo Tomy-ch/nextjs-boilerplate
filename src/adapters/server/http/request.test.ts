@@ -7,6 +7,8 @@ import { DEFAULT_PROFILE, type ResilienceProfile } from "./resilience-profile";
 
 const schema = z.object({ ok: z.boolean() });
 
+const MAX_URL_BYTES = 8_000;
+
 const profile: ResilienceProfile = {
   ...DEFAULT_PROFILE,
   breaker: { ...DEFAULT_PROFILE.breaker, sampleSize: 2, failureRate: 1 },
@@ -26,6 +28,7 @@ function createClient(
 ) {
   return createHttpClient({
     baseUrl: "https://api.example.test",
+    maxUrlBytes: MAX_URL_BYTES,
     profile,
     fetchImpl,
     now: () => 0,
@@ -51,7 +54,11 @@ describe("createHttpClient", () => {
     const globalFetch = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     vi.stubGlobal("fetch", globalFetch);
 
-    const client = createHttpClient({ baseUrl: "https://api.example.test", profile });
+    const client = createHttpClient({
+      baseUrl: "https://api.example.test",
+      maxUrlBytes: MAX_URL_BYTES,
+      profile,
+    });
 
     await client.request({ path: "/v1/items", schema });
 
@@ -71,7 +78,7 @@ describe("createHttpClient", () => {
 
     await client.request({
       path: "/v1/items",
-      searchParams: { keyword: "本", categoryId: undefined },
+      searchParams: { keyword: "本", tag: undefined },
       schema,
     });
 
@@ -113,13 +120,11 @@ describe("createHttpClient", () => {
 
     await client.request({
       path: "/v1/items",
-      searchParams: { categoryId: ["a", "b"], statusId: [] },
+      searchParams: { tag: ["a", "b"], state: [] },
       schema,
     });
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/v1/items?categoryId=a&categoryId=b",
-    );
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/items?tag=a&tag=b");
   });
 
   it("再検証のタグを渡す", async () => {
@@ -175,7 +180,6 @@ describe("createHttpClient", () => {
   });
 
   it("204 は本文を読まず、本文を持たない契約として通す", async () => {
-    // 空の本文を JSON として解釈しようとすると構文エラーになり、成功した呼び出しが失敗になる。
     const fetchImpl = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
     const client = createClient(fetchImpl);
 
@@ -262,6 +266,7 @@ describe("createHttpClient", () => {
       .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
     const client = createHttpClient({
       baseUrl: "https://api.example.test",
+      maxUrlBytes: MAX_URL_BYTES,
       profile,
       fetchImpl,
       now: () => 0,
@@ -278,7 +283,7 @@ describe("createHttpClient", () => {
       .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);
 
-    await client.request({ path: "/v1/purchases", method: "POST", idempotent: true, schema });
+    await client.request({ path: "/v1/items", method: "POST", idempotent: true, schema });
 
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
@@ -322,6 +327,59 @@ describe("createHttpClient", () => {
   });
 
   // ----- 異常系 -----
+  it("予算を超えた URL を、送らずに uri-too-long で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { maxUrlBytes: 60 });
+
+    expect(
+      await kindOf(() =>
+        client.request({ path: "/v1/items", searchParams: { keyword: "x".repeat(100) }, schema }),
+      ),
+    ).toBe(ErrorKind.URI_TOO_LONG);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("base URL のパスを含めた合成後の長さで予算を判定する", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, {
+      baseUrl: "https://api.example.test/very/long/prefix",
+      maxUrlBytes: 20,
+    });
+
+    expect(await kindOf(() => client.request({ path: "/v1/items", schema }))).toBe(
+      ErrorKind.URI_TOO_LONG,
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("予算を超えた要求では Bearer の解決を試みない", async () => {
+    const getBearerToken = vi.fn(async () => "token");
+    const client = createClient(
+      vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true })),
+      {
+        maxUrlBytes: 60,
+        getBearerToken,
+      },
+    );
+
+    await kindOf(() =>
+      client.request({ path: "/v1/items", searchParams: { keyword: "x".repeat(100) }, schema }),
+    );
+
+    expect(getBearerToken).not.toHaveBeenCalled();
+  });
+
+  it("予算を超えた要求では遮断器を進めない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { maxUrlBytes: 60 });
+    const tooLong = { path: "/v1/items", searchParams: { keyword: "x".repeat(100) }, schema };
+
+    await kindOf(() => client.request(tooLong));
+    await kindOf(() => client.request(tooLong));
+
+    await expect(client.request({ path: "/v1/items", schema })).resolves.toEqual({ ok: true });
+  });
+
   it("認証が要る接続先で Bearer を解決できないとき、送らずに未認証で落とす", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl, { getBearerToken: async () => null });
@@ -353,7 +411,7 @@ describe("createHttpClient", () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(503, {}));
     const client = createClient(fetchImpl);
 
-    await kindOf(() => client.request({ path: "/v1/purchases", method: "POST", schema }));
+    await kindOf(() => client.request({ path: "/v1/items", method: "POST", schema }));
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });

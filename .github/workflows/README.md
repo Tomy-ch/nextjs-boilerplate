@@ -36,10 +36,10 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、追跡下の `*.sh` を `make shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で、mise のピンの整合を `make actions-mise-pin-lint` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 | Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
-| Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナに相乗りするので追加のランナーを入れない（ADR 0091 §3）。**実ブラウザなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。検査するのは撮影と同じ 1 テーマだけで、片テーマでだけ出る違反は届かない（[`vrt/README.md`](../../vrt/README.md)）。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないまま基準画像だけが承認済みになるため。VRT と同じく、絵を決める入力が前に通った時点と同じなら検査を省く（[`vrt/README.md`](../../vrt/README.md)） |
+| Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナに相乗りするので追加のランナーを入れない（ADR 0091 §3）。**実ブラウザなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。検査するのは撮影と同じ 1 テーマだけで、片テーマでだけ出る違反は届かない（[`vrt/README.md`](../../vrt/README.md)）。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないまま基準画像だけが承認済みになるため。VRT と同じく、省く判定は 2 層ある — PR の差分が story に届かなければ CI の入口で丸ごと降り、届いても絵を決める入力が前に通った時点と同じなら axe を省く（[`vrt/README.md`](../../vrt/README.md)） |
 | E2E | `e2e.yaml` | `e2e` / `e2e-comment` | build したアプリを実際のブラウザで動かす。主要ジャーニー・ブラウザが報告する異常（hydration の不一致 / 描画中の例外 / 通信の失敗）・帯ごとの出し分けを 3 つの描画エンジンで回し、画面単位の見た目を基準画像と比べる（[`e2e/README.md`](../../e2e/README.md)）。**見ているのは 3 つの描画エンジンだけで、ブラウザの銘柄も版も見ていない** —— モダンブラウザ（[0102](../../docs/adr/0102-browser-support.md)）が実装として畳まれる先が Chromium / Firefox / WebKit であり、版は digest 固定したイメージが決める。アプリはランナーで起動し、コンテナで動かすのはブラウザだけ（`node_modules` は入れた OS と CPU 向けに解決されるため）。比較とコメントを別ジョブに割る理由は VRT と同じ |
 | VisualRegressionApproval | `vrt-approval.yaml` | `vrt-approval` | 基準画像が動いている PR で `vrt-approve` ラベルを要求する。ラベルの有無だけでなく、付いた時刻がポインタを動かした最後のコミットより後であることを見る（古い承認を新しい一式へ持ち越さない）。PR のレビュー承認を使わないのは、承認の対象が PR 全体ではなく基準画像であるため（[`vrt/README.md`](../../vrt/README.md)） |
-| VisualRegressionTest | `vrt.yaml` | `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、基準画像と撮影対象が 1 対 1 で対応することも併せて検査する。`make vrt` は絵を決める入力のハッシュを基準画像を撮った時点の値と突き合わせ、一致していれば比較を省く（[`vrt/README.md`](../../vrt/README.md)）。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない） |
+| VisualRegressionTest | `vrt.yaml` | `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、基準画像と撮影対象が 1 対 1 で対応することも併せて検査する。省く判定は 2 層ある — PR の差分が絵に届かなければ CI の入口で丸ごと降り、届いても `make vrt` が絵を決める入力のハッシュを基準画像を撮った時点の値と突き合わせ、一致していれば比較を省く（[`vrt/README.md`](../../vrt/README.md)）。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない） |
 
 ### 並列度に台数を書かない
 
@@ -102,6 +102,10 @@ PR ごとには走らず、ラベルや保護ブランチへの push で起動�
 [`../settings/branch-protection.json`](../settings/branch-protection.json) が **CI Checks 群を必須**にし、`strict` でブランチが最新であることを要求する。これは VRT が成立する条件でもある — 判定しているのは base へマージした結果の木（`refs/pull/N/merge`）なので、base が動いた後の緑をそのまま通すと、基準画像が「実際にマージされる木」とずれる。
 
 `paths:` フィルタを持つ 3 つ（`classes` / `manifest` / `deploy-docs` の `build`）は登録しない。触らない PR では context が報告されず、必須待ちで止まるため。
+
+`diff-scope` で降りる job は登録してよい。job 名も context の報告も変わらず、変わるのは中のステップが走るかどうかだけであるため（下記「`paths:` フィルタを使わない」）。
+
+context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required status check の設定を黙って無効化する。
 
 <!-- boilerplate-only:replace-begin -->
 **自消滅するジョブ（`purge-verify` / `strip-verify`）も登録しない。** どちらも fork の初期化で自分ごと消え、消えた後は context を報告しない。`branch-protection.json` は JSON でコメントを持てず、剥がしのマーカーを置けないので、登録すると初期化を済ませた fork のすべての PR が必須待ちで止まる。
@@ -176,9 +180,20 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
 
-**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`bundle-budget` が使っている。
+**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`bundle-budget` / `vrt` / `a11y` が使っている。
 
-渡すのは「**自分に影響しえないもの**」の一覧であって、影響するものの一覧ではない。書き漏らしは無駄な 1 回で済むが、書き間違いは job が黙って何も検査しなくなる方向へ倒れる。**検査しない gate は「違反なし」と見分けが付かない**。一覧はこの action を共有し、job ごとに書き起こさないこと — 3 本に割れた除外リストは必ずずれ、ずれは黙って進む。
+渡すのは「**自分に影響しえないもの**」の一覧であって、影響するものの一覧ではない。書き漏らしは無駄な 1 回で済むが、書き間違いは job が黙って何も検査しなくなる方向へ倒れる。**検査しない gate は「違反なし」と見分けが付かない**。判定の実装はこの action を共有し、job ごとに書き起こさないこと — 3 本に割れた判定は必ずずれ、ずれは黙って進む。
+
+**一覧そのものは共有しない。**呼び出し側が書いた一覧だけが効き、action は既定値を持たない。`bundle-budget` が `*.css` / `tokens/*` / `.storybook/*` / `*.stories.tsx` / `*.test.ts` を外せるのは測るのが `.js` の量だけだからで、同じ行を `vrt` / `a11y` へ持ち込めば絵が変わる PR で検査が止まる。既定値を置けば、呼び出し側が一度も書いていない行が gate を黙らせうる — 一覧は「この job には届かない」という **job ごとの主張**であって、共有できる事実ではない。
+
+| job | 外している範囲 |
+| --- | --- |
+| `bundle-budget` | ドキュメントと AI エージェント設定 + 絵にしか効かないもの（CSS / token / story / テスト） |
+| `vrt` / `a11y` | ドキュメントと AI エージェント設定だけ |
+
+**一覧の実体は各 workflow の `ignore:` ブロックが正**（[`bundle-budget.yaml`](bundle-budget.yaml) / [`vrt.yaml`](vrt.yaml) / [`a11y.yaml`](a11y.yaml)）。この表はどの範囲を外しているかを示すだけで、パスを書き写さない — 書き写せば実体と黙ってずれる側が 1 つ増える。
+
+`vrt` / `a11y` はこの門の内側にもう 1 つ、絵を決める入力のハッシュで比較だけを省く判定を持つ。2 層がそれぞれ何を落とすかは [`../../vrt/README.md`](../../vrt/README.md) の「絵が変わり得ないときは撮らない」にまとめてある。
 
 `component-classes` / `shadcn-drift` は `paths:` を持つため、**後者（required check から外す）を選んでいる**。この 2 本を required へ登録するなら、同時に裏返しの guard を対で用意すること。
 
@@ -195,14 +210,6 @@ coverage 以外の各 job は検査結果を即 fail させず、いったん ca
 - **`title` と `details-summary` には静的リテラルだけを渡す**。無害化が効くのは本文（`body-file`）だけで、`title` は生 Markdown、`details-summary` は生 HTML としてフェンスの**外**に置かれる。ログの中身を要約して `title` に載せるような変更を入れると、フェンスで塞いだ注入が外側から復活する
 
 カバレッジだけは、行単位の coverage と基準ブランチとの差分を構造化して報告する必要があるため、`test.yaml` の octocov が専用コメントを投稿する。ほかの検査ログ（セキュリティスキャン結果 / 生成物 drift を含む）はこの composite action に乗せる。
-
-## required check
-
-セキュリティ workflow まで揃った時点で、以下の context を branch ruleset の required status checks へ登録する（**GitHub 側の設定はユーザが実施**。[`../settings/branch-protection.json`](../settings/branch-protection.json) も同時に更新する）。
-
-`lint` / `md-lint` / `typecheck` / `test` / `build` / `smoke` / `lockfile-drift` / `tokens-drift` / `actions-lint` / `actions-pin`
-
-context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required check の設定を黙って無効化する。
 
 ## 不採用の判断
 

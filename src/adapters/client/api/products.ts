@@ -1,12 +1,11 @@
 import { z } from "zod";
 
-import { createAppError } from "@/errors/app-error";
-import { ErrorKind } from "@/errors/error-kind";
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
 import { productIdSchema } from "@/model/product/product";
 
 import { getProductsQueryFirstMax } from "../../gen/api/endpoints.zod";
+import { request } from "../http/request";
 
 /**
  * 1 度の取得で読める件数の上限。
@@ -54,12 +53,8 @@ const ProductCountPayload = z.object({ count: z.int() });
  * 一覧の続きを取得する。
  *
  * @remarks
- * 同一オリジンの `/api/products` を薄く叩くだけです。timeout・再試行・遮断は `adapters/server`
- * が持ちます（[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。ここで独自に
- * 持つと、同じ要求に対して 2 つの再試行が別々の勘定で走ります。
- *
- * 生の status を投げ直さず分類へ写します。呼び出し側は「入力が悪いのか、取得できなかったのか」
- * だけを見て表示を決めます（[0080](../../../../docs/adr/0080-error-handling.md)）。
+ * 同一オリジンの `/api/products` を {@link request} で叩くだけです。失敗の扱いと分類は
+ * {@link request} の契約に従います。
  *
  * @param query - URL へ載せる検索条件。カーソルを含める
  * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る
@@ -92,21 +87,4 @@ export async function fetchProductCount(
   );
 
   return count;
-}
-
-/** 同一オリジンの BFF を叩き、応答を検証して返す。 */
-async function request<T>(url: string, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(url, { headers: { accept: "application/json" }, signal });
-
-  if (!response.ok) {
-    throw createAppError(response.status === 400 ? ErrorKind.INVALID_ARGUMENT : ErrorKind.INTERNAL);
-  }
-
-  const parsed = schema.safeParse(await response.json());
-
-  if (!parsed.success) {
-    throw createAppError(ErrorKind.INTERNAL, { cause: parsed.error });
-  }
-
-  return parsed.data;
 }

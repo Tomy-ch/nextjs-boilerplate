@@ -17,6 +17,7 @@ const environment: Environment = {
   AUTH_REDIRECT_URI: "https://app.example.test/auth/callback",
   AUTH_SCOPES: "openid profile",
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
+  NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
 };
 
 const { getAccessToken, getEnvironment, warn } = vi.hoisted(() => ({

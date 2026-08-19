@@ -67,6 +67,8 @@ go は env ファイルを Docker ビルド時に binary へ embed するが、�
   - **`config` カーネルの README = 設定値の解説の正**(A7 実装 PR で作成。[0021](0021-frontend-responsibility.md) 層別 README 運用)。**ビルド時に検証され、構築時に各 purpose モジュールへ流し込まれる設定値**について、purpose 区分・server / client 境界・required と code default の別・受け手側の使い方を説明する
   - 変数の**存在**は env 側、設定値の**意味と扱い**は config 側が持つ。config に載るのは env 側の部分集合である
 - **env 変数の追加はユーザ確認を要する**(AGENTS.md 暫定を維持)
+- **環境の選択子 `APP_ENV` は指定を必須とする**。未指定は「読み込むファイルを選べない」状態として起動 / ビルドを失敗させ、**既定値へ落とさない**。既定を持たせると、`APP_ENV` の設定を忘れた実環境が同梱の `env/.env.local` を読み、注入し忘れた変数だけが手元向けの値で埋まった状態で起動する。同梱の秘密値を許すか、開発専用の口を開くかという判断も同じ選択子を見るため、既定値は「未設定」を安全側へ倒せなくする
+- **`local` を渡すのは開発の入口だけ**とする(`pnpm dev` / `pnpm storybook` / `pnpm build-storybook` の script)。配信物を作る `pnpm build` / `pnpm start` は既定を持たず、供給側(PaaS / CI)が必ず宣言する
 
 ### 7. 受け手側の実装パターン(目的別 config の受け手)
 
@@ -103,6 +105,7 @@ go の「コンストラクタが SubConfig を受け取る」1 パターンは�
 - ❌ 各 config オブジェクトに setter を持たせる / テスト外で再生成すること / 全目的を束ねる単一 facade を作ること
 - ❌ `client.ts` での `NEXT_PUBLIC_` 変数の動的アクセス・分割代入(ビルド時置換が効かない)
 - ❌ secret を `NEXT_PUBLIC_` に置くこと
+- ❌ `APP_ENV` の未指定を既定値へ落とすこと(ファイル選択・秘密値の判定・開発専用の口のいずれにおいても)
 - ❌ RSC から Client Component へ server config 値を props で渡すこと
 - ❌ **server config**(secret を含む runtime object)を `adapters/server`・起動 / ビルド境界以外の層から import すること([0021](0021-frontend-responsibility.md)。client config〈NEXT_PUBLIC インラインリテラル〉は client 側の層から import 可 — §2 / §3)
 

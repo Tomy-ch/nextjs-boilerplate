@@ -1,15 +1,35 @@
 import type { Preview } from "@storybook/nextjs-vite";
+import { sb } from "storybook/test"; // sample:line
 
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 
+import { startMockWorker } from "./msw/worker";
 import { StoryErrorBoundary } from "./story-error-boundary";
 
 import "../src/app/globals.css";
 import "./preview.css";
 
+// sample:begin
+// Server Action を持つモジュールを、隣の `__mocks__` へ差し替える
+// （[0054](../docs/adr/0054-ui-catalog-storybook.md)）。
+//
+// パスは拡張子まで書く。省くと解決に失敗し、宣言はしているのに 1 件も登録されないまま進む。
+sb.mock(import("../src/features/account/actions.ts"));
+sb.mock(import("../src/features/cart/actions.ts"));
+sb.mock(import("../src/features/cart/facade/add-to-cart/add-to-cart.ts"));
+sb.mock(import("../src/features/checkout/actions.ts"));
+// sample:end
+
 const SYSTEM_THEME = "system";
 
 const preview: Preview = {
+  // 同一オリジンの `/api/*` は [msw](msw/handlers.ts) が答える
+  // （[0054](../docs/adr/0054-ui-catalog-storybook.md)）。story 側で `fetch` は差し替えない。
+  loaders: [
+    async () => {
+      await startMockWorker();
+    },
+  ],
   globalTypes: {
     theme: {
       description: "配色テーマ",

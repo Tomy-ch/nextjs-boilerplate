@@ -30,6 +30,8 @@ src/
 ├── model/                  # 表示用 VO / フォーマッタ / 表示結果型(ActionState<T> 等)(フラット共置)
 ├── components/             # 横断 UI(フラット共置)
 ├── adapters/               # 外部接続。server/・client/ の 2 element に分割([0024]・RSC 境界)
+│   ├── gen/                #   契約から生成した wire 型([0072]。手で編集しない区画)
+│   ├── http/               #   両 element が従う要求の形の規則(実行文脈を持たない区画)
 │   ├── server/             #   server-only(backend client・secret・config 可)
 │   └── client/             #   "use client"(同一オリジン BFF fetch / WS / telemetry 送信・secret 不可)
 ├── capabilities/           # 横断 client hook(runtime 能力。[0022])
@@ -79,7 +81,7 @@ src/
 
 - **性質で分けるのは、性質ごとに検証手段と import 可能な先が違うから**である。取得と組み立ては `adapters` を呼び、表示は呼ばない([0021](0021-frontend-responsibility.md) 依存マトリクス)。取得は module 境界の mock を伴い、表示は DOM を伴う([0091](0091-test-verification-methods.md))。置き場が性質を表していれば、そのファイルが何を呼べて何で検証されるかを読まずに決められる
 - **画面の表示は `view.tsx`(合成)と `ui/<part>/`(部材)に分ける**。`view.tsx` は `page-content.tsx` が取得した値を受けて画面を組み立てるもので、`ui/` の部品と同格ではない
-- **囲んでいるディレクトリの語をファイル名・ディレクトリ名で繰り返さない**。`features/products/list/ui/card/card.tsx` であり `product-card` とはしない。区別はパスが担い、識別子は PascalCase の側が担う([0028](0028-naming-convention.md) のファイル名と主 export は別軸)
+- **囲んでいるディレクトリの語をファイル名・ディレクトリ名で繰り返さない**。`features/<name>/list/ui/card/card.tsx` であり `<name>-card` とはしない。区別はパスが担い、識別子は PascalCase の側が担う([0028](0028-naming-convention.md) のファイル名と主 export は別軸)
 - **`ui/` の中は 1 部品 = 1 ディレクトリ**とし、実装・テスト・stories・定義・README を共置する。`components/design-system/<役割>/<部品>/` と同形であり、部品ごとに stories([0054](0054-ui-catalog-storybook.md))の置き場を確保するためにこの粒度を採る
 - **深さの上限は `features/<name>/<screen>/ui/<part>/`** とする。`ui/` の中をさらに種類で掘らない。画面が部品を抱えきれなくなった場合は、`ui/` を深くするのではなく**画面(第 1 軸)を分ける**か、[0021](0021-frontend-responsibility.md) の昇格ルールで `components` へ出す
 - **画面が 1 つの間は第 1 軸を省略してよい**。`features/<name>/` の直下に `page-content.tsx` / `view.tsx` / `ui/` を置く。2 つ目の画面が来た時点で画面ディレクトリへ割る
@@ -95,6 +97,7 @@ src/
 - **テストは実装の隣に co-location する**(go `docs/rules.md` の「Co-locate tests with each layer's implementation」を翻案)。`__tests__/` への一括集約はしない。**テストファイルの拡張子・命名規約は B8(テスト戦略)で確定**する(本 ADR は配置方針のみ。`正常系` / `異常系` の日本語命名など戦略面は [0090](0090-testing-strategy.md) で go 準拠を確定済み)
 - **スタイルは Tailwind ユーティリティを既定**とし([0050](0050-styling-strategy.md))、別ファイルの CSS は最小化する。グローバル CSS は `src/app/globals.css` に集約する(既存踏襲)。design token / `cn()` ヘルパの置き場は B1 で確定する
 - **MSW 等のモック生成物**(triage #73 / #74・B3 orval 由来)は `src/` 外の **`mocks/`(または テストへ co-location)** に置き、生成型([0072](0072-api-type-generation.md) の do-not-edit)と分離する
+- **カタログが差し替えるモジュールの実体は、対象と同じディレクトリの `__mocks__/<対象と同じ名前>` に置く**([0054](0054-ui-catalog-storybook.md))。これは種類による掘り下げではなく、差し替えの道具が名前と位置を固定するための例外であり、`facade/<part>/__mocks__/` のように深さの上限を 1 段超える形もこの理由の範囲でだけ許す。置けるのは**カタログでしか読まれない差し替え**に限り、本番の経路が import するものを置かない
 
 ### 共有モジュールの粒度
 
@@ -114,7 +117,7 @@ src/
 - ❌ 対応決定(A7 / B6 / B7)が下りる前に横断関心事カーネルの空ディレクトリを生やすこと
 - ❌ テストを `__tests__/` へ一括集約すること(実装の隣に co-location する)
 - ❌ feature / カーネルの境界を跨ぐ相対 import(`../../` で層を跨ぐ)。層跨ぎは `@/*` alias を使う
-- ❌ feature 内を**画面(リソース)と性質以外の軸**で掘ること(種類・レイヤ名・再利用予定など)
+- ❌ feature 内を**画面(リソース)と性質以外の軸**で掘ること(種類・レイヤ名・再利用予定など。差し替えの道具が位置を固定する `__mocks__/` だけが例外 —— co-location 方針)
 - ❌ `features/<name>/<screen>/ui/<part>/` より深く掘ること(画面を分けるか `components` へ昇格させる)
 - ❌ カーネル内をサブディレクトリで種類分けすること(フラット共置。UI 部品の per-folder は種類分けではなく 1 部品 1 ディレクトリ)
 - ❌ 11 カーネルの範囲外の新規ディレクトリを ADR 追補なしに `src/` 直下へ作ること

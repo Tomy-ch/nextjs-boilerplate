@@ -17,7 +17,10 @@ name: Accessibility
 # No baseline images are needed, so the submodule is not fetched.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
-# every PR is in README.md.
+# every PR is in README.md. The job always starts and then asks `diff-scope` whether the
+# diff can reach a story, so the context is reported even when the expensive steps stand
+# down. That gate and the input hash `make a11y` computes are two different layers of the
+# same question — which layer decides what is in `vrt/README.md`.
 
 on:
   pull_request:
@@ -45,7 +48,7 @@ jobs:
       contents: read
 
     outputs:
-      title: ${{ steps.a11y.outputs.title }}
+      title: ${{ steps.a11y.outputs.title || steps.standdown.outputs.title }}
 
     steps:
       - name: Harden the runner
@@ -58,7 +61,24 @@ jobs:
         with:
           persist-credentials: false
 
+      # Identical to VRT's list, and identical for the same reason: axe reads the rendered
+      # page, so anything a story renders from decides a violation. Why the two keep their
+      # own copy instead of a shared default is in README.md.
+      - name: Decide whether the diff can reach a story
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
@@ -66,12 +86,14 @@ jobs:
 
       - name: Resolve the pnpm store path
         id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           path="$(pnpm store path)"
           echo "path=${path}" >> "$GITHUB_OUTPUT"
 
       - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
@@ -79,6 +101,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile
 
       # The record of which input state axe already cleared. `make a11y` hashes the rendering
@@ -89,6 +112,7 @@ jobs:
       # This record is a11y's own. Reusing VRT's would report green for an input state where
       # axe fails but the baselines happened to be retaken.
       - name: Restore the last verified input state
+        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: tmp/a11y/verified-inputs.sha256
@@ -97,6 +121,7 @@ jobs:
 
       - name: Build Storybook and run axe over every story
         id: a11y
+        if: steps.scope.outputs.relevant == 'true'
         continue-on-error: true
         shell: bash
         run: |
@@ -140,6 +165,19 @@ jobs:
           path: tmp/a11y/verified-inputs.sha256
           key: a11y-verified-${{ github.run_id }}
 
+      # A job that stood down still owes the pull request a verdict. Without this, the ❌
+      # comment an earlier push produced stays beside a green check once the diff stops
+      # reaching a story — README.md's "update the comment on success too" invariant,
+      # applied to standing down. The body file is the one the comment job reads, so it has
+      # to be written here too.
+      - name: Note that the diff cannot reach a story
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ Accessibility: SKIP (diff cannot reach a story)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は story に届かないため、axe を実行していません。' > /tmp/a11y-full.log
+
       - name: Upload the axe report
         if: always() && steps.a11y.outputs.status == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -150,7 +188,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Hand the comment body to the commenting job
-        if: always() && github.event_name == 'pull_request' && steps.a11y.outputs.status != ''
+        if: always() && github.event_name == 'pull_request' && (steps.a11y.outputs.status != '' || steps.standdown.outcome == 'success')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: a11y-comment
@@ -158,8 +196,11 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+      # `status` is empty when the run stood down, which is not a failure. The scope guard
+      # has to be repeated here rather than left to `status`, because "no verdict" and "a bad
+      # verdict" read the same to the expression below.
       - name: Fail if a story has a violation
-        if: always() && steps.a11y.outputs.status != 'success'
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.a11y.outputs.status != 'success'
         run: exit 1
 
   # Holds no secret beyond `GITHUB_TOKEN`, matching how `vrt.yaml` splits reporting

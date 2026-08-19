@@ -15,6 +15,7 @@ const createDefaultSessionResolver = vi.hoisted(() =>
 );
 
 vi.mock("@/config/auth/auth.server", () => ({ getAuthConfig: () => config }));
+vi.mock("@/config/http/http.server", () => ({ getHttpConfig: () => ({ maxUrlBytes: 8_000 }) }));
 vi.mock("./default-session-resolver", () => ({ createDefaultSessionResolver }));
 
 describe("getSessionResolver", () => {
@@ -24,6 +25,7 @@ describe("getSessionResolver", () => {
 
     expect(createDefaultSessionResolver).toHaveBeenCalledWith({
       ...config,
+      maxUrlBytes: 8_000,
       resolveRole: expect.any(Function), // sample:line
     });
   });

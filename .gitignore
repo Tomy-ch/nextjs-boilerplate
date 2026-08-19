@@ -56,3 +56,6 @@ next-env.d.ts
 
 # graphify の出力（graph.json / GRAPH_REPORT.md 等）。コード変更ごとに動く派生物
 /graphify-out
+
+# カタログだけが要る資材。カタログの設定が起動のたびに依存から写すため、依存の版と必ず揃う
+/.storybook/public/
