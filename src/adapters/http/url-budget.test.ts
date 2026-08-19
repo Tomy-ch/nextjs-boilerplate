@@ -3,7 +3,7 @@ import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { assertRequestTargetWithinBudget } from "./url-budget";
 
-const target = "/v1/products?keyword=shoes";
+const target = "/v1/items?query=abc";
 
 function kindOf(run: () => void): string | undefined {
   try {
@@ -29,7 +29,7 @@ describe("assertRequestTargetWithinBudget", () => {
   });
 
   it("多バイト文字を 1 文字としてではなく、バイト数で数える", () => {
-    const multibyte = "/v1/products?keyword=靴";
+    const multibyte = "/v1/items?query=あ";
 
     expect(kindOf(() => assertRequestTargetWithinBudget(multibyte, multibyte.length))).toBe(
       ErrorKind.URI_TOO_LONG,
