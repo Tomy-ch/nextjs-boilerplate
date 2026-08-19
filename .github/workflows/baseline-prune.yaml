@@ -1,4 +1,4 @@
-name: VRT Images Prune
+name: Baseline Prune
 
 # Reports when the baseline store has accumulated enough discardable baseline sets to
 # be worth cleaning, and stays silent otherwise. A report that arrives every month is
@@ -6,7 +6,7 @@ name: VRT Images Prune
 #
 # It never prunes. Deleting refs cannot be undone, and a mistake in the retention
 # calculation kills the pointer a live branch depends on. The person who read the
-# report runs `make vrt-images-prune`.
+# report runs `make baseline-prune`.
 #
 # The store holds no workflow of its own — everything that touches it is driven from
 # here, so there is one place to look for what may write to it.
@@ -61,9 +61,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          pnpm exec tsx scripts/vrt-images report > /tmp/vrt-images.md 2>&1
+          pnpm exec tsx scripts/baseline-store report > /tmp/baseline-store.md 2>&1
           code=$?
-          cat /tmp/vrt-images.md
+          cat /tmp/baseline-store.md
 
           case "$code" in
             0) echo 'needed=false' >> "$GITHUB_OUTPUT" ;;
@@ -83,19 +83,19 @@ jobs:
             --json number --jq '.[0].number')"
 
           {
-            cat /tmp/vrt-images.md
+            cat /tmp/baseline-store.md
             echo
             cat <<'NOTE'
-          手元で `make vrt-images-prune` を実行してください（`DRY_RUN=1` を付けると消さずに一覧だけ出ます）。
+          手元で `make baseline-prune` を実行してください（`DRY_RUN=1` を付けると消さずに一覧だけ出ます）。
 
           消えるのは、主リポジトリの生きた ref のどれからも指されていない基準画像の一式です。
           過去のコミットへ遡ったときに基準画像が揃わなくなりますが、それは設計上の前提です。
           NOTE
-          } > /tmp/vrt-images-issue.md
+          } > /tmp/baseline-store-issue.md
 
           if [ -n "$existing" ]; then
-            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/vrt-images-issue.md
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/baseline-store-issue.md
           else
             gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label test \
-              --body-file /tmp/vrt-images-issue.md
+              --body-file /tmp/baseline-store-issue.md
           fi

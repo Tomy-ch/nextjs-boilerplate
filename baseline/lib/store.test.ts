@@ -6,7 +6,7 @@ import {
   isRetaking,
   RETAKE_ENV,
   SCREEN_AREA,
-} from "./baseline-store";
+} from "./store";
 
 describe("isRetaking", () => {
   // ----- 正常系 -----

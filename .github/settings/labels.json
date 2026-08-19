@@ -12,12 +12,12 @@
   { "name": "wontfix", "description": "対応なし", "color": "ffffff" },
   { "name": "release", "description": "リリース用のラベル", "color": "c5def5" },
   {
-    "name": "vrt-retake",
+    "name": "baseline-retake",
     "description": "報告された見た目の差分の基準画像を撮り直させる",
     "color": "8b5cf6"
   },
   {
-    "name": "vrt-approve",
+    "name": "baseline-approve",
     "description": "撮り直した基準画像の見た目を確認したことを表す",
     "color": "22c55e"
   }

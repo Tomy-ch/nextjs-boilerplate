@@ -27,7 +27,7 @@ story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象�
 
 ```bash
 make e2e          # 主要ジャーニーを回し、画面の見た目を基準画像と比較する
-make e2e-update   # 画面の基準画像を撮り直す（置き場へ送るのは make vrt-push）
+make e2e-update   # 画面の基準画像を撮り直す（置き場へ送るのは make baseline-push）
 make e2e-report   # 直前の実行の HTML レポートを開く
 ```
 
@@ -64,7 +64,7 @@ CI の失敗コメントもこの 3 つで出し分ける。**落ちた画面そ
 ## アプリはホスト、ブラウザはコンテナ
 
 ブラウザとフォントは digest を固定した Playwright 公式イメージが持つ
-（[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) の `vrt_runner`）。基準画像が
+（[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) の `browser_runner`）。基準画像が
 一意なのは**どのイメージで撮ったか**によってであり、撮った人の環境によってではない
 （[vrt/README.md](../vrt/README.md#コンテナの中でしか撮らない)）。3 つの描画エンジンが揃った版で
 入っているのも、このイメージだけである。
@@ -153,11 +153,11 @@ CI の失敗コメントもこの 3 つで出し分ける。**落ちた画面そ
 
 ## 基準画像は story 単位と同じ置き場に入る
 
-置き場（サブモジュール `vrt/screenshots`）は 2 種類の撮影が共有し、画面単位は `screen/` 区画に
-閉じる（[`vrt/lib/baseline-store.ts`](../vrt/lib/baseline-store.ts)）。共有するのは、掃除も撮り直しも
+置き場（サブモジュール `baseline/images`）は 2 種類の撮影が共有し、画面単位は `screen/` 区画に
+閉じる（[`baseline/`](../baseline/README.md)）。共有するのは、掃除も撮り直しも
 置き場 1 つに対して働くためで、分けると同じ機構を 2 組持つことになる。
 
-撮り直しの経路も同じである。**`vrt-retake` ラベルは story と画面の両方を撮り直す** —— 置き場も
+撮り直しの経路も同じである。**`baseline-retake` ラベルは story と画面の両方を撮り直す** —— 置き場も
 承認ラベルも 1 つである以上、撮り直しだけを 2 つに分ける理由が無い。画面は全数が対象になる。
 story のような差分の報告を E2E が出さないためで、動いていない画面は撮り直しても同じ画素になり、
 置き場には入らない。

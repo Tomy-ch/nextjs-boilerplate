@@ -10,11 +10,11 @@ name: VisualRegressionTest
 # when the image — not the host — defines the environment.
 #
 # CI never writes baselines on its own. Producing new ones is a deliberate human act
-# — either `make vrt-update` locally, or the `vrt-retake` label handled by
-# `vrt-retake.yaml`. Neither is the approval: the images live in the store, so this
+# — either `make vrt-update` locally, or the `baseline-retake` label handled by
+# `baseline-retake.yaml`. Neither is the approval: the images live in the store, so this
 # repository only ever shows a moved submodule pointer, and the pixels are judged in
-# the store's compare view and accepted with the `vrt-approve` label that
-# `vrt-approval.yaml` requires.
+# the store's compare view and accepted with the `baseline-approve` label that
+# `baseline-approval.yaml` requires.
 #
 # The comparison and the pull-request comment are separate jobs. The baseline store
 # may be private, which means the comparison job needs a GitHub App secret; a job
@@ -86,10 +86,10 @@ jobs:
 
       - name: Fetch the baseline images
         if: steps.scope.outputs.relevant == 'true'
-        uses: ./.github/actions/setup-vrt-baselines
+        uses: ./.github/actions/setup-baselines
         with:
-          app-id: ${{ secrets.VRT_APP_ID }}
-          private-key: ${{ secrets.VRT_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.BASELINE_APP_ID }}
+          private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
 
       - name: Setup mise and the pinned tools
         if: steps.scope.outputs.relevant == 'true'
@@ -173,7 +173,7 @@ jobs:
 
       # The raw log holds one line per story, which is unreadable in a comment. The
       # JSON report is turned into a table of exactly which stories moved and by how
-      # much — the same set the `vrt-retake` label is allowed to retake.
+      # much — the same set the `baseline-retake` label is allowed to retake.
       - name: Summarise which stories changed
         if: always() && steps.vrt.outputs.status == 'failure'
         shell: bash
@@ -184,11 +184,11 @@ jobs:
             cat <<'NOTE'
 
           `vrt-diff` artifact に期待 / 実際 / 差分の 3 枚と HTML レポートが入っています。
-          意図した変更なら `vrt-retake` ラベルを付けてください。上の story だけを撮り直して push します。
+          意図した変更なら `baseline-retake` ラベルを付けてください。上の story だけを撮り直して push します。
 
           - **ラベルは引き金ではありません。** VRT / E2E の完了時に読まれる条件なので、完了したあとに付けたなら再実行が要ります（`gh run rerun <run-id>`）
           - **ラベルは撮り直しが置き場へ push した時点で外れます。** もう一度撮るには付け直してください
-          - **撮り直しは承認ではありません。** 画素を見て `vrt-approve` を付けるのが承認です（`vrt/README.md` の「撮り直しと承認は別の操作」）
+          - **撮り直しは承認ではありません。** 画素を見て `baseline-approve` を付けるのが承認です（`vrt/README.md` の「撮り直しと承認は別の操作」）
 
           **落ちた story それぞれについて、なぜ変わったかを言えるまで撮り直さないでください。** 全数が一度に落ちる形は原因が 1 つとは限らず、混ざっている不具合ごと撮り直すとそれが次の正になります（`docs/design/vrt.md` の「限界」）。
           NOTE
@@ -221,7 +221,7 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-      # Read back by `vrt-retake.yaml` to bound what the label may retake. Kept
+      # Read back by `baseline-retake.yaml` to bound what the label may retake. Kept
       # separate from the diff bundle so the retake path downloads only the report.
       - name: Upload the machine-readable report
         if: always() && steps.vrt.outputs.status == 'failure'

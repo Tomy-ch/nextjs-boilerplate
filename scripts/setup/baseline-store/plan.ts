@@ -2,7 +2,7 @@
 // ここは受け取った値だけで決まることを担う。
 
 /** 置き場の既定名を作る接尾辞。fork 先の名前置換に追随するよう、親の名前から導く。 */
-const NAME_SUFFIX = "-vrt-images";
+const NAME_SUFFIX = "-baselines";
 
 /**
  * 書き込みができる権限。
