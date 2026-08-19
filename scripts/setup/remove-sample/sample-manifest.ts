@@ -25,6 +25,7 @@
 export const SAMPLE_PATHS: readonly string[] = [
   // 画面
   "src/app/(shop)",
+  "src/app/admin",
   "src/features/products",
   "src/features/cart",
   "src/features/checkout",
@@ -32,6 +33,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/features/home",
   "src/features/account",
   "src/features/site-info",
+  "src/features/admin",
   // 題材の取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
   // 認証の口（`src/app/api/auth`）は同じ場所にあるコア残留である。
   "src/app/api/products",

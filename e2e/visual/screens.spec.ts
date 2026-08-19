@@ -32,8 +32,8 @@ const bands = loadBands();
 
 for (const screen of screens) {
   test(screen.name, async ({ page, signIn }, testInfo) => {
-    if (screen.signedIn === true) {
-      await signIn();
+    if (screen.signedIn !== undefined) {
+      await signIn(screen.signedIn);
     }
 
     await page.goto(screen.path);

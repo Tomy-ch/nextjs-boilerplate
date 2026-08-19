@@ -6,6 +6,8 @@
 // 一方で、URL は build の出力からは決まらない。動的区間へ何を入れるか、どの画面が URL では
 // 開けないかは宣言でしか表せないため、**route ごとの宣言を必須にする**。宣言の無い route が
 // 現れたら落ちるので、足した画面は必ずここへ現れる。
+import type { SessionRole } from "@/model/session";
+
 /**
  * build が書き出す、app の path と route の対応表。
  *
@@ -27,13 +29,16 @@ export type Screen = {
   /** 実際に開く URL のパス。 */
   readonly path: string;
   /**
-   * 開く前に session を作るか。
+   * 開く前に作る session の役割。
    *
    * @remarks
    * 保護された経路は、session を持たずに開くとログインへ送られます。撮れるのはログイン画面で
    * あって目的の画面ではないため、**保護された画面は撮れないのではなく、開き方が違うだけ**です。
+   *
+   * 役割まで宣言するのは、認証だけでは足りない経路があるためです。役割が足りないまま開くと
+   * 送り返され、やはり目的の画面は撮れません（`src/model/authz.ts`）。
    */
-  readonly signedIn?: true;
+  readonly signedIn?: SessionRole;
 };
 
 /** route 1 つに対する宣言。開くか、開かない理由を持つ。 */
@@ -42,7 +47,7 @@ export type ScreenDeclaration =
       readonly route: string;
       readonly name: string;
       readonly path: string;
-      readonly signedIn?: true;
+      readonly signedIn?: SessionRole;
     }
   | {
       readonly route: string;
@@ -69,29 +74,30 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     path: "/products/0195f0c2-0000-7000-8000-000000000001",
   },
   { route: "/cart", name: "cart", path: "/cart" },
-  { route: "/checkout", name: "checkout", path: "/checkout", signedIn: true },
+  { route: "/checkout", name: "checkout", path: "/checkout", signedIn: "user" },
   {
     route: "/checkout/complete",
     name: "checkout-complete",
     // 完了は成立した購入 1 件を指して開く。モックは同じ URL へ同じ応答を返すため、ID を固定
     // すれば中身も固定される（`mocks/stable-responses.ts`）。
     path: "/checkout/complete?purchase=0195f0c2-0000-7000-9000-000000000001",
-    signedIn: true,
+    signedIn: "user",
   },
-  { route: "/purchases", name: "purchases", path: "/purchases", signedIn: true },
+  { route: "/purchases", name: "purchases", path: "/purchases", signedIn: "user" },
   {
     route: "/purchases/[id]",
     name: "purchase-detail",
     // モックは同じ URL へ同じ応答を返すため（`mocks/stable-responses.ts`）、ID を固定すれば
     // 中身も固定される。存在する ID である必要はない — 契約駆動のモックはどの ID にも応える。
     path: "/purchases/0195f0c2-0000-7000-9000-000000000001",
-    signedIn: true,
+    signedIn: "user",
   },
-  { route: "/mypage", name: "mypage", path: "/mypage", signedIn: true },
-  { route: "/mypage/edit", name: "profile-edit", path: "/mypage/edit", signedIn: true },
+  { route: "/mypage", name: "mypage", path: "/mypage", signedIn: "user" },
+  { route: "/mypage/edit", name: "profile-edit", path: "/mypage/edit", signedIn: "user" },
   { route: "/about", name: "about", path: "/about" },
   { route: "/privacy", name: "privacy", path: "/privacy" },
   { route: "/terms", name: "terms", path: "/terms" },
+  { route: "/admin/products", name: "admin-products", path: "/admin/products", signedIn: "admin" },
   // sample:end
   { route: "/login", name: "login", path: "/login" },
   { route: "/dev/session", name: "dev-session", path: "/dev/session" },
