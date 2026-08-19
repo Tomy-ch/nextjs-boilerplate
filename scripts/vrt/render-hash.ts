@@ -33,7 +33,7 @@ function isInput(relative: string): boolean {
   // build のたびに変わる metadata。中身は telemetry 用で、描画には関わらない。
   if (relative === "storybook-static/project.json") return false;
   // 基準画像そのもの。入力ではなく、この入力から作られた出力。
-  if (relative.startsWith("vrt/screenshots/")) return false;
+  if (relative.startsWith("baseline/images/")) return false;
   // vrt 配下の散文と、実行されないテスト。
   if (relative.startsWith("vrt/") && !relative.endsWith(".ts")) return false;
 

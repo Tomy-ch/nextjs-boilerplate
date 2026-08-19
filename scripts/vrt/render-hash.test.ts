@@ -56,9 +56,9 @@ describe("collectRenderInputs", () => {
 
   it("基準画像そのものを外す", () => {
     placeInputs();
-    place("vrt/screenshots/action/light/a--x.png");
+    place("baseline/images/action/light/a--x.png");
 
-    expect(collectRenderInputs(root)).not.toContain("vrt/screenshots/action/light/a--x.png");
+    expect(collectRenderInputs(root)).not.toContain("baseline/images/action/light/a--x.png");
   });
 
   it("vrt 配下の散文とテストを外す", () => {

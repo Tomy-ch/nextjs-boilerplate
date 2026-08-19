@@ -86,14 +86,14 @@ make setup-remove-sample   # DRY_RUN=1 でプレビュー
 ### 6-1. 置き場を作る
 
 ```bash
-make setup-vrt-images
+make setup-baseline-store
 ```
 
 3 つ聞かれる。既定でよければ Enter。
 
 ```text
 既存のリポジトリへ配置しますか? 空欄なら新規作成 [<org>/<repo>]:   ← 空欄で新規作成
-作成するリポジトリ名 [<現在のリポジトリ名>-vrt-images]:
+作成するリポジトリ名 [<現在のリポジトリ名>-baselines]:
 公開範囲 (public / private / internal) [private]:
 ```
 
@@ -106,7 +106,7 @@ secrets が渡らず、基準画像を読む App トークンを取れないた�
 終わったら配線をコミットする。
 
 ```bash
-git add .gitmodules vrt/screenshots
+git add .gitmodules baseline/images
 git commit -m "Build: 基準画像の置き場を配線する"
 ```
 
@@ -121,8 +121,8 @@ git commit -m "Build: 基準画像の置き場を配線する"
 
 | 項目 | 値 |
 | --- | --- |
-| GitHub App name | `<現在のリポジトリ名>-vrt-images-app`（**GitHub 全体で一意**） |
-| Description | `<現在のリポジトリ名>-vrt-images の visual regression test 用` |
+| GitHub App name | `<現在のリポジトリ名>-baselines-app`（**GitHub 全体で一意**） |
+| Description | `<現在のリポジトリ名>-baselines の visual regression test 用` |
 | Homepage URL | `https://github.com/<owner>/<現在のリポジトリ名>` |
 | Webhook | **Active のチェックを外す** |
 | Repository permissions → Contents | **Read and write** |
@@ -130,7 +130,7 @@ git commit -m "Build: 基準画像の置き場を配線する"
 | Where can this GitHub App be installed? | **Only on this account** |
 
 `web` や `frontend` のようなありふれたリポジトリ名では既に取られていることがあるので、その場合は
-owner 名などを足す。名前は後から変えられる（slug も追随するが、変えたら `make setup-vrt-app` を
+owner 名などを足す。名前は後から変えられる（slug も追随するが、変えたら `make setup-baseline-app` を
 叩き直すこと）。
 
 作成後、続けて 3 つ。作成直後に着地するのが **General** ページなので、上から順に済ませられる。
@@ -142,7 +142,7 @@ owner 名などを足す。名前は後から変えられる（slug も追随す
 ### 6-3. App を登録する
 
 ```bash
-make setup-vrt-app
+make setup-baseline-app
 ```
 
 ```text
@@ -161,7 +161,7 @@ App ID（General ページの App ID）:           ← 6-2 で控えた数字
 **登録が済んだら `.pem` を消すこと。** ブラウザが落とした実体がそこにある。
 
 ```bash
-gh secret list   # VRT_APP_ID / VRT_APP_PRIVATE_KEY が並ぶ
+gh secret list   # BASELINE_APP_ID / BASELINE_APP_PRIVATE_KEY が並ぶ
 ```
 
 ### 6-4. 最初の基準画像を撮る

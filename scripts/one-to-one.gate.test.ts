@@ -38,6 +38,7 @@ const SCAN_ROOTS = [
   "mocks",
   "docs-viewer/src",
   "eslint-rules",
+  "baseline/lib",
   "vrt",
   "e2e",
 ] as const;

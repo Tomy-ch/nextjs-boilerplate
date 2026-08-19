@@ -1,5 +1,5 @@
 // 配色テーマの宣言。撮る側(`playwright.config.ts` の projects)と、在るべき基準画像を数える側
-// ([orphan-baselines](orphan-baselines.ts))が読む唯一の宣言。
+// ([expected-baselines](expected-baselines.ts))が読む唯一の宣言。
 //
 // 「在るテーマ」と「全 story を撮るテーマ」は別物である。全 story を 2 テーマぶん撮ると
 // 実行が倍になるので、撮るのは片方だけにし、もう片方は `:root` に配色が届いているかだけを

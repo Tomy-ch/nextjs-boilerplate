@@ -55,10 +55,10 @@ jobs:
           persist-credentials: false
 
       - name: Fetch the baseline images
-        uses: ./.github/actions/setup-vrt-baselines
+        uses: ./.github/actions/setup-baselines
         with:
-          app-id: ${{ secrets.VRT_APP_ID }}
-          private-key: ${{ secrets.VRT_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.BASELINE_APP_ID }}
+          private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
 
       - name: Setup mise and the pinned tools
         uses: ./.github/actions/setup-mise

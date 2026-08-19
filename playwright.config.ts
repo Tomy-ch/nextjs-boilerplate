@@ -25,7 +25,7 @@ export default defineConfig({
   // 追跡下に置くと「更新済みの基準画像」と見分けが付かなくなる。
   outputDir: "tmp/vrt/results",
   // 系統 / テーマ / story の順に畳む。名前は spec が組み立てるため、ここは受け取るだけ。
-  snapshotPathTemplate: "vrt/screenshots/{arg}{ext}",
+  snapshotPathTemplate: "baseline/images/{arg}{ext}",
   fullyParallel: true,
   // 並列度は実行環境ではなく設定で決める。既定は論理コア数の半分で、走る場所によって変わる。
   workers: 4,
