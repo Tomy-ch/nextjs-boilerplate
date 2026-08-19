@@ -10,7 +10,7 @@ function session(role: Session["role"]): Session {
 describe("allowedRolesFor", () => {
   // ----- 正常系 -----
   it("保護していない経路には役割を求めない", () => {
-    expect(allowedRolesFor("/products")).toBeNull();
+    expect(allowedRolesFor("/help")).toBeNull();
   });
 
   it("接頭辞そのものを保護の対象にする", () => {
@@ -18,7 +18,7 @@ describe("allowedRolesFor", () => {
   });
 
   it("接頭辞の下の経路も保護の対象にする", () => {
-    expect(allowedRolesFor("/admin/products")).toEqual([SESSION_ROLE.admin]);
+    expect(allowedRolesFor("/admin/reports")).toEqual([SESSION_ROLE.admin]);
   });
 
   it("認証だけを求める経路には全役割を返す", () => {
@@ -26,11 +26,11 @@ describe("allowedRolesFor", () => {
   });
 
   it("管理の経路には管理の役割だけを返す", () => {
-    expect(allowedRolesFor("/admin/products")).not.toContain(SESSION_ROLE.user);
+    expect(allowedRolesFor("/admin/reports")).not.toContain(SESSION_ROLE.user);
   });
 
   it("宣言より深い経路でも同じ役割を求める", () => {
-    expect(allowedRolesFor("/admin/products/1/edit")).toEqual([SESSION_ROLE.admin]);
+    expect(allowedRolesFor("/admin/reports/1/edit")).toEqual([SESSION_ROLE.admin]);
   });
 
   // ----- 異常系 -----

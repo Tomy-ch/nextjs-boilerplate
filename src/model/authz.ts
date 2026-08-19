@@ -27,8 +27,12 @@ type RoutePolicy = {
  * **保護されている側を列挙します。** 公開側を列挙する書き方だと、新しく足した画面が既定で公開に
  * なり、書き忘れがそのまま漏洩になります。
  *
- * `/account` は fork 先が最初に書き換える置き場です。同梱サンプルの画面は破棄と一緒に消えますが、
- * 保護の宣言そのものは残す必要があるため、1 つだけ中立な接頭辞を置いています。
+ * `/account` と `/admin` は fork 先が最初に書き換える置き場です。同梱サンプルの画面は破棄と一緒に
+ * 消えますが、保護の宣言そのものは残す必要があるため、中立な接頭辞を置いています。
+ *
+ * **求める役割が違う 2 つを残します。** 認証だけを求める宣言しか残らないと、役割が足りない主体を
+ * 弾く経路がどこにも無くなります。前捌きにも確定認可にもその分岐は残るのに、それを通す入力を
+ * 作れなくなり、機構が動くことを確かめられません。
  *
  * **接頭辞は入れ子にしません。** 入れ子を許すと、どちらの宣言が勝つかを決める規則が要り、宣言の
  * 並べ替えだけで認可が変わる状態を作れます。1 つの経路に 2 通りの役割を求めたくなったときは、
@@ -36,7 +40,7 @@ type RoutePolicy = {
  */
 const ROUTE_POLICIES: readonly RoutePolicy[] = [
   { prefix: "/account", allowed: AUTHENTICATED_ROLES },
-  { prefix: "/admin", allowed: ADMIN_ROLES }, // sample:line
+  { prefix: "/admin", allowed: ADMIN_ROLES },
   { prefix: "/checkout", allowed: AUTHENTICATED_ROLES }, // sample:line
   { prefix: "/mypage", allowed: AUTHENTICATED_ROLES }, // sample:line
   { prefix: "/purchases", allowed: AUTHENTICATED_ROLES }, // sample:line
@@ -76,8 +80,9 @@ export function allowedRolesFor(pathname: string): readonly SessionRole[] | null
  * その session が管理画面へ入れるかを判定する。
  *
  * @remarks
- * **確定認可も、導線の出し分けも、この 1 つの述語を使います**（理由は
- * `src/features/admin/README.md`「認可」）。
+ * **確定認可も、導線の出し分けも、この 1 つの述語を使います。** 判定が別々に書かれていると
+ * 「入れないのに入口が出ている」状態を作れてしまいます
+ * （[0079](../../docs/adr/0079-auth-frontend-seam.md)）。
  *
  * **これは楽観的な判定です。** session の中身が正しいことは前提であり、それを保証するのは
  * cookie を復元する境界（`adapters/server`）の仕事です。

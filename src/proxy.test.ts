@@ -45,7 +45,7 @@ describe("proxy", () => {
   it("役割が足りていれば管理の経路も通す", async () => {
     readOptimisticSession.mockResolvedValue({ ...session, role: SESSION_ROLE.admin });
 
-    const response = await proxy(request("/admin/products", "sealed"));
+    const response = await proxy(request("/admin/reports", "sealed"));
 
     expect(response.headers.get("location")).toBeNull();
   });
@@ -92,7 +92,7 @@ describe("proxy", () => {
   it("役割が足りない主体はログインへ戻さない", async () => {
     readOptimisticSession.mockResolvedValue(session);
 
-    const response = await proxy(request("/admin/products", "sealed"));
+    const response = await proxy(request("/admin/reports", "sealed"));
 
     expect(response.headers.get("location")).toBe("http://localhost:3000/");
   });
@@ -100,16 +100,16 @@ describe("proxy", () => {
   it("役割が足りない主体には復帰先を持たせない", async () => {
     readOptimisticSession.mockResolvedValue(session);
 
-    const response = await proxy(request("/admin/products?page=2", "sealed"));
+    const response = await proxy(request("/admin/reports?page=2", "sealed"));
 
     expect(response.headers.get("location")).not.toContain("returnUrl");
   });
 
   it("未認証で管理の経路へ来たらログインへ送る", async () => {
-    const response = await proxy(request("/admin/products"));
+    const response = await proxy(request("/admin/reports"));
 
     expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/login?returnUrl=%2Fadmin%2Fproducts",
+      "http://localhost:3000/login?returnUrl=%2Fadmin%2Freports",
     );
   });
 });
