@@ -63,13 +63,19 @@ describe("getEnvironment", () => {
 describe("validateEnvironment", () => {
   // ----- 正常系 -----
   it("purpose ごとの Config getter が対応する値を返す", async () => {
-    const [{ getApiConfig }, { getAuthConfig }, { getMediaConfig }, { getObservabilityConfig }] =
-      await Promise.all([
-        import("./api/api.server"),
-        import("./auth/auth.server"),
-        import("./media/media.server"),
-        import("./observability/observability.server"),
-      ]);
+    const [
+      { getApiConfig },
+      { getAuthConfig },
+      { getHttpConfig },
+      { getMediaConfig },
+      { getObservabilityConfig },
+    ] = await Promise.all([
+      import("./api/api.server"),
+      import("./auth/auth.server"),
+      import("./http/http.server"),
+      import("./media/media.server"),
+      import("./observability/observability.server"),
+    ]);
 
     expect(getApiConfig()).toMatchObject({
       baseUrl: validEnvironment.APP_API_BASE_URL,
@@ -81,6 +87,9 @@ describe("validateEnvironment", () => {
       redirectUri: validEnvironment.AUTH_REDIRECT_URI,
       scopes: validEnvironment.AUTH_SCOPES,
       sessionSecret: validEnvironment.AUTH_SESSION_SECRET,
+    });
+    expect(getHttpConfig()).toMatchObject({
+      maxUrlBytes: Number(validEnvironment.NEXT_PUBLIC_HTTP_MAX_URL_BYTES),
     });
     expect(getMediaConfig()).toMatchObject({ origin: validEnvironment.MEDIA_ORIGIN });
     expect(getObservabilityConfig()).toMatchObject({

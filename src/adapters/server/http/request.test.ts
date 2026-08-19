@@ -342,6 +342,36 @@ describe("createHttpClient", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
+  it("base URL のパスを含めた合成後の長さで予算を判定する", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, {
+      baseUrl: "https://api.example.test/very/long/prefix",
+      maxUrlBytes: 20,
+    });
+
+    expect(await kindOf(() => client.request({ path: "/v1/items", schema }))).toBe(
+      ErrorKind.URI_TOO_LONG,
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("予算を超えた要求では Bearer の解決を試みない", async () => {
+    const getBearerToken = vi.fn(async () => "token");
+    const client = createClient(
+      vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true })),
+      {
+        maxUrlBytes: 60,
+        getBearerToken,
+      },
+    );
+
+    await kindOf(() =>
+      client.request({ path: "/v1/items", searchParams: { keyword: "x".repeat(100) }, schema }),
+    );
+
+    expect(getBearerToken).not.toHaveBeenCalled();
+  });
+
   it("予算を超えた要求では遮断器を進めない", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl, { maxUrlBytes: 60 });
