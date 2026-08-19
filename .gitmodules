@@ -1,3 +1,3 @@
-[submodule "vrt/screenshots"]
-	path = vrt/screenshots
+[submodule "baseline/images"]
+	path = baseline/images
 	url = https://github.com/Tomy-ch/nextjs-boilerplate-vrt-images.git

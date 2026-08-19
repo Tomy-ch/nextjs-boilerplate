@@ -1,7 +1,7 @@
 // 画面単位の撮影対象と、置き場にある基準画像の対応。
 //
 // 突き合わせそのものは story 単位と同じ問い（在るべきものが在るか / 対応を失った画像が残って
-// いないか）なので、判定は [vrt/lib/orphan-baselines](../../vrt/lib/orphan-baselines.ts) を
+// いないか）なので、判定は [baseline/lib/orphans](../../baseline/lib/orphans.ts) を
 // そのまま使う。ここが持つのは、画面と帯から在るべきパスを組み立てるところだけである。
 
 import type { Screen } from "./screens";

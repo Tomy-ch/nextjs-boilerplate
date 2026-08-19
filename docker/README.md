@@ -50,6 +50,6 @@ tag の付け替えそのものは検知しない。base image の tag は patch
 
 ## VRT ランナー
 
-[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) の `vrt_runner` は、story の
+[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) の `browser_runner` は、story の
 見た目を比較する Playwright の実行環境。基準画像の一意性をこのイメージが担保するため、
 `platform` まで固定してある。使い方は [`vrt/README.md`](../vrt/README.md)。

@@ -60,7 +60,7 @@ runs:
       run: |
         set -euo pipefail
 
-        path='vrt/screenshots'
+        path='baseline/images'
 
         # `git config --get` on a missing key exits non-zero with no output, so without
         # this the job dies on a bare "exit code 1" and the reader has to guess.
@@ -68,7 +68,7 @@ runs:
         sha="$(git ls-tree HEAD "$path" | awk '{ print $3 }')"
 
         if [ -z "$url" ] || [ -z "$sha" ]; then
-          echo "❌ 基準画像の置き場が配線されていません。make setup-vrt-images を実行してください（vrt/README.md）。" >&2
+          echo "❌ 基準画像の置き場が配線されていません。make setup-baseline-store を実行してください（vrt/README.md）。" >&2
           exit 1
         fi
 

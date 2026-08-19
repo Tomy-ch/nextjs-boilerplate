@@ -12,7 +12,7 @@
 // table と ids を同じレポートから出すことで、表に出ていない story が承認で撮り直される余地を
 // 無くす。
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { clearableStoryEntries } from "../../vrt/lib/baseline-store.js";
+import { clearableStoryEntries } from "../../baseline/lib/store.js";
 import { collectRenderInputs, decideGate, renderInputsHash } from "./render-hash.js";
 import { collectFailures, formatStoryIDs, formatTable, hasBaselineFailure } from "./report.js";
 
@@ -20,7 +20,7 @@ const USAGE =
   "usage: vrt <table|ids <report.json>|inputs|gate <file...>|clear-stories|orphans <report.json>>";
 
 /** 基準画像の置き場。リポジトリルートからの相対。 */
-const STORE_PATH = "vrt/screenshots";
+const STORE_PATH = "baseline/images";
 
 function main(): void {
   const [command, file, ...rest] = process.argv.slice(2);

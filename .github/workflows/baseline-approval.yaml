@@ -1,4 +1,4 @@
-name: VisualRegressionApproval
+name: Baseline Approval
 
 # Requires a human to accept the pixels when a pull request moves the baseline images.
 # Why the acceptance is a label rather than a pull-request review is in
@@ -17,8 +17,8 @@ on:
     # `labeled` is what lets the check turn green without a new push. `unlabeled` is the
     # other direction: withdrawing an acceptance has to re-run the check, or the last
     # green verdict would stand over a pull request whose acceptance is gone. Only a
-    # person reaches this trigger — the retake leaves `vrt-approve` alone
-    # (`vrt-retake.yaml`).
+    # person reaches this trigger — the retake leaves `baseline-approve` alone
+    # (`baseline-retake.yaml`).
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
 permissions:
@@ -29,7 +29,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  vrt-approval:
+  baseline-approval:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -59,7 +59,7 @@ jobs:
 
           # Two commits, not `...`. A merge base needs shared history, which a shallow
           # checkout does not have. Not being able to answer means asking for the label.
-          if ! changed="$(git diff --name-only "origin/${BASE_REF}" HEAD -- vrt/screenshots 2>/dev/null)"; then
+          if ! changed="$(git diff --name-only "origin/${BASE_REF}" HEAD -- baseline/images 2>/dev/null)"; then
             echo 'moved=true' >> "$GITHUB_OUTPUT"
             echo '::notice::Could not diff the pointer; asking for the label.'
             exit 0
@@ -87,10 +87,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          taken="$(gh api "repos/${GITHUB_REPOSITORY}/commits?path=vrt/screenshots&sha=${HEAD_SHA}&per_page=1" \
+          taken="$(gh api "repos/${GITHUB_REPOSITORY}/commits?path=baseline/images&sha=${HEAD_SHA}&per_page=1" \
             --jq '.[0].commit.committer.date // empty')"
           accepted="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/events?per_page=100" --paginate \
-            --jq '[.[] | select(.event == "labeled" and .label.name == "vrt-approve") | .created_at] | max // empty')"
+            --jq '[.[] | select(.event == "labeled" and .label.name == "baseline-approve") | .created_at] | max // empty')"
 
           if [ -z "${taken}" ]; then
             echo '❌ 基準画像を動かしたコミットを特定できませんでした。' >&2
@@ -98,13 +98,13 @@ jobs:
           fi
 
           if [ -z "${accepted}" ]; then
-            echo "❌ 基準画像が変わっています。置き場の compare ビューで画素を確かめ、vrt-approve ラベルを付けてください。" >&2
+            echo "❌ 基準画像が変わっています。置き場の compare ビューで画素を確かめ、baseline-approve ラベルを付けてください。" >&2
             exit 1
           fi
 
           # ISO 8601 in UTC throughout, so a lexical comparison is a chronological one.
           if [[ "${accepted}" < "${taken}" ]]; then
-            echo "❌ vrt-approve は今の基準画像より前に付いています(承認 ${accepted} / 撮影 ${taken})。付け直してください。" >&2
+            echo "❌ baseline-approve は今の基準画像より前に付いています(承認 ${accepted} / 撮影 ${taken})。付け直してください。" >&2
             exit 1
           fi
 
