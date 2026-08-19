@@ -29,7 +29,7 @@ export const CURSOR_KEY = "after";
  * （[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。覚える場所を URL にする理由は
  * `docs/spec/route/admin/products/page.function.md`「戻る先は URL が覚える」。
  */
-export const TRAIL_KEY = "trail";
+const TRAIL_KEY = "trail";
 
 /**
  * 一覧に効いている絞り込み。

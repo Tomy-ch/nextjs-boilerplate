@@ -8,7 +8,7 @@ import { type AdminProductListConditions, toConditionHref } from "../../query";
 import { AdminProductFilterControl } from "../filter-control/filter-control";
 
 /** 差し替えられる絞り込みの項目。 */
-export type AdminProductFilterField = "categoryCode" | "statusCode";
+type AdminProductFilterField = "categoryCode" | "statusCode";
 
 /** `AdminProductFilterSelect` の props。 */
 export type AdminProductFilterSelectProps = {
