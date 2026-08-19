@@ -21,8 +21,8 @@ import { MYPAGE_PATH } from "../../../paths";
 import { ProfileForm } from "./profile-form";
 
 const LABELS = [
-  "姓",
-  "名",
+  "名字",
+  "名前",
   "メールアドレス",
   "電話番号",
   "郵便番号",
@@ -57,7 +57,7 @@ describe("ProfileForm", () => {
   it("受け取ったプロフィールを初期値にする", () => {
     renderForm();
 
-    expect(screen.getByLabelText("姓")).toHaveValue("山田");
+    expect(screen.getByLabelText("名字")).toHaveValue("山田");
     expect(screen.getByLabelText("メールアドレス")).toHaveValue(PROFILE.email);
   });
 

@@ -23,7 +23,7 @@ describe("ProfileEditView", () => {
   it("受け取ったプロフィールを入力欄の初期値としてフォームへ渡す", () => {
     renderView();
 
-    expect(screen.getByLabelText("姓")).toHaveValue("山田");
+    expect(screen.getByLabelText("名字")).toHaveValue("山田");
   });
 
   it("受け取った都道府県をフォームの選択肢へ渡す", () => {

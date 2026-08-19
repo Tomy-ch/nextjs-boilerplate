@@ -100,7 +100,7 @@ describe("useProfileFields", () => {
     await user.clear(screen.getByLabelText("lastName"));
     await user.tab();
 
-    expect(await screen.findByText("姓を入力してください。")).toBeVisible();
+    expect(await screen.findByText("名字を入力してください。")).toBeVisible();
 
     await user.type(screen.getByLabelText("lastName"), "山");
 
@@ -121,12 +121,12 @@ describe("useProfileFields", () => {
     render(
       <Probe
         state={failedActionState<void, ProfileField>({
-          fieldErrors: { lastName: ["この姓は登録できません。"] },
+          fieldErrors: { lastName: ["この名字は登録できません。"] },
         })}
       />,
     );
 
-    expect(screen.getByTestId("lastName-message")).toHaveTextContent("この姓は登録できません。");
+    expect(screen.getByTestId("lastName-message")).toHaveTextContent("この名字は登録できません。");
   });
 
   it("client 側の検証を server の応答より前に出す", async () => {
@@ -135,13 +135,13 @@ describe("useProfileFields", () => {
     render(
       <Probe
         state={failedActionState<void, ProfileField>({
-          fieldErrors: { lastName: ["この姓は登録できません。"] },
+          fieldErrors: { lastName: ["この名字は登録できません。"] },
         })}
       />,
     );
     await user.clear(screen.getByLabelText("lastName"));
     await user.tab();
 
-    expect(await screen.findByText("姓を入力してください。")).toBeVisible();
+    expect(await screen.findByText("名字を入力してください。")).toBeVisible();
   });
 });

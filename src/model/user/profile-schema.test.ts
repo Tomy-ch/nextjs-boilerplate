@@ -48,8 +48,8 @@ describe("profileSchema", () => {
 
   // ----- 異常系 -----
   it.each([
-    { field: "firstName", message: "名を入力してください。" },
-    { field: "lastName", message: "姓を入力してください。" },
+    { field: "firstName", message: "名前を入力してください。" },
+    { field: "lastName", message: "名字を入力してください。" },
     { field: "email", message: "メールアドレスを入力してください。" },
     { field: "phone", message: "電話番号を入力してください。" },
     { field: "postalCode", message: "郵便番号を入力してください。" },
@@ -61,8 +61,16 @@ describe("profileSchema", () => {
   });
 
   it.each([
-    { field: "firstName", value: "あ".repeat(51), message: "名は 50 文字以内で入力してください。" },
-    { field: "lastName", value: "あ".repeat(51), message: "姓は 50 文字以内で入力してください。" },
+    {
+      field: "firstName",
+      value: "あ".repeat(51),
+      message: "名前は 50 文字以内で入力してください。",
+    },
+    {
+      field: "lastName",
+      value: "あ".repeat(51),
+      message: "名字は 50 文字以内で入力してください。",
+    },
     {
       field: "email",
       value: `${"a".repeat(89)}@example.com`,

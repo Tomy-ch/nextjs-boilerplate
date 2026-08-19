@@ -19,12 +19,12 @@ import { z } from "zod";
 export const profileSchema = z.object({
   firstName: z
     .string()
-    .min(1, "名を入力してください。")
-    .max(50, "名は 50 文字以内で入力してください。"),
+    .min(1, "名前を入力してください。")
+    .max(50, "名前は 50 文字以内で入力してください。"),
   lastName: z
     .string()
-    .min(1, "姓を入力してください。")
-    .max(50, "姓は 50 文字以内で入力してください。"),
+    .min(1, "名字を入力してください。")
+    .max(50, "名字は 50 文字以内で入力してください。"),
   email: z
     .string()
     .min(1, "メールアドレスを入力してください。")

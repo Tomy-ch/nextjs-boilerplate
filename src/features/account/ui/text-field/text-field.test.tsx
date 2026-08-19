@@ -28,7 +28,7 @@ function renderField(overrides: Partial<Parameters<typeof TextField>[0]> = {}) {
     <TextField
       controlId={CONTROL_ID}
       errorId={ERROR_ID}
-      label="姓"
+      label="名字"
       message={undefined}
       registration={registrationOf()}
       required
@@ -41,13 +41,13 @@ describe("TextField", () => {
   it("項目の名前で入力欄を引けるようにする", () => {
     renderField();
 
-    expect(screen.getByLabelText("姓")).toBeVisible();
+    expect(screen.getByLabelText("名字")).toBeVisible();
   });
 
   it("必須であることを入力欄の属性で支援技術へ伝える", () => {
     renderField();
 
-    expect(screen.getByLabelText("姓")).toHaveAttribute("aria-required", "true");
+    expect(screen.getByLabelText("名字")).toHaveAttribute("aria-required", "true");
   });
 
   it("任意の項目には必須の属性を立てない", () => {
@@ -59,15 +59,15 @@ describe("TextField", () => {
   it("誤りが無いとき入力欄を不正にしない", () => {
     renderField();
 
-    expect(screen.getByLabelText("姓")).toHaveAttribute("aria-invalid", "false");
-    expect(screen.getByLabelText("姓")).not.toHaveAttribute("aria-describedby");
+    expect(screen.getByLabelText("名字")).toHaveAttribute("aria-invalid", "false");
+    expect(screen.getByLabelText("名字")).not.toHaveAttribute("aria-describedby");
   });
 
   it("誤りがあるとき入力欄を不正にし、文言を指させる", () => {
-    renderField({ message: "姓を入力してください。" });
+    renderField({ message: "名字を入力してください。" });
 
-    expect(screen.getByLabelText("姓")).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByLabelText("姓")).toHaveAttribute("aria-describedby", ERROR_ID);
+    expect(screen.getByLabelText("名字")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("名字")).toHaveAttribute("aria-describedby", ERROR_ID);
     expect(screen.getByRole("alert")).toHaveAttribute("id", ERROR_ID);
   });
 
@@ -85,7 +85,7 @@ describe("TextField", () => {
     const onFocus = vi.fn();
 
     renderField({ registration: registrationOf({ onBlur, onFocus }) });
-    await user.click(screen.getByLabelText("姓"));
+    await user.click(screen.getByLabelText("名字"));
     await user.tab();
 
     expect(onFocus).toHaveBeenCalled();
@@ -95,12 +95,12 @@ describe("TextField", () => {
   it("必須の印を項目の名前へ混ぜない", () => {
     renderField();
 
-    expect(screen.getByLabelText("姓")).toHaveAccessibleName("姓");
+    expect(screen.getByLabelText("名字")).toHaveAccessibleName("名字");
     expect(screen.getByText("必須")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("a11y 自動検査に違反しない", async () => {
-    const { container } = renderField({ message: "姓を入力してください。" });
+    const { container } = renderField({ message: "名字を入力してください。" });
 
     expect((await axe(container)).violations).toEqual([]);
   });

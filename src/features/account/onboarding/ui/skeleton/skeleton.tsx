@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
 
-/** 最初の段階に並ぶ入力の数。姓・名・メールアドレス・電話番号。 */
+/** 最初の段階に並ぶ入力の数。名字・名前・メールアドレス・電話番号。 */
 const FIRST_STEP_FIELDS = ["lastName", "firstName", "email", "phone"];
 
 /** 進捗に並ぶ段階の数。基本情報・住所・確認。 */

@@ -9,7 +9,7 @@ import { PROFILE_EDIT_PATH } from "../../../paths";
 import { ProfileCard } from "./profile-card";
 
 describe("ProfileCard", () => {
-  it("姓と名を続けて 1 つの氏名として出す", () => {
+  it("名字と名前を続けて 1 つの氏名として出す", () => {
     render(<ProfileCard profile={PROFILE} />);
 
     expect(screen.getByText("山田 太郎")).toBeVisible();

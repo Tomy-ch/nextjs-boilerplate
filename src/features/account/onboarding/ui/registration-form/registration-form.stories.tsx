@@ -10,8 +10,8 @@ const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-00000000000f";
 
 /** 基本情報の段を埋める。 */
 async function fillBasics(canvas: ReturnType<typeof within>): Promise<void> {
-  await userEvent.type(canvas.getByLabelText("姓"), PROFILE.lastName);
-  await userEvent.type(canvas.getByLabelText("名"), PROFILE.firstName);
+  await userEvent.type(canvas.getByLabelText("名字"), PROFILE.lastName);
+  await userEvent.type(canvas.getByLabelText("名前"), PROFILE.firstName);
   await userEvent.type(canvas.getByLabelText("メールアドレス"), PROFILE.email);
   await userEvent.type(canvas.getByLabelText("電話番号"), PROFILE.phone);
 }
@@ -132,14 +132,14 @@ export const ValidationErrors: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    await userEvent.click(canvas.getByLabelText("姓"));
+    await userEvent.click(canvas.getByLabelText("名字"));
     await userEvent.tab();
     await userEvent.type(canvas.getByLabelText("メールアドレス"), "not-an-email");
     await userEvent.tab();
   },
 };
 
-/** タブレット幅。横並びにしていた姓名が縦へ落ちる境界を見る。 */
+/** タブレット幅。横並びにしていた名字と名前が縦へ落ちる境界を見る。 */
 export const Tablet: Story = {
   globals: { viewport: { value: "tablet", isRotated: false } },
   play: showAddressStep,

@@ -78,7 +78,7 @@ describe("parseProfileForm", () => {
 
     expect(parseProfileForm(formData)).toMatchObject({
       ok: false,
-      fieldErrors: { lastName: ["姓を入力してください。"] },
+      fieldErrors: { lastName: ["名字を入力してください。"] },
     });
   });
 

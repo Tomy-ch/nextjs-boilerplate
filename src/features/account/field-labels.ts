@@ -8,8 +8,8 @@ import type { ProfileField } from "@/model/user/profile-schema";
  * 「どちらが正しい名前なのか」を利用者が確かめられなくなります。
  */
 export const PROFILE_FIELD_LABELS: Readonly<Record<ProfileField, string>> = {
-  lastName: "姓",
-  firstName: "名",
+  lastName: "名字",
+  firstName: "名前",
   email: "メールアドレス",
   phone: "電話番号",
   postalCode: "郵便番号",

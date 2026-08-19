@@ -13,6 +13,7 @@ import { idleActionState } from "@/model/action-state";
 import type { Prefecture, UserProfile } from "@/model/user/user";
 
 import { updateProfileAction } from "../../../actions";
+import { PROFILE_FIELD_LABELS } from "../../../field-labels";
 import type { ProfileFormState } from "../../../form-state";
 import { MYPAGE_PATH } from "../../../paths";
 import { PostalCodeField } from "../../../ui/postal-code-field/postal-code-field";
@@ -86,8 +87,16 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
       <FieldSet>
         <FieldLegend>基本情報</FieldLegend>
         <div className="grid gap-6 sm:grid-cols-2">
-          <TextField autoComplete="family-name" label="姓" {...fields.fieldOf("lastName")} />
-          <TextField autoComplete="given-name" label="名" {...fields.fieldOf("firstName")} />
+          <TextField
+            autoComplete="family-name"
+            label={PROFILE_FIELD_LABELS.lastName}
+            {...fields.fieldOf("lastName")}
+          />
+          <TextField
+            autoComplete="given-name"
+            label={PROFILE_FIELD_LABELS.firstName}
+            {...fields.fieldOf("firstName")}
+          />
         </div>
       </FieldSet>
 
@@ -96,14 +105,14 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
         <FieldGroup>
           <TextField
             autoComplete="email"
-            label="メールアドレス"
+            label={PROFILE_FIELD_LABELS.email}
             type="email"
             {...fields.fieldOf("email")}
           />
           <TextField
             autoComplete="tel"
             inputMode="tel"
-            label="電話番号"
+            label={PROFILE_FIELD_LABELS.phone}
             type="tel"
             {...fields.fieldOf("phone")}
           />
@@ -129,15 +138,19 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
             unavailable={address.unavailable}
           />
           <PrefectureField prefectures={prefectures} {...prefecture} />
-          <TextField autoComplete="address-level2" label="市区町村" {...fields.fieldOf("city")} />
+          <TextField
+            autoComplete="address-level2"
+            label={PROFILE_FIELD_LABELS.city}
+            {...fields.fieldOf("city")}
+          />
           <TextField
             autoComplete="address-line1"
-            label="丁目・番地"
+            label={PROFILE_FIELD_LABELS.street}
             {...fields.fieldOf("street")}
           />
           <TextField
             autoComplete="address-line2"
-            label="建物名・部屋番号"
+            label={PROFILE_FIELD_LABELS.building}
             {...fields.fieldOf("building")}
           />
         </FieldGroup>
