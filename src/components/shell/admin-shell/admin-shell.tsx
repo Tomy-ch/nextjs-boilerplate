@@ -48,7 +48,9 @@ export type AdminShellProps = {
  * **脇の一覧は畳めます。** 開閉は {@link AdminShellNavStateProvider} が持ち、器自身は Server
  * Component のままです。
  *
- * **脇に一覧を持てない幅では {@link AdminShellMenu} の overlay へ畳みます。**
+ * **脇に一覧を常設するのは `lg` 以上だけです。** それ未満は {@link AdminShellMenu} の overlay へ
+ * 畳みます。タブレットの縦持ちは `md` 以上 `lg` 未満に集中しており、その帯で脇に幅を割くと本文に
+ * 残る幅がモバイルとほとんど変わりません（[0051](../../../../docs/adr/0051-styling-system.md) §2）。
  *
  * **`main` は幅を絞りません。** 読み幅と左右余白は `ContentContainer` の責務です。
  *
@@ -79,7 +81,7 @@ export function AdminShell({
       >
         本文へスキップ
       </a>
-      <aside className="print-hidden sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-background group-data-[nav-open=true]/shell:md:flex">
+      <aside className="print-hidden sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-background group-data-[nav-open=true]/shell:lg:flex">
         <div
           className="flex shrink-0 items-center border-b px-4"
           style={{ height: ADMIN_SHELL_HEADER_HEIGHT }}

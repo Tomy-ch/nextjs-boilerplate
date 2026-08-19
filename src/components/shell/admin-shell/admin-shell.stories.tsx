@@ -92,6 +92,19 @@ export const WithNavFooter: Story = {
   args: { navFooter: <p>ログイン中: admin@example.com</p> },
 };
 
+/** タブレット。この帯も脇に幅を割けないので、常設せず overlay へ畳む。 */
+export const Tablet: Story = {
+  globals: { viewport: { value: "tablet", isRotated: false } },
+};
+
+/** タブレットで overlay を開いた状態。出す導線はスマホ・PC と同じ。 */
+export const MenuOpenTablet: Story = {
+  globals: { viewport: { value: "tablet", isRotated: false } },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "メニューを開く" }));
+  },
+};
+
 /** 脇に一覧を持てない幅。導線は overlay へ畳まれ、header に開く操作だけが残る。 */
 export const Mobile: Story = {
   globals: { viewport: { value: "mobile2", isRotated: false } },

@@ -23,7 +23,7 @@ export function AdminShellNavToggle() {
     <Button
       aria-expanded={open}
       aria-label="メニューの開閉"
-      className="hidden md:inline-flex"
+      className="hidden lg:inline-flex"
       onClick={toggle}
       size="sm"
       variant="ghost"
