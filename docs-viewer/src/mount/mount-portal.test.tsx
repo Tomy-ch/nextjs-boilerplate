@@ -94,7 +94,27 @@ describe("mountPortal", () => {
     expect(container.textContent).toContain("500");
   });
 
-  it("生成物の形が違えば読み込めなかったことを伝える", async () => {
+  it("応答は返っても本文が JSON として壊れていれば、解釈できなかったことを伝える", async () => {
+    server.use(
+      http.get(
+        "*/docs.json",
+        () =>
+          new HttpResponse("not json {{{", {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+      ),
+    );
+
+    const container = createContainer();
+
+    await mountPortal(container);
+
+    expect(container.textContent).toContain(PORTAL_LOAD_ERROR_MESSAGE);
+    expect(container.textContent).toContain("is not valid JSON");
+  });
+
+  it("生成物の形が違えば、どの項目が違うかまで伝える", async () => {
     server.use(http.get("*/docs.json", () => HttpResponse.json({ title: "x" })));
 
     const container = createContainer();
@@ -102,6 +122,7 @@ describe("mountPortal", () => {
     await mountPortal(container);
 
     expect(container.textContent).toContain(PORTAL_LOAD_ERROR_MESSAGE);
+    expect(container.textContent).toContain("groups");
   });
 
   it("取得そのものが失敗した場合も原因を画面へ残す", async () => {
@@ -112,6 +133,7 @@ describe("mountPortal", () => {
     await mountPortal(container);
 
     expect(container.textContent).toContain(PORTAL_LOAD_ERROR_MESSAGE);
+    expect(container.textContent).toContain("Failed to fetch");
   });
 
   it("Error ではない値が投げられても原因を画面へ残す", async () => {
