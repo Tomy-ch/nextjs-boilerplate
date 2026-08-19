@@ -283,6 +283,7 @@ UI を横断して支える CSS 基盤。React component を公開しない。
 | [`print`](./design-system/foundation/print/README.md) | 紙と PDF 保存へ出したときの体裁を定める CSS 基盤 |
 | [`scroll-fade`](./design-system/foundation/scroll-fade/README.md) | scrollbar を消した横スクロール領域の端をぼかし、続きがあることを示す CSS 基盤 |
 | [`scrollbar`](./design-system/foundation/scrollbar/README.md) | スクロールする面すべてに共通する scrollbar の見た目を一箇所で定める CSS 基盤 |
+| [`surface`](./design-system/foundation/surface/README.md) | design token の系統を部分木と Portal の出口へ効かせる |
 | [`shimmer`](./design-system/foundation/shimmer/README.md) | 進捗が測れない処理が動き続けていることを、面の上を流れる帯で示す CSS 基盤 |
 | [`typeset`](./design-system/foundation/typeset/README.md) | sanitizer 済みの Markdown / HTML を一定の組版 rhythm で表示する CSS 基盤 |
 

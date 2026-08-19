@@ -1,0 +1,29 @@
+// @vitest-environment jsdom
+
+import { render } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { SURFACE, SURFACE_ATTRIBUTE } from "./surface.definition";
+import { SurfacePortalBridge } from "./surface-portal-bridge";
+
+describe("SurfacePortalBridge", () => {
+  // ----- 正常系 -----
+  it("Portal の出口へ系統を載せる", () => {
+    render(<SurfacePortalBridge surface={SURFACE.ADMIN} />);
+
+    expect(document.body.getAttribute(SURFACE_ATTRIBUTE)).toBe(SURFACE.ADMIN);
+  });
+
+  it("外れると出口から消す", () => {
+    const { unmount } = render(<SurfacePortalBridge surface={SURFACE.ADMIN} />);
+
+    unmount();
+
+    expect(document.body.hasAttribute(SURFACE_ATTRIBUTE)).toBe(false);
+  });
+
+  it("描くものを持たない", () => {
+    const { container } = render(<SurfacePortalBridge surface={SURFACE.ADMIN} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+});

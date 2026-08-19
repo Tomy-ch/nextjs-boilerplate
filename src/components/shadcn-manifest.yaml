@@ -971,6 +971,12 @@ components:
         localPath: src/components/design-system/form/slider-native/slider-native.tsx
         commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
         committedAt: 2026-03-02T08:49:00Z
+  surface:
+    kind: original
+    layer: design-system
+    as: foundation
+    directory: src/components/design-system/foundation/surface
+    addedAt: 2026-08-20T02:10:00.000Z
   switch-client:
     kind: copy-in
     layer: design-system
