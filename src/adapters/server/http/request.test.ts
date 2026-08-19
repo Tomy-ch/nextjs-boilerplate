@@ -78,7 +78,7 @@ describe("createHttpClient", () => {
 
     await client.request({
       path: "/v1/items",
-      searchParams: { keyword: "本", categoryId: undefined },
+      searchParams: { keyword: "本", tag: undefined },
       schema,
     });
 
@@ -120,13 +120,11 @@ describe("createHttpClient", () => {
 
     await client.request({
       path: "/v1/items",
-      searchParams: { categoryId: ["a", "b"], statusId: [] },
+      searchParams: { tag: ["a", "b"], state: [] },
       schema,
     });
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/v1/items?categoryId=a&categoryId=b",
-    );
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/items?tag=a&tag=b");
   });
 
   it("再検証のタグを渡す", async () => {
@@ -285,7 +283,7 @@ describe("createHttpClient", () => {
       .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);
 
-    await client.request({ path: "/v1/purchases", method: "POST", idempotent: true, schema });
+    await client.request({ path: "/v1/items", method: "POST", idempotent: true, schema });
 
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
@@ -413,7 +411,7 @@ describe("createHttpClient", () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(503, {}));
     const client = createClient(fetchImpl);
 
-    await kindOf(() => client.request({ path: "/v1/purchases", method: "POST", schema }));
+    await kindOf(() => client.request({ path: "/v1/items", method: "POST", schema }));
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
