@@ -1,0 +1,64 @@
+import type { DashboardSummary } from "@/model/dashboard/dashboard";
+import { formatMoney } from "@/model/money";
+
+import { formatCount } from "./count";
+
+/**
+ * 数値カード 1 枚分。
+ *
+ * @remarks
+ * 値は整形済みの文字列で持ちます。桁区切りや通貨記号の付け方を表示側に配ると、同じ集計が
+ * 置き場所ごとに違う顔で出ます。
+ */
+export type SummaryCard = {
+  readonly id: string;
+  readonly label: string;
+  readonly value: string;
+  /**
+   * 何を数えた値かを添える一文。
+   *
+   * @remarks
+   * **省略できません。** 3 つの指標は母集団が違い（`model/dashboard`）、注記が無いと読み手は
+   * 同じ期間の同じ母集団だと読みます。
+   */
+  readonly note: string;
+};
+
+/**
+ * 集計を数値カードの並びへ写す。
+ *
+ * @remarks
+ * 並びは「期間で動く 2 枚 → 期間で動かない 2 枚」の順です。同じ枠に並ぶ数のうち、どれが選んだ
+ * 期間に反応するのかが位置で読めます。
+ *
+ * 合計や割合を作りません。足し合わせてよい組み合わせがこの中に無いためで、画面が作れる数は
+ * バックエンドが返していない数です（[0070](../../../../docs/adr/0070-backend-role-separation.md)）。
+ */
+export function toSummaryCards(summary: DashboardSummary): readonly SummaryCard[] {
+  return [
+    {
+      id: "sales-amount",
+      label: "売上",
+      value: formatMoney(summary.salesAmount),
+      note: "キャンセルを除き、未払いを含みます",
+    },
+    {
+      id: "sales-count",
+      label: "売上の件数",
+      value: formatCount(summary.salesCount),
+      note: "売上に算入した購入の数です",
+    },
+    {
+      id: "published-product-count",
+      label: "公開中の商品",
+      value: formatCount(summary.publishedProductCount),
+      note: "現在の数です。期間では変わりません",
+    },
+    {
+      id: "total-product-count",
+      label: "登録済みの商品",
+      value: formatCount(summary.totalProductCount),
+      note: "未公開を含む現在の数です",
+    },
+  ];
+}

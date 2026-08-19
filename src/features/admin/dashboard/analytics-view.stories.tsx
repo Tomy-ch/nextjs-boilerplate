@@ -1,0 +1,197 @@
+import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import Link from "next/link";
+import type { ReactElement } from "react";
+import { Button } from "@/components/design-system/action/button/button";
+import { AdminShell } from "@/components/shell/admin-shell/admin-shell";
+import type { AdminShellNavGroup } from "@/components/shell/admin-shell/admin-shell.definition";
+import { ContentContainer } from "@/components/shell/content-container/content-container";
+import {
+  PageHeader,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from "@/components/shell/page-header/page-header";
+import type { DashboardSummary, PurchaseStatusCount } from "@/model/dashboard/dashboard";
+import { DASHBOARD_PERIOD } from "@/model/dashboard/dashboard";
+import { toProductId } from "@/model/product/product";
+
+import { ADMIN_ANALYTICS_PATH, ADMIN_DASHBOARD_PATH, ADMIN_PRODUCT_LIST_PATH } from "../paths";
+import { AnalyticsView } from "./analytics-view";
+import type { AdminRankingRow } from "./ranking-rows";
+
+const NAV_GROUPS: readonly AdminShellNavGroup[] = [
+  {
+    label: "集計",
+    items: [
+      { href: ADMIN_DASHBOARD_PATH, label: "ダッシュボード" },
+      { href: ADMIN_ANALYTICS_PATH, label: "期間別の集計" },
+    ],
+  },
+  { label: "商品", items: [{ href: ADMIN_PRODUCT_LIST_PATH, label: "商品一覧管理" }] },
+];
+
+/** route と同じ器で包む。`admin/layout.tsx` の shell と `page.tsx` の見出しを再現する。 */
+function withPageFrame(Story: () => ReactElement) {
+  return (
+    <AdminShell
+      consoleName="管理"
+      headerActions={
+        <Button asChild size="sm" variant="outline">
+          <Link href="/products">ユーザー画面へ</Link>
+        </Button>
+      }
+      homeHref={ADMIN_DASHBOARD_PATH}
+      navGroups={NAV_GROUPS}
+      siteHref="/"
+      siteName="nextjs-boilerplate"
+    >
+      <ContentContainer className="py-8">
+        <PageHeader>
+          <div>
+            <PageHeaderTitle>集計</PageHeaderTitle>
+            <PageHeaderDescription>
+              期間を選んで売上と注文の状況を読み、売れ筋の商品を確認します。
+            </PageHeaderDescription>
+          </div>
+        </PageHeader>
+        <Story />
+      </ContentContainer>
+    </AdminShell>
+  );
+}
+
+let statusSeq = 0;
+
+function count(statusName: string, value: number): PurchaseStatusCount {
+  statusSeq += 1;
+
+  return {
+    statusId: `0195f0c2-2000-7000-8000-${String(statusSeq).padStart(12, "0")}`,
+    statusName,
+    count: value,
+  };
+}
+
+const SUMMARY: DashboardSummary = {
+  salesAmount: 824_695,
+  salesCount: 24,
+  purchaseStatusCounts: [
+    count("未処理", 7),
+    count("受付中", 4),
+    count("確認中", 3),
+    count("処理中", 4),
+    count("完了", 1),
+    count("キャンセル", 1),
+    count("支払い済み", 4),
+    count("発送済み", 1),
+  ],
+  totalProductCount: 500,
+  publishedProductCount: 476,
+};
+
+let rankSeq = 0;
+
+function row(name: string, soldQuantity: number, price: string): AdminRankingRow {
+  rankSeq += 1;
+
+  return {
+    id: toProductId(`0195f0c2-3000-7000-8000-${String(rankSeq).padStart(12, "0")}`),
+    rank: rankSeq,
+    name,
+    price,
+    soldQuantity,
+  };
+}
+
+/** 実測した契約の応答と同じ顔ぶれ。価格は decimal 文字列のまま持つ。 */
+const RANKING: readonly AdminRankingRow[] = [
+  row("バゲット 1本", 5, "1.99"),
+  row("チームトポロジー", 4, "17.6"),
+  row("リーバイス 501 オリジナルフィット", 3, "102.67"),
+  row("MONSTER 完全版 1", 3, "8"),
+  row("スナップエンドウ 150g", 3, "2.19"),
+];
+
+const meta = {
+  title: "Page/Admin/Analytics",
+  component: AnalyticsView,
+  parameters: {
+    docs: {
+      story: { inline: false, iframeHeight: 900 },
+      description: {
+        component: [
+          "期間を選んで集計を読む画面です。**canvas では遷移も取得も起きません** —— 期間を押しても",
+          "数値が変わらないのはそのためで、実際は押した時点でその URL の集計へ移ります。",
+          "売れ筋だけは期間の選択に従いません。ランキングの取得口が受け付ける期間は全期間と直近 30 日の",
+          "2 つだけで、この画面の選択肢と対応しないためです。見出しに期間を書いているのがその断りです。",
+        ].join(""),
+      },
+    },
+    layout: "fullscreen",
+    nextjs: { navigation: { pathname: ADMIN_ANALYTICS_PATH } },
+  },
+  decorators: [withPageFrame],
+  args: {
+    query: { period: DASHBOARD_PERIOD.TODAY },
+    state: { status: "ready", summary: SUMMARY },
+    ranking: RANKING,
+  },
+} satisfies Meta<typeof AnalyticsView>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+/** 今日。日付の入力欄は出さず、集計と売れ筋が続く。 */
+export const Default: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** タブレット。期間の選択は 1 行に収まり、棒と表は縦に積まれる。 */
+export const DefaultTablet: Story = {
+  globals: { viewport: { value: "tablet", isRotated: false } },
+};
+
+/** スマホ。期間の選択は折り返し、売れ筋の表は横送りで読む。 */
+export const DefaultMobile: Story = {
+  globals: { viewport: { value: "mobile2", isRotated: false } },
+};
+
+/** 今月。選ばれている項目が入れ替わるだけで、並びは今日と同じ。 */
+export const Month: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  args: { query: { period: DASHBOARD_PERIOD.MONTH } },
+};
+
+/** 期間を指定して集計が出ている状態。入力欄には選んだ日付が残る。 */
+export const RangeSelected: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  args: {
+    query: { period: DASHBOARD_PERIOD.RANGE, from: "2026-07-01", to: "2026-07-31" },
+  },
+};
+
+/** 期間を選び始めたところ。まだ集計は出せないが、選択と売れ筋は残る。 */
+export const RangeIncomplete: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  args: {
+    query: { period: DASHBOARD_PERIOD.RANGE },
+    state: { status: "pending", message: "開始日と終了日の両方を選んでください。" },
+  },
+};
+
+/** 終了日が開始日より前にある状態。誤りは 2 つの項目が共有する。 */
+export const RangeReversed: Story = {
+  globals: { viewport: { value: "mobile2", isRotated: false } },
+  args: {
+    query: { period: DASHBOARD_PERIOD.RANGE, from: "2026-07-31", to: "2026-07-01" },
+    state: {
+      status: "pending",
+      message: "終了日は開始日と同じ日か、それより後を選んでください。",
+    },
+  },
+};
+
+/** 直近 30 日に売れた商品が無い状態。表の枠は残し、空であることを本文で伝える。 */
+export const NoRanking: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  args: { ranking: [] },
+};

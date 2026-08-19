@@ -1,0 +1,100 @@
+import Link from "next/link";
+
+import {
+  StaticDataTable,
+  type StaticDataTableColumn,
+} from "@/components/patterns/table/static-data/static-data";
+
+import { adminProductEditPath } from "../../../paths";
+import { formatCount } from "../../count";
+import type { AdminRankingRow } from "../../ranking-rows";
+
+/** `RankingTable` の props。 */
+export type RankingTableProps = {
+  /** 順位の昇順で並んだ商品。 */
+  rows: readonly AdminRankingRow[];
+};
+
+const TITLE = "売れ筋の商品";
+
+const FOCUS_RING =
+  "rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
+
+/**
+ * 狭い段で伏せる列に付ける class。
+ *
+ * @remarks
+ * 価格は売れ筋を読むための手がかりではありません。狭い段で残すのは**どれが・どれだけ売れたか**
+ * の 2 つで、それ以外を残すと横送りしないと販売数にも届かなくなります。
+ */
+const WIDE_ONLY = "hidden md:table-cell";
+
+const COLUMNS: readonly StaticDataTableColumn<AdminRankingRow>[] = [
+  {
+    id: "rank",
+    header: "順位",
+    align: "end",
+    headerClassName: "w-14",
+    cell: (row) => <span className="tabular-nums">{row.rank}</span>,
+  },
+  {
+    id: "name",
+    header: "商品名",
+    cell: (row) => (
+      <Link className={`${FOCUS_RING} font-medium`} href={adminProductEditPath(row.id)}>
+        {row.name}
+      </Link>
+    ),
+  },
+  {
+    id: "sold",
+    header: "販売数",
+    align: "end",
+    headerClassName: "w-24",
+    cell: (row) => <span className="tabular-nums">{formatCount(row.soldQuantity)}</span>,
+  },
+  {
+    id: "price",
+    header: "価格",
+    align: "end",
+    headerClassName: `${WIDE_ONLY} w-24`,
+    cellClassName: WIDE_ONLY,
+    // 契約が decimal 文字列で返す値をそのまま出す。数値へ直すと、丸めの規則を画面が持つ。
+    cell: (row) => <span className="tabular-nums">{`$${row.price}`}</span>,
+  },
+];
+
+function rowKey(row: AdminRankingRow): string {
+  return row.id;
+}
+
+/**
+ * 売れ筋の商品を順位の順に並べる。
+ *
+ * @remarks
+ * **上の集計とは期間が別です。** ランキングの取得口が受け付ける期間は全期間と直近 30 日の 2 つ
+ * だけで、この画面の期間の選択肢とは対応しません。同じ枠に並べたまま黙って別の期間を出すと、
+ * 選んだ期間の売れ筋だと読まれます。見出しに期間を書いているのはそのためです。
+ *
+ * **行全体を押せる形にしていません。** 商品名だけが遷移先で、順位・販売数・価格は遷移先の説明
+ * ではありません。一覧（`../../products/ui/table/`）が行いっぱいの導線を持つのは、そこが操作を
+ * 目的にした画面だからです。ここは読む画面なので、押せる範囲を名前に留めます。
+ *
+ * @see Storybook `Page/Admin/Analytics`
+ */
+export function RankingTable({ rows }: RankingTableProps) {
+  return (
+    <section>
+      <h2 className="text-lg font-strong">{`${TITLE}（直近 30 日）`}</h2>
+      <div className="mt-4">
+        <StaticDataTable
+          columns={COLUMNS}
+          emptyMessage="直近 30 日に売れた商品はありません。"
+          getRowKey={rowKey}
+          label={TITLE}
+          rows={rows}
+        />
+      </div>
+    </section>
+  );
+}

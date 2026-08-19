@@ -13,6 +13,12 @@ import type { ProductId } from "@/model/product/product";
  */
 export const ADMIN_PRODUCT_LIST_PATH = "/admin/products";
 
+/** 管理の入口。今日の集計を出す。 */
+export const ADMIN_DASHBOARD_PATH = "/admin";
+
+/** 期間を選んで集計を読む画面のパス。 */
+export const ADMIN_ANALYTICS_PATH = "/admin/analytics";
+
 /** 商品を作る画面のパス。 */
 export const ADMIN_PRODUCT_NEW_PATH = `${ADMIN_PRODUCT_LIST_PATH}/new`;
 

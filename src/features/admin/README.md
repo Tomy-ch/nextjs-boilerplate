@@ -30,6 +30,22 @@ test-requirement: feature
 | ファイル | 役割 |
 | --- | --- |
 | `paths.ts` | 管理画面のパス。画面どうしの導線と、利用者向けの器からの入口が引く |
+| `dashboard/period.ts` | 集計の URL 契約（期間の区分と両端の日付）。指定が成立しているかの判断も持つ |
+| `dashboard/count.ts` | 件数の locale 対応整形。2 つ目の feature が要る段で `model` へ上げる |
+| `dashboard/summary-cards.ts` | 合成済みの集計を数値カードの並びへ写す。母集団の断りを値に添える |
+| `dashboard/ranking-rows.ts` | 売れ筋の表に並べる 1 行。順位は契約が返した並びの位置 |
+| `dashboard/page-content.tsx` | 入口（今日）の取得と組み立て |
+| `dashboard/analytics-content.tsx` | 集計（期間指定）の URL 解釈と取得。集計と売れ筋を並行して取る |
+| `dashboard/view.tsx` | 入口の画面。数値カードと内訳、期間指定への導線 |
+| `dashboard/analytics-view.tsx` | 集計の画面。期間の選択・集計・売れ筋を積む |
+| `dashboard/ui/stat-cards/` | 数値カードの並び。注記を値と同じ枠に置く |
+| `dashboard/ui/status-chart/` | ステータス別件数の横棒。描画に実寸が要る client island |
+| `dashboard/ui/status-breakdown/` | 横棒と数値表の併置。合計は出さない |
+| `dashboard/ui/period-switch/` | 集計対象期間の選び直し。link で組み、現在地は `aria-current` が示す |
+| `dashboard/ui/range-form/` | 期間の両端を選ぶ native の GET フォーム |
+| `dashboard/ui/ranking-table/` | 売れ筋の表。期間の選択には従わない |
+| `dashboard/ui/invalid-query/` | URL の期間が契約を外れているときの表示。外して戻る導線を持つ |
+| `dashboard/ui/skeleton/` | 集計の待機表示 |
 | `products/query.ts` | 一覧の URL 契約（絞り込みとページ送りの位置）。通ってきた道もここが持つ |
 | `products/page-size.ts` | 1 ページに並べる件数 |
 | `products/filter-option.ts` | 絞り込みで選べる候補の形と、マスタからの写し |
@@ -46,7 +62,7 @@ test-requirement: feature
 | `products/ui/filter-sheet/` | 狭い段の絞り込み。下端の操作から開き、overlay の中でまとめて確定する |
 | `products/ui/skeleton/` | 表の待機表示 |
 | `products/ui/invalid-query/` | URL の条件が契約を外れているときの表示。外して戻る導線を持つ |
-| `products/ui/error-state/` | 取得に失敗したときの表示。`/admin` の error 境界が使う |
+| `ui/error-state/` | 取得に失敗したときの表示。`/admin` の error 境界が使う。境界は 1 枚なので画面を名指ししない |
 
 ## 認可
 
