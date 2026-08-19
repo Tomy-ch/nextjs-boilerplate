@@ -1,74 +1,61 @@
-import type { DashboardSummary } from "@/model/dashboard/dashboard";
+import type { ReactNode } from "react";
+
 import { DASHBOARD_PERIOD, type DashboardSummaryQuery } from "@/model/dashboard/dashboard";
 
-import type { AdminRankingRow } from "./ranking-rows";
-import { toSummaryCards } from "./summary-cards";
+import type { PeriodWindow } from "./period-window";
+import { PeriodCaption } from "./ui/period-caption/period-caption";
 import { PeriodSwitch } from "./ui/period-switch/period-switch";
-import { RangeForm } from "./ui/range-form/range-form";
-import { RankingTable } from "./ui/ranking-table/ranking-table";
-import { StatCards } from "./ui/stat-cards/stat-cards";
-import { StatusBreakdown } from "./ui/status-breakdown/status-breakdown";
-
-/**
- * 選ばれた期間に対する集計の状態。
- *
- * @remarks
- * 「まだ期間が決まっていない」は失敗ではありません。日付をこれから選ぶところなので、誤りとして
- * 出すと、開いただけで叱られる画面になります。
- */
-export type AnalyticsSummaryState =
-  | { readonly status: "ready"; readonly summary: DashboardSummary }
-  | { readonly status: "pending"; readonly message: string };
+import { RangeDialog } from "./ui/range-dialog/range-dialog";
 
 /** `AnalyticsView` の props。 */
 export type AnalyticsViewProps = {
-  /** URL が表す条件。期間の切替先と日付欄の初期値になる。 */
+  /** URL が表す条件。選択肢の現在地と、日付の初期値になる。 */
   query: DashboardSummaryQuery;
-  /** 選ばれた期間の集計。 */
-  state: AnalyticsSummaryState;
-  /** 売れ筋の商品。期間の選択には従わない。 */
-  ranking: readonly AdminRankingRow[];
+  /** 集計が対象にしている暦日。決まっていなければ渡さない。 */
+  window?: PeriodWindow;
+  /** 期間に従って取り直す区画。 */
+  summary: ReactNode;
+  /** 期間に従わない区画。 */
+  ranking: ReactNode;
 };
-
-const LABEL = "選んだ期間の集計";
 
 /**
  * 期間を選んで集計を読む画面。
  *
  * @remarks
- * 取得を持ちません。期間・集計・ランキングを受け取って並べるだけです。
+ * 取得を持ちません。**取り直す区画を slot で受けます**
+ * （[0053](../../../../docs/adr/0053-ui-component-interaction-seam.md)）。期間を選び直したときに
+ * 待つのは集計だけで、選択肢とその下の日付は出たままです。全体を 1 つの待機に包むと、押した
+ * 選択肢そのものが消えてから戻ってくることになり、何を押したのかを見失います。
  *
- * **数値カードと内訳は入口（`view.tsx`）と同じ部品です。** 同じ値を別の形で出すと、期間を
- * 変えただけのつもりで読み方まで変わります。違うのは、上に期間の選択が乗ることと、期間に
- * 従わないランキングが下に続くことだけです。
+ * **売れ筋を別の slot にしているのも同じ理由です。** 期間の選択に従わない区画なので、期間を
+ * 変えても取り直す必要がありません。
  *
- * **期間が決まっていない間も、選択と売れ筋は出したままにします。** 集計の枠だけが入れ替わる
- * ので、日付を入れ直す場所が画面のどこかへ動きません。
+ * **数値カードと内訳は入口（`view.tsx`）と同じ部品です。** 同じ値を別の形で出すと、期間を変えた
+ * だけのつもりで読み方まで変わります。
  *
  * @see Storybook `Page/Admin/Analytics`
  */
-export function AnalyticsView({ query, state, ranking }: AnalyticsViewProps) {
+export function AnalyticsView({ query, window, summary, ranking }: AnalyticsViewProps) {
   const period = query.period ?? DASHBOARD_PERIOD.TODAY;
 
   return (
     <div className="space-y-8">
-      <div className="space-y-4">
-        <PeriodSwitch current={period} query={query} />
-        {period === DASHBOARD_PERIOD.RANGE ? (
-          <RangeForm
-            from={query.from}
-            message={state.status === "pending" ? state.message : undefined}
-            to={query.to}
-          />
-        ) : null}
+      <div className="space-y-3">
+        <PeriodSwitch
+          current={period}
+          rangeChoice={
+            <RangeDialog
+              from={query.from}
+              selected={period === DASHBOARD_PERIOD.RANGE}
+              to={query.to}
+            />
+          }
+        />
+        <PeriodCaption window={window} />
       </div>
-      {state.status === "ready" ? (
-        <>
-          <StatCards cards={toSummaryCards(state.summary)} label={LABEL} />
-          <StatusBreakdown counts={state.summary.purchaseStatusCounts} />
-        </>
-      ) : null}
-      <RankingTable rows={ranking} />
+      {summary}
+      {ranking}
     </div>
   );
 }

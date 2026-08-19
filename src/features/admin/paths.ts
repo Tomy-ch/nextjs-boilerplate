@@ -31,3 +31,17 @@ export function adminProductEditPath(id: ProductId): string {
 export function adminProductStockPath(id: ProductId): string {
   return `${ADMIN_PRODUCT_LIST_PATH}/${encodeURIComponent(id)}/stock`;
 }
+
+/**
+ * 商品 1 件を眺める画面のパス。
+ *
+ * @remarks
+ * **利用者向けの画面を指します。** 管理側は商品を一覧で見比べるための面しか持たず、1 件を
+ * 眺める面がありません。編集の面（{@link adminProductEditPath}）は目的が違い、名前を押した
+ * 人が求めているのは「どんな商品か」であって編集ではありません。
+ *
+ * 管理側に 1 件を眺める面ができたら、行き先をそちらへ替えるのはこの関数だけです。
+ */
+export function productDetailPath(id: ProductId): string {
+  return `/products/${encodeURIComponent(id)}`;
+}

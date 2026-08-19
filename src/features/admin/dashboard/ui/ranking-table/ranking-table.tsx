@@ -5,7 +5,7 @@ import {
   type StaticDataTableColumn,
 } from "@/components/patterns/table/static-data/static-data";
 
-import { adminProductEditPath } from "../../../paths";
+import { productDetailPath } from "../../../paths";
 import { formatCount } from "../../count";
 import type { AdminRankingRow } from "../../ranking-rows";
 
@@ -41,7 +41,7 @@ const COLUMNS: readonly StaticDataTableColumn<AdminRankingRow>[] = [
     id: "name",
     header: "商品名",
     cell: (row) => (
-      <Link className={`${FOCUS_RING} font-medium`} href={adminProductEditPath(row.id)}>
+      <Link className={`${FOCUS_RING} font-medium`} href={productDetailPath(row.id)}>
         {row.name}
       </Link>
     ),
@@ -75,6 +75,10 @@ function rowKey(row: AdminRankingRow): string {
  * **上の集計とは期間が別です。** ランキングの取得口が受け付ける期間は全期間と直近 30 日の 2 つ
  * だけで、この画面の期間の選択肢とは対応しません。同じ枠に並べたまま黙って別の期間を出すと、
  * 選んだ期間の売れ筋だと読まれます。見出しに期間を書いているのはそのためです。
+ *
+ * **商品名から商品の面へ出られます。** 売れているものを見つけたときに次へ知りたいのは、その
+ * 商品が何かです。行き先が利用者向けの面なのは、管理側が 1 件を眺める面をまだ持たないためで、
+ * 決めているのは `../../../paths.ts` です。
  *
  * **行全体を押せる形にしていません。** 商品名だけが遷移先で、順位・販売数・価格は遷移先の説明
  * ではありません。一覧（`../../products/ui/table/`）が行いっぱいの導線を持つのは、そこが操作を

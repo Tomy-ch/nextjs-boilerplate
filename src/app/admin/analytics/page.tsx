@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
@@ -11,7 +10,6 @@ import {
   AdminAnalyticsPageContent,
   type RawSearchParams,
 } from "@/features/admin/dashboard/analytics-content";
-import { AdminDashboardSkeleton } from "@/features/admin/dashboard/ui/skeleton/skeleton";
 
 export const metadata: Metadata = {
   title: "集計",
@@ -24,9 +22,9 @@ export const metadata: Metadata = {
  * @remarks
  * 索引に載せない理由はダッシュボード（`../page.tsx`）と同じです。
  *
- * 待機表示の境界に鍵を与えるのは、期間が変われば数値が総入れ替えになるためです。鍵を与えないと、
- * 次の集計が届くまで前の期間の数が残ります。**鍵は値を一意に表す形で作ります。** 区切り文字で
- * 連結すると、値に区切り文字が現れた時点で別の期間が同じ鍵になります。
+ * **待機の境界をここに置きません。** 期間を選び直したときに待つのは集計だけで、選択肢まで
+ * 置き換わると押したものが消えてから戻ってきます。境界の位置は中身が持ちます
+ * （`features/admin/dashboard/analytics-content.tsx`）。
  */
 export default async function AdminAnalyticsPage({
   searchParams,
@@ -45,9 +43,7 @@ export default async function AdminAnalyticsPage({
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <Suspense fallback={<AdminDashboardSkeleton />} key={JSON.stringify(params)}>
-        <AdminAnalyticsPageContent searchParams={params} />
-      </Suspense>
+      <AdminAnalyticsPageContent searchParams={params} />
     </ContentContainer>
   );
 }

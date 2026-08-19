@@ -18,16 +18,6 @@ export const PERIOD_KEY: Readonly<{ PERIOD: "period"; FROM: "from"; TO: "to" }> 
   TO: "to",
 };
 
-/** 期間の選択肢。並びがそのまま切替の並びになる。 */
-export const PERIOD_CHOICES: readonly {
-  readonly period: DashboardPeriod;
-  readonly label: string;
-}[] = [
-  { period: DASHBOARD_PERIOD.TODAY, label: "今日" },
-  { period: DASHBOARD_PERIOD.MONTH, label: "今月" },
-  { period: DASHBOARD_PERIOD.RANGE, label: "期間を指定" },
-];
-
 /**
  * 期間の指定が、集計を求められる形になっているか。
  *
@@ -75,23 +65,10 @@ export function toPeriodRequest(query: DashboardSummaryQuery): PeriodRequest {
  * 期間を切り替えた先の URL を組む。
  *
  * @remarks
- * 選んでいた日付を持ち越します。`今日` を挟んでから `期間を指定` へ戻ったときに、入れ直しを
- * させないためです。`range` 以外では URL にも載せません。載せたままだと、効いていない条件が
+ * 日付を持ち越しません。日付が要る期間は overlay の中で両端を決めてから遷移するため、選択肢を
+ * 押しただけの時点では行き先に載せるものがありません。載せたままにすると、効いていない条件が
  * 画面の外（アドレス欄・共有した URL）にだけ残ります。
  */
-export function toPeriodHref(period: DashboardPeriod, query: DashboardSummaryQuery): string {
-  const params = new URLSearchParams({ [PERIOD_KEY.PERIOD]: period });
-
-  if (period === DASHBOARD_PERIOD.RANGE) {
-    for (const [key, value] of [
-      [PERIOD_KEY.FROM, query.from],
-      [PERIOD_KEY.TO, query.to],
-    ] as const) {
-      if (value !== undefined) {
-        params.set(key, value);
-      }
-    }
-  }
-
-  return `${ADMIN_ANALYTICS_PATH}?${params.toString()}`;
+export function toPeriodHref(period: DashboardPeriod): string {
+  return `${ADMIN_ANALYTICS_PATH}?${new URLSearchParams({ [PERIOD_KEY.PERIOD]: period })}`;
 }
