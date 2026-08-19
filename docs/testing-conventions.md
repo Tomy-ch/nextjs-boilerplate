@@ -46,6 +46,13 @@
 - **意味を持つ matcher を使う。**`toBeVisible` / `toBeDisabled` / `toHaveAccessibleName` は何を主張しているかを述べる。queried element への `toBeTruthy()` はほとんど何も主張していない。
 - **利用者が観測するものをアサートする。**hook の内部や private な呼び出し順ではなく、描画結果で分岐が区別できるならそちらを見る。store の値を直接読んで済ませない。
 
+## テストが起こしたものはテストが畳む
+
+1 つのワーカーが何本ものファイルを続けて回すため、**ファイルが終わっても畳まれなかったものはワーカーに残る**。残った購読・タイマー・React root は環境が破棄された後に動き、`window is not defined` のような形で表面化する。これは失敗したテストとしてではなく **unhandled error として run 全体を落とす** —— 全件 pass のまま赤くなり、名指しされるのは原因と無関係なファイルなので、ログから原因へ辿れない。
+
+- `render` したものは Testing Library の `cleanup` が畳む（`vitest.setup.ts` が全ファイルへ掛けている）。**それ以外の経路で作ったものは自分で畳む。**
+- 畳む口を持たない production の関数を呼ぶなら、生成そのものをテスト側で捕まえる（[`docs-viewer/src/mount/mount-portal.test.tsx`](../docs-viewer/src/mount/mount-portal.test.tsx) が `createRoot` に対して行っている）。**畳めるようにするために production へ後始末の口を足さない** —— production に呼ぶ相手が居ない API は、次に読む人が用途を問い直すだけの荷物になる。
+
 ## jsdom に無いブラウザ API の扱い
 
 jsdom は仕様の一部を実装しない。**個別のテストで発火方法を変えて回避しない** —— それは検証したかった経路を通らないテストを生む。
