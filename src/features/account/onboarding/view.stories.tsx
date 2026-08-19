@@ -32,8 +32,7 @@ function withPageFrame(Story: () => ReactElement) {
             <div>
               <PageHeaderTitle>登録</PageHeaderTitle>
               <PageHeaderDescription>
-                はじめての利用に必要な情報を登録します。登録が終わると、購入や購入履歴の確認が
-                できます。
+                はじめての利用に必要な情報を登録します。登録が終わると、購入や購入履歴の確認ができます。
               </PageHeaderDescription>
             </div>
           </PageHeader>
