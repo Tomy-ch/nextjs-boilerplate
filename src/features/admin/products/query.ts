@@ -4,8 +4,8 @@ import { ADMIN_PRODUCT_LIST_PATH } from "../paths";
  * 絞り込みを載せる URL のキー。契約のクエリ名と揃える。
  *
  * @remarks
- * 契約は分類と状態を並びで受け取りますが、この画面は 1 つだけ選ばせます。載せる値が 1 つでも
- * キー名は契約のものを使い、送る側で読み替えません。単一に絞る理由は
+ * 分類と状態は契約と同じく並びで載せます。**同じキーを繰り返す形**で、区切り文字で連結しません
+ * —— 連結すると、値に区切り文字が現れた時点で別の条件が同じ URL になります。複数を選ばせる理由は
  * `docs/spec/route/admin/products/page.function.md`「検索条件は URL が持つ」。
  */
 export const FILTER_KEY: Readonly<{
@@ -35,16 +35,16 @@ const TRAIL_KEY = "trail";
  * 一覧に効いている絞り込み。
  *
  * @remarks
- * 「指定なし」を空文字で表します。選択肢の側が指定なしを持てば、操作は値を差し替えるだけで済み、
- * キーを消す分岐を入力欄が持たずに済みます。
+ * 「指定なし」は**空の並び**です。選択肢の側に指定なしを置くと、複数選べる条件では「指定なし」と
+ * 具体的な値を同時に選べてしまいます。
  */
 export type AdminProductListConditions = {
   /** 商品名に含まれる語。 */
   readonly keyword: string;
-  /** 分類のコード。 */
-  readonly categoryCode: string;
-  /** 状態のコード。 */
-  readonly statusCode: string;
+  /** 分類のコード。空なら分類で絞り込まない。 */
+  readonly categoryCodes: readonly string[];
+  /** 状態のコード。空なら状態で絞り込まない。 */
+  readonly statusCodes: readonly string[];
 };
 
 /** 一覧の URL が表す、いま見ている場所。 */
@@ -64,6 +64,11 @@ function first(value: string | string[] | undefined): string {
   return found?.trim() ?? "";
 }
 
+/** 同じ値の重複を畳む。並び順は最初に現れた位置を保つ。 */
+function unique(values: readonly string[]): readonly string[] {
+  return [...new Set(values)];
+}
+
 function all(value: string | string[] | undefined): readonly string[] {
   return (Array.isArray(value) ? value : [value]).flatMap((found) => {
     const trimmed = found?.trim() ?? "";
@@ -79,16 +84,17 @@ function all(value: string | string[] | undefined): readonly string[] {
  * **URL は利用者が直接編集できます。** 起点が消えているのに通ってきた道だけが残った URL も届き得る
  * ため、先頭ページでは道を捨てます。捨てないと、先頭ページで「前へ」が押せる状態になります。
  *
- * 分類と状態は先頭の 1 つだけを読みます。同じキーが繰り返された URL でも、この画面が扱えるのは
- * 1 つであり、どれを採るかを読む側ごとに決めると同じ URL が場所によって違う条件に見えます。
+ * 分類と状態は**重複を畳みます**。契約は重複の無い並びとして宣言しており、同じ値が 2 度届くのは
+ * URL を直接編集したときで、指している条件は 1 度のときと同じです。畳まないと、意味の同じ条件が
+ * 契約を外れた要求として backend まで届きます。
  */
 export function toAdminProductListLocation(params: RawSearchParams): AdminProductListLocation {
   const cursor = first(params[CURSOR_KEY]);
 
   return {
     keyword: first(params[FILTER_KEY.KEYWORD]),
-    categoryCode: first(params[FILTER_KEY.CATEGORY]),
-    statusCode: first(params[FILTER_KEY.STATUS]),
+    categoryCodes: unique(all(params[FILTER_KEY.CATEGORY])),
+    statusCodes: unique(all(params[FILTER_KEY.STATUS])),
     cursor: cursor === "" ? null : cursor,
     trail: cursor === "" ? [] : all(params[TRAIL_KEY]),
   };
@@ -101,13 +107,16 @@ function toHref(
 ): string {
   const params = new URLSearchParams();
 
-  for (const [key, value] of [
-    [FILTER_KEY.KEYWORD, conditions.keyword],
-    [FILTER_KEY.CATEGORY, conditions.categoryCode],
-    [FILTER_KEY.STATUS, conditions.statusCode],
+  if (conditions.keyword !== "") {
+    params.set(FILTER_KEY.KEYWORD, conditions.keyword);
+  }
+
+  for (const [key, values] of [
+    [FILTER_KEY.CATEGORY, conditions.categoryCodes],
+    [FILTER_KEY.STATUS, conditions.statusCodes],
   ] as const) {
-    if (value !== "") {
-      params.set(key, value);
+    for (const value of values) {
+      params.append(key, value);
     }
   }
 

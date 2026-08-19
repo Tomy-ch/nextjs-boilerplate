@@ -76,13 +76,13 @@ export function AdminProductListView({
             <div className="hidden flex-wrap items-center gap-2 md:flex">
               <AdminProductFilterSelect
                 conditions={conditions}
-                field="categoryCode"
+                field="categoryCodes"
                 label="分類"
                 options={categoryOptions}
               />
               <AdminProductFilterSelect
                 conditions={conditions}
-                field="statusCode"
+                field="statusCodes"
                 label="状態"
                 options={statusOptions}
               />

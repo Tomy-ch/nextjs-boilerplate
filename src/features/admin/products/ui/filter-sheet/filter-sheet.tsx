@@ -25,15 +25,15 @@ import { AdminProductFilterControl } from "../filter-control/filter-control";
 export type AdminProductFilterSheetProps = {
   /** いま効いている条件。 */
   conditions: AdminProductListConditions;
-  /** 選べる分類。先頭に「すべて」を含む。 */
+  /** 選べる分類。「すべて」は含まない。 */
   categoryOptions: readonly AdminProductFilterOption[];
-  /** 選べる状態。先頭に「すべて」を含む。 */
+  /** 選べる状態。「すべて」は含まない。 */
   statusOptions: readonly AdminProductFilterOption[];
 };
 
-/** いま効いている条件の数。入力欄 1 つを 1 件と数え、指定なしは数えない。 */
+/** いま効いている条件の数。選ばれた値 1 つを 1 件と数える。 */
 function countActive(conditions: AdminProductListConditions): number {
-  return [conditions.categoryCode !== "", conditions.statusCode !== ""].filter(Boolean).length;
+  return conditions.categoryCodes.length + conditions.statusCodes.length;
 }
 
 /**
@@ -74,12 +74,12 @@ export function AdminProductFilterSheet({
     [conditions],
   );
 
-  const selectCategory = useCallback((categoryCode: string) => {
-    setDraft((current) => ({ ...current, categoryCode }));
+  const selectCategory = useCallback((categoryCodes: readonly string[]) => {
+    setDraft((current) => ({ ...current, categoryCodes }));
   }, []);
 
-  const selectStatus = useCallback((statusCode: string) => {
-    setDraft((current) => ({ ...current, statusCode }));
+  const selectStatus = useCallback((statusCodes: readonly string[]) => {
+    setDraft((current) => ({ ...current, statusCodes }));
   }, []);
 
   const confirm = useCallback(() => {
@@ -88,7 +88,7 @@ export function AdminProductFilterSheet({
   }, [draft, router]);
 
   const clear = useCallback(() => {
-    setDraft((current) => ({ ...current, categoryCode: "", statusCode: "" }));
+    setDraft((current) => ({ ...current, categoryCodes: [], statusCodes: [] }));
   }, []);
 
   return (
@@ -111,14 +111,14 @@ export function AdminProductFilterSheet({
             label="分類"
             onSelect={selectCategory}
             options={categoryOptions}
-            value={draft.categoryCode}
+            value={draft.categoryCodes}
           />
           <AdminProductFilterControl
             className="justify-between"
             label="状態"
             onSelect={selectStatus}
             options={statusOptions}
-            value={draft.statusCode}
+            value={draft.statusCodes}
           />
         </div>
         <SheetFooter>

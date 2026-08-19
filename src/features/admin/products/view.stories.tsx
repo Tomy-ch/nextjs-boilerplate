@@ -12,7 +12,7 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { toProductId } from "@/model/product/product";
-import { ADMIN_PRODUCT_LIST_PATH } from "../paths";
+import { ADMIN_ANALYTICS_PATH, ADMIN_DASHBOARD_PATH, ADMIN_PRODUCT_LIST_PATH } from "../paths";
 import type { AdminProductFilterOption } from "./filter-option";
 import type { AdminProductListConditions } from "./query";
 import type { AdminProductRow } from "./row";
@@ -21,18 +21,23 @@ import { AdminProductTable } from "./ui/table/table";
 import { AdminProductListView } from "./view";
 
 const NAV_GROUPS: readonly AdminShellNavGroup[] = [
+  {
+    label: "集計",
+    items: [
+      { href: ADMIN_DASHBOARD_PATH, label: "ダッシュボード" },
+      { href: ADMIN_ANALYTICS_PATH, label: "期間別の集計" },
+    ],
+  },
   { label: "商品", items: [{ href: ADMIN_PRODUCT_LIST_PATH, label: "商品一覧管理" }] },
 ];
 
 const CATEGORY_OPTIONS: readonly AdminProductFilterOption[] = [
-  { value: "", label: "すべての分類" },
   { value: "1", label: "電子機器" },
   { value: "2", label: "書籍" },
   { value: "4", label: "食品" },
 ];
 
 const STATUS_OPTIONS: readonly AdminProductFilterOption[] = [
-  { value: "", label: "すべての状態" },
   { value: "1", label: "在庫あり" },
   { value: "2", label: "在庫切れ" },
   { value: "6", label: "入荷待ち" },
@@ -40,8 +45,8 @@ const STATUS_OPTIONS: readonly AdminProductFilterOption[] = [
 
 const NO_CONDITIONS: AdminProductListConditions = {
   keyword: "",
-  categoryCode: "",
-  statusCode: "",
+  categoryCodes: [],
+  statusCodes: [],
 };
 
 /**
@@ -57,7 +62,7 @@ function withPageFrame(Story: () => React.ReactElement) {
           <Link href="/products">ユーザー画面へ</Link>
         </Button>
       }
-      homeHref={ADMIN_PRODUCT_LIST_PATH}
+      homeHref={ADMIN_DASHBOARD_PATH}
       navGroups={NAV_GROUPS}
       siteHref="/"
       siteName="nextjs-boilerplate"
@@ -207,7 +212,13 @@ export const FilterSheetOpenMobile: Story = {
 /** スマホで条件が効いている状態。入力欄は overlay の中だが、chip が何で絞られているかを示す。 */
 export const FilteredMobile: Story = {
   globals: { viewport: { value: "mobile2", isRotated: false } },
-  args: { conditions: { ...NO_CONDITIONS, categoryCode: "1", statusCode: "2" } },
+  args: { conditions: { ...NO_CONDITIONS, categoryCodes: ["1"], statusCodes: ["2"] } },
+};
+
+/** 同じ種類を複数選んだ状態。chip は値ごとに出て、押すとその 1 つだけが外れる。 */
+export const MultipleFiltered: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  args: { conditions: { ...NO_CONDITIONS, categoryCodes: ["1", "2"], statusCodes: ["2", "6"] } },
 };
 
 /** 途中のページ。前後のどちらへも進める。 */
@@ -265,7 +276,7 @@ export const Searched: Story = {
 export const FilteredByMaster: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
-    conditions: { ...NO_CONDITIONS, categoryCode: "1", statusCode: "2" },
+    conditions: { ...NO_CONDITIONS, categoryCodes: ["1"], statusCodes: ["2"] },
     children: (
       <AdminProductTable
         items={ITEMS.slice(0, 3)}

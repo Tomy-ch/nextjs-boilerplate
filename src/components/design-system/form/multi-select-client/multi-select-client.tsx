@@ -171,7 +171,14 @@ export function MultiSelectClient({
             type="button"
             variant="outline"
           >
-            <span className={cn(selectedLabels.length === 0 && "text-muted-foreground")}>
+            {/* 要約は器の幅で切る。折り返すと trigger の高さが選択の件数で変わり、隣に
+                並ぶ入力欄と行の高さが揃わなくなる。 */}
+            <span
+              className={cn(
+                "min-w-0 truncate",
+                selectedLabels.length === 0 && "text-muted-foreground",
+              )}
+            >
               {summary}
             </span>
             <ChevronsUpDownIcon aria-hidden="true" className="size-4 text-muted-foreground" />

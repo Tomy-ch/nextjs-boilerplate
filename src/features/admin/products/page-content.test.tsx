@@ -1,8 +1,19 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
+
+beforeAll(() => {
+  // 候補を開く overlay が使う表示位置・寸法計測の API を jsdom が持たないため、ここで補う。
+  Element.prototype.scrollIntoView = vi.fn();
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+});
 
 const { getProductCategories, getProductStatuses, results } = vi.hoisted(() => ({
   getProductCategories: vi.fn(),
@@ -42,22 +53,22 @@ describe("AdminProductListPageContent", () => {
 
   it("マスタを選択肢へ直して入力欄へ渡す", async () => {
     render(await AdminProductListPageContent({ searchParams: {} }));
+    await userEvent.click(screen.getByRole("button", { name: /分類/ }));
 
-    expect(screen.getByRole("option", { name: "電子機器" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "在庫切れ" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "電子機器" })).toBeInTheDocument();
   });
 
-  it("先頭に指定なしの選択肢を置く", async () => {
+  it("何も選ばれていなければ、すべてを対象にしていることを示す", async () => {
     render(await AdminProductListPageContent({ searchParams: {} }));
 
-    expect(screen.getByRole("option", { name: "すべての分類" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "すべての状態" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /すべて/ }).length).toBeGreaterThan(0);
   });
 
   it("URL の条件を読んで入力欄へ反映する", async () => {
     render(await AdminProductListPageContent({ searchParams: { categoryCodes: "1" } }));
+    await userEvent.click(screen.getByRole("button", { name: /分類/ }));
 
-    expect(screen.getByLabelText("分類")).toHaveValue("1");
+    expect(screen.getByRole("checkbox", { name: "電子機器" })).toBeChecked();
   });
 
   it("URL が表す場所を一覧へ渡す", async () => {

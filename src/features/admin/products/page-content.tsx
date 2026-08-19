@@ -42,8 +42,10 @@ export async function AdminProductListPageContent({
   const location = toAdminProductListLocation(searchParams);
   const parsed = parseProductQuery({
     ...(location.keyword === "" ? {} : { [FILTER_KEY.KEYWORD]: location.keyword }),
-    ...(location.categoryCode === "" ? {} : { [FILTER_KEY.CATEGORY]: location.categoryCode }),
-    ...(location.statusCode === "" ? {} : { [FILTER_KEY.STATUS]: location.statusCode }),
+    ...(location.categoryCodes.length === 0
+      ? {}
+      : { [FILTER_KEY.CATEGORY]: location.categoryCodes }),
+    ...(location.statusCodes.length === 0 ? {} : { [FILTER_KEY.STATUS]: location.statusCodes }),
     ...(location.cursor === null ? {} : { [CURSOR_KEY]: location.cursor }),
     first: String(ADMIN_PRODUCT_PAGE_SIZE),
   });
@@ -61,16 +63,16 @@ export async function AdminProductListPageContent({
 
   return (
     <AdminProductListView
-      categoryOptions={toFilterOptions(categories, "すべての分類")}
+      categoryOptions={toFilterOptions(categories)}
       conditions={location}
-      statusOptions={toFilterOptions(statuses, "すべての状態")}
+      statusOptions={toFilterOptions(statuses)}
     >
       <Suspense
         fallback={<AdminProductListSkeleton />}
         key={JSON.stringify([
           location.keyword,
-          location.categoryCode,
-          location.statusCode,
+          location.categoryCodes,
+          location.statusCodes,
           location.cursor,
         ])}
       >
