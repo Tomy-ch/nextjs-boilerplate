@@ -1,5 +1,5 @@
-import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Slot } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -67,7 +67,7 @@ export type BadgeProps = ComponentProps<"span"> &
  * @see Storybook `Display/Badge`
  */
 export function Badge({ className, variant, asChild = false, ...props }: BadgeProps) {
-  const Component = asChild ? Slot : "span";
+  const Component = asChild ? Slot.Root : "span";
 
   return (
     <Component
