@@ -65,9 +65,11 @@ test-requirement: integration
 - **`integration` の宣言が掛かるのは、外部との往復を持つモジュールです**。`fetch`（または注入された
   `fetchImpl`）を直接持つものが対象で、そこでは HTTP 境界だけを対象に、内側を mock して型と形を
   確かめます（[0090](../../docs/adr/0090-testing-strategy.md)）。**外部 IO を持たない純粋な変換**
-  （`http/search-params.ts` / `http/retry-policy.ts` / `http/error-status.ts` など、境界の前後で値を
-  写すだけのもの）は、その変換自体を `unit` の形——HTTP を模さず値を直接照合する——で検証します。
-  境界を持たないものへ境界のテストを課しても、確かめる相手が無いためです
+  （`http/url-budget.ts` / `server/http/search-params.ts` / `server/http/retry-policy.ts` /
+  `server/http/error-status.ts` など、境界の前後で値を写すだけのもの）は、その変換自体を `unit` の
+  形——HTTP を模さず値を直接照合する——で検証します。境界を持たないものへ境界のテストを課しても、
+  確かめる相手が無いためです。**`http/` はこの形しか置きません**——実行文脈を持たない規則の置き場
+  なので、外部との往復を持つものは `server/` か `client/` に属します
 
 - `server/` は server config を利用でき、`client/` は secret を利用しない
 - 外部型・生成型はここで変換し、内側へ漏らさない
