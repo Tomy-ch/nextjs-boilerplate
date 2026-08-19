@@ -1,0 +1,120 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+import { cn } from "@/components/cn";
+import {
+  ADMIN_SHELL_HEADER_HEIGHT,
+  ADMIN_SHELL_MAIN_ID,
+  type AdminShellNavGroup,
+} from "./admin-shell.definition";
+import { AdminShellMenu } from "./admin-shell-menu";
+import { AdminShellNav } from "./admin-shell-nav";
+import { AdminShellNavStateProvider } from "./admin-shell-nav-state";
+import { AdminShellNavToggle } from "./admin-shell-nav-toggle";
+
+/** `AdminShell` の props。 */
+export type AdminShellProps = {
+  /** header の左端に置くサイト名。 */
+  siteName: string;
+  /** サイト名を押したときの行き先。 */
+  siteHref: string;
+  /** 脇の一覧の先頭に置く、管理側の名称。 */
+  consoleName: string;
+  /** 管理側の名称を押したときの行き先。 */
+  homeHref: string;
+  /** 脇に並べる導線。狭い画面では overlay へ畳まれる。 */
+  navGroups: readonly AdminShellNavGroup[];
+  /** `main` の中身。 */
+  children: ReactNode;
+  /** header の右端に並べる要素。 */
+  headerActions?: ReactNode;
+  /** 脇の一覧の下端に置く要素。 */
+  navFooter?: ReactNode;
+  /** `main` に追加する class 名。 */
+  className?: string;
+};
+
+/**
+ * 管理画面の外枠。脇の導線一覧 / header / skip link / `main` を持つ。
+ *
+ * @remarks
+ * 利用者向けの `AppShell` とは**別の器**です。1 枚にまとめると、見せる相手で導線を差し替える
+ * 分岐を器の中に抱えます（[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。導線の数と
+ * 深さも違い、管理側は横並びに収まりません。
+ *
+ * 導線を横ではなく脇へ置くのは、増える方向が縦だからです。管理の操作は対象（商品・利用者・集計）
+ * ごとに増え、横並びの header は増えるたびに畳む幅が上がります。
+ *
+ * **脇の一覧は畳めます。** 開閉は {@link AdminShellNavStateProvider} が持ち、器自身は Server
+ * Component のままです。
+ *
+ * **脇に一覧を持てない幅では {@link AdminShellMenu} の overlay へ畳みます。**
+ *
+ * **`main` は幅を絞りません。** 読み幅と左右余白は `ContentContainer` の責務です。
+ *
+ * **器は紙に出しません。** header・脇の一覧・skip link はいずれも画面を渡り歩くためのもので、
+ * 紙の上では押せず場所を取るだけです（`components/design-system/foundation/print`）。
+ *
+ * **`headerActions` と `navFooter` の中身は知りません。** 置き場所だけを用意し、何を出すかは
+ * 渡す側が決めます。利用者向け画面へ戻る導線もその 1 つで、器は行き先を持ちません。
+ *
+ * @see Storybook `Layout/AdminShell`
+ */
+export function AdminShell({
+  siteName,
+  siteHref,
+  consoleName,
+  homeHref,
+  navGroups,
+  children,
+  headerActions,
+  navFooter,
+  className,
+}: AdminShellProps) {
+  return (
+    <AdminShellNavStateProvider className="group/shell flex min-h-screen">
+      <a
+        href={`#${ADMIN_SHELL_MAIN_ID}`}
+        className="print-hidden sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+      >
+        本文へスキップ
+      </a>
+      <aside className="print-hidden sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-background group-data-[nav-open=true]/shell:md:flex">
+        <div
+          className="flex shrink-0 items-center border-b px-4"
+          style={{ height: ADMIN_SHELL_HEADER_HEIGHT }}
+        >
+          <Link href={homeHref} className="font-semibold">
+            {consoleName}
+          </Link>
+        </div>
+        <AdminShellNav
+          className="min-h-0 flex-1 overflow-y-auto p-3"
+          groups={navGroups}
+          label="管理メニュー"
+        />
+        {navFooter === undefined ? null : (
+          <div className="shrink-0 border-t p-3 text-sm text-muted-foreground">{navFooter}</div>
+        )}
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header
+          className="print-hidden sticky top-0 z-40 border-b bg-background/95 backdrop-blur"
+          style={{ height: ADMIN_SHELL_HEADER_HEIGHT }}
+        >
+          <div className="flex h-full w-full items-center gap-2 px-4 md:px-6">
+            <AdminShellMenu groups={navGroups} />
+            <AdminShellNavToggle />
+            <Link href={siteHref} className="font-semibold">
+              {siteName}
+            </Link>
+            <div className="ml-auto flex items-center gap-1">{headerActions}</div>
+          </div>
+        </header>
+        <main id={ADMIN_SHELL_MAIN_ID} className={cn("min-w-0 flex-1", className)}>
+          {children}
+        </main>
+      </div>
+    </AdminShellNavStateProvider>
+  );
+}
