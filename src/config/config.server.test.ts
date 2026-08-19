@@ -14,6 +14,7 @@ const environment: Environment = {
   AUTH_REDIRECT_URI: "https://app.example.test/auth/callback",
   AUTH_SCOPES: "openid profile",
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
+  NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
 };
 
 const { getEnvironment } = vi.hoisted(() => ({
@@ -24,6 +25,7 @@ vi.mock("./environment", () => ({ getEnvironment }));
 
 import { getApiConfig } from "./api/api.server";
 import { getAuthConfig } from "./auth/auth.server";
+import { getHttpConfig } from "./http/http.server";
 import { getMediaConfig } from "./media/media.server";
 import { getObservabilityConfig } from "./observability/observability.server";
 
@@ -50,6 +52,14 @@ describe("server Config", () => {
     });
   });
 
+  it("HTTP Config を検証済み ENV から一度だけ生成する", () => {
+    const first = getHttpConfig();
+    const second = getHttpConfig();
+
+    expect(first).toBe(second);
+    expect(first).toMatchObject({ maxUrlBytes: 8000 });
+  });
+
   it("Media Config を検証済み ENV から一度だけ生成する", () => {
     const first = getMediaConfig();
     const second = getMediaConfig();
@@ -64,6 +74,6 @@ describe("server Config", () => {
 
     expect(first).toBe(second);
     expect(first).toMatchObject({ otlpEndpoint: "https://otel.example.test/v1/traces" });
-    expect(getEnvironment).toHaveBeenCalledTimes(4);
+    expect(getEnvironment).toHaveBeenCalledTimes(5);
   });
 });

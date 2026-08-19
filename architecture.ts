@@ -174,6 +174,8 @@ export const SHARED_AREAS = [
  *
  * - `adapters-gen`: 契約から生成した wire 型。`adapters` の内側にあるため、層として `adapters` を
  *   import できる `app` / `features` から素通しで届き、生成型が内層へ漏れます([0020](docs/adr/0020-adopted-architecture.md) 設計原則 3)
+ * - `adapters-http`: 両 element が従う要求の形の規則。片方の element に置くともう片方から届かず、
+ *   規則が 2 つに割れます([0024](docs/adr/0024-adapters-server-client-split.md))
  * - `mocks`: 契約駆動モック([0027](docs/adr/0027-directory-structure.md))。生成された HTTP client を
  *   含み、それは本番が使わないもの([0071](docs/adr/0071-bff-api-integration.md))です。一方でモックの
  *   起動そのものは起動境界の仕事であるため、そこからだけ届くようにします
@@ -191,6 +193,13 @@ export const RESTRICTED_AREAS = [
     allowedFrom: ["adapters"],
     allowedFromCategories: [],
     dependencies: [],
+  },
+  {
+    type: "adapters-http",
+    pattern: "src/adapters/http",
+    allowedFrom: ["adapters"],
+    allowedFromCategories: [],
+    dependencies: ["errors"],
   },
   {
     type: "adapters-auth",

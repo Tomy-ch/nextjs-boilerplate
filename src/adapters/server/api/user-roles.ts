@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getApiConfig } from "@/config/api/api.server";
+import { getHttpConfig } from "@/config/http/http.server";
 import { SESSION_ROLE, type SessionRole } from "@/model/session";
 
 import { GetUsersMeRolesResponse } from "../../gen/api/endpoints.zod";
@@ -29,6 +30,7 @@ const ROLES_PATH = "/v1/users/me/roles";
 export async function fetchSessionRole(accessToken: string): Promise<SessionRole> {
   const wire = await createHttpClient({
     baseUrl: getApiConfig().baseUrl,
+    maxUrlBytes: getHttpConfig().maxUrlBytes,
     getBearerToken: async () => accessToken,
   }).request({ path: ROLES_PATH, schema: GetUsersMeRolesResponse });
 

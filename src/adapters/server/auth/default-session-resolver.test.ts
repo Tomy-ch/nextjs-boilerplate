@@ -101,6 +101,7 @@ function createResolver(
     redirectUri,
     scopes: "openid profile email",
     sessionSecret,
+    maxUrlBytes: 8_000,
     resolveRole,
     fetchImpl,
     now: () => at,
@@ -318,6 +319,7 @@ describe("createDefaultSessionResolver", () => {
       redirectUri,
       scopes: "openid",
       sessionSecret,
+      maxUrlBytes: 8_000,
       resolveRole: async () => SESSION_ROLE.user,
       now: () => nowMs,
     });
@@ -346,6 +348,7 @@ describe("createDefaultSessionResolver", () => {
       redirectUri,
       scopes: "openid",
       sessionSecret,
+      maxUrlBytes: 8_000,
       resolveRole: async () => SESSION_ROLE.user,
       fetchImpl: createIdp(issued, 3600),
     });
@@ -452,6 +455,7 @@ describe("createDefaultSessionResolver", () => {
       redirectUri,
       scopes: "openid",
       sessionSecret: "another-secret-value-that-differs-from-the-original",
+      maxUrlBytes: 8_000,
       fetchImpl,
       resolveRole: async () => SESSION_ROLE.user,
       now: () => nowMs,

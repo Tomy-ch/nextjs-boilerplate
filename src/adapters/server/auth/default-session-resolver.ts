@@ -61,6 +61,8 @@ export type DefaultSessionResolverDeps = {
   readonly scopes: string;
   /** cookie の封緘に使う秘密値。 */
   readonly sessionSecret: string;
+  /** 1 つの要求 URL に許すバイト数の上限。 */
+  readonly maxUrlBytes: number;
   /** 取得に使う実装。既定は環境の `fetch`。 */
   readonly fetchImpl?: typeof fetch;
   /**
@@ -105,7 +107,11 @@ async function deriveSealKey(secret: string): Promise<Uint8Array> {
  */
 export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): SessionResolver {
   const now = deps.now ?? Date.now;
-  const client = createHttpClient({ baseUrl: deps.issuer, fetchImpl: deps.fetchImpl });
+  const client = createHttpClient({
+    baseUrl: deps.issuer,
+    maxUrlBytes: deps.maxUrlBytes,
+    fetchImpl: deps.fetchImpl,
+  });
 
   let endpoints: Promise<OidcEndpoints> | undefined;
   let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
@@ -113,11 +119,13 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
   const resolveEndpoints = (): Promise<OidcEndpoints> => {
     // 失敗した Promise は捨てる。`??=` は undefined のときしか代入しないため、reject した
     // Promise を残すと次の呼び出しも同じ失敗を返し、プロセスを入れ替えるまで回復しない。
-    endpoints ??= fetchOidcEndpoints(deps.issuer, deps.fetchImpl).catch((cause: unknown) => {
-      endpoints = undefined;
+    endpoints ??= fetchOidcEndpoints(deps.issuer, deps.maxUrlBytes, deps.fetchImpl).catch(
+      (cause: unknown) => {
+        endpoints = undefined;
 
-      throw cause;
-    });
+        throw cause;
+      },
+    );
 
     return endpoints;
   };

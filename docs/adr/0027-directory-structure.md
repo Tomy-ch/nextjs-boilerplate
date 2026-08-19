@@ -30,6 +30,8 @@ src/
 ├── model/                  # 表示用 VO / フォーマッタ / 表示結果型(ActionState<T> 等)(フラット共置)
 ├── components/             # 横断 UI(フラット共置)
 ├── adapters/               # 外部接続。server/・client/ の 2 element に分割([0024]・RSC 境界)
+│   ├── gen/                #   契約から生成した wire 型([0072]。手で編集しない区画)
+│   ├── http/               #   両 element が従う要求の形の規則(実行文脈を持たない区画)
 │   ├── server/             #   server-only(backend client・secret・config 可)
 │   └── client/             #   "use client"(同一オリジン BFF fetch / WS / telemetry 送信・secret 不可)
 ├── capabilities/           # 横断 client hook(runtime 能力。[0022])
@@ -79,7 +81,7 @@ src/
 
 - **性質で分けるのは、性質ごとに検証手段と import 可能な先が違うから**である。取得と組み立ては `adapters` を呼び、表示は呼ばない([0021](0021-frontend-responsibility.md) 依存マトリクス)。取得は module 境界の mock を伴い、表示は DOM を伴う([0091](0091-test-verification-methods.md))。置き場が性質を表していれば、そのファイルが何を呼べて何で検証されるかを読まずに決められる
 - **画面の表示は `view.tsx`(合成)と `ui/<part>/`(部材)に分ける**。`view.tsx` は `page-content.tsx` が取得した値を受けて画面を組み立てるもので、`ui/` の部品と同格ではない
-- **囲んでいるディレクトリの語をファイル名・ディレクトリ名で繰り返さない**。`features/products/list/ui/card/card.tsx` であり `product-card` とはしない。区別はパスが担い、識別子は PascalCase の側が担う([0028](0028-naming-convention.md) のファイル名と主 export は別軸)
+- **囲んでいるディレクトリの語をファイル名・ディレクトリ名で繰り返さない**。`features/<name>/list/ui/card/card.tsx` であり `<name>-card` とはしない。区別はパスが担い、識別子は PascalCase の側が担う([0028](0028-naming-convention.md) のファイル名と主 export は別軸)
 - **`ui/` の中は 1 部品 = 1 ディレクトリ**とし、実装・テスト・stories・定義・README を共置する。`components/design-system/<役割>/<部品>/` と同形であり、部品ごとに stories([0054](0054-ui-catalog-storybook.md))の置き場を確保するためにこの粒度を採る
 - **深さの上限は `features/<name>/<screen>/ui/<part>/`** とする。`ui/` の中をさらに種類で掘らない。画面が部品を抱えきれなくなった場合は、`ui/` を深くするのではなく**画面(第 1 軸)を分ける**か、[0021](0021-frontend-responsibility.md) の昇格ルールで `components` へ出す
 - **画面が 1 つの間は第 1 軸を省略してよい**。`features/<name>/` の直下に `page-content.tsx` / `view.tsx` / `ui/` を置く。2 つ目の画面が来た時点で画面ディレクトリへ割る

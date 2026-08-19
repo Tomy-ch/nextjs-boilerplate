@@ -49,8 +49,15 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 | `AUTH_SCOPES` | 認可リクエストの space-delimited scope | string | `openid profile email api.read api.write` | Required |
 | `AUTH_SESSION_SECRET` | BFF session cookie を保護する秘密値 | string | `local-development-session-secret-change-before-production` | **Secret management required**。32 文字以上。`local` / `ci` に同梱している値は公開リポジトリに載っているため、それ以外の環境では起動時に拒否される |
 
+### HTTP
+
+| Variable Name | Description | Type | Example | Notes |
+| --- | --- | --- | --- | --- |
+| `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | 1 つの要求 URL に許すバイト数の上限 | integer | `8000` | Required。ブラウザ / CDN / リバースプロキシ / backend のうち、経路上で最も小さい上限を入れる。既定値はどれも持たない |
+
 ## 運用
 
 - config を経由して利用する変数は `src/config/` のスキーマで、ビルド時とサーバー起動時に検証される。
-- `NEXT_PUBLIC_` 変数は現時点で定義しない。必要になった場合も secret を置いてはならない。
+- `NEXT_PUBLIC_` 変数にはブラウザへ露出してよい公開値だけを置く。secret を置いてはならない。
+- `NEXT_PUBLIC_` はビルド時にリテラルへ置換されるため、値の変更には再ビルドが要る。起動時の差し替えは効かない。
 - 新しい変数を追加する前に、利用目的・server/client 境界・required/default・secret 管理ラベルを確認する。

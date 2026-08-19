@@ -22,6 +22,11 @@ export default defineConfig({
     // あちらに居るのは lint とゲートそのもので、落ちたときにアプリの退行と読み違えたくない。
     include: ["{src,tokens,docs-viewer,mocks,eslint-rules,vrt,e2e}/**/*.test.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],
+    // client config はビルド時に置換されるリテラルを前提に `process.env` を静的に読む。この実行は
+    // その置換を行わないので、ここで供給しないと値が `NaN` のまま client 側の経路へ渡る。
+    env: {
+      NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
+    },
     coverage: {
       provider: "v8",
       // テストを持つ範囲は実行対象と計測対象を揃える。片方だけ広げると、テストは走るのに
