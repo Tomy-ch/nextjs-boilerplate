@@ -55,6 +55,35 @@ function defaultSummary(labels: readonly string[]): string {
 }
 
 /**
+ * 1 つ入り切りした後の選択を組み直す。
+ *
+ * @remarks
+ * **候補の並び順で返します。** 押した順に積むと、同じ組み合わせでも並びが変わり、値を URL へ
+ * 載せる呼び出し元では同じ条件が別のリンクとして見えます。
+ */
+export function toToggledValues(
+  options: readonly MultiSelectClientOption[],
+  current: readonly string[],
+  toggled: string,
+  checked: boolean,
+): readonly string[] {
+  return options
+    .map((option) => option.value)
+    .filter((candidate) => (candidate === toggled ? checked : current.includes(candidate)));
+}
+
+/** 選ばれている文言を、trigger に出す 1 行へ畳む。 */
+export function toSummary(
+  labels: readonly string[],
+  placeholder: string,
+  format: (labels: readonly string[]) => string,
+): string {
+  if (labels.length === 0) return placeholder;
+
+  return labels.length === 1 ? labels[0] : format(labels);
+}
+
+/**
  * 候補を畳んだまま複数選ぶ client island。
  *
  * @remarks
@@ -132,12 +161,7 @@ export function MultiSelectClient({
   const toggle = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const { value: toggled, checked } = event.currentTarget;
-      // 候補の並び順で持ち直す。押した順に積むと、同じ組み合わせでも URL の並びが変わる。
-      const next = options
-        .map((option) => option.value)
-        .filter((candidate) =>
-          candidate === toggled ? checked : currentValues.includes(candidate),
-        );
+      const next = toToggledValues(options, currentValues, toggled, checked);
 
       if (value === undefined) setInternalValues(next);
       onValueChange?.(next);
@@ -145,12 +169,7 @@ export function MultiSelectClient({
     [currentValues, onValueChange, options, value],
   );
 
-  const summary =
-    selectedLabels.length === 0
-      ? placeholder
-      : selectedLabels.length === 1
-        ? selectedLabels[0]
-        : formatSummary(selectedLabels);
+  const summary = toSummary(selectedLabels, placeholder, formatSummary);
 
   return (
     <div className="flex w-full flex-col gap-2">

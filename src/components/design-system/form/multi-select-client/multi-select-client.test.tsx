@@ -6,7 +6,12 @@ import { useCallback, useId, useState } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { MultiSelectClient, type MultiSelectClientOption } from "./multi-select-client";
+import {
+  MultiSelectClient,
+  type MultiSelectClientOption,
+  toSummary,
+  toToggledValues,
+} from "./multi-select-client";
 
 beforeAll(() => {
   // Popover が使う表示位置・寸法計測の API を jsdom が持たないため、ここで補う。
@@ -203,5 +208,46 @@ describe("MultiSelectClient", () => {
     await open();
 
     expect((await axe(screen.getByRole("dialog"))).violations).toEqual([]);
+  });
+});
+
+describe("toToggledValues", () => {
+  // ----- 正常系 -----
+  it("入れた値を足す", () => {
+    expect(toToggledValues(OPTIONS, ["1"], "2", true)).toEqual(["1", "2"]);
+  });
+
+  it("切った値を外す", () => {
+    expect(toToggledValues(OPTIONS, ["1", "2"], "1", false)).toEqual(["2"]);
+  });
+
+  it("押した順ではなく候補の並び順で返す", () => {
+    expect(toToggledValues(OPTIONS, ["2"], "1", true)).toEqual(["1", "2"]);
+  });
+
+  // ----- 異常系 -----
+  it("候補に無い値は落とす", () => {
+    expect(toToggledValues(OPTIONS, ["9"], "1", true)).toEqual(["1"]);
+  });
+
+  it("候補が空なら何も返さない", () => {
+    expect(toToggledValues([], ["1"], "1", true)).toEqual([]);
+  });
+});
+
+describe("toSummary", () => {
+  const format = (labels: readonly string[]) => `${labels.length} 件`;
+
+  // ----- 正常系 -----
+  it("選ばれていなければ未選択の文言を返す", () => {
+    expect(toSummary([], "すべて", format)).toBe("すべて");
+  });
+
+  it("1 つだけならその文言をそのまま返す", () => {
+    expect(toSummary(["公開"], "すべて", format)).toBe("公開");
+  });
+
+  it("2 つ以上なら畳み方に委ねる", () => {
+    expect(toSummary(["下書き", "公開"], "すべて", format)).toBe("2 件");
   });
 });

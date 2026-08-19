@@ -19,6 +19,19 @@ export const PERIOD_KEY: Readonly<{ PERIOD: "period"; FROM: "from"; TO: "to" }> 
 };
 
 /**
+ * キーを画面上の呼び名へ直す表。
+ *
+ * @remarks
+ * キーを持っているのはこの層なので、呼び名も同じ場所に置きます。表示する側が写しを持つと、
+ * 契約にキーが増えたときに生の名前が出る画面と出ない画面に割れます。
+ */
+export const PERIOD_KEY_LABEL: Readonly<Record<string, string>> = {
+  [PERIOD_KEY.PERIOD]: "期間の区分",
+  [PERIOD_KEY.FROM]: "開始日",
+  [PERIOD_KEY.TO]: "終了日",
+};
+
+/**
  * 期間の指定が、集計を求められる形になっているか。
  *
  * @remarks

@@ -30,13 +30,15 @@ test-requirement: feature
 | ファイル | 役割 |
 | --- | --- |
 | `paths.ts` | 管理画面のパス。画面どうしの導線と、利用者向けの器からの入口が引く |
-| `dashboard/period.ts` | 集計の URL 契約（期間の区分と両端の日付）。指定が成立しているかの判断も持つ |
+| `dashboard/period.ts` | 集計の URL 契約（期間の区分と両端の日付）とキーの呼び名。指定が成立しているかの判断も持つ |
 | `dashboard/period-window.ts` | 選ばれた期間が対象にしている暦日。契約が返さないので同じ規則を辿る |
 | `dashboard/count.ts` | 件数の locale 対応整形。2 つ目の feature が要る段で `model` へ上げる |
 | `dashboard/summary-cards.ts` | 合成済みの集計を数値カードの並びへ写す。母集団の断りを値に添える |
 | `dashboard/ranking-rows.ts` | 売れ筋の表に並べる 1 行。順位は契約が返した並びの位置 |
 | `dashboard/page-content.tsx` | 入口（今日）の取得と組み立て |
-| `dashboard/analytics-content.tsx` | 集計の URL 解釈と、取り直す範囲の区切り。取得は区画ごとに持つ |
+| `dashboard/analytics-content.tsx` | 集計の URL 解釈と、取り直す範囲の区切り。取得は持たない |
+| `dashboard/summary-section.tsx` | 期間が変わったときに取り直す区画。期間が決まっていないときの案内も持つ |
+| `dashboard/ranking-section.tsx` | 期間の選択に従わない区画。別の待機に置く |
 | `dashboard/view.tsx` | 入口の画面。数値カードと内訳、期間指定への導線 |
 | `dashboard/analytics-view.tsx` | 集計の画面。期間の選択の下へ、取り直す区画を slot で受ける |
 | `dashboard/ui/stat-cards/` | 数値カードの並び。注記を値と同じ枠に置く |
@@ -46,9 +48,8 @@ test-requirement: feature
 | `dashboard/ui/period-caption/` | いま出ている数がどの暦日の話かを添える |
 | `dashboard/ui/range-dialog/` | 期間の両端を overlay で選ぶ。中身は native の GET フォーム |
 | `dashboard/ui/ranking-table/` | 売れ筋の表。期間の選択には従わず、商品名は商品の面へ出る |
-| `dashboard/ui/invalid-query/` | URL の期間が契約を外れているときの表示。外して戻る導線を持つ |
 | `dashboard/ui/skeleton/` | 集計の待機表示 |
-| `products/query.ts` | 一覧の URL 契約（絞り込みとページ送りの位置）。通ってきた道もここが持つ |
+| `products/query.ts` | 一覧の URL 契約（絞り込みとページ送りの位置）とキーの呼び名。通ってきた道もここが持つ |
 | `products/page-size.ts` | 1 ページに並べる件数 |
 | `products/filter-option.ts` | 絞り込みで選べる候補の形と、マスタからの写し |
 | `products/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |
@@ -63,8 +64,8 @@ test-requirement: feature
 | `products/ui/filter-select/` | 選んだ時点で反映する絞り込み。広い段で使う |
 | `products/ui/filter-sheet/` | 狭い段の絞り込み。下端の操作から開き、overlay の中でまとめて確定する |
 | `products/ui/skeleton/` | 表の待機表示 |
-| `products/ui/invalid-query/` | URL の条件が契約を外れているときの表示。外して戻る導線を持つ |
 | `ui/error-state/` | 取得に失敗したときの表示。`/admin` の error 境界が使う。境界は 1 枚なので画面を名指ししない |
+| `ui/invalid-query/` | URL の条件が契約を外れているときの表示。題・行き先・キーの呼び名は画面が渡す |
 
 ## 認可
 

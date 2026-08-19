@@ -32,6 +32,20 @@ export const CURSOR_KEY = "after";
 const TRAIL_KEY = "trail";
 
 /**
+ * キーを画面上の呼び名へ直す表。
+ *
+ * @remarks
+ * キーを持っているのはこの層なので、呼び名も同じ場所に置きます。表示する側が写しを持つと、
+ * 契約にキーが増えたときに生の名前が出る画面と出ない画面に割れます。
+ */
+export const FILTER_KEY_LABEL: Readonly<Record<string, string>> = {
+  [FILTER_KEY.KEYWORD]: "キーワード",
+  [FILTER_KEY.CATEGORY]: "分類",
+  [FILTER_KEY.STATUS]: "状態",
+  [CURSOR_KEY]: "読み込み位置",
+};
+
+/**
  * 一覧に効いている絞り込み。
  *
  * @remarks

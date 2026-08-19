@@ -41,7 +41,9 @@ describe("splitRepository", () => {
 describe("defaultImagesName", () => {
   // ----- 正常系 -----
   it("親の名前から導く（owner は含めない）", () => {
-    expect(defaultImagesName("Tomy-ch/nextjs-boilerplate")).toBe("nextjs-boilerplate-baseline-images");
+    expect(defaultImagesName("Tomy-ch/nextjs-boilerplate")).toBe(
+      "nextjs-boilerplate-baseline-images",
+    );
   });
 });
 
