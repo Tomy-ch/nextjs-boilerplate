@@ -22,14 +22,20 @@ const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => envir
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 
-import { getProductCategories, PRODUCT_MASTERS_TAG } from "./product-masters";
+import { getProductCategories, getProductStatuses, PRODUCT_MASTERS_TAG } from "./product-masters";
 
 const wireCategories = [
   { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b21", name: "雑貨", code: 20, displaySort: 1 },
   { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b22", name: "書籍", code: 10, displaySort: 2 },
 ];
 
+const wireStatuses = [
+  { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b31", name: "在庫あり", code: 1 },
+  { id: "3f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b32", name: "在庫切れ", code: 2 },
+];
+
 const CATEGORIES_URL = `${environment.APP_API_BASE_URL}/v1/products/categories`;
+const STATUSES_URL = `${environment.APP_API_BASE_URL}/v1/products/statuses`;
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -64,8 +70,6 @@ describe("getProductCategories", () => {
 
   it("キャッシュとマスタの再検証タグを指定する", async () => {
     serveJson(CATEGORIES_URL, wireCategories);
-    // キャッシュ指定は要求として送出されないため、HTTP 境界からは観測できない。応答は
-    // 差し替えず、`fetch` へ渡された指定だけを見る。
     const fetchImpl = vi.spyOn(globalThis, "fetch");
 
     await getProductCategories();
@@ -80,5 +84,51 @@ describe("getProductCategories", () => {
     serveJson(CATEGORIES_URL, []);
 
     await expect(getProductCategories()).resolves.toEqual([]);
+  });
+});
+
+describe("getProductStatuses", () => {
+  // ----- 正常系 -----
+  it("契約の応答から ID・コード・表示名を取り出す", async () => {
+    serveJson(STATUSES_URL, wireStatuses);
+
+    await expect(getProductStatuses()).resolves.toEqual([
+      { id: wireStatuses[0].id, name: "在庫あり", code: 1 },
+      { id: wireStatuses[1].id, name: "在庫切れ", code: 2 },
+    ]);
+  });
+
+  it("契約が返した並びをそのまま保つ", async () => {
+    serveJson(STATUSES_URL, [wireStatuses[1], wireStatuses[0]]);
+
+    const statuses = await getProductStatuses();
+
+    expect(statuses.map((status) => status.name)).toEqual(["在庫切れ", "在庫あり"]);
+  });
+
+  it("状態のマスタへ問い合わせる", async () => {
+    const requests = serveJson(STATUSES_URL, wireStatuses);
+
+    await getProductStatuses();
+
+    expect(requests[0]?.url).toBe(STATUSES_URL);
+  });
+
+  it("キャッシュとマスタの再検証タグを指定する", async () => {
+    serveJson(STATUSES_URL, wireStatuses);
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+
+    await getProductStatuses();
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      cache: "force-cache",
+      next: { tags: [PRODUCT_MASTERS_TAG] },
+    });
+  });
+
+  it("マスタが空でも空の一覧を返す", async () => {
+    serveJson(STATUSES_URL, []);
+
+    await expect(getProductStatuses()).resolves.toEqual([]);
   });
 });
