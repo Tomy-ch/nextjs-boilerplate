@@ -3,8 +3,14 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createAppError } from "@/errors/app-error";
+import { ErrorKind } from "@/errors/error-kind";
 import type { CursorPage } from "@/model/pagination";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
+
+const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
 const { fetchPurchaseHistoryPage } = vi.hoisted(() => ({
   fetchPurchaseHistoryPage:
@@ -85,6 +91,7 @@ function Subject({
 
 beforeEach(() => {
   observers.length = 0;
+  refresh.mockClear();
   fetchPurchaseHistoryPage.mockReset();
   vi.stubGlobal("IntersectionObserver", IntersectionObserverStub);
 });
@@ -157,6 +164,17 @@ describe("useInfinitePurchases", () => {
 
     await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("failed"));
     expect(screen.getByTestId("codes")).toHaveTextContent("a");
+  });
+
+  it("資格情報が切れたら、続きの失敗にせずサーバへ描き直しを頼む", async () => {
+    fetchPurchaseHistoryPage.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    render(<Subject initial={pageOf(["a"], "cursor-1")} />);
+    reachEnd();
+
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(screen.getByTestId("status")).not.toHaveTextContent("failed");
+    expect(screen.queryByRole("button", { name: "読み直す" })).not.toBeInTheDocument();
   });
 
   it("読み直すと、同じ鍵で取り直す", async () => {

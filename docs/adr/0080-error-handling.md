@@ -49,6 +49,15 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - バックエンド応答の生 HTTP status → sentinel 分類 + 安定エラーコード + ユーザ向けメッセージ への変換は、**`adapters` 境界で 1 回だけ**行う([0071](0071-bff-api-integration.md) B3 の「生 status を errors へ正規化」の詳細=本 ADR。go `http_error.go` の対応表 + `lookupErrorMetaByAppError` の翻案)
 - **生 HTTP status・生エラーを内層 / UI へ漏らさない**([0071](0071-bff-api-integration.md) と一致)。未知エラーは `Internal`(500)へ矯正する
 - ユーザ向けメッセージは日本語(AGENTS.md Language Rules)。メッセージ本文は実装時に確定(本 ADR は分類とコードの対応表を定める)
+- **クライアント経路も同じ境界で分類する。** 同一オリジンの BFF を叩く `adapters/client` も生 status を
+  そのまま投げ直さず、この対応表へ写す。特に `Unauthenticated`(401)を `Internal` へ畳まないこと ——
+  畳むと呼び出し側は「再試行できる失敗」としか扱えず、資格情報が切れているのに読み直す操作しか
+  出せない画面になる(再試行は 401 / 403 / 404 では誤り。`components/app-starter/auth-state-feedback`)
+- **補助的な値の degrade は、画面ごとに決めさせず境界で 1 度畳む。** 表示のためだけにあり、
+  読めなくても画面が成り立つ値(参考換算額のような添え物)は、`adapters` に「読めなければ `null`」を
+  返す口を置き、投げる口も残す。画面ごとに try / catch を書かせると、同じ判断が画面の数だけ増え、
+  片方だけが落ちる画面が生まれる。**逆に、落として良いかどうかが画面で割れる値は畳まない** ——
+  畳めるのは「どの画面も同じ扱いをする」ことが言い切れるときだけである
 
 ### 3. App Router のエラー特殊ファイル階層
 
@@ -95,6 +104,8 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - ❌ `error.tsx` / `global-error.tsx` / `not-found.tsx` / `loading.tsx` / Suspense fallback に業務ロジックを書くこと(薄い表示境界)
 - ❌ `page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにし、Suspense 境界を待つ部分の近くへ置かないこと(ストリーミングの利点を捨てる)
 - ❌ 同一エラーを複数箇所で重複ログすること(境界で 1 回)
+- ❌ `Unauthenticated`(401)を `Internal` へ畳むこと(§2。再試行できる失敗と混ざる)
+- ❌ 画面が成り立つために要らない値の degrade を、画面ごとの try / catch で書くこと(§2。境界で畳む)
 
 ## 補足
 
