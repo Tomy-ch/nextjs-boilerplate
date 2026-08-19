@@ -15,6 +15,16 @@ pnpm check:ui
 
 `--as=<見出し>` は必須で、その部品が component 目録のどの見出しに載るかを指定します。取り込みの前に決めさせるのは、後回しにすると実装が終わった時点で目録へ載せる作業だけが残り、`pnpm check:ui` が落ちるまで誰も気付けないためです。指定できる見出しは `../README.md` の component 目録と同じで、値が違えば `shadcn add` を走らせる前に失敗します。
 
+## 依存の追加が root へ向かうこと
+
+shadcn CLI は取り込む部品の npm 依存を `pnpm add` で入れますが、`-w` を付けません。このリポジトリは
+ワークスペースを持つため pnpm が root への追加を拒み、**ファイルが 1 つも書かれないまま**取り込みが
+止まります。依存インストールはファイル書き出しより先に走るので、部品の種類に依らずすべて止まります。
+
+CLI 側に抑止する口が無いので、`add:ui` の実行時にだけ `npm_config_ignore_workspace_root_check` を
+立てて許可します。`.npmrc` に置かないのは、そこへ書くと**あらゆる `pnpm add` で root への誤追加が
+黙って通る**ためです。許可の範囲は `pnpm add:ui` の 1 回に閉じ、手で打つ `pnpm add` には効きません。
+
 ## 依存部品の生成物
 
 shadcn CLI はこのリポジトリの層と目的による配置を知らないため、依存部品を `design-system/<name>.tsx` へ出力し、取り込んだ component からは `@/components/design-system/<name>` を import します。ラッパーは移動のあとにこれを整理します。
@@ -38,7 +48,7 @@ select:
   addedAt: 2026-08-02T03:35:28.433Z
   shadcnCliVersion: 4.15.0
   dependencies:
-    - "@radix-ui/react-select"
+    - radix-ui
   source:
     - repository: shadcn-ui/ui
       path: apps/v4/registry/new-york-v4/ui/select.tsx

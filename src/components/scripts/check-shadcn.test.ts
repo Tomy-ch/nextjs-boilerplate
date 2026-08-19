@@ -720,10 +720,8 @@ describe("vendorImportsOf", () => {
 
   it("入口ではなく package を数える", () => {
     expect(
-      vendorImportsOf([
-        'import Image from "next/image";\nimport { Slot } from "@radix-ui/react-slot";',
-      ]),
-    ).toEqual(["@radix-ui/react-slot", "next"]);
+      vendorImportsOf(['import Image from "next/image";\nimport { Slot } from "radix-ui";']),
+    ).toEqual(["next", "radix-ui"]);
   });
 });
 
@@ -762,7 +760,7 @@ describe("packageOf", () => {
   });
 
   it("scope を持つ specifier では scope ごと取り出す", () => {
-    expect(packageOf("@radix-ui/react-dialog")).toBe("@radix-ui/react-dialog");
-    expect(packageOf("@radix-ui/react-dialog/dist/index")).toBe("@radix-ui/react-dialog");
+    expect(packageOf("@tiptap/react")).toBe("@tiptap/react");
+    expect(packageOf("@tiptap/react/dist/index")).toBe("@tiptap/react");
   });
 });

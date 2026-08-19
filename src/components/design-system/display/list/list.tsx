@@ -1,5 +1,5 @@
-import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Slot } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -32,7 +32,7 @@ function List({
   className,
   ...props
 }: ComponentProps<"ul"> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot : "ul";
+  const Comp = asChild ? Slot.Root : "ul";
 
   return <Comp className={cn("flex flex-col", className)} data-slot="list" {...props} />;
 }
@@ -113,7 +113,7 @@ function ListItemLink({
   className,
   ...props
 }: ComponentProps<"a"> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot : "a";
+  const Comp = asChild ? Slot.Root : "a";
 
   return (
     <Comp

@@ -267,7 +267,7 @@ const RUNTIME_PACKAGES: ReadonlySet<string> = new Set(["react", "react-dom"]);
  * import 指定子から package 名を取り出す。
  *
  * @remarks
- * `next/image` は `next` に、`@radix-ui/react-slot` はそのまま数える。台帳が答えるのは
+ * `next/image` は `next` に、`@tiptap/react` はそのまま数える。台帳が答えるのは
  * 「どの package を参照しているか」であって、その package のどの入口を使ったかではない。
  */
 export function packageOf(specifier: string): string {
