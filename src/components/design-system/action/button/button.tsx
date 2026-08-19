@@ -101,8 +101,8 @@ export type ButtonProps = ComponentProps<"button"> &
      * 待っているあいだは押せなくします。もう一度押せると、受け付けられたのかどうかが利用者から
      * 判りません。
      *
-     * 文言は視覚から外れると支援技術からも外れるため、待っていることは {@link pendingLabel} が
-     * 伝えます。
+     * 文言は視覚から外れると、その文言から組み立てていた名前も消えます。待っていることは
+     * {@link pendingLabel} が操作自身の名前として伝えます。
      *
      * `asChild` とは併せられません。合成先の要素の中身をこの component が組み替えられないためです。
      */
@@ -111,7 +111,7 @@ export type ButtonProps = ComponentProps<"button"> &
      * 待っているあいだのアクセシブルな名前。
      *
      * @remarks
-     * 省略すると、待っていることは見た目でしか伝わりません。
+     * 省略すると、待っているあいだ操作が名前を持ちません。`pending` を使うなら併せて渡します。
      */
     pendingLabel?: string;
     /** 子要素へボタンの見た目と props を合成するか。 */
@@ -173,6 +173,9 @@ export function Button({
 
   return (
     <Component
+      // 文言を視覚から外すと、その文言から組み立てていた名前も消える。待っていることは操作自身の
+      // 名前で伝える。
+      aria-label={pendingLabel}
       aria-busy={true}
       className={cn(buttonVariants({ variant, size, className }), "relative")}
       disabled={true}
@@ -181,7 +184,7 @@ export function Button({
       {/* 文言は場所を取ったまま見えなくする。取り除くと幅が縮む。 */}
       <span className="invisible inline-flex items-center gap-2">{children}</span>
       <span className="absolute inset-0 inline-flex items-center justify-center">
-        <Spinner label={pendingLabel} />
+        <Spinner />
       </span>
     </Component>
   );

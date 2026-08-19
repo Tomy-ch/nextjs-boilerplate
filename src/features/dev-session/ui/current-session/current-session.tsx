@@ -35,8 +35,8 @@ function DiscardSubmit() {
 
   return (
     <Button
-      aria-label={pending ? PENDING_LABEL : undefined}
-      disabled={pending}
+      pending={pending}
+      pendingLabel={PENDING_LABEL}
       type="submit"
       variant={BUTTON_VARIANT.OUTLINE}
     >

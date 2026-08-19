@@ -28,9 +28,10 @@ describe("Button", () => {
       </Button>,
     );
 
-    expect(screen.getByRole("button")).toBeDisabled();
-    expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByRole("status", { name: "送信しています" })).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "送信しています" });
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
   });
 
   it("待っていなければ印を出さない", () => {

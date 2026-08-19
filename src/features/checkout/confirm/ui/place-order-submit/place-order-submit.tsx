@@ -4,7 +4,6 @@ import { useFormStatus } from "react-dom";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
-import { Spinner } from "@/components/design-system/status/spinner/spinner";
 
 import type { PlaceOrderFormState } from "../../../form-state";
 
@@ -26,10 +25,10 @@ const PENDING_LABEL = "注文を確定しています";
  * @remarks
  * `useFormStatus` は form の子でしか状態を読めないため、form を持つ側とは別の部品にしています。
  *
- * **送信中は絵柄だけを差し替え、見えている文言は据え置きます。** 文言を伸ばすと器の幅が動き、
- * 脇に貼り付いた集計や下端に固定した帯では周りの位置まで動きます。
+ * 送信中の見せ方と、そのあいだ押せなくすることは `Button` が持ちます。ここが渡すのは、待って
+ * いることを支援技術へ伝える文言だけです。
  *
- * 送信中は押せなくします。もう一度押しても鍵が同じなので購入は増えませんが、待っているあいだに
+ * 送信中に押せないことには、この画面固有の意味もあります。もう一度押しても鍵が同じなので購入は増えませんが、待っているあいだに
  * 押せる操作を残すと、受け付けられたのかどうかが利用者から判りません。
  */
 export function PlaceOrderSubmit({ label, orderable, fullWidth = false }: PlaceOrderSubmitProps) {
@@ -37,12 +36,12 @@ export function PlaceOrderSubmit({ label, orderable, fullWidth = false }: PlaceO
 
   return (
     <Button
-      aria-label={pending ? PENDING_LABEL : undefined}
       className={fullWidth ? "w-full" : undefined}
-      disabled={!orderable || pending}
+      disabled={!orderable}
+      pending={pending}
+      pendingLabel={PENDING_LABEL}
       type="submit"
     >
-      {pending ? <Spinner className="size-4" /> : null}
       {label}
     </Button>
   );
