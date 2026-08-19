@@ -15,7 +15,14 @@ import { toSafeReturnUrl } from "@/model/return-url";
  * `/account` は fork 先が最初に書き換える置き場です。同梱サンプルの画面は破棄と一緒に消えますが、
  * 保護の宣言そのものは残す必要があるため、1 つだけ中立な接頭辞を置いています。
  */
-const PROTECTED_PREFIXES = [
+/**
+ * 前捌きの対象にする経路の先頭。
+ *
+ * @remarks
+ * 公開しているのは、宣言したすべてが実際に前捌きへ届くかを検査できるようにするためです。
+ * 検査側が一覧を書き写すと、ここへ足した経路が検査を素通りします。
+ */
+export const PROTECTED_PREFIXES = [
   "/account",
   "/mypage", // sample:line
   "/checkout", // sample:line

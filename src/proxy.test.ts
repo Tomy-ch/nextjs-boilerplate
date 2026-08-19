@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SESSION_ROLE } from "@/model/session";
-import { proxy } from "./proxy";
+import { PROTECTED_PREFIXES, proxy } from "./proxy";
 
 const readOptimisticSession = vi.hoisted(() => vi.fn());
 
@@ -59,7 +59,7 @@ describe("proxy", () => {
   });
 
   it("認証の内側にある画面はいずれも前捌きの対象にする", async () => {
-    for (const path of ["/account", "/mypage", "/checkout", "/purchases", "/admin"]) {
+    for (const path of PROTECTED_PREFIXES) {
       const response = await proxy(request(path));
 
       expect(response.headers.get("location")).toContain("/login?returnUrl=");
