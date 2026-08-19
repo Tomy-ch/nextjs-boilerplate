@@ -42,7 +42,7 @@ export function toPeriodDraft(period: PeriodSelection): PeriodDraft {
  * **足りていなければ `null` を返します。** 必須が欠けたまま送ると契約は 400 を返し、一覧そのものが
  * 出せなくなります。押せるかどうかをこの値で決めることで、送れない条件を送る経路が残りません。
  *
- * 終了日が開始日より前かどうかもここで見ます。契約が 400 で返す組み合わせであり、押した後に
+ * 終了日が開始日より前かどうかもここで見ます（理由は {@link toPeriodSelection}）。押した後に
  * 一覧が消えるより、押せない理由をその場に出すほうが直せます。
  */
 export function toAppliedPeriod(draft: PeriodDraft): PeriodSelection | null {

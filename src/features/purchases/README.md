@@ -27,7 +27,7 @@ test-requirement: feature
 
 | ファイル | 役割 |
 | --- | --- |
-| `facade/paths/` | この feature が持つ 2 つのルート。マイページと購入完了（別 feature）の導線が参照する |
+| `facade/paths/` | この feature が持つ 2 つのルート。マイページ（`account`）の導線が参照する |
 | `facade/receipt/` | 購入の控え（注文番号・注文日時・状況）。**購入完了も同じ形で出す** |
 | `facade/lines/` | 結合済みの明細。**購入完了も同じ形で出す** |
 | `facade/amount-summary/` | 請求額の内訳と円の参考換算額。**購入完了も同じ形で出す** |

@@ -45,8 +45,8 @@ export type PurchasePeriodFieldsProps = {
  *
  * 区分を跨いでも入力は消しません。月で指定してから期間へ切り替え、また戻る操作は普通に起きます。
  *
- * 終了日に下限を与えるのは、開始日より前の日付を契約が 400 で返すためです。選べてしまうと、
- * 押した後に一覧の消えた画面になります。
+ * 終了日に下限を与えるのは、開始日より前を選べないようにするためです（理由は `period.ts` の
+ * {@link toPeriodSelection}）。選べてしまうと、押した後に一覧の消えた画面になります。
  */
 export function PurchasePeriodFields({ draft, onChange }: PurchasePeriodFieldsProps) {
   const scope = useId();

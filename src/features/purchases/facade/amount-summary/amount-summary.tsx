@@ -23,8 +23,7 @@ export type PurchaseAmountSummaryProps = {
  * [`AmountWithReference`](../../../../components/design-system/display/amount-with-reference/README.md)
  * が持ちます。
  *
- * 購入完了と購入詳細の両方がこれを出すため `facade` に置いています。同じ購入が画面によって
- * 違う内訳の見え方になると、控えとして突き合わせられません。
+ * 購入完了と購入詳細の両方がこれを出すため `facade` に置いています（README 参照）。
  */
 export function PurchaseAmountSummary({ purchase, reference }: PurchaseAmountSummaryProps) {
   const rows = [

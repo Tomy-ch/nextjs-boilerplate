@@ -35,7 +35,7 @@ export type PurchaseReceiptCardProps = {
  * 状況だけ badge にするのは、一覧の行と同じ色で同じ状態を示すためです。一覧で赤かった購入が
  * 詳細では地の文になっていると、同じことを言っているのかが読み取れません。
  *
- * 購入完了と購入詳細の両方がこれを出すため `facade` に置いています。
+ * 購入完了と購入詳細の両方がこれを出すため `facade` に置いています（README 参照）。
  */
 export function PurchaseReceiptCard({ purchase }: PurchaseReceiptCardProps) {
   return (

@@ -2,8 +2,9 @@
  * この feature が持つルート。
  *
  * @remarks
- * `facade` へ置くのは、マイページと購入完了（別の feature）がここを指すためです。feature どうしは
- * 直接 import できず、公開する口だけをここへ出します（[0021](../../../../../docs/adr/0021-frontend-responsibility.md)）。
+ * `facade` へ置くのは、マイページ（`account`）がここを指すためです。feature どうしは直接 import
+ * できず、公開する口だけをここへ出します（[0021](../../../../../docs/adr/0021-frontend-responsibility.md)）。
+ * 指す側が宛先を書き写すと、ルートを変えたときに古い宛先が残ります。
  */
 
 /** 購入履歴。global nav が直接指す。 */
