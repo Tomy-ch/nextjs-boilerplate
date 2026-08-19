@@ -19,6 +19,7 @@ function placeInputs(): void {
   place("storybook-static/index.json", "{}");
   place("playwright.config.ts", "config");
   place("vrt/stories.spec.ts", "spec");
+  place("baseline/lib/store.ts", "store");
   place("docker-compose.dev-tools.yml", "compose");
   place("pnpm-lock.yaml", "lock");
 }
@@ -39,6 +40,7 @@ describe("collectRenderInputs", () => {
     placeInputs();
 
     expect(collectRenderInputs(root)).toEqual([
+      "baseline/lib/store.ts",
       "docker-compose.dev-tools.yml",
       "playwright.config.ts",
       "pnpm-lock.yaml",
@@ -61,12 +63,26 @@ describe("collectRenderInputs", () => {
     expect(collectRenderInputs(root)).not.toContain("baseline/images/action/light/a--x.png");
   });
 
+  it("baseline 配下の散文を外す", () => {
+    placeInputs();
+    place("baseline/README.md", "散文");
+
+    expect(collectRenderInputs(root)).not.toContain("baseline/README.md");
+  });
+
+  it("baseline 配下のソースは入力に数える", () => {
+    placeInputs();
+
+    expect(collectRenderInputs(root)).toContain("baseline/lib/store.ts");
+  });
+
   it("vrt 配下の散文とテストを外す", () => {
     placeInputs();
     place("vrt/README.md", "散文");
     place("vrt/lib/clock.test.ts", "test");
 
     expect(collectRenderInputs(root)).toEqual([
+      "baseline/lib/store.ts",
       "docker-compose.dev-tools.yml",
       "playwright.config.ts",
       "pnpm-lock.yaml",
