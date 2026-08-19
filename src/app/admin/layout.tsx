@@ -33,6 +33,10 @@ const NAV_GROUPS: readonly AdminShellNavGroup[] = [
  * 通った経路で結果が変わります。403 の面を出さない理由は
  * `docs/spec/route/admin/layout.function.md`「入れない主体をどこへ送るか」。
  *
+ * **現在地までの階層は並行の route から受け取ります**（`@breadcrumb`）。器へ渡すのはこの層です
+ * が、何段目に何を出すかは画面ごとに違うため、画面と同じ形の route に持たせます。page から
+ * layout へ props は渡せないので、slot がその橋渡しになります。
+ *
  * 導線の顔ぶれをこの層が持つのは、admin にどの画面があるかが route の構成そのものだからです。
  * 器（`AdminShell`）は並べ方だけを知り、何を並べるかは知りません
  * （[0026](../../../docs/adr/0026-layout-shell-mount.md)）。
@@ -40,13 +44,20 @@ const NAV_GROUPS: readonly AdminShellNavGroup[] = [
  * 利用者向けの `(shop)` とは別の器を敷きます。root layout が持つのは `html` / `body` と Provider の
  * mount だけで、器の選択はこの段が行います。
  */
-export default async function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({
+  children,
+  breadcrumb,
+}: {
+  children: ReactNode;
+  breadcrumb: ReactNode;
+}) {
   if (!isAdmin(await verifySession())) {
     redirect(SITE_PATH);
   }
 
   return (
     <AdminShell
+      breadcrumb={breadcrumb}
       consoleName={CONSOLE_NAME}
       headerActions={
         <Button asChild size="sm" variant="outline">
