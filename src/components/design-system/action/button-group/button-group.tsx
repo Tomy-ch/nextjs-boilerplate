@@ -1,5 +1,5 @@
-import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
+import { Slot } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -117,7 +117,7 @@ export type ButtonGroupTextProps = ComponentProps<"div"> & {
  * @see Storybook `Action/ButtonGroup`
  */
 export function ButtonGroupText({ className, asChild = false, ...props }: ButtonGroupTextProps) {
-  const Component = asChild ? Slot : "div";
+  const Component = asChild ? Slot.Root : "div";
 
   return (
     <Component

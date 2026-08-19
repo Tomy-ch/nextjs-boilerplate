@@ -544,10 +544,10 @@ describe("componentManifestEntries", () => {
       "design-system",
       "2026-08-08T00:00:00.000Z",
       "4.15.0",
-      ["@radix-ui/react-dialog"],
+      ["radix-ui"],
     );
 
-    expect(entries.dialog).toMatchObject({ dependencies: ["@radix-ui/react-dialog"] });
+    expect(entries.dialog).toMatchObject({ dependencies: ["radix-ui"] });
   });
 
   it("依存が無ければ dependencies を持たせない", () => {

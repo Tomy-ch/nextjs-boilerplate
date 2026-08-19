@@ -1,6 +1,6 @@
 "use client";
 
-import * as DirectionPrimitive from "@radix-ui/react-direction";
+import { Direction as DirectionPrimitive } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { DIRECTION, type DirectionValue } from "./direction.definition";
