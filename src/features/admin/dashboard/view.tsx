@@ -27,6 +27,9 @@ const LABEL = "今日の集計";
  * という最も多い用途に手数が増えます。期間を跨いで見比べる用は隣の画面（`analytics-view.tsx`）
  * が持ち、この画面はそこへの導線だけを置きます。
  *
+ * **導線の名前は行き先の名前に揃えます。** この場で期間を選べるように読める文言にすると、押す
+ * まで遷移だと判りません。脇の導線に並ぶ名前と同じにしてあります。
+ *
  * @see Storybook `Page/Admin/Dashboard`
  */
 export function DashboardView({ summary }: DashboardViewProps) {
@@ -36,7 +39,7 @@ export function DashboardView({ summary }: DashboardViewProps) {
       <StatusBreakdown counts={summary.purchaseStatusCounts} />
       <div>
         <Button asChild variant="outline">
-          <Link href={ADMIN_ANALYTICS_PATH}>期間を指定して見る</Link>
+          <Link href={ADMIN_ANALYTICS_PATH}>期間別の集計を見る</Link>
         </Button>
       </div>
     </div>
