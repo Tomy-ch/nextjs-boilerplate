@@ -47,7 +47,7 @@ export const ReachedEnd: Story = {
 export const CustomLabels: Story = {
   args: {
     state: { status: "failed", onRetry: () => {} },
-    failureMessage: "続きの購入を読み込めませんでした。",
+    failureMessage: "続きの記録を読み込めませんでした。",
     retryLabel: "読み直す",
   },
 };

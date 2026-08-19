@@ -30,13 +30,13 @@ describe("LoadMore", () => {
   it("文言を差し替えられる", () => {
     render(
       <LoadMore
-        failureMessage="続きの購入を読み込めませんでした。"
+        failureMessage="続きの記録を読み込めませんでした。"
         retryLabel="読み直す"
         state={{ status: "failed", onRetry: () => {} }}
       />,
     );
 
-    expect(screen.getByText("続きの購入を読み込めませんでした。")).toBeVisible();
+    expect(screen.getByText("続きの記録を読み込めませんでした。")).toBeVisible();
     expect(screen.getByRole("button", { name: "読み直す" })).toBeVisible();
   });
 
