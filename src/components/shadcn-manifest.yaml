@@ -1085,6 +1085,14 @@ components:
         localPath: src/components/design-system/navigation/breadcrumb/breadcrumb.tsx
         commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
         committedAt: 2026-03-02T08:49:00Z
+  multi-select-client:
+    kind: original
+    layer: design-system
+    as: form
+    directory: src/components/design-system/form/multi-select-client
+    addedAt: 2026-08-20T00:40:00.000Z
+    dependencies:
+      - lucide-react
   menubar:
     kind: copy-in
     layer: design-system

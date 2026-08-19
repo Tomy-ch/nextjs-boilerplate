@@ -314,6 +314,7 @@ UI を横断して支える CSS 基盤。React component を公開しない。
 | [`input`](./design-system/form/input/README.md) | 単一行の native `input` を表示・送信する |
 | [`input-group`](./design-system/form/input-group/README.md) | 単位記号・アイコン・補助操作を入力欄と一続きの枠に収める |
 | [`label`](./design-system/form/label/README.md) | form control の項目名を利用者へ伝える |
+| [`multi-select-client`](./design-system/form/multi-select-client/README.md) | 候補を畳んだまま、checkbox で複数の値を同時に選ぶ |
 | [`radio-group-client`](./design-system/form/radio-group-client/README.md) | native radio では満たせない custom interaction の client island |
 | [`requirement-badge`](./design-system/form/requirement-badge/README.md) | 入力項目が必須か任意かを label の隣で示す |
 | [`radio-group-native`](./design-system/form/radio-group-native/README.md) | 静的な候補から一つを選び、native form として送信する |
