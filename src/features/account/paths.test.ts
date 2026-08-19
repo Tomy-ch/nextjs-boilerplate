@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MYPAGE_PATH, PROFILE_EDIT_PATH, PURCHASE_HISTORY_PATH } from "./paths";
+import { MYPAGE_PATH, PROFILE_EDIT_PATH } from "./paths";
 
 /*
  * 参照側のテストは定数どうしを突き合わせるので、値そのものは誰も固定していない。ここが唯一の
@@ -22,12 +22,5 @@ describe("PROFILE_EDIT_PATH", () => {
 
   it("マイページの下の階層に置く", () => {
     expect(PROFILE_EDIT_PATH.startsWith(`${MYPAGE_PATH}/`)).toBe(true);
-  });
-});
-
-describe("PURCHASE_HISTORY_PATH", () => {
-  // ----- 正常系 -----
-  it("画面がまだ無い購入履歴を、global nav と同じ宛先へ向ける", () => {
-    expect(PURCHASE_HISTORY_PATH).toBe("/purchases");
   });
 });

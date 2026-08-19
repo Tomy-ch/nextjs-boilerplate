@@ -10,6 +10,7 @@ import type { Purchase, PurchaseHistoryPage, PurchaseOrderLine } from "@/model/p
 
 import {
   GetPurchasesDetailResponse,
+  GetPurchasesQueryParams,
   GetPurchasesResponse,
   PostPurchasesResponse,
 } from "../../gen/api/endpoints.zod";
@@ -48,26 +49,84 @@ function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
   };
 }
 
+/** 購入履歴の取得条件。契約のクエリと 1 対 1 に対応する。 */
+export type PurchaseHistoryQuery = z.infer<typeof GetPurchasesQueryParams>;
+
+/** `parsePurchaseHistoryQuery` の結果。読めなかったキーは呼び出し側が画面へ出す。 */
+export type PurchaseHistoryQueryParseResult =
+  | { readonly ok: true; readonly query: PurchaseHistoryQuery }
+  | { readonly ok: false; readonly invalidKeys: readonly string[] };
+
+/** 数として宣言されている条件。クエリ文字列からは文字列で届くため、照合の前に直す。 */
+const NUMERIC_KEYS: readonly string[] = ["first", "days"];
+
 /**
- * 自分の購入履歴を取得する。
+ * 素のクエリを、契約が受け付ける取得条件へ照合する。
+ *
+ * @remarks
+ * **区分ごとの必須が欠けているかどうかまでは見ません。** そこは契約が 400 で返す領域で、
+ * 同じ判定を 2 か所に置くと、増えた区分に片方だけが追いつきます。画面の側は送る前に
+ * 組み立てを確かめており（`features/purchases/history/period-draft.ts`）、ここが受け持つのは
+ * 「URL に載っている値が契約の型と範囲に収まるか」だけです。
+ */
+export function parsePurchaseHistoryQuery(
+  raw: Readonly<Record<string, string | readonly string[]>>,
+): PurchaseHistoryQueryParseResult {
+  const typed: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    typed[key] = NUMERIC_KEYS.includes(key) ? Number(value) : value;
+  }
+
+  const parsed = GetPurchasesQueryParams.safeParse(typed);
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      invalidKeys: [...new Set(parsed.error.issues.map((issue) => String(issue.path[0])))],
+    };
+  }
+
+  return { ok: true, query: parsed.data };
+}
+
+/** 取得条件を、クエリ文字列へ載せる形へ写す。 */
+function toSearchParams(query: PurchaseHistoryQuery): Record<string, string | undefined> {
+  return {
+    after: query.after,
+    first: String(query.first),
+    period: query.period,
+    from: query.from,
+    to: query.to,
+    month: query.month,
+    days: query.days?.toString(),
+  };
+}
+
+/**
+ * 自分の購入履歴を 1 ページ取得する。
  *
  * @remarks
  * 注文日時の降順で返ります。並べ替えの条件は契約が受け付けません。
  *
- * **先頭の 1 ページだけを返します。** 契約は期間の絞り込み（`period`）とページ送り（`after`）も
- * 受け付けますが、どちらもまだ渡していません。次ページの鍵は応答の `nextCursor` に載ります。
- *
- * @param first - 取得件数の上限。契約の上限は 200
+ * 次ページの鍵は応答の `nextCursor` に載ります。**ページ送りの間は同じ期間を渡します。**
+ * 途中で条件が変わると keyset の連続性が保証されず、飛ばされる購入が出ます。
  */
-export const getMyPurchases = cache(async (first: number): Promise<PurchaseHistoryPage> => {
-  const wire = await getClient().request({
-    path: PURCHASES_PATH,
-    searchParams: { first: String(first) },
-    schema: GetPurchasesResponse,
-  });
+export const getMyPurchases = cache(
+  async (query: PurchaseHistoryQuery): Promise<PurchaseHistoryPage> => {
+    const wire = await getClient().request({
+      path: PURCHASES_PATH,
+      searchParams: toSearchParams(query),
+      schema: GetPurchasesResponse,
+    });
 
-  return toPurchaseHistoryPage(wire);
-});
+    return toPurchaseHistoryPage(wire);
+  },
+);
 
 function toPurchase(wire: WirePurchaseDetail): Purchase {
   return {

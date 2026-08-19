@@ -150,6 +150,13 @@ components:
     addedAt: 2026-08-03T14:45:00.000Z
     dependencies:
       - lucide-react
+  load-more:
+    kind: original
+    layer: app-starter
+    as: navigation
+    directory: src/components/app-starter/load-more
+    dependencies: []
+    addedAt: 2026-08-19T00:00:00.000Z
   filter-bar:
     kind: original
     layer: patterns
@@ -263,6 +270,14 @@ components:
     dependencies:
       - lucide-react
     addedAt: 2026-08-04T07:00:00.000Z
+  print-button:
+    kind: original
+    layer: design-system
+    as: action
+    directory: src/components/design-system/action/print-button
+    dependencies:
+      - lucide-react
+    addedAt: 2026-08-19T00:00:00.000Z
   toggle:
     kind: reimplemented
     layer: design-system
@@ -462,6 +477,13 @@ components:
         localPath: src/components/design-system/display/avatar/avatar.tsx
         commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
         committedAt: 2026-03-02T08:49:00Z
+  amount-with-reference:
+    kind: original
+    layer: design-system
+    as: display
+    directory: src/components/design-system/display/amount-with-reference
+    dependencies: []
+    addedAt: 2026-08-19T00:00:00.000Z
   badge:
     kind: copy-in
     layer: design-system

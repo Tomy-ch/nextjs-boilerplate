@@ -4,13 +4,12 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
-
+import { PURCHASE_HISTORY_PATH } from "@/features/purchases/facade/paths/paths";
 import {
   EMPTY_PURCHASE_HISTORY,
   PURCHASE_HISTORY,
   TRUNCATED_PURCHASE_HISTORY,
 } from "../../../account.fixture";
-import { PURCHASE_HISTORY_PATH } from "../../../paths";
 import { PurchaseHistoryDialog } from "./purchase-history-dialog";
 
 /** 表の行のうち、見出し行を除いた購入の行。 */

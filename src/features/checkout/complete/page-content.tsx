@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 
+import { readReferenceAmount } from "@/adapters/server/api/exchange-rates";
 import { getMyPurchase } from "@/adapters/server/api/purchases";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import type { Purchase } from "@/model/purchase/purchase";
 
-import { readReferenceAmount } from "../reference-amount";
 import { type RawSearchParams, readPurchaseId } from "./purchase-id";
 import { CheckoutCompleteView } from "./view";
 

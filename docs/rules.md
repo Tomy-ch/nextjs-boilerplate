@@ -15,7 +15,8 @@
 | 12 | mutation 中は submit を無効化して二重送信を防ぎ、必要な操作には idempotency key を付与する。`useOptimistic` はロールバックを実装できる場合に限る。 | feature テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
 | 12b | 409 の楽観ロック競合では、再読み込み導線を表示する。差分提示はバックエンド契約が提供するときだけ行う。 | P5-12 の feature テスト。 | [ADR 0080](adr/0080-error-handling.md) |
 | 17 | loading は形状が近い skeleton を優先し、遅延表示と `aspect-ratio` で CLS を抑える。 | Storybook と visual regression。 | [ADR 0080](adr/0080-error-handling.md) |
-| 18 | 各画面は loading、empty、error、success の4状態を設計・実装・テストする。部分失敗は成功した領域を残して表示する。 | README 状態表、Storybook、feature テスト。 | [ADR 0080](adr/0080-error-handling.md) |
+| 17b | 状態によって出入りする表示のせいで、操作の位置を動かさない。出し入れされる要素は操作より後ろへ置くか、同じ構造（見出し + 操作など）で器の高さを揃える。**高さを数値で予約して揃えない** —— 中の部品の寸法が変われば予約値が古くなる。 | Storybook と visual regression。 | [ADR 0053](adr/0053-ui-component-interaction-seam.md) |
+| 18 | 各画面は loading、empty、error、success の4状態を**設計**し、その画面が**所有する**状態を実装・テストする。所有しない状態の部品は作らず、所有しないと決めた理由を README に書く。部分失敗は成功した領域を残して表示する。 | README 状態表、Storybook、feature テスト。 | [ADR 0080](adr/0080-error-handling.md) |
 | 20 | エラー画面は 404、認可失敗、その他の失敗を区別し、再試行可能な失敗には `reset()` と復帰導線を用意する。 | `error.tsx` / `not-found.tsx` のテスト。 | [ADR 0080](adr/0080-error-handling.md) |
 | 23 | z-index は token 化した段階値だけを使う。場当たりの数値増加を禁止する。 | P3-8 の token drift gate。 | [ADR 0050](adr/0050-styling-strategy.md) |
 | 24 | スクロール復元はルーティング既定を尊重する。modal / drawer は body scroll を適切に lock し、アニメーションだけのために全体へ `scroll-behavior` を強制しない。 | interaction テストと手動確認。 | — |
@@ -45,6 +46,10 @@
 | 68 | Server Action ID の version skew が起きたら、再試行を繰り返さず full reload へ誘導する。 | P5-7 の integration テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 69 | 内部リンクは `next/link` を使い、生の `<a>` を使わない。外部リンクには必要な `rel` を付与する。 | ESLint の `project-rules/no-internal-anchor`。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 70 | DOM マークアップは UI を担う層（`app` / `features` / `components`）にだけ置く。`adapters` / `capabilities` / `stores` / `config` などの内側で画面を描かない。Provider の合成は許す（[ADR 0022](adr/0022-capabilities-kernel.md) / [ADR 0026](adr/0026-layout-shell-mount.md)）。 | ESLint の `project-rules/no-markup-outside-ui-layers`（置いてよい層の宣言は `architecture.ts` の `UI_KERNELS`）。 | [ADR 0021](adr/0021-frontend-responsibility.md) |
+| 71 | 本文の脇に常設する領域(サイドバー・レール)は `lg` 以上でだけ出す。`lg` 未満では本文へ被せて出す(overlay)。 | e2e の Responsive ジャーニー(`e2e/journeys/responsive.spec.ts`)。 | [ADR 0051](adr/0051-styling-system.md) |
+| 72 | 常に届く必要がある操作は、脇の領域が無い帯(`lg` 未満)で画面下端に固定し、脇に常設できる幅では通常配置へ戻す。同じ操作を 2 か所に置かない。 | `components/patterns/action-bar` の component テスト。 | [ADR 0051](adr/0051-styling-system.md) |
+| 73 | 部品の中身は帯(viewport)で分岐させない。同じ部品が広い場所にも狭い場所にも置かれる分岐はコンテナクエリで書く。 | 散文。 | [ADR 0051](adr/0051-styling-system.md) |
+| 74 | 画面の骨格は器の幅(container query)で分岐させない。どこに何を置くか・出すか出さないかは帯で決める。 | 散文。 | [ADR 0051](adr/0051-styling-system.md) |
 
 ## 運用
 

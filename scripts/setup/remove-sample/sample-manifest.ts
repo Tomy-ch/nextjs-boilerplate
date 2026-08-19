@@ -28,6 +28,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/features/products",
   "src/features/cart",
   "src/features/checkout",
+  "src/features/purchases",
   "src/features/home",
   "src/features/account",
   "src/features/site-info",
@@ -35,6 +36,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   // 認証の口（`src/app/api/auth`）は同じ場所にあるコア残留である。
   "src/app/api/products",
   "src/app/api/addresses",
+  "src/app/api/purchases",
   // 題材に固有のカーネルモジュール
   "src/model/cart",
   "src/model/product",

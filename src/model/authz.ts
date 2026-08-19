@@ -39,7 +39,17 @@ const ROUTE_POLICIES: readonly RoutePolicy[] = [
   { prefix: "/admin", allowed: ADMIN_ROLES }, // sample:line
   { prefix: "/checkout", allowed: AUTHENTICATED_ROLES }, // sample:line
   { prefix: "/mypage", allowed: AUTHENTICATED_ROLES }, // sample:line
+  { prefix: "/purchases", allowed: AUTHENTICATED_ROLES }, // sample:line
 ];
+
+/**
+ * 保護している経路の先頭。
+ *
+ * @remarks
+ * 宣言したすべてが実際に前捌きへ届くかを、検査が確かめられるように公開します。検査側が一覧を
+ * 書き写すと、ここへ足した経路が検査を素通りします。
+ */
+export const PROTECTED_PREFIXES: readonly string[] = ROUTE_POLICIES.map((policy) => policy.prefix);
 
 /**
  * そのパスへ入れる役割を返す。

@@ -47,11 +47,16 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/products` | [`screen`](route/shop/products/page.screen.md) / [`function`](route/shop/products/page.function.md) |
 | `/products/[id]` | [`screen`](<route/shop/products/[id]/page.screen.md>) / [`function`](<route/shop/products/[id]/page.function.md>) |
 | `/cart` | [`screen`](route/shop/cart/page.screen.md) / [`function`](route/shop/cart/page.function.md) |
+| `/checkout` | [`screen`](route/shop/checkout/page.screen.md) / [`function`](route/shop/checkout/page.function.md) |
+| `/checkout/complete` | [`screen`](route/shop/checkout/complete/page.screen.md) / [`function`](route/shop/checkout/complete/page.function.md) |
+| `/purchases` | [`screen`](route/shop/purchases/page.screen.md) / [`function`](route/shop/purchases/page.function.md) |
+| `/purchases/[id]` | [`screen`](<route/shop/purchases/[id]/page.screen.md>) / [`function`](<route/shop/purchases/[id]/page.function.md>) |
 | `/mypage` | [`screen`](route/shop/mypage/page.screen.md) / [`function`](route/shop/mypage/page.function.md) |
 | `/mypage/edit` | [`screen`](route/shop/mypage/edit/page.screen.md) / [`function`](route/shop/mypage/edit/page.function.md) |
 | `/about` | [`screen`](route/shop/about/page.screen.md) / [`function`](route/shop/about/page.function.md) |
 | `/privacy` | [`screen`](route/shop/privacy/page.screen.md) / [`function`](route/shop/privacy/page.function.md) |
 | `/terms` | [`screen`](route/shop/terms/page.screen.md) / [`function`](route/shop/terms/page.function.md) |
+| `/dev/session` | [`screen`](route/dev/session/page.screen.md) / [`function`](route/dev/session/page.function.md) |
 
 **この目録は「書いた画面の一覧」であって、画面の一覧ではありません。**実装済みの画面は
 [`screens.md`](../screens.md) が持ちます。

@@ -43,6 +43,14 @@ export const Secondary: Story = {
   },
 };
 
+/** 成立・完了など、望ましい終端の状態。文言も合わせて変える。 */
+export const Success: Story = {
+  args: {
+    children: "完了",
+    variant: BADGE_VARIANT.SUCCESS,
+  },
+};
+
 /** 失敗・無効など、注意を要する状態。文言も合わせて変える。 */
 export const Destructive: Story = {
   args: {

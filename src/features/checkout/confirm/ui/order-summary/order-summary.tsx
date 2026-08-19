@@ -1,8 +1,7 @@
+import { AmountWithReference } from "@/components/design-system/display/amount-with-reference/amount-with-reference";
 import type { Cart } from "@/model/cart/cart";
 import type { ReferenceAmount } from "@/model/money";
-
 import { hasExcludedLines, orderLinesOf, priceChangedNames } from "../../../order";
-import { AmountWithReference } from "../../../ui/amount-with-reference/amount-with-reference";
 import { PlaceOrderForm } from "../place-order-form/place-order-form";
 import { PriceChangeConfirm } from "../price-change-confirm/price-change-confirm";
 

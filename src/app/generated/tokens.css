@@ -16,6 +16,8 @@
   --color-amber-100: #fef3c7;
   --color-amber-700: #b45309;
   --color-amber-900: #78350f;
+  --color-green-400: #4ade80;
+  --color-green-800: #166534;
   --spacing-0: 0px;
   --spacing-1: 0.25rem;
   --spacing-2: 0.5rem;
@@ -54,6 +56,8 @@
   --color-input: var(--semantic-color-input);
   --color-card: var(--semantic-color-card);
   --color-card-foreground: var(--semantic-color-card-foreground);
+  --color-success: var(--semantic-color-success);
+  --color-success-foreground: var(--semantic-color-success-foreground);
   --color-warning: var(--semantic-color-warning);
   --color-warning-foreground: var(--semantic-color-warning-foreground);
   --color-destructive: var(--semantic-color-destructive);
@@ -76,6 +80,8 @@
   --semantic-color-input: var(--color-neutral-500);
   --semantic-color-card: var(--color-neutral-0);
   --semantic-color-card-foreground: var(--color-neutral-900);
+  --semantic-color-success: var(--color-green-800);
+  --semantic-color-success-foreground: var(--color-neutral-0);
   --semantic-color-warning: var(--color-amber-900);
   --semantic-color-warning-foreground: var(--color-neutral-0);
   --semantic-color-destructive: var(--color-red-700);
@@ -98,6 +104,8 @@
     --semantic-color-input: var(--color-neutral-500);
     --semantic-color-card: var(--color-neutral-900);
     --semantic-color-card-foreground: var(--color-neutral-100);
+    --semantic-color-success: var(--color-green-400);
+    --semantic-color-success-foreground: var(--color-neutral-950);
     --semantic-color-warning: var(--color-amber-100);
     --semantic-color-warning-foreground: var(--color-neutral-950);
     --semantic-color-destructive: var(--color-red-400);
@@ -121,6 +129,8 @@
     --semantic-color-input: var(--color-neutral-500);
     --semantic-color-card: var(--color-neutral-900);
     --semantic-color-card-foreground: var(--color-neutral-100);
+    --semantic-color-success: var(--color-green-400);
+    --semantic-color-success-foreground: var(--color-neutral-950);
     --semantic-color-warning: var(--color-amber-100);
     --semantic-color-warning-foreground: var(--color-neutral-950);
     --semantic-color-destructive: var(--color-red-400);

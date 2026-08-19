@@ -50,14 +50,13 @@ test-requirement: feature
 | `list/ui/filter-sidebar/` | 脇に常設する絞り込み。選んだ時点で反映する。landmark は持たない |
 | `list/ui/filter-sheet/` | 脇に領域を持てない幅の絞り込み。overlay の中でまとめて確定する |
 | `list/ui/infinite-list/` | 読み進められる一覧。取得と見た目をつなぐ |
-| `list/ui/load-more-list/` | 読み進めた一覧の見た目。件数の告知と、失敗したときの読み直しを持つ |
+| `list/ui/load-more-list/` | 読み進めた一覧の見た目。件数を告知し、続きの状態は `LoadMore` が持つ |
 | `list/ui/skeleton/` | 待機表示 |
 | `list/ui/error-state/` | 取得に失敗したときの表示 |
 | `list/ui/invalid-query/` | URL の条件が契約を外れているときの表示 |
 | `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
 | `detail/view.tsx` | 1 件の詳細の表示。骨格と値の表示を持ち、画像の面は下へ渡す |
 | `detail/ui/gallery/` | 画像を送りながら見る面。枚数によらず carousel に載せ、拡大は実画像だけに出す |
-| `detail/ui/print-button/` | 紙に出す操作。押せない操作は紙面へ出さない |
 
 ## 運用
 
@@ -77,8 +76,8 @@ test-requirement: feature
 - **カートへ入れる操作そのものは `cart` が持ちます**。カートへの変更であり、この feature は
   [`cart/facade/add-to-cart/`](../cart/facade/add-to-cart/) を置くだけです（feature 同士は直接
   参照しないため、口は区画として公開されています）
-- **その操作は、脇の領域が無い帯で画面下端に固定します**（[0051](../../../docs/adr/0051-styling-system.md)
-  §2）。詳細は縦に長く、読み進めた位置から操作へ戻れなくなるためです。固定するかどうかは画面の
+- **その操作は、脇の領域が無い帯で画面下端に固定します**（[`docs/rules.md`](../../../docs/rules.md)
+  #72）。詳細は縦に長く、読み進めた位置から操作へ戻れなくなるためです。固定するかどうかは画面の
   組み立ての判断なので `detail/view.tsx` が持ち、操作の部品は自分がどこに置かれたかを知りません
 - **カード全体を詳細への導線にしますが、link では包みません**。包むとカートへ入れる操作が link の
   内側に入り、操作の中に操作が居る形になります。商品名の link を疑似要素でカードいっぱいに広げ、

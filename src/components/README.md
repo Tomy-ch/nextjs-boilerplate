@@ -275,6 +275,7 @@ UI を横断して支える CSS 基盤。React component を公開しない。
 | [`button`](./design-system/action/button/README.md) | 利用者の操作を開始する |
 | [`button-group`](./design-system/action/button-group/README.md) | 同じ対象への複数の操作を、隣接した一続きの帯としてまとめる |
 | [`copy-button`](./design-system/action/copy-button/README.md) | 値を clipboard へ写す |
+| [`print-button`](./design-system/action/print-button/README.md) | 表示中の文書を印刷する |
 | [`toggle`](./design-system/action/toggle/README.md) | 今その表示が適用されているかを押下状態として示し、切り替える |
 
 #### form
@@ -347,6 +348,7 @@ trigger から本文の上へ面を開く部品。
 | component | 概要 |
 | --- | --- |
 | [`activity-timeline`](./design-system/display/activity-timeline/README.md) | 起きた出来事を時刻順に並べて表示する |
+| [`amount-with-reference`](./design-system/display/amount-with-reference/README.md) | 金額と、切り替えで現れる別通貨の参考換算額を表示する |
 | [`avatar`](./design-system/display/avatar/README.md) | 利用者や組織を小さな円形で識別する |
 | [`badge`](./design-system/display/badge/README.md) | 短い分類や状態を視覚的に補助する |
 | [`bubble`](./design-system/display/bubble/README.md) | 発話や通知の 1 かたまりを吹き出しとして表示する。`Message` の中では送信者の向きへ追従する |
@@ -446,6 +448,7 @@ trigger から本文の上へ面を開く部品。
 | [`auth-state-feedback`](./app-starter/auth-state-feedback/README.md) | サインインが必要・権限が足りない・見つからない状態と、そこから抜け出す導線を表示する |
 | [`cursor-pagination`](./app-starter/cursor-pagination/README.md) | cursor 方式の一覧で前後のページへ移動する |
 | [`feedback-state`](./app-starter/feedback-state/README.md) | loading / empty / error / success の表示状態を一貫して伝える |
+| [`load-more`](./app-starter/load-more/README.md) | 読み進めて積み増す一覧の末尾で、続きの読み込みの状態を示す |
 | [`file-upload`](./app-starter/file-upload/README.md) | 送信するファイルを選び、送る前に形式と大きさが要件に合っているかを知らせる |
 | [`form-feedback`](./app-starter/form-feedback/README.md) | Server Action や native form の結果を、要約と次の行動として表示する |
 | [`form-validation-summary`](./app-starter/form-validation-summary/README.md) | form 全体の検証エラーを一箇所に要約し、各入力欄への link を並べる |

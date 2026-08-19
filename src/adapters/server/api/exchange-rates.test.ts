@@ -20,15 +20,20 @@ const environment: Environment = {
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
 };
 
-const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
+const { getAccessToken, getEnvironment, warn } = vi.hoisted(() => ({
   getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
   getEnvironment: vi.fn(() => environment),
+  warn: vi.fn(),
 }));
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("../auth/session", () => ({ getAccessToken }));
+vi.mock("@/logging/logging.server", () => ({
+  getLogger: () => ({ warn }),
+  reportQuietly: (run: () => void) => run(),
+}));
 
-import { convertToReferenceAmount } from "./exchange-rates";
+import { convertToReferenceAmount, readReferenceAmount } from "./exchange-rates";
 
 const wire = {
   base: "USD",
@@ -96,5 +101,47 @@ describe("convertToReferenceAmount", () => {
     await expect(convertToReferenceAmount(18_897)).rejects.toSatisfy(
       (error: unknown) => findAppError(error)?.kind === ErrorKind.UNAVAILABLE,
     );
+  });
+});
+
+describe("readReferenceAmount", () => {
+  // ----- 正常系 -----
+  it("引けた参考換算額をそのまま返す", async () => {
+    stubFetch(wire);
+
+    expect(await readReferenceAmount(18_897)).toEqual({
+      currency: "JPY",
+      amount: 28_346,
+      rate: "150.00",
+      rateDate: "2026-08-17",
+    });
+  });
+
+  it("換算できなかった応答をそのまま伝える", async () => {
+    stubFetch({ ...wire, referenceAmount: null });
+
+    expect(await readReferenceAmount(18_897)).toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("取得に失敗しても投げず、読めなかったことを null で表す", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("{}", { status: 503 })),
+    );
+
+    expect(await readReferenceAmount(18_897)).toBeNull();
+  });
+
+  it("読めなかったことを記録に残す", async () => {
+    warn.mockClear();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("{}", { status: 503 })),
+    );
+
+    await readReferenceAmount(18_897);
+
+    expect(warn).toHaveBeenCalledWith("参考換算額を読めませんでした", expect.anything());
   });
 });

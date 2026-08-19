@@ -13,6 +13,7 @@ const badgeVariants = cva(
       variant: {
         [BADGE_VARIANT.DEFAULT]: "bg-foreground text-background",
         [BADGE_VARIANT.SECONDARY]: "bg-muted text-foreground",
+        [BADGE_VARIANT.SUCCESS]: "bg-success text-success-foreground",
         [BADGE_VARIANT.DESTRUCTIVE]: "bg-destructive text-destructive-foreground",
         [BADGE_VARIANT.WARNING]: "bg-warning text-warning-foreground",
         // 縁だけで成り立つ variant なので、枠線は `border` ではなく `input` を取る

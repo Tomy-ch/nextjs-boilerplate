@@ -33,8 +33,7 @@ export type ActionBarPosition = (typeof ACTION_BAR_POSITION)[keyof typeof ACTION
  * 余白は iOS のホームバーを避けるため safe area と比較して大きいほうを採る。
  *
  * `fixed-without-aside` が戻る幅は `lg` である。脇に常設する領域を出す下限がそこだと
- * [0051](../../../../docs/adr/0051-styling-system.md) §2 が定めており、脇に操作が並ぶ幅では下端に
- * 重ねる理由が無くなる。
+ * `docs/rules.md` #71 / #72 が定めており、脇に操作が並ぶ幅では下端に重ねる理由が無くなる。
  */
 export const ACTION_BAR_POSITION_CLASS: Record<ActionBarPosition, string> = {
   [ACTION_BAR_POSITION.INLINE]: "rounded-md border border-border bg-muted px-3 py-2",

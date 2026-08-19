@@ -65,6 +65,16 @@
         "$type": "color",
         "$value": "#78350f"
       }
+    },
+    "green": {
+      "400": {
+        "$type": "color",
+        "$value": "#4ade80"
+      },
+      "800": {
+        "$type": "color",
+        "$value": "#166534"
+      }
     }
   },
   "spacing": {

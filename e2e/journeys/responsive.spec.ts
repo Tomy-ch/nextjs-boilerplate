@@ -2,10 +2,10 @@ import { expect, test } from "../lib/test";
 import { loadBands, loadBreakpoints, VIEWPORT_HEIGHT } from "../lib/viewports";
 
 /**
- * 帯ごとの出し分け（[0051](../../docs/adr/0051-styling-system.md) §2）。
+ * 帯ごとの出し分け（`docs/rules.md` #71）。
  *
  * @remarks
- * ADR が決めているのは「本文の脇に常設する領域は `lg` 以上でだけ出す」ことです。幅は design token
+ * 規約が決めているのは「本文の脇に常設する領域は `lg` 以上でだけ出す」ことです。幅は design token
  * が持ち、帯は [viewports](../lib/viewports.ts) がそこから組み立てます。ここに数値はありません。
  *
  * 見た目の比較（`../visual/`）とは別に持ちます。あちらが答えるのは「前と変わったか」で、ここが

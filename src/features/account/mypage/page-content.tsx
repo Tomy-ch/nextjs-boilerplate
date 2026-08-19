@@ -31,7 +31,7 @@ export async function MypagePageContent() {
   const [profile, summary, purchases] = await Promise.all([
     getMyProfile(),
     getMyPurchaseSummary(),
-    getMyPurchases(HISTORY_PAGE_SIZE),
+    getMyPurchases({ first: HISTORY_PAGE_SIZE, period: "all" }),
   ]);
 
   return <MypageView profile={profile} purchases={purchases} summary={summary} />;

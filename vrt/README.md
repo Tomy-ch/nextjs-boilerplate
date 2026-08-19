@@ -137,7 +137,7 @@ push すれば、次の VRT の完了で自動的に拾われる。
   撮らなかった story の基準画像が置き場から失われる）
 - viewport は 1 帯（1280×720）だけ、ブラウザも 1 つだけ。帯を増やすのも描画エンジンを増やすのも
   **画面単位の側**（[e2e/README.md](../e2e/README.md)）が持つ。部品の分岐は器の幅で行う規約なので
-  （[0051](../docs/adr/0051-styling-system.md) §2）、viewport で分岐しない部品を viewport の数だけ
+  （[`docs/rules.md`](../docs/rules.md) #73）、viewport で分岐しない部品を viewport の数だけ
   撮っても、増えるのは実行時間だけである
 
 ## 揺らぎを止めてある
@@ -191,9 +191,22 @@ push すれば、次の VRT の完了で自動的に拾われる。
 
 ## 絵が変わり得ないときは撮らない
 
-比較は 623 story ぶんあり、実行時間のほぼ全部を占める。**絵を決める入力が前に判定した時点と
-同じなら、撮っても同じ絵にしかならない**ので、比較そのものを省く。同じ判定を `make a11y` も使う
-（[`a11y.spec.ts`](a11y.spec.ts) は同じ入力から同じ違反を出す）。
+省く判定は **2 層ある**。どちらも独立に効き、片方が省いても他方の判定は変わらない。
+
+| 層 | 何を問うか | 何を落とすか | 何を見て決めるか | 実体 |
+| --- | --- | --- | --- | --- |
+| CI の入口 | PR の差分が絵に届きうるか | 依存の導入と build を含む job のステップ全部 | 変更されたパスの一覧 | [`.github/actions/diff-scope`](../.github/actions/diff-scope/action.yaml) |
+| `make vrt` / `make a11y` | 絵を決める入力が前と同じか | 比較（axe の実行）だけ | 入力の**中身**のハッシュ | [`scripts/vrt/render-hash.ts`](../scripts/vrt/render-hash.ts) |
+
+上の層へ「届かない」として渡すのは、**ドキュメントと AI エージェント設定だけ**である（一覧の実体は
+[`vrt.yaml`](../.github/workflows/vrt.yaml) / [`a11y.yaml`](../.github/workflows/a11y.yaml) の
+`ignore:`）。`*.css` / `tokens/*` / `.storybook/*` / `*.stories.tsx` はいずれも絵を変えるので外せない —
+`bundle-budget` がそれらを外しているのは、あちらが測るのが `.js` の量だけだからで、一覧は別物として
+読むこと（[`.github/workflows/README.md`](../.github/workflows/README.md)）。
+
+以下は下の層の話。比較は 623 story ぶんあり、実行時間のほぼ全部を占める。**絵を決める入力が前に
+判定した時点と同じなら、撮っても同じ絵にしかならない**ので、比較そのものを省く。同じ判定を
+`make a11y` も使う（[`a11y.spec.ts`](a11y.spec.ts) は同じ入力から同じ違反を出す）。
 
 入力は [`scripts/vrt/render-hash.ts`](../scripts/vrt/render-hash.ts) が 1 つのハッシュに畳む。
 
@@ -239,7 +252,9 @@ push すれば、次の VRT の完了で自動的に拾われる。
 
 > パスの一覧ではなく中身のハッシュで判定するのは、`.tsx` を触らずに絵が変わる経路がこの
 > リポジトリの設計として複数あるため（design token の SSOT、`foundation/*.css`、依存の更新、
-> イメージの digest）。パスで絞ると、漏れた経路が黙って撮られなくなる。
+> イメージの digest）。パスで絞ると、漏れた経路が黙って撮られなくなる。上の層がパスで絞れるのは、
+> 渡す一覧を**絵を描く経路を 1 つも含まないパスだけ**に限っているからで、迷うものを足した時点で
+> この危険が入る。
 
 ## 基準画像は別のリポジトリに置く
 
@@ -334,5 +349,6 @@ push を自分で塞ぐことになる。
 | `../scripts/vrt/` | 実行結果から一覧表と撮り直しの範囲を取り出す・絵を決める入力のハッシュ |
 | [`../scripts/vrt-images/`](../scripts/vrt-images/) | 置き場の ref 名と、掃除で消す対象の算出 |
 | [`../.github/actions/setup-vrt-baselines`](../.github/actions/setup-vrt-baselines/action.yaml) | CI が記録されたコミットだけを取ってくる |
+| [`../.github/actions/diff-scope`](../.github/actions/diff-scope/action.yaml) | CI の入口で、差分が絵に届きうるかを判定する |
 
 `tmp/vrt/` に出る実行結果（actual / diff / HTML レポート）は追跡しない。
