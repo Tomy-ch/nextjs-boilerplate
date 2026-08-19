@@ -1,6 +1,6 @@
 "use client";
 
-import { type SyntheticEvent, useCallback } from "react";
+import { type SyntheticEvent, useCallback, useId } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
 
@@ -18,8 +18,14 @@ import { PurchasePeriodFields } from "../period-fields/period-fields";
  * **確定の操作を置きます。** 商品一覧の脇の絞り込みが選んだ時点で反映するのは、1 回の操作で条件が
  * 1 つ決まるからです。ここは違い、期間の指定は開始日と終了日の 2 つが揃って初めて条件になります。
  *
- * 足りていない間は確定を押せなくし、何が足りないかをその場に出します。押せてしまうと、押した
- * 結果が一覧の消えた画面（契約は 400 を返す）になり、原因が利用者から見えません。
+ * **確定を入力欄の下へ段で分けます。** 同じ行に並べると、区分ごとに入力欄の数が違うぶん確定が
+ * 左右に動き、区分を選んでから確定を押すまでの間に狙いが外れます。段を分ければ左端で揃うので、
+ * どの区分でも同じ場所にあります。入力欄の行そのものは区分によらず同じ高さです
+ * （{@link PurchasePeriodFields}）。
+ *
+ * 足りていない間は確定を押せなくし、何が足りないかを**確定の隣**に出します。押せてしまうと、
+ * 押した結果が一覧の消えた画面（契約は 400 を返す）になり、原因が利用者から見えません。下へ
+ * 継ぎ足すと、文言が出入りするたびに一覧の先頭が上下します。
  *
  * **反映を待っている間も入力欄を押せるままにします。** 待っている間を塞ぐと、条件を続けて選ぶ
  * 操作がそのたびに止まります。代わりに支援技術へは `aria-busy` で伝えます。
@@ -29,6 +35,7 @@ import { PurchasePeriodFields } from "../period-fields/period-fields";
  */
 export function PurchasePeriodBar() {
   const { draft, applied, pending, change, apply } = usePurchaseFilterDraft();
+  const hintId = useId();
   const missing = describeMissing(draft);
 
   const submit = useCallback(
@@ -40,14 +47,22 @@ export function PurchasePeriodBar() {
   );
 
   return (
-    <form aria-busy={pending} className="flex flex-wrap items-end gap-3" onSubmit={submit}>
+    <form aria-busy={pending} className="flex flex-col gap-3" onSubmit={submit}>
       <PurchasePeriodFields draft={draft} onChange={change} />
-      <Button disabled={applied === null} type="submit">
-        絞り込む
-      </Button>
-      {missing === null ? null : (
-        <p className="basis-full text-muted-foreground text-sm">{missing}</p>
-      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          aria-describedby={missing === null ? undefined : hintId}
+          disabled={applied === null}
+          type="submit"
+        >
+          絞り込む
+        </Button>
+        {missing === null ? null : (
+          <p className="text-muted-foreground text-sm" id={hintId}>
+            {missing}
+          </p>
+        )}
+      </div>
     </form>
   );
 }

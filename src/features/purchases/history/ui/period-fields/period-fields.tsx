@@ -39,6 +39,10 @@ export type PurchasePeriodFieldsProps = {
  * **区分が使う入力欄だけを出します。** 使わない入力欄を無効にして並べても、押せない欄が場所を
  * 取るだけで、いま何を指定すればよいのかが読み取りにくくなります。
  *
+ * **区分にも見出しを付け、操作の高さを入力欄に揃えます。** どの区分でも「見出し + 操作」の同じ
+ * 構造になるため、区分を選び替えてもこの行の高さが変わりません。高さを数値で予約するのではなく
+ * 構造で揃えているので、入力欄の寸法が変わっても追従します。
+ *
  * 区分を跨いでも入力は消しません。月で指定してから期間へ切り替え、また戻る操作は普通に起きます。
  *
  * 終了日に下限を与えるのは、開始日より前の日付を契約が 400 で返すためです。選べてしまうと、
@@ -90,20 +94,25 @@ export function PurchasePeriodFields({ draft, onChange }: PurchasePeriodFieldsPr
 
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <ToggleGroupNative aria-label="対象期間の区分">
-        {KIND_OPTIONS.map((option) => (
-          <ToggleGroupNativeItem
-            checked={draft.kind === option.kind}
-            key={option.kind}
-            name={`${scope}-kind`}
-            onChange={changeKind}
-            size="sm"
-            value={option.kind}
-          >
-            {option.label}
-          </ToggleGroupNativeItem>
-        ))}
-      </ToggleGroupNative>
+      <div className="flex flex-col gap-1">
+        <span className="font-medium text-sm" id={`${scope}-kind-label`}>
+          対象期間
+        </span>
+        <ToggleGroupNative aria-labelledby={`${scope}-kind-label`}>
+          {KIND_OPTIONS.map((option) => (
+            <ToggleGroupNativeItem
+              checked={draft.kind === option.kind}
+              key={option.kind}
+              name={`${scope}-kind`}
+              onChange={changeKind}
+              size="lg"
+              value={option.kind}
+            >
+              {option.label}
+            </ToggleGroupNativeItem>
+          ))}
+        </ToggleGroupNative>
+      </div>
 
       {draft.kind === "month" ? (
         <div className="flex flex-col gap-1">
