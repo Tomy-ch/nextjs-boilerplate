@@ -277,7 +277,6 @@ function Catalog() {
                   ...cell,
                   textShadow: `var(--semantic-text-shadow-${name})`,
                   fontSize: "1.25rem",
-                  color: "var(--semantic-color-primary)",
                 }}
               >
                 Sample 見本
