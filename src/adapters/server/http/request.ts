@@ -2,6 +2,7 @@ import "server-only";
 
 import type { ZodType } from "zod";
 
+import { assertUrlWithinBudget } from "@/adapters/http/url-budget";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
@@ -91,6 +92,15 @@ export type HttpClient = {
 
 type ClientDeps = {
   baseUrl: string;
+  /**
+   * 1 つの要求 URL に許すバイト数の上限。
+   *
+   * @remarks
+   * 既定を持ちません。経路のどこが先に URL を弾くかは配信構成で決まるもので、code が推測で
+   * 埋めると、実際より緩い上限が黙って効きます。値は config が環境変数から供給します
+   * ([0030](../../../../docs/adr/0030-environment-variable-management.md))。
+   */
+  maxUrlBytes: number;
   /**
    * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
    *
@@ -203,6 +213,7 @@ function buildUrl(
  */
 export function createHttpClient({
   baseUrl,
+  maxUrlBytes,
   getBearerToken,
   allowAnonymous = false,
   profile = DEFAULT_PROFILE,
@@ -269,13 +280,18 @@ export function createHttpClient({
 
   return {
     async request<T>(spec: RequestSpec<T>): Promise<T> {
+      const url = buildUrl(baseUrl, spec.path, spec.searchParams);
+
+      // 遮断の判定より先に確かめる。予算を超えた URL は接続先の状態によらず通らないため、
+      // 遮断中に投げる `unavailable` で覆うと、直せる入力の誤りが一時的な障害に見える。
+      assertUrlWithinBudget(url, maxUrlBytes);
+
       if (!breaker.canAttempt()) {
         throw createAppError(ErrorKind.UNAVAILABLE, {
           cause: new Error(`接続先が遮断されています: ${spec.path}`),
         });
       }
 
-      const url = buildUrl(baseUrl, spec.path, spec.searchParams);
       const authorization = await authorizationHeader(url);
       const deadline = now() + profile.overallTimeoutMs;
       const overall = AbortSignal.timeout(profile.overallTimeoutMs);

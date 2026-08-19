@@ -5,6 +5,8 @@ import { fetchOidcEndpoints } from "./oidc-discovery";
 
 const issuer = "https://idp.example.test";
 
+const maxUrlBytes = 8_000;
+
 const document = {
   issuer,
   authorization_endpoint: `${issuer}/oidc/authorize`,
@@ -36,13 +38,13 @@ describe("fetchOidcEndpoints", () => {
   it("仕様が定める固定パスから取得する", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => respond(document));
 
-    await fetchOidcEndpoints(issuer, fetchImpl);
+    await fetchOidcEndpoints(issuer, maxUrlBytes, fetchImpl);
 
     expect(fetchImpl.mock.calls[0]?.[0]).toBe(`${issuer}/.well-known/openid-configuration`);
   });
 
   it("使う口を取り出す", async () => {
-    const endpoints = await fetchOidcEndpoints(issuer, async () => respond(document));
+    const endpoints = await fetchOidcEndpoints(issuer, maxUrlBytes, async () => respond(document));
 
     expect(endpoints).toEqual({
       authorizationEndpoint: `${issuer}/oidc/authorize`,
@@ -53,7 +55,7 @@ describe("fetchOidcEndpoints", () => {
   });
 
   it("ログアウトの口を持たない IdP では null にする", async () => {
-    const endpoints = await fetchOidcEndpoints(issuer, async () =>
+    const endpoints = await fetchOidcEndpoints(issuer, maxUrlBytes, async () =>
       respond({ ...document, end_session_endpoint: undefined }),
     );
 
@@ -63,7 +65,7 @@ describe("fetchOidcEndpoints", () => {
   // ----- 異常系 -----
   it("issuer が設定と一致しなければ落とす", async () => {
     const kind = await kindOf(() =>
-      fetchOidcEndpoints(issuer, async () =>
+      fetchOidcEndpoints(issuer, maxUrlBytes, async () =>
         respond({ ...document, issuer: "https://attacker.example.test" }),
       ),
     );
@@ -73,7 +75,9 @@ describe("fetchOidcEndpoints", () => {
 
   it("使う口が欠けていれば契約破れとして落とす", async () => {
     const kind = await kindOf(() =>
-      fetchOidcEndpoints(issuer, async () => respond({ ...document, token_endpoint: undefined })),
+      fetchOidcEndpoints(issuer, maxUrlBytes, async () =>
+        respond({ ...document, token_endpoint: undefined }),
+      ),
     );
 
     expect(kind).toBe(ErrorKind.INTERNAL);
@@ -81,7 +85,7 @@ describe("fetchOidcEndpoints", () => {
 
   it("取得に失敗すれば応答の status に応じた分類で落とす", async () => {
     const kind = await kindOf(() =>
-      fetchOidcEndpoints(issuer, async () => respond({ error: "not found" }, 404)),
+      fetchOidcEndpoints(issuer, maxUrlBytes, async () => respond({ error: "not found" }, 404)),
     );
 
     expect(kind).toBe(ErrorKind.NOT_FOUND);

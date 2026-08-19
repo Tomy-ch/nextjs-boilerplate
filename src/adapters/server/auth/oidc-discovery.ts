@@ -52,14 +52,16 @@ export type OidcEndpoints = {
  * 無くなり、テストも取得を差し替えられません。
  *
  * @param issuer - 設定が持つ issuer
+ * @param maxUrlBytes - 1 つの要求 URL に許すバイト数の上限
  * @param fetchImpl - 取得に使う実装。既定は環境の `fetch`
  * @throws Discovery を取得できないとき、`issuer` が一致しないとき
  */
 export async function fetchOidcEndpoints(
   issuer: string,
+  maxUrlBytes: number,
   fetchImpl?: typeof fetch,
 ): Promise<OidcEndpoints> {
-  const client = createHttpClient({ baseUrl: issuer, fetchImpl });
+  const client = createHttpClient({ baseUrl: issuer, maxUrlBytes, fetchImpl });
   const document = await client.request({ path: DISCOVERY_PATH, schema: DiscoveryDocument });
 
   if (document.issuer !== issuer) {

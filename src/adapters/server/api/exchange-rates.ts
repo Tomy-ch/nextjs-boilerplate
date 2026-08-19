@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getApiConfig } from "@/config/api/api.server";
+import { getHttpConfig } from "@/config/http/http.server";
 import { BASE_CURRENCY, type ReferenceAmount } from "@/model/money";
 
 import { GetExchangeRatesResponse } from "../../gen/api/endpoints.zod";
@@ -28,6 +29,7 @@ let client: HttpClient | undefined;
 function getClient(): HttpClient {
   client ??= createHttpClient({
     baseUrl: getApiConfig().baseUrl,
+    maxUrlBytes: getHttpConfig().maxUrlBytes,
     getBearerToken: getAccessToken,
     allowAnonymous: true,
   });

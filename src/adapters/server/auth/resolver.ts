@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getAuthConfig } from "@/config/auth/auth.server";
+import { getHttpConfig } from "@/config/http/http.server";
 
 import { fetchSessionRole } from "../api/user-roles"; // sample:line
 import { createDefaultSessionResolver } from "./default-session-resolver";
@@ -27,6 +28,7 @@ export function getSessionResolver(): SessionResolver {
     redirectUri: config.redirectUri,
     scopes: config.scopes,
     sessionSecret: config.sessionSecret,
+    maxUrlBytes: getHttpConfig().maxUrlBytes,
     resolveRole: fetchSessionRole, // sample:line
   });
 
