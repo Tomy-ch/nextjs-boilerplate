@@ -1,15 +1,19 @@
 ---
 name: scaffold-test
 description: >-
-  Write the Vitest test file for an existing symbol in this repository — the counterpart to `test-review`, which only judges tests that already exist. Use it whenever a callable export has no test and the 1:1 gate is about to fail (`missing-test-file` / `missing-describe`), when a new function / component / hook / Server Action lands and its test still has to be written, when coverage falls below the 100 % gate and the uncovered branches need cases, or when someone asks 「テストを書いて」「このコンポーネントのテストを足して」「カバレッジが足りないので埋めて」. It hardcodes no viewpoints and no conventions: ADR 0090 (structure, naming, skip discipline, per-layer duties), ADR 0091 (async RSC placement, a11y automated checks), the nearest ancestor README's `test-requirement` frontmatter, `scripts/lib/untested-modules.ts` (what is deliberately out of scope), sibling tests in the same directory, and the subject source are all read at runtime, so the generated test tracks the conventions as they evolve rather than freezing a copy. Derives the case set from the subject's own branches — every conditional, thrown error kind, boundary pair and null/undefined guard — and asserts each branch's distinctive outcome rather than merely executing it, because a repository with a 100 % coverage gate gets no information from coverage alone. Emits Japanese `it` names, the export-name `describe` the 1:1 gate requires, and `// ----- 正常系 -----` / `// ----- 異常系 -----` separators. Strictly read-only on the subject: it never edits, renames, or "makes testable" the implementation — when a symbol cannot be verified without changing it, that is reported as a finding for the user to decide. Do NOT use it to review or critique existing tests (`test-review`), to write HTTP-boundary integration tests for an adapter client or Route Handler (`scaffold-integration-test`), to run the suite (`make test-full`), or to fix a failing test whose subject changed (that is ordinary work on the change that broke it).
-argument-hint: '[path/to/subject.ts[:symbol]]'
+  Write the Vitest test files for existing symbols in this repository — one symbol or a whole screen's worth at once — the counterpart to `test-review`, which only judges tests that already exist. Use it whenever a callable export has no test and the 1:1 gate is about to fail (`missing-test-file` / `missing-describe`), when a screen has just been implemented and its twenty-odd modules need their tests placed together, when a new function / component / hook / Server Action lands and its test still has to be written, when coverage falls below the 100 % gate and the uncovered branches need cases, or when someone asks 「テストを書いて」「このコンポーネントのテストを足して」「カバレッジが足りないので埋めて」. It hardcodes no viewpoints and no conventions: ADR 0090 (structure, naming, skip discipline, per-layer duties), ADR 0091 (async RSC placement, a11y automated checks), the nearest ancestor README's `test-requirement` frontmatter, the 1:1 gate itself (the authority on what is deliberately out of scope, including the `RUNTIME_ONLY_MODULES` globs that exclude `src/app/**/page.tsx`), sibling tests in the same directory, and the subject source are all read at runtime, so the generated test tracks the conventions as they evolve rather than freezing a copy. Derives the case set from the subject's own branches — every conditional, thrown error kind, boundary pair and null/undefined guard — and asserts each branch's distinctive outcome rather than merely executing it, because a repository with a 100 % coverage gate gets no information from coverage alone. Emits Japanese `it` names, the export-name `describe` the 1:1 gate requires, and `// ----- 正常系 -----` / `// ----- 異常系 -----` separators. Strictly read-only on the subject: it never edits, renames, or "makes testable" the implementation — when a symbol cannot be verified without changing it, that is reported as a finding for the user to decide. Do NOT use it to review or critique existing tests (`test-review`), to write HTTP-boundary integration tests for an adapter client or Route Handler (`scaffold-integration-test`), to run the suite (`make test-full`), or to fix a failing test whose subject changed (that is ordinary work on the change that broke it).
+argument-hint: '[path/to/subject.ts[:symbol] | path/to/dir/ | (省略で未テストを一括解決)]'
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
 # Scaffold Test
 
-Write the test file for a symbol that does not have one, in the shape this repository's gates already
-enforce.
+Write the test files for the symbols that do not have one, in the shape this repository's gates
+already enforce.
+
+**The unit of work is a set.** A screen lands with twenty-odd untested modules at once, and the
+procedure that produced it asks for the tests to be placed together. Resolving one symbol is the same
+path with a set of size one.
 
 A Japanese reference translation of this skill is available at `SKILL.ja.md` in the same directory
 (not loaded as a skill; for human reference only).
@@ -21,6 +25,8 @@ A Japanese reference translation of this skill is available at `SKILL.ja.md` in 
 - `make test-full` fails the coverage threshold and the uncovered branches need cases.
 - A subject's test exists but a newly added export in the same file has none — this skill adds the
   missing `describe` block without touching the ones already there.
+- A screen was just implemented and its tests are placed as one step, after the refactoring and the
+  specification are done.
 
 ## Do NOT use this skill for
 
@@ -46,38 +52,68 @@ because a copy drifts and the gates follow the sources, not this skill.
 | The subject source | The branch set the cases are derived from |
 | `AGENTS.md` | `describe` / `it` strings are Japanese |
 
-Writes exactly one file: `<subject>.test.ts` (or `.test.tsx`) next to the subject. Nothing else.
+Writes one `<subject>.test.ts` (or `.test.tsx`) next to each subject in the set. Nothing else — no
+fixture modules, no helpers shared across directories, no edits to the subjects.
 
 **The subject is read-only.** Never edit, rename, split, or export something extra to make a symbol
 testable. When a symbol genuinely cannot be verified as written, say so and stop — see Step 5.
 
-## Step 0. Resolve the subject
+## Step 0. Resolve the subject set
 
-When the argument names a file (optionally `path:symbol`), take it. Otherwise ask with
-`AskUserQuestion`, offering what the gate currently reports:
+The unit of work is a **set**, not a single symbol. A screen lands with twenty-odd untested modules
+at once, and the procedure that produced it asks for the tests to be placed together. One subject is
+just a set of size one.
+
+Ask the gate what is missing rather than reading the exclusion declarations yourself:
 
 ```sh
 pnpm exec vitest run --config vitest.scripts.config.ts scripts/one-to-one.gate.test.ts
 ```
 
 Its failure output names every `missing-test-file` / `missing-describe` subject with `file:line`.
-Offer those as options rather than making the user type a path.
+**The gate is the authority on what needs a test.** A subject it does not report is already excluded —
+either by an explicit path in `scripts/lib/untested-modules.ts`, or by one of the glob constants in
+that same file (`RUNTIME_ONLY_MODULES` covers `src/app/**/page.tsx`, which no unit run can render).
+Re-deriving the exclusions by reading the lists invites disagreeing with the gate that actually runs.
 
-The gate only surfaces **callable** exports, though — a module that exports nothing but constants
-requires no `describe` and therefore never appears here, even with no test at all. When the user names
-such a subject directly, take it: a constant's contract (its exact members, its ordering) is worth
-pinning even though the gate does not demand it.
+### Narrow it to the change in hand
 
-Then decide the file to write:
+The gate reports the whole repository. In a tree with parallel worktrees that includes subjects
+another session is mid-way through, and writing tests for those collides with their work. Intersect
+the gate's output with the files this branch actually touched:
+
+```sh
+git diff --name-only $(git merge-base HEAD origin/<base>)...HEAD
+```
+
+Offer the intersection. When the gate reports subjects outside it, **say so and leave them alone** —
+they are someone else's, and their absence from this run is information the user wants.
+
+### Constants have contracts too
+
+The gate only surfaces **callable** exports. A module that exports nothing but constants requires no
+`describe` and never appears, even with no test at all. When the user names such a subject directly,
+take it: a constant's exact members and ordering are worth pinning even though the gate is silent.
+
+### Where each file goes
 
 - Subject `src/foo/bar.ts` → `src/foo/bar.test.ts`
 - A subject that renders JSX → `.test.tsx`
 - The test sits **next to** the subject. A `__tests__/` directory is a violation of ADR 0090.
 
-If the subject appears in `scripts/lib/untested-modules.ts`, stop and say so: it is excluded from
-both the coverage denominator and the 1:1 gate by an explicit declaration, and writing a test for it
-would contradict that declaration. Removing the exclusion is a separate decision with its own
-removal condition recorded in the declaration.
+### Group the set for confirmation
+
+Group the subjects by **the directory whose `README.md` declares the `test-requirement` they fall
+under** — the nearest ancestor declaration, the same one Step 1 reads. Subjects in one group share a
+duty, so they share how their cases are derived, and one agreement carries the whole group.
+
+Groups are the unit of Step 3's confirmation and Step 6's verification. Twenty-two subjects become
+three or four decisions instead of one unreadable list or twenty-two interruptions.
+
+**Note which runner governs each group**, because it changes the commands in Step 6: subjects under
+`src/` (and the other roots in the default `include`) run under the default config; subjects under
+`scripts/` run under `vitest.scripts.config.ts`. A set that spans both is two verification passes,
+not one.
 
 ## Step 1. Read the layer context
 
@@ -96,10 +132,29 @@ removal condition recorded in the declaration.
 | `integration` | HTTP boundary only — inside is mocked, shape and type are asserted. Consider `scaffold-integration-test` instead |
 | `route` / `feature` | Per ADR 0090's table — read it rather than assuming |
 
-**When no ancestor declares `test-requirement`, or the nearest declaration's premises do not hold for
-this subject** (an `integration` declaration written for an HTTP client does not govern a sibling of
-pure formatting helpers), treat it as a documentation gap: say so in the closing report and derive
-the duty from sibling tests plus ADR 0090. Do not invent a duty silently — the gap is the finding.
+### The duty follows the symbol, not the directory
+
+A declaration describes what the directory is *for*, and a directory holds symbols that are not all
+the same. `src/adapters` declares `integration` because its reason to exist is the HTTP boundary — but
+a module there can also export a pure parser that never touches the network, and an `integration`
+duty says nothing useful about it.
+
+Decide per symbol, by what the symbol actually crosses:
+
+| The symbol | Duty | Who writes it |
+| --- | --- | --- |
+| Crosses an HTTP boundary | `integration` | `scaffold-integration-test` |
+| Renders | `component` | this skill |
+| Crosses nothing — input to output | `unit` | this skill |
+
+**One file can therefore be shared between the two skills.** When a module exports both, this skill
+writes the pure symbols' `describe` blocks into the test file and leaves the boundary-crossing ones
+to `scaffold-integration-test`, which adds its own blocks without touching these. Say plainly in the
+closing report which symbols were left and to which skill, so the 1:1 gate's remaining red is
+expected rather than a surprise.
+
+**When no ancestor declares `test-requirement` at all**, derive the duty from sibling tests plus
+ADR 0090, and report the missing declaration. Do not invent a duty silently — the gap is the finding.
 
 ## Step 2. Derive the case set from the subject
 
@@ -126,25 +181,39 @@ Assign each case to `正常系` or `異常系` by **whether the subject itself f
 input looks like a failure. A hook that swallows a fetch error and returns an error state never
 throws, so all of its cases are `正常系`.
 
-## Step 3. Plan and confirm
+## Step 3. Plan and confirm, one group at a time
 
-Show the user the planned file path and the case list, grouped by subject and separator, before
-writing:
+Confirm **per group**, not per file and not for the whole set. Show every subject in the group with
+its planned path and case list, so the agreement covers all of them at once:
 
 ```txt
-書き出し先: src/model/format-amount.test.ts
+群: src/features/admin/dashboard/（test-requirement: feature）
 
-describe("formatAmount")
-  ----- 正常系 -----
-  - 整数の金額を通貨記号つきで整形する
-  - 小数点以下がある金額を最小単位へ丸める
-  ----- 異常系 -----
-  - 通貨コードが未知のとき InvalidArgumentError を投げる
-  - 金額が負のとき RangeError を投げる
+書き出し先: src/features/admin/dashboard/period.test.ts
+  describe("toPeriodRequest")
+    ----- 正常系 -----
+    - 日付の要らない区分はそのまま求められる形になる
+    ----- 異常系 -----
+    - range で日付が欠けていれば求めない
+    - range で終了日が開始日より前なら求めない
+  describe("toPeriodHref")
+    ----- 正常系 -----
+    - 日付を持ち越さない
+
+書き出し先: src/features/admin/dashboard/count.test.ts
+  describe("formatCount")
+    …
 ```
 
-Confirm with `AskUserQuestion`: 「この構成でテストを書きますか？」 / 「ケースを追加・修正したい」 /
-「キャンセル」. The plan is cheap to change; a written file is not.
+Confirm with `AskUserQuestion`: 「この構成で書きますか？」 / 「ケースを追加・修正したい」 /
+「この群は飛ばす」 / 「ここで止める」. The plan is cheap to change; a written file is not.
+
+**Write and verify the group before planning the next one.** Batching every group's plan up front
+trades away the thing that makes the batch tractable — what the first group teaches about the local
+shape (fixture style, how the siblings mock) should reach the second group's plan.
+
+**When the user stops mid-set, say which groups were written and which were not.** A half-written
+set with the 1:1 gate still red is a legitimate stopping point, but only if the remainder is named.
 
 ## Step 4. Write the file
 
@@ -190,22 +259,38 @@ extraction, and "covered by another test" is never a reason.
 
 Run these and report the results honestly, including anything that did not run:
 
+Run these **after each group**, so a mistaken shape is caught before it is copied into the next one:
+
 ```sh
-pnpm fix                                     # formatting + autofixable lint
-pnpm exec vitest run <the written test file> # the new cases pass
+pnpm fix                                      # formatting + autofixable lint
+pnpm exec vitest run <the files just written> # the new cases pass
+```
+
+Use the runner Step 0 noted for the group — subjects under `scripts/` need
+`--config vitest.scripts.config.ts`, the rest use the default.
+
+Confirm the branches are actually covered, scoped to the group's subjects:
+
+```sh
+pnpm exec vitest run <the files just written> \
+  --coverage.enabled --coverage.include='<subject paths>' --coverage.reporter=text
+```
+
+All four metrics must read 100 % for each subject. If they do not, the case set missed a branch —
+return to Step 2 rather than lowering the bar. **Scope the coverage run to the subjects in hand.**
+The repository-wide number says nothing about this change, and in a tree with parallel worktrees it
+is red for reasons that belong to someone else.
+
+Run the 1:1 gate **once, after the last group**:
+
+```sh
 pnpm exec vitest run --config vitest.scripts.config.ts scripts/one-to-one.gate.test.ts
 ```
 
-The gate run is what proves the `describe` names satisfy the 1:1 mapping. For a subject inside the
-coverage denominator, also confirm the branches are actually covered:
-
-```sh
-pnpm exec vitest run <the written test file> \
-  --coverage.enabled --coverage.include='<subject path>' --coverage.reporter=text
-```
-
-All four metrics must read 100 % for the subject. If they do not, the case set missed a branch —
-return to Step 2 rather than lowering the bar.
+It proves the `describe` names satisfy the 1:1 mapping. Expect it to still report the subjects Step 0
+excluded as another session's, and the boundary-crossing symbols Step 1 left to
+`scaffold-integration-test`. **Name those in the report** — an unexplained red gate reads as a
+failure of this run.
 
 ## Step 7. Hand off to review
 
@@ -218,21 +303,22 @@ whether the layer's duty is actually exercised.
 
 - ✅ Read ADR 0090 / 0091, the `test-requirement` frontmatter, and sibling tests at runtime
 - ✅ Japanese `it` strings; export-name `describe`; comment separators
-- ✅ Confirm the case plan before writing
+- ✅ Confirm the case plan before writing, per group
+- ✅ Narrow the set to this branch's files; leave another session's subjects alone
 - ✅ Verify with the 1:1 gate and per-subject coverage
 - ❌ Edit, rename, or restructure the subject — read-only, always
 - ❌ Write `it.skip` / `it.todo` to make the file pass
-- ❌ Write a test for a subject declared in `scripts/lib/untested-modules.ts`
+- ❌ Write a test for a subject the 1:1 gate does not report as missing
 - ❌ Hand-roll a `fetch` stub where MSW owns the boundary
 - ❌ Copy the conventions into this file instead of reading them
 
 ## Checklist
 
-- [ ] Subject resolved; exclusion declaration checked
+- [ ] Subject set resolved from the gate, narrowed to this branch's files, and grouped by `test-requirement` owner
 - [ ] ADR 0090 / 0091 and the nearest `test-requirement` read this run
 - [ ] Case set derived from the subject's branches, each with a distinctive assertion
-- [ ] Case plan confirmed with the user
+- [ ] Case plan confirmed with the user, one group at a time
 - [ ] File written next to the subject, with the export-name `describe` and separators
-- [ ] `pnpm fix`, the new test, and the 1:1 gate all run
-- [ ] Per-subject coverage confirmed at 100 % on all four metrics
+- [ ] `pnpm fix` and the new tests run per group; the 1:1 gate run once at the end
+- [ ] Per-subject coverage confirmed at 100 % on all four metrics, scoped to the subjects in hand
 - [ ] Unreachable branches reported as findings, not skipped
