@@ -8,7 +8,7 @@ import {
   authScopesValidator,
   authSessionSecretValidator,
 } from "./auth/auth.schema";
-import { maxUrlBytesValidator } from "./http/http.schema";
+import { maxUploadBytesValidator, maxUrlBytesValidator } from "./http/http.schema";
 import { findApplicationEnvironment } from "./load-environment";
 import { mediaOriginValidator } from "./media/media.schema";
 import { otlpEndpointValidator, otlpExporterValidator } from "./observability/observability.schema";
@@ -40,6 +40,7 @@ const environmentSchema = z.object({
   AUTH_SCOPES: authScopesValidator(),
   AUTH_SESSION_SECRET: authSessionSecretValidator(allowsShippedSecrets()),
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: maxUrlBytesValidator(),
+  NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: maxUploadBytesValidator(),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

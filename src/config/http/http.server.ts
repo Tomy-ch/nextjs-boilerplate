@@ -5,14 +5,19 @@ import type { HttpEnvironment } from "./http.schema";
 
 class HttpConfig {
   readonly #maxUrlBytes: number;
+  readonly #maxUploadBytes: number;
 
-  private constructor(maxUrlBytes: number) {
+  private constructor(maxUrlBytes: number, maxUploadBytes: number) {
     this.#maxUrlBytes = maxUrlBytes;
+    this.#maxUploadBytes = maxUploadBytes;
   }
 
   /** 検証済み ENV から production singleton を組み立てる。 */
   static fromValues(values: HttpEnvironment): HttpConfig {
-    return new HttpConfig(values.NEXT_PUBLIC_HTTP_MAX_URL_BYTES);
+    return new HttpConfig(
+      values.NEXT_PUBLIC_HTTP_MAX_URL_BYTES,
+      values.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES,
+    );
   }
 
   /**
@@ -24,6 +29,17 @@ class HttpConfig {
    */
   get maxUrlBytes(): number {
     return this.#maxUrlBytes;
+  }
+
+  /**
+   * 中継する 1 件のアップロードに許すバイト数の上限。
+   *
+   * @remarks
+   * 中継の経路では配備先が先に要求を打ち切るため、その上限より内側に取ります。外側に置いた値は
+   * 表明されるだけで効きません（[0075](../../../docs/adr/0075-file-upload-seam.md)）。
+   */
+  get maxUploadBytes(): number {
+    return this.#maxUploadBytes;
   }
 }
 

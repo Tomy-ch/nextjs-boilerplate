@@ -18,6 +18,7 @@ const environment: Environment = {
   AUTH_SCOPES: "openid profile",
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
+  NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
 };
 
 const { getAccessToken, getEnvironment, readCartSession, storeCartSession, clearCartSession } =
