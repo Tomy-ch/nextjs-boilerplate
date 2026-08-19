@@ -36,7 +36,7 @@ describe("MypagePageContent", () => {
   it("履歴を開く前に、契約の既定と同じ件数だけ先に取る", async () => {
     render(await MypagePageContent());
 
-    expect(getMyPurchases).toHaveBeenCalledWith(50);
+    expect(getMyPurchases).toHaveBeenCalledWith({ first: 50, period: "all" });
   });
 
   it("互いに依存しない 3 系統を並行で取る", async () => {

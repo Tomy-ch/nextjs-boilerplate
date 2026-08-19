@@ -8,6 +8,12 @@ export type RawSearchParams = Record<string, string | string[] | undefined>;
 /** 一覧が 1 度に読み込む件数。 */
 export const PURCHASE_PAGE_SIZE = 20;
 
+/** ページ送りのカーソルを載せる URL のキー。契約のクエリ名と揃える。 */
+export const CURSOR_KEY = "after";
+
+/** 読み込む件数を載せる URL のキー。契約のクエリ名と揃える。 */
+export const COUNT_KEY = "first";
+
 /** 期間の条件を載せる URL のキー。契約のクエリ名と揃える。 */
 export const PERIOD_KEY: Readonly<{
   PERIOD: "period";
@@ -170,4 +176,40 @@ export function describePeriod(period: PeriodSelection): string | null {
   }
 
   return `直近 ${period.days} 日`;
+}
+
+/**
+ * 効いている期間を、取得条件へ直す。
+ *
+ * @remarks
+ * 区分が使わない値は載せません。契約は無視すると宣言していますが、載せる側が区分ごとの
+ * 対応を持たないと、区分を変えたときに前の区分の値が残ったまま飛びます。
+ *
+ * @param period - いま効いている期間
+ * @param first - 1 度に読み込む件数
+ */
+export function toPurchaseHistoryQuery(
+  period: PeriodSelection,
+  first: number,
+): {
+  readonly first: number;
+  readonly period: PeriodSelection["kind"];
+  readonly from?: string;
+  readonly to?: string;
+  readonly month?: string;
+  readonly days?: number;
+} {
+  if (period.kind === "month") {
+    return { first, period: "month", month: period.month };
+  }
+
+  if (period.kind === "range") {
+    return { first, period: "range", from: period.from, to: period.to };
+  }
+
+  if (period.kind === "recent") {
+    return { first, period: "recent", days: period.days };
+  }
+
+  return { first, period: "all" };
 }
