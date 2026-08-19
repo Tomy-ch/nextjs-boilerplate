@@ -21,7 +21,17 @@ const meta = {
   component: PurchasePeriodSheet,
   parameters: {
     layout: "fullscreen",
-    docs: { story: { inline: false, iframeHeight: 520 } },
+    docs: {
+      story: { inline: false, iframeHeight: 520 },
+      description: {
+        component: [
+          "帯を常設できない幅での期間の絞り込みです。**開く操作は画面の下端に固定します。**",
+          "一覧を読み進めた先でも絞り込みへ戻れるようにするためで、上端に置くと",
+          "古い購入を探して読み進めるほど条件を変える手段が遠ざかります。",
+          "閉じているあいだ入力欄は見えないので、効いている期間は開く操作の文言に出します。",
+        ].join(""),
+      },
+    },
   },
   decorators: [withDraft],
 } satisfies Meta<typeof PurchasePeriodSheet>;
