@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup } from "@testing-library/react";
+import { act, cleanup, configure } from "@testing-library/react";
 import { HttpResponse, http, type JsonBodyType, passthrough } from "msw";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { mockServer } from "./mocks/node";
@@ -71,6 +71,17 @@ export function serveJson(url: string, body: JsonBodyType): readonly Request[] {
 export function passThroughOrigin(origin: string): void {
   mockServer.use(http.all(`${origin}/*`, () => passthrough()));
 }
+
+// 非同期の待ち時間を既定の 1 秒から広げる。`next/dynamic` で読む部品（カートの中身など）は
+// 描画のたびに実際の module 解決を挟むため、待つ相手が DOM の更新だけではない。全量を並列で
+// 回すと解決が 1 秒を超えることがあり、落ちるファイルが実行のたびに入れ替わる形で現れる。
+//
+// 既定は同期的な DOM の更新を待つ想定の値で、module 解決の分を含んでいない。テスト側で待ち方を
+// 変えて回避すると、同じ回避が dynamic を使う部品の数だけ増える。
+//
+// テスト 1 件の上限（5 秒）より短くしてあるのは、本当に現れない要素をここで先に打ち切り、
+// 「何が見つからなかったか」を出すためである。上限に先に当たると、その情報が出ない。
+configure({ asyncUtilTimeout: 3000 });
 
 vi.mock("server-only", () => ({}));
 
