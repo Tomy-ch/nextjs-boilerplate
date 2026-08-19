@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import Link from "next/link";
+import { userEvent, within } from "storybook/test";
 
 import { Button } from "@/components/design-system/action/button/button";
 import {
@@ -184,6 +185,9 @@ export const Rejected: Story = {
     updateAction: rejecting({ statusId: ["状態を選んでください。"] }),
   },
   globals: { viewport: { value: "desktop", isRotated: false } },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "更新する" }));
+  },
 };
 
 /** 版が食い違って拒まれた状態。読み込み直す導線を添える。 */
@@ -195,6 +199,9 @@ export const Conflicted: Story = {
     ),
   },
   globals: { viewport: { value: "desktop", isRotated: false } },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "更新する" }));
+  },
 };
 
 /** 説明が空の商品。編集面は空のまま開き、保存済みの内容が無いことが判る。 */

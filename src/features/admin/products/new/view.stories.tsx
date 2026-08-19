@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import Link from "next/link";
+import { userEvent, within } from "storybook/test";
 
 import { Button } from "@/components/design-system/action/button/button";
 import {
@@ -164,4 +165,14 @@ export const Rejected: Story = {
     }),
   },
   globals: { viewport: { value: "desktop", isRotated: false } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // 送信は最後の段にしか無い。空欄のまま最後まで進め、弾かれた状態を出す。
+    for (let step = 0; step < 3; step += 1) {
+      await userEvent.click(canvas.getByRole("button", { name: "次へ" }));
+    }
+
+    await userEvent.click(canvas.getByRole("button", { name: "登録する" }));
+  },
 };
