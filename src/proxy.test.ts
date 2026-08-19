@@ -58,6 +58,14 @@ describe("proxy", () => {
     );
   });
 
+  it("認証の内側にある画面はいずれも前捌きの対象にする", async () => {
+    for (const path of ["/account", "/mypage", "/checkout", "/purchases", "/admin"]) {
+      const response = await proxy(request(path));
+
+      expect(response.headers.get("location")).toContain("/login?returnUrl=");
+    }
+  });
+
   it("復帰先にクエリを含める", async () => {
     const response = await proxy(request("/account?tab=security"));
 

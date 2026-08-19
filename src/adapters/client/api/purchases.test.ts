@@ -82,6 +82,14 @@ describe("fetchPurchaseHistoryPage", () => {
     );
   });
 
+  it("資格情報切れを内部の失敗へ畳まない", async () => {
+    stubFetch(401, { message: "認証が必要です。" });
+
+    await expect(kindOf(() => fetchPurchaseHistoryPage(new URLSearchParams()))).resolves.toBe(
+      ErrorKind.UNAUTHENTICATED,
+    );
+  });
+
   it("それ以外の失敗は internal として分類する", async () => {
     stubFetch(503, { message: "利用できません" });
 

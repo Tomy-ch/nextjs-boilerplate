@@ -134,13 +134,18 @@ describe("useInfinitePurchases", () => {
     expect(params?.get("after")).toBe("cursor-1");
   });
 
-  it("期間が変わったら積み上げを捨てて取り直す", async () => {
+  it("内容が同じまま作り直された最初のページで、積み上げを捨てない", async () => {
+    fetchPurchaseHistoryPage.mockResolvedValue(pageOf(["b"], null));
+
     const { rerender } = render(<Subject initial={pageOf(["a"], "cursor-1")} />);
 
-    rerender(<Subject initial={pageOf(["z"], null)} period={{ kind: "recent", days: 7 }} />);
+    reachEnd();
+    await waitFor(() => expect(screen.getByTestId("codes")).toHaveTextContent("a,b"));
 
-    expect(screen.getByTestId("codes")).toHaveTextContent("z");
-    expect(screen.getByTestId("status")).toHaveTextContent("exhausted");
+    // サーバが同じ結果を返し直すと、中身は同じでも別のオブジェクトで届く。
+    rerender(<Subject initial={pageOf(["a"], "cursor-1")} />);
+
+    expect(screen.getByTestId("codes")).toHaveTextContent("a,b");
   });
 
   // ----- 異常系 -----

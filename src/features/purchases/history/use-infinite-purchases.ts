@@ -38,6 +38,10 @@ export type InfinitePurchases = {
  * **続きの取得にも同じ期間を渡します。** 契約は「ページ送りの間は同じ絞り込み条件を渡すこと」を
  * 前提に keyset の連続性を保証しているため、途中で条件が変わると飛ばされる購入が出ます。
  *
+ * **積み上げを捨てる判断は持ちません。** 別の一覧になったかどうかは置く側が鍵で表し、React が
+ * 作り直します。ここで最初のページの差し替えを見張ると、内容が同じまま再描画された場合
+ * （サーバ側が同じ結果を返し直したとき）にも巻き戻ってしまいます。
+ *
  * @param initial - Server Component が取得した最初のページ
  * @param period - いま効いている期間。続きの取得にそのまま渡す
  * @param pageSize - 1 度に読み込む件数
@@ -50,15 +54,6 @@ export function useInfinitePurchases(
   const [page, setPage] = useState(initial);
   const [phase, setPhase] = useState<FetchPhase>("idle");
   const abortRef = useRef<AbortController | null>(null);
-
-  // 期間が変われば別の一覧になる。初回ページごと差し替えて、前の条件の続きを読まないようにする。
-  const [knownInitial, setKnownInitial] = useState(initial);
-
-  if (knownInitial !== initial) {
-    setKnownInitial(initial);
-    setPage(initial);
-    setPhase("idle");
-  }
 
   const loadMore = useCallback(() => {
     const cursor = page.nextCursor;

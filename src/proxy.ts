@@ -19,6 +19,7 @@ const PROTECTED_PREFIXES = [
   "/account",
   "/mypage", // sample:line
   "/checkout", // sample:line
+  "/purchases", // sample:line
   "/admin", // sample:line
 ];
 
