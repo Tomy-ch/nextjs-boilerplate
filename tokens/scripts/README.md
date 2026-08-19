@@ -4,7 +4,7 @@
 
 ## ファイル
 
-- `gen-tokens.ts`: `primitives.json` と `themes.json` から `src/app/generated/tokens.css` を生成し、`--check` 時は差分を検査する
+- `gen-tokens.ts`: `primitives.json` と `themes/<系統>/<配色>.json` から `src/app/generated/tokens.css` を生成し、`--check` 時は差分を検査する
 - `gen-tokens.test.ts`: 生成する CSS の契約を検証する
 
 ## 実行
