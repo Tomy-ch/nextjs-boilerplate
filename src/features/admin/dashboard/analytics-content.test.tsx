@@ -88,6 +88,13 @@ describe("AdminAnalyticsPageContent", () => {
     expect(screen.getByText("2026-08-01 〜 2026-08-19")).toBeInTheDocument();
   });
 
+  it("前後が入れ替わった期間では、集計中の暦日を添えない", () => {
+    renderContent({ period: "range", from: "2026-08-20", to: "2026-08-01" });
+
+    expect(screen.getByText("集計する期間が決まっていません。")).toBeInTheDocument();
+    expect(screen.queryByText(/2026-08-20 〜 2026-08-01/)).not.toBeInTheDocument();
+  });
+
   it("期間が変われば集計の待機が作り直される", () => {
     const { rerender } = renderContent({ period: "today" });
 

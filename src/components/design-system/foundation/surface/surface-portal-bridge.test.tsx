@@ -21,6 +21,16 @@ describe("SurfacePortalBridge", () => {
     expect(document.body.hasAttribute(SURFACE_ATTRIBUTE)).toBe(false);
   });
 
+  it("別の書き手が置き直した値までは消さない", () => {
+    const { unmount } = render(<SurfacePortalBridge surface={SURFACE.ADMIN} />);
+
+    document.body.setAttribute(SURFACE_ATTRIBUTE, "other");
+    unmount();
+
+    expect(document.body.getAttribute(SURFACE_ATTRIBUTE)).toBe("other");
+    document.body.removeAttribute(SURFACE_ATTRIBUTE);
+  });
+
   it("描くものを持たない", () => {
     const { container } = render(<SurfacePortalBridge surface={SURFACE.ADMIN} />);
 

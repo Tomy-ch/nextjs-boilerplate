@@ -27,6 +27,11 @@ export type SurfacePortalBridgeProps = {
  * **外れるときに消します。** 系統を持つ部分木から出ても `body` に残ると、次に開いた overlay が
  * 前の画面の系統で描かれます。
  *
+ * **消すのは自分が置いた値だけです。** `body` の属性を書くのはここだけとは限らず、Storybook は
+ * 選択中の系統を decorator から同じ属性へ置きます（`README.md`）。React は 1 つのコミットの中で
+ * 後始末を新しい effect よりも先に走らせるため、無条件に消すと、直前に別の書き手が置いた値まで
+ * 落とします。
+ *
  * @example
  * ```tsx
  * <div data-surface="admin">
@@ -43,7 +48,9 @@ export function SurfacePortalBridge({ surface }: SurfacePortalBridgeProps): null
     document.body.setAttribute(SURFACE_ATTRIBUTE, surface);
 
     return () => {
-      document.body.removeAttribute(SURFACE_ATTRIBUTE);
+      if (document.body.getAttribute(SURFACE_ATTRIBUTE) === surface) {
+        document.body.removeAttribute(SURFACE_ATTRIBUTE);
+      }
     };
   }, [surface]);
 

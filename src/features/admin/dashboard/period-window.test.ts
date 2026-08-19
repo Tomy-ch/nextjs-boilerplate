@@ -73,4 +73,13 @@ describe("toPeriodWindow", () => {
       toPeriodWindow({ period: DASHBOARD_PERIOD.RANGE, from: "2026-01-05" }, NOON_IN_JST),
     ).toBeUndefined();
   });
+
+  it("range で終了日が開始日より前なら対象が決まらない", () => {
+    expect(
+      toPeriodWindow(
+        { period: DASHBOARD_PERIOD.RANGE, from: "2026-08-19", to: "2026-08-01" },
+        NOON_IN_JST,
+      ),
+    ).toBeUndefined();
+  });
 });

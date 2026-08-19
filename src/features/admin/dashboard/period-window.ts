@@ -48,8 +48,8 @@ export type PeriodWindow = {
  * **集計ではありません。** 出す数はバックエンドが合成したものだけで、ここが決めるのは「その数が
  * どの日付の話か」という添え書きです（[0070](../../../../docs/adr/0070-backend-role-separation.md)）。
  *
- * `range` は利用者が指定した暦日をそのまま返します。指定が揃っていないときは、対象が決まって
- * いないので返しません。
+ * `range` は利用者が指定した暦日をそのまま返します。指定が揃っていないときと、前後が入れ替わって
+ * いるときは、対象が決まっていないので返しません。
  *
  * @param query - URL が表す条件
  * @param now - 判定に使う時刻。呼び出し側が渡すのは、描画のたびに実時計を読むと基準画像が
@@ -61,7 +61,9 @@ export function toPeriodWindow(query: DashboardSummaryQuery, now: Date): PeriodW
   if (period === DASHBOARD_PERIOD.RANGE) {
     const { from, to } = query;
 
-    return from === undefined || to === undefined ? undefined : { from, to };
+    // 前後が入れ替わった組も対象が決まっていない。集計を求めない条件（`period.ts`）と
+    // 揃えないと、何も集計していない画面に「この期間を集計しています」という添え書きが出る。
+    return from === undefined || to === undefined || from > to ? undefined : { from, to };
   }
 
   const today = toCalendarDate(now);
