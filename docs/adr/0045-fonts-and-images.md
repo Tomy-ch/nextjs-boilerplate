@@ -17,7 +17,8 @@ BACKLOG C5 は、`next/font` / `next/image` の使い方規約・`public/` の�
 ### 1. フォント = `next/font`
 
 - Web フォントは **`next/font`** で読み込む(セルフホスト・レイアウトシフト抑制・`preload`)。外部 CDN からの直接読み込みや手動 `@font-face` は避ける
-- フォント定義の適用は `src/app/layout.tsx`(ルート)を基点とする([0027](0027-directory-structure.md))
+- フォント定義の適用は `src/app/layout.tsx`(ルート)を基点とする([0027](0027-directory-structure.md))。定義そのものは同階層へ切り出し、**カタログ(Storybook)からも同じ定義を読む**。二重に書くと、カタログだけが素の書体で表示され基準画像が実物と一致しない
+- **書体の役割(本文 / 銘 / 等幅)は design token の semantic 層が持つ**([0051](0051-styling-system.md))。`next/font` が配る変数は素性を表す primitive として受け、部品は役割の名前だけを参照する。本文書体は系統(`data-surface`)ごとに替わる
 
 ### 2. 画像 = `next/image`
 
