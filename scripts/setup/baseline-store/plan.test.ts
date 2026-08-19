@@ -41,7 +41,7 @@ describe("splitRepository", () => {
 describe("defaultImagesName", () => {
   // ----- 正常系 -----
   it("親の名前から導く（owner は含めない）", () => {
-    expect(defaultImagesName("Tomy-ch/nextjs-boilerplate")).toBe("nextjs-boilerplate-baselines");
+    expect(defaultImagesName("Tomy-ch/nextjs-boilerplate")).toBe("nextjs-boilerplate-baseline-images");
   });
 });
 
@@ -179,7 +179,7 @@ describe("parseAppId", () => {
   // ----- 異常系 -----
   it.each([
     ["空文字", ""],
-    ["slug", "nextjs-boilerplate-baselines-app"],
+    ["slug", "nextjs-boilerplate-baseline-images-app"],
     ["General ページの URL", "https://github.com/settings/apps/my-app"],
     ["数字を含む文字列", "app-2168345"],
   ])("App ID でない %s を拒む", (_label, input) => {

@@ -93,7 +93,7 @@ make setup-baseline-store
 
 ```text
 既存のリポジトリへ配置しますか? 空欄なら新規作成 [<org>/<repo>]:   ← 空欄で新規作成
-作成するリポジトリ名 [<現在のリポジトリ名>-baselines]:
+作成するリポジトリ名 [<現在のリポジトリ名>-baseline-images]:
 公開範囲 (public / private / internal) [private]:
 ```
 
@@ -121,8 +121,8 @@ git commit -m "Build: 基準画像の置き場を配線する"
 
 | 項目 | 値 |
 | --- | --- |
-| GitHub App name | `<現在のリポジトリ名>-baselines-app`（**GitHub 全体で一意**） |
-| Description | `<現在のリポジトリ名>-baselines の visual regression test 用` |
+| GitHub App name | `<現在のリポジトリ名>-baseline-images-app`（**GitHub 全体で一意**） |
+| Description | `<現在のリポジトリ名>-baseline-images の visual regression test 用` |
 | Homepage URL | `https://github.com/<owner>/<現在のリポジトリ名>` |
 | Webhook | **Active のチェックを外す** |
 | Repository permissions → Contents | **Read and write** |
