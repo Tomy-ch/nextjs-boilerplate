@@ -7,6 +7,7 @@
 # アプリはホストで起動し、ブラウザだけをコンテナの中で動かす。理由は
 # docker-compose.dev-tools.yml に書いてある。
 .PHONY: e2e ## 主要ジャーニーを回し、画面の見た目を基準画像と比較する
+.PHONY: e2e-retake ## 画面の基準画像を撮り直して置き場へ送る (手元からの撮り直しはこれ)
 .PHONY: e2e-update ## 画面の基準画像を撮り直す (置き場へは送らない)
 .PHONY: e2e-report ## 直前の実行の HTML レポートを開く
 
@@ -21,14 +22,22 @@ E2E_PORT ?= 3100
 # コンテナの中から見たアプリの場所。
 E2E_BASE_URL ?= http://host.docker.internal:$(E2E_PORT)
 
-# 撮り直しであることを撮る側へ伝える。vrt.mk も同じ変数を使うが、宣言をこちらでも持つのは、
-# 片方のファイルの export に暗黙依存すると include の順序を変えただけで静かに壊れるためである。
-# 意味は vrt/lib/baseline-store.ts が持つ。
+# 生成物をホストの所有者で書き出すために渡す。compose 側の既定 (1000) は Linux の初回
+# ユーザであって、実行者と一致する保証が無い。
+RUNNER_UID ?= $(shell id -u)
+RUNNER_GID ?= $(shell id -g)
+export RUNNER_UID
+export RUNNER_GID
+
+# 撮り直しであることを撮る側へ伝える。意味は baseline/lib/store.ts が持つ。
 BASELINE_RETAKE ?=
 export BASELINE_RETAKE
 
+# 上の 3 つは vrt.mk も同じものを使うが、宣言をこちらでも持つのは、片方のファイルの export に
+# 暗黙依存すると include の順序を変えただけで静かに壊れるためである。
+
 E2E_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
-	-e E2E_BASE_URL=$(E2E_BASE_URL) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE vrt_runner
+	-e E2E_BASE_URL=$(E2E_BASE_URL) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE browser_runner
 
 E2E_CONFIG := --config=playwright.e2e.config.ts
 
@@ -80,8 +89,8 @@ e2e-build:
 .PHONY: e2e-run ## アプリを起動して Playwright を走らせ、終了時に後片付けする (e2e から呼ばれる)
 e2e-run: e2e-build
 	@$(VRT_REQUIRE_WIRING)
-	@if [ -z "$$(ls -A vrt/screenshots 2>/dev/null)" ]; then \
-		echo "❌ vrt/screenshots が空です。git submodule update --init vrt/screenshots を実行してください。"; exit 1; \
+	@if [ -z "$$(ls -A baseline/images 2>/dev/null)" ]; then \
+		echo "❌ baseline/images が空です。git submodule update --init baseline/images を実行してください。"; exit 1; \
 	fi
 	@mkdir -p tmp/e2e
 	@set -e; \
@@ -111,12 +120,18 @@ e2e-run: e2e-build
 e2e: E2E_UPDATE :=
 e2e: e2e-run
 
-# 撮り直しても送らない。置き場へ送るのは make vrt-push だけで、画面の基準画像も同じ置き場に入る。
+# 撮って送らないと、親の gitlink が古いまま作業ツリーだけ新しい状態になり、手元の make e2e は
+# 通るのに CI だけ落ちる。順に走らせるのは、-j 付きで呼ばれても前提の順序を崩さないため。
+e2e-retake:
+	@$(MAKE) e2e-update
+	@$(MAKE) baseline-push
+
+# 撮り直しても送らない。送るのは make baseline-push だけで、置き場は story 単位の撮影と共有する。
 e2e-update: E2E_UPDATE := --update-snapshots
 e2e-update: BASELINE_RETAKE := 1
 e2e-update: e2e-run
-	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です（make vrt-push）。"
+	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です（make e2e-retake なら続けて送ります）。"
 
 e2e-report:
-	@docker compose -f docker-compose.dev-tools.yml run --rm --service-ports vrt_runner \
+	@docker compose -f docker-compose.dev-tools.yml run --rm --service-ports browser_runner \
 		./node_modules/.bin/playwright show-report tmp/e2e/report --host 0.0.0.0

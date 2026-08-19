@@ -1,7 +1,7 @@
 // 基準画像の置き場と、それを更新する資格情報を用意する入口。判定は plan.ts が持ち、
 // ここは GitHub への問い合わせ・対話・git の操作・終了コードだけを担う。
 //
-//   images   置き場を用意し、vrt/screenshots へ配線する（配線済みなら張り替える）
+//   images   置き場を用意し、baseline/images へ配線する（配線済みなら張り替える）
 //   app      撮り直しに使う GitHub App を secret へ登録する
 
 import { execFileSync } from "node:child_process";
@@ -27,16 +27,16 @@ import {
   withDefault,
 } from "./plan.js";
 
-const SUBMODULE_PATH = "vrt/screenshots";
-const README_TEMPLATE = ".github/settings/vrt-images/readme-template.md";
+const SUBMODULE_PATH = "baseline/images";
+const README_TEMPLATE = ".github/settings/baseline-store/readme-template.md";
 
 function printUsage(): void {
   console.log(
     [
-      "使い方: pnpm exec tsx scripts/setup/vrt-images <images | app>",
+      "使い方: pnpm exec tsx scripts/setup/baseline-store <images | app>",
       "",
-      "  images  基準画像の置き場を用意し、vrt/screenshots へ配線する",
-      "  app     撮り直しに使う GitHub App を VRT_APP_ID / VRT_APP_PRIVATE_KEY へ登録する",
+      "  images  基準画像の置き場を用意し、baseline/images へ配線する",
+      "  app     撮り直しに使う GitHub App を BASELINE_APP_ID / BASELINE_APP_PRIVATE_KEY へ登録する",
       "",
       "  どちらも対話式で、gh のログインが要る。",
     ].join("\n"),
@@ -57,7 +57,7 @@ async function setupImages(): Promise<void> {
   console.log(`\n✅ ${target} を ${SUBMODULE_PATH} へ配線しました。`);
   console.log(`   .gitmodules と ${SUBMODULE_PATH} の差分をコミットしてください。`);
   console.log(
-    "   続けて make setup-vrt-app を実行し、撮り直しに使う GitHub App を登録してください。",
+    "   続けて make setup-baseline-app を実行し、撮り直しに使う GitHub App を登録してください。",
   );
 }
 
@@ -114,7 +114,7 @@ function ensureInitialCommit(target: string, parent: string): void {
   }
 
   const branch = gh(["api", `repos/${target}`, "-q", ".default_branch"]);
-  const work = fs.mkdtempSync(path.join(os.tmpdir(), "vrt-images-"));
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "baseline-store-"));
 
   try {
     console.log(`🔧 ${target} に README を置く初期コミットを作ります。`);
@@ -165,11 +165,11 @@ async function setupApp(): Promise<void> {
     throw new Error("登録を中止しました。");
   }
 
-  gh(["secret", "set", "VRT_APP_ID", "--body", appId]);
-  console.log("🔧 VRT_APP_ID を登録しました。");
+  gh(["secret", "set", "BASELINE_APP_ID", "--body", appId]);
+  console.log("🔧 BASELINE_APP_ID を登録しました。");
 
   setPrivateKey(normalizeKeyPath(await ask("秘密鍵 (.pem) のパス"), os.homedir()));
-  console.log("🔧 VRT_APP_PRIVATE_KEY を登録しました。");
+  console.log("🔧 BASELINE_APP_PRIVATE_KEY を登録しました。");
 
   console.log(
     [
@@ -211,7 +211,7 @@ function setPrivateKey(keyPath: string): void {
 
   const key = fs.openSync(keyPath, "r");
   try {
-    execFileSync("gh", ["secret", "set", "VRT_APP_PRIVATE_KEY"], {
+    execFileSync("gh", ["secret", "set", "BASELINE_APP_PRIVATE_KEY"], {
       stdio: [key, "inherit", "inherit"],
       cwd: ROOT_DIR,
     });
@@ -277,7 +277,7 @@ function git(args: readonly string[], cwd: string = ROOT_DIR): string {
   return execFileSync("git", [...args], { encoding: "utf8", cwd }).trim();
 }
 
-/* v8 ignore start -- CLI entry。起動経路は make setup-vrt-images / make setup-vrt-app が通す。 */
+/* v8 ignore start -- CLI entry。起動経路は make setup-baseline-store / make setup-baseline-app が通す。 */
 async function main(): Promise<void> {
   const options = parseCommonFlags(process.argv.slice(2));
 

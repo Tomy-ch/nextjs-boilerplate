@@ -20,6 +20,8 @@ const RENDER_INPUTS = [
   "playwright.config.ts",
   // 撮り方(待ち方・固定する時計・撮影対象の絞り込み)。
   "vrt",
+  // 置き場の区画割りと、対応の突き合わせ。画像そのものは出力なので isInput が外す。
+  "baseline",
   // フォントのラスタライズを決めるイメージの digest。
   "docker-compose.dev-tools.yml",
   // 検査そのものの実装。コンテナはリポジトリをマウントするだけなので、Playwright と axe は
@@ -28,14 +30,19 @@ const RENDER_INPUTS = [
   "pnpm-lock.yaml",
 ] as const;
 
+/** ソースだけが入力に当たるディレクトリ。散文を入れると、文書を直すだけで比較が走る。 */
+const SOURCE_ONLY_DIRS = ["vrt/", "baseline/"];
+
 /** 入力から外すもの。 */
 function isInput(relative: string): boolean {
   // build のたびに変わる metadata。中身は telemetry 用で、描画には関わらない。
   if (relative === "storybook-static/project.json") return false;
   // 基準画像そのもの。入力ではなく、この入力から作られた出力。
-  if (relative.startsWith("vrt/screenshots/")) return false;
-  // vrt 配下の散文と、実行されないテスト。
-  if (relative.startsWith("vrt/") && !relative.endsWith(".ts")) return false;
+  if (relative.startsWith("baseline/images/")) return false;
+  // 撮る仕組みを持つディレクトリの散文と、実行されないテスト。
+  if (SOURCE_ONLY_DIRS.some((dir) => relative.startsWith(dir)) && !relative.endsWith(".ts")) {
+    return false;
+  }
 
   return !/\.test\.tsx?$/.test(relative);
 }

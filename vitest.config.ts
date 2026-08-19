@@ -20,7 +20,7 @@ export default defineConfig({
     //
     // `scripts/` だけは [vitest.scripts.config.ts](vitest.scripts.config.ts) の別 suite で回す。
     // あちらに居るのは lint とゲートそのもので、落ちたときにアプリの退行と読み違えたくない。
-    include: ["{src,tokens,docs-viewer,mocks,eslint-rules,vrt,e2e}/**/*.test.{ts,tsx}"],
+    include: ["{src,tokens,docs-viewer,mocks,eslint-rules,baseline,vrt,e2e}/**/*.test.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],
     // client config はビルド時に置換されるリテラルを前提に `process.env` を静的に読む。この実行は
     // その置換を行わないので、ここで供給しないと値が `NaN` のまま client 側の経路へ渡る。
@@ -36,6 +36,7 @@ export default defineConfig({
         "docs-viewer/src/**/*.{ts,tsx}",
         "tokens/**/*.ts",
         "eslint-rules/**/*.ts",
+        "baseline/lib/**/*.ts",
         "vrt/**/*.ts",
         "e2e/**/*.ts",
       ],
@@ -48,6 +49,7 @@ export default defineConfig({
         "docs-viewer/src/**/*.test.{ts,tsx}",
         "docs-viewer/src/**/*.stories.{ts,tsx}",
         "eslint-rules/**/*.test.ts",
+        "baseline/lib/**/*.test.ts",
         "vrt/**/*.test.ts",
         "e2e/**/*.test.ts",
         ...EXCLUDED_FROM_CHECKS,

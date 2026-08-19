@@ -1,5 +1,5 @@
-import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
+import { Slot } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -207,7 +207,7 @@ export function AttachmentDescription({ className, ...props }: ComponentProps<"s
   return (
     <span
       className={cn(
-        "mt-0.5 block min-w-0 truncate text-xs text-muted-foreground group-data-[state=error]/attachment:text-destructive/80",
+        "mt-0.5 block min-w-0 truncate text-xs text-muted-foreground group-data-[state=error]/attachment:text-destructive",
         "max-w-full",
         className,
       )}
@@ -295,7 +295,7 @@ export function AttachmentTrigger({
   type,
   ...props
 }: AttachmentTriggerProps) {
-  const Component = asChild ? Slot : "button";
+  const Component = asChild ? Slot.Root : "button";
 
   return (
     <Component

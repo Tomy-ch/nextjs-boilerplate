@@ -10,12 +10,12 @@ services:
   #
   # `platform` を明示するのは、フォントのラスタライズが CPU アーキテクチャでも変わるため。
   # 省くと Apple Silicon が arm64、CI が amd64 を引き、基準画像が両者で一致しない。
-  vrt_runner:
+  browser_runner:
     image: mcr.microsoft.com/playwright:v1.62.0-noble@sha256:baed2032d533817f3dbe6425de795788430ba345e819a1201337009ba17c9d07
     platform: linux/amd64
     # 生成物をホストの所有者で書き出す。root で書くと、撮った基準画像を撮った本人が
     # 消せない状態がリポジトリに残る。
-    user: "${VRT_UID:-1000}:${VRT_GID:-1000}"
+    user: "${RUNNER_UID:-1000}:${RUNNER_GID:-1000}"
     working_dir: /app
     volumes:
       - .:/app

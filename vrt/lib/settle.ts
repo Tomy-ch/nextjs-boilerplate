@@ -11,12 +11,27 @@ import type { Page } from "@playwright/test";
 const RENDER_TIMEOUT_MS = 15_000;
 
 /**
- * 描画とフォントの読み込みが終わるのを待つ。
+ * まだ story を組み立てている最中を表す Storybook の段階。
+ *
+ * @remarks
+ * `playing` を含めるのが要点です。`play` を持つ story は、描画が終わってから操作が走って初めて
+ * 見せたい状態になります。ここを待たずに撮ると、操作前の絵で「安定した」と判定されます。
+ */
+const PENDING_PHASES = ["preparing", "loading", "beforeEach", "rendering", "playing"];
+
+/**
+ * 描画・操作・フォントの読み込みが終わるのを待つ。
  *
  * @remarks
  * 描画の完了は配色テーマが `:root` へ乗ったことで見ます。テーマを載せるのが story を包む
  * decorator（`.storybook/preview.tsx`）なので、乗っていれば story まで到達しています。要素の
  * 出現で見ると、描画前の空の `#storybook-root` を「安定した画面」として扱ってしまいます。
+ *
+ * **`play` の完了まで待ちます。** Playwright は連続する 2 枚が一致した時点で「安定した」と見なし、
+ * そこで比較して落とします。操作がまだ走っていない状態も 2 枚一致するので、待たずに撮ると
+ * 操作前の絵が確定した絵として扱われます。撮り直しでも同じことが起き、そちらは**操作前の絵が
+ * 基準画像として焼かれる**ぶん質が悪い（story は以後なにも検証しなくなり、入力ハッシュが
+ * 一致する限り比較も省かれるので気づけない）。
  *
  * フォントは差し替わった瞬間に字形が変わるため、待たずに撮ると同じ story が撮るたびに違う
  * 画像になります。
@@ -36,5 +51,32 @@ export async function settle(page: Page, theme: string): Promise<void> {
       { cause },
     );
   }
+
+  try {
+    await page.waitForFunction(
+      (pending) => {
+        const renders = (
+          globalThis as unknown as {
+            __STORYBOOK_PREVIEW__?: { storyRenders?: { phase?: string }[] };
+          }
+        ).__STORYBOOK_PREVIEW__?.storyRenders;
+        if (renders === undefined || renders.length === 0) return false;
+
+        return renders.every(
+          (render) => render.phase !== undefined && !pending.includes(render.phase),
+        );
+      },
+      PENDING_PHASES,
+      { timeout: RENDER_TIMEOUT_MS },
+    );
+  } catch (cause) {
+    throw new Error(
+      `story の操作が終わりませんでした（${RENDER_TIMEOUT_MS / 1000} 秒）。play が返らないか、` +
+        "その中の待ち合わせが解決していません。Storybook で同じ story を開き、Interactions が" +
+        "最後まで進むか確かめてください。",
+      { cause },
+    );
+  }
+
   await page.evaluate(() => document.fonts.ready);
 }

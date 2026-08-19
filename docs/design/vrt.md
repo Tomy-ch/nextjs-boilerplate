@@ -25,12 +25,12 @@ story 単位の visual regression が、どの部品でどう組み上がって�
 | --- | --- |
 | `vrt/stories.spec.ts` | story を列挙して 1 件ずつ撮る本体 |
 | `vrt/lib/` | 目録の解釈・URL 組み立て・除外の宣言・撮る配色テーマ・置き場との対応 |
-| `vrt/screenshots` | **サブモジュール**。基準画像の置き場を指す gitlink。画面単位の撮影と共有し、あちらは `screen/` 区画に閉じる |
+| `baseline/images` | **サブモジュール**。基準画像の置き場を指す gitlink。画面単位の撮影と共有し、あちらは `screen/` 区画に閉じる |
 | `playwright.config.ts` | 実行環境と比較条件（`maxDiffPixels: 0`） |
-| `docker-compose.dev-tools.yml` | `vrt_runner`（digest と platform を固定） |
+| `docker-compose.dev-tools.yml` | `browser_runner`（digest と platform を固定） |
 | `scripts/vrt/` | 実行結果 → 一覧表 / 撮り直す id、絵を決める入力 → ハッシュ |
-| `scripts/vrt-images/` | 置き場の ref 名・送出・掃除の算出 |
-| `.github/actions/setup-vrt-baselines` | CI が記録されたコミット 1 つだけを取る |
+| `scripts/baseline-store/` | 置き場の ref 名・送出・掃除の算出 |
+| `.github/actions/setup-baselines` | CI が記録されたコミット 1 つだけを取る |
 | 置き場（別リポジトリ） | `<系統>/<テーマ>/<story id>.png` と、撮った時点の入力のハッシュ（`render-inputs.sha256`）を持つ `snapshot/*` ブランチ群 |
 
 ## 流れ
@@ -41,7 +41,7 @@ story 単位の visual regression が、どの部品でどう組み上がって�
 sequenceDiagram
     actor dev as 開発者
     participant sb as Storybook 静的出力
-    participant runner as vrt_runner
+    participant runner as browser_runner
     participant store as 置き場
     participant main as 主リポジトリ
 
@@ -51,7 +51,7 @@ sequenceDiagram
     sb-->>runner: story を描画
     runner->>runner: 全 story を撮る
     Note over runner: digest 固定の container 内
-    runner-->>dev: vrt/screenshots へ書き出し
+    runner-->>dev: baseline/images へ書き出し
     dev->>store: 一式を 1 コミットで push
     Note over store: 親は根 / ref は snapshot/ブランチ名
     store-->>dev: 撮影コミットの sha
@@ -68,7 +68,7 @@ sequenceDiagram
     participant store as 置き場
     actor rev as レビュアー
 
-    dev->>main: vrt-retake ラベルを付ける
+    dev->>main: baseline-retake ラベルを付ける
     Note over dev,main: 引き金ではない。VRT の完了時に読まれる条件
 
     dev->>main: 部品を変更して push
@@ -79,7 +79,7 @@ sequenceDiagram
     gha->>gha: Storybook を build して全 story を撮る
     gha->>main: 差分の一覧表を PR へ / 赤で落とす
 
-    main->>gha: vrt の完了で vrt-retake を起動
+    main->>gha: vrt の完了で baseline-retake を起動
     gha->>gha: ラベルを読む → 報告された story だけ撮り直す
     gha->>store: 一式を push
     store-->>gha: 新しい sha
@@ -87,8 +87,8 @@ sequenceDiagram
     gha->>main: compare リンクを PR へ
 
     rev->>store: compare で画素を見る
-    rev->>main: vrt-approve ラベルを付ける
-    main->>gha: vrt-approval が承認の時刻を検査
+    rev->>main: baseline-approve ラベルを付ける
+    main->>gha: baseline-approval が承認の時刻を検査
     Note over main,gha: 撮り直しより後に付いたラベルだけを通す
 ```
 
@@ -113,21 +113,21 @@ head では撮り直させない。
 **壊れた木からは撮らない。** 撮り直しは人が見ていない時刻に走るので、その瞬間の絵がそのまま正に
 なる。絵を決める入力が壊れたまま撮ると、壊れが基準画像へ焼き付く。判定に使うのは**絵を動かしうる
 検査を名指しした一覧**で、落ちているもの全部ではない。全部を数えると、撮るまで存在しない画像の承認を
-待つ `vrt-approval` が入り、承認は撮り直しを、撮り直しは承認を待つ。**見るのは各検査の最新の結果**
+待つ `baseline-approval` が入り、承認は撮り直しを、撮り直しは承認を待つ。**見るのは各検査の最新の結果**
 でもある。試行を合算すると、一度揺らいだ検査はその commit が生きているあいだ落ちたままになり、
 再実行して緑にしても撮り直せない。
 
-**撮り直しは承認ではない。** `vrt-retake` は画素を見られる形にするだけで、見た目を受け入れたことは
-`vrt-approve` が表す。基準画像が動いている PR では `vrt-approval` がこれを必須にする。承認の単位を
+**撮り直しは承認ではない。** `baseline-retake` は画素を見られる形にするだけで、見た目を受け入れたことは
+`baseline-approve` が表す。基準画像が動いている PR では `baseline-approval` がこれを必須にする。承認の単位を
 PR のレビューではなくラベルに取るのは、判断の対象が PR 全体ではなく基準画像だからで、**1 人の
 リポジトリでも成立する**という性質はその帰結にすぎない。
 
-**承認は今の一式に対してだけ効く。** `vrt-approval` はラベルの有無に加えて、付いた時刻がポインタを
+**承認は今の一式に対してだけ効く。** `baseline-approval` はラベルの有無に加えて、付いた時刻がポインタを
 動かした最後のコミットより後であることを見る。保証を時刻の比較に置くのは、ラベルの削除が動かない
 状況（fork の PR は token が read-only）でも古い承認を通さないためである。
 
-**撮り直しは `vrt-approve` を外さない。** 外しても判定は変わらない — 古い承認は時刻の比較が拒む。
-変わるのは雑音の側で、`vrt-approval` は `unlabeled` でも走るため、削除は「次の実行が報告する状態を
+**撮り直しは `baseline-approve` を外さない。** 外しても判定は変わらない — 古い承認は時刻の比較が拒む。
+変わるのは雑音の側で、`baseline-approval` は `unlabeled` でも走るため、削除は「次の実行が報告する状態を
 先に報告するだけの実行」を 1 つ起こし、付けた人には**自分の承認が誰かに取り消された**ように見える。
 古くなった承認は付け直しで更新する（`labeled` の時刻が新しくなる）。
 

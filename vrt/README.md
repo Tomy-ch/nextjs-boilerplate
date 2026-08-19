@@ -16,11 +16,11 @@ make vrt-retake   # 撮り直して置き場へ送る（手元からの撮り直
 make vrt-report   # 直前の実行の HTML レポートを開く
 ```
 
-`vrt-retake` は `vrt-update`（撮る）と `vrt-push`（送る）の 2 つを順に走らせる。片方だけ要る場面が
+`vrt-retake` は `vrt-update`（撮る）と `baseline-push`（送る）の 2 つを順に走らせる。片方だけ要る場面が
 あれば個別に呼べるが、**撮って送らないと親の gitlink が古いまま**になり、手元の `make vrt` は通るのに
 CI だけ落ちる。
 
-**置き場へ送るのは `make vrt-push` だけ**である。サブモジュールの中で直接コミットすると撮り直し
+**置き場へ送るのは `make baseline-push` だけ**である。サブモジュールの中で直接コミットすると撮り直し
 どうしが繋がり、掃除でどれも落とせなくなる（後述）。
 
 `VRT_ARGS` で Playwright へそのまま引数を渡せる。
@@ -33,7 +33,7 @@ make vrt VRT_ARGS='--project=light --grep "Action/Button"'
 
 フォントのラスタライズは OS でも CPU アーキテクチャでも変わる。基準画像が一意なのは
 **どのイメージで撮ったか**によってであり、撮った人の環境によってではない。そこで実行は
-[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) の `vrt_runner`
+[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) の `browser_runner`
 （digest と `platform` まで固定した Playwright 公式イメージ）に閉じてある。ホストで直接
 `playwright test` を起動した場合は、比較する前に落ちる。
 
@@ -56,7 +56,7 @@ VRT が言えるのは「変わった」までで、「変わってよいか」�
 
 | | 操作 | 向き先 |
 | --- | --- | --- |
-| `vrt-retake` ラベル | PR にラベルを付ける | CI が撮り直し、置き場へ push してポインタを進める |
+| `baseline-retake` ラベル | PR にラベルを付ける | CI が撮り直し、置き場へ push してポインタを進める |
 | 手元 | `make vrt-retake VRT_ONLY=<id>,<id>` | Docker がある環境で撮り直す。fork からの PR はこちらだけ |
 
 **ラベルは story と画面の両方を撮り直す。** 置き場も承認ラベルも 1 つなので、撮り直しだけを 2 つに
@@ -68,14 +68,14 @@ VRT が言えるのは「変わった」までで、「変わってよいか」�
 置き場へ push され、PR コメントに**置き場の compare ビューへのリンク**が付く。そこに GitHub 標準の
 画像差分（2-up / swipe / onion-skin）が出る。**見た目を判断するのはそこ**である。
 
-判断したことは **`vrt-approve` ラベル**で表す。基準画像が動いている PR では `vrt-approval` の
+判断したことは **`baseline-approve` ラベル**で表す。基準画像が動いている PR では `baseline-approval` の
 チェックがこれを要求し、無ければ赤のままマージできない。PR のレビュー承認を使わないのは、あれが
 承認するのは PR 全体であって基準画像ではないため — 無関係な push で承認がやり直しになる一方、
 「画素を見た」ことはどこにも残らない。**1 人のリポジトリでも成立する**（PR の作成者は自分の PR を
 レビュー承認できない）。
 
 **古い承認は通らない。**チェックが見るのはラベルの有無だけでなく、**ラベルが付いた時刻が基準画像を
-動かした最後のコミットより後であること**。撮り直しが走ったあとも `vrt-approve` は付いたままなので、
+動かした最後のコミットより後であること**。撮り直しが走ったあとも `baseline-approve` は付いたままなので、
 新しい一式には**付け直す**（一度外して付ける）。外さずに置くと時刻が古いままで、チェックは
 「承認 ⟨時刻⟩ / 撮影 ⟨時刻⟩」と出して赤のままになる。
 
@@ -264,7 +264,7 @@ push すれば、次の VRT の完了で自動的に拾われる。
 
 置き場は**画面単位の撮影と共有する**（[e2e/README.md](../e2e/README.md)）。あちらは `screen/` 区画に
 閉じており、story の系統がその名前を名乗ると落ちる
-（[`lib/baseline-store.ts`](lib/baseline-store.ts)）。共有するのは、掃除も撮り直しも置き場 1 つに
+（[`baseline/`](../baseline/README.md)）。共有するのは、掃除も撮り直しも置き場 1 つに
 対して働くためで、分けると同じ機構を 2 組持つことになる。
 
 系統で分けるのは、**消す単位を系統に取れるようにする**ため。題材に固有の系統（`Features` /
@@ -297,11 +297,11 @@ make と workflow から流し込む。
 
 | | |
 | --- | --- |
-| 報告 | [`vrt-images-prune.yaml`](../.github/workflows/vrt-images-prune.yaml) が月次で測り、閾値を超えたときだけ issue を立てる |
-| 実行 | `make vrt-images-prune`（`DRY_RUN=1` で一覧だけ） |
+| 報告 | [`baseline-prune.yaml`](../.github/workflows/baseline-prune.yaml) が月次で測り、閾値を超えたときだけ issue を立てる |
+| 実行 | `make baseline-prune`（`DRY_RUN=1` で一覧だけ） |
 
 実行を人に残すのは、消したものを戻せないためである。保持の条件は
-[`scripts/vrt-images/retention.ts`](../scripts/vrt-images/retention.ts) に理由と撤去条件つきで置いてある。
+[`scripts/baseline-store/retention.ts`](../scripts/baseline-store/retention.ts) に理由と撤去条件つきで置いてある。
 
 revert したときは、戻り先の一式が掃除で消えていることがある。そのため
 `revert-` で始まるブランチではラベル無しで撮り直しが走る。revert は定義上「以前に承認された状態へ
@@ -312,8 +312,8 @@ revert したときは、戻り先の一式が掃除で消えていることが�
 テンプレートから作った側は**自分の置き場を持つ**。上流の置き場には push できない。
 
 ```bash
-make setup-vrt-images   # 置き場を作る / 既存を指定する → サブモジュールを張り直す
-make setup-vrt-app      # 撮り直しに使う GitHub App を secret へ登録する
+make setup-baseline-store   # 置き場を作る / 既存を指定する → サブモジュールを張り直す
+make setup-baseline-app      # 撮り直しに使う GitHub App を secret へ登録する
 ```
 
 GitHub App の作成と鍵の生成だけは自動化できない（REST に作成の口が無く、鍵は生成時に一度しか
@@ -341,14 +341,14 @@ push を自分で塞ぐことになる。
 | [`theme-tokens.spec.ts`](theme-tokens.spec.ts) | 配色テーマが面へ効いていることを見る（撮らない側のテーマの受け皿） |
 | [`lib/theme-tokens.ts`](lib/theme-tokens.ts) | 生成した CSS から配色の意味トークンの名前を取り出す |
 | [`lib/clock.ts`](lib/clock.ts) | 撮影時に「今日」として読ませる時刻 |
-| [`lib/orphan-baselines.ts`](lib/orphan-baselines.ts) | 撮影対象と置き場の基準画像の対応を突き合わせる |
-| [`lib/baseline-store.ts`](lib/baseline-store.ts) | 置き場の区画割り。画面単位の撮影との住み分け |
+| [`lib/expected-baselines.ts`](lib/expected-baselines.ts) | 置き場に在るべき story の基準画像を数える |
 | [`lib/static-server.ts`](lib/static-server.ts) | build 済み Storybook を配る依存なしの静的サーバ |
-| `screenshots/` | 基準画像の置き場（サブモジュール） |
+| [`../baseline/lib/`](../baseline/lib/) | 置き場の区画割りと、対応の突き合わせ。画面単位の撮影と共有する |
+| `../baseline/images/` | 基準画像の置き場（サブモジュール） |
 | `../playwright.config.ts` | 実行環境と比較条件 |
 | `../scripts/vrt/` | 実行結果から一覧表と撮り直しの範囲を取り出す・絵を決める入力のハッシュ |
-| [`../scripts/vrt-images/`](../scripts/vrt-images/) | 置き場の ref 名と、掃除で消す対象の算出 |
-| [`../.github/actions/setup-vrt-baselines`](../.github/actions/setup-vrt-baselines/action.yaml) | CI が記録されたコミットだけを取ってくる |
+| [`../scripts/baseline-store/`](../scripts/baseline-store/) | 置き場の ref 名と、掃除で消す対象の算出 |
+| [`../.github/actions/setup-baselines`](../.github/actions/setup-baselines/action.yaml) | CI が記録されたコミットだけを取ってくる |
 | [`../.github/actions/diff-scope`](../.github/actions/diff-scope/action.yaml) | CI の入口で、差分が絵に届きうるかを判定する |
 
 `tmp/vrt/` に出る実行結果（actual / diff / HTML レポート）は追跡しない。

@@ -141,7 +141,7 @@ Docker を維持する場合、以下を毎リリースで同期する必要が�
 
 これらは「アプリ本体を Docker で動かす」のとは別レイヤであり、`mise.toml` / `pnpm-lock.yaml` との同期問題も発生しない（base image を独自に管理して構わない）。
 
-**採用済みは visual regression のランナーだけ**（[`docker-compose.dev-tools.yml`](../../docker-compose.dev-tools.yml) の `vrt_runner`）。基準画像はフォントのラスタライズに依存し、それは OS でも CPU アーキテクチャでも変わるため、比較の基準を実行者の環境から切り離す手段が要る（[0091](0091-test-verification-methods.md) §3）。ここで Docker を採るのは「Docker でないと解決できないか」への答えが是であるためで、PaaS / SaaS で代替できる用途（下記）とは性質が違う。
+**採用済みは visual regression のランナーだけ**（[`docker-compose.dev-tools.yml`](../../docker-compose.dev-tools.yml) の `browser_runner`）。基準画像はフォントのラスタライズに依存し、それは OS でも CPU アーキテクチャでも変わるため、比較の基準を実行者の環境から切り離す手段が要る（[0091](0091-test-verification-methods.md) §3）。ここで Docker を採るのは「Docker でないと解決できないか」への答えが是であるためで、PaaS / SaaS で代替できる用途（下記）とは性質が違う。
 
 補助ツールの image は tag ではなく digest で固定する。registry の tag は同じ名前のまま別の中身を指せるため、tag だけの参照では実行環境が黙って変わる。運用は [`docker/README.md`](../../docker/README.md)。
 
