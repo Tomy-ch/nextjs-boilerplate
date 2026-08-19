@@ -7,6 +7,49 @@ import { Button, buttonVariants } from "./button";
 import { BUTTON_SIZE, BUTTON_VARIANT } from "./button.definition";
 
 describe("Button", () => {
+  it("待っているあいだは、文言を場所ごと残したまま印を重ねる", () => {
+    render(
+      <Button pending={true} pendingLabel="送信しています">
+        登録する
+      </Button>,
+    );
+
+    const button = screen.getByRole("button");
+
+    // 文言は取り除かない。取り除くと器の幅が縮む。
+    expect(button).toHaveTextContent("登録する");
+    expect(button.querySelector('[data-slot="spinner"]')).toBeInTheDocument();
+  });
+
+  it("待っているあいだは押せず、待っていることを支援技術へ伝える", () => {
+    render(
+      <Button pending={true} pendingLabel="送信しています">
+        登録する
+      </Button>,
+    );
+
+    expect(screen.getByRole("button")).toBeDisabled();
+    expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("status", { name: "送信しています" })).toBeInTheDocument();
+  });
+
+  it("待っていなければ印を出さない", () => {
+    render(<Button pending={false}>登録する</Button>);
+
+    expect(screen.getByRole("button").querySelector('[data-slot="spinner"]')).toBeNull();
+  });
+
+  it("合成先へは待ちの見せ方を持ち込まない", () => {
+    const { container } = render(
+      <Button asChild={true} pending={true}>
+        <span>進む</span>
+      </Button>,
+    );
+
+    expect(screen.getByText("進む")).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="spinner"]')).toBeNull();
+  });
+
   it("既定の操作ボタンを表示する", () => {
     render(<Button>保存する</Button>);
 

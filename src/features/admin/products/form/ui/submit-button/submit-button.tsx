@@ -20,14 +20,16 @@ export type ProductSubmitButtonProps = {
  * @remarks
  * `form` の子として切り出すのは、`useFormStatus` が親の `form` の送信状態を読むためです。同じ
  * component の中で読むと、自分自身の送信を観測できません。
+ *
+ * 送信中の見せ方は `Button` が持ちます。文言を差し替えると幅が動くため、ここでは文言を渡すだけで
+ * 差し替えません。
  */
 export function ProductSubmitButton({ blocked, label, pendingLabel }: ProductSubmitButtonProps) {
   const { pending } = useFormStatus();
-  const caption = pending ? pendingLabel : label;
 
   return (
-    <Button disabled={pending || blocked} type="submit">
-      {caption}
+    <Button disabled={blocked} pending={pending} pendingLabel={pendingLabel} type="submit">
+      {label}
     </Button>
   );
 }
