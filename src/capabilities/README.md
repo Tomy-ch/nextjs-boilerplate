@@ -25,3 +25,11 @@ connectivity、media query、storage、clipboard など、複数 feature が使�
 - 単一 feature 専用 hook は feature 内に置く
 - **サーバに値が無い能力は、サーバ側の初期値を hook の doc に明記する**。初期値と実際の環境がずれる
   ぶんだけ hydration で表示が動くため、位置が動く出し分けには使わせない（CSS 側で表現する）
+
+## 置いている hook
+
+| hook | 供給する能力 |
+| --- | --- |
+| [`use-media-query`](use-media-query.ts) | 幅・入力方式などのメディア条件の一致 |
+| [`use-scroll-direction`](use-scroll-direction.ts) | 直近の scroll がどちらへ向いたか |
+| [`use-on-visible`](use-on-visible.ts) | 要素が見えたこと（`IntersectionObserver` の購読） |

@@ -3,13 +3,12 @@ import Link from "next/link";
 
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
+import { PurchaseAmountSummary } from "@/features/purchases/facade/amount-summary/amount-summary";
+import { PurchaseLineList } from "@/features/purchases/facade/lines/lines";
+import { PurchaseReceiptCard } from "@/features/purchases/facade/receipt/receipt";
 import type { ReferenceAmount } from "@/model/money";
 import type { Purchase } from "@/model/purchase/purchase";
-
 import { MYPAGE_PATH, PRODUCTS_PATH } from "../paths";
-import { AmountBreakdown } from "./ui/amount-breakdown/amount-breakdown";
-import { PurchaseLines } from "./ui/purchase-lines/purchase-lines";
-import { PurchaseReceipt } from "./ui/purchase-receipt/purchase-receipt";
 
 /** `CheckoutCompleteView` の props。 */
 export type CheckoutCompleteViewProps = {
@@ -38,13 +37,13 @@ export function CheckoutCompleteView({ purchase, reference }: CheckoutCompleteVi
       </p>
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
-        <PurchaseReceipt purchase={purchase} />
+        <PurchaseReceiptCard purchase={purchase} />
         <div className="rounded-lg border p-4">
-          <AmountBreakdown purchase={purchase} reference={reference} />
+          <PurchaseAmountSummary purchase={purchase} reference={reference} />
         </div>
       </div>
 
-      <PurchaseLines lines={purchase.lines} />
+      <PurchaseLineList lines={purchase.lines} />
 
       <div className="flex flex-wrap gap-3">
         <Button asChild>

@@ -7,15 +7,15 @@ import { axe } from "vitest-axe";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
-const { convertToReferenceAmount, getMyCart, getMyProfile } = vi.hoisted(() => ({
-  convertToReferenceAmount: vi.fn(),
+const { readReferenceAmount, getMyCart, getMyProfile } = vi.hoisted(() => ({
+  readReferenceAmount: vi.fn(),
   getMyCart: vi.fn(),
   getMyProfile: vi.fn(),
 }));
 
 vi.mock("@/adapters/server/api/cart", () => ({ getMyCart }));
 vi.mock("@/adapters/server/api/users", () => ({ getMyProfile }));
-vi.mock("@/adapters/server/api/exchange-rates", () => ({ convertToReferenceAmount }));
+vi.mock("@/adapters/server/api/exchange-rates", () => ({ readReferenceAmount }));
 vi.mock("../actions", () => ({ placeOrderAction: vi.fn() }));
 
 import { ORDERABLE_CART, PROFILE, SUBTOTAL_REFERENCE } from "../checkout.fixture";
@@ -25,7 +25,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getMyCart.mockResolvedValue(ORDERABLE_CART);
   getMyProfile.mockResolvedValue(PROFILE);
-  convertToReferenceAmount.mockResolvedValue(SUBTOTAL_REFERENCE);
+  readReferenceAmount.mockResolvedValue(SUBTOTAL_REFERENCE);
 });
 
 describe("CheckoutConfirmPageContent", () => {
@@ -45,7 +45,7 @@ describe("CheckoutConfirmPageContent", () => {
   it("小計の参考換算額を、小計の金額から引く", async () => {
     render(await CheckoutConfirmPageContent());
 
-    expect(convertToReferenceAmount).toHaveBeenCalledWith(ORDERABLE_CART.subtotalAmount);
+    expect(readReferenceAmount).toHaveBeenCalledWith(ORDERABLE_CART.subtotalAmount);
     // 集計は脇と下端の 2 か所へ置かれる（出るのは CSS で一方だけ）。
     expect(screen.getAllByRole("button", { name: "円で見る" })).toHaveLength(2);
   });
@@ -60,7 +60,7 @@ describe("CheckoutConfirmPageContent", () => {
     expect(keyOf(first)).not.toBe(keyOf(second));
   });
   it("参考換算額を引けなくても組み立てる", async () => {
-    convertToReferenceAmount.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
+    readReferenceAmount.mockResolvedValue(null);
 
     render(await CheckoutConfirmPageContent());
 

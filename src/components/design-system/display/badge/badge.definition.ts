@@ -1,5 +1,6 @@
 const DEFAULT_BADGE_VARIANT = "default";
 const SECONDARY_BADGE_VARIANT = "secondary";
+const SUCCESS_BADGE_VARIANT = "success";
 const DESTRUCTIVE_BADGE_VARIANT = "destructive";
 const OUTLINE_BADGE_VARIANT = "outline";
 const GHOST_BADGE_VARIANT = "ghost";
@@ -13,6 +14,7 @@ const LINK_BADGE_VARIANT = "link";
 export const BADGE_VARIANT: Readonly<{
   DEFAULT: "default";
   SECONDARY: "secondary";
+  SUCCESS: "success";
   DESTRUCTIVE: "destructive";
   OUTLINE: "outline";
   GHOST: "ghost";
@@ -20,6 +22,7 @@ export const BADGE_VARIANT: Readonly<{
 }> = {
   DEFAULT: DEFAULT_BADGE_VARIANT,
   SECONDARY: SECONDARY_BADGE_VARIANT,
+  SUCCESS: SUCCESS_BADGE_VARIANT,
   DESTRUCTIVE: DESTRUCTIVE_BADGE_VARIANT,
   OUTLINE: OUTLINE_BADGE_VARIANT,
   GHOST: GHOST_BADGE_VARIANT,

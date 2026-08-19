@@ -58,6 +58,14 @@
           "$type": "color",
           "$value": "{color.neutral.900}"
         },
+        "success": {
+          "$type": "color",
+          "$value": "{color.green.800}"
+        },
+        "success-foreground": {
+          "$type": "color",
+          "$value": "{color.neutral.0}"
+        },
         "warning": {
           "$type": "color",
           "$value": "{color.amber.900}"
@@ -133,6 +141,14 @@
         "card-foreground": {
           "$type": "color",
           "$value": "{color.neutral.100}"
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{color.green.400}"
+        },
+        "success-foreground": {
+          "$type": "color",
+          "$value": "{color.neutral.950}"
         },
         "warning": {
           "$type": "color",

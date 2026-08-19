@@ -15,6 +15,17 @@ test-requirement: feature
 - 表示通貨での参考換算額の読み取り（読めなくても購入を止めない）
 - 確定 1 回ぶんを表す冪等キーの発行
 
+## 借りているもの
+
+購入の表示は自分で持ちません。控え・明細・請求額の内訳は
+[`purchases/facade/`](../purchases/facade/) から借ります。**購入完了が見せているのは、購入詳細と
+同じ購入**であり、画面ごとに別の見え方を持つと控えとして突き合わせられません。
+
+金額と参考換算額の切り替えは
+[`AmountWithReference`](../../components/design-system/display/amount-with-reference/README.md) です。
+購入確認（カートの小計）と購入完了（購入の合計）の両方が使い、題材の語彙を持たないため
+`components` にあります。
+
 ## 受け入れないもの
 
 - カートの変更（数量・削除・全消しは `cart` の領分。この画面は戻る導線だけを持つ）
@@ -36,7 +47,6 @@ test-requirement: feature
 | `order.ts` | 購入に載せる明細の取り出しと、金額が変わった明細の判定 |
 | `paths.ts` | 完了画面の場所と、そこへ載せる検索条件。あわせてこの画面から出る先 |
 | `reference-amount.ts` | 参考換算額の読み取り。読めなくても投げない |
-| `ui/amount-with-reference/` | 金額と、切り替えで現れる参考換算額。両画面が使う |
 | `confirm/page-content.tsx` | カートと登録情報の並行取得、参考換算額の付与 |
 | `confirm/view.tsx` | 購入確認の表示。内容と集計を左右に分ける |
 | `confirm/ui/shipping-card/` | 届け先の確認と、登録情報へ変えに行く導線 |
@@ -50,9 +60,6 @@ test-requirement: feature
 | `complete/page-content.tsx` | 成立した購入の取得。指し先が読めなければ `not-found` |
 | `complete/purchase-id.ts` | 完了画面が見せる購入を検索条件から読む |
 | `complete/view.tsx` | 購入完了の表示。控え・内訳・明細・次の導線 |
-| `complete/ui/purchase-receipt/` | 注文番号・注文日時・状況 |
-| `complete/ui/purchase-lines/` | 購入した明細。単価は購入時点の値 |
-| `complete/ui/amount-breakdown/` | 小計・税・送料・合計の内訳 |
 
 ## 設計上の判断
 
