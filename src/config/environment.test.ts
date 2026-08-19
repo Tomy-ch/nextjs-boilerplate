@@ -17,7 +17,8 @@ const validEnvironment = {
   AUTH_REDIRECT_URI: "https://app.example.test/auth/callback",
   AUTH_SCOPES: "openid profile",
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
-} satisfies Environment;
+  NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
+} satisfies Record<keyof Environment, string>;
 
 function stubValidEnvironment(): void {
   vi.stubEnv("APP_API_BASE_URL", validEnvironment.APP_API_BASE_URL);
@@ -32,6 +33,7 @@ function stubValidEnvironment(): void {
   vi.stubEnv("AUTH_REDIRECT_URI", validEnvironment.AUTH_REDIRECT_URI);
   vi.stubEnv("AUTH_SCOPES", validEnvironment.AUTH_SCOPES);
   vi.stubEnv("AUTH_SESSION_SECRET", validEnvironment.AUTH_SESSION_SECRET);
+  vi.stubEnv("NEXT_PUBLIC_HTTP_MAX_URL_BYTES", validEnvironment.NEXT_PUBLIC_HTTP_MAX_URL_BYTES);
 }
 
 beforeEach(() => {
@@ -53,7 +55,7 @@ describe("getEnvironment", () => {
     const second = getEnvironment();
 
     expect(first).toBe(second);
-    expect(first).toEqual(validEnvironment);
+    expect(first).toEqual({ ...validEnvironment, NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000 });
     expect(() => validateEnvironment()).not.toThrow();
   });
 });

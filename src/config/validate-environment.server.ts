@@ -5,10 +5,12 @@
  */
 import { getApiConfig } from "./api/api.server";
 import { getAuthConfig } from "./auth/auth.server";
+import { getHttpConfig } from "./http/http.server";
 import { getMediaConfig } from "./media/media.server";
 import { getObservabilityConfig } from "./observability/observability.server";
 
 getApiConfig();
 getAuthConfig();
+getHttpConfig();
 getMediaConfig();
 getObservabilityConfig();
