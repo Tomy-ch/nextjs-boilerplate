@@ -34,6 +34,11 @@ export const AllActions: Story = {
 /** 操作を渡さない場合。確認だけの一覧になる。 */
 export const ReadOnly: Story = { args: { items: ITEMS } };
 
+/** 並び順が意味を持つ場面。端の項目は、その先へ動かす操作を押せない。 */
+export const Reorderable: Story = {
+  args: { items: ITEMS, onMoveDown: () => {}, onMoveUp: () => {}, onRemove: () => {} },
+};
+
 /**
  * `state` 5 種。進行状況は `state` と文言の両方で示す。`state` だけでは支援技術へ伝わらない。
  * `uploading` / `processing` では再試行が spinner へ変わる。

@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCwIcon, RotateCcwIcon, XIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, RefreshCwIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -27,12 +27,20 @@ function UploadPreviewRow({
   onRemove,
   onRetry,
   onReplace,
+  onMoveUp,
+  onMoveDown,
+  atStart,
+  atEnd,
 }: {
   item: UploadPreviewItem;
   pending: boolean;
   onRemove?: ItemHandler;
   onRetry?: ItemHandler;
   onReplace?: ItemHandler;
+  onMoveUp?: ItemHandler;
+  onMoveDown?: ItemHandler;
+  atStart: boolean;
+  atEnd: boolean;
 }) {
   const { preview } = item;
   const [objectUrl, setObjectUrl] = useState<string>();
@@ -57,6 +65,8 @@ function UploadPreviewRow({
   const remove = useCallback(() => onRemove?.(item.id), [item.id, onRemove]);
   const retry = useCallback(() => onRetry?.(item.id), [item.id, onRetry]);
   const replace = useCallback(() => onReplace?.(item.id), [item.id, onReplace]);
+  const moveUp = useCallback(() => onMoveUp?.(item.id), [item.id, onMoveUp]);
+  const moveDown = useCallback(() => onMoveDown?.(item.id), [item.id, onMoveDown]);
 
   return (
     <li>
@@ -76,6 +86,26 @@ function UploadPreviewRow({
         </AttachmentContent>
         <AttachmentActions>
           {inFlight ? <Spinner className="size-4" /> : null}
+          {onMoveUp === undefined ? null : (
+            <AttachmentAction
+              aria-label={`${item.name} を前へ移動する`}
+              disabled={pending || atStart}
+              onClick={moveUp}
+              type="button"
+            >
+              <ArrowUpIcon aria-hidden="true" />
+            </AttachmentAction>
+          )}
+          {onMoveDown === undefined ? null : (
+            <AttachmentAction
+              aria-label={`${item.name} を後ろへ移動する`}
+              disabled={pending || atEnd}
+              onClick={moveDown}
+              type="button"
+            >
+              <ArrowDownIcon aria-hidden="true" />
+            </AttachmentAction>
+          )}
           {inFlight || onRetry === undefined ? null : (
             <AttachmentAction
               aria-label={`${item.name} を再試行する`}
@@ -153,6 +183,8 @@ function UploadPreviewRow({
  * @param props.onRetry - 再試行の操作を受け取る。省略すると button を出さない。
  * @param props.onReplace - 差し替えの操作を受け取る。ファイルを選び直す導線は呼び出し元が
  *   `FileUpload` で用意する。省略すると button を出さない。
+ * @param props.onMoveUp - 1 つ前へ動かす操作を受け取る。省略すると button を出さない。
+ * @param props.onMoveDown - 1 つ後ろへ動かす操作を受け取る。省略すると button を出さない。
  * @param props.label - 一覧のアクセシブルな名前。
  *
  * @see Storybook `Display/UploadPreview`
@@ -163,6 +195,8 @@ export function UploadPreview({
   onRemove,
   onRetry,
   onReplace,
+  onMoveUp,
+  onMoveDown,
   label = "選択中のファイル",
   className,
   ...props
@@ -172,6 +206,8 @@ export function UploadPreview({
   onRemove?: ItemHandler;
   onRetry?: ItemHandler;
   onReplace?: ItemHandler;
+  onMoveUp?: ItemHandler;
+  onMoveDown?: ItemHandler;
   label?: string;
 }) {
   if (items.length === 0) {
@@ -185,10 +221,14 @@ export function UploadPreview({
       data-slot="upload-preview"
       {...props}
     >
-      {items.map((item) => (
+      {items.map((item, index) => (
         <UploadPreviewRow
+          atEnd={index === items.length - 1}
+          atStart={index === 0}
           item={item}
           key={item.id}
+          onMoveDown={onMoveDown}
+          onMoveUp={onMoveUp}
           onRemove={onRemove}
           onReplace={onReplace}
           onRetry={onRetry}
