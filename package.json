@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "add:ui": "tsx src/components/scripts/add-shadcn.ts",
+    "add:ui": "npm_config_ignore_workspace_root_check=true tsx src/components/scripts/add-shadcn.ts",
     "build": "next build",
     "bundle-budget": "tsx scripts/bundle-budget",
     "build-storybook": "APP_ENV=${APP_ENV:-local} storybook build",
