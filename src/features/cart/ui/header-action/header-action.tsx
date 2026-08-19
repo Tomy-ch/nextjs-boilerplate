@@ -20,7 +20,7 @@ const CartHeaderDrawer = dynamic(() =>
   import("../header-drawer/header-drawer").then((module) => module.CartHeaderDrawer),
 );
 
-/** 脇に常設できない幅。タブレットを含む（[0051](../../../../../docs/adr/0051-styling-system.md) §2）。 */
+/** 脇に常設できない幅。タブレットを含む（`docs/rules.md` #71）。 */
 const NARROW = mediaBelow("lg");
 
 /** `CartHeaderAction` の props。 */

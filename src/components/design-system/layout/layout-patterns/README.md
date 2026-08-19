@@ -22,13 +22,13 @@
 
 ## 間隔の段
 
-`gap-*` のうち、token が名前を与えているのは `0` / `1` / `2` / `4` / `6` / `8` です。この段は `var(--spacing-N)` を経由するため、[`tokens/primitives.json`](../../../../tokens/primitives.json) の一箇所で値を変えられます。
+`gap-*` のうち、token が名前を与えているのは `0` / `1` / `2` / `4` / `6` / `8` です。この段は `var(--spacing-N)` を経由するため、[`tokens/primitives.json`](../../../../../tokens/primitives.json) の一箇所で値を変えられます。
 
 それ以外の段（`1.5` / `3` / `10` など）も Tailwind の基底 `--spacing` の倍数として書けますが、`calc(var(--spacing) * N)` に展開されるため token の段とは別経路になります。**どちらを使うかの規約はまだありません。** 現状のコードには両方が混在しています。
 
 ## viewport breakpoint と container query の使い分け
 
-ADR [0051](../../../../docs/adr/0051-styling-system.md) §2 が決めています。
+判断軸は ADR [0051](../../../../../docs/adr/0051-styling-system.md) §2 が、守る形は [`docs/rules.md`](../../../../../docs/rules.md) #73 / #74 が持ちます。
 
 | 分岐の基準 | 使うところ |
 | --- | --- |
@@ -37,7 +37,7 @@ ADR [0051](../../../../docs/adr/0051-styling-system.md) §2 が決めていま�
 
 再利用 component を viewport で書くと、同じ component を本文へ置いたときと狭い脇へ置いたときで指定が食い違います。分岐の根拠を「自分が置かれた器の幅」に寄せるほうが、局所だけを見て判断できます。
 
-breakpoint は Tailwind の既定（`sm` 40rem / `md` 48rem / `lg` 64rem / `xl` 80rem / `2xl` 96rem）をそのまま使い、**mobile-first**（無印が狭い画面、`sm:` 以降で上書き加算）で書きます。
+breakpoint は Tailwind の既定（`sm` / `md` / `lg` / `xl` / `2xl`）をそのまま使い、**mobile-first**（無印が狭い画面、`sm:` 以降で上書き加算）で書きます。幅は [`tokens/primitives.json`](../../../../../tokens/primitives.json) の `breakpoint` が持つので、ここには書きません。
 
 ## sticky の重ね方
 

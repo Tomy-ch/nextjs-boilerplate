@@ -137,7 +137,7 @@ push すれば、次の VRT の完了で自動的に拾われる。
   撮らなかった story の基準画像が置き場から失われる）
 - viewport は 1 帯（1280×720）だけ、ブラウザも 1 つだけ。帯を増やすのも描画エンジンを増やすのも
   **画面単位の側**（[e2e/README.md](../e2e/README.md)）が持つ。部品の分岐は器の幅で行う規約なので
-  （[0051](../docs/adr/0051-styling-system.md) §2）、viewport で分岐しない部品を viewport の数だけ
+  （[`docs/rules.md`](../docs/rules.md) #73）、viewport で分岐しない部品を viewport の数だけ
   撮っても、増えるのは実行時間だけである
 
 ## 揺らぎを止めてある
