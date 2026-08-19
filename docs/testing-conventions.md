@@ -29,6 +29,12 @@
 - **snapshot を具体的なアサーションの代わりに使わない。**snapshot はコードの振る舞いをそのまま記録するので、バグも一緒に固定する。使うのは「構造全体が変わっていないこと」自体が主題のときに限る。
 - **検証したいものを mock しない。**対象の内部を mock で置き換えると、テストは mock の設定を検証する。
 - **時刻・乱数はリテラルで固定しない。**日付境界で腐る。時刻は表示用の timezone を固定し（`Intl` の `timeZone`）、絶対時刻を渡す。
+- **対象が持っている一覧を、テストへ書き写さない。**「宣言したものがすべて効いているか」を確かめるテストは、
+  その一覧を対象から取る。書き写すと、対象へ 1 件足しても検査は増えず、**守っているように見えて何も守らない**。
+  必要なら対象側の定数を公開する（公開する理由をその doc に書く）。
+- **数え上げで要素を特定できたことにしない。**`querySelectorAll(...).length` の下限や件数の一致は、
+  どの要素がそうなのかを述べていない。他の要素が条件を満たしていれば、本来の対象が外れても通る。
+  要素を名指しでアサートし、**そうであってはならない側も併せて確かめる**。
 
 ## component / hook のテスト — Testing Library の原則
 
@@ -39,6 +45,13 @@
 - **sleep ではなく待つ。**`await waitFor(...)` / `await screen.findBy...` を使う。固定の遅延は構造的に flaky になる。時間そのものが主題なら `vi.useFakeTimers` + `vi.advanceTimersByTime`。
 - **意味を持つ matcher を使う。**`toBeVisible` / `toBeDisabled` / `toHaveAccessibleName` は何を主張しているかを述べる。queried element への `toBeTruthy()` はほとんど何も主張していない。
 - **利用者が観測するものをアサートする。**hook の内部や private な呼び出し順ではなく、描画結果で分岐が区別できるならそちらを見る。store の値を直接読んで済ませない。
+
+## テストが起こしたものはテストが畳む
+
+1 つのワーカーが何本ものファイルを続けて回すため、**ファイルが終わっても畳まれなかったものはワーカーに残る**。残った購読・タイマー・React root は環境が破棄された後に動き、`window is not defined` のような形で表面化する。これは失敗したテストとしてではなく **unhandled error として run 全体を落とす** —— 全件 pass のまま赤くなり、名指しされるのは原因と無関係なファイルなので、ログから原因へ辿れない。
+
+- `render` したものは Testing Library の `cleanup` が畳む（`vitest.setup.ts` が全ファイルへ掛けている）。**それ以外の経路で作ったものは自分で畳む。**
+- 畳む口を持たない production の関数を呼ぶなら、生成そのものをテスト側で捕まえる（[`docs-viewer/src/mount/mount-portal.test.tsx`](../docs-viewer/src/mount/mount-portal.test.tsx) が `createRoot` に対して行っている）。**畳めるようにするために production へ後始末の口を足さない** —— production に呼ぶ相手が居ない API は、次に読む人が用途を問い直すだけの荷物になる。
 
 ## jsdom に無いブラウザ API の扱い
 

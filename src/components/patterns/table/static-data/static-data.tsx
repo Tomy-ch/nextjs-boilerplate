@@ -31,6 +31,14 @@ export type StaticDataTableProps<Row> = {
   /** 横スクロールする領域の名前。 */
   label?: string;
   pagination?: ReactNode;
+  /**
+   * 各行に追加する class 名。
+   *
+   * @remarks
+   * 行そのものを押せるようにする場合など、cell の中の要素を行いっぱいへ広げるには、行の側が
+   * 位置指定の基準になっている必要がある。何を基準にするかは並べる側の都合なので、ここで受ける。
+   */
+  rowClassName?: string;
   rows: readonly Row[];
   toolbar?: ReactNode;
 };
@@ -48,6 +56,7 @@ export function StaticDataTable<Row>({
   getRowKey,
   label,
   pagination,
+  rowClassName,
   rows,
   toolbar,
 }: StaticDataTableProps<Row>) {
@@ -70,7 +79,7 @@ export function StaticDataTable<Row>({
             </TableRow>
           ) : (
             rows.map((row) => (
-              <TableRow key={getRowKey(row)}>
+              <TableRow className={rowClassName} key={getRowKey(row)}>
                 {columns.map((column) => (
                   <TableCell
                     className={cn(tableColumnCellClass(column), column.cellClassName)}

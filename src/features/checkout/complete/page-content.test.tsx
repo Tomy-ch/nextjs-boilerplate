@@ -7,8 +7,8 @@ import { axe } from "vitest-axe";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
-const { convertToReferenceAmount, getMyPurchase, notFound } = vi.hoisted(() => ({
-  convertToReferenceAmount: vi.fn(),
+const { readReferenceAmount, getMyPurchase, notFound } = vi.hoisted(() => ({
+  readReferenceAmount: vi.fn(),
   getMyPurchase: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
@@ -16,7 +16,7 @@ const { convertToReferenceAmount, getMyPurchase, notFound } = vi.hoisted(() => (
 }));
 
 vi.mock("@/adapters/server/api/purchases", () => ({ getMyPurchase }));
-vi.mock("@/adapters/server/api/exchange-rates", () => ({ convertToReferenceAmount }));
+vi.mock("@/adapters/server/api/exchange-rates", () => ({ readReferenceAmount }));
 vi.mock("next/navigation", () => ({ notFound }));
 
 import { PURCHASE, TOTAL_REFERENCE } from "../checkout.fixture";
@@ -28,7 +28,7 @@ const searchParams = { [PURCHASE_PARAM]: PURCHASE.id };
 beforeEach(() => {
   vi.clearAllMocks();
   getMyPurchase.mockResolvedValue(PURCHASE);
-  convertToReferenceAmount.mockResolvedValue(TOTAL_REFERENCE);
+  readReferenceAmount.mockResolvedValue(TOTAL_REFERENCE);
 });
 
 describe("CheckoutCompletePageContent", () => {
@@ -48,7 +48,7 @@ describe("CheckoutCompletePageContent", () => {
   it("合計の参考換算額を、合計の金額から引く", async () => {
     render(await CheckoutCompletePageContent({ searchParams }));
 
-    expect(convertToReferenceAmount).toHaveBeenCalledWith(PURCHASE.totalAmount);
+    expect(readReferenceAmount).toHaveBeenCalledWith(PURCHASE.totalAmount);
   });
   it("指し先が読めなければ見つからないにする", async () => {
     await expect(CheckoutCompletePageContent({ searchParams: {} })).rejects.toThrow(
@@ -72,7 +72,7 @@ describe("CheckoutCompletePageContent", () => {
   });
 
   it("参考換算額を引けなくても描く", async () => {
-    convertToReferenceAmount.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
+    readReferenceAmount.mockResolvedValue(null);
 
     render(await CheckoutCompletePageContent({ searchParams }));
 

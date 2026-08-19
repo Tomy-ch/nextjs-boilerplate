@@ -1,8 +1,8 @@
 import { getMyCart } from "@/adapters/server/api/cart";
+import { readReferenceAmount } from "@/adapters/server/api/exchange-rates";
 import { getMyProfile } from "@/adapters/server/api/users";
 
 import { newIdempotencyKey } from "../idempotency-key";
-import { readReferenceAmount } from "../reference-amount";
 import { CheckoutConfirmView } from "./view";
 
 /**

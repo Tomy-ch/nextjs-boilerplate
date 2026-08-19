@@ -22,7 +22,10 @@ name: VisualRegressionTest
 # not survive a `tee` to a file (ADR 0153).
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
-# every PR is in README.md.
+# every PR is in README.md. The job always starts and then asks `diff-scope` whether the
+# diff can reach a picture, so the context is reported even when the expensive steps stand
+# down. That gate and the input hash `make vrt` computes are two different layers of the
+# same question — which layer decides what is in `vrt/README.md`.
 
 on:
   pull_request:
@@ -50,7 +53,7 @@ jobs:
       contents: read
 
     outputs:
-      title: ${{ steps.vrt.outputs.title }}
+      title: ${{ steps.vrt.outputs.title || steps.standdown.outputs.title }}
 
     steps:
       - name: Harden the runner
@@ -63,13 +66,33 @@ jobs:
         with:
           persist-credentials: false
 
+      # What cannot change a single pixel of a single story. The list is far shorter than
+      # `bundle-budget`'s: that job measures `.js` alone, whereas everything a story renders
+      # from — `*.css`, `tokens/*`, `.storybook/*`, `*.stories.tsx` — decides a picture here.
+      # `.github/**` and `scripts/**` are not listed either, because a change to this
+      # workflow or to how the comparison runs has to be compared.
+      - name: Decide whether the diff can reach a picture
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+
       - name: Fetch the baseline images
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-vrt-baselines
         with:
           app-id: ${{ secrets.VRT_APP_ID }}
           private-key: ${{ secrets.VRT_APP_PRIVATE_KEY }}
 
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
@@ -77,12 +100,14 @@ jobs:
 
       - name: Resolve the pnpm store path
         id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           path="$(pnpm store path)"
           echo "path=${path}" >> "$GITHUB_OUTPUT"
 
       - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
@@ -90,6 +115,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile
 
       # The record of which input state already compared clean. `make vrt` hashes the
@@ -97,6 +123,7 @@ jobs:
       # has to carry the record forward — the newest one this branch (or its base) produced.
       # A miss restores nothing and the comparison runs, which is the safe direction.
       - name: Restore the last verified input state
+        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: tmp/vrt/verified-inputs.sha256
@@ -105,6 +132,7 @@ jobs:
 
       - name: Build Storybook and compare every story
         id: vrt
+        if: steps.scope.outputs.relevant == 'true'
         continue-on-error: true
         shell: bash
         run: |
@@ -170,6 +198,18 @@ jobs:
         if: always() && steps.vrt.outputs.status == 'success'
         run: echo '全 story が基準画像と一致しました。' > /tmp/vrt.log
 
+      # A job that stood down still owes the pull request a verdict. Without this, the ❌
+      # comment an earlier push produced stays beside a green check once the diff stops
+      # reaching a picture — README.md's "update the comment on success too" invariant,
+      # applied to standing down.
+      - name: Note that the diff cannot reach a picture
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ VRT: SKIP (diff cannot reach a picture)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は絵に届かないため、比較していません。' > /tmp/vrt.log
+
       # Expected / actual / diff triplets per failing story. Without them the only
       # evidence of a visual change is the assertion text, which cannot be judged.
       - name: Upload the visual diff
@@ -195,7 +235,7 @@ jobs:
       # Handed to the commenting job through an artifact rather than a job output,
       # because the body is a file whose size is not bounded by the output limit.
       - name: Hand the comment body to the commenting job
-        if: always() && github.event_name == 'pull_request' && steps.vrt.outputs.status != ''
+        if: always() && github.event_name == 'pull_request' && (steps.vrt.outputs.status != '' || steps.standdown.outcome == 'success')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-comment
@@ -203,8 +243,11 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+      # `status` is empty when the comparison stood down, which is not a failure. The scope
+      # guard has to be repeated here rather than left to `status`, because "no verdict" and
+      # "a bad verdict" read the same to the expression below.
       - name: Fail if a story changed
-        if: always() && steps.vrt.outputs.status != 'success'
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.vrt.outputs.status != 'success'
         run: exit 1
 
   # Holds no secret beyond `GITHUB_TOKEN`, so the body it publishes cannot carry one.

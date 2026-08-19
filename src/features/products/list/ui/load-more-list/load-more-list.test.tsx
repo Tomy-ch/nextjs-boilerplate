@@ -5,12 +5,12 @@ import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
-
+import type { LoadMoreState } from "@/components/app-starter/load-more/load-more.definition";
 import type { ProductListItem } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 
-import { ProductLoadMoreList, type ProductLoadMoreState } from "./load-more-list";
+import { ProductLoadMoreList } from "./load-more-list";
 
 function item(index: number): ProductListItem {
   return {
@@ -26,8 +26,8 @@ function item(index: number): ProductListItem {
 
 const ITEMS: readonly ProductListItem[] = [item(1), item(2), item(3)];
 
-const IDLE = { status: "idle" } as const satisfies ProductLoadMoreState;
-const EXHAUSTED = { status: "exhausted" } as const satisfies ProductLoadMoreState;
+const IDLE = { status: "idle" } as const satisfies LoadMoreState;
+const EXHAUSTED = { status: "exhausted" } as const satisfies LoadMoreState;
 
 describe("ProductLoadMoreList", () => {
   beforeEach(() => {

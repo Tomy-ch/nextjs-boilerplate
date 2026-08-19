@@ -33,6 +33,17 @@ Accepted
   - **トリガー hook**(末尾到達を検知する reactive client hook)は既定で **feature ローカル**([0060](0060-state-management.md) client state = local から)。複数 feature を跨ぐ横断が生じた時点で **`capabilities` カーネル([0022](0022-capabilities-kernel.md))へ昇格**する([0021](0021-frontend-responsibility.md) 昇格ルール)。
   - **URL 復元性の優先**: 可能な限り searchParams 駆動の「もっと見る」ボタン(RSC 再取得)を優先し、真の無限スクロールは体感上それが要る箇所に限定する。無限スクロール採用時も現在 cursor は URL / state から復元可能に保ち、戻る / リロードで先頭に戻る UX 劣化を避ける。
 - client 追加取得の response も **`adapters` 境界で runtime validation・エラー正規化**を通す([0071](0071-bff-api-integration.md) / [0080](0080-error-handling.md))。生 status・生エラーを UI へ漏らさない原則は client 経路でも同じである。
+- **積み上げを捨てる判断は、取得する hook が持たない。** 別の一覧になったかどうかは、置く側が
+  React の鍵で表し、フレームワークに作り直させる。hook が初回ページの差し替えを見張ると、内容が
+  同じまま作り直されただけ(サーバが同じ結果を返し直したとき)でも巻き戻り、読み進めた分と
+  スクロール位置が失われる。**参照同一性で見張るのは特に誤りで、サーバが毎回新しい値を組む以上
+  常に真になる。**
+- **資格情報切れは「続きの取得の失敗」として扱わない。** 認証の内側にある一覧では、読み進めて
+  いる最中に session が切れうる。これを再試行できる失敗と同じ状態に畳むと、画面に出せるのは
+  読み直す操作だけになり、押しても同じ経路を辿るので利用者は抜け出せない。**未認証のとき
+  どこへ送るかは route の確定認可([0079](0079-auth-frontend-seam.md))が既に持っているので、
+  サーバへ描き直しを頼んでその判断へ委ねる**(`router.refresh()`)。ここで送り先を決めると
+  同じ決定が 2 か所に増える。
 - **データ取得ライブラリ(TanStack Query 等)は引き続き同梱しない**([0060](0060-state-management.md) exclusion を破らない)。増分取得の状態は local state / `adapters/client` の薄い呼び口で足りる範囲に留める。
 
 ## 禁止事項
@@ -42,6 +53,8 @@ Accepted
 - ❌ 無限スクロール / 追加取得の client fetch を**生 `fetch` でコンポーネントに直接書く**こと(必ず `adapters/client` 経由。§2 / [0024](0024-adapters-server-client-split.md))
 - ❌ client 追加取得に resilience(timeout / retry / breaker)を **client 側で独自実装**すること(resilience は server = `adapters/server` が持つ。client は same-origin の薄い fetch)
 - ❌ client 追加取得の response を検証・正規化せず UI へ流すこと([0071](0071-bff-api-integration.md) / [0080](0080-error-handling.md) の境界原則は client 経路にも適用)
+- ❌ 増分取得の hook が初回ページの差し替えを見張って積み上げを捨てること(§2。置く側の鍵が持つ)
+- ❌ 資格情報切れ(401)を、再試行できる失敗と同じ状態へ畳むこと(§2。再試行導線は 401 では誤り)
 - ❌ 無限スクロールを理由にデータ取得ライブラリを持ち込むこと([0060](0060-state-management.md) exclusion)
 
 ## 補足

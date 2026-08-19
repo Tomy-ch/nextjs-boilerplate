@@ -1,3 +1,4 @@
+import { PrintButton } from "@/components/design-system/action/print-button/print-button";
 import { Badge } from "@/components/design-system/display/badge/badge";
 import {
   KeyValueEmpty,
@@ -23,7 +24,6 @@ import type { Product } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 import { PRODUCT_LIST_PATH } from "../facade/list-url/list-url";
 import { ProductGallery } from "./ui/gallery/gallery";
-import { PrintButton } from "./ui/print-button/print-button";
 
 const DESCRIPTION_HEADING_ID = "product-description";
 

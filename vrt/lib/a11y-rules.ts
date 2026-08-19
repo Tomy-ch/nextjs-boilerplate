@@ -100,6 +100,7 @@ export const STORY_DISABLED_RULES: readonly StoryDisabledRule[] = [
       "overlay-dropdownmenu--open",
       "overlay-dropdownmenu--with-selection",
       "overlay-dropdownmenu--with-selection-kept-open",
+      "page-admin-products-list--row-actions-open", // sample:line
     ],
     reason:
       "Radix が modal の overlay を開くとき背景へ `aria-hidden` だけを当て、trigger は tabbable のまま残る。焦点は FocusScope が閉じ込めるため実際には届かない。axe も同じ場合を violation ではなく incomplete にする逃げ道を持つが、その判定は dialog しか見ないため menu では効かない。",

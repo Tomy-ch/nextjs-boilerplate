@@ -29,7 +29,12 @@ vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("../auth/session", () => ({ getAccessToken }));
 
 import { toProductId } from "@/model/product/product";
-import { createPurchase, getMyPurchase, getMyPurchases } from "./purchases";
+import {
+  createPurchase,
+  getMyPurchase,
+  getMyPurchases,
+  parsePurchaseHistoryQuery,
+} from "./purchases";
 
 const wireItem = {
   code: "0195f0c2-0000-7000-8000-0000000000c1",
@@ -65,12 +70,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** 履歴の取得条件。件数と区分だけを固定し、各ケースはそこから派生させる。 */
+const HISTORY_QUERY = { first: 10, period: "all" } as const;
+
 describe("getMyPurchases", () => {
   // ----- 正常系 -----
   it("契約の 1 件を表示用の 4 項目へ写す", async () => {
     stubFetch(wirePage);
 
-    const page = await getMyPurchases(10);
+    const page = await getMyPurchases(HISTORY_QUERY);
 
     expect(page.items[0]).toEqual({
       code: wireItem.code,
@@ -83,29 +91,31 @@ describe("getMyPurchases", () => {
   it("画面が使わないステータス ID を落とす", async () => {
     stubFetch(wirePage);
 
-    const page = await getMyPurchases(10);
+    const page = await getMyPurchases(HISTORY_QUERY);
 
     expect(page.items[0]).not.toHaveProperty("statusId");
   });
 
-  it("取得件数の上限をクエリへ載せる", async () => {
+  it("取得件数の上限と期間の区分をクエリへ載せる", async () => {
     const fetchImpl = stubFetch(wirePage);
 
-    await getMyPurchases(10);
+    await getMyPurchases(HISTORY_QUERY);
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/purchases?first=10");
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/v1/purchases?first=10&period=all",
+    );
   });
 
   it("次ページのカーソルを引き継ぐ", async () => {
     stubFetch(wirePage);
 
-    await expect(getMyPurchases(10)).resolves.toMatchObject({ nextCursor: "next" });
+    await expect(getMyPurchases(HISTORY_QUERY)).resolves.toMatchObject({ nextCursor: "next" });
   });
 
   it("最終ページのカーソルを null にする", async () => {
     stubFetch({ ...wirePage, nextCursor: null, hasNext: false });
 
-    await expect(getMyPurchases(10)).resolves.toMatchObject({ nextCursor: null });
+    await expect(getMyPurchases(HISTORY_QUERY)).resolves.toMatchObject({ nextCursor: null });
   });
 
   it("契約が返した降順の並びをそのまま保つ", async () => {
@@ -114,7 +124,7 @@ describe("getMyPurchases", () => {
       items: [wireItem, { ...wireItem, code: "older", orderedAt: "2026-08-01T00:00:00.000Z" }],
     });
 
-    const page = await getMyPurchases(10);
+    const page = await getMyPurchases(HISTORY_QUERY);
 
     expect(page.items.map(({ code }) => code)).toEqual([wireItem.code, "older"]);
   });
@@ -122,13 +132,13 @@ describe("getMyPurchases", () => {
   it("購入が 1 件も無いとき空の一覧を返す", async () => {
     stubFetch({ items: [], nextCursor: null, hasNext: false });
 
-    await expect(getMyPurchases(10)).resolves.toEqual({ items: [], nextCursor: null });
+    await expect(getMyPurchases(HISTORY_QUERY)).resolves.toEqual({ items: [], nextCursor: null });
   });
 
   it("認証ヘッダを付けて送る", async () => {
     const fetchImpl = stubFetch(wirePage);
 
-    await getMyPurchases(10);
+    await getMyPurchases(HISTORY_QUERY);
 
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
       headers: { Authorization: "Bearer access-token" },
@@ -140,7 +150,9 @@ describe("getMyPurchases", () => {
     const fetchImpl = stubFetch(wirePage);
     getAccessToken.mockResolvedValueOnce(null);
 
-    await expect(kindOf(() => getMyPurchases(10))).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    await expect(kindOf(() => getMyPurchases(HISTORY_QUERY))).resolves.toBe(
+      ErrorKind.UNAUTHENTICATED,
+    );
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -151,7 +163,7 @@ describe("getMyPurchases", () => {
       hasNext: false,
     });
 
-    await expect(kindOf(() => getMyPurchases(10))).resolves.toBe(ErrorKind.INTERNAL);
+    await expect(kindOf(() => getMyPurchases(HISTORY_QUERY))).resolves.toBe(ErrorKind.INTERNAL);
   });
 });
 
@@ -279,5 +291,49 @@ describe("createPurchase", () => {
     expect(await kindOf(() => createPurchase(orderLines, "idempotency-key"))).toBe(
       ErrorKind.INTERNAL,
     );
+  });
+});
+
+describe("parsePurchaseHistoryQuery", () => {
+  // ----- 正常系 -----
+  it("素のクエリを契約の型へ照らす", () => {
+    expect(parsePurchaseHistoryQuery({ first: "20", period: "recent", days: "30" })).toEqual({
+      ok: true,
+      query: expect.objectContaining({ first: 20, period: "recent", days: 30 }),
+    });
+  });
+
+  it("指定が無ければ契約の既定で埋める", () => {
+    const parsed = parsePurchaseHistoryQuery({});
+
+    expect(parsed.ok && parsed.query.period).toBe("all");
+  });
+
+  it("繰り返された条件は指定なしとして落とす", () => {
+    const parsed = parsePurchaseHistoryQuery({ month: ["2026-07", "2026-08"] });
+
+    expect(parsed.ok && parsed.query.month).toBeUndefined();
+  });
+
+  // ----- 異常系 -----
+  it("範囲を外れた件数は読めなかったキーとして返す", () => {
+    expect(parsePurchaseHistoryQuery({ first: "0" })).toEqual({
+      ok: false,
+      invalidKeys: ["first"],
+    });
+  });
+
+  it("知らない区分も読めなかったキーとして返す", () => {
+    expect(parsePurchaseHistoryQuery({ period: "yesterday" })).toEqual({
+      ok: false,
+      invalidKeys: ["period"],
+    });
+  });
+
+  it("読めなかったキーを重複させない", () => {
+    const parsed = parsePurchaseHistoryQuery({ first: "0", period: "yesterday" });
+
+    expect(parsed.ok).toBe(false);
+    expect(!parsed.ok && parsed.invalidKeys).toEqual(["first", "period"]);
   });
 });

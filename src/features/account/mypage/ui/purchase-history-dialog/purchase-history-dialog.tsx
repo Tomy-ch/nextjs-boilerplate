@@ -24,11 +24,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/design-system/overlay/dialog/dialog";
+import { PURCHASE_HISTORY_PATH } from "@/features/purchases/facade/paths/paths";
 import { formatDateTime } from "@/model/datetime";
 import { formatMoney } from "@/model/money";
 import type { PurchaseHistoryPage } from "@/model/purchase/purchase";
-
-import { PURCHASE_HISTORY_PATH } from "../../../paths";
 
 const TITLE = "購入サマリ詳細";
 

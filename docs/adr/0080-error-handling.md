@@ -49,6 +49,15 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - バックエンド応答の生 HTTP status → sentinel 分類 + 安定エラーコード + ユーザ向けメッセージ への変換は、**`adapters` 境界で 1 回だけ**行う([0071](0071-bff-api-integration.md) B3 の「生 status を errors へ正規化」の詳細=本 ADR。go `http_error.go` の対応表 + `lookupErrorMetaByAppError` の翻案)
 - **生 HTTP status・生エラーを内層 / UI へ漏らさない**([0071](0071-bff-api-integration.md) と一致)。未知エラーは `Internal`(500)へ矯正する
 - ユーザ向けメッセージは日本語(AGENTS.md Language Rules)。メッセージ本文は実装時に確定(本 ADR は分類とコードの対応表を定める)
+- **クライアント経路も同じ境界で分類する。** 同一オリジンの BFF を叩く `adapters/client` も生 status を
+  そのまま投げ直さず、この対応表へ写す。特に `Unauthenticated`(401)を `Internal` へ畳まないこと ——
+  畳むと呼び出し側は「再試行できる失敗」としか扱えず、資格情報が切れているのに読み直す操作しか
+  出せない画面になる(再試行は 401 / 403 / 404 では誤り。`components/app-starter/auth-state-feedback`)
+- **補助的な値の degrade は、画面ごとに決めさせず境界で 1 度畳む。** 表示のためだけにあり、
+  読めなくても画面が成り立つ値(参考換算額のような添え物)は、`adapters` に「読めなければ `null`」を
+  返す口を置き、投げる口も残す。画面ごとに try / catch を書かせると、同じ判断が画面の数だけ増え、
+  片方だけが落ちる画面が生まれる。**逆に、落として良いかどうかが画面で割れる値は畳まない** ——
+  畳めるのは「どの画面も同じ扱いをする」ことが言い切れるときだけである
 
 ### 3. App Router のエラー特殊ファイル階層
 
@@ -68,6 +77,12 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - `loading.tsx`(セグメントの pending UI)と `<Suspense fallback>` は、**待機表示を担う薄い表示境界**とする。`error.tsx` と対をなし、いずれも業務ロジックを持たない。中身のコンポーネントは feature 側に置き、特殊ファイルからは薄く委譲する(error.tsx と同じ / [0040](0040-routing-rendering-strategy.md) driving adapter 原則)
 - **Suspense 境界の粒度**: streaming SSR で「先に出せるシェル」と「待つ部分」を分けるため、境界は **feature 内の、実際にデータ待ちする部分の近く**に置く(`"use client"` を葉へ押し下げる [0040](0040-routing-rendering-strategy.md) と同じ発想で、fallback 境界も過度に上位へ置かない)。`page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにしない
 - `loading.tsx` も `app/` 配下の App Router 特殊ファイル([0027](0027-directory-structure.md) / [0028](0028-naming-convention.md))である
+- **一次資源が見つからないことのある route に `loading.tsx` を置かない。** 置くと応答が streaming になり、
+  本文より先にヘッダが出る。その後で `notFound()` に達しても status はもう 200 で、見つからない購入・記事・
+  ユーザが 200 として配信される。待機を見せたいなら、**取得が終わってから内側の一部分を `<Suspense>` で包む**
+- **その結果、待機の状態を持たない画面がある。** `rules.md` #18 の 4 状態は「4 つ必ず作る」ではなく
+  「4 つを設計して、所有するものを実装・テストする」である。所有しない状態の部品を作ると、
+  どこからも参照されない skeleton が残る。**所有しないと決めたことと、その理由を README に書く**
 - fallback の**見た目(スケルトン / スピナー)の UI 規約と、Suspense × PPR(`Cache Components`)の相互作用**は用途依存 / [0040](0040-routing-rendering-strategy.md) の保留に従う。本節は「境界の配置と薄さ」までを定め、UI 表現・PPR 前提設計は実装 PR で確定する
 
 ### 5. swallow 禁止・cause chain・redact(go `rules.md` 翻案)
@@ -95,6 +110,10 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - ❌ `error.tsx` / `global-error.tsx` / `not-found.tsx` / `loading.tsx` / Suspense fallback に業務ロジックを書くこと(薄い表示境界)
 - ❌ `page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにし、Suspense 境界を待つ部分の近くへ置かないこと(ストリーミングの利点を捨てる)
 - ❌ 同一エラーを複数箇所で重複ログすること(境界で 1 回)
+- ❌ `Unauthenticated`(401)を `Internal` へ畳むこと(§2。再試行できる失敗と混ざる)
+- ❌ 画面が成り立つために要らない値の degrade を、画面ごとの try / catch で書くこと(§2。境界で畳む)
+- ❌ 一次資源が 404 になりうる route に `loading.tsx` を置くこと(§4。200 で配信される)
+- ❌ 画面が所有しない状態の部品を作ること(§4。参照されない skeleton が残る)
 
 ## 補足
 
