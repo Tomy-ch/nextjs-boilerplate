@@ -53,12 +53,8 @@ const ProductCountPayload = z.object({ count: z.int() });
  * 一覧の続きを取得する。
  *
  * @remarks
- * 同一オリジンの `/api/products` を薄く叩くだけです。timeout・再試行・遮断は `adapters/server`
- * が持ちます（[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。ここで独自に
- * 持つと、同じ要求に対して 2 つの再試行が別々の勘定で走ります。
- *
- * 生の status を投げ直さず分類へ写します。呼び出し側は「入力が悪いのか、取得できなかったのか」
- * だけを見て表示を決めます（[0080](../../../../docs/adr/0080-error-handling.md)）。
+ * 同一オリジンの `/api/products` を {@link request} で叩くだけです。失敗の扱いと分類は
+ * {@link request} の契約に従います。
  *
  * @param query - URL へ載せる検索条件。カーソルを含める
  * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る

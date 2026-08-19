@@ -13,7 +13,7 @@ import { ErrorKind } from "@/errors/error-kind";
  *
  * @param target - 送り出す path とクエリ。percent-encode 済みであること
  * @param maxBytes - 経路上で最も小さい上限
- * @throws {@link AppError} 予算を超えているとき、`uri-too-long` として
+ * @throws `uri-too-long` に分類したエラー。予算を超えているとき
  */
 export function assertRequestTargetWithinBudget(target: string, maxBytes: number): void {
   const bytes = new TextEncoder().encode(target).length;

@@ -182,7 +182,6 @@ describe("createHttpClient", () => {
   });
 
   it("204 は本文を読まず、本文を持たない契約として通す", async () => {
-    // 空の本文を JSON として解釈しようとすると構文エラーになり、成功した呼び出しが失敗になる。
     const fetchImpl = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
     const client = createClient(fetchImpl);
 

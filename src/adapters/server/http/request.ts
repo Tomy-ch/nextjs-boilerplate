@@ -44,7 +44,13 @@ type RequestPayload =
 
 /** 呼び出し 1 件の指定。 */
 type RequestSpec<T> = RequestPayload & {
-  /** base URL からの相対パス。 */
+  /**
+   * 呼び出し先。base URL からの相対パス、または絶対 URL。
+   *
+   * @remarks
+   * 絶対 URL は base URL へ繋がず、そのまま叩きます（{@link buildUrl}）。Discovery が返す
+   * エンドポイントがこの形で届きます。
+   */
   path: string;
   /** HTTP メソッド。既定は GET。 */
   method?: string;
@@ -60,9 +66,8 @@ type RequestSpec<T> = RequestPayload & {
    * この呼び出しに固有のヘッダ。
    *
    * @remarks
-   * 認証ヘッダはここで組みません。認証は接続先ごとに決まるものなので、クライアントの生成時に
-   * 渡した取得口が持ちます（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。
-   * ここに置くのは、呼び出しごとに値の変わる契約上のヘッダだけです。
+   * 認証ヘッダはここで組みません（`getBearerToken` が持ちます）。ここに置くのは、呼び出しごとに
+   * 値の変わる契約上のヘッダだけです。
    */
   headers?: Readonly<Record<string, string>>;
   /**
@@ -87,18 +92,22 @@ type RequestSpec<T> = RequestPayload & {
 
 /** 接続先ごとの実行環境。 */
 export type HttpClient = {
+  /**
+   * 要求を 1 件送り、契約の形へ通した応答を返す。
+   *
+   * @throws 失敗はすべて分類済みのエラーになる。生の status は表に出ません
+   *   （[0080](../../../../docs/adr/0080-error-handling.md)）。
+   */
   request<T>(spec: RequestSpec<T>): Promise<T>;
 };
 
 type ClientDeps = {
   baseUrl: string;
   /**
-   * 1 つの要求 URL に許すバイト数の上限。
+   * 1 つの要求 URL に許すバイト数の上限。既定を持たない。
    *
    * @remarks
-   * 既定を持ちません。経路のどこが先に URL を弾くかは配信構成で決まるもので、code が推測で
-   * 埋めると、実際より緩い上限が黙って効きます。値は config が環境変数から供給します
-   * ([0030](../../../../docs/adr/0030-environment-variable-management.md))。
+   * 何を数え、閾値をどこが持つかは [adapters](../../README.md) の「URL の予算」節が持ちます。
    */
   maxUrlBytes: number;
   /**
