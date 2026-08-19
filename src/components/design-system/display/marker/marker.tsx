@@ -1,5 +1,5 @@
-import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Slot } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -73,7 +73,7 @@ export function Marker({
   variant = MARKER_VARIANT.DEFAULT,
   ...props
 }: MarkerProps) {
-  const Component = asChild ? Slot : "div";
+  const Component = asChild ? Slot.Root : "div";
 
   return (
     <Component

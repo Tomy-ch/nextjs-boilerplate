@@ -1,5 +1,5 @@
-import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
+import { Slot } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -129,7 +129,7 @@ function BubbleContent({
 }: ComponentProps<"div"> & {
   asChild?: boolean;
 }) {
-  const Component = asChild ? Slot : "div";
+  const Component = asChild ? Slot.Root : "div";
 
   return (
     <Component

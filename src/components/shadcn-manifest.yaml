@@ -235,9 +235,9 @@ components:
     addedAt: 2026-08-02T01:06:43Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-slot"
       - class-variance-authority
       - next
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/button.tsx
@@ -254,8 +254,8 @@ components:
     addedAt: 2026-08-05T06:16:08.350Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-slot"
       - class-variance-authority
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/button-group.tsx
@@ -361,7 +361,7 @@ components:
     addedAt: 2026-08-03T11:28:32.574Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-direction"
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/direction.tsx
@@ -452,8 +452,8 @@ components:
     addedAt: 2026-08-03T15:22:37.339Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-slot"
       - class-variance-authority
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/attachment.tsx
@@ -470,7 +470,7 @@ components:
     addedAt: 2026-08-03T09:38:41.106Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-avatar"
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/avatar.tsx
@@ -494,9 +494,9 @@ components:
     addedAt: 2026-08-02T01:30:58.696Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-slot"
       - class-variance-authority
       - next
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/badge.tsx
@@ -513,8 +513,8 @@ components:
     addedAt: 2026-08-03T12:18:39.507Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-slot"
       - class-variance-authority
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/bubble.tsx
@@ -594,8 +594,8 @@ components:
     addedAt: 2026-08-03T10:59:15.442Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-slot"
       - class-variance-authority
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/item.tsx
@@ -612,8 +612,8 @@ components:
     addedAt: 2026-08-03T08:51:32.170Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-slot"
       - class-variance-authority
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/marker.tsx
@@ -721,8 +721,8 @@ components:
     addedAt: 2026-08-02T03:46:35.446Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-checkbox"
       - lucide-react
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/checkbox.tsx
@@ -851,8 +851,8 @@ components:
     addedAt: 2026-08-02T04:01:17.140Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-radio-group"
       - lucide-react
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/radio-group.tsx
@@ -916,8 +916,8 @@ components:
     addedAt: 2026-08-02T03:35:28.433Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-select"
       - lucide-react
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/select.tsx
@@ -951,7 +951,7 @@ components:
     addedAt: 2026-08-03T07:54:09.865Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-slider"
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/slider.tsx
@@ -981,7 +981,7 @@ components:
     addedAt: 2026-08-03T09:57:36.317Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-switch"
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/switch.tsx
@@ -1026,8 +1026,8 @@ components:
     addedAt: 2026-08-03T11:01:15.700Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-toggle-group"
       - class-variance-authority
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/toggle-group.tsx
@@ -1077,8 +1077,8 @@ components:
     addedAt: 2026-08-03T08:46:28.557Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-slot"
       - lucide-react
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/breadcrumb.tsx
@@ -1095,8 +1095,8 @@ components:
     addedAt: 2026-08-03T11:51:01.273Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-menubar"
       - lucide-react
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/menubar.tsx
@@ -1121,9 +1121,9 @@ components:
     addedAt: 2026-08-03T10:25:39.796Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-navigation-menu"
       - class-variance-authority
       - lucide-react
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/navigation-menu.tsx
@@ -1158,8 +1158,8 @@ components:
     addedAt: 2026-08-03T09:39:36.077Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-tabs"
       - class-variance-authority
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/tabs.tsx
@@ -1197,7 +1197,7 @@ components:
     addedAt: 2026-08-02T15:23:17Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-alert-dialog"
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/alert-dialog.tsx
@@ -1232,8 +1232,8 @@ components:
     addedAt: 2026-08-03T09:39:42.523Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-context-menu"
       - lucide-react
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/context-menu.tsx
@@ -1250,8 +1250,8 @@ components:
     addedAt: 2026-08-03T01:26:34.376Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-dialog"
       - lucide-react
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/dialog.tsx
@@ -1285,8 +1285,8 @@ components:
     addedAt: 2026-08-03T02:01:38.277Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-dropdown-menu"
       - lucide-react
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/dropdown-menu.tsx
@@ -1303,7 +1303,7 @@ components:
     addedAt: 2026-08-02T05:19:45.498Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-hover-card"
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/hover-card.tsx
@@ -1320,7 +1320,7 @@ components:
     addedAt: 2026-08-03T00:45:18.679Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-popover"
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/popover.tsx
@@ -1337,9 +1337,9 @@ components:
     addedAt: 2026-08-03T02:02:58.871Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-dialog"
       - class-variance-authority
       - lucide-react
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/sheet.tsx
@@ -1356,7 +1356,7 @@ components:
     addedAt: 2026-08-03T01:25:45.085Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-tooltip"
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/tooltip.tsx
@@ -1406,7 +1406,7 @@ components:
     addedAt: 2026-08-03T07:28:10.776Z
     shadcnCliVersion: 4.15.0
     dependencies:
-      - "@radix-ui/react-progress"
+      - radix-ui
     source:
       - repository: shadcn-ui/ui
         path: apps/v4/registry/new-york-v4/ui/progress.tsx
