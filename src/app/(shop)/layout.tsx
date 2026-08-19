@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
 
+import { verifySession } from "@/adapters/server/auth/session";
 import { AppShell } from "@/components/shell/app-shell/app-shell";
+import { ADMIN_PRODUCT_LIST_PATH } from "@/features/admin/paths";
 import { CartRemovalNoticeProvider } from "@/features/cart/removal-memory";
 import { readShellCart } from "@/features/cart/shell-cart";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import { RepositoryLinks } from "@/features/site-info/ui/repository-links/repository-links";
+import { isAdmin } from "@/model/authz";
 
 const SITE_NAME = "nextjs-boilerplate";
 
@@ -14,6 +17,16 @@ const NAV_ITEMS = [
   { href: "/purchases", label: "購入履歴" },
   { href: "/mypage", label: "マイページ" },
 ];
+
+/**
+ * 管理画面への入口。
+ *
+ * @remarks
+ * 役割を持つ人にしか出しません。**押せる場所を作らないことが出し分けです。** 出したうえで押した
+ * 先で断ると、管理の面がある事実だけが誰にでも伝わります
+ * （[0079](../../../docs/adr/0079-auth-frontend-seam.md)）。
+ */
+const ADMIN_NAV_ITEM = { href: ADMIN_PRODUCT_LIST_PATH, label: "管理" };
 
 /**
  * 利用者向け画面の外枠。
@@ -45,13 +58,14 @@ const NAV_ITEMS = [
  * 空の姿へ変わるため、器の内側に持つとその切り替わりで記憶ごと失われます。
  */
 export default async function ShopLayout({ children }: { children: ReactNode }) {
-  const cart = await readShellCart();
+  const [cart, session] = await Promise.all([readShellCart(), verifySession()]);
+  const navItems = isAdmin(session) ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS;
 
   return (
     <CartRemovalNoticeProvider>
       <AppShell
         siteName={SITE_NAME}
-        navItems={NAV_ITEMS}
+        navItems={navItems}
         headerActions={cart === null ? null : <CartHeaderAction cart={cart} />}
         sidebar={cart === null ? null : <CartPanel cart={cart} />}
         footer={
