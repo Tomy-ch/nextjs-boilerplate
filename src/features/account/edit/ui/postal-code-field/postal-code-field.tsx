@@ -10,9 +10,8 @@ import {
   INPUT_GROUP_ADDON_ALIGN,
   INPUT_GROUP_BUTTON_SIZE,
 } from "@/components/design-system/form/input-group/input-group.definition";
+import { fieldControlAttributes } from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
-
-import { fieldControlAttributes } from "../../field-attributes";
 import type { AddressField } from "../../use-address-field";
 import type { ProfileFieldProps } from "../../use-profile-fields";
 
