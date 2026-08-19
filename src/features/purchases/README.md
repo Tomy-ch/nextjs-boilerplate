@@ -75,9 +75,9 @@ test-requirement: feature
   同じ購入が画面によって違う見え方になると、控えとして突き合わせられません。`components` へ上げられない
   のは、いずれも題材の語彙（注文・購入）を持ち、コア残留の検査に弾かれるためです
   （[0021](../../../docs/adr/0021-frontend-responsibility.md)）
-- **詳細は待機の状態を持ちません。** `loading.tsx` を置くと応答が streaming になり、存在しない
-  購入でも 200 が返ります。取得の待ちは route が丸ごと引き受けるので、この画面に skeleton はありません。
-  一覧のほうは Suspense の境界を持つので `history/ui/skeleton/` があります
+- **詳細は待機の状態を持ちません。** 購入は見つからないことがあり、その route に `loading.tsx` は
+  置けません（[0080](../../../docs/adr/0080-error-handling.md)）。取得の待ちは route が丸ごと引き受けるので、
+  この画面に skeleton はありません。一覧のほうは Suspense の境界を持つので `history/ui/skeleton/` があります
 - **増分取得の部品は商品一覧と共有です。** 続きの読み込みの状態は
   [`LoadMore`](../../components/app-starter/load-more/README.md)、目印が見えたことを知るのは
   [`use-on-visible`](../../capabilities/use-on-visible.ts) が持ちます。積み上げの状態機械だけが
