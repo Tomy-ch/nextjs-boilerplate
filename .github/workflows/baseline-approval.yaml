@@ -1,4 +1,4 @@
-name: VisualRegressionApproval
+name: Baseline Approval
 
 # Requires a human to accept the pixels when a pull request moves the baseline images.
 # Why the acceptance is a label rather than a pull-request review is in
