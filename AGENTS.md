@@ -257,9 +257,12 @@ make images-pin-resolve    # Resolve every container image tag to a digest into 
 make images-pin-apply      # Rewrite every image reference from the lockfile
 make images-pin-check      # Verify the image pins match the lockfile — fails on drift (pre-commit / CI)
 make vrt                   # Compare every Storybook story against its baseline image (ADR 0091)
+make vrt-review            # Open the stories CI flagged, in a throwaway worktree — the line the PR comment prints
 make vrt-update            # Retake the story baselines locally — does NOT push them to the store
 make vrt-retake            # Retake and push. The only local entry point; the `baseline-retake` label is the default path
 make e2e                   # Drive the built app through its journeys and compare each screen (ADR 0090 / 0091)
+make e2e-review            # Same, for the screens CI flagged — starts the production build, not the dev server
+make review-clean          # Remove the throwaway worktrees the two review targets left under tmp/review/
 make e2e-update            # Retake the screen baselines locally — same split as vrt-update
 make e2e-retake            # Retake and push the screen baselines
 make baseline-push         # Push retaken baselines to the store and advance the submodule pointer
