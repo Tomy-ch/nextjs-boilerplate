@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from "@testing-library/react";
+import Link from "next/link";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useUnsavedChangesStore } from "@/stores/unsaved-changes-store";
@@ -30,7 +31,7 @@ describe("UnsavedChangesGuard", () => {
   it("書きかけが無ければ、確認は出ない", () => {
     render(
       <UnsavedChangesGuard>
-        <a href="/admin/products">商品一覧管理</a>
+        <Link href="/admin/products">商品一覧管理</Link>
       </UnsavedChangesGuard>,
     );
 
@@ -43,7 +44,7 @@ describe("UnsavedChangesGuard", () => {
 
     render(
       <UnsavedChangesGuard>
-        <a href="/admin/products">商品一覧管理</a>
+        <Link href="/admin/products">商品一覧管理</Link>
       </UnsavedChangesGuard>,
     );
 

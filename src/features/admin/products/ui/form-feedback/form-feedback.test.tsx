@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
+import Link from "next/link";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -17,7 +18,7 @@ function renderFeedback(state: ProductFormState, dismissed = false) {
       state={state}
       title="登録できませんでした"
     >
-      <a href="/admin/products">読み込み直す</a>
+      <Link href="/admin/products">読み込み直す</Link>
     </ProductFormFeedback>,
   );
 }
