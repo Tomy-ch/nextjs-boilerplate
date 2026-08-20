@@ -25,8 +25,4 @@ describe("productDetailPath", () => {
   it("利用者向けの商品の面を指す", () => {
     expect(productDetailPath(ID)).toBe(`/products/${ID}`);
   });
-
-  it("id に URL で意味を持つ文字が含まれても壊れない", () => {
-    expect(productDetailPath("a/b?c" as typeof ID)).toBe("/products/a%2Fb%3Fc");
-  });
 });

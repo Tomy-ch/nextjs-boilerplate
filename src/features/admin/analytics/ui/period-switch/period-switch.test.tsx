@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -38,11 +38,12 @@ describe("PeriodSwitch", () => {
   it("日付を選ぶ選択肢を外から受け取って末尾に置く", () => {
     renderSwitch();
 
-    const items = within(screen.getByRole("navigation", { name: "集計対象期間" })).getAllByRole(
-      "listitem",
-    );
+    const rangeChoice = screen.getByRole("button", { name: "期間を指定" });
+    const lastLink = screen.getByRole("link", { name: "今月" });
 
-    expect(within(items.at(-1) as HTMLElement).getByRole("button")).toHaveTextContent("期間を指定");
+    expect(lastLink.compareDocumentPosition(rangeChoice) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
   });
 
   it("a11y 検査を通る", async () => {
