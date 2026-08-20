@@ -179,7 +179,10 @@ export async function updateProductAction(
     await updateProduct(toProductId(id), parsed.value);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
-      return failedActionState({ formError: PRODUCT_VERSION_CONFLICT_MESSAGE });
+      return failedActionState({
+        formError: PRODUCT_VERSION_CONFLICT_MESSAGE,
+        kind: ErrorKind.CONFLICT,
+      });
     }
 
     return actionStateFromError(error);

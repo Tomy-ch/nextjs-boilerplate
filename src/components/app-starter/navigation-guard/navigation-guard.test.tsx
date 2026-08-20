@@ -172,6 +172,17 @@ describe("NavigationGuard", () => {
     expect(result.violations).toEqual([]);
   });
 
+  it("包んだ箱をレイアウトに参加させない", () => {
+    // 見張るために置いた器が中身の配置を動かすと、包む範囲を広げるたびに画面が動く。
+    const { container } = render(
+      <NavigationGuard description="説明" title="題" when={true}>
+        <p>中身</p>
+      </NavigationGuard>,
+    );
+
+    expect(container.querySelector('[data-slot="navigation-guard"]')).toHaveClass("contents");
+  });
+
   it("確認の文言を呼び出し元が差し替えられる", () => {
     render(
       <NavigationGuard

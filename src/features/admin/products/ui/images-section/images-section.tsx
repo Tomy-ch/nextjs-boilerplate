@@ -11,11 +11,14 @@ import { Alert, AlertDescription } from "@/components/design-system/status/alert
 
 import { PRODUCT_IMAGE_ACCEPT, PRODUCT_IMAGE_ACCEPT_LABEL } from "../../field-limits";
 import { PRODUCT_FORM_NAMES } from "../../form-names";
+import { controlIdOf } from "../../form-sections";
 import { formatMegabytes } from "../../image-rejection";
 import type { ProductImages } from "../../use-product-images";
 
 /** `ProductImagesSection` の props。 */
 export type ProductImagesSectionProps = {
+  /** 入力欄の `id` の前置き。 */
+  idPrefix: string;
   /** 選択中の画像と、その動かし方。 */
   images: ProductImages;
   /** 受け付ける 1 枚あたりの大きさ（byte）。 */
@@ -40,6 +43,7 @@ export type ProductImagesSectionProps = {
  * ファイルの文言を出すことだけで、送信経路も寿命の管理も持ちません。
  */
 export function ProductImagesSection({
+  idPrefix,
   images,
   maxUploadBytes,
   onReject,
@@ -55,6 +59,7 @@ export function ProductImagesSection({
       </div>
       <FileUpload
         accept={PRODUCT_IMAGE_ACCEPT}
+        id={controlIdOf(idPrefix, "images")}
         maxSize={maxUploadBytes}
         multiple={true}
         onReject={onReject}

@@ -6,10 +6,11 @@ import {
   SelectNative,
   SelectNativeOption,
 } from "@/components/design-system/form/select-native/select-native";
-import { fieldControlAttributes } from "@/components/patterns/form-field/field-attributes";
+import {
+  fieldControlAttributes,
+  toErrorId,
+} from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
-
-import { toErrorId } from "../text-field/text-field";
 
 /** 選べる候補 1 件。 */
 export type ProductSelectOption = {

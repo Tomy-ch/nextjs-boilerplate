@@ -48,6 +48,10 @@ const nextConfig = async (): Promise<NextConfig> => {
       serverActions: {
         // 上限の出所は env の 1 行で、ここは封筒のぶんを足すだけにする。単位付きの文字列で
         // 書き直すと同じ閾値が 2 か所に現れ、片方だけ動かせる状態になる。
+        //
+        // **この上限は全 Server Action へ及ぶ。** action ごとの指定を Next.js は持たないため、
+        // ファイルを受ける口のために上げた値が、テキストしか受け取らない口にも同じ上限で効く。
+        // 受け入れられないなら受け口を Route Handler へ寄せる（[0075](docs/adr/0075-file-upload-seam.md)）。
         bodySizeLimit: environment.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES + REQUEST_ENVELOPE_BYTES,
       },
     },

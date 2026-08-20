@@ -33,6 +33,7 @@ function imagesOf(overrides: Partial<ProductImages> = {}): ProductImages {
 function renderSection(images = imagesOf(), rejection?: string) {
   return render(
     <ProductImagesSection
+      idPrefix="form"
       images={images}
       maxUploadBytes={MAX}
       onReject={vi.fn()}

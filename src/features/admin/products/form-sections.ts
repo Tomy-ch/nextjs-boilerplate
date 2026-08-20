@@ -18,6 +18,20 @@ export const PRODUCT_FORM_SECTIONS = ["basics", "description", "images", "publis
 export type ProductFormSection = (typeof PRODUCT_FORM_SECTIONS)[number];
 
 /**
+ * 段の呼び名。
+ *
+ * @remarks
+ * 段を追う画面も観点で切り替える画面も同じ呼び名を出します。画面ごとに書くと、呼び名を変えた
+ * ときに直し漏れた画面だけが違う名前で同じ段を指します。
+ */
+export const PRODUCT_SECTION_TITLES = {
+  basics: "基本情報",
+  description: "説明",
+  images: "画像",
+  publish: "公開",
+} as const satisfies Readonly<Record<ProductFormSection, string>>;
+
+/**
  * 入力欄が並ぶ順。
  *
  * @remarks
@@ -81,4 +95,31 @@ export function findFirstInvalidSection(
   }
 
   return undefined;
+}
+
+/**
+ * 項目から入力欄の `id` の後ろ半分へ。
+ *
+ * @remarks
+ * 送信時の名前とは別に持ちます。名前は契約の綴りに従い、`id` は kebab-case という別々の規則に
+ * 従うためです（[0028](../../../../docs/adr/0028-naming-convention.md)）。
+ *
+ * **入力欄を組む側も、誤りの要約が宛先を組む側も、ここから導きます。**片方に書き写すと、
+ * 綴りを直した側だけが繋がらなくなり、要約の link が存在しない宛先を指します。型では捕まりません。
+ */
+const CONTROL_SUFFIXES = {
+  name: "name",
+  price: "price",
+  quantity: "quantity",
+  stockWarningThreshold: "stock-warning-threshold",
+  categoryId: "category",
+  description: "description",
+  images: "images",
+  statusId: "status",
+  publishedAt: "published-at",
+} as const satisfies Readonly<Record<ProductFormField, string>>;
+
+/** 入力欄の `id` を組む。前置きは同じフォームを 2 度置いても衝突しないよう呼び出し元が採番する。 */
+export function controlIdOf(idPrefix: string, field: ProductFormField): string {
+  return `${idPrefix}-${CONTROL_SUFFIXES[field]}`;
 }

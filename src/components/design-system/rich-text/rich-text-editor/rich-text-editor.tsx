@@ -309,6 +309,12 @@ export type RichTextEditorProps = {
    * allowlist の外にあるタグは parse の時点で落ちる。保存済みの内容を編集する場合に渡す。
    */
   defaultValue?: string;
+  /**
+   * 編集面そのものへ与える `id`。
+   *
+   * 誤りの要約など、外から編集面を名指しで指したい場合に渡す。省略すると付かない。
+   */
+  id?: string;
   /** `true` の間は読み取り専用になり、toolbar からの操作も効かなくなる。 */
   disabled?: boolean;
   /** 外枠へ追加する class。 */
@@ -381,6 +387,7 @@ export function RichTextEditor({
   disabled = false,
   label,
   onChange,
+  id,
 }: RichTextEditorProps) {
   const editor = useEditor({
     content: defaultValue,
@@ -391,6 +398,7 @@ export function RichTextEditor({
         "aria-multiline": "true",
         class: EDITOR_CONTENT_CLASS_NAME,
         role: "textbox",
+        ...(id === undefined ? {} : { id }),
       },
     },
     extensions: EDITOR_EXTENSIONS,

@@ -178,12 +178,34 @@ export function WizardForm({
     });
   }, [steps.length]);
 
-  const goTo = useCallback((index: number) => {
-    movedRef.current = true;
-    setProgress((moved) => ({ ...moved, currentIndex: index }));
-  }, []);
-
   const current = steps[currentIndex];
+
+  /**
+   * その段へ移れるか。
+   *
+   * 到達済みで、いま居る段ではなく、いま居る段を終えられているなら移れる。前へ戻る側は
+   * 終えられていなくても移れる —— 戻ることは、その段を済ませたと主張しないため。
+   */
+  const canGoTo = useCallback(
+    (index: number) =>
+      index <= furthestIndex &&
+      index !== currentIndex &&
+      !(current.blocked === true && index > currentIndex),
+    [current.blocked, currentIndex, furthestIndex],
+  );
+
+  const goTo = useCallback(
+    (index: number) => {
+      // 判定は描画と共有する。描画側だけで塞ぐと、規則の変更が常に見た目の変更として現れ、
+      // 状態の側は素通しのままになる。
+      if (!canGoTo(index)) return;
+
+      movedRef.current = true;
+      setProgress((moved) => ({ ...moved, currentIndex: index }));
+    },
+    [canGoTo],
+  );
+
   const isLast = currentIndex === steps.length - 1;
 
   return (
@@ -200,7 +222,7 @@ export function WizardForm({
               <ListItemTitle>
                 {index <= furthestIndex && index !== currentIndex ? (
                   <WizardStepLink
-                    disabled={current.blocked === true && index > currentIndex}
+                    disabled={!canGoTo(index)}
                     index={index}
                     onSelect={goTo}
                     title={step.title}

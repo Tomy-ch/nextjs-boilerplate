@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState, useId, useMemo } from "react";
+import { useActionState, useCallback, useId, useMemo } from "react";
 
 import { WizardForm } from "@/components/patterns/wizard-form/wizard-form";
 import { idleActionState } from "@/model/action-state";
-
+import { PRODUCT_SECTION_TITLES } from "../form-sections";
 import type {
   CreateProductAction,
   ProductFormState,
@@ -69,13 +69,23 @@ export function AdminProductCreateView({
     idleActionState(),
   );
   const initialValues = useMemo(() => emptyProductValues(), []);
-  const { changeDescription, dismiss, dismissed, images, rejection, values } = useProductForm({
+  const { dismiss, dismissed, images, rejection, values } = useProductForm({
     initialValues,
     maxUploadBytes,
     state,
     uploadAction,
     withQuantity: true,
   });
+
+  // 説明欄だけは値の更新と結果の取り下げを 1 つの handler にまとめる。他の項目は form 全体の
+  // `onInput` が取り下げを担うが、編集面は input event を出さない。
+  const changeDescription = useCallback(
+    (value: string) => {
+      values.setValue("description", value);
+      dismiss();
+    },
+    [dismiss, values],
+  );
 
   return (
     <form action={formAction} className="grid gap-8" onInput={dismiss}>
@@ -90,7 +100,7 @@ export function AdminProductCreateView({
         steps={[
           {
             id: "basics",
-            title: "基本情報",
+            title: PRODUCT_SECTION_TITLES.basics,
             blocked: values.isSectionBlocked("basics"),
             content: (
               <ProductBasicsSection
@@ -103,9 +113,10 @@ export function AdminProductCreateView({
           },
           {
             id: "description",
-            title: "説明",
+            title: PRODUCT_SECTION_TITLES.description,
             content: (
               <ProductDescriptionSection
+                idPrefix={idPrefix}
                 initialValue={initialValues.description}
                 onValueChange={changeDescription}
                 value={values.values.description}
@@ -114,12 +125,13 @@ export function AdminProductCreateView({
           },
           {
             id: "images",
-            title: "画像",
+            title: PRODUCT_SECTION_TITLES.images,
             // 送れなかった枚を残したまま先へ進ませない。載らないのは送信に載らない枚だけで、
             // 気づく手立てが画像の段にしか無い。
             blocked: images.uploading || images.failed,
             content: (
               <ProductImagesSection
+                idPrefix={idPrefix}
                 images={images}
                 maxUploadBytes={maxUploadBytes}
                 onReject={rejection.onReject}
@@ -129,7 +141,7 @@ export function AdminProductCreateView({
           },
           {
             id: "publish",
-            title: "公開",
+            title: PRODUCT_SECTION_TITLES.publish,
             blocked: values.isSectionBlocked("publish"),
             nextLabel: "確認",
             content: (

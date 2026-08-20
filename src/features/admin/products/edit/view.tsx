@@ -10,18 +10,22 @@ import {
   TabsClientList,
   TabsClientTrigger,
 } from "@/components/design-system/navigation/tabs-client/tabs-client";
+import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
 
 import { adminProductEditPath } from "../../paths";
 import { PRODUCT_FORM_NAMES } from "../form-names";
-import { findFirstInvalidSection, PRODUCT_FORM_SECTIONS } from "../form-sections";
+import {
+  findFirstInvalidSection,
+  PRODUCT_FORM_SECTIONS,
+  PRODUCT_SECTION_TITLES,
+} from "../form-sections";
 import type {
   ProductFormState,
   UpdateProductAction,
   UploadProductImageAction,
 } from "../form-state";
-import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "../form-state";
 import { ProductBasicsSection } from "../ui/basics-section/basics-section";
 import { ProductDescriptionSection } from "../ui/description-section/description-section";
 import { ProductFormFeedback } from "../ui/form-feedback/form-feedback";
@@ -50,13 +54,6 @@ export type AdminProductEditViewProps = {
   /** 画像を送る送信先。 */
   uploadAction: UploadProductImageAction;
 };
-
-const TAB_LABELS = {
-  basics: "基本情報",
-  description: "説明",
-  images: "画像",
-  publish: "公開",
-} as const satisfies Readonly<Record<(typeof PRODUCT_FORM_SECTIONS)[number], string>>;
 
 /**
  * 商品を編集する画面。
@@ -95,15 +92,24 @@ export function AdminProductEditView({
     idleActionState(),
   );
   const initialValues = useMemo(() => productValuesOf(product), [product]);
-  const { changeDescription, dismiss, dismissed, images, rejection, resultIsNew, values } =
-    useProductForm({
-      initialValues,
-      maxUploadBytes,
-      savedImages,
-      state,
-      uploadAction,
-      withQuantity: false,
-    });
+  const { dismiss, dismissed, images, rejection, resultIsNew, values } = useProductForm({
+    initialValues,
+    maxUploadBytes,
+    savedImages,
+    state,
+    uploadAction,
+    withQuantity: false,
+  });
+
+  // 説明欄だけは値の更新と結果の取り下げを 1 つの handler にまとめる。他の項目は form 全体の
+  // `onInput` が取り下げを担うが、編集面は input event を出さない。
+  const changeDescription = useCallback(
+    (value: string) => {
+      values.setValue("description", value);
+      dismiss();
+    },
+    [dismiss, values],
+  );
   const [section, setSection] = useState<string>(PRODUCT_FORM_SECTIONS[0]);
 
   // 送信の結果が入れ替わった描画で観点を寄せる。effect にすると寄せる前の描画が一度挟まり、
@@ -117,8 +123,8 @@ export function AdminProductEditView({
 
   // 読み込み直す導線は版が食い違ったときだけ添える。どの失敗にも出すと、読み込み直しても
   // 変わらない失敗（権限・通信）にまで「やり直せば直る」と読める導線が付く。
-  const conflicted =
-    state.status === "error" && state.formError === PRODUCT_VERSION_CONFLICT_MESSAGE;
+  // 合図に使うのは分類であって文言ではない。文言へ動的な要素を足した瞬間に導線が消えるため。
+  const conflicted = state.status === "error" && state.kind === ErrorKind.CONFLICT;
 
   const changeSection = useCallback(
     (next: string) => {
@@ -150,7 +156,7 @@ export function AdminProductEditView({
         <TabsClientList aria-label="編集する観点">
           {PRODUCT_FORM_SECTIONS.map((value) => (
             <TabsClientTrigger key={value} value={value}>
-              {TAB_LABELS[value]}
+              {PRODUCT_SECTION_TITLES[value]}
             </TabsClientTrigger>
           ))}
         </TabsClientList>
@@ -164,6 +170,7 @@ export function AdminProductEditView({
         </TabsClientContent>
         <TabsClientContent forceMount={true} hidden={section !== "description"} value="description">
           <ProductDescriptionSection
+            idPrefix={idPrefix}
             initialValue={initialValues.description}
             onValueChange={changeDescription}
             value={values.values.description}
@@ -171,6 +178,7 @@ export function AdminProductEditView({
         </TabsClientContent>
         <TabsClientContent forceMount={true} hidden={section !== "images"} value="images">
           <ProductImagesSection
+            idPrefix={idPrefix}
             images={images}
             maxUploadBytes={maxUploadBytes}
             onReject={rejection.onReject}

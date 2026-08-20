@@ -1,3 +1,4 @@
+import { findAppError } from "@/errors/app-error";
 import { getDefaultErrorMeta, resolveErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 
@@ -37,6 +38,15 @@ export type ActionState<T, TField extends string = string> =
       readonly formError: string | null;
       /** 項目ごとの文言。どの項目にも紐づかない失敗では省略される。 */
       readonly fieldErrors?: FieldErrors<TField>;
+      /**
+       * 何が起きたかの分類。
+       *
+       * @remarks
+       * **文言と別に持ちます。**画面が失敗の種類で出し分ける（衝突なら読み込み直す導線を添える、
+       * など）とき、文言そのものを合図にすると、文言へ動的な要素を足した瞬間に出し分けが黙って
+       * 壊れます。「何が起きたか」は機械向け、「何を言うか」は人間向けで、変更の理由が違います。
+       */
+      readonly kind?: ErrorKind;
     };
 
 /** まだ送信していない状態。`useActionState` の初期値に渡す。 */
@@ -53,12 +63,13 @@ export function succeededActionState<T, TField extends string = string>(
 
 /** 失敗した状態。フォーム全体の文言と項目ごとの文言は、いずれも省略できる。 */
 export function failedActionState<T, TField extends string = string>(
-  options: { formError?: string | null; fieldErrors?: FieldErrors<TField> } = {},
+  options: { formError?: string | null; fieldErrors?: FieldErrors<TField>; kind?: ErrorKind } = {},
 ): ActionState<T, TField> {
   return {
     status: "error",
     formError: options.formError ?? null,
     fieldErrors: options.fieldErrors,
+    kind: options.kind,
   };
 }
 
@@ -76,7 +87,8 @@ export function failedActionState<T, TField extends string = string>(
 export function actionStateFromError<T, TField extends string = string>(
   error: unknown,
 ): ActionState<T, TField> {
+  const kind = findAppError(error)?.kind ?? ErrorKind.INTERNAL;
   const meta = resolveErrorMeta(error) ?? getDefaultErrorMeta(ErrorKind.INTERNAL);
 
-  return failedActionState({ formError: meta.message });
+  return failedActionState({ formError: meta.message, kind });
 }

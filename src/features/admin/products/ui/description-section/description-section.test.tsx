@@ -10,7 +10,9 @@ const noop = () => {};
 describe("ProductDescriptionSection", () => {
   // ----- 正常系 -----
   it("書式付きの本文を書く面として公開する", async () => {
-    render(<ProductDescriptionSection initialValue="" onValueChange={noop} value="" />);
+    render(
+      <ProductDescriptionSection idPrefix="form" initialValue="" onValueChange={noop} value="" />,
+    );
 
     expect(await screen.findByRole("textbox", { name: "商品説明" })).toBeInTheDocument();
   });
@@ -18,6 +20,7 @@ describe("ProductDescriptionSection", () => {
   it("保存済みの本文を開いた時点の内容として渡す", async () => {
     render(
       <ProductDescriptionSection
+        idPrefix="form"
         initialValue="<p>保存済み</p>"
         onValueChange={noop}
         value="<p>保存済み</p>"
@@ -29,7 +32,12 @@ describe("ProductDescriptionSection", () => {
 
   it("書いた内容を送信へ載せる。編集面は form の値を持たないため", () => {
     const { container } = render(
-      <ProductDescriptionSection initialValue="" onValueChange={noop} value="<p>いま</p>" />,
+      <ProductDescriptionSection
+        idPrefix="form"
+        initialValue=""
+        onValueChange={noop}
+        value="<p>いま</p>"
+      />,
     );
 
     expect(container.querySelector('input[name="description"]')).toHaveValue("<p>いま</p>");
@@ -38,7 +46,7 @@ describe("ProductDescriptionSection", () => {
   // ----- 異常系 -----
   it("本文が空でも送信の欄そのものは残す", () => {
     const { container } = render(
-      <ProductDescriptionSection initialValue="" onValueChange={noop} value="" />,
+      <ProductDescriptionSection idPrefix="form" initialValue="" onValueChange={noop} value="" />,
     );
 
     expect(container.querySelector('input[name="description"]')).toHaveValue("");

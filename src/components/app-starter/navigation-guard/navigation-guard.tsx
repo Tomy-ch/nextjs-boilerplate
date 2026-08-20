@@ -134,7 +134,9 @@ export function NavigationGuard({
   }, [pendingHref, router]);
 
   return (
-    <div data-slot="navigation-guard" onClickCapture={interceptNavigation}>
+    // 箱はレイアウトに参加させない。click を捕まえるために要素そのものは要るが、包んだ時点で
+    // 中身の配置が変わると、見張るために置いただけの器が見た目を動かすことになる。
+    <div className="contents" data-slot="navigation-guard" onClickCapture={interceptNavigation}>
       {children}
       <AlertDialog onOpenChange={setOpen} open={open}>
         <AlertDialogContent onCloseAutoFocus={restoreFocus}>
