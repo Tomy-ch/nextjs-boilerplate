@@ -28,7 +28,7 @@ export function PeriodCaption({ window }: PeriodCaptionProps) {
   const span = window.from === window.to ? window.from : `${window.from} 〜 ${window.to}`;
 
   return (
-    <p className="text-sm text-muted-foreground">
+    <p className="text-sm text-muted-foreground" data-slot="period-caption">
       <span className="font-emphasis text-foreground tabular-nums">{span}</span>
       {" に注文された購入を集計しています（日本時間の暦日）。"}
     </p>
