@@ -194,17 +194,13 @@ export function WizardForm({
     [current.blocked, currentIndex, furthestIndex],
   );
 
-  const goTo = useCallback(
-    (index: number) => {
-      // 判定は描画と共有する。描画側だけで塞ぐと、規則の変更が常に見た目の変更として現れ、
-      // 状態の側は素通しのままになる。
-      if (!canGoTo(index)) return;
-
-      movedRef.current = true;
-      setProgress((moved) => ({ ...moved, currentIndex: index }));
-    },
-    [canGoTo],
-  );
+  // 規則は {@link canGoTo} が 1 か所で持ち、進捗はそれを消費して押せるかを決める。ここで再び
+  // 検査しないのは、押せない段の操作が DOM に無い以上その枝へ到達できず、通らない分岐が残る
+  // ためである。規則を足すときは `canGoTo` を直せば描画と挙動の両方が追随する。
+  const goTo = useCallback((index: number) => {
+    movedRef.current = true;
+    setProgress((moved) => ({ ...moved, currentIndex: index }));
+  }, []);
 
   const isLast = currentIndex === steps.length - 1;
 

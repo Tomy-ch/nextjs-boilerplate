@@ -33,7 +33,6 @@ function renderConfirm(values: ProductValues = FILLED, imageCount = 2) {
 }
 
 describe("ProductConfirmSection", () => {
-  // ----- 正常系 -----
   it("送る内容を項目名とともに並べる", () => {
     renderConfirm();
 
@@ -67,7 +66,6 @@ describe("ProductConfirmSection", () => {
     expect(screen.queryAllByRole("combobox")).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("未入力の項目は、空欄ではなく未入力として示す", () => {
     renderConfirm({ ...FILLED, stockWarningThreshold: "" });
 

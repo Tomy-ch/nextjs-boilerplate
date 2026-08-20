@@ -60,7 +60,6 @@ function fillBasics() {
 }
 
 describe("AdminProductCreateView", () => {
-  // ----- 正常系 -----
   it("5 つの段を進捗として並べる", () => {
     renderView();
 
@@ -114,7 +113,6 @@ describe("AdminProductCreateView", () => {
     expect(guard.when).toBe(true);
   });
 
-  // ----- 異常系 -----
   it("必須が埋まるまで次の段へ進めない", () => {
     renderView();
 

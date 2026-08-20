@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
+import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
@@ -73,7 +74,6 @@ function renderView(updateAction: () => Promise<ProductFormState> = idle) {
 }
 
 describe("AdminProductEditView", () => {
-  // ----- 正常系 -----
   it("4 つの観点を切り替えとして並べる", () => {
     renderView();
 
@@ -141,7 +141,6 @@ describe("AdminProductEditView", () => {
     expect(guard.when).toBe(true);
   });
 
-  // ----- 異常系 -----
   it("送信が弾かれたら、誤りのある観点へ移る", async () => {
     renderView(() =>
       Promise.resolve(
@@ -183,12 +182,30 @@ describe("AdminProductEditView", () => {
 
   it("版が食い違ったときだけ、読み込み直す導線を添える", async () => {
     renderView(() =>
-      Promise.resolve(failedActionState<void>({ formError: PRODUCT_VERSION_CONFLICT_MESSAGE })),
+      Promise.resolve(
+        failedActionState<void>({
+          formError: PRODUCT_VERSION_CONFLICT_MESSAGE,
+          kind: ErrorKind.CONFLICT,
+        }),
+      ),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "更新する" }));
 
     expect(await screen.findByRole("link", { name: "読み込み直す" })).toBeInTheDocument();
+  });
+
+  it("同じ文言でも、分類が伴わなければ導線を出さない", async () => {
+    // 合図は分類であって文言ではない。文言へ動的な要素を足しても導線が消えないための固定。
+    renderView(() =>
+      Promise.resolve(failedActionState<void>({ formError: PRODUCT_VERSION_CONFLICT_MESSAGE })),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+
+    await screen.findByText(PRODUCT_VERSION_CONFLICT_MESSAGE);
+
+    expect(screen.queryByRole("link", { name: "読み込み直す" })).not.toBeInTheDocument();
   });
 
   it("やり直しても直らない失敗には、読み込み直す導線を添えない", async () => {

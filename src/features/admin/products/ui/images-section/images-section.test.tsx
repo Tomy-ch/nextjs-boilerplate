@@ -43,7 +43,6 @@ function renderSection(images = imagesOf(), rejection?: string) {
 }
 
 describe("ProductImagesSection", () => {
-  // ----- 正常系 -----
   it("画像が任意であることを明示する", () => {
     renderSection();
 
@@ -104,7 +103,6 @@ describe("ProductImagesSection", () => {
     expect(moveUp).toHaveBeenCalledWith("2");
   });
 
-  // ----- 異常系 -----
   it("何も選ばれていなければ一覧そのものを出さない", () => {
     renderSection();
 

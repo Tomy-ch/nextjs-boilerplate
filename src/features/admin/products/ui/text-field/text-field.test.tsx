@@ -24,7 +24,6 @@ function renderField(props: Partial<Parameters<typeof ProductTextField>[0]> = {}
 }
 
 describe("ProductTextField", () => {
-  // ----- 正常系 -----
   it("項目名で引ける入力欄として公開する", () => {
     renderField();
 
@@ -61,7 +60,6 @@ describe("ProductTextField", () => {
     expect(screen.getByLabelText("商品名")).toHaveAttribute("name", "name");
   });
 
-  // ----- 異常系 -----
   it("誤りがあれば文言を出し、入力欄から指す", () => {
     renderField({ message: "商品名を入力してください。" });
 

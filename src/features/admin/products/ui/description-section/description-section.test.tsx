@@ -2,13 +2,13 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { ProductDescriptionSection } from "./description-section";
 
 const noop = () => {};
 
 describe("ProductDescriptionSection", () => {
-  // ----- 正常系 -----
   it("書式付きの本文を書く面として公開する", async () => {
     render(
       <ProductDescriptionSection idPrefix="form" initialValue="" onValueChange={noop} value="" />,
@@ -43,12 +43,21 @@ describe("ProductDescriptionSection", () => {
     expect(container.querySelector('input[name="description"]')).toHaveValue("<p>いま</p>");
   });
 
-  // ----- 異常系 -----
   it("本文が空でも送信の欄そのものは残す", () => {
     const { container } = render(
       <ProductDescriptionSection idPrefix="form" initialValue="" onValueChange={noop} value="" />,
     );
 
     expect(container.querySelector('input[name="description"]')).toHaveValue("");
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(
+      <ProductDescriptionSection idPrefix="form" initialValue="" onValueChange={noop} value="" />,
+    );
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

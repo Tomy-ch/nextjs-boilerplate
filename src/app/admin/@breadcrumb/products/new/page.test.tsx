@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 import AdminProductNewBreadcrumb from "./page";
 
 describe("AdminProductNewBreadcrumb", () => {
-  // ----- 正常系 -----
   it("作る画面の階層を出す", () => {
     render(<AdminProductNewBreadcrumb />);
 

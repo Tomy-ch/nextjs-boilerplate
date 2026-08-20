@@ -41,7 +41,6 @@ function renderContent() {
 }
 
 describe("AdminProductCreatePageContent", () => {
-  // ----- 正常系 -----
   it("分類と状態のマスタを揃えて画面へ渡す", async () => {
     render(await renderContent());
 
@@ -62,7 +61,6 @@ describe("AdminProductCreatePageContent", () => {
     expect(getProductStatuses).toHaveBeenCalledTimes(1);
   });
 
-  // ----- 異常系 -----
   it("取得の失敗は握り潰さず、境界へ渡す", async () => {
     getProductCategories.mockRejectedValue(new Error("取得に失敗しました"));
 

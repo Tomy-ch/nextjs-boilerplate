@@ -118,7 +118,10 @@ describe("uploadProductImageAction", () => {
       imageForm(new File(["x"], "a.gif", { type: "image/gif" })),
     );
 
-    expect(state).toMatchObject({ status: "error" });
+    expect(state).toMatchObject({
+      status: "error",
+      formError: "PNG / JPEG / WebP のいずれかを選んでください。",
+    });
     expect(uploadProductImage).not.toHaveBeenCalled();
   });
 
@@ -127,7 +130,10 @@ describe("uploadProductImageAction", () => {
 
     const state = await uploadProductImageAction(idleActionState(), imageForm(oversized));
 
-    expect(state).toMatchObject({ status: "error" });
+    expect(state).toMatchObject({
+      status: "error",
+      formError: "画像が大きすぎます。もっと小さいものを選んでください。",
+    });
     expect(uploadProductImage).not.toHaveBeenCalled();
   });
 
@@ -167,9 +173,24 @@ describe("createProductAction", () => {
   it("形の上での誤りは、項目ごとに返す", async () => {
     const state = await createProductAction(idleActionState(), productForm({ name: "" }));
 
-    expect(state).toMatchObject({ status: "error", formError: null });
-    expect(state.status === "error" && state.fieldErrors?.name).toBeDefined();
+    // `expect(A && B).toBeDefined()` は A が偽でも `false` が defined なので通る。名指しで見る。
+    expect(state).toMatchObject({
+      status: "error",
+      formError: null,
+      fieldErrors: { name: ["商品名を入力してください。"] },
+    });
     expect(createProduct).not.toHaveBeenCalled();
+  });
+
+  it("版が無ければ、編集の前提が失われたことを全体の誤りとして返す", async () => {
+    // 項目の誤りではないので、項目へ相乗りさせずここまで届く必要がある。
+    const state = await updateProductAction(idleActionState(), productForm({ version: "" }));
+
+    expect(state).toMatchObject({
+      status: "error",
+      formError: "編集の前提が失われています。画面を開き直してください。",
+    });
+    expect(updateProduct).not.toHaveBeenCalled();
   });
 
   it("作れなかったことを分類済みの結果として返す", async () => {

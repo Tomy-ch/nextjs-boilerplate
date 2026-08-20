@@ -3,6 +3,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
+import { ATTACHMENT_STATE } from "@/components/app-starter/attachment/attachment.definition";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
 
 import type { ProductImageUploadState } from "./form-state";
@@ -67,6 +68,11 @@ describe("useProductImages", () => {
     expect(result.current.items).toHaveLength(1);
     expect(result.current.imagePaths).toEqual([]);
     expect(result.current.uploading).toBe(true);
+    // 表示状態まで見る。ここが失敗の状態にならないと、実際の画面では再試行が出ない。
+    expect(result.current.items[0]).toMatchObject({
+      description: "送信中",
+      state: ATTACHMENT_STATE.UPLOADING,
+    });
   });
 
   it("外した画像は送信からも消える", async () => {
@@ -106,6 +112,20 @@ describe("useProductImages", () => {
     const { result } = renderHook(() => useProductImages(uploader(), SAVED));
 
     expect(result.current.dirty).toBe(false);
+  });
+
+  it("顔ぶれが同じでも、並びが変われば書きかけになる", () => {
+    // 長さの比較だけになっても他のケースは通る。並べ替えただけの人が警告なく変更を失う。
+    const saved = [
+      { imagePath: "products/a.png", url: "/a.png" },
+      { imagePath: "products/b.png", url: "/b.png" },
+    ];
+    const { result } = renderHook(() => useProductImages(uploader(), saved));
+
+    act(() => result.current.moveUp("products/b.png"));
+
+    expect(result.current.imagePaths).toEqual(["products/b.png", "products/a.png"]);
+    expect(result.current.dirty).toBe(true);
   });
 
   it("外せば書きかけになる", () => {

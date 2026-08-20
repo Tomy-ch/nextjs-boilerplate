@@ -24,14 +24,12 @@ function renderFeedback(state: ProductFormState, dismissed = false) {
 }
 
 describe("ProductFormFeedback", () => {
-  // ----- 正常系 -----
   it("まだ送っていなければ何も出さない", () => {
     const { container } = renderFeedback(idleActionState());
 
     expect(container).toBeEmptyDOMElement();
   });
 
-  // ----- 異常系 -----
   it("送信そのものが通らなかったときは、その要約を出す", () => {
     renderFeedback(failedActionState({ formError: "認証が必要です。" }));
 

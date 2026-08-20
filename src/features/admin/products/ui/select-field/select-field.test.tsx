@@ -28,7 +28,6 @@ function renderField(props: Partial<Parameters<typeof ProductSelectField>[0]> = 
 }
 
 describe("ProductSelectField", () => {
-  // ----- 正常系 -----
   it("項目名で引ける選択欄として公開する", () => {
     renderField();
 
@@ -66,7 +65,6 @@ describe("ProductSelectField", () => {
     expect(screen.getByLabelText("分類")).toHaveValue("category-2");
   });
 
-  // ----- 異常系 -----
   it("誤りがあれば文言を出し、選択欄から指す", () => {
     renderField({ message: "分類を選んでください。" });
 
