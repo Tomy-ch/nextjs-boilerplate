@@ -6,13 +6,14 @@ test-requirement: feature
 
 # account
 
-自分の登録情報を確かめ、変えて、やめるための画面スライスです。
+自分の登録情報を作り、確かめ、変えて、やめるための画面スライスです。
 
 ## 受け入れるもの
 
 - 自分の情報・購入の集計・都道府県マスタの取得の編成
-- プロフィールの更新と退会の Server Action（編成のみ）
-- この画面専用の表示（登録情報のカード・集計の表・編集フォーム・退会の確認）
+- 登録・プロフィールの更新・退会の Server Action（編成のみ）
+- 認証と登録の状態から、保護された画面の行き先を決める判定
+- この画面専用の表示（登録情報のカード・集計の表・登録と編集のフォーム・退会の確認）
 
 ## 受け入れないもの
 
@@ -22,15 +23,28 @@ test-requirement: feature
 
 ## 構成
 
-画面（`mypage` / `edit`）ごとに掘り、その中を性質で分けます（[0027](../../../docs/adr/0027-directory-structure.md)）。
-どちらの画面にも属さないものは画面を挟まず直下へ置きます。
+画面（`mypage` / `edit` / `onboarding`）ごとに掘り、その中を性質で分けます
+（[0027](../../../docs/adr/0027-directory-structure.md)）。どの画面にも属さないものは画面を挟まず
+直下へ置きます。**登録と編集は同じ 9 項目を同じ規則で扱う**ため、入力欄と検証まわりはその直下に
+あります。
 
 | ファイル | 役割 |
 | --- | --- |
-| `actions.ts` | プロフィール更新と退会の Server Action。検証と分類だけを持ち、通信は `adapters` が行う |
+| `actions.ts` | 登録・プロフィール更新・退会の Server Action。検証と分類だけを持ち、通信は `adapters` が行う |
 | `__mocks__/actions.ts` | カタログでの Server Action の差し替え（[0054](../../../docs/adr/0054-ui-catalog-storybook.md)）。押せる操作を成立させるためだけに置く |
-| `form-state.ts` | 2 つの Server Action の戻り値の型。`ActionState<T>` を画面の項目名で閉じる |
-| `paths.ts` | この feature が持つ 2 つのルート。パンくずと戻り先が参照する |
+| `form-state.ts` | Server Action の戻り値の型。`ActionState<T>` を画面の項目名で閉じる |
+| `paths.ts` | この feature が持つ 3 つのルートと、登録を促す行き先の組み立て |
+| `registration-gate.ts` | 保護された画面の入口。認証と登録の状態を行き先へ変える |
+| `field-labels.ts` | 入力欄と確認に出す項目名。label と見出しの出所を 1 つにする |
+| `parse-profile-form.ts` | 送信された `FormData` を、登録と更新に渡せる形へ解く |
+| `use-error-visibility.ts` | 誤りをいつ見せるかだけを決める。検証はしない |
+| `use-profile-fields.ts` | 検証を回し、入力欄 1 つぶんの props を組む |
+| `use-address-completion.ts` | 郵便番号から住所を引き、埋める値を決める |
+| `use-address-field.ts` | 補完をフォームへ当てる。blur の包み方と埋める先 |
+| `ui/text-field/` | 1 行入力の項目 |
+| `ui/prefecture-field/` | 都道府県の項目。候補は静的なので native の select で出す |
+| `ui/postal-code-field/` | 郵便番号の項目。住所を検索する操作を枠の中に持つ |
+| `ui/submit-button/` | 送信の操作。押している間の見せ方を `form` の子として持つ |
 | `mypage/page-content.tsx` | 自分の情報と購入の集計の並行取得 |
 | `mypage/view.tsx` | マイページの表示。読む 2 枚と、区切りの下の退会を並べる |
 | `mypage/ui/profile-card/` | 登録情報の表示と、編集への導線 |
@@ -41,19 +55,19 @@ test-requirement: feature
 | `mypage/ui/skeleton/` | マイページの待機表示 |
 | `edit/page-content.tsx` | 自分の情報と都道府県マスタの並置合成（CollectAll） |
 | `edit/view.tsx` | プロフィール編集の表示。パンくずをここが持つ |
-| `edit/parse-profile-form.ts` | 送信された `FormData` を更新に渡せる形へ解く |
-| `edit/use-error-visibility.ts` | 誤りをいつ見せるかだけを決める。検証はしない |
-| `edit/use-profile-fields.ts` | 検証を回し、入力欄 1 つぶんの props を組む |
-| `edit/use-address-completion.ts` | 郵便番号から住所を引き、埋める値を決める |
-| `edit/use-address-field.ts` | 補完をフォームへ当てる。blur の包み方と埋める先 |
 | `edit/ui/profile-form/` | 並び。client island |
-| `edit/ui/text-field/` | 1 行入力の項目 |
-| `edit/ui/prefecture-field/` | 都道府県の項目。候補は静的なので native の select で出す |
-| `edit/ui/postal-code-field/` | 郵便番号の項目。住所を検索する操作を枠の中に持つ |
 | `edit/ui/skeleton/` | プロフィール編集の待機表示 |
+| `onboarding/page-content.tsx` | 都道府県マスタの取得と、この登録 1 回ぶんの鍵の生成 |
+| `onboarding/view.tsx` | 登録の表示。段の器と送信を持つ client island |
+| `onboarding/steps.ts` | どの項目がどの段に属するかと、その段を終えられるかの判定 |
+| `onboarding/parse-registration-form.ts` | 送信された `FormData` を、登録に渡せる形へ解く |
+| `onboarding/ui/basics-section/` | 名前と連絡先の段 |
+| `onboarding/ui/address-section/` | 住所の段。郵便番号からの補完をここが配線する |
+| `onboarding/ui/confirm-section/` | 確認の段。入力欄を持たず、送る値を読み返す |
+| `onboarding/ui/skeleton/` | 登録の待機表示 |
 | `account.fixture.ts` | story とテストが読む固定値 |
 
-### プロフィール編集の割り方
+### 登録・プロフィール編集の割り方
 
 変わる理由が違うものを分けてあります。どれか 1 つを直すのに他を読まずに済みます。
 
@@ -65,8 +79,9 @@ test-requirement: feature
 | 住所を引く | `use-address-completion.ts` | 補完の契約や打ち切りの仕方 |
 | 補完をフォームへ当てる | `use-address-field.ts` | どの項目へ埋めるか |
 | 入力を解く | `parse-profile-form.ts` | 送信の形（`FormData`）が変わったとき |
+| 段の構成と進んでよいか | `onboarding/steps.ts` | 段の割り方が変わったとき |
 | 送信を編成する | `actions.ts` | 更新の手順が変わったとき |
-| 並び | `ui/profile-form/` | 見た目 |
+| 並び | `edit/ui/profile-form/` / `onboarding/ui/*-section/` | 見た目 |
 
 ## 運用
 
@@ -90,16 +105,20 @@ test-requirement: feature
   町域を入れるのは丁目・番地が空のときだけです
 - **補完に失敗しても先へ進めます**。契約は外部 lookup の障害を `503` ではなく空の候補で返すと
   定めており、画面は手入力を続けさせます（[0080](../../../docs/adr/0080-error-handling.md)）
+- **「該当が無い」と「補完の機構が動いていない」を言い分けます**。前者は郵便番号を直せば埋まり
+  ますが、後者は何度引いても埋まりません。契約が両者を別々に返すので、後者では検索の操作を閉じて
+  手入力へ促します。押しても永久に何も起きない操作を残すと、利用者は自分の入力を疑って何度も試します
 - **補完が起きたことを読み上げます**。入力欄の値が変わるだけでは、そこを見ていない利用者に
   届きません
 - **カタログでは補完の応答をカタログ自身が返します**。`/api/addresses` は Route Handler なので
   Storybook には存在せず、答える相手が居ないと該当なししか出せません。宛先を横取りするのは
-  `.storybook/msw/handlers.ts` で、引ける郵便番号は次の 2 つ、それ以外は該当なしになります
+  `.storybook/msw/handlers.ts` で、引ける郵便番号は次の 3 つ、それ以外は該当なしになります
 
   | 郵便番号 | 返る候補 | 確かめられること |
   | --- | --- | --- |
   | `150-0001` | 東京都 / 渋谷区、町域は 2 件 | 候補が割れた項目（町域）を埋めないこと |
   | `220-0012` | 神奈川県 / 横浜市西区 / みなとみらい | 丁目・番地が空のときだけ町域まで埋めること |
+  | `000-0000` | 無し（機構が動いていない） | 検索の操作を閉じ、手入力へ促すこと |
 
 - **保存は画面を移さず toast で伝え、退会は移します**。前者はフォームの文脈に留まる操作で、後者は
   成立した時点で留まる先が無くなるためです（[0063](../../../docs/adr/0063-mutation-result-notification.md)）
@@ -107,5 +126,10 @@ test-requirement: feature
   状態を見た利用者が失敗を疑います
 - **退会の確認は `AlertDialogAction` を使いません**。押した時点で dialog が閉じる部品なので、
   送信中の表示も失敗の文言も利用者が見ていない場所に出ます。閉じるのは成立して画面が変わるときだけです
+- **登録では、埋まっていない段から進めません**。同じ規則を Server Action も通りますが、往復して
+  初めて「入っていない」と言われるより、その場で判る方が直しやすいためです。誤りの文言を出すのは
+  触れた項目だけで、進んでよいかの判定は触れたかどうかを見ません
+- **登録の二重送信は冪等キーが畳みます**。画面を組み立てた地点が 1 つ作って送信に載せるので、同じ
+  画面から何度送っても利用者は 1 人のままです
 - **パンくずは編集画面だけが持ちます**。マイページは global nav が直接指すので、同じ導線を二重に
   置くことになります（[0026](../../../docs/adr/0026-layout-shell-mount.md)）
