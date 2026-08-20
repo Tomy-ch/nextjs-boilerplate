@@ -134,8 +134,8 @@ members と並び順は、ゲートが黙っていても押さえる価値があ
 ### `integration` の責務は引き渡しではない
 
 `scaffold-integration-test` はこのファイルの片割れではない。**別の問いを立てる、2 本目の別ファイル**を
-書く。両方が既にあるディレクトリ（`src/adapters/server/api/products.{test,contract.test}.ts`）で、
-思い込みではなく実物として確かめること。
+書く。両方が既にあるディレクトリを `ls src/adapters/**/*.contract.test.ts` で探し、その `.test.ts`
+の隣を読んで、思い込みではなく実物として確かめること。
 
 | ファイル | 問い | 担当 |
 | --- | --- | --- |
@@ -185,9 +185,9 @@ members と並び順は、ゲートが黙っていても押さえる価値があ
 書き出し先とケース一覧を示し、1 回の合意がその全部を覆うようにする。
 
 ```txt
-群: src/features/admin/dashboard/（test-requirement: feature）
+群: <feature>/（test-requirement: feature）
 
-書き出し先: src/features/admin/analytics/period.test.ts
+書き出し先: <feature>/<期間を解く純関数>.test.ts
   describe("toPeriodRequest")
     ----- 正常系 -----
     - 日付の要らない区分はそのまま求められる形になる
@@ -198,7 +198,7 @@ members と並び順は、ゲートが黙っていても押さえる価値があ
     ----- 正常系 -----
     - 日付を持ち越さない
 
-書き出し先: src/features/admin/analytics/ui/ranking-table/ranking-table.test.tsx
+書き出し先: <feature>/ui/<表の部品>/<表の部品>.test.tsx
   describe("RankingTable")
     ----- 空のとき -----
     - 行が無ければ、無いと判る文言を出す

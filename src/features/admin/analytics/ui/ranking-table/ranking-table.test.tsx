@@ -19,14 +19,11 @@ describe("RankingTable", () => {
   it("順位・商品名・販売数を並べる", () => {
     render(<RankingTable rows={ROWS} />);
 
-    const [, row] = within(screen.getByRole("table")).getAllByRole("row");
+    const row = screen.getByRole("row", { name: /ワイヤレスイヤホン/ });
 
-    expect(row).toBeDefined();
-    expect(within(row ?? screen.getByRole("table")).getByText("1")).toBeInTheDocument();
-    expect(
-      within(row ?? screen.getByRole("table")).getByText("ワイヤレスイヤホン"),
-    ).toBeInTheDocument();
-    expect(within(row ?? screen.getByRole("table")).getByText("1,234")).toBeInTheDocument();
+    expect(within(row).getByText("1")).toBeInTheDocument();
+    expect(within(row).getByText("ワイヤレスイヤホン")).toBeInTheDocument();
+    expect(within(row).getByText("1,234")).toBeInTheDocument();
   });
 
   it("商品名から利用者向けの商品の面へ出る", () => {

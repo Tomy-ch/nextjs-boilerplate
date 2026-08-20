@@ -14,9 +14,9 @@ function renderQuery(props: Partial<InvalidQueryFeedbackProps> = {}) {
       invalidKeys={[]}
       keyLabels={KEY_LABELS}
       message="不正です。"
-      resetHref="/admin/products"
+      resetHref="/items"
       resetLabel="条件を外して一覧を見る"
-      title="この条件では商品を表示できません"
+      title="この条件では一覧を表示できません"
       {...props}
     />,
   );
@@ -46,7 +46,7 @@ describe("InvalidQueryFeedback", () => {
 
     expect(screen.getByRole("link", { name: "条件を外して一覧を見る" })).toHaveAttribute(
       "href",
-      "/admin/products",
+      "/items",
     );
   });
   it("表に無いキーはそのまま出す", () => {

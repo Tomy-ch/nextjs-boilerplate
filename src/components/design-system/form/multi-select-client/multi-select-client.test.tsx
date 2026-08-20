@@ -83,8 +83,8 @@ async function open(name: string | RegExp = /タグ/): Promise<void> {
 
 /** 送信される値。hidden input は role を持たないため DOM から直接読む。 */
 function submittedValues(container: HTMLElement): string[] {
-  return [...container.querySelectorAll('input[type="hidden"][name="tags"]')].flatMap((input) =>
-    input instanceof HTMLInputElement ? [input.value] : [],
+  return [...container.querySelectorAll<HTMLInputElement>('input[type="hidden"][name="tags"]')].map(
+    (input) => input.value,
   );
 }
 
