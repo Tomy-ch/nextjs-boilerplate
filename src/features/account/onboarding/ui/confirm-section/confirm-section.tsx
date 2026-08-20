@@ -5,18 +5,19 @@ import { useWatch } from "react-hook-form";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import {
+  KeyValueEmpty,
   KeyValueItem,
   KeyValueLabel,
   KeyValueList,
   KeyValueValue,
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import type { ProfileField, ProfileInput } from "@/model/user/profile-schema";
-import { profileSchema } from "@/model/user/profile-schema";
 
 import { PROFILE_FIELD_LABELS } from "../../../field-labels";
+import { incompleteFields } from "../../incomplete-fields";
 
 /** 確認に並べる順序。入力欄の並びと揃える。 */
-const SUMMARY_FIELDS: readonly ProfileField[] = [
+const CONFIRM_FIELDS: readonly ProfileField[] = [
   "lastName",
   "firstName",
   "email",
@@ -28,15 +29,8 @@ const SUMMARY_FIELDS: readonly ProfileField[] = [
   "building",
 ];
 
-/** 値が空の項目に出す文言。 */
-const EMPTY_VALUE = "未入力";
-
-/** 空欄を、読んで意味の通る文言へ置き換える。 */
-function toDisplayValue(value: string | undefined): string {
-  return value === undefined || value === "" ? EMPTY_VALUE : value;
-}
-
-type RegistrationSummaryProps = {
+/** {@link RegistrationConfirmSection} の props。 */
+export type RegistrationConfirmSectionProps = {
   /** 入力中の値を購読するための control。 */
   readonly control: Control<ProfileInput>;
 };
@@ -45,22 +39,17 @@ type RegistrationSummaryProps = {
  * 送る前に、入力した内容を読み返すための一覧。
  *
  * @remarks
- * **この段階が入力の欠けを引き受けます。** 前の段階へ進む操作を塞がない代わりに、ここで足りない
- * 項目を名指しします。塞ぐ側に倒すと、理由を言わないまま押せない button が残ります
+ * **この段が入力の欠けを引き受けます。** 前の段へ進む操作を塞がない代わりに、ここで足りない項目を
+ * 名指しします。塞ぐ側に倒すと、理由を言わないまま押せない button が残ります
  * （[0062](../../../../../../docs/adr/0062-form-input-validation.md)）。
  *
- * 判定は入力欄と同じ表示検証スキーマで行います。ここに条件を書き写すと、規則を変えたときに
- * 入力欄と確認で言うことが割れます。
- *
- * 値は購読して読みます。段階の行き来はこの部品の外で起きるため、組み立て時の値を写して持つと、
- * 前の段階で直した内容が確認に反映されません。購読するのはこの部品だけで、入力のたびに
- * フォーム全体を描き直しません。
+ * 値は購読して読みます。段の行き来はこの部品の外で起きるため、組み立て時の値を写して持つと、
+ * 前の段で直した内容が確認に反映されません。購読するのはこの部品だけで、入力のたびにフォーム
+ * 全体を描き直しません。
  */
-export function RegistrationSummary({ control }: RegistrationSummaryProps) {
+export function RegistrationConfirmSection({ control }: RegistrationConfirmSectionProps) {
   const values = useWatch({ control });
-  const incomplete = SUMMARY_FIELDS.filter(
-    (field) => !profileSchema.shape[field].safeParse(values[field] ?? "").success,
-  );
+  const incomplete = incompleteFields(values, CONFIRM_FIELDS);
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,7 +57,7 @@ export function RegistrationSummary({ control }: RegistrationSummaryProps) {
         <FormFeedback
           description={
             <>
-              <p>前の段階へ戻って、次の項目を入力してください。</p>
+              <p>前の段へ戻って、次の項目を入力してください。</p>
               <ul className="mt-2 flex list-disc flex-col gap-1 ps-5">
                 {incomplete.map((field) => (
                   <li key={field}>{PROFILE_FIELD_LABELS[field]}</li>
@@ -82,10 +71,16 @@ export function RegistrationSummary({ control }: RegistrationSummaryProps) {
       )}
 
       <KeyValueList>
-        {SUMMARY_FIELDS.map((field) => (
+        {CONFIRM_FIELDS.map((field) => (
           <KeyValueItem key={field}>
             <KeyValueLabel>{PROFILE_FIELD_LABELS[field]}</KeyValueLabel>
-            <KeyValueValue>{toDisplayValue(values[field])}</KeyValueValue>
+            <KeyValueValue>
+              {values[field] === undefined || values[field] === "" ? (
+                <KeyValueEmpty>未入力</KeyValueEmpty>
+              ) : (
+                values[field]
+              )}
+            </KeyValueValue>
           </KeyValueItem>
         ))}
       </KeyValueList>

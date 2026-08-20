@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useActionState, useEffect } from "react";
-import { useFormStatus } from "react-dom";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
@@ -18,24 +17,13 @@ import type { ProfileFormState } from "../../../form-state";
 import { MYPAGE_PATH } from "../../../paths";
 import { PostalCodeField } from "../../../ui/postal-code-field/postal-code-field";
 import { PrefectureField } from "../../../ui/prefecture-field/prefecture-field";
+import { ProfileSubmitButton } from "../../../ui/submit-button/submit-button";
 import { TextField } from "../../../ui/text-field/text-field";
 import { useAddressField } from "../../../use-address-field";
 import { useProfileFields } from "../../../use-profile-fields";
 
 const SUBMIT_LABEL = "保存する";
 const PENDING_LABEL = "保存しています…";
-
-/** 送信ボタン。押している間の表示を持つため、`form` の子として切り出している。 */
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  const label = pending ? PENDING_LABEL : SUBMIT_LABEL;
-
-  return (
-    <Button disabled={pending} type="submit">
-      {label}
-    </Button>
-  );
-}
 
 type ProfileFormProps = {
   readonly profile: UserProfile;
@@ -160,7 +148,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
         <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
           <Link href={MYPAGE_PATH}>キャンセル</Link>
         </Button>
-        <SubmitButton />
+        <ProfileSubmitButton label={SUBMIT_LABEL} pendingLabel={PENDING_LABEL} />
       </div>
     </form>
   );

@@ -4,12 +4,7 @@ import { findRegistration } from "@/adapters/server/api/users";
 import { loginPath } from "@/features/auth/facade/paths";
 import { toSafeReturnUrl } from "@/model/return-url";
 
-import { ONBOARDING_PATH } from "./paths";
-
-/** 登録画面へ送るときの行き先。戻り先を持ったまま送る。 */
-function onboardingPath(returnTo: string): string {
-  return `${ONBOARDING_PATH}?returnUrl=${encodeURIComponent(toSafeReturnUrl(returnTo))}`;
-}
+import { ONBOARDING_PATH, onboardingPath } from "./paths";
 
 /**
  * 利用者として登録済みの主体であることを、画面を描く前に確かめる。
