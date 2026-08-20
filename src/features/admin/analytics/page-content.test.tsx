@@ -50,6 +50,18 @@ describe("AdminAnalyticsPageContent", () => {
     expect(screen.getByText(/期間の区分/)).toBeInTheDocument();
   });
 
+  it("日付のキーが読めなければ、その欄の呼び名で示す", () => {
+    renderContent({ period: "range", from: "2026/08/01", to: "2026-08-19" });
+
+    expect(screen.getByText(/開始日/)).toBeInTheDocument();
+  });
+
+  it("終了日が読めなければ、終了日の呼び名で示す", () => {
+    renderContent({ period: "range", from: "2026-08-01", to: "きのう" });
+
+    expect(screen.getByText(/終了日/)).toBeInTheDocument();
+  });
+
   it("期間を外して見る導線を置く", () => {
     renderContent({ period: "weekly" });
 

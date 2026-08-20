@@ -45,7 +45,6 @@ async function open(): Promise<void> {
 }
 
 describe("AdminProductFilterControl", () => {
-  // ----- 正常系 -----
   it("何で絞り込む欄かを名前で示す", () => {
     renderControl();
 
@@ -119,8 +118,6 @@ describe("AdminProductFilterControl", () => {
 
     expect(container.firstElementChild).toHaveClass("justify-between");
   });
-
-  // ----- 異常系 -----
   it("候補が無くても落ちない", async () => {
     renderControl({ options: [] });
     await open();

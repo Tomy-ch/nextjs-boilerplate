@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { DashboardSummary } from "@/model/dashboard/dashboard";
 
@@ -41,6 +42,14 @@ describe("AdminDashboardPageContent", () => {
     render(await AdminDashboardPageContent());
 
     expect(getDashboardSummary).toHaveBeenCalledWith({ period: "today" });
+  });
+
+  it("a11y 検査を通る", async () => {
+    const { container } = render(await AdminDashboardPageContent());
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 
   it("取得した集計を数値カードと内訳にする", async () => {

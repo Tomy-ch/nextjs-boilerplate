@@ -95,6 +95,18 @@ describe("AdminProductListPageContent", () => {
     expect(screen.getByText("確認する条件: 状態")).toBeInTheDocument();
   });
 
+  it("長すぎる語も、その欄の呼び名で名指しする", async () => {
+    render(await AdminProductListPageContent({ searchParams: { keyword: "あ".repeat(256) } }));
+
+    expect(screen.getByText("確認する条件: キーワード")).toBeInTheDocument();
+  });
+
+  it("形の違う起点も、その欄の呼び名で名指しする", async () => {
+    render(await AdminProductListPageContent({ searchParams: { after: "「」" } }));
+
+    expect(screen.getByText("確認する条件: 読み込み位置")).toBeInTheDocument();
+  });
+
   it("整数でない分類のコードを弾く", async () => {
     render(await AdminProductListPageContent({ searchParams: { categoryCodes: "1.5" } }));
 

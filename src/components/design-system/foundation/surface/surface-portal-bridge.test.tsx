@@ -6,7 +6,6 @@ import { SURFACE, SURFACE_ATTRIBUTE } from "./surface.definition";
 import { SurfacePortalBridge } from "./surface-portal-bridge";
 
 describe("SurfacePortalBridge", () => {
-  // ----- 正常系 -----
   it("Portal の出口へ系統を載せる", () => {
     render(<SurfacePortalBridge surface={SURFACE.ADMIN} />);
 

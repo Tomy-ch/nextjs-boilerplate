@@ -20,6 +20,12 @@ describe("toAdminProductListLocation", () => {
     expect(toAdminProductListLocation({})).toEqual(location());
   });
 
+  it("同じキーが重ねて載っていれば、語も起点も先頭の値を読む", () => {
+    expect(
+      toAdminProductListLocation({ keyword: ["イヤホン", "スピーカー"], after: ["c1", "c2"] }),
+    ).toEqual(location({ keyword: "イヤホン", cursor: "c1" }));
+  });
+
   it("絞り込みと起点を読む", () => {
     expect(
       toAdminProductListLocation({

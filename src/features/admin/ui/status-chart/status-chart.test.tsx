@@ -22,11 +22,22 @@ const COUNTS: readonly PurchaseStatusCount[] = [
   { statusId: "2", statusName: "支払い済み", count: 5 },
 ];
 
+// 帯や軸ラベルはここに出ない。recharts は実寸を測ってから中身を描き、jsdom は寸法を持たないため
+// 容れ物が 0×0 のまま空で終わる。描いた結果そのものは基準画像（Storybook `Page/Admin/Analytics`）が
+// 持つので、ここで見るのは容れ物の側の契約だけにしてある。
 describe("StatusChart", () => {
-  it("渡された件数をそのまま描く", () => {
+  it("図の容れ物を出す", () => {
     const { container } = render(<StatusChart counts={COUNTS} />);
 
     expect(container.querySelector('[data-slot="chart"]')).toBeInTheDocument();
+  });
+
+  it("件数の系列に色を割り当てる", () => {
+    const { container } = render(<StatusChart counts={COUNTS} />);
+
+    expect(container.querySelector('[data-slot="chart-style"]')?.textContent).toContain(
+      "--color-count",
+    );
   });
 
   it("凡例も tooltip も置かない", () => {
@@ -34,6 +45,12 @@ describe("StatusChart", () => {
 
     expect(container.querySelector(".recharts-legend-wrapper")).toBeNull();
     expect(container.querySelector(".recharts-tooltip-wrapper")).toBeNull();
+  });
+
+  it("件数が空でも落ちない", () => {
+    const { container } = render(<StatusChart counts={[]} />);
+
+    expect(container.querySelector('[data-slot="chart"]')).toBeInTheDocument();
   });
 
   it("a11y 検査を通る", async () => {

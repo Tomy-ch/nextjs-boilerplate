@@ -23,7 +23,6 @@ function renderQuery(props: Partial<InvalidQueryFeedbackProps> = {}) {
 }
 
 describe("InvalidQueryFeedback", () => {
-  // ----- 正常系 -----
   it("何を出せないのかを題で示す", () => {
     renderQuery({ title: "この期間では集計を表示できません" });
 
@@ -50,8 +49,6 @@ describe("InvalidQueryFeedback", () => {
       "/admin/products",
     );
   });
-
-  // ----- 異常系 -----
   it("表に無いキーはそのまま出す", () => {
     renderQuery({ invalidKeys: ["sort"] });
 

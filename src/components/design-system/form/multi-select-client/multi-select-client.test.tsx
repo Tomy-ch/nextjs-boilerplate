@@ -89,7 +89,12 @@ function submittedValues(container: HTMLElement): string[] {
 }
 
 describe("MultiSelectClient", () => {
-  // ----- 正常系 -----
+  it("名前の出所が渡されなければ、引き金は読み上げ名の参照を持たない", () => {
+    render(<MultiSelectClient name="tags" options={OPTIONS} />);
+
+    expect(screen.getByRole("button")).not.toHaveAttribute("aria-labelledby");
+  });
+
   it("選んでいなければ未選択の文言を出す", () => {
     render(<Fixture />);
 
@@ -174,8 +179,6 @@ describe("MultiSelectClient", () => {
 
     expect(screen.getByRole("button", { name: "タグ 下書き" })).toBeInTheDocument();
   });
-
-  // ----- 異常系 -----
   it("選べない候補は押せない", async () => {
     render(<Fixture />);
     await open();

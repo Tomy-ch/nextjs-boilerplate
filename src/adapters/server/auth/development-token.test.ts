@@ -102,19 +102,19 @@ describe("issueDevelopmentAccessToken", () => {
     ).toBe(ErrorKind.UNAUTHENTICATED);
   });
 
-  it("トークンを含まない応答は通さない", async () => {
+  it("トークンを含まない応答は契約破れとして扱う", async () => {
     stubFetch(respond({ token_type: "Bearer" }));
 
     expect(
       await kindOf(() => issueDevelopmentAccessToken({ subject: "user-john-doe", issuer })),
-    ).not.toBe(undefined);
+    ).toBe(ErrorKind.INTERNAL);
   });
 
-  it("空のトークンは通さない", async () => {
+  it("空のトークンも契約破れとして扱う", async () => {
     stubFetch(respond({ access_token: "" }));
 
     expect(
       await kindOf(() => issueDevelopmentAccessToken({ subject: "user-john-doe", issuer })),
-    ).not.toBe(undefined);
+    ).toBe(ErrorKind.INTERNAL);
   });
 });

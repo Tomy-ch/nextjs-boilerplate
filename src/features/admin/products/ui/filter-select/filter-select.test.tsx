@@ -54,8 +54,6 @@ describe("AdminProductFilterSelect", () => {
   beforeEach(() => {
     push.mockClear();
   });
-
-  // ----- 正常系 -----
   it("入り切りした時点で一覧の URL へ移る", async () => {
     renderSelect();
     await open();

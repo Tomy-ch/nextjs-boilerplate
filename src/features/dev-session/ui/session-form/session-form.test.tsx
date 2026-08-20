@@ -111,6 +111,25 @@ describe("DevSessionForm", () => {
     }
   });
 
+  it("実物の API へ繋ぐとき、接続先の理由もその欄の隣に出す", async () => {
+    const user = userEvent.setup();
+    const failingIssue: IssueDevSessionAction = async () =>
+      failedActionState({ fieldErrors: { issuerUrl: ["接続先の形が違います。"] } });
+
+    render(
+      <DevSessionForm
+        action={failingIssue}
+        connectsLiveApi
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "この内容で入る" }));
+
+    expect(await screen.findByText("接続先の形が違います。")).toBeVisible();
+    expect(screen.getByLabelText("IdP の接続先")).toHaveAttribute("aria-invalid", "true");
+  });
+
   it("理由の届いていない項目には印を付けない", async () => {
     const user = userEvent.setup();
     const failingIssue: IssueDevSessionAction = async () =>

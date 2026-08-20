@@ -9,11 +9,25 @@ import { AdminSummarySkeleton } from "./skeleton";
 /** 数値カードの枚数。`summary-cards.ts` が返す並びと揃える。 */
 const CARD_COUNT = 4;
 
-describe("AdminSummarySkeleton", () => {
-  it("カードの枚数分の枠を出す", () => {
-    const { container } = render(<AdminSummarySkeleton />);
+/** 待機表示の 2 つの区画。上がカードの枠、下が内訳の帯。 */
+function blocksOf(container: HTMLElement): readonly Element[] {
+  return [...(container.firstElementChild?.children ?? [])];
+}
 
-    expect(container.querySelectorAll('[data-slot="skeleton"].h-28').length).toBe(CARD_COUNT);
+describe("AdminSummarySkeleton", () => {
+  it("カードの枠と内訳の帯を、この順で出す", () => {
+    const [cards, band] = blocksOf(render(<AdminSummarySkeleton />).container);
+
+    expect(cards?.children).toHaveLength(CARD_COUNT);
+    expect(band?.children).toHaveLength(2);
+  });
+
+  it("出す枠はすべて待機表示である", () => {
+    const [cards] = blocksOf(render(<AdminSummarySkeleton />).container);
+
+    expect(
+      [...(cards?.children ?? [])].every((card) => card.getAttribute("data-slot") === "skeleton"),
+    ).toBe(true);
   });
 
   it("読み上げからは外れている", () => {

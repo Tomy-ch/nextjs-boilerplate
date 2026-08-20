@@ -66,6 +66,14 @@ test-requirement: feature
 | `products/ui/skeleton/` | 表の待機表示 |
 | `ui/error-state/` | 取得に失敗したときの表示。`/admin` の error 境界が使う。境界は 1 枚なので画面を名指ししない |
 
+**`feature` の宣言が掛かるのは、画面の単位で組み上げたものです**。`page-content.tsx` / `view.tsx` /
+`*-section.tsx` が対象で、部品が揃って初めて成立する振る舞いを負います
+（[0090](../../../docs/adr/0090-testing-strategy.md)）。**`ui/` の単一部品は `component` の形**——
+その部品 1 つの描画契約と、[0091](../../../docs/adr/0091-test-verification-methods.md) が要求する
+a11y の自動検査——で、**画面を跨ぐ純関数（`count.ts` / `summary-cards.ts` / `paths.ts` /
+`analytics/period.ts` など）は `unit` の形**——描画を持たず、戻り値と分岐を直接照合する——で
+確かめます。合成を持たないものへ合成のテストを課しても、確かめる相手が無いためです。
+
 ## 認可
 
 この配下の画面はすべて `/admin` の下にあり、二段で守られます。
