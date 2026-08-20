@@ -19,12 +19,12 @@ export const metadata: Metadata = {
  * 管理の入口。
  *
  * @remarks
- * 検索エンジンに拾わせません。管理の面は認可の内側にあり、索引に載っても辿り着けないうえ、
- * 存在だけが外へ出ます（[0044](../../../docs/adr/0044-seo-metadata-strategy.md)）。
+ * 索引に載せない理由は `docs/spec/route/admin/layout.function.md`「索引に載せない」。器の下の
+ * すべての画面に効きます。
  *
- * 集計はバックエンドが合成したものをそのまま出します。複数の取得口をまたいだ計算を画面が持つと、
- * 同じ指標がバックエンドと画面の 2 か所で定義されます
- * （[0070](../../../docs/adr/0070-backend-role-separation.md)）。
+ * 集計はバックエンドが合成したものをそのまま出します。画面が計算を持たない理由は
+ * `docs/spec/route/admin/page.function.md`「集計はフロントで作らない」、値の母集団は
+ * `model/dashboard` の `DashboardSummary`。
  */
 export default function AdminDashboardPage() {
   return (

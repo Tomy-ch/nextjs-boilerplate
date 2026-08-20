@@ -40,8 +40,7 @@ const NAV_GROUPS: readonly AdminShellNavGroup[] = [
  * **ここが確定認可です**（[0079](../../../docs/adr/0079-auth-frontend-seam.md)）。判定に使う役割の
  * 宣言は `model/authz` にあり、前捌き（`proxy.ts`）と同じものを引きます。
  *
- * 送り返す先は前捌き（`proxy.ts`）と同じにします。同じ条件に対して器ごとに違う行き先を持たせると、
- * 通った経路で結果が変わります。403 の面を出さない理由は
+ * 送り返す先は前捌き（`proxy.ts`）と同じにします。行き先とその理由、403 の面を出さない理由は
  * `docs/spec/route/admin/layout.function.md`「入れない主体をどこへ送るか」。
  *
  * 導線の顔ぶれをこの層が持つのは、admin にどの画面があるかが route の構成そのものだからです。

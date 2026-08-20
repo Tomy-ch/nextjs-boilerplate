@@ -91,27 +91,16 @@ export function toSummary(
  * 確定の操作を持たない。** 確定を待たせるかどうかは呼び出し元が決めるものなので、この部品は
  * 変更を `onValueChange` で通知するだけにしてある。
  *
- * **選べる数が 1 つなら `SelectNative` を使う。** この component を選ぶのは複数を同時に効かせる
- * 場合に限る。候補が多く**入力で絞り込む**必要があるなら `ComboboxClient`（単一選択）を見る。
+ * **選ぶのは複数を同時に効かせる場合に限る**（使い分けは `README.md`「選ぶ基準」）。
  * 絞り込みは持たないため、候補が画面に収まらないほど多い用途には向かない。
- *
- * **値は hidden input で運ぶ。** overlay は Portal で form の外へ出るため、中の checkbox に
- * `name` を与えても native の送信には載らない。選ばれた値と同じ数の hidden input を trigger の
- * 側へ置いており、`categoryCodes=1&categoryCodes=2` のように**同じ名前の繰り返し**として送られる。
  *
  * **trigger の名前は「項目名 + 選択の要約」になる。** どちらの経路でも、項目名の要素と trigger
  * 自身の両方を指す `aria-labelledby` として組む。`aria-label` を属性のまま置くと button の内容を
  * **上書きして要約が読み上げから消え**、項目名を button の中へ入れるだけだと要素の間に区切りが
  * 入らず語が繋がって読まれる。どちらも渡さないと overlay に名前が付かず、a11y 自動検査に違反する。
  *
- * **`role="listbox"` は与えない。** 中身は checkbox の集まりであり、選択状態は各 checkbox が
- * `checked` として公開する。listbox にすると option の選択状態と checkbox の状態が二重になる。
- *
- * **必須指定は持たない。** 値を運ぶ hidden input は constraint validation の対象外で、
- * `required` を付けても browser は検証しない。必須であることの表示は `Field`、実際の強制は
- * Server Action や server 側の検証で行う。
- *
- * hydration が必要で、Server Component からは直接 render できない。
+ * 値の運び方・`role="listbox"` を与えない理由・必須指定を持たない理由・hydration の要否は
+ * `README.md`「責務境界」。
  *
  * @example
  * ```tsx
