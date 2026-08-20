@@ -14,8 +14,9 @@ describe("reviewSlug", () => {
     expect(reviewSlug("feature/276-admin-dashboard")).toBe("feature-276-admin-dashboard");
   });
 
-  it("同じブランチ名は必ず同じ名前へ落ちる", () => {
-    expect(reviewSlug("bugfix/1-a")).toBe(reviewSlug("bugfix/1-a"));
+  it("区切りだけが違うブランチ名は同じ名前へ畳まれる", () => {
+    expect(reviewSlug("feature/a")).toBe(reviewSlug("feature a"));
+    expect(reviewSlug("feature/a")).toBe("feature-a");
   });
 
   it("先頭と末尾に残る区切りを落とす", () => {
@@ -50,6 +51,10 @@ describe("reviewWorktrees", () => {
     "HEAD 3333333333333333333333333333333333333333",
     "detached",
     "",
+    "worktree /repo/tmp/review-artifact/feature-x",
+    "HEAD 4444444444444444444444444444444444444444",
+    "detached",
+    "",
   ].join("\n");
 
   // ----- 正常系 -----
@@ -66,6 +71,12 @@ describe("reviewWorktrees", () => {
     expect(reviewWorktrees(other, "/repo")).toEqual([]);
   });
 
+  it("名前の頭だけが一致して配下ではないディレクトリを巻き込まない", () => {
+    expect(reviewWorktrees(porcelain, "/repo")).not.toContain(
+      "/repo/tmp/review-artifact/feature-x",
+    );
+  });
+
   it("1 件も生やしていなければ空を返す", () => {
     expect(reviewWorktrees("worktree /repo\nbranch refs/heads/develop\n", "/repo")).toEqual([]);
   });
@@ -73,8 +84,8 @@ describe("reviewWorktrees", () => {
 
 describe("assertPlainArgument", () => {
   // ----- 正常系 -----
-  it("ふつうのブランチ名を通す", () => {
-    expect(() => assertPlainArgument("--branch", "develop")).not.toThrow();
+  it("先頭以外に区切りを持つブランチ名は通す", () => {
+    expect(() => assertPlainArgument("--branch", "feature/276-admin-dashboard")).not.toThrow();
   });
 
   // ----- 異常系 -----

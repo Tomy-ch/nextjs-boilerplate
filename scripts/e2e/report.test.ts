@@ -71,10 +71,26 @@ describe("collectFailedScreens", () => {
     expect(collectFailedScreens(json)).toEqual([{ name: "about", band: "desktop" }]);
   });
 
+  it("文字列でない tag を持つ spec も、名前で突き合わせて画面として拾う", () => {
+    const json = reportOf([{ file: VISUAL, title: "about", tags: [123], tests: [test({})] }]);
+
+    expect(collectFailedScreens(json)).toEqual([{ name: "about", band: "desktop" }]);
+  });
+
   it("見出しと project 名を持たない結果も件数として残す", () => {
     const json = reportOf([{ file: VISUAL, tests: [{ status: "unexpected" }] }]);
 
     expect(collectFailedScreens(json)).toEqual([{ name: "", band: "" }]);
+  });
+
+  it("在り処を文字列で持たない spec は突き合わせの対象に入らない", () => {
+    const json = reportOf([
+      { file: VISUAL, title: "about", tests: [test({})] },
+      { title: "在り処なし", tests: [test({})] },
+      { file: 123, title: "在り処が文字列でない", tests: [test({})] },
+    ]);
+
+    expect(collectFailedScreens(json)).toEqual([{ name: "about", band: "desktop" }]);
   });
 
   // ----- 異常系 -----
