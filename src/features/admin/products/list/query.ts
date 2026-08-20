@@ -4,9 +4,8 @@ import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
  * 絞り込みを載せる URL のキー。契約のクエリ名と揃える。
  *
  * @remarks
- * 分類と状態は契約と同じく並びで載せます。**同じキーを繰り返す形**で、区切り文字で連結しません
- * —— 連結すると、値に区切り文字が現れた時点で別の条件が同じ URL になります。複数を選ばせる理由は
- * `docs/spec/route/admin/products/page.function.md`「検索条件は URL が持つ」。
+ * 分類と状態は契約と同じく並びで載せます。**同じキーを繰り返す形**で、区切り文字で連結しません。
+ * 連結しない理由も複数を選ばせる理由も `docs/spec/route/admin/products/page.function.md`「検索条件は URL が持つ」。
  */
 export const FILTER_KEY: Readonly<{
   KEYWORD: "keyword";
@@ -26,7 +25,7 @@ export const CURSOR_KEY = "after";
  *
  * @remarks
  * cursor は「次の位置」しか指さないため、戻る先はどこにも書かれていません
- * （[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。覚える場所を URL にする理由は
+ * （[0073](../../../../../docs/adr/0073-pagination-fetch-boundary.md)）。覚える場所を URL にする理由は
  * `docs/spec/route/admin/products/page.function.md`「戻る先は URL が覚える」。
  */
 const TRAIL_KEY = "trail";

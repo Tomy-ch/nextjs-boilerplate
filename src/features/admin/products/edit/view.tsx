@@ -121,9 +121,8 @@ export function AdminProductEditView({
     if (invalidSection !== undefined) setSection(invalidSection);
   }
 
-  // 読み込み直す導線は版が食い違ったときだけ添える。どの失敗にも出すと、読み込み直しても
-  // 変わらない失敗（権限・通信）にまで「やり直せば直る」と読める導線が付く。
-  // 合図に使うのは分類であって文言ではない。文言へ動的な要素を足した瞬間に導線が消えるため。
+  // 合図は分類であって文言ではない。文言へ動的な要素を足した瞬間に導線が黙って消えるため
+  // （どの失敗に添えるかは上の @remarks）。
   const conflicted = state.status === "error" && state.kind === ErrorKind.CONFLICT;
 
   const changeSection = useCallback(

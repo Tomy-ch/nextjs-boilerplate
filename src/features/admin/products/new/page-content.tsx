@@ -13,13 +13,7 @@ export type AdminProductCreatePageContentProps = {
   uploadAction: UploadProductImageAction;
 };
 
-/**
- * 作成の画面に要るマスタを揃える。
- *
- * @remarks
- * 分類と状態は互いに依存しないので並行して取ります。片方ずつ待つと、遅い方の待ち時間に速い方の
- * 待ち時間が積み上がります。
- */
+/** 作成の画面に要るマスタを揃える。 */
 export async function AdminProductCreatePageContent({
   createAction,
   maxUploadBytes,

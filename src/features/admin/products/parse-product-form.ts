@@ -96,13 +96,6 @@ type CommonFields = {
   readonly fieldErrors: Record<string, readonly string[]>;
 };
 
-/**
- * 1 項目を読み、形の上での判定に掛ける。
- *
- * @remarks
- * **判定と文言は {@link PRODUCT_FIELD_RULES} が持ちます。**同じ判定を画面の側も通るため、ここへ
- * 書き写すと同じ誤りに 2 通りの言い方が生まれ、片方だけを直せます。
- */
 /** 判定を掛けずに、項目の値だけを読む。 */
 function read(form: FormData, field: ProductValidatedField): string {
   const raw = form.get(PRODUCT_FORM_NAMES[field]);
@@ -110,6 +103,13 @@ function read(form: FormData, field: ProductValidatedField): string {
   return (typeof raw === "string" ? raw : "").trim();
 }
 
+/**
+ * 1 項目を読み、形の上での判定に掛ける。
+ *
+ * @remarks
+ * **判定と文言は {@link PRODUCT_FIELD_RULES} が持ちます。**同じ判定を画面の側も通るため、ここへ
+ * 書き写すと同じ誤りに 2 通りの言い方が生まれ、片方だけを直せます。
+ */
 function check(
   form: FormData,
   field: ProductValidatedField,
@@ -170,7 +170,7 @@ function parseCommon(form: FormData): CommonFields {
  *
  * @remarks
  * 検証をここに置くのは、**送信の編成と入力の読み取りを分ける**ためです
- * （[0021](../../../../../docs/adr/0021-frontend-responsibility.md)）。ここが持つのは form の
+ * （[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。ここが持つのは form の
  * 綴りと、利用者へ返す文言までで、業務としての妥当性は backend が決めます。
  */
 export function parseProductDraftForm(form: FormData): ProductFormParseResult<ProductDraft> {

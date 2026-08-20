@@ -32,8 +32,6 @@ export type AdminProductListPageContentProps = {
  * **条件によって変わらないものだけを取得します。** 分類と状態のマスタは絞り込みの入力欄そのもので、
  * 検索条件では変わりません。取り直す範囲は {@link AdminProductListResults} が持ちます。
  *
- * 2 つのマスタを並行して取ります。直列にすると、片方が返るまでもう片方の取得が始まりません。
- *
  * URL の条件は `parseProductQuery`（取得の口）へ通し、独自の変換を持ちません。写せなかった条件は
  * 一覧の代わりに {@link InvalidQueryFeedback} へ渡します（検証の契約は
  * `src/features/admin/README.md`「条件の検証と失敗」）。
