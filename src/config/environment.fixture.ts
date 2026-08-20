@@ -38,8 +38,9 @@ export function stubValidEnvironment(): void {
  * 検証を通ったあとの環境変数一式。
  *
  * @remarks
- * {@link stubValidEnvironment} が stub する生の値と対になります。生の値は文字列ですが、schema を
- * 通ったあとは数値へ変わるため、`getEnvironment` を差し替えるテストが必要とするのはこちらです。
+ * `getEnvironment` を差し替えるテストが必要とするのはこちらです。**{@link stubValidEnvironment} の
+ * 生の値を parse した結果ではありません。**あちらは受理される形を敢えて散らして検証そのものを
+ * 確かめる値で、こちらは観測が信号を出さないよう exporter を落とした値です。
  *
  * **境界のテストが自分で組み立てないための 1 か所です。**全 purpose の変数を揃える必要があり、
  * 各テストが literal を持つと、変数を 1 つ足すたびに同じ追記がテストの数だけ要ります。

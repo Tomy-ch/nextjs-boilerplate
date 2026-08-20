@@ -59,16 +59,7 @@ export type ScreenDeclaration =
       readonly name: string;
       readonly path: string;
       readonly signedIn?: SessionRole;
-      /**
-       * 撮影から外す領域の CSS 選択子。
-       *
-       * @remarks
-       * **モックで固定できない値を描く場所にだけ与えます。**応答はモックが同じ要求へ同じものを
-       * 返しますが（`mocks/stable-responses.ts`）、画面が要求時刻から導く値はそこに載りません。
-       * 外さないと、基準を撮った日を過ぎた時点でその画面が毎回落ちます。
-       *
-       * 外すのは値を描く最小の範囲に留めます。広く覆うほど、崩れても気づけない面が増えます。
-       */
+      /** 撮影から外す領域の CSS 選択子（{@link Screen.mask}）。 */
       readonly mask?: readonly string[];
     }
   | {

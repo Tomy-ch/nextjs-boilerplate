@@ -194,7 +194,7 @@ export function WizardForm({
     [current.blocked, currentIndex, furthestIndex],
   );
 
-  // 規則は {@link canGoTo} が 1 か所で持ち、進捗はそれを消費して押せるかを決める。ここで再び
+  // 規則は `canGoTo` が 1 か所で持ち、進捗はそれを消費して押せるかを決める。ここで再び
   // 検査しないのは、押せない段の操作が DOM に無い以上その枝へ到達できず、通らない分岐が残る
   // ためである。規則を足すときは `canGoTo` を直せば描画と挙動の両方が追随する。
   const goTo = useCallback((index: number) => {
@@ -267,7 +267,6 @@ export function WizardForm({
   );
 }
 
-/** 進捗の状態を現在位置から導く。 */
 /**
  * 進捗に出す段階の状態。
  *

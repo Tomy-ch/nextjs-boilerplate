@@ -26,6 +26,7 @@ export default defineConfig({
     // その置換を行わないので、ここで供給しないと値が `NaN` のまま client 側の経路へ渡る。
     env: {
       NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
+      NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: "4194304",
       // 時差を UTC 以外へ固定する。UTC のままだとオフセットが 0 になり、符号の取り違えや
       // 二重補正が「たまたま正しい」結果になって、時差を扱う判定の誤りが構造上検出できない。
       TZ: "Asia/Tokyo",

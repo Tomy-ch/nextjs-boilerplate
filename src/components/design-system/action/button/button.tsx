@@ -102,7 +102,7 @@ export type ButtonProps = ComponentProps<"button"> &
      * 判りません。
      *
      * 文言は視覚から外れると、その文言から組み立てていた名前も消えます。待っていることは
-     * {@link pendingLabel} が操作自身の名前として伝えます。
+     * `pendingLabel` が操作自身の名前として伝えます。
      *
      * `asChild` とは併せられません。合成先の要素の中身をこの component が組み替えられないためです。
      */
@@ -122,9 +122,8 @@ export type ButtonProps = ComponentProps<"button"> &
  * 一貫した操作状態と focus-visible 表現を提供する基礎ボタン。
  *
  * @remarks
- * `variant` は操作の優先度を表す。既定の `default` は主要操作、`outline` は副次操作、
- * `ghost` は周囲の情報量を増やさない補助操作、`destructive` は取り消せない結果を伴う操作に
- * 使う。画面固有の配色を直接指定せず、variant の追加または design token の見直しで扱う。
+ * 画面固有の配色を直接指定せず、variant の追加または design token の見直しで扱う
+ * （各 variant の意味は {@link ButtonProps} が持つ）。
  *
  * disabled 状態は native `disabled` 属性で指定する。`asChild` でリンクを使う場合、
  * HTML の link には `disabled` が存在しないため、遷移禁止の状態を表す別の UI を選ぶ。
@@ -140,10 +139,7 @@ export type ButtonProps = ComponentProps<"button"> &
  * </Button>
  * ```
  *
- * @param props - native `button` 属性と、以下の表示用 props。
- * @param props.variant - 操作の優先度に対応する見た目。
- * @param props.size - 操作を置く領域に対応する大きさ。
- * @param props.asChild - 子要素へボタンの見た目と props を合成するか。
+ * @param props - native `button` 属性と、{@link ButtonProps} の表示用 props。
  * @see Storybook `Action/Button`
  */
 export function Button({

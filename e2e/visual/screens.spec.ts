@@ -43,7 +43,6 @@ for (const screen of screens) {
     // 帯ごとに分かれず 1 階層へ平置きされる。
     await expect(page).toHaveScreenshot([testInfo.project.name, `${screen.name}.png`], {
       fullPage: true,
-      // 要求時刻から導く値は撮影から外す。外さないと、基準を撮った日を過ぎた時点で毎回落ちる。
       mask: (screen.mask ?? []).map((selector: string) => page.locator(selector)),
     });
   });

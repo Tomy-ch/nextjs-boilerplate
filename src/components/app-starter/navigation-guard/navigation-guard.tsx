@@ -84,8 +84,6 @@ function resolveGuardedHref(anchor: HTMLAnchorElement): string | undefined {
  * </NavigationGuard>
  * ```
  *
- * @param props.when - 遷移を確認するか。
- * @param props.children - 監視する範囲。
  *
  * @see Storybook `Navigation/NavigationGuard`
  */

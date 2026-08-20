@@ -61,7 +61,7 @@ export function succeededActionState<T, TField extends string = string>(
   return { status: "success", value };
 }
 
-/** 失敗した状態。フォーム全体の文言と項目ごとの文言は、いずれも省略できる。 */
+/** 失敗した状態。フォーム全体の文言・項目ごとの文言・分類は、いずれも省略できる。 */
 export function failedActionState<T, TField extends string = string>(
   options: { formError?: string | null; fieldErrors?: FieldErrors<TField>; kind?: ErrorKind } = {},
 ): ActionState<T, TField> {

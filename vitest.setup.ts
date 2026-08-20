@@ -122,7 +122,7 @@ export function passThroughOrigin(origin: string): void {
   mockServer.use(http.all(`${origin}/*`, () => passthrough()));
 }
 
-// 非同期の待ち時間を既定の 1 秒から広げる。`next/dynamic` で読む部品（カートの中身など）は
+// 非同期の待ち時間を既定の 1 秒から広げる。`next/dynamic` で読む部品は
 // 描画のたびに実際の module 解決を挟むため、待つ相手が DOM の更新だけではない。全量を並列で
 // 回すと解決が 1 秒を超えることがあり、落ちるファイルが実行のたびに入れ替わる形で現れる。
 //
@@ -247,6 +247,6 @@ if (typeof Element !== "undefined" && Element.prototype.setPointerCapture === un
 // （`carousel-scroll.test.ts`）。ここが担うのは、経路を通せるようにすることだけである。
 if (typeof Element !== "undefined" && Element.prototype.scrollBy === undefined) {
   Element.prototype.scrollBy = function scrollBy(): void {
-    // 何もしない。経路を通せるようにすることだけが目的である。
+    // 意図的に空。
   };
 }

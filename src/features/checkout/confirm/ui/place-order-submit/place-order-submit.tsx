@@ -28,8 +28,8 @@ const PENDING_LABEL = "注文を確定しています";
  * 送信中の見せ方と、そのあいだ押せなくすることは `Button` が持ちます。ここが渡すのは、待って
  * いることを支援技術へ伝える文言だけです。
  *
- * 送信中に押せないことには、この画面固有の意味もあります。もう一度押しても鍵が同じなので購入は増えませんが、待っているあいだに
- * 押せる操作を残すと、受け付けられたのかどうかが利用者から判りません。
+ * この画面では鍵が同じなので二度押しても購入は増えませんが、**それを理由に押せるまま残しません**
+ * （押せなくする理由は `Button` の `pending`）。
  */
 export function PlaceOrderSubmit({ label, orderable, fullWidth = false }: PlaceOrderSubmitProps) {
   const { pending } = useFormStatus();

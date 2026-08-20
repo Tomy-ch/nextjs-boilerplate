@@ -191,6 +191,7 @@ function UploadPreviewRow({
  *   `FileUpload` で用意する。省略すると button を出さない。
  * @param props.onMoveUp - 1 つ前へ動かす操作を受け取る。省略すると button を出さない。
  * @param props.onMoveDown - 1 つ後ろへ動かす操作を受け取る。省略すると button を出さない。
+ * @param props.orientation - 並べ方。値は {@link UPLOAD_PREVIEW_ORIENTATION}。
  * @param props.label - 一覧のアクセシブルな名前。
  *
  * @see Storybook `Display/UploadPreview`
