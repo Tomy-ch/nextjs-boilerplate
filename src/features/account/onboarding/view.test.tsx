@@ -105,7 +105,7 @@ describe("OnboardingView", () => {
 
     await waitFor(() => expect(registerAction).toHaveBeenCalledOnce());
 
-    const formData = registerAction.mock.calls[0]?.[1] as FormData;
+    const formData = registerAction.mock.calls[0]?.[1];
 
     expect(formData.get("lastName")).toBe(PROFILE.lastName);
     expect(formData.get("city")).toBe(PROFILE.city);
@@ -121,7 +121,7 @@ describe("OnboardingView", () => {
 
     await waitFor(() => expect(registerAction).toHaveBeenCalledOnce());
 
-    const formData = registerAction.mock.calls[0]?.[1] as FormData;
+    const formData = registerAction.mock.calls[0]?.[1];
 
     expect(formData.get(IDEMPOTENCY_KEY_FIELD)).toBe(IDEMPOTENCY_KEY);
     expect(formData.get(RETURN_URL_FIELD)).toBe("/mypage");

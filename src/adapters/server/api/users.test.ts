@@ -447,7 +447,7 @@ describe("registerUser", () => {
 
     expect(url).toBe("https://api.example.test/v1/users");
     expect(init).toMatchObject({ method: "POST" });
-    expect(JSON.parse(String((init as RequestInit).body))).toEqual(profile);
+    expect(JSON.parse(String(init?.body))).toEqual(profile);
   });
 
   it("渡された冪等キーをヘッダへ載せる", async () => {
