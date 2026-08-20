@@ -31,11 +31,11 @@ const meta = {
     ),
   ],
   args: {
-    title: "この条件では商品を表示できません",
+    title: "この条件では一覧を表示できません",
     message: "入力内容が正しくありません。再度ご確認ください。",
     invalidKeys: ["categoryCodes"],
     keyLabels: KEY_LABELS,
-    resetHref: "/products",
+    resetHref: "/items",
     resetLabel: "条件を外して一覧を見る",
   },
 } satisfies Meta<typeof InvalidQueryFeedback>;
@@ -63,7 +63,7 @@ export const OtherScreen: Story = {
     title: "この期間では集計を表示できません",
     invalidKeys: ["period"],
     keyLabels: { period: "期間の区分" },
-    resetHref: "/admin/analytics",
+    resetHref: "/reports",
     resetLabel: "期間を外して見る",
   },
 };
