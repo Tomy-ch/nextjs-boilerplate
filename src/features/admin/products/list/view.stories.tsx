@@ -12,7 +12,7 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { toProductId } from "@/model/product/product";
-import { ADMIN_ANALYTICS_PATH, ADMIN_DASHBOARD_PATH, ADMIN_PRODUCT_LIST_PATH } from "../paths";
+import { ADMIN_ANALYTICS_PATH, ADMIN_DASHBOARD_PATH, ADMIN_PRODUCT_LIST_PATH } from "../../paths";
 import type { AdminProductFilterOption } from "./filter-option";
 import type { AdminProductListConditions } from "./query";
 import type { AdminProductRow } from "./row";

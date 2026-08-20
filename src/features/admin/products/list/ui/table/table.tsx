@@ -8,7 +8,7 @@ import {
   StaticDataTable,
   type StaticDataTableColumn,
 } from "@/components/patterns/table/static-data/static-data";
-import { adminProductEditPath, adminProductStockPath } from "../../../paths";
+import { adminProductEditPath, adminProductStockPath } from "../../../../paths";
 import type { AdminProductRow } from "../../row";
 
 /** `AdminProductTable` の props。 */

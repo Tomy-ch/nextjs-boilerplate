@@ -5,7 +5,7 @@ import { parseProductQuery } from "@/adapters/server/api/products";
 import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-feedback/invalid-query-feedback";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
-import { ADMIN_PRODUCT_LIST_PATH } from "../paths";
+import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
 import { toFilterOptions } from "./filter-option";
 import { ADMIN_PRODUCT_PAGE_SIZE } from "./page-size";
 import {

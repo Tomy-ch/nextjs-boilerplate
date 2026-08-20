@@ -27,6 +27,9 @@ test-requirement: feature
 
 画面ごとに掘り、その中を性質で分けます（[0027](../../../docs/adr/0027-directory-structure.md)）。
 
+**商品は 3 つの画面（一覧・作成・編集）を持つため、画面の軸で割ってあります。**作成と編集が共有する
+ものは、どちらの画面のものでもないので 1 段上（`products/` 直下と `products/ui/`）が所有します。
+
 | ファイル | 役割 |
 | --- | --- |
 | `paths.ts` | 管理画面のパス。画面どうしの導線と、利用者向けの器からの入口が引く |
@@ -49,21 +52,36 @@ test-requirement: feature
 | `analytics/ui/range-dialog/` | 期間の両端を overlay で選ぶ。中身は native の GET フォーム |
 | `analytics/ui/ranking-table/` | 売れ筋の表。期間の選択には従わず、商品名は商品の面へ出る |
 | `ui/skeleton/` | 集計の待機表示 |
-| `products/query.ts` | 一覧の URL 契約（絞り込みとページ送りの位置）とキーの呼び名。通ってきた道もここが持つ |
-| `products/page-size.ts` | 1 ページに並べる件数 |
-| `products/filter-option.ts` | 絞り込みで選べる候補の形と、マスタからの写し |
-| `products/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |
-| `products/row.ts` | 表に並べる 1 行の形。商品とマスタを突き合わせて状態の見た目を決める |
-| `products/status-tone.ts` | 状態のコードと見た目の対応。契約が返さない意味づけをこの画面が持つ |
-| `products/page-content.tsx` | URL の解釈と画面の組み立て。取り直す範囲をここで区切る |
-| `products/results.tsx` | 1 ページ分の取得と、表・ページ送りの組み立て |
-| `products/view.tsx` | 検索欄・絞り込み・効いている条件・作成への導線。一覧本体は受け取る |
-| `products/ui/table/` | 商品の表。行ごとの操作は menu へ畳む |
-| `products/ui/keyword-field/` | 商品名で探す入力欄。打鍵では検索せず、確定の操作で飛ばす |
-| `products/ui/filter-control/` | 分類・状態の選択欄そのもの。選ばれた値をどう扱うかは持たない |
-| `products/ui/filter-select/` | 選んだ時点で反映する絞り込み。広い段で使う |
-| `products/ui/filter-sheet/` | 狭い段の絞り込み。下端の操作から開き、overlay の中でまとめて確定する |
-| `products/ui/skeleton/` | 表の待機表示 |
+| `products/field-limits.ts` | 契約が課す上限と、受け付ける画像の形式 |
+| `products/product-rules.ts` | 入力 1 項目の判定と文言。送る側と受ける側の両方が通る |
+| `products/form-state.ts` | 商品のフォームの結果の型と、送信先の型。版の食い違いの文言もここが持つ |
+| `products/parse-product-form.ts` | 送られてきた内容の読み取り。入力欄の名前もここだけが持つ |
+| `products/validation-errors.ts` | 項目ごとの誤りを要約の形へ写し、誤りを含む最初の段を返す |
+| `products/master-option.ts` | マスタをフォームで選べる候補へ直す。送る値は識別子 |
+| `products/use-product-values.ts` | 入力の値・触れた印・段ごとの妥当性 |
+| `products/use-product-images.ts` | 選んだ画像の一覧と、送信・並び替え |
+| `products/use-image-rejection.ts` | 送る前に弾かれたファイルの文言 |
+| `products/use-unsaved-changes.ts` | 書きかけがあることを器へ申告する |
+| `products/ui/text-field/` `products/ui/select-field/` | 入力 1 項目。値は呼び出し元が持つ |
+| `products/ui/basics-section/` `description-section/` `images-section/` `publish-section/` `confirm-section/` | 作成と編集が共有する段の中身。自分が段であることは知らない |
+| `products/ui/submit-button/` `products/ui/form-feedback/` | 送信の操作と、送信の結果 |
+| `products/list/query.ts` | 一覧の URL 契約（絞り込みとページ送りの位置）とキーの呼び名。通ってきた道もここが持つ |
+| `products/list/page-size.ts` | 1 ページに並べる件数 |
+| `products/list/filter-option.ts` | 絞り込みで選べる候補の形と、マスタからの写し |
+| `products/list/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |
+| `products/list/row.ts` | 表に並べる 1 行の形。商品とマスタを突き合わせて状態の見た目を決める |
+| `products/list/status-tone.ts` | 状態のコードと見た目の対応。契約が返さない意味づけをこの画面が持つ |
+| `products/list/page-content.tsx` | URL の解釈と画面の組み立て。取り直す範囲をここで区切る |
+| `products/list/results.tsx` | 1 ページ分の取得と、表・ページ送りの組み立て |
+| `products/list/view.tsx` | 検索欄・絞り込み・効いている条件・作成への導線。一覧本体は受け取る |
+| `products/list/ui/table/` | 商品の表。行ごとの操作は menu へ畳む |
+| `products/list/ui/keyword-field/` | 商品名で探す入力欄。打鍵では検索せず、確定の操作で飛ばす |
+| `products/list/ui/filter-control/` | 分類・状態の選択欄そのもの。選ばれた値をどう扱うかは持たない |
+| `products/list/ui/filter-select/` | 選んだ時点で反映する絞り込み。広い段で使う |
+| `products/list/ui/filter-sheet/` | 狭い段の絞り込み。下端の操作から開き、overlay の中でまとめて確定する |
+| `products/list/ui/skeleton/` | 表の待機表示 |
+| `products/new/page-content.tsx` `products/new/view.tsx` | 作成。段階に分けて進み、最後に確認を置く |
+| `products/edit/page-content.tsx` `products/edit/view.tsx` | 編集。観点を切り替えて直す。版を持ち回る |
 | `ui/error-state/` | 取得に失敗したときの表示。`/admin` の error 境界が使う。境界は 1 枚なので画面を名指ししない |
 
 **`feature` の宣言が掛かるのは、画面の単位で組み上げたものです**。`page-content.tsx` / `view.tsx` /

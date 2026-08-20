@@ -24,7 +24,7 @@ import type { Product } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
 
 import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
-import type { ProductSelectOption } from "../form/ui/select-field/select-field";
+import type { ProductSelectOption } from "../ui/select-field/select-field";
 import { AdminProductEditView } from "./view";
 
 const NAV_GROUPS: readonly AdminShellNavGroup[] = [

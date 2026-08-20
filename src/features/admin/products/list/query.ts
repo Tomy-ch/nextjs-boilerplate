@@ -1,4 +1,4 @@
-import { ADMIN_PRODUCT_LIST_PATH } from "../paths";
+import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
 
 /**
  * 絞り込みを載せる URL のキー。契約のクエリ名と揃える。

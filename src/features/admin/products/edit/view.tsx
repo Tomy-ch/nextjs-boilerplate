@@ -18,22 +18,22 @@ import type {
   ProductFormState,
   UpdateProductAction,
   UploadProductImageAction,
-} from "../form/form-state";
-import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "../form/form-state";
-import { PRODUCT_FORM_NAMES } from "../form/parse-product-form";
-import { ProductBasicsSection } from "../form/ui/basics-section/basics-section";
-import { ProductDescriptionSection } from "../form/ui/description-section/description-section";
-import { ProductFormFeedback } from "../form/ui/form-feedback/form-feedback";
-import { ProductImagesSection } from "../form/ui/images-section/images-section";
-import { ProductPublishSection } from "../form/ui/publish-section/publish-section";
-import type { ProductSelectOption } from "../form/ui/select-field/select-field";
-import { ProductSubmitButton } from "../form/ui/submit-button/submit-button";
-import { useImageRejection } from "../form/use-image-rejection";
-import type { ProductSavedImage } from "../form/use-product-images";
-import { useProductImages } from "../form/use-product-images";
-import { productValuesOf, useProductValues } from "../form/use-product-values";
-import { useUnsavedChanges } from "../form/use-unsaved-changes";
-import { findFirstInvalidSection, PRODUCT_FORM_SECTIONS } from "../form/validation-errors";
+} from "../form-state";
+import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "../form-state";
+import { PRODUCT_FORM_NAMES } from "../parse-product-form";
+import { ProductBasicsSection } from "../ui/basics-section/basics-section";
+import { ProductDescriptionSection } from "../ui/description-section/description-section";
+import { ProductFormFeedback } from "../ui/form-feedback/form-feedback";
+import { ProductImagesSection } from "../ui/images-section/images-section";
+import { ProductPublishSection } from "../ui/publish-section/publish-section";
+import type { ProductSelectOption } from "../ui/select-field/select-field";
+import { ProductSubmitButton } from "../ui/submit-button/submit-button";
+import { useImageRejection } from "../use-image-rejection";
+import type { ProductSavedImage } from "../use-product-images";
+import { useProductImages } from "../use-product-images";
+import { productValuesOf, useProductValues } from "../use-product-values";
+import { useUnsavedChanges } from "../use-unsaved-changes";
+import { findFirstInvalidSection, PRODUCT_FORM_SECTIONS } from "../validation-errors";
 
 /** `AdminProductEditView` の props。 */
 export type AdminProductEditViewProps = {

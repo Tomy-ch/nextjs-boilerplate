@@ -9,7 +9,7 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { getHttpConfig } from "@/config/http/http.server";
 import { AdminProductEditPageContent } from "@/features/admin/products/edit/page-content";
-import { AdminProductListSkeleton } from "@/features/admin/products/ui/skeleton/skeleton";
+import { AdminProductListSkeleton } from "@/features/admin/products/list/ui/skeleton/skeleton";
 import { toProductId } from "@/model/product/product";
 
 import { updateProductAction, uploadProductImageAction } from "../../actions";

@@ -8,7 +8,7 @@ import {
   FilterBarControls,
   FilterChip,
 } from "@/components/patterns/filter-bar/filter-bar";
-import { ADMIN_PRODUCT_LIST_PATH, ADMIN_PRODUCT_NEW_PATH } from "../paths";
+import { ADMIN_PRODUCT_LIST_PATH, ADMIN_PRODUCT_NEW_PATH } from "../../paths";
 import { toAdminActiveFilters } from "./active-filters";
 import type { AdminProductFilterOption } from "./filter-option";
 import type { AdminProductListConditions } from "./query";

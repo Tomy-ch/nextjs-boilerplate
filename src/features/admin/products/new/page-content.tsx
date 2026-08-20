@@ -1,6 +1,6 @@
 import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
-import type { CreateProductAction, UploadProductImageAction } from "../form/form-state";
-import { toMasterOptions } from "../form/master-option";
+import type { CreateProductAction, UploadProductImageAction } from "../form-state";
+import { toMasterOptions } from "../master-option";
 import { AdminProductCreateView } from "./view";
 
 /** `AdminProductCreatePageContent` の props。 */

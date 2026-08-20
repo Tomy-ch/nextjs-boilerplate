@@ -9,19 +9,19 @@ import type {
   CreateProductAction,
   ProductFormState,
   UploadProductImageAction,
-} from "../form/form-state";
-import { ProductBasicsSection } from "../form/ui/basics-section/basics-section";
-import { ProductConfirmSection } from "../form/ui/confirm-section/confirm-section";
-import { ProductDescriptionSection } from "../form/ui/description-section/description-section";
-import { ProductFormFeedback } from "../form/ui/form-feedback/form-feedback";
-import { ProductImagesSection } from "../form/ui/images-section/images-section";
-import { ProductPublishSection } from "../form/ui/publish-section/publish-section";
-import type { ProductSelectOption } from "../form/ui/select-field/select-field";
-import { ProductSubmitButton } from "../form/ui/submit-button/submit-button";
-import { useImageRejection } from "../form/use-image-rejection";
-import { useProductImages } from "../form/use-product-images";
-import { emptyProductValues, useProductValues } from "../form/use-product-values";
-import { useUnsavedChanges } from "../form/use-unsaved-changes";
+} from "../form-state";
+import { ProductBasicsSection } from "../ui/basics-section/basics-section";
+import { ProductConfirmSection } from "../ui/confirm-section/confirm-section";
+import { ProductDescriptionSection } from "../ui/description-section/description-section";
+import { ProductFormFeedback } from "../ui/form-feedback/form-feedback";
+import { ProductImagesSection } from "../ui/images-section/images-section";
+import { ProductPublishSection } from "../ui/publish-section/publish-section";
+import type { ProductSelectOption } from "../ui/select-field/select-field";
+import { ProductSubmitButton } from "../ui/submit-button/submit-button";
+import { useImageRejection } from "../use-image-rejection";
+import { useProductImages } from "../use-product-images";
+import { emptyProductValues, useProductValues } from "../use-product-values";
+import { useUnsavedChanges } from "../use-unsaved-changes";
 
 /** `AdminProductCreateView` の props。 */
 export type AdminProductCreateViewProps = {

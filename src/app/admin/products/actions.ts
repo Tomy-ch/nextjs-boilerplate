@@ -13,17 +13,17 @@ import { getHttpConfig } from "@/config/http/http.server";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { ADMIN_PRODUCT_LIST_PATH } from "@/features/admin/paths";
-import { PRODUCT_IMAGE_ACCEPT } from "@/features/admin/products/form/field-limits";
+import { PRODUCT_IMAGE_ACCEPT } from "@/features/admin/products/field-limits";
 import type {
   ProductFormState,
   ProductImageUploadState,
-} from "@/features/admin/products/form/form-state";
-import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "@/features/admin/products/form/form-state";
+} from "@/features/admin/products/form-state";
+import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "@/features/admin/products/form-state";
 import {
   PRODUCT_FORM_NAMES,
   parseProductDraftForm,
   parseProductEditForm,
-} from "@/features/admin/products/form/parse-product-form";
+} from "@/features/admin/products/parse-product-form";
 import {
   actionStateFromError,
   failedActionState,
