@@ -515,6 +515,20 @@ describe("RichTextEditor", () => {
     });
   });
 
+  it("渡された id を編集面そのものへ与える", async () => {
+    const controlId = "profile-bio";
+
+    render(<RichTextEditor id={controlId} label="説明文" onChange={noop} />);
+
+    expect(await screen.findByRole("textbox", { name: "説明文" })).toHaveAttribute("id", controlId);
+  });
+
+  it("id を渡さなければ付けない。外から指す必要が無いため", async () => {
+    render(<RichTextEditor label="説明文" onChange={noop} />);
+
+    expect(await screen.findByRole("textbox", { name: "説明文" })).not.toHaveAttribute("id");
+  });
+
   it("a11y 自動検査に違反しない", async () => {
     const { container } = renderEditor({
       defaultValue: '<p><a href="https://example.com">リンク</a></p>',
