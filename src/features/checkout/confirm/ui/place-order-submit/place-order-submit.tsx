@@ -52,7 +52,7 @@ export function PlaceOrderSubmit({ label, orderable, fullWidth = false }: PlaceO
  *
  * @remarks
  * 成立したときは何も出しません。成立したら完了画面へ送るため、成功した状態がこの画面に現れる
- * ことがありません（[0063](../../../../../docs/adr/0063-mutation-result-notification.md)）。
+ * ことがありません（[0063](../../../../../../docs/adr/0063-mutation-result-notification.md)）。
  */
 export function PlaceOrderError({ state }: { state: PlaceOrderFormState }) {
   if (state.status !== "error" || state.formError === null) {

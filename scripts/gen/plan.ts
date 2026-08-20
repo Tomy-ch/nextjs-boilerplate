@@ -73,7 +73,7 @@ function readme(input: GenerationInput): string {
 ## 運用
 
 - import してよい層は \`${input.importsAllowed.join(" / ")}\` です（\`architecture.ts\` が正）。
-- テスト責務は \`${input.contract.testRequirement}\` です（[0090](../../../docs/adr/0090-testing-strategy.md)）。
+- テスト責務は \`${input.contract.testRequirement}\` です（[0090](../../docs/adr/0090-testing-strategy.md)）。
 `;
 }
 
