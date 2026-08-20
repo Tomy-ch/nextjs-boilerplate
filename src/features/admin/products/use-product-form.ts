@@ -23,7 +23,14 @@ export type ProductForm = {
   readonly dismissed: boolean;
   /** 直前の送信の結果を下げる。 */
   readonly dismiss: () => void;
-  /** この描画で送信の結果が入れ替わったか。 */
+  /**
+   * この描画で送信の結果が入れ替わったか。
+   *
+   * @remarks
+   * **描画のあいだだけ真になる合図**で、状態ではありません。読むのは描画の本体で、その描画の
+   * うちに何を起こすかを決めます（誤りのある観点へ移る、など）。落ち着いた後は偽に戻るため、
+   * 後から読み直しても入れ替わりは判りません。
+   */
   readonly resultIsNew: boolean;
   /** 本文が変わったことを伝える。 */
   readonly changeDescription: (value: string) => void;
