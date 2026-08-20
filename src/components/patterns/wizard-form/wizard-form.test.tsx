@@ -264,6 +264,17 @@ describe("WizardForm", () => {
     expect(screen.getByRole("button", { name: "次へ" })).toBeDisabled();
   });
 
+  it("終えられない段階に居るあいだは、到達済みの先の段階へも進捗から飛べない", () => {
+    // 「次へ」だけを塞いでも、進捗から飛べては同じことになる。戻る側は塞がない。
+    const { rerender } = render(<WizardFixture />);
+
+    next();
+    previous();
+    rerender(<WizardFixture steps={[{ ...STEPS[0], blocked: true }, STEPS[1], STEPS[2]]} />);
+
+    expect(screen.getByRole("button", { name: STEPS[1].title })).toBeDisabled();
+  });
+
   it("隠れている段階の入力値も form に残る", () => {
     render(
       <form data-testid="wizard-host">

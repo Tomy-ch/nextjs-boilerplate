@@ -105,6 +105,19 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     signedIn: "admin",
   },
   { route: "/admin/products", name: "admin-products", path: "/admin/products", signedIn: "admin" },
+  {
+    route: "/admin/products/new",
+    name: "admin-product-new",
+    path: "/admin/products/new",
+    signedIn: "admin",
+  },
+  {
+    route: "/admin/products/[id]/edit",
+    name: "admin-product-edit",
+    // 詳細と同じ理由で ID を固定する。契約駆動のモックはどの ID にも同じ応答を返す。
+    path: "/admin/products/0195f0c2-0000-7000-9000-000000000001/edit",
+    signedIn: "admin",
+  },
   // sample:end
   { route: "/login", name: "login", path: "/login" },
   { route: "/dev/session", name: "dev-session", path: "/dev/session" },

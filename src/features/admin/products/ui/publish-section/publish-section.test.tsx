@@ -2,6 +2,7 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -84,6 +85,26 @@ describe("ProductPublishSection", () => {
     fireEvent.change(screen.getByLabelText("状態"), { target: { value: "" } });
 
     expect(screen.getByText("状態を選んでください。")).toBeInTheDocument();
+  });
+
+  it("入力した側の時差を、送信に載せる", () => {
+    renderSection();
+
+    const offset = document.querySelector('input[name="timezoneOffset"]');
+
+    expect(offset).toHaveValue(String(new Date().getTimezoneOffset()));
+  });
+
+  it("描く場所が server なら時差を載せない。server の時差を送っても意味が無い", () => {
+    const markup = renderToStaticMarkup(
+      <Harness>
+        {(form) => (
+          <ProductPublishSection form={form} idPrefix="form" statusOptions={STATUS_OPTIONS} />
+        )}
+      </Harness>,
+    );
+
+    expect(markup).not.toContain('name="timezoneOffset"');
   });
 
   it("a11y 自動検査に違反しない", async () => {
