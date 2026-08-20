@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { findAddressCandidates as findAddressCandidatesType } from "@/adapters/server/api/addresses";
+import type { findAddresses as findAddressesType } from "@/adapters/server/api/addresses";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
-const { findAddressCandidates } = vi.hoisted(() => ({
-  findAddressCandidates: vi.fn<typeof findAddressCandidatesType>(),
+const { findAddresses } = vi.hoisted(() => ({
+  findAddresses: vi.fn<typeof findAddressesType>(),
 }));
 
-vi.mock("@/adapters/server/api/addresses", () => ({ findAddressCandidates }));
+vi.mock("@/adapters/server/api/addresses", () => ({ findAddresses }));
 
 import { GET } from "./route";
 
@@ -18,8 +18,8 @@ function requestFor(search: string): Request {
 }
 
 beforeEach(() => {
-  findAddressCandidates.mockReset();
-  findAddressCandidates.mockResolvedValue([candidate]);
+  findAddresses.mockReset();
+  findAddresses.mockResolvedValue({ candidates: [candidate], isFallback: false });
 });
 
 describe("GET", () => {
@@ -28,22 +28,35 @@ describe("GET", () => {
     const response = await GET(requestFor("?postalCode=150-0001"));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ candidates: [candidate] });
+    await expect(response.json()).resolves.toEqual({
+      candidates: [candidate],
+      isFallback: false,
+    });
   });
 
   it("郵便番号をそのまま取得へ渡す", async () => {
     await GET(requestFor("?postalCode=150-0001"));
 
-    expect(findAddressCandidates).toHaveBeenCalledWith("150-0001");
+    expect(findAddresses).toHaveBeenCalledWith("150-0001");
   });
 
   it("該当が無いとき 200 と空の候補を返す", async () => {
-    findAddressCandidates.mockResolvedValue([]);
+    findAddresses.mockResolvedValue({ candidates: [], isFallback: false });
 
     const response = await GET(requestFor("?postalCode=999-9999"));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ candidates: [] });
+    await expect(response.json()).resolves.toEqual({ candidates: [], isFallback: false });
+  });
+
+  it("補完の機構が動いていないことを、該当なしと区別して渡す", async () => {
+    findAddresses.mockResolvedValue({ candidates: [], isFallback: true });
+
+    const response = await GET(
+      new Request("https://app.example.test/api/addresses?postalCode=150-0001"),
+    );
+
+    await expect(response.json()).resolves.toEqual({ candidates: [], isFallback: true });
   });
 
   // ----- 異常系 -----
@@ -58,11 +71,11 @@ describe("GET", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ message: "入力内容が正しくありません。" });
-    expect(findAddressCandidates).not.toHaveBeenCalled();
+    expect(findAddresses).not.toHaveBeenCalled();
   });
 
   it("取得が分類つきで失敗したときその分類の status と文言を返す", async () => {
-    findAddressCandidates.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
+    findAddresses.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 
     const response = await GET(requestFor("?postalCode=150-0001"));
 
@@ -73,7 +86,7 @@ describe("GET", () => {
   });
 
   it("取得が分類なしで失敗したとき 500 へ矯正する", async () => {
-    findAddressCandidates.mockRejectedValue(new Error("boom"));
+    findAddresses.mockRejectedValue(new Error("boom"));
 
     const response = await GET(requestFor("?postalCode=150-0001"));
 

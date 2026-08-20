@@ -4,15 +4,21 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { fetchAddressCandidates } = vi.hoisted(() => ({ fetchAddressCandidates: vi.fn() }));
+const { fetchAddresses } = vi.hoisted(() => ({ fetchAddresses: vi.fn() }));
 
-vi.mock("@/adapters/client/api/addresses", () => ({ fetchAddressCandidates }));
+vi.mock("@/adapters/client/api/addresses", () => ({ fetchAddresses }));
 
 import { idleActionState } from "@/model/action-state";
 import type { ProfileField } from "@/model/user/profile-schema";
 import type { UserProfile } from "@/model/user/user";
 
-import { ADDRESS_CANDIDATES, PROFILE, SINGLE_ADDRESS_CANDIDATE } from "./account.fixture";
+import {
+  ADDRESS_LOOKUP,
+  EMPTY_ADDRESS_LOOKUP,
+  PROFILE,
+  SINGLE_ADDRESS_LOOKUP,
+  UNAVAILABLE_ADDRESS_LOOKUP,
+} from "./account.fixture";
 import { useAddressField } from "./use-address-field";
 import { useProfileFields } from "./use-profile-fields";
 
@@ -35,7 +41,11 @@ function Probe({ profile }: { profile: UserProfile }) {
       <label htmlFor={postalCode.controlId}>郵便番号</label>
       <input id={postalCode.controlId} {...address.registration} />
       <p data-testid="postalCode-message">{postalCode.message ?? ""}</p>
-      <button disabled={address.searching} onClick={address.onSearch} type="button">
+      <button
+        disabled={address.searching || address.unavailable}
+        onClick={address.onSearch}
+        type="button"
+      >
         住所を検索
       </button>
       {FILLED_FIELDS.map((field) => {
@@ -60,8 +70,8 @@ function renderProbe(overrides: Partial<UserProfile> = {}) {
 }
 
 beforeEach(() => {
-  fetchAddressCandidates.mockReset();
-  fetchAddressCandidates.mockResolvedValue(ADDRESS_CANDIDATES);
+  fetchAddresses.mockReset();
+  fetchAddresses.mockResolvedValue(ADDRESS_LOOKUP);
 });
 
 describe("useAddressField", () => {
@@ -81,16 +91,16 @@ describe("useAddressField", () => {
     expect(await screen.findByTestId("postalCode-message")).toHaveTextContent(
       "郵便番号を入力してください。",
     );
-    expect(fetchAddressCandidates).toHaveBeenCalledWith("", expect.any(AbortSignal));
+    expect(fetchAddresses).toHaveBeenCalledWith("", expect.any(AbortSignal));
   });
 
   it("取得の最中は検索の操作を押せなくする", async () => {
     const user = userEvent.setup();
     let settle: (() => void) | undefined;
 
-    fetchAddressCandidates.mockReturnValue(
+    fetchAddresses.mockReturnValue(
       new Promise((resolve) => {
-        settle = () => resolve(ADDRESS_CANDIDATES);
+        settle = () => resolve(ADDRESS_LOOKUP);
       }),
     );
 
@@ -129,7 +139,7 @@ describe("useAddressField", () => {
   it("丁目・番地が空のときだけ町域を書き込む", async () => {
     const user = userEvent.setup();
 
-    fetchAddressCandidates.mockResolvedValue(SINGLE_ADDRESS_CANDIDATE);
+    fetchAddresses.mockResolvedValue(SINGLE_ADDRESS_LOOKUP);
     renderProbe({ postalCode: "220-0012" });
     await user.click(screen.getByRole("button", { name: "住所を検索" }));
 
@@ -140,7 +150,7 @@ describe("useAddressField", () => {
   it("丁目・番地が書いてあるとき町域で上書きしない", async () => {
     const user = userEvent.setup();
 
-    fetchAddressCandidates.mockResolvedValue(SINGLE_ADDRESS_CANDIDATE);
+    fetchAddresses.mockResolvedValue(SINGLE_ADDRESS_LOOKUP);
     renderProbe({ postalCode: "220-0012", street: "みなとみらい 2-2-1" });
     await user.click(screen.getByRole("button", { name: "住所を検索" }));
 
@@ -151,16 +161,32 @@ describe("useAddressField", () => {
   it("都道府県と市区町村まで割れているとき、どちらも書き込まない", async () => {
     const user = userEvent.setup();
 
-    fetchAddressCandidates.mockResolvedValue([
-      { prefecture: "東京都", city: "渋谷区", town: "神宮前" },
-      { prefecture: "神奈川県", city: "横浜市西区", town: "みなとみらい" },
-    ]);
+    fetchAddresses.mockResolvedValue({
+      candidates: [
+        { prefecture: "東京都", city: "渋谷区", town: "神宮前" },
+        { prefecture: "神奈川県", city: "横浜市西区", town: "みなとみらい" },
+      ],
+      isFallback: false,
+    });
     renderProbe();
     await user.click(screen.getByRole("button", { name: "住所を検索" }));
 
     expect(await screen.findByTestId("message")).not.toBeEmptyDOMElement();
     expect(screen.getByLabelText("prefecture")).toHaveValue("");
     expect(screen.getByLabelText("city")).toHaveValue("");
+  });
+
+  it("補完の機構が動いていないとき、手入力を促して操作を閉じる", async () => {
+    const user = userEvent.setup();
+
+    fetchAddresses.mockResolvedValue(UNAVAILABLE_ADDRESS_LOOKUP);
+    renderProbe();
+    await user.click(screen.getByRole("button", { name: "住所を検索" }));
+
+    expect(await screen.findByTestId("message")).toHaveTextContent(
+      "住所の自動入力がいま使えません。都道府県から先を手入力してください。",
+    );
+    expect(screen.getByRole("button", { name: "住所を検索" })).toBeDisabled();
   });
 
   it("補完が起きたことを読み上げ用の文言で伝える", async () => {
@@ -177,7 +203,7 @@ describe("useAddressField", () => {
   it("該当が無いとき手入力を続けるよう伝える", async () => {
     const user = userEvent.setup();
 
-    fetchAddressCandidates.mockResolvedValue([]);
+    fetchAddresses.mockResolvedValue(EMPTY_ADDRESS_LOOKUP);
     renderProbe();
     await user.click(screen.getByRole("button", { name: "住所を検索" }));
 
@@ -209,6 +235,6 @@ describe("useAddressField", () => {
     await user.click(screen.getByRole("button", { name: "住所を検索" }));
     await user.click(screen.getByRole("button", { name: "住所を検索" }));
 
-    expect(fetchAddressCandidates).toHaveBeenCalledTimes(2);
+    expect(fetchAddresses).toHaveBeenCalledTimes(2);
   });
 });

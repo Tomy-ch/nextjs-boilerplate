@@ -8,15 +8,15 @@ import { axe } from "vitest-axe";
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 import { failedActionState, succeededActionState } from "@/model/action-state";
 
-const { fetchAddressCandidates, updateProfileAction } = vi.hoisted(() => ({
-  fetchAddressCandidates: vi.fn(),
+const { fetchAddresses, updateProfileAction } = vi.hoisted(() => ({
+  fetchAddresses: vi.fn(),
   updateProfileAction: vi.fn<(previous: unknown, formData: FormData) => Promise<unknown>>(),
 }));
 
-vi.mock("@/adapters/client/api/addresses", () => ({ fetchAddressCandidates }));
+vi.mock("@/adapters/client/api/addresses", () => ({ fetchAddresses }));
 vi.mock("../../../actions", () => ({ updateProfileAction }));
 
-import { ADDRESS_CANDIDATES, PREFECTURES, PROFILE } from "../../../account.fixture";
+import { ADDRESS_LOOKUP, PREFECTURES, PROFILE } from "../../../account.fixture";
 import { MYPAGE_PATH } from "../../../paths";
 import { ProfileForm } from "./profile-form";
 
@@ -41,7 +41,7 @@ function renderForm() {
 }
 
 beforeEach(() => {
-  fetchAddressCandidates.mockReset().mockResolvedValue(ADDRESS_CANDIDATES);
+  fetchAddresses.mockReset().mockResolvedValue(ADDRESS_LOOKUP);
   updateProfileAction.mockReset().mockResolvedValue(succeededActionState(undefined));
 });
 

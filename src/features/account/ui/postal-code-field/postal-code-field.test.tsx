@@ -33,6 +33,7 @@ function renderField(overrides: Partial<Parameters<typeof PostalCodeField>[0]> =
       registration={registrationOf()}
       required
       searching={false}
+      unavailable={false}
       {...overrides}
     />,
   );
@@ -109,5 +110,11 @@ describe("PostalCodeField", () => {
     const { container } = renderField({ message: "郵便番号を入力してください。" });
 
     expect((await axe(container)).violations).toEqual([]);
+  });
+
+  it("補完の機構が動いていないとき、住所を検索する操作を閉じる", () => {
+    renderField({ unavailable: true });
+
+    expect(screen.getByRole("button", { name: "住所を検索" })).toBeDisabled();
   });
 });
