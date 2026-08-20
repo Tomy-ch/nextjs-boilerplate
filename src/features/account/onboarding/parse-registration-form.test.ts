@@ -71,6 +71,13 @@ describe("parseRegistrationForm", () => {
   });
 
   // ----- 異常系 -----
+  it("戻り先に文字列でない値が積まれていても既定の行き先へ倒す", () => {
+    const formData = formDataOf();
+    formData.set(RETURN_URL_FIELD, new File([], "returnUrl.txt"));
+
+    expect(parseRegistrationForm(formData)).toMatchObject({ status: "ok", returnUrl: "/" });
+  });
+
   it("入力の誤りは項目ごとに返す", () => {
     const result = parseRegistrationForm(formDataOf({ email: "not-an-email", city: "" }));
 

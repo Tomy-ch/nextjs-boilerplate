@@ -6,7 +6,9 @@ import { axe } from "vitest-axe";
 
 import { idleActionState } from "@/model/action-state";
 
+import { PROFILE_FIELD_LABELS } from "../../../field-labels";
 import { useProfileFields } from "../../../use-profile-fields";
+import { BASICS_FIELDS } from "../../steps";
 import { RegistrationBasicsSection } from "./basics-section";
 
 /**
@@ -23,7 +25,6 @@ function Probe() {
 }
 
 describe("RegistrationBasicsSection", () => {
-  // ----- 正常系 -----
   it("名前と連絡先の項目を、項目名で引ける形で並べる", () => {
     render(<Probe />);
 
@@ -32,10 +33,12 @@ describe("RegistrationBasicsSection", () => {
     }
   });
 
-  it("登録が無いので、どの項目も空で開く", () => {
+  it("登録が無いので、この段のどの項目も空で開く", () => {
     render(<Probe />);
 
-    expect(screen.getByLabelText("名字")).toHaveValue("");
+    for (const field of BASICS_FIELDS) {
+      expect(screen.getByLabelText(PROFILE_FIELD_LABELS[field])).toHaveValue("");
+    }
   });
 
   it("必須であることを control が伝える", () => {

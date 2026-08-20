@@ -25,7 +25,6 @@ function Probe({ profile }: { profile: UserProfile }) {
 }
 
 describe("RegistrationConfirmSection", () => {
-  // ----- 正常系 -----
   it("送る値を項目名とともに並べる", () => {
     render(<Probe profile={PROFILE} />);
 
@@ -58,7 +57,6 @@ describe("RegistrationConfirmSection", () => {
     expect(screen.queryAllByRole("textbox")).toHaveLength(0);
   });
 
-  // ----- 異常系 -----
   it("任意入力が空でも行を消さず、空であることを読ませる", () => {
     render(<Probe profile={{ ...PROFILE, building: null }} />);
 

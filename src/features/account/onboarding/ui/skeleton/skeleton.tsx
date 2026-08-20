@@ -1,10 +1,6 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
 
-/** 最初の段階に並ぶ入力の数。名字・名前・メールアドレス・電話番号。 */
-const FIRST_STEP_FIELDS = ["lastName", "firstName", "email", "phone"];
-
-/** 進捗に並ぶ段階の数。基本情報・住所・確認。 */
-const STEPS = ["profile", "address", "confirm"];
+import { BASICS_FIELDS, STEP_IDS } from "../../steps";
 
 /**
  * 登録の待機表示。
@@ -17,11 +13,11 @@ export function OnboardingSkeleton() {
   return (
     <div aria-hidden="true" className="flex max-w-2xl flex-col gap-6">
       <div className="flex gap-4">
-        {STEPS.map((step) => (
+        {STEP_IDS.map((step) => (
           <Skeleton className="h-6 flex-1" key={step} />
         ))}
       </div>
-      {FIRST_STEP_FIELDS.map((field) => (
+      {BASICS_FIELDS.map((field) => (
         <div className="flex flex-col gap-2" key={field}>
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-10 w-full" />

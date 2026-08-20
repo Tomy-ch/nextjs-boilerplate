@@ -16,7 +16,7 @@ import type { ProfileFormState } from "../form-state";
 import { ProfileSubmitButton } from "../ui/submit-button/submit-button";
 import { useProfileFields } from "../use-profile-fields";
 import { RETURN_URL_FIELD } from "./parse-registration-form";
-import { ADDRESS_FIELDS, BASICS_FIELDS, isStepComplete } from "./steps";
+import { ADDRESS_FIELDS, BASICS_FIELDS, isStepComplete, STEP_IDS } from "./steps";
 import { RegistrationAddressSection } from "./ui/address-section/address-section";
 import { RegistrationBasicsSection } from "./ui/basics-section/basics-section";
 import { RegistrationConfirmSection } from "./ui/confirm-section/confirm-section";
@@ -71,20 +71,20 @@ export function OnboardingView({
 
   const steps: WizardSteps = [
     {
-      id: "basics",
+      id: STEP_IDS[0],
       title: "基本情報",
       content: <RegistrationBasicsSection fields={fields} />,
       blocked: !isStepComplete(values, BASICS_FIELDS),
     },
     {
-      id: "address",
+      id: STEP_IDS[1],
       title: "住所",
       content: <RegistrationAddressSection fields={fields} prefectures={prefectures} />,
       blocked: !isStepComplete(values, ADDRESS_FIELDS),
       nextLabel: "確認へ進む",
     },
     {
-      id: "confirm",
+      id: STEP_IDS[2],
       title: "確認",
       content: <RegistrationConfirmSection control={fields.control} />,
     },

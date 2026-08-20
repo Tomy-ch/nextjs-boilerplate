@@ -4,6 +4,7 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
+import { BASICS_FIELDS, STEP_IDS } from "../../steps";
 import { OnboardingSkeleton } from "./skeleton";
 
 /** 待機表示の外枠の直下に並ぶ塊。進捗・入力の行・操作の並びに分かれる。 */
@@ -12,18 +13,17 @@ function blocksOf(container: HTMLElement): readonly Element[] {
 }
 
 describe("OnboardingSkeleton", () => {
-  // ----- 正常系 -----
   it("進捗に並ぶ段の数だけ枠を出す", () => {
     const { container } = render(<OnboardingSkeleton />);
     const [progress] = blocksOf(container);
 
-    expect(progress?.children).toHaveLength(3);
+    expect(progress?.children).toHaveLength(STEP_IDS.length);
   });
 
   it("最初の段が尋ねる項目の数だけ入力の行を出す", () => {
     const { container } = render(<OnboardingSkeleton />);
 
-    expect(blocksOf(container).slice(1, -1)).toHaveLength(4);
+    expect(blocksOf(container).slice(1, -1)).toHaveLength(BASICS_FIELDS.length);
   });
 
   it("段を進める操作の分も場所を取る", () => {

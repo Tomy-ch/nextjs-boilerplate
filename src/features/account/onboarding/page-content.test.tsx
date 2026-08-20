@@ -19,6 +19,7 @@ vi.mock("@/model/idempotency-key", async (importOriginal) => ({
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 
 import { PREFECTURES } from "../account.fixture";
+import { PROFILE_FIELD_LABELS } from "../field-labels";
 import { OnboardingPageContent } from "./page-content";
 import { RETURN_URL_FIELD } from "./parse-registration-form";
 
@@ -34,7 +35,6 @@ beforeEach(() => {
 });
 
 describe("OnboardingPageContent", () => {
-  // ----- 正常系 -----
   it("都道府県マスタを取って選択肢へ配る", async () => {
     const { container } = await renderContent();
 
@@ -51,7 +51,16 @@ describe("OnboardingPageContent", () => {
   it("まだ登録が無いので、どの項目も空で開く", async () => {
     await renderContent();
 
-    expect(screen.getByLabelText("名字")).toHaveValue("");
+    for (const [field, label] of Object.entries(PROFILE_FIELD_LABELS)) {
+      if (field === "prefecture") {
+        // 候補から選ぶ項目には既定の選択を置かない。選んでいないことと、先頭の候補を
+        // 選んだことは別である。
+        expect(screen.getByLabelText(label)).not.toHaveValue();
+        continue;
+      }
+
+      expect(screen.getByLabelText(label)).toHaveValue("");
+    }
   });
 
   it("この画面を組み立てるたびに、登録 1 回ぶんの鍵を 1 つ作る", async () => {

@@ -41,7 +41,6 @@ beforeEach(() => {
 });
 
 describe("RegistrationAddressSection", () => {
-  // ----- 正常系 -----
   it("届け先の項目を、項目名で引ける形で並べる", () => {
     render(<Probe />);
 
@@ -69,7 +68,6 @@ describe("RegistrationAddressSection", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("郵便番号から住所を補完しました");
   });
 
-  // ----- 異常系 -----
   it("該当が無いときは手入力を促し、検索の操作は残す", async () => {
     fetchAddresses.mockResolvedValue(EMPTY_ADDRESS_LOOKUP);
     await searchWith("999-9999");

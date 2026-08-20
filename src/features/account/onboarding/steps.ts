@@ -1,6 +1,15 @@
 import type { ProfileField, ProfileInput } from "@/model/user/profile-schema";
 import { profileSchema } from "@/model/user/profile-schema";
 
+/**
+ * 段の識別子。並び順がそのまま進む順になる。
+ *
+ * @remarks
+ * 器（`WizardForm`）と待機表示の双方が段の数と並びを要ります。書き写すと、段を足したときに
+ * 片方だけが古い並びで残ります。
+ */
+export const STEP_IDS = ["basics", "address", "confirm"] as const;
+
 /** 基本情報の段で尋ねる項目。 */
 export const BASICS_FIELDS: readonly ProfileField[] = ["lastName", "firstName", "email", "phone"];
 

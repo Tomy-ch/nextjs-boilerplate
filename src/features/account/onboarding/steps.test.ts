@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { ADDRESS_FIELDS, BASICS_FIELDS, isStepComplete, REGISTRATION_FIELDS } from "./steps";
+import {
+  ADDRESS_FIELDS,
+  BASICS_FIELDS,
+  isStepComplete,
+  REGISTRATION_FIELDS,
+  STEP_IDS,
+} from "./steps";
 
 const FILLED = {
   lastName: "山田",
@@ -13,6 +19,13 @@ const FILLED = {
   street: "神宮前 1-2-3",
   building: "",
 };
+
+describe("STEP_IDS", () => {
+  // ----- 正常系 -----
+  it("尋ねる 2 段と確認の段を、進む順に並べる", () => {
+    expect(STEP_IDS).toEqual(["basics", "address", "confirm"]);
+  });
+});
 
 describe("BASICS_FIELDS", () => {
   // ----- 正常系 -----
