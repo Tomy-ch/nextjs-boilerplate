@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useWatch } from "react-hook-form";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import type { WizardSteps } from "@/components/patterns/wizard-form/wizard-form";
@@ -15,6 +16,7 @@ import type { ProfileFormState } from "../form-state";
 import { ProfileSubmitButton } from "../ui/submit-button/submit-button";
 import { useProfileFields } from "../use-profile-fields";
 import { RETURN_URL_FIELD } from "./parse-registration-form";
+import { ADDRESS_FIELDS, BASICS_FIELDS, isStepComplete } from "./steps";
 import { RegistrationAddressSection } from "./ui/address-section/address-section";
 import { RegistrationBasicsSection } from "./ui/basics-section/basics-section";
 import { RegistrationConfirmSection } from "./ui/confirm-section/confirm-section";
@@ -43,9 +45,10 @@ export type OnboardingViewProps = {
  * 検証といつ誤りを見せるかは `useProfileFields`、住所の補完は住所の段が持ちます。どちらも
  * プロフィール編集と同じもので、**登録と編集で規則が割れないのはこれを共有している**からです。
  *
- * **進む操作を塞ぎません。** 未入力のまま先へ進めますが、最後の段が足りない項目を名指しします。
- * 塞ぐ側に倒すと、何が足りないのか言わないまま押せない button が残ります
- * （[0062](../../../../docs/adr/0062-form-input-validation.md)）。
+ * **埋まっていない段からは進めません。** 同じ規則を Server Action も通りますが、往復して初めて
+ * 「入っていない」と言われるより、その場で判る方が直しやすいためです。誤りの文言のほうは触れた
+ * 項目からだけ出します。開いた直後に空欄をすべて赤くすると、まだ何もしていない人に落ち度を
+ * 告げることになります（[0062](../../../../docs/adr/0062-form-input-validation.md)）。
  *
  * パンくずを置きません。この画面に着いた利用者はまだどの画面にも入れず、戻れる祖先がありません
  * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
@@ -56,17 +59,20 @@ export function OnboardingView({ idempotencyKey, prefectures, returnUrl }: Onboa
     idleActionState(),
   );
   const fields = useProfileFields(null, state);
+  const values = useWatch({ control: fields.control });
 
   const steps: WizardSteps = [
     {
       id: "basics",
       title: "基本情報",
       content: <RegistrationBasicsSection fields={fields} />,
+      blocked: !isStepComplete(values, BASICS_FIELDS),
     },
     {
       id: "address",
       title: "住所",
       content: <RegistrationAddressSection fields={fields} prefectures={prefectures} />,
+      blocked: !isStepComplete(values, ADDRESS_FIELDS),
       nextLabel: "確認へ進む",
     },
     {

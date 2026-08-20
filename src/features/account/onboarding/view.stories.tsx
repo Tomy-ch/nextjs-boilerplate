@@ -104,7 +104,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** 既定。開いた直後は基本情報の段だけが見える。 */
+/** 既定。開いた直後は基本情報の段だけが見え、埋まるまで次へは押せない。 */
 export const Default: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
 };
@@ -114,17 +114,7 @@ export const AddressStep: Story = {
   play: showAddressStep,
 };
 
-/** 確認の段。入力が足りないまま進んだ場合で、進む操作を塞がない代わりにここで名指しする。 */
-export const ConfirmStepIncomplete: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    await goNext(canvas);
-    await goNext(canvas, "確認へ進む");
-  },
-};
-
-/** 確認の段。すべて埋めた状態で、送る内容を読み返せる。 */
+/** 確認の段。任意入力の建物名だけが空で、送る内容を読み返せる。 */
 export const ConfirmStepFilled: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
