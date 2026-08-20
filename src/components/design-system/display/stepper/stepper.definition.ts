@@ -9,6 +9,8 @@ const UPCOMING_STEPPER_STATE = "upcoming";
  * - `current`: 現在地。`ol` の中で 1 つだけにする
  * - `upcoming`: まだ到達していない
  *
+ * 色と印だけでは支援技術へ伝わらないため、`Stepper` は各段階へ読み上げ用の語も添える。
+ *
  * @see Storybook `Display/Stepper`
  */
 export const STEPPER_STATE: Readonly<{

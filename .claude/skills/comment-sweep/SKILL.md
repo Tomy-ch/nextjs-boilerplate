@@ -65,6 +65,30 @@ Three shapes answer to it, and none is reachable per comment:
 This is the same trap as the diff-scope one, one level down: the argument for keeping each copy wins
 every time it is asked in isolation, so nothing ever consolidates. Ask it of the set instead.
 
+### The exception: a general-purpose part's public doc
+
+**A reusable part that knows nothing about the subject matter is exempt from 集約, and only from
+集約.** Its public doc comment and its own `README.md` are allowed to say the same thing.
+
+The reason is who reads them. A consumer of a design-system part meets it at the call site, through
+the editor's hover, and cannot be assumed to have opened the README — nor should they have to, to
+learn what a prop means. A README, meanwhile, is where someone browsing the catalogue decides whether
+this part is the one they want. **Both are entry points, and neither may assume the other was read.**
+Shrinking one to a pointer serves the file's tidiness at the cost of the reader the doc exists for.
+
+So for a part under a general-purpose kernel (`src/components/**` and anything else whose
+`README.md` describes a part rather than a feature):
+
+- **Redundancy between the doc and that part's README is intended, not drift.** Do not raise it.
+- **A contradiction between them is still a finding**, and a `誤り/陳腐化` — when the two disagree,
+  one of them lies to somebody. Say which side matches the code.
+- **削除 / 書換 / 移設 are unaffected.** How-narration is still How-narration, and a decision that
+  belongs to an ADR still belongs there.
+
+This does not license a comment to repeat itself *inside one declaration's own doc*: a reader sees
+that at once, so the copies help nobody. The exemption is about two documents with two audiences,
+not about volume.
+
 ## What this skill reads
 
 Read **at runtime**. Hardcode no policy — the standard moves and this file must not become a stale
@@ -134,7 +158,7 @@ Five verdicts. The first three already exist; the last two are what this skill a
 | **削除** | 1 | How-narration, restatement, 経緯, tautology, a marker the code already satisfies | Remove |
 | **書換** | 1 | Right content, wrong wording — drifted, ambiguous, or longer than the fact it delivers | Rewrite in place |
 | **移設** | 1 | Correct and worth keeping, but its premise is **not** at this call site and its reversal would oblige someone to update a document | Move it to that document; leave the operative residue and a one-line reference |
-| **集約** | 2 | The same content is carried at several sites in one file (重複 / 分散 / 総量過多) | One site keeps it; the rest shrink to a pointer |
+| **集約** | 2 | The same content is carried at several sites in one file (重複 / 分散 / 総量過多). **Not raised for a general-purpose part's public doc vs. its own README** — see the exception above | One site keeps it; the rest shrink to a pointer |
 
 **The 移設 test**: could someone make this statement false without editing this declaration? If yes,
 nobody here can verify it and nothing will flag it when it turns false. Ask where it *would* be
@@ -328,6 +352,7 @@ separately, decided separately, and never delegating to one another.
 - ✅ In 報告のみ, render every non-`維持` finding in full and write nothing
 - ❌ Apply a 移設 that writes a destination document while in 自動適用
 - ❌ Apply a 集約 rated `medium` or `low` unattended, or split one into per-comment questions
+- ❌ Raise a 集約 over a general-purpose part's public doc duplicating its own README — that redundancy is intended; only a contradiction between the two is a finding
 - ❌ Report the same comment under both a 書換 and a 集約 — the 集約 absorbs the shortening
 - ❌ Apply a finding whose comment contradicts the code, in any unattended mode
 - ❌ Relocate a library's specific behavior out of the code
