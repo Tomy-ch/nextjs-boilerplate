@@ -30,6 +30,14 @@ components:
     as: container
     directory: src/components/patterns/action-bar
     addedAt: 2026-08-12T14:30:00.000Z
+  invalid-query-feedback:
+    kind: original
+    layer: app-starter
+    as: feedback
+    directory: src/components/app-starter/invalid-query-feedback
+    addedAt: 2026-08-20T03:20:00.000Z
+    dependencies:
+      - next
   api-error-feedback:
     kind: original
     layer: app-starter
@@ -971,6 +979,12 @@ components:
         localPath: src/components/design-system/form/slider-native/slider-native.tsx
         commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
         committedAt: 2026-03-02T08:49:00Z
+  surface:
+    kind: original
+    layer: design-system
+    as: foundation
+    directory: src/components/design-system/foundation/surface
+    addedAt: 2026-08-20T02:10:00.000Z
   switch-client:
     kind: copy-in
     layer: design-system
@@ -1085,6 +1099,14 @@ components:
         localPath: src/components/design-system/navigation/breadcrumb/breadcrumb.tsx
         commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
         committedAt: 2026-03-02T08:49:00Z
+  multi-select-client:
+    kind: original
+    layer: design-system
+    as: form
+    directory: src/components/design-system/form/multi-select-client
+    addedAt: 2026-08-20T00:40:00.000Z
+    dependencies:
+      - lucide-react
   menubar:
     kind: copy-in
     layer: design-system

@@ -49,7 +49,7 @@ function product(): Product {
 const QUERY: ProductQuery = { first: 20 };
 
 function location(overrides: Partial<AdminProductListLocation> = {}): AdminProductListLocation {
-  return { keyword: "", categoryCode: "", statusCode: "", cursor: null, trail: [], ...overrides };
+  return { keyword: "", categoryCodes: [], statusCodes: [], cursor: null, trail: [], ...overrides };
 }
 
 beforeEach(() => {
@@ -76,7 +76,7 @@ describe("AdminProductListResults", () => {
   it("取得条件を URL から組み立て直さない", async () => {
     render(
       await AdminProductListResults({
-        location: location({ keyword: "使われない", categoryCode: "9" }),
+        location: location({ keyword: "使われない", categoryCodes: ["9"] }),
         query: QUERY,
       }),
     );

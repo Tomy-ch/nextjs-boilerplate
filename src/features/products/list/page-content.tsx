@@ -6,10 +6,17 @@ import {
   PRODUCT_SORT,
   parseProductQuery,
 } from "@/adapters/server/api/products";
+import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-feedback/invalid-query-feedback";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { ProductCategory } from "@/model/product/product";
-import { COUNT_KEY, FILTER_KEY, toProductListSearchParams } from "../facade/list-url/list-url";
+import {
+  COUNT_KEY,
+  FILTER_KEY,
+  LIST_KEY_LABEL,
+  PRODUCT_LIST_PATH,
+  toProductListSearchParams,
+} from "../facade/list-url/list-url";
 import {
   type FilterOption,
   normalizeSearchParams,
@@ -17,7 +24,6 @@ import {
   type RawSearchParams,
 } from "./query";
 import { ProductListResults } from "./results";
-import { ProductInvalidQuery } from "./ui/invalid-query/invalid-query";
 import { ProductListSkeleton } from "./ui/skeleton/skeleton";
 import { ProductListView } from "./view";
 
@@ -64,9 +70,13 @@ export async function ProductListPageContent({ searchParams }: ProductListPageCo
 
   if (!parsed.ok) {
     return (
-      <ProductInvalidQuery
+      <InvalidQueryFeedback
         invalidKeys={parsed.invalidKeys}
+        keyLabels={LIST_KEY_LABEL}
         message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
+        resetHref={PRODUCT_LIST_PATH}
+        resetLabel="条件を外して一覧を見る"
+        title="この条件では商品を表示できません"
       />
     );
   }

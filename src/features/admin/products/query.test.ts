@@ -8,7 +8,7 @@ import {
   toPreviousPageHref,
 } from "./query";
 
-const NO_CONDITIONS = { keyword: "", categoryCode: "", statusCode: "" };
+const NO_CONDITIONS = { keyword: "", categoryCodes: [], statusCodes: [] };
 
 function location(overrides: Partial<AdminProductListLocation> = {}): AdminProductListLocation {
   return { ...NO_CONDITIONS, cursor: null, trail: [], ...overrides };
@@ -20,6 +20,12 @@ describe("toAdminProductListLocation", () => {
     expect(toAdminProductListLocation({})).toEqual(location());
   });
 
+  it("同じキーが重ねて載っていれば、語も起点も先頭の値を読む", () => {
+    expect(
+      toAdminProductListLocation({ keyword: ["イヤホン", "スピーカー"], after: ["c1", "c2"] }),
+    ).toEqual(location({ keyword: "イヤホン", cursor: "c1" }));
+  });
+
   it("絞り込みと起点を読む", () => {
     expect(
       toAdminProductListLocation({
@@ -28,7 +34,9 @@ describe("toAdminProductListLocation", () => {
         statusCodes: "2",
         after: "c1",
       }),
-    ).toEqual(location({ keyword: "イヤホン", categoryCode: "1", statusCode: "2", cursor: "c1" }));
+    ).toEqual(
+      location({ keyword: "イヤホン", categoryCodes: ["1"], statusCodes: ["2"], cursor: "c1" }),
+    );
   });
 
   it("通ってきた道を並びとして読む", () => {
@@ -47,8 +55,11 @@ describe("toAdminProductListLocation", () => {
   });
 
   // ----- 異常系 -----
-  it("1 つしか取らない条件に並びが届いたら先頭だけを読む", () => {
-    expect(toAdminProductListLocation({ categoryCodes: ["1", "2"] }).categoryCode).toBe("1");
+  it("同じ値が繰り返された条件は畳む", () => {
+    expect(toAdminProductListLocation({ categoryCodes: ["1", "2", "1"] }).categoryCodes).toEqual([
+      "1",
+      "2",
+    ]);
   });
 
   it("起点が無いのに道だけ残った URL では道を捨てる", () => {
@@ -67,13 +78,13 @@ describe("toConditionHref", () => {
   });
 
   it("効いている条件だけを載せる", () => {
-    expect(toConditionHref({ ...NO_CONDITIONS, keyword: "鞄", statusCode: "2" })).toBe(
+    expect(toConditionHref({ ...NO_CONDITIONS, keyword: "鞄", statusCodes: ["2"] })).toBe(
       "/admin/products?keyword=%E9%9E%84&statusCodes=2",
     );
   });
 
   it("読み進めた位置を引き継がない", () => {
-    expect(toConditionHref({ ...NO_CONDITIONS, categoryCode: "1" })).not.toContain("after=");
+    expect(toConditionHref({ ...NO_CONDITIONS, categoryCodes: ["1"] })).not.toContain("after=");
   });
 });
 
@@ -96,7 +107,7 @@ describe("toNextPageHref", () => {
   });
 
   it("効いている条件を引き継ぐ", () => {
-    expect(toNextPageHref(location({ categoryCode: "1" }), "c1")).toBe(
+    expect(toNextPageHref(location({ categoryCodes: ["1"] }), "c1")).toBe(
       "/admin/products?categoryCodes=1&after=c1",
     );
   });

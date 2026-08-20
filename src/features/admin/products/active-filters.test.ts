@@ -6,8 +6,8 @@ import type { AdminProductListConditions } from "./query";
 
 const NO_CONDITIONS: AdminProductListConditions = {
   keyword: "",
-  categoryCode: "",
-  statusCode: "",
+  categoryCodes: [],
+  statusCodes: [],
 };
 
 const CATEGORIES: readonly AdminProductFilterOption[] = [
@@ -37,31 +37,31 @@ describe("toAdminActiveFilters", () => {
   });
 
   it("コードではなく選択肢の表示名を値に出す", () => {
-    expect(filters({ categoryCode: "1" })[0]?.value).toBe("電子機器");
+    expect(filters({ categoryCodes: ["1"] })[0]?.value).toBe("電子機器");
   });
 
   it("検索語・分類・状態の順に並べる", () => {
     expect(
-      filters({ keyword: "鞄", categoryCode: "1", statusCode: "2" }).map((f) => f.label),
+      filters({ keyword: "鞄", categoryCodes: ["1"], statusCodes: ["2"] }).map((f) => f.label),
     ).toEqual(["キーワード", "分類", "状態"]);
   });
 
   it("解除先はその条件だけを外した URL になる", () => {
-    expect(filters({ keyword: "鞄", categoryCode: "1" })[0]?.removeHref).toBe(
+    expect(filters({ keyword: "鞄", categoryCodes: ["1"] })[0]?.removeHref).toBe(
       "/admin/products?categoryCodes=1",
     );
   });
 
   it("解除先は読み進めた位置を持たない", () => {
-    expect(filters({ statusCode: "2" })[0]?.removeHref).not.toContain("after=");
+    expect(filters({ statusCodes: ["2"] })[0]?.removeHref).not.toContain("after=");
   });
 
   // ----- 異常系 -----
   it("選択肢に無い分類のコードは条件として出さない", () => {
-    expect(filters({ categoryCode: "999" })).toEqual([]);
+    expect(filters({ categoryCodes: ["999"] })).toEqual([]);
   });
 
   it("選択肢に無い状態のコードは条件として出さない", () => {
-    expect(filters({ statusCode: "999" })).toEqual([]);
+    expect(filters({ statusCodes: ["999"] })).toEqual([]);
   });
 });

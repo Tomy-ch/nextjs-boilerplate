@@ -23,7 +23,15 @@ const actions = {
 
 describe("DevSessionView", () => {
   it("いまの状態を先に置き、発行の指定を後に置く", () => {
-    render(<DevSessionView {...actions} returnUrl="/" session={SESSION} />);
+    render(
+      <DevSessionView
+        {...actions}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+        session={SESSION}
+      />,
+    );
 
     const current = screen.getByText("いまの session");
     const issuing = screen.getByText("session を発行する");
@@ -32,20 +40,44 @@ describe("DevSessionView", () => {
   });
 
   it("受け取った送信先を両方の操作へ配る", () => {
-    render(<DevSessionView {...actions} returnUrl="/checkout" session={SESSION} />);
+    render(
+      <DevSessionView
+        {...actions}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/checkout"
+        session={SESSION}
+      />,
+    );
 
     expect(screen.getByRole("button", { name: "session を捨てる" })).toBeVisible();
     expect(screen.getByRole("button", { name: "この内容で入る" })).toBeVisible();
   });
   it("session を持っていなくても発行の指定は出す", () => {
-    render(<DevSessionView {...actions} returnUrl="/" session={null} />);
+    render(
+      <DevSessionView
+        {...actions}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+        session={null}
+      />,
+    );
 
     expect(screen.getByText("いま session は持っていません。")).toBeVisible();
     expect(screen.getByRole("button", { name: "この内容で入る" })).toBeVisible();
   });
 
   it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(<DevSessionView {...actions} returnUrl="/" session={SESSION} />);
+    const { container } = render(
+      <DevSessionView
+        {...actions}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+        session={SESSION}
+      />,
+    );
 
     expect((await axe(container)).violations).toEqual([]);
   });

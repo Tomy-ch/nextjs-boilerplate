@@ -3,7 +3,7 @@
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
-import { AdminProductListError } from "@/features/admin/products/ui/error-state/error-state";
+import { AdminScreenError } from "@/features/admin/ui/error-state/error-state";
 
 /**
  * 管理画面の error 境界。
@@ -24,7 +24,7 @@ export default function AdminError({
 }) {
   return (
     <ContentContainer className="py-8">
-      <AdminProductListError
+      <AdminScreenError
         message={getDefaultErrorMeta(ErrorKind.INTERNAL).message}
         digest={error.digest}
         onRetry={reset}

@@ -9,12 +9,14 @@ import { SESSION_ROLE } from "@/model/session";
 const {
   discardTestSession,
   isDevelopmentAccessAllowed,
+  issueDevelopmentAccessToken,
   issueTestSession,
   redirect,
   revalidatePath,
 } = vi.hoisted(() => ({
   discardTestSession: vi.fn(),
   isDevelopmentAccessAllowed: vi.fn(),
+  issueDevelopmentAccessToken: vi.fn(),
   issueTestSession: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
@@ -25,6 +27,7 @@ const {
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/adapters/server/auth/development-access", () => ({ isDevelopmentAccessAllowed }));
+vi.mock("@/adapters/server/auth/development-token", () => ({ issueDevelopmentAccessToken }));
 vi.mock("@/adapters/server/auth/test-session", () => ({ discardTestSession, issueTestSession }));
 
 import { discardDevSessionAction, issueDevSessionAction } from "./actions";
@@ -40,6 +43,7 @@ function submission(overrides: Record<string, string> = {}): FormData {
     role: SESSION_ROLE.user,
     expiresInSeconds: "3600",
     accessToken: "",
+    issuerUrl: "https://idp.example.test",
     ...overrides,
   })) {
     formData.set(name, value);
@@ -62,6 +66,7 @@ async function issueAndCatch(formData: FormData): Promise<string | undefined> {
 beforeEach(() => {
   vi.clearAllMocks();
   isDevelopmentAccessAllowed.mockResolvedValue(true);
+  issueDevelopmentAccessToken.mockResolvedValue("issued-token");
 });
 
 describe("issueDevSessionAction", () => {
@@ -86,7 +91,61 @@ describe("issueDevSessionAction", () => {
     expect(await issueAndCatch(submission())).toBe("/");
   });
 
+  it("取りに行く指定なら、その主体のトークンを取って載せる", async () => {
+    await issueAndCatch(submission({ issueAccessToken: "on", subject: "user-john-doe" }));
+
+    expect(issueDevelopmentAccessToken).toHaveBeenCalledWith({
+      subject: "user-john-doe",
+      issuer: "https://idp.example.test",
+    });
+    expect(issueTestSession).toHaveBeenCalledWith(
+      expect.objectContaining({ accessToken: "issued-token" }),
+    );
+  });
+
+  it("取りに行かない指定なら、口を叩かない", async () => {
+    await issueAndCatch(submission());
+
+    expect(issueDevelopmentAccessToken).not.toHaveBeenCalled();
+  });
+
+  it("経路の指定と接続先を、発行の指定として持ち回らない", async () => {
+    await issueAndCatch(submission({ issueAccessToken: "on" }));
+
+    expect(issueTestSession).toHaveBeenCalledWith(
+      expect.not.objectContaining({ issueAccessToken: expect.anything() }),
+    );
+    expect(issueTestSession).toHaveBeenCalledWith(
+      expect.not.objectContaining({ issuer: expect.anything() }),
+    );
+  });
+
+  it("接続先が URL でなければ、取りに行かない", async () => {
+    const state = await issueDevSessionAction(
+      idleActionState(),
+      submission({ issueAccessToken: "on", issuerUrl: "2013" }),
+    );
+
+    expect(state).toMatchObject({
+      fieldErrors: { issuerUrl: expect.any(Array) },
+      status: "error",
+    });
+    expect(issueDevelopmentAccessToken).not.toHaveBeenCalled();
+  });
+
   // ----- 異常系 -----
+  it("トークンを取れなければ、session を発行しない", async () => {
+    issueDevelopmentAccessToken.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    const state = await issueDevSessionAction(
+      idleActionState(),
+      submission({ issueAccessToken: "on" }),
+    );
+
+    expect(state).toMatchObject({ status: "error" });
+    expect(issueTestSession).not.toHaveBeenCalled();
+  });
+
   it("外部のサイトを戻り先に指定されても、自分の中へ倒す", async () => {
     expect(await issueAndCatch(submission({ returnUrl: "https://evil.example.com" }))).toBe("/");
   });

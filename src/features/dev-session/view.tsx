@@ -20,6 +20,10 @@ export type DevSessionViewProps = {
   issueAction: IssueDevSessionAction;
   /** 破棄の送信先。 */
   discardAction: DiscardDevSessionAction;
+  /** 実物の API へ繋いでいるか。トークンを取りに行くかの既定になる。 */
+  connectsLiveApi: boolean;
+  /** 設定が指している IdP。接続先の初期値になる。 */
+  defaultIssuer: string;
 };
 
 /**
@@ -36,6 +40,8 @@ export function DevSessionView({
   returnUrl,
   issueAction,
   discardAction,
+  connectsLiveApi,
+  defaultIssuer,
 }: DevSessionViewProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -53,7 +59,12 @@ export function DevSessionView({
           <CardTitle>session を発行する</CardTitle>
         </CardHeader>
         <CardContent>
-          <DevSessionForm action={issueAction} returnUrl={returnUrl} />
+          <DevSessionForm
+            action={issueAction}
+            connectsLiveApi={connectsLiveApi}
+            defaultIssuer={defaultIssuer}
+            returnUrl={returnUrl}
+          />
         </CardContent>
       </Card>
     </div>

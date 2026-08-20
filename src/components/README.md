@@ -283,6 +283,7 @@ UI を横断して支える CSS 基盤。React component を公開しない。
 | [`print`](./design-system/foundation/print/README.md) | 紙と PDF 保存へ出したときの体裁を定める CSS 基盤 |
 | [`scroll-fade`](./design-system/foundation/scroll-fade/README.md) | scrollbar を消した横スクロール領域の端をぼかし、続きがあることを示す CSS 基盤 |
 | [`scrollbar`](./design-system/foundation/scrollbar/README.md) | スクロールする面すべてに共通する scrollbar の見た目を一箇所で定める CSS 基盤 |
+| [`surface`](./design-system/foundation/surface/README.md) | design token の系統を部分木と Portal の出口へ効かせる |
 | [`shimmer`](./design-system/foundation/shimmer/README.md) | 進捗が測れない処理が動き続けていることを、面の上を流れる帯で示す CSS 基盤 |
 | [`typeset`](./design-system/foundation/typeset/README.md) | sanitizer 済みの Markdown / HTML を一定の組版 rhythm で表示する CSS 基盤 |
 
@@ -314,6 +315,7 @@ UI を横断して支える CSS 基盤。React component を公開しない。
 | [`input`](./design-system/form/input/README.md) | 単一行の native `input` を表示・送信する |
 | [`input-group`](./design-system/form/input-group/README.md) | 単位記号・アイコン・補助操作を入力欄と一続きの枠に収める |
 | [`label`](./design-system/form/label/README.md) | form control の項目名を利用者へ伝える |
+| [`multi-select-client`](./design-system/form/multi-select-client/README.md) | 候補を畳んだまま、checkbox で複数の値を同時に選ぶ |
 | [`radio-group-client`](./design-system/form/radio-group-client/README.md) | native radio では満たせない custom interaction の client island |
 | [`requirement-badge`](./design-system/form/requirement-badge/README.md) | 入力項目が必須か任意かを label の隣で示す |
 | [`radio-group-native`](./design-system/form/radio-group-native/README.md) | 静的な候補から一つを選び、native form として送信する |
@@ -463,6 +465,7 @@ trigger から本文の上へ面を開く部品。
 
 | component | 概要 |
 | --- | --- |
+| [`invalid-query-feedback`](./app-starter/invalid-query-feedback/README.md) | URL の条件が契約を外れているときに、本体の代わりに理由と解除の導線を出す |
 | [`api-error-feedback`](./app-starter/api-error-feedback/README.md) | client-side の API 失敗を、文脈内の Alert または操作を止める Dialog として表示する |
 | [`attachment`](./app-starter/attachment/README.md) | 選択済みのファイル 1 件を、種類・名前・進行状況・取り消し操作として表示する |
 | [`auth-state-feedback`](./app-starter/auth-state-feedback/README.md) | サインインが必要・権限が足りない・見つからない状態と、そこから抜け出す導線を表示する |

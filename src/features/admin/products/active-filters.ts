@@ -18,18 +18,38 @@ const CATEGORY_LABEL = "分類";
 const STATUS_LABEL = "状態";
 
 /**
- * コードを選択肢の表示名へ直す。
+ * 選ばれたコードを、解除先付きの条件へ写す。
  *
  * @remarks
  * URL に載っているのはマスタ行を指す番号で、そのまま出しても何を選んだのかは読めません。
- * 選択肢に無い番号は `undefined` を返し、条件として出しません。
+ * 選択肢に無い番号は条件として出しません。
+ *
+ * **外すのはその 1 つだけ**です。同じ種類の条件を複数選べる以上、1 つ押したときに同じ種類が
+ * すべて消えると、どれを外したのか押した本人にも判りません。
  */
-function toLabel(code: string, options: readonly AdminProductFilterOption[]): string | undefined {
-  if (code === "") {
-    return undefined;
-  }
+function toFilters(
+  codes: readonly string[],
+  options: readonly AdminProductFilterOption[],
+  label: string,
+  key: string,
+  toConditions: (remaining: readonly string[]) => AdminProductListConditions,
+): readonly AdminActiveFilter[] {
+  return codes.flatMap((code) => {
+    const option = options.find((candidate) => candidate.value === code);
 
-  return options.find((option) => option.value === code)?.label;
+    if (option === undefined) {
+      return [];
+    }
+
+    return [
+      {
+        key: `${key}:${code}`,
+        label,
+        value: option.label,
+        removeHref: toConditionHref(toConditions(codes.filter((kept) => kept !== code))),
+      },
+    ];
+  });
 }
 
 /**
@@ -61,27 +81,19 @@ export function toAdminActiveFilters(
     });
   }
 
-  const category = toLabel(conditions.categoryCode, categoryOptions);
-
-  if (category !== undefined) {
-    filters.push({
-      key: "category",
-      label: CATEGORY_LABEL,
-      value: category,
-      removeHref: toConditionHref({ ...conditions, categoryCode: "" }),
-    });
-  }
-
-  const status = toLabel(conditions.statusCode, statusOptions);
-
-  if (status !== undefined) {
-    filters.push({
-      key: "status",
-      label: STATUS_LABEL,
-      value: status,
-      removeHref: toConditionHref({ ...conditions, statusCode: "" }),
-    });
-  }
+  filters.push(
+    ...toFilters(
+      conditions.categoryCodes,
+      categoryOptions,
+      CATEGORY_LABEL,
+      "category",
+      (categoryCodes) => ({ ...conditions, categoryCodes }),
+    ),
+    ...toFilters(conditions.statusCodes, statusOptions, STATUS_LABEL, "status", (statusCodes) => ({
+      ...conditions,
+      statusCodes,
+    })),
+  );
 
   return filters;
 }

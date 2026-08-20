@@ -39,8 +39,6 @@ export function AdminProductKeywordField({ conditions }: AdminProductKeywordFiel
   const [seen, setSeen] = useState(conditions.keyword);
   const [sent, setSent] = useState<string | null>(null);
 
-  // URL の検索語が変わったときだけ動く。自分が送ったものが届いただけなら下書きは触らず、
-  // 外から変わったとき（chip の解除など）だけ揃える。
   if (seen !== conditions.keyword) {
     setSeen(conditions.keyword);
 
