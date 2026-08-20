@@ -44,10 +44,11 @@ export type SummaryCard = {
  * 合計や割合を作りません。足し合わせてよい組み合わせがこの中に無いためで、画面が作れる数は
  * バックエンドが返していない数です（[0070](../../../docs/adr/0070-backend-role-separation.md)）。
  *
- * **行き先は、数と母集団が一致するものにだけ添えます。** 押した先の件数が数と違うと、どちらかが
- * 誤っているように読めます。
+ * 行き先を添える条件は {@link SummaryCard.href} の契約に従います。
  */
 export function toSummaryCards(summary: DashboardSummary): readonly SummaryCard[] {
+  // 枚数を変えたら待機表示の枠数（`ui/skeleton/skeleton.tsx` の `CARD_COUNT`）も合わせる。
+  // 揃っていないと、描画された瞬間に高さが変わって下に置いたものの位置が動く。
   return [
     {
       id: "sales-amount",

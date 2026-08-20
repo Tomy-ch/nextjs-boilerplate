@@ -20,9 +20,9 @@ import { AdminProductKeywordField } from "./ui/keyword-field/keyword-field";
 export type AdminProductListViewProps = {
   /** いま効いている絞り込み。 */
   conditions: AdminProductListConditions;
-  /** 選べる分類。先頭に「すべて」を含む。 */
+  /** 選べる分類。「すべて」は含まない。 */
   categoryOptions: readonly AdminProductFilterOption[];
-  /** 選べる状態。先頭に「すべて」を含む。 */
+  /** 選べる状態。「すべて」は含まない。 */
   statusOptions: readonly AdminProductFilterOption[];
   /** 一覧本体。取得の仕方で差し替えられるよう外から受け取る。 */
   children: ReactNode;

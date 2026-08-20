@@ -17,7 +17,7 @@ function formatterOf(locale: string): Intl.NumberFormat {
  * 件数を locale に沿った表記にする。
  *
  * @remarks
- * この画面だけが使う整形なので feature 内に置いています。2 つ目の feature が同じ整形を要する
+ * この feature だけが使う整形なので feature 内に置いています。2 つ目の feature が同じ整形を要する
  * 段で `model` へ上げます（[0120](../../../docs/adr/0120-locale-aware-formatting.md)）。
  *
  * @param count - 件数

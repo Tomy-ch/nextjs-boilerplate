@@ -4,13 +4,8 @@ import { DASHBOARD_PERIOD, type DashboardSummaryQuery } from "@/model/dashboard/
  * 集計の暦日を決めているタイムゾーン。
  *
  * @remarks
- * **契約が宣言している値を写しています。** 期間の境界を決めているのはバックエンドで、`today` /
- * `month` がどの暦日を指すかは応答に入っていません。どの日を見ているのかを画面に出すには、
- * 同じ規則をこちら側でも辿るしかありません。
- *
- * 写しである以上、バックエンドの設定が変われば黙ってずれます。集計そのものはバックエンドの
- * 値をそのまま出しており、ここでずれるのは**添える文言だけ**ですが、恒久の解は契約が解決済みの
- * 期間を返すことです。
+ * **応答に入っていない値の写しです。** 決めているのはバックエンドなので、この宣言を編集せずとも
+ * ずれます（`docs/spec/route/admin/analytics/page.function.md`「対象の暦日は写しである」）。
  */
 const AGGREGATION_TIME_ZONE = "Asia/Tokyo";
 
