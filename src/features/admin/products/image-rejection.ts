@@ -1,6 +1,8 @@
 import type { FileUploadRejection } from "@/components/app-starter/file-upload/file-upload.definition";
 import { FILE_UPLOAD_REJECTION_REASON } from "@/components/app-starter/file-upload/file-upload.definition";
 
+import { PRODUCT_IMAGE_ACCEPT_LABEL } from "./field-limits";
+
 /**
  * バイト数を、利用者が読める単位へ丸める。
  *
@@ -32,5 +34,5 @@ export function toRejectionMessage(
 
   return first.reason === FILE_UPLOAD_REJECTION_REASON.SIZE
     ? `${first.file.name} は ${formatMegabytes(maxUploadBytes)} を超えています。`
-    : `${first.file.name} は PNG / JPEG / WebP のいずれでもありません。`;
+    : `${first.file.name} は ${PRODUCT_IMAGE_ACCEPT_LABEL} のいずれでもありません。`;
 }

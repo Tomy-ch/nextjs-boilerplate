@@ -6,7 +6,7 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
-import { getHttpConfig } from "@/config/http/http.server";
+import { MAX_UPLOAD_BYTES } from "@/config/http/http.client";
 import { AdminProductCreatePageContent } from "@/features/admin/products/new/page-content";
 
 import { createProductAction, uploadProductImageAction } from "../actions";
@@ -36,7 +36,7 @@ export default function AdminProductNewPage() {
       </PageHeader>
       <AdminProductCreatePageContent
         createAction={createProductAction}
-        maxUploadBytes={getHttpConfig().maxUploadBytes}
+        maxUploadBytes={MAX_UPLOAD_BYTES}
         uploadAction={uploadProductImageAction}
       />
     </ContentContainer>

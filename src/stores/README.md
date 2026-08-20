@@ -20,7 +20,6 @@ test-requirement: unit
 
 | モジュール | 役割 |
 | --- | --- |
-| `unsaved-changes-store.ts` | 入力を持つ画面が申告する「まだ送っていない書きかけがあるか」 |
 
 <!-- sample:begin -->
 同梱のサンプルが加えるもの:

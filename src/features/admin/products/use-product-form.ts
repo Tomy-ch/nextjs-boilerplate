@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-
+import { useUnsavedChanges } from "../ui/unsaved-changes-guard/unsaved-changes-guard";
 import type { ProductFormState, UploadProductImageAction } from "./form-state";
 import type { ImageRejection } from "./use-image-rejection";
 import { useImageRejection } from "./use-image-rejection";
@@ -9,7 +9,6 @@ import type { ProductImages, ProductSavedImage } from "./use-product-images";
 import { useProductImages } from "./use-product-images";
 import type { ProductFormValues, ProductValues } from "./use-product-values";
 import { useProductValues } from "./use-product-values";
-import { useUnsavedChanges } from "./use-unsaved-changes";
 
 /** 商品のフォームが持つ状態のひとまとまり。 */
 export type ProductForm = {

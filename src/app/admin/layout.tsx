@@ -11,8 +11,8 @@ import {
   ADMIN_DASHBOARD_PATH,
   ADMIN_PRODUCT_LIST_PATH,
 } from "@/features/admin/paths";
+import { UnsavedChangesGuard } from "@/features/admin/ui/unsaved-changes-guard/unsaved-changes-guard";
 import { isAdmin } from "@/model/authz";
-import { UnsavedChangesGuard } from "./unsaved-changes-guard";
 
 const SITE_NAME = "nextjs-boilerplate";
 const CONSOLE_NAME = "管理";

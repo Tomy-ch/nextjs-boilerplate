@@ -30,6 +30,7 @@ import {
   PostProductsResponse,
 } from "../../gen/api/endpoints.zod";
 import type { ProductPatchRequest, ProductsPostRequest } from "../../gen/api/model";
+import { getAccessToken } from "../auth/session";
 import { createHttpClient, type HttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
 
@@ -200,9 +201,19 @@ function toFilterParams(
 
 let client: HttpClient | undefined;
 
+/**
+ * 商品の口を叩く client。
+ *
+ * @remarks
+ * **資格情報は取れたときだけ載せます。**商品を読む口は未ログインでも通り、書き込む口は主体を
+ * 要求します。載せないと、書き込みが主体不明の要求としてバックエンドへ届き、バックエンドは
+ * 自分で認可を判断できません。前面の役割判定だけが最後の砦になるのは、層を 1 枚に減らすことです。
+ */
 function getClient(): HttpClient {
   client ??= createHttpClient({
+    allowAnonymous: true,
     baseUrl: getApiConfig().baseUrl,
+    getBearerToken: getAccessToken,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
   });
 

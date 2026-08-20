@@ -45,7 +45,10 @@ export async function AdminProductEditPageContent({
   });
 
   return (
+    // 版が変われば作り直す。読み込み直す導線は同じ URL を指すため、作り直さないと入力欄には
+    // 古い編集内容が残ったまま版だけが最新になり、他者の更新を見ないまま上書きできてしまう。
     <AdminProductEditView
+      key={product.version}
       categoryOptions={toMasterOptions(categories)}
       maxUploadBytes={maxUploadBytes}
       product={product}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { ATTACHMENT_STATE } from "@/components/app-starter/attachment/attachment.definition";
 import type { UploadPreviewItem } from "@/components/app-starter/upload-preview/upload-preview.definition";
@@ -68,6 +68,8 @@ export type ProductImages = {
   readonly imagePaths: readonly string[];
   /** まだ送り終わっていない枚があるか。 */
   readonly uploading: boolean;
+  /** 送れなかった枚があるか。 */
+  readonly failed: boolean;
   /** 読み込んだ時点から並びか顔ぶれが変わっているか。 */
   readonly dirty: boolean;
   readonly add: (files: readonly File[]) => void;
@@ -125,6 +127,10 @@ export function useProductImages(
     })),
   );
 
+  // 再試行は「いま画面に出ている一覧」から対象を引く。updater の中で引くと副作用が同居する。
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
+
   const send = useCallback(
     async (entry: ProductImageEntry) => {
       if (entry.file === undefined) return;
@@ -132,16 +138,23 @@ export function useProductImages(
       const formData = new FormData();
       formData.append(PRODUCT_FORM_NAMES.images, entry.file);
 
-      const result = await upload(idleActionState(), formData);
+      // 送信そのものが失敗する経路（切断・上限超過・5xx）は action の外で起きるため、戻り値では
+      // 受け取れない。捕まえないと、その枚は送信中でも失敗でもない状態に居残り、送信が永久に
+      // 塞がる。
+      let failure: string | undefined;
+      let imagePath: string | undefined;
+
+      try {
+        const result = await upload(idleActionState(), formData);
+
+        if (result.status === "success") imagePath = result.value;
+        else failure = failureOf(result);
+      } catch {
+        failure = UPLOAD_FAILED_MESSAGE;
+      }
 
       setEntries((current) =>
-        current.map((item) =>
-          item.id === entry.id
-            ? result.status === "success"
-              ? { ...item, imagePath: result.value, failure: undefined }
-              : { ...item, failure: failureOf(result) }
-            : item,
-        ),
+        current.map((item) => (item.id === entry.id ? { ...item, failure, imagePath } : item)),
       );
     },
     [upload],
@@ -166,13 +179,16 @@ export function useProductImages(
 
   const retry = useCallback(
     (id: string) => {
-      setEntries((current) => {
-        const entry = current.find((item) => item.id === id);
+      // 対象は updater の外で引く。updater は純粋であることが前提で React は再実行してよく、
+      // 中で送ると 1 回の操作が二重の送信になる。同じ本文を二度送れば保存も二重になる。
+      const entry = entriesRef.current.find((item) => item.id === id);
 
-        if (entry !== undefined) void send(entry);
+      if (entry === undefined) return;
 
-        return current.map((item) => (item.id === id ? { ...item, failure: undefined } : item));
-      });
+      setEntries((current) =>
+        current.map((item) => (item.id === id ? { ...item, failure: undefined } : item)),
+      );
+      void send(entry);
     },
     [send],
   );
@@ -204,6 +220,7 @@ export function useProductImages(
     uploading: entries.some(
       (entry) => entry.imagePath === undefined && entry.failure === undefined,
     ),
+    failed: entries.some((entry) => entry.failure !== undefined),
     dirty:
       entries.length !== saved.length ||
       entries.some((entry, index) => entry.imagePath !== saved[index]?.imagePath),

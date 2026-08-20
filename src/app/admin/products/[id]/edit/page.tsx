@@ -7,7 +7,7 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
-import { getHttpConfig } from "@/config/http/http.server";
+import { MAX_UPLOAD_BYTES } from "@/config/http/http.client";
 import { AdminProductEditPageContent } from "@/features/admin/products/edit/page-content";
 import { AdminProductListSkeleton } from "@/features/admin/products/list/ui/skeleton/skeleton";
 import { toProductId } from "@/model/product/product";
@@ -46,7 +46,7 @@ export default async function AdminProductEditPage({
       <Suspense fallback={<AdminProductListSkeleton />}>
         <AdminProductEditPageContent
           id={toProductId(id)}
-          maxUploadBytes={getHttpConfig().maxUploadBytes}
+          maxUploadBytes={MAX_UPLOAD_BYTES}
           updateAction={updateProductAction}
           uploadAction={uploadProductImageAction}
         />

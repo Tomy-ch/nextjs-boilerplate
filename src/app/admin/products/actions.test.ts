@@ -6,30 +6,22 @@ import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "@/features/admin/products/form
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE } from "@/model/session";
 
-const {
-  createProduct,
-  getHttpConfig,
-  redirect,
-  updateProduct,
-  updateTag,
-  uploadProductImage,
-  verifySession,
-} = vi.hoisted(() => ({
-  createProduct: vi.fn(),
-  getHttpConfig: vi.fn(),
-  redirect: vi.fn((path: string) => {
-    throw new Error(`NEXT_REDIRECT:${path}`);
-  }),
-  updateProduct: vi.fn(),
-  updateTag: vi.fn(),
-  uploadProductImage: vi.fn(),
-  verifySession: vi.fn(),
-}));
+const { createProduct, redirect, updateProduct, updateTag, uploadProductImage, verifySession } =
+  vi.hoisted(() => ({
+    createProduct: vi.fn(),
+    redirect: vi.fn((path: string) => {
+      throw new Error(`NEXT_REDIRECT:${path}`);
+    }),
+    updateProduct: vi.fn(),
+    updateTag: vi.fn(),
+    uploadProductImage: vi.fn(),
+    verifySession: vi.fn(),
+  }));
 
 vi.mock("next/cache", () => ({ updateTag }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
-vi.mock("@/config/http/http.server", () => ({ getHttpConfig }));
+vi.mock("@/config/http/http.client", () => ({ MAX_UPLOAD_BYTES: 4 * 1024 * 1024 }));
 vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/products")>()),
   createProduct,
@@ -77,7 +69,6 @@ function imageForm(file: File): FormData {
 beforeEach(() => {
   vi.clearAllMocks();
   asAdmin();
-  getHttpConfig.mockReturnValue({ maxUploadBytes: MAX, maxUrlBytes: 8000 });
 });
 
 describe("uploadProductImageAction", () => {

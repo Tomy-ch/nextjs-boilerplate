@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
 
@@ -53,10 +53,22 @@ export function ProductPublishSection({
     [setValue],
   );
   const leavePublishedAt = useCallback(() => touch("publishedAt"), [touch]);
+
+  // 入力された壁時計をどの時差で読むかは、入力した本人の環境にしか無い。載せないと、受け口は
+  // 配備先の時差で読み、その差ぶんずれた瞬間が保存される。
+  // 初回描画では持たない —— server と client で違う値になり、hydration が食い違う。
+  const [timezoneOffset, setTimezoneOffset] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    setTimezoneOffset(new Date().getTimezoneOffset());
+  }, []);
   const unpublish = useCallback(() => setValue("publishedAt", ""), [setValue]);
 
   return (
     <div className="grid gap-6">
+      {timezoneOffset === undefined ? null : (
+        <input name={PRODUCT_FORM_NAMES.timezoneOffset} type="hidden" value={timezoneOffset} />
+      )}
       <ProductSelectField
         controlId={`${idPrefix}-status`}
         label="状態"

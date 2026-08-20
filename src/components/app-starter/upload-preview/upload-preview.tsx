@@ -62,6 +62,8 @@ function UploadPreviewRow({
 
   const inFlight =
     item.state === ATTACHMENT_STATE.UPLOADING || item.state === ATTACHMENT_STATE.PROCESSING;
+  // 再試行は失敗した件にだけ出す。成功した件へ出すと、押しても何も起きない操作が並ぶ。
+  const failed = item.state === ATTACHMENT_STATE.ERROR;
   const previewUrl = typeof preview === "string" ? preview : objectUrl;
   const media =
     previewUrl === undefined ? null : (
@@ -110,7 +112,7 @@ function UploadPreviewRow({
               <ArrowDownIcon aria-hidden="true" />
             </AttachmentAction>
           )}
-          {inFlight || onRetry === undefined ? null : (
+          {failed && onRetry !== undefined ? (
             <AttachmentAction
               aria-label={`${item.name} を再試行する`}
               disabled={pending}
@@ -119,7 +121,7 @@ function UploadPreviewRow({
             >
               <RotateCcwIcon aria-hidden="true" />
             </AttachmentAction>
-          )}
+          ) : null}
           {onReplace === undefined ? null : (
             <AttachmentAction
               aria-label={`${item.name} を差し替える`}

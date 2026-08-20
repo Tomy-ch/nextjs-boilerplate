@@ -22,6 +22,16 @@ const ITEMS = [
   { description: "0.4 MB", id: "2", name: "handbook.pdf" },
 ];
 
+/** 送れなかった件。再試行はこの状態にだけ現れる。 */
+const FAILED_ITEMS = [
+  {
+    description: "送信できませんでした。",
+    id: "1",
+    name: "cover.png",
+    state: ATTACHMENT_STATE.ERROR,
+  },
+];
+
 describe("UploadPreview", () => {
   it("選択中のファイルを名前つきの一覧として並べる", () => {
     render(<UploadPreview items={ITEMS} />);
@@ -58,16 +68,30 @@ describe("UploadPreview", () => {
     expect(onRemove).toHaveBeenCalledWith("2");
   });
 
-  it("差し替えと再試行を、対象の id とともに呼び出し元へ返す", () => {
+  it("差し替えを、対象の id とともに呼び出し元へ返す", () => {
     const onReplace = vi.fn();
-    const onRetry = vi.fn();
-    render(<UploadPreview items={ITEMS} onReplace={onReplace} onRetry={onRetry} />);
+    render(<UploadPreview items={ITEMS} onReplace={onReplace} />);
 
     fireEvent.click(screen.getByRole("button", { name: "cover.png を差し替える" }));
-    fireEvent.click(screen.getByRole("button", { name: "cover.png を再試行する" }));
 
     expect(onReplace).toHaveBeenCalledWith("1");
+  });
+
+  it("再試行を、対象の id とともに呼び出し元へ返す", () => {
+    const onRetry = vi.fn();
+    render(<UploadPreview items={FAILED_ITEMS} onRetry={onRetry} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "cover.png を再試行する" }));
+
     expect(onRetry).toHaveBeenCalledWith("1");
+  });
+
+  it("送れている件には再試行を出さない", () => {
+    render(<UploadPreview items={ITEMS} onRetry={vi.fn()} />);
+
+    expect(
+      screen.queryByRole("button", { name: "cover.png を再試行する" }),
+    ).not.toBeInTheDocument();
   });
 
   it("並び替えを、対象の id とともに呼び出し元へ返す", () => {

@@ -8,7 +8,7 @@ import type { ProductFormField } from "./form-state";
  * 読む Server Action の両方が引きます。どちらかに書き写すと、綴りを直した側だけが届かなくなり、
  * 「送ったのに空で届く」形の失敗になります。
  *
- * 版は項目ではありませんが、同じ form で運ぶため並べます。
+ * 版と時差は項目ではありませんが、同じ form で運ぶため並べます。
  */
 export const PRODUCT_FORM_NAMES = {
   name: "name",
@@ -21,4 +21,5 @@ export const PRODUCT_FORM_NAMES = {
   publishedAt: "publishedAt",
   images: "images",
   version: "version",
-} as const satisfies Readonly<Record<ProductFormField | "version", string>>;
+  timezoneOffset: "timezoneOffset",
+} as const satisfies Readonly<Record<ProductFormField | "version" | "timezoneOffset", string>>;

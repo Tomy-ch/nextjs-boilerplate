@@ -1,14 +1,26 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
-import { useUnsavedChangesStore } from "@/stores/unsaved-changes-store";
 
+import { UnsavedChangesGuard } from "../../ui/unsaved-changes-guard/unsaved-changes-guard";
 import type { ProductFormState } from "../form-state";
 import { AdminProductCreateView } from "./view";
+
+// 申告の宛先は器で、器が何を見張っているかは `NavigationGuard` へ渡る `when` に現れる。
+const guard = vi.hoisted(() => ({ when: false }));
+
+vi.mock("@/components/app-starter/navigation-guard/navigation-guard", () => ({
+  NavigationGuard: ({ children, when }: { children: ReactNode; when: boolean }) => {
+    guard.when = when;
+
+    return children;
+  },
+}));
 
 beforeAll(() => {
   URL.createObjectURL = vi.fn(() => "blob:preview");
@@ -16,7 +28,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  useUnsavedChangesStore.setState({ hasUnsavedChanges: false });
+  guard.when = false;
 });
 
 const CATEGORY_OPTIONS = [{ value: "category-1", label: "電子機器" }];
@@ -27,13 +39,15 @@ const uploaded = () => Promise.resolve(succeededActionState("products/uploaded.p
 
 function renderView(createAction: () => Promise<ProductFormState> = idle) {
   return render(
-    <AdminProductCreateView
-      categoryOptions={CATEGORY_OPTIONS}
-      createAction={createAction}
-      maxUploadBytes={4 * 1024 * 1024}
-      statusOptions={STATUS_OPTIONS}
-      uploadAction={uploaded}
-    />,
+    <UnsavedChangesGuard>
+      <AdminProductCreateView
+        categoryOptions={CATEGORY_OPTIONS}
+        createAction={createAction}
+        maxUploadBytes={4 * 1024 * 1024}
+        statusOptions={STATUS_OPTIONS}
+        uploadAction={uploaded}
+      />
+    </UnsavedChangesGuard>,
   );
 }
 
@@ -97,7 +111,7 @@ describe("AdminProductCreateView", () => {
 
     fireEvent.change(screen.getByLabelText("商品名"), { target: { value: "書きかけ" } });
 
-    expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(true);
+    expect(guard.when).toBe(true);
   });
 
   // ----- 異常系 -----

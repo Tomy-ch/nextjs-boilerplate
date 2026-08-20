@@ -19,9 +19,13 @@ const environment: Environment = {
   NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
 };
 
-const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => environment) }));
+const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
+  getAccessToken: vi.fn(async (): Promise<string | null> => null),
+  getEnvironment: vi.fn(() => environment),
+}));
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
+vi.mock("../auth/session", () => ({ getAccessToken }));
 
 import { toProductId } from "@/model/product/product";
 
@@ -563,6 +567,15 @@ describe("createProduct", () => {
       publishedAt: "2026-08-07T00:00:00.000Z",
       quantity: 3,
     });
+  });
+
+  it("主体を名乗って送る。読む口と違い、書く口は誰が行ったかを要求する", async () => {
+    getAccessToken.mockResolvedValue("access-token");
+    const requests = serveWrite("post", PRODUCTS_URL, wireProduct);
+
+    await createProduct(DRAFT);
+
+    expect(requests[0]?.headers.get("authorization")).toBe("Bearer access-token");
   });
 
   it("未公開のまま作る商品は公開日時を null で送る", async () => {

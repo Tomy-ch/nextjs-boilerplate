@@ -2,14 +2,19 @@ import type { FieldErrors } from "@/model/action-state";
 import type { ProductDraft, ProductEdit, ProductImageDraft } from "@/model/product/product";
 
 import { PRODUCT_FORM_NAMES } from "./form-names";
-import type { ProductFormField } from "./form-state";
+import { PRODUCT_VERSION_LOST_MESSAGE, type ProductFormField } from "./form-state";
 import type { ProductValidatedField } from "./product-rules";
-import { PRODUCT_FIELD_RULES } from "./product-rules";
+import { PRODUCT_COMMON_VALIDATED_FIELDS, PRODUCT_FIELD_RULES } from "./product-rules";
 
 /** 読み取りの結果。読めた場合だけ値を持つ。 */
 export type ProductFormParseResult<T> =
   | { readonly ok: true; readonly value: T }
-  | { readonly ok: false; readonly fieldErrors: FieldErrors<ProductFormField> };
+  | {
+      readonly ok: false;
+      readonly fieldErrors: FieldErrors<ProductFormField>;
+      /** 項目に紐づかない失敗。フォーム全体の前提が崩れているときだけ付く。 */
+      readonly formError?: string;
+    };
 
 /** 空欄を undefined として読む。form は未入力を空文字として送るため。 */
 function readText(form: FormData, key: string): string | undefined {
@@ -34,6 +39,38 @@ function readImages(form: FormData): readonly ProductImageDraft[] {
     .getAll(PRODUCT_FORM_NAMES.images)
     .filter((value): value is string => typeof value === "string" && value !== "")
     .map((imagePath, index) => ({ imagePath, displaySort: index + 1 }));
+}
+
+/**
+ * 入力された日時を、瞬間へ確定させる。
+ *
+ * @remarks
+ * `datetime-local` が運ぶのは時差を持たない壁時計の値です。これをそのまま `new Date` に掛けると
+ * **実行環境の時差**で解釈され、配備先（多くは UTC）と入力した人の時差の差ぶんだけずれます。
+ * どちらの時差で読むべきかは入力した本人の側にしか無いため、同じ form で運んだ値を使います。
+ *
+ * 時差が運ばれてこなかったときは確定できないので、瞬間を作らずに捨てます。既定の時差へ倒すと、
+ * ずれた日時が正しい値として保存されます。
+ */
+function toInstant(wallClock: string, offsetMinutes: number | undefined): Date | undefined {
+  if (offsetMinutes === undefined) return undefined;
+
+  const wall = Date.parse(`${wallClock}Z`);
+
+  if (Number.isNaN(wall)) return undefined;
+
+  return new Date(wall + offsetMinutes * 60_000);
+}
+
+/** 入力した人の時差を分で読む。`getTimezoneOffset()` と同じ符号（UTC より東は負）。 */
+function readTimezoneOffset(form: FormData): number | undefined {
+  const raw = readText(form, PRODUCT_FORM_NAMES.timezoneOffset);
+
+  if (raw === undefined) return undefined;
+
+  const value = Number(raw);
+
+  return Number.isInteger(value) && Math.abs(value) <= 16 * 60 ? value : undefined;
 }
 
 /**
@@ -83,12 +120,26 @@ function check(
 function parseCommon(form: FormData): CommonFields {
   const fieldErrors: Record<string, readonly string[]> = {};
 
-  const name = check(form, "name", fieldErrors);
-  const price = check(form, "price", fieldErrors);
-  const categoryId = check(form, "categoryId", fieldErrors);
-  const statusId = check(form, "statusId", fieldErrors);
-  const threshold = check(form, "stockWarningThreshold", fieldErrors);
-  const publishedAt = check(form, "publishedAt", fieldErrors);
+  // 名簿を回して読む。1 件ずつ書き並べると、項目を足したときに書き漏らした項目だけが
+  // 判定を通らずに素通しする。
+  const values = Object.fromEntries(
+    PRODUCT_COMMON_VALIDATED_FIELDS.map((field) => [field, check(form, field, fieldErrors)]),
+  ) as Readonly<Record<Exclude<ProductValidatedField, "quantity">, string>>;
+
+  const { categoryId, name, price, statusId, publishedAt } = values;
+  const threshold = values.stockWarningThreshold;
+  // 形として読めないことは規則が既に言っている。重ねて言うと、同じ項目に 2 つの文言が並ぶ。
+  const instant =
+    publishedAt === "" || fieldErrors.publishedAt !== undefined
+      ? null
+      : toInstant(publishedAt, readTimezoneOffset(form));
+
+  if (instant === undefined) {
+    fieldErrors.publishedAt = [
+      ...(fieldErrors.publishedAt ?? []),
+      "公開日時を確定できませんでした。入力し直してください。",
+    ];
+  }
 
   return {
     draft: {
@@ -98,7 +149,7 @@ function parseCommon(form: FormData): CommonFields {
       stockWarningThreshold: threshold === "" ? null : Number(threshold),
       categoryId,
       statusId,
-      publishedAt: publishedAt === "" ? null : new Date(publishedAt),
+      publishedAt: instant ?? null,
       images: readImages(form),
     },
     fieldErrors,
@@ -137,17 +188,10 @@ export function parseProductEditForm(form: FormData): ProductFormParseResult<Pro
   const version = readVersion(form);
 
   // 版が無いまま先へ進ませない。既定値へ倒すと、読み込んでいない版で他者の更新を上書きする。
+  // これは項目の誤りではないので、項目へ相乗りさせない。相乗りさせると要約がその項目の名前を
+  // 前置きし、直しようのない入力欄を指す導線が出る。
   if (version === undefined) {
-    return {
-      ok: false,
-      fieldErrors: {
-        ...fieldErrors,
-        name: [
-          ...(fieldErrors.name ?? []),
-          "編集の前提が失われています。画面を開き直してください。",
-        ],
-      },
-    };
+    return { ok: false, fieldErrors, formError: PRODUCT_VERSION_LOST_MESSAGE };
   }
 
   if (Object.keys(fieldErrors).length > 0) {

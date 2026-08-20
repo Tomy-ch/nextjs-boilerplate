@@ -9,7 +9,7 @@ import { FieldDescription } from "@/components/design-system/form/field/field";
 import { RequirementBadge } from "@/components/design-system/form/requirement-badge/requirement-badge";
 import { Alert, AlertDescription } from "@/components/design-system/status/alert/alert";
 
-import { PRODUCT_IMAGE_ACCEPT } from "../../field-limits";
+import { PRODUCT_IMAGE_ACCEPT, PRODUCT_IMAGE_ACCEPT_LABEL } from "../../field-limits";
 import { PRODUCT_FORM_NAMES } from "../../form-names";
 import { formatMegabytes } from "../../image-rejection";
 import type { ProductImages } from "../../use-product-images";
@@ -64,7 +64,7 @@ export function ProductImagesSection({
         triggerLabel="画像を選ぶ"
       />
       <FieldDescription>
-        画像が無くても登録できます。PNG / JPEG / WebP を {formatMegabytes(maxUploadBytes)} まで。
+        {`画像が無くても登録できます。${PRODUCT_IMAGE_ACCEPT_LABEL} を ${formatMegabytes(maxUploadBytes)} まで。`}{" "}
         並び順がそのまま表示順です。
       </FieldDescription>
       {rejection === undefined ? null : (

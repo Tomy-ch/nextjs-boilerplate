@@ -19,6 +19,7 @@ function imagesOf(overrides: Partial<ProductImages> = {}): ProductImages {
     items: [],
     imagePaths: [],
     uploading: false,
+    failed: false,
     dirty: false,
     add: vi.fn(),
     remove: vi.fn(),

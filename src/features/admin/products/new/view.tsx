@@ -115,7 +115,9 @@ export function AdminProductCreateView({
           {
             id: "images",
             title: "画像",
-            blocked: images.uploading,
+            // 送れなかった枚を残したまま先へ進ませない。載らないのは送信に載らない枚だけで、
+            // 気づく手立てが画像の段にしか無い。
+            blocked: images.uploading || images.failed,
             content: (
               <ProductImagesSection
                 images={images}
@@ -153,7 +155,7 @@ export function AdminProductCreateView({
         ]}
         submit={
           <ProductSubmitButton
-            blocked={images.uploading}
+            blocked={images.uploading || images.failed}
             label="登録する"
             pendingLabel="登録しています…"
           />
