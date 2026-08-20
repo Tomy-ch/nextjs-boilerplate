@@ -66,10 +66,12 @@ describe("requireUnregisteredUser", () => {
     expect(redirect).toHaveBeenCalledWith("/checkout");
   });
 
-  it("未認証なら、登録へ戻れるようにしてログインへ送る", async () => {
+  it("未認証なら、登録画面ごと戻り先を持たせてログインへ送る", async () => {
     findRegistration.mockResolvedValue("unauthenticated");
 
-    await expect(requireUnregisteredUser("/mypage")).rejects.toThrow("NEXT_REDIRECT");
-    expect(redirect).toHaveBeenCalledWith("/login?returnUrl=%2Fonboarding");
+    await expect(requireUnregisteredUser("/checkout")).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith(
+      "/login?returnUrl=%2Fonboarding%3FreturnUrl%3D%252Fcheckout",
+    );
   });
 });

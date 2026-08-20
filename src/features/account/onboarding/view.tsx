@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useWatch } from "react-hook-form";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
@@ -53,7 +53,15 @@ export type OnboardingViewProps = {
  * パンくずを置きません。この画面に着いた利用者はまだどの画面にも入れず、戻れる祖先がありません
  * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
  */
-export function OnboardingView({ idempotencyKey, prefectures, returnUrl }: OnboardingViewProps) {
+export function OnboardingView({
+  idempotencyKey: initialIdempotencyKey,
+  prefectures,
+  returnUrl,
+}: OnboardingViewProps) {
+  // 鍵は最初に受け取ったものを使い続ける。引き下げての再取得（`router.refresh()`）は器を
+  // unmount せずに prop だけ差し替えるため、そのまま送信へ載せると、書きかけの入力は残った
+  // ままで鍵だけが変わる。応答が届かなかった送信をやり直したときに、別の登録として通ってしまう。
+  const [idempotencyKey] = useState(initialIdempotencyKey);
   const [state, formAction] = useActionState<ProfileFormState, FormData>(
     registerAction,
     idleActionState(),

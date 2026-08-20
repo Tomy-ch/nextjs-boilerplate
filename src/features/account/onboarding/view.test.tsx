@@ -127,6 +127,22 @@ describe("OnboardingView", () => {
     expect(formData.get(RETURN_URL_FIELD)).toBe("/mypage");
   });
 
+  it("画面を取り直しても、送信に載る鍵を変えない", () => {
+    const { container, rerender } = renderView();
+
+    rerender(
+      <OnboardingView
+        idempotencyKey="0195f0c2-0000-7000-8000-0000000000ff"
+        prefectures={PREFECTURES}
+        returnUrl={toSafeReturnUrl("/mypage")}
+      />,
+    );
+
+    expect(container.querySelector(`[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(
+      IDEMPOTENCY_KEY,
+    );
+  });
+
   // ----- 異常系 -----
   it("埋まっていない段からは進めない", () => {
     renderView();

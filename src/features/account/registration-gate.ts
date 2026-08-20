@@ -4,7 +4,7 @@ import { findRegistration } from "@/adapters/server/api/users";
 import { loginPath } from "@/features/auth/facade/paths";
 import { toSafeReturnUrl } from "@/model/return-url";
 
-import { ONBOARDING_PATH, onboardingPath } from "./paths";
+import { onboardingPath } from "./paths";
 
 /**
  * 利用者として登録済みの主体であることを、画面を描く前に確かめる。
@@ -50,7 +50,9 @@ export async function requireUnregisteredUser(returnTo: string): Promise<void> {
   const registration = await findRegistration();
 
   if (registration === "unauthenticated") {
-    redirect(loginPath(ONBOARDING_PATH));
+    // 戻り先は登録画面の内側へ入れて渡す。ここで捨てると、認証をやり直した利用者は登録を終えた
+    // 後に元居た場所へ戻れない —— 登録画面自身が戻り先を検索条件で受け取るためである。
+    redirect(loginPath(onboardingPath(returnTo)));
   }
 
   if (registration === "registered") {
