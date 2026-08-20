@@ -133,6 +133,9 @@ jobs:
       # retake can repair, and the second of which a retake would bake in as the truth.
       - name: Collect the comment body
         if: always() && steps.e2e.outputs.status != ''
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          RUN_ID: ${{ github.run_id }}
         shell: bash
         run: |
           if [ "${{ steps.e2e.outputs.status }}" = "success" ]; then
@@ -197,6 +200,26 @@ jobs:
 
           **落ちた画面それぞれについて、なぜ変わったかを言えるまで撮り直さないでください。** 全画面が一度に落ちる形は原因が 1 つとは限らず、混ざっている不具合ごと撮り直すとそれが次の正になります（`docs/design/vrt.md` の「限界」）。
           PIXELS
+
+              # The failing set in the form the local review target takes. Emitted as its own
+              # fenced block so it survives a copy — a command spread across a prose paragraph
+              # does not.
+              names="$(pnpm exec tsx scripts/e2e names tmp/e2e/report.json || true)"
+
+              if [ -n "${names}" ]; then
+                cat <<REVIEW
+
+          #### 手元で見る
+
+          落ちた画面を使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。役割の要る画面は開発用 session の面を経由します。
+
+          \`\`\`bash
+          make e2e-review BRANCH=${HEAD_REF} RUN=${RUN_ID} E2E_ONLY=${names}
+          \`\`\`
+
+          作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。
+          REVIEW
+              fi
             fi
 
             if [ "${undeclared}" = 'false' ] && [ "${journey}" = 'false' ] && [ "${pixels}" = 'false' ]; then

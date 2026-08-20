@@ -176,11 +176,35 @@ jobs:
       # much — the same set the `baseline-retake` label is allowed to retake.
       - name: Summarise which stories changed
         if: always() && steps.vrt.outputs.status == 'failure'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          RUN_ID: ${{ github.run_id }}
         shell: bash
         run: |
+          # The same set the table lists, in the form the local review target takes. Emitted
+          # as its own fenced block so it survives a copy — a command spread across a prose
+          # paragraph does not.
+          ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json || true)"
+
           {
             pnpm exec tsx scripts/vrt table tmp/vrt/report.json \
               || tail -n 60 /tmp/vrt-full.log
+
+            if [ -n "${ids}" ]; then
+              cat <<REVIEW
+
+          ### 手元で見る
+
+          落ちた story を使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。
+
+          \`\`\`bash
+          make vrt-review BRANCH=${HEAD_REF} RUN=${RUN_ID} VRT_ONLY=${ids}
+          \`\`\`
+
+          作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。
+          REVIEW
+            fi
+
             cat <<'NOTE'
 
           `vrt-diff` artifact に期待 / 実際 / 差分の 3 枚と HTML レポートが入っています。
