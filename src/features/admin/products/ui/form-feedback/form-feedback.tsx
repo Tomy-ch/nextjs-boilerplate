@@ -6,7 +6,7 @@ import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedba
 import { FormValidationSummary } from "@/components/app-starter/form-validation-summary/form-validation-summary";
 
 import type { ProductFormState } from "../../form-state";
-import { toValidationErrors } from "../../validation-errors";
+import { toValidationErrors } from "../../validation-summary";
 
 /** `ProductFormFeedback` の props。 */
 export type ProductFormFeedbackProps = {

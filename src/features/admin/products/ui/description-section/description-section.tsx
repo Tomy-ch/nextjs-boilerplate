@@ -3,7 +3,7 @@
 import { FieldDescription } from "@/components/design-system/form/field/field";
 import { RichTextEditor } from "@/components/design-system/rich-text/rich-text-editor/rich-text-editor";
 
-import { PRODUCT_FORM_NAMES } from "../../parse-product-form";
+import { PRODUCT_FORM_NAMES } from "../../form-names";
 
 /** `ProductDescriptionSection` の props。 */
 export type ProductDescriptionSectionProps = {

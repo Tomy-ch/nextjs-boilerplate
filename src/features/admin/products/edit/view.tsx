@@ -14,13 +14,14 @@ import { idleActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
 
 import { adminProductEditPath } from "../../paths";
+import { PRODUCT_FORM_NAMES } from "../form-names";
+import { findFirstInvalidSection, PRODUCT_FORM_SECTIONS } from "../form-sections";
 import type {
   ProductFormState,
   UpdateProductAction,
   UploadProductImageAction,
 } from "../form-state";
 import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "../form-state";
-import { PRODUCT_FORM_NAMES } from "../parse-product-form";
 import { ProductBasicsSection } from "../ui/basics-section/basics-section";
 import { ProductDescriptionSection } from "../ui/description-section/description-section";
 import { ProductFormFeedback } from "../ui/form-feedback/form-feedback";
@@ -28,12 +29,9 @@ import { ProductImagesSection } from "../ui/images-section/images-section";
 import { ProductPublishSection } from "../ui/publish-section/publish-section";
 import type { ProductSelectOption } from "../ui/select-field/select-field";
 import { ProductSubmitButton } from "../ui/submit-button/submit-button";
-import { useImageRejection } from "../use-image-rejection";
+import { useProductForm } from "../use-product-form";
 import type { ProductSavedImage } from "../use-product-images";
-import { useProductImages } from "../use-product-images";
-import { productValuesOf, useProductValues } from "../use-product-values";
-import { useUnsavedChanges } from "../use-unsaved-changes";
-import { findFirstInvalidSection, PRODUCT_FORM_SECTIONS } from "../validation-errors";
+import { productValuesOf } from "../use-product-values";
 
 /** `AdminProductEditView` の props。 */
 export type AdminProductEditViewProps = {
@@ -97,21 +95,20 @@ export function AdminProductEditView({
     idleActionState(),
   );
   const initialValues = useMemo(() => productValuesOf(product), [product]);
-  const form = useProductValues(initialValues, { withQuantity: false });
-  const images = useProductImages(uploadAction, savedImages);
-  const { onReject, rejection } = useImageRejection(maxUploadBytes);
+  const { changeDescription, dismiss, dismissed, images, rejection, resultIsNew, values } =
+    useProductForm({
+      initialValues,
+      maxUploadBytes,
+      savedImages,
+      state,
+      uploadAction,
+      withQuantity: false,
+    });
   const [section, setSection] = useState<string>(PRODUCT_FORM_SECTIONS[0]);
-  const [seenState, setSeenState] = useState(state);
-  const [dismissed, setDismissed] = useState(false);
-
-  useUnsavedChanges(form.dirty || images.dirty);
 
   // 送信の結果が入れ替わった描画で観点を寄せる。effect にすると寄せる前の描画が一度挟まり、
   // 誤りのある欄が隠れたまま「どこも赤くないのに送信だけ通らない」画面が一瞬現れる。
-  if (seenState !== state) {
-    setSeenState(state);
-    setDismissed(false);
-
+  if (resultIsNew) {
     const invalidSection =
       state.status === "error" ? findFirstInvalidSection(state.fieldErrors) : undefined;
 
@@ -123,22 +120,12 @@ export function AdminProductEditView({
   const conflicted =
     state.status === "error" && state.formError === PRODUCT_VERSION_CONFLICT_MESSAGE;
 
-  const dismiss = useCallback(() => setDismissed(true), []);
-
   const changeSection = useCallback(
     (next: string) => {
       setSection(next);
       dismiss();
     },
     [dismiss],
-  );
-
-  const changeDescription = useCallback(
-    (value: string) => {
-      form.setValue("description", value);
-      dismiss();
-    },
-    [dismiss, form],
   );
 
   return (
@@ -170,7 +157,7 @@ export function AdminProductEditView({
         <TabsClientContent forceMount={true} hidden={section !== "basics"} value="basics">
           <ProductBasicsSection
             categoryOptions={categoryOptions}
-            form={form}
+            form={values}
             idPrefix={idPrefix}
             withQuantity={false}
           />
@@ -179,19 +166,19 @@ export function AdminProductEditView({
           <ProductDescriptionSection
             initialValue={initialValues.description}
             onValueChange={changeDescription}
-            value={form.values.description}
+            value={values.values.description}
           />
         </TabsClientContent>
         <TabsClientContent forceMount={true} hidden={section !== "images"} value="images">
           <ProductImagesSection
             images={images}
             maxUploadBytes={maxUploadBytes}
-            onReject={onReject}
-            rejection={rejection}
+            onReject={rejection.onReject}
+            rejection={rejection.rejection}
           />
         </TabsClientContent>
         <TabsClientContent forceMount={true} hidden={section !== "publish"} value="publish">
-          <ProductPublishSection form={form} idPrefix={idPrefix} statusOptions={statusOptions} />
+          <ProductPublishSection form={values} idPrefix={idPrefix} statusOptions={statusOptions} />
         </TabsClientContent>
       </TabsClient>
 

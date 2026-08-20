@@ -5,8 +5,8 @@ import { useCallback, useState } from "react";
 import { ATTACHMENT_STATE } from "@/components/app-starter/attachment/attachment.definition";
 import type { UploadPreviewItem } from "@/components/app-starter/upload-preview/upload-preview.definition";
 import { idleActionState } from "@/model/action-state";
+import { PRODUCT_FORM_NAMES } from "./form-names";
 import type { UploadProductImageAction } from "./form-state";
-import { PRODUCT_FORM_NAMES } from "./parse-product-form";
 
 const UPLOAD_FAILED_MESSAGE = "送信できませんでした。";
 

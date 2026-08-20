@@ -14,13 +14,13 @@ import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { ADMIN_PRODUCT_LIST_PATH } from "@/features/admin/paths";
 import { PRODUCT_IMAGE_ACCEPT } from "@/features/admin/products/field-limits";
+import { PRODUCT_FORM_NAMES } from "@/features/admin/products/form-names";
 import type {
   ProductFormState,
   ProductImageUploadState,
 } from "@/features/admin/products/form-state";
 import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "@/features/admin/products/form-state";
 import {
-  PRODUCT_FORM_NAMES,
   parseProductDraftForm,
   parseProductEditForm,
 } from "@/features/admin/products/parse-product-form";

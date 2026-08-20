@@ -4,25 +4,14 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { FieldErrors } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
-
+import type { ProductFormSection } from "./form-sections";
+import { validatedFieldsOf } from "./form-sections";
 import type { ProductFormField } from "./form-state";
 import type { ProductValidatedField } from "./product-rules";
 import { PRODUCT_FIELD_RULES } from "./product-rules";
-import type { ProductFormSection } from "./validation-errors";
 
 /** 画面が持つ入力の値。すべて文字列で持ち、送るときも入力欄の値のまま運ぶ。 */
 export type ProductValues = Readonly<Record<ProductValidatedField | "description", string>>;
-
-/** どの項目がどの段にあるか。段ごとの妥当性を出すのに使う。 */
-const SECTION_FIELDS = {
-  basics: ["name", "price", "quantity", "stockWarningThreshold", "categoryId"],
-  description: [],
-  images: [],
-  publish: ["statusId", "publishedAt"],
-  confirm: [],
-} as const satisfies Readonly<
-  Record<ProductFormSection | "confirm", readonly ProductValidatedField[]>
->;
 
 /** 形の上での判定を持つ項目。判定を回す順でもある。 */
 const PRODUCT_VALIDATED_FIELDS = [
@@ -92,7 +81,7 @@ export type ProductFormValues = {
   /** 1 項目を「触れた」ものとして印を付ける。 */
   readonly touch: (field: keyof ProductValues) => void;
   /** その段の必須が埋まっていないか。 */
-  readonly isSectionBlocked: (section: ProductFormSection | "confirm") => boolean;
+  readonly isSectionBlocked: (section: ProductFormSection) => boolean;
 };
 
 /**
@@ -155,8 +144,10 @@ export function useProductValues(
   }, [failures, touched]);
 
   const isSectionBlocked = useCallback(
-    (section: ProductFormSection | "confirm") =>
-      SECTION_FIELDS[section].some((field) => failures[field] !== undefined),
+    (section: ProductFormSection) =>
+      validatedFieldsOf(section, PRODUCT_VALIDATED_FIELDS).some(
+        (field) => failures[field] !== undefined,
+      ),
     [failures],
   );
 

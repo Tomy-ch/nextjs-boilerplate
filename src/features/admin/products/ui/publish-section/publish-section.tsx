@@ -4,7 +4,7 @@ import { useCallback } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
 
-import { PRODUCT_FORM_NAMES } from "../../parse-product-form";
+import { PRODUCT_FORM_NAMES } from "../../form-names";
 import type { ProductFormValues } from "../../use-product-values";
 import type { ProductSelectOption } from "../select-field/select-field";
 import { ProductSelectField } from "../select-field/select-field";

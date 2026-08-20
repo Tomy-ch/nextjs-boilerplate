@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 
 import type { FileUploadRejection } from "@/components/app-starter/file-upload/file-upload.definition";
 
-import { toRejectionMessage } from "./ui/images-section/images-section";
+import { toRejectionMessage } from "./image-rejection";
 
 /** 弾かれたファイルの文言と、その受け口。 */
 export type ImageRejection = {

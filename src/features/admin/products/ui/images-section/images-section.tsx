@@ -4,14 +4,14 @@ import { useCallback } from "react";
 
 import { FileUpload } from "@/components/app-starter/file-upload/file-upload";
 import type { FileUploadRejection } from "@/components/app-starter/file-upload/file-upload.definition";
-import { FILE_UPLOAD_REJECTION_REASON } from "@/components/app-starter/file-upload/file-upload.definition";
 import { UploadPreview } from "@/components/app-starter/upload-preview/upload-preview";
 import { FieldDescription } from "@/components/design-system/form/field/field";
 import { RequirementBadge } from "@/components/design-system/form/requirement-badge/requirement-badge";
 import { Alert, AlertDescription } from "@/components/design-system/status/alert/alert";
 
 import { PRODUCT_IMAGE_ACCEPT } from "../../field-limits";
-import { PRODUCT_FORM_NAMES } from "../../parse-product-form";
+import { PRODUCT_FORM_NAMES } from "../../form-names";
+import { formatMegabytes } from "../../image-rejection";
 import type { ProductImages } from "../../use-product-images";
 
 /** `ProductImagesSection` の props。 */
@@ -25,25 +25,6 @@ export type ProductImagesSectionProps = {
   /** 弾いたファイルを受け取る。 */
   onReject: (rejections: FileUploadRejection[]) => void;
 };
-
-/** バイト数を、利用者が読める単位へ丸める。 */
-export function formatMegabytes(bytes: number): string {
-  return `${Math.floor(bytes / 1024 / 1024)} MB`;
-}
-
-/** 弾いた理由を文言へ写す。 */
-export function toRejectionMessage(
-  rejections: readonly FileUploadRejection[],
-  maxUploadBytes: number,
-): string | undefined {
-  const first = rejections[0];
-
-  if (first === undefined) return undefined;
-
-  return first.reason === FILE_UPLOAD_REJECTION_REASON.SIZE
-    ? `${first.file.name} は ${formatMegabytes(maxUploadBytes)} を超えています。`
-    : `${first.file.name} は PNG / JPEG / WebP のいずれでもありません。`;
-}
 
 /**
  * 商品の画像。

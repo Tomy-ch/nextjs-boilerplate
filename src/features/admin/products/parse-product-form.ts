@@ -1,22 +1,10 @@
 import type { FieldErrors } from "@/model/action-state";
 import type { ProductDraft, ProductEdit, ProductImageDraft } from "@/model/product/product";
 
-import { PRODUCT_NAME_MAX_LENGTH, PRODUCT_PRICE_PATTERN } from "./field-limits";
+import { PRODUCT_FORM_NAMES } from "./form-names";
 import type { ProductFormField } from "./form-state";
-
-/** 入力欄の `name`。送る側と読む側で綴りが分かれないよう、ここだけが持つ。 */
-export const PRODUCT_FORM_NAMES = {
-  name: "name",
-  description: "description",
-  price: "price",
-  quantity: "quantity",
-  stockWarningThreshold: "stockWarningThreshold",
-  categoryId: "categoryId",
-  statusId: "statusId",
-  publishedAt: "publishedAt",
-  images: "images",
-  version: "version",
-} as const satisfies Readonly<Record<ProductFormField | "version", string>>;
+import type { ProductValidatedField } from "./product-rules";
+import { PRODUCT_FIELD_RULES } from "./product-rules";
 
 /** 読み取りの結果。読めた場合だけ値を持つ。 */
 export type ProductFormParseResult<T> =
@@ -48,26 +36,21 @@ function readImages(form: FormData): readonly ProductImageDraft[] {
     .map((imagePath, index) => ({ imagePath, displaySort: index + 1 }));
 }
 
-/** 整数として読む。空欄は undefined、整数でなければ null。 */
-function readInteger(form: FormData, key: string): number | undefined | null {
-  const raw = readText(form, key);
+/**
+ * 版を読む。
+ *
+ * @remarks
+ * 版は利用者が入力する項目ではないため、形の上での判定を持つ項目の一覧には入りません。読めない
+ * ときは「編集の前提が失われた」であって、直せる入力の誤りではありません。
+ */
+function readVersion(form: FormData): number | undefined {
+  const raw = readText(form, PRODUCT_FORM_NAMES.version);
 
   if (raw === undefined) return undefined;
 
   const value = Number(raw);
 
-  return Number.isInteger(value) && value >= 0 ? value : null;
-}
-
-/** 日時として読む。空欄は undefined、日時として読めなければ null。 */
-function readDate(form: FormData, key: string): Date | undefined | null {
-  const raw = readText(form, key);
-
-  if (raw === undefined) return undefined;
-
-  const value = new Date(raw);
-
-  return Number.isNaN(value.getTime()) ? null : value;
+  return Number.isInteger(value) && value >= 0 ? value : undefined;
 }
 
 /** 共通部分の読み取りと、そこで見つかった誤り。 */
@@ -76,52 +59,46 @@ type CommonFields = {
   readonly fieldErrors: Record<string, readonly string[]>;
 };
 
+/**
+ * 1 項目を読み、形の上での判定に掛ける。
+ *
+ * @remarks
+ * **判定と文言は {@link PRODUCT_FIELD_RULES} が持ちます。**同じ判定を画面の側も通るため、ここへ
+ * 書き写すと同じ誤りに 2 通りの言い方が生まれ、片方だけを直せます。
+ */
+function check(
+  form: FormData,
+  field: ProductValidatedField,
+  fieldErrors: Record<string, readonly string[]>,
+): string {
+  const raw = form.get(PRODUCT_FORM_NAMES[field]);
+  const value = typeof raw === "string" ? raw : "";
+  const message = PRODUCT_FIELD_RULES[field](value);
+
+  if (message !== undefined) fieldErrors[field] = [message];
+
+  return value.trim();
+}
+
 function parseCommon(form: FormData): CommonFields {
   const fieldErrors: Record<string, readonly string[]> = {};
 
-  const name = readText(form, PRODUCT_FORM_NAMES.name);
-  if (name === undefined) {
-    fieldErrors.name = ["商品名を入力してください。"];
-  } else if (name.length > PRODUCT_NAME_MAX_LENGTH) {
-    fieldErrors.name = [`商品名は ${PRODUCT_NAME_MAX_LENGTH} 文字までです。`];
-  }
-
-  const price = readText(form, PRODUCT_FORM_NAMES.price);
-  if (price === undefined) {
-    fieldErrors.price = ["価格を入力してください。"];
-  } else if (!PRODUCT_PRICE_PATTERN.test(price)) {
-    fieldErrors.price = ["価格は 0 以上の数値で入力してください。"];
-  }
-
-  const categoryId = readText(form, PRODUCT_FORM_NAMES.categoryId);
-  if (categoryId === undefined) {
-    fieldErrors.categoryId = ["分類を選んでください。"];
-  }
-
-  const statusId = readText(form, PRODUCT_FORM_NAMES.statusId);
-  if (statusId === undefined) {
-    fieldErrors.statusId = ["状態を選んでください。"];
-  }
-
-  const threshold = readInteger(form, PRODUCT_FORM_NAMES.stockWarningThreshold);
-  if (threshold === null) {
-    fieldErrors.stockWarningThreshold = ["在庫警告の閾値は 0 以上の整数で入力してください。"];
-  }
-
-  const publishedAt = readDate(form, PRODUCT_FORM_NAMES.publishedAt);
-  if (publishedAt === null) {
-    fieldErrors.publishedAt = ["公開日時を日付として読み取れませんでした。"];
-  }
+  const name = check(form, "name", fieldErrors);
+  const price = check(form, "price", fieldErrors);
+  const categoryId = check(form, "categoryId", fieldErrors);
+  const statusId = check(form, "statusId", fieldErrors);
+  const threshold = check(form, "stockWarningThreshold", fieldErrors);
+  const publishedAt = check(form, "publishedAt", fieldErrors);
 
   return {
     draft: {
-      name: name ?? "",
+      name,
       description: readText(form, PRODUCT_FORM_NAMES.description) ?? null,
-      price: price ?? "",
-      stockWarningThreshold: threshold ?? null,
-      categoryId: categoryId ?? "",
-      statusId: statusId ?? "",
-      publishedAt: publishedAt ?? null,
+      price,
+      stockWarningThreshold: threshold === "" ? null : Number(threshold),
+      categoryId,
+      statusId,
+      publishedAt: publishedAt === "" ? null : new Date(publishedAt),
       images: readImages(form),
     },
     fieldErrors,
@@ -139,18 +116,13 @@ function parseCommon(form: FormData): CommonFields {
 export function parseProductDraftForm(form: FormData): ProductFormParseResult<ProductDraft> {
   const { draft, fieldErrors } = parseCommon(form);
 
-  const quantity = readInteger(form, PRODUCT_FORM_NAMES.quantity);
-  if (quantity === undefined) {
-    fieldErrors.quantity = ["在庫数を入力してください。"];
-  } else if (quantity === null) {
-    fieldErrors.quantity = ["在庫数は 0 以上の整数で入力してください。"];
-  }
+  const quantity = check(form, "quantity", fieldErrors);
 
   if (Object.keys(fieldErrors).length > 0) {
     return { ok: false, fieldErrors };
   }
 
-  return { ok: true, value: { ...draft, quantity: quantity ?? 0 } };
+  return { ok: true, value: { ...draft, quantity: Number(quantity) } };
 }
 
 /**
@@ -162,8 +134,9 @@ export function parseProductDraftForm(form: FormData): ProductFormParseResult<Pr
 export function parseProductEditForm(form: FormData): ProductFormParseResult<ProductEdit> {
   const { draft, fieldErrors } = parseCommon(form);
 
-  const version = readInteger(form, PRODUCT_FORM_NAMES.version);
-  if (version === undefined || version === null) {
+  const version = readVersion(form);
+
+  if (version === undefined) {
     fieldErrors.name = [
       ...(fieldErrors.name ?? []),
       "編集の前提が失われています。画面を開き直してください。",

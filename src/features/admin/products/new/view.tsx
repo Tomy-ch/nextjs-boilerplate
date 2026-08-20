@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useCallback, useId, useMemo, useState } from "react";
+import { useActionState, useId, useMemo } from "react";
 
 import { WizardForm } from "@/components/patterns/wizard-form/wizard-form";
 import { idleActionState } from "@/model/action-state";
@@ -18,10 +18,8 @@ import { ProductImagesSection } from "../ui/images-section/images-section";
 import { ProductPublishSection } from "../ui/publish-section/publish-section";
 import type { ProductSelectOption } from "../ui/select-field/select-field";
 import { ProductSubmitButton } from "../ui/submit-button/submit-button";
-import { useImageRejection } from "../use-image-rejection";
-import { useProductImages } from "../use-product-images";
-import { emptyProductValues, useProductValues } from "../use-product-values";
-import { useUnsavedChanges } from "../use-unsaved-changes";
+import { useProductForm } from "../use-product-form";
+import { emptyProductValues } from "../use-product-values";
 
 /** `AdminProductCreateView` の props。 */
 export type AdminProductCreateViewProps = {
@@ -71,23 +69,13 @@ export function AdminProductCreateView({
     idleActionState(),
   );
   const initialValues = useMemo(() => emptyProductValues(), []);
-  const form = useProductValues(initialValues, { withQuantity: true });
-  const images = useProductImages(uploadAction);
-  const { onReject, rejection } = useImageRejection(maxUploadBytes);
-  const [dismissed, setDismissed] = useState(false);
-
-  useUnsavedChanges(form.dirty || images.items.length > 0);
-
-  // 入力を直した時点で、直前の送信の結果は古くなる。出し続けると、直したのに直っていないよう
-  // に見える。
-  const dismiss = useCallback(() => setDismissed(true), []);
-  const changeDescription = useCallback(
-    (value: string) => {
-      form.setValue("description", value);
-      dismiss();
-    },
-    [dismiss, form],
-  );
+  const { changeDescription, dismiss, dismissed, images, rejection, values } = useProductForm({
+    initialValues,
+    maxUploadBytes,
+    state,
+    uploadAction,
+    withQuantity: true,
+  });
 
   return (
     <form action={formAction} className="grid gap-8" onInput={dismiss}>
@@ -103,11 +91,11 @@ export function AdminProductCreateView({
           {
             id: "basics",
             title: "基本情報",
-            blocked: form.isSectionBlocked("basics"),
+            blocked: values.isSectionBlocked("basics"),
             content: (
               <ProductBasicsSection
                 categoryOptions={categoryOptions}
-                form={form}
+                form={values}
                 idPrefix={idPrefix}
                 withQuantity={true}
               />
@@ -120,7 +108,7 @@ export function AdminProductCreateView({
               <ProductDescriptionSection
                 initialValue={initialValues.description}
                 onValueChange={changeDescription}
-                value={form.values.description}
+                value={values.values.description}
               />
             ),
           },
@@ -132,19 +120,19 @@ export function AdminProductCreateView({
               <ProductImagesSection
                 images={images}
                 maxUploadBytes={maxUploadBytes}
-                onReject={onReject}
-                rejection={rejection}
+                onReject={rejection.onReject}
+                rejection={rejection.rejection}
               />
             ),
           },
           {
             id: "publish",
             title: "公開",
-            blocked: form.isSectionBlocked("publish"),
+            blocked: values.isSectionBlocked("publish"),
             nextLabel: "確認",
             content: (
               <ProductPublishSection
-                form={form}
+                form={values}
                 idPrefix={idPrefix}
                 statusOptions={statusOptions}
               />
@@ -158,7 +146,7 @@ export function AdminProductCreateView({
                 categoryOptions={categoryOptions}
                 imageCount={images.imagePaths.length}
                 statusOptions={statusOptions}
-                values={form.values}
+                values={values.values}
               />
             ),
           },

@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { PRODUCT_NAME_MAX_LENGTH } from "../../field-limits";
-import { PRODUCT_FORM_NAMES } from "../../parse-product-form";
+import { PRODUCT_FORM_NAMES } from "../../form-names";
 import type { ProductFormValues } from "../../use-product-values";
 import type { ProductSelectOption } from "../select-field/select-field";
 import { ProductSelectField } from "../select-field/select-field";
