@@ -265,8 +265,9 @@ make e2e-retake            # Retake and push the screen baselines
 make baseline-push         # Push retaken baselines to the store and advance the submodule pointer
 make secret-scan           # gitleaks over the commits about to be pushed — fails on detection (ADR 0110)
 make trivy-fs              # Trivy dependency vulnerability scan — on demand, report only (ADR 0110)
-make test-full             # Full test run with coverage against the 100% threshold (ADR 0090)
-make test-cached           # Same tests through Vitest's cache — the pre-commit variant
+make test-cached           # Default. Same tests through Vitest's cache — the pre-commit variant
+make test-full             # Full run with coverage against the 100% threshold (ADR 0090). The gate
+                           #   itself — leave it to the hook and CI rather than running it by hand
 make load-status           # Show the current gate band and why (ADR 0151)
 make hotfix-patch          # Create a hotfix/v<patch> branch from production
 make tag-patch             # Tag production HEAD and create a GitHub Release
