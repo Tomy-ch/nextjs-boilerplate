@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { ATTACHMENT_STATE } from "@/components/app-starter/attachment/attachment.definition";
 import type { UploadPreviewItem } from "@/components/app-starter/upload-preview/upload-preview.definition";
@@ -49,7 +49,7 @@ export type ProductSavedImage = {
  * 送り終わるまで `imagePath` を持ちません。持っていない枚は送信に載らず、送信の側は「載っている
  * ものはすべて保存済み」と見なせます。
  */
-export type ProductImageEntry = {
+type ProductImageEntry = {
   readonly id: string;
   readonly name: string;
   /** 選び直したファイル。保存済みのものを読み込んだ場合は持たない。 */
@@ -127,10 +127,6 @@ export function useProductImages(
     })),
   );
 
-  // 再試行は「いま画面に出ている一覧」から対象を引く。updater の中で引くと副作用が同居する。
-  const entriesRef = useRef(entries);
-  entriesRef.current = entries;
-
   const send = useCallback(
     async (entry: ProductImageEntry) => {
       if (entry.file === undefined) return;
@@ -181,7 +177,7 @@ export function useProductImages(
     (id: string) => {
       // 対象は updater の外で引く。updater は純粋であることが前提で React は再実行してよく、
       // 中で送ると 1 回の操作が二重の送信になる。同じ本文を二度送れば保存も二重になる。
-      const entry = entriesRef.current.find((item) => item.id === id);
+      const entry = entries.find((item) => item.id === id);
 
       if (entry === undefined) return;
 
@@ -190,7 +186,7 @@ export function useProductImages(
       );
       void send(entry);
     },
-    [send],
+    [entries, send],
   );
 
   const moveUp = useCallback((id: string) => {

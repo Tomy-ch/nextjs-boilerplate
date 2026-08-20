@@ -68,9 +68,9 @@ describe("proxy", () => {
   });
 
   it("認証の内側にある画面はいずれも前捌きの対象にする", async () => {
-    for (const path of PROTECTED_PREFIXES) {
-      const response = await proxy(request(path));
+    const responses = await Promise.all(PROTECTED_PREFIXES.map((path) => proxy(request(path))));
 
+    for (const response of responses) {
       expect(response.headers.get("location")).toContain("/login?returnUrl=");
     }
   });

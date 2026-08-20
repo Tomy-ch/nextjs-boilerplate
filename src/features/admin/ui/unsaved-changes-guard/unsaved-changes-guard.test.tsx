@@ -66,6 +66,29 @@ describe("UnsavedChangesGuard", () => {
     expect(screen.getByText("画面")).toBeInTheDocument();
   });
 
+  it("a11y の器としては何も足さず、包んだ木をそのまま通す", () => {
+    const { container } = render(
+      <UnsavedChangesGuard>
+        <Declaring hasUnsavedChanges={false} />
+      </UnsavedChangesGuard>,
+    );
+
+    expect(container.querySelector("p")).toHaveTextContent("画面");
+  });
+});
+
+describe("useUnsavedChanges", () => {
+  // ----- 正常系 -----
+  it("書きかけがあることを器へ申告する", () => {
+    render(
+      <UnsavedChangesGuard>
+        <Declaring hasUnsavedChanges={true} />
+      </UnsavedChangesGuard>,
+    );
+
+    expect(guard.when).toBe(true);
+  });
+
   it("申告した画面が外れたら、申告も取り下げる", () => {
     const { rerender } = render(
       <UnsavedChangesGuard>

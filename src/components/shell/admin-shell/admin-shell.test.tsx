@@ -77,15 +77,26 @@ describe("AdminShell", () => {
   });
 
   it("本文の先頭へ渡された階層を出す", () => {
-    renderShell({ breadcrumb: <p>商品一覧 &gt; 新規作成</p> });
+    renderShell({ breadcrumb: <p>一覧 &gt; 新規作成</p> });
 
-    expect(screen.getByText("商品一覧 > 新規作成")).toBeInTheDocument();
+    expect(screen.getByText("一覧 > 新規作成")).toBeInTheDocument();
+  });
+
+  it("階層を持たない画面から要素だけ渡されても、区画を場所として残さない", () => {
+    // slot は階層を持たない画面にも要素を渡す。渡されたかどうかでは判定できないため、
+    // 中身が空なら畳む。畳まないと、階層の無い画面が上端に空白を抱える。
+    const { container } = renderShell({ breadcrumb: null });
+
+    const region = container.querySelector('[data-slot="content-container"]');
+
+    expect(region).toBeEmptyDOMElement();
+    expect(region).toHaveClass("empty:hidden");
   });
 
   it("階層へ何も渡さなければその区画を作らない", () => {
     renderShell();
 
-    expect(screen.queryByText("商品一覧 > 新規作成")).not.toBeInTheDocument();
+    expect(screen.queryByText("一覧 > 新規作成")).not.toBeInTheDocument();
   });
 
   it("main へ class 名を渡せる", () => {

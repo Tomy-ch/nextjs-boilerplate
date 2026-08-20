@@ -107,9 +107,8 @@ export type ProductValidatedField = (typeof PRODUCT_VALIDATED_FIELD_ORDER)[numbe
  * 在庫数だけが外れます。編集の口は在庫を扱わず（補充は別の口が持つ）、送られてこないためです。
  * ここも {@link PRODUCT_VALIDATED_FIELD_ORDER} から導き、名簿を 2 つ持ちません。
  */
-export const PRODUCT_COMMON_VALIDATED_FIELDS = PRODUCT_VALIDATED_FIELD_ORDER.filter(
-  (field) => field !== "quantity",
-) as readonly Exclude<ProductValidatedField, "quantity">[];
+export const PRODUCT_COMMON_VALIDATED_FIELDS: readonly ProductValidatedField[] =
+  PRODUCT_VALIDATED_FIELD_ORDER.filter((field) => field !== "quantity");
 
 /** 項目ごとの判定。ここに無い項目は形の上での判定を持たない。 */
 export const PRODUCT_FIELD_RULES: Readonly<Record<ProductValidatedField, ProductFieldRule>> = {

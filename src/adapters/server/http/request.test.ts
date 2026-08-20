@@ -170,6 +170,32 @@ describe("createHttpClient", () => {
     });
   });
 
+  it("multipart を指定すれば FormData をそのまま送る", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+    const multipart = new FormData();
+
+    multipart.append("file", new File(["x"], "a.png", { type: "image/png" }));
+
+    await client.request({ method: "POST", path: "/uploads", multipart, schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.body).toBe(multipart);
+  });
+
+  it("multipart には Content-Type を付けない。境界文字列を決めるのは runtime のため", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+    const multipart = new FormData();
+
+    multipart.append("file", new File(["x"], "a.png", { type: "image/png" }));
+
+    await client.request({ method: "POST", path: "/uploads", multipart, schema });
+
+    const headers = fetchImpl.mock.calls[0]?.[1]?.headers;
+
+    expect(headers).not.toHaveProperty("Content-Type");
+  });
+
   it("本文が無ければ Content-Type を付けない", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);
