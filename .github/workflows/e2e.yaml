@@ -206,6 +206,17 @@ jobs:
               # does not.
               names="$(pnpm exec tsx scripts/e2e names tmp/e2e/report.json || true)"
 
+              # The block below is written to be pasted into a shell, so a value carrying
+              # `$(...)` or a backtick would be evaluated by the reader's shell before `make`
+              # ever starts. A branch name may legally contain both, and a screen name is a
+              # free-form string in `e2e/lib/screens.ts`. Drop the block rather than emit one
+              # that is unsafe to paste — quoting alone would not do, because a value
+              # containing a single quote closes the quoting again.
+              if printf '%s%s' "${HEAD_REF}" "${names}" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; then
+                names=''
+                echo "review block suppressed: head_ref or screen names carry shell metacharacters" >&2
+              fi
+
               if [ -n "${names}" ]; then
                 cat <<REVIEW
 
@@ -214,7 +225,7 @@ jobs:
           落ちた画面を使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。役割の要る画面は開発用 session の面を経由します。
 
           \`\`\`bash
-          make e2e-review BRANCH=${HEAD_REF} RUN=${RUN_ID} E2E_ONLY=${names}
+          make e2e-review BRANCH='${HEAD_REF}' RUN='${RUN_ID}' E2E_ONLY='${names}'
           \`\`\`
 
           作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。

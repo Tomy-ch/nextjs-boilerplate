@@ -186,6 +186,16 @@ jobs:
           # paragraph does not.
           ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json || true)"
 
+          # The block below is written to be pasted into a shell, so a value carrying `$(...)`
+          # or a backtick would be evaluated by the reader's shell before `make` ever starts.
+          # A branch name may legally contain both, so drop the block rather than emit one
+          # that is unsafe to paste. Quoting alone would not do: a value containing a single
+          # quote closes the quoting again.
+          if printf '%s%s' "${HEAD_REF}" "${ids}" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; then
+            ids=''
+            echo "review block suppressed: head_ref or story ids carry shell metacharacters" >&2
+          fi
+
           {
             pnpm exec tsx scripts/vrt table tmp/vrt/report.json \
               || tail -n 60 /tmp/vrt-full.log
@@ -198,7 +208,7 @@ jobs:
           落ちた story を使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。
 
           \`\`\`bash
-          make vrt-review BRANCH=${HEAD_REF} RUN=${RUN_ID} VRT_ONLY=${ids}
+          make vrt-review BRANCH='${HEAD_REF}' RUN='${RUN_ID}' VRT_ONLY='${ids}'
           \`\`\`
 
           作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。
