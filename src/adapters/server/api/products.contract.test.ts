@@ -18,9 +18,13 @@ const environment: Environment = {
   NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
 };
 
-const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => environment) }));
+const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
+  getAccessToken: vi.fn(async (): Promise<string | null> => null),
+  getEnvironment: vi.fn(() => environment),
+}));
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
+vi.mock("../auth/session", () => ({ getAccessToken }));
 
 import { toProductId } from "@/model/product/product";
 import { getProduct, getProductRanking, getProducts } from "./products";

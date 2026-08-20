@@ -8,25 +8,14 @@ import type { ProductFormSection } from "./form-sections";
 import { validatedFieldsOf } from "./form-sections";
 import type { ProductFormField } from "./form-state";
 import type { ProductValidatedField } from "./product-rules";
-import { PRODUCT_FIELD_RULES } from "./product-rules";
+import { PRODUCT_FIELD_RULES, PRODUCT_VALIDATED_FIELD_ORDER } from "./product-rules";
 
 /** 画面が持つ入力の値。すべて文字列で持ち、送るときも入力欄の値のまま運ぶ。 */
 export type ProductValues = Readonly<Record<ProductValidatedField | "description", string>>;
 
-/** 形の上での判定を持つ項目。判定を回す順でもある。 */
-const PRODUCT_VALIDATED_FIELDS = [
-  "name",
-  "price",
-  "quantity",
-  "stockWarningThreshold",
-  "categoryId",
-  "statusId",
-  "publishedAt",
-] as const satisfies readonly ProductValidatedField[];
-
 /** 画面が値として持つ項目のすべて。 */
 const PRODUCT_VALUE_FIELDS = [
-  ...PRODUCT_VALIDATED_FIELDS,
+  ...PRODUCT_VALIDATED_FIELD_ORDER,
   "description",
 ] as const satisfies readonly (keyof ProductValues)[];
 
@@ -119,7 +108,7 @@ export function useProductValues(
   const failures = useMemo(() => {
     const found: Partial<Record<ProductValidatedField, string>> = {};
 
-    for (const field of PRODUCT_VALIDATED_FIELDS) {
+    for (const field of PRODUCT_VALIDATED_FIELD_ORDER) {
       // 在庫数は作るときだけ尋ねる。編集では別の口が持つため、空欄でも欠けたことにならない。
       if (field === "quantity" && !withQuantity) continue;
 
@@ -134,7 +123,7 @@ export function useProductValues(
   const errors = useMemo(() => {
     const shown: Partial<Record<ProductValidatedField, readonly string[]>> = {};
 
-    for (const field of PRODUCT_VALIDATED_FIELDS) {
+    for (const field of PRODUCT_VALIDATED_FIELD_ORDER) {
       const message = failures[field];
 
       if (message !== undefined && touched.has(field)) shown[field] = [message];
@@ -145,7 +134,7 @@ export function useProductValues(
 
   const isSectionBlocked = useCallback(
     (section: ProductFormSection) =>
-      validatedFieldsOf(section, PRODUCT_VALIDATED_FIELDS).some(
+      validatedFieldsOf(section, PRODUCT_VALIDATED_FIELD_ORDER).some(
         (field) => failures[field] !== undefined,
       ),
     [failures],

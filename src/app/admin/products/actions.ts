@@ -9,11 +9,14 @@ import {
   uploadProductImage,
 } from "@/adapters/server/api/products";
 import { verifySession } from "@/adapters/server/auth/session";
-import { getHttpConfig } from "@/config/http/http.server";
+import { MAX_UPLOAD_BYTES } from "@/config/http/http.client";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { ADMIN_PRODUCT_LIST_PATH } from "@/features/admin/paths";
-import { PRODUCT_IMAGE_ACCEPT } from "@/features/admin/products/field-limits";
+import {
+  PRODUCT_IMAGE_ACCEPT,
+  PRODUCT_IMAGE_ACCEPT_LABEL,
+} from "@/features/admin/products/field-limits";
 import { PRODUCT_FORM_NAMES } from "@/features/admin/products/form-names";
 import type {
   ProductFormState,
@@ -35,7 +38,7 @@ import { toProductId } from "@/model/product/product";
 const INVALID_INPUT_MESSAGE = "入力内容を確認してください。";
 
 const MISSING_IMAGE_MESSAGE = "画像が選ばれていません。";
-const UNSUPPORTED_IMAGE_MESSAGE = "PNG / JPEG / WebP のいずれかを選んでください。";
+const UNSUPPORTED_IMAGE_MESSAGE = `${PRODUCT_IMAGE_ACCEPT_LABEL} のいずれかを選んでください。`;
 const OVERSIZED_IMAGE_MESSAGE = "画像が大きすぎます。もっと小さいものを選んでください。";
 
 /** 役割を持たない主体の要求をここで止める。 */
@@ -95,7 +98,7 @@ export async function uploadProductImageAction(
     return failedActionState({ formError: UNSUPPORTED_IMAGE_MESSAGE });
   }
 
-  if (image.size > getHttpConfig().maxUploadBytes) {
+  if (image.size > MAX_UPLOAD_BYTES) {
     return failedActionState({ formError: OVERSIZED_IMAGE_MESSAGE });
   }
 
@@ -162,7 +165,10 @@ export async function updateProductAction(
   const parsed = parseProductEditForm(formData);
 
   if (!parsed.ok) {
-    return failedActionState({ formError: null, fieldErrors: parsed.fieldErrors });
+    return failedActionState({
+      formError: parsed.formError ?? null,
+      fieldErrors: parsed.fieldErrors,
+    });
   }
 
   if (typeof id !== "string" || id === "") {

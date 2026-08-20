@@ -1,14 +1,26 @@
 // @vitest-environment jsdom
 
 import { act, renderHook } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
-import { useUnsavedChangesStore } from "@/stores/unsaved-changes-store";
 
+import { UnsavedChangesGuard } from "../ui/unsaved-changes-guard/unsaved-changes-guard";
 import type { ProductFormState } from "./form-state";
 import { useProductForm } from "./use-product-form";
 import { emptyProductValues } from "./use-product-values";
+
+// 申告の宛先は器で、器が何を見張っているかは `NavigationGuard` へ渡る `when` に現れる。
+const guard = vi.hoisted(() => ({ when: false }));
+
+vi.mock("@/components/app-starter/navigation-guard/navigation-guard", () => ({
+  NavigationGuard: ({ children, when }: { children: ReactNode; when: boolean }) => {
+    guard.when = when;
+
+    return children;
+  },
+}));
 
 beforeAll(() => {
   URL.createObjectURL = vi.fn(() => "blob:preview");
@@ -16,7 +28,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  useUnsavedChangesStore.setState({ hasUnsavedChanges: false });
+  guard.when = false;
 });
 
 const upload = vi.fn(() => Promise.resolve(succeededActionState("products/uploaded.png")));
@@ -35,7 +47,7 @@ function renderForm(
         uploadAction: upload,
         withQuantity: true,
       }),
-    { initialProps: state },
+    { initialProps: state, wrapper: UnsavedChangesGuard },
   );
 }
 
@@ -73,7 +85,7 @@ describe("useProductForm", () => {
     act(() => result.current.images.remove("products/saved.png"));
 
     expect(result.current.values.dirty).toBe(false);
-    expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(true);
+    expect(guard.when).toBe(true);
   });
 
   it("入力が変われば書きかけとして器へ申告する", () => {
@@ -81,7 +93,7 @@ describe("useProductForm", () => {
 
     act(() => result.current.values.setValue("name", "入れた"));
 
-    expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(true);
+    expect(guard.when).toBe(true);
   });
 
   // ----- 異常系 -----

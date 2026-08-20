@@ -130,6 +130,19 @@ describe("useProductImages", () => {
     expect(result.current.uploading).toBe(false);
   });
 
+  it("送信そのものが失敗しても、送信中のまま留まらせない", async () => {
+    // 切断・上限超過・5xx は action の外で起きるため、戻り値では受け取れない。捕まえないと
+    // その枚は送信中でも失敗でもない状態に居残り、送信が永久に塞がる。
+    const upload = vi.fn(() => Promise.reject(new Error("切断")));
+    const { result } = renderHook(() => useProductImages(upload));
+
+    act(() => result.current.add([fileOf("cover.png")]));
+
+    await waitFor(() => expect(result.current.failed).toBe(true));
+    expect(result.current.uploading).toBe(false);
+    expect(result.current.items[0]?.description).toBe("送信できませんでした。");
+  });
+
   it("分類だけが返って文言が無くても、送れていないことを画面に出す", async () => {
     const upload = vi.fn(() => Promise.resolve(failedActionState<string>({ formError: null })));
     const { result } = renderHook(() => useProductImages(upload));
@@ -171,6 +184,25 @@ describe("useProductImages", () => {
     act(() => result.current.retry(first?.id ?? ""));
 
     await waitFor(() => expect(result.current.imagePaths).toEqual(["products/ok.png"]));
+  });
+
+  it("送り直しても、隣の枚は巻き添えにしない", async () => {
+    const upload = vi
+      .fn()
+      .mockResolvedValueOnce(succeededActionState("products/first.png"))
+      .mockResolvedValueOnce(failedActionState<string>({ formError: "断られた" }))
+      .mockResolvedValueOnce(succeededActionState("products/second.png"));
+    const { result } = renderHook(() => useProductImages(upload));
+
+    act(() => result.current.add([fileOf("first.png"), fileOf("second.png")]));
+    await waitFor(() => expect(result.current.failed).toBe(true));
+
+    const failedId = result.current.items[1]?.id ?? "";
+
+    act(() => result.current.retry(failedId));
+
+    await waitFor(() => expect(result.current.imagePaths).toHaveLength(2));
+    expect(result.current.items[0]?.description).toBeUndefined();
   });
 
   it("一覧に無い画像を送り直そうとしても何も起こさない", () => {

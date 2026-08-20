@@ -66,24 +66,31 @@ src/
   │   └── <part>/
   ├── ui/                     # 画面を挟まない = feature 全体が所有する部材(内部)
   │   └── <part>/
-  └── <screen>/               # 第 1 軸: 画面 = リソース単位
-      ├── page-content.tsx    #   取得と組み立て
-      ├── query.ts            #   入力(URL / searchParams)の写し
-      ├── actions.ts          #   変更(Server Action)
-      ├── view.tsx            # 第 2 軸: 表示 — 画面の合成
-      └── ui/                 #   表示 — その部材
-          └── <part>/         #   1 部品 = 1 ディレクトリ
-              ├── <part>.tsx
-              ├── <part>.test.tsx
-              ├── <part>.stories.tsx
-              └── <part>.definition.ts
+  └── <resource>/             # 第 1 軸(任意の 1 段): 資源 = 画面の束
+      ├── ui/                 #   その資源の画面が共有する部材
+      │   └── <part>/
+      └── <screen>/           # 第 1 軸: 画面 = リソース単位
+          ├── page-content.tsx    #   取得と組み立て
+          ├── query.ts            #   入力(URL / searchParams)の写し
+          ├── actions.ts          #   変更(Server Action。置き場の条件は [0025])
+          ├── view.tsx            # 第 2 軸: 表示 — 画面の合成
+          └── ui/                 #   表示 — その部材
+              └── <part>/         #   1 部品 = 1 ディレクトリ
+                  ├── <part>.tsx
+                  ├── <part>.test.tsx
+                  ├── <part>.stories.tsx
+                  └── <part>.definition.ts
   ```
 
 - **性質で分けるのは、性質ごとに検証手段と import 可能な先が違うから**である。取得と組み立ては `adapters` を呼び、表示は呼ばない([0021](0021-frontend-responsibility.md) 依存マトリクス)。取得は module 境界の mock を伴い、表示は DOM を伴う([0091](0091-test-verification-methods.md))。置き場が性質を表していれば、そのファイルが何を呼べて何で検証されるかを読まずに決められる
 - **画面の表示は `view.tsx`(合成)と `ui/<part>/`(部材)に分ける**。`view.tsx` は `page-content.tsx` が取得した値を受けて画面を組み立てるもので、`ui/` の部品と同格ではない
 - **囲んでいるディレクトリの語をファイル名・ディレクトリ名で繰り返さない**。`features/<name>/list/ui/card/card.tsx` であり `<name>-card` とはしない。区別はパスが担い、識別子は PascalCase の側が担う([0028](0028-naming-convention.md) のファイル名と主 export は別軸)
 - **`ui/` の中は 1 部品 = 1 ディレクトリ**とし、実装・テスト・stories・定義・README を共置する。`components/design-system/<役割>/<部品>/` と同形であり、部品ごとに stories([0054](0054-ui-catalog-storybook.md))の置き場を確保するためにこの粒度を採る
-- **深さの上限は `features/<name>/<screen>/ui/<part>/`** とする。`ui/` の中をさらに種類で掘らない。画面が部品を抱えきれなくなった場合は、`ui/` を深くするのではなく**画面(第 1 軸)を分ける**か、[0021](0021-frontend-responsibility.md) の昇格ルールで `components` へ出す
+- **深さの上限は `features/<name>/<resource>/<screen>/ui/<part>/`** とする。`ui/` の中をさらに種類で掘らない。画面が部品を抱えきれなくなった場合は、`ui/` を深くするのではなく**画面(第 1 軸)を分ける**か、[0021](0021-frontend-responsibility.md) の昇格ルールで `components` へ出す
+- **第 1 軸は 1 段だけ入れ子にしてよい**。`<resource>/` は「この資源に属する画面の束」であり、**第 3 の軸ではなく第 1 軸の再帰**である。第 1 軸は「どの画面が所有するか」を表し、どの画面のものでもないものは 1 段上が所有する —— その 1 段上が feature 全体とは限らず、**同じ資源を扱う画面の集まり**であることがある。feature 直下の `ui/` を認めるのと同じ理屈がもう 1 段だけ働く
+  - **受入条件は「現に 2 つ以上の資源があり、そのうち少なくとも 1 つが 2 つ以上の画面を持つ」こと**。どちらかを欠けば入れ子にせず、`features/<name>/<screen>/` の平坦な形に留める。観測できる事実で決める点は feature 直下の判定と同じで、「後で資源が増えそう」という予測では掘らない
+  - **入れ子は 1 段までとする**。2 段目が要るように見えたら、それは feature の切り方が資源の粒度に合っていない兆候であり、掘るのではなく feature を分ける
+  - この形は、機能スライスを資源で束ねる広く使われている構成(Feature-Sliced Design の slice、App Router のルート単位 co-location)と一致する。**ルーティングの階層と置き場の階層が揃う**ため、URL から置き場を引ける
 - **画面が 1 つの間は第 1 軸を省略してよい**。`features/<name>/` の直下に `page-content.tsx` / `view.tsx` / `ui/` を置く。2 つ目の画面が来た時点で画面ディレクトリへ割る
 - **どの画面にも属さず feature 全体が所有するものは、画面を挟まず feature 直下の性質へ置く**(`features/<name>/ui/<part>/` 等)。これは第 3 の軸ではない。第 1 軸が「**どの画面が所有するか**」を表す以上、どの画面のものでもないものは 1 段上が所有する、という同じ軸の帰結である
   - **判定は「現に 2 つ以上の画面が使っていること」**。禁止する 再利用予定 の軸は「後で使いそう」という**予測**で先に上げることを指す。予測は外れても誰も戻さないため禁じるのであって、**観測できる現在の事実**で置き場を決めることは禁止に当たらない
@@ -118,7 +125,8 @@ src/
 - ❌ テストを `__tests__/` へ一括集約すること(実装の隣に co-location する)
 - ❌ feature / カーネルの境界を跨ぐ相対 import(`../../` で層を跨ぐ)。層跨ぎは `@/*` alias を使う
 - ❌ feature 内を**画面(リソース)と性質以外の軸**で掘ること(種類・レイヤ名・再利用予定など。差し替えの道具が位置を固定する `__mocks__/` だけが例外 —— co-location 方針)
-- ❌ `features/<name>/<screen>/ui/<part>/` より深く掘ること(画面を分けるか `components` へ昇格させる)
+- ❌ `features/<name>/<resource>/<screen>/ui/<part>/` より深く掘ること(画面を分けるか `components` へ昇格させる)
+- ❌ 第 1 軸を 2 段以上入れ子にすること、および受入条件(資源 2 つ以上 かつ いずれかが画面 2 つ以上)を満たさないうちに `<resource>/` を挟むこと
 - ❌ カーネル内をサブディレクトリで種類分けすること(フラット共置。UI 部品の per-folder は種類分けではなく 1 部品 1 ディレクトリ)
 - ❌ 11 カーネルの範囲外の新規ディレクトリを ADR 追補なしに `src/` 直下へ作ること
 - ❌ 共有の受け皿となる汎用フォルダ(`common` / `shared` / `utils` / `lib` 等)を作ること([0021](0021-frontend-responsibility.md) 命名規律)

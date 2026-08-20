@@ -184,7 +184,7 @@ export function AdminProductEditView({
 
       <div>
         <ProductSubmitButton
-          blocked={images.uploading}
+          blocked={images.uploading || images.failed}
           label="更新する"
           pendingLabel="更新しています…"
         />

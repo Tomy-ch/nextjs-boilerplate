@@ -68,5 +68,16 @@ export type UploadProductImageAction = (
  * 「読み込み直す」導線を添えるため、文言そのものが両者の合図になります。**片方に書き写すと、
  * 文言を直した側だけが合図を失います。**
  */
+/**
+ * 版そのものが送られてこなかったときの文言。
+ *
+ * @remarks
+ * {@link PRODUCT_VERSION_CONFLICT_MESSAGE} と別にするのは、起きたことが違うためです。競合は
+ * 「他の人が先に更新した」で、こちらは「画面が版を運べていない」。読み込み直す導線を添えるのは
+ * 競合の側だけで、こちらは開き直してもらうしかありません。
+ */
+export const PRODUCT_VERSION_LOST_MESSAGE =
+  "編集の前提が失われています。画面を開き直してください。";
+
 export const PRODUCT_VERSION_CONFLICT_MESSAGE =
   "この商品は別の人が更新しました。読み込み直して、最新の内容に対して編集し直してください。";
