@@ -17,7 +17,12 @@ export type BrokenLink = {
  * @remarks
  * `](` で始まり `.md` で終わる形に限ります。URL と、同じ木の中を指さない参照は対象外です。
  */
-const DOC_LINK = /\]\((\.\.?\/[^)]+\.md)\)/g;
+const DOC_LINK = /\]\(\.\.?\/[^)]+\.md\)/g;
+
+/** `](` と `)` を落として、中の相対パスだけにする。 */
+function toHref(match: string): string {
+  return match.slice(2, -1);
+}
 
 /**
  * ソースの中から、解決しない文書リンクを拾う。
@@ -37,7 +42,7 @@ export function findBrokenDocLinks(file: string, content: string, root: string):
 
   content.split("\n").forEach((text, index) => {
     for (const match of text.matchAll(DOC_LINK)) {
-      const href = match[1] ?? "";
+      const href = toHref(match[0]);
       const target = normalize(resolve(root, dirname(file), href));
 
       if (!existsSync(target)) broken.push({ file, href, line: index + 1 });
