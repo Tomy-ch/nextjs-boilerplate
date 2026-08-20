@@ -1,17 +1,19 @@
 // Playwright の JSON レポートから、基準画像と食い違った story を取り出す。
 //
-// 取り出した集合は 2 つの用途を持つ。1 つは PR コメントの一覧表、もう 1 つは承認時に
-// 撮り直す範囲で、どちらも同じ集合であることに意味がある。表に出ていない story が承認で
-// 撮り直されると、報告されていない差分が黙って基準画像へ入る。
-import type {
-  JSONReport,
-  JSONReportSpec,
-  JSONReportSuite,
-  JSONReportTest,
-  JSONReportTestResult,
-} from "@playwright/test/reporter";
+// 取り出した集合は 3 つの用途を持つ。PR コメントの一覧表、承認時に撮り直す範囲、そして手元で
+// 見直す範囲で、どれも同じ集合であることに意味がある。表に出ていない story が承認で撮り直され
+// ると、報告されていない差分が黙って基準画像へ入る。
 
 import { BASELINE_TAG } from "../../vrt/lib/expected-baselines.js";
+import {
+  asArray,
+  type JSONAnnotation,
+  type JSONError,
+  type JSONResult,
+  type JSONTest,
+  parseSpecs,
+  tagName,
+} from "../lib/playwright-report.js";
 
 /** 基準画像と食い違った story 1 件。 */
 export type Failure = {
@@ -25,24 +27,6 @@ export type Failure = {
   diffPixels: number | null;
 };
 
-/**
- * 読むときの形。**キーの名前は Playwright の型から導き、値は信用しない。**
- *
- * @remarks
- * 与えられる JSON は外から来るため、どのキーも欠けうるものとして受けます。一方でキーの名前は
- * 実物が決めるので、手で書き写しません。写すと**実在しないキーを宣言できてしまい**、型に守られて
- * いるつもりのまま常に空を読みます。
- */
-type Loose<T> = { [K in keyof T]?: unknown };
-
-type JSONTest = Loose<JSONReportTest>;
-type JSONSpec = Loose<JSONReportSpec>;
-type JSONSuite = Loose<JSONReportSuite>;
-
-/** 入れ子の要素は持ち主の項目から導く。注記の要素型は個別に公開されていないため、両方を揃える。 */
-type JSONAnnotation = Loose<JSONReportTest["annotations"][number]>;
-type JSONError = Loose<JSONReportTestResult["errors"][number]>;
-
 const STORY_ANNOTATION = "story";
 const DIFF_PIXELS_PATTERN = /^\s*(\d+) pixels .* are different\.$/m;
 /** 一覧表に並べる上限。これを超えた分は件数だけを添える。 */
@@ -54,13 +38,13 @@ export const TABLE_LIMIT = 20;
  * @remarks
  * 期待した形でなければ例外を投げます。0 件へ縮退させると、レポートの形が変わったときに
  * 「差分なし」と読めてしまい、承認の範囲も空になります。
+ *
+ * @param json - Playwright の JSON レポート
  */
 export function collectFailures(json: string): Failure[] {
-  const report = JSON.parse(json) as Loose<JSONReport>;
-  if (!Array.isArray(report.suites)) throw new Error("JSON レポートに suites がありません");
-
   const failures: Failure[] = [];
-  for (const spec of flattenSpecs(report.suites as JSONSuite[])) {
+
+  for (const spec of parseSpecs(json)) {
     for (const test of asArray<JSONTest>(spec.tests)) {
       if (test.status === "expected") continue;
       const id = storyID(test.annotations);
@@ -104,17 +88,6 @@ export function formatTable(failures: Failure[]): string {
 }
 
 /**
- * tag をレポートに載る形へ揃える。
- *
- * @remarks
- * 宣言は `@` 付きで書きますが、レポートには `@` の無い名前で載ります。宣言の綴りのまま突き合わせ
- * ると、どの tag にも当たりません。
- */
-function tagName(tag: string): string {
-  return tag.startsWith("@") ? tag.slice(1) : tag;
-}
-
-/**
  * 基準画像と撮影対象の 1 対 1 対応が落ちたか。
  *
  * @remarks
@@ -124,10 +97,7 @@ function tagName(tag: string): string {
  * @param json - Playwright の JSON レポート
  */
 export function hasBaselineFailure(json: string): boolean {
-  const report = JSON.parse(json) as Loose<JSONReport>;
-  if (!Array.isArray(report.suites)) throw new Error("JSON レポートに suites がありません");
-
-  const checks = flattenSpecs(report.suites as JSONSuite[]).filter((spec) =>
+  const checks = parseSpecs(json).filter((spec) =>
     asArray<string>(spec.tags).some((tag) => tagName(tag) === tagName(BASELINE_TAG)),
   );
 
@@ -150,17 +120,6 @@ export function formatStoryIDs(failures: Failure[]): string {
   return [...new Set(failures.map((failure) => failure.id))].sort().join(",");
 }
 
-// suites は入れ子になる。spec は葉にしか無いので、たどって平らにする。
-function flattenSpecs(suites: JSONSuite[]): JSONSpec[] {
-  const specs: JSONSpec[] = [];
-  for (const suite of suites) {
-    specs.push(...asArray<JSONSpec>(suite.specs));
-    specs.push(...flattenSpecs(asArray<JSONSuite>(suite.suites)));
-  }
-
-  return specs;
-}
-
 // 注記から story の id を取る。注記が無いものは VRT の対象外なので飛ばす。
 function storyID(annotations: unknown): string | null {
   for (const annotation of asArray<JSONAnnotation>(annotations)) {
@@ -174,7 +133,7 @@ function storyID(annotations: unknown): string | null {
 
 // 食い違った画素数はエラー本文にしか出ない。取れなくても報告は続ける（件数と id は分かる）。
 function diffPixels(results: unknown): number | null {
-  for (const result of asArray<Loose<JSONReportTestResult>>(results)) {
+  for (const result of asArray<JSONResult>(results)) {
     for (const error of asArray<JSONError>(result.errors)) {
       if (typeof error.message !== "string") continue;
       const match = DIFF_PIXELS_PATTERN.exec(error.message);
@@ -187,8 +146,4 @@ function diffPixels(results: unknown): number | null {
 
 function formatPixels(pixels: number | null): string {
   return pixels === null ? "—" : `${pixels.toLocaleString("en-US")} px`;
-}
-
-function asArray<T>(value: unknown): T[] {
-  return Array.isArray(value) ? (value as T[]) : [];
 }
