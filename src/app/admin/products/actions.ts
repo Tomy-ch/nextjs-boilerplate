@@ -68,8 +68,9 @@ function revalidateProducts(): void {
  * 画像を 1 件アップロードする。
  *
  * @remarks
- * app 層に置くのは、役割の確認が `adapters/server/auth` の領分で、そこへ触れてよいのが app 層
- * だからです（`architecture.ts` の `adapters-auth`）。画面の側は送信先を受け取るだけです。
+ * 置き場の判断（主体の断言が要る action は app 層）は
+ * [0025](../../../../docs/adr/0025-app-layer-elements.md) の `app/server-action`。画面の側は
+ * 送信先を受け取るだけです。
  *
  * **画面から受け取った時点でもう一度確かめます。** 送る前の判定はブラウザ側にあり、送信者が
  * 差し替えられます。署名付き URL の経路なら署名ポリシーが担っていた層がここには無いため、
