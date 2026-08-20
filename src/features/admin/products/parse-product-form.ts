@@ -103,6 +103,13 @@ type CommonFields = {
  * **判定と文言は {@link PRODUCT_FIELD_RULES} が持ちます。**同じ判定を画面の側も通るため、ここへ
  * 書き写すと同じ誤りに 2 通りの言い方が生まれ、片方だけを直せます。
  */
+/** 判定を掛けずに、項目の値だけを読む。 */
+function read(form: FormData, field: ProductValidatedField): string {
+  const raw = form.get(PRODUCT_FORM_NAMES[field]);
+
+  return (typeof raw === "string" ? raw : "").trim();
+}
+
 function check(
   form: FormData,
   field: ProductValidatedField,
@@ -120,14 +127,16 @@ function check(
 function parseCommon(form: FormData): CommonFields {
   const fieldErrors: Record<string, readonly string[]> = {};
 
-  // 名簿を回して読む。1 件ずつ書き並べると、項目を足したときに書き漏らした項目だけが
-  // 判定を通らずに素通しする。
-  const values = Object.fromEntries(
-    PRODUCT_COMMON_VALIDATED_FIELDS.map((field) => [field, check(form, field, fieldErrors)]),
-  ) as Readonly<Record<Exclude<ProductValidatedField, "quantity">, string>>;
+  // 判定は名簿を回して掛ける。1 件ずつ書き並べると、項目を足したときに書き漏らした項目だけが
+  // 判定を通らずに素通しする。値の写し方は項目ごとに違うので、そちらは下で個別に読む。
+  for (const field of PRODUCT_COMMON_VALIDATED_FIELDS) check(form, field, fieldErrors);
 
-  const { categoryId, name, price, statusId, publishedAt } = values;
-  const threshold = values.stockWarningThreshold;
+  const name = read(form, "name");
+  const price = read(form, "price");
+  const categoryId = read(form, "categoryId");
+  const statusId = read(form, "statusId");
+  const threshold = read(form, "stockWarningThreshold");
+  const publishedAt = read(form, "publishedAt");
   // 形として読めないことは規則が既に言っている。重ねて言うと、同じ項目に 2 つの文言が並ぶ。
   const instant =
     publishedAt === "" || fieldErrors.publishedAt !== undefined

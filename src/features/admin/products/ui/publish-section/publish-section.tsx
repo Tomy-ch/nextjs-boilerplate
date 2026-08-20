@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
 
@@ -9,6 +9,35 @@ import type { ProductFormValues } from "../../use-product-values";
 import type { ProductSelectOption } from "../select-field/select-field";
 import { ProductSelectField } from "../select-field/select-field";
 import { ProductTextField } from "../text-field/text-field";
+
+/** 時差は変わらない。購読しないので、解除も何もしない。 */
+function subscribeToNothing(): () => void {
+  return () => undefined;
+}
+
+/** 描き終えた側の時差。server では持たない。 */
+function readTimezoneOffset(): number {
+  return new Date().getTimezoneOffset();
+}
+
+/** server では持たない。時差は描いた場所の話で、server の時差を送っても意味が無い。 */
+function readNothing(): undefined {
+  return undefined;
+}
+
+/**
+ * 入力した本人の時差を読む。
+ *
+ * @remarks
+ * 入力された壁時計をどの時差で読むかは、入力した本人の環境にしか無い情報です。載せないと、
+ * 受け口は配備先の時差で読み、その差ぶんずれた瞬間が保存されます。
+ *
+ * server と client で違う値になるため、`useSyncExternalStore` で「server では持たない」ことを
+ * 明示します。effect で後から入れると、描画のたびにもう 1 周させることになります。
+ */
+function useTimezoneOffset(): number | undefined {
+  return useSyncExternalStore(subscribeToNothing, readTimezoneOffset, readNothing);
+}
 
 /** `ProductPublishSection` の props。 */
 export type ProductPublishSectionProps = {
@@ -54,14 +83,7 @@ export function ProductPublishSection({
   );
   const leavePublishedAt = useCallback(() => touch("publishedAt"), [touch]);
 
-  // 入力された壁時計をどの時差で読むかは、入力した本人の環境にしか無い。載せないと、受け口は
-  // 配備先の時差で読み、その差ぶんずれた瞬間が保存される。
-  // 初回描画では持たない —— server と client で違う値になり、hydration が食い違う。
-  const [timezoneOffset, setTimezoneOffset] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    setTimezoneOffset(new Date().getTimezoneOffset());
-  }, []);
+  const timezoneOffset = useTimezoneOffset();
   const unpublish = useCallback(() => setValue("publishedAt", ""), [setValue]);
 
   return (
