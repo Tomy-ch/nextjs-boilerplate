@@ -41,6 +41,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/app/api/purchases",
   // 題材に固有のカーネルモジュール
   "src/model/cart",
+  "src/model/dashboard",
   "src/model/product",
   "src/model/purchase",
   "src/model/user",

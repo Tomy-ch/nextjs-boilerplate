@@ -48,7 +48,7 @@ export function AdminShellMenu({ groups }: AdminShellMenuProps) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" className="md:hidden" aria-label="メニューを開く">
+        <Button variant="ghost" size="sm" className="lg:hidden" aria-label="メニューを開く">
           <MenuIcon aria-hidden="true" />
         </Button>
       </SheetTrigger>

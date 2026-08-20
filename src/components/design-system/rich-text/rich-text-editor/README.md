@@ -16,6 +16,8 @@
 | `RICH_TEXT_EDITOR_COMMAND_ACTIONS` | 区切り線の挿入・取り消し・やり直しなど、適用状態を持たない toolbar の操作です。 |
 | `isRichTextHrefAllowed` | `a` の `href` として書ける値かどうかを判定します。 |
 
+toolbar の右端に**プレビュー**の切り替えを持ちます。押している間は書式の操作を出さず、書いた内容を読者に届くのと同じ形で見せます。
+
 主な props は次のとおりです。
 
 | props | 役割 |
@@ -43,6 +45,10 @@
 | 保存・受け渡し | HTML 文字列 | 呼び出し元の form / Server Action / backend |
 | 検査 | HTML 文字列 → `SanitizedRichText` | [`model/rich-text/`](../../../model/rich-text/README.md) の `SanitizedRichText.from` |
 | 表示 | `SanitizedRichText` | [`RichTextContent`](../rich-text-content/README.md)（Server Component） |
+
+プレビューも表示側と同じ経路を通ります。`SanitizedRichText.from` を通して [`RichTextContent`](../rich-text-content/README.md) で描くため、**プレビューで見えないものは保存しても表示されません**。編集面の見た目をそのまま拡大するのではなく、allowlist を通した後の姿を見せるのが目的です。
+
+編集面は隠すだけで DOM から外しません。外すと editor の内部状態が壊れ、戻ったときに書きかけが失われます。
 
 **sanitize は表示の直前に行います。** 保存のときに一度通しただけの値を、以後ずっと検査済みとして扱わないでください。保存先の内容が別の経路で書き換わることも、allowlist を狭めたあとに古い内容が残ることもあるためです。`SanitizedRichText` の構築経路が `from` だけに絞られているのは、この順序を型で強制するためです。
 

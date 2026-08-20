@@ -26,3 +26,15 @@ export type UploadPreviewItem = {
    */
   preview?: File | string;
 };
+
+/** 選択中のファイルの並べ方。 */
+export const UPLOAD_PREVIEW_ORIENTATION = {
+  /** 縦の一覧。件ごとの補足まで読ませたい場合に使う。 */
+  LIST: "list",
+  /** 横の束。件数が増えても縦を取らせたくない場合に使う。 */
+  ROW: "row",
+} as const;
+
+/** 並べ方の値。 */
+export type UploadPreviewOrientation =
+  (typeof UPLOAD_PREVIEW_ORIENTATION)[keyof typeof UPLOAD_PREVIEW_ORIENTATION];

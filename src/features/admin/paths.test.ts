@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { toProductId } from "@/model/product/product";
 
-import { adminProductEditPath, adminProductStockPath } from "./paths";
+import { adminProductEditPath, adminProductStockPath, productDetailPath } from "./paths";
 
 const ID = toProductId("0195f0c2-0000-7000-8000-000000000001");
 
@@ -17,5 +17,16 @@ describe("adminProductStockPath", () => {
   // ----- 正常系 -----
   it("商品の在庫補充画面を指す", () => {
     expect(adminProductStockPath(ID)).toBe(`/admin/products/${ID}/stock`);
+  });
+});
+
+describe("productDetailPath", () => {
+  // ----- 正常系 -----
+  it("利用者向けの商品の面を指す", () => {
+    expect(productDetailPath(ID)).toBe(`/products/${ID}`);
+  });
+
+  it("id に URL で意味を持つ文字が含まれても壊れない", () => {
+    expect(productDetailPath(toProductId("a/b?c"))).toBe("/products/a%2Fb%3Fc");
   });
 });

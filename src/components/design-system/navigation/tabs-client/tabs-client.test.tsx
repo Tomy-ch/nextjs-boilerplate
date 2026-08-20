@@ -25,6 +25,24 @@ function Fixture({ defaultValue = "summary" }: { defaultValue?: string }) {
   );
 }
 
+/** 入力途中の値を保つため、すべてのパネルを DOM へ残した組み。 */
+function ForcedFixture({ hideUnselected = false }: { hideUnselected?: boolean }) {
+  return (
+    <TabsClient defaultValue="summary">
+      <TabsClientList aria-label="表示する観点">
+        <TabsClientTrigger value="summary">サマリ</TabsClientTrigger>
+        <TabsClientTrigger value="detail">明細</TabsClientTrigger>
+      </TabsClientList>
+      <TabsClientContent forceMount={true} hidden={false} value="summary">
+        <input defaultValue="書きかけ" name="summary" />
+      </TabsClientContent>
+      <TabsClientContent forceMount={true} hidden={hideUnselected} value="detail">
+        <input defaultValue="こちらも" name="detail" />
+      </TabsClientContent>
+    </TabsClient>
+  );
+}
+
 describe("TabsClient", () => {
   it("tablist と tab の意味論を持ち、tablist に名前を与えられる", () => {
     render(<Fixture />);
@@ -45,6 +63,21 @@ describe("TabsClient", () => {
 
     expect(screen.getByRole("tabpanel")).toHaveTextContent("サマリの内容です。");
     expect(screen.queryByText("明細の内容です。")).not.toBeInTheDocument();
+  });
+
+  it("DOM へ残す指定では、選んでいないパネルの入力も送信に残る", () => {
+    render(<ForcedFixture />);
+
+    expect(screen.getByDisplayValue("こちらも")).toBeInTheDocument();
+  });
+
+  it("DOM へ残す指定でも、隠す指定を渡せば表示から外れる", () => {
+    render(<ForcedFixture hideUnselected={true} />);
+
+    const [summary, detail] = screen.getAllByRole("tabpanel", { hidden: true });
+
+    expect(summary).toBeVisible();
+    expect(detail).not.toBeVisible();
   });
 
   it("tab を選ぶと表示するパネルが入れ替わる", () => {

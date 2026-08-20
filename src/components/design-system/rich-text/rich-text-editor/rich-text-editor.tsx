@@ -2,15 +2,17 @@
 
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
-import { LinkIcon, UnlinkIcon } from "lucide-react";
+import { EyeIcon, LinkIcon, UnlinkIcon } from "lucide-react";
 import { type ChangeEvent, type KeyboardEvent, useCallback, useId, useState } from "react";
 
 import { cn } from "@/components/cn";
+import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 import { Button } from "../../action/button/button";
 import { BUTTON_SIZE, BUTTON_VARIANT } from "../../action/button/button.definition";
 import { Toggle } from "../../action/toggle/toggle";
 import { Input } from "../../form/input/input";
 import { Label } from "../../form/label/label";
+import { RichTextContent } from "../rich-text-content/rich-text-content";
 import {
   isRichTextHrefAllowed,
   RICH_TEXT_EDITOR_BLOCK_ACTIONS,
@@ -116,12 +118,18 @@ function RichTextEditorFrame({ className, editor }: { className?: string; editor
   const linkInputId = useId();
   const linkErrorId = useId();
   const [isLinkFormOpen, setIsLinkFormOpen] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [linkHref, setLinkHref] = useState("");
   const [hasLinkError, setHasLinkError] = useState(false);
   const isLinkActive = useEditorState({
     editor,
     selector: (state) => state.editor.isActive("link"),
   });
+
+  const togglePreview = useCallback(() => {
+    setIsLinkFormOpen(false);
+    setIsPreviewing((current) => !current);
+  }, []);
 
   const toggleLinkForm = useCallback(() => {
     setHasLinkError(false);
@@ -175,45 +183,52 @@ function RichTextEditorFrame({ className, editor }: { className?: string; editor
     [applyLink],
   );
 
+  const commandActions = isPreviewing
+    ? null
+    : RICH_TEXT_EDITOR_COMMAND_ACTIONS.map((action) => (
+        <RichTextEditorCommand action={action} editor={editor} key={action.id} />
+      ));
+
   const linkErrorMessage = hasLinkError ? (
     <p className="text-destructive text-sm" id={linkErrorId}>
       http / https / mailto から始まる URL か、スラッシュで始まるアプリ内のパスを入力してください。
     </p>
   ) : null;
 
-  const linkForm = isLinkFormOpen ? (
-    <div className="flex flex-col gap-2 border-border border-b px-3 py-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <Label htmlFor={linkInputId}>リンク先</Label>
-        <Input
-          aria-describedby={hasLinkError ? linkErrorId : undefined}
-          aria-invalid={hasLinkError}
-          className="w-64 max-w-full"
-          id={linkInputId}
-          onChange={changeLinkHref}
-          onKeyDown={handleLinkKeyDown}
-          type="url"
-          value={linkHref}
-        />
-        <Button onClick={applyLink} size={BUTTON_SIZE.SMALL} type="button">
-          適用
-        </Button>
-        <Button
-          aria-label="リンクを解除"
-          className={TOOLBAR_BUTTON_CLASS_NAME}
-          disabled={!isLinkActive}
-          onClick={removeLink}
-          size={BUTTON_SIZE.SMALL}
-          title="リンクを解除"
-          type="button"
-          variant={BUTTON_VARIANT.GHOST}
-        >
-          <UnlinkIcon aria-hidden="true" />
-        </Button>
+  const linkForm =
+    isLinkFormOpen && !isPreviewing ? (
+      <div className="flex flex-col gap-2 border-border border-b px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Label htmlFor={linkInputId}>リンク先</Label>
+          <Input
+            aria-describedby={hasLinkError ? linkErrorId : undefined}
+            aria-invalid={hasLinkError}
+            className="w-64 max-w-full"
+            id={linkInputId}
+            onChange={changeLinkHref}
+            onKeyDown={handleLinkKeyDown}
+            type="url"
+            value={linkHref}
+          />
+          <Button onClick={applyLink} size={BUTTON_SIZE.SMALL} type="button">
+            適用
+          </Button>
+          <Button
+            aria-label="リンクを解除"
+            className={TOOLBAR_BUTTON_CLASS_NAME}
+            disabled={!isLinkActive}
+            onClick={removeLink}
+            size={BUTTON_SIZE.SMALL}
+            title="リンクを解除"
+            type="button"
+            variant={BUTTON_VARIANT.GHOST}
+          >
+            <UnlinkIcon aria-hidden="true" />
+          </Button>
+        </div>
+        {linkErrorMessage}
       </div>
-      {linkErrorMessage}
-    </div>
-  ) : null;
+    ) : null;
 
   return (
     <div
@@ -226,29 +241,49 @@ function RichTextEditorFrame({ className, editor }: { className?: string; editor
         data-slot="rich-text-editor-toolbar"
         role="toolbar"
       >
-        {RICH_TEXT_EDITOR_MARK_ACTIONS.map((action) => (
-          <RichTextEditorToggle action={action} editor={editor} key={action.id} />
-        ))}
-        {RICH_TEXT_EDITOR_BLOCK_ACTIONS.map((action) => (
-          <RichTextEditorToggle action={action} editor={editor} key={action.id} />
-        ))}
+        {isPreviewing
+          ? null
+          : RICH_TEXT_EDITOR_MARK_ACTIONS.map((action) => (
+              <RichTextEditorToggle action={action} editor={editor} key={action.id} />
+            ))}
+        {isPreviewing
+          ? null
+          : RICH_TEXT_EDITOR_BLOCK_ACTIONS.map((action) => (
+              <RichTextEditorToggle action={action} editor={editor} key={action.id} />
+            ))}
+        {isPreviewing ? null : (
+          <Toggle
+            aria-expanded={isLinkFormOpen}
+            aria-label="リンク"
+            className={TOOLBAR_BUTTON_CLASS_NAME}
+            data-slot="rich-text-editor-link"
+            onClick={toggleLinkForm}
+            pressed={isLinkActive}
+            title="リンク"
+          >
+            <LinkIcon aria-hidden="true" />
+          </Toggle>
+        )}
+        {commandActions}
         <Toggle
-          aria-expanded={isLinkFormOpen}
-          aria-label="リンク"
-          className={TOOLBAR_BUTTON_CLASS_NAME}
-          data-slot="rich-text-editor-link"
-          onClick={toggleLinkForm}
-          pressed={isLinkActive}
-          title="リンク"
+          aria-label="プレビュー"
+          className={cn(TOOLBAR_BUTTON_CLASS_NAME, "ms-auto")}
+          data-slot="rich-text-editor-preview"
+          onClick={togglePreview}
+          pressed={isPreviewing}
+          title="プレビュー"
         >
-          <LinkIcon aria-hidden="true" />
+          <EyeIcon aria-hidden="true" />
         </Toggle>
-        {RICH_TEXT_EDITOR_COMMAND_ACTIONS.map((action) => (
-          <RichTextEditorCommand action={action} editor={editor} key={action.id} />
-        ))}
       </div>
       {linkForm}
-      <EditorContent editor={editor} />
+      {/* 編集面は DOM へ残す。外すと editor の view が壊れ、戻ったときに書きかけが失われる。 */}
+      <div hidden={isPreviewing}>
+        <EditorContent editor={editor} />
+      </div>
+      {isPreviewing ? (
+        <RichTextContent className="px-3 py-2" content={SanitizedRichText.from(editor.getHTML())} />
+      ) : null}
     </div>
   );
 }

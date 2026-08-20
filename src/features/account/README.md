@@ -46,7 +46,6 @@ test-requirement: feature
 | `edit/use-profile-fields.ts` | 検証を回し、入力欄 1 つぶんの props を組む |
 | `edit/use-address-completion.ts` | 郵便番号から住所を引き、埋める値を決める |
 | `edit/use-address-field.ts` | 補完をフォームへ当てる。blur の包み方と埋める先 |
-| `edit/field-attributes.ts` | 入力欄そのものへ与える a11y 属性を組む |
 | `edit/ui/profile-form/` | 並び。client island |
 | `edit/ui/text-field/` | 1 行入力の項目 |
 | `edit/ui/prefecture-field/` | 都道府県の項目。候補は静的なので native の select で出す |
@@ -65,7 +64,6 @@ test-requirement: feature
 | 検証を回し props を組む | `use-profile-fields.ts` | この画面の項目が増減したとき |
 | 住所を引く | `use-address-completion.ts` | 補完の契約や打ち切りの仕方 |
 | 補完をフォームへ当てる | `use-address-field.ts` | どの項目へ埋めるか |
-| 入力欄へ与える属性 | `field-attributes.ts` | a11y の配線が変わったとき |
 | 入力を解く | `parse-profile-form.ts` | 送信の形（`FormData`）が変わったとき |
 | 送信を編成する | `actions.ts` | 更新の手順が変わったとき |
 | 並び | `ui/profile-form/` | 見た目 |

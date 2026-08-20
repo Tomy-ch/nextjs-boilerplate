@@ -11,6 +11,7 @@ function formDataOf(overrides: Readonly<Record<string, string>> = {}): FormData 
   formData.set("role", SESSION_ROLE.user);
   formData.set("expiresInSeconds", "3600");
   formData.set("accessToken", "");
+  formData.set("issuerUrl", "https://idp.example.test");
 
   for (const [key, value] of Object.entries(overrides)) {
     formData.set(key, value);
@@ -24,7 +25,12 @@ describe("parseDevSessionForm", () => {
   it("発行に渡せる形へ解く", () => {
     expect(parseDevSessionForm(formDataOf())).toEqual({
       ok: true,
-      input: { subject: "dev-user", role: SESSION_ROLE.user, expiresInSeconds: 3600 },
+      input: {
+        subject: "dev-user",
+        role: SESSION_ROLE.user,
+        expiresInSeconds: 3600,
+        issueAccessToken: false,
+      },
     });
   });
 
@@ -32,6 +38,30 @@ describe("parseDevSessionForm", () => {
     const result = parseDevSessionForm(formDataOf({ accessToken: " real-token " }));
 
     expect(result).toMatchObject({ ok: true, input: { accessToken: "real-token" } });
+  });
+
+  it("取りに行く指定と、その接続先を伝える", () => {
+    const result = parseDevSessionForm(formDataOf({ issueAccessToken: "on" }));
+
+    expect(result).toMatchObject({
+      ok: true,
+      input: { issueAccessToken: true, issuer: "https://idp.example.test" },
+    });
+  });
+
+  it("取りに行くときは、切り替える前に打たれた値を捨てる", () => {
+    const result = parseDevSessionForm(
+      formDataOf({ issueAccessToken: "on", accessToken: "stale-token" }),
+    );
+
+    expect(result).toMatchObject({ ok: true, input: { issueAccessToken: true } });
+    expect(result).not.toMatchObject({ input: { accessToken: expect.anything() } });
+  });
+
+  it("取りに行かないときは、接続先を持ち回らない", () => {
+    const result = parseDevSessionForm(formDataOf());
+
+    expect(result).not.toMatchObject({ input: { issuer: expect.anything() } });
   });
 
   it("管理者としても発行できる", () => {
@@ -59,6 +89,19 @@ describe("parseDevSessionForm", () => {
       fieldErrors: { subject: ["誰として入るかを指定してください。"] },
       ok: false,
     });
+  });
+
+  it("取りに行くのに接続先が URL でなければ受け付けない", () => {
+    const result = parseDevSessionForm(formDataOf({ issueAccessToken: "on", issuerUrl: "2013" }));
+
+    expect(result).toMatchObject({
+      fieldErrors: { issuerUrl: ["接続先を URL で指定してください。"] },
+      ok: false,
+    });
+  });
+
+  it("取りに行かないなら、接続先が空でも受け付ける", () => {
+    expect(parseDevSessionForm(formDataOf({ issuerUrl: "" }))).toMatchObject({ ok: true });
   });
 
   it("役割が集合の外なら受け付けない", () => {

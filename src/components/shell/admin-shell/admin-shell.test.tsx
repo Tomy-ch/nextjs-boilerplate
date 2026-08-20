@@ -76,6 +76,18 @@ describe("AdminShell", () => {
     expect(screen.queryByText("ログイン中")).not.toBeInTheDocument();
   });
 
+  it("本文の先頭へ渡された階層を出す", () => {
+    renderShell({ breadcrumb: <p>商品一覧 &gt; 新規作成</p> });
+
+    expect(screen.getByText("商品一覧 > 新規作成")).toBeInTheDocument();
+  });
+
+  it("階層へ何も渡さなければその区画を作らない", () => {
+    renderShell();
+
+    expect(screen.queryByText("商品一覧 > 新規作成")).not.toBeInTheDocument();
+  });
+
   it("main へ class 名を渡せる", () => {
     renderShell({ className: "py-8" });
 

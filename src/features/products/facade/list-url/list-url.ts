@@ -38,6 +38,25 @@ export const FILTER_KEY: Readonly<{
   MAX_QUANTITY: "maxQuantity",
   SORT: "sort",
 };
+/**
+ * キーを画面上の呼び名へ直す表。
+ *
+ * @remarks
+ * キーを持っているのはこの層なので、呼び名も同じ場所に置きます。表示する側が写しを持つと、
+ * 契約にキーが増えたときに生の名前が出る画面と出ない画面に割れます。
+ */
+export const LIST_KEY_LABEL: Readonly<Record<string, string>> = {
+  [FILTER_KEY.CATEGORY]: "カテゴリ",
+  [FILTER_KEY.STATUS]: "状態",
+  [FILTER_KEY.KEYWORD]: "キーワード",
+  [FILTER_KEY.MIN_PRICE]: "価格の下限",
+  [FILTER_KEY.MAX_PRICE]: "価格の上限",
+  [FILTER_KEY.MIN_QUANTITY]: "在庫数の下限",
+  [FILTER_KEY.MAX_QUANTITY]: "在庫数の上限",
+  [FILTER_KEY.SORT]: "並び替え",
+  [CURSOR_KEY]: "読み込み位置",
+  [COUNT_KEY]: "読み込む件数",
+};
 
 /**
  * 複数の値を受け取れる条件のキー。

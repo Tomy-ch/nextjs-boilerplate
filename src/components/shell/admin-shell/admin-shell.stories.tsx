@@ -1,8 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import Link from "next/link";
 import { userEvent, within } from "storybook/test";
-
 import { Button } from "@/components/design-system/action/button/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/design-system/navigation/breadcrumb/breadcrumb";
 
 import { ContentContainer } from "../content-container/content-container";
 import { AdminShell } from "./admin-shell";
@@ -90,6 +97,39 @@ export const NavGroupClosed: Story = {
 export const WithNavFooter: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: { navFooter: <p>ログイン中: admin@example.com</p> },
+};
+
+/** 本文の先頭に現在地までの階層を置いた状態。左端が本文と揃う。 */
+export const WithBreadcrumb: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  args: {
+    breadcrumb: (
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/admin/products">商品一覧管理</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>新規作成</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+    ),
+  },
+};
+
+/** タブレット。この帯も脇に幅を割けないので、常設せず overlay へ畳む。 */
+export const Tablet: Story = {
+  globals: { viewport: { value: "tablet", isRotated: false } },
+};
+
+/** タブレットで overlay を開いた状態。出す導線はスマホ・PC と同じ。 */
+export const MenuOpenTablet: Story = {
+  globals: { viewport: { value: "tablet", isRotated: false } },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "メニューを開く" }));
+  },
 };
 
 /** 脇に一覧を持てない幅。導線は overlay へ畳まれ、header に開く操作だけが残る。 */

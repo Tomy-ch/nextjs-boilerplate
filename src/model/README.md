@@ -31,6 +31,7 @@ test-requirement: unit
 | `action-state.ts` | Server Action が画面へ返す結果の器。項目エラー・フォームエラー・成功値 |
 | `money.ts` | 最小単位の整数で持つ金額を、locale に沿った通貨表記へ整える |
 | `cart/cart.ts` | サンプル画面が扱うカートの表示用の型 <!-- sample:line --> |
+| `dashboard/dashboard.ts` | サンプル画面が扱う管理側の横断集計の表示用の型と、集計対象期間の語彙 <!-- sample:line --> |
 | `product/product.ts` | サンプル画面が扱う商品の表示用の型 <!-- sample:line --> |
 | `purchase/purchase.ts` | サンプル画面が扱う購入履歴の表示用の型 <!-- sample:line --> |
 | `user/` | サンプル画面が扱う利用者の表示用の型と、プロフィール入力の表示検証 <!-- sample:line --> |

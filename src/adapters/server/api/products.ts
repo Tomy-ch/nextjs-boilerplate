@@ -8,13 +8,15 @@ import { getHttpConfig } from "@/config/http/http.server";
 import type { CursorPage } from "@/model/pagination";
 import type {
   Product,
+  ProductDraft,
+  ProductEdit,
   ProductId,
+  ProductImageDraft,
   ProductListItem,
   ProductPage,
   ProductRankingEntry,
 } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
-
 import {
   GetProductsCountResponse,
   GetProductsDetailResponse,
@@ -23,7 +25,11 @@ import {
   GetProductsRankingResponse,
   GetProductsResponse,
   getProductsQueryCategoryCodesMax,
+  PatchProductsDetailResponse,
+  PostProductsImagesResponse,
+  PostProductsResponse,
 } from "../../gen/api/endpoints.zod";
+import type { ProductPatchRequest, ProductsPostRequest } from "../../gen/api/model";
 import { createHttpClient, type HttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
 
@@ -223,6 +229,7 @@ export function toProduct(wire: WireProduct): Product {
     publishedAt: wire.publishedAt === null ? null : new Date(wire.publishedAt),
     // 契約が displaySort 昇順で返すため、受け取った順序がそのまま表示の順序になる。
     imagePaths: wire.images.map((image) => image.imagePath),
+    version: wire.version,
   };
 }
 
@@ -379,3 +386,96 @@ export const getProduct = cache(async (id: ProductId): Promise<Product> => {
 
   return toProduct(product);
 });
+
+/** 画像 1 件を契約の形へ写す。 */
+function toWireImage(image: ProductImageDraft) {
+  return { imagePath: image.imagePath, displaySort: image.displaySort };
+}
+
+/** 公開日時を契約の形へ写す。未公開は null のまま送る。 */
+function toWirePublishedAt(publishedAt: Date | null): string | null {
+  return publishedAt === null ? null : publishedAt.toISOString();
+}
+
+/**
+ * 画像を 1 件アップロードし、保存されたオブジェクトキーを返す。
+ *
+ * @remarks
+ * 受け口が multipart しか持たないため、この経路を通します
+ * （[0075](../../../../docs/adr/0075-file-upload-seam.md)）。**再送しません** —— 同じ本文を
+ * 二度送れば別のキーで二重に保存され、片方が誰からも参照されないまま残ります。
+ *
+ * 返るのはキーだけで、表示 URL はここでは組みません。組み立てに要る配信元は表示側の関心です。
+ */
+export async function uploadProductImage(image: File): Promise<string> {
+  const body = new FormData();
+  body.append("image", image);
+
+  const { imagePath } = await getClient().request({
+    path: "/v1/products/images",
+    method: "POST",
+    multipart: body,
+    schema: PostProductsImagesResponse,
+  });
+
+  return imagePath;
+}
+
+/**
+ * 商品を作る。
+ *
+ * @remarks
+ * 自然キーを持たないため**再送しません**。同じ本文を二度送れば商品が 2 件できます。
+ */
+export async function createProduct(draft: ProductDraft): Promise<Product> {
+  const wire = await getClient().request({
+    path: "/v1/products",
+    method: "POST",
+    body: {
+      name: draft.name,
+      description: draft.description,
+      price: draft.price,
+      quantity: draft.quantity,
+      stockWarningThreshold: draft.stockWarningThreshold,
+      categoryId: draft.categoryId,
+      statusId: draft.statusId,
+      publishedAt: toWirePublishedAt(draft.publishedAt),
+      images: draft.images.map(toWireImage),
+    } satisfies ProductsPostRequest,
+    schema: PostProductsResponse,
+  });
+
+  return toProduct(wire);
+}
+
+/**
+ * 商品を更新する。
+ *
+ * @remarks
+ * 在庫数を送りません。在庫は加算で動かす別の口が持ちます。
+ *
+ * 画像は**集合ごと置き換わります**。差分ではないため、残したい画像も併せて送ります。
+ *
+ * 版が現在値と食い違えば wrapper が `conflict` へ正規化します。呼び出し側はそれを、取り直して
+ * から送り直す合図として扱います。
+ */
+export async function updateProduct(id: ProductId, edit: ProductEdit): Promise<Product> {
+  const wire = await getClient().request({
+    path: `/v1/products/${encodeURIComponent(id)}`,
+    method: "PATCH",
+    body: {
+      version: edit.version,
+      name: edit.name,
+      description: edit.description,
+      price: edit.price,
+      stockWarningThreshold: edit.stockWarningThreshold,
+      categoryId: edit.categoryId,
+      statusId: edit.statusId,
+      publishedAt: toWirePublishedAt(edit.publishedAt),
+      images: edit.images.map(toWireImage),
+    } satisfies ProductPatchRequest,
+    schema: PatchProductsDetailResponse,
+  });
+
+  return toProduct(wire);
+}
