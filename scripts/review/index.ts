@@ -18,12 +18,12 @@ import type { Server } from "node:http";
 import { connect, createServer } from "node:net";
 import path from "node:path";
 
+import { DEV_SESSION_PATH, DEV_SESSION_RETURN_PARAM } from "../../e2e/lib/dev-session.js";
 import { SCREENS } from "../../e2e/lib/screens.js";
-import { DEV_SESSION_PATH, RETURN_URL_PARAM } from "../../src/features/dev-session/paths.js";
 import { createStaticServer } from "../../vrt/lib/static-server.js";
 import { isCommandOnPath } from "../lib/command-presence.js";
 import { errorMessage } from "../lib/error-message.js";
-import { formatLinks, screenLinks, storyLinks } from "./links.js";
+import { announce, type ReviewLink, screenLinks, storyLinks } from "./links.js";
 import {
   assertPlainArgument,
   parseOnly,
@@ -50,8 +50,17 @@ const ARTIFACT_DIR = "tmp/review-artifact";
 /** サーバが応答を返すまで待つ上限（秒）。 */
 const BOOT_TIMEOUT = 120;
 
+/** 起動待ちの 1 回の要求を諦めるまで（ミリ秒）。 */
+const ATTEMPT_TIMEOUT = 5_000;
+
+/** 起動待ちを繰り返す間隔（ミリ秒）。 */
+const RETRY_INTERVAL = 1_000;
+
+/** 立てるサーバの待ち受け先。この木の外から読めるものを増やさない。 */
+const LOOPBACK_HOST = "127.0.0.1";
+
 /** ブラウザが `localhost` で辿りうる宛先。どちらか片方でも応答するなら、そのポートは使えない。 */
-const LOOPBACK = ["127.0.0.1", "::1"] as const;
+const LOOPBACK = [LOOPBACK_HOST, "::1"] as const;
 
 /** ポートの空きを見るときに待つ上限（ミリ秒）。 */
 const PROBE_TIMEOUT = 1_000;
@@ -103,7 +112,7 @@ async function main(): Promise<void> {
   const baseURL = `http://localhost:${options.port}`;
   await waitForBoot(baseURL, app);
 
-  console.log(`\n${announce(options, baseURL)}`);
+  console.log(`\n${announce(options.kind, linksFor(options, baseURL))}`);
   if (artifact !== null) {
     console.log(`\nCI が撮った一式: http://localhost:${options.port + 1}/report/index.html`);
     console.log(
@@ -113,23 +122,11 @@ async function main(): Promise<void> {
   console.log("\n見終わったら Ctrl-C で止めてください。");
 }
 
-/** 見る対象ごとの案内文と URL の一覧。 */
-function announce(options: Options, baseURL: string): string {
-  if (options.kind === "vrt") {
-    return [
-      `${options.only.length} 件の story を開けます。`,
-      "",
-      formatLinks(storyLinks(baseURL, options.only)),
-      "",
-      "撮影されているのは sidebar の無い面です。`?path=/story/<id>` を `iframe.html?id=<id>` へ読み替えると同じ面が出ます。",
-    ].join("\n");
-  }
-
-  return [
-    `${options.only.length} 件の画面を開けます。`,
-    "",
-    formatLinks(screenLinks(baseURL, options.only, SCREENS, DEV_SESSION_PATH, RETURN_URL_PARAM)),
-  ].join("\n");
+/** 見る対象ごとの開ける先。組み立ての判断は {@link storyLinks} / {@link screenLinks} が持つ。 */
+function linksFor(options: Options, baseURL: string): ReviewLink[] {
+  return options.kind === "vrt"
+    ? storyLinks(baseURL, options.only)
+    : screenLinks(baseURL, options.only, SCREENS, DEV_SESSION_PATH, DEV_SESSION_RETURN_PARAM);
 }
 
 /**
@@ -231,9 +228,15 @@ function download(tree: string, kind: Kind, run: string): string | null {
   return into;
 }
 
-/** 落とした一式を配る。HTML レポートは `file://` では開けないため、配る側が要る。 */
+/**
+ * 落とした一式を配る。HTML レポートは `file://` では開けないため、配る側が要る。
+ *
+ * @remarks
+ * 待ち受けを loopback へ絞ります。宛先を省くと全インターフェースで待ち受けるので、配っている
+ * 画面が同じ LAN の他のホストから読める状態になります。
+ */
 function serve(root: string, port: number): Server {
-  return createStaticServer(root).listen(port);
+  return createStaticServer(root).listen(port, LOOPBACK_HOST);
 }
 
 /** 見る対象のサーバを立てる。story は Storybook、画面は本番ビルドを起動する。 */
@@ -241,7 +244,17 @@ function start(tree: string, options: Options): ReturnType<typeof spawn> {
   if (options.kind === "vrt") {
     return spawn(
       "pnpm",
-      ["exec", "storybook", "dev", "--port", String(options.port), "--no-open", "--quiet"],
+      [
+        "exec",
+        "storybook",
+        "dev",
+        "--host",
+        LOOPBACK_HOST,
+        "--port",
+        String(options.port),
+        "--no-open",
+        "--quiet",
+      ],
       { cwd: tree, env: { ...process.env, APP_ENV: "local" }, stdio: "inherit" },
     );
   }
@@ -257,7 +270,7 @@ function start(tree: string, options: Options): ReturnType<typeof spawn> {
   // 発行口が開いている（`.makefiles/testing/e2e.mk`）。
   return spawn(
     "pnpm",
-    ["exec", "next", "start", "--hostname", "127.0.0.1", "--port", String(options.port)],
+    ["exec", "next", "start", "--hostname", LOOPBACK_HOST, "--port", String(options.port)],
     { cwd: tree, env: { ...process.env, APP_ENV: "ci" }, stdio: "inherit" },
   );
 }
@@ -296,7 +309,7 @@ async function assertPortFree(port: number, knob: string): Promise<void> {
     probe.once("listening", () => {
       probe.close(() => resolve());
     });
-    probe.listen(port, "127.0.0.1");
+    probe.listen(port, LOOPBACK_HOST);
   });
 }
 
@@ -315,17 +328,28 @@ function answers(host: string, port: number): Promise<boolean> {
   });
 }
 
-/** サーバが応答を返すまで待つ。途中で落ちたらそこで止める。 */
+/**
+ * サーバが応答を返すまで待つ。途中で落ちたらそこで止める。
+ *
+ * @remarks
+ * **打ち切りは実時間で測ります。**試行の回数で数えると、1 回の待ちが要求の上限まで伸びる状態
+ * （待ち受けてはいるが最初のバンドルを終えていない Storybook など）で、名乗った上限の何倍も
+ * 待ってから「上限で返りませんでした」と報告することになります。
+ */
 async function waitForBoot(baseURL: string, app: ReturnType<typeof spawn>): Promise<void> {
-  for (let elapsed = 0; elapsed < BOOT_TIMEOUT; elapsed += 1) {
+  const deadline = Date.now() + BOOT_TIMEOUT * 1_000;
+
+  while (Date.now() < deadline) {
     if (app.exitCode !== null) fail("サーバが応答を返す前に終了しました。");
 
+    const remaining = deadline - Date.now();
+
     try {
-      await fetch(baseURL, { signal: AbortSignal.timeout(5_000) });
+      await fetch(baseURL, { signal: AbortSignal.timeout(Math.min(ATTEMPT_TIMEOUT, remaining)) });
 
       return;
     } catch {
-      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      await new Promise((resolve) => setTimeout(resolve, RETRY_INTERVAL));
     }
   }
 

@@ -40,7 +40,7 @@ export function collectFailedScreens(json: string): ScreenFailure[] {
   const failures: ScreenFailure[] = [];
 
   for (const spec of specs) {
-    if (asArray<string>(spec.tags).some((tag) => tagName(tag) === tagName(SCREEN_BASELINE_TAG))) {
+    if (asArray(spec.tags).some((tag) => tagName(tag) === tagName(SCREEN_BASELINE_TAG))) {
       continue;
     }
 

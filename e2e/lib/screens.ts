@@ -8,6 +8,8 @@
 // 現れたら落ちるので、足した画面は必ずここへ現れる。
 import type { SessionRole } from "@/model/session";
 
+import { DEV_SESSION_PATH } from "./dev-session.js";
+
 /**
  * build が書き出す、app の path と route の対応表。
  *
@@ -107,7 +109,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   { route: "/admin/products", name: "admin-products", path: "/admin/products", signedIn: "admin" },
   // sample:end
   { route: "/login", name: "login", path: "/login" },
-  { route: "/dev/session", name: "dev-session", path: "/dev/session" },
+  { route: DEV_SESSION_PATH, name: "dev-session", path: DEV_SESSION_PATH },
   { route: "/_not-found", name: "not-found", path: "/この経路は存在しない" },
   {
     route: "/_global-error",

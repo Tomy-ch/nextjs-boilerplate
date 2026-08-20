@@ -98,7 +98,7 @@ export function formatTable(failures: Failure[]): string {
  */
 export function hasBaselineFailure(json: string): boolean {
   const checks = parseSpecs(json).filter((spec) =>
-    asArray<string>(spec.tags).some((tag) => tagName(tag) === tagName(BASELINE_TAG)),
+    asArray(spec.tags).some((tag) => tagName(tag) === tagName(BASELINE_TAG)),
   );
 
   // 見つからないことを「孤児なし」と答えない。1 対 1 の検査は全数の撮影に必ず含まれるので、

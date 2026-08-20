@@ -82,6 +82,30 @@ export function screenLinks(
 }
 
 /**
+ * 端末へ出す案内文。件数・URL の一覧・見る面についての但し書きを 1 つに組む。
+ *
+ * @remarks
+ * story と画面で但し書きが違います。story 側で撮られているのは sidebar を含まない面なので、
+ * 並べた URL と撮影された面が同じでないことを断ります。
+ *
+ * @param kind - 見る対象（`vrt` / `e2e`）
+ * @param links - 開ける先
+ */
+export function announce(kind: "vrt" | "e2e", links: readonly ReviewLink[]): string {
+  const unit = kind === "vrt" ? "story" : "画面";
+  const lines = [`${links.length} 件の ${unit} を開けます。`, "", formatLinks(links)];
+
+  if (kind === "vrt") {
+    lines.push(
+      "",
+      "撮影されているのは sidebar の無い面です。`?path=/story/<id>` を `iframe.html?id=<id>` へ読み替えると同じ面が出ます。",
+    );
+  }
+
+  return lines.join("\n");
+}
+
+/**
  * 一覧を端末へ出す形へ整える。
  *
  * @param links - 開ける先

@@ -49,8 +49,19 @@ export function parseSpecs(json: string): JSONSpec[] {
   return flattenSpecs(report.suites as JSONSuite[]);
 }
 
-/** tag をレポートに載る形へ揃える。宣言は `@` 付きで書くが、レポートには `@` の無い名前で載る。 */
-export function tagName(tag: string): string {
+/**
+ * tag をレポートに載る形へ揃える。宣言は `@` 付きで書くが、レポートには `@` の無い名前で載る。
+ *
+ * @remarks
+ * 文字列でない要素は空へ倒します。`asArray` が見るのは外側が配列かどうかだけなので、要素まで
+ * 信用すると、`tags` に文字列以外が混ざったレポートを読んだだけで落ちます。どの tag にも
+ * 当たらない値として扱えば、突き合わせの結果は「その tag ではない」になります。
+ *
+ * @param tag - レポートに載っていた tag
+ */
+export function tagName(tag: unknown): string {
+  if (typeof tag !== "string") return "";
+
   return tag.startsWith("@") ? tag.slice(1) : tag;
 }
 
