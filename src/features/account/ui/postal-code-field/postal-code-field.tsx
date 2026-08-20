@@ -26,7 +26,6 @@ type PostalCodeFieldProps = Pick<
  *
  * @remarks
  * 入力欄が `Input` ではなく `InputGroup` になるだけで、`TextField` と配線の規則は変わりません。
- * 与える属性は `fieldControlAttributes` が組みます。
  *
  * 操作を枠の中へ収めるのは、いつ補完が走るのかを利用者が決められるようにしつつ、どの入力に
  * 属する操作かを離さないためです。
