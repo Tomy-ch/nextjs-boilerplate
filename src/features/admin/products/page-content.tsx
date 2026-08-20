@@ -2,13 +2,20 @@ import { Suspense } from "react";
 
 import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
 import { parseProductQuery } from "@/adapters/server/api/products";
+import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-feedback/invalid-query-feedback";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
+import { ADMIN_PRODUCT_LIST_PATH } from "../paths";
 import { toFilterOptions } from "./filter-option";
 import { ADMIN_PRODUCT_PAGE_SIZE } from "./page-size";
-import { CURSOR_KEY, FILTER_KEY, type RawSearchParams, toAdminProductListLocation } from "./query";
+import {
+  CURSOR_KEY,
+  FILTER_KEY,
+  FILTER_KEY_LABEL,
+  type RawSearchParams,
+  toAdminProductListLocation,
+} from "./query";
 import { AdminProductListResults } from "./results";
-import { AdminProductInvalidQuery } from "./ui/invalid-query/invalid-query";
 import { AdminProductListSkeleton } from "./ui/skeleton/skeleton";
 import { AdminProductListView } from "./view";
 
@@ -28,7 +35,7 @@ export type AdminProductListPageContentProps = {
  * 2 つのマスタを並行して取ります。直列にすると、片方が返るまでもう片方の取得が始まりません。
  *
  * URL の条件は `parseProductQuery`（取得の口）へ通し、独自の変換を持ちません。写せなかった条件は
- * 一覧の代わりに {@link AdminProductInvalidQuery} へ渡します（検証の契約は
+ * 一覧の代わりに {@link InvalidQueryFeedback} へ渡します（検証の契約は
  * `src/features/admin/README.md`「条件の検証と失敗」）。
  *
  * 待機表示の境界に鍵を与えるのは、条件やページが変われば表が総入れ替えになるためです。鍵を
@@ -42,17 +49,23 @@ export async function AdminProductListPageContent({
   const location = toAdminProductListLocation(searchParams);
   const parsed = parseProductQuery({
     ...(location.keyword === "" ? {} : { [FILTER_KEY.KEYWORD]: location.keyword }),
-    ...(location.categoryCode === "" ? {} : { [FILTER_KEY.CATEGORY]: location.categoryCode }),
-    ...(location.statusCode === "" ? {} : { [FILTER_KEY.STATUS]: location.statusCode }),
+    ...(location.categoryCodes.length === 0
+      ? {}
+      : { [FILTER_KEY.CATEGORY]: location.categoryCodes }),
+    ...(location.statusCodes.length === 0 ? {} : { [FILTER_KEY.STATUS]: location.statusCodes }),
     ...(location.cursor === null ? {} : { [CURSOR_KEY]: location.cursor }),
     first: String(ADMIN_PRODUCT_PAGE_SIZE),
   });
 
   if (!parsed.ok) {
     return (
-      <AdminProductInvalidQuery
+      <InvalidQueryFeedback
         invalidKeys={parsed.invalidKeys}
+        keyLabels={FILTER_KEY_LABEL}
         message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
+        resetHref={ADMIN_PRODUCT_LIST_PATH}
+        resetLabel="条件を外して一覧を見る"
+        title="この条件では商品を表示できません"
       />
     );
   }
@@ -61,16 +74,16 @@ export async function AdminProductListPageContent({
 
   return (
     <AdminProductListView
-      categoryOptions={toFilterOptions(categories, "すべての分類")}
+      categoryOptions={toFilterOptions(categories)}
       conditions={location}
-      statusOptions={toFilterOptions(statuses, "すべての状態")}
+      statusOptions={toFilterOptions(statuses)}
     >
       <Suspense
         fallback={<AdminProductListSkeleton />}
         key={JSON.stringify([
           location.keyword,
-          location.categoryCode,
-          location.statusCode,
+          location.categoryCodes,
+          location.statusCodes,
           location.cursor,
         ])}
       >

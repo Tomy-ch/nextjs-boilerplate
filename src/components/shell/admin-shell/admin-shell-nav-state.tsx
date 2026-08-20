@@ -2,6 +2,8 @@
 
 import { createContext, type ReactNode, use, useCallback, useMemo, useState } from "react";
 
+import type { Surface } from "@/components/design-system/foundation/surface/surface.definition";
+
 /** 脇の一覧の開閉。 */
 type AdminShellNavState = {
   /** 脇の一覧を出しているか。 */
@@ -33,6 +35,14 @@ export type AdminShellNavStateProviderProps = {
   children: ReactNode;
   /** 器の外枠に付ける class 名。 */
   className?: string;
+  /**
+   * 器が名乗る系統。
+   *
+   * @remarks
+   * 外枠の要素はこの供給が描くため、そこに載る属性はこの供給の API です。既定の系統なら渡しません
+   * （`tokens/README.md`「切替の軸は 2 本」）。
+   */
+  "data-surface"?: Surface;
 };
 
 /**
@@ -53,6 +63,7 @@ export type AdminShellNavStateProviderProps = {
 export function AdminShellNavStateProvider({
   children,
   className,
+  "data-surface": surface,
 }: AdminShellNavStateProviderProps) {
   const [open, setOpen] = useState(true);
   const toggle = useCallback(() => {
@@ -62,7 +73,7 @@ export function AdminShellNavStateProvider({
 
   return (
     <AdminShellNavContext value={state}>
-      <div className={className} data-nav-open={open}>
+      <div className={className} data-nav-open={open} data-surface={surface}>
         {children}
       </div>
     </AdminShellNavContext>

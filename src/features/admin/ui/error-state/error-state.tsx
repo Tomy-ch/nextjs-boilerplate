@@ -3,8 +3,8 @@
 import { Button } from "@/components/design-system/action/button/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
 
-/** `AdminProductListError` の props。 */
-export type AdminProductListErrorProps = {
+/** `AdminScreenError` の props。 */
+export type AdminScreenErrorProps = {
   /** 表示する文言。境界で正規化済みのものを渡す。 */
   message: string;
   /** サーバログとの突合に使う識別子。 */
@@ -14,18 +14,21 @@ export type AdminProductListErrorProps = {
 };
 
 /**
- * 管理側の一覧の取得に失敗したときの表示。
+ * 管理側の画面の取得に失敗したときの表示。
  *
  * @remarks
+ * **どの画面が落ちたかを言いません。** 使うのは `/admin` に 1 枚だけ置かれた error 境界で、
+ * そこには落ちた画面の区別が届きません（[0080](../../../../../docs/adr/0080-error-handling.md)）。
+ * 画面ごとの文言にすると、当たらない画面で嘘になります。
+ *
  * 生のエラーもスタックも出しません。production では Server Component から投げられたエラーの
- * 本文が伏せられ、境界には汎用文言と `digest` だけが渡るためです
- * （[0080](../../../../../../docs/adr/0080-error-handling.md)）。原因の特定は `digest` とサーバ側の
- * ログの突合で行います。
+ * 本文が伏せられ、境界には汎用文言と `digest` だけが渡るためです。原因の特定は `digest` と
+ * サーバ側のログの突合で行います。
  */
-export function AdminProductListError({ message, digest, onRetry }: AdminProductListErrorProps) {
+export function AdminScreenError({ message, digest, onRetry }: AdminScreenErrorProps) {
   return (
     <Alert variant="destructive">
-      <AlertTitle>商品を取得できませんでした</AlertTitle>
+      <AlertTitle>この画面を表示できませんでした</AlertTitle>
       <AlertDescription className="space-y-3">
         <p>{message}</p>
         {digest === undefined ? null : (

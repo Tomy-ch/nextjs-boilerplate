@@ -19,7 +19,7 @@ describe("AdminError", () => {
   it("取得に失敗したことを伝える", () => {
     renderError();
 
-    expect(screen.getByText("商品を取得できませんでした")).toBeInTheDocument();
+    expect(screen.getByText("この画面を表示できませんでした")).toBeInTheDocument();
   });
 
   it("生のエラー本文を出さない", () => {

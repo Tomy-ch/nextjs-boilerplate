@@ -22,8 +22,8 @@ const STATUSES: readonly AdminProductFilterOption[] = [
 
 const NO_CONDITIONS: AdminProductListConditions = {
   keyword: "",
-  categoryCode: "",
-  statusCode: "",
+  categoryCodes: [],
+  statusCodes: [],
 };
 
 function renderView(conditions: Partial<AdminProductListConditions> = {}) {
@@ -86,19 +86,19 @@ describe("AdminProductListView", () => {
 
   // ----- 条件が効いているとき -----
   it("効いている条件を chip で並べる", () => {
-    renderView({ keyword: "鞄", categoryCode: "1" });
+    renderView({ keyword: "鞄", categoryCodes: ["1"] });
 
     expect(chips()).toHaveLength(2);
   });
 
   it("chip はコードではなく表示名を出す", () => {
-    renderView({ categoryCode: "1" });
+    renderView({ categoryCodes: ["1"] });
 
     expect(screen.getByText("分類: 電子機器")).toBeInTheDocument();
   });
 
   it("chip ごとに解除の導線を付ける", () => {
-    renderView({ keyword: "鞄", categoryCode: "1" });
+    renderView({ keyword: "鞄", categoryCodes: ["1"] });
 
     expect(screen.getByRole("link", { name: "分類: 電子機器 を解除" })).toHaveAttribute(
       "href",
@@ -107,13 +107,13 @@ describe("AdminProductListView", () => {
   });
 
   it("条件が 1 つだけならすべて解除は出さない", () => {
-    renderView({ categoryCode: "1" });
+    renderView({ categoryCodes: ["1"] });
 
     expect(screen.queryByRole("link", { name: "条件をすべて解除" })).not.toBeInTheDocument();
   });
 
   it("条件が 2 つ以上ならすべて解除を出す", () => {
-    renderView({ categoryCode: "1", statusCode: "2" });
+    renderView({ categoryCodes: ["1"], statusCodes: ["2"] });
 
     expect(screen.getByRole("link", { name: "条件をすべて解除" })).toHaveAttribute(
       "href",
@@ -122,7 +122,7 @@ describe("AdminProductListView", () => {
   });
 
   it("a11y 検査を通る", async () => {
-    const { container } = renderView({ keyword: "鞄", categoryCode: "1" });
+    const { container } = renderView({ keyword: "鞄", categoryCodes: ["1"] });
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,

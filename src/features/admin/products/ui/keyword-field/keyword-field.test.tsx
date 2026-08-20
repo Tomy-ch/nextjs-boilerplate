@@ -14,8 +14,8 @@ import { AdminProductKeywordField } from "./keyword-field";
 
 const NO_CONDITIONS: AdminProductListConditions = {
   keyword: "",
-  categoryCode: "",
-  statusCode: "",
+  categoryCodes: [],
+  statusCodes: [],
 };
 
 function renderField(conditions: AdminProductListConditions = NO_CONDITIONS) {
@@ -70,7 +70,7 @@ describe("AdminProductKeywordField", () => {
   });
 
   it("いま効いている他の条件を引き継ぐ", async () => {
-    renderField({ ...NO_CONDITIONS, categoryCode: "1" });
+    renderField({ ...NO_CONDITIONS, categoryCodes: ["1"] });
 
     await userEvent.type(input(), "鞄");
     await userEvent.click(submit());
