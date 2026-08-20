@@ -107,7 +107,7 @@ export const WithBreadcrumb: Story = {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/admin/products">商品一覧管理</BreadcrumbLink>
+            <BreadcrumbLink href="/admin/items">一覧管理</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

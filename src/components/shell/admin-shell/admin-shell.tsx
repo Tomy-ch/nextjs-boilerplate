@@ -137,7 +137,11 @@ export function AdminShell({
         </header>
         <main id={ADMIN_SHELL_MAIN_ID} className={cn("min-w-0 flex-1", className)}>
           {breadcrumb === undefined ? null : (
-            <ContentContainer className="print-hidden pt-6">{breadcrumb}</ContentContainer>
+            // 中身が空なら器ごと畳む。階層を持たない画面にも slot は要素を渡すため、渡された
+            // かどうかでは判定できない。畳まないと、階層の無い画面が上端に空白を抱える。
+            <ContentContainer className="print-hidden pt-6 empty:hidden">
+              {breadcrumb}
+            </ContentContainer>
           )}
           {children}
         </main>
