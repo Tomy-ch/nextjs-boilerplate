@@ -3,7 +3,9 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { failedActionState, succeededActionState } from "@/model/action-state";
+import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
+
+import type { ProductImageUploadState } from "./form-state";
 
 import { useProductImages } from "./use-product-images";
 
@@ -57,7 +59,8 @@ describe("useProductImages", () => {
   });
 
   it("送り終わるまでは送信に載せない", () => {
-    const { result } = renderHook(() => useProductImages(vi.fn(() => new Promise(() => {}))));
+    const pending = vi.fn(() => new Promise<ProductImageUploadState>(() => {}));
+    const { result } = renderHook(() => useProductImages(pending));
 
     act(() => result.current.add([fileOf("cover.png")]));
 
@@ -127,6 +130,28 @@ describe("useProductImages", () => {
     expect(result.current.uploading).toBe(false);
   });
 
+  it("分類だけが返って文言が無くても、送れていないことを画面に出す", async () => {
+    const upload = vi.fn(() => Promise.resolve(failedActionState<string>({ formError: null })));
+    const { result } = renderHook(() => useProductImages(upload));
+
+    act(() => result.current.add([fileOf("cover.png")]));
+
+    await waitFor(() =>
+      expect(result.current.items[0]?.description).toBe("送信できませんでした。"),
+    );
+  });
+
+  it("結果そのものが付かない場合も、送れていないことを画面に出す", async () => {
+    const upload = vi.fn(() => Promise.resolve(idleActionState<string>()));
+    const { result } = renderHook(() => useProductImages(upload));
+
+    act(() => result.current.add([fileOf("cover.png")]));
+
+    await waitFor(() =>
+      expect(result.current.items[0]?.description).toBe("送信できませんでした。"),
+    );
+  });
+
   it("送り直すと、載るところまで進む", async () => {
     let failing = true;
     const upload = vi.fn(() =>
@@ -146,6 +171,16 @@ describe("useProductImages", () => {
     act(() => result.current.retry(first?.id ?? ""));
 
     await waitFor(() => expect(result.current.imagePaths).toEqual(["products/ok.png"]));
+  });
+
+  it("一覧に無い画像を送り直そうとしても何も起こさない", () => {
+    const upload = uploader();
+    const { result } = renderHook(() => useProductImages(upload, SAVED));
+
+    act(() => result.current.retry("products/none.png"));
+
+    expect(upload).not.toHaveBeenCalled();
+    expect(result.current.imagePaths).toEqual(["products/saved.png"]);
   });
 
   it("保存済みの画像は送り直さない。既にキーを持っているため", () => {

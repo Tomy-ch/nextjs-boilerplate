@@ -62,6 +62,10 @@ test-requirement: feature
 | `products/use-product-images.ts` | 選んだ画像の一覧と、送信・並び替え |
 | `products/use-image-rejection.ts` | 送る前に弾かれたファイルの文言 |
 | `products/use-unsaved-changes.ts` | 書きかけがあることを器へ申告する |
+| `products/use-product-form.ts` | 作成と編集が共有する状態の組み立て。送信の結果の鮮度も持つ |
+| `products/form-names.ts` | 入力欄の `name`。送る側と読む側が同じ綴りを見る |
+| `products/validation-summary.ts` | 項目ごとの誤りを、要約が並べる形へ写す |
+| `products/image-rejection.ts` | 弾かれたファイルの言い方と、大きさの整形 |
 | `products/ui/text-field/` `products/ui/select-field/` | 入力 1 項目。値は呼び出し元が持つ |
 | `products/ui/basics-section/` `description-section/` `images-section/` `publish-section/` `confirm-section/` | 作成と編集が共有する段の中身。自分が段であることは知らない |
 | `products/ui/submit-button/` `products/ui/form-feedback/` | 送信の操作と、送信の結果 |

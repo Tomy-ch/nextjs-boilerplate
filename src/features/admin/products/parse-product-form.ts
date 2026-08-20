@@ -136,16 +136,23 @@ export function parseProductEditForm(form: FormData): ProductFormParseResult<Pro
 
   const version = readVersion(form);
 
+  // 版が無いまま先へ進ませない。既定値へ倒すと、読み込んでいない版で他者の更新を上書きする。
   if (version === undefined) {
-    fieldErrors.name = [
-      ...(fieldErrors.name ?? []),
-      "編集の前提が失われています。画面を開き直してください。",
-    ];
+    return {
+      ok: false,
+      fieldErrors: {
+        ...fieldErrors,
+        name: [
+          ...(fieldErrors.name ?? []),
+          "編集の前提が失われています。画面を開き直してください。",
+        ],
+      },
+    };
   }
 
   if (Object.keys(fieldErrors).length > 0) {
     return { ok: false, fieldErrors };
   }
 
-  return { ok: true, value: { ...draft, version: version ?? 0 } };
+  return { ok: true, value: { ...draft, version } };
 }

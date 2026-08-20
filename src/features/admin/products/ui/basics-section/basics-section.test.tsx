@@ -60,6 +60,34 @@ describe("ProductBasicsSection", () => {
     expect(screen.getByLabelText("商品名")).toHaveValue("入れた");
   });
 
+  it("どの項目も、打鍵した内容をそのまま保つ", () => {
+    renderSection();
+
+    // 価格は文字列のまま、数の欄は数として保たれる。
+    fireEvent.change(screen.getByLabelText("価格"), { target: { value: "19.99" } });
+    fireEvent.change(screen.getByLabelText("在庫数"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("在庫警告の閾値"), { target: { value: "2" } });
+
+    expect(screen.getByLabelText("価格")).toHaveValue("19.99");
+    expect(screen.getByLabelText("在庫数")).toHaveValue(3);
+    expect(screen.getByLabelText("在庫警告の閾値")).toHaveValue(2);
+  });
+
+  it("どの項目も、focus が外れたら誤りを判定する", () => {
+    renderSection();
+
+    fireEvent.change(screen.getByLabelText("在庫警告の閾値"), { target: { value: "-1" } });
+    fireEvent.blur(screen.getByLabelText("在庫警告の閾値"));
+    fireEvent.blur(screen.getByLabelText("価格"));
+    fireEvent.blur(screen.getByLabelText("在庫数"));
+
+    expect(screen.getByText("価格を入力してください。")).toBeInTheDocument();
+    expect(screen.getByText("在庫数を入力してください。")).toBeInTheDocument();
+    expect(
+      screen.getByText("在庫警告の閾値は 0 以上の整数で入力してください。"),
+    ).toBeInTheDocument();
+  });
+
   it("分類は選んだ時点で触れたものとして扱う", () => {
     renderSection();
 

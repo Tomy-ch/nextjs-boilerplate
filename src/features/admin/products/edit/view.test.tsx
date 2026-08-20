@@ -145,6 +145,28 @@ describe("AdminProductEditView", () => {
     );
   });
 
+  it("弾かれなかったときは観点を移さない", async () => {
+    renderView(() => Promise.resolve(succeededActionState<void>(undefined)));
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "画像" }));
+    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "画像" })).toHaveAttribute("aria-selected", "true"),
+    );
+  });
+
+  it("項目ごとの誤りが無ければ、観点を移さない", async () => {
+    renderView(() => Promise.resolve(failedActionState<void>({ formError: "認証が必要です。" })));
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "画像" }));
+    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+
+    await screen.findByText("認証が必要です。");
+
+    expect(screen.getByRole("tab", { name: "画像" })).toHaveAttribute("aria-selected", "true");
+  });
+
   it("版が食い違ったときだけ、読み込み直す導線を添える", async () => {
     renderView(() =>
       Promise.resolve(failedActionState<void>({ formError: PRODUCT_VERSION_CONFLICT_MESSAGE })),

@@ -6,9 +6,22 @@ import { ATTACHMENT_STATE } from "@/components/app-starter/attachment/attachment
 import type { UploadPreviewItem } from "@/components/app-starter/upload-preview/upload-preview.definition";
 import { idleActionState } from "@/model/action-state";
 import { PRODUCT_FORM_NAMES } from "./form-names";
-import type { UploadProductImageAction } from "./form-state";
+import type { ProductImageUploadState, UploadProductImageAction } from "./form-state";
 
 const UPLOAD_FAILED_MESSAGE = "送信できませんでした。";
+
+/**
+ * 送れなかったことを、利用者へ見せる文言にする。
+ *
+ * @remarks
+ * 分類だけが返って文言が無い場合と、そもそも結果が付かない場合があるため、既定の文言へ倒します。
+ * 何も出さないと、送れていないことが画面のどこにも現れません。
+ */
+function failureOf(result: ProductImageUploadState): string {
+  return result.status === "error"
+    ? (result.formError ?? UPLOAD_FAILED_MESSAGE)
+    : UPLOAD_FAILED_MESSAGE;
+}
 
 /** 保存済みのキーから、利用者へ見せる名前を取り出す。 */
 function nameOf(imagePath: string): string {
@@ -75,14 +88,10 @@ function swap(
 
   if (index < 0 || target < 0 || target >= entries.length) return entries;
 
+  // 抜いて差し込む形にする。要素を取り出して入れ替えると、範囲の判定を済ませたあとにも
+  // 「取れなかった場合」を書くことになり、起こり得ない枝が残る。
   const next = [...entries];
-  const moved = next[index];
-  const displaced = next[target];
-
-  if (moved === undefined || displaced === undefined) return entries;
-
-  next[index] = displaced;
-  next[target] = moved;
+  next.splice(target, 0, ...next.splice(index, 1));
 
   return next;
 }
@@ -130,13 +139,7 @@ export function useProductImages(
           item.id === entry.id
             ? result.status === "success"
               ? { ...item, imagePath: result.value, failure: undefined }
-              : {
-                  ...item,
-                  failure:
-                    result.status === "error"
-                      ? (result.formError ?? UPLOAD_FAILED_MESSAGE)
-                      : UPLOAD_FAILED_MESSAGE,
-                }
+              : { ...item, failure: failureOf(result) }
             : item,
         ),
       );

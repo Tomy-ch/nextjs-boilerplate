@@ -76,6 +76,15 @@ describe("parseProductDraftForm", () => {
     ]);
   });
 
+  it("空文字のまま届いた項目を、空欄として扱う", () => {
+    const form = validForm({ description: "" });
+    form.append("description", "   ");
+
+    const result = parseProductDraftForm(form);
+
+    expect(result.ok && result.value.description).toBeNull();
+  });
+
   it("画像が無ければ空のまま送る", () => {
     const result = parseProductDraftForm(validForm());
 
@@ -128,6 +137,15 @@ describe("parseProductEditForm", () => {
   });
 
   // ----- 異常系 -----
+  it("版があっても、項目が誤っていれば断る", () => {
+    const result = parseProductEditForm(validForm({ price: "abc" }));
+
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.fieldErrors.price).toEqual([
+      "価格は 0 以上の数値で入力してください。",
+    ]);
+  });
+
   it("版が無ければ、編集の前提が失われたものとして断る", () => {
     const result = parseProductEditForm(validForm({ version: "" }));
 

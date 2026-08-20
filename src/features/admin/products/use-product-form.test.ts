@@ -21,12 +21,16 @@ beforeEach(() => {
 
 const upload = vi.fn(() => Promise.resolve(succeededActionState("products/uploaded.png")));
 
-function renderForm(state: ProductFormState = idleActionState()) {
+function renderForm(
+  state: ProductFormState = idleActionState(),
+  savedImages?: readonly { imagePath: string; url: string }[],
+) {
   return renderHook(
     (current: ProductFormState) =>
       useProductForm({
         initialValues: emptyProductValues(),
         maxUploadBytes: 4 * 1024 * 1024,
+        savedImages,
         state: current,
         uploadAction: upload,
         withQuantity: true,
@@ -45,12 +49,31 @@ describe("useProductForm", () => {
     expect(result.current.rejection.rejection).toBeUndefined();
   });
 
+  it("保存済みの画像を渡せば、送信の並びに載った状態から始まる", () => {
+    const { result } = renderForm(idleActionState(), [
+      { imagePath: "products/saved.png", url: "/saved.png" },
+    ]);
+
+    expect(result.current.images.imagePaths).toEqual(["products/saved.png"]);
+  });
+
   it("本文を書き換えると値へ入る", () => {
     const { result } = renderForm();
 
     act(() => result.current.changeDescription("<p>説明</p>"));
 
     expect(result.current.values.values.description).toBe("<p>説明</p>");
+  });
+
+  it("値が変わっていなくても、画像が変われば書きかけとして申告する", () => {
+    const { result } = renderForm(idleActionState(), [
+      { imagePath: "products/saved.png", url: "/saved.png" },
+    ]);
+
+    act(() => result.current.images.remove("products/saved.png"));
+
+    expect(result.current.values.dirty).toBe(false);
+    expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(true);
   });
 
   it("入力が変われば書きかけとして器へ申告する", () => {

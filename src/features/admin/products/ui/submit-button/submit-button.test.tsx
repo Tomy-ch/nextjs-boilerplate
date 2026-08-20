@@ -6,9 +6,11 @@ import { axe } from "vitest-axe";
 
 import { ProductSubmitButton } from "./submit-button";
 
+const noop = () => {};
+
 function renderSubmit(blocked = false) {
   return render(
-    <form action={() => {}}>
+    <form action={noop}>
       <ProductSubmitButton blocked={blocked} label="登録する" pendingLabel="登録しています…" />
     </form>,
   );

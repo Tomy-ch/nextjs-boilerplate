@@ -61,6 +61,16 @@ describe("ProductPublishSection", () => {
     expect(screen.getByLabelText("公開日時")).toHaveValue("");
   });
 
+  it("公開日時に触れたら誤りを判定する", () => {
+    renderSection();
+
+    fireEvent.change(screen.getByLabelText("公開日時"), { target: { value: "" } });
+    fireEvent.blur(screen.getByLabelText("公開日時"));
+
+    // 空欄は未公開として許すため、誤りにはならない。
+    expect(screen.queryByText(/公開日時を日付として/)).not.toBeInTheDocument();
+  });
+
   // ----- 異常系 -----
   it("既に未公開なら、戻す操作は押せない", () => {
     renderSection();
