@@ -20,23 +20,34 @@ const environment: Environment = {
   NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
 };
 
-const { getAccessToken, getEnvironment, getLogger, signOut, warn } = vi.hoisted(() => {
-  const warnFn = vi.fn();
+const { getAccessToken, getEnvironment, getLogger, signOut, verifySession, warn } = vi.hoisted(
+  () => {
+    const warnFn = vi.fn();
 
-  return {
-    getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
-    getEnvironment: vi.fn(() => environment),
-    getLogger: vi.fn(() => ({ warn: warnFn })),
-    signOut: vi.fn(async (): Promise<void> => undefined),
-    warn: warnFn,
-  };
-});
+    return {
+      getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
+      getEnvironment: vi.fn(() => environment),
+      getLogger: vi.fn(() => ({ warn: warnFn })),
+      signOut: vi.fn(async (): Promise<void> => undefined),
+      verifySession: vi.fn(),
+      warn: warnFn,
+    };
+  },
+);
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("@/logging/logging.server", () => ({ getLogger }));
-vi.mock("../auth/session", () => ({ getAccessToken, signOut }));
+vi.mock("../auth/session", () => ({ getAccessToken, signOut, verifySession }));
 
-import { getMyProfile, getMyPurchaseSummary, updateMyProfile, withdrawMe } from "./users";
+import {
+  findMyProfile,
+  findRegistration,
+  getMyProfile,
+  getMyPurchaseSummary,
+  registerUser,
+  updateMyProfile,
+  withdrawMe,
+} from "./users";
 
 /** 更新と退会が対象を指すのに使う内部の識別子。画面へは出さない。 */
 const USER_ID = "0195f0c2-0000-7000-8000-0000000000a1";
@@ -115,6 +126,11 @@ function json(body: unknown): () => Response {
   return () => new Response(JSON.stringify(body), { status: 200 });
 }
 
+/** 分類付きの失敗応答。 */
+function failure(status: number): () => Response {
+  return () => new Response(JSON.stringify({ message: "失敗しました。" }), { status });
+}
+
 /** 本文を持たない 204 応答。契約が `DELETE` に定める形。 */
 function noContent(): () => Response {
   return () => new Response(null, { status: 204 });
@@ -136,6 +152,8 @@ beforeEach(() => {
   getAccessToken.mockResolvedValue("access-token");
   signOut.mockReset();
   signOut.mockResolvedValue(undefined);
+  verifySession.mockReset();
+  verifySession.mockResolvedValue({ userId: "subject", role: "user", expiresAt: new Date() });
   warn.mockReset();
 });
 
@@ -369,5 +387,85 @@ describe("withdrawMe", () => {
 
     await expect(kindOf(withdrawMe)).resolves.toBe(ErrorKind.CONFLICT);
     expect(signOut).not.toHaveBeenCalled();
+  });
+});
+
+describe("findMyProfile", () => {
+  // ----- 正常系 -----
+  it("登録済みならプロフィールを返す", async () => {
+    stubFetch(json(wireUser));
+
+    await expect(findMyProfile()).resolves.toEqual(profile);
+  });
+
+  // ----- 異常系 -----
+  it("まだ登録していない主体は、失敗ではなく null として返す", async () => {
+    stubFetch(failure(404));
+
+    await expect(findMyProfile()).resolves.toBeNull();
+  });
+
+  it("登録の有無と関係の無い失敗はそのまま投げる", async () => {
+    stubFetch(failure(503));
+
+    expect(await kindOf(() => findMyProfile())).toBe(ErrorKind.UNAVAILABLE);
+  });
+});
+
+describe("findRegistration", () => {
+  // ----- 正常系 -----
+  it("身元があり記録もあれば登録済みと答える", async () => {
+    stubFetch(json(wireUser));
+
+    await expect(findRegistration()).resolves.toBe("registered");
+  });
+
+  it("身元はあるが記録が無ければ未登録と答える", async () => {
+    stubFetch(failure(404));
+
+    await expect(findRegistration()).resolves.toBe("unregistered");
+  });
+
+  // ----- 異常系 -----
+  it("身元が無ければ未認証と答える", async () => {
+    verifySession.mockResolvedValue(null);
+    const fetchImpl = stubFetch(json(wireUser));
+
+    await expect(findRegistration()).resolves.toBe("unauthenticated");
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe("registerUser", () => {
+  // ----- 正常系 -----
+  it("入力を契約の形で送る", async () => {
+    const fetchImpl = stubFetch(json({ ...wireUser, deletedAt: null }));
+
+    await registerUser(profile, "0195f0c2-0000-7000-8000-00000000000f");
+
+    const [url, init] = fetchImpl.mock.calls[0] ?? [];
+
+    expect(url).toBe("https://api.example.test/v1/users");
+    expect(init).toMatchObject({ method: "POST" });
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual(profile);
+  });
+
+  it("渡された冪等キーをヘッダへ載せる", async () => {
+    const fetchImpl = stubFetch(json(wireUser));
+
+    await registerUser(profile, "0195f0c2-0000-7000-8000-00000000000f");
+
+    expect(new Headers(fetchImpl.mock.calls[0]?.[1]?.headers).get("Idempotency-Key")).toBe(
+      "0195f0c2-0000-7000-8000-00000000000f",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("競合はそのまま分類として投げる", async () => {
+    stubFetch(failure(409));
+
+    expect(await kindOf(() => registerUser(profile, "0195f0c2-0000-7000-8000-00000000000f"))).toBe(
+      ErrorKind.CONFLICT,
+    );
   });
 });

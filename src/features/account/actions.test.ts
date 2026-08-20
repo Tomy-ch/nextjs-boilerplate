@@ -4,10 +4,11 @@ import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 
-const { redirect, revalidatePath, updateMyProfile, withdrawMe } = vi.hoisted(() => ({
+const { redirect, registerUser, revalidatePath, updateMyProfile, withdrawMe } = vi.hoisted(() => ({
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
+  registerUser: vi.fn(),
   revalidatePath: vi.fn(),
   updateMyProfile: vi.fn(),
   withdrawMe: vi.fn(),
@@ -15,10 +16,11 @@ const { redirect, revalidatePath, updateMyProfile, withdrawMe } = vi.hoisted(() 
 
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect }));
-vi.mock("@/adapters/server/api/users", () => ({ updateMyProfile, withdrawMe }));
+vi.mock("@/adapters/server/api/users", () => ({ registerUser, updateMyProfile, withdrawMe }));
 
-import { updateProfileAction, withdrawAction } from "./actions";
+import { registerAction, updateProfileAction, withdrawAction } from "./actions";
 import type { ProfileFormState, WithdrawFormState } from "./form-state";
+import { RETURN_URL_FIELD } from "./onboarding/parse-registration-form";
 import { MYPAGE_PATH } from "./paths";
 
 const PROFILE = {
@@ -49,6 +51,7 @@ function formDataOf(overrides: Partial<Record<string, string>> = {}): FormData {
 beforeEach(() => {
   redirect.mockClear();
   revalidatePath.mockReset();
+  registerUser.mockReset().mockResolvedValue(undefined);
   updateMyProfile.mockReset().mockResolvedValue(PROFILE);
   withdrawMe.mockReset().mockResolvedValue(undefined);
 });
@@ -122,6 +125,81 @@ describe("updateProfileAction", () => {
     await updateProfileAction(IDLE_PROFILE, formDataOf());
 
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("registerAction", () => {
+  const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-00000000000f";
+
+  /** 登録が載せる 2 項目を足した送信。 */
+  function registrationFormDataOf(overrides: Partial<Record<string, string>> = {}): FormData {
+    return formDataOf({
+      idempotencyKey: IDEMPOTENCY_KEY,
+      [RETURN_URL_FIELD]: "/mypage",
+      ...overrides,
+    });
+  }
+
+  // ----- 正常系 -----
+  it("解いた入力と鍵を登録へ渡す", async () => {
+    await expect(registerAction(IDLE_PROFILE, registrationFormDataOf())).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    expect(registerUser).toHaveBeenCalledWith(PROFILE, IDEMPOTENCY_KEY);
+  });
+
+  it("成立したら戻り先へ送る", async () => {
+    await expect(
+      registerAction(IDLE_PROFILE, registrationFormDataOf({ [RETURN_URL_FIELD]: "/checkout" })),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(redirect).toHaveBeenCalledWith("/checkout");
+  });
+
+  // ----- 異常系 -----
+  it("入力の誤りは項目ごとに返し、登録を呼ばない", async () => {
+    const state = await registerAction(IDLE_PROFILE, registrationFormDataOf({ email: "" }));
+
+    expect(state).toMatchObject({
+      status: "error",
+      fieldErrors: { email: ["メールアドレスを入力してください。"] },
+    });
+    expect(registerUser).not.toHaveBeenCalled();
+  });
+
+  it("鍵の無い送信は、画面を開き直すよう伝えて登録を呼ばない", async () => {
+    const formData = registrationFormDataOf();
+    formData.delete("idempotencyKey");
+
+    const state = await registerAction(IDLE_PROFILE, formData);
+
+    expect(state).toMatchObject({
+      status: "error",
+      formError: "登録の要求を受け取れませんでした。画面を開き直してください。",
+    });
+    expect(registerUser).not.toHaveBeenCalled();
+  });
+
+  it("競合には、この画面でしか言えない文言を当てる", async () => {
+    registerUser.mockRejectedValue(createAppError(ErrorKind.CONFLICT));
+
+    const state = await registerAction(IDLE_PROFILE, registrationFormDataOf());
+
+    expect(state).toMatchObject({
+      status: "error",
+      formError:
+        "この内容では登録できませんでした。すでに登録が済んでいるか、他の登録と重複しています。",
+    });
+  });
+
+  it("競合以外の失敗は分類のまま伝える", async () => {
+    registerUser.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
+
+    const state = await registerAction(IDLE_PROFILE, registrationFormDataOf());
+
+    expect(state).toMatchObject({ status: "error" });
+    expect(redirect).not.toHaveBeenCalled();
   });
 });
 
