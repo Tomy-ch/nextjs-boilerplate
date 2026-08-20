@@ -145,8 +145,9 @@ That decides the *duty* a symbol owes. It does not hand the symbol to another sk
 ### An `integration` duty is not a handoff
 
 `scaffold-integration-test` is not the other half of this file — it writes a **second, separate**
-file asking a different question. Check the split against a directory that already has both
-(`src/adapters/server/api/products.{test,contract.test}.ts`) rather than assuming:
+file asking a different question. Check the split against a directory that already has both rather
+than assuming — find one with `ls src/adapters/**/*.contract.test.ts` and read its `.test.ts`
+sibling:
 
 | File | Question | Owner |
 | --- | --- | --- |
@@ -200,9 +201,9 @@ Confirm **per group**, not per file and not for the whole set. Show every subjec
 its planned path and case list, so the agreement covers all of them at once:
 
 ```txt
-群: src/features/admin/dashboard/（test-requirement: feature）
+群: <feature>/（test-requirement: feature）
 
-書き出し先: src/features/admin/analytics/period.test.ts
+書き出し先: <feature>/<期間を解く純関数>.test.ts
   describe("toPeriodRequest")
     ----- 正常系 -----
     - 日付の要らない区分はそのまま求められる形になる
@@ -213,7 +214,7 @@ its planned path and case list, so the agreement covers all of them at once:
     ----- 正常系 -----
     - 日付を持ち越さない
 
-書き出し先: src/features/admin/analytics/ui/ranking-table/ranking-table.test.tsx
+書き出し先: <feature>/ui/<表の部品>/<表の部品>.test.tsx
   describe("RankingTable")
     ----- 空のとき -----
     - 行が無ければ、無いと判る文言を出す
