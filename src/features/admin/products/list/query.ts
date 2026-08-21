@@ -1,7 +1,3 @@
-import { z } from "zod";
-
-import { type RawSearchParams, repeatedValues, singleValue } from "@/model/search-params";
-
 import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
 
 /**
@@ -32,7 +28,7 @@ export const CURSOR_KEY = "after";
  * （[0073](../../../../../docs/adr/0073-pagination-fetch-boundary.md)）。覚える場所を URL にする理由は
  * `docs/spec/route/admin/products/page.function.md`「戻る先は URL が覚える」。
  */
-const TRAIL_KEY = "trail";
+export const TRAIL_KEY = "trail";
 
 /**
  * キーを画面上の呼び名へ直す表。
@@ -71,52 +67,6 @@ export type AdminProductListLocation = AdminProductListConditions & {
   /** ここまでに通ってきたページの起点。先頭ページから順に並ぶ。 */
   readonly trail: readonly string[];
 };
-
-/** 1 つしか受け取らない条件。読めなければ未指定（空文字）として扱う。 */
-const textSchema = singleValue(z.string()).catch("");
-
-/**
- * 複数を選べる条件。
- *
- * @remarks
- * **重複を畳みます。** 契約は重複の無い並びとして宣言しており、同じ値が 2 度届くのは URL を直接
- * 編集したときで、指している条件は 1 度のときと同じです。畳まないと、意味の同じ条件が契約を外れた
- * 要求として backend まで届きます。並び順は最初に現れた位置を保ちます。
- */
-const codesSchema = repeatedValues(
-  z.array(z.string()).transform((values): readonly string[] => [...new Set(values)]),
-).catch([]);
-
-/**
- * 通ってきたページの起点。
- *
- * @remarks
- * **重複を畳みません。** 並びの長さがそのまま戻れる段数で、`toPreviousPageHref` が末尾から 1 つずつ
- * 取り出します。同じ起点が 2 度並ぶのは 2 段ぶんであり、畳むと戻れる回数が変わります。
- */
-const cursorsSchema = repeatedValues(z.array(z.string())).catch([]);
-
-/**
- * 素の `searchParams` を、いま見ている場所として読む。
- *
- * @remarks
- * **URL は利用者が直接編集できます。** 起点が消えているのに通ってきた道だけが残った URL も届き得る
- * ため、先頭ページでは道を捨てます。捨てないと、先頭ページで「前へ」が押せる状態になります。
- *
- * 読み方はスキーマが持ちます（`docs/rules.md` #42）。1 つしか受け取らない条件が繰り返されていたら
- * 未指定として扱い、複数を選べる条件だけが並びのまま残ります。
- */
-export function toAdminProductListLocation(params: RawSearchParams): AdminProductListLocation {
-  const cursor = textSchema.parse(params[CURSOR_KEY]);
-
-  return {
-    keyword: textSchema.parse(params[FILTER_KEY.KEYWORD]),
-    categoryCodes: codesSchema.parse(params[FILTER_KEY.CATEGORY]),
-    statusCodes: codesSchema.parse(params[FILTER_KEY.STATUS]),
-    cursor: cursor === "" ? null : cursor,
-    trail: cursor === "" ? [] : cursorsSchema.parse(params[TRAIL_KEY]),
-  };
-}
 
 function toHref(
   conditions: AdminProductListConditions,

@@ -19,7 +19,7 @@ import { parseFrontmatter } from "./frontmatter";
 const TEST_LAYERS = ["unit", "component", "feature", "route", "integration", "e2e"] as const;
 
 /** 宣言できる層。 */
-export type TestLayer = (typeof TEST_LAYERS)[number];
+type TestLayer = (typeof TEST_LAYERS)[number];
 
 /**
  * README を持たないまま宣言を負う入口。

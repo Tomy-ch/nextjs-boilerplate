@@ -5,7 +5,7 @@ import type { RawSearchParams } from "@/model/search-params";
 import type { WithdrawUserAction } from "./form-state";
 import { ADMIN_USER_PAGE_SIZE } from "./page-size";
 
-import { toAdminUserListLocation } from "./query";
+import { toAdminUserListLocation } from "./read-location";
 import { AdminUserResults } from "./results";
 import { AdminUserListSkeleton } from "./ui/skeleton/skeleton";
 import { AdminUserListView } from "./view";
