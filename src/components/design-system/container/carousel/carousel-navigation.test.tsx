@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { type MouseEventHandler, useId } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -155,6 +156,31 @@ function layOutStrip(container: HTMLElement, stripWidth: number, linkWidth: numb
   scrollBy.mockClear();
 }
 
+/**
+ * 次の click で既定動作が止められたかを拾う。
+ *
+ * @remarks
+ * 「fragment へ飛ばさずに送り領域だけを動かす」は、`preventDefault` が呼ばれたかどうかでしか
+ * 見えません。発火した側の戻り値で見ると、押下を組み立てる手段に検証が縛られます。
+ */
+function watchPreventDefault(): { get prevented(): boolean } {
+  let prevented = false;
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      prevented = event.defaultPrevented;
+    },
+    { capture: false, once: true },
+  );
+
+  return {
+    get prevented() {
+      return prevented;
+    },
+  };
+}
+
 describe("CarouselThumbnails", () => {
   beforeEach(() => {
     observed.length = 0;
@@ -273,21 +299,22 @@ describe("CarouselPrevious", () => {
     Element.prototype.scrollBy = originalScrollBy;
   });
 
-  it("送り領域だけを横へ動かし、fragment 遷移は起こさない", () => {
+  it("送り領域だけを横へ動かし、fragment 遷移は起こさない", async () => {
     const { container } = render(<StepFixture />);
     layOutSlides(container);
+    const click = watchPreventDefault();
 
-    const moved = fireEvent.click(screen.getAllByRole("link", { name: "次へ" })[0]);
+    await userEvent.click(screen.getAllByRole("link", { name: "次へ" })[0]);
 
-    expect(moved).toBe(false);
+    expect(click.prevented).toBe(true);
     expect(scrollBy).toHaveBeenCalledWith({ left: SLIDE_WIDTH });
   });
 
-  it("末尾まで送ったあとの戻る向きは反対へ動かす", () => {
+  it("末尾まで送ったあとの戻る向きは反対へ動かす", async () => {
     const { container } = render(<StepFixture />);
     layOutSlides(container, (SLIDES.length - 1) * SLIDE_WIDTH);
 
-    fireEvent.click(screen.getAllByRole("link", { name: "前へ" })[1]);
+    await userEvent.click(screen.getAllByRole("link", { name: "前へ" })[1]);
 
     expect(scrollBy).toHaveBeenCalledWith({ left: -SLIDE_WIDTH });
   });
@@ -302,37 +329,44 @@ describe("CarouselPrevious", () => {
     );
   });
 
-  it("修飾キーを伴う押下は browser の既定動作に任せる", () => {
+  it("修飾キーを伴う押下は browser の既定動作に任せる", async () => {
     const { container } = render(<StepFixture />);
     layOutSlides(container);
 
-    const moved = fireEvent.click(screen.getAllByRole("link", { name: "次へ" })[0], {
-      metaKey: true,
-    });
+    // 修飾キーの押下状態は同じ instance の中でしか続かない。呼び出しごとに作る既定の入口だと、
+    // 押しっぱなしにしたつもりの Meta が click まで届かない。
+    const user = userEvent.setup();
+    const click = watchPreventDefault();
 
-    expect(moved).toBe(true);
+    await user.keyboard("{Meta>}");
+    await user.click(screen.getAllByRole("link", { name: "次へ" })[0]);
+    await user.keyboard("{/Meta}");
+
+    expect(click.prevented).toBe(false);
     expect(scrollBy).not.toHaveBeenCalled();
   });
 
-  it("行き先の slide が無ければ既定動作に任せる", () => {
+  it("行き先の slide が無ければ既定動作に任せる", async () => {
     render(
       <CarouselItem aria-label="1 / 1">
         <CarouselNext href="#not-rendered" />
       </CarouselItem>,
     );
 
-    const moved = fireEvent.click(screen.getByRole("link", { name: "次へ" }));
+    const click = watchPreventDefault();
 
-    expect(moved).toBe(true);
+    await userEvent.click(screen.getByRole("link", { name: "次へ" }));
+
+    expect(click.prevented).toBe(false);
     expect(scrollBy).not.toHaveBeenCalled();
   });
 
-  it("呼び出し元の onClick を先に呼び、そこで止められたら送らない", () => {
+  it("呼び出し元の onClick を先に呼び、そこで止められたら送らない", async () => {
     const onClick = vi.fn<MouseEventHandler<HTMLAnchorElement>>((event) => event.preventDefault());
     const { container } = render(<StepFixture onClick={onClick} />);
     layOutSlides(container);
 
-    fireEvent.click(screen.getAllByRole("link", { name: "次へ" })[0]);
+    await userEvent.click(screen.getAllByRole("link", { name: "次へ" })[0]);
 
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(scrollBy).not.toHaveBeenCalled();
@@ -370,12 +404,12 @@ describe("CarouselNext", () => {
     );
   });
 
-  it("呼び出し元の onClick も呼ぶ", () => {
+  it("呼び出し元の onClick も呼ぶ", async () => {
     const onClick = vi.fn();
     const { container } = render(<StepFixture onClick={onClick} />);
     layOutSlides(container);
 
-    fireEvent.click(screen.getAllByRole("link", { name: "次へ" })[0]);
+    await userEvent.click(screen.getAllByRole("link", { name: "次へ" })[0]);
 
     expect(onClick).toHaveBeenCalledOnce();
   });

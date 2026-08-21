@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -50,11 +51,11 @@ describe("ProductSelectField", () => {
     expect(screen.getByLabelText("分類")).toHaveValue("");
   });
 
-  it("選んだ値を伝える", () => {
+  it("選んだ値を伝える", async () => {
     const onValueChange = vi.fn();
     renderField({ onValueChange });
 
-    fireEvent.change(screen.getByLabelText("分類"), { target: { value: "category-2" } });
+    await userEvent.selectOptions(screen.getByLabelText("分類"), "category-2");
 
     expect(onValueChange).toHaveBeenCalledWith("category-2");
   });

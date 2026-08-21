@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -95,8 +96,8 @@ function SubMenuFixture() {
   );
 }
 
-function openMenu(name: string): void {
-  fireEvent.contextMenu(screen.getByText(name));
+async function openMenu(name: string): Promise<void> {
+  await userEvent.pointer({ target: screen.getByText(name), keys: "[MouseRight]" });
 }
 
 describe("ContextMenu", () => {
@@ -106,59 +107,59 @@ describe("ContextMenu", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
-  it("対象領域の contextmenu で menu と項目を開く", () => {
+  it("対象領域の contextmenu で menu と項目を開く", async () => {
     render(<ActionMenuFixture />);
 
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(screen.getByRole("menu")).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /詳細を見る/ })).toBeInTheDocument();
     expect(screen.getByText("この行の操作")).toBeInTheDocument();
   });
 
-  it("項目を選ぶと操作を実行して menu を閉じる", () => {
+  it("項目を選ぶと操作を実行して menu を閉じる", async () => {
     const handleSelect = vi.fn();
     render(<ActionMenuFixture onSelect={handleSelect} />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
-    fireEvent.click(screen.getByRole("menuitem", { name: /詳細を見る/ }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /詳細を見る/ }));
 
     expect(handleSelect).toHaveBeenCalledOnce();
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
-  it("disabled の項目は操作を実行しない", () => {
+  it("disabled の項目は操作を実行しない", async () => {
     render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     const item = screen.getByRole("menuitem", { name: "公開する" });
     expect(item).toHaveAttribute("data-disabled");
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
-    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
-  it("shortcut は表示だけを担い、その打鍵では操作を実行しない", () => {
+  it("shortcut は表示だけを担い、その打鍵では操作を実行しない", async () => {
     const handleSelect = vi.fn();
     render(<ActionMenuFixture onSelect={handleSelect} />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(screen.getByRole("menuitem", { name: /詳細を見る/ })).toHaveTextContent("⇧D");
 
-    fireEvent.keyDown(screen.getByRole("menu"), { key: "D", shiftKey: true });
+    await userEvent.keyboard("{Shift>}D{/Shift}");
 
     expect(handleSelect).not.toHaveBeenCalled();
   });
 
   it("a11y 自動検査に違反しない", async () => {
     const { baseElement } = render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(
       (
@@ -171,15 +172,15 @@ describe("ContextMenu", () => {
 });
 
 describe("ContextMenuCheckboxItem", () => {
-  it("選択状態を読み上げ、選ぶと切り替わる", () => {
+  it("選択状態を読み上げ、選ぶと切り替わる", async () => {
     render(<SelectionMenuFixture />);
-    openMenu("表示設定");
+    await openMenu("表示設定");
 
     const item = screen.getByRole("menuitemcheckbox", { name: "詳細を表示" });
     expect(item).toHaveAttribute("aria-checked", "false");
 
-    fireEvent.click(item);
-    openMenu("表示設定");
+    await userEvent.click(item);
+    await openMenu("表示設定");
     expect(screen.getByRole("menuitemcheckbox", { name: "詳細を表示" })).toHaveAttribute(
       "aria-checked",
       "true",
@@ -188,9 +189,9 @@ describe("ContextMenuCheckboxItem", () => {
 });
 
 describe("ContextMenuRadioItem", () => {
-  it("群の値と一致するものが選択状態になる", () => {
+  it("群の値と一致するものが選択状態になる", async () => {
     render(<SelectionMenuFixture />);
-    openMenu("表示設定");
+    await openMenu("表示設定");
 
     expect(screen.getByRole("menuitemradio", { name: "標準" })).toHaveAttribute(
       "aria-checked",
@@ -201,8 +202,8 @@ describe("ContextMenuRadioItem", () => {
       "false",
     );
 
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "高密度" }));
-    openMenu("表示設定");
+    await userEvent.click(screen.getByRole("menuitemradio", { name: "高密度" }));
+    await openMenu("表示設定");
     expect(screen.getByRole("menuitemradio", { name: "高密度" })).toHaveAttribute(
       "aria-checked",
       "true",
@@ -211,32 +212,32 @@ describe("ContextMenuRadioItem", () => {
 });
 
 describe("ContextMenuSubContent", () => {
-  it("入れ子の trigger を選ぶと下位の menu を描画する", () => {
+  it("入れ子の trigger を選ぶと下位の menu を描画する", async () => {
     render(<SubMenuFixture />);
-    openMenu("入れ子");
+    await openMenu("入れ子");
 
     const subTrigger = screen.getByRole("menuitem", { name: "移動先を選ぶ" });
     expect(subTrigger).toHaveAttribute("aria-expanded", "false");
 
-    fireEvent.click(subTrigger);
+    await userEvent.click(subTrigger);
 
     expect(screen.getByRole("menuitem", { name: "上の階層へ" })).toBeInTheDocument();
   });
 });
 
 describe("ContextMenuTrigger", () => {
-  it("右クリックで menu を開く", () => {
+  it("右クリックで menu を開く", async () => {
     render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(screen.getByRole("menu")).toBeInTheDocument();
   });
 });
 
 describe("ContextMenuPortal", () => {
-  it("内容を呼び出し位置の外へ描画する", () => {
+  it("内容を呼び出し位置の外へ描画する", async () => {
     const { container } = render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(screen.getByRole("menu")).toBeInTheDocument();
     expect(container.querySelector('[data-slot="context-menu-content"]')).toBeNull();
@@ -244,36 +245,36 @@ describe("ContextMenuPortal", () => {
 });
 
 describe("ContextMenuContent", () => {
-  it("menu の意味論と slot を持つ要素を描画する", () => {
+  it("menu の意味論と slot を持つ要素を描画する", async () => {
     render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(screen.getByRole("menu")).toHaveAttribute("data-slot", "context-menu-content");
   });
 });
 
 describe("ContextMenuGroup", () => {
-  it("項目の束として slot を持つ要素を描画する", () => {
+  it("項目の束として slot を持つ要素を描画する", async () => {
     render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(document.querySelector('[data-slot="context-menu-group"]')).not.toBeNull();
   });
 });
 
 describe("ContextMenuLabel", () => {
-  it("見出しとして slot を持つ要素を描画する", () => {
+  it("見出しとして slot を持つ要素を描画する", async () => {
     render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(screen.getByText("この行の操作")).toHaveAttribute("data-slot", "context-menu-label");
   });
 });
 
 describe("ContextMenuItem", () => {
-  it("menuitem として slot を持つ要素を描画する", () => {
+  it("menuitem として slot を持つ要素を描画する", async () => {
     render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(screen.getByRole("menuitem", { name: /詳細を見る/ })).toHaveAttribute(
       "data-slot",
@@ -281,9 +282,9 @@ describe("ContextMenuItem", () => {
     );
   });
 
-  it("disabled な項目を操作できないものとして示す", () => {
+  it("disabled な項目を操作できないものとして示す", async () => {
     render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(screen.getByRole("menuitem", { name: "公開する" })).toHaveAttribute(
       "aria-disabled",
@@ -293,36 +294,36 @@ describe("ContextMenuItem", () => {
 });
 
 describe("ContextMenuSeparator", () => {
-  it("区切りとして separator の意味論を持つ要素を描画する", () => {
+  it("区切りとして separator の意味論を持つ要素を描画する", async () => {
     render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(screen.getByRole("separator")).toHaveAttribute("data-slot", "context-menu-separator");
   });
 });
 
 describe("ContextMenuShortcut", () => {
-  it("shortcut 表示として slot を持つ要素を描画する", () => {
+  it("shortcut 表示として slot を持つ要素を描画する", async () => {
     render(<ActionMenuFixture />);
-    openMenu("対象の行");
+    await openMenu("対象の行");
 
     expect(document.querySelector('[data-slot="context-menu-shortcut"]')).toHaveTextContent("⇧D");
   });
 });
 
 describe("ContextMenuRadioGroup", () => {
-  it("排他選択の束として slot を持つ要素を描画する", () => {
+  it("排他選択の束として slot を持つ要素を描画する", async () => {
     render(<SelectionMenuFixture />);
-    openMenu("表示設定");
+    await openMenu("表示設定");
 
     expect(document.querySelector('[data-slot="context-menu-radio-group"]')).not.toBeNull();
   });
 });
 
 describe("ContextMenuSub", () => {
-  it("入れ子の menu を閉じた状態で用意する", () => {
+  it("入れ子の menu を閉じた状態で用意する", async () => {
     render(<SubMenuFixture />);
-    openMenu("入れ子");
+    await openMenu("入れ子");
 
     expect(screen.getByRole("menuitem", { name: "移動先を選ぶ" })).toHaveAttribute(
       "aria-expanded",
@@ -332,9 +333,9 @@ describe("ContextMenuSub", () => {
 });
 
 describe("ContextMenuSubTrigger", () => {
-  it("開く操作として slot を持つ要素を描画する", () => {
+  it("開く操作として slot を持つ要素を描画する", async () => {
     render(<SubMenuFixture />);
-    openMenu("入れ子");
+    await openMenu("入れ子");
 
     expect(screen.getByRole("menuitem", { name: "移動先を選ぶ" })).toHaveAttribute(
       "data-slot",

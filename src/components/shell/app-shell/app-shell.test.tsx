@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -60,19 +61,19 @@ describe("AppShell", () => {
     expect(screen.getByRole("contentinfo")).toHaveTextContent("フッター");
   });
 
-  it("狭い画面の導線を side menu で開ける", () => {
+  it("狭い画面の導線を side menu で開ける", async () => {
     renderShell();
 
-    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
     expect(screen.getByRole("dialog")).toHaveTextContent("設定");
   });
 
-  it("side menu は移った先で閉じる", () => {
+  it("side menu は移った先で閉じる", async () => {
     usePathname.mockReturnValue("/");
 
     const { rerender } = renderShell();
-    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
     expect(within(screen.getByRole("dialog")).getAllByRole("link").length).toBeGreaterThan(0);
 

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import ProductsError from "./error";
@@ -31,11 +32,11 @@ describe("ProductsError", () => {
     expect(screen.getByText("2741564515")).toBeInTheDocument();
   });
 
-  it("再試行が境界の reset を呼ぶ", () => {
+  it("再試行が境界の reset を呼ぶ", async () => {
     const reset = vi.fn();
     render(<ProductsError error={new Error("失敗")} reset={reset} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "再試行" }));
+    await userEvent.click(screen.getByRole("button", { name: "再試行" }));
 
     expect(reset).toHaveBeenCalledOnce();
   });

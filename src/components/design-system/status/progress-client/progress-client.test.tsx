@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useCallback, useId, useState } from "react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
@@ -69,12 +70,12 @@ describe("ProgressClient", () => {
     });
   });
 
-  it("呼び出し元が値を更新すると表示へ反映する", () => {
+  it("呼び出し元が値を更新すると表示へ反映する", async () => {
     render(<AdvancingProgressFixture />);
 
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "20");
 
-    fireEvent.click(screen.getByRole("button", { name: "進める" }));
+    await userEvent.click(screen.getByRole("button", { name: "進める" }));
 
     const progress = screen.getByRole("progressbar");
 

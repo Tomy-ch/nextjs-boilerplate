@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -61,14 +62,12 @@ describe("ProductImagesSection", () => {
     expect(screen.getByLabelText(/商品の画像/)).toBeInTheDocument();
   });
 
-  it("選んだファイルを呼び出し元へ渡す", () => {
+  it("選んだファイルを呼び出し元へ渡す", async () => {
     const add = vi.fn();
     renderSection(imagesOf({ add }));
 
     const input = screen.getByLabelText(/商品の画像/);
-    fireEvent.change(input, {
-      target: { files: [new File(["x"], "cover.png", { type: "image/png" })] },
-    });
+    await userEvent.upload(input, [new File(["x"], "cover.png", { type: "image/png" })]);
 
     expect(add).toHaveBeenCalledWith([expect.objectContaining({ name: "cover.png" })]);
   });
@@ -86,7 +85,7 @@ describe("ProductImagesSection", () => {
     expect(container.querySelector('input[name="images"]')).toHaveValue("products/a.png");
   });
 
-  it("並び替えの操作を渡す", () => {
+  it("並び替えの操作を渡す", async () => {
     const moveUp = vi.fn();
     renderSection(
       imagesOf({
@@ -98,7 +97,7 @@ describe("ProductImagesSection", () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "back.png を前へ移動する" }));
+    await userEvent.click(screen.getByRole("button", { name: "back.png を前へ移動する" }));
 
     expect(moveUp).toHaveBeenCalledWith("2");
   });

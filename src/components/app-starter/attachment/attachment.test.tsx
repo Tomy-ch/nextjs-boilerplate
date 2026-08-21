@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import Link from "next/link";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -103,7 +104,7 @@ describe("Attachment", () => {
     );
   });
 
-  it("操作にはアクセシブルな名前を与えられ、押下を呼び出し元へ渡す", () => {
+  it("操作にはアクセシブルな名前を与えられ、押下を呼び出し元へ渡す", async () => {
     const onClick = vi.fn();
     render(
       <Attachment>
@@ -119,7 +120,7 @@ describe("Attachment", () => {
     );
 
     const action = screen.getByRole("button", { name: "仕様書.pdf を取り消す" });
-    fireEvent.click(action);
+    await userEvent.click(action);
 
     expect(action).toHaveAttribute("data-slot", "attachment-action");
     expect(screen.getByTestId("actions")).toContainElement(action);
@@ -294,7 +295,7 @@ describe("AttachmentActions", () => {
 });
 
 describe("AttachmentAction", () => {
-  it("名前を持つ操作として slot を持つ要素を描画する", () => {
+  it("名前を持つ操作として slot を持つ要素を描画する", async () => {
     const onClick = vi.fn();
     render(
       <Attachment>
@@ -310,7 +311,7 @@ describe("AttachmentAction", () => {
 
     expect(action).toHaveAttribute("data-slot", "attachment-action");
 
-    fireEvent.click(action);
+    await userEvent.click(action);
 
     expect(onClick).toHaveBeenCalledOnce();
   });

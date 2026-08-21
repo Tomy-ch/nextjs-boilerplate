@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import Link from "next/link";
 import { beforeAll, describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
@@ -71,12 +72,12 @@ describe("NavigationMenu", () => {
     expect(screen.queryByRole("link", { name: "デスク周り" })).not.toBeInTheDocument();
   });
 
-  it("trigger の操作で下位階層を開く", () => {
+  it("trigger の操作で下位階層を開く", async () => {
     render(<NavigationFixture />);
 
     const trigger = screen.getByRole("button", { name: /カテゴリ/ });
-    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
-    fireEvent.click(trigger);
+    await userEvent.hover(trigger);
+    await userEvent.click(trigger);
 
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("link", { name: "デスク周り" })).toHaveAttribute(
@@ -85,11 +86,11 @@ describe("NavigationMenu", () => {
     );
   });
 
-  it("viewport を使わない場合も下位階層を開ける", () => {
+  it("viewport を使わない場合も下位階層を開ける", async () => {
     render(<NavigationFixture viewport={false} />);
 
     const trigger = screen.getByRole("button", { name: /カテゴリ/ });
-    fireEvent.click(trigger);
+    await userEvent.click(trigger);
 
     expect(screen.getByRole("link", { name: "デスク周り" })).toBeInTheDocument();
   });
@@ -123,7 +124,7 @@ describe("NavigationMenu", () => {
     expect(trigger.className).toContain("h-9");
   });
 
-  it("indicator を足しても navigation の意味論は変わらない", () => {
+  it("indicator を足しても navigation の意味論は変わらない", async () => {
     render(
       <NavigationMenu>
         <NavigationMenuList>
@@ -141,8 +142,8 @@ describe("NavigationMenu", () => {
     );
 
     const trigger = screen.getByRole("button", { name: /カテゴリ/ });
-    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
-    fireEvent.click(trigger);
+    await userEvent.hover(trigger);
+    await userEvent.click(trigger);
 
     expect(screen.getByRole("navigation")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "デスク周り" })).toBeInTheDocument();
@@ -196,12 +197,12 @@ describe("NavigationMenuTrigger", () => {
     );
   });
 
-  it("押すと下位の内容を開く", () => {
+  it("押すと下位の内容を開く", async () => {
     render(<NavigationFixture />);
 
     const trigger = screen.getByRole("button", { name: /カテゴリ/ });
-    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
-    fireEvent.click(trigger);
+    await userEvent.hover(trigger);
+    await userEvent.click(trigger);
 
     expect(screen.getByRole("button", { name: /カテゴリ/ })).toHaveAttribute(
       "aria-expanded",
@@ -211,12 +212,12 @@ describe("NavigationMenuTrigger", () => {
 });
 
 describe("NavigationMenuContent", () => {
-  it("開いた内容として slot を持つ要素を描画する", () => {
+  it("開いた内容として slot を持つ要素を描画する", async () => {
     render(<NavigationFixture />);
 
     const trigger = screen.getByRole("button", { name: /カテゴリ/ });
-    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
-    fireEvent.click(trigger);
+    await userEvent.hover(trigger);
+    await userEvent.click(trigger);
 
     expect(document.querySelector('[data-slot="navigation-menu-content"]')).not.toBeNull();
   });
@@ -229,11 +230,11 @@ describe("NavigationMenuContent", () => {
 });
 
 describe("NavigationMenuViewport", () => {
-  it("viewport を使う構成では、開いた内容の表示枠を用意する", () => {
+  it("viewport を使う構成では、開いた内容の表示枠を用意する", async () => {
     render(<NavigationFixture />);
     const trigger = screen.getByRole("button", { name: /カテゴリ/ });
-    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
-    fireEvent.click(trigger);
+    await userEvent.hover(trigger);
+    await userEvent.click(trigger);
 
     expect(document.querySelector('[data-slot="navigation-menu-viewport"]')).not.toBeNull();
   });
