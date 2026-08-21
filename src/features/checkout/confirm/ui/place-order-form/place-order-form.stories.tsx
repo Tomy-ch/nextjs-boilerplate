@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { PlaceOrderStateProvider } from "../place-order-state/place-order-state";
 import { PlaceOrderForm } from "./place-order-form";
 
 /** 画面が組み立てた鍵の代わり。カタログでは送信しないため、値そのものに意味はない。 */
@@ -21,10 +22,13 @@ const meta = {
     },
   },
   decorators: [
+    // 送信の状態は画面が 1 つだけ持つ。実画面と同じ位置に置かないと、この姿が器を持たない。
     (Story) => (
-      <div className="w-72">
-        <Story />
-      </div>
+      <PlaceOrderStateProvider idempotencyKey={IDEMPOTENCY_KEY}>
+        <div className="w-72">
+          <Story />
+        </div>
+      </PlaceOrderStateProvider>
     ),
   ],
 } satisfies Meta<typeof PlaceOrderForm>;
@@ -34,10 +38,10 @@ type Story = StoryObj<typeof meta>;
 
 /** 確定できる状態。押すとそのまま送る。 */
 export const Default: Story = {
-  args: { idempotencyKey: IDEMPOTENCY_KEY, orderable: true },
+  args: { orderable: true },
 };
 
 /** 確定できる明細が無い状態。押せない。 */
 export const Disabled: Story = {
-  args: { idempotencyKey: IDEMPOTENCY_KEY, orderable: false },
+  args: { orderable: false },
 };
