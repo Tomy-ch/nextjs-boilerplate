@@ -33,7 +33,7 @@ export type StockAmountFieldsProps = {
  * 在庫をどちらへいくつ動かすかを決める欄。
  *
  * @remarks
- * **打っている途中の値をここが持ちます**（[0053](../../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
+ * **打っている途中の値をここが持ちます**（[0053](../../../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
  * 送信には欄の `name` で載るため、外側のフォームはこの値を知らずに済みます。向きと量を 1 つの
  * 部品にまとめてあるのは、見込みがその両方から決まるためです。
  *

@@ -18,7 +18,7 @@ export type StockProjectionProps = {
  * 増減後が範囲を外れた要求は契約が `422` で拒みます。
  *
  * 参考値である理由と、量が読めないうちに出さない理由は
- * [画面要件](../../../../../../docs/spec/route/admin/products/[id]/stock/page.screen.md)「送信後の見込みを出す」。
+ * [画面要件](../../../../../../../docs/spec/route/admin/products/[id]/stock/page.screen.md)「送信後の見込みを出す」。
  */
 export function StockProjection({ current, direction, quantity }: StockProjectionProps) {
   if (quantity === null) return null;

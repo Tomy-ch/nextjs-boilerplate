@@ -4,10 +4,10 @@ import { z } from "zod";
  * 利用者の識別子を確定させるスキーマ。
  *
  * @remarks
- * 生成スキーマの中で組み合わせる呼び出しがこれを直接使い、それ以外は {@link toUserId} を
- * 通します（[0029](../../../docs/adr/0029-type-design-discipline.md) §3）。
+ * 外へは出しません。確定させる口は {@link toUserId} だけで、二重に入口を設けると境界の外でも
+ * 通せてしまいます（[0029](../../../docs/adr/0029-type-design-discipline.md) §3）。
  */
-export const userIdSchema = z.string().brand<"user">();
+const userIdSchema = z.string().brand<"user">();
 
 /**
  * 利用者を指す識別子。

@@ -21,7 +21,7 @@ export type StockCurrentAmountProps = {
  * 値だけで、鮮度を添える理由はそこにあります。
  *
  * 何をどう出すか（鮮度の注記 / 取り直す導線 / 商品名を 2 行で打ち切る）は
- * [画面要件](../../../../../../docs/spec/route/admin/products/[id]/stock/page.screen.md)。
+ * [画面要件](../../../../../../../docs/spec/route/admin/products/[id]/stock/page.screen.md)。
  */
 export function StockCurrentAmount({ productName, quantity, reloadHref }: StockCurrentAmountProps) {
   return (

@@ -1,7 +1,7 @@
 import { ADMIN_USER_LIST_PATH } from "../paths";
 
-/** 絞り込みとページ位置を載せる URL のキー。 */
-export const USER_LIST_KEY: Readonly<{ SCOPE: "scope"; PAGE: "page" }> = {
+/** 絞り込みとページ位置を載せる URL のキー。読む側と組む側がこのファイルの中で共有する。 */
+const USER_LIST_KEY: Readonly<{ SCOPE: "scope"; PAGE: "page" }> = {
   SCOPE: "scope",
   PAGE: "page",
 };
