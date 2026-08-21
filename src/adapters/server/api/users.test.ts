@@ -4,23 +4,34 @@ import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { serveJson, serveStatus, serveWrite } from "../../../../vitest.setup";
 
-const { getAccessToken, getEnvironment, getLogger, signOut, warn } = vi.hoisted(() => {
-  const warnFn = vi.fn();
+const { getAccessToken, getEnvironment, getLogger, signOut, verifySession, warn } = vi.hoisted(
+  () => {
+    const warnFn = vi.fn();
 
-  return {
-    getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
-    getEnvironment: vi.fn(() => PARSED_ENVIRONMENT),
-    getLogger: vi.fn(() => ({ warn: warnFn })),
-    signOut: vi.fn(async (): Promise<void> => undefined),
-    warn: warnFn,
-  };
-});
+    return {
+      getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
+      getEnvironment: vi.fn(() => PARSED_ENVIRONMENT),
+      getLogger: vi.fn(() => ({ warn: warnFn })),
+      signOut: vi.fn(async (): Promise<void> => undefined),
+      verifySession: vi.fn(),
+      warn: warnFn,
+    };
+  },
+);
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("@/logging/logging.server", () => ({ getLogger }));
-vi.mock("../auth/session", () => ({ getAccessToken, signOut }));
+vi.mock("../auth/session", () => ({ getAccessToken, signOut, verifySession }));
 
-import { getMyProfile, getMyPurchaseSummary, updateMyProfile, withdrawMe } from "./users";
+import {
+  findMyProfile,
+  findRegistration,
+  getMyProfile,
+  getMyPurchaseSummary,
+  registerUser,
+  updateMyProfile,
+  withdrawMe,
+} from "./users";
 
 /** 更新と退会が対象を指すのに使う内部の識別子。画面へは出さない。 */
 const USER_ID = "0195f0c2-0000-7000-8000-0000000000a1";
@@ -78,6 +89,9 @@ const wireSummary = {
   ],
 };
 
+/** 登録 1 回ぶんを指す鍵。契約は表示可能 ASCII を要求する。 */
+const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-00000000000f";
+
 /** 投げられたエラーに付いた分類を返す。投げなければ undefined。 */
 async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
   try {
@@ -94,6 +108,8 @@ beforeEach(() => {
   getAccessToken.mockResolvedValue("access-token");
   signOut.mockReset();
   signOut.mockResolvedValue(undefined);
+  verifySession.mockReset();
+  verifySession.mockResolvedValue({ userId: "subject", role: "user", expiresAt: new Date() });
   warn.mockReset();
 });
 
@@ -328,5 +344,78 @@ describe("withdrawMe", () => {
 
     await expect(kindOf(withdrawMe)).resolves.toBe(ErrorKind.CONFLICT);
     expect(signOut).not.toHaveBeenCalled();
+  });
+});
+
+describe("findMyProfile", () => {
+  // ----- 正常系 -----
+  it("登録済みならプロフィールを返す", async () => {
+    serveJson(ME_URL, wireUser);
+
+    await expect(findMyProfile()).resolves.toEqual(profile);
+  });
+
+  // ----- 異常系 -----
+  it("まだ登録していない主体は、失敗ではなく null として返す", async () => {
+    serveStatus("get", ME_URL, 404);
+
+    await expect(findMyProfile()).resolves.toBeNull();
+  });
+
+  it("登録の有無と関係の無い失敗はそのまま投げる", async () => {
+    serveStatus("get", ME_URL, 503);
+
+    expect(await kindOf(() => findMyProfile())).toBe(ErrorKind.UNAVAILABLE);
+  });
+});
+
+describe("findRegistration", () => {
+  // ----- 正常系 -----
+  it("身元があり記録もあれば登録済みと答える", async () => {
+    serveJson(ME_URL, wireUser);
+
+    await expect(findRegistration()).resolves.toBe("registered");
+  });
+
+  it("身元はあるが記録が無ければ未登録と答える", async () => {
+    serveStatus("get", ME_URL, 404);
+
+    await expect(findRegistration()).resolves.toBe("unregistered");
+  });
+
+  // ----- 異常系 -----
+  it("身元が無ければ、記録を引かずに未認証と答える", async () => {
+    verifySession.mockResolvedValue(null);
+    const requests = serveJson(ME_URL, wireUser);
+
+    await expect(findRegistration()).resolves.toBe("unauthenticated");
+    expect(requests).toHaveLength(0);
+  });
+});
+
+describe("registerUser", () => {
+  // ----- 正常系 -----
+  it("入力を契約の形で送る", async () => {
+    const requests = serveWrite("post", USERS_URL, wireUser);
+
+    await registerUser(profile, IDEMPOTENCY_KEY);
+
+    expect(requests[0]?.method).toBe("POST");
+    await expect(requests[0]?.json()).resolves.toEqual(profile);
+  });
+
+  it("渡された冪等キーをヘッダへ載せる", async () => {
+    const requests = serveWrite("post", USERS_URL, wireUser);
+
+    await registerUser(profile, IDEMPOTENCY_KEY);
+
+    expect(requests[0]?.headers.get("Idempotency-Key")).toBe(IDEMPOTENCY_KEY);
+  });
+
+  // ----- 異常系 -----
+  it("競合はそのまま分類として投げる", async () => {
+    serveStatus("post", USERS_URL, 409);
+
+    expect(await kindOf(() => registerUser(profile, IDEMPOTENCY_KEY))).toBe(ErrorKind.CONFLICT);
   });
 });

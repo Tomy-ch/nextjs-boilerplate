@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
-import { verifySession } from "@/adapters/server/auth/session";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
+import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { PurchaseDetailPageContent } from "@/features/purchases/detail/page-content";
 import { purchaseDetailPath } from "@/features/purchases/facade/paths/paths";
-import { toSafeReturnUrl } from "@/model/return-url";
 
 export const metadata: Metadata = {
   title: "購入詳細",
@@ -31,9 +29,7 @@ export const metadata: Metadata = {
 export default async function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  if ((await verifySession()) === null) {
-    redirect(`/login?returnUrl=${encodeURIComponent(toSafeReturnUrl(purchaseDetailPath(id)))}`);
-  }
+  await requireRegisteredUser(purchaseDetailPath(id));
 
   return (
     <ContentContainer className="py-8">

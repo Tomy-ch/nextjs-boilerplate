@@ -6,7 +6,7 @@ import { axe } from "vitest-axe";
 
 vi.mock("../../../actions", () => ({ placeOrderAction: vi.fn() }));
 
-import { IDEMPOTENCY_KEY_FIELD } from "../../../idempotency-key";
+import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { PlaceOrderForm } from "./place-order-form";
 
 const KEY = "0195f0c2-0000-7000-a000-000000000001";

@@ -1,4 +1,4 @@
-import { findAddressCandidates } from "@/adapters/server/api/addresses";
+import { findAddresses } from "@/adapters/server/api/addresses";
 import { toHttpStatus } from "@/adapters/server/http/error-status";
 import { findAppError } from "@/errors/app-error";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
@@ -28,7 +28,8 @@ function toErrorResponse(error: unknown): Response {
  * 1 つ減らせます。
  *
  * 外部の lookup が落ちている場合も `200` と空の候補が返ります。契約がそう定めており、画面は
- * 手入力を続けられます。
+ * 手入力を続けられます。**そのとき `isFallback` が true になる**ので、該当なしと言い分けたい
+ * 画面のためにそのまま渡します。
  */
 export async function GET(request: Request): Promise<Response> {
   const postalCode = new URL(request.url).searchParams.get("postalCode") ?? "";
@@ -41,7 +42,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    return Response.json({ candidates: await findAddressCandidates(postalCode) });
+    return Response.json(await findAddresses(postalCode));
   } catch (error) {
     return toErrorResponse(error);
   }

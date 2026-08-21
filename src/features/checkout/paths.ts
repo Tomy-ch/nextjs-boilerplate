@@ -1,3 +1,6 @@
+/** 購入を確かめて確定する画面。この feature が所有するルート。 */
+export const CHECKOUT_PATH = "/checkout";
+
 /** 購入が成立したことを伝える画面。 */
 const CHECKOUT_COMPLETE_PATH = "/checkout/complete";
 

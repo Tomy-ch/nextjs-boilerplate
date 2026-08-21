@@ -7,8 +7,10 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { CheckoutConfirmPageContent } from "@/features/checkout/confirm/page-content";
 import { CheckoutConfirmSkeleton } from "@/features/checkout/confirm/ui/skeleton/skeleton";
+import { CHECKOUT_PATH } from "@/features/checkout/paths";
 
 export const metadata: Metadata = {
   title: "購入確認",
@@ -19,13 +21,16 @@ export const metadata: Metadata = {
  * 購入確認。
  *
  * @remarks
- * 認証の内側にあります。未認証で踏んだ場合は `proxy.ts` の判定に乗り、戻り先を持ったまま
- * ログインへ送られます（[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）。
+ * 認証の内側にあります。確定認可をここで通すのは、`proxy.ts` の判定が cookie を読むだけの
+ * 前捌きで、防御線ではないためです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）。
+ * 登録がまだの主体も止めます。購入を結び付ける先の利用者がまだ無いためです。
  *
  * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
  * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
  */
-export default function CheckoutPage() {
+export default async function CheckoutPage() {
+  await requireRegisteredUser(CHECKOUT_PATH);
+
   return (
     <ContentContainer className="py-8">
       <PageHeader>

@@ -43,10 +43,9 @@ test-requirement: feature
 | `actions.ts` | 購入確定の Server Action。編成と分類だけを持ち、通信は `adapters` が行う |
 | `__mocks__/actions.ts` | カタログでの Server Action の差し替え（[0054](../../../docs/adr/0054-ui-catalog-storybook.md)） |
 | `form-state.ts` | 確定の戻り値の型。`ActionState<T>` をこの画面の形で閉じる |
-| `idempotency-key.ts` | 確定 1 回ぶんを表す鍵と、それを載せるフォーム項目の名前 |
+| `form-fields.ts` | 値の変更を承知した合図を載せるフォーム項目の名前 |
 | `order.ts` | 購入に載せる明細の取り出しと、金額が変わった明細の判定 |
 | `paths.ts` | 完了画面の場所と、そこへ載せる検索条件。あわせてこの画面から出る先 |
-| `reference-amount.ts` | 参考換算額の読み取り。読めなくても投げない |
 | `confirm/page-content.tsx` | カートと登録情報の並行取得、参考換算額の付与 |
 | `confirm/view.tsx` | 購入確認の表示。内容と集計を左右に分ける |
 | `confirm/ui/shipping-card/` | 届け先の確認と、登録情報へ変えに行く導線 |

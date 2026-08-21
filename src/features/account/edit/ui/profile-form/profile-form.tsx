@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useActionState, useEffect } from "react";
-import { useFormStatus } from "react-dom";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
@@ -13,28 +12,18 @@ import { idleActionState } from "@/model/action-state";
 import type { Prefecture, UserProfile } from "@/model/user/user";
 
 import { updateProfileAction } from "../../../actions";
+import { PROFILE_FIELD_LABELS } from "../../../field-labels";
 import type { ProfileFormState } from "../../../form-state";
 import { MYPAGE_PATH } from "../../../paths";
-import { useAddressField } from "../../use-address-field";
-import { useProfileFields } from "../../use-profile-fields";
-import { PostalCodeField } from "../postal-code-field/postal-code-field";
-import { PrefectureField } from "../prefecture-field/prefecture-field";
-import { TextField } from "../text-field/text-field";
+import { PostalCodeField } from "../../../ui/postal-code-field/postal-code-field";
+import { PrefectureField } from "../../../ui/prefecture-field/prefecture-field";
+import { ProfileSubmitButton } from "../../../ui/submit-button/submit-button";
+import { TextField } from "../../../ui/text-field/text-field";
+import { useAddressField } from "../../../use-address-field";
+import { useProfileFields } from "../../../use-profile-fields";
 
 const SUBMIT_LABEL = "保存する";
 const PENDING_LABEL = "保存しています…";
-
-/** 送信ボタン。押している間の表示を持つため、`form` の子として切り出している。 */
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  const label = pending ? PENDING_LABEL : SUBMIT_LABEL;
-
-  return (
-    <Button disabled={pending} type="submit">
-      {label}
-    </Button>
-  );
-}
 
 type ProfileFormProps = {
   readonly profile: UserProfile;
@@ -86,8 +75,16 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
       <FieldSet>
         <FieldLegend>基本情報</FieldLegend>
         <div className="grid gap-6 sm:grid-cols-2">
-          <TextField autoComplete="family-name" label="姓" {...fields.fieldOf("lastName")} />
-          <TextField autoComplete="given-name" label="名" {...fields.fieldOf("firstName")} />
+          <TextField
+            autoComplete="family-name"
+            label={PROFILE_FIELD_LABELS.lastName}
+            {...fields.fieldOf("lastName")}
+          />
+          <TextField
+            autoComplete="given-name"
+            label={PROFILE_FIELD_LABELS.firstName}
+            {...fields.fieldOf("firstName")}
+          />
         </div>
       </FieldSet>
 
@@ -96,14 +93,14 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
         <FieldGroup>
           <TextField
             autoComplete="email"
-            label="メールアドレス"
+            label={PROFILE_FIELD_LABELS.email}
             type="email"
             {...fields.fieldOf("email")}
           />
           <TextField
             autoComplete="tel"
             inputMode="tel"
-            label="電話番号"
+            label={PROFILE_FIELD_LABELS.phone}
             type="tel"
             {...fields.fieldOf("phone")}
           />
@@ -126,17 +123,22 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
             registration={address.registration}
             required={postalCode.required}
             searching={address.searching}
+            unavailable={address.unavailable}
           />
           <PrefectureField prefectures={prefectures} {...prefecture} />
-          <TextField autoComplete="address-level2" label="市区町村" {...fields.fieldOf("city")} />
+          <TextField
+            autoComplete="address-level2"
+            label={PROFILE_FIELD_LABELS.city}
+            {...fields.fieldOf("city")}
+          />
           <TextField
             autoComplete="address-line1"
-            label="丁目・番地"
+            label={PROFILE_FIELD_LABELS.street}
             {...fields.fieldOf("street")}
           />
           <TextField
             autoComplete="address-line2"
-            label="建物名・部屋番号"
+            label={PROFILE_FIELD_LABELS.building}
             {...fields.fieldOf("building")}
           />
         </FieldGroup>
@@ -146,7 +148,7 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
         <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
           <Link href={MYPAGE_PATH}>キャンセル</Link>
         </Button>
-        <SubmitButton />
+        <ProfileSubmitButton label={SUBMIT_LABEL} pendingLabel={PENDING_LABEL} />
       </div>
     </form>
   );

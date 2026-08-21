@@ -5,17 +5,21 @@ import type { z } from "zod";
 
 import { getApiConfig } from "@/config/api/api.server";
 import { getHttpConfig } from "@/config/http/http.server";
+import { findAppError } from "@/errors/app-error";
+import { ErrorKind } from "@/errors/error-kind";
 import { getLogger } from "@/logging/logging.server";
+import type { RegistrationStatus } from "@/model/user/registration";
 import type { PurchaseSummary, UserProfile } from "@/model/user/user";
 
 import {
   DeleteUsersDetailResponse,
   GetUsersMePurchasesSummaryResponse,
   GetUsersMeResponse,
+  PostUsersResponse,
   PutUsersDetailResponse,
 } from "../../gen/api/endpoints.zod";
-import type { UserPutRequest } from "../../gen/api/model";
-import { getAccessToken, signOut } from "../auth/session";
+import type { UserPutRequest, UsersPostRequest } from "../../gen/api/model";
+import { getAccessToken, signOut, verifySession } from "../auth/session";
 import { createHttpClient, type HttpClient } from "../http/request";
 
 type WireUser = z.infer<typeof GetUsersMeResponse>;
@@ -67,6 +71,51 @@ export async function getMyProfile(): Promise<UserProfile> {
 }
 
 /**
+ * 自分のプロフィールを、まだ登録していない場合を含めて取得する。
+ *
+ * @remarks
+ * 認証を通っても、この系に利用者の記録が無い状態があります（登録前）。契約はそれを `404` で
+ * 表すため、**「まだ登録していない」を例外として扱いません**。呼び出し側は登録へ促す判断を
+ * するのであって、失敗を報告するのではないからです。
+ *
+ * `404` 以外はそのまま投げます。取得できない理由が登録前かどうかを、ここで一緒くたにすると
+ * 通信障害まで「未登録」に見えます。
+ *
+ * @returns 未登録なら null
+ */
+export async function findMyProfile(): Promise<UserProfile | null> {
+  try {
+    return await getMyProfile();
+  } catch (error) {
+    if (findAppError(error)?.kind === ErrorKind.NOT_FOUND) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * いま操作している主体が、利用者として登録済みかを調べる。
+ *
+ * @remarks
+ * **session の読み取りをこの境界の内側に留めるための口です。** 確定認可は `adapters/server` が
+ * 持ち（[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）、身元とトークンは外の層へ
+ * 出しません。画面側が要るのは「入れるか、どちらの理由で入れないか」だけなので、それだけを
+ * 返します。
+ *
+ * 未認証を先に判定します。身元が無いまま `/v1/users/me` を叩いても `401` が返るだけで、
+ * 往復が 1 つ増えます。
+ */
+export async function findRegistration(): Promise<RegistrationStatus> {
+  if ((await verifySession()) === null) {
+    return "unauthenticated";
+  }
+
+  return (await findMyProfile()) === null ? "unregistered" : "registered";
+}
+
+/**
  * 自分の購入の集計を取得する。
  *
  * @remarks
@@ -89,6 +138,45 @@ export const getMyPurchaseSummary = cache(async (): Promise<PurchaseSummary> => 
     })),
   };
 });
+
+/**
+ * 認証済みの主体を利用者として登録する。
+ *
+ * @remarks
+ * 認証と利用者の登録は別物です。IdP を通った主体には身元がありますが、この系にはまだ利用者の
+ * 記録がありません（[0070](../../../../docs/adr/0070-backend-role-separation.md)）。ここはその
+ * 記録を初めて作る口で、以後 `/v1/users/me` が引けるようになります。
+ *
+ * **冪等キーは呼び出し側から受け取ります。** 送信のたびに新しい鍵を作ると、二重送信は 2 人の
+ * 利用者になります。鍵は「この登録という 1 つの試み」に結び付いた値でなければならず、それを
+ * 知っているのは画面を開いた地点だけです。
+ *
+ * 鍵を渡すことで再送してよい呼び出しになるため、`idempotent` を宣言します。宣言しなければ
+ * 応答が返らなかったときに再試行されず、成立したかどうかが判らないまま失敗として返ります。
+ *
+ * @param profile - 登録する内容
+ * @param idempotencyKey - 同一の試みを指す鍵。契約は表示可能 ASCII 255 文字以内を要求する
+ */
+export async function registerUser(profile: UserProfile, idempotencyKey: string): Promise<void> {
+  await getClient().request({
+    path: "/v1/users",
+    method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
+    idempotent: true,
+    body: {
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      email: profile.email,
+      phone: profile.phone,
+      postalCode: profile.postalCode,
+      prefecture: profile.prefecture,
+      city: profile.city,
+      street: profile.street,
+      building: profile.building,
+    } satisfies UsersPostRequest,
+    schema: PostUsersResponse,
+  });
+}
 
 /**
  * 自分のプロフィールを更新する。

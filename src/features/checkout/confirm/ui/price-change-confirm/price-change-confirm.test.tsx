@@ -7,7 +7,9 @@ import { axe } from "vitest-axe";
 
 vi.mock("../../../actions", () => ({ placeOrderAction: vi.fn() }));
 
-import { ACCEPT_PRICE_CHANGE_FIELD, IDEMPOTENCY_KEY_FIELD } from "../../../idempotency-key";
+import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
+
+import { ACCEPT_PRICE_CHANGE_FIELD } from "../../../form-fields";
 import { PriceChangeConfirm } from "./price-change-confirm";
 
 const KEY = "0195f0c2-0000-7000-a000-000000000001";

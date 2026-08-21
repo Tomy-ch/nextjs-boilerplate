@@ -19,6 +19,15 @@ const ADDRESS_BY_POSTAL_CODE: Readonly<Record<string, readonly AddressCandidate[
   "220-0012": SINGLE_ADDRESS_CANDIDATE,
 };
 
+/**
+ * lookup の機構が動いていないことにする郵便番号。
+ *
+ * @remarks
+ * 該当なしと別に置きます。契約は両者を `isFallback` で分けており、画面が言うことも変わる
+ * （手入力へ倒す）ので、カタログでも別々に踏めなければ確かめられません。
+ */
+const UNAVAILABLE_POSTAL_CODE = "000-0000";
+
 /** 確定前の条件で数えた件数。どの条件でも同じ数を返す。 */
 const FILTERED_COUNT = 42;
 // sample:replace-with
@@ -38,7 +47,10 @@ export const handlers: readonly RequestHandler[] = [
   http.get("/api/addresses", ({ request }) => {
     const postalCode = new URL(request.url).searchParams.get("postalCode") ?? "";
 
-    return HttpResponse.json({ candidates: ADDRESS_BY_POSTAL_CODE[postalCode] ?? [] });
+    return HttpResponse.json({
+      candidates: ADDRESS_BY_POSTAL_CODE[postalCode] ?? [],
+      isFallback: postalCode === UNAVAILABLE_POSTAL_CODE,
+    });
   }),
   http.get("/api/products/count", () => HttpResponse.json({ count: FILTERED_COUNT })),
 ];

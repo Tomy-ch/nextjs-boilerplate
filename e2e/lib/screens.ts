@@ -109,6 +109,14 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   },
   { route: "/mypage", name: "mypage", path: "/mypage", signedIn: "user" },
   { route: "/mypage/edit", name: "profile-edit", path: "/mypage/edit", signedIn: "user" },
+  {
+    route: "/onboarding",
+    skip:
+      "開く手段が無い。認証は済んでいるが利用者の記録がまだ無い主体だけが入れる画面で、" +
+      "契約から生成したモックは `/v1/users/me` に必ず応えるため、その状態を作れない。" +
+      "登録済みの主体で開くと戻り先へ送り返される。撤去条件は、モックが未登録の主体を" +
+      "表せるようになったとき",
+  },
   { route: "/about", name: "about", path: "/about" },
   { route: "/privacy", name: "privacy", path: "/privacy" },
   { route: "/terms", name: "terms", path: "/terms" },

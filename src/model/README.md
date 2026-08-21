@@ -12,6 +12,9 @@ test-requirement: unit
 
 - 複数箇所から参照される表示上の値・変換・検証規則
 - `ActionState<T>` など表示層の結果型
+- **画面が送信の単位を決めるために作る値**。送信 1 回ぶんを指す冪等キーがこれで、値そのものは
+  プロトコルの語彙だが、**いつ新しくするかを決めているのは画面**（開き直したら別の送信）である
+  ため、`adapters` ではなくここが持つ
 
 ## 受け入れないもの
 
@@ -29,6 +32,7 @@ test-requirement: unit
 | `media.ts` | 配信基盤のオブジェクトキーから表示 URL を組み立てる |
 | `pagination.ts` | cursor 方式の 1 ページを表す型と、増分取得での継ぎ足し |
 | `action-state.ts` | Server Action が画面へ返す結果の器。項目エラー・フォームエラー・成功値 |
+| `idempotency-key.ts` | 変更 1 回ぶんを指す鍵と、それを載せるフォーム項目の名前 |
 | `money.ts` | 最小単位の整数で持つ金額を、locale に沿った通貨表記へ整える |
 | `cart/cart.ts` | サンプル画面が扱うカートの表示用の型 <!-- sample:line --> |
 | `dashboard/dashboard.ts` | サンプル画面が扱う管理側の横断集計の表示用の型と、集計対象期間の語彙 <!-- sample:line --> |

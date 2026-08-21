@@ -20,7 +20,7 @@ async function showValidationErrors({
 }): Promise<void> {
   const canvas = within(canvasElement);
 
-  await userEvent.clear(canvas.getByLabelText("姓"));
+  await userEvent.clear(canvas.getByLabelText("名字"));
   await userEvent.tab();
 
   const email = canvas.getByLabelText("メールアドレス");
@@ -81,7 +81,7 @@ export const WithoutBuilding: Story = {
 };
 
 /**
- * 契約の上限いっぱいの値。姓名 50 / メール 100 / 市区町村 100 / 丁目番地 200 / 建物名 200 で、
+ * 契約の上限いっぱいの値。名字と名前 50 / メール 100 / 市区町村 100 / 丁目番地 200 / 建物名 200 で、
  * 入力欄が横へ広がらず値が収まるかを見る。
  */
 export const MaxLength: Story = {

@@ -8,21 +8,21 @@ import { axe } from "vitest-axe";
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 import { failedActionState, succeededActionState } from "@/model/action-state";
 
-const { fetchAddressCandidates, updateProfileAction } = vi.hoisted(() => ({
-  fetchAddressCandidates: vi.fn(),
+const { fetchAddresses, updateProfileAction } = vi.hoisted(() => ({
+  fetchAddresses: vi.fn(),
   updateProfileAction: vi.fn<(previous: unknown, formData: FormData) => Promise<unknown>>(),
 }));
 
-vi.mock("@/adapters/client/api/addresses", () => ({ fetchAddressCandidates }));
+vi.mock("@/adapters/client/api/addresses", () => ({ fetchAddresses }));
 vi.mock("../../../actions", () => ({ updateProfileAction }));
 
-import { ADDRESS_CANDIDATES, PREFECTURES, PROFILE } from "../../../account.fixture";
+import { ADDRESS_LOOKUP, PREFECTURES, PROFILE } from "../../../account.fixture";
 import { MYPAGE_PATH } from "../../../paths";
 import { ProfileForm } from "./profile-form";
 
 const LABELS = [
-  "姓",
-  "名",
+  "名字",
+  "名前",
   "メールアドレス",
   "電話番号",
   "郵便番号",
@@ -41,7 +41,7 @@ function renderForm() {
 }
 
 beforeEach(() => {
-  fetchAddressCandidates.mockReset().mockResolvedValue(ADDRESS_CANDIDATES);
+  fetchAddresses.mockReset().mockResolvedValue(ADDRESS_LOOKUP);
   updateProfileAction.mockReset().mockResolvedValue(succeededActionState(undefined));
 });
 
@@ -57,7 +57,7 @@ describe("ProfileForm", () => {
   it("受け取ったプロフィールを初期値にする", () => {
     renderForm();
 
-    expect(screen.getByLabelText("姓")).toHaveValue("山田");
+    expect(screen.getByLabelText("名字")).toHaveValue("山田");
     expect(screen.getByLabelText("メールアドレス")).toHaveValue(PROFILE.email);
   });
 

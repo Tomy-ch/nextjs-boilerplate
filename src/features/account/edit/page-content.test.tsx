@@ -28,7 +28,7 @@ describe("ProfileEditPageContent", () => {
   it("自分の情報と都道府県マスタを並置して 1 つの画面へ合成する", async () => {
     render(<ToastProvider>{await ProfileEditPageContent()}</ToastProvider>);
 
-    expect(screen.getByLabelText("姓")).toHaveValue("山田");
+    expect(screen.getByLabelText("名字")).toHaveValue("山田");
     expect(within(screen.getByLabelText("都道府県")).getAllByRole("option")).toHaveLength(
       PREFECTURES.length,
     );
@@ -54,7 +54,7 @@ describe("ProfileEditPageContent", () => {
     releaseProfile?.();
     render(<ToastProvider>{await rendered}</ToastProvider>);
 
-    expect(screen.getByLabelText("姓")).toHaveValue("山田");
+    expect(screen.getByLabelText("名字")).toHaveValue("山田");
   });
 
   it("合成にドメインの計算を挟まず、取得した値をそのまま渡す", async () => {

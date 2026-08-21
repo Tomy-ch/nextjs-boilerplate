@@ -16,10 +16,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/design-system/overlay/alert-dialog/alert-dialog";
 import { idleActionState } from "@/model/action-state";
-
+import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { placeOrderAction } from "../../../actions";
+import { ACCEPT_PRICE_CHANGE_FIELD } from "../../../form-fields";
 import type { PlaceOrderFormState } from "../../../form-state";
-import { ACCEPT_PRICE_CHANGE_FIELD, IDEMPOTENCY_KEY_FIELD } from "../../../idempotency-key";
 import { CART_PATH } from "../../../paths";
 import { PlaceOrderError, PlaceOrderSubmit } from "../place-order-submit/place-order-submit";
 

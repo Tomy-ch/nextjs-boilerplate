@@ -1,5 +1,11 @@
 import type { PurchaseHistoryPage } from "@/model/purchase/purchase";
-import type { AddressCandidate, Prefecture, PurchaseSummary, UserProfile } from "@/model/user/user";
+import type {
+  AddressCandidate,
+  AddressLookup,
+  Prefecture,
+  PurchaseSummary,
+  UserProfile,
+} from "@/model/user/user";
 
 /**
  * 都道府県マスタ。
@@ -120,3 +126,21 @@ export const ADDRESS_CANDIDATES: readonly AddressCandidate[] = [
 export const SINGLE_ADDRESS_CANDIDATE: readonly AddressCandidate[] = [
   { prefecture: "神奈川県", city: "横浜市西区", town: "みなとみらい" },
 ];
+
+/** 郵便番号を引いた結果。町域だけが割れる。 */
+export const ADDRESS_LOOKUP: AddressLookup = {
+  candidates: ADDRESS_CANDIDATES,
+  isFallback: false,
+};
+
+/** 町域まで 1 つに定まる結果。 */
+export const SINGLE_ADDRESS_LOOKUP: AddressLookup = {
+  candidates: SINGLE_ADDRESS_CANDIDATE,
+  isFallback: false,
+};
+
+/** 該当が無い結果。郵便番号を直せば埋まる。 */
+export const EMPTY_ADDRESS_LOOKUP: AddressLookup = { candidates: [], isFallback: false };
+
+/** 補完の機構が動いていない結果。何度引いても埋まらない。 */
+export const UNAVAILABLE_ADDRESS_LOOKUP: AddressLookup = { candidates: [], isFallback: true };
