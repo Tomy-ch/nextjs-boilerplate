@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -40,10 +41,10 @@ describe("ToastRegion", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
 
-  it("hotkey を押すと領域へ焦点を移す", () => {
+  it("hotkey を押すと領域へ焦点を移す", async () => {
     renderRegion();
 
-    fireEvent.keyDown(window, { code: "KeyT", altKey: true });
+    await userEvent.keyboard("{Alt>}t{/Alt}");
 
     expect(screen.getByRole("region", { name: "通知" })).toHaveFocus();
   });
@@ -54,10 +55,10 @@ describe("ToastRegion", () => {
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
   });
 
-  it("修飾キーが一致しない打鍵では焦点を移さない", () => {
+  it("修飾キーが一致しない打鍵では焦点を移さない", async () => {
     renderRegion();
 
-    fireEvent.keyDown(window, { code: "KeyT", altKey: false });
+    await userEvent.keyboard("t");
 
     expect(screen.getByRole("region", { name: "通知" })).not.toHaveFocus();
   });
