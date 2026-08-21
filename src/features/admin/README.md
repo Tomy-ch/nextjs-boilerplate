@@ -27,8 +27,9 @@ test-requirement: feature
 
 画面ごとに掘り、その中を性質で分けます（[0027](../../../docs/adr/0027-directory-structure.md)）。
 
-**商品は 3 つの画面（一覧・作成・編集）を持つため、画面の軸で割ってあります。**作成と編集が共有する
-ものは、どちらの画面のものでもないので 1 段上（`products/` 直下と `products/ui/`）が所有します。
+**商品は 4 つの画面（一覧・作成・編集・在庫補充）を持つため、画面の軸で割ってあります。**複数の画面が
+共有するものは、どの画面のものでもないので 1 段上（`products/` 直下と `products/ui/`）が所有します。
+利用者は画面を 1 つしか持たないため、軸を挟まず `users/` の直下に置きます。
 
 | ファイル | 役割 |
 | --- | --- |
@@ -86,6 +87,30 @@ test-requirement: feature
 | `products/list/ui/skeleton/` | 表の待機表示 |
 | `products/new/page-content.tsx` `products/new/view.tsx` | 作成。段階に分けて進み、最後に確認を置く |
 | `products/edit/page-content.tsx` `products/edit/view.tsx` | 編集。観点を切り替えて直す。版を持ち回る |
+| `products/stock/stock-direction.ts` | 在庫を動かす向きと、契約が受け取る符号付きの増減量への畳み方 |
+| `products/stock/stock-quantity.ts` | 動かせる量として読めるかの規則。送信を読む側と見込みを出す側が同じものを見る |
+| `products/stock/form-state.ts` | 在庫のフォームの結果の型と、送信先の型 |
+| `products/stock/form-names.ts` | 在庫のフォームの `name`。送る側と読む側が同じ綴りを見る |
+| `products/stock/parse-stock-form.ts` | 送られてきた向きと量の読み取り |
+| `products/stock/page-content.tsx` `products/stock/view.tsx` | 在庫補充。フォームの器は結果だけを見る |
+| `products/stock/breadcrumb-content.tsx` | 在庫補充の現在地までの階層。商品名のために取得する |
+| `products/stock/ui/current-stock/` | いま判っている在庫と、その鮮度・取り直す導線 |
+| `products/stock/ui/amount-fields/` | 向きと量。打っている途中の値を持ち、見込みを添える |
+| `products/stock/ui/projection/` | 送信後の見込み。参考値であることと、負のときの断り |
+| `products/stock/ui/skeleton/` | フォームの待機表示 |
+| `users/query.ts` | 利用者一覧の URL 契約（範囲とページ番号）とキーの呼び名 |
+| `users/page-window.ts` | ページ送りに並べる番号の選び方。離れた範囲を省略の印へ畳む |
+| `users/row.ts` | 表に並べる 1 行の形。姓名を並べ、退会済みかを真偽値へ落とす |
+| `users/form-state.ts` `users/form-names.ts` | 退会の結果の型・送信先の型と、送信の `name` |
+| `users/results.tsx` | 1 ページ分の取得と、一覧・ページ送りの組み立て |
+| `users/view.tsx` | 絞り込み。一覧本体は受け取る |
+| `users/ui/withdrawable-list/` | 行・確認・結果を繋ぐ層。どれが同じ相手の話かをここだけが知る |
+| `users/ui/table/` | 利用者の表。退会済みの行には操作を出さない |
+| `users/ui/scope-select/` | 対象の範囲の選び直し。選んだ時点で移る |
+| `users/ui/withdraw-dialog/` | 退会の確認。不可逆であることと、後始末が同時に終わらないことを書く |
+| `users/ui/withdraw-feedback/` | 退会の結果。確認が閉じても残る場所 |
+| `users/ui/submit-button/` | 退会の送信。`useFormStatus` を読むため form の子で切り出す |
+| `users/ui/skeleton/` | 表の待機表示 |
 | `ui/error-state/` | 取得に失敗したときの表示。`/admin` の error 境界が使う。境界は 1 枚なので画面を名指ししない |
 
 **`feature` の宣言が掛かるのは、画面の単位で組み上げたものです**。`page-content.tsx` / `view.tsx` /

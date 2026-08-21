@@ -28,9 +28,7 @@ function renderList(withdrawAction: () => Promise<WithdrawUserState> = idle) {
 
 async function confirmWithdraw() {
   await userEvent.click(screen.getByRole("button", { name: "山田 太郎 の操作" }));
-  await userEvent.click(
-    await within(document.body).findByRole("menuitem", { name: "退会させる" }),
-  );
+  await userEvent.click(await within(document.body).findByRole("menuitem", { name: "退会させる" }));
 
   const dialog = await screen.findByRole("alertdialog");
 
@@ -82,6 +80,17 @@ describe("WithdrawableUserList", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
+  it("結果を伴わない応答では、確認を閉じない", async () => {
+    // canvas は送信を起こさない送信先を渡す（`view.stories.tsx`）。押しても何も起きないことを、
+    // 待ち続けない形で示すためで、そのとき確認は開いたままでなければならない。
+    renderList(idle);
+
+    await confirmWithdraw();
+
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("やめる操作では送らない", async () => {
     const withdrawAction = vi.fn(idle);
 
@@ -102,11 +111,7 @@ describe("WithdrawableUserList", () => {
 
   it("下に置くページ送りをそのまま並べる", () => {
     render(
-      <WithdrawableUserList
-        items={[ROW]}
-        pagination={<p>ページ送り</p>}
-        withdrawAction={idle}
-      />,
+      <WithdrawableUserList items={[ROW]} pagination={<p>ページ送り</p>} withdrawAction={idle} />,
     );
 
     expect(screen.getByText("ページ送り")).toBeInTheDocument();

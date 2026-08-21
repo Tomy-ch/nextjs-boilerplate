@@ -46,6 +46,17 @@ describe("StockAmountFields", () => {
     expect(screen.getByText("78")).toBeInTheDocument();
   });
 
+  it("補充へ選び直すと、見込みが足した側へ戻る", async () => {
+    renderFields();
+
+    await userEvent.type(screen.getByRole("spinbutton", { name: /数量/ }), "50");
+    await userEvent.click(screen.getByRole("radio", { name: "差し引く" }));
+    await userEvent.click(screen.getByRole("radio", { name: "補充する" }));
+
+    expect(screen.getByRole("radio", { name: "補充する" })).toBeChecked();
+    expect(screen.getByText("178")).toBeInTheDocument();
+  });
+
   it("打った値は送信の項目名で載る", async () => {
     renderFields();
 

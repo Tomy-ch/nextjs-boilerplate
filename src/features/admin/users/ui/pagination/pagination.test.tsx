@@ -36,10 +36,7 @@ describe("AdminUserPagination", () => {
 
   it("絞り込みを保ったまま移る", () => {
     render(
-      <AdminUserPagination
-        location={{ scope: USER_SCOPE.WITHDRAWN, page: 1 }}
-        pageCount={3}
-      />,
+      <AdminUserPagination location={{ scope: USER_SCOPE.WITHDRAWN, page: 1 }} pageCount={3} />,
     );
 
     expect(screen.getByRole("link", { name: "3 ページ目" })).toHaveAttribute(

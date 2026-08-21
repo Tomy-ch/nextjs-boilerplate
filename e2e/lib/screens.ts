@@ -143,6 +143,14 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     path: "/admin/products/0195f0c2-0000-7000-9000-000000000001/edit",
     signedIn: "admin",
   },
+  {
+    route: "/admin/products/[id]/stock",
+    name: "admin-product-stock",
+    // 編集と同じ理由で ID を固定する。
+    path: "/admin/products/0195f0c2-0000-7000-9000-000000000001/stock",
+    signedIn: "admin",
+  },
+  { route: "/admin/users", name: "admin-users", path: "/admin/users", signedIn: "admin" },
   // sample:end
   { route: "/login", name: "login", path: "/login" },
   { route: DEV_SESSION_PATH, name: "dev-session", path: DEV_SESSION_PATH },

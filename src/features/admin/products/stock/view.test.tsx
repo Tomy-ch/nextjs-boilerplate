@@ -122,9 +122,7 @@ describe("AdminProductStockView", () => {
     const feedback = await screen.findByRole("alert");
 
     // 現在の在庫の枠にも同じ呼び名の導線があるため、報せの内側だけを見る。
-    expect(
-      within(feedback).queryByRole("link", { name: "読み込み直す" }),
-    ).not.toBeInTheDocument();
+    expect(within(feedback).queryByRole("link", { name: "読み込み直す" })).not.toBeInTheDocument();
   });
 
   it("入力を直した時点で直前の結果を下げ、送り直せばまた出す", async () => {

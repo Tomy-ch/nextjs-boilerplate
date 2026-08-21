@@ -13,10 +13,6 @@ import { toScopeHref, USER_SCOPE, USER_SCOPE_LABELS, type UserScope } from "../.
 
 const SCOPES: readonly UserScope[] = [USER_SCOPE.ALL, USER_SCOPE.ACTIVE, USER_SCOPE.WITHDRAWN];
 
-function isUserScope(value: string): value is UserScope {
-  return SCOPES.some((scope) => scope === value);
-}
-
 /** `UserScopeSelect` の props。 */
 export type UserScopeSelectProps = {
   /** いま効いている範囲。 */
@@ -33,6 +29,10 @@ export type UserScopeSelectProps = {
  * native の `select` で組みます。排他で候補が固定されており、候補ごとの入り切りを見せる必要が
  * ないためです（複数選べる商品一覧の絞り込みとはそこが違います）。
  *
+ * **選択肢の値は範囲の名前ではなく行き先そのものです。** DOM から返るのは素の文字列なので、
+ * 範囲の名前を載せると受け取った側で確定し直すことになり、どの範囲でもない値が来た場合という
+ * 到達しない道が残ります。行き先を載せれば、選ばれたものがそのまま移動先になります。
+ *
  * @see Storybook `Page/Admin/Users`
  */
 export function UserScopeSelect({ value }: UserScopeSelectProps) {
@@ -40,10 +40,7 @@ export function UserScopeSelect({ value }: UserScopeSelectProps) {
   const controlId = useId();
 
   const change = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      // 並べた選択肢が出所でも、DOM から返るのは素の文字列なので判定を通す。
-      if (isUserScope(event.target.value)) router.push(toScopeHref(event.target.value));
-    },
+    (event: React.ChangeEvent<HTMLSelectElement>) => router.push(event.target.value),
     [router],
   );
 
@@ -52,9 +49,9 @@ export function UserScopeSelect({ value }: UserScopeSelectProps) {
       <Label className="shrink-0 text-muted-foreground" htmlFor={controlId}>
         状態
       </Label>
-      <SelectNative className="w-40" id={controlId} onChange={change} value={value}>
+      <SelectNative className="w-40" id={controlId} onChange={change} value={toScopeHref(value)}>
         {SCOPES.map((scope) => (
-          <SelectNativeOption key={scope} value={scope}>
+          <SelectNativeOption key={scope} value={toScopeHref(scope)}>
             {USER_SCOPE_LABELS[scope]}
           </SelectNativeOption>
         ))}

@@ -9,9 +9,7 @@ import { StockProjection } from "./projection";
 
 describe("StockProjection", () => {
   it("補充は現在の在庫に足した数を出す", () => {
-    render(
-      <StockProjection current={128} direction={STOCK_DIRECTION.REPLENISH} quantity={50} />,
-    );
+    render(<StockProjection current={128} direction={STOCK_DIRECTION.REPLENISH} quantity={50} />);
 
     expect(screen.getByText("178")).toBeInTheDocument();
   });

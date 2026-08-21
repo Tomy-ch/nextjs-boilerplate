@@ -6,17 +6,25 @@ import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "@/features/admin/products/form
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE } from "@/model/session";
 
-const { createProduct, redirect, updateProduct, updateTag, uploadProductImage, verifySession } =
-  vi.hoisted(() => ({
-    createProduct: vi.fn(),
-    redirect: vi.fn((path: string) => {
-      throw new Error(`NEXT_REDIRECT:${path}`);
-    }),
-    updateProduct: vi.fn(),
-    updateTag: vi.fn(),
-    uploadProductImage: vi.fn(),
-    verifySession: vi.fn(),
-  }));
+const {
+  adjustProductStock,
+  createProduct,
+  redirect,
+  updateProduct,
+  updateTag,
+  uploadProductImage,
+  verifySession,
+} = vi.hoisted(() => ({
+  adjustProductStock: vi.fn(),
+  createProduct: vi.fn(),
+  redirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT:${path}`);
+  }),
+  updateProduct: vi.fn(),
+  updateTag: vi.fn(),
+  uploadProductImage: vi.fn(),
+  verifySession: vi.fn(),
+}));
 
 vi.mock("next/cache", () => ({ updateTag }));
 vi.mock("next/navigation", () => ({ redirect }));
@@ -24,12 +32,18 @@ vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/config/http/http.client", () => ({ MAX_UPLOAD_BYTES: 4 * 1024 * 1024 }));
 vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/products")>()),
+  adjustProductStock,
   createProduct,
   updateProduct,
   uploadProductImage,
 }));
 
-import { createProductAction, updateProductAction, uploadProductImageAction } from "./actions";
+import {
+  adjustProductStockAction,
+  createProductAction,
+  updateProductAction,
+  uploadProductImageAction,
+} from "./actions";
 
 const MAX = 4 * 1024 * 1024;
 const PRODUCT_ID = "0195f0c2-0000-7000-8000-000000000001";
@@ -259,5 +273,97 @@ describe("updateProductAction", () => {
 
     expect(state.status).toBe("error");
     expect(state.status === "error" && state.formError).not.toBe(PRODUCT_VERSION_CONFLICT_MESSAGE);
+  });
+});
+
+/** 形の上で通る最小の在庫の入力。個々のケースは、ここから 1 項目だけ崩す。 */
+function stockForm(overrides: Readonly<Record<string, string>> = {}): FormData {
+  const form = new FormData();
+  const values: Record<string, string> = {
+    productId: PRODUCT_ID,
+    direction: "replenish",
+    quantity: "50",
+    ...overrides,
+  };
+
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== "") form.append(key, value);
+  }
+
+  return form;
+}
+
+describe("adjustProductStockAction", () => {
+  // ----- 正常系 -----
+  it("補充を正の増減量として送る", async () => {
+    await expect(adjustProductStockAction(idleActionState(), stockForm())).rejects.toThrow(
+      "NEXT_REDIRECT:/admin/products",
+    );
+
+    expect(adjustProductStock).toHaveBeenCalledWith(PRODUCT_ID, 50);
+  });
+
+  it("差し引きを負の増減量として送る", async () => {
+    await expect(
+      adjustProductStockAction(idleActionState(), stockForm({ direction: "deduct" })),
+    ).rejects.toThrow("NEXT_REDIRECT:/admin/products");
+
+    expect(adjustProductStock).toHaveBeenCalledWith(PRODUCT_ID, -50);
+  });
+
+  it("成立したら商品を読む取得を取り直させる", async () => {
+    await expect(adjustProductStockAction(idleActionState(), stockForm())).rejects.toThrow(
+      "NEXT_REDIRECT:/admin/products",
+    );
+
+    expect(updateTag).toHaveBeenCalledWith("products");
+  });
+
+  // ----- 異常系 -----
+  it("役割が足りなければ送らずに拒む", async () => {
+    verifySession.mockResolvedValue({ subject: "user", role: SESSION_ROLE.user });
+
+    const state = await adjustProductStockAction(idleActionState(), stockForm());
+
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.PERMISSION_DENIED });
+    expect(adjustProductStock).not.toHaveBeenCalled();
+  });
+
+  it("量が読めなければ、その欄あての文言を返して送らない", async () => {
+    const state = await adjustProductStockAction(idleActionState(), stockForm({ quantity: "0" }));
+
+    expect(state).toMatchObject({
+      status: "error",
+      formError: null,
+      fieldErrors: { quantity: ["1 以上の整数を入力してください。"] },
+    });
+    expect(adjustProductStock).not.toHaveBeenCalled();
+  });
+
+  it("対象が届かなければ、開き直す案内を返して送らない", async () => {
+    const state = await adjustProductStockAction(idleActionState(), stockForm({ productId: "" }));
+
+    expect(state).toMatchObject({
+      status: "error",
+      formError: "対象の商品が判りません。画面を開き直してください。",
+    });
+    expect(adjustProductStock).not.toHaveBeenCalled();
+  });
+
+  it("並行して動かされて拒まれたら、その分類のまま返す", async () => {
+    adjustProductStock.mockRejectedValue(createAppError(ErrorKind.CONFLICT));
+
+    const state = await adjustProductStockAction(idleActionState(), stockForm());
+
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.CONFLICT });
+    expect(updateTag).not.toHaveBeenCalled();
+  });
+
+  it("一時的に受け付けられないときは、時間を空ける旨の分類で返す", async () => {
+    adjustProductStock.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
+
+    const state = await adjustProductStockAction(idleActionState(), stockForm());
+
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.UNAVAILABLE });
   });
 });

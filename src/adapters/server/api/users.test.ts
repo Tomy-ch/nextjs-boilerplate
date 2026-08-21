@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { toUserId } from "@/model/user/user";
 import { serveJson, serveStatus, serveWrite } from "../../../../vitest.setup";
 
 const { getAccessToken, getEnvironment, getLogger, signOut, verifySession, warn } = vi.hoisted(
@@ -26,11 +27,14 @@ vi.mock("../auth/session", () => ({ getAccessToken, signOut, verifySession }));
 import {
   findMyProfile,
   findRegistration,
+  getManagedUserPage,
   getMyProfile,
   getMyPurchaseSummary,
+  MANAGED_USER_PER_PAGE,
   registerUser,
   updateMyProfile,
   withdrawMe,
+  withdrawUser,
 } from "./users";
 
 /** 更新と退会が対象を指すのに使う内部の識別子。画面へは出さない。 */
@@ -417,5 +421,136 @@ describe("registerUser", () => {
     serveStatus("post", USERS_URL, 409);
 
     expect(await kindOf(() => registerUser(profile, IDEMPOTENCY_KEY))).toBe(ErrorKind.CONFLICT);
+  });
+});
+
+describe("getManagedUserPage", () => {
+  // ----- 正常系 -----
+  it("契約の応答を、位置と全件数を持つ 1 ページへ写す", async () => {
+    serveJson(USERS_URL, { users: [wireUser], total: 45, limit: 20, offset: 20 });
+
+    await expect(getManagedUserPage({ page: 2 })).resolves.toEqual({
+      items: [
+        {
+          id: USER_ID,
+          firstName: "太郎",
+          lastName: "山田",
+          email: "taro@example.com",
+          phone: "09012345678",
+          deletedAt: null,
+        },
+      ],
+      total: 45,
+      perPage: 20,
+      offset: 20,
+    });
+  });
+
+  it("ページ番号と 1 ページの件数をクエリへ載せる", async () => {
+    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
+
+    await getManagedUserPage({ page: 3 });
+
+    const url = new URL(requests[0]?.url ?? "");
+
+    expect(url.searchParams.get("page")).toBe("3");
+    expect(url.searchParams.get("perPage")).toBe(String(MANAGED_USER_PER_PAGE));
+  });
+
+  it("有効だけを求めるとき active を真として送る", async () => {
+    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
+
+    await getManagedUserPage({ page: 1, active: true });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("active")).toBe("true");
+  });
+
+  it("退会済みだけを求めるとき active を偽として送る", async () => {
+    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
+
+    await getManagedUserPage({ page: 1, active: false });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("active")).toBe("false");
+  });
+
+  it("区別しないときは active そのものを送らない", async () => {
+    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
+
+    await getManagedUserPage({ page: 1 });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.has("active")).toBe(false);
+  });
+
+  it("退会済みの利用者は退会日時を伴って届く", async () => {
+    serveJson(USERS_URL, {
+      users: [{ ...wireUser, deletedAt: "2026-08-01T00:00:00Z" }],
+      total: 1,
+      limit: 20,
+      offset: 0,
+    });
+
+    await expect(
+      getManagedUserPage({ page: 1 }).then((page) => page.items[0]?.deletedAt),
+    ).resolves.toBe("2026-08-01T00:00:00Z");
+  });
+
+  // ----- 異常系 -----
+  it("契約が拒む条件は送る前に止める", async () => {
+    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
+
+    await expect(getManagedUserPage({ page: 0 })).rejects.toThrow();
+    expect(requests).toHaveLength(0);
+  });
+
+  it("役割が足りなければ、その分類のまま投げる", async () => {
+    serveStatus("get", USERS_URL, 403);
+
+    await expect(kindOf(() => getManagedUserPage({ page: 1 }))).resolves.toBe(
+      ErrorKind.PERMISSION_DENIED,
+    );
+  });
+});
+
+describe("withdrawUser", () => {
+  // ----- 正常系 -----
+  it("受け取った識別子の口を DELETE で叩く", async () => {
+    const withdrawals = serveStatus("delete", USER_URL, 204);
+
+    await withdrawUser(toUserId(USER_ID));
+
+    expect(withdrawals[0]?.url).toBe(`${USERS_URL}/${USER_ID}`);
+    expect(withdrawals[0]?.method).toBe("DELETE");
+  });
+
+  it("操作した側の session は畳まない", async () => {
+    serveStatus("delete", USER_URL, 204);
+
+    await withdrawUser(toUserId(USER_ID));
+
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it("自分の識別子を解決しない", async () => {
+    const me = serveJson(ME_URL, wireUser);
+    serveStatus("delete", USER_URL, 204);
+
+    await withdrawUser(toUserId(USER_ID));
+
+    expect(me).toHaveLength(0);
+  });
+
+  // ----- 異常系 -----
+  it("進行中の購入が残って拒まれたら、その分類のまま投げる", async () => {
+    serveStatus("delete", USER_URL, 409);
+
+    await expect(kindOf(() => withdrawUser(toUserId(USER_ID)))).resolves.toBe(ErrorKind.CONFLICT);
+  });
+
+  it("役割が足りなければ、その分類のまま投げる", async () => {
+    serveStatus("delete", USER_URL, 403);
+
+    await expect(kindOf(() => withdrawUser(toUserId(USER_ID)))).resolves.toBe(
+      ErrorKind.PERMISSION_DENIED,
+    );
   });
 });

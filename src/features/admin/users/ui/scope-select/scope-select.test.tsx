@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { ADMIN_USER_LIST_PATH } from "../../../paths";
-import { USER_SCOPE } from "../../query";
+import { toScopeHref, USER_SCOPE } from "../../query";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -30,7 +30,9 @@ describe("UserScopeSelect", () => {
   it("いま効いている範囲を選択中として出す", () => {
     render(<UserScopeSelect value={USER_SCOPE.WITHDRAWN} />);
 
-    expect(screen.getByRole("combobox", { name: "状態" })).toHaveValue(USER_SCOPE.WITHDRAWN);
+    expect(screen.getByRole("combobox", { name: "状態" })).toHaveValue(
+      toScopeHref(USER_SCOPE.WITHDRAWN),
+    );
   });
 
   it("選んだ時点で、その範囲の先頭ページへ移る", async () => {

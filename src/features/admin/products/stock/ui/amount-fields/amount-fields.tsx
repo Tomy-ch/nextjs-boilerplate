@@ -13,7 +13,6 @@ import { STOCK_FORM_NAMES } from "../../form-names";
 import type { StockDirection } from "../../stock-direction";
 import {
   DEFAULT_STOCK_DIRECTION,
-  isStockDirection,
   STOCK_DIRECTION,
   STOCK_DIRECTION_LABELS,
 } from "../../stock-direction";
@@ -53,8 +52,12 @@ export function StockAmountFields({ current, message }: StockAmountFieldsProps) 
   const [quantity, setQuantity] = useState("");
 
   const changeDirection = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    // 並べた選択肢が出所でも、DOM から返るのは素の文字列なので判定を通す。
-    if (isStockDirection(event.target.value)) setDirection(event.target.value);
+    // DOM から返るのは素の文字列。選択肢は 2 つしかないので、差し引きかどうかだけを見る。
+    setDirection(
+      event.target.value === STOCK_DIRECTION.DEDUCT
+        ? STOCK_DIRECTION.DEDUCT
+        : STOCK_DIRECTION.REPLENISH,
+    );
   }, []);
 
   // 量の欄は focus が外れたことを外へ伝えない。結果を取り下げる合図は、外側の form が入力ごとに拾う。

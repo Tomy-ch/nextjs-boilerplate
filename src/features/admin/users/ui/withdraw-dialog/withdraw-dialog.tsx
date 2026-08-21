@@ -41,16 +41,12 @@ export type UserWithdrawDialogProps = {
  * 出した結果ごと消えるためです。
  */
 export function UserWithdrawDialog({ formAction, onDismiss, target }: UserWithdrawDialogProps) {
-  // 開く側の合図は使わない。開くのは行の操作が選ばれたときだけで、閉じる側だけをここが受ける。
-  const changeOpen = useCallback(
-    (open: boolean) => {
-      if (!open) onDismiss();
-    },
-    [onDismiss],
-  );
+  // 開くのは行の操作が選ばれたときだけで、この面は trigger を持たない。したがって開閉の合図が
+  // 来るのは閉じるときに限られる。
+  const close = useCallback(() => onDismiss(), [onDismiss]);
 
   return (
-    <AlertDialog onOpenChange={changeOpen} open={target !== null}>
+    <AlertDialog onOpenChange={close} open={target !== null}>
       <AlertDialogContent>
         <form action={formAction}>
           <input name={WITHDRAW_FORM_NAMES.userId} type="hidden" value={target?.id ?? ""} />

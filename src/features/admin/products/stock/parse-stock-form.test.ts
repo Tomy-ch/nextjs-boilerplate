@@ -7,10 +7,11 @@ import { STOCK_DIRECTION } from "./stock-direction";
 
 const PRODUCT_ID = "0195f0c2-0000-7000-8000-000000000001";
 
-function formData(
-  overrides: Partial<Record<keyof typeof STOCK_FORM_NAMES, string | null>> = {},
-): FormData {
-  const values = {
+type StockFormValues = Readonly<Record<keyof typeof STOCK_FORM_NAMES, string | null>>;
+
+/** 送信の 1 件を組む。null を渡した項目は「届かなかった」ことを表す。 */
+function formData(overrides: Partial<StockFormValues> = {}): FormData {
+  const { productId, direction, quantity }: StockFormValues = {
     productId: PRODUCT_ID,
     direction: STOCK_DIRECTION.REPLENISH,
     quantity: "50",
@@ -18,9 +19,9 @@ function formData(
   };
   const data = new FormData();
 
-  for (const [key, value] of Object.entries(values)) {
-    if (value !== null) data.append(STOCK_FORM_NAMES[key as keyof typeof STOCK_FORM_NAMES], value);
-  }
+  if (productId !== null) data.append(STOCK_FORM_NAMES.productId, productId);
+  if (direction !== null) data.append(STOCK_FORM_NAMES.direction, direction);
+  if (quantity !== null) data.append(STOCK_FORM_NAMES.quantity, quantity);
 
   return data;
 }

@@ -13,6 +13,7 @@ vi.mock("../auth/session", () => ({ getAccessToken }));
 import { toProductId } from "@/model/product/product";
 
 import {
+  adjustProductStock,
   createProduct,
   getProduct,
   getProductCount,
@@ -592,5 +593,70 @@ describe("updateProduct", () => {
     serveStatus("patch", PRODUCT_URL, 409);
 
     await expect(updateProduct(id, { ...DRAFT, version: 1 })).rejects.toThrow();
+  });
+});
+
+describe("adjustProductStock", () => {
+  const STOCK_URL = `${PRODUCT_URL}/stock`;
+  const ID = toProductId("0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11");
+
+  // ----- 正常系 -----
+  it("増減後の商品を表示用の型へ写して返す", async () => {
+    serveWrite("patch", STOCK_URL, { ...wireProduct, quantity: 53 });
+
+    await expect(adjustProductStock(ID, 50)).resolves.toMatchObject({ quantity: 53 });
+  });
+
+  it("補充は正の増減量として送る", async () => {
+    const requests = serveWrite("patch", STOCK_URL, wireProduct);
+
+    await adjustProductStock(ID, 50);
+
+    await expect(requests[0]?.json()).resolves.toEqual({ delta: 50 });
+  });
+
+  it("差し引きは負の増減量として送る", async () => {
+    const requests = serveWrite("patch", STOCK_URL, wireProduct);
+
+    await adjustProductStock(ID, -50);
+
+    await expect(requests[0]?.json()).resolves.toEqual({ delta: -50 });
+  });
+
+  it("版を添えない。相対更新は並行しても失われない", async () => {
+    const requests = serveWrite("patch", STOCK_URL, wireProduct);
+
+    await adjustProductStock(ID, 50);
+
+    await expect(requests[0]?.json()).resolves.not.toHaveProperty("version");
+  });
+
+  it("主体を名乗って送る", async () => {
+    getAccessToken.mockResolvedValue("access-token");
+    const requests = serveWrite("patch", STOCK_URL, wireProduct);
+
+    await adjustProductStock(ID, 50);
+
+    expect(requests[0]?.headers.get("authorization")).toBe("Bearer access-token");
+  });
+
+  // ----- 異常系 -----
+  it("増減後の在庫が範囲を外れた応答を、分類済みのエラーとして投げる", async () => {
+    serveStatus("patch", STOCK_URL, 422);
+
+    await expect(adjustProductStock(ID, -1000)).rejects.toThrow();
+  });
+
+  it("並行して動かされて拒まれた応答を、分類済みのエラーとして投げる", async () => {
+    serveStatus("patch", STOCK_URL, 409);
+
+    await expect(adjustProductStock(ID, 50)).rejects.toThrow();
+  });
+
+  it("一時的に受け付けられない応答を、再送せずに投げる", async () => {
+    const requests = serveStatus("patch", STOCK_URL, 503);
+
+    await expect(adjustProductStock(ID, 50)).rejects.toThrow();
+    expect(requests).toHaveLength(1);
   });
 });

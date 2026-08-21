@@ -6,7 +6,7 @@ import { axe } from "vitest-axe";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
-import { USER_SCOPE } from "./query";
+import { toScopeHref, USER_SCOPE } from "./query";
 import { AdminUserListView } from "./view";
 
 describe("AdminUserListView", () => {
@@ -37,7 +37,9 @@ describe("AdminUserListView", () => {
       </AdminUserListView>,
     );
 
-    expect(screen.getByRole("combobox", { name: "状態" })).toHaveValue(USER_SCOPE.ACTIVE);
+    expect(screen.getByRole("combobox", { name: "状態" })).toHaveValue(
+      toScopeHref(USER_SCOPE.ACTIVE),
+    );
   });
 
   it("a11y 検査を通る", async () => {

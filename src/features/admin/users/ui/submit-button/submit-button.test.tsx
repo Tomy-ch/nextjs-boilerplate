@@ -18,8 +18,11 @@ describe("WithdrawSubmitButton", () => {
   });
 
   it("送信中は、待っていることを操作自身の名前で伝える", async () => {
+    // 解決しない送信で、送信中の姿を保つ。
+    const pending = () => new Promise<void>(() => undefined);
+
     render(
-      <form action={() => new Promise(() => undefined)}>
+      <form action={pending}>
         <WithdrawSubmitButton />
       </form>,
     );

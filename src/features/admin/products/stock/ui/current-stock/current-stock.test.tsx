@@ -41,10 +41,7 @@ describe("StockCurrentAmount", () => {
   it("取り直す導線を、この画面自身へ向けて常設する", () => {
     renderAmount();
 
-    expect(screen.getByRole("link", { name: "読み込み直す" })).toHaveAttribute(
-      "href",
-      RELOAD_HREF,
-    );
+    expect(screen.getByRole("link", { name: "読み込み直す" })).toHaveAttribute("href", RELOAD_HREF);
   });
 
   it("a11y 検査を通る", async () => {
