@@ -22,6 +22,12 @@ describe("mediaUrl", () => {
       "https://cdn.example.test/media/items/abc.png",
     );
   });
+
+  it("配信元の綴りが正規化される形でも同じ URL にする", () => {
+    expect(mediaUrl("https://Media.Example.test:443", "items/abc.png")).toBe(
+      "https://media.example.test/items/abc.png",
+    );
+  });
   // ----- 異常系 -----
   it("キーが無ければ URL を作らない", () => {
     expect(mediaUrl(ORIGIN, null)).toBeNull();
@@ -29,5 +35,25 @@ describe("mediaUrl", () => {
 
   it("空のキーを URL にしない", () => {
     expect(mediaUrl(ORIGIN, "")).toBeNull();
+  });
+
+  it("別の配信元を指すキーを捨てる", () => {
+    expect(mediaUrl(ORIGIN, "https://evil.example/x.png")).toBeNull();
+  });
+
+  it("中身を直接埋めたキーを捨てる", () => {
+    expect(mediaUrl(ORIGIN, "data:image/svg+xml;base64,PHN2Zy8+")).toBeNull();
+  });
+
+  it("スクリプトを指すキーを捨てる", () => {
+    expect(mediaUrl(ORIGIN, "javascript:alert(1)")).toBeNull();
+  });
+
+  it("配信元のサブパスより上を指すキーを捨てる", () => {
+    expect(mediaUrl("https://cdn.example.test/media", "../../secret.png")).toBeNull();
+  });
+
+  it("URL として解釈できないキーを捨てる", () => {
+    expect(mediaUrl(ORIGIN, "http://[")).toBeNull();
   });
 });
