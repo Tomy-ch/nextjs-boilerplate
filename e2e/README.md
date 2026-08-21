@@ -1,3 +1,7 @@
+---
+test-requirement: unit
+---
+
 # e2e
 
 **画面を通した検証**。組み上げたアプリを実際のブラウザで動かし、部品単体では見えないものだけを
@@ -6,6 +10,16 @@
 story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象が違う**。あちらは部品を単独で
 描いた姿で、ここは部品を組み上げた画面と、画面をまたぐ経路である。部品が個別に緑でも、並べた
 ときに崩れる形も、遷移が繋がっていない状態も作れる。
+
+## テストが負う観点
+
+frontmatter の `test-requirement` が指すのは `lib/` の Vitest テストである。ここに居るのは宣言の
+読み取りや絞り込みといった純粋な関数で、負うのは unit の責務にあたる。
+
+**`journeys/` / `visual/` の spec はこの宣言の対象ではない。** あちらは Playwright が直接実行する
+検証そのもので、1 対 1 のゲートの母数からも
+[`scripts/lib/untested-modules.ts`](../scripts/lib/untested-modules.ts) の `TEST_SUITE_MODULES` が
+除外を宣言している。何を見るかは下記「何を見ているか」が持つ。
 
 ## 何を見ているか
 

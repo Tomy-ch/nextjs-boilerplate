@@ -5,11 +5,10 @@
 # つまり「このファイルのこの所見をなぜ許すか」だけである。
 
 rules:
-  # `.github/actions/setup-baselines` が App token を `repositories:` ではなく `owner:` で絞り、
-  # 権限も個別指定していない。絞り方は意図したもので、理由はそのステップ自身が持つ（App が入って
-  # いるのはこのリポジトリと基準画像の置き場の 2 つだけで、置き場の名前をここへ書くと .gitmodules
-  # が持つ配線を二重に持つ）。権限の絞り込みのほうは実在の穴だが、App の secret 無しでは確かめ
-  # られないため別に追う。
+  # `.github/actions/setup-baselines` が App token を `repositories:` ではなく `owner:` で絞る。
+  # 意図したもので、理由はそのステップ自身が持つ（App が入っているのはこのリポジトリと基準画像の
+  # 置き場の 2 つだけで、置き場の名前をここへ書くと .gitmodules が持つ配線を二重に持つ）。
+  # 権限のほうは `permission-contents: write` で名指ししてあり、この所見には含まれない。
   github-app:
     remap:
       severity: medium
