@@ -30,9 +30,8 @@ import { buildCookieHeader } from "./session";
  *
  * 使い方: `tsx scripts/lighthouse`（`make lighthouse` から呼ばれる）
  *
- * アプリもブラウザもホストで動く。撮影（`vrt` / `e2e`）がブラウザをコンテナへ閉じ込めるのは
- * 基準画像の一意性がフォントのラスタライズに懸かるためで、ここが比べるのは画素ではなく数値
- * である。固定すべきはブラウザの版で、それは lockfile の `@playwright/test` が担う。
+ * アプリもブラウザもホストで動く。撮影（`vrt` / `e2e`）と違ってコンテナを使わない理由は
+ * `.makefiles/testing/lighthouse.mk` にある。
  */
 
 const BUDGET_FILE = "performance-budget.yaml";

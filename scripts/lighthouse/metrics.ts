@@ -6,13 +6,9 @@ import type { MetricKey, MetricValues } from "./budget";
  * Lighthouse の結果（LHR）から指標を取り出し、試行をまとめる。
  *
  * @remarks
- * 見るのは Core Web Vitals の 3 つだけです（[0101](../../docs/adr/0101-performance-budget.md) §1）。
- * Lighthouse の performance スコアは 5 つの指標の加重平均で、下がったときに**どれが下がったか**を
- * 答えられません。指標を名指しで持つのは、赤くなった PR が次に何を見ればよいかを言えるためです。
- *
- * INP は実ユーザの操作を要するため lab では計測できません。**代わりに TBT を見ます** — Lighthouse
- * が INP の lab 代替として置いている指標で、field 値の収集経路は
- * [0082](../../docs/adr/0082-client-observability.md) が持ちます。
+ * 取り出すのは LCP / CLS / TBT だけで、performance スコアは読みません。3 つを名指しで持つ理由と、
+ * TBT が INP の代わりに立っている理由は [0101](../../docs/adr/0101-performance-budget.md) §2 が
+ * 持ちます。
  */
 
 /** LHR の audit id と、判定に使う名前の対応。 */
@@ -68,11 +64,10 @@ export function readMetrics(lhr: unknown): MetricValues {
  * @throws 値が 1 つも無い場合。
  *
  * @remarks
- * 平均ではなく中央値を採ります。CI の runner は隣の仕事の影響で 1 回だけ極端に遅い試行を出す
- * ことがあり、平均はその 1 回に引きずられます。
- *
- * 偶数個のときは小さい側を採ります。2 つの平均を採ると、どの試行にも存在しない値が予算の
+ * **偶数個のときは小さい側を採ります。** 2 つの平均を採ると、どの試行にも存在しない値が予算の
  * 判定へ現れます。
+ *
+ * 平均ではなく中央値である理由は `performance-budget.yaml` の `runs.reason` が持ちます。
  */
 export function median(values: readonly number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
