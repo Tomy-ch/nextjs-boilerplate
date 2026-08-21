@@ -258,6 +258,17 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
+      # Read back by `baseline-retake.yaml` to bound what the label may retake. Kept
+      # separate from the diff bundle so the retake path downloads only the report.
+      - name: Upload the machine-readable report
+        if: always() && steps.e2e.outputs.status == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-report
+          path: tmp/e2e/report.json
+          retention-days: 7
+          if-no-files-found: error
+
       # Handed to the commenting job through an artifact rather than a job output,
       # because the body is a file whose size is not bounded by the output limit.
       - name: Hand the comment body to the commenting job

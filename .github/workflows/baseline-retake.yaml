@@ -10,9 +10,9 @@ name: Baseline Retake
 #
 #   * Stories (`make vrt-update`) — bounded to what the VRT run reported, so a story
 #     that never appeared in the pull-request comment cannot enter the baselines here.
-#   * Screens (`make e2e-update`) — always the full set. E2E publishes no per-screen
-#     report to bound it with, so an unchanged screen is re-shot and lands only if its
-#     pixels actually moved.
+#   * Screens (`make e2e-update`) — bounded the same way, from the E2E run's report for
+#     this commit. Both kinds therefore obey one invariant: the set that was reported is
+#     the set that may be retaken.
 #
 # The label is NOT an approval and NOT a trigger. It develops the pixels into a
 # reviewable image diff, and accepting them is a separate label required by
@@ -264,6 +264,48 @@ jobs:
             exit 1
           }
 
+      # Screens are bounded by the same rule as stories: what was reported is what may
+      # be retaken. The report belongs to the E2E run for this commit, which is the run
+      # that triggered this one only when E2E is what reported — otherwise it is a
+      # different run on the same head, resolved here.
+      #
+      # No report means no reported screen difference, so nothing may enter the store
+      # through this path. That is the safe direction: the alternative is retaking the
+      # full set, which accepts pixels no comment ever showed a reviewer.
+      - name: Download the reported screens
+        id: screens
+        if: >-
+          steps.gate.outputs.deferred == 'false' &&
+          steps.mode.outputs.mode == 'reported'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          STORIES: ${{ steps.trigger.outputs.stories }}
+        run: |
+          set -euo pipefail
+
+          if [ "$STORIES" = 'true' ]; then
+            run_id="$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/e2e.yaml/runs?head_sha=${HEAD_SHA}&per_page=1" \
+              --jq '.workflow_runs[0].id // empty')"
+          else
+            run_id="$RUN_ID"
+          fi
+
+          if [ -z "$run_id" ]; then
+            echo 'found=false' >> "$GITHUB_OUTPUT"
+            echo 'ℹ️ この commit に E2E の実行がありません。画面は撮り直しません。'
+            exit 0
+          fi
+
+          if gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name e2e-report --dir tmp/e2e; then
+            echo 'found=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'found=false' >> "$GITHUB_OUTPUT"
+            echo 'ℹ️ E2E に差分の報告がありません。画面は撮り直しません。'
+          fi
+
       - name: Setup mise and the pinned tools
         if: steps.gate.outputs.deferred == 'false'
         uses: ./.github/actions/setup-mise
@@ -284,6 +326,7 @@ jobs:
         env:
           MODE: ${{ steps.mode.outputs.mode }}
           STORIES: ${{ steps.trigger.outputs.stories }}
+          SCREENS: ${{ steps.screens.outputs.found }}
         shell: bash
         run: |
           set -euo pipefail
@@ -311,9 +354,29 @@ jobs:
             fi
           fi
 
-          # Always the full set: E2E publishes no per-screen report to bound it with.
-          taken+=('全画面')
-          make e2e-update
+          # 孤児は範囲を絞った撮り直しでは消えない。story 側と同じ理由で全数へ倒す。
+          if [ "$MODE" = 'full' ]; then
+            taken+=('全画面')
+            make e2e-update
+          elif [ "$SCREENS" = 'true' ]; then
+            if [ "$(pnpm exec tsx scripts/e2e orphans tmp/e2e/report.json)" = 'true' ]; then
+              taken+=('全画面')
+              make e2e-update
+            else
+              names="$(pnpm exec tsx scripts/e2e names tmp/e2e/report.json)"
+              if [ -z "$names" ]; then
+                echo '❌ 画面の報告に差分がありません。撮り直す対象がありません。'
+                exit 1
+              fi
+              taken+=("$names")
+              make e2e-update E2E_ONLY="$names"
+            fi
+          fi
+
+          if [ ${#taken[@]} -eq 0 ]; then
+            echo '❌ story も画面も報告に差分がありません。撮り直す対象がありません。'
+            exit 1
+          fi
 
           ids="$(IFS=,; echo "${taken[*]}")"
           echo "ids=${ids}" >> "$GITHUB_OUTPUT"

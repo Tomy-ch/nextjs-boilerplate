@@ -33,11 +33,16 @@ export RUNNER_GID
 BASELINE_RETAKE ?=
 export BASELINE_RETAKE
 
+# 撮り直す範囲。承認経路が「直前に落ちた画面」だけを渡すために使う。空なら全数。
+# story 側の VRT_ONLY と同じ役割で、渡すのは画面の名前（e2e/lib/screens.ts の宣言と同じ綴り）。
+E2E_ONLY ?=
+export E2E_ONLY
+
 # 上の 3 つは vrt.mk も同じものを使うが、宣言をこちらでも持つのは、片方のファイルの export に
 # 暗黙依存すると include の順序を変えただけで静かに壊れるためである。
 
 E2E_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
-	-e E2E_BASE_URL=$(E2E_BASE_URL) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE browser_runner
+	-e E2E_BASE_URL=$(E2E_BASE_URL) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE -e E2E_ONLY browser_runner
 
 E2E_CONFIG := --config=playwright.e2e.config.ts
 
@@ -129,8 +134,18 @@ e2e-retake:
 # 撮り直しても送らない。送るのは make baseline-push だけで、置き場は story 単位の撮影と共有する。
 e2e-update: E2E_UPDATE := --update-snapshots
 e2e-update: BASELINE_RETAKE := 1
-e2e-update: e2e-run
+e2e-update: clear-screens e2e-run
 	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です（make e2e-retake なら続けて送ります）。"
+
+# 全数のときだけ先に区画を空にする。撮り直しは撮ったぶんを書くだけなので、区画を残したまま
+# 撮ると改名・削除で参照を失った画像が孤児として残り続ける（`baseline/lib/store.ts`）。
+#
+# **引数が 1 つでも付いていたら消さない。** 絞り込みは `E2E_ONLY` だけでなく `E2E_ARGS` の
+# `--grep` / `--project` でも起きる。どの引数が撮影対象を狭めるかを列挙して判定すると、列挙から
+# 漏れた引数がそのまま「全画面を消して一部だけ撮り直す」になる。知らない引数は消さない側へ倒す。
+.PHONY: clear-screens ## 画面の基準画像を置き場から消す (e2e-update から呼ばれる)
+clear-screens:
+	@if [ -z "$(E2E_ONLY)$(E2E_ARGS)" ]; then pnpm exec tsx scripts/e2e clear-screens; fi
 
 e2e-report:
 	@docker compose -f docker-compose.dev-tools.yml run --rm --service-ports browser_runner \

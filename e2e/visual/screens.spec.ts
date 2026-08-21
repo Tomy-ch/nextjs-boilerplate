@@ -5,7 +5,13 @@ import type { TestInfo } from "@playwright/test";
 import { listBaselines, missingBaselines, orphanBaselines } from "../../baseline/lib/orphans";
 import { isRetaking } from "../../baseline/lib/store";
 import { expectedScreenBaselines, SCREEN_BASELINE_TAG } from "../lib/screen-baselines";
-import { listScreenRoutes, resolveScreens, SCREEN_MANIFEST_FILE, SCREENS } from "../lib/screens";
+import {
+  listScreenRoutes,
+  resolveScreens,
+  SCREEN_MANIFEST_FILE,
+  SCREENS,
+  selectScreens,
+} from "../lib/screens";
 import { expect, test } from "../lib/test";
 import { loadBands } from "../lib/viewports";
 
@@ -23,9 +29,9 @@ import { loadBands } from "../lib/viewports";
  * 応答が呼ぶたびに変わる状態では、この比較そのものが成立しません。
  */
 
-const screens = resolveScreens(
-  listScreenRoutes(readFileSync(SCREEN_MANIFEST_FILE, "utf8")),
-  SCREENS,
+const screens = selectScreens(
+  resolveScreens(listScreenRoutes(readFileSync(SCREEN_MANIFEST_FILE, "utf8")), SCREENS),
+  process.env.E2E_ONLY,
 );
 const bands = loadBands();
 
@@ -52,6 +58,8 @@ test("基準画像 / 撮影対象と 1 対 1 で対応する", { tag: SCREEN_BAS
   // 対応は置き場に対して 1 回見れば足りる。帯ごとに走らせると同じ失敗が帯の数だけ並ぶ。
   test.skip(testInfo.project.name !== bands[0]?.name, "帯を 1 つ選んで 1 回だけ見る");
   test.skip(isRetaking(process.env), "撮り直しの最中は対応を見ない");
+  // 範囲を絞った実行では、在るべき画像の集合が絞った側へ縮み、対象外の画像がすべて孤児に見える。
+  test.skip(Boolean(process.env.E2E_ONLY), "範囲を絞った実行では対応を見ない");
 
   const present = listBaselines(baselineRoot(testInfo));
   const expected = expectedScreenBaselines(screens, bands);
