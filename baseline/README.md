@@ -1,3 +1,7 @@
+---
+test-requirement: unit
+---
+
 # baseline
 
 基準画像の置き場と、その置き場に対して働く操作（撮り直し・送出・承認・掃除）を持つ。
@@ -9,6 +13,7 @@
 | `images/` | **サブモジュール**。基準画像の置き場を指す gitlink |
 | [`lib/store.ts`](lib/store.ts) | 置き場の区画割り。2 種類の撮影の住み分けと、撮り直し中かの判定 |
 | [`lib/orphans.ts`](lib/orphans.ts) | 置き場にある画像と、在るべき画像の突き合わせ |
+| [`lib/targets.ts`](lib/targets.ts) | 置き場のパスから、見直しの入口が取る対象名への逆変換 |
 
 在るべき一覧の組み立てだけは撮影対象の数え方が違うので、それぞれが持つ
 （[vrt](../vrt/lib/expected-baselines.ts) / [e2e](../e2e/lib/screen-baselines.ts)）。

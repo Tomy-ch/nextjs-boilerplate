@@ -53,6 +53,9 @@ make e2e E2E_ARGS='--project=chromium --grep "ログイン"'
 
 画素が違った PR のコメントには、**落ちた画面をそのまま開く 1 行**が付く。別の端末へ貼るだけでよい。
 
+**撮り直しのコメントにも同じ 1 行が付く。**画面は常に全数を撮るが、そちらが並べるのは**画素が実際に
+動いた画面**だけである（story 単位の側と同じ扱い —— [`vrt/README.md`](../vrt/README.md)）。
+
 ```bash
 make e2e-review BRANCH=<ブランチ> RUN=<run-id> E2E_ONLY=<画面名>,<画面名>
 ```

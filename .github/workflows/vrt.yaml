@@ -191,12 +191,9 @@ jobs:
 
           ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json || true)"
 
-          # The block below is written to be pasted into a shell, so a value carrying `$(...)`
-          # or a backtick would be evaluated by the reader's shell before `make` ever starts.
-          # A branch name may legally contain both, so drop the block rather than emit one
-          # that is unsafe to paste. Quoting alone would not do: a value containing a single
-          # quote closes the quoting again. The same check is what lets these values sit in
-          # rendered markdown at all — the accepted set carries no markup and no mention.
+          # The block below is pasted into a shell, so a value outside the accepted set is
+          # dropped rather than quoted. Why quoting is not enough, and why the same set is
+          # what lets these values render as markdown, is in ADR 0153 §5.
           if printf '%s%s' "${HEAD_REF}" "${ids}" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; then
             ids=''
             echo "review block suppressed: head_ref or story ids carry shell metacharacters" >&2
