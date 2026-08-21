@@ -103,7 +103,10 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   {
     route: "/admin/analytics",
     name: "admin-analytics",
-    path: "/admin/analytics",
+    // 暦日を名指しして開く。省くと「今日」になり、対象の日付を実時計から組み立てるので
+    // （`features/admin/analytics/period-window.ts`）、基準画像が撮った日にしか一致しない。
+    // 描くのはサーバなので、ブラウザ側の時計を固定しても届かない。
+    path: "/admin/analytics?period=range&from=2024-01-01&to=2024-01-31",
     signedIn: "admin",
   },
   { route: "/admin/products", name: "admin-products", path: "/admin/products", signedIn: "admin" },
