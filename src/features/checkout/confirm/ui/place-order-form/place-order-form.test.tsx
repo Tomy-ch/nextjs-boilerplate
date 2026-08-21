@@ -10,6 +10,7 @@ import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { PlaceOrderForm } from "./place-order-form";
 
 const KEY = "0195f0c2-0000-7000-a000-000000000001";
+const OTHER_KEY = "0195f0c2-0000-7000-a000-000000000002";
 
 describe("PlaceOrderForm", () => {
   it("確定の操作を出す", () => {
@@ -20,6 +21,14 @@ describe("PlaceOrderForm", () => {
 
   it("画面が組んだ鍵を送信へ載せる", () => {
     const { container } = render(<PlaceOrderForm idempotencyKey={KEY} orderable />);
+
+    expect(container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(KEY);
+  });
+
+  it("組み直された画面から別の鍵が届いても、送信へ載せる鍵は変えない", () => {
+    const { container, rerender } = render(<PlaceOrderForm idempotencyKey={KEY} orderable />);
+
+    rerender(<PlaceOrderForm idempotencyKey={OTHER_KEY} orderable />);
 
     expect(container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(KEY);
   });

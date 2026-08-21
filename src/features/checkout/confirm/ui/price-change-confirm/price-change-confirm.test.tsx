@@ -13,6 +13,7 @@ import { ACCEPT_PRICE_CHANGE_FIELD } from "../../../form-fields";
 import { PriceChangeConfirm } from "./price-change-confirm";
 
 const KEY = "0195f0c2-0000-7000-a000-000000000001";
+const OTHER_KEY = "0195f0c2-0000-7000-a000-000000000002";
 const NAMES = ["ノイズキャンセリングヘッドホン"];
 
 function renderConfirm(orderable = true) {
@@ -60,6 +61,19 @@ describe("PriceChangeConfirm", () => {
 
     expect(dialog.querySelector(`input[name="${ACCEPT_PRICE_CHANGE_FIELD}"]`)).toHaveValue("1");
     expect(dialog.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(KEY);
+  });
+
+  it("組み直された画面から別の鍵が届いても、送信へ載せる鍵は変えない", async () => {
+    const { rerender } = renderConfirm();
+
+    await open();
+    await userEvent.click(screen.getByRole("button", { name: "確認へ戻る" }));
+    rerender(<PriceChangeConfirm changedNames={NAMES} idempotencyKey={OTHER_KEY} orderable />);
+    await open();
+
+    expect(
+      screen.getByRole("alertdialog").querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`),
+    ).toHaveValue(KEY);
   });
 
   it("閉じるだけの操作で確かめから戻れる", async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { idleActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
@@ -23,13 +23,19 @@ const LABEL = "注文を確定する";
  *
  * @remarks
  * **鍵は画面が組んだ時点の値を送ります。** 押すたびに作り直すと、二重に押したぶんだけ購入が
- * 増えます。同じ画面から何度送っても同じ鍵になるのが、この隠し項目の役目です。
+ * 増えます。同じ画面から何度送っても同じ鍵になるのが、この隠し項目の役目です。引き下げての
+ * 再取得を挟んでも変わりません。
  *
  * 金額が変わっている場合はこの姿を使いません。確かめてから送る
  * [`PriceChangeConfirm`](../price-change-confirm/price-change-confirm.tsx) が受け持ち、
  * どちらを出すかは呼び出し元が選びます。
  */
-export function PlaceOrderForm({ idempotencyKey, orderable }: PlaceOrderFormProps) {
+export function PlaceOrderForm({
+  idempotencyKey: initialIdempotencyKey,
+  orderable,
+}: PlaceOrderFormProps) {
+  // 鍵は最初に受け取ったものを使い続ける（理由は `model/idempotency-key.ts`）。
+  const [idempotencyKey] = useState(initialIdempotencyKey);
   const [state, formAction] = useActionState<PlaceOrderFormState, FormData>(
     placeOrderAction,
     idleActionState(),
