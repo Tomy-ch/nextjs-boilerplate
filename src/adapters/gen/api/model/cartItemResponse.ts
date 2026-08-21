@@ -9,14 +9,14 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+9abecab
+ * OpenAPI spec version: 2.2.0+8f733fb
  */
 import type { CartItemIssue } from "./cartItemIssue";
 
 /**
  * カート明細 1 件。商品の現在値との突き合わせ結果を issues に添える。
- * カートは商品の名前も価格も保持しないため、productName / unitPrice は取得時点の商品の値であり、
- * 購入時の金額を拘束しない（請求額を確定するのは購入明細のスナップショット）。
+ * カートは商品の名前も価格も画像も保持しないため、productName / unitPrice / imagePath は
+ * 取得時点の商品の値であり、購入時の金額を拘束しない（請求額を確定するのは購入明細のスナップショット）。
  */
 export interface CartItemResponse {
   /** 商品 ID。カート内で明細を一意に指す自然キー。 */
@@ -26,6 +26,13 @@ export interface CartItemResponse {
    * @nullable
    */
   productName?: string | null;
+  /**
+   * 取得時点の商品の代表画像のオブジェクトキー。代表画像とは、出品者が並べた表示順の先頭にある
+   * 画像を指します。表示 URL は呼び出し側が配信ベース URL と組み立てます。
+   * 代表画像を持たない商品と、商品を引けなかった明細（issues に notFound）では null です。
+   * @nullable
+   */
+  imagePath?: string | null;
   /** カートに入れた数量。 */
   quantity: number;
   /**
