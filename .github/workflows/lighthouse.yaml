@@ -17,22 +17,41 @@ name: Lighthouse
 # a number does not; what has to be fixed for a number is the browser version, and the
 # `@playwright/test` entry in `pnpm-lock.yaml` fixes that on every machine.
 #
-# Runner numbers wander, which is why each screen is measured several times and the median
-# is what the budget sees. The count lives in `performance-budget.yaml` beside the limits.
+# ## Why this does not run on pull requests
 #
-# The runs are deliberately serial. Measuring several screens at once would have them compete
-# for the same CPU, and Lighthouse's simulated throttling scales with the CPU time it observes
-# — the parallelism would land in the numbers the budget then judges. That is what the long
-# timeout pays for: every declared screen, times the run count, one after another.
+# The measurement is serial by necessity — running several screens at once has them compete
+# for the same CPU, and Lighthouse's simulated throttling scales with the CPU time it
+# observes, so the parallelism would land in the numbers the budget then judges. Measured on
+# this repository's own sample: 23 screens x 3 runs x ~14 s = ~16 minutes, against ~1 minute
+# of build. The cost is therefore `screens x runs`, and neither factor can be cut without
+# giving something up: fewer runs loses the median that absorbs runner variance, and fewer
+# screens gives up the reason the list is read from the declaration in the first place.
 #
-# The job always starts and then asks `diff-scope` whether the diff can reach the rendered
-# page, so the required context is reported even when the expensive steps stand down. A
-# `paths:` filter would not report it at all and would block the pull request forever
-# (README.md).
+# So the cadence moves instead of the coverage. A merge is judged after it lands rather than
+# before, which delays detection by one merge and costs no pull request any waiting. Every
+# screen is still measured, still three times, still against the same budget.
+#
+# `cancel-in-progress` is on, so a burst of merges leaves only the newest tree measured —
+# that is the tree that matters. The nightly run is what guarantees at least one complete
+# measurement a day when merges keep superseding each other.
 
 on:
-  pull_request:
+  push:
+    branches:
+      - production
+      - staging
+      - develop
+      - 'release/**'
+  schedule:
+    # 18:00 UTC daily (03:00 JST).
+    - cron: '0 18 * * *'
   workflow_dispatch:
+
+# Select the CI environment file (env/.env.ci), which is the one that puts the API in mock
+# mode. Without a mocked API the screens would need a backend, and a slow response over
+# there would read as a regression in here.
+env:
+  APP_ENV: ci
 
 permissions:
   contents: read
@@ -41,19 +60,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Select the CI environment file (env/.env.ci), which is the one that puts the API in mock
-# mode. Without a mocked API the screens would need a backend, and a slow response over
-# there would read as a regression in here.
-env:
-  APP_ENV: ci
-
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
       contents: read
-      pull-requests: write
+      issues: write
 
     steps:
       - name: Harden the runner
@@ -66,30 +79,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # What cannot change what a browser renders. CSS and tokens are NOT listed — unlike the
-      # bundle budget, which measures `.js` alone, a stylesheet blocks rendering and moves
-      # LCP. `.github/**` and `scripts/**` are not listed either, because a change to this
-      # workflow or to the measurement has to be measured.
-      - name: Decide whether the diff can reach the rendered page
-        id: scope
-        uses: ./.github/actions/diff-scope
-        with:
-          base-ref: ${{ github.base_ref }}
-          ignore: |
-            docs/*
-            *.md
-            .claude/*
-            .agents/*
-            .cursor/*
-            .gemini/*
-            vrt/*
-            .storybook/*
-            *.test.ts
-            *.test.tsx
-            *.stories.tsx
-
       - name: Setup mise and the pinned tools
-        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
@@ -97,14 +87,12 @@ jobs:
 
       - name: Resolve the pnpm store path
         id: pnpm-store
-        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           path="$(pnpm store path)"
           echo "path=${path}" >> "$GITHUB_OUTPUT"
 
       - name: Cache the pnpm store
-        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
@@ -115,14 +103,12 @@ jobs:
       # and E2E jobs use, so it has to be cached or every run pays for it again. Keyed by the
       # lockfile because that is what fixes the Playwright version, and therefore the build.
       - name: Cache the Playwright browser
-        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
-        if: steps.scope.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile
 
       # The Next.js build cache is deliberately NOT restored here. A restored cache changes
@@ -130,63 +116,92 @@ jobs:
       # depend on which branch last populated it rather than on this branch's code.
       - name: Build the app, start it and measure every screen
         id: lighthouse
-        if: steps.scope.outputs.relevant == 'true'
         continue-on-error: true
         shell: bash
         run: |
           set +e
 
-          # Streamed through `tee` rather than tailed at the end: a run that is cancelled or
-          # hits the job timeout never reaches the tail, so the slow case — the one worth
-          # diagnosing — would leave no log at all.
+          # Streamed through `tee` rather than tailed at the end: a run that is cancelled
+          # or hits the job timeout never reaches the tail, so the slow case — the one
+          # worth diagnosing — would leave no log at all.
           make lighthouse 2>&1 | tee /tmp/lighthouse-full.log
           code=${PIPESTATUS[0]}
 
           if [ "${code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
-            echo "title=## ✅ Lighthouse: PASS (Core Web Vitals)" >> "$GITHUB_OUTPUT"
           else
             echo "status=failure" >> "$GITHUB_OUTPUT"
-            echo "title=## ❌ Lighthouse: FAIL (Core Web Vitals)" >> "$GITHUB_OUTPUT"
           fi
 
           exit 0
 
-      # The table alone is the comment body. It is workflow-controlled text built from
-      # numbers and from screen names the declaration fixes, so it renders as markdown; the
-      # surrounding build log is not, and is dropped rather than folded in.
-      - name: Collect the comment body
-        if: always() && steps.lighthouse.outputs.status != ''
-        shell: bash
+      # The per-run results, so whoever picks up the issue can open the screen that moved
+      # instead of re-measuring to find out which one it was.
+      - name: Upload the measurements
+        if: ${{ !cancelled() && steps.lighthouse.outputs.status == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: lighthouse-lhr
+          path: tmp/lighthouse
+          retention-days: 30
+          if-no-files-found: warn
+
+      # One issue per branch, reopened rather than duplicated. A second failure on a branch
+      # that is already flagged is the same unresolved fact, not a new one.
+      #
+      # `!= 'success'`, not `== 'failure'`: the measurement can fail to start at all — the
+      # browser may not install — and that has to raise too. `!cancelled()` is what keeps a
+      # run superseded by the next merge out of that same net.
+      - name: Raise the failure for a human
+        if: ${{ !cancelled() && steps.lighthouse.outputs.status != 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          if ! sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log > /tmp/lighthouse.log || \
-             [ ! -s /tmp/lighthouse.log ]; then
-            echo '計測が表を出す前に落ちました。ジョブのログを見てください。' > /tmp/lighthouse.log
+          title="[Lighthouse] ${BRANCH} で Core Web Vitals が予算を超えている"
+          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" \
+            --json number --jq '.[0].number')"
+
+          # The table is what says which screen moved, and it is left to render as markdown:
+          # its cells are screen names the declaration fixes and numbers this job computed
+          # (ADR 0153 §5 — the accepted character set cannot make markup). The measurement
+          # may never have produced a table at all — the browser can fail to install — so
+          # every fallback ends in something printable.
+          body="$(sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log 2>/dev/null)"
+
+          if [ -z "${body}" ]; then
+            body="$(tail -n 60 /tmp/lighthouse-full.log 2>/dev/null)"
           fi
 
-      # A job that stood down still owes the pull request a verdict. Without this, the ❌
-      # comment an earlier push produced stays beside a green check once the diff stops
-      # reaching the page — README.md's "update the comment on success too" invariant,
-      # applied to standing down.
-      - name: Note that the diff cannot reach the rendered page
-        id: standdown
-        if: steps.scope.outputs.relevant != 'true'
-        shell: bash
-        run: |
-          echo 'title=## ⏭️ Lighthouse: SKIP (diff cannot reach the rendered page)' >> "$GITHUB_OUTPUT"
-          echo 'この PR の差分は描画に届かないため、測っていません。' > /tmp/lighthouse.log
+          if [ -z "${body}" ]; then
+            body='(計測そのものが実行できませんでした。実行ログを確認してください。)'
+          fi
 
-      - name: Comment the measurement on PR
-        if: github.event_name == 'pull_request' && (steps.lighthouse.outputs.status != '' || steps.standdown.outcome == 'success')
-        continue-on-error: true
-        uses: ./.github/actions/upsert-pr-comment
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          marker: '<!-- lighthouse-result -->'
-          title: ${{ steps.lighthouse.outputs.title || steps.standdown.outputs.title }}
-          body-file: /tmp/lighthouse.log
-          details-summary: '画面ごとの Core Web Vitals'
+          {
+            echo "${body}"
+            echo
+            echo "実行: ${RUN_URL}"
+            echo
+            cat <<'NOTE'
+          `lighthouse-lhr` artifact に、画面ごと・試行ごとの結果 (LHR) が入っています。
+          <https://googlechrome.github.io/lighthouse/viewer/> へ落とすと読めます。
+
+          手元で測り直すなら `make lighthouse` です。
+
+          **ぶれを理由に閾値を緩めないでください。** 緩めるのは、その画面が重いことを設計として
+          引き受けたときだけで、そのときは `performance-budget.yaml` の `lighthouse.screens` へ
+          根拠付きで宣言します (ADR 0101)。
+          NOTE
+          } > /tmp/lighthouse-guard.md
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/lighthouse-guard.md
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label chore \
+              --body-file /tmp/lighthouse-guard.md
+          fi
 
       - name: Fail if a screen is over its budget
-        if: always() && steps.scope.outputs.relevant == 'true' && steps.lighthouse.outputs.status != 'success'
+        if: ${{ !cancelled() && steps.lighthouse.outputs.status != 'success' }}
         run: exit 1
