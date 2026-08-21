@@ -12,9 +12,8 @@ const HOME_PATH = "/";
  * ログアウトさせられます。副作用のある操作を安全なメソッドに載せない、という HTTP の
  * 約束にも従います。
  *
- * **IdP 側を終わらせるのはこの応答ではなく、次の遷移です。** IdP の session を保持しているのは
- * 利用者のブラウザの cookie なので、そこへ着かせない限り終わりません。戻り先は IdP から
- * `post_logout_redirect_uri` で戻される先が引き受けます。
+ * **IdP 側を終わらせるのはこの応答ではなく、次の遷移です**（{@link signOut}）。利用者を送り出す
+ * ところまでがここの仕事で、戻り先は IdP が引き受けます。
  *
  * 送り先を組み立てられなくてもトップへ戻します。手元の cookie は既に消えているため利用者は
  * ログアウトできており、ここで失敗を見せても取れる行動がありません。
@@ -36,7 +35,7 @@ async function resolveDestination(): Promise<string | null> {
   try {
     return await signOut();
   } catch {
-    // 手元の cookie は破棄済み。IdP へ送れなくても、利用者から見たログアウトは成立している。
+    // cookie は破棄済みなので握り潰す（理由は POST の @remarks）。
     return null;
   }
 }
