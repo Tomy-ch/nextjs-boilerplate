@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it, type MockInstance, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
-import { serveJson, serveWrite, serveWriteStatus } from "../../../../vitest.setup";
+import { serveJson, serveStatus, serveWrite, watchFetch } from "../../../../vitest.setup";
 
 const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
   getAccessToken: vi.fn(async (): Promise<string | null> => null),
@@ -48,17 +48,6 @@ const PRODUCTS_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/products`;
 const PRODUCT_URL = `${PRODUCTS_URL}/:id`;
 const RANKING_URL = `${PRODUCTS_URL}/ranking`;
 const COUNT_URL = `${PRODUCTS_URL}/count`;
-
-/**
- * `fetch` の呼び出しを記録する。**応答は差し替えない。**
- *
- * @remarks
- * Next.js のキャッシュ指定（`cache` / `next.tags`）は要求として送出されないため、HTTP 境界からは
- * 観測できません。ここで見るのはその指定だけで、応答は MSW のハンドラが返したものが通ります。
- */
-function watchFetch(): MockInstance<typeof fetch> {
-  return vi.spyOn(globalThis, "fetch");
-}
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -525,7 +514,7 @@ describe("uploadProductImage", () => {
 
   // ----- 異常系 -----
   it("上限を超えた応答を分類済みのエラーとして返す", async () => {
-    serveWriteStatus("post", IMAGES_URL, 413);
+    serveStatus("post", IMAGES_URL, 413);
 
     await expect(
       uploadProductImage(new File(["x"], "a.png", { type: "image/png" })),
@@ -600,7 +589,7 @@ describe("updateProduct", () => {
 
   // ----- 異常系 -----
   it("版が食い違った応答を分類済みのエラーとして返す", async () => {
-    serveWriteStatus("patch", PRODUCT_URL, 409);
+    serveStatus("patch", PRODUCT_URL, 409);
 
     await expect(updateProduct(id, { ...DRAFT, version: 1 })).rejects.toThrow();
   });

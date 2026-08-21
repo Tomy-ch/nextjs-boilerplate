@@ -1,8 +1,8 @@
-import type { Mock } from "vitest";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { serveJson, serveWrite } from "../../../../vitest.setup";
 
 const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
   getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
@@ -29,15 +29,8 @@ const wireItem = {
 
 const wirePage = { items: [wireItem], nextCursor: "next", hasNext: true };
 
-function stubFetch(body: unknown): Mock<typeof fetch> {
-  const fetchImpl = vi.fn<typeof fetch>(
-    async () => new Response(JSON.stringify(body), { status: 200 }),
-  );
-
-  vi.stubGlobal("fetch", fetchImpl);
-
-  return fetchImpl;
-}
+const PURCHASES_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/purchases`;
+const PURCHASE_URL = `${PURCHASES_URL}/:purchaseId`;
 
 /** 投げられたエラーに付いた分類を返す。投げなければ undefined。 */
 async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
@@ -50,17 +43,13 @@ async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> 
   return undefined;
 }
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
 /** 履歴の取得条件。件数と区分だけを固定し、各ケースはそこから派生させる。 */
 const HISTORY_QUERY = { first: 10, period: "all" } as const;
 
 describe("getMyPurchases", () => {
   // ----- 正常系 -----
   it("契約の 1 件を表示用の 4 項目へ写す", async () => {
-    stubFetch(wirePage);
+    serveJson(PURCHASES_URL, wirePage);
 
     const page = await getMyPurchases(HISTORY_QUERY);
 
@@ -73,7 +62,7 @@ describe("getMyPurchases", () => {
   });
 
   it("画面が使わないステータス ID を落とす", async () => {
-    stubFetch(wirePage);
+    serveJson(PURCHASES_URL, wirePage);
 
     const page = await getMyPurchases(HISTORY_QUERY);
 
@@ -81,29 +70,27 @@ describe("getMyPurchases", () => {
   });
 
   it("取得件数の上限と期間の区分をクエリへ載せる", async () => {
-    const fetchImpl = stubFetch(wirePage);
+    const requests = serveJson(PURCHASES_URL, wirePage);
 
     await getMyPurchases(HISTORY_QUERY);
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/v1/purchases?first=10&period=all",
-    );
+    expect(requests[0]?.url).toBe(`${PURCHASES_URL}?first=10&period=all`);
   });
 
   it("次ページのカーソルを引き継ぐ", async () => {
-    stubFetch(wirePage);
+    serveJson(PURCHASES_URL, wirePage);
 
     await expect(getMyPurchases(HISTORY_QUERY)).resolves.toMatchObject({ nextCursor: "next" });
   });
 
   it("最終ページのカーソルを null にする", async () => {
-    stubFetch({ ...wirePage, nextCursor: null, hasNext: false });
+    serveJson(PURCHASES_URL, { ...wirePage, nextCursor: null, hasNext: false });
 
     await expect(getMyPurchases(HISTORY_QUERY)).resolves.toMatchObject({ nextCursor: null });
   });
 
   it("契約が返した降順の並びをそのまま保つ", async () => {
-    stubFetch({
+    serveJson(PURCHASES_URL, {
       ...wirePage,
       items: [wireItem, { ...wireItem, code: "older", orderedAt: "2026-08-01T00:00:00.000Z" }],
     });
@@ -114,34 +101,32 @@ describe("getMyPurchases", () => {
   });
 
   it("購入が 1 件も無いとき空の一覧を返す", async () => {
-    stubFetch({ items: [], nextCursor: null, hasNext: false });
+    serveJson(PURCHASES_URL, { items: [], nextCursor: null, hasNext: false });
 
     await expect(getMyPurchases(HISTORY_QUERY)).resolves.toEqual({ items: [], nextCursor: null });
   });
 
   it("認証ヘッダを付けて送る", async () => {
-    const fetchImpl = stubFetch(wirePage);
+    const requests = serveJson(PURCHASES_URL, wirePage);
 
     await getMyPurchases(HISTORY_QUERY);
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
-      headers: { Authorization: "Bearer access-token" },
-    });
+    expect(requests[0]?.headers.get("Authorization")).toBe("Bearer access-token");
   });
 
   // ----- 異常系 -----
   it("認証できないとき取得へ出さず未認証として投げる", async () => {
-    const fetchImpl = stubFetch(wirePage);
+    const requests = serveJson(PURCHASES_URL, wirePage);
     getAccessToken.mockResolvedValueOnce(null);
 
     await expect(kindOf(() => getMyPurchases(HISTORY_QUERY))).resolves.toBe(
       ErrorKind.UNAUTHENTICATED,
     );
-    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(requests).toHaveLength(0);
   });
 
   it("応答が契約と一致しないとき internal として投げる", async () => {
-    stubFetch({
+    serveJson(PURCHASES_URL, {
       items: [{ ...wireItem, totalAmount: "123456" }],
       nextCursor: null,
       hasNext: false,
@@ -176,7 +161,7 @@ const wireDetail = {
 describe("getMyPurchase", () => {
   // ----- 正常系 -----
   it("契約の応答を表示用の購入へ写す", async () => {
-    stubFetch(wireDetail);
+    serveJson(PURCHASE_URL, wireDetail);
 
     const purchase = await getMyPurchase(wireDetail.id);
 
@@ -201,16 +186,16 @@ describe("getMyPurchase", () => {
   });
 
   it("購入の ID を経路へ載せる", async () => {
-    const fetchImpl = stubFetch(wireDetail);
+    const requests = serveJson(PURCHASE_URL, wireDetail);
 
     await getMyPurchase(wireDetail.id);
 
-    expect(String(fetchImpl.mock.calls[0]?.[0])).toContain(`/v1/purchases/${wireDetail.id}`);
+    expect(requests[0]?.url).toBe(`${PURCHASES_URL}/${wireDetail.id}`);
   });
 
   // ----- 異常系 -----
   it("契約に無い形の応答を内層へ渡さない", async () => {
-    stubFetch({ ...wireDetail, totalAmount: "21287" });
+    serveJson(PURCHASE_URL, { ...wireDetail, totalAmount: "21287" });
 
     expect(await kindOf(() => getMyPurchase(wireDetail.id))).toBe(ErrorKind.INTERNAL);
   });
@@ -243,34 +228,30 @@ const orderLines = [
 describe("createPurchase", () => {
   // ----- 正常系 -----
   it("成立した購入の ID を返す", async () => {
-    stubFetch(wireCreated);
+    serveWrite("post", PURCHASES_URL, wireCreated);
 
     expect(await createPurchase(orderLines, "idempotency-key")).toBe(wireCreated.id);
   });
 
   it("冪等キーをヘッダへ載せる", async () => {
-    const fetchImpl = stubFetch(wireCreated);
+    const requests = serveWrite("post", PURCHASES_URL, wireCreated);
 
     await createPurchase(orderLines, "idempotency-key");
 
-    const init = fetchImpl.mock.calls[0]?.[1];
-
-    expect(new Headers(init?.headers).get("Idempotency-Key")).toBe("idempotency-key");
+    expect(requests[0]?.headers.get("Idempotency-Key")).toBe("idempotency-key");
   });
 
   it("送るのは商品と数量だけで、金額を送らない", async () => {
-    const fetchImpl = stubFetch(wireCreated);
+    const requests = serveWrite("post", PURCHASES_URL, wireCreated);
 
     await createPurchase(orderLines, "idempotency-key");
 
-    const init = fetchImpl.mock.calls[0]?.[1];
-
-    expect(JSON.parse(String(init?.body))).toEqual({ details: orderLines });
+    await expect(requests[0]?.json()).resolves.toEqual({ details: orderLines });
   });
 
   // ----- 異常系 -----
   it("契約に無い形の応答を内層へ渡さない", async () => {
-    stubFetch({ ...wireCreated, id: "not-a-uuid" });
+    serveWrite("post", PURCHASES_URL, { ...wireCreated, id: "not-a-uuid" });
 
     expect(await kindOf(() => createPurchase(orderLines, "idempotency-key"))).toBe(
       ErrorKind.INTERNAL,
