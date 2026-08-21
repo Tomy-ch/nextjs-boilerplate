@@ -1,9 +1,11 @@
 import Link from "next/link";
 
 import { cn } from "@/components/cn";
+import { MediaImage } from "@/components/design-system/display/media-image/media-image";
+import { MEDIA_IMAGE_ASPECT_RATIO } from "@/components/design-system/display/media-image/media-image.definition";
 import type { CartLine } from "@/model/cart/cart";
-
 import { hasBlockingIssue } from "@/model/cart/issue-notice";
+import { NO_IMAGE_URL } from "@/model/media";
 import { CartLineIssues } from "../../facade/line-issues/line-issues";
 import { CartMatchStockButton } from "../match-stock-button/match-stock-button";
 import { CartQuantityStepper } from "../quantity-stepper/quantity-stepper";
@@ -26,10 +28,14 @@ const SUBTOTAL_NOTE = "小計には含めていません。";
  *
  * @remarks
  * 脇の領域と全画面の両方が使います。幅の違いは折り返しで吸収し、器ごとに別の行を持ちません。
- * 狭い器では操作が名前の下へ回り、広い器では同じ行に並びます。
+ * 狭い器では操作が名前の下へ回り、広い器では同じ行に並びます。サムネイルも器の幅で縮めます
+ * （`docs/rules.md` #73）。
  *
- * **画像も商品状態も出しません。** 契約が返す明細は商品名・単価・数量・事情だけで、画像を出すには
- * 明細の数だけ商品を引くことになります。
+ * **商品状態は出しません。** 契約が返す明細に無く、出すには明細の数だけ商品を引くことになります。
+ *
+ * **サムネイルは装飾として出します。** 代替テキストを空にし、詳細への導線も持たせません。名前は
+ * 隣の文字が持っており、画像にも持たせると読み上げで同じ名前が二度続き、同じ行き先の導線が 1 行に
+ * 2 つ並びます。
  *
  * 金額は単価だけを出します。行ごとの小計を出すには単価と数量を掛ける必要があり、それは金額の
  * 計算をフロントに戻すことになります。合算した値はカートの小計としてバックエンドが返します。
@@ -46,7 +52,15 @@ export function CartLineRow({ line }: CartLineRowProps) {
   const label = line.name ?? UNKNOWN_NAME;
 
   return (
-    <li className="flex flex-wrap items-start gap-x-4 gap-y-2 py-4">
+    <li className="@container/line flex flex-wrap items-start gap-x-4 gap-y-2 py-4">
+      <MediaImage
+        alt=""
+        aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
+        className={cn("w-12 shrink-0 rounded-md @sm/line:w-16", blocked && "opacity-60")}
+        fallbackSrc={NO_IMAGE_URL}
+        sizes="4rem"
+        src={line.imageUrl}
+      />
       <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
         {line.name === null ? (
           <p className="font-emphasis text-muted-foreground text-sm">{UNKNOWN_NAME}</p>

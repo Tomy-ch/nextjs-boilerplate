@@ -29,6 +29,14 @@ export type CartLine = {
   /** 商品名。商品を引けなければ（`notFound`）null。 */
   readonly name: string | null;
   /**
+   * 代表画像の表示 URL。持たなければ null。
+   *
+   * @remarks
+   * **null の理由は 2 通りあり、区別しません。** 商品を引けなかった明細も、画像を 1 枚も持たない
+   * 商品も、利用者から見れば「出す絵が無い」という同じ状態です。
+   */
+  readonly imageUrl: string | null;
+  /**
    * 取得時点の単価。USD の decimal 文字列のまま持つ。商品を引けなければ null。
    *
    * 購入時の金額を拘束しない。請求額を確定するのは購入の側である。

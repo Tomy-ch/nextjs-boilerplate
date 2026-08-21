@@ -8,6 +8,7 @@ import type { UserProfile } from "@/model/user/user";
 export const EARPHONE_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000001"),
   name: "ワイヤレスイヤホン",
+  imageUrl: null,
   unitPrice: "19.99",
   quantity: 3,
   issues: [],
@@ -18,6 +19,7 @@ export const EARPHONE_LINE = {
 const WATCH_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000002"),
   name: "スマートウォッチ（第 2 世代・GPS 搭載モデル・ステンレスバンド付き）",
+  imageUrl: null,
   unitPrice: "129.00",
   quantity: 1,
   issues: [],
@@ -28,6 +30,7 @@ const WATCH_LINE = {
 export const INSUFFICIENT_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000003"),
   name: "編組ケーブル 2m",
+  imageUrl: null,
   unitPrice: "0.99",
   quantity: 5,
   issues: ["insufficientStock"],
@@ -38,6 +41,7 @@ export const INSUFFICIENT_LINE = {
 const OUT_OF_STOCK_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000004"),
   name: "USB-C 充電器 65W",
+  imageUrl: null,
   unitPrice: "39.50",
   quantity: 1,
   issues: ["outOfStock"],
@@ -48,6 +52,7 @@ const OUT_OF_STOCK_LINE = {
 const PRICE_INCREASED_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000005"),
   name: "ノイズキャンセリングヘッドホン",
+  imageUrl: null,
   unitPrice: "249.00",
   quantity: 1,
   issues: ["priceIncreased"],

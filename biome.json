@@ -174,7 +174,7 @@
       }
     },
     {
-      "includes": ["public/**"],
+      "includes": ["public/**", ".storybook/public/**"],
       "linter": {
         "rules": {
           "a11y": {
