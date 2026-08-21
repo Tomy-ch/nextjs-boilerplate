@@ -12,6 +12,9 @@
 //
 // 終わるまで前面に居座る。片付けをプロセスの生死を跨いだ状態に出さないためで、見終わったら
 // Ctrl-C で止める。
+//
+// 残る判定は外との遣り取り無しには下せない。値で決まるものは links.ts / worktree.ts が持つ
+// (`scripts/lib/untested-modules.ts`)。
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
 import type { Server } from "node:http";
