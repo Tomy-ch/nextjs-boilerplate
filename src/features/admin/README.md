@@ -98,7 +98,9 @@ test-requirement: feature
 | `products/stock/ui/amount-fields/` | 向きと量。打っている途中の値を持ち、見込みを添える |
 | `products/stock/ui/projection/` | 送信後の見込み。参考値であることと、負のときの断り |
 | `products/stock/ui/skeleton/` | フォームの待機表示 |
-| `users/query.ts` | 利用者一覧の URL 契約（範囲とページ番号）とキーの呼び名 |
+| `users/query.ts` | 利用者一覧の URL 契約（範囲とページ番号）とキーの呼び名。上限は呼び出し側から受け取る |
+| `users/page-size.ts` | 1 ページに並べる件数 |
+| `users/page-content.tsx` | URL の解釈と画面の組み立て。取り直す範囲をここで区切る |
 | `users/page-window.ts` | ページ送りに並べる番号の選び方。離れた範囲を省略の印へ畳む |
 | `users/row.ts` | 表に並べる 1 行の形。姓名を並べ、退会済みかを真偽値へ落とす |
 | `users/form-state.ts` `users/form-names.ts` | 退会の結果の型・送信先の型と、送信の `name` |

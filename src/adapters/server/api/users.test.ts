@@ -30,7 +30,7 @@ import {
   getManagedUserPage,
   getMyProfile,
   getMyPurchaseSummary,
-  MANAGED_USER_PER_PAGE,
+  MANAGED_USER_PAGE_MAX,
   registerUser,
   updateMyProfile,
   withdrawMe,
@@ -424,12 +424,15 @@ describe("registerUser", () => {
   });
 });
 
+/** 呼び出し側が決める 1 ページの件数。契約の上限ではなく、画面が読める量として渡される。 */
+const PER_PAGE = 20;
+
 describe("getManagedUserPage", () => {
   // ----- 正常系 -----
   it("契約の応答を、位置と全件数を持つ 1 ページへ写す", async () => {
     serveJson(USERS_URL, { users: [wireUser], total: 45, limit: 20, offset: 20 });
 
-    await expect(getManagedUserPage({ page: 2 })).resolves.toEqual({
+    await expect(getManagedUserPage({ page: 2, perPage: PER_PAGE })).resolves.toEqual({
       items: [
         {
           id: USER_ID,
@@ -449,18 +452,18 @@ describe("getManagedUserPage", () => {
   it("ページ番号と 1 ページの件数をクエリへ載せる", async () => {
     const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
 
-    await getManagedUserPage({ page: 3 });
+    await getManagedUserPage({ page: 3, perPage: PER_PAGE });
 
     const url = new URL(requests[0]?.url ?? "");
 
     expect(url.searchParams.get("page")).toBe("3");
-    expect(url.searchParams.get("perPage")).toBe(String(MANAGED_USER_PER_PAGE));
+    expect(url.searchParams.get("perPage")).toBe(String(PER_PAGE));
   });
 
   it("有効だけを求めるとき active を真として送る", async () => {
     const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
 
-    await getManagedUserPage({ page: 1, active: true });
+    await getManagedUserPage({ page: 1, perPage: PER_PAGE, active: true });
 
     expect(new URL(requests[0]?.url ?? "").searchParams.get("active")).toBe("true");
   });
@@ -468,7 +471,7 @@ describe("getManagedUserPage", () => {
   it("退会済みだけを求めるとき active を偽として送る", async () => {
     const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
 
-    await getManagedUserPage({ page: 1, active: false });
+    await getManagedUserPage({ page: 1, perPage: PER_PAGE, active: false });
 
     expect(new URL(requests[0]?.url ?? "").searchParams.get("active")).toBe("false");
   });
@@ -476,7 +479,7 @@ describe("getManagedUserPage", () => {
   it("区別しないときは active そのものを送らない", async () => {
     const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
 
-    await getManagedUserPage({ page: 1 });
+    await getManagedUserPage({ page: 1, perPage: PER_PAGE });
 
     expect(new URL(requests[0]?.url ?? "").searchParams.has("active")).toBe(false);
   });
@@ -490,22 +493,29 @@ describe("getManagedUserPage", () => {
     });
 
     await expect(
-      getManagedUserPage({ page: 1 }).then((page) => page.items[0]?.deletedAt),
+      getManagedUserPage({ page: 1, perPage: PER_PAGE }).then((page) => page.items[0]?.deletedAt),
     ).resolves.toBe("2026-08-01T00:00:00Z");
   });
 
   // ----- 異常系 -----
-  it("契約が拒む条件は送る前に止める", async () => {
+  it("契約が拒むページ番号は送る前に止める", async () => {
     const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
 
-    await expect(getManagedUserPage({ page: 0 })).rejects.toThrow();
+    await expect(getManagedUserPage({ page: 0, perPage: PER_PAGE })).rejects.toThrow();
+    expect(requests).toHaveLength(0);
+  });
+
+  it("契約が拒む件数は送る前に止める", async () => {
+    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
+
+    await expect(getManagedUserPage({ page: 1, perPage: MANAGED_USER_PAGE_MAX })).rejects.toThrow();
     expect(requests).toHaveLength(0);
   });
 
   it("役割が足りなければ、その分類のまま投げる", async () => {
     serveStatus("get", USERS_URL, 403);
 
-    await expect(kindOf(() => getManagedUserPage({ page: 1 }))).resolves.toBe(
+    await expect(kindOf(() => getManagedUserPage({ page: 1, perPage: PER_PAGE }))).resolves.toBe(
       ErrorKind.PERMISSION_DENIED,
     );
   });

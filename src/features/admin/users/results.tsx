@@ -11,6 +11,8 @@ import { WithdrawableUserList } from "./ui/withdrawable-list/withdrawable-list";
 export type AdminUserResultsProps = {
   /** URL が表す、いま見ている場所。 */
   location: AdminUserListLocation;
+  /** 1 ページに並べる件数。 */
+  perPage: number;
   /** 退会の送信先。 */
   withdrawAction: WithdrawUserAction;
 };
@@ -25,10 +27,15 @@ export type AdminUserResultsProps = {
  * ページ数は全件数から導きます。契約が返すのは位置と全件数で、何ページあるかは返しません
  * （[`toPageCount`](../../../model/pagination.ts)）。
  */
-export async function AdminUserResults({ location, withdrawAction }: AdminUserResultsProps) {
+export async function AdminUserResults({
+  location,
+  perPage,
+  withdrawAction,
+}: AdminUserResultsProps) {
   const active = toActiveParam(location.scope);
   const page = await getManagedUserPage({
     page: location.page,
+    perPage,
     ...(active === undefined ? {} : { active }),
   });
 

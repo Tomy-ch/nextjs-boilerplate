@@ -40,6 +40,9 @@ export function toActiveParam(scope: UserScope): boolean | undefined {
   return undefined;
 }
 
+/** ページ番号の先頭。読めない値はここへ倒す。 */
+const FIRST_PAGE = 1;
+
 /** 一覧の URL が表す、いま見ている場所。 */
 export type AdminUserListLocation = {
   readonly scope: UserScope;
@@ -67,13 +70,16 @@ function isUserScope(value: string): value is UserScope {
  * **URL は利用者が直接編集できます。** 読めない範囲・読めないページ番号は既定へ倒します。契約が
  * 拒む値をそのまま送っても得られるのは `400` だけで、押した人にできることがありません。
  */
-export function toAdminUserListLocation(params: RawSearchParams): AdminUserListLocation {
+export function toAdminUserListLocation(
+  params: RawSearchParams,
+  pageMax: number,
+): AdminUserListLocation {
   const scope = first(params[USER_LIST_KEY.SCOPE]);
   const page = Number(first(params[USER_LIST_KEY.PAGE]));
 
   return {
     scope: isUserScope(scope) ? scope : USER_SCOPE.ALL,
-    page: Number.isSafeInteger(page) && page >= 1 ? page : 1,
+    page: Number.isSafeInteger(page) && page >= FIRST_PAGE && page <= pageMax ? page : FIRST_PAGE,
   };
 }
 

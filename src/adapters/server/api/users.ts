@@ -19,6 +19,7 @@ import {
   GetUsersMeResponse,
   GetUsersQueryParams,
   GetUsersResponse,
+  getUsersQueryPageMax,
   PostUsersResponse,
   PutUsersDetailResponse,
 } from "../../gen/api/endpoints.zod";
@@ -244,18 +245,30 @@ export async function withdrawMe(): Promise<void> {
 }
 
 /**
- * 一覧が 1 度に取る件数。
+ * 契約が受け付けるページ番号の上限。
  *
  * @remarks
- * 契約が受け付ける上限そのままではなく、1 画面で見比べられる量に留めます。上限は「これ以上は
- * 拒む」という契約の線であって、何件並べると読めるかとは別の理由で動きます。
+ * 生成物の宣言をそのまま公開します。呼び出し側は URL から来た番号をこれに収めてから渡します
+ * —— 収めずに送ると、契約の検証で弾かれて一覧の代わりにエラーの面が出ます。
+ *
+ * 値を書き写さないのは、契約が変わったときに写した側だけが古い上限を持ち続けるためです。生成物へ
+ * 直接触れてよいのはこの層までなので（`architecture.ts` の `adapters-gen`）、外へはここが渡します。
  */
-export const MANAGED_USER_PER_PAGE = 20;
+export const MANAGED_USER_PAGE_MAX: number = getUsersQueryPageMax;
 
-/** 一覧を絞り込む条件。 */
+/**
+ * 一覧を絞り込む条件。
+ *
+ * @remarks
+ * **1 ページの件数を呼び出し側から受け取ります。** 何件並べると読めるかは表示の判断で、外部接続の
+ * 都合ではありません（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。ここが持つのは
+ * 「受け取った条件を契約の形へ写す」ことだけです。
+ */
 export type ManagedUserQuery = {
   /** 1 から数えるページ番号。 */
   readonly page: number;
+  /** 1 ページあたりの件数。 */
+  readonly perPage: number;
   /** 有効な利用者だけ / 退会済みだけ。区別しないなら省く。 */
   readonly active?: boolean;
 };
@@ -290,7 +303,7 @@ export const getManagedUserPage = cache(
   async (query: ManagedUserQuery): Promise<OffsetPage<ManagedUser>> => {
     const params = GetUsersQueryParams.parse({
       page: query.page,
-      perPage: MANAGED_USER_PER_PAGE,
+      perPage: query.perPage,
       ...(query.active === undefined ? {} : { active: query.active }),
     });
 

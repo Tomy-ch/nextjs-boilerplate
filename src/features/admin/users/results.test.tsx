@@ -29,6 +29,9 @@ import { AdminUserResults } from "./results";
 
 const withdrawAction = () => Promise.resolve({ status: "idle" } as const);
 
+/** 呼び出し側が決める 1 ページの件数。 */
+const PER_PAGE = 20;
+
 function page(total: number) {
   return {
     items: [
@@ -57,24 +60,33 @@ describe("AdminUserResults", () => {
     render(
       await AdminUserResults({
         location: { scope: USER_SCOPE.ACTIVE, page: 2 },
+        perPage: PER_PAGE,
         withdrawAction,
       }),
     );
 
-    expect(getManagedUserPage).toHaveBeenCalledWith({ page: 2, active: true });
+    expect(getManagedUserPage).toHaveBeenCalledWith({ page: 2, perPage: PER_PAGE, active: true });
   });
 
   it("区別しない範囲では、絞り込みの条件そのものを送らない", async () => {
     render(
-      await AdminUserResults({ location: { scope: USER_SCOPE.ALL, page: 1 }, withdrawAction }),
+      await AdminUserResults({
+        location: { scope: USER_SCOPE.ALL, page: 1 },
+        perPage: PER_PAGE,
+        withdrawAction,
+      }),
     );
 
-    expect(getManagedUserPage).toHaveBeenCalledWith({ page: 1 });
+    expect(getManagedUserPage).toHaveBeenCalledWith({ page: 1, perPage: PER_PAGE });
   });
 
   it("取得した利用者を一覧の形へ写して渡す", async () => {
     render(
-      await AdminUserResults({ location: { scope: USER_SCOPE.ALL, page: 1 }, withdrawAction }),
+      await AdminUserResults({
+        location: { scope: USER_SCOPE.ALL, page: 1 },
+        perPage: PER_PAGE,
+        withdrawAction,
+      }),
     );
 
     expect(screen.getByText("山田 太郎")).toBeInTheDocument();
@@ -82,7 +94,11 @@ describe("AdminUserResults", () => {
 
   it("全件数から、跳べるページ数を導く", async () => {
     render(
-      await AdminUserResults({ location: { scope: USER_SCOPE.ALL, page: 1 }, withdrawAction }),
+      await AdminUserResults({
+        location: { scope: USER_SCOPE.ALL, page: 1 },
+        perPage: PER_PAGE,
+        withdrawAction,
+      }),
     );
 
     expect(screen.getByRole("link", { name: "3 ページ目" })).toBeInTheDocument();
@@ -93,7 +109,11 @@ describe("AdminUserResults", () => {
     getManagedUserPage.mockRejectedValue(new Error("取得に失敗しました"));
 
     await expect(
-      AdminUserResults({ location: { scope: USER_SCOPE.ALL, page: 1 }, withdrawAction }),
+      AdminUserResults({
+        location: { scope: USER_SCOPE.ALL, page: 1 },
+        perPage: PER_PAGE,
+        withdrawAction,
+      }),
     ).rejects.toThrow("取得に失敗しました");
   });
 });
