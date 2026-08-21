@@ -116,10 +116,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   {
     route: "/admin/analytics",
     name: "admin-analytics",
-    // 暦日を名指しして開く。省くと「今日」になり、対象の日付を実時計から組み立てるので
-    // （`features/admin/analytics/period-window.ts`）、基準画像が撮った日にしか一致しない。
-    // 描くのはサーバなので、ブラウザ側の時計を固定しても届かない。
-    path: "/admin/analytics?period=range&from=2024-01-01&to=2024-01-31",
+    path: "/admin/analytics",
     signedIn: "admin",
     // 集計の期間は要求時刻から導くため、モックでは固定できない。
     mask: ['[data-slot="period-caption"] .tabular-nums'],
