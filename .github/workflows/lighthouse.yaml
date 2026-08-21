@@ -189,6 +189,8 @@ jobs:
           marker: '<!-- lighthouse-nudge -->'
           title: '## 🔎 Lighthouse: この変更は測っておくと安全です'
           body-file: /tmp/lighthouse-alert.md
+          # Workflow-authored prose, and the one interpolated value is filtered above.
+          body-sanitized: 'true'
 
       # The Next.js build cache is deliberately NOT restored here. A restored cache changes
       # how much work the first render does, and the numbers this job produces would then
@@ -214,6 +216,37 @@ jobs:
           fi
 
           exit 0
+
+      # Only the table, and only when there is one. The cells are screen names — which
+      # `resolveScreens` has already constrained to a set that cannot make markup — and
+      # numbers this job computed, so it renders rather than sitting in a code block. When
+      # the measurement died before printing a table there is nothing sanitized to show, so
+      # the comment says that instead of pasting raw log into a rendered body.
+      - name: Collect the table for the pull request
+        id: table
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && steps.lighthouse.outputs.status != '' }}
+        run: |
+          if sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log > /tmp/lighthouse-table.md &&
+             [ -s /tmp/lighthouse-table.md ]; then
+            echo 'has-table=true' >> "$GITHUB_OUTPUT"
+          else
+            echo '計測が表を出す前に落ちました。ジョブのログを見てください。' > /tmp/lighthouse-table.md
+            echo 'has-table=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment the measurement on PR
+        if: ${{ !cancelled() && steps.table.outcome == 'success' }}
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- lighthouse-result -->'
+          title: >-
+            ${{ steps.lighthouse.outputs.status == 'success' && '## ✅ Lighthouse — PASS (Core Web Vitals)'
+            || '## ❌ Lighthouse — FAIL (Core Web Vitals)' }}
+          body-file: /tmp/lighthouse-table.md
+          details-summary: '画面ごとの Core Web Vitals'
+          body-sanitized: ${{ steps.table.outputs.has-table }}
 
       # The per-run results, so whoever picks up the issue can open the screen that moved
       # instead of re-measuring to find out which one it was.
