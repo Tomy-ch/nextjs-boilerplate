@@ -1,0 +1,192 @@
+name: Lighthouse
+
+# Measures the Core Web Vitals of every screen and holds them against
+# `performance-budget.yaml` (ADR 0101).
+#
+# The screens come from `e2e/lib/screens.ts` — the same declaration the E2E job walks. The
+# list is deliberately not restated here: a second list would let a screen be added to one
+# and not the other, and the half that never learned about it would stay green.
+#
+# Only three metrics are judged, not the performance score. The score is a weighted mean of
+# five metrics, so a drop in it cannot say WHICH metric dropped. INP needs a real user
+# interaction and cannot be measured in a lab, so TBT stands in for it (ADR 0082 owns the
+# field side).
+#
+# The browsers here are NOT the digest-pinned Playwright container the VRT and E2E jobs use.
+# That image exists to fix fonts and rasterization, which a pixel comparison depends on and
+# a number does not; what has to be fixed for a number is the browser version, and the
+# `@playwright/test` entry in `pnpm-lock.yaml` fixes that on every machine.
+#
+# Runner numbers wander, which is why each screen is measured several times and the median
+# is what the budget sees. The count lives in `performance-budget.yaml` beside the limits.
+#
+# The runs are deliberately serial. Measuring several screens at once would have them compete
+# for the same CPU, and Lighthouse's simulated throttling scales with the CPU time it observes
+# — the parallelism would land in the numbers the budget then judges. That is what the long
+# timeout pays for: every declared screen, times the run count, one after another.
+#
+# The job always starts and then asks `diff-scope` whether the diff can reach the rendered
+# page, so the required context is reported even when the expensive steps stand down. A
+# `paths:` filter would not report it at all and would block the pull request forever
+# (README.md).
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Select the CI environment file (env/.env.ci), which is the one that puts the API in mock
+# mode. Without a mocked API the screens would need a backend, and a slow response over
+# there would read as a regression in here.
+env:
+  APP_ENV: ci
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # What cannot change what a browser renders. CSS and tokens are NOT listed — unlike the
+      # bundle budget, which measures `.js` alone, a stylesheet blocks rendering and moves
+      # LCP. `.github/**` and `scripts/**` are not listed either, because a change to this
+      # workflow or to the measurement has to be measured.
+      - name: Decide whether the diff can reach the rendered page
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            vrt/*
+            .storybook/*
+            *.test.ts
+            *.test.tsx
+            *.stories.tsx
+
+      - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      # The browser is downloaded rather than taken from the digest-pinned container the VRT
+      # and E2E jobs use, so it has to be cached or every run pays for it again. Keyed by the
+      # lockfile because that is what fixes the Playwright version, and therefore the build.
+      - name: Cache the Playwright browser
+        if: steps.scope.outputs.relevant == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
+        run: pnpm install --frozen-lockfile
+
+      # The Next.js build cache is deliberately NOT restored here. A restored cache changes
+      # how much work the first render does, and the numbers this job produces would then
+      # depend on which branch last populated it rather than on this branch's code.
+      - name: Build the app, start it and measure every screen
+        id: lighthouse
+        if: steps.scope.outputs.relevant == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+
+          # Streamed through `tee` rather than tailed at the end: a run that is cancelled or
+          # hits the job timeout never reaches the tail, so the slow case — the one worth
+          # diagnosing — would leave no log at all.
+          make lighthouse 2>&1 | tee /tmp/lighthouse-full.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Lighthouse: PASS (Core Web Vitals)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Lighthouse: FAIL (Core Web Vitals)" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # The table alone is the comment body. It is workflow-controlled text built from
+      # numbers and from screen names the declaration fixes, so it renders as markdown; the
+      # surrounding build log is not, and is dropped rather than folded in.
+      - name: Collect the comment body
+        if: always() && steps.lighthouse.outputs.status != ''
+        shell: bash
+        run: |
+          if ! sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log > /tmp/lighthouse.log || \
+             [ ! -s /tmp/lighthouse.log ]; then
+            echo '計測が表を出す前に落ちました。ジョブのログを見てください。' > /tmp/lighthouse.log
+          fi
+
+      # A job that stood down still owes the pull request a verdict. Without this, the ❌
+      # comment an earlier push produced stays beside a green check once the diff stops
+      # reaching the page — README.md's "update the comment on success too" invariant,
+      # applied to standing down.
+      - name: Note that the diff cannot reach the rendered page
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ Lighthouse: SKIP (diff cannot reach the rendered page)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は描画に届かないため、測っていません。' > /tmp/lighthouse.log
+
+      - name: Comment the measurement on PR
+        if: github.event_name == 'pull_request' && (steps.lighthouse.outputs.status != '' || steps.standdown.outcome == 'success')
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- lighthouse-result -->'
+          title: ${{ steps.lighthouse.outputs.title || steps.standdown.outputs.title }}
+          body-file: /tmp/lighthouse.log
+          details-summary: '画面ごとの Core Web Vitals'
+
+      - name: Fail if a screen is over its budget
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.lighthouse.outputs.status != 'success'
+        run: exit 1
