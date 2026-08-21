@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { UnsavedChangesGuard, useUnsavedChanges } from "./unsaved-changes-guard";
 
@@ -33,7 +34,6 @@ function Declaring({ hasUnsavedChanges }: { hasUnsavedChanges: boolean }) {
 }
 
 describe("UnsavedChangesGuard", () => {
-  // ----- 正常系 -----
   it("申告が無ければ、離れる操作を止めない", () => {
     render(
       <UnsavedChangesGuard>
@@ -66,14 +66,16 @@ describe("UnsavedChangesGuard", () => {
     expect(screen.getByText("画面")).toBeInTheDocument();
   });
 
-  it("a11y の器としては何も足さず、包んだ木をそのまま通す", () => {
+  it("a11y 自動検査に違反しない。包んだだけで支援技術への見え方を変えない", async () => {
     const { container } = render(
       <UnsavedChangesGuard>
         <Declaring hasUnsavedChanges={false} />
       </UnsavedChangesGuard>,
     );
 
-    expect(container.querySelector("p")).toHaveTextContent("画面");
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });
 

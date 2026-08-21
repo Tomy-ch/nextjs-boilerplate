@@ -7,7 +7,6 @@ import { axe } from "vitest-axe";
 import { ProductBreadcrumbTrail } from "./breadcrumb-trail";
 
 describe("ProductBreadcrumbTrail", () => {
-  // ----- 正常系 -----
   it("一覧へ戻る先頭の段を、どの階層でも出す", () => {
     render(<ProductBreadcrumbTrail trail={["新規作成"]} />);
 

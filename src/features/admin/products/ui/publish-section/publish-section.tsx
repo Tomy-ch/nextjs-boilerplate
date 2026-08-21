@@ -3,8 +3,8 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
-
 import { PRODUCT_FORM_NAMES } from "../../form-names";
+import { controlIdOf } from "../../form-sections";
 import type { ProductFormValues } from "../../use-product-values";
 import type { ProductSelectOption } from "../select-field/select-field";
 import { ProductSelectField } from "../select-field/select-field";
@@ -92,7 +92,7 @@ export function ProductPublishSection({
         <input name={PRODUCT_FORM_NAMES.timezoneOffset} type="hidden" value={timezoneOffset} />
       )}
       <ProductSelectField
-        controlId={`${idPrefix}-status`}
+        controlId={controlIdOf(idPrefix, "statusId")}
         label="状態"
         message={errors.statusId?.[0]}
         name={PRODUCT_FORM_NAMES.statusId}
@@ -102,7 +102,7 @@ export function ProductPublishSection({
       />
       <div className="grid gap-2">
         <ProductTextField
-          controlId={`${idPrefix}-published-at`}
+          controlId={controlIdOf(idPrefix, "publishedAt")}
           description="空欄のままにすると未公開です。"
           label="公開日時"
           message={errors.publishedAt?.[0]}

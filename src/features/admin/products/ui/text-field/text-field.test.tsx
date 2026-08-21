@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { ProductTextField, toErrorId } from "./text-field";
+import { ProductTextField } from "./text-field";
 
 const noop = () => {};
 
@@ -23,15 +23,7 @@ function renderField(props: Partial<Parameters<typeof ProductTextField>[0]> = {}
   );
 }
 
-describe("toErrorId", () => {
-  // ----- 正常系 -----
-  it("入力欄の id から、誤りの文言の id を導く", () => {
-    expect(toErrorId("form-name")).toBe("form-name-error");
-  });
-});
-
 describe("ProductTextField", () => {
-  // ----- 正常系 -----
   it("項目名で引ける入力欄として公開する", () => {
     renderField();
 
@@ -68,7 +60,6 @@ describe("ProductTextField", () => {
     expect(screen.getByLabelText("商品名")).toHaveAttribute("name", "name");
   });
 
-  // ----- 異常系 -----
   it("誤りがあれば文言を出し、入力欄から指す", () => {
     renderField({ message: "商品名を入力してください。" });
 

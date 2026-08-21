@@ -275,6 +275,21 @@ describe("WizardForm", () => {
     expect(screen.getByRole("button", { name: STEPS[1].title })).toBeDisabled();
   });
 
+  it("終えられない段階からの直行は、押しても現在地を動かさない", () => {
+    // 判定は描画と状態で共有する。描画側だけで塞ぐと、規則の変更が見た目の変更としてしか
+    // 現れず、状態の側は素通しのままになる。
+    const { rerender } = render(<WizardFixture />);
+
+    next();
+    previous();
+    rerender(<WizardFixture steps={[{ ...STEPS[0], blocked: true }, STEPS[1], STEPS[2]]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: STEPS[1].title }));
+
+    expect(screen.getByLabelText("氏名")).toBeVisible();
+    expect(screen.getByLabelText("用途")).not.toBeVisible();
+  });
+
   it("隠れている段階の入力値も form に残る", () => {
     render(
       <form data-testid="wizard-host">

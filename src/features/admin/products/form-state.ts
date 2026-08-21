@@ -6,7 +6,7 @@ import type { ActionState } from "@/model/action-state";
  * @remarks
  * 項目ごとの文言を配る宛先です。文字列そのままではなく union で持つのは、項目名を変えたときに
  * 送る側と受ける側が別々に古くなるのを型で止めるためです
- * （[0029](../../../../../docs/adr/0029-type-design-discipline.md)）。
+ * （[0029](../../../../docs/adr/0029-type-design-discipline.md)）。
  *
  * 在庫数は作成のときだけ現れます。編集では別の口が持つためで、送られてきても捨てます。
  */
@@ -61,14 +61,6 @@ export type UploadProductImageAction = (
 ) => Promise<ProductImageUploadState>;
 
 /**
- * 版が食い違って拒まれたときの文言。
- *
- * @remarks
- * 送る側（Server Action）と受ける側（画面）の両方が参照します。画面はこの結果のときだけ
- * 「読み込み直す」導線を添えるため、文言そのものが両者の合図になります。**片方に書き写すと、
- * 文言を直した側だけが合図を失います。**
- */
-/**
  * 版そのものが送られてこなかったときの文言。
  *
  * @remarks
@@ -79,5 +71,12 @@ export type UploadProductImageAction = (
 export const PRODUCT_VERSION_LOST_MESSAGE =
   "編集の前提が失われています。画面を開き直してください。";
 
+/**
+ * 版が食い違って拒まれたときの文言。
+ *
+ * @remarks
+ * 送る側（Server Action）だけが使います。画面はこの文言を合図にしないため、文言は自由に
+ * 変えてよい（合図は結果に載る分類）。
+ */
 export const PRODUCT_VERSION_CONFLICT_MESSAGE =
   "この商品は別の人が更新しました。読み込み直して、最新の内容に対して編集し直してください。";

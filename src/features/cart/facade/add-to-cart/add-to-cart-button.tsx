@@ -39,8 +39,8 @@ const PENDING_LABEL = "カートに追加しています";
  *
  * `useFormStatus` は form の子でしか状態を読めないため、別の部品に切り出しています。
  *
- * 送信中の見せ方は `Button` が持ちます。文言を「追加しています…」へ変えると幅が伸び、一覧では
- * 隣の値までまとめて動きます。
+ * 送信中の見せ方は `Button`（`pending`）が持ちます。一覧では幅の揺れが隣の値まで動かすため、
+ * 視覚の文言は差し替えません。
  */
 function AddSubmit({ disabled, placement }: { disabled: boolean; placement: "detail" | "list" }) {
   const { pending } = useFormStatus();

@@ -102,7 +102,7 @@ export type ButtonProps = ComponentProps<"button"> &
      * 判りません。
      *
      * 文言は視覚から外れると、その文言から組み立てていた名前も消えます。待っていることは
-     * {@link pendingLabel} が操作自身の名前として伝えます。
+     * `pendingLabel` が操作自身の名前として伝えます。
      *
      * `asChild` とは併せられません。合成先の要素の中身をこの component が組み替えられないためです。
      */

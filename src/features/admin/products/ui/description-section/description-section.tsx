@@ -2,11 +2,13 @@
 
 import { FieldDescription } from "@/components/design-system/form/field/field";
 import { RichTextEditor } from "@/components/design-system/rich-text/rich-text-editor/rich-text-editor";
-
 import { PRODUCT_FORM_NAMES } from "../../form-names";
+import { controlIdOf } from "../../form-sections";
 
 /** `ProductDescriptionSection` の props。 */
 export type ProductDescriptionSectionProps = {
+  /** 入力欄の `id` の前置き。 */
+  idPrefix: string;
   /** 最初に表示する本文。編集面はここからしか初期化されない。 */
   initialValue: string;
   /** 今の本文。送信に載せる値でもある。 */
@@ -30,13 +32,19 @@ export type ProductDescriptionSectionProps = {
  * ずっと検査済みとして扱いません（`model/rich-text`）。
  */
 export function ProductDescriptionSection({
+  idPrefix,
   initialValue,
   onValueChange,
   value,
 }: ProductDescriptionSectionProps) {
   return (
     <div className="grid gap-2">
-      <RichTextEditor defaultValue={initialValue} label="商品説明" onChange={onValueChange} />
+      <RichTextEditor
+        defaultValue={initialValue}
+        id={controlIdOf(idPrefix, "description")}
+        label="商品説明"
+        onChange={onValueChange}
+      />
       <FieldDescription>
         見出しと箇条書きで構造を付けられます。書いた形のまま買い手へ表示されます。
       </FieldDescription>

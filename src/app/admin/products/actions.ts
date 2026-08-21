@@ -68,12 +68,13 @@ function revalidateProducts(): void {
  * 画像を 1 件アップロードする。
  *
  * @remarks
- * app 層に置くのは、役割の確認が `adapters/server/auth` の領分で、そこへ触れてよいのが app 層
- * だからです（`architecture.ts` の `adapters-auth`）。画面の側は送信先を受け取るだけです。
+ * 置き場の判断（主体の断言が要る action は app 層）は
+ * [0025](../../../../docs/adr/0025-app-layer-elements.md) の `app/server-action`。画面の側は
+ * 送信先を受け取るだけです。
  *
  * **画面から受け取った時点でもう一度確かめます。** 送る前の判定はブラウザ側にあり、送信者が
  * 差し替えられます。署名付き URL の経路なら署名ポリシーが担っていた層がここには無いため、
- * この段が最後の砦です（[0075](../../../../../docs/adr/0075-file-upload-seam.md)）。
+ * この段が最後の砦です（[0075](../../../../docs/adr/0075-file-upload-seam.md)）。
  *
  * 形式は宣言された `type` で見ます。これは送信者が付けられる値なので、中身がその形式である
  * ことまでは保証しません。中身の判定は保存する側が持ちます。
@@ -179,7 +180,10 @@ export async function updateProductAction(
     await updateProduct(toProductId(id), parsed.value);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
-      return failedActionState({ formError: PRODUCT_VERSION_CONFLICT_MESSAGE });
+      return failedActionState({
+        formError: PRODUCT_VERSION_CONFLICT_MESSAGE,
+        kind: ErrorKind.CONFLICT,
+      });
     }
 
     return actionStateFromError(error);

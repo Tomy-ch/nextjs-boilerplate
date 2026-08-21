@@ -1,3 +1,15 @@
+/**
+ * 誤りの文言に与える `id`。入力欄の `aria-describedby` が指す。
+ *
+ * @remarks
+ * `errorId` を受け取る側（{@link fieldControlAttributes}）と対になる規約なので、隣に置きます。
+ * 項目の部品の側に住むと、接尾の綴りを変えたい人がその部品を開くことになり、同じ規約を使う
+ * 他の部品への波及が import を辿らないと見えません。
+ */
+export function toErrorId(controlId: string): string {
+  return `${controlId}-error`;
+}
+
 /** 入力欄そのものへ与える属性を組むために要る、項目の状態。 */
 export type FieldControlState = {
   /** 入力欄の `id`。 */

@@ -69,14 +69,6 @@ describe("useProductForm", () => {
     expect(result.current.images.imagePaths).toEqual(["products/saved.png"]);
   });
 
-  it("本文を書き換えると値へ入る", () => {
-    const { result } = renderForm();
-
-    act(() => result.current.changeDescription("<p>説明</p>"));
-
-    expect(result.current.values.values.description).toBe("<p>説明</p>");
-  });
-
   it("値が変わっていなくても、画像が変われば書きかけとして申告する", () => {
     const { result } = renderForm(idleActionState(), [
       { imagePath: "products/saved.png", url: "/saved.png" },
@@ -107,14 +99,6 @@ describe("useProductForm", () => {
     const { result } = renderForm();
 
     act(() => result.current.dismiss());
-
-    expect(result.current.dismissed).toBe(true);
-  });
-
-  it("本文を直したときも下げる", () => {
-    const { result } = renderForm();
-
-    act(() => result.current.changeDescription("<p>直した</p>"));
 
     expect(result.current.dismissed).toBe(true);
   });

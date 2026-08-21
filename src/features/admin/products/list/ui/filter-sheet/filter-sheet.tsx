@@ -49,7 +49,7 @@ function countActive(conditions: AdminProductListConditions): number {
  * それが効いている条件に見えます。
  *
  * 開く操作を画面下端に固定するのは、表を読み進めた先でも絞り込みへ戻れるようにするためです
- * （[0051](../../../../../../docs/adr/0051-styling-system.md) §2）。検索語をここへ入れないのは、
+ * （[0051](../../../../../../../docs/adr/0051-styling-system.md) §2）。検索語をここへ入れないのは、
  * 入力欄が幅によらず画面の上に出ているためで、同じ条件を 2 か所から確定できる形にしません。
  *
  * @see Storybook `Page/Admin/Products/List`

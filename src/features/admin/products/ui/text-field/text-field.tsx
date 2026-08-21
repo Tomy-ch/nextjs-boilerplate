@@ -4,13 +4,11 @@ import { useCallback } from "react";
 
 import type { InputProps } from "@/components/design-system/form/input/input";
 import { Input } from "@/components/design-system/form/input/input";
-import { fieldControlAttributes } from "@/components/patterns/form-field/field-attributes";
+import {
+  fieldControlAttributes,
+  toErrorId,
+} from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
-
-/** 誤りの文言に与える `id`。入力欄の `aria-describedby` が指す。 */
-export function toErrorId(controlId: string): string {
-  return `${controlId}-error`;
-}
 
 /** `ProductTextField` の props。 */
 export type ProductTextFieldProps = Pick<

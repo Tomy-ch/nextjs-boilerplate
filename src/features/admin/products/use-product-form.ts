@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import { useUnsavedChanges } from "../ui/unsaved-changes-guard/unsaved-changes-guard";
 import type { ProductFormState, UploadProductImageAction } from "./form-state";
+import { useActionResultFreshness } from "./use-action-result-freshness";
 import type { ImageRejection } from "./use-image-rejection";
 import { useImageRejection } from "./use-image-rejection";
 import type { ProductImages, ProductSavedImage } from "./use-product-images";
@@ -31,8 +31,6 @@ export type ProductForm = {
    * 後から読み直しても入れ替わりは判りません。
    */
   readonly resultIsNew: boolean;
-  /** 本文が変わったことを伝える。 */
-  readonly changeDescription: (value: string) => void;
 };
 
 /** {@link useProductForm} に渡すもの。 */
@@ -77,31 +75,9 @@ export function useProductForm({
   const values = useProductValues(initialValues, { withQuantity });
   const images = useProductImages(uploadAction, savedImages);
   const rejection = useImageRejection(maxUploadBytes);
-  const [dismissed, setDismissed] = useState(false);
-  const [seenState, setSeenState] = useState(state);
+  const { dismissed, dismiss, resultIsNew } = useActionResultFreshness(state);
 
   useUnsavedChanges(values.dirty || images.dirty);
 
-  // 送信の結果が入れ替わった描画で、下げた印を戻す。戻さないと、一度下げたあとに送り直した
-  // 結果が出ず、押しても何も起きない画面になる。
-  const resultIsNew = seenState !== state;
-
-  if (resultIsNew) {
-    setSeenState(state);
-    setDismissed(false);
-  }
-
-  // 入力を直した時点で、直前の送信の結果は古くなる。出し続けると、直したのに直っていないように
-  // 見える。
-  const dismiss = useCallback(() => setDismissed(true), []);
-
-  const changeDescription = useCallback(
-    (value: string) => {
-      values.setValue("description", value);
-      dismiss();
-    },
-    [dismiss, values],
-  );
-
-  return { values, images, rejection, dismissed, dismiss, resultIsNew, changeDescription };
+  return { values, images, rejection, dismissed, dismiss, resultIsNew };
 }

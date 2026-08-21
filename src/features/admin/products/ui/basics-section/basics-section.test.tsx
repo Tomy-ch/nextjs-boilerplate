@@ -37,7 +37,6 @@ function renderSection(withQuantity = true) {
 }
 
 describe("ProductBasicsSection", () => {
-  // ----- 正常系 -----
   it("基本情報の項目を並べる", () => {
     renderSection();
 
@@ -96,7 +95,6 @@ describe("ProductBasicsSection", () => {
     expect(screen.getByText("分類を選んでください。")).toBeInTheDocument();
   });
 
-  // ----- 異常系 -----
   it("編集の画面では在庫数を尋ねない。在庫は別の口が持つため", () => {
     renderSection(false);
 

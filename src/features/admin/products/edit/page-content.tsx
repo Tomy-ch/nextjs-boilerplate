@@ -22,8 +22,7 @@ export type AdminProductEditPageContentProps = {
  * 編集の画面に要る商品とマスタを揃える。
  *
  * @remarks
- * 商品とマスタは互いに依存しないので並行して取ります。存在しない識別子は取得の口が `not-found`
- * へ正規化し、route の境界が受けます。
+ * 存在しない識別子は取得の口が `not-found` へ正規化し、route の境界が受けます。
  */
 export async function AdminProductEditPageContent({
   id,
@@ -37,7 +36,7 @@ export async function AdminProductEditPageContent({
     getProductStatuses(),
   ]);
 
-  // 表示 URL の組み立てには配信元が要り、画面の層はそれを読めない。境界のこちら側で解決する。
+  // URL はここで解決する（`ProductSavedImage` は解決済みで受け取る契約）。
   const savedImages = product.imagePaths.flatMap((imagePath) => {
     const url = resolveMediaUrl(imagePath);
 

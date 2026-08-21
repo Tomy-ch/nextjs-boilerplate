@@ -66,7 +66,6 @@ function renderContent() {
 }
 
 describe("AdminProductEditPageContent", () => {
-  // ----- 正常系 -----
   it("編集する商品を揃えて画面へ渡す", async () => {
     render(await renderContent());
 
@@ -89,7 +88,6 @@ describe("AdminProductEditPageContent", () => {
     expect(getProductStatuses).toHaveBeenCalledTimes(1);
   });
 
-  // ----- 異常系 -----
   it("配信元が解決できない画像は渡さない", async () => {
     resolveMediaUrl.mockReturnValue(null);
 

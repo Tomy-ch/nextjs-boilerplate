@@ -4,6 +4,7 @@ import { useCallback } from "react";
 
 import { PRODUCT_NAME_MAX_LENGTH } from "../../field-limits";
 import { PRODUCT_FORM_NAMES } from "../../form-names";
+import { controlIdOf } from "../../form-sections";
 import type { ProductFormValues } from "../../use-product-values";
 import type { ProductSelectOption } from "../select-field/select-field";
 import { ProductSelectField } from "../select-field/select-field";
@@ -61,7 +62,7 @@ export function ProductBasicsSection({
   return (
     <div className="grid gap-6">
       <ProductTextField
-        controlId={`${idPrefix}-name`}
+        controlId={controlIdOf(idPrefix, "name")}
         description={`${PRODUCT_NAME_MAX_LENGTH} 文字までです。`}
         label="商品名"
         message={errors.name?.[0]}
@@ -72,7 +73,7 @@ export function ProductBasicsSection({
         value={values.name}
       />
       <ProductTextField
-        controlId={`${idPrefix}-price`}
+        controlId={controlIdOf(idPrefix, "price")}
         description="USD で入力します。小数はそのまま保たれます。"
         inputMode="decimal"
         label="価格"
@@ -86,7 +87,7 @@ export function ProductBasicsSection({
       />
       {withQuantity ? (
         <ProductTextField
-          controlId={`${idPrefix}-quantity`}
+          controlId={controlIdOf(idPrefix, "quantity")}
           description="登録した時点の在庫です。以降の増減は在庫の補充が持ちます。"
           inputMode="numeric"
           label="在庫数"
@@ -101,7 +102,7 @@ export function ProductBasicsSection({
         />
       ) : null}
       <ProductTextField
-        controlId={`${idPrefix}-stock-warning-threshold`}
+        controlId={controlIdOf(idPrefix, "stockWarningThreshold")}
         description="この数を下回ったら在庫が少ないものとして扱います。空欄なら扱いません。"
         inputMode="numeric"
         label="在庫警告の閾値"
@@ -115,7 +116,7 @@ export function ProductBasicsSection({
         value={values.stockWarningThreshold}
       />
       <ProductSelectField
-        controlId={`${idPrefix}-category`}
+        controlId={controlIdOf(idPrefix, "categoryId")}
         label="分類"
         message={errors.categoryId?.[0]}
         name={PRODUCT_FORM_NAMES.categoryId}

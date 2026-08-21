@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
+import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
@@ -16,6 +17,31 @@ import { AdminProductEditView } from "./view";
 
 // 申告の宛先は器で、器が何を見張っているかは `NavigationGuard` へ渡る `when` に現れる。
 const guard = vi.hoisted(() => ({ when: false }));
+
+// 編集面は ProseMirror で、合成した input に応じない。編集面自身の振る舞いはその部品の
+// テストが持つので、ここは同じ役割と名前を持つ入力欄へ差し替え、画面の配線だけを確かめる。
+vi.mock("@/components/design-system/rich-text/rich-text-editor/rich-text-editor", async () => {
+  const { useCallback } = await import("react");
+
+  return {
+    RichTextEditor: ({
+      id,
+      label,
+      onChange,
+    }: {
+      id?: string;
+      label: string;
+      onChange: (html: string) => void;
+    }) => {
+      const handleChange = useCallback(
+        (event: { target: { value: string } }) => onChange(event.target.value),
+        [onChange],
+      );
+
+      return <textarea aria-label={label} id={id} onChange={handleChange} value="" />;
+    },
+  };
+});
 
 vi.mock("@/components/app-starter/navigation-guard/navigation-guard", () => ({
   NavigationGuard: ({ children, when }: { children: ReactNode; when: boolean }) => {
@@ -73,7 +99,6 @@ function renderView(updateAction: () => Promise<ProductFormState> = idle) {
 }
 
 describe("AdminProductEditView", () => {
-  // ----- 正常系 -----
   it("4 つの観点を切り替えとして並べる", () => {
     renderView();
 
@@ -119,6 +144,19 @@ describe("AdminProductEditView", () => {
     expect(container.querySelector('input[name="description"]')).toHaveValue("<p>説明</p>");
   });
 
+  it("本文の変更を値へ入れ、直前の結果を下げる", async () => {
+    renderView(() => Promise.resolve(failedActionState<void>({ formError: "更新できません。" })));
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "説明" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "商品説明" }), {
+      target: { value: "<p>直した本文</p>" },
+    });
+
+    await waitFor(() =>
+      expect(document.querySelector('input[name="description"]')).toHaveValue("<p>直した本文</p>"),
+    );
+  });
+
   it("観点を選ぶと、その中身が見える", () => {
     renderView();
 
@@ -141,7 +179,6 @@ describe("AdminProductEditView", () => {
     expect(guard.when).toBe(true);
   });
 
-  // ----- 異常系 -----
   it("送信が弾かれたら、誤りのある観点へ移る", async () => {
     renderView(() =>
       Promise.resolve(
@@ -183,12 +220,30 @@ describe("AdminProductEditView", () => {
 
   it("版が食い違ったときだけ、読み込み直す導線を添える", async () => {
     renderView(() =>
-      Promise.resolve(failedActionState<void>({ formError: PRODUCT_VERSION_CONFLICT_MESSAGE })),
+      Promise.resolve(
+        failedActionState<void>({
+          formError: PRODUCT_VERSION_CONFLICT_MESSAGE,
+          kind: ErrorKind.CONFLICT,
+        }),
+      ),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "更新する" }));
 
     expect(await screen.findByRole("link", { name: "読み込み直す" })).toBeInTheDocument();
+  });
+
+  it("同じ文言でも、分類が伴わなければ導線を出さない", async () => {
+    // 合図は分類であって文言ではない。文言へ動的な要素を足しても導線が消えないための固定。
+    renderView(() =>
+      Promise.resolve(failedActionState<void>({ formError: PRODUCT_VERSION_CONFLICT_MESSAGE })),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+
+    await screen.findByText(PRODUCT_VERSION_CONFLICT_MESSAGE);
+
+    expect(screen.queryByRole("link", { name: "読み込み直す" })).not.toBeInTheDocument();
   });
 
   it("やり直しても直らない失敗には、読み込み直す導線を添えない", async () => {

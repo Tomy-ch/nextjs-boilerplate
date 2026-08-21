@@ -30,7 +30,7 @@ const PENDING_LABEL = "空にしています…";
  * 確認 dialog の中の実行ボタン。
  *
  * @remarks
- * 送信中の見せ方は `Button` が持ちます。文言を差し替えると幅が動き、並んだ操作の位置がずれます。
+ * 送信中の見せ方は `Button`（`pending`）が持ちます。
  */
 function ClearSubmit() {
   const { pending } = useFormStatus();

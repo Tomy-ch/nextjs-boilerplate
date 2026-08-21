@@ -14,6 +14,31 @@ import { AdminProductCreateView } from "./view";
 // 申告の宛先は器で、器が何を見張っているかは `NavigationGuard` へ渡る `when` に現れる。
 const guard = vi.hoisted(() => ({ when: false }));
 
+// 編集面は ProseMirror で、合成した input に応じない。編集面自身の振る舞いはその部品の
+// テストが持つので、ここは同じ役割と名前を持つ入力欄へ差し替え、画面の配線だけを確かめる。
+vi.mock("@/components/design-system/rich-text/rich-text-editor/rich-text-editor", async () => {
+  const { useCallback } = await import("react");
+
+  return {
+    RichTextEditor: ({
+      id,
+      label,
+      onChange,
+    }: {
+      id?: string;
+      label: string;
+      onChange: (html: string) => void;
+    }) => {
+      const handleChange = useCallback(
+        (event: { target: { value: string } }) => onChange(event.target.value),
+        [onChange],
+      );
+
+      return <textarea aria-label={label} id={id} onChange={handleChange} value="" />;
+    },
+  };
+});
+
 vi.mock("@/components/app-starter/navigation-guard/navigation-guard", () => ({
   NavigationGuard: ({ children, when }: { children: ReactNode; when: boolean }) => {
     guard.when = when;
@@ -60,7 +85,6 @@ function fillBasics() {
 }
 
 describe("AdminProductCreateView", () => {
-  // ----- 正常系 -----
   it("5 つの段を進捗として並べる", () => {
     renderView();
 
@@ -89,6 +113,20 @@ describe("AdminProductCreateView", () => {
     expect(screen.getByRole("textbox", { name: "商品説明" })).toBeVisible();
   });
 
+  it("本文の変更を値へ入れ、直前の結果を下げる", async () => {
+    renderView(() => Promise.resolve(failedActionState<void>({ formError: "登録できません。" })));
+
+    fillBasics();
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "商品説明" }), {
+      target: { value: "<p>書いた本文</p>" },
+    });
+
+    await waitFor(() =>
+      expect(document.querySelector('input[name="description"]')).toHaveValue("<p>書いた本文</p>"),
+    );
+  });
+
   it("公開の段の操作は確認へ進む", () => {
     renderView();
 
@@ -114,7 +152,6 @@ describe("AdminProductCreateView", () => {
     expect(guard.when).toBe(true);
   });
 
-  // ----- 異常系 -----
   it("必須が埋まるまで次の段へ進めない", () => {
     renderView();
 

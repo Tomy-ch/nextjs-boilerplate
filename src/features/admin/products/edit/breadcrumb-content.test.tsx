@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { toProductId } from "@/model/product/product";
 
@@ -21,7 +22,6 @@ beforeEach(() => {
 });
 
 describe("AdminProductEditBreadcrumbContent", () => {
-  // ----- 正常系 -----
   it("一覧の下に、商品名と編集に居ることを出す", async () => {
     getProduct.mockResolvedValue({ id: ID, name: "ワイヤレスイヤホン" });
 
@@ -38,5 +38,14 @@ describe("AdminProductEditBreadcrumbContent", () => {
     render(await AdminProductEditBreadcrumbContent({ id: ID }));
 
     expect(getProduct).toHaveBeenCalledWith(ID);
+  });
+  it("a11y 自動検査に違反しない", async () => {
+    getProduct.mockResolvedValue({ id: ID, name: "ワイヤレスイヤホン" });
+
+    const { container } = render(await AdminProductEditBreadcrumbContent({ id: ID }));
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

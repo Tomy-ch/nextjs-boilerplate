@@ -39,6 +39,17 @@ export type Screen = {
    * 送り返され、やはり目的の画面は撮れません（`src/model/authz.ts`）。
    */
   readonly signedIn?: SessionRole;
+  /**
+   * 撮影から外す領域の CSS 選択子。
+   *
+   * @remarks
+   * **モックで固定できない値を描く場所にだけ与えます。**応答はモックが同じ要求へ同じものを
+   * 返しますが（`mocks/stable-responses.ts`）、画面が要求時刻から導く値はそこに載りません。
+   * 外さないと、基準を撮った日を過ぎた時点でその画面が毎回落ちます。
+   *
+   * 外すのは値を描く最小の範囲に留めます。広く覆うほど、崩れても気づけない面が増えます。
+   */
+  readonly mask?: readonly string[];
 };
 
 /** route 1 つに対する宣言。開くか、開かない理由を持つ。 */
@@ -48,6 +59,8 @@ export type ScreenDeclaration =
       readonly name: string;
       readonly path: string;
       readonly signedIn?: SessionRole;
+      /** 撮影から外す領域の CSS 選択子（{@link Screen.mask}）。 */
+      readonly mask?: readonly string[];
     }
   | {
       readonly route: string;
@@ -111,6 +124,8 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     name: "admin-analytics",
     path: "/admin/analytics",
     signedIn: "admin",
+    // 集計の期間は要求時刻から導くため、モックでは固定できない。
+    mask: ['[data-slot="period-caption"] .tabular-nums'],
   },
   { route: "/admin/products", name: "admin-products", path: "/admin/products", signedIn: "admin" },
   {
@@ -194,5 +209,5 @@ export function resolveScreens(
 
   return declarations
     .filter((entry): entry is Extract<ScreenDeclaration, { name: string }> => "name" in entry)
-    .map(({ route, name, path, signedIn }) => ({ route, name, path, signedIn }));
+    .map(({ route, name, path, signedIn, mask }) => ({ route, name, path, signedIn, mask }));
 }

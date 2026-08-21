@@ -30,7 +30,7 @@ export type PurchaseLoadMoreListProps = {
  * [`LoadMore`](../../../../../components/app-starter/load-more/README.md) が持ちます。
  *
  * 総数は出しません。契約が返すのは 1 ページと次の鍵だけで、期間で絞った結果が全部で何件あるかは
- * 読み終えるまで判りません（[0073](../../../../../docs/adr/0073-pagination-fetch-boundary.md)）。
+ * 読み終えるまで判りません（[0073](../../../../../../docs/adr/0073-pagination-fetch-boundary.md)）。
  * 読み込んだ数を「全体の何件中」の形に見せると、実際には知らない数を知っているように読めます。
  *
  * 件数を読み上げへ伝えます。追加された購入は一覧の末尾に増えるだけなので、伝えないと画面を

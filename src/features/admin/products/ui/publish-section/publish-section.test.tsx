@@ -33,7 +33,6 @@ function renderSection() {
 }
 
 describe("ProductPublishSection", () => {
-  // ----- 正常系 -----
   it("状態と公開日時を並べる", () => {
     renderSection();
 
@@ -72,7 +71,6 @@ describe("ProductPublishSection", () => {
     expect(screen.queryByText(/公開日時を日付として/)).not.toBeInTheDocument();
   });
 
-  // ----- 異常系 -----
   it("既に未公開なら、戻す操作は押せない", () => {
     renderSection();
 
@@ -92,7 +90,9 @@ describe("ProductPublishSection", () => {
 
     const offset = document.querySelector('input[name="timezoneOffset"]');
 
-    expect(offset).toHaveValue(String(new Date().getTimezoneOffset()));
+    // 実装と同じ式を書き写すと、実装 == 実装の確認になる。時差は Asia/Tokyo に固定してあり
+    // （`vitest.config.ts`）、`getTimezoneOffset()` は UTC より東を負で返す。
+    expect(offset).toHaveValue("-540");
   });
 
   it("描く場所が server なら時差を載せない。server の時差を送っても意味が無い", () => {

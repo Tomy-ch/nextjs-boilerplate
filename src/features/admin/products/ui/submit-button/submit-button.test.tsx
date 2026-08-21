@@ -17,7 +17,6 @@ function renderSubmit(blocked = false) {
 }
 
 describe("ProductSubmitButton", () => {
-  // ----- 正常系 -----
   it("送信の操作として公開する", () => {
     renderSubmit();
 
@@ -30,7 +29,6 @@ describe("ProductSubmitButton", () => {
     expect(screen.getByRole("button", { name: "登録する" })).toBeEnabled();
   });
 
-  // ----- 異常系 -----
   it("止める理由があれば押せない", () => {
     renderSubmit(true);
 

@@ -24,8 +24,7 @@ const STATUS_LABEL = "状態";
  * URL に載っているのはマスタ行を指す番号で、そのまま出しても何を選んだのかは読めません。
  * 選択肢に無い番号は条件として出しません。
  *
- * **外すのはその 1 つだけ**です。同じ種類の条件を複数選べる以上、1 つ押したときに同じ種類が
- * すべて消えると、どれを外したのか押した本人にも判りません。
+ * **外すのはその 1 つだけ**です（理由は `docs/spec/route/admin/products/page.function.md`「検索条件は URL が持つ」）。
  */
 function toFilters(
   codes: readonly string[],

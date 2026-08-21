@@ -178,12 +178,30 @@ export function WizardForm({
     });
   }, [steps.length]);
 
+  const current = steps[currentIndex];
+
+  /**
+   * その段へ移れるか。
+   *
+   * 到達済みで、いま居る段ではなく、いま居る段を終えられているなら移れる。前へ戻る側は
+   * 終えられていなくても移れる —— 戻ることは、その段を済ませたと主張しないため。
+   */
+  const canGoTo = useCallback(
+    (index: number) =>
+      index <= furthestIndex &&
+      index !== currentIndex &&
+      !(current.blocked === true && index > currentIndex),
+    [current.blocked, currentIndex, furthestIndex],
+  );
+
+  // 規則は `canGoTo` が 1 か所で持ち、進捗はそれを消費して押せるかを決める。ここで再び
+  // 検査しないのは、押せない段の操作が DOM に無い以上その枝へ到達できず、通らない分岐が残る
+  // ためである。規則を足すときは `canGoTo` を直せば描画と挙動の両方が追随する。
   const goTo = useCallback((index: number) => {
     movedRef.current = true;
     setProgress((moved) => ({ ...moved, currentIndex: index }));
   }, []);
 
-  const current = steps[currentIndex];
   const isLast = currentIndex === steps.length - 1;
 
   return (
@@ -200,7 +218,7 @@ export function WizardForm({
               <ListItemTitle>
                 {index <= furthestIndex && index !== currentIndex ? (
                   <WizardStepLink
-                    disabled={current.blocked === true && index > currentIndex}
+                    disabled={!canGoTo(index)}
                     index={index}
                     onSelect={goTo}
                     title={step.title}
@@ -249,7 +267,6 @@ export function WizardForm({
   );
 }
 
-/** 進捗の状態を現在位置から導く。 */
 /**
  * 進捗に出す段階の状態。
  *
