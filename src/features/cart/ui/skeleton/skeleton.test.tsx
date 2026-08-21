@@ -7,10 +7,10 @@ import { axe } from "vitest-axe";
 import { CartSkeleton } from "./skeleton";
 
 describe("CartSkeleton", () => {
-  it("明細 3 行ぶんの枠と、集計の枠を出す", () => {
+  it("明細 3 行ぶんの枠（サムネイル・商品名・単価・操作）と、集計の枠を出す", () => {
     const { container } = render(<CartSkeleton />);
 
-    expect(container.querySelectorAll("[data-slot=skeleton]")).toHaveLength(3 * 3 + 2);
+    expect(container.querySelectorAll("[data-slot=skeleton]")).toHaveLength(3 * 4 + 2);
   });
 
   it("出来上がりと同じ段組みで待たせる", () => {

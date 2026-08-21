@@ -62,13 +62,7 @@ async function cartSessionHeader(): Promise<Readonly<Record<string, string>> | u
   return token === null ? undefined : { [CART_SESSION_HEADER]: token };
 }
 
-/**
- * 契約の応答を表示用の型へ写す。
- *
- * @remarks
- * 画像 URL の解決をここで済ませるのは、配信元が設定から来るためです。設定を読めるのは
- * `adapters` までで、画面側は解決済みの URL しか受け取りません。
- */
+/** 契約の応答を表示用の型へ写す。画像はオブジェクトキーのまま渡さず、ここで表示 URL へ解決する。 */
 function toCart(wire: WireCart): Cart {
   return {
     lines: wire.items.map((item) => ({
