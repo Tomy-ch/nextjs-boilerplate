@@ -19,6 +19,13 @@ inputs:
     required: false
     default: ""
     description: When set, the summary text used to fold the body into a details block with a code block
+  notes-file:
+    required: false
+    default: ""
+    description: >-
+      Path to a file rendered as Markdown after the body, outside the fold and outside the code
+      block. For workflow-authored prose only — anything a pull request can influence belongs in
+      body-file, which is fenced.
   max-length:
     required: false
     default: "45000"
@@ -33,6 +40,7 @@ runs:
         BODY_FILE: ${{ inputs.body-file }}
         TITLE: ${{ inputs.title }}
         DETAILS_SUMMARY: ${{ inputs.details-summary }}
+        NOTES_FILE: ${{ inputs.notes-file }}
         MAX_LENGTH: ${{ inputs.max-length }}
       with:
         github-token: ${{ inputs.github-token }}
@@ -43,6 +51,7 @@ runs:
           const bodyFile = process.env.BODY_FILE;
           const title = process.env.TITLE || '';
           const detailsSummary = process.env.DETAILS_SUMMARY || '';
+          const notesFile = process.env.NOTES_FILE || '';
           const maxLength = Number(process.env.MAX_LENGTH || '45000');
 
           const pr = context.payload.pull_request?.number;
@@ -98,9 +107,23 @@ runs:
             ? [`<details><summary>${detailsSummary}</summary>`, '', fence, content, fence, '', '</details>'].join('\n')
             : content;
 
+          // 添える散文はフェンスへ入れない。フェンスの中身は Markdown として描画されないので、
+          // 表も、コピーさせたいコマンドのブロックも、そこでは字面のまま出てしまう。
+          // 入れてよいのはワークフローが書いた文だけである — 呼び出し元が本文と分けて渡す。
+          let notes = '';
+          if (notesFile) {
+            if (!fs.existsSync(notesFile)) {
+              core.setFailed(`${notesFile} not found`);
+              return;
+            }
+            notes = fs.readFileSync(notesFile, 'utf8').trimEnd();
+          }
+
           const parts = [marker];
           if (title) parts.push(title, '');
-          parts.push(main, '', commitLine, '', updatedLine);
+          parts.push(main);
+          if (notes) parts.push('', notes);
+          parts.push('', commitLine, '', updatedLine);
           const body = parts.join('\n');
 
           const comments = await github.paginate(github.rest.issues.listComments, {

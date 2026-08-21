@@ -29,6 +29,9 @@ story 単位の visual regression が、どの部品でどう組み上がって�
 | `playwright.config.ts` | 実行環境と比較条件（`maxDiffPixels: 0`） |
 | `docker-compose.dev-tools.yml` | `browser_runner`（digest と platform を固定） |
 | `scripts/vrt/` | 実行結果 → 一覧表 / 撮り直す id、絵を決める入力 → ハッシュ |
+| `scripts/e2e/` | 画面単位の実行結果 → 落ちた画面の名前 |
+| `scripts/lib/playwright-report.ts` | 上の 2 つが共有する、JSON レポートのたどり方 |
+| `scripts/review/` | 落ちた対象 → 使い捨ての作業ツリーと、そこで立てるサーバの URL |
 | `scripts/baseline-store/` | 置き場の ref 名・送出・掃除の算出 |
 | `.github/actions/setup-baselines` | CI が記録されたコミット 1 つだけを取る |
 | 置き場（別リポジトリ） | `<系統>/<テーマ>/<story id>.png` と、撮った時点の入力のハッシュ（`render-inputs.sha256`）を持つ `snapshot/*` ブランチ群 |
