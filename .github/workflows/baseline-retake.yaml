@@ -387,8 +387,8 @@ jobs:
             sed -e 's|^https://github.com/||' -e 's|\.git$||')"
 
           # The review lines are pasted into a shell, so a value outside the accepted set is
-          # dropped rather than quoted. Why quoting is not enough, and why the same set is what
-          # lets these values render as markdown, is in `vrt.yaml`'s summarise step.
+          # dropped rather than quoted. Why quoting is not enough, and why the same set is
+          # what lets these values render as markdown, is in ADR 0153 §5.
           unsafe() { printf '%s' "$1" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; }
 
           if unsafe "${HEAD_REF}"; then
