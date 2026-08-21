@@ -42,13 +42,13 @@ describe("mediaUrl", () => {
   });
 
   it("段の深いキーをその深さのまま解決する", () => {
-    expect(mediaUrl(ORIGIN, "products/2026/08/0198a1b2-c3d4.png")).toBe(
-      `${ORIGIN}/products/2026/08/0198a1b2-c3d4.png`,
+    expect(mediaUrl(ORIGIN, "items/2026/08/0198a1b2-c3d4.png")).toBe(
+      `${ORIGIN}/items/2026/08/0198a1b2-c3d4.png`,
     );
   });
 
   it("名前に点が並ぶキーを上位への参照と取り違えない", () => {
-    expect(mediaUrl(ORIGIN, "products/a..b.png")).toBe(`${ORIGIN}/products/a..b.png`);
+    expect(mediaUrl(ORIGIN, "items/a..b.png")).toBe(`${ORIGIN}/items/a..b.png`);
   });
   // ----- 異常系 -----
   it("キーが無ければ URL を作らない", () => {
