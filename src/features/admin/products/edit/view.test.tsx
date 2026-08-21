@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -147,7 +148,10 @@ describe("AdminProductEditView", () => {
   it("本文の変更を値へ入れ、直前の結果を下げる", async () => {
     renderView(() => Promise.resolve(failedActionState<void>({ formError: "更新できません。" })));
 
-    fireEvent.mouseDown(screen.getByRole("tab", { name: "説明" }));
+    await userEvent.click(screen.getByRole("tab", { name: "説明" }));
+    // **ここは `user-event` を使いません。**差し替えた入力欄は編集面の代役で、実物は打鍵ごとに
+    // 文字を足すのではなく、組み上げた HTML をまとめて返します。1 文字ずつ送ると実物と違う
+    // 呼ばれ方になります。
     fireEvent.change(screen.getByRole("textbox", { name: "商品説明" }), {
       target: { value: "<p>直した本文</p>" },
     });
@@ -157,10 +161,10 @@ describe("AdminProductEditView", () => {
     );
   });
 
-  it("観点を選ぶと、その中身が見える", () => {
+  it("観点を選ぶと、その中身が見える", async () => {
     renderView();
 
-    fireEvent.mouseDown(screen.getByRole("tab", { name: "公開" }));
+    await userEvent.click(screen.getByRole("tab", { name: "公開" }));
 
     expect(screen.getByLabelText("公開日時")).toBeVisible();
   });
@@ -171,10 +175,11 @@ describe("AdminProductEditView", () => {
     expect(guard.when).toBe(false);
   });
 
-  it("直せば書きかけとして申告する", () => {
+  it("直せば書きかけとして申告する", async () => {
     renderView();
 
-    fireEvent.change(screen.getByLabelText("商品名"), { target: { value: "別の名前" } });
+    await userEvent.clear(screen.getByLabelText("商品名"));
+    await userEvent.type(screen.getByLabelText("商品名"), "別の名前");
 
     expect(guard.when).toBe(true);
   });
@@ -189,7 +194,7 @@ describe("AdminProductEditView", () => {
       ),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+    await userEvent.click(screen.getByRole("button", { name: "更新する" }));
 
     await waitFor(() =>
       expect(screen.getByRole("tab", { name: "公開" })).toHaveAttribute("aria-selected", "true"),
@@ -199,8 +204,8 @@ describe("AdminProductEditView", () => {
   it("弾かれなかったときは観点を移さない", async () => {
     renderView(() => Promise.resolve(succeededActionState<void>(undefined)));
 
-    fireEvent.mouseDown(screen.getByRole("tab", { name: "画像" }));
-    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+    await userEvent.click(screen.getByRole("tab", { name: "画像" }));
+    await userEvent.click(screen.getByRole("button", { name: "更新する" }));
 
     await waitFor(() =>
       expect(screen.getByRole("tab", { name: "画像" })).toHaveAttribute("aria-selected", "true"),
@@ -210,8 +215,8 @@ describe("AdminProductEditView", () => {
   it("項目ごとの誤りが無ければ、観点を移さない", async () => {
     renderView(() => Promise.resolve(failedActionState<void>({ formError: "認証が必要です。" })));
 
-    fireEvent.mouseDown(screen.getByRole("tab", { name: "画像" }));
-    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+    await userEvent.click(screen.getByRole("tab", { name: "画像" }));
+    await userEvent.click(screen.getByRole("button", { name: "更新する" }));
 
     await screen.findByText("認証が必要です。");
 
@@ -228,7 +233,7 @@ describe("AdminProductEditView", () => {
       ),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+    await userEvent.click(screen.getByRole("button", { name: "更新する" }));
 
     expect(await screen.findByRole("link", { name: "読み込み直す" })).toBeInTheDocument();
   });
@@ -239,7 +244,7 @@ describe("AdminProductEditView", () => {
       Promise.resolve(failedActionState<void>({ formError: PRODUCT_VERSION_CONFLICT_MESSAGE })),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+    await userEvent.click(screen.getByRole("button", { name: "更新する" }));
 
     await screen.findByText(PRODUCT_VERSION_CONFLICT_MESSAGE);
 
@@ -249,7 +254,7 @@ describe("AdminProductEditView", () => {
   it("やり直しても直らない失敗には、読み込み直す導線を添えない", async () => {
     renderView(() => Promise.resolve(failedActionState<void>({ formError: "認証が必要です。" })));
 
-    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+    await userEvent.click(screen.getByRole("button", { name: "更新する" }));
 
     expect(await screen.findByText("認証が必要です。")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "読み込み直す" })).not.toBeInTheDocument();
@@ -258,10 +263,10 @@ describe("AdminProductEditView", () => {
   it("観点を移すと、直前の結果を下げる", async () => {
     renderView(() => Promise.resolve(failedActionState<void>({ formError: "認証が必要です。" })));
 
-    fireEvent.click(screen.getByRole("button", { name: "更新する" }));
+    await userEvent.click(screen.getByRole("button", { name: "更新する" }));
     await screen.findByText("認証が必要です。");
 
-    fireEvent.mouseDown(screen.getByRole("tab", { name: "画像" }));
+    await userEvent.click(screen.getByRole("tab", { name: "画像" }));
 
     expect(screen.queryByText("認証が必要です。")).not.toBeInTheDocument();
   });

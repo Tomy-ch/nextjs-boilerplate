@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -77,11 +78,11 @@ function renderView(createAction: () => Promise<ProductFormState> = idle) {
 }
 
 /** 基本情報の必須をすべて埋める。 */
-function fillBasics() {
-  fireEvent.change(screen.getByLabelText("商品名"), { target: { value: "商品" } });
-  fireEvent.change(screen.getByLabelText("価格"), { target: { value: "19.99" } });
-  fireEvent.change(screen.getByLabelText("在庫数"), { target: { value: "3" } });
-  fireEvent.change(screen.getByLabelText("分類"), { target: { value: "category-1" } });
+async function fillBasics() {
+  await userEvent.type(screen.getByLabelText("商品名"), "商品");
+  await userEvent.type(screen.getByLabelText("価格"), "19.99");
+  await userEvent.type(screen.getByLabelText("在庫数"), "3");
+  await userEvent.selectOptions(screen.getByLabelText("分類"), "category-1");
 }
 
 describe("AdminProductCreateView", () => {
@@ -104,11 +105,11 @@ describe("AdminProductCreateView", () => {
     expect(container.querySelector('select[name="statusId"]')).toBeInTheDocument();
   });
 
-  it("埋まれば次の段へ進める", () => {
+  it("埋まれば次の段へ進める", async () => {
     renderView();
 
-    fillBasics();
-    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    await fillBasics();
+    await userEvent.click(screen.getByRole("button", { name: "次へ" }));
 
     expect(screen.getByRole("textbox", { name: "商品説明" })).toBeVisible();
   });
@@ -116,8 +117,11 @@ describe("AdminProductCreateView", () => {
   it("本文の変更を値へ入れ、直前の結果を下げる", async () => {
     renderView(() => Promise.resolve(failedActionState<void>({ formError: "登録できません。" })));
 
-    fillBasics();
-    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    await fillBasics();
+    await userEvent.click(screen.getByRole("button", { name: "次へ" }));
+    // **ここは `user-event` を使いません。**差し替えた入力欄は編集面の代役で、実物は打鍵ごとに
+    // 文字を足すのではなく、組み上げた HTML をまとめて返します。1 文字ずつ送ると実物と違う
+    // 呼ばれ方になります。
     fireEvent.change(screen.getByRole("textbox", { name: "商品説明" }), {
       target: { value: "<p>書いた本文</p>" },
     });
@@ -127,13 +131,13 @@ describe("AdminProductCreateView", () => {
     );
   });
 
-  it("公開の段の操作は確認へ進む", () => {
+  it("公開の段の操作は確認へ進む", async () => {
     renderView();
 
-    fillBasics();
-    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
-    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
-    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    await fillBasics();
+    await userEvent.click(screen.getByRole("button", { name: "次へ" }));
+    await userEvent.click(screen.getByRole("button", { name: "次へ" }));
+    await userEvent.click(screen.getByRole("button", { name: "次へ" }));
 
     expect(screen.getByRole("button", { name: "確認" })).toBeInTheDocument();
   });
@@ -144,10 +148,11 @@ describe("AdminProductCreateView", () => {
     expect(screen.queryByRole("button", { name: "登録する" })).not.toBeInTheDocument();
   });
 
-  it("入力すると、書きかけがあることを器へ申告する", () => {
+  it("入力すると、書きかけがあることを器へ申告する", async () => {
     renderView();
 
-    fireEvent.change(screen.getByLabelText("商品名"), { target: { value: "書きかけ" } });
+    await userEvent.clear(screen.getByLabelText("商品名"));
+    await userEvent.type(screen.getByLabelText("商品名"), "書きかけ");
 
     expect(guard.when).toBe(true);
   });
@@ -175,13 +180,13 @@ describe("AdminProductCreateView", () => {
       ),
     );
 
-    fillBasics();
-    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
-    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
-    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
-    fireEvent.change(screen.getByLabelText("状態"), { target: { value: "status-1" } });
-    fireEvent.click(screen.getByRole("button", { name: "確認" }));
-    fireEvent.click(screen.getByRole("button", { name: "登録する" }));
+    await fillBasics();
+    await userEvent.click(screen.getByRole("button", { name: "次へ" }));
+    await userEvent.click(screen.getByRole("button", { name: "次へ" }));
+    await userEvent.click(screen.getByRole("button", { name: "次へ" }));
+    await userEvent.selectOptions(screen.getByLabelText("状態"), "status-1");
+    await userEvent.click(screen.getByRole("button", { name: "確認" }));
+    await userEvent.click(screen.getByRole("button", { name: "登録する" }));
 
     expect(await screen.findByRole("link", { name: /価格/ })).toBeInTheDocument();
   });
