@@ -181,24 +181,29 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         shell: bash
         run: |
-          # The same set the table lists, in the form the local review target takes. Emitted
-          # as its own fenced block so it survives a copy — a command spread across a prose
-          # paragraph does not.
+          # The comment is written to two files, and the split is what decides what renders.
+          # `vrt.log` is folded inside a code block because a log line is whatever the tools
+          # printed — source text a pull request controls, which must not become markup. The
+          # notes are workflow-authored prose plus the generated table, and they render, because
+          # a table and a copy-me command say nothing when shown as literal characters.
+          mkdir -p /tmp/vrt-comment
+          tail -n 60 /tmp/vrt-full.log > /tmp/vrt-comment/vrt.log
+
           ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json || true)"
 
           # The block below is written to be pasted into a shell, so a value carrying `$(...)`
           # or a backtick would be evaluated by the reader's shell before `make` ever starts.
           # A branch name may legally contain both, so drop the block rather than emit one
           # that is unsafe to paste. Quoting alone would not do: a value containing a single
-          # quote closes the quoting again.
+          # quote closes the quoting again. The same check is what lets these values sit in
+          # rendered markdown at all — the accepted set carries no markup and no mention.
           if printf '%s%s' "${HEAD_REF}" "${ids}" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; then
             ids=''
             echo "review block suppressed: head_ref or story ids carry shell metacharacters" >&2
           fi
 
           {
-            pnpm exec tsx scripts/vrt table tmp/vrt/report.json \
-              || tail -n 60 /tmp/vrt-full.log
+            pnpm exec tsx scripts/vrt table tmp/vrt/report.json || true
 
             if [ -n "${ids}" ]; then
               cat <<REVIEW
@@ -226,11 +231,17 @@ jobs:
 
           **落ちた story それぞれについて、なぜ変わったかを言えるまで撮り直さないでください。** 全数が一度に落ちる形は原因が 1 つとは限らず、混ざっている不具合ごと撮り直すとそれが次の正になります（`docs/design/vrt.md` の「限界」）。
           NOTE
-          } > /tmp/vrt.log
+          } > /tmp/vrt-comment/vrt-notes.md
 
+      # Both files always exist together: the commenting job passes both paths, and a missing
+      # one fails the action rather than silently dropping half the comment.
       - name: Note that nothing changed
         if: always() && steps.vrt.outputs.status == 'success'
-        run: echo '全 story が基準画像と一致しました。' > /tmp/vrt.log
+        shell: bash
+        run: |
+          mkdir -p /tmp/vrt-comment
+          echo '全 story が基準画像と一致しました。' > /tmp/vrt-comment/vrt.log
+          : > /tmp/vrt-comment/vrt-notes.md
 
       # A job that stood down still owes the pull request a verdict. Without this, the ❌
       # comment an earlier push produced stays beside a green check once the diff stops
@@ -242,7 +253,9 @@ jobs:
         shell: bash
         run: |
           echo 'title=## ⏭️ VRT: SKIP (diff cannot reach a picture)' >> "$GITHUB_OUTPUT"
-          echo 'この PR の差分は絵に届かないため、比較していません。' > /tmp/vrt.log
+          mkdir -p /tmp/vrt-comment
+          echo 'この PR の差分は絵に届かないため、比較していません。' > /tmp/vrt-comment/vrt.log
+          : > /tmp/vrt-comment/vrt-notes.md
 
       # Expected / actual / diff triplets per failing story. Without them the only
       # evidence of a visual change is the assertion text, which cannot be judged.
@@ -273,7 +286,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-comment
-          path: /tmp/vrt.log
+          path: /tmp/vrt-comment/
           retention-days: 1
           if-no-files-found: error
 
@@ -321,4 +334,5 @@ jobs:
           marker: '<!-- vrt-result -->'
           title: ${{ needs.vrt.outputs.title }}
           body-file: /tmp/vrt-comment/vrt.log
-          details-summary: '差分のあった story'
+          notes-file: /tmp/vrt-comment/vrt-notes.md
+          details-summary: 'VRT の実行ログ'

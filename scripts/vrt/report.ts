@@ -68,7 +68,7 @@ export function formatTable(failures: Failure[]): string {
   const shown = failures.slice(0, TABLE_LIMIT);
   const rows = shown.map(
     (failure) =>
-      `| ${failure.title} | ${failure.theme} | ${formatPixels(failure.diffPixels)} | \`${failure.id}\` |`,
+      `| ${cell(failure.title)} | ${cell(failure.theme)} | ${formatPixels(failure.diffPixels)} | \`${failure.id}\` |`,
   );
   const table = [
     `${failures.length} 件の story が基準画像と食い違いました。`,
@@ -142,6 +142,18 @@ function diffPixels(results: unknown): number | null {
   }
 
   return null;
+}
+
+/**
+ * 表の升目へ入れられる形にする。
+ *
+ * @remarks
+ * story の見出しはソースが決めるので、PR を出した側が中身を持ちます。この表は畳んだフェンスの
+ * 外で描画されるため、升目の区切りと改行をそのまま通すと、行の形を壊して以降を任意の Markdown
+ * として書けます。
+ */
+function cell(text: string): string {
+  return text.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
 }
 
 function formatPixels(pixels: number | null): string {
