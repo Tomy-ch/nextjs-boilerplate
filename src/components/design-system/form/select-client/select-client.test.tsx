@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -63,21 +64,21 @@ describe("SelectClient", () => {
     expect(screen.getByRole("combobox", { name: "表示形式" })).toBeVisible();
   });
 
-  it("開くと候補を一覧として示す", () => {
+  it("開くと候補を一覧として示す", async () => {
     render(<SelectFixture />);
 
-    fireEvent.keyDown(screen.getByRole("combobox", { name: "表示形式" }), { key: "ArrowDown" });
+    await userEvent.type(screen.getByRole("combobox", { name: "表示形式" }), "{ArrowDown}");
 
     expect(screen.getByRole("listbox")).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "簡潔" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "表示形式" })).toBeInTheDocument();
   });
 
-  it("候補を選ぶと値が変わり一覧を閉じる", () => {
+  it("候補を選ぶと値が変わり一覧を閉じる", async () => {
     render(<SelectFixture />);
 
-    fireEvent.keyDown(screen.getByRole("combobox", { name: "表示形式" }), { key: "ArrowDown" });
-    fireEvent.click(screen.getByRole("option", { name: "簡潔" }));
+    await userEvent.type(screen.getByRole("combobox", { name: "表示形式" }), "{ArrowDown}");
+    await userEvent.click(screen.getByRole("option", { name: "簡潔" }));
 
     expect(screen.getByRole("combobox", { name: "表示形式" })).toHaveTextContent("簡潔");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
@@ -87,7 +88,7 @@ describe("SelectClient", () => {
     // Portal で body 直下へ描くため baseElement を渡す。container では trigger しか入らない。
     const { baseElement } = render(<SelectFixture />);
 
-    fireEvent.keyDown(screen.getByRole("combobox", { name: "表示形式" }), { key: "ArrowDown" });
+    await userEvent.type(screen.getByRole("combobox", { name: "表示形式" }), "{ArrowDown}");
 
     const result = await axe(baseElement, {
       rules: { "color-contrast": { enabled: false }, region: { enabled: false } },
@@ -123,10 +124,10 @@ describe("SelectValue", () => {
 });
 
 describe("SelectContent", () => {
-  it("開くと listbox として slot を持つ要素を描画する", () => {
+  it("開くと listbox として slot を持つ要素を描画する", async () => {
     render(<SelectFixture />);
 
-    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
 
     expect(screen.getByRole("listbox")).toHaveAttribute("data-slot", "select-content");
   });
@@ -139,30 +140,30 @@ describe("SelectContent", () => {
 });
 
 describe("SelectGroup", () => {
-  it("候補の束として slot を持つ要素を描画する", () => {
+  it("候補の束として slot を持つ要素を描画する", async () => {
     render(<SelectFixture />);
 
-    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
 
     expect(document.querySelector('[data-slot="select-group"]')).not.toBeNull();
   });
 });
 
 describe("SelectLabel", () => {
-  it("束の見出しとして slot を持つ要素を描画する", () => {
+  it("束の見出しとして slot を持つ要素を描画する", async () => {
     render(<SelectFixture />);
 
-    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
 
     expect(document.querySelector('[data-slot="select-label"]')).toHaveTextContent("表示形式");
   });
 });
 
 describe("SelectItem", () => {
-  it("候補 1 件を option として描画する", () => {
+  it("候補 1 件を option として描画する", async () => {
     render(<SelectFixture />);
 
-    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
 
     expect(screen.getByRole("option", { name: "簡潔" })).toHaveAttribute(
       "data-slot",
@@ -170,40 +171,40 @@ describe("SelectItem", () => {
     );
   });
 
-  it("選択済みの候補を選択状態として示す", () => {
+  it("選択済みの候補を選択状態として示す", async () => {
     render(<SelectFixture />);
 
-    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
 
     expect(screen.getByRole("option", { name: "標準" })).toHaveAttribute("data-state", "checked");
   });
 });
 
 describe("SelectSeparator", () => {
-  it("区切りとして slot を持つ要素を描画する", () => {
+  it("区切りとして slot を持つ要素を描画する", async () => {
     render(<SelectFixture />);
 
-    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
 
     expect(document.querySelector('[data-slot="select-separator"]')).not.toBeNull();
   });
 });
 
 describe("SelectScrollUpButton", () => {
-  it("候補があふれていなければスクロール操作を描画しない", () => {
+  it("候補があふれていなければスクロール操作を描画しない", async () => {
     render(<SelectFixture />);
 
-    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
 
     expect(document.querySelector('[data-slot="select-scroll-up-button"]')).toBeNull();
   });
 });
 
 describe("SelectScrollDownButton", () => {
-  it("候補があふれていなければスクロール操作を描画しない", () => {
+  it("候補があふれていなければスクロール操作を描画しない", async () => {
     render(<SelectFixture />);
 
-    fireEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "表示形式" }));
 
     expect(document.querySelector('[data-slot="select-scroll-down-button"]')).toBeNull();
   });

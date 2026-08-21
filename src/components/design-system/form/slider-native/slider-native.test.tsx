@@ -44,6 +44,9 @@ describe("SliderNative", () => {
     render(<SliderNative aria-label="上限価格" defaultValue={40} />);
 
     const slider = screen.getByRole("slider");
+
+    // **ここは `user-event` を使いません。**`input[type=range]` の値を動かすのはつまみの
+    // ドラッグで、jsdom は要素の矩形を持たないため再現できません。
     fireEvent.change(slider, { target: { value: "70" } });
 
     expect(slider).toHaveValue("70");
