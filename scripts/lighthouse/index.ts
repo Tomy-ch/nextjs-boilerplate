@@ -19,9 +19,11 @@ import {
   missingScreens,
   parseBudget,
 } from "./budget";
+import { buildChromeFlags, buildLighthouseArgs } from "./command";
 import { aggregate, readMetrics } from "./metrics";
 import { planTargets, type Target } from "./plan";
 import { renderReport } from "./report";
+import { buildCookieHeader } from "./session";
 
 /**
  * 画面ごとの Core Web Vitals を測り、予算と照らす。
@@ -49,16 +51,6 @@ const OUTPUT_DIR = "tmp/lighthouse";
  * ません。
  */
 const LIGHTHOUSE_CLI = createRequire(import.meta.url).resolve("lighthouse/cli/index.js");
-
-/**
- * ブラウザへ渡す起動時の指定。
- *
- * @remarks
- * `--no-sandbox` を足すのは CI だけです。sandbox は多層防御の 1 枚で、外す理由があるのは
- * それが成立しない環境 —— runner が sandbox に要る user namespace を持たない ——
- * に限られます。手元では成立するので外しません。
- */
-const CHROME_FLAGS = ["--headless=new", ...(process.env.CI === undefined ? [] : ["--no-sandbox"])];
 
 /**
  * 役割を持つ session を発行し、それを送るためのヘッダの宣言をファイルへ書き出す。
@@ -96,10 +88,7 @@ async function issueSessionHeaders(baseUrl: string, role: string): Promise<strin
 
   const path = join(OUTPUT_DIR, `headers-${role}.json`);
 
-  writeFileSync(
-    path,
-    JSON.stringify({ Cookie: cookies.map((cookie) => cookie.split(";")[0]).join("; ") }),
-  );
+  writeFileSync(path, JSON.stringify({ Cookie: buildCookieHeader(cookies) }));
 
   return path;
 }
@@ -117,20 +106,13 @@ function runOnce(target: Target, run: number, headersFile: string | undefined): 
   const output = join(OUTPUT_DIR, `${target.name}-${run}.json`);
   const result = spawnSync(
     process.execPath,
-    [
+    buildLighthouseArgs(
       LIGHTHOUSE_CLI,
-      target.url,
-      "--quiet",
-      "--output=json",
-      `--output-path=${output}`,
-      "--only-categories=performance",
-      // 応答が 2xx でない画面も測る。宣言には 404 を返す画面が含まれ（`e2e/lib/screens.ts` の
-      // not-found）、既定では Lighthouse がそれを「読み込めなかった」として結果を落とします。
-      // ここが見ているのは応答の成否ではなく描画の速さで、404 の画面も利用者が実際に見る画面です。
-      "--ignore-status-code",
-      `--chrome-flags=${CHROME_FLAGS.join(" ")}`,
-      ...(headersFile === undefined ? [] : [`--extra-headers=${headersFile}`]),
-    ],
+      target,
+      output,
+      headersFile,
+      buildChromeFlags({ CI: process.env.CI }),
+    ),
     { env: { ...process.env, CHROME_PATH: chromium.executablePath() }, stdio: "inherit" },
   );
 

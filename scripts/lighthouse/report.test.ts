@@ -22,19 +22,35 @@ describe("renderReport", () => {
     expect(renderReport([verdict("home")], 5)).toContain("5 回ずつ計測した中央値");
   });
 
-  it("超過した指標には、超えた量を添えて印を付ける", () => {
-    const report = renderReport([verdict("heavy", { tbtMs: 300 })], 3);
+  it("画面が 1 つも無ければ、見出しだけでデータ行を持たない", () => {
+    const report = renderReport([], 3);
 
-    expect(report).toContain("❌ 40 ms / 200 ms（+300 ms）");
+    expect(report).toContain("| 画面 | LCP | CLS | TBT |");
+    expect(report).not.toContain("| `");
+  });
+
+  // ----- 異常系 -----
+  it("TBT の超過は ms のまま量を添えて印を付ける", () => {
+    expect(renderReport([verdict("heavy", { tbtMs: 300 })], 3)).toContain(
+      "❌ 40 ms / 200 ms（+300 ms）",
+    );
+  });
+
+  it("LCP の超過は秒へ換算して量を添える", () => {
+    expect(renderReport([verdict("heavy", { lcpMs: 500 })], 3)).toContain(
+      "❌ 1.20 s / 2.50 s（+0.50 s）",
+    );
+  });
+
+  it("CLS の超過は小数のまま量を添える", () => {
+    expect(renderReport([verdict("heavy", { clsScore: 0.05 })], 3)).toContain(
+      "❌ 0.020 / 0.100（+0.050）",
+    );
   });
 
   it("超過した画面を先に並べる", () => {
     const report = renderReport([verdict("home"), verdict("heavy", { lcpMs: 500 })], 3);
 
     expect(report.indexOf("`heavy`")).toBeLessThan(report.indexOf("`home`"));
-  });
-
-  it("画面が 1 つも無ければ見出しだけを返す", () => {
-    expect(renderReport([], 3).split("\n")).toHaveLength(4);
   });
 });

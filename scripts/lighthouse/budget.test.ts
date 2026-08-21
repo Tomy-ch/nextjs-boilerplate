@@ -73,22 +73,36 @@ describe("parseBudget", () => {
   });
 
   // ----- 異常系 -----
-  it("根拠が空なら落ちる", () => {
+  it("根拠が空なら、その指標の reason を指して落ちる", () => {
     expect(() =>
       parseBudget(YAML.replace("      reason: good の境界", '      reason: "  "')),
-    ).toThrow();
+    ).toThrow(/lcpMs[\s\S]*reason/);
   });
 
-  it("上限が 0 以下なら落ちる", () => {
-    expect(() => parseBudget(YAML.replace("      limit: 2500", "      limit: 0"))).toThrow();
+  it("上限が 0 以下なら、その指標の limit を指して落ちる", () => {
+    expect(() => parseBudget(YAML.replace("      limit: 2500", "      limit: 0"))).toThrow(
+      /lcpMs[\s\S]*limit/,
+    );
   });
 
-  it("試行回数が整数でなければ落ちる", () => {
-    expect(() => parseBudget(YAML.replace("    count: 3", "    count: 2.5"))).toThrow();
+  it("試行回数が整数でなければ、count を指して落ちる", () => {
+    expect(() => parseBudget(YAML.replace("    count: 3", "    count: 2.5"))).toThrow(
+      /runs[\s\S]*count/,
+    );
   });
 
-  it("lighthouse 節そのものが無ければ落ちる", () => {
-    expect(() => parseBudget("routes: {}")).toThrow();
+  it("試行回数が 0 以下なら、count を指して落ちる", () => {
+    expect(() => parseBudget(YAML.replace("    count: 3", "    count: 0"))).toThrow(
+      /runs[\s\S]*count/,
+    );
+  });
+
+  it("lighthouse 節そのものが無ければ、その節を指して落ちる", () => {
+    expect(() => parseBudget("routes: {}")).toThrow(/lighthouse/);
+  });
+
+  it("YAML として構文が壊れていれば落ちる", () => {
+    expect(() => parseBudget("lighthouse:\n  metrics: [")).toThrow();
   });
 });
 
@@ -129,23 +143,10 @@ describe("judge", () => {
     expect(judge([measurement("home")], BUDGET)[0]?.over).toEqual({});
   });
 
-  it("超過した指標だけが、超えた量とともに現れる", () => {
-    const verdict = judge([measurement("home", { lcpMs: 3000 })], BUDGET)[0];
-
-    expect(verdict?.over).toEqual({ lcpMs: 500 });
-  });
-
-  it("上限ちょうどは超過にしない", () => {
-    expect(judge([measurement("home", { lcpMs: 2500 })], BUDGET)[0]?.over).toEqual({});
-  });
-
-  it("3 指標が同時に超えれば 3 つとも現れる", () => {
-    const verdict = judge(
-      [measurement("home", { lcpMs: 3500, clsScore: 0.3, tbtMs: 500 })],
-      BUDGET,
-    )[0];
-
-    expect(verdict?.over).toEqual({ lcpMs: 1000, clsScore: 0.3 - 0.1, tbtMs: 300 });
+  it("3 指標とも上限ちょうどなら超過にしない", () => {
+    expect(
+      judge([measurement("home", { lcpMs: 2500, clsScore: 0.1, tbtMs: 200 })], BUDGET)[0]?.over,
+    ).toEqual({});
   });
 
   it("その画面へ効いた上限を判定に添える", () => {
@@ -159,6 +160,34 @@ describe("judge", () => {
       over: {},
     });
   });
+
+  // ----- 異常系 -----
+  it("超過した指標だけが、超えた量とともに現れる", () => {
+    const verdict = judge([measurement("home", { lcpMs: 3000 })], BUDGET)[0];
+
+    expect(verdict?.over).toEqual({ lcpMs: 500 });
+  });
+
+  it("3 指標が同時に超えれば 3 つとも現れる", () => {
+    const verdict = judge(
+      [measurement("home", { lcpMs: 3500, clsScore: 0.3, tbtMs: 500 })],
+      BUDGET,
+    )[0];
+
+    expect(verdict?.over.lcpMs).toBe(1000);
+    expect(verdict?.over.tbtMs).toBe(300);
+    // 実装も期待値も同じ引き算をするので、丸め誤差まで一致する。0.2 そのものではない。
+    expect(verdict?.over.clsScore).toBeCloseTo(0.2, 10);
+  });
+
+  it("緩めた画面でも、緩めた上限を超えれば現れる", () => {
+    const budget: Budget = {
+      ...BUDGET,
+      screens: { heavy: { tbtMs: { limit: 400, reason: "重い" } } },
+    };
+
+    expect(judge([measurement("heavy", { tbtMs: 500 })], budget)[0]?.over).toEqual({ tbtMs: 100 });
+  });
 });
 
 describe("hasFailure", () => {
@@ -167,6 +196,11 @@ describe("hasFailure", () => {
     expect(hasFailure(judge([measurement("home")], BUDGET))).toBe(false);
   });
 
+  it("判定が 1 つも無ければ false", () => {
+    expect(hasFailure([])).toBe(false);
+  });
+
+  // ----- 異常系 -----
   it("1 画面でも超えていれば true", () => {
     expect(
       hasFailure(judge([measurement("home"), measurement("heavy", { tbtMs: 900 })], BUDGET)),

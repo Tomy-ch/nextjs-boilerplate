@@ -29,13 +29,13 @@ describe("readMetrics", () => {
   });
 
   // ----- 異常系 -----
-  it("計測そのものが失敗していれば落ちる", () => {
+  it("計測そのものが失敗していれば、符牒と説明の両方を添えて落ちる", () => {
     expect(() =>
       readMetrics({
         ...lhr(),
         runtimeError: { code: "NO_FCP", message: "描画されませんでした" },
       }),
-    ).toThrow("NO_FCP");
+    ).toThrow("NO_FCP 描画されませんでした");
   });
 
   it("指標が欠けていれば、どの audit が無いかを言って落ちる", () => {
@@ -44,13 +44,17 @@ describe("readMetrics", () => {
     );
   });
 
-  it("指標が数値でなければ落ちる", () => {
+  it("指標が数値でなければ、その audit を指して落ちる", () => {
     expect(() =>
       readMetrics({
         requestedUrl: "http://127.0.0.1:3300/",
         audits: { "largest-contentful-paint": { numericValue: null } },
       }),
-    ).toThrow();
+    ).toThrow("largest-contentful-paint");
+  });
+
+  it("指標が負であれば、その audit を指して落ちる", () => {
+    expect(() => readMetrics(lhr({ lcp: -1 }))).toThrow("largest-contentful-paint");
   });
 
   it("LHR の形そのものが違えば落ちる", () => {
@@ -95,7 +99,7 @@ describe("aggregate", () => {
   });
 
   // ----- 異常系 -----
-  it("試行が 1 つも無ければ落ちる", () => {
-    expect(() => aggregate([])).toThrow();
+  it("試行が 1 つも無ければ、中央値を採る側の理由で落ちる", () => {
+    expect(() => aggregate([])).toThrow("試行が 1 つもありません");
   });
 });
