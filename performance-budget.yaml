@@ -78,7 +78,8 @@ growth:
 # 同梱サンプルの実測ではない。緩めるのは、その画面が重いことを設計として引き受けたときだけで、
 # そのときは screens へ理由付きで書く。
 #
-# **screens へ同梱サンプルの画面名を書くときは `# sample:begin` / `# sample:end` で囲むこと。**
+# **screens へ同梱サンプルの画面名を書くときは、`sample:begin` / `sample:end` のマーカー（この
+# ファイルでは YAML コメントとして書く）で囲むこと。**
 # 囲まないと、`make purge-sample` のあとに実体を失った緩和が残り、読み込みの時点で落ちる。
 
 lighthouse:
