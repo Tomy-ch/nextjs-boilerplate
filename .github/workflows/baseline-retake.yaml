@@ -376,10 +376,34 @@ jobs:
           REASON: ${{ steps.report.outputs.reason }}
           DEFERRED: ${{ steps.gate.outputs.deferred }}
           FAILED: ${{ steps.gate.outputs.failed }}
+          HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+          # What actually moved, not what was asked for — the same set the count above is
+          # taken from, so the images the comment counts and the ones it opens agree.
+          STORIES: ${{ steps.push-store.outputs.stories }}
+          SCREENS: ${{ steps.push-store.outputs.screens }}
         shell: bash
         run: |
           store_repo="$(git config --file .gitmodules --get submodule.baseline/images.url |
             sed -e 's|^https://github.com/||' -e 's|\.git$||')"
+
+          # The review lines are pasted into a shell, so a value outside the accepted set is
+          # dropped rather than quoted. Why quoting is not enough, and why the same set is what
+          # lets these values render as markdown, is in `vrt.yaml`'s summarise step.
+          unsafe() { printf '%s' "$1" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; }
+
+          if unsafe "${HEAD_REF}"; then
+            STORIES=''
+            SCREENS=''
+            echo 'review lines suppressed: head_ref carries shell metacharacters' >&2
+          fi
+          if unsafe "${STORIES}"; then
+            STORIES=''
+            echo 'story line suppressed: story ids carry shell metacharacters' >&2
+          fi
+          if unsafe "${SCREENS}"; then
+            SCREENS=''
+            echo 'screen line suppressed: screen names carry shell metacharacters' >&2
+          fi
 
           {
             if [ "$DEFERRED" = 'true' ]; then
@@ -392,6 +416,35 @@ jobs:
               echo "画像差分: https://github.com/${store_repo}/compare/${BEFORE}..${AFTER}"
               echo
               echo "対象: ${IDS}"
+
+              # Each block is emitted on its own so a retake that moved only one kind does not
+              # print a command whose target list is empty — `make *-review` refuses that.
+              if [ -n "${STORIES}" ] || [ -n "${SCREENS}" ]; then
+                echo
+                echo '### 手元で見る'
+                echo
+                echo '画素が動いた対象を、使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。'
+
+                if [ -n "${STORIES}" ]; then
+                  echo
+                  echo '```bash'
+                  echo "make vrt-review BRANCH='${HEAD_REF}' VRT_ONLY='${STORIES}'"
+                  echo '```'
+                fi
+
+                if [ -n "${SCREENS}" ]; then
+                  echo
+                  echo '```bash'
+                  echo "make e2e-review BRANCH='${HEAD_REF}' E2E_ONLY='${SCREENS}'"
+                  echo '```'
+                fi
+
+                echo
+                echo "ここで見えるのは**なぜ変わったか**です。**画素を判断する面は上の画像差分**のままで、手元の描画はホストのフォントで描くため元から一致しません（\`vrt/README.md\`）。"
+                echo
+                echo "作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。"
+              fi
+
               echo
               echo "**まだ承認ではありません。** 上の画像差分を見て、意図した変更であることを確かめたうえで \`baseline-approve\` ラベルを付けてください。"
               echo
