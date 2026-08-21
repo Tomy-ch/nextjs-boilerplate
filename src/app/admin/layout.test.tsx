@@ -12,7 +12,12 @@ const { verifySession, redirect } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
-vi.mock("next/navigation", () => ({ redirect, usePathname: () => "/admin/products" }));
+vi.mock("next/navigation", () => ({
+  redirect,
+  usePathname: () => "/admin/products",
+  // 器は書きかけのまま離れる操作を見張るため、遷移の口も要る。
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
 import { SESSION_ROLE, type Session } from "@/model/session";
 
@@ -23,7 +28,7 @@ function session(role: Session["role"]): Session {
 }
 
 async function renderLayout() {
-  return render(await AdminLayout({ children: <p>本文</p> }));
+  return render(await AdminLayout({ breadcrumb: <p>現在地</p>, children: <p>本文</p> }));
 }
 
 beforeEach(() => {
@@ -84,6 +89,12 @@ describe("AdminLayout", () => {
     expect(redirect).toHaveBeenCalledWith("/");
   });
 
+  it("並行の route から受け取った階層を器へ渡す", async () => {
+    await renderLayout();
+
+    expect(screen.getByText("現在地")).toBeInTheDocument();
+  });
+
   it("前捌きの結果を当てにせず自分で確かめる", async () => {
     await renderLayout();
 
@@ -91,7 +102,9 @@ describe("AdminLayout", () => {
   });
 
   it("a11y 検査を通る", async () => {
-    const { container } = render(await AdminLayout({ children: <p>本文</p> }));
+    const { container } = render(
+      await AdminLayout({ breadcrumb: <p>現在地</p>, children: <p>本文</p> }),
+    );
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,

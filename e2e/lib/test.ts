@@ -20,7 +20,8 @@ import {
  *
  * @remarks
  * mock で動かす以上、配信元（`MEDIA_ORIGIN`）は在りません。素通しにすると `next/image` の
- * 最適化が取得に失敗して 500 を返し、見張りが全ての画面で鳴ります。
+ * 最適化が取得に失敗して 500 を返し、縮小表示のように最適化を通さない経路は取得を拒まれます。
+ * どちらも見張りが鳴り、画面ではなく配信元の不在で落ちます。
  *
  * **画像の取得経路は E2E の射程外です。** ここで確かめられるのは配信元が在るときの挙動では
  * ないので、代わりの絵を返して、比較の対象を配信元によらない形に固定します。
@@ -66,8 +67,12 @@ export const test = base.extend<Fixtures>({
       }
     });
 
-    await page.route("**/_next/image**", (route) =>
-      route.fulfill({ contentType: "image/png", body: PLACEHOLDER_PNG }),
+    // 宛先ではなく**絵であること**で判る。配信元は設定の値で、ここへ書き写すと変えたときに
+    // 古い宛先だけを見張り続ける。最適化を通す経路も通さない経路も同じ扱いになる。
+    await page.route("**/*", (route) =>
+      route.request().resourceType() === "image"
+        ? route.fulfill({ contentType: "image/png", body: PLACEHOLDER_PNG })
+        : route.continue(),
     );
 
     await use(page);

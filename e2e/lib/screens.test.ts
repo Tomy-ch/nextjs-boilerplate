@@ -45,9 +45,22 @@ describe("resolveScreens", () => {
 
   // ----- 正常系 -----
   it("開く画面だけを返す", () => {
-    expect(resolveScreens(["/", "/_global-error"], declarations)).toEqual([
+    expect(resolveScreens(["/", "/_global-error"], declarations)).toMatchObject([
       { route: "/", name: "home", path: "/" },
     ]);
+  });
+
+  it("撮影から外す領域の宣言を、撮る側まで運ぶ", () => {
+    // 運ばれないと、要求時刻から導く値を描く画面が、基準を撮った日を過ぎた時点で毎回落ちる。
+    const withMask: readonly ScreenDeclaration[] = [
+      { route: "/", name: "home", path: "/", mask: ['[data-slot="clock"]'] },
+    ];
+
+    expect(resolveScreens(["/"], withMask)[0]?.mask).toEqual(['[data-slot="clock"]']);
+  });
+
+  it("外す領域を宣言しない画面は、何も外さない", () => {
+    expect(resolveScreens(["/", "/_global-error"], declarations)[0]?.mask).toBeUndefined();
   });
 
   it("動的な区間を宣言された URL へ置き換える", () => {

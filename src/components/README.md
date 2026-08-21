@@ -253,7 +253,7 @@ components/
 
 - Story の `title` の先頭セグメントは、その component の**目録の見出しと同じ**にする。値は [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) の `as` が正で、`pnpm check:ui` が突合する。`Foundation` / `Action` / `Form` / `Overlay` / `Navigation` / `Display` / `Status` / `Container` / `Layout` / `Feedback` / `Rich Text` / `View State` / `Sugar` の 13 種で、ディレクトリ・目録・sidebar が同じ区画になる
 - 粒度（単体で最小の部品か、合成か）は sidebar の区画にしない。実装が育てば subcomponent は増えるため、粒度は変わる属性である。変わらない属性だけを配置に焼く
-- **feature の story は上の 13 見出しに入れない。** 目録はこのカーネルの在庫であり、feature の部品は在庫ではないためである。feature 側は次の 2 つの先頭セグメントを使う
+- **feature の story は上の 13 見出しに入れない。** 目録はこのカーネルが持つ部品の一覧であり、feature の部品はここの持ち物ではないためである。feature 側は次の 2 つの先頭セグメントを使う
   - `Page/<feature>/<画面>` — 画面の合成（`features/<name>/<screen>/view.tsx`）。取得を伴わない状態で画面全体の見え方を確かめる場所
   - `Features/<feature>/…` — 画面固有の部品（`features/<name>/<screen>/ui/<part>/`）。以降のセグメントは実装のディレクトリと同じ形にする
 - **取得を行うもの（`page-content.tsx`）は story にしない。** story は取得の実体を持てないため、確かめられるのは合成した結果だけである。取得の検証は unit テストが持つ（[0091](../../docs/adr/0091-test-verification-methods.md)）

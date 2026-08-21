@@ -47,6 +47,7 @@ function productOf(overrides: Partial<Product> = {}): Product {
     category: { id: "c1", name: "コーヒー" },
     publishedAt: null,
     imagePaths: ["coffee-front.png"],
+    version: 1,
     ...overrides,
   };
 }

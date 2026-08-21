@@ -18,6 +18,7 @@ const validEnvironment = {
   AUTH_SCOPES: "openid profile",
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
+  NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: "4194304",
 } satisfies Record<keyof Environment, string>;
 
 function stubValidEnvironment(): void {
@@ -34,6 +35,10 @@ function stubValidEnvironment(): void {
   vi.stubEnv("AUTH_SCOPES", validEnvironment.AUTH_SCOPES);
   vi.stubEnv("AUTH_SESSION_SECRET", validEnvironment.AUTH_SESSION_SECRET);
   vi.stubEnv("NEXT_PUBLIC_HTTP_MAX_URL_BYTES", validEnvironment.NEXT_PUBLIC_HTTP_MAX_URL_BYTES);
+  vi.stubEnv(
+    "NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES",
+    validEnvironment.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES,
+  );
 }
 
 beforeEach(() => {
@@ -55,7 +60,11 @@ describe("getEnvironment", () => {
     const second = getEnvironment();
 
     expect(first).toBe(second);
-    expect(first).toEqual({ ...validEnvironment, NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000 });
+    expect(first).toEqual({
+      ...validEnvironment,
+      NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
+      NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
+    });
     expect(() => validateEnvironment()).not.toThrow();
   });
 });
@@ -90,6 +99,7 @@ describe("validateEnvironment", () => {
     });
     expect(getHttpConfig()).toMatchObject({
       maxUrlBytes: Number(validEnvironment.NEXT_PUBLIC_HTTP_MAX_URL_BYTES),
+      maxUploadBytes: Number(validEnvironment.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES),
     });
     expect(getMediaConfig()).toMatchObject({ origin: validEnvironment.MEDIA_ORIGIN });
     expect(getObservabilityConfig()).toMatchObject({

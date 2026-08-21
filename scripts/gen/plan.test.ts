@@ -73,6 +73,17 @@ describe("planGeneration", () => {
     expect(readme).toContain("test-requirement: feature");
   });
 
+  it("README が指す ADR への相対パスを、生成先の深さから組む", () => {
+    // 深さは種類ごとに違う。書き固めると、どれかの生成物でリンクが解決しなくなる。
+    const [feature] = planGeneration(inputOf());
+    const [component] = planGeneration(inputOf({ kind: "component" }));
+
+    expect(feature.path).toBe("src/features/product-detail/README.md");
+    expect(feature.content).toContain("(../../../docs/adr/0090-testing-strategy.md)");
+    expect(component.path).toBe("src/components/patterns/product-detail/README.md");
+    expect(component.content).toContain("(../../../../docs/adr/0090-testing-strategy.md)");
+  });
+
   it("実装とテストの describe に PascalCase の識別子を使う", () => {
     const files = planGeneration(inputOf());
 

@@ -34,6 +34,36 @@ export const AllActions: Story = {
 /** 操作を渡さない場合。確認だけの一覧になる。 */
 export const ReadOnly: Story = { args: { items: ITEMS } };
 
+/** 横の束。件数が増えても縦を取らない。縮小表示を上、操作を右上へ重ねる。 */
+export const Row: Story = {
+  args: {
+    items: [
+      {
+        description: "1.2 MB",
+        id: "1",
+        name: "cover.png",
+        preview: "/src/components/design-system/display/media-image/invertocat.png",
+      },
+      {
+        description: "0.9 MB",
+        id: "2",
+        name: "diagram-of-the-whole-system.png",
+        preview: "/src/components/design-system/display/media-image/invertocat.png",
+      },
+      { description: "0.4 MB", id: "3", name: "notes.png" },
+    ],
+    onMoveDown: () => {},
+    onMoveUp: () => {},
+    onRemove: () => {},
+    orientation: "row",
+  },
+};
+
+/** 並び順が意味を持つ場面。端の項目は、その先へ動かす操作を押せない。 */
+export const Reorderable: Story = {
+  args: { items: ITEMS, onMoveDown: () => {}, onMoveUp: () => {}, onRemove: () => {} },
+};
+
 /**
  * `state` 5 種。進行状況は `state` と文言の両方で示す。`state` だけでは支援技術へ伝わらない。
  * `uploading` / `processing` では再試行が spinner へ変わる。

@@ -32,3 +32,21 @@ export const STEPPER_STATE_LABEL: Readonly<Record<StepperState, string>> = {
   [STEPPER_STATE.CURRENT]: "現在の段階",
   [STEPPER_STATE.UPCOMING]: "未着手",
 };
+
+/**
+ * 現在地であり、かつ済ませてもいる段階を読み上げへ伝える語。
+ *
+ * @remarks
+ * 印は見た目では 1 つに畳まれますが、伝えるべき事実は 2 つあります。片方だけを読み上げると、
+ * 目で見える情報と食い違います。
+ */
+export const STEPPER_PASSED_CURRENT_LABEL = "現在の段階・完了";
+
+/** 段階の並べ方。 */
+export const STEPPER_ORIENTATION: Readonly<{ HORIZONTAL: "horizontal"; VERTICAL: "vertical" }> = {
+  HORIZONTAL: "horizontal",
+  VERTICAL: "vertical",
+};
+
+/** {@link STEPPER_ORIENTATION} のいずれか。 */
+export type StepperOrientation = (typeof STEPPER_ORIENTATION)[keyof typeof STEPPER_ORIENTATION];

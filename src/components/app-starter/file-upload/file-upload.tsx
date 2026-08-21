@@ -27,8 +27,22 @@ export type FileUploadProps = Omit<ComponentProps<"input">, "onSelect" | "type" 
   prompt?: string;
   /** 選ぶ操作の文言。 */
   triggerLabel?: string;
-  /** 選択された内容を伝える。受け付けたものだけが渡る。 */
+  /**
+   * 選択された内容を伝える。受け付けたものだけが渡る。
+   */
   onSelect?: (files: File[]) => void;
+  /**
+   * 渡し終えたら受け口を空へ戻すか。
+   *
+   * @remarks
+   * 選んだ内容の持ち主が呼び出し元にある場合に使います。受け口が自分の控えを持ち続けると、
+   * 呼び出し元が 1 件外しても受け口の表示は変わらず、同じファイルが 2 か所に食い違って
+   * 並びます。空へ戻せば持ち主は 1 つになります。
+   *
+   * 同じファイルを選び直せるようにもなります。`input` は値が変わらないと `change` を出さない
+   * ため、控えを残したままだと一度外したファイルを選び直せません。
+   */
+  resetOnSelect?: boolean;
   /** 受け付けなかったファイルと、その理由を伝える。 */
   onReject?: (rejections: FileUploadRejection[]) => void;
 };
@@ -138,6 +152,7 @@ export function FileUpload({
   onChange,
   onReject,
   onSelect,
+  resetOnSelect,
   pending = false,
   progress,
   prompt = "ここにドラッグ、またはクリックして選択",
@@ -162,7 +177,7 @@ export function FileUpload({
         (file) => !rejections.some((rejection) => rejection.file === file),
       );
 
-      setSelected(accepted);
+      setSelected(resetOnSelect === true ? [] : accepted);
       onSelect?.(accepted);
 
       if (rejections.length > 0) {
@@ -171,15 +186,20 @@ export function FileUpload({
 
       return accepted;
     },
-    [accept, maxSize, multiple, onReject, onSelect],
+    [accept, maxSize, multiple, onReject, onSelect, resetOnSelect],
   );
 
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       onChange?.(event);
       applySelection([...(event.target.files ?? [])]);
+
+      if (resetOnSelect === true) {
+        // 値を空へ戻さないと、同じファイルを選び直しても `change` が出ない。
+        event.target.value = "";
+      }
     },
-    [applySelection, onChange],
+    [applySelection, onChange, resetOnSelect],
   );
 
   const handleDragOver = useCallback(

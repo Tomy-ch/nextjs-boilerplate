@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCwIcon, RotateCcwIcon, XIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, RefreshCwIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -16,7 +16,8 @@ import { ATTACHMENT_STATE } from "@/components/app-starter/attachment/attachment
 import { cn } from "@/components/cn";
 import { Spinner } from "@/components/design-system/status/spinner/spinner";
 
-import type { UploadPreviewItem } from "./upload-preview.definition";
+import type { UploadPreviewItem, UploadPreviewOrientation } from "./upload-preview.definition";
+import { UPLOAD_PREVIEW_ORIENTATION } from "./upload-preview.definition";
 
 type ItemHandler = (id: string) => void;
 
@@ -27,12 +28,20 @@ function UploadPreviewRow({
   onRemove,
   onRetry,
   onReplace,
+  onMoveUp,
+  onMoveDown,
+  atStart,
+  atEnd,
 }: {
   item: UploadPreviewItem;
   pending: boolean;
   onRemove?: ItemHandler;
   onRetry?: ItemHandler;
   onReplace?: ItemHandler;
+  onMoveUp?: ItemHandler;
+  onMoveDown?: ItemHandler;
+  atStart: boolean;
+  atEnd: boolean;
 }) {
   const { preview } = item;
   const [objectUrl, setObjectUrl] = useState<string>();
@@ -53,21 +62,28 @@ function UploadPreviewRow({
 
   const inFlight =
     item.state === ATTACHMENT_STATE.UPLOADING || item.state === ATTACHMENT_STATE.PROCESSING;
+  // 再試行は失敗した件にだけ出す。成功した件へ出すと、押しても何も起きない操作が並ぶ。
+  const failed = item.state === ATTACHMENT_STATE.ERROR;
   const previewUrl = typeof preview === "string" ? preview : objectUrl;
+  const media =
+    previewUrl === undefined ? null : (
+      <AttachmentMedia>
+        {/* 表示用の URL は object URL にもなり、寸法も配信元も事前に判らないため next/image は使えない。 */}
+        {/* biome-ignore lint/performance/noImgElement: 選択直後のファイルは object URL でしか描画できない。 */}
+        <img alt="" className="size-full object-cover" src={previewUrl} />
+      </AttachmentMedia>
+    );
+
   const remove = useCallback(() => onRemove?.(item.id), [item.id, onRemove]);
   const retry = useCallback(() => onRetry?.(item.id), [item.id, onRetry]);
   const replace = useCallback(() => onReplace?.(item.id), [item.id, onReplace]);
+  const moveUp = useCallback(() => onMoveUp?.(item.id), [item.id, onMoveUp]);
+  const moveDown = useCallback(() => onMoveDown?.(item.id), [item.id, onMoveDown]);
 
   return (
     <li>
       <Attachment state={item.state}>
-        {previewUrl === undefined ? null : (
-          <AttachmentMedia>
-            {/* 表示用の URL は object URL にもなり、寸法も配信元も事前に判らないため next/image は使えない。 */}
-            {/* biome-ignore lint/performance/noImgElement: 選択直後のファイルは object URL でしか描画できない。 */}
-            <img alt="" className="size-full object-cover" src={previewUrl} />
-          </AttachmentMedia>
-        )}
+        {media}
         <AttachmentContent>
           <AttachmentTitle>{item.name}</AttachmentTitle>
           {item.description === undefined ? null : (
@@ -76,7 +92,27 @@ function UploadPreviewRow({
         </AttachmentContent>
         <AttachmentActions>
           {inFlight ? <Spinner className="size-4" /> : null}
-          {inFlight || onRetry === undefined ? null : (
+          {onMoveUp === undefined ? null : (
+            <AttachmentAction
+              aria-label={`${item.name} を前へ移動する`}
+              disabled={pending || atStart}
+              onClick={moveUp}
+              type="button"
+            >
+              <ArrowUpIcon aria-hidden="true" />
+            </AttachmentAction>
+          )}
+          {onMoveDown === undefined ? null : (
+            <AttachmentAction
+              aria-label={`${item.name} を後ろへ移動する`}
+              disabled={pending || atEnd}
+              onClick={moveDown}
+              type="button"
+            >
+              <ArrowDownIcon aria-hidden="true" />
+            </AttachmentAction>
+          )}
+          {failed && onRetry !== undefined ? (
             <AttachmentAction
               aria-label={`${item.name} を再試行する`}
               disabled={pending}
@@ -85,7 +121,7 @@ function UploadPreviewRow({
             >
               <RotateCcwIcon aria-hidden="true" />
             </AttachmentAction>
-          )}
+          ) : null}
           {onReplace === undefined ? null : (
             <AttachmentAction
               aria-label={`${item.name} を差し替える`}
@@ -153,6 +189,9 @@ function UploadPreviewRow({
  * @param props.onRetry - 再試行の操作を受け取る。省略すると button を出さない。
  * @param props.onReplace - 差し替えの操作を受け取る。ファイルを選び直す導線は呼び出し元が
  *   `FileUpload` で用意する。省略すると button を出さない。
+ * @param props.onMoveUp - 1 つ前へ動かす操作を受け取る。省略すると button を出さない。
+ * @param props.onMoveDown - 1 つ後ろへ動かす操作を受け取る。省略すると button を出さない。
+ * @param props.orientation - 並べ方。値は {@link UPLOAD_PREVIEW_ORIENTATION}。
  * @param props.label - 一覧のアクセシブルな名前。
  *
  * @see Storybook `Display/UploadPreview`
@@ -163,15 +202,21 @@ export function UploadPreview({
   onRemove,
   onRetry,
   onReplace,
+  onMoveUp,
+  onMoveDown,
+  orientation = UPLOAD_PREVIEW_ORIENTATION.LIST,
   label = "選択中のファイル",
   className,
   ...props
 }: Omit<ComponentProps<"ul">, "children"> & {
   items: readonly UploadPreviewItem[];
+  orientation?: UploadPreviewOrientation;
   pending?: boolean;
   onRemove?: ItemHandler;
   onRetry?: ItemHandler;
   onReplace?: ItemHandler;
+  onMoveUp?: ItemHandler;
+  onMoveDown?: ItemHandler;
   label?: string;
 }) {
   if (items.length === 0) {
@@ -181,14 +226,21 @@ export function UploadPreview({
   return (
     <ul
       aria-label={label}
-      className={cn("grid gap-2", className)}
+      className={cn(
+        orientation === UPLOAD_PREVIEW_ORIENTATION.ROW ? "flex flex-wrap gap-3" : "grid gap-2",
+        className,
+      )}
       data-slot="upload-preview"
       {...props}
     >
-      {items.map((item) => (
+      {items.map((item, index) => (
         <UploadPreviewRow
+          atEnd={index === items.length - 1}
+          atStart={index === 0}
           item={item}
           key={item.id}
+          onMoveDown={onMoveDown}
+          onMoveUp={onMoveUp}
           onRemove={onRemove}
           onReplace={onReplace}
           onRetry={onRetry}

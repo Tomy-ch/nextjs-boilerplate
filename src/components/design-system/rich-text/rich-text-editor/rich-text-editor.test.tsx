@@ -57,6 +57,33 @@ afterEach(() => {
 });
 
 describe("RichTextEditor", () => {
+  it("プレビューへ切り替えると、表示側と同じ形で読める", async () => {
+    render(<RichTextEditor label="説明文" defaultValue="<h2>見出し</h2>" onChange={noop} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "プレビュー" }));
+
+    expect(screen.getByRole("heading", { name: "見出し", level: 2 })).toBeInTheDocument();
+  });
+
+  it("プレビュー中は書式の操作を出さない", async () => {
+    render(<RichTextEditor label="説明文" onChange={noop} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "プレビュー" }));
+
+    expect(screen.queryByRole("button", { name: "リンク" })).not.toBeInTheDocument();
+  });
+
+  it("プレビューから戻ると書きかけが残っている", async () => {
+    render(<RichTextEditor label="説明文" defaultValue="<p>書きかけ</p>" onChange={noop} />);
+
+    const preview = await screen.findByRole("button", { name: "プレビュー" });
+
+    fireEvent.click(preview);
+    fireEvent.click(preview);
+
+    expect(screen.getByRole("textbox", { name: "説明文" })).toHaveTextContent("書きかけ");
+  });
+
   it("書式の toolbar と、名前を持つ編集面を描画する", () => {
     renderEditor();
 
@@ -486,6 +513,20 @@ describe("RichTextEditor", () => {
 
       editor.destroy();
     });
+  });
+
+  it("渡された id を編集面そのものへ与える", async () => {
+    const controlId = "profile-bio";
+
+    render(<RichTextEditor id={controlId} label="説明文" onChange={noop} />);
+
+    expect(await screen.findByRole("textbox", { name: "説明文" })).toHaveAttribute("id", controlId);
+  });
+
+  it("id を渡さなければ付けない。外から指す必要が無いため", async () => {
+    render(<RichTextEditor label="説明文" onChange={noop} />);
+
+    expect(await screen.findByRole("textbox", { name: "説明文" })).not.toHaveAttribute("id");
   });
 
   it("a11y 自動検査に違反しない", async () => {

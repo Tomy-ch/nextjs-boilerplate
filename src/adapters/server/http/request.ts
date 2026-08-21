@@ -29,6 +29,7 @@ type RequestPayload =
       /** 送信する本文。JSON として送る。 */
       body?: unknown;
       form?: never;
+      multipart?: never;
     }
   | {
       body?: never;
@@ -40,6 +41,20 @@ type RequestPayload =
        * （RFC 6749 §4.1.3）。JSON を受け付けない相手が実在するため、符号化の選択をこの境界が持ちます。
        */
       form?: Readonly<Record<string, string>>;
+      multipart?: never;
+    }
+  | {
+      body?: never;
+      form?: never;
+      /**
+       * 送信する本文。`multipart/form-data` として送る。
+       *
+       * @remarks
+       * ファイルを受け取る口が multipart しか持たない場合に使います（
+       * [0075](../../../../docs/adr/0075-file-upload-seam.md)）。JSON と違い、値がバイト列の
+       * ままで運べます。
+       */
+      multipart?: FormData;
     };
 
 /** 呼び出し 1 件の指定。 */
@@ -157,7 +172,13 @@ async function readBody(response: Response): Promise<unknown> {
 /** 指定された本文を、送出できる形と Content-Type の組へ変換する。本文が無ければ undefined。 */
 function encodePayload(
   spec: RequestPayload,
-): { headers: Record<string, string>; body: string } | undefined {
+): { headers: Record<string, string>; body: BodyInit } | undefined {
+  if (spec.multipart !== undefined) {
+    // Content-Type を組みません。multipart は各部を区切る境界文字列を header に含める必要があり、
+    // その値を決めるのは本文を直列化する runtime です。手で付けると本文の境界と食い違います。
+    return { headers: {}, body: spec.multipart };
+  }
+
   if (spec.form !== undefined) {
     return {
       headers: { "Content-Type": FORM_CONTENT_TYPE },

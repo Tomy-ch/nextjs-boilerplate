@@ -4,10 +4,9 @@ import {
   SelectNative,
   SelectNativeOption,
 } from "@/components/design-system/form/select-native/select-native";
+import { fieldControlAttributes } from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
 import type { Prefecture } from "@/model/user/user";
-
-import { fieldControlAttributes } from "../../field-attributes";
 import type { ProfileFieldProps } from "../../use-profile-fields";
 
 type PrefectureFieldProps = ProfileFieldProps & {

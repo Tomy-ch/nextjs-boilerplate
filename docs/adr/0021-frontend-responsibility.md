@@ -22,8 +22,8 @@ AGENTS.md の `[TODO] Frontend Responsibility Separation` が敷いていた暫�
 
 | カーネル | 系統 | 責務 | 受け入れないもの |
 | --- | --- | --- | --- |
-| `app` | スライス | driving adapter。**3 element**(`route-segment`=page/layout→features / `route-handler`=`route.ts`→adapters/server / `metadata`=robots等→config。[0025](0025-app-layer-elements.md))。`layout` は横断 UI/Provider を薄く mount 可([0026](0026-layout-shell-mount.md)) | 業務ロジック / 編成 / (route-segment の)直接 fetch |
-| `features/<name>` | スライス | 画面ユースケース(データ取得の編成 / 複数 API 集約 / フォーム送信フロー / 楽観更新)+ スライス専用 UI / hooks / Server Action。hook + UI の合成点。内部はフラット共置 | 他 feature への依存(下記昇格ルール) |
+| `app` | スライス | driving adapter。**4 element**(`route-segment`=page/layout→features / `route-handler`=`route.ts`→adapters/server / `server-action`=`actions.ts`→adapters/server+features / `metadata`=robots等→config。[0025](0025-app-layer-elements.md))。`layout` は横断 UI/Provider を薄く mount 可([0026](0026-layout-shell-mount.md)) | 業務ロジック / 編成 / (route-segment の)直接 fetch |
+| `features/<name>` | スライス | 画面ユースケース(データ取得の編成 / 複数 API 集約 / フォーム送信フロー / 楽観更新)+ スライス専用 UI / hooks / Server Action(主体の断言を要さないもの)。hook + UI の合成点。内部はフラット共置 | 他 feature への依存(下記昇格ルール) |
 | `model` | カーネル | 表示用 ValueObject / フォーマッタ / 単位変換 / 表示バリデーション規則 / **表示結果型(`ActionState<T>` 等)**。純粋・依存最小 | **ビジネスルール**(バックエンド責務)/ fetch / config |
 | `components` | カーネル | 横断 UI(デザインシステム的な純 UI コンポーネント)。トースト等の UI 状態は持てる | fetch / config / 業務状態 / `capabilities` ・ `stores` の import |
 | `adapters` | カーネル | 外部接続のみ(backend API client / BFF fetch / analytics 等)。**server / client の 2 element**([0024](0024-adapters-server-client-split.md)。server = config 可・secret / client = `"use client"`・secret 不可)。生成型・外部型を内層へ漏らさない変換の所有境界 | 業務ロジック / UI / local ブラウザ API(→ `capabilities`) |
@@ -42,6 +42,7 @@ AGENTS.md の `[TODO] Frontend Responsibility Separation` が敷いていた暫�
 | --- | --- |
 | `app/route-segment`(page/layout。[0025](0025-app-layer-elements.md)) | `features`(+ `layout` は横断 UI/Provider を `components`/`capabilities`/ポリシー seam から薄く mount 可。[0026](0026-layout-shell-mount.md)) |
 | `app/route-handler`(`route.ts`) | `adapters/server` / `errors` / `logging`(thin proxy・業務ロジック禁止) |
+| `app/server-action`(`actions.ts`。[0025](0025-app-layer-elements.md)) | `adapters/server` / `features` / `model` / `errors` / `logging`(**主体の断言をここで行う**・業務ロジック禁止) |
 | `app/metadata`(robots等) | `config` / `model`(起動 / ビルド境界例外) |
 | `features` | `model` / `components` / `adapters`(公開面のみ)/ **`capabilities`** / **`stores`** / `errors` / `logging` |
 | `adapters/server`([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / **`config`(= `server config` の唯一の許可層 — A7 整合)**。`server-only` |
@@ -161,8 +162,15 @@ go `pkg/README.md` の Policy(下記 1〜3)を翻案し、表示層ロール定�
 
 ## Server Action の置き場
 
-Server Action は **feature 内 `actions.ts`**(controller 相当)に置く。
+Server Action は `actions.ts`(controller 相当)に置く。**どこの `actions.ts` かは、主体の断言が要るかで決まる**([0025](0025-app-layer-elements.md) の element 表が正)。
 
+| 主体の断言 | 置き場 | element |
+| --- | --- | --- |
+| 要る | `src/app/**/actions.ts` | `app/server-action` |
+| 要らない | `features/<name>/<screen>/actions.ts` | `features` |
+
+- **Server Action は公開 HTTP 口である**。action id を知る者は、その action を描いていない route へも POST できる。したがって役割・所有の判定を「この画面は保護されているから」で代替せず、**action の内側で断言する**
+- 断言に要る `adapters/server/auth` へ触れてよいのは `app` と `adapters` だけなので、断言を持つ action は `features` に住めない。置き場が 2 つに分かれるのはこの依存マトリクスの帰結であって、例外規定ではない
 - driving adapter として扱い、**編成のみ**を行う(feature の編成関数 / server 関数を呼ぶ)。**業務ロジックは書かない**([0011](0011-no-docker.md) の thin proxy 決定と接続)
 - `"use client"` は feature 内の葉コンポーネントへ押し下げ、`page.tsx` は Server Component の薄い呼び口に留める(A4 と接続)
 
@@ -171,7 +179,7 @@ Server Action は **feature 内 `actions.ts`**(controller 相当)に置く。
 層の依存方向は文書だけで守らず、ESLint boundaries 相当のプラグインで機械強制する。強制手段の全体方針は [0002](0002-formatter-linter.md)「ESLint による補完」節に接続する(フォーマットと biome が表現できる検査は biome、「import する側の層」を文脈に取る境界検査のみ ESLint で補完)。
 
 - **プラグイン選定(本 ADR で確定)**: 層境界検査には **`eslint-plugin-boundaries`** を採用する([0002](0002-formatter-linter.md) が「具体プラグインの選定と層定義マッピングは A3 の Enforcement 節で定める」としている、その確定をここで行う)。「import する側の層」を element として文脈に取れるのが選定理由で、biome の `noRestrictedImports` では表現できない検査だからである(0002 の能力ベース分担に合致)
-- **層定義マッピング(本 ADR で確定)**: 上記「依存マトリクス」がそのまま element(層 = カーネル / feature 単位)+ allowed-import ルールの定義である。11 カーネルを element とし(`app` は route-segment / route-handler / metadata の 3 element、`adapters` は server / client の 2 element に細分。[0025](0025-app-layer-elements.md) / [0024](0024-adapters-server-client-split.md))、`features` は feature 単位の element として `features ↔ features` を禁止する。`server config`(runtime config object)を import してよい element は `adapters/server` と起動 / ビルド境界(`instrumentation.ts` / `next.config.ts` / `app/metadata` / `proxy.ts`〈Edge 互換 config スライス。[0043](0043-middleware-policy.md)〉)のみ(client config の NEXT_PUBLIC リテラルは client 側も可)。server-only(`adapters/server`)と use-client(`adapters/client` / `capabilities` / `stores`)も element 属性で分ける
+- **層定義マッピング(本 ADR で確定)**: 上記「依存マトリクス」がそのまま element(層 = カーネル / feature 単位)+ allowed-import ルールの定義である。11 カーネルを element とし(`app` は route-segment / route-handler / server-action / metadata の 4 element、`adapters` は server / client の 2 element に細分。[0025](0025-app-layer-elements.md) / [0024](0024-adapters-server-client-split.md))、`features` は feature 単位の element として `features ↔ features` を禁止する。`server config`(runtime config object)を import してよい element は `adapters/server` と起動 / ビルド境界(`instrumentation.ts` / `next.config.ts` / `app/metadata` / `proxy.ts`〈Edge 互換 config スライス。[0043](0043-middleware-policy.md)〉)のみ(client config の NEXT_PUBLIC リテラルは client 側も可)。server-only(`adapters/server`)と use-client(`adapters/client` / `capabilities` / `stores`)も element 属性で分ける
 - **violation severity**: 境界違反は CI(`pnpm lint:ci`)でブロック(error)とする
 - **マトリクスの正(本 ADR で確定)**: 依存マトリクスの機械可読な表現は **`architecture.ts` 1 箇所**に置く。ESLint はそれを import して強制へ変換し、層 README の frontmatter は人間向けの同内容を持つため**機械的な突合で守る**(食い違えば `lint:ci` が落ちる)。宣言を 2 箇所へ書き写すと、片方だけ直したコミットが咎められずに通る
 - **静的強制 vs 意味的監査の分担**: 静的な層境界強制は ESLint、意味的な層責務の監査は GB-1(arch-check スキル)が担う

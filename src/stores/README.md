@@ -16,8 +16,13 @@ test-requirement: unit
 
 - server state、単一 feature の状態、UI マークアップ、secret、業務ロジック
 
-<!-- sample:begin -->
 ## モジュール
+
+| モジュール | 役割 |
+| --- | --- |
+
+<!-- sample:begin -->
+同梱のサンプルが加えるもの:
 
 | モジュール | 役割 |
 | --- | --- |

@@ -60,6 +60,8 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/admin` | [`screen`](route/admin/page.screen.md) / [`function`](route/admin/page.function.md) |
 | `/admin/analytics` | [`screen`](route/admin/analytics/page.screen.md) / [`function`](route/admin/analytics/page.function.md) |
 | `/admin/products` | [`screen`](route/admin/products/page.screen.md) / [`function`](route/admin/products/page.function.md) |
+| `/admin/products/new` | [`screen`](route/admin/products/new/page.screen.md) / [`function`](route/admin/products/new/page.function.md) |
+| `/admin/products/[id]/edit` | [`screen`](<route/admin/products/[id]/edit/page.screen.md>) / [`function`](<route/admin/products/[id]/edit/page.function.md>) |
 | `/dev/session` | [`screen`](route/dev/session/page.screen.md) / [`function`](route/dev/session/page.function.md) |
 
 **この目録は「書いた画面の一覧」であって、画面の一覧ではありません。**実装済みの画面は

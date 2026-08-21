@@ -24,6 +24,7 @@ const VALID_ENVIRONMENT = {
   AUTH_SCOPES: "openid profile",
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
+  NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: "4194304",
 } satisfies Record<keyof Environment, string>;
 
 /** 検証を通る環境変数一式を stub する。 */
@@ -32,3 +33,31 @@ export function stubValidEnvironment(): void {
     vi.stubEnv(name, value);
   }
 }
+
+/**
+ * 検証を通ったあとの環境変数一式。
+ *
+ * @remarks
+ * `getEnvironment` を差し替えるテストが必要とするのはこちらです。**{@link stubValidEnvironment} の
+ * 生の値を parse した結果ではありません。**あちらは受理される形を敢えて散らして検証そのものを
+ * 確かめる値で、こちらは観測が信号を出さないよう exporter を落とした値です。
+ *
+ * **境界のテストが自分で組み立てないための 1 か所です。**全 purpose の変数を揃える必要があり、
+ * 各テストが literal を持つと、変数を 1 つ足すたびに同じ追記がテストの数だけ要ります。
+ */
+export const PARSED_ENVIRONMENT: Environment = {
+  APP_API_BASE_URL: "https://api.example.test",
+  APP_API_MODE: "mock",
+  MEDIA_ORIGIN: "https://media.example.test",
+  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.test/v1/traces",
+  OBS_TRACES_EXPORTER: "none",
+  OBS_METRICS_EXPORTER: "none",
+  OBS_LOGS_EXPORTER: "none",
+  AUTH_ISSUER: "https://id.example.test",
+  AUTH_CLIENT_ID: "nextjs-boilerplate",
+  AUTH_REDIRECT_URI: "https://app.example.test/auth/callback",
+  AUTH_SCOPES: "openid profile",
+  AUTH_SESSION_SECRET: "01234567890123456789012345678901",
+  NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
+  NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
+};

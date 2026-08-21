@@ -26,14 +26,23 @@ import { CartActionError } from "../action-error/action-error";
 const CONFIRM_LABEL = "カートを空にする";
 const PENDING_LABEL = "空にしています…";
 
-/** 確認 dialog の中の実行ボタン。送信中は押せなくする。 */
+/**
+ * 確認 dialog の中の実行ボタン。
+ *
+ * @remarks
+ * 送信中の見せ方は `Button`（`pending`）が持ちます。
+ */
 function ClearSubmit() {
   const { pending } = useFormStatus();
-  const label = pending ? PENDING_LABEL : CONFIRM_LABEL;
 
   return (
-    <Button disabled={pending} type="submit" variant={BUTTON_VARIANT.DESTRUCTIVE}>
-      {label}
+    <Button
+      pending={pending}
+      pendingLabel={PENDING_LABEL}
+      type="submit"
+      variant={BUTTON_VARIANT.DESTRUCTIVE}
+    >
+      {CONFIRM_LABEL}
     </Button>
   );
 }

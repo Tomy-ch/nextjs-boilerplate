@@ -81,7 +81,14 @@ describe("actionStateFromError", () => {
       status: "error",
       formError: "現在の状態ではこの操作を実行できません。",
       fieldErrors: undefined,
+      kind: ErrorKind.CONFLICT,
     });
+  });
+
+  it("何が起きたかの分類も載せる。画面が文言ではなく分類で出し分けるため", () => {
+    const state = actionStateFromError(createAppError(ErrorKind.CONFLICT));
+
+    expect(state.status === "error" && state.kind).toBe(ErrorKind.CONFLICT);
   });
 
   it("分類が cause の先にあっても辿って文言を決める", () => {
@@ -100,6 +107,7 @@ describe("actionStateFromError", () => {
       status: "error",
       formError: "問題が発生しました。時間をおいて再試行してください。",
       fieldErrors: undefined,
+      kind: ErrorKind.INTERNAL,
     });
   });
 
