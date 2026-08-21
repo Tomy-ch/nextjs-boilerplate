@@ -57,6 +57,7 @@ describe("POST", () => {
 
     const response = await POST(logout());
 
+    expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe("http://localhost:3000/");
   });
 });

@@ -298,18 +298,36 @@ describe("createDefaultSessionResolver", () => {
     const { resolver, complete } = await startSignIn();
     const record = await complete();
 
-    const destination = new URL((await resolver.endSession(record)) ?? "");
+    const sent = await resolver.endSession(record);
+
+    expect(sent).not.toBeNull();
+
+    const destination = new URL(sent ?? "");
 
     expect(`${destination.origin}${destination.pathname}`).toBe(`${issuer}/oidc/logout`);
     expect(destination.searchParams.get("id_token_hint")).toBe(record.idToken);
     expect(destination.searchParams.get("client_id")).toBe(clientId);
   });
 
+  it("ログアウトの送り先に Access Token を載せない", async () => {
+    const { resolver, complete } = await startSignIn();
+    const record = await complete();
+
+    const sent = await resolver.endSession(record);
+
+    expect(sent).not.toBeNull();
+    expect(sent).not.toContain(record.accessToken);
+  });
+
   it("ログアウト後の戻り先を callback と同じ origin から導く", async () => {
     const { resolver, complete } = await startSignIn();
     const record = await complete();
 
-    const destination = new URL((await resolver.endSession(record)) ?? "");
+    const sent = await resolver.endSession(record);
+
+    expect(sent).not.toBeNull();
+
+    const destination = new URL(sent ?? "");
 
     expect(destination.searchParams.get("post_logout_redirect_uri")).toBe(
       new URL("/", redirectUri).toString(),
@@ -436,6 +454,18 @@ describe("createDefaultSessionResolver", () => {
     const { complete } = await startSignIn({ expiresIn: undefined, withIdTokenExpiry: false });
 
     expect(await kindOf(complete)).toBe(ErrorKind.UNAUTHENTICATED);
+  });
+
+  it("Discovery を引けなければログアウトの送り先も組み立てない", async () => {
+    const resolver = createResolver(vi.fn<typeof fetch>(async () => json({}, 503)));
+
+    await expect(
+      resolver.endSession({
+        session: { userId: "user-1", role: SESSION_ROLE.user, expiresAt: new Date(nowMs) },
+        accessToken: "access-token",
+        idToken: "id-token",
+      }),
+    ).rejects.toThrow();
   });
 
   it("Discovery に失敗しても次の呼び出しで取り直す", async () => {

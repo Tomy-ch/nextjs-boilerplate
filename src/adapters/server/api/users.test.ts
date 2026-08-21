@@ -329,6 +329,15 @@ describe("withdrawMe", () => {
     await expect(withdrawMe()).resolves.toBe("https://idp.example.test/oidc/logout");
   });
 
+  it("終わらせる口を持たない IdP なら、送り先を返さず記録も残さない", async () => {
+    serveJson(ME_URL, wireUser);
+    serveStatus("delete", USER_URL, 204);
+    signOut.mockResolvedValue(null);
+
+    await expect(withdrawMe()).resolves.toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   // ----- 異常系 -----
   it("送り先を組み立てられなくても退会は成立として返し、記録を残す", async () => {
     serveJson(ME_URL, wireUser);
