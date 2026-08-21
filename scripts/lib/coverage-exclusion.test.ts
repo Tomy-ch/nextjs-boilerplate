@@ -91,6 +91,17 @@ describe("findExclusionDrift", () => {
     ]);
   });
 
+  it("除外を 1 つも持たなくなったディレクトリの記録も挙げる", () => {
+    // 所有者は最も近い README（`src/app`）で、`src` は除外を 1 つも持たない。それでも記録が
+    // 残っていれば、README は在りもしない穴を告げ続ける。
+    const read = readerOf({ "src/app": "# app", src: recording("src/old.ts") });
+
+    expect(findExclusionDrift(["src/app/fonts.ts"], read)).toEqual([
+      { directory: "src", missing: [], extra: ["src/old.ts"] },
+      { directory: "src/app", missing: ["src/app/fonts.ts"], extra: [] },
+    ]);
+  });
+
   it("所有 README を持たない除外をまとめて挙げる", () => {
     expect(findExclusionDrift(["src/app/fonts.ts"], readerOf({}))).toEqual([
       { directory: UNOWNED, missing: ["src/app/fonts.ts"], extra: [] },
