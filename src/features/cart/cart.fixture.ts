@@ -5,11 +5,11 @@ import { toProductId } from "@/model/product/product";
  * 絵の要る明細が指す画像。
  *
  * @remarks
- * カタログが配る同梱の画像です。実物の URL は配信元の設定から組み立てられるため、手元のカタログ
- * からは引けません。**画像を持つ明細と持たない明細を混ぜてある**のは、代替画像へ倒れた行と並んだ
- * ときの見え方が、この画面で確かめたいものだからです。
+ * カタログが配る資材です（`.storybook/public/README.md`）。実物の URL は配信元の設定から
+ * 組み立てられるため、手元のカタログからは引けません。**画像を持つ明細と持たない明細を混ぜてある**
+ * のは、代替画像へ倒れた行と並んだときの見え方が、この画面で確かめたいものだからです。
  */
-const SAMPLE_IMAGE_URL = "/src/components/design-system/display/media-image/invertocat.png";
+const SAMPLE_IMAGE_URL = "/sample-product.svg";
 
 /** 事情の無い明細。数量も在庫も足りている。 */
 export const EARPHONE_LINE = {
