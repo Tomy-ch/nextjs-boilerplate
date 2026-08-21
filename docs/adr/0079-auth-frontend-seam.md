@@ -39,7 +39,7 @@ Accepted
 Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 
 - **optimistic(楽観)層 = `proxy.ts`**(optional・[0043](0043-middleware-policy.md))— cookie の session のみを読み、権限ベースの **リダイレクト / UI 出し分け**に使う。**DB / データ源参照は禁止**(Proxy は prefetch 含む全 route で走るため。cookie 読みは `req.cookies.get(...)` に留める)。**唯一の防御線にしない**。Node.js runtime([0043](0043-middleware-policy.md))。
-- **確定認可層 = Data Access Layer(DAL)**— session を検証する `verifySession()` を **`adapters/server`**([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md))に置き、**React `cache()` で 1 render pass 内を memo 化**する。データ取得 / Server Action / Route Handler は必ずこの `verifySession()` を通してから進む。「security checks はデータ源に最も近い所で行う」= **確定認可の本丸はデータ境界**([0070](0070-backend-role-separation.md) / [0043](0043-middleware-policy.md) と一貫)。
+- **確定認可層 = Data Access Layer(DAL)**— session を検証する `verifySession()` を **`adapters/server`**([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md))に置き、**React `cache()` で 1 render pass 内を memo 化**する。app 層の入口(route-segment / Route Handler / Server Action)は必ずこの `verifySession()` を通してから feature へ進む。「security checks はデータ源に最も近い所で行う」= **確定認可の本丸はデータ境界**([0070](0070-backend-role-separation.md) / [0043](0043-middleware-policy.md) と一貫)。
 - **カーネル座標の導出**(べき論): `verifySession()` は session cookie(`server-only`)と secret を扱う **remote/runtime 境界 = `adapters/server`** に属する(secret を持てる唯一の実行層 = `adapters/server`。[0021](0021-frontend-responsibility.md) 依存マトリクス / [0024](0024-adapters-server-client-split.md))。DAL を `adapters/server` に置くことで「session verify は境界アダプタが所有し、内側の層(`model` / feature 純粋ロジック)は session を知らない」が保たれる(型漏洩禁止・[0020](0020-adopted-architecture.md))。
 - **vendor-independent 正当性材料**(0010 §2 必須):
   - **データ境界での確定認可 = 多層防御(defense in depth)** — Proxy(edge/入口)の楽観チェックは最適化配置(CDN)や prefetch の都合で信頼の単一点にできないため、検査を **データ源直近**に置いて最終防御線とする。これは「認可はリソースアクセス直前に行う」という web セキュリティ一般原則であり、Next.js を正当化から抜いても成立する(0010 運用テスト: Yes)。
@@ -52,8 +52,10 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 
 ### 4. 保護ルートの表現 / チェックの各所配置
 
-- 保護は **各所でチェック**する(layout / page / leaf / Server Actions / Route Handlers)。`proxy.ts` の optimistic リダイレクトは入口の pre-filter に過ぎず、各データアクセス点で `verifySession()`(DAL)を通すことを既定とする。
-- app(route / page)は **thin driving adapter** のまま([0040](0040-routing-rendering-strategy.md) / [0021](0021-frontend-responsibility.md))。保護のための編成(verifySession 呼び出し → 分岐 → feature 呼び出し)は **feature の server 関数 / RSC**([0021](0021-frontend-responsibility.md))が行い、`page.tsx` に認可ロジックを直書きしない。
+- 保護は **入口ごとにチェック**する(`layout.tsx` / `page.tsx` / `route.ts` / `actions.ts`)。`proxy.ts` の optimistic リダイレクトは入口の pre-filter に過ぎず、app 層の各入口で `verifySession()`(DAL)を通すことを既定とする。Server Action は route を経由せずに呼べる独立した入口なので、画面が保護されていることを理由に断言を省かない([0021](0021-frontend-responsibility.md)「Server Action の置き場」)。
+- **session に基づく保護の編成は app 層が行う。** `verifySession()` を呼び、結果で分岐し、リダイレクトするか feature を呼ぶ —— これは driving adapter の合成であって業務ロジックではない([0040](0040-routing-rendering-strategy.md) / [0021](0021-frontend-responsibility.md))。`features` がこれを持てないのは、DAL を含む `adapters/server/auth` へ触れてよいのが `app` と `adapters` だけだからで(`architecture.ts` の `adapters-auth`)、依存マトリクスの帰結であって例外規定ではない([0021](0021-frontend-responsibility.md))。
+- **バックエンドが返す資格による分岐は feature が持ってよい。** 「登録を済ませているか」のような業務上の資格は、`adapters/server` の API 経由で得る通常のデータであり、session の封緘には触れない。この種の入口ガードを feature に 1 つ置けば、同じ判定を画面ごとに書き写さずに済む([0070](0070-backend-role-separation.md) — 資格の規則を持つのはバックエンド)。
+- **判定の述語は `model` が持つ。** 「この session が役割を満たすか」は session を入力に取る純粋な判定であり、app 層にも feature にも書かない。前捌き(`proxy.ts`)と確定認可が同じ述語を引くことで、2 層の判定がずれない。
 - **静的ルートの注意**: build 時に取得され全ユーザで共有される静的 route は DAL(request 時検証)が効かないため、その保護は `proxy.ts`(optimistic)側で行う(Next.js ガイド注記)。
 
 ### 5. 未認証リダイレクト / `returnUrl` / ログアウト時の状態破棄
@@ -98,7 +100,8 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 - ❌ `proxy.ts` を確定認可の主機構・唯一の防御線にすること / Proxy 内で DB・データ源を参照すること(optimistic・cookie 読みのみ。[0043](0043-middleware-policy.md))
 - ❌ 確定認可(`verifySession()` / DAL)を `adapters/server` 以外に置くこと / session・secret を内側の層(`model` / feature 純粋ロジック / client)へ漏らすこと([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md) / [0020](0020-adopted-architecture.md))
 - ❌ cookie payload に PII・機微情報を載せること / user オブジェクト全体を DTO なしで client へ渡すこと
-- ❌ `page.tsx` / `layout.tsx` に認可の編成ロジックを直書きすること(thin driving adapter。編成は feature。[0040](0040-routing-rendering-strategy.md))
+- ❌ 認可の**判定規則**(どの役割が何を満たすか)を app 層 / `features` / `proxy.ts` へ直書きすること(述語は `model`。app が持つのは編成のみ。§4)
+- ❌ `features` から `adapters/server/auth`(DAL / session)を import すること(依存マトリクスの帰結。[0021](0021-frontend-responsibility.md) / `architecture.ts` の `adapters-auth`)
 - ❌ `returnUrl` を検証せず外部 URL へリダイレクトすること(open redirect。同一 origin 相対パスに限定)
 - ❌ 未認証時の識別子をブラウザから読める形(localStorage / 非 httpOnly cookie)で持つこと / session cookie の payload へ混ぜること(§7)
 - ❌ 引き継ぎを callback 以外(`proxy.ts` / 画面 / 複数の起点)から起こすこと / 引き継ぎの失敗でログインを失敗させること(§7)
