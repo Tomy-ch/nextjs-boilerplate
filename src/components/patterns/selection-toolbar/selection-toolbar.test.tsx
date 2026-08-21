@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -29,24 +30,24 @@ describe("SelectAllCheckbox", () => {
     );
   });
 
-  it("一部選択から押すと全選択になる", () => {
+  it("一部選択から押すと全選択になる", async () => {
     const onSelectAllChange = vi.fn();
     render(
       <SelectAllCheckbox onSelectAllChange={onSelectAllChange} selectedCount={1} totalCount={3} />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "すべて選択" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "すべて選択" }));
 
     expect(onSelectAllChange).toHaveBeenCalledWith(true);
   });
 
-  it("全選択から押すとすべて外す", () => {
+  it("全選択から押すとすべて外す", async () => {
     const onSelectAllChange = vi.fn();
     render(
       <SelectAllCheckbox onSelectAllChange={onSelectAllChange} selectedCount={3} totalCount={3} />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "すべて選択" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "すべて選択" }));
 
     expect(onSelectAllChange).toHaveBeenCalledWith(false);
   });
@@ -121,11 +122,11 @@ describe("SelectionToolbar", () => {
     expect(within(actions).getByRole("button", { name: "削除" })).toBeInTheDocument();
   });
 
-  it("選択の解除を渡すと解除操作を並べる", () => {
+  it("選択の解除を渡すと解除操作を並べる", async () => {
     const onClearSelection = vi.fn();
     render(<SelectionToolbar onClearSelection={onClearSelection} selectedCount={3} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "選択を解除" }));
+    await userEvent.click(screen.getByRole("button", { name: "選択を解除" }));
 
     expect(onClearSelection).toHaveBeenCalledOnce();
   });

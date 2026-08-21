@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useCallback, useRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -13,17 +14,17 @@ function setDocumentHidden(hidden: boolean) {
 }
 
 describe("Toaster", () => {
-  it("通知を表示し、dismiss を呼び出す", () => {
+  it("通知を表示し、dismiss を呼び出す", async () => {
     const onDismiss = vi.fn();
     render(<Toaster onDismiss={onDismiss} toasts={[{ id: "1", title: "保存しました" }]} />);
-    fireEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
+    await userEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
     expect(onDismiss).toHaveBeenCalledWith("1");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("queue から外れた通知は、同じ id で再び出せる", () => {
+  it("queue から外れた通知は、同じ id で再び出せる", async () => {
     const { rerender } = render(<Toaster toasts={[{ id: "1", title: "保存に失敗しました" }]} />);
-    fireEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
+    await userEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
 
     rerender(<Toaster toasts={[]} />);
     rerender(<Toaster toasts={[{ id: "1", title: "保存に失敗しました" }]} />);
@@ -62,7 +63,7 @@ describe("Toaster", () => {
     expect(screen.queryByText("三件目")).not.toBeInTheDocument();
   });
 
-  it("上限を超えた通知は、表示中の通知が閉じると現れる", () => {
+  it("上限を超えた通知は、表示中の通知が閉じると現れる", async () => {
     render(
       <Toaster
         toasts={[
@@ -73,12 +74,12 @@ describe("Toaster", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
+    await userEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
 
     expect(screen.getByText("二件目")).toBeInTheDocument();
   });
 
-  it("action を選ぶと処理を実行して通知を閉じる", () => {
+  it("action を選ぶと処理を実行して通知を閉じる", async () => {
     const onClick = vi.fn();
     const onDismiss = vi.fn();
     render(
@@ -88,7 +89,7 @@ describe("Toaster", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "元に戻す" }));
+    await userEvent.click(screen.getByRole("button", { name: "元に戻す" }));
 
     expect(onClick).toHaveBeenCalledOnce();
     expect(onDismiss).toHaveBeenCalledWith("1");
@@ -140,33 +141,33 @@ describe("Toaster", () => {
     expect(region).toContainElement(screen.getByRole("status"));
   });
 
-  it("hotkey を押すと通知の領域へ focus を移す", () => {
+  it("hotkey を押すと通知の領域へ focus を移す", async () => {
     render(<Toaster toasts={[{ id: "1", title: "保存しました" }]} />);
 
     const region = screen.getByRole("region", { name: "通知" });
 
     expect(region).not.toHaveFocus();
 
-    fireEvent.keyDown(window, { altKey: true, code: "KeyT" });
+    await userEvent.keyboard("{Alt>}t{/Alt}");
 
     expect(region).toHaveFocus();
   });
 
-  it("修飾キーやキーが合わない打鍵では focus を奪わない", () => {
+  it("修飾キーやキーが合わない打鍵では focus を奪わない", async () => {
     render(<Toaster toasts={[{ id: "1", title: "保存しました" }]} />);
 
     const region = screen.getByRole("region", { name: "通知" });
 
-    fireEvent.keyDown(window, { code: "KeyT" });
-    fireEvent.keyDown(window, { altKey: true, code: "KeyS" });
-    fireEvent.keyDown(window, { altKey: true, code: "KeyT", ctrlKey: true });
-    fireEvent.keyDown(window, { altKey: true, code: "KeyT", metaKey: true });
-    fireEvent.keyDown(window, { altKey: true, code: "KeyT", shiftKey: true });
+    await userEvent.keyboard("t");
+    await userEvent.keyboard("{Alt>}s{/Alt}");
+    await userEvent.keyboard("{Control>}{Alt>}t{/Alt}{/Control}");
+    await userEvent.keyboard("{Meta>}{Alt>}t{/Alt}{/Meta}");
+    await userEvent.keyboard("{Shift>}{Alt>}t{/Alt}{/Shift}");
 
     expect(region).not.toHaveFocus();
   });
 
-  it("既定では畳んで重ね、hover すると展開する", () => {
+  it("既定では畳んで重ね、hover すると展開する", async () => {
     render(
       <Toaster
         toasts={[
@@ -181,11 +182,11 @@ describe("Toaster", () => {
 
     expect(items()[1]?.style.transform).not.toBe("");
 
-    fireEvent.pointerOver(region);
+    await userEvent.hover(region);
 
     expect(items()[1]?.style.transform).toBe("");
 
-    fireEvent.pointerOut(region);
+    await userEvent.unhover(region);
 
     expect(items()[1]?.style.transform).not.toBe("");
   });
@@ -224,6 +225,8 @@ describe("Toaster", () => {
 
     const item = screen.getByRole("status");
 
+    // **払いのけは `user-event` の範囲外です。**ドラッグは扱う対象に含まれず、押した点からの
+    // 移動量を伴う一連の入力を組み立てる手段がありません。
     fireEvent.pointerDown(item, { button: 0, clientX: 0, clientY: 0 });
     fireEvent.pointerMove(item, { clientX: -120, clientY: 0 });
     fireEvent.pointerUp(item);
@@ -420,7 +423,7 @@ describe("Toaster", () => {
       expect(onDismiss).toHaveBeenCalledWith("1");
     });
 
-    it("hover している間は残り時間を減らさず、外れると再開する", () => {
+    it("hover している間は残り時間を減らさず、外れると再開する", async () => {
       const onDismiss = vi.fn();
       render(
         <Toaster
@@ -431,6 +434,8 @@ describe("Toaster", () => {
 
       const region = screen.getByRole("region", { name: "通知" });
 
+      // **この describe は偽の時計の下にあります。**`user-event` は入力の再現に自前の
+      // 待ち合わせを挟むため、その下では止まったままになります。
       fireEvent.pointerOver(region);
       act(() => {
         vi.advanceTimersByTime(5000);
@@ -583,7 +588,7 @@ function UpdateTrigger() {
 }
 
 describe("ToastProvider", () => {
-  it("配下から呼ぶだけで通知を表示する", () => {
+  it("配下から呼ぶだけで通知を表示する", async () => {
     render(
       <ToastProvider>
         <ToastTrigger />
@@ -592,38 +597,38 @@ describe("ToastProvider", () => {
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
 
     expect(screen.getByRole("status")).toHaveTextContent("保存しました");
   });
 
-  it("閉じた通知を queue から取り除く", () => {
+  it("閉じた通知を queue から取り除く", async () => {
     render(
       <ToastProvider>
         <ToastTrigger />
       </ToastProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
-    fireEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+    await userEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("新しい通知を先頭へ積み、上限を超えた分は表示しない", () => {
+  it("新しい通知を先頭へ積み、上限を超えた分は表示しない", async () => {
     render(
       <ToastProvider defaultVisibleToasts={1}>
         <MultiToastTrigger />
       </ToastProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "まとめて通知" }));
+    await userEvent.click(screen.getByRole("button", { name: "まとめて通知" }));
 
     expect(screen.getByText("二件目")).toBeInTheDocument();
     expect(screen.queryByText("一件目")).not.toBeInTheDocument();
   });
 
-  it("上限を実行時に広げると、控えていた通知が現れる", () => {
+  it("上限を実行時に広げると、控えていた通知が現れる", async () => {
     render(
       <ToastProvider defaultVisibleToasts={1}>
         <MultiToastTrigger />
@@ -631,17 +636,17 @@ describe("ToastProvider", () => {
       </ToastProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "まとめて通知" }));
+    await userEvent.click(screen.getByRole("button", { name: "まとめて通知" }));
 
     expect(screen.queryByText("一件目")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "上限を広げる" }));
+    await userEvent.click(screen.getByRole("button", { name: "上限を広げる" }));
 
     expect(screen.getByText("一件目")).toBeInTheDocument();
     expect(screen.getByText("二件目")).toBeInTheDocument();
   });
 
-  it("現在の上限を読み出せる", () => {
+  it("現在の上限を読み出せる", async () => {
     render(
       <ToastProvider defaultVisibleToasts={2}>
         <VisibleToastsControl />
@@ -650,29 +655,29 @@ describe("ToastProvider", () => {
 
     expect(screen.getByTestId("visible-toasts")).toHaveTextContent("2");
 
-    fireEvent.click(screen.getByRole("button", { name: "上限を広げる" }));
+    await userEvent.click(screen.getByRole("button", { name: "上限を広げる" }));
 
     expect(screen.getByTestId("visible-toasts")).toHaveTextContent("5");
   });
 
-  it("表示中の通知を差し替える", () => {
+  it("表示中の通知を差し替える", async () => {
     render(
       <ToastProvider>
         <UpdateTrigger />
       </ToastProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "処理を始める" }));
+    await userEvent.click(screen.getByRole("button", { name: "処理を始める" }));
 
     expect(screen.getByRole("status")).toHaveTextContent("処理中です");
 
-    fireEvent.click(screen.getByRole("button", { name: "完了へ差し替える" }));
+    await userEvent.click(screen.getByRole("button", { name: "完了へ差し替える" }));
 
     expect(screen.queryByText("処理中です")).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("完了しました");
   });
 
-  it("差し替えは対象の通知だけに当たる", () => {
+  it("差し替えは対象の通知だけに当たる", async () => {
     render(
       <ToastProvider>
         <ToastTrigger />
@@ -680,24 +685,24 @@ describe("ToastProvider", () => {
       </ToastProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
-    fireEvent.click(screen.getByRole("button", { name: "処理を始める" }));
-    fireEvent.click(screen.getByRole("button", { name: "完了へ差し替える" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+    await userEvent.click(screen.getByRole("button", { name: "処理を始める" }));
+    await userEvent.click(screen.getByRole("button", { name: "完了へ差し替える" }));
 
     expect(screen.getByText("完了しました")).toBeInTheDocument();
     expect(screen.getByText("保存しました")).toBeInTheDocument();
   });
 
-  it("すでに閉じた通知を差し替えても何も起きない", () => {
+  it("すでに閉じた通知を差し替えても何も起きない", async () => {
     render(
       <ToastProvider>
         <UpdateTrigger />
       </ToastProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "処理を始める" }));
-    fireEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
-    fireEvent.click(screen.getByRole("button", { name: "完了へ差し替える" }));
+    await userEvent.click(screen.getByRole("button", { name: "処理を始める" }));
+    await userEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
+    await userEvent.click(screen.getByRole("button", { name: "完了へ差し替える" }));
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });

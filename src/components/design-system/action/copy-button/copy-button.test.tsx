@@ -20,6 +20,13 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/**
+ * 写す操作を押す。
+ *
+ * @remarks
+ * **ここは `user-event` を使いません。**合図が一定時間で消えることを確かめるには偽の時計が要り、
+ * `user-event` は入力の再現に自前の待ち合わせを挟むため、その下では止まったままになります。
+ */
 async function clickCopy() {
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: "識別子を写す" }));
