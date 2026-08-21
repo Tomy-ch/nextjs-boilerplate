@@ -11,6 +11,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
+import { retakenTargets } from "../../baseline/lib/targets.js";
 import {
   formatPrunePlan,
   needsPrune,
@@ -63,7 +64,8 @@ function printSnapshotRef(branch: string | undefined): void {
  * 無関係な履歴どうしを比較できないため。
  *
  * 手元と CI が同じ形の木を積むよう、`make baseline-push` も撮り直しの workflow もここを通る。
- * 呼び出し側が読めるよう `before=` / `after=` / `count=` を出す。
+ * 呼び出し側が読めるよう `before=` / `after=` / `count=` と、撮り直した対象を見直しの入口が
+ * 取る形にした `stories=` / `screens=` を出す。
  */
 function push(branch: string | undefined): void {
   if (!existsSync(`${SUBMODULE_PATH}/.git`)) {
@@ -82,6 +84,13 @@ function push(branch: string | undefined): void {
     fail("撮り直した画像が既存と同じです。基準画像は更新していません。");
   }
 
+  // 状態ごと渡す。どの状態を見直しの対象に含めるかは retakenTargets が決める。読むのは
+  // commit の手前だけ —— 送出は置き場の根へ reset してから積むので、そのあとでは差分の相手が
+  // 変わる。
+  const { stories, screens } = retakenTargets(
+    store(["diff", "--cached", "--name-status"]).split("\n"),
+  );
+
   const root = parseDefaultBranch(store(["ls-remote", "--symref", "origin", "HEAD"]));
   store(["fetch", "--quiet", "--depth", "1", "origin", root]);
   store(["reset", "--soft", "FETCH_HEAD"]);
@@ -93,6 +102,8 @@ function push(branch: string | undefined): void {
   console.log(`before=${before}`);
   console.log(`after=${store(["rev-parse", "HEAD"])}`);
   console.log(`count=${staged.split("\n").length}`);
+  console.log(`stories=${stories.join(",")}`);
+  console.log(`screens=${screens.join(",")}`);
 }
 
 function report(): void {
