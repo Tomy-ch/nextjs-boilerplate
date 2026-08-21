@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { HttpResponse, http } from "msw";
+import { delay, HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -218,7 +218,9 @@ describe("PortalApp", () => {
   });
 
   it("文書を開くと題を先に示し、取得のあいだは取得中であることを出す", async () => {
-    server.use(http.get("*/guides/0001.md", () => HttpResponse.text("## 節\n\n本文\n")));
+    // 応答を返さないままにする。返してしまうと、面が出た時点で本文が入っていることがあり、
+    // 取得中の姿を捉えられるかどうかが取得の速さ次第になる。
+    server.use(http.get("*/guides/0001.md", () => delay("infinite")));
 
     render(<PortalApp docs={docs} />);
     screen.getByRole("button", { name: "ADR 0001" }).click();

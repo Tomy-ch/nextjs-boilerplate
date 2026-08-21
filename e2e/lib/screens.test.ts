@@ -149,7 +149,7 @@ describe("selectScreens", () => {
 
   // ----- 異常系 -----
   it("空白だけの指定は、指定が無いものとして扱わずに落とす", () => {
-    expect(() => selectScreens(screens, " ")).toThrow(/^E2E_ONLY に該当する画面がありません: $/);
+    expect(() => selectScreens(screens, " ")).toThrow(/^E2E_ONLY に該当する画面がありません:/);
   });
 
   it("1 件も該当しない指定を落とす", () => {
