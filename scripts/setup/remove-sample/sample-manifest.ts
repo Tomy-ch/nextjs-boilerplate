@@ -26,6 +26,8 @@ export const SAMPLE_PATHS: readonly string[] = [
   // 画面
   "src/app/(shop)",
   "src/app/admin",
+  // 認証の器（`src/app/(auth)`）はコア残留で、その配下の登録だけが題材の画面である。
+  "src/app/(auth)/onboarding",
   "src/features/products",
   "src/features/cart",
   "src/features/checkout",
