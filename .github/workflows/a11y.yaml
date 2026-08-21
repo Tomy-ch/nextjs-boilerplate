@@ -137,7 +137,13 @@ jobs:
           # exact case worth diagnosing — the slow one — is the case that leaves no log at
           # all. Streaming also gets every line stamped with the runner's clock, which is
           # what tells apart a slow Storybook build, a slow image pull and a slow run.
-          make a11y VRT_ARGS=--workers=100% 2>&1 | tee /tmp/a11y-full.log
+          # UNDER MEASUREMENT — see docs/survey/a11y-workers.md. This branch is not for
+          # merging. The previous rejection of 200% was measured while axe still ran twice
+          # per story; #233 removed that, so the mechanism the rejection rested on is gone.
+          # `vrt` is deliberately left alone as the control — both jobs run on the same
+          # runner generation for a given push, so its duration normalises the runner-to-
+          # runner variance that defeated the first attempt at this measurement.
+          make a11y VRT_ARGS=--workers=200% 2>&1 | tee /tmp/a11y-full.log
           code=${PIPESTATUS[0]}
 
           if [ "${code}" -eq 0 ]; then
