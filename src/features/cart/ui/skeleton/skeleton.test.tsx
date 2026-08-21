@@ -13,6 +13,16 @@ describe("CartSkeleton", () => {
     expect(container.querySelectorAll("[data-slot=skeleton]")).toHaveLength(3 * 4 + 2);
   });
 
+  it("サムネイルの枠を明細行と同じ寸法で持つ", () => {
+    const { container } = render(<CartSkeleton />);
+
+    expect(container.querySelector("[data-slot=skeleton]")).toHaveClass(
+      "w-12",
+      "@sm/line:w-16",
+      "aspect-square",
+    );
+  });
+
   it("出来上がりと同じ段組みで待たせる", () => {
     const { container } = render(<CartSkeleton />);
 
