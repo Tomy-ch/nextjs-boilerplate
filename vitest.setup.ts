@@ -250,3 +250,12 @@ if (typeof Element !== "undefined" && Element.prototype.scrollBy === undefined) 
     // 意図的に空。
   };
 }
+
+// 要素を視野へ入れる API も同じく無い。押した場所を視野に残す部品は、畳んだ直後の次の frame で
+// 呼ぶ。frame の到達は実行の混み具合で決まるため、補わないと**同じ木が回すたびに落ちたり
+// 落ちなかったりする**。呼び出しを記録したいテストは、そのファイルで `vi.fn()` を被せる。
+if (typeof Element !== "undefined" && Element.prototype.scrollIntoView === undefined) {
+  Element.prototype.scrollIntoView = function scrollIntoView(): void {
+    // 意図的に空。
+  };
+}
