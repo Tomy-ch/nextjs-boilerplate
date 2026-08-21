@@ -131,6 +131,21 @@ describe("applyPins", () => {
     expect(report.unparsed).toEqual(["w.yaml:2"]);
   });
 
+  it("版に使えない文字を含む uses を位置付きで unsupportedTags へ挙げる", () => {
+    const file = place("w.yaml", "steps:\n      - uses: actions/checkout@v7 # v7;id\n");
+    const report = applyPins(root, [file], lockOf(), true);
+
+    expect(report.unsupportedTags).toEqual(["w.yaml:2"]);
+  });
+
+  it("版に使えない文字を含む uses があれば書き込まない", () => {
+    const file = place("w.yaml", "      - uses: actions/checkout@v7 # v7;id\n");
+    const report = applyPins(root, [file], lockOf(["actions/checkout@v7;id", SHA]), false);
+
+    expect(report.updated).toEqual([]);
+    expect(readFileSync(file, "utf8")).toBe("      - uses: actions/checkout@v7 # v7;id\n");
+  });
+
   it("1 ファイルでも中断条件に当たれば、他のファイルも書き換えない", () => {
     const ok = place("a.yaml", "      - uses: actions/checkout@v7\n");
     const ng = place("b.yaml", "      - uses: actions/cache@v6\n");

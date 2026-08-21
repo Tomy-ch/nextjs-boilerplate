@@ -17,13 +17,21 @@ import { quarantine } from "../lib/pin-quarantine.js";
 import { applyPins } from "./apply-check.js";
 import { LOCK_FILE, readLock, readLockOrEmpty, writeLock } from "./lockfile.js";
 import { classifyMoves, type MovedRef, refAgeDays, resolveSHA } from "./resolve.js";
-import { type ActionRef, collectRefs, targetFiles, unparsedUsesLines } from "./uses-reference.js";
+import {
+  type ActionRef,
+  collectRefs,
+  targetFiles,
+  unparsedUsesLines,
+  unsupportedTagLines,
+} from "./uses-reference.js";
 
 const USAGE = "usage: actions-pin <resolve|apply|check> [--min-age-days=N]";
 const MIN_AGE_PATTERN = /^--min-age-days=(\d+)$/;
 const ALLOW_MOVED_ENV = "ACTIONS_PIN_ALLOW_MOVED";
 const UNPARSED_MESSAGE =
   "解釈できない記法の uses: があります（1 行 1 ステップのブロック記法へ直してください）";
+const UNSUPPORTED_TAG_MESSAGE =
+  "版に使えない文字を含む uses: があります（英数と . _ - + / だけで書いてください）";
 
 // resolve の引数。allowMoved は解決先の移動を承認するロックファイルのキー集合。
 type ResolveOptions = {
@@ -34,6 +42,7 @@ type ResolveOptions = {
 async function runResolve(root: string, files: string[], options: ResolveOptions): Promise<void> {
   const refs = collectRefs(files);
   assertAllUsesParsed(root, files);
+  assertAllTagsSupported(root, files);
   assertAllowMovedReferenced(refs, options.allowMoved);
   const existing = readLockOrEmpty(path.join(root, LOCK_FILE));
 
@@ -189,6 +198,10 @@ function runApplyOrCheck(root: string, files: string[], dryRun: boolean): void {
     printError(`${UNPARSED_MESSAGE}: ${report.unparsed.join(", ")}`);
     failed = true;
   }
+  if (report.unsupportedTags.length > 0) {
+    printError(`${UNSUPPORTED_TAG_MESSAGE}: ${report.unsupportedTags.join(", ")}`);
+    failed = true;
+  }
   if (failed) process.exit(1);
 
   if (dryRun) {
@@ -211,6 +224,20 @@ function assertAllUsesParsed(root: string, files: string[]): void {
     }
   }
   if (unparsed.length > 0) fail(`${UNPARSED_MESSAGE}: ${unparsed.join(", ")}`);
+}
+
+// 版に使えない文字を含む参照を、ネットワークへ出る前に落とす。tag は解決先の問い合わせにも
+// ロックファイルのキーにも書き戻す文字列にもなるため、入口で形を絞らないと出力面ごとに同じ
+// 検討を繰り返すことになる。
+function assertAllTagsSupported(root: string, files: string[]): void {
+  const unsupported: string[] = [];
+  for (const file of files) {
+    const relative = path.relative(root, file);
+    for (const line of unsupportedTagLines(readFileSync(file, "utf8"))) {
+      unsupported.push(`${relative}:${line}`);
+    }
+  }
+  if (unsupported.length > 0) fail(`${UNSUPPORTED_TAG_MESSAGE}: ${unsupported.join(", ")}`);
 }
 
 function parseMinAgeDays(args: string[]): number {
