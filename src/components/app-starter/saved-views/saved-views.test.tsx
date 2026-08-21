@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -39,6 +39,10 @@ function renderSavedViews(overrides: Partial<Parameters<typeof SavedViews>[0]> =
     update: (next: Partial<Parameters<typeof SavedViews>[0]>) =>
       rerender(<SavedViews {...props} {...next} />),
   };
+}
+
+function nameForm() {
+  return within(screen.getByRole("dialog")).getByRole("textbox", { name: "名前" }).closest("form");
 }
 
 async function openMenu(name: string) {
@@ -155,7 +159,11 @@ describe("SavedViews", () => {
     await openItem("現在の条件を保存");
     await userEvent.clear(screen.getByRole("textbox", { name: "名前" }));
     await userEvent.type(screen.getByRole("textbox", { name: "名前" }), "  ");
-    await userEvent.keyboard("{Enter}");
+
+    // **ここは `user-event` を使いません。**空白だけの名前では保存が押せず、browser は
+    // 既定のボタンが押せない form を Enter で送信しません。この判定は届いてしまった場合の
+    // 防御なので、browser が出さない形を組み立てて確かめます。
+    fireEvent.submit(nameForm() ?? document.createElement("form"));
 
     expect(onCreate).not.toHaveBeenCalled();
   });

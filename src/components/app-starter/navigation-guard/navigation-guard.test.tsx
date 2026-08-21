@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Link from "next/link";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -145,13 +145,13 @@ describe("NavigationGuard", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
-  it("中クリックは別タブで開く操作なので傍受しない", async () => {
+  it("中クリックは別タブで開く操作なので傍受しない", () => {
     render(<GuardFixture />);
 
-    await userEvent.pointer({
-      target: screen.getByRole("link", { name: "設定" }),
-      keys: "[MouseMiddle]",
-    });
+    // **ここは `user-event` を使いません。**browser は主ボタン以外の押下で `click` を出さず
+    // （出すのは `auxclick`）、実際の入力を再現する手段では `onClick` へ届きません。この
+    // 見張りは届いてしまった場合の防御なので、browser が出さない形を組み立てて確かめます。
+    fireEvent.click(screen.getByRole("link", { name: "設定" }), { button: 1 });
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
