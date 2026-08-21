@@ -21,11 +21,16 @@ const brand = Michroma({
  * 持っている太さは 100 / 400 / 700 / 800 で、**500 と 600 がありません**。読み込む段を強調の
  * token（700 / 800）に合わせてあるので丸めは起きません。丸められるのは、この書体が持たない
  * 段を直書きしたとき（`font-medium` / `font-semibold`）です。
+ *
+ * **先読みしません。** `subsets` が絞れるのは名前付きサブセットだけで、和文のように番号付きの
+ * スライスで配られる書体には効きません。先読みを既定のままにすると、ページが使う字に関わらず
+ * 全スライスが `<link rel="preload">` に並びます（管理向けの書体を先読みしないのと同じ理由）。
  */
 const ui = LINE_Seed_JP({
   weight: ["400", "700", "800"],
   subsets: ["latin"],
   display: "swap",
+  preload: false,
   variable: "--typeface-line-seed",
 });
 
