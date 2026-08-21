@@ -226,9 +226,8 @@ function assertAllUsesParsed(root: string, files: string[]): void {
   if (unparsed.length > 0) fail(`${UNPARSED_MESSAGE}: ${unparsed.join(", ")}`);
 }
 
-// 版に使えない文字を含む参照を、ネットワークへ出る前に落とす。tag は解決先の問い合わせにも
-// ロックファイルのキーにも書き戻す文字列にもなるため、入口で形を絞らないと出力面ごとに同じ
-// 検討を繰り返すことになる。
+// 版に使えない文字を含む参照を、ネットワークへ出る前に落とす
+// （絞る理由は [0153](../../docs/adr/0153-ci-configuration.md)）。
 function assertAllTagsSupported(root: string, files: string[]): void {
   const unsupported: string[] = [];
   for (const file of files) {

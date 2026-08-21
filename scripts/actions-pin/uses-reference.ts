@@ -47,19 +47,14 @@ function isDockerRef(value: string): boolean {
 // 固定対象になりうる値の形。owner/repo で始まるものだけを通す。
 const REPO_VALUE_PATTERN = /^[^/\s]+\/[^/\s]+/;
 
-// 版として受け付ける文字集合。GitHub の tag / branch 名として現実的な範囲だけを通す。
-//
-// tag は版の SSOT でありながら、`uses:` 行末尾のコメントという検証されない文字列として入って
-// くる。ここで絞らないと `;` や `$()` を含む値が、ロックファイルのキー・API の URL・`uses:` へ
-// 書き戻す文字列という複数の出力面へそのまま流れる。各出力面が個別に守っている状態は、面が
-// 増えるたびに同じ検討をやり直すことになる。
+// 版として受け付ける文字集合。GitHub の tag / branch 名として現実的な範囲だけを通す
+// （入口で 1 度絞る理由は [0153](../../docs/adr/0153-ci-configuration.md)）。
 const TAG_PATTERN = /^[A-Za-z0-9._+/-]+$/;
 
 const WORKFLOW_DIR = ".github/workflows";
 const YAML_EXTENSIONS = [".yml", ".yaml"];
 const REPO_SEGMENTS = 2;
 
-// 版として解釈してよい文字列か。
 export function isSupportedTag(tag: string): boolean {
   return TAG_PATTERN.test(tag);
 }

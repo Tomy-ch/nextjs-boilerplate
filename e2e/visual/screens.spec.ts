@@ -58,7 +58,7 @@ test("基準画像 / 撮影対象と 1 対 1 で対応する", { tag: SCREEN_BAS
   // 対応は置き場に対して 1 回見れば足りる。帯ごとに走らせると同じ失敗が帯の数だけ並ぶ。
   test.skip(testInfo.project.name !== bands[0]?.name, "帯を 1 つ選んで 1 回だけ見る");
   test.skip(isRetaking(process.env), "撮り直しの最中は対応を見ない");
-  // 範囲を絞った実行では、在るべき画像の集合が絞った側へ縮み、対象外の画像がすべて孤児に見える。
+  // 範囲を絞った実行では対応を見ない（理由は selectScreens の doc）。
   test.skip(Boolean(process.env.E2E_ONLY), "範囲を絞った実行では対応を見ない");
 
   const present = listBaselines(baselineRoot(testInfo));

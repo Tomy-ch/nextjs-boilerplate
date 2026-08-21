@@ -1,7 +1,7 @@
 name: Actions Lint
 
 # Lints the Actions definitions themselves — the same commands the pre-commit hook
-# runs (ADR 0153: hooks mirror CI). Three checks, one concern:
+# runs (ADR 0153: hooks mirror CI). Six checks, one concern:
 #
 #   actionlint          — workflow syntax, plus the shell of every `run:` in
 #                         `.github/workflows`. shellcheck is installed alongside it
@@ -20,12 +20,9 @@ name: Actions Lint
 #   actions-mise-pin-…  — the mise version, its digest and the cache key agree. mise's
 #     …lint               own version cannot live in `mise.toml`, so it is declared in
 #                         `.github/actions/setup-mise` in three places at once.
-#   actions-zizmor      — static analysis of the definitions themselves. actionlint and
-#                         actions-shellcheck both flatten `${{ … }}` into a placeholder
-#                         before handing the script to shellcheck, so whether an
-#                         expression is quoted — the whole of a template-injection — is
-#                         gone by the time either of them looks. zizmor reads the
-#                         expressions, and gates on high findings only (ADR 0153 §1).
+#   actions-zizmor      — static analysis of the definitions themselves. Neither of the two
+#                         above can see quoting inside `${{ … }}`; ADR 0153 §1 has why.
+#                         zizmor reads the expressions and gates on high findings only.
 #   shellcheck          — every tracked standalone `*.sh`. What lives there is shell
 #                         only because it has to run before dependencies are installed
 #                         (the exception ADR 0155 allows). Nothing else covers it: it is

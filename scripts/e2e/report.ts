@@ -66,12 +66,10 @@ export function formatScreenNames(failures: readonly ScreenFailure[]): string {
  * 基準画像と撮影対象の 1 対 1 対応が落ちたか。
  *
  * @remarks
- * この検査は画面ではないので {@link collectFailedScreens} は拾いません。それでいて、落ちたとき
- * に要るのは**全数の撮り直し**です —— 孤児（改名・削除で参照を失った基準画像）は範囲を絞った
- * 撮り直しでは消えません（理由は `baseline/lib/store.ts`）。
- *
- * 見つからないことを「孤児なし」と答えません。1 対 1 の検査は全数の撮影に必ず含まれるので、
- * 当たらないのはレポートの形か tag の綴りが変わったときです。
+ * この検査は画面ではないので {@link collectFailedScreens} は拾いません。落ちたときに要るのは
+ * **全数の撮り直し**で、レポートに検査そのものが無ければ例外を投げます（0 件を「孤児なし」と
+ * 答えない）。どちらの理由も story 側の同じ検査（`scripts/vrt/report.ts` の `hasBaselineFailure`）
+ * と共通で、根拠は `baseline/lib/store.ts` が持ちます。
  *
  * @param json - Playwright の JSON レポート
  */

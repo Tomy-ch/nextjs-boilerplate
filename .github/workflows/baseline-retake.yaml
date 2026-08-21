@@ -343,8 +343,9 @@ jobs:
       # compare view shows the whole visual change of this branch in one place, which is
       # what the reviewer has to look at before accepting it.
       #
-      # 孤児（改名・削除で参照を失った基準画像）は範囲を絞った撮り直しでは消えない。絞った
-      # 実行では孤児と対象外の画像を区別できないため、報告されたら全数へ倒す。
+      # An orphan — a baseline whose subject was renamed or deleted — is not removed by a
+      # bounded retake, and a bounded run cannot tell an orphan from an image that is
+      # simply out of scope. So when one is reported, the retake falls back to the full set.
       - name: Retake the story baselines
         id: retake-stories
         if: >-
@@ -372,9 +373,11 @@ jobs:
             echo '❌ 報告に差分がありません。撮り直す対象がありません。'
             exit 1
           fi
-          # 報告から取り出した識別子はそのまま make の引数・commit message・PR コメントへ流れる。
-          # 出所はリポジトリにコミットされた story の目録なので、許可集合を外れることは無いはず
-          # ——外れたなら報告の作り方が変わった合図であり、通さずに止める（ADR 0153 §5）。
+          # What comes out of the report flows straight into make's argument, the commit
+          # message and the pull-request comment. It originates in the story catalogue
+          # committed to this repository, so it should never leave the accepted set — if it
+          # does, the report's shape changed, and this refuses rather than pass it on
+          # (ADR 0153 §5).
           if printf '%s' "$ids" | LC_ALL=C grep -q '[^A-Za-z0-9/._,-]'; then
             echo '❌ 報告の story id が許可した文字集合を外れています。'
             exit 1
@@ -394,6 +397,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Screens fall back to the full set on an orphan for the same reason stories do,
+          # and their names are checked against the same set before they leave this step.
           if [ "$MODE" = 'full' ] ||
             [ "$(pnpm exec tsx scripts/e2e orphans tmp/e2e/report.json)" = 'true' ]; then
             echo 'taken=全画面' >> "$GITHUB_OUTPUT"

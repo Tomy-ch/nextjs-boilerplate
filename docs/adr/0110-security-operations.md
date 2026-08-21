@@ -52,7 +52,7 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 ### 3. 脆弱性スキャン(多層防御・go ADR 0077 翻案)
 
 - **CodeQL SAST**: `languages: javascript-typescript`(go の `go` を差し替え)。trigger = PR + 保護ブランチ push + 週次 cron。`security-events: write` で SARIF アップロード。high-severity はマージブロック(ブロックの実体は branch protection / code scanning の required 設定側。go 同様、workflow 内の hard-fail には依存しない)
-- **Actions 定義の静的解析(zizmor)**: CI の実行内容そのものを対象にする層。アプリのコードと依存を見る上の 3 者は、`.github/**` に書かれた `run:` や権限の与え方を見ない。**hook と CI の双方**で`--offline` で走らせ、**high の所見で fail-closed**、medium 以下は出力に残す。抑止は`.github/zizmor.yml` に理由付きで宣言し、下記 4 の抑止ポリシーに従う(検査の責務と落とし方は [0153](0153-ci-configuration.md) §1 が正)
+- **Actions 定義の静的解析(zizmor)**: CI の実行内容そのものを対象にする層。アプリのコードと依存を見る上の 3 者は、`.github/**` に書かれた `run:` や権限の与え方を見ない。**hook と CI の双方**で`--offline` で走らせ、**high の所見で fail-closed**。`--min-severity` は表示も絞るので、全所見を出す実行とゲートの実行を分け、引き下げた所見が出力から消えないようにする。抑止は`.github/zizmor.yml` に理由付きで宣言し、下記 4 の抑止ポリシーに従う(検査の責務と落とし方は [0153](0153-ci-configuration.md) §1 が正)
 - **Trivy fs 二段運用**:
   - **dev ゲート**(全 PR・advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`**(修正不能は無視)/ hard-fail しない + PR コメント
   - **release ゲート**(保護ブランチへの PR 限定・厳格): **`ignore-unfixed: false`**(未修正も可視化)で厳格化。**止めるのはこの一点だけ**である
@@ -83,7 +83,7 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 | `.github/zizmor.yml` | ファイル 1 件(`ignore`)。**ファイルで絞れない audit は severity の remap(監査 ID 単位)** —— composite action は全て `action.yaml` で、`ignore` はベース名一致のため 1 つ挙げると全ての composite action が黙る(zizmor 1.29.0 の制約。ファイル単位の remap が入ったら remap は撤回する) |
 
 - **ルールやスキャナの一括無効化は禁止**。抑止はファイル単位 or フィンガープリント単位に限定する。範囲を絞らない抑止は、同じ検知を踏む**新規のファイル・依存まで素通りさせる**
-- **ファイル単位に絞れないときは、抑止ではなく severity の引き下げに留める**。上の禁止が守ろうとしているのは「新規のものが黙って素通りする」ことを避ける点にあり、引き下げなら検査は走り続け、所見も出力に残る。ゲートを抜けるだけである。ツールがファイル単位を持たないことがこれを選ぶ唯一の理由であり、**撤回条件（ツールが対応したら戻す）をその場に書く**
+- **ファイル単位に絞れないときは、抑止ではなく severity の引き下げに留める**。上の禁止が守ろうとしているのは「新規のものが黙って素通りする」ことを避ける点にあり、引き下げなら検査は走り続け、ゲートを抜けるだけである。**そのためには引き下げた所見が出力に残っていなければならない** —— 残らないなら、これは抑止と区別が付かない。ツールがファイル単位を持たないことがこれを選ぶ唯一の理由であり、**撤回条件（ツールが対応したら戻す）をその場に書く**
 - **各エントリに理由を必ず書く**(gitleaks は「なぜ秘密でないか」、Trivy は `statement`)。理由を書けないものは抑止せず、値そのものを消すか依存を上げる
 - **条件が変われば削除する**。恒久 allowlist にしない
 - 抑止の妥当性そのものはレビュー時の人間判断に残る。機械が強制できるのは「抑止が上記の様式に載っていること」までである

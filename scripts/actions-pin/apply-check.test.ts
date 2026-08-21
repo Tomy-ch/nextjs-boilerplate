@@ -138,14 +138,12 @@ describe("applyPins", () => {
     expect(report.unsupportedTags).toEqual(["w.yaml:2"]);
   });
 
-  it("版に使えない文字を含む uses があれば書き込まない", () => {
+  it("版に使えない文字だけを理由に、書き込まずに止める", () => {
     const file = place("w.yaml", "      - uses: actions/checkout@v7 # v7;id\n");
     const report = applyPins(root, [file], lockOf(["actions/checkout@v7;id", SHA]), false);
 
     expect(report.updated).toEqual([]);
     expect(readFileSync(file, "utf8")).toBe("      - uses: actions/checkout@v7 # v7;id\n");
-    // 止めたのが版の文字集合であることまで固定する。他の分類が埋まっていると、同じ緑が
-    // 別の理由で出ていても気づけない。
     expect(report.missing).toEqual([]);
     expect(report.orphans).toEqual([]);
     expect(report.unparsed).toEqual([]);
