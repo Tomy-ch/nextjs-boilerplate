@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 import {
@@ -34,15 +35,15 @@ function Example({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
 describe("AlertDialog", () => {
   it("開閉と確認 dialog の意味論を提供する", async () => {
     render(<Example />);
-    fireEvent.click(screen.getByRole("button", { name: "開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "開く" }));
     expect(screen.getByRole("alertdialog", { name: "確認" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<Example defaultOpen />);
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
@@ -59,10 +60,10 @@ describe("AlertDialog", () => {
 });
 
 describe("AlertDialogTrigger", () => {
-  it("押すと確認内容を開く", () => {
+  it("押すと確認内容を開く", async () => {
     render(<Example />);
 
-    fireEvent.click(screen.getByRole("button", { name: "開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "開く" }));
 
     expect(screen.getByRole("alertdialog")).toBeVisible();
   });
@@ -150,10 +151,10 @@ describe("AlertDialogAction", () => {
     );
   });
 
-  it("押すと確認内容を閉じる", () => {
+  it("押すと確認内容を閉じる", async () => {
     render(<Example defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "続行" }));
+    await userEvent.click(screen.getByRole("button", { name: "続行" }));
 
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
@@ -169,10 +170,10 @@ describe("AlertDialogCancel", () => {
     );
   });
 
-  it("押すと確認内容を閉じる", () => {
+  it("押すと確認内容を閉じる", async () => {
     render(<Example defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });

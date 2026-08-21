@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ProductListError } from "./error-state";
 
@@ -17,11 +18,11 @@ describe("ProductListError", () => {
     expect(screen.getByText("2741564515")).toBeInTheDocument();
   });
 
-  it("再試行を呼び出せる", () => {
+  it("再試行を呼び出せる", async () => {
     const onRetry = vi.fn();
     render(<ProductListError message="失敗しました。" onRetry={onRetry} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "再試行" }));
+    await userEvent.click(screen.getByRole("button", { name: "再試行" }));
 
     expect(onRetry).toHaveBeenCalledOnce();
   });

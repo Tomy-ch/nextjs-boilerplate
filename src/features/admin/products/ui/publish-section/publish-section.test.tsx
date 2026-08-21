@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -40,32 +41,30 @@ describe("ProductPublishSection", () => {
     expect(screen.getByLabelText("公開日時")).toBeInTheDocument();
   });
 
-  it("公開日時を入れると、未公開へ戻す操作が押せるようになる", () => {
+  it("公開日時を入れると、未公開へ戻す操作が押せるようになる", async () => {
     renderSection();
 
-    fireEvent.change(screen.getByLabelText("公開日時"), {
-      target: { value: "2026-08-07T09:00" },
-    });
+    await userEvent.clear(screen.getByLabelText("公開日時"));
+    await userEvent.type(screen.getByLabelText("公開日時"), "2026-08-07T09:00");
 
     expect(screen.getByRole("button", { name: "非公開にする" })).toBeEnabled();
   });
 
-  it("未公開へ戻す操作は、公開日時を 1 度で空へ戻す", () => {
+  it("未公開へ戻す操作は、公開日時を 1 度で空へ戻す", async () => {
     renderSection();
 
-    fireEvent.change(screen.getByLabelText("公開日時"), {
-      target: { value: "2026-08-07T09:00" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "非公開にする" }));
+    await userEvent.clear(screen.getByLabelText("公開日時"));
+    await userEvent.type(screen.getByLabelText("公開日時"), "2026-08-07T09:00");
+    await userEvent.click(screen.getByRole("button", { name: "非公開にする" }));
 
     expect(screen.getByLabelText("公開日時")).toHaveValue("");
   });
 
-  it("公開日時に触れたら誤りを判定する", () => {
+  it("公開日時に触れたら誤りを判定する", async () => {
     renderSection();
 
-    fireEvent.change(screen.getByLabelText("公開日時"), { target: { value: "" } });
-    fireEvent.blur(screen.getByLabelText("公開日時"));
+    await userEvent.clear(screen.getByLabelText("公開日時"));
+    await userEvent.tab();
 
     // 空欄は未公開として許すため、誤りにはならない。
     expect(screen.queryByText(/公開日時を日付として/)).not.toBeInTheDocument();
@@ -77,10 +76,10 @@ describe("ProductPublishSection", () => {
     expect(screen.getByRole("button", { name: "非公開にする" })).toBeDisabled();
   });
 
-  it("状態を選び直して空にすると誤りを出す", () => {
+  it("状態を選び直して空にすると誤りを出す", async () => {
     renderSection();
 
-    fireEvent.change(screen.getByLabelText("状態"), { target: { value: "" } });
+    await userEvent.selectOptions(screen.getByLabelText("状態"), "");
 
     expect(screen.getByText("状態を選んでください。")).toBeInTheDocument();
   });

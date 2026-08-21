@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
@@ -51,34 +52,40 @@ describe("ProductBasicsSection", () => {
     expect(screen.getByLabelText("在庫数")).toBeInTheDocument();
   });
 
-  it("打鍵した内容を保つ", () => {
+  it("打鍵した内容を保つ", async () => {
     renderSection();
 
-    fireEvent.change(screen.getByLabelText("商品名"), { target: { value: "入れた" } });
+    await userEvent.clear(screen.getByLabelText("商品名"));
+    await userEvent.type(screen.getByLabelText("商品名"), "入れた");
 
     expect(screen.getByLabelText("商品名")).toHaveValue("入れた");
   });
 
-  it("どの項目も、打鍵した内容をそのまま保つ", () => {
+  it("どの項目も、打鍵した内容をそのまま保つ", async () => {
     renderSection();
 
     // 価格は文字列のまま、数の欄は数として保たれる。
-    fireEvent.change(screen.getByLabelText("価格"), { target: { value: "19.99" } });
-    fireEvent.change(screen.getByLabelText("在庫数"), { target: { value: "3" } });
-    fireEvent.change(screen.getByLabelText("在庫警告の閾値"), { target: { value: "2" } });
+    await userEvent.clear(screen.getByLabelText("価格"));
+    await userEvent.type(screen.getByLabelText("価格"), "19.99");
+    await userEvent.clear(screen.getByLabelText("在庫数"));
+    await userEvent.type(screen.getByLabelText("在庫数"), "3");
+    await userEvent.clear(screen.getByLabelText("在庫警告の閾値"));
+    await userEvent.type(screen.getByLabelText("在庫警告の閾値"), "2");
 
     expect(screen.getByLabelText("価格")).toHaveValue("19.99");
     expect(screen.getByLabelText("在庫数")).toHaveValue(3);
     expect(screen.getByLabelText("在庫警告の閾値")).toHaveValue(2);
   });
 
-  it("どの項目も、focus が外れたら誤りを判定する", () => {
+  it("どの項目も、focus が外れたら誤りを判定する", async () => {
     renderSection();
 
-    fireEvent.change(screen.getByLabelText("在庫警告の閾値"), { target: { value: "-1" } });
-    fireEvent.blur(screen.getByLabelText("在庫警告の閾値"));
-    fireEvent.blur(screen.getByLabelText("価格"));
-    fireEvent.blur(screen.getByLabelText("在庫数"));
+    // 3 つの欄を順に通り、最後の欄から出る。触れた欄だけが誤りを出すため、通らずに tab を
+    // 重ねても判定は起きない。
+    await userEvent.click(screen.getByLabelText("価格"));
+    await userEvent.click(screen.getByLabelText("在庫数"));
+    await userEvent.type(screen.getByLabelText("在庫警告の閾値"), "-1");
+    await userEvent.tab();
 
     expect(screen.getByText("価格を入力してください。")).toBeInTheDocument();
     expect(screen.getByText("在庫数を入力してください。")).toBeInTheDocument();
@@ -87,10 +94,10 @@ describe("ProductBasicsSection", () => {
     ).toBeInTheDocument();
   });
 
-  it("分類は選んだ時点で触れたものとして扱う", () => {
+  it("分類は選んだ時点で触れたものとして扱う", async () => {
     renderSection();
 
-    fireEvent.change(screen.getByLabelText("分類"), { target: { value: "" } });
+    await userEvent.selectOptions(screen.getByLabelText("分類"), "");
 
     expect(screen.getByText("分類を選んでください。")).toBeInTheDocument();
   });
@@ -107,10 +114,11 @@ describe("ProductBasicsSection", () => {
     expect(screen.queryByText("商品名を入力してください。")).not.toBeInTheDocument();
   });
 
-  it("触れたら誤りを出す", () => {
+  it("触れたら誤りを出す", async () => {
     renderSection();
 
-    fireEvent.blur(screen.getByLabelText("商品名"));
+    await userEvent.click(screen.getByLabelText("商品名"));
+    await userEvent.tab();
 
     expect(screen.getByText("商品名を入力してください。")).toBeInTheDocument();
   });

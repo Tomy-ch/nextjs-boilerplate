@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -16,14 +17,14 @@ function ExampleCollapsible() {
 }
 
 describe("Collapsible", () => {
-  it("native details と summary で補助内容を開閉する", () => {
+  it("native details と summary で補助内容を開閉する", async () => {
     render(<ExampleCollapsible />);
 
     const collapsible = screen.getByText("補足を表示").closest("details");
     if (collapsible === null) throw new Error("collapsible が見つかりません。");
 
     expect(collapsible).not.toHaveAttribute("open");
-    fireEvent.click(screen.getByText("補足を表示"));
+    await userEvent.click(screen.getByText("補足を表示"));
     expect(collapsible).toHaveAttribute("open");
   });
 

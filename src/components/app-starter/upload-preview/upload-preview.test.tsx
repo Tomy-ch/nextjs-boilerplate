@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -59,29 +60,29 @@ describe("UploadPreview", () => {
     expect(screen.queryByRole("button", { name: /を後ろへ移動する$/ })).not.toBeInTheDocument();
   });
 
-  it("操作の名前に対象のファイル名を含める", () => {
+  it("操作の名前に対象のファイル名を含める", async () => {
     const onRemove = vi.fn();
     render(<UploadPreview items={ITEMS} onRemove={onRemove} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "handbook.pdf を取り消す" }));
+    await userEvent.click(screen.getByRole("button", { name: "handbook.pdf を取り消す" }));
 
     expect(onRemove).toHaveBeenCalledWith("2");
   });
 
-  it("差し替えを、対象の id とともに呼び出し元へ返す", () => {
+  it("差し替えを、対象の id とともに呼び出し元へ返す", async () => {
     const onReplace = vi.fn();
     render(<UploadPreview items={ITEMS} onReplace={onReplace} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "cover.png を差し替える" }));
+    await userEvent.click(screen.getByRole("button", { name: "cover.png を差し替える" }));
 
     expect(onReplace).toHaveBeenCalledWith("1");
   });
 
-  it("再試行を、対象の id とともに呼び出し元へ返す", () => {
+  it("再試行を、対象の id とともに呼び出し元へ返す", async () => {
     const onRetry = vi.fn();
     render(<UploadPreview items={FAILED_ITEMS} onRetry={onRetry} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "cover.png を再試行する" }));
+    await userEvent.click(screen.getByRole("button", { name: "cover.png を再試行する" }));
 
     expect(onRetry).toHaveBeenCalledWith("1");
   });
@@ -94,13 +95,13 @@ describe("UploadPreview", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("並び替えを、対象の id とともに呼び出し元へ返す", () => {
+  it("並び替えを、対象の id とともに呼び出し元へ返す", async () => {
     const onMoveUp = vi.fn();
     const onMoveDown = vi.fn();
     render(<UploadPreview items={ITEMS} onMoveDown={onMoveDown} onMoveUp={onMoveUp} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "handbook.pdf を前へ移動する" }));
-    fireEvent.click(screen.getByRole("button", { name: "cover.png を後ろへ移動する" }));
+    await userEvent.click(screen.getByRole("button", { name: "handbook.pdf を前へ移動する" }));
+    await userEvent.click(screen.getByRole("button", { name: "cover.png を後ろへ移動する" }));
 
     expect(onMoveUp).toHaveBeenCalledWith("2");
     expect(onMoveDown).toHaveBeenCalledWith("1");

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { Button, buttonVariants } from "./button";
@@ -70,7 +71,7 @@ describe("Button", () => {
     );
   });
 
-  it("disabled のときは操作を受け付けない", () => {
+  it("disabled のときは操作を受け付けない", async () => {
     const onClick = vi.fn();
 
     render(
@@ -78,7 +79,7 @@ describe("Button", () => {
         保存する
       </Button>,
     );
-    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存する" }));
 
     expect(screen.getByRole("button", { name: "保存する" })).toBeDisabled();
     expect(onClick).not.toHaveBeenCalled();

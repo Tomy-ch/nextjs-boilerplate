@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -43,12 +44,12 @@ describe("Tooltip", () => {
     expect(trigger).toHaveAttribute("data-slot", "tooltip-trigger");
   });
 
-  it("keyboard focus で Portal の内容を表示し、trigger の説明にする", () => {
+  it("keyboard focus で Portal の内容を表示し、trigger の説明にする", async () => {
     render(<TooltipFixture />);
 
     const trigger = screen.getByRole("button", { name: "為替の参考額" });
 
-    fireEvent.focus(trigger);
+    await userEvent.tab();
 
     const content = screen.getByRole("tooltip");
 
@@ -56,25 +57,24 @@ describe("Tooltip", () => {
     expect(trigger).toHaveAccessibleDescription("表示時点の参考レートで換算した概算です。");
   });
 
-  it("focus が外れると閉じる", () => {
+  it("focus が外れると閉じる", async () => {
     render(<TooltipFixture />);
 
-    const trigger = screen.getByRole("button", { name: "為替の参考額" });
-    fireEvent.focus(trigger);
+    await userEvent.tab();
 
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
 
-    fireEvent.blur(trigger);
+    await userEvent.tab();
 
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<TooltipFixture defaultOpen />);
 
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });

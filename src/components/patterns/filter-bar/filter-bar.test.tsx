@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -171,16 +172,16 @@ describe("FilterChip", () => {
     );
   });
 
-  it("client 側で条件を持つ一覧では操作で外す", () => {
+  it("client 側で条件を持つ一覧では操作で外す", async () => {
     const onRemove = vi.fn();
     render(<FilterChip label="状態" onRemove={onRemove} value="公開中" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "状態: 公開中 を解除" }));
+    await userEvent.click(screen.getByRole("button", { name: "状態: 公開中 を解除" }));
 
     expect(onRemove).toHaveBeenCalledOnce();
   });
 
-  it("条件を外したあと focus が一覧に残る", () => {
+  it("条件を外したあと focus が一覧に残る", async () => {
     const onRemove = vi.fn();
     render(
       <FilterBarActiveFilters>
@@ -188,16 +189,16 @@ describe("FilterChip", () => {
       </FilterBarActiveFilters>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "状態: 公開中 を解除" }));
+    await userEvent.click(screen.getByRole("button", { name: "状態: 公開中 を解除" }));
 
     expect(screen.getByRole("list", { name: "適用中の条件" })).toHaveFocus();
   });
 
-  it("一覧の外に置いても解除できる", () => {
+  it("一覧の外に置いても解除できる", async () => {
     const onRemove = vi.fn();
     render(<FilterChip label="状態" onRemove={onRemove} value="公開中" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "状態: 公開中 を解除" }));
+    await userEvent.click(screen.getByRole("button", { name: "状態: 公開中 を解除" }));
 
     expect(onRemove).toHaveBeenCalledOnce();
   });

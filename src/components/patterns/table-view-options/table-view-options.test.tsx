@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -30,12 +31,8 @@ const COLUMNS = [
   { id: "updatedAt", label: "更新日時", visible: false },
 ];
 
-function openMenu() {
-  // Radix の trigger は click ではなく pointerdown で開閉する。
-  fireEvent.pointerDown(screen.getByRole("button", { name: "表示設定" }), {
-    button: 0,
-    ctrlKey: false,
-  });
+async function openMenu() {
+  await userEvent.click(screen.getByRole("button", { name: "表示設定" }));
 
   return screen.getByRole("menu");
 }
@@ -66,65 +63,65 @@ describe("TableViewOptions", () => {
     expect(screen.getByRole("button", { name: "一覧の表示" })).toBeInTheDocument();
   });
 
-  it("いま表示している列を checked として並べる", () => {
+  it("いま表示している列を checked として並べる", async () => {
     renderOptions();
 
-    const menu = openMenu();
+    const menu = await openMenu();
 
     expect(within(menu).getByRole("menuitemcheckbox", { name: "状態" })).toBeChecked();
     expect(within(menu).getByRole("menuitemcheckbox", { name: "更新日時" })).not.toBeChecked();
   });
 
-  it("隠せない列は操作させない", () => {
+  it("隠せない列は操作させない", async () => {
     renderOptions();
 
-    const menu = openMenu();
+    const menu = await openMenu();
 
     expect(within(menu).getByRole("menuitemcheckbox", { name: "プラン名" })).toHaveAttribute(
       "data-disabled",
     );
   });
 
-  it("列を表示に切り替えたことを呼び出し元へ返す", () => {
+  it("列を表示に切り替えたことを呼び出し元へ返す", async () => {
     const { onColumnVisibilityChange } = renderOptions();
-    const menu = openMenu();
+    const menu = await openMenu();
 
-    fireEvent.click(within(menu).getByRole("menuitemcheckbox", { name: "更新日時" }));
+    await userEvent.click(within(menu).getByRole("menuitemcheckbox", { name: "更新日時" }));
 
     expect(onColumnVisibilityChange).toHaveBeenCalledWith("updatedAt", true);
   });
 
-  it("列を非表示に切り替えたことを呼び出し元へ返す", () => {
+  it("列を非表示に切り替えたことを呼び出し元へ返す", async () => {
     const { onColumnVisibilityChange } = renderOptions();
-    const menu = openMenu();
+    const menu = await openMenu();
 
-    fireEvent.click(within(menu).getByRole("menuitemcheckbox", { name: "状態" }));
+    await userEvent.click(within(menu).getByRole("menuitemcheckbox", { name: "状態" }));
 
     expect(onColumnVisibilityChange).toHaveBeenCalledWith("status", false);
   });
 
-  it("いまの表示密度を選択済みとして示す", () => {
+  it("いまの表示密度を選択済みとして示す", async () => {
     renderOptions({ density: TABLE_DENSITY.COMPACT });
 
-    const menu = openMenu();
+    const menu = await openMenu();
 
     expect(within(menu).getByRole("menuitemradio", { name: "詰めて表示" })).toBeChecked();
   });
 
-  it("表示密度を詰める側へ変えたことを呼び出し元へ返す", () => {
+  it("表示密度を詰める側へ変えたことを呼び出し元へ返す", async () => {
     const { onDensityChange } = renderOptions();
-    const menu = openMenu();
+    const menu = await openMenu();
 
-    fireEvent.click(within(menu).getByRole("menuitemradio", { name: "詰めて表示" }));
+    await userEvent.click(within(menu).getByRole("menuitemradio", { name: "詰めて表示" }));
 
     expect(onDensityChange).toHaveBeenCalledWith(TABLE_DENSITY.COMPACT);
   });
 
-  it("表示密度をゆったり側へ戻したことを呼び出し元へ返す", () => {
+  it("表示密度をゆったり側へ戻したことを呼び出し元へ返す", async () => {
     const { onDensityChange } = renderOptions({ density: TABLE_DENSITY.COMPACT });
-    const menu = openMenu();
+    const menu = await openMenu();
 
-    fireEvent.click(within(menu).getByRole("menuitemradio", { name: "ゆったり" }));
+    await userEvent.click(within(menu).getByRole("menuitemradio", { name: "ゆったり" }));
 
     expect(onDensityChange).toHaveBeenCalledWith(TABLE_DENSITY.COMFORTABLE);
   });

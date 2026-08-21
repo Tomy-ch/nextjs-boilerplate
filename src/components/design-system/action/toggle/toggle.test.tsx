@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useCallback, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -36,19 +37,19 @@ describe("Toggle", () => {
     );
   });
 
-  it("状態が変わってもアクセシブルな名前は変えない", () => {
+  it("状態が変わってもアクセシブルな名前は変えない", async () => {
     render(<ControlledFixture />);
 
     const toggle = screen.getByRole("button", { name: "折り返す" });
-    fireEvent.click(toggle);
+    await userEvent.click(toggle);
 
     expect(screen.getByRole("button", { name: "折り返す", pressed: true })).toBe(toggle);
   });
 
-  it("呼び出し元が保持する state を反映する", () => {
+  it("呼び出し元が保持する state を反映する", async () => {
     render(<ControlledFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "折り返す" }));
+    await userEvent.click(screen.getByRole("button", { name: "折り返す" }));
 
     expect(screen.getByRole("button", { name: "折り返す" })).toHaveAttribute(
       "aria-pressed",
@@ -76,7 +77,7 @@ describe("Toggle", () => {
     expect(toggle).toHaveAttribute("value", "compact");
   });
 
-  it("disabled のとき操作を受け付けない", () => {
+  it("disabled のとき操作を受け付けない", async () => {
     const onClick = vi.fn();
     render(
       <Toggle disabled onClick={onClick} pressed={false}>
@@ -85,7 +86,7 @@ describe("Toggle", () => {
     );
 
     const toggle = screen.getByRole("button", { name: "折り返す" });
-    fireEvent.click(toggle);
+    await userEvent.click(toggle);
 
     expect(toggle).toBeDisabled();
     expect(onClick).not.toHaveBeenCalled();
