@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
+import { serveJson } from "../../../../vitest.setup";
 
 const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => PARSED_ENVIRONMENT) }));
 
@@ -14,22 +15,12 @@ const wireCandidate = {
   town: "神宮前",
 };
 
-function stubFetch(body: unknown): ReturnType<typeof vi.fn> {
-  const fetchImpl = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }));
-
-  vi.stubGlobal("fetch", fetchImpl);
-
-  return fetchImpl;
-}
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+const ADDRESSES_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/addresses`;
 
 describe("findAddressCandidates", () => {
   // ----- 正常系 -----
   it("契約の候補を表示用の 3 項目へ写す", async () => {
-    stubFetch({ candidates: [wireCandidate], isFallback: false });
+    serveJson(ADDRESSES_URL, { candidates: [wireCandidate], isFallback: false });
 
     await expect(findAddressCandidates("150-0001")).resolves.toEqual([
       { prefecture: "東京都", city: "渋谷区", town: "神宮前" },
@@ -37,7 +28,7 @@ describe("findAddressCandidates", () => {
   });
 
   it("画面が使わない都道府県 ID を落とす", async () => {
-    stubFetch({ candidates: [wireCandidate], isFallback: false });
+    serveJson(ADDRESSES_URL, { candidates: [wireCandidate], isFallback: false });
 
     const [candidate] = await findAddressCandidates("150-0001");
 
@@ -45,17 +36,15 @@ describe("findAddressCandidates", () => {
   });
 
   it("郵便番号をクエリへ載せる", async () => {
-    const fetchImpl = stubFetch({ candidates: [], isFallback: false });
+    const requests = serveJson(ADDRESSES_URL, { candidates: [], isFallback: false });
 
     await findAddressCandidates("150-0001");
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/v1/addresses?postalCode=150-0001",
-    );
+    expect(requests[0]?.url).toBe(`${ADDRESSES_URL}?postalCode=150-0001`);
   });
 
   it("複数の候補を契約が返した順のまま保つ", async () => {
-    stubFetch({
+    serveJson(ADDRESSES_URL, {
       candidates: [wireCandidate, { ...wireCandidate, town: "千駄ヶ谷" }],
       isFallback: false,
     });
@@ -66,7 +55,7 @@ describe("findAddressCandidates", () => {
   });
 
   it("県名を解決できなかった候補も市区町村と町域を保つ", async () => {
-    stubFetch({
+    serveJson(ADDRESSES_URL, {
       candidates: [{ ...wireCandidate, prefectureId: null }],
       isFallback: false,
     });
@@ -77,22 +66,22 @@ describe("findAddressCandidates", () => {
   });
 
   it("該当が無いとき空の候補を返す", async () => {
-    stubFetch({ candidates: [], isFallback: false });
+    serveJson(ADDRESSES_URL, { candidates: [], isFallback: false });
 
     await expect(findAddressCandidates("999-9999")).resolves.toEqual([]);
   });
 
   it("外部 lookup が落ちていても投げずに空の候補を返す", async () => {
-    stubFetch({ candidates: [], isFallback: true });
+    serveJson(ADDRESSES_URL, { candidates: [], isFallback: true });
 
     await expect(findAddressCandidates("150-0001")).resolves.toEqual([]);
   });
 
   it("認証ヘッダを付けずに送る", async () => {
-    const fetchImpl = stubFetch({ candidates: [], isFallback: false });
+    const requests = serveJson(ADDRESSES_URL, { candidates: [], isFallback: false });
 
     await findAddressCandidates("150-0001");
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ headers: {} });
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
   });
 });

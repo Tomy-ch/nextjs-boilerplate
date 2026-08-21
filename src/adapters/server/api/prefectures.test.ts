@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
+import { serveJson, watchFetch } from "../../../../vitest.setup";
 
 const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => PARSED_ENVIRONMENT) }));
 
@@ -12,22 +13,16 @@ const wirePrefectures = [
   { id: "0195f0c2-0000-7000-8000-000000000013", code: 13, name: "東京都" },
 ];
 
-function stubFetch(body: unknown): ReturnType<typeof vi.fn> {
-  const fetchImpl = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }));
-
-  vi.stubGlobal("fetch", fetchImpl);
-
-  return fetchImpl;
-}
+const PREFECTURES_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/prefectures`;
 
 afterEach(() => {
-  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("getPrefectures", () => {
   // ----- 正常系 -----
   it("契約の応答から ID と表示名だけを取り出す", async () => {
-    stubFetch(wirePrefectures);
+    serveJson(PREFECTURES_URL, wirePrefectures);
 
     await expect(getPrefectures()).resolves.toEqual([
       { id: wirePrefectures[0]?.id, name: "北海道" },
@@ -36,7 +31,7 @@ describe("getPrefectures", () => {
   });
 
   it("並び順を決めるだけの JIS コードを落とす", async () => {
-    stubFetch(wirePrefectures);
+    serveJson(PREFECTURES_URL, wirePrefectures);
 
     const [prefecture] = await getPrefectures();
 
@@ -44,7 +39,7 @@ describe("getPrefectures", () => {
   });
 
   it("契約が返した並びをそのまま保つ", async () => {
-    stubFetch([...wirePrefectures].reverse());
+    serveJson(PREFECTURES_URL, [...wirePrefectures].reverse());
 
     const prefectures = await getPrefectures();
 
@@ -52,7 +47,8 @@ describe("getPrefectures", () => {
   });
 
   it("再検証のタグを付ける", async () => {
-    const fetchImpl = stubFetch(wirePrefectures);
+    serveJson(PREFECTURES_URL, wirePrefectures);
+    const fetchImpl = watchFetch();
 
     await getPrefectures();
 
@@ -62,7 +58,8 @@ describe("getPrefectures", () => {
   });
 
   it("画面を開くたびに取り直さないようキャッシュを指定する", async () => {
-    const fetchImpl = stubFetch(wirePrefectures);
+    serveJson(PREFECTURES_URL, wirePrefectures);
+    const fetchImpl = watchFetch();
 
     await getPrefectures();
 
@@ -70,15 +67,15 @@ describe("getPrefectures", () => {
   });
 
   it("認証ヘッダを付けずに送る", async () => {
-    const fetchImpl = stubFetch(wirePrefectures);
+    const requests = serveJson(PREFECTURES_URL, wirePrefectures);
 
     await getPrefectures();
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ headers: {} });
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
   });
 
   it("マスタが空でも空の一覧として返す", async () => {
-    stubFetch([]);
+    serveJson(PREFECTURES_URL, []);
 
     await expect(getPrefectures()).resolves.toEqual([]);
   });

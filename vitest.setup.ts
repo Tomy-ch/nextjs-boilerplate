@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, configure } from "@testing-library/react";
 import { HttpResponse, http, type JsonBodyType, passthrough } from "msw";
-import { afterAll, afterEach, beforeAll, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, type MockInstance, vi } from "vitest";
 import { mockServer } from "./mocks/node";
 
 // dev サーバーと同じ契約駆動ハンドラをテストでも使う。テスト専用のスタブを別に持つと、
@@ -89,20 +89,37 @@ export function serveWrite(
   return requests;
 }
 
+/** 応答を割り当てられる HTTP メソッド。 */
+export type ServedMethod = "get" | WriteMethod;
+
 /**
- * 書き込み 1 本に、本文を持たない失敗の status を割り当てる。
+ * 宛先 1 本に、本文を持たない応答の status を割り当てる。
  *
  * @remarks
  * 生の status を扱えるのは HTTP 境界だけです。内側は分類済みのエラーしか見ないため
  * （[0080](docs/adr/0080-error-handling.md)）、正規化の入口を確かめるにはここで status を
  * 与えるしかありません。
  *
+ * 本文を持たない応答は失敗だけではありません。`204` を返す削除も同じ形なので、届いた要求を
+ * {@link serveWrite} と同じく記録して返します。
+ *
  * @param method - 割り当てるメソッド
- * @param url - 割り当てる絶対 URL
+ * @param url - 割り当てる絶対 URL。動的な区間は `:name` で表す
  * @param status - 返す HTTP status
+ * @returns 届いた要求の複製。呼び出しの順に積まれる
  */
-export function serveWriteStatus(method: WriteMethod, url: string, status: number): void {
-  mockServer.use(http[method](url, () => new HttpResponse(null, { status })));
+export function serveStatus(method: ServedMethod, url: string, status: number): readonly Request[] {
+  const requests: Request[] = [];
+
+  mockServer.use(
+    http[method](url, ({ request }) => {
+      requests.push(request.clone());
+
+      return new HttpResponse(null, { status });
+    }),
+  );
+
+  return requests;
 }
 
 /**
@@ -249,4 +266,18 @@ if (typeof Element !== "undefined" && Element.prototype.scrollBy === undefined) 
   Element.prototype.scrollBy = function scrollBy(): void {
     // 意図的に空。
   };
+}
+
+/**
+ * `fetch` の呼び出しを記録する。**応答は差し替えない。**
+ *
+ * @remarks
+ * Next.js のキャッシュ指定（`cache` / `next.tags`）は要求として送出されないため、HTTP 境界からは
+ * 観測できません。指定されたことを確かめる手段は呼び出しの引数しかなく、そこだけを覗きます。
+ * 応答は MSW のハンドラが返したものがそのまま通ります。
+ *
+ * 記録を止めるのは `vi.restoreAllMocks()` です。呼ぶテストファイルが `afterEach` で片付けます。
+ */
+export function watchFetch(): MockInstance<typeof fetch> {
+  return vi.spyOn(globalThis, "fetch");
 }
