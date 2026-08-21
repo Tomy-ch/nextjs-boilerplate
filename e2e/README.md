@@ -240,6 +240,6 @@ story のような差分の報告を E2E が出さないためで、動いてい
 画面に脇へ常設する領域が無い以上、確かめる対象が無い。帯そのものの組み立て
 （[`lib/viewports.ts`](lib/viewports.ts)）は残るので、そういう画面を置いた時点で spec を書き足せる。
 | [`../playwright.e2e.config.ts`](../playwright.e2e.config.ts) | 実行環境と比較条件 |
-| [`../.makefiles/testing/e2e.mk`](../.makefiles/testing/e2e.mk) | build・起動・後片付け |
+| [`../.makefiles/testing/e2e.mk`](../.makefiles/testing/e2e.mk) | build・起動・後片付け。画面ごとの Core Web Vitals（`make lighthouse`）も同じ起動に相乗りする |
 
 `tmp/e2e/` に出る実行結果（trace / HTML レポート / サーバのログ）は追跡しない。
