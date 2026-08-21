@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useId } from "react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
@@ -47,11 +48,11 @@ describe("SwitchNative", () => {
     expect(control).not.toHaveAttribute("aria-checked");
   });
 
-  it("クリックで入りと切りを切り替える", () => {
+  it("クリックで入りと切りを切り替える", async () => {
     render(<SwitchFixture />);
 
     const control = screen.getByRole("checkbox", { name: "通知を受け取る" });
-    fireEvent.click(control);
+    await userEvent.click(control);
 
     expect(control).not.toBeChecked();
   });

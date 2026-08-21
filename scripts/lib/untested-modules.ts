@@ -13,12 +13,15 @@
  */
 
 /**
- * 入口ファイル。CLI 引数の受け取り・ファイル入出力・終了コードだけを担い、判定は同じ
- * ディレクトリの判定モジュールへ切り出してある。
+ * 入口ファイル。CLI 引数の受け取り・外との遣り取り・終了コードを担い、**それ無しでも下せる
+ * 判定は同じディレクトリの判定モジュールへ切り出してある。**
  *
  * @remarks
- * 撤去条件は、当該入口が判定を持ち始めた時点。入口に分岐が生えたらここから外し、判定を
- * 隣のモジュールへ移すか、入口そのものにテストを書く。
+ * **線を引くのは「遣り取りをせずに答えを出せるか」で、分量でも分岐の数でもありません。**
+ * 子プロセスの結果やソケットの応答から次を決める形は、純粋にしても「差し替えたものを呼んだ」
+ * しか確かめられないので入口に残します。
+ *
+ * 撤去条件は、遣り取り無しで下せる判定が生えた時点。隣の判定モジュールへ移す。
  */
 export const ENTRYPOINT_PATTERNS = [
   "scripts/*/index.ts",
@@ -127,6 +130,29 @@ const RUNTIME_ONLY_MODULES = ["src/app/**/page.tsx", "src/app/**/page.dev.tsx"] 
  * `vrt/lib/` / `e2e/lib/` へ切り出して 1:1 の対象にしています。
  */
 const TEST_SUITE_MODULES = ["vrt/*.spec.ts", "e2e/**/*.spec.ts"] as const;
+
+/**
+ * 主語を持たないテストファイルの宣言。
+ *
+ * @remarks
+ * 1:1 ゲートはソース側から歩くため、対応する production ファイルが無いテストファイルには
+ * 入口が無く、放っておくと検査へ一度も掛かりません。ここへ並ぶものだけがそれを許されます。
+ *
+ * - `**\/*.contract.test.ts` — 契約から生成したハンドラを相手にする検査。相手は生成物であって
+ *   production のモジュールではなく、確かめるのは「生成ハンドラの応答が adapter を通るか」。
+ *   最上位 describe は隣の adapter の export 名を採る
+ * - `scripts/*.gate.test.ts` — 開発機構そのもののゲート。subject はリポジトリ全体で、
+ *   判定は隣の `lib/` が持つ。describe はゲートが名乗る規則の名前を採る
+ * - `mocks/contract-conformance.test.ts` — 生成ハンドラ全件が契約に適合するかの検査。
+ *   同じく相手が生成物で、production のモジュールに対応先が無い
+ *
+ * ここから外れるのは、そのテストが production のモジュールを主語に持ち直したとき。
+ */
+export const SUBJECTLESS_TESTS = [
+  "**/*.contract.test.ts",
+  "scripts/*.gate.test.ts",
+  "mocks/contract-conformance.test.ts",
+] as const;
 
 /** カバレッジ母数と 1:1 ゲートの双方が外す対象(リポジトリルート相対)。 */
 export const EXCLUDED_FROM_CHECKS = [

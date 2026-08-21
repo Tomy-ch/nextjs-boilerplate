@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useId } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -76,6 +77,9 @@ function controlOf() {
 
 beforeEach(() => {
   globalThis.ResizeObserver = ResizeObserverStub;
+  // jsdom は座標から要素を引く API を持たない。この入力の実体（input-otp）は focus のあと
+  // 表示位置を測りに来るため、実際の focus を通す操作で必ずここへ到達する。
+  document.elementFromPoint ??= () => null;
 });
 
 afterEach(() => {
@@ -93,16 +97,19 @@ describe("SegmentedInput", () => {
     expect(control).toHaveAttribute("name", "code");
   });
 
-  it("pattern で受け付ける文字種を絞れる", () => {
+  it("pattern で受け付ける文字種を絞れる", async () => {
     const onChange = vi.fn();
 
     render(<CodeFixture onChange={onChange} pattern={SEGMENTED_INPUT_PATTERN.DIGITS} />);
 
-    fireEvent.change(controlOf(), { target: { value: "12a" } });
+    // 貼り付けで送る。打鍵だと 1 文字ずつ届き、受け付けない文字が混ざった値そのものを
+    // 渡す形にならない。
+    await userEvent.click(controlOf());
+    await userEvent.paste("12a");
 
     expect(onChange).not.toHaveBeenCalled();
 
-    fireEvent.change(controlOf(), { target: { value: "123" } });
+    await userEvent.paste("123");
 
     expect(onChange).toHaveBeenCalledWith("123");
   });
@@ -121,22 +128,22 @@ describe("SegmentedInput", () => {
     expect(slots.map((slot) => slot.textContent)).toEqual(["1", "2", "3", "4", "5", "6"]);
   });
 
-  it("入力を onChange で呼び出し元へ渡す", () => {
+  it("入力を onChange で呼び出し元へ渡す", async () => {
     const onChange = vi.fn();
 
     render(<CodeFixture onChange={onChange} />);
 
-    fireEvent.change(controlOf(), { target: { value: "123" } });
+    await userEvent.type(controlOf(), "123");
 
     expect(onChange).toHaveBeenCalledWith("123");
   });
 
-  it("入力位置の桁を data-active で示す", () => {
+  it("入力位置の桁を data-active で示す", async () => {
     const { container } = render(<CodeFixture value="12" />);
 
     const slots = [...container.querySelectorAll('[data-slot="segmented-input-slot"]')];
 
-    fireEvent.focus(controlOf());
+    await userEvent.click(controlOf());
 
     expect(slots[2]).toHaveAttribute("data-active", "true");
     expect(slots[0]).toHaveAttribute("data-active", "false");

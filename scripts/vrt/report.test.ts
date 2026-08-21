@@ -196,6 +196,19 @@ describe("formatTable", () => {
     expect(table).toContain("ほか 3 件");
   });
 
+  it("升目の区切りと改行を含む見出しが、表の行の形を壊さない", () => {
+    const broken: Failure = {
+      id: "x--y",
+      title: "壊す | 行\n## 見出し",
+      theme: "light",
+      diffPixels: null,
+    };
+
+    const row = formatTable([broken]).split("\n").at(-1);
+
+    expect(row).toBe("| 壊す \\| 行 ## 見出し | light | — | `x--y` |");
+  });
+
   // ----- 異常系 -----
   it("差分が無ければ表を出さない", () => {
     expect(formatTable([])).toBe("差分はありません。");

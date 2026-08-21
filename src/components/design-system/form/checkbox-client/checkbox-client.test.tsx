@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -22,11 +23,11 @@ describe("CheckboxClient", () => {
     );
   });
 
-  it("クリックで選択を切り替え、呼び出し元へ通知する", () => {
+  it("クリックで選択を切り替え、呼び出し元へ通知する", async () => {
     const onCheckedChange = vi.fn();
 
     render(<CheckboxClient aria-label="設定を有効にする" onCheckedChange={onCheckedChange} />);
-    fireEvent.click(screen.getByRole("checkbox", { name: "設定を有効にする" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "設定を有効にする" }));
 
     expect(screen.getByRole("checkbox", { name: "設定を有効にする" })).toBeChecked();
     expect(onCheckedChange).toHaveBeenCalledWith(true);

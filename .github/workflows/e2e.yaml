@@ -133,10 +133,21 @@ jobs:
       # retake can repair, and the second of which a retake would bake in as the truth.
       - name: Collect the comment body
         if: always() && steps.e2e.outputs.status != ''
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          RUN_ID: ${{ github.run_id }}
         shell: bash
         run: |
+          # The comment is written to two files, and the split is what decides what renders.
+          # `e2e.log` is folded inside a code block because a log line is whatever the tools
+          # printed — source text a pull request controls, which must not become markup. The
+          # notes are workflow-authored prose, and they render, because a copy-me command says
+          # nothing when shown as literal characters.
+          mkdir -p /tmp/e2e-comment
+
           if [ "${{ steps.e2e.outputs.status }}" = "success" ]; then
-            echo '主要ジャーニーが 3 つの描画エンジンで通り、画面の見た目も基準画像と一致しました。' > /tmp/e2e.log
+            echo '主要ジャーニーが 3 つの描画エンジンで通り、画面の見た目も基準画像と一致しました。' > /tmp/e2e-comment/e2e.log
+            : > /tmp/e2e-comment/e2e-notes.md
             exit 0
           fi
 
@@ -158,11 +169,10 @@ jobs:
             pixels=true
           fi
 
+          tail -n 80 /tmp/e2e-full.log > /tmp/e2e-comment/e2e.log
+
           {
-            tail -n 80 /tmp/e2e-full.log
-
             cat <<'ARTIFACT'
-
           `e2e-diff` artifact に HTML レポートと、失敗した検証の trace が入っています。
           ARTIFACT
 
@@ -197,6 +207,37 @@ jobs:
 
           **落ちた画面それぞれについて、なぜ変わったかを言えるまで撮り直さないでください。** 全画面が一度に落ちる形は原因が 1 つとは限らず、混ざっている不具合ごと撮り直すとそれが次の正になります（`docs/design/vrt.md` の「限界」）。
           PIXELS
+
+              # The failing set in the form the local review target takes. Emitted as its own
+              # fenced block so it survives a copy — a command spread across a prose paragraph
+              # does not.
+              names="$(pnpm exec tsx scripts/e2e names tmp/e2e/report.json || true)"
+
+              # The block below is written to be pasted into a shell, so a value carrying
+              # `$(...)` or a backtick would be evaluated by the reader's shell before `make`
+              # ever starts. A branch name may legally contain both, and a screen name is a
+              # free-form string in `e2e/lib/screens.ts`. Drop the block rather than emit one
+              # that is unsafe to paste — quoting alone would not do, because a value
+              # containing a single quote closes the quoting again.
+              if printf '%s%s' "${HEAD_REF}" "${names}" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; then
+                names=''
+                echo "review block suppressed: head_ref or screen names carry shell metacharacters" >&2
+              fi
+
+              if [ -n "${names}" ]; then
+                cat <<REVIEW
+
+          #### 手元で見る
+
+          落ちた画面を使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。役割の要る画面は開発用 session の面を経由します。
+
+          \`\`\`bash
+          make e2e-review BRANCH='${HEAD_REF}' RUN='${RUN_ID}' E2E_ONLY='${names}'
+          \`\`\`
+
+          作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。
+          REVIEW
+              fi
             fi
 
             if [ "${undeclared}" = 'false' ] && [ "${journey}" = 'false' ] && [ "${pixels}" = 'false' ]; then
@@ -207,7 +248,7 @@ jobs:
           上のログと artifact を見てください。ここに案内が出ないのは、build か起動の段で落ちているか、判定に使っている目印が変わったときです。
           UNKNOWN
             fi
-          } > /tmp/e2e.log
+          } > /tmp/e2e-comment/e2e-notes.md
 
       # The HTML report and the traces. Without them the only evidence of a failure is
       # the assertion text, which cannot be judged for a visual difference.
@@ -227,7 +268,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: e2e-comment
-          path: /tmp/e2e.log
+          path: /tmp/e2e-comment/
           retention-days: 1
           if-no-files-found: error
 
@@ -273,4 +314,5 @@ jobs:
           marker: '<!-- e2e-result -->'
           title: ${{ needs.e2e.outputs.title }}
           body-file: /tmp/e2e-comment/e2e.log
+          notes-file: /tmp/e2e-comment/e2e-notes.md
           details-summary: 'E2E の実行ログ'

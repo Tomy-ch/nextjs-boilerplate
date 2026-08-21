@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { serveJson, serveStatus, serveWrite } from "../../../../vitest.setup";
 
 const { getAccessToken, getEnvironment, getLogger, signOut, warn } = vi.hoisted(() => {
   const warnFn = vi.fn();
@@ -23,6 +24,13 @@ import { getMyProfile, getMyPurchaseSummary, updateMyProfile, withdrawMe } from 
 
 /** 更新と退会が対象を指すのに使う内部の識別子。画面へは出さない。 */
 const USER_ID = "0195f0c2-0000-7000-8000-0000000000a1";
+
+const USERS_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/users`;
+
+/** 自分を指す口。更新と退会は、まずここで識別子を解決してから対象の口を叩く。 */
+const ME_URL = `${USERS_URL}/me`;
+const SUMMARY_URL = `${ME_URL}/purchases/summary`;
+const USER_URL = `${USERS_URL}/:userId`;
 
 const wireUser = {
   id: USER_ID,
@@ -70,39 +78,6 @@ const wireSummary = {
   ],
 };
 
-/**
- * 呼び出しの順に応答を返す fetch。
- *
- * @remarks
- * 更新と退会は `/users/me` で識別子を解決してから対象の口を叩くため、1 回の呼び出しで 2 度出ます。
- * 応答を関数で受け取るのは、`Response` の本文が 1 度しか読めないためです。
- */
-function stubFetch(...responses: readonly (() => Response)[]): ReturnType<typeof vi.fn> {
-  let index = 0;
-
-  const fetchImpl = vi.fn(async () => {
-    const next = responses[Math.min(index, responses.length - 1)];
-
-    index += 1;
-
-    return next?.();
-  });
-
-  vi.stubGlobal("fetch", fetchImpl);
-
-  return fetchImpl;
-}
-
-/** JSON 本文を持つ 200 応答。 */
-function json(body: unknown): () => Response {
-  return () => new Response(JSON.stringify(body), { status: 200 });
-}
-
-/** 本文を持たない 204 応答。契約が `DELETE` に定める形。 */
-function noContent(): () => Response {
-  return () => new Response(null, { status: 204 });
-}
-
 /** 投げられたエラーに付いた分類を返す。投げなければ undefined。 */
 async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
   try {
@@ -122,58 +97,52 @@ beforeEach(() => {
   warn.mockReset();
 });
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
 describe("getMyProfile", () => {
   // ----- 正常系 -----
   it("契約の応答を表示用のプロフィールへ写す", async () => {
-    stubFetch(json(wireUser));
+    serveJson(ME_URL, wireUser);
 
     await expect(getMyProfile()).resolves.toEqual(profile);
   });
 
   it("内部の識別子を画面へ渡さない", async () => {
-    stubFetch(json(wireUser));
+    serveJson(ME_URL, wireUser);
 
     await expect(getMyProfile()).resolves.not.toHaveProperty("id");
   });
 
   it("退会日時を画面へ渡さない", async () => {
-    stubFetch(json(wireUser));
+    serveJson(ME_URL, wireUser);
 
     await expect(getMyProfile()).resolves.not.toHaveProperty("deletedAt");
   });
 
   it("建物名の無い利用者の建物名を null にする", async () => {
-    stubFetch(json({ ...wireUser, building: undefined }));
+    serveJson(ME_URL, { ...wireUser, building: undefined });
 
     await expect(getMyProfile()).resolves.toMatchObject({ building: null });
   });
 
   it("自分を指す口を認証ヘッダつきで叩く", async () => {
-    const fetchImpl = stubFetch(json(wireUser));
+    const requests = serveJson(ME_URL, wireUser);
 
     await getMyProfile();
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/users/me");
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
-      headers: { Authorization: "Bearer access-token" },
-    });
+    expect(requests[0]?.url).toBe(ME_URL);
+    expect(requests[0]?.headers.get("Authorization")).toBe("Bearer access-token");
   });
 
   // ----- 異常系 -----
   it("認証できないとき取得へ出さず未認証として投げる", async () => {
-    const fetchImpl = stubFetch(json(wireUser));
+    const requests = serveJson(ME_URL, wireUser);
     getAccessToken.mockResolvedValue(null);
 
     await expect(kindOf(getMyProfile)).resolves.toBe(ErrorKind.UNAUTHENTICATED);
-    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(requests).toHaveLength(0);
   });
 
   it("応答が契約と一致しないとき internal として投げる", async () => {
-    stubFetch(json({ ...wireUser, email: "メールではない" }));
+    serveJson(ME_URL, { ...wireUser, email: "メールではない" });
 
     await expect(kindOf(getMyProfile)).resolves.toBe(ErrorKind.INTERNAL);
   });
@@ -182,7 +151,7 @@ describe("getMyProfile", () => {
 describe("getMyPurchaseSummary", () => {
   // ----- 正常系 -----
   it("契約の集計を表示用の内訳へ写す", async () => {
-    stubFetch(json(wireSummary));
+    serveJson(SUMMARY_URL, wireSummary);
 
     await expect(getMyPurchaseSummary()).resolves.toEqual({
       totalCount: 3,
@@ -205,19 +174,18 @@ describe("getMyPurchaseSummary", () => {
   });
 
   it("集計の口を叩く", async () => {
-    const fetchImpl = stubFetch(json(wireSummary));
+    const requests = serveJson(SUMMARY_URL, wireSummary);
 
     await getMyPurchaseSummary();
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/v1/users/me/purchases/summary",
-    );
+    expect(requests[0]?.url).toBe(SUMMARY_URL);
   });
 
   it("契約が返した表示順のまま内訳を保つ", async () => {
-    stubFetch(
-      json({ ...wireSummary, statusBreakdown: [...wireSummary.statusBreakdown].reverse() }),
-    );
+    serveJson(SUMMARY_URL, {
+      ...wireSummary,
+      statusBreakdown: [...wireSummary.statusBreakdown].reverse(),
+    });
 
     const summary = await getMyPurchaseSummary();
 
@@ -225,15 +193,13 @@ describe("getMyPurchaseSummary", () => {
   });
 
   it("購入が 1 件も無いときゼロ値と空の内訳を返す", async () => {
-    stubFetch(
-      json({
-        period: { from: null, to: null },
-        totalCount: 0,
-        totalAmount: 0,
-        itemsTotal: "0",
-        statusBreakdown: [],
-      }),
-    );
+    serveJson(SUMMARY_URL, {
+      period: { from: null, to: null },
+      totalCount: 0,
+      totalAmount: 0,
+      itemsTotal: "0",
+      statusBreakdown: [],
+    });
 
     await expect(getMyPurchaseSummary()).resolves.toEqual({
       totalCount: 0,
@@ -244,7 +210,7 @@ describe("getMyPurchaseSummary", () => {
 
   // ----- 異常系 -----
   it("応答が契約と一致しないとき internal として投げる", async () => {
-    stubFetch(json({ ...wireSummary, totalCount: "3" }));
+    serveJson(SUMMARY_URL, { ...wireSummary, totalCount: "3" });
 
     await expect(kindOf(getMyPurchaseSummary)).resolves.toBe(ErrorKind.INTERNAL);
   });
@@ -253,7 +219,8 @@ describe("getMyPurchaseSummary", () => {
 describe("updateMyProfile", () => {
   // ----- 正常系 -----
   it("更新後のプロフィールを表示用の型で返す", async () => {
-    stubFetch(json(wireUser), json({ ...wireUser, city: "港区" }));
+    serveJson(ME_URL, wireUser);
+    serveWrite("put", USER_URL, { ...wireUser, city: "港区" });
 
     await expect(updateMyProfile({ ...profile, city: "港区" })).resolves.toMatchObject({
       city: "港区",
@@ -261,49 +228,53 @@ describe("updateMyProfile", () => {
   });
 
   it("自分の識別子を解決してから対象の口を PUT で叩く", async () => {
-    const fetchImpl = stubFetch(json(wireUser), json(wireUser));
+    const resolved = serveJson(ME_URL, wireUser);
+    const updates = serveWrite("put", USER_URL, wireUser);
 
     await updateMyProfile(profile);
 
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/users/me");
-    expect(fetchImpl.mock.calls[1]?.[0]).toBe(`https://api.example.test/v1/users/${USER_ID}`);
-    expect(fetchImpl.mock.calls[1]?.[1]).toMatchObject({ method: "PUT" });
+    expect(resolved[0]?.url).toBe(ME_URL);
+    expect(updates[0]?.url).toBe(`${USERS_URL}/${USER_ID}`);
+    expect(updates[0]?.method).toBe("PUT");
   });
 
   it("契約が要求する全項目を本文へ載せる", async () => {
-    const fetchImpl = stubFetch(json(wireUser), json(wireUser));
+    serveJson(ME_URL, wireUser);
+    const updates = serveWrite("put", USER_URL, wireUser);
 
     await updateMyProfile(profile);
 
-    expect(JSON.parse(String(fetchImpl.mock.calls[1]?.[1]?.body))).toEqual(profile);
+    await expect(updates[0]?.json()).resolves.toEqual(profile);
   });
 
   it("建物名が空でも項目ごと落とさずに送る", async () => {
-    const fetchImpl = stubFetch(json(wireUser), json({ ...wireUser, building: undefined }));
+    serveJson(ME_URL, wireUser);
+    const updates = serveWrite("put", USER_URL, { ...wireUser, building: undefined });
 
     await updateMyProfile({ ...profile, building: null });
 
-    expect(JSON.parse(String(fetchImpl.mock.calls[1]?.[1]?.body))).toMatchObject({
-      building: null,
-    });
+    await expect(updates[0]?.json()).resolves.toMatchObject({ building: null });
   });
 
   it("建物名の無い応答の建物名を null にする", async () => {
-    stubFetch(json(wireUser), json({ ...wireUser, building: undefined }));
+    serveJson(ME_URL, wireUser);
+    serveWrite("put", USER_URL, { ...wireUser, building: undefined });
 
     await expect(updateMyProfile(profile)).resolves.toMatchObject({ building: null });
   });
 
   // ----- 異常系 -----
   it("識別子を解決できないとき更新を送らない", async () => {
-    const fetchImpl = stubFetch(json({ ...wireUser, email: "メールではない" }));
+    serveJson(ME_URL, { ...wireUser, email: "メールではない" });
+    const updates = serveWrite("put", USER_URL, wireUser);
 
     await expect(kindOf(() => updateMyProfile(profile))).resolves.toBe(ErrorKind.INTERNAL);
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(updates).toHaveLength(0);
   });
 
   it("更新が拒まれたときその分類のまま投げる", async () => {
-    stubFetch(json(wireUser), () => new Response("{}", { status: 409 }));
+    serveJson(ME_URL, wireUser);
+    serveStatus("put", USER_URL, 409);
 
     await expect(kindOf(() => updateMyProfile(profile))).resolves.toBe(ErrorKind.CONFLICT);
   });
@@ -312,16 +283,18 @@ describe("updateMyProfile", () => {
 describe("withdrawMe", () => {
   // ----- 正常系 -----
   it("自分の識別子を解決してから対象の口を DELETE で叩く", async () => {
-    const fetchImpl = stubFetch(json(wireUser), noContent());
+    serveJson(ME_URL, wireUser);
+    const withdrawals = serveStatus("delete", USER_URL, 204);
 
     await withdrawMe();
 
-    expect(fetchImpl.mock.calls[1]?.[0]).toBe(`https://api.example.test/v1/users/${USER_ID}`);
-    expect(fetchImpl.mock.calls[1]?.[1]).toMatchObject({ method: "DELETE" });
+    expect(withdrawals[0]?.url).toBe(`${USERS_URL}/${USER_ID}`);
+    expect(withdrawals[0]?.method).toBe("DELETE");
   });
 
   it("退会が成立したら続けて session を終わらせる", async () => {
-    stubFetch(json(wireUser), noContent());
+    serveJson(ME_URL, wireUser);
+    serveStatus("delete", USER_URL, 204);
 
     await withdrawMe();
 
@@ -330,7 +303,8 @@ describe("withdrawMe", () => {
 
   // ----- 異常系 -----
   it("IdP 側の終了に失敗しても退会は成立として返し、記録を残す", async () => {
-    stubFetch(json(wireUser), noContent());
+    serveJson(ME_URL, wireUser);
+    serveStatus("delete", USER_URL, 204);
     signOut.mockRejectedValue(new Error("idp down"));
 
     await expect(withdrawMe()).resolves.toBeUndefined();
@@ -341,14 +315,16 @@ describe("withdrawMe", () => {
   });
 
   it("識別子を解決できないとき退会を送らない", async () => {
-    const fetchImpl = stubFetch(json({ ...wireUser, email: "メールではない" }));
+    serveJson(ME_URL, { ...wireUser, email: "メールではない" });
+    const withdrawals = serveStatus("delete", USER_URL, 204);
 
     await expect(kindOf(withdrawMe)).resolves.toBe(ErrorKind.INTERNAL);
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(withdrawals).toHaveLength(0);
   });
 
   it("進行中の購入が残って拒まれたとき session を終わらせずに投げる", async () => {
-    stubFetch(json(wireUser), () => new Response("{}", { status: 409 }));
+    serveJson(ME_URL, wireUser);
+    serveStatus("delete", USER_URL, 409);
 
     await expect(kindOf(withdrawMe)).resolves.toBe(ErrorKind.CONFLICT);
     expect(signOut).not.toHaveBeenCalled();

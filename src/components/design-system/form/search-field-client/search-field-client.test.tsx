@@ -17,6 +17,14 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/**
+ * 検索語を打ち込む。
+ *
+ * @remarks
+ * **ここは `user-event` を使いません。**この部品の主題は打鍵を待ってから通知することで、
+ * 待ち時間そのものを確かめるには偽の時計が要ります。`user-event` は入力の再現に自前の待ち合わせを
+ * 挟むため、偽の時計の下では進め方を渡しても止まったままになります。
+ */
 function type(value: string) {
   fireEvent.change(screen.getByRole("searchbox"), { target: { value } });
 }

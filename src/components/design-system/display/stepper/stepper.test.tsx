@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -34,6 +34,17 @@ function Fixture() {
       </StepperItem>
     </Stepper>
   );
+}
+
+/**
+ * 段の中の印を取り出す。
+ *
+ * @remarks
+ * 印は利用者から掴める名前を持たないため、`data-slot` で引くしかありません。段そのものは
+ * `listitem` として引けるので、木の全体ではなくその段の中だけを見ます。
+ */
+function markerOf(item: HTMLElement | undefined): Element | null {
+  return item?.querySelector("[data-slot='stepper-item-marker']") ?? null;
 }
 
 describe("Stepper", () => {
@@ -74,13 +85,13 @@ describe("Stepper", () => {
     const list = screen.getByRole("list", { name: "申請の進捗" });
 
     expect(list.tagName).toBe("OL");
-    expect(list.querySelectorAll("li")).toHaveLength(3);
+    expect(within(list).getAllByRole("listitem")).toHaveLength(3);
   });
 
   it("現在地だけへ aria-current を与える", () => {
     render(<Fixture />);
 
-    const items = screen.getByRole("list").querySelectorAll("li");
+    const items = screen.getAllByRole("listitem");
 
     expect(items[0]).not.toHaveAttribute("aria-current");
     expect(items[1]).toHaveAttribute("aria-current", "step");
@@ -98,11 +109,11 @@ describe("Stepper", () => {
   it("通過済みは番号ではなく check を出す", () => {
     render(<Fixture />);
 
-    const markers = document.querySelectorAll("[data-slot='stepper-item-marker']");
+    const [completed, current] = screen.getAllByRole("listitem");
 
-    expect(markers[0]?.querySelector("svg")).toBeInTheDocument();
-    expect(markers[0]?.textContent).not.toContain("1");
-    expect(markers[1]?.textContent).toContain("2");
+    expect(markerOf(completed)?.querySelector("svg")).toBeInTheDocument();
+    expect(markerOf(completed)?.textContent).not.toContain("1");
+    expect(markerOf(current)?.textContent).toContain("2");
   });
 
   it("state を省くと未着手として扱う", () => {
@@ -116,10 +127,7 @@ describe("Stepper", () => {
       </Stepper>,
     );
 
-    expect(document.querySelector("[data-slot='stepper-item']")).toHaveAttribute(
-      "data-state",
-      STEPPER_STATE.UPCOMING,
-    );
+    expect(screen.getByRole("listitem")).toHaveAttribute("data-state", STEPPER_STATE.UPCOMING);
   });
 
   it("marker を省いても印の枠は残る", () => {
@@ -133,7 +141,7 @@ describe("Stepper", () => {
       </Stepper>,
     );
 
-    const marker = document.querySelector("[data-slot='stepper-item-marker']");
+    const marker = markerOf(screen.getByRole("listitem"));
 
     expect(marker).toBeInTheDocument();
     expect(marker?.textContent).toBe("現在の段階");

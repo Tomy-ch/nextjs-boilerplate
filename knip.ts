@@ -38,6 +38,15 @@ const PUBLISHED_SURFACE = ["src/components/**/*.{ts,tsx}"];
  */
 const NON_IMPORTED_DEPENDENCIES = ["date-fns", "@commitlint/cli", "lefthook"];
 
+/**
+ * 依存として持たない実行ファイル。
+ *
+ * - `make` — `scripts/review/` が build のレシピ（`make e2e-build`）を呼ぶ。build の手順を写して
+ *   持つと、`.makefiles/` を直したときにこちらだけ古くなる。撤去条件は、build の起動元が
+ *   TypeScript 側へ移ったとき。
+ */
+const NON_DEPENDENCY_BINARIES = ["make"];
+
 const config: KnipConfig = {
   // playwright.config.ts はコンテナ外で読み込むと落ちるため、knip の plugin では扱えない
   // (plugin は設定を読み込む)。spec と設定は root の entry が直接指す — 静的に辿るだけなら
@@ -59,6 +68,7 @@ const config: KnipConfig = {
       ],
       ignore: [...GENERATED_MODULES],
       ignoreDependencies: NON_IMPORTED_DEPENDENCIES,
+      ignoreBinaries: NON_DEPENDENCY_BINARIES,
     },
     "docs-viewer": {
       // stylesheet が `@import "tailwindcss"` を辿るだけで、TypeScript には現れない。
