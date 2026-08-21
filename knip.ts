@@ -35,8 +35,11 @@ const PUBLISHED_SURFACE = ["src/components/**/*.{ts,tsx}"];
  * - `lefthook` — git hook から起動する。knip は `.git/hooks` の中身で使用を判定するため、hook を
  *   入れていないチェックアウト（CI）でだけ未使用に見える。撤去条件は、hook の導入が
  *   チェックアウトの時点で済むようになったとき。
+ * - `lighthouse` — `scripts/lighthouse/` が CLI を子プロセスとして起動する。import にしない理由は
+ *   同ディレクトリの `index.ts` にある（tsx の変換がページの中で評価される関数を壊す）。撤去条件は、
+ *   その変換が問題にならなくなって import へ戻せたとき。
  */
-const NON_IMPORTED_DEPENDENCIES = ["date-fns", "@commitlint/cli", "lefthook"];
+const NON_IMPORTED_DEPENDENCIES = ["date-fns", "@commitlint/cli", "lefthook", "lighthouse"];
 
 /**
  * 依存として持たない実行ファイル。

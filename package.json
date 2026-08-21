@@ -124,6 +124,7 @@
     "jsdom": "29.0.1",
     "knip": "6.32.0",
     "lefthook": "2.1.10",
+    "lighthouse": "13.4.1",
     "linkedom": "0.18.13",
     "markdownlint-cli2": "0.23.1",
     "mermaid": "11.16.1",
