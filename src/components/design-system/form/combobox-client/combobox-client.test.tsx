@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useCallback, useId, useState } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -93,59 +94,55 @@ describe("ComboboxClient", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("開くと絞り込み入力と候補一覧を表示する", () => {
+  it("開くと絞り込み入力と候補一覧を表示する", async () => {
     render(<Fixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "都道府県" }));
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
 
     expect(screen.getByRole("combobox", { name: "都道府県" })).toBeInTheDocument();
     expect(screen.getAllByRole("option")).toHaveLength(3);
   });
 
-  it("入力すると label で候補を絞り込む", () => {
+  it("入力すると label で候補を絞り込む", async () => {
     render(<Fixture />);
-    fireEvent.click(screen.getByRole("button", { name: "都道府県" }));
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
 
-    fireEvent.change(screen.getByRole("combobox", { name: "都道府県" }), {
-      target: { value: "神奈川" },
-    });
+    await userEvent.type(screen.getByRole("combobox", { name: "都道府県" }), "神奈川");
 
     expect(screen.getAllByRole("option")).toHaveLength(1);
     expect(screen.getByRole("option")).toHaveTextContent("神奈川県");
   });
 
-  it("一致する候補が無いときは空の文言を表示する", () => {
+  it("一致する候補が無いときは空の文言を表示する", async () => {
     render(<Fixture />);
-    fireEvent.click(screen.getByRole("button", { name: "都道府県" }));
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
 
-    fireEvent.change(screen.getByRole("combobox", { name: "都道府県" }), {
-      target: { value: "該当なし" },
-    });
+    await userEvent.type(screen.getByRole("combobox", { name: "都道府県" }), "該当なし");
 
     expect(screen.queryAllByRole("option")).toHaveLength(0);
     expect(screen.getByText("該当する候補がありません")).toBeInTheDocument();
   });
 
-  it("候補を選ぶと hidden input へ値を入れて閉じる", () => {
+  it("候補を選ぶと hidden input へ値を入れて閉じる", async () => {
     const { container } = render(<Fixture />);
-    fireEvent.click(screen.getByRole("button", { name: "都道府県" }));
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
 
-    fireEvent.click(screen.getByRole("option", { name: "神奈川県" }));
+    await userEvent.click(screen.getByRole("option", { name: "神奈川県" }));
 
     expect(container.querySelector("input[name='prefecture']")).toHaveValue("kanagawa");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
-  it("選択を呼び出し元へ通知し、制御 component として反映できる", () => {
+  it("選択を呼び出し元へ通知し、制御 component として反映できる", async () => {
     render(<ControlledFixture />);
-    fireEvent.click(screen.getByRole("button", { name: "都道府県" }));
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
 
-    fireEvent.click(screen.getByRole("option", { name: "神奈川県" }));
+    await userEvent.click(screen.getByRole("option", { name: "神奈川県" }));
 
     expect(screen.getByRole("status")).toHaveTextContent("kanagawa");
   });
 
-  it("disabled の候補は選択できない", () => {
+  it("disabled の候補は選択できない", async () => {
     const onValueChange = vi.fn();
     render(
       <ComboboxClient
@@ -155,9 +152,9 @@ describe("ComboboxClient", () => {
         options={OPTIONS}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "都道府県" }));
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
 
-    fireEvent.click(screen.getByRole("option", { name: "大阪府" }));
+    await userEvent.click(screen.getByRole("option", { name: "大阪府" }));
 
     expect(onValueChange).not.toHaveBeenCalled();
   });
@@ -168,17 +165,17 @@ describe("ComboboxClient", () => {
     expect(screen.getByRole("button", { name: "都道府県" })).toBeDisabled();
   });
 
-  it("aria-labelledby でも trigger と popover の名前になる", () => {
+  it("aria-labelledby でも trigger と popover の名前になる", async () => {
     render(<LabelledByFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "都道府県" }));
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
 
     expect(screen.getByRole("dialog", { name: "都道府県" })).toBeInTheDocument();
   });
 
   it("開いた状態で a11y 自動検査に違反しない", async () => {
     const { baseElement } = render(<Fixture />);
-    fireEvent.click(screen.getByRole("button", { name: "都道府県" }));
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
 
     const result = await axe(baseElement, {
       rules: { "color-contrast": { enabled: false }, region: { enabled: false } },

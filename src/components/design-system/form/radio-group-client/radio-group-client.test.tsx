@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -21,11 +22,11 @@ describe("RadioGroupClient", () => {
     expect(screen.getByRole("radio", { name: "標準" })).toBeChecked();
   });
 
-  it("別の項目を選ぶと排他的に切り替わり、呼び出し元へ通知する", () => {
+  it("別の項目を選ぶと排他的に切り替わり、呼び出し元へ通知する", async () => {
     const onValueChange = vi.fn();
 
     render(<Fixture onValueChange={onValueChange} />);
-    fireEvent.click(screen.getByRole("radio", { name: "簡潔" }));
+    await userEvent.click(screen.getByRole("radio", { name: "簡潔" }));
 
     expect(screen.getByRole("radio", { name: "簡潔" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "標準" })).not.toBeChecked();

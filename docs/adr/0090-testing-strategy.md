@@ -84,6 +84,10 @@ describe("resolveExchangeRate", () => {
 
 他の層は README frontmatter の `test-requirement` が宣言する。手段が同じ 3 層(`component` / `feature` / `route`)の判別は**対象の合成の度合い**で決める。単一コンポーネントの描画契約なら `component`、複数のカーネルや feature 内部品を画面単位で組み上げたものなら `feature`、その画面を route に載せる器なら `route` である。手段ではなく合成の度合いで分けるのは、負う観点が変わるためで、`feature` と `route` は「部品が揃って初めて成立する振る舞い」を負う。
 
+**宣言は、テスト手段が到達できる範囲で割る。** 1 つのモジュールが 1 つの層に収まるとは限らない。収まらない部分を宣言から黙って落とすと、誰も負わない観点がそこに残る。割ったなら、割った先の層も宣言に書く。
+
+**カーネルの外側にある起動 / 境界エントリ**(`src/proxy.ts` / `src/instrumentation.ts`)は README を持たず、どの `test-requirement` の walk にも乗らない([0021](0021-frontend-responsibility.md) の起動 / ビルド境界)。宣言は本 ADR が直接持ち、**関数本体は `unit`** とする。関数として呼べば分岐は行使できるためである。ただし `proxy.ts` の `export const config` の `matcher` は、関数を直接呼ぶ経路を通らないので `unit` では原理的に検査できない。**選別の漏れは `e2e` が負う**([0043](0043-middleware-policy.md))。
+
 - **`unit` の対象が React の hook API を使う場合は RTL の `render` / `act` を用いてよい**。hook は React のツリーを介してしか呼べず、純粋ロジックと同じ手段では検証できない(`capabilities` カーネル)
 - **integration = HTTP 境界のみ**を対象とし、**内側は mock**、**型 / 形状をアサート**する(値の正しさは unit で担保。go 規約の翻案)
 - **Server Components のテスト方針 / RSC・route handler・E2E の線引き**は、Next.js の現実に合わせて**実装時に確定**する(本 ADR で先取りしない)

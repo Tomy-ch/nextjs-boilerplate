@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { serveJson, serveStatus } from "../../../../vitest.setup";
 
 const { getAccessToken, getEnvironment, warn } = vi.hoisted(() => ({
   getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
@@ -32,22 +33,12 @@ const wire = {
   },
 };
 
-function stubFetch(body: unknown): ReturnType<typeof vi.fn> {
-  const fetchImpl = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }));
-
-  vi.stubGlobal("fetch", fetchImpl);
-
-  return fetchImpl;
-}
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+const EXCHANGE_RATES_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/exchange-rates`;
 
 describe("convertToReferenceAmount", () => {
   // ----- 正常系 -----
   it("契約の参考換算額を表示用の 4 項目へ写す", async () => {
-    stubFetch(wire);
+    serveJson(EXCHANGE_RATES_URL, wire);
 
     expect(await convertToReferenceAmount(18_897)).toEqual({
       currency: "JPY",
@@ -58,11 +49,11 @@ describe("convertToReferenceAmount", () => {
   });
 
   it("最小単位の整数を、契約が受け取る decimal 文字列にして送る", async () => {
-    const fetchImpl = stubFetch(wire);
+    const requests = serveJson(EXCHANGE_RATES_URL, wire);
 
     await convertToReferenceAmount(18_897);
 
-    const url = new URL(String(fetchImpl.mock.calls[0]?.[0]));
+    const url = new URL(String(requests[0]?.url));
 
     expect(url.searchParams.get("original")).toBe("188.97");
     expect(url.searchParams.get("base")).toBe("USD");
@@ -71,16 +62,13 @@ describe("convertToReferenceAmount", () => {
 
   // ----- 異常系 -----
   it("換算できなかった応答では null を返す", async () => {
-    stubFetch({ ...wire, referenceAmount: null });
+    serveJson(EXCHANGE_RATES_URL, { ...wire, referenceAmount: null });
 
     expect(await convertToReferenceAmount(18_897)).toBeNull();
   });
 
   it("通信の失敗は握り潰さず投げる", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response("{}", { status: 503 })),
-    );
+    serveStatus("get", EXCHANGE_RATES_URL, 503);
 
     await expect(convertToReferenceAmount(18_897)).rejects.toSatisfy(
       (error: unknown) => findAppError(error)?.kind === ErrorKind.UNAVAILABLE,
@@ -91,7 +79,7 @@ describe("convertToReferenceAmount", () => {
 describe("readReferenceAmount", () => {
   // ----- 正常系 -----
   it("引けた参考換算額をそのまま返す", async () => {
-    stubFetch(wire);
+    serveJson(EXCHANGE_RATES_URL, wire);
 
     expect(await readReferenceAmount(18_897)).toEqual({
       currency: "JPY",
@@ -102,27 +90,21 @@ describe("readReferenceAmount", () => {
   });
 
   it("換算できなかった応答をそのまま伝える", async () => {
-    stubFetch({ ...wire, referenceAmount: null });
+    serveJson(EXCHANGE_RATES_URL, { ...wire, referenceAmount: null });
 
     expect(await readReferenceAmount(18_897)).toBeNull();
   });
 
   // ----- 異常系 -----
   it("取得に失敗しても投げず、読めなかったことを null で表す", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response("{}", { status: 503 })),
-    );
+    serveStatus("get", EXCHANGE_RATES_URL, 503);
 
     expect(await readReferenceAmount(18_897)).toBeNull();
   });
 
   it("読めなかったことを記録に残す", async () => {
     warn.mockClear();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response("{}", { status: 503 })),
-    );
+    serveStatus("get", EXCHANGE_RATES_URL, 503);
 
     await readReferenceAmount(18_897);
 

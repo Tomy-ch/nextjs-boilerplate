@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useId } from "react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
@@ -43,22 +44,22 @@ describe("RadioGroupNative", () => {
     expect(screen.getByRole("radio", { name: "簡潔" })).toHaveAttribute("name", "display-mode");
   });
 
-  it("選択肢をクリックすると native radio の選択値を切り替える", () => {
+  it("選択肢をクリックすると native radio の選択値を切り替える", async () => {
     render(<Fixture />);
 
     const compact = screen.getByRole("radio", { name: "簡潔" });
     const standard = screen.getByRole("radio", { name: "標準" });
 
-    fireEvent.click(compact);
+    await userEvent.click(compact);
 
     expect(compact).toBeChecked();
     expect(standard).not.toBeChecked();
   });
 
-  it("Story と同じラベルのクリックでも選択値を切り替える", () => {
+  it("Story と同じラベルのクリックでも選択値を切り替える", async () => {
     render(<LabelInteractionFixture />);
 
-    fireEvent.click(screen.getByText("簡潔"));
+    await userEvent.click(screen.getByText("簡潔"));
 
     expect(screen.getByRole("radio", { name: "簡潔" })).toBeChecked();
   });
@@ -81,10 +82,10 @@ describe("RadioGroupNativeItem", () => {
     );
   });
 
-  it("同じ name の中で排他的に切り替わる", () => {
+  it("同じ name の中で排他的に切り替わる", async () => {
     render(<Fixture />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "簡潔" }));
+    await userEvent.click(screen.getByRole("radio", { name: "簡潔" }));
 
     expect(screen.getByRole("radio", { name: "簡潔" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "標準" })).not.toBeChecked();

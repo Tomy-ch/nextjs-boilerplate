@@ -5,13 +5,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   checkFile,
+  checkTestFile,
   collectTestableExports,
   collectTopLevelDescribes,
   formatViolations,
+  resolveSourceFile,
   resolveTestFile,
   type Violation,
 } from "./lib/one-to-one";
-import { EXCLUDED_FROM_CHECKS } from "./lib/untested-modules";
+import { EXCLUDED_FROM_CHECKS, SUBJECTLESS_TESTS } from "./lib/untested-modules";
 
 /**
  * リポジトリ全体の 1:1 テスト対応ゲート。
@@ -19,6 +21,10 @@ import { EXCLUDED_FROM_CHECKS } from "./lib/untested-modules";
  * @remarks
  * 検査の中身は `lib/one-to-one.ts` が持ち、ここはツリーの走査と型解決だけを担う。
  * ゲートを `scripts/` へ置くのは、これがアプリの振る舞いではなく開発機構の検査だから。
+ *
+ * 走査は production ファイルとテストファイルの**両側**から行う。ソース側から歩くだけだと、
+ * 対応するソースを持たないテストファイルに入口が無く、そこに置かれたものは一度も検査に
+ * 掛からない。
  */
 
 const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");
@@ -55,9 +61,9 @@ function toMatcher(pattern: string): RegExp {
   return new RegExp(`^${escaped}$`);
 }
 
-/** 除外宣言に当たるか。末尾が `/**` の宣言はディレクトリ接頭辞として扱う。 */
-function isExcluded(relativePath: string): boolean {
-  return EXCLUDED_FROM_CHECKS.some((pattern) =>
+/** 宣言のいずれかに当たるか。末尾が `/**` の宣言はディレクトリ接頭辞として扱う。 */
+function matchesAny(relativePath: string, patterns: readonly string[]): boolean {
+  return patterns.some((pattern) =>
     pattern.endsWith("/**")
       ? relativePath.startsWith(pattern.slice(0, -2))
       : toMatcher(pattern).test(relativePath),
@@ -135,7 +141,27 @@ function scanRepository(): Scan {
     if (!SCAN_ROOTS.some((root) => inRepository.startsWith(`${root}/`))) {
       continue;
     }
-    if (/\.(test|stories)\.tsx?$/.test(inRepository) || isExcluded(inRepository)) {
+    if (matchesAny(inRepository, EXCLUDED_FROM_CHECKS)) {
+      continue;
+    }
+
+    // 検査はソース側から歩き、対応するテストを読む。対応するソースを持たないテストにはその
+    // 入口が無いため、宣言されているかどうかをここで見る。
+    if (/\.test\.tsx?$/.test(inRepository)) {
+      const sourcePath = resolveSourceFile(absolute, existsSync);
+
+      scan.violations.push(
+        ...checkTestFile(
+          inRepository,
+          sourcePath === null ? null : relative(REPOSITORY_ROOT, sourcePath),
+          matchesAny(inRepository, SUBJECTLESS_TESTS),
+        ),
+      );
+
+      continue;
+    }
+
+    if (/\.stories\.tsx?$/.test(inRepository)) {
       continue;
     }
 
@@ -177,7 +203,7 @@ const TIMEOUT_MS = 300_000;
 describe("1:1 テスト対応", () => {
   // ----- 正常系 -----
   it(
-    "呼べる export はすべて、自分の名前の最上位 describe を 1 つだけ持つ",
+    "テストは production ファイルと 1:1 で対応し、呼べる export はすべて自分の名前の最上位 describe を 1 つだけ持つ",
     () => {
       const scan = scanRepository();
 

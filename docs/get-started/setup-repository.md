@@ -166,10 +166,13 @@ gh secret list   # BASELINE_APP_ID / BASELINE_APP_PRIVATE_KEY が並ぶ
 
 ### 6-4. 最初の基準画像を撮る
 
-Docker が要る。全 story を撮るので時間がかかる。
+Docker が要る。**2 つある。**置き場は story 単位と画面単位で共有し、区画だけが分かれる
+（[`baseline/README.md`](../../baseline/README.md)）。片方だけ撮ると、もう片方は「基準画像が無い」で
+全数落ちる。全数を撮るので時間がかかる。
 
 ```bash
-make vrt-retake   # 撮って置き場へ送る
+make vrt-retake   # story を撮って置き場へ送る
+make e2e-retake   # 画面を撮って置き場へ送る
 git commit -am "Test: 基準画像を撮る"
 ```
 
@@ -181,7 +184,8 @@ after=<撮影したコミット>
 count=<動いた枚数>
 ```
 
-以降の運用（撮り直し・承認・掃除）は [`vrt/README.md`](../../vrt/README.md) が正。
+以降の運用（撮り直し・承認・掃除）は [`vrt/README.md`](../../vrt/README.md) が正。画面単位の側は
+[`e2e/README.md`](../../e2e/README.md) を見る。
 
 ## 7. 自分の契約を入れる
 
