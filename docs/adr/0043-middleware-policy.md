@@ -38,6 +38,12 @@ BACKLOG C6 は、`middleware.ts` の責務範囲・Edge runtime 使用是非・�
 - **認証・セッションの具体モデルは fork 先判断**([0070](0070-backend-role-separation.md) A2。Next.js 公式も「Proxy をセッション管理・認可に使うな」と明示)。boilerplate 本体は `proxy.ts` に特定の認証実装を組み込まない
 - fork 先が認証を導入する場合、`proxy.ts` で行ってよいのは **optimistic なリダイレクト**(未ログインらしきリクエストのリダイレクト等)までとし、**確定的な認可はデータ境界(`adapters` / Route Handler / Server Action)** で行う([0070](0070-backend-role-separation.md) / [0071](0071-bff-api-integration.md))
 
+### 4. 検証の割り(関数本体 = unit / matcher の選別 = e2e)
+
+- **`proxy()` の本体は `unit`**。分岐・redirect 先・`returnUrl` の組み立ては、関数として呼べば行使できる([0090](0090-testing-strategy.md))
+- **`export const config` の `matcher` の選び足りなさは `e2e` が負う**。`matcher` は Next.js が経路を選ぶ前に読む宣言であり、`proxy()` を直接呼ぶ経路を通らない。守るべき接頭辞が選別から漏れれば前捌きごと素通しになり、それは経路を開けば応答に出る
+- **選び過ぎは、どのテストも観測できない**。除外している接頭辞を選別へ含めても、`proxy()` はその経路に役割を要求せずそのまま通すため、応答は変わらない。現れるのは静的資産 1 件ごとの費用としてだけである。ここを守るのは宣言の読み合わせであり、テストではない
+
 ## 禁止事項
 
 - ❌ `proxy.ts` に業務ロジック・重い処理・データ取得を書くこと(薄い境界。last resort)
