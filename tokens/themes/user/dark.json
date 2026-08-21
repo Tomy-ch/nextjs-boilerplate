@@ -120,7 +120,7 @@
   "font": {
     "sans": {
       "$type": "fontFamily",
-      "$value": "{font.line-seed}"
+      "$value": "{font.system-jp}"
     },
     "brand": {
       "$type": "fontFamily",

@@ -14,6 +14,7 @@ import {
 } from "@/features/admin/paths";
 import { UnsavedChangesGuard } from "@/features/admin/ui/unsaved-changes-guard/unsaved-changes-guard";
 import { isAdmin } from "@/model/authz";
+import { ADMIN_FONT_VARIABLE } from "./fonts";
 
 const SITE_NAME = "nextjs-boilerplate";
 const CONSOLE_NAME = "管理";
@@ -74,21 +75,25 @@ export default async function AdminLayout({
 
   return (
     <UnsavedChangesGuard>
-      <AdminShell
-        breadcrumb={breadcrumb}
-        consoleName={CONSOLE_NAME}
-        headerActions={
-          <Button asChild size="sm" variant="outline">
-            <Link href={USER_SITE_PATH}>ユーザー画面へ</Link>
-          </Button>
-        }
-        homeHref={ADMIN_DASHBOARD_PATH}
-        navGroups={NAV_GROUPS}
-        siteHref={SITE_PATH}
-        siteName={SITE_NAME}
-      >
-        {children}
-      </AdminShell>
+      {/* 書体の変数は、管理の系統を名乗る器の外側から配る。器の内側（`main`）へ当てると
+          脇の一覧に効かない。`display: contents` なので段は増えない。 */}
+      <div className={`${ADMIN_FONT_VARIABLE} contents`}>
+        <AdminShell
+          breadcrumb={breadcrumb}
+          consoleName={CONSOLE_NAME}
+          headerActions={
+            <Button asChild size="sm" variant="outline">
+              <Link href={USER_SITE_PATH}>ユーザー画面へ</Link>
+            </Button>
+          }
+          homeHref={ADMIN_DASHBOARD_PATH}
+          navGroups={NAV_GROUPS}
+          siteHref={SITE_PATH}
+          siteName={SITE_NAME}
+        >
+          {children}
+        </AdminShell>
+      </div>
     </UnsavedChangesGuard>
   );
 }
