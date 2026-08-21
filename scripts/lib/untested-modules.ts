@@ -62,6 +62,12 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
  * - `e2e/lib/test.ts` — Playwright の Page へ購読を張り、fixture を組み立てるだけ。何を異常と
  *   数えるかは `e2e/lib/browser-errors.ts` が持つ。全 spec へ同じ見張りを効かせるため spec から
  *   切り出してあるだけで、Vitest からは呼べない。
+ * - `.storybook/main.ts` / `preview.tsx` / `manager.ts` — カタログの設定。読み込まれた時点で
+ *   副作用を起こす（資材の複製・書体の class 付与・mock の宣言）ため単体では回せない。**判定は
+ *   `lib/` へ置く**という規約を `.storybook/README.md` が持ち、ここに残るのは設定だけである。
+ * - `.storybook/css.d.ts` — 型宣言のみ。
+ * - `.storybook/msw/worker.ts` — ブラウザの service worker を立てるだけ。何を警告と数えるかは
+ *   `.storybook/lib/unhandled-request.ts` が持つ。Vitest からは呼べない。
  */
 const NON_DECIDING_MODULES = [
   "scripts/setup/lib/runtime.ts",
@@ -70,6 +76,11 @@ const NON_DECIDING_MODULES = [
   "docs-viewer/src/main.tsx",
   "vrt/lib/settle.ts",
   "e2e/lib/test.ts",
+  ".storybook/main.ts",
+  ".storybook/preview.tsx",
+  ".storybook/manager.ts",
+  ".storybook/css.d.ts",
+  ".storybook/msw/worker.ts",
 ] as const;
 
 /**
@@ -96,8 +107,14 @@ const TEST_FIXTURE_MODULES = [
  * server の無いカタログで、押せる操作を押しても壊れない状態にするためだけの module です
  * ([0054](../../docs/adr/0054-ui-catalog-storybook.md))。判定は持たず、隣にある本物の
  * Server Action がテストの対象です。
+ *
+ * `.storybook/msw/handlers.ts` も同じ genre で、カタログが自分で答える `/api/*` の据え置きです。
+ * 郵便番号ごとの出し分けは題材そのもの（`sample:replace` で fork 時に空へ置き換わる）で、
+ * 固定しても確かめられるのは並べた fixture が並べたとおりであることだけです。返す形が正しいことは
+ * `adapters/client` の検証が担います。
  */
 const CATALOG_MOCK_MODULES = [
+  ".storybook/msw/handlers.ts",
   "src/features/account/__mocks__/**", // sample:line
   "src/features/cart/__mocks__/**", // sample:line
   "src/features/cart/facade/add-to-cart/__mocks__/**", // sample:line

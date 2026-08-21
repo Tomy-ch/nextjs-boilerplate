@@ -52,6 +52,18 @@ describe("readLock", () => {
     expect(readLock(lockPath, FORMAT).size).toBe(1);
   });
 
+  it("CRLF で改行されたロックファイルを読む", () => {
+    writeRaw(`# 見出し\r\n"alpine:3.24" = "${VALUE}"\r\n`);
+
+    expect(readLock(lockPath, FORMAT)).toEqual(new Map([["alpine:3.24", VALUE]]));
+  });
+
+  it("BOM で始まるロックファイルを読む", () => {
+    writeRaw(`\uFEFF"alpine:3.24" = "${VALUE}"\n`);
+
+    expect(readLock(lockPath, FORMAT)).toEqual(new Map([["alpine:3.24", VALUE]]));
+  });
+
   // ----- 異常系 -----
   it("代入形でない行を、正しい書き方を添えて行番号付きで落とす", () => {
     writeRaw(`"alpine:3.24"\n`);
@@ -133,7 +145,6 @@ describe("writeLock", () => {
     expect(statSync(lockPath).mode & 0o777).toBe(0o644);
   });
 
-  // ----- 異常系 -----
   it("空のロックでも見出しだけを書き出す", () => {
     writeLock(lockPath, new Map(), FORMAT);
 

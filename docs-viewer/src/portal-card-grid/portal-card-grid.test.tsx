@@ -17,7 +17,6 @@ const document: PortalItem = {
 const generated: PortalItem = { name: "Coverage", path: "./coverage/index.html", lang: "all" };
 
 describe("PortalCardGrid", () => {
-  // ----- 正常系 -----
   it("Markdown の項目を押せる操作として描画する", () => {
     render(<PortalCardGrid items={[document]} onOpenDocument={vi.fn()} />);
 
@@ -63,7 +62,7 @@ describe("PortalCardGrid", () => {
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
   });
-  // ----- 異常系 -----
+
   it("項目が無ければ空の一覧を描画する", () => {
     render(<PortalCardGrid items={[]} onOpenDocument={vi.fn()} />);
 

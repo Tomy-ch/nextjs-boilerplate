@@ -47,9 +47,17 @@ function isDockerRef(value: string): boolean {
 // 固定対象になりうる値の形。owner/repo で始まるものだけを通す。
 const REPO_VALUE_PATTERN = /^[^/\s]+\/[^/\s]+/;
 
+// 版として受け付ける文字集合。GitHub の tag / branch 名として現実的な範囲だけを通す
+// （入口で 1 度絞る理由は [0153](../../docs/adr/0153-ci-configuration.md)）。
+const TAG_PATTERN = /^[A-Za-z0-9._+/-]+$/;
+
 const WORKFLOW_DIR = ".github/workflows";
 const YAML_EXTENSIONS = [".yml", ".yaml"];
 const REPO_SEGMENTS = 2;
+
+export function isSupportedTag(tag: string): boolean {
+  return TAG_PATTERN.test(tag);
+}
 
 export function refKey(ref: ActionRef): string {
   return `${ref.repo}@${ref.tag}`;
@@ -146,4 +154,28 @@ export function unparsedUsesLines(data: string): number[] {
     if (!REPO_VALUE_PATTERN.test(value) || value.includes("@")) lines.push(index + 1);
   }
   return lines;
+}
+
+// 対応記法として解釈できたが、版に使えない文字を含む `uses:` の行番号を返す。
+//
+// 解釈できない記法（unparsedUsesLines）とは別の失敗である。こちらは記法としては読めており、
+// 読めた版が信頼できないという話なので、直し方も別（記法を直すのではなく版を書き直す）。
+export function unsupportedTagLines(data: string): number[] {
+  const lines: number[] = [];
+  for (const match of data.matchAll(usesPattern())) {
+    const ref = parseUses(match[2], match[3], match[4]);
+    if (ref === null || isSupportedTag(ref.tag)) continue;
+    lines.push(lineNumberAt(data, match.index));
+  }
+  return lines;
+}
+
+// 一致位置の行番号（1 始まり）。usesPattern は行頭に一致するため、位置までの改行数で決まる。
+function lineNumberAt(data: string, index: number): number {
+  let count = 1;
+  for (let i = 0; i < index; i += 1) {
+    if (data[i] === "\n") count += 1;
+  }
+
+  return count;
 }
