@@ -28,6 +28,7 @@ const FILLED_CART: Cart = {
     {
       productId: toProductId(WATCH_ID),
       name: "スマートウォッチ",
+      imageUrl: FRONT_IMAGE_URL,
       unitPrice: "129.00",
       quantity: 3,
       issues: [],
@@ -36,6 +37,7 @@ const FILLED_CART: Cart = {
     {
       productId: toProductId("0195f0c2-0000-7000-8000-0000000000f2"),
       name: "USB-C ハブ（7 ポート・100W PD 対応モデル）",
+      imageUrl: null,
       unitPrice: "45.50",
       quantity: 2,
       issues: [],
@@ -44,6 +46,7 @@ const FILLED_CART: Cart = {
     {
       productId: toProductId("0195f0c2-0000-7000-8000-0000000000f3"),
       name: "編組ケーブル 2m",
+      imageUrl: FRONT_IMAGE_URL,
       unitPrice: "0.99",
       quantity: 12,
       issues: [],
@@ -218,6 +221,7 @@ export const MaxLengthPC: Story = {
         {
           productId: toProductId("0195f0c2-0000-7000-8000-0000000000f2"),
           name: longText(MAX_NAME_LENGTH),
+          imageUrl: FRONT_IMAGE_URL,
           unitPrice: "999999999.999",
           quantity: 2,
           issues: [],

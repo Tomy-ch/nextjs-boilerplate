@@ -1,10 +1,21 @@
 import type { Cart, CartLine } from "@/model/cart/cart";
 import { toProductId } from "@/model/product/product";
 
+/**
+ * 絵の要る明細が指す画像。
+ *
+ * @remarks
+ * カタログが配る同梱の画像です。実物の URL は配信元の設定から組み立てられるため、手元のカタログ
+ * からは引けません。**画像を持つ明細と持たない明細を混ぜてある**のは、代替画像へ倒れた行と並んだ
+ * ときの見え方が、この画面で確かめたいものだからです。
+ */
+const SAMPLE_IMAGE_URL = "/src/components/design-system/display/media-image/invertocat.png";
+
 /** 事情の無い明細。数量も在庫も足りている。 */
 export const EARPHONE_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000001"),
   name: "ワイヤレスイヤホン",
+  imageUrl: SAMPLE_IMAGE_URL,
   unitPrice: "19.99",
   quantity: 3,
   issues: [],
@@ -15,6 +26,7 @@ export const EARPHONE_LINE = {
 export const WATCH_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000002"),
   name: "スマートウォッチ（第 2 世代・GPS 搭載モデル・ステンレスバンド付き）",
+  imageUrl: SAMPLE_IMAGE_URL,
   unitPrice: "129.00",
   quantity: 1,
   issues: [],
@@ -25,6 +37,7 @@ export const WATCH_LINE = {
 export const INSUFFICIENT_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000003"),
   name: "編組ケーブル 2m",
+  imageUrl: null,
   unitPrice: "0.99",
   quantity: 5,
   issues: ["insufficientStock"],
@@ -35,6 +48,7 @@ export const INSUFFICIENT_LINE = {
 export const OUT_OF_STOCK_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000004"),
   name: "USB-C 充電器 65W",
+  imageUrl: SAMPLE_IMAGE_URL,
   unitPrice: "39.50",
   quantity: 1,
   issues: ["outOfStock"],
@@ -45,6 +59,7 @@ export const OUT_OF_STOCK_LINE = {
 export const PRICE_INCREASED_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000005"),
   name: "ノイズキャンセリングヘッドホン",
+  imageUrl: SAMPLE_IMAGE_URL,
   unitPrice: "249.00",
   quantity: 1,
   issues: ["priceIncreased"],
@@ -55,6 +70,7 @@ export const PRICE_INCREASED_LINE = {
 export const NOT_FOUND_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000006"),
   name: null,
+  imageUrl: null,
   unitPrice: null,
   quantity: 2,
   issues: ["notFound"],

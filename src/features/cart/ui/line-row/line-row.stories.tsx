@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { cn } from "@/components/cn";
+
 import {
   EARPHONE_LINE,
   INSUFFICIENT_LINE,
@@ -18,15 +20,18 @@ const meta = {
       description: {
         component: [
           "カートの明細 1 行です。脇の領域と全画面の両方が使い、幅の違いは折り返しで吸収します。",
-          "**画像も商品状態も出しません。** 契約が返す明細に無く、出すには明細の数だけ商品を引くことになります。",
+          "**商品状態は出しません。** 契約が返す明細に無く、出すには明細の数だけ商品を引くことになります。",
+          "サムネイルは装飾として出し、代替テキストは空です。同じ商品名を隣の文字が持っています。",
           "金額は単価だけです。行ごとの小計は単価と数量の掛け算になり、金額の計算をフロントに戻すことになります。",
         ].join(""),
       },
     },
   },
   decorators: [
-    (Story) => (
-      <ul className="flex flex-col divide-y">
+    // 脇に出す姿は `parameters.narrow` で指定する。器の幅で折り返しが変わる部品なので、
+    // 実物と同じ幅の器に入れないと確かめたい姿にならない。
+    (Story, context) => (
+      <ul className={cn("flex flex-col divide-y", context.parameters.narrow === true && "w-70")}>
         <Story />
       </ul>
     ),
@@ -64,4 +69,15 @@ export const PriceIncreased: Story = {
 /** 商品を引けない明細。名前も単価も出せないが、取り除く操作は残す。 */
 export const NotFound: Story = {
   args: { line: NOT_FOUND_LINE },
+};
+
+/** 画像を持たない明細。代替画像へ倒す。 */
+export const WithoutImage: Story = {
+  args: { line: { ...EARPHONE_LINE, imageUrl: null } },
+};
+
+/** 脇に出す幅（280px 前後）に置いた明細。名前は 2 行で打ち切り、操作は画像の下へ回る。 */
+export const InNarrowContainer: Story = {
+  args: { line: WATCH_LINE },
+  parameters: { narrow: true },
 };
