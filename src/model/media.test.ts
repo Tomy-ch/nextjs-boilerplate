@@ -28,6 +28,28 @@ describe("mediaUrl", () => {
       "https://media.example.test/items/abc.png",
     );
   });
+
+  it("配信元がサブパスを持つとき、キー先頭のスラッシュを落として経路を保つ", () => {
+    expect(mediaUrl("https://cdn.example.test/media", "/items/abc.png")).toBe(
+      "https://cdn.example.test/media/items/abc.png",
+    );
+  });
+
+  it("配信元に問い合わせが付いていても経路を保つ", () => {
+    expect(mediaUrl("https://cdn.example.test?token=x", "items/abc.png")).toBe(
+      "https://cdn.example.test/items/abc.png",
+    );
+  });
+
+  it("段の深いキーをその深さのまま解決する", () => {
+    expect(mediaUrl(ORIGIN, "products/2026/08/0198a1b2-c3d4.png")).toBe(
+      `${ORIGIN}/products/2026/08/0198a1b2-c3d4.png`,
+    );
+  });
+
+  it("名前に点が並ぶキーを上位への参照と取り違えない", () => {
+    expect(mediaUrl(ORIGIN, "products/a..b.png")).toBe(`${ORIGIN}/products/a..b.png`);
+  });
   // ----- 異常系 -----
   it("キーが無ければ URL を作らない", () => {
     expect(mediaUrl(ORIGIN, null)).toBeNull();
@@ -37,16 +59,20 @@ describe("mediaUrl", () => {
     expect(mediaUrl(ORIGIN, "")).toBeNull();
   });
 
-  it("別の配信元を指すキーを捨てる", () => {
-    expect(mediaUrl(ORIGIN, "https://evil.example/x.png")).toBeNull();
+  it("スラッシュだけのキーを、指す先が配信元そのものなので捨てる", () => {
+    expect(mediaUrl(ORIGIN, "/")).toBeNull();
   });
 
-  it("中身を直接埋めたキーを捨てる", () => {
-    expect(mediaUrl(ORIGIN, "data:image/svg+xml;base64,PHN2Zy8+")).toBeNull();
+  it.each([
+    { kind: "別の配信元", key: "https://evil.example/x.png" },
+    { kind: "中身を直接埋めた値", key: "data:image/svg+xml;base64,PHN2Zy8+" },
+    { kind: "スクリプト", key: "javascript:alert(1)" },
+  ])("$kind を指す、自分でスキームを持つキーを捨てる", ({ key }) => {
+    expect(mediaUrl(ORIGIN, key)).toBeNull();
   });
 
-  it("スクリプトを指すキーを捨てる", () => {
-    expect(mediaUrl(ORIGIN, "javascript:alert(1)")).toBeNull();
+  it("バックスラッシュで別のホストを指すキーを捨てる", () => {
+    expect(mediaUrl(ORIGIN, String.raw`\\evil.example\x.png`)).toBeNull();
   });
 
   it("配信元のサブパスより上を指すキーを捨てる", () => {
