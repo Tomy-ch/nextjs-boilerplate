@@ -144,6 +144,21 @@ describe("applyPins", () => {
 
     expect(report.updated).toEqual([]);
     expect(readFileSync(file, "utf8")).toBe("      - uses: actions/checkout@v7 # v7;id\n");
+    // 止めたのが版の文字集合であることまで固定する。他の分類が埋まっていると、同じ緑が
+    // 別の理由で出ていても気づけない。
+    expect(report.missing).toEqual([]);
+    expect(report.orphans).toEqual([]);
+    expect(report.unparsed).toEqual([]);
+  });
+
+  it("対応記法の外の uses があれば書き込まない", () => {
+    const file = place("w.yaml", "steps:\n  - {uses: actions/checkout@v7}\n");
+    const report = applyPins(root, [file], lockOf(["actions/checkout@v7", SHA]), false);
+
+    expect(report.updated).toEqual([]);
+    expect(readFileSync(file, "utf8")).toBe("steps:\n  - {uses: actions/checkout@v7}\n");
+    expect(report.unparsed).toEqual(["w.yaml:2"]);
+    expect(report.missing).toEqual([]);
   });
 
   it("1 ファイルでも中断条件に当たれば、他のファイルも書き換えない", () => {

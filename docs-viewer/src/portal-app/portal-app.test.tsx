@@ -217,14 +217,24 @@ describe("PortalApp", () => {
     );
   });
 
-  it("文書を開くと題を先に示し、取得後に本文を描画する", async () => {
+  it("文書を開くと題を先に示し、取得のあいだは取得中であることを出す", async () => {
     server.use(http.get("*/guides/0001.md", () => HttpResponse.text("## 節\n\n本文\n")));
 
     render(<PortalApp docs={docs} />);
     screen.getByRole("button", { name: "ADR 0001" }).click();
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("読み込んでいます...")).toBeInTheDocument();
+  });
+
+  it("取得が終わると本文へ差し替える", async () => {
+    server.use(http.get("*/guides/0001.md", () => HttpResponse.text("## 節\n\n本文\n")));
+
+    render(<PortalApp docs={docs} />);
+    screen.getByRole("button", { name: "ADR 0001" }).click();
+
     expect(await screen.findByRole("heading", { level: 2, name: "節" })).toBeInTheDocument();
+    expect(screen.queryByText("読み込んでいます...")).not.toBeInTheDocument();
   });
 
   it("面を閉じると開いていた文書を捨てる", async () => {

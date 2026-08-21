@@ -295,8 +295,17 @@ describe("isSupportedTag", () => {
   });
 
   // ----- 異常系 -----
-  it("シェルの区切りや置換に使われる文字を落とす", () => {
-    expect(isSupportedTag("v7;rm -rf /")).toBe(false);
+  it("コマンドの区切りに使われる文字を落とす", () => {
+    expect(isSupportedTag("v7;id")).toBe(false);
+    expect(isSupportedTag("v7&&id")).toBe(false);
+    expect(isSupportedTag("v7|id")).toBe(false);
+  });
+
+  it("語を分ける空白を落とす", () => {
+    expect(isSupportedTag("v7 v8")).toBe(false);
+  });
+
+  it("置換や引用に使われる文字を落とす", () => {
     expect(isSupportedTag("v7$(id)")).toBe(false);
     expect(isSupportedTag('v7"')).toBe(false);
     expect(isSupportedTag("v7`id`")).toBe(false);
@@ -328,5 +337,17 @@ describe("unsupportedTagLines", () => {
     const data = "steps:\n\n      - uses: actions/checkout@v7;id\n";
 
     expect(unsupportedTagLines(data)).toEqual([3]);
+  });
+
+  it("同じファイルに複数あれば、それぞれの行番号を挙げる", () => {
+    const data = [
+      "steps:",
+      "      - uses: actions/checkout@abc # v7;id",
+      "      - uses: actions/cache@abc # v6.1.0",
+      "      - uses: actions/setup-node@abc # v5|id",
+      "",
+    ].join("\n");
+
+    expect(unsupportedTagLines(data)).toEqual([2, 4]);
   });
 });

@@ -145,7 +145,6 @@ describe("writeLock", () => {
     expect(statSync(lockPath).mode & 0o777).toBe(0o644);
   });
 
-  // ----- 異常系 -----
   it("空のロックでも見出しだけを書き出す", () => {
     writeLock(lockPath, new Map(), FORMAT);
 
