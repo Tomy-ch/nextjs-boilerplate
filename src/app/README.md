@@ -42,6 +42,13 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
   検証だからです。実際の書き方も、モジュール境界を `vi.mock` で差し替え、応答の status と形を
   確かめる形になります
 
+- **Server Action（`actions.ts`）は `unit` として扱います** —— 器の合成でも HTTP 境界でもなく、
+  **値を返す対象**だからです（[0090](../../docs/adr/0090-testing-strategy.md) の軸は subject が
+  何を返すかで決まり、`正常系` / `異常系` のコメント区切りで割ります）。書き方は、主体を断言する
+  session と呼び先の adapter をモジュール境界で差し替え、**返した `ActionState` の分類・成立時の
+  再検証・送り先**を確かめる形になります。HTTP の往復は adapter 側のテストが持つので、ここでは
+  持ちません
+
 - 層をまたぐ import は `@/*` alias を使う
 - 役割を示さない `common`、`shared`、`utils`、`lib` 等の置き場は作らない
 - 単一 feature 専用のコードは `features/<name>/` に置く
