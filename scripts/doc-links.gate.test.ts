@@ -28,6 +28,7 @@ const SCAN_ROOTS = [
   "baseline/lib",
   "vrt",
   "e2e",
+  ".storybook/lib",
 ] as const;
 
 /** 走査しない名前。生成物と依存は書き手の手が入らない。 */
@@ -49,18 +50,26 @@ function* walk(directory: string): Generator<string> {
   }
 }
 
+// リポジトリ全体を走査するため、既定の 5 秒では足りない。全量を並列で回すと取り合いでさらに伸び、
+// 走査の遅さがそのまま赤になる（`docs/testing-conventions.md`「リポジトリ全体を走査するゲート」）。
+const TIMEOUT_MS = 300_000;
+
 describe("文書リンクの解決", () => {
-  it("ソースの中から文書を指す相対リンクは、すべて実在する", () => {
-    const broken = SCAN_ROOTS.flatMap((root) => {
-      const absolute = join(REPOSITORY_ROOT, root);
+  it(
+    "ソースの中から文書を指す相対リンクは、すべて実在する",
+    () => {
+      const broken = SCAN_ROOTS.flatMap((root) => {
+        const absolute = join(REPOSITORY_ROOT, root);
 
-      return [...walk(absolute)].flatMap((file) => {
-        const inRepository = relative(REPOSITORY_ROOT, file);
+        return [...walk(absolute)].flatMap((file) => {
+          const inRepository = relative(REPOSITORY_ROOT, file);
 
-        return findBrokenDocLinks(inRepository, readFileSync(file, "utf8"), REPOSITORY_ROOT);
+          return findBrokenDocLinks(inRepository, readFileSync(file, "utf8"), REPOSITORY_ROOT);
+        });
       });
-    });
 
-    expect(formatBrokenDocLinks(broken, REPOSITORY_ROOT)).toBe("");
-  });
+      expect(formatBrokenDocLinks(broken, REPOSITORY_ROOT)).toBe("");
+    },
+    TIMEOUT_MS,
+  );
 });

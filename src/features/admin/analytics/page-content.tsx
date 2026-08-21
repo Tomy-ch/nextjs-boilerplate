@@ -4,6 +4,7 @@ import { parseDashboardQuery, type RawDashboardQuery } from "@/adapters/server/a
 import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-feedback/invalid-query-feedback";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
+import type { RawSearchParams } from "@/model/search-params";
 import { ADMIN_ANALYTICS_PATH } from "../paths";
 import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
 import { PERIOD_KEY_LABEL, toPeriodRequest } from "./period";
@@ -11,9 +12,6 @@ import { toPeriodWindow } from "./period-window";
 import { AnalyticsRankingSection } from "./ranking-section";
 import { AnalyticsSummarySection } from "./summary-section";
 import { AnalyticsView } from "./view";
-
-/** page が受け取る素の `searchParams`。 */
-export type RawSearchParams = Record<string, string | string[] | undefined>;
 
 /** 値の無いキーを落とし、契約に照らせる形へ揃える。 */
 function toRawQuery(params: RawSearchParams): RawDashboardQuery {

@@ -7,7 +7,7 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { AdminUserListPageContent } from "@/features/admin/users/page-content";
-import type { RawSearchParams } from "@/features/admin/users/query";
+import type { RawSearchParams } from "@/model/search-params";
 
 import { withdrawUserAction } from "./actions";
 

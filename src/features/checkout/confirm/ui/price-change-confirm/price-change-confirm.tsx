@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
@@ -55,10 +55,13 @@ const FIX_CART_LABEL = "カートを修正する";
  * 残すと戻る操作が 1 回空回りします（[0053](../../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
  */
 export function PriceChangeConfirm({
-  idempotencyKey,
+  idempotencyKey: initialIdempotencyKey,
   orderable,
   changedNames,
 }: PriceChangeConfirmProps) {
+  // 鍵は最初に受け取ったものを使い続ける（理由は `model/idempotency-key.ts`）。確かめの中では
+  // なくここで持つのは、閉じた確かめが木ごと外れ、開き直すたびに受け取り直しになるためである。
+  const [idempotencyKey] = useState(initialIdempotencyKey);
   const [state, formAction] = useActionState<PlaceOrderFormState, FormData>(
     placeOrderAction,
     idleActionState(),

@@ -5,6 +5,7 @@ import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import type { Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { mountPortal, PORTAL_LOAD_ERROR_MESSAGE } from "./mount-portal";
 
@@ -82,6 +83,21 @@ describe("mountPortal", () => {
       expect(screen.getByRole("heading", { level: 1, name: "Documentation" })).toBeInTheDocument(),
     );
   });
+  it("a11y 自動検査に違反しない", async () => {
+    server.use(http.get("*/docs.json", () => HttpResponse.json(docs)));
+
+    const container = createContainer();
+
+    await mountPortal(container);
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 1, name: "Documentation" })).toBeInTheDocument(),
+    );
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
+  });
+
   // ----- 異常系 -----
   it("取得に失敗したら読み込めなかったことと応答の状態を伝える", async () => {
     server.use(http.get("*/docs.json", () => new HttpResponse(null, { status: 500 })));

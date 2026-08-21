@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { PURCHASE_MAX_RECENT_DAYS } from "@/adapters/client/api/purchases";
+
 import {
   describePeriod,
   toPeriodSearchParams,
@@ -36,6 +38,21 @@ describe("toPeriodSelection", () => {
     });
   });
 
+  it("開始日と終了日が同じ 1 日の範囲を読む", () => {
+    expect(toPeriodSelection({ period: "range", from: "2026-06-01", to: "2026-06-01" })).toEqual({
+      kind: "range",
+      from: "2026-06-01",
+      to: "2026-06-01",
+    });
+  });
+
+  it("契約が受け付ける日数の両端そのものは通す", () => {
+    expect(toPeriodSelection({ period: "recent", days: "1" })).toEqual({ kind: "recent", days: 1 });
+    expect(toPeriodSelection({ period: "recent", days: String(PURCHASE_MAX_RECENT_DAYS) })).toEqual(
+      { kind: "recent", days: PURCHASE_MAX_RECENT_DAYS },
+    );
+  });
+
   it("前後の空白を落として読む", () => {
     expect(toPeriodSelection({ period: "month", month: " 2026-07 " })).toEqual({
       kind: "month",
@@ -68,8 +85,14 @@ describe("toPeriodSelection", () => {
 
   it("範囲を外れた日数は全期間へ倒す", () => {
     expect(toPeriodSelection({ period: "recent", days: "0" })).toEqual({ kind: "all" });
-    expect(toPeriodSelection({ period: "recent", days: "366" })).toEqual({ kind: "all" });
+    expect(
+      toPeriodSelection({ period: "recent", days: String(PURCHASE_MAX_RECENT_DAYS + 1) }),
+    ).toEqual({ kind: "all" });
     expect(toPeriodSelection({ period: "recent", days: "7.5" })).toEqual({ kind: "all" });
+  });
+
+  it("数として読めない日数は全期間へ倒す", () => {
+    expect(toPeriodSelection({ period: "recent", days: "さいご" })).toEqual({ kind: "all" });
   });
 
   it("知らない区分は全期間へ倒す", () => {

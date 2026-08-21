@@ -32,6 +32,7 @@ test-requirement: unit
 | `media.ts` | 配信基盤のオブジェクトキーから表示 URL を組み立てる |
 | `pagination.ts` | cursor 方式の 1 ページを表す型と、増分取得での継ぎ足し |
 | `action-state.ts` | Server Action が画面へ返す結果の器。項目エラー・フォームエラー・成功値 |
+| `search-params.ts` | URL の同じキーが何回現れたかを値の意味へ直す規則。zod スキーマと組み合わせて使う |
 | `idempotency-key.ts` | 変更 1 回ぶんを指す鍵と、それを載せるフォーム項目の名前 |
 | `money.ts` | 最小単位の整数で持つ金額を、locale に沿った通貨表記へ整える |
 | `cart/cart.ts` | サンプル画面が扱うカートの表示用の型 <!-- sample:line --> |

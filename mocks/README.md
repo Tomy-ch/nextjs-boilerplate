@@ -1,3 +1,7 @@
+---
+test-requirement: unit
+---
+
 # 契約駆動モック
 
 `make gen-api` が契約から生成する MSW ハンドラの置き場です。**手で編集しません。**
@@ -9,6 +13,18 @@
 カタログ（Storybook）が自分で答える `/api/*` のハンドラはここには置きません。あれが返すのは
 バックエンドの応答ではなく Route Handler が組み立てた表示用の形で、契約からは生成できないため
 です（[0054](../docs/adr/0054-ui-catalog-storybook.md)）。置き場は `.storybook/msw/` です。
+
+## テストの責務
+
+frontmatter の `test-requirement: unit` が掛かるのは、取りまとめが持つ判定 —— ハンドラの並び順と、
+同じ要求へ同じ応答を返させる組み立て —— です（[0090](../docs/adr/0090-testing-strategy.md)）。
+生成物そのものは検査の母数から外れ、正しさは契約からの再生成が担保します。
+
+**`setupServer` と `fetch` を使っていても `integration` ではありません。** 層別責務表の `integration`
+が指すのは `adapters` の API クライアントと Route Handler の HTTP 境界で、確かめるのは契約に対する
+型と形です（[0090](../docs/adr/0090-testing-strategy.md)）。ここで確かめるのは、ハンドラが同じ要求へ
+同じ応答を返すかという**組み立ての決定性**で、それを外から動かす手段が `setupServer` しかないだけ
+です。hook を RTL 経由で確かめてもなお `unit` であるのと同じ理由になります。
 
 ## 構成
 
