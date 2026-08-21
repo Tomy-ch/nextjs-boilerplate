@@ -3,6 +3,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, succeededActionState } from "@/model/action-state";
@@ -115,5 +116,20 @@ describe("WithdrawableUserList", () => {
     );
 
     expect(screen.getByText("ページ送り")).toBeInTheDocument();
+  });
+
+  it("結果を出した状態で a11y 検査を通る", async () => {
+    // 3 つの部品が合成された状態でだけ出る不整合を見るため、報せが出た後を検査する。
+    const succeeding = () => Promise.resolve(succeededActionState({ name: "山田 太郎" }));
+    const { container } = render(
+      <WithdrawableUserList items={[ROW]} withdrawAction={succeeding} />,
+    );
+
+    await confirmWithdraw();
+    await screen.findByText("山田 太郎 を退会させました");
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

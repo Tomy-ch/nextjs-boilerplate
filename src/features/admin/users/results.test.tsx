@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { toUserId } from "@/model/user/user";
 
@@ -103,6 +104,20 @@ describe("AdminUserResults", () => {
 
     expect(screen.getByRole("link", { name: "3 ページ目" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "4 ページ目" })).not.toBeInTheDocument();
+  });
+
+  it("組み上がったページ送りが a11y 検査を通る", async () => {
+    const { container } = render(
+      await AdminUserResults({
+        location: { scope: USER_SCOPE.ALL, page: 1 },
+        perPage: PER_PAGE,
+        withdrawAction,
+      }),
+    );
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 
   it("取得が失敗すれば、その失敗を境界へ渡す", async () => {

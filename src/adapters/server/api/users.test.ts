@@ -4,6 +4,7 @@ import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { toUserId } from "@/model/user/user";
 import { serveJson, serveStatus, serveWrite } from "../../../../vitest.setup";
+import { getUsersQueryPerPageMax } from "../../gen/api/endpoints.zod";
 
 const { getAccessToken, getEnvironment, getLogger, signOut, verifySession, warn } = vi.hoisted(
   () => {
@@ -30,7 +31,6 @@ import {
   getManagedUserPage,
   getMyProfile,
   getMyPurchaseSummary,
-  MANAGED_USER_PAGE_MAX,
   registerUser,
   updateMyProfile,
   withdrawMe,
@@ -505,10 +505,22 @@ describe("getManagedUserPage", () => {
     expect(requests).toHaveLength(0);
   });
 
-  it("契約が拒む件数は送る前に止める", async () => {
+  it("契約が受け付ける件数の上限そのものは通す", async () => {
     const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
 
-    await expect(getManagedUserPage({ page: 1, perPage: MANAGED_USER_PAGE_MAX })).rejects.toThrow();
+    await getManagedUserPage({ page: 1, perPage: getUsersQueryPerPageMax });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("perPage")).toBe(
+      String(getUsersQueryPerPageMax),
+    );
+  });
+
+  it("契約の上限を 1 件超える件数は送る前に止める", async () => {
+    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
+
+    await expect(
+      getManagedUserPage({ page: 1, perPage: getUsersQueryPerPageMax + 1 }),
+    ).rejects.toThrow();
     expect(requests).toHaveLength(0);
   });
 

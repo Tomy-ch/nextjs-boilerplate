@@ -37,11 +37,16 @@ describe("AdminUserTable", () => {
     expect(screen.getByText("09012345678")).toBeInTheDocument();
   });
 
-  it("状態を色ではなく文字で示す", () => {
+  it("状態を色ではなく文字で示し、行ごとに対応させる", () => {
     render(<AdminUserTable items={[row(), WITHDRAWN]} onWithdraw={vi.fn()} />);
 
-    expect(screen.getByText("有効")).toBeInTheDocument();
-    expect(screen.getByText("退会済み")).toBeInTheDocument();
+    const active = screen.getByRole("row", { name: /山田 太郎/ });
+    const withdrawn = screen.getByRole("row", { name: /田中 二郎/ });
+
+    expect(within(active).getByText("有効")).toBeInTheDocument();
+    expect(within(active).queryByText("退会済み")).not.toBeInTheDocument();
+    expect(within(withdrawn).getByText("退会済み")).toBeInTheDocument();
+    expect(within(withdrawn).queryByText("有効")).not.toBeInTheDocument();
   });
 
   it("行の操作は、どの行のものかが分かる名前を持つ", () => {

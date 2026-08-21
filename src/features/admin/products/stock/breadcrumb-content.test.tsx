@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { toProductId } from "@/model/product/product";
 
@@ -37,5 +38,15 @@ describe("AdminProductStockBreadcrumbContent", () => {
     render(await AdminProductStockBreadcrumbContent({ id: ID }));
 
     expect(screen.queryByRole("link", { name: "ワイヤレスイヤホン" })).not.toBeInTheDocument();
+  });
+
+  it("a11y 検査を通る", async () => {
+    getProduct.mockResolvedValue({ name: "ワイヤレスイヤホン" });
+
+    const { container } = render(await AdminProductStockBreadcrumbContent({ id: ID }));
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

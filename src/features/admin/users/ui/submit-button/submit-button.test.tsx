@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { WithdrawSubmitButton } from "./submit-button";
 
@@ -40,5 +41,17 @@ describe("WithdrawSubmitButton", () => {
     );
 
     expect(screen.getByRole("button", { name: "退会させる" })).toHaveAttribute("type", "submit");
+  });
+
+  it("a11y 検査を通る", async () => {
+    const { container } = render(
+      <form>
+        <WithdrawSubmitButton />
+      </form>,
+    );
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
+import { findAppError } from "@/errors/app-error";
+import { ErrorKind } from "@/errors/error-kind";
 import { serveJson, serveStatus, serveWrite, watchFetch } from "../../../../vitest.setup";
 
 const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
@@ -49,6 +51,17 @@ const PRODUCTS_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/products`;
 const PRODUCT_URL = `${PRODUCTS_URL}/:id`;
 const RANKING_URL = `${PRODUCTS_URL}/ranking`;
 const COUNT_URL = `${PRODUCTS_URL}/count`;
+
+/** 投げられたエラーに付いた分類を返す。投げなければ undefined。 */
+async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
+  try {
+    await run();
+  } catch (error) {
+    return findAppError(error)?.kind;
+  }
+
+  return undefined;
+}
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -641,22 +654,22 @@ describe("adjustProductStock", () => {
   });
 
   // ----- 異常系 -----
-  it("増減後の在庫が範囲を外れた応答を、分類済みのエラーとして投げる", async () => {
+  it("増減後の在庫が範囲を外れた応答を、入力の誤りとして分類する", async () => {
     serveStatus("patch", STOCK_URL, 422);
 
-    await expect(adjustProductStock(ID, -1000)).rejects.toThrow();
+    await expect(kindOf(() => adjustProductStock(ID, -1000))).resolves.toBe(ErrorKind.VALIDATION);
   });
 
-  it("並行して動かされて拒まれた応答を、分類済みのエラーとして投げる", async () => {
+  it("並行して動かされて拒まれた応答を、競合として分類する", async () => {
     serveStatus("patch", STOCK_URL, 409);
 
-    await expect(adjustProductStock(ID, 50)).rejects.toThrow();
+    await expect(kindOf(() => adjustProductStock(ID, 50))).resolves.toBe(ErrorKind.CONFLICT);
   });
 
-  it("一時的に受け付けられない応答を、再送せずに投げる", async () => {
+  it("一時的に受け付けられない応答を、時間を空ける分類にし、再送しない", async () => {
     const requests = serveStatus("patch", STOCK_URL, 503);
 
-    await expect(adjustProductStock(ID, 50)).rejects.toThrow();
+    await expect(kindOf(() => adjustProductStock(ID, 50))).resolves.toBe(ErrorKind.UNAVAILABLE);
     expect(requests).toHaveLength(1);
   });
 });

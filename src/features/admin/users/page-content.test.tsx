@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { MANAGED_USER_PAGE_MAX } from "@/adapters/server/api/users";
 
@@ -52,5 +53,13 @@ describe("AdminUserListPageContent", () => {
     renderContent({ scope: "active" });
 
     expect(screen.getByRole("combobox", { name: "状態" })).toBeInTheDocument();
+  });
+
+  it("a11y 検査を通る", async () => {
+    const { container } = renderContent({});
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });
