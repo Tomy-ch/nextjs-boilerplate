@@ -17,7 +17,7 @@
 
 ```bash
 make fetch-api            # sources.yaml の全契約を取得する
-make fetch-api NAME=auth  # 契約を 1 本だけ取得する
+make fetch-api NAME=api   # 契約を 1 本だけ取得する
 ```
 
 取得は生成を伴いません。取得したら `make gen-api` で型 / zod / MSW ハンドラを生成します

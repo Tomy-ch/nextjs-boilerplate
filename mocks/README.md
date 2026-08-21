@@ -31,7 +31,7 @@ frontmatter の `test-requirement: unit` が掛かるのは、取りまとめが
 | パス | 中身 |
 | --- | --- |
 | `api/endpoints.msw.ts` | 本体 API の MSW ハンドラ。response は faker で組み立てられる |
-| `api/endpoints.ts` / `auth/endpoints.ts` | orval が生成する HTTP client。**使いません**(下記) |
+| `api/endpoints.ts` | orval が生成する HTTP client。**使いません**(下記) |
 | `handlers.ts` | 生成ハンドラの取りまとめ。手書きのハンドラは足しません |
 | `stable-responses.ts` | 同じ要求へ同じ応答を返させる組み立て(下記) |
 | `node.ts` | Node 側の interception。Server Components からの取得もここを通ります |

@@ -4,12 +4,9 @@ import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { errorMetaFrom } from "@/errors/error-meta";
 
-import { issueDevelopmentAccessToken } from "./development-token";
+import { issueDevelopmentAccessToken, REQUIRED_IDP } from "./development-token";
 
 const issuer = "https://idp.example.test";
-
-/** 失敗の文面が名乗るべき、繋ぐ相手の性質。 */
-const REQUIRED_IDP_HINT = "Resource Owner Password Credentials";
 
 vi.mock("@/config/auth/auth.server", () => ({
   getAuthConfig: () => ({ clientId: "boilerplate-client" }),
@@ -41,6 +38,16 @@ function stubFetch(tokenResponse: Response): ReturnType<typeof vi.fn<typeof fetc
   vi.stubGlobal("fetch", fetchImpl);
 
   return fetchImpl;
+}
+
+/** 宛先に何も立っていない状態にする。 */
+function stubUnreachable(): void {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async () => {
+      throw new TypeError("fetch failed");
+    }),
+  );
 }
 
 /** 失敗の分類を取り出す。分類の付かない失敗は undefined になる。 */
@@ -118,53 +125,57 @@ describe("issueDevelopmentAccessToken", () => {
   });
 
   it("IdP が居なければ、宛先と求めている性質を名指しして落ちる", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof fetch>(async () => {
-        throw new TypeError("fetch failed");
-      }),
-    );
+    stubUnreachable();
 
     const message = await messageOf(() =>
       issueDevelopmentAccessToken({ subject: "user-john-doe", issuer }),
     );
 
     expect(message).toContain(issuer);
-    expect(message).toContain("Discovery");
-    expect(message).toContain("Resource Owner Password Credentials");
+    expect(message).toContain(REQUIRED_IDP);
+  });
+
+  it("Discovery の段で落ちたときは、トークンの段を名指ししない", async () => {
+    stubUnreachable();
+
+    const message = await messageOf(() =>
+      issueDevelopmentAccessToken({ subject: "user-john-doe", issuer }),
+    );
+
+    expect(message).toContain("接続先を引けませんでした");
+    expect(message).not.toContain("トークンを取れませんでした");
   });
 
   it("届かなかったことを、応答が違ったことと混ぜない", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof fetch>(async () => {
-        throw new TypeError("fetch failed");
-      }),
-    );
+    stubUnreachable();
 
     expect(
       await kindOf(() => issueDevelopmentAccessToken({ subject: "user-john-doe", issuer })),
     ).toBe(ErrorKind.UNAVAILABLE);
   });
 
-  it("宛先が URL として壊れていても、生の失敗を素通しせず宛先を名指しする", async () => {
-    const message = await messageOf(() =>
-      issueDevelopmentAccessToken({ subject: "user-john-doe", issuer: "htp:/localhost:2010" }),
+  it("名乗る issuer がずれた IdP は、分類まで潰さずに落とす", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async () =>
+        respond({ ...discovery, issuer: "https://another-idp.example.test" }),
+      ),
     );
 
-    expect(message).toContain("htp:/localhost:2010");
-    expect(message).toContain(REQUIRED_IDP_HINT);
+    expect(
+      await kindOf(() => issueDevelopmentAccessToken({ subject: "user-john-doe", issuer })),
+    ).toBe(ErrorKind.INTERNAL);
   });
 
-  it("トークンの段で拒まれたときは、Discovery ではなくその段を名指しする", async () => {
+  it("トークンの段で落ちたときは、Discovery の段を名指ししない", async () => {
     stubFetch(respond({ error: "unsupported_grant_type" }, 400));
 
     const message = await messageOf(() =>
       issueDevelopmentAccessToken({ subject: "user-john-doe", issuer }),
     );
 
-    expect(message).toContain("主体を名指しするトークン要求");
-    expect(message).not.toContain("Discovery を返しませんでした");
+    expect(message).toContain("トークンを取れませんでした");
+    expect(message).not.toContain("接続先を引けませんでした");
   });
 
   it("トークンを含まない応答は契約破れとして扱う", async () => {

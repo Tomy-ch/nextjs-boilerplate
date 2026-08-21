@@ -37,8 +37,11 @@ const UNUSED_PASSWORD = "unused";
  * 失敗したときに、**何を満たす相手が居ないのか**を利用者へ返すために持ちます。製品名で書かない
  * のは、繋ぐ相手が入れ替わるためです —— 名前で名乗ると、入れ替わった瞬間に案内が嘘になりますが、
  * 性質なら次の相手にもそのまま当たります。
+ *
+ * 公開するのは、**失敗の文面がこれを名乗ることを外から確かめられるようにする**ためです。写した
+ * 側だけが古い文言を持つ状態を作らずに済みます。
  */
-const REQUIRED_IDP =
+export const REQUIRED_IDP =
   "OIDC Discovery を公開し、Resource Owner Password Credentials で主体を名指しできる開発用 IdP";
 
 /**
@@ -83,7 +86,7 @@ export async function issueDevelopmentAccessToken(input: {
   const { maxUrlBytes } = getHttpConfig();
 
   const { tokenEndpoint } = await fetchOidcEndpoints(issuer, maxUrlBytes).catch(
-    rethrowAs(issuer, "Discovery を返しませんでした"),
+    rethrowAs(issuer, "OIDC Discovery から接続先を引けませんでした"),
   );
   const client = createHttpClient({ baseUrl: issuer, maxUrlBytes });
 
@@ -99,7 +102,7 @@ export async function issueDevelopmentAccessToken(input: {
       },
       schema: TokenResponse,
     })
-    .catch(rethrowAs(issuer, "主体を名指しするトークン要求を受け付けませんでした"));
+    .catch(rethrowAs(issuer, "主体を名指ししたトークンを取れませんでした"));
 
   return access_token;
 }

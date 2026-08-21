@@ -72,11 +72,10 @@ APP_ENV=local pnpm dev
 主体はバックエンドに登録されているものを使います。登録されていない主体はトークンこそ出ますが、
 API の側で解決できず 401 になります。管理側の画面を見るなら、`admin` の役割を持つ主体が要ります。
 
-> **取り方は `adapters/server/auth/development-token.ts` が 1 か所で持ちます。** 相手は製品ではなく
-> 性質で決まり、**OIDC Discovery を公開し、Resource Owner Password Credentials で主体を名指しできる
-> 開発用 IdP** なら何でも通ります（本物の IdP で使ってはならない付与方式です）。**別の IdP へ移るなら、
-> 書き換えるのはこのファイルだけ**で、画面と Server Action は「主体と接続先を渡すとトークンが返る」
-> ことしか知りません。
+> **取り方は `adapters/server/auth/development-token.ts` が 1 か所で持ちます。** 通るのは
+> **OIDC Discovery を公開し、Resource Owner Password Credentials で主体を名指しできる開発用 IdP**
+> です（本物の IdP で使ってはならない付与方式です）。画面と Server Action は「主体と接続先を渡すと
+> トークンが返る」ことしか知りません。
 >
 > 宛先がその性質を満たさないときは、**どの段で応えなかったか**を宛先付きで返します —— IdP を立て
 > 忘れたのか、宛先を打ち間違えたのかが、同じ文面にならないようにするためです。
