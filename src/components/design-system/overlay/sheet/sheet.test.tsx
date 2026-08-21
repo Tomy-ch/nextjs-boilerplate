@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { type SyntheticEvent, useCallback, useId } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -77,10 +78,10 @@ describe("Sheet", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("trigger の操作で開き、title と説明を関連付ける", () => {
+  it("trigger の操作で開き、title と説明を関連付ける", async () => {
     render(<SheetFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
     const content = screen.getByRole("dialog", { name: "メニュー" });
 
@@ -124,10 +125,10 @@ describe("Sheet", () => {
     );
   });
 
-  it("右上の閉じる操作は読み上げ可能な名前を持ち、押すと閉じる", () => {
+  it("右上の閉じる操作は読み上げ可能な名前を持ち、押すと閉じる", async () => {
     render(<SheetFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
+    await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -139,28 +140,28 @@ describe("Sheet", () => {
     expect(screen.getByRole("dialog", { name: "メニュー" })).toBeInTheDocument();
   });
 
-  it("SheetClose で内容側からも閉じられる", () => {
+  it("SheetClose で内容側からも閉じられる", async () => {
     render(<SheetFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<SheetFixture defaultOpen />);
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("Portal へ描画しても内容の form が name と value を送信値として保つ", () => {
+  it("Portal へ描画しても内容の form が name と value を送信値として保つ", async () => {
     const onSubmitted = vi.fn<(entries: FormData) => void>();
 
     render(<FormSheetFixture onSubmitted={onSubmitted} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "適用" }));
+    await userEvent.click(screen.getByRole("button", { name: "適用" }));
 
     expect(onSubmitted).toHaveBeenCalledTimes(1);
     expect(onSubmitted.mock.calls[0][0].get("keyword")).toBe("標準");
@@ -213,10 +214,10 @@ describe("SheetTrigger", () => {
     );
   });
 
-  it("押すと内容を開く", () => {
+  it("押すと内容を開く", async () => {
     render(<SheetFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
     expect(screen.getByRole("dialog")).toBeVisible();
   });
@@ -304,10 +305,10 @@ describe("SheetClose", () => {
     );
   });
 
-  it("押すと内容を閉じる", () => {
+  it("押すと内容を閉じる", async () => {
     render(<SheetFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.queryByRole("dialog")).toBeNull();
   });
