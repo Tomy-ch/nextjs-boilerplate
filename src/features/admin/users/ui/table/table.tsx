@@ -63,6 +63,7 @@ function toColumns(
       ...rowActionsColumn<AdminUserRow>({
         triggerLabel: (item) => `${item.name} の操作`,
         // 退会済みには操作を出さない。もう一度退会させる意味が無く、出しても契約が拒むだけ。
+        // 空を返すと `RowActionsMenu` が trigger ごと描かない。
         actions: (item) =>
           item.withdrawn
             ? []

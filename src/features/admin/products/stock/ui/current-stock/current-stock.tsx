@@ -23,12 +23,15 @@ export type StockCurrentAmountProps = {
  *
  * 取り直す導線を常設します。ずれていることが判ってから探すのでは遅く、送る前に確かめたい人が
  * 必ず居ます。
+ *
+ * 商品名は 2 行で打ち切ります。1 行に詰めると（`truncate`）折り返しを禁じることになり、契約が
+ * 許す長さの名前が入ったときに枠ごと横へ伸びて、画面そのものが横にあふれます。
  */
 export function StockCurrentAmount({ productName, quantity, reloadHref }: StockCurrentAmountProps) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border p-4">
       <div className="min-w-0">
-        <p className="truncate font-medium text-sm">{productName}</p>
+        <p className="line-clamp-2 break-words font-medium text-sm">{productName}</p>
         <p className="mt-1 flex items-baseline gap-2">
           <span className="text-muted-foreground text-sm">現在の在庫</span>
           <span className="font-semibold text-2xl tabular-nums">{quantity}</span>

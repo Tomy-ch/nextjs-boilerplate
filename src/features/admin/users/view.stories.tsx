@@ -131,12 +131,24 @@ function list({
   );
 }
 
-/** 行の操作 menu を開いてから「退会させる」を選ぶ。 */
+/**
+ * 行の操作 menu を開いてから「退会させる」を選ぶ。
+ *
+ * menu も dialog も portal で `body` の側へ出るため、canvas の内側からは辿れない。
+ */
 async function openWithdrawDialog(canvasElement: HTMLElement, name: string) {
-  const canvas = within(canvasElement);
+  const body = within(document.body);
 
-  await userEvent.click(canvas.getByRole("button", { name: `${name} の操作` }));
-  await userEvent.click(await canvas.findByRole("menuitem", { name: "退会させる" }));
+  await userEvent.click(within(canvasElement).getByRole("button", { name: `${name} の操作` }));
+  await userEvent.click(await body.findByRole("menuitem", { name: "退会させる" }));
+  await body.findByRole("alertdialog");
+}
+
+/** 確認の中の送信を押す。同じ呼び名の menu 項目と取り違えないよう dialog の内側へ絞る。 */
+async function submitWithdraw() {
+  const dialog = await within(document.body).findByRole("alertdialog");
+
+  await userEvent.click(within(dialog).getByRole("button", { name: "退会させる" }));
 }
 
 const meta = {
@@ -187,7 +199,7 @@ export const ActiveOnly: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
 };
 
-/** 退会済みだけに絞った状態。どの行にも操作 menu が出ない。 */
+/** 退会済みだけに絞った状態。操作が無いので、どの行にも操作の trigger が出ない。 */
 export const WithdrawnOnly: Story = {
   args: {
     scope: USER_SCOPE.WITHDRAWN,
@@ -248,11 +260,11 @@ export const Withdrawn: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   play: async ({ canvasElement }) => {
     await openWithdrawDialog(canvasElement, "山田 太郎");
-    await userEvent.click(await within(document.body).findByRole("button", { name: "退会させる" }));
+    await submitWithdraw();
   },
 };
 
-/** 進行中の購入が残って拒まれた状態。確認は開いたまま、理由が一覧の上に出る。 */
+/** 進行中の購入が残って拒まれた状態。確認は閉じ、拒まれた理由が一覧の上に残る。 */
 export const WithdrawConflicted: Story = {
   args: {
     children: list({
@@ -262,11 +274,11 @@ export const WithdrawConflicted: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   play: async ({ canvasElement }) => {
     await openWithdrawDialog(canvasElement, "山田 太郎");
-    await userEvent.click(await within(document.body).findByRole("button", { name: "退会させる" }));
+    await submitWithdraw();
   },
 };
 
-/** 契約上の最大長を持つ姓名。列幅を押し広げず、折り返して収まる。 */
+/** 契約上の最大長を持つ姓名。表は自分の領域の中で横へ伸び、画面そのものは横へあふれない。 */
 export const LongName: Story = {
   args: {
     children: list({

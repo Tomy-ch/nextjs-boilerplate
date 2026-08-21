@@ -24,12 +24,13 @@ export type WithdrawableUserListProps = {
  * 退会を確認して送れる利用者一覧。
  *
  * @remarks
- * **送信の結果をここが持ちます。**確認の面は成立と同時に閉じるため、結果をその中に出すと消えます。
+ * **送信の結果をここが持ちます。**確認の面は結果が返ると閉じるため、結果をその中に出すと消えます。
  * 一覧の上に置くことで、退会した行が消えた（「有効」で絞り込んでいるとき）後でも何が起きたかが
  * 残ります。
  *
- * 拒まれたときは開いたままにします。理由が判ったうえで「やめる」を選べる状態が要り、閉じてしまう
- * と押し直すところから始まります。
+ * **成否によらず閉じます。**確認は「本当に押すか」を尋ねる面で、結果を語る面ではありません。
+ * 拒まれたときだけ開いたままにすると、一覧の上に出した理由が overlay の裏に隔てられ、読むために
+ * 一度閉じることになります。
  */
 export function WithdrawableUserList({
   items,
@@ -43,13 +44,13 @@ export function WithdrawableUserList({
   const [target, setTarget] = useState<AdminUserRow | null>(null);
   const [seenState, setSeenState] = useState<WithdrawUserState>(state);
 
-  // 成立したら確認を閉じる。閉じるのは結果が返ってからで、押した瞬間ではない（送信中に閉じると
-  // form ごと外れ、失敗したことが誰にも届かない）。effect にすると閉じる前の描画が一度挟まり、
-  // 成立の報せと開いたままの確認が同時に見える。
+  // 結果が返ったら確認を閉じる。閉じるのは結果が返ってからで、押した瞬間ではない（送信中に閉じる
+  // と form ごと外れ、何が起きたかが誰にも届かない）。effect にすると閉じる前の描画が一度挟まり、
+  // 報せと開いたままの確認が同時に見える。
   if (seenState !== state) {
     setSeenState(state);
 
-    if (state.status === "success") setTarget(null);
+    if (state.status !== "idle") setTarget(null);
   }
 
   const dismiss = useCallback(() => setTarget(null), []);

@@ -236,7 +236,7 @@ export const Unavailable: Story = {
   },
 };
 
-/** 契約上の最大長を持つ商品名。枠を押し広げず折り返して収まる。 */
+/** 契約上の最大長を持つ商品名。枠を押し広げず折り返して収まる（表と違い 1 行の見出しではない）。 */
 export const LongName: Story = {
   args: { product: { ...PRODUCT, name: longText(MAX_NAME_LENGTH) } },
   globals: { viewport: { value: "desktop", isRotated: false } },
