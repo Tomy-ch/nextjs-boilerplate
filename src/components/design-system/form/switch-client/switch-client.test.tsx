@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useCallback, useId, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -38,11 +39,11 @@ describe("SwitchClient", () => {
     expect(control).not.toBeChecked();
   });
 
-  it("操作を state として扱い、結果を即座に反映する", () => {
+  it("操作を state として扱い、結果を即座に反映する", async () => {
     const onChange = vi.fn();
     render(<ControlledFixture onChange={onChange} />);
 
-    fireEvent.click(screen.getByRole("switch", { name: "通知を受け取る" }));
+    await userEvent.click(screen.getByRole("switch", { name: "通知を受け取る" }));
 
     expect(onChange).toHaveBeenCalledWith(true);
     expect(screen.getByRole("switch", { name: "通知を受け取る" })).toBeChecked();

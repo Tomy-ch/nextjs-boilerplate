@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useCallback, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -81,23 +82,25 @@ describe("SliderClient", () => {
     expect(lower).toHaveAttribute("aria-valuemax", "80");
   });
 
-  it("keyboard 操作で値を変え、呼び出し元へ通知する", () => {
+  it("keyboard 操作で値を変え、呼び出し元へ通知する", async () => {
     const onValueChange = vi.fn();
     render(
       <SliderClient defaultValue={[40]} onValueChange={onValueChange} thumbLabels={["上限価格"]} />,
     );
 
-    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowRight" });
+    await userEvent.type(screen.getByRole("slider"), "{ArrowRight}");
 
     expect(onValueChange).toHaveBeenCalledWith([41]);
   });
 
-  it("制御 component として呼び出し元の値を表示へ反映する", () => {
+  it("制御 component として呼び出し元の値を表示へ反映する", async () => {
     render(<ControlledSliderFixture />);
 
     const upper = screen.getAllByRole("slider")[1];
-    fireEvent.focus(upper);
-    fireEvent.keyDown(upper, { key: "ArrowRight" });
+
+    if (upper !== undefined) {
+      await userEvent.type(upper, "{ArrowRight}");
+    }
 
     expect(screen.getByRole("status")).toHaveTextContent("20-71");
   });
@@ -111,7 +114,7 @@ describe("SliderClient", () => {
     expect(thumbs[1]).toHaveAccessibleName("上限価格");
   });
 
-  it("disabled のとき操作を受け付けない", () => {
+  it("disabled のとき操作を受け付けない", async () => {
     const onValueChange = vi.fn();
     render(
       <SliderClient
@@ -122,7 +125,7 @@ describe("SliderClient", () => {
       />,
     );
 
-    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowRight" });
+    await userEvent.type(screen.getByRole("slider"), "{ArrowRight}");
 
     expect(onValueChange).not.toHaveBeenCalled();
   });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -9,7 +10,7 @@ import { Calendar } from "./calendar";
 const calendarMonth = new Date(2026, 7, 1);
 
 describe("Calendar", () => {
-  it("月の grid と日付を選択する操作を表示する", () => {
+  it("月の grid と日付を選択する操作を表示する", async () => {
     const onSelect = vi.fn();
     render(<Calendar defaultMonth={calendarMonth} mode="single" onSelect={onSelect} />);
 
@@ -22,7 +23,7 @@ describe("Calendar", () => {
       throw new Error("日付を選択する button が見つかりません。");
     }
 
-    fireEvent.click(dayButton);
+    await userEvent.click(dayButton);
 
     expect(onSelect).toHaveBeenCalledTimes(1);
   });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useCallback, useState } from "react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
@@ -64,19 +65,19 @@ describe("ToggleGroupClient", () => {
     expect(selected).toHaveClass("data-[state=on]:bg-accent");
   });
 
-  it("single では選択が排他的に切り替わる", () => {
+  it("single では選択が排他的に切り替わる", async () => {
     render(<SingleFixture />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "USD" }));
+    await userEvent.click(screen.getByRole("radio", { name: "USD" }));
 
     expect(screen.getByRole("radio", { name: "USD" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "JPY" })).not.toBeChecked();
   });
 
-  it("multiple では複数を同時に選べ、呼び出し元へ配列で通知する", () => {
+  it("multiple では複数を同時に選べ、呼び出し元へ配列で通知する", async () => {
     render(<MultipleFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "アーカイブ" }));
+    await userEvent.click(screen.getByRole("button", { name: "アーカイブ" }));
 
     expect(screen.getByRole("status")).toHaveTextContent("price,archived");
   });

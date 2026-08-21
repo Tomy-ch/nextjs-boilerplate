@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { useId } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -88,15 +89,15 @@ describe("InputGroup", () => {
 });
 
 describe("InputGroupAddon", () => {
-  it("addon の空白を押すと同じ枠内の入力欄へ focus が移る", () => {
+  it("addon の空白を押すと同じ枠内の入力欄へ focus が移る", async () => {
     render(<UnitInputGroup />);
 
-    fireEvent.click(screen.getByText("kg"));
+    await userEvent.click(screen.getByText("kg"));
 
     expect(screen.getByRole("textbox")).toHaveFocus();
   });
 
-  it("addon の空白を押すと複数行の入力欄へも focus が移る", () => {
+  it("addon の空白を押すと複数行の入力欄へも focus が移る", async () => {
     render(
       <InputGroup>
         <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.BLOCK_START}>
@@ -106,12 +107,12 @@ describe("InputGroupAddon", () => {
       </InputGroup>,
     );
 
-    fireEvent.click(screen.getByText("補足", { selector: "span" }));
+    await userEvent.click(screen.getByText("補足", { selector: "span" }));
 
     expect(screen.getByRole("textbox")).toHaveFocus();
   });
 
-  it("addon 内の button を押したときは入力欄へ focus を移さない", () => {
+  it("addon 内の button を押したときは入力欄へ focus を移さない", async () => {
     const handleClick = vi.fn();
     render(
       <InputGroup>
@@ -122,13 +123,13 @@ describe("InputGroupAddon", () => {
       </InputGroup>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "消去" }));
+    await userEvent.click(screen.getByRole("button", { name: "消去" }));
 
     expect(handleClick).toHaveBeenCalledOnce();
     expect(screen.getByRole("textbox")).not.toHaveFocus();
   });
 
-  it("入力欄を持たない枠の addon を押しても何も起きない", () => {
+  it("入力欄を持たない枠の addon を押しても何も起きない", async () => {
     render(
       <InputGroup>
         <InputGroupAddon>
@@ -137,26 +138,26 @@ describe("InputGroupAddon", () => {
       </InputGroup>,
     );
 
-    fireEvent.click(screen.getByText("単位のみ"));
+    await userEvent.click(screen.getByText("単位のみ"));
 
     expect(document.body).toHaveFocus();
   });
 
-  it("枠の外に置いた addon を押しても何も起きない", () => {
+  it("枠の外に置いた addon を押しても何も起きない", async () => {
     render(
       <InputGroupAddon>
         <InputGroupText>単体</InputGroupText>
       </InputGroupAddon>,
     );
 
-    fireEvent.click(screen.getByText("単体"));
+    await userEvent.click(screen.getByText("単体"));
 
     expect(document.body).toHaveFocus();
   });
 });
 
 describe("InputGroupButton", () => {
-  it("既定では form を送信しない", () => {
+  it("既定では form を送信しない", async () => {
     const handleSubmit = vi.fn<FormSubmitHandler>((event) => {
       event.preventDefault();
     });
@@ -171,12 +172,12 @@ describe("InputGroupButton", () => {
       </form>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "消去" }));
+    await userEvent.click(screen.getByRole("button", { name: "消去" }));
 
     expect(handleSubmit).not.toHaveBeenCalled();
   });
 
-  it("type='submit' を指定すると入力欄の name と値を送信する", () => {
+  it("type='submit' を指定すると入力欄の name と値を送信する", async () => {
     const submitted = vi.fn();
     const handleSubmit: FormSubmitHandler = (event) => {
       event.preventDefault();
@@ -195,7 +196,7 @@ describe("InputGroupButton", () => {
       </form>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "検索" }));
+    await userEvent.click(screen.getByRole("button", { name: "検索" }));
 
     expect(submitted).toHaveBeenCalledWith({ keyword: "靴" });
   });
