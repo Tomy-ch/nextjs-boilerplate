@@ -136,6 +136,14 @@ describe("setMyCartItem", () => {
     await expect(requests[0]?.json()).resolves.toEqual({ quantity: 3 });
   });
 
+  it("設定後のカートを、取得と同じ表示用の明細へ写して返す", async () => {
+    serveWrite("put", CART_ITEM_URL, wireCart);
+
+    await expect(setMyCartItem(PRODUCT_ID, 3)).resolves.toMatchObject({
+      lines: [{ imageUrl: "https://media.example.test/products/abc.png" }],
+    });
+  });
+
   it("発行された識別子を cookie へ引き取る", async () => {
     serveWrite("put", CART_ITEM_URL, {
       ...wireCart,

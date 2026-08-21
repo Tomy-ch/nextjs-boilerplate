@@ -127,7 +127,13 @@ describe("CartLineRow", () => {
     expect(container.querySelector("[data-slot=media-image]")).toHaveClass("opacity-60");
   });
 
-  it("器の幅でサムネイルの大きさを変える", () => {
+  it("事情の無い明細はサムネイルを弱めない", () => {
+    const { container } = renderRow(EARPHONE_LINE);
+
+    expect(container.querySelector("[data-slot=media-image]")).not.toHaveClass("opacity-60");
+  });
+
+  it("サムネイルの大きさを、狭い器と広い器の両方について宣言する", () => {
     const { container } = renderRow(EARPHONE_LINE);
 
     expect(container.querySelector("[data-slot=media-image]")).toHaveClass("w-12", "@sm/line:w-16");
