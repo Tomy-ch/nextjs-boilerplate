@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/design-system/overlay/alert-dialog/alert-dialog";
 
-import { WITHDRAW_FORM_NAMES } from "../../form-state";
+import { WITHDRAW_FORM_NAMES } from "../../form-names";
 import type { AdminUserRow } from "../../row";
 import { WithdrawSubmitButton } from "../submit-button/submit-button";
 

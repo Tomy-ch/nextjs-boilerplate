@@ -5,7 +5,7 @@ import type { WithdrawUserAction } from "./form-state";
 import { type AdminUserListLocation, toActiveParam } from "./query";
 import { toAdminUserRows } from "./row";
 import { AdminUserPagination } from "./ui/pagination/pagination";
-import { WithdrawableUserList } from "./withdrawable-list";
+import { WithdrawableUserList } from "./ui/withdrawable-list/withdrawable-list";
 
 /** `AdminUserResults` の props。 */
 export type AdminUserResultsProps = {
@@ -26,11 +26,10 @@ export type AdminUserResultsProps = {
  * （[`toPageCount`](../../../model/pagination.ts)）。
  */
 export async function AdminUserResults({ location, withdrawAction }: AdminUserResultsProps) {
+  const active = toActiveParam(location.scope);
   const page = await getManagedUserPage({
     page: location.page,
-    ...(toActiveParam(location.scope) === undefined
-      ? {}
-      : { active: toActiveParam(location.scope) }),
+    ...(active === undefined ? {} : { active }),
   });
 
   return (

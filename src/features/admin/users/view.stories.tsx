@@ -20,8 +20,8 @@ import { WITHDRAW_CONFLICT_MESSAGE } from "./form-state";
 import { USER_SCOPE } from "./query";
 import type { AdminUserRow } from "./row";
 import { AdminUserPagination } from "./ui/pagination/pagination";
+import { WithdrawableUserList } from "./ui/withdrawable-list/withdrawable-list";
 import { AdminUserListView } from "./view";
-import { WithdrawableUserList } from "./withdrawable-list";
 
 const NAV_GROUPS: readonly AdminShellNavGroup[] = [
   { label: "集計", items: [{ href: ADMIN_DASHBOARD_PATH, label: "ダッシュボード" }] },

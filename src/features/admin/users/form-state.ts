@@ -23,14 +23,6 @@ export type WithdrawUserAction = (
   formData: FormData,
 ) => Promise<WithdrawUserState>;
 
-/** 退会の送信が持つ項目の名前。 */
-export const WITHDRAW_FORM_NAMES = {
-  /** 退会させる利用者。 */
-  userId: "userId",
-  /** 結果の文言に使う呼び名。 */
-  userName: "userName",
-} as const;
-
 /** 対象が送られてこなかったときの文言。 */
 export const WITHDRAW_TARGET_LOST_MESSAGE = "対象の利用者が判りません。画面を開き直してください。";
 

@@ -4,10 +4,10 @@ import { withdrawUser } from "@/adapters/server/api/users";
 import { verifySession } from "@/adapters/server/auth/session";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { WITHDRAW_FORM_NAMES } from "@/features/admin/users/form-names";
 import type { WithdrawUserState } from "@/features/admin/users/form-state";
 import {
   WITHDRAW_CONFLICT_MESSAGE,
-  WITHDRAW_FORM_NAMES,
   WITHDRAW_TARGET_LOST_MESSAGE,
 } from "@/features/admin/users/form-state";
 import {

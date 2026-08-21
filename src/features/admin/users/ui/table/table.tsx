@@ -91,7 +91,7 @@ function toColumns(
  * 取得もページ送りの組み立ても持ちません。並べる利用者と、下へ置くものを受け取るだけです。
  *
  * **確認を出すのはここではありません。** 退会は不可逆なので確認を挟みますが、確認の面と送信の
- * 結果は一覧の外側に居ます（[`WithdrawableUserList`](../../withdrawable-list.tsx)）。行が知って
+ * 結果は一覧の外側に居ます（[`WithdrawableUserList`](../withdrawable-list/withdrawable-list.tsx)）。行が知って
  * いるのは「この人に対して退会が選ばれた」ことだけです。
  *
  * **退会済みかを色だけで伝えません。** 状態の列に文字のバッジを置き、行そのものは淡くしません
