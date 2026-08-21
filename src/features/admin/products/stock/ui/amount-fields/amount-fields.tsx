@@ -37,9 +37,9 @@ export type StockAmountFieldsProps = {
  * 送信には欄の `name` で載るため、外側のフォームはこの値を知らずに済みます。向きと量を 1 つの
  * 部品にまとめてあるのは、見込みがその両方から決まるためです。
  *
- * 向きを 2 択の radio にするのは、符号を人に書かせないためです。1 つの欄で符号付きの数を受けると、
- * マイナスの入れ忘れがそのまま逆向きの更新になります（[`stock-direction`](../../stock-direction.ts)）。
- * 選択肢は 2 つで固定され、独自の keyboard 操作も要らないので native の radio で組みます。
+ * **native の radio で組みます。**選択肢は 2 つで固定され、独自の keyboard 操作も client state も
+ * 要りません。符号を人に書かせず向きで受ける理由は
+ * [`STOCK_DIRECTION`](../../stock-direction.ts)。
  *
  * 量として読めるかは [`toStockQuantity`](../../stock-quantity.ts) が決めます。送信を読む側と同じ
  * 規則なので、見込みが出ているのに弾かれる、が起きません。

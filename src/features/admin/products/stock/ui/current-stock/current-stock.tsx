@@ -16,16 +16,12 @@ export type StockCurrentAmountProps = {
  * いま判っている在庫と、その鮮度。
  *
  * @remarks
- * **読み込んだ時点の値であることを明示します。**在庫は他の主体の販売・補充でいつでも動くため、
- * ここに出ている数は画面を開いた瞬間の写しです。増減は相対値で送るので古くても結果は壊れません
- * が（[`adjustProductStock`](../../../../../../adapters/server/api/products.ts)）、**見込みの値は
- * ずれます**。それを知らないまま「見込みどおりにならなかった」と読まれるのを避けます。
+ * **増減は相対値で送るため、この数が古くても更新の結果は壊れません**
+ * （[`adjustProductStock`](../../../../../../adapters/server/api/products.ts)）。ずれるのは見込みの
+ * 値だけで、鮮度を添える理由はそこにあります。
  *
- * 取り直す導線を常設します。ずれていることが判ってから探すのでは遅く、送る前に確かめたい人が
- * 必ず居ます。
- *
- * 商品名は 2 行で打ち切ります。1 行に詰めると（`truncate`）折り返しを禁じることになり、契約が
- * 許す長さの名前が入ったときに枠ごと横へ伸びて、画面そのものが横にあふれます。
+ * 何をどう出すか（鮮度の注記 / 取り直す導線 / 商品名を 2 行で打ち切る）は
+ * [画面要件](../../../../../../docs/spec/route/admin/products/[id]/stock/page.screen.md)。
  */
 export function StockCurrentAmount({ productName, quantity, reloadHref }: StockCurrentAmountProps) {
   return (

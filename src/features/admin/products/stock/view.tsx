@@ -29,19 +29,11 @@ export type AdminProductStockViewProps = {
  * 在庫を補充する画面。
  *
  * @remarks
- * **在庫だけを動かします。**他の項目は編集の画面が持ちます。分けてあるのは更新の仕方が違う
- * ためで、在庫は相対値で加算し、他の項目は読んだ内容を書き戻します
- * （[`ProductEdit`](../../../../model/product/product.ts)）。
+ * **打っている途中の値を持ちません。**向きも量も欄の側（[`StockAmountFields`](./ui/amount-fields/amount-fields.tsx)）
+ * が持ち、送信には欄の `name` で載ります。この器が見るのは送信の結果だけです。
  *
- * **符号を画面が組み立てます。**入力する人が選ぶのは向きと量で、契約が受け取る符号付きの数へ
- * 畳むのは送信を読む側です（[`parseStockForm`](./parse-stock-form.ts)）。打っている途中の値は
- * 欄の側が持つため、この器は送信の結果だけを見ます。
- *
- * **誤りの要約を置きません。**入力欄が 1 つしかないため、要約は欄のそばの文言と同じことを
- * もう一度言うだけになります（要約が要るのは、どこがいくつ誤っているかを辿れない量のときです）。
- *
- * `409` にだけ読み込み直す導線を添えます。並行して動かされたときに要求が拒まれる分類で、
- * 取り直せば送り直せます。権限や通信の失敗に添えると、やり直せば直るものとして読めます。
+ * 画面が何を約束するか（在庫だけを動かす / 誤りの出し方 / `409` にだけ読み込み直す導線を添える）は
+ * [機能要件](../../../../docs/spec/route/admin/products/[id]/stock/page.function.md)と[画面要件](../../../../docs/spec/route/admin/products/[id]/stock/page.screen.md)。
  */
 export function AdminProductStockView({ adjustAction, product }: AdminProductStockViewProps) {
   const [state, formAction] = useActionState<StockFormState, FormData>(

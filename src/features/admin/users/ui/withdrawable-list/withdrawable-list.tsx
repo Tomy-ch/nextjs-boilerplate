@@ -28,9 +28,7 @@ export type WithdrawableUserListProps = {
  * 送り、結果が一覧の上に出る —— この 3 つは別々の部品にあり、どれとどれが同じ相手の話かを知って
  * いるのはこの層だけです。
  *
- * **成否によらず確認を閉じます。**確認は「本当に押すか」を尋ねる面で、結果を語る面ではありません。
- * 拒まれたときだけ開いたままにすると、一覧の上に出した理由が overlay の裏に隔てられ、読むために
- * 一度閉じることになります。
+ * 確認を成否によらず閉じる理由は [画面要件](../../../../../../docs/spec/route/admin/users/page.screen.md)「退会の確認」。
  */
 export function WithdrawableUserList({
   items,

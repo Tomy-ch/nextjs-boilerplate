@@ -309,7 +309,6 @@ export const getManagedUserPage = cache(
 
     const wire = await getClient().request({
       path: "/v1/users",
-      // 契約は真偽値と整数で宣言しているが、クエリ文字列に載せる時点で文字列へ戻る。
       searchParams: {
         active: params.active?.toString(),
         page: params.page.toString(),
@@ -334,8 +333,8 @@ export const getManagedUserPage = cache(
  * {@link withdrawMe} と別の口にしています。あちらは自分を退会させたあと手元の session を畳み
  * ますが、こちらは他人が対象なので、操作した側の session は残ったままでなければなりません。
  *
- * 進行中の購入が残っていると契約は `409` を返します。**その取消・在庫の戻しは同期しません** ——
- * 拒まれたという事実だけがここで判り、後始末が終わったかどうかは判りません。
+ * `409` が返る事情は {@link withdrawMe} と同じです。**ただしその取消・在庫の戻しは同期しません**
+ * —— 拒まれたという事実だけがここで判り、後始末が終わったかどうかは判りません。
  *
  * @param id - 退会させる利用者
  */

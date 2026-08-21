@@ -82,6 +82,8 @@ export function toPageNumber(offset: number, perPage: number): number {
  * @remarks
  * 1 件も無くても 1 を返します。ページが 0 枚の一覧は表せず、「1 ページ目が空」として扱うのが
  * 位置の数え方と矛盾しないためです。
+ *
+ * 1 ページの件数が 0 以下のときも 1 を返します（{@link toPageNumber} と同じ理由）。
  */
 export function toPageCount(total: number, perPage: number): number {
   if (perPage <= 0) {
