@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -47,10 +48,10 @@ describe("Dialog", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("trigger の操作で modal を開き、title と説明を関連付ける", () => {
+  it("trigger の操作で modal を開き、title と説明を関連付ける", async () => {
     render(<DialogFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
+    await userEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
 
     const content = screen.getByRole("dialog", { name: "表示条件" });
 
@@ -75,10 +76,10 @@ describe("Dialog", () => {
     );
   });
 
-  it("右上の閉じる操作は読み上げ可能な名前を持ち、押すと閉じる", () => {
+  it("右上の閉じる操作は読み上げ可能な名前を持ち、押すと閉じる", async () => {
     render(<DialogFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
+    await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -90,18 +91,18 @@ describe("Dialog", () => {
     expect(screen.getByRole("dialog", { name: "表示条件" })).toBeInTheDocument();
   });
 
-  it("DialogClose で内容側からも閉じられる", () => {
+  it("DialogClose で内容側からも閉じられる", async () => {
     render(<DialogFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<DialogFixture defaultOpen />);
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -143,10 +144,10 @@ describe("DialogTrigger", () => {
     );
   });
 
-  it("押すと内容を開く", () => {
+  it("押すと内容を開く", async () => {
     render(<DialogFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
+    await userEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
 
     expect(screen.getByRole("dialog")).toBeVisible();
   });
@@ -234,10 +235,10 @@ describe("DialogClose", () => {
     );
   });
 
-  it("押すと内容を閉じる", () => {
+  it("押すと内容を閉じる", async () => {
     render(<DialogFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.queryByRole("dialog")).toBeNull();
   });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useId } from "react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
@@ -45,10 +46,10 @@ describe("Popover", () => {
     );
   });
 
-  it("trigger の操作で Portal の内容を表示し、見出しをアクセシブルな名前にする", () => {
+  it("trigger の操作で Portal の内容を表示し、見出しをアクセシブルな名前にする", async () => {
     render(<PopoverFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "補足を開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "補足を開く" }));
 
     const content = screen.getByRole("dialog", { name: "表示条件" });
 
@@ -85,12 +86,12 @@ describe("Popover", () => {
     expect(content).toHaveClass("bg-background", "text-foreground", "border-border");
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<PopoverFixture defaultOpen />);
 
     expect(screen.getByRole("dialog", { name: "表示条件" })).toBeInTheDocument();
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -132,10 +133,10 @@ describe("PopoverTrigger", () => {
     );
   });
 
-  it("押すと内容を開く", () => {
+  it("押すと内容を開く", async () => {
     render(<PopoverFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "補足を開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "補足を開く" }));
 
     expect(screen.getByRole("dialog")).toBeVisible();
   });

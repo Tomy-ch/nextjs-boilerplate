@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -80,10 +81,10 @@ describe("TabsClient", () => {
     expect(detail).not.toBeVisible();
   });
 
-  it("tab を選ぶと表示するパネルが入れ替わる", () => {
+  it("tab を選ぶと表示するパネルが入れ替わる", async () => {
     render(<Fixture />);
 
-    fireEvent.mouseDown(screen.getByRole("tab", { name: "明細" }), { button: 0 });
+    await userEvent.click(screen.getByRole("tab", { name: "明細" }));
 
     expect(screen.getByRole("tabpanel")).toHaveTextContent("明細の内容です。");
     expect(screen.getByRole("tab", { name: "明細" })).toHaveAttribute("aria-selected", "true");
@@ -92,9 +93,8 @@ describe("TabsClient", () => {
   it("矢印キーで隣の tab へ移動する", async () => {
     render(<Fixture />);
 
-    const first = screen.getByRole("tab", { name: "サマリ" });
-    fireEvent.focus(first);
-    fireEvent.keyDown(first, { key: "ArrowRight" });
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowRight}");
 
     await waitFor(() => expect(screen.getByRole("tab", { name: "明細" })).toHaveFocus());
   });
@@ -106,7 +106,7 @@ describe("TabsClient", () => {
     expect(screen.getByRole("tab", { name: "サマリ" }).tagName).toBe("BUTTON");
   });
 
-  it("disabled の tab は選択できない", () => {
+  it("disabled の tab は選択できない", async () => {
     render(
       <TabsClient defaultValue="summary">
         <TabsClientList aria-label="表示する観点">
@@ -124,7 +124,7 @@ describe("TabsClient", () => {
 
     expect(disabledTab).toBeDisabled();
 
-    fireEvent.mouseDown(disabledTab, { button: 0 });
+    await userEvent.click(disabledTab);
 
     expect(screen.getByRole("tabpanel")).toHaveTextContent("サマリの内容です。");
   });
@@ -156,10 +156,10 @@ describe("TabsClientTrigger", () => {
     expect(screen.getByRole("tab", { name: "明細" })).toHaveAttribute("aria-selected", "false");
   });
 
-  it("押すと対応する内容へ切り替える", () => {
+  it("押すと対応する内容へ切り替える", async () => {
     render(<Fixture />);
 
-    fireEvent.mouseDown(screen.getByRole("tab", { name: "明細" }), { button: 0 });
+    await userEvent.click(screen.getByRole("tab", { name: "明細" }));
 
     expect(screen.getByRole("tabpanel")).toHaveTextContent("明細の内容です。");
   });
