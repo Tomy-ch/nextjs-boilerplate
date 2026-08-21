@@ -60,6 +60,15 @@ pre-commit:
         - "scripts/actions-shellcheck/*.ts"
         - "scripts/lib/*.ts"
       run: make actions-shellcheck
+    actions-zizmor:
+      # Actions 定義そのものの静的解析 (ADR 0153)。上の 2 つが届かない観点を埋めるため、
+      # 別コマンドとして持つ (何が届かないかは make 側 / ADR 0153 §1 が正)。
+      # 抑止の宣言も発火対象に含める。設定が変われば所見の集合が変わる。
+      glob:
+        - ".github/workflows/*.{yml,yaml}"
+        - ".github/actions/**/*.{yml,yaml}"
+        - ".github/zizmor.yml"
+      run: make actions-zizmor
     shellcheck:
       # 単体のシェルスクリプトを検査する (ADR 0153)。ここに居るのは、依存の導入前に走る
       # 必要があってシェルで書くしかないもの (ADR 0155 の例外)。TypeScript ではないので

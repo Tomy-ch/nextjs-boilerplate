@@ -42,6 +42,11 @@ runs:
     # covers, which is the baseline store and this repository — the App is installed
     # on exactly those two. Naming the store here instead would duplicate the wiring
     # that `.gitmodules` already owns.
+    #
+    # The permissions are named, though, so the token carries only what the baselines
+    # need rather than everything the installation grants. `contents: write` covers both
+    # ends: fetching the recorded commit here, and — for the caller that retakes — pushing
+    # the new baselines to the store and the moved pointer to this repository.
     - name: Mint a token for the baseline store
       id: token
       if: inputs.app-id != ''
@@ -50,6 +55,7 @@ runs:
         app-id: ${{ inputs.app-id }}
         private-key: ${{ inputs.private-key }}
         owner: ${{ github.repository_owner }}
+        permission-contents: write
 
     - name: Fetch the baseline images
       id: fetch

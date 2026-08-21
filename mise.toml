@@ -18,6 +18,11 @@ pipx.uvx = true
 # 実行者の環境依存になるため mise 側で持つ。
 "aqua:koalaman/shellcheck" = "0.11.0"
 
+# GitHub Actions 定義の静的解析（make actions-zizmor）。actionlint / shellcheck が
+# `${{ … }}` を潰してから解析するため原理的に見えない検査 —— run: での未クオートな式展開
+# （script injection）などを担う（docs/adr/0153-ci-configuration.md）。
+"aqua:zizmorcore/zizmor" = "1.29.0"
+
 # セキュリティスキャナ（make secret-scan / make trivy-fs）
 "aqua:gitleaks/gitleaks" = "8.30.1"
 "aqua:aquasecurity/trivy" = "0.72.0"

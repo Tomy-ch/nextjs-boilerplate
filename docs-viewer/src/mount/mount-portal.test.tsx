@@ -73,7 +73,7 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe("mountPortal", () => {
-  // ----- 正常系 -----
+  // ----- 生成物を読めたとき -----
   it("生成物を取得してビューアーを描画する", async () => {
     server.use(http.get("*/docs.json", () => HttpResponse.json(docs)));
 
@@ -83,6 +83,7 @@ describe("mountPortal", () => {
       expect(screen.getByRole("heading", { level: 1, name: "Documentation" })).toBeInTheDocument(),
     );
   });
+
   it("a11y 自動検査に違反しない", async () => {
     server.use(http.get("*/docs.json", () => HttpResponse.json(docs)));
 
@@ -98,7 +99,7 @@ describe("mountPortal", () => {
     ).toEqual([]);
   });
 
-  // ----- 異常系 -----
+  // ----- 生成物を読めなかったとき -----
   it("取得に失敗したら読み込めなかったことと応答の状態を伝える", async () => {
     server.use(http.get("*/docs.json", () => new HttpResponse(null, { status: 500 })));
 

@@ -221,3 +221,25 @@ export function resolveScreens(
     .filter((entry): entry is Extract<ScreenDeclaration, { name: string }> => "name" in entry)
     .map(({ route, name, path, signedIn, mask }) => ({ route, name, path, signedIn, mask }));
 }
+
+/**
+ * 撮影対象を、名前で指定された範囲へ絞る。
+ *
+ * @remarks
+ * 該当が 1 件も無ければ例外を投げます。0 件で続けると、撮り直しが「撮る対象なし」のまま成功し、
+ * 承認の経路は絵が変わったつもりで進みます。
+ *
+ * 範囲を絞った実行では 1 対 1 の対応を見ないでください。在るべき画像の集合が絞った側に縮み、
+ * 対象外の画像がすべて孤児として上がります（`visual/screens.spec.ts`）。
+ *
+ * @param screens - 絞る前の撮影対象
+ * @param only - 画面の名前をカンマで並べたもの。空なら絞らない
+ */
+export function selectScreens(screens: readonly Screen[], only: string | undefined): Screen[] {
+  if (!only) return [...screens];
+  const wanted = new Set(only.split(",").map((name) => name.trim()));
+  const selected = screens.filter((screen) => wanted.has(screen.name));
+  if (selected.length === 0) throw new Error(`E2E_ONLY に該当する画面がありません: ${only}`);
+
+  return selected;
+}
