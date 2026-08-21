@@ -17,6 +17,7 @@ const BUDGET: Budget = {
     clsScore: { limit: 0.1, reason: "good の境界" },
     tbtMs: { limit: 200, reason: "INP の lab 代替" },
   },
+  pullRequest: { alertAt: 300, reason: "合図の線" },
   screens: {},
 };
 
@@ -40,6 +41,9 @@ const YAML = [
   "    tbtMs:",
   "      limit: 200",
   "      reason: INP の lab 代替",
+  "  pullRequest:",
+  "    alertAt: 300",
+  "    reason: 合図の線",
   "  screens: {}",
 ].join("\n");
 

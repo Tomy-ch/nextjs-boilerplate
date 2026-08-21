@@ -34,8 +34,27 @@ name: Lighthouse
 # `cancel-in-progress` is on, so a burst of merges leaves only the newest tree measured —
 # that is the tree that matters. The nightly run is what guarantees at least one complete
 # measurement a day when merges keep superseding each other.
+#
+# ## What still runs on a pull request
+#
+# Waiting one merge is the wrong trade for two shapes of change, so the job starts on every
+# pull request, decides in about a minute, and measures only when the diff earns it:
+#
+#   * The screen declaration moved — a screen may have been added that has never been
+#     measured at all, so there is no earlier number for the release run to compare against.
+#   * A layout moved — every screen renders through it.
+#
+# Both are structural, which is why neither needs a number to justify it. Volume gets the
+# weaker treatment: past a line count declared in `performance-budget.yaml`, the job leaves a
+# comment naming the command to run and stays green. That threshold is a nudge, not a gate,
+# and it says so where it lives.
+#
+# The job reports a context on every pull request either way, which is what would let it
+# become a required check later; it is deliberately not one today, because the budget is not
+# yet reachable on this sample (`docs/adr/0101-performance-budget.md`).
 
 on:
+  pull_request:
   push:
     branches:
       - production
@@ -67,6 +86,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      pull-requests: write
 
     steps:
       - name: Harden the runner
@@ -78,6 +98,9 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+          # The base ref has to be resolvable for the `trigger` diff; the default shallow
+          # checkout leaves it a bad object and the decision would silently see no changes.
+          fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 1 }}
 
       - name: Setup mise and the pinned tools
         uses: ./.github/actions/setup-mise
@@ -111,11 +134,68 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Everything above this point is what the pull-request path pays: about a minute, and
+      # only to answer whether the expensive part is warranted.
+      - name: Decide whether this pull request has to be measured now
+        id: trigger
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: pnpm exec tsx scripts/lighthouse trigger "origin/${BASE_REF}"
+
+      # Workflow-authored prose only: the line count is a number this job computed, and the
+      # branch name is filtered below. Nothing here is taken from the diff's own text.
+      - name: Say that the change is large enough to be worth measuring
+        if: steps.trigger.outputs.kind == 'alert'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          CHANGED_LINES: ${{ steps.trigger.outputs.changed-lines }}
+        run: |
+          # The block below is pasted into a shell, so a value outside the accepted set is
+          # dropped rather than quoted. Why quoting is not enough is in ADR 0153 §5.
+          ref="${HEAD_REF}"
+
+          if printf '%s' "${ref}" | LC_ALL=C grep -q "[^A-Za-z0-9/._-]"; then
+            ref=''
+          fi
+
+          {
+            printf 'この PR は token とロジックを **%s 行**動かしています。\n' "${CHANGED_LINES}"
+            cat <<'NOTE'
+          差分を読んで critical path への影響を推し量れる規模を超えているので、測っておくことを勧めます。
+          NOTE
+
+            # Indented four spaces: markdown renders that as a code block, and it needs no
+            # fence — a literal fence in a single-quoted string is what shellcheck reads as
+            # a command substitution that will not expand.
+            if [ -n "${ref}" ]; then
+              printf '\n    gh workflow run lighthouse.yaml --ref %s\n' "${ref}"
+            fi
+
+            cat <<'NOTE'
+
+          **これはゲートではありません。** 全画面の計測は保護ブランチへの push と日次で回ります
+          (ADR 0101 §2)。知らせる線は performance-budget.yaml の lighthouse.pullRequest が
+          根拠付きで持ちます。
+          NOTE
+          } > /tmp/lighthouse-alert.md
+
+      - name: Comment the nudge on PR
+        if: steps.trigger.outputs.kind == 'alert'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- lighthouse-nudge -->'
+          title: '## 🔎 Lighthouse: この変更は測っておくと安全です'
+          body-file: /tmp/lighthouse-alert.md
+
       # The Next.js build cache is deliberately NOT restored here. A restored cache changes
       # how much work the first render does, and the numbers this job produces would then
       # depend on which branch last populated it rather than on this branch's code.
       - name: Build the app, start it and measure every screen
         id: lighthouse
+        if: github.event_name != 'pull_request' || steps.trigger.outputs.kind == 'force'
         continue-on-error: true
         shell: bash
         run: |
@@ -152,8 +232,10 @@ jobs:
       # `!= 'success'`, not `== 'failure'`: the measurement can fail to start at all — the
       # browser may not install — and that has to raise too. `!cancelled()` is what keeps a
       # run superseded by the next merge out of that same net.
+      # Only off a pull request. There the failure is already visible on the pull request
+      # itself, and an issue per branch would outlive the branch.
       - name: Raise the failure for a human
-        if: ${{ !cancelled() && steps.lighthouse.outputs.status != 'success' }}
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: ${{ github.ref_name }}
@@ -203,5 +285,5 @@ jobs:
           fi
 
       - name: Fail if a screen is over its budget
-        if: ${{ !cancelled() && steps.lighthouse.outputs.status != 'success' }}
+        if: ${{ !cancelled() && steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success' }}
         run: exit 1

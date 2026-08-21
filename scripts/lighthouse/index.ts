@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 
@@ -24,11 +24,16 @@ import { aggregate, readMetrics } from "./metrics";
 import { planTargets, type Target } from "./plan";
 import { renderReport } from "./report";
 import { buildCookieHeader } from "./session";
+import { decideTrigger, parseNumstat } from "./trigger";
 
 /**
  * 画面ごとの Core Web Vitals を測り、予算と照らす。
  *
- * 使い方: `tsx scripts/lighthouse`（`make lighthouse` から呼ばれる）
+ * 使い方:
+ *
+ *   `tsx scripts/lighthouse`                     画面を測り、予算と照らす（`make lighthouse`）
+ *   `tsx scripts/lighthouse trigger <base ref>`  その差分を PR で測るべきかを GitHub の出力へ書く
+ *
  *
  * アプリもブラウザもホストで動く。撮影（`vrt` / `e2e`）と違ってコンテナを使わない理由は
  * `.makefiles/testing/lighthouse.mk` にある。
@@ -140,7 +145,44 @@ function measure(target: Target, runs: number, headersFile: string | undefined):
   return { name: target.name, values: aggregate(values) };
 }
 
-async function main(): Promise<void> {
+/**
+ * 差分を判定し、GitHub Actions の出力へ書く。
+ *
+ * @remarks
+ * `kind` が `force` なら計測へ進み、`alert` なら知らせるだけです。判定そのものは
+ * [`trigger.ts`](trigger.ts) が持ちます。
+ */
+function trigger(baseRef: string): void {
+  const budget = parseBudget(readFileSync(BUDGET_FILE, "utf8"));
+  const numstat = spawnSync("git", ["diff", "--numstat", `${baseRef}...HEAD`], {
+    encoding: "utf8",
+  });
+
+  if (numstat.status !== 0) {
+    throw new Error(`${baseRef} との差分を取れませんでした。base を fetch していますか。`);
+  }
+
+  const decision = decideTrigger(parseNumstat(numstat.stdout), budget.pullRequest.alertAt);
+  const output = process.env.GITHUB_OUTPUT;
+
+  if (output === undefined) {
+    throw new Error("GITHUB_OUTPUT がありません。この副命令は CI から呼ばれます。");
+  }
+
+  appendFileSync(
+    output,
+    [
+      `kind=${decision.kind}`,
+      `detail=${decision.kind === "force" ? decision.reasons.join(" / ") : ""}`,
+      `changed-lines=${decision.kind === "alert" ? decision.changedLines : 0}`,
+      "",
+    ].join("\n"),
+  );
+
+  console.error(`🔎 ${decision.kind}`);
+}
+
+async function measureAll(): Promise<void> {
   const baseUrl = process.env.E2E_BASE_URL;
 
   if (baseUrl === undefined) {
@@ -197,6 +239,22 @@ async function main(): Promise<void> {
   }
 
   console.log("\n✅ 全ての画面が予算に収まっています。");
+}
+
+function main(): Promise<void> {
+  const [command, baseRef] = process.argv.slice(2);
+
+  if (command === "trigger") {
+    if (baseRef === undefined) {
+      return Promise.reject(new Error("usage: lighthouse trigger <base ref>"));
+    }
+
+    trigger(baseRef);
+
+    return Promise.resolve();
+  }
+
+  return measureAll();
 }
 
 // トップレベル await にしない。tsx は CJS へ落とすので変換の時点で落ちる。

@@ -68,6 +68,7 @@ growth:
 # ## 書き方
 #
 # runs.count            1 画面あたりの試行回数。中央値を採る
+# pullRequest.alertAt   PR で「測ったほうがよい」と知らせる変更行数。**gate の閾値ではない**
 # metrics.<指標>.limit  **全画面へ一律に効く**上限
 # metrics.<指標>.reason その値の根拠。空にできない（読み込み時に落ちる）
 # screens.<画面名>      その画面だけ既定を緩める。指標は一部だけ書ける
@@ -103,4 +104,13 @@ lighthouse:
       reason: >-
         INP の "good" 境界（200 ms）に対する lab の代替として Lighthouse が置く TBT の境界。
         INP そのものは実ユーザの操作を要するため lab では測れない
+  pullRequest:
+    alertAt: 300
+    reason: >-
+      **これは gate の閾値ではなく、人へ知らせる線である。**全数の計測は保護ブランチと日次に
+      置いてあり（ADR 0101 §2）、PR で待たずに測るのは構造で決まるとき（画面の宣言が動いた /
+      器が動いた）だけである。それ以外で「差分を読んでも critical path への影響を推し量れない」
+      規模を、token とロジックの変更行数で見る。**300 に理論的な根拠は無い** —— 超えたら赤に
+      なるのではなく、`gh workflow run lighthouse.yaml --ref <branch>` を勧めるだけなので、
+      外しても失うのは注意の一声だけである。うるさければ上げ、見落とすなら下げる
   screens: {}
