@@ -2,10 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { errorMetaFrom } from "@/errors/error-meta";
 
 import { issueDevelopmentAccessToken } from "./development-token";
 
 const issuer = "https://idp.example.test";
+
+/** 失敗の文面が名乗るべき、繋ぐ相手の性質。 */
+const REQUIRED_IDP_HINT = "Resource Owner Password Credentials";
 
 vi.mock("@/config/auth/auth.server", () => ({
   getAuthConfig: () => ({ clientId: "boilerplate-client" }),
@@ -48,6 +52,17 @@ async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> 
   }
 
   return undefined;
+}
+
+/** 画面が受け取る文言を取り出す。カタログの既定ではなく、この口が載せたもの。 */
+async function messageOf(run: () => Promise<unknown>): Promise<string> {
+  try {
+    await run();
+  } catch (error) {
+    return errorMetaFrom(error)?.message ?? "";
+  }
+
+  return "";
 }
 
 afterEach(() => {
@@ -94,12 +109,62 @@ describe("issueDevelopmentAccessToken", () => {
   });
 
   // ----- 異常系 -----
-  it("口が拒んだら分類の付いた失敗にする", async () => {
+  it("口が拒んだとき、下の層が付けた分類を作り直さない", async () => {
     stubFetch(respond({ error: "invalid_client" }, 401));
 
     expect(
       await kindOf(() => issueDevelopmentAccessToken({ subject: "user-john-doe", issuer })),
     ).toBe(ErrorKind.UNAUTHENTICATED);
+  });
+
+  it("IdP が居なければ、宛先と求めている性質を名指しして落ちる", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async () => {
+        throw new TypeError("fetch failed");
+      }),
+    );
+
+    const message = await messageOf(() =>
+      issueDevelopmentAccessToken({ subject: "user-john-doe", issuer }),
+    );
+
+    expect(message).toContain(issuer);
+    expect(message).toContain("Discovery");
+    expect(message).toContain("Resource Owner Password Credentials");
+  });
+
+  it("届かなかったことを、応答が違ったことと混ぜない", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async () => {
+        throw new TypeError("fetch failed");
+      }),
+    );
+
+    expect(
+      await kindOf(() => issueDevelopmentAccessToken({ subject: "user-john-doe", issuer })),
+    ).toBe(ErrorKind.UNAVAILABLE);
+  });
+
+  it("宛先が URL として壊れていても、生の失敗を素通しせず宛先を名指しする", async () => {
+    const message = await messageOf(() =>
+      issueDevelopmentAccessToken({ subject: "user-john-doe", issuer: "htp:/localhost:2010" }),
+    );
+
+    expect(message).toContain("htp:/localhost:2010");
+    expect(message).toContain(REQUIRED_IDP_HINT);
+  });
+
+  it("トークンの段で拒まれたときは、Discovery ではなくその段を名指しする", async () => {
+    stubFetch(respond({ error: "unsupported_grant_type" }, 400));
+
+    const message = await messageOf(() =>
+      issueDevelopmentAccessToken({ subject: "user-john-doe", issuer }),
+    );
+
+    expect(message).toContain("主体を名指しするトークン要求");
+    expect(message).not.toContain("Discovery を返しませんでした");
   });
 
   it("トークンを含まない応答は契約破れとして扱う", async () => {
