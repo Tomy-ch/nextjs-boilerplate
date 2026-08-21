@@ -20,10 +20,12 @@ describe("toAdminProductListLocation", () => {
     expect(toAdminProductListLocation({})).toEqual(location());
   });
 
-  it("同じキーが重ねて載っていれば、語も起点も先頭の値を読む", () => {
-    expect(
-      toAdminProductListLocation({ keyword: ["イヤホン", "スピーカー"], after: ["c1", "c2"] }),
-    ).toEqual(location({ keyword: "イヤホン", cursor: "c1" }));
+  it("通ってきた道は、同じ起点が並んでいてもそのままの段数で読む", () => {
+    expect(toAdminProductListLocation({ after: "c3", trail: ["c1", "c1", "c2"] }).trail).toEqual([
+      "c1",
+      "c1",
+      "c2",
+    ]);
   });
 
   it("絞り込みと起点を読む", () => {
@@ -55,6 +57,12 @@ describe("toAdminProductListLocation", () => {
   });
 
   // ----- 異常系 -----
+  it("1 つしか受け取らない条件が重ねて載っていれば、語も起点も未指定として読む", () => {
+    expect(
+      toAdminProductListLocation({ keyword: ["イヤホン", "スピーカー"], after: ["c1", "c2"] }),
+    ).toEqual(location());
+  });
+
   it("同じ値が繰り返された条件は畳む", () => {
     expect(toAdminProductListLocation({ categoryCodes: ["1", "2", "1"] }).categoryCodes).toEqual([
       "1",

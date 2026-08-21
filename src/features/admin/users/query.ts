@@ -1,3 +1,7 @@
+import { z } from "zod";
+
+import { type RawSearchParams, singleValue } from "@/model/search-params";
+
 import { ADMIN_USER_LIST_PATH } from "../paths";
 
 /** 絞り込みとページ位置を載せる URL のキー。読む側と組む側がこのファイルの中で共有する。 */
@@ -43,6 +47,21 @@ export function toActiveParam(scope: UserScope): boolean | undefined {
 /** ページ番号の先頭。読めない値はここへ倒す。 */
 const FIRST_PAGE = 1;
 
+/** 範囲を読むスキーマ。宣言に無い名前は既定へ倒す。 */
+const scopeSchema = singleValue(z.enum(USER_SCOPE)).catch(USER_SCOPE.ALL);
+
+/**
+ * ページ番号を読むスキーマを、契約が許す上限つきで組む。
+ *
+ * @remarks
+ * 上限は契約が決めるため、外から受け取ります（`adapters` が公開する）。ここで数字を持つと、契約を
+ * 再生成しても画面側だけが古い範囲のまま残ります。**下限だけを見ると、上限を超えたページ番号が
+ * そのまま取得へ渡り、一覧の代わりにエラー面が出ます。**
+ */
+function pageSchema(pageMax: number) {
+  return singleValue(z.coerce.number().int().min(FIRST_PAGE).max(pageMax)).catch(FIRST_PAGE);
+}
+
 /** 一覧の URL が表す、いま見ている場所。 */
 export type AdminUserListLocation = {
   readonly scope: UserScope;
@@ -50,36 +69,25 @@ export type AdminUserListLocation = {
   readonly page: number;
 };
 
-/** page が受け取る素の `searchParams`。 */
-export type RawSearchParams = Record<string, string | string[] | undefined>;
-
-function first(value: string | string[] | undefined): string {
-  const found = Array.isArray(value) ? value[0] : value;
-
-  return found?.trim() ?? "";
-}
-
-function isUserScope(value: string): value is UserScope {
-  return value === USER_SCOPE.ALL || value === USER_SCOPE.ACTIVE || value === USER_SCOPE.WITHDRAWN;
-}
-
 /**
  * 素の `searchParams` を、いま見ている場所として読む。
  *
  * @remarks
  * **URL は利用者が直接編集できます。** 読めない範囲・読めないページ番号は既定へ倒します。契約が
  * 拒む値をそのまま送っても得られるのは `400` だけで、押した人にできることがありません。
+ *
+ * 判定はスキーマが持ちます（`docs/rules.md` #42）。手で条件を並べると、契約が宣言している制約の
+ * どれを見ていないのかが読み取れません。
+ *
+ * @param pageMax - 契約が許すページ番号の上限
  */
 export function toAdminUserListLocation(
   params: RawSearchParams,
   pageMax: number,
 ): AdminUserListLocation {
-  const scope = first(params[USER_LIST_KEY.SCOPE]);
-  const page = Number(first(params[USER_LIST_KEY.PAGE]));
-
   return {
-    scope: isUserScope(scope) ? scope : USER_SCOPE.ALL,
-    page: Number.isSafeInteger(page) && page >= FIRST_PAGE && page <= pageMax ? page : FIRST_PAGE,
+    scope: scopeSchema.parse(params[USER_LIST_KEY.SCOPE]),
+    page: pageSchema(pageMax).parse(params[USER_LIST_KEY.PAGE]),
   };
 }
 

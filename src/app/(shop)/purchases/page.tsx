@@ -9,7 +9,7 @@ import {
 import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { PURCHASE_HISTORY_PATH } from "@/features/purchases/facade/paths/paths";
 import { PurchaseHistoryPageContent } from "@/features/purchases/history/page-content";
-import type { RawSearchParams } from "@/features/purchases/history/query";
+import type { RawSearchParams } from "@/model/search-params";
 
 export const metadata: Metadata = {
   title: "購入履歴",

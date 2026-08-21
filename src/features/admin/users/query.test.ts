@@ -42,13 +42,13 @@ describe("toAdminUserListLocation", () => {
     });
   });
 
-  it("同じキーが繰り返されたら先頭を採る", () => {
+  // ----- 異常系 -----
+  it("1 つしか受け取らない条件が繰り返されていたら、既定へ倒す", () => {
     expect(toAdminUserListLocation({ scope: ["active", "withdrawn"] }, PAGE_MAX).scope).toBe(
-      USER_SCOPE.ACTIVE,
+      USER_SCOPE.ALL,
     );
   });
 
-  // ----- 異常系 -----
   it("宣言に無い範囲は、すべてへ倒す", () => {
     expect(toAdminUserListLocation({ scope: "banned" }, PAGE_MAX).scope).toBe(USER_SCOPE.ALL);
   });

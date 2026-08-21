@@ -1,7 +1,8 @@
-import { MULTI_VALUE_KEYS, type ProductListSelection } from "../facade/list-url/list-url";
+import { z } from "zod";
 
-/** page が受け取る素の `searchParams`。 */
-export type RawSearchParams = Record<string, string | string[] | undefined>;
+import { type RawSearchParams, repeatedValues } from "@/model/search-params";
+
+import { MULTI_VALUE_KEYS, type ProductListSelection } from "../facade/list-url/list-url";
 
 /** 一覧が 1 度に読み込む件数。 */
 export const PRODUCT_PAGE_SIZE = 24;
@@ -18,6 +19,9 @@ export type FilterOption = {
   readonly label: string;
 };
 
+/** 条件 1 つに載っている値。空は落とし、残りの件数で単一か並びかが決まる。 */
+const valuesSchema = repeatedValues(z.array(z.string())).catch([]);
+
 /**
  * 素の `searchParams` を、条件として読める形へ均す。
  *
@@ -30,23 +34,15 @@ export type FilterOption = {
  * 画面の場所によって違う条件に見えます。契約が単一の値しか宣言していない条件へ並びを渡すと取得
  * そのものが弾かれるため、一覧全体が「条件が正しくない」表示に変わってしまいます。
  *
- * 前後の空白を落とし、残りが空なら未指定として扱います。入力欄を空にして送った form は
- * `?keyword=` を URL に残すため、これを不正な入力と扱うと、消しただけで検索できなくなります。
+ * 空白を落として空を捨てるのは読み取りの規則が持ちます（`model/search-params.ts`）。入力欄を空にして
+ * 送った form は `?keyword=` を URL に残すため、これを不正な入力と扱うと、消しただけで検索できなく
+ * なります。
  */
 export function normalizeSearchParams(params: RawSearchParams): ProductListSelection {
   const normalized: Record<string, string | readonly string[]> = {};
 
   for (const [key, value] of Object.entries(params)) {
-    const values: string[] = [];
-
-    for (const found of Array.isArray(value) ? value : [value]) {
-      const trimmed = found?.trim();
-
-      if (trimmed !== undefined && trimmed !== "") {
-        values.push(trimmed);
-      }
-    }
-
+    const values = valuesSchema.parse(value);
     const [single] = values;
 
     if (single === undefined) {

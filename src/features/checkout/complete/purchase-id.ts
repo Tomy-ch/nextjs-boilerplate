@@ -1,9 +1,8 @@
 import { z } from "zod";
 
-import { PURCHASE_PARAM } from "../paths";
+import type { RawSearchParams } from "@/model/search-params";
 
-/** 検索条件として届く生の値。 */
-export type RawSearchParams = Readonly<Record<string, string | readonly string[] | undefined>>;
+import { PURCHASE_PARAM } from "../paths";
 
 const purchaseIdSchema = z.uuid();
 

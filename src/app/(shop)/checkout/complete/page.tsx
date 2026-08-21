@@ -7,7 +7,7 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { CheckoutCompletePageContent } from "@/features/checkout/complete/page-content";
-import type { RawSearchParams } from "@/features/checkout/complete/purchase-id";
+import type { RawSearchParams } from "@/model/search-params";
 
 export const metadata: Metadata = {
   title: "購入完了",
