@@ -8,13 +8,17 @@ import { getHttpConfig } from "@/config/http/http.server";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { getLogger } from "@/logging/logging.server";
+import type { OffsetPage } from "@/model/pagination";
 import type { RegistrationStatus } from "@/model/user/registration";
-import type { PurchaseSummary, UserProfile } from "@/model/user/user";
+import type { ManagedUser, PurchaseSummary, UserId, UserProfile } from "@/model/user/user";
+import { toUserId } from "@/model/user/user";
 
 import {
   DeleteUsersDetailResponse,
   GetUsersMePurchasesSummaryResponse,
   GetUsersMeResponse,
+  GetUsersQueryParams,
+  GetUsersResponse,
   PostUsersResponse,
   PutUsersDetailResponse,
 } from "../../gen/api/endpoints.zod";
@@ -237,4 +241,95 @@ export async function withdrawMe(): Promise<void> {
   } catch (cause) {
     getLogger().warn("退会後の IdP session 終了に失敗しました", { cause: String(cause) });
   }
+}
+
+/**
+ * 一覧が 1 度に取る件数。
+ *
+ * @remarks
+ * 契約が受け付ける上限そのままではなく、1 画面で見比べられる量に留めます。上限は「これ以上は
+ * 拒む」という契約の線であって、何件並べると読めるかとは別の理由で動きます。
+ */
+export const MANAGED_USER_PER_PAGE = 20;
+
+/** 一覧を絞り込む条件。 */
+export type ManagedUserQuery = {
+  /** 1 から数えるページ番号。 */
+  readonly page: number;
+  /** 有効な利用者だけ / 退会済みだけ。区別しないなら省く。 */
+  readonly active?: boolean;
+};
+
+/** 契約の応答 1 件を、一覧が並べる形へ写す。 */
+function toManagedUser(wire: z.infer<typeof GetUsersResponse>["users"][number]): ManagedUser {
+  return {
+    id: toUserId(wire.id),
+    firstName: wire.firstName,
+    lastName: wire.lastName,
+    email: wire.email,
+    phone: wire.phone,
+    deletedAt: wire.deletedAt,
+  };
+}
+
+/**
+ * 利用者を一覧で取得する。
+ *
+ * @remarks
+ * **offset 方式です**（[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。契約が
+ * 位置と全件数を返すため、任意のページへ跳べます。cursor 方式の一覧（商品・購入）とはページ
+ * 送りの部品から違います。
+ *
+ * `active` を省くと退会済みを含む全件が返ります。3 値であることを `boolean | undefined` で
+ * そのまま表すのは、「有効だけ」「退会済みだけ」「区別しない」がいずれも意味を持つためです。
+ *
+ * admin の役割を要します。役割の判定はこの手前（`app` 層の断言と `admin` の器）にあり、ここは
+ * 通った要求だけを受けます。
+ */
+export const getManagedUserPage = cache(
+  async (query: ManagedUserQuery): Promise<OffsetPage<ManagedUser>> => {
+    const params = GetUsersQueryParams.parse({
+      page: query.page,
+      perPage: MANAGED_USER_PER_PAGE,
+      ...(query.active === undefined ? {} : { active: query.active }),
+    });
+
+    const wire = await getClient().request({
+      path: "/v1/users",
+      // 契約は真偽値と整数で宣言しているが、クエリ文字列に載せる時点で文字列へ戻る。
+      searchParams: {
+        active: params.active?.toString(),
+        page: params.page.toString(),
+        perPage: params.perPage.toString(),
+      },
+      schema: GetUsersResponse,
+    });
+
+    return {
+      items: wire.users.map(toManagedUser),
+      total: wire.total,
+      perPage: wire.limit,
+      offset: wire.offset,
+    };
+  },
+);
+
+/**
+ * 利用者を 1 件退会させる。
+ *
+ * @remarks
+ * {@link withdrawMe} と別の口にしています。あちらは自分を退会させたあと手元の session を畳み
+ * ますが、こちらは他人が対象なので、操作した側の session は残ったままでなければなりません。
+ *
+ * 進行中の購入が残っていると契約は `409` を返します。**その取消・在庫の戻しは同期しません** ——
+ * 拒まれたという事実だけがここで判り、後始末が終わったかどうかは判りません。
+ *
+ * @param id - 退会させる利用者
+ */
+export async function withdrawUser(id: UserId): Promise<void> {
+  await getClient().request({
+    path: `/v1/users/${encodeURIComponent(id)}`,
+    method: "DELETE",
+    schema: DeleteUsersDetailResponse,
+  });
 }

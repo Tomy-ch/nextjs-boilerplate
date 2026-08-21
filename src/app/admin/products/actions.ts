@@ -3,6 +3,7 @@
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  adjustProductStock,
   createProduct,
   PRODUCTS_TAG,
   updateProduct,
@@ -27,6 +28,8 @@ import {
   parseProductDraftForm,
   parseProductEditForm,
 } from "@/features/admin/products/parse-product-form";
+import type { StockFormState } from "@/features/admin/products/stock/form-state";
+import { parseStockForm } from "@/features/admin/products/stock/parse-stock-form";
 import {
   actionStateFromError,
   failedActionState,
@@ -186,6 +189,42 @@ export async function updateProductAction(
       });
     }
 
+    return actionStateFromError(error);
+  }
+
+  revalidateProducts();
+  redirect(ADMIN_PRODUCT_LIST_PATH);
+}
+
+/**
+ * 在庫を動かす。
+ *
+ * @remarks
+ * 送るのは増減量だけです。他の項目を一緒に受け取らないのは、在庫と他の項目で更新の仕方が違い
+ * （加算と書き戻し）、1 つの送信に混ぜると片方の作法に引きずられるためです。
+ *
+ * 成立したら一覧へ送ります。連続して補充するときは一覧を経由します。同じ画面に留まると、
+ * 押し直しがそのまま二重の加算になり、しかも成立した後なので取り消す手段がありません。
+ */
+export async function adjustProductStockAction(
+  _previous: StockFormState,
+  formData: FormData,
+): Promise<StockFormState> {
+  try {
+    await assertAdmin();
+  } catch (error) {
+    return actionStateFromError(error);
+  }
+
+  const parsed = parseStockForm(formData);
+
+  if (!parsed.ok) {
+    return failedActionState({ formError: parsed.formError, fieldErrors: parsed.fieldErrors });
+  }
+
+  try {
+    await adjustProductStock(parsed.productId, parsed.delta);
+  } catch (error) {
     return actionStateFromError(error);
   }
 
