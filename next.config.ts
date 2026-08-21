@@ -18,13 +18,25 @@ const ROUTE_EXTENSIONS = ["tsx", "ts"];
 const DEVELOPMENT_ROUTE_EXTENSIONS = ["dev.tsx", "dev.ts"];
 
 /**
+ * 要求本体のうち、送るファイル以外が占めるぶんの余裕。
+ *
+ * @remarks
+ * 中継の上限が押さえるのは**ファイルの大きさ**で、要求本体はそれに multipart の境界・ヘッダ・
+ * 項目のメタデータが加わったものです。同値にすると上限ちょうどのファイルがこの差だけ超えて
+ * 落ちるため、封筒のぶんを足します。Next.js は目安として 10〜20 KB を挙げており、その上端から
+ * 2 の冪で 1 段上を取ります。
+ */
+const REQUEST_ENVELOPE_BYTES = 32 * 1024;
+
+/**
  * Next.js の build / 開発サーバー初期化時に ENV を読み込み、全量検証してから設定を返す。
  */
 const nextConfig = async (): Promise<NextConfig> => {
   loadEnvironment();
   validateEnvironment();
 
-  const mediaOrigin = new URL(getEnvironment().MEDIA_ORIGIN);
+  const environment = getEnvironment();
+  const mediaOrigin = new URL(environment.MEDIA_ORIGIN);
 
   return {
     // `APP_ENV` が明示されていない build も開発ではない側へ倒す。判定は
@@ -32,6 +44,17 @@ const nextConfig = async (): Promise<NextConfig> => {
     pageExtensions: isDevelopmentOnlyEndpointOpen()
       ? [...DEVELOPMENT_ROUTE_EXTENSIONS, ...ROUTE_EXTENSIONS]
       : ROUTE_EXTENSIONS,
+    experimental: {
+      serverActions: {
+        // 上限の出所は env の 1 行で、ここは封筒のぶんを足すだけにする。単位付きの文字列で
+        // 書き直すと同じ閾値が 2 か所に現れ、片方だけ動かせる状態になる。
+        //
+        // **この上限は全 Server Action へ及ぶ。** Next.js は action ごとの上限を持たないため、
+        // ファイルのために上げた値がテキストしか受け取らない口にも効く
+        // （受け口の選び方は [0075](docs/adr/0075-file-upload-seam.md)）。
+        bodySizeLimit: environment.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES + REQUEST_ENVELOPE_BYTES,
+      },
+    },
     images: {
       // 配信元は環境ごとに変わるため、許可も検証済みの ENV から組み立てる。ここへ直接書くと
       // 環境変数と設定の 2 か所が別々に動き、片方だけ直した状態を作れる。

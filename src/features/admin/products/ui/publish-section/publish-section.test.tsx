@@ -1,0 +1,115 @@
+// @vitest-environment jsdom
+
+import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
+
+import { emptyProductValues, useProductValues } from "../../use-product-values";
+import { ProductPublishSection } from "./publish-section";
+
+const STATUS_OPTIONS = [{ value: "status-1", label: "在庫あり" }];
+
+/** 段の部品は入力の状態を外から受けるため、hook を通した本物の状態で確かめる。 */
+function Harness({
+  children,
+}: {
+  children: (form: ReturnType<typeof useProductValues>) => ReactNode;
+}) {
+  const form = useProductValues(emptyProductValues(), { withQuantity: true });
+
+  return <>{children(form)}</>;
+}
+
+function renderSection() {
+  return render(
+    <Harness>
+      {(form) => (
+        <ProductPublishSection form={form} idPrefix="form" statusOptions={STATUS_OPTIONS} />
+      )}
+    </Harness>,
+  );
+}
+
+describe("ProductPublishSection", () => {
+  it("状態と公開日時を並べる", () => {
+    renderSection();
+
+    expect(screen.getByLabelText("状態")).toBeInTheDocument();
+    expect(screen.getByLabelText("公開日時")).toBeInTheDocument();
+  });
+
+  it("公開日時を入れると、未公開へ戻す操作が押せるようになる", () => {
+    renderSection();
+
+    fireEvent.change(screen.getByLabelText("公開日時"), {
+      target: { value: "2026-08-07T09:00" },
+    });
+
+    expect(screen.getByRole("button", { name: "非公開にする" })).toBeEnabled();
+  });
+
+  it("未公開へ戻す操作は、公開日時を 1 度で空へ戻す", () => {
+    renderSection();
+
+    fireEvent.change(screen.getByLabelText("公開日時"), {
+      target: { value: "2026-08-07T09:00" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "非公開にする" }));
+
+    expect(screen.getByLabelText("公開日時")).toHaveValue("");
+  });
+
+  it("公開日時に触れたら誤りを判定する", () => {
+    renderSection();
+
+    fireEvent.change(screen.getByLabelText("公開日時"), { target: { value: "" } });
+    fireEvent.blur(screen.getByLabelText("公開日時"));
+
+    // 空欄は未公開として許すため、誤りにはならない。
+    expect(screen.queryByText(/公開日時を日付として/)).not.toBeInTheDocument();
+  });
+
+  it("既に未公開なら、戻す操作は押せない", () => {
+    renderSection();
+
+    expect(screen.getByRole("button", { name: "非公開にする" })).toBeDisabled();
+  });
+
+  it("状態を選び直して空にすると誤りを出す", () => {
+    renderSection();
+
+    fireEvent.change(screen.getByLabelText("状態"), { target: { value: "" } });
+
+    expect(screen.getByText("状態を選んでください。")).toBeInTheDocument();
+  });
+
+  it("入力した側の時差を、送信に載せる", () => {
+    renderSection();
+
+    const offset = document.querySelector('input[name="timezoneOffset"]');
+
+    // 実装と同じ式を書き写すと、実装 == 実装の確認になる。時差は Asia/Tokyo に固定してあり
+    // （`vitest.config.ts`）、`getTimezoneOffset()` は UTC より東を負で返す。
+    expect(offset).toHaveValue("-540");
+  });
+
+  it("描く場所が server なら時差を載せない。server の時差を送っても意味が無い", () => {
+    const markup = renderToStaticMarkup(
+      <Harness>
+        {(form) => (
+          <ProductPublishSection form={form} idPrefix="form" statusOptions={STATUS_OPTIONS} />
+        )}
+      </Harness>,
+    );
+
+    expect(markup).not.toContain('name="timezoneOffset"');
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = renderSection();
+
+    expect((await axe(container)).violations).toEqual([]);
+  });
+});

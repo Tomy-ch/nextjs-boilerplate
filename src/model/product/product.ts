@@ -104,6 +104,53 @@ export type Product = {
    * 契約は常に配列で返し、0 枚も 1 枚も複数枚も同じ形で届く。
    */
   imagePaths: readonly string[];
+  /**
+   * 読み込んだ時点の版。更新の要求に添えて競合を検出する。
+   *
+   * 表示するための値ではない。更新を送る主体は自分が見た版を申告し、その間に別の主体が
+   * 更新していれば要求が拒まれる。添えずに送ると、後から送った側が黙って前の更新を消す。
+   */
+  version: number;
+};
+
+/** 商品へ紐づける画像 1 件。 */
+export type ProductImageDraft = {
+  /** アップロードの応答が返したオブジェクトキー。 */
+  imagePath: string;
+  /** 同一商品内での表示順。1 から数える。 */
+  displaySort: number;
+};
+
+/**
+ * 新しく作る商品の内容。
+ *
+ * @remarks
+ * {@link Product} と分けるのは、作る時点では確定していないもの（識別子・版）があり、逆に
+ * 作る側だけが渡すもの（分類と状態を**参照ではなく識別子で**指定する）があるためです。
+ */
+export type ProductDraft = {
+  name: string;
+  description: string | null;
+  price: string;
+  quantity: number;
+  stockWarningThreshold: number | null;
+  categoryId: string;
+  statusId: string;
+  publishedAt: Date | null;
+  images: readonly ProductImageDraft[];
+};
+
+/**
+ * 既にある商品へ送る変更の内容。
+ *
+ * @remarks
+ * 在庫数を持ちません。在庫は加算で動かすものであり、他の項目と同じ「読んで書き戻す」形にすると
+ * 読んでから送るまでの間に売れた分を打ち消します。
+ *
+ * 版を持つのは、送る側が自分の見た状態を申告するためです（{@link Product.version}）。
+ */
+export type ProductEdit = Omit<ProductDraft, "quantity"> & {
+  version: number;
 };
 
 /** cursor 方式で取得した商品の 1 ページ。 */

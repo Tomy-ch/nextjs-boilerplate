@@ -43,6 +43,7 @@ for (const screen of screens) {
     // 帯ごとに分かれず 1 階層へ平置きされる。
     await expect(page).toHaveScreenshot([testInfo.project.name, `${screen.name}.png`], {
       fullPage: true,
+      mask: (screen.mask ?? []).map((selector: string) => page.locator(selector)),
     });
   });
 }

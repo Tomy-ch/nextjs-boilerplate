@@ -51,7 +51,19 @@ function frontmatter(input: GenerationInput): string {
 }
 
 /** 生成物の README。層の必須節をすべて持つ。 */
-function readme(input: GenerationInput): string {
+/**
+ * 生成先から、リポジトリの根までさかのぼる段数を組む。
+ *
+ * @remarks
+ * 生成先の深さは種類ごとに違う（feature は 3 段、component と adapter は 4 段）ため、段数を
+ * 書き固めるとどれかの生成物でリンクが解決しません。**書き出す文字列の中の相対パスは、
+ * 書き出す先を基準に組みます。**
+ */
+function toRoot(directory: string): string {
+  return "../".repeat(directory.split("/").length);
+}
+
+function readme(input: GenerationInput, directory: string): string {
   return `${frontmatter(input)}
 
 # ${input.name}
@@ -73,7 +85,7 @@ function readme(input: GenerationInput): string {
 ## 運用
 
 - import してよい層は \`${input.importsAllowed.join(" / ")}\` です（\`architecture.ts\` が正）。
-- テスト責務は \`${input.contract.testRequirement}\` です（[0090](../../../docs/adr/0090-testing-strategy.md)）。
+- テスト責務は \`${input.contract.testRequirement}\` です（[0090](${toRoot(directory)}docs/adr/0090-testing-strategy.md)）。
 `;
 }
 
@@ -188,7 +200,7 @@ export function planGeneration(input: GenerationInput): readonly GeneratedFile[]
       : `src/components/${input.area ?? "patterns"}/${input.name}`;
 
   return [
-    { path: `${directory}/README.md`, content: readme(input) },
+    { path: `${directory}/README.md`, content: readme(input, directory) },
     {
       path: `${directory}/${input.name}.tsx`,
       content: componentSource(

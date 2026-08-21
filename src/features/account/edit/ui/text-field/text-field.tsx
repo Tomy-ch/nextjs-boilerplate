@@ -2,9 +2,8 @@
 
 import type { InputProps } from "@/components/design-system/form/input/input";
 import { Input } from "@/components/design-system/form/input/input";
+import { fieldControlAttributes } from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
-
-import { fieldControlAttributes } from "../../field-attributes";
 import type { ProfileFieldProps } from "../../use-profile-fields";
 
 type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placeholder" | "type"> &

@@ -55,6 +55,56 @@ export function serveJson(url: string, body: JsonBodyType): readonly Request[] {
   return requests;
 }
 
+/** 書き込みに使う HTTP メソッド。 */
+export type WriteMethod = "post" | "patch" | "put" | "delete";
+
+/**
+ * 書き込み 1 本に応答を割り当て、届いた要求を記録する。
+ *
+ * @remarks
+ * {@link serveJson} の書き込み版です。分けてあるのは、記録する要求の**複製**を積むためです。
+ * 本文を持つ要求は読み出しが 1 度きりで、記録した側と検証する側が同じ実体を見ると、先に読んだ
+ * 方だけが中身を得ます。
+ *
+ * @param method - 割り当てるメソッド
+ * @param url - 割り当てる絶対 URL。動的な区間は `:name` で表す
+ * @param body - JSON として返す応答本文
+ * @returns 届いた要求の複製。呼び出しの順に積まれる
+ */
+export function serveWrite(
+  method: WriteMethod,
+  url: string,
+  body: JsonBodyType,
+): readonly Request[] {
+  const requests: Request[] = [];
+
+  mockServer.use(
+    http[method](url, ({ request }) => {
+      requests.push(request.clone());
+
+      return HttpResponse.json(body);
+    }),
+  );
+
+  return requests;
+}
+
+/**
+ * 書き込み 1 本に、本文を持たない失敗の status を割り当てる。
+ *
+ * @remarks
+ * 生の status を扱えるのは HTTP 境界だけです。内側は分類済みのエラーしか見ないため
+ * （[0080](docs/adr/0080-error-handling.md)）、正規化の入口を確かめるにはここで status を
+ * 与えるしかありません。
+ *
+ * @param method - 割り当てるメソッド
+ * @param url - 割り当てる絶対 URL
+ * @param status - 返す HTTP status
+ */
+export function serveWriteStatus(method: WriteMethod, url: string, status: number): void {
+  mockServer.use(http[method](url, () => new HttpResponse(null, { status })));
+}
+
 /**
  * 指定した origin 宛の要求を素通しさせる。
  *
@@ -72,7 +122,7 @@ export function passThroughOrigin(origin: string): void {
   mockServer.use(http.all(`${origin}/*`, () => passthrough()));
 }
 
-// 非同期の待ち時間を既定の 1 秒から広げる。`next/dynamic` で読む部品（カートの中身など）は
+// 非同期の待ち時間を既定の 1 秒から広げる。`next/dynamic` で読む部品は
 // 描画のたびに実際の module 解決を挟むため、待つ相手が DOM の更新だけではない。全量を並列で
 // 回すと解決が 1 秒を超えることがあり、落ちるファイルが実行のたびに入れ替わる形で現れる。
 //
@@ -197,6 +247,6 @@ if (typeof Element !== "undefined" && Element.prototype.setPointerCapture === un
 // （`carousel-scroll.test.ts`）。ここが担うのは、経路を通せるようにすることだけである。
 if (typeof Element !== "undefined" && Element.prototype.scrollBy === undefined) {
   Element.prototype.scrollBy = function scrollBy(): void {
-    // 何もしない。経路を通せるようにすることだけが目的である。
+    // 意図的に空。
   };
 }

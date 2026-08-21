@@ -237,8 +237,8 @@ pnpm start                 # Start the production server
 
 pnpm gen <kind> <name>     # Scaffold a feature / component / adapter (ADR 0027 / 0028)
 
-pnpm lint                  # biome check, light profile (ADR 0002)
-pnpm lint:ci               # biome check, full profile (biome.ci.jsonc + --error-on-warnings; pre-commit / CI)
+pnpm lint                  # biome check, light profile (ADR 0002). biome だけ — ESLint は含まない
+pnpm lint:ci               # biome (full profile) + ESLint + 境界の突合。pre-commit / CI が回すのはこちら
 pnpm typecheck             # tsc --noEmit (pre-push)
 pnpm fix                   # biome check --fix
 pnpm format                # biome format --write
@@ -268,8 +268,9 @@ make e2e-retake            # Retake and push the screen baselines
 make baseline-push         # Push retaken baselines to the store and advance the submodule pointer
 make secret-scan           # gitleaks over the commits about to be pushed — fails on detection (ADR 0110)
 make trivy-fs              # Trivy dependency vulnerability scan — on demand, report only (ADR 0110)
-make test-full             # Full test run with coverage against the 100% threshold (ADR 0090)
-make test-cached           # Same tests through Vitest's cache — the pre-commit variant
+make test-cached           # Default. Same tests through Vitest's cache — the pre-commit variant
+make test-full             # Full run with coverage against the 100% threshold (ADR 0090). The gate
+                           #   itself — leave it to the hook and CI rather than running it by hand
 make load-status           # Show the current gate band and why (ADR 0151)
 make hotfix-patch          # Create a hotfix/v<patch> branch from production
 make tag-patch             # Tag production HEAD and create a GitHub Release
@@ -431,10 +432,15 @@ If the user explicitly directs English output, the AI may respond in English.
 
 ```bash
 pnpm fix       # Auto-fix
-pnpm lint:ci   # Check remaining errors (full profile — same as the pre-commit hook)
+pnpm lint:ci   # Check remaining errors (same as the pre-commit hook)
 ```
 
 Fix items the auto-fixer could not handle by hand.
+
+**`pnpm lint` は biome だけで、`lint:ci` はその後に ESLint と境界の突合を続けて回す。** react hooks の規則
+（render 中の ref 書き込み・effect 内の setState）と型アサーションの禁止は **ESLint 側にしか無い**ため、
+`pnpm lint` が通っても `lint:ci` は落ちうる。手元で確かめるなら、対象を絞って `pnpm exec eslint <path>` を
+掛ける（[0002](docs/adr/0002-formatter-linter.md) の能力ベース分担）。
 
 ### Disallowed
 

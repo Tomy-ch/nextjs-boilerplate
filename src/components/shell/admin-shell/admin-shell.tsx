@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/components/cn";
 import { SURFACE } from "@/components/design-system/foundation/surface/surface.definition";
 import { SurfacePortalBridge } from "@/components/design-system/foundation/surface/surface-portal-bridge";
+import { ContentContainer } from "../content-container/content-container";
 import {
   ADMIN_SHELL_HEADER_HEIGHT,
   ADMIN_SHELL_MAIN_ID,
@@ -32,6 +33,8 @@ export type AdminShellProps = {
   headerActions?: ReactNode;
   /** 脇の一覧の下端に置く要素。 */
   navFooter?: ReactNode;
+  /** `main` の先頭に置く、現在地までの階層。 */
+  breadcrumb?: ReactNode;
   /** `main` に追加する class 名。 */
   className?: string;
 };
@@ -69,6 +72,11 @@ export type AdminShellProps = {
  * **`headerActions` と `navFooter` の中身は知りません。** 置き場所だけを用意し、何を出すかは
  * 渡す側が決めます。利用者向け画面へ戻る導線もその 1 つで、器は行き先を持ちません。
  *
+ * **現在地までの階層は器が位置を持ちます。** 画面ごとに置くと、同じものが画面ごとに違う高さへ
+ * 現れます。中身は渡す側が組み、器が知るのは `main` の先頭という位置だけです。本文と同じ
+ * `ContentContainer` へ入れるのは、階層と本文の左端が揃っていなければ現在地が本文の外側の
+ * 飾りに見えるためで、`main` 自身は幅を持ったままではありません。
+ *
  * @see Storybook `Layout/AdminShell`
  */
 export function AdminShell({
@@ -80,6 +88,7 @@ export function AdminShell({
   children,
   headerActions,
   navFooter,
+  breadcrumb,
   className,
 }: AdminShellProps) {
   return (
@@ -127,6 +136,13 @@ export function AdminShell({
           </div>
         </header>
         <main id={ADMIN_SHELL_MAIN_ID} className={cn("min-w-0 flex-1", className)}>
+          {breadcrumb === undefined ? null : (
+            // 中身が空なら器ごと畳む。階層を持たない画面にも slot は要素を渡すため、渡された
+            // かどうかでは判定できない。畳まないと、階層の無い画面が上端に空白を抱える。
+            <ContentContainer className="print-hidden pt-6 empty:hidden">
+              {breadcrumb}
+            </ContentContainer>
+          )}
           {children}
         </main>
       </div>

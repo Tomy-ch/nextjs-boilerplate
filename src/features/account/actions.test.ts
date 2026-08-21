@@ -105,6 +105,7 @@ describe("updateProfileAction", () => {
       status: "error",
       formError: "現在の状態ではこの操作を実行できません。",
       fieldErrors: undefined,
+      kind: ErrorKind.CONFLICT,
     });
   });
 

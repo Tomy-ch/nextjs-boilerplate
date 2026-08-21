@@ -25,7 +25,7 @@ test-requirement: unit
 | `auth/auth.schema.ts` / `auth/auth.server.ts` | OIDC と BFF session の schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `media/media.schema.ts` / `media/media.server.ts` | media origin の schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `observability/observability.schema.ts` / `observability/observability.server.ts` | OTLP endpoint と signal 別 exporter の schema / Config | server | 起動・ビルド境界 |
-| `http/http.schema.ts` / `http/http.server.ts` / `http/http.client.ts` | 要求 URL に許すバイト数の上限の schema / Config | server + client | `adapters/server` / `adapters/client` と起動・ビルド境界 |
+| `http/http.schema.ts` / `http/http.server.ts` / `http/http.client.ts` | 要求 URL とアップロードに許すバイト数の上限の schema / Config | server + client | `adapters/server` / `adapters/client` と起動・ビルド境界 |
 | `bootstrap.server.ts` | 起動時の ENV 読込と全 config 検証 | server | `src/instrumentation.ts` |
 
 各 `config/<purpose>/<purpose>.schema.ts` が自分の目的に属する Zod validator を、対応する

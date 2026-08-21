@@ -37,6 +37,37 @@ function Fixture() {
 }
 
 describe("Stepper", () => {
+  it("現在地でも済ませていれば、印と読み上げの両方でそれを示す", () => {
+    render(
+      <Stepper label="申請の進捗">
+        <StepperItem marker={1} passed={true} state="current">
+          入力
+        </StepperItem>
+      </Stepper>,
+    );
+
+    const item = screen.getByRole("listitem");
+
+    expect(item).toHaveAttribute("data-state", "current");
+    expect(item.querySelector('[data-slot="stepper-item-marker"] svg')).toBeInTheDocument();
+    expect(item).toHaveTextContent("現在の段階・完了");
+  });
+
+  it("横に並べる指定では、向きを属性としても示す", () => {
+    render(
+      <Stepper label="申請の進捗" orientation="horizontal">
+        <StepperItem marker={1} state="current">
+          入力
+        </StepperItem>
+      </Stepper>,
+    );
+
+    const list = screen.getByRole("list", { name: "申請の進捗" });
+
+    expect(list).toHaveAttribute("data-orientation", "horizontal");
+    expect(list).toHaveClass("flex-row");
+  });
+
   it("並び順に意味のある一覧として、名前つきで並べる", () => {
     render(<Fixture />);
 

@@ -1,30 +1,19 @@
 import { afterEach, describe, expect, it, type MockInstance, vi } from "vitest";
-import type { Environment } from "@/config/environment";
-import { serveJson } from "../../../../vitest.setup";
+import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
+import { serveJson, serveWrite, serveWriteStatus } from "../../../../vitest.setup";
 
-const environment: Environment = {
-  APP_API_BASE_URL: "https://api.example.test",
-  APP_API_MODE: "mock",
-  MEDIA_ORIGIN: "https://media.example.test",
-  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.test/v1/traces",
-  OBS_TRACES_EXPORTER: "none",
-  OBS_METRICS_EXPORTER: "none",
-  OBS_LOGS_EXPORTER: "none",
-  AUTH_ISSUER: "https://id.example.test",
-  AUTH_CLIENT_ID: "nextjs-boilerplate",
-  AUTH_REDIRECT_URI: "https://app.example.test/auth/callback",
-  AUTH_SCOPES: "openid profile",
-  AUTH_SESSION_SECRET: "01234567890123456789012345678901",
-  NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
-};
-
-const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => environment) }));
+const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
+  getAccessToken: vi.fn(async (): Promise<string | null> => null),
+  getEnvironment: vi.fn(() => PARSED_ENVIRONMENT),
+}));
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
+vi.mock("../auth/session", () => ({ getAccessToken }));
 
 import { toProductId } from "@/model/product/product";
 
 import {
+  createProduct,
   getProduct,
   getProductCount,
   getProductListPage,
@@ -35,6 +24,8 @@ import {
   RANKING_PERIOD,
   toProduct,
   toProductPage,
+  updateProduct,
+  uploadProductImage,
 } from "./products";
 
 const wireProduct = {
@@ -53,7 +44,7 @@ const wireProduct = {
 
 const wirePage = { products: [wireProduct], nextCursor: "next", hasNext: true };
 
-const PRODUCTS_URL = `${environment.APP_API_BASE_URL}/v1/products`;
+const PRODUCTS_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/products`;
 const PRODUCT_URL = `${PRODUCTS_URL}/:id`;
 const RANKING_URL = `${PRODUCTS_URL}/ranking`;
 const COUNT_URL = `${PRODUCTS_URL}/count`;
@@ -206,6 +197,7 @@ describe("toProduct", () => {
       category: { id: wireProduct.category.id, name: "雑貨" },
       publishedAt: new Date("2026-08-07T00:00:00.000Z"),
       imagePaths: ["products/abc.png"],
+      version: wireProduct.version,
     });
   });
 
@@ -487,5 +479,129 @@ describe("getProductRanking", () => {
     serveJson(RANKING_URL, { rankings: [] });
 
     await expect(getProductRanking({ limit: 5 })).resolves.toEqual([]);
+  });
+});
+
+const DRAFT = {
+  name: "商品",
+  description: "<p>説明</p>",
+  price: "19.99",
+  quantity: 3,
+  stockWarningThreshold: 2,
+  categoryId: "2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13",
+  statusId: "1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12",
+  publishedAt: new Date("2026-08-07T00:00:00.000Z"),
+  images: [{ imagePath: "products/abc.png", displaySort: 1 }],
+};
+
+describe("uploadProductImage", () => {
+  const IMAGES_URL = `${PRODUCTS_URL}/images`;
+
+  // ----- 正常系 -----
+  it("保存されたオブジェクトキーだけを返す", async () => {
+    serveWrite("post", IMAGES_URL, { imagePath: "products/abc.png" });
+
+    await expect(uploadProductImage(new File(["x"], "a.png", { type: "image/png" }))).resolves.toBe(
+      "products/abc.png",
+    );
+  });
+
+  it("画像を multipart の image という名前で送る", async () => {
+    const requests = serveWrite("post", IMAGES_URL, { imagePath: "products/abc.png" });
+
+    await uploadProductImage(new File(["x"], "a.png", { type: "image/png" }));
+
+    const sent = await requests[0]?.formData();
+    expect(sent?.get("image")).toBeInstanceOf(File);
+  });
+
+  it("境界文字列を含む content-type を runtime に組ませる", async () => {
+    const requests = serveWrite("post", IMAGES_URL, { imagePath: "products/abc.png" });
+
+    await uploadProductImage(new File(["x"], "a.png", { type: "image/png" }));
+
+    expect(requests[0]?.headers.get("content-type")).toMatch(/^multipart\/form-data; boundary=.+/);
+  });
+
+  // ----- 異常系 -----
+  it("上限を超えた応答を分類済みのエラーとして返す", async () => {
+    serveWriteStatus("post", IMAGES_URL, 413);
+
+    await expect(
+      uploadProductImage(new File(["x"], "a.png", { type: "image/png" })),
+    ).rejects.toThrow();
+  });
+});
+
+describe("createProduct", () => {
+  // ----- 正常系 -----
+  it("契約の応答を表示用の型へ写して返す", async () => {
+    serveWrite("post", PRODUCTS_URL, wireProduct);
+
+    await expect(createProduct(DRAFT)).resolves.toMatchObject({ name: "商品", version: 1 });
+  });
+
+  it("公開日時を ISO 文字列にして送る", async () => {
+    const requests = serveWrite("post", PRODUCTS_URL, wireProduct);
+
+    await createProduct(DRAFT);
+
+    await expect(requests[0]?.json()).resolves.toMatchObject({
+      publishedAt: "2026-08-07T00:00:00.000Z",
+      quantity: 3,
+    });
+  });
+
+  it("主体を名乗って送る。読む口と違い、書く口は誰が行ったかを要求する", async () => {
+    getAccessToken.mockResolvedValue("access-token");
+    const requests = serveWrite("post", PRODUCTS_URL, wireProduct);
+
+    await createProduct(DRAFT);
+
+    expect(requests[0]?.headers.get("authorization")).toBe("Bearer access-token");
+  });
+
+  it("未公開のまま作る商品は公開日時を null で送る", async () => {
+    const requests = serveWrite("post", PRODUCTS_URL, wireProduct);
+
+    await createProduct({ ...DRAFT, publishedAt: null });
+
+    await expect(requests[0]?.json()).resolves.toMatchObject({ publishedAt: null });
+  });
+});
+
+describe("updateProduct", () => {
+  const id = toProductId("0195f0c2-0000-7000-8000-000000000001");
+
+  // ----- 正常系 -----
+  it("契約の応答を表示用の型へ写して返す", async () => {
+    serveWrite("patch", PRODUCT_URL, wireProduct);
+
+    await expect(updateProduct(id, { ...DRAFT, version: 4 })).resolves.toMatchObject({
+      name: "商品",
+    });
+  });
+
+  it("読み込んだ時点の版を添えて送る", async () => {
+    const requests = serveWrite("patch", PRODUCT_URL, wireProduct);
+
+    await updateProduct(id, { ...DRAFT, version: 4 });
+
+    await expect(requests[0]?.json()).resolves.toMatchObject({ version: 4 });
+  });
+
+  it("在庫数を送らない", async () => {
+    const requests = serveWrite("patch", PRODUCT_URL, wireProduct);
+
+    await updateProduct(id, { ...DRAFT, version: 4 });
+
+    await expect(requests[0]?.json()).resolves.not.toHaveProperty("quantity");
+  });
+
+  // ----- 異常系 -----
+  it("版が食い違った応答を分類済みのエラーとして返す", async () => {
+    serveWriteStatus("patch", PRODUCT_URL, 409);
+
+    await expect(updateProduct(id, { ...DRAFT, version: 1 })).rejects.toThrow();
   });
 });

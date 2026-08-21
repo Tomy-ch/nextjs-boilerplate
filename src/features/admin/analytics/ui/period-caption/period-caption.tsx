@@ -14,7 +14,7 @@ export type PeriodCaptionProps = {
  * いつなのかは、画面を見た時刻によって変わります。共有した画面や撮った画像を後から読む人には、
  * その手がかりが名前の側に残っていません。
  *
- * **境界は同じ規則を辿った写しです**（`../../period-window.ts`）。だから根拠を文言に添えます。
+ * **出す from / to は、集計と同じ規則（日本時間の暦日）を辿って導いた写しです**（`../../period-window.ts`）。だから根拠を文言に添えます。
  *
  * 1 日だけを指すときは範囲の形にしません。同じ日付を 2 度並べても、読み手が得るものがありません。
  *
@@ -28,7 +28,7 @@ export function PeriodCaption({ window }: PeriodCaptionProps) {
   const span = window.from === window.to ? window.from : `${window.from} 〜 ${window.to}`;
 
   return (
-    <p className="text-sm text-muted-foreground">
+    <p className="text-sm text-muted-foreground" data-slot="period-caption">
       <span className="font-emphasis text-foreground tabular-nums">{span}</span>
       {" に注文された購入を集計しています（日本時間の暦日）。"}
     </p>
