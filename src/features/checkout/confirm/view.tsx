@@ -15,6 +15,7 @@ import type { UserProfile } from "@/model/user/user";
 import { PRODUCTS_PATH } from "../paths";
 import { OrderLines } from "./ui/order-lines/order-lines";
 import { OrderSummary } from "./ui/order-summary/order-summary";
+import { PlaceOrderStateProvider } from "./ui/place-order-state/place-order-state";
 import { ShippingCard } from "./ui/shipping-card/shipping-card";
 
 /** `CheckoutConfirmView` の props。 */
@@ -45,6 +46,10 @@ export type CheckoutConfirmViewProps = {
  * 何であるかを示します。
  *
  * 本文の下端には帯のぶんの余白を空けます。空けないと、最後の行が帯に隠れます。
+ *
+ * **確定の送信状態は器が 1 つだけ持ちます**（`ui/place-order-state`）。集計が 2 か所に居るぶん
+ * 送信の姿も 2 つ mount されるため、状態を姿ごとに持つと、送っている最中に幅が境界を跨いだとき
+ * 表に出る側が「何も送っていない」姿になります。
  */
 export function CheckoutConfirmView({
   cart,
@@ -66,7 +71,7 @@ export function CheckoutConfirmView({
   }
 
   return (
-    <>
+    <PlaceOrderStateProvider idempotencyKey={idempotencyKey}>
       <div className="flex flex-col gap-8 pb-40 lg:flex-row lg:items-start lg:pb-0">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <ShippingCard profile={profile} />
@@ -78,12 +83,7 @@ export function CheckoutConfirmView({
           className="hidden w-full rounded-lg border p-4 lg:sticky lg:block lg:w-80"
           style={{ top: APP_SHELL_HEADER_HEIGHT + APP_SHELL_STICKY_GAP }}
         >
-          <OrderSummary
-            cart={cart}
-            idempotencyKey={idempotencyKey}
-            reference={reference}
-            size="compact"
-          />
+          <OrderSummary cart={cart} reference={reference} size="compact" />
         </aside>
       </div>
 
@@ -91,13 +91,8 @@ export function CheckoutConfirmView({
         className="flex-col items-stretch gap-2 lg:hidden"
         position={ACTION_BAR_POSITION.FIXED}
       >
-        <OrderSummary
-          cart={cart}
-          idempotencyKey={idempotencyKey}
-          reference={reference}
-          size="compact"
-        />
+        <OrderSummary cart={cart} reference={reference} size="compact" />
       </ActionBar>
-    </>
+    </PlaceOrderStateProvider>
   );
 }

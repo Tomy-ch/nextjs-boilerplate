@@ -6,6 +6,7 @@ import {
   PARTIALLY_ORDERABLE_CART,
   SUBTOTAL_REFERENCE,
 } from "../../../checkout.fixture";
+import { PlaceOrderStateProvider } from "../place-order-state/place-order-state";
 import { OrderSummary } from "./order-summary";
 
 /** 画面が組み立てた鍵の代わり。カタログでは確定を実行しないため、値そのものに意味はない。 */
@@ -27,10 +28,13 @@ const meta = {
     },
   },
   decorators: [
+    // 送信の状態は画面が 1 つだけ持つ。実画面と同じ位置に置かないと、確定の姿が器を持たない。
     (Story) => (
-      <div className="w-80 rounded-lg border p-4">
-        <Story />
-      </div>
+      <PlaceOrderStateProvider idempotencyKey={IDEMPOTENCY_KEY}>
+        <div className="w-80 rounded-lg border p-4">
+          <Story />
+        </div>
+      </PlaceOrderStateProvider>
     ),
   ],
 } satisfies Meta<typeof OrderSummary>;
@@ -42,7 +46,6 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     cart: ORDERABLE_CART,
-    idempotencyKey: IDEMPOTENCY_KEY,
     reference: SUBTOTAL_REFERENCE,
     size: "compact",
   },
@@ -52,7 +55,6 @@ export const Default: Story = {
 export const WithExcluded: Story = {
   args: {
     cart: PARTIALLY_ORDERABLE_CART,
-    idempotencyKey: IDEMPOTENCY_KEY,
     reference: SUBTOTAL_REFERENCE,
     size: "compact",
   },
@@ -62,7 +64,6 @@ export const WithExcluded: Story = {
 export const Blocked: Story = {
   args: {
     cart: BLOCKED_CART,
-    idempotencyKey: IDEMPOTENCY_KEY,
     reference: null,
     size: "compact",
   },

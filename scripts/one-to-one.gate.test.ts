@@ -47,7 +47,7 @@ const SCAN_ROOTS = [
   "baseline/lib",
   "vrt",
   "e2e",
-  ".storybook/lib",
+  ".storybook",
 ] as const;
 
 /** 除外宣言を、リポジトリ相対パスに当てる正規表現へ変える。 */

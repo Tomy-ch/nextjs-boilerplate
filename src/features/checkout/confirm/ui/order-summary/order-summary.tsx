@@ -11,8 +11,6 @@ export type OrderSummaryProps = {
   cart: Cart;
   /** 小計の参考換算額。読めなければ null。 */
   reference: ReferenceAmount | null;
-  /** この画面の確定 1 回ぶんを表す鍵。 */
-  idempotencyKey: string;
   /** 金額の大きさ。脇に貼り付ける器では控えめに出す。 */
   size?: "compact" | "prominent";
 };
@@ -34,7 +32,7 @@ export type OrderSummaryProps = {
  * **確定できないときは確かめの姿を出しません。** 載せる明細が 1 つも無い状態で「このまま進んで
  * よいか」を問うても、答えたところで進めません。
  */
-export function OrderSummary({ cart, reference, idempotencyKey, size }: OrderSummaryProps) {
+export function OrderSummary({ cart, reference, size }: OrderSummaryProps) {
   const orderable = orderLinesOf(cart).length > 0;
   const changedNames = priceChangedNames(cart);
 
@@ -54,13 +52,9 @@ export function OrderSummary({ cart, reference, idempotencyKey, size }: OrderSum
         )}
       </div>
       {!orderable || changedNames.length === 0 ? (
-        <PlaceOrderForm idempotencyKey={idempotencyKey} orderable={orderable} />
+        <PlaceOrderForm orderable={orderable} />
       ) : (
-        <PriceChangeConfirm
-          changedNames={changedNames}
-          idempotencyKey={idempotencyKey}
-          orderable={orderable}
-        />
+        <PriceChangeConfirm changedNames={changedNames} orderable={orderable} />
       )}
     </div>
   );
