@@ -60,6 +60,16 @@ pre-commit:
         - "scripts/actions-shellcheck/*.ts"
         - "scripts/lib/*.ts"
       run: make actions-shellcheck
+    actions-zizmor:
+      # Actions 定義そのものの静的解析 (ADR 0153)。actionlint / actions-shellcheck は
+      # shellcheck へ渡す前に `${{ … }}` を潰すため、run: での未クオートな式展開
+      # (script injection) は原理的に見えない。その観点をここが担う。
+      # 抑制の宣言も対象に含める。設定が変われば所見の集合が変わる。
+      glob:
+        - ".github/workflows/*.{yml,yaml}"
+        - ".github/actions/**/*.{yml,yaml}"
+        - ".github/zizmor.yml"
+      run: make actions-zizmor
     shellcheck:
       # 単体のシェルスクリプトを検査する (ADR 0153)。ここに居るのは、依存の導入前に走る
       # 必要があってシェルで書くしかないもの (ADR 0155 の例外)。TypeScript ではないので

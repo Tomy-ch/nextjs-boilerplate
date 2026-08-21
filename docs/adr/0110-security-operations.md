@@ -52,6 +52,7 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 ### 3. 脆弱性スキャン(多層防御・go ADR 0077 翻案)
 
 - **CodeQL SAST**: `languages: javascript-typescript`(go の `go` を差し替え)。trigger = PR + 保護ブランチ push + 週次 cron。`security-events: write` で SARIF アップロード。high-severity はマージブロック(ブロックの実体は branch protection / code scanning の required 設定側。go 同様、workflow 内の hard-fail には依存しない)
+- **Actions 定義の静的解析(zizmor)**: CI の実行内容そのものを対象にする層。アプリのコードと依存を見る上の 3 者は、`.github/**` に書かれた `run:` や権限の与え方を見ない。**hook と CI の双方**で`--offline` で走らせ、**high の所見で fail-closed**、medium 以下は出力に残す。抑止は`.github/zizmor.yml` に理由付きで宣言し、下記 4 の抑止ポリシーに従う(検査の責務と落とし方は [0153](0153-ci-configuration.md) §1 が正)
 - **Trivy fs 二段運用**:
   - **dev ゲート**(全 PR・advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`**(修正不能は無視)/ hard-fail しない + PR コメント
   - **release ゲート**(保護ブランチへの PR 限定・厳格): **`ignore-unfixed: false`**(未修正も可視化)で厳格化。**止めるのはこの一点だけ**である

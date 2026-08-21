@@ -20,6 +20,12 @@ name: Actions Lint
 #   actions-mise-pin-…  — the mise version, its digest and the cache key agree. mise's
 #     …lint               own version cannot live in `mise.toml`, so it is declared in
 #                         `.github/actions/setup-mise` in three places at once.
+#   actions-zizmor      — static analysis of the definitions themselves. actionlint and
+#                         actions-shellcheck both flatten `${{ … }}` into a placeholder
+#                         before handing the script to shellcheck, so whether an
+#                         expression is quoted — the whole of a template-injection — is
+#                         gone by the time either of them looks. zizmor reads the
+#                         expressions, and gates on high findings only (ADR 0153 §1).
 #   shellcheck          — every tracked standalone `*.sh`. What lives there is shell
 #                         only because it has to run before dependencies are installed
 #                         (the exception ADR 0155 allows). Nothing else covers it: it is
@@ -66,7 +72,7 @@ jobs:
       - name: Setup mise and the pinned tools
         uses: ./.github/actions/setup-mise
         with:
-          tools: aqua:rhysd/actionlint aqua:koalaman/shellcheck core:node aqua:pnpm/pnpm
+          tools: aqua:rhysd/actionlint aqua:koalaman/shellcheck aqua:zizmorcore/zizmor core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve the pnpm store path
@@ -106,14 +112,18 @@ jobs:
           make actions-mise-pin-lint 2>&1 | tee -a /tmp/actions-lint.log
           mise_pin_code=${PIPESTATUS[0]}
 
+          make actions-zizmor 2>&1 | tee -a /tmp/actions-lint.log
+          zizmor_code=${PIPESTATUS[0]}
+
           make shellcheck 2>&1 | tee -a /tmp/actions-lint.log
           script_shellcheck_code=${PIPESTATUS[0]}
 
-          summary="actionlint + shellcheck + pr-comment secret lint + mise pin"
+          summary="actionlint + shellcheck + pr-comment secret lint + mise pin + zizmor"
           if [ "${actionlint_code}" -eq 0 ] \
             && [ "${shellcheck_code}" -eq 0 ] \
             && [ "${secret_lint_code}" -eq 0 ] \
             && [ "${mise_pin_code}" -eq 0 ] \
+            && [ "${zizmor_code}" -eq 0 ] \
             && [ "${script_shellcheck_code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
             echo "title=## ✅ Actions lint: PASS (${summary})" >> "$GITHUB_OUTPUT"

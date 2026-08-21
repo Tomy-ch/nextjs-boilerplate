@@ -347,6 +347,7 @@ jobs:
         env:
           IDS: ${{ steps.retake.outputs.ids }}
           TOKEN: ${{ steps.baselines.outputs.token }}
+          TRIGGER: ${{ github.event.workflow_run.name }}
         run: |
           set -euo pipefail
 
@@ -355,7 +356,7 @@ jobs:
           header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
           git config --local http.extraheader "$header"
 
-          git commit -m "Test: 基準画像を撮り直す" -m "撮り直し: ${{ github.event.workflow_run.name }} / 対象: ${IDS}"
+          git commit -m "Test: 基準画像を撮り直す" -m "撮り直し: ${TRIGGER} / 対象: ${IDS}"
           git push
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 

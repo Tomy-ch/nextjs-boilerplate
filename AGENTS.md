@@ -147,7 +147,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0150](docs/adr/0150-git-workflow.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
 | [0151](docs/adr/0151-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
 | [0152](docs/adr/0152-agents-md-policy.md) | AGENTS.md policy | File placement / language / 13-section structure / Instruction Priority / `## [TODO]` convention |
-| [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / workflow-definition lint (actionlint) / hooks mirror CI / required checks / caching |
+| [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / workflow-definition lint (actionlint / zizmor) / hooks mirror CI / required checks / caching |
 | [0154](docs/adr/0154-claude-skills-operations.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
 | [0155](docs/adr/0155-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` target structure |
 
@@ -250,6 +250,7 @@ pnpm format                # biome format --write
 make install-tools         # Install tools via mise (ADR 0003)
 make help                  # List every make target (warns on undocumented ones)
 make actionlint            # Lint .github/workflows with actionlint (ADR 0153)
+make actions-zizmor        # Static-analyse the Actions definitions with zizmor (ADR 0153)
 make actions-pin-resolve   # Resolve every `uses:` comment tag to a SHA into the lockfile (ADR 0153)
 make actions-pin-apply     # Rewrite every `uses:` @<sha> from the lockfile
 make actions-pin-check     # Verify the pins match the lockfile — fails on drift (pre-commit / CI)

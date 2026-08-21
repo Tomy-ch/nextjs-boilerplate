@@ -1,0 +1,48 @@
+# zizmor configuration — static analysis of the Actions definitions themselves.
+# Consumed by `make actions-zizmor` (pre-commit hook and the Actions Lint workflow).
+#
+# Policy for this file:
+#   - No audit is turned off. Every entry below is either a documented deliberate
+#     decision or an accepted baseline for an existing finding.
+#   - `ignore` is file-scoped, so a NEW workflow hitting the same audit still fails.
+#     Prefer it, and remove the entry once the finding is actually fixed.
+#   - `remap` lowers a finding class repository-wide and is only used where the audit
+#     cannot be scoped to a file (composite actions are all named `action.yaml`, so a
+#     file entry would silence every one of them). The audit keeps running and keeps
+#     reporting; it just no longer trips the gate, which fires on high only.
+
+rules:
+  # `.github/actions/setup-baselines` mints an App token scoped with `owner:` rather
+  # than `repositories:`, and without per-permission inputs. The scope is deliberate
+  # and the reason is at the step itself: the App is installed on exactly this
+  # repository and the baseline store, and naming the store here would duplicate the
+  # wiring `.gitmodules` already owns. Narrowing the token's permissions is a real
+  # tightening and is tracked separately; it cannot be verified without the App
+  # secret, so it does not ride along with the audit that found it.
+  github-app:
+    remap:
+      severity: medium
+
+  # `.github/actions/setup-mise` appends the tool directories to `$GITHUB_PATH`,
+  # which is how a setup action publishes a toolchain. The written values come from
+  # the action's own computation, never from event data, and zizmor itself rates the
+  # detection low confidence.
+  github-env:
+    remap:
+      severity: medium
+
+  # `baseline-retake.yaml` runs on `workflow_run` because it must react to a
+  # comparison that has already finished. The trigger's danger — a writable token in
+  # the base repository's context for a fork's head — is refused explicitly, before
+  # anything is checked out. The refusal is the first thing the job does.
+  dangerous-triggers:
+    ignore:
+      - baseline-retake.yaml
+
+  # `vrt-guard.yaml` restores the pnpm store on a push to a protected branch, which
+  # zizmor reads as publishing runtime artifacts. Nothing here is published: the job
+  # only compares images and the cache is the dependency store, keyed by the lockfile
+  # hash and scoped to the branch.
+  cache-poisoning:
+    ignore:
+      - vrt-guard.yaml
