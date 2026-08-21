@@ -20,7 +20,12 @@ export default defineConfig({
     //
     // `scripts/` だけは [vitest.scripts.config.ts](vitest.scripts.config.ts) の別 suite で回す。
     // あちらに居るのは lint とゲートそのもので、落ちたときにアプリの退行と読み違えたくない。
-    include: ["{src,tokens,docs-viewer,mocks,eslint-rules,baseline,vrt,e2e}/**/*.test.{ts,tsx}"],
+    include: [
+      "{src,tokens,docs-viewer,mocks,eslint-rules,baseline,vrt,e2e}/**/*.test.{ts,tsx}",
+      // カタログが自分で持つ判定。設定ファイル（`main.ts` / `preview.tsx` など）は判定を持たない
+      // ので、範囲は `lib/` に絞る。
+      ".storybook/lib/**/*.test.{ts,tsx}",
+    ],
     setupFiles: ["./vitest.setup.ts"],
     // client config はビルド時に置換されるリテラルを前提に `process.env` を静的に読む。この実行は
     // その置換を行わないので、ここで供給しないと値が `NaN` のまま client 側の経路へ渡る。
@@ -43,6 +48,7 @@ export default defineConfig({
         "baseline/lib/**/*.ts",
         "vrt/**/*.ts",
         "e2e/**/*.ts",
+        ".storybook/lib/**/*.ts",
       ],
       // 検査対象から外すモジュールは scripts/lib/untested-modules.ts の宣言 1 箇所が持ち、
       // カバレッジ母数と 1:1 ゲートの双方がそれを読む（ADR 0090）。ここへ直接足すと、
@@ -56,6 +62,7 @@ export default defineConfig({
         "baseline/lib/**/*.test.ts",
         "vrt/**/*.test.ts",
         "e2e/**/*.test.ts",
+        ".storybook/lib/**/*.test.ts",
         ...EXCLUDED_FROM_CHECKS,
       ],
       thresholds: {
