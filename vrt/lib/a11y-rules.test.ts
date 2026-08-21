@@ -89,7 +89,7 @@ describe("STORY_DISABLED_RULES", () => {
   it("名指しの無効化が増え続けないよう、対象 story の数を目に見える形に保つ", () => {
     // 増やすときはこの数を更新する。更新が要ること自体が、無効化を足した事実を差分へ出す。
     // sample:replace-begin
-    expect(STORY_DISABLED_RULES.flatMap((rule) => rule.stories)).toHaveLength(12);
+    expect(STORY_DISABLED_RULES.flatMap((rule) => rule.stories)).toHaveLength(13);
     // sample:replace-with
     // = expect(STORY_DISABLED_RULES.flatMap((rule) => rule.stories)).toHaveLength(11);
     // sample:replace-end

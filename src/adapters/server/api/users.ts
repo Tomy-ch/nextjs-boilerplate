@@ -8,13 +8,18 @@ import { getHttpConfig } from "@/config/http/http.server";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { getLogger } from "@/logging/logging.server";
+import type { OffsetPage } from "@/model/pagination";
 import type { RegistrationStatus } from "@/model/user/registration";
-import type { PurchaseSummary, UserProfile } from "@/model/user/user";
+import type { ManagedUser, PurchaseSummary, UserId, UserProfile } from "@/model/user/user";
+import { toUserId } from "@/model/user/user";
 
 import {
   DeleteUsersDetailResponse,
   GetUsersMePurchasesSummaryResponse,
   GetUsersMeResponse,
+  GetUsersQueryParams,
+  GetUsersResponse,
+  getUsersQueryPageMax,
   PostUsersResponse,
   PutUsersDetailResponse,
 } from "../../gen/api/endpoints.zod";
@@ -237,4 +242,106 @@ export async function withdrawMe(): Promise<void> {
   } catch (cause) {
     getLogger().warn("退会後の IdP session 終了に失敗しました", { cause: String(cause) });
   }
+}
+
+/**
+ * 契約が受け付けるページ番号の上限。
+ *
+ * @remarks
+ * 生成物の宣言をそのまま公開します。呼び出し側は URL から来た番号をこれに収めてから渡します
+ * —— 収めずに送ると、契約の検証で弾かれて一覧の代わりにエラーの面が出ます。
+ *
+ * 値を書き写さないのは、契約が変わったときに写した側だけが古い上限を持ち続けるためです。生成物へ
+ * 直接触れてよいのはこの層までなので（`architecture.ts` の `adapters-gen`）、外へはここが渡します。
+ */
+export const MANAGED_USER_PAGE_MAX: number = getUsersQueryPageMax;
+
+/**
+ * 一覧を絞り込む条件。
+ *
+ * @remarks
+ * **1 ページの件数を呼び出し側から受け取ります。** 何件並べると読めるかは表示の判断で、外部接続の
+ * 都合ではありません（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。ここが持つのは
+ * 「受け取った条件を契約の形へ写す」ことだけです。
+ */
+export type ManagedUserQuery = {
+  /** 1 から数えるページ番号。 */
+  readonly page: number;
+  /** 1 ページあたりの件数。 */
+  readonly perPage: number;
+  /** 有効な利用者だけ / 退会済みだけ。区別しないなら省く。 */
+  readonly active?: boolean;
+};
+
+/** 契約の応答 1 件を、一覧が並べる形へ写す。 */
+function toManagedUser(wire: z.infer<typeof GetUsersResponse>["users"][number]): ManagedUser {
+  return {
+    id: toUserId(wire.id),
+    firstName: wire.firstName,
+    lastName: wire.lastName,
+    email: wire.email,
+    phone: wire.phone,
+    deletedAt: wire.deletedAt,
+  };
+}
+
+/**
+ * 利用者を一覧で取得する。
+ *
+ * @remarks
+ * **offset 方式です**（[0073](../../../../docs/adr/0073-pagination-fetch-boundary.md)）。契約が
+ * 位置と全件数を返すため、任意のページへ跳べます。cursor 方式の一覧（商品・購入）とはページ
+ * 送りの部品から違います。
+ *
+ * `active` を省くと退会済みを含む全件が返ります。3 値であることを `boolean | undefined` で
+ * そのまま表すのは、「有効だけ」「退会済みだけ」「区別しない」がいずれも意味を持つためです。
+ *
+ * admin の役割を要します。役割の判定はこの手前（`app` 層の断言と `admin` の器）にあり、ここは
+ * 通った要求だけを受けます。
+ */
+export const getManagedUserPage = cache(
+  async (query: ManagedUserQuery): Promise<OffsetPage<ManagedUser>> => {
+    const params = GetUsersQueryParams.parse({
+      page: query.page,
+      perPage: query.perPage,
+      ...(query.active === undefined ? {} : { active: query.active }),
+    });
+
+    const wire = await getClient().request({
+      path: "/v1/users",
+      searchParams: {
+        active: params.active?.toString(),
+        page: params.page.toString(),
+        perPage: params.perPage.toString(),
+      },
+      schema: GetUsersResponse,
+    });
+
+    return {
+      items: wire.users.map(toManagedUser),
+      total: wire.total,
+      perPage: wire.limit,
+      offset: wire.offset,
+    };
+  },
+);
+
+/**
+ * 利用者を 1 件退会させる。
+ *
+ * @remarks
+ * {@link withdrawMe} と別の口にしています。あちらは自分を退会させたあと手元の session を畳み
+ * ますが、こちらは他人が対象なので、操作した側の session は残ったままでなければなりません。
+ *
+ * `409` が返る事情は {@link withdrawMe} と同じです。**ただしその取消・在庫の戻しは同期しません**
+ * —— 拒まれたという事実だけがここで判り、後始末が終わったかどうかは判りません。
+ *
+ * @param id - 退会させる利用者
+ */
+export async function withdrawUser(id: UserId): Promise<void> {
+  await getClient().request({
+    path: `/v1/users/${encodeURIComponent(id)}`,
+    method: "DELETE",
+    schema: DeleteUsersDetailResponse,
+  });
 }

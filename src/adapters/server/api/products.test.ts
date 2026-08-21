@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
+import { findAppError } from "@/errors/app-error";
+import { ErrorKind } from "@/errors/error-kind";
 import { serveJson, serveStatus, serveWrite, watchFetch } from "../../../../vitest.setup";
 
 const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
@@ -13,6 +15,7 @@ vi.mock("../auth/session", () => ({ getAccessToken }));
 import { toProductId } from "@/model/product/product";
 
 import {
+  adjustProductStock,
   createProduct,
   getProduct,
   getProductCount,
@@ -48,6 +51,17 @@ const PRODUCTS_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/products`;
 const PRODUCT_URL = `${PRODUCTS_URL}/:id`;
 const RANKING_URL = `${PRODUCTS_URL}/ranking`;
 const COUNT_URL = `${PRODUCTS_URL}/count`;
+
+/** 投げられたエラーに付いた分類を返す。投げなければ undefined。 */
+async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
+  try {
+    await run();
+  } catch (error) {
+    return findAppError(error)?.kind;
+  }
+
+  return undefined;
+}
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -592,5 +606,70 @@ describe("updateProduct", () => {
     serveStatus("patch", PRODUCT_URL, 409);
 
     await expect(updateProduct(id, { ...DRAFT, version: 1 })).rejects.toThrow();
+  });
+});
+
+describe("adjustProductStock", () => {
+  const STOCK_URL = `${PRODUCT_URL}/stock`;
+  const ID = toProductId("0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11");
+
+  // ----- 正常系 -----
+  it("増減後の商品を表示用の型へ写して返す", async () => {
+    serveWrite("patch", STOCK_URL, { ...wireProduct, quantity: 53 });
+
+    await expect(adjustProductStock(ID, 50)).resolves.toMatchObject({ quantity: 53 });
+  });
+
+  it("補充は正の増減量として送る", async () => {
+    const requests = serveWrite("patch", STOCK_URL, wireProduct);
+
+    await adjustProductStock(ID, 50);
+
+    await expect(requests[0]?.json()).resolves.toEqual({ delta: 50 });
+  });
+
+  it("差し引きは負の増減量として送る", async () => {
+    const requests = serveWrite("patch", STOCK_URL, wireProduct);
+
+    await adjustProductStock(ID, -50);
+
+    await expect(requests[0]?.json()).resolves.toEqual({ delta: -50 });
+  });
+
+  it("版を添えない。相対更新は並行しても失われない", async () => {
+    const requests = serveWrite("patch", STOCK_URL, wireProduct);
+
+    await adjustProductStock(ID, 50);
+
+    await expect(requests[0]?.json()).resolves.not.toHaveProperty("version");
+  });
+
+  it("主体を名乗って送る", async () => {
+    getAccessToken.mockResolvedValue("access-token");
+    const requests = serveWrite("patch", STOCK_URL, wireProduct);
+
+    await adjustProductStock(ID, 50);
+
+    expect(requests[0]?.headers.get("authorization")).toBe("Bearer access-token");
+  });
+
+  // ----- 異常系 -----
+  it("増減後の在庫が範囲を外れた応答を、入力の誤りとして分類する", async () => {
+    serveStatus("patch", STOCK_URL, 422);
+
+    await expect(kindOf(() => adjustProductStock(ID, -1000))).resolves.toBe(ErrorKind.VALIDATION);
+  });
+
+  it("並行して動かされて拒まれた応答を、競合として分類する", async () => {
+    serveStatus("patch", STOCK_URL, 409);
+
+    await expect(kindOf(() => adjustProductStock(ID, 50))).resolves.toBe(ErrorKind.CONFLICT);
+  });
+
+  it("一時的に受け付けられない応答を、時間を空ける分類にし、再送しない", async () => {
+    const requests = serveStatus("patch", STOCK_URL, 503);
+
+    await expect(kindOf(() => adjustProductStock(ID, 50))).resolves.toBe(ErrorKind.UNAVAILABLE);
+    expect(requests).toHaveLength(1);
   });
 });

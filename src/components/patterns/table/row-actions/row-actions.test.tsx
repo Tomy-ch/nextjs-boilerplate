@@ -154,6 +154,14 @@ describe("RowActionsMenu", () => {
     );
   });
 
+  it("操作が 1 つも無い行には trigger ごと出さない", () => {
+    const noActions = (): readonly RowAction[] => [];
+
+    render(<RowActionsMenu actions={noActions} row={ITEMS[0]} triggerLabel={triggerLabel} />);
+
+    expect(screen.queryByRole("button", { name: "標準プラン の操作" })).not.toBeInTheDocument();
+  });
+
   it("開いた状態で WCAG AA 相当の a11y 自動検査に違反しない", async () => {
     const { baseElement } = render(<ActionsTable />);
 

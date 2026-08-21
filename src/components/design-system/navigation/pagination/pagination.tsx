@@ -29,13 +29,17 @@ export function Pagination({ className, ...props }: ComponentProps<"nav">) {
  * {@link Pagination} の直下に置き、子は {@link PaginationItem} で包む。順序のある一覧として
  * 支援技術に公開されるため、`li` 以外を直接の子にしない。
  *
+ * **入り切らなければ折り返す。** 並ぶ数は呼び出し元が決めるもので、狭い段で何個まで収まるかは
+ * 部品からは判らない。折り返さないと、はみ出した分がページごと横へあふれ、他の内容まで横送り
+ * しないと読めなくなる。
+ *
  * @param props - native `ul` 属性。
  * @see Storybook `Navigation/Pagination`
  */
 export function PaginationContent({ className, ...props }: ComponentProps<"ul">) {
   return (
     <ul
-      className={cn("flex flex-row items-center gap-1", className)}
+      className={cn("flex flex-row flex-wrap items-center justify-center gap-1", className)}
       data-slot="pagination-content"
       {...props}
     />

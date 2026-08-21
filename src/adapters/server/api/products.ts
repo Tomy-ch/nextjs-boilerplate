@@ -26,10 +26,15 @@ import {
   GetProductsResponse,
   getProductsQueryCategoryCodesMax,
   PatchProductsDetailResponse,
+  PatchProductsStockResponse,
   PostProductsImagesResponse,
   PostProductsResponse,
 } from "../../gen/api/endpoints.zod";
-import type { ProductPatchRequest, ProductsPostRequest } from "../../gen/api/model";
+import type {
+  ProductPatchRequest,
+  ProductStockPatchRequest,
+  ProductsPostRequest,
+} from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
 import { createHttpClient, type HttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
@@ -486,6 +491,36 @@ export async function updateProduct(id: ProductId, edit: ProductEdit): Promise<P
       images: edit.images.map(toWireImage),
     } satisfies ProductPatchRequest,
     schema: PatchProductsDetailResponse,
+  });
+
+  return toProduct(wire);
+}
+
+/**
+ * 在庫を増減する。
+ *
+ * @remarks
+ * 送るのは**増減量であって、更新後の在庫数ではありません**。契約が相対値を受け取るため、読んだ
+ * 時点から送るまでの間に売れた分・別の主体が補充した分は打ち消されず、合成されます。
+ *
+ * 版を添えません。相対更新は並行しても失われないため、競合を検出して拒む必要がそもそも
+ * ありません（{@link updateProduct} との違いはここです）。
+ *
+ * **再送しません。** 同じ増減量を二度送れば二度加算されます。自然キーを持たない加算であり、
+ * 応答が返らなかったときに成立したかどうかは、取り直して確かめる以外にありません。
+ *
+ * 増減後の在庫が保持できる範囲を外れる要求は、wrapper が `validation` へ正規化します。
+ *
+ * @param id - 対象の商品
+ * @param delta - 増減量。正で補充、負で差し引き
+ * @returns 増減後の商品
+ */
+export async function adjustProductStock(id: ProductId, delta: number): Promise<Product> {
+  const wire = await getClient().request({
+    path: `/v1/products/${encodeURIComponent(id)}/stock`,
+    method: "PATCH",
+    body: { delta } satisfies ProductStockPatchRequest,
+    schema: PatchProductsStockResponse,
   });
 
   return toProduct(wire);

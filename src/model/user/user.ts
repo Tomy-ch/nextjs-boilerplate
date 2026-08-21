@@ -1,3 +1,35 @@
+import { z } from "zod";
+
+/**
+ * 利用者の識別子を確定させるスキーマ。
+ *
+ * @remarks
+ * 外へは出しません。確定させる口は {@link toUserId} だけで、二重に入口を設けると境界の外でも
+ * 通せてしまいます（[0029](../../../docs/adr/0029-type-design-discipline.md) §3）。
+ */
+const userIdSchema = z.string().brand<"user">();
+
+/**
+ * 利用者を指す識別子。
+ *
+ * @remarks
+ * 素の `string` を代入できない形にしてあります。商品・利用者・購入の識別子はいずれも UUID の
+ * 文字列で、取り違えても型では止まらないためです
+ * （[0029](../../../docs/adr/0029-type-design-discipline.md) §3）。
+ */
+export type UserId = z.infer<typeof userIdSchema>;
+
+/**
+ * 文字列を利用者の識別子として確定させる。
+ *
+ * @remarks
+ * **呼んでよいのは境界だけ**です。外から来た値を確定させる場所（`adapters` の検証の出口・
+ * フォームの受け取り）で 1 度だけ通し、内側では確定した型を持ち回ります。
+ */
+export function toUserId(value: string): UserId {
+  return userIdSchema.parse(value);
+}
+
 /**
  * 画面が扱う利用者自身の情報。
  *
@@ -85,4 +117,29 @@ export type PurchaseSummary = {
   /** 合計。最小単位の整数で持ち、表示の直前に主単位へ戻す。 */
   readonly totalAmount: number;
   readonly breakdown: readonly PurchaseStatusBreakdown[];
+};
+
+/**
+ * 管理の一覧に並べる利用者 1 件。
+ *
+ * @remarks
+ * {@link UserProfile} と別の型にしているのは、見る主体が違うためです。**他人を対象に取る**ため、
+ * あちらが持たない識別子（更新と退会が対象を指すのに要る）と退会日時（あちらが持たない理由は
+ * {@link UserProfile}）の両方を持ち、退会済みの行も並びます。
+ *
+ * 住所を持ちません。一覧が答えるのは「誰がいるか」であり、どこに住んでいるかではないためです。
+ */
+export type ManagedUser = {
+  readonly id: UserId;
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly email: string;
+  readonly phone: string;
+  /**
+   * 退会した日時。退会していなければ null。
+   *
+   * 契約が ISO の文字列で返すため、そのまま持つ。日時として扱う用途がここには無く、
+   * 一覧が要るのは「退会しているか」だけである。
+   */
+  readonly deletedAt: string | null;
 };
