@@ -7,9 +7,15 @@
 #   - `ignore` is file-scoped, so a NEW workflow hitting the same audit still fails.
 #     Prefer it, and remove the entry once the finding is actually fixed.
 #   - `remap` lowers a finding class repository-wide and is only used where the audit
-#     cannot be scoped to a file (composite actions are all named `action.yaml`, so a
-#     file entry would silence every one of them). The audit keeps running and keeps
-#     reporting; it just no longer trips the gate, which fires on high only.
+#     cannot be scoped to a file (composite actions are all named `action.yaml`, and
+#     `ignore` matches on the base name, so one entry would silence every one of them).
+#     The audit keeps running and keeps reporting; it just no longer trips the gate,
+#     which fires on high only.
+#
+#     Retraction condition: zizmor 1.29 accepts no path filter on `remap` and no glob on
+#     `ignore`. Once either lands, every `remap` below becomes a file-scoped `ignore` — a
+#     repository-wide lowering also covers definitions that do not exist yet, which is
+#     the failure ADR 0110 §3.4 names.
 
 rules:
   # `.github/actions/setup-baselines` mints an App token scoped with `owner:` rather

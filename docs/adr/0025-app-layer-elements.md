@@ -22,7 +22,7 @@ Pages Router(`pages/` / `pages/api`)は採用しない。裏取り: 公式 doc `
 
 | element | 対象ファイル | 許可 import 先 | 原則 |
 | --- | --- | --- | --- |
-| `app/route-segment` | `page.tsx` / `layout.tsx` / `loading.tsx` / `error.tsx`(App Router UI) | `features` | driving adapter・薄い呼び口(現状維持) |
+| `app/route-segment` | `page.tsx` / `layout.tsx` / `loading.tsx` / `error.tsx`(App Router UI) | `features` / **入口の保護に限り** `adapters/server/auth` の `verifySession()` と `model` の述語([0079](0079-auth-frontend-seam.md) §4) | driving adapter・薄い呼び口。保護の編成は「呼ぶ・判定する・送り返す」だけで、取得も業務ロジックも持たない |
 | `app/route-handler` | **`route.ts`**(= Pages API Routes の App Router 置換・**唯一の HTTP 口**) | `adapters/server`([0024](0024-adapters-server-client-split.md))/ `errors` / `logging` | **thin proxy・業務ロジック禁止**([0011](0011-no-docker.md) / [0070](0070-backend-role-separation.md))。`actions.ts` の HTTP 版 |
 | `app/server-action` | **`actions.ts`**(`"use server"` の変更口) | `adapters/server` / `features` / `model` / `errors` / `logging` | **主体の断言をここで行う**。公開 HTTP 口であり、描画した画面の認可を前提にしない |
 | `app/metadata` | `robots.ts` / `sitemap.ts` / `manifest.ts` / `opengraph-image` 等 | `config` / `model` | ビルド / 描画時の framework ファイル。起動・ビルド境界の薄い例外(`instrumentation.ts` と同格) |
@@ -40,6 +40,7 @@ Pages Router(`pages/` / `pages/api`)は採用しない。裏取り: 公式 doc `
 - ❌ `app/route-handler` から `config` を直接 import すること(config は `adapters/server` 経由。metadata は例外として config 可)
 - ❌ `app/server-action` から **`server config`** を直接 import すること(route-handler と同じ理由。secret を持つ runtime object は `adapters/server` の側で読む)
 - ❌ `app/server-action` で主体の断言を省き、その action を描いた画面が保護されていることに依拠すること(action id を知る者は任意の route から呼べる)
+- ❌ `app/route-segment` が入口の保護の名目で取得や業務ロジックを持つこと(許すのは `verifySession()` の呼び出し・`model` の述語による判定・`redirect()` だけ。[0079](0079-auth-frontend-seam.md) §4)
 - ❌ `app/route-segment` から **`server config`** を直接 import すること(値は `adapters` か、全層が読める `NEXT_PUBLIC` の公開定数から受け取る。[0021](0021-frontend-responsibility.md) の「内側は値を引数で受け取る」と同じ規定)
 
 ## 補足

@@ -269,9 +269,16 @@ jobs:
       # that triggered this one only when E2E is what reported — otherwise it is a
       # different run on the same head, resolved here.
       #
-      # No report means no reported screen difference, so nothing may enter the store
-      # through this path. That is the safe direction: the alternative is retaking the
-      # full set, which accepts pixels no comment ever showed a reviewer.
+      # A missing report is two different states and they must not be collapsed. E2E has
+      # finished and reported nothing → there is no screen difference, and retaking the
+      # full set instead would accept pixels no comment ever showed a reviewer. E2E has
+      # NOT finished → the answer is not known yet, and this run must not spend the label
+      # on a retake that covers only half of what was reported. `pending` carries that
+      # apart, and `Remove the label` reads it.
+      #
+      # This is the direction the deferral gate above cannot cover on its own: it waits
+      # for the checks that decide the pixels, and E2E's own verdict is not among them —
+      # a red E2E is the reason to retake, not a reason to hold off.
       - name: Download the reported screens
         id: screens
         if: >-
@@ -285,24 +292,37 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ "$STORIES" = 'true' ]; then
-            run_id="$(gh api \
-              "repos/$GITHUB_REPOSITORY/actions/workflows/e2e.yaml/runs?head_sha=${HEAD_SHA}&per_page=1" \
-              --jq '.workflow_runs[0].id // empty')"
-          else
-            run_id="$RUN_ID"
-          fi
+          {
+            echo 'found=false'
+            echo 'pending=false'
+          } >> "$GITHUB_OUTPUT"
 
-          if [ -z "$run_id" ]; then
-            echo 'found=false' >> "$GITHUB_OUTPUT"
-            echo 'ℹ️ この commit に E2E の実行がありません。画面は撮り直しません。'
-            exit 0
+          if [ "$STORIES" = 'false' ]; then
+            # E2E is what reported, so its run is the one that triggered this and it has
+            # finished by definition.
+            run_id="$RUN_ID"
+          else
+            run="$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/e2e.yaml/runs?head_sha=${HEAD_SHA}&per_page=1" \
+              --jq 'if (.workflow_runs | length) == 0 then empty
+                    else (.workflow_runs[0] | "\(.id) \(.status)") end')"
+
+            if [ -z "$run" ]; then
+              echo 'ℹ️ この commit に E2E の実行がありません。画面は撮り直しません。'
+              exit 0
+            fi
+
+            run_id="${run%% *}"
+            if [ "${run##* }" != 'completed' ]; then
+              echo 'pending=true' >> "$GITHUB_OUTPUT"
+              echo '⏸️ E2E がまだ完了していません。画面は次の実行で撮り直します（ラベルは残します）。'
+              exit 0
+            fi
           fi
 
           if gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name e2e-report --dir tmp/e2e; then
             echo 'found=true' >> "$GITHUB_OUTPUT"
           else
-            echo 'found=false' >> "$GITHUB_OUTPUT"
             echo 'ℹ️ E2E に差分の報告がありません。画面は撮り直しません。'
           fi
 
@@ -317,60 +337,99 @@ jobs:
         if: steps.gate.outputs.deferred == 'false'
         run: pnpm install --frozen-lockfile
 
-      # Stories and screens land in one commit, so the store's compare view shows the
-      # whole visual change of this branch in one place — which is what the reviewer
-      # has to look at before accepting it.
-      - name: Retake the baselines
+      # The two kinds are retaken in their own steps because the rule that bounds each is
+      # its own — one reads VRT's report, the other E2E's — and they change for different
+      # reasons. They still land in one commit: the push below happens once, so the store's
+      # compare view shows the whole visual change of this branch in one place, which is
+      # what the reviewer has to look at before accepting it.
+      #
+      # 孤児（改名・削除で参照を失った基準画像）は範囲を絞った撮り直しでは消えない。絞った
+      # 実行では孤児と対象外の画像を区別できないため、報告されたら全数へ倒す。
+      - name: Retake the story baselines
+        id: retake-stories
+        if: >-
+          steps.gate.outputs.deferred == 'false' &&
+          steps.trigger.outputs.stories == 'true'
+        env:
+          MODE: ${{ steps.mode.outputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          orphans=false
+          if [ "$MODE" != 'full' ]; then
+            orphans="$(pnpm exec tsx scripts/vrt orphans tmp/vrt/report.json)"
+          fi
+
+          if [ "$MODE" = 'full' ] || [ "$orphans" = 'true' ]; then
+            echo 'taken=全 story' >> "$GITHUB_OUTPUT"
+            make vrt-update
+            exit 0
+          fi
+
+          ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json)"
+          if [ -z "$ids" ]; then
+            echo '❌ 報告に差分がありません。撮り直す対象がありません。'
+            exit 1
+          fi
+          # 報告から取り出した識別子はそのまま make の引数・commit message・PR コメントへ流れる。
+          # 出所はリポジトリにコミットされた story の目録なので、許可集合を外れることは無いはず
+          # ——外れたなら報告の作り方が変わった合図であり、通さずに止める（ADR 0153 §5）。
+          if printf '%s' "$ids" | LC_ALL=C grep -q '[^A-Za-z0-9/._,-]'; then
+            echo '❌ 報告の story id が許可した文字集合を外れています。'
+            exit 1
+          fi
+
+          echo "taken=${ids}" >> "$GITHUB_OUTPUT"
+          make vrt-update VRT_ONLY="$ids"
+
+      - name: Retake the screen baselines
+        id: retake-screens
+        if: >-
+          steps.gate.outputs.deferred == 'false' &&
+          (steps.mode.outputs.mode == 'full' || steps.screens.outputs.found == 'true')
+        env:
+          MODE: ${{ steps.mode.outputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "$MODE" = 'full' ] ||
+            [ "$(pnpm exec tsx scripts/e2e orphans tmp/e2e/report.json)" = 'true' ]; then
+            echo 'taken=全画面' >> "$GITHUB_OUTPUT"
+            make e2e-update
+            exit 0
+          fi
+
+          names="$(pnpm exec tsx scripts/e2e names tmp/e2e/report.json)"
+          if [ -z "$names" ]; then
+            echo '❌ 画面の報告に差分がありません。撮り直す対象がありません。'
+            exit 1
+          fi
+          if printf '%s' "$names" | LC_ALL=C grep -q '[^A-Za-z0-9/._,-]'; then
+            echo '❌ 報告の画面名が許可した文字集合を外れています。'
+            exit 1
+          fi
+
+          echo "taken=${names}" >> "$GITHUB_OUTPUT"
+          make e2e-update E2E_ONLY="$names"
+
+      - name: Note what was retaken
         id: retake
         if: steps.gate.outputs.deferred == 'false'
         env:
-          MODE: ${{ steps.mode.outputs.mode }}
-          STORIES: ${{ steps.trigger.outputs.stories }}
-          SCREENS: ${{ steps.screens.outputs.found }}
+          STORY_IDS: ${{ steps.retake-stories.outputs.taken }}
+          SCREEN_IDS: ${{ steps.retake-screens.outputs.taken }}
         shell: bash
         run: |
           set -euo pipefail
           taken=()
 
-          if [ "$STORIES" = 'true' ]; then
-            # 孤児（改名・削除で参照を失った基準画像）は範囲を絞った撮り直しでは消えない。
-            # 絞った実行では孤児と対象外の画像を区別できないため、全数で撮り直す。
-            orphans=false
-            if [ "$MODE" != 'full' ]; then
-              orphans="$(pnpm exec tsx scripts/vrt orphans tmp/vrt/report.json)"
-            fi
-
-            if [ "$MODE" = 'full' ] || [ "$orphans" = 'true' ]; then
-              taken+=('全 story')
-              make vrt-update
-            else
-              ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json)"
-              if [ -z "$ids" ]; then
-                echo '❌ 報告に差分がありません。撮り直す対象がありません。'
-                exit 1
-              fi
-              taken+=("$ids")
-              make vrt-update VRT_ONLY="$ids"
-            fi
+          if [ -n "$STORY_IDS" ]; then
+            taken+=("$STORY_IDS")
           fi
-
-          # 孤児は範囲を絞った撮り直しでは消えない。story 側と同じ理由で全数へ倒す。
-          if [ "$MODE" = 'full' ]; then
-            taken+=('全画面')
-            make e2e-update
-          elif [ "$SCREENS" = 'true' ]; then
-            if [ "$(pnpm exec tsx scripts/e2e orphans tmp/e2e/report.json)" = 'true' ]; then
-              taken+=('全画面')
-              make e2e-update
-            else
-              names="$(pnpm exec tsx scripts/e2e names tmp/e2e/report.json)"
-              if [ -z "$names" ]; then
-                echo '❌ 画面の報告に差分がありません。撮り直す対象がありません。'
-                exit 1
-              fi
-              taken+=("$names")
-              make e2e-update E2E_ONLY="$names"
-            fi
+          if [ -n "$SCREEN_IDS" ]; then
+            taken+=("$SCREEN_IDS")
           fi
 
           if [ ${#taken[@]} -eq 0 ]; then
@@ -440,6 +499,7 @@ jobs:
           REASON: ${{ steps.report.outputs.reason }}
           DEFERRED: ${{ steps.gate.outputs.deferred }}
           FAILED: ${{ steps.gate.outputs.failed }}
+          SCREENS_PENDING: ${{ steps.screens.outputs.pending }}
           HEAD_REF: ${{ steps.pr.outputs.head_ref }}
           # What actually moved, not what was asked for — the same set the count above is
           # taken from, so the images the comment counts and the ones it opens agree.
@@ -480,6 +540,11 @@ jobs:
               echo "画像差分: https://github.com/${store_repo}/compare/${BEFORE}..${AFTER}"
               echo
               echo "対象: ${IDS}"
+
+              if [ "$SCREENS_PENDING" = 'true' ]; then
+                echo
+                echo '画面は E2E がまだ判定していないため撮り直していません。**ラベルは付けたままです** — E2E の完了に合わせて自動で撮り直します。'
+              fi
 
               # Each block is emitted on its own so a retake that moved only one kind does not
               # print a command whose target list is empty — `make *-review` refuses that.
@@ -524,8 +589,11 @@ jobs:
             echo 'VRT_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # One label, one retake: removed only once the pointer has moved. Anything else
-      # leaves it on, so the retake resumes by itself once the cause is gone.
+      # One label, one retake: removed only once the pointer has moved AND every reported
+      # kind was covered. Anything else leaves it on, so the retake resumes by itself once
+      # the cause is gone. The second condition is what keeps a run that moved the pointer
+      # for the stories alone from spending the label while E2E is still deciding whether
+      # the screens moved — the screens would then never be retaken for this branch.
       #
       # `baseline-approve` is NOT touched here. Whether an acceptance still holds is decided
       # by `baseline-approval.yaml` comparing its timestamp against the pointer's commit, so
@@ -535,7 +603,9 @@ jobs:
       # report anyway, and it reads to the person who applied it as though their
       # acceptance had been revoked by someone else.
       - name: Remove the label
-        if: always() && steps.mode.outputs.mode == 'reported' && steps.push.outputs.sha != ''
+        if: >-
+          always() && steps.mode.outputs.mode == 'reported' &&
+          steps.push.outputs.sha != '' && steps.screens.outputs.pending != 'true'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -52,9 +52,9 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 
 ### 4. 保護ルートの表現 / チェックの各所配置
 
-- 保護は **入口ごとにチェック**する(`layout.tsx` / `page.tsx` / `route.ts` / `actions.ts`)。`proxy.ts` の optimistic リダイレクトは入口の pre-filter に過ぎず、app 層の各入口で `verifySession()`(DAL)を通すことを既定とする。Server Action は route を経由せずに呼べる独立した入口なので、画面が保護されていることを理由に断言を省かない([0021](0021-frontend-responsibility.md)「Server Action の置き場」)。
+- 保護は **入口ごとにチェック**する(`layout.tsx` / `page.tsx` / `route.ts` / `actions.ts`)。`proxy.ts` の optimistic リダイレクトは入口の pre-filter に過ぎず、app 層の各入口で `verifySession()`(DAL)か、`adapters` が分類した結果を通すことを既定とする。Server Action は route を経由せずに呼べる独立した入口なので、画面が保護されていることを理由に断言を省かない([0021](0021-frontend-responsibility.md)「Server Action の置き場」)。
 - **session に基づく保護の編成は app 層が行う。** `verifySession()` を呼び、結果で分岐し、リダイレクトするか feature を呼ぶ —— これは driving adapter の合成であって業務ロジックではない([0040](0040-routing-rendering-strategy.md) / [0021](0021-frontend-responsibility.md))。`features` がこれを持てないのは、DAL を含む `adapters/server/auth` へ触れてよいのが `app` と `adapters` だけだからで(`architecture.ts` の `adapters-auth`)、依存マトリクスの帰結であって例外規定ではない([0021](0021-frontend-responsibility.md))。
-- **バックエンドが返す資格による分岐は feature が持ってよい。** 「登録を済ませているか」のような業務上の資格は、`adapters/server` の API 経由で得る通常のデータであり、session の封緘には触れない。この種の入口ガードを feature に 1 つ置けば、同じ判定を画面ごとに書き写さずに済む([0070](0070-backend-role-separation.md) — 資格の規則を持つのはバックエンド)。
+- **feature が受け取ってよいのは `adapters` が分類した結果であって、session そのものではない。** 「未認証 / 未登録 / 登録済み」のような列挙は表示用の値であり、session の型も secret も内側の層へ渡らない([0020](0020-adopted-architecture.md) 型漏洩禁止)。この形なら入口ガードを feature に 1 つ置いて、同じ判定を画面ごとに書き写さずに済む。**分類を作るのは `adapters` の仕事**であり、feature のために session を素通しする関数を `adapters` へ足してはならない —— それは依存マトリクスを迂回して session の分岐を feature へ持ち込む経路になる。判定に使う規則そのものはバックエンドが持つ([0070](0070-backend-role-separation.md))。
 - **判定の述語は `model` が持つ。** 「この session が役割を満たすか」は session を入力に取る純粋な判定であり、app 層にも feature にも書かない。前捌き(`proxy.ts`)と確定認可が同じ述語を引くことで、2 層の判定がずれない。
 - **静的ルートの注意**: build 時に取得され全ユーザで共有される静的 route は DAL(request 時検証)が効かないため、その保護は `proxy.ts`(optimistic)側で行う(Next.js ガイド注記)。
 
@@ -101,7 +101,7 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 - ❌ 確定認可(`verifySession()` / DAL)を `adapters/server` 以外に置くこと / session・secret を内側の層(`model` / feature 純粋ロジック / client)へ漏らすこと([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md) / [0020](0020-adopted-architecture.md))
 - ❌ cookie payload に PII・機微情報を載せること / user オブジェクト全体を DTO なしで client へ渡すこと
 - ❌ 認可の**判定規則**(どの役割が何を満たすか)を app 層 / `features` / `proxy.ts` へ直書きすること(述語は `model`。app が持つのは編成のみ。§4)
-- ❌ `features` から `adapters/server/auth`(DAL / session)を import すること(依存マトリクスの帰結。[0021](0021-frontend-responsibility.md) / `architecture.ts` の `adapters-auth`)
+- ❌ `features` から `adapters/server/auth`(DAL / session)を import すること / session の型を `features` へ渡すこと(依存マトリクスの帰結と型漏洩禁止。[0021](0021-frontend-responsibility.md) / [0020](0020-adopted-architecture.md) / `architecture.ts` の `adapters-auth`)
 - ❌ `returnUrl` を検証せず外部 URL へリダイレクトすること(open redirect。同一 origin 相対パスに限定)
 - ❌ 未認証時の識別子をブラウザから読める形(localStorage / 非 httpOnly cookie)で持つこと / session cookie の payload へ混ぜること(§7)
 - ❌ 引き継ぎを callback 以外(`proxy.ts` / 画面 / 複数の起点)から起こすこと / 引き継ぎの失敗でログインを失敗させること(§7)
