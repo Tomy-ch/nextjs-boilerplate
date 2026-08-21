@@ -46,12 +46,16 @@ make fetch-api NAME=auth  # 契約を 1 本だけ取得する
 ## 複数契約
 
 `sources.yaml` は複数の契約を並べられます。バックエンドが 1 リポジトリでも、契約が 1 本とは
-限らないためです。現在の宣言は次の 2 本です。
+限らないためです。現在の宣言は次の 1 本です。
 
 | name | 契約 | 備考 |
 | --- | --- | --- |
 | `api` | go-boilerplate 本体の API | admin と一般が同居しており、tags でも `security` でも scope でも機械的に分割できないため 1 ユニットとして扱う |
-| `auth` | mock OIDC Provider | 本体とは別サービス。本体の契約に認証エンドポイントは存在せず、認証の契約はこちらが正([screens.md](../docs/screens.md) §0) |
+
+**認証の契約はここに置きません。** 開発用 IdP は既製の OIDC Provider を立てて済ませており、
+取り込む先の契約が存在しないためです。フロントが認証で使うのは OIDC Discovery が実行時に
+示す口だけで（[`src/adapters/server/auth/`](../src/adapters/server/auth/README.md)）、契約から
+生成した型を通りません。
 
 ## ref の固定
 

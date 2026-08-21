@@ -42,7 +42,7 @@ export const ENTRYPOINT_PATTERNS = [
  * 契約からの再生成が一致するか(drift ゲート)と、`mocks/contract-conformance.test.ts` の
  * 全ハンドラ検査が担保します。
  */
-export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/auth/**"] as const;
+export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**"] as const;
 
 /**
  * 判定を持たないモジュール。
