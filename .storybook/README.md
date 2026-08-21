@@ -1,5 +1,12 @@
 ---
 test-requirement: unit
+coverage-exclusions:
+  - ".storybook/css.d.ts"
+  - ".storybook/main.ts"
+  - ".storybook/manager.ts"
+  - ".storybook/msw/handlers.ts"
+  - ".storybook/msw/worker.ts"
+  - ".storybook/preview.tsx"
 ---
 
 # .storybook

@@ -1,5 +1,8 @@
 ---
 test-requirement: unit
+coverage-exclusions:
+  - "mocks/api/**"
+  - "mocks/auth/**"
 ---
 
 # 契約駆動モック
