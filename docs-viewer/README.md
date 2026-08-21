@@ -1,5 +1,5 @@
 ---
-test-requirement: component
+test-requirement: [unit, component]
 ---
 
 # docs-viewer
@@ -25,6 +25,13 @@ test-requirement: component
 依存も共有しません。アプリ本体の `package.json` とこのパッケージの `package.json` は別物で、
 ビューアーが引いた依存がアプリの供給面に乗ることはありません。
 
+## テストの責務
+
+frontmatter が `test-requirement: [unit, component]` と 2 つ挙げるのは、この配下が両方を抱える
+ためです（[0090](../docs/adr/0090-testing-strategy.md)）。文書の解釈・整形・検索・経路は純粋
+ロジックとして確かめ、描画する部品は React Testing Library で確かめます。どちらを負うかは対象が
+描画を返すかで決まります。
+
 ## デザインシステムとの関係
 
 UI は [`src/components/design-system`](../src/components/design-system/README.md) の部品で組みます。
@@ -42,20 +49,6 @@ UI は [`src/components/design-system`](../src/components/design-system/README.m
 | `src/lang-filter/` | 表示言語での絞り込み。JA の実体が無い section は EN へ落とし、section 内で言語が混ざらないようにする |
 | `src/search/` | 検索コーパスの組み立て。所属する section / group 名を項目へ畳み込む |
 | `src/hash-route/` | 位置ハッシュ `#/<group>/<section>` の解釈と組み立て |
-
-## テストが負う観点
-
-frontmatter の `test-requirement` はこのパッケージの**主となる対象**、つまり画面を組み立てる部品を
-指す。したがって `axe` の自動検査が責務に含まれる（[0091](../docs/adr/0091-test-verification-methods.md)）。
-
-**値を返す対象は同じ宣言の下でも unit として扱う。** `docs-json` / `lang-filter` / `search` /
-`hash-route` は描画を持たないので、a11y の検査は責務に入らない。対象ごとの区別は
-[0090](../docs/adr/0090-testing-strategy.md) の「軸の選び方」がそのまま効く —— 成功と失敗が返り値と
-例外に実在するなら `正常系` / `異常系`、結果が描画にしか現れないなら状態の軸である。`mount/` の
-`mountPortal` は後者に当たる（値を返さず、失敗を描画へ書く）。
-
-宣言をディレクトリごとに分けないのは、この 2 種類の分かれ目が ADR 0090 から対象ごとに導けるためで
-ある。導けないもの（層としての責務）だけを宣言し、導けるものは宣言しない。
 
 ## 運用
 

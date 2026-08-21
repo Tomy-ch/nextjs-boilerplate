@@ -3,26 +3,7 @@ import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from
 
 import { PRIMITIVE_TOKEN, SEMANTIC_TOKEN } from "@/model/generated/design-token";
 
-/** `rgb(r, g, b)` を相対輝度へ変える。 */
-function luminance(color: string): number | null {
-  const parts = color.match(/[\d.]+/g);
-  if (parts === null || parts.length < 3) return null;
-  const [r, g, b] = parts.slice(0, 3).map((value) => {
-    const channel = Number(value) / 255;
-    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  });
-
-  return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
-}
-
-/** 2 色のコントラスト比。読み取れない値なら null。 */
-function contrast(a: string, b: string): number | null {
-  const [x, y] = [luminance(a), luminance(b)];
-  if (x === null || y === null) return null;
-  const [high, low] = x > y ? [x, y] : [y, x];
-
-  return (high + 0.05) / (low + 0.05);
-}
+import { contrastRatio } from "./lib/contrast";
 
 /** 変数 1 つの読み取り結果。宣言と、色として解決した結果の両方を持つ。 */
 type Resolved = {
@@ -110,7 +91,7 @@ function ColorRows({
         const variable = variables[index] as string;
         const resolved = values[variable];
         const ratio =
-          ground === "" || resolved === undefined ? null : contrast(resolved.color, ground);
+          ground === "" || resolved === undefined ? null : contrastRatio(resolved.color, ground);
 
         return (
           <tr key={name}>

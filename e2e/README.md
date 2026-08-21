@@ -11,16 +11,6 @@ story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象�
 描いた姿で、ここは部品を組み上げた画面と、画面をまたぐ経路である。部品が個別に緑でも、並べた
 ときに崩れる形も、遷移が繋がっていない状態も作れる。
 
-## テストが負う観点
-
-frontmatter の `test-requirement` が指すのは `lib/` の Vitest テストである。ここに居るのは宣言の
-読み取りや絞り込みといった純粋な関数で、負うのは unit の責務にあたる。
-
-**`journeys/` / `visual/` の spec はこの宣言の対象ではない。** あちらは Playwright が直接実行する
-検証そのもので、1 対 1 のゲートの母数からも
-[`scripts/lib/untested-modules.ts`](../scripts/lib/untested-modules.ts) の `TEST_SUITE_MODULES` が
-除外を宣言している。何を見るかは下記「何を見ているか」が持つ。
-
 ## 何を見ているか
 
 | | 見ているもの | ここでしか見えない理由 |
@@ -36,6 +26,13 @@ frontmatter の `test-requirement` が指すのは `lib/` の Vitest テスト�
 書き換えたあとも成り立つもので、題材の破棄で失われるのは spec ファイルだけである。**書き換える
 ときは、観点ごと落とさないこと** —— とくに履歴は、単体テストが原理的に届かない唯一の観点で、
 ここを落とすと「押しても移らない導線」を誰も見張らなくなる。
+
+## テストの責務
+
+frontmatter の `test-requirement: unit` が掛かるのは、**Vitest から回る `lib/` の判定**である
+（[0090](../docs/adr/0090-testing-strategy.md)）。`*.spec.ts` は Playwright が実行する本体で
+Vitest からは呼べない。何を異常と数えるか・どの画面を開くかといった判定を `lib/` へ切り出して
+あるのは、spec の中に置くと 1:1 の対象にできないためである。
 
 ## 使い方
 

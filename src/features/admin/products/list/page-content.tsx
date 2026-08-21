@@ -5,16 +5,12 @@ import { parseProductQuery } from "@/adapters/server/api/products";
 import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-feedback/invalid-query-feedback";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
+import type { RawSearchParams } from "@/model/search-params";
 import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
 import { toFilterOptions } from "./filter-option";
 import { ADMIN_PRODUCT_PAGE_SIZE } from "./page-size";
-import {
-  CURSOR_KEY,
-  FILTER_KEY,
-  FILTER_KEY_LABEL,
-  type RawSearchParams,
-  toAdminProductListLocation,
-} from "./query";
+import { CURSOR_KEY, FILTER_KEY, FILTER_KEY_LABEL } from "./query";
+import { toAdminProductListLocation } from "./read-location";
 import { AdminProductListResults } from "./results";
 import { AdminProductListSkeleton } from "./ui/skeleton/skeleton";
 import { AdminProductListView } from "./view";

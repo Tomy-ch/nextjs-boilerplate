@@ -1,6 +1,15 @@
+---
+test-requirement: unit
+---
+
 # design tokens
 
 `tokens/` は design token の SSOT です。
+
+## テストの責務
+
+frontmatter の `test-requirement: unit` が掛かるのは [`scripts/`](scripts/README.md) の書き出しである
+（[0090](../docs/adr/0090-testing-strategy.md)）。JSON は SSOT のデータであって判定を持たない。
 
 ## 構成
 

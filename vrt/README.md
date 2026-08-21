@@ -1,3 +1,7 @@
+---
+test-requirement: unit
+---
+
 # vrt
 
 Storybook の全 story を基準画像と比べ、**意図しない見た目の変化**を検知する
@@ -7,6 +11,13 @@ Storybook の全 story を基準画像と比べ、**意図しない見た目の�
 DOM のアサートでは「class 名が変わっていない」ことしか言えず、見た目が変わっていない保証には
 ならない。退行の主因は画面ごとの個別変更ではなく、design token や layout shell を触って全画面が
 同時に動くことなので、部品の側で捕まえる。
+
+## テストの責務
+
+frontmatter の `test-requirement: unit` が掛かるのは、**Vitest から回る `lib/` の判定**である
+（[0090](../docs/adr/0090-testing-strategy.md)）。`*.spec.ts` は Playwright が実行する本体で
+Vitest からは呼べず、層別責務表の `visual` は宣言を持たない。撮影そのものを単体で検査できない
+ぶん、判定を `lib/` へ切り出して 1:1 の対象にしてある。
 
 ## 使い方
 

@@ -2,6 +2,7 @@
 
 import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { MermaidDiagram } from "./mermaid-diagram";
 
@@ -78,6 +79,14 @@ describe("MermaidDiagram", () => {
     const diagram = renderDiagram();
 
     await waitFor(() => expect(diagram).toHaveAttribute("data-state", "rendered"));
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<MermaidDiagram source={SOURCE} />);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 
   it("描けなかった場合は原文を残す", async () => {

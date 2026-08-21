@@ -25,7 +25,9 @@ vi.mock("./ranking-section", () => ({
   },
 }));
 
-import { AdminAnalyticsPageContent, type RawSearchParams } from "./page-content";
+import type { RawSearchParams } from "@/model/search-params";
+
+import { AdminAnalyticsPageContent } from "./page-content";
 
 function renderContent(searchParams: RawSearchParams) {
   return render(<AdminAnalyticsPageContent searchParams={searchParams} />);

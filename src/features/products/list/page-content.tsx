@@ -10,6 +10,7 @@ import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-fee
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { ProductCategory } from "@/model/product/product";
+import type { RawSearchParams } from "@/model/search-params";
 import {
   COUNT_KEY,
   FILTER_KEY,
@@ -17,12 +18,7 @@ import {
   PRODUCT_LIST_PATH,
   toProductListSearchParams,
 } from "../facade/list-url/list-url";
-import {
-  type FilterOption,
-  normalizeSearchParams,
-  PRODUCT_PAGE_SIZE,
-  type RawSearchParams,
-} from "./query";
+import { type FilterOption, normalizeSearchParams, PRODUCT_PAGE_SIZE } from "./query";
 import { ProductListResults } from "./results";
 import { ProductListSkeleton } from "./ui/skeleton/skeleton";
 import { ProductListView } from "./view";
