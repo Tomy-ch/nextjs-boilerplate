@@ -73,7 +73,7 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe("PortalApp", () => {
-  // ----- 正常系 -----
+  // ----- 並べる項目があるとき -----
   it("題と副題を見出しとして示す", () => {
     render(<PortalApp docs={docs} />);
 
@@ -269,7 +269,8 @@ describe("PortalApp", () => {
       ).violations,
     ).toEqual([]);
   });
-  // ----- 異常系 -----
+
+  // ----- 並べる項目が無いとき -----
   it("表示できる group が無ければその旨を示す", () => {
     render(<PortalApp docs={{ ...docs, groups: [] }} />);
 
@@ -292,6 +293,7 @@ describe("PortalApp", () => {
     expect(await screen.findByText("一致する項目がありません。")).toBeInTheDocument();
   });
 
+  // ----- 開いた文書を取得できなかったとき -----
   it("文書の取得に失敗したら面を開いたままにしない", async () => {
     server.use(http.get("*/guides/0001.md", () => new HttpResponse(null, { status: 404 })));
 

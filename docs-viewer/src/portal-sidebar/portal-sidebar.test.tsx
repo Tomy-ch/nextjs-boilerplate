@@ -25,7 +25,6 @@ const referenceLinks: PortalReferenceLink[] = [
 ];
 
 describe("PortalSidebar", () => {
-  // ----- 正常系 -----
   it("group の見出しは開閉だけを担い link を持たない", () => {
     render(<PortalSidebar activeGroupSlug="architecture" groups={groups} referenceLinks={[]} />);
 
@@ -76,7 +75,7 @@ describe("PortalSidebar", () => {
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
   });
-  // ----- 異常系 -----
+
   it("表示中の group が無ければ全て閉じた状態にする", () => {
     const { container } = render(
       <PortalSidebar activeGroupSlug={null} groups={groups} referenceLinks={[]} />,

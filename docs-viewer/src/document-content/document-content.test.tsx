@@ -14,7 +14,6 @@ vi.mock("mermaid", () => ({
 }));
 
 describe("DocumentContent", () => {
-  // ----- 正常系 -----
   it("木の要素を対応する DOM 要素として描画する", () => {
     render(<DocumentContent content={SanitizedDocument.from("<h2>節</h2><p>本文</p>")} />);
 
@@ -76,6 +75,7 @@ describe("DocumentContent", () => {
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
   });
+
   it("mermaid のコードフェンスを図の器へ差し替える", () => {
     const html = '<pre><code class="language-mermaid">graph LR</code></pre>';
 
@@ -94,7 +94,6 @@ describe("DocumentContent", () => {
     expect(container.querySelector('[data-slot="mermaid-diagram"]')).not.toBeInTheDocument();
   });
 
-  // ----- 異常系 -----
   it("本文が空の場合は空の枠を描画する", () => {
     const { container } = render(<DocumentContent content={SanitizedDocument.from("")} />);
 
