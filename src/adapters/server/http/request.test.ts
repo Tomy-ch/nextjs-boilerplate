@@ -487,8 +487,13 @@ describe("createHttpClient", () => {
 
   it("全体の期限を過ぎた中断を canceled として扱う", async () => {
     const client = createClient(
-      vi.fn(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 5));
+      // 期限そのものを待ってから失敗する。実時間の長さで競争させると、どちらが先に来るかを
+      // ホストの混み具合が決める。
+      vi.fn(async (_url, init) => {
+        await new Promise((resolve) => {
+          init?.signal?.addEventListener("abort", resolve, { once: true });
+        });
+
         throw new DOMException("中断されました", "AbortError");
       }),
       { profile: { ...profile, overallTimeoutMs: 1 } },
@@ -524,11 +529,17 @@ describe("createHttpClient", () => {
     const client = createClient(fetchImpl, {
       profile: { ...profile, breaker: { ...profile.breaker, sampleSize: 1_000 } },
     });
+    const attemptsPerRequest: number[] = [];
 
     for (let count = 0; count < 3; count += 1) {
+      const before = fetchImpl.mock.calls.length;
+
       await kindOf(() => client.request({ path: "/v1/ping", schema }));
+      attemptsPerRequest.push(fetchImpl.mock.calls.length - before);
     }
 
-    expect(fetchImpl.mock.calls.length).toBeLessThan(profile.maxAttempts * 3);
+    // 予算は失敗 1 件につき 1 消費し、上限の半分を下回ると再試行を止める。失敗だけが続くと
+    // 要求ごとの試行回数がそのぶん減り、3 度目には 1 度も再試行できない。
+    expect(attemptsPerRequest).toEqual([profile.maxAttempts, 2, 1]);
   });
 });
