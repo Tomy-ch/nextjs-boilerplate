@@ -84,9 +84,8 @@ function push(branch: string | undefined): void {
     fail("撮り直した画像が既存と同じです。基準画像は更新していません。");
   }
 
-  // 状態ごと渡す。どの状態を見直しの対象に含めるかは retakenTargets が決める。読むのは
-  // commit の手前だけ —— 送出は置き場の根へ reset してから積むので、そのあとでは差分の相手が
-  // 変わる。
+  // 読むのは commit の手前だけ —— 送出は置き場の根へ reset してから積むので、そのあとでは
+  // 差分の相手が変わる。
   const { stories, screens } = retakenTargets(
     store(["diff", "--cached", "--name-status"]).split("\n"),
   );
