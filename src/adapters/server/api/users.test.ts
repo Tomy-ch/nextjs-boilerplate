@@ -14,7 +14,7 @@ const { getAccessToken, getEnvironment, getLogger, signOut, verifySession, warn 
       getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
       getEnvironment: vi.fn(() => PARSED_ENVIRONMENT),
       getLogger: vi.fn(() => ({ warn: warnFn })),
-      signOut: vi.fn(async (): Promise<void> => undefined),
+      signOut: vi.fn(async (): Promise<string | null> => null),
       verifySession: vi.fn(),
       warn: warnFn,
     };
@@ -111,7 +111,7 @@ beforeEach(() => {
   getAccessToken.mockReset();
   getAccessToken.mockResolvedValue("access-token");
   signOut.mockReset();
-  signOut.mockResolvedValue(undefined);
+  signOut.mockResolvedValue(null);
   verifySession.mockReset();
   verifySession.mockResolvedValue({ userId: "subject", role: "user", expiresAt: new Date() });
   warn.mockReset();
@@ -321,13 +321,21 @@ describe("withdrawMe", () => {
     expect(signOut).toHaveBeenCalledOnce();
   });
 
+  it("IdP のログアウトへの送り先をそのまま渡す", async () => {
+    serveJson(ME_URL, wireUser);
+    serveStatus("delete", USER_URL, 204);
+    signOut.mockResolvedValue("https://idp.example.test/oidc/logout");
+
+    await expect(withdrawMe()).resolves.toBe("https://idp.example.test/oidc/logout");
+  });
+
   // ----- 異常系 -----
-  it("IdP 側の終了に失敗しても退会は成立として返し、記録を残す", async () => {
+  it("送り先を組み立てられなくても退会は成立として返し、記録を残す", async () => {
     serveJson(ME_URL, wireUser);
     serveStatus("delete", USER_URL, 204);
     signOut.mockRejectedValue(new Error("idp down"));
 
-    await expect(withdrawMe()).resolves.toBeUndefined();
+    await expect(withdrawMe()).resolves.toBeNull();
     expect(warn).toHaveBeenCalledWith(
       "退会後の IdP session 終了に失敗しました",
       expect.objectContaining({ cause: expect.stringContaining("idp down") }),

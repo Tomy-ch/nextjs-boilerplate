@@ -129,23 +129,30 @@ describe("signOut", () => {
     expect(cookieStore.delete).toHaveBeenCalledWith("auth_session");
   });
 
-  it("復元できた session は IdP 側も終わらせる", async () => {
+  it("復元できた session の分だけ、IdP のログアウトへの送り先を返す", async () => {
     cookieStore.get.mockReturnValue({ value: "sealed" });
     resolver.restore.mockResolvedValue(record);
+    resolver.endSession.mockResolvedValue("https://idp.example.test/oidc/logout?id_token_hint=x");
 
-    await signOut();
-
+    expect(await signOut()).toBe("https://idp.example.test/oidc/logout?id_token_hint=x");
     expect(resolver.endSession).toHaveBeenCalledWith(record);
   });
 
-  // ----- 異常系 -----
-  it("未認証なら IdP へ何も送らない", async () => {
-    await signOut();
+  it("終わらせる口を持たない IdP なら送り先を返さない", async () => {
+    cookieStore.get.mockReturnValue({ value: "sealed" });
+    resolver.restore.mockResolvedValue(record);
+    resolver.endSession.mockResolvedValue(null);
 
+    expect(await signOut()).toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("未認証なら IdP へ送らず、送り先も返さない", async () => {
+    expect(await signOut()).toBeNull();
     expect(resolver.endSession).not.toHaveBeenCalled();
   });
 
-  it("IdP 側の終了に失敗しても cookie は破棄済みにする", async () => {
+  it("送り先を組み立てられなくても cookie は破棄済みにする", async () => {
     cookieStore.get.mockReturnValue({ value: "sealed" });
     resolver.restore.mockResolvedValue(record);
     resolver.endSession.mockRejectedValue(new Error("IdP が応答しません"));

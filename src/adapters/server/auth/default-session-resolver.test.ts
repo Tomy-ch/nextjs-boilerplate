@@ -294,18 +294,36 @@ describe("createDefaultSessionResolver", () => {
     expect(sealed).not.toContain(transaction.state);
   });
 
-  it("ログアウトで id_token_hint を渡す", async () => {
-    const { resolver, fetchImpl, complete } = await startSignIn();
+  it("ログアウトの送り先に id_token_hint を載せる", async () => {
+    const { resolver, complete } = await startSignIn();
     const record = await complete();
 
-    await resolver.endSession(record);
-    const logout = vi
-      .mocked(fetchImpl)
-      .mock.calls.find(([input]) => String(input).endsWith("/oidc/logout"));
+    const destination = new URL((await resolver.endSession(record)) ?? "");
 
-    expect(String(logout?.[1]?.body)).toContain(
-      `id_token_hint=${encodeURIComponent(record.idToken)}`,
+    expect(`${destination.origin}${destination.pathname}`).toBe(`${issuer}/oidc/logout`);
+    expect(destination.searchParams.get("id_token_hint")).toBe(record.idToken);
+    expect(destination.searchParams.get("client_id")).toBe(clientId);
+  });
+
+  it("ログアウト後の戻り先を callback と同じ origin から導く", async () => {
+    const { resolver, complete } = await startSignIn();
+    const record = await complete();
+
+    const destination = new URL((await resolver.endSession(record)) ?? "");
+
+    expect(destination.searchParams.get("post_logout_redirect_uri")).toBe(
+      new URL("/", redirectUri).toString(),
     );
+  });
+
+  it("ログアウトの送り先を組み立てるだけで、IdP へは要求を出さない", async () => {
+    const { resolver, fetchImpl, complete } = await startSignIn();
+    const record = await complete();
+    vi.mocked(fetchImpl).mockClear();
+
+    await resolver.endSession(record);
+
+    expect(vi.mocked(fetchImpl)).not.toHaveBeenCalled();
   });
 
   it("実装を渡さなければ環境の fetch で鍵を取りに行く", async () => {
@@ -361,7 +379,7 @@ describe("createDefaultSessionResolver", () => {
     expect(restored).toEqual(started.transaction);
   });
 
-  it("ログアウトの口を持たない IdP には何も送らない", async () => {
+  it("ログアウトの口を持たない IdP なら送り先を返さない", async () => {
     const issued: IssuedToken = { value: "" };
     const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
       if (String(input).endsWith("/.well-known/openid-configuration")) {
@@ -379,11 +397,7 @@ describe("createDefaultSessionResolver", () => {
       transaction: started.transaction,
     });
 
-    await resolver.endSession(record);
-
-    expect(fetchImpl.mock.calls.some(([input]) => String(input).endsWith("/oidc/logout"))).toBe(
-      false,
-    );
+    expect(await resolver.endSession(record)).toBeNull();
   });
 
   // ----- 異常系 -----

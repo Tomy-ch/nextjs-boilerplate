@@ -27,7 +27,7 @@ test-requirement: unit
 ## 受け入れるもの
 
 - session の保管形式と、その封緘・復元
-- IdP との往復（Discovery / 認可要求 / トークン交換 / ログアウト）
+- IdP との往復（Discovery / 認可要求 / トークン交換）と、送り出す先の組み立て（認可・ログアウト）
 - 確定認可の入口（`verifySession()`）と、Bearer の取り出し口
 
 ## 受け入れないもの

@@ -11,9 +11,11 @@ function logout(): Request {
   return new Request("http://localhost:3000/api/auth/logout", { method: "POST" });
 }
 
+const IDP_LOGOUT = "https://idp.example.test/oidc/logout?id_token_hint=token";
+
 beforeEach(() => {
   vi.clearAllMocks();
-  signOut.mockResolvedValue(undefined);
+  signOut.mockResolvedValue(null);
   clearCartSession.mockResolvedValue(undefined); // sample:line
 });
 
@@ -33,7 +35,16 @@ describe("POST", () => {
   });
   // sample:end
 
-  it("トップへ戻す", async () => {
+  it("IdP のログアウトへ送り出す", async () => {
+    signOut.mockResolvedValue(IDP_LOGOUT);
+
+    const response = await POST(logout());
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe(IDP_LOGOUT);
+  });
+
+  it("終わらせる口を持たない IdP ならトップへ戻す", async () => {
     const response = await POST(logout());
 
     expect(response.status).toBe(303);
@@ -41,7 +52,7 @@ describe("POST", () => {
   });
 
   // ----- 異常系 -----
-  it("IdP 側の終了に失敗しても同じ画面へ戻す", async () => {
+  it("送り先を組み立てられなくてもトップへ戻す", async () => {
     signOut.mockRejectedValue(new Error("IdP が応答しません"));
 
     const response = await POST(logout());
