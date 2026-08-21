@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+9abecab
+ * OpenAPI spec version: 2.2.0+8f733fb
  */
 import * as zod from "zod";
 
@@ -2880,6 +2880,12 @@ export const GetCartsMeResponse = zod
               .string()
               .nullish()
               .describe("商品名。商品を引けなかった場合（issues に notFound）は null です。"),
+            imagePath: zod
+              .string()
+              .nullish()
+              .describe(
+                "取得時点の商品の代表画像のオブジェクトキー。代表画像とは、出品者が並べた表示順の先頭にある\n画像を指します。表示 URL は呼び出し側が配信ベース URL と組み立てます。\n代表画像を持たない商品と、商品を引けなかった明細（issues に notFound）では null です。\n",
+              ),
             quantity: zod.int().describe("カートに入れた数量。"),
             unitPrice: zod
               .string()
@@ -2914,7 +2920,7 @@ export const GetCartsMeResponse = zod
               ),
           })
           .describe(
-            "カート明細 1 件。商品の現在値との突き合わせ結果を issues に添える。\nカートは商品の名前も価格も保持しないため、productName \/ unitPrice は取得時点の商品の値であり、\n購入時の金額を拘束しない（請求額を確定するのは購入明細のスナップショット）。\n",
+            "カート明細 1 件。商品の現在値との突き合わせ結果を issues に添える。\nカートは商品の名前も価格も画像も保持しないため、productName \/ unitPrice \/ imagePath は\n取得時点の商品の値であり、購入時の金額を拘束しない（請求額を確定するのは購入明細のスナップショット）。\n",
           ),
       )
       .describe("カートの明細。1 件も入っていない場合、およびカートがまだ無い場合は空配列です。\n"),
@@ -3057,6 +3063,12 @@ export const PutCartsMeItemResponse = zod
               .string()
               .nullish()
               .describe("商品名。商品を引けなかった場合（issues に notFound）は null です。"),
+            imagePath: zod
+              .string()
+              .nullish()
+              .describe(
+                "取得時点の商品の代表画像のオブジェクトキー。代表画像とは、出品者が並べた表示順の先頭にある\n画像を指します。表示 URL は呼び出し側が配信ベース URL と組み立てます。\n代表画像を持たない商品と、商品を引けなかった明細（issues に notFound）では null です。\n",
+              ),
             quantity: zod.int().describe("カートに入れた数量。"),
             unitPrice: zod
               .string()
@@ -3091,7 +3103,7 @@ export const PutCartsMeItemResponse = zod
               ),
           })
           .describe(
-            "カート明細 1 件。商品の現在値との突き合わせ結果を issues に添える。\nカートは商品の名前も価格も保持しないため、productName \/ unitPrice は取得時点の商品の値であり、\n購入時の金額を拘束しない（請求額を確定するのは購入明細のスナップショット）。\n",
+            "カート明細 1 件。商品の現在値との突き合わせ結果を issues に添える。\nカートは商品の名前も価格も画像も保持しないため、productName \/ unitPrice \/ imagePath は\n取得時点の商品の値であり、購入時の金額を拘束しない（請求額を確定するのは購入明細のスナップショット）。\n",
           ),
       )
       .describe("カートの明細。1 件も入っていない場合、およびカートがまだ無い場合は空配列です。\n"),

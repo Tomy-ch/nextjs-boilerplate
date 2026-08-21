@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
-
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import {
@@ -15,18 +13,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/design-system/overlay/alert-dialog/alert-dialog";
-import { idleActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
-import { placeOrderAction } from "../../../actions";
 import { ACCEPT_PRICE_CHANGE_FIELD } from "../../../form-fields";
-import type { PlaceOrderFormState } from "../../../form-state";
 import { CART_PATH } from "../../../paths";
+import { usePlaceOrderState } from "../place-order-state/place-order-state";
 import { PlaceOrderError, PlaceOrderSubmit } from "../place-order-submit/place-order-submit";
 
 /** `PriceChangeConfirm` の props。 */
 export type PriceChangeConfirmProps = {
-  /** この画面の確定 1 回ぶんを表す鍵。 */
-  idempotencyKey: string;
   /** 確定できる明細があるか。無ければ押せない。 */
   orderable: boolean;
   /** カートに入れたときから金額が変わった商品の名前。 */
@@ -45,6 +39,9 @@ const FIX_CART_LABEL = "カートを修正する";
  * **カートへ入れたときと違う金額で請求されることを、確定してから知らせるわけにいきません。**
  * 確かめの中の「はい」だけが承知の合図を載せ、それが無い送信は Server Action の側でも止まります。
  *
+ * **鍵も送信の状態も画面が 1 つだけ持ちます**（`../place-order-state`）。確かめは閉じると木ごと
+ * 外れるため、ここで持つと開き直すたびに取り直しになります。
+ *
  * 確かめは `AlertDialogAction` ではなく form の submit で行います。`AlertDialogAction` は押した
  * 時点で dialog を閉じるため、送信中の表示も失敗の文言も利用者の見ていない場所に出ます。
  *
@@ -54,18 +51,8 @@ const FIX_CART_LABEL = "カートを修正する";
  * カートへ移る導線は置き換えで移ります。被せている間の履歴 1 件は現在地の複製で、戻り先として
  * 残すと戻る操作が 1 回空回りします（[0053](../../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
  */
-export function PriceChangeConfirm({
-  idempotencyKey: initialIdempotencyKey,
-  orderable,
-  changedNames,
-}: PriceChangeConfirmProps) {
-  // 鍵は最初に受け取ったものを使い続ける（理由は `model/idempotency-key.ts`）。確かめの中では
-  // なくここで持つのは、閉じた確かめが木ごと外れ、開き直すたびに受け取り直しになるためである。
-  const [idempotencyKey] = useState(initialIdempotencyKey);
-  const [state, formAction] = useActionState<PlaceOrderFormState, FormData>(
-    placeOrderAction,
-    idleActionState(),
-  );
+export function PriceChangeConfirm({ orderable, changedNames }: PriceChangeConfirmProps) {
+  const { formAction, idempotencyKey } = usePlaceOrderState();
 
   return (
     <AlertDialog>
@@ -98,7 +85,7 @@ export function PriceChangeConfirm({
             </Button>
             <PlaceOrderSubmit label={ACCEPT_LABEL} orderable={orderable} />
           </AlertDialogFooter>
-          <PlaceOrderError state={state} />
+          <PlaceOrderError />
         </form>
       </AlertDialogContent>
     </AlertDialog>

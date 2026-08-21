@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-vi.mock("../actions", () => ({ placeOrderAction: vi.fn() }));
+const { placeOrderAction } = vi.hoisted(() => ({ placeOrderAction: vi.fn() }));
+
+vi.mock("../actions", () => ({ placeOrderAction }));
+
+import { failedActionState } from "@/model/action-state";
 
 import { EMPTY_CART, ORDERABLE_CART, PROFILE, SUBTOTAL_REFERENCE } from "../checkout.fixture";
 import { CheckoutConfirmView } from "./view";
@@ -42,6 +47,19 @@ describe("CheckoutConfirmView", () => {
 
     expect(screen.getAllByRole("complementary", { name: "お支払い金額" })).toHaveLength(1);
   });
+  it("片方の姿から送った失敗を、もう片方の姿も出す", async () => {
+    placeOrderAction.mockResolvedValue(failedActionState({ formError: "在庫が変わりました。" }));
+
+    renderView();
+    const [aside] = screen.getAllByRole("button", { name: "注文を確定する" });
+
+    await userEvent.click(aside);
+
+    // 脇と下端は CSS で出し分けるだけで、DOM には両方が居る。送信の状態を姿ごとに持つと、
+    // 送った直後に幅が境界を跨いだとき、表に出る側が「何も送っていない」姿になる。
+    expect(await screen.findAllByText("在庫が変わりました。")).toHaveLength(2);
+  });
+
   it("カートが空なら、確かめる対象が無いことと商品を探す導線を出す", () => {
     renderView(EMPTY_CART);
 

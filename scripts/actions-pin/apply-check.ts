@@ -2,7 +2,14 @@
 // dryRun で共用し、「検査は通るのに適用結果が違う」乖離が構造的に起きないようにする。
 import fs from "node:fs";
 import path from "node:path";
-import { parseUses, refKey, refPath, unparsedUsesLines, usesPattern } from "./uses-reference.js";
+import {
+  parseUses,
+  refKey,
+  refPath,
+  unparsedUsesLines,
+  unsupportedTagLines,
+  usesPattern,
+} from "./uses-reference.js";
 
 const FILE_MODE = 0o644;
 
@@ -25,6 +32,8 @@ export type PinReport = {
   orphans: string[];
   // 対応記法の外にあり解釈できなかった `uses:` の位置（`<相対パス>:<行番号>`）。
   unparsed: string[];
+  // 版に使えない文字を含む `uses:` の位置（`<相対パス>:<行番号>`）。
+  unsupportedTags: string[];
 };
 
 // ロックファイルを元に `uses:` を `@<sha> # <tag>` へ固定した内容を返す。
@@ -63,12 +72,14 @@ export function applyPins(
   const missing = new Set<string>();
   const referenced = new Set<string>();
   const unparsed: string[] = [];
+  const unsupportedTags: string[] = [];
   const pending: { file: string; out: string }[] = [];
 
   for (const file of files) {
     const data = fs.readFileSync(file, "utf8");
     const relative = path.relative(root, file);
     for (const line of unparsedUsesLines(data)) unparsed.push(`${relative}:${line}`);
+    for (const line of unsupportedTagLines(data)) unsupportedTags.push(`${relative}:${line}`);
 
     const result = rewritePins(data, lock);
     for (const key of result.missing) missing.add(key);
@@ -77,7 +88,8 @@ export function applyPins(
   }
 
   const orphans = [...lock.keys()].filter((key) => !referenced.has(key)).sort();
-  const blocked = missing.size > 0 || orphans.length > 0 || unparsed.length > 0;
+  const blocked =
+    missing.size > 0 || orphans.length > 0 || unparsed.length > 0 || unsupportedTags.length > 0;
 
   const updated: string[] = [];
   if (!dryRun && !blocked) {
@@ -93,5 +105,6 @@ export function applyPins(
     updated: updated.sort(),
     orphans,
     unparsed: unparsed.sort(),
+    unsupportedTags: unsupportedTags.sort(),
   };
 }

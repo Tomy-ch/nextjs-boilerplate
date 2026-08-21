@@ -55,6 +55,7 @@ describe("addToCartAction", () => {
         {
           productId: PRODUCT_ID,
           name: "ワイヤレスイヤホン",
+          imageUrl: null,
           unitPrice: "19.99",
           quantity: 2,
           issues: [],

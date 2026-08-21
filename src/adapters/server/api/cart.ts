@@ -19,6 +19,7 @@ import {
 import type { CartItemPutRequest } from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
 import { createHttpClient, type HttpClient } from "../http/request";
+import { resolveMediaUrl } from "../media/media-url";
 import { clearCartSession, readCartSession, storeCartSession } from "./cart-session";
 
 /** ゲストのカートを指すヘッダの名前。 */
@@ -61,12 +62,13 @@ async function cartSessionHeader(): Promise<Readonly<Record<string, string>> | u
   return token === null ? undefined : { [CART_SESSION_HEADER]: token };
 }
 
-/** 契約の応答を表示用の型へ写す。 */
+/** 契約の応答を表示用の型へ写す。画像はオブジェクトキーのまま渡さず、ここで表示 URL へ解決する。 */
 function toCart(wire: WireCart): Cart {
   return {
     lines: wire.items.map((item) => ({
       productId: toProductId(item.productId),
       name: item.productName ?? null,
+      imageUrl: resolveMediaUrl(item.imagePath ?? null),
       unitPrice: item.unitPrice ?? null,
       quantity: item.quantity,
       issues: item.issues,

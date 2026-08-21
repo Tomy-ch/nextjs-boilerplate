@@ -7,6 +7,7 @@ import { cartIssueNotice, hasBlockingIssue, isPurchasable } from "./issue-notice
 const EARPHONE_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000001"),
   name: "ワイヤレスイヤホン",
+  imageUrl: null,
   unitPrice: "19.99",
   quantity: 3,
   issues: [],
@@ -17,6 +18,7 @@ const EARPHONE_LINE = {
 const INSUFFICIENT_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000003"),
   name: "編組ケーブル 2m",
+  imageUrl: null,
   unitPrice: "0.99",
   quantity: 5,
   issues: ["insufficientStock"],
@@ -27,6 +29,7 @@ const INSUFFICIENT_LINE = {
 const PRICE_INCREASED_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000005"),
   name: "ノイズキャンセリングヘッドホン",
+  imageUrl: null,
   unitPrice: "249.00",
   quantity: 1,
   issues: ["priceIncreased"],
@@ -37,6 +40,7 @@ const PRICE_INCREASED_LINE = {
 const NOT_FOUND_LINE = {
   productId: toProductId("0195f0c2-0000-7000-8000-000000000006"),
   name: null,
+  imageUrl: null,
   unitPrice: null,
   quantity: 2,
   issues: ["notFound"],

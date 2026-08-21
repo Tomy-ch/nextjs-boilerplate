@@ -35,7 +35,6 @@ describe("MermaidDiagram", () => {
     vi.unstubAllGlobals();
   });
 
-  // ----- 正常系 -----
   it("描き終わるまで原文を見せる", () => {
     run.mockReturnValue(new Promise(() => undefined));
 
@@ -90,7 +89,6 @@ describe("MermaidDiagram", () => {
     ).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("描けなかった場合は原文を残す", async () => {
     run.mockRejectedValue(new Error("描画できません"));
 

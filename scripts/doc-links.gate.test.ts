@@ -28,7 +28,7 @@ const SCAN_ROOTS = [
   "baseline/lib",
   "vrt",
   "e2e",
-  ".storybook/lib",
+  ".storybook",
 ] as const;
 
 /** 走査しない名前。生成物と依存は書き手の手が入らない。 */
