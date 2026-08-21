@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -36,20 +37,23 @@ describe("ProductTextField", () => {
     expect(screen.getByLabelText("商品名")).toHaveValue("ワイヤレスイヤホン");
   });
 
-  it("打鍵のたびに新しい値を伝える", () => {
+  it("打鍵のたびに新しい値を伝える", async () => {
     const onValueChange = vi.fn();
     renderField({ onValueChange });
 
-    fireEvent.change(screen.getByLabelText("商品名"), { target: { value: "入れた" } });
+    // 値は呼び出し元が持つため、打鍵しても入力欄は空のままである。1 打鍵で 1 度、その文字が
+    // 伝わることを見る。
+    await userEvent.type(screen.getByLabelText("商品名"), "あ");
 
-    expect(onValueChange).toHaveBeenCalledWith("入れた");
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith("あ");
   });
 
-  it("focus が外れたことを伝える。誤りを出す合図になるため", () => {
+  it("focus が外れたことを伝える。誤りを出す合図になるため", async () => {
     const onLeave = vi.fn();
     renderField({ onLeave });
 
-    fireEvent.blur(screen.getByLabelText("商品名"));
+    await userEvent.click(screen.getByLabelText("商品名"));
+    await userEvent.tab();
 
     expect(onLeave).toHaveBeenCalledTimes(1);
   });

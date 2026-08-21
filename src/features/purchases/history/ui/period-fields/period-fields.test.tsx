@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -114,7 +114,7 @@ describe("PurchasePeriodFields", () => {
     );
   });
 
-  it("知らない区分が届いても伝えない", () => {
+  it("知らない区分が届いても伝えない", async () => {
     const onChange = vi.fn();
 
     render(<PurchasePeriodFields draft={EMPTY} onChange={onChange} />);
@@ -124,7 +124,7 @@ describe("PurchasePeriodFields", () => {
     // 選択肢の値は KIND_OPTIONS から作られるため、画面の操作では起こらない。
     // URL や拡張から差し込まれた値が届いた場合に、そのまま流さないことを見る。
     radio.setAttribute("value", "yesterday");
-    fireEvent.click(radio);
+    await userEvent.click(radio);
 
     expect(onChange).not.toHaveBeenCalled();
   });
