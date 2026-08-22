@@ -34,15 +34,21 @@ describe("RootLayout", () => {
     }
   });
 
-  it("和文の書体は root へ配らない", () => {
-    // 配ると、管理を開かない利用者まで @font-face の宣言を読まされる（0051 §5）。
+  it("配る書体はラテンの 2 つだけで、和文の Web フォントは持たない", () => {
+    // 和文書体を `next/font` で読むと、番号付きスライスの @font-face が全て、描画をブロックする
+    // CSS として載る。増やすならその費用を測り直すこと（0051 §5）。
     const markup = renderToStaticMarkup(
       <RootLayout>
         <p>テスト用コンテンツ</p>
       </RootLayout>,
     );
 
-    expect(/<html[^>]*class="([^"]*)"/.exec(markup)?.[1] ?? "").not.toContain("--typeface-plex-jp");
+    const htmlClass = /<html[^>]*class="([^"]*)"/.exec(markup)?.[1] ?? "";
+
+    expect(htmlClass.match(/--typeface-[a-z-]+/g)).toEqual([
+      "--typeface-michroma",
+      "--typeface-geist-mono",
+    ]);
   });
 
   it("横断通知の Provider を配下へ供給する", () => {

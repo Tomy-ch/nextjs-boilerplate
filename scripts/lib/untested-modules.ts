@@ -48,9 +48,9 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
  * 判定を持たないモジュール。
  *
  * - `scripts/setup/lib/runtime.ts` — リポジトリルートの解決と共通フラグ（`--dry-run` / `--help`）の解析だけ。
- * - `src/app/fonts.ts` / `src/app/admin/fonts.ts` — `next/font` の呼び出しと、返った変数名を
- *   連結するだけ。分岐を持たず、単体で回しても `next/font` の mock が返した値をそのまま読む
- *   ことにしかならない。変数がそれぞれの器へ届くことは、対応する `layout.test.tsx` が見ている。
+ * - `src/app/fonts.ts` — `next/font` の呼び出しと、返った変数名を連結するだけ。分岐を持たず、
+ *   単体で回しても `next/font` の mock が返した値をそのまま読むことにしかならない。変数が
+ *   `<html>` へ届くことは `layout.test.tsx` が見ている。
  * - `src/model/generated/design-token.ts` — トークン名の一覧を並べた生成物。分岐も式も持たず、
  *   読み手はカタログの story だけで、値そのものは表示する側が実行時に CSS から読む。名前が
  *   SSOT と一致することは `check:tokens` の再生成比較が見ている。
@@ -72,7 +72,6 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
 const NON_DECIDING_MODULES = [
   "scripts/setup/lib/runtime.ts",
   "src/app/fonts.ts",
-  "src/app/admin/fonts.ts",
   "src/model/generated/design-token.ts",
   "docs-viewer/src/main.tsx",
   "vrt/lib/settle.ts",

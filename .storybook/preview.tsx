@@ -1,7 +1,6 @@
 import type { Preview } from "@storybook/nextjs-vite";
 import { sb } from "storybook/test"; // sample:line
 
-import { ADMIN_FONT_VARIABLE } from "@/app/admin/fonts";
 import { FONT_VARIABLES } from "@/app/fonts";
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 import { StoryErrorBoundary } from "./lib/story-error-boundary";
@@ -25,7 +24,7 @@ sb.mock(import("../src/features/checkout/actions.ts"));
 // カタログだけが素の書体で表示され、基準画像が実物と一致しない。
 // カタログは実アプリと違い、系統をまたいで並べる。管理の書体は実アプリでは管理の面だけが
 // 読むが（0051 §5）、ここでは両方の系統の story を同じ文書で描くので、まとめて配る。
-document.documentElement.classList.add(...FONT_VARIABLES.split(" "), ADMIN_FONT_VARIABLE);
+document.documentElement.classList.add(...FONT_VARIABLES.split(" "));
 
 const SYSTEM_THEME = "system";
 const DEFAULT_SURFACE = "user";

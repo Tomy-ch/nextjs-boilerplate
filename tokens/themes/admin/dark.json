@@ -120,7 +120,7 @@
   "font": {
     "sans": {
       "$type": "fontFamily",
-      "$value": "{font.plex-jp}"
+      "$value": "{font.system-jp}"
     },
     "brand": {
       "$type": "fontFamily",
