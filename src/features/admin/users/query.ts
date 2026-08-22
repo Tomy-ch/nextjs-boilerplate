@@ -1,7 +1,7 @@
 import { ADMIN_USER_LIST_PATH } from "../paths";
 
-/** 絞り込みとページ位置を載せる URL のキー。読む側と組む側がこのファイルの中で共有する。 */
-const USER_LIST_KEY: Readonly<{ SCOPE: "scope"; PAGE: "page" }> = {
+/** 絞り込みとページ位置を載せる URL のキー。読む側（`read-location.ts`）と組む側が共有する。 */
+export const USER_LIST_KEY: Readonly<{ SCOPE: "scope"; PAGE: "page" }> = {
   SCOPE: "scope",
   PAGE: "page",
 };
@@ -40,8 +40,8 @@ export function toActiveParam(scope: UserScope): boolean | undefined {
   return undefined;
 }
 
-/** ページ番号の先頭。読めない値はここへ倒す。 */
-const FIRST_PAGE = 1;
+/** 一覧の先頭ページ。読めないページ番号はここへ倒す。 */
+export const FIRST_PAGE = 1;
 
 /** 一覧の URL が表す、いま見ている場所。 */
 export type AdminUserListLocation = {
@@ -49,39 +49,6 @@ export type AdminUserListLocation = {
   /** 1 から数えるページ番号。 */
   readonly page: number;
 };
-
-/** page が受け取る素の `searchParams`。 */
-export type RawSearchParams = Record<string, string | string[] | undefined>;
-
-function first(value: string | string[] | undefined): string {
-  const found = Array.isArray(value) ? value[0] : value;
-
-  return found?.trim() ?? "";
-}
-
-function isUserScope(value: string): value is UserScope {
-  return value === USER_SCOPE.ALL || value === USER_SCOPE.ACTIVE || value === USER_SCOPE.WITHDRAWN;
-}
-
-/**
- * 素の `searchParams` を、いま見ている場所として読む。
- *
- * @remarks
- * **URL は利用者が直接編集できます。** 読めない範囲・読めないページ番号は既定へ倒します。契約が
- * 拒む値をそのまま送っても得られるのは `400` だけで、押した人にできることがありません。
- */
-export function toAdminUserListLocation(
-  params: RawSearchParams,
-  pageMax: number,
-): AdminUserListLocation {
-  const scope = first(params[USER_LIST_KEY.SCOPE]);
-  const page = Number(first(params[USER_LIST_KEY.PAGE]));
-
-  return {
-    scope: isUserScope(scope) ? scope : USER_SCOPE.ALL,
-    page: Number.isSafeInteger(page) && page >= FIRST_PAGE && page <= pageMax ? page : FIRST_PAGE,
-  };
-}
 
 /**
  * 一覧の URL を組む。

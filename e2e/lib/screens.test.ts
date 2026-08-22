@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { listScreenRoutes, resolveScreens, SCREENS, type ScreenDeclaration } from "./screens";
+import {
+  listScreenRoutes,
+  resolveScreens,
+  SCREENS,
+  type Screen,
+  type ScreenDeclaration,
+  selectScreens,
+} from "./screens";
 
 /** build が書き出す対応表と同じ形を組み立てる。 */
 function manifest(entries: Record<string, string>): string {
@@ -148,5 +155,40 @@ describe("SCREENS", () => {
     const names = SCREENS.filter((entry) => "name" in entry).map((entry) => entry.name);
 
     expect(new Set(names).size).toBe(names.length);
+  });
+});
+
+describe("selectScreens", () => {
+  const screens: Screen[] = [
+    { route: "/", name: "home", path: "/" },
+    { route: "/cart", name: "cart", path: "/cart" },
+  ];
+
+  // ----- 正常系 -----
+  it("名指しした画面だけを残す", () => {
+    expect(selectScreens(screens, "cart")).toEqual([screens[1]]);
+  });
+
+  it("前後の空白を無視して読む", () => {
+    expect(selectScreens(screens, " home , cart ")).toEqual(screens);
+  });
+
+  it("指定が無ければ全数を返す", () => {
+    expect(selectScreens(screens, undefined)).toEqual(screens);
+  });
+
+  it("空文字列は指定が無いものとして扱う", () => {
+    expect(selectScreens(screens, "")).toEqual(screens);
+  });
+
+  // ----- 異常系 -----
+  it("空白だけの指定は、指定が無いものとして扱わずに落とす", () => {
+    expect(() => selectScreens(screens, " ")).toThrow(/^E2E_ONLY に該当する画面がありません:/);
+  });
+
+  it("1 件も該当しない指定を落とす", () => {
+    expect(() => selectScreens(screens, "存在しない画面")).toThrow(
+      /^E2E_ONLY に該当する画面がありません: 存在しない画面$/,
+    );
   });
 });

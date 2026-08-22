@@ -29,7 +29,7 @@
 | 38a | 値集合の公開定数は、`export const BUTTON_SIZE: Readonly<{ ... }> = { ... }` の形式で定義する。公開 API でなくても、複数ファイルが同じ概念の値を使う場合は所有モジュールを一つ決め、そこから参照する。native HTML 要素名など JSX／型構文そのものを表す値は直接記述してよい。 | review。 | [ADR 0028](adr/0028-naming-convention.md) |
 | 39 | 公開 API には TSDoc を書く。コメントは「なぜ」を日本語で記し、廃止予定の API は `@deprecated` を付ける。 | review。 | [ADR 0140](adr/0140-documentation-operations.md) |
 | 40 | 公開 API は `export function` を使う。値として渡す callback は arrow function を使い、React component / hook は既存の React 規約に従う。 | review。 | [ADR 0028](adr/0028-naming-convention.md) |
-| 42 | `searchParams` は zod で検証し、URL のシリアライズ形式と既定値を明示する。 | P4-6 scaffold と feature テスト。 | [ADR 0060](adr/0060-state-management.md) |
+| 42 | `searchParams` は zod で検証し、URL のシリアライズ形式と既定値を明示する。**読めない値を既定へ倒す画面は features 側のスキーマで読み**（`.catch()` / `safeParse`。手書きの条件列で代替しない）、**契約に照らして落とす画面は adapters の契約スキーマを通す**（`parseProductQuery` など）。どちらでも**契約由来の範囲（上限・enum・書式）は adapters が公開するものを使い、features で書き直さない**。同じキーの繰り返しは、複数を選べる条件だけ並びとして残し、それ以外は未指定として扱う（`model/search-params.ts`）。 | feature テストと `model/search-params` の単体テスト。 | [ADR 0060](adr/0060-state-management.md) / [ADR 0029](adr/0029-type-design-discipline.md) |
 | 43 | Web Storage には機微情報を保存しない。キー名を名前空間化し、SSR 安全な client 境界からだけ利用する。 | review と client component テスト。 | [ADR 0060](adr/0060-state-management.md) |
 | 44 | アプリ cookie は用途を接頭辞に含め、`Secure`、`HttpOnly`、`SameSite`、`Max-Age` を用途ごとに明示する。読み書きは server 境界へ閉じ込める。 | P5-4 の Route Handler テスト。 | [ADR 0131](adr/0131-cookie-consent.md) |
 | 47 | Server Action は `allowedOrigins` を設定し、Route Handler は state-changing request の origin を検証する。 | P5-4 と P6-2 のテスト / CI。 | [ADR 0070](adr/0070-backend-role-separation.md) |

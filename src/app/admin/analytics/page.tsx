@@ -6,10 +6,8 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
-import {
-  AdminAnalyticsPageContent,
-  type RawSearchParams,
-} from "@/features/admin/analytics/page-content";
+import { AdminAnalyticsPageContent } from "@/features/admin/analytics/page-content";
+import type { RawSearchParams } from "@/model/search-params";
 
 export const metadata: Metadata = {
   title: "集計",

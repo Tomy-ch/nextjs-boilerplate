@@ -6,7 +6,9 @@ import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import type { Purchase } from "@/model/purchase/purchase";
 
-import { type RawSearchParams, readPurchaseId } from "./purchase-id";
+import type { RawSearchParams } from "@/model/search-params";
+
+import { readPurchaseId } from "./purchase-id";
 import { CheckoutCompleteView } from "./view";
 
 /** `CheckoutCompletePageContent` の props。 */

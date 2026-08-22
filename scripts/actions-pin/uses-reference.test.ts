@@ -6,11 +6,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type ActionRef,
   collectRefs,
+  isSupportedTag,
   parseUses,
   refKey,
   refPath,
   targetFiles,
   unparsedUsesLines,
+  unsupportedTagLines,
   usesPattern,
 } from "./uses-reference";
 
@@ -282,5 +284,70 @@ describe("unparsedUsesLines", () => {
 
   it("折りたたみスカラーで書かれた uses を取りこぼしとして返す", () => {
     expect(unparsedUsesLines(`${pinned}  - uses: >-\n      actions/checkout@v7\n`)).toEqual([2]);
+  });
+});
+
+describe("isSupportedTag", () => {
+  // ----- 正常系 -----
+  it("英数と . _ - + / だけで書かれた版を通す", () => {
+    expect(isSupportedTag("v7.1.0")).toBe(true);
+    expect(isSupportedTag("release/v1_0+build-2")).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("コマンドの区切りに使われる文字を落とす", () => {
+    expect(isSupportedTag("v7;id")).toBe(false);
+    expect(isSupportedTag("v7&&id")).toBe(false);
+    expect(isSupportedTag("v7|id")).toBe(false);
+  });
+
+  it("語を分ける空白を落とす", () => {
+    expect(isSupportedTag("v7 v8")).toBe(false);
+  });
+
+  it("置換や引用に使われる文字を落とす", () => {
+    expect(isSupportedTag("v7$(id)")).toBe(false);
+    expect(isSupportedTag('v7"')).toBe(false);
+    expect(isSupportedTag("v7`id`")).toBe(false);
+  });
+
+  it("空の版を落とす", () => {
+    expect(isSupportedTag("")).toBe(false);
+  });
+});
+
+describe("unsupportedTagLines", () => {
+  // ----- 正常系 -----
+  it("受け付ける文字だけの版を挙げない", () => {
+    expect(unsupportedTagLines("      - uses: actions/checkout@abc # v7.1.0\n")).toEqual([]);
+  });
+
+  it("固定対象外の参照は版を見ない", () => {
+    expect(unsupportedTagLines("      - uses: ./.github/actions/setup@v7;id\n")).toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("末尾コメントの版に使えない文字があれば行番号を挙げる", () => {
+    const data = "steps:\n      - uses: actions/checkout@abc # v7;id\n";
+
+    expect(unsupportedTagLines(data)).toEqual([2]);
+  });
+
+  it("コメントを持たない行では @ 側の版を見る", () => {
+    const data = "steps:\n\n      - uses: actions/checkout@v7;id\n";
+
+    expect(unsupportedTagLines(data)).toEqual([3]);
+  });
+
+  it("同じファイルに複数あれば、それぞれの行番号を挙げる", () => {
+    const data = [
+      "steps:",
+      "      - uses: actions/checkout@abc # v7;id",
+      "      - uses: actions/cache@abc # v6.1.0",
+      "      - uses: actions/setup-node@abc # v5|id",
+      "",
+    ].join("\n");
+
+    expect(unsupportedTagLines(data)).toEqual([2, 4]);
   });
 });

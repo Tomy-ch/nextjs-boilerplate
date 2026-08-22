@@ -1,5 +1,6 @@
 import { setupWorker } from "msw/browser";
 
+import { shouldWarnUnhandled } from "../lib/unhandled-request";
 import { handlers } from "./handlers";
 
 const worker = setupWorker(...handlers);
@@ -28,7 +29,7 @@ export function startMockWorker(): Promise<unknown> {
     .start({
       serviceWorker: { url: "./mockServiceWorker.js" },
       onUnhandledRequest: (request, print) => {
-        if (new URL(request.url).pathname.startsWith("/api/")) {
+        if (shouldWarnUnhandled(request.url)) {
           print.warning();
         }
       },

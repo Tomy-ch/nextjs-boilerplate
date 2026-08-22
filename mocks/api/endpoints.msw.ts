@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+9abecab
+ * OpenAPI spec version: 2.2.0+8f733fb
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
@@ -790,6 +790,10 @@ export const getGetCartsMeResponseMock = (
       faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
       undefined,
     ]),
+    imagePath: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
+      undefined,
+    ]),
     quantity: faker.number.int(),
     unitPrice: faker.helpers.arrayElement([(() => "19.99")(), null]),
     issues: faker.helpers.arrayElements(Object.values(CartItemIssue)),
@@ -816,6 +820,10 @@ export const getPutCartsMeItemResponseMock = (
   items: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
     productId: faker.string.uuid(),
     productName: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
+      undefined,
+    ]),
+    imagePath: faker.helpers.arrayElement([
       faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
       undefined,
     ]),

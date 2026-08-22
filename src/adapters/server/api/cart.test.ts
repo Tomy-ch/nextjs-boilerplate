@@ -34,6 +34,7 @@ const wireCart = {
     {
       productId: PRODUCT_ID,
       productName: "ワイヤレスイヤホン",
+      imagePath: "products/abc.png",
       quantity: 3,
       unitPrice: "19.99",
       issues: [],
@@ -60,6 +61,7 @@ describe("getMyCart", () => {
         {
           productId: PRODUCT_ID,
           name: "ワイヤレスイヤホン",
+          imageUrl: "https://media.example.test/products/abc.png",
           unitPrice: "19.99",
           quantity: 3,
           issues: [],
@@ -70,7 +72,7 @@ describe("getMyCart", () => {
     });
   });
 
-  it("欠けている名前と単価を null として渡す", async () => {
+  it("欠けている名前と単価と画像を null として渡す", async () => {
     serveJson(CART_URL, {
       ...wireCart,
       items: [{ productId: PRODUCT_ID, quantity: 2, issues: ["notFound"] }],
@@ -78,7 +80,12 @@ describe("getMyCart", () => {
 
     const cart = await getMyCart();
 
-    expect(cart.lines[0]).toMatchObject({ name: null, unitPrice: null, availableQuantity: null });
+    expect(cart.lines[0]).toMatchObject({
+      name: null,
+      imageUrl: null,
+      unitPrice: null,
+      availableQuantity: null,
+    });
   });
 
   it("ゲストの識別子を持っているとき、ヘッダへ載せて送る", async () => {
@@ -127,6 +134,14 @@ describe("setMyCartItem", () => {
 
     expect(requests[0]?.url).toBe(`${CART_URL}/items/${PRODUCT_ID}`);
     await expect(requests[0]?.json()).resolves.toEqual({ quantity: 3 });
+  });
+
+  it("設定後のカートを、取得と同じ表示用の明細へ写して返す", async () => {
+    serveWrite("put", CART_ITEM_URL, wireCart);
+
+    await expect(setMyCartItem(PRODUCT_ID, 3)).resolves.toMatchObject({
+      lines: [{ imageUrl: "https://media.example.test/products/abc.png" }],
+    });
   });
 
   it("発行された識別子を cookie へ引き取る", async () => {

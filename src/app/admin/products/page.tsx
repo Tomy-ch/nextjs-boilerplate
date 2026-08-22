@@ -8,8 +8,8 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { AdminProductListPageContent } from "@/features/admin/products/list/page-content";
-import type { RawSearchParams } from "@/features/admin/products/list/query";
 import { AdminProductListSkeleton } from "@/features/admin/products/list/ui/skeleton/skeleton";
+import type { RawSearchParams } from "@/model/search-params";
 
 export const metadata: Metadata = {
   title: "商品一覧管理",

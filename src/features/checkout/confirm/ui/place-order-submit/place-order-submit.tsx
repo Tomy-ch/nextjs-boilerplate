@@ -1,11 +1,9 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
-
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
 
-import type { PlaceOrderFormState } from "../../../form-state";
+import { usePlaceOrderState } from "../place-order-state/place-order-state";
 
 /** `PlaceOrderSubmit` の props。 */
 export type PlaceOrderSubmitProps = {
@@ -23,7 +21,8 @@ const PENDING_LABEL = "注文を確定しています";
  * 購入を確定する送信部。
  *
  * @remarks
- * `useFormStatus` は form の子でしか状態を読めないため、form を持つ側とは別の部品にしています。
+ * 待っているかは画面が 1 つだけ持つ送信の状態から採ります（`../place-order-state`）。`useFormStatus`
+ * は自分の属する `form` しか見ないため、同じ集計を 2 か所へ描くこの画面では待ち方が姿ごとに割れます。
  *
  * 送信中の見せ方と、そのあいだ押せなくすることは `Button` が持ちます。ここが渡すのは、待って
  * いることを支援技術へ伝える文言だけです。
@@ -32,13 +31,13 @@ const PENDING_LABEL = "注文を確定しています";
  * （押せなくする理由は `Button` の `pending`）。
  */
 export function PlaceOrderSubmit({ label, orderable, fullWidth = false }: PlaceOrderSubmitProps) {
-  const { pending } = useFormStatus();
+  const { isPending } = usePlaceOrderState();
 
   return (
     <Button
       className={fullWidth ? "w-full" : undefined}
       disabled={!orderable}
-      pending={pending}
+      pending={isPending}
       pendingLabel={PENDING_LABEL}
       type="submit"
     >
@@ -54,7 +53,9 @@ export function PlaceOrderSubmit({ label, orderable, fullWidth = false }: PlaceO
  * 成立したときは何も出しません。成立したら完了画面へ送るため、成功した状態がこの画面に現れる
  * ことがありません（[0063](../../../../../../docs/adr/0063-mutation-result-notification.md)）。
  */
-export function PlaceOrderError({ state }: { state: PlaceOrderFormState }) {
+export function PlaceOrderError() {
+  const { state } = usePlaceOrderState();
+
   if (state.status !== "error" || state.formError === null) {
     return null;
   }

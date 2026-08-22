@@ -1,10 +1,7 @@
-import { PURCHASE_MAX_RECENT_DAYS, PURCHASE_MONTH_PATTERN } from "@/adapters/client/api/purchases";
-
 import { PURCHASE_HISTORY_PATH } from "../facade/paths/paths";
-import type { RawSearchParams } from "./query";
 
-/** 期間の条件を載せる URL のキー。契約のクエリ名と揃える。 */
-const PERIOD_KEY: Readonly<{
+/** 期間の条件を載せる URL のキー。契約のクエリ名と揃える。読む側（`read-period.ts`）と共有する。 */
+export const PERIOD_KEY: Readonly<{
   PERIOD: "period";
   FROM: "from";
   TO: "to";
@@ -20,25 +17,6 @@ const PERIOD_KEY: Readonly<{
 
 /** 直近 N 日で選べる日数。 */
 export const RECENT_DAYS_OPTIONS: readonly number[] = [7, 30, 90, 365];
-
-const DATE_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
-
-/**
- * 暦の上に実在する日付か。
- *
- * @remarks
- * 書式の照合だけでは通ってしまう日（`2026-06-31` など）を弾きます。組み直して同じ文字列に
- * 戻るかで判定します。実在しない日は繰り上がって別の日になります。
- */
-function isCalendarDate(value: string): boolean {
-  if (!DATE_PATTERN.test(value)) {
-    return false;
-  }
-
-  const parsed = new Date(`${value}T00:00:00Z`);
-
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
-}
 
 /**
  * いま効いている期間の条件。
@@ -63,58 +41,6 @@ export type PeriodSelection =
 
 /** 全期間。区分を選び直したときの初期値としても使う。 */
 export const ALL_PERIOD: PeriodSelection = { kind: "all" };
-
-/** 条件 1 つを、単一の文字列として読む。同じキーが複数回現れたものは指定なしとして扱う。 */
-function toSingleValue(params: RawSearchParams, key: string): string {
-  const value = params[key];
-
-  return typeof value === "string" ? value.trim() : "";
-}
-
-/**
- * 素の `searchParams` から、効いている期間の条件を読む。
- *
- * @remarks
- * **読めない条件は全期間へ倒します。** URL は利用者が直接編集できるので、区分だけがあって必須の値が
- * 無い URL も、日付として読めない値も届きます。そのまま契約へ渡すと一覧そのものが 400 になり、
- * 画面には何も出せません。倒した結果は入力欄にそのまま現れるので、指定が効いていないことは
- * 画面から読み取れます。
- *
- * 日付の前後関係もここで見ます。終了日が開始日より前の要求は契約が 400 で返すため、渡す前に
- * 落とします。
- */
-export function toPeriodSelection(params: RawSearchParams): PeriodSelection {
-  const kind = toSingleValue(params, PERIOD_KEY.PERIOD);
-
-  if (kind === "month") {
-    const month = toSingleValue(params, PERIOD_KEY.MONTH);
-
-    return PURCHASE_MONTH_PATTERN.test(month) ? { kind: "month", month } : ALL_PERIOD;
-  }
-
-  if (kind === "range") {
-    const from = toSingleValue(params, PERIOD_KEY.FROM);
-    const to = toSingleValue(params, PERIOD_KEY.TO);
-
-    if (!isCalendarDate(from) || !isCalendarDate(to) || to < from) {
-      return ALL_PERIOD;
-    }
-
-    return { kind: "range", from, to };
-  }
-
-  if (kind === "recent") {
-    const days = Number(toSingleValue(params, PERIOD_KEY.DAYS));
-
-    if (!Number.isInteger(days) || days < 1 || days > PURCHASE_MAX_RECENT_DAYS) {
-      return ALL_PERIOD;
-    }
-
-    return { kind: "recent", days };
-  }
-
-  return ALL_PERIOD;
-}
 
 /**
  * 期間の条件をクエリ文字列へ組む。

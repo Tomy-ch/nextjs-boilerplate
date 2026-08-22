@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-
-import { toPeriodSearchParams, toPeriodSelection } from "./period";
-import type { RawSearchParams } from "./query";
+import type { RawSearchParams } from "@/model/search-params";
+import { toPeriodSearchParams } from "./period";
+import { toPeriodSelection } from "./read-period";
 import { PurchaseHistoryResults } from "./results";
 import { PurchaseHistorySkeleton } from "./ui/skeleton/skeleton";
 import { PurchaseHistoryView } from "./view";

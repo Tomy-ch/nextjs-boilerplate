@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import type { StorybookConfig } from "@storybook/nextjs-vite";
 
-/** カタログだけへ配る資材の置き場。追跡しない。 */
+/** カタログだけへ配る資材の置き場（`public/README.md`）。写してくる実体だけを追跡から外す。 */
 const catalogAssets = fileURLToPath(new URL("./public", import.meta.url));
 
 /**

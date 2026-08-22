@@ -102,6 +102,43 @@ describe("CartLineRow", () => {
     expect(screen.getByRole("button", { name: "取得できない商品 を削除する" })).toBeVisible();
   });
 
+  it("サムネイルを装飾として出し、商品名を二度読ませない", () => {
+    const { container } = renderRow({ ...EARPHONE_LINE, imageUrl: "/products/1.png" });
+
+    expect(container.querySelector("[data-slot=media-image-image]")).toHaveAttribute(
+      "src",
+      expect.stringContaining("%2Fproducts%2F1.png"),
+    );
+    expect(screen.queryAllByRole("img")).toHaveLength(0);
+  });
+
+  it("画像を持たない明細は代替画像へ倒す", () => {
+    const { container } = renderRow({ ...EARPHONE_LINE, imageUrl: null });
+
+    expect(container.querySelector("[data-slot=media-image-image]")).toHaveAttribute(
+      "src",
+      "/no-image.svg",
+    );
+  });
+
+  it("買えない明細はサムネイルも弱める", () => {
+    const { container } = renderRow(OUT_OF_STOCK_LINE);
+
+    expect(container.querySelector("[data-slot=media-image]")).toHaveClass("opacity-60");
+  });
+
+  it("事情の無い明細はサムネイルを弱めない", () => {
+    const { container } = renderRow(EARPHONE_LINE);
+
+    expect(container.querySelector("[data-slot=media-image]")).not.toHaveClass("opacity-60");
+  });
+
+  it("サムネイルの大きさを、狭い器と広い器の両方について宣言する", () => {
+    const { container } = renderRow(EARPHONE_LINE);
+
+    expect(container.querySelector("[data-slot=media-image]")).toHaveClass("w-12", "@sm/line:w-16");
+  });
+
   it("a11y 自動検査に違反しない", async () => {
     const { container } = renderRow(INSUFFICIENT_LINE);
 

@@ -33,11 +33,16 @@ export RUNNER_GID
 BASELINE_RETAKE ?=
 export BASELINE_RETAKE
 
+# 撮り直す範囲。承認経路が「直前に落ちた画面」だけを渡すために使う。空なら全数。
+# story 側の VRT_ONLY と同じ役割で、渡すのは画面の名前（e2e/lib/screens.ts の宣言と同じ綴り）。
+E2E_ONLY ?=
+export E2E_ONLY
+
 # 上の 3 つは vrt.mk も同じものを使うが、宣言をこちらでも持つのは、片方のファイルの export に
 # 暗黙依存すると include の順序を変えただけで静かに壊れるためである。
 
 E2E_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
-	-e E2E_BASE_URL=$(E2E_BASE_URL) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE browser_runner
+	-e E2E_BASE_URL=$(E2E_BASE_URL) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE -e E2E_ONLY browser_runner
 
 E2E_CONFIG := --config=playwright.e2e.config.ts
 
@@ -102,6 +107,10 @@ e2e-build:
 
 # 起動から片付けまでを 1 つの recipe に閉じる。プロセスの生死を跨いだ状態を make の依存関係で
 # 表そうとすると、失敗した実行がサーバを残す。
+#
+# 全数の撮り直しでは、撮る直前に画面の区画を空にする。空にする条件（引数が 1 つも付いていない
+# ときだけ）とその理由は vrt/README.md が持つ。**前提ではなくこのレシピの中で消す** —— 前提として
+# 並べると `-j` 付きの呼び出しで撮影との順序が付かず、撮った直後の画像を消しうる。
 .PHONY: e2e-run ## アプリを起動してブラウザから当て、終了時に後片付けする (e2e / lighthouse から呼ばれる)
 e2e-run: e2e-build
 	@$(E2E_PRECHECK)
@@ -127,6 +136,9 @@ e2e-run: e2e-build
 	if [ "$$booted" != "1" ]; then \
 		cat tmp/e2e/server.log; \
 		echo "❌ アプリが $(E2E_BOOT_TIMEOUT) 秒で応答を返しませんでした。"; exit 1; \
+	fi; \
+	if [ "$(BASELINE_RETAKE)" = "1" ] && [ -z "$(E2E_ONLY)$(E2E_ARGS)" ]; then \
+		pnpm exec tsx scripts/e2e clear-screens; \
 	fi; \
 	$(E2E_COMMAND)
 

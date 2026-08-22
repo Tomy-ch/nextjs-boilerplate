@@ -16,6 +16,7 @@ function lineOf(overrides: Partial<CartLine> = {}): CartLine {
   return {
     productId: toProductId("0195f0c2-0000-7000-8000-000000000001"),
     name: "ワイヤレスイヤホン",
+    imageUrl: null,
     unitPrice: "19.99",
     quantity: 2,
     issues: [],

@@ -52,6 +52,10 @@ describe("SELF_DESTRUCT_PATHS", () => {
   });
 });
 
+// リポジトリ全体を走査するため、既定の 5 秒では足りない。全量を並列で回すと取り合いでさらに伸び、
+// 走査の遅さがそのまま赤になる（`docs/testing-conventions.md`「リポジトリ全体を走査するゲート」）。
+const TIMEOUT_MS = 300_000;
+
 describe("BOILERPLATE_ONLY_MARKER", () => {
   // ----- 正常系 -----
   // サンプル側の定数を import せず literal で持つ。`remove-sample/` はサンプル破棄で消えるため、
@@ -60,23 +64,27 @@ describe("BOILERPLATE_ONLY_MARKER", () => {
     expect(BOILERPLATE_ONLY_MARKER).not.toBe("sample");
   });
 
-  it("リポジトリ全体でマーカーの対応が取れている", () => {
-    const broken = scanTargets().filter((relativePath) => {
-      const content = readUtf8File(path.join(ROOT_DIR, relativePath));
+  it(
+    "リポジトリ全体でマーカーの対応が取れている",
+    () => {
+      const broken = scanTargets().filter((relativePath) => {
+        const content = readUtf8File(path.join(ROOT_DIR, relativePath));
 
-      if (content === null) {
-        return false;
-      }
+        if (content === null) {
+          return false;
+        }
 
-      try {
-        stripMarkers(content, BOILERPLATE_ONLY_MARKER);
+        try {
+          stripMarkers(content, BOILERPLATE_ONLY_MARKER);
 
-        return false;
-      } catch {
-        return true;
-      }
-    });
+          return false;
+        } catch {
+          return true;
+        }
+      });
 
-    expect(broken).toEqual([]);
-  });
+      expect(broken).toEqual([]);
+    },
+    TIMEOUT_MS,
+  );
 });

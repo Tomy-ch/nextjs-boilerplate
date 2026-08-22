@@ -28,7 +28,7 @@ export const CURSOR_KEY = "after";
  * （[0073](../../../../../docs/adr/0073-pagination-fetch-boundary.md)）。覚える場所を URL にする理由は
  * `docs/spec/route/admin/products/page.function.md`「戻る先は URL が覚える」。
  */
-const TRAIL_KEY = "trail";
+export const TRAIL_KEY = "trail";
 
 /**
  * キーを画面上の呼び名へ直す表。
@@ -67,51 +67,6 @@ export type AdminProductListLocation = AdminProductListConditions & {
   /** ここまでに通ってきたページの起点。先頭ページから順に並ぶ。 */
   readonly trail: readonly string[];
 };
-
-/** page が受け取る素の `searchParams`。 */
-export type RawSearchParams = Record<string, string | string[] | undefined>;
-
-function first(value: string | string[] | undefined): string {
-  const found = Array.isArray(value) ? value[0] : value;
-
-  return found?.trim() ?? "";
-}
-
-/** 同じ値の重複を畳む。並び順は最初に現れた位置を保つ。 */
-function unique(values: readonly string[]): readonly string[] {
-  return [...new Set(values)];
-}
-
-function all(value: string | string[] | undefined): readonly string[] {
-  return (Array.isArray(value) ? value : [value]).flatMap((found) => {
-    const trimmed = found?.trim() ?? "";
-
-    return trimmed === "" ? [] : [trimmed];
-  });
-}
-
-/**
- * 素の `searchParams` を、いま見ている場所として読む。
- *
- * @remarks
- * **URL は利用者が直接編集できます。** 起点が消えているのに通ってきた道だけが残った URL も届き得る
- * ため、先頭ページでは道を捨てます。捨てないと、先頭ページで「前へ」が押せる状態になります。
- *
- * 分類と状態は**重複を畳みます**。契約は重複の無い並びとして宣言しており、同じ値が 2 度届くのは
- * URL を直接編集したときで、指している条件は 1 度のときと同じです。畳まないと、意味の同じ条件が
- * 契約を外れた要求として backend まで届きます。
- */
-export function toAdminProductListLocation(params: RawSearchParams): AdminProductListLocation {
-  const cursor = first(params[CURSOR_KEY]);
-
-  return {
-    keyword: first(params[FILTER_KEY.KEYWORD]),
-    categoryCodes: unique(all(params[FILTER_KEY.CATEGORY])),
-    statusCodes: unique(all(params[FILTER_KEY.STATUS])),
-    cursor: cursor === "" ? null : cursor,
-    trail: cursor === "" ? [] : all(params[TRAIL_KEY]),
-  };
-}
 
 function toHref(
   conditions: AdminProductListConditions,

@@ -3,9 +3,8 @@ import { sb } from "storybook/test"; // sample:line
 
 import { FONT_VARIABLES } from "@/app/fonts";
 import { ToastProvider } from "@/components/shell/toaster/toaster";
-
+import { StoryErrorBoundary } from "./lib/story-error-boundary";
 import { startMockWorker } from "./msw/worker";
-import { StoryErrorBoundary } from "./story-error-boundary";
 
 import "../src/app/globals.css";
 import "./preview.css";
