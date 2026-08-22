@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 
-// 必須ステータスチェックに登録した context が、すべての PR で実際に報告されるかを検査する。
-//
-// 登録した名前が報告されない PR は「必須チェック待ち」のまま永久にマージできない。壊れ方が
-// 「気づいたときには全 PR が止まっている」なので、宣言と実体のずれを push 前に落とす。
+// 必須ステータスチェックに登録した context が、すべての PR で実際に報告されるかを検査する
+// CLI 入口。なぜ報告されないと困るのか、何を落とすのかは required-checks.ts が持つ。
 import { readFileSync } from "node:fs";
 import path from "node:path";
 

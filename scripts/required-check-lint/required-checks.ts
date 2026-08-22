@@ -1,16 +1,11 @@
 // 必須ステータスチェックの宣言と、それを報告する job の実体が噛み合っているかの判定。
 //
-// GitHub は「context が報告されない」を「該当なし」とは読まない。必須に登録した名前の報告が
-// 一度も来なければ、その PR は待ちのまま永久にマージできない。よって必須へ登録してよいのは、
-// **すべての PR で必ずその名前を報告する job** だけである。
+// GitHub は「context が報告されない」を「該当なし」とは読まない。よって必須へ登録してよいのは
+// **すべての PR で必ずその名前を報告する job** だけで、落とす条件は
+// [0153](../../docs/adr/0153-ci-configuration.md) §5 と `.makefiles/README.md` が持つ。
 //
-// 報告されない形は 5 つある。宣言する job が無い / 同じ名前を複数の job が宣言している /
-// workflow が `pull_request` で走らない / `paths` などのフィルタで走らない PR がある /
-// context 名が実行時に枝分かれする（matrix・reusable workflow）。どれも「登録した時点では
-// 緑に見え、条件を満たさない PR が来た瞬間にマージ不能になる」ため、静的に落とす。
-//
-// job が `if:` で降りる場合は違反にしない。降りた job は `skipped` を報告し、必須チェックは
-// それを成功として数えるため、報告は途切れない。
+// **`if:` で降りる job は違反にしない。**降りた job は `skipped` を報告し、必須チェックはそれを
+// 成功として数えるため、報告は途切れない。検査していないのではなく、検査する必要が無い。
 
 import { parseWorkflowDocument, readJobId, readWorkflowMaps } from "../lib/workflow-files.js";
 
@@ -99,10 +94,6 @@ export function readRequiredContexts(source: string): string[] {
 
 /**
  * workflow 定義から context 名と `pull_request` の報告条件を読む。
- *
- * @remarks
- * 読めない形は例外にします。「job が 0 件の workflow」として通すと、検査対象が黙って縮んだまま
- * 緑になります。
  *
  * @throws YAML として読めない、マッピングでない、または `jobs:` が読めないとき
  */
