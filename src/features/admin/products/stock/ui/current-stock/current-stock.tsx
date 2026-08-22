@@ -27,10 +27,10 @@ export function StockCurrentAmount({ productName, quantity, reloadHref }: StockC
   return (
     <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border p-4">
       <div className="min-w-0">
-        <p className="line-clamp-2 break-words font-medium text-sm">{productName}</p>
+        <p className="line-clamp-2 break-words font-emphasis text-sm">{productName}</p>
         <p className="mt-1 flex items-baseline gap-2">
           <span className="text-muted-foreground text-sm">現在の在庫</span>
-          <span className="font-semibold text-2xl tabular-nums">{quantity}</span>
+          <span className="font-emphasis text-2xl tabular-nums">{quantity}</span>
         </p>
         <p className="mt-1 text-muted-foreground text-xs">
           読み込んだ時点の値です。ほかの販売や補充で動いていることがあります。

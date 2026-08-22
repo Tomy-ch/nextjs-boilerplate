@@ -66,7 +66,7 @@ export function StockAmountFields({ current, message }: StockAmountFieldsProps) 
   return (
     <>
       <RadioGroupNative className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <legend className="mb-2 font-medium text-sm">操作</legend>
+        <legend className="mb-2 font-emphasis text-sm">操作</legend>
         {DIRECTIONS.map((value) => (
           <Label className="flex items-center gap-2" htmlFor={`${idPrefix}${value}`} key={value}>
             <RadioGroupNativeItem

@@ -40,7 +40,7 @@ const COLUMNS: readonly StaticDataTableColumn<AdminRankingRow>[] = [
     id: "name",
     header: "商品名",
     cell: (row) => (
-      <Link className={`${FOCUS_RING} font-medium`} href={productDetailPath(row.id)}>
+      <Link className={`${FOCUS_RING} font-emphasis`} href={productDetailPath(row.id)}>
         {row.name}
       </Link>
     ),

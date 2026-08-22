@@ -17,6 +17,7 @@ import {
 import noAnonymousDefaultExport from "./eslint-rules/no-anonymous-default-export";
 import noInternalAnchor from "./eslint-rules/no-internal-anchor";
 import noMarkupOutsideUiLayers from "./eslint-rules/no-markup-outside-ui-layers";
+import noRawFontWeight from "./eslint-rules/no-raw-font-weight";
 
 const elements = [
   // 層より先に並べる。区画は層の内側にあるため、層の要素が先に一致すると区画としては
@@ -58,6 +59,7 @@ export default [
           "no-anonymous-default-export": noAnonymousDefaultExport,
           "no-internal-anchor": noInternalAnchor,
           "no-markup-outside-ui-layers": noMarkupOutsideUiLayers,
+          "no-raw-font-weight": noRawFontWeight,
         },
       },
     },
@@ -162,6 +164,15 @@ export default [
           assertionStyle: "never",
         },
       ],
+    },
+  },
+  {
+    // 太さの直接指定は画面が使う class にだけ禁じる。test は部品が持つ class を確かめる側で、
+    // story は見本であり、どちらも画面が使う class ではない。
+    files: ["src/**/*.{js,jsx,ts,tsx}"],
+    ignores: ["src/**/*.test.{js,jsx,ts,tsx}", "src/**/*.stories.{js,jsx,ts,tsx}"],
+    rules: {
+      "project-rules/no-raw-font-weight": "error",
     },
   },
   {

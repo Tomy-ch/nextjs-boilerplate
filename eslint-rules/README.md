@@ -15,6 +15,7 @@ biome が表現できない検査だけを持つ自作 ESLint ルールの置き
 | [`no-anonymous-default-export`](no-anonymous-default-export.ts) | 名前を持たない default export。1:1 ゲートが `describe` で指せる名前を要求する（[0090](../docs/adr/0090-testing-strategy.md)） |
 | [`no-internal-anchor`](no-internal-anchor.ts) | 内部リンクの生の `<a href="/...">`。client 遷移と prefetch を失う |
 | [`no-markup-outside-ui-layers`](no-markup-outside-ui-layers.ts) | UI を置いてよい層の外にある DOM マークアップ（[`architecture.ts`](../architecture.ts) の `UI_KERNELS`） |
+| [`no-raw-font-weight`](no-raw-font-weight.ts) | 太さの直接指定（`font-medium` 等）。書体が持たない段は丸められ強調にならない（[0051](../docs/adr/0051-styling-system.md) §5）。`font-normal` は打ち消しなので対象外 |
 
 ## テストの責務
 

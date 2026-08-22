@@ -28,7 +28,7 @@ export function StockProjection({ current, direction, quantity }: StockProjectio
   return (
     <p className="text-sm">
       <span className="text-muted-foreground">送信後の見込み</span>{" "}
-      <span className="font-semibold tabular-nums">{projected}</span>
+      <span className="font-emphasis tabular-nums">{projected}</span>
       {projected < 0 ? (
         <span className="ml-2 text-muted-foreground">
           在庫より多く差し引く要求は受け付けられません。
