@@ -33,7 +33,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Strip Verify | `strip-verify.yaml` | `strip-verify` | 使い捨てチェックアウトで boilerplate 限定の記述を剥がし、剥がした後のツリーで整形・検査・build・test が通ることと、マーカーが 1 件も残っていないことを検査する。**剥がしの対象に自分自身を含む**（[`../../scripts/setup/remove-boilerplate-only/manifest.ts`](../../scripts/setup/remove-boilerplate-only/manifest.ts) の `SELF_DESTRUCT_PATHS`）。剥がしは任意ではないので、fork には検証する相手が残らない <!-- boilerplate-only:line --> |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
 | Tokens Drift | `tokens-drift.yaml` | `tokens-drift` | hand-written token SSOT と追跡する CSS 生成物が一致することを検査する |
-| Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、追跡下の `*.sh` を `make shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で、mise のピンの整合を `make actions-mise-pin-lint` で、定義そのものの静的解析を `make actions-zizmor` で検査する |
+| Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、追跡下の `*.sh` を `make shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で、mise のピンの整合を `make actions-mise-pin-lint` で、必須ステータスチェックの宣言と実体の突合を `make actions-required-check-lint` で、定義そのものの静的解析を `make actions-zizmor` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 | Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
 | Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナに相乗りするので追加のランナーを入れない（ADR 0091 §3）。**実ブラウザなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。検査するのは撮影と同じ 1 テーマだけで、片テーマでだけ出る違反は届かない（[`vrt/README.md`](../../vrt/README.md)）。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないまま基準画像だけが承認済みになるため。VRT と同じく、省く判定は 2 層ある — PR の差分が story に届かなければ CI の入口で丸ごと降り、届いても絵を決める入力が前に通った時点と同じなら axe を省く（[`vrt/README.md`](../../vrt/README.md)） |
@@ -51,12 +51,16 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 ## ワークフロー一覧（Components）
 
-`src/components/**` に触れる PR でだけ走る検査。**`paths:` フィルタを持つため required status check には登録しない**（下記「`paths:` フィルタを使わない」の但し書き）。
+design system の部品（`src/components/**`）を対象にした検査。走るのは他の CI Checks と同じく**全 PR**で、
+どちらも required status check に登録している。
 
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
-| Component Classes | `component-classes.yaml` | `classes` | Tailwind が出力しない未定義 class を検出する |
-| shadcn Drift | `shadcn-drift.yaml` | `manifest` | 取り込み台帳と実体の乖離、および上流の更新を検出する |
+| Component Classes | `component-classes.yaml` | `component-classes` | Tailwind が出力しない未定義 class を検出する |
+| shadcn Drift | `shadcn-drift.yaml` | `shadcn-manifest` / `upstream` | 取り込み台帳と実体の乖離（`shadcn-manifest`）、および上流の更新（`upstream`）を検出する |
+
+`upstream` はネットワークに出るため PR では降ろしており（`if:`）、週次スケジュールでだけ走る。**登録しない** —
+上流が動いたという、PR の著者に直せない理由で作業を止めるため。
 
 ## ワークフロー一覧（イベント駆動）
 
@@ -78,7 +82,7 @@ PR ごとには走らず、ラベルや保護ブランチへの push で起動�
 
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
-| Deploy Docs | `deploy-docs.yaml` | `build` / `deploy` | 生成 HTML のドキュメントサイトを組んで GitHub Pages へ配信する（[0141](../../docs/adr/0141-portal-operations.md)） |
+| Deploy Docs | `deploy-docs.yaml` | `docs-build` / `docs-deploy` | 生成 HTML のドキュメントサイトを組んで GitHub Pages へ配信する（[0141](../../docs/adr/0141-portal-operations.md)） |
 
 サイトは**単一のツリーに複数の生成物を同居させる**形を採る。GitHub Pages はリポジトリに 1 サイトしか持てないため、Storybook・portal・coverage のような生成 HTML はそれぞれサイト直下の兄弟パスへ入り、ルートは入口へ転送するだけの薄い層（[`../../docs/index.html`](../../docs/index.html)）に留める。
 
@@ -101,19 +105,19 @@ PR ごとには走らず、ラベルや保護ブランチへの push で起動�
 
 [`../settings/branch-protection.json`](../settings/branch-protection.json) が **CI Checks 群を必須**にし、`strict` でブランチが最新であることを要求する。これは VRT が成立する条件でもある — 判定しているのは base へマージした結果の木（`refs/pull/N/merge`）なので、base が動いた後の緑をそのまま通すと、基準画像が「実際にマージされる木」とずれる。
 
-`paths:` フィルタを持つ 3 つ（`classes` / `manifest` / `deploy-docs` の `build`）は登録しない。触らない PR では context が報告されず、必須待ちで止まるため。
+**登録してよいのは、すべての PR でその名前を報告し続ける job だけ。**報告されない context を登録すると、GitHub はその PR を「必須チェック待ち」のまま永久にブロックする。`deploy-docs` の `docs-build` は `paths:` で自分自身の変更に絞ってあるため登録しない。
+
+この条件は `make actions-required-check-lint` が機械検査する（`actions-lint` job と pre-commit が回す）。名前を宣言する job が無い / 複数ある / `pull_request` で走らない / フィルタで絞られている / context 名が実行時に枝分かれする、の 6 つで落ちる（[`.makefiles/README.md`](../../.makefiles/README.md)）。
 
 `diff-scope` で降りる job は登録してよい。job 名も context の報告も変わらず、変わるのは中のステップが走るかどうかだけであるため（下記「`paths:` フィルタを使わない」）。
 
-context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required status check の設定を黙って無効化する。
+context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required status check の設定を黙って無効化する。同じ理由で、**別々のワークフローに同じ job 名を置かない** — 報告される check run が 1 つの名前に 2 つ並び、必須がどちらを指すのか決まらなくなる。`deploy-docs` の job が `docs-build` / `docs-deploy` と配信先で名乗るのはこのため。
 
 <!-- boilerplate-only:replace-begin -->
-**自消滅するジョブ（`purge-verify` / `strip-verify`）も登録しない。** どちらも fork の初期化で自分ごと消え、消えた後は context を報告しない。`branch-protection.json` は JSON でコメントを持てず、剥がしのマーカーを置けないので、登録すると初期化を済ませた fork のすべての PR が必須待ちで止まる。
+**fork の初期化を生き延びないジョブ（`purge-verify` / `strip-verify`）も登録しない。** `strip-verify` は剥がしで自分ごと消え、消えた後は context を報告しない。`purge-verify` は残るが、破棄を済ませた fork では「破棄済みなのでこのワークフローを消せ」と赤で止まる設計であり、指示どおり消せば同じく報告されなくなる。`branch-protection.json` は JSON でコメントを持てず削除のマーカーを置けないので、登録すると初期化を済ませた fork のすべての PR が必須待ちで止まる。
 <!-- boilerplate-only:replace-with -->
-<!-- = **自消滅するジョブ（`purge-verify`）も登録しない。** サンプルを破棄した時点で消え、消えた後は context を報告しない。`branch-protection.json` は JSON でコメントを持てず削除のマーカーを置けないので、登録すると破棄を済ませた後のすべての PR が必須待ちで止まる。 -->
+<!-- = **`purge-verify` は登録しない。** サンプルを破棄した後は「破棄済みなのでこのワークフローを消せ」と赤で止まる設計で、指示どおり消せば context を報告しなくなる。`branch-protection.json` は JSON でコメントを持てず削除のマーカーを置けないので、登録すると破棄を済ませた後のすべての PR が必須待ちで止まる。 -->
 <!-- boilerplate-only:replace-end -->
-
-> `deploy-docs.yaml` の job 名が `build.yaml` と衝突しており、必須に登録した `build` はどちらにも一致する。docs を触る PR では両方が緑である必要があり、実害は無いが名前は分けたほうがよい。
 
 ## mise の導入
 
@@ -195,7 +199,9 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 `vrt` / `a11y` はこの門の内側にもう 1 つ、絵を決める入力のハッシュで比較だけを省く判定を持つ。2 層がそれぞれ何を落とすかは [`../../vrt/README.md`](../../vrt/README.md) の「絵が変わり得ないときは撮らない」にまとめてある。
 
-`component-classes` / `shadcn-drift` は `paths:` を持つため、**後者（required check から外す）を選んでいる**。この 2 本を required へ登録するなら、同時に裏返しの guard を対で用意すること。
+`paths:` を持つのは `deploy-docs` だけで、これは**後者（required check から外す）を選んでいる** — 走るのは自分自身を編集する PR だけなので、絞りを外すと全 PR で Pages 用のサイトを組み立てることになる。
+
+`component-classes` / `shadcn-drift` は絞りを外して全 PR で走らせている。どちらも `pnpm install` とスクリプト 1 本で、`diff-scope` を噛ませていないのは、あの action が受け取るのが「**自分に影響しえないもの**」の一覧であるため — この 2 本が持つ狭い allow-list を裏返すと、書き間違いが「何も検査しない gate」の側へ倒れる。
 
 ## PR コメント（検査ログ: upsert-pr-comment）
 
