@@ -2,6 +2,10 @@
 imports-allowed: [features, components, capabilities, stores, adapters, errors, logging, config, model]
 forbidden: [business-logic, direct-fetch]
 test-requirement: route
+coverage-exclusions:
+  - "src/app/**/page.dev.tsx"
+  - "src/app/**/page.tsx"
+  - "src/app/fonts.ts"
 ---
 
 # app

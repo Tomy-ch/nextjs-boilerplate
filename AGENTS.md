@@ -89,7 +89,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0003](docs/adr/0003-version-manager.md) | Version manager | `mise.toml` as SSOT / mise must not extend into delivery layers |
 | [0004](docs/adr/0004-library-management.md) | Library policy | Core deps exact-pinned / major updates in separate PRs / `pnpm audit` required |
 | [0010](docs/adr/0010-standards-and-non-lockin.md) | Design principle | Standards conformance & non-lock-in (permanent meta judgment axes) |
-| [0011](docs/adr/0011-no-docker.md) | Delivery / Role | Next.js as presentation layer / no Docker for app delivery |
+| [0011](docs/adr/0011-no-docker.md) | Delivery / Role | Next.js as presentation layer / no Docker for app delivery / environment definitions (stand-alone vs cloud) |
 | [0020](docs/adr/0020-adopted-architecture.md) | Architecture pattern | Adopted architecture / inward dependency / structural boundary types / no type leakage |
 | [0021](docs/adr/0021-frontend-responsibility.md) | Frontend responsibility | Layer responsibilities / kernel naming discipline / import boundaries |
 | [0022](docs/adr/0022-capabilities-kernel.md) | `capabilities` kernel | Cross-cutting client-hook kernel |
@@ -126,7 +126,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0076](docs/adr/0076-payment-ui-seam.md) | Payment UI seam | mount seam & PCI boundary |
 | [0077](docs/adr/0077-bff-abuse-protection-boundary.md) | BFF abuse protection | infra / edge seam boundary |
 | [0078](docs/adr/0078-dynamic-feature-flag-seam.md) | Feature-flag seam | dynamic feature flag / staged rollout (A-B) seam |
-| [0079](docs/adr/0079-auth-frontend-seam.md) | Auth frontend seam | authentication front-side seam |
+| [0079](docs/adr/0079-auth-frontend-seam.md) | Auth frontend seam | authentication front-side seam / no credential intake, own the sign-in look |
 | [0080](docs/adr/0080-error-handling.md) | Error handling | `error.tsx`/`not-found.tsx` responsibilities / backend-error normalization |
 | [0081](docs/adr/0081-observability-logging.md) | Observability / logging | OTLP / OTel vendor-neutral (Sentry not adopted) / structured logs |
 | [0082](docs/adr/0082-client-observability.md) | Client observability | Web Vitals RUM / client error collection / analytics seam |

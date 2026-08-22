@@ -2,6 +2,9 @@
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
 forbidden: [features] # 相手の facade/ と、画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
+coverage-exclusions:
+  - "src/features/checkout/__mocks__/**"
+  - "src/features/checkout/checkout.fixture.ts"
 ---
 
 # checkout

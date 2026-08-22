@@ -41,8 +41,15 @@ export const ENTRYPOINT_PATTERNS = [
  * 判断ではありません([0072](../../docs/adr/0072-api-type-generation.md))。生成物の正しさは
  * 契約からの再生成が一致するか(drift ゲート)と、`mocks/contract-conformance.test.ts` の
  * 全ハンドラ検査が担保します。
+ *
+ * 並ぶのは題材の契約から生成したものだけなので、サンプルを破棄すると空になります。fork 先は
+ * 自分の契約を生成した先をここへ並べます。
  */
+// sample:replace-begin
 export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**"] as const;
+// sample:replace-with
+// = export const GENERATED_MODULES = [] as const;
+// sample:replace-end
 
 /**
  * 判定を持たないモジュール。

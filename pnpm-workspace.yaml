@@ -31,6 +31,12 @@ overrides:
   # GHSA-7p8r-x3mc-p8w7 (high): authority 部のバックスラッシュで host の解釈が他のパーサとずれる。
   # ajv の宣言は ^3.0.1 で 3.1.5 はその内側。ajv が 3.1.5 以上を要求したら撤去する。
   "fast-uri@<3.1.5": ">=3.1.5 <4"
+  # dompurify (mermaid が引く) の推移的依存。mermaid は docs-viewer の実行時依存なので、これは
+  # 公開されるドキュメントサイトで browser 上を走る。
+  # GHSA-4gpp-cmpq-32hh (moderate): IN_PLACE hook の削除で切り離された部分木が実行可能なまま残り
+  # XSS になる。mermaid の宣言は ^3.3.3 で 3.4.13 はその内側。
+  # mermaid が 3.4.13 以上を要求したら撤去する。
+  "dompurify@<3.4.13": ">=3.4.13 <4"
 
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
 verifyDepsBeforeRun: error
