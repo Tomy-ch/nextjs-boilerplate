@@ -62,6 +62,15 @@ describe("findExclusionDrift", () => {
     expect(findExclusionDrift(["src/app/fonts.ts"], read, directories)).toEqual([]);
   });
 
+  it("並びでなく 1 つの文字列で書かれた記録も 1 件として読む", () => {
+    // README を手で書く人が、除外 1 件のときに YAML の並びを使わない形。
+    const { read, directories } = treeOf({
+      "src/app": '---\ncoverage-exclusions: "src/app/fonts.ts"\n---\n\n# app\n',
+    });
+
+    expect(findExclusionDrift(["src/app/fonts.ts"], read, directories)).toEqual([]);
+  });
+
   it("記録を持たない README は走査に含まれても挙げない", () => {
     const { read, directories } = treeOf({
       "src/app": recording("src/app/fonts.ts"),
@@ -80,6 +89,16 @@ describe("findExclusionDrift", () => {
     ).toEqual([
       { directory: "src/app", missing: ["src/app/fonts.ts"], extra: [] },
       { directory: "vrt", missing: ["vrt/lib/settle.ts"], extra: [] },
+    ]);
+  });
+
+  it("1 つの README で記録漏れと撤去漏れが同時に起きていれば両方を挙げる", () => {
+    // missing と extra は同じ README の上で独立に起きる。片方の算出がもう片方を握り潰しても、
+    // どちらか一方だけを見るケースは通ってしまう。
+    const { read, directories } = treeOf({ "src/app": recording("src/app/gone.ts") });
+
+    expect(findExclusionDrift(["src/app/fonts.ts"], read, directories)).toEqual([
+      { directory: "src/app", missing: ["src/app/fonts.ts"], extra: ["src/app/gone.ts"] },
     ]);
   });
 
