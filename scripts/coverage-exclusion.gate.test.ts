@@ -12,14 +12,12 @@ import { EXCLUDED_FROM_CHECKS } from "./lib/untested-modules";
  * 検査の中身は `lib/coverage-exclusion.ts` が持ち、ここはツリーの走査だけを担う
  * (`test-requirement.gate.test.ts` と同形)。
  *
- * 除外の正は `lib/untested-modules.ts` の宣言 1 箇所で、README が持つのは「この配下に検査の穴が
- * ある」という記録だけである([0090](../docs/adr/0090-testing-strategy.md))。記録が無いと、その層を
- * 読む人は自分のディレクトリに穴があることに気づけない —— 除外は `scripts/lib/` を開いた人にしか
- * 見えないものになる。
+ * 記録が無いと、その層を読む人は自分のディレクトリに穴があることに気づけない —— 除外は
+ * `scripts/lib/` を開いた人にしか見えないものになる。
  *
  * **ゲートが見るのは記録の有無だけで、承認は見ない。** 除外を増やしてよいかの判断は PR の
- * レビューに残る（同 ADR「README 記録・承認なしに増やすこと」の禁止）。機械が代われるのは
- * 「書いてあるか」までである。
+ * レビューに残る([0090](../docs/adr/0090-testing-strategy.md))。機械が代われるのは「書いて
+ * あるか」までである。
  */
 
 const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");

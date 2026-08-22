@@ -63,7 +63,6 @@ describe("findExclusionDrift", () => {
   });
 
   it("並びでなく 1 つの文字列で書かれた記録も 1 件として読む", () => {
-    // README を手で書く人が、除外 1 件のときに YAML の並びを使わない形。
     const { read, directories } = treeOf({
       "src/app": '---\ncoverage-exclusions: "src/app/fonts.ts"\n---\n\n# app\n',
     });

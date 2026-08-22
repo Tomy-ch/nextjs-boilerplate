@@ -2,16 +2,9 @@
  * カバレッジ除外の、所有側への記録の解決。
  *
  * @remarks
- * 除外の**正は `untested-modules.ts` の宣言 1 箇所**であり、ここが足すのは所有側から見えるかどうか
- * だけである（[0090](../../docs/adr/0090-testing-strategy.md)）。理由と撤去条件は宣言の側が持ち、
- * README が持つのは「この配下に検査の穴がある」という事実の記録に限る。**同じ内容を 2 箇所に持たない**
- * ため、README 側は対象の並びだけを宣言する。
- *
- * 記録を求めるのは、その層を読む人が自分のディレクトリの穴に気づけるようにするためである。宣言の
- * 側だけに置くと、除外は `scripts/lib/` を開いた人にしか見えない。
- *
- * ここが持つのは解決規則だけで、ツリーの走査は `scripts/coverage-exclusion.gate.test.ts` が担う
- * （`test-requirement.ts` と同形）。
+ * 除外の正は `untested-modules.ts` の宣言 1 箇所で、README が持つのは対象の並びだけである
+ * ([0090](../../docs/adr/0090-testing-strategy.md))。ここが持つのはその解決規則だけで、
+ * ツリーの走査は `scripts/coverage-exclusion.gate.test.ts` が担う。
  */
 
 import { parseFrontmatter } from "./frontmatter";
