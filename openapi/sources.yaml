@@ -14,12 +14,4 @@ sources:
     ref: d46dd22578a1b1682fdde2ed69a199f0dfcf0224
     sha: 8f733fb2909e83825ce381bf22ffda7af07cc885
     fetchedAt: 2026-08-21T14:57:58.902Z
-  # mock OIDC Provider の契約。go-boilerplate 本体とは別サービスであり、認証の契約はこちらが正
-  # (docs/screens.md §0)。本体の契約には認証エンドポイントが存在しない。
-  - name: auth
-    repo: Tomy-ch/go-boilerplate
-    path: mock-auth-server/openapi/openapi.gen.yaml
-    ref: 669ae0f65e156377047127bbabc7fb7f621ca89e
-    sha: ceadce304cfcf6ce8a94f39f9be6968736d49882
-    fetchedAt: 2026-08-13T19:37:10.094Z
   # sample:end

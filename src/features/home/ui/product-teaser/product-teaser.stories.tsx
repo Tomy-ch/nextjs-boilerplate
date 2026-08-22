@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-
 import type { ProductListItem } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
-
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { ProductTeaser } from "./product-teaser";
 
-const FRONT_IMAGE_URL = "/src/components/design-system/display/media-image/invertocat.png";
+/** 一覧に出る絵。 */
+const FRONT_IMAGE_URL = SAMPLE_ITEM_URLS[0];
 
 /**
  * 契約が許す最大長。`name` は 255（`src/adapters/gen/api/endpoints.zod.ts`）。

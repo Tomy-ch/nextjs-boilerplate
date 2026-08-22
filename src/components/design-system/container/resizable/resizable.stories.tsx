@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { MediaImage } from "../../display/media-image/media-image";
 import { MEDIA_IMAGE_ASPECT_RATIO } from "../../display/media-image/media-image.definition";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./resizable";
@@ -21,11 +21,11 @@ const meta = {
       <>
         <ResizablePanel defaultSize="50%" minSize="20%">
           <MediaImage
-            alt="サンプルのロゴ"
+            alt="サンプルの絵"
             aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
             className="h-full"
             sizes="18rem"
-            src="/src/components/design-system/display/media-image/invertocat.png"
+            src={SAMPLE_ITEM_URLS[0]}
           />
         </ResizablePanel>
         <ResizableHandle aria-label="画像と説明の区切り" withHandle />

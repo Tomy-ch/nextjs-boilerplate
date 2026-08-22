@@ -294,18 +294,54 @@ describe("createDefaultSessionResolver", () => {
     expect(sealed).not.toContain(transaction.state);
   });
 
-  it("ログアウトで id_token_hint を渡す", async () => {
-    const { resolver, fetchImpl, complete } = await startSignIn();
+  it("ログアウトの送り先に id_token_hint を載せる", async () => {
+    const { resolver, complete } = await startSignIn();
     const record = await complete();
 
-    await resolver.endSession(record);
-    const logout = vi
-      .mocked(fetchImpl)
-      .mock.calls.find(([input]) => String(input).endsWith("/oidc/logout"));
+    const sent = await resolver.endSession(record);
 
-    expect(String(logout?.[1]?.body)).toContain(
-      `id_token_hint=${encodeURIComponent(record.idToken)}`,
+    expect(sent).not.toBeNull();
+
+    const destination = new URL(sent ?? "");
+
+    expect(`${destination.origin}${destination.pathname}`).toBe(`${issuer}/oidc/logout`);
+    expect(destination.searchParams.get("id_token_hint")).toBe(record.idToken);
+    expect(destination.searchParams.get("client_id")).toBe(clientId);
+  });
+
+  it("ログアウトの送り先に Access Token を載せない", async () => {
+    const { resolver, complete } = await startSignIn();
+    const record = await complete();
+
+    const sent = await resolver.endSession(record);
+
+    expect(sent).not.toBeNull();
+    expect(sent).not.toContain(record.accessToken);
+  });
+
+  it("ログアウト後の戻り先を callback と同じ origin から導く", async () => {
+    const { resolver, complete } = await startSignIn();
+    const record = await complete();
+
+    const sent = await resolver.endSession(record);
+
+    expect(sent).not.toBeNull();
+
+    const destination = new URL(sent ?? "");
+
+    expect(destination.searchParams.get("post_logout_redirect_uri")).toBe(
+      new URL("/", redirectUri).toString(),
     );
+  });
+
+  it("ログアウトの送り先を組み立てるだけで、IdP へは要求を出さない", async () => {
+    const { resolver, fetchImpl, complete } = await startSignIn();
+    const record = await complete();
+    vi.mocked(fetchImpl).mockClear();
+
+    await resolver.endSession(record);
+
+    expect(vi.mocked(fetchImpl)).not.toHaveBeenCalled();
   });
 
   it("実装を渡さなければ環境の fetch で鍵を取りに行く", async () => {
@@ -361,7 +397,7 @@ describe("createDefaultSessionResolver", () => {
     expect(restored).toEqual(started.transaction);
   });
 
-  it("ログアウトの口を持たない IdP には何も送らない", async () => {
+  it("ログアウトの口を持たない IdP なら送り先を返さない", async () => {
     const issued: IssuedToken = { value: "" };
     const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
       if (String(input).endsWith("/.well-known/openid-configuration")) {
@@ -379,11 +415,7 @@ describe("createDefaultSessionResolver", () => {
       transaction: started.transaction,
     });
 
-    await resolver.endSession(record);
-
-    expect(fetchImpl.mock.calls.some(([input]) => String(input).endsWith("/oidc/logout"))).toBe(
-      false,
-    );
+    expect(await resolver.endSession(record)).toBeNull();
   });
 
   // ----- 異常系 -----
@@ -422,6 +454,18 @@ describe("createDefaultSessionResolver", () => {
     const { complete } = await startSignIn({ expiresIn: undefined, withIdTokenExpiry: false });
 
     expect(await kindOf(complete)).toBe(ErrorKind.UNAUTHENTICATED);
+  });
+
+  it("Discovery を引けなければログアウトの送り先も組み立てない", async () => {
+    const resolver = createResolver(vi.fn<typeof fetch>(async () => json({}, 503)));
+
+    await expect(
+      resolver.endSession({
+        session: { userId: "user-1", role: SESSION_ROLE.user, expiresAt: new Date(nowMs) },
+        accessToken: "access-token",
+        idToken: "id-token",
+      }),
+    ).rejects.toThrow();
   });
 
   it("Discovery に失敗しても次の呼び出しで取り直す", async () => {

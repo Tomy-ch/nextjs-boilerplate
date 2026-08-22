@@ -25,6 +25,18 @@ const SEAL_HEADER = { alg: "dir", enc: "A256GCM" } as const;
 /** ID Token の署名に許す方式。IdP が非対称鍵で署名する前提を、検証側からも固定する。 */
 const ID_TOKEN_ALGORITHMS = ["RS256", "ES256"];
 
+/**
+ * IdP でのログアウトを終えた利用者を戻す先。
+ *
+ * @remarks
+ * origin は callback と同じもの（`redirectUri`）から導きます。この 2 つは同じアプリの口であり、
+ * 別々に設定へ置くと、片方だけ書き換えた設定が起動時には正しく見えます。
+ *
+ * **IdP 側にも同じ値の登録が要ります。** 未登録の戻り先を渡すと、IdP は戻さずに自分の画面で
+ * 止める（あるいは要求ごと拒む）ため、ログアウトはできても利用者がアプリへ帰れません。
+ */
+const POST_LOGOUT_PATH = "/";
+
 /** token endpoint の応答のうち、この境界が使う項目。 */
 const TokenResponse = z.object({
   access_token: z.string(),
@@ -290,19 +302,22 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
       }
     },
 
-    async endSession(record: SessionRecord): Promise<void> {
+    async endSession(record: SessionRecord): Promise<string | null> {
       const { endSessionEndpoint } = await resolveEndpoints();
 
       if (endSessionEndpoint === null) {
-        return;
+        return null;
       }
 
-      await client.request({
-        path: endSessionEndpoint,
-        method: "POST",
-        form: { id_token_hint: record.idToken, client_id: deps.clientId },
-        schema: z.unknown(),
-      });
+      const url = new URL(endSessionEndpoint);
+      url.searchParams.set("id_token_hint", record.idToken);
+      url.searchParams.set("client_id", deps.clientId);
+      url.searchParams.set(
+        "post_logout_redirect_uri",
+        new URL(POST_LOGOUT_PATH, deps.redirectUri).toString(),
+      );
+
+      return url.toString();
     },
   };
 }

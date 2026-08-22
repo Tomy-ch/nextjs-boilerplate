@@ -1,5 +1,8 @@
 ---
 test-requirement: unit
+coverage-exclusions:
+  - "e2e/**/*.spec.ts"
+  - "e2e/lib/test.ts"
 ---
 
 # e2e
