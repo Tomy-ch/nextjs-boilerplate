@@ -145,7 +145,7 @@ export const PRIMITIVE_TOKEN = {
   ],
   font: [
     "michroma",
-    "line-seed",
+    "system-jp",
     "plex-jp",
     "geist-mono",
   ],

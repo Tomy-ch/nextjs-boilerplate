@@ -121,20 +121,32 @@ WCAG は**文字に 4.5:1、UI 部品と図形に 3:1** を求めます。token 
 
 | semantic | user | admin |
 | --- | --- | --- |
-| `sans`（本文） | LINE Seed JP | IBM Plex Sans JP |
+| `sans`（本文） | **OS 同梱の和文ゴシック**（`system-ui` → ヒラギノ → 游ゴシック → …） | IBM Plex Sans JP |
 | `brand`（銘） | Michroma | Michroma |
 | `mono` | Geist Mono | Geist Mono |
 
-実体は `next/font` が `src/app/fonts.ts` で読み、`--typeface-*` として配ります。primitive の綴りを `--font-*` と分けているのは、生成する別名と同じ名前になると宣言が自分自身を指すためです。
+**利用者向けの本文だけ Web フォントを読みません**（[0051](../docs/adr/0051-styling-system.md) §5）。和文の
+Web フォントは `@font-face` の宣言が 100 を超える単位で CSS に載り、それが描画を止めます。全画面に効く
+本文でその費用を払うのをやめ、銘（ラテン）と管理面には残しています。
+
+ラテンと等幅の実体は `next/font` が `src/app/fonts.ts` で読み、管理の書体は
+[`src/app/admin/fonts.ts`](../src/app/admin/fonts.ts) が読みます。**管理の書体を root から読まないでください**
+—— 管理を開かない利用者まで宣言を読まされます。`--typeface-*` として配る点は共通です。primitive の綴りを
+`--font-*` と分けているのは、生成する別名と同じ名前になると宣言が自分自身を指すためです。
 
 ### 強調は段の名前で持つ
 
-書体ごとに持っている太さが違うため、太さの数値を部品に書くと書体を替えたときに段が潰れます。LINE Seed JP は **500 と 600 を持たず**、`font-medium` は 400 へ丸められて本文と同じ太さになります。
+書体ごとに持っている太さが違うため、太さの数値を部品に書くと書体を替えたときに段が潰れます。
 
-| semantic | user（LINE Seed JP） | admin（IBM Plex Sans JP） |
+| semantic | user（OS 同梱） | admin（IBM Plex Sans JP） |
 | --- | --- | --- |
 | `emphasis`（一段強い） | 700 | 500 |
 | `strong`（明確に強い） | 800 | 600 |
+
+**利用者向けの 2 段が見分けられるかは OS が持つ太さ次第です。** ヒラギノ角ゴシックは W0〜W9 を持つので
+両方が出ますが、游ゴシックが Regular と Bold しか持たない環境では 700 と 800 が同じ字面になります。
+段を名前で持っているのはこのためで、**部品を直さずに宣言だけで戻せます** —— 2 段が全ての環境で要ると
+決めたときが、本文へ Web フォントを戻す理由になります（[0051](../docs/adr/0051-styling-system.md) §5）。
 
 部品は `font-emphasis` / `font-strong` と書きます。**`font-medium` / `font-semibold` を使わないでください** —— 書体が持っていない段を指定しても、丸められるだけで強調になりません。
 
