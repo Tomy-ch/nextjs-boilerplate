@@ -27,8 +27,9 @@ test-requirement: feature
 | モジュール | 役割 |
 | --- | --- |
 | `login-view.tsx` | ログイン画面。認証を始める form と、始められなかったときの案内 |
-| `facade/paths.ts` | この画面への行き先と、そこに載る案内の語彙（組む側） |
+| `login-notice.ts` | 案内の語彙と、始められなかったときの行き先（組む側） |
 | `read-login-notice.ts` | URL から案内する理由を読む（読む側） |
+| `facade/paths.ts` | 他の feature が指すための、この画面への行き先 |
 
 ## 隣に置くもの
 

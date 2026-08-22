@@ -1,6 +1,6 @@
 import { getSessionResolver } from "@/adapters/server/auth/resolver";
 import { storeTransaction } from "@/adapters/server/auth/session";
-import { unavailableLoginPath } from "@/features/auth/facade/paths";
+import { unavailableLoginPath } from "@/features/auth/login-notice";
 import { toSafeReturnUrl } from "@/model/return-url";
 
 /**

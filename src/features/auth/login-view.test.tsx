@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { toSafeReturnUrl } from "@/model/return-url";
 
-import { LOGIN_NOTICE } from "./facade/paths";
+import { LOGIN_NOTICE } from "./login-notice";
 import { LoginView } from "./login-view";
 
 describe("LoginView", () => {
