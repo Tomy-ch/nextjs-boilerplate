@@ -1,9 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useCallback, useState } from "react";
-
 import { ATTACHMENT_STATE } from "@/components/app-starter/attachment/attachment.definition";
 import { FileUpload } from "@/components/app-starter/file-upload/file-upload";
-
+import { SAMPLE_DOCUMENT_URL } from "~catalog/lib/sample-asset";
 import { UploadPreview } from "./upload-preview";
 import type { UploadPreviewItem } from "./upload-preview.definition";
 
@@ -42,13 +41,13 @@ export const Row: Story = {
         description: "1.2 MB",
         id: "1",
         name: "cover.png",
-        preview: "/src/components/design-system/display/media-image/invertocat.png",
+        preview: SAMPLE_DOCUMENT_URL,
       },
       {
         description: "0.9 MB",
         id: "2",
         name: "diagram-of-the-whole-system.png",
-        preview: "/src/components/design-system/display/media-image/invertocat.png",
+        preview: SAMPLE_DOCUMENT_URL,
       },
       { description: "0.4 MB", id: "3", name: "notes.png" },
     ],
@@ -113,7 +112,7 @@ export const MixedPreview: Story = {
         description: "1.2 MB",
         id: "1",
         name: "cover.png",
-        preview: "/src/components/design-system/display/media-image/invertocat.png",
+        preview: SAMPLE_DOCUMENT_URL,
       },
       { description: "0.4 MB", id: "2", name: "handbook.pdf" },
     ],
