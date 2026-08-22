@@ -4,8 +4,11 @@
 #
 # route を開いたときに browser が最初に読む client JavaScript を、gzip した合計。`next build` の
 # 出力にこの列は無いため、成果物（`.next`）の側から引く。route 固有の chunk（その route が参照する
-# client component）と、共有 chunk（framework の runtime と polyfill）の和集合で、静的 route が
-# 出力する HTML の script と一致する。CSS は含めない。
+# client component）と、共有 chunk（framework の runtime）の和集合で、対応ブラウザが静的 route の
+# HTML から読む script と一致する。CSS は含めない。
+#
+# polyfill は含めない。Next.js が `<script nomodule>` で出すため、ADR 0102 が対応対象とする
+# ブラウザは取得しないからである。含めると、誰も読まない約 40 KB が全 route へ一律に乗る。
 #
 # ## 書き方
 #
@@ -29,11 +32,11 @@
 
 routes:
   "/_not-found":
-    gzipKb: 225
-    reason: 実測 200.8 KB に約 10% の余裕。共有 chunk の入れ替えで数 KB は動くため、その幅では鳴らさない
+    gzipKb: 180
+    reason: 実測 164.0 KB に約 10% の余裕。共有 chunk の入れ替えで数 KB は動くため、その幅では鳴らさない
   "/_global-error":
-    gzipKb: 205
-    reason: 実測 183.3 KB に約 10% の余裕。client component をほぼ持たない下限に近い route である
+    gzipKb: 161
+    reason: 実測 146.0 KB に約 10% の余裕。client component をほぼ持たない下限に近い route である
 
 growth:
   gzipKb: 30

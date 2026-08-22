@@ -7,10 +7,15 @@
  *
  * - **route 固有** — `__RSC_MANIFEST[<page>].clientModules[*].chunks`。その route が参照する
  *   client component の実体
- * - **共有** — route ごとの `build-manifest.json` の `rootMainFiles` / `polyfillFiles`。framework
- *   の runtime と polyfill で、どの route でも読まれる
+ * - **共有** — route ごとの `build-manifest.json` の `rootMainFiles`。framework の runtime で、
+ *   どの route でも読まれる
  *
- * 和集合を取ると、静的 route が出力する HTML の script と一致します。
+ * 和集合を取ると、対応ブラウザが静的 route の HTML から読む script と一致します。
+ *
+ * **`polyfillFiles` は数えません。** Next.js はそれを `<script nomodule>` で出すので、
+ * [0102](../../docs/adr/0102-browser-support.md) が対応対象とするブラウザ（Next.js 既定の
+ * browserslist = モダン）は一度も取得しません。数えると、誰も読まない約 40 KB が全 route の
+ * 数値へ一律に乗り、予算が見ているはずの「開いた人が払う量」から離れます。
  */
 
 /** `__RSC_MANIFEST` の 1 route ぶん。必要な形だけを受け取る。 */
@@ -21,7 +26,6 @@ export type RscManifest = {
 /** route ごとの `build-manifest.json`。必要な形だけを受け取る。 */
 export type RouteBuildManifest = {
   readonly rootMainFiles?: readonly string[];
-  readonly polyfillFiles?: readonly string[];
 };
 
 /** chunk の参照を成果物ディレクトリからの相対へ均す。 */
@@ -51,7 +55,7 @@ export function initialChunks(
     }
   }
 
-  for (const chunk of [...(build?.rootMainFiles ?? []), ...(build?.polyfillFiles ?? [])]) {
+  for (const chunk of build?.rootMainFiles ?? []) {
     found.add(toArtifactPath(chunk));
   }
 

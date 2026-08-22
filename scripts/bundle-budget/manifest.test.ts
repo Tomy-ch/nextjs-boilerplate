@@ -7,14 +7,21 @@ describe("initialChunks", () => {
   it("route 固有の chunk と共有 chunk を畳んで返す", () => {
     const chunks = initialChunks(
       { clientModules: { "a.tsx": { chunks: ["/_next/static/chunks/a.js"] } } },
-      { rootMainFiles: ["static/chunks/main.js"], polyfillFiles: ["static/chunks/poly.js"] },
+      { rootMainFiles: ["static/chunks/main.js"] },
     );
 
-    expect(chunks).toEqual([
-      "static/chunks/a.js",
-      "static/chunks/main.js",
-      "static/chunks/poly.js",
-    ]);
+    expect(chunks).toEqual(["static/chunks/a.js", "static/chunks/main.js"]);
+  });
+
+  it("対応ブラウザが取得しない polyfill は数えない", () => {
+    // 実物の `build-manifest.json` は `polyfillFiles` を持つ。受け取る型が宣言しなくなっても
+    // 鍵は届くので、無視することを実物の形で見る。
+    const build: Record<string, readonly string[]> = {
+      rootMainFiles: ["static/chunks/main.js"],
+      polyfillFiles: ["static/chunks/poly.js"],
+    };
+
+    expect(initialChunks(undefined, build)).toEqual(["static/chunks/main.js"]);
   });
 
   it("同じ chunk を複数の module が指しても 1 度だけ数える", () => {
