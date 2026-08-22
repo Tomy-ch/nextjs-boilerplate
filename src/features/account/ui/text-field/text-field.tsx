@@ -39,7 +39,7 @@ export function TextField({
       required={required}
     >
       <Input
-        {...fieldControlAttributes({ controlId, errorId, message, required })}
+        {...fieldControlAttributes({ controlId, description, errorId, message, required })}
         {...input}
         {...registration}
       />

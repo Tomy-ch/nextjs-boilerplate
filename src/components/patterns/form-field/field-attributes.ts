@@ -10,6 +10,17 @@ export function toErrorId(controlId: string): string {
   return `${controlId}-error`;
 }
 
+/**
+ * 入力の補足に与える `id`。入力欄の `aria-describedby` が指す。
+ *
+ * @remarks
+ * 補足は**見えているだけでは足りません**。`aria-describedby` から指さないと、支援技術には
+ * 項目名と入力欄しか届かず、単位や制約を読み上げから知る手段がなくなります。
+ */
+export function toDescriptionId(controlId: string): string {
+  return `${controlId}-description`;
+}
+
 /** 入力欄そのものへ与える属性を組むために要る、項目の状態。 */
 export type FieldControlState = {
   /** 入力欄の `id`。 */
@@ -18,6 +29,14 @@ export type FieldControlState = {
   readonly errorId: string;
   /** 誤りの文言。無ければ誤っていない。 */
   readonly message?: string;
+  /**
+   * 入力の補足。
+   *
+   * @remarks
+   * **`FormField` へ渡すなら、ここへも渡します。** 描画する側と指す側が別なので、片方だけに
+   * 渡すと「見えているのに読み上げられない」補足になります。
+   */
+  readonly description?: string;
   /** 空欄を受け付けない項目か。 */
   readonly required: boolean;
 };
@@ -41,15 +60,24 @@ export type FieldControlAttributes = {
  *
  * 誤りが無いときも `aria-invalid` を落とさず `false` で置きます。属性ごと消すと、支援技術に
  * とっては「一度も検証していない」と区別が付きません。
+ *
+ * 補足と誤りの両方があるときは、**描画される順**（補足 → 誤り）で並べます。読み上げの順が
+ * 目で追う順と食い違うと、同じ項目の説明が 2 度に分かれて聞こえます。
  */
 export function fieldControlAttributes({
   controlId,
+  description,
   errorId,
   message,
   required,
 }: FieldControlState): FieldControlAttributes {
+  const describedBy = [
+    description === undefined ? undefined : toDescriptionId(controlId),
+    message === undefined ? undefined : errorId,
+  ].filter((id): id is string => id !== undefined);
+
   return {
-    "aria-describedby": message === undefined ? undefined : errorId,
+    "aria-describedby": describedBy.length === 0 ? undefined : describedBy.join(" "),
     "aria-invalid": message !== undefined,
     "aria-required": required,
     id: controlId,
