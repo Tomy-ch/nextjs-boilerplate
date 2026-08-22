@@ -18,7 +18,7 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 ## 構成
 
-- `initialize.server.ts` は Node.js runtime の `NodeSDK` をプロセスごとに一度だけ初期化する。resource には公式 semantic convention の `service.name` を設定し、W3C Trace Context と W3C Baggage を伝播する。HTTP instrumentation は受信 HTTP request の trace を作る。
+- `initialize.server.ts` は Node.js runtime の `NodeSDK` をプロセスごとに一度だけ初期化する。resource には公式 semantic convention の `service.name` を設定し、W3C Trace Context と W3C Baggage を伝播する。HTTP instrumentation は受信 HTTP request の trace を作り、Undici instrumentation は許可された API origin への server-side `fetch` へ trace context を注入する。伝播が働くのは signal のいずれかが有効で SDK が構築されたときだけである。Undici の外向き span からは `url.query` を落とし、`url.full` も query の無い形にする。
 - `trace-context.ts` は現在の有効な span から trace ID と span ID を抽出する。logging にはこの関数を起動境界で注入する。
 - `otlp-log-sink.server.ts` は logging が渡す正規化済みレコードを OTel Logs API へ変換する。OTLP 属性へ変換できない値は送出しない。
 
@@ -36,3 +36,4 @@ Next.js は Node.js サーバーを準備すると `src/instrumentation.ts` の 
 - 実装時に設定値を注入し、vendor 固定を避ける
 - local 開発では go 側 compose の `observability` が公開する OTLP HTTP `http://localhost:4318` と Grafana `http://localhost:3000` を使う
 - fork 先のバックエンドや collector に合わせて endpoint、`service.name`、signal 有効化を設定する。Grafana、Sentry、Faro などの SDK をこのカーネルへ直接固定しない
+- Next.js が自前で張る `fetch` span は、span 名に query 付きの URL をそのまま載せる。このカーネルの redaction は及ばないため、query に利用者の入力を乗せる口を持つなら `NEXT_OTEL_FETCH_DISABLED=1` で抑止する。同じ外向き通信は Undici instrumentation の span が redaction 済みで覆う
