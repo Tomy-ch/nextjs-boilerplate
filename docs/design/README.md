@@ -20,7 +20,7 @@
 | 文書 | 主題 | 扱う範囲 |
 | --- | --- | --- |
 | [placement.md](placement.md) | 置き場 | 表示・hook・client 状態をどこへ置くか。判断の順序と、引き当てを間違えやすい点 |
-| [rendering.md](rendering.md) | レンダリング | Server / Client Component・SSR・hydration の用語と、取り違えたときに起きること |
+| [rendering.md](rendering.md) | レンダリング | Server / Client Component・SSR・hydration・Server Action の用語と、取り違えたときに起きること |
 
 ## 読み方
 

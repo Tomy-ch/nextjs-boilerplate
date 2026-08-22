@@ -8,7 +8,7 @@ import type { Session } from "@/model/session";
 
 import type { DiscardDevSessionAction, IssueDevSessionAction } from "./form-state";
 import { CurrentSession } from "./ui/current-session/current-session";
-import { DevSessionForm } from "./ui/session-form/session-form";
+import { type AuthorizationHandoff, DevSessionForm } from "./ui/session-form/session-form";
 
 /** `DevSessionView` の props。 */
 export type DevSessionViewProps = {
@@ -16,6 +16,14 @@ export type DevSessionViewProps = {
   session: Session | null;
   /** 発行したあとの戻り先。 */
   returnUrl: string;
+  /**
+   * 認可の往復からの引き渡し。直接開いたときは null。
+   *
+   * @remarks
+   * 入っていれば、発行の指定は認可 endpoint へ送られます。この画面は中身を読まず、
+   * 受け取ったものをそのまま発行の指定へ渡すだけです。
+   */
+  authorization: AuthorizationHandoff | null;
   /** 発行の送信先。 */
   issueAction: IssueDevSessionAction;
   /** 破棄の送信先。 */
@@ -38,6 +46,7 @@ export type DevSessionViewProps = {
 export function DevSessionView({
   session,
   returnUrl,
+  authorization,
   issueAction,
   discardAction,
   connectsLiveApi,
@@ -61,6 +70,7 @@ export function DevSessionView({
         <CardContent>
           <DevSessionForm
             action={issueAction}
+            authorization={authorization}
             connectsLiveApi={connectsLiveApi}
             defaultIssuer={defaultIssuer}
             returnUrl={returnUrl}

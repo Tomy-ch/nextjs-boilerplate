@@ -2,15 +2,32 @@ import "server-only";
 
 import { getAuthConfig } from "@/config/auth/auth.server";
 import { getHttpConfig } from "@/config/http/http.server";
+import { isDevelopmentOnlyEndpointOpen } from "@/config/load-environment";
 
 import { fetchSessionRole } from "../api/user-roles"; // sample:line
-import { createDefaultSessionResolver } from "./default-session-resolver";
+import {
+  createDefaultSessionResolver,
+  type DefaultSessionResolverDeps,
+} from "./default-session-resolver";
+import { createDevelopmentSessionResolver } from "./development-session-resolver";
 import type { SessionResolver } from "./session-resolver";
 
 let resolver: SessionResolver | undefined;
 
 /**
- * 同梱している既定 Resolver を返す。
+ * 認可の開始先を、開発用の面へ差し替えるか。
+ *
+ * @remarks
+ * **環境と併せて見ます。** `AUTH_MODE` だけを条件にすると、設定を誤って実環境へ `dev` を与えた
+ * 瞬間に、IdP を通らずに任意の役割で入れる経路が公開ドメインで開きます。開ける環境の一覧は
+ * `developmentOnlyEnvironments` の 1 か所のままにします。
+ */
+function usesDevelopmentAuthorization(): boolean {
+  return getAuthConfig().mode === "dev" && isDevelopmentOnlyEndpointOpen();
+}
+
+/**
+ * 同梱している Resolver を返す。
  *
  * @remarks
  * fork 先の差し替え単位は `SessionResolver` です（[README](./README.md) の「差し替え点」）。
@@ -24,8 +41,7 @@ let resolver: SessionResolver | undefined;
  */
 export function getSessionResolver(): SessionResolver {
   const config = getAuthConfig();
-
-  resolver ??= createDefaultSessionResolver({
+  const deps: DefaultSessionResolverDeps = {
     issuer: config.issuer,
     clientId: config.clientId,
     redirectUri: config.redirectUri,
@@ -33,7 +49,11 @@ export function getSessionResolver(): SessionResolver {
     sessionSecret: config.sessionSecret,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
     resolveRole: fetchSessionRole, // sample:line
-  });
+  };
+
+  resolver ??= usesDevelopmentAuthorization()
+    ? createDevelopmentSessionResolver(deps)
+    : createDefaultSessionResolver(deps);
 
   return resolver;
 }

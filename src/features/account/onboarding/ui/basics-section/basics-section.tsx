@@ -19,6 +19,9 @@ export type RegistrationBasicsSectionProps = {
  * **自分が段であることを知りません。** 表示・非表示と focus の移動は、これを並べる器が持ちます。
  * 知ってしまうと器を差し替えられなくなります。
  *
+ * **連絡先のメールには補足を添えます。** 認証を済ませた直後にこの欄へ辿り着くため、ここで入れた
+ * 宛先でログインできると読めてしまいます。認証の identity は IdP の側にあり、この欄とは別物です。
+ *
  * 名字と名前だけを横に並べます。どちらも短く、続けて 1 つの氏名として読むためです。連絡先は
  * 値の長さが揃わないので 1 列に落とします。
  */
@@ -39,6 +42,7 @@ export function RegistrationBasicsSection({ fields }: RegistrationBasicsSectionP
       </div>
       <TextField
         autoComplete="email"
+        description="連絡のための宛先です。認証に使う ID ではないため、ここを変えてもログインの方法は変わりません。"
         label={PROFILE_FIELD_LABELS.email}
         type="email"
         {...fields.fieldOf("email")}

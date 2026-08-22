@@ -199,6 +199,16 @@ Server Component の利点は、**そのコードがブラウザへ送られな�
 
 逆に Client Component の代償は、**その分の JavaScript がブラウザへ送られること**である。SSR が壊れることではない。したがって「Client Component にすると SSR が死ぬ」を心配する必要はなく、心配すべきは**送るコードの量**である。
 
+### Server Action の `redirect()` は Route Handler へ遷移しない
+
+Server Action の中で `redirect()` を呼ぶと、応答は「この URL へ移れ」という指示になり、**遷移を実際に行うのは client router** である。router が知っているのは route segment（`page.tsx`）であって Route Handler（`route.ts`）ではないため、**Route Handler を指した redirect は要求が一度も出ないまま URL だけが書き換わる。** 同一生成元の絶対 URL にしても同じで、client router から見れば内部の遷移だからである。
+
+副作用を起こしたあとに Route Handler へ渡す必要があるなら、Server Action ではなく**素の form 送信**（`<form method="post" action="/...">`）で受ける。ブラウザ自身が遷移するので、`Response.redirect` の連鎖も cookie の往復もそのまま通る。
+
+代償は、素の送信が状態を持ち越せないことである。`useActionState` の戻り値に載る**項目ごとの誤りと送信中の表示は出ない**ので、失敗は URL の検索条件（`?error=...`）で戻すことになる。同梱サンプルでは `/dev/session` の認可の往復がこの形を採っている（[`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts) の `DEV_AUTHORIZE_PATH`）。
+
+**確かめ方**: Server Action から `redirect("/api/…")` を呼ぶ画面を開き、操作したあとに開発サーバのログを見る。URL は変わっているのに、その `GET` が 1 行も出ない。
+
 ## このリポジトリでの現れ方
 
 | 層 | 既定 | 備考 |

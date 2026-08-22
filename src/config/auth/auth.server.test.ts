@@ -18,6 +18,7 @@ describe("getAuthConfig", () => {
     const { getAuthConfig } = await import("./auth.server");
 
     expect(getAuthConfig()).toMatchObject({
+      mode: "idp",
       issuer: "https://id.example.test",
       clientId: "nextjs-boilerplate",
       redirectUri: "https://app.example.test/auth/callback",

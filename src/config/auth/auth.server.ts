@@ -1,9 +1,10 @@
 import "server-only";
 
 import { getEnvironment } from "../environment";
-import type { AuthEnvironment } from "./auth.schema";
+import type { AuthEnvironment, AuthMode } from "./auth.schema";
 
 class AuthConfig {
+  readonly #mode: AuthMode;
   readonly #issuer: string;
   readonly #clientId: string;
   readonly #redirectUri: string;
@@ -11,12 +12,14 @@ class AuthConfig {
   readonly #sessionSecret: string;
 
   private constructor(
+    mode: AuthMode,
     issuer: string,
     clientId: string,
     redirectUri: string,
     scopes: string,
     sessionSecret: string,
   ) {
+    this.#mode = mode;
     this.#issuer = issuer;
     this.#clientId = clientId;
     this.#redirectUri = redirectUri;
@@ -27,12 +30,24 @@ class AuthConfig {
   /** 検証済み ENV から production singleton を組み立てる。 */
   static fromValues(values: AuthEnvironment): AuthConfig {
     return new AuthConfig(
+      values.AUTH_MODE,
       values.AUTH_ISSUER,
       values.AUTH_CLIENT_ID,
       values.AUTH_REDIRECT_URI,
       values.AUTH_SCOPES,
       values.AUTH_SESSION_SECRET,
     );
+  }
+
+  /**
+   * 認可の開始先。
+   *
+   * @remarks
+   * `dev` でも、開発専用の口が閉じている環境では既定 Resolver が選ばれます。判定を併せる側は
+   * `adapters/server/auth/resolver.ts` です。
+   */
+  get mode(): AuthMode {
+    return this.#mode;
   }
 
   /** OIDC Discovery の起点となる issuer。 */
