@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 import LoginPage, { metadata } from "./page";
 
-/** RSC を描いて DOM を得る。 */
 async function renderPage(searchParams: Record<string, string | string[] | undefined>) {
   return render(await LoginPage({ searchParams: Promise.resolve(searchParams) }));
 }
@@ -66,6 +65,7 @@ describe("LoginPage", () => {
   it("案内を出した状態でも a11y 違反を持たない", async () => {
     const { container } = await renderPage({ error: "unavailable" });
 
+    expect(screen.getByRole("alert")).toBeVisible();
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);

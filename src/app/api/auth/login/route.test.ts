@@ -70,9 +70,20 @@ describe("GET", () => {
     );
     const location = new URL(String(response.headers.get("location")));
 
+    expect(response.status).toBe(302);
     expect(location.pathname).toBe("/login");
     expect(location.searchParams.get("returnUrl")).toBe("/mypage");
     expect(storeTransaction).not.toHaveBeenCalled();
+  });
+
+  it("一時状態を保存できなくても、認可画面へは送らない", async () => {
+    storeTransaction.mockRejectedValue(new Error("cookie を置けません"));
+
+    const response = await GET(new Request("http://localhost:3000/api/auth/login"));
+    const location = new URL(String(response.headers.get("location")));
+
+    expect(response.status).toBe(302);
+    expect(location.pathname).toBe("/login");
   });
 
   it("戻すときに、始められなかった理由を載せる", async () => {
@@ -81,6 +92,7 @@ describe("GET", () => {
     const response = await GET(new Request("http://localhost:3000/api/auth/login"));
     const location = new URL(String(response.headers.get("location")));
 
+    expect(response.status).toBe(302);
     expect(location.searchParams.get("error")).toBe("unavailable");
   });
 });

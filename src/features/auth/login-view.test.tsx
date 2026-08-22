@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 import { toSafeReturnUrl } from "@/model/return-url";
 
 import { LOGIN_NOTICE } from "./login-notice";
@@ -91,5 +92,24 @@ describe("LoginView", () => {
     render(<LoginView returnUrl={toSafeReturnUrl("/")} notice={null} />);
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(<LoginView returnUrl={toSafeReturnUrl("/")} notice={null} />);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
+  });
+
+  it("案内を出した状態でも a11y 違反を持たない", async () => {
+    const { container } = render(
+      <LoginView returnUrl={toSafeReturnUrl("/")} notice={LOGIN_NOTICE.UNAVAILABLE} />,
+    );
+
+    expect(screen.getByRole("alert")).toBeVisible();
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });
