@@ -12,6 +12,9 @@ const { verifySession, redirect } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
+vi.mock("next/font/google", () => ({
+  IBM_Plex_Sans_JP: () => ({ variable: "--typeface-plex-jp" }),
+}));
 vi.mock("next/navigation", () => ({
   redirect,
   usePathname: () => "/admin/products",
@@ -42,6 +45,16 @@ describe("AdminLayout", () => {
     await renderLayout();
 
     expect(screen.getByRole("main")).toHaveTextContent("本文");
+  });
+
+  it("和文の書体を、器の外側から管理の面全体へ配る", async () => {
+    const { container } = await renderLayout();
+
+    // 器の内側（`main`）へ当てると脇の一覧に効かないため、外側であることまで見る。
+    const carrier = container.querySelector(".--typeface-plex-jp");
+
+    expect(carrier).not.toBeNull();
+    expect(carrier).toContainElement(screen.getByRole("main"));
   });
 
   it("商品一覧管理への導線を並べる", async () => {

@@ -10,6 +10,7 @@ import {
   resolveScreens,
   SCREEN_MANIFEST_FILE,
   SCREENS,
+  selectScreens,
 } from "../../e2e/lib/screens";
 import {
   hasFailure,
@@ -190,9 +191,12 @@ async function measureAll(): Promise<void> {
   }
 
   const budget = parseBudget(readFileSync(BUDGET_FILE, "utf8"));
-  const screens = resolveScreens(
-    listScreenRoutes(readFileSync(SCREEN_MANIFEST_FILE, "utf8")),
-    SCREENS,
+
+  // 絞りは撮影側と同じ入口を使う（`E2E_ONLY`）。1 枚を見たいだけの実行が全画面を回すと、
+  // 手元では 16 分を払うことになり、実際には誰も回さなくなる。
+  const screens = selectScreens(
+    resolveScreens(listScreenRoutes(readFileSync(SCREEN_MANIFEST_FILE, "utf8")), SCREENS),
+    process.env.E2E_ONLY,
   );
 
   mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -215,7 +219,9 @@ async function measureAll(): Promise<void> {
     );
   }
 
-  const missing = missingScreens(measurements, budget);
+  // 絞った実行では見ない。在るべき画面の集合が絞った側に縮み、対象外の緩和がすべて
+  // 「居ない画面への宣言」として上がる（`selectScreens` が撮影側について言うのと同じ）。
+  const missing = process.env.E2E_ONLY ? [] : missingScreens(measurements, budget);
 
   if (missing.length > 0) {
     console.error(
