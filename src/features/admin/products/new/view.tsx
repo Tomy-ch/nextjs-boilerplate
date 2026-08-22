@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useActionState, useCallback, useId, useMemo } from "react";
 
 import { WizardForm } from "@/components/patterns/wizard-form/wizard-form";
@@ -11,11 +12,29 @@ import type {
   UploadProductImageAction,
 } from "../form-state";
 import { ProductBasicsSection } from "../ui/basics-section/basics-section";
-import { ProductConfirmSection } from "../ui/confirm-section/confirm-section";
 import { ProductDescriptionSection } from "../ui/description-section/description-section";
 import { ProductFormFeedback } from "../ui/form-feedback/form-feedback";
 import { ProductImagesSection } from "../ui/images-section/images-section";
 import { ProductPublishSection } from "../ui/publish-section/publish-section";
+
+/**
+ * 確認の段は、その段へ進んでから読む。
+ *
+ * @remarks
+ * 静的に import すると、**書いた HTML を検査する仕組み一式（`model/rich-text` の parser と
+ * sanitizer）が商品フォームの最初の読み込みに乗ります**。gzip で 66.7 KB あり、初期表示に出ない
+ * 段のために払っています（[0101](../../../../docs/adr/0101-performance-budget.md) §4）。
+ *
+ * **`ssr: false` で読めます。** この段は入力欄を持たない読み取り専用の要約で、`hidden` で隠れた
+ * まま立ち上がるため、届くまでの枠も見えません。入力値を form へ残す必要（`wizard-form.tsx` が
+ * 全段を DOM に残す理由）は、入力欄を持つ他の段が担っています。
+ */
+const ProductConfirmSection = dynamic(
+  () =>
+    import("../ui/confirm-section/confirm-section").then((module) => module.ProductConfirmSection),
+  { ssr: false },
+);
+
 import type { ProductSelectOption } from "../ui/select-field/select-field";
 import { ProductSubmitButton } from "../ui/submit-button/submit-button";
 import { useProductForm } from "../use-product-form";

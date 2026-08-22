@@ -48,9 +48,13 @@ vi.mock("@/components/app-starter/navigation-guard/navigation-guard", () => ({
   },
 }));
 
-beforeAll(() => {
+// 確認の段は `next/dynamic` で読まれる。先に解決しておかないと、要素を待つ時間の中に module の
+// 読み込みが入る（`docs/testing-conventions.md`「`next/dynamic` を含む木を描くとき」）。
+beforeAll(async () => {
   URL.createObjectURL = vi.fn(() => "blob:preview");
   URL.revokeObjectURL = vi.fn();
+
+  await import("../ui/confirm-section/confirm-section");
 });
 
 beforeEach(() => {
