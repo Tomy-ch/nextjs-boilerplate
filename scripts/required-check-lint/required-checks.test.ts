@@ -212,7 +212,6 @@ describe("readWorkflowContexts", () => {
     expect(parsed.pullRequest).toEqual({ filters: [], types: null });
   });
 
-  // ----- 異常系 -----
   it("pull_request で走らない workflow を null で返す", () => {
     const byString = readWorkflowContexts("d.yaml", "on: push\njobs:\n  build:\n");
     const bySequence = readWorkflowContexts("d.yaml", "on: [push]\njobs:\n  build:\n");
@@ -230,6 +229,7 @@ describe("readWorkflowContexts", () => {
     expect(parsed.pullRequest).toBeNull();
   });
 
+  // ----- 異常系 -----
   it("YAML として読めない workflow を落とす", () => {
     expect(() => readWorkflowContexts("lint.yaml", "jobs: [lint")).toThrow("YAML として読めません");
   });
