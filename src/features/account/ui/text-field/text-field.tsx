@@ -9,6 +9,8 @@ import type { ProfileFieldProps } from "../../use-profile-fields";
 type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placeholder" | "type"> &
   ProfileFieldProps & {
     readonly label: string;
+    /** 入力の補足。誤りとは別に常時出す。 */
+    readonly description?: string;
   };
 
 /**
@@ -19,6 +21,7 @@ type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placehold
  */
 export function TextField({
   controlId,
+  description,
   errorId,
   label,
   message,
@@ -29,6 +32,7 @@ export function TextField({
   return (
     <FormField
       controlId={controlId}
+      description={description}
       errorId={errorId}
       label={label}
       message={message}
