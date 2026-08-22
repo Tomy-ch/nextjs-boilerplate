@@ -31,7 +31,7 @@ frontmatter の `test-requirement: unit` が掛かるのは、取りまとめが
 | パス | 中身 |
 | --- | --- |
 | `api/endpoints.msw.ts` | 本体 API の MSW ハンドラ。response は faker で組み立てられる |
-| `api/endpoints.ts` / `auth/endpoints.ts` | orval が生成する HTTP client。**使いません**(下記) |
+| `api/endpoints.ts` | orval が生成する HTTP client。**使いません**(下記) |
 | `handlers.ts` | 生成ハンドラの取りまとめ。手書きのハンドラは足しません |
 | `stable-responses.ts` | 同じ要求へ同じ応答を返させる組み立て(下記) |
 | `node.ts` | Node 側の interception。Server Components からの取得もここを通ります |
@@ -115,7 +115,11 @@ orval は client の出力先(`target`)を必須とします。一方 outbound �
 本番が使うことはありません。これを `src/adapters/gen/` へ置くと「どちらで呼ぶのか」が生成物の側から
 曖昧になるため、mock 生成の副産物としてこちらに寄せています。MSW ハンドラはこの client に依存しません。
 
-## 認証のモック
+## 認証をここでモックしない理由
 
-mock OIDC Provider(`auth` 契約)のハンドラは生成していません。認証の配線は別途行うため、
-使う当てのないハンドラを先に置かない方針です。
+**認証はこの層を通りません。** IdP との往復は OIDC Discovery が実行時に示す口へ出るもので、
+契約から生成した型も MSW ハンドラも間に挟まりません([0079](../docs/adr/0079-auth-frontend-seam.md))。
+
+手元で認証済みの状態に到達する手段は 2 つあり、どちらもここではありません。開発用 IdP を立てて
+通常のログインを通すか、`/dev/session` から session を直接発行するかです
+([src/features/dev-session/](../src/features/dev-session/README.md))。
