@@ -16,6 +16,14 @@ export type DevSessionViewProps = {
   session: Session | null;
   /** 発行したあとの戻り先。 */
   returnUrl: string;
+  /**
+   * 認可の往復で持ち回る、要求と応答を対応づける値。直接開いたときは null。
+   *
+   * @remarks
+   * 入っていれば、発行の結果を `/api/auth/callback` へ返します。この画面は値の意味を知らず、
+   * 受け取ったものをそのまま送信へ載せるだけです。
+   */
+  authorizationState: string | null;
   /** 発行の送信先。 */
   issueAction: IssueDevSessionAction;
   /** 破棄の送信先。 */
@@ -38,6 +46,7 @@ export type DevSessionViewProps = {
 export function DevSessionView({
   session,
   returnUrl,
+  authorizationState,
   issueAction,
   discardAction,
   connectsLiveApi,
@@ -61,6 +70,7 @@ export function DevSessionView({
         <CardContent>
           <DevSessionForm
             action={issueAction}
+            authorizationState={authorizationState}
             connectsLiveApi={connectsLiveApi}
             defaultIssuer={defaultIssuer}
             returnUrl={returnUrl}

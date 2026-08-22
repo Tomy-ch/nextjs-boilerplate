@@ -18,11 +18,12 @@ test-requirement: unit
 
 | 外部通信を持つ（`integration`） | 持たない（`unit`） |
 | --- | --- |
-| `oidc-discovery.ts` / `default-session-resolver.ts` / `development-token.ts` | `pkce.ts` / `random-token.ts` / `session-cookie.ts` / `session.ts` / `resolver.ts` / `optimistic-session.ts` / `test-session.ts` / `development-access.ts` |
+| `oidc-discovery.ts` / `default-session-resolver.ts` / `development-token.ts` | `pkce.ts` / `random-token.ts` / `seal-key.ts` / `session-cookie.ts` / `session.ts` / `resolver.ts` / `optimistic-session.ts` / `test-session.ts` / `test-session-record.ts` / `development-session-resolver.ts` / `development-authorization-code.ts` / `development-access.ts` |
 
 宣言を `unit` にしているのは、多数派がそちらであるためです。上の 3 つは HTTP 境界を持つので
 `integration` の要求も併せて満たします。判定は「そのモジュールが外へ出るか」で行い、
-ディレクトリの位置では決めません。
+ディレクトリの位置では決めません。`development-session-resolver.ts` は既定 Resolver を組み立てますが、
+自分では外へ出ません（`startAuthorization` が返すのは同じ生成元の面です）。
 
 ## 受け入れるもの
 
@@ -44,6 +45,20 @@ test-requirement: unit
 `session-resolver.ts` の `SessionResolver` が唯一の差し替え単位です。fork 先が自社方式へ移るときは
 `resolver.ts` が返す実装を替えます。cookie を扱う側は封緘された文字列しか触らないため、方式が
 変わっても書き直しになりません。
+
+同梱するのは 2 つです。
+
+| 実装 | いつ選ばれるか |
+| --- | --- |
+| `default-session-resolver.ts` | 既定。Authorization Code + PKCE で実在の IdP と往復する |
+| `development-session-resolver.ts` | `AUTH_MODE=dev` かつ開発専用の口が開く環境。IdP の代わりに `/dev/session` へ送り出す |
+
+**開発用は面を狭めません。** 送り出す先と、認可コードの交換だけを差し替え、封緘・復元は既定
+実装をそのまま借ります。cookie の形が方式で変わると、片方で作った session をもう片方が読めなくなり、
+環境変数を切り替えただけで入り直しが要ります。
+
+**選ぶ判定は環境と併せます**（`resolver.ts`）。`AUTH_MODE` だけを条件にすると、設定を誤って実環境へ
+`dev` を与えた瞬間に、IdP を通らずに任意の役割で入れる経路が公開ドメインで開きます。
 
 ## 隣に置くもの
 

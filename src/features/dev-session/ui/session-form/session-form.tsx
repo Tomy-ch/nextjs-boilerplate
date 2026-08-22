@@ -18,12 +18,20 @@ import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE, type SessionRole } from "@/model/session";
 
 import type { DevSessionFormState, IssueDevSessionAction } from "../../form-state";
-import { RETURN_URL_PARAM } from "../../paths";
+import { RETURN_URL_PARAM, STATE_PARAM } from "../../paths";
 
 /** `DevSessionForm` の props。 */
 export type DevSessionFormProps = {
   /** 発行したあとの戻り先。 */
   returnUrl: string;
+  /**
+   * 認可の往復で持ち回る、要求と応答を対応づける値。直接開いたときは null。
+   *
+   * @remarks
+   * 送信へそのまま載せます。**この form は値の意味を知りません** —— 載っているときに送信先が
+   * `/api/auth/callback` へ返す、という判断は Server Action の側にあります。
+   */
+  authorizationState: string | null;
   /** 発行の送信先。route が渡す。 */
   action: IssueDevSessionAction;
   /**
@@ -93,6 +101,7 @@ function IssueSubmit() {
  */
 export function DevSessionForm({
   returnUrl,
+  authorizationState,
   action,
   connectsLiveApi,
   defaultIssuer,
@@ -115,6 +124,9 @@ export function DevSessionForm({
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <input name={RETURN_URL_PARAM} type="hidden" value={returnUrl} />
+      {authorizationState === null ? null : (
+        <input name={STATE_PARAM} type="hidden" value={authorizationState} />
+      )}
 
       <FormField
         controlId={subjectId}

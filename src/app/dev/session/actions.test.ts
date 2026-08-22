@@ -10,6 +10,7 @@ const {
   discardTestSession,
   isDevelopmentAccessAllowed,
   issueDevelopmentAccessToken,
+  issueDevelopmentAuthorizationCode,
   issueTestSession,
   redirect,
   revalidatePath,
@@ -17,6 +18,7 @@ const {
   discardTestSession: vi.fn(),
   isDevelopmentAccessAllowed: vi.fn(),
   issueDevelopmentAccessToken: vi.fn(),
+  issueDevelopmentAuthorizationCode: vi.fn(),
   issueTestSession: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
@@ -27,6 +29,9 @@ const {
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/adapters/server/auth/development-access", () => ({ isDevelopmentAccessAllowed }));
+vi.mock("@/adapters/server/auth/development-authorization-code", () => ({
+  issueDevelopmentAuthorizationCode,
+}));
 vi.mock("@/adapters/server/auth/development-token", () => ({ issueDevelopmentAccessToken }));
 vi.mock("@/adapters/server/auth/test-session", () => ({ discardTestSession, issueTestSession }));
 
@@ -67,6 +72,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   isDevelopmentAccessAllowed.mockResolvedValue(true);
   issueDevelopmentAccessToken.mockResolvedValue("issued-token");
+  issueDevelopmentAuthorizationCode.mockResolvedValue("sealed-code");
 });
 
 describe("issueDevSessionAction", () => {
@@ -133,6 +139,27 @@ describe("issueDevSessionAction", () => {
     expect(issueDevelopmentAccessToken).not.toHaveBeenCalled();
   });
 
+  it("認可の往復の途中なら、session を置かずに callback へ返す", async () => {
+    const destination = await issueAndCatch(submission({ state: "tx-state" }));
+
+    expect(issueTestSession).not.toHaveBeenCalled();
+    expect(destination).toBe("/api/auth/callback?code=sealed-code&state=tx-state");
+  });
+
+  it("認可コードには、その場で指定した内容を渡す", async () => {
+    await issueAndCatch(submission({ role: SESSION_ROLE.admin, state: "tx-state" }));
+
+    expect(issueDevelopmentAuthorizationCode).toHaveBeenCalledWith(
+      expect.objectContaining({ role: SESSION_ROLE.admin, subject: "dev-user" }),
+    );
+  });
+
+  it("直接開かれたなら、認可コードを組まない", async () => {
+    await issueAndCatch(submission());
+
+    expect(issueDevelopmentAuthorizationCode).not.toHaveBeenCalled();
+  });
+
   // ----- 異常系 -----
   it("トークンを取れなければ、session を発行しない", async () => {
     issueDevelopmentAccessToken.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
@@ -144,6 +171,15 @@ describe("issueDevSessionAction", () => {
 
     expect(state).toMatchObject({ status: "error" });
     expect(issueTestSession).not.toHaveBeenCalled();
+  });
+
+  it("認可コードを組めなければ、画面を移さない", async () => {
+    issueDevelopmentAuthorizationCode.mockRejectedValue(createAppError(ErrorKind.INTERNAL));
+
+    const state = await issueDevSessionAction(idleActionState(), submission({ state: "tx-state" }));
+
+    expect(state).toMatchObject({ status: "error" });
+    expect(redirect).not.toHaveBeenCalled();
   });
 
   it("外部のサイトを戻り先に指定されても、自分の中へ倒す", async () => {

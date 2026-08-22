@@ -43,7 +43,8 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `AUTH_ISSUER` | OIDC issuer と Discovery の起点 | URL | `http://localhost:4000` | Required。local は go-boilerplate の mock auth server |
+| `AUTH_MODE` | 認可の開始先 | `idp` / `dev` | `idp` | Code default `idp`。`dev` は IdP を立てずに `/dev/session` から session を発行させる。開発専用の口が開く環境（`local` / `ci`）でしか効かない |
+| `AUTH_ISSUER` | OIDC issuer と Discovery の起点 | URL | `http://localhost:2010/default` | Required。local は go-boilerplate の開発用 IdP |
 | `AUTH_CLIENT_ID` | Authorization Code + PKCE の public client ID | string | `go-boilerplate-client` | Required。client secret は不要 |
 | `AUTH_REDIRECT_URI` | OIDC callback URL | URL | `http://localhost:3000/api/auth/callback` | Required。IdP 登録値と完全一致させる |
 | `AUTH_SCOPES` | 認可リクエストの space-delimited scope | string | `openid profile email api.read api.write` | Required |

@@ -10,7 +10,7 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { getApiConfig } from "@/config/api/api.server";
 import { getAuthConfig } from "@/config/auth/auth.server";
-import { RETURN_URL_PARAM } from "@/features/dev-session/paths";
+import { RETURN_URL_PARAM, STATE_PARAM } from "@/features/dev-session/paths";
 import { DevSessionView } from "@/features/dev-session/view";
 import { toSafeReturnUrl } from "@/model/return-url";
 
@@ -36,6 +36,10 @@ export const metadata: Metadata = {
  *
  * 戻り先は同じ生成元の中だけに絞ります。受け取った値をそのまま渡すと、発行した直後に外部の
  * サイトへ送る導線になります。
+ *
+ * 要求と応答を対応づける値は**検証しません**。載っているかどうかだけを見て、そのまま送信へ渡します。
+ * 正しさを判定するのは `/api/auth/callback` が復元する一時状態との突合であり、ここで別に判定すると
+ * 判定が 2 か所に分かれます。
  */
 export default async function DevSessionPage({
   searchParams,
@@ -46,7 +50,9 @@ export default async function DevSessionPage({
     notFound();
   }
 
-  const returnUrl = (await searchParams)[RETURN_URL_PARAM];
+  const params = await searchParams;
+  const returnUrl = params[RETURN_URL_PARAM];
+  const authorizationState = params[STATE_PARAM];
 
   return (
     <ContentContainer className="py-8">
@@ -59,6 +65,7 @@ export default async function DevSessionPage({
         </div>
       </PageHeader>
       <DevSessionView
+        authorizationState={typeof authorizationState === "string" ? authorizationState : null}
         connectsLiveApi={getApiConfig().mode === "live"}
         defaultIssuer={getAuthConfig().issuer}
         discardAction={discardDevSessionAction}

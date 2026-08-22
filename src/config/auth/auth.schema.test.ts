@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   authClientIdValidator,
   authIssuerValidator,
+  authModeValidator,
   authRedirectUriValidator,
   authScopesValidator,
   authSessionSecretValidator,
@@ -17,6 +18,22 @@ describe("authIssuerValidator", () => {
   // ----- 異常系 -----
   it("http(s) 以外の issuer を拒否する", () => {
     expect(authIssuerValidator().safeParse("ftp://id.example.test").success).toBe(false);
+  });
+});
+
+describe("authModeValidator", () => {
+  // ----- 正常系 -----
+  it("開発用の開始先を受け入れる", () => {
+    expect(authModeValidator().safeParse("dev").data).toBe("dev");
+  });
+
+  it("省略を IdP へ倒す", () => {
+    expect(authModeValidator().safeParse(undefined).data).toBe("idp");
+  });
+
+  // ----- 異常系 -----
+  it("宣言に無い開始先を拒否する", () => {
+    expect(authModeValidator().safeParse("cognito").success).toBe(false);
   });
 });
 

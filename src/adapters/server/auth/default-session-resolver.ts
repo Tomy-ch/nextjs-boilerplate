@@ -11,6 +11,7 @@ import { createHttpClient } from "../http/request";
 import { fetchOidcEndpoints, type OidcEndpoints } from "./oidc-discovery";
 import { toCodeChallenge } from "./pkce";
 import { createRandomToken } from "./random-token";
+import { deriveSealKey, SEAL_HEADER } from "./seal-key";
 import { TRANSACTION_MAX_AGE_SECONDS } from "./session-cookie";
 import type {
   AuthorizationRequest,
@@ -18,9 +19,6 @@ import type {
   SessionRecord,
   SessionResolver,
 } from "./session-resolver";
-
-/** cookie を封緘する鍵配送方式と暗号方式。共有鍵をそのまま content encryption key に使う。 */
-const SEAL_HEADER = { alg: "dir", enc: "A256GCM" } as const;
 
 /** ID Token の署名に許す方式。IdP が非対称鍵で署名する前提を、検証側からも固定する。 */
 const ID_TOKEN_ALGORITHMS = ["RS256", "ES256"];
@@ -92,19 +90,6 @@ export type DefaultSessionResolverDeps = {
   /** 現在時刻。既定は `Date.now`。 */
   readonly now?: () => number;
 };
-
-/**
- * 秘密値から 256 bit の鍵を導く。
- *
- * @remarks
- * `A256GCM` は 32 バイトちょうどの鍵を要求しますが、設定が持つのは長さの決まっていない文字列です。
- * ハッシュを通すことで、設定側に「32 バイトちょうど」という運用不能な制約を課さずに済みます。
- */
-async function deriveSealKey(secret: string): Promise<Uint8Array> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
-
-  return new Uint8Array(digest);
-}
 
 /**
  * Authorization Code + PKCE と JWE 封緘による既定の Resolver を作る。
