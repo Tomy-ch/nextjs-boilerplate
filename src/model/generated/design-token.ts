@@ -146,7 +146,6 @@ export const PRIMITIVE_TOKEN = {
   font: [
     "michroma",
     "system-jp",
-    "plex-jp",
     "geist-mono",
   ],
   breakpoint: [

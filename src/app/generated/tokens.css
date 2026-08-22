@@ -79,7 +79,6 @@
   --radius-xl: 0.5rem;
   --font-michroma: var(--typeface-michroma), sans-serif;
   --font-system-jp: system-ui, Hiragino Sans, Hiragino Kaku Gothic ProN, Yu Gothic UI, Yu Gothic, Noto Sans JP, Meiryo, sans-serif;
-  --font-plex-jp: var(--typeface-plex-jp), Hiragino Sans, Noto Sans JP, sans-serif;
   --font-geist-mono: var(--typeface-geist-mono), monospace;
   --breakpoint-sm: 40rem;
   --breakpoint-md: 48rem;
@@ -324,7 +323,7 @@
   --semantic-color-destructive-foreground: var(--color-steel-55);
   --semantic-color-info: var(--color-cyan-775);
   --semantic-color-info-foreground: var(--color-steel-55);
-  --semantic-font-sans: var(--font-plex-jp);
+  --semantic-font-sans: var(--font-system-jp);
   --semantic-font-brand: var(--font-michroma);
   --semantic-font-mono: var(--font-geist-mono);
   --semantic-font-weight-emphasis: var(--font-weight-medium);
@@ -372,7 +371,7 @@
     --semantic-color-destructive-foreground: var(--color-steel-985);
     --semantic-color-info: var(--color-cyan-415);
     --semantic-color-info-foreground: var(--color-steel-985);
-    --semantic-font-sans: var(--font-plex-jp);
+    --semantic-font-sans: var(--font-system-jp);
     --semantic-font-brand: var(--font-michroma);
     --semantic-font-mono: var(--font-geist-mono);
     --semantic-font-weight-emphasis: var(--font-weight-medium);
@@ -421,7 +420,7 @@
     --semantic-color-destructive-foreground: var(--color-steel-985);
     --semantic-color-info: var(--color-cyan-415);
     --semantic-color-info-foreground: var(--color-steel-985);
-    --semantic-font-sans: var(--font-plex-jp);
+    --semantic-font-sans: var(--font-system-jp);
     --semantic-font-brand: var(--font-michroma);
     --semantic-font-mono: var(--font-geist-mono);
     --semantic-font-weight-emphasis: var(--font-weight-medium);

@@ -344,10 +344,6 @@
         "sans-serif"
       ]
     },
-    "plex-jp": {
-      "$type": "fontFamily",
-      "$value": ["var(--typeface-plex-jp)", "Hiragino Sans", "Noto Sans JP", "sans-serif"]
-    },
     "geist-mono": {
       "$type": "fontFamily",
       "$value": ["var(--typeface-geist-mono)", "monospace"]
