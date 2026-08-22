@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { posix, resolve } from "node:path";
 
 /** なぜ解決しないか。 */
-export type AssetFailure =
+type AssetFailure =
   /** 配信の根のどこにも実体が無い。 */
   | "missing"
   /** dev サーバでしか解決しない `/src/...` を指している。 */
