@@ -159,7 +159,7 @@ jobs:
           STORIES: ${{ steps.trigger.outputs.stories }}
           # Everything whose failure can change what a story renders as.
           DECIDES_PIXELS: >-
-            ["lint","typecheck","build","storybook-build","classes","tokens-drift","manifest"]
+            ["lint","typecheck","build","storybook-build","component-classes","classes","tokens-drift","shadcn-manifest","manifest"]
         run: |
           set -euo pipefail
 

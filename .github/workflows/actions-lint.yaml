@@ -1,7 +1,7 @@
 name: Actions Lint
 
 # Lints the Actions definitions themselves — the same commands the pre-commit hook
-# runs (ADR 0153: hooks mirror CI). Six checks, one concern:
+# runs (ADR 0153: hooks mirror CI). Seven checks, one concern:
 #
 #   actionlint          — workflow syntax, plus the shell of every `run:` in
 #                         `.github/workflows`. shellcheck is installed alongside it
@@ -20,6 +20,11 @@ name: Actions Lint
 #   actions-mise-pin-…  — the mise version, its digest and the cache key agree. mise's
 #     …lint               own version cannot live in `mise.toml`, so it is declared in
 #                         `.github/actions/setup-mise` in three places at once.
+#   actions-required-…  — every context the ruleset marks required is reported on every
+#     …check-lint         pull request. A required context that is never reported blocks
+#                         the merge forever, and the reasons it goes unreported (a job
+#                         renamed, two jobs sharing a name, a `paths:` filter) span two
+#                         files at once, which actionlint never reads together.
 #   actions-zizmor      — static analysis of the definitions themselves. Neither of the two
 #                         above can see quoting inside `${{ … }}`; ADR 0153 §1 has why.
 #                         zizmor reads the expressions and gates on high findings only.
@@ -109,17 +114,21 @@ jobs:
           make actions-mise-pin-lint 2>&1 | tee -a /tmp/actions-lint.log
           mise_pin_code=${PIPESTATUS[0]}
 
+          make actions-required-check-lint 2>&1 | tee -a /tmp/actions-lint.log
+          required_check_code=${PIPESTATUS[0]}
+
           make actions-zizmor 2>&1 | tee -a /tmp/actions-lint.log
           zizmor_code=${PIPESTATUS[0]}
 
           make shellcheck 2>&1 | tee -a /tmp/actions-lint.log
           script_shellcheck_code=${PIPESTATUS[0]}
 
-          summary="actionlint + shellcheck + pr-comment secret lint + mise pin + zizmor"
+          summary="actionlint + shellcheck + pr-comment secret lint + mise pin + required check + zizmor"
           if [ "${actionlint_code}" -eq 0 ] \
             && [ "${shellcheck_code}" -eq 0 ] \
             && [ "${secret_lint_code}" -eq 0 ] \
             && [ "${mise_pin_code}" -eq 0 ] \
+            && [ "${required_check_code}" -eq 0 ] \
             && [ "${zizmor_code}" -eq 0 ] \
             && [ "${script_shellcheck_code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
