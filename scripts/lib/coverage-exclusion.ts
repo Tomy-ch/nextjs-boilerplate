@@ -75,7 +75,7 @@ export function ownerDirectory(pattern: string, readReadme: ReadmeReader): strin
 function parseRecorded(source: string): readonly string[] | null {
   const frontmatter = parseFrontmatter(source);
 
-  if (frontmatter === null || !(DECLARATION_KEY in frontmatter)) {
+  if (frontmatter === null) {
     return null;
   }
 

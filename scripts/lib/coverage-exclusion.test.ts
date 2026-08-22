@@ -62,17 +62,6 @@ describe("findExclusionDrift", () => {
     expect(findExclusionDrift(["src/app/fonts.ts"], read, directories)).toEqual([]);
   });
 
-  it("所有者ごとにまとめる", () => {
-    const { read, directories } = treeOf({ "src/app": "# app", vrt: "# vrt" });
-
-    expect(
-      findExclusionDrift(["src/app/fonts.ts", "vrt/lib/settle.ts"], read, directories),
-    ).toEqual([
-      { directory: "src/app", missing: ["src/app/fonts.ts"], extra: [] },
-      { directory: "vrt", missing: ["vrt/lib/settle.ts"], extra: [] },
-    ]);
-  });
-
   it("記録を持たない README は走査に含まれても挙げない", () => {
     const { read, directories } = treeOf({
       "src/app": recording("src/app/fonts.ts"),
@@ -83,6 +72,17 @@ describe("findExclusionDrift", () => {
   });
 
   // ----- 異常系 -----
+  it("食い違いを所有者ごとにまとめる", () => {
+    const { read, directories } = treeOf({ "src/app": "# app", vrt: "# vrt" });
+
+    expect(
+      findExclusionDrift(["src/app/fonts.ts", "vrt/lib/settle.ts"], read, directories),
+    ).toEqual([
+      { directory: "src/app", missing: ["src/app/fonts.ts"], extra: [] },
+      { directory: "vrt", missing: ["vrt/lib/settle.ts"], extra: [] },
+    ]);
+  });
+
   it("記録の無い除外を missing へ挙げる", () => {
     const { read, directories } = treeOf({ "src/app": recording("src/app/fonts.ts") });
 

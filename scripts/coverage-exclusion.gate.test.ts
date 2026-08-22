@@ -70,16 +70,24 @@ function readReadme(directory: string): string | null {
   return existsSync(path) ? readFileSync(path, "utf8") : null;
 }
 
-describe("カバレッジ除外の記録", () => {
-  it("除外は所有 README の記録と一致する", () => {
-    const readmeDirectories = [...walkReadmeDirectories(REPOSITORY_ROOT)];
+// リポジトリ全体を走査するため、既定の 5 秒では足りない。全量を並列で回すと取り合いでさらに伸び、
+// 走査の遅さがそのまま赤になる（`docs/testing-conventions.md`「リポジトリ全体を走査するゲート」）。
+const TIMEOUT_MS = 300_000;
 
-    // 宣言と走査のどちらかが空振りすると、違反ゼロを報告したままゲートが黙る。宣言の列を組み替えた
-    // ときと走査の除外を広げすぎたときに起きる壊れ方がこれなので、違反より先に「見た件数」を主張する。
-    expect(EXCLUDED_FROM_CHECKS.length).toBeGreaterThan(0);
-    expect(readmeDirectories.length).toBeGreaterThan(0);
-    expect(findExclusionDrift([...EXCLUDED_FROM_CHECKS], readReadme, readmeDirectories)).toEqual(
-      [],
-    );
-  });
+describe("カバレッジ除外の記録", () => {
+  it(
+    "除外は所有 README の記録と一致する",
+    () => {
+      const readmeDirectories = [...walkReadmeDirectories(REPOSITORY_ROOT)];
+
+      // 宣言と走査のどちらかが空振りすると、違反ゼロを報告したままゲートが黙る。宣言の列を組み替えた
+      // ときと走査の除外を広げすぎたときに起きる壊れ方がこれなので、違反より先に「見た件数」を主張する。
+      expect(EXCLUDED_FROM_CHECKS.length).toBeGreaterThan(0);
+      expect(readmeDirectories.length).toBeGreaterThan(0);
+      expect(findExclusionDrift([...EXCLUDED_FROM_CHECKS], readReadme, readmeDirectories)).toEqual(
+        [],
+      );
+    },
+    TIMEOUT_MS,
+  );
 });
