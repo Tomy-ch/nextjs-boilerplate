@@ -46,8 +46,9 @@ export async function issueTestSession(input: {
  * テスト用に発行した session を捨てる。
  *
  * @remarks
- * cookie を消すだけで、IdP へは何も伝えません。この session は IdP を通さずに作ったもので、
- * 終わらせる相手が居ないためです（通常のログアウトは `signOut()` が IdP 側も終わらせます）。
+ * cookie を消すだけで、IdP へは向かいません。この session は IdP を通さずに作ったもので、
+ * 終わらせる相手が居ないためです（通常のログアウトは、`signOut()` が返す先へ利用者を送って
+ * IdP 側も終わらせます）。
  */
 export async function discardTestSession(): Promise<void> {
   (await cookies()).delete(SESSION_COOKIE_NAME);

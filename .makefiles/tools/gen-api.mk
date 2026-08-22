@@ -3,7 +3,7 @@
 .PHONY: gen-api ## 取得済みの契約から型 / zod / MSW ハンドラを生成する
 .PHONY: gen-api-check ## 契約と生成物の版が揃っているか検証する (生成なし・CI / hook 用)
 
-# 取得対象の契約名。省略時は sources.yaml の全件を取得する (例: make fetch-api NAME=auth)。
+# 取得対象の契約名。省略時は sources.yaml の全件を取得する (例: make fetch-api NAME=api)。
 NAME ?=
 
 fetch-api:

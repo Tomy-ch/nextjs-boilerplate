@@ -2,6 +2,8 @@
 imports-allowed: [errors]
 forbidden: [fetch, config, business-logic]
 test-requirement: unit
+coverage-exclusions:
+  - "src/model/generated/design-token.ts"
 ---
 
 # model

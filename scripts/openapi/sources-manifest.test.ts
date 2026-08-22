@@ -16,9 +16,9 @@ const manifest = [
   "    ref: 130b179afd0146ce393626064ca2facaefa059f8",
   "    sha: null",
   "    fetchedAt: null",
-  "  - name: auth",
+  "  - name: other",
   "    repo: Tomy-ch/go-boilerplate",
-  "    path: docker/mock-auth-server/openapi/openapi.gen.yaml",
+  "    path: openapi/other.gen.yaml",
   "    ref: 130b179afd0146ce393626064ca2facaefa059f8",
   "    sha: null",
   "    fetchedAt: null",
@@ -35,7 +35,7 @@ describe("contractPath", () => {
 describe("parseSourcesManifest", () => {
   // ----- 正常系 -----
   it("宣言された契約を順に読み取る", () => {
-    expect(parseSourcesManifest(manifest).map((source) => source.name)).toEqual(["api", "auth"]);
+    expect(parseSourcesManifest(manifest).map((source) => source.name)).toEqual(["api", "other"]);
   });
 
   it("未取得の契約を未スタンプとして読む", () => {
@@ -108,14 +108,14 @@ describe("selectSources", () => {
   it("名前を渡さなければ全件を対象にする", () => {
     expect(selectSources(parseSourcesManifest(manifest), []).map((source) => source.name)).toEqual([
       "api",
-      "auth",
+      "other",
     ]);
   });
 
   it("渡した名前の契約だけを対象にする", () => {
     expect(
-      selectSources(parseSourcesManifest(manifest), ["auth"]).map((source) => source.name),
-    ).toEqual(["auth"]);
+      selectSources(parseSourcesManifest(manifest), ["other"]).map((source) => source.name),
+    ).toEqual(["other"]);
   });
   // ----- 異常系 -----
   it("宣言に無い契約名を拒否する", () => {
@@ -128,8 +128,8 @@ describe("selectSources", () => {
 describe("encodeContractPath", () => {
   // ----- 正常系 -----
   it("階層の区切りを残したまま各セグメントを符号化する", () => {
-    expect(encodeContractPath("docker/mock auth/openapi.gen.yaml")).toBe(
-      "docker/mock%20auth/openapi.gen.yaml",
+    expect(encodeContractPath("openapi/mock server/openapi.gen.yaml")).toBe(
+      "openapi/mock%20server/openapi.gen.yaml",
     );
   });
 
@@ -163,7 +163,7 @@ describe("applyStamps", () => {
       ),
     );
 
-    expect(stamped[1]).toMatchObject({ name: "auth", sha: null, fetchedAt: null });
+    expect(stamped[1]).toMatchObject({ name: "other", sha: null, fetchedAt: null });
   });
 
   it("宣言に添えたコメントを保つ", () => {

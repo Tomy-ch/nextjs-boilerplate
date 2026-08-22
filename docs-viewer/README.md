@@ -1,5 +1,7 @@
 ---
 test-requirement: [unit, component]
+coverage-exclusions:
+  - "docs-viewer/src/main.tsx"
 ---
 
 # docs-viewer

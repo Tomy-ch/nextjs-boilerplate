@@ -1,5 +1,8 @@
 ---
 test-requirement: unit
+coverage-exclusions:
+  - "vrt/*.spec.ts"
+  - "vrt/lib/settle.ts"
 ---
 
 # vrt

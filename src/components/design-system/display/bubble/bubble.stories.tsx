@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import Link from "next/link";
-
+import { SAMPLE_AVATAR_URL } from "~catalog/lib/sample-asset";
 import { Avatar, AvatarFallback, AvatarImage } from "../avatar/avatar";
 import { Message, MessageAvatar, MessageContent, MessageHeader } from "../message/message";
 import { MESSAGE_ALIGN } from "../message/message.definition";
@@ -11,8 +11,6 @@ import {
   BUBBLE_VARIANT,
   type BubbleVariant,
 } from "./bubble.definition";
-
-const SAMPLE_SRC = "/src/components/design-system/display/media-image/invertocat.png";
 
 const VARIANT_LABELS: ReadonlyArray<{ variant: BubbleVariant; label: string }> = [
   { variant: BUBBLE_VARIANT.DEFAULT, label: "default" },
@@ -63,7 +61,7 @@ function InMessage() {
       <Message>
         <MessageAvatar>
           <Avatar>
-            <AvatarImage alt="" src={SAMPLE_SRC} />
+            <AvatarImage alt="" src={SAMPLE_AVATAR_URL} />
             <AvatarFallback>佐</AvatarFallback>
           </Avatar>
         </MessageAvatar>
@@ -77,7 +75,7 @@ function InMessage() {
       <Message align={MESSAGE_ALIGN.END}>
         <MessageAvatar>
           <Avatar>
-            <AvatarImage alt="" src={SAMPLE_SRC} />
+            <AvatarImage alt="" src={SAMPLE_AVATAR_URL} />
             <AvatarFallback>自</AvatarFallback>
           </Avatar>
         </MessageAvatar>
