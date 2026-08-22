@@ -13,6 +13,7 @@ const validEnvironment = {
   OBS_TRACES_EXPORTER: "otlp",
   OBS_METRICS_EXPORTER: "none",
   OBS_LOGS_EXPORTER: "",
+  AUTH_MODE: "idp",
   AUTH_ISSUER: "https://id.example.test",
   AUTH_CLIENT_ID: "nextjs-boilerplate",
   AUTH_REDIRECT_URI: "https://app.example.test/auth/callback",
@@ -31,6 +32,7 @@ function stubValidEnvironment(): void {
   vi.stubEnv("OBS_TRACES_EXPORTER", validEnvironment.OBS_TRACES_EXPORTER);
   vi.stubEnv("OBS_METRICS_EXPORTER", validEnvironment.OBS_METRICS_EXPORTER);
   vi.stubEnv("OBS_LOGS_EXPORTER", validEnvironment.OBS_LOGS_EXPORTER);
+  vi.stubEnv("AUTH_MODE", validEnvironment.AUTH_MODE);
   vi.stubEnv("AUTH_ISSUER", validEnvironment.AUTH_ISSUER);
   vi.stubEnv("AUTH_CLIENT_ID", validEnvironment.AUTH_CLIENT_ID);
   vi.stubEnv("AUTH_REDIRECT_URI", validEnvironment.AUTH_REDIRECT_URI);
@@ -69,6 +71,13 @@ describe("getEnvironment", () => {
     });
     expect(() => validateEnvironment()).not.toThrow();
   });
+
+  it("code default を持つ変数は、env ファイルに無くても既定へ落ちる", async () => {
+    vi.stubEnv("AUTH_MODE", undefined);
+    const { getEnvironment } = await import("./environment");
+
+    expect(getEnvironment().AUTH_MODE).toBe("idp");
+  });
 });
 
 describe("validateEnvironment", () => {
@@ -93,6 +102,7 @@ describe("validateEnvironment", () => {
       mode: validEnvironment.APP_API_MODE,
     });
     expect(getAuthConfig()).toMatchObject({
+      mode: validEnvironment.AUTH_MODE,
       issuer: validEnvironment.AUTH_ISSUER,
       clientId: validEnvironment.AUTH_CLIENT_ID,
       redirectUri: validEnvironment.AUTH_REDIRECT_URI,

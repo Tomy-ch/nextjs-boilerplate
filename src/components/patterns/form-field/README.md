@@ -37,9 +37,22 @@
 誤りが無いときも `aria-invalid` を落とさず `false` で置くのは、属性ごと消すと支援技術にとって
 「一度も検証していない」と区別が付かないためです。
 
+**補足は外枠と `fieldControlAttributes()` の両方へ渡します。** 描画するのは外枠、指すのは入力欄で、
+片方だけに渡すと「見えているのに読み上げられない」補足になります。補足と誤りが揃うときは、
+描画される順（補足 → 誤り）で `aria-describedby` に並びます。
+
 ```tsx
-<FormField controlId={id} errorId={errorId} label="メールアドレス" message={message} required>
-  <Input {...fieldControlAttributes({ controlId: id, errorId, message, required: true })} />
+<FormField
+  controlId={id}
+  description={description}
+  errorId={errorId}
+  label="メールアドレス"
+  message={message}
+  required
+>
+  <Input
+    {...fieldControlAttributes({ controlId: id, description, errorId, message, required: true })}
+  />
 </FormField>
 ```
 
@@ -54,4 +67,4 @@
 Storybook は必須・任意・誤りあり・補足ありと、select を差し込んだ場合を示します。テストは label と
 入力欄の関連付け、誤りが無いときに誤りの要素を描画しないこと、a11y 自動検査を確認します。
 `fieldControlAttributes()` は、誤りの有無で `aria-invalid` と `aria-describedby` が切り替わること、
-必須が属性へ出ることを別に確認します。
+補足と誤りが揃うと両方の id が描画順で並ぶこと、必須が属性へ出ることを別に確認します。

@@ -50,6 +50,15 @@ describe("FormField", () => {
     expect(screen.getByText("半角で入力してください。")).toBeVisible();
   });
 
+  it("補足に入力欄が参照できる id を与える", () => {
+    renderField({ description: "半角で入力してください。" });
+
+    expect(screen.getByText("半角で入力してください。")).toHaveAttribute(
+      "id",
+      `${CONTROL_ID}-description`,
+    );
+  });
+
   it("補足を渡さないとき補足の枠ごと描かない", () => {
     const { container } = renderField();
 

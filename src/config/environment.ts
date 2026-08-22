@@ -4,6 +4,7 @@ import { apiBaseUrlValidator, apiModeValidator } from "./api/api.schema";
 import {
   authClientIdValidator,
   authIssuerValidator,
+  authModeValidator,
   authRedirectUriValidator,
   authScopesValidator,
   authSessionSecretValidator,
@@ -39,6 +40,7 @@ const environmentSchema = z.object({
   OBS_TRACES_EXPORTER: otlpExporterValidator(),
   OBS_METRICS_EXPORTER: otlpExporterValidator(),
   OBS_LOGS_EXPORTER: otlpExporterValidator(),
+  AUTH_MODE: authModeValidator(),
   AUTH_ISSUER: authIssuerValidator(),
   AUTH_CLIENT_ID: authClientIdValidator(),
   AUTH_REDIRECT_URI: authRedirectUriValidator(),

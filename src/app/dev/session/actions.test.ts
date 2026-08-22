@@ -103,6 +103,14 @@ describe("issueDevSessionAction", () => {
     );
   });
 
+  it("認可の往復の途中の送信は、この口へは来ない", async () => {
+    // 素の form が `/dev/session/authorize` へ送るため、state が載っていても分岐は起きない。
+    await issueAndCatch(submission({ state: "tx-state", returnUrl: "/checkout" }));
+
+    expect(issueTestSession).toHaveBeenCalledOnce();
+    expect(redirect).toHaveBeenLastCalledWith("/checkout");
+  });
+
   it("取りに行かない指定なら、口を叩かない", async () => {
     await issueAndCatch(submission());
 
@@ -120,6 +128,7 @@ describe("issueDevSessionAction", () => {
     );
   });
 
+  // ----- 異常系 -----
   it("接続先が URL でなければ、取りに行かない", async () => {
     const state = await issueDevSessionAction(
       idleActionState(),
@@ -133,7 +142,6 @@ describe("issueDevSessionAction", () => {
     expect(issueDevelopmentAccessToken).not.toHaveBeenCalled();
   });
 
-  // ----- 異常系 -----
   it("トークンを取れなければ、session を発行しない", async () => {
     issueDevelopmentAccessToken.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
 

@@ -74,7 +74,7 @@ export function ProductTextField({
       required={required}
     >
       <Input
-        {...fieldControlAttributes({ controlId, errorId, message, required })}
+        {...fieldControlAttributes({ controlId, description, errorId, message, required })}
         {...input}
         name={name}
         onBlur={onLeave}
