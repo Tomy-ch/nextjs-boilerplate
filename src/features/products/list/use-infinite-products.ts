@@ -12,7 +12,7 @@ import {
   type ProductListSelection,
   toProductListSearchParams,
 } from "../facade/list-url/list-url";
-import { PRODUCT_PAGE_SIZE } from "./query";
+import { PRODUCT_PAGE_SIZE } from "./page-size";
 
 /** 末尾に近づいたと見なす距離。画面に入り切る前に読み始めて、待たせる時間を短くする。 */
 const PREFETCH_MARGIN = "400px";

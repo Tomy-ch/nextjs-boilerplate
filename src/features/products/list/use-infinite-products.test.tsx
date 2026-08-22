@@ -18,7 +18,7 @@ vi.mock("@/adapters/client/api/products", async (importOriginal) => ({
 
 import type { ProductListSelection } from "../facade/list-url/list-url";
 import { COUNT_KEY, CURSOR_KEY } from "../facade/list-url/list-url";
-import { PRODUCT_PAGE_SIZE } from "./query";
+import { PRODUCT_PAGE_SIZE } from "./page-size";
 import { useInfiniteProducts } from "./use-infinite-products";
 
 type IntersectionCallback = (entries: readonly { isIntersecting: boolean }[]) => void;

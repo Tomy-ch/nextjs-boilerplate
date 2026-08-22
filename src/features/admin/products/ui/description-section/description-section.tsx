@@ -1,9 +1,46 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
 import { FieldDescription } from "@/components/design-system/form/field/field";
-import { RichTextEditor } from "@/components/design-system/rich-text/rich-text-editor/rich-text-editor";
 import { PRODUCT_FORM_NAMES } from "../../form-names";
 import { controlIdOf } from "../../form-sections";
+
+/**
+ * 編集面は、この欄が画面に出てから読む。
+ *
+ * @remarks
+ * 静的に import すると、editor 一式（ProseMirror と拡張）が商品フォーム 2 画面の**最初の読み込み**
+ * に乗ります。gzip で 195 KB あり、この 2 画面が同梱サンプルで最も重い理由そのものです
+ * （[0101](../../../../../docs/adr/0101-performance-budget.md)）。
+ *
+ * **`ssr: false` で読みます。** 編集面は開いた時点の内容からしか組み立てられず、server で描いても
+ * hydration でもう一度読むことになるため、初期の描画から外しても失うものがありません。書いた値は
+ * 下の hidden の欄が持つので、読み終わる前に送信しても内容は落ちません。
+ */
+const RichTextEditor = dynamic(
+  () =>
+    import("@/components/design-system/rich-text/rich-text-editor/rich-text-editor").then(
+      (module) => module.RichTextEditor,
+    ),
+  { ssr: false, loading: () => <RichTextEditorPlaceholder /> },
+);
+
+/**
+ * 編集面が読み込まれるまでの枠。
+ *
+ * @remarks
+ * 出来上がりと同じ高さで置きます。toolbar の段（`size-8` のボタン + `p-1`）と本文の下限
+ * （`min-h-40`）を写しており、届いた瞬間に下の要素が動きません。
+ */
+function RichTextEditorPlaceholder() {
+  return (
+    <div aria-hidden="true" className="rounded-md border border-border bg-background">
+      <div className="h-10 border-border border-b" />
+      <div className="min-h-40" />
+    </div>
+  );
+}
 
 /** `ProductDescriptionSection` の props。 */
 export type ProductDescriptionSectionProps = {
