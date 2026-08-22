@@ -141,6 +141,38 @@ describe("register", () => {
     expect(end).toHaveBeenCalledOnce();
   });
 
+  it("trace が有効でも logs が無効なら起動ログを出力しない", async () => {
+    vi.stubEnv("NEXT_RUNTIME", "nodejs");
+    const startActiveSpan = vi.fn();
+    const info = vi.fn();
+    vi.doMock("./config/bootstrap.server", () => ({ bootstrapConfig: vi.fn() }));
+    vi.doMock("./config/api/api.server", () => ({
+      getApiConfig: () => ({ baseUrl: "https://api.example.test", mode: "live" }),
+    }));
+    vi.doMock("./config/observability/observability.server", () => ({
+      getObservabilityConfig: () => ({
+        otlpEndpoint: "http://localhost:4318",
+        tracesEnabled: true,
+        metricsEnabled: false,
+        logsEnabled: false,
+      }),
+    }));
+    vi.doMock("./observability/initialize.server", () => ({ initializeObservability: vi.fn() }));
+    vi.doMock("./logging/logging.server", () => ({
+      getLogger: () => ({ info }),
+      initializeLogger: vi.fn(),
+    }));
+    vi.doMock("./observability/otlp-log-sink.server", () => ({ createOtlpLogSink: vi.fn() }));
+    vi.doMock("./observability/trace-context", () => ({ extractActiveTraceContext: vi.fn() }));
+    vi.doMock("@opentelemetry/api", () => ({ trace: { getTracer: () => ({ startActiveSpan }) } }));
+    const { register } = await import("./instrumentation");
+
+    await register();
+
+    expect(startActiveSpan).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
+  });
+
   it("mock モードでは API の interception を立てる", async () => {
     vi.stubEnv("NEXT_RUNTIME", "nodejs");
     const listen = vi.fn();
