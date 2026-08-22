@@ -5,12 +5,8 @@ import { type RawSearchParams, singleValue } from "@/model/search-params";
 import { AUTHORIZE_ERROR, AUTHORIZE_ERROR_PARAM, type AuthorizeError } from "./authorize-error";
 
 /**
- * URL を読む側。**組む側（[`authorize-error.ts`](authorize-error.ts)）と分けてある。**
- *
- * @remarks
- * 読むのは画面を組み立てる地点だけで、組むのは行き先を返す Route Handler です。同じ module に
- * 置くと、スキーマを組み立てる module 直下の式が tree-shaking を妨げ、**語彙を参照しただけの
- * 画面が検証ライブラリごと client の束を太らせます**（[0101](../../../docs/adr/0101-performance-budget.md)）。
+ * URL を読む側。**組む側（[`authorize-error.ts`](authorize-error.ts)）と分けてある**
+ * （`docs/rules.md` #76）。組むのは認可の応答を返す Route Handler の側です。
  */
 
 /** 宣言に無い理由は、案内なしへ倒す。 */
