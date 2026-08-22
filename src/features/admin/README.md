@@ -70,6 +70,7 @@ test-requirement: feature
 | `products/image-rejection.ts` | 弾かれたファイルの言い方と、大きさの整形 |
 | `products/ui/text-field/` `products/ui/select-field/` | 入力 1 項目。値は呼び出し元が持つ |
 | `products/ui/basics-section/` `description-section/` `images-section/` `publish-section/` `confirm-section/` | 作成と編集が共有する段の中身。自分が段であることは知らない |
+| ↳ `description-editor.tsx` / `confirm-details.tsx` | 重い部品を**いつ読むか**と、**何を描くか**の分かれ目。器へ読み込みの都合を混ぜないため分けてある |
 | `products/ui/submit-button/` `products/ui/form-feedback/` | 送信の操作と、送信の結果 |
 | `products/list/query.ts` | 一覧の URL 契約（絞り込みとページ送りの位置）とキーの呼び名。通ってきた道もここが持つ |
 | `products/list/page-size.ts` | 1 ページに並べる件数 |

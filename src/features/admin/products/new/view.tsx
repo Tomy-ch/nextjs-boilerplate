@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useActionState, useCallback, useId, useMemo } from "react";
 
 import { WizardForm } from "@/components/patterns/wizard-form/wizard-form";
@@ -12,32 +11,11 @@ import type {
   UploadProductImageAction,
 } from "../form-state";
 import { ProductBasicsSection } from "../ui/basics-section/basics-section";
+import { ProductConfirmSection } from "../ui/confirm-section/confirm-section";
 import { ProductDescriptionSection } from "../ui/description-section/description-section";
 import { ProductFormFeedback } from "../ui/form-feedback/form-feedback";
 import { ProductImagesSection } from "../ui/images-section/images-section";
 import { ProductPublishSection } from "../ui/publish-section/publish-section";
-
-/**
- * 確認の段は、最初に読む一式から外す。
- *
- * @remarks
- * 静的に import すると、**書いた HTML を検査する仕組み一式（`model/rich-text` の parser と
- * sanitizer）が商品フォームの最初の読み込みに乗ります**。gzip で 66.7 KB あります
- * （[0101](../../../../../docs/adr/0101-performance-budget.md) §4）。
- *
- * **「その段へ進んでから」ではありません。** `wizard-form.tsx` は入力値を form へ残すため全段を
- * `hidden` で DOM に保持し、`next/dynamic` はマウントした時点で取得を始めます。実測でも、操作を
- * 一度もしない初回読み込みでこのチャンクが取得されています。得られるのは**最初に読む一式から
- * 外れること**だけです。
- *
- * **`ssr: false` で読めます。** この段は入力欄を持たない読み取り専用の要約で、`hidden` で隠れた
- * まま立ち上がるため、届くまでの枠も見えません。
- */
-const ProductConfirmSection = dynamic(
-  () =>
-    import("../ui/confirm-section/confirm-section").then((module) => module.ProductConfirmSection),
-  { ssr: false },
-);
 
 import type { ProductSelectOption } from "../ui/select-field/select-field";
 import { ProductSubmitButton } from "../ui/submit-button/submit-button";

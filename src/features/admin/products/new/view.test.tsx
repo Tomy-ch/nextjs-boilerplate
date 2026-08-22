@@ -54,7 +54,7 @@ beforeAll(async () => {
   URL.createObjectURL = vi.fn(() => "blob:preview");
   URL.revokeObjectURL = vi.fn();
 
-  await import("../ui/confirm-section/confirm-section");
+  await import("../ui/confirm-section/confirm-details");
 });
 
 beforeEach(() => {

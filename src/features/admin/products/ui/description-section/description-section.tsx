@@ -1,51 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
 import { FieldDescription } from "@/components/design-system/form/field/field";
 import { PRODUCT_FORM_NAMES } from "../../form-names";
 import { controlIdOf } from "../../form-sections";
-
-/**
- * 編集面は、最初に読む一式から外す。
- *
- * @remarks
- * 静的に import すると、editor 一式（ProseMirror と拡張）が商品フォーム 2 画面の**最初の読み込み**
- * に乗ります。gzip で 195 KB あり、この 2 画面が同梱サンプルで最も重い理由でした
- * （[0101](../../../../../../docs/adr/0101-performance-budget.md) §4）。
- *
- * **「使うまで取りに行かない」ではありません。** `next/dynamic` が取得を始めるのは要素がマウント
- * した時点です。この欄を含む段は隠れていても DOM に残るため（`wizard-form.tsx`）、取得は最初の
- * 描画の直後に始まります。得られるのは**最初に読む一式から外れること**であり、同じページを開いた
- * 人は結局そのバイトを払います。
- *
- * **`ssr: false` で読みます。** 編集面は開いた時点の内容からしか組み立てられず、server で描いても
- * hydration でもう一度読むことになるため、初期の描画から外しても失うものがありません。書いた値は
- * 下の hidden の欄が持つので、読み終わる前に送信しても内容は落ちません。
- */
-const RichTextEditor = dynamic(
-  () =>
-    import("@/components/design-system/rich-text/rich-text-editor/rich-text-editor").then(
-      (module) => module.RichTextEditor,
-    ),
-  { ssr: false, loading: () => <RichTextEditorPlaceholder /> },
-);
-
-/**
- * 編集面が読み込まれるまでの枠。
- *
- * @remarks
- * 出来上がりと同じ高さで置きます。toolbar の段（`size-8` のボタン + `p-1`）と本文の下限
- * （`min-h-40`）を写しており、届いた瞬間に下の要素が動きません。
- */
-function RichTextEditorPlaceholder() {
-  return (
-    <div aria-hidden="true" className="rounded-md border border-border bg-background">
-      <div className="h-10 border-border border-b" />
-      <div className="min-h-40" />
-    </div>
-  );
-}
+import { ProductDescriptionEditor } from "./description-editor";
 
 /** `ProductDescriptionSection` の props。 */
 export type ProductDescriptionSectionProps = {
@@ -81,7 +39,7 @@ export function ProductDescriptionSection({
 }: ProductDescriptionSectionProps) {
   return (
     <div className="grid gap-2">
-      <RichTextEditor
+      <ProductDescriptionEditor
         defaultValue={initialValue}
         id={controlIdOf(idPrefix, "description")}
         label="商品説明"
