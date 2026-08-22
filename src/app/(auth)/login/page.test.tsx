@@ -56,4 +56,30 @@ describe("LoginPage", () => {
 
     expect(container.querySelector('input[name="returnUrl"]')).toHaveValue("/");
   });
+
+  it("認証を始められなかったとき、その案内を画面へ渡す", async () => {
+    await renderPage({ error: "unavailable" });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("認証を始められませんでした");
+  });
+
+  it("案内を出した状態でも a11y 違反を持たない", async () => {
+    const { container } = await renderPage({ error: "unavailable" });
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
+  });
+
+  it("宣言に無い理由は画面へ渡さない", async () => {
+    await renderPage({ error: "unauthorized" });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("理由が複数指定されていれば落とす", async () => {
+    await renderPage({ error: ["unavailable", "unavailable"] });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });

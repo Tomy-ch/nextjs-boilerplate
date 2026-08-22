@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
 import { LoginView } from "@/features/auth/login-view";
+import { readLoginNotice } from "@/features/auth/read-login-notice";
 import { toSafeReturnUrl } from "@/model/return-url";
+import type { RawSearchParams } from "@/model/search-params";
 
 export const metadata: Metadata = {
   title: "ログイン",
@@ -22,11 +24,15 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<RawSearchParams>;
 }) {
-  const { returnUrl } = await searchParams;
+  const params = await searchParams;
+  const { returnUrl } = params;
 
   return (
-    <LoginView returnUrl={toSafeReturnUrl(typeof returnUrl === "string" ? returnUrl : null)} />
+    <LoginView
+      returnUrl={toSafeReturnUrl(typeof returnUrl === "string" ? returnUrl : null)}
+      notice={readLoginNotice(params)}
+    />
   );
 }

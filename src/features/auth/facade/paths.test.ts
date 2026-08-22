@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { LOGIN_PATH, loginPath } from "./paths";
+import { LOGIN_PATH, loginPath, unavailableLoginPath } from "./paths";
 
 describe("LOGIN_PATH", () => {
   // ----- 正常系 -----
@@ -28,5 +28,23 @@ describe("loginPath", () => {
 
   it("解析すると外部を指す形も既定へ倒す", () => {
     expect(loginPath("/\t/evil.test")).toBe("/login?returnUrl=%2F");
+  });
+});
+
+describe("unavailableLoginPath", () => {
+  // ----- 正常系 -----
+  it("戻り先とともに、始められなかった理由を載せる", () => {
+    expect(unavailableLoginPath("/mypage")).toBe("/login?returnUrl=%2Fmypage&error=unavailable");
+  });
+
+  it("戻り先が無くても理由は載る", () => {
+    expect(unavailableLoginPath("")).toBe("/login?returnUrl=%2F&error=unavailable");
+  });
+
+  // ----- 異常系 -----
+  it("外部の URL を渡されても自サイトの既定へ倒す", () => {
+    expect(unavailableLoginPath("https://evil.test/steal")).toBe(
+      "/login?returnUrl=%2F&error=unavailable",
+    );
   });
 });

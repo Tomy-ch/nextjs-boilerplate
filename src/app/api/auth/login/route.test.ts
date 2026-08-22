@@ -74,4 +74,13 @@ describe("GET", () => {
     expect(location.searchParams.get("returnUrl")).toBe("/mypage");
     expect(storeTransaction).not.toHaveBeenCalled();
   });
+
+  it("戻すときに、始められなかった理由を載せる", async () => {
+    startAuthorization.mockRejectedValue(new Error("IdP へ到達できません"));
+
+    const response = await GET(new Request("http://localhost:3000/api/auth/login"));
+    const location = new URL(String(response.headers.get("location")));
+
+    expect(location.searchParams.get("error")).toBe("unavailable");
+  });
 });
