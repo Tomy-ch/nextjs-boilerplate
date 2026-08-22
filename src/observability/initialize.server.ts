@@ -9,6 +9,7 @@ import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
+import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
@@ -22,6 +23,8 @@ type ObservabilityInitialization = Readonly<{
   metricsEnabled: boolean;
   logsEnabled: boolean;
   serviceName: string;
+  /** W3C trace context を外向きの `fetch` へ注入してよい接続先。path は無視して origin で照合する。 */
+  tracePropagationOrigins: readonly string[];
 }>;
 
 /** OTel signal の値型です。 */
@@ -47,17 +50,27 @@ export function initializeObservability({
   metricsEnabled,
   logsEnabled,
   serviceName,
+  tracePropagationOrigins,
 }: ObservabilityInitialization): void {
   if ((!tracesEnabled && !metricsEnabled && !logsEnabled) || sdk !== undefined) {
     return;
   }
+
+  const allowedOrigins = new Set(tracePropagationOrigins.map((origin) => new URL(origin).origin));
 
   sdk = new NodeSDK({
     resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: serviceName }),
     textMapPropagator: new CompositePropagator({
       propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
     }),
-    instrumentations: [new HttpInstrumentation()],
+    instrumentations: [
+      new HttpInstrumentation(),
+      new UndiciInstrumentation({
+        requireParentforSpans: true,
+        // Baggage を IdP など別の接続先へ漏らさず、同じ backend service の境界だけを繋ぐ。
+        ignoreRequestHook: ({ origin }) => !allowedOrigins.has(new URL(origin).origin),
+      }),
+    ],
     ...(tracesEnabled
       ? {
           traceExporter: new OTLPTraceExporter({

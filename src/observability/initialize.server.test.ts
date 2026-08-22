@@ -1,16 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  ignoreRequestHook: vi.fn<(request: { origin: string }) => boolean>(),
   start: vi.fn(),
   nodeSdk: vi.fn(),
+  undiciInstrumentation: vi.fn(),
 }));
 
 function MockNodeSdk() {
   return { start: mocks.start };
 }
 
+function MockUndiciInstrumentation(config: {
+  ignoreRequestHook: (request: { origin: string }) => boolean;
+}) {
+  mocks.ignoreRequestHook.mockImplementation(config.ignoreRequestHook);
+
+  return {};
+}
+
 vi.mock("@opentelemetry/sdk-node", () => ({
   NodeSDK: mocks.nodeSdk,
+}));
+
+vi.mock("@opentelemetry/instrumentation-undici", () => ({
+  UndiciInstrumentation: mocks.undiciInstrumentation,
 }));
 
 import { getSignalEndpoint, OtelSignal } from "./initialize.server";
@@ -21,6 +35,9 @@ describe("initializeObservability", () => {
     mocks.start.mockReset();
     mocks.nodeSdk.mockReset();
     mocks.nodeSdk.mockImplementation(MockNodeSdk);
+    mocks.ignoreRequestHook.mockReset();
+    mocks.undiciInstrumentation.mockReset();
+    mocks.undiciInstrumentation.mockImplementation(MockUndiciInstrumentation);
   });
 
   it("trace が無効なら SDK を構築しない", async () => {
@@ -32,6 +49,7 @@ describe("initializeObservability", () => {
       metricsEnabled: false,
       logsEnabled: false,
       serviceName: "nextjs-boilerplate",
+      tracePropagationOrigins: ["https://api.example.test/v1"],
     });
 
     expect(mocks.nodeSdk).not.toHaveBeenCalled();
@@ -46,6 +64,7 @@ describe("initializeObservability", () => {
       metricsEnabled: false,
       logsEnabled: false,
       serviceName: "nextjs-boilerplate",
+      tracePropagationOrigins: ["https://api.example.test/v1"],
     });
     initializeObservability({
       otlpEndpoint: "http://localhost:4318",
@@ -53,6 +72,7 @@ describe("initializeObservability", () => {
       metricsEnabled: false,
       logsEnabled: false,
       serviceName: "nextjs-boilerplate",
+      tracePropagationOrigins: ["https://api.example.test/v1"],
     });
 
     expect(mocks.nodeSdk).toHaveBeenCalledTimes(1);
@@ -61,6 +81,13 @@ describe("initializeObservability", () => {
       textMapPropagator: expect.anything(),
       instrumentations: expect.any(Array),
     });
+    expect(mocks.undiciInstrumentation).toHaveBeenCalledWith({
+      requireParentforSpans: true,
+      ignoreRequestHook: expect.any(Function),
+    });
+    expect(mocks.ignoreRequestHook({ origin: "https://api.example.test" })).toBe(false);
+    expect(mocks.ignoreRequestHook({ origin: "https://api.example.test:8443" })).toBe(true);
+    expect(mocks.ignoreRequestHook({ origin: "https://idp.example.test" })).toBe(true);
   });
 
   it("metrics と logs だけが有効でも SDK を開始する", async () => {
@@ -72,6 +99,7 @@ describe("initializeObservability", () => {
       metricsEnabled: true,
       logsEnabled: true,
       serviceName: "nextjs-boilerplate",
+      tracePropagationOrigins: ["https://api.example.test"],
     });
 
     expect(mocks.nodeSdk).toHaveBeenCalledOnce();

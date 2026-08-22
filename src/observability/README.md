@@ -18,7 +18,7 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 ## 構成
 
-- `initialize.server.ts` は Node.js runtime の `NodeSDK` をプロセスごとに一度だけ初期化する。resource には公式 semantic convention の `service.name` を設定し、W3C Trace Context と W3C Baggage を伝播する。HTTP instrumentation は受信 HTTP request の trace を作る。
+- `initialize.server.ts` は Node.js runtime の `NodeSDK` をプロセスごとに一度だけ初期化する。resource には公式 semantic convention の `service.name` を設定し、W3C Trace Context と W3C Baggage を伝播する。HTTP instrumentation は受信 HTTP request の trace を作り、Undici instrumentation は許可された API origin への server-side `fetch` にだけ trace context を注入する。
 - `trace-context.ts` は現在の有効な span から trace ID と span ID を抽出する。logging にはこの関数を起動境界で注入する。
 - `otlp-log-sink.server.ts` は logging が渡す正規化済みレコードを OTel Logs API へ変換する。OTLP 属性へ変換できない値は送出しない。
 

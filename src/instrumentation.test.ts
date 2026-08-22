@@ -32,7 +32,9 @@ describe("register", () => {
     const createOtlpLogSink = vi.fn();
     const extractActiveTraceContext = vi.fn();
     vi.doMock("./config/bootstrap.server", () => ({ bootstrapConfig }));
-    vi.doMock("./config/api/api.server", () => ({ getApiConfig: () => ({ mode: "live" }) }));
+    vi.doMock("./config/api/api.server", () => ({
+      getApiConfig: () => ({ baseUrl: "https://api.example.test/v1", mode: "live" }),
+    }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({
         otlpEndpoint: "http://localhost:4318",
@@ -50,7 +52,14 @@ describe("register", () => {
     await register();
 
     expect(bootstrapConfig).toHaveBeenCalledOnce();
-    expect(initializeObservability).toHaveBeenCalledOnce();
+    expect(initializeObservability).toHaveBeenCalledWith({
+      otlpEndpoint: "http://localhost:4318",
+      tracesEnabled: false,
+      metricsEnabled: false,
+      logsEnabled: false,
+      serviceName: "nextjs-boilerplate",
+      tracePropagationOrigins: ["https://api.example.test/v1"],
+    });
     expect(initializeLogger).toHaveBeenCalledWith({
       level: LogLevel.INFO,
       traceContextExtractor: extractActiveTraceContext,
@@ -67,7 +76,9 @@ describe("register", () => {
     const createOtlpLogSink = vi.fn(() => vi.fn());
     const extractActiveTraceContext = vi.fn();
     vi.doMock("./config/bootstrap.server", () => ({ bootstrapConfig }));
-    vi.doMock("./config/api/api.server", () => ({ getApiConfig: () => ({ mode: "live" }) }));
+    vi.doMock("./config/api/api.server", () => ({
+      getApiConfig: () => ({ baseUrl: "https://api.example.test", mode: "live" }),
+    }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({
         otlpEndpoint: "http://localhost:4318",
@@ -101,6 +112,9 @@ describe("register", () => {
       callback({ end }),
     );
     vi.doMock("./config/bootstrap.server", () => ({ bootstrapConfig: vi.fn() }));
+    vi.doMock("./config/api/api.server", () => ({
+      getApiConfig: () => ({ baseUrl: "https://api.example.test", mode: "live" }),
+    }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({
         otlpEndpoint: "http://localhost:4318",
@@ -131,7 +145,9 @@ describe("register", () => {
     vi.stubEnv("NEXT_RUNTIME", "nodejs");
     const listen = vi.fn();
     vi.doMock("./config/bootstrap.server", () => ({ bootstrapConfig: vi.fn() }));
-    vi.doMock("./config/api/api.server", () => ({ getApiConfig: () => ({ mode: "mock" }) }));
+    vi.doMock("./config/api/api.server", () => ({
+      getApiConfig: () => ({ baseUrl: "https://api.example.test", mode: "mock" }),
+    }));
     vi.doMock("../mocks/node", () => ({ mockServer: { listen } }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({

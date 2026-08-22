@@ -29,7 +29,9 @@ export async function register(): Promise<void> {
     // 検証の前に判断すると未検証の値で本番の接続先を差し替えうる。
     const { getApiConfig } = await import("./config/api/api.server");
 
-    if (getApiConfig().mode === "mock") {
+    const apiConfig = getApiConfig();
+
+    if (apiConfig.mode === "mock") {
       const { mockServer } = await import("../mocks/node");
 
       mockServer.listen({ onUnhandledRequest: "bypass" });
@@ -42,6 +44,7 @@ export async function register(): Promise<void> {
       metricsEnabled: config.metricsEnabled,
       logsEnabled: config.logsEnabled,
       serviceName: "nextjs-boilerplate",
+      tracePropagationOrigins: [apiConfig.baseUrl],
     });
     initializeLogger({
       level: LogLevel.INFO,
