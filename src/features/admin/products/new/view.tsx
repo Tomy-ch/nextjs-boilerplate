@@ -18,16 +18,20 @@ import { ProductImagesSection } from "../ui/images-section/images-section";
 import { ProductPublishSection } from "../ui/publish-section/publish-section";
 
 /**
- * 確認の段は、その段へ進んでから読む。
+ * 確認の段は、最初に読む一式から外す。
  *
  * @remarks
  * 静的に import すると、**書いた HTML を検査する仕組み一式（`model/rich-text` の parser と
- * sanitizer）が商品フォームの最初の読み込みに乗ります**。gzip で 66.7 KB あり、初期表示に出ない
- * 段のために払っています（[0101](../../../../docs/adr/0101-performance-budget.md) §4）。
+ * sanitizer）が商品フォームの最初の読み込みに乗ります**。gzip で 66.7 KB あります
+ * （[0101](../../../../../docs/adr/0101-performance-budget.md) §4）。
+ *
+ * **「その段へ進んでから」ではありません。** `wizard-form.tsx` は入力値を form へ残すため全段を
+ * `hidden` で DOM に保持し、`next/dynamic` はマウントした時点で取得を始めます。実測でも、操作を
+ * 一度もしない初回読み込みでこのチャンクが取得されています。得られるのは**最初に読む一式から
+ * 外れること**だけです。
  *
  * **`ssr: false` で読めます。** この段は入力欄を持たない読み取り専用の要約で、`hidden` で隠れた
- * まま立ち上がるため、届くまでの枠も見えません。入力値を form へ残す必要（`wizard-form.tsx` が
- * 全段を DOM に残す理由）は、入力欄を持つ他の段が担っています。
+ * まま立ち上がるため、届くまでの枠も見えません。
  */
 const ProductConfirmSection = dynamic(
   () =>

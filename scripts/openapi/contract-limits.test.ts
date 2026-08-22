@@ -40,6 +40,22 @@ describe("collectContractLimits", () => {
     ).toEqual([]);
   });
 
+  it("整形で折り返された宣言も拾う", () => {
+    // 生成器の出力は整形の前後で形が変わる。どちらでも同じ結果になる必要がある。
+    expect(collectContractLimits('export const aRegExp = new RegExp(\n  "^(a|b)$",\n);')).toEqual([
+      { name: "aRegExp", literal: 'new RegExp("^(a|b)$",)' },
+    ]);
+  });
+
+  it("`;` で閉じないスキーマの後ろにある定数も拾う", () => {
+    // 生の出力ではスキーマが `})` で終わり `;` を持たない。最短一致だと次の宣言を飲み込む。
+    expect(
+      collectContractLimits(
+        "export const aSchema = zod.object({\n  a: zod.string(),\n})\n\nexport const bMax = 100;",
+      ),
+    ).toEqual([{ name: "bMax", literal: "100" }]);
+  });
+
   // ----- 異常系 -----
   it("zod の呼び出しを含む宣言は拾わない", () => {
     // 拾うと、切り出した module 自身が zod を引くことになり、切り出した意味が消える。

@@ -9,12 +9,18 @@ export type ContractLimit = {
 };
 
 /**
- * 1 行で閉じる `export const` の宣言。
+ * 宣言の始まり。ここで区切ってから 1 件ずつ読む。
  *
  * @remarks
- * 複数行にわたる宣言（スキーマの組み立て）は、1 行目が `;` で閉じないため当たりません。
+ * **正規表現ひとつで 1 件を取り切ろうとしません。** 生成器の生の出力ではスキーマが `})` で終わり
+ * `;` を持たず（`;` は整形が付ける）、行末の `;` までを最短で取ると、次の宣言までを飲み込んで
+ * 内側の定数が消えます。整形の前に走るか後に走るかで結果が変わる形を持ち込まないため、
+ * **宣言の始まりで区切ってから**、その中だけを見ます。
  */
-const DECLARATION = /^export const ([A-Za-z0-9_]+) = (.+);$/gm;
+const DECLARATION_START = /^export const (?=[A-Za-z0-9_]+ = )/m;
+
+/** 宣言の終わり。行末の `;`。 */
+const DECLARATION_END = /;\s*$/m;
 
 /**
  * 右辺が zod を参照しているか。
@@ -28,9 +34,22 @@ const DECLARATION = /^export const ([A-Za-z0-9_]+) = (.+);$/gm;
 const USES_ZOD = /\bzod\b/;
 
 export function collectContractLimits(source: string): ContractLimit[] {
-  return [...source.matchAll(DECLARATION)]
-    .filter(([, , literal]) => !USES_ZOD.test(literal))
-    .map(([, name, literal]) => ({ name, literal }));
+  return source
+    .split(DECLARATION_START)
+    .slice(1)
+    .flatMap((declaration) => {
+      const separator = declaration.indexOf(" = ");
+      const end = declaration.search(DECLARATION_END);
+
+      if (separator < 0 || end < 0) {
+        return [];
+      }
+
+      const name = declaration.slice(0, separator);
+      const literal = declaration.slice(separator + 3, end).replace(/\s*\n\s*/g, "");
+
+      return USES_ZOD.test(literal) ? [] : [{ name, literal }];
+    });
 }
 
 /** 生成元のヘッダから契約の版を取り出す。突合（`make gen-api-check`）が読む行。 */

@@ -17,21 +17,43 @@ fetch-api:
 # 消すのは契約ごとの部分木だけにする。
 GEN_API_OUTPUTS := src/adapters/gen/api mocks/api
 
+# 生成のあいだ、既存の生成物を置いておく場所。生成が失敗したらここから書き戻す。
+GEN_API_BACKUP := tmp/gen-api-backup
+
 # 生成の直後に整形まで掛ける。整形を別手順にすると、生成しただけの状態が commit され、
 # drift ゲートが「生成し忘れ」ではなく「整形し忘れ」で落ちる。
 #
-# **空にしてから生成する。** 上書きだけだと、契約から消えたスキーマに対応するファイルが再生成で
-# 触られずに残る。中身が変わらないので drift ゲートの突合も素通りし、契約に無いものが生成物の
-# 顔をして居座る。空から作れば、消えたものは消えた状態で現れる。
+# **空から作る。** 上書きだけだと、契約から消えたスキーマに対応するファイルが再生成で触られずに
+# 残る。中身が変わらないので drift ゲートの突合も素通りし、契約に無いものが生成物の顔をして
+# 居座る。空から作れば、消えたものは消えた状態で現れる。
 gen-api:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
-	@# 消す前に、生成が走れることまで確かめる。pnpm は lockfile が動いていると exec の時点で
-	@# 止まるため、確認を省くと「消した後に生成できないと判る」ことになり、生成物が消えた作業
-	@# ツリーだけが残る。
-	@pnpm exec true >/dev/null 2>&1 || { echo "❌ 依存が lockfile と揃っていません。pnpm install を実行してください。"; exit 1; }
-	@rm -rf $(GEN_API_OUTPUTS)
-	@pnpm exec orval
-	@pnpm exec tsx scripts/openapi/extract-limits.ts
+	@# **消すのではなく退避してから生成する。** 生成が途中で失敗したとき、消した後だと生成物の無い
+	@# 作業ツリーだけが残る。退避なら書き戻せる。lockfile のずれ・契約の不正・抽出の失敗のどれで
+	@# 落ちても同じ経路で戻すため、失敗の種類ごとに事前確認を足していく形にはしない。
+	@set -e; \
+	rm -rf $(GEN_API_BACKUP); \
+	mkdir -p $(GEN_API_BACKUP); \
+	for target in $(GEN_API_OUTPUTS); do \
+		if [ -e "$$target" ]; then \
+			mkdir -p "$(GEN_API_BACKUP)/$$(dirname "$$target")"; \
+			mv "$$target" "$(GEN_API_BACKUP)/$$target"; \
+		fi; \
+	done; \
+	if pnpm exec orval && pnpm exec tsx scripts/openapi/extract-limits.ts; then \
+		rm -rf $(GEN_API_BACKUP); \
+	else \
+		echo "❌ 生成に失敗しました。退避した生成物を書き戻します。"; \
+		for target in $(GEN_API_OUTPUTS); do \
+			rm -rf "$$target"; \
+			if [ -e "$(GEN_API_BACKUP)/$$target" ]; then \
+				mkdir -p "$$(dirname "$$target")"; \
+				mv "$(GEN_API_BACKUP)/$$target" "$$target"; \
+			fi; \
+		done; \
+		rm -rf $(GEN_API_BACKUP); \
+		exit 1; \
+	fi
 	@pnpm fix >/dev/null
 	@echo "✅ 契約から型 / zod / MSW ハンドラを生成しました"
 

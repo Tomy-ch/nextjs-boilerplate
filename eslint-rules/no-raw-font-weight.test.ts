@@ -48,6 +48,14 @@ describe("noRawFontWeight", () => {
     });
   });
 
+  it("文字列でない literal は見ない", () => {
+    // 数値・真偽値・null も Literal ノードとして訪れる。class になり得ないので判定に掛けない。
+    ruleTester.run("no-raw-font-weight", noRawFontWeight, {
+      valid: ["const a = 1;", "const b = true;", "const c = null;", "const d = /font-bold/;"],
+      invalid: [],
+    });
+  });
+
   it("テンプレート literal の中でも挙げる", () => {
     ruleTester.run("no-raw-font-weight", noRawFontWeight, {
       valid: [],

@@ -29,11 +29,23 @@ const SERVER_BOUNDARY = /^\s*["']use server["']|import\s+["']server-only["']/;
  *
  * @remarks
  * 型だけの import は辺になりません。数えると、client に載らない module まで違反として挙がります。
+ *
+ * **行頭の `import type` に加えて、名前がすべて `type` 修飾子を持つ形も落とします。**
+ * `import { type A, type B } from "x"` は完全に型だけで、実行時には何も残りません。
  */
 const TYPE_ONLY = /^\s*(?:import|export)\s+type\s[^;]*?;/gm;
 
-/** 引いた先を挙げる。 */
-const SPECIFIER = /from\s+["']([^"']+)["']/g;
+/** 名前がすべて `type` 修飾子を持つ import。 */
+const ALL_NAMED_TYPES = /^\s*import\s*\{([^}]*)\}\s*from\s*["'][^"']+["'];/gm;
+
+/**
+ * 引いた先を挙げる。
+ *
+ * @remarks
+ * **動的な `import(...)` も辿ります。** `next/dynamic(() => import("..."))` で読む部品も client へ
+ * 配られるため、静的な `from "..."` だけを見ると、遅延にした部分木がまるごと検査の外へ出ます。
+ */
+const SPECIFIER = /(?:from\s+|import\s*\(\s*)["']([^"']+)["']/g;
 
 /**
  * client へ載せてはいけない入口。
@@ -64,7 +76,19 @@ export function crossesServerBoundary(content: string): boolean {
 
 /** 実行時に残る import 先を挙げる。 */
 export function runtimeSpecifiers(content: string): string[] {
-  return [...content.replace(TYPE_ONLY, "").matchAll(SPECIFIER)].map(([, specifier]) => specifier);
+  const withoutTypes = content
+    .replace(TYPE_ONLY, "")
+    .replace(ALL_NAMED_TYPES, (statement, named: string) =>
+      named
+        .split(",")
+        .map((name) => name.trim())
+        .filter((name) => name.length > 0)
+        .every((name) => name.startsWith("type "))
+        ? ""
+        : statement,
+    );
+
+  return [...withoutTypes.matchAll(SPECIFIER)].map(([, specifier]) => specifier);
 }
 
 /**

@@ -46,7 +46,7 @@ test-requirement: feature
 | `dashboard/view.tsx` | 入口の画面。数値カードと内訳、期間指定への導線 |
 | `analytics/view.tsx` | 集計の画面。期間の選択の下へ、取り直す区画を slot で受ける |
 | `ui/stat-cards/` | 数値カードの並び。注記を値と同じ枠に置く |
-| `ui/status-chart/` | 横棒を**いつ読むか**だけを持つ。初期表示に載せず、出てから読む |
+| `ui/status-chart/` | 横棒を**いつ読むか**だけを持つ。最初に読む一式から外す（取得は描画の直後に始まる） |
 | `ui/status-bars/` | 横棒の描画そのもの。実寸が要る client island |
 | `ui/status-breakdown/` | 横棒と数値表の併置。合計は出さない |
 | `analytics/ui/period-switch/` | 集計対象期間の選び直し。日付の要らない 2 つは link |

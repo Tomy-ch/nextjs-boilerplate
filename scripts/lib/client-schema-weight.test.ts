@@ -51,9 +51,22 @@ describe("runtimeSpecifiers", () => {
     expect(runtimeSpecifiers('import { a } from "./a";')).toEqual(["./a"]);
   });
 
+  it("動的な import も辺に数える", () => {
+    // next/dynamic で読む部品も client へ配られる。静的な形だけを見ると検査の外へ出る。
+    expect(runtimeSpecifiers('const A = dynamic(() => import("./a"));')).toEqual(["./a"]);
+  });
+
   // ----- 異常系 -----
   it("型だけの import は辺に数えない", () => {
     expect(runtimeSpecifiers('import type { A } from "./a";')).toEqual([]);
+  });
+
+  it("名前がすべて type 修飾子を持つ import も辺に数えない", () => {
+    expect(runtimeSpecifiers('import { type A, type B } from "./a";')).toEqual([]);
+  });
+
+  it("値と型が混ざる import は辺に数える", () => {
+    expect(runtimeSpecifiers('import { a, type B } from "./a";')).toEqual(["./a"]);
   });
 });
 
