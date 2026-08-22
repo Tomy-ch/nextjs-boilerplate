@@ -37,6 +37,7 @@ describe("register", () => {
     }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({
+        serviceName: "Boilerplate Web",
         otlpEndpoint: "http://localhost:4318",
         tracesEnabled: false,
         metricsEnabled: false,
@@ -57,7 +58,7 @@ describe("register", () => {
       tracesEnabled: false,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test/v1"],
     });
     expect(initializeLogger).toHaveBeenCalledWith({
@@ -81,6 +82,7 @@ describe("register", () => {
     }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({
+        serviceName: "Boilerplate Web",
         otlpEndpoint: "http://localhost:4318",
         tracesEnabled: false,
         metricsEnabled: false,
@@ -95,7 +97,7 @@ describe("register", () => {
 
     await register();
 
-    expect(createOtlpLogSink).toHaveBeenCalledWith("nextjs-boilerplate");
+    expect(createOtlpLogSink).toHaveBeenCalledWith("Boilerplate Web");
     expect(initializeLogger).toHaveBeenCalledWith({
       level: LogLevel.INFO,
       traceContextExtractor: extractActiveTraceContext,
@@ -117,6 +119,7 @@ describe("register", () => {
     }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({
+        serviceName: "Boilerplate Web",
         otlpEndpoint: "http://localhost:4318",
         tracesEnabled: true,
         metricsEnabled: false,
@@ -151,6 +154,7 @@ describe("register", () => {
     }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({
+        serviceName: "Boilerplate Web",
         otlpEndpoint: "http://localhost:4318",
         tracesEnabled: true,
         metricsEnabled: false,
@@ -183,6 +187,7 @@ describe("register", () => {
     vi.doMock("../mocks/node", () => ({ mockServer: { listen } }));
     vi.doMock("./config/observability/observability.server", () => ({
       getObservabilityConfig: () => ({
+        serviceName: "Boilerplate Web",
         otlpEndpoint: "http://localhost:4318",
         tracesEnabled: false,
         metricsEnabled: false,

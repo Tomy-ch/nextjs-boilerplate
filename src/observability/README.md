@@ -35,5 +35,5 @@ Next.js は Node.js サーバーを準備すると `src/instrumentation.ts` の 
 - OTLP と公式 semconv のみを使用する
 - 実装時に設定値を注入し、vendor 固定を避ける
 - local 開発では go 側 compose の `observability` が公開する OTLP HTTP `http://localhost:4318` と Grafana `http://localhost:3000` を使う
-- fork 先のバックエンドや collector に合わせて endpoint、`service.name`、signal 有効化を設定する。Grafana、Sentry、Faro などの SDK をこのカーネルへ直接固定しない
+- fork 先のバックエンドや collector に合わせて endpoint、`service.name`(`OBS_SERVICE_NAME`)、signal 有効化を設定する。`service.name` は同じ trace に載る他サービスと異なる値にする。Grafana、Sentry、Faro などの SDK をこのカーネルへ直接固定しない
 - Next.js が自前で張る `fetch` span は、span 名に query 付きの URL をそのまま載せる。このカーネルの redaction は及ばないため、query に利用者の入力を乗せる口を持つなら `NEXT_OTEL_FETCH_DISABLED=1` で抑止する。同じ外向き通信は Undici instrumentation の span が redaction 済みで覆う

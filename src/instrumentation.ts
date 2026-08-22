@@ -38,23 +38,25 @@ export async function register(): Promise<void> {
     }
 
     const config = getObservabilityConfig();
+    const { serviceName } = config;
+
     initializeObservability({
       otlpEndpoint: config.otlpEndpoint,
       tracesEnabled: config.tracesEnabled,
       metricsEnabled: config.metricsEnabled,
       logsEnabled: config.logsEnabled,
-      serviceName: "nextjs-boilerplate",
+      serviceName,
       tracePropagationOrigins: [apiConfig.baseUrl],
     });
     initializeLogger({
       level: LogLevel.INFO,
       traceContextExtractor: extractActiveTraceContext,
-      ...(config.logsEnabled ? { logRecordSink: createOtlpLogSink("nextjs-boilerplate") } : {}),
+      ...(config.logsEnabled ? { logRecordSink: createOtlpLogSink(serviceName) } : {}),
     });
 
     if (config.tracesEnabled && config.logsEnabled) {
       const { trace } = await import("@opentelemetry/api");
-      trace.getTracer("nextjs-boilerplate").startActiveSpan("observability.initialize", (span) => {
+      trace.getTracer(serviceName).startActiveSpan("observability.initialize", (span) => {
         getLogger().info("observability を初期化しました", {
           traces_enabled: config.tracesEnabled,
           metrics_enabled: config.metricsEnabled,

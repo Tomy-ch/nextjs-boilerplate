@@ -4,17 +4,20 @@ import { getEnvironment } from "../environment";
 import { type ObservabilityEnvironment, OtelExporter } from "./observability.schema";
 
 class ObservabilityConfig {
+  readonly #serviceName: string;
   readonly #otlpEndpoint: string;
   readonly #tracesExporter: string;
   readonly #metricsExporter: string;
   readonly #logsExporter: string;
 
   private constructor(
+    serviceName: string,
     otlpEndpoint: string,
     tracesExporter: string,
     metricsExporter: string,
     logsExporter: string,
   ) {
+    this.#serviceName = serviceName;
     this.#otlpEndpoint = otlpEndpoint;
     this.#tracesExporter = tracesExporter;
     this.#metricsExporter = metricsExporter;
@@ -24,11 +27,17 @@ class ObservabilityConfig {
   /** 検証済み ENV から production singleton を組み立てる。 */
   static fromValues(values: ObservabilityEnvironment): ObservabilityConfig {
     return new ObservabilityConfig(
+      values.OBS_SERVICE_NAME,
       values.OTEL_EXPORTER_OTLP_ENDPOINT,
       values.OBS_TRACES_EXPORTER,
       values.OBS_METRICS_EXPORTER,
       values.OBS_LOGS_EXPORTER,
     );
+  }
+
+  /** テレメトリの発信元を表す service 名。 */
+  get serviceName(): string {
+    return this.#serviceName;
   }
 
   /** OpenTelemetry exporter の送信先。 */

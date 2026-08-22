@@ -55,7 +55,7 @@ describe("initializeObservability", () => {
       tracesEnabled: false,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test/v1"],
     });
 
@@ -70,7 +70,7 @@ describe("initializeObservability", () => {
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test/v1"],
     });
     initializeObservability({
@@ -78,7 +78,7 @@ describe("initializeObservability", () => {
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test/v1"],
     });
 
@@ -94,7 +94,7 @@ describe("initializeObservability", () => {
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test/v1"],
     });
 
@@ -112,7 +112,7 @@ describe("initializeObservability", () => {
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test/v1"],
     });
 
@@ -127,7 +127,7 @@ describe("initializeObservability", () => {
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test/v1"],
     });
 
@@ -147,7 +147,7 @@ describe("initializeObservability", () => {
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test/v1"],
     });
 
@@ -164,7 +164,7 @@ describe("initializeObservability", () => {
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test", "https://media.example.test"],
     });
 
@@ -183,7 +183,7 @@ describe("initializeObservability", () => {
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test/v1"],
     });
 
@@ -198,7 +198,7 @@ describe("initializeObservability", () => {
       tracesEnabled: false,
       metricsEnabled: true,
       logsEnabled: true,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test"],
     });
 
@@ -220,7 +220,7 @@ describe("initializeObservability", () => {
       tracesEnabled: false,
       metricsEnabled: true,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test"],
     });
 
@@ -235,7 +235,7 @@ describe("initializeObservability", () => {
       tracesEnabled: false,
       metricsEnabled: false,
       logsEnabled: true,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
       tracePropagationOrigins: ["https://api.example.test"],
     });
 

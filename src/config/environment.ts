@@ -12,7 +12,11 @@ import {
 import { maxUploadBytesValidator, maxUrlBytesValidator } from "./http/http.schema";
 import { findApplicationEnvironment } from "./load-environment";
 import { mediaOriginValidator } from "./media/media.schema";
-import { otlpEndpointValidator, otlpExporterValidator } from "./observability/observability.schema";
+import {
+  otlpEndpointValidator,
+  otlpExporterValidator,
+  serviceNameValidator,
+} from "./observability/observability.schema";
 
 /**
  * 同梱の秘密値を許す環境。
@@ -31,6 +35,7 @@ const environmentSchema = z.object({
   APP_API_BASE_URL: apiBaseUrlValidator(),
   APP_API_MODE: apiModeValidator(),
   MEDIA_ORIGIN: mediaOriginValidator(),
+  OBS_SERVICE_NAME: serviceNameValidator(),
   OTEL_EXPORTER_OTLP_ENDPOINT: otlpEndpointValidator(),
   OBS_TRACES_EXPORTER: otlpExporterValidator(),
   OBS_METRICS_EXPORTER: otlpExporterValidator(),
