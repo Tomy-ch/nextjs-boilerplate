@@ -55,8 +55,9 @@ export type DevelopmentAuthorization = {
  * 寿命は一時状態と揃えます。一時状態が切れたコードは交換できないので、それより長く生かしても
  * 使える時間は伸びません。
  *
- * 秘密値を引数に取らず設定から読むのは、**呼ぶのが app 層だから**です（`/dev/session` の Server
- * Action）。渡す形にすると、封緘の鍵が `adapters/server/auth` の外を通ります。
+ * 秘密値を引数に取らず設定から読むのは、**呼ぶのが app 層だから**です
+ * （`app/dev/session/authorize-development-session.ts`）。渡す形にすると、封緘の鍵が
+ * `adapters/server/auth` の外を通ります。
  */
 export async function issueDevelopmentAuthorizationCode(
   authorization: DevelopmentAuthorization,

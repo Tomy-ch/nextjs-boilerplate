@@ -19,10 +19,9 @@ export function authIssuerValidator() {
  * 認可の開始先を検証する。
  *
  * @remarks
- * `dev` は IdP を立てずに保護された画面まで到達させるための値で、**開発専用の口が開く環境でしか
- * 効きません**（`isDevelopmentOnlyEndpointOpen()`）。効かせる判定を環境と併せて置くのは、この
- * 変数だけで開始先が決まると、設定を誤って実環境へ `dev` を与えた瞬間に、IdP を通らない経路が
- * 公開ドメインで開くためです。
+ * `dev` は IdP を立てずに保護された画面まで到達させるための値です。**この変数だけでは効きません**
+ * —— 実際に効かせるかの判定は `adapters/server/auth/resolver.ts` の
+ * `usesDevelopmentAuthorization()` が環境と併せて行い、その理由もそちらが持ちます。
  *
  * 省略できます。既定の `idp` は環境によらず正しい値で、`dev` を置くのは開発専用の口を開けて
  * いる環境だけです（[0030](../../../docs/adr/0030-environment-variable-management.md) §4 の

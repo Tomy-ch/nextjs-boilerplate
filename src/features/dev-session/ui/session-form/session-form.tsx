@@ -170,7 +170,8 @@ function IssueSubmit() {
  *
  * **認可の往復の途中では素の form 送信になります。** 送信中の表示と項目ごとの理由はそのとき
  * 出ません —— どちらも Server Action の戻り値に載る情報で、素の送信は状態を持ち越せないためです。
- * 実在の IdP の認可 endpoint も分類しか戻さないので、そこで揃います。
+ * 認可 endpoint が分類しか戻さないこと（[`authorize-error.ts`](../../authorize-error.ts) の
+ * `AUTHORIZE_ERROR`）と、そこで揃います。
  */
 export function DevSessionForm({
   returnUrl,

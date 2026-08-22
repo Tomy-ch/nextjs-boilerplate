@@ -33,17 +33,14 @@ const INVALID_INPUT_MESSAGE = "指定を確認してください。";
  * app 層に置くのは、session の封緘が `adapters/server/auth` の領分で、そこへ触れてよいのが
  * app 層だからです（`architecture.ts` の `adapters-auth`）。画面の側は送信先を受け取るだけです。
  *
- * **トークンを IdP から取るかどうかを、ここで分岐させます。** 画面は「取る」という指定を送る
- * だけで取り方を知らず、取り方は `adapters/server/auth/development-token.ts` が 1 か所で持ちます。
+ * **トークンを IdP から取るかどうかの分岐は `to-session-input.ts` の `toSessionInput` が持ちます。**
  * 取れなかったときは発行そのものを行いません —— 検証される先があるのにトークンだけ偽物、という
  * session を作ると、失敗が API を叩くところまで遅れて現れます。
  *
- * 戻り先は同じ生成元の中だけに絞ります。受け取った値をそのまま使うと、発行した直後に外部の
- * サイトへ送る導線になります。
+ * 戻り先の安全性は `toSafeReturnUrl`（`model/return-url.ts`）が持ちます。
  *
  * **認可の往復の途中の送信はここへ来ません。** あちらは `/dev/session/authorize` へ素の form で
- * 送ります —— 認可の応答を返す先が Route Handler であり、Server Action の `redirect()` は
- * そこへ遷移できないためです。
+ * 送ります。理由は `features/dev-session/paths.ts` の `DEV_AUTHORIZE_PATH` が持ちます。
  */
 export async function issueDevSessionAction(
   _previous: DevSessionFormState,

@@ -6,13 +6,8 @@ import { authorizeDevelopmentSession } from "../authorize-development-session";
  * 開発用 IdP の認可 endpoint。
  *
  * @remarks
- * **Server Action ではなく Route Handler です。** 認可の応答は `/api/auth/callback` へ戻す必要が
- * あり、Server Action の `redirect()` は Route Handler へ遷移できません —— client router が
- * 飲み込み、要求そのものが出ません（URL だけが書き換わります）。素の form 送信ならブラウザが
- * 遷移するので、往復が本番と同じ経路を通ります。
- *
- * 実在の IdP でも、ログイン画面は認可 endpoint へ送信し、そこが応答を持って戻します。この口は
- * その役どころに対応します。
+ * **Server Action ではなく Route Handler です。** 理由は `features/dev-session/paths.ts` の
+ * `DEV_AUTHORIZE_PATH` が持ちます。
  *
  * **開ける環境の判定をここでも行います。** 画面とは別の入口であり、画面を経由せずに呼べます。
  * 入口ごとに閉じていなければ、閉じたことになりません。

@@ -42,9 +42,9 @@ export type AuthorizeOutcome =
  * `errors` / `logging` で、原則は thin proxy です（[0025](../../../../docs/adr/0025-app-layer-elements.md)）。
  * form の解析も失敗の分類も `features` の語彙なので、受け口の隣へ出して口そのものを薄く保ちます。
  *
- * 失敗は分類だけを URL へ載せて画面へ戻します。項目ごとの理由を返さないのは、実在の IdP の認可
- * endpoint も `error` の分類しか戻さないためで、項目ごとの理由は自分の画面へ留まる送信
- * （その場で発行する Server Action）が持ちます。
+ * 失敗は分類だけを URL へ載せて画面へ戻します。分類しか戻さない理由は
+ * `features/dev-session/authorize-error.ts` の `AUTHORIZE_ERROR` が持ちます。項目ごとの理由は、
+ * 自分の画面へ留まる送信（その場で発行する Server Action）の側です。
  *
  * **対応づける値が正しいかは判定しません。** 突き合わせるのは `/api/auth/callback` が復元する
  * 一時状態で、ここでも判定すると同じ判定が 2 か所に分かれます。ここが見るのは、載っているか

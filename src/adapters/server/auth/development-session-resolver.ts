@@ -32,9 +32,8 @@ const STATE_PARAM = "state";
  * IdP を立てずに認可の往復を成立させる Resolver を作る。
  *
  * @remarks
- * **`AUTH_MODE=dev` のときだけ選ばれます。** 選ぶ判定は環境と併せて `resolver.ts` が持ちます ——
- * この変数だけで開始先が決まると、設定を誤って実環境へ `dev` を与えた瞬間に、IdP を通らない
- * 経路が公開ドメインで開きます。
+ * **`AUTH_MODE=dev` のときだけ選ばれます。** 選ぶ判定は環境と併せて `resolver.ts` の
+ * `usesDevelopmentAuthorization()` が持ち、そう組む理由もそちらが持ちます。
  *
  * **往復そのものは省きません。** 送り出す先が `/dev/session` に変わるだけで、一時状態の cookie も
  * `/api/auth/callback` も本番と同じ経路を通ります。ここで直接 session を置く形にすると、callback が
