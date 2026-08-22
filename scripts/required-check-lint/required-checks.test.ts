@@ -4,6 +4,7 @@ import {
   findViolations,
   readRequiredContexts,
   readWorkflowContexts,
+  selectWorkflowFiles,
   type WorkflowContexts,
 } from "./required-checks";
 
@@ -26,6 +27,32 @@ function workflow(overrides: Partial<WorkflowContexts> = {}): WorkflowContexts {
     ...overrides,
   };
 }
+
+describe("selectWorkflowFiles", () => {
+  // ----- 正常系 -----
+  it("workflow 定義だけを、ディレクトリを冠したパスの順に並べて返す", () => {
+    expect(selectWorkflowFiles(".github/workflows", ["test.yaml", "build.yml"])).toEqual([
+      ".github/workflows/build.yml",
+      ".github/workflows/test.yaml",
+    ]);
+  });
+
+  it("何も無いディレクトリを空で返す", () => {
+    expect(selectWorkflowFiles(".github/workflows", [])).toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("workflow 定義でないファイルを、拡張子を持たないものも含めて外す", () => {
+    expect(
+      selectWorkflowFiles(".github/workflows", [
+        "README.md",
+        "notes",
+        "lint.yaml.bak",
+        "lint.yaml",
+      ]),
+    ).toEqual([".github/workflows/lint.yaml"]);
+  });
+});
 
 describe("readRequiredContexts", () => {
   // ----- 正常系 -----
@@ -57,6 +84,30 @@ describe("readRequiredContexts", () => {
     expect(() => readRequiredContexts(settings([]))).toThrow("required_status_checks が空です");
   });
 
+  it("必須チェックが配列でない宣言を、空と同じ扱いで落とす", () => {
+    expect(() => readRequiredContexts(settings(null))).toThrow("required_status_checks が空です");
+  });
+
+  it("必須チェックの規則が parameters を持たない宣言を落とす", () => {
+    const source = JSON.stringify({ rules: [{ type: "required_status_checks" }] });
+
+    expect(() => readRequiredContexts(source)).toThrow("required_status_checks が空です");
+  });
+
+  it("rules に null が混ざっていても、規則を読み飛ばさずに探す", () => {
+    const source = JSON.stringify({
+      rules: [
+        null,
+        {
+          type: "required_status_checks",
+          parameters: { required_status_checks: [{ context: "lint" }] },
+        },
+      ],
+    });
+
+    expect(readRequiredContexts(source)).toEqual(["lint"]);
+  });
+
   it("context を読み取れない要素の位置を示して落とす", () => {
     expect(() => readRequiredContexts(settings([{ context: "lint" }, { name: "test" }]))).toThrow(
       "required_status_checks[1]",
@@ -73,6 +124,18 @@ describe("readWorkflowContexts", () => {
     );
 
     expect(parsed.jobs).toEqual([{ context: "lint", matrix: false, reusable: false }]);
+  });
+
+  it("条件を持たない pull_request を、絞りなしとして読む", () => {
+    const parsed = readWorkflowContexts("lint.yaml", "on:\n  pull_request:\njobs:\n  lint:\n");
+
+    expect(parsed.pullRequest).toEqual({ filters: [], types: null });
+  });
+
+  it("pull_request をスカラーで書いた workflow を、絞りなしとして読む", () => {
+    const parsed = readWorkflowContexts("lint.yaml", "on:\n  pull_request: true\njobs:\n  lint:\n");
+
+    expect(parsed.pullRequest).toEqual({ filters: [], types: null });
   });
 
   it("job の name: があればそちらを context 名として読む", () => {
@@ -161,6 +224,12 @@ describe("readWorkflowContexts", () => {
     );
   });
 
+  it("on: が値を持たない workflow を、pull_request で走らないものとして読む", () => {
+    const parsed = readWorkflowContexts("lint.yaml", "on:\njobs:\n  lint:\n");
+
+    expect(parsed.pullRequest).toBeNull();
+  });
+
   it("YAML として読めない workflow を落とす", () => {
     expect(() => readWorkflowContexts("lint.yaml", "jobs: [lint")).toThrow("YAML として読めません");
   });
@@ -209,47 +278,32 @@ describe("findViolations", () => {
   });
 
   // ----- 異常系 -----
-  it("宣言する job が無い context を落とす", () => {
-    const violations = findViolations(["e2e"], [workflow()]);
-
-    expect(violations).toHaveLength(1);
-    expect(violations[0]).toContain("この名前を宣言する job がありません");
+  it("宣言する job が無い context を、その名前を添えて落とす", () => {
+    expect(findViolations(["e2e"], [workflow()])).toEqual([
+      "`e2e`: この名前を宣言する job がありません。報告されない context は永久に待たれます",
+    ]);
   });
 
-  it("同じ名前を宣言する workflow が複数あれば、どちらかを見ずに落とす", () => {
-    const collided = workflow({
-      file: ".github/workflows/deploy-docs.yaml",
-      pullRequest: { filters: ["paths"], types: null },
-    });
-    const violations = findViolations(["lint"], [workflow(), collided]);
+  it("同じ名前を宣言する workflow が複数あれば、job の中身を見ずに落とす", () => {
+    const collided = workflow({ file: ".github/workflows/deploy-docs.yaml" });
+    const dirty = workflow({ jobs: [{ context: "lint", matrix: true, reusable: false }] });
 
-    expect(violations).toHaveLength(1);
-    expect(violations[0]).toContain("2 個の job が同じ名前を宣言しています");
-    expect(violations[0]).toContain("deploy-docs.yaml");
+    expect(findViolations(["lint"], [dirty, collided])).toEqual([
+      "`lint`: 2 個の job が同じ名前を宣言しています（.github/workflows/lint.yaml / .github/workflows/deploy-docs.yaml）。どの結果を必須にしているのか決まりません",
+    ]);
   });
 
   it("1 つの workflow の中で名前が重なっていても落とす", () => {
     const collided = workflow({
       jobs: [
-        { context: "lint", matrix: false, reusable: false },
         { context: "lint", matrix: true, reusable: false },
-      ],
-    });
-    const violations = findViolations(["lint"], [collided]);
-
-    expect(violations).toHaveLength(1);
-    expect(violations[0]).toContain("2 個の job が同じ名前を宣言しています");
-  });
-
-  it("重なっている場所を、同じファイル名を並べずに示す", () => {
-    const collided = workflow({
-      jobs: [
-        { context: "lint", matrix: false, reusable: false },
         { context: "lint", matrix: false, reusable: false },
       ],
     });
 
-    expect(findViolations(["lint"], [collided])[0]).toContain("（.github/workflows/lint.yaml）");
+    expect(findViolations(["lint"], [collided])).toEqual([
+      "`lint`: 2 個の job が同じ名前を宣言しています（.github/workflows/lint.yaml）。どの結果を必須にしているのか決まりません",
+    ]);
   });
 
   it("pull_request で走らない workflow の context を落とす", () => {
@@ -260,44 +314,51 @@ describe("findViolations", () => {
     ]);
   });
 
-  it("paths で絞られた workflow の context を落とす", () => {
-    const filtered = workflow({ pullRequest: { filters: ["paths"], types: null } });
-    const violations = findViolations(["lint"], [filtered]);
+  it("絞っているフィルタを名指しして落とす", () => {
+    const filtered = workflow({
+      pullRequest: { filters: ["paths", "branches-ignore"], types: null },
+    });
 
-    expect(violations).toHaveLength(1);
-    expect(violations[0]).toContain("paths で絞られています");
+    expect(findViolations(["lint"], [filtered])).toEqual([
+      "`lint`: .github/workflows/lint.yaml の pull_request が paths / branches-ignore で絞られています。条件に合わない PR では報告されません",
+    ]);
   });
 
-  it("types に opened と synchronize が無い workflow の context を落とす", () => {
-    const labelled = workflow({ pullRequest: { filters: [], types: ["labeled"] } });
-    const violations = findViolations(["lint"], [labelled]);
+  it("types に足りない活動だけを名指しして落とす", () => {
+    const labelled = workflow({ pullRequest: { filters: [], types: ["opened", "labeled"] } });
 
-    expect(violations).toHaveLength(1);
-    expect(violations[0]).toContain("opened / synchronize を含みません");
+    expect(findViolations(["lint"], [labelled])).toEqual([
+      "`lint`: .github/workflows/lint.yaml の pull_request の types が synchronize を含みません。その活動では報告されません",
+    ]);
   });
 
   it("matrix を持つ job の context を落とす", () => {
     const spread = workflow({ jobs: [{ context: "lint", matrix: true, reusable: false }] });
-    const violations = findViolations(["lint"], [spread]);
 
-    expect(violations).toHaveLength(1);
-    expect(violations[0]).toContain("matrix を持ちます");
+    expect(findViolations(["lint"], [spread])).toEqual([
+      "`lint`: .github/workflows/lint.yaml の job が matrix を持ちます。報告される名前が行ごとに枝分かれするため、この名前では報告されません",
+    ]);
   });
 
   it("reusable workflow を呼び出す job の context を落とす", () => {
     const delegated = workflow({ jobs: [{ context: "lint", matrix: false, reusable: true }] });
-    const violations = findViolations(["lint"], [delegated]);
 
-    expect(violations).toHaveLength(1);
-    expect(violations[0]).toContain("reusable workflow を呼び出しています");
+    expect(findViolations(["lint"], [delegated])).toEqual([
+      "`lint`: .github/workflows/lint.yaml の job が reusable workflow を呼び出しています。報告される名前が `lint / <呼び出し先の job>` になります",
+    ]);
   });
 
-  it("1 つの context が複数の理由で報告されないとき、理由を並べて報告する", () => {
+  it("1 つの context が複数の理由で報告されないとき、理由をすべて並べて報告する", () => {
     const broken = workflow({
       jobs: [{ context: "lint", matrix: true, reusable: true }],
       pullRequest: { filters: ["paths", "branches"], types: ["labeled"] },
     });
 
-    expect(findViolations(["lint"], [broken])).toHaveLength(4);
+    expect(findViolations(["lint"], [broken])).toEqual([
+      "`lint`: .github/workflows/lint.yaml の job が matrix を持ちます。報告される名前が行ごとに枝分かれするため、この名前では報告されません",
+      "`lint`: .github/workflows/lint.yaml の job が reusable workflow を呼び出しています。報告される名前が `lint / <呼び出し先の job>` になります",
+      "`lint`: .github/workflows/lint.yaml の pull_request が paths / branches で絞られています。条件に合わない PR では報告されません",
+      "`lint`: .github/workflows/lint.yaml の pull_request の types が opened / synchronize を含みません。その活動では報告されません",
+    ]);
   });
 });

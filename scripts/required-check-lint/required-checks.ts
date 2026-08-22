@@ -53,6 +53,26 @@ const REPORT_NARROWING_FILTERS = ["paths", "paths-ignore", "branches", "branches
  */
 const REQUIRED_ACTIVITY_TYPES = ["opened", "synchronize"] as const;
 
+/** workflow 定義として読む拡張子。 */
+const WORKFLOW_EXTENSIONS = [".yaml", ".yml"];
+
+/**
+ * ディレクトリの中身から workflow 定義を選び、リポジトリルート相対の一覧にする。
+ *
+ * @remarks
+ * 読み取り自体は入口が行い、ここは「どれを workflow と見るか」だけを決めます。並びを固定するのは、
+ * 違反の並び順が実行環境の列挙順で変わると、同じツリーに対する出力が場所ごとに違って見えるためです。
+ *
+ * @param dir - リポジトリルート相対のディレクトリ
+ * @param names - そのディレクトリに実在するファイル名
+ */
+export function selectWorkflowFiles(dir: string, names: readonly string[]): string[] {
+  return names
+    .filter((name) => WORKFLOW_EXTENSIONS.includes(name.slice(name.lastIndexOf("."))))
+    .map((name) => `${dir}/${name}`)
+    .sort();
+}
+
 /**
  * ruleset の宣言から必須 context の一覧を読む。
  *

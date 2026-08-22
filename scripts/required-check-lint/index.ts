@@ -10,12 +10,12 @@ import {
   findViolations,
   readRequiredContexts,
   readWorkflowContexts,
+  selectWorkflowFiles,
   type WorkflowContexts,
 } from "./required-checks.js";
 
 const SETTINGS_FILE = ".github/settings/branch-protection.json";
 const WORKFLOW_DIR = ".github/workflows";
-const WORKFLOW_EXTENSIONS = [".yaml", ".yml"];
 
 function main(): void {
   const root = process.cwd();
@@ -64,10 +64,9 @@ function listWorkflowFiles(root: string): string[] {
     return [];
   }
 
-  return entries
-    .filter((entry) => entry.isFile() && WORKFLOW_EXTENSIONS.includes(path.extname(entry.name)))
-    .map((entry) => `${WORKFLOW_DIR}/${entry.name}`)
-    .sort();
+  const names = entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
+
+  return selectWorkflowFiles(WORKFLOW_DIR, names);
 }
 
 function read<T>(file: string, parse: (source: string) => T): T {
