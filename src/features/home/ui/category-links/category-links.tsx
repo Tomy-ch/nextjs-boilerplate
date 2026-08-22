@@ -32,7 +32,7 @@ export function CategoryLinks({ categories }: CategoryLinksProps) {
 
   return (
     <section>
-      <h2 className="text-lg font-strong">カテゴリから探す</h2>
+      <h2 className="text-lg font-emphasis">カテゴリから探す</h2>
       <ul className="mt-4 flex flex-wrap gap-2">
         {categories.map((category) => (
           <li key={category.id}>

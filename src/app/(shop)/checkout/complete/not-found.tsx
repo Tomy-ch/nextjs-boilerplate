@@ -17,7 +17,7 @@ import { ErrorKind } from "@/errors/error-kind";
 export default function CheckoutCompleteNotFound() {
   return (
     <ContentContainer className="flex flex-col items-start gap-4 py-8">
-      <h1 className="font-strong text-xl">{getDefaultErrorMeta(ErrorKind.NOT_FOUND).message}</h1>
+      <h1 className="font-emphasis text-xl">{getDefaultErrorMeta(ErrorKind.NOT_FOUND).message}</h1>
       <Link className="underline" href="/mypage">
         購入の控えを見る
       </Link>

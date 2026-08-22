@@ -131,7 +131,6 @@
   --font-brand: var(--semantic-font-brand);
   --font-mono: var(--semantic-font-mono);
   --font-weight-emphasis: var(--semantic-font-weight-emphasis);
-  --font-weight-strong: var(--semantic-font-weight-strong);
   --shadow-panel: var(--semantic-shadow-panel);
   --shadow-glow-inner: var(--semantic-shadow-glow-inner);
   --shadow-glow-primary: var(--semantic-shadow-glow-primary);
@@ -180,7 +179,6 @@
   --semantic-font-brand: var(--font-michroma);
   --semantic-font-mono: var(--font-geist-mono);
   --semantic-font-weight-emphasis: var(--font-weight-bold);
-  --semantic-font-weight-strong: var(--font-weight-extrabold);
   --semantic-shadow-panel: 0 8px 32px color-mix(in srgb, var(--color-blue-760) 10%, transparent);
   --semantic-shadow-glow-inner: 0 0 4px color-mix(in srgb, var(--color-cyan-325) 16%, transparent);
   --semantic-shadow-glow-primary: 0 0 5px color-mix(in srgb, var(--color-cyan-325) 30%, transparent), 0 0 14px color-mix(in srgb, var(--color-cyan-325) 16%, transparent);
@@ -229,7 +227,6 @@
     --semantic-font-brand: var(--font-michroma);
     --semantic-font-mono: var(--font-geist-mono);
     --semantic-font-weight-emphasis: var(--font-weight-bold);
-    --semantic-font-weight-strong: var(--font-weight-extrabold);
     --semantic-shadow-panel: 0 8px 32px color-mix(in srgb, var(--color-slate-205) 10%, transparent);
     --semantic-shadow-glow-inner: 0 0 4px color-mix(in srgb, var(--color-slate-50) 95%, transparent);
     --semantic-shadow-glow-primary: 0 0 6px color-mix(in srgb, var(--color-cyan-205) 65%, transparent), 0 0 18px color-mix(in srgb, var(--color-cyan-205) 40%, transparent);
@@ -279,7 +276,6 @@
     --semantic-font-brand: var(--font-michroma);
     --semantic-font-mono: var(--font-geist-mono);
     --semantic-font-weight-emphasis: var(--font-weight-bold);
-    --semantic-font-weight-strong: var(--font-weight-extrabold);
     --semantic-shadow-panel: 0 8px 32px color-mix(in srgb, var(--color-slate-205) 10%, transparent);
     --semantic-shadow-glow-inner: 0 0 4px color-mix(in srgb, var(--color-slate-50) 95%, transparent);
     --semantic-shadow-glow-primary: 0 0 6px color-mix(in srgb, var(--color-cyan-205) 65%, transparent), 0 0 18px color-mix(in srgb, var(--color-cyan-205) 40%, transparent);
@@ -327,7 +323,6 @@
   --semantic-font-brand: var(--font-michroma);
   --semantic-font-mono: var(--font-geist-mono);
   --semantic-font-weight-emphasis: var(--font-weight-medium);
-  --semantic-font-weight-strong: var(--font-weight-semibold);
   --semantic-shadow-panel: 0 8px 28px color-mix(in srgb, var(--color-blue-760) 7%, transparent);
   --semantic-shadow-glow-inner: 0 0 3px color-mix(in srgb, var(--color-cyan-325) 12%, transparent);
   --semantic-shadow-glow-primary: 0 0 4px color-mix(in srgb, var(--color-cyan-325) 24%, transparent), 0 0 12px color-mix(in srgb, var(--color-cyan-325) 12%, transparent);
@@ -375,7 +370,6 @@
     --semantic-font-brand: var(--font-michroma);
     --semantic-font-mono: var(--font-geist-mono);
     --semantic-font-weight-emphasis: var(--font-weight-medium);
-    --semantic-font-weight-strong: var(--font-weight-semibold);
     --semantic-shadow-panel: 0 8px 28px color-mix(in srgb, var(--color-steel-205) 7%, transparent);
     --semantic-shadow-glow-inner: 0 0 3px color-mix(in srgb, var(--color-steel-50) 80%, transparent);
     --semantic-shadow-glow-primary: 0 0 5px color-mix(in srgb, var(--color-cyan-205) 50%, transparent), 0 0 15px color-mix(in srgb, var(--color-cyan-205) 28%, transparent);
@@ -424,7 +418,6 @@
     --semantic-font-brand: var(--font-michroma);
     --semantic-font-mono: var(--font-geist-mono);
     --semantic-font-weight-emphasis: var(--font-weight-medium);
-    --semantic-font-weight-strong: var(--font-weight-semibold);
     --semantic-shadow-panel: 0 8px 28px color-mix(in srgb, var(--color-steel-205) 7%, transparent);
     --semantic-shadow-glow-inner: 0 0 3px color-mix(in srgb, var(--color-steel-50) 80%, transparent);
     --semantic-shadow-glow-primary: 0 0 5px color-mix(in srgb, var(--color-cyan-205) 50%, transparent), 0 0 15px color-mix(in srgb, var(--color-cyan-205) 28%, transparent);

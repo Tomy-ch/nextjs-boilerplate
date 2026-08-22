@@ -135,10 +135,6 @@
     "emphasis": {
       "$type": "fontWeight",
       "$value": "{font-weight.medium}"
-    },
-    "strong": {
-      "$type": "fontWeight",
-      "$value": "{font-weight.semibold}"
     }
   },
   "shadow": {

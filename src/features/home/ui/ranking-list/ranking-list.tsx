@@ -30,13 +30,13 @@ export function RankingList({ entries }: RankingListProps) {
 
   return (
     <section>
-      <h2 className="text-lg font-strong">売上ランキング</h2>
+      <h2 className="text-lg font-emphasis">売上ランキング</h2>
       <ol className="mt-4">
         {entries.map((entry, index) => (
           <li key={entry.productId}>
             {index === 0 ? null : <Separator />}
             <div className="flex items-center gap-4 py-3">
-              <span className="w-6 shrink-0 text-center text-lg font-strong tabular-nums">
+              <span className="w-6 shrink-0 text-center text-lg font-emphasis tabular-nums">
                 {index + 1}
               </span>
               <span className="min-w-0 flex-1 break-words">

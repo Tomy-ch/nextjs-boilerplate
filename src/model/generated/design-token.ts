@@ -40,7 +40,6 @@ export const SEMANTIC_TOKEN = {
   ],
   "font-weight": [
     "emphasis",
-    "strong",
   ],
   shadow: [
     "panel",

@@ -17,7 +17,7 @@ import { ErrorKind } from "@/errors/error-kind";
 export default function NotFound() {
   return (
     <ContentContainer className="flex flex-col items-start gap-4 py-16">
-      <h1 className="text-xl font-strong">{getDefaultErrorMeta(ErrorKind.NOT_FOUND).message}</h1>
+      <h1 className="text-xl font-emphasis">{getDefaultErrorMeta(ErrorKind.NOT_FOUND).message}</h1>
       <Link className="underline" href="/">
         トップへ戻る
       </Link>

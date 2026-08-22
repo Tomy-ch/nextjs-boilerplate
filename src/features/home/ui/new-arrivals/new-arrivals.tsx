@@ -33,7 +33,7 @@ export function NewArrivals({ items }: NewArrivalsProps) {
   return (
     <section>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-strong">新着商品</h2>
+        <h2 className="text-lg font-emphasis">新着商品</h2>
         <Link
           className="rounded-xs text-sm text-muted-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary"
           href={PRODUCT_LIST_PATH}

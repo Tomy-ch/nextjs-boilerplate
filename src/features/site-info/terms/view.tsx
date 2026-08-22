@@ -29,7 +29,7 @@ export function TermsView() {
       </Alert>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-strong">セキュリティについて</h2>
+        <h2 className="text-lg font-emphasis">セキュリティについて</h2>
         <p>
           このサイトの構成は、将来的に一連の boilerplate のサンプルとして公開する予定です。WAF の
           設置を含め、一般的なセキュリティ対策のベストプラクティスには則りますが、
@@ -46,7 +46,7 @@ export function TermsView() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-strong">入力する情報について</h2>
+        <h2 className="text-lg font-emphasis">入力する情報について</h2>
         <p>
           氏名・住所・電話番号・メールアドレスには、
           <strong>必ず偽名や実在しない値を入力してください。</strong>
@@ -62,7 +62,7 @@ export function TermsView() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-strong">サービスの提供について</h2>
+        <h2 className="text-lg font-emphasis">サービスの提供について</h2>
         <p>
           <strong>
             予告なくメンテナンス・停止・仕様変更・データの全件削除を行うことがあります。
@@ -80,7 +80,7 @@ export function TermsView() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-strong">やめてほしいこと</h2>
+        <h2 className="text-lg font-emphasis">やめてほしいこと</h2>
         <p>
           脆弱性の探索・過負荷をかける操作・自動化した大量の要求・他の利用者が入力した内容の
           収集は行わないでください。動作を確かめたい場合は、公開されているサイトではなく、
@@ -89,7 +89,7 @@ export function TermsView() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-strong">免責</h2>
+        <h2 className="text-lg font-emphasis">免責</h2>
         <p>
           このサイトおよび公開しているコードは現状のまま提供されます。
           <strong>利用した結果として生じたいかなる損害についても、作者は責任を負いません。</strong>

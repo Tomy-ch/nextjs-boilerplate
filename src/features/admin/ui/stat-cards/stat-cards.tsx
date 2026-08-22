@@ -67,7 +67,7 @@ export function StatCards({ cards, label }: StatCardsProps) {
               )}
             </dt>
             <dd>
-              <p className="text-2xl font-strong tabular-nums lg:text-3xl">{card.value}</p>
+              <p className="text-2xl font-emphasis tabular-nums lg:text-3xl">{card.value}</p>
               <p className="mt-2 text-xs text-muted-foreground">{card.note}</p>
             </dd>
           </Card>
