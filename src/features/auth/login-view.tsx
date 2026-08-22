@@ -11,13 +11,7 @@ import type { SafeReturnUrl } from "@/model/return-url";
 
 import { LOGIN_NOTICE, type LoginNotice } from "./login-notice";
 
-/**
- * 理由ごとの案内。
- *
- * @remarks
- * 理由を鍵にした表で持ちます。**理由が増えたときに文言が無いことを型が咎める**ためで、
- * 分岐を並べると、文言の無い理由が無言で素通りします。
- */
+/** 理由ごとの案内。 */
 const NOTICE_TEXT = {
   [LOGIN_NOTICE.UNAVAILABLE]: {
     title: "認証を始められませんでした",

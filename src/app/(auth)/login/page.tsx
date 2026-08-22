@@ -18,8 +18,8 @@ export const metadata: Metadata = {
  * 復帰先は URL から受け取るため、検索エンジンに拾わせません。同じ画面が復帰先の数だけ
  * 別 URL として索引され、そのどれもが単独では意味を持たないためです。
  *
- * 検証をこの層で行うのは、`searchParams` が外から来る値だからです
- * （`docs/rules.md` #42）。feature へは検証済みの値だけを渡します。
+ * `searchParams` は `readLoginNotice` / `toSafeReturnUrl` を通した検証済みの値だけを画面へ
+ * 渡します。何を通すかはそれぞれの doc が持ちます。
  */
 export default async function LoginPage({
   searchParams,

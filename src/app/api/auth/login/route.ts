@@ -25,9 +25,9 @@ export async function GET(request: Request): Promise<Response> {
 
     return Response.redirect(authorizationUrl, 302);
   } catch {
-    // IdP へ到達できないときにここで落ちると、利用者には本文の無い 500 だけが残り、戻る手段が
-    // 無くなる。認証を始められなかっただけなので、始めた場所へ返して再試行させる
-    // （[0080](../../../../../docs/adr/0080-error-handling.md)）。
+    // 認可要求の組み立てと一時状態の保管のどちらが落ちても、認証は始まっていない。ここで例外を
+    // 外へ出すと利用者には本文の無い 500 だけが残り、戻る手段が無くなるので、始めた場所へ返して
+    // 再試行させる（[0080](../../../../../docs/adr/0080-error-handling.md)）。
     return Response.redirect(new URL(unavailableLoginPath(returnUrl), request.url), 302);
   }
 }

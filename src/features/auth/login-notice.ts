@@ -29,10 +29,9 @@ export type LoginNotice = (typeof LOGIN_NOTICE)[keyof typeof LOGIN_NOTICE];
  * 認証を始められなかったときに戻す行き先を組む。
  *
  * @remarks
- * `facade/` ではなくスライスの内側に置きます。あそこへ置いてよいのは 2 つ目の feature が実際に
- * 必要としたものだけで（[0021](../../../docs/adr/0021-frontend-responsibility.md)）、この行き先を
- * 使うのはこのスライスと app 層だけです。宛先そのもの（`loginPath`）は他の feature が指すので
- * facade に残り、ここはそれを借ります。
+ * `facade/` ではなくスライスの内側に置きます（[0021](../../../docs/adr/0021-frontend-responsibility.md)）。
+ * この行き先を使うのはこのスライスと app 層だけで、宛先そのもの（`loginPath`）は他の feature が
+ * 指すため facade に残ります。ここはそれを借ります。
  *
  * {@link loginPath} の上に理由を足すだけにしてあります。戻り先を載せる箇所を 2 つに増やすと、
  * 検証を通していない方が生まれます。
