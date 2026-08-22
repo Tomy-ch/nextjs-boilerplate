@@ -14,11 +14,31 @@ import type { TestSessionSpec } from "./test-session-record";
 
 /** 封緘した認可コードの中身。 */
 const SealedCode = z.object({
+  state: z.string(),
   sub: z.string(),
   role: z.enum([SESSION_ROLE.admin, SESSION_ROLE.user]),
   expiresInSeconds: z.number(),
   accessToken: z.string().optional(),
 });
+
+/**
+ * 認可コードが束ねているもの。
+ *
+ * @remarks
+ * **指定だけでなく、それを発行した要求の `state` も持ちます。** 指定だけを封緘すると、コードは
+ * どの要求に対しても使えてしまいます —— 交換の相手はコードを持っている側が用意できるため
+ * （自分で `/login` を踏めば新しい一時状態が手に入る）、`state` の突合が「自分の要求と自分の応答」
+ * を確かめるだけになり、**コードがどの要求のために出されたかは誰も確かめません**。
+ *
+ * 実在の IdP では PKCE の検証子がこの役目を負います（コードは要求時の `code_verifier` を知る者に
+ * しか交換できない）。ここで `state` を束ねるのは、その性質を開発用の経路でも保つためです。
+ */
+export type DevelopmentAuthorization = {
+  /** このコードを発行した認可要求の `state`。 */
+  readonly state: string;
+  /** 発行する session の指定。 */
+  readonly spec: TestSessionSpec;
+};
 
 /**
  * 開発用の認可コードを発行する。
@@ -28,8 +48,9 @@ const SealedCode = z.object({
  * URL に平文で載せません** —— `code` は利用者が編集できる位置に現れるため、そこに役割を書けば
  * 誰でも管理者として戻ってこられます。封緘してあれば、書き換えた時点で交換が失敗します。
  *
- * 使い切りはこのコード自身ではなく、**併せて要る一時状態**が担保します。`/api/auth/callback` は
- * 取り出しと同時に一時状態を捨てるため（`takeTransaction`）、同じコードで 2 度目の交換はできません。
+ * **どの要求のために出したかを一緒に封緘します。** 一時状態の消費（`takeTransaction`）が止められるのは
+ * 「自分が始めた往復を自分でもう一度使うこと」だけで、コードを手に入れた別の主体が新しい往復を
+ * 始めて交換することは止められません。束ねてあれば、その組み合わせは突合で落ちます。
  *
  * 寿命は一時状態と揃えます。一時状態が切れたコードは交換できないので、それより長く生かしても
  * 使える時間は伸びません。
@@ -37,10 +58,14 @@ const SealedCode = z.object({
  * 秘密値を引数に取らず設定から読むのは、**呼ぶのが app 層だから**です（`/dev/session` の Server
  * Action）。渡す形にすると、封緘の鍵が `adapters/server/auth` の外を通ります。
  */
-export async function issueDevelopmentAuthorizationCode(spec: TestSessionSpec): Promise<string> {
+export async function issueDevelopmentAuthorizationCode(
+  authorization: DevelopmentAuthorization,
+): Promise<string> {
+  const { state, spec } = authorization;
   const issuedAt = Math.floor(Date.now() / 1000);
 
   return new EncryptJWT({
+    state,
     sub: spec.subject,
     role: spec.role,
     expiresInSeconds: spec.expiresInSeconds,
@@ -53,7 +78,7 @@ export async function issueDevelopmentAuthorizationCode(spec: TestSessionSpec): 
 }
 
 /**
- * 開発用の認可コードを、発行の指定へ戻す。
+ * 開発用の認可コードを、発行時の要求と指定へ戻す。
  *
  * @remarks
  * 秘密値を引数で受け取るのは、**呼ぶのが Resolver だから**です。Resolver は依存を注入されて
@@ -64,16 +89,19 @@ export async function issueDevelopmentAuthorizationCode(spec: TestSessionSpec): 
 export async function openDevelopmentAuthorizationCode(
   code: string,
   secret: string,
-): Promise<TestSessionSpec> {
+): Promise<DevelopmentAuthorization> {
   try {
     const { payload } = await jwtDecrypt(code, await deriveSealKey(secret));
     const parsed = SealedCode.parse(payload);
 
     return {
-      subject: parsed.sub,
-      role: parsed.role,
-      expiresInSeconds: parsed.expiresInSeconds,
-      ...(parsed.accessToken === undefined ? {} : { accessToken: parsed.accessToken }),
+      state: parsed.state,
+      spec: {
+        subject: parsed.sub,
+        role: parsed.role,
+        expiresInSeconds: parsed.expiresInSeconds,
+        ...(parsed.accessToken === undefined ? {} : { accessToken: parsed.accessToken }),
+      },
     };
   } catch (cause) {
     // 復号の失敗・失効・形の違いを区別しない。どれも「このコードでは session を作れない」で

@@ -120,6 +120,13 @@ Route Handler へ遷移できません —— client router が飲み込み、�
 書き換わります（実測）。素の form 送信ならブラウザが遷移します。実在の IdP でもログイン画面は
 認可 endpoint へ送信し、そこが応答を持って戻すので、形としてもそちらが実物に近くなります。
 
+**認可 endpoint の判定は受け口の隣が持ちます。** `route.ts` に許される import 先は
+`adapters/server` / `errors` / `logging` で、原則は thin proxy です
+（[0025](../../../docs/adr/0025-app-layer-elements.md)）。form の解析も失敗の分類も `features` の
+語彙なので、`src/app/dev/session/authorize-development-session.ts` が持ち、口は「閉じる・呼ぶ・
+HTTP の形へ直す」だけにしています。**送信の本体の上限もそちらが持ちます** —— `next.config.ts` の
+`bodySizeLimit` は Server Action にしか及ばず、Route Handler へ寄せた時点で外れるためです。
+
 **その経路では、失敗は分類だけを URL で戻します。** 素の送信は状態を持ち越せないため、項目ごとの
 理由は出ません。実在の IdP の認可 endpoint も `error` の分類しか戻さないので、そこで揃います。
 項目ごとの理由は、自分の画面へ留まる送信（その場で発行する経路）が持ちます。

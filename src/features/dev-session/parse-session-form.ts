@@ -57,8 +57,21 @@ export type DevSessionParseResult =
 /** 失効までの秒数の上限。1 日を超える session を配ると、開発機に長く残り続ける。 */
 const MAX_EXPIRES_IN_SECONDS = 86_400;
 
+/**
+ * 誰として入るかの長さの上限。
+ *
+ * @remarks
+ * 主体の識別子であって自由入力ではありません。上限が無いと、**封緘した認可コードがそのまま
+ * 転送先の URL に載る**ため（認可の往復の途中で送ったとき）、経路上の上限
+ * （`NEXT_PUBLIC_HTTP_MAX_URL_BYTES`）を入力しだいで超えられます。
+ */
+const MAX_SUBJECT_LENGTH = 256;
+
 const devSessionSchema = z.object({
-  subject: z.string().min(1, "誰として入るかを指定してください。"),
+  subject: z
+    .string()
+    .min(1, "誰として入るかを指定してください。")
+    .max(MAX_SUBJECT_LENGTH, `誰として入るかは ${MAX_SUBJECT_LENGTH} 文字以下で指定してください。`),
   role: z.enum([SESSION_ROLE.admin, SESSION_ROLE.user]),
   expiresInSeconds: z.coerce
     .number()

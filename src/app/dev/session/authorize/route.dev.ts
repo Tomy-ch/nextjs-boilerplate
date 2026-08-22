@@ -1,14 +1,6 @@
 import { isDevelopmentAccessAllowed } from "@/adapters/server/auth/development-access";
-import { issueDevelopmentAuthorizationCode } from "@/adapters/server/auth/development-authorization-code";
-import { AUTHORIZE_ERROR, authorizeFailurePath } from "@/features/dev-session/authorize-error";
-import { parseDevSessionForm } from "@/features/dev-session/parse-session-form";
-import { RETURN_URL_PARAM, STATE_PARAM } from "@/features/dev-session/paths";
-import { toSafeReturnUrl } from "@/model/return-url";
 
-import { toSessionInput } from "../to-session-input";
-
-/** 認可の応答を受け取る口。app 層の中の別の口なので、相対のまま指す。 */
-const AUTH_CALLBACK_PATH = "/api/auth/callback";
+import { authorizeDevelopmentSession } from "../authorize-development-session";
 
 /**
  * 開発用 IdP の認可 endpoint。
@@ -25,11 +17,13 @@ const AUTH_CALLBACK_PATH = "/api/auth/callback";
  * **開ける環境の判定をここでも行います。** 画面とは別の入口であり、画面を経由せずに呼べます。
  * 入口ごとに閉じていなければ、閉じたことになりません。
  *
- * 失敗は分類だけを載せて画面へ戻します。項目ごとの理由を返さないのは、実在の IdP の認可
- * endpoint も `error` の分類しか戻さないためで、項目ごとの理由は自分の画面へ留まる送信
- * （その場で発行する経路）が持ちます。
+ * **判定と組み立ては隣のモジュールが持ちます。** `route.ts` に許される import 先は
+ * `adapters/server` / `errors` / `logging` で、原則は thin proxy です
+ * （[0025](../../../../../docs/adr/0025-app-layer-elements.md)）。ここが持つのは、口を閉じることと、
+ * 返ってきた結果を HTTP の形へ直すことだけです。
  *
- * @returns 認可の応答への 303。開けていない環境では 404、対応づける値が無ければ 400
+ * @returns 認可の応答・失敗の案内への 303。開けていない環境では 404、対応づける値が無ければ 400、
+ *   本体が大きすぎれば 413
  */
 export async function POST(request: Request): Promise<Response> {
   if (!(await isDevelopmentAccessAllowed())) {
@@ -37,40 +31,15 @@ export async function POST(request: Request): Promise<Response> {
     return new Response(null, { status: 404 });
   }
 
-  const formData = await request.formData();
-  const state = formData.get(STATE_PARAM)?.toString() ?? "";
-  const returnUrl = toSafeReturnUrl(formData.get(RETURN_URL_PARAM)?.toString());
+  const outcome = await authorizeDevelopmentSession(request);
 
-  if (state === "") {
-    // 対応づける値が無い送信は認可の往復の外から来ている。戻す先も決められない。
-    return new Response(null, { status: 400 });
+  switch (outcome.kind) {
+    case "redirect":
+      // 303 にする。302 のままだと、戻した先をブラウザが POST で開き直しうる。
+      return Response.redirect(new URL(outcome.destination, request.url), 303);
+    case "too-large":
+      return new Response(null, { status: 413 });
+    default:
+      return new Response(null, { status: 400 });
   }
-
-  const parsed = parseDevSessionForm(formData);
-
-  if (!parsed.ok) {
-    return redirectTo(authorizeFailurePath(returnUrl, state, AUTHORIZE_ERROR.INVALID), request);
-  }
-
-  let code: string;
-
-  try {
-    code = await issueDevelopmentAuthorizationCode(await toSessionInput(parsed.input));
-  } catch {
-    return redirectTo(authorizeFailurePath(returnUrl, state, AUTHORIZE_ERROR.UNAVAILABLE), request);
-  }
-
-  const response = new URLSearchParams({ code, state });
-
-  return redirectTo(`${AUTH_CALLBACK_PATH}?${response.toString()}`, request);
-}
-
-/**
- * 送信を受けた要求を、次の面へ GET で送り出す。
- *
- * @remarks
- * 303 にします。302 のままだと、戻した先をブラウザが POST で開き直しうるためです。
- */
-function redirectTo(path: string, request: Request): Response {
-  return Response.redirect(new URL(path, request.url), 303);
 }

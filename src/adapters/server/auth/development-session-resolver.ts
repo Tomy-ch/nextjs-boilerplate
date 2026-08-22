@@ -75,7 +75,18 @@ export function createDevelopmentSessionResolver(
         });
       }
 
-      return toTestSessionRecord(await openDevelopmentAuthorizationCode(code, deps.sessionSecret));
+      const authorization = await openDevelopmentAuthorizationCode(code, deps.sessionSecret);
+
+      // 応答の state と別に、コード自身が名乗る state も確かめる。前者はコードを持つ側が用意できる
+      // （自分で認可を始めれば新しい一時状態が手に入る）ので、それだけでは「このコードがこの要求の
+      // ために出された」ことを確かめたことにならない。
+      if (authorization.state !== transaction.state) {
+        throw createAppError(ErrorKind.UNAUTHENTICATED, {
+          cause: new Error("認可コードが別の要求のために発行されています"),
+        });
+      }
+
+      return toTestSessionRecord(authorization.spec);
     },
 
     seal: sealing.seal,

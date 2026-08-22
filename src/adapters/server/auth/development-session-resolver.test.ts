@@ -23,9 +23,12 @@ const resolver = createDevelopmentSessionResolver({
   maxUrlBytes: 8_000,
 });
 
-/** 発行の指定を、認可コードへ封緘する。callback が受け取るものと同じ形。 */
-function issueCode(subject: string, role: "admin" | "user"): Promise<string> {
-  return issueDevelopmentAuthorizationCode({ subject, role, expiresInSeconds: 3600 });
+/** 発行の指定を、その要求の認可コードへ封緘する。callback が受け取るものと同じ形。 */
+function issueCode(state: string, subject: string, role: "admin" | "user"): Promise<string> {
+  return issueDevelopmentAuthorizationCode({
+    state,
+    spec: { subject, role, expiresInSeconds: 3600 },
+  });
 }
 
 describe("createDevelopmentSessionResolver", () => {
@@ -56,7 +59,7 @@ describe("createDevelopmentSessionResolver", () => {
     const { transaction } = await resolver.startAuthorization("/");
 
     const record = await resolver.completeAuthorization({
-      code: await issueCode("dev-admin", SESSION_ROLE.admin),
+      code: await issueCode(transaction.state, "dev-admin", SESSION_ROLE.admin),
       state: transaction.state,
       transaction,
     });
@@ -70,7 +73,7 @@ describe("createDevelopmentSessionResolver", () => {
   it("封緘した session を、そのまま復元できる", async () => {
     const { transaction } = await resolver.startAuthorization("/");
     const record = await resolver.completeAuthorization({
-      code: await issueCode("dev-user", SESSION_ROLE.user),
+      code: await issueCode(transaction.state, "dev-user", SESSION_ROLE.user),
       state: transaction.state,
       transaction,
     });
@@ -91,7 +94,7 @@ describe("createDevelopmentSessionResolver", () => {
   it("終わらせる相手が居ないので、送り出す先を持たない", async () => {
     const { transaction } = await resolver.startAuthorization("/");
     const record = await resolver.completeAuthorization({
-      code: await issueCode("dev-user", SESSION_ROLE.user),
+      code: await issueCode(transaction.state, "dev-user", SESSION_ROLE.user),
       state: transaction.state,
       transaction,
     });
@@ -105,8 +108,22 @@ describe("createDevelopmentSessionResolver", () => {
 
     const error = await resolver
       .completeAuthorization({
-        code: await issueCode("dev-user", SESSION_ROLE.user),
+        code: await issueCode(transaction.state, "dev-user", SESSION_ROLE.user),
         state: "someone-elses-state",
+        transaction,
+      })
+      .catch((cause: unknown) => cause);
+
+    expect(findAppError(error)?.kind).toBe(ErrorKind.UNAUTHENTICATED);
+  });
+
+  it("別の要求のために発行されたコードを拒む", async () => {
+    const { transaction } = await resolver.startAuthorization("/");
+
+    const error = await resolver
+      .completeAuthorization({
+        code: await issueCode("someone-elses-request", "dev-admin", SESSION_ROLE.admin),
+        state: transaction.state,
         transaction,
       })
       .catch((cause: unknown) => cause);
