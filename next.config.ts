@@ -29,6 +29,22 @@ const DEVELOPMENT_ROUTE_EXTENSIONS = ["dev.tsx", "dev.ts"];
 const REQUEST_ENVELOPE_BYTES = 32 * 1024;
 
 /**
+ * 外部への遷移で `Referer` に載せてよい範囲。
+ *
+ * @remarks
+ * 同一 origin へは URL 全体、別 origin へは origin だけを送り、降格（https → http）では何も
+ * 送りません（[0111](docs/adr/0111-csp-security-headers.md) §2）。
+ *
+ * **認証の往復がクエリに秘密を載せます。** ログアウトは `id_token_hint` を、認可の戻りは `code`
+ * を URL に持ちます（[0079](docs/adr/0079-auth-frontend-seam.md)）。既定の挙動のままだと、その
+ * 画面から外部のリンクを踏んだときにパスとクエリごと相手へ渡ります。
+ *
+ * `headers()` へ置くのは、この値が要求の内容に依存しないためです。`src/proxy.ts` で足すと
+ * 前捌きを通る経路にしか載らず、静的に配れる応答が漏れます。
+ */
+const REFERRER_POLICY = "strict-origin-when-cross-origin";
+
+/**
  * Next.js の build / 開発サーバー初期化時に ENV を読み込み、全量検証してから設定を返す。
  */
 const nextConfig = async (): Promise<NextConfig> => {
@@ -39,6 +55,9 @@ const nextConfig = async (): Promise<NextConfig> => {
   const mediaOrigin = new URL(environment.MEDIA_ORIGIN);
 
   return {
+    async headers() {
+      return [{ source: "/:path*", headers: [{ key: "Referrer-Policy", value: REFERRER_POLICY }] }];
+    },
     // `APP_ENV` が明示されていない build も開発ではない側へ倒す。判定は
     // `isDevelopmentOnlyEndpointOpen()` が持ち、実行時の判定と同じ 1 つの条件を見る。
     pageExtensions: isDevelopmentOnlyEndpointOpen()
