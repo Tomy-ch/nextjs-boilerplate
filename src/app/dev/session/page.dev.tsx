@@ -10,7 +10,6 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { getApiConfig } from "@/config/api/api.server";
 import { getAuthConfig } from "@/config/auth/auth.server";
-import { AUTHORIZE_ERROR_MESSAGE } from "@/features/dev-session/authorize-error";
 import { RETURN_URL_PARAM, STATE_PARAM } from "@/features/dev-session/paths";
 import { readAuthorizeError } from "@/features/dev-session/read-authorize-error";
 import { DevSessionView } from "@/features/dev-session/view";
@@ -44,9 +43,10 @@ export const metadata: Metadata = {
  * 正しさを判定するのは `/api/auth/callback` が復元する一時状態との突合であり、ここで別に判定すると
  * 判定が 2 か所に分かれます。
  *
- * **認可 endpoint が戻した理由は、ここが文言へ直します。** 素の form 送信は状態を持ち越せないため、
- * 分類だけが URL で届きます。宣言に無い値は案内しません —— URL は利用者が直接編集でき、載っている
- * 文字列を根拠に画面を変えると、任意の案内を出させる導線になります。
+ * **認可 endpoint が戻した理由は、対応づける値と一緒にして渡します。** 理由が立つのはその値がある
+ * ときだけなので、別々に渡すと到達し得ない組み合わせが呼び出しの側に現れます。宣言に無い値は
+ * 案内しません —— URL は利用者が直接編集でき、載っている文字列を根拠に画面を変えると、任意の
+ * 案内を出させる導線になります。
  */
 export default async function DevSessionPage({
   searchParams,
@@ -59,8 +59,7 @@ export default async function DevSessionPage({
 
   const params = await searchParams;
   const returnUrl = params[RETURN_URL_PARAM];
-  const authorizationState = params[STATE_PARAM];
-  const error = readAuthorizeError(params);
+  const state = params[STATE_PARAM];
 
   return (
     <ContentContainer className="py-8">
@@ -73,9 +72,10 @@ export default async function DevSessionPage({
         </div>
       </PageHeader>
       <DevSessionView
-        authorizationState={typeof authorizationState === "string" ? authorizationState : null}
+        authorization={
+          typeof state === "string" ? { state, notice: readAuthorizeError(params) } : null
+        }
         connectsLiveApi={getApiConfig().mode === "live"}
-        formError={error === null ? null : AUTHORIZE_ERROR_MESSAGE[error]}
         defaultIssuer={getAuthConfig().issuer}
         discardAction={discardDevSessionAction}
         issueAction={issueDevSessionAction}

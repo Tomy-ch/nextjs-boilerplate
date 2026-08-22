@@ -20,13 +20,6 @@ export const AUTHORIZE_ERROR = {
 /** 認可を成立させられなかった理由。 */
 export type AuthorizeError = (typeof AUTHORIZE_ERROR)[keyof typeof AUTHORIZE_ERROR];
 
-/** 理由ごとの案内。 */
-export const AUTHORIZE_ERROR_MESSAGE = {
-  [AUTHORIZE_ERROR.INVALID]: "発行の指定を確認してください。",
-  [AUTHORIZE_ERROR.UNAVAILABLE]:
-    "IdP からトークンを取れませんでした。接続先を確かめてから、もう一度お試しください。",
-} as const satisfies Readonly<Record<AuthorizeError, string>>;
-
 /**
  * 認可を成立させられなかったときに戻す行き先を組む。
  *

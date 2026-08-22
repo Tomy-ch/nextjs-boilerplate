@@ -13,35 +13,47 @@ import {
 } from "@/components/design-system/form/radio-group-native/radio-group-native";
 import { SwitchNative } from "@/components/design-system/form/switch-native/switch-native";
 import { Textarea } from "@/components/design-system/form/textarea/textarea";
-import { fieldControlAttributes } from "@/components/patterns/form-field/field-attributes";
+import {
+  fieldControlAttributes,
+  toErrorId,
+} from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE, type SessionRole } from "@/model/session";
 
+import { AUTHORIZE_ERROR, type AuthorizeError } from "../../authorize-error";
 import type { DevSessionFormState, IssueDevSessionAction } from "../../form-state";
 import { DEV_AUTHORIZE_PATH, RETURN_URL_PARAM, STATE_PARAM } from "../../paths";
+
+/**
+ * 認可の往復の途中で開かれたときに、route segment から渡されるもの。
+ *
+ * @remarks
+ * **1 つに畳んであります。** 対応づける値と理由を別々の nullable で受け取ると、「対応づける値が
+ * 無いのに理由だけある」という到達し得ない組み合わせが型として書けます
+ * （[0029](../../../../../docs/adr/0029-type-design-discipline.md)）。理由が立つのは認可 endpoint
+ * から戻されたときだけで、そのときは対応づける値も必ず載っています。
+ */
+export type AuthorizationHandoff = {
+  /** 要求と応答を対応づける値。送信へそのまま載せる。 */
+  readonly state: string;
+  /** 認可を成立させられなかった理由。初めて開いたときは null。 */
+  readonly notice: AuthorizeError | null;
+};
 
 /** `DevSessionForm` の props。 */
 export type DevSessionFormProps = {
   /** 発行したあとの戻り先。 */
   returnUrl: string;
   /**
-   * 認可の往復で持ち回る、要求と応答を対応づける値。直接開いたときは null。
+   * 認可の往復からの引き渡し。直接開いたときは null。
    *
    * @remarks
    * **送信先が変わります。** 入っていれば認可 endpoint（`/dev/session/authorize`）へ素の form で
    * 送り、入っていなければその場で発行する Server Action へ送ります。理由は
    * [`paths.ts`](../../paths.ts) の {@link DEV_AUTHORIZE_PATH} が持ちます。
    */
-  authorizationState: string | null;
-  /**
-   * 送信を受け付けられなかった理由。無ければ null。
-   *
-   * @remarks
-   * 認可 endpoint から戻されたときだけ入ります。素の form 送信は状態を持ち越せないので、
-   * 理由は URL を経由して route segment から届きます。
-   */
-  formError: string | null;
+  authorization: AuthorizationHandoff | null;
   /** 発行の送信先。route が渡す。 */
   action: IssueDevSessionAction;
   /**
@@ -87,8 +99,42 @@ const ISSUER_DESCRIPTION =
   "いま叩いている API が期待する IdP を指します。設定の値を初期値にしていますが、口を分けて並行して立てているならそちらへ書き換えます。";
 const TOKEN_DESCRIPTION = "自分で取ったトークンを使うときだけ貼ります。空欄でも発行はできます。";
 
+/**
+ * 理由ごとの案内。
+ *
+ * @remarks
+ * 理由を鍵にした表で持ちます。**理由が増えたときに文言が無いことを型が咎める**ためで、
+ * 分岐を並べると、文言の無い理由が無言で素通りします。
+ */
+const NOTICE_TEXT = {
+  [AUTHORIZE_ERROR.INVALID]: "発行の指定を確認してください。",
+  [AUTHORIZE_ERROR.UNAVAILABLE]:
+    "IdP からトークンを取れませんでした。接続先を確かめてから、もう一度お試しください。",
+} as const satisfies Readonly<Record<AuthorizeError, string>>;
+
 const SUBMIT_LABEL = "この内容で入る";
 const PENDING_LABEL = "session を発行しています";
+
+/**
+ * 送信の下に出す 1 文を決める。
+ *
+ * @remarks
+ * 出所が 2 つあります。その場で発行する送信の結果（Server Action の戻り値）と、認可 endpoint が
+ * URL で戻した理由です。**同時には立ちません** —— 送信先はどちらか一方だけなので、直近の送信の
+ * 結果があればそちらを採ります。
+ */
+function toFeedback(
+  state: DevSessionFormState,
+  authorization: AuthorizationHandoff | null,
+): string | null {
+  if (state.status === "error") {
+    return state.formError;
+  }
+
+  const notice = authorization?.notice ?? null;
+
+  return notice === null ? null : NOTICE_TEXT[notice];
+}
 
 /** 送信部。`useFormStatus` は form の子でしか状態を読めないため切り出している。 */
 function IssueSubmit() {
@@ -128,8 +174,7 @@ function IssueSubmit() {
  */
 export function DevSessionForm({
   returnUrl,
-  authorizationState,
-  formError,
+  authorization,
   action,
   connectsLiveApi,
   defaultIssuer,
@@ -145,26 +190,26 @@ export function DevSessionForm({
   const issuerId = useId();
   const [issuesToken, setIssuesToken] = useState(connectsLiveApi);
   const errors = state.status === "error" ? state.fieldErrors : undefined;
-  const feedback = state.status === "error" ? state.formError : formError;
+  const feedback = toFeedback(state, authorization);
   const toggleIssuesToken = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     setIssuesToken(event.currentTarget.checked);
   }, []);
 
   return (
     <form
-      action={authorizationState === null ? formAction : DEV_AUTHORIZE_PATH}
+      action={authorization === null ? formAction : DEV_AUTHORIZE_PATH}
       className="flex flex-col gap-6"
-      method={authorizationState === null ? undefined : "post"}
+      method={authorization === null ? undefined : "post"}
     >
       <input name={RETURN_URL_PARAM} type="hidden" value={returnUrl} />
-      {authorizationState === null ? null : (
-        <input name={STATE_PARAM} type="hidden" value={authorizationState} />
+      {authorization === null ? null : (
+        <input name={STATE_PARAM} type="hidden" value={authorization.state} />
       )}
 
       <FormField
         controlId={subjectId}
         description={SUBJECT_DESCRIPTION}
-        errorId={`${subjectId}-error`}
+        errorId={toErrorId(subjectId)}
         label="誰として入るか"
         message={errors?.subject?.[0]}
         required
@@ -173,7 +218,7 @@ export function DevSessionForm({
           {...fieldControlAttributes({
             controlId: subjectId,
             description: SUBJECT_DESCRIPTION,
-            errorId: `${subjectId}-error`,
+            errorId: toErrorId(subjectId),
             message: errors?.subject?.[0],
             required: true,
           })}
@@ -200,7 +245,7 @@ export function DevSessionForm({
       <FormField
         controlId={expiresId}
         description={EXPIRES_DESCRIPTION}
-        errorId={`${expiresId}-error`}
+        errorId={toErrorId(expiresId)}
         label="失効までの秒数"
         message={errors?.expiresInSeconds?.[0]}
         required
@@ -209,7 +254,7 @@ export function DevSessionForm({
           {...fieldControlAttributes({
             controlId: expiresId,
             description: EXPIRES_DESCRIPTION,
-            errorId: `${expiresId}-error`,
+            errorId: toErrorId(expiresId),
             message: errors?.expiresInSeconds?.[0],
             required: true,
           })}
@@ -240,7 +285,7 @@ export function DevSessionForm({
         <FormField
           controlId={issuerId}
           description={ISSUER_DESCRIPTION}
-          errorId={`${issuerId}-error`}
+          errorId={toErrorId(issuerId)}
           label="IdP の接続先"
           message={errors?.issuerUrl?.[0]}
           required
@@ -249,7 +294,7 @@ export function DevSessionForm({
             {...fieldControlAttributes({
               controlId: issuerId,
               description: ISSUER_DESCRIPTION,
-              errorId: `${issuerId}-error`,
+              errorId: toErrorId(issuerId),
               message: errors?.issuerUrl?.[0],
               required: true,
             })}
@@ -265,7 +310,7 @@ export function DevSessionForm({
         <FormField
           controlId={tokenId}
           description={TOKEN_DESCRIPTION}
-          errorId={`${tokenId}-error`}
+          errorId={toErrorId(tokenId)}
           label="Access Token（任意）"
           message={errors?.accessToken?.[0]}
           required={false}
@@ -274,7 +319,7 @@ export function DevSessionForm({
             {...fieldControlAttributes({
               controlId: tokenId,
               description: TOKEN_DESCRIPTION,
-              errorId: `${tokenId}-error`,
+              errorId: toErrorId(tokenId),
               message: errors?.accessToken?.[0],
               required: false,
             })}

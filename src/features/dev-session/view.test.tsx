@@ -26,8 +26,7 @@ describe("DevSessionView", () => {
     render(
       <DevSessionView
         {...actions}
-        authorizationState={null}
-        formError={null}
+        authorization={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -45,8 +44,7 @@ describe("DevSessionView", () => {
     render(
       <DevSessionView
         {...actions}
-        authorizationState={null}
-        formError={null}
+        authorization={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/checkout"
@@ -61,8 +59,7 @@ describe("DevSessionView", () => {
     render(
       <DevSessionView
         {...actions}
-        authorizationState={null}
-        formError={null}
+        authorization={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -78,8 +75,7 @@ describe("DevSessionView", () => {
     const { container } = render(
       <DevSessionView
         {...actions}
-        authorizationState={null}
-        formError={null}
+        authorization={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
