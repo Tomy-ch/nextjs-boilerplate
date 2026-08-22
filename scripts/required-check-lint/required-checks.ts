@@ -175,8 +175,12 @@ export function findViolations(
   const violations: string[] = [];
 
   for (const context of required) {
-    const declaring = workflows.filter((candidate) =>
-      candidate.jobs.some((job) => job.context === context),
+    // 数えるのは workflow ではなく job。同じ名前を名乗る job は 1 つの workflow の中にも並べられ
+    // （job id と、別の job の `name:`）、そちらを workflow 単位で数えると 1 件に見える。
+    const declaring = workflows.flatMap((candidate) =>
+      candidate.jobs
+        .filter((job) => job.context === context)
+        .map((job) => ({ workflow: candidate, job })),
     );
 
     if (declaring.length === 0) {
@@ -186,27 +190,23 @@ export function findViolations(
       continue;
     }
     if (declaring.length > 1) {
+      const where = [...new Set(declaring.map((entry) => entry.workflow.file))].join(" / ");
       violations.push(
-        `\`${context}\`: ${declaring.map((candidate) => candidate.file).join(" / ")} が同じ名前を宣言しています。どちらの結果を必須にしているのか決まりません`,
+        `\`${context}\`: ${declaring.length} 個の job が同じ名前を宣言しています（${where}）。どの結果を必須にしているのか決まりません`,
       );
       continue;
     }
 
-    const workflow = declaring[0];
-    violations.push(...findJobViolations(context, workflow));
-    violations.push(...findTriggerViolations(context, workflow));
+    const only = declaring[0];
+    violations.push(...findJobViolations(context, only.workflow, only.job));
+    violations.push(...findTriggerViolations(context, only.workflow));
   }
 
   return violations;
 }
 
 /** 名前が実行時に枝分かれする job を違反として挙げる。 */
-function findJobViolations(context: string, workflow: WorkflowContexts): string[] {
-  const job = workflow.jobs.find((candidate) => candidate.context === context);
-  /* v8 ignore next -- 呼び出し元がこの名前を宣言する workflow を選んでいるため、見つからない
-     経路はこの入口から辿れない。 */
-  if (job === undefined) return [];
-
+function findJobViolations(context: string, workflow: WorkflowContexts, job: JobContext): string[] {
   const violations: string[] = [];
   if (job.matrix) {
     violations.push(

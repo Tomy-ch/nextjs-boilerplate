@@ -4,7 +4,7 @@
 //
 // 登録した名前が報告されない PR は「必須チェック待ち」のまま永久にマージできない。壊れ方が
 // 「気づいたときには全 PR が止まっている」なので、宣言と実体のずれを push 前に落とす。
-import { readdirSync, readFileSync } from "node:fs";
+import { type Dirent, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   findViolations,
@@ -54,7 +54,17 @@ function main(): void {
 }
 
 function listWorkflowFiles(root: string): string[] {
-  return readdirSync(path.join(root, WORKFLOW_DIR), { withFileTypes: true })
+  let entries: Dirent[];
+
+  // ディレクトリごと無い状態は、検査対象 0 件と同じ「検査が成立していない」側へ倒す。例外のまま
+  // 抜けると終了コードが規約から外れ、違反 (1) と区別が付かなくなる。
+  try {
+    entries = readdirSync(path.join(root, WORKFLOW_DIR), { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  return entries
     .filter((entry) => entry.isFile() && WORKFLOW_EXTENSIONS.includes(path.extname(entry.name)))
     .map((entry) => `${WORKFLOW_DIR}/${entry.name}`)
     .sort();

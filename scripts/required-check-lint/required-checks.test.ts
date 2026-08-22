@@ -224,8 +224,32 @@ describe("findViolations", () => {
     const violations = findViolations(["lint"], [workflow(), collided]);
 
     expect(violations).toHaveLength(1);
-    expect(violations[0]).toContain("同じ名前を宣言しています");
+    expect(violations[0]).toContain("2 個の job が同じ名前を宣言しています");
     expect(violations[0]).toContain("deploy-docs.yaml");
+  });
+
+  it("1 つの workflow の中で名前が重なっていても落とす", () => {
+    const collided = workflow({
+      jobs: [
+        { context: "lint", matrix: false, reusable: false },
+        { context: "lint", matrix: true, reusable: false },
+      ],
+    });
+    const violations = findViolations(["lint"], [collided]);
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toContain("2 個の job が同じ名前を宣言しています");
+  });
+
+  it("重なっている場所を、同じファイル名を並べずに示す", () => {
+    const collided = workflow({
+      jobs: [
+        { context: "lint", matrix: false, reusable: false },
+        { context: "lint", matrix: false, reusable: false },
+      ],
+    });
+
+    expect(findViolations(["lint"], [collided])[0]).toContain("（.github/workflows/lint.yaml）");
   });
 
   it("pull_request で走らない workflow の context を落とす", () => {
