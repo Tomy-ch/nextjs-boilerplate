@@ -1,4 +1,3 @@
-import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
@@ -17,14 +16,6 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    // **worker 1 つが抱えるテストファイルが多いと、v8 のカバレッジが取りこぼす。**同じ module を
-    // 複数のファイルが読む場合、片方が全分岐を通していても、合流の結果がそれを下回ることがある。
-    // 実測（542 ファイル）では worker 6 以下で `chart.tsx` が 95/102 まで落ち、8 以上で 102/102 に
-    // なった。CPU の少ない CI ではこの下限を割るため、コア数に関わらず下限を置く。
-    //
-    // **ファイル数が増えたらこの下限も測り直すこと。**効いているのは worker 数そのものではなく
-    // 1 プロセスが抱えるファイル数で、下の数字は今の規模に対する実測でしかない。
-    maxWorkers: Math.max(8, availableParallelism() - 1),
     // src の外にも実行可能なテストがある。tokens の書き出しはアプリのコードではないが、
     // 壊れると生成物が黙って変わるため同じ suite で回す。docs-viewer は別パッケージだが、
     // 同じ gate に載せる。別 suite にすると片方だけが緑という状態を作れてしまい、CI の判定が
