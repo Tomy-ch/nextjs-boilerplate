@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { OtelExporter, otlpEndpointValidator, otlpExporterValidator } from "./observability.schema";
+import {
+  OtelExporter,
+  otlpEndpointValidator,
+  otlpExporterValidator,
+  serviceNameValidator,
+} from "./observability.schema";
 
 describe("otlpEndpointValidator", () => {
   // ----- 正常系 -----
@@ -36,5 +41,17 @@ describe("otlpExporterValidator", () => {
   // ----- 異常系 -----
   it("OTLP と無効化値のどちらでもない exporter を拒否する", () => {
     expect(otlpExporterValidator().safeParse("console").success).toBe(false);
+  });
+});
+
+describe("serviceNameValidator", () => {
+  // ----- 正常系 -----
+  it("service 名を受け入れる", () => {
+    expect(serviceNameValidator().safeParse("Boilerplate Web").success).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("空の service 名を拒否する", () => {
+    expect(serviceNameValidator().safeParse("").success).toBe(false);
   });
 });

@@ -35,7 +35,13 @@ export function otlpExporterValidator() {
   return exporter;
 }
 
+/** テレメトリの発信元を表す service 名を検証する。 */
+export function serviceNameValidator() {
+  return z.string().min(1);
+}
+
 export type ObservabilityEnvironment = {
+  OBS_SERVICE_NAME: z.infer<ReturnType<typeof serviceNameValidator>>;
   OTEL_EXPORTER_OTLP_ENDPOINT: z.infer<ReturnType<typeof otlpEndpointValidator>>;
   OBS_TRACES_EXPORTER: z.infer<ReturnType<typeof otlpExporterValidator>>;
   OBS_METRICS_EXPORTER: z.infer<ReturnType<typeof otlpExporterValidator>>;

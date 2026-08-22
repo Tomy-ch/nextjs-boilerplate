@@ -34,6 +34,7 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
+| `OBS_SERVICE_NAME` | テレメトリの発信元を表す service 名 | string | `Boilerplate Web` | Required。trace / metrics / logs の resource に `service.name` として載る。backend と同じ trace の中で発信元を見分けるため、相方のサービスと異なる値にする |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP の base endpoint | URL | `http://localhost:4318` | Required。OpenTelemetry 標準名をそのまま使う。各 signal は `/v1/traces` などを自動付与する |
 | `OBS_TRACES_EXPORTER` | trace exporter の有効化値 | string | `otlp` / `none` | 空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |
 | `OBS_METRICS_EXPORTER` | metrics exporter の有効化値 | string | `otlp` / `none` | 空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |

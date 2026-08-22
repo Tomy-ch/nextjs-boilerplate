@@ -8,6 +8,7 @@ const validEnvironment = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
   MEDIA_ORIGIN: "https://media.example.test",
+  OBS_SERVICE_NAME: "Boilerplate Web",
   OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.test/v1/traces",
   OBS_TRACES_EXPORTER: "otlp",
   OBS_METRICS_EXPORTER: "none",
@@ -25,6 +26,7 @@ function stubValidEnvironment(): void {
   vi.stubEnv("APP_API_BASE_URL", validEnvironment.APP_API_BASE_URL);
   vi.stubEnv("APP_API_MODE", validEnvironment.APP_API_MODE);
   vi.stubEnv("MEDIA_ORIGIN", validEnvironment.MEDIA_ORIGIN);
+  vi.stubEnv("OBS_SERVICE_NAME", validEnvironment.OBS_SERVICE_NAME);
   vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", validEnvironment.OTEL_EXPORTER_OTLP_ENDPOINT);
   vi.stubEnv("OBS_TRACES_EXPORTER", validEnvironment.OBS_TRACES_EXPORTER);
   vi.stubEnv("OBS_METRICS_EXPORTER", validEnvironment.OBS_METRICS_EXPORTER);

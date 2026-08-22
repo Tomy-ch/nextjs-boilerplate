@@ -31,7 +31,7 @@ describe("initializeObservability", () => {
       tracesEnabled: false,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
     });
 
     expect(mocks.nodeSdk).not.toHaveBeenCalled();
@@ -45,14 +45,14 @@ describe("initializeObservability", () => {
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
     });
     initializeObservability({
       otlpEndpoint: "http://localhost:4318",
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
     });
 
     expect(mocks.nodeSdk).toHaveBeenCalledTimes(1);
@@ -71,7 +71,7 @@ describe("initializeObservability", () => {
       tracesEnabled: false,
       metricsEnabled: true,
       logsEnabled: true,
-      serviceName: "nextjs-boilerplate",
+      serviceName: "Boilerplate Web",
     });
 
     expect(mocks.nodeSdk).toHaveBeenCalledOnce();
