@@ -24,6 +24,8 @@ export type DevSessionViewProps = {
    * 受け取ったものをそのまま送信へ載せるだけです。
    */
   authorizationState: string | null;
+  /** 送信を受け付けられなかった理由。無ければ null。 */
+  formError: string | null;
   /** 発行の送信先。 */
   issueAction: IssueDevSessionAction;
   /** 破棄の送信先。 */
@@ -47,6 +49,7 @@ export function DevSessionView({
   session,
   returnUrl,
   authorizationState,
+  formError,
   issueAction,
   discardAction,
   connectsLiveApi,
@@ -71,6 +74,7 @@ export function DevSessionView({
           <DevSessionForm
             action={issueAction}
             authorizationState={authorizationState}
+            formError={formError}
             connectsLiveApi={connectsLiveApi}
             defaultIssuer={defaultIssuer}
             returnUrl={returnUrl}

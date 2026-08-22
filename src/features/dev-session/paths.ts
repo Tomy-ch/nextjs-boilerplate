@@ -6,6 +6,19 @@
  */
 export const DEV_SESSION_PATH = "/dev/session";
 
+/**
+ * 発行の指定を受け取り、認可の応答として返す口。
+ *
+ * @remarks
+ * 認可の往復の途中で開かれたときの送信先です。**Server Action ではありません** ——
+ * `redirect()` は Route Handler へ遷移できず（client router が飲み込み、要求が出ません）、
+ * 認可の応答は `/api/auth/callback` という Route Handler へ戻す必要があるためです。
+ *
+ * 実在の IdP でも、ログイン画面は認可 endpoint へ送信し、そこが応答を持って戻します。
+ * この口はその役どころに対応します。
+ */
+export const DEV_AUTHORIZE_PATH = "/dev/session/authorize";
+
 /** 戻り先を持ち回るための検索条件の名前。 */
 export const RETURN_URL_PARAM = "returnUrl";
 

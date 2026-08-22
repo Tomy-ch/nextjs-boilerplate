@@ -14,11 +14,60 @@ import { DevSessionForm } from "./session-form";
 const issue: IssueDevSessionAction = async () => idleActionState();
 
 describe("DevSessionForm", () => {
+  it("認可の往復の途中なら、認可 endpoint へ素の form で送る", () => {
+    const { container } = render(
+      <DevSessionForm
+        action={issue}
+        authorizationState="tx-state"
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        formError={null}
+        returnUrl="/"
+      />,
+    );
+
+    const form = container.querySelector("form");
+
+    expect(form).toHaveAttribute("action", "/dev/session/authorize");
+    expect(form).toHaveAttribute("method", "post");
+  });
+
+  it("直接開かれたなら、送信先を属性に出さない", () => {
+    const { container } = render(
+      <DevSessionForm
+        action={issue}
+        authorizationState={null}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        formError={null}
+        returnUrl="/"
+      />,
+    );
+
+    expect(container.querySelector("form")).not.toHaveAttribute("method", "post");
+  });
+
+  it("URL から届いた理由を、送信の下に出す", () => {
+    render(
+      <DevSessionForm
+        action={issue}
+        authorizationState="tx-state"
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        formError="発行の指定を確認してください。"
+        returnUrl="/"
+      />,
+    );
+
+    expect(screen.getByText("発行の指定を確認してください。")).toBeVisible();
+  });
+
   it("認可の往復の途中なら、対応づける値を送信へ載せる", () => {
     const { container } = render(
       <DevSessionForm
         action={issue}
         authorizationState="tx-state"
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -33,6 +82,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={issue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -47,6 +97,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={issue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -63,6 +114,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={issue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -78,6 +130,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={issue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/checkout"
@@ -99,6 +152,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={pendingIssue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -128,6 +182,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={failingIssue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -153,6 +208,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={failingIssue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -173,6 +229,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={failingIssue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -194,6 +251,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={failingIssue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -210,6 +268,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={issue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -225,6 +284,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={issue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -239,6 +299,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={issue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -253,6 +314,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={issue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -269,6 +331,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={issue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi
         defaultIssuer="https://idp.example.test"
         returnUrl="/"
@@ -284,6 +347,7 @@ describe("DevSessionForm", () => {
       <DevSessionForm
         action={issue}
         authorizationState={null}
+        formError={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
         returnUrl="/"

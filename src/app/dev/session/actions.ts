@@ -3,19 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isDevelopmentAccessAllowed } from "@/adapters/server/auth/development-access";
-import { issueDevelopmentAuthorizationCode } from "@/adapters/server/auth/development-authorization-code";
-import { issueDevelopmentAccessToken } from "@/adapters/server/auth/development-token";
 import { discardTestSession, issueTestSession } from "@/adapters/server/auth/test-session";
-import type { TestSessionSpec } from "@/adapters/server/auth/test-session-record";
 import type {
   DevSessionFormState,
   DiscardSessionFormState,
 } from "@/features/dev-session/form-state";
-import {
-  type DevSessionParseResult,
-  parseDevSessionForm,
-} from "@/features/dev-session/parse-session-form";
-import { DEV_SESSION_PATH, RETURN_URL_PARAM, STATE_PARAM } from "@/features/dev-session/paths";
+import { parseDevSessionForm } from "@/features/dev-session/parse-session-form";
+import { DEV_SESSION_PATH, RETURN_URL_PARAM } from "@/features/dev-session/paths";
 import {
   actionStateFromError,
   failedActionState,
@@ -23,60 +17,10 @@ import {
 } from "@/model/action-state";
 import { toSafeReturnUrl } from "@/model/return-url";
 
-/** 認可の応答を受け取る口。app 層の中の別の口なので、相対のまま指す。 */
-const AUTH_CALLBACK_PATH = "/api/auth/callback";
+import { toSessionInput } from "./to-session-input";
 
 const CLOSED_MESSAGE = "この口は、開発と CI の手元の宛先でだけ開きます。";
 const INVALID_INPUT_MESSAGE = "指定を確認してください。";
-
-/** 解いた指定を、封緘に渡せる形へ揃える。取りに行く経路だけがここで IdP を叩く。 */
-async function toSessionInput(
-  input: Extract<DevSessionParseResult, { ok: true }>["input"],
-): Promise<TestSessionSpec> {
-  if (!input.issueAccessToken) {
-    const { issueAccessToken: _, ...session } = input;
-
-    return session;
-  }
-
-  const { issueAccessToken: _, issuer, ...session } = input;
-
-  return {
-    ...session,
-    accessToken: await issueDevelopmentAccessToken({ subject: session.subject, issuer }),
-  };
-}
-
-/**
- * 発行を済ませ、次に送る先を返す。
- *
- * @remarks
- * **認可の往復の途中で開かれたなら、session をここでは置きません。** 認可コードを渡して
- * `/api/auth/callback` へ返し、session を置くのは向こうにさせます。ここで置いてしまうと、`AUTH_MODE=dev`
- * の間だけ callback が一度も踏まれず、一時状態の cookie も消費されずに残ります。認可の往復が
- * 壊れていても、開発と CI では最後まで気づけません。
- *
- * 直接開かれたときは今までどおりその場で置きます。突き合わせる一時状態が無いため、callback へ
- * 返しても認証をやり直させられるだけです。
- */
-async function issueAndResolveDestination(
-  spec: TestSessionSpec,
-  authorizationState: string | null,
-  returnUrl: string,
-): Promise<string> {
-  if (authorizationState === null) {
-    await issueTestSession(spec);
-
-    return returnUrl;
-  }
-
-  const query = new URLSearchParams({
-    code: await issueDevelopmentAuthorizationCode(spec),
-    state: authorizationState,
-  });
-
-  return `${AUTH_CALLBACK_PATH}?${query.toString()}`;
-}
 
 /**
  * IdP を通さずに session を発行する。
@@ -96,6 +40,10 @@ async function issueAndResolveDestination(
  *
  * 戻り先は同じ生成元の中だけに絞ります。受け取った値をそのまま使うと、発行した直後に外部の
  * サイトへ送る導線になります。
+ *
+ * **認可の往復の途中の送信はここへ来ません。** あちらは `/dev/session/authorize` へ素の form で
+ * 送ります —— 認可の応答を返す先が Route Handler であり、Server Action の `redirect()` は
+ * そこへ遷移できないためです。
  */
 export async function issueDevSessionAction(
   _previous: DevSessionFormState,
@@ -114,19 +62,13 @@ export async function issueDevSessionAction(
     });
   }
 
-  let destination: string;
-
   try {
-    destination = await issueAndResolveDestination(
-      await toSessionInput(parsed.input),
-      formData.get(STATE_PARAM)?.toString() ?? null,
-      toSafeReturnUrl(formData.get(RETURN_URL_PARAM)?.toString()),
-    );
+    await issueTestSession(await toSessionInput(parsed.input));
   } catch (error) {
     return actionStateFromError(error);
   }
 
-  redirect(destination);
+  redirect(toSafeReturnUrl(formData.get(RETURN_URL_PARAM)?.toString()));
 }
 
 /**
