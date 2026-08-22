@@ -18,7 +18,7 @@ vi.mock("@/adapters/client/api/addresses", () => ({ fetchAddresses }));
 vi.mock("../actions", () => ({ registerAction }));
 
 import { ADDRESS_LOOKUP, PREFECTURES, PROFILE } from "../account.fixture";
-import { RETURN_URL_FIELD } from "./parse-registration-form";
+import { RETURN_URL_FIELD } from "./form-names";
 import { OnboardingView } from "./view";
 
 const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-00000000000f";

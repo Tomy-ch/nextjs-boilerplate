@@ -20,7 +20,7 @@ vi.mock("@/adapters/server/api/users", () => ({ registerUser, updateMyProfile, w
 
 import { registerAction, updateProfileAction, withdrawAction } from "./actions";
 import type { ProfileFormState, WithdrawFormState } from "./form-state";
-import { RETURN_URL_FIELD } from "./onboarding/parse-registration-form";
+import { RETURN_URL_FIELD } from "./onboarding/form-names";
 import { MYPAGE_PATH } from "./paths";
 
 const PROFILE = {

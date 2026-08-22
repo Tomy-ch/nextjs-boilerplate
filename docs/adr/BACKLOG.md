@@ -160,6 +160,17 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、boile
 - **C1 / C4 / C6(各 ADR として策定済み・実装未)**: 2026-07-13 に成文化。用途依存の Tier 5 のため多くは exclusion / fork 先判断 / Next.js 組込み追認。C1=[0121](0121-i18n-strategy.md)(i18n exclusion)/ C2=[0100](0100-accessibility-target.md)(WCAG AA + biome a11y)/ C4=[0102](0102-browser-support.md)(Next.js 既定 browserslist 追認)/ C5=[0045](0045-fonts-and-images.md)(next/font・next/image)/ C6=[0043](0043-middleware-policy.md)(**Next.js 16 = proxy.ts**・thin・認証は fork 先)。go はバックエンドで C 系にほぼ対応物がなく(フロント固有)、AGENTS.md にも C 系 `[TODO]` はない(0152 掲載基準 = ブロック項目のみ)ため BACKLOG C 枠のみを根拠に成文化
 - **C7〜C9(各 ADR として策定済み・実装未)**: 2026-07-13 の敵対的レビューで、当初の C 列挙(C1〜C6)が**表示層 boilerplate の中心的関心事である SEO / メタデータ体系を取りこぼしていた**ことが判明し補完。C7=[0044](0044-seo-metadata-strategy.md)(Metadata API 既定 + `sitemap.ts`/`robots.ts` + canonical + JSON-LD 枠 + アイコン体系。0045 と責務分担)/ C8=[0130](0130-pwa-strategy.md)(PWA exclusion。沈黙だった線引きを明文化)/ C9=[0131](0131-cookie-consent.md)(Cookie 同意。**軽量機構 + スクリプトゲートは v1 採用 / CMP・トラッキング製品本体は非同梱**)。テーマ / ダークモードは新枠を立てず [0050](0050-styling-strategy.md)(B1)に「テーマ / ダークモード」節を追記(token 切替 + `prefers-color-scheme` 追従)。favicon / app icon の体系は C7(0044)がアイコン規約として吸収(0045 は静的 favicon の `public/` 配置のみ)
 
+### 予算に対して残っている重さ (0101)
+
+同梱サンプルの実測(gzip)。**ここに挙がるのは「測って分かっているが、まだ削っていない」ものだけ**で、削り方が決まっていないもの・順序が他に依存するものを置く。
+
+- **client の zod が 94 KB。** 3 チャンクに分かれ、うち 2 つは raw が 1 バイトも違わない複製。`/products` `/mypage/edit` `/purchases` `/onboarding` は 65 KB、`/cart` は 30 KB を背負う。使っている API 面(`z.object` / `z.string` / `z.array` / `z.int` / `z.boolean` / `z.uuid` / `z.email` / `z.coerce` / `.min` / `.max` / `.regex` / `.nullable` / `.safeParse` / `z.flattenError`)を `zod/mini` で書いた場合の実測は **63.5 KB → 5.4 KB** で、記法差だけで賄える
+- **ただし順序がある。** 生成 zod(`src/adapters/gen/api/endpoints.zod.ts`)が classic の `zod` を import しており、client adapter がそこから上限値の定数を取るために生成モジュールごと client へ載る(スキーマと `.describe()` の文言で 14.8 KB)。**この辺を切る前に非生成側だけ `zod/mini` へ移しても、classic はそのまま残って mini が上乗せされるだけになる**。生成の出し先を分ける(`mode: "split"`)のが先で、その前提となる孤児の始末は `make gen-api` 側へ移してあるため、置き場所の決定だけが残る
+- **全 route 共通の土台が 143 KB。** react-dom が 71 KB、Next.js の router が 29 KB を占める。フレームワークの費用であり、削る対象ではない
+- **`lighthouse` の LCP 閾値が未確定。** lab の値は帯域モデルの射影で、実測では**描画をブロックする CSS の転送時間**が支配し、LCP 要素は上部の小さなテキストであることが多い。Core Web Vitals の "good" 境界は field 値に対する定義であり、lab の射影をそのまま突き合わせる根拠が無い。全画面の実測を採ってから lab 用の値を置く
+- **同じ問い合わせが 1 回の描画で 3 回出る(原因未特定)。** `/checkout` を実バックエンドへ繋いで trace を採ると、`GET /v1/exchange-rates` が**同一 URL・同一の親 span** で 3 回現れる。呼び出し元は `checkout/confirm/page-content.tsx` の 1 箇所。React の `cache` を外側(`readReferenceAmount`)にも取得側(`convertToReferenceAmount`)にも掛けて確かめたが畳まれず、ビルド出力に適用されていることは確認済み。同じ木の `getMyCart` / `getMyUser` は 1 回に畳まれている。**機構が分かるまで対処しない** —— 効果の出ない memo 化を「畳んでいる」と書いた状態を残さないため
+- **`/checkout` の `<Suspense>` が待つものの単位で切れていない。** 明細は外枠と同時に届くのに、profile と参考換算額を待つ同じ境界の中にある(0040 の境界の粒度)。CLS が 0.087〜0.112 と上下するのはこのため
+
 ### 機械的強制が文書に追いついていない箇所
 
 - **`app` の element 分割が `architecture.ts` に無い。** [0025](0025-app-layer-elements.md) は `app` を 4 element(`route-segment` / `route-handler` / `server-action` / `metadata`)に分け、それぞれ許可 import 先を定めているが、`architecture.ts` は `app` を 1 層に畳んでいる。したがって `page.tsx` が `server config` を読む、`route-segment` が `adapters/server` を直接叩く、といった **element 間の違反は ESLint を素通りする**。層の粒度では表現できず、区画(`SHARED_AREAS` 相当)の粒度で `src/app/**/route.ts` / `src/app/**/actions.ts` を分ける必要がある。現状は意味的監査(GB-1)と人のレビューだけが拾える

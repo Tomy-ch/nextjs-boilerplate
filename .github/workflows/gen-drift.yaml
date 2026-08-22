@@ -3,8 +3,10 @@ name: Gen Drift
 # The generated API surface (wire types / zod schemas / MSW handlers) is committed so a contract
 # change is visible in review. This job refuses a PR on two distinct failures:
 #
-#   1. the committed artifacts were hand-edited, or were generated from something other than the
-#      committed contract — caught by regenerating and diffing;
+#   1. the committed artifacts were hand-edited, were generated from something other than the
+#      committed contract, or outlived the schema they came from — caught by regenerating and
+#      diffing. `make gen-api` empties the output directories first, so a file the contract no
+#      longer produces shows up as a deletion instead of sitting there unchanged;
 #   2. a contract was fetched but never regenerated from — caught by comparing the blob SHA in
 #      openapi/sources.yaml against the version stamp the generator copies into its output.
 #
@@ -70,7 +72,8 @@ jobs:
         shell: bash
         # `git status --porcelain`, not `git diff`: a contract that adds a schema makes orval write a
         # NEW file, and an untracked file is invisible to `git diff`. The gate would pass on exactly
-        # the change it exists to catch.
+        # the change it exists to catch. The same listing reports the deletions the empty-first
+        # regeneration exposes, so added / changed / removed are all one check.
         run: |
           drift="$(git status --porcelain -- src/adapters/gen mocks)"
           if [[ -n "${drift}" ]]; then

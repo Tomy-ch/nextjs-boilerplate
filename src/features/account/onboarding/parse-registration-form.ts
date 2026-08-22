@@ -6,11 +6,8 @@ import type { SafeReturnUrl } from "@/model/return-url";
 import { toSafeReturnUrl } from "@/model/return-url";
 import type { ProfileField } from "@/model/user/profile-schema";
 import type { UserProfile } from "@/model/user/user";
-
 import { parseProfileForm } from "../parse-profile-form";
-
-/** 登録後の戻り先を載せるフォーム項目の名前。 */
-export const RETURN_URL_FIELD = "returnUrl";
+import { RETURN_URL_FIELD } from "./form-names";
 
 /** {@link parseRegistrationForm} の結果。 */
 export type RegistrationFormParseResult =

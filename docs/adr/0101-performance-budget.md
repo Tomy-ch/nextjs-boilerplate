@@ -28,7 +28,8 @@ BACKLOG C3 は、Core Web Vitals SLO・Lighthouse 閾値・bundle size 予算・
 - Lighthouse が判定するのは **LCP / CLS / TBT の 3 つだけで、performance スコアは見ない**。スコアは 5 指標の加重平均であり、下がったときにどれが下がったかを答えられない。INP は実ユーザの操作を要して lab では測れないため、その代替として TBT を見る(field 値の収集経路は [0082](0082-client-observability.md))
 - **CI runner の数値はぶれるため、画面ごとに複数回測って中央値を採る**。試行回数も同じ宣言が持つ。ぶれを理由に閾値を緩め続けると gate として機能しなくなるので、緩めるのは**その画面が重いことを設計として引き受けたとき**に限る
 - **開く画面の一覧は計測側で持たない**。[`e2e/lib/screens.ts`](../../e2e/lib/screens.ts) の宣言(build の出力と突き合わされる)をそのまま使う。一覧を 2 箇所に持つと、片方だけへ足された画面が黙って測られないまま緑で通る
-- bundle size は Next.js のビルド出力(route ごとのサイズ)を可視化する。`NEXT_PUBLIC_` の表面積最小化([0030](0030-environment-variable-management.md))・`"use client"` 境界の葉押し下げ([0040](0040-routing-rendering-strategy.md))が bundle を抑える構造的土台
+- **client JavaScript は成果物から引く**。`next build` の出力に First Load JS の列が無いため、route ごとの `__RSC_MANIFEST` と `build-manifest.json` から chunk を集めて gzip する。数えるのは **公開 route の単位**であり、成果物の entry の単位ではない —— 並行ルート(`@slot`)を持つ route は entry を複数持ち、開いたときの HTML はその全ての script を読むので、和集合で数える。entry ごとに数えると同じ route が複数行に割れ、上限も増分もそのうちの 1 つしか見ない
+- **polyfill は数えない**。Next.js が `<script nomodule>` で出すため、[0102](0102-browser-support.md) が対応対象とするブラウザは一度も取得しない。数えると、誰も読まない量が全 route へ一律に乗り、予算が見ているはずの「開いた人が払う量」から離れる
 
 ### 3. 具体閾値の所在
 
@@ -43,12 +44,23 @@ BACKLOG C3 は、Core Web Vitals SLO・Lighthouse 閾値・bundle size 予算・
 
 画面ごとに上限を緩めるのは、その画面が重いことを設計として引き受けたときに限り、`performance-budget.yaml` の `lighthouse.screens` へ根拠付きで宣言する。
 
+### 4. 重さを持ち込まない書き方
+
+**予算は超えてから直すより、超える書き方を避けるほうが安い。** 同梱サンプルの計測で繰り返し現れた形を、規約として置く。
+
+- **値を 1 つ取るために、検証やスキーマの一式を引き込まない。** 定数・項目名・上限値は、それを使う側が検証を必要としないなら、検証を持たない module へ置く。JavaScript の import は module 単位なので、`const` を 1 つ取る import が zod のスキーマ一式を bundle へ載せる。入力欄の `name` は `form-names.ts`、件数の上限は `page-size.ts` のように、**綴りと数だけを持つ module** を分けるのが既定
+- **初期表示に要らない重い部品は `next/dynamic` で開いてから読む。** 判断の材料は「その画面を開いた人が必ず見るか」であり、見ない可能性があるもの(閉じている脇の領域、折り返しの下にある編集面や作図)は遅延させる。**枠は出来上がりと同じ寸法で置く** —— 置かないと、届いた瞬間に下の要素がまとめて動く
+- **待機表示を、外枠が既に持っているデータへ置かない**([0040](0040-routing-rendering-strategy.md) の「境界は待つものの単位で置く」)。外枠と画面が同じ取得を共有する場合、画面側の `<Suspense>` は既に手元にある値を待つだけで、**画面を二度継ぎ足して読み始めた位置を動かす**
+- **和文の Web フォントを本文へ置かない**([0051](0051-styling-system.md) §5)。`@font-face` の宣言が描画をブロックする CSS として載るため、client JavaScript より先に効く
+- `NEXT_PUBLIC_` の表面積最小化([0030](0030-environment-variable-management.md))・`"use client"` 境界の葉押し下げ([0040](0040-routing-rendering-strategy.md))が、これらの土台
+
 ## 禁止事項
 
 - ❌ 計測の仕組み自体を持たないこと
 - ❌ 根拠を書かずに閾値を置くこと(読み込みの時点で落とす)
 - ❌ 落ちたことを理由に閾値を緩めること(gate として機能しなくなる)
 - ❌ 計測する画面の一覧を `e2e/lib/screens.ts` の外に持つこと
+- ❌ 定数を取るためだけに、検証・スキーマを持つ module から import すること
 
 ## 関連 ADR
 

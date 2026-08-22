@@ -20,8 +20,8 @@ import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 
 import { PREFECTURES } from "../account.fixture";
 import { PROFILE_FIELD_LABELS } from "../field-labels";
+import { RETURN_URL_FIELD } from "./form-names";
 import { OnboardingPageContent } from "./page-content";
-import { RETURN_URL_FIELD } from "./parse-registration-form";
 
 const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-00000000000f";
 

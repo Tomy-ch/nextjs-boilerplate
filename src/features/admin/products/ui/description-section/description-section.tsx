@@ -12,7 +12,7 @@ import { controlIdOf } from "../../form-sections";
  * @remarks
  * 静的に import すると、editor 一式（ProseMirror と拡張）が商品フォーム 2 画面の**最初の読み込み**
  * に乗ります。gzip で 195 KB あり、この 2 画面が同梱サンプルで最も重い理由そのものです
- * （[0101](../../../../../docs/adr/0101-performance-budget.md)）。
+ * （[0101](../../../../../../docs/adr/0101-performance-budget.md)）。
  *
  * **`ssr: false` で読みます。** 編集面は開いた時点の内容からしか組み立てられず、server で描いても
  * hydration でもう一度読むことになるため、初期の描画から外しても失うものがありません。書いた値は
