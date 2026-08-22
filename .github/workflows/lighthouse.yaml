@@ -100,7 +100,11 @@ jobs:
           persist-credentials: false
           # The base ref has to be resolvable for the `trigger` diff; the default shallow
           # checkout leaves it a bad object and the decision would silently see no changes.
-          fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 1 }}
+          #
+          # The condition is inverted on purpose. `<cond> && 0 || 1` always yields 1, because
+          # GitHub's pseudo-ternary falls through to the `||` side whenever the value before it
+          # is falsy — and `0` is. So the branch that has to carry `0` is the one after `||`.
+          fetch-depth: ${{ github.event_name != 'pull_request' && 1 || 0 }}
 
       - name: Setup mise and the pinned tools
         uses: ./.github/actions/setup-mise
