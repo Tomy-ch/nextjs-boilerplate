@@ -27,14 +27,17 @@ Storybook が配信する静的資材の置き場です。カタログの設定�
 ## 足すときの注意
 
 - **足した資材の綴りは [`../lib/sample-asset.ts`](../lib/sample-asset.ts) へ公開する**。story が読むのは
-  そこだけで、ファイル名を直書きすると改名したときに指し先が黙って 404 になる（絵が壊れるだけで
-  `storybook build` は通る）
+  そこだけなので、改名しても直す場所が 1 つで済む
 - **`public/` と同じ名前を使わない**。2 つの置き場が同じ根から配信されるため、名前がぶつかると
   どちらが出るかが配信の順序に依存します
 - **story から `/src/...` のファイルを直接指さない**。dev サーバは素通しで配信しますが、
   `storybook build` の成果物には入らないため、**基準画像を撮ると壊れた絵がそのまま承認されます**
   （[0091](../../docs/adr/0091-test-verification-methods.md)）。カタログで絵が要るなら、ここへ置いて
   配信の根から指すこと
+- **解決しない URL は落ちる。** ルート絶対で書いた資材の URL が配信の根に無いこと、および `/src/...` を
+  指していることは、[`scripts/catalog-assets.gate.test.ts`](../../scripts/catalog-assets.gate.test.ts) が
+  見ています。**404 そのものを見せたい story**（読み込み失敗の姿など）は、実体を置くのではなく
+  [`scripts/lib/catalog-assets.ts`](../../scripts/lib/catalog-assets.ts) へ理由と撤去条件つきで宣言します
 - **文字を持つ絵を置かない**。書体は実行環境で変わるため、基準画像が撮る場所ごとに揺れます
 - **題材の語彙を名前にも中身にも持たせない**。ここはフォークが題材を捨てても残る側で、しかも
   残留語彙の検査から外れています（`scripts/setup/remove-sample/sample-manifest.ts` の
