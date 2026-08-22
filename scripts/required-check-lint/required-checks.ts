@@ -12,7 +12,7 @@
 // job が `if:` で降りる場合は違反にしない。降りた job は `skipped` を報告し、必須チェックは
 // それを成功として数えるため、報告は途切れない。
 
-import { isMap, isScalar, parseDocument } from "yaml";
+import { parseWorkflowDocument, readJobId, readWorkflowMaps } from "../lib/workflow-files.js";
 
 /** `pull_request` トリガの宣言のうち、報告の有無に効くもの。 */
 type PullRequestTrigger = {
@@ -52,26 +52,6 @@ const REPORT_NARROWING_FILTERS = ["paths", "paths-ignore", "branches", "branches
  * 一度も報告しません。どちらも必須チェックの待ちに化けます。
  */
 const REQUIRED_ACTIVITY_TYPES = ["opened", "synchronize"] as const;
-
-/** workflow 定義として読む拡張子。 */
-const WORKFLOW_EXTENSIONS = [".yaml", ".yml"];
-
-/**
- * ディレクトリの中身から workflow 定義を選び、リポジトリルート相対の一覧にする。
- *
- * @remarks
- * 読み取り自体は入口が行い、ここは「どれを workflow と見るか」だけを決めます。並びを固定するのは、
- * 違反の並び順が実行環境の列挙順で変わると、同じツリーに対する出力が場所ごとに違って見えるためです。
- *
- * @param dir - リポジトリルート相対のディレクトリ
- * @param names - そのディレクトリに実在するファイル名
- */
-export function selectWorkflowFiles(dir: string, names: readonly string[]): string[] {
-  return names
-    .filter((name) => WORKFLOW_EXTENSIONS.includes(name.slice(name.lastIndexOf("."))))
-    .map((name) => `${dir}/${name}`)
-    .sort();
-}
 
 /**
  * ruleset の宣言から必須 context の一覧を読む。
@@ -127,30 +107,15 @@ export function readRequiredContexts(source: string): string[] {
  * @throws YAML として読めない、マッピングでない、または `jobs:` が読めないとき
  */
 export function readWorkflowContexts(file: string, source: string): WorkflowContexts {
-  const doc = parseDocument(source);
-  if (doc.errors.length > 0) {
-    throw new Error(`${file}: YAML として読めません: ${doc.errors[0].message}`);
-  }
-
-  const root = doc.contents;
-  if (!isMap(root)) {
-    throw new Error(`${file}: ワークフローがマッピングとして読めません`);
-  }
-
-  const jobsNode = doc.getIn(["jobs"], true);
-  if (!isMap(jobsNode)) {
-    throw new Error(`${file}: jobs: がマッピングとして読めません`);
-  }
+  const doc = parseWorkflowDocument(file, source);
+  const { jobs: jobsNode } = readWorkflowMaps(file, doc);
 
   // 値は解決済みの JS として読む。ノードのまま辿ると、alias で他の job へ退避させた宣言が
   // 参照先まで届かず、`matrix` を持つ job を持たないものとして通してしまう。
   const resolved = doc.toJS() as { on?: unknown; jobs?: Record<string, unknown> };
 
   const jobs = jobsNode.items.map((pair) => {
-    if (!isScalar(pair.key) || typeof pair.key.value !== "string") {
-      throw new Error(`${file}: ジョブ名が文字列として読めません`);
-    }
-    const id = pair.key.value;
+    const id = readJobId(file, pair.key);
     const job = (resolved.jobs?.[id] ?? null) as Record<string, unknown> | null;
     const name = job?.name;
     return {

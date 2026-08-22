@@ -4,7 +4,6 @@ import {
   findViolations,
   readRequiredContexts,
   readWorkflowContexts,
-  selectWorkflowFiles,
   type WorkflowContexts,
 } from "./required-checks";
 
@@ -27,32 +26,6 @@ function workflow(overrides: Partial<WorkflowContexts> = {}): WorkflowContexts {
     ...overrides,
   };
 }
-
-describe("selectWorkflowFiles", () => {
-  // ----- 正常系 -----
-  it("workflow 定義だけを、ディレクトリを冠したパスの順に並べて返す", () => {
-    expect(selectWorkflowFiles(".github/workflows", ["test.yaml", "build.yml"])).toEqual([
-      ".github/workflows/build.yml",
-      ".github/workflows/test.yaml",
-    ]);
-  });
-
-  it("何も無いディレクトリを空で返す", () => {
-    expect(selectWorkflowFiles(".github/workflows", [])).toEqual([]);
-  });
-
-  // ----- 異常系 -----
-  it("workflow 定義でないファイルを、拡張子を持たないものも含めて外す", () => {
-    expect(
-      selectWorkflowFiles(".github/workflows", [
-        "README.md",
-        "notes",
-        "lint.yaml.bak",
-        "lint.yaml",
-      ]),
-    ).toEqual([".github/workflows/lint.yaml"]);
-  });
-});
 
 describe("readRequiredContexts", () => {
   // ----- 正常系 -----
