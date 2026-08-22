@@ -70,3 +70,42 @@ export function initialChunks(
 export function artifactDirOf(pagePath: string): string {
   return `server/app${pagePath}`;
 }
+
+/** 公開 route 1 つぶんの、成果物から引いた chunk。 */
+export type RouteChunks = {
+  /** 公開 route。 */
+  readonly route: string;
+  /** その entry が読む chunk。 */
+  readonly chunks: readonly string[];
+};
+
+/**
+ * 同じ公開 route を指す entry の chunk を 1 つへ畳む。
+ *
+ * @remarks
+ * `app-path-routes-manifest.json` の key は成果物の単位であって公開 route の単位ではありません。
+ * **並行ルート（`@slot`）を持つ route は entry を複数持ち、その全てが同じ公開 route を指します。**
+ * 開いたときの HTML はページとスロットの両方の script を持つので、量は和集合で数えます。
+ *
+ * entry ごとに数えると、同じ route が複数行に割れるだけでなく、上限も増分もそのうちの 1 つしか
+ * 見ません。増分は route 名を鍵に base と突き合わせるので、どの entry が鍵に残るかで結果が変わり
+ * ます。
+ *
+ * @param entries - manifest の entry ごとに引いた chunk。manifest に現れた順で渡します。
+ * @returns 公開 route ごとの chunk。順序は最初に現れた entry の順。
+ */
+export function unionByRoute(entries: readonly RouteChunks[]): RouteChunks[] {
+  const byRoute = new Map<string, Set<string>>();
+
+  for (const entry of entries) {
+    const found = byRoute.get(entry.route) ?? new Set<string>();
+
+    for (const chunk of entry.chunks) {
+      found.add(chunk);
+    }
+
+    byRoute.set(entry.route, found);
+  }
+
+  return [...byRoute].map(([route, chunks]) => ({ route, chunks: [...chunks] }));
+}

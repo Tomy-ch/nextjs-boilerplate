@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { artifactDirOf, initialChunks } from "./manifest";
+import { artifactDirOf, initialChunks, unionByRoute } from "./manifest";
 
 describe("initialChunks", () => {
   // ----- 正常系 -----
@@ -64,5 +64,44 @@ describe("artifactDirOf", () => {
 
   it("route group の括弧をそのまま残す", () => {
     expect(artifactDirOf("/(shop)/products/page")).toBe("server/app/(shop)/products/page");
+  });
+});
+
+describe("unionByRoute", () => {
+  // ----- 正常系 -----
+  it("同じ公開 route を指す entry の chunk を和集合にする", () => {
+    expect(
+      unionByRoute([
+        { route: "/admin", chunks: ["a.js", "shared.js"] },
+        { route: "/admin", chunks: ["breadcrumb.js", "shared.js"] },
+      ]),
+    ).toEqual([{ route: "/admin", chunks: ["a.js", "shared.js", "breadcrumb.js"] }]);
+  });
+
+  it("公開 route が違えば畳まない", () => {
+    expect(
+      unionByRoute([
+        { route: "/admin", chunks: ["a.js"] },
+        { route: "/admin/users", chunks: ["b.js"] },
+      ]),
+    ).toEqual([
+      { route: "/admin", chunks: ["a.js"] },
+      { route: "/admin/users", chunks: ["b.js"] },
+    ]);
+  });
+
+  it("最初に現れた順で返す", () => {
+    expect(
+      unionByRoute([
+        { route: "/b", chunks: [] },
+        { route: "/a", chunks: [] },
+        { route: "/b", chunks: ["x.js"] },
+      ]).map((entry) => entry.route),
+    ).toEqual(["/b", "/a"]);
+  });
+
+  // ----- 異常系 -----
+  it("entry が 1 つも無ければ空を返す", () => {
+    expect(unionByRoute([])).toEqual([]);
   });
 });
