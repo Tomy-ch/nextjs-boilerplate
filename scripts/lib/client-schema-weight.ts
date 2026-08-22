@@ -4,7 +4,6 @@
 export type SourceModule = {
   /** リポジトリルート相対のパス。 */
   readonly path: string;
-  /** 中身。 */
   readonly content: string;
 };
 
@@ -51,10 +50,9 @@ const SPECIFIER = /(?:from\s+|import\s*\(\s*)["']([^"']+)["']/g;
  * client へ載せてはいけない入口。
  *
  * @remarks
- * - `zod` の既定の入口は、この repository が呼ばない JSON Schema 変換とエラー文言の locale を抱える
- *   ([0029](../../docs/adr/0029-type-design-discipline.md) §2)。client へ届くスキーマは `zod/mini`
- * - 生成した zod スキーマは、契約の全エンドポイントぶんと説明文を持つ。**上限値の定数を取るために
- *   引くと、それが丸ごとブラウザへ配られる**。定数は `limits.ts` が持つ
+ * - `zod` の既定の入口を禁じる理由は
+ *   [0029](../../docs/adr/0029-type-design-discipline.md) §2。client へ届くスキーマは `zod/mini`
+ * - 生成した zod スキーマを禁じる理由は `../openapi/extract-limits.ts`。定数は `limits.ts` が持つ
  */
 const FORBIDDEN: readonly {
   readonly test: (specifier: string) => boolean;

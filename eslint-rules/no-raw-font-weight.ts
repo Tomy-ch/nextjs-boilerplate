@@ -3,18 +3,14 @@ import type { Rule } from "eslint";
 /**
  * 太さの utility を直に書かせないルール。
  *
- * 強調は semantic の名前（`font-emphasis`）で書く。書体ごとに持っている太さが違うため、数値の段を
- * 直に指定すると、**その段を持たない書体では丸められて強調にならない**
- * （[0051](../docs/adr/0051-styling-system.md) §5 / `src/components/README.md`）。
- *
- * 規約は前からあったが検査が無く、16 箇所たまっていた。Biome は class 文字列の中身を見ないため
+ * 規約そのものは `src/components/README.md`「文字の太さ」と
+ * [0051](../docs/adr/0051-styling-system.md) §5 が持つ。Biome は class 文字列の中身を見ないため
  * ESLint 側で持つ（[0002](../docs/adr/0002-formatter-linter.md) の能力ベース分担）。
  *
  * **文字列リテラルだけを見る。** class は文字列としてしか書けないので、これで書かれた分は必ず拾える。
  * 式で組んだ class は解決先が分からないため見送る（`no-internal-anchor` と同じ線引き）。
  *
- * test と story は対象外（設定側で除外）。前者は部品が持つ class を確かめる側で、後者は見本であり、
- * どちらも画面が使う class ではない。
+ * test と story は対象外。除外は `eslint.config.ts` の `ignores` が持ち、理由もそこにある。
  */
 
 /**

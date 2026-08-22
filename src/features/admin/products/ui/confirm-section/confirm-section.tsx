@@ -12,12 +12,12 @@ export type ProductConfirmSectionProps = ProductConfirmDetailsProps;
  *
  * @remarks
  * 静的に import すると、**書いた HTML を検査する仕組み一式（`model/rich-text` の parser と
- * sanitizer）が商品フォームの最初の読み込みに乗ります**。gzip で 66.7 KB あります
- * （[0101](../../../../../../docs/adr/0101-performance-budget.md) §4）。
+ * sanitizer）が商品フォームの最初の読み込みに乗ります**。同梱サンプルの実測で gzip 66.7 KB
+ * （自動では検証されない目安）。何が得られて何が得られないかは
+ * [0101](../../../../../../docs/adr/0101-performance-budget.md) §4。
  *
- * **「その段へ進んでから」ではありません。** `wizard-form.tsx` は入力値を form へ残すため全段を
- * `hidden` で DOM に保持し、`next/dynamic` はマウントした時点で取得を始めます。得られるのは
- * **最初に読む一式から外れること**だけです。
+ * `wizard-form.tsx` は入力値を form へ残すため全段を `hidden` で DOM に保持しており、この段も
+ * 他の段を入力している間から読み込みが始まります。
  *
  * **`ssr: false` で読めます。** この段は入力欄を持たない読み取り専用の要約で、`hidden` で隠れた
  * まま立ち上がるため、届くまでの枠も見えません。
