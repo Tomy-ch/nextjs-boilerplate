@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { SESSION_ROLE, type SessionRole } from "@/model/session";
+import { SESSION_ROLE } from "@/model/session";
 
 import {
   issueDevelopmentAuthorizationCode,
@@ -24,15 +24,14 @@ afterEach(() => {
 
 /** 個々の試験は、この既定から 1 つだけを変える。 */
 function issue(overrides: { state?: string; spec?: Partial<TestSessionSpec> } = {}) {
-  return issueDevelopmentAuthorizationCode({
-    state: overrides.state ?? "tx-state",
-    spec: {
-      subject: "dev-user",
-      role: SESSION_ROLE.user as SessionRole,
-      expiresInSeconds: 120,
-      ...overrides.spec,
-    },
-  });
+  const spec: TestSessionSpec = {
+    subject: "dev-user",
+    role: SESSION_ROLE.user,
+    expiresInSeconds: 120,
+    ...overrides.spec,
+  };
+
+  return issueDevelopmentAuthorizationCode({ state: overrides.state ?? "tx-state", spec });
 }
 
 /** 秘密値を指定して、任意の中身を封緘する。宣言に無い形のコードを組むために使う。 */
