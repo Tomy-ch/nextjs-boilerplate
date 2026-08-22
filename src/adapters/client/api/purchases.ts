@@ -1,13 +1,10 @@
-import { z } from "zod";
+import * as z from "zod/mini";
 
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import type { PurchaseHistoryPage } from "@/model/purchase/purchase";
 
-import {
-  getPurchasesQueryDaysMax,
-  getPurchasesQueryMonthRegExp,
-} from "../../gen/api/endpoints.zod";
+import { getPurchasesQueryDaysMax, getPurchasesQueryMonthRegExp } from "../../gen/api/limits";
 
 /**
  * 暦月の書式。
@@ -43,7 +40,7 @@ const PurchaseHistoryPagePayload = z.object({
       orderedAt: z.coerce.date(),
     }),
   ),
-  nextCursor: z.string().nullable(),
+  nextCursor: z.nullable(z.string()),
 });
 
 /**

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { z } from "zod";
+import { $ZodError } from "zod/v4/core";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
@@ -112,7 +112,7 @@ describe("fetchProductListPage", () => {
 
     await expect(
       causeOf(() => fetchProductListPage(new URLSearchParams())),
-    ).resolves.toBeInstanceOf(z.ZodError);
+    ).resolves.toBeInstanceOf($ZodError);
   });
 });
 

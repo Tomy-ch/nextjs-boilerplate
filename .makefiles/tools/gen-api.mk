@@ -27,6 +27,7 @@ gen-api:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
 	@rm -rf $(GEN_API_OUTPUTS)
 	@pnpm exec orval
+	@pnpm exec tsx scripts/openapi/extract-limits.ts
 	@pnpm fix >/dev/null
 	@echo "✅ 契約から型 / zod / MSW ハンドラを生成しました"
 

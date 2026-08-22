@@ -1,10 +1,10 @@
-import { z } from "zod";
+import * as z from "zod/mini";
 
 import type { CursorPage } from "@/model/pagination";
 import type { ProductListItem } from "@/model/product/product";
 import { productIdSchema } from "@/model/product/product";
 
-import { getProductsQueryFirstMax } from "../../gen/api/endpoints.zod";
+import { getProductsQueryFirstMax } from "../../gen/api/limits";
 import { request } from "../http/request";
 
 /**
@@ -35,10 +35,10 @@ const ProductListPagePayload = z.object({
       quantity: z.int(),
       categoryName: z.string(),
       statusName: z.string(),
-      imageUrl: z.string().nullable(),
+      imageUrl: z.nullable(z.string()),
     }),
   ),
-  nextCursor: z.string().nullable(),
+  nextCursor: z.nullable(z.string()),
 });
 
 /**

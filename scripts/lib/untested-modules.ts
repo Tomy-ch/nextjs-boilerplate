@@ -31,6 +31,7 @@ export const ENTRYPOINT_PATTERNS = [
   "scripts/portal/build-site.ts",
   "scripts/openapi/fetch-api.ts",
   "scripts/openapi/check-generated.ts",
+  "scripts/openapi/extract-limits.ts",
 ] as const;
 
 /**
