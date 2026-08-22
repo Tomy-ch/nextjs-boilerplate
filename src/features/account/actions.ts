@@ -108,6 +108,9 @@ export async function registerAction(
  * 成立したら手元に残るものが何も無いのでトップへ送ります。session はこの時点で既に破棄されて
  * いるため、保護されたルートへは戻れません。
  *
+ * **{@link withdrawMe} が返す送り先を経由してから戻します。** 経由する先を持たない IdP なら
+ * 直接トップへ送ります。
+ *
  * `409` にだけ専用の文言を当てます。カタログの既定文言は分類だけを伝えるもので、退会が
  * 通らなかった理由が進行中の購入であることは、この画面でしか言えません。
  */
@@ -115,8 +118,10 @@ export async function withdrawAction(
   _previous: WithdrawFormState,
   _formData: FormData,
 ): Promise<WithdrawFormState> {
+  let destination: string | null;
+
   try {
-    await withdrawMe();
+    destination = await withdrawMe();
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: WITHDRAW_CONFLICT_MESSAGE });
@@ -125,5 +130,5 @@ export async function withdrawAction(
     return actionStateFromError(error);
   }
 
-  redirect("/");
+  redirect(destination ?? "/");
 }

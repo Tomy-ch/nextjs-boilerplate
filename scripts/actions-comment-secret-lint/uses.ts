@@ -3,17 +3,10 @@
 // `jobs.<id>.steps[].uses` / `runs.steps[].uses` の形を決め打ちで辿らず、解決済みの
 // JS 値を再帰的に走査する。alias とマージキー経由で書かれた `uses:` も、パーサの解決を
 // 通した後なら同じように現れるため、記法ごとの取りこぼしが出ない。
-import { type Document, parseDocument } from "yaml";
+import type { Document } from "yaml";
 
 import { errorMessage } from "../lib/error-message.js";
-
-export function parseYaml(file: string, source: string): Document {
-  const doc = parseDocument(source);
-  if (doc.errors.length > 0) {
-    throw new Error(`${file}: YAML として読めません: ${doc.errors[0].message}`);
-  }
-  return doc;
-}
+import { parseWorkflowDocument } from "../lib/workflow-files.js";
 
 // パーサが解決した JS 値。alias とマージキー（`<<`）はここで展開される。
 export function toJS(file: string, doc: Document): unknown {
@@ -26,7 +19,7 @@ export function toJS(file: string, doc: Document): unknown {
 
 export function collectUses(file: string, source: string): string[] {
   const found: string[] = [];
-  collectUsesFromValue(toJS(file, parseYaml(file, source)), found);
+  collectUsesFromValue(toJS(file, parseWorkflowDocument(file, source)), found);
   return found;
 }
 

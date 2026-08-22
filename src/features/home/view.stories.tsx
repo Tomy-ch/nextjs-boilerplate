@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
@@ -17,11 +16,12 @@ import type {
 } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
-
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { SampleNotice } from "./ui/sample-notice/sample-notice";
 import { HomeView } from "./view";
 
-const FRONT_IMAGE_URL = "/src/components/design-system/display/media-image/invertocat.png";
+/** 一覧に出る絵。 */
+const FRONT_IMAGE_URL = SAMPLE_ITEM_URLS[0];
 
 const NAV_ITEMS = [
   { href: "/products", label: "商品" },

@@ -11,6 +11,8 @@ You are handed **exactly one** code-review finding produced by another reviewer.
 
 You are **read-only**. Use `Bash` only for read-only inspection. Never edit, write, or mutate anything.
 
+**Never touch the working tree — this includes `git stash`.** `git stash` / `git reset` / `git checkout --` / `git restore` / `git clean` read as reversible, ordinary git, which is exactly why they get reached for; they destroy work the implementer has not committed yet, and in a worktree the stash stack is shared with every other session on the machine. To see the pre-change state, read it out of git instead: `git show <base>:<path>` for one file's prior content, `git diff <base>...HEAD` for the change itself.
+
 ## Your input
 
 - The finding: location, claimed problem, claimed evidence, suggested fix, severity.

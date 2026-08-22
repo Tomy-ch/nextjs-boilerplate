@@ -79,26 +79,33 @@ export async function storeSession(record: SessionRecord): Promise<void> {
 }
 
 /**
- * ログアウトする。自分の cookie を破棄し、続けて IdP 側の session も終わらせる。
+ * ログアウトする。自分の cookie を破棄し、IdP 側を終わらせるための送り先を返す。
  *
  * @remarks
- * **cookie の破棄を先に行い、これは必ず成功します。** IdP への終了要求はそのあとです。順序を
- * 逆にすると、IdP が応答しないときに手元の session まで残ります。
+ * **cookie の破棄を先に行い、これは必ず成功します。** 送り先の組み立てはそのあとです。順序を
+ * 逆にすると、IdP を引けないときに手元の session まで残ります。
  *
- * IdP 側の終了に失敗したときは投げます。呼び出し側は「自分の session は既に消えている」ことを
- * 前提に、利用者へ何を見せるかを決められます。ここで握り潰すと、IdP に session が残ったことを
- * 誰も知れなくなります。
+ * **IdP 側の終了はここでは済んでいません。** 終わらせるのは、返した先へ利用者のブラウザが
+ * 実際に着いたときです（`SessionResolver.endSession`）。返り値を捨てると手元だけのログアウトに
+ * なり、直後の再ログインが認証を求めずに素通りします。
  *
- * @throws IdP 側の session を終わらせられなかったとき
+ * 送り先を組み立てられなかったときは投げます。呼び出し側は「自分の session は既に消えている」
+ * ことを前提に、利用者へ何を見せるかを決められます。ここで握り潰すと、IdP に session が残った
+ * ことを誰も知れなくなります。
+ *
+ * @returns 利用者のブラウザを送り出す先。未認証だったとき、または IdP が口を持たないとき null
+ * @throws IdP を引けず送り先を組み立てられなかったとき
  */
-export async function signOut(): Promise<void> {
+export async function signOut(): Promise<string | null> {
   const record = await readSessionRecord();
 
   (await cookies()).delete(SESSION_COOKIE_NAME);
 
-  if (record !== null) {
-    await getSessionResolver().endSession(record);
+  if (record === null) {
+    return null;
   }
+
+  return getSessionResolver().endSession(record);
 }
 
 /**

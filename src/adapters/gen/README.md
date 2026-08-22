@@ -1,3 +1,8 @@
+---
+coverage-exclusions:
+  - "src/adapters/gen/**"
+---
+
 # 契約からの生成物
 
 `openapi/` に取り込んだ契約から `make gen-api` が生成する wire 型と zod スキーマの置き場です

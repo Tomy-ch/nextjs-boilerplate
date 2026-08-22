@@ -55,10 +55,8 @@ export const SAMPLE_PATHS: readonly string[] = [
   // 契約と生成物
   "src/adapters/gen",
   "openapi/api.gen.yaml",
-  "openapi/auth.gen.yaml",
   // 契約から生成したモック
   "mocks/api",
-  "mocks/auth",
   "mocks/contract-conformance.test.ts",
   "mocks/handlers.test.ts",
   // 題材の画面を通す E2E。土台（`e2e/lib` / `e2e/visual`）と、題材に依らない認証の前捌きは残す。

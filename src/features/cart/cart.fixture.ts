@@ -1,14 +1,15 @@
 import type { Cart, CartLine } from "@/model/cart/cart";
 import { toProductId } from "@/model/product/product";
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 
 /**
  * 絵の要る明細が指す画像。
  *
  * @remarks
- * カタログが配る資材です（`.storybook/public/README.md`）。**画像を持つ明細と持たない明細を
- * 混ぜてある**のは、代替画像へ倒れた行と並んだときの見え方が、この画面で確かめたいものだからです。
+ * **画像を持つ明細と持たない明細を混ぜてある**のは、代替画像へ倒れた行と並んだときの見え方が、
+ * この画面で確かめたいものだからです。
  */
-const SAMPLE_IMAGE_URL = "/sample-product.svg";
+const SAMPLE_IMAGE_URL = SAMPLE_ITEM_URLS[0];
 
 /** 事情の無い明細。数量も在庫も足りている。 */
 export const EARPHONE_LINE = {

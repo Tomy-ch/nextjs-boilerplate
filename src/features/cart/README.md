@@ -2,6 +2,10 @@
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
 forbidden: [features] # 画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
+coverage-exclusions:
+  - "src/features/cart/__mocks__/**"
+  - "src/features/cart/cart.fixture.ts"
+  - "src/features/cart/facade/add-to-cart/__mocks__/**"
 ---
 
 # cart

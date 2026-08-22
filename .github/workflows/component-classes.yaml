@@ -9,15 +9,13 @@ name: Component Classes
 # The check compiles the real entry stylesheet and looks for every class written under
 # src/components in the output. It is hermetic and caused by the change under review, so it gates
 # pull requests.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on every PR is in
+# README.md. A filtered workflow reports no context on the pull requests it skips, and a required
+# context that is never reported blocks the merge forever.
 
 on:
   pull_request:
-    paths:
-      - "src/components/**"
-      - "src/app/globals.css"
-      - "src/app/generated/tokens.css"
-      - "tokens/**"
-      - ".github/workflows/component-classes.yaml"
   workflow_dispatch:
 
 permissions:
@@ -28,7 +26,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  classes:
+  component-classes:
     runs-on: ubuntu-latest
 
     steps:
