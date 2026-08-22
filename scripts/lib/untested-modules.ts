@@ -46,7 +46,7 @@ export const ENTRYPOINT_PATTERNS = [
  * 自分の契約を生成した先をここへ並べます。
  */
 // sample:replace-begin
-export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/auth/**"] as const;
+export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**"] as const;
 // sample:replace-with
 // = export const GENERATED_MODULES = [] as const;
 // sample:replace-end
