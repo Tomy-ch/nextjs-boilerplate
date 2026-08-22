@@ -1,22 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { collectUses, collectUsesFromValue, parseYaml, toJS } from "./uses";
-
-describe("parseYaml", () => {
-  // ----- 正常系 -----
-  it("読める YAML を Document として返す", () => {
-    const doc = parseYaml("workflow.yaml", "jobs:\n  build:\n    runs-on: ubuntu-latest\n");
-
-    expect(doc.toJS()).toEqual({ jobs: { build: { "runs-on": "ubuntu-latest" } } });
-  });
-
-  // ----- 異常系 -----
-  it("YAML として読めない入力にファイル名を添えて投げる", () => {
-    expect(() => parseYaml("workflow.yaml", "jobs:\n  - a\n b: c\n")).toThrow(
-      /^workflow\.yaml: YAML として読めません: /,
-    );
-  });
-});
+import { parseWorkflowDocument } from "../lib/workflow-files";
+import { collectUses, collectUsesFromValue, toJS } from "./uses";
 
 describe("toJS", () => {
   // ----- 正常系 -----
@@ -28,7 +13,7 @@ describe("toJS", () => {
       "  - *defaults",
     ].join("\n");
 
-    expect(toJS("workflow.yaml", parseYaml("workflow.yaml", source))).toEqual({
+    expect(toJS("workflow.yaml", parseWorkflowDocument("workflow.yaml", source))).toEqual({
       defaults: { uses: "owner/action@v1" },
       steps: [{ uses: "owner/action@v1" }],
     });
@@ -36,7 +21,7 @@ describe("toJS", () => {
 
   // ----- 異常系 -----
   it("解決できない YAML にファイル名を添えて投げる", () => {
-    const doc = parseYaml("workflow.yaml", "steps: []");
+    const doc = parseWorkflowDocument("workflow.yaml", "steps: []");
     doc.toJS = () => {
       throw new Error("循環参照");
     };

@@ -1,18 +1,13 @@
 // 必須ステータスチェックの宣言と、それを報告する job の実体が噛み合っているかの判定。
 //
-// GitHub は「context が報告されない」を「該当なし」とは読まない。必須に登録した名前の報告が
-// 一度も来なければ、その PR は待ちのまま永久にマージできない。よって必須へ登録してよいのは、
-// **すべての PR で必ずその名前を報告する job** だけである。
+// GitHub は「context が報告されない」を「該当なし」とは読まない。よって必須へ登録してよいのは
+// **すべての PR で必ずその名前を報告する job** だけで、落とす条件は
+// [0153](../../docs/adr/0153-ci-configuration.md) §5 と `.makefiles/README.md` が持つ。
 //
-// 報告されない形は 5 つある。宣言する job が無い / 同じ名前を複数の job が宣言している /
-// workflow が `pull_request` で走らない / `paths` などのフィルタで走らない PR がある /
-// context 名が実行時に枝分かれする（matrix・reusable workflow）。どれも「登録した時点では
-// 緑に見え、条件を満たさない PR が来た瞬間にマージ不能になる」ため、静的に落とす。
-//
-// job が `if:` で降りる場合は違反にしない。降りた job は `skipped` を報告し、必須チェックは
-// それを成功として数えるため、報告は途切れない。
+// **`if:` で降りる job は違反にしない。**降りた job は `skipped` を報告し、必須チェックはそれを
+// 成功として数えるため、報告は途切れない。検査していないのではなく、検査する必要が無い。
 
-import { isMap, isScalar, parseDocument } from "yaml";
+import { parseWorkflowDocument, readJobId, readWorkflowMaps } from "../lib/workflow-files.js";
 
 /** `pull_request` トリガの宣言のうち、報告の有無に効くもの。 */
 type PullRequestTrigger = {
@@ -52,26 +47,6 @@ const REPORT_NARROWING_FILTERS = ["paths", "paths-ignore", "branches", "branches
  * 一度も報告しません。どちらも必須チェックの待ちに化けます。
  */
 const REQUIRED_ACTIVITY_TYPES = ["opened", "synchronize"] as const;
-
-/** workflow 定義として読む拡張子。 */
-const WORKFLOW_EXTENSIONS = [".yaml", ".yml"];
-
-/**
- * ディレクトリの中身から workflow 定義を選び、リポジトリルート相対の一覧にする。
- *
- * @remarks
- * 読み取り自体は入口が行い、ここは「どれを workflow と見るか」だけを決めます。並びを固定するのは、
- * 違反の並び順が実行環境の列挙順で変わると、同じツリーに対する出力が場所ごとに違って見えるためです。
- *
- * @param dir - リポジトリルート相対のディレクトリ
- * @param names - そのディレクトリに実在するファイル名
- */
-export function selectWorkflowFiles(dir: string, names: readonly string[]): string[] {
-  return names
-    .filter((name) => WORKFLOW_EXTENSIONS.includes(name.slice(name.lastIndexOf("."))))
-    .map((name) => `${dir}/${name}`)
-    .sort();
-}
 
 /**
  * ruleset の宣言から必須 context の一覧を読む。
@@ -120,37 +95,18 @@ export function readRequiredContexts(source: string): string[] {
 /**
  * workflow 定義から context 名と `pull_request` の報告条件を読む。
  *
- * @remarks
- * 読めない形は例外にします。「job が 0 件の workflow」として通すと、検査対象が黙って縮んだまま
- * 緑になります。
- *
  * @throws YAML として読めない、マッピングでない、または `jobs:` が読めないとき
  */
 export function readWorkflowContexts(file: string, source: string): WorkflowContexts {
-  const doc = parseDocument(source);
-  if (doc.errors.length > 0) {
-    throw new Error(`${file}: YAML として読めません: ${doc.errors[0].message}`);
-  }
-
-  const root = doc.contents;
-  if (!isMap(root)) {
-    throw new Error(`${file}: ワークフローがマッピングとして読めません`);
-  }
-
-  const jobsNode = doc.getIn(["jobs"], true);
-  if (!isMap(jobsNode)) {
-    throw new Error(`${file}: jobs: がマッピングとして読めません`);
-  }
+  const doc = parseWorkflowDocument(file, source);
+  const { jobs: jobsNode } = readWorkflowMaps(file, doc);
 
   // 値は解決済みの JS として読む。ノードのまま辿ると、alias で他の job へ退避させた宣言が
   // 参照先まで届かず、`matrix` を持つ job を持たないものとして通してしまう。
   const resolved = doc.toJS() as { on?: unknown; jobs?: Record<string, unknown> };
 
   const jobs = jobsNode.items.map((pair) => {
-    if (!isScalar(pair.key) || typeof pair.key.value !== "string") {
-      throw new Error(`${file}: ジョブ名が文字列として読めません`);
-    }
-    const id = pair.key.value;
+    const id = readJobId(file, pair.key);
     const job = (resolved.jobs?.[id] ?? null) as Record<string, unknown> | null;
     const name = job?.name;
     return {

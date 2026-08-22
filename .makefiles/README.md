@@ -156,6 +156,10 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 `if:` で降りる job は落としません。降りた job は `skipped` を報告し、必須チェックはそれを成功として数える
 ため、報告そのものは途切れないからです。
 
+ワークフローの列挙と `jobs:` へ降りるまでの読み取りは [`../scripts/lib/workflow-files.ts`](../scripts/lib/workflow-files.ts)
+が持ちます。**同じ判断を検査ごとに書き起こすと、片方だけが直った状態が黙って生まれる**ため、
+`make actions-comment-secret-lint` と共有します。
+
 ### リリースブランチ関連
 
 | コマンド | 説明 | 補足 |
