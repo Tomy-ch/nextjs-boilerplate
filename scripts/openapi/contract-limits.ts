@@ -48,8 +48,21 @@ const SPEC_VERSION = /OpenAPI spec version:\s*(\S+)/;
  *
  * 出所は orval ではなくこの手順だと名乗ります。orval のヘッダをそのまま写すと、再生成しても
  * 現れないファイルが orval の出力を名乗ることになります。
+ *
+ * **定数が 1 つも無ければ組み立てません。** 契約によっては上限も書式も持たず、書き出すとヘッダ
+ * だけのファイルが残ります。「定数だけを写したもの」と名乗って中身が空のファイルは、読む人に
+ * 「抽出が壊れているのか、契約に無いのか」を判じさせます。存在するファイルは必ず中身を持つ側へ倒す。
+ *
+ * @returns 定数が無ければ null
  */
-export function renderContractLimits(generated: string, limits: readonly ContractLimit[]): string {
+export function renderContractLimits(
+  generated: string,
+  limits: readonly ContractLimit[],
+): string | null {
+  if (limits.length === 0) {
+    return null;
+  }
+
   const version = SPEC_VERSION.exec(generated)?.[1] ?? "unknown";
 
   return [

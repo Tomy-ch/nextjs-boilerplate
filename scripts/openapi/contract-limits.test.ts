@@ -58,12 +58,16 @@ describe("collectContractLimits", () => {
 describe("renderContractLimits", () => {
   // ----- 正常系 -----
   it("契約の版を書き写す", () => {
-    expect(renderContractLimits(HEADER, [])).toContain("OpenAPI spec version: 2.2.0+abc1234");
+    expect(renderContractLimits(HEADER, [{ name: "aMax", literal: "1" }])).toContain(
+      "OpenAPI spec version: 2.2.0+abc1234",
+    );
   });
 
   it("出所を orval ではなくこの手順として名乗る", () => {
     // 再生成しても orval からは現れないファイルなので、orval の出力を名乗らせない。
-    expect(renderContractLimits(HEADER, [])).toContain("scripts/openapi/extract-limits.ts");
+    expect(renderContractLimits(HEADER, [{ name: "aMax", literal: "1" }])).toContain(
+      "scripts/openapi/extract-limits.ts",
+    );
   });
 
   it("定数をそのままの綴りで並べる", () => {
@@ -74,6 +78,13 @@ describe("renderContractLimits", () => {
 
   // ----- 異常系 -----
   it("版が読めないときも突合が読める行を残す", () => {
-    expect(renderContractLimits("/** 版なし */", [])).toContain("OpenAPI spec version: unknown");
+    expect(renderContractLimits("/** 版なし */", [{ name: "aMax", literal: "1" }])).toContain(
+      "OpenAPI spec version: unknown",
+    );
+  });
+
+  it("定数が 1 つも無ければ組み立てない", () => {
+    // ヘッダだけのファイルが残ると、抽出が壊れているのか契約に無いのかを読む人が判じられない。
+    expect(renderContractLimits(HEADER, [])).toBeNull();
   });
 });

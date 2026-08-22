@@ -21,9 +21,15 @@ for (const source of sources) {
 
   const generated = readFileSync(from, "utf8");
   const limits = collectContractLimits(generated);
+  const rendered = renderContractLimits(generated, limits);
+
+  if (rendered === null) {
+    continue;
+  }
+
   const to = `src/adapters/gen/${source.name}/limits.ts`;
 
-  writeFileSync(to, renderContractLimits(generated, limits), "utf8");
+  writeFileSync(to, rendered, "utf8");
   written.push(`${to} (${limits.length} 件)`);
 }
 
