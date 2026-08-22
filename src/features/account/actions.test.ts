@@ -53,7 +53,7 @@ beforeEach(() => {
   revalidatePath.mockReset();
   registerUser.mockReset().mockResolvedValue(undefined);
   updateMyProfile.mockReset().mockResolvedValue(PROFILE);
-  withdrawMe.mockReset().mockResolvedValue(undefined);
+  withdrawMe.mockReset().mockResolvedValue(null);
 });
 
 describe("updateProfileAction", () => {
@@ -214,6 +214,16 @@ describe("withdrawAction", () => {
   it("成立したら留まる先が無いのでトップへ送る", async () => {
     await expect(withdrawAction(IDLE_WITHDRAW, new FormData())).rejects.toThrow("NEXT_REDIRECT:/");
     expect(redirect).toHaveBeenCalledWith("/");
+  });
+
+  it("IdP のログアウトを経由してから戻す", async () => {
+    const logout = "https://idp.example.test/oidc/logout";
+    withdrawMe.mockResolvedValue(logout);
+
+    await expect(withdrawAction(IDLE_WITHDRAW, new FormData())).rejects.toThrow(
+      `NEXT_REDIRECT:${logout}`,
+    );
+    expect(redirect).toHaveBeenCalledWith(logout);
   });
 
   // ----- 異常系 -----

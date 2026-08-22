@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-
 import type { ProductListItem } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
-
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { NewArrivals } from "./new-arrivals";
 
-const FRONT_IMAGE_URL = "/src/components/design-system/display/media-image/invertocat.png";
+/** 一覧に出る絵。 */
+const FRONT_IMAGE_URL = SAMPLE_ITEM_URLS[0];
 
 let seq = 0;
 

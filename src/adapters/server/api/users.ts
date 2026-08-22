@@ -225,10 +225,15 @@ export async function updateMyProfile(profile: UserProfile): Promise<UserProfile
  * session の破棄をここに含めるのは、退会が成立した時点で手元の cookie が「消えた利用者を
  * 指す session」になるためです。残すと、無効になった身元のまま画面を回れます。
  *
- * IdP 側の終了に失敗しても退会は成立として返します。cookie の破棄は先に必ず済んでおり、
+ * **IdP 側を終わらせるには、返した先へ利用者を送る必要があります。** 捨てると手元の cookie が
+ * 消えるだけになり、退会したはずの主体で入り直せてしまいます。
+ *
+ * 送り先を組み立てられなくても退会は成立として返します。cookie の破棄は先に必ず済んでおり、
  * 利用者から見た結果は変わりません。IdP に session が残ったことは運用が拾えるよう記録します。
+ *
+ * @returns 退会後に利用者を送り出す先。IdP が口を持たないとき、引けなかったとき null
  */
-export async function withdrawMe(): Promise<void> {
+export async function withdrawMe(): Promise<string | null> {
   const { id } = await getMyUser();
 
   await getClient().request({
@@ -238,9 +243,11 @@ export async function withdrawMe(): Promise<void> {
   });
 
   try {
-    await signOut();
+    return await signOut();
   } catch (cause) {
     getLogger().warn("退会後の IdP session 終了に失敗しました", { cause: String(cause) });
+
+    return null;
   }
 }
 

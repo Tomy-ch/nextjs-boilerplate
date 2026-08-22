@@ -25,7 +25,12 @@ coverage-exclusions:
 | `preview.tsx` | 配色と系統の切り替え、横断 Provider の mount、Server Action の差し替え |
 | `manager.ts` | カタログの外枠の見た目 |
 | `msw/` | カタログが自分で答える `/api/*`（契約からの生成物ではない。置き場を分ける理由は [`mocks/README.md`](../mocks/README.md)） |
-| [`lib/`](lib/) | カタログが持つ判定 —— 表示のための計算、例外の受け止め、横取りの対象判定 |
+| [`lib/`](lib/) | カタログ自身の module —— 表示のための計算、例外の受け止め、横取りの対象判定、配る資材の綴り |
+
+`lib/` は部品の隣に置いた story からも読む。経路は `~catalog/*` で、宣言は
+[`tsconfig.json`](../tsconfig.json) の `paths`、写しが [`vitest.config.ts`](../vitest.config.ts) にある。
+**`@` で始まる別名にはしない。** `@x/y` は npm の scope と同じ形なので、biome の
+`noUndeclaredDependencies` が未宣言の依存として弾く。
 
 ## テストの責務
 
