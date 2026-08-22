@@ -1,17 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { Carousel, CarouselContent, CarouselItem } from "../../container/carousel/carousel";
 import { MediaImage } from "../../display/media-image/media-image";
 import { ImageViewer, type ViewableImage } from "./image-viewer";
 
-const PHOTO = "/src/components/design-system/display/media-image/invertocat.png";
-
-// 送った位置が見て分かるよう、枚数ぶん違う絵柄を並べる。
-const IMAGES: readonly ViewableImage[] = [
-  { src: PHOTO, alt: "1 枚目" },
-  { src: "/globe.svg", alt: "2 枚目" },
-  { src: "/window.svg", alt: "3 枚目" },
-];
+const IMAGES: readonly ViewableImage[] = SAMPLE_ITEM_URLS.map((src, index) => ({
+  src,
+  alt: `${index + 1} 枚目`,
+}));
 
 const meta = {
   title: "Overlay/ImageViewer",

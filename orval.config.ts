@@ -77,11 +77,6 @@ const apiInput = {
   filters: { mode: "exclude" as const, tags: NON_CLIENT_TAGS },
 };
 
-const authInput = {
-  target: "./openapi/auth.gen.yaml",
-  filters: { mode: "exclude" as const, tags: ["health"] },
-};
-
 export default defineConfig({
   // wire 型は src/adapters/gen/ に、HTTP client は mocks/ に置く。orval は client の出力先
   // (target) を必須とする一方、outbound の resilience は adapters の手書き wrapper が所有する
@@ -112,25 +107,6 @@ export default defineConfig({
       client: "zod",
       mode: "single",
       target: "./src/adapters/gen/api/endpoints.zod.ts",
-    },
-  },
-  // mock OIDC Provider の契約。MSW ハンドラは生成しない。認証の配線は P5-4 が持ち、
-  // 使う当てのないハンドラを先に置かない。
-  auth: {
-    input: authInput,
-    output: {
-      client: "fetch",
-      mode: "split",
-      target: "./mocks/auth/endpoints.ts",
-      schemas: "./src/adapters/gen/auth/model",
-    },
-  },
-  authZod: {
-    input: authInput,
-    output: {
-      client: "zod",
-      mode: "single",
-      target: "./src/adapters/gen/auth/endpoints.zod.ts",
     },
   },
 });

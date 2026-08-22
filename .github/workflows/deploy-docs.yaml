@@ -20,6 +20,11 @@ name: Deploy Docs
 # does not touch it reports no context at all (see README.md). It also never
 # deploys: the deploy job is gated on the event below, so no pull request can
 # publish from its branch.
+#
+# The jobs are named for the site they publish rather than for what they do. A
+# status context is named after the job, so a bare `build` here and a bare `build`
+# in build.yaml would report two check runs under one name, and a required check by
+# that name could not say which of the two it means.
 
 on:
   push:
@@ -50,7 +55,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  docs-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -108,8 +113,8 @@ jobs:
         with:
           path: dist
 
-  deploy:
-    needs: build
+  docs-deploy:
+    needs: docs-build
     # Pull requests build but never publish. Deploying from a PR branch would put
     # unreviewed content on the live site.
     if: github.event_name != 'pull_request'

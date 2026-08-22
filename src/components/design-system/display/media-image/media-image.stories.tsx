@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { MediaImage } from "./media-image";
 import { MEDIA_IMAGE_ASPECT_RATIO, MEDIA_IMAGE_PRIORITY } from "./media-image.definition";
-
-const SAMPLE_SRC = "/src/components/design-system/display/media-image/invertocat.png";
 
 const meta = {
   title: "Display/MediaImage",
@@ -23,7 +21,7 @@ const meta = {
       },
     },
   },
-  args: { alt: "サンプルのロゴ", className: "w-80", sizes: "20rem", src: SAMPLE_SRC },
+  args: { alt: "サンプルの絵", className: "w-80", sizes: "20rem", src: SAMPLE_ITEM_URLS[0] },
 } satisfies Meta<typeof MediaImage>;
 export default meta;
 type Story = StoryObj<typeof meta>;

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/shell/app-shell/app-shell";
 
 import { toSafeReturnUrl } from "@/model/return-url";
 
+import { LOGIN_NOTICE } from "./login-notice";
 import { LoginView } from "./login-view";
 
 /**
@@ -29,16 +30,24 @@ type Story = StoryObj<typeof meta>;
 
 /** 直接ログイン画面へ来た場合。認証後はトップへ戻る。 */
 export const Default: Story = {
-  args: { returnUrl: toSafeReturnUrl("/") },
+  args: { returnUrl: toSafeReturnUrl("/"), notice: null },
 };
 
 /** 保護された画面で弾かれて来た場合。認証後は元の画面へ戻る。 */
 export const WithReturnUrl: Story = {
-  args: { returnUrl: toSafeReturnUrl("/mypage") },
+  args: { returnUrl: toSafeReturnUrl("/mypage"), notice: null },
 };
 
-/** 狭い幅。カードが画面幅いっぱいまで縮み、ボタンの押しやすさが保たれることを見る。 */
+/** IdP へ到達できず戻された場合。理由と、もう一度押せることが操作の手前で読めるかを見る。 */
+export const Unavailable: Story = {
+  args: { returnUrl: toSafeReturnUrl("/mypage"), notice: LOGIN_NOTICE.UNAVAILABLE },
+};
+
+/**
+ * 狭い幅。カードが画面幅いっぱいまで縮み、ボタンの押しやすさが保たれることを見る。案内を出した
+ * 状態で見るのは、この画面で最も長い文がそこにあり、あふれるならここだからである。
+ */
 export const Mobile: Story = {
-  args: { returnUrl: toSafeReturnUrl("/") },
+  args: { returnUrl: toSafeReturnUrl("/"), notice: LOGIN_NOTICE.UNAVAILABLE },
   globals: { viewport: { value: "mobile1" } },
 };

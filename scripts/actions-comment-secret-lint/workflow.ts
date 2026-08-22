@@ -1,29 +1,26 @@
 // ワークフロー定義の走査。コメント投稿ジョブの同定と、走査対象になる文字列の切り出しを行う。
 //
-// 走査は YAML パーサで行う。ジョブの境界を行単位の正規表現で判定すると、インデント幅や
-// フロー記法といった書式の違いでヘッダが 1 つも一致せず、検査対象が空のまま緑になる。
-// 書式に依存しない形にしておけば、fork がワークフローを別の記法で書き直しても検査は残る。
+// 定義を読んで `jobs:` へ降りるまでは `../lib/workflow-files.ts` が担う（境界の判定を書式に
+// 依存させない理由もそちらが持つ）。ここが持つのは、降りた先の走査である。
 //
 // 切り出す単位はソースの範囲ではなくスカラーの値。範囲で切ると、YAML コメントが走査対象に
 // 残り、alias で他のジョブへ退避させた値は逆に対象から外れる。alias を辿って値へ降りれば、
 // どちらの経路も参照先の実体で判定できる。
-import fs from "node:fs";
-import path from "node:path";
 import {
+  type Document,
   isAlias,
   isMap,
   isScalar,
   isSeq,
   LineCounter,
   type Node,
-  parseDocument,
   Scalar,
 } from "yaml";
+
+import { parseWorkflowDocument, readJobId, readWorkflowMaps } from "../lib/workflow-files.js";
 import { localActionDir } from "./comment-actions.js";
 import { collectUsesFromValue, toJS } from "./uses.js";
 
-export const WORKFLOW_DIR = ".github/workflows";
-const WORKFLOW_EXTENSIONS = [".yaml", ".yml"];
 const JOBS_KEY = "jobs";
 
 // 走査対象の文字列 1 件。
@@ -41,33 +38,10 @@ export type Workflow = {
   texts: ScalarText[];
 };
 
-export function listWorkflowFiles(root: string): string[] {
-  const dir = path.join(root, WORKFLOW_DIR);
-  if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && WORKFLOW_EXTENSIONS.includes(path.extname(entry.name)))
-    .map((entry) => `${WORKFLOW_DIR}/${entry.name}`)
-    .sort();
-}
-
 export function parseWorkflow(file: string, source: string, commentDirs: Set<string>): Workflow {
   const lineCounter = new LineCounter();
-  const doc = parseDocument(source, { lineCounter });
-  if (doc.errors.length > 0) {
-    throw new Error(`${file}: YAML として読めません: ${doc.errors[0].message}`);
-  }
-
-  const root = doc.contents;
-  if (!isMap(root)) {
-    throw new Error(`${file}: ワークフローがマッピングとして読めません`);
-  }
-  // `jobs:` が読めないワークフローを「投稿ジョブなし」に寄せると、検査対象が黙って
-  // 縮んだまま緑になる。読めない形は異常として落とす。
-  const jobsNode = doc.getIn([JOBS_KEY], true);
-  if (!isMap(jobsNode)) {
-    throw new Error(`${file}: jobs: がマッピングとして読めません`);
-  }
+  const doc = parseWorkflowDocument(file, source, lineCounter);
+  const { root, jobs: jobsNode } = readWorkflowMaps(file, doc);
   const jobsValue = (toJS(file, doc) as { jobs?: unknown } | null)?.jobs;
   /* v8 ignore next 3 -- 直前で jobs: がマッピングであることを確かめているため、解決結果が
      オブジェクトでない経路はこの入口から辿れない。パーサ側の変更で崩れたときに黙って
@@ -87,10 +61,7 @@ export function parseWorkflow(file: string, source: string, commentDirs: Set<str
   }
 
   for (const pair of jobsNode.items) {
-    if (!isScalar(pair.key) || typeof pair.key.value !== "string") {
-      throw new Error(`${file}: ジョブ名が文字列として読めません`);
-    }
-    const id = pair.key.value;
+    const id = readJobId(file, pair.key);
     const job = (jobsValue as Record<string, unknown>)[id];
     // reusable workflow の呼び出し先へ渡る secret は追えない。投稿ジョブでないものとして
     // 通すと、検査が届かない経路が緑のまま増える。
@@ -119,7 +90,7 @@ function postsComment(job: unknown, commentDirs: Set<string>): boolean {
 // ノードの下にある文字列スカラーを集める。alias は参照先へ降りるため、他のジョブに置いた
 // anchor をこのジョブから参照していても実体に届く。
 function collectScalars(
-  doc: ReturnType<typeof parseDocument>,
+  doc: Document,
   lineCounter: LineCounter,
   node: unknown,
   jobId: string | null,
@@ -183,7 +154,7 @@ function countNewlines(text: string): number {
 // errors に載せず未解決を返す。これを落とすのは走査より前に通る toJS で、fail-close の点を
 // 1 つに寄せてある（ここにも同じ検査を置くと、到達しない分岐が検査対象に残る）。
 // 値を持たないキー（`key:` だけの行）のように走査対象にならないノードは null を返す。
-function resolveAlias(doc: ReturnType<typeof parseDocument>, node: unknown): Node | null {
+function resolveAlias(doc: Document, node: unknown): Node | null {
   let current = node;
   while (isAlias(current)) {
     current = current.resolve(doc);

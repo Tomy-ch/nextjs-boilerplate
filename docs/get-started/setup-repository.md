@@ -208,10 +208,10 @@ make gen-api
 
 トークンの取り方は
 [`src/adapters/server/auth/development-token.ts`](../../src/adapters/server/auth/development-token.ts)
-が 1 か所で持つ。相手は同じ作者の `go-boilerplate` が立てる mock OIDC サーバで、**標準の手順では
-ない**（本物の IdP で使ってはならない付与方式を、照合する相手が居ないから使っている）。**別の mock
-認証を使うなら、書き換えるのはこのファイルだけ**でよい。画面も Server Action も「主体と接続先を
-渡すとトークンが返る」ことしか知らない。
+が 1 か所で持つ。相手は製品ではなく性質で決まり、**OIDC Discovery を公開し、Resource Owner Password
+Credentials で主体を名指しできる開発用 IdP** なら何でも通る（本物の IdP で使ってはならない付与方式を、
+照合する相手が居ないから使っている）。**別の IdP へ移るなら、書き換えるのはこのファイルだけ**でよい。
+画面も Server Action も「主体と接続先を渡すとトークンが返る」ことしか知らない。
 
 詳しい使い方は [`src/features/dev-session/README.md`](../../src/features/dev-session/README.md)。
 

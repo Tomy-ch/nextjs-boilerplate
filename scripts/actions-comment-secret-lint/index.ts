@@ -15,9 +15,10 @@
 // 読んで `needs.<job>.outputs` 経由で渡す間接参照は静的に追えないため、この検査は通る。
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { listWorkflowFiles, WORKFLOW_DIR } from "../lib/workflow-files.js";
 import { collectCommentActions, UPSERT_ACTION_DIR } from "./comment-actions.js";
 import { findSecretReferences } from "./secret-reference.js";
-import { listWorkflowFiles, parseWorkflow, WORKFLOW_DIR } from "./workflow.js";
+import { parseWorkflow } from "./workflow.js";
 
 const ALLOWED_SECRET = "GITHUB_TOKEN";
 

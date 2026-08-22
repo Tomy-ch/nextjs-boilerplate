@@ -9,6 +9,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // カタログ自身の module を story から読む経路。`tsconfig.json` の宣言が正で、ここは
+      // その写しである（vitest は tsconfig の `paths` を読まない）。
+      "~catalog": fileURLToPath(new URL("./.storybook", import.meta.url)),
     },
   },
   test: {

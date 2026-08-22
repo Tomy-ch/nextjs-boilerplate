@@ -94,6 +94,7 @@ make help
 | `make actions-shellcheck` | composite action（`.github/actions/**/action.yaml`）の `run:` シェルを shellcheck で検査します。 | 指摘は `action.yaml` の行・列で報告します。`bash` / `sh` 以外の `shell:` は検査せず、位置と方言を添えて skip として出力します。 |
 | `make actions-mise-pin-lint` | `setup-mise` の版 / digest / キャッシュキーが揃っているか検査します。 | mise 自身の版は `mise.toml` に書けないため composite action が宣言を持ち、`with:` から `env:` を参照できない制約でキャッシュキーが同じ値を二度目に持ちます。片方だけ直した状態は落ちますが原因が遠いので検査します。整合違反は exit 1、検査が成立していない状態は exit 2。 |
 | `make actions-comment-secret-lint` | PR コメントを投稿するジョブに `GITHUB_TOKEN` 以外の secret が渡っていないか検査します。 | 規約違反は exit 1、検査そのものが成立していない状態は exit 2 で区別します。 |
+| `make actions-required-check-lint` | required status check に登録した context が、すべての PR で報告されるか検査します。 | 判定に要るのが ruleset の宣言とワークフロー定義の 2 ファイルなので actionlint では表現できません。宣言違反は exit 1、検査が成立していない状態は exit 2 で区別します。 |
 | `make actions-zizmor` | workflows と composite action の定義を zizmor で静的解析します。 | actionlint / `actions-shellcheck` が shellcheck へ渡す前に `${{ … }}` を潰すため見えない観点（`run:` での未クオートな式展開など）を担います。落とすのは high の所見だけで、抑止は `.github/zizmor.yml` に理由付きで宣言します。hook / CI とも `--offline` で走ります。 |
 | `make shellcheck` | 追跡下の `*.sh` を shellcheck で検査します。 | 対象は「依存の導入前に走る必要があってシェルで書くしかないもの」（ADR 0155 の例外）です。TypeScript ではないので 1:1 ゲートもカバレッジも掛からず、`.github` の外なので actionlint も届きません。shellcheck が無ければ検査範囲が黙って縮むため落とします。 |
 
@@ -136,6 +137,28 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
   `jobs:` がマッピングとして読めない / `upsert-pr-comment` の定義があるのに、それを使うジョブが 1 つも
   見つからない（参照の同定が壊れている）/ ジョブが reusable workflow を呼び出している（呼び出し先へ
   `with:` で渡る secret を追えないため未対応）
+
+`make actions-required-check-lint` は、[`../.github/settings/branch-protection.json`](../.github/settings/branch-protection.json)
+が必須にしている context ごとに、**その名前を報告し続ける job がちょうど 1 つあること**を検査します。報告
+されない context は「必須チェック待ち」のまま永久にマージできず、壊れたと分かるのは原因を入れた PR では
+なく次に上がってきた PR です。
+
+落とすのは次の 6 つ。いずれも登録した時点では緑に見え、条件を満たさない PR が来た瞬間にマージ不能へ変わ
+ります。
+
+- その名前を宣言する job が無い（job の rename が典型）
+- 複数の job が同じ名前を宣言している（どちらの結果を必須にしているのか決まらない）
+- その workflow が `pull_request` で走らない
+- `pull_request` が `paths` / `paths-ignore` / `branches` / `branches-ignore` で絞られている
+- `types:` を絞っていて `opened` / `synchronize` を含まない
+- context 名が実行時に枝分かれする（`strategy.matrix` / reusable workflow の呼び出し）
+
+`if:` で降りる job は落としません。降りた job は `skipped` を報告し、必須チェックはそれを成功として数える
+ため、報告そのものは途切れないからです。
+
+ワークフローの列挙と `jobs:` へ降りるまでの読み取りは [`../scripts/lib/workflow-files.ts`](../scripts/lib/workflow-files.ts)
+が持ちます。**同じ判断を検査ごとに書き起こすと、片方だけが直った状態が黙って生まれる**ため、
+`make actions-comment-secret-lint` と共有します。
 
 ### リリースブランチ関連
 

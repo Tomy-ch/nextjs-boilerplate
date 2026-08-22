@@ -50,6 +50,8 @@
 | 72 | 常に届く必要がある操作は、脇の領域が無い帯(`lg` 未満)で画面下端に固定し、脇に常設できる幅では通常配置へ戻す。同じ操作を 2 か所に置かない。 | `components/patterns/action-bar` の component テスト。 | [ADR 0051](adr/0051-styling-system.md) |
 | 73 | 部品の中身は帯(viewport)で分岐させない。同じ部品が広い場所にも狭い場所にも置かれる分岐はコンテナクエリで書く。 | 散文。 | [ADR 0051](adr/0051-styling-system.md) |
 | 74 | 画面の骨格は器の幅(container query)で分岐させない。どこに何を置くか・出すか出さないかは帯で決める。 | 散文。 | [ADR 0051](adr/0051-styling-system.md) |
+| 75 | 資材はルート絶対の URL で指し、実体を配信の根へ置く。アプリが出すものは `public/`、カタログでだけ使うものは `.storybook/public/` で、後者の綴りは `.storybook/lib/sample-asset.ts` が公開する。**`/src/...` を指さない** —— dev サーバは素通しで配信するが `storybook build` の成果物には入らず、**壊れた絵がそのまま基準画像として承認される**。解決しないことが正しい参照は `scripts/lib/catalog-assets.ts` へ理由と撤去条件つきで宣言する。 | `scripts/catalog-assets.gate.test.ts`。 | [ADR 0054](adr/0054-ui-catalog-storybook.md) / [ADR 0091](adr/0091-test-verification-methods.md) |
+| 76 | `searchParams` を読むスキーマは、その条件を URL へ組む側とは別の module へ置く（読む側は `read-<対象>.ts`、組む側は語彙と行き先を持つ module）。同じ module に置くと、スキーマを組み立てる module 直下の式が tree-shaking を妨げ、**語彙を参照しただけの画面まで検証ライブラリごと client の束に載る**。 | `bundle-budget` job（route ごとの増分の上限）と review。 | [ADR 0101](adr/0101-performance-budget.md) |
 
 ## 運用
 

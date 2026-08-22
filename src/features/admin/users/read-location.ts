@@ -5,13 +5,8 @@ import { type RawSearchParams, singleValue } from "@/model/search-params";
 import { type AdminUserListLocation, FIRST_PAGE, USER_LIST_KEY, USER_SCOPE } from "./query";
 
 /**
- * URL を読む側。**組む側（[`query.ts`](query.ts)）と分けてある。**
- *
- * @remarks
- * 読むのは画面を組み立てる地点だけで、組むのは選択欄やページ送りといった client の部品です。
- * 同じ module に置くと、スキーマを組み立てる module 直下の式が tree-shaking を妨げ、**検証
- * ライブラリごと client の束に載ります**（[0101](../../../../docs/adr/0101-performance-budget.md)）。
- * 境界を強制しているのは束であって、読みやすさではありません。
+ * URL を読む側。**組む側（[`query.ts`](query.ts)）と分けてある**（`docs/rules.md` #76）。
+ * 組むのは選択欄やページ送りといった client の部品です。
  */
 
 /** 範囲を読むスキーマ。宣言に無い名前は既定へ倒す。 */

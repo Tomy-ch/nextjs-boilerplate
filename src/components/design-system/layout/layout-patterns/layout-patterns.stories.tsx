@@ -19,6 +19,7 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 
 const meta = {
   title: "Layout/Layout",
@@ -35,8 +36,6 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-
-const SAMPLE_SRC = "/src/components/design-system/display/media-image/invertocat.png";
 
 /** sticky の効きを見るために、scroll するだけの高さを作る行。 */
 const SCROLL_SAMPLE_TITLES = [
@@ -286,7 +285,7 @@ export const PageComposition: Story = {
               alt="サンプル画像"
               aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.WIDE}
               className="rounded-md"
-              src={SAMPLE_SRC}
+              src={SAMPLE_ITEM_URLS[0]}
             />
             <SampleCard title="本文">
               主導線の内容を置く。狭い画面では脇より先に読まれる。

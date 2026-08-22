@@ -42,8 +42,15 @@ export const ENTRYPOINT_PATTERNS = [
  * 判断ではありません([0072](../../docs/adr/0072-api-type-generation.md))。生成物の正しさは
  * 契約からの再生成が一致するか(drift ゲート)と、`mocks/contract-conformance.test.ts` の
  * 全ハンドラ検査が担保します。
+ *
+ * 並ぶのは題材の契約から生成したものだけなので、サンプルを破棄すると空になります。fork 先は
+ * 自分の契約を生成した先をここへ並べます。
  */
-export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/auth/**"] as const;
+// sample:replace-begin
+export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**"] as const;
+// sample:replace-with
+// = export const GENERATED_MODULES = [] as const;
+// sample:replace-end
 
 /**
  * 判定を持たないモジュール。
@@ -66,6 +73,8 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**", "mocks/
  * - `.storybook/main.ts` / `preview.tsx` / `manager.ts` — カタログの設定。読み込まれた時点で
  *   副作用を起こす（資材の複製・書体の class 付与・mock の宣言）ため単体では回せない。**判定は
  *   `lib/` へ置く**という規約を `.storybook/README.md` が持ち、ここに残るのは設定だけである。
+ * - `.storybook/lib/sample-asset.ts` — カタログへ配る資材の URL を並べた表。分岐も式も持たず、
+ *   読み手は story だけである。綴りと実体のずれは、資材が 404 になった絵として VRT が示す。
  * - `.storybook/css.d.ts` — 型宣言のみ。
  * - `.storybook/msw/worker.ts` — ブラウザの service worker を立てるだけ。何を警告と数えるかは
  *   `.storybook/lib/unhandled-request.ts` が持つ。Vitest からは呼べない。
@@ -80,6 +89,7 @@ const NON_DECIDING_MODULES = [
   ".storybook/main.ts",
   ".storybook/preview.tsx",
   ".storybook/manager.ts",
+  ".storybook/lib/sample-asset.ts",
   ".storybook/css.d.ts",
   ".storybook/msw/worker.ts",
 ] as const;

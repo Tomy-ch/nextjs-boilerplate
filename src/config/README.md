@@ -2,6 +2,8 @@
 imports-allowed: []
 forbidden: [ui, fetch, business-logic]
 test-requirement: unit
+coverage-exclusions:
+  - "src/config/environment.fixture.ts"
 ---
 
 # config
