@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod/mini";
 
 /**
  * 検証を通った復帰先を確定させるスキーマ。

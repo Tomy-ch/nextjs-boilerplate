@@ -1,6 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useId } from "react";
 import type {
   Control,
@@ -88,7 +88,7 @@ export function useProfileFields(
     register,
     setValue,
   } = useForm<ProfileInput>({
-    resolver: zodResolver(profileSchema),
+    resolver: standardSchemaResolver(profileSchema),
     mode: "onTouched",
     defaultValues: toDefaultValues(profile),
   });

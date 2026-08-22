@@ -164,8 +164,9 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、boile
 
 同梱サンプルの実測(gzip)。**ここに挙がるのは「測って分かっているが、まだ削っていない」ものだけ**で、削り方が決まっていないもの・順序が他に依存するものを置く。
 
-- **client の zod が 94 KB。** 3 チャンクに分かれ、うち 2 つは raw が 1 バイトも違わない複製。`/products` `/mypage/edit` `/purchases` `/onboarding` は 65 KB、`/cart` は 30 KB を背負う。使っている API 面(`z.object` / `z.string` / `z.array` / `z.int` / `z.boolean` / `z.uuid` / `z.email` / `z.coerce` / `.min` / `.max` / `.regex` / `.nullable` / `.safeParse` / `z.flattenError`)を `zod/mini` で書いた場合の実測は **63.5 KB → 5.4 KB** で、記法差だけで賄える
-- **ただし順序がある。** 生成 zod(`src/adapters/gen/api/endpoints.zod.ts`)が classic の `zod` を import しており、client adapter がそこから上限値の定数を取るために生成モジュールごと client へ載る(スキーマと `.describe()` の文言で 14.8 KB)。**この辺を切る前に非生成側だけ `zod/mini` へ移しても、classic はそのまま残って mini が上乗せされるだけになる**。生成の出し先を分ける(`mode: "split"`)のが先で、その前提となる孤児の始末は `make gen-api` 側へ移してあるため、置き場所の決定だけが残る
+- **生成物を経由して classic の `zod` が client へ載る。** `src/adapters/gen/api/endpoints.zod.ts` は `zod` を import しており、client adapter がそこから上限値の**定数**を取るために生成モジュールごと client へ入る(スキーマと `.describe()` の文言で 14.8 KB)。残るのは `/products` `/purchases` `/cart` の 3 route
+- **したがって、非生成側の `zod/mini` 化はここで頭打ちになる。** [0029](0029-type-design-discipline.md) §2 の方針に沿って client 側を移した実測は、生成物に触れない `/mypage/edit` `/onboarding` が **−45 KB**、生成物を経由する `/products` `/purchases` `/cart` が **+1 KB**(classic が残ったまま mini が上乗せされる)。**残る 2 モジュール(`adapters/client/api/{products,purchases}.ts`)と、それらが埋め込む `model/product/product.ts` は、生成の辺を切ってから移す**
+- **切り方は生成の出し先を分けること**(`mode: "split"` で定数とスキーマを別ファイルへ)。前提となる孤児の始末は `make gen-api` 側へ移してあるため([0072](0072-api-type-generation.md))、置き場所の決定だけが残る
 - **全 route 共通の土台が 143 KB。** react-dom が 71 KB、Next.js の router が 29 KB を占める。フレームワークの費用であり、削る対象ではない
 - **`lighthouse` の LCP 閾値が未確定。** lab の値は帯域モデルの射影で、実測では**描画をブロックする CSS の転送時間**が支配し、LCP 要素は上部の小さなテキストであることが多い。Core Web Vitals の "good" 境界は field 値に対する定義であり、lab の射影をそのまま突き合わせる根拠が無い。全画面の実測を採ってから lab 用の値を置く
 - **同じ問い合わせが 1 回の描画で 3 回出る(原因未特定)。** `/checkout` を実バックエンドへ繋いで trace を採ると、`GET /v1/exchange-rates` が**同一 URL・同一の親 span** で 3 回現れる。呼び出し元は `checkout/confirm/page-content.tsx` の 1 箇所。React の `cache` を外側(`readReferenceAmount`)にも取得側(`convertToReferenceAmount`)にも掛けて確かめたが畳まれず、ビルド出力に適用されていることは確認済み。同じ木の `getMyCart` / `getMyUser` は 1 回に畳まれている。**機構が分かるまで対処しない** —— 効果の出ない memo 化を「畳んでいる」と書いた状態を残さないため
