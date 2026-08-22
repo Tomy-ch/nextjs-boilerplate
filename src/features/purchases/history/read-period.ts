@@ -6,13 +6,8 @@ import { type RawSearchParams, singleValue } from "@/model/search-params";
 import { ALL_PERIOD, PERIOD_KEY, type PeriodSelection } from "./period";
 
 /**
- * URL を読む側。**組む側（[`period.ts`](period.ts)）と分けてある。**
- *
- * @remarks
- * 読むのは画面を組み立てる地点だけで、組むのは期間の入力欄や続きの読み込みといった client の
- * 部品です。同じ module に置くと、スキーマを組み立てる module 直下の式が tree-shaking を妨げ、
- * **検証ライブラリごと client の束に載ります**（[0101](../../../../docs/adr/0101-performance-budget.md)）。
- * 境界を強制しているのは束であって、読みやすさではありません。
+ * URL を読む側。**組む側（[`period.ts`](period.ts)）と分けてある**（`docs/rules.md` #76）。
+ * 組むのは期間の入力欄や続きの読み込みといった client の部品です。
  */
 
 /** 暦月 1 つを表す `YYYY-MM`。書式は契約が宣言したものを使う。 */
