@@ -268,25 +268,25 @@ describe("redactUrlQuery", () => {
   // ----- 正常系 -----
   it("query 文字列を落とした url.full を返し、url.query のキーを undefined で上書きする", () => {
     expect(
-      redactUrlQuery({ origin: "https://api.example.test", path: "/v1/products?keyword=下着" }),
+      redactUrlQuery({ origin: "https://api.example.test", path: "/v1/resources?keyword=検索語" }),
     ).toStrictEqual({
-      "url.full": "https://api.example.test/v1/products",
+      "url.full": "https://api.example.test/v1/resources",
       "url.query": undefined,
     });
   });
 
   it("query を持たない path はそのまま url.full に載せる", () => {
     expect(
-      redactUrlQuery({ origin: "https://api.example.test", path: "/v1/carts/me" }),
+      redactUrlQuery({ origin: "https://api.example.test", path: "/v1/resources/me" }),
     ).toStrictEqual({
-      "url.full": "https://api.example.test/v1/carts/me",
+      "url.full": "https://api.example.test/v1/resources/me",
       "url.query": undefined,
     });
   });
 
   it("path が query だけでも origin までを url.full に残す", () => {
     expect(
-      redactUrlQuery({ origin: "https://api.example.test", path: "?keyword=下着" }),
+      redactUrlQuery({ origin: "https://api.example.test", path: "?keyword=検索語" }),
     ).toStrictEqual({
       "url.full": "https://api.example.test",
       "url.query": undefined,
