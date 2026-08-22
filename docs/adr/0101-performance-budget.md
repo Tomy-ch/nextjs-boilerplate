@@ -37,12 +37,13 @@ BACKLOG C3 は、Core Web Vitals SLO・Lighthouse 閾値・bundle size 予算・
 
 | 閾値 | 所在 | 理由 |
 | --- | --- | --- |
-| Core Web Vitals の LCP / CLS | **boilerplate 本体が持ち、fork 先もそのまま引き継ぐ** | "good" の境界は Web の標準が定める固定値であり、アプリの用途では動かない |
+| Core Web Vitals の CLS | **boilerplate 本体が持ち、fork 先もそのまま引き継ぐ** | "good" の境界は Web の標準が定める固定値であり、アプリの用途では動かない |
+| LCP | **boilerplate 本体が持ち、fork 先もそのまま引き継ぐ。ただし値は lab から導く** | **"good" の境界(2.5 秒)は field の定義であり、lab の推定値へそのまま置けない。**模擬回線(150 ms RTT)と模擬 CPU にはリクエストの連鎖ぶんの固定費があり、器も client 島もほぼ持たない画面で 2.16 秒を要する。2.5 秒はこの床の 0.34 秒上にあたり、アプリの側で動かせる幅より計測の振れのほうが大きい。したがって lab の上限は**床 + 実行をまたぐ振れ + アプリへ割り当てる分**で置く。field の LCP は RUM([0082](0082-client-observability.md))が持ち、この上限とは別物である |
 | TBT | boilerplate 本体が持つ | **これは Core Web Vitals ではなく、Lighthouse が INP の lab 代替として置く指標である。**したがって根拠も上とは別で、"標準が定めた値だから"ではなく"INP を lab で測る手段が他に無いから"そのまま採る。INP そのものの "good" 境界(200 ms)と数値が一致するのは Lighthouse のスコアリング規約の側の都合であり、[0010](0010-standards-and-non-lockin.md) §2 の非ロックイン判定に照らせば、Lighthouse を外した瞬間にこの値の根拠は失われる。**計測手段を変えるときは、この行だけ置き直すこと** |
 | bundle size の route ごとの上限 | **fork 先が測り直して置き換える** | 同梱サンプルの実測に由来する値で、別のアプリでは意味を持たない |
 | bundle size の増分の上限 | boilerplate 本体が持つ | 依存更新や chunk の切り直しで動く幅であり、用途に依らない |
 
-画面ごとに上限を緩めるのは、その画面が重いことを設計として引き受けたときに限り、`performance-budget.yaml` の `lighthouse.screens` へ根拠付きで宣言する。
+画面ごとの上限は `performance-budget.yaml` の `lighthouse.screens` へ根拠付きで宣言する。**緩める側は、その画面が重いことを設計として引き受けたときに限る。締める側も同じ場所で書く** —— 器と CSS しか持たない軽い画面を既定より締めておくと、器の退行が、重い画面の振れに紛れる前に鳴る。重い画面ほど実行をまたいで振れるため、一律の上限だけでは床の悪化を捕まえられない。
 
 ### 4. 重さを持ち込まない書き方
 
