@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { findExclusionDrift } from "./lib/coverage-exclusion";
@@ -9,7 +9,7 @@ import { EXCLUDED_FROM_CHECKS } from "./lib/untested-modules";
  * カバレッジ除外が、所有側の README にも記録されているかのゲート。
  *
  * @remarks
- * 検査の中身は `lib/coverage-exclusion.ts` が持ち、ここはファイルの読み取りだけを担う
+ * 検査の中身は `lib/coverage-exclusion.ts` が持ち、ここはツリーの走査だけを担う
  * (`test-requirement.gate.test.ts` と同形)。
  *
  * 除外の正は `lib/untested-modules.ts` の宣言 1 箇所で、README が持つのは「この配下に検査の穴が
@@ -24,6 +24,46 @@ import { EXCLUDED_FROM_CHECKS } from "./lib/untested-modules";
 
 const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");
 
+/**
+ * 走査しない名前。依存と生成物には書き手の手が入らない。
+ *
+ * @remarks
+ * 除外の列で絞るのは `test-requirement.gate.test.ts` と同じ理由による。既定を「全部見る」に
+ * しておかないと、新しく生えたディレクトリの README が記録を残したまま走査の外へ落ちる。
+ */
+const SKIPPED_DIRECTORIES = new Set([
+  "node_modules",
+  "dist",
+  "coverage",
+  "coverage-scripts",
+  "tmp",
+  "storybook-static",
+]);
+
+/** 隠しディレクトリのうち、リポジトリが自分で書いていて走査する対象。 */
+const SCANNED_HIDDEN_DIRECTORIES = new Set([".storybook"]);
+
+function isSkipped(name: string): boolean {
+  if (SKIPPED_DIRECTORIES.has(name)) return true;
+
+  return name.startsWith(".") && !SCANNED_HIDDEN_DIRECTORIES.has(name);
+}
+
+/** README を持つディレクトリ(リポジトリルート相対、区切りは `/`)。 */
+function* walkReadmeDirectories(directory: string): Generator<string> {
+  if (existsSync(join(directory, "README.md"))) {
+    yield relative(REPOSITORY_ROOT, directory).split(sep).join("/");
+  }
+
+  for (const entry of readdirSync(directory)) {
+    const absolute = join(directory, entry);
+
+    if (!isSkipped(entry) && statSync(absolute).isDirectory()) {
+      yield* walkReadmeDirectories(absolute);
+    }
+  }
+}
+
 function readReadme(directory: string): string | null {
   const path = join(REPOSITORY_ROOT, directory, "README.md");
 
@@ -32,9 +72,14 @@ function readReadme(directory: string): string | null {
 
 describe("カバレッジ除外の記録", () => {
   it("除外は所有 README の記録と一致する", () => {
-    // 宣言が空振りすると、違反ゼロを報告したままゲートが黙る。宣言の列を組み替えたときに起きる
-    // 壊れ方がこれなので、違反より先に「見た件数」を主張する。
+    const readmeDirectories = [...walkReadmeDirectories(REPOSITORY_ROOT)];
+
+    // 宣言と走査のどちらかが空振りすると、違反ゼロを報告したままゲートが黙る。宣言の列を組み替えた
+    // ときと走査の除外を広げすぎたときに起きる壊れ方がこれなので、違反より先に「見た件数」を主張する。
     expect(EXCLUDED_FROM_CHECKS.length).toBeGreaterThan(0);
-    expect(findExclusionDrift([...EXCLUDED_FROM_CHECKS], readReadme)).toEqual([]);
+    expect(readmeDirectories.length).toBeGreaterThan(0);
+    expect(findExclusionDrift([...EXCLUDED_FROM_CHECKS], readReadme, readmeDirectories)).toEqual(
+      [],
+    );
   });
 });

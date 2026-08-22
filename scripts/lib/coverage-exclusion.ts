@@ -109,11 +109,13 @@ export const UNOWNED = "(所有 README なし)";
  *
  * @param patterns - 宣言されている除外(リポジトリルート相対、区切りは `/`)
  * @param readReadme - ディレクトリの README を読む
+ * @param readmeDirectories - README を持つディレクトリ(リポジトリルート相対)。走査の結果を受け取る
  * @returns 食い違いのある README。無ければ空。ディレクトリ名順に並ぶ
  */
 export function findExclusionDrift(
   patterns: readonly string[],
   readReadme: ReadmeReader,
+  readmeDirectories: readonly string[],
 ): ExclusionDrift[] {
   const owned = new Map<string, Set<string>>();
 
@@ -125,9 +127,14 @@ export function findExclusionDrift(
 
   const directories = new Set(owned.keys());
 
-  // 記録だけが残った README も拾う。宣言の側から歩くと、撤去済みの記録には到達できない。
-  for (const directory of recordedDirectories(patterns, readReadme)) {
-    directories.add(directory);
+  // 記録だけが残った README も拾う。宣言の側から歩くと、除外が 1 つ残らず撤去されたディレクトリ
+  // には二度と到達できず、実態より多くの穴を告げる記録がそこに残り続ける。
+  for (const directory of readmeDirectories) {
+    const source = readReadme(directory);
+
+    if (source !== null && parseRecorded(source) !== null) {
+      directories.add(directory);
+    }
   }
 
   const drift: ExclusionDrift[] = [];
@@ -145,31 +152,4 @@ export function findExclusionDrift(
   }
 
   return drift;
-}
-
-/**
- * 除外を記録している README のディレクトリ。
- *
- * @remarks
- * 宣言が指す所有者の周辺だけを見る。リポジトリ全体の README を走査しないのは、走査の重さに対して
- * 得られるものが「宣言のどこからも指されていない README に記録が残っている」という 1 種類しか
- * 無いためで、その形は所有者の親を辿れば同じだけ拾える。
- */
-function recordedDirectories(patterns: readonly string[], readReadme: ReadmeReader): string[] {
-  const found = new Set<string>();
-
-  for (const pattern of patterns) {
-    const segments = literalDirectory(pattern).split("/").filter(Boolean);
-
-    for (let depth = segments.length; depth >= 0; depth -= 1) {
-      const directory = segments.slice(0, depth).join("/");
-      const source = readReadme(directory);
-
-      if (source !== null && parseRecorded(source) !== null) {
-        found.add(directory);
-      }
-    }
-  }
-
-  return [...found];
 }
