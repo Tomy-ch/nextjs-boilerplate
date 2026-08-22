@@ -84,6 +84,19 @@ describe("findHeavyClientImports", () => {
     expect(found).toEqual([{ path: "a.ts", specifier: "zod", from: "ui.tsx" }]);
   });
 
+  it("二つの入口から同じ module へ届いても、一度しか挙げない", () => {
+    const found = findHeavyClientImports(
+      modules(
+        ["u1.tsx", '"use client";\nimport { a } from "./a";'],
+        ["u2.tsx", '"use client";\nimport { a } from "./a";'],
+        ["a.ts", 'import { z } from "zod";'],
+      ),
+      resolveAsIs,
+    );
+
+    expect(found).toEqual([{ path: "a.ts", specifier: "zod", from: "u1.tsx" }]);
+  });
+
   it("生成した zod スキーマも重い入口として挙げる", () => {
     const found = findHeavyClientImports(
       modules(["ui.tsx", '"use client";\nimport { m } from "src/adapters/gen/api/endpoints.zod";']),
@@ -112,6 +125,24 @@ describe("findHeavyClientImports", () => {
     ).toEqual([]);
   });
 
+  it("解決できない指定は辿らない", () => {
+    const found = findHeavyClientImports(
+      modules(["ui.tsx", '"use client";\nimport { useState } from "react";']),
+      resolveAsIs,
+    );
+
+    expect(found).toEqual([]);
+  });
+
+  it("解決先が走査の対象に無ければ、そこで止まる", () => {
+    const found = findHeavyClientImports(
+      modules(["ui.tsx", '"use client";\nimport { a } from "./missing";']),
+      resolveAsIs,
+    );
+
+    expect(found).toEqual([]);
+  });
+
   it("環状の参照でも止まる", () => {
     const found = findHeavyClientImports(
       modules(
@@ -131,6 +162,15 @@ describe("formatHeavyClientImports", () => {
     expect(formatHeavyClientImports([{ path: "a.ts", specifier: "zod", from: "ui.tsx" }])).toBe(
       "a.ts: zod（ui.tsx から到達）",
     );
+  });
+
+  it("複数件を綴り順に並べる", () => {
+    expect(
+      formatHeavyClientImports([
+        { path: "z.ts", specifier: "zod", from: "ui.tsx" },
+        { path: "a.ts", specifier: "zod", from: "ui.tsx" },
+      ]),
+    ).toBe("a.ts: zod（ui.tsx から到達）\nz.ts: zod（ui.tsx から到達）");
   });
 
   // ----- 異常系 -----

@@ -2,6 +2,7 @@
 
 import { render } from "@testing-library/react";
 import { beforeAll, describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
 
@@ -25,11 +26,17 @@ const COUNTS: readonly PurchaseStatusCount[] = [
   { statusId: "2", statusName: "支払い済み", count: 5 },
 ];
 
-// 待機中の枠はここに出ない。先読みを済ませた木では `next/dynamic` が同期で解決するため、
-// `loading` を通らない。枠の高さが出来上がりと一致することは基準画像
-// （Storybook `Page/Admin/Analytics`）が持つ。
 describe("StatusChart", () => {
-  // ----- 正常系 -----
+  // `next/dynamic` は `React.lazy` で、解決した値をこの module へ抱え込む。枠を通るのは
+  // このファイルで最初に描いたときだけなので、枠の検証はここに 1 つだけ置き、先頭に保つ。
+  it("届くまでは、出来上がりと同じ高さの枠を読み上げの外へ置く", () => {
+    const { container } = render(<StatusChart counts={COUNTS} />);
+    const frame = container.firstElementChild;
+
+    expect(frame).toHaveClass("h-56");
+    expect(frame).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("読み込みが終わると、帯の容れ物を出す", async () => {
     const { container } = render(<StatusChart counts={COUNTS} />);
 
@@ -44,10 +51,19 @@ describe("StatusChart", () => {
       .toContain("--color-count");
   });
 
-  // ----- 異常系 -----
   it("件数が空でも容れ物は出す", async () => {
     const { container } = render(<StatusChart counts={[]} />);
 
     await expect.poll(() => container.querySelector('[data-slot="chart"]')).not.toBeNull();
+  });
+
+  it("a11y 検査を通る", async () => {
+    const { container } = render(<StatusChart counts={COUNTS} />);
+
+    await expect.poll(() => container.querySelector('[data-slot="chart"]')).not.toBeNull();
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

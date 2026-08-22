@@ -57,6 +57,10 @@ describe("collectContractLimits", () => {
   });
 
   // ----- 異常系 -----
+  it("末尾の宣言が `;` を持たなければ拾わない", () => {
+    expect(collectContractLimits("export const aMax = 200")).toEqual([]);
+  });
+
   it("zod の呼び出しを含む宣言は拾わない", () => {
     // 拾うと、切り出した module 自身が zod を引くことになり、切り出した意味が消える。
     expect(collectContractLimits("export const aSchema = zod.string().max(200);")).toEqual([]);

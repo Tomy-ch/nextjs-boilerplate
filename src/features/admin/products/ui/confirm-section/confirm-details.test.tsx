@@ -72,6 +72,13 @@ describe("ProductConfirmDetails", () => {
     expect(screen.getByText("未設定")).toBeInTheDocument();
   });
 
+  it("分類が選べる候補に無い識別子なら、未入力として示す", () => {
+    renderConfirm({ ...FILLED, categoryId: "removed-category" });
+
+    expect(screen.queryByText("電子機器")).not.toBeInTheDocument();
+    expect(screen.getByText("未設定")).toBeInTheDocument();
+  });
+
   it("公開日時が空なら、未公開で登録することを言葉で伝える", () => {
     renderConfirm({ ...FILLED, publishedAt: "" });
 

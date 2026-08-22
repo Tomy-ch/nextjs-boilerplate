@@ -22,6 +22,8 @@ describe("noRawFontWeight", () => {
         // 太さを表さない class を巻き込まない。
         "const a = <p className='font-mono'>コード</p>;",
         "const a = <p className='leading-normal'>本文</p>;",
+        // 段の名前を含むだけの、より長い class 名を巻き込まない（語境界）。
+        "const a = <p className='font-boldish'>本文</p>;",
       ],
       invalid: [],
     });

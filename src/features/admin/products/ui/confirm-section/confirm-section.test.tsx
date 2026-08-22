@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import type { ProductValues } from "../../use-product-values";
 import { ProductConfirmSection } from "./confirm-section";
@@ -26,18 +27,37 @@ const VALUES: ProductValues = {
 const CATEGORY_OPTIONS = [{ value: "category-1", label: "電子機器" }];
 const STATUS_OPTIONS = [{ value: "status-1", label: "在庫あり" }];
 
+const renderSection = () =>
+  render(
+    <ProductConfirmSection
+      categoryOptions={CATEGORY_OPTIONS}
+      imageCount={1}
+      statusOptions={STATUS_OPTIONS}
+      values={VALUES}
+    />,
+  );
+
 describe("ProductConfirmSection", () => {
-  // ----- 正常系 -----
+  // この段は届くまでの枠を持たない。`hidden` で隠れたまま立ち上がるため、枠が見えないから
+  // （`confirm-section.tsx`）。`React.lazy` が解決した値を抱え込むので、届く前を掴めるのは
+  // このファイルで最初に描いたときだけ。この検証はここに 1 つだけ置き、先頭に保つ。
+  it("届くまでは何も置かない", () => {
+    const { container } = renderSection();
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("受け取った値を中身へそのまま渡す", async () => {
-    render(
-      <ProductConfirmSection
-        categoryOptions={CATEGORY_OPTIONS}
-        imageCount={1}
-        statusOptions={STATUS_OPTIONS}
-        values={VALUES}
-      />,
-    );
+    renderSection();
 
     expect(await screen.findByText("ワイヤレスイヤホン")).toBeVisible();
+  });
+
+  it("a11y 検査を通る", async () => {
+    const { container } = renderSection();
+
+    await screen.findByText("ワイヤレスイヤホン");
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

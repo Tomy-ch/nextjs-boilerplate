@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   findHeavyClientImports,
   formatHeavyClientImports,
+  isClientEntry,
   type SourceModule,
 } from "./lib/client-schema-weight";
 
@@ -15,10 +16,9 @@ import {
  * 判定の中身は `lib/client-schema-weight.ts` が持ち、ここはツリーの走査だけを担う
  * （`doc-links.gate.test.ts` と同形）。
  *
- * **この無駄は、誰も見ていなかったから存在していた。** 上限値の定数を 1 つ取る import が、契約の
- * 全エンドポイントぶんの zod スキーマと説明文をブラウザへ配っていた。型検査も lint も import の
- * 先にある重さを見ないため、増えても何も落ちない。予算（`bundle-budget`）は総量で捕まえるが、
- * **なぜ増えたかは答えない**ので、原因の側にゲートを置く。
+ * **型検査も lint も、import の先にある重さを見ない。** 予算（`bundle-budget`）は総量で捕まえるが、
+ * **なぜ増えたかは答えない**ので、原因の側にゲートを置く。何を引くと何が配られるかは
+ * `openapi/extract-limits.ts` が持つ。
  */
 
 const REPOSITORY_ROOT = resolvePath(import.meta.dirname, "..");
@@ -77,4 +77,20 @@ describe("client bundle の重さ", () => {
     },
     TIMEOUT_MS,
   );
+
+  // 上の 1 件は「見つからなかった」ことしか言わない。走査が木に届かなくなっても、解決が
+  // 黙って null を返すようになっても、同じ緑になる。射程そのものをここで押さえる。
+  it("検査の射程が、木と解決の双方に届いている", () => {
+    const modules = collect(SOURCE_ROOT, []);
+
+    expect(modules.filter((module) => isClientEntry(module.content)).length).toBeGreaterThan(0);
+
+    // 別名と相対の双方。どちらかが解けなくなると、上のゲートは推移的な違反を見逃す。
+    expect(resolveModule("src/x.ts", "@/model/product/product")).toBe(
+      "src/model/product/product.ts",
+    );
+    expect(resolveModule("src/features/products/list/view.tsx", "./page-size")).toBe(
+      "src/features/products/list/page-size.ts",
+    );
+  });
 });

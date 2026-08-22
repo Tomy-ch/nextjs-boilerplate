@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { controlIdOf } from "../../form-sections";
 import { ProductDescriptionEditor } from "./description-editor";
@@ -17,10 +18,20 @@ const noop = () => {};
 /** 呼び出し元と同じ組み立て方で採る。静的な文字列を直に置かない。 */
 const CONTROL_ID = controlIdOf("form", "description");
 
-// 待機中の枠はここに出ない。先読みを済ませた木では `next/dynamic` が同期で解決するため、
-// `loading` を通らない。枠の高さが出来上がりと一致することは基準画像が持つ。
 describe("ProductDescriptionEditor", () => {
-  // ----- 正常系 -----
+  // `next/dynamic` は `React.lazy` で、解決した値をこの module へ抱え込む。枠を通るのは
+  // このファイルで最初に描いたときだけなので、枠の検証はここに 1 つだけ置き、先頭に保つ。
+  it("届くまでは、出来上がりと同じ高さの枠を読み上げの外へ置く", () => {
+    const { container } = render(
+      <ProductDescriptionEditor id={CONTROL_ID} label="商品説明" onChange={noop} />,
+    );
+    const frame = container.firstElementChild;
+
+    expect(frame).toHaveAttribute("aria-hidden", "true");
+    expect(frame?.firstElementChild).toHaveClass("h-10");
+    expect(frame?.lastElementChild).toHaveClass("min-h-40");
+  });
+
   it("読み込みが終わると、書式付きの本文を書く面を出す", async () => {
     render(<ProductDescriptionEditor id={CONTROL_ID} label="商品説明" onChange={noop} />);
 
@@ -38,5 +49,15 @@ describe("ProductDescriptionEditor", () => {
     );
 
     expect(await screen.findByText("軽い")).toBeInTheDocument();
+  });
+
+  it("a11y 検査を通る", async () => {
+    const { container } = render(
+      <ProductDescriptionEditor id={CONTROL_ID} label="商品説明" onChange={noop} />,
+    );
+
+    await screen.findByRole("textbox", { name: "商品説明" });
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });
