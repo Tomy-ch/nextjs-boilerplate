@@ -119,12 +119,19 @@ export type SessionResolver = {
   restoreTransaction(sealed: string): Promise<AuthorizationTransaction | null>;
 
   /**
-   * IdP 側の session を終わらせる。
+   * IdP 側の session を終わらせるために、利用者のブラウザを送り出す先を組み立てる。
    *
    * @remarks
+   * **返すのは送り先であって、ここから要求は出しません。** IdP 側の session を保持しているのは
+   * 利用者のブラウザが持つ cookie であり、サーバから叩いた要求にそれは載りません。**要求自体は
+   * 成功を返しながら、IdP 側は何も終わりません。** 遷移そのものを呼び出し側に行わせると、
+   * 終わったかどうかが利用者の画面に出ます。
+   *
    * 自分の cookie を消すのは呼び出し側の仕事です。IdP 側で何が要るかは方式ごとに違うため
-   * （GET のリダイレクトで済むもの、POST を要求するもの、そもそも口を持たないもの）、
-   * その差だけをここへ閉じます。
+   * （標準の `end_session_endpoint`、独自の口、そもそも口を持たないもの）、その差だけをここへ
+   * 閉じます。
+   *
+   * @returns 利用者のブラウザを送り出す先。終わらせる口を持たない IdP なら null
    */
-  endSession(record: SessionRecord): Promise<void>;
+  endSession(record: SessionRecord): Promise<string | null>;
 };
