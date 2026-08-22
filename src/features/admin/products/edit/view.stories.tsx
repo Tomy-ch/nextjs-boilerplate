@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import Link from "next/link";
 import { userEvent, within } from "storybook/test";
-
 import { Button } from "@/components/design-system/action/button/button";
 import {
   Breadcrumb,
@@ -22,7 +21,7 @@ import {
 import { failedActionState, idleActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
-
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
 import type { ProductSelectOption } from "../ui/select-field/select-field";
 import { AdminProductEditView } from "./view";
@@ -67,7 +66,7 @@ const PRODUCT: Product = {
 const SAVED_IMAGES = [
   {
     imagePath: "products/0195f0c2-0000-7000-8000-000000000001.png",
-    url: "/src/components/design-system/display/media-image/invertocat.png",
+    url: SAMPLE_ITEM_URLS[0],
   },
 ] as const;
 

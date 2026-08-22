@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-
+import { SAMPLE_DOCUMENT_URL } from "~catalog/lib/sample-asset";
 import { Button } from "../../design-system/action/button/button";
 import { BUTTON_SIZE, BUTTON_VARIANT } from "../../design-system/action/button/button.definition";
 import { MediaImage } from "../../design-system/display/media-image/media-image";
@@ -41,8 +41,6 @@ import {
   type AttachmentSize,
   type AttachmentState,
 } from "./attachment.definition";
-
-const SAMPLE_SRC = "/src/components/design-system/display/media-image/invertocat.png";
 
 function FileAttachment({
   description = "1.2 MB",
@@ -127,7 +125,7 @@ function VerticalAttachment() {
             aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
             className="size-full"
             sizes="6rem"
-            src={SAMPLE_SRC}
+            src={SAMPLE_DOCUMENT_URL}
           />
         </AttachmentMedia>
         <AttachmentContent>
@@ -162,7 +160,7 @@ function ImageMediaAttachment() {
           aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
           className="size-full"
           sizes="2.5rem"
-          src={SAMPLE_SRC}
+          src={SAMPLE_DOCUMENT_URL}
         />
       </AttachmentMedia>
       <AttachmentContent>
