@@ -1,54 +1,13 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { UPSERT_ACTION_DIR } from "./comment-actions";
-import { listWorkflowFiles, parseWorkflow, WORKFLOW_DIR } from "./workflow";
-
-let root: string;
-
-/** `<root>/.github/workflows/<name>` を置く。 */
-function placeWorkflow(name: string, body = ""): void {
-  const dir = join(root, WORKFLOW_DIR);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, name), body);
-}
+import { parseWorkflow } from "./workflow";
 
 const commentDirs = new Set([UPSERT_ACTION_DIR]);
 
 /** 投稿ジョブ 1 本を持つワークフローを組み立てる。 */
 const postingWorkflow = (...extra: string[]): string =>
   ["jobs:", "  report:", "    steps:", `      - uses: ./${UPSERT_ACTION_DIR}`, ...extra].join("\n");
-
-beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "workflow-scan-"));
-});
-
-afterEach(() => {
-  rmSync(root, { force: true, recursive: true });
-});
-
-describe("listWorkflowFiles", () => {
-  // ----- 正常系 -----
-  it("yaml と yml の定義をリポジトリ相対パスで名前順に返す", () => {
-    placeWorkflow("b.yml");
-    placeWorkflow("a.yaml");
-
-    expect(listWorkflowFiles(root)).toEqual([`${WORKFLOW_DIR}/a.yaml`, `${WORKFLOW_DIR}/b.yml`]);
-  });
-
-  // ----- 異常系 -----
-  it("ワークフロー以外の拡張子を返さない", () => {
-    placeWorkflow("README.md");
-
-    expect(listWorkflowFiles(root)).toEqual([]);
-  });
-
-  it("ディレクトリが無ければ空を返す", () => {
-    expect(listWorkflowFiles(root)).toEqual([]);
-  });
-});
 
 describe("parseWorkflow", () => {
   // ----- 正常系 -----

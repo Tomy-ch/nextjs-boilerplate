@@ -1,21 +1,19 @@
 #!/usr/bin/env node
 
-// 必須ステータスチェックに登録した context が、すべての PR で実際に報告されるかを検査する。
-//
-// 登録した名前が報告されない PR は「必須チェック待ち」のまま永久にマージできない。壊れ方が
-// 「気づいたときには全 PR が止まっている」なので、宣言と実体のずれを push 前に落とす。
-import { type Dirent, readdirSync, readFileSync } from "node:fs";
+// 必須ステータスチェックに登録した context が、すべての PR で実際に報告されるかを検査する
+// CLI 入口。なぜ報告されないと困るのか、何を落とすのかは required-checks.ts が持つ。
+import { readFileSync } from "node:fs";
 import path from "node:path";
+
+import { listWorkflowFiles, WORKFLOW_DIR } from "../lib/workflow-files.js";
 import {
   findViolations,
   readRequiredContexts,
   readWorkflowContexts,
-  selectWorkflowFiles,
   type WorkflowContexts,
 } from "./required-checks.js";
 
 const SETTINGS_FILE = ".github/settings/branch-protection.json";
-const WORKFLOW_DIR = ".github/workflows";
 
 function main(): void {
   const root = process.cwd();
@@ -51,22 +49,6 @@ function main(): void {
   }
 
   console.log(`✅ 必須 context ${required.length} 件はすべての PR で報告されます`);
-}
-
-function listWorkflowFiles(root: string): string[] {
-  let entries: Dirent[];
-
-  // ディレクトリごと無い状態は、検査対象 0 件と同じ「検査が成立していない」側へ倒す。例外のまま
-  // 抜けると終了コードが規約から外れ、違反 (1) と区別が付かなくなる。
-  try {
-    entries = readdirSync(path.join(root, WORKFLOW_DIR), { withFileTypes: true });
-  } catch {
-    return [];
-  }
-
-  const names = entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
-
-  return selectWorkflowFiles(WORKFLOW_DIR, names);
 }
 
 function read<T>(file: string, parse: (source: string) => T): T {
