@@ -128,6 +128,15 @@ describe("readWorkflowContexts", () => {
     });
   });
 
+  it("types を絞っていない pull_request を null で返す", () => {
+    const parsed = readWorkflowContexts(
+      "lint.yaml",
+      "on:\n  pull_request:\n    paths:\n      - src/**\njobs:\n  lint:\n",
+    );
+
+    expect(parsed.pullRequest).toEqual({ filters: ["paths"], types: null });
+  });
+
   it("トリガを配列で書いた workflow を読む", () => {
     const parsed = readWorkflowContexts("lint.yaml", "on: [pull_request, push]\njobs:\n  lint:\n");
 

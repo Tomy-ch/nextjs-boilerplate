@@ -15,7 +15,7 @@
 import { isMap, isScalar, parseDocument } from "yaml";
 
 /** `pull_request` トリガの宣言のうち、報告の有無に効くもの。 */
-export type PullRequestTrigger = {
+type PullRequestTrigger = {
   /** 報告を絞るフィルタのキー名（`paths` / `paths-ignore` / `branches` / `branches-ignore`）。 */
   filters: string[];
   /** `types:` で絞っている活動種別。絞っていなければ null。 */
@@ -23,7 +23,7 @@ export type PullRequestTrigger = {
 };
 
 /** job 1 つが報告する context と、その名前が実行時に枝分かれするかどうか。 */
-export type JobContext = {
+type JobContext = {
   /** 報告される context 名。job の `name:` があればその値、無ければ job id。 */
   context: string;
   /** `strategy.matrix` を持つか。持つと context 名は行ごとに `<名前> (<値>)` へ枝分かれする。 */
