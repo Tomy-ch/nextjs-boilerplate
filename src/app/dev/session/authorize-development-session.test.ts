@@ -36,12 +36,15 @@ function submission(overrides: Record<string, string> = {}): Request {
   return new Request("http://localhost:3000/dev/session/authorize", { method: "POST", body });
 }
 
-/** 本体の大きさだけを名乗る送信。中身は読まれる前に落ちる想定。 */
-function oversized(declaredBytes: number): Request {
+/** 本体の大きさを名乗る送信。中身は妥当なので、上限で落ちなければそのまま処理へ進む。 */
+function declaring(declaredBytes: number): Request {
   return new Request("http://localhost:3000/dev/session/authorize", {
     method: "POST",
-    headers: { "content-length": String(declaredBytes), "content-type": "text/plain" },
-    body: "x",
+    headers: {
+      "content-length": String(declaredBytes),
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    body: "subject=dev-user&role=user&expiresInSeconds=3600&state=tx-state&returnUrl=%2Fmypage",
   });
 }
 
@@ -57,6 +60,12 @@ describe("authorizeDevelopmentSession", () => {
     expect(await authorizeDevelopmentSession(submission())).toEqual({
       kind: "redirect",
       destination: "/api/auth/callback?code=sealed-code&state=tx-state",
+    });
+  });
+
+  it("本体が上限ちょうどなら、読み切って処理を続ける", async () => {
+    expect(await authorizeDevelopmentSession(declaring(64 * 1024))).toMatchObject({
+      kind: "redirect",
     });
   });
 
@@ -80,7 +89,7 @@ describe("authorizeDevelopmentSession", () => {
   });
 
   it("本体が大きすぎる送信は、読み切る前に断る", async () => {
-    expect(await authorizeDevelopmentSession(oversized(64 * 1024 + 1))).toEqual({
+    expect(await authorizeDevelopmentSession(declaring(64 * 1024 + 1))).toEqual({
       kind: "too-large",
     });
     expect(issueDevelopmentAuthorizationCode).not.toHaveBeenCalled();

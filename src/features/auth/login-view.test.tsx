@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 import { toSafeReturnUrl } from "@/model/return-url";
 
 import { LoginView } from "./login-view";
@@ -49,10 +50,10 @@ describe("LoginView", () => {
     expect(screen.getByText(/アカウントを作らず/)).toBeVisible();
   });
 
-  it("特定の認証基盤の名前を出さない", () => {
+  it("ADR 0011 が例示する認証基盤の名前を出さない", () => {
     const { container } = render(<LoginView returnUrl={toSafeReturnUrl("/")} />);
 
-    for (const name of ["Cognito", "Keycloak", "Google", "OIDC"]) {
+    for (const name of ["Cognito", "Keycloak"]) {
       expect(container.textContent).not.toContain(name);
     }
   });
@@ -74,5 +75,11 @@ describe("LoginView", () => {
     const { container } = render(<LoginView returnUrl={toSafeReturnUrl("/")} />);
 
     expect(container.querySelector("form")).toHaveAttribute("method", "get");
+  });
+
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(<LoginView returnUrl={toSafeReturnUrl("/")} />);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

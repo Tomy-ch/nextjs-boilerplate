@@ -46,6 +46,24 @@ describe("DevSessionForm", () => {
     expect(container.querySelector("form")).not.toHaveAttribute("method", "post");
   });
 
+  it("取りに行けなかった理由も、その文言で出す", () => {
+    render(
+      <DevSessionForm
+        action={issue}
+        authorization={{ state: "tx-state", notice: AUTHORIZE_ERROR.UNAVAILABLE }}
+        connectsLiveApi={false}
+        defaultIssuer="https://idp.example.test"
+        returnUrl="/"
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "IdP からトークンを取れませんでした。接続先を確かめてから、もう一度お試しください。",
+      ),
+    ).toBeVisible();
+  });
+
   it("URL から届いた理由を、送信の下に出す", () => {
     render(
       <DevSessionForm

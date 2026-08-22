@@ -57,7 +57,6 @@ describe("fieldControlAttributes", () => {
     expect(attributes["aria-describedby"]).toBe(`${DESCRIPTION_ID} ${ERROR_ID}`);
   });
 
-  // ----- 異常系 -----
   it("誤りがあれば不正であることと文言の在処を伝える", () => {
     const attributes = fieldControlAttributes({
       controlId: CONTROL_ID,

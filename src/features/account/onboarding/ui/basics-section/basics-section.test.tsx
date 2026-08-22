@@ -60,11 +60,12 @@ describe("RegistrationBasicsSection", () => {
     expect(screen.getByText(/認証に使う ID ではない/)).toBeVisible();
   });
 
-  it("他の項目には補足を付けない", () => {
+  it("名前と電話番号には補足を付けない", () => {
     render(<Probe />);
 
-    expect(screen.queryByText(/連絡のための宛先です。/)).toBeInTheDocument();
-    expect(screen.getAllByText(/宛先です。/)).toHaveLength(1);
+    for (const label of ["名字", "名前", "電話番号"]) {
+      expect(screen.getByLabelText(label)).not.toHaveAttribute("aria-describedby");
+    }
   });
 
   it("a11y 自動検査に違反しない", async () => {

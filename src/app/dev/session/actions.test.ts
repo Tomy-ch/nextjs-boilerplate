@@ -128,6 +128,7 @@ describe("issueDevSessionAction", () => {
     );
   });
 
+  // ----- 異常系 -----
   it("接続先が URL でなければ、取りに行かない", async () => {
     const state = await issueDevSessionAction(
       idleActionState(),
@@ -141,7 +142,6 @@ describe("issueDevSessionAction", () => {
     expect(issueDevelopmentAccessToken).not.toHaveBeenCalled();
   });
 
-  // ----- 異常系 -----
   it("トークンを取れなければ、session を発行しない", async () => {
     issueDevelopmentAccessToken.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
 

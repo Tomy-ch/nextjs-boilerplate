@@ -95,7 +95,9 @@ describe("authSessionSecretValidator", () => {
 
   // ----- 異常系 -----
   it("32 文字に満たない session secret を拒否する", () => {
-    expect(authSessionSecretValidator(false).safeParse("too-short").success).toBe(false);
+    expect(
+      authSessionSecretValidator(false).safeParse("0123456789012345678901234567890").success,
+    ).toBe(false);
   });
 
   it("同梱の値のままなら拒否する", () => {
