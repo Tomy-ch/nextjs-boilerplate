@@ -6,6 +6,8 @@
 // 切り出す単位はソースの範囲ではなくスカラーの値。範囲で切ると、YAML コメントが走査対象に
 // 残り、alias で他のジョブへ退避させた値は逆に対象から外れる。alias を辿って値へ降りれば、
 // どちらの経路も参照先の実体で判定できる。
+import path from "node:path";
+
 import {
   type Document,
   isAlias,
@@ -17,7 +19,12 @@ import {
   Scalar,
 } from "yaml";
 
-import { parseWorkflowDocument, readJobId, readWorkflowMaps } from "../lib/workflow-files.js";
+import {
+  parseWorkflowDocument,
+  readJobId,
+  readWorkflowMaps,
+  WORKFLOW_DIR,
+} from "../lib/workflow-files.js";
 import { localActionDir } from "./comment-actions.js";
 import { collectUsesFromValue, toJS } from "./uses.js";
 
@@ -38,7 +45,35 @@ export type Workflow = {
   texts: ScalarText[];
 };
 
-export function parseWorkflow(file: string, source: string, commentDirs: Set<string>): Workflow {
+/**
+ * reusable workflow の呼び出しを、リポジトリルート相対のワークフロー定義パスへ正規化する。
+ *
+ * @remarks
+ * ローカル参照（`./.github/workflows/x.yaml`）だけを解決します。リモート参照
+ * （`owner/repo/.github/workflows/x.yaml@ref`）はこのリポジトリの中に定義が無く、渡した
+ * secret がその先で何に使われるかを静的に読めないため `null` を返し、呼び出し側が落とします。
+ */
+export function localWorkflowFile(uses: string): string | null {
+  const value = uses.trim();
+  if (!value.startsWith("./")) return null;
+  const normalized = path.posix.normalize(value.slice(2));
+  return normalized.startsWith(`${WORKFLOW_DIR}/`) ? normalized : null;
+}
+
+/**
+ * ワークフロー定義から、コメント投稿ジョブと走査対象の文字列を切り出す。
+ *
+ * @param postingWorkflows - コメントを投稿するワークフロー定義（リポジトリルート相対）。
+ * reusable workflow の呼び出しは、**呼び出し先が投稿するときにだけ**投稿ジョブと見なします。
+ * 呼び出し先は自前のランナーで動くため、そこへ渡した secret が呼び出し元のランナーに載ることは
+ * ありません。届く先が投稿する場合だけを検査すれば足ります。
+ */
+export function parseWorkflow(
+  file: string,
+  source: string,
+  commentDirs: Set<string>,
+  postingWorkflows: ReadonlySet<string> = new Set(),
+): Workflow {
   const lineCounter = new LineCounter();
   const doc = parseWorkflowDocument(file, source, lineCounter);
   const { root, jobs: jobsNode } = readWorkflowMaps(file, doc);
@@ -63,12 +98,21 @@ export function parseWorkflow(file: string, source: string, commentDirs: Set<str
   for (const pair of jobsNode.items) {
     const id = readJobId(file, pair.key);
     const job = (jobsValue as Record<string, unknown>)[id];
-    // reusable workflow の呼び出し先へ渡る secret は追えない。投稿ジョブでないものとして
-    // 通すと、検査が届かない経路が緑のまま増える。
-    if (typeof (job as { uses?: unknown } | null)?.uses === "string") {
-      throw new Error(
-        `${file}: ジョブ \`${id}\` は reusable workflow を呼び出しています。呼び出し先へ渡る secret を追えないため、この検査は未対応です`,
-      );
+    const callee = (job as { uses?: unknown } | null)?.uses;
+    if (typeof callee === "string") {
+      const target = localWorkflowFile(callee);
+      // リモートの reusable workflow は定義がこのリポジトリに無く、渡した secret がその先で
+      // 何に使われるかを読めない。投稿ジョブでないものとして通すと、検査が届かない経路が
+      // 緑のまま増える。
+      if (target === null) {
+        throw new Error(
+          `${file}: ジョブ \`${id}\` はリモートの reusable workflow を呼び出しています。呼び出し先へ渡る secret を追えないため、この検査は未対応です`,
+        );
+      }
+      if (!postingWorkflows.has(target)) continue;
+      postingJobIds.push(id);
+      collectScalars(doc, lineCounter, pair.value, id, texts, new Set());
+      continue;
     }
     if (!postsComment(job, commentDirs)) continue;
     postingJobIds.push(id);

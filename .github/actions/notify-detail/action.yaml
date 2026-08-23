@@ -1,0 +1,72 @@
+name: Notification detail
+description: Turn a scanner's log into a compact notification body of identifiers
+
+# Shared by the report-only scanners that push a finding through notify.yaml's detection
+# mode. A detection notification has to name WHAT was found, but a scanner log written for
+# a PR comment is far longer than a chat message should be.
+#
+# What is carried out of the log is the advisory identifiers alone. That is not only a
+# length decision: notify.yaml's contract is that detection detail names identifiers and
+# never a matched value, and a scan log is the one place a secret could appear. Grepping
+# for a fixed identifier shape cannot carry one out by accident, whereas any "first N
+# lines" rule eventually would.
+#
+# Falling back to the leading lines matters because a scanner that stops printing
+# identifiers is a formatting change, not a reason to notify with an empty body.
+
+inputs:
+  log-file:
+    description: Path to the scanner log to read.
+    required: true
+  max-lines:
+    description: >-
+      Most identifiers to carry. Beyond this the remainder is counted rather than listed, so
+      a long backlog cannot push the notification past what a chat backend will render.
+    required: false
+    default: '20'
+
+outputs:
+  markdown:
+    description: Notification body — Markdown, one identifier per line
+    value: ${{ steps.build.outputs.markdown }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build notification detail
+      id: build
+      shell: bash
+      env:
+        LOG_FILE: ${{ inputs.log-file }}
+        MAX_LINES: ${{ inputs.max-lines }}
+      run: |
+        set -euo pipefail
+
+        if [ ! -f "${LOG_FILE}" ]; then
+          echo "::warning::${LOG_FILE} not found; the notification will carry no detail"
+          {
+            echo 'markdown<<NOTIFY_DETAIL_EOF'
+            echo "- (no log at ${LOG_FILE})"
+            echo 'NOTIFY_DETAIL_EOF'
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        detail=$(grep -oE '(CVE-[0-9]{4}-[0-9]+|GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4})' \
+          "${LOG_FILE}" | sort -u | sed 's/^/- /' || true)
+        if [ -z "${detail}" ]; then
+          detail=$(head -n "${MAX_LINES}" "${LOG_FILE}")
+        fi
+
+        total=$(printf '%s\n' "${detail}" | wc -l | tr -d ' ')
+        if [ "${total}" -gt "${MAX_LINES}" ]; then
+          detail=$(printf '%s\n- … and %d more (see the run)' \
+            "$(printf '%s\n' "${detail}" | head -n "${MAX_LINES}")" \
+            "$((total - MAX_LINES))")
+        fi
+
+        {
+          echo 'markdown<<NOTIFY_DETAIL_EOF'
+          echo "${detail}"
+          echo 'NOTIFY_DETAIL_EOF'
+        } >> "$GITHUB_OUTPUT"
