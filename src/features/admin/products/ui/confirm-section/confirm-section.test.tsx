@@ -38,9 +38,8 @@ const renderSection = () =>
   );
 
 describe("ProductConfirmSection", () => {
-  // この段は届くまでの枠を持たない。`hidden` で隠れたまま立ち上がるため、枠が見えないから
-  // （`confirm-section.tsx`）。`React.lazy` が解決した値を抱え込むので、届く前を掴めるのは
-  // このファイルで最初に描いたときだけ。この検証はここに 1 つだけ置き、先頭に保つ。
+  // この段は届くまでの枠を持たない（理由は `confirm-section.tsx`）。検証はここに 1 つだけ置き、
+  // 先頭に保つ（`React.lazy` は解決した値をこの module へ抱え込むため、2 つ目は届く前を掴めない）。
   it("届くまでは何も置かない", () => {
     const { container } = renderSection();
 

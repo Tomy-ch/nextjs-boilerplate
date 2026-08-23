@@ -25,14 +25,14 @@ function readCommand(command: string, args: string[]): string {
   }
 }
 
-/* istanbul ignore next -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */
+/* istanbul ignore next -- CLI entry（理由は `readCommand` と同じ）。 */
 function selfDestruct(): void {
   for (const target of selfDestructTargets(SELF_DIR, SNAPSHOT_PATH)) {
     fs.rmSync(target, { force: true, recursive: true });
   }
 }
 
-/* istanbul ignore next -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */
+/* istanbul ignore next -- CLI entry（理由は `readCommand` と同じ）。 */
 function main(): void {
   console.log("🔍 サンプル破棄の検証を開始します（過不足・残留参照・道具の自消滅）。");
 

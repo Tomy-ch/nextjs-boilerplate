@@ -34,8 +34,6 @@ const DECLARATION_END = /;\s*$/m;
 const USES_ZOD = /\bzod\b/;
 
 /**
- * 生成物の中から、検証を伴わない定数だけを抜き出す。
- *
  * @param source - 生成器の**整形前の生の出力**。`make gen-api` は orval のあとに `pnpm fix` を
  *   掛けるが、この抜き出しはその前に走る（`extract-limits.ts`）。
  * @returns 宣言された順のまま。zod を引く宣言は落とす。
