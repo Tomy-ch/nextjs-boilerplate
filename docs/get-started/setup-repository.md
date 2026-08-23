@@ -42,12 +42,7 @@ make setup-repo
 2. **GitHub Pages のソースを GitHub Actions にする** — ドキュメントサイトの配信先（[0141](../adr/0141-portal-operations.md)）
 3. **Dependency graph を有効にする** — Settings → Security → Dependency graph。Dependabot が依存の木を
    読むのに要る（[0110](../adr/0110-security-operations.md)）。有効化そのものに課金は無い
-   <!-- boilerplate-only:replace-begin -->
-   。**このリポジトリでは `dependency-review` job もこれを読む**ため、無効のままだと
-   「このリポジトリでは使えない」で落ちる（設定を入れるまでコード側では直せない）
-   <!-- boilerplate-only:replace-with -->
-   <!-- =    -->
-   <!-- boilerplate-only:replace-end -->
+   （**このリポジトリでは `dependency-review` job もこれを読む**ため、無効のままだと「このリポジトリでは使えない」で落ちる。設定を入れるまでコード側では直せない） <!-- boilerplate-only:line -->
 4. **必須チェックを確認する** — `make setup-repo` が適用したルールセットの `required_status_checks` が、
    1 度 CI を回した後に実際の context 名と一致しているか見る（[`.github/workflows/README.md`](../../.github/workflows/README.md)）
 
