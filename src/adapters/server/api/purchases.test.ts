@@ -18,8 +18,10 @@ import {
   createPurchase,
   getMyPurchase,
   getMyPurchases,
+  getShippablePurchases,
   parsePurchaseHistoryQuery,
   payMyPurchase,
+  shipPurchase,
 } from "./purchases";
 
 const wireItem = {
@@ -387,5 +389,116 @@ describe("payMyPurchase", () => {
     serveWrite("patch", `${PURCHASE_URL}/pay`, { ...wirePaid, totalAmount: "21287" });
 
     expect(await kindOf(() => payMyPurchase(wirePaid.code))).toBe(ErrorKind.INTERNAL);
+  });
+});
+
+const SHIPPABLE_URL = `${PURCHASES_URL}/shippable`;
+
+const wireShippable = {
+  groups: [
+    {
+      userId: "0195f0c2-0000-7000-9000-0000000000a1",
+      purchases: [
+        {
+          code: "0195f0c2-0000-7000-9000-000000000001",
+          totalAmount: 21_287,
+          orderedAt: "2026-08-15T01:30:00.000Z",
+        },
+        {
+          code: "0195f0c2-0000-7000-9000-000000000002",
+          totalAmount: 4_398,
+          orderedAt: "2026-08-16T12:05:00.000Z",
+        },
+      ],
+    },
+  ],
+};
+
+describe("getShippablePurchases", () => {
+  // ----- 正常系 -----
+  it("契約の組を表示用の便へ写す", async () => {
+    serveJson(SHIPPABLE_URL, wireShippable);
+
+    const groups = await getShippablePurchases();
+
+    expect(groups).toEqual([
+      {
+        userId: "0195f0c2-0000-7000-9000-0000000000a1",
+        purchases: [
+          {
+            code: "0195f0c2-0000-7000-9000-000000000001",
+            totalAmount: 21_287,
+            orderedAt: new Date("2026-08-15T01:30:00.000Z"),
+          },
+          {
+            code: "0195f0c2-0000-7000-9000-000000000002",
+            totalAmount: 4_398,
+            orderedAt: new Date("2026-08-16T12:05:00.000Z"),
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("契約が返した並びをそのまま保つ", async () => {
+    serveJson(SHIPPABLE_URL, wireShippable);
+
+    const groups = await getShippablePurchases();
+
+    expect(groups[0]?.purchases.map(({ code }) => code)).toEqual([
+      "0195f0c2-0000-7000-9000-000000000001",
+      "0195f0c2-0000-7000-9000-000000000002",
+    ]);
+  });
+
+  it("発送待ちが無いときは空の並びを返す", async () => {
+    serveJson(SHIPPABLE_URL, { groups: [] });
+
+    await expect(getShippablePurchases()).resolves.toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("契約に無い形の応答を内層へ渡さない", async () => {
+    serveJson(SHIPPABLE_URL, { groups: [{ userId: "not-a-uuid", purchases: [] }] });
+
+    expect(await kindOf(() => getShippablePurchases())).toBe(ErrorKind.INTERNAL);
+  });
+
+  it("役割が足りない要求を、権限なしとして返す", async () => {
+    serveStatus("get", SHIPPABLE_URL, 403);
+
+    expect(await kindOf(() => getShippablePurchases())).toBe(ErrorKind.PERMISSION_DENIED);
+  });
+});
+
+describe("shipPurchase", () => {
+  // ----- 正常系 -----
+  it("購入コードを載せた発送の要求を送る", async () => {
+    const requests = serveWrite("patch", `${PURCHASE_URL}/ship`, {
+      ...wireTransitioned,
+      status: { id: "0195f0c2-0000-7000-8000-0000000000d3", code: 8, name: "発送済み" },
+      canceledAt: undefined,
+      shippedAt: "2026-08-18T01:30:00.000Z",
+    });
+
+    await shipPurchase(wireTransitioned.code);
+
+    expect(requests[0]?.url).toBe(`${PURCHASES_URL}/${wireTransitioned.code}/ship`);
+    expect(requests[0]?.method).toBe("PATCH");
+  });
+
+  // ----- 異常系 -----
+  it("いまの状態では通らない要求を、競合として返す", async () => {
+    serveStatus("patch", `${PURCHASE_URL}/ship`, 409);
+
+    expect(await kindOf(() => shipPurchase(wireTransitioned.code))).toBe(ErrorKind.CONFLICT);
+  });
+
+  it("役割が足りない要求を、権限なしとして返す", async () => {
+    serveStatus("patch", `${PURCHASE_URL}/ship`, 403);
+
+    expect(await kindOf(() => shipPurchase(wireTransitioned.code))).toBe(
+      ErrorKind.PERMISSION_DENIED,
+    );
   });
 });
