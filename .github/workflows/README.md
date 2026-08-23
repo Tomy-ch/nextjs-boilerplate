@@ -51,8 +51,12 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 ## ワークフロー一覧（Security）
 
-多層防御（[0110](../../docs/adr/0110-security-operations.md)）。**全 PR + 週次スケジュール**で走る。週次があるのは、
+多層防御（[0110](../../docs/adr/0110-security-operations.md)）。**週次スケジュール + 差分が届く PR** で走る。週次があるのは、
 コードが 1 行も動いていない木に対しても CVE が公開されうるためで、変更を入口にした検査だけでは届かない。
+
+**そして週次があるからこそ、PR 側は絞れる。** 各 job は `diff-scope` で「自分に届かない差分」を判定して降りる
+（下記「`paths:` フィルタを使わない」）。降りた分の走査が消えるのではなく、**週次へ回る**というのが絞りの正確な意味で、
+週次を止めればこの絞りは成立しなくなる。required status check には 1 つも登録していないため、降りても PR は止まらない。
 
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
@@ -65,6 +69,8 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Bearer Scan | `bearer.yaml` | `bearer` | 値がプロセスの外へ出る地点を、その値の分類と併せて見る。**落とさない**（下記） |
 | DevSkim Scan | `devskim.yaml` | `devskim` | 言語フロントエンドを持たない regex 検査。opengrep も CodeQL も開かないファイルを読む。**落とさない**（下記） |
 | OpenSSF Scorecard | `scorecard.yaml` | `scorecard` | リポジトリ自身の設定を測る。PR では走らない |
+| njsscan | `njsscan.yaml` | `njsscan` | Node / JS の作法に閉じたルールで同じソースを読む。opengrep とは**ルールセットが違うだけ**で、どちらも 0 件 baseline のゲート。エンジンは semgrep 本体（LGPL-2.1 の OSS CLI）で、そこだけ opengrep の判断が及ばない |
+| SonarQube Cloud Scan | `sonarcloud.yaml` | `preflight` / `sonarcloud` / `report` / `unconfigured-notice` | **外部アカウントを要する唯一の検査。** `SONAR_TOKEN` が無ければ走らず、緑のまま「未設定」を PR へ述べる。剥がしの対象 <!-- boilerplate-only:line --> |
 | DAST | `dast.yaml` | `dast` | **ここだけが応答を読む。** アプリを立てて OWASP ZAP で HTTP を撃ち、配信面を見る。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は赤にする** |
 
 ### 配信面の既知の欠落は「一覧」として持つ
@@ -84,12 +90,12 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | 配線 | 該当 job | 何が赤にするか |
 | --- | --- | --- |
 <!-- boilerplate-only:replace-begin -->
-| ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dependency-review` / `dast` | job の exit code |
+| ゲート | `secret-scan` / `sast` / `njsscan` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dependency-review` / `dast` | job の exit code |
 <!-- boilerplate-only:replace-with -->
-<!-- = | ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dast` | job の exit code | -->
+<!-- = | ゲート | `secret-scan` / `sast` / `njsscan` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dast` | job の exit code | -->
 <!-- boilerplate-only:replace-end -->
 | 報告専用 | `dependency-scan` / `osv-scan` | 何も赤にしない（スキャナが走らなかったときだけ落ちる） |
-| code scanning へ送る | `codeql` / `bearer` / `devskim` | **差分が新しく持ち込んだ alert** に対する GitHub 側のチェック |
+| code scanning へ送る | `codeql` / `bearer` / `devskim` / `sonarcloud` | **差分が新しく持ち込んだ alert** に対する GitHub 側のチェック |
 
 **「落とさない」のは所見に対してだけで、機構が壊れたら落ちる。** `bearer` / `devskim` / `scorecard` は報告が出力のすべてなので、走らなかった走査・書かれなかった SARIF・届かなかったアップロードは、いずれも綺麗な結果と同じ緑になってしまう。**検査しない gate は「違反なし」と見分けが付かない。**
 
@@ -176,7 +182,9 @@ PR ごとには走らず、ラベルや保護ブランチへの push で起動�
 
 `diff-scope` で降りる job は登録してよい。job 名も context の報告も変わらず、変わるのは中のステップが走るかどうかだけであるため（下記「`paths:` フィルタを使わない」）。
 
-context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required status check の設定を黙って無効化する。同じ理由で、**別々のワークフローに同じ job 名を置かない** — 報告される check run が 1 つの名前に 2 つ並び、必須がどちらを指すのか決まらなくなる。`deploy-docs` の job が `docs-build` / `docs-deploy` と配信先で名乗るのはこのため。
+context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required status check の設定を黙って無効化する。同じ理由で、**PR で報告されうる job には、別々のワークフローで同じ名前を置かない** — 報告される check run が 1 つの名前に 2 つ並び、必須がどちらを指すのか決まらなくなる。`deploy-docs` の job が `docs-build` / `docs-deploy` と配信先で名乗るのはこのため。
+
+**PR に context を報告しない job はこの制約の外**にある。`notify-failure` / `notify-detection` はスケジュール実行でしか起動せず、10 本のワークフローで同じ名前を名乗る —— これは重複ではなく、**同じ役割に同じ名前が付いている**状態である。名前を workflow ごとに割ると、通知という 1 つの関心事が 10 個の別物に見える。`baseline-prune` / `baseline-retake` の `report` も同じ理由で並んでいる。
 
 <!-- boilerplate-only:replace-begin -->
 **fork の初期化を生き延びないジョブ（`purge-verify` / `strip-verify`）も登録しない。** `strip-verify` は剥がしで自分ごと消え、消えた後は context を報告しない。`purge-verify` は残るが、破棄を済ませた fork では「破棄済みなのでこのワークフローを消せ」と赤で止まる設計であり、指示どおり消せば同じく報告されなくなる。`branch-protection.json` は JSON でコメントを持てず削除のマーカーを置けないので、登録すると初期化を済ませた fork のすべての PR が必須待ちで止まる。
@@ -229,6 +237,8 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 | secret-scan | hook + CI | 同じ `make secret-scan` を呼ぶが、**走査範囲の決まり方が違う**。hook の既定は「どのリモートにも無いコミット」で、PR のブランチは既に push 済みなので CI では 0 件になる。CI は `SECRET_SCAN_LOG_OPTS` で base からの範囲を渡す。履歴全体は週次だけ（`make secret-scan-history`） |
 | 依存の脆弱性 | CI のみ | 変更の作者がその場で解消できず、変更と独立に状態が変わる。hook に載せると `--no-verify` の常用を教える（[0110](../../docs/adr/0110-security-operations.md) 3.1 / 撤回条件 W1・W2） |
 | `sast` | CI のみ | 走査に 1 分前後かかり hook の速度目標に収まらない。手元で確かめるなら `make sast` がそのまま同じ検査を回す |
+| `njsscan` | CI のみ | 同上。手元で確かめるなら `make njsscan` |
+| `sonarcloud` | CI のみ | 解析を実行するのは SonarCloud 側で、手元には結果を読む口しか無い。そもそも `SONAR_TOKEN` を開発者の環境へ配らない |
 | `dast` | CI のみ | build と起動を伴うので hook には収まらない。手元で確かめるなら `pnpm start` したものへ `DAST_TARGET=http://host.docker.internal:3000 make dast` を当てる |
 
 ## 共通の骨格
@@ -263,6 +273,24 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 | --- | --- |
 | `bundle-budget` | ドキュメントと AI エージェント設定 + 絵にしか効かないもの（CSS / token / story / テスト） |
 | `vrt` / `a11y` | ドキュメントと AI エージェント設定だけ |
+| `sast` / `njsscan` / `devskim` | ドキュメントと AI エージェント設定（+ SAST は `public/`） |
+| `bearer` | 同上 + `src` の外にあるもの（カタログ / 基準画像 / 生成されるドキュメントサイト） |
+| `dast` | 同上 + 配信される応答に現れないもの（story / テスト / CSS / token） |
+
+### 依存スキャナだけは「影響しうるもの」の側を書く
+
+`dependency-scan` / `dependency-audit` / `osv-scan` は `ignore:` ではなく **`only:`** を渡す。依存の脆弱性を決めているのは lockfile であって、ソースをいくら動かしてもスキャナの答えは変わらない。「影響しえないもの」を列挙する側で書こうとすると、それは「lockfile 以外のすべて」になり、書ける形にならない。
+
+**許可リストが許されるのはここだけで、条件が 2 つある。**
+
+1. **job の対象がツリーそのものでないこと。** 依存スキャナが読むのは lockfile で、ソースはその入力ではない
+2. **週次のスケジュールがツリー全体を走査していること。** 許可リストの書き漏らしは「1 週間は走らない」で済み、恒久の死角にはならない
+
+条件 2 が無いと、書き漏らしがそのまま **「何も検査しない gate」** になる。`diff-scope` 側にも同じ注記を置いてある。
+
+`dependency-gate` / `osv-gate`（昇格ゲート）は**降りない**。昇格は誰かがツリーの現状を引き受けて判断する場面であり、その PR の差分が lockfile に触れていないことは、ツリーが持っている脆弱性を引き受けない理由にならない。一方 `dependency-audit` は降りる —— base から引き継いだ判定は変更の作者がその場で解消できず、それを赤にするのは [0110](../../docs/adr/0110-security-operations.md) 3.1 が禁じている形そのものである。
+
+`codeql` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。**GitHub 側の仕組みに judgement を預けている検査なので、こちらの都合で走行回数を減らさない。**
 
 **一覧の実体は各 workflow の `ignore:` ブロックが正**（[`bundle-budget.yaml`](bundle-budget.yaml) / [`vrt.yaml`](vrt.yaml) / [`a11y.yaml`](a11y.yaml)）。この表はどの範囲を外しているかを示すだけで、パスを書き写さない — 書き写せば実体と黙ってずれる側が 1 つ増える。
 
@@ -277,15 +305,40 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 coverage 以外の各 job は検査結果を即 fail させず、いったん capture して [`../actions/upsert-pr-comment`](../actions/upsert-pr-comment/action.yaml) で PR コメントを upsert し、最後に fail-closed で落とす。
 
 - コメントは HTML マーカー（`<!-- lint-result -->` 等）で同定し、**同一 PR では増やさず更新する**。マーカーは job ごとに一意
-- 成功時もコメントを更新する。FAIL → PASS で直したときに古い FAIL コメントが残るのを避けるため
-- **`diff-scope` で降りたときも更新する。**降りた job は緑を報告するので、投稿を `relevant` で落とすと、前の push が出した FAIL コメントが緑チェックの隣に残り続ける。赤くした変更を base と同一内容へ戻す直し方（履歴を書き換えないこのリポジトリでは、これが正）で必ず踏む経路である。降りたことを述べる本文を書いて upsert すること
+- **緑のときはコメントを作らない。** 呼び出し側が `status:` に判定を渡し、`success` のときだけ新規作成を抑止する。すべての job が毎回コメントを残すと、PR の会話は 20 件を超える「PASS」で埋まり、その中に混ざった 1 件の FAIL が読み手に届かない。**通知の価値は件数ではなく信号対雑音比**で決まる
+- **ただし抑止するのは「作ること」だけで、「更新すること」は抑止しない。** 既にコメントがあれば `success` でも上書きする。FAIL → PASS で直したときに古い FAIL が残るのを避けるためで、これは「緑のときは何もしない」では達成できない
+- **本文ファイルが無いことは、投稿ステップの失敗ではなく job の打ち切りとして扱う。** 打ち切られた job は本文を書くステップまで到達しない。ここで失敗させると PR には何も残らず、**コメントの不在は「検査が緑だった」と見分けが付かない**。よって専用の見出し（`## ⚠️ CUT OFF`）で投稿する。原因は名乗らない —— timeout と手前の失敗を区別できるのは実行ログだけである
+- **打ち切りのコメントだけは、後から来た成功が上書きではなく削除する。** 打ち切りは判定を記録していないので、後の成功はそれを「上書きする」のではなく「答える」ことになる
+- **`diff-scope` で降りたときは `status: success` を渡して更新する。**降りた job は緑を報告するので、投稿ごと落とすと前の push が出した FAIL コメントが緑チェックの隣に残り続ける。赤くした変更を base と同一内容へ戻す直し方（履歴を書き換えないこのリポジトリでは、これが正）で必ず踏む経路である。降りたことを述べる本文を書いて upsert すれば、コメントが無い PR には何も付かず、赤が残っている PR ではそれが置き換わる
+- **報告専用のスキャナは、判定を「走ったか」ではなく「見つかったか」で渡す。** `dependency-scan` / `osv-scan` の job は検出で落ちない設計なので、`status` に job の成否をそのまま渡すと、脆弱性を見つけた実行が `success` としてコメントを抑止する。3 値（`success` / `findings` / `failure`）に割り、スキャナの exit code で区別する（`TRIVY_FS_DETECT_EXIT` / `OSV_DETECT_EXIT`）
 - 投稿ステップは `continue-on-error: true`。fork からの PR はトークンが read-only で投稿できないが、それで検査の判定を落とさない
 - **検査コマンドに `secrets.*` を `env:` で渡さない**。Actions のシークレットマスキングはランナーがログ表示用に捕捉する経路にしか効かず、`tee` でファイルへ落とした内容は素通りする。そのファイルがこのリポジトリ（public）の PR コメントへそのまま載る。`GITHUB_TOKEN` だけが例外（投稿そのものに要る短命トークン）。この規約は `make actions-comment-secret-lint` が機械検査するが、追えるのは `${{ }}` 式の直接参照までで、`needs.<job>.outputs` 経由の間接渡しは検査を通る — **規約が正であり、検査は退行ガード**
 - **既存コメントの同定は「bot 投稿者」と「マーカーで始まること」の両方を要求する**。public リポジトリでは第三者がマーカー入りのコメントを先に投稿でき、かつ全ワークフローが同じ bot で投稿するため、どちらか片方では同定にならない（別ワークフローのマーカーを検査ログへ出力させれば、そのワークフローを誤ったコメントへ誘導できる）。この前提として `github-token` には **bot として投稿するトークンを渡す** — 個人の PAT では投稿できても二度と更新できない
-- **本文の折り畳みに使うフェンスは本文から決める**。検査ログには linter やコンパイラがソース行をそのまま出力するので、その中身は PR 提出者が制御できる。固定の 3 連バッククォートで囲むと本文自身がフェンスを閉じ、以降が生 Markdown としてレンダリングされる（mention による第三者への通知、偽の見出しやリンクが CI bot の名義で載る）。呼び出し側は自前でフェンスを組み立てず `details-summary` を使うこと（撤回条件 W12）
+- **本文の折り畳みに使うフェンスは本文から決める**。検査ログには linter やコンパイラがソース行をそのまま出力するので、その中身は PR 提出者が制御できる。固定の 3 連バッククォートで囲むと本文自身がフェンスを閉じ、以降が生 Markdown としてレンダリングされる（mention による第三者への通知、偽の見出しやリンクが CI bot の名義で載る）。呼び出し側は自前でフェンスを組み立てず `details-summary` を使うこと（撤回条件 W18）
 - **`title` と `details-summary` には静的リテラルだけを渡す**。無害化が効くのは本文（`body-file`）だけで、`title` は生 Markdown、`details-summary` は生 HTML としてフェンスの**外**に置かれる。ログの中身を要約して `title` に載せるような変更を入れると、フェンスで塞いだ注入が外側から復活する
 
 カバレッジだけは、行単位の coverage と基準ブランチとの差分を構造化して報告する必要があるため、`test.yaml` の octocov が専用コメントを投稿する。ほかの検査ログ（セキュリティスキャン結果 / 生成物 drift を含む）はこの composite action に乗せる。
+
+## 通知
+
+**通知するのはスケジュール実行だけ。** PR ではどちらの出来事も既に作者へ届いている —— チェックが赤くなるか、PR コメントが所見を述べるかのどちらかである。そこで通知を足すのは、作者が今見ているものをチャットへ複製することにしかならない。週次の実行には作者が居ない。**誰も触っていないツリーに対して起きた出来事**こそ、リポジトリ側から押し出す価値がある。
+
+宛先は reusable workflow [`notify.yaml`](notify.yaml) が持ち、2 つのモードで呼ぶ。
+
+| モード | 呼ぶ側 | 何を伝えるか |
+| --- | --- | --- |
+| failure | 週次で走る全セキュリティ検査 | job が落ちた（または打ち切られた）こと。**走査の出力は載せない** —— 実行 URL だけを渡すので、秘密や脆弱性の詳細が通知先へ届く経路が無い |
+| detection | `dependency-scan` / `osv-scan` | **落とさない設計の検査が何かを見つけた**こと。job は緑で終わるので failure では永久に発火しない |
+
+detection は「何が見つかったか」を言えなければ、報告している出来事を特定できない。そこで本文を持つが、**載せるのは識別子だけ**とする（[`../actions/notify-detail`](../actions/notify-detail/action.yaml) が CVE / GHSA の形をした文字列だけをログから抜く）。「先頭 N 行」のような規則にすると、いつかは値そのものを運ぶ。`secret-scan` に detection モードを与えていないのも同じ理由で、あちらのログに載りうるのは検出された秘密そのものである。
+
+**打ち切り（`cancelled`）を失敗として数える。** 週次の実行が打ち切られるのは、通常は前の実行が残っているか runner が落ちたときで、いずれも「走らなかった」ことに変わりはない。緑と区別できないまま放置すると、走っていない週が積み上がる。
+
+`SLACK_WEBHOOK_URL` が未設定なら配送を飛ばして緑のままにする。**webhook が無いことは検査の結果ではなく設定の欠落**であり、報告しようとした出来事のほうを隠してはいけない。送信先の差し替えは `notify.yaml` の後半 2 ステップと各呼び出し側の `secrets:` 行だけで済む（前半は transport 非依存）。
+
+**これがリポジトリ唯一の `workflow_call`。** 他の共有物は composite action だが、composite action は呼び出し元の job の中で動くため、webhook が「たった今スキャンした依存ツリーを展開したランナー」に載る。`workflow_call` は必ず自前のランナーを取り、このファイルはリポジトリを checkout しない。
+
+なお `make actions-comment-secret-lint` は、この呼び出しを**呼び出し先が投稿するかどうか**で判定する（`notify.yaml` は投稿しないので、呼び出し元は投稿ジョブにならない）。リモートの reusable workflow は解決できないため、従来どおり exit 2 で落ちる。
 
 ## 不採用の判断
 
@@ -293,3 +346,6 @@ coverage 以外の各 job は検査結果を即 fail させず、いったん ca
 | --- | --- | --- |
 | `sync-versions-check` | 不採用 | `mise.toml` の版数を複製する下流が本リポに存在しない（Dockerfile 無し / CI は `setup-mise` が `mise.toml` を直読み）。検査対象そのものが無い。`package.json` の `engines` / `packageManager` 等、版数の第二宣言を置いた時点で採用する |
 | `auto-generate-docs` | 不採用 | portal の生成物（`guides/` / `docs.json`）は追跡せず配信時に組み立てるため、drift が発生しえない。追跡する生成物を持つのは型生成（[0072](../../docs/adr/0072-api-type-generation.md)）が入る時点で、そこで再検討する |
+| Snyk | 不採用 | SaaS への登録が前提。**最低保証の層を、fork 先が契約していない事業者に預けない。** 見る面（依存の脆弱性）は Trivy / OSV / `pnpm audit` の 3 つが既に覆っており、増えるのは死角ではなく依存先である |
+| SonarQube（self-host） | 不採用 | self-host できる点は Snyk と違うが、boilerplate が配る前提としては重い —— サーバと DB を建てて初めて 1 つの検査が動く。**同じ解析は SonarCloud 版（`sonarcloud.yaml`）が持ち、そちらはアカウントが無ければ黙って降りる。** self-host したい fork は、あの workflow のサーバ URL を差し替えれば届く |
+| `eslint-plugin-security` の推奨プリセット | 部分採用 | プラグインは採るが、`security.configs.recommended` は当てない（[0002](../../docs/adr/0002-formatter-linter.md) の能力ベース分担は束の適用を禁じる）。**0 件の baseline を保てる 9 規則だけ**を `eslint.config.ts` で有効にし、落とした 5 規則とその理由もそこに書いてある |
