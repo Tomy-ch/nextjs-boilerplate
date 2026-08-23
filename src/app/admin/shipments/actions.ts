@@ -1,9 +1,12 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { shipPurchase } from "@/adapters/server/api/purchases";
 import { verifySession } from "@/adapters/server/auth/session";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { ADMIN_SHIPMENT_QUEUE_PATH } from "@/features/admin/paths";
 import { SHIPMENT_FORM_NAMES } from "@/features/admin/shipments/form-names";
 import {
   SHIPMENT_CONFLICT_MESSAGE,
@@ -79,8 +82,12 @@ async function shipEach(
  * **1 件も通らなかったときだけ失敗にします。** 途中まで通った送信を失敗として返すと、通った分の
  * 発送がなかったことになります。
  *
- * 一覧を取り直させません。発送した注文は次の取得で発送待ちから外れますが、それを見るのは利用者が
- * 読み込み直したときで十分です。結果の件数が、何件通って何件通らなかったかを伝えます。
+ * **成立したら一覧を取り直させます。** 発送した注文は発送待ちではなくなるので、残したままにすると
+ * 押せば必ず競合になる操作が並び続けます。取り直した一覧に残っているものが、そのまま「まだ発送
+ * していない注文」になります。
+ *
+ * 便の注文がすべて通ると、その便は一覧から消えます。結果の文言も一緒に消えますが、便が消えたこと
+ * 自体が通ったことを表しています。一部だけ通った便は残るため、そこには件数の内訳が出ます。
  *
  * 置き場の判断（主体の断言が要る action は app 層）は
  * [0025](../../../../docs/adr/0025-app-layer-elements.md) の `app/server-action`。
@@ -110,6 +117,8 @@ export async function shipPurchasesAction(
   if (result.shipped === 0) {
     return failedActionState({ formError: SHIPMENT_CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });
   }
+
+  revalidatePath(ADMIN_SHIPMENT_QUEUE_PATH);
 
   return succeededActionState(result);
 }
