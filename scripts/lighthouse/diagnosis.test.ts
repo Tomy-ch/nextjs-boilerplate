@@ -17,7 +17,9 @@ const FOOTER: ShiftedElement = {
   height: 113,
 };
 
-function lhrOf(audits: Record<string, unknown>): Parameters<typeof readDiagnosis>[1] {
+type Audits = NonNullable<Parameters<typeof readDiagnosis>[1]["audits"]>;
+
+function lhrOf(audits: Audits): Parameters<typeof readDiagnosis>[1] {
   return { audits, configSettings: { screenEmulation: { height: VIEWPORT_HEIGHT } } };
 }
 
@@ -114,6 +116,21 @@ describe("readDiagnosis", () => {
     expect(diagnosis.shifted).toEqual([]);
   });
 
+  it("selector を持たない要素は、要素不明として拾う", () => {
+    const diagnosis = readDiagnosis(
+      "checkout",
+      lhrOf({
+        "layout-shifts": {
+          details: { items: [{ score: 0.1, node: { boundingRect: { top: 900, height: 50 } } }] },
+        },
+      }),
+    );
+
+    expect(diagnosis.shifted).toEqual([
+      { score: 0.1, selector: "(要素不明)", finalTop: 900, height: 50 },
+    ]);
+  });
+
   it("取得元を持たない script は拾わない", () => {
     const diagnosis = readDiagnosis(
       "checkout",
@@ -121,6 +138,15 @@ describe("readDiagnosis", () => {
     );
 
     expect(diagnosis.bootup).toEqual([]);
+  });
+
+  it("実行時間の内訳を持たない script は、実行 0 として拾う", () => {
+    const diagnosis = readDiagnosis(
+      "checkout",
+      lhrOf({ "bootup-time": { details: { items: [{ url: "/a.js", total: 284 }] } } }),
+    );
+
+    expect(diagnosis.bootup).toEqual([{ url: "/a.js", total: 284, scripting: 0 }]);
   });
 
   it("viewport の宣言が無ければ 0 として扱う", () => {

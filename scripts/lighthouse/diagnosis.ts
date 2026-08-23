@@ -13,7 +13,7 @@ export type ShiftedElement = {
 };
 
 /** 起動時に実行した script 1 つ。 */
-export type BootupScript = {
+type BootupScript = {
   /** 取得元。 */
   readonly url: string;
   /** 解析・実行の合計 (ms)。 */
