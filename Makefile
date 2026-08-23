@@ -35,6 +35,9 @@ include .makefiles/testing/review.mk
 include .makefiles/security/gitleaks.mk
 include .makefiles/security/trivy.mk
 include .makefiles/security/audit.mk
+include .makefiles/security/opengrep.mk
+include .makefiles/security/osv.mk
+include .makefiles/security/bearer.mk
 
 # 一括実行系ファイル
 # GitHub関連
