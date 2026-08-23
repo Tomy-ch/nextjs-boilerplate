@@ -21,12 +21,7 @@ export class ErrorMeta {
   readonly #requestId: string;
   readonly #details: readonly string[];
 
-  private constructor({
-    code = "",
-    message = "",
-    requestId = "",
-    details = [],
-  }: ErrorMetaOptions = {}) {
+  private constructor({ code = "", message = "", requestId = "", details = [] }: ErrorMetaOptions) {
     this.#code = code;
     this.#message = message;
     this.#requestId = requestId;

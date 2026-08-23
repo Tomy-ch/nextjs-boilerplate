@@ -32,6 +32,8 @@ export const DEFAULT_SITE_TREE_LAYOUT: SiteTreeLayout = {
  *
  * @returns Storybook を含めたかどうか
  */
+/* istanbul ignore next -- 既定の配置はリポジトリの実パスを指し、呼ぶと `dist` を作り直す。
+   この既定が効くのは CLI から呼ぶときだけで、テストは必ず配置を渡す。 */
 export function buildSiteTree(layout: SiteTreeLayout = DEFAULT_SITE_TREE_LAYOUT): {
   storybook: boolean;
 } {

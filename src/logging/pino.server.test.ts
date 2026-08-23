@@ -34,6 +34,7 @@ describe("createLogger", () => {
       span_id: "span-1",
     });
 
+    logger.info("付帯する項目はありません");
     logger.debug("デバッグ情報です");
     logger.warn("警告です");
     logger.error("エラーです");

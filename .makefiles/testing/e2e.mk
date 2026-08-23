@@ -46,6 +46,22 @@ E2E_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
 
 E2E_CONFIG := --config=playwright.e2e.config.ts
 
+# 起動したアプリへ当てるもの。既定はコンテナの中の Playwright だが、同じ「本番ビルドをホストで
+# 起動して、ブラウザから当て、終わったら片付ける」立て付けを Lighthouse も使う (lighthouse.mk)。
+# 2 組持つと、起動待ちも後片付けもポートの衝突検査も二重になり、片方だけを直した状態が生まれる。
+#
+# アプリの待ち受け先は recipe が解決する `$$hostname` に入っている。
+E2E_COMMAND ?= $(E2E_RUN) ./node_modules/.bin/playwright test $(E2E_CONFIG) $(E2E_UPDATE) $(E2E_ARGS)
+
+# 起動の手前で確かめること。基準画像を要求するのは撮る側だけなので、呼ぶ側が差し替える。
+E2E_PRECHECK ?= $(E2E_REQUIRE_BASELINES)
+
+E2E_REQUIRE_BASELINES = \
+	$(VRT_REQUIRE_WIRING); \
+	if [ -z "$$(ls -A baseline/images 2>/dev/null)" ]; then \
+		echo "❌ baseline/images が空です。git submodule update --init baseline/images を実行してください。"; exit 1; \
+	fi
+
 # アプリが応答を返すまで待つ上限 (秒)。決め打ちで待つと、速い起動が最悪の場合の時間を払う。
 E2E_BOOT_TIMEOUT := 60
 
@@ -77,7 +93,7 @@ E2E_RESOLVE_HOSTNAME = \
 E2E_HOSTNAME ?=
 
 # build はホストで行う。生成物を先に作ってからコンテナへ見せる (vrt の build-storybook と同じ形)。
-.PHONY: e2e-build ## E2E が使う本番ビルドを作る (e2e から呼ばれる)
+.PHONY: e2e-build ## 画面を通した検証が使う本番ビルドを作る (e2e / lighthouse から呼ばれる)
 e2e-build:
 	@command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
 	@# 取得結果のキャッシュを捨ててから build する。`cache: "force-cache"` を指定した取得は
@@ -95,12 +111,9 @@ e2e-build:
 # 全数の撮り直しでは、撮る直前に画面の区画を空にする。空にする条件（引数が 1 つも付いていない
 # ときだけ）とその理由は vrt/README.md が持つ。**前提ではなくこのレシピの中で消す** —— 前提として
 # 並べると `-j` 付きの呼び出しで撮影との順序が付かず、撮った直後の画像を消しうる。
-.PHONY: e2e-run ## アプリを起動して Playwright を走らせ、終了時に後片付けする (e2e から呼ばれる)
+.PHONY: e2e-run ## アプリを起動してブラウザから当て、終了時に後片付けする (e2e / lighthouse から呼ばれる)
 e2e-run: e2e-build
-	@$(VRT_REQUIRE_WIRING)
-	@if [ -z "$$(ls -A baseline/images 2>/dev/null)" ]; then \
-		echo "❌ baseline/images が空です。git submodule update --init baseline/images を実行してください。"; exit 1; \
-	fi
+	@$(E2E_PRECHECK)
 	@mkdir -p tmp/e2e
 	@set -e; \
 	$(E2E_RESOLVE_HOSTNAME); \
@@ -127,7 +140,7 @@ e2e-run: e2e-build
 	if [ "$(BASELINE_RETAKE)" = "1" ] && [ -z "$(E2E_ONLY)$(E2E_ARGS)" ]; then \
 		pnpm exec tsx scripts/e2e clear-screens; \
 	fi; \
-	$(E2E_RUN) ./node_modules/.bin/playwright test $(E2E_CONFIG) $(E2E_UPDATE) $(E2E_ARGS)
+	$(E2E_COMMAND)
 
 e2e: E2E_UPDATE :=
 e2e: e2e-run

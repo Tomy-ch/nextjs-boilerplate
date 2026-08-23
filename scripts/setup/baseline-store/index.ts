@@ -277,7 +277,7 @@ function git(args: readonly string[], cwd: string = ROOT_DIR): string {
   return execFileSync("git", [...args], { encoding: "utf8", cwd }).trim();
 }
 
-/* v8 ignore start -- CLI entry。起動経路は make setup-baseline-store / make setup-baseline-app が通す。 */
+/* istanbul ignore next -- CLI entry。起動経路は make setup-baseline-store / make setup-baseline-app が通す。 */
 async function main(): Promise<void> {
   const options = parseCommonFlags(process.argv.slice(2));
 
@@ -315,4 +315,3 @@ async function main(): Promise<void> {
 main().catch((error: unknown) => {
   exitWithUsage(error instanceof Error ? error : new Error(String(error)), printUsage);
 });
-/* v8 ignore stop */

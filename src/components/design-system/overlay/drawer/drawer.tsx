@@ -223,7 +223,7 @@ function DrawerFooter({ className, ...props }: ComponentProps<"div">) {
 function DrawerTitle({ className, ...props }: ComponentProps<typeof DrawerPrimitive.Title>) {
   return (
     <DrawerPrimitive.Title
-      className={cn("font-strong text-foreground", className)}
+      className={cn("font-emphasis text-foreground", className)}
       data-slot="drawer-title"
       {...props}
     />

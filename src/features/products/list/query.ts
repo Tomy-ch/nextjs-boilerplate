@@ -4,9 +4,6 @@ import { type RawSearchParams, repeatedValues } from "@/model/search-params";
 
 import { MULTI_VALUE_KEYS, type ProductListSelection } from "../facade/list-url/list-url";
 
-/** 一覧が 1 度に読み込む件数。 */
-export const PRODUCT_PAGE_SIZE = 24;
-
 /**
  * 選択肢 1 件。
  *

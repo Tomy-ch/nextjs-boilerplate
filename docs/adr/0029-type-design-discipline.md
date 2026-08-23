@@ -28,6 +28,19 @@ Accepted
 
 `unknown` のまま持ち回り、使う直前に確かめる形は採らない —— 確かめ漏れが型に現れないためである。
 
+#### zod の流儀は、そのスキーマがブラウザへ届くかで選ぶ
+
+**client へ届くスキーマは `zod/mini` で書き、server に閉じるスキーマと生成物は `zod` で書く。**
+
+同梱サンプルの実測で、使っている API 面(`z.object` / `z.string` / `z.array` / `z.int` / `z.boolean` / `z.uuid` / `z.email` / `z.coerce` / 長さ・書式の検査 / `safeParse` / `flattenError`)を両者で書き比べると **63.5 KB → 5.4 KB(gzip)** の差になる。`zod` の既定の入口は、この repository が呼ばない JSON Schema 変換とエラー文言の locale を抱えており、それが**画面を開いた人に配られる**。
+
+- **境界で parse する規律は変わらない。** 変わるのは書き方だけで、`.min(n, msg)` が `.check(z.minLength(n, msg))` になる類の差である。検証の内容も文言もそのまま移せる
+- **server 側を揃えない。** bundle に載らないため利益が無く、生成物(`0072`)は生成器が `zod` で出すので選べない。**片方に寄せる価値より、載る側だけを選ぶ価値のほうが大きい**
+- **両方を受ける層は core の型で書く。** `zod` と `zod/mini` は `zod/v4/core` の `$ZodType` を共有する。共有層(client の HTTP 呼び出しなど)が片方の流儀を要求すると、呼び出し側の移行がその 1 箇所のために止まる
+- **react-hook-form へ渡すときは `standardSchemaResolver`**([0062](0062-form-input-validation.md))。`zodResolver` は `zod` の型を要求するが、`zod/mini` は Standard Schema を実装しているため標準側の口で繋がる
+
+**生成物を経由して `zod` が client へ入る経路がある間は、client 側だけを移しても classic は消えない**(mini が上乗せされるだけになる)。その経路と順序は [BACKLOG](BACKLOG.md) の「予算に対して残っている重さ」が持つ。
+
 ### 3. 識別子は branded type にする
 
 **外部から来る識別子は、素の `string` として扱わない。** 商品・利用者・注文のように、取り違えても型が通ってしまう値には brand を付ける。
@@ -56,6 +69,7 @@ Accepted
 - ❌ `model` に判定ロジック・業務ルールを持ち込むこと(型と最小限の関数まで)
 - ❌ リテラルへ型注釈を付けて情報を落とすこと(`satisfies` を使う)
 - ❌ `as` による型表明で検証を省くこと(境界の検証は zod が行う)
+- ❌ client へ届くスキーマを `zod` の既定の入口で書くこと(呼ばない機能ごと配られる)
 - ❌ 取得の口が持つ検証と別に、内側で独自の写し(数値化・既定値への丸め等)を作ること
 - ❌ 契約を外れた条件を黙って捨て、既定の結果を出すこと
 

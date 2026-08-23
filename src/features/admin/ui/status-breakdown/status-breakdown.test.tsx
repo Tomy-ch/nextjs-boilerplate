@@ -8,13 +8,17 @@ import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
 
 import { StatusBreakdown } from "./status-breakdown";
 
-beforeAll(() => {
+// 併置する図は `next/dynamic` で読まれる。先に解決しておかないと、要素を待つ時間の中に module の
+// 読み込みが入る（`docs/testing-conventions.md`「`next/dynamic` を含む木を描くとき」）。
+beforeAll(async () => {
   // 併置する図が寸法を測るために使う API を jsdom が持たないため、ここで補う。
   globalThis.ResizeObserver ??= class {
     observe() {}
     unobserve() {}
     disconnect() {}
   };
+
+  await import("../status-bars/status-bars");
 });
 
 const COUNTS: readonly PurchaseStatusCount[] = [

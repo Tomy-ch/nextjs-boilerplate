@@ -120,7 +120,7 @@
   "font": {
     "sans": {
       "$type": "fontFamily",
-      "$value": "{font.plex-jp}"
+      "$value": "{font.system-jp}"
     },
     "brand": {
       "$type": "fontFamily",
@@ -135,10 +135,6 @@
     "emphasis": {
       "$type": "fontWeight",
       "$value": "{font-weight.medium}"
-    },
-    "strong": {
-      "$type": "fontWeight",
-      "$value": "{font-weight.semibold}"
     }
   },
   "shadow": {

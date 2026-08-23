@@ -450,11 +450,10 @@ export async function generateOrCheckTokens(checkOnly: boolean): Promise<void> {
   }
 }
 
-/* v8 ignore start -- CLI entry。起動経路は pnpm gen:tokens / check:tokens が実地で通す。 */
+/* istanbul ignore next -- CLI entry。起動経路は pnpm gen:tokens / check:tokens が実地で通す。 */
 if (process.argv[1]?.endsWith("gen-tokens.ts")) {
   void generateOrCheckTokens(process.argv.includes("--check")).catch((error: unknown) => {
     process.stderr.write(`${String(error)}\n`);
     process.exitCode = 1;
   });
 }
-/* v8 ignore stop */

@@ -40,7 +40,7 @@ export default defineConfig({
       TZ: "Asia/Tokyo",
     },
     coverage: {
-      provider: "v8",
+      provider: "istanbul",
       // テストを持つ範囲は実行対象と計測対象を揃える。片方だけ広げると、テストは走るのに
       // ゲートに載らない範囲ができ、未テストの分岐を足しても緑のまま通る（ADR 0090）。
       include: [

@@ -1,4 +1,4 @@
-import type { ZodType } from "zod";
+import { type $ZodType, safeParse } from "zod/v4/core";
 
 import { assertRequestTargetWithinBudget } from "@/adapters/http/url-budget";
 import { MAX_URL_BYTES } from "@/config/http/http.client";
@@ -35,12 +35,14 @@ const KIND_BY_STATUS: Readonly<Partial<Record<number, ErrorKindType>>> = {
  * だけを見て表示を決めます（[0080](../../../../docs/adr/0080-error-handling.md)）。
  *
  * @param path - 同一オリジンの絶対パス。クエリを含み、percent-encode 済みであること
- * @param schema - 応答の検証スキーマ
+ * @param schema - 応答の検証スキーマ。**流儀は問わない** —— `zod` と `zod/mini` は同じ core の型を
+ *   共有するため、ここは core の口だけを見る。共有層が片方の流儀を要求すると、呼び出し側の移行が
+ *   この 1 箇所のために止まる
  * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る
  */
 export async function request<T>(
   path: string,
-  schema: ZodType<T>,
+  schema: $ZodType<T>,
   signal?: AbortSignal,
 ): Promise<T> {
   assertRequestTargetWithinBudget(path, MAX_URL_BYTES);
@@ -51,7 +53,7 @@ export async function request<T>(
     throw createAppError(KIND_BY_STATUS[response.status] ?? ErrorKind.INTERNAL);
   }
 
-  const parsed = schema.safeParse(await response.json());
+  const parsed = safeParse(schema, await response.json());
 
   if (!parsed.success) {
     throw createAppError(ErrorKind.INTERNAL, { cause: parsed.error });

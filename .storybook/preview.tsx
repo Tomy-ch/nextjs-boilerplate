@@ -22,6 +22,8 @@ sb.mock(import("../src/features/checkout/actions.ts"));
 
 // 書体の変数は `next/font` が class に載せる。実アプリの `<html>` と同じ位置へ置かないと、
 // カタログだけが素の書体で表示され、基準画像が実物と一致しない。
+// カタログは実アプリと違い、系統をまたいで並べる。管理の書体は実アプリでは管理の面だけが
+// 読むが（0051 §5）、ここでは両方の系統の story を同じ文書で描くので、まとめて配る。
 document.documentElement.classList.add(...FONT_VARIABLES.split(" "));
 
 const SYSTEM_THEME = "system";

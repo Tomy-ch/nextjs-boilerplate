@@ -57,6 +57,20 @@ describe("resolveScreens", () => {
     ]);
   });
 
+  it("ハイフンで繋いだ名前を通す", () => {
+    const declared: readonly ScreenDeclaration[] = [
+      {
+        route: "/admin/products/[id]/edit",
+        name: "admin-product-edit",
+        path: "/admin/products/1/edit",
+      },
+    ];
+
+    expect(resolveScreens(["/admin/products/[id]/edit"], declared)[0]?.name).toBe(
+      "admin-product-edit",
+    );
+  });
+
   it("撮影から外す領域の宣言を、撮る側まで運ぶ", () => {
     // 運ばれないと、要求時刻から導く値を描く画面が、基準を撮った日を過ぎた時点で毎回落ちる。
     const withMask: readonly ScreenDeclaration[] = [
@@ -95,6 +109,26 @@ describe("resolveScreens", () => {
   });
 
   // ----- 異常系 -----
+  it("Markdown やパスを作れる文字を名前に持てない", () => {
+    const declared: readonly ScreenDeclaration[] = [
+      { route: "/", name: "home`](http://evil)", path: "/" },
+    ];
+
+    expect(() => resolveScreens(["/"], declared)).toThrow("画面の名前が採れる形ではありません");
+  });
+
+  it("区切りを含む名前を持てない", () => {
+    const declared: readonly ScreenDeclaration[] = [{ route: "/", name: "../escape", path: "/" }];
+
+    expect(() => resolveScreens(["/"], declared)).toThrow("画面の名前が採れる形ではありません");
+  });
+
+  it("大文字や下線を名前に持てない", () => {
+    const declared: readonly ScreenDeclaration[] = [{ route: "/", name: "Home_Screen", path: "/" }];
+
+    expect(() => resolveScreens(["/"], declared)).toThrow("画面の名前が採れる形ではありません");
+  });
+
   it("宣言の無い画面を落とす", () => {
     // 文言まで固定する。route 名だけを見ると、2 つの分岐が同じ文言へ壊れても気づけない。
     expect(() => resolveScreens(["/", "/新しい画面", "/_global-error"], declarations)).toThrow(

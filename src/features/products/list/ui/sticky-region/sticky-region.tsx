@@ -80,7 +80,7 @@ export function ProductStickyBar({ children }: { children: ReactNode }) {
   useEffect(() => {
     const target = ref.current;
 
-    /* v8 ignore next 3 -- 器と同時に描かれるため外れていることは無い。TS の絞り込みのためだけの分岐。 */
+    /* istanbul ignore next -- 器と同時に描かれるため外れていることは無い。TS の絞り込みのためだけの分岐。 */
     if (target === null) {
       return;
     }

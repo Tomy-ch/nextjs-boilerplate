@@ -108,7 +108,7 @@ export function AdminShell({
           className="flex shrink-0 items-center border-b px-4"
           style={{ height: ADMIN_SHELL_HEADER_HEIGHT }}
         >
-          <Link href={homeHref} className="font-semibold">
+          <Link href={homeHref} className="font-emphasis">
             {consoleName}
           </Link>
         </div>
@@ -129,7 +129,7 @@ export function AdminShell({
           <div className="flex h-full w-full items-center gap-2 px-4 md:px-6">
             <AdminShellMenu groups={navGroups} />
             <AdminShellNavToggle />
-            <Link href={siteHref} className="font-semibold">
+            <Link href={siteHref} className="font-emphasis">
               {siteName}
             </Link>
             <div className="ml-auto flex items-center gap-1">{headerActions}</div>

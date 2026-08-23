@@ -657,7 +657,7 @@ export async function addShadcnComponents(arguments_: string[]): Promise<void> {
   // 空の台帳は `components: {}` と flow 形式で書かれうる。そこへ足すと以降も flow のまま
   // 1 行に潰れて読めなくなるため、block 形式へ戻す。
   const components = document.get("components");
-  /* v8 ignore next -- schema が map であることを保証済みで、TS の絞り込みのためだけの分岐。 */
+  /* istanbul ignore next -- schema が map であることを保証済みで、TS の絞り込みのためだけの分岐。 */
   if (isMap(components)) components.flow = false;
   await writeFile(manifestPath, document.toString());
   process.stdout.write(`shadcn manifest を更新しました: ${invocation.components.join(", ")}\n`);
@@ -670,7 +670,7 @@ export async function addShadcnComponents(arguments_: string[]): Promise<void> {
   }
 }
 
-/* v8 ignore next -- CLI のエントリポイントは pnpm add:ui の dry-run が実地で通す。 */
+/* istanbul ignore next -- CLI のエントリポイントは pnpm add:ui の dry-run が実地で通す。 */
 if (process.argv[1]?.endsWith("add-shadcn.ts")) {
   void addShadcnComponents(process.argv.slice(2)).catch((error: unknown) => {
     process.stderr.write(`${errorMessage(error)}\n`);

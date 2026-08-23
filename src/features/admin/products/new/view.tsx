@@ -16,6 +16,7 @@ import { ProductDescriptionSection } from "../ui/description-section/description
 import { ProductFormFeedback } from "../ui/form-feedback/form-feedback";
 import { ProductImagesSection } from "../ui/images-section/images-section";
 import { ProductPublishSection } from "../ui/publish-section/publish-section";
+
 import type { ProductSelectOption } from "../ui/select-field/select-field";
 import { ProductSubmitButton } from "../ui/submit-button/submit-button";
 import { useProductForm } from "../use-product-form";

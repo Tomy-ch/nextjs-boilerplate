@@ -3,9 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/font/google", () => ({
   Geist_Mono: () => ({ variable: "--typeface-geist-mono" }),
-  IBM_Plex_Sans_JP: () => ({ variable: "--typeface-plex-jp" }),
   Michroma: () => ({ variable: "--typeface-michroma" }),
-  LINE_Seed_JP: () => ({ variable: "--typeface-line-seed" }),
 }));
 
 import RootLayout, { metadata } from "./layout";
@@ -31,14 +29,26 @@ describe("RootLayout", () => {
 
     const htmlClass = /<html[^>]*class="([^"]*)"/.exec(markup)?.[1] ?? "";
 
-    for (const variable of [
-      "--typeface-michroma",
-      "--typeface-line-seed",
-      "--typeface-plex-jp",
-      "--typeface-geist-mono",
-    ]) {
+    for (const variable of ["--typeface-michroma", "--typeface-geist-mono"]) {
       expect(htmlClass).toContain(variable);
     }
+  });
+
+  it("配る書体はラテンの 2 つだけで、和文の Web フォントは持たない", () => {
+    // 和文書体を `next/font` で読むと、番号付きスライスの @font-face が全て、描画をブロックする
+    // CSS として載る。増やすならその費用を測り直すこと（0051 §5）。
+    const markup = renderToStaticMarkup(
+      <RootLayout>
+        <p>テスト用コンテンツ</p>
+      </RootLayout>,
+    );
+
+    const htmlClass = /<html[^>]*class="([^"]*)"/.exec(markup)?.[1] ?? "";
+
+    expect(htmlClass.match(/--typeface-[a-z-]+/g)).toEqual([
+      "--typeface-michroma",
+      "--typeface-geist-mono",
+    ]);
   });
 
   it("横断通知の Provider を配下へ供給する", () => {

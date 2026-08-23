@@ -15,7 +15,7 @@ import type { SanitizedDocument } from "../sanitize/sanitized-document";
  * 判断は木の形だけで行い（{@link mermaidSourceOf}）、それ以外の `pre` は素の要素のまま返します。
  */
 function DocumentPre({ node, ...props }: ComponentProps<"pre"> & { node?: Element }) {
-  /* v8 ignore next -- `passNode` が木の節を必ず渡すため、TS の絞り込みのためだけの分岐。 */
+  /* istanbul ignore next -- `passNode` が木の節を必ず渡すため、TS の絞り込みのためだけの分岐。 */
   const source = node === undefined ? undefined : mermaidSourceOf(node);
 
   return source === undefined ? <pre {...props} /> : <MermaidDiagram source={source} />;

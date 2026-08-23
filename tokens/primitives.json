@@ -330,13 +330,19 @@
       "$type": "fontFamily",
       "$value": ["var(--typeface-michroma)", "sans-serif"]
     },
-    "line-seed": {
+    "system-jp": {
       "$type": "fontFamily",
-      "$value": ["var(--typeface-line-seed)", "Hiragino Sans", "Noto Sans JP", "sans-serif"]
-    },
-    "plex-jp": {
-      "$type": "fontFamily",
-      "$value": ["var(--typeface-plex-jp)", "Hiragino Sans", "Noto Sans JP", "sans-serif"]
+      "$description": "OS が同梱する和文ゴシック。Web フォントを読まないため転送も @font-face の宣言も持たない (0051 §5)",
+      "$value": [
+        "system-ui",
+        "Hiragino Sans",
+        "Hiragino Kaku Gothic ProN",
+        "Yu Gothic UI",
+        "Yu Gothic",
+        "Noto Sans JP",
+        "Meiryo",
+        "sans-serif"
+      ]
     },
     "geist-mono": {
       "$type": "fontFamily",

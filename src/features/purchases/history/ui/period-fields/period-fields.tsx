@@ -95,7 +95,7 @@ export function PurchasePeriodFields({ draft, onChange }: PurchasePeriodFieldsPr
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div className="flex flex-col gap-1">
-        <span className="font-medium text-sm" id={`${scope}-kind-label`}>
+        <span className="font-emphasis text-sm" id={`${scope}-kind-label`}>
           対象期間
         </span>
         <ToggleGroupNative aria-labelledby={`${scope}-kind-label`}>

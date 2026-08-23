@@ -22,6 +22,20 @@ export const SCREEN_MANIFEST_FILE = ".next/app-path-routes-manifest.json";
 /** 画面を表す app path の末尾。Route Handler（`/route`）と区別する。 */
 const PAGE_SUFFIX = "/page";
 
+/**
+ * 画面の名前が採れる形。
+ *
+ * @remarks
+ * kebab-case に限るのは [0028](../../docs/adr/0028-naming-convention.md) の命名規約に従うためですが、
+ * 効いている先はそれだけではありません。**この名前は 2 つの経路でそのまま外へ出ます** ——
+ * 基準画像のファイル名（[`screen-baselines.ts`](screen-baselines.ts)）と、CI が PR へ書く表の
+ * セル（`scripts/lighthouse/report.ts`）です。前者では区切りや `..` がパスを外れさせ、後者では
+ * バッククォートや角括弧が Markdown を作ります。**ここで狭めておけば、その先のどこでも濾し直さずに
+ * 済みます**（[0153](../../docs/adr/0153-ci-configuration.md) §5 が言う「許可した集合は markup も
+ * mention も作れない」を、出口ではなく入口で満たす形）。
+ */
+const SCREEN_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 /** 巡回・撮影する画面 1 つ。 */
 export type Screen = {
   /** build が出す route。宣言との突き合わせに使う。 */
@@ -217,9 +231,20 @@ export function resolveScreens(
     throw new Error(`宣言が指す画面がありません: ${stale.sort().join(", ")}`);
   }
 
-  return declarations
+  const screens = declarations
     .filter((entry): entry is Extract<ScreenDeclaration, { name: string }> => "name" in entry)
     .map(({ route, name, path, signedIn, mask }) => ({ route, name, path, signedIn, mask }));
+
+  const malformed = screens.filter((screen) => !SCREEN_NAME.test(screen.name));
+
+  if (malformed.length > 0) {
+    throw new Error(
+      `画面の名前が採れる形ではありません: ${malformed.map((screen) => screen.name).join(", ")}` +
+        "（小文字・数字・ハイフンだけで綴ってください）",
+    );
+  }
+
+  return screens;
 }
 
 /**

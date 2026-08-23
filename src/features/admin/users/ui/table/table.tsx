@@ -42,7 +42,7 @@ function toColumns(
     {
       id: "name",
       header: "名前",
-      cell: (item) => <span className="font-medium">{item.name}</span>,
+      cell: (item) => <span className="font-emphasis">{item.name}</span>,
     },
     { id: "email", header: "メール", cell: (item) => item.email },
     {

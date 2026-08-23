@@ -8,6 +8,7 @@ import {
   initialChunks,
   type RouteBuildManifest,
   type RscManifest,
+  unionByRoute,
 } from "./manifest";
 import { renderReport } from "./report";
 
@@ -48,13 +49,19 @@ function measure(dir: string): Measurement[] {
   // route handler は client bundle を持たない。0 KB の行を並べても読む人が得るものが無い。
   const pages = Object.entries(routes).filter(([pagePath]) => pagePath.endsWith("/page"));
 
-  return pages.map(([pagePath, route]) => {
+  const perEntry = pages.map(([pagePath, route]) => {
     const artifact = `${dir}/${artifactDirOf(pagePath)}`;
-    const chunks = initialChunks(
-      readRscManifest(`${artifact}_client-reference-manifest.js`, pagePath),
-      readJson<RouteBuildManifest>(`${artifact}/build-manifest.json`),
-    );
 
+    return {
+      route,
+      chunks: initialChunks(
+        readRscManifest(`${artifact}_client-reference-manifest.js`, pagePath),
+        readJson<RouteBuildManifest>(`${artifact}/build-manifest.json`),
+      ),
+    };
+  });
+
+  return unionByRoute(perEntry).map(({ route, chunks }) => {
     let gzip = 0;
     for (const chunk of chunks) {
       const path = `${dir}/${chunk}`;

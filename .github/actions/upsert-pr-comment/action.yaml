@@ -18,7 +18,17 @@ inputs:
   details-summary:
     required: false
     default: ""
-    description: When set, the summary text used to fold the body into a details block with a code block
+    description: When set, the summary text used to fold the body into a details block. Folding and fencing are independent — see body-sanitized
+  body-sanitized:
+    required: false
+    default: "false"
+    description: >-
+      Set to "true" only when the caller has already filtered every value in body-file to a
+      character set that cannot produce markup or mentions (ADR 0153 §5). The body is then
+      rendered as Markdown instead of fenced, so a table reads as a table. Leave it at the
+      default for anything that passes tool output through unaltered — a linter or a compiler
+      echoes source lines, and in a public repository those are the pull request author's to
+      write.
   notes-file:
     required: false
     default: ""
@@ -40,6 +50,7 @@ runs:
         BODY_FILE: ${{ inputs.body-file }}
         TITLE: ${{ inputs.title }}
         DETAILS_SUMMARY: ${{ inputs.details-summary }}
+        BODY_SANITIZED: ${{ inputs.body-sanitized }}
         NOTES_FILE: ${{ inputs.notes-file }}
         MAX_LENGTH: ${{ inputs.max-length }}
       with:
@@ -51,6 +62,7 @@ runs:
           const bodyFile = process.env.BODY_FILE;
           const title = process.env.TITLE || '';
           const detailsSummary = process.env.DETAILS_SUMMARY || '';
+          const bodySanitized = (process.env.BODY_SANITIZED || 'false') === 'true';
           const notesFile = process.env.NOTES_FILE || '';
           const maxLength = Number(process.env.MAX_LENGTH || '45000');
 
@@ -102,10 +114,14 @@ runs:
             return '`'.repeat(Math.max(3, longestRun + 1));
           };
 
-          const fence = fenceFor(content);
+          // 囲むかどうかを決めるのは、折り畳むかどうかではなく**未加工かどうか**である。
+          // 呼び出し元が値を濾してから組み立てた本文は、表なら表として読めたほうがよい
+          // （0153 §5 の「許可した集合は markup も mention も作れない」）。濾していない本文は、
+          // 折り畳もうと折り畳むまいと囲む。
+          const rendered = bodySanitized ? content : [fenceFor(content), content, fenceFor(content)].join('\n');
           const main = detailsSummary
-            ? [`<details><summary>${detailsSummary}</summary>`, '', fence, content, fence, '', '</details>'].join('\n')
-            : content;
+            ? [`<details><summary>${detailsSummary}</summary>`, '', rendered, '', '</details>'].join('\n')
+            : rendered;
 
           // 添える散文はフェンスへ入れない。フェンスの中身は Markdown として描画されないので、
           // 表も、コピーさせたいコマンドのブロックも、そこでは字面のまま出てしまう。

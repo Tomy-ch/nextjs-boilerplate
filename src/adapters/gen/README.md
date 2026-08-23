@@ -17,6 +17,7 @@ CI の drift ゲートが差分を検出して落ちます。
 | --- | --- |
 | `<契約名>/model/` | wire 型。契約の `components.schemas` に対応する |
 | `<契約名>/endpoints.zod.ts` | operation ごとの zod スキーマ。response 検証に使う |
+| `<契約名>/limits.ts` | 契約が定める上限・書式のうち、**検証を伴わない定数だけ**を写したもの。書き手は orval ではなく [`scripts/openapi/extract-limits.ts`](../../../scripts/openapi/extract-limits.ts)。client はこちらだけを引く（[0072](../../../docs/adr/0072-api-type-generation.md)） |
 
 ## 使い方の境界
 

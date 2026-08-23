@@ -18,7 +18,8 @@ import {
   PRODUCT_LIST_PATH,
   toProductListSearchParams,
 } from "../facade/list-url/list-url";
-import { type FilterOption, normalizeSearchParams, PRODUCT_PAGE_SIZE } from "./query";
+import { PRODUCT_PAGE_SIZE } from "./page-size";
+import { type FilterOption, normalizeSearchParams } from "./query";
 import { ProductListResults } from "./results";
 import { ProductListSkeleton } from "./ui/skeleton/skeleton";
 import { ProductListView } from "./view";
