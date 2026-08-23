@@ -268,7 +268,10 @@ make e2e-update            # Retake the screen baselines locally — same split 
 make e2e-retake            # Retake and push the screen baselines
 make baseline-push         # Push retaken baselines to the store and advance the submodule pointer
 make secret-scan           # gitleaks over the commits about to be pushed — fails on detection (ADR 0110)
+make secret-scan-history   # gitleaks over the whole history — the weekly CI pass, never the hook
 make trivy-fs              # Trivy dependency vulnerability scan — on demand, report only (ADR 0110)
+make trivy-fs-release      # Same, strict (keeps unfixed findings). The promotion gate CI runs
+make audit                 # Dependency audit gate — fails on a fixable high / critical (ADR 0110)
 make test-cached           # Default. Same tests through Vitest's cache — the pre-commit variant
 make test-full             # Full run with coverage against the 100% threshold (ADR 0090). The gate
                            #   itself — leave it to the hook and CI rather than running it by hand

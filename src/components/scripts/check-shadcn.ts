@@ -562,7 +562,7 @@ async function main(): Promise<void> {
   process.exitCode = checkExitCode(result);
 }
 
-/* istanbul ignore next -- CLI のエントリポイントは pnpm check:ui が実地で通す。 */
+/* istanbul ignore next -- 同上（`main` と同じ）。 */
 if (process.argv[1]?.endsWith("check-shadcn.ts")) {
   void main().catch((error: unknown) => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

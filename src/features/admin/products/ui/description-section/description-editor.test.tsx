@@ -19,8 +19,8 @@ const noop = () => {};
 const CONTROL_ID = controlIdOf("form", "description");
 
 describe("ProductDescriptionEditor", () => {
-  // `next/dynamic` は `React.lazy` で、解決した値をこの module へ抱え込む。枠を通るのは
-  // このファイルで最初に描いたときだけなので、枠の検証はここに 1 つだけ置き、先頭に保つ。
+  // 枠の検証はここに 1 つだけ置き、先頭に保つ（`React.lazy` は解決した値をこの module へ
+  // 抱え込むため、2 つ目を足しても枠を通らない）。
   it("届くまでは、出来上がりと同じ高さの枠を読み上げの外へ置く", () => {
     const { container } = render(
       <ProductDescriptionEditor id={CONTROL_ID} label="商品説明" onChange={noop} />,

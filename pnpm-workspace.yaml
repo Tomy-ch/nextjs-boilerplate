@@ -37,6 +37,23 @@ overrides:
   # XSS になる。mermaid の宣言は ^3.3.3 で 3.4.13 はその内側。
   # mermaid が 3.4.13 以上を要求したら撤去する。
   "dompurify@<3.4.13": ">=3.4.13 <4"
+  # minimatch (glob 経由で Storybook の依存が引く) の推移的依存。
+  # GHSA-cchq-frgv-rjh5 (high): 展開の中間結果に上限が無く、短い入力で処理が止まらなくなる。
+  # minimatch の宣言は ^5.0.8 で 5.0.9 はその内側。minimatch が 5.0.9 以上を要求したら撤去する。
+  "brace-expansion@<5.0.9": ">=5.0.9 <6"
+  # cosmiconfig (commitlint が引く) の推移的依存。
+  # GHSA-pmgw-qhcx-hj4c (high): !!omap の解決が入力長に対して二次で伸びる。
+  # cosmiconfig の宣言は ^4.1.0 で 4.3.1 はその内側。cosmiconfig が 4.3.1 以上を要求したら撤去する。
+  "js-yaml@>=4 <4.3.1": ">=4.3.1 <5"
+  # markdownlint-cli2 の推移的依存。
+  # GHSA-jvvh-6pj7-4vhr (high): flow collection の解析時間が入力長に対して指数で伸びる。
+  # markdownlint-cli2 は既に 5.2.2 を宣言しており、こちらの lockfile だけが 5.2.1 で止まっている。
+  # markdownlint-cli2 の版を上げた時点で撤去する。
+  "js-yaml@>=5 <5.2.2": ">=5.2.2 <6"
+  # postcss の推移的依存。
+  # GHSA-8v8w-v8xg-79rf (high): 自前の生成器を渡すと終わらない場合がある。
+  # postcss の宣言は ^3.3.6 で 3.3.18 はその内側。postcss が 3.3.18 以上を要求したら撤去する。
+  "nanoid@>=3 <3.3.18": ">=3.3.18 <4"
 
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
 verifyDepsBeforeRun: error

@@ -1,0 +1,240 @@
+name: Dependency Scan
+
+# The dependency half of the defence in depth (ADR 0110 §3). Three jobs, three
+# different verdicts over the same subject:
+#
+#   dependency-scan   Trivy fs, report only. Never fails.
+#   dependency-audit  pnpm audit, fails on a fixable high / critical.
+#   dependency-gate   Trivy fs without --ignore-unfixed, fails on any finding.
+#                     Only for a pull request aimed at a protected branch.
+#
+# Trivy and pnpm audit disagree on purpose and their counts are not reconciled: they
+# aggregate differently (CVE vs advisory) and read different databases. The union is
+# the truth, so either one reaching its threshold is enough to block (ADR 0110 §3).
+#
+# Why the report-only job exists at all: a vulnerability is not something the author
+# of a change can resolve on the spot, and its state moves without the code moving.
+# A gate built on that teaches people to bypass it. Promotion is where someone has
+# the standing to accept the risk, so that is where the strict job sits (ADR 0110 §3.1).
+#
+# Deliberately unfiltered by `paths`; the reason every workflow runs on every PR is
+# in README.md.
+
+on:
+  pull_request:
+  schedule:
+    # Weekly, so a CVE published against an unchanged tree still surfaces.
+    - cron: '30 1 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: aqua:aquasecurity/trivy
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Trivy
+        id: trivy
+        shell: bash
+        run: |
+          set +e
+
+          make trivy-fs 2>&1 | tee /tmp/trivy.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## 📋 Dependency scan: report (Trivy fs)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ⚠️ Dependency scan: the scan itself failed" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment Trivy result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- dependency-scan-result -->'
+          title: ${{ steps.trivy.outputs.title }}
+          body-file: /tmp/trivy.log
+          details-summary: 'Trivy log'
+
+      # Findings do not fail this job; the scanner failing to run does. A scan that
+      # never produced a result is not the same as a clean one, and reporting the
+      # latter for the former is how a report stops meaning anything.
+      - name: Fail if the scan could not run
+        if: always() && steps.trivy.outputs.status != 'success'
+        run: exit 1
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run the dependency audit gate
+        id: audit
+        shell: bash
+        run: |
+          set +e
+
+          make audit 2>&1 | tee /tmp/audit.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Dependency audit: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Dependency audit: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment audit result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- dependency-audit-result -->'
+          title: ${{ steps.audit.outputs.title }}
+          body-file: /tmp/audit.log
+          details-summary: 'pnpm audit'
+
+      - name: Fail if a fixable high or critical was found
+        if: always() && steps.audit.outputs.status != 'success'
+        run: exit 1
+
+  dependency-gate:
+    # The promotion half, expressed as a job condition rather than a `branches:`
+    # filter on the trigger. A filter that excludes a pull request starts no run at
+    # all, and a required context that is never reported is not read as "not
+    # applicable" — the merge waits for something that will never arrive. A job the
+    # condition skips reports `skipped`, which a required check counts as success
+    # (ADR 0153 §5).
+    if: ${{ github.event_name != 'pull_request' || contains(fromJSON('["production", "staging", "develop"]'), github.base_ref) || startsWith(github.base_ref, 'release/') || startsWith(github.base_ref, 'hotfix/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: aqua:aquasecurity/trivy
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # The only difference from the report-only job is --ignore-unfixed. The
+      # severity range is the same; what changes is that a vulnerability with no fix
+      # is made visible, because promotion is where someone decides to carry it.
+      - name: Run Trivy in release mode
+        id: trivy
+        shell: bash
+        run: |
+          set +e
+
+          make trivy-fs-release 2>&1 | tee /tmp/trivy-release.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Release dependency gate: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## 🚨 Release dependency gate: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment release gate result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- dependency-gate-result -->'
+          title: ${{ steps.trivy.outputs.title }}
+          body-file: /tmp/trivy-release.log
+          details-summary: 'Trivy log (release)'
+
+      - name: Fail if a vulnerability was found
+        if: always() && steps.trivy.outputs.status != 'success'
+        run: exit 1

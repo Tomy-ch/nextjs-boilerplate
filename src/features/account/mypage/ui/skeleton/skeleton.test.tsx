@@ -31,7 +31,6 @@ describe("MypageSkeleton", () => {
   it("出来上がりと同じ器で組み、下端の操作ぶんの高さも空ける", () => {
     const { container } = render(<MypageSkeleton />);
 
-    // 器を共有していないと、届いた瞬間に footer が押し下げられる（ADR 0101 §4）。
     expect(container.querySelectorAll("[data-slot=key-value-list]")).toHaveLength(1);
     expect(container.querySelectorAll("[data-slot=separator]")).toHaveLength(1);
   });

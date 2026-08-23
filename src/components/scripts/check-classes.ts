@@ -198,7 +198,7 @@ async function collectComponentSources(directory: string): Promise<string[]> {
 }
 
 /** `globals.css` を実際に build し、生成された CSS を返す。 */
-/* istanbul ignore next -- ファイル走査と CSS の build は pnpm check:classes が実地で通す。 */
+/* istanbul ignore next -- 同上（`collectComponentSources` と同じ）。 */
 async function buildCss(): Promise<string> {
   const source = await readFile(entryCssPath, "utf8");
   const result = await postcss([tailwindcss()]).process(source, { from: entryCssPath });
@@ -265,7 +265,7 @@ async function main(): Promise<void> {
   process.exitCode = 1;
 }
 
-/* istanbul ignore next -- CLI のエントリポイントは pnpm check:classes が実地で通す。 */
+/* istanbul ignore next -- 同上（`main` と同じ）。 */
 if (process.argv[1]?.endsWith("check-classes.ts")) {
   void main().catch((error: unknown) => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

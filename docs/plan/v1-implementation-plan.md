@@ -390,7 +390,7 @@ backend が server→client push の入口機構(SSE)と、その配信基盤で
 
 全 66 PR。issue 化の単位はこの 1 行 = 1 issue。
 
-`EX` を付した行は**拡張枠**であり、この 66 本には含めない。v1.0.0 の完了条件から外れる(3.13)。
+`EX-N` の行は**拡張枠**であり、この 66 本には含めない。v1.0.0 の完了条件から外れる(3.13)。**どの Phase にも属さない**ため、表の末尾と本文の末尾(Phase 9 の後)に置く。
 
 | ID | タイトル | Phase | 依存 |
 | --- | --- | --- | --- |
@@ -441,9 +441,6 @@ backend が server→client push の入口機構(SSE)と、その配信基盤で
 | P5-16 | ゴールデンパス README 整備(B5 完成) | 5 | P5-1〜P5-15 |
 | P5-17 | セキュリティ workflow(CodeQL / gitleaks / trivy / Dependabot) | 5 | P5-16 |
 | P5-18 | spec 駆動の採否判断(GB-3) | 5 | P5-16, P4-6 |
-| P5-EX1 | ストリーム前提の文書反映(0074 / screens.md / mocks) | 5 (EX) | — |
-| P5-EX2 | 購読 seam の実体化(subscription adapter) | 5 (EX) | P5-EX1, P4-3 |
-| P5-EX3 | U13 お問い合わせ一覧 + U14 チャット画面 | 5 (EX) | P5-EX2, P5-4 |
 | P6-1 | クライアント観測性 | 6 | P3-5, P4-5 |
 | P6-2 | CSP / セキュリティヘッダ + CI 適合ゲート | 6 | P5-16, P6-8 |
 | P6-3 | SEO / metadata + fonts | 6 | P5-1, P5-4 |
@@ -463,6 +460,9 @@ backend が server→client push の入口機構(SSE)と、その配信基盤で
 | P9-5 | Tier 5 後回し分の最終確認 | 9 | P9-3 |
 | P9-6 | boilerplate 導入時の変更点を集約 | 9 | P9-2, P9-5 |
 | P9-7 | v1.0.0 リリース | 9 | P9-7 を除く全 PR |
+| EX-1 | ストリーム前提の文書反映(0074 / screens.md / mocks) | EX | — |
+| EX-2 | 購読 seam の実体化(subscription adapter) | EX | EX-1, P4-3 |
+| EX-3 | U13 お問い合わせ一覧 + U14 チャット画面 | EX | EX-2, P5-4 |
 
 ### 4.1 依存マップ
 
@@ -1097,6 +1097,7 @@ sources:
 - **画面判断**: **商品画像が単一か複数かをここで確定する。** 複数なら `Carousel` を使い、単一なら使わない(部品は `components` にあるので、判断は使う / 使わないだけである)
 - **完了条件**: 存在しない ID で `not-found.tsx` が出る。adapters が投げた分類ごとに適切なエラー画面が出る。`reset()` による再試行が動く。XSS ペイロードを含む description が無害化される
 - **依存**: P4-5
+- **状態**: **完了**（#156）
 
 ### P5-2: U2 商品一覧の完成 + ページネーション基盤
 
@@ -1113,6 +1114,7 @@ sources:
 - **総件数**: cursor ページネーションは総数を持たないため、一覧の応答からは取り出せない。`GET /v1/products/count` が一覧と同じ条件を受け取って返す。条件を渡さない口にすると、絞り込んだ後も絞り込む前の数が出て並んでいる件数と食い違う
 - **完了条件**: フィルタ / sort / keyword が URL に反映され、リロード・共有で再現する。不正な `searchParams` で 400 相当の表示になる。ブラウザバックでスクロール位置が復元される(`rules.md` #24)。条件を変えると総件数が追随し、総件数の取得だけが失敗しても一覧は出る
 - **依存**: P4-5
+- **状態**: **完了**。#158 で着地し、#248 で絞り込みを作り直し、#263 で URL 長の予算ガードを足した
 
 ### P5-3: U1 トップ + マスタ API
 
@@ -1122,6 +1124,7 @@ sources:
 - **設計**: ランキング・新着・カテゴリ導線を並置するだけなので RSC 内で `Promise.all`。パーソナライズなし。マスタ系(categories / statuses)はキャッシュ opt-in の対象([0040](../adr/0040-routing-rendering-strategy.md))
 - **完了条件**: 3 系統が並行取得される(直列になっていないことをテストで確認)。一部の系統が失敗しても他が表示される(部分エラー = `rules.md` #18)
 - **依存**: P5-2
+- **状態**: **完了**（#187）
 
 ### P5-4: 認証基盤(U9)
 
@@ -1146,6 +1149,7 @@ sources:
 - **強制手段**: 型(session 型は payload 最小)+ テスト(cookie 属性・リダイレクト・状態破棄)+ 環境ガード(本番で起動拒否)
 - **完了条件**: 未認証で保護ルートへアクセスすると `returnUrl` 付きでログインへリダイレクトされる。ログアウトで cookie と client 状態が破棄される。session cookie が httpOnly + Secure + SameSite で発行される。ブラウザの JS から Access Token が観測できない。**テスト専用経路が本番ビルドで無効化されることをテストで確認**
 - **依存**: P4-3, P4-5
+- **状態**: **完了**（#208）
 
 ### P5-5: U4 カート(stores カーネル)
 
@@ -1169,6 +1173,7 @@ sources:
 - **この PR で併せて確定したこと(計画外)**: 画面仕様の置き場と構造。`docs/spec/route/**` へ `src/app` の階層を写し、画面ごとに**機能要件(`*.function.md`)と画面要件(`*.screen.md`)の 2 層**へ分ける。layout の仕様は配下すべてに効く。仕様書は契約 / token / `rules.md` / 部品カタログ / ADR を指すだけで写さない。既存の 5 本(account 2 / site-info 3)も同じ形へ移した。**P5-18 に残るのは生成 scaffold の採否だけ**になる(詳細は [`docs/spec/README.md`](../spec/README.md))
 - **完了条件**: カートページが動く。サイドバーの「カートを見る」が U4 へ、「購入手続きへ」が U5 へ遷移する。**リロードで消えない**。未ログイン(ゲスト)でも使える。買えない明細・値の変わった明細が画面に出て、小計は買える明細だけの合算である。ログイン時にゲストのカートが引き継がれる。`stores` の store が乱立していない
 - **依存**: P5-1, P5-4(ゲストトークンの持ち回りと引き継ぎが BFF に入るため)
+- **状態**: **完了**（#247）
 
 ### P5-6: U5 購入確認 + 通貨・為替
 
@@ -1184,6 +1189,7 @@ sources:
 - **注意**: **明細は client から引き継がず、この画面が `GET /v1/carts/me` で取り直す**。再評価が入るため、U4 で見た時点から買えなくなった明細・値の変わった明細がここで初めて現れうる。買える明細が 1 件も無い状態で購入へ進ませない
 - **完了条件**: JPY 表示切替が動く。`exchange-rates` を落としても購入導線が生きている。金額の丸め・桁区切りがロケール依存で正しい。カートからの「購入手続きへ」が着地する。**U4 から遷移する間に買えなくなった明細が、この画面で利用者に伝わる**
 - **依存**: P5-5, P5-4
+- **状態**: **完了**。#261 で P5-7 と同一 PR として着地した
 
 ### P5-7: U6 購入完了 + `ActionState<T>`(B8)
 
@@ -1197,6 +1203,7 @@ sources:
 - **注意**: **二重送信防止 = submit disabled + Idempotency-Key**(`rules.md` #12)。二重クリック / リロードでの二重購入を防ぐ。409(在庫不足)の表示経路を持つ。CSRF は Server Actions の `allowedOrigins`(`rules.md` #47)
 - **完了条件**: 成功 / 検証エラー / 在庫不足 409 の 3 経路が動く。同じ Idempotency-Key での再送で二重購入が発生しない。`ActionState<T>` が `model` にあり、全 Server Action がこれを返す。live region がスクリーンリーダに読まれる
 - **依存**: P5-6
+- **状態**: **完了**。#261 で P5-6 と同一 PR として着地した
 
 ### P5-8: U7 購入履歴 + U8 購入詳細
 
@@ -1209,6 +1216,7 @@ sources:
 - **強制手段**: ESLint boundaries(client から外部オリジンへの直 fetch を禁止)+ テスト
 - **完了条件**: スクロールで追加読み込みされる。取得中・末尾到達・エラーの 3 状態が表示される。詳細で JOIN 済み明細が表示される。**client から外部オリジンへ直接 fetch していない**。**期間で絞れる**(契約側のクエリ追加を含む)
 - **依存**: P5-7
+- **状態**: **完了**（#267）
 
 ### P5-9: U11 マイページ + U12 ユーザー更新(CollectAll)
 
@@ -1222,6 +1230,7 @@ sources:
 - **P5-4 からの申し送り — `verifySession()` のメモ化を実機で確かめる**: `src/adapters/server/auth/session.ts` は `readSessionRecord` / `verifySession` を React の `cache()` で包み、「復号は 1 リクエストにつき 1 度」を設計意図としている。しかし **Vitest は `react-server` 条件で解決しないため、公開 `react` の `cache` は素通しの実装になり、メモ化されているかをテストで確かめられない**。P5-4 の時点では `verifySession()` を呼ぶ画面が無く、実機でも踏めなかった。**この PR が最初の消費者になる**ので、`resolver.restore` の呼び出し回数を一時的に数え、同一リクエスト内で複数回 `verifySession()` を通しても 1 度で済むことを `pnpm build && pnpm start` の実プロセスで確認する。畳めていなければ `cache()` を外し、呼び出し側で 1 度だけ引く形へ倒す(効いていない機構をコメントで主張しない)
 - **完了条件**: プロフィール編集が動く。退会に確認モーダルがある。結果整合を前提とした文言になっている。`verifySession()` のメモ化が実機で確認済み、または `cache()` を外して呼び出し規約へ移してある
 - **依存**: P5-4
+- **状態**: **完了**（#229）
 
 ### P5-10: U10 登録(オンボーディング)+ 住所補完
 
@@ -1233,6 +1242,7 @@ sources:
 - **画面判断**: 都道府県などの選択項目も U12 と同じ基準で `SelectNative` / `ComboboxClient` を選ぶ(P5-9 の判断に揃える)
 - **完了条件**: 住所補完が動く。`addresses` API を落としても手入力で登録が完了する
 - **依存**: P5-9
+- **状態**: **完了**（#272）
 
 ### P5-11: admin シェル + RBAC + A2 商品一覧
 
@@ -1248,6 +1258,7 @@ sources:
 - **参照する Blocks**: `sidebar-03` / `sidebar-07`(submenu・折り畳み・breadcrumb と sidebar の組み合わせ)、`dashboard-01`(summary card と data table の併置)。いずれも固定 JSON を持つため、server-driven な検索・ページングへ差し替えて再構成する
 - **完了条件**: 非 admin が admin 画面へ到達しない(optimistic = proxy のリダイレクト / 確定 = データ取得時 403)。非 admin には admin 導線自体が出ない。RBAC ヘルパが manifest の破棄対象に入っていない
 - **依存**: P5-4, P5-2
+- **状態**: **完了**（#273）
 
 ### P5-12: A6 商品作成 / A7 商品編集
 
@@ -1271,6 +1282,7 @@ sources:
 - **注意**: Server Action は進捗イベントを持たないため、アップロード進捗表示は実装しない
 - **完了条件**: 商品の作成・編集が動く。画像をアップロードすると一覧に反映される。上限超過(413)/ 未対応 content-type(415)がエラー表示される。409 で再読み込み導線が出る
 - **依存**: P5-11
+- **状態**: **完了**（#274）
 
 ### P5-13: A3 商品補充 + A5 ユーザー一覧
 
@@ -1281,6 +1293,7 @@ sources:
 - **設計**: A3 は**在庫数のみ**を更新する(他項目は A7 の担当)。A5 の退会は**確認モーダル必須**で、キャンセル・在庫復元は非同期の結果整合のため**即時反映を保証しない文言**にする
 - **完了条件**: 在庫補充が動く。退会に確認モーダルがある。進行中購入がある場合の 409 が表示される
 - **依存**: P5-11
+- **状態**: **完了**（#275）
 
 ### P5-14: A1 ダッシュボード + A4 集計
 
@@ -1291,6 +1304,7 @@ sources:
 - **参照する Blocks**: `dashboard-01`(summary card と data table の併置)。固定 JSON は使わず、backend 合成済みの値へ差し替える
 - **完了条件**: ダッシュボードが表示される。フロント側に集計ロジックが存在しない(コードレビューで確認)
 - **依存**: P5-11
+- **状態**: **完了**（#276）
 
 ### P5-15: purchases ステータス遷移
 
@@ -1341,52 +1355,6 @@ sources:
 - **完了条件**: 採否が BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の IM-26 へ反映されている。採用する場合は P4-6 の改修 PR が起票されている
 - **依存**: P5-16, P4-6
 
-### 拡張枠(EX): リアルタイム型お問い合わせチャット
-
-3.13 の位置づけに従う枠であり、**v1.0.0 の完了条件に含めない**。着手は backend の stream 機構が契約として公開されることを前提とする。
-
-3 本に割るのは、寿命が違うものを同じ diff に混ぜないためである。EX1 は前提文書、EX2 は fork 後も残る機構、EX3 は fork 時に破棄するサンプルであり、破棄 manifest(P7-1)への入力もそれぞれ異なる。
-
-会話系の component(`Message` / `Bubble` / `MessageScroller` / `Marker`)は、この枠以外に設置面を持たない。admin 画面をいくら積んでも埋まらないため、Phase 5 の他の PR では代替できない。
-
-### P5-EX1: ストリーム前提の文書反映
-
-- **目的**: stream 機構の設置面が確定したことを、前提側の文書へ反映する
-- **対象 ADR**: [0074](../adr/0074-runtime-communication-seam.md)
-- **主な変更先**: `docs/adr/0074-runtime-communication-seam.md` / `docs/screens.md` / `mocks/README.md`
-- **設計**: 0074 の「v1 では購読 seam をコードとして置かない」は、設置面が無いことを理由にしている。理由が消えるので、**設置面が実在する場合に実体化する**形へ書き換える。3.4 の滑走路原則そのものは変えない — 原則の適用結果が変わるだけである
-- **強制手段**: 散文のみ
-- **完了条件**: 0074 の本文が実体化の前提と契約(3.13 の表)を持つ。`docs/screens.md` の除外事項からリアルタイム機能が外れ、画面一覧に U13 / U14 が入る。`mocks/README.md` に SSE を差し替えない旨と、その理由が入る
-- **依存**: —
-
-### P5-EX2: 購読 seam の実体化(subscription adapter)
-
-- **目的**: [0074](../adr/0074-runtime-communication-seam.md) が座標だけ持っていた購読 seam を、動く実体として置く。**コア残留**
-- **対象 ADR**: [0074](../adr/0074-runtime-communication-seam.md) / [0024](../adr/0024-adapters-server-client-split.md) / [0021](../adr/0021-frontend-responsibility.md) / [0080](../adr/0080-error-handling.md)
-- **主な変更先**: `src/adapters/client/stream/` / `src/errors/redact.ts` / ticket 発行の Route Handler(`src/app/api/`)
-- **設計**: `EventSource` の組み込み再接続は使わない。backoff と jitter を自前で持つ以上、間隔をサーバの `retry:` でしか動かせない組み込み再接続とは共存できないため、`onerror` で即 `close()` して自前で張り直す。結果として `Last-Event-ID` ヘッダは使わず、cursor は毎回明示的に渡す
-- **設計**: 到達順が保証されないため、受信を短い時間窓で溜めて sequence 昇順へ整列してから上へ流す。窓を超えて遅れて届いたものは、描画済みの位置へ挿入すると append-only が崩れるので History を取り直して整合させる。歯抜けが正常である以上「穴が埋まるまで待つ」判断は成立しない
-- **設計**: 再接続ループが止まらない経路を作らない。ticket 取得の 401 はセッション切れとして打ち切り、再ログイン導線へ落とす。stream の 403 は権限喪失として打ち切る。5xx とネットワーク断だけが backoff の対象になる
-- **注意**: ticket は URL に載るため、接続エラーを `logging` へ送る経路で `redact` の対象に加える
-- **強制手段**: ESLint boundaries(`features` / `components` からの直接購読を禁止)+ テスト
-- **完了条件**: 切断 → 再接続 → resume で状態が復元される。重複配信と順不同到達を注入したテストが通る。ticket がログへ出ない。生の接続エラーが `errors` の分類へ正規化され、上位へ漏れない
-- **依存**: P5-EX1, P4-3
-
-### P5-EX3: U13 お問い合わせ一覧 + U14 チャット画面
-
-- **目的**: 会話系 component を実データ・実操作へ配線する。**破棄対象**
-- **対象 ADR**: [0061](../adr/0061-form-mutation-ux.md) / [0063](../adr/0063-mutation-result-notification.md) / [0060](../adr/0060-state-management.md) / [0091](../adr/0091-test-verification-methods.md)
-- **主な変更先**: `src/app/(shop)/inquiries/page.tsx` / `[threadId]/page.tsx` / `src/features/inquiry/`
-- **設計**: 初期表示は RSC が History API の message projection を取得する。以降は購読が渡す差分を feature の reducer が畳む。メッセージ列は feature の local state に置き、`stores` へは載せない — server state の二重キャッシュを禁じる [0060](../adr/0060-state-management.md) / [0023](../adr/0023-stores-kernel.md) に対し、差分は「まだ取り直していない追記分」であって server state の写しではないためである。画面を離れれば RSC が最新を返すので、消えても正しさが壊れない
-- **設計**: 送信は Server Action + `Idempotency-Key`。`clientMessageId` の echo で、楽観追加した自分の発言と受信したものを突合する。突合できないと自分の発言が二重に並ぶ
-- **使う component**: `Message` / `Bubble` / `MessageScroller` / `Marker` / `Avatar`。一覧側に `List` / `CursorPagination` / `FeedbackState`
-- **入口**: 商品一覧(U2)の在庫なしの商品に置く「お問い合わせ」がこの画面へ入る。**在庫の再入荷を尋ねる先が要る**ためで、この枠が着地するまでは押しても案内だけを出す。入口を先に置いておくのは、後から導線を足すと在庫なしのカードの構成を組み直すことになるからである
-- **画面判断**: 送信欄は `Textarea` を使う。`RichTextEditor` の設置面は商品登録(P5-12)であり、問い合わせの入力に書式は要らない
-- **a11y**: `MessageScrollerContent` の `log` は追加だけを通知する。配送状態・既読の変化は `MessageFooter` の表示更新に留め、`log` で読み上げさせない
-- **範囲外**: admin 返信画面は作らない。開発時の返信は backend の dev モックオペレータに依存する。添付も扱わない(3.13)
-- **完了条件**: 送信 → オペレータ返信の受信 → 切断 → 復帰 が通る。楽観追加した自分の発言が二重表示されない。`APP_API_MODE=mock` ではこの画面が動かないことが `docs/screens.md` に書かれている
-- **依存**: P5-EX2, P5-4
-
 ## Phase 6: 非機能
 
 機能が出揃ってから掛ける横断的関心事。
@@ -1429,8 +1397,13 @@ sources:
   - `src/app/fonts.ts` — `next/font`
   - `src/proxy.ts` — matcher から metadata ルートを除外
 - **注意**: preview / staging は `noindex` を強制する(`rules.md` #63)。アイコン体系は [0044](../adr/0044-seo-metadata-strategy.md) が持ち、[0045](../adr/0045-fonts-and-images.md) は静的 favicon の配置のみ
-- **強制手段**: CI(生成物の存在検査)+ 散文のみ(環境別 noindex は env 経由)
-- **完了条件**: `/sitemap.xml` / `/robots.txt` が生成される。詳細ページに canonical と JSON-LD が出る。preview 環境が `noindex` になる
+- **設計**: **検査は「在るか」ではなく「公開面として成立しているか」を見る。** 存在検査だけを置くと、空の `sitemap.xml`・他人を指す canonical・実行時に落ちる OG 画像が、いずれも緑で通る。metadata は**中身が壊れていても画面が壊れない**ため、通常のテストとレビューでは気づけない。見る対象は 4 つ:
+  - `sitemap.xml` が挙げる URL が実在する(404 を挙げていない)
+  - 各ページの canonical が自分自身を指す
+  - `opengraph-image` が画像を返す(`ImageResponse` は build を通っても実行時に落ちうる)
+  - `robots.txt` と `noindex` が `APP_ENV` で切り替わる
+- **強制手段**: CI(公開面の内容検査。上の 4 点)+ 散文のみ(環境別 noindex は env 経由)
+- **完了条件**: `/sitemap.xml` / `/robots.txt` が生成される。詳細ページに canonical と JSON-LD が出る。preview 環境が `noindex` になる。**上の 4 点が CI で緑になる**
 - **依存**: P5-1, **P5-4**(`src/proxy.ts` を新設するのは P5-4 のため)
 
 ### P6-4: E2E + visual regression
@@ -1667,6 +1640,56 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **依存**: **P9-7 を除く全 PR**
 
 > **v1 対象外**: B11(構造 CI ゲート = README 必須節 / feature 完全性 lint / README 列挙 export と実ファイルの突合)は v1.x.x で追加する。
+
+---
+
+## 拡張枠(EX): リアルタイム型お問い合わせチャット
+
+3.13 の位置づけに従う枠であり、**v1.0.0 の完了条件に含めない**。着手は backend の stream 機構が契約として公開されることを前提とする。
+
+**どの Phase にも属させない。** 着手時期が backend 側の工程に従属するため、Phase の中に置くとその Phase の完了までが同じ従属を負う。番号も `P<Phase>-` 系列から外し `EX-N` とする。
+
+3 本に割るのは、寿命が違うものを同じ diff に混ぜないためである。EX-1 は前提文書、EX-2 は fork 後も残る機構、EX-3 は fork 時に破棄するサンプルであり、破棄 manifest(P7-1)への入力もそれぞれ異なる。
+
+会話系の component(`Message` / `Bubble` / `MessageScroller` / `Marker`)は、この枠以外に設置面を持たない。admin 画面をいくら積んでも埋まらないため、Phase 5 の他の PR では代替できない。
+
+### EX-1: ストリーム前提の文書反映
+
+- **目的**: stream 機構の設置面が確定したことを、前提側の文書へ反映する
+- **対象 ADR**: [0074](../adr/0074-runtime-communication-seam.md)
+- **主な変更先**: `docs/adr/0074-runtime-communication-seam.md` / `docs/screens.md` / `mocks/README.md`
+- **設計**: 0074 の「v1 では購読 seam をコードとして置かない」は、設置面が無いことを理由にしている。理由が消えるので、**設置面が実在する場合に実体化する**形へ書き換える。3.4 の滑走路原則そのものは変えない — 原則の適用結果が変わるだけである
+- **強制手段**: 散文のみ
+- **完了条件**: 0074 の本文が実体化の前提と契約(3.13 の表)を持つ。`docs/screens.md` の除外事項からリアルタイム機能が外れ、画面一覧に U13 / U14 が入る。`mocks/README.md` に SSE を差し替えない旨と、その理由が入る
+- **依存**: —
+
+### EX-2: 購読 seam の実体化(subscription adapter)
+
+- **目的**: [0074](../adr/0074-runtime-communication-seam.md) が座標だけ持っていた購読 seam を、動く実体として置く。**コア残留**
+- **対象 ADR**: [0074](../adr/0074-runtime-communication-seam.md) / [0024](../adr/0024-adapters-server-client-split.md) / [0021](../adr/0021-frontend-responsibility.md) / [0080](../adr/0080-error-handling.md)
+- **主な変更先**: `src/adapters/client/stream/` / `src/errors/redact.ts` / ticket 発行の Route Handler(`src/app/api/`)
+- **設計**: `EventSource` の組み込み再接続は使わない。backoff と jitter を自前で持つ以上、間隔をサーバの `retry:` でしか動かせない組み込み再接続とは共存できないため、`onerror` で即 `close()` して自前で張り直す。結果として `Last-Event-ID` ヘッダは使わず、cursor は毎回明示的に渡す
+- **設計**: 到達順が保証されないため、受信を短い時間窓で溜めて sequence 昇順へ整列してから上へ流す。窓を超えて遅れて届いたものは、描画済みの位置へ挿入すると append-only が崩れるので History を取り直して整合させる。歯抜けが正常である以上「穴が埋まるまで待つ」判断は成立しない
+- **設計**: 再接続ループが止まらない経路を作らない。ticket 取得の 401 はセッション切れとして打ち切り、再ログイン導線へ落とす。stream の 403 は権限喪失として打ち切る。5xx とネットワーク断だけが backoff の対象になる
+- **注意**: ticket は URL に載るため、接続エラーを `logging` へ送る経路で `redact` の対象に加える
+- **強制手段**: ESLint boundaries(`features` / `components` からの直接購読を禁止)+ テスト
+- **完了条件**: 切断 → 再接続 → resume で状態が復元される。重複配信と順不同到達を注入したテストが通る。ticket がログへ出ない。生の接続エラーが `errors` の分類へ正規化され、上位へ漏れない
+- **依存**: EX-1, P4-3
+
+### EX-3: U13 お問い合わせ一覧 + U14 チャット画面
+
+- **目的**: 会話系 component を実データ・実操作へ配線する。**破棄対象**
+- **対象 ADR**: [0061](../adr/0061-form-mutation-ux.md) / [0063](../adr/0063-mutation-result-notification.md) / [0060](../adr/0060-state-management.md) / [0091](../adr/0091-test-verification-methods.md)
+- **主な変更先**: `src/app/(shop)/inquiries/page.tsx` / `[threadId]/page.tsx` / `src/features/inquiry/`
+- **設計**: 初期表示は RSC が History API の message projection を取得する。以降は購読が渡す差分を feature の reducer が畳む。メッセージ列は feature の local state に置き、`stores` へは載せない — server state の二重キャッシュを禁じる [0060](../adr/0060-state-management.md) / [0023](../adr/0023-stores-kernel.md) に対し、差分は「まだ取り直していない追記分」であって server state の写しではないためである。画面を離れれば RSC が最新を返すので、消えても正しさが壊れない
+- **設計**: 送信は Server Action + `Idempotency-Key`。`clientMessageId` の echo で、楽観追加した自分の発言と受信したものを突合する。突合できないと自分の発言が二重に並ぶ
+- **使う component**: `Message` / `Bubble` / `MessageScroller` / `Marker` / `Avatar`。一覧側に `List` / `CursorPagination` / `FeedbackState`
+- **入口**: 商品一覧(U2)の在庫なしの商品に置く「お問い合わせ」がこの画面へ入る。**在庫の再入荷を尋ねる先が要る**ためで、この枠が着地するまでは押しても案内だけを出す。入口を先に置いておくのは、後から導線を足すと在庫なしのカードの構成を組み直すことになるからである
+- **画面判断**: 送信欄は `Textarea` を使う。`RichTextEditor` の設置面は商品登録(P5-12)であり、問い合わせの入力に書式は要らない
+- **a11y**: `MessageScrollerContent` の `log` は追加だけを通知する。配送状態・既読の変化は `MessageFooter` の表示更新に留め、`log` で読み上げさせない
+- **範囲外**: admin 返信画面は作らない。開発時の返信は backend の dev モックオペレータに依存する。添付も扱わない(3.13)
+- **完了条件**: 送信 → オペレータ返信の受信 → 切断 → 復帰 が通る。楽観追加した自分の発言が二重表示されない。`APP_API_MODE=mock` ではこの画面が動かないことが `docs/screens.md` に書かれている
+- **依存**: EX-2, P5-4
 
 ---
 

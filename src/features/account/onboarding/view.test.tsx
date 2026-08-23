@@ -88,7 +88,7 @@ describe("OnboardingView", () => {
     renderView();
 
     expect(screen.getByLabelText("名字")).toBeVisible();
-    expect(screen.getByLabelText("郵便番号")).not.toBeVisible();
+    expect(screen.queryByLabelText("郵便番号")).not.toBeInTheDocument();
   });
 
   it("段を埋めると次へ進める", async () => {
