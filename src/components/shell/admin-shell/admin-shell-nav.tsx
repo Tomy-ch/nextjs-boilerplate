@@ -42,7 +42,7 @@ export function AdminShellNav({ groups, label, className }: AdminShellNavProps) 
     <nav aria-label={label} className={cn("flex flex-col gap-3", className)}>
       {groups.map((group) => (
         <details className="group/nav-group" key={group.label} open>
-          <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md px-2 py-1.5 text-xs font-emphasis text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground [&::-webkit-details-marker]:hidden">
             <ChevronRightIcon
               aria-hidden="true"
               className="size-3.5 shrink-0 transition-transform group-open/nav-group:rotate-90"
@@ -60,7 +60,7 @@ export function AdminShellNav({ groups, label, className }: AdminShellNavProps) 
                     aria-current={current ? "page" : undefined}
                     className={cn(
                       "block rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
-                      current && "bg-accent font-medium text-accent-foreground",
+                      current && "bg-accent font-emphasis text-accent-foreground",
                     )}
                   >
                     {item.label}

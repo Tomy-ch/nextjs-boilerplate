@@ -44,6 +44,13 @@ function Subject({ onVisible, enabled }: { onVisible: () => void; enabled?: bool
   return <div data-testid="sentinel" ref={ref} />;
 }
 
+/** 既定のまま使う呼び出し元。余白も有効・無効の指定も渡さない。 */
+function BareSubject({ onVisible }: { onVisible: () => void }) {
+  const ref = useOnVisible(onVisible);
+
+  return <div data-testid="sentinel" ref={ref} />;
+}
+
 describe("useOnVisible", () => {
   // ----- 正常系 -----
   it("渡した要素を見張る", () => {
@@ -51,6 +58,13 @@ describe("useOnVisible", () => {
 
     expect(observed).toEqual([getByTestId("sentinel")]);
     expect(options).toEqual({ rootMargin: "400px" });
+  });
+
+  it("指定を省くと、余白なしで見張る", () => {
+    const { getByTestId } = render(<BareSubject onVisible={noop} />);
+
+    expect(observed).toEqual([getByTestId("sentinel")]);
+    expect(options?.rootMargin).toBeUndefined();
   });
 
   it("見えたら知らせる", () => {

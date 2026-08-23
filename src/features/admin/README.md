@@ -46,7 +46,8 @@ test-requirement: feature
 | `dashboard/view.tsx` | 入口の画面。数値カードと内訳、期間指定への導線 |
 | `analytics/view.tsx` | 集計の画面。期間の選択の下へ、取り直す区画を slot で受ける |
 | `ui/stat-cards/` | 数値カードの並び。注記を値と同じ枠に置く |
-| `ui/status-chart/` | ステータス別件数の横棒。描画に実寸が要る client island |
+| `ui/status-chart/` | 横棒を**いつ読むか**だけを持つ。最初に読む一式から外す（取得は描画の直後に始まる） |
+| `ui/status-bars/` | 横棒の描画そのもの。実寸が要る client island |
 | `ui/status-breakdown/` | 横棒と数値表の併置。合計は出さない |
 | `analytics/ui/period-switch/` | 集計対象期間の選び直し。日付の要らない 2 つは link |
 | `analytics/ui/period-caption/` | いま出ている数がどの暦日の話かを添える |
@@ -69,6 +70,7 @@ test-requirement: feature
 | `products/image-rejection.ts` | 弾かれたファイルの言い方と、大きさの整形 |
 | `products/ui/text-field/` `products/ui/select-field/` | 入力 1 項目。値は呼び出し元が持つ |
 | `products/ui/basics-section/` `description-section/` `images-section/` `publish-section/` `confirm-section/` | 作成と編集が共有する段の中身。自分が段であることは知らない |
+| ↳ `description-editor.tsx` / `confirm-details.tsx` | 重い部品を**いつ読むか**と、**何を描くか**の分かれ目。器へ読み込みの都合を混ぜないため分けてある |
 | `products/ui/submit-button/` `products/ui/form-feedback/` | 送信の操作と、送信の結果 |
 | `products/list/query.ts` | 一覧の URL 契約（絞り込みとページ送りの位置）とキーの呼び名。通ってきた道もここが持つ |
 | `products/list/page-size.ts` | 1 ページに並べる件数 |

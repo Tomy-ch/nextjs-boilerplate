@@ -19,9 +19,17 @@ describe("claudeConfigDir", () => {
   it("空文字の指定は無指定として扱う", () => {
     expect(claudeConfigDir({ CLAUDE_CONFIG_DIR: "" })).toBe(path.join(os.homedir(), ".claude"));
   });
+
+  it("環境を渡さなければ、この処理の環境を見る", () => {
+    expect(claudeConfigDir()).toBe(claudeConfigDir(process.env));
+  });
 });
 
 describe("externalSkills", () => {
+  it("環境を渡さなければ、この処理の環境を見る", () => {
+    expect(externalSkills()).toEqual(externalSkills(process.env));
+  });
+
   // ----- 正常系 -----
   it("graphify を Claude Code 向けの引数で導入対象にする", () => {
     const [skill] = externalSkills({ CLAUDE_CONFIG_DIR: "/tmp/claude" });

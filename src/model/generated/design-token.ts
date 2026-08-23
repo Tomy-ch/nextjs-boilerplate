@@ -40,7 +40,6 @@ export const SEMANTIC_TOKEN = {
   ],
   "font-weight": [
     "emphasis",
-    "strong",
   ],
   shadow: [
     "panel",
@@ -145,8 +144,7 @@ export const PRIMITIVE_TOKEN = {
   ],
   font: [
     "michroma",
-    "line-seed",
-    "plex-jp",
+    "system-jp",
     "geist-mono",
   ],
   breakpoint: [

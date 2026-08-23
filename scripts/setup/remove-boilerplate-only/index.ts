@@ -10,11 +10,13 @@ import { listFilesRecursive, removeTarget, toRelativePath, updateFile } from "..
 import { stripMarkers } from "../lib/markers.js";
 import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
 import {
+  ACTIONS_PIN_LOCK_FILE,
   BINARY_EXTENSIONS,
   BOILERPLATE_ONLY_MARKER,
   EXCLUDED_DIRECTORIES,
   SELF_DESTRUCT_PATHS,
 } from "./manifest.js";
+import { dropOrphanedPins, ORPHANED_ACTIONS } from "./pins.js";
 
 function printUsage(): void {
   console.log(
@@ -59,6 +61,14 @@ function run(dryRun: boolean): void {
     }
   }
 
+  // 消える workflow だけが使っていた pin は、消した時点で孤児になる。孤児のエントリは
+  // `make actions-pin-check` が落とすので、剥がした人の手元で初めて赤くなる。ここで一緒に落とす。
+  const prunedPins = updateFile(
+    ACTIONS_PIN_LOCK_FILE,
+    (content) => dropOrphanedPins(content, ORPHANED_ACTIONS),
+    dryRun,
+  );
+
   const deleted: string[] = [];
 
   // 自消滅は最後に行う。先に消すと、剥がしの途中で落ちたときに道具だけが失われる。
@@ -74,6 +84,10 @@ function run(dryRun: boolean): void {
     `${dryRun ? "ドライラン" : "剥がし完了"}: マーカー ${stripped.length} / 自消滅 ${deleted.length}`,
   );
 
+  if (prunedPins !== null) {
+    console.log(`- pin 除去 ${ACTIONS_PIN_LOCK_FILE}`);
+  }
+
   for (const entry of stripped) {
     console.log(`- マーカー除去 ${entry}`);
   }
@@ -83,7 +97,7 @@ function run(dryRun: boolean): void {
   }
 }
 
-/* v8 ignore start -- CLI entry。起動経路は make setup-remove-boilerplate-only が実地で通す。 */
+/* istanbul ignore next -- CLI entry。起動経路は make setup-remove-boilerplate-only が実地で通す。 */
 function main(): void {
   const options = parseCommonFlags(process.argv.slice(2));
 
@@ -100,4 +114,3 @@ try {
 } catch (error) {
   exitWithUsage(error instanceof Error ? error : new Error(String(error)), printUsage);
 }
-/* v8 ignore stop */

@@ -40,7 +40,7 @@ const HIGH_INDEXES: readonly number[] = PRICE_SCALE.map((_, index) => index).sli
  * 型が保証しないぶんの補いです。
  */
 function toRange(values: number[]): PriceRange {
-  /* v8 ignore next 2 -- 端は TS の絞り込みのためだけで、操作面は渡した数と同じ数の位置を返す。 */
+  /* istanbul ignore next -- 端は TS の絞り込みのためだけで、操作面は渡した数と同じ数の位置を返す。 */
   return [values[0] ?? PRICE_RANGE_MIN, values[1] ?? PRICE_RANGE_MAX];
 }
 

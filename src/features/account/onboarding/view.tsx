@@ -15,7 +15,7 @@ import { registerAction } from "../actions";
 import type { ProfileFormState } from "../form-state";
 import { ProfileSubmitButton } from "../ui/submit-button/submit-button";
 import { useProfileFields } from "../use-profile-fields";
-import { RETURN_URL_FIELD } from "./parse-registration-form";
+import { RETURN_URL_FIELD } from "./form-names";
 import { ADDRESS_FIELDS, BASICS_FIELDS, isStepComplete, STEP_IDS } from "./steps";
 import { RegistrationAddressSection } from "./ui/address-section/address-section";
 import { RegistrationBasicsSection } from "./ui/basics-section/basics-section";

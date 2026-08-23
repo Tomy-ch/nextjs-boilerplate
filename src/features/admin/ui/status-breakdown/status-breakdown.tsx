@@ -43,7 +43,7 @@ const TITLE = "ステータス別の件数";
 export function StatusBreakdown({ counts }: StatusBreakdownProps) {
   return (
     <section>
-      <h2 className="text-lg font-strong">{TITLE}</h2>
+      <h2 className="text-lg font-emphasis">{TITLE}</h2>
       {counts.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">この期間に注文された購入はありません。</p>
       ) : (

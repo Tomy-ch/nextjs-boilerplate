@@ -40,7 +40,7 @@ const COLUMNS: readonly StaticDataTableColumn<AdminRankingRow>[] = [
     id: "name",
     header: "商品名",
     cell: (row) => (
-      <Link className={`${FOCUS_RING} font-medium`} href={productDetailPath(row.id)}>
+      <Link className={`${FOCUS_RING} font-emphasis`} href={productDetailPath(row.id)}>
         {row.name}
       </Link>
     ),
@@ -87,7 +87,7 @@ function rowKey(row: AdminRankingRow): string {
 export function RankingTable({ rows }: RankingTableProps) {
   return (
     <section>
-      <h2 className="text-lg font-strong">{`${TITLE}（直近 30 日）`}</h2>
+      <h2 className="text-lg font-emphasis">{`${TITLE}（直近 30 日）`}</h2>
       <div className="mt-4">
         <StaticDataTable
           columns={COLUMNS}

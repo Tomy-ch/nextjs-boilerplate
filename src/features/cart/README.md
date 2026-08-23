@@ -64,9 +64,16 @@ coverage-exclusions:
 | `ui/remove-button/` | 明細 1 行の削除 |
 | `ui/clear-button/` | カートを空にする。確認を挟む |
 | `ui/action-error/` | 操作が失敗したことを、その操作の隣に出す |
-| `ui/skeleton/` | 待機表示 |
 
 ## 運用
+
+- **待機表示を持ちません。** カートの画面は外枠（`app/(shop)/layout.tsx`）が既に読んだカートと
+  同じものを描きます。取得は 1 リクエストの中で memo 化されるため（`adapters/server/api/cart.ts`）、
+  外枠が出せる時点で画面の中身も揃っています。**同時に届くものを別々の `<Suspense>` 境界へ割ると、
+  画面が二度継ぎ足されて読み始めた位置が動きます**（[0040](../../../docs/adr/0040-routing-rendering-strategy.md)
+  の「境界は待つものの単位で置く」/ [0080](../../../docs/adr/0080-error-handling.md) §4 の「所有しない
+  状態の部品を残さない」）。明細の行数は取得するまで決まらないため、骨組みを置くと必ず高さが食い違い、
+  下の要素がまとめて動きます
 
 - **中身はバックエンドが持ちます**。取得は Server Component が行い、client の器へ props で渡します。
   写しを `stores` に置くと鮮度の管理が client 側にも生まれます（[0023](../../../docs/adr/0023-stores-kernel.md)）

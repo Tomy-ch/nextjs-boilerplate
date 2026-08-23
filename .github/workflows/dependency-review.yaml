@@ -1,5 +1,15 @@
 name: Dependency Review
 
+# BOILERPLATE-ONLY. This workflow is removed by `make setup-remove-boilerplate-only`,
+# and it is declared in that script's manifest rather than marked in place, because a
+# whole file cannot carry a marker that survives its own deletion.
+#
+# It is kept to this repository's own operation because the API it calls is free only
+# on a public repository; on a private one it needs a GitHub Advanced Security (Code
+# Security) licence. Shipping it as a default would hand every repository made from
+# this template a check that either costs money or stays red for a reason no code
+# change can fix.
+
 # The one question the other dependency scanners do not ask: what did THIS pull
 # request add. Trivy, `pnpm audit` and OSV all read the tree as it stands, so a
 # vulnerability inherited from before is indistinguishable from one just introduced —
@@ -11,8 +21,14 @@ name: Dependency Review
 # moves — an override, a workspace field, an action pin all do — and the action simply
 # reports no change when the graph did not move.
 #
-# GitHub's dependency graph must be enabled for this to return anything; on a public
-# repository it is on by default.
+# GITHUB'S DEPENDENCY GRAPH MUST BE ENABLED. Without it the action does not degrade —
+# it fails with "Dependency review is not supported on this repository", and no change
+# to the code can fix that. It is a one-time repository setting, listed in
+# `docs/get-started/setup-repository.md` §3 beside Pages and the required checks.
+#
+# Left failing rather than skipped on purpose. A gate that quietly stands down when
+# the thing it reads is switched off is indistinguishable from one that found nothing,
+# and this is the only layer that sees what a pull request ADDED.
 
 on:
   pull_request:

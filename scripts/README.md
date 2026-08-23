@@ -3,6 +3,7 @@ test-requirement: unit
 coverage-exclusions:
   - "scripts/*/index.ts"
   - "scripts/openapi/check-generated.ts"
+  - "scripts/openapi/extract-limits.ts"
   - "scripts/openapi/fetch-api.ts"
   - "scripts/portal/build-site.ts"
   - "scripts/portal/gen-*.ts"

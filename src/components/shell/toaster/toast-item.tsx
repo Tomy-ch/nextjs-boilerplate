@@ -151,7 +151,7 @@ export function ToastItem({
         role={toast.variant === TOAST_VARIANT.DESTRUCTIVE ? "alert" : "status"}
         variant={toast.variant}
       >
-        <AlertTitle className="font-bold">{toast.title}</AlertTitle>
+        <AlertTitle className="font-emphasis">{toast.title}</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-2">
           <span className="min-w-0 flex-1">{toast.description}</span>
           {toast.action === undefined ? null : (

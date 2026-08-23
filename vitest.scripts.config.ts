@@ -14,7 +14,7 @@ export default defineConfig({
     environment: "node",
     include: ["scripts/**/*.test.ts"],
     coverage: {
-      provider: "v8",
+      provider: "istanbul",
       // アプリ本体の suite と出力先を分ける。pre-push は 2 つの suite を並列に走らせるため、
       // 既定の `coverage/` を共有すると `clean` が相手の `.tmp/` を消し、双方が
       // 「読もうとした中間ファイルが無い」で落ちる。CI はジョブが別なので衝突しない。

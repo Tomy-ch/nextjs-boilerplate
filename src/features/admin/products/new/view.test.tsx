@@ -48,9 +48,13 @@ vi.mock("@/components/app-starter/navigation-guard/navigation-guard", () => ({
   },
 }));
 
-beforeAll(() => {
+// 確認の段は `next/dynamic` で読まれる。先に解決しておかないと、要素を待つ時間の中に module の
+// 読み込みが入る（`docs/testing-conventions.md`「`next/dynamic` を含む木を描くとき」）。
+beforeAll(async () => {
   URL.createObjectURL = vi.fn(() => "blob:preview");
   URL.revokeObjectURL = vi.fn();
+
+  await import("../ui/confirm-section/confirm-details");
 });
 
 beforeEach(() => {
@@ -98,11 +102,19 @@ describe("AdminProductCreateView", () => {
     ).toHaveLength(5);
   });
 
-  it("表示していない段の入力も送信に残す", () => {
+  it("到達していない段は、まだ組み立てない", () => {
     const { container } = renderView();
 
-    // 公開の段は隠れているが、送信の欄としては存在する。
-    expect(container.querySelector('select[name="statusId"]')).toBeInTheDocument();
+    expect(container.querySelector('select[name="statusId"]')).not.toBeInTheDocument();
+  });
+
+  it("通り過ぎた段の入力は、隠れたあとも送信に残す", async () => {
+    const { container } = renderView();
+
+    await fillBasics();
+    await userEvent.click(screen.getByRole("button", { name: "次へ" }));
+
+    expect(container.querySelector('input[name="name"]')).toBeInTheDocument();
   });
 
   it("埋まれば次の段へ進める", async () => {

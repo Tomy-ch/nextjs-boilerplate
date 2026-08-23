@@ -14,6 +14,7 @@ import {
   isServerError,
   isTransportFailure,
 } from "./browser-errors";
+import { TEST_SESSION_ISSUED_STATUS, TEST_SESSION_PATH } from "./dev-session.js";
 
 /**
  * 画像の代わりに返す 1×1 の PNG。
@@ -30,9 +31,6 @@ const PLACEHOLDER_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
 );
-
-/** テスト専用の session を発行する口（`src/app/api/auth/test-session/route.ts`）。 */
-const TEST_SESSION_PATH = "/api/auth/test-session";
 
 type Fixtures = {
   /** ログイン済みの状態を作る。役割を省くと一般利用者になる。 */
@@ -92,7 +90,9 @@ export const test = base.extend<Fixtures>({
 
       // 開いていない環境では 404 が返る。ログインできないまま先へ進むと、保護ルートの検証が
       // 「ログインへ飛ばされた」を正常として読んでしまう。
-      expect(response.status(), `${TEST_SESSION_PATH} が session を発行しませんでした`).toBe(204);
+      expect(response.status(), `${TEST_SESSION_PATH} が session を発行しませんでした`).toBe(
+        TEST_SESSION_ISSUED_STATUS,
+      );
     });
   },
 });

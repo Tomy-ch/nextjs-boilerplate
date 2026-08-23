@@ -47,7 +47,7 @@ const COLUMNS: readonly StaticDataTableColumn<AdminProductRow>[] = [
     header: "商品名",
     cell: (item) => (
       <Link
-        className={`${FOCUS_RING} font-medium after:absolute after:inset-0`}
+        className={`${FOCUS_RING} font-emphasis after:absolute after:inset-0`}
         href={adminProductEditPath(item.id)}
       >
         {item.name}

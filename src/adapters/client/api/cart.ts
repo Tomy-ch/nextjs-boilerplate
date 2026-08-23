@@ -1,4 +1,4 @@
-import { putCartsMeItemBodyQuantityMax } from "../../gen/api/endpoints.zod";
+import { putCartsMeItemBodyQuantityMax } from "../../gen/api/limits";
 
 /**
  * 1 つの明細に指定できる数量の上限。

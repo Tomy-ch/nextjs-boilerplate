@@ -1,9 +1,9 @@
 "use client";
 
 import { FieldDescription } from "@/components/design-system/form/field/field";
-import { RichTextEditor } from "@/components/design-system/rich-text/rich-text-editor/rich-text-editor";
 import { PRODUCT_FORM_NAMES } from "../../form-names";
 import { controlIdOf } from "../../form-sections";
+import { ProductDescriptionEditor } from "./description-editor";
 
 /** `ProductDescriptionSection` の props。 */
 export type ProductDescriptionSectionProps = {
@@ -39,7 +39,7 @@ export function ProductDescriptionSection({
 }: ProductDescriptionSectionProps) {
   return (
     <div className="grid gap-2">
-      <RichTextEditor
+      <ProductDescriptionEditor
         defaultValue={initialValue}
         id={controlIdOf(idPrefix, "description")}
         label="商品説明"

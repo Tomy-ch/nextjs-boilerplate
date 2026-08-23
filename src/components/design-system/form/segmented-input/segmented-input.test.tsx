@@ -76,6 +76,10 @@ function controlOf() {
 }
 
 beforeEach(() => {
+  // **この入力の実体（input-otp）は timer を仕込み、unmount でも取り消さない。** 偽の時計にして、
+  // 残った発火をこの file の teardown 前に捨てる（`docs/testing-conventions.md`
+  // 「テストが起こしたものはテストが畳む」）。実時間で進める指定は `userEvent` の待ちを動かすため。
+  vi.useFakeTimers({ shouldAdvanceTime: true });
   globalThis.ResizeObserver = ResizeObserverStub;
   // jsdom は座標から要素を引く API を持たない。この入力の実体（input-otp）は focus のあと
   // 表示位置を測りに来るため、実際の focus を通す操作で必ずここへ到達する。
@@ -83,6 +87,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
   globalThis.ResizeObserver = originalResizeObserver;
 });
 

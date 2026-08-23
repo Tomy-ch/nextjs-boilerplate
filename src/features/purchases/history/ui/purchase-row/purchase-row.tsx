@@ -43,7 +43,7 @@ export function PurchaseRow({ purchase, href }: PurchaseRowProps) {
         href={href}
       >
         <div className="flex min-w-0 flex-1 basis-48 flex-col gap-1">
-          <span className="font-medium">{formatDateTime(purchase.orderedAt)}</span>
+          <span className="font-emphasis">{formatDateTime(purchase.orderedAt)}</span>
           <span className="truncate font-mono text-muted-foreground text-xs">{purchase.code}</span>
         </div>
         <div className="ml-auto flex items-center gap-3">

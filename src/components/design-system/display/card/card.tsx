@@ -62,7 +62,11 @@ export function CardHeader({ className, ...props }: ComponentProps<"div">) {
  */
 export function CardTitle({ className, ...props }: ComponentProps<"div">) {
   return (
-    <div className={cn("leading-none font-strong", className)} data-slot="card-title" {...props} />
+    <div
+      className={cn("leading-none font-emphasis", className)}
+      data-slot="card-title"
+      {...props}
+    />
   );
 }
 

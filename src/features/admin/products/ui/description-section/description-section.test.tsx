@@ -1,10 +1,16 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import { ProductDescriptionSection } from "./description-section";
+
+// 編集面は `next/dynamic` で読まれる。先に解決しておかないと、要素を待つ時間の中に module の
+// 読み込みが入る（`docs/testing-conventions.md`「`next/dynamic` を含む木を描くとき」）。
+beforeAll(async () => {
+  await import("@/components/design-system/rich-text/rich-text-editor/rich-text-editor");
+});
 
 const noop = () => {};
 

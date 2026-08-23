@@ -7,10 +7,15 @@
  *
  * - **route 固有** — `__RSC_MANIFEST[<page>].clientModules[*].chunks`。その route が参照する
  *   client component の実体
- * - **共有** — route ごとの `build-manifest.json` の `rootMainFiles` / `polyfillFiles`。framework
- *   の runtime と polyfill で、どの route でも読まれる
+ * - **共有** — route ごとの `build-manifest.json` の `rootMainFiles`。framework の runtime で、
+ *   どの route でも読まれる
  *
- * 和集合を取ると、静的 route が出力する HTML の script と一致します。
+ * 和集合を取ると、対応ブラウザが静的 route の HTML から読む script と一致します。
+ *
+ * **`polyfillFiles` は数えません。** Next.js はそれを `<script nomodule>` で出すので、
+ * [0102](../../docs/adr/0102-browser-support.md) が対応対象とするブラウザ（Next.js 既定の
+ * browserslist = モダン）は一度も取得しません。数えると、誰も読まない約 40 KB が全 route の
+ * 数値へ一律に乗り、予算が見ているはずの「開いた人が払う量」から離れます。
  */
 
 /** `__RSC_MANIFEST` の 1 route ぶん。必要な形だけを受け取る。 */
@@ -21,7 +26,6 @@ export type RscManifest = {
 /** route ごとの `build-manifest.json`。必要な形だけを受け取る。 */
 export type RouteBuildManifest = {
   readonly rootMainFiles?: readonly string[];
-  readonly polyfillFiles?: readonly string[];
 };
 
 /** chunk の参照を成果物ディレクトリからの相対へ均す。 */
@@ -51,7 +55,7 @@ export function initialChunks(
     }
   }
 
-  for (const chunk of [...(build?.rootMainFiles ?? []), ...(build?.polyfillFiles ?? [])]) {
+  for (const chunk of build?.rootMainFiles ?? []) {
     found.add(toArtifactPath(chunk));
   }
 
@@ -69,4 +73,43 @@ export function initialChunks(
  */
 export function artifactDirOf(pagePath: string): string {
   return `server/app${pagePath}`;
+}
+
+/** 公開 route 1 つぶんの、成果物から引いた chunk。 */
+export type RouteChunks = {
+  /** 公開 route。 */
+  readonly route: string;
+  /** その entry が読む chunk。 */
+  readonly chunks: readonly string[];
+};
+
+/**
+ * 同じ公開 route を指す entry の chunk を 1 つへ畳む。
+ *
+ * @remarks
+ * `app-path-routes-manifest.json` の key は成果物の単位であって公開 route の単位ではありません。
+ * **並行ルート（`@slot`）を持つ route は entry を複数持ち、その全てが同じ公開 route を指します。**
+ * 開いたときの HTML はページとスロットの両方の script を持つので、量は和集合で数えます。
+ *
+ * entry ごとに数えると、同じ route が複数行に割れるだけでなく、上限も増分もそのうちの 1 つしか
+ * 見ません。増分は route 名を鍵に base と突き合わせるので、どの entry が鍵に残るかで結果が変わり
+ * ます。
+ *
+ * @param entries - manifest の entry ごとに引いた chunk。manifest に現れた順で渡します。
+ * @returns 公開 route ごとの chunk。順序は最初に現れた entry の順。
+ */
+export function unionByRoute(entries: readonly RouteChunks[]): RouteChunks[] {
+  const byRoute = new Map<string, Set<string>>();
+
+  for (const entry of entries) {
+    const found = byRoute.get(entry.route) ?? new Set<string>();
+
+    for (const chunk of entry.chunks) {
+      found.add(chunk);
+    }
+
+    byRoute.set(entry.route, found);
+  }
+
+  return [...byRoute].map(([route, chunks]) => ({ route, chunks: [...chunks] }));
 }

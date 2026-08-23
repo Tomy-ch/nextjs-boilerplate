@@ -67,6 +67,14 @@ describe("createErrorMeta", () => {
     expect(meta.requestId).toBe("req-123");
     expect(meta.details).toEqual(["email"]);
   });
+
+  it("何も指定しなければ、空のメタ情報を生成する", () => {
+    const meta = createErrorMeta();
+
+    expect(meta.code).toBe("");
+    expect(meta.requestId).toBe("");
+    expect(meta.details).toEqual([]);
+  });
 });
 
 describe("withErrorMeta", () => {

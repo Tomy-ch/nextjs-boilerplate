@@ -123,6 +123,8 @@ export function MessageScroller({
   );
 
   const scrollToEnd = useCallback(
+    /* istanbul ignore next -- 呼び出し元は器の中の 2 箇所だけで、どちらも値を渡す。context は
+       外へ出していないため、引数を省いた呼び出しが起こる経路が無い。 */
     (behavior: ScrollBehavior = "auto") => {
       if (!viewportElement) {
         return;

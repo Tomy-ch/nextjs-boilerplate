@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 
-import { parseRegistrationForm, RETURN_URL_FIELD } from "./parse-registration-form";
+import { RETURN_URL_FIELD } from "./form-names";
+import { parseRegistrationForm } from "./parse-registration-form";
 
 const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-00000000000f";
 
@@ -32,13 +33,6 @@ function formDataOf(overrides: Record<string, string> = {}): FormData {
 
   return formData;
 }
-
-describe("RETURN_URL_FIELD", () => {
-  // ----- 正常系 -----
-  it("戻り先を載せる項目の名前を持つ", () => {
-    expect(RETURN_URL_FIELD).toBe("returnUrl");
-  });
-});
 
 describe("parseRegistrationForm", () => {
   // ----- 正常系 -----

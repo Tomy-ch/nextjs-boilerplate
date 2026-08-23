@@ -23,7 +23,7 @@ beforeEach(() => {
 
 function SelectFixture({
   disabled = false,
-  position = "popper",
+  position,
 }: {
   disabled?: boolean;
   position?: "item-aligned" | "popper";

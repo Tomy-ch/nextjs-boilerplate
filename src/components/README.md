@@ -95,8 +95,8 @@ subcomponent が多い compound では、root に `@example` で組み合わせ�
 
 ### 文字の太さ
 
-- **強調は `font-emphasis` / `font-strong` で書く。`font-medium` / `font-semibold` を使わない。** 書体ごとに持っている太さが違い、持っていない段を指定しても丸められるだけで強調にならない（`tokens/README.md`「強調は段の名前で持つ」）
-- `font-bold` は「太字そのもの」を指す場合にだけ使う。段としての強調ではない
+- **強調は `font-emphasis` で書く。太さを直に指定しない。** 書体ごとに持っている太さが違い、持っていない段を指定しても丸められるだけで強調にならない（`tokens/README.md`「強調は 1 段だけ持つ」）。**`no-raw-font-weight` が機械で見る**（`eslint-rules/`）。`font-normal` は「強調しない」の打ち消しなので使ってよい
+- **段は 1 つしかない。** 見出しと本文の差は寸法（`text-lg` 等）と位置が作り、太さはその上乗せである。太さで階層をもう 1 段作ろうとしない —— OS 同梱の書体では出ない環境がある（[0051](../../docs/adr/0051-styling-system.md) §5）
 
 ### 系統（`data-surface`）と Portal
 
