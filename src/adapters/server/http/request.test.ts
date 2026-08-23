@@ -353,6 +353,37 @@ describe("createHttpClient", () => {
   });
 
   // ----- 異常系 -----
+  it("路を畳む区間を含む path を、送らずに invalid-argument で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    expect(
+      await kindOf(() =>
+        client.request({ path: `/v1/items/${encodeURIComponent("..")}/ship`, schema }),
+      ),
+    ).toBe(ErrorKind.INVALID_ARGUMENT);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("現在地を指す区間も落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    expect(await kindOf(() => client.request({ path: "/v1/items/./ship", schema }))).toBe(
+      ErrorKind.INVALID_ARGUMENT,
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("区間の途中にある点は落とさない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({ path: "/v1/items/a..b/ship", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/items/a..b/ship");
+  });
+
   it("予算を超えた URL を、送らずに uri-too-long で落とす", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl, { maxUrlBytes: 60 });

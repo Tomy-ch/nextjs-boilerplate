@@ -6,7 +6,7 @@ test-requirement: feature
 
 # purchases
 
-成立した購入を後から読むための画面スライスです。一覧（`/purchases`）と 1 件の詳細（`/purchases/[id]`）を持ちます。
+成立した購入を後から読むための画面スライスです。一覧（`/purchases`）と 1 件の詳細（`/purchases/[code]`）を持ちます。
 
 ## 受け入れるもの
 
@@ -54,7 +54,8 @@ test-requirement: feature
 | `history/ui/skeleton/` | 一覧の待機表示 |
 | `detail/page-content.tsx` | 1 件の取得。`not-found` の分類もここで受ける |
 | `detail/view.tsx` | 詳細の画面。パンくずと `facade` の 3 つの塊を組む |
-| `detail/ui/transitions/` | その購入にいまできる操作と、成立の知らせ。できることは `model` に聞く |
+| `detail/available-transitions.ts` | ステータスごとにできること。バックエンドの遷移規則を写したもの |
+| `detail/ui/transitions/` | その購入にいまできる操作と、成立の知らせ |
 | `detail/ui/transitions/presentation.ts` | 遷移ごとの言葉と見た目。開く操作と確定する操作で分ける |
 | `detail/ui/transition-button/` | 状態を 1 つ進める操作。確認を開き、通らなかったことをその中で伝える |
 
@@ -82,8 +83,9 @@ test-requirement: feature
   のは、いずれも題材の語彙（注文・購入）を持ち、コア残留の検査に弾かれるためです
   （[0021](../../../docs/adr/0021-frontend-responsibility.md)）
 - **できない操作は出しません。** 押せないボタンは「いつか押せる」と読めてしまいます。何ができるかは
-  業務キーから引き、その表そのものは `model` が持ちます（同じ状態機械を管理側の操作も読むため、画面
-  ごとに書くと判定が分かれます）。並べる順も `model` が返す順で、進む操作が先に来ます
+  業務キーから引き、その表はこの画面が持ちます。バックエンドが持つ状態遷移の規則を写したものなので、
+  カーネルへは上げません（[0021](../../../docs/adr/0021-frontend-responsibility.md)）。管理側の操作が
+  同じ判定を必要としたときに、そこで初めて共有先を決めます。並べる順もこの表が持ち、進む操作が先に来ます
 - **通らなかったことは確認の中で伝えます。** 送信しても確認は開いたままなので、外へ出すと利用者が
   見ていない場所に文言が出ます。逆に成立の知らせは操作が並ぶ段が持ちます。進んだ購入では操作ごと
   確認が消えるためです

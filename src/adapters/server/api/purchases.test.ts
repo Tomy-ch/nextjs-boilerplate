@@ -345,6 +345,13 @@ describe("cancelMyPurchase", () => {
     expect(await kindOf(() => cancelMyPurchase(wireTransitioned.code))).toBe(ErrorKind.CONFLICT);
   });
 
+  it("路を畳む購入コードを、送らずに落とす", async () => {
+    const requests = serveWrite("patch", `${PURCHASE_URL}/cancel`, wireTransitioned);
+
+    expect(await kindOf(() => cancelMyPurchase(".."))).toBe(ErrorKind.INVALID_ARGUMENT);
+    expect(requests).toHaveLength(0);
+  });
+
   it("契約に無い形の応答を内層へ渡さない", async () => {
     serveWrite("patch", `${PURCHASE_URL}/cancel`, { ...wireTransitioned, totalAmount: "21287" });
 

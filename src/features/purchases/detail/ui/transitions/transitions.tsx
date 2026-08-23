@@ -5,15 +5,15 @@ import { useActionState } from "react";
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { idleActionState } from "@/model/action-state";
 import type { Purchase } from "@/model/purchase/purchase";
-import {
-  availablePurchaseTransitions,
-  PURCHASE_TRANSITION,
-  type PurchaseTransition,
-} from "@/model/purchase/purchase-status";
 
 import { cancelPurchaseAction, payPurchaseAction } from "../../../actions";
 import { purchaseDetailPath } from "../../../facade/paths/paths";
 import type { PurchaseTransitionState } from "../../../form-state";
+import {
+  availablePurchaseTransitions,
+  PURCHASE_TRANSITION,
+  type PurchaseTransition,
+} from "../../available-transitions";
 import { PurchaseTransitionButton } from "../transition-button/transition-button";
 import { PRESENTATIONS } from "./presentation";
 

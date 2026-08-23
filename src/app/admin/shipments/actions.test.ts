@@ -126,4 +126,22 @@ describe("shipPurchasesAction", () => {
     expect(state).toMatchObject({ status: "error", kind: ErrorKind.UNAVAILABLE });
     expect(shipPurchase).toHaveBeenCalledTimes(1);
   });
+
+  it("途中で打ち切っても、そこまでに通った発送を一覧へ反映させる", async () => {
+    shipPurchase.mockResolvedValueOnce(undefined);
+    shipPurchase.mockRejectedValueOnce(createAppError(ErrorKind.UNAVAILABLE));
+
+    await shipPurchasesAction(idleActionState(), shipmentForm());
+
+    expect(shipPurchase).toHaveBeenCalledTimes(2);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
+  });
+
+  it("1 件も通らずに打ち切ったときは取り直させない", async () => {
+    shipPurchase.mockRejectedValueOnce(createAppError(ErrorKind.UNAVAILABLE));
+
+    await shipPurchasesAction(idleActionState(), shipmentForm());
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
 });

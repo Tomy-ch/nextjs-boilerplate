@@ -1,6 +1,6 @@
 import type { ButtonVariant } from "@/components/design-system/action/button/button.definition";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
-import { PURCHASE_TRANSITION, type PurchaseTransition } from "@/model/purchase/purchase-status";
+import { PURCHASE_TRANSITION, type PurchaseTransition } from "../../available-transitions";
 
 /** 遷移 1 つ分の、利用者へ見せる言葉と見た目。 */
 export type TransitionPresentation = {

@@ -36,6 +36,14 @@ function readPurchaseCodes(formData: FormData): readonly string[] {
     .flatMap((value) => (typeof value === "string" && value !== "" ? [value] : []));
 }
 
+/** 順に送った結果。打ち切ったときも、そこまでに通った件数を持つ。 */
+type ShipmentProgress = {
+  readonly shipped: number;
+  readonly refused: number;
+  /** 打ち切った理由。最後まで送れば null。 */
+  readonly abort: ShipmentState | null;
+};
+
 /**
  * 受け取った購入を順に発送済みにする。
  *
@@ -48,12 +56,12 @@ function readPurchaseCodes(formData: FormData): readonly string[] {
  * 進みません。
  *
  * **それ以外の失敗では止めます。** 役割が無い・接続先が落ちているといった失敗は次の 1 件でも
- * 同じように起きるため、送り続けても数が増えるだけです。止めた時点までに通った分は成立して
- * おり、一覧を取り直せばその結果が出ます。
+ * 同じように起きるため、送り続けても数が増えるだけです。
+ *
+ * **打ち切っても、そこまでに通った件数は返します。** 通った発送は成立しているので、捨てると
+ * 呼び出し側が一覧を取り直す判断を失い、発送済みの注文が未発送として並び続けます。
  */
-async function shipEach(
-  purchaseCodes: readonly string[],
-): Promise<ShipmentState | { shipped: number; refused: number }> {
+async function shipEach(purchaseCodes: readonly string[]): Promise<ShipmentProgress> {
   let shipped = 0;
   let refused = 0;
 
@@ -63,14 +71,14 @@ async function shipEach(
       shipped += 1;
     } catch (error) {
       if (findAppError(error)?.kind !== ErrorKind.CONFLICT) {
-        return actionStateFromError(error);
+        return { shipped, refused, abort: actionStateFromError(error) };
       }
 
       refused += 1;
     }
   }
 
-  return { shipped, refused };
+  return { shipped, refused, abort: null };
 }
 
 /**
@@ -82,9 +90,11 @@ async function shipEach(
  * **1 件も通らなかったときだけ失敗にします。** 途中まで通った送信を失敗として返すと、通った分の
  * 発送がなかったことになります。
  *
- * **成立したら一覧を取り直させます。** 発送した注文は発送待ちではなくなるので、残したままにすると
- * 押せば必ず競合になる操作が並び続けます。取り直した一覧に残っているものが、そのまま「まだ発送
- * していない注文」になります。
+ * **1 件でも通ったら一覧を取り直させます。** 発送した注文は発送待ちではなくなるので、残したまま
+ * にすると押せば必ず競合になる操作が並び続けます。取り直した一覧に残っているものが、そのまま
+ * 「まだ発送していない注文」になります。**途中で打ち切ったときも同じです** —— 打ち切りの理由を
+ * 伝えることと、そこまでに成立した発送を一覧へ反映することは別の話で、後者を落とすと発送済みの
+ * 注文が未発送として並び続けます。
  *
  * 便の注文がすべて通ると、その便は一覧から消えます。結果の文言も一緒に消えますが、便が消えたこと
  * 自体が通ったことを表しています。一部だけ通った便は残るため、そこには件数の内訳が出ます。
@@ -108,17 +118,19 @@ export async function shipPurchasesAction(
     return failedActionState({ formError: SHIPMENT_TARGET_LOST_MESSAGE });
   }
 
-  const result = await shipEach(purchaseCodes);
+  const { shipped, refused, abort } = await shipEach(purchaseCodes);
 
-  if ("status" in result) {
-    return result;
+  if (shipped > 0) {
+    revalidatePath(ADMIN_SHIPMENT_QUEUE_PATH);
   }
 
-  if (result.shipped === 0) {
+  if (abort !== null) {
+    return abort;
+  }
+
+  if (shipped === 0) {
     return failedActionState({ formError: SHIPMENT_CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });
   }
 
-  revalidatePath(ADMIN_SHIPMENT_QUEUE_PATH);
-
-  return succeededActionState(result);
+  return succeededActionState({ shipped, refused });
 }

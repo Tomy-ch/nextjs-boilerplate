@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  availablePurchaseTransitions,
-  PURCHASE_STATUS,
-  PURCHASE_TRANSITION,
-} from "./purchase-status";
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
+
+import { availablePurchaseTransitions, PURCHASE_TRANSITION } from "./available-transitions";
 
 describe("availablePurchaseTransitions", () => {
   // ----- 正常系 -----
