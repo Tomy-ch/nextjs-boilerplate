@@ -37,6 +37,7 @@ include .makefiles/security/gitleaks.mk
 include .makefiles/security/trivy.mk
 include .makefiles/security/audit.mk
 include .makefiles/security/opengrep.mk
+include .makefiles/security/njsscan.mk
 include .makefiles/security/osv.mk
 include .makefiles/security/bearer.mk
 include .makefiles/security/dast.mk

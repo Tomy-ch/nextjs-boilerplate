@@ -1,0 +1,151 @@
+name: njsscan
+
+# The Node / JavaScript half of the portable SAST layer. `sast.yaml` runs opengrep with
+# general-purpose rule packs; this one runs rules written for Node and Express alone
+# (ADR 0110 §3).
+#
+# The overlap with opengrep is deliberate and bounded: the two carry different rule sets
+# over the same files, so one finding the other misses is the whole return. What is NOT
+# duplicated is the judgement — both hold a ZERO-FINDING BASELINE, so a finding from either
+# is signal rather than something to scroll past.
+#
+# Its engine is semgrep itself rather than the opengrep fork, which is the one place this
+# repository takes semgrep back. That is acceptable and `njsscan.mk` says why: the package
+# is the LGPL-2.1 OSS CLI, invoked as a subprocess, and none of it ships in what a fork
+# receives.
+#
+# What is scanned lives in `.makefiles/security/njsscan.mk`. The gate and the SARIF upload
+# read the same variable there, because a gate and an alert list describing different scans
+# is worse than either one alone.
+
+on:
+  pull_request:
+  schedule:
+    # New rules can turn existing code into a finding, so a scheduled run earns its place
+    # even when nothing changed.
+    - cron: '15 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  njsscan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # What cannot change this scan's answer. The list is the deny side on purpose: anything
+      # not named here still runs, so a missing entry costs one needless run while a wrong
+      # entry would leave a scanner reporting on nothing (see the note in the action).
+      - name: Decide whether the diff can reach this scan
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            public/*
+
+      - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: pipx:njsscan
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run the njsscan gate
+        id: njsscan
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          set +e
+
+          make njsscan 2>&1 | tee /tmp/njsscan.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ njsscan: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ njsscan: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # A second pass for code scanning, reading the same variable as the gate so the two
+      # cannot describe different scans. `continue-on-error` because the verdict is already
+      # decided above — losing this costs navigability rather than the check.
+      - name: Write the SARIF
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.njsscan.outputs.status != ''
+        continue-on-error: true
+        env:
+          NJSSCAN_SARIF_FILE: njsscan.sarif
+        run: make njsscan-sarif
+
+      - name: Upload the SARIF to code scanning
+        if: always() && steps.scope.outputs.relevant == 'true' && hashFiles('njsscan.sarif') != ''
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          sarif_file: njsscan.sarif
+          category: njsscan
+
+      # A job that stood down still owes the pull request a verdict; see sast.yaml.
+      - name: Note that the diff cannot reach the scan
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ njsscan: SKIP (走査対象に届かない差分)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は njsscan の走査対象に届かないため、走査していません。木そのものは週次で走査します。' > /tmp/njsscan.log
+
+      - name: Comment njsscan result on PR
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- njsscan-result -->'
+          status: ${{ steps.njsscan.outputs.status || 'success' }}
+          title: ${{ steps.njsscan.outputs.title || steps.standdown.outputs.title }}
+          body-file: /tmp/njsscan.log
+          details-summary: 'njsscan log'
+
+      - name: Fail if a finding was reported
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.njsscan.outputs.status != 'success'
+        run: exit 1
+
+  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  notify-failure:
+    needs: njsscan
+    if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.njsscan.result) }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      failed-job: njsscan
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
