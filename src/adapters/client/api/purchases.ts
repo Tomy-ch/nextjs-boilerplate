@@ -36,6 +36,7 @@ const PurchaseHistoryPagePayload = z.object({
     z.object({
       code: z.string(),
       totalAmount: z.int(),
+      statusCode: z.int(),
       statusName: z.string(),
       orderedAt: z.coerce.date(),
     }),

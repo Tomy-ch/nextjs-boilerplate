@@ -1,4 +1,4 @@
-# `/purchases/[id]` 購入詳細（画面要件）
+# `/purchases/[code]` 購入詳細（画面要件）
 
 > 機能要件は [`page.function.md`](page.function.md)。
 

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import type { z } from "zod";
+import { z } from "zod";
 
 import { getApiConfig } from "@/config/api/api.server";
 import { getHttpConfig } from "@/config/http/http.server";
@@ -14,6 +14,7 @@ import {
   GetPurchasesResponse,
   PostPurchasesResponse,
 } from "../../gen/api/endpoints.zod";
+import { getPurchasesDetailPathPurchaseCodeMax } from "../../gen/api/limits";
 import type { PurchasesPostRequest } from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
 import { createHttpClient, type HttpClient } from "../http/request";
@@ -42,12 +43,25 @@ function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
     items: wire.items.map(({ code, totalAmount, status, orderedAt }) => ({
       code,
       totalAmount,
+      statusCode: status.code,
       statusName: status.name,
       orderedAt: new Date(orderedAt),
     })),
     nextCursor: wire.nextCursor,
   };
 }
+
+/**
+ * 契約が購入コードとして受け付ける形。
+ *
+ * @remarks
+ * **長さの上下限だけです。** 契約が置いているのがそれだけで、桁や区切りを決めているのは発番する
+ * バックエンドです。ここで形を足すと、発番の仕方が変わったときに画面の側が先に読めなくなります。
+ *
+ * 画面が URL から読む値を照らすために公開します。契約由来の範囲を features 側で書き直さない
+ * ためで、上限は生成物から引いています。
+ */
+export const PurchaseCode = z.string().min(1).max(getPurchasesDetailPathPurchaseCodeMax);
 
 /** 購入履歴の取得条件。契約のクエリと 1 対 1 に対応する。 */
 export type PurchaseHistoryQuery = z.infer<typeof GetPurchasesQueryParams>;
@@ -130,8 +144,8 @@ export const getMyPurchases = cache(
 
 function toPurchase(wire: WirePurchaseDetail): Purchase {
   return {
-    id: wire.id,
     code: wire.code,
+    statusCode: wire.status.code,
     statusName: wire.status.name,
     subtotalAmount: wire.subtotalAmount,
     taxAmount: wire.taxAmount,
@@ -154,11 +168,11 @@ function toPurchase(wire: WirePurchaseDetail): Purchase {
  * 他人の購入も存在しない購入も、区別なく `not found` になります。契約が存在を秘匿するためで、
  * 呼び出し側が所有者を確かめる必要はありません。
  *
- * @param purchaseId - 購入の ID。利用者へ見せる購入コードではない
+ * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
  */
-export const getMyPurchase = cache(async (purchaseId: string): Promise<Purchase> => {
+export const getMyPurchase = cache(async (purchaseCode: string): Promise<Purchase> => {
   const wire = await getClient().request({
-    path: `${PURCHASES_PATH}/${encodeURIComponent(purchaseId)}`,
+    path: `${PURCHASES_PATH}/${encodeURIComponent(purchaseCode)}`,
     schema: GetPurchasesDetailResponse,
   });
 
@@ -182,7 +196,7 @@ export const getMyPurchase = cache(async (purchaseId: string): Promise<Purchase>
  *
  * @param lines - 購入する商品と数量。1 件以上必要で、同じ商品を 2 行に分けられない
  * @param idempotencyKey - 再送を初回の結果へ畳むための鍵
- * @returns 成立した購入の ID
+ * @returns 成立した購入の購入コード
  */
 export async function createPurchase(
   lines: readonly PurchaseOrderLine[],
@@ -199,5 +213,5 @@ export async function createPurchase(
     schema: PostPurchasesResponse,
   });
 
-  return wire.id;
+  return wire.code;
 }

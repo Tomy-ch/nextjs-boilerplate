@@ -15,7 +15,10 @@ const { readReferenceAmount, getMyPurchase, notFound } = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock("@/adapters/server/api/purchases", () => ({ getMyPurchase }));
+vi.mock("@/adapters/server/api/purchases", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/adapters/server/api/purchases")>()),
+  getMyPurchase,
+}));
 vi.mock("@/adapters/server/api/exchange-rates", () => ({ readReferenceAmount }));
 vi.mock("next/navigation", () => ({ notFound }));
 
@@ -23,7 +26,7 @@ import { PURCHASE, TOTAL_REFERENCE } from "../checkout.fixture";
 import { PURCHASE_PARAM } from "../paths";
 import { CheckoutCompletePageContent } from "./page-content";
 
-const searchParams = { [PURCHASE_PARAM]: PURCHASE.id };
+const searchParams = { [PURCHASE_PARAM]: PURCHASE.code };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -41,7 +44,7 @@ describe("CheckoutCompletePageContent", () => {
   it("URL が指す購入を取り直して描く", async () => {
     render(await CheckoutCompletePageContent({ searchParams }));
 
-    expect(getMyPurchase).toHaveBeenCalledWith(PURCHASE.id);
+    expect(getMyPurchase).toHaveBeenCalledWith(PURCHASE.code);
     expect(screen.getByText(PURCHASE.code)).toBeVisible();
   });
 

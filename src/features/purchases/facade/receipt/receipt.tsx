@@ -56,7 +56,7 @@ export function PurchaseReceiptCard({ purchase }: PurchaseReceiptCardProps) {
           <KeyValueItem>
             <KeyValueLabel>状況</KeyValueLabel>
             <KeyValueValue>
-              <Badge variant={toStatusEmphasis(purchase.statusName)}>{purchase.statusName}</Badge>
+              <Badge variant={toStatusEmphasis(purchase.statusCode)}>{purchase.statusName}</Badge>
             </KeyValueValue>
           </KeyValueItem>
         </KeyValueList>

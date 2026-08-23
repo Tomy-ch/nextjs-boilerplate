@@ -22,15 +22,17 @@ import {
 
 const wireItem = {
   code: "0195f0c2-0000-7000-8000-0000000000c1",
+  firstItemName: "ワイヤレスイヤホン",
+  itemCount: 2,
   totalAmount: 123_456,
-  status: { id: "0195f0c2-0000-7000-8000-0000000000d1", name: "発送済み" },
+  status: { id: "0195f0c2-0000-7000-8000-0000000000d1", code: 8, name: "発送済み" },
   orderedAt: "2026-08-07T00:00:00.000Z",
 };
 
 const wirePage = { items: [wireItem], nextCursor: "next", hasNext: true };
 
 const PURCHASES_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/purchases`;
-const PURCHASE_URL = `${PURCHASES_URL}/:purchaseId`;
+const PURCHASE_URL = `${PURCHASES_URL}/:purchaseCode`;
 
 /** 投げられたエラーに付いた分類を返す。投げなければ undefined。 */
 async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
@@ -48,7 +50,7 @@ const HISTORY_QUERY = { first: 10, period: "all" } as const;
 
 describe("getMyPurchases", () => {
   // ----- 正常系 -----
-  it("契約の 1 件を表示用の 4 項目へ写す", async () => {
+  it("契約の 1 件を表示用の 5 項目へ写す", async () => {
     serveJson(PURCHASES_URL, wirePage);
 
     const page = await getMyPurchases(HISTORY_QUERY);
@@ -56,6 +58,7 @@ describe("getMyPurchases", () => {
     expect(page.items[0]).toEqual({
       code: wireItem.code,
       totalAmount: 123_456,
+      statusCode: 8,
       statusName: "発送済み",
       orderedAt: new Date("2026-08-07T00:00:00.000Z"),
     });
@@ -137,10 +140,9 @@ describe("getMyPurchases", () => {
 });
 
 const wireDetail = {
-  id: "0195f0c2-0000-7000-9000-000000000001",
   code: "0195f0c2-0000-7000-9000-0000000000b1",
   userId: "0195f0c2-0000-7000-9000-0000000000a1",
-  status: { id: "0195f0c2-0000-7000-8000-0000000000d1", name: "未処理" },
+  status: { id: "0195f0c2-0000-7000-8000-0000000000d1", code: 1, name: "未処理" },
   subtotalAmount: 18_897,
   taxAmount: 1_890,
   shippingFee: 500,
@@ -163,11 +165,11 @@ describe("getMyPurchase", () => {
   it("契約の応答を表示用の購入へ写す", async () => {
     serveJson(PURCHASE_URL, wireDetail);
 
-    const purchase = await getMyPurchase(wireDetail.id);
+    const purchase = await getMyPurchase(wireDetail.code);
 
     expect(purchase).toEqual({
-      id: wireDetail.id,
       code: wireDetail.code,
+      statusCode: 1,
       statusName: "未処理",
       subtotalAmount: 18_897,
       taxAmount: 1_890,
@@ -185,24 +187,23 @@ describe("getMyPurchase", () => {
     });
   });
 
-  it("購入の ID を経路へ載せる", async () => {
+  it("購入コードを経路へ載せる", async () => {
     const requests = serveJson(PURCHASE_URL, wireDetail);
 
-    await getMyPurchase(wireDetail.id);
+    await getMyPurchase(wireDetail.code);
 
-    expect(requests[0]?.url).toBe(`${PURCHASES_URL}/${wireDetail.id}`);
+    expect(requests[0]?.url).toBe(`${PURCHASES_URL}/${wireDetail.code}`);
   });
 
   // ----- 異常系 -----
   it("契約に無い形の応答を内層へ渡さない", async () => {
     serveJson(PURCHASE_URL, { ...wireDetail, totalAmount: "21287" });
 
-    expect(await kindOf(() => getMyPurchase(wireDetail.id))).toBe(ErrorKind.INTERNAL);
+    expect(await kindOf(() => getMyPurchase(wireDetail.code))).toBe(ErrorKind.INTERNAL);
   });
 });
 
 const wireCreated = {
-  id: "0195f0c2-0000-7000-9000-000000000002",
   code: "0195f0c2-0000-7000-9000-0000000000b2",
   userId: "0195f0c2-0000-7000-9000-0000000000a1",
   statusId: "0195f0c2-0000-7000-8000-0000000000d1",
@@ -227,10 +228,10 @@ const orderLines = [
 
 describe("createPurchase", () => {
   // ----- 正常系 -----
-  it("成立した購入の ID を返す", async () => {
+  it("成立した購入の購入コードを返す", async () => {
     serveWrite("post", PURCHASES_URL, wireCreated);
 
-    expect(await createPurchase(orderLines, "idempotency-key")).toBe(wireCreated.id);
+    expect(await createPurchase(orderLines, "idempotency-key")).toBe(wireCreated.code);
   });
 
   it("冪等キーをヘッダへ載せる", async () => {
@@ -251,7 +252,7 @@ describe("createPurchase", () => {
 
   // ----- 異常系 -----
   it("契約に無い形の応答を内層へ渡さない", async () => {
-    serveWrite("post", PURCHASES_URL, { ...wireCreated, id: "not-a-uuid" });
+    serveWrite("post", PURCHASES_URL, { ...wireCreated, userId: "not-a-uuid" });
 
     expect(await kindOf(() => createPurchase(orderLines, "idempotency-key"))).toBe(
       ErrorKind.INTERNAL,

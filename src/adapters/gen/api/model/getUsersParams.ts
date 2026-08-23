@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+8f733fb
+ * OpenAPI spec version: 2.2.0+151bc17
  */
 import type { ActiveParamParameter } from "./activeParamParameter";
 import type { PageParamParameter } from "./pageParamParameter";

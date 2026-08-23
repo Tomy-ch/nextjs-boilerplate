@@ -1,6 +1,7 @@
 import type { ReferenceAmount } from "@/model/money";
 import { toProductId } from "@/model/product/product";
 import type { Purchase, PurchaseLine } from "@/model/purchase/purchase";
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 
 /** 合計（{@link PURCHASE_DETAIL}）の参考換算額。 */
 export const TOTAL_REFERENCE: ReferenceAmount = {
@@ -28,8 +29,8 @@ const WATCH_LINE = {
 
 /** 明細の付いた購入 1 件。 */
 export const PURCHASE_DETAIL: Purchase = {
-  id: "0195f0c2-0000-7000-9000-000000000001",
   code: "0195f0c2-0000-7000-9000-000000000001",
+  statusCode: PURCHASE_STATUS.UNPROCESSED,
   statusName: "未処理",
   subtotalAmount: 18_897,
   taxAmount: 1_890,

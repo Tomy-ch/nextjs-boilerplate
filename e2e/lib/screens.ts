@@ -114,7 +114,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   },
   { route: "/purchases", name: "purchases", path: "/purchases", signedIn: "user" },
   {
-    route: "/purchases/[id]",
+    route: "/purchases/[code]",
     name: "purchase-detail",
     // モックは同じ URL へ同じ応答を返すため（`mocks/stable-responses.ts`）、ID を固定すれば
     // 中身も固定される。存在する ID である必要はない — 契約駆動のモックはどの ID にも応える。

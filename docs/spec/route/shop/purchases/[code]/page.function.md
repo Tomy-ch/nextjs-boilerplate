@@ -1,4 +1,4 @@
-# `/purchases/[id]` 購入詳細（機能要件）
+# `/purchases/[code]` 購入詳細（機能要件）
 
 > 画面要件は [`page.screen.md`](page.screen.md)。
 
@@ -12,16 +12,15 @@
 
 ## 取得
 
-`GET /v1/purchases/{purchaseId}` と、合計の参考換算額の 2 系統。
+`GET /v1/purchases/{purchaseCode}` と、合計の参考換算額の 2 系統。
 
 **購入を取ってから換算額を引く。** 並行にできるが、購入が見つからないときに換算の取得を始める
 のは無駄で、外部のレート提供元へ余計な要求を出すことになる。
 
 ### 識別子
 
-**この画面が URL で受け取るのは、契約の詳細取得が要求する購入 ID である。** 一覧が返すのは別採番の
-購入コードで、両者は一致しない。契約側で公開識別子を購入コードへ一本化するのを待っており、着地
-すればこの引数はそのまま購入コードになる（[`../page.function.md`](../page.function.md)）。
+**この画面が URL で受け取るのは購入コードである。** 利用者へ注文番号として見せている値がそのまま
+取得の鍵になるので、画面が見せている番号を控えとして突き合わせられる。
 
 ## 金額
 
@@ -48,5 +47,5 @@
 
 ## 関連
 
-- 契約 `openapi/api.gen.yaml` の `GET /v1/purchases/{purchaseId}`
+- 契約 `openapi/api.gen.yaml` の `GET /v1/purchases/{purchaseCode}`
 - 実装 `src/features/purchases/` — [README](../../../../../../src/features/purchases/README.md)

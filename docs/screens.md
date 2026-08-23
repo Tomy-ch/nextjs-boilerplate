@@ -42,7 +42,7 @@
 | U5 | 購入確認 | `GET /v1/carts/me` / `GET /v1/exchange-rates?base=USD&quote=JPY&amount=` / `GET /v1/users/me` | カート内容の最終確認。JPY 表示切替可 | 明細は client から引き継がず**この画面で取り直す**。再評価が入るため、U4 で見た時点から買えなくなった明細・値の変わった明細がここで現れうる。為替 API の `amount` は decimal 文字列。為替取得失敗時は参考額なしで購入自体は継続できる(degrade)。カートのサイドバー / drawer の主導線「購入手続きへ」から入る。認証の内側にある |
 | U6 | 購入完了 | `POST /v1/purchases?displayCurrency=JPY` | 購入確定。`details` に `productId` と `quantity` を送信 | OpenAPI 上の `Idempotency-Key` は任意だが、フロントは常に設定する。二重クリック / リロードを防ぎ、`ActionState<T>` で送信状態を管理する |
 | U7 | 購入履歴 | `GET /v1/purchases`(`after` / `first`) | 自分の購入一覧 | **無限スクロール(増分取得)方式**。前ページの `nextCursor` を `after` に渡す |
-| U8 | 購入詳細 | `GET /v1/purchases/{purchaseId}` | 購入 1 件の明細・商品情報 | 明細には products と結合した現在の商品名、購入時点の `unitPrice` が含まれる |
+| U8 | 購入詳細 | `GET /v1/purchases/{purchaseCode}` | 購入 1 件の明細・商品情報 | 明細には products と結合した現在の商品名、購入時点の `unitPrice` が含まれる |
 | U9 | ログイン | BFF route → mock OIDC | **Authorization Code + PKCE S256** で IdP へリダイレクト | Go API を一切叩かない。フロントは BFF のログイン URL へ遷移するだけで、Discovery / authorize / token の処理は Route Handler が担う |
 | U10 | 登録(オンボーディング) | `GET /v1/prefectures` / `GET /v1/addresses?postalCode=` / `POST /v1/users` | 初回ログイン後の追加情報登録(住所等) | 明示オンボーディングとして実装する。`POST /v1/users` には `Idempotency-Key` を設定し、郵便番号補完が `isFallback=true` なら全項目を手入力する |
 | U11 | マイページ | `GET /v1/users/me` / `GET /v1/users/me/purchases/summary` | プロフィール確認・購入サマリ表示・退会導線 | 退会は確認モーダル必須(不可逆操作) |
@@ -89,10 +89,10 @@
 | --- | --- | --- | --- | --- | --- |
 | `POST /v1/purchases` | 要 | 購入作成(U6) | details(productId, quantity), Idempotency-Key(ヘッダ), displayCurrency(任意 query) | 購入、referenceAmount | 400, 401, 409(在庫不足等), 422 |
 | `GET /v1/purchases` | 要 | 自分の購入履歴(U7、cursor) | after, first | items[], nextCursor | 400, 401 |
-| `GET /v1/purchases/{purchaseId}` | 要 | 購入詳細(U8) | — | 明細(商品名を結合済み) | 401, 404 |
-| `PATCH /v1/purchases/{purchaseId}/cancel` | 要 | キャンセル | — | 更新後ステータス | 400, 401, 404, 409(不正遷移) |
-| `PATCH /v1/purchases/{purchaseId}/pay` | 要 | 支払い(擬似決済) | — | 更新後ステータス | 400, 401, 404, 409 |
-| `PATCH /v1/purchases/{purchaseId}/ship` | 要 admin | 発送 | — | 更新後ステータス | 400, 401, 403, 404, 409 |
+| `GET /v1/purchases/{purchaseCode}` | 要 | 購入詳細(U8) | — | 明細(商品名を結合済み) | 401, 404 |
+| `PATCH /v1/purchases/{purchaseCode}/cancel` | 要 | キャンセル | — | 更新後ステータス | 400, 401, 404, 409(不正遷移) |
+| `PATCH /v1/purchases/{purchaseCode}/pay` | 要 | 支払い(擬似決済) | — | 更新後ステータス | 400, 401, 404, 409 |
+| `PATCH /v1/purchases/{purchaseCode}/ship` | 要 admin | 発送 | — | 更新後ステータス | 400, 401, 403, 404, 409 |
 
 ### 集計・在庫
 
@@ -137,7 +137,7 @@ Go API の OpenAPI には存在しない。BFF の Route Handler が次の mock 
 | 2 | ~~**sanitizer ライブラリの選定**~~ — **決着済み**。`hast-util-from-html` + `hast-util-sanitize` + `hast-util-to-jsx-runtime` を採用し、port は `src/model/rich-text/` に置く(v1 実装計画 §3.10) | 決着済み |
 | 3 | **未公開商品を含む admin 商品一覧** — 現行 `GET /v1/products` は公開済み商品だけを返す。A2 の完全な管理一覧には backend 契約の追加が必要 | A2 の実装 PR まで |
 | 4 | **在庫僅少一覧** — `GET /v1/products/low-stock` は API 作成計画 #566 で未実装。A1 の数値カードとは独立した後続機能として扱う | #566 の OpenAPI 追加後 |
-| 5 | **配達完了操作** — `PATCH /v1/purchases/{purchaseId}/deliver` は API 作成計画 #591 で未実装。画面・導線は現時点で作らない | #591 の OpenAPI 追加後 |
+| 5 | **配達完了操作** — `PATCH /v1/purchases/{purchaseCode}/deliver` は API 作成計画 #591 で未実装。画面・導線は現時点で作らない | #591 の OpenAPI 追加後 |
 
 > **PostHog / Cookie 同意**: 本資料は「採否未決」としていたが、**v1 実装計画で「軽量 consent 機構 + ゲートは採用 / GTM・PostHog 本体は不採用」に確定**した([0131](adr/0131-cookie-consent.md) を exclusion から反転)。
 
