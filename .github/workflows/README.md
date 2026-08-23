@@ -13,7 +13,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Deployment | 保護ブランチへの push | ビルド成果物の配信 |
 | Documentation | portal 配信 | 生成ドキュメントの再生成と配信 |
 
-実体があるのは **CI Checks** と **Documentation**。Security は [0110](../../docs/adr/0110-security-operations.md) が担当し、後続で追加する。Deployment はアプリ本体の配信先が fork 先の決定であるため（[0011](../../docs/adr/0011-no-docker.md)）本リポには置かない。
+実体があるのは **CI Checks** / **Security** / **Documentation**。Deployment はアプリ本体の配信先が fork 先の決定であるため（[0011](../../docs/adr/0011-no-docker.md)）本リポには置かない。
 
 ## ワークフロー一覧（CI Checks）
 
@@ -48,6 +48,35 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 どちらも**台数は書かない**。standard runner のコア数は public リポジトリで 4、private で 2 であり、fork 先が受け取るのは後者。台数を書けばこのリポジトリの事情がそのまま fork 先の既定になる。割合指定なら、その意思だけが渡ってコア数は実行環境が決める。
 
 大きいランナーを使う fork 側で調整したい場合の口は `VRT_ARGS` で、`make vrt` / `make a11y` の双方が受け取る（[`.makefiles/testing/vrt.mk`](../../.makefiles/testing/vrt.mk)）。
+
+## ワークフロー一覧（Security）
+
+多層防御（[0110](../../docs/adr/0110-security-operations.md)）。**全 PR + 週次スケジュール**で走る。週次があるのは、
+コードが 1 行も動いていない木に対しても CVE が公開されうるためで、変更を入口にした検査だけでは届かない。
+
+| ワークフロー | ファイル | job 名 | 内容 |
+| --- | --- | --- | --- |
+| Secret Scan | `gitleaks.yaml` | `secret-scan` | PR が足したコミットを gitleaks で走査する。週次は履歴全体。検出は fail-closed |
+| CodeQL Scan | `codeql.yaml` | `codeql` | 自分が書いたコードの SAST。high の検出でマージを止めるのは code scanning 側の設定で、この job が落ちるのは解析そのものが走らなかったときだけ |
+| Dependency Scan | `dependency-scan.yaml` | `dependency-scan` / `dependency-audit` / `dependency-gate` | 依存の脆弱性。同じ対象に 3 つの異なる判定を掛ける（下記） |
+
+### 依存の脆弱性は、3 つの判定が同じ対象を見る
+
+| job | 手段 | 落ちる条件 |
+| --- | --- | --- |
+| `dependency-scan` | `make trivy-fs` | **検出では落ちない。** スキャナが走らなかったときだけ落ちる |
+| `dependency-audit` | `make audit` | 修正版のある `high` / `critical` が 1 件でもあれば落ちる |
+| `dependency-gate` | `make trivy-fs-release` | 保護ブランチ宛 PR でだけ起動し、検出があれば落ちる |
+
+**報告専用の job が要るのは、脆弱性が「変更の作者がその場で解消できない」うえ「変更と独立に状態が変わる」ため。**
+それでゲートを組むと `--no-verify` と同じ経路を CI 側に作る。止める場所は昇格（保護ブランチ宛 PR）の一点で、
+そこは誰かがリスクを引き受けて判断する場面である（[0110](../../docs/adr/0110-security-operations.md) 3.1）。
+
+**Trivy と `pnpm audit` の件数は一致しない。突合して差分を潰そうとしない。** 集計単位（CVE / advisory）も参照する
+DB も違うので、片方だけを正とするとそのツールが見ない領域が恒久的な死角になる。**和集合が正**で、どちらか一方でも
+閾値に達したものを blocking として扱う。
+
+`dependency-gate` が `branches:` フィルタではなく `if:` で降りるのは required check の都合による（下記「required status check」）。
 
 ## ワークフロー一覧（Components）
 
@@ -160,7 +189,8 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 | `strip-verify` | CI のみ | 同上。手元のツリーで回すと boilerplate 限定の記述が剥がれ、剥がしの道具ごと消える <!-- boilerplate-only:line --> |
 | `lockfile-drift` | CI のみ | install が追跡ファイルを書き換えたことは、手元では「自分が触った変更」と区別が付かない。第三者の目で見る CI が持つ |
 | commitlint | hook のみ | コミット件名の検査。作り直しがコミット単位でしか効かず、PR 到達後に落としても直す手段が rebase になる |
-| secret-scan | hook のみ（現時点） | push 前に止めるのが本旨。CI 側は Security グループ（[0110](../../docs/adr/0110-security-operations.md)）で追加する |
+| secret-scan | hook + CI | 同じ `make secret-scan` を呼ぶが、**走査範囲の決まり方が違う**。hook の既定は「どのリモートにも無いコミット」で、PR のブランチは既に push 済みなので CI では 0 件になる。CI は `SECRET_SCAN_LOG_OPTS` で base からの範囲を渡す。履歴全体は週次だけ（`make secret-scan-history`） |
+| 依存の脆弱性 | CI のみ | 変更の作者がその場で解消できず、変更と独立に状態が変わる。hook に載せると `--no-verify` の常用を教える（[0110](../../docs/adr/0110-security-operations.md) 3.1 / 撤回条件 W1・W2） |
 
 ## 共通の骨格
 
