@@ -24,59 +24,49 @@ export const PURCHASE_STATUS = {
 } as const satisfies Readonly<Record<string, number>>;
 
 /**
- * 本人がキャンセルできるステータス。
+ * 本人が購入に対してできること。
  *
  * @remarks
- * 契約が `PATCH /v1/purchases/{purchaseCode}/cancel` に宣言している「キャンセル可能状態」です。
- * 発送を終えた購入と、終端に達した購入（完了 / キャンセル / 配達済み）は含みません。
+ * admin の遷移（発送・配達完了）は含みません。役割の確認を伴い、対象の見つけ方も違うためです。
  */
-const CANCELABLE_STATUS_CODES: readonly number[] = [
-  PURCHASE_STATUS.UNPROCESSED,
-  PURCHASE_STATUS.ACCEPTED,
-  PURCHASE_STATUS.CONFIRMING,
-  PURCHASE_STATUS.PROCESSING,
-  PURCHASE_STATUS.PAID,
-];
+export const PURCHASE_TRANSITION = {
+  PAY: "pay",
+  CANCEL: "cancel",
+} as const satisfies Readonly<Record<string, string>>;
+
+/** {@link PURCHASE_TRANSITION} の値。 */
+export type PurchaseTransition = (typeof PURCHASE_TRANSITION)[keyof typeof PURCHASE_TRANSITION];
 
 /**
- * 本人が支払えるステータス。
+ * ステータスごとにできること。
  *
  * @remarks
- * 契約が `PATCH /v1/purchases/{purchaseCode}/pay` に宣言している「未払い相当」です。支払い済みは
- * 含みません（二重支払いとして拒まれます）。
+ * 契約が `PATCH /v1/purchases/{purchaseCode}/pay` と `.../cancel` に宣言している遷移可能な状態を、
+ * ステータスの側から引き直したものです。**並びは画面に出す順**で、進む操作を先に置きます。
+ *
+ * 終端（完了 / キャンセル / 配達済み）と発送済みは、できることがないので現れません。
  */
-const PAYABLE_STATUS_CODES: readonly number[] = [
-  PURCHASE_STATUS.UNPROCESSED,
-  PURCHASE_STATUS.ACCEPTED,
-  PURCHASE_STATUS.CONFIRMING,
-  PURCHASE_STATUS.PROCESSING,
-];
+const AVAILABLE_TRANSITIONS: Readonly<Record<number, readonly PurchaseTransition[]>> = {
+  [PURCHASE_STATUS.UNPROCESSED]: [PURCHASE_TRANSITION.PAY, PURCHASE_TRANSITION.CANCEL],
+  [PURCHASE_STATUS.ACCEPTED]: [PURCHASE_TRANSITION.PAY, PURCHASE_TRANSITION.CANCEL],
+  [PURCHASE_STATUS.CONFIRMING]: [PURCHASE_TRANSITION.PAY, PURCHASE_TRANSITION.CANCEL],
+  [PURCHASE_STATUS.PROCESSING]: [PURCHASE_TRANSITION.PAY, PURCHASE_TRANSITION.CANCEL],
+  [PURCHASE_STATUS.PAID]: [PURCHASE_TRANSITION.CANCEL],
+};
 
 /**
- * その購入をキャンセルできるかを返す。
+ * その購入に対して本人がいまできることを、画面に出す順で返す。
  *
  * @remarks
  * **判定の正はバックエンドにあります**（[0070](../../../docs/adr/0070-backend-role-separation.md)）。
  * ここが決めるのは操作を見せるかどうかだけで、送った結果が拒まれる余地は残ります。読み込んでから
  * 押すまでの間に状態が進むためで、そのときは `conflict` として返ります。
  *
- * **知らない業務キーには操作を見せません。** マスタが増えたときに、可否を確かめていない状態へ
- * 不可逆な操作を出すことになります。
+ * **知らない業務キーには何も返しません。** マスタが増えたときに、可否を確かめていない状態へ不可逆な
+ * 操作を出すことになります。
  *
  * @param statusCode - 契約が解決済みで返すステータスの業務キー
  */
-export function canCancelPurchase(statusCode: number): boolean {
-  return CANCELABLE_STATUS_CODES.includes(statusCode);
-}
-
-/**
- * その購入を支払えるかを返す。
- *
- * @remarks
- * 可否の正の在処と、知らない業務キーの扱いは {@link canCancelPurchase} と同じです。
- *
- * @param statusCode - 契約が解決済みで返すステータスの業務キー
- */
-export function canPayPurchase(statusCode: number): boolean {
-  return PAYABLE_STATUS_CODES.includes(statusCode);
+export function availablePurchaseTransitions(statusCode: number): readonly PurchaseTransition[] {
+  return AVAILABLE_TRANSITIONS[statusCode] ?? [];
 }

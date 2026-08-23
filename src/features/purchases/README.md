@@ -33,6 +33,9 @@ test-requirement: feature
 | `facade/amount-summary/` | 請求額の内訳と円の参考換算額。**購入完了も同じ形で出す** |
 | `facade/status-emphasis/` | ステータスの名称から badge の見た目を選ぶ。3 つに束ねる |
 | `purchases.fixture.ts` | story とテストが使う固定の購入 |
+| `actions.ts` | 状態を進める送信。契約の遷移を呼び、競合だけ言い分ける |
+| `form-names.ts` | 送信が持つ項目の名前 |
+| `form-state.ts` | 送信の結果の器と、状況で拒まれたときの文言 |
 | `history/query.ts` | 画面が受け取る素の条件と、ページ送りの寸法（件数・カーソルのキー） |
 | `history/period.ts` | 期間の条件。URL のキー・読み取り・URL の組み立て・利用者への言い換え |
 | `history/period-draft.ts` | 組み立て中の期間。入力欄が経由する途中の姿と、確定できるかの判定 |
@@ -51,6 +54,9 @@ test-requirement: feature
 | `history/ui/skeleton/` | 一覧の待機表示 |
 | `detail/page-content.tsx` | 1 件の取得。`not-found` の分類もここで受ける |
 | `detail/view.tsx` | 詳細の画面。パンくずと `facade` の 3 つの塊を組む |
+| `detail/ui/transitions/` | その購入にいまできる操作と、成立の知らせ。できることは `model` に聞く |
+| `detail/ui/transitions/presentation.ts` | 遷移ごとの言葉と見た目。開く操作と確定する操作で分ける |
+| `detail/ui/transition-button/` | 状態を 1 つ進める操作。確認を開き、通らなかったことをその中で伝える |
 
 ## 設計
 
@@ -75,6 +81,12 @@ test-requirement: feature
   同じ購入が画面によって違う見え方になると、控えとして突き合わせられません。`components` へ上げられない
   のは、いずれも題材の語彙（注文・購入）を持ち、コア残留の検査に弾かれるためです
   （[0021](../../../docs/adr/0021-frontend-responsibility.md)）
+- **できない操作は出しません。** 押せないボタンは「いつか押せる」と読めてしまいます。何ができるかは
+  業務キーから引き、その表そのものは `model` が持ちます（同じ状態機械を管理側の操作も読むため、画面
+  ごとに書くと判定が分かれます）。並べる順も `model` が返す順で、進む操作が先に来ます
+- **通らなかったことは確認の中で伝えます。** 送信しても確認は開いたままなので、外へ出すと利用者が
+  見ていない場所に文言が出ます。逆に成立の知らせは操作が並ぶ段が持ちます。進んだ購入では操作ごと
+  確認が消えるためです
 - **詳細は待機の状態を持ちません。** 購入は見つからないことがあり、その route に `loading.tsx` は
   置けません（[0080](../../../docs/adr/0080-error-handling.md)）。取得の待ちは route が丸ごと引き受けるので、
   この画面に skeleton はありません。一覧のほうは Suspense の境界を持つので `history/ui/skeleton/` があります

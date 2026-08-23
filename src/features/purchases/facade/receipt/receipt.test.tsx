@@ -32,6 +32,23 @@ describe("PurchaseReceiptCard", () => {
     expect(screen.getByText("配達済み")).toHaveAttribute("data-variant", "success");
   });
 
+  it("この購入にできることを、控えの末尾へ置く", () => {
+    render(
+      <PurchaseReceiptCard
+        actions={<button type="button">支払う</button>}
+        purchase={PURCHASE_DETAIL}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "支払う" })).toBeVisible();
+  });
+
+  it("できることを渡されなければ、控えは状況で終わる", () => {
+    render(<PurchaseReceiptCard purchase={PURCHASE_DETAIL} />);
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(<PurchaseReceiptCard purchase={PURCHASE_DETAIL} />);
 

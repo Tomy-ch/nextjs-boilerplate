@@ -35,10 +35,11 @@ describe("PurchaseDetailView", () => {
     expect(screen.getByRole("link", { name: "購入履歴へ戻る" }).parentElement).toHaveClass(
       "print-hidden",
     );
+    expect(screen.getByRole("button", { name: "支払う" }).closest(".print-hidden")).not.toBeNull();
     for (const kept of ["ご注文の控え", "$212.87", "ご購入いただいた商品"]) {
       expect(screen.getByText(kept).closest(".print-hidden")).toBeNull();
     }
-    expect(container.querySelectorAll(".print-hidden")).toHaveLength(3);
+    expect(container.querySelectorAll(".print-hidden")).toHaveLength(4);
   });
 
   it("紙へ出す操作と、次の行き先を置く", () => {
