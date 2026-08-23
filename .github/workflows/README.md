@@ -65,6 +65,17 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Bearer Scan | `bearer.yaml` | `bearer` | 値がプロセスの外へ出る地点を、その値の分類と併せて見る。**落とさない**（下記） |
 | DevSkim Scan | `devskim.yaml` | `devskim` | 言語フロントエンドを持たない regex 検査。opengrep も CodeQL も開かないファイルを読む。**落とさない**（下記） |
 | OpenSSF Scorecard | `scorecard.yaml` | `scorecard` | リポジトリ自身の設定を測る。PR では走らない |
+| DAST | `dast.yaml` | `dast` | **ここだけが応答を読む。** アプリを立てて OWASP ZAP で HTTP を撃ち、配信面を見る。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は赤にする** |
+
+### 配信面の既知の欠落は「一覧」として持つ
+
+`dast` は初日からゲートである。**ただし恒常的に赤い必須チェックは全 PR を止め、その一覧を縮める PR 自身も止める。** 壁が壁として機能するには通れる形が要る。
+
+そこで、いま出ている所見だけを [`../zap/rules.tsv`](../zap/rules.tsv) に `IGNORE` で並べ、**一覧に無い所見は赤にする**。ZAP は `IGNORE` にした規則も件数・規則名・URL を出力に残すので、これは黙殺ではなく severity の引き下げにあたる（[0110](../../docs/adr/0110-security-operations.md) 3.4）。
+
+各行に撤回条件が書いてある。**多くは計画 P6-2（CSP / セキュリティヘッダ）が載せた時点で削除できる** —— つまり P6-2 は「この一覧を空にする作業」であり、1 行 = 1 作業単位として並行して潰せる。
+
+**測る側を先に入れているのは、後入れだと測る側の導入が実装の完了に従属するため。** 実装が終わるまで計測が入らない形にすると、何が足りないかの一覧が最後まで手に入らない。
 
 ### 落とさない層がある
 
@@ -73,9 +84,9 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | 配線 | 該当 job | 何が赤にするか |
 | --- | --- | --- |
 <!-- boilerplate-only:replace-begin -->
-| ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dependency-review` | job の exit code |
+| ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dependency-review` / `dast` | job の exit code |
 <!-- boilerplate-only:replace-with -->
-<!-- = | ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` | job の exit code | -->
+<!-- = | ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dast` | job の exit code | -->
 <!-- boilerplate-only:replace-end -->
 | 報告専用 | `dependency-scan` / `osv-scan` | 何も赤にしない（スキャナが走らなかったときだけ落ちる） |
 | code scanning へ送る | `codeql` / `bearer` / `devskim` | **差分が新しく持ち込んだ alert** に対する GitHub 側のチェック |
@@ -218,6 +229,7 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 | secret-scan | hook + CI | 同じ `make secret-scan` を呼ぶが、**走査範囲の決まり方が違う**。hook の既定は「どのリモートにも無いコミット」で、PR のブランチは既に push 済みなので CI では 0 件になる。CI は `SECRET_SCAN_LOG_OPTS` で base からの範囲を渡す。履歴全体は週次だけ（`make secret-scan-history`） |
 | 依存の脆弱性 | CI のみ | 変更の作者がその場で解消できず、変更と独立に状態が変わる。hook に載せると `--no-verify` の常用を教える（[0110](../../docs/adr/0110-security-operations.md) 3.1 / 撤回条件 W1・W2） |
 | `sast` | CI のみ | 走査に 1 分前後かかり hook の速度目標に収まらない。手元で確かめるなら `make sast` がそのまま同じ検査を回す |
+| `dast` | CI のみ | build と起動を伴うので hook には収まらない。手元で確かめるなら `pnpm start` したものへ `DAST_TARGET=http://host.docker.internal:3000 make dast` を当てる |
 
 ## 共通の骨格
 

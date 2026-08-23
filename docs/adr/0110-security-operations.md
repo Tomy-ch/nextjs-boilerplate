@@ -115,7 +115,10 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 - **配信ヘッダが [0111](0111-csp-security-headers.md) の宣言と一致することを CI で検査する**。ビルド成果物 / 起動したアプリのレスポンスヘッダを取得し、CSP と主要セキュリティヘッダの有無・値を宣言と突合して fail-closed にする
   - > Rationale: [0111](0111-csp-security-headers.md)
 - 対象は CSP と、0111 が定める同伴ヘッダ(`Strict-Transport-Security` / `X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` 等)。**検査するのは「宣言と実配信の一致」**であり、ヘッダの内容そのものは 0111 が正
-- 実装は [0153](0153-ci-configuration.md) の Security グループに 1 job として置く([v1 実装計画](../plan/v1-implementation-plan.md) P6-2)
+- 実装は [0153](0153-ci-configuration.md) の Security グループに 1 job として置く
+- **手段は OWASP ZAP の baseline 走査**。ランナーの中にしか存在しないアプリを撃てるのは、ランナーの中から走る DAST だけである。api-scan ではなく baseline を採るのは、本リポが表示層で API を別リポジトリが持ち、OpenAPI 駆動の走査に撃つ先が実質無いことによる
+- **公式の `zaproxy/action-*` は使わない**。`docker_name` が受け取るのは tag であって digest であり、本リポは container image を digest で固定して `make images-pin-check` で突合する([0011](0011-no-docker.md))が、action の input はその走査対象に入らない。**固定したつもりで誰も検査していないピンを増やさない**
+- **ゲートは実装より先に置き、既知の欠落は一覧で持つ**。恒常的に赤い必須チェックは全 PR を止め、その一覧を縮める PR 自身も止めるため、いま出ている所見だけを `.github/zap/rules.tsv` へ理由と撤回条件つきで並べ、**一覧に無い所見を赤にする**。ZAP は `IGNORE` にした規則も件数・規則名・URL を出力へ残すので、下記 3.4 の「引き下げた所見が出力に残っていること」を満たす。**測る側を後から入れると、測る側の導入が実装の完了に従属し、何が足りないかの一覧が最後まで手に入らない**
 
 ### 4. SECURITY.md
 
