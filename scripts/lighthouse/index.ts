@@ -12,6 +12,7 @@ import {
   SCREENS,
   selectScreens,
 } from "../../e2e/lib/screens";
+import { parseNumstat } from "../lib/numstat";
 import {
   hasFailure,
   judge,
@@ -25,7 +26,7 @@ import { aggregate, readMetrics } from "./metrics";
 import { planTargets, type Target } from "./plan";
 import { renderReport } from "./report";
 import { buildCookieHeader } from "./session";
-import { decideTrigger, parseNumstat } from "./trigger";
+import { decideTrigger } from "./trigger";
 
 /**
  * 画面ごとの Core Web Vitals を測り、予算と照らす。
