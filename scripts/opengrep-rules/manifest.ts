@@ -10,25 +10,31 @@
 export const RULES_REPO = "opengrep/opengrep-rules";
 
 /**
- * 固定する commit。
+ * 固定した commit と digest を持つロックファイル（リポジトリルート相対）。
  *
  * @remarks
- * moving な ref を書かないのは、action の SHA ピンや image の digest ピンと同じ理由です
- * （[0153](../../docs/adr/0153-ci-configuration.md) 3）。上げるときは
- * `pnpm exec tsx scripts/opengrep-rules --resolve` が新しい {@link RULES_DIGEST} を出します。
+ * **値をソースへ書かないのは、人が digest を手で写す工程を作らないためです。** `--resolve` が
+ * 書き、取得側が読む。同じ形を `.github/actions-pin.toml` と `docker/images-pin.toml` が採って
+ * います（[0153](../../docs/adr/0153-ci-configuration.md) 3）。
+ *
+ * キーは `<repo>@<commit>` で、値は取り出したルール集合の digest です。**digest はアーカイブ
+ * ではなく取り出した YAML そのものに対して取ります** —— GitHub が自動生成する tarball は
+ * バイト単位で不変ではなく（gzip の設定が変われば同じ commit でも digest が動く）、
+ * アーカイブを照合対象にすると中身が同じなのに落ちる日が来ます。
  */
-export const RULES_COMMIT = "f1d2b562b414783763fd02a6ed2736eaed622efa";
+export const RULES_LOCK_FILE = "opengrep-rules-pin.toml";
 
-/**
- * 取り出したルール集合の digest。
- *
- * @remarks
- * **アーカイブではなく、取り出した YAML そのものに対して取ります。** GitHub が自動生成する
- * tarball はバイト単位で不変ではなく（gzip の設定が変われば同じ commit でも digest が動く）、
- * アーカイブを照合対象にすると、中身が同じなのに落ちる日が来ます。照合したいのは
- * 「走らせるルールが固定したものと同じか」であって、包み方ではありません。
- */
-export const RULES_DIGEST = "0dfbc521a0604b5388dd3988e5e55287833597c93e71d7425a805e0379e5973c";
+/** {@link RULES_LOCK_FILE} の文法。 */
+export const RULES_LOCK_FORMAT = {
+  entryLabel: '"<repo>@<commit>" = "<digest>"',
+  value: /^[0-9a-f]{64}$/,
+  valueLabel: "取り出したルール集合の SHA-256",
+  header: [
+    "# SAST が読むルール集合の固定（SSOT）。",
+    "# pnpm exec tsx scripts/opengrep-rules --resolve で解決し、make sast が読む。",
+    "# 値は取り出した YAML の集合に対する digest で、アーカイブのものではない。",
+  ],
+} as const;
 
 /**
  * ルールを展開する先（リポジトリルート相対）。

@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   RULES_CATEGORY,
-  RULES_COMMIT,
-  RULES_DIGEST,
   RULES_DIR,
   RULES_EXCLUDED_CATEGORY,
   RULES_LANGUAGES,
+  RULES_LOCK_FILE,
+  RULES_LOCK_FORMAT,
   RULES_REPO,
 } from "./manifest";
 
@@ -19,17 +19,23 @@ describe("RULES_REPO", () => {
   });
 });
 
-describe("RULES_COMMIT", () => {
+describe("RULES_LOCK_FILE", () => {
   // ----- 正常系 -----
-  it("不変の commit SHA で固定する", () => {
-    expect(RULES_COMMIT).toMatch(/^[0-9a-f]{40}$/);
+  it("追跡するロックファイルを指す", () => {
+    expect(readFileSync(RULES_LOCK_FILE, "utf8")).toContain(RULES_REPO);
   });
 });
 
-describe("RULES_DIGEST", () => {
+describe("RULES_LOCK_FORMAT", () => {
   // ----- 正常系 -----
-  it("取り出した集合の digest を宣言する", () => {
-    expect(RULES_DIGEST).toMatch(/^[0-9a-f]{64}$/);
+  it("値として取り出したルール集合の digest を受け取る", () => {
+    expect(RULES_LOCK_FORMAT.value.test("0".repeat(64))).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("digest の形でない値を受け取らない", () => {
+    expect(RULES_LOCK_FORMAT.value.test("0".repeat(40))).toBe(false);
+    expect(RULES_LOCK_FORMAT.value.test("Z".repeat(64))).toBe(false);
   });
 });
 

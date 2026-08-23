@@ -5,25 +5,29 @@
 // `make sast` はこれを先に呼び、`--config tmp/opengrep-rules` を読む。レジストリ（semgrep.dev）
 // は引かない —— 理由は manifest.ts と docs/adr/0110-security-operations.md が持つ。
 //
-// 2 つの mode を持つ。既定は取得と照合で、`--resolve` は commit を上げた人が新しい digest を
-// 得るためのもの（照合せずに算出だけする）。`actions-pin` の resolve / check と同じ形。
+// 2 つの mode を持つ。既定は取得と照合で、`--resolve` は commit を上げた人がロックファイルを
+// 書き直すためのもの。`actions-pin` の resolve / check と同じ形で、**digest を人が写す工程を
+// 作らない**。
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+import { readLock, writeLock } from "../lib/pin-lockfile.js";
 import { ruleSetDigest } from "./digest.js";
-import { RULES_COMMIT, RULES_DIGEST, RULES_DIR, RULES_REPO } from "./manifest.js";
+import { pinKey, readPin } from "./lock.js";
+import { RULES_DIR, RULES_LOCK_FILE, RULES_LOCK_FORMAT, RULES_REPO } from "./manifest.js";
 import { selectRuleMembers } from "./selection.js";
 
 function printUsage(): void {
   console.log(
     [
-      "使い方: pnpm exec tsx scripts/opengrep-rules [--resolve]",
+      "使い方: pnpm exec tsx scripts/opengrep-rules [--resolve [--commit <sha>]]",
       "",
-      `  ${RULES_REPO}@${RULES_COMMIT} から SAST のルールを ${RULES_DIR} へ取り出す。`,
-      "  取り出した集合の digest を manifest.ts の宣言と照合し、違えば落とす。",
+      `  ${RULES_LOCK_FILE} が固定する commit から SAST のルールを ${RULES_DIR} へ取り出す。`,
+      "  取り出した集合の digest をロックファイルと照合し、違えば何も置かずに落ちる。",
       "",
-      "  --resolve  照合せず digest を算出して表示する（commit を上げたときの再固定用）",
+      "  --resolve         取り出した digest をロックファイルへ書き直す",
+      "  --commit <sha>    --resolve と併せて、固定する commit を差し替える",
     ].join("\n"),
   );
 }
@@ -37,24 +41,32 @@ function main(): void {
   const resolving = args.includes("--resolve");
 
   const root = process.cwd();
+  const lockFile = path.join(root, RULES_LOCK_FILE);
   const target = path.join(root, RULES_DIR);
+
+  const commit = commitArgument(args) ?? readPin(readLock(lockFile, RULES_LOCK_FORMAT)).commit;
+  const pinned = resolving ? null : readPin(readLock(lockFile, RULES_LOCK_FORMAT)).digest;
 
   // 既に固定どおりのものが置いてあれば何もしない。CI は毎回取りに行くが、手元で `make sast` を
   // 繰り返すときに毎回 1 MB を落とさせない。
-  if (!resolving && fs.existsSync(target) && digestOf(target) === RULES_DIGEST) {
-    console.log(`✅ ${RULES_DIR} は ${RULES_REPO}@${RULES_COMMIT.slice(0, 7)} で固定済みです`);
+  if (pinned !== null && fs.existsSync(target) && digestOf(target) === pinned) {
+    console.log(`✅ ${RULES_DIR} は ${RULES_REPO}@${commit.slice(0, 7)} で固定済みです`);
     return;
   }
 
-  const work = fs.mkdtempSync(path.join(root, "tmp", "opengrep-rules-"));
+  // 追跡しない置き場なので、複製したてのツリーには存在しない。CI は毎回そこから始まる。
+  const scratch = path.join(root, "tmp");
+  fs.mkdirSync(scratch, { recursive: true });
+
+  const work = fs.mkdtempSync(path.join(scratch, "opengrep-rules-"));
   try {
     const archive = path.join(work, "rules.tar.gz");
-    download(archive);
+    download(archive, commit);
 
     const members = selectRuleMembers(listMembers(archive));
     if (members.length === 0) {
       throw new Error(
-        `${RULES_REPO}@${RULES_COMMIT} から取り出すルールが 1 件もありません（置き場の構成が変わった可能性があります）`,
+        `${RULES_REPO}@${commit} から取り出すルールが 1 件もありません（置き場の構成が変わった可能性があります）`,
       );
     }
 
@@ -63,20 +75,21 @@ function main(): void {
     extract(archive, staged, members, work);
 
     const digest = digestOf(staged);
-    if (resolving) {
-      console.log(`ルール ${members.length} 件 / digest:`);
-      console.log(digest);
+    if (pinned === null) {
+      writeLock(lockFile, new Map([[pinKey(commit), digest]]), RULES_LOCK_FORMAT);
+      console.log(`✅ ルール ${members.length} 件を ${RULES_LOCK_FILE} へ固定しました`);
+      console.log(`   ${pinKey(commit)} = ${digest}`);
       return;
     }
     // 固定した中身と違うものを置かない。**置いてから照合すると、落ちた後のツリーに
     // 照合できなかったルールが残り、次の実行が「固定済み」と読む。**
-    if (digest !== RULES_DIGEST) {
+    if (digest !== pinned) {
       throw new Error(
         [
-          `取り出したルールが固定した digest と一致しません（${RULES_REPO}@${RULES_COMMIT}）`,
-          `  宣言: ${RULES_DIGEST || "(未設定)"}`,
+          `取り出したルールが ${RULES_LOCK_FILE} の固定と一致しません（${RULES_REPO}@${commit}）`,
+          `  宣言: ${pinned}`,
           `  実際: ${digest}`,
-          "  commit を上げたなら --resolve で算出し直して manifest.ts へ書いてください。",
+          "  commit を上げたなら --resolve で固定し直してください。",
         ].join("\n"),
       );
     }
@@ -90,7 +103,17 @@ function main(): void {
   }
 }
 
-function download(archive: string): void {
+function commitArgument(args: readonly string[]): string | null {
+  const at = args.indexOf("--commit");
+  if (at === -1) return null;
+  const value = args[at + 1];
+  if (value === undefined || !/^[0-9a-f]{40}$/.test(value)) {
+    throw new Error("--commit には 40 桁の小文字 16 進を渡します");
+  }
+  return value;
+}
+
+function download(archive: string, commit: string): void {
   // --fail-with-body: 404 の本文をアーカイブとして保存しない。
   execFileSync(
     "curl",
@@ -102,7 +125,7 @@ function download(archive: string): void {
       "--retry-all-errors",
       "-o",
       archive,
-      `https://codeload.github.com/${RULES_REPO}/tar.gz/${RULES_COMMIT}`,
+      `https://codeload.github.com/${RULES_REPO}/tar.gz/${commit}`,
     ],
     { stdio: ["ignore", "ignore", "inherit"] },
   );

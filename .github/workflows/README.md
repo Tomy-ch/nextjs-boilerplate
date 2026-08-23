@@ -342,7 +342,7 @@ coverage 以外の各 job は検査結果を即 fail させず、いったん ca
 
 **3. 照合はアーカイブではなく取り出したものに掛ける。** GitHub が自動生成する tarball はバイト単位で不変ではない（gzip の設定が変われば同じ commit でも digest が動く）。照合したいのは「走らせるルールが固定したものと同じか」であって包み方ではないので、**取り出した YAML の集合に対して digest を取る**。一致しなければ**何も置かずに**落ちる —— 置いてから照合すると、落ちた後のツリーに照合できなかったルールが残り、次の実行がそれを「固定済み」と読む。
 
-実体は [`../../scripts/opengrep-rules/`](../../scripts/opengrep-rules/)。commit を上げるときは `pnpm exec tsx scripts/opengrep-rules --resolve` が新しい digest を出す。**rule id は置き場のパスを接頭辞に持つ**（`tmp.opengrep-rules.javascript.…`）ので、置き場を動かすと code scanning の既存 alert が一斉に別物になる。抑止（`// nosemgrep:`）は接頭辞なしの素の id で効く。
+実体は [`../../scripts/opengrep-rules/`](../../scripts/opengrep-rules/) で、固定値は [`../../opengrep-rules-pin.toml`](../../opengrep-rules-pin.toml) が持つ —— `.github/actions-pin.toml` / `docker/images-pin.toml` と同じ形である。**digest をソースへ書かないのは、人が写す工程を作らないため**で、`pnpm exec tsx scripts/opengrep-rules --resolve --commit <sha>` がロックファイルを書き直す。**rule id は置き場のパスを接頭辞に持つ**（`tmp.opengrep-rules.javascript.…`）ので、置き場を動かすと code scanning の既存 alert が一斉に別物になる。抑止（`// nosemgrep:`）は接頭辞なしの素の id で効く。
 
 ### 引き換えに失うもの
 
