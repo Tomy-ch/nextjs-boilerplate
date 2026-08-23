@@ -88,6 +88,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- md-lint-result -->'
+          status: ${{ steps.md-lint.outputs.status }}
           title: ${{ steps.md-lint.outputs.title }}
           body-file: /tmp/md-lint.log
           details-summary: 'markdownlint / mermaid log'

@@ -97,6 +97,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- lint-result -->'
+          status: ${{ steps.lint.outputs.status }}
           title: ${{ steps.lint.outputs.title }}
           body-file: /tmp/lint.log
           details-summary: 'lint log'

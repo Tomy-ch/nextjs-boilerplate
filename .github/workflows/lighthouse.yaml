@@ -191,6 +191,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- lighthouse-nudge -->'
+          status: alert
           title: '## 🔎 Lighthouse: この変更は測っておくと安全です'
           body-file: /tmp/lighthouse-alert.md
           # Workflow-authored prose, and the one interpolated value is filtered above.
@@ -245,6 +246,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- lighthouse-result -->'
+          status: ${{ steps.lighthouse.outputs.status }}
           title: >-
             ${{ steps.lighthouse.outputs.status == 'success' && '## ✅ Lighthouse — PASS (Core Web Vitals)'
             || '## ❌ Lighthouse — FAIL (Core Web Vitals)' }}

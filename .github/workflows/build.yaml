@@ -105,6 +105,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- build-result -->'
+          status: ${{ steps.build.outputs.status }}
           title: ${{ steps.build.outputs.title }}
           body-file: /tmp/build.log
           details-summary: 'next build log'

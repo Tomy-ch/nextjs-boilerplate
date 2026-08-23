@@ -94,6 +94,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- secret-scan-result -->'
+          status: ${{ steps.gitleaks.outputs.status }}
           title: ${{ steps.gitleaks.outputs.title }}
           body-file: /tmp/gitleaks.log
           details-summary: 'gitleaks log'
@@ -103,3 +104,13 @@ jobs:
       - name: Fail if a secret was detected
         if: always() && steps.gitleaks.outputs.status != 'success'
         run: exit 1
+
+  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  notify-failure:
+    needs: secret-scan
+    if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.secret-scan.result) }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      failed-job: secret-scan
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
