@@ -1,0 +1,150 @@
+name: Deferred Checks
+
+# Tells a pull request when its diff is large enough that leaving the deferred checks to the
+# merge is probably the wrong call.
+#
+# `a11y`, `e2e` and `lighthouse` do not run their expensive steps on an ordinary pull request.
+# Each of them says so on the pull request itself, in its own result comment. That covers the
+# question "did this check run?" — it does not cover "should I have made it run?", because
+# each of those jobs only ever sees the diff through its own lens and none of them counts what
+# the change actually amounts to.
+#
+# So this workflow counts once, for all three, and leaves at most one comment.
+#
+# ## This is not a gate
+#
+# It cannot fail, and it is not a required status check. There is no principled number here —
+# `ALERT_AT` below is a line drawn to be useful, not one derived from anything — so it must not
+# be able to block a merge. The reasons that ARE principled live where they can be stated in a
+# sentence: `lighthouse.yaml` measures without asking when the screen declaration or a layout
+# moved, and `check-trigger` runs everything when the pull request is a promotion.
+#
+# What it produces is a prompt for a human, whose answer is a label.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The changed-line count past which the comment appears, over the source the three deferred
+  # checks read (`scripts/deferred-checks/volume.ts` declares which paths those are).
+  #
+  # **There is no theoretical basis for 400.** It is set so that a focused change stays quiet
+  # and a change nobody can hold in their head at once does not. Crossing it costs a comment
+  # and nothing else, so the failure modes are asymmetric and cheap: too low is noise, too high
+  # is a missed reminder. If it nags, raise it; if things land unchecked, lower it.
+  ALERT_AT: '400'
+
+jobs:
+  deferred-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          # The base ref has to be resolvable to count anything; a shallow checkout leaves it a
+          # bad object and the count would silently come out as zero — which reads exactly like
+          # a small change.
+          fetch-depth: 0
+
+      # Asked for all three at once. As soon as one of them is already forced — a promotion
+      # pull request, or any of the labels — the pull request is no longer deferring, and a
+      # comment telling it to stop deferring would be wrong.
+      - name: Decide whether the checks are still deferred on this pull request
+        id: cadence
+        uses: ./.github/actions/check-trigger
+        with:
+          label: |
+            run-a11y
+            run-e2e
+            run-lighthouse
+          labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+
+      - name: Setup mise and the pinned tools
+        if: steps.cadence.outputs.run != 'true'
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        if: steps.cadence.outputs.run != 'true'
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        if: steps.cadence.outputs.run != 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        if: steps.cadence.outputs.run != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Count what the diff moves
+        id: volume
+        if: steps.cadence.outputs.run != 'true'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: pnpm exec tsx scripts/deferred-checks volume "origin/${BASE_REF}" "${ALERT_AT}"
+
+      # Workflow-authored prose, and the one interpolated value is a number this job computed.
+      # Nothing here is taken from the diff's own text.
+      - name: Say that the change is large enough to check now
+        if: steps.volume.outputs.over == 'true'
+        env:
+          CHANGED_LINES: ${{ steps.volume.outputs.changed-lines }}
+        run: |
+          {
+            printf 'この PR は、先送りにしている検査が見る範囲を **%s 行**動かしています。\n' "${CHANGED_LINES}"
+            cat <<'NOTE'
+
+          差分を読んで影響を追いきれる規模を超えているので、merge を待たずに回しておくことを勧めます。
+          回したい検査のラベルを付けてください。
+
+          | ラベル | 回るもの | 目安 |
+          | --- | --- | --- |
+          | `run-a11y` | 全 story への axe | 約 10 分 |
+          | `run-e2e` | 主要ジャーニーと画面の比較 | 約 5 分 |
+          | `run-lighthouse` | 全画面の Core Web Vitals | 約 16 分 |
+
+          **これはゲートではありません。** どれも付けずに merge できます。全数は保護ブランチへの
+          merge と日次で回り（ADR 0091 §3）、`develop` / `staging` / `production` を base とする PR
+          では 3 つとも必ず回ります。
+          NOTE
+          } > /tmp/deferred-checks-nudge.md
+
+      - name: Comment the nudge on PR
+        if: steps.volume.outputs.over == 'true'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- deferred-checks-nudge -->'
+          title: '## 🔎 先送りにしている検査を回しておくことを勧めます'
+          body-file: /tmp/deferred-checks-nudge.md
+          # Workflow-authored prose, and the one interpolated value is a number.
+          body-sanitized: 'true'
