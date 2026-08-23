@@ -35,7 +35,18 @@ rules:
   # どちらも lockfile のハッシュを鍵にした依存の置き場でしかない。加えて、この workflow だけは
   # pull request でも起動するが、cache の読み出しは自分のブランチと既定ブランチに限られるため、
   # PR が書いた entry を保護ブランチの実行が拾うことはない。
+  #
+  # `a11y.yaml` / `e2e.yaml` は同じ理由でここに並ぶ。どちらも先送りにした検査で、全数は保護
+  # ブランチへの push と日次が持つ —— その push が加わったことで、PR だけで回っていた頃には
+  # 立たなかったこの指摘が立つようになった。復元するのは pnpm の store と Next.js の build cache
+  # で、いずれも lockfile とソースのハッシュを鍵にした置き場である。
+  #
+  # **`vrt` の検査済み入力の記録はこの判断の外にある。** あれは依存ではなく「この木を検査した」
+  # という実行の履歴で、偽の一致は比較を省く向きに倒れる。鍵に run_id を使い、書くのは検査が
+  # 通った実行だけ、という制約がそれを担っている (.makefiles/testing/vrt.mk)。
   cache-poisoning:
     ignore:
       - vrt-guard.yaml
       - lighthouse.yaml
+      - a11y.yaml
+      - e2e.yaml

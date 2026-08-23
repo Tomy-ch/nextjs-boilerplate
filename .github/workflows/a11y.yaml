@@ -17,13 +17,41 @@ name: Accessibility
 # No baseline images are needed, so the submodule is not fetched.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
-# every PR is in README.md. The job always starts and then asks `diff-scope` whether the
-# diff can reach a story, so the context is reported even when the expensive steps stand
-# down. That gate and the input hash `make a11y` computes are two different layers of the
-# same question — which layer decides what is in `vrt/README.md`.
+# every PR is in README.md. The job always starts and then asks two questions before it
+# spends anything, so the context is reported even when the expensive steps stand down.
+#
+# ## Why this does not run on every pull request
+#
+# Measured on this repository's own sample: 941 stories at about 2.2 s each over four
+# workers, which is roughly ten minutes, and four fifths of it is the per-story work — so
+# the cost is `stories x seconds` and grows with the catalogue. Against that, 5% of the runs
+# that actually ran found a violation. Paying ten minutes on every push to change the merge
+# decision one time in twenty is the wrong trade.
+#
+# So the cadence moves instead of the coverage, exactly as `lighthouse.yaml` does. Every
+# story is still checked, in both themes, against the same rules — on every merge into a
+# protected branch and once a night. What a pull request gives up is one merge of detection
+# latency, and `check-trigger` lists the four events that buy it back.
+#
+# The two questions are different layers and both have to say yes. `check-trigger` asks
+# whether this event has to pay now; `diff-scope` asks whether the diff can reach a story at
+# all. A third layer sits below them — the input hash `make a11y` computes — and which layer
+# decides what is in `vrt/README.md`.
 
 on:
   pull_request:
+    # Spelled out because naming `types` replaces the default set rather than adding to it,
+    # and `labeled` is what lets `run-a11y` start a run on a pull request already open.
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches:
+      - production
+      - staging
+      - develop
+      - 'release/**'
+  schedule:
+    # 18:00 UTC daily (03:00 JST), alongside the other deferred checks.
+    - cron: '0 18 * * *'
   workflow_dispatch:
 
 # Select the CI environment file (env/.env.ci). Without this the loader falls back to
@@ -46,6 +74,9 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+      # Only for the branch issue a failure off a pull request raises; the reporting of a
+      # pull-request result stays in the `a11y-comment` job below.
+      issues: write
 
     outputs:
       title: ${{ steps.a11y.outputs.title || steps.standdown.outputs.title }}
@@ -61,11 +92,20 @@ jobs:
         with:
           persist-credentials: false
 
-      # Identical to VRT's list, and identical for the same reason: axe reads the rendered
-      # page, so anything a story renders from decides a violation. Why the two keep their
-      # own copy instead of a shared default is in README.md.
+      - name: Decide whether this event has to run axe now
+        id: trigger
+        uses: ./.github/actions/check-trigger
+        with:
+          label: run-a11y
+          labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+
+      # Only asked once the cadence says this event pays. Identical to VRT's list, and
+      # identical for the same reason: axe reads the rendered page, so anything a story
+      # renders from decides a violation. Why the two keep their own copy instead of a
+      # shared default is in README.md.
       - name: Decide whether the diff can reach a story
         id: scope
+        if: steps.trigger.outputs.run == 'true'
         uses: ./.github/actions/diff-scope
         with:
           base-ref: ${{ github.base_ref }}
@@ -170,13 +210,28 @@ jobs:
       # reaching a story — README.md's "update the comment on success too" invariant,
       # applied to standing down. The body file is the one the comment job reads, so it has
       # to be written here too.
-      - name: Note that the diff cannot reach a story
+      - name: Note that axe did not run
         id: standdown
         if: steps.scope.outputs.relevant != 'true'
         shell: bash
+        env:
+          # Compared in the shell rather than interpolated into it. The two gates stand down
+          # for different reasons and the reader has to be able to act on the difference:
+          # one is answered by waiting, the other by nothing at all.
+          DEFERRED: ${{ steps.trigger.outputs.run != 'true' }}
         run: |
-          echo 'title=## ⏭️ Accessibility: SKIP (diff cannot reach a story)' >> "$GITHUB_OUTPUT"
-          echo 'この PR の差分は story に届かないため、axe を実行していません。' > /tmp/a11y-full.log
+          if [ "${DEFERRED}" = "true" ]; then
+            echo 'title=## ⏭️ Accessibility: SKIP (deferred to the merge and the nightly pass)' >> "$GITHUB_OUTPUT"
+            cat <<'NOTE' > /tmp/a11y-full.log
+          全 story への axe は、保護ブランチへの merge と日次で回ります。この PR では実行していません。
+
+          この PR で回すなら `run-a11y` ラベルを付けてください。`develop` / `staging` / `production`
+          を base とする PR では、ラベルの有無に関わらず必ず回ります。
+          NOTE
+          else
+            echo 'title=## ⏭️ Accessibility: SKIP (diff cannot reach a story)' >> "$GITHUB_OUTPUT"
+            echo 'この PR の差分は story に届かないため、axe を実行していません。' > /tmp/a11y-full.log
+          fi
 
       - name: Upload the axe report
         if: always() && steps.a11y.outputs.status == 'failure'
@@ -195,6 +250,53 @@ jobs:
           path: /tmp/a11y-full.log
           retention-days: 1
           if-no-files-found: error
+
+      # Off a pull request there is nowhere for a red check to be read, so the failure has to
+      # become something with an owner. One issue per branch, reopened rather than duplicated:
+      # a second failure on a branch already flagged is the same unresolved fact.
+      #
+      # This is what the deferred cadence costs. A violation now lands and is found after the
+      # merge, so the finding has to arrive somewhere a human looks rather than in a run nobody
+      # opened.
+      - name: Raise the failure for a human
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.a11y.outputs.status != 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="[Accessibility] ${BRANCH} で axe が違反を報告している"
+          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" \
+            --json number --jq '.[0].number')"
+
+          # Indented four spaces rather than fenced: markdown renders that as a code block and
+          # it needs no fence, which keeps axe's own text — rule ids and help prose this
+          # repository does not author — from being read as markup (ADR 0153 §5).
+          {
+            echo '違反の詳細:'
+            echo
+            tail -n 80 /tmp/a11y-full.log 2>/dev/null | sed 's/^/    /'
+            echo
+            echo "実行: ${RUN_URL}"
+            echo
+            cat <<'NOTE'
+          `a11y-report` artifact に、story ごとの違反が入っています。
+
+          手元で確かめるなら `make a11y` です。特定の story だけなら
+          `make a11y VRT_ARGS="--grep <story 名>"`。
+
+          **rule を切って通さないでください。** 切ってよいのは jsdom に無い前提（layout / 配色）へ
+          依存する rule を component 側の suite で外すときだけで、ここは実ブラウザなのでその理由は
+          立ちません (ADR 0100)。
+          NOTE
+          } > /tmp/a11y-guard.md
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/a11y-guard.md
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label bug \
+              --body-file /tmp/a11y-guard.md
+          fi
 
       # `status` is empty when the run stood down, which is not a failure. The scope guard
       # has to be repeated here rather than left to `status`, because "no verdict" and "a bad

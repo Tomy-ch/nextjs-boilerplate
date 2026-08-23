@@ -20,5 +20,20 @@
     "name": "baseline-approve",
     "description": "撮り直した基準画像の見た目を確認したことを表す",
     "color": "22c55e"
+  },
+  {
+    "name": "run-a11y",
+    "description": "この PR で全 story への axe を回す（既定は merge 後と日次）",
+    "color": "1d76db"
+  },
+  {
+    "name": "run-e2e",
+    "description": "この PR で主要ジャーニーを走らせる（既定は merge 後と日次）",
+    "color": "1d76db"
+  },
+  {
+    "name": "run-lighthouse",
+    "description": "この PR で全画面の Core Web Vitals を測る（既定は merge 後と日次）",
+    "color": "1d76db"
   }
 ]
