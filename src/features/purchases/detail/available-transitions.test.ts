@@ -13,12 +13,8 @@ describe("availablePurchaseTransitions", () => {
     ]);
   });
 
-  it("処理が進んでいる途中の購入でも、支払いと取り消しができる", () => {
-    for (const statusCode of [
-      PURCHASE_STATUS.ACCEPTED,
-      PURCHASE_STATUS.CONFIRMING,
-      PURCHASE_STATUS.PROCESSING,
-    ]) {
+  it("受付を待っている購入でも、支払いと取り消しができる", () => {
+    for (const statusCode of [PURCHASE_STATUS.ACCEPTED, PURCHASE_STATUS.CONFIRMING]) {
       expect(availablePurchaseTransitions(statusCode)).toEqual([
         PURCHASE_TRANSITION.PAY,
         PURCHASE_TRANSITION.CANCEL,
@@ -28,6 +24,12 @@ describe("availablePurchaseTransitions", () => {
 
   it("支払いを終えた購入では、取り消しだけができる", () => {
     expect(availablePurchaseTransitions(PURCHASE_STATUS.PAID)).toEqual([
+      PURCHASE_TRANSITION.CANCEL,
+    ]);
+  });
+
+  it("処理中の購入では、取り消しだけができる", () => {
+    expect(availablePurchaseTransitions(PURCHASE_STATUS.PROCESSING)).toEqual([
       PURCHASE_TRANSITION.CANCEL,
     ]);
   });

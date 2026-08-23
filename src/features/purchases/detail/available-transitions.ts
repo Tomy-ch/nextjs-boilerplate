@@ -21,13 +21,17 @@ export type PurchaseTransition = (typeof PURCHASE_TRANSITION)[keyof typeof PURCH
  * 契約が `PATCH /v1/purchases/{purchaseCode}/pay` と `.../cancel` に宣言している遷移可能な状態を、
  * ステータスの側から引き直したものです。**並びは画面に出す順**で、進む操作を先に置きます。
  *
+ * **処理中は支払えません。** 処理中は「支払いを終え、発送に向けた処理を進めている」状態で、
+ * 支払日時が既に記録されています。ここへ支払いを送ると記録済みの日時が現在時刻へ潰れるため、
+ * 契約は二重支払いとして拒みます。
+ *
  * 終端（完了 / キャンセル / 配達済み）と発送済みは、できることがないので現れません。
  */
 const AVAILABLE_TRANSITIONS: Readonly<Record<number, readonly PurchaseTransition[]>> = {
   [PURCHASE_STATUS.UNPROCESSED]: [PURCHASE_TRANSITION.PAY, PURCHASE_TRANSITION.CANCEL],
   [PURCHASE_STATUS.ACCEPTED]: [PURCHASE_TRANSITION.PAY, PURCHASE_TRANSITION.CANCEL],
   [PURCHASE_STATUS.CONFIRMING]: [PURCHASE_TRANSITION.PAY, PURCHASE_TRANSITION.CANCEL],
-  [PURCHASE_STATUS.PROCESSING]: [PURCHASE_TRANSITION.PAY, PURCHASE_TRANSITION.CANCEL],
+  [PURCHASE_STATUS.PROCESSING]: [PURCHASE_TRANSITION.CANCEL],
   [PURCHASE_STATUS.PAID]: [PURCHASE_TRANSITION.CANCEL],
 };
 
