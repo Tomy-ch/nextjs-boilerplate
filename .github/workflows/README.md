@@ -61,7 +61,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
 | Secret Scan | `gitleaks.yaml` | `secret-scan` | PR が足したコミットを gitleaks で走査する。週次は履歴全体。検出は fail-closed |
-| SAST | `sast.yaml` | `sast` | 自分が書いたコードを opengrep で見る。**0 件の baseline を保つ**ので検出で落ちる。許容する所見はソースの `// nosemgrep:` に理由付きで置く |
+| SAST | `sast.yaml` | `sast` | 自分が書いたコードを opengrep で見る。**0 件の baseline を保つ**ので検出で落ちる。許容する所見はソースの `// nosemgrep:` に理由付きで置く。**ルールはレジストリから引かず**、`opengrep/opengrep-rules` の commit を固定して読む（下記「SAST のルールをレジストリから引かない」） |
 | CodeQL Scan | `codeql.yaml` | `codeql` | 同じ問いに GitHub 側の解析で答える。high の検出でマージを止めるのは code scanning 側の設定で、この job が落ちるのは解析そのものが走らなかったときだけ |
 | Dependency Scan | `dependency-scan.yaml` | `dependency-scan` / `dependency-audit` / `dependency-gate` | 依存の脆弱性を Trivy と `pnpm audit` で。同じ対象に 3 つの異なる判定を掛ける（下記） |
 | OSV Scan | `osv-scan.yaml` | `osv-scan` / `osv-gate` | 同じ依存を OSV データベースで読む。報告と昇格ゲートの二段は Trivy と同じ形 |
@@ -316,6 +316,41 @@ coverage 以外の各 job は検査結果を即 fail させず、いったん ca
 - **`title` と `details-summary` には静的リテラルだけを渡す**。無害化が効くのは本文（`body-file`）だけで、`title` は生 Markdown、`details-summary` は生 HTML としてフェンスの**外**に置かれる。ログの中身を要約して `title` に載せるような変更を入れると、フェンスで塞いだ注入が外側から復活する
 
 カバレッジだけは、行単位の coverage と基準ブランチとの差分を構造化して報告する必要があるため、`test.yaml` の octocov が専用コメントを投稿する。**これは判定ではなく計測値なので、緑でも投稿し続ける** —— 上の「緑では作らない」が対象にしているのは「PASS」としか言わないコメントである。ただし**積み上げてはいけない**ので `.octocov.yaml` に `updatePrevious: true` を置いてある（既定は push のたびに新しいコメントを作る）。テストの失敗内容そのものは octocov ではなくこの upsert 基盤が投稿する —— octocov は coverage しか報告せず、どのテストが落ちたかを言わない。ほかの検査ログ（セキュリティスキャン結果 / 生成物 drift を含む）はこの composite action に乗せる。
+
+## SAST のルールをレジストリから引かない
+
+`make sast` が読むルールは、`opengrep/opengrep-rules` の **commit を固定**して取り出したものである。`--config p/javascript` のようなレジストリ参照は使わない。
+
+**理由はライセンスにある。** `p/*` が返す集合（`semgrep/semgrep-rules`）は **Semgrep Rules License v1.0** で、OSI 承認ライセンスではない。
+
+> You may use the rules only for your own internal business purposes.
+> This license does not allow you to distribute the rules, or to make them available to others as a service.
+
+エンジンに OSS fork の opengrep を採った判断は「fork 先へライセンスの判断を渡さない」ことだった（[0110](../../docs/adr/0110-security-operations.md) 3）。**ルールをレジストリから引いている限り、その判断は成立しない** —— エンジンが LGPL でも、走らせているルールが内部利用限定なら、判断は層をずれて渡されているだけである。
+
+| | 取得元 | ライセンス |
+| --- | --- | --- |
+| エンジン | mise が固定する opengrep | LGPL-2.1-or-later |
+| ルール（変更前） | 走査のたびに semgrep.dev | **Semgrep Rules License v1.0** |
+| ルール（現在） | 固定した commit の `opengrep/opengrep-rules` | LGPL-2.1 + Commons Clause |
+
+### 取り出し方は 3 つの制約で決まっている
+
+**1. 検体を 1 つもディスクへ置かない。** 置き場はルールとほぼ同数の**検体**（意図的に脆弱なソース）を抱えており、`java/` `php/` には本物の webshell が含まれる。そのまま展開すると開発者のマシンとランナーへ置かれ、ウイルス対策が反応する。よって**言語で絞ったうえで、アーカイブから YAML だけを名指しで取り出す** —— 「全部展開してから消す」では同じ集合になっても途中でディスクへ出る。
+
+**2. `audit` 分類を取らない。** 実測で、`security/` を丸ごと採ると 28 件（うち 23 件が `detect-non-literal-regexp` と `detect-redos`）出て 0 件 baseline が保てなかった。レジストリの `p/javascript` も既定では含めていない分類で、**読んで判断するための所見**であってゲートに載る前提ではない。同じ規則を [`eslint.config.ts`](../../eslint.config.ts) の security でも落としており、理由も同じ。
+
+**3. 照合はアーカイブではなく取り出したものに掛ける。** GitHub が自動生成する tarball はバイト単位で不変ではない（gzip の設定が変われば同じ commit でも digest が動く）。照合したいのは「走らせるルールが固定したものと同じか」であって包み方ではないので、**取り出した YAML の集合に対して digest を取る**。一致しなければ**何も置かずに**落ちる —— 置いてから照合すると、落ちた後のツリーに照合できなかったルールが残り、次の実行がそれを「固定済み」と読む。
+
+実体は [`../../scripts/opengrep-rules/`](../../scripts/opengrep-rules/)。commit を上げるときは `pnpm exec tsx scripts/opengrep-rules --resolve` が新しい digest を出す。**rule id は置き場のパスを接頭辞に持つ**（`tmp.opengrep-rules.javascript.…`）ので、置き場を動かすと code scanning の既存 alert が一斉に別物になる。抑止（`// nosemgrep:`）は接頭辞なしの素の id で効く。
+
+### 引き換えに失うもの
+
+**ルール数が減る。** レジストリの 3 パックで 563 ルールだったところ、いまは 77 ルールである。`p/owasp-top-ten` は複数言語を跨ぐパックで、その大半はこのリポジトリに対象が無いが、**それを差し引いても減っている**。
+
+**ルールが更新されない。** `opengrep/opengrep-rules` はライセンス変更直前（2024-12-13）の fork で、上流の動きは鈍い。新しい規則は入ってこない。**この層の鮮度は CodeQL が補っている**（GitHub 側が更新し続ける）ため、SAST 全体が固まるわけではない。
+
+撤回条件は BACKLOG の W24 が持つ。
 
 ## 通知
 
