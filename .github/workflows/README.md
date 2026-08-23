@@ -61,7 +61,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | CodeQL Scan | `codeql.yaml` | `codeql` | 同じ問いに GitHub 側の解析で答える。high の検出でマージを止めるのは code scanning 側の設定で、この job が落ちるのは解析そのものが走らなかったときだけ |
 | Dependency Scan | `dependency-scan.yaml` | `dependency-scan` / `dependency-audit` / `dependency-gate` | 依存の脆弱性を Trivy と `pnpm audit` で。同じ対象に 3 つの異なる判定を掛ける（下記） |
 | OSV Scan | `osv-scan.yaml` | `osv-scan` / `osv-gate` | 同じ依存を OSV データベースで読む。報告と昇格ゲートの二段は Trivy と同じ形 |
-| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナが見るのは木の現状で、持ち越しと増分を区別できない |
+| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナが見るのは木の現状で、持ち越しと増分を区別できない。**このリポジトリの運用にだけ置く**（呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求するため） <!-- boilerplate-only:line --> |
 | Bearer Scan | `bearer.yaml` | `bearer` | 値がプロセスの外へ出る地点を、その値の分類と併せて見る。**落とさない**（下記） |
 | DevSkim Scan | `devskim.yaml` | `devskim` | 言語フロントエンドを持たない regex 検査。opengrep も CodeQL も開かないファイルを読む。**落とさない**（下記） |
 | OpenSSF Scorecard | `scorecard.yaml` | `scorecard` | リポジトリ自身の設定を測る。PR では走らない |
@@ -72,9 +72,15 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 | 配線 | 該当 job | 何が赤にするか |
 | --- | --- | --- |
+<!-- boilerplate-only:replace-begin -->
 | ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dependency-review` | job の exit code |
+<!-- boilerplate-only:replace-with -->
+<!-- = | ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` | job の exit code | -->
+<!-- boilerplate-only:replace-end -->
 | 報告専用 | `dependency-scan` / `osv-scan` | 何も赤にしない（スキャナが走らなかったときだけ落ちる） |
 | code scanning へ送る | `codeql` / `bearer` / `devskim` | **差分が新しく持ち込んだ alert** に対する GitHub 側のチェック |
+
+**「落とさない」のは所見に対してだけで、機構が壊れたら落ちる。** `bearer` / `devskim` / `scorecard` は報告が出力のすべてなので、走らなかった走査・書かれなかった SARIF・届かなかったアップロードは、いずれも綺麗な結果と同じ緑になってしまう。**検査しない gate は「違反なし」と見分けが付かない。**
 
 3 つ目は「落とさない」と「見せない」を分けるための配線で、job は緑を返すが差分が持ち込んだ alert は PR を赤にする。
 

@@ -86,6 +86,11 @@ jobs:
 
       # A second pass for code scanning. It reads the same variables as the gate, so
       # the two cannot describe different scans.
+      #
+      # `continue-on-error` here, unlike in `bearer.yaml`, because this job's output is
+      # the GATE — the verdict is already decided and reported by the step above. Code
+      # scanning is where the detail goes, not where the answer lives, so losing it
+      # costs navigability rather than the check itself.
       - name: Write the SARIF
         if: always() && steps.sast.outputs.status != ''
         continue-on-error: true
