@@ -4,6 +4,7 @@
 // 依存マトリクスは architecture.ts が正であり、ここは宣言を写さず import して強制へ変換する。
 import boundaries from "eslint-plugin-boundaries";
 import reactHooks from "eslint-plugin-react-hooks";
+import security from "eslint-plugin-security";
 import tseslint from "typescript-eslint";
 
 import {
@@ -173,6 +174,44 @@ export default [
     ignores: ["src/**/*.test.{js,jsx,ts,tsx}", "src/**/*.stories.{js,jsx,ts,tsx}"],
     rules: {
       "project-rules/no-raw-font-weight": "error",
+    },
+  },
+  {
+    // 危険なパターンの検出。SAST（opengrep / CodeQL）と同じ問いを、**型を解決したうえで
+    // 編集中に**答える層として置く。走査が CI にしか無いと、指摘が届くのは push の後になる。
+    //
+    // **推奨プリセット（`security.configs.recommended`）は当てない。** 0002 の能力ベース分担は
+    // 束の適用を禁じており、束を当てれば biome と重なる規則と、この層に対象の無い規則が同時に
+    // 入る。有効化するのは、biome に相当が無く、かつ表示層のコードで実際に起こりうるものだけ。
+    //
+    // **入れる規則は、0 件の baseline を保てるものだけ。** 赤が常態になると、赤を見て手を
+    // 止める習慣のほうが先に壊れる（0110 §3.2）。除いた 5 つと、その理由:
+    //
+    // - `detect-object-injection` — `obj[key]` を全件鳴らす。TypeScript が型で保証している
+    //   添字まで指摘になる
+    // - `detect-unsafe-regex` — 星の高さだけで判定するため `/^\d+(\.\d+)?$/` すら鳴る。実測で
+    //   55 件、その大半は生成物（`src/adapters/gen/**`）で、直す先がそもそも無い
+    // - `detect-non-literal-fs-filename` — 対象は自分で組み立てたパスを読む build 時スクリプト
+    //   だけで、外から来る値がそこへ入る経路が無い
+    // - `detect-possible-timing-attacks` — 識別子の名前で判定する。比較の中身を見ていない
+    // - `detect-non-literal-regexp` — 引数から RegExp を組む形をすべて鳴らす。ReDoS の判定は
+    //   していないので、上の 1 つ目と同じく形だけを見ている
+    //
+    // ReDoS と path traversal がこれで検査されなくなるわけではない。どちらも opengrep と
+    // CodeQL が担い、そちらは所見を code scanning へ送る層なので、baseline を 0 に保つ必要が
+    // 無い（0110 §3.2 の「落とさない層」）。
+    files: ["src/**/*.{js,jsx,ts,tsx}"],
+    plugins: { security },
+    rules: {
+      "security/detect-bidi-characters": "error",
+      "security/detect-buffer-noassert": "error",
+      "security/detect-child-process": "error",
+      "security/detect-disable-mustache-escape": "error",
+      "security/detect-eval-with-expression": "error",
+      "security/detect-new-buffer": "error",
+      "security/detect-no-csrf-before-method-override": "error",
+      "security/detect-non-literal-require": "error",
+      "security/detect-pseudoRandomBytes": "error",
     },
   },
   {
