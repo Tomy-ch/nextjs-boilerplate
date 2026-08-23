@@ -1,5 +1,6 @@
 ## 依存脆弱性スキャン（Trivy）
-.PHONY: trivy-fs ## 依存ライブラリの脆弱性を Trivy fs でスキャンする
+.PHONY: trivy-fs ## 依存ライブラリの脆弱性を Trivy fs でスキャンする（報告専用）
+.PHONY: trivy-fs-release ## 昇格前の依存脆弱性を Trivy fs で厳格にスキャンする（検出で落ちる）
 
 # node_modules は pnpm-lock.yaml と同じ依存を二重計上するため除外する。
 # .claude/worktrees は git worktree の実体であり、別ブランチの依存を本体の結果に混ぜないため除外する
@@ -16,3 +17,12 @@ TRIVY_SKIP_FLAGS := --skip-dirs node_modules --skip-dirs .claude/worktrees --ski
 trivy-fs:
 	@command -v trivy >/dev/null 2>&1 || { echo "❌ trivy が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
 	@trivy fs --scanners vuln --pkg-types library --severity CRITICAL,HIGH,MEDIUM --ignore-unfixed --ignorefile .trivyignore.yaml $(TRIVY_SKIP_FLAGS) .
+
+# 昇格（保護ブランチ宛 PR）の一点だけがゲートになる（docs/adr/0110-security-operations.md 3 / 5）。
+# 上の報告専用との差分は --ignore-unfixed を外すことだけで、severity の範囲は同じ。修正版の無い
+# 脆弱性は「その場で直せない」が、昇格は誰かがそれを引き受けて判断する場面であり、判断の材料に
+# するには可視化されている必要がある。
+# --exit-code 1: 検出で落とす。報告専用の側と違い、ここは止めるためにある。
+trivy-fs-release:
+	@command -v trivy >/dev/null 2>&1 || { echo "❌ trivy が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
+	@trivy fs --scanners vuln --pkg-types library --severity CRITICAL,HIGH,MEDIUM --exit-code 1 --ignorefile .trivyignore.yaml $(TRIVY_SKIP_FLAGS) .
