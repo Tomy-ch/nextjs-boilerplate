@@ -1,0 +1,15 @@
+# OSV の抑止宣言（docs/adr/0110-security-operations.md 3.4）。
+#
+# 抑止は脆弱性 ID 1 件単位に限る。ルールやスキャナの一括無効化は禁止 —— 範囲を絞らない抑止は、
+# 同じ検知を踏む新規の依存まで素通りさせる。
+#
+# 各エントリに reason（なぜ許容するか）を必ず書く。理由を書けないものは抑止せず、値そのものを
+# 消すか依存を上げる。条件が変われば削除する（恒久 allowlist にしない）。
+
+[[IgnoredVulns]]
+id = "GHSA-w3rx-r6r6-pgpr"
+reason = "image-size の ICNS パーサが無限ループする。修正版が無い。経路は @storybook/nextjs-vite > vite-plugin-storybook-nextjs > image-size で、カタログの build にしか現れず配信物には入らない。読ませる画像もリポジトリが持つ資材に限る。修正版が出た時点、または Storybook が image-size を引かなくなった時点で削除する。"
+
+[[IgnoredVulns]]
+id = "GHSA-5p2g-fcmc-qvqq"
+reason = "同上（JXL / HEIF パーサ）。同じ依存・同じ経路・同じ撤去条件。"
