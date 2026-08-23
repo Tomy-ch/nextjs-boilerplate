@@ -276,6 +276,7 @@ make sast                  # Opengrep over this repo's own source — zero-findi
 make osv-scan              # Dependency vulnerabilities via the OSV database — report only
 make osv-scan-release      # Same, as the promotion gate. Fails on a finding
 make bearer-scan           # Where a value leaves the process, against what the value is
+make dast                  # Drive HTTP at the running app with OWASP ZAP (ADR 0110 §3.5)
 make test-cached           # Default. Same tests through Vitest's cache — the pre-commit variant
 make test-full             # Full run with coverage against the 100% threshold (ADR 0090). The gate
                            #   itself — leave it to the hook and CI rather than running it by hand

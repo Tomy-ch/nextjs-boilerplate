@@ -309,6 +309,7 @@ tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入�
 | `make sast-sarif` | 同じ検査を SARIF で書き出します。 | code scanning への取り込み用。**検査条件は `make sast` と同じ変数を読む** —— ゲートと Security タブの一覧が違う走査を指すと、どちらも信用できなくなります。 |
 | `make osv-scan` | 依存の脆弱性を OSV データベースで見ます。 | 報告専用。Trivy とも `pnpm audit` とも参照先が違うので件数は一致しません。 |
 | `make osv-scan-release` | 昇格前の依存脆弱性を OSV で見ます。 | 保護ブランチ宛 PR で CI が呼ぶゲート。検出で exit 1。抑止は `osv-scanner.toml` が持ち、**フィルタした所見は理由付きで出力に残ります**。 |
+| `make dast` | 走っているアプリへ HTTP を撃ち、配信面を検査します。 | **ここだけが成果物ではなく応答を読みます。** 撃つ相手は `DAST_TARGET` で渡します（既定はコンテナから見たホストの :3000）。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は exit 1**。ZAP は `IGNORE` にした規則も出力に残すので、黙殺と区別が付きます。 |
 | `make bearer-scan` | 値がプロセスの外へ出る地点を、その値の分類と併せて見ます。 | **落としません。** baseline が 0 件ではなく、0 へ寄せるには規則単位の無効化が要るためです（それは禁止）。所見は code scanning へ送り、差分が持ち込んだものを GitHub 側のチェックが赤にします。 |
 | `make audit` | 依存監査ゲート（`pnpm audit`）。 | 修正版のある `high` / `critical` が 1 件でもあれば exit 1。判定と表の組み立ては `scripts/audit-gate` が持ちます。Trivy とは集計単位も参照する DB も違うため件数は一致せず、**突合して差分を潰そうとしません** —— どちらか一方でも閾値に達したものを blocking として扱います（[ADR 0110](../docs/adr/0110-security-operations.md) 3）。 |
 

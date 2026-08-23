@@ -54,6 +54,7 @@
 | 言語を問わない文字列の検査 | DevSkim | CI（所見は code scanning へ） |
 | ワークフロー定義 | zizmor / actionlint | pre-commit hook と CI |
 | リポジトリ自身の設定 | OpenSSF Scorecard | CI（既定ブランチへの push と週次） |
+| **配信されている応答** | OWASP ZAP（baseline） | CI。アプリを立てて撃つ、唯一の動的検査 |
 | 依存の更新 | Dependabot + cooldown | 週次 |
 
 **すべてがゲートではありません。** baseline を 0 件に保てる層と「この変更が増やしたか」を問う層だけを赤にし、
