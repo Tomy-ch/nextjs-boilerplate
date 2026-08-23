@@ -8,5 +8,6 @@
 "actions/github-script@v9" = "3a2844b7e9c422d3c10d287c895573f7108da1b3"
 "actions/upload-artifact@v4.6.2" = "ea165f8d65b6e75b540449e92b4886f43607fa02"
 "actions/upload-pages-artifact@v5" = "fc324d3547104276b827a68afc52ff2a11cc49c9"
-"k1LoW/octocov-action@v1" = "b3b6ee60482a667950f87553abf1df63217235d9"
+"github/codeql-action@v4.37.6" = "5595ccaf912efad79be6eef63a5619ff05969be3"
+"k1LoW/octocov-action@v1" = "a167dc0dee441b7ffc45e1b862ab55ec0d87f278"
 "step-security/harden-runner@v2.20.0" = "bf7454d06d71f1098171f2acdf0cd4708d7b5920"
