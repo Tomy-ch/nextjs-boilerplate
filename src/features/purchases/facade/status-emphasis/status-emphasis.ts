@@ -22,20 +22,14 @@ const CANCELED_STATUS_CODES: readonly number[] = [PURCHASE_STATUS.CANCELED];
  * ステータスの業務キーから、badge の見た目を選ぶ。
  *
  * @remarks
- * **3 つに束ねます。** 進行中・望ましい終端・取り消しで、これはバックエンドの状態遷移が持つ区別
- * そのものです（終端かどうか、取り消しかどうか）。9 つあるステータスに 9 通りの色を当てないのは、
- * 利用者が履歴を眺めて知りたいのが「届いたか / 止まったか / まだ動いているか」の 3 つだからです。
+ * 知らない業務キーは進行中へ倒します。既定を終端側に置くと、マスタに増えたステータスがすべて
+ * 「届いた」または「止まった」に見えます。
  *
- * **色は文言の補強でしかありません。** 緑と赤の区別は色覚特性によっては付かないため、badge は
- * 必ずステータスの名称を文字で持ちます（[0100](../../../../../docs/adr/0100-accessibility-target.md)）。
+ * `facade` に置くのは、購入完了とも共有する控え（`receipt.tsx`）がこの対応を必要とするためです
+ * （README 参照）。
  *
- * `facade` に置くのは、購入完了とも共有する控え（{@link ../receipt/receipt}）がこの対応を
- * 必要とするためです（README 参照）。
- *
- * 知らない業務キーは進行中へ倒します。マスタにステータスが増えても、色が付かないだけで一覧は
- * 読めます。既定を終端側に置くと、増えたステータスがすべて「届いた」または「止まった」に見えます。
- *
- * @param statusCode - 契約が解決済みで返すステータスの業務キー
+ * 3 つに束ねる根拠と、色を文言の補強に留める根拠は
+ * [画面要件](../../../../../docs/spec/route/shop/purchases/page.screen.md)「状況」。
  */
 export function toStatusEmphasis(statusCode: number): BadgeVariant {
   if (SETTLED_STATUS_CODES.includes(statusCode)) {

@@ -58,8 +58,7 @@ type ShipmentProgress = {
  * **それ以外の失敗では止めます。** 役割が無い・接続先が落ちているといった失敗は次の 1 件でも
  * 同じように起きるため、送り続けても数が増えるだけです。
  *
- * **打ち切っても、そこまでに通った件数は返します。** 通った発送は成立しているので、捨てると
- * 呼び出し側が一覧を取り直す判断を失い、発送済みの注文が未発送として並び続けます。
+ * 打ち切っても、そこまでに通った件数は返します。使い道は {@link shipPurchasesAction}。
  */
 async function shipEach(purchaseCodes: readonly string[]): Promise<ShipmentProgress> {
   let shipped = 0;
@@ -95,9 +94,7 @@ async function shipEach(purchaseCodes: readonly string[]): Promise<ShipmentProgr
  * 「まだ発送していない注文」になります。**途中で打ち切ったときも同じです** —— 打ち切りの理由を
  * 伝えることと、そこまでに成立した発送を一覧へ反映することは別の話で、後者を落とすと発送済みの
  * 注文が未発送として並び続けます。
- *
- * 便の注文がすべて通ると、その便は一覧から消えます。結果の文言も一緒に消えますが、便が消えたこと
- * 自体が通ったことを表しています。一部だけ通った便は残るため、そこには件数の内訳が出ます。
+
  *
  * 置き場の判断（主体の断言が要る action は app 層）は
  * [0025](../../../../docs/adr/0025-app-layer-elements.md) の `app/server-action`。

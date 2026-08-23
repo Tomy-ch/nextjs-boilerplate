@@ -7,8 +7,8 @@ const PLACEHOLDER_GROUPS = 3;
  * 発送待ちの待機表示。
  *
  * @remarks
- * 実際に並ぶ組と同じ高さで枠だけを出します。スピナー 1 つで代用すると、描画された瞬間に高さが
- * 変わり、読み始めた位置が動きます。
+ * 実際に並ぶ組と同じ高さで枠だけを出します。代用で高さが変わると読み始めた位置が動く理由は
+ * [画面要件](../../../../../../docs/spec/route/admin/shipments/page.screen.md)「待機」。
  */
 export function ShipmentQueueSkeleton() {
   return (

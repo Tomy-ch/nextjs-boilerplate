@@ -16,10 +16,10 @@ export type ShipmentQueueViewProps = {
  * 発送待ちの便を縦に並べる。
  *
  * @remarks
- * **並べ直しません。** 組分けも、組の中の順序も、組同士の順序も契約が決めています。画面が並べ直すと、
- * 「まとめて発送してよい単位」という契約の判断に画面の判断が重なります。
- *
  * 便を横に並べません。1 つの便が持つ注文の数はまちまちで、横に並べると高さの揃わない列ができます。
+ *
+ * 契約が決めた並びをそのまま出します。並べ直さない理由は
+ * [機能要件](../../../../docs/spec/route/admin/shipments/page.function.md)「取得」。
  */
 export function ShipmentQueueView({ groups, shipAction }: ShipmentQueueViewProps) {
   if (groups.length === 0) {

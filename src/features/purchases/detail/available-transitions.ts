@@ -39,14 +39,11 @@ const AVAILABLE_TRANSITIONS: Readonly<Record<number, readonly PurchaseTransition
  * 上げません（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。管理側の操作が同じ
  * 判定を必要としたときに、そこで初めて共有先を決めます。
  *
- * **判定の正はバックエンドにあります**（[0070](../../../../docs/adr/0070-backend-role-separation.md)）。
- * ここが決めるのは操作を見せるかどうかだけで、送った結果が拒まれる余地は残ります。読み込んでから
- * 押すまでの間に状態が進むためで、そのときは `conflict` として返ります。
+ * **知らない業務キーには何も返しません。** マスタが増えたときに、可否を確かめていない状態へ
+ * 不可逆な操作を出すことになります。
  *
- * **知らない業務キーには何も返しません。** マスタが増えたときに、可否を確かめていない状態へ不可逆な
- * 操作を出すことになります。
- *
- * @param statusCode - 契約が解決済みで返すステータスの業務キー
+ * 判定の正がバックエンドにあること（送った結果が拒まれる余地）は
+ * [機能要件](../../../../docs/spec/route/shop/purchases/[code]/page.function.md)「状態を進める」。
  */
 export function availablePurchaseTransitions(statusCode: number): readonly PurchaseTransition[] {
   return AVAILABLE_TRANSITIONS[statusCode] ?? [];
