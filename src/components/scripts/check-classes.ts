@@ -176,8 +176,8 @@ export function collectClassCandidates(source: string): ReadonlySet<string> {
   return candidates;
 }
 
-/* v8 ignore start -- ファイル走査と CSS の build は pnpm check:classes が実地で通す。 */
 /** `src/components` 配下の `.tsx` を集める。story と test は実装ではないため対象にしない。 */
+/* istanbul ignore next -- ファイル走査と CSS の build は pnpm check:classes が実地で通す。 */
 async function collectComponentSources(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
   const files: string[] = [];
@@ -198,14 +198,13 @@ async function collectComponentSources(directory: string): Promise<string[]> {
 }
 
 /** `globals.css` を実際に build し、生成された CSS を返す。 */
+/* istanbul ignore next -- ファイル走査と CSS の build は pnpm check:classes が実地で通す。 */
 async function buildCss(): Promise<string> {
   const source = await readFile(entryCssPath, "utf8");
   const result = await postcss([tailwindcss()]).process(source, { from: entryCssPath });
 
   return result.css;
 }
-
-/* v8 ignore stop */
 
 /** 出力に現れなかった class を、書かれているファイルとともに返す。 */
 export function findMissingClasses(
@@ -227,7 +226,7 @@ export function findMissingClasses(
     .sort((a, b) => a.className.localeCompare(b.className));
 }
 
-/* v8 ignore start -- CLI のエントリポイントは pnpm check:classes が実地で通す。 */
+/* istanbul ignore next -- CLI のエントリポイントは pnpm check:classes が実地で通す。 */
 async function main(): Promise<void> {
   const css = await buildCss();
   const files = await collectComponentSources(componentsDirectoryPath);
@@ -266,10 +265,10 @@ async function main(): Promise<void> {
   process.exitCode = 1;
 }
 
+/* istanbul ignore next -- CLI のエントリポイントは pnpm check:classes が実地で通す。 */
 if (process.argv[1]?.endsWith("check-classes.ts")) {
   void main().catch((error: unknown) => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;
   });
 }
-/* v8 ignore stop */

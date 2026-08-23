@@ -497,7 +497,7 @@ export async function fetchJson(url: string): Promise<unknown> {
   return JSON.parse(stdout);
 }
 
-/* v8 ignore start -- CLI のエントリポイントは pnpm check:ui が実地で通す。 */
+/* istanbul ignore next -- CLI のエントリポイントは pnpm check:ui が実地で通す。 */
 async function main(): Promise<void> {
   const manifestSource = await readFile(manifestPath, "utf8");
   const contents = await readdir(componentsDirectoryPath, { recursive: true, withFileTypes: true });
@@ -562,10 +562,10 @@ async function main(): Promise<void> {
   process.exitCode = checkExitCode(result);
 }
 
+/* istanbul ignore next -- CLI のエントリポイントは pnpm check:ui が実地で通す。 */
 if (process.argv[1]?.endsWith("check-shadcn.ts")) {
   void main().catch((error: unknown) => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;
   });
 }
-/* v8 ignore stop */

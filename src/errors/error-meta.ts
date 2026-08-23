@@ -21,6 +21,8 @@ export class ErrorMeta {
   readonly #requestId: string;
   readonly #details: readonly string[];
 
+  /* istanbul ignore next -- `create` が既定値を解決してから渡すため、ここの既定値は到達しない。
+     private な入口を直接呼べる場所が無い。 */
   private constructor({
     code = "",
     message = "",

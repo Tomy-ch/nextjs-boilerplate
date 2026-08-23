@@ -18,6 +18,8 @@ export type HashRoute = {
  * あり、解釈できない入力は「未指定」として扱って空表示に落とさない。
  */
 export function parseHashRoute(hash: string): HashRoute {
+  /* istanbul ignore next -- `split` は必ず 1 要素以上を返すため、先頭の既定値は到達しない。
+     `noUncheckedIndexedAccess` の下で型を絞るためだけに置いている。 */
   const [groupSlug = "", sectionSlug = ""] = hash.replace(/^#\/?/, "").split("/");
 
   return { groupSlug, sectionSlug: sectionSlug || null };

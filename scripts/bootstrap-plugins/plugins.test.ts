@@ -60,6 +60,10 @@ describe("resolvedPluginPath", () => {
     expect(resolvedPluginPath("skill-creator", home)).toBeUndefined();
   });
 
+  it("置き場を渡さなければ、利用者の home を見る", () => {
+    expect(resolvedPluginPath("この plugin は存在しない")).toBeUndefined();
+  });
+
   it("marketplace ディレクトリが無ければ undefined を返す", () => {
     expect(resolvedPluginPath("skill-creator", home)).toBeUndefined();
   });

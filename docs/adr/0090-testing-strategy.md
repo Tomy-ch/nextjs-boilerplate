@@ -95,6 +95,7 @@ describe("resolveExchangeRate", () => {
 
 ### カバレッジゲート
 
+- **カバレッジの計測は istanbul で行う**(`@vitest/coverage-istanbul`)。v8 は実行時の block coverage を source map で写す方式で、**同じ React の tsx を複数のテストファイルが読むと、単独では全分岐を通しているファイルの計上を取りこぼす**(実測: `chart.tsx` が単独 102/102 に対し全量で 95/102。pool の種類・AST ベースの写し直し・worker 数のいずれでも変わらない)。istanbul はソースを instrument して数えるため、この取りこぼしが起きない。**除外の指示は `/* istanbul ignore next */` で書き、理由を `--` に続けて必ず添える**(v8 の `ignore start` / `ignore stop` に相当する構文は無く、ブロックを覆う指示は関数ごとに置く)
 - **カバレッジ 100% のハードゲート**とする。除外は `scripts/lib/untested-modules.ts` の宣言 1 箇所が持ち、カバレッジ母数と 1:1 ゲートの双方がそれを読む。2 箇所に書くと片方だけを直したときに黙ってずれ、「ゲートからは外れているのにカバレッジは要求する」向きのずれは気づかれないまま進む
 - **`eslint-rules/` も母数に含める**。自作 lint ルールは判定を 1 つ間違えると「検査対象があるのに 0 件で緑」になり、壊れたことが誰にも見えない。ルール自身が検査されない状態を残さない
 - 除外には**撤去条件**を宣言へ書く。**カバレッジ例外は所有パッケージ(層 / feature)の README にも記録 + 承認**を要する(超法規的措置の統治。go 規約の翻案)。記録は README frontmatter の `coverage-exclusions` が持ち、宣言との一致は `scripts/coverage-exclusion.gate.test.ts` が機械判定する —— **両方向**を見て、記録漏れ(所有側が穴に気づけない)と撤去済みの記録の残留(README が実態より多くの穴を告げる)のどちらも落とす

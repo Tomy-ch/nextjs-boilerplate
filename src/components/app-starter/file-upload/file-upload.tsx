@@ -232,7 +232,7 @@ export function FileUpload({
 
       const accepted = applySelection([...event.dataTransfer.files]);
       const input = inputRef.current;
-      /* v8 ignore next -- drop を受けるのは input を包む label で、要素が無い状態では起きない。TS の絞り込みのためだけの分岐。 */
+      /* istanbul ignore next -- drop を受けるのは input を包む label で、要素が無い状態では起きない。TS の絞り込みのためだけの分岐。 */
       if (input === null) return;
 
       const transfer = new DataTransfer();

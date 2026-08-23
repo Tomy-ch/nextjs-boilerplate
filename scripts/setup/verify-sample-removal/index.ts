@@ -16,7 +16,7 @@ import {
 const SELF_DIR = path.dirname(fileURLToPath(import.meta.url));
 const SNAPSHOT_PATH = path.join(ROOT_DIR, "tmp/sample-removal.json");
 
-/* v8 ignore start -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */
+/* istanbul ignore next -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */
 function readCommand(command: string, args: string[]): string {
   try {
     return execFileSync(command, args, { cwd: ROOT_DIR, encoding: "utf8" });
@@ -25,12 +25,14 @@ function readCommand(command: string, args: string[]): string {
   }
 }
 
+/* istanbul ignore next -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */
 function selfDestruct(): void {
   for (const target of selfDestructTargets(SELF_DIR, SNAPSHOT_PATH)) {
     fs.rmSync(target, { force: true, recursive: true });
   }
 }
 
+/* istanbul ignore next -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */
 function main(): void {
   console.log("🔍 サンプル破棄の検証を開始します（過不足・残留参照・道具の自消滅）。");
 
@@ -61,4 +63,3 @@ try {
   console.error(`❌ 検証エラー: ${(error as Error).message}`);
   process.exit(1);
 }
-/* v8 ignore stop */

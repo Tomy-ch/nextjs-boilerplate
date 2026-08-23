@@ -83,7 +83,7 @@ function run(dryRun: boolean): void {
   }
 }
 
-/* v8 ignore start -- CLI entry。起動経路は make setup-remove-boilerplate-only が実地で通す。 */
+/* istanbul ignore next -- CLI entry。起動経路は make setup-remove-boilerplate-only が実地で通す。 */
 function main(): void {
   const options = parseCommonFlags(process.argv.slice(2));
 
@@ -100,4 +100,3 @@ try {
 } catch (error) {
   exitWithUsage(error instanceof Error ? error : new Error(String(error)), printUsage);
 }
-/* v8 ignore stop */
