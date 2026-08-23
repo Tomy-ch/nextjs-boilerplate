@@ -1443,8 +1443,13 @@ sources:
   - `src/app/fonts.ts` — `next/font`
   - `src/proxy.ts` — matcher から metadata ルートを除外
 - **注意**: preview / staging は `noindex` を強制する(`rules.md` #63)。アイコン体系は [0044](../adr/0044-seo-metadata-strategy.md) が持ち、[0045](../adr/0045-fonts-and-images.md) は静的 favicon の配置のみ
-- **強制手段**: CI(生成物の存在検査)+ 散文のみ(環境別 noindex は env 経由)
-- **完了条件**: `/sitemap.xml` / `/robots.txt` が生成される。詳細ページに canonical と JSON-LD が出る。preview 環境が `noindex` になる
+- **設計**: **検査は「在るか」ではなく「公開面として成立しているか」を見る。** 存在検査だけを置くと、空の `sitemap.xml`・他人を指す canonical・実行時に落ちる OG 画像が、いずれも緑で通る。metadata は**中身が壊れていても画面が壊れない**ため、通常のテストとレビューでは気づけない。見る対象は 4 つ:
+  - `sitemap.xml` が挙げる URL が実在する(404 を挙げていない)
+  - 各ページの canonical が自分自身を指す
+  - `opengraph-image` が画像を返す(`ImageResponse` は build を通っても実行時に落ちうる)
+  - `robots.txt` と `noindex` が `APP_ENV` で切り替わる
+- **強制手段**: CI(公開面の内容検査。上の 4 点)+ 散文のみ(環境別 noindex は env 経由)
+- **完了条件**: `/sitemap.xml` / `/robots.txt` が生成される。詳細ページに canonical と JSON-LD が出る。preview 環境が `noindex` になる。**上の 4 点が CI で緑になる**
 - **依存**: P5-1, **P5-4**(`src/proxy.ts` を新設するのは P5-4 のため)
 
 ### P6-4: E2E + visual regression
