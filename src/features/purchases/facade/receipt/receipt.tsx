@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { Badge } from "@/components/design-system/display/badge/badge";
 import {
   Card,
@@ -20,6 +22,17 @@ import { toStatusEmphasis } from "../status-emphasis/status-emphasis";
 export type PurchaseReceiptCardProps = {
   /** 表示する購入。 */
   purchase: Purchase;
+  /**
+   * この購入に対してできること。
+   *
+   * @remarks
+   * 何を置けるかは画面によって違うので、器の側は受け取った物を控えの末尾へ置くだけです
+   * （[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。**余白も紙面での
+   * 扱いも渡す側が持ちます。** 器が包むと、置くものが何も無いときに空の器だけが余白を占めます。
+   * 購入完了の画面は渡しません。買った直後に控えを見せる場なので、そこから状態を動かす操作は
+   * 置きません。
+   */
+  actions?: ReactNode;
 };
 
 /**
@@ -37,7 +50,7 @@ export type PurchaseReceiptCardProps = {
  *
  * 購入完了と購入詳細の両方がこれを出すため `facade` に置いています（README 参照）。
  */
-export function PurchaseReceiptCard({ purchase }: PurchaseReceiptCardProps) {
+export function PurchaseReceiptCard({ purchase, actions }: PurchaseReceiptCardProps) {
   return (
     <Card>
       <CardHeader>
@@ -60,6 +73,7 @@ export function PurchaseReceiptCard({ purchase }: PurchaseReceiptCardProps) {
             </KeyValueValue>
           </KeyValueItem>
         </KeyValueList>
+        {actions}
       </CardContent>
     </Card>
   );

@@ -18,6 +18,7 @@ import { PurchaseAmountSummary } from "../facade/amount-summary/amount-summary";
 import { PurchaseLineList } from "../facade/lines/lines";
 import { PURCHASE_HISTORY_PATH } from "../facade/paths/paths";
 import { PurchaseReceiptCard } from "../facade/receipt/receipt";
+import { PurchaseTransitions } from "./ui/transitions/transitions";
 
 /** `PurchaseDetailView` の props。 */
 export type PurchaseDetailViewProps = {
@@ -38,11 +39,15 @@ export type PurchaseDetailViewProps = {
  * 控えと内訳を並べ、明細をその下へ全幅で置きます。明細は行数が読めないため、脇へ入れると幅の
  * 狭い列で商品名が折り返し続けます。
  *
- * 金額の内訳を脇へ貼り付けません。この画面には送信の操作が無く、読み進めるあいだ画面に残して
- * おきたい操作が無いためです。
+ * **この購入にできることは控えの中に置きます。** 何ができるかを決めているのは控えが出している
+ * 状況そのものなので、根拠と操作を離すと、押せる操作が変わった理由を画面の別の場所へ探しに
+ * 行くことになります。
+ *
+ * 金額の内訳を脇へ貼り付けません。読み進めるあいだ画面に残しておきたいのは請求額ではなく、
+ * 控えの側にある状況と操作だからです。
  *
  * 紙に出すのは控えと内訳と明細だけです。押せない操作（パンくず・次の行き先・印刷そのもの・
- * 円の切り替え）は紙面の場所を取るだけなので落とします。この購入の控えは手元へ残す対象なので、
+ * 円の切り替え・この購入への操作）は紙面の場所を取るだけなので落とします。この購入の控えは手元へ残す対象なので、
  * 印刷の操作はパンくずと同じ段の右端に置きます。
  */
 export function PurchaseDetailView({ purchase, reference }: PurchaseDetailViewProps) {
@@ -67,7 +72,10 @@ export function PurchaseDetailView({ purchase, reference }: PurchaseDetailViewPr
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
-        <PurchaseReceiptCard purchase={purchase} />
+        <PurchaseReceiptCard
+          actions={<PurchaseTransitions purchase={purchase} />}
+          purchase={purchase}
+        />
         <div className="rounded-lg border p-4">
           <PurchaseAmountSummary purchase={purchase} reference={reference} />
         </div>

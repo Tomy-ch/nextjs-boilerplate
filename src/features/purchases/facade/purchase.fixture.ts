@@ -49,3 +49,17 @@ export const SINGLE_LINE_PURCHASE: Purchase = {
   totalAmount: 7_096,
   lines: [EARPHONE_LINE],
 };
+
+/** 支払いを終えた購入。進む操作が済み、取り消しだけが残る状態。 */
+export const PAID_PURCHASE: Purchase = {
+  ...PURCHASE_DETAIL,
+  statusCode: PURCHASE_STATUS.PAID,
+  statusName: "支払い済み",
+};
+
+/** 届き終えた購入。この購入に対してできることが 1 つも無い状態。 */
+export const DELIVERED_PURCHASE: Purchase = {
+  ...PURCHASE_DETAIL,
+  statusCode: PURCHASE_STATUS.DELIVERED,
+  statusName: "配達済み",
+};

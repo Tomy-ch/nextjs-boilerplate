@@ -8,7 +8,13 @@ import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import { useCartStore } from "@/stores/cart-store";
 
-import { PURCHASE_DETAIL, SINGLE_LINE_PURCHASE, TOTAL_REFERENCE } from "../facade/purchase.fixture";
+import {
+  DELIVERED_PURCHASE,
+  PAID_PURCHASE,
+  PURCHASE_DETAIL,
+  SINGLE_LINE_PURCHASE,
+  TOTAL_REFERENCE,
+} from "../facade/purchase.fixture";
 import { PurchaseDetailView } from "./view";
 
 const NAV_ITEMS = [
@@ -92,5 +98,17 @@ export const WithoutReference: Story = {
 /** 明細が 1 行だけの購入。段の高さが揃わない見え方を確かめる。 */
 export const SingleLine: Story = {
   args: { purchase: SINGLE_LINE_PURCHASE, reference: null },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** 支払いを終えた購入。控えの中に残るのは取り消しだけになる。 */
+export const Paid: Story = {
+  args: { purchase: PAID_PURCHASE, reference: TOTAL_REFERENCE },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** 届き終えた購入。できることが無いので、控えの中に操作の段が現れない。 */
+export const Delivered: Story = {
+  args: { purchase: DELIVERED_PURCHASE, reference: TOTAL_REFERENCE },
   globals: { viewport: { value: "desktop", isRotated: false } },
 };

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { z } from "zod";
+import { type ZodType, z } from "zod";
 
 import { getApiConfig } from "@/config/api/api.server";
 import { getHttpConfig } from "@/config/http/http.server";
@@ -12,6 +12,8 @@ import {
   GetPurchasesDetailResponse,
   GetPurchasesQueryParams,
   GetPurchasesResponse,
+  PatchPurchasesCancelResponse,
+  PatchPurchasesPayResponse,
   PostPurchasesResponse,
 } from "../../gen/api/endpoints.zod";
 import { getPurchasesDetailPathPurchaseCodeMax } from "../../gen/api/limits";
@@ -214,4 +216,56 @@ export async function createPurchase(
   });
 
   return wire.code;
+}
+
+/**
+ * 購入 1 件へ、状態を進める要求を送る。
+ *
+ * @remarks
+ * **応答を内層へ渡しません。** 遷移の応答は明細に商品名を持たず（`PurchaseDetailResponse`）、
+ * 画面が出している購入の形に足りません。状態が変わったあとの購入は画面が取り直すので、ここが
+ * 受け持つのは「契約どおりの応答が返ったか」を確かめることまでです。
+ *
+ * **再送しません。** 同じ要求が 2 度届くと 2 度目は `conflict` になるため、遷移は冪等ではあり
+ * ません。通信の途中で切れた要求を勝手に送り直すと、成立していた遷移が失敗として見えます。
+ */
+async function transition<T>(
+  purchaseCode: string,
+  action: string,
+  schema: ZodType<T>,
+): Promise<void> {
+  await getClient().request({
+    path: `${PURCHASES_PATH}/${encodeURIComponent(purchaseCode)}/${action}`,
+    method: "PATCH",
+    schema,
+  });
+}
+
+/**
+ * 自分の購入をキャンセルする。
+ *
+ * @remarks
+ * キャンセルできる状態からのみ通ります。いまの状態では通らない要求は `conflict` として返り、
+ * 明細ぶんの在庫は成立と同じ取引の中で戻されます。
+ *
+ * 他人の購入も存在しない購入も、区別なく `not found` になります。
+ *
+ * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
+ */
+export async function cancelMyPurchase(purchaseCode: string): Promise<void> {
+  await transition(purchaseCode, "cancel", PatchPurchasesCancelResponse);
+}
+
+/**
+ * 自分の購入を支払い済みにする。
+ *
+ * @remarks
+ * **決済そのものは行いません。** 契約が擬似決済として定めており、金額も決済結果も検証されません
+ * （`docs/screens.md` の除外事項）。未払い相当の状態からのみ通り、支払い済みへの再送は
+ * `conflict` として返ります。
+ *
+ * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
+ */
+export async function payMyPurchase(purchaseCode: string): Promise<void> {
+  await transition(purchaseCode, "pay", PatchPurchasesPayResponse);
 }
