@@ -43,7 +43,6 @@ async function open(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("PurchaseTransitionButton", () => {
-  // ----- 正常系 -----
   it("既定では確認を開かず、押せる操作だけを出す", () => {
     renderButton();
 
@@ -89,7 +88,6 @@ describe("PurchaseTransitionButton", () => {
     expect((await axe(document.body)).violations).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("通らなかったことを確認の中で伝える", async () => {
     const user = userEvent.setup();
     renderButton({

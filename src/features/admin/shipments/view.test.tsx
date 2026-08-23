@@ -10,7 +10,6 @@ import { ShipmentQueueView } from "./view";
 const shipAction = vi.fn();
 
 describe("ShipmentQueueView", () => {
-  // ----- 正常系 -----
   it("発送を待っている便を、契約が返した順で積む", () => {
     render(<ShipmentQueueView groups={DISPATCH_GROUPS} shipAction={shipAction} />);
 
@@ -29,7 +28,6 @@ describe("ShipmentQueueView", () => {
     expect((await axe(container)).violations).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("発送を待っている注文が無ければ、その旨だけを出す", () => {
     render(<ShipmentQueueView groups={[]} shipAction={shipAction} />);
 

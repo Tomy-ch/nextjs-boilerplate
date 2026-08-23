@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 const { getShippablePurchases } = vi.hoisted(() => ({ getShippablePurchases: vi.fn() }));
 
@@ -21,14 +22,18 @@ beforeEach(() => {
 });
 
 describe("ShipmentQueueResults", () => {
-  // ----- 正常系 -----
   it("取得した便をそのまま描く", async () => {
     render(await ShipmentQueueResults({ shipAction }));
 
     expect(screen.getByText(DISPATCH_GROUPS[0]?.userId ?? "")).toBeVisible();
   });
 
-  // ----- 異常系 -----
+  it("a11y 自動検査に違反しない", async () => {
+    const { container } = render(await ShipmentQueueResults({ shipAction }));
+
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
   it("取得の失敗を握り潰さない", async () => {
     getShippablePurchases.mockRejectedValueOnce(new Error("接続できません"));
 

@@ -39,7 +39,6 @@ beforeEach(() => {
 });
 
 describe("PurchaseTransitions", () => {
-  // ----- 正常系 -----
   it("注文を受けたばかりの購入には、支払いと取り消しを出す", () => {
     render(<PurchaseTransitions purchase={purchaseWith(PURCHASE_STATUS.UNPROCESSED)} />);
 
@@ -95,7 +94,6 @@ describe("PurchaseTransitions", () => {
     expect((await axe(container)).violations).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("届いた購入にできることが無ければ、段そのものを出さない", () => {
     const { container } = render(
       <PurchaseTransitions purchase={purchaseWith(PURCHASE_STATUS.DELIVERED)} />,

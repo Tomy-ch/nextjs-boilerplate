@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAppError } from "@/errors/app-error";
+import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 
@@ -79,8 +80,11 @@ describe("cancelPurchaseAction", () => {
 
     const state = await cancelPurchaseAction(idleActionState(), transitionForm());
 
-    expect(state).toMatchObject({ status: "error", kind: ErrorKind.UNAVAILABLE });
-    expect(state.status === "error" && state.formError).not.toBe(CANCEL_CONFLICT_MESSAGE);
+    expect(state).toMatchObject({
+      status: "error",
+      kind: ErrorKind.UNAVAILABLE,
+      formError: getDefaultErrorMeta(ErrorKind.UNAVAILABLE).message,
+    });
   });
 
   it("失敗したときは取り直させない", async () => {
@@ -132,7 +136,10 @@ describe("payPurchaseAction", () => {
 
     const state = await payPurchaseAction(idleActionState(), transitionForm());
 
-    expect(state).toMatchObject({ status: "error", kind: ErrorKind.INTERNAL });
-    expect(state.status === "error" && state.formError).not.toBe(PAY_CONFLICT_MESSAGE);
+    expect(state).toMatchObject({
+      status: "error",
+      kind: ErrorKind.INTERNAL,
+      formError: getDefaultErrorMeta(ErrorKind.INTERNAL).message,
+    });
   });
 });

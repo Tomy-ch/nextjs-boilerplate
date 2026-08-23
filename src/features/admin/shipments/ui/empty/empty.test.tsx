@@ -7,7 +7,6 @@ import { axe } from "vitest-axe";
 import { ShipmentQueueEmpty } from "./empty";
 
 describe("ShipmentQueueEmpty", () => {
-  // ----- 正常系 -----
   it("発送を待っている注文が無いことを伝える", () => {
     render(<ShipmentQueueEmpty />);
 

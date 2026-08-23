@@ -26,7 +26,6 @@ beforeEach(() => {
 });
 
 describe("DispatchGroupCard", () => {
-  // ----- 正常系 -----
   it("便の鍵である宛先を、注文と見分けられる形で出す", () => {
     render(<DispatchGroupCard group={MULTI_PURCHASE_GROUP} shipAction={shipAction} />);
 
@@ -82,7 +81,6 @@ describe("DispatchGroupCard", () => {
     expect((await axe(container)).violations).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("注文が 1 件しかない便では、まとめる操作を出さない", () => {
     render(<DispatchGroupCard group={SINGLE_PURCHASE_GROUP} shipAction={shipAction} />);
 

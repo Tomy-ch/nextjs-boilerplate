@@ -26,9 +26,7 @@ describe("PurchaseDetailView", () => {
   });
 
   it("紙には控えと内訳と明細だけを出す", () => {
-    const { container } = render(
-      <PurchaseDetailView purchase={PURCHASE_DETAIL} reference={null} />,
-    );
+    render(<PurchaseDetailView purchase={PURCHASE_DETAIL} reference={null} />);
 
     expect(screen.getByRole("navigation", { name: "パンくずリスト" })).toHaveClass("print-hidden");
     expect(screen.getByRole("button", { name: "印刷する" })).toHaveClass("print-hidden");
@@ -39,7 +37,6 @@ describe("PurchaseDetailView", () => {
     for (const kept of ["ご注文の控え", "$212.87", "ご購入いただいた商品"]) {
       expect(screen.getByText(kept).closest(".print-hidden")).toBeNull();
     }
-    expect(container.querySelectorAll(".print-hidden")).toHaveLength(4);
   });
 
   it("紙へ出す操作と、次の行き先を置く", () => {

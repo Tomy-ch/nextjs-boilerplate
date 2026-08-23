@@ -7,7 +7,6 @@ import { axe } from "vitest-axe";
 import { ShipmentQueueSkeleton } from "./skeleton";
 
 describe("ShipmentQueueSkeleton", () => {
-  // ----- 正常系 -----
   it("読み上げの対象から外す", () => {
     const { container } = render(<ShipmentQueueSkeleton />);
 
