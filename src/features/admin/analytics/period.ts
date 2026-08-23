@@ -1,11 +1,3 @@
-import { z } from "zod";
-
-import {
-  DASHBOARD_PERIOD,
-  type DashboardPeriod,
-  type DashboardPeriodSelection,
-} from "@/model/dashboard/dashboard";
-import { type RawSearchParams, singleValue } from "@/model/search-params";
 import {
   calendarMonth,
   dateRangeWindow,
@@ -15,6 +7,44 @@ import {
 } from "@/model/time-window";
 
 import { ADMIN_ANALYTICS_PATH } from "../paths";
+
+/**
+ * 集計対象期間の区分。
+ *
+ * @remarks
+ * 契約はこの語彙を受け取りません。受け取るのは瞬時の半開区間だけで、区分を暦の上で解くのは
+ * 画面の側です（{@link toPeriodRequest}）。**この画面だけが使う語彙**なので、この feature の中に
+ * 置いています。
+ */
+export const DASHBOARD_PERIOD: Readonly<{ TODAY: "today"; MONTH: "month"; RANGE: "range" }> = {
+  /** 今日。何も選ばれていないときの既定。 */
+  TODAY: "today",
+  /** 今月。 */
+  MONTH: "month",
+  /** 指定した両端の日付までの期間。 */
+  RANGE: "range",
+};
+
+/** 集計対象期間として指定できる値。 */
+export type DashboardPeriod = (typeof DASHBOARD_PERIOD)[keyof typeof DASHBOARD_PERIOD];
+
+/**
+ * URL が表している期間の選択。
+ *
+ * @remarks
+ * **取得条件ではありません。** 契約が受け取るのは瞬時の半開区間だけで、暦の区分を解くのは画面の
+ * 側です（`model/time-window.ts`）。この型が表すのは、利用者が選んだ状態そのものです。
+ *
+ * 日付は暦日の文字列のまま持ち回り、`Date` へ直しません。ブラウザの時差で暦日がずれると、指定
+ * したつもりの日と集計された日が食い違います。
+ */
+export type DashboardPeriodSelection = {
+  readonly period?: DashboardPeriod;
+  /** 集計の開始日。`period` が `range` のときだけ効く。 */
+  readonly from?: string;
+  /** 集計の終了日。この日を含む。 */
+  readonly to?: string;
+};
 
 /**
  * 期間を載せる URL のキー。契約のクエリ名と揃える。
@@ -40,50 +70,6 @@ export const PERIOD_KEY_LABEL: Readonly<Record<string, string>> = {
   [PERIOD_KEY.FROM]: "開始日",
   [PERIOD_KEY.TO]: "終了日",
 };
-
-/**
- * URL の期間を読むスキーマ。
- *
- * @remarks
- * **読めない値はキーごと返します。** 何が読めなかったかを画面が名指しできないと、URL を直す手が
- * かりが「どこかが違う」しか残りません。
- *
- * 区分は画面が持つ語彙で、契約はもう受け取りません。日付は暦の上に実在する日だけを通します
- * （`2026-06-31` は書式では通ってしまい、繰り上がって別の日になります）。
- */
-const selectionSchema = z.object({
-  [PERIOD_KEY.PERIOD]: singleValue(
-    z.enum([DASHBOARD_PERIOD.TODAY, DASHBOARD_PERIOD.MONTH, DASHBOARD_PERIOD.RANGE]),
-  ).optional(),
-  [PERIOD_KEY.FROM]: singleValue(z.iso.date()).optional(),
-  [PERIOD_KEY.TO]: singleValue(z.iso.date()).optional(),
-});
-
-/** URL の期間を読んだ結果。 */
-export type PeriodSelectionParseResult =
-  | { readonly ok: true; readonly selection: DashboardPeriodSelection }
-  /** 読めなかったキー。表示に使えるよう、検証ライブラリの型ではなく素の名前で返す。 */
-  | { readonly ok: false; readonly invalidKeys: readonly string[] };
-
-/**
- * URL の期間を、選択の形へ読む。
- *
- * @remarks
- * **`range` のときに日付が揃っているかは見ません。** 日付をこれから選ぶ状態も同じ URL の形を
- * しているためで、揃っているかどうかは {@link toPeriodRequest} が見ます。
- */
-export function parsePeriodSelection(params: RawSearchParams): PeriodSelectionParseResult {
-  const parsed = selectionSchema.safeParse(params);
-
-  if (!parsed.success) {
-    return {
-      ok: false,
-      invalidKeys: [...new Set(parsed.error.issues.map((issue) => String(issue.path[0])))],
-    };
-  }
-
-  return { ok: true, selection: parsed.data };
-}
 
 /**
  * 期間の指定が、集計を求められる形になっているか。

@@ -6,9 +6,10 @@ import { ErrorKind } from "@/errors/error-kind";
 import type { RawSearchParams } from "@/model/search-params";
 import { ADMIN_ANALYTICS_PATH } from "../paths";
 import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
-import { PERIOD_KEY_LABEL, parsePeriodSelection, toPeriodRequest } from "./period";
+import { PERIOD_KEY_LABEL, toPeriodRequest } from "./period";
 import { toPeriodWindow } from "./period-window";
 import { AnalyticsRankingSection } from "./ranking-section";
+import { parsePeriodSelection } from "./read-period";
 import { AnalyticsSummarySection } from "./summary-section";
 import { AnalyticsView } from "./view";
 

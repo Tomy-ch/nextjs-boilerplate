@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "@/model/dashboard/dashboard";
+import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "./period";
 
 import { AnalyticsView } from "./view";
 

@@ -1,5 +1,5 @@
-import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "@/model/dashboard/dashboard";
 import { calendarDate, calendarMonth } from "@/model/time-window";
+import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "./period";
 
 /** その月の最終日。月をまたぐ加算は `Date` に数えさせる。 */
 function endOfMonth(year: number, month: number): string {

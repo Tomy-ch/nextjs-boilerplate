@@ -12,11 +12,7 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
-import {
-  DASHBOARD_PERIOD,
-  type DashboardSummary,
-  type PurchaseStatusCount,
-} from "@/model/dashboard/dashboard";
+import type { DashboardSummary, PurchaseStatusCount } from "@/model/dashboard/dashboard";
 import { toProductId } from "@/model/product/product";
 
 import { ADMIN_ANALYTICS_PATH, ADMIN_DASHBOARD_PATH, ADMIN_PRODUCT_LIST_PATH } from "../paths";
@@ -24,6 +20,7 @@ import { toSummaryCards } from "../summary-cards";
 import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
 import { StatCards } from "../ui/stat-cards/stat-cards";
 import { StatusBreakdown } from "../ui/status-breakdown/status-breakdown";
+import { DASHBOARD_PERIOD } from "./period";
 import type { AdminRankingRow } from "./ranking-rows";
 import { RankingTable } from "./ui/ranking-table/ranking-table";
 import { AnalyticsView } from "./view";

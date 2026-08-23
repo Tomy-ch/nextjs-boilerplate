@@ -1,44 +1,4 @@
 /**
- * 集計対象期間の区分。
- *
- * @remarks
- * 契約の区分に対応しますが、宣言はここに置きます。**期間を選ぶ操作は client にあり**、取得の口は
- * `server-only` の内側にあるためです。取得の口に置くと、選択肢を読むだけの部品が取得の一式ごと
- * client の束へ引き込みます（[0024](../../../docs/adr/0024-adapters-server-client-split.md)）。
- *
- * 契約とのずれは取得の口が型で捕まえます（`adapters/server/api/dashboard.ts`）。
- */
-export const DASHBOARD_PERIOD: Readonly<{ TODAY: "today"; MONTH: "month"; RANGE: "range" }> = {
-  /** 今日。契約の既定値。 */
-  TODAY: "today",
-  /** 今月。 */
-  MONTH: "month",
-  /** 指定した両端の日付までの期間。 */
-  RANGE: "range",
-};
-
-/** 集計対象期間として指定できる値。 */
-export type DashboardPeriod = (typeof DASHBOARD_PERIOD)[keyof typeof DASHBOARD_PERIOD];
-
-/**
- * URL が表している期間の選択。
- *
- * @remarks
- * **取得条件ではありません。** 契約が受け取るのは瞬時の半開区間だけで、暦の区分を解くのは画面の
- * 側です（`model/time-window.ts`）。この型が表すのは、利用者が選んだ状態そのものです。
- *
- * 日付は暦日の文字列のまま持ち回り、`Date` へ直しません。ブラウザの時差で暦日がずれると、指定
- * したつもりの日と集計された日が食い違います。
- */
-export type DashboardPeriodSelection = {
-  readonly period?: DashboardPeriod;
-  /** 集計の開始日。`period` が `range` のときだけ効く。 */
-  readonly from?: string;
-  /** 集計の終了日。この日を含む。 */
-  readonly to?: string;
-};
-
-/**
  * 集計対象期間に注文された購入を、ステータスごとに数えた 1 行。
  *
  * @remarks

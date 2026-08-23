@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "@/model/dashboard/dashboard";
+import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "./period";
 
 import type { PeriodWindow } from "./period-window";
 import { PeriodCaption } from "./ui/period-caption/period-caption";
