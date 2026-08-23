@@ -15,6 +15,22 @@ export function authIssuerValidator() {
   return httpUrl;
 }
 
+/**
+ * 認可の開始先を検証する。
+ *
+ * @remarks
+ * `dev` は IdP を立てずに保護された画面まで到達させるための値です。**この変数だけでは効きません**
+ * —— 実際に効かせるかの判定は `adapters/server/auth/resolver.ts` の
+ * `usesDevelopmentAuthorization()` が環境と併せて行い、その理由もそちらが持ちます。
+ *
+ * 省略できます。既定の `idp` は環境によらず正しい値で、`dev` を置くのは開発専用の口を開けて
+ * いる環境だけです（[0030](../../../docs/adr/0030-environment-variable-management.md) §4 の
+ * code default）。全環境へ必須にすると、実環境の設定に「開発用ではない」と書くだけの行が増えます。
+ */
+export function authModeValidator() {
+  return z.enum(["idp", "dev"]).default("idp");
+}
+
 /** OIDC public client ID を検証する。 */
 export function authClientIdValidator() {
   return z.string().min(1);
@@ -64,7 +80,11 @@ export function authSessionSecretValidator(allowShipped: boolean) {
     });
 }
 
+/** 認可の開始先。 */
+export type AuthMode = z.infer<ReturnType<typeof authModeValidator>>;
+
 export type AuthEnvironment = {
+  AUTH_MODE: AuthMode;
   AUTH_ISSUER: z.infer<ReturnType<typeof authIssuerValidator>>;
   AUTH_CLIENT_ID: z.infer<ReturnType<typeof authClientIdValidator>>;
   AUTH_REDIRECT_URI: z.infer<ReturnType<typeof authRedirectUriValidator>>;

@@ -53,6 +53,13 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
   再検証・送り先**を確かめる形になります。HTTP の往復は adapter 側のテストが持つので、ここでは
   持ちません
 
+- **受け口の本体を隣へ出したモジュールは `unit` として扱います** —— `route.ts` / `actions.ts` が
+  薄い口に留まり、判断と組み立てを隣のモジュールへ委ねた場合、そのモジュールは呼び出し元を問わず
+  `unit` です。判定は**応答（`Response` とステータスコード）の組み立てを持つかどうか**で、持たずに
+  値を返すならこちらに当たります（`dev/session/authorize-development-session.ts`）。`Request` を
+  引数に取るかどうかでは決まりません —— 受け取っていても、返すのが値なら軸は
+  `正常系` / `異常系` です
+
 - 層をまたぐ import は `@/*` alias を使う
 - 役割を示さない `common`、`shared`、`utils`、`lib` 等の置き場は作らない
 - 単一 feature 専用のコードは `features/<name>/` に置く

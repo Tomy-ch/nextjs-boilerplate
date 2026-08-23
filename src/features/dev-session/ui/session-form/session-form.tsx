@@ -13,17 +13,47 @@ import {
 } from "@/components/design-system/form/radio-group-native/radio-group-native";
 import { SwitchNative } from "@/components/design-system/form/switch-native/switch-native";
 import { Textarea } from "@/components/design-system/form/textarea/textarea";
+import {
+  fieldControlAttributes,
+  toErrorId,
+} from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE, type SessionRole } from "@/model/session";
 
+import { AUTHORIZE_ERROR, type AuthorizeError } from "../../authorize-error";
 import type { DevSessionFormState, IssueDevSessionAction } from "../../form-state";
-import { RETURN_URL_PARAM } from "../../paths";
+import { DEV_AUTHORIZE_PATH, RETURN_URL_PARAM, STATE_PARAM } from "../../paths";
+
+/**
+ * 認可の往復の途中で開かれたときに、route segment から渡されるもの。
+ *
+ * @remarks
+ * **1 つに畳んであります。** 対応づける値と理由を別々の nullable で受け取ると、「対応づける値が
+ * 無いのに理由だけある」という到達し得ない組み合わせが型として書けます
+ * （[0029](../../../../../docs/adr/0029-type-design-discipline.md)）。理由が立つのは認可 endpoint
+ * から戻されたときだけで、そのときは対応づける値も必ず載っています。
+ */
+export type AuthorizationHandoff = {
+  /** 要求と応答を対応づける値。送信へそのまま載せる。 */
+  readonly state: string;
+  /** 認可を成立させられなかった理由。初めて開いたときは null。 */
+  readonly notice: AuthorizeError | null;
+};
 
 /** `DevSessionForm` の props。 */
 export type DevSessionFormProps = {
   /** 発行したあとの戻り先。 */
   returnUrl: string;
+  /**
+   * 認可の往復からの引き渡し。直接開いたときは null。
+   *
+   * @remarks
+   * **送信先が変わります。** 入っていれば認可 endpoint（`/dev/session/authorize`）へ素の form で
+   * 送り、入っていなければその場で発行する Server Action へ送ります。理由は
+   * [`paths.ts`](../../paths.ts) の {@link DEV_AUTHORIZE_PATH} が持ちます。
+   */
+  authorization: AuthorizationHandoff | null;
   /** 発行の送信先。route が渡す。 */
   action: IssueDevSessionAction;
   /**
@@ -56,8 +86,55 @@ const ROLE_LABEL: Readonly<Record<SessionRole, string>> = {
   [SESSION_ROLE.admin]: "管理者",
 };
 
+/**
+ * 項目ごとの補足。
+ *
+ * @remarks
+ * 描画する外枠と、それを指す入力欄の両方へ同じ値を渡すため、リテラルを 2 か所に置かず束ねます
+ * （`fieldControlAttributes`）。
+ */
+const SUBJECT_DESCRIPTION = "この値がそのまま session の利用者 ID になります。";
+const EXPIRES_DESCRIPTION = "短くすると、失効したあとの見え方をその場で確かめられます。";
+const ISSUER_DESCRIPTION =
+  "いま叩いている API が期待する IdP を指します。設定の値を初期値にしていますが、口を分けて並行して立てているならそちらへ書き換えます。";
+const TOKEN_DESCRIPTION = "自分で取ったトークンを使うときだけ貼ります。空欄でも発行はできます。";
+
+/**
+ * 理由ごとの案内。
+ *
+ * @remarks
+ * 理由を鍵にした表で持ちます。**理由が増えたときに文言が無いことを型が咎める**ためで、
+ * 分岐を並べると、文言の無い理由が無言で素通りします。
+ */
+const NOTICE_TEXT = {
+  [AUTHORIZE_ERROR.INVALID]: "発行の指定を確認してください。",
+  [AUTHORIZE_ERROR.UNAVAILABLE]:
+    "IdP からトークンを取れませんでした。接続先を確かめてから、もう一度お試しください。",
+} as const satisfies Readonly<Record<AuthorizeError, string>>;
+
 const SUBMIT_LABEL = "この内容で入る";
 const PENDING_LABEL = "session を発行しています";
+
+/**
+ * 送信の下に出す 1 文を決める。
+ *
+ * @remarks
+ * 出所が 2 つあります。その場で発行する送信の結果（Server Action の戻り値）と、認可 endpoint が
+ * URL で戻した理由です。**同時には立ちません** —— 送信先はどちらか一方だけなので、直近の送信の
+ * 結果があればそちらを採ります。
+ */
+function toFeedback(
+  state: DevSessionFormState,
+  authorization: AuthorizationHandoff | null,
+): string | null {
+  if (state.status === "error") {
+    return state.formError;
+  }
+
+  const notice = authorization?.notice ?? null;
+
+  return notice === null ? null : NOTICE_TEXT[notice];
+}
 
 /** 送信部。`useFormStatus` は form の子でしか状態を読めないため切り出している。 */
 function IssueSubmit() {
@@ -90,9 +167,15 @@ function IssueSubmit() {
  *
  * 失効までの秒数を指定できるのは、**失効したときの見え方を確かめるため**です。短い値を入れると、
  * その秒数のあとに保護された画面がどうなるかを実際に踏めます。
+ *
+ * **認可の往復の途中では素の form 送信になります。** 送信中の表示と項目ごとの理由はそのとき
+ * 出ません —— どちらも Server Action の戻り値に載る情報で、素の送信は状態を持ち越せないためです。
+ * 認可 endpoint が分類しか戻さないこと（[`authorize-error.ts`](../../authorize-error.ts) の
+ * `AUTHORIZE_ERROR`）と、そこで揃います。
  */
 export function DevSessionForm({
   returnUrl,
+  authorization,
   action,
   connectsLiveApi,
   defaultIssuer,
@@ -108,28 +191,39 @@ export function DevSessionForm({
   const issuerId = useId();
   const [issuesToken, setIssuesToken] = useState(connectsLiveApi);
   const errors = state.status === "error" ? state.fieldErrors : undefined;
+  const feedback = toFeedback(state, authorization);
   const toggleIssuesToken = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     setIssuesToken(event.currentTarget.checked);
   }, []);
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form
+      action={authorization === null ? formAction : DEV_AUTHORIZE_PATH}
+      className="flex flex-col gap-6"
+      method={authorization === null ? undefined : "post"}
+    >
       <input name={RETURN_URL_PARAM} type="hidden" value={returnUrl} />
+      {authorization === null ? null : (
+        <input name={STATE_PARAM} type="hidden" value={authorization.state} />
+      )}
 
       <FormField
         controlId={subjectId}
-        description="この値がそのまま session の利用者 ID になります。"
-        errorId={`${subjectId}-error`}
+        description={SUBJECT_DESCRIPTION}
+        errorId={toErrorId(subjectId)}
         label="誰として入るか"
         message={errors?.subject?.[0]}
         required
       >
         <Input
-          aria-describedby={errors?.subject === undefined ? undefined : `${subjectId}-error`}
-          aria-invalid={errors?.subject !== undefined}
-          aria-required
+          {...fieldControlAttributes({
+            controlId: subjectId,
+            description: SUBJECT_DESCRIPTION,
+            errorId: toErrorId(subjectId),
+            message: errors?.subject?.[0],
+            required: true,
+          })}
           defaultValue={DEFAULT_SUBJECT}
-          id={subjectId}
           name="subject"
         />
       </FormField>
@@ -151,20 +245,21 @@ export function DevSessionForm({
 
       <FormField
         controlId={expiresId}
-        description="短くすると、失効したあとの見え方をその場で確かめられます。"
-        errorId={`${expiresId}-error`}
+        description={EXPIRES_DESCRIPTION}
+        errorId={toErrorId(expiresId)}
         label="失効までの秒数"
         message={errors?.expiresInSeconds?.[0]}
         required
       >
         <Input
-          aria-describedby={
-            errors?.expiresInSeconds === undefined ? undefined : `${expiresId}-error`
-          }
-          aria-invalid={errors?.expiresInSeconds !== undefined}
-          aria-required
+          {...fieldControlAttributes({
+            controlId: expiresId,
+            description: EXPIRES_DESCRIPTION,
+            errorId: toErrorId(expiresId),
+            message: errors?.expiresInSeconds?.[0],
+            required: true,
+          })}
           defaultValue={DEFAULT_EXPIRES_IN_SECONDS}
-          id={expiresId}
           inputMode="numeric"
           name="expiresInSeconds"
         />
@@ -190,19 +285,22 @@ export function DevSessionForm({
       {issuesToken ? (
         <FormField
           controlId={issuerId}
-          description="いま叩いている API が期待する IdP を指します。設定の値を初期値にしていますが、口を分けて並行して立てているならそちらへ書き換えます。"
-          errorId={`${issuerId}-error`}
+          description={ISSUER_DESCRIPTION}
+          errorId={toErrorId(issuerId)}
           label="IdP の接続先"
           message={errors?.issuerUrl?.[0]}
           required
         >
           <Input
-            aria-describedby={errors?.issuerUrl === undefined ? undefined : `${issuerId}-error`}
-            aria-invalid={errors?.issuerUrl !== undefined}
-            aria-required
+            {...fieldControlAttributes({
+              controlId: issuerId,
+              description: ISSUER_DESCRIPTION,
+              errorId: toErrorId(issuerId),
+              message: errors?.issuerUrl?.[0],
+              required: true,
+            })}
             className="font-mono text-xs"
             defaultValue={defaultIssuer}
-            id={issuerId}
             inputMode="url"
             name="issuerUrl"
           />
@@ -212,17 +310,21 @@ export function DevSessionForm({
       {issuesToken ? null : (
         <FormField
           controlId={tokenId}
-          description="自分で取ったトークンを使うときだけ貼ります。空欄でも発行はできます。"
-          errorId={`${tokenId}-error`}
+          description={TOKEN_DESCRIPTION}
+          errorId={toErrorId(tokenId)}
           label="Access Token（任意）"
           message={errors?.accessToken?.[0]}
           required={false}
         >
           <Textarea
-            aria-describedby={errors?.accessToken === undefined ? undefined : `${tokenId}-error`}
-            aria-invalid={errors?.accessToken !== undefined}
+            {...fieldControlAttributes({
+              controlId: tokenId,
+              description: TOKEN_DESCRIPTION,
+              errorId: toErrorId(tokenId),
+              message: errors?.accessToken?.[0],
+              required: false,
+            })}
             className="font-mono text-xs"
-            id={tokenId}
             name="accessToken"
             rows={4}
           />
@@ -231,13 +333,13 @@ export function DevSessionForm({
 
       <div className="flex flex-col gap-2">
         <IssueSubmit />
-        {state.status === "error" && state.formError !== null ? (
+        {feedback === null ? null : (
           <FormFeedback
-            description={state.formError}
+            description={feedback}
             title="session を発行できませんでした"
             variant="destructive"
           />
-        ) : null}
+        )}
       </div>
     </form>
   );

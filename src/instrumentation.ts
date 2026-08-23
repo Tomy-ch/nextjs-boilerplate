@@ -25,33 +25,38 @@ export async function register(): Promise<void> {
 
     await bootstrapConfig();
 
-    // API のモックは Config の確定後に立てる。接続モードは検証済み ENV から決まり、
-    // 検証の前に判断すると未検証の値で本番の接続先を差し替えうる。
+    // API のモックは bootstrapConfig() の後に立てる。接続モードの決定を検証より前へ置くと、
+    // 未検証の値で本番の接続先を差し替えうる（検証の実行点は [0030](../docs/adr/0030-environment-variable-management.md)）。
     const { getApiConfig } = await import("./config/api/api.server");
 
-    if (getApiConfig().mode === "mock") {
+    const apiConfig = getApiConfig();
+
+    if (apiConfig.mode === "mock") {
       const { mockServer } = await import("../mocks/node");
 
       mockServer.listen({ onUnhandledRequest: "bypass" });
     }
 
     const config = getObservabilityConfig();
+    const { serviceName } = config;
+
     initializeObservability({
       otlpEndpoint: config.otlpEndpoint,
       tracesEnabled: config.tracesEnabled,
       metricsEnabled: config.metricsEnabled,
       logsEnabled: config.logsEnabled,
-      serviceName: "nextjs-boilerplate",
+      serviceName,
+      tracePropagationOrigins: [apiConfig.baseUrl],
     });
     initializeLogger({
       level: LogLevel.INFO,
       traceContextExtractor: extractActiveTraceContext,
-      ...(config.logsEnabled ? { logRecordSink: createOtlpLogSink("nextjs-boilerplate") } : {}),
+      ...(config.logsEnabled ? { logRecordSink: createOtlpLogSink(serviceName) } : {}),
     });
 
     if (config.tracesEnabled && config.logsEnabled) {
       const { trace } = await import("@opentelemetry/api");
-      trace.getTracer("nextjs-boilerplate").startActiveSpan("observability.initialize", (span) => {
+      trace.getTracer(serviceName).startActiveSpan("observability.initialize", (span) => {
         getLogger().info("observability を初期化しました", {
           traces_enabled: config.tracesEnabled,
           metrics_enabled: config.metricsEnabled,

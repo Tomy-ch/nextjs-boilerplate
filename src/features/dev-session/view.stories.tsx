@@ -41,6 +41,7 @@ const meta = {
     ),
   ],
   args: {
+    authorization: null,
     connectsLiveApi: false,
     defaultIssuer: "https://idp.example.test",
     discardAction: noopDiscard,

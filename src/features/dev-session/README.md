@@ -12,18 +12,23 @@ IdP を通さずに session を発行し、保護された画面へ入るため�
 
 - 発行する session の指定（誰として / 役割 / 失効までの秒数 / トークンを取りに行くか / その接続先 / 貼る Access Token）の入力と検証
 - いま持っている session の表示と、それを捨てる操作の見せ方
+- 認可の往復の途中で開かれたときに、送信先を認可 endpoint へ替え、対応づける値を載せること
+- 認可 endpoint が戻した理由の語彙・読み取りと、その文言
 
 ## 受け入れないもの
 
 - session の封緘と復元（`adapters/server/auth` の領分。触れてよいのは app 層です）
 - 口を開けてよい環境の判定（`config` が持ち、route と Server Action が当てます）
 - 実在の IdP との往復（この画面はそれを通らないための画面です）
+- 対応づける値が正しいかの判定（突き合わせるのは `/api/auth/callback` が復元する一時状態です）
 
 ## 構成
 
 | ファイル | 役割 |
 | --- | --- |
-| `paths.ts` | この画面のルートと、戻り先の既定・受け渡しの名前 |
+| `paths.ts` | この画面のルートと認可 endpoint、戻り先・対応づける値の受け渡しの名前 |
+| `authorize-error.ts` | 認可を成立させられなかった理由の語彙と、戻す行き先の組み立て |
+| `read-authorize-error.ts` | URL から理由を読む側。組む側と分けてある |
 | `parse-session-form.ts` | 送信された `FormData` を発行に渡せる形へ解く |
 | `form-state.ts` | 2 つの操作の戻り値の型と、route から渡される送信先の型 |
 | `view.tsx` | いまの session と発行の指定を縦に並べる |
@@ -46,6 +51,12 @@ APP_ENV=ci pnpm dev
 バックエンドを起動せずに済みます（`APP_API_MODE=mock`）。`/dev/session?returnUrl=/checkout` のように
 戻り先を付けて開き、誰として・どの役割で入るかを決めて「この内容で入る」を押すと、その画面へ着地します。
 **Access Token は空欄で足ります** —— モックには Bearer を検証する先がありません。
+
+**この環境では `/login` からもここへ来ます。** `ci` は `AUTH_MODE=dev` を置いており、認可の開始先が
+IdP ではなくこの画面になります（`env/README.md`）。**その経路で来たときは送信先が変わります** ——
+認可 endpoint（`/dev/session/authorize`）へ素の form で送り、そこが認可コードを持って
+`/api/auth/callback` へ戻します。session を置くのは callback で、この画面は指定を渡すだけです。
+直接開いたときは今までどおり、その場で発行して戻り先へ着地します。
 
 契約から生成したモックの応答は毎回値が変わるため、明細に事情が立っていることがあります。
 **確定まで押したい場合は実データで通してください。**
@@ -99,6 +110,26 @@ API の側で解決できず 401 になります。管理側の画面を見る�
 **送信先はこの画面が決めません。** session の封緘は `adapters/server/auth` の領分で、そこへ触れて
 よいのは app 層です（`architecture.ts` の `adapters-auth`）。したがって Server Action は
 `src/app/dev/session/actions.ts` にあり、この画面は受け取った送信先を `useActionState` へ渡すだけです。
+
+**認可の往復の途中なら、session をここでは置きません。** 認可コードを `/api/auth/callback` へ渡し、
+置くのは向こうにさせます。ここで置いてしまうと、`AUTH_MODE=dev` の間だけ callback が一度も踏まれず、
+認可の往復が壊れていても開発と CI では最後まで気づけません。
+
+**その送信は Server Action ではなく Route Handler へ出します。** Server Action の `redirect()` は
+Route Handler へ遷移できません —— client router が飲み込み、要求そのものが出ず、URL だけが
+書き換わります（実測）。素の form 送信ならブラウザが遷移します。実在の IdP でもログイン画面は
+認可 endpoint へ送信し、そこが応答を持って戻すので、形としてもそちらが実物に近くなります。
+
+**認可 endpoint の判定は受け口の隣が持ちます。** `route.ts` に許される import 先は
+`adapters/server` / `errors` / `logging` で、原則は thin proxy です
+（[0025](../../../docs/adr/0025-app-layer-elements.md)）。form の解析も失敗の分類も `features` の
+語彙なので、`src/app/dev/session/authorize-development-session.ts` が持ち、口は「閉じる・呼ぶ・
+HTTP の形へ直す」だけにしています。**送信の本体の上限もそちらが持ちます** —— `next.config.ts` の
+`bodySizeLimit` は Server Action にしか及ばず、Route Handler へ寄せた時点で外れるためです。
+
+**その経路では、失敗は分類だけを URL で戻します。** 素の送信は状態を持ち越せないため、項目ごとの
+理由は出ません。実在の IdP の認可 endpoint も `error` の分類しか戻さないので、そこで揃います。
+項目ごとの理由は、自分の画面へ留まる送信（その場で発行する経路）が持ちます。
 
 **開ける環境の判定は入口ごとに置きます。** route（画面）と Server Action は別々の入口で、Server Action は
 画面を経由せずに呼べます。片方だけ閉じても閉じたことになりません。

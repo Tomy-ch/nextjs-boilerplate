@@ -7,6 +7,7 @@ import {
   FieldLabel,
 } from "../../design-system/form/field/field";
 import { RequirementBadge } from "../../design-system/form/requirement-badge/requirement-badge";
+import { toDescriptionId } from "./field-attributes";
 
 /** {@link FormField} の props。 */
 export type FormFieldProps = {
@@ -20,7 +21,13 @@ export type FormFieldProps = {
   label: string;
   /** 誤りの文言。無ければ誤りは描画しない。 */
   message?: string;
-  /** 入力の補足。誤りとは別に常時出す。 */
+  /**
+   * 入力の補足。誤りとは別に常時出す。
+   *
+   * @remarks
+   * 入力欄の `aria-describedby` が指せるよう `id` を付けて描画する。**指すのは呼び出し元**なので、
+   * ここへ渡した補足は `fieldControlAttributes` へも渡す。
+   */
   description?: string;
   /** 空欄を受け付けない項目か。 */
   required: boolean;
@@ -69,7 +76,9 @@ export function FormField({
         <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
       </div>
       {children}
-      {description === undefined ? null : <FieldDescription>{description}</FieldDescription>}
+      {description === undefined ? null : (
+        <FieldDescription id={toDescriptionId(controlId)}>{description}</FieldDescription>
+      )}
       {message === undefined ? null : <FieldError id={errorId}>{message}</FieldError>}
     </Field>
   );

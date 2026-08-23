@@ -41,6 +41,26 @@ describe("LoginView", () => {
     expect(screen.getByText(/元の操作に戻ります/)).toBeVisible();
   });
 
+  it("押した先がこのアプリの外であることを、押す前に伝える", () => {
+    render(<LoginView notice={null} returnUrl={toSafeReturnUrl("/")} />);
+
+    expect(screen.getByText(/このアプリの外にある認証基盤/)).toBeVisible();
+  });
+
+  it("この画面がアカウントを作らないことを伝える", () => {
+    render(<LoginView notice={null} returnUrl={toSafeReturnUrl("/")} />);
+
+    expect(screen.getByText(/アカウントを作らず/)).toBeVisible();
+  });
+
+  it("ADR 0011 が例示する認証基盤の名前を出さない", () => {
+    const { container } = render(<LoginView notice={null} returnUrl={toSafeReturnUrl("/")} />);
+
+    for (const name of ["Cognito", "Keycloak"]) {
+      expect(container.textContent).not.toContain(name);
+    }
+  });
+
   it("資格情報の入力欄を持たない", () => {
     const { container } = render(<LoginView returnUrl={toSafeReturnUrl("/")} notice={null} />);
 
