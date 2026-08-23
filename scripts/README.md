@@ -2,6 +2,7 @@
 test-requirement: unit
 coverage-exclusions:
   - "scripts/*/index.ts"
+  - "scripts/lighthouse/diagnose.ts"
   - "scripts/openapi/check-generated.ts"
   - "scripts/openapi/extract-limits.ts"
   - "scripts/openapi/fetch-api.ts"
