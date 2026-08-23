@@ -69,7 +69,6 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Bearer Scan | `bearer.yaml` | `bearer` | 値がプロセスの外へ出る地点を、その値の分類と併せて見る。**落とさない**（下記） |
 | DevSkim Scan | `devskim.yaml` | `devskim` | 言語フロントエンドを持たない regex 検査。opengrep も CodeQL も開かないファイルを読む。**落とさない**（下記） |
 | OpenSSF Scorecard | `scorecard.yaml` | `scorecard` | リポジトリ自身の設定を測る。PR では走らない |
-| njsscan | `njsscan.yaml` | `njsscan` | Node / JS の作法に閉じたルールで同じソースを読む。opengrep とは**ルールセットが違うだけ**で、どちらも 0 件 baseline のゲート。エンジンは semgrep 本体（LGPL-2.1 の OSS CLI）で、そこだけ opengrep の判断が及ばない |
 | SonarQube Cloud Scan | `sonarcloud.yaml` | `preflight` / `sonarcloud` / `report` / `unconfigured-notice` | **外部アカウントを要する唯一の検査。** `SONAR_TOKEN` が無ければ走らず、緑のまま「未設定」を PR へ述べる。剥がしの対象 <!-- boilerplate-only:line --> |
 | DAST | `dast.yaml` | `dast` | **ここだけが応答を読む。** アプリを立てて OWASP ZAP で HTTP を撃ち、配信面を見る。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は赤にする** |
 
@@ -90,9 +89,9 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | 配線 | 該当 job | 何が赤にするか |
 | --- | --- | --- |
 <!-- boilerplate-only:replace-begin -->
-| ゲート | `secret-scan` / `sast` / `njsscan` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dependency-review` / `dast` | job の exit code |
+| ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dependency-review` / `dast` | job の exit code |
 <!-- boilerplate-only:replace-with -->
-<!-- = | ゲート | `secret-scan` / `sast` / `njsscan` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dast` | job の exit code | -->
+<!-- = | ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dast` | job の exit code | -->
 <!-- boilerplate-only:replace-end -->
 | 報告専用 | `dependency-scan` / `osv-scan` | 何も赤にしない（スキャナが走らなかったときだけ落ちる） |
 | code scanning へ送る | `codeql` / `bearer` / `devskim` / `sonarcloud` | **差分が新しく持ち込んだ alert** に対する GitHub 側のチェック |
@@ -237,7 +236,6 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 | secret-scan | hook + CI | 同じ `make secret-scan` を呼ぶが、**走査範囲の決まり方が違う**。hook の既定は「どのリモートにも無いコミット」で、PR のブランチは既に push 済みなので CI では 0 件になる。CI は `SECRET_SCAN_LOG_OPTS` で base からの範囲を渡す。履歴全体は週次だけ（`make secret-scan-history`） |
 | 依存の脆弱性 | CI のみ | 変更の作者がその場で解消できず、変更と独立に状態が変わる。hook に載せると `--no-verify` の常用を教える（[0110](../../docs/adr/0110-security-operations.md) 3.1 / 撤回条件 W1・W2） |
 | `sast` | CI のみ | 走査に 1 分前後かかり hook の速度目標に収まらない。手元で確かめるなら `make sast` がそのまま同じ検査を回す |
-| `njsscan` | CI のみ | 同上。手元で確かめるなら `make njsscan` |
 | `sonarcloud` | CI のみ | 解析を実行するのは SonarCloud 側で、手元には結果を読む口しか無い。そもそも `SONAR_TOKEN` を開発者の環境へ配らない |
 | `dast` | CI のみ | build と起動を伴うので hook には収まらない。手元で確かめるなら `pnpm start` したものへ `DAST_TARGET=http://host.docker.internal:3000 make dast` を当てる |
 
@@ -273,7 +271,7 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 | --- | --- |
 | `bundle-budget` | ドキュメントと AI エージェント設定 + 絵にしか効かないもの（CSS / token / story / テスト） |
 | `vrt` / `a11y` | ドキュメントと AI エージェント設定だけ |
-| `sast` / `njsscan` / `devskim` | ドキュメントと AI エージェント設定（+ SAST は `public/`） |
+| `sast` / `devskim` | ドキュメントと AI エージェント設定（+ SAST は `public/`） |
 | `bearer` | 同上 + `src` の外にあるもの（カタログ / 基準画像 / 生成されるドキュメントサイト） |
 | `dast` | 同上 + 配信される応答に現れないもの（story / テスト / CSS / token） |
 
@@ -346,6 +344,7 @@ detection は「何が見つかったか」を言えなければ、報告して�
 | --- | --- | --- |
 | `sync-versions-check` | 不採用 | `mise.toml` の版数を複製する下流が本リポに存在しない（Dockerfile 無し / CI は `setup-mise` が `mise.toml` を直読み）。検査対象そのものが無い。`package.json` の `engines` / `packageManager` 等、版数の第二宣言を置いた時点で採用する |
 | `auto-generate-docs` | 不採用 | portal の生成物（`guides/` / `docs.json`）は追跡せず配信時に組み立てるため、drift が発生しえない。追跡する生成物を持つのは型生成（[0072](../../docs/adr/0072-api-type-generation.md)）が入る時点で、そこで再検討する |
+| njsscan | 不採用 | **重複が実測で確かめられた。** 導入して走らせたところ、このツリーに対する所見は 0 件で、`sast`（opengrep）が既に `p/javascript` / `p/typescript` / `p/owasp-top-ten` を当てている。**ライセンスは理由ではない** —— njsscan 自身は LGPL-3.0 で、ルールもライセンス変更前の semgrep-rules 由来を同梱しており、`sast` がレジストリから引くルールより制約が緩い。落とすのは、重なる層のために semgrep 本体（47 MB）を供給網へ足すことになるため |
 | Snyk | 不採用 | SaaS への登録が前提。**最低保証の層を、fork 先が契約していない事業者に預けない。** 見る面（依存の脆弱性）は Trivy / OSV / `pnpm audit` の 3 つが既に覆っており、増えるのは死角ではなく依存先である |
 | SonarQube（self-host） | 不採用 | self-host できる点は Snyk と違うが、boilerplate が配る前提としては重い —— サーバと DB を建てて初めて 1 つの検査が動く。**同じ解析は SonarCloud 版（`sonarcloud.yaml`）が持ち、そちらはアカウントが無ければ黙って降りる。** self-host したい fork は、あの workflow のサーバ URL を差し替えれば届く |
 | `eslint-plugin-security` の推奨プリセット | 部分採用 | プラグインは採るが、`security.configs.recommended` は当てない（[0002](../../docs/adr/0002-formatter-linter.md) の能力ベース分担は束の適用を禁じる）。**0 件の baseline を保てる 9 規則だけ**を `eslint.config.ts` で有効にし、落とした 5 規則とその理由もそこに書いてある |

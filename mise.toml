@@ -30,10 +30,6 @@ pipx.uvx = true
 # opengrep を採る。CodeQL は GitHub の外へ持ち出せず、private + GHAS 無しの fork 先では層ごと
 # 消えるため、持ち出せる SAST を別に持つ（docs/adr/0110-security-operations.md）。
 "aqua:opengrep/opengrep" = "1.26.0"
-# Node / JS 固有の SAST（make njsscan）。opengrep の汎用ルールと対象は重なるが、拾う面が違う。
-# エンジンとして semgrep 本体（LGPL-2.1 の OSS CLI）を引く —— サブプロセスとして呼ぶだけで、
-# 配布物には入らない。版は PyPI のクールダウン 7 日を満たす最新を採る。
-"pipx:njsscan" = "1.0.0"
 # 依存の脆弱性を OSV データベースで見る（make osv-scan）。Trivy とも pnpm audit とも参照先が
 # 違うため件数は一致しない。和集合を正とする決定は 0110 が持つ。
 "aqua:google/osv-scanner" = "2.4.0"

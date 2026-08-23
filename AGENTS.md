@@ -273,7 +273,6 @@ make trivy-fs              # Trivy dependency vulnerability scan — on demand, 
 make trivy-fs-release      # Same, strict (keeps unfixed findings). The promotion gate CI runs
 make audit                 # Dependency audit gate — fails on a fixable high / critical (ADR 0110)
 make sast                  # Opengrep over this repo's own source — zero-finding gate (ADR 0110)
-make njsscan               # Node / JS-specific SAST — zero-finding gate, beside opengrep
 make osv-scan              # Dependency vulnerabilities via the OSV database — report only
 make osv-scan-release      # Same, as the promotion gate. Fails on a finding
 make bearer-scan           # Where a value leaves the process, against what the value is
