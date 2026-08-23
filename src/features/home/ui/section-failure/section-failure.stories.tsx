@@ -17,7 +17,7 @@ const meta = {
     },
   },
   args: {
-    label: "売上ランキング",
+    label: "売れ筋ランキング",
     message: "問題が発生しました。時間をおいて再試行してください。",
   },
 } satisfies Meta<typeof SectionFailure>;

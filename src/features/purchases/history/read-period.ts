@@ -1,17 +1,17 @@
 import { z } from "zod";
 
-import { PURCHASE_MAX_RECENT_DAYS, PURCHASE_MONTH_PATTERN } from "@/adapters/client/api/purchases";
 import { type RawSearchParams, singleValue } from "@/model/search-params";
+import { CALENDAR_MONTH_PATTERN } from "@/model/time-window";
 
-import { ALL_PERIOD, PERIOD_KEY, type PeriodSelection } from "./period";
+import { ALL_PERIOD, MAX_RECENT_DAYS, PERIOD_KEY, type PeriodSelection } from "./period";
 
 /**
  * URL を読む側。**組む側（[`period.ts`](period.ts)）と分けてある**（`docs/rules.md` #76）。
  * 組むのは期間の入力欄や続きの読み込みといった client の部品です。
  */
 
-/** 暦月 1 つを表す `YYYY-MM`。書式は契約が宣言したものを使う。 */
-const monthSchema = singleValue(z.string().regex(PURCHASE_MONTH_PATTERN));
+/** 暦月 1 つを表す `YYYY-MM`。書式は区間を組む側（`model`）が宣言したものを使う。 */
+const monthSchema = singleValue(z.string().regex(CALENDAR_MONTH_PATTERN));
 
 /**
  * 暦の上に実在する日付。
@@ -22,8 +22,8 @@ const monthSchema = singleValue(z.string().regex(PURCHASE_MONTH_PATTERN));
  */
 const dateSchema = singleValue(z.iso.date());
 
-/** 今日から遡る日数。上限は契約が決めるので、`adapters` が公開するものを使う。 */
-const daysSchema = singleValue(z.coerce.number().int().min(1).max(PURCHASE_MAX_RECENT_DAYS));
+/** 今日から遡る日数。上限は選択肢が決めるので、それを持つ側から引く。 */
+const daysSchema = singleValue(z.coerce.number().int().min(1).max(MAX_RECENT_DAYS));
 
 /**
  * 効いている期間の条件を読むスキーマ。

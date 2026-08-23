@@ -2,57 +2,133 @@ import { describe, expect, it } from "vitest";
 
 import { DASHBOARD_PERIOD } from "@/model/dashboard/dashboard";
 
-import { toPeriodHref, toPeriodRequest } from "./period";
+import { parsePeriodSelection, toPeriodHref, toPeriodRequest } from "./period";
+
+/** JST では 8/24 11:00。日付の跨ぎを避けた昼どき。 */
+const NOW = new Date("2026-08-24T02:00:00Z");
+
+describe("parsePeriodSelection", () => {
+  // ----- 正常系 -----
+  it("区分と両端の日付を読む", () => {
+    expect(parsePeriodSelection({ period: "range", from: "2026-08-01", to: "2026-08-19" })).toEqual(
+      {
+        ok: true,
+        selection: { period: DASHBOARD_PERIOD.RANGE, from: "2026-08-01", to: "2026-08-19" },
+      },
+    );
+  });
+
+  it("何も載っていない URL も読める", () => {
+    expect(parsePeriodSelection({})).toEqual({ ok: true, selection: {} });
+  });
+
+  it("両端が揃っていなくても、区分としては読める", () => {
+    expect(parsePeriodSelection({ period: "range", from: "2026-08-01" })).toEqual({
+      ok: true,
+      selection: { period: DASHBOARD_PERIOD.RANGE, from: "2026-08-01" },
+    });
+  });
+
+  // ----- 異常系 -----
+  it("知らない区分は読めなかったキーとして返す", () => {
+    expect(parsePeriodSelection({ period: "weekly" })).toEqual({
+      ok: false,
+      invalidKeys: ["period"],
+    });
+  });
+
+  it("暦の上に無い日付は読めなかったキーとして返す", () => {
+    expect(parsePeriodSelection({ period: "range", from: "2026-06-31", to: "2026-08-19" })).toEqual(
+      { ok: false, invalidKeys: ["from"] },
+    );
+  });
+
+  it("同じキーが 2 つ載っていれば読めなかったキーとして返す", () => {
+    expect(parsePeriodSelection({ period: ["weekly", "monthly"] })).toEqual({
+      ok: false,
+      invalidKeys: ["period"],
+    });
+  });
+
+  it("読めないキーが複数あれば、重ねずに並べる", () => {
+    const result = parsePeriodSelection({ period: "weekly", from: "きのう" });
+
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && [...result.invalidKeys].sort()).toEqual(["from", "period"]);
+  });
+});
 
 describe("toPeriodRequest", () => {
   // ----- 正常系 -----
-  it("期間が省略されたとき today として求められる形になる", () => {
-    expect(toPeriodRequest({})).toEqual({
+  it("期間が省略されたとき、今日 1 日の区間になる", () => {
+    expect(toPeriodRequest({}, NOW)).toEqual({
       status: "ready",
-      query: { period: DASHBOARD_PERIOD.TODAY },
+      window: { after: "2026-08-24T00:00:00+09:00", before: "2026-08-25T00:00:00+09:00" },
     });
   });
 
-  it("range 以外のとき日付を落として求められる形になる", () => {
-    expect(
-      toPeriodRequest({ period: DASHBOARD_PERIOD.MONTH, from: "2026-08-01", to: "2026-08-31" }),
-    ).toEqual({ status: "ready", query: { period: DASHBOARD_PERIOD.MONTH } });
-  });
-
-  it("range で両端が揃うとき日付ごと求められる形になる", () => {
-    expect(
-      toPeriodRequest({ period: DASHBOARD_PERIOD.RANGE, from: "2026-08-01", to: "2026-08-19" }),
-    ).toEqual({
+  it("today も同じ区間になる", () => {
+    expect(toPeriodRequest({ period: DASHBOARD_PERIOD.TODAY }, NOW)).toEqual({
       status: "ready",
-      query: { period: DASHBOARD_PERIOD.RANGE, from: "2026-08-01", to: "2026-08-19" },
+      window: { after: "2026-08-24T00:00:00+09:00", before: "2026-08-25T00:00:00+09:00" },
     });
   });
 
-  it("開始日と終了日が同じ日でも求められる形になる", () => {
+  it("month は今月を、翌月の始まりで閉じた区間にする", () => {
     expect(
-      toPeriodRequest({ period: DASHBOARD_PERIOD.RANGE, from: "2026-08-19", to: "2026-08-19" }),
+      toPeriodRequest(
+        { period: DASHBOARD_PERIOD.MONTH, from: "2026-08-01", to: "2026-08-31" },
+        NOW,
+      ),
     ).toEqual({
       status: "ready",
-      query: { period: DASHBOARD_PERIOD.RANGE, from: "2026-08-19", to: "2026-08-19" },
+      window: { after: "2026-08-01T00:00:00+09:00", before: "2026-09-01T00:00:00+09:00" },
+    });
+  });
+
+  it("range で両端が揃うとき、終了日の翌日で閉じた区間にする", () => {
+    expect(
+      toPeriodRequest(
+        { period: DASHBOARD_PERIOD.RANGE, from: "2026-08-01", to: "2026-08-19" },
+        NOW,
+      ),
+    ).toEqual({
+      status: "ready",
+      window: { after: "2026-08-01T00:00:00+09:00", before: "2026-08-20T00:00:00+09:00" },
+    });
+  });
+
+  it("開始日と終了日が同じ日でも、空の区間にならない", () => {
+    expect(
+      toPeriodRequest(
+        { period: DASHBOARD_PERIOD.RANGE, from: "2026-08-19", to: "2026-08-19" },
+        NOW,
+      ),
+    ).toEqual({
+      status: "ready",
+      window: { after: "2026-08-19T00:00:00+09:00", before: "2026-08-20T00:00:00+09:00" },
     });
   });
 
   // ----- 異常系 -----
   it("range で開始日が欠けていれば求めない", () => {
-    expect(toPeriodRequest({ period: DASHBOARD_PERIOD.RANGE, to: "2026-08-19" })).toEqual({
+    expect(toPeriodRequest({ period: DASHBOARD_PERIOD.RANGE, to: "2026-08-19" }, NOW)).toEqual({
       status: "incomplete",
     });
   });
 
   it("range で終了日が欠けていれば求めない", () => {
-    expect(toPeriodRequest({ period: DASHBOARD_PERIOD.RANGE, from: "2026-08-01" })).toEqual({
+    expect(toPeriodRequest({ period: DASHBOARD_PERIOD.RANGE, from: "2026-08-01" }, NOW)).toEqual({
       status: "incomplete",
     });
   });
 
   it("終了日が開始日より前なら求めない", () => {
     expect(
-      toPeriodRequest({ period: DASHBOARD_PERIOD.RANGE, from: "2026-08-19", to: "2026-08-01" }),
+      toPeriodRequest(
+        { period: DASHBOARD_PERIOD.RANGE, from: "2026-08-19", to: "2026-08-01" },
+        NOW,
+      ),
     ).toEqual({ status: "reversed" });
   });
 });

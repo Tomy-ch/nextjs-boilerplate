@@ -9,27 +9,25 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
-import type { DashboardFromParamParameter } from "./dashboardFromParamParameter";
-import type { DashboardPeriodParamParameter } from "./dashboardPeriodParamParameter";
-import type { DashboardToParamParameter } from "./dashboardToParamParameter";
+import type { OrderedAfterParamParameter } from "./orderedAfterParamParameter";
+import type { OrderedBeforeParamParameter } from "./orderedBeforeParamParameter";
 
 export type GetDashboardSummaryParams = {
   /**
-   * 集計対象期間の区分。`today`（既定）は今日、`month` は今月、`range` は `from` / `to` で指定した期間を集計します。
-   * `today` / `month` の境界はサーバのタイムゾーン（Asia/Tokyo）基準で算出します。
-   * `range` を指定した場合は `from` / `to` が必須で、欠落時は 400 を返します。
+   * 集計対象期間の下限となる瞬時（RFC3339）。**この瞬時を含みます**。
+   * 対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。
+   * 省略すると下限を設けません。`orderedBefore` と併せて省略すると全期間が対象になります。
+   * `orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。
+   * cursor ページネーションの `after` とは別のパラメータです。
    */
-  period?: DashboardPeriodParamParameter;
+  orderedAfter?: OrderedAfterParamParameter;
   /**
-   * 集計対象期間の開始日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。
-   * 日付はサーバのタイムゾーン（Asia/Tokyo）の暦日として解釈します。
+   * 集計対象期間の上限となる瞬時（RFC3339）。**この瞬時を含みません**。
+   * 対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。
+   * 省略すると上限を設けません。`orderedAfter` と併せて省略すると全期間が対象になります。
+   * `orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。
    */
-  from?: DashboardFromParamParameter;
-  /**
-   * 集計対象期間の終了日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。
-   * 日付はサーバのタイムゾーン（Asia/Tokyo）の暦日として解釈します。`from` より前の日付を指定した場合は 400 を返します。
-   */
-  to?: DashboardToParamParameter;
+  orderedBefore?: OrderedBeforeParamParameter;
 };

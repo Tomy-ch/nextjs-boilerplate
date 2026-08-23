@@ -38,10 +38,24 @@ beforeEach(() => {
 });
 
 describe("AdminDashboardPageContent", () => {
-  it("今日を明示して集計を求める", async () => {
+  it("今日 1 日の区間を明示して集計を求める", async () => {
     render(await AdminDashboardPageContent());
 
-    expect(getDashboardSummary).toHaveBeenCalledWith({ period: "today" });
+    const [window] = getDashboardSummary.mock.calls[0] ?? [];
+
+    expect(window).toEqual({
+      after: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T00:00:00\+09:00$/),
+      before: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T00:00:00\+09:00$/),
+    });
+  });
+
+  it("上限は下限の翌日に置き、今日の 24 時間を含める", async () => {
+    render(await AdminDashboardPageContent());
+
+    const [window] = getDashboardSummary.mock.calls[0] ?? [];
+    const elapsed = Date.parse(window.before) - Date.parse(window.after);
+
+    expect(elapsed).toBe(24 * 60 * 60 * 1000);
   });
 
   it("a11y 検査を通る", async () => {

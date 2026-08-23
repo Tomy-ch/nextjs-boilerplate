@@ -1,24 +1,16 @@
 import { Suspense } from "react";
 
-import { parseDashboardQuery, type RawDashboardQuery } from "@/adapters/server/api/dashboard";
 import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-feedback/invalid-query-feedback";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { RawSearchParams } from "@/model/search-params";
 import { ADMIN_ANALYTICS_PATH } from "../paths";
 import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
-import { PERIOD_KEY_LABEL, toPeriodRequest } from "./period";
+import { PERIOD_KEY_LABEL, parsePeriodSelection, toPeriodRequest } from "./period";
 import { toPeriodWindow } from "./period-window";
 import { AnalyticsRankingSection } from "./ranking-section";
 import { AnalyticsSummarySection } from "./summary-section";
 import { AnalyticsView } from "./view";
-
-/** 値の無いキーを落とし、契約に照らせる形へ揃える。 */
-function toRawQuery(params: RawSearchParams): RawDashboardQuery {
-  return Object.fromEntries(
-    Object.entries(params).flatMap(([key, value]) => (value === undefined ? [] : [[key, value]])),
-  );
-}
 
 /**
  * 集計の画面の中身。URL の解釈と、取り直す範囲の区切りを行う。
@@ -33,14 +25,15 @@ function toRawQuery(params: RawSearchParams): RawDashboardQuery {
  * 次の集計が届くまで前の期間の数が残ります。**鍵は値を一意に表す形で作ります。** 区切り文字で
  * 連結すると、値に区切り文字が現れた時点で別の期間が同じ鍵になります。
  *
- * URL の条件は `parseDashboardQuery`（取得の口）へ通し、独自の変換を持ちません。契約に照らして
- * 読めない期間は集計の代わりに {@link InvalidQueryFeedback} が引き受けます。
+ * URL の条件は `parsePeriodSelection` へ通し、独自の変換を持ちません。読めない期間は集計の代わりに
+ * {@link InvalidQueryFeedback} が引き受けます。
  *
- * **いまの時刻をここで読みます。** どの暦日を見ているかの表示に要りますが、描画のたびに実時計を
- * 読む部品にすると、基準画像が撮った時刻に依存します。
+ * **いまの時刻をここで 1 度だけ読みます。** どの暦日を見ているかの表示にも、区分を区間へ解くのにも
+ * 要ります。別々に読むと、境目の時刻に添え書きと集計の対象がずれます。描画のたびに実時計を読む
+ * 部品にしないのは、基準画像が撮った時刻に依存させないためです。
  */
 export function AdminAnalyticsPageContent({ searchParams }: { searchParams: RawSearchParams }) {
-  const parsed = parseDashboardQuery(toRawQuery(searchParams));
+  const parsed = parsePeriodSelection(searchParams);
 
   if (!parsed.ok) {
     return (
@@ -55,14 +48,15 @@ export function AdminAnalyticsPageContent({ searchParams }: { searchParams: RawS
     );
   }
 
-  const request = toPeriodRequest(parsed.query);
+  const now = new Date();
+  const request = toPeriodRequest(parsed.selection, now);
 
   return (
     <AnalyticsView
-      query={parsed.query}
+      query={parsed.selection}
       ranking={
         <Suspense fallback={null}>
-          <AnalyticsRankingSection />
+          <AnalyticsRankingSection now={now} />
         </Suspense>
       }
       summary={
@@ -70,7 +64,7 @@ export function AdminAnalyticsPageContent({ searchParams }: { searchParams: RawS
           <AnalyticsSummarySection request={request} />
         </Suspense>
       }
-      window={toPeriodWindow(parsed.query, new Date())}
+      window={toPeriodWindow(parsed.selection, now)}
     />
   );
 }

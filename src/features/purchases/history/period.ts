@@ -1,3 +1,11 @@
+import {
+  dateRangeWindow,
+  monthWindow,
+  recentDaysWindow,
+  type TimeWindow,
+  WHOLE_TIME,
+} from "@/model/time-window";
+
 import { PURCHASE_HISTORY_PATH } from "../facade/paths/paths";
 
 /** 期間の条件を載せる URL のキー。契約のクエリ名と揃える。読む側（`read-period.ts`）と共有する。 */
@@ -17,6 +25,16 @@ export const PERIOD_KEY: Readonly<{
 
 /** 直近 N 日で選べる日数。 */
 export const RECENT_DAYS_OPTIONS: readonly number[] = [7, 30, 90, 365];
+
+/**
+ * 遡れる日数の上限。
+ *
+ * @remarks
+ * **契約はもう日数を受け取りません。** 相対の期間を暦の上で解くのは画面の側なので、どこまで
+ * 遡らせるかもこちらが決めます。選択肢から引くのは、選べない日数を URL でだけ通せる状態を
+ * 作らないためです。
+ */
+export const MAX_RECENT_DAYS: number = Math.max(...RECENT_DAYS_OPTIONS);
 
 /**
  * いま効いている期間の条件。
@@ -111,37 +129,32 @@ export function describePeriod(period: PeriodSelection): string | null {
 }
 
 /**
- * 効いている期間を、取得条件へ直す。
+ * 効いている期間を、契約が受け取る半開区間へ写す。
  *
  * @remarks
- * 区分が使わない値は載せません。契約は無視すると宣言していますが、載せる側が区分ごとの
- * 対応を持たないと、区分を変えたときに前の区分の値が残ったまま飛びます。
+ * **区分を解くのは画面の側です。** 契約が受け取るのは瞬時の半開区間だけで、「今月」や「直近 30 日」を
+ * 暦の上で解く役は持ちません。解く暦とタイムゾーンは `model` が持ちます
+ * （[0120](../../../../docs/adr/0120-locale-aware-formatting.md)）。
+ *
+ * **いまの時刻を引数で受けます。** 相対の期間は呼び出した瞬間で答えが変わるため、ページ送りの
+ * 間は同じ区間を渡し続けなければ keyset の連続性が保証されません。区間を 1 度だけ決めて持ち回る
+ * 形にするために、実時計をここで読みません。
  *
  * @param period - いま効いている期間
- * @param first - 1 度に読み込む件数
+ * @param now - 相対の期間を解く基準の瞬時
  */
-export function toPurchaseHistoryQuery(
-  period: PeriodSelection,
-  first: number,
-): {
-  readonly first: number;
-  readonly period: PeriodSelection["kind"];
-  readonly from?: string;
-  readonly to?: string;
-  readonly month?: string;
-  readonly days?: number;
-} {
+export function toPurchaseWindow(period: PeriodSelection, now: Date): TimeWindow {
   if (period.kind === "month") {
-    return { first, period: "month", month: period.month };
+    return monthWindow(period.month);
   }
 
   if (period.kind === "range") {
-    return { first, period: "range", from: period.from, to: period.to };
+    return dateRangeWindow(period.from, period.to);
   }
 
   if (period.kind === "recent") {
-    return { first, period: "recent", days: period.days };
+    return recentDaysWindow(period.days, now);
   }
 
-  return { first, period: "all" };
+  return WHOLE_TIME;
 }

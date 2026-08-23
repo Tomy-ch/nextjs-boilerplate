@@ -5,11 +5,11 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import { DASHBOARD_PERIOD, type DashboardSummaryQuery } from "@/model/dashboard/dashboard";
+import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "@/model/dashboard/dashboard";
 
 import { AnalyticsView } from "./view";
 
-function renderView(query: DashboardSummaryQuery, window?: { from: string; to: string }) {
+function renderView(query: DashboardPeriodSelection, window?: { from: string; to: string }) {
   return render(
     <AnalyticsView
       query={query}

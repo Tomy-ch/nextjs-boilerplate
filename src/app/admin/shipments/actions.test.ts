@@ -3,13 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import {
+  DELIVERY_CONFLICT_MESSAGE,
   SHIPMENT_CONFLICT_MESSAGE,
   SHIPMENT_TARGET_LOST_MESSAGE,
 } from "@/features/admin/shipments/form-state";
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE } from "@/model/session";
 
-const { revalidatePath, shipPurchase, verifySession } = vi.hoisted(() => ({
+const { deliverPurchase, revalidatePath, shipPurchase, verifySession } = vi.hoisted(() => ({
+  deliverPurchase: vi.fn(),
   revalidatePath: vi.fn(),
   shipPurchase: vi.fn(),
   verifySession: vi.fn(),
@@ -19,10 +21,11 @@ vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/adapters/server/api/purchases", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/purchases")>()),
+  deliverPurchase,
   shipPurchase,
 }));
 
-import { shipPurchasesAction } from "./actions";
+import { deliverPurchaseAction, shipPurchasesAction } from "./actions";
 
 const CODES = [
   "0195f0c2-0000-7000-9000-000000000001",
@@ -143,5 +146,61 @@ describe("shipPurchasesAction", () => {
     await shipPurchasesAction(idleActionState(), shipmentForm());
 
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("deliverPurchaseAction", () => {
+  // ----- 正常系 -----
+  it("受け取った注文 1 件を配達済みにする", async () => {
+    const state = await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
+
+    expect(deliverPurchase).toHaveBeenCalledExactlyOnceWith(FIRST_CODE);
+    expect(state).toMatchObject({ status: "success", value: { purchaseCode: FIRST_CODE } });
+  });
+
+  it("通ったら一覧を取り直させる", async () => {
+    await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
+
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
+  });
+
+  it("複数並んでいても、先頭の 1 件だけを送る", async () => {
+    await deliverPurchaseAction(idleActionState(), shipmentForm());
+
+    expect(deliverPurchase).toHaveBeenCalledExactlyOnceWith(FIRST_CODE);
+  });
+
+  // ----- 異常系 -----
+  it("役割が無ければ、要求を送らずに拒む", async () => {
+    verifySession.mockResolvedValueOnce({ roles: [] });
+
+    const state = await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
+
+    expect(deliverPurchase).not.toHaveBeenCalled();
+    expect(state.status).toBe("error");
+  });
+
+  it("対象が載っていなければ、開き直すよう伝える", async () => {
+    const state = await deliverPurchaseAction(idleActionState(), new FormData());
+
+    expect(deliverPurchase).not.toHaveBeenCalled();
+    expect(state).toMatchObject({ status: "error", formError: SHIPMENT_TARGET_LOST_MESSAGE });
+  });
+
+  it("いまの状況で通らなければ、この画面の言い方で伝える", async () => {
+    deliverPurchase.mockRejectedValueOnce(createAppError(ErrorKind.CONFLICT));
+
+    const state = await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
+
+    expect(state).toMatchObject({ status: "error", formError: DELIVERY_CONFLICT_MESSAGE });
+  });
+
+  it("競合以外の失敗では、一覧を取り直させない", async () => {
+    deliverPurchase.mockRejectedValueOnce(createAppError(ErrorKind.UNAVAILABLE));
+
+    const state = await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(state.status).toBe("error");
   });
 });

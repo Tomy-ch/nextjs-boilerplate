@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import type { ShipmentAction } from "./form-state";
+import type { DeliveryAction, ShipmentAction } from "./form-state";
 import { ShipmentQueueResults } from "./results";
 import { ShipmentQueueSkeleton } from "./ui/skeleton/skeleton";
 
@@ -8,6 +8,8 @@ import { ShipmentQueueSkeleton } from "./ui/skeleton/skeleton";
 export type ShipmentQueuePageContentProps = {
   /** 発送の送信先。 */
   shipAction: ShipmentAction;
+  /** 配達の確認の送信先。 */
+  deliverAction: DeliveryAction;
 };
 
 /**
@@ -16,10 +18,13 @@ export type ShipmentQueuePageContentProps = {
  * @remarks
  * 待機の境界を一覧本体だけに掛けます。取得を待つのは組の並びだけで、見出しはその前に描かれます。
  */
-export function ShipmentQueuePageContent({ shipAction }: ShipmentQueuePageContentProps) {
+export function ShipmentQueuePageContent({
+  shipAction,
+  deliverAction,
+}: ShipmentQueuePageContentProps) {
   return (
     <Suspense fallback={<ShipmentQueueSkeleton />}>
-      <ShipmentQueueResults shipAction={shipAction} />
+      <ShipmentQueueResults deliverAction={deliverAction} shipAction={shipAction} />
     </Suspense>
   );
 }

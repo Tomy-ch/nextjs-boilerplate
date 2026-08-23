@@ -9,11 +9,14 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
+import type { ProductAmountRankingItem } from "./productAmountRankingItem";
 
 /**
- * 対象期間の開始日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。
- * 日付はサーバのタイムゾーン（Asia/Tokyo）の暦日として解釈します。
+ * 売上金額ランキングのレスポンススキーマ。売上金額の降順（同額は商品 ID 昇順）で並びます。
  */
-export type PurchaseFromParamParameter = string;
+export interface ProductAmountRankingResponse {
+  /** 売上金額の降順で並んだ商品ランキングです。 */
+  rankings: ProductAmountRankingItem[];
+}

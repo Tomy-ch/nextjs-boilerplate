@@ -21,13 +21,16 @@ export const DASHBOARD_PERIOD: Readonly<{ TODAY: "today"; MONTH: "month"; RANGE:
 export type DashboardPeriod = (typeof DASHBOARD_PERIOD)[keyof typeof DASHBOARD_PERIOD];
 
 /**
- * 横断集計の取得条件。
+ * URL が表している期間の選択。
  *
  * @remarks
- * 期間の境界はサーバのタイムゾーンで決まります。日付は暦日の文字列のまま持ち回り、`Date` へ
- * 直しません。ブラウザの時差で暦日がずれると、指定したつもりの日と集計された日が食い違います。
+ * **取得条件ではありません。** 契約が受け取るのは瞬時の半開区間だけで、暦の区分を解くのは画面の
+ * 側です（`model/time-window.ts`）。この型が表すのは、利用者が選んだ状態そのものです。
+ *
+ * 日付は暦日の文字列のまま持ち回り、`Date` へ直しません。ブラウザの時差で暦日がずれると、指定
+ * したつもりの日と集計された日が食い違います。
  */
-export type DashboardSummaryQuery = {
+export type DashboardPeriodSelection = {
   readonly period?: DashboardPeriod;
   /** 集計の開始日。`period` が `range` のときだけ効く。 */
   readonly from?: string;

@@ -18,20 +18,36 @@ beforeEach(() => {
 });
 
 describe("PurchaseHistoryResults", () => {
-  it("全期間の条件で先頭ページを引く", async () => {
+  it("全期間では境界を持たない条件で先頭ページを引く", async () => {
     render(await PurchaseHistoryResults({ period: { kind: "all" } }));
-
-    expect(getMyPurchases).toHaveBeenCalledWith({ first: PURCHASE_PAGE_SIZE, period: "all" });
-  });
-
-  it("効いている期間をそのまま取得条件へ渡す", async () => {
-    render(await PurchaseHistoryResults({ period: { kind: "recent", days: 30 } }));
 
     expect(getMyPurchases).toHaveBeenCalledWith({
       first: PURCHASE_PAGE_SIZE,
-      period: "recent",
-      days: 30,
+      includeOtherUsers: false,
     });
+  });
+
+  it("効いている期間を区間へ解いて渡す", async () => {
+    render(await PurchaseHistoryResults({ period: { kind: "month", month: "2026-07" } }));
+
+    expect(getMyPurchases).toHaveBeenCalledWith({
+      first: PURCHASE_PAGE_SIZE,
+      includeOtherUsers: false,
+      orderedAfter: "2026-07-01T00:00:00+09:00",
+      orderedBefore: "2026-08-01T00:00:00+09:00",
+    });
+  });
+
+  it("相対の期間でも、区間を 1 度だけ解いて渡す", async () => {
+    render(await PurchaseHistoryResults({ period: { kind: "recent", days: 30 } }));
+    render(await PurchaseHistoryResults({ period: { kind: "recent", days: 30 } }));
+
+    const [first] = getMyPurchases.mock.calls[0] ?? [];
+
+    expect(first.orderedAfter).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\+09:00$/);
+    expect(Date.parse(first.orderedBefore) - Date.parse(first.orderedAfter)).toBe(
+      30 * 24 * 60 * 60 * 1000,
+    );
   });
 
   it("取れた購入を、詳細への行き先つきで並べる", async () => {

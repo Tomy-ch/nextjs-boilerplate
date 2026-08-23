@@ -38,7 +38,7 @@ export async function AnalyticsSummarySection({ request }: AnalyticsSummarySecti
     );
   }
 
-  const summary = await getDashboardSummary(request.query);
+  const summary = await getDashboardSummary(request.window);
 
   return (
     <>

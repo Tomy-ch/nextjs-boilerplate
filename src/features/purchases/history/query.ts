@@ -11,3 +11,9 @@ export const CURSOR_KEY = "after";
 
 /** 読み込む件数を載せる URL のキー。契約のクエリ名と揃える。 */
 export const COUNT_KEY = "first";
+
+/** 対象期間の下限を載せる URL のキー。契約のクエリ名と揃える。 */
+export const WINDOW_AFTER_KEY = "orderedAfter";
+
+/** 対象期間の上限を載せる URL のキー。契約のクエリ名と揃える。 */
+export const WINDOW_BEFORE_KEY = "orderedBefore";

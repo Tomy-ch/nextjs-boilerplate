@@ -1,26 +1,5 @@
-import { DASHBOARD_PERIOD, type DashboardSummaryQuery } from "@/model/dashboard/dashboard";
-
-/**
- * 集計の暦日を決めているタイムゾーン。
- *
- * @remarks
- * **応答に入っていない値の写しです。** 決めているのはバックエンドなので、この宣言を編集せずとも
- * ずれます（`docs/spec/route/admin/analytics/page.function.md`「対象の暦日は写しである」）。
- */
-const AGGREGATION_TIME_ZONE = "Asia/Tokyo";
-
-const dateFormatter = new Intl.DateTimeFormat("en-CA", {
-  timeZone: AGGREGATION_TIME_ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-/** その時刻を、集計のタイムゾーンでの暦日（`YYYY-MM-DD`）にする。 */
-function toCalendarDate(instant: Date): string {
-  // en-CA は ISO と同じ並びを返す。桁を自前で組むと、月と日の 0 埋めを書き写すことになる。
-  return dateFormatter.format(instant);
-}
+import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "@/model/dashboard/dashboard";
+import { calendarDate, calendarMonth } from "@/model/time-window";
 
 /** その月の最終日。月をまたぐ加算は `Date` に数えさせる。 */
 function endOfMonth(year: number, month: number): string {
@@ -43,6 +22,9 @@ export type PeriodWindow = {
  * **集計ではありません。** 出す数はバックエンドが合成したものだけで、ここが決めるのは「その数が
  * どの日付の話か」という添え書きです（[0070](../../../../docs/adr/0070-backend-role-separation.md)）。
  *
+ * 暦は取得の条件を組む側と同じものを引きます（`model/time-window.ts`）。別々に解くと、境目の
+ * 時刻に「この期間を集計しています」という添え書きと実際の対象が食い違います。
+ *
  * `range` は利用者が指定した暦日をそのまま返します。指定が揃っていないときと、前後が入れ替わって
  * いるときは、対象が決まっていないので返しません。
  *
@@ -50,7 +32,10 @@ export type PeriodWindow = {
  * @param now - 判定に使う時刻。呼び出し側が渡すのは、描画のたびに実時計を読むと基準画像が
  *   撮った時刻に依存するため
  */
-export function toPeriodWindow(query: DashboardSummaryQuery, now: Date): PeriodWindow | undefined {
+export function toPeriodWindow(
+  query: DashboardPeriodSelection,
+  now: Date,
+): PeriodWindow | undefined {
   const period = query.period ?? DASHBOARD_PERIOD.TODAY;
 
   if (period === DASHBOARD_PERIOD.RANGE) {
@@ -61,13 +46,14 @@ export function toPeriodWindow(query: DashboardSummaryQuery, now: Date): PeriodW
     return from === undefined || to === undefined || from > to ? undefined : { from, to };
   }
 
-  const today = toCalendarDate(now);
-
   if (period === DASHBOARD_PERIOD.TODAY) {
+    const today = calendarDate(now);
+
     return { from: today, to: today };
   }
 
-  const [year, month] = today.split("-").map(Number);
+  const month = calendarMonth(now);
+  const [year, monthOfYear] = month.split("-");
 
-  return { from: `${today.slice(0, 7)}-01`, to: endOfMonth(year, month) };
+  return { from: `${month}-01`, to: endOfMonth(Number(year), Number(monthOfYear)) };
 }

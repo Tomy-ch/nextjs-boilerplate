@@ -24,7 +24,7 @@ export type SectionState<T> =
 export type HomeViewProps = {
   /** 新着商品。 */
   newArrivals: SectionState<readonly ProductListItem[]>;
-  /** 売上ランキング。 */
+  /** 売れ筋ランキング。 */
   ranking: SectionState<readonly ProductRankingEntry[]>;
   /** 分類の導線。 */
   categories: SectionState<readonly ProductCategory[]>;
@@ -51,7 +51,7 @@ export function HomeView({ newArrivals, ranking, categories }: HomeViewProps) {
       {ranking.status === "ready" ? (
         <RankingList entries={ranking.value} />
       ) : (
-        <SectionFailure label="売上ランキング" message={ranking.message} />
+        <SectionFailure label="売れ筋ランキング" message={ranking.message} />
       )}
       {categories.status === "ready" ? (
         <CategoryLinks categories={categories.value} />

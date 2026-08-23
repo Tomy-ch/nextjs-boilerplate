@@ -24,7 +24,6 @@ import {
   getProducts,
   PRODUCTS_TAG,
   parseProductQuery,
-  RANKING_PERIOD,
   toProduct,
   toProductPage,
   updateProduct,
@@ -49,7 +48,7 @@ const wirePage = { products: [wireProduct], nextCursor: "next", hasNext: true };
 
 const PRODUCTS_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/products`;
 const PRODUCT_URL = `${PRODUCTS_URL}/:id`;
-const RANKING_URL = `${PRODUCTS_URL}/ranking`;
+const RANKING_URL = `${PRODUCTS_URL}/ranking/quantity`;
 const COUNT_URL = `${PRODUCTS_URL}/count`;
 
 /** 投げられたエラーに付いた分類を返す。投げなければ undefined。 */
@@ -96,6 +95,7 @@ describe("parseProductQuery", () => {
         minQuantity: 1,
         maxQuantity: 9,
         sort: "publishedAt",
+        includeUnpublished: false,
       },
     });
   });
@@ -127,7 +127,10 @@ describe("parseProductQuery", () => {
   it("省略した条件を契約の既定値で埋める", () => {
     const result = parseProductQuery({});
 
-    expect(result).toEqual({ ok: true, query: { first: 50, sort: "-publishedAt" } });
+    expect(result).toEqual({
+      ok: true,
+      query: { first: 50, sort: "-publishedAt", includeUnpublished: false },
+    });
   });
 
   // ----- 異常系 -----
@@ -254,6 +257,22 @@ describe("getProducts", () => {
     const page = await getProducts({ keyword: "本", first: 20 });
 
     expect(page.items[0]?.name).toBe("商品");
+  });
+
+  it("未公開を含める指定をクエリへ載せる", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getProducts({ includeUnpublished: true });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("includeUnpublished")).toBe("true");
+  });
+
+  it("未公開の扱いを指定しなければ、契約の既定に任せてクエリに載せない", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getProducts({ first: 20 });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.has("includeUnpublished")).toBe(false);
   });
 
   it("取得条件をクエリへ載せる", async () => {
@@ -453,12 +472,25 @@ describe("getProductRanking", () => {
     ]);
   });
 
-  it("件数と期間をクエリへ載せる", async () => {
+  it("件数と区間の両端をクエリへ載せる", async () => {
     const requests = serveJson(RANKING_URL, wireRanking);
 
-    await getProductRanking({ limit: 5, period: RANKING_PERIOD.LAST_30_DAYS });
+    await getProductRanking({
+      limit: 5,
+      window: { after: "2026-08-01T00:00:00+09:00", before: "2026-09-01T00:00:00+09:00" },
+    });
 
-    expect(requests[0]?.url).toBe(`${RANKING_URL}?period=30d&limit=5`);
+    expect(requests[0]?.url).toBe(
+      `${RANKING_URL}?orderedAfter=${encodeURIComponent("2026-08-01T00:00:00+09:00")}&orderedBefore=${encodeURIComponent("2026-09-01T00:00:00+09:00")}&limit=5`,
+    );
+  });
+
+  it("数量の軸の口を叩く", async () => {
+    const requests = serveJson(RANKING_URL, wireRanking);
+
+    await getProductRanking({ limit: 5 });
+
+    expect(new URL(requests[0]?.url ?? "").pathname).toBe("/v1/products/ranking/quantity");
   });
 
   it("条件を省略したら契約の既定値に任せ、クエリを付けない", async () => {

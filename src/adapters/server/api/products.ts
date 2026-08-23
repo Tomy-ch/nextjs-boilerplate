@@ -17,12 +17,12 @@ import type {
   ProductRankingEntry,
 } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
+import { type TimeWindow, WHOLE_TIME } from "@/model/time-window";
 import {
   GetProductsCountResponse,
   GetProductsDetailResponse,
   GetProductsQueryParams,
-  type GetProductsRankingQueryParams,
-  GetProductsRankingResponse,
+  GetProductsRankingQuantityResponse,
   GetProductsResponse,
   getProductsQueryCategoryCodesMax,
   PatchProductsDetailResponse,
@@ -96,6 +96,15 @@ export type ProductQuery = {
   /** 最高在庫数。 */
   maxQuantity?: number;
   sort?: ProductSort;
+  /**
+   * 未公開の商品も母集団に含めるか。省略すると公開済みだけ。
+   *
+   * @remarks
+   * **含める指定は管理の役割を持つ主体しか通りません。** 母集団を変えると並び順の第 1 キーも
+   * 登録日時へ変わるため、ページ送りの鍵は同じ指定の中でだけ使えます。指定をまたいで持ち越した
+   * 鍵は契約が 400 で返します。
+   */
+  includeUnpublished?: boolean;
 };
 
 /**
@@ -272,6 +281,8 @@ export const getProducts = cache(async (query: ProductQuery = {}): Promise<Produ
       after: query.after,
       first: query.first?.toString(),
       sort: query.sort,
+      includeUnpublished:
+        query.includeUnpublished === undefined ? undefined : String(query.includeUnpublished),
     },
     schema: GetProductsResponse,
     tags: [PRODUCTS_TAG],
@@ -337,31 +348,22 @@ export const getProductCount = cache(async (query: ProductQuery = {}): Promise<n
   return count;
 });
 
-type WireRankingQuery = z.infer<typeof GetProductsRankingQueryParams>;
-
-/**
- * 契約が受け付ける集計期間。
- *
- * @remarks
- * 照合を型に持たせる理由は {@link PRODUCT_SORT} と同じです。
- */
-export const RANKING_PERIOD = {
-  /** 全期間。契約の既定値。 */
-  ALL: "all",
-  /** 注文日時が直近 30 日以内の購入のみ。 */
-  LAST_30_DAYS: "30d",
-} as const satisfies Readonly<Record<string, WireRankingQuery["period"]>>;
-
-/** 売上ランキングの取得条件。契約のクエリと 1 対 1 に対応する。 */
+/** 売れ筋ランキングの取得条件。 */
 export type ProductRankingQuery = {
-  period?: (typeof RANKING_PERIOD)[keyof typeof RANKING_PERIOD];
-  limit?: number;
+  /** 集計対象の区間。省略すると全期間。 */
+  readonly window?: TimeWindow;
+  /** 取得する上位の件数。 */
+  readonly limit?: number;
 };
 
 /**
- * 売上ランキングを取得する。
+ * 売れ筋ランキングを取得する。
  *
  * @remarks
+ * **数量の軸です。** 契約は数量順と金額順を別の口に分けており、こちらが返すのは販売数量の降順
+ * です。金額順が要る画面が現れたときは、この口を切り替えるのではなく口をもう 1 つ足します。
+ * どちらを見ているかが呼び出し側から読み取れなくなるためです。
+ *
  * キャッシュを指定していません。ランキングは購入が発生するたびに変わる集計値であり、
  * 無効化の引き金になるのは商品の更新ではなく購入です。商品のタグへ相乗りさせると、商品を
  * 触らない限り古い集計が残り続けます（[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
@@ -370,11 +372,18 @@ export type ProductRankingQuery = {
  * 省略時は契約の既定値（全期間・上位 10 件）が効きます。
  */
 export const getProductRanking = cache(
-  async ({ period, limit }: ProductRankingQuery = {}): Promise<readonly ProductRankingEntry[]> => {
+  async ({
+    window = WHOLE_TIME,
+    limit,
+  }: ProductRankingQuery = {}): Promise<readonly ProductRankingEntry[]> => {
     const response = await getClient().request({
-      path: "/v1/products/ranking",
-      searchParams: { period, limit: limit?.toString() },
-      schema: GetProductsRankingResponse,
+      path: "/v1/products/ranking/quantity",
+      searchParams: {
+        orderedAfter: window.after,
+        orderedBefore: window.before,
+        limit: limit?.toString(),
+      },
+      schema: GetProductsRankingQuantityResponse,
     });
 
     return response.rankings.map((entry) => ({
