@@ -6,14 +6,21 @@ import { type ZodType, z } from "zod";
 import { getApiConfig } from "@/config/api/api.server";
 import { getHttpConfig } from "@/config/http/http.server";
 import { toProductId } from "@/model/product/product";
-import type { Purchase, PurchaseHistoryPage, PurchaseOrderLine } from "@/model/purchase/purchase";
+import type {
+  Purchase,
+  PurchaseDispatchGroup,
+  PurchaseHistoryPage,
+  PurchaseOrderLine,
+} from "@/model/purchase/purchase";
 
 import {
   GetPurchasesDetailResponse,
   GetPurchasesQueryParams,
   GetPurchasesResponse,
+  GetPurchasesShippableResponse,
   PatchPurchasesCancelResponse,
   PatchPurchasesPayResponse,
+  PatchPurchasesShipResponse,
   PostPurchasesResponse,
 } from "../../gen/api/endpoints.zod";
 import { getPurchasesDetailPathPurchaseCodeMax } from "../../gen/api/limits";
@@ -268,4 +275,49 @@ export async function cancelMyPurchase(purchaseCode: string): Promise<void> {
  */
 export async function payMyPurchase(purchaseCode: string): Promise<void> {
   await transition(purchaseCode, "pay", PatchPurchasesPayResponse);
+}
+
+/**
+ * まとめて発送してよい購入の組を取る。
+ *
+ * @remarks
+ * 発送可能とは、支払いを終えてまだ発送していない状態です。**組分けは契約が行います。** 同じ
+ * 購入者宛ての購入が 1 つの組になり、組の中は注文日時の古い順、組同士はその組の最も古い購入の
+ * 順で並びます。画面が並べ直しません。
+ *
+ * **ページ送りがありません。** 読み出す件数は契約の既定に委ねます。まとめ判定はその範囲の中で
+ * 行われるため、件数を画面が決めると組の切れ目まで画面が決めることになります。範囲の外にある
+ * 同じ購入者の購入は別の便になります。
+ *
+ * 発送待ちが無いときは、失敗ではなく空の並びが返ります。
+ */
+export async function getShippablePurchases(): Promise<readonly PurchaseDispatchGroup[]> {
+  const wire = await getClient().request({
+    path: `${PURCHASES_PATH}/shippable`,
+    schema: GetPurchasesShippableResponse,
+  });
+
+  return wire.groups.map(({ userId, purchases }) => ({
+    userId,
+    purchases: purchases.map(({ code, totalAmount, orderedAt }) => ({
+      code,
+      totalAmount,
+      orderedAt: new Date(orderedAt),
+    })),
+  }));
+}
+
+/**
+ * 購入 1 件を発送済みにする。
+ *
+ * @remarks
+ * 支払い済みからのみ通ります。いまの状態では通らない要求は `conflict` として返り、二重の発送も
+ * 同じ分類になります。配送追跡（追跡番号・配送業者）は契約が扱いません。
+ *
+ * 購入者本人であっても、管理の役割が無ければ拒まれます。
+ *
+ * @param purchaseCode - 購入コード。まとめ発送の組が持っている値
+ */
+export async function shipPurchase(purchaseCode: string): Promise<void> {
+  await transition(purchaseCode, "ship", PatchPurchasesShipResponse);
 }

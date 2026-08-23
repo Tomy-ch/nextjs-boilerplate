@@ -79,3 +79,31 @@ export type PurchaseOrderLine = {
   readonly productId: ProductId;
   readonly quantity: number;
 };
+
+/**
+ * まとめ発送を待っている購入 1 件。
+ *
+ * @remarks
+ * 組に入っている時点で発送できる状態なので、状況は持ちません。発送の指示は購入コードで行います。
+ */
+export type ShippablePurchase = {
+  readonly code: string;
+  /** 請求額。最小単位の整数。 */
+  readonly totalAmount: number;
+  readonly orderedAt: Date;
+};
+
+/**
+ * まとめて発送してよい購入の組。
+ *
+ * @remarks
+ * まとめる軸は同一の購入者です。**組そのものは識別子を持ちません。** 算出結果であって保存された
+ * ものではないため、組を指す鍵は購入者になります。
+ *
+ * 購入者は ID しか届きません。契約が呼び名を載せないためで、画面はこの値で組を見分けます。
+ */
+export type PurchaseDispatchGroup = {
+  readonly userId: string;
+  /** 組に含まれる購入。注文日時の古い順。1 件以上ある。 */
+  readonly purchases: readonly ShippablePurchase[];
+};
