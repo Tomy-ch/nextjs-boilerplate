@@ -58,6 +58,9 @@ const nextConfig = async (): Promise<NextConfig> => {
     async headers() {
       return [{ source: "/:path*", headers: [{ key: "Referrer-Policy", value: REFERRER_POLICY }] }];
     },
+    // 使っているフレームワークと版を名乗らない。攻撃者が既知の脆弱性を引き当てる手間が減るだけで、
+    // 名乗ることで得られるものが無い。
+    poweredByHeader: false,
     // `APP_ENV` が明示されていない build も開発ではない側へ倒す。判定は
     // `isDevelopmentOnlyEndpointOpen()` が持ち、実行時の判定と同じ 1 つの条件を見る。
     pageExtensions: isDevelopmentOnlyEndpointOpen()

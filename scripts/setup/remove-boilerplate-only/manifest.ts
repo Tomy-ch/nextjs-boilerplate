@@ -25,6 +25,11 @@ export const BOILERPLATE_ONLY_MARKER = "boilerplate-only";
 export const SELF_DESTRUCT_PATHS: readonly string[] = [
   "scripts/setup/remove-boilerplate-only",
   ".github/workflows/strip-verify.yaml",
+  // このリポジトリの運用にだけ置く検査。呼ぶ API が無料なのは public のときだけで、private では
+  // Code Security のライセンスを要求する。既定として配ると、テンプレートから作ったリポジトリは
+  // 「金が掛かる」か「コードでは直せない赤」かのどちらかを受け取る。
+  // ファイルまるごと消すものはマーカーを持てない（消える側に印を書くことになる）ため、ここで宣言する。
+  ".github/workflows/dependency-review.yaml",
 ];
 
 /**
@@ -60,3 +65,6 @@ export const BINARY_EXTENSIONS: readonly string[] = [
   ".pdf",
   ".zip",
 ];
+
+/** action pin のロックファイル（リポジトリルート相対）。 */
+export const ACTIONS_PIN_LOCK_FILE = ".github/actions-pin.toml";

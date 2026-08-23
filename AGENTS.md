@@ -272,6 +272,11 @@ make secret-scan-history   # gitleaks over the whole history — the weekly CI p
 make trivy-fs              # Trivy dependency vulnerability scan — on demand, report only (ADR 0110)
 make trivy-fs-release      # Same, strict (keeps unfixed findings). The promotion gate CI runs
 make audit                 # Dependency audit gate — fails on a fixable high / critical (ADR 0110)
+make sast                  # Opengrep over this repo's own source — zero-finding gate (ADR 0110)
+make osv-scan              # Dependency vulnerabilities via the OSV database — report only
+make osv-scan-release      # Same, as the promotion gate. Fails on a finding
+make bearer-scan           # Where a value leaves the process, against what the value is
+make dast                  # Drive HTTP at the running app with OWASP ZAP (ADR 0110 §3.5)
 make test-cached           # Default. Same tests through Vitest's cache — the pre-commit variant
 make test-full             # Full run with coverage against the 100% threshold (ADR 0090). The gate
                            #   itself — leave it to the hook and CI rather than running it by hand

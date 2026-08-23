@@ -54,6 +54,12 @@ overrides:
   # GHSA-8v8w-v8xg-79rf (high): 自前の生成器を渡すと終わらない場合がある。
   # postcss の宣言は ^3.3.6 で 3.3.18 はその内側。postcss が 3.3.18 以上を要求したら撤去する。
   "nanoid@>=3 <3.3.18": ">=3.3.18 <4"
+  # @modelcontextprotocol/sdk（shadcn CLI が引く）の推移的依存。
+  # GHSA-8j4g-w8fx-2239 / GHSA-f23p-vx2j-j53r / GHSA-54fx-42gc-7vw4 / GHSA-79qm-7rj5-m7r9:
+  # CORS の ReDoS、memo() の SSR 出力の持ち越し、Language Middleware の DoS、Proxy Helper の
+  # ヘッダ残留。sdk の宣言は ^4.11.4 で 4.12.34 はその内側。
+  # @modelcontextprotocol/sdk が 4.12.34 以上を要求したら撤去する。
+  "hono@<4.12.34": ">=4.12.34 <5"
 
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
 verifyDepsBeforeRun: error

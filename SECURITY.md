@@ -47,10 +47,18 @@
 | 層 | 手段 | どこで走るか |
 | --- | --- | --- |
 | 秘密の混入 | gitleaks | pre-push hook と CI（PR は差分、週次で履歴全体） |
-| 依存の脆弱性 | Trivy fs / `pnpm audit` | CI。PR は報告、保護ブランチ宛 PR で止める |
-| 自分が書いたコード | CodeQL | CI（PR / 保護ブランチへの push / 週次） |
+| 依存の脆弱性 | Trivy fs / `pnpm audit` / OSV | CI。PR は報告、保護ブランチ宛 PR で止める |
+| **この PR が増やした依存** | Dependency Review | CI（PR の差分だけを見る） <!-- boilerplate-only:line --> |
+| 自分が書いたコード | Opengrep / CodeQL | CI。Opengrep は持ち出せる実体で、CodeQL が使えない環境でも層が残る |
+| 値が外へ出る地点 | Bearer | CI（所見は code scanning へ） |
+| 言語を問わない文字列の検査 | DevSkim | CI（所見は code scanning へ） |
 | ワークフロー定義 | zizmor / actionlint | pre-commit hook と CI |
+| リポジトリ自身の設定 | OpenSSF Scorecard | CI（既定ブランチへの push と週次） |
+| **配信されている応答** | OWASP ZAP（baseline） | CI。アプリを立てて撃つ、唯一の動的検査 |
 | 依存の更新 | Dependabot + cooldown | 週次 |
+
+**すべてがゲートではありません。** baseline を 0 件に保てる層と「この変更が増やしたか」を問う層だけを赤にし、
+それ以外は所見を見せるだけにしています。赤が常態になると、赤を見て手を止める習慣のほうが先に壊れるためです。
 
 **検出を許容する場合は、抑止ファイルに理由と撤回条件を書きます。** 一括無効化はしません
 （[ADR 0110](docs/adr/0110-security-operations.md) 3.4）。

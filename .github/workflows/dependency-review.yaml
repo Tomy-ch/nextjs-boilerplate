@@ -1,0 +1,75 @@
+name: Dependency Review
+
+# BOILERPLATE-ONLY. This workflow is removed by `make setup-remove-boilerplate-only`,
+# and it is declared in that script's manifest rather than marked in place, because a
+# whole file cannot carry a marker that survives its own deletion.
+#
+# It is kept to this repository's own operation because the API it calls is free only
+# on a public repository; on a private one it needs a GitHub Advanced Security (Code
+# Security) licence. Shipping it as a default would hand every repository made from
+# this template a check that either costs money or stays red for a reason no code
+# change can fix.
+
+# The one question the other dependency scanners do not ask: what did THIS pull
+# request add. Trivy, `pnpm audit` and OSV all read the tree as it stands, so a
+# vulnerability inherited from before is indistinguishable from one just introduced —
+# and the inherited ones are exactly what a report-only gate has to tolerate. This
+# reads the diff of the dependency graph instead, which makes failing on it fair:
+# whoever adds a known-vulnerable package can take it back out.
+#
+# Runs on every PR without a `paths:` filter. A lockfile is not the only way the graph
+# moves — an override, a workspace field, an action pin all do — and the action simply
+# reports no change when the graph did not move.
+#
+# GITHUB'S DEPENDENCY GRAPH MUST BE ENABLED. Without it the action does not degrade —
+# it fails with "Dependency review is not supported on this repository", and no change
+# to the code can fix that. It is a one-time repository setting, listed in
+# `docs/get-started/setup-repository.md` §3 beside Pages and the required checks.
+#
+# Left failing rather than skipped on purpose. A gate that quietly stands down when
+# the thing it reads is switched off is indistinguishable from one that found nothing,
+# and this is the only layer that sees what a pull request ADDED.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    # The action reads the comparison between a PR's base and head, which a manual run
+    # has no way to supply.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # `high` matches the dependency audit gate's threshold (ADR 0110 §3), so the two
+      # do not disagree about the same package for different reasons.
+      #
+      # `comment-summary-in-pr` posts through the action rather than the shared upsert
+      # action: the body is the action's own structured summary, not a check log.
+      - name: Review the dependency diff
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

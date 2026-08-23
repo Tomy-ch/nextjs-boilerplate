@@ -26,6 +26,16 @@ pipx.uvx = true
 # セキュリティスキャナ（make secret-scan / make trivy-fs）
 "aqua:gitleaks/gitleaks" = "8.30.1"
 "aqua:aquasecurity/trivy" = "0.72.0"
+# portable な SAST（make sast）。Semgrep 互換のルールを読むが、Semgrep 本体ではなく OSS fork の
+# opengrep を採る。CodeQL は GitHub の外へ持ち出せず、private + GHAS 無しの fork 先では層ごと
+# 消えるため、持ち出せる SAST を別に持つ（docs/adr/0110-security-operations.md）。
+"aqua:opengrep/opengrep" = "1.26.0"
+# 依存の脆弱性を OSV データベースで見る（make osv-scan）。Trivy とも pnpm audit とも参照先が
+# 違うため件数は一致しない。和集合を正とする決定は 0110 が持つ。
+"aqua:google/osv-scanner" = "2.4.0"
+# データがプロセスの外（log / 外向き要求 / 第三者クライアント）へ出る地点を、その値が何かの
+# 分類と併せて見る（make bearer-scan）。パターンと taint はこの問いに答えない。
+"aqua:Bearer/bearer" = "2.1.0"
 
 # 外部スキル（AI アシスタント向け。scripts/bootstrap-external-skills.ts が導入する）
 # uv は pipx backend の実行系（[settings] pipx.uvx）。graphifyy の解決を実行者の環境から切り離すために版を固定する。

@@ -132,6 +132,14 @@ jobs:
       - name: Lint markdown of the stripped tree
         run: pnpm md-lint
 
+      # The one class of breakage the language checks above cannot see: an entry that
+      # no workflow references any more. A workflow the strip deletes takes its pins
+      # with it, and `check` is fail-closed on an unreferenced entry — so a missed
+      # prune first turns red in the stripped repository, not here. This is where it
+      # should turn red instead.
+      - name: Verify the action pins of the stripped tree
+        run: make actions-pin-check
+
       - name: Build the stripped tree
         run: pnpm build
 

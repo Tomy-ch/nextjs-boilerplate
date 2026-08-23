@@ -60,3 +60,8 @@ next-env.d.ts
 # 取得を横取りする service worker。カタログの設定が起動のたびに依存から写すため、依存の版と
 # 必ず揃う。置き場そのものは追跡する（.storybook/public/README.md）
 /.storybook/public/mockServiceWorker.js
+
+# ZAP が組み立てる automation plan。`make dast` が走るたびに書き直される派生物で、
+# 走査の条件そのものは .github/zap/rules.tsv と make のターゲットが持つ。
+# 出力先はツール側が /zap/wrk 直下に決めており、cwd では動かせない
+/zap.yaml
