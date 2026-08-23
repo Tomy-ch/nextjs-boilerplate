@@ -86,7 +86,7 @@ export type PurchaseOrderLine = {
  * @remarks
  * 組に入っている時点で発送できる状態なので、状況は持ちません。発送の指示は購入コードで行います。
  */
-export type ShippablePurchase = {
+type ShippablePurchase = {
   readonly code: string;
   /** 請求額。最小単位の整数。 */
   readonly totalAmount: number;
