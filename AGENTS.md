@@ -126,7 +126,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0076](docs/adr/0076-payment-ui-seam.md) | Payment UI seam | mount seam & PCI boundary |
 | [0077](docs/adr/0077-bff-abuse-protection-boundary.md) | BFF abuse protection | infra / edge seam boundary |
 | [0078](docs/adr/0078-dynamic-feature-flag-seam.md) | Feature-flag seam | dynamic feature flag / staged rollout (A-B) seam |
-| [0079](docs/adr/0079-auth-frontend-seam.md) | Auth frontend seam | authentication front-side seam / no credential intake, own the sign-in look |
+| [0079](docs/adr/0079-auth-frontend-seam.md) | Auth frontend seam | authentication front-side seam / relay credentials without verifying or knowing the IdP, own the sign-in screens |
 | [0080](docs/adr/0080-error-handling.md) | Error handling | `error.tsx`/`not-found.tsx` responsibilities / backend-error normalization |
 | [0081](docs/adr/0081-observability-logging.md) | Observability / logging | OTLP / OTel vendor-neutral (Sentry not adopted) / structured logs |
 | [0082](docs/adr/0082-client-observability.md) | Client observability | Web Vitals RUM / client error collection / analytics seam |
