@@ -13,7 +13,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Deployment | 保護ブランチへの push | ビルド成果物の配信 |
 | Documentation | portal 配信 | 生成ドキュメントの再生成と配信 |
 
-実体があるのは **CI Checks** と **Documentation**。Security は [0110](../../docs/adr/0110-security-operations.md) が担当し、後続で追加する。Deployment はアプリ本体の配信先が fork 先の決定であるため（[0011](../../docs/adr/0011-no-docker.md)）本リポには置かない。
+実体があるのは **CI Checks** / **Security** / **Documentation**。Deployment はアプリ本体の配信先が fork 先の決定であるため（[0011](../../docs/adr/0011-no-docker.md)）本リポには置かない。
 
 ## ワークフロー一覧（CI Checks）
 
@@ -48,6 +48,70 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 どちらも**台数は書かない**。standard runner のコア数は public リポジトリで 4、private で 2 であり、fork 先が受け取るのは後者。台数を書けばこのリポジトリの事情がそのまま fork 先の既定になる。割合指定なら、その意思だけが渡ってコア数は実行環境が決める。
 
 大きいランナーを使う fork 側で調整したい場合の口は `VRT_ARGS` で、`make vrt` / `make a11y` の双方が受け取る（[`.makefiles/testing/vrt.mk`](../../.makefiles/testing/vrt.mk)）。
+
+## ワークフロー一覧（Security）
+
+多層防御（[0110](../../docs/adr/0110-security-operations.md)）。**全 PR + 週次スケジュール**で走る。週次があるのは、
+コードが 1 行も動いていない木に対しても CVE が公開されうるためで、変更を入口にした検査だけでは届かない。
+
+| ワークフロー | ファイル | job 名 | 内容 |
+| --- | --- | --- | --- |
+| Secret Scan | `gitleaks.yaml` | `secret-scan` | PR が足したコミットを gitleaks で走査する。週次は履歴全体。検出は fail-closed |
+| SAST | `sast.yaml` | `sast` | 自分が書いたコードを opengrep で見る。**0 件の baseline を保つ**ので検出で落ちる。許容する所見はソースの `// nosemgrep:` に理由付きで置く |
+| CodeQL Scan | `codeql.yaml` | `codeql` | 同じ問いに GitHub 側の解析で答える。high の検出でマージを止めるのは code scanning 側の設定で、この job が落ちるのは解析そのものが走らなかったときだけ |
+| Dependency Scan | `dependency-scan.yaml` | `dependency-scan` / `dependency-audit` / `dependency-gate` | 依存の脆弱性を Trivy と `pnpm audit` で。同じ対象に 3 つの異なる判定を掛ける（下記） |
+| OSV Scan | `osv-scan.yaml` | `osv-scan` / `osv-gate` | 同じ依存を OSV データベースで読む。報告と昇格ゲートの二段は Trivy と同じ形 |
+| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナが見るのは木の現状で、持ち越しと増分を区別できない。**このリポジトリの運用にだけ置く**（呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求するため） <!-- boilerplate-only:line --> |
+| Bearer Scan | `bearer.yaml` | `bearer` | 値がプロセスの外へ出る地点を、その値の分類と併せて見る。**落とさない**（下記） |
+| DevSkim Scan | `devskim.yaml` | `devskim` | 言語フロントエンドを持たない regex 検査。opengrep も CodeQL も開かないファイルを読む。**落とさない**（下記） |
+| OpenSSF Scorecard | `scorecard.yaml` | `scorecard` | リポジトリ自身の設定を測る。PR では走らない |
+| DAST | `dast.yaml` | `dast` | **ここだけが応答を読む。** アプリを立てて OWASP ZAP で HTTP を撃ち、配信面を見る。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は赤にする** |
+
+### 配信面の既知の欠落は「一覧」として持つ
+
+`dast` は初日からゲートである。**ただし恒常的に赤い必須チェックは全 PR を止め、その一覧を縮める PR 自身も止める。** 壁が壁として機能するには通れる形が要る。
+
+そこで、いま出ている所見だけを [`../zap/rules.tsv`](../zap/rules.tsv) に `IGNORE` で並べ、**一覧に無い所見は赤にする**。ZAP は `IGNORE` にした規則も件数・規則名・URL を出力に残すので、これは黙殺ではなく severity の引き下げにあたる（[0110](../../docs/adr/0110-security-operations.md) 3.4）。
+
+各行に撤回条件が書いてある。**多くは計画 P6-2（CSP / セキュリティヘッダ）が載せた時点で削除できる** —— つまり P6-2 は「この一覧を空にする作業」であり、1 行 = 1 作業単位として並行して潰せる。
+
+**測る側を先に入れているのは、後入れだと測る側の導入が実装の完了に従属するため。** 実装が終わるまで計測が入らない形にすると、何が足りないかの一覧が最後まで手に入らない。
+
+### 落とさない層がある
+
+**すべての層をゲートにしていない。** ゲートにしてよいのは baseline を 0 件に保てる層か、「この変更が増やしたか」だけを問う層に限る（[0110](../../docs/adr/0110-security-operations.md) 3.2）。それ以外を赤にすると赤が常態になり、赤を見て手を止める習慣のほうが先に壊れる。
+
+| 配線 | 該当 job | 何が赤にするか |
+| --- | --- | --- |
+<!-- boilerplate-only:replace-begin -->
+| ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dependency-review` / `dast` | job の exit code |
+<!-- boilerplate-only:replace-with -->
+<!-- = | ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dast` | job の exit code | -->
+<!-- boilerplate-only:replace-end -->
+| 報告専用 | `dependency-scan` / `osv-scan` | 何も赤にしない（スキャナが走らなかったときだけ落ちる） |
+| code scanning へ送る | `codeql` / `bearer` / `devskim` | **差分が新しく持ち込んだ alert** に対する GitHub 側のチェック |
+
+**「落とさない」のは所見に対してだけで、機構が壊れたら落ちる。** `bearer` / `devskim` / `scorecard` は報告が出力のすべてなので、走らなかった走査・書かれなかった SARIF・届かなかったアップロードは、いずれも綺麗な結果と同じ緑になってしまう。**検査しない gate は「違反なし」と見分けが付かない。**
+
+3 つ目は「落とさない」と「見せない」を分けるための配線で、job は緑を返すが差分が持ち込んだ alert は PR を赤にする。
+
+### 依存の脆弱性は、3 つの判定が同じ対象を見る
+
+| job | 手段 | 落ちる条件 |
+| --- | --- | --- |
+| `dependency-scan` | `make trivy-fs` | **検出では落ちない。** スキャナが走らなかったときだけ落ちる |
+| `dependency-audit` | `make audit` | 修正版のある `high` / `critical` が 1 件でもあれば落ちる |
+| `dependency-gate` | `make trivy-fs-release` | 保護ブランチ宛 PR でだけ起動し、検出があれば落ちる |
+
+**報告専用の job が要るのは、脆弱性が「変更の作者がその場で解消できない」うえ「変更と独立に状態が変わる」ため。**
+それでゲートを組むと `--no-verify` と同じ経路を CI 側に作る。止める場所は昇格（保護ブランチ宛 PR）の一点で、
+そこは誰かがリスクを引き受けて判断する場面である（[0110](../../docs/adr/0110-security-operations.md) 3.1）。
+
+**Trivy と `pnpm audit` の件数は一致しない。突合して差分を潰そうとしない。** 集計単位（CVE / advisory）も参照する
+DB も違うので、片方だけを正とするとそのツールが見ない領域が恒久的な死角になる。**和集合が正**で、どちらか一方でも
+閾値に達したものを blocking として扱う。
+
+`dependency-gate` が `branches:` フィルタではなく `if:` で降りるのは required check の都合による（下記「required status check」）。
 
 ## ワークフロー一覧（Components）
 
@@ -162,7 +226,10 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 | `strip-verify` | CI のみ | 同上。手元のツリーで回すと boilerplate 限定の記述が剥がれ、剥がしの道具ごと消える <!-- boilerplate-only:line --> |
 | `lockfile-drift` | CI のみ | install が追跡ファイルを書き換えたことは、手元では「自分が触った変更」と区別が付かない。第三者の目で見る CI が持つ |
 | commitlint | hook のみ | コミット件名の検査。作り直しがコミット単位でしか効かず、PR 到達後に落としても直す手段が rebase になる |
-| secret-scan | hook のみ（現時点） | push 前に止めるのが本旨。CI 側は Security グループ（[0110](../../docs/adr/0110-security-operations.md)）で追加する |
+| secret-scan | hook + CI | 同じ `make secret-scan` を呼ぶが、**走査範囲の決まり方が違う**。hook の既定は「どのリモートにも無いコミット」で、PR のブランチは既に push 済みなので CI では 0 件になる。CI は `SECRET_SCAN_LOG_OPTS` で base からの範囲を渡す。履歴全体は週次だけ（`make secret-scan-history`） |
+| 依存の脆弱性 | CI のみ | 変更の作者がその場で解消できず、変更と独立に状態が変わる。hook に載せると `--no-verify` の常用を教える（[0110](../../docs/adr/0110-security-operations.md) 3.1 / 撤回条件 W1・W2） |
+| `sast` | CI のみ | 走査に 1 分前後かかり hook の速度目標に収まらない。手元で確かめるなら `make sast` がそのまま同じ検査を回す |
+| `dast` | CI のみ | build と起動を伴うので hook には収まらない。手元で確かめるなら `pnpm start` したものへ `DAST_TARGET=http://host.docker.internal:3000 make dast` を当てる |
 
 ## 共通の骨格
 

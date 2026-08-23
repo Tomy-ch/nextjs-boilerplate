@@ -1,0 +1,151 @@
+name: OSV Scan
+
+# The dependency graph read against the OSV database. Trivy and `pnpm audit` already
+# read the same graph, and the three disagree — different aggregation units, different
+# databases. ADR 0110 §3 settles that: the UNION is the truth, so a third reader is
+# not redundancy to be removed but a blind spot being closed.
+#
+# Two jobs, the same split the Trivy pair has (ADR 0110 §3.1):
+#
+#   osv-scan  reports, never fails
+#   osv-gate  fails on a finding, only for a PR aimed at a protected branch
+#
+# Suppressions live in `osv-scanner.toml` with a reason and a removal condition, and
+# the tool prints each one it applied — a filtered finding stays visible in the log.
+#
+# Deliberately unfiltered by `paths`; the reason every workflow runs on every PR is
+# in README.md.
+
+on:
+  pull_request:
+  schedule:
+    - cron: '45 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  osv-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: aqua:google/osv-scanner
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run the OSV scan
+        id: osv
+        shell: bash
+        run: |
+          set +e
+
+          make osv-scan 2>&1 | tee /tmp/osv.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## 📋 OSV scan: report" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ⚠️ OSV scan: the scan itself failed" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment OSV result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- osv-scan-result -->'
+          title: ${{ steps.osv.outputs.title }}
+          body-file: /tmp/osv.log
+          details-summary: 'osv-scanner log'
+
+      # Findings do not fail this job; the scanner failing to run does.
+      - name: Fail if the scan could not run
+        if: always() && steps.osv.outputs.status != 'success'
+        run: exit 1
+
+  osv-gate:
+    # Expressed as a job condition rather than a `branches:` filter, so the context is
+    # still reported on every PR (ADR 0153 §5).
+    if: ${{ github.event_name != 'pull_request' || contains(fromJSON('["production", "staging", "develop"]'), github.base_ref) || startsWith(github.base_ref, 'release/') || startsWith(github.base_ref, 'hotfix/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: aqua:google/osv-scanner
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run the OSV release gate
+        id: osv
+        shell: bash
+        run: |
+          set +e
+
+          make osv-scan-release 2>&1 | tee /tmp/osv-release.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ OSV release gate: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## 🚨 OSV release gate: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment OSV release result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- osv-gate-result -->'
+          title: ${{ steps.osv.outputs.title }}
+          body-file: /tmp/osv-release.log
+          details-summary: 'osv-scanner log (release)'
+
+      - name: Fail if a vulnerability was found
+        if: always() && steps.osv.outputs.status != 'success'
+        run: exit 1

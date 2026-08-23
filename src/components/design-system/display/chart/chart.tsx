@@ -129,7 +129,7 @@ export function ChartStyle({ id, config }: { id: string; config: ChartConfig }) 
   }).join("\n");
 
   // biome-ignore lint/security/noDangerouslySetInnerHtml: 系列色を CSS 変数として配る唯一の手段で、値は開発者が書く定数に限る。
-  return <style dangerouslySetInnerHTML={{ __html: css }} data-slot="chart-style" />;
+  return <style dangerouslySetInnerHTML={{ __html: css }} data-slot="chart-style" />; // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml
 }
 
 /**

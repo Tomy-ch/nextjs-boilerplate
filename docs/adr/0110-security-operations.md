@@ -1,6 +1,6 @@
 # セキュリティ運用
 
-**依存更新(Dependabot + cooldown)/ 秘密スキャン(gitleaks)/ 脆弱性スキャン(Trivy fs 二段・CodeQL)/ 依存監査ゲート / SECURITY.md / 多層防御** を定める。go-boilerplate のセキュリティ運用(ADR 0077 多層防御)を翻案し、no-Docker([0011](0011-no-docker.md))で対象外になる部分を exclusion として記録する(go ADR 0078 の SHA ピンは CI ハードニング側の主題であり、本リポでは [0153](0153-ci-configuration.md) が持つ)。
+**依存更新(Dependabot + cooldown)/ 秘密スキャン(gitleaks)/ 脆弱性スキャン(Trivy fs 二段・OSV 二段・CodeQL・Opengrep)/ 依存監査ゲート / 依存差分ゲート / データフロー検査 / サプライチェーン姿勢の計測 / SECURITY.md / 多層防御** を定める。go-boilerplate のセキュリティ運用(ADR 0077 多層防御)を翻案し、no-Docker([0011](0011-no-docker.md))で対象外になる部分を exclusion として記録する(go ADR 0078 の SHA ピンは CI ハードニング側の主題であり、本リポでは [0153](0153-ci-configuration.md) が持つ)。
 
 ## Status
 
@@ -52,6 +52,12 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 ### 3. 脆弱性スキャン(多層防御・go ADR 0077 翻案)
 
 - **CodeQL SAST**: `languages: javascript-typescript`(go の `go` を差し替え)。trigger = PR + 保護ブランチ push + 週次 cron。`security-events: write` で SARIF アップロード。high-severity はマージブロック(ブロックの実体は branch protection / code scanning の required 設定側。go 同様、workflow 内の hard-fail には依存しない)
+- **portable SAST(Opengrep)**: CodeQL は **GitHub の外へ持ち出せない**。private かつ GHAS 無しの fork 先では SAST の層がまるごと消えるため、**同じ問いに答える持ち出せる実体**を別に持つ。実体は `mise.toml` にピンした 1 バイナリで、ローカルでも CI でも同じ `make sast` が回す。**Semgrep 本体ではなく OSS fork の Opengrep を採る** —— ルール記法は互換で `// nosemgrep:` の抑止もそのまま効くうえ、boilerplate が fork 先へライセンス判断を渡さずに済む。**0 件の baseline を保つことがこのゲートの前提**であり、0 件だからこそ新しい所見が読み飛ばす対象ではなく信号になる。許容する所見はソースへ `// nosemgrep: <rule-id>` を理由付きで置き、判断をコードの側に残す。**検査条件(対象・ルール・除外)は 1 箇所に持つ** —— ゲートと code scanning への取り込みが違う走査を指すと、落ちた内容と Security タブの一覧が食い違う
+- **OSV 二段**: Trivy / `pnpm audit` と**参照するデータベースが違う**。件数は一致せず、下記「和集合を正とする」の実例そのものになる。二段の形は Trivy と同じで、**報告(全 PR・落とさない)と昇格ゲート(保護ブランチ宛 PR・検出で落ちる)**に割る
+- **依存差分ゲート(Dependency Review)**: 上の 3 者はいずれも**木の現状**を読むため、以前から抱えている脆弱性とこの変更が持ち込んだものを区別できない。前者は報告専用のゲートが構造的に許容せざるを得ないものであり、**「この PR が増やしたか」だけを問う層**を別に置く。増やした当人は取り消せるので、ここは落として良い。閾値は依存監査ゲートと揃えて `high`。**この層はこのリポジトリの運用にだけ置く** —— 呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。既定として配ると、テンプレートから作ったリポジトリは「金が掛かる」か「コードでは直せない赤」かのどちらかを受け取る <!-- boilerplate-only:line -->
+- **データフロー検査(Bearer)**: 値が**プロセスの外(log 行 / 外向き要求 / 第三者クライアント)へ出る地点**を、その値が何かの分類と併せて見る。パターンと taint 経路はこの問いに答えない —— logger へ届いた文字列がメールアドレスであることを、どちらも知らない。**落とさない**(下記 3.2)
+- **言語非依存の regex 検査(DevSkim)**: 言語フロントエンドを持たないため**全ファイルを 1 つのルールセットで読む**。Opengrep も CodeQL も自分が構文解析できる言語しか開かないので、**どちらも開かないファイル**(workflow でない YAML / JSON / 平文 / `docs/` の Markdown)にある弱い暗号名やハードコード資格情報は、他のどの層にも掛からない。**落とさない**(下記 3.2)
+- **サプライチェーン姿勢の計測(OpenSSF Scorecard)**: コードでも依存でもなく、**リポジトリ自身の設定**(ブランチ保護 / 依存のピン / token の権限 / セキュリティポリシーの有無)を測る。boilerplate は**姿勢そのものが商品**であり、fork 先は自分のコードを 1 行も書く前にこれを受け取る。変更ではなくリポジトリの性質なので PR では走らせず、required check にも登録しない。**公開データセットへの送信(`publish_results`)は行わない** —— リポジトリの名前に関する判断であり、技術的な判断ではないため fork 先へ残す
 - **Actions 定義の静的解析(zizmor)**: CI の実行内容そのものを対象にする層。アプリのコードと依存を見る上の 3 者は、`.github/**` に書かれた `run:` や権限の与え方を見ない。**hook と CI の双方**で`--offline` で走らせ、**high の所見で fail-closed**。`--min-severity` は表示も絞るので、全所見を出す実行とゲートの実行を分け、引き下げた所見が出力から消えないようにする。抑止は`.github/zizmor.yml` に理由付きで宣言し、下記 4 の抑止ポリシーに従う(検査の責務と落とし方は [0153](0153-ci-configuration.md) §1 が正)
 - **Trivy fs 二段運用**:
   - **dev ゲート**(全 PR・advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`**(修正不能は無視)/ hard-fail しない + PR コメント
@@ -71,6 +77,20 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 
 秘密スキャンが逆にすべての条件を満たす(その場で解消でき、変更と共に決まり、判断の余地が無い)ことが、両者の扱いが違う理由である。
 
+### 3.2 落とさない層を置く判断
+
+**すべての層をゲートにしない。** ゲートにしてよいのは、**baseline を 0 件に保てるか、あるいは「この変更が増やしたか」だけを問う**層に限る。それ以外を赤にすると赤が常態になり、赤を見て手を止める習慣のほうが先に壊れる。
+
+したがって層は 3 つの配線に分かれる。
+
+| 配線 | 該当 | 何が赤にするか |
+| --- | --- | --- |
+| **ゲート** | gitleaks / Opengrep / 依存監査 / Trivy・OSV の昇格側 / Dependency Review | job 自身の exit code |
+| **報告専用** | Trivy・OSV の報告側 | 何も赤にしない(スキャナが走らなかったときだけ落ちる) |
+| **code scanning へ送る** | CodeQL / Bearer / DevSkim | **その変更が新しく持ち込んだ所見**に対する GitHub 側の差分チェック |
+
+3 つ目は「落とさない」と「見せない」を分けるための配線である。job は緑を返すが、**差分が持ち込んだ alert は PR を赤にする**。baseline を 0 件にできない層 —— 誤検知の傾向が強く、0 へ寄せるには規則単位の無効化が要る層 —— はここに置く。規則単位の無効化は下記 3.4 が禁じている。
+
 ### 3.4 抑止(ignore)ポリシー
 
 スキャナの検出を許容する手段は、専用の抑止ファイルに限定する。全ファイルの冒頭に同じポリシーを明記し、様式を揃える。
@@ -80,6 +100,7 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 | `.gitleaks.toml` | 検知ルールセットとパス単位の allowlist |
 | `.gitleaksignore` | 検出 1 件(フィンガープリント `<path>:<rule-id>:<line>`) |
 | `.trivyignore.yaml` | 脆弱性 ID 1 件(`paths` でパスを限定) |
+| `osv-scanner.toml` | 脆弱性 ID 1 件(`reason` が必須)。**フィルタした所見をツールが理由付きで出力へ残す**ため、抑止と黙殺が見分けられる |
 | `.github/zizmor.yml` | ファイル 1 件(`ignore`)。**ファイルで絞れない audit は severity の remap(監査 ID 単位)** —— composite action は全て `action.yaml` で、`ignore` はベース名一致のため 1 つ挙げると全ての composite action が黙る(zizmor 1.29.0 の制約。ファイル単位の remap が入ったら remap は撤回する) |
 
 - **ルールやスキャナの一括無効化は禁止**。抑止はファイル単位 or フィンガープリント単位に限定する。範囲を絞らない抑止は、同じ検知を踏む**新規のファイル・依存まで素通りさせる**
@@ -94,7 +115,10 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 - **配信ヘッダが [0111](0111-csp-security-headers.md) の宣言と一致することを CI で検査する**。ビルド成果物 / 起動したアプリのレスポンスヘッダを取得し、CSP と主要セキュリティヘッダの有無・値を宣言と突合して fail-closed にする
   - > Rationale: [0111](0111-csp-security-headers.md)
 - 対象は CSP と、0111 が定める同伴ヘッダ(`Strict-Transport-Security` / `X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` 等)。**検査するのは「宣言と実配信の一致」**であり、ヘッダの内容そのものは 0111 が正
-- 実装は [0153](0153-ci-configuration.md) の Security グループに 1 job として置く([v1 実装計画](../plan/v1-implementation-plan.md) P6-2)
+- 実装は [0153](0153-ci-configuration.md) の Security グループに 1 job として置く
+- **手段は OWASP ZAP の baseline 走査**。ランナーの中にしか存在しないアプリを撃てるのは、ランナーの中から走る DAST だけである。api-scan ではなく baseline を採るのは、本リポが表示層で API を別リポジトリが持ち、OpenAPI 駆動の走査に撃つ先が実質無いことによる
+- **公式の `zaproxy/action-*` は使わない**。`docker_name` が受け取るのは tag であって digest であり、本リポは container image を digest で固定して `make images-pin-check` で突合する([0011](0011-no-docker.md))が、action の input はその走査対象に入らない。**固定したつもりで誰も検査していないピンを増やさない**
+- **ゲートは実装より先に置き、既知の欠落は一覧で持つ**。恒常的に赤い必須チェックは全 PR を止め、その一覧を縮める PR 自身も止めるため、いま出ている所見だけを `.github/zap/rules.tsv` へ理由と撤回条件つきで並べ、**一覧に無い所見を赤にする**。ZAP は `IGNORE` にした規則も件数・規則名・URL を出力へ残すので、下記 3.4 の「引き下げた所見が出力に残っていること」を満たす。**測る側を後から入れると、測る側の導入が実装の完了に従属し、何が足りないかの一覧が最後まで手に入らない**
 
 ### 4. SECURITY.md
 
@@ -121,6 +145,9 @@ go-boilerplate にはあるが、本リポは [0011](0011-no-docker.md)(no-Docke
 - ❌ gitleaks / CodeQL の検出を fail-closed にしないこと(秘密・SAST high は必ずブロック)
 - ❌ 依存監査を「全 severity 一律 hard-fail」にすること(修正可能な `high` / `critical` のみ blocking = ノイズ抑制。到達可能性フィルタは JS/TS では実装不能)
 - ❌ image-scan / cosign / SBOM / provenance を no-Docker の本リポに持ち込むこと([0011](0011-no-docker.md))
+- ❌ SAST を CodeQL だけに寄せること(持ち出せない層を唯一の SAST にしない)
+- ❌ Semgrep 本体を採ること(ライセンス判断を fork 先へ渡さない。Opengrep へ一本化)
+- ❌ baseline が 0 件でない層をゲートにすること(3.2 の配線から選ぶ)
 - ❌ スキャナのルールやチェックを一括で無効化すること(抑止は 3.4 の様式に限る)
 - ❌ 理由の書かれていない抑止エントリを置くこと
 

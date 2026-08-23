@@ -38,3 +38,23 @@ services:
     # 明示したときだけ公開され、比較そのものの起動では開かない。
     ports:
       - "9323:9323"
+
+  # 走っているアプリへ HTTP を撃つ検査（`make dast`）。ここだけが**ファイルではなく応答**を読む。
+  #
+  # 公式の `zaproxy/action-*` を使わないのは、あの action が受け取る `docker_name` が tag であって
+  # digest ではないため。このリポジトリは container image を digest で固定し `make images-pin-check`
+  # で突合する（[0011](docs/adr/0011-no-docker.md)）が、action の input はその走査対象に入らない。
+  # 固定したつもりで誰も検査していないピンが 1 つ増えるより、上の browser_runner と同じ形に揃える。
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+    platform: linux/amd64
+    # browser_runner と違い `user:` を渡さない。ZAP は自分の add-on とセッションを
+    # イメージ内の固定パスへ書くので、呼び出し側の uid で走らせると起動に失敗する
+    # （実測: exit 3）。レポートは gitignore 済みの `tmp/dast` にだけ出る。
+    working_dir: /zap/wrk
+    volumes:
+      - .:/zap/wrk
+    # Docker Desktop はこの名前を自分で解決するが、Linux では明示しないと引けない。
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: []
