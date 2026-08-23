@@ -1,0 +1,122 @@
+name: SAST
+
+# Opengrep over this repository's own source. The dependency scanners ask "is a
+# library we pull in known-vulnerable"; this asks "does the code we wrote contain a
+# vulnerable pattern" (ADR 0110 §3).
+#
+# It overlaps CodeQL on purpose. CodeQL cannot leave GitHub, so a fork that is
+# private and without GHAS loses that layer entirely. This one is a pinned binary in
+# mise.toml and runs anywhere, which is what makes it worth carrying twice.
+#
+# Opengrep rather than Semgrep itself: the rule syntax is the same and `// nosemgrep:`
+# suppressions still apply, but the fork is OSS, so the boilerplate does not hand a
+# licence decision to whoever forks it.
+#
+# The scan holds a ZERO-FINDING BASELINE, which is the point — a new finding is signal
+# rather than something to scroll past. Accepted exceptions are pinned in the source
+# with `// nosemgrep: <rule-id>` beside the reason, so the judgement stays at the code.
+#
+# What is scanned, with which rules, and what is excluded all live in
+# `.makefiles/security/opengrep.mk`. The gate and the SARIF upload read the same
+# variables there, because a gate and an alert list describing different scans is
+# worse than either one alone.
+#
+# Deliberately unfiltered by `paths`; the reason every workflow runs on every PR is
+# in README.md.
+
+on:
+  pull_request:
+  schedule:
+    # New rules can turn existing code into a finding, so a scheduled run earns its
+    # place even when nothing changed.
+    - cron: '30 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: aqua:opengrep/opengrep
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run the SAST gate
+        id: sast
+        shell: bash
+        run: |
+          set +e
+
+          make sast 2>&1 | tee /tmp/sast.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ SAST: PASS (opengrep)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ SAST: FAIL (opengrep)" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # A second pass for code scanning. It reads the same variables as the gate, so
+      # the two cannot describe different scans.
+      #
+      # `continue-on-error` here, unlike in `bearer.yaml`, because this job's output is
+      # the GATE — the verdict is already decided and reported by the step above. Code
+      # scanning is where the detail goes, not where the answer lives, so losing it
+      # costs navigability rather than the check itself.
+      - name: Write the SARIF
+        if: always() && steps.sast.outputs.status != ''
+        continue-on-error: true
+        env:
+          SAST_SARIF_FILE: opengrep.sarif
+        run: make sast-sarif
+
+      - name: Upload the SARIF to code scanning
+        if: always() && hashFiles('opengrep.sarif') != ''
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          sarif_file: opengrep.sarif
+          category: opengrep
+
+      - name: Comment SAST result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- sast-result -->'
+          title: ${{ steps.sast.outputs.title }}
+          body-file: /tmp/sast.log
+          details-summary: 'opengrep log'
+
+      - name: Fail if a finding was reported
+        if: always() && steps.sast.outputs.status != 'success'
+        run: exit 1
