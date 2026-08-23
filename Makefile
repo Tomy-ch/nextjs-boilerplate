@@ -34,6 +34,7 @@ include .makefiles/testing/review.mk
 # セキュリティ関連
 include .makefiles/security/gitleaks.mk
 include .makefiles/security/trivy.mk
+include .makefiles/security/audit.mk
 
 # 一括実行系ファイル
 # GitHub関連
