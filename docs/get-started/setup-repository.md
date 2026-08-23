@@ -40,7 +40,9 @@ make setup-repo
 
 1. **Actions を有効にする** — 作成直後は無効になっていることがある
 2. **GitHub Pages のソースを GitHub Actions にする** — ドキュメントサイトの配信先（[0141](../adr/0141-portal-operations.md)）
-3. **必須チェックを確認する** — `make setup-repo` が適用したルールセットの `required_status_checks` が、
+3. **Dependency graph を有効にする** — Settings → Security → Dependency graph。`dependency-review` job が
+   これを読む。**無効のままだと job は「このリポジトリでは使えない」で落ちる**（設定を入れるまでコード側では直せない）
+4. **必須チェックを確認する** — `make setup-repo` が適用したルールセットの `required_status_checks` が、
    1 度 CI を回した後に実際の context 名と一致しているか見る（[`.github/workflows/README.md`](../../.github/workflows/README.md)）
 
 ## 4. 自分のリポジトリの姿にする
