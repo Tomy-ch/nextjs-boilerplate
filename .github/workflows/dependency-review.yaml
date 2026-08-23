@@ -1,5 +1,15 @@
 name: Dependency Review
 
+# BOILERPLATE-ONLY. This workflow is removed by `make setup-remove-boilerplate-only`,
+# and it is declared in that script's manifest rather than marked in place, because a
+# whole file cannot carry a marker that survives its own deletion.
+#
+# It is kept to this repository's own operation because the API it calls is free only
+# on a public repository; on a private one it needs a GitHub Advanced Security (Code
+# Security) licence. Shipping it as a default would hand every repository made from
+# this template a check that either costs money or stays red for a reason no code
+# change can fix.
+
 # The one question the other dependency scanners do not ask: what did THIS pull
 # request add. Trivy, `pnpm audit` and OSV all read the tree as it stands, so a
 # vulnerability inherited from before is indistinguishable from one just introduced —
