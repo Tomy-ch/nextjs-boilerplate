@@ -95,9 +95,14 @@ export type WizardFormProps = {
  * 持つのは**今どの段階に居るかと、その行き来だけ**である。各段階の field、検証規則、送信、途中
  * 保存はいずれも呼び出し元が持つ。進めてよいかは `blocked` として渡す。
  *
- * **すべての段階を DOM へ残し、現在以外を `hidden` で隠す。** 段階ごとに unmount すると、
- * `<form action>` で送信したときに他の段階の入力値が送られない。`hidden` なら値は form に残った
+ * **到達した段階は DOM へ残し、現在以外を `hidden` で隠す。** 一度組み立てた段を unmount すると、
+ * `<form action>` で送信したときにその段の入力値が送られない。`hidden` なら値は form に残った
  * まま、支援技術と layout からは外れる。
+ *
+ * **まだ到達していない段は組み立てない。** `canGoTo` が到達済みの段へしか移らせないので、最後の
+ * 段へ着くまでに全段を必ず通り、送信の時点では全段の入力が form に載っている。開いた時点で
+ * 全段を組み立てると、その画面で最も重い段の hydration を、そこへ行かない人にも払わせる
+ * （[0101](../../../../docs/adr/0101-performance-budget.md) §4）。
  *
  * 最後の段階で置く操作と「次へ」には別々の `key` を与える。同じ位置の `button` として reconcile
  * されると React が DOM 要素を使い回し、押した瞬間に `type` が `button` から `submit` へ書き換わる。
@@ -237,6 +242,7 @@ export function WizardForm({
           active={index === currentIndex}
           id={`${panelId}-${step.id}`}
           key={step.id}
+          reached={index <= furthestIndex}
           title={step.title}
         >
           {step.content}
@@ -297,11 +303,13 @@ function StepPanel({
   active,
   children,
   id,
+  reached,
   title,
 }: {
   active: boolean;
   children: ReactNode;
   id: string;
+  reached: boolean;
   title: string;
 }) {
   return (
@@ -313,7 +321,7 @@ function StepPanel({
       tabIndex={-1}
     >
       <legend className="mb-3 font-emphasis text-base">{title}</legend>
-      {children}
+      {reached ? children : null}
     </fieldset>
   );
 }
