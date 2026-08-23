@@ -76,6 +76,12 @@ function controlOf() {
 }
 
 beforeEach(() => {
+  // **この入力の実体（input-otp）は timer を仕込み、unmount でも取り消さない。** 素の時計のままだと
+  // 発火がこの file の jsdom を畳んだ後にずれ込むことがあり、そのとき `window` を触って落ちる。
+  // 全ケースが通っていても実行そのものが「未処理の例外あり」で失格になる。混んだ CI でだけ再現し、
+  // 手元では出ない。偽の時計にすれば、残っている発火を畳む前にまとめて捨てられる。
+  // 実時間で進める指定にしてあるのは、`userEvent` の待ちをそのまま動かすため。
+  vi.useFakeTimers({ shouldAdvanceTime: true });
   globalThis.ResizeObserver = ResizeObserverStub;
   // jsdom は座標から要素を引く API を持たない。この入力の実体（input-otp）は focus のあと
   // 表示位置を測りに来るため、実際の focus を通す操作で必ずここへ到達する。
@@ -83,6 +89,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
   globalThis.ResizeObserver = originalResizeObserver;
 });
 
