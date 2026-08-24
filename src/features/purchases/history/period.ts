@@ -8,7 +8,7 @@ import {
 
 import { PURCHASE_HISTORY_PATH } from "../facade/paths/paths";
 
-/** 期間の条件を載せる URL のキー。契約のクエリ名と揃える。読む側（`read-period.ts`）と共有する。 */
+/** 期間の条件を載せる URL のキー。契約はこの語彙を受け取らないので、画面が決める。読む側（`read-period.ts`）と共有する。 */
 export const PERIOD_KEY: Readonly<{
   PERIOD: "period";
   FROM: "from";
@@ -44,8 +44,9 @@ export const MAX_RECENT_DAYS: number = Math.max(...RECENT_DAYS_OPTIONS);
  * （[0029](../../../../docs/adr/0029-type-design-discipline.md)）。区分と値を別々の項目で持つと、
  * 「暦月なのに日数が入っている」姿や「期間なのに終了日が無い」姿まで型として通ります。
  *
- * 契約が受け取るのも同じ形です（`period` と、その区分だけが使う値）。区分ごとの必須が欠けた要求は
- * 400 になるため、欠けた組み合わせを表せないことがそのまま要求の正しさになります。
+ * 区間へ解く側（{@link toPurchaseWindow}）も URL へ組む側（{@link toPeriodSearchParams}）もこの形を
+ * 受け取ります。欠けた組み合わせを表せないことが、どちらの側でも解けない条件を作らせないことに
+ * なります。
  */
 export type PeriodSelection =
   /** 全期間。既定であり、URL には載せない。 */

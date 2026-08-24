@@ -32,14 +32,6 @@ type CalendarDate = {
 };
 
 /**
- * 瞬時を、店のタイムゾーンで見たときの年月日へ写す。
- *
- * @remarks
- * ランタイムのタイムゾーンを使いません。サーバは配信先の既定（多くは UTC）で動き、ブラウザは
- * 閲覧者の現在地で動くため、「今日」がどの日かが実行場所ごとに変わります
- * （{@link DEFAULT_TIME_ZONE}）。
- */
-/**
  * 瞬時を、店のタイムゾーンで見たときの暦日（`YYYY-MM-DD`）にする。
  *
  * @remarks
@@ -75,6 +67,14 @@ export function calendarMonth(now: Date): string {
 /** 暦月の表記幅。`YYYY-MM`。 */
 const MONTH_LENGTH = 7;
 
+/**
+ * 瞬時を、店のタイムゾーンで見たときの年月日へ写す。
+ *
+ * @remarks
+ * ランタイムのタイムゾーンを使いません。サーバは配信先の既定（多くは UTC）で動き、ブラウザは
+ * 閲覧者の現在地で動くため、「今日」がどの日かが実行場所ごとに変わります
+ * （{@link DEFAULT_TIME_ZONE}）。
+ */
 function toCalendarDate(instant: Date): CalendarDate {
   // `en-CA` は `YYYY-MM-DD` で出る。部位を 1 つずつ拾うより、組み上がった形を読むほうが短い。
   const date = new Intl.DateTimeFormat("en-CA", {

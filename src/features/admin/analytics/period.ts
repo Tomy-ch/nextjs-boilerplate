@@ -12,9 +12,8 @@ import { ADMIN_ANALYTICS_PATH } from "../paths";
  * 集計対象期間の区分。
  *
  * @remarks
- * 契約はこの語彙を受け取りません。受け取るのは瞬時の半開区間だけで、区分を暦の上で解くのは
- * 画面の側です（{@link toPeriodRequest}）。**この画面だけが使う語彙**なので、この feature の中に
- * 置いています。
+ * 契約はこの語彙を受け取りません（区間へ解くのは {@link toPeriodRequest}）。**この画面だけが使う
+ * 語彙**なので、この feature の中に置いています。
  */
 export const DASHBOARD_PERIOD: Readonly<{ TODAY: "today"; MONTH: "month"; RANGE: "range" }> = {
   /** 今日。何も選ばれていないときの既定。 */
@@ -32,8 +31,8 @@ export type DashboardPeriod = (typeof DASHBOARD_PERIOD)[keyof typeof DASHBOARD_P
  * URL が表している期間の選択。
  *
  * @remarks
- * **取得条件ではありません。** 契約が受け取るのは瞬時の半開区間だけで、暦の区分を解くのは画面の
- * 側です（`model/time-window.ts`）。この型が表すのは、利用者が選んだ状態そのものです。
+ * **取得条件ではありません。** この型が表すのは、利用者が選んだ状態そのものです。区間へ解くのは
+ * {@link toPeriodRequest} です。
  *
  * 日付は暦日の文字列のまま持ち回り、`Date` へ直しません。ブラウザの時差で暦日がずれると、指定
  * したつもりの日と集計された日が食い違います。
@@ -46,12 +45,7 @@ export type DashboardPeriodSelection = {
   readonly to?: string;
 };
 
-/**
- * 期間を載せる URL のキー。契約のクエリ名と揃える。
- *
- * @remarks
- * 読み替えると、URL に書いてある名前と backend へ送る名前が別々に動きます。
- */
+/** 期間を載せる URL のキー。契約はこの語彙を受け取らないので、画面が決める。 */
 export const PERIOD_KEY: Readonly<{ PERIOD: "period"; FROM: "from"; TO: "to" }> = {
   PERIOD: "period",
   FROM: "from",
@@ -63,7 +57,7 @@ export const PERIOD_KEY: Readonly<{ PERIOD: "period"; FROM: "from"; TO: "to" }> 
  *
  * @remarks
  * キーを持っているのはこの層なので、呼び名も同じ場所に置きます。表示する側が写しを持つと、
- * 契約にキーが増えたときに生の名前が出る画面と出ない画面に割れます。
+ * キーが増えたときに生の名前が出る画面と出ない画面に割れます。
  */
 export const PERIOD_KEY_LABEL: Readonly<Record<string, string>> = {
   [PERIOD_KEY.PERIOD]: "期間の区分",
