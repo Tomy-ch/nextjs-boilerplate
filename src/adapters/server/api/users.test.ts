@@ -81,12 +81,12 @@ const wireSummary = {
   itemsTotal: "2800.00",
   statusBreakdown: [
     {
-      status: { id: "0195f0c2-0000-7000-8000-0000000000b1", name: "発送済み" },
+      status: { id: "0195f0c2-0000-7000-8000-0000000000b1", code: 8, name: "発送済み" },
       count: 2,
       totalAmount: 200_000,
     },
     {
-      status: { id: "0195f0c2-0000-7000-8000-0000000000b2", name: "配達済み" },
+      status: { id: "0195f0c2-0000-7000-8000-0000000000b2", code: 9, name: "配達済み" },
       count: 1,
       totalAmount: 100_000,
     },

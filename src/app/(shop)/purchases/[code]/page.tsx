@@ -26,14 +26,18 @@ export const metadata: Metadata = {
  * 見出しを置きません。この画面の見出しはパンくずの現在地（注文番号）が担っており、
  * `PageHeader` を重ねると同じ識別子が 2 度並びます。
  */
-export default async function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function PurchaseDetailPage({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}) {
+  const { code } = await params;
 
-  await requireRegisteredUser(purchaseDetailPath(id));
+  await requireRegisteredUser(purchaseDetailPath(code));
 
   return (
     <ContentContainer className="py-8">
-      <PurchaseDetailPageContent purchaseId={id} />
+      <PurchaseDetailPageContent purchaseCode={code} />
     </ContentContainer>
   );
 }

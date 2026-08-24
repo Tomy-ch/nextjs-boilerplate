@@ -10,6 +10,7 @@ import {
   ADMIN_ANALYTICS_PATH,
   ADMIN_DASHBOARD_PATH,
   ADMIN_PRODUCT_LIST_PATH,
+  ADMIN_SHIPMENT_QUEUE_PATH,
   ADMIN_USER_LIST_PATH,
 } from "@/features/admin/paths";
 import { UnsavedChangesGuard } from "@/features/admin/ui/unsaved-changes-guard/unsaved-changes-guard";
@@ -33,6 +34,7 @@ const NAV_GROUPS: readonly AdminShellNavGroup[] = [
     ],
   },
   { label: "商品", items: [{ href: ADMIN_PRODUCT_LIST_PATH, label: "商品一覧管理" }] },
+  { label: "注文", items: [{ href: ADMIN_SHIPMENT_QUEUE_PATH, label: "発送" }] },
   { label: "利用者", items: [{ href: ADMIN_USER_LIST_PATH, label: "利用者一覧" }] },
 ];
 

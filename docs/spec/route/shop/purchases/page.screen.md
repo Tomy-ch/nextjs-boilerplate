@@ -137,5 +137,5 @@ scroll と支援技術の読み進めは表示位置を動かすため、scroll 
 ## 関連
 
 - 実装 `src/features/purchases/` — [README](../../../../../src/features/purchases/README.md)
-- 進む先 [`/purchases/[id]`](<[id]/page.screen.md>)（購入詳細）
+- 進む先 [`/purchases/[code]`](<[code]/page.screen.md>)（購入詳細）
 - 入る経路: global nav / マイページの購入サマリ / 購入完了

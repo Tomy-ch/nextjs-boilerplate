@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
+
 import { PURCHASE_DETAIL } from "../purchase.fixture";
 import { PurchaseReceiptCard } from "./receipt";
 
@@ -36,5 +38,11 @@ export const Default: Story = {
 
 /** キャンセル済み。状況の名称はバックエンドが解決した値をそのまま出す。 */
 export const Canceled: Story = {
-  args: { purchase: { ...PURCHASE_DETAIL, statusName: "キャンセル" } },
+  args: {
+    purchase: {
+      ...PURCHASE_DETAIL,
+      statusCode: PURCHASE_STATUS.CANCELED,
+      statusName: "キャンセル",
+    },
+  },
 };

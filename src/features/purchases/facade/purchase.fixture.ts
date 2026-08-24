@@ -1,6 +1,7 @@
 import type { ReferenceAmount } from "@/model/money";
 import { toProductId } from "@/model/product/product";
 import type { Purchase, PurchaseLine } from "@/model/purchase/purchase";
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 
 /** 合計（{@link PURCHASE_DETAIL}）の参考換算額。 */
 export const TOTAL_REFERENCE: ReferenceAmount = {
@@ -28,8 +29,8 @@ const WATCH_LINE = {
 
 /** 明細の付いた購入 1 件。 */
 export const PURCHASE_DETAIL: Purchase = {
-  id: "0195f0c2-0000-7000-9000-000000000001",
   code: "0195f0c2-0000-7000-9000-000000000001",
+  statusCode: PURCHASE_STATUS.UNPROCESSED,
   statusName: "未処理",
   subtotalAmount: 18_897,
   taxAmount: 1_890,
@@ -47,4 +48,18 @@ export const SINGLE_LINE_PURCHASE: Purchase = {
   shippingFee: 500,
   totalAmount: 7_096,
   lines: [EARPHONE_LINE],
+};
+
+/** 支払いを終えた購入。進む操作が済み、取り消しだけが残る状態。 */
+export const PAID_PURCHASE: Purchase = {
+  ...PURCHASE_DETAIL,
+  statusCode: PURCHASE_STATUS.PAID,
+  statusName: "支払い済み",
+};
+
+/** 届き終えた購入。この購入に対してできることが 1 つも無い状態。 */
+export const DELIVERED_PURCHASE: Purchase = {
+  ...PURCHASE_DETAIL,
+  statusCode: PURCHASE_STATUS.DELIVERED,
+  statusName: "配達済み",
 };

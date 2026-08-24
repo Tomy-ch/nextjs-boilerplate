@@ -4,7 +4,7 @@
  *
  * 生成した zod スキーマから、検証を伴わない定数だけを写したもの。client はこちらを引く。
  *
- * OpenAPI spec version: 2.2.0+8f733fb
+ * OpenAPI spec version: 2.2.0+151bc17
  */
 
 export const getUsersQueryPageDefault = 1;
@@ -495,45 +495,25 @@ export const getPurchasesShippableQueryLimitDefault = 20;
 
 export const getPurchasesShippableQueryLimitMax = 100;
 
-export const getPurchasesDetailPathPurchaseIdMax = 36;
-
-export const getPurchasesDetailPathPurchaseIdRegExp = new RegExp(
-  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-);
+export const getPurchasesDetailPathPurchaseCodeMax = 50;
 
 export const getPurchasesDetailResponseDetailsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
-export const patchPurchasesCancelPathPurchaseIdMax = 36;
-
-export const patchPurchasesCancelPathPurchaseIdRegExp = new RegExp(
-  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-);
+export const patchPurchasesCancelPathPurchaseCodeMax = 50;
 
 export const patchPurchasesCancelResponseDetailsItemUnitPriceRegExp = new RegExp(
   "^\\d+(\\.\\d+)?$",
 );
 
-export const patchPurchasesPayPathPurchaseIdMax = 36;
-
-export const patchPurchasesPayPathPurchaseIdRegExp = new RegExp(
-  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-);
+export const patchPurchasesPayPathPurchaseCodeMax = 50;
 
 export const patchPurchasesPayResponseDetailsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
-export const patchPurchasesShipPathPurchaseIdMax = 36;
-
-export const patchPurchasesShipPathPurchaseIdRegExp = new RegExp(
-  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-);
+export const patchPurchasesShipPathPurchaseCodeMax = 50;
 
 export const patchPurchasesShipResponseDetailsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
-export const patchPurchasesDeliverPathPurchaseIdMax = 36;
-
-export const patchPurchasesDeliverPathPurchaseIdRegExp = new RegExp(
-  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-);
+export const patchPurchasesDeliverPathPurchaseCodeMax = 50;
 
 export const patchPurchasesDeliverResponseDetailsItemUnitPriceRegExp = new RegExp(
   "^\\d+(\\.\\d+)?$",

@@ -4,6 +4,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
+
 import { PURCHASE_DETAIL } from "../purchase.fixture";
 import { PurchaseReceiptCard } from "./receipt";
 
@@ -17,19 +19,34 @@ describe("PurchaseReceiptCard", () => {
   });
 
   it("状況は一覧の行と同じ色で示す", () => {
-    render(<PurchaseReceiptCard purchase={{ ...PURCHASE_DETAIL, statusName: "配達済み" }} />);
+    render(
+      <PurchaseReceiptCard
+        purchase={{
+          ...PURCHASE_DETAIL,
+          statusCode: PURCHASE_STATUS.DELIVERED,
+          statusName: "配達済み",
+        }}
+      />,
+    );
 
     expect(screen.getByText("配達済み")).toHaveAttribute("data-variant", "success");
   });
 
-  it("取得に使う識別子は出さない", () => {
+  it("この購入にできることを、控えの末尾へ置く", () => {
     render(
       <PurchaseReceiptCard
-        purchase={{ ...PURCHASE_DETAIL, id: "0195f0c2-0000-7000-9000-00000000ffff" }}
+        actions={<button type="button">支払う</button>}
+        purchase={PURCHASE_DETAIL}
       />,
     );
 
-    expect(screen.queryByText("0195f0c2-0000-7000-9000-00000000ffff")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "支払う" })).toBeVisible();
+  });
+
+  it("できることを渡されなければ、控えは状況で終わる", () => {
+    render(<PurchaseReceiptCard purchase={PURCHASE_DETAIL} />);
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("a11y 自動検査に違反しない", async () => {

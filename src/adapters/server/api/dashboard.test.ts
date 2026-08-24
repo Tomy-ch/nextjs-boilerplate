@@ -21,8 +21,11 @@ const wireSummary = {
   salesAmount: 123_456,
   salesCount: 1234,
   purchaseStatusCounts: [
-    { status: { id: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11", name: "検討中" }, count: 22 },
-    { status: { id: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12", name: "支払い済み" }, count: 5 },
+    { status: { id: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11", code: 3, name: "確認中" }, count: 22 },
+    {
+      status: { id: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12", code: 7, name: "支払い済み" },
+      count: 5,
+    },
   ],
   totalProductCount: 476,
   publishedProductCount: 454,
@@ -114,7 +117,7 @@ describe("getDashboardSummary", () => {
 
     expect(summary.purchaseStatusCounts[0]).toEqual({
       statusId: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11",
-      statusName: "検討中",
+      statusName: "確認中",
       count: 22,
     });
   });
@@ -125,7 +128,7 @@ describe("getDashboardSummary", () => {
     const summary = await getDashboardSummary({ period: "range", to: "2026-12-31" });
 
     expect(summary.purchaseStatusCounts.map((entry) => entry.statusName)).toEqual([
-      "検討中",
+      "確認中",
       "支払い済み",
     ]);
   });

@@ -7,13 +7,16 @@ import type { ProductId } from "../product/product";
  * @remarks
  * 契約の wire 型ではなく、表示のための型です。一覧は概要だけを返し、明細は含みません。
  *
- * ステータスは ID と名称が解決済みで届くため、名称を引き直しません。
+ * ステータスは業務キーと名称が解決済みで届くため、どちらも引き直しません。
  */
 export type PurchaseHistoryEntry = {
   /** 購入コード。利用者へ見せる識別子であり、問い合わせにも使う。 */
   readonly code: string;
   /** 合計。最小単位の整数で持ち、表示の直前に主単位へ戻す。 */
   readonly totalAmount: number;
+  /** ステータスの業務キー。分岐はこちらで行う。 */
+  readonly statusCode: number;
+  /** ステータスの名称。利用者へ見せる文言であり、分岐には使わない。 */
   readonly statusName: string;
   readonly orderedAt: Date;
 };
@@ -43,12 +46,15 @@ export type PurchaseLine = {
  * カートと違い、金額は**確定した請求額**です。小計・税・送料・合計はいずれもバックエンドが
  * 決めた値で、画面は足し直しません（[0070](../../../docs/adr/0070-backend-role-separation.md)）。
  *
- * 利用者へ見せる識別子は `code` です。`id` は次の取得に使う値であり、問い合わせの控えには
- * なりません。
+ * 識別子は `code` ひとつです。利用者へ見せる注文番号と、次の取得に渡す値が同じものなので、
+ * 画面が見せている番号をそのまま問い合わせの控えにできます。
  */
 export type Purchase = {
-  readonly id: string;
+  /** 購入コード。利用者へ見せる注文番号であり、次の取得もこの値で行う。 */
   readonly code: string;
+  /** ステータスの業務キー。分岐はこちらで行う。 */
+  readonly statusCode: number;
+  /** ステータスの名称。利用者へ見せる文言であり、分岐には使わない。 */
   readonly statusName: string;
   /** 明細（単価 × 数量）の合計。最小単位の整数。 */
   readonly subtotalAmount: number;
@@ -72,4 +78,32 @@ export type Purchase = {
 export type PurchaseOrderLine = {
   readonly productId: ProductId;
   readonly quantity: number;
+};
+
+/**
+ * まとめ発送を待っている購入 1 件。
+ *
+ * @remarks
+ * 組に入っている時点で発送できる状態なので、状況は持ちません。発送の指示は購入コードで行います。
+ */
+type ShippablePurchase = {
+  readonly code: string;
+  /** 請求額。最小単位の整数。 */
+  readonly totalAmount: number;
+  readonly orderedAt: Date;
+};
+
+/**
+ * まとめて発送してよい購入の組。
+ *
+ * @remarks
+ * まとめる軸は同一の購入者です。**組そのものは識別子を持ちません。** 算出結果であって保存された
+ * ものではないため、組を指す鍵は購入者になります。
+ *
+ * 購入者は ID しか届きません。契約が呼び名を載せないためで、画面はこの値で組を見分けます。
+ */
+export type PurchaseDispatchGroup = {
+  readonly userId: string;
+  /** 組に含まれる購入。注文日時の古い順。1 件以上ある。 */
+  readonly purchases: readonly ShippablePurchase[];
 };
