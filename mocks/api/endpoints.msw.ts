@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+8f733fb
+ * OpenAPI spec version: 2.2.0+151bc17
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
@@ -187,7 +187,11 @@ export const getGetUsersMePurchasesSummaryResponseMock = (
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
+    status: {
+      id: faker.string.uuid(),
+      code: faker.number.int(),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    },
     count: faker.number.int(),
     totalAmount: faker.number.int(),
   })),
@@ -572,8 +576,11 @@ export const getGetPurchasesResponseMock = (): PurchaseListResponse => ({
         totalAmount: faker.number.int(),
         status: {
           id: faker.string.uuid(),
+          code: faker.number.int(),
           name: faker.string.alpha({ length: { min: 10, max: 20 } }),
         },
+        firstItemName: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        itemCount: faker.number.int(),
         orderedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
       }),
     ),
@@ -590,7 +597,6 @@ export const getGetPurchasesResponseMock = (): PurchaseListResponse => ({
 export const getPostPurchasesResponseMock = (
   overrideResponse: Partial<Extract<PurchaseResponse, object>> = {},
 ): PurchaseResponse => ({
-  id: faker.string.uuid(),
   code: faker.string.alpha({ length: { min: 10, max: 20 } }),
   userId: faker.string.uuid(),
   statusId: faker.string.uuid(),
@@ -626,7 +632,6 @@ export const getGetPurchasesShippableResponseMock = (
       userId: faker.string.uuid(),
       purchases: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
         () => ({
-          id: faker.string.uuid(),
           code: faker.string.alpha({ length: { min: 10, max: 20 } }),
           totalAmount: faker.number.int(),
           orderedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
@@ -640,10 +645,13 @@ export const getGetPurchasesShippableResponseMock = (
 export const getGetPurchasesDetailResponseMock = (
   overrideResponse: Partial<Extract<PurchaseGetDetailResponse, object>> = {},
 ): PurchaseGetDetailResponse => ({
-  id: faker.string.uuid(),
   code: faker.string.alpha({ length: { min: 10, max: 20 } }),
   userId: faker.string.uuid(),
-  status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
+  status: {
+    id: faker.string.uuid(),
+    code: faker.number.int(),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  },
   subtotalAmount: faker.number.int(),
   taxAmount: faker.number.int(),
   shippingFee: faker.number.int(),
@@ -671,10 +679,13 @@ export const getGetPurchasesDetailResponseMock = (
 export const getPatchPurchasesCancelResponseMock = (
   overrideResponse: Partial<Extract<PurchaseCancelResponse, object>> = {},
 ): PurchaseCancelResponse => ({
-  id: faker.string.uuid(),
   code: faker.string.alpha({ length: { min: 10, max: 20 } }),
   userId: faker.string.uuid(),
-  status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
+  status: {
+    id: faker.string.uuid(),
+    code: faker.number.int(),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  },
   subtotalAmount: faker.number.int(),
   taxAmount: faker.number.int(),
   shippingFee: faker.number.int(),
@@ -694,10 +705,13 @@ export const getPatchPurchasesCancelResponseMock = (
 export const getPatchPurchasesPayResponseMock = (
   overrideResponse: Partial<Extract<PurchasePayResponse, object>> = {},
 ): PurchasePayResponse => ({
-  id: faker.string.uuid(),
   code: faker.string.alpha({ length: { min: 10, max: 20 } }),
   userId: faker.string.uuid(),
-  status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
+  status: {
+    id: faker.string.uuid(),
+    code: faker.number.int(),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  },
   subtotalAmount: faker.number.int(),
   taxAmount: faker.number.int(),
   shippingFee: faker.number.int(),
@@ -717,10 +731,13 @@ export const getPatchPurchasesPayResponseMock = (
 export const getPatchPurchasesShipResponseMock = (
   overrideResponse: Partial<Extract<PurchaseShipResponse, object>> = {},
 ): PurchaseShipResponse => ({
-  id: faker.string.uuid(),
   code: faker.string.alpha({ length: { min: 10, max: 20 } }),
   userId: faker.string.uuid(),
-  status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
+  status: {
+    id: faker.string.uuid(),
+    code: faker.number.int(),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  },
   subtotalAmount: faker.number.int(),
   taxAmount: faker.number.int(),
   shippingFee: faker.number.int(),
@@ -740,10 +757,13 @@ export const getPatchPurchasesShipResponseMock = (
 export const getPatchPurchasesDeliverResponseMock = (
   overrideResponse: Partial<Extract<PurchaseDeliverResponse, object>> = {},
 ): PurchaseDeliverResponse => ({
-  id: faker.string.uuid(),
   code: faker.string.alpha({ length: { min: 10, max: 20 } }),
   userId: faker.string.uuid(),
-  status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
+  status: {
+    id: faker.string.uuid(),
+    code: faker.number.int(),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  },
   subtotalAmount: faker.number.int(),
   taxAmount: faker.number.int(),
   shippingFee: faker.number.int(),
@@ -769,7 +789,11 @@ export const getGetDashboardSummaryResponseMock = (
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
+    status: {
+      id: faker.string.uuid(),
+      code: faker.number.int(),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    },
     count: faker.number.int(),
   })),
   totalProductCount: faker.number.int(),
@@ -1531,7 +1555,7 @@ export const getGetPurchasesDetailMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
-    "*/v1/purchases/:purchaseId",
+    "*/v1/purchases/:purchaseCode",
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
@@ -1555,7 +1579,7 @@ export const getPatchPurchasesCancelMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.patch(
-    "*/v1/purchases/:purchaseId/cancel",
+    "*/v1/purchases/:purchaseCode/cancel",
     async (info: Parameters<Parameters<typeof http.patch>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
@@ -1579,7 +1603,7 @@ export const getPatchPurchasesPayMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.patch(
-    "*/v1/purchases/:purchaseId/pay",
+    "*/v1/purchases/:purchaseCode/pay",
     async (info: Parameters<Parameters<typeof http.patch>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
@@ -1603,7 +1627,7 @@ export const getPatchPurchasesShipMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.patch(
-    "*/v1/purchases/:purchaseId/ship",
+    "*/v1/purchases/:purchaseCode/ship",
     async (info: Parameters<Parameters<typeof http.patch>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
@@ -1627,7 +1651,7 @@ export const getPatchPurchasesDeliverMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.patch(
-    "*/v1/purchases/:purchaseId/deliver",
+    "*/v1/purchases/:purchaseCode/deliver",
     async (info: Parameters<Parameters<typeof http.patch>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined

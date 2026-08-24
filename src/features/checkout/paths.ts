@@ -34,8 +34,8 @@ export const MYPAGE_PATH = "/mypage";
  * 購入を URL に載せるのは、確定の送信と完了の表示を別の遷移に分けるためです。送信した画面の
  * ままで完了を出すと、再読み込みで完了が消え、戻る操作が確定前の画面へ帰ります。
  *
- * 載せるのは購入の ID です。利用者へ見せる購入コードでは次の取得ができません。
+ * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
  */
-export function purchaseCompletePath(purchaseId: string): string {
-  return `${CHECKOUT_COMPLETE_PATH}?${PURCHASE_PARAM}=${encodeURIComponent(purchaseId)}`;
+export function purchaseCompletePath(purchaseCode: string): string {
+  return `${CHECKOUT_COMPLETE_PATH}?${PURCHASE_PARAM}=${encodeURIComponent(purchaseCode)}`;
 }

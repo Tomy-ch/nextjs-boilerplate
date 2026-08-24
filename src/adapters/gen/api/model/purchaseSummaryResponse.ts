@@ -9,20 +9,25 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+8f733fb
+ * OpenAPI spec version: 2.2.0+151bc17
  */
 import type { PurchaseStatusRef } from "./purchaseStatusRef";
 
 /**
  * 購入履歴一覧の概要要素スキーマ。一覧はカード表示前提で概要のみを返し、明細は含みません
- * （明細は購入詳細 API で取得します）。status は ID・名称を事前解決済みで、別途の名称解決は不要です。
+ * （明細は購入詳細 API で取得します）。status は ID・業務キー・名称を事前解決済みで、別途の名称解決は不要です。
+ * 行を見分けるための要約として、先頭商品名（firstItemName）と明細の点数（itemCount）を含みます。
  */
 export interface PurchaseSummaryResponse {
-  /** 購入コード（UUIDv7 文字列・一意） */
+  /** 購入コード（利用者へ注文番号として見せる一意の識別子） */
   code: string;
   /** 合計（小計 + 税額 + 送料）。USD セント単位の整数です。 */
   totalAmount: number;
   status: PurchaseStatusRef;
+  /** 明細の先頭 1 件の商品名。先頭の選び方に業務的な意味はありません（明細の並びの先頭です）。 */
+  firstItemName: string;
+  /** 明細の点数（行数。先頭商品を含みます）。数量の合計ではありません。 */
+  itemCount: number;
   /** 注文日時 */
   orderedAt: string;
 }

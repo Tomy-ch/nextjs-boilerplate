@@ -1,19 +1,29 @@
 import "server-only";
 
 import { cache } from "react";
-import type { z } from "zod";
+import { type ZodType, z } from "zod";
 
 import { getApiConfig } from "@/config/api/api.server";
 import { getHttpConfig } from "@/config/http/http.server";
 import { toProductId } from "@/model/product/product";
-import type { Purchase, PurchaseHistoryPage, PurchaseOrderLine } from "@/model/purchase/purchase";
+import type {
+  Purchase,
+  PurchaseDispatchGroup,
+  PurchaseHistoryPage,
+  PurchaseOrderLine,
+} from "@/model/purchase/purchase";
 
 import {
   GetPurchasesDetailResponse,
   GetPurchasesQueryParams,
   GetPurchasesResponse,
+  GetPurchasesShippableResponse,
+  PatchPurchasesCancelResponse,
+  PatchPurchasesPayResponse,
+  PatchPurchasesShipResponse,
   PostPurchasesResponse,
 } from "../../gen/api/endpoints.zod";
+import { getPurchasesDetailPathPurchaseCodeMax } from "../../gen/api/limits";
 import type { PurchasesPostRequest } from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
 import { createHttpClient, type HttpClient } from "../http/request";
@@ -42,12 +52,25 @@ function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
     items: wire.items.map(({ code, totalAmount, status, orderedAt }) => ({
       code,
       totalAmount,
+      statusCode: status.code,
       statusName: status.name,
       orderedAt: new Date(orderedAt),
     })),
     nextCursor: wire.nextCursor,
   };
 }
+
+/**
+ * 契約が購入コードとして受け付ける形。
+ *
+ * @remarks
+ * **長さの上下限だけです。** 契約が置いているのがそれだけで、桁や区切りを決めているのは発番する
+ * バックエンドです。ここで形を足すと、発番の仕方が変わったときに画面の側が先に読めなくなります。
+ *
+ * 画面が URL から読む値を照らすために公開します。契約由来の範囲を features 側で書き直さない
+ * ためで、上限は生成物から引いています。
+ */
+export const PurchaseCode = z.string().min(1).max(getPurchasesDetailPathPurchaseCodeMax);
 
 /** 購入履歴の取得条件。契約のクエリと 1 対 1 に対応する。 */
 export type PurchaseHistoryQuery = z.infer<typeof GetPurchasesQueryParams>;
@@ -130,8 +153,8 @@ export const getMyPurchases = cache(
 
 function toPurchase(wire: WirePurchaseDetail): Purchase {
   return {
-    id: wire.id,
     code: wire.code,
+    statusCode: wire.status.code,
     statusName: wire.status.name,
     subtotalAmount: wire.subtotalAmount,
     taxAmount: wire.taxAmount,
@@ -154,11 +177,11 @@ function toPurchase(wire: WirePurchaseDetail): Purchase {
  * 他人の購入も存在しない購入も、区別なく `not found` になります。契約が存在を秘匿するためで、
  * 呼び出し側が所有者を確かめる必要はありません。
  *
- * @param purchaseId - 購入の ID。利用者へ見せる購入コードではない
+ * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
  */
-export const getMyPurchase = cache(async (purchaseId: string): Promise<Purchase> => {
+export const getMyPurchase = cache(async (purchaseCode: string): Promise<Purchase> => {
   const wire = await getClient().request({
-    path: `${PURCHASES_PATH}/${encodeURIComponent(purchaseId)}`,
+    path: `${PURCHASES_PATH}/${encodeURIComponent(purchaseCode)}`,
     schema: GetPurchasesDetailResponse,
   });
 
@@ -182,7 +205,7 @@ export const getMyPurchase = cache(async (purchaseId: string): Promise<Purchase>
  *
  * @param lines - 購入する商品と数量。1 件以上必要で、同じ商品を 2 行に分けられない
  * @param idempotencyKey - 再送を初回の結果へ畳むための鍵
- * @returns 成立した購入の ID
+ * @returns 成立した購入の購入コード
  */
 export async function createPurchase(
   lines: readonly PurchaseOrderLine[],
@@ -199,5 +222,99 @@ export async function createPurchase(
     schema: PostPurchasesResponse,
   });
 
-  return wire.id;
+  return wire.code;
+}
+
+/**
+ * 購入 1 件へ、状態を進める要求を送る。
+ *
+ * @remarks
+ * **応答を内層へ渡しません。** 遷移の応答は明細に商品名を持たず（`PurchaseDetailResponse`）、
+ * 画面が出している購入の形に足りません。状態が変わったあとの購入は画面が取り直すので、ここが
+ * 受け持つのは「契約どおりの応答が返ったか」を確かめることまでです。
+ *
+ * **再送しません。** 同じ要求が 2 度届くと 2 度目は `conflict` になるため、遷移は冪等ではあり
+ * ません。通信の途中で切れた要求を勝手に送り直すと、成立していた遷移が失敗として見えます。
+ */
+async function transition<T>(
+  purchaseCode: string,
+  action: string,
+  schema: ZodType<T>,
+): Promise<void> {
+  await getClient().request({
+    path: `${PURCHASES_PATH}/${encodeURIComponent(purchaseCode)}/${action}`,
+    method: "PATCH",
+    schema,
+  });
+}
+
+/**
+ * 自分の購入をキャンセルする。
+ *
+ * @remarks
+ * キャンセルできる状態からのみ通ります。いまの状態では通らない要求は `conflict` として返り、
+ * 明細ぶんの在庫は成立と同じ取引の中で戻されます。存在の秘匿は {@link getMyPurchase} と同じです。
+ *
+ * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
+ */
+export async function cancelMyPurchase(purchaseCode: string): Promise<void> {
+  await transition(purchaseCode, "cancel", PatchPurchasesCancelResponse);
+}
+
+/**
+ * 自分の購入を支払い済みにする。
+ *
+ * @remarks
+ * **決済そのものは行いません。** 契約が擬似決済として定めており、金額も決済結果も検証されません
+ * （`docs/screens.md` の除外事項）。未払い相当の状態からのみ通り、支払い済みへの再送は
+ * `conflict` として返ります。
+ *
+ * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
+ */
+export async function payMyPurchase(purchaseCode: string): Promise<void> {
+  await transition(purchaseCode, "pay", PatchPurchasesPayResponse);
+}
+
+/**
+ * まとめて発送してよい購入の組を取る。
+ *
+ * @remarks
+ * 発送可能とは、支払いを終えてまだ発送していない状態です。**ページ送りがありません。** 読み出す
+ * 件数は契約の既定に委ねます。まとめ判定はその範囲の中で行われるため、件数を渡すと組の切れ目まで
+ * こちらが決めることになります。
+ *
+ * 発送待ちが無いときは、失敗ではなく空の並びが返ります。
+ *
+ * 組分けと並び順を契約が決めること、範囲の外の購入が別の便になることは
+ * [機能要件](../../../../docs/spec/route/admin/shipments/page.function.md)「取得」。
+ */
+export async function getShippablePurchases(): Promise<readonly PurchaseDispatchGroup[]> {
+  const wire = await getClient().request({
+    path: `${PURCHASES_PATH}/shippable`,
+    schema: GetPurchasesShippableResponse,
+  });
+
+  return wire.groups.map(({ userId, purchases }) => ({
+    userId,
+    purchases: purchases.map(({ code, totalAmount, orderedAt }) => ({
+      code,
+      totalAmount,
+      orderedAt: new Date(orderedAt),
+    })),
+  }));
+}
+
+/**
+ * 購入 1 件を発送済みにする。
+ *
+ * @remarks
+ * 支払い済みからのみ通ります。いまの状態では通らない要求は `conflict` として返り、二重の発送も
+ * 同じ分類になります。配送追跡（追跡番号・配送業者）は契約が扱いません。
+ *
+ * 購入者本人であっても、管理の役割が無ければ拒まれます。
+ *
+ * @param purchaseCode - 購入コード。まとめ発送の組が持っている値
+ */
+export async function shipPurchase(purchaseCode: string): Promise<void> {
+  await transition(purchaseCode, "ship", PatchPurchasesShipResponse);
 }

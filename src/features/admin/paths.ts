@@ -19,6 +19,9 @@ export const ADMIN_DASHBOARD_PATH = "/admin";
 /** 期間を選んで集計を読む画面のパス。 */
 export const ADMIN_ANALYTICS_PATH = "/admin/analytics";
 
+/** 発送を待っている注文を便ごとに見る画面のパス。 */
+export const ADMIN_SHIPMENT_QUEUE_PATH = "/admin/shipments";
+
 /** 利用者を一覧で見る画面のパス。 */
 export const ADMIN_USER_LIST_PATH = "/admin/users";
 

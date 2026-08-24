@@ -1,4 +1,5 @@
 import type { PurchaseHistoryPage } from "@/model/purchase/purchase";
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 import type {
   AddressCandidate,
   AddressLookup,
@@ -82,7 +83,11 @@ export const EMPTY_PURCHASE_SUMMARY: PurchaseSummary = {
   breakdown: [],
 };
 
-const HISTORY_STATUS_NAMES = ["配達済み", "発送済み", "キャンセル"];
+const HISTORY_STATUSES = [
+  { code: PURCHASE_STATUS.DELIVERED, name: "配達済み" },
+  { code: PURCHASE_STATUS.SHIPPED, name: "発送済み" },
+  { code: PURCHASE_STATUS.CANCELED, name: "キャンセル" },
+];
 
 /**
  * 購入履歴の 1 ページ。
@@ -92,12 +97,20 @@ const HISTORY_STATUS_NAMES = ["配達済み", "発送済み", "キャンセル"]
  * どうかを確かめられません。
  */
 export const PURCHASE_HISTORY: PurchaseHistoryPage = {
-  items: Array.from({ length: 24 }, (_, index) => ({
-    code: `0195f0c2-0000-7000-8000-${String(index + 1).padStart(12, "0")}`,
-    totalAmount: 4_980 + index * 1_100,
-    statusName: HISTORY_STATUS_NAMES[index % HISTORY_STATUS_NAMES.length] ?? "配達済み",
-    orderedAt: new Date(Date.UTC(2026, 6, 1 + index, 3, 0, 0)),
-  })),
+  items: Array.from({ length: 24 }, (_, index) => {
+    const status = HISTORY_STATUSES[index % HISTORY_STATUSES.length] ?? {
+      code: PURCHASE_STATUS.DELIVERED,
+      name: "配達済み",
+    };
+
+    return {
+      code: `0195f0c2-0000-7000-8000-${String(index + 1).padStart(12, "0")}`,
+      totalAmount: 4_980 + index * 1_100,
+      statusCode: status.code,
+      statusName: status.name,
+      orderedAt: new Date(Date.UTC(2026, 6, 1 + index, 3, 0, 0)),
+    };
+  }),
   nextCursor: null,
 };
 
