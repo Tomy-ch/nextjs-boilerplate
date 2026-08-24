@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { withPartSpan } from "@/observability/render-span";
 
 /** 新着の待機表示で並べる件数。折り返し 1 段分に留める。 */
 const TEASER_COUNT = 4;
@@ -19,7 +20,7 @@ const CATEGORY_COUNT = 6;
  * 見出しの文字は枠にしません。取得を待たずに確定している文言で、枠に置き換えると出てくる
  * ときに 2 度読ませることになります。
  */
-export function HomeSkeleton() {
+export const HomeSkeleton = withPartSpan("features/home/ui/skeleton/skeleton", () => {
   return (
     <div aria-hidden="true" className="space-y-10 py-4">
       <section>
@@ -63,4 +64,4 @@ export function HomeSkeleton() {
       </section>
     </div>
   );
-}
+});

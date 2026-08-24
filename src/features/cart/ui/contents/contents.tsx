@@ -4,7 +4,7 @@ import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_SIZE } from "@/components/design-system/action/button/button.definition";
 import { ScrollArea } from "@/components/design-system/container/scroll-area/scroll-area";
 import type { Cart } from "@/model/cart/cart";
-
+import { withPartSpan } from "@/observability/render-span";
 import { CART_PATH } from "../../paths";
 import { CartCheckoutLink } from "../checkout-link/checkout-link";
 import { CartClearButton } from "../clear-button/clear-button";
@@ -36,39 +36,42 @@ export type CartContentsProps = {
  * 導線は 2 本あり、主が購入手続き、副がカートページです（それぞれの理由は
  * [cart の README](../../README.md)）。
  */
-export function CartContents({ cart }: CartContentsProps) {
-  const presentProductIds = cart.lines.map((line) => line.productId);
+export const CartContents = withPartSpan(
+  "features/cart/ui/contents/contents",
+  ({ cart }: CartContentsProps) => {
+    const presentProductIds = cart.lines.map((line) => line.productId);
 
-  if (cart.lines.length === 0) {
+    if (cart.lines.length === 0) {
+      return (
+        <div className="flex flex-col gap-3">
+          <CartRemovalNoticeList presentProductIds={presentProductIds} />
+          <p className="text-muted-foreground text-sm">カートに商品が入っていません。</p>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex flex-col gap-3">
-        <CartRemovalNoticeList presentProductIds={presentProductIds} />
-        <p className="text-muted-foreground text-sm">カートに商品が入っていません。</p>
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <CartSubtotal amount={cart.subtotalAmount} size="compact" />
+
+        <div className="grid gap-2">
+          <CartCheckoutLink cart={cart} size={BUTTON_SIZE.SMALL} />
+          <Button asChild className="w-full" size="sm" variant="outline">
+            <Link href={CART_PATH}>カートを見る</Link>
+          </Button>
+        </div>
+
+        <ScrollArea aria-label="カートの明細" className="min-h-0 flex-1">
+          <CartLineList
+            slots={cart.lines.map((line) => ({
+              productId: line.productId,
+              row: <CartLineRow key={line.productId} line={line} />,
+            }))}
+          />
+        </ScrollArea>
+
+        <CartClearButton />
       </div>
     );
-  }
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <CartSubtotal amount={cart.subtotalAmount} size="compact" />
-
-      <div className="grid gap-2">
-        <CartCheckoutLink cart={cart} size={BUTTON_SIZE.SMALL} />
-        <Button asChild className="w-full" size="sm" variant="outline">
-          <Link href={CART_PATH}>カートを見る</Link>
-        </Button>
-      </div>
-
-      <ScrollArea aria-label="カートの明細" className="min-h-0 flex-1">
-        <CartLineList
-          slots={cart.lines.map((line) => ({
-            productId: line.productId,
-            row: <CartLineRow key={line.productId} line={line} />,
-          }))}
-        />
-      </ScrollArea>
-
-      <CartClearButton />
-    </div>
-  );
-}
+  },
+);

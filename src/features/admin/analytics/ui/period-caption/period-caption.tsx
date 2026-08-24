@@ -1,3 +1,4 @@
+import { withPartSpan } from "@/observability/render-span";
 import type { PeriodWindow } from "../../period-window";
 
 /** `PeriodCaption` の props。 */
@@ -20,17 +21,20 @@ export type PeriodCaptionProps = {
  *
  * @see Storybook `Page/Admin/Analytics`
  */
-export function PeriodCaption({ window }: PeriodCaptionProps) {
-  if (window === undefined) {
-    return <p className="text-sm text-muted-foreground">集計する期間が決まっていません。</p>;
-  }
+export const PeriodCaption = withPartSpan(
+  "features/admin/analytics/ui/period-caption/period-caption",
+  ({ window }: PeriodCaptionProps) => {
+    if (window === undefined) {
+      return <p className="text-sm text-muted-foreground">集計する期間が決まっていません。</p>;
+    }
 
-  const span = window.from === window.to ? window.from : `${window.from} 〜 ${window.to}`;
+    const span = window.from === window.to ? window.from : `${window.from} 〜 ${window.to}`;
 
-  return (
-    <p className="text-sm text-muted-foreground" data-slot="period-caption">
-      <span className="font-emphasis text-foreground tabular-nums">{span}</span>
-      {" に注文された購入を集計しています（日本時間の暦日）。"}
-    </p>
-  );
-}
+    return (
+      <p className="text-sm text-muted-foreground" data-slot="period-caption">
+        <span className="font-emphasis text-foreground tabular-nums">{span}</span>
+        {" に注文された購入を集計しています（日本時間の暦日）。"}
+      </p>
+    );
+  },
+);

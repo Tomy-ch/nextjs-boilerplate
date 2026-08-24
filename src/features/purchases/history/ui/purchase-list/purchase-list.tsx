@@ -3,7 +3,7 @@ import type { RefObject } from "react";
 import { LoadMore } from "@/components/app-starter/load-more/load-more";
 import type { LoadMoreState } from "@/components/app-starter/load-more/load-more.definition";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
-
+import { withPartSpan } from "@/observability/render-span";
 import { PurchaseRow } from "../purchase-row/purchase-row";
 
 /** 一覧に並ぶ 1 件と、その詳細の行き先。 */
@@ -37,22 +37,21 @@ export type PurchaseLoadMoreListProps = {
  * 見ていない利用者には何も起きていないのと区別が付きません。読み込み中の報告を同じ文へ
  * まとめないのは、読み込みのたびに件数まで読み直されるためです。
  */
-export function PurchaseLoadMoreList({
-  entries,
-  loadMore,
-  sentinelRef,
-}: PurchaseLoadMoreListProps) {
-  return (
-    <div className="flex flex-col gap-4">
-      <p aria-live="polite" className="text-muted-foreground text-sm">
-        {`${entries.length} 件を表示中`}
-      </p>
-      <ul className="divide-y rounded-lg border">
-        {entries.map((entry) => (
-          <PurchaseRow href={entry.href} key={entry.purchase.code} purchase={entry.purchase} />
-        ))}
-      </ul>
-      <LoadMore sentinelRef={sentinelRef} state={loadMore} />
-    </div>
-  );
-}
+export const PurchaseLoadMoreList = withPartSpan(
+  "features/purchases/history/ui/purchase-list/purchase-list",
+  ({ entries, loadMore, sentinelRef }: PurchaseLoadMoreListProps) => {
+    return (
+      <div className="flex flex-col gap-4">
+        <p aria-live="polite" className="text-muted-foreground text-sm">
+          {`${entries.length} 件を表示中`}
+        </p>
+        <ul className="divide-y rounded-lg border">
+          {entries.map((entry) => (
+            <PurchaseRow href={entry.href} key={entry.purchase.code} purchase={entry.purchase} />
+          ))}
+        </ul>
+        <LoadMore sentinelRef={sentinelRef} state={loadMore} />
+      </div>
+    );
+  },
+);

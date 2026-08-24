@@ -8,6 +8,7 @@ import {
   StaticDataTable,
   type StaticDataTableColumn,
 } from "@/components/patterns/table/static-data/static-data";
+import { withPartSpan } from "@/observability/render-span";
 import { adminProductEditPath, adminProductStockPath } from "../../../../paths";
 import type { AdminProductRow } from "../../row";
 
@@ -149,17 +150,20 @@ function rowKey(item: AdminProductRow): string {
  *
  * @see Storybook `Page/Admin/Products/List`
  */
-export function AdminProductTable({ items, toolbar, pagination }: AdminProductTableProps) {
-  return (
-    <StaticDataTable
-      columns={COLUMNS}
-      emptyMessage="条件に一致する商品はありません。"
-      getRowKey={rowKey}
-      label="商品の一覧"
-      pagination={pagination}
-      rowClassName="relative cursor-pointer"
-      rows={items}
-      toolbar={toolbar}
-    />
-  );
-}
+export const AdminProductTable = withPartSpan(
+  "features/admin/products/list/ui/table/table",
+  ({ items, toolbar, pagination }: AdminProductTableProps) => {
+    return (
+      <StaticDataTable
+        columns={COLUMNS}
+        emptyMessage="条件に一致する商品はありません。"
+        getRowKey={rowKey}
+        label="商品の一覧"
+        pagination={pagination}
+        rowClassName="relative cursor-pointer"
+        rows={items}
+        toolbar={toolbar}
+      />
+    );
+  },
+);

@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/design-system/display/card/card";
-
+import { withPartSpan } from "@/observability/render-span";
 import type { Repository } from "../../repositories";
 import { REPOSITORIES } from "../../repositories";
 import { RepositorySupplement } from "../repository-supplement/repository-supplement";
@@ -56,12 +56,15 @@ function RepositoryCard({ repository }: { readonly repository: Repository }) {
  * フッターの導線より詳しく書きます。あちらはどの画面からでも辿れることを担い、ここは
  * 「何と何で出来ているのか」を読ませます。
  */
-export function RepositoryCards() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {REPOSITORIES.map((repository) => (
-        <RepositoryCard key={repository.name} repository={repository} />
-      ))}
-    </div>
-  );
-}
+export const RepositoryCards = withPartSpan(
+  "features/site-info/ui/repository-cards/repository-cards",
+  () => {
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        {REPOSITORIES.map((repository) => (
+          <RepositoryCard key={repository.name} repository={repository} />
+        ))}
+      </div>
+    );
+  },
+);

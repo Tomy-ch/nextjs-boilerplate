@@ -3,7 +3,7 @@ import type { RefObject } from "react";
 import { LoadMore } from "@/components/app-starter/load-more/load-more";
 import type { LoadMoreState } from "@/components/app-starter/load-more/load-more.definition";
 import type { ProductListItem } from "@/model/product/product";
-
+import { withPartSpan } from "@/observability/render-span";
 import { ProductGrid } from "../grid/grid";
 
 /** `ProductLoadMoreList` の props。 */
@@ -36,21 +36,19 @@ export type ProductLoadMoreListProps = {
  * 見ていない利用者には何も起きていないのと区別が付きません。読み込み中の報告を同じ文へ
  * まとめないのは、読み込みのたびに件数まで読み直されるためです。
  */
-export function ProductLoadMoreList({
-  items,
-  total,
-  loadMore,
-  sentinelRef,
-}: ProductLoadMoreListProps) {
-  return (
-    <div className="space-y-6">
-      <p aria-live="polite" className="text-muted-foreground text-sm">
-        {total === undefined
-          ? `${items.length} 件を表示中`
-          : `全 ${total} 件中 ${items.length} 件を表示中`}
-      </p>
-      <ProductGrid items={items} />
-      <LoadMore sentinelRef={sentinelRef} state={loadMore} />
-    </div>
-  );
-}
+export const ProductLoadMoreList = withPartSpan(
+  "features/products/list/ui/load-more-list/load-more-list",
+  ({ items, total, loadMore, sentinelRef }: ProductLoadMoreListProps) => {
+    return (
+      <div className="space-y-6">
+        <p aria-live="polite" className="text-muted-foreground text-sm">
+          {total === undefined
+            ? `${items.length} 件を表示中`
+            : `全 ${total} 件中 ${items.length} 件を表示中`}
+        </p>
+        <ProductGrid items={items} />
+        <LoadMore sentinelRef={sentinelRef} state={loadMore} />
+      </div>
+    );
+  },
+);

@@ -8,6 +8,7 @@ import {
 } from "@/components/design-system/action/button/button.definition";
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
 import { TERMS_PATH } from "@/features/site-info/facade/paths/paths";
+import { withPartSpan } from "@/observability/render-span";
 
 /**
  * このサイトがサンプルであることの断り書き。
@@ -24,7 +25,7 @@ import { TERMS_PATH } from "@/features/site-info/facade/paths/paths";
  *
  * 閉じる操作を置きません。閉じられる断り書きは、閉じた利用者に対しては無いのと同じです。
  */
-export function SampleNotice() {
+export const SampleNotice = withPartSpan("features/home/ui/sample-notice/sample-notice", () => {
   return (
     <Alert variant="warning">
       <AlertTriangleIcon />
@@ -40,4 +41,4 @@ export function SampleNotice() {
       </AlertDescription>
     </Alert>
   );
-}
+});
