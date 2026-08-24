@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { serveJson, serveStatus, serveWrite } from "../../../../vitest.setup";
+import { serveJson, serveStatus, serveWrite } from "../../../../vitest.setup.msw";
 
 const { getAccessToken, getEnvironment, readCartSession, storeCartSession, clearCartSession } =
   vi.hoisted(() => ({

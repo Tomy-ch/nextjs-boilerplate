@@ -4,7 +4,7 @@ import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { SESSION_ROLE } from "@/model/session";
-import { serveJson } from "../../../../vitest.setup";
+import { serveJson } from "../../../../vitest.setup.msw";
 
 const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => PARSED_ENVIRONMENT) }));
 

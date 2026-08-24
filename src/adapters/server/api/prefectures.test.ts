@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
-import { serveJson, watchFetch } from "../../../../vitest.setup";
+import { serveJson, watchFetch } from "../../../../vitest.setup.msw";
 
 const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => PARSED_ENVIRONMENT) }));
 

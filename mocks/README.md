@@ -46,8 +46,13 @@ frontmatter の `test-requirement: unit` が掛かるのは、取りまとめが
 ## 起動
 
 `APP_API_MODE=mock` のとき、`src/instrumentation.ts` が Config の確定後に Node 側の interception を
-立てます。テストは `vitest.setup.ts` が同じハンドラを使います。dev サーバーとテストで別のスタブを
+立てます。テストは `vitest.setup.msw.ts` が同じハンドラを使います。dev サーバーとテストで別のスタブを
 持つと、契約が変わってもテストだけが古い形のまま通り続けるためです。
+
+**テスト側で interception を立てるのは、読み込んだファイルだけです。**全ファイルへ掛けると 1 ファイル
+あたり約 480ms 掛かり、Vitest の setup がテスト本体より長くなります。読み込む相手は HTTP 境界を持つ
+ファイル —— `adapters` の API クライアントと Route Handler ——
+に限られます([0090](../docs/adr/0090-testing-strategy.md))。
 
 **mock app は別アプリではありません。**同じアプリを `APP_API_MODE=mock` で起動したものが mock app
 であり、成果物は増えません。バックエンド無しで build が通り、起動して応答を返すことは
@@ -90,12 +95,16 @@ module のキーは仕様上ソート順で列挙され、宣言順に見える�
 
 ## ハンドラの無い宛先は、テストでは落とします
 
-`vitest.setup.ts` は `onUnhandledRequest: "error"` で起動します。素通しにすると、宛先を打ち間違えた
+`vitest.setup.msw.ts` は `onUnhandledRequest: "error"` で起動します。素通しにすると、宛先を打ち間違えた
 取得が本物の網へ出ていき、手元では届いて CI では時間切れになるという形でしか現れません。
+
+**これを読み込まないファイルでも、外へは出られません。**`vitest.setup.ts` が `fetch` に番人を据え、
+宛先を名指しして落とします。応答は作らないので、HTTP を止めたいテストは interception のほうを
+立ててください。
 
 dev サーバー側(`src/instrumentation.ts`)は素通しのままです。**mock が差し替えるのは API だけ**で、
 画像は配信元から実物を取得するためです(下記)。テストが立てた本物のサーバへ出す要求は、宛先を
-名指しして開けます(`vitest.setup.ts` の `passThroughOrigin`)。
+名指しして開けます(`vitest.setup.msw.ts` の `passThroughOrigin`)。
 
 ## 画像は差し替えません
 
