@@ -494,7 +494,7 @@ export const getGetProductsRankingAmountResponseMock = (
       productId: faker.string.uuid(),
       name: faker.string.alpha({ length: { min: 10, max: 255 } }),
       price: (() => "19.99")(),
-      salesAmount: faker.helpers.fromRegExp("^\\d+(\\.\\d+)?$"),
+      salesAmount: (() => "824.69")(),
     }),
   ),
   ...overrideResponse,
