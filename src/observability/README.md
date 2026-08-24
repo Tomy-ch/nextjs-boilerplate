@@ -21,14 +21,22 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 - `initialize.server.ts` は Node.js runtime の `NodeSDK` をプロセスごとに一度だけ初期化する。resource には公式 semantic convention の `service.name` を設定し、W3C Trace Context と W3C Baggage を伝播する。HTTP instrumentation は受信 HTTP request の trace を作り、Undici instrumentation は許可された API origin への server-side `fetch` へ trace context を注入する。伝播が働くのは signal のいずれかが有効で SDK が構築されたときだけである。Undici の外向き span からは `url.query` を落とし、`url.full` も query の無い形にする。
 - `trace-context.ts` は現在の有効な span から trace ID と span ID を抽出する。logging にはこの関数を起動境界で注入する。
-- `render-span.ts` は描画を span にする。対象と読み方は下記「描画の計装」が持つ。
+- `render-span.ts` は描画を span にする。載せる範囲は起動境界から注入で受ける。対象と読み方は下記「描画の計装」が持つ。
 - `otlp-log-sink.server.ts` は logging が渡す正規化済みレコードを OTel Logs API へ変換する。OTLP 属性へ変換できない値は送出しない。
 
 ## 描画の計装
 
-`withRenderSpan(name, render)` は、渡されたコンポーネントを span で包んだ同じ形のコンポーネントを返す。span 名は `render <name>` で、`name` には `src/` からのモジュールパスを渡す。tracer の scope 名は `render` である。**span 名に利用者の入力を混ぜてはならない**（span 名の redaction は [0081](../../docs/adr/0081-observability-logging.md)）。
+`withScreenSpan(name, render)` と `withPartSpan(name, render)` は、渡されたコンポーネントを span で包んだ同じ形のコンポーネントを返す。span 名は `render <name>` で、`name` には `src/` からのモジュールパスを渡す。tracer の scope 名は `render` である。**span 名に利用者の入力を混ぜてはならない**（span 名の redaction は [0081](../../docs/adr/0081-observability-logging.md)）。
 
-対象は **feature 層の最上位**（`features/<name>/<screen>/` の `page-content` と `view`）に限る。装備の手順と対象の線引きは [features/README.md](../features/README.md) が持つ。`components` は横断 UI であり画面ごとの帰属を持たないので対象にせず、route segment は Next.js が `render route (app)` を張るので二重に持たない。
+2 つは載せる対象が違う。`withScreenSpan` は**画面の最上位**（`features/<name>/<screen>/` の `page-content` と `view`）、`withPartSpan` は **feature が持つ部品**（`ui/`）である。装備の手順と対象の線引きは [features/README.md](../features/README.md) が持つ。`components` は横断 UI であり画面ごとの帰属を持たないので対象にせず、route segment は Next.js が `render route (app)` を張るので二重に持たない。
+
+### 載せる範囲
+
+範囲は `configureRenderSpans({ screens, parts })` で**起動境界から注入する**。既定はどちらも無効で、注入を受けない実行（テスト・Storybook）では span を作らない。
+
+**SDK の有無を無効化の代わりに使えない。** `OBS_TRACES_EXPORTER=none` にしても、logs か metrics が有効なら `NodeSDK` は tracer provider を立てるため、span は記録されたうえで捨てられる —— 成果物だけがゼロになり、計装のコストは残る。だから範囲を独立した軸として持つ。
+
+供給は `OBS_RENDER_SPANS`（`none` / `screen` / `part`、既定 `screen`）で、`tracesEnabled` との合成は起動境界が行う。`part` を開けると 1 描画の span が描く部品の数だけ増えるので、常用ではなく調査のときに開ける。
 
 ### span が覆う範囲
 
@@ -46,11 +54,11 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 ### 記録しない実行
 
-SDK が初期化されていない実行（ブラウザ・Storybook・テスト）では、tracer が記録しない span を返す。包んでも描画は変わらない。
+範囲が無効な呼び出しでは span を作らず、包んだコンポーネントをそのまま呼ぶ。ブラウザでの描画も同じで、注入を受けないため何も作らない。
 
 ## signal の有効化
 
-`OTEL_EXPORTER_OTLP_ENDPOINT` は OTLP HTTP の base endpoint を、`OBS_TRACES_EXPORTER`、`OBS_METRICS_EXPORTER`、`OBS_LOGS_EXPORTER` は signal ごとの有効化を表す。各値は `otlp`、`none`、または空文字列であり、`otlp` だけが有効である。base endpoint には各 signal の `/v1/traces`、`/v1/metrics`、`/v1/logs` を自動付与する。無効な signal は exporter、batch processor、metric reader を生成しない。変数の一覧と環境別の供給方法は [env/README.md](../../env/README.md) を参照する。
+`OTEL_EXPORTER_OTLP_ENDPOINT` は OTLP HTTP の base endpoint を、`OBS_TRACES_EXPORTER`、`OBS_METRICS_EXPORTER`、`OBS_LOGS_EXPORTER` は signal ごとの有効化を表す。各値は `otlp`、`none`、または空文字列であり、`otlp` だけが有効である。base endpoint には各 signal の `/v1/traces`、`/v1/metrics`、`/v1/logs` を自動付与する。無効な signal は exporter、batch processor、metric reader を生成しない。描画の範囲を決める `OBS_RENDER_SPANS` は signal ではないので、この gate とは別に効く（trace 自体が無効なら描画 span も出ない）。変数の一覧と環境別の供給方法は [env/README.md](../../env/README.md) を参照する。
 
 ## 実行機序
 

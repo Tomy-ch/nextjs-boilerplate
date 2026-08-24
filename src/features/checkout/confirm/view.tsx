@@ -11,7 +11,7 @@ import {
 import type { Cart } from "@/model/cart/cart";
 import type { ReferenceAmount } from "@/model/money";
 import type { UserProfile } from "@/model/user/user";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { PRODUCTS_PATH } from "../paths";
 import { OrderLines } from "./ui/order-lines/order-lines";
 import { OrderSummary } from "./ui/order-summary/order-summary";
@@ -51,7 +51,7 @@ export type CheckoutConfirmViewProps = {
  * 送信の姿も 2 つ mount されるため、状態を姿ごとに持つと、送っている最中に幅が境界を跨いだとき
  * 表に出る側が「何も送っていない」姿になります。
  */
-export const CheckoutConfirmView = withRenderSpan(
+export const CheckoutConfirmView = withScreenSpan(
   "features/checkout/confirm/view",
   ({ cart, profile, reference, idempotencyKey }: CheckoutConfirmViewProps) => {
     if (cart.lines.length === 0) {

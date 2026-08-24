@@ -1,5 +1,5 @@
 import { getMyCart } from "@/adapters/server/api/cart";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { CartView } from "./view";
 
 /**
@@ -14,6 +14,6 @@ import { CartView } from "./view";
  *
  * 失敗は route の `error` 境界が受けます（[0080](../../../docs/adr/0080-error-handling.md)）。
  */
-export const CartPageContent = withRenderSpan("features/cart/page-content", async () => {
+export const CartPageContent = withScreenSpan("features/cart/page-content", async () => {
   return <CartView cart={await getMyCart()} />;
 });

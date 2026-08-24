@@ -11,7 +11,7 @@ import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { ProductCategory } from "@/model/product/product";
 import type { RawSearchParams } from "@/model/search-params";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import {
   COUNT_KEY,
   FILTER_KEY,
@@ -59,7 +59,7 @@ function toOptions(categories: readonly ProductCategory[]): readonly FilterOptio
  * 待機表示の境界に条件を鍵として与えるのは、条件が変われば一覧が総入れ替えになるためです。
  * 鍵を与えないと、次の一覧が届くまで前の条件の一覧が残ります。
  */
-export const ProductListPageContent = withRenderSpan(
+export const ProductListPageContent = withScreenSpan(
   "features/products/list/page-content",
   async ({ searchParams }: ProductListPageContentProps) => {
     const selection = normalizeSearchParams(searchParams);

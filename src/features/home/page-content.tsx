@@ -6,7 +6,7 @@ import {
 } from "@/adapters/server/api/products";
 import { getDefaultErrorMeta, resolveErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { HomeView, type SectionState } from "./view";
 
 /** ランキングに載せる件数。 */
@@ -45,7 +45,7 @@ function toSectionState<T>(settled: PromiseSettledResult<T>): SectionState<T> {
  * `Promise.all` ではなく `allSettled` を使うのは、1 つの失敗で残りを捨てないためです。`all` は
  * 最初の失敗で待機を打ち切るため、成功した系統の結果が手元にあっても使えません。
  */
-export const HomePageContent = withRenderSpan("features/home/page-content", async () => {
+export const HomePageContent = withScreenSpan("features/home/page-content", async () => {
   const [newArrivals, ranking, categories] = await Promise.allSettled([
     getProductListPage({ first: NEW_ARRIVAL_COUNT, sort: PRODUCT_SORT.NEWEST }).then(
       (page) => page.items,

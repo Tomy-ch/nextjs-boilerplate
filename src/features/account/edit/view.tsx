@@ -7,7 +7,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/design-system/navigation/breadcrumb/breadcrumb";
 import type { Prefecture, UserProfile } from "@/model/user/user";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { MYPAGE_PATH } from "../paths";
 import { ProfileForm } from "./ui/profile-form/profile-form";
 
@@ -24,7 +24,7 @@ type ProfileEditViewProps = {
  * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。nav が直接指すのはマイページまでで、
  * ここはその下の階層にあります。
  */
-export const ProfileEditView = withRenderSpan(
+export const ProfileEditView = withScreenSpan(
   "features/account/edit/view",
   ({ prefectures, profile }: ProfileEditViewProps) => {
     return (

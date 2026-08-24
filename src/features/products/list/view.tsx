@@ -8,7 +8,7 @@ import {
   FilterBarControls,
   FilterChip,
 } from "@/components/patterns/filter-bar/filter-bar";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { PRODUCT_LIST_PATH, type ProductListSelection } from "../facade/list-url/list-url";
 import { toActiveFilters } from "./active-filters";
 import { ProductFilterDraftProvider } from "./filter-draft";
@@ -66,7 +66,7 @@ export type ProductListViewProps = {
  * 並び替えを絞り込みの側へ入れず、幅によらず同じ場所へ置きます。単一選択なので選ぶことが確定と
  * 同じであり、まとめて確定する絞り込みの中に入れると確定の操作が 2 段になります。
  */
-export const ProductListView = withRenderSpan(
+export const ProductListView = withScreenSpan(
   "features/products/list/view",
   ({ categories, categoryLimit, sortOptions, selection, children }: ProductListViewProps) => {
     const activeFilters = toActiveFilters(categories, selection);

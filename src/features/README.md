@@ -20,10 +20,15 @@ test-requirement: feature
 
 ## 描画を span に載せる
 
-画面の最上位のエクスポート（`<screen>/page-content` と `<screen>/view`）を `observability` の `withRenderSpan` で包む。仕組みと span の読み方は [observability/README.md](../observability/README.md) が持つ。
+エクスポートを `observability` の 2 つで包む。**どちらで包むかは置き場で決まる。**
+
+| 置き場 | 使うもの | 既定 |
+| --- | --- | --- |
+| `<screen>/page-content` / `<screen>/view` | `withScreenSpan` | 有効 |
+| `<screen>/ui/**` | `withPartSpan` | 無効（`OBS_RENDER_SPANS=part` で開く） |
 
 ```tsx
-export const XxxPageContent = withRenderSpan(
+export const XxxPageContent = withScreenSpan(
   "features/<name>/<screen>/page-content",
   async ({ id }: XxxPageContentProps) => {
     // 取得と組み立て
@@ -31,10 +36,12 @@ export const XxxPageContent = withRenderSpan(
 );
 ```
 
+仕組みと span の読み方は [observability/README.md](../observability/README.md) が持つ。
+
 - **名前は `src/` からのモジュールパスと一致させる。** span 名がそのまま置き場を指すので、ずれると trace からファイルへ戻れない。利用者の入力を混ぜない
-- **`ui/` の部品は包まない。** 画面ごとの帰属は最上位の 2 つで足りる。部品まで広げると 1 描画の span が部品の数だけ増え、読む側が画面の輪郭を失う
-- **client component（`"use client"` を持つファイル）は包まない。** ブラウザでの描画では記録しない span になる一方で、`@opentelemetry/api` がその画面のクライアントバンドルへ入る（[0101](../../docs/adr/0101-performance-budget.md)）。span が付くのは server 描画の分だけなので、払った分は返らない
+- **client component（`"use client"` を持つファイル）は包まない。** ブラウザでの描画では span を作らない一方で、`@opentelemetry/api` がその画面のクライアントバンドルへ入る（[0101](../../docs/adr/0101-performance-budget.md)）。**範囲を無効にしても入る** —— import の辺が残るためで、払った分は返らない
 - **取得を持つ側を包むと帰属が付く。** `page-content` が待つ通信はその span の中に入るので、外向きの `fetch` を画面へ結び付けられる
+- **部品は常用しない。** `part` を開けると 1 描画の span が描く部品の数だけ増える。値打ちが出るのは、分岐した結果——どの姿を返したか——を trace から読みたいときである
 
 ## 運用
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { PurchaseFilterDraftProvider } from "./filter-draft";
 import type { PeriodSelection } from "./period";
 import { PurchasePeriodBar } from "./ui/period-bar/period-bar";
@@ -38,7 +38,7 @@ export type PurchaseHistoryViewProps = {
  * パンくずは置きません。global nav がこの画面を直接指しており、階層が 1 段だからです
  * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
  */
-export const PurchaseHistoryView = withRenderSpan(
+export const PurchaseHistoryView = withScreenSpan(
   "features/purchases/history/view",
   ({ period, children }: PurchaseHistoryViewProps) => {
     return (

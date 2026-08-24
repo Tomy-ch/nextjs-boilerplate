@@ -5,7 +5,7 @@ import {
   CardTitle,
 } from "@/components/design-system/display/card/card";
 import type { Session } from "@/model/session";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import type { DiscardDevSessionAction, IssueDevSessionAction } from "./form-state";
 import { CurrentSession } from "./ui/current-session/current-session";
 import { type AuthorizationHandoff, DevSessionForm } from "./ui/session-form/session-form";
@@ -43,7 +43,7 @@ export type DevSessionViewProps = {
  *
  * 送信先を自分で決めません。理由は [`form-state.ts`](./form-state.ts) が持ちます。
  */
-export const DevSessionView = withRenderSpan(
+export const DevSessionView = withScreenSpan(
   "features/dev-session/view",
   ({
     session,

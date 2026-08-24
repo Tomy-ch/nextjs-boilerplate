@@ -8,7 +8,7 @@ import {
   FilterBarControls,
   FilterChip,
 } from "@/components/patterns/filter-bar/filter-bar";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { ADMIN_PRODUCT_LIST_PATH, ADMIN_PRODUCT_NEW_PATH } from "../../paths";
 import { toAdminActiveFilters } from "./active-filters";
 import type { AdminProductFilterOption } from "./filter-option";
@@ -59,7 +59,7 @@ export type AdminProductListViewProps = {
  * 作成への導線は絞り込みの外の右端へ置きます。一覧を絞る操作と一覧を増やす操作は対象が違い、
  * 同じ landmark に入れると「絞り込み」の中に絞り込みでない操作が混ざります。
  */
-export const AdminProductListView = withRenderSpan(
+export const AdminProductListView = withScreenSpan(
   "features/admin/products/list/view",
   ({ conditions, categoryOptions, statusOptions, children }: AdminProductListViewProps) => {
     const activeFilters = toAdminActiveFilters(conditions, categoryOptions, statusOptions);

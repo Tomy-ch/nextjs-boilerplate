@@ -14,7 +14,7 @@ import {
 import { PRODUCT_LIST_PATH } from "@/features/products/facade/list-url/list-url";
 import type { ReferenceAmount } from "@/model/money";
 import type { Purchase } from "@/model/purchase/purchase";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { PurchaseAmountSummary } from "../facade/amount-summary/amount-summary";
 import { PurchaseLineList } from "../facade/lines/lines";
 import { PURCHASE_HISTORY_PATH } from "../facade/paths/paths";
@@ -46,7 +46,7 @@ export type PurchaseDetailViewProps = {
  * 円の切り替え）は紙面の場所を取るだけなので落とします。この購入の控えは手元へ残す対象なので、
  * 印刷の操作はパンくずと同じ段の右端に置きます。
  */
-export const PurchaseDetailView = withRenderSpan(
+export const PurchaseDetailView = withScreenSpan(
   "features/purchases/detail/view",
   ({ purchase, reference }: PurchaseDetailViewProps) => {
     return (

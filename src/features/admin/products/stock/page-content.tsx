@@ -1,6 +1,6 @@
 import { getProduct } from "@/adapters/server/api/products";
 import type { ProductId } from "@/model/product/product";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import type { AdjustProductStockAction } from "./form-state";
 import { AdminProductStockView } from "./view";
 
@@ -18,7 +18,7 @@ export type AdminProductStockPageContentProps = {
  * @remarks
  * 存在しない識別子は取得の口が `not-found` へ正規化し、route の境界が受けます。
  */
-export const AdminProductStockPageContent = withRenderSpan(
+export const AdminProductStockPageContent = withScreenSpan(
   "features/admin/products/stock/page-content",
   async ({ adjustAction, id }: AdminProductStockPageContentProps) => {
     const product = await getProduct(id);

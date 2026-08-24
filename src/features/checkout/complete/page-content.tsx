@@ -7,7 +7,7 @@ import { ErrorKind } from "@/errors/error-kind";
 import type { Purchase } from "@/model/purchase/purchase";
 
 import type { RawSearchParams } from "@/model/search-params";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { readPurchaseId } from "./purchase-id";
 import { CheckoutCompleteView } from "./view";
 
@@ -49,7 +49,7 @@ async function loadPurchase(purchaseId: string): Promise<Purchase> {
  * 指し先が読めない場合も `not-found` にします。確定を経ずに開かれた URL であり、見せる購入が
  * ありません。
  */
-export const CheckoutCompletePageContent = withRenderSpan(
+export const CheckoutCompletePageContent = withScreenSpan(
   "features/checkout/complete/page-content",
   async ({ searchParams }: CheckoutCompletePageContentProps) => {
     const purchaseId = readPurchaseId(searchParams);

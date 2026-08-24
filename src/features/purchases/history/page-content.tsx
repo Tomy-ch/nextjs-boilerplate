@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { RawSearchParams } from "@/model/search-params";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { toPeriodSearchParams } from "./period";
 import { toPeriodSelection } from "./read-period";
 import { PurchaseHistoryResults } from "./results";
@@ -23,7 +23,7 @@ export type PurchaseHistoryPageContentProps = {
  * 待機表示の境界に条件を鍵として与えるのは、期間が変われば一覧が総入れ替えになるためです。
  * 鍵を与えないと、次の一覧が届くまで前の期間の一覧が残ります。
  */
-export const PurchaseHistoryPageContent = withRenderSpan(
+export const PurchaseHistoryPageContent = withScreenSpan(
   "features/purchases/history/page-content",
   ({ searchParams }: PurchaseHistoryPageContentProps) => {
     const period = toPeriodSelection(searchParams);

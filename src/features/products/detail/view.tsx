@@ -22,7 +22,7 @@ import { AddToCartButton } from "@/features/cart/facade/add-to-cart/add-to-cart-
 import { formatDateTime } from "@/model/datetime";
 import type { Product } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { PRODUCT_LIST_PATH } from "../facade/list-url/list-url";
 import { ProductGallery } from "./ui/gallery/gallery";
 
@@ -57,7 +57,7 @@ type ProductDetailProps = {
  * 紙に出すのは内容だけです。押せない操作（パンくず・画像の送り・一覧・カートへの追加・印刷そのもの）
  * は紙面の場所を取るだけなので落とします。
  */
-export const ProductDetail = withRenderSpan(
+export const ProductDetail = withScreenSpan(
   "features/products/detail/view",
   ({ product, imageUrls }: ProductDetailProps) => {
     const isLowStock =

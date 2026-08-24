@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { FilterBar, FilterBarControls } from "@/components/patterns/filter-bar/filter-bar";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import type { UserScope } from "./query";
 import { UserScopeSelect } from "./ui/scope-select/scope-select";
 
@@ -27,7 +27,7 @@ export type AdminUserListViewProps = {
  * 見えているためです。欄に出ている値と chip が同じことを言います（商品一覧は狭い段で欄が
  * overlay へ入るので、そちらには要ります）。
  */
-export const AdminUserListView = withRenderSpan(
+export const AdminUserListView = withScreenSpan(
   "features/admin/users/view",
   ({ children, scope }: AdminUserListViewProps) => {
     return (

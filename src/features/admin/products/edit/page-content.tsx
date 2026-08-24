@@ -2,7 +2,7 @@ import { getProductCategories, getProductStatuses } from "@/adapters/server/api/
 import { getProduct } from "@/adapters/server/api/products";
 import { resolveMediaUrl } from "@/adapters/server/media/media-url";
 import type { ProductId } from "@/model/product/product";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import type { UpdateProductAction, UploadProductImageAction } from "../form-state";
 import { toMasterOptions } from "../master-option";
 import { AdminProductEditView } from "./view";
@@ -25,7 +25,7 @@ export type AdminProductEditPageContentProps = {
  * @remarks
  * 存在しない識別子は取得の口が `not-found` へ正規化し、route の境界が受けます。
  */
-export const AdminProductEditPageContent = withRenderSpan(
+export const AdminProductEditPageContent = withScreenSpan(
   "features/admin/products/edit/page-content",
   async ({ id, maxUploadBytes, updateAction, uploadAction }: AdminProductEditPageContentProps) => {
     const [product, categories, statuses] = await Promise.all([

@@ -1,5 +1,5 @@
 import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import type { CreateProductAction, UploadProductImageAction } from "../form-state";
 import { toMasterOptions } from "../master-option";
 import { AdminProductCreateView } from "./view";
@@ -15,7 +15,7 @@ export type AdminProductCreatePageContentProps = {
 };
 
 /** 作成の画面に要るマスタを揃える。 */
-export const AdminProductCreatePageContent = withRenderSpan(
+export const AdminProductCreatePageContent = withScreenSpan(
   "features/admin/products/new/page-content",
   async ({ createAction, maxUploadBytes, uploadAction }: AdminProductCreatePageContentProps) => {
     const [categories, statuses] = await Promise.all([

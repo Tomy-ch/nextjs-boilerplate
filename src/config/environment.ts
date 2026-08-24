@@ -15,6 +15,7 @@ import { mediaOriginValidator } from "./media/media.schema";
 import {
   otlpEndpointValidator,
   otlpExporterValidator,
+  renderSpansValidator,
   serviceNameValidator,
 } from "./observability/observability.schema";
 
@@ -40,6 +41,7 @@ const environmentSchema = z.object({
   OBS_TRACES_EXPORTER: otlpExporterValidator(),
   OBS_METRICS_EXPORTER: otlpExporterValidator(),
   OBS_LOGS_EXPORTER: otlpExporterValidator(),
+  OBS_RENDER_SPANS: renderSpansValidator(),
   AUTH_MODE: authModeValidator(),
   AUTH_ISSUER: authIssuerValidator(),
   AUTH_CLIENT_ID: authClientIdValidator(),

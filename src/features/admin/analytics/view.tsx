@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { DASHBOARD_PERIOD, type DashboardSummaryQuery } from "@/model/dashboard/dashboard";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import type { PeriodWindow } from "./period-window";
 import { PeriodCaption } from "./ui/period-caption/period-caption";
 import { PeriodSwitch } from "./ui/period-switch/period-switch";
@@ -36,7 +36,7 @@ export type AnalyticsViewProps = {
  *
  * @see Storybook `Page/Admin/Analytics`
  */
-export const AnalyticsView = withRenderSpan(
+export const AnalyticsView = withScreenSpan(
   "features/admin/analytics/view",
   ({ query, window, summary, ranking }: AnalyticsViewProps) => {
     const period = query.period ?? DASHBOARD_PERIOD.TODAY;

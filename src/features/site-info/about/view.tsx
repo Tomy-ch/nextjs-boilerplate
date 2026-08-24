@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { TERMS_PATH } from "../facade/paths/paths";
 import { RepositoryCards } from "../ui/repository-cards/repository-cards";
 
@@ -20,7 +20,7 @@ import { RepositoryCards } from "../ui/repository-cards/repository-cards";
  *
  * 免責は利用規約が持ちます。同じ文を 2 か所に置くと、片方だけ直した状態を作れます。
  */
-export const AboutView = withRenderSpan("features/site-info/about/view", () => {
+export const AboutView = withScreenSpan("features/site-info/about/view", () => {
   return (
     <div className="flex max-w-3xl flex-col gap-8 text-sm leading-relaxed">
       <Alert variant="warning">

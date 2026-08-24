@@ -6,7 +6,7 @@ import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-fee
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { RawSearchParams } from "@/model/search-params";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
 import { toFilterOptions } from "./filter-option";
 import { ADMIN_PRODUCT_PAGE_SIZE } from "./page-size";
@@ -38,7 +38,7 @@ export type AdminProductListPageContentProps = {
  * 鍵に含めません。含めると、同じ結果を出す遷移でも表が組み直されます。**鍵は値を一意に表す形で
  * 作ります。** 区切り文字で連結すると、値に区切り文字が現れた時点で別の条件が同じ鍵になります。
  */
-export const AdminProductListPageContent = withRenderSpan(
+export const AdminProductListPageContent = withScreenSpan(
   "features/admin/products/list/page-content",
   async ({ searchParams }: AdminProductListPageContentProps) => {
     const location = toAdminProductListLocation(searchParams);

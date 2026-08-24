@@ -5,7 +5,7 @@ import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-fee
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { RawSearchParams } from "@/model/search-params";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { ADMIN_ANALYTICS_PATH } from "../paths";
 import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
 import { PERIOD_KEY_LABEL, toPeriodRequest } from "./period";
@@ -40,7 +40,7 @@ function toRawQuery(params: RawSearchParams): RawDashboardQuery {
  * **いまの時刻をここで読みます。** どの暦日を見ているかの表示に要りますが、描画のたびに実時計を
  * 読む部品にすると、基準画像が撮った時刻に依存します。
  */
-export const AdminAnalyticsPageContent = withRenderSpan(
+export const AdminAnalyticsPageContent = withScreenSpan(
   "features/admin/analytics/page-content",
   ({ searchParams }: { searchParams: RawSearchParams }) => {
     const parsed = parseDashboardQuery(toRawQuery(searchParams));

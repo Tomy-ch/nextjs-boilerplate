@@ -1,6 +1,6 @@
 import { getPrefectures } from "@/adapters/server/api/prefectures";
 import { getMyProfile } from "@/adapters/server/api/users";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { ProfileEditView } from "./view";
 
 /**
@@ -15,7 +15,7 @@ import { ProfileEditView } from "./view";
  * 並行に取るのは、順に待つ理由が無いためです。マスタは変わらないので取得の大半はキャッシュから
  * 返りますが、初回はそうではありません。
  */
-export const ProfileEditPageContent = withRenderSpan(
+export const ProfileEditPageContent = withScreenSpan(
   "features/account/edit/page-content",
   async () => {
     const [profile, prefectures] = await Promise.all([getMyProfile(), getPrefectures()]);

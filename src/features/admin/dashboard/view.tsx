@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/design-system/action/button/button";
 import type { DashboardSummary } from "@/model/dashboard/dashboard";
-import { withRenderSpan } from "@/observability/render-span";
+import { withScreenSpan } from "@/observability/render-span";
 import { ADMIN_ANALYTICS_PATH } from "../paths";
 import { toSummaryCards } from "../summary-cards";
 import { StatCards } from "../ui/stat-cards/stat-cards";
@@ -29,7 +29,7 @@ const LABEL = "今日の集計";
  *
  * @see Storybook `Page/Admin/Dashboard`
  */
-export const DashboardView = withRenderSpan(
+export const DashboardView = withScreenSpan(
   "features/admin/dashboard/view",
   ({ summary }: DashboardViewProps) => {
     return (
