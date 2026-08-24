@@ -18,11 +18,16 @@ import type { Change } from "../lib/numstat";
  * @remarks
  * 先送りにした 3 つの検査が見るものの和集合です。`src/` は描画とロジック、`tokens/` は配色と
  * 寸法、`.storybook/` は story の写り方、`e2e/` と `vrt/` は検査そのものの実装。
+ *
+ * `mocks/` が入るのは、`e2e` と `lighthouse` が実アプリを mock モード（`APP_ENV=ci`）で起動し、
+ * 応答がそのまま画面の中身になるためです。**story はここを通りません** —— カタログが自分で答える
+ * ハンドラは `.storybook/msw/` にあります（`mocks/README.md`）。3 つのうち 2 つが見る、で足ります。
  */
 const COUNTED_PREFIXES: readonly string[] = [
   "src/",
   "tokens/",
   ".storybook/",
+  "mocks/",
   "e2e/",
   "vrt/",
 ] as const;

@@ -41,8 +41,16 @@ VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
 #
 # 分けた実行のレポートは blob で出す。json と HTML は全 shard を集めてから `merge-reports` が
 # 束ね直すので、割った側がそれぞれ書くと、どれか 1 台ぶんの表が全数の表として残る。
+#
+# **`list` を併せて指定する。**`--reporter` は設定の宣言を上書きするもので、足すものではない
+# （playwright の `takeFirst`）。blob だけを渡すと `list` まで消え、blob は標準出力へ何も書かない
+# ので、実行ログに残るのが build のログだけになる。どの story で詰まったかは、そこにしか出ない。
 VRT_SHARD ?=
-VRT_SHARD_ARGS := $(if $(VRT_SHARD),--shard=$(VRT_SHARD) --reporter=blob,)
+# reporter の区切りのカンマ。`$(if ...)` の引数の区切りと同じ文字なので、直に書くと
+# そこで切られて blob が落ちる。
+COMMA := ,
+
+VRT_SHARD_ARGS := $(if $(VRT_SHARD),--shard=$(VRT_SHARD) --reporter=list$(COMMA)blob,)
 
 # 割っていないか、割った 1 台目か。比較を省いたときに残る対応の検査を担う側である。
 # 数える相手は置き場のファイルと story の全目録で、その実行で走った test ではないため、

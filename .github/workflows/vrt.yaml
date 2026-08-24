@@ -49,11 +49,6 @@ on:
 # there — and `storybook build` reports success anyway, leaving a tree with no preview.
 env:
   APP_ENV: ci
-  # How many machines the stories are split across. Four is where the curve flattens: the
-  # fixed cost per machine (setup, Storybook build, image pull) is roughly 80s against a
-  # comparison of roughly 380s, so a fifth machine buys seconds while every machine is
-  # billed to whoever forked this.
-  VRT_SHARDS: '4'
 
 permissions:
   contents: read
@@ -117,6 +112,16 @@ jobs:
       # every story that moved. Cancelling the rest would report a subset as the whole.
       fail-fast: false
       matrix:
+        # **The only declaration of how many machines the stories are split across.** The
+        # denominator each machine passes to `--shard` is read back from `strategy.job-total`,
+        # so there is no second number to keep in step with this one. Writing it twice would
+        # let the two drift, and the drift is silent: with a denominator of 5 and four entries
+        # here, nothing computes the fifth bucket, so those stories are never compared and the
+        # required check still reports green.
+        #
+        # Four is where the curve flattens. The fixed cost per machine (setup, Storybook build,
+        # image pull) is roughly 80s against a comparison of roughly 380s, so a fifth machine
+        # buys seconds while every machine is billed to whoever forked this.
         shard: [1, 2, 3, 4]
 
     steps:
@@ -180,6 +185,9 @@ jobs:
         continue-on-error: true
         env:
           SHARD: ${{ matrix.shard }}
+          # Resolved from the matrix itself, so the denominator cannot disagree with how many
+          # machines actually run.
+          SHARDS: ${{ strategy.job-total }}
         shell: bash
         run: |
           set +e
@@ -189,7 +197,7 @@ jobs:
           # exact case worth diagnosing — the slow one — is the case that leaves no log at
           # all. Streaming also gets every line stamped with the runner's clock, which is
           # what tells apart a slow Storybook build, a slow image pull and a slow comparison.
-          make vrt "VRT_SHARD=${SHARD}/${VRT_SHARDS}" 2>&1 | tee /tmp/vrt-full.log
+          make vrt "VRT_SHARD=${SHARD}/${SHARDS}" 2>&1 | tee /tmp/vrt-full.log
           code=${PIPESTATUS[0]}
 
           # Green because these stories were compared, or green because the inputs had
@@ -415,7 +423,11 @@ jobs:
 
           echo 'status=success' >> "$GITHUB_OUTPUT"
 
-          if grep -qx 'vrt-gate: skip' /tmp/vrt-comment/vrt.log; then
+          # Every machine writes one of these lines, so "skipped" is only true when none of
+          # them ran. Reading a single `skip` as the whole verdict would report a comparison
+          # that did happen as one that was skipped.
+          if grep -qx 'vrt-gate: skip' /tmp/vrt-comment/vrt.log \
+            && ! grep -qx 'vrt-gate: run' /tmp/vrt-comment/vrt.log; then
             echo 'title=## ✅ VRT: PASS (inputs unchanged, comparison skipped)' >> "$GITHUB_OUTPUT"
           else
             echo 'title=## ✅ VRT: PASS (no visual change)' >> "$GITHUB_OUTPUT"

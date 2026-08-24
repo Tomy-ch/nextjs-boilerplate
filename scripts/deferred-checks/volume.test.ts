@@ -30,6 +30,10 @@ describe("isCounted", () => {
     expect(isCounted("e2e/journeys/checkout.spec.ts")).toBe(true);
   });
 
+  it("画面の中身になる契約駆動モックを数える", () => {
+    expect(isCounted("mocks/handlers.ts")).toBe(true);
+  });
+
   // ----- 異常系 -----
   it("単体テストは数えない", () => {
     expect(isCounted("src/features/cart/cart-view.test.tsx")).toBe(false);

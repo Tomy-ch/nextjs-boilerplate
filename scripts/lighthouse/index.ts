@@ -151,7 +151,7 @@ function measure(target: Target, runs: number, headersFile: string | undefined):
  * 差分を判定し、GitHub Actions の出力へ書く。
  *
  * @remarks
- * `kind` が `force` なら計測へ進み、`alert` なら知らせるだけです。判定そのものは
+ * `kind` が `force` なら計測へ進み、`skip` なら保護ブランチの計測に任せます。判定そのものは
  * [`trigger.ts`](trigger.ts) が持ちます。
  */
 function trigger(baseRef: string): void {
