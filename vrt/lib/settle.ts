@@ -35,6 +35,11 @@ const PENDING_PHASES = ["preparing", "loading", "beforeEach", "rendering", "play
  *
  * フォントは差し替わった瞬間に字形が変わるため、待たずに撮ると同じ story が撮るたびに違う
  * 画像になります。
+ *
+ * **最後にページのスクロールを先頭へ戻します。** 撮るのはビューポートのぶんだけなので、
+ * スクロール位置が違えば同じ状態でも別の絵になります。`play` を持つ story は操作の途中で
+ * focus が動き、ブラウザはその要素を見せるためにページを送ります。送る量は操作した時点の
+ * 文書の高さで決まるので、story の宣言のどこにも現れません。
  */
 export async function settle(page: Page, theme: string): Promise<void> {
   try {
@@ -79,4 +84,11 @@ export async function settle(page: Page, theme: string): Promise<void> {
   }
 
   await page.evaluate(() => document.fonts.ready);
+
+  // 戻すのはページのスクロールだけ。送り終えた位置そのものが見せたい状態である story
+  // （carousel / message-scroller など）は、内側の領域を送っているので動かない。
+  //
+  // behavior を明示するのは、`scroll-behavior: smooth` の下では既定が滑らかな送りになり、
+  // 撮影が動いている最中に掛かるため。
+  await page.evaluate(() => window.scrollTo({ behavior: "instant", left: 0, top: 0 }));
 }
