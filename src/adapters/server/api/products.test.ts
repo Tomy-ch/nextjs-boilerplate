@@ -124,6 +124,14 @@ describe("parseProductQuery", () => {
     expect(result).toMatchObject({ ok: true, query: { first: 20 } });
   });
 
+  it("未公開を含める指定を、URL の綴りから真偽値へ写す", () => {
+    const included = parseProductQuery({ includeUnpublished: "true" });
+    const excluded = parseProductQuery({ includeUnpublished: "false" });
+
+    expect(included).toMatchObject({ ok: true, query: { includeUnpublished: true } });
+    expect(excluded).toMatchObject({ ok: true, query: { includeUnpublished: false } });
+  });
+
   it("省略した条件を契約の既定値で埋める", () => {
     const result = parseProductQuery({});
 
@@ -134,6 +142,12 @@ describe("parseProductQuery", () => {
   });
 
   // ----- 異常系 -----
+  it("真偽値として読めない綴りは、既定へ倒さず外れたキーとして返す", () => {
+    const result = parseProductQuery({ includeUnpublished: "yes" });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["includeUnpublished"] });
+  });
+
   it("契約に無い並び順を写さず、外れたキーを返す", () => {
     const result = parseProductQuery({ sort: "price" });
 
@@ -480,9 +494,11 @@ describe("getProductRanking", () => {
       window: { after: "2026-08-01T00:00:00+09:00", before: "2026-09-01T00:00:00+09:00" },
     });
 
-    expect(requests[0]?.url).toBe(
-      `${RANKING_URL}?orderedAfter=${encodeURIComponent("2026-08-01T00:00:00+09:00")}&orderedBefore=${encodeURIComponent("2026-09-01T00:00:00+09:00")}&limit=5`,
-    );
+    const query = new URL(requests[0]?.url ?? "").searchParams;
+
+    expect(query.get("orderedAfter")).toBe("2026-08-01T00:00:00+09:00");
+    expect(query.get("orderedBefore")).toBe("2026-09-01T00:00:00+09:00");
+    expect(query.get("limit")).toBe("5");
   });
 
   it("数量の軸の口を叩く", async () => {

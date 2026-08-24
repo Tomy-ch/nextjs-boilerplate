@@ -308,6 +308,14 @@ describe("parsePurchaseHistoryQuery", () => {
     expect(parsed.ok && parsed.query.includeOtherUsers).toBe(false);
   });
 
+  it("真偽値の条件を、URL の綴りから真偽値へ直す", () => {
+    const included = parsePurchaseHistoryQuery({ includeOtherUsers: "true" });
+    const excluded = parsePurchaseHistoryQuery({ includeOtherUsers: "false" });
+
+    expect(included.ok && included.query.includeOtherUsers).toBe(true);
+    expect(excluded.ok && excluded.query.includeOtherUsers).toBe(false);
+  });
+
   it("繰り返された条件は指定なしとして落とす", () => {
     const parsed = parsePurchaseHistoryQuery({
       orderedAfter: ["2026-07-01T00:00:00+09:00", "2026-08-01T00:00:00+09:00"],
@@ -328,6 +336,13 @@ describe("parsePurchaseHistoryQuery", () => {
     expect(parsePurchaseHistoryQuery({ orderedAfter: "2026-07-01T00:00:00" })).toEqual({
       ok: false,
       invalidKeys: ["orderedAfter"],
+    });
+  });
+
+  it("真偽値として読めない綴りは、既定へ倒さず読めなかったキーとして返す", () => {
+    expect(parsePurchaseHistoryQuery({ includeOtherUsers: "yes" })).toEqual({
+      ok: false,
+      invalidKeys: ["includeOtherUsers"],
     });
   });
 

@@ -9,12 +9,22 @@ const { getMyPurchases } = vi.hoisted(() => ({ getMyPurchases: vi.fn() }));
 vi.mock("@/adapters/server/api/purchases", () => ({ getMyPurchases }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
+// 続きを読む側へ何が渡ったかを見るため、本物を包んで呼び出しだけ記録する。差し替えてしまうと
+// 同じファイルの並びと a11y の検査が中身を失う。
+vi.mock("./ui/infinite-list/infinite-list", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./ui/infinite-list/infinite-list")>();
+
+  return { ...actual, PurchaseInfiniteList: vi.fn(actual.PurchaseInfiniteList) };
+});
+
 import { HISTORY_ENTRIES } from "../purchases.fixture";
 import { PURCHASE_PAGE_SIZE } from "./query";
 import { PurchaseHistoryResults } from "./results";
+import { PurchaseInfiniteList } from "./ui/infinite-list/infinite-list";
 
 beforeEach(() => {
   getMyPurchases.mockReset().mockResolvedValue({ items: HISTORY_ENTRIES, nextCursor: null });
+  vi.mocked(PurchaseInfiniteList).mockClear();
 });
 
 describe("PurchaseHistoryResults", () => {
@@ -38,14 +48,17 @@ describe("PurchaseHistoryResults", () => {
     });
   });
 
-  it("相対の期間でも、区間を 1 度だけ解いて渡す", async () => {
-    render(await PurchaseHistoryResults({ period: { kind: "recent", days: 30 } }));
+  it("相対の期間でも、先頭ページと続きの取得が同じ区間を見る", async () => {
     render(await PurchaseHistoryResults({ period: { kind: "recent", days: 30 } }));
 
-    const [first] = getMyPurchases.mock.calls[0] ?? [];
+    const [condition] = getMyPurchases.mock.calls[0] ?? [];
+    const [listProps] = vi.mocked(PurchaseInfiniteList).mock.calls[0] ?? [];
 
-    expect(first.orderedAfter).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\+09:00$/);
-    expect(Date.parse(first.orderedBefore) - Date.parse(first.orderedAfter)).toBe(
+    expect(listProps?.window).toEqual({
+      after: condition.orderedAfter,
+      before: condition.orderedBefore,
+    });
+    expect(Date.parse(condition.orderedBefore) - Date.parse(condition.orderedAfter)).toBe(
       30 * 24 * 60 * 60 * 1000,
     );
   });

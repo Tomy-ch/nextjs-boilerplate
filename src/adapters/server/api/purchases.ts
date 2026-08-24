@@ -86,6 +86,29 @@ export type PurchaseHistoryQueryParseResult =
 /** 数として宣言されている条件。クエリ文字列からは文字列で届くため、照合の前に直す。 */
 const NUMERIC_KEYS: readonly string[] = ["first"];
 
+/** 真偽値として宣言されている条件。同じく、クエリ文字列からは文字列で届く。 */
+const BOOLEAN_KEYS: readonly string[] = ["includeOtherUsers"];
+
+/**
+ * 契約が受け付ける綴りだけを真偽値へ直す。
+ *
+ * @remarks
+ * **読めない綴りは文字列のまま返します。** 真偽値へ寄せると、`includeOtherUsers=yes` のような
+ * 打ち間違いが黙って「自分の購入だけ」に倒れ、母集団が変わったことを利用者が知る手段が
+ * なくなります。文字列のまま契約へ落とせば、読めなかったキーとして返ります。
+ */
+function toBoolean(value: string): boolean | string {
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  return value;
+}
+
 /**
  * 素のクエリを、契約が受け付ける取得条件へ照合する。
  *
@@ -102,6 +125,11 @@ export function parsePurchaseHistoryQuery(
 
   for (const [key, value] of Object.entries(raw)) {
     if (typeof value !== "string") {
+      continue;
+    }
+
+    if (BOOLEAN_KEYS.includes(key)) {
+      typed[key] = toBoolean(value);
       continue;
     }
 

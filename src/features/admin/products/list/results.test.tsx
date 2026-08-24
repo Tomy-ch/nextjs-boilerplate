@@ -70,7 +70,7 @@ describe("AdminProductListResults", () => {
 
     render(await AdminProductListResults({ location: location(), query }));
 
-    expect(getProducts).toHaveBeenCalledWith(expect.objectContaining(query));
+    expect(getProducts).toHaveBeenCalledWith({ ...query, includeUnpublished: true });
   });
 
   it("未公開の商品も母集団に含めて取得する", async () => {
@@ -87,7 +87,7 @@ describe("AdminProductListResults", () => {
       }),
     );
 
-    expect(getProducts).toHaveBeenCalledWith(expect.objectContaining(QUERY));
+    expect(getProducts).toHaveBeenCalledWith({ ...QUERY, includeUnpublished: true });
   });
 
   it("次の起点があれば次へ進める", async () => {

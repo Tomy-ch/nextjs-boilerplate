@@ -34,28 +34,24 @@ const SUMMARY: DashboardSummary = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useRealTimers();
   getDashboardSummary.mockResolvedValue(SUMMARY);
 });
 
+// 店のタイムゾーンでは日付が変わった直後、協定世界時ではまだ前日という瞬時。
+const AFTER_MIDNIGHT_IN_TOKYO = new Date("2026-08-24T15:30:00.000Z");
+
 describe("AdminDashboardPageContent", () => {
-  it("今日 1 日の区間を明示して集計を求める", async () => {
+  it("店のタイムゾーンで見た今日 1 日を、区間の両端を挙げて求める", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(AFTER_MIDNIGHT_IN_TOKYO);
+
     render(await AdminDashboardPageContent());
 
-    const [window] = getDashboardSummary.mock.calls[0] ?? [];
-
-    expect(window).toEqual({
-      after: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T00:00:00\+09:00$/),
-      before: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T00:00:00\+09:00$/),
+    expect(getDashboardSummary).toHaveBeenCalledWith({
+      after: "2026-08-25T00:00:00+09:00",
+      before: "2026-08-26T00:00:00+09:00",
     });
-  });
-
-  it("上限は下限の翌日に置き、今日の 24 時間を含める", async () => {
-    render(await AdminDashboardPageContent());
-
-    const [window] = getDashboardSummary.mock.calls[0] ?? [];
-    const elapsed = Date.parse(window.before) - Date.parse(window.after);
-
-    expect(elapsed).toBe(24 * 60 * 60 * 1000);
   });
 
   it("a11y 検査を通る", async () => {

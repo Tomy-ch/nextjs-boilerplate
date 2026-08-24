@@ -8,13 +8,13 @@ import {
   SHIPMENT_TARGET_LOST_MESSAGE,
 } from "@/features/admin/shipments/form-state";
 import { idleActionState } from "@/model/action-state";
-import { SESSION_ROLE } from "@/model/session";
+import { SESSION_ROLE, type Session, type SessionRole } from "@/model/session";
 
 const { deliverPurchase, revalidatePath, shipPurchase, verifySession } = vi.hoisted(() => ({
   deliverPurchase: vi.fn(),
   revalidatePath: vi.fn(),
   shipPurchase: vi.fn(),
-  verifySession: vi.fn(),
+  verifySession: vi.fn<() => Promise<Session | null>>(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath }));
@@ -35,6 +35,15 @@ const CODES = [
 
 const [FIRST_CODE = ""] = CODES;
 
+/** 役割だけを変えた session。型を通すことで、実フィールドとずれた形が緑にならない。 */
+function session(role: SessionRole): Session {
+  return {
+    userId: "0195f0c2-0000-7000-9000-0000000000a1",
+    role,
+    expiresAt: new Date("2099-01-01T00:00:00.000Z"),
+  };
+}
+
 /** 発送する注文を並べた送信。 */
 function shipmentForm(purchaseCodes: readonly string[] = CODES): FormData {
   const form = new FormData();
@@ -48,7 +57,7 @@ function shipmentForm(purchaseCodes: readonly string[] = CODES): FormData {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  verifySession.mockResolvedValue({ subject: "admin", role: SESSION_ROLE.admin });
+  verifySession.mockResolvedValue(session(SESSION_ROLE.admin));
 });
 
 describe("shipPurchasesAction", () => {
@@ -82,7 +91,7 @@ describe("shipPurchasesAction", () => {
 
   // ----- 異常系 -----
   it("役割が足りない主体の要求を、発送を試みる前に止める", async () => {
-    verifySession.mockResolvedValue({ subject: "someone", role: SESSION_ROLE.user });
+    verifySession.mockResolvedValue(session(SESSION_ROLE.user));
 
     const state = await shipPurchasesAction(idleActionState(), shipmentForm());
 
@@ -172,12 +181,12 @@ describe("deliverPurchaseAction", () => {
 
   // ----- 異常系 -----
   it("役割が無ければ、要求を送らずに拒む", async () => {
-    verifySession.mockResolvedValueOnce({ roles: [] });
+    verifySession.mockResolvedValueOnce(session(SESSION_ROLE.user));
 
     const state = await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
 
     expect(deliverPurchase).not.toHaveBeenCalled();
-    expect(state.status).toBe("error");
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.PERMISSION_DENIED });
   });
 
   it("対象が載っていなければ、開き直すよう伝える", async () => {
@@ -201,6 +210,6 @@ describe("deliverPurchaseAction", () => {
     const state = await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
 
     expect(revalidatePath).not.toHaveBeenCalled();
-    expect(state.status).toBe("error");
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.UNAVAILABLE });
   });
 });

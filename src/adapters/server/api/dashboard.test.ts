@@ -86,9 +86,10 @@ describe("getDashboardSummary", () => {
 
     await getDashboardSummary(MONTH_WINDOW);
 
-    expect(requests[0]?.url).toBe(
-      `${SUMMARY_URL}?orderedAfter=${encodeURIComponent(MONTH_WINDOW.after)}&orderedBefore=${encodeURIComponent(MONTH_WINDOW.before)}`,
-    );
+    const query = new URL(requests[0]?.url ?? "").searchParams;
+
+    expect(query.get("orderedAfter")).toBe(MONTH_WINDOW.after);
+    expect(query.get("orderedBefore")).toBe(MONTH_WINDOW.before);
   });
 
   it("片側だけの区間では、その側だけを載せる", async () => {
@@ -96,9 +97,10 @@ describe("getDashboardSummary", () => {
 
     await getDashboardSummary({ after: MONTH_WINDOW.after });
 
-    expect(requests[0]?.url).toBe(
-      `${SUMMARY_URL}?orderedAfter=${encodeURIComponent(MONTH_WINDOW.after)}`,
-    );
+    const query = new URL(requests[0]?.url ?? "").searchParams;
+
+    expect(query.get("orderedAfter")).toBe(MONTH_WINDOW.after);
+    expect(query.get("orderedBefore")).toBeNull();
   });
 
   it("区間を省略すればクエリに載せない", async () => {

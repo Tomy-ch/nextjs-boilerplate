@@ -71,6 +71,23 @@ describe("ShipmentQueueView", () => {
     expect(screen.queryByText("発送を待っている注文はありません。")).not.toBeInTheDocument();
   });
 
+  it("配達を待つ注文が無くても、発送を待つ便があれば出す", () => {
+    render(
+      <ShipmentQueueView
+        deliverAction={deliverAction}
+        groups={DISPATCH_GROUPS}
+        shipAction={shipAction}
+        shipped={[]}
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: "発送する" })).toHaveLength(
+      DISPATCH_GROUPS.flatMap(({ purchases }) => purchases).length,
+    );
+    expect(screen.getByText("配達の確認を待っている注文はありません。")).toBeVisible();
+    expect(screen.queryByText("発送を待っている注文はありません。")).not.toBeInTheDocument();
+  });
+
   it("どちらも無ければ、その旨だけを出す", () => {
     render(
       <ShipmentQueueView

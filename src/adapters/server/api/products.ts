@@ -137,6 +137,34 @@ const INTEGER_KEYS: readonly string[] = ["first", "minQuantity", "maxQuantity"];
  */
 const INTEGER_ARRAY_KEYS: readonly string[] = ["categoryCodes", "statusCodes"];
 
+/**
+ * 契約が真偽値で宣言しているキー。
+ *
+ * @remarks
+ * URL の値は常に文字列なので、そのまま渡すと真偽値の宣言に当たって落ちます。
+ */
+const BOOLEAN_KEYS: readonly string[] = ["includeUnpublished"];
+
+/**
+ * 契約が受け付ける綴りだけを真偽値へ直す。
+ *
+ * @remarks
+ * **読めない綴りは文字列のまま返します。** 真偽値へ寄せると、`includeUnpublished=yes` のような
+ * 打ち間違いが黙って「含めない」に倒れ、絞り込んだつもりの母集団が変わったことを利用者が
+ * 知る手段がなくなります。文字列のまま契約へ落とせば、読めなかったキーとして返ります。
+ */
+function toBoolean(value: string): boolean | string {
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  return value;
+}
+
 /** 素の値を、契約が宣言した型へ直す。 */
 function toTypedQuery(raw: RawProductQuery): Record<string, unknown> {
   return Object.fromEntries(
@@ -149,7 +177,15 @@ function toTypedValue(key: string, value: string | readonly string[]): unknown {
     return [...new Set((typeof value === "string" ? [value] : value).map(Number))];
   }
 
-  return INTEGER_KEYS.includes(key) && typeof value === "string" ? Number(value) : value;
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  if (BOOLEAN_KEYS.includes(key)) {
+    return toBoolean(value);
+  }
+
+  return INTEGER_KEYS.includes(key) ? Number(value) : value;
 }
 
 /** URL の検索条件を契約に照らした結果。 */
