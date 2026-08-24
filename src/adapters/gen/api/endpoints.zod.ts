@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+8f733fb
+ * OpenAPI spec version: 2.2.0+151bc17
  */
 import * as zod from "zod";
 
@@ -619,10 +619,15 @@ export const GetUsersMePurchasesSummaryResponse = zod
             status: zod
               .object({
                 id: zod.uuid().describe("購入ステータスID"),
+                code: zod
+                  .int()
+                  .describe(
+                    "購入ステータスの業務キー。値は到達順序を意味しません（完了より支払い済みのほうが大きい）。",
+                  ),
                 name: zod.string().describe("購入ステータス名"),
               })
               .describe(
-                "購入に紐づくステータス（ID と名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。",
+                "購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。\n表示には name を、分岐にはドメインの業務キーである code を用います。\n",
               ),
             count: zod.int().describe("当該ステータスの購入件数"),
             totalAmount: zod
@@ -2189,22 +2194,35 @@ export const GetPurchasesResponse = zod
       .array(
         zod
           .object({
-            code: zod.string().describe("購入コード（UUIDv7 文字列・一意）"),
+            code: zod.string().describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
             totalAmount: zod
               .int()
               .describe("合計（小計 + 税額 + 送料）。USD セント単位の整数です。"),
             status: zod
               .object({
                 id: zod.uuid().describe("購入ステータスID"),
+                code: zod
+                  .int()
+                  .describe(
+                    "購入ステータスの業務キー。値は到達順序を意味しません（完了より支払い済みのほうが大きい）。",
+                  ),
                 name: zod.string().describe("購入ステータス名"),
               })
               .describe(
-                "購入に紐づくステータス（ID と名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。",
+                "購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。\n表示には name を、分岐にはドメインの業務キーである code を用います。\n",
               ),
+            firstItemName: zod
+              .string()
+              .describe(
+                "明細の先頭 1 件の商品名。先頭の選び方に業務的な意味はありません（明細の並びの先頭です）。",
+              ),
+            itemCount: zod
+              .int()
+              .describe("明細の点数（行数。先頭商品を含みます）。数量の合計ではありません。"),
             orderedAt: zod.iso.datetime({ offset: true }).describe("注文日時"),
           })
           .describe(
-            "購入履歴一覧の概要要素スキーマ。一覧はカード表示前提で概要のみを返し、明細は含みません\n（明細は購入詳細 API で取得します）。status は ID・名称を事前解決済みで、別途の名称解決は不要です。\n",
+            "購入履歴一覧の概要要素スキーマ。一覧はカード表示前提で概要のみを返し、明細は含みません\n（明細は購入詳細 API で取得します）。status は ID・業務キー・名称を事前解決済みで、別途の名称解決は不要です。\n行を見分けるための要約として、先頭商品名（firstItemName）と明細の点数（itemCount）を含みます。\n",
           ),
       )
       .describe("購入履歴の概要一覧（注文日時の降順）。購入がない場合は空配列です。"),
@@ -2290,8 +2308,7 @@ export const postPurchasesResponseReferenceAmountRateRegExp = new RegExp("^\\d+(
 
 export const PostPurchasesResponse = zod
   .object({
-    id: zod.uuid().describe("購入ID"),
-    code: zod.string().describe("購入コード（UUIDv7 文字列・一意）"),
+    code: zod.string().describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
     userId: zod.uuid().describe("購入したユーザーのID"),
     statusId: zod
       .uuid()
@@ -2350,7 +2367,7 @@ export const PostPurchasesResponse = zod
  * limit は読み出す購入の件数で、まとめ判定はその範囲の中で行います。範囲の外にある同一購入者の購入は
  * 別の便になります。ページネーションは行わず、上位 limit 件のみを対象とします。
  * 発送待ちの購入がない場合はエラーではなく空配列を返します。
- * 発送の実行は購入 1 件ずつ `POST /v1/purchases/{purchaseId}/ship` で行います。
+ * 発送の実行は購入 1 件ずつ `PATCH /v1/purchases/{purchaseCode}/ship` で行います。
  * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
  * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
  * @summary 発送待ち購入のまとめ発送一覧の取得
@@ -2380,19 +2397,18 @@ export const GetPurchasesShippableResponse = zod
               .array(
                 zod
                   .object({
-                    id: zod
-                      .uuid()
+                    code: zod
+                      .string()
                       .describe(
-                        "購入ID。発送指示（`POST \/v1\/purchases\/{purchaseId}\/ship`）に用います。",
+                        "購入コード（利用者へ注文番号として見せる一意の識別子）。発送指示（`PATCH \/v1\/purchases\/{purchaseCode}\/ship`）に用います。",
                       ),
-                    code: zod.string().describe("購入コード（UUIDv7 文字列・一意）"),
                     totalAmount: zod
                       .int()
                       .describe("合計（小計 + 税額 + 送料）。USD セント単位の整数です。"),
                     orderedAt: zod.iso.datetime({ offset: true }).describe("注文日時"),
                   })
                   .describe(
-                    "まとめ発送の組に含まれる購入 1 件のスキーマ。発送指示は購入 1 件ずつ行うため id を返します。\n組に入っている時点で発送可能なので、status は返しません。明細も含みません（購入詳細 API で取得します）。\n",
+                    "まとめ発送の組に含まれる購入 1 件のスキーマ。発送指示は購入 1 件ずつ code を指定して行います。\n組に入っている時点で発送可能なので、status は返しません。明細も含みません（購入詳細 API で取得します）。\n",
                   ),
               )
               .min(1)
@@ -2416,34 +2432,34 @@ export const GetPurchasesShippableResponse = zod
  * 明細 unitPrice は購入時点の単価スナップショット（USD ドルの decimal 文字列）です。
  * @summary 購入詳細の取得
  */
-export const getPurchasesDetailPathPurchaseIdMax = 36;
-
-export const getPurchasesDetailPathPurchaseIdRegExp = new RegExp(
-  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-);
+export const getPurchasesDetailPathPurchaseCodeMax = 50;
 
 export const GetPurchasesDetailParams = zod.object({
-  purchaseId: zod
-    .uuid()
-    .max(getPurchasesDetailPathPurchaseIdMax)
-    .regex(getPurchasesDetailPathPurchaseIdRegExp)
-    .describe("購入のUUID"),
+  purchaseCode: zod
+    .string()
+    .min(1)
+    .max(getPurchasesDetailPathPurchaseCodeMax)
+    .describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
 });
 
 export const getPurchasesDetailResponseDetailsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
 export const GetPurchasesDetailResponse = zod
   .object({
-    id: zod.uuid().describe("購入ID"),
-    code: zod.string().describe("購入コード（UUIDv7 文字列・一意）"),
+    code: zod.string().describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
     userId: zod.uuid().describe("購入したユーザーのID"),
     status: zod
       .object({
         id: zod.uuid().describe("購入ステータスID"),
+        code: zod
+          .int()
+          .describe(
+            "購入ステータスの業務キー。値は到達順序を意味しません（完了より支払い済みのほうが大きい）。",
+          ),
         name: zod.string().describe("購入ステータス名"),
       })
       .describe(
-        "購入に紐づくステータス（ID と名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。",
+        "購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。\n表示には name を、分岐にはドメインの業務キーである code を用います。\n",
       ),
     subtotalAmount: zod.int().describe("小計。明細（単価×数量）の合計。USD セント単位の整数です。"),
     taxAmount: zod.int().describe("税額（国内消費税）。USD セント単位の整数です。"),
@@ -2491,18 +2507,14 @@ export const GetPurchasesDetailResponse = zod
  * 他ユーザーの購入は 404 で存在を秘匿します。金額はすべて USD セント単位の整数です。
  * @summary 購入のキャンセル
  */
-export const patchPurchasesCancelPathPurchaseIdMax = 36;
-
-export const patchPurchasesCancelPathPurchaseIdRegExp = new RegExp(
-  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-);
+export const patchPurchasesCancelPathPurchaseCodeMax = 50;
 
 export const PatchPurchasesCancelParams = zod.object({
-  purchaseId: zod
-    .uuid()
-    .max(patchPurchasesCancelPathPurchaseIdMax)
-    .regex(patchPurchasesCancelPathPurchaseIdRegExp)
-    .describe("購入のUUID"),
+  purchaseCode: zod
+    .string()
+    .min(1)
+    .max(patchPurchasesCancelPathPurchaseCodeMax)
+    .describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
 });
 
 export const patchPurchasesCancelResponseDetailsItemUnitPriceRegExp = new RegExp(
@@ -2511,16 +2523,20 @@ export const patchPurchasesCancelResponseDetailsItemUnitPriceRegExp = new RegExp
 
 export const PatchPurchasesCancelResponse = zod
   .object({
-    id: zod.uuid().describe("購入ID"),
-    code: zod.string().describe("購入コード（UUIDv7 文字列・一意）"),
+    code: zod.string().describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
     userId: zod.uuid().describe("購入したユーザーのID"),
     status: zod
       .object({
         id: zod.uuid().describe("購入ステータスID"),
+        code: zod
+          .int()
+          .describe(
+            "購入ステータスの業務キー。値は到達順序を意味しません（完了より支払い済みのほうが大きい）。",
+          ),
         name: zod.string().describe("購入ステータス名"),
       })
       .describe(
-        "購入に紐づくステータス（ID と名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。",
+        "購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。\n表示には name を、分岐にはドメインの業務キーである code を用います。\n",
       ),
     subtotalAmount: zod.int().describe("小計。明細（単価×数量）の合計。USD セント単位の整数です。"),
     taxAmount: zod.int().describe("税額（国内消費税）。USD セント単位の整数です。"),
@@ -2557,34 +2573,34 @@ export const PatchPurchasesCancelResponse = zod
  * 他ユーザーの購入は 404 で存在を秘匿します。金額はすべて USD セント単位の整数です。
  * @summary 購入の支払い
  */
-export const patchPurchasesPayPathPurchaseIdMax = 36;
-
-export const patchPurchasesPayPathPurchaseIdRegExp = new RegExp(
-  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-);
+export const patchPurchasesPayPathPurchaseCodeMax = 50;
 
 export const PatchPurchasesPayParams = zod.object({
-  purchaseId: zod
-    .uuid()
-    .max(patchPurchasesPayPathPurchaseIdMax)
-    .regex(patchPurchasesPayPathPurchaseIdRegExp)
-    .describe("購入のUUID"),
+  purchaseCode: zod
+    .string()
+    .min(1)
+    .max(patchPurchasesPayPathPurchaseCodeMax)
+    .describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
 });
 
 export const patchPurchasesPayResponseDetailsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
 export const PatchPurchasesPayResponse = zod
   .object({
-    id: zod.uuid().describe("購入ID"),
-    code: zod.string().describe("購入コード（UUIDv7 文字列・一意）"),
+    code: zod.string().describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
     userId: zod.uuid().describe("購入したユーザーのID"),
     status: zod
       .object({
         id: zod.uuid().describe("購入ステータスID"),
+        code: zod
+          .int()
+          .describe(
+            "購入ステータスの業務キー。値は到達順序を意味しません（完了より支払い済みのほうが大きい）。",
+          ),
         name: zod.string().describe("購入ステータス名"),
       })
       .describe(
-        "購入に紐づくステータス（ID と名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。",
+        "購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。\n表示には name を、分岐にはドメインの業務キーである code を用います。\n",
       ),
     subtotalAmount: zod.int().describe("小計。明細（単価×数量）の合計。USD セント単位の整数です。"),
     taxAmount: zod.int().describe("税額（国内消費税）。USD セント単位の整数です。"),
@@ -2621,34 +2637,34 @@ export const PatchPurchasesPayResponse = zod
  * 購入者本人であっても管理者でなければ 403 で拒否します。金額はすべて USD セント単位の整数です。
  * @summary 購入の発送
  */
-export const patchPurchasesShipPathPurchaseIdMax = 36;
-
-export const patchPurchasesShipPathPurchaseIdRegExp = new RegExp(
-  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-);
+export const patchPurchasesShipPathPurchaseCodeMax = 50;
 
 export const PatchPurchasesShipParams = zod.object({
-  purchaseId: zod
-    .uuid()
-    .max(patchPurchasesShipPathPurchaseIdMax)
-    .regex(patchPurchasesShipPathPurchaseIdRegExp)
-    .describe("購入のUUID"),
+  purchaseCode: zod
+    .string()
+    .min(1)
+    .max(patchPurchasesShipPathPurchaseCodeMax)
+    .describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
 });
 
 export const patchPurchasesShipResponseDetailsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
 export const PatchPurchasesShipResponse = zod
   .object({
-    id: zod.uuid().describe("購入ID"),
-    code: zod.string().describe("購入コード（UUIDv7 文字列・一意）"),
+    code: zod.string().describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
     userId: zod.uuid().describe("購入したユーザーのID"),
     status: zod
       .object({
         id: zod.uuid().describe("購入ステータスID"),
+        code: zod
+          .int()
+          .describe(
+            "購入ステータスの業務キー。値は到達順序を意味しません（完了より支払い済みのほうが大きい）。",
+          ),
         name: zod.string().describe("購入ステータス名"),
       })
       .describe(
-        "購入に紐づくステータス（ID と名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。",
+        "購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。\n表示には name を、分岐にはドメインの業務キーである code を用います。\n",
       ),
     subtotalAmount: zod.int().describe("小計。明細（単価×数量）の合計。USD セント単位の整数です。"),
     taxAmount: zod.int().describe("税額（国内消費税）。USD セント単位の整数です。"),
@@ -2685,18 +2701,14 @@ export const PatchPurchasesShipResponse = zod
  * 購入者本人であっても管理者でなければ 403 で拒否します。金額はすべて USD セント単位の整数です。
  * @summary 購入の配達完了
  */
-export const patchPurchasesDeliverPathPurchaseIdMax = 36;
-
-export const patchPurchasesDeliverPathPurchaseIdRegExp = new RegExp(
-  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-);
+export const patchPurchasesDeliverPathPurchaseCodeMax = 50;
 
 export const PatchPurchasesDeliverParams = zod.object({
-  purchaseId: zod
-    .uuid()
-    .max(patchPurchasesDeliverPathPurchaseIdMax)
-    .regex(patchPurchasesDeliverPathPurchaseIdRegExp)
-    .describe("購入のUUID"),
+  purchaseCode: zod
+    .string()
+    .min(1)
+    .max(patchPurchasesDeliverPathPurchaseCodeMax)
+    .describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
 });
 
 export const patchPurchasesDeliverResponseDetailsItemUnitPriceRegExp = new RegExp(
@@ -2705,16 +2717,20 @@ export const patchPurchasesDeliverResponseDetailsItemUnitPriceRegExp = new RegEx
 
 export const PatchPurchasesDeliverResponse = zod
   .object({
-    id: zod.uuid().describe("購入ID"),
-    code: zod.string().describe("購入コード（UUIDv7 文字列・一意）"),
+    code: zod.string().describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
     userId: zod.uuid().describe("購入したユーザーのID"),
     status: zod
       .object({
         id: zod.uuid().describe("購入ステータスID"),
+        code: zod
+          .int()
+          .describe(
+            "購入ステータスの業務キー。値は到達順序を意味しません（完了より支払い済みのほうが大きい）。",
+          ),
         name: zod.string().describe("購入ステータス名"),
       })
       .describe(
-        "購入に紐づくステータス（ID と名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。",
+        "購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。\n表示には name を、分岐にはドメインの業務キーである code を用います。\n",
       ),
     subtotalAmount: zod.int().describe("小計。明細（単価×数量）の合計。USD セント単位の整数です。"),
     taxAmount: zod.int().describe("税額（国内消費税）。USD セント単位の整数です。"),
@@ -2799,10 +2815,15 @@ export const GetDashboardSummaryResponse = zod
             status: zod
               .object({
                 id: zod.uuid().describe("購入ステータスID"),
+                code: zod
+                  .int()
+                  .describe(
+                    "購入ステータスの業務キー。値は到達順序を意味しません（完了より支払い済みのほうが大きい）。",
+                  ),
                 name: zod.string().describe("購入ステータス名"),
               })
               .describe(
-                "購入に紐づくステータス（ID と名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。",
+                "購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。\n表示には name を、分岐にはドメインの業務キーである code を用います。\n",
               ),
             count: zod.int().describe("集計対象期間に注文された、当該ステータスの購入件数"),
           })
@@ -2832,7 +2853,7 @@ export const GetDashboardSummaryResponse = zod
  * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
  * パスに他者の識別子を持たないため、他人のカートは取得できません。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0020 (optional-authentication-fail-closed)）。
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * 明細ごとに商品の現在値を突き合わせ、買えないもの・値の変わったものに issues を立てます。
  * 問題のある明細があっても 200 で返します。取得は成功しており、問題があるのは明細であって
  * 要求ではないためで、エラーにすると買える明細が何であったかを利用者に見せられなくなります。
@@ -2947,7 +2968,7 @@ export const GetCartsMeResponse = zod
  * 期限切れの掃除とログイン時のマージ後の破棄に限り、API としては公開しません。
  * 主体の決まり方は取得（GET）と同じで、両方が提示された場合は認証済みユーザーが優先されます。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0020 (optional-authentication-fail-closed)）。
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * **既に空のカートを空にしても、カートを持たない主体が呼んでも成功します**。カートを持たない
  * 主体にカートを作ることはなく、提示されたセッショントークンでカートを引けなかった場合も
  * 採番し直しません（応答が本文を持たないため、新しいトークンを返す場所がありません）。
@@ -2984,7 +3005,7 @@ export const DeleteCartsMeResponse = zod.void();
  * 主体は認証済みユーザー（Bearer トークンの内部 UserID）か、ゲスト（X-Cart-Session ヘッダ）の
  * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0020 (optional-authentication-fail-closed)）。
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * **カートがまだ無い主体にはこの操作がカートを作ります**。ゲストの場合はセッショントークンを
  * 発行して sessionToken に載せて返すので、以降のリクエストで X-Cart-Session に載せてください。
  * 提示されたトークンでカートを引けなかった場合、その値では作らず新しい値を発行します
@@ -3128,7 +3149,7 @@ export const PutCartsMeItemResponse = zod
  * **対象の明細が無くても成功します**。「無かった」と「消した」を呼び出し側に区別させないため、
  * 404 を持ちません。主体の決まり方は設定（PUT）と同じで、両方が提示された場合は認証済みユーザーが
  * 優先されます。認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0020 (optional-authentication-fail-closed)）。
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * **カートを持たない主体が呼んでもカートは作りません**。提示されたセッショントークンでカートを
  * 引けなかった場合も採番し直さず、何もせずに成功を返します（応答が本文を持たないため、新しい
  * トークンを返す場所がありません）。

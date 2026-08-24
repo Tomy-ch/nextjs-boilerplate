@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+8f733fb
+ * OpenAPI spec version: 2.2.0+151bc17
  */
 import type { PurchaseDetailResponse } from "./purchaseDetailResponse";
 import type { PurchaseStatusRef } from "./purchaseStatusRef";
@@ -21,9 +21,7 @@ import type { PurchaseStatusRef } from "./purchaseStatusRef";
  * すべて USD セント単位の整数です。
  */
 export interface PurchaseCancelResponse {
-  /** 購入ID */
-  id: string;
-  /** 購入コード（UUIDv7 文字列・一意） */
+  /** 購入コード（利用者へ注文番号として見せる一意の識別子） */
   code: string;
   /** 購入したユーザーのID */
   userId: string;

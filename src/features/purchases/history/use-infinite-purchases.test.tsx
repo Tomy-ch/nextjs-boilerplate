@@ -8,6 +8,7 @@ import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import type { CursorPage } from "@/model/pagination";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 
@@ -54,7 +55,13 @@ function reachEnd(): void {
 }
 
 function entryOf(code: string): PurchaseHistoryEntry {
-  return { code, totalAmount: 1_000, statusName: "未処理", orderedAt: new Date("2026-08-17") };
+  return {
+    code,
+    totalAmount: 1_000,
+    statusCode: PURCHASE_STATUS.UNPROCESSED,
+    statusName: "未処理",
+    orderedAt: new Date("2026-08-17"),
+  };
 }
 
 function pageOf(

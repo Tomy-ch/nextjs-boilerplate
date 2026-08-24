@@ -2,6 +2,7 @@ import type { Cart, CartLine } from "@/model/cart/cart";
 import type { ReferenceAmount } from "@/model/money";
 import { toProductId } from "@/model/product/product";
 import type { Purchase } from "@/model/purchase/purchase";
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 import type { UserProfile } from "@/model/user/user";
 
 /** 事情の無い明細。 */
@@ -125,8 +126,8 @@ export const TOTAL_REFERENCE: ReferenceAmount = {
 
 /** 成立した購入。 */
 export const PURCHASE: Purchase = {
-  id: "0195f0c2-0000-7000-9000-000000000001",
   code: "0195f0c2-0000-7000-9000-000000000001",
+  statusCode: PURCHASE_STATUS.UNPROCESSED,
   statusName: "未処理",
   subtotalAmount: 18_897,
   taxAmount: 1_890,

@@ -50,7 +50,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/checkout` | [`screen`](route/shop/checkout/page.screen.md) / [`function`](route/shop/checkout/page.function.md) |
 | `/checkout/complete` | [`screen`](route/shop/checkout/complete/page.screen.md) / [`function`](route/shop/checkout/complete/page.function.md) |
 | `/purchases` | [`screen`](route/shop/purchases/page.screen.md) / [`function`](route/shop/purchases/page.function.md) |
-| `/purchases/[id]` | [`screen`](<route/shop/purchases/[id]/page.screen.md>) / [`function`](<route/shop/purchases/[id]/page.function.md>) |
+| `/purchases/[code]` | [`screen`](<route/shop/purchases/[code]/page.screen.md>) / [`function`](<route/shop/purchases/[code]/page.function.md>) |
 | `/mypage` | [`screen`](route/shop/mypage/page.screen.md) / [`function`](route/shop/mypage/page.function.md) |
 | `/mypage/edit` | [`screen`](route/shop/mypage/edit/page.screen.md) / [`function`](route/shop/mypage/edit/page.function.md) |
 | `/about` | [`screen`](route/shop/about/page.screen.md) / [`function`](route/shop/about/page.function.md) |
@@ -63,6 +63,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/admin/products/new` | [`screen`](route/admin/products/new/page.screen.md) / [`function`](route/admin/products/new/page.function.md) |
 | `/admin/products/[id]/edit` | [`screen`](<route/admin/products/[id]/edit/page.screen.md>) / [`function`](<route/admin/products/[id]/edit/page.function.md>) |
 | `/admin/products/[id]/stock` | [`screen`](<route/admin/products/[id]/stock/page.screen.md>) / [`function`](<route/admin/products/[id]/stock/page.function.md>) |
+| `/admin/shipments` | [`screen`](route/admin/shipments/page.screen.md) / [`function`](route/admin/shipments/page.function.md) |
 | `/admin/users` | [`screen`](route/admin/users/page.screen.md) / [`function`](route/admin/users/page.function.md) |
 | `/onboarding` | [`screen`](route/auth/onboarding/page.screen.md) / [`function`](route/auth/onboarding/page.function.md) |
 | `/dev/session` | [`screen`](route/dev/session/page.screen.md) / [`function`](route/dev/session/page.function.md) |

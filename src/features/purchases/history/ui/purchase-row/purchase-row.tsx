@@ -47,7 +47,7 @@ export function PurchaseRow({ purchase, href }: PurchaseRowProps) {
           <span className="truncate font-mono text-muted-foreground text-xs">{purchase.code}</span>
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <Badge variant={toStatusEmphasis(purchase.statusName)}>{purchase.statusName}</Badge>
+          <Badge variant={toStatusEmphasis(purchase.statusCode)}>{purchase.statusName}</Badge>
           <span className="tabular-nums">{formatMoney(purchase.totalAmount)}</span>
           <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
         </div>

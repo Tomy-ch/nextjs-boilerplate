@@ -107,10 +107,10 @@ export async function placeOrderAction(
     return failedActionState({ formError: NOTHING_TO_ORDER_MESSAGE });
   }
 
-  let purchaseId: string;
+  let purchaseCode: string;
 
   try {
-    purchaseId = await createPurchase(lines, idempotencyKey.data);
+    purchaseCode = await createPurchase(lines, idempotencyKey.data);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: CONFLICT_MESSAGE });
@@ -125,5 +125,5 @@ export async function placeOrderAction(
   // layout の段で無効にする。買った直後の画面に、買った物が残って見えることになる。
   revalidatePath("/", "layout");
 
-  redirect(purchaseCompletePath(purchaseId), RedirectType.replace);
+  redirect(purchaseCompletePath(purchaseCode), RedirectType.replace);
 }
