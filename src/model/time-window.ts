@@ -146,7 +146,7 @@ function shift({ year, month, day }: CalendarDate, months: number, days: number)
  *
  * @remarks
  * 上限は**翌月 1 日の始まり**です。末日の 23:59:59 を上限に置くと、その日の最後の 1 秒に入った
- * 注文が落ちます。
+ * 対象が落ちます。
  *
  * @param month - `YYYY-MM`
  */
@@ -178,7 +178,7 @@ export function dateRangeWindow(from: string, to: string): TimeWindow {
  *
  * @remarks
  * **今日を含めて数えます。** 「直近 7 日」は今日と、その前の 6 日です。上限は明日の始まりで、
- * 今日の残りに入る注文も対象になります。
+ * 今日の残りに入る分も含みます。
  *
  * @param days - 遡る日数。1 以上
  * @param now - いまの瞬時。呼び出し側が渡す
