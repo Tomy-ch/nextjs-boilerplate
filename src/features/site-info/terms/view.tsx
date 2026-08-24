@@ -2,7 +2,7 @@ import { AlertTriangleIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
-
+import { withRenderSpan } from "@/observability/render-span";
 import { ABOUT_PATH, PRIVACY_PATH } from "../facade/paths/paths";
 
 /**
@@ -14,7 +14,7 @@ import { ABOUT_PATH, PRIVACY_PATH } from "../facade/paths/paths";
  *
  * 免責はここに集めます。「このサイトについて」と 2 か所に置くと、片方だけ直した状態を作れます。
  */
-export function TermsView() {
+export const TermsView = withRenderSpan("features/site-info/terms/view", () => {
   return (
     <div className="flex max-w-3xl flex-col gap-8 text-sm leading-relaxed">
       <Alert variant="warning">
@@ -102,4 +102,4 @@ export function TermsView() {
       </section>
     </div>
   );
-}
+});

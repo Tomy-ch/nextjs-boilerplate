@@ -5,6 +5,7 @@ import { resolveMediaUrl } from "@/adapters/server/media/media-url";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { toProductId } from "@/model/product/product";
+import { withRenderSpan } from "@/observability/render-span";
 
 import { ProductDetail } from "./view";
 
@@ -42,11 +43,14 @@ async function loadProduct(id: string) {
  * @remarks
  * 取得と画像 URL の解決をここで行います。理由は [feature の README](../README.md) が持ちます。
  */
-export async function ProductDetailPageContent({ id }: ProductDetailPageContentProps) {
-  const product = await loadProduct(id);
-  const imageUrls = product.imagePaths
-    .map((path) => resolveMediaUrl(path))
-    .filter((url): url is string => url !== null);
+export const ProductDetailPageContent = withRenderSpan(
+  "features/products/detail/page-content",
+  async ({ id }: ProductDetailPageContentProps) => {
+    const product = await loadProduct(id);
+    const imageUrls = product.imagePaths
+      .map((path) => resolveMediaUrl(path))
+      .filter((url): url is string => url !== null);
 
-  return <ProductDetail imageUrls={imageUrls} product={product} />;
-}
+    return <ProductDetail imageUrls={imageUrls} product={product} />;
+  },
+);

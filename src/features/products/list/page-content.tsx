@@ -11,6 +11,7 @@ import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { ProductCategory } from "@/model/product/product";
 import type { RawSearchParams } from "@/model/search-params";
+import { withRenderSpan } from "@/observability/render-span";
 import {
   COUNT_KEY,
   FILTER_KEY,
@@ -58,46 +59,49 @@ function toOptions(categories: readonly ProductCategory[]): readonly FilterOptio
  * 待機表示の境界に条件を鍵として与えるのは、条件が変われば一覧が総入れ替えになるためです。
  * 鍵を与えないと、次の一覧が届くまで前の条件の一覧が残ります。
  */
-export async function ProductListPageContent({ searchParams }: ProductListPageContentProps) {
-  const selection = normalizeSearchParams(searchParams);
-  const parsed = parseProductQuery({
-    ...selection,
-    [COUNT_KEY]: selection[COUNT_KEY] ?? String(PRODUCT_PAGE_SIZE),
-  });
+export const ProductListPageContent = withRenderSpan(
+  "features/products/list/page-content",
+  async ({ searchParams }: ProductListPageContentProps) => {
+    const selection = normalizeSearchParams(searchParams);
+    const parsed = parseProductQuery({
+      ...selection,
+      [COUNT_KEY]: selection[COUNT_KEY] ?? String(PRODUCT_PAGE_SIZE),
+    });
 
-  if (!parsed.ok) {
+    if (!parsed.ok) {
+      return (
+        <InvalidQueryFeedback
+          invalidKeys={parsed.invalidKeys}
+          keyLabels={LIST_KEY_LABEL}
+          message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
+          resetHref={PRODUCT_LIST_PATH}
+          resetLabel="条件を外して一覧を見る"
+          title="この条件では商品を表示できません"
+        />
+      );
+    }
+
+    const categories = toOptions(await getProductCategories());
+    // 既定の並びは URL に載せないため、明示された既定値は選択肢側の「指定なし」へ寄せる。
+    const displayed =
+      selection[FILTER_KEY.SORT] === PRODUCT_SORT.NEWEST
+        ? { ...selection, [FILTER_KEY.SORT]: "" }
+        : selection;
+
     return (
-      <InvalidQueryFeedback
-        invalidKeys={parsed.invalidKeys}
-        keyLabels={LIST_KEY_LABEL}
-        message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
-        resetHref={PRODUCT_LIST_PATH}
-        resetLabel="条件を外して一覧を見る"
-        title="この条件では商品を表示できません"
-      />
-    );
-  }
-
-  const categories = toOptions(await getProductCategories());
-  // 既定の並びは URL に載せないため、明示された既定値は選択肢側の「指定なし」へ寄せる。
-  const displayed =
-    selection[FILTER_KEY.SORT] === PRODUCT_SORT.NEWEST
-      ? { ...selection, [FILTER_KEY.SORT]: "" }
-      : selection;
-
-  return (
-    <ProductListView
-      categories={categories}
-      categoryLimit={PRODUCT_CATEGORY_LIMIT}
-      selection={displayed}
-      sortOptions={SORT_OPTIONS}
-    >
-      <Suspense
-        fallback={<ProductListSkeleton />}
-        key={toProductListSearchParams(selection).toString()}
+      <ProductListView
+        categories={categories}
+        categoryLimit={PRODUCT_CATEGORY_LIMIT}
+        selection={displayed}
+        sortOptions={SORT_OPTIONS}
       >
-        <ProductListResults query={parsed.query} selection={selection} />
-      </Suspense>
-    </ProductListView>
-  );
-}
+        <Suspense
+          fallback={<ProductListSkeleton />}
+          key={toProductListSearchParams(selection).toString()}
+        >
+          <ProductListResults query={parsed.query} selection={selection} />
+        </Suspense>
+      </ProductListView>
+    );
+  },
+);

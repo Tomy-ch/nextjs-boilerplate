@@ -6,6 +6,7 @@ import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-fee
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { RawSearchParams } from "@/model/search-params";
+import { withRenderSpan } from "@/observability/render-span";
 import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
 import { toFilterOptions } from "./filter-option";
 import { ADMIN_PRODUCT_PAGE_SIZE } from "./page-size";
@@ -37,52 +38,56 @@ export type AdminProductListPageContentProps = {
  * 鍵に含めません。含めると、同じ結果を出す遷移でも表が組み直されます。**鍵は値を一意に表す形で
  * 作ります。** 区切り文字で連結すると、値に区切り文字が現れた時点で別の条件が同じ鍵になります。
  */
-export async function AdminProductListPageContent({
-  searchParams,
-}: AdminProductListPageContentProps) {
-  const location = toAdminProductListLocation(searchParams);
-  const parsed = parseProductQuery({
-    ...(location.keyword === "" ? {} : { [FILTER_KEY.KEYWORD]: location.keyword }),
-    ...(location.categoryCodes.length === 0
-      ? {}
-      : { [FILTER_KEY.CATEGORY]: location.categoryCodes }),
-    ...(location.statusCodes.length === 0 ? {} : { [FILTER_KEY.STATUS]: location.statusCodes }),
-    ...(location.cursor === null ? {} : { [CURSOR_KEY]: location.cursor }),
-    first: String(ADMIN_PRODUCT_PAGE_SIZE),
-  });
+export const AdminProductListPageContent = withRenderSpan(
+  "features/admin/products/list/page-content",
+  async ({ searchParams }: AdminProductListPageContentProps) => {
+    const location = toAdminProductListLocation(searchParams);
+    const parsed = parseProductQuery({
+      ...(location.keyword === "" ? {} : { [FILTER_KEY.KEYWORD]: location.keyword }),
+      ...(location.categoryCodes.length === 0
+        ? {}
+        : { [FILTER_KEY.CATEGORY]: location.categoryCodes }),
+      ...(location.statusCodes.length === 0 ? {} : { [FILTER_KEY.STATUS]: location.statusCodes }),
+      ...(location.cursor === null ? {} : { [CURSOR_KEY]: location.cursor }),
+      first: String(ADMIN_PRODUCT_PAGE_SIZE),
+    });
 
-  if (!parsed.ok) {
+    if (!parsed.ok) {
+      return (
+        <InvalidQueryFeedback
+          invalidKeys={parsed.invalidKeys}
+          keyLabels={FILTER_KEY_LABEL}
+          message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
+          resetHref={ADMIN_PRODUCT_LIST_PATH}
+          resetLabel="条件を外して一覧を見る"
+          title="この条件では商品を表示できません"
+        />
+      );
+    }
+
+    const [categories, statuses] = await Promise.all([
+      getProductCategories(),
+      getProductStatuses(),
+    ]);
+
     return (
-      <InvalidQueryFeedback
-        invalidKeys={parsed.invalidKeys}
-        keyLabels={FILTER_KEY_LABEL}
-        message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
-        resetHref={ADMIN_PRODUCT_LIST_PATH}
-        resetLabel="条件を外して一覧を見る"
-        title="この条件では商品を表示できません"
-      />
-    );
-  }
-
-  const [categories, statuses] = await Promise.all([getProductCategories(), getProductStatuses()]);
-
-  return (
-    <AdminProductListView
-      categoryOptions={toFilterOptions(categories)}
-      conditions={location}
-      statusOptions={toFilterOptions(statuses)}
-    >
-      <Suspense
-        fallback={<AdminProductListSkeleton />}
-        key={JSON.stringify([
-          location.keyword,
-          location.categoryCodes,
-          location.statusCodes,
-          location.cursor,
-        ])}
+      <AdminProductListView
+        categoryOptions={toFilterOptions(categories)}
+        conditions={location}
+        statusOptions={toFilterOptions(statuses)}
       >
-        <AdminProductListResults location={location} query={parsed.query} />
-      </Suspense>
-    </AdminProductListView>
-  );
-}
+        <Suspense
+          fallback={<AdminProductListSkeleton />}
+          key={JSON.stringify([
+            location.keyword,
+            location.categoryCodes,
+            location.statusCodes,
+            location.cursor,
+          ])}
+        >
+          <AdminProductListResults location={location} query={parsed.query} />
+        </Suspense>
+      </AdminProductListView>
+    );
+  },
+);

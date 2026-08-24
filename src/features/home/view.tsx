@@ -3,7 +3,7 @@ import type {
   ProductListItem,
   ProductRankingEntry,
 } from "@/model/product/product";
-
+import { withRenderSpan } from "@/observability/render-span";
 import { CategoryLinks } from "./ui/category-links/category-links";
 import { NewArrivals } from "./ui/new-arrivals/new-arrivals";
 import { RankingList } from "./ui/ranking-list/ranking-list";
@@ -40,24 +40,27 @@ export type HomeViewProps = {
  * 節の並びは、画像のある帯・行の帯・小さな導線の帯の順です。同じ密度の帯が続くと、どこまでが
  * 1 つの節なのかが読み取りにくくなります。
  */
-export function HomeView({ newArrivals, ranking, categories }: HomeViewProps) {
-  return (
-    <div className="space-y-10 py-4">
-      {newArrivals.status === "ready" ? (
-        <NewArrivals items={newArrivals.value} />
-      ) : (
-        <SectionFailure label="新着商品" message={newArrivals.message} />
-      )}
-      {ranking.status === "ready" ? (
-        <RankingList entries={ranking.value} />
-      ) : (
-        <SectionFailure label="売上ランキング" message={ranking.message} />
-      )}
-      {categories.status === "ready" ? (
-        <CategoryLinks categories={categories.value} />
-      ) : (
-        <SectionFailure label="カテゴリ" message={categories.message} />
-      )}
-    </div>
-  );
-}
+export const HomeView = withRenderSpan(
+  "features/home/view",
+  ({ newArrivals, ranking, categories }: HomeViewProps) => {
+    return (
+      <div className="space-y-10 py-4">
+        {newArrivals.status === "ready" ? (
+          <NewArrivals items={newArrivals.value} />
+        ) : (
+          <SectionFailure label="新着商品" message={newArrivals.message} />
+        )}
+        {ranking.status === "ready" ? (
+          <RankingList entries={ranking.value} />
+        ) : (
+          <SectionFailure label="売上ランキング" message={ranking.message} />
+        )}
+        {categories.status === "ready" ? (
+          <CategoryLinks categories={categories.value} />
+        ) : (
+          <SectionFailure label="カテゴリ" message={categories.message} />
+        )}
+      </div>
+    );
+  },
+);

@@ -5,6 +5,7 @@ import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-fee
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { RawSearchParams } from "@/model/search-params";
+import { withRenderSpan } from "@/observability/render-span";
 import { ADMIN_ANALYTICS_PATH } from "../paths";
 import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
 import { PERIOD_KEY_LABEL, toPeriodRequest } from "./period";
@@ -39,38 +40,41 @@ function toRawQuery(params: RawSearchParams): RawDashboardQuery {
  * **いまの時刻をここで読みます。** どの暦日を見ているかの表示に要りますが、描画のたびに実時計を
  * 読む部品にすると、基準画像が撮った時刻に依存します。
  */
-export function AdminAnalyticsPageContent({ searchParams }: { searchParams: RawSearchParams }) {
-  const parsed = parseDashboardQuery(toRawQuery(searchParams));
+export const AdminAnalyticsPageContent = withRenderSpan(
+  "features/admin/analytics/page-content",
+  ({ searchParams }: { searchParams: RawSearchParams }) => {
+    const parsed = parseDashboardQuery(toRawQuery(searchParams));
 
-  if (!parsed.ok) {
+    if (!parsed.ok) {
+      return (
+        <InvalidQueryFeedback
+          invalidKeys={parsed.invalidKeys}
+          keyLabels={PERIOD_KEY_LABEL}
+          message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
+          resetHref={ADMIN_ANALYTICS_PATH}
+          resetLabel="期間を外して見る"
+          title="この期間では集計を表示できません"
+        />
+      );
+    }
+
+    const request = toPeriodRequest(parsed.query);
+
     return (
-      <InvalidQueryFeedback
-        invalidKeys={parsed.invalidKeys}
-        keyLabels={PERIOD_KEY_LABEL}
-        message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
-        resetHref={ADMIN_ANALYTICS_PATH}
-        resetLabel="期間を外して見る"
-        title="この期間では集計を表示できません"
+      <AnalyticsView
+        query={parsed.query}
+        ranking={
+          <Suspense fallback={null}>
+            <AnalyticsRankingSection />
+          </Suspense>
+        }
+        summary={
+          <Suspense fallback={<AdminSummarySkeleton />} key={JSON.stringify(request)}>
+            <AnalyticsSummarySection request={request} />
+          </Suspense>
+        }
+        window={toPeriodWindow(parsed.query, new Date())}
       />
     );
-  }
-
-  const request = toPeriodRequest(parsed.query);
-
-  return (
-    <AnalyticsView
-      query={parsed.query}
-      ranking={
-        <Suspense fallback={null}>
-          <AnalyticsRankingSection />
-        </Suspense>
-      }
-      summary={
-        <Suspense fallback={<AdminSummarySkeleton />} key={JSON.stringify(request)}>
-          <AnalyticsSummarySection request={request} />
-        </Suspense>
-      }
-      window={toPeriodWindow(parsed.query, new Date())}
-    />
-  );
-}
+  },
+);

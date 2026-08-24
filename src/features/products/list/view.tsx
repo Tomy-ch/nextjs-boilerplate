@@ -8,6 +8,7 @@ import {
   FilterBarControls,
   FilterChip,
 } from "@/components/patterns/filter-bar/filter-bar";
+import { withRenderSpan } from "@/observability/render-span";
 import { PRODUCT_LIST_PATH, type ProductListSelection } from "../facade/list-url/list-url";
 import { toActiveFilters } from "./active-filters";
 import { ProductFilterDraftProvider } from "./filter-draft";
@@ -65,60 +66,57 @@ export type ProductListViewProps = {
  * 並び替えを絞り込みの側へ入れず、幅によらず同じ場所へ置きます。単一選択なので選ぶことが確定と
  * 同じであり、まとめて確定する絞り込みの中に入れると確定の操作が 2 段になります。
  */
-export function ProductListView({
-  categories,
-  categoryLimit,
-  sortOptions,
-  selection,
-  children,
-}: ProductListViewProps) {
-  const activeFilters = toActiveFilters(categories, selection);
+export const ProductListView = withRenderSpan(
+  "features/products/list/view",
+  ({ categories, categoryLimit, sortOptions, selection, children }: ProductListViewProps) => {
+    const activeFilters = toActiveFilters(categories, selection);
 
-  return (
-    <ProductFilterDraftProvider selection={selection}>
-      <ProductStickyRegion>
-        <div className="space-y-6">
-          <ProductStickyBar>
-            <FilterBar label="商品の検索と絞り込み">
-              <FilterBarControls className="justify-between">
-                <ProductKeywordField selection={selection} />
-                <ProductSortSelect options={sortOptions} selection={selection} />
-              </FilterBarControls>
-              <div className="flex items-end justify-between gap-4">
-                <FilterBarActiveFilters className="min-w-0 flex-1">
-                  {activeFilters.map((filter) => (
-                    <FilterChip
-                      key={filter.key}
-                      label={filter.label}
-                      removeHref={filter.removeHref}
-                      value={filter.value}
-                    />
-                  ))}
-                </FilterBarActiveFilters>
-                {/* 1 件しか効いていないときは、その chip の解除と行き先が同じになる。 */}
-                {activeFilters.length > 1 ? (
-                  <Button asChild className="shrink-0" size="sm" variant="ghost">
-                    <Link href={PRODUCT_LIST_PATH}>条件をすべて解除</Link>
-                  </Button>
-                ) : null}
-              </div>
-            </FilterBar>
-          </ProductStickyBar>
-          <div className="flex gap-8">
-            <ProductStickyAside>
-              <ProductFilterSidebar categories={categories} categoryLimit={categoryLimit} />
-            </ProductStickyAside>
-            <div className="min-w-0 flex-1">{children}</div>
+    return (
+      <ProductFilterDraftProvider selection={selection}>
+        <ProductStickyRegion>
+          <div className="space-y-6">
+            <ProductStickyBar>
+              <FilterBar label="商品の検索と絞り込み">
+                <FilterBarControls className="justify-between">
+                  <ProductKeywordField selection={selection} />
+                  <ProductSortSelect options={sortOptions} selection={selection} />
+                </FilterBarControls>
+                <div className="flex items-end justify-between gap-4">
+                  <FilterBarActiveFilters className="min-w-0 flex-1">
+                    {activeFilters.map((filter) => (
+                      <FilterChip
+                        key={filter.key}
+                        label={filter.label}
+                        removeHref={filter.removeHref}
+                        value={filter.value}
+                      />
+                    ))}
+                  </FilterBarActiveFilters>
+                  {/* 1 件しか効いていないときは、その chip の解除と行き先が同じになる。 */}
+                  {activeFilters.length > 1 ? (
+                    <Button asChild className="shrink-0" size="sm" variant="ghost">
+                      <Link href={PRODUCT_LIST_PATH}>条件をすべて解除</Link>
+                    </Button>
+                  ) : null}
+                </div>
+              </FilterBar>
+            </ProductStickyBar>
+            <div className="flex gap-8">
+              <ProductStickyAside>
+                <ProductFilterSidebar categories={categories} categoryLimit={categoryLimit} />
+              </ProductStickyAside>
+              <div className="min-w-0 flex-1">{children}</div>
+            </div>
+            <div className="lg:hidden">
+              <ProductFilterSheet
+                categories={categories}
+                categoryLimit={categoryLimit}
+                selection={selection}
+              />
+            </div>
           </div>
-          <div className="lg:hidden">
-            <ProductFilterSheet
-              categories={categories}
-              categoryLimit={categoryLimit}
-              selection={selection}
-            />
-          </div>
-        </div>
-      </ProductStickyRegion>
-    </ProductFilterDraftProvider>
-  );
-}
+        </ProductStickyRegion>
+      </ProductFilterDraftProvider>
+    );
+  },
+);

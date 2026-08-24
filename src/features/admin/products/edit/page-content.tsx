@@ -2,6 +2,7 @@ import { getProductCategories, getProductStatuses } from "@/adapters/server/api/
 import { getProduct } from "@/adapters/server/api/products";
 import { resolveMediaUrl } from "@/adapters/server/media/media-url";
 import type { ProductId } from "@/model/product/product";
+import { withRenderSpan } from "@/observability/render-span";
 import type { UpdateProductAction, UploadProductImageAction } from "../form-state";
 import { toMasterOptions } from "../master-option";
 import { AdminProductEditView } from "./view";
@@ -24,37 +25,35 @@ export type AdminProductEditPageContentProps = {
  * @remarks
  * 存在しない識別子は取得の口が `not-found` へ正規化し、route の境界が受けます。
  */
-export async function AdminProductEditPageContent({
-  id,
-  maxUploadBytes,
-  updateAction,
-  uploadAction,
-}: AdminProductEditPageContentProps) {
-  const [product, categories, statuses] = await Promise.all([
-    getProduct(id),
-    getProductCategories(),
-    getProductStatuses(),
-  ]);
+export const AdminProductEditPageContent = withRenderSpan(
+  "features/admin/products/edit/page-content",
+  async ({ id, maxUploadBytes, updateAction, uploadAction }: AdminProductEditPageContentProps) => {
+    const [product, categories, statuses] = await Promise.all([
+      getProduct(id),
+      getProductCategories(),
+      getProductStatuses(),
+    ]);
 
-  // URL はここで解決する（`ProductSavedImage` は解決済みで受け取る契約）。
-  const savedImages = product.imagePaths.flatMap((imagePath) => {
-    const url = resolveMediaUrl(imagePath);
+    // URL はここで解決する（`ProductSavedImage` は解決済みで受け取る契約）。
+    const savedImages = product.imagePaths.flatMap((imagePath) => {
+      const url = resolveMediaUrl(imagePath);
 
-    return url === null ? [] : [{ imagePath, url }];
-  });
+      return url === null ? [] : [{ imagePath, url }];
+    });
 
-  return (
-    // 版が変われば作り直す。読み込み直す導線は同じ URL を指すため、作り直さないと入力欄には
-    // 古い編集内容が残ったまま版だけが最新になり、他者の更新を見ないまま上書きできてしまう。
-    <AdminProductEditView
-      key={product.version}
-      categoryOptions={toMasterOptions(categories)}
-      maxUploadBytes={maxUploadBytes}
-      product={product}
-      savedImages={savedImages}
-      statusOptions={toMasterOptions(statuses)}
-      updateAction={updateAction}
-      uploadAction={uploadAction}
-    />
-  );
-}
+    return (
+      // 版が変われば作り直す。読み込み直す導線は同じ URL を指すため、作り直さないと入力欄には
+      // 古い編集内容が残ったまま版だけが最新になり、他者の更新を見ないまま上書きできてしまう。
+      <AdminProductEditView
+        key={product.version}
+        categoryOptions={toMasterOptions(categories)}
+        maxUploadBytes={maxUploadBytes}
+        product={product}
+        savedImages={savedImages}
+        statusOptions={toMasterOptions(statuses)}
+        updateAction={updateAction}
+        uploadAction={uploadAction}
+      />
+    );
+  },
+);

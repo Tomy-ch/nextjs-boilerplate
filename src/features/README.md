@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features]
 test-requirement: feature
 ---
@@ -17,6 +17,24 @@ test-requirement: feature
 
 - 他 feature への直接依存
 - 複数 feature で共有すべき要素、バックエンドの業務ロジック
+
+## 描画を span に載せる
+
+画面の最上位のエクスポート（`<screen>/page-content` と `<screen>/view`）を `observability` の `withRenderSpan` で包む。仕組みと span の読み方は [observability/README.md](../observability/README.md) が持つ。
+
+```tsx
+export const XxxPageContent = withRenderSpan(
+  "features/<name>/<screen>/page-content",
+  async ({ id }: XxxPageContentProps) => {
+    // 取得と組み立て
+  },
+);
+```
+
+- **名前は `src/` からのモジュールパスと一致させる。** span 名がそのまま置き場を指すので、ずれると trace からファイルへ戻れない。利用者の入力を混ぜない
+- **`ui/` の部品は包まない。** 画面ごとの帰属は最上位の 2 つで足りる。部品まで広げると 1 描画の span が部品の数だけ増え、読む側が画面の輪郭を失う
+- **client component（`"use client"` を持つファイル）は包まない。** ブラウザでの描画では記録しない span になる一方で、`@opentelemetry/api` がその画面のクライアントバンドルへ入る（[0101](../../docs/adr/0101-performance-budget.md)）。span が付くのは server 描画の分だけなので、払った分は返らない
+- **取得を持つ側を包むと帰属が付く。** `page-content` が待つ通信はその span の中に入るので、外向きの `fetch` を画面へ結び付けられる
 
 ## 運用
 

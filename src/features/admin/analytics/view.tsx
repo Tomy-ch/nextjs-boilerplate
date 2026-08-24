@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { DASHBOARD_PERIOD, type DashboardSummaryQuery } from "@/model/dashboard/dashboard";
-
+import { withRenderSpan } from "@/observability/render-span";
 import type { PeriodWindow } from "./period-window";
 import { PeriodCaption } from "./ui/period-caption/period-caption";
 import { PeriodSwitch } from "./ui/period-switch/period-switch";
@@ -36,26 +36,29 @@ export type AnalyticsViewProps = {
  *
  * @see Storybook `Page/Admin/Analytics`
  */
-export function AnalyticsView({ query, window, summary, ranking }: AnalyticsViewProps) {
-  const period = query.period ?? DASHBOARD_PERIOD.TODAY;
+export const AnalyticsView = withRenderSpan(
+  "features/admin/analytics/view",
+  ({ query, window, summary, ranking }: AnalyticsViewProps) => {
+    const period = query.period ?? DASHBOARD_PERIOD.TODAY;
 
-  return (
-    <div className="space-y-8">
-      <div className="space-y-3">
-        <PeriodSwitch
-          current={period}
-          rangeChoice={
-            <RangeDialog
-              from={query.from}
-              selected={period === DASHBOARD_PERIOD.RANGE}
-              to={query.to}
-            />
-          }
-        />
-        <PeriodCaption window={window} />
+    return (
+      <div className="space-y-8">
+        <div className="space-y-3">
+          <PeriodSwitch
+            current={period}
+            rangeChoice={
+              <RangeDialog
+                from={query.from}
+                selected={period === DASHBOARD_PERIOD.RANGE}
+                to={query.to}
+              />
+            }
+          />
+          <PeriodCaption window={window} />
+        </div>
+        {summary}
+        {ranking}
       </div>
-      {summary}
-      {ranking}
-    </div>
-  );
-}
+    );
+  },
+);

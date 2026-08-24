@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/design-system/action/button/button";
 import type { DashboardSummary } from "@/model/dashboard/dashboard";
-
+import { withRenderSpan } from "@/observability/render-span";
 import { ADMIN_ANALYTICS_PATH } from "../paths";
 import { toSummaryCards } from "../summary-cards";
 import { StatCards } from "../ui/stat-cards/stat-cards";
@@ -29,16 +29,19 @@ const LABEL = "今日の集計";
  *
  * @see Storybook `Page/Admin/Dashboard`
  */
-export function DashboardView({ summary }: DashboardViewProps) {
-  return (
-    <div className="space-y-8">
-      <StatCards cards={toSummaryCards(summary)} label={LABEL} />
-      <StatusBreakdown counts={summary.purchaseStatusCounts} />
-      <div>
-        <Button asChild variant="outline">
-          <Link href={ADMIN_ANALYTICS_PATH}>期間別の集計を見る</Link>
-        </Button>
+export const DashboardView = withRenderSpan(
+  "features/admin/dashboard/view",
+  ({ summary }: DashboardViewProps) => {
+    return (
+      <div className="space-y-8">
+        <StatCards cards={toSummaryCards(summary)} label={LABEL} />
+        <StatusBreakdown counts={summary.purchaseStatusCounts} />
+        <div>
+          <Button asChild variant="outline">
+            <Link href={ADMIN_ANALYTICS_PATH}>期間別の集計を見る</Link>
+          </Button>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  },
+);

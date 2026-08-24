@@ -1,7 +1,7 @@
 import { getPrefectures } from "@/adapters/server/api/prefectures";
 import { newIdempotencyKey } from "@/model/idempotency-key";
 import type { SafeReturnUrl } from "@/model/return-url";
-
+import { withRenderSpan } from "@/observability/render-span";
 import { OnboardingView } from "./view";
 
 type OnboardingPageContentProps = {
@@ -19,12 +19,15 @@ type OnboardingPageContentProps = {
  * 登録は 1 件のままです。逆に開き直せば別の鍵になりますが、そのときは登録が済んでいれば
  * この画面には入れません（`requireUnregisteredUser`）。
  */
-export async function OnboardingPageContent({ returnUrl }: OnboardingPageContentProps) {
-  return (
-    <OnboardingView
-      idempotencyKey={newIdempotencyKey()}
-      prefectures={await getPrefectures()}
-      returnUrl={returnUrl}
-    />
-  );
-}
+export const OnboardingPageContent = withRenderSpan(
+  "features/account/onboarding/page-content",
+  async ({ returnUrl }: OnboardingPageContentProps) => {
+    return (
+      <OnboardingView
+        idempotencyKey={newIdempotencyKey()}
+        prefectures={await getPrefectures()}
+        returnUrl={returnUrl}
+      />
+    );
+  },
+);

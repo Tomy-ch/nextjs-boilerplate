@@ -2,9 +2,9 @@ import { Suspense } from "react";
 
 import { MANAGED_USER_PAGE_MAX } from "@/adapters/server/api/users";
 import type { RawSearchParams } from "@/model/search-params";
+import { withRenderSpan } from "@/observability/render-span";
 import type { WithdrawUserAction } from "./form-state";
 import { ADMIN_USER_PAGE_SIZE } from "./page-size";
-
 import { toAdminUserListLocation } from "./read-location";
 import { AdminUserResults } from "./results";
 import { AdminUserListSkeleton } from "./ui/skeleton/skeleton";
@@ -31,21 +31,21 @@ export type AdminUserListPageContentProps = {
  * ページ番号の上限は取得の口が公開するものを渡します。契約の宣言に触れてよいのは `adapters` まで
  * で、この層が値を書き写すと契約が変わったときにここだけが古い上限を持ちます。
  */
-export function AdminUserListPageContent({
-  searchParams,
-  withdrawAction,
-}: AdminUserListPageContentProps) {
-  const location = toAdminUserListLocation(searchParams, MANAGED_USER_PAGE_MAX);
+export const AdminUserListPageContent = withRenderSpan(
+  "features/admin/users/page-content",
+  ({ searchParams, withdrawAction }: AdminUserListPageContentProps) => {
+    const location = toAdminUserListLocation(searchParams, MANAGED_USER_PAGE_MAX);
 
-  return (
-    <AdminUserListView scope={location.scope}>
-      <Suspense fallback={<AdminUserListSkeleton />} key={`${location.scope}-${location.page}`}>
-        <AdminUserResults
-          location={location}
-          perPage={ADMIN_USER_PAGE_SIZE}
-          withdrawAction={withdrawAction}
-        />
-      </Suspense>
-    </AdminUserListView>
-  );
-}
+    return (
+      <AdminUserListView scope={location.scope}>
+        <Suspense fallback={<AdminUserListSkeleton />} key={`${location.scope}-${location.page}`}>
+          <AdminUserResults
+            location={location}
+            perPage={ADMIN_USER_PAGE_SIZE}
+            withdrawAction={withdrawAction}
+          />
+        </Suspense>
+      </AdminUserListView>
+    );
+  },
+);

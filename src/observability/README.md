@@ -11,6 +11,7 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 ## 受け入れるもの
 
 - OTel SDK の初期化、trace、signal 別の有効化
+- 描画を span へ載せる口（`features` から呼ぶ唯一の公開面）
 
 ## 受け入れないもの
 
@@ -20,7 +21,32 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 - `initialize.server.ts` は Node.js runtime の `NodeSDK` をプロセスごとに一度だけ初期化する。resource には公式 semantic convention の `service.name` を設定し、W3C Trace Context と W3C Baggage を伝播する。HTTP instrumentation は受信 HTTP request の trace を作り、Undici instrumentation は許可された API origin への server-side `fetch` へ trace context を注入する。伝播が働くのは signal のいずれかが有効で SDK が構築されたときだけである。Undici の外向き span からは `url.query` を落とし、`url.full` も query の無い形にする。
 - `trace-context.ts` は現在の有効な span から trace ID と span ID を抽出する。logging にはこの関数を起動境界で注入する。
+- `render-span.ts` は描画を span にする。対象と読み方は下記「描画の計装」が持つ。
 - `otlp-log-sink.server.ts` は logging が渡す正規化済みレコードを OTel Logs API へ変換する。OTLP 属性へ変換できない値は送出しない。
+
+## 描画の計装
+
+`withRenderSpan(name, render)` は、渡されたコンポーネントを span で包んだ同じ形のコンポーネントを返す。span 名は `render <name>` で、`name` には `src/` からのモジュールパスを渡す。tracer の scope 名は `render` である。**span 名に利用者の入力を混ぜてはならない**（span 名の redaction は [0081](../../docs/adr/0081-observability-logging.md)）。
+
+対象は **feature 層の最上位**（`features/<name>/<screen>/` の `page-content` と `view`）に限る。装備の手順と対象の線引きは [features/README.md](../features/README.md) が持つ。`components` は横断 UI であり画面ごとの帰属を持たないので対象にせず、route segment は Next.js が `render route (app)` を張るので二重に持たない。
+
+### span が覆う範囲
+
+覆うのは**そのコンポーネント自身の実行だけ**である。子は戻り値を React が受け取った後に描画されるため、子の span はこの span の中に入らず、同じ親（`render route (app)`）の下に兄弟として並ぶ。したがって **span の時間は部分木の合計ではない**。画面ぜんぶの所要は `render route (app)` が持ち、最上位の span が答えるのは「そこまで到達したか」と「自分の本体で何を待ったか」である。
+
+入れ子にするには、子を要素として返す代わりに関数として呼ぶしかない。その部分木は Suspense 境界・streaming の単位・reconciliation を失う。**描画モデルを捨てる対価に見合わないので入れ子にしない。** React の context で親の実行文脈を配る方法は Server Component が context を持たないため採れず、`AsyncLocalStorage` も子がレンダラのタスクから呼ばれるため届かない。
+
+### 何が中に入るか
+
+**本体で待つ取得は中に入る。** 外向きの `fetch` がどの画面のどの合成から出たのかは、この入れ子で辿れる。取得を `layout` や app shell が持つ場合、その通信は最上位の span の外に出る —— 呼んでいるのが feature ではないためである。
+
+### 失敗
+
+描画が投げると span を `ERROR` にし、`Error` であれば例外として記録して投げ直す。**Next.js が制御に使う throw（`notFound` / `redirect` など）は失敗として扱わない。** 判定は `unstable_rethrow` に委ね、framework の内部表現を読み取らない。
+
+### 記録しない実行
+
+SDK が初期化されていない実行（ブラウザ・Storybook・テスト）では、tracer が記録しない span を返す。包んでも描画は変わらない。
 
 ## signal の有効化
 

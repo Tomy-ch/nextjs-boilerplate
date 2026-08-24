@@ -7,7 +7,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/design-system/navigation/breadcrumb/breadcrumb";
 import type { Prefecture, UserProfile } from "@/model/user/user";
-
+import { withRenderSpan } from "@/observability/render-span";
 import { MYPAGE_PATH } from "../paths";
 import { ProfileForm } from "./ui/profile-form/profile-form";
 
@@ -24,21 +24,24 @@ type ProfileEditViewProps = {
  * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。nav が直接指すのはマイページまでで、
  * ここはその下の階層にあります。
  */
-export function ProfileEditView({ prefectures, profile }: ProfileEditViewProps) {
-  return (
-    <div className="flex flex-col gap-8">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href={MYPAGE_PATH}>マイページ</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>プロフィール編集</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-      <ProfileForm prefectures={prefectures} profile={profile} />
-    </div>
-  );
-}
+export const ProfileEditView = withRenderSpan(
+  "features/account/edit/view",
+  ({ prefectures, profile }: ProfileEditViewProps) => {
+    return (
+      <div className="flex flex-col gap-8">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={MYPAGE_PATH}>マイページ</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>プロフィール編集</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <ProfileForm prefectures={prefectures} profile={profile} />
+      </div>
+    );
+  },
+);

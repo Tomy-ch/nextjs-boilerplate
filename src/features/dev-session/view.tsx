@@ -5,7 +5,7 @@ import {
   CardTitle,
 } from "@/components/design-system/display/card/card";
 import type { Session } from "@/model/session";
-
+import { withRenderSpan } from "@/observability/render-span";
 import type { DiscardDevSessionAction, IssueDevSessionAction } from "./form-state";
 import { CurrentSession } from "./ui/current-session/current-session";
 import { type AuthorizationHandoff, DevSessionForm } from "./ui/session-form/session-form";
@@ -43,40 +43,43 @@ export type DevSessionViewProps = {
  *
  * 送信先を自分で決めません。理由は [`form-state.ts`](./form-state.ts) が持ちます。
  */
-export function DevSessionView({
-  session,
-  returnUrl,
-  authorization,
-  issueAction,
-  discardAction,
-  connectsLiveApi,
-  defaultIssuer,
-}: DevSessionViewProps) {
-  return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>いまの session</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CurrentSession action={discardAction} session={session} />
-        </CardContent>
-      </Card>
+export const DevSessionView = withRenderSpan(
+  "features/dev-session/view",
+  ({
+    session,
+    returnUrl,
+    authorization,
+    issueAction,
+    discardAction,
+    connectsLiveApi,
+    defaultIssuer,
+  }: DevSessionViewProps) => {
+    return (
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>いまの session</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CurrentSession action={discardAction} session={session} />
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>session を発行する</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DevSessionForm
-            action={issueAction}
-            authorization={authorization}
-            connectsLiveApi={connectsLiveApi}
-            defaultIssuer={defaultIssuer}
-            returnUrl={returnUrl}
-          />
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+        <Card>
+          <CardHeader>
+            <CardTitle>session を発行する</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DevSessionForm
+              action={issueAction}
+              authorization={authorization}
+              connectsLiveApi={connectsLiveApi}
+              defaultIssuer={defaultIssuer}
+              returnUrl={returnUrl}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  },
+);
