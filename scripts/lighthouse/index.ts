@@ -155,7 +155,6 @@ function measure(target: Target, runs: number, headersFile: string | undefined):
  * [`trigger.ts`](trigger.ts) が持ちます。
  */
 function trigger(baseRef: string): void {
-  const budget = parseBudget(readFileSync(BUDGET_FILE, "utf8"));
   const numstat = spawnSync("git", ["diff", "--numstat", `${baseRef}...HEAD`], {
     encoding: "utf8",
   });
@@ -164,7 +163,7 @@ function trigger(baseRef: string): void {
     throw new Error(`${baseRef} との差分を取れませんでした。base を fetch していますか。`);
   }
 
-  const decision = decideTrigger(parseNumstat(numstat.stdout), budget.pullRequest.alertAt);
+  const decision = decideTrigger(parseNumstat(numstat.stdout));
   const output = process.env.GITHUB_OUTPUT;
 
   if (output === undefined) {
@@ -176,7 +175,6 @@ function trigger(baseRef: string): void {
     [
       `kind=${decision.kind}`,
       `detail=${decision.kind === "force" ? decision.reasons.join(" / ") : ""}`,
-      `changed-lines=${decision.kind === "alert" ? decision.changedLines : 0}`,
       "",
     ].join("\n"),
   );

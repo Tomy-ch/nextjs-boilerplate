@@ -37,6 +37,9 @@ go-boilerplate は workflows を **「1 関心事 = 1 ワークフロー」** �
 
 - グループ分け(go の trigger 戦略表の翻案): **CI Checks**(全 PR / マージブロック)/ **Security**(全 PR + 週次スケジュール。[0110](0110-security-operations.md) B10)/ **Deployment**(保護ブランチへの push)/ **Documentation**(portal 配信。[0141](0141-portal-operations.md) D2)
 - ブランチ運用は [0150](0150-git-workflow.md) に従う(`production` / `staging` / `develop` / `release/**`)
+- **費用が PR 1 本に見合わない検査は、実行を頻度で削る**(網羅では削らない)。対象は `a11y` / `e2e` / `lighthouse` の 3 本で、回る経路は 5 つ —— 昇格 PR(base が `develop` / `staging` / `production`)/ 保護ブランチへの push / 日次 / ラベル / `workflow_dispatch`。**判定は `.github/actions/check-trigger` 1 箇所が持つ**。昇格 PR を含めるのは、そこが「何を出すか」の risk を人が引き受ける場所であり、答えが**新しい**ことより**揃っている**ことを要するため([0110](0110-security-operations.md) §3.1 が脆弱性に同じ線を引く)
+- **降ろし方は `on:` ではなく `if:`**。job は必ず起動して context を報告し、重いステップだけが降りる。required に登録した context が報告されない PR は永久に止まるため(下記 5)、`on:` から外す形は取れない。降りた理由は各 job が自分の PR コメントで答える
+- **「回すべきだったか」は 1 箇所が 1 度だけ数える**。3 本はそれぞれ「回ったか」しか答えられず、差分が何行あるかはどれも数えていない。`deferred-checks.yaml` が和集合を 1 度数えてコメントを 1 件だけ残す。**これは gate ではなく、required にも登録しない** —— 線(`ALERT_AT`)に理論的な根拠は無く、マージを止められる場所へ根拠の無い数を置かないため。**根拠を置ける理由は各 job が自分で持つ**(`lighthouse` の「画面の宣言が動いた / 器が動いた」がこれで、数を要さず 1 文で言える)。逆に、根拠の置けない量の線を各 job にも持たせると、同じ PR へ同じ趣旨のコメントが複数残る
 
 ### 3. CI ハードニング(言語非依存・go からそのまま)
 

@@ -5,11 +5,10 @@
  * 全数の計測は保護ブランチと日次に置いてあります（[0101](../../docs/adr/0101-performance-budget.md)
  * §2）。ここが答えるのは**その待ち方では遅すぎる差分かどうか**だけです。
  *
- * **判定は 2 段で、根拠の種類が違います。**
- *
- * - **強制**は構造で決めます。数値を要さず、なぜ測るのかを 1 文で言えるものだけです
- * - **合図**は量で決めます。こちらは根拠のある数を置けないので、gate ではなく人へ知らせる線
- *   として扱います
+ * **判定は構造だけで行います。**数値を要さず、なぜ測るのかを 1 文で言えるものしか置きません。
+ * 量で見る合図は、先送りにした 3 つの検査を 1 度に数える側が持ちます
+ * （[`../deferred-checks/volume.ts`](../deferred-checks/volume.ts)）。線を 2 箇所に置くと、
+ * 根拠の無い数が 2 つ並び、同じ PR に同じ趣旨のコメントが 2 件残ります。
  */
 
 import type { Change } from "../lib/numstat";
@@ -23,12 +22,6 @@ export type Trigger =
       readonly reasons: readonly string[];
     }
   | {
-      /** 測ったほうがよいと知らせる。 */
-      readonly kind: "alert";
-      /** 合図の線を超えた変更行数。 */
-      readonly changedLines: number;
-    }
-  | {
       /** 保護ブランチでの計測に任せる。 */
       readonly kind: "skip";
     };
@@ -38,12 +31,6 @@ const SCREEN_DECLARATION = "e2e/lib/screens.ts";
 
 /** 全画面が通る器。 */
 const SHELL_SUFFIX = "/layout.tsx";
-
-/** 量を数える対象。描画に効く宣言と、画面を組み立てるロジック。 */
-const COUNTED_PREFIXES: readonly string[] = ["tokens/", "src/features/", "src/app/"];
-
-/** 量から外す。描かれるものを変えない。 */
-const NOT_COUNTED = /\.(test|stories)\.tsx?$|\.md$/;
 
 /**
  * そのパスが待たずに測る理由に当たるなら、その理由。
@@ -64,21 +51,15 @@ function forceReasonOf(path: string): string | undefined {
   return undefined;
 }
 
-/** 量に数えるパスか。 */
-function isCounted(path: string): boolean {
-  return COUNTED_PREFIXES.some((prefix) => path.startsWith(prefix)) && !NOT_COUNTED.test(path);
-}
-
 /**
  * 差分を判定する。
  *
  * @param changes - 変更されたファイルと、その変更行数。
- * @param alertAt - 合図を出す変更行数の線。
  *
  * @remarks
- * **強制が量に優先します。** 器を 1 行だけ直した差分は量では拾えませんが、効く範囲は全画面です。
+ * 器を 1 行だけ直した差分は量では拾えませんが、効く範囲は全画面です。構造で見るのはそのためです。
  */
-export function decideTrigger(changes: readonly Change[], alertAt: number): Trigger {
+export function decideTrigger(changes: readonly Change[]): Trigger {
   const reasons = [
     ...new Set(
       changes
@@ -87,13 +68,5 @@ export function decideTrigger(changes: readonly Change[], alertAt: number): Trig
     ),
   ];
 
-  if (reasons.length > 0) {
-    return { kind: "force", reasons };
-  }
-
-  const changedLines = changes
-    .filter((change) => isCounted(change.path))
-    .reduce((total, change) => total + change.changedLines, 0);
-
-  return changedLines >= alertAt ? { kind: "alert", changedLines } : { kind: "skip" };
+  return reasons.length > 0 ? { kind: "force", reasons } : { kind: "skip" };
 }

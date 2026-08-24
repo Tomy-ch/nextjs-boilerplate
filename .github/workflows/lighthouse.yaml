@@ -44,10 +44,11 @@ name: Lighthouse
 #     measured at all, so there is no earlier number for the release run to compare against.
 #   * A layout moved — every screen renders through it.
 #
-# Both are structural, which is why neither needs a number to justify it. Volume gets the
-# weaker treatment: past a line count declared in `performance-budget.yaml`, the job leaves a
-# comment naming what to do and stays green. That threshold is a nudge, not a gate, and it
-# says so where it lives.
+# Both are structural, which is why neither needs a number to justify it — and structural is
+# all this job decides. A diff that is merely large is handled by `deferred-checks.yaml`,
+# which counts once for all three deferred checks and leaves one comment. Keeping a second
+# line count here would put two unprincipled numbers in the repository and two comments
+# saying the same thing on the same pull request.
 #
 # Those two structural reasons are this job's own, and they sit ALONGSIDE the four events
 # `check-trigger` shares with the other deferred checks (promotion, label, manual, and the
@@ -164,57 +165,6 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: pnpm exec tsx scripts/lighthouse trigger "origin/${BASE_REF}"
-
-      # Workflow-authored prose only: the line count is a number this job computed, and the
-      # branch name is filtered below. Nothing here is taken from the diff's own text.
-      - name: Say that the change is large enough to be worth measuring
-        if: steps.trigger.outputs.kind == 'alert'
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-          CHANGED_LINES: ${{ steps.trigger.outputs.changed-lines }}
-        run: |
-          # The block below is pasted into a shell, so a value outside the accepted set is
-          # dropped rather than quoted. Why quoting is not enough is in ADR 0153 §5.
-          ref="${HEAD_REF}"
-
-          if printf '%s' "${ref}" | LC_ALL=C grep -q "[^A-Za-z0-9/._-]"; then
-            ref=''
-          fi
-
-          {
-            printf 'この PR は token とロジックを **%s 行**動かしています。\n' "${CHANGED_LINES}"
-            cat <<'NOTE'
-          差分を読んで critical path への影響を推し量れる規模を超えているので、測っておくことを勧めます。
-
-          `run-lighthouse` ラベルを付けると、この PR で測ります。
-          NOTE
-
-            # Indented four spaces: markdown renders that as a code block, and it needs no
-            # fence — a literal fence in a single-quoted string is what shellcheck reads as
-            # a command substitution that will not expand.
-            if [ -n "${ref}" ]; then
-              printf '\nラベルを使わず手元から回すなら:\n\n    gh workflow run lighthouse.yaml --ref %s\n' "${ref}"
-            fi
-
-            cat <<'NOTE'
-
-          **これはゲートではありません。** 全画面の計測は保護ブランチへの push と日次で回ります
-          (ADR 0101 §2)。知らせる線は performance-budget.yaml の lighthouse.pullRequest が
-          根拠付きで持ちます。
-          NOTE
-          } > /tmp/lighthouse-alert.md
-
-      - name: Comment the nudge on PR
-        if: steps.trigger.outputs.kind == 'alert'
-        continue-on-error: true
-        uses: ./.github/actions/upsert-pr-comment
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          marker: '<!-- lighthouse-nudge -->'
-          title: '## 🔎 Lighthouse: この変更は測っておくと安全です'
-          body-file: /tmp/lighthouse-alert.md
-          # Workflow-authored prose, and the one interpolated value is filtered above.
-          body-sanitized: 'true'
 
       # The Next.js build cache is deliberately NOT restored here. A restored cache changes
       # how much work the first render does, and the numbers this job produces would then
