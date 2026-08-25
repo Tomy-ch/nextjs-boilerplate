@@ -10,7 +10,7 @@ describe("retakenTargets", () => {
       stories: ["button--default"],
       screens: [],
       images: ["action/light/button--default.png"],
-      added: ["action/light/button--default.png"],
+      unpaired: ["action/light/button--default.png"],
     });
   });
 
@@ -19,7 +19,7 @@ describe("retakenTargets", () => {
       stories: [],
       screens: ["top"],
       images: [`${SCREEN_AREA}/desktop/top.png`],
-      added: [],
+      unpaired: [],
     });
   });
 
@@ -30,7 +30,7 @@ describe("retakenTargets", () => {
       stories: ["top"],
       screens: ["top"],
       images: ["action/light/top.png", `${SCREEN_AREA}/desktop/top.png`],
-      added: ["action/light/top.png", `${SCREEN_AREA}/desktop/top.png`],
+      unpaired: ["action/light/top.png", `${SCREEN_AREA}/desktop/top.png`],
     });
   });
 
@@ -41,7 +41,7 @@ describe("retakenTargets", () => {
       stories: ["input--error"],
       screens: ["sign-in"],
       images: ["form/dark/input--error.png", `${SCREEN_AREA}/mobile/sign-in.png`],
-      added: [],
+      unpaired: [],
     });
   });
 
@@ -62,7 +62,7 @@ describe("retakenTargets", () => {
         `${SCREEN_AREA}/desktop/top.png`,
         `${SCREEN_AREA}/mobile/top.png`,
       ],
-      added: [],
+      unpaired: [],
     });
   });
 
@@ -76,12 +76,12 @@ describe("retakenTargets", () => {
     ).toEqual(["b--x", "a--y"]);
   });
 
-  it("初めて置かれた画像だけを added に入れる", () => {
+  it("初めて置かれた画像を、前を引けないものとして扱う", () => {
     expect(retakenTargets(["A\taction/light/new--x.png", "M\taction/light/old--x.png"])).toEqual({
       stories: ["new--x", "old--x"],
       screens: [],
       images: ["action/light/new--x.png", "action/light/old--x.png"],
-      added: ["action/light/new--x.png"],
+      unpaired: ["action/light/new--x.png"],
     });
   });
 
@@ -90,8 +90,17 @@ describe("retakenTargets", () => {
       stories: ["new--x"],
       screens: [],
       images: ["action/light/new--x.png"],
-      added: [],
+      unpaired: ["action/light/new--x.png"],
     });
+  });
+
+  it("改名された画像も、前を引けないものとして扱う", () => {
+    expect(
+      retakenTargets([
+        "R100\taction/light/old--x.png\taction/light/new--x.png",
+        "M\taction/light/kept--x.png",
+      ]).unpaired,
+    ).toEqual(["action/light/new--x.png"]);
   });
 
   it("置き場自身の説明と入力のハッシュを落とす", () => {
@@ -99,12 +108,12 @@ describe("retakenTargets", () => {
       stories: [],
       screens: [],
       images: [],
-      added: [],
+      unpaired: [],
     });
   });
 
   it("何も渡されなければ空を返す", () => {
-    expect(retakenTargets([])).toEqual({ stories: [], screens: [], images: [], added: [] });
+    expect(retakenTargets([])).toEqual({ stories: [], screens: [], images: [], unpaired: [] });
   });
 
   // ----- 異常系 -----
@@ -113,7 +122,7 @@ describe("retakenTargets", () => {
       stories: [],
       screens: [],
       images: [],
-      added: [],
+      unpaired: [],
     });
   });
 
@@ -122,7 +131,7 @@ describe("retakenTargets", () => {
       stories: [],
       screens: [],
       images: [],
-      added: [],
+      unpaired: [],
     });
   });
 
@@ -131,11 +140,11 @@ describe("retakenTargets", () => {
       stories: [],
       screens: [],
       images: [],
-      added: [],
+      unpaired: [],
     });
   });
 
   it("状態とパスに分かれていない行を落とす", () => {
-    expect(retakenTargets([""])).toEqual({ stories: [], screens: [], images: [], added: [] });
+    expect(retakenTargets([""])).toEqual({ stories: [], screens: [], images: [], unpaired: [] });
   });
 });

@@ -511,7 +511,7 @@ jobs:
           STORIES: ${{ steps.push-store.outputs.stories }}
           SCREENS: ${{ steps.push-store.outputs.screens }}
           IMAGES: ${{ steps.push-store.outputs.images }}
-          ADDED: ${{ steps.push-store.outputs.added }}
+          UNPAIRED: ${{ steps.push-store.outputs.unpaired }}
         shell: bash
         run: |
           store_repo="$(git config --file .gitmodules --get submodule.baseline/images.url |
@@ -561,9 +561,10 @@ jobs:
               while IFS= read -r path; do
                 [ -n "$path" ] || continue
 
-                # A baseline placed for the first time has no "before" to link to.
-                case ",${ADDED}," in
-                  *",${path},"*) before_cell='新規' ;;
+                # No image answers to this path in the previous snapshot: either it was
+                # placed for the first time, or a rename moved it here.
+                case ",${UNPAIRED}," in
+                  *",${path},"*) before_cell='前が無い' ;;
                   *) before_cell="[前](https://github.com/${store_repo}/blob/${BEFORE}/${path})" ;;
                 esac
 

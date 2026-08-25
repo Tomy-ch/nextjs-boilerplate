@@ -11,8 +11,15 @@ import { SCREEN_AREA } from "./store";
 /** 消えた画像を表す状態。`git diff --name-status` が行頭に置く。 */
 const DELETED = "D";
 
-/** 初めて置かれた画像を表す状態。改名（`R`）は行き先が既に在ったわけではないが、前の絵は在る。 */
-const ADDED = "A";
+/**
+ * 前の一式に同じパスが無いことを表す状態。
+ *
+ * @remarks
+ * `A` は初めて置かれたもの、`R` は行き先のパスが新しいもの。**改名を新規と同じ側に置きます** ——
+ * 絵そのものは前の一式にも在りますが、在るのは改名前のパスなので、行き先のパスで前を引くと
+ * 存在しない先を指します。
+ */
+const WITHOUT_PREVIOUS = ["A", "R"];
 
 /** 撮り直した対象。見直しの入口が種類ごとに分かれているので、ここでも分けて返す。 */
 export type RetakenTargets = {
@@ -29,13 +36,13 @@ export type RetakenTargets = {
    */
   readonly images: readonly string[];
   /**
-   * そのうち、この撮り直しで初めて置かれたもの。
+   * そのうち、前の一式に同じパスが無いもの。
    *
    * @remarks
-   * **前の一式に対応する絵がありません。** 前後を並べる側は、この集合を「前」の無いものとして
-   * 扱う必要があります。
+   * **前を引ける先がありません。** 初めて置かれたものと、改名で行き先のパスが変わったものが
+   * 入ります。前後を並べる側は、この集合を「前」の無いものとして扱う必要があります。
    */
-  readonly added: readonly string[];
+  readonly unpaired: readonly string[];
 };
 
 /**
@@ -61,7 +68,7 @@ export function retakenTargets(entries: readonly string[]): RetakenTargets {
   const stories = new Set<string>();
   const screens = new Set<string>();
   const images: string[] = [];
-  const added: string[] = [];
+  const unpaired: string[] = [];
 
   for (const entry of entries) {
     const field = entry.indexOf("\t");
@@ -78,8 +85,8 @@ export function retakenTargets(entries: readonly string[]): RetakenTargets {
 
     (area === SCREEN_AREA ? screens : stories).add(name);
     images.push(image);
-    if (entry.startsWith(ADDED)) added.push(image);
+    if (WITHOUT_PREVIOUS.some((status) => entry.startsWith(status))) unpaired.push(image);
   }
 
-  return { stories: [...stories], screens: [...screens], images, added };
+  return { stories: [...stories], screens: [...screens], images, unpaired };
 }

@@ -66,7 +66,7 @@ function printSnapshotRef(branch: string | undefined): void {
  * 見せるのは撮り直しのコメント側の仕事で、そのために `images=` を出す。
  *
  * 手元と CI が同じ形の木を積むよう、`make baseline-push` も撮り直しの workflow もここを通る。
- * 呼び出し側が読めるよう `before=` / `after=` / `count=` / `images=` / `added=` と、撮り直した
+ * 呼び出し側が読めるよう `before=` / `after=` / `count=` / `images=` / `unpaired=` と、撮り直した
  * 対象を見直しの入口が取る形にした `stories=` / `screens=` を出す。
  */
 function push(branch: string | undefined): void {
@@ -88,7 +88,7 @@ function push(branch: string | undefined): void {
 
   // 読むのは commit の手前だけ —— 送出は置き場の根へ reset してから積むので、そのあとでは
   // 差分の相手が変わる。
-  const { stories, screens, images, added } = retakenTargets(
+  const { stories, screens, images, unpaired } = retakenTargets(
     store(["diff", "--cached", "--name-status"]).split("\n"),
   );
 
@@ -105,7 +105,7 @@ function push(branch: string | undefined): void {
   // 数えるのは画像だけ。`staged` には絵を決める入力のハッシュも載る。
   console.log(`count=${images.length}`);
   console.log(`images=${images.join(",")}`);
-  console.log(`added=${added.join(",")}`);
+  console.log(`unpaired=${unpaired.join(",")}`);
   console.log(`stories=${stories.join(",")}`);
   console.log(`screens=${screens.join(",")}`);
 }
