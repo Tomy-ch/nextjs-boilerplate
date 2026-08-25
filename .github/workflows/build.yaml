@@ -1,8 +1,14 @@
 name: Build
 
-# next build. Nothing local mirrors this one: the pre-push hook stops at typecheck
-# because a full build is too slow for a hook, so CI is the only place a broken
-# build is caught (ADR 0153).
+# next build, plus the checks that only the build artifact can answer. Nothing local
+# mirrors this one: the pre-push hook stops at typecheck because a full build is too
+# slow for a hook, so CI is the only place a broken build is caught (ADR 0153).
+#
+# The render-mode check rides along because the artifact is already here. A page baked
+# at build time type-checks, passes its tests, and keeps CI green while serving content
+# that stopped being true — and baking it also demands the backend be reachable during
+# the build, which ADR 0011 does not promise. Adding a second build to catch that would
+# cost another ten minutes for a comparison a manifest already answers.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
@@ -98,6 +104,32 @@ jobs:
 
           exit 0
 
+      # Only meaningful when the build produced an artifact. Its failure is reported
+      # through the same comment, so the body file gets appended rather than replaced.
+      - name: Check that every page renders in its declared mode
+        id: render-mode
+        if: steps.build.outputs.status == 'success'
+        shell: bash
+        run: |
+          set +e
+
+          pnpm render-mode 2>&1 | tee /tmp/render-mode.log
+          code=${PIPESTATUS[0]}
+
+          {
+            echo ""
+            echo "### 描画モード"
+            echo ""
+            cat /tmp/render-mode.log
+          } >> /tmp/build.log
+
+          if [ "${code}" -ne 0 ]; then
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Build: FAIL (render mode)" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
       - name: Comment build result on PR
         if: github.event_name == 'pull_request'
         continue-on-error: true
@@ -105,11 +137,11 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- build-result -->'
-          status: ${{ steps.build.outputs.status }}
-          title: ${{ steps.build.outputs.title }}
+          status: ${{ steps.render-mode.outputs.status || steps.build.outputs.status }}
+          title: ${{ steps.render-mode.outputs.title || steps.build.outputs.title }}
           body-file: /tmp/build.log
           details-summary: 'next build log'
 
-      - name: Fail if next build failed
-        if: always() && steps.build.outputs.status != 'success'
+      - name: Fail if the build or the render-mode check failed
+        if: always() && (steps.build.outputs.status != 'success' || steps.render-mode.outputs.status == 'failure')
         run: exit 1
