@@ -11,8 +11,8 @@ import { afterEach, beforeAll, vi } from "vitest";
 // 先に席を取り、ここが何もしないで済むようにするためである。応答を自分で作るテスト
 // （`vi.stubGlobal` / `vi.spyOn`）も同じく席を取るので、この判定には掛からない。
 //
-// 拒み方が reject ではなく throw なのは、外への取得を握り潰す `catch` を素通りさせないためである。
-// 本物の `fetch` は同期に throw しない。ここは本物を真似る場所ではなく、誤りを黙らせない場所である。
+// 拒み方が reject ではなく throw なのは、外への取得を握り潰す `catch` を素通りさせないためである
+// （本物の `fetch` は同期に throw しない）。
 const realFetch = globalThis.fetch;
 
 beforeAll(() => {

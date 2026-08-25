@@ -231,8 +231,7 @@ jobs:
 
           # Green because these stories were compared, or green because the inputs had
           # already compared clean — the reader needs to be able to tell those apart, and
-          # only the log says which. Every shard reads the same record, so every shard
-          # reports the same decision.
+          # only the log says which.
           if grep -qx 'vrt-gate: skip' /tmp/vrt-full.log; then
             echo "gate=skip" >> "$GITHUB_OUTPUT"
           else

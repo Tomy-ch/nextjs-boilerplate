@@ -33,10 +33,8 @@ name: Accessibility
 # protected branch and once a night. What a pull request gives up is one merge of detection
 # latency, and `check-trigger` lists the four events that buy it back.
 #
-# The two questions are different layers and both have to say yes. `check-trigger` asks
-# whether this event has to pay now; `diff-scope` asks whether the diff can reach a story at
-# all. A third layer sits below them — the input hash `make a11y` computes — and which layer
-# decides what is in `vrt/README.md`.
+# Both questions have to say yes, and a third layer sits below them — the input hash
+# `make a11y` computes. What each layer decides is in `vrt/README.md`.
 
 on:
   pull_request:

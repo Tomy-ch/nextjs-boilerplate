@@ -12,7 +12,7 @@ description: Decide whether an expensive check has to run on this event, or can 
 #   * A promotion pull request (`develop` / `staging` / `production` as the base) — why
 #     promotion needs a complete answer rather than a recent one is in ADR 0153 §2.
 #   * The pull request carries the label. A human looked at the diff and decided this one is
-#     worth the wait.
+#     worth the wait. This is the one reason a caller can opt out of, by omitting `label`.
 #   * `workflow_dispatch`. Someone asked for it by hand.
 #
 # Everything else defers. What that costs is one merge of detection latency, and what it buys
@@ -30,13 +30,17 @@ description: Decide whether an expensive check has to run on this event, or can 
 
 inputs:
   label:
-    required: true
+    required: false
+    default: ''
     description: |
       Newline-separated labels, ANY of which makes a pull request run now (e.g. `run-a11y`).
-      More than one is for a caller that speaks for several checks at once — the nudge asks
-      "are they all still deferred?", which is false as soon as one of them is forced.
+
+      Omit it to ask the cadence question alone. That is for a caller whose answer is per
+      label rather than one verdict — `deferred-checks.yaml` names one check at a time, so a
+      label forcing one of them must not answer for the rest.
   labels:
-    required: true
+    required: false
+    default: ''
     description: |
       Labels the pull request carries, as a JSON array. Callers pass a `toJSON` of
       `github.event.pull_request.labels.*.name`; off a pull request that is `null`, which reads
@@ -67,6 +71,14 @@ runs:
         LABELS: ${{ inputs.labels }}
       run: |
         set -euo pipefail
+
+        # Naming a label with nothing to match it against would never fire, and the check
+        # would silently stop being forceable by hand. Rejected rather than treated as "no
+        # labels", which is what an omitted `label` means and is a different question.
+        if [ -n "${LABEL}" ] && [ -z "${LABELS}" ]; then
+          echo "::error::check-trigger was given label without labels."
+          exit 1
+        fi
 
         decide() {
           echo "run=$1" >> "$GITHUB_OUTPUT"

@@ -44,17 +44,16 @@ name: Lighthouse
 #     measured at all, so there is no earlier number for the release run to compare against.
 #   * A layout moved — every screen renders through it.
 #
-# Both are structural, which is why neither needs a number to justify it — and structural is
-# all this job decides. A diff that is merely large is handled by `deferred-checks.yaml`,
-# which counts once for all three deferred checks and leaves one comment. Keeping a second
-# line count here would put two unprincipled numbers in the repository and two comments
-# saying the same thing on the same pull request.
+# Both are structural, which is why neither needs a number to justify it. They are this job's
+# own and sit ALONGSIDE the events `check-trigger` shares with the other deferred checks —
+# here rather than there because they answer a question only this job has: a screen added on
+# this branch has no earlier number for the release run to compare against, so deferring it
+# defers the comparison too, not just the detection.
 #
-# Those two structural reasons are this job's own, and they sit ALONGSIDE the four events
-# `check-trigger` shares with the other deferred checks (promotion, label, manual, and the
-# cadence itself). They exist here and not there because they answer a question only this job
-# has: a screen added on this branch has no earlier number for the release run to compare
-# against, so deferring it defers the comparison too, not just the detection.
+# **Anything that merely warrants a label belongs to `deferred-checks.yaml`, not here.** It
+# reads the diff once for all three checks and leaves one comment, and it stays silent about
+# `run-lighthouse` on a diff these two reasons already measure — so nobody is told to ask for
+# a measurement that is already running.
 #
 # The job reports a context on every pull request either way, which is what would let it
 # become a required check later; it is deliberately not one today, because the budget is not
