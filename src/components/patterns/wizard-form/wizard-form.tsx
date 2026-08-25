@@ -12,6 +12,7 @@ import {
   STEPPER_ORIENTATION,
   STEPPER_STATE,
 } from "@/components/design-system/display/stepper/stepper.definition";
+import { useLatched } from "@/components/use-latched";
 
 /** 入力の段階 1 つ。 */
 export type WizardStep = {
@@ -185,6 +186,10 @@ export function WizardForm({
    *
    * 到達済みで、いま居る段ではなく、いま居る段を終えられているなら移れる。前へ戻る側は
    * 終えられていなくても移れる —— 戻ることは、その段を済ませたと主張しないため。
+   *
+   * **`index <= furthestIndex` を緩めると、飛ばした段が mount されないまま送信される。**
+   * 段を DOM へ残すかは `StepPanel` が「一度でも現在地だったか」で決めており、ここが 1 段ずつ
+   * しか進ませないことがその判断の前提になっている。
    */
   const canGoTo = useCallback(
     (index: number) =>
@@ -237,7 +242,6 @@ export function WizardForm({
           active={index === currentIndex}
           id={`${panelId}-${step.id}`}
           key={step.id}
-          reached={index <= furthestIndex}
           title={step.title}
         >
           {step.content}
@@ -298,15 +302,17 @@ function StepPanel({
   active,
   children,
   id,
-  reached,
   title,
 }: {
   active: boolean;
   children: ReactNode;
   id: string;
-  reached: boolean;
   title: string;
 }) {
+  // 到達済みかは「一度でも現在地だったか」と同じである —— 次へは 1 段ずつしか進まず、飛べる先も
+  // 到達済みに限られるため、先の段が現在地を飛ばして開くことがない。
+  const reached = useLatched(active);
+
   return (
     <fieldset
       className="flex min-w-0 flex-col gap-3 outline-hidden"

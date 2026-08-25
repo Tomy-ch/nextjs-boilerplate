@@ -1,9 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
 
 import type { RichTextEditorProps } from "@/components/design-system/rich-text/rich-text-editor/rich-text-editor";
+import { useLatched } from "@/components/use-latched";
 
 /**
  * 編集面は、最初に読む一式から外す。
@@ -35,8 +35,8 @@ export type ProductDescriptionEditorProps = RichTextEditorProps & {
    * 取得と実行が走ります。開いた人が払う待ちは減らないまま、`bundle-budget` の初期の列だけが
    * 減るという形になります。
    *
-   * 段ごとに到達したものだけを mount する器（`components/patterns/wizard-form`）から使うときは、
-   * 器の側が同じ判断を済ませているので `true` を渡します。
+   * 到達した段だけを mount する器（`components/patterns/wizard-form`）は同じ latch を先に通して
+   * いるので、そこから使うときは `true` を渡します。
    */
   active: boolean;
 };
@@ -45,17 +45,15 @@ export type ProductDescriptionEditorProps = RichTextEditorProps & {
  * 商品説明の編集面。
  *
  * @remarks
- * **一度開いたら閉じません。** 編集面は `defaultValue` からしか組み立てられないため、隠れるたびに
- * 外すと、戻ったときに書いた内容が初期値へ戻ります。
+ * **一度開いたら閉じません**（`useLatched`）。編集面は `defaultValue` からしか組み立てられない
+ * ため、隠れるたびに外すと、戻ったときに書いた内容が初期値へ戻ります。
  */
 export function ProductDescriptionEditor({ active, ...props }: ProductDescriptionEditorProps) {
-  const [opened, setOpened] = useState(active);
-
-  if (active && !opened) {
-    setOpened(true);
-  }
-
-  return opened ? <RichTextEditorLazy {...props} /> : <ProductDescriptionEditorPlaceholder />;
+  return useLatched(active) ? (
+    <RichTextEditorLazy {...props} />
+  ) : (
+    <ProductDescriptionEditorPlaceholder />
+  );
 }
 
 /**
