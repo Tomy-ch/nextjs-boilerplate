@@ -39,6 +39,10 @@ test-requirement: feature
 | `/admin/shipments` | [`screen`](../../../docs/spec/route/admin/shipments/page.screen.md) / [`function`](../../../docs/spec/route/admin/shipments/page.function.md) |
 | `/admin/users` | [`screen`](../../../docs/spec/route/admin/users/page.screen.md) / [`function`](../../../docs/spec/route/admin/users/page.function.md) |
 
+**`/admin/shipments` の契約・状態・Action は [shipments/README.md](shipments/README.md) が持ちます。**
+route の地図はここが持ちますが、その画面の中身は自分の README を持つ側の担当です。以下の表に
+発送の行が無いのはそのためです。
+
 この slice の画面が通す operationId。**変更する側はこの feature が呼びません** —— Server Action が
 app 層にあるためで、理由は「Action 戻り値契約」に書いてあります。
 
@@ -49,13 +53,10 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | `GetProducts` | 商品の一覧 | feature |
 | `GetProductsDetail` | 編集・在庫補充が読む 1 件 | feature |
 | `GetProductCategories` / `GetProductStatuses` | 絞り込みとフォームの候補 | feature |
-| `GetPurchasesShippable` | 発送待ちの束 | feature |
-| `GetPurchases` | 発送済みの確認 | feature |
 | `GetUsers` | 利用者の一覧 | feature |
 | `PostProductsImages` | 画像の送信 | app 層の Action |
 | `PostProducts` / `PatchProductsDetail` | 商品の作成・編集 | app 層の Action |
 | `PatchProductsStock` | 在庫の増減 | app 層の Action |
-| `PatchPurchasesShip` / `PatchPurchasesDeliver` | 発送・配達 | app 層の Action |
 | `DeleteUsersDetail` | 利用者の退会 | app 層の Action |
 
 ## 状態とデザイン参照
@@ -75,7 +76,6 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | 商品編集 | 拒否 / 版の食い違い | `Page/Admin/Products/Edit/{Rejected,Conflicted}` |
 | 在庫補充 | 補充 / 引き落とし / 在庫切れ | `Page/Admin/Products/Stock/{Replenishing,Deducting,OutOfStock}` |
 | | 量が読めない / 版の食い違い / 取り直せない | `Page/Admin/Products/Stock/{RejectedQuantity,Conflicted,Unavailable}` |
-| 発送 | success / 発送済みのみ / empty | `Page/Admin/Shipments/{Default,ShippedOnly,Empty}` |
 | 利用者 | success / empty | `Page/Admin/Users/{Default,Empty}` |
 | | 退会の確認・成立・競合 | `Page/Admin/Users/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
 
@@ -208,11 +208,12 @@ a11y の自動検査——で、**画面を跨ぐ純関数（`count.ts` / `summa
 | --- | --- | --- | --- | --- |
 | `uploadProductImageAction` | `src/app/admin/products/actions.ts` | `ProductImageUploadState` | 送信済みの鍵を返す | 弾かれた理由を選んだ面に出す |
 | `createProductAction` | 同上 | `ProductFormState` | 一覧へ `redirect` | 項目ごとの誤りを段へ戻す |
-| `updateProductAction` | 同上 | `ProductFormState` | `revalidatePath` | 同上。版の食い違いは言い分ける |
+| `updateProductAction` | 同上 | `ProductFormState` | 同上 | 同上。版の食い違いは言い分ける |
 | `adjustProductStockAction` | 同上 | `StockFormState` | 同上 | 同上 |
-| `shipPurchasesAction` | `src/app/admin/shipments/actions.ts` | `ShipmentState` | 同上。通った件数を返す | 打ち切った位置までを返す |
-| `deliverPurchaseAction` | 同上 | `DeliveryState` | 同上 | 分類を操作の隣に出す |
-| `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | 同上 | 競合は言い分け、確認が閉じても残る場所に出す |
+| `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **一覧は取り直させない** | 競合は言い分け、確認が閉じても残る場所に出す |
+
+**退会だけ一覧を取り直させません。**後始末が結果整合で続くため、直後に取り直しても反映前の
+一覧を見せるだけになります。何が起きたかは送信の結果が伝えます。
 
 画面は Action を props で受け取るだけです。**`route` の器が Action を持つ形にしてあるのは、
 `page.tsx` と同じ段に置いた `actions.ts` が route の入口と 1 対 1 に対応するため**で、判定と
@@ -224,7 +225,6 @@ a11y の自動検査——で、**画面を跨ぐ純関数（`count.ts` / `summa
 - [ ] 写せなかった条件が捨てられず、一覧の代わりにそのことが出る
 - [ ] 版の食い違い（409）が、ほかの失敗と言い分けられる
 - [ ] 退会済みの行に操作が出ない
-- [ ] 発送の一括送信が打ち切られたとき、そこまでに通った件数が返る
 
 層の割り当て（`feature` / `component` / `unit`）は「構成」の末尾にあります。
 
