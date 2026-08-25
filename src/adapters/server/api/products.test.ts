@@ -424,6 +424,18 @@ describe("getProductCount", () => {
 
     await expect(getProductCount()).resolves.toBe(7);
   });
+
+  it("Data Cache へ入れず、印も付けない", async () => {
+    serveJson(COUNT_URL, { count: 0 });
+    const fetchImpl = watchFetch();
+
+    await getProductCount({ keyword: "靴" });
+
+    const options = fetchImpl.mock.calls[0]?.[1];
+
+    expect(options).not.toHaveProperty("next.tags");
+    expect(options).not.toMatchObject({ cache: "force-cache" });
+  });
 });
 
 describe("getProduct", () => {
@@ -584,8 +596,8 @@ describe("uploadProductImage", () => {
     serveStatus("post", IMAGES_URL, 413);
 
     await expect(
-      uploadProductImage(new File(["x"], "a.png", { type: "image/png" })),
-    ).rejects.toThrow();
+      kindOf(() => uploadProductImage(new File(["x"], "a.png", { type: "image/png" }))),
+    ).resolves.toBe(ErrorKind.PAYLOAD_TOO_LARGE);
   });
 });
 
@@ -658,7 +670,9 @@ describe("updateProduct", () => {
   it("版が食い違った応答を分類済みのエラーとして返す", async () => {
     serveStatus("patch", PRODUCT_URL, 409);
 
-    await expect(updateProduct(id, { ...DRAFT, version: 1 })).rejects.toThrow();
+    await expect(kindOf(() => updateProduct(id, { ...DRAFT, version: 1 }))).resolves.toBe(
+      ErrorKind.CONFLICT,
+    );
   });
 });
 

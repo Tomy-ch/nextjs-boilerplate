@@ -67,9 +67,24 @@ describe("renderReport", () => {
     expect(renderReport([verdict({ limit: undefined })], SURVEY)).toContain("| — | — |");
   });
 
-  it("base に無い route は増分を出さない", () => {
-    expect(renderReport([verdict({ initialJs: quantity(90 * KB, undefined) })], SURVEY)).toContain(
-      "| 90.0 KB |",
+  it("base に無い route は、動いていない route と見分けが付く形で出す", () => {
+    // この PR で増えた route は、どの量にも base を持たない。base と同値にすると、丸めて 0 に
+    // なる隣のケースと同じ経路を通り、`base === undefined` の分岐を消しても落ちなくなる。
+    const report = renderReport(
+      [
+        verdict({
+          initialJs: newQuantity(90 * KB),
+          sharedJs: newQuantity(60 * KB),
+          deferredJs: newQuantity(0),
+          totalJs: newQuantity(90 * KB),
+          css: newQuantity(20 * KB),
+        }),
+      ],
+      SURVEY,
+    );
+
+    expect(report).toContain(
+      "| `/` | 90.0 KB (新規) | 0.0 KB (新規) | 90.0 KB (新規) | 20.0 KB (新規) |",
     );
   });
 
@@ -137,6 +152,27 @@ describe("renderReport", () => {
     expect(report).not.toContain("`/fine` の初期 JS の内訳");
   });
 
+  it("合計 JS の増分だけで超過した route には内訳を添えない", () => {
+    // 内訳が答えるのは「初期 JS のどこが動いたか」なので、初期が動いていない超過には出さない。
+    const report = renderReport(
+      [verdict({ route: "/total", totalJs: quantity(120 * KB, 85 * KB, 4 * KB) })],
+      SURVEY,
+    );
+
+    expect(report).toContain("❌ 合計の増分");
+    expect(report).not.toContain("`/total` の初期 JS の内訳");
+  });
+
+  it("CSS の増分だけで超過した route には内訳を添えない", () => {
+    const report = renderReport(
+      [verdict({ route: "/css", css: quantity(30 * KB, 20 * KB, 6 * KB) })],
+      SURVEY,
+    );
+
+    expect(report).toContain("❌ CSS の増分");
+    expect(report).not.toContain("`/css` の初期 JS の内訳");
+  });
+
   it("base を持たない落ちた route でも内訳を出す", () => {
     const report = renderReport(
       [
@@ -151,7 +187,7 @@ describe("renderReport", () => {
     );
 
     expect(report).toContain(
-      "- `/new` の初期 JS の内訳: この route だけが読む 30.0 KB / 共有 60.0 KB",
+      "- `/new` の初期 JS の内訳: この route だけが読む 30.0 KB (新規) / 共有 60.0 KB (新規)",
     );
   });
 });

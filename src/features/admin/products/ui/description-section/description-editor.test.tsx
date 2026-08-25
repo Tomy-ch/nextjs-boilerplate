@@ -51,6 +51,20 @@ describe("ProductDescriptionEditor", () => {
     expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
   });
 
+  it("閉じた段が開かれたら、そこで初めて編集面を読み込む", async () => {
+    const { rerender } = render(
+      <ProductDescriptionEditor active={false} id={CONTROL_ID} label="商品説明" onChange={noop} />,
+    );
+
+    expect(screen.queryByRole("textbox", { name: "商品説明" })).not.toBeInTheDocument();
+
+    rerender(
+      <ProductDescriptionEditor active={true} id={CONTROL_ID} label="商品説明" onChange={noop} />,
+    );
+
+    expect(await screen.findByRole("textbox", { name: "商品説明" })).toBeInTheDocument();
+  });
+
   it("一度開いたら、閉じても編集面を外さない", async () => {
     const { rerender } = render(
       <ProductDescriptionEditor active={true} id={CONTROL_ID} label="商品説明" onChange={noop} />,

@@ -103,7 +103,6 @@ describe("entryStylesheets", () => {
     ).toEqual(["static/chunks/a.css"]);
   });
 
-  // ----- 異常系 -----
   it("manifest が無ければ空を返す", () => {
     expect(entryStylesheets(undefined)).toEqual([]);
   });
@@ -164,7 +163,6 @@ describe("unionByRoute", () => {
     ).toEqual(["/b", "/a"]);
   });
 
-  // ----- 異常系 -----
   it("entry が 1 つも無ければ空を返す", () => {
     expect(unionByRoute([])).toEqual([]);
   });
@@ -184,7 +182,6 @@ describe("statsChunks", () => {
     expect(statsChunks([{ route: "/" }]).get("/")).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("読めなかった場合は空を返し、呼び出し側が和集合へ落ちられる", () => {
     expect(statsChunks(undefined).size).toBe(0);
   });
@@ -204,7 +201,6 @@ describe("sharedChunks", () => {
     expect([...sharedChunks([entry("/a", ["a.js"]), entry("/b", ["b.js"])])]).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("route が 1 つしか無ければ、共有は無いものとして扱う", () => {
     expect([...sharedChunks([entry("/a", ["a.js", "b.js"])])]).toEqual([]);
   });

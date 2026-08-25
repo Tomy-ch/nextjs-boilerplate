@@ -79,7 +79,6 @@ describe("prerenderedRoutes", () => {
     ).toEqual(["/products/[id]"]);
   });
 
-  // ----- 異常系 -----
   it("固まった route が無ければ空を返す", () => {
     expect(prerenderedRoutes({})).toEqual([]);
   });
@@ -143,7 +142,6 @@ describe("formatRenderModeDrift", () => {
     expect(text).toContain("/terms: `force-static` を宣言していますが動的に描かれています");
   });
 
-  // ----- 異常系 -----
   it("食い違いが無ければ空文字を返す", () => {
     expect(formatRenderModeDrift([])).toBe("");
   });

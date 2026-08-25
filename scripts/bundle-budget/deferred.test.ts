@@ -61,11 +61,6 @@ describe("deferredChunks", () => {
     expect(found).toEqual(["static/chunks/b.js"]);
   });
 
-  // ----- 異常系 -----
-  it("読めない chunk は辿らない", () => {
-    expect(deferredChunks(["static/chunks/missing.js"], () => null)).toEqual([]);
-  });
-
   it("初期が空なら空を返す", () => {
     expect(deferredChunks([], () => '"static/chunks/lazy.js"')).toEqual([]);
   });
@@ -77,5 +72,12 @@ describe("deferredChunks", () => {
     );
 
     expect(found).toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  // 成果物に在るはずの chunk が読めないのは、manifest と成果物の食い違いであって、
+  // 契約が宣言した不在ではない（ADR 0090「在るべきものの不在」）。
+  it("読めない chunk は辿らない", () => {
+    expect(deferredChunks(["static/chunks/missing.js"], () => null)).toEqual([]);
   });
 });

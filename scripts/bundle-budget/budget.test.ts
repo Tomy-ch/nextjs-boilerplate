@@ -155,6 +155,31 @@ describe("judge", () => {
     expect(verdict?.sharedJs.overGrowth).toBeUndefined();
   });
 
+  it("増分がちょうど上限と同じなら超過にしない", () => {
+    // 判定は厳密不等号。`>=` へ取り違えると、ちょうど線に乗った PR だけが落ちるようになる。
+    const [verdict] = judge(
+      [measured({ route: "/", initialJs: 90 * KB })],
+      [measured({ route: "/", initialJs: 80 * KB })],
+      BUDGET,
+    );
+
+    expect(verdict?.initialJs.overGrowth).toBeUndefined();
+  });
+
+  it("初期 JS がちょうど上限と同じなら超過にしない", () => {
+    const [verdict] = judge([measured({ route: "/", initialJs: 100 * KB })], [], BUDGET);
+
+    expect(verdict?.overLimit).toBeUndefined();
+  });
+
+  it("base に無い route は増分を判定しない", () => {
+    const [verdict] = judge([measured({ route: "/", initialJs: 95 * KB })], [], BUDGET);
+
+    expect(verdict?.initialJs.base).toBeUndefined();
+    expect(verdict?.initialJs.overGrowth).toBeUndefined();
+    expect(verdict?.totalJs.overGrowth).toBeUndefined();
+  });
+
   // ----- 異常系 -----
   it("上限を超えた量を返す", () => {
     const [verdict] = judge(
@@ -195,14 +220,6 @@ describe("judge", () => {
     );
 
     expect(verdict?.css.overGrowth).toBe(6 * KB);
-  });
-
-  it("base に無い route は増分を判定しない", () => {
-    const [verdict] = judge([measured({ route: "/", initialJs: 95 * KB })], [], BUDGET);
-
-    expect(verdict?.initialJs.base).toBeUndefined();
-    expect(verdict?.initialJs.overGrowth).toBeUndefined();
-    expect(verdict?.totalJs.overGrowth).toBeUndefined();
   });
 });
 

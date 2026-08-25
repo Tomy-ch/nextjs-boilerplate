@@ -24,10 +24,17 @@ function kb(bytes: number): string {
   return `${(bytes / BYTES_PER_KB).toFixed(1)} KB`;
 }
 
-/** 増分を符号つきで。base を持たない量は空にする。 */
+/**
+ * 増分を符号つきで。
+ *
+ * @remarks
+ * base を持たない量には「新規」と書きます。空にすると**動いていない route と見分けが付かず**、
+ * この PR で増えた route が「変化なし」として読まれます。判定の側も増分を見ないので、表の上でも
+ * 比べる先が無いことを言う必要があります。
+ */
 function delta(quantity: Quantity): string {
   if (quantity.base === undefined) {
-    return "";
+    return " (新規)";
   }
 
   // 丸めてから符号を決める。先に符号を見ると、1 byte 減っただけの route が `-0.0 KB` になる。
