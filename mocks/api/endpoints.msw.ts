@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
@@ -21,11 +21,12 @@ import type {
   DashboardSummaryResponse,
   ExchangeRateResponse,
   PrefecturesResponse,
+  ProductAmountRankingResponse,
   ProductCountResponse,
   ProductImageResponse,
   ProductListResponse,
   ProductLowStockResponse,
-  ProductRankingResponse,
+  ProductQuantityRankingResponse,
   ProductResponse,
   ProductsCategoriesResponse,
   ProductsStatusesResponse,
@@ -176,10 +177,6 @@ export const getGetUsersMeResponseMock = (
 export const getGetUsersMePurchasesSummaryResponseMock = (
   overrideResponse: Partial<Extract<PurchaseAggregateResponse, object>> = {},
 ): PurchaseAggregateResponse => ({
-  period: {
-    from: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 10), null]),
-    to: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 10), null]),
-  },
   totalCount: faker.number.int(),
   totalAmount: faker.number.int(),
   itemsTotal: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -475,15 +472,29 @@ export const getPatchProductsStockResponseMock = (
   ...overrideResponse,
 });
 
-export const getGetProductsRankingResponseMock = (
-  overrideResponse: Partial<Extract<ProductRankingResponse, object>> = {},
-): ProductRankingResponse => ({
+export const getGetProductsRankingQuantityResponseMock = (
+  overrideResponse: Partial<Extract<ProductQuantityRankingResponse, object>> = {},
+): ProductQuantityRankingResponse => ({
   rankings: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       productId: faker.string.uuid(),
       name: faker.string.alpha({ length: { min: 10, max: 255 } }),
       price: (() => "19.99")(),
       soldQuantity: faker.number.int(),
+    }),
+  ),
+  ...overrideResponse,
+});
+
+export const getGetProductsRankingAmountResponseMock = (
+  overrideResponse: Partial<Extract<ProductAmountRankingResponse, object>> = {},
+): ProductAmountRankingResponse => ({
+  rankings: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+    () => ({
+      productId: faker.string.uuid(),
+      name: faker.string.alpha({ length: { min: 10, max: 255 } }),
+      price: (() => "19.99")(),
+      salesAmount: (() => "824.69")(),
     }),
   ),
   ...overrideResponse,
@@ -1354,23 +1365,47 @@ export const getPatchProductsStockMockHandler = (
   );
 };
 
-export const getGetProductsRankingMockHandler = (
+export const getGetProductsRankingQuantityMockHandler = (
   overrideResponse?:
-    | ProductRankingResponse
+    | ProductQuantityRankingResponse
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<ProductRankingResponse> | ProductRankingResponse),
+      ) => Promise<ProductQuantityRankingResponse> | ProductQuantityRankingResponse),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
-    "*/v1/products/ranking",
+    "*/v1/products/ranking/quantity",
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === "function"
             ? await overrideResponse(info)
             : overrideResponse
-          : getGetProductsRankingResponseMock(),
+          : getGetProductsRankingQuantityResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
+export const getGetProductsRankingAmountMockHandler = (
+  overrideResponse?:
+    | ProductAmountRankingResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<ProductAmountRankingResponse> | ProductAmountRankingResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/products/ranking/amount",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetProductsRankingAmountResponseMock(),
         { status: 200 },
       );
     },
@@ -1820,7 +1855,8 @@ export const getGoBoilerplateAPIMock = () => [
   getGetProductsDetailMockHandler(),
   getPatchProductsDetailMockHandler(),
   getPatchProductsStockMockHandler(),
-  getGetProductsRankingMockHandler(),
+  getGetProductsRankingQuantityMockHandler(),
+  getGetProductsRankingAmountMockHandler(),
   getGetProductsLowStockMockHandler(),
   getPostProductsImagesMockHandler(),
   getGetExchangeRatesMockHandler(),

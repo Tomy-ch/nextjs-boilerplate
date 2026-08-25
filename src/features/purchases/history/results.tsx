@@ -1,6 +1,6 @@
 import { getMyPurchases } from "@/adapters/server/api/purchases";
 
-import { type PeriodSelection, toPurchaseHistoryHref, toPurchaseHistoryQuery } from "./period";
+import { type PeriodSelection, toPurchaseHistoryHref, toPurchaseWindow } from "./period";
 import { PURCHASE_PAGE_SIZE } from "./query";
 import { PurchaseHistoryEmpty } from "./ui/empty/empty";
 import { PurchaseInfiniteList } from "./ui/infinite-list/infinite-list";
@@ -25,9 +25,19 @@ export type PurchaseHistoryResultsProps = {
  *
  * 1 件も無いときの言い方を期間で変えます。絞り込んだ結果が 0 件であることを「購入がありません」
  * とだけ伝えると、条件を外せば出てくることが画面から読み取れません。
+ *
+ * **区間をここで 1 度だけ決めて、続きの取得へも同じものを渡します。** 「直近 N 日」は解く瞬間で
+ * 答えが変わるため、ページごとに解き直すと境目の購入が飛ばされます。
  */
 export async function PurchaseHistoryResults({ period }: PurchaseHistoryResultsProps) {
-  const first = await getMyPurchases(toPurchaseHistoryQuery(period, PURCHASE_PAGE_SIZE));
+  const window = toPurchaseWindow(period, new Date());
+  const first = await getMyPurchases({
+    first: PURCHASE_PAGE_SIZE,
+    includeOtherUsers: false,
+    // 区間の `after` を展開で載せない。契約の `after` はページ送りのカーソルで、名前だけが同じ。
+    orderedAfter: window.after,
+    orderedBefore: window.before,
+  });
 
   if (first.items.length === 0) {
     return period.kind === "all" ? (
@@ -44,7 +54,7 @@ export async function PurchaseHistoryResults({ period }: PurchaseHistoryResultsP
       // props が変わっても入れ替わらない。
       key={JSON.stringify(first.items)}
       pageSize={PURCHASE_PAGE_SIZE}
-      period={period}
+      window={window}
     />
   );
 }

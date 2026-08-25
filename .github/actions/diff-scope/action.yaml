@@ -1,9 +1,16 @@
 name: Diff scope
 description: Decide whether a pull request's diff can reach what a job inspects, so an expensive job can stand down without a `paths:` filter
 
-# The caller passes what CANNOT affect it, never what can. A missing entry costs a needless run;
-# a wrong entry silently stops the job from inspecting anything, and a gate that inspects nothing
-# looks exactly like a gate that found no problem. Anything the caller does not name runs.
+# Two modes, and `ignore` is the default one for a reason. There the caller passes what CANNOT
+# affect it: a missing entry costs a needless run, and anything the caller does not name runs.
+# A wrong entry in the other direction silently stops the job from inspecting anything, and a
+# gate that inspects nothing looks exactly like a gate that found no problem.
+#
+# `only` inverts that and is therefore restricted. It is admissible where the job's subject is
+# not the tree at all — a dependency scanner reads the lockfile, and no amount of source change
+# can alter what it finds — AND where a scheduled full run already covers the tree the pull
+# request did not touch. Both halves are required: without the second, a mistake in the list is
+# a permanent blind spot rather than one deferred to the weekly pass.
 #
 # Why the job stands down from the inside rather than through `paths:` — see workflows/README.md.
 
@@ -12,10 +19,18 @@ inputs:
     required: true
     description: Branch the diff is taken against (`github.base_ref`)
   ignore:
-    required: true
+    required: false
+    default: ''
     description: |
       Newline-separated patterns for paths that cannot affect this job. Matched with bash `[[ ==
       ]]`, where `*` also spans `/` — write `docs/*`, not `docs/**`.
+  only:
+    required: false
+    default: ''
+    description: |
+      Newline-separated patterns for the only paths that CAN affect this job; everything else
+      stands the job down. Same matching as `ignore`, and mutually exclusive with it. Use only
+      where a scheduled run covers what a pull request cannot reach — see the note above.
 
 outputs:
   relevant:
@@ -31,8 +46,20 @@ runs:
       env:
         BASE_REF: ${{ inputs.base-ref }}
         IGNORE: ${{ inputs.ignore }}
+        ONLY: ${{ inputs.only }}
       run: |
         set -euo pipefail
+
+        # Rejected rather than resolved by precedence. Silently picking one list would decide
+        # the job's scope by the order of two inputs, and the two lists mean opposite things.
+        if [ -n "${IGNORE}" ] && [ -n "${ONLY}" ]; then
+          echo "::error::diff-scope takes either ignore or only, not both."
+          exit 1
+        fi
+        if [ -z "${IGNORE}" ] && [ -z "${ONLY}" ]; then
+          echo "::error::diff-scope needs one of ignore or only."
+          exit 1
+        fi
 
         # Not being able to take the diff is not evidence of irrelevance. Run.
         if [ -z "${BASE_REF}" ]; then
@@ -56,6 +83,28 @@ runs:
         if [ -z "${changed}" ]; then
           echo "relevant=true" >> "$GITHUB_OUTPUT"
           echo "::notice::Empty diff; running."
+          exit 0
+        fi
+
+        if [ -n "${ONLY}" ]; then
+          mapfile -t patterns <<< "${ONLY}"
+
+          while IFS= read -r file; do
+            [ -n "${file}" ] || continue
+
+            for pattern in "${patterns[@]}"; do
+              [ -n "${pattern}" ] || continue
+              # shellcheck disable=SC2053 # the right-hand side is a pattern on purpose
+              if [[ "${file}" == ${pattern} ]]; then
+                echo "relevant=true" >> "$GITHUB_OUTPUT"
+                echo "::notice::${file} is declared able to affect this job; running."
+                exit 0
+              fi
+            done
+          done <<< "${changed}"
+
+          echo "relevant=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::No changed path is declared able to affect this job; standing down."
           exit 0
         fi
 

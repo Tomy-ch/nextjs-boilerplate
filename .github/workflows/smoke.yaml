@@ -137,6 +137,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- smoke-result -->'
+          status: ${{ steps.smoke.outputs.status }}
           title: ${{ steps.smoke.outputs.title }}
           body-file: /tmp/smoke.log
           details-summary: 'next start log'

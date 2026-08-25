@@ -69,3 +69,13 @@ jobs:
         with:
           sarif_file: scorecard.sarif
           category: scorecard
+
+  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  notify-failure:
+    needs: scorecard
+    if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.scorecard.result) }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      failed-job: scorecard
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

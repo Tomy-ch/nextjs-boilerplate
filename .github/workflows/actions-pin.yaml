@@ -94,6 +94,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- actions-pin-result -->'
+          status: ${{ steps.actions-pin.outputs.status }}
           title: ${{ steps.actions-pin.outputs.title }}
           body-file: /tmp/actions-pin.log
           details-summary: 'actions-pin log'

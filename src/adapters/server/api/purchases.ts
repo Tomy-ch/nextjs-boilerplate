@@ -9,9 +9,11 @@ import { toProductId } from "@/model/product/product";
 import type {
   Purchase,
   PurchaseDispatchGroup,
+  PurchaseHistoryEntry,
   PurchaseHistoryPage,
   PurchaseOrderLine,
 } from "@/model/purchase/purchase";
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 
 import {
   GetPurchasesDetailResponse,
@@ -19,6 +21,7 @@ import {
   GetPurchasesResponse,
   GetPurchasesShippableResponse,
   PatchPurchasesCancelResponse,
+  PatchPurchasesDeliverResponse,
   PatchPurchasesPayResponse,
   PatchPurchasesShipResponse,
   PostPurchasesResponse,
@@ -81,7 +84,30 @@ export type PurchaseHistoryQueryParseResult =
   | { readonly ok: false; readonly invalidKeys: readonly string[] };
 
 /** 数として宣言されている条件。クエリ文字列からは文字列で届くため、照合の前に直す。 */
-const NUMERIC_KEYS: readonly string[] = ["first", "days"];
+const NUMERIC_KEYS: readonly string[] = ["first"];
+
+/** 真偽値として宣言されている条件。同じく、クエリ文字列からは文字列で届く。 */
+const BOOLEAN_KEYS: readonly string[] = ["includeOtherUsers"];
+
+/**
+ * 契約が受け付ける綴りだけを真偽値へ直す。
+ *
+ * @remarks
+ * **読めない綴りは文字列のまま返します。** 真偽値へ寄せると、`includeOtherUsers=yes` のような
+ * 打ち間違いが黙って「自分の購入だけ」に倒れ、母集団が変わったことを利用者が知る手段が
+ * なくなります。文字列のまま契約へ落とせば、読めなかったキーとして返ります。
+ */
+function toBoolean(value: string): boolean | string {
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  return value;
+}
 
 /**
  * 素のクエリを、契約が受け付ける取得条件へ照合する。
@@ -99,6 +125,11 @@ export function parsePurchaseHistoryQuery(
 
   for (const [key, value] of Object.entries(raw)) {
     if (typeof value !== "string") {
+      continue;
+    }
+
+    if (BOOLEAN_KEYS.includes(key)) {
+      typed[key] = toBoolean(value);
       continue;
     }
 
@@ -122,11 +153,9 @@ function toSearchParams(query: PurchaseHistoryQuery): Record<string, string | un
   return {
     after: query.after,
     first: String(query.first),
-    period: query.period,
-    from: query.from,
-    to: query.to,
-    month: query.month,
-    days: query.days?.toString(),
+    orderedAfter: query.orderedAfter,
+    orderedBefore: query.orderedBefore,
+    includeOtherUsers: String(query.includeOtherUsers),
   };
 }
 
@@ -136,8 +165,9 @@ function toSearchParams(query: PurchaseHistoryQuery): Record<string, string | un
  * @remarks
  * 注文日時の降順で返ります。並べ替えの条件は契約が受け付けません。
  *
- * 次ページの鍵は応答の `nextCursor` に載ります。**ページ送りの間は同じ期間を渡します。**
- * 途中で条件が変わると keyset の連続性が保証されず、飛ばされる購入が出ます。
+ * 次ページの鍵は応答の `nextCursor` に載ります。**ページ送りの間は同じ区間を渡します。**
+ * 途中で条件が変わると keyset の連続性が保証されず、飛ばされる購入が出ます。区間は瞬時の
+ * 半開区間 `[orderedAfter, orderedBefore)` で、暦の区分から解くのは呼び出し側です。
  */
 export const getMyPurchases = cache(
   async (query: PurchaseHistoryQuery): Promise<PurchaseHistoryPage> => {
@@ -302,6 +332,50 @@ export async function getShippablePurchases(): Promise<readonly PurchaseDispatch
       orderedAt: new Date(orderedAt),
     })),
   }));
+}
+
+/**
+ * 発送済みで、まだ配達済みになっていない購入を取る。
+ *
+ * @remarks
+ * **他の利用者の購入を母集団に含めます。** 配達の確認は管理の操作で、対象は店に届いている注文
+ * すべてです。役割を持たない主体がこれを呼ぶと契約が 403 で返します。
+ *
+ * まとめる軸がありません。配達の確認は契約が購入 1 件ずつで受けるうえ、届いたかどうかは注文ごと
+ * に分かれます。発送のような便の組は作りません。
+ *
+ * @param first - 1 度に読む件数。ページ送りを持たないため、ここが見せられる上限になる
+ */
+export const getShippedPurchases = cache(
+  async (first: number): Promise<readonly PurchaseHistoryEntry[]> => {
+    const wire = await getClient().request({
+      path: PURCHASES_PATH,
+      searchParams: {
+        first: String(first),
+        includeOtherUsers: "true",
+        statusCodes: String(PURCHASE_STATUS.SHIPPED),
+      },
+      schema: GetPurchasesResponse,
+    });
+
+    return toPurchaseHistoryPage(wire).items;
+  },
+);
+
+/**
+ * 購入 1 件を配達済みにする。
+ *
+ * @remarks
+ * 発送済みからのみ通ります。いまの状態では通らない要求は `conflict` として返り、二重の確認も
+ * 同じ分類になります。**届いたことを確かめるのは店の側です** —— 契約は配送業者の追跡を持たない
+ * ため、この操作が根拠にしているのは画面の向こうにいる人の確認だけです。
+ *
+ * 購入者本人であっても、管理の役割が無ければ拒まれます。
+ *
+ * @param purchaseCode - 購入コード。一覧が持っている値
+ */
+export async function deliverPurchase(purchaseCode: string): Promise<void> {
+  await transition(purchaseCode, "deliver", PatchPurchasesDeliverResponse);
 }
 
 /**

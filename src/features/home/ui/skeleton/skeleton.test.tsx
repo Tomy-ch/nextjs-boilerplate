@@ -11,7 +11,7 @@ describe("HomeSkeleton", () => {
     render(<HomeSkeleton />);
 
     expect(screen.getByText("新着商品")).toBeInTheDocument();
-    expect(screen.getByText("売上ランキング")).toBeInTheDocument();
+    expect(screen.getByText("売れ筋ランキング")).toBeInTheDocument();
     expect(screen.getByText("カテゴリから探す")).toBeInTheDocument();
   });
 

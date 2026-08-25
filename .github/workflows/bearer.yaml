@@ -61,7 +61,35 @@ jobs:
         with:
           persist-credentials: false
 
+      # What cannot change this scan's answer. The list is the deny side on purpose: anything
+      # not named here still runs, so a missing entry costs one needless run while a wrong
+      # entry would leave a scanner reporting on nothing (see the note in the action).
+      # Bearer reads `src` alone (bearer.mk), so the catalog, the baselines and the
+      # generated docs site cannot move its answer.
+      - name: Decide whether the diff can reach this scan
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            vrt/*
+            e2e/*
+            .storybook/*
+            docs-viewer/*
+            tokens/*
+            public/*
+            *.stories.tsx
+            *.test.ts
+            *.test.tsx
+
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: aqua:Bearer/bearer
@@ -70,18 +98,31 @@ jobs:
       # `make bearer-scan` passes --exit-code 0, so findings leave the status at zero.
       # Anything non-zero here is the tool failing, not the code.
       - name: Run the Bearer scan
+        if: steps.scope.outputs.relevant == 'true'
         env:
           BEARER_ARGS: --format sarif --output bearer.sarif
         run: make bearer-scan
 
       # An empty or missing report means the scan produced nothing to report with.
       - name: Require the SARIF to exist
+        if: steps.scope.outputs.relevant == 'true'
         run: test -s bearer.sarif
 
       # Not `continue-on-error`. Code scanning is where this job's output goes; if the
       # upload does not land, the job produced nothing.
       - name: Upload the SARIF to code scanning
+        if: steps.scope.outputs.relevant == 'true'
         uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           sarif_file: bearer.sarif
           category: bearer
+
+  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  notify-failure:
+    needs: bearer
+    if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.bearer.result) }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      failed-job: bearer
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

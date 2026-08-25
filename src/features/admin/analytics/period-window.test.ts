@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DASHBOARD_PERIOD } from "@/model/dashboard/dashboard";
+import { DASHBOARD_PERIOD } from "./period";
 
 import { toPeriodWindow } from "./period-window";
 

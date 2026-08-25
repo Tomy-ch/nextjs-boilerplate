@@ -2,9 +2,9 @@
 
 import type { CursorPage } from "@/model/pagination";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
+import type { TimeWindow } from "@/model/time-window";
 
 import { purchaseDetailPath } from "../../../facade/paths/paths";
-import type { PeriodSelection } from "../../period";
 import { useInfinitePurchases } from "../../use-infinite-purchases";
 import { PurchaseLoadMoreList } from "../purchase-list/purchase-list";
 
@@ -12,8 +12,8 @@ import { PurchaseLoadMoreList } from "../purchase-list/purchase-list";
 export type PurchaseInfiniteListProps = {
   /** Server Component が取得した最初のページ。 */
   initial: CursorPage<PurchaseHistoryEntry>;
-  /** いま効いている期間。続きの取得へそのまま渡す。 */
-  period: PeriodSelection;
+  /** いま効いている期間の区間。続きの取得へそのまま渡す。 */
+  window: TimeWindow;
   /** 1 度に読み込む件数。 */
   pageSize: number;
 };
@@ -29,8 +29,8 @@ export type PurchaseInfiniteListProps = {
  * 詳細への行き先をここで組みます。ルートを知っているのはこの feature で、行の側は渡された
  * 行き先を描くだけです。
  */
-export function PurchaseInfiniteList({ initial, period, pageSize }: PurchaseInfiniteListProps) {
-  const { items, loadMore, sentinelRef } = useInfinitePurchases(initial, period, pageSize);
+export function PurchaseInfiniteList({ initial, window, pageSize }: PurchaseInfiniteListProps) {
+  const { items, loadMore, sentinelRef } = useInfinitePurchases(initial, window, pageSize);
 
   return (
     <PurchaseLoadMoreList

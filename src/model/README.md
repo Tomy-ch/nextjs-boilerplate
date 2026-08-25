@@ -40,6 +40,7 @@ coverage-exclusions:
 | `cart/cart.ts` | サンプル画面が扱うカートの表示用の型 <!-- sample:line --> |
 | `dashboard/dashboard.ts` | サンプル画面が扱う管理側の横断集計の表示用の型と、集計対象期間の語彙 <!-- sample:line --> |
 | `product/product.ts` | サンプル画面が扱う商品の表示用の型 <!-- sample:line --> |
+| `time-window.ts` | 集計・絞り込みが対象にする期間。暦の区分を、店のタイムゾーンで瞬時の半開区間へ写す |
 | `purchase/purchase.ts` | サンプル画面が扱う購入履歴の表示用の型 <!-- sample:line --> |
 | `purchase/purchase-status.ts` | サンプル画面が扱う購入ステータスの業務キー。分岐はこの値で行う <!-- sample:line --> |
 | `user/` | サンプル画面が扱う利用者の表示用の型と、プロフィール入力の表示検証 <!-- sample:line --> |

@@ -34,14 +34,24 @@ const SUMMARY: DashboardSummary = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useRealTimers();
   getDashboardSummary.mockResolvedValue(SUMMARY);
 });
 
+// 店のタイムゾーンでは日付が変わった直後、協定世界時ではまだ前日という瞬時。
+const AFTER_MIDNIGHT_IN_TOKYO = new Date("2026-08-24T15:30:00.000Z");
+
 describe("AdminDashboardPageContent", () => {
-  it("今日を明示して集計を求める", async () => {
+  it("店のタイムゾーンで見た今日 1 日を、区間の両端を挙げて求める", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(AFTER_MIDNIGHT_IN_TOKYO);
+
     render(await AdminDashboardPageContent());
 
-    expect(getDashboardSummary).toHaveBeenCalledWith({ period: "today" });
+    expect(getDashboardSummary).toHaveBeenCalledWith({
+      after: "2026-08-25T00:00:00+09:00",
+      before: "2026-08-26T00:00:00+09:00",
+    });
   });
 
   it("a11y 検査を通る", async () => {

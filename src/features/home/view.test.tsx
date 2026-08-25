@@ -50,7 +50,7 @@ describe("HomeView", () => {
     renderView();
 
     expect(screen.getByRole("heading", { name: "新着商品" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "売上ランキング" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "売れ筋ランキング" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "カテゴリから探す" })).toBeVisible();
   });
 
@@ -59,7 +59,7 @@ describe("HomeView", () => {
 
     const headings = screen.getAllByRole("heading").map((heading) => heading.textContent);
 
-    expect(headings).toEqual(["新着商品", "売上ランキング", "カテゴリから探す"]);
+    expect(headings).toEqual(["新着商品", "売れ筋ランキング", "カテゴリから探す"]);
   });
 
   it("a11y 違反が無い", async () => {
@@ -71,7 +71,7 @@ describe("HomeView", () => {
   it("落ちた節だけを失敗表示へ差し替える", () => {
     renderView({ ranking: { status: "failed", message: FAILURE } });
 
-    expect(screen.getByText("売上ランキングを表示できませんでした")).toBeVisible();
+    expect(screen.getByText("売れ筋ランキングを表示できませんでした")).toBeVisible();
     expect(screen.getByRole("heading", { name: "新着商品" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "カテゴリから探す" })).toBeVisible();
   });
@@ -84,7 +84,7 @@ describe("HomeView", () => {
     });
 
     expect(screen.getByText("新着商品を表示できませんでした")).toBeVisible();
-    expect(screen.getByText("売上ランキングを表示できませんでした")).toBeVisible();
+    expect(screen.getByText("売れ筋ランキングを表示できませんでした")).toBeVisible();
     expect(screen.getByText("カテゴリを表示できませんでした")).toBeVisible();
   });
 

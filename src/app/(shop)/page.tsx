@@ -13,7 +13,7 @@ import { HomeSkeleton } from "@/features/home/ui/skeleton/skeleton";
 
 export const metadata: Metadata = {
   title: "トップ",
-  description: "新着商品と売上ランキング、カテゴリから商品を探せます。",
+  description: "新着商品と売れ筋ランキング、カテゴリから商品を探せます。",
 };
 
 /**
@@ -50,7 +50,7 @@ export default function HomePage() {
         <div>
           <PageHeaderTitle>ようこそ</PageHeaderTitle>
           <PageHeaderDescription>
-            新着商品と売上ランキング、カテゴリから商品を探せます。
+            新着商品と売れ筋ランキング、カテゴリから商品を探せます。
           </PageHeaderDescription>
         </div>
       </PageHeader>

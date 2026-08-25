@@ -1,6 +1,6 @@
-import { PURCHASE_MAX_RECENT_DAYS, PURCHASE_MONTH_PATTERN } from "@/adapters/client/api/purchases";
+import { CALENDAR_MONTH_PATTERN } from "@/model/time-window";
 
-import type { PeriodSelection } from "./period";
+import { MAX_RECENT_DAYS, type PeriodSelection } from "./period";
 
 /** 区分を選び直した直後に入っている日数。 */
 export const DEFAULT_RECENT_DAYS = 30;
@@ -51,7 +51,7 @@ export function toAppliedPeriod(draft: PeriodDraft): PeriodSelection | null {
   }
 
   if (draft.kind === "month") {
-    return PURCHASE_MONTH_PATTERN.test(draft.month) ? { kind: "month", month: draft.month } : null;
+    return CALENDAR_MONTH_PATTERN.test(draft.month) ? { kind: "month", month: draft.month } : null;
   }
 
   if (draft.kind === "range") {
@@ -62,7 +62,7 @@ export function toAppliedPeriod(draft: PeriodDraft): PeriodSelection | null {
     return { kind: "range", from: draft.from, to: draft.to };
   }
 
-  if (!Number.isInteger(draft.days) || draft.days < 1 || draft.days > PURCHASE_MAX_RECENT_DAYS) {
+  if (!Number.isInteger(draft.days) || draft.days < 1 || draft.days > MAX_RECENT_DAYS) {
     return null;
   }
 

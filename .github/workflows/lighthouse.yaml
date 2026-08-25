@@ -215,6 +215,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- lighthouse-result -->'
+          status: ${{ steps.lighthouse.outputs.status }}
           title: >-
             ${{ steps.lighthouse.outputs.status == 'success' && '## ✅ Lighthouse — PASS (Core Web Vitals)'
             || '## ❌ Lighthouse — FAIL (Core Web Vitals)' }}

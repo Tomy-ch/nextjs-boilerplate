@@ -298,6 +298,10 @@ jobs:
 
     outputs:
       title: ${{ steps.verdict.outputs.title }}
+      # Standing down is a success for the comment: nothing is created on a quiet PR,
+      # and an earlier FAIL comment is overwritten by the stand-down body instead of
+      # being left beside a green check. Only a real failure has to be announced.
+      status: ${{ steps.verdict.outputs.status == 'failure' && 'failure' || 'success' }}
 
     steps:
       - name: Harden the runner
@@ -594,6 +598,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- vrt-result -->'
+          status: ${{ needs.vrt.outputs.status }}
           title: ${{ needs.vrt.outputs.title }}
           body-file: /tmp/vrt-comment/vrt.log
           notes-file: /tmp/vrt-comment/vrt-notes.md

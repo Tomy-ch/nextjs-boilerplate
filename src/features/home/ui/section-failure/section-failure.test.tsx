@@ -8,9 +8,9 @@ import { SectionFailure } from "./section-failure";
 
 describe("SectionFailure", () => {
   it("落ちた節の名前を見出しに含める", () => {
-    render(<SectionFailure label="売上ランキング" message="失敗しました。" />);
+    render(<SectionFailure label="売れ筋ランキング" message="失敗しました。" />);
 
-    expect(screen.getByText("売上ランキングを表示できませんでした")).toBeVisible();
+    expect(screen.getByText("売れ筋ランキングを表示できませんでした")).toBeVisible();
   });
 
   it("分類から引いた文言を示す", () => {

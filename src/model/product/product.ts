@@ -185,7 +185,7 @@ export type ProductListItem = {
 };
 
 /**
- * 売上ランキングに並ぶ 1 件分の表示データ。
+ * 売れ筋ランキングに並ぶ 1 件分の表示データ。
  *
  * @remarks
  * {@link ProductListItem} と別の型にしているのは、ランキングの取得口が画像も分類も在庫も

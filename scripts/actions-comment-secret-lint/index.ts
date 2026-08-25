@@ -38,15 +38,32 @@ function main(): void {
     abort(`${WORKFLOW_DIR}/ にワークフローが見つかりません（リポジトリルートで実行してください）`);
   }
 
+  const sources = new Map(files.map((file) => [file, readFileSync(path.join(root, file), "utf8")]));
+
+  // reusable workflow の呼び出し元が投稿ジョブかどうかは、呼び出し先が投稿するかで決まる。
+  // 呼び出し先がさらに別の reusable workflow を呼ぶ形も書けるため、集合が増えなくなるまで
+  // 回して求める（ローカル action の到達可能性と同じ形）。
+  const postingWorkflows = new Set<string>();
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const [file, source] of sources) {
+      if (postingWorkflows.has(file)) continue;
+      if (
+        parseWorkflow(file, source, commentActions.dirs, postingWorkflows).postingJobIds.length ===
+        0
+      ) {
+        continue;
+      }
+      postingWorkflows.add(file);
+      grew = true;
+    }
+  }
+
   const findings: Finding[] = [];
   let postingJobs = 0;
 
-  for (const file of files) {
-    const workflow = parseWorkflow(
-      file,
-      readFileSync(path.join(root, file), "utf8"),
-      commentActions.dirs,
-    );
+  for (const [file, source] of sources) {
+    const workflow = parseWorkflow(file, source, commentActions.dirs, postingWorkflows);
     postingJobs += workflow.postingJobIds.length;
     if (workflow.postingJobIds.length === 0) continue;
 

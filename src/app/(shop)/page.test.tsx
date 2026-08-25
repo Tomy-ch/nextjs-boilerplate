@@ -18,7 +18,7 @@ function pending() {
 describe("HomePage", () => {
   it("この画面の名前と説明を metadata に持つ", () => {
     expect(metadata.title).toBe("トップ");
-    expect(metadata.description).toBe("新着商品と売上ランキング、カテゴリから商品を探せます。");
+    expect(metadata.description).toBe("新着商品と売れ筋ランキング、カテゴリから商品を探せます。");
   });
 
   it("リクエストごとに描く", () => {

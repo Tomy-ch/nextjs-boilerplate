@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
 import type {
   AddressCandidatesResponse,
@@ -25,9 +25,11 @@ import type {
   GetDashboardSummaryParams,
   GetExchangeRatesParams,
   GetProductsCountParams,
+  GetProductsDetailParams,
   GetProductsLowStockParams,
   GetProductsParams,
-  GetProductsRankingParams,
+  GetProductsRankingAmountParams,
+  GetProductsRankingQuantityParams,
   GetPurchasesParams,
   GetPurchasesShippableParams,
   GetUsersFeedParams,
@@ -40,13 +42,14 @@ import type {
   PayloadTooLarge413Response,
   PostPurchasesParams,
   PrefecturesResponse,
+  ProductAmountRankingResponse,
   ProductCountResponse,
   ProductImagePostRequest,
   ProductImageResponse,
   ProductListResponse,
   ProductLowStockResponse,
   ProductPatchRequest,
-  ProductRankingResponse,
+  ProductQuantityRankingResponse,
   ProductResponse,
   ProductStockPatchRequest,
   ProductsCategoriesResponse,
@@ -755,10 +758,9 @@ export const getGetUsersMePurchasesSummaryUrl = (params?: GetUsersMePurchasesSum
  * 認証コンテキスト（Bearer トークン）の内部 UserID に該当するユーザー自身の購入を集計して取得します。
  * マイページの集計カード表示を想定した集計で、購入一覧そのものは返しません（履歴は購入履歴一覧 API）。
  * パスに他者の識別子を持たないため、他ユーザーの集計は取得できません。
- * 集計対象期間は period で切り替えます（既定は全期間）。month / range / recent の境界はサーバの
- * タイムゾーン（Asia/Tokyo）の暦日基準で算出し、両端の暦日を含みます。実際に用いた期間は要求した区分に
- * 関わらず period として返すため、クライアントは相対指定を自前で解決する必要がありません。
- * 区分ごとの必須パラメータ（month / from と to / days）の欠落、および to が from より前の場合は 400 を返します。
+ * 集計対象期間は orderedAfter / orderedBefore が指す半開区間 [orderedAfter, orderedBefore) です。
+ * いずれも省略でき、両方省略した場合は全期間を集計します。orderedBefore が orderedAfter 以前
+ * （同値を含む）の場合は 400 を返します。
  * キャンセル済みの購入はすべての集計値から除外します（ステータス別内訳にもキャンセルは現れません）。
  * 金額は 2 種類返します。totalAmount は支払金額（小計 + 税額 + 送料）の合計、itemsTotal は明細金額
  * （単価 × 数量）の合計で、税額・送料は明細に按分できないため両者は一致しません。
@@ -1199,6 +1201,16 @@ export type getProductsResponse400 = {
   status: 400;
 };
 
+export type getProductsResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getProductsResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
 export type getProductsResponse405 = {
   data: MethodNotAllowed405Response;
   status: 405;
@@ -1219,6 +1231,8 @@ export type getProductsResponseSuccess = getProductsResponse200 & {
 };
 export type getProductsResponseError = (
   | getProductsResponse400
+  | getProductsResponse401
+  | getProductsResponse403
   | getProductsResponse405
   | getProductsResponse500
   | getProductsResponse503
@@ -1252,14 +1266,22 @@ export const getGetProductsUrl = (params?: GetProductsParams) => {
 };
 
 /**
- * 公開済みの商品を cursor ページネーションで取得します。認証不要の公開エンドポイントです。
- * 既定では公開日時の降順（publishedAt DESC, id DESC）で並び、sort=publishedAt で昇順に切り替えられます。
+ * 商品を cursor ページネーションで取得します。認証は任意です。
+ * 既定の母集団は公開済みの商品のみで、公開日時の降順（publishedAt DESC, id DESC）で並び、
+ * sort=publishedAt で昇順に切り替えられます。
+ * includeUnpublished=true を指定すると、公開日時が未設定（未公開）の商品も母集団に含みます。
+ * このときの並び順は登録日時の降順（createdAt DESC, id DESC）になり、sort は向きだけを適用します。
+ * 未公開の商品は公開日時を持たないため、公開日時を並び順の第 1 キーにできないためです。
+ * includeUnpublished=true を指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 を返します。
+ * 母集団が変わると並び順の軸も変わるため、cursor は取得したときと同じ includeUnpublished の指定でのみ使えます。
+ * 別の指定へ持ち越した cursor は 400 を返します。
  * categoryCodes / statusCodes でフィルタ（同じ名前を繰り返して複数指定可）、keyword で商品名・説明の部分一致検索ができます。
  * categoryId / statusId は非推奨で、後継の categoryCodes / statusCodes と同時に指定すると 400 を返します。
  * minPrice / maxPrice で価格、minQuantity / maxQuantity で在庫数を境界値を含めて範囲検索できます。
  * いずれの範囲も下限が上限を超える場合は 400 を返します。
- * 公開日時が未設定（未公開）の商品は返しません。ステータスによる可視範囲の絞り込みは今後対応予定です。
  * price は USD ドル建ての decimal 文字列です。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * @summary 商品一覧の取得
  */
 export const getProducts = async (
@@ -1372,6 +1394,16 @@ export type getProductsCountResponse400 = {
   status: 400;
 };
 
+export type getProductsCountResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getProductsCountResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
 export type getProductsCountResponse405 = {
   data: MethodNotAllowed405Response;
   status: 405;
@@ -1392,6 +1424,8 @@ export type getProductsCountResponseSuccess = getProductsCountResponse200 & {
 };
 export type getProductsCountResponseError = (
   | getProductsCountResponse400
+  | getProductsCountResponse401
+  | getProductsCountResponse403
   | getProductsCountResponse405
   | getProductsCountResponse500
   | getProductsCountResponse503
@@ -1429,10 +1463,16 @@ export const getGetProductsCountUrl = (params?: GetProductsCountParams) => {
 };
 
 /**
- * 公開済み商品のうち、指定した検索条件に一致する件数のみを返します。認証不要の公開エンドポイントです。
- * categoryCodes / statusCodes / keyword / minPrice / maxPrice / minQuantity / maxQuantity の意味は
- * GET /v1/products と同一です。検索条件を指定しない場合は公開済み商品の総数を返します。
+ * 指定した検索条件に一致する商品の件数のみを返します。認証は任意です。
+ * 既定の母集団は公開済みの商品のみで、検索条件を指定しない場合は公開済み商品の総数を返します。
+ * includeUnpublished=true を指定すると、公開日時が未設定（未公開）の商品も母集団に含みます。
+ * 指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 を返します。
+ * 母集団の定義は GET /v1/products と同一で、同じ指定に対して両者の母集団は必ず一致します。
+ * categoryCodes / statusCodes / keyword / minPrice / maxPrice / minQuantity / maxQuantity の意味も
+ * GET /v1/products と同一です。
  * categoryId / statusId は非推奨で、後継の categoryCodes / statusCodes と同時に指定すると 400 を返します。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * @summary 商品検索の一致件数の取得
  */
 export const getProductsCount = async (
@@ -1460,6 +1500,16 @@ export type getProductsDetailResponse400 = {
   status: 400;
 };
 
+export type getProductsDetailResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getProductsDetailResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
 export type getProductsDetailResponse404 = {
   data: NotFound404Response;
   status: 404;
@@ -1485,6 +1535,8 @@ export type getProductsDetailResponseSuccess = getProductsDetailResponse200 & {
 };
 export type getProductsDetailResponseError = (
   | getProductsDetailResponse400
+  | getProductsDetailResponse401
+  | getProductsDetailResponse403
   | getProductsDetailResponse404
   | getProductsDetailResponse405
   | getProductsDetailResponse500
@@ -1497,21 +1549,40 @@ export type getProductsDetailResponse =
   | getProductsDetailResponseSuccess
   | getProductsDetailResponseError;
 
-export const getGetProductsDetailUrl = (productId: string) => {
-  return `/v1/products/${productId}`;
+export const getGetProductsDetailUrl = (productId: string, params?: GetProductsDetailParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/v1/products/${productId}?${stringifiedParams}`
+    : `/v1/products/${productId}`;
 };
 
 /**
- * 指定された UUID に該当する公開済み商品の詳細情報を取得します。認証不要の公開エンドポイントです。
- * 公開日時が未設定（未公開）の商品、および存在しない商品はいずれも 404 を返し、存在を秘匿します。
- * price は USD セント単位の整数です。statusId / categoryId の名称はマスタ API で解決します。
+ * 指定された UUID に該当する商品の詳細情報を取得します。認証は任意です。
+ * 既定の母集団は公開済みの商品のみで、公開日時が未設定（未公開）の商品と存在しない商品は
+ * いずれも 404 を返し、存在を秘匿します。
+ * includeUnpublished=true を指定すると未公開の商品も取得できます。
+ * 指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 を返します。
+ * 拒否は商品の存在を調べる前に判定するため、403 から商品の存在有無は分かりません。
+ * price は USD ドル建ての decimal 文字列です。statusId / categoryId の名称はマスタ API で解決します。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * @summary 単一商品の取得
  */
 export const getProductsDetail = async (
   productId: string,
+  params?: GetProductsDetailParams,
   options?: RequestInit,
 ): Promise<getProductsDetailResponse> => {
-  const res = await fetch(getGetProductsDetailUrl(productId), {
+  const res = await fetch(getGetProductsDetailUrl(productId, params), {
     ...options,
     method: "GET",
   });
@@ -1730,48 +1801,48 @@ export const patchProductsStock = async (
   return { data, status: res.status, headers: res.headers } as patchProductsStockResponse;
 };
 
-export type getProductsRankingResponse200 = {
-  data: ProductRankingResponse;
+export type getProductsRankingQuantityResponse200 = {
+  data: ProductQuantityRankingResponse;
   status: 200;
 };
 
-export type getProductsRankingResponse400 = {
+export type getProductsRankingQuantityResponse400 = {
   data: BadRequest400Response;
   status: 400;
 };
 
-export type getProductsRankingResponse405 = {
+export type getProductsRankingQuantityResponse405 = {
   data: MethodNotAllowed405Response;
   status: 405;
 };
 
-export type getProductsRankingResponse500 = {
+export type getProductsRankingQuantityResponse500 = {
   data: InternalServerError500Response;
   status: 500;
 };
 
-export type getProductsRankingResponse503 = {
+export type getProductsRankingQuantityResponse503 = {
   data: ServiceUnavailable503Response;
   status: 503;
 };
 
-export type getProductsRankingResponseSuccess = getProductsRankingResponse200 & {
+export type getProductsRankingQuantityResponseSuccess = getProductsRankingQuantityResponse200 & {
   headers: Headers;
 };
-export type getProductsRankingResponseError = (
-  | getProductsRankingResponse400
-  | getProductsRankingResponse405
-  | getProductsRankingResponse500
-  | getProductsRankingResponse503
+export type getProductsRankingQuantityResponseError = (
+  | getProductsRankingQuantityResponse400
+  | getProductsRankingQuantityResponse405
+  | getProductsRankingQuantityResponse500
+  | getProductsRankingQuantityResponse503
 ) & {
   headers: Headers;
 };
 
-export type getProductsRankingResponse =
-  | getProductsRankingResponseSuccess
-  | getProductsRankingResponseError;
+export type getProductsRankingQuantityResponse =
+  | getProductsRankingQuantityResponseSuccess
+  | getProductsRankingQuantityResponseError;
 
-export const getGetProductsRankingUrl = (params?: GetProductsRankingParams) => {
+export const getGetProductsRankingQuantityUrl = (params?: GetProductsRankingQuantityParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -1783,30 +1854,129 @@ export const getGetProductsRankingUrl = (params?: GetProductsRankingParams) => {
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/v1/products/ranking?${stringifiedParams}`
-    : `/v1/products/ranking`;
+    ? `/v1/products/ranking/quantity?${stringifiedParams}`
+    : `/v1/products/ranking/quantity`;
 };
 
 /**
- * 購入明細を集計し、販売数量の多い順に商品ランキングを返します。認証不要の公開エンドポイントです。
- * キャンセル済みの購入は集計から除外します。未払いの購入は集計に含みます。
- * period=30d の場合は注文日時が直近30日以内の購入のみを集計します。
+ * 購入明細を商品単位で集計し、販売数量の多い順に商品ランキングを返します。認証不要の公開エンドポイントです。
+ * 集計の母集団は「公開済み（published_at 非 NULL）の商品」×「キャンセルされていない購入」の明細です。
+ * 未払いの購入は集計に含みます。
+ * この母集団は GET /v1/dashboard/summary の salesAmount とは一致しません。salesAmount は購入の
+ * 支払金額（小計 + 税額 + 送料）を商品の公開状態に関わらず合計するのに対し、こちらは明細を
+ * 公開済み商品に限って集計するためです。
+ * 集計対象期間は orderedAfter / orderedBefore が指す半開区間 [orderedAfter, orderedBefore) です。
+ * いずれも省略でき、両方省略した場合は全期間を集計します。orderedBefore が orderedAfter 以前
+ * （同値を含む）の場合は 400 を返します。
  * 同一販売数量の商品は商品 ID の昇順で安定的に並びます。
- * @summary 商品売上ランキングの取得
+ * @summary 販売数量による商品ランキングの取得
  */
-export const getProductsRanking = async (
-  params?: GetProductsRankingParams,
+export const getProductsRankingQuantity = async (
+  params?: GetProductsRankingQuantityParams,
   options?: RequestInit,
-): Promise<getProductsRankingResponse> => {
-  const res = await fetch(getGetProductsRankingUrl(params), {
+): Promise<getProductsRankingQuantityResponse> => {
+  const res = await fetch(getGetProductsRankingQuantityUrl(params), {
     ...options,
     method: "GET",
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getProductsRankingResponse["data"] = body ? JSON.parse(body) : {};
-  return { data, status: res.status, headers: res.headers } as getProductsRankingResponse;
+  const data: getProductsRankingQuantityResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getProductsRankingQuantityResponse;
+};
+
+export type getProductsRankingAmountResponse200 = {
+  data: ProductAmountRankingResponse;
+  status: 200;
+};
+
+export type getProductsRankingAmountResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type getProductsRankingAmountResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getProductsRankingAmountResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getProductsRankingAmountResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getProductsRankingAmountResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getProductsRankingAmountResponseSuccess = getProductsRankingAmountResponse200 & {
+  headers: Headers;
+};
+export type getProductsRankingAmountResponseError = (
+  | getProductsRankingAmountResponse400
+  | getProductsRankingAmountResponse401
+  | getProductsRankingAmountResponse405
+  | getProductsRankingAmountResponse500
+  | getProductsRankingAmountResponse503
+) & {
+  headers: Headers;
+};
+
+export type getProductsRankingAmountResponse =
+  | getProductsRankingAmountResponseSuccess
+  | getProductsRankingAmountResponseError;
+
+export const getGetProductsRankingAmountUrl = (params?: GetProductsRankingAmountParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/v1/products/ranking/amount?${stringifiedParams}`
+    : `/v1/products/ranking/amount`;
+};
+
+/**
+ * 購入明細を商品単位で集計し、売上金額（単価 × 数量の総和）の多い順に商品ランキングを返します。
+ * 認証必須です。販売数量と違い実売上額を露出するため、認証なしでは引けません
+ * （GET /v1/dashboard/summary の salesAmount と同じ扱い）。
+ * 集計の母集団は「公開済み（published_at 非 NULL）の商品」×「キャンセルされていない購入」の明細です。
+ * 未払いの購入は集計に含みます。
+ * この母集団は GET /v1/dashboard/summary の salesAmount とは一致しません。salesAmount は購入の
+ * 支払金額（小計 + 税額 + 送料）を商品の公開状態に関わらず合計するのに対し、こちらは明細を
+ * 公開済み商品に限って集計するためです。
+ * 集計対象期間は orderedAfter / orderedBefore が指す半開区間 [orderedAfter, orderedBefore) です。
+ * いずれも省略でき、両方省略した場合は全期間を集計します。orderedBefore が orderedAfter 以前
+ * （同値を含む）の場合は 400 を返します。
+ * 同一売上金額の商品は商品 ID の昇順で安定的に並びます。
+ * @summary 売上金額による商品ランキングの取得
+ */
+export const getProductsRankingAmount = async (
+  params?: GetProductsRankingAmountParams,
+  options?: RequestInit,
+): Promise<getProductsRankingAmountResponse> => {
+  const res = await fetch(getGetProductsRankingAmountUrl(params), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getProductsRankingAmountResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getProductsRankingAmountResponse;
 };
 
 export type getProductsLowStockResponse200 = {
@@ -2172,6 +2342,11 @@ export type getPurchasesResponse401 = {
   status: 401;
 };
 
+export type getPurchasesResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
 export type getPurchasesResponse405 = {
   data: MethodNotAllowed405Response;
   status: 405;
@@ -2193,6 +2368,7 @@ export type getPurchasesResponseSuccess = getPurchasesResponse200 & {
 export type getPurchasesResponseError = (
   | getPurchasesResponse400
   | getPurchasesResponse401
+  | getPurchasesResponse403
   | getPurchasesResponse405
   | getPurchasesResponse500
   | getPurchasesResponse503
@@ -2206,6 +2382,15 @@ export const getGetPurchasesUrl = (params?: GetPurchasesParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["statusCodes"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }
@@ -2217,14 +2402,19 @@ export const getGetPurchasesUrl = (params?: GetPurchasesParams) => {
 };
 
 /**
- * 認証主体（自分）の購入履歴を cursor ページネーションで取得します。認証必須です。
+ * 購入履歴を cursor ページネーションで取得します。認証必須です。
+ * 既定の母集団は認証主体（自分）の購入のみで、他ユーザーの購入は返しません
+ * （所有権フィルタで閉じるため、対象がなければ空一覧です）。
  * 注文日時の降順（orderedAt DESC, id DESC）で安定して並び、前ページのレスポンスに含まれる
  * nextCursor を after に渡して次ページを取得します（無限スクロール）。
  * 一覧は概要（code / totalAmount / status / orderedAt）のみを返し、明細は含みません。
- * 他ユーザーの購入は返しません（所有権フィルタで閉じるため、対象がなければ空一覧です）。
- * period で注文日時の対象期間を絞り込めます（既定は全期間）。month / range / recent の境界は
- * サーバのタイムゾーン（Asia/Tokyo）の暦日基準で算出し、両端の暦日を含みます。区分ごとの必須
- * パラメータ（month / from と to / days）の欠落、および to が from より前の場合は 400 を返します。
+ * includeOtherUsers=true を指定すると、他ユーザーの購入も母集団に含みます。指定できるのは
+ * 管理者（admin）だけで、管理者でなければ 403 を返します。母集団が変わっても並び順の軸は
+ * 変わりません。
+ * statusCodes で購入ステータスを絞り込めます（同じ名前を繰り返して複数指定可）。
+ * orderedAfter / orderedBefore が指す半開区間 [orderedAfter, orderedBefore) で注文日時を絞り込めます。
+ * いずれも省略でき、両方省略した場合は全期間が対象です。orderedBefore が orderedAfter 以前
+ * （同値を含む）の場合は 400 を返します。
  * ページ送りの間は同じ絞り込み条件を渡してください（条件が変わると keyset の連続性は保証されません）。
  * totalAmount は USD セント単位の整数です。
  * @summary 購入履歴一覧の取得
@@ -2668,8 +2858,11 @@ export const getPatchPurchasesPayUrl = (purchaseCode: string) => {
 /**
  * 認証主体（本人）の購入を支払い済みへ遷移させます。認証必須です。
  * 決済 SDK / PSP 連携は行わず、paidAt のセットと status の「支払い済み」への更新で擬似決済を代替します
- * （金額・決済結果の検証は行いません）。未払い相当（未処理 / 受付中 / 確認中 / 処理中）からのみ遷移でき、
- * 既に支払い済みの購入は 409（二重支払い）、キャンセル済み・完了・発送済み・配達済みの購入は 409（不正遷移）で拒否します。
+ * （金額・決済結果の検証は行いません）。未払い相当（未処理 / 受付中 / 確認中）からのみ遷移でき、
+ * 既に支払い済みの購入は 409（二重支払い）、処理中・キャンセル済み・完了・発送済み・配達済みの購入は 409（不正遷移）で拒否します。
+ * 処理中は支払いを終えたあとの段階であり、未払い相当には含みません。
+ * 未払い相当であっても支払い日時が既に記録されている購入は、支払い済みとみなして 409（二重支払い）で拒否します
+ * （記録済みの支払い日時を上書きしないため）。
  * 他ユーザーの購入は 404 で存在を秘匿します。金額はすべて USD セント単位の整数です。
  * @summary 購入の支払い
  */
@@ -2754,7 +2947,7 @@ export const getPatchPurchasesShipUrl = (purchaseCode: string) => {
 /**
  * 購入を発送済みへ遷移させます。認証必須で、管理者（admin）のみ実行できます。
  * 支払い済みからのみ遷移でき、status を「発送済み」へ更新し shippedAt をセットします。
- * 未払い相当（未処理 / 受付中 / 確認中 / 処理中）・完了・キャンセル済み・配達済みの購入は 409（不正遷移）、
+ * 未払い相当（未処理 / 受付中 / 確認中）・処理中・完了・キャンセル済み・配達済みの購入は 409（不正遷移）、
  * 既に発送済みの購入も 409（二重発送）で拒否します。配送追跡（追跡番号 / 配送業者 / 追跡 URL）は扱いません。
  * 購入者本人であっても管理者でなければ 403 で拒否します。金額はすべて USD セント単位の整数です。
  * @summary 購入の発送
@@ -2840,7 +3033,7 @@ export const getPatchPurchasesDeliverUrl = (purchaseCode: string) => {
 /**
  * 購入を配達済みへ遷移させます。認証必須で、管理者（admin）のみ実行できます。
  * 発送済みからのみ遷移でき、status を「配達済み」へ更新し deliveredAt をセットします。
- * 未払い相当（未処理 / 受付中 / 確認中 / 処理中）・支払い済み（未発送）・完了・キャンセル済みの購入は 409（不正遷移）、
+ * 未払い相当（未処理 / 受付中 / 確認中）・処理中・支払い済み（未発送）・完了・キャンセル済みの購入は 409（不正遷移）、
  * 既に配達済みの購入も 409（二重配達）で拒否します。配達確認の証跡（署名 / 受領写真 / GPS 位置）は扱いません。
  * 購入者本人であっても管理者でなければ 403 で拒否します。金額はすべて USD セント単位の整数です。
  * @summary 購入の配達完了
@@ -2932,9 +3125,9 @@ export const getGetDashboardSummaryUrl = (params?: GetDashboardSummaryParams) =>
 /**
  * 購入・商品を横断した集計を 1 レスポンスに合成して返します（1 画面 1 API）。認証必須で、管理者（admin）のみ
  * 実行できます。管理者でなければ 403 で拒否します。数値カード向けの集計値のみを返し、一覧・時系列は含みません。
- * 集計対象期間は period で切り替えます。today / month の境界はサーバのタイムゾーン（Asia/Tokyo）基準で
- * 算出し、range は from / to の暦日をいずれも含む期間として集計します。range で from / to が欠落している
- * 場合、および to が from より前の場合は 400 を返します。
+ * 集計対象期間は orderedAfter / orderedBefore が指す半開区間 [orderedAfter, orderedBefore) です。
+ * いずれも省略でき、両方省略した場合は全期間を集計します。orderedBefore が orderedAfter 以前
+ * （同値を含む）の場合は 400 を返します。
  * 売上（salesAmount / salesCount）はキャンセル済みの購入を除外し未払いの購入を含みます。一方
  * purchaseStatusCounts はキャンセル済みも 1 ステータスとして含むため、両者の母集団は一致しません。
  * 商品数は期間に依存しないマスタの現在値です。金額は USD セント単位の整数です。

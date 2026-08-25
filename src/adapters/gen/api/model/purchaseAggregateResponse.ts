@@ -9,19 +9,17 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
 import type { PurchaseAggregateResponseGroups } from "./purchaseAggregateResponseGroups";
-import type { PurchasePeriodResponse } from "./purchasePeriodResponse";
 import type { PurchaseStatusBreakdownResponse } from "./purchaseStatusBreakdownResponse";
 
 /**
- * 認証ユーザー自身の購入集計のレスポンススキーマ。対象期間・件数・合計金額・ステータス別内訳と、
+ * 認証ユーザー自身の購入集計のレスポンススキーマ。件数・合計金額・ステータス別内訳と、
  * グループ化を指定した場合はその内訳のみを返し、購入一覧・明細は含みません。金額は USD セント単位の整数です。
  * すべての集計値はキャンセル済みを除外した同一の母集団から算出します。
  */
 export interface PurchaseAggregateResponse {
-  period: PurchasePeriodResponse;
   /**
    * 対象期間の購入件数（キャンセル済みを除く）。statusBreakdown の count の総和と一致します。
    * 対象がない場合は 0 です。

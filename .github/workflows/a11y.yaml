@@ -80,6 +80,10 @@ jobs:
 
     outputs:
       title: ${{ steps.a11y.outputs.title || steps.standdown.outputs.title }}
+      # Standing down is a success for the comment: nothing is created on a quiet PR,
+      # and an earlier FAIL comment is overwritten by the stand-down body instead of
+      # being left beside a green check.
+      status: ${{ steps.a11y.outputs.status || 'success' }}
 
     steps:
       - name: Harden the runner
@@ -335,6 +339,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- a11y-result -->'
+          status: ${{ needs.a11y.outputs.status }}
           title: ${{ needs.a11y.outputs.title }}
           body-file: /tmp/a11y-comment/a11y-full.log
           details-summary: 'axe log'

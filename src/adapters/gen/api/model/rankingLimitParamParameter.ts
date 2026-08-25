@@ -9,10 +9,10 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
 
 /**
- * 取得する上位件数。売上数量の降順で上位 limit 件を返します。
+ * 取得する上位件数。その口の軸（販売数量または売上金額）の降順で上位 limit 件を返します。
  */
 export type RankingLimitParamParameter = number;

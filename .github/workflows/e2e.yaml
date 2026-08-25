@@ -87,6 +87,10 @@ jobs:
 
     outputs:
       title: ${{ steps.e2e.outputs.title || steps.standdown.outputs.title }}
+      # Standing down is a success for the comment: nothing is created on a quiet PR,
+      # and an earlier FAIL comment is overwritten by the stand-down body instead of
+      # being left beside a green check.
+      status: ${{ steps.e2e.outputs.status || 'success' }}
 
     steps:
       - name: Harden the runner
@@ -467,6 +471,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- e2e-result -->'
+          status: ${{ needs.e2e.outputs.status }}
           title: ${{ needs.e2e.outputs.title }}
           body-file: /tmp/e2e-comment/e2e.log
           notes-file: /tmp/e2e-comment/e2e-notes.md
