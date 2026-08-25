@@ -32,7 +32,7 @@ describe("PurchaseInfiniteList", () => {
       sentinelRef: { current: null },
     });
 
-    render(<PurchaseInfiniteList initial={INITIAL} pageSize={20} period={{ kind: "all" }} />);
+    render(<PurchaseInfiniteList initial={INITIAL} pageSize={20} window={{}} />);
 
     expect(screen.getByRole("link")).toHaveAttribute("href", `/purchases/${ENTRY.code}`);
   });
@@ -43,11 +43,11 @@ describe("PurchaseInfiniteList", () => {
       loadMore: { status: "exhausted" },
       sentinelRef: { current: null },
     });
-    const period = { kind: "recent", days: 30 } as const;
+    const window = { after: "2026-07-01T00:00:00+09:00" } as const;
 
-    render(<PurchaseInfiniteList initial={INITIAL} pageSize={20} period={period} />);
+    render(<PurchaseInfiniteList initial={INITIAL} pageSize={20} window={window} />);
 
-    expect(useInfinitePurchases).toHaveBeenCalledWith(INITIAL, period, 20);
+    expect(useInfinitePurchases).toHaveBeenCalledWith(INITIAL, window, 20);
   });
 
   it("続きの読み込みの状態をそのまま見せる", () => {
@@ -57,7 +57,7 @@ describe("PurchaseInfiniteList", () => {
       sentinelRef: { current: null },
     });
 
-    render(<PurchaseInfiniteList initial={INITIAL} pageSize={20} period={{ kind: "all" }} />);
+    render(<PurchaseInfiniteList initial={INITIAL} pageSize={20} window={{}} />);
 
     expect(screen.getByRole("status", { name: "続きを読み込んでいます" })).toBeInTheDocument();
   });
@@ -70,7 +70,7 @@ describe("PurchaseInfiniteList", () => {
     });
 
     const { container } = render(
-      <PurchaseInfiniteList initial={INITIAL} pageSize={20} period={{ kind: "all" }} />,
+      <PurchaseInfiniteList initial={INITIAL} pageSize={20} window={{}} />,
     );
 
     expect((await axe(container)).violations).toEqual([]);

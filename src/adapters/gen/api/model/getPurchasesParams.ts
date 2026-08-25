@@ -9,15 +9,14 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
 import type { CursorAfterParamParameter } from "./cursorAfterParamParameter";
 import type { CursorFirstParamParameter } from "./cursorFirstParamParameter";
-import type { PurchaseFromParamParameter } from "./purchaseFromParamParameter";
-import type { PurchaseMonthParamParameter } from "./purchaseMonthParamParameter";
-import type { PurchasePeriodParamParameter } from "./purchasePeriodParamParameter";
-import type { PurchaseRecentDaysParamParameter } from "./purchaseRecentDaysParamParameter";
-import type { PurchaseToParamParameter } from "./purchaseToParamParameter";
+import type { IncludeOtherUsersParamParameter } from "./includeOtherUsersParamParameter";
+import type { OrderedAfterParamParameter } from "./orderedAfterParamParameter";
+import type { OrderedBeforeParamParameter } from "./orderedBeforeParamParameter";
+import type { PurchaseStatusCodesParamParameter } from "./purchaseStatusCodesParamParameter";
 
 export type GetPurchasesParams = {
   /**
@@ -33,35 +32,37 @@ export type GetPurchasesParams = {
    */
   first?: CursorFirstParamParameter;
   /**
-   * 集計・絞り込み対象期間の区分。`all`（既定）は全期間、`month` は `month` で指定した暦月、
-   * `range` は `from` / `to` で指定した期間、`recent` は今日から `days` 日前までを対象とします。
-   * 各区分の境界はサーバのタイムゾーン（Asia/Tokyo）の暦日基準で算出し、両端の暦日を含みます。
-   * 区分ごとの必須パラメータ（`month` / `from` と `to` / `days`）が欠落している場合は 400 を返します。
+   * 集計対象期間の下限となる瞬時（RFC3339）。**この瞬時を含みます**。
+   * 対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。
+   * 省略すると下限を設けません。`orderedBefore` と併せて省略すると全期間が対象になります。
+   * `orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。
+   * cursor ページネーションの `after` とは別のパラメータです。
    */
-  period?: PurchasePeriodParamParameter;
+  orderedAfter?: OrderedAfterParamParameter;
   /**
-   * 対象期間の開始日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。
-   * 日付はサーバのタイムゾーン（Asia/Tokyo）の暦日として解釈します。
+   * 集計対象期間の上限となる瞬時（RFC3339）。**この瞬時を含みません**。
+   * 対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。
+   * 省略すると上限を設けません。`orderedAfter` と併せて省略すると全期間が対象になります。
+   * `orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。
    */
-  from?: PurchaseFromParamParameter;
+  orderedBefore?: OrderedBeforeParamParameter;
   /**
-   * 対象期間の終了日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。
-   * 日付はサーバのタイムゾーン（Asia/Tokyo）の暦日として解釈します。`from` より前の日付を指定した場合は 400 を返します。
+   * 購入ステータスコードでフィルタします（複数指定は同じ名前を繰り返します: `statusCodes=7&statusCodes=8`）。
+   * 指定したコードのいずれかに一致する購入を返します。
+   * 指定しない場合は全ステータスを対象とします。存在しないコードは 0 件として扱い、エラーにはしません。
+   * コードは購入ステータスの業務キーで、値は到達順序を意味しません。
+   * ページ送りの間は同じ絞り込み条件を渡してください（条件が変わると keyset の連続性は保証されません）。
+   * @maxItems 32
+   * @items.minimum 1
+   * @items.maximum 32767
    */
-  to?: PurchaseToParamParameter;
+  statusCodes?: PurchaseStatusCodesParamParameter;
   /**
-   * 対象とする暦月（`YYYY-MM`）。`period=month` のときのみ必須で、それ以外の区分では無視します。
-   * 月初日から月末日までを、サーバのタイムゾーン（Asia/Tokyo）の暦日基準で対象とします。
-   * @pattern ^\d{4}-(0[1-9]|1[0-2])$
+   * 他ユーザーの購入も母集団に含める場合は true を指定します。既定は false で、
+   * 指定しない場合の母集団は認証主体（自分）の購入のみです。
+   * true を指定できるのは管理者（admin）だけで、管理者でなければ 403 で拒否します。
+   * 並び順・ページ送りの規則は母集団によらず同一（注文日時の降順）です。
+   * ページ送りの間は同じ指定を渡してください（母集団が変わると keyset の連続性は保証されません）。
    */
-  month?: PurchaseMonthParamParameter;
-  /**
-   * 今日から遡る日数。`period=recent` のときのみ必須で、それ以外の区分では無視します。
-   * 今日を終了日、今日の `days` 日前を開始日とし、両端の暦日を含みます
-   * （2026-01-31 に `days=10` を指定した場合の対象は 2026-01-21 〜 2026-01-31 です）。
-   * 暦日はサーバのタイムゾーン（Asia/Tokyo）基準です。
-   * @minimum 1
-   * @maximum 365
-   */
-  days?: PurchaseRecentDaysParamParameter;
+  includeOtherUsers?: IncludeOtherUsersParamParameter;
 };

@@ -106,7 +106,7 @@ describe("HomePageContent", () => {
 
     render(await HomePageContent());
 
-    expect(screen.getByText("売上ランキングを表示できませんでした")).toBeVisible();
+    expect(screen.getByText("売れ筋ランキングを表示できませんでした")).toBeVisible();
     expect(screen.getByText("ワイヤレスイヤホン")).toBeVisible();
   });
 

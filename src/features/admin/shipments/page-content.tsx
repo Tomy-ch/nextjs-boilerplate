@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { withScreenSpan } from "@/observability/render-span";
-import type { ShipmentAction } from "./form-state";
+import type { DeliveryAction, ShipmentAction } from "./form-state";
 import { ShipmentQueueResults } from "./results";
 import { ShipmentQueueSkeleton } from "./ui/skeleton/skeleton";
 
@@ -8,6 +8,8 @@ import { ShipmentQueueSkeleton } from "./ui/skeleton/skeleton";
 export type ShipmentQueuePageContentProps = {
   /** 発送の送信先。 */
   shipAction: ShipmentAction;
+  /** 配達の確認の送信先。 */
+  deliverAction: DeliveryAction;
 };
 
 /**
@@ -18,10 +20,10 @@ export type ShipmentQueuePageContentProps = {
  */
 export const ShipmentQueuePageContent = withScreenSpan(
   "features/admin/shipments/page-content",
-  ({ shipAction }: ShipmentQueuePageContentProps) => {
+  ({ shipAction, deliverAction }: ShipmentQueuePageContentProps) => {
     return (
       <Suspense fallback={<ShipmentQueueSkeleton />}>
-        <ShipmentQueueResults shipAction={shipAction} />
+        <ShipmentQueueResults deliverAction={deliverAction} shipAction={shipAction} />
       </Suspense>
     );
   },

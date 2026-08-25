@@ -52,7 +52,9 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 ### 3. 脆弱性スキャン(多層防御・go ADR 0077 翻案)
 
 - **CodeQL SAST**: `languages: javascript-typescript`(go の `go` を差し替え)。trigger = PR + 保護ブランチ push + 週次 cron。`security-events: write` で SARIF アップロード。high-severity はマージブロック(ブロックの実体は branch protection / code scanning の required 設定側。go 同様、workflow 内の hard-fail には依存しない)
-- **portable SAST(Opengrep)**: CodeQL は **GitHub の外へ持ち出せない**。private かつ GHAS 無しの fork 先では SAST の層がまるごと消えるため、**同じ問いに答える持ち出せる実体**を別に持つ。実体は `mise.toml` にピンした 1 バイナリで、ローカルでも CI でも同じ `make sast` が回す。**Semgrep 本体ではなく OSS fork の Opengrep を採る** —— ルール記法は互換で `// nosemgrep:` の抑止もそのまま効くうえ、boilerplate が fork 先へライセンス判断を渡さずに済む。**0 件の baseline を保つことがこのゲートの前提**であり、0 件だからこそ新しい所見が読み飛ばす対象ではなく信号になる。許容する所見はソースへ `// nosemgrep: <rule-id>` を理由付きで置き、判断をコードの側に残す。**検査条件(対象・ルール・除外)は 1 箇所に持つ** —— ゲートと code scanning への取り込みが違う走査を指すと、落ちた内容と Security タブの一覧が食い違う
+- **portable SAST(Opengrep)**: CodeQL は **GitHub の外へ持ち出せない**。private かつ GHAS 無しの fork 先では SAST の層がまるごと消えるため、**同じ問いに答える持ち出せる実体**を別に持つ。実体は `mise.toml` にピンした 1 バイナリで、ローカルでも CI でも同じ `make sast` が回す。**Semgrep 本体ではなく OSS fork の Opengrep を採る** —— ルール記法は互換で `// nosemgrep:` の抑止もそのまま効くうえ、boilerplate が fork 先へライセンス判断を渡さずに済む。**0 件の baseline を保つことがこのゲートの前提**であり、0 件だからこそ新しい所見が読み飛ばす対象ではなく信号になる。許容する所見はソースへ `// nosemgrep: <rule-id>` を理由付きで置き、判断をコードの側に残す。**検査条件(対象・ルール・除外)は 1 箇所に持つ** —— ゲートと code scanning への取り込みが違う走査を指すと、落ちた内容と Security タブの一覧が食い違う。**ルールはレジストリ(semgrep.dev)から引かない** —— `p/javascript` の類が返す集合は Semgrep Rules License v1.0 で「自社内部の目的に限る」「再頒布不可」「サービスとして提供不可」を課し、**エンジンだけ OSS へ替えても、ルールをそこから引いている限りこの判断は成立しない**(判断の所在が層をずれるだけになる)。代わりにライセンス変更前から分岐している `opengrep/opengrep-rules` を **commit で固定**する(固定値は `.github/actions-pin.toml` / `docker/images-pin.toml` と同じ形のロックファイルが持ち、**digest をソースへ書かない** —— 人が写す工程は写し間違いの工程である)。取り出すのは`security` 分類の javascript / typescript だけを取り出して読む。取り出したもの(アーカイブではない)に対する digest を照合し、一致しなければ何も置かずに落ちる —— GitHub の自動生成アーカイブはバイト単位で不変ではないため、包み方ではなく中身を照合対象にする。**`audit` 分類は取らない**(レジストリの既定パックも含めていない。読んで判断するための所見であって、0 件 baseline を保てる分類ではない)。**検体は 1 つもディスクへ置かない** —— 置き場はルールと同数の意図的に脆弱なソースを抱えており、`java/` `php/` には本物の webshell が含まれる。言語で絞ったうえで YAML だけを名指しで取り出す
+- **編集時 SAST(eslint-plugin-security)**: 上の 2 つと同じ問いに、**型を解決したうえで編集中に**答える層。走査が CI にしか無いと、指摘が届くのは push の後になる。ただし **[0002](0002-formatter-linter.md) の能力ベース分担に従い、推奨プリセットは当てない** —— 束を当てれば biome と重なる規則も、この層に対象の無い規則も同時に入る。**有効化するのは 0 件の baseline を保てる規則だけ**とし、落とした規則とその理由は `eslint.config.ts` に書く(ReDoS と path traversal は Opengrep / CodeQL が引き続き担うので、落としても検査面は消えない)
+- **外部解析サービス(SonarQube Cloud)**: 上のどれとも違い、**外部アカウントに依存する**唯一の層。public リポジトリでは無料、private では有料であるため、fork 先が契約していないことを既定として設計する —— `SONAR_TOKEN` が未設定なら解析ジョブごと降り、**緑のまま「未設定」を PR へ述べる**(コメントの不在は「検査が緑だった」と見分けが付かない)。**required check には登録しない**。第三者のアカウントの有無がマージの条件になってはならない。さらに boilerplate の剥がし対象とする —— projectKey も organization もこのリポジトリの名前で、そのまま渡ると fork では死んだ設定になる <!-- boilerplate-only:line -->
 - **OSV 二段**: Trivy / `pnpm audit` と**参照するデータベースが違う**。件数は一致せず、下記「和集合を正とする」の実例そのものになる。二段の形は Trivy と同じで、**報告(全 PR・落とさない)と昇格ゲート(保護ブランチ宛 PR・検出で落ちる)**に割る
 - **依存差分ゲート(Dependency Review)**: 上の 3 者はいずれも**木の現状**を読むため、以前から抱えている脆弱性とこの変更が持ち込んだものを区別できない。前者は報告専用のゲートが構造的に許容せざるを得ないものであり、**「この PR が増やしたか」だけを問う層**を別に置く。増やした当人は取り消せるので、ここは落として良い。閾値は依存監査ゲートと揃えて `high`。**この層はこのリポジトリの運用にだけ置く** —— 呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。既定として配ると、テンプレートから作ったリポジトリは「金が掛かる」か「コードでは直せない赤」かのどちらかを受け取る <!-- boilerplate-only:line -->
 - **データフロー検査(Bearer)**: 値が**プロセスの外(log 行 / 外向き要求 / 第三者クライアント)へ出る地点**を、その値が何かの分類と併せて見る。パターンと taint 経路はこの問いに答えない —— logger へ届いた文字列がメールアドレスであることを、どちらも知らない。**落とさない**(下記 3.2)
@@ -85,11 +87,26 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 
 | 配線 | 該当 | 何が赤にするか |
 | --- | --- | --- |
-| **ゲート** | gitleaks / Opengrep / 依存監査 / Trivy・OSV の昇格側 / Dependency Review | job 自身の exit code |
+| **ゲート** | gitleaks / Opengrep / eslint-plugin-security / 依存監査 / Trivy・OSV の昇格側 / Dependency Review | job 自身の exit code |
 | **報告専用** | Trivy・OSV の報告側 | 何も赤にしない(スキャナが走らなかったときだけ落ちる) |
-| **code scanning へ送る** | CodeQL / Bearer / DevSkim | **その変更が新しく持ち込んだ所見**に対する GitHub 側の差分チェック |
+| **code scanning へ送る** | CodeQL / Bearer / DevSkim / SonarQube Cloud | **その変更が新しく持ち込んだ所見**に対する GitHub 側の差分チェック |
 
 3 つ目は「落とさない」と「見せない」を分けるための配線である。job は緑を返すが、**差分が持ち込んだ alert は PR を赤にする**。baseline を 0 件にできない層 —— 誤検知の傾向が強く、0 へ寄せるには規則単位の無効化が要る層 —— はここに置く。規則単位の無効化は下記 3.4 が禁じている。
+
+### 3.3 スケジュールがあるから PR を絞れる
+
+Security グループは**週次スケジュール + 差分が届く PR** で走る。週次があるのは、コードが 1 行も動いていないツリーに対しても CVE が公開されうるためで、変更を入口にした検査だけでは届かない。
+
+**そして週次があるからこそ、PR 側は絞れる。**各 job は差分が自分に届くかを判定して降りる([0153](0153-ci-configuration.md) §5)。**絞りの意味は「走査が消える」ではなく「週次へ回る」**であり、週次を止めればこの絞りは成立しなくなる。判定を書き漏らしても失うのは最大 1 週間で、恒久の死角にはならない。Security グループの job を required check に登録していないことも前提の一つで、降りても PR は止まらない。
+
+**降りてよい層と降りてはいけない層がある。**
+
+| 層 | 降りるか | 理由 |
+| --- | --- | --- |
+| 報告専用(Trivy / OSV の報告側) | 降りる | lockfile が動いていなければスキャナの答えは変わらない |
+| 依存監査ゲート(`pnpm audit`) | 降りる | base から引き継いだ判定は変更の作者がその場で解消できない(上記 3.1) |
+| 昇格ゲート(Trivy / OSV の release 側) | **降りない** | 昇格はツリーの現状を誰かが引き受ける場面であり、その PR の差分が lockfile に触れていないことは、ツリーが持つ脆弱性を引き受けない理由にならない |
+| CodeQL | **降りない** | code scanning の alert は「後の解析がもう報告しない」ことでしか閉じない。走行回数を減らすと閉じる契機を落としうる |
 
 ### 3.4 抑止(ignore)ポリシー
 

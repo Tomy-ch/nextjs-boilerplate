@@ -4,7 +4,8 @@ import { render, screen } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { DASHBOARD_PERIOD, type DashboardSummary } from "@/model/dashboard/dashboard";
+import type { DashboardSummary } from "@/model/dashboard/dashboard";
+import type { TimeWindow } from "@/model/time-window";
 
 beforeAll(() => {
   // 内訳に併置する図が寸法を測るために使う API を jsdom が持たないため、ここで補う。
@@ -30,6 +31,12 @@ const SUMMARY: DashboardSummary = {
   purchaseStatusCounts: [{ statusId: "1", statusName: "検討中", count: 22 }],
   totalProductCount: 476,
   publishedProductCount: 454,
+};
+
+/** 2026 年 8 月 1 か月ぶんの区間。 */
+const MONTH_WINDOW: TimeWindow = {
+  after: "2026-08-01T00:00:00+09:00",
+  before: "2026-09-01T00:00:00+09:00",
 };
 
 beforeEach(() => {
@@ -82,22 +89,21 @@ describe("AnalyticsSummarySection", () => {
   });
 
   // ----- 期間が決まっているとき -----
-  it("受け取った条件をそのまま取得へ渡す", async () => {
-    const query = {
-      period: DASHBOARD_PERIOD.RANGE,
-      from: "2026-08-01",
-      to: "2026-08-19",
-    } as const;
+  it("解決済みの区間をそのまま取得へ渡す", async () => {
+    const window: TimeWindow = {
+      after: "2026-08-01T00:00:00+09:00",
+      before: "2026-08-20T00:00:00+09:00",
+    };
 
-    render(await AnalyticsSummarySection({ request: { status: "ready", query } }));
+    render(await AnalyticsSummarySection({ request: { status: "ready", window } }));
 
-    expect(getDashboardSummary).toHaveBeenCalledWith(query);
+    expect(getDashboardSummary).toHaveBeenCalledWith(window);
   });
 
   it("その期間で集計を求め、数値カードと内訳を出す", async () => {
     render(
       await AnalyticsSummarySection({
-        request: { status: "ready", query: { period: DASHBOARD_PERIOD.MONTH } },
+        request: { status: "ready", window: MONTH_WINDOW },
       }),
     );
 
@@ -109,7 +115,7 @@ describe("AnalyticsSummarySection", () => {
   it("入口の画面とは別の見出しで数を出す", async () => {
     render(
       await AnalyticsSummarySection({
-        request: { status: "ready", query: { period: DASHBOARD_PERIOD.TODAY } },
+        request: { status: "ready", window: MONTH_WINDOW },
       }),
     );
 
@@ -119,7 +125,7 @@ describe("AnalyticsSummarySection", () => {
   it("集計を出す形でも a11y 検査を通る", async () => {
     const { container } = render(
       await AnalyticsSummarySection({
-        request: { status: "ready", query: { period: DASHBOARD_PERIOD.TODAY } },
+        request: { status: "ready", window: MONTH_WINDOW },
       }),
     );
 

@@ -97,7 +97,14 @@ export default defineConfig({
       mock: { generators: [{ type: "msw" }] },
       override: {
         mock: { properties: PATTERNED_MOCK_PROPERTIES },
-        operations: { GetPrefectures: { mock: { data: PREFECTURES } } },
+        operations: {
+          GetPrefectures: { mock: { data: PREFECTURES } },
+          // 売上額は decimal 文字列だが、同じ項目名がダッシュボードの集計では整数で宣言されて
+          // いる。項目名で指定すると整数のほうまで文字列に変わるため、この operation に閉じる。
+          GetProductsRankingAmount: {
+            mock: { properties: { "/^salesAmount$/": () => "824.69" } },
+          },
+        },
       },
     },
   },

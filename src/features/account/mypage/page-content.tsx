@@ -33,7 +33,7 @@ export const MypagePageContent = withScreenSpan(
     const [profile, summary, purchases] = await Promise.all([
       getMyProfile(),
       getMyPurchaseSummary(),
-      getMyPurchases({ first: HISTORY_PAGE_SIZE, period: "all" }),
+      getMyPurchases({ first: HISTORY_PAGE_SIZE, includeOtherUsers: false }),
     ]);
 
     return <MypageView profile={profile} purchases={purchases} summary={summary} />;

@@ -70,7 +70,13 @@ describe("AdminProductListResults", () => {
 
     render(await AdminProductListResults({ location: location(), query }));
 
-    expect(getProducts).toHaveBeenCalledWith(query);
+    expect(getProducts).toHaveBeenCalledWith({ ...query, includeUnpublished: true });
+  });
+
+  it("未公開の商品も母集団に含めて取得する", async () => {
+    render(await AdminProductListResults({ location: location(), query: QUERY }));
+
+    expect(getProducts).toHaveBeenCalledWith(expect.objectContaining({ includeUnpublished: true }));
   });
 
   it("取得条件を URL から組み立て直さない", async () => {
@@ -81,7 +87,7 @@ describe("AdminProductListResults", () => {
       }),
     );
 
-    expect(getProducts).toHaveBeenCalledWith(QUERY);
+    expect(getProducts).toHaveBeenCalledWith({ ...QUERY, includeUnpublished: true });
   });
 
   it("次の起点があれば次へ進める", async () => {

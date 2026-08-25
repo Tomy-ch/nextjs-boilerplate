@@ -66,7 +66,36 @@ jobs:
         with:
           persist-credentials: false
 
+      # What cannot change this scan's answer. The list is the deny side on purpose: anything
+      # not named here still runs, so a missing entry costs one needless run while a wrong
+      # entry would leave a scanner reporting on nothing (see the note in the action).
+      # DAST reads the delivered response. The catalog, the baselines and the test files
+      # are not part of what `next build` serves; CSS and tokens are served but cannot
+      # change a header or a status code, which is all this scan reads.
+      - name: Decide whether the diff can reach this scan
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            vrt/*
+            e2e/*
+            .storybook/*
+            docs-viewer/*
+            tokens/*
+            *.css
+            *.stories.tsx
+            *.test.ts
+            *.test.tsx
+
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
@@ -74,12 +103,14 @@ jobs:
 
       - name: Resolve the pnpm store path
         id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           path="$(pnpm store path)"
           echo "path=${path}" >> "$GITHUB_OUTPUT"
 
       - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
@@ -89,6 +120,7 @@ jobs:
       # Keyed the same way build.yaml and smoke.yaml key theirs, so all three share a
       # generation rather than each building from cold.
       - name: Cache the Next.js build cache
+        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ github.workspace }}/.next/cache
@@ -96,9 +128,11 @@ jobs:
           restore-keys: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
 
       - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        if: steps.scope.outputs.relevant == 'true'
         run: pnpm build
 
       # The server is polled rather than slept at, and the process is checked for
@@ -106,6 +140,7 @@ jobs:
       # booting — the same shape smoke.yaml uses, for the same reasons.
       - name: Start the server
         id: server
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           set +e
@@ -128,7 +163,7 @@ jobs:
       # verdict step below treats a missing status the same as a failing one.
       - name: Run the DAST gate
         id: dast
-        if: steps.server.outputs.up == 'true'
+        if: steps.scope.outputs.relevant == 'true' && steps.server.outputs.up == 'true'
         shell: bash
         run: |
           set +e
@@ -147,14 +182,14 @@ jobs:
           exit 0
 
       - name: Stop the server
-        if: always() && steps.server.outputs.pid != ''
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.server.outputs.pid != ''
         shell: bash
         env:
           SERVER_PID: ${{ steps.server.outputs.pid }}
         run: kill "${SERVER_PID}" 2>/dev/null || true
 
       - name: Report that the server never answered
-        if: always() && steps.server.outputs.up != 'true'
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.server.outputs.up != 'true'
         shell: bash
         run: |
           {
@@ -164,12 +199,23 @@ jobs:
           } > /tmp/dast.log
 
       - name: Upload the ZAP report
-        if: always() && hashFiles('tmp/dast/**') != ''
+        if: always() && steps.scope.outputs.relevant == 'true' && hashFiles('tmp/dast/**') != ''
         continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dast-report
           path: tmp/dast
+
+      # A job that stood down still owes the pull request a verdict; see sast.yaml. This also
+      # keeps the body file present, so the comment below reports standing down rather than
+      # the cut-off it would otherwise infer from a missing file.
+      - name: Note that the diff cannot reach the delivered response
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ DAST: SKIP (配信面に届かない差分)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は配信される応答に届かないため、撃っていません。配信面そのものは週次で撃ちます。' > /tmp/dast.log
 
       - name: Comment DAST result on PR
         if: always() && github.event_name == 'pull_request'
@@ -178,10 +224,21 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- dast-result -->'
-          title: "${{ steps.dast.outputs.title || '## ⚠️ DAST: CUT OFF (the application never answered)' }}"
+          status: ${{ steps.dast.outputs.status || (steps.standdown.outcome == 'success' && 'success') || '' }}
+          title: "${{ steps.dast.outputs.title || steps.standdown.outputs.title || '## ⚠️ DAST: CUT OFF (the application never answered)' }}"
           body-file: /tmp/dast.log
           details-summary: 'ZAP log'
 
       - name: Fail if a new finding was reported
-        if: always() && steps.dast.outputs.status != 'success'
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.dast.outputs.status != 'success'
         run: exit 1
+
+  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  notify-failure:
+    needs: dast
+    if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.dast.result) }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      failed-job: dast
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -4,7 +4,7 @@
  *
  * 生成した zod スキーマから、検証を伴わない定数だけを写したもの。client はこちらを引く。
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
 
 export const getUsersQueryPageDefault = 1;
@@ -193,12 +193,6 @@ export const getUsersMeResponseStreetMax = 255;
 
 export const getUsersMeResponseBuildingMax = 255;
 
-export const getUsersMePurchasesSummaryQueryPeriodDefault = `all`;
-
-export const getUsersMePurchasesSummaryQueryMonthRegExp = new RegExp("^\\d{4}-(0[1-9]|1[0-2])$");
-
-export const getUsersMePurchasesSummaryQueryDaysMax = 365;
-
 export const getUsersMePurchasesSummaryQueryGroupByMax = 2;
 
 export const getUsersMeRolesResponseRolesItemNameMax = 100;
@@ -299,6 +293,8 @@ export const getProductsQueryMaxQuantityMin = 0;
 
 export const getProductsQuerySortDefault = `-publishedAt`;
 
+export const getProductsQueryIncludeUnpublishedDefault = false;
+
 export const getProductsResponseOneProductsItemNameMax = 255;
 
 export const getProductsResponseOneProductsItemPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
@@ -367,6 +363,8 @@ export const getProductsCountQueryMinQuantityMin = 0;
 
 export const getProductsCountQueryMaxQuantityMin = 0;
 
+export const getProductsCountQueryIncludeUnpublishedDefault = false;
+
 export const getProductsCountResponseCountMin = 0;
 
 export const getProductsDetailPathProductIdMax = 36;
@@ -374,6 +372,8 @@ export const getProductsDetailPathProductIdMax = 36;
 export const getProductsDetailPathProductIdRegExp = new RegExp(
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
 );
+
+export const getProductsDetailQueryIncludeUnpublishedDefault = false;
 
 export const getProductsDetailResponseNameMax = 255;
 
@@ -427,15 +427,29 @@ export const patchProductsStockResponsePriceRegExp = new RegExp("^\\d+(\\.\\d+)?
 
 export const patchProductsStockResponseImagesItemDisplaySortMax = 32767;
 
-export const getProductsRankingQueryPeriodDefault = `all`;
+export const getProductsRankingQuantityQueryLimitDefault = 10;
 
-export const getProductsRankingQueryLimitDefault = 10;
+export const getProductsRankingQuantityQueryLimitMax = 100;
 
-export const getProductsRankingQueryLimitMax = 100;
+export const getProductsRankingQuantityResponseRankingsItemNameMax = 255;
 
-export const getProductsRankingResponseRankingsItemNameMax = 255;
+export const getProductsRankingQuantityResponseRankingsItemPriceRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
 
-export const getProductsRankingResponseRankingsItemPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+export const getProductsRankingAmountQueryLimitDefault = 10;
+
+export const getProductsRankingAmountQueryLimitMax = 100;
+
+export const getProductsRankingAmountResponseRankingsItemNameMax = 255;
+
+export const getProductsRankingAmountResponseRankingsItemPriceRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
+
+export const getProductsRankingAmountResponseRankingsItemSalesAmountRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
 
 export const getProductsLowStockQueryLimitDefault = 20;
 
@@ -471,11 +485,11 @@ export const getPurchasesQueryFirstDefault = 50;
 
 export const getPurchasesQueryFirstMax = 200;
 
-export const getPurchasesQueryPeriodDefault = `all`;
+export const getPurchasesQueryStatusCodesItemMax = 32767;
 
-export const getPurchasesQueryMonthRegExp = new RegExp("^\\d{4}-(0[1-9]|1[0-2])$");
+export const getPurchasesQueryStatusCodesMax = 32;
 
-export const getPurchasesQueryDaysMax = 365;
+export const getPurchasesQueryIncludeOtherUsersDefault = false;
 
 export const postPurchasesHeaderIdempotencyKeyMax = 255;
 
@@ -518,8 +532,6 @@ export const patchPurchasesDeliverPathPurchaseCodeMax = 50;
 export const patchPurchasesDeliverResponseDetailsItemUnitPriceRegExp = new RegExp(
   "^\\d+(\\.\\d+)?$",
 );
-
-export const getDashboardSummaryQueryPeriodDefault = `today`;
 
 export const getCartsMeHeaderXCartSessionMin = 43;
 

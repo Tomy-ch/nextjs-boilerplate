@@ -4,9 +4,12 @@ import {
   describePeriod,
   toPeriodSearchParams,
   toPurchaseHistoryHref,
-  toPurchaseHistoryQuery,
+  toPurchaseWindow,
 } from "./period";
 import { toPeriodSelection } from "./read-period";
+
+/** JST では 8/24 11:00。日付の跨ぎを避けた昼どき。 */
+const NOW = new Date("2026-08-24T02:00:00Z");
 
 describe("toPeriodSearchParams", () => {
   // ----- 正常系 -----
@@ -69,31 +72,42 @@ describe("describePeriod", () => {
   });
 });
 
-describe("toPurchaseHistoryQuery", () => {
+describe("toPurchaseWindow", () => {
   // ----- 正常系 -----
-  it("全期間では件数と区分だけを渡す", () => {
-    expect(toPurchaseHistoryQuery({ kind: "all" }, 20)).toEqual({ first: 20, period: "all" });
+  it("全期間では境界を持たない", () => {
+    expect(toPurchaseWindow({ kind: "all" }, NOW)).toEqual({});
   });
 
-  it("区分が使う値だけを渡す", () => {
-    expect(toPurchaseHistoryQuery({ kind: "month", month: "2026-07" }, 20)).toEqual({
-      first: 20,
-      period: "month",
-      month: "2026-07",
-    });
-    expect(
-      toPurchaseHistoryQuery({ kind: "range", from: "2026-06-01", to: "2026-08-17" }, 20),
-    ).toEqual({ first: 20, period: "range", from: "2026-06-01", to: "2026-08-17" });
-    expect(toPurchaseHistoryQuery({ kind: "recent", days: 30 }, 20)).toEqual({
-      first: 20,
-      period: "recent",
-      days: 30,
+  it("暦月は翌月の始まりで閉じる", () => {
+    expect(toPurchaseWindow({ kind: "month", month: "2026-07" }, NOW)).toEqual({
+      after: "2026-07-01T00:00:00+09:00",
+      before: "2026-08-01T00:00:00+09:00",
     });
   });
 
-  it("区分が使わない値を持ち越さない", () => {
-    expect(toPurchaseHistoryQuery({ kind: "month", month: "2026-07" }, 20)).not.toHaveProperty(
-      "days",
+  it("期間は終了日の翌日で閉じ、終了日の 24 時間を含める", () => {
+    expect(toPurchaseWindow({ kind: "range", from: "2026-06-01", to: "2026-08-17" }, NOW)).toEqual({
+      after: "2026-06-01T00:00:00+09:00",
+      before: "2026-08-18T00:00:00+09:00",
+    });
+  });
+
+  it("直近 N 日は今日を含めて数え、明日の始まりで閉じる", () => {
+    expect(toPurchaseWindow({ kind: "recent", days: 3 }, NOW)).toEqual({
+      after: "2026-08-22T00:00:00+09:00",
+      before: "2026-08-25T00:00:00+09:00",
+    });
+  });
+
+  it("基準の瞬時が変われば直近の区間も動く", () => {
+    const yesterday = toPurchaseWindow(
+      { kind: "recent", days: 3 },
+      new Date("2026-08-23T02:00:00Z"),
     );
+
+    expect(yesterday).toEqual({
+      after: "2026-08-21T00:00:00+09:00",
+      before: "2026-08-24T00:00:00+09:00",
+    });
   });
 });

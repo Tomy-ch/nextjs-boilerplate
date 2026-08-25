@@ -2,9 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cn } from "@/components/cn";
-import { DASHBOARD_PERIOD, type DashboardPeriod } from "@/model/dashboard/dashboard";
 import { withPartSpan } from "@/observability/render-span";
-import { toPeriodHref } from "../../period";
+import { DASHBOARD_PERIOD, type DashboardPeriod, toPeriodHref } from "../../period";
 import {
   PERIOD_CHOICE_CLASS,
   PERIOD_CHOICE_IDLE_CLASS,

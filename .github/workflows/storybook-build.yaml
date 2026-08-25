@@ -100,6 +100,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- storybook-build-result -->'
+          status: ${{ steps.storybook-build.outputs.status }}
           title: ${{ steps.storybook-build.outputs.title }}
           body-file: /tmp/storybook-build.log
           details-summary: 'build-storybook log'

@@ -1,17 +1,51 @@
 import {
-  DASHBOARD_PERIOD,
-  type DashboardPeriod,
-  type DashboardSummaryQuery,
-} from "@/model/dashboard/dashboard";
+  calendarMonth,
+  dateRangeWindow,
+  monthWindow,
+  type TimeWindow,
+  todayWindow,
+} from "@/model/time-window";
 
 import { ADMIN_ANALYTICS_PATH } from "../paths";
 
 /**
- * 期間を載せる URL のキー。契約のクエリ名と揃える。
+ * 集計対象期間の区分。
  *
  * @remarks
- * 読み替えると、URL に書いてある名前と backend へ送る名前が別々に動きます。
+ * 契約はこの語彙を受け取りません（区間へ解くのは {@link toPeriodRequest}）。**この画面だけが使う
+ * 語彙**なので、この feature の中に置いています。
  */
+export const DASHBOARD_PERIOD: Readonly<{ TODAY: "today"; MONTH: "month"; RANGE: "range" }> = {
+  /** 今日。何も選ばれていないときの既定。 */
+  TODAY: "today",
+  /** 今月。 */
+  MONTH: "month",
+  /** 指定した両端の日付までの期間。 */
+  RANGE: "range",
+};
+
+/** 集計対象期間として指定できる値。 */
+export type DashboardPeriod = (typeof DASHBOARD_PERIOD)[keyof typeof DASHBOARD_PERIOD];
+
+/**
+ * URL が表している期間の選択。
+ *
+ * @remarks
+ * **取得条件ではありません。** この型が表すのは、利用者が選んだ状態そのものです。区間へ解くのは
+ * {@link toPeriodRequest} です。
+ *
+ * 日付は暦日の文字列のまま持ち回り、`Date` へ直しません。ブラウザの時差で暦日がずれると、指定
+ * したつもりの日と集計された日が食い違います。
+ */
+export type DashboardPeriodSelection = {
+  readonly period?: DashboardPeriod;
+  /** 集計の開始日。`period` が `range` のときだけ効く。 */
+  readonly from?: string;
+  /** 集計の終了日。この日を含む。 */
+  readonly to?: string;
+};
+
+/** 期間を載せる URL のキー。契約はこの語彙を受け取らないので、画面が決める。 */
 export const PERIOD_KEY: Readonly<{ PERIOD: "period"; FROM: "from"; TO: "to" }> = {
   PERIOD: "period",
   FROM: "from",
@@ -23,7 +57,7 @@ export const PERIOD_KEY: Readonly<{ PERIOD: "period"; FROM: "from"; TO: "to" }> 
  *
  * @remarks
  * キーを持っているのはこの層なので、呼び名も同じ場所に置きます。表示する側が写しを持つと、
- * 契約にキーが増えたときに生の名前が出る画面と出ない画面に割れます。
+ * キーが増えたときに生の名前が出る画面と出ない画面に割れます。
  */
 export const PERIOD_KEY_LABEL: Readonly<Record<string, string>> = {
   [PERIOD_KEY.PERIOD]: "期間の区分",
@@ -35,43 +69,51 @@ export const PERIOD_KEY_LABEL: Readonly<Record<string, string>> = {
  * 期間の指定が、集計を求められる形になっているか。
  *
  * @remarks
- * 契約は日付の欠けた `range` も前後の入れ替わった `range` も 400 で返しますが、どちらも
- * **これから日付を選ぶ状態**と同じ URL の形をしています。往復させてから拒まれる形にしないため、
- * 送る前にこの層で見ます（[0062](../../../../docs/adr/0062-form-input-validation.md)）。
+ * 契約は前後の入れ替わった区間を 400 で返し、日付の欠けた `range` はそもそも区間へ解けませんが、
+ * どちらも **これから日付を選ぶ状態**と同じ URL の形をしています。往復させてから拒まれる形に
+ * しないため、送る前にこの層で見ます（[0062](../../../../docs/adr/0062-form-input-validation.md)）。
  */
 export type PeriodRequest =
-  /** 集計を求められる。 */
-  | { readonly status: "ready"; readonly query: DashboardSummaryQuery }
+  /** 集計を求められる。区間は解決済みで、そのまま契約へ渡せる。 */
+  | { readonly status: "ready"; readonly window: TimeWindow }
   /** `range` だが日付が揃っていない。 */
   | { readonly status: "incomplete" }
   /** 終了日が開始日より前にある。 */
   | { readonly status: "reversed" };
 
 /**
- * 契約に照らした条件を、集計を求められるかどうかへ写す。
+ * 選ばれた期間を、集計を求められるかどうかへ写す。
  *
  * @remarks
- * 日付の前後は文字列のまま比べます。契約が受け取る `YYYY-MM-DD` は桁が固定なので、辞書順が
- * そのまま暦の順になります。`Date` へ直すと、ブラウザの時差で暦日がずれた値どうしを比べることに
- * なります。
+ * 日付の前後は文字列のまま比べます。暦日の `YYYY-MM-DD` は桁が固定なので、辞書順がそのまま暦の
+ * 順になります。`Date` へ直すと、ブラウザの時差で暦日がずれた値どうしを比べることになります。
  *
- * `range` 以外では日付を落とします。契約は無視すると宣言していますが、送らなければ「無視される
- * はずの値が効いていた」という疑いがそもそも立ちません。
+ * **区分をここで区間へ解きます。** 契約が受け取るのは瞬時の半開区間だけで、「今日」「今月」を
+ * 暦の上で解く役は持ちません（[0120](../../../../docs/adr/0120-locale-aware-formatting.md)）。
+ *
+ * @param selection - URL が表している期間の選択
+ * @param now - 相対の期間を解く基準の瞬時
  */
-export function toPeriodRequest(query: DashboardSummaryQuery): PeriodRequest {
-  const period = query.period ?? DASHBOARD_PERIOD.TODAY;
+export function toPeriodRequest(selection: DashboardPeriodSelection, now: Date): PeriodRequest {
+  const period = selection.period ?? DASHBOARD_PERIOD.TODAY;
 
-  if (period !== DASHBOARD_PERIOD.RANGE) {
-    return { status: "ready", query: { period } };
+  if (period === DASHBOARD_PERIOD.TODAY) {
+    return { status: "ready", window: todayWindow(now) };
   }
 
-  const { from, to } = query;
+  if (period === DASHBOARD_PERIOD.MONTH) {
+    return { status: "ready", window: monthWindow(calendarMonth(now)) };
+  }
+
+  const { from, to } = selection;
 
   if (from === undefined || to === undefined) {
     return { status: "incomplete" };
   }
 
-  return from > to ? { status: "reversed" } : { status: "ready", query: { period, from, to } };
+  return from > to
+    ? { status: "reversed" }
+    : { status: "ready", window: dateRangeWindow(from, to) };
 }
 
 /**

@@ -9,13 +9,14 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
+import type { ProductQuantityRankingItem } from "./productQuantityRankingItem";
 
-export type RankingPeriodParamParameter =
-  (typeof RankingPeriodParamParameter)[keyof typeof RankingPeriodParamParameter];
-
-export const RankingPeriodParamParameter = {
-  all: "all",
-  "30d": "30d",
-} as const;
+/**
+ * 販売数量ランキングのレスポンススキーマ。販売数量の降順（同数量は商品 ID 昇順）で並びます。
+ */
+export interface ProductQuantityRankingResponse {
+  /** 販売数量の降順で並んだ商品ランキングです。 */
+  rankings: ProductQuantityRankingItem[];
+}

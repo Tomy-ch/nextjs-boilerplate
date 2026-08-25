@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-
-import { DASHBOARD_PERIOD, type DashboardSummaryQuery } from "@/model/dashboard/dashboard";
 import { withScreenSpan } from "@/observability/render-span";
+import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "./period";
 import type { PeriodWindow } from "./period-window";
 import { PeriodCaption } from "./ui/period-caption/period-caption";
 import { PeriodSwitch } from "./ui/period-switch/period-switch";
@@ -10,7 +9,7 @@ import { RangeDialog } from "./ui/range-dialog/range-dialog";
 /** `AnalyticsView` の props。 */
 export type AnalyticsViewProps = {
   /** URL が表す条件。選択肢の現在地と、日付の初期値になる。 */
-  query: DashboardSummaryQuery;
+  query: DashboardPeriodSelection;
   /** 集計が対象にしている暦日。決まっていなければ渡さない。 */
   window?: PeriodWindow;
   /** 期間に従って取り直す区画。 */

@@ -74,7 +74,7 @@ describe("RankingList", () => {
   it("件数が無ければ節ごと描かない", () => {
     render(<RankingList entries={[]} />);
 
-    expect(screen.queryByRole("heading", { name: "売上ランキング" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "売れ筋ランキング" })).not.toBeInTheDocument();
   });
 
   it("a11y 違反が無い", async () => {

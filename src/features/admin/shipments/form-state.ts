@@ -28,3 +28,25 @@ export const SHIPMENT_TARGET_LOST_MESSAGE = "対象の注文が判りません�
  */
 export const SHIPMENT_CONFLICT_MESSAGE =
   "いまの状況では発送できません。読み込んでからの間に注文が進んだか、すでに発送済みです。";
+
+/**
+ * 配達を確認した結果。
+ *
+ * @remarks
+ * **件数を持ちません。** 配達の確認はまとめる軸を持たず、常に注文 1 件です。発送と同じ形にすると、
+ * まとめて送れるかのように読めます。
+ */
+export type DeliveryState = ActionState<{ readonly purchaseCode: string }>;
+
+/** 配達の確認の送信先。 */
+export type DeliveryAction = (state: DeliveryState, formData: FormData) => Promise<DeliveryState>;
+
+/**
+ * 配達の確認が通らなかったときの文言。
+ *
+ * @remarks
+ * 理由の言い方が発送と違います。ここで競合が起きるのは、読み込んでからの間に別の担当者が同じ
+ * 注文を確認したときです。
+ */
+export const DELIVERY_CONFLICT_MESSAGE =
+  "いまの状況では配達済みにできません。読み込んでからの間に、すでに確認されたようです。";

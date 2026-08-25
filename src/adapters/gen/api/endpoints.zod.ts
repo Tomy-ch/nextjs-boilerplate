@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
 import * as zod from "zod";
 
@@ -519,10 +519,9 @@ export const GetUsersMeResponse = zod
  * 認証コンテキスト（Bearer トークン）の内部 UserID に該当するユーザー自身の購入を集計して取得します。
  * マイページの集計カード表示を想定した集計で、購入一覧そのものは返しません（履歴は購入履歴一覧 API）。
  * パスに他者の識別子を持たないため、他ユーザーの集計は取得できません。
- * 集計対象期間は period で切り替えます（既定は全期間）。month / range / recent の境界はサーバの
- * タイムゾーン（Asia/Tokyo）の暦日基準で算出し、両端の暦日を含みます。実際に用いた期間は要求した区分に
- * 関わらず period として返すため、クライアントは相対指定を自前で解決する必要がありません。
- * 区分ごとの必須パラメータ（month / from と to / days）の欠落、および to が from より前の場合は 400 を返します。
+ * 集計対象期間は orderedAfter / orderedBefore が指す半開区間 [orderedAfter, orderedBefore) です。
+ * いずれも省略でき、両方省略した場合は全期間を集計します。orderedBefore が orderedAfter 以前
+ * （同値を含む）の場合は 400 を返します。
  * キャンセル済みの購入はすべての集計値から除外します（ステータス別内訳にもキャンセルは現れません）。
  * 金額は 2 種類返します。totalAmount は支払金額（小計 + 税額 + 送料）の合計、itemsTotal は明細金額
  * （単価 × 数量）の合計で、税額・送料は明細に按分できないため両者は一致しません。
@@ -532,45 +531,20 @@ export const GetUsersMeResponse = zod
  * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
  * @summary 認証ユーザー自身の購入集計の取得
  */
-export const getUsersMePurchasesSummaryQueryPeriodDefault = `all`;
-export const getUsersMePurchasesSummaryQueryMonthRegExp = new RegExp("^\\d{4}-(0[1-9]|1[0-2])$");
-export const getUsersMePurchasesSummaryQueryDaysMax = 365;
-
 export const getUsersMePurchasesSummaryQueryGroupByMax = 2;
 
 export const GetUsersMePurchasesSummaryQueryParams = zod.object({
-  period: zod
-    .enum(["all", "month", "range", "recent"])
-    .default(getUsersMePurchasesSummaryQueryPeriodDefault)
-    .describe(
-      "集計・絞り込み対象期間の区分。`all`（既定）は全期間、`month` は `month` で指定した暦月、\n`range` は `from` \/ `to` で指定した期間、`recent` は今日から `days` 日前までを対象とします。\n各区分の境界はサーバのタイムゾーン（Asia\/Tokyo）の暦日基準で算出し、両端の暦日を含みます。\n区分ごとの必須パラメータ（`month` \/ `from` と `to` \/ `days`）が欠落している場合は 400 を返します。\n",
-    ),
-  from: zod.iso
-    .date()
+  orderedAfter: zod.iso
+    .datetime({ offset: true })
     .optional()
     .describe(
-      "対象期間の開始日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。\n日付はサーバのタイムゾーン（Asia\/Tokyo）の暦日として解釈します。\n",
+      "集計対象期間の下限となる瞬時（RFC3339）。\*\*この瞬時を含みます\*\*。\n対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。\n省略すると下限を設けません。`orderedBefore` と併せて省略すると全期間が対象になります。\n`orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。\ncursor ページネーションの `after` とは別のパラメータです。\n",
     ),
-  to: zod.iso
-    .date()
+  orderedBefore: zod.iso
+    .datetime({ offset: true })
     .optional()
     .describe(
-      "対象期間の終了日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。\n日付はサーバのタイムゾーン（Asia\/Tokyo）の暦日として解釈します。`from` より前の日付を指定した場合は 400 を返します。\n",
-    ),
-  month: zod
-    .string()
-    .regex(getUsersMePurchasesSummaryQueryMonthRegExp)
-    .optional()
-    .describe(
-      "対象とする暦月（`YYYY-MM`）。`period=month` のときのみ必須で、それ以外の区分では無視します。\n月初日から月末日までを、サーバのタイムゾーン（Asia\/Tokyo）の暦日基準で対象とします。\n",
-    ),
-  days: zod
-    .int()
-    .min(1)
-    .max(getUsersMePurchasesSummaryQueryDaysMax)
-    .optional()
-    .describe(
-      "今日から遡る日数。`period=recent` のときのみ必須で、それ以外の区分では無視します。\n今日を終了日、今日の `days` 日前を開始日とし、両端の暦日を含みます\n（2026-01-31 に `days=10` を指定した場合の対象は 2026-01-21 〜 2026-01-31 です）。\n暦日はサーバのタイムゾーン（Asia\/Tokyo）基準です。\n",
+      "集計対象期間の上限となる瞬時（RFC3339）。\*\*この瞬時を含みません\*\*。\n対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。\n省略すると上限を設けません。`orderedAfter` と併せて省略すると全期間が対象になります。\n`orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。\n",
     ),
   groupBy: zod
     .array(zod.enum(["category", "product"]))
@@ -583,20 +557,6 @@ export const GetUsersMePurchasesSummaryQueryParams = zod.object({
 
 export const GetUsersMePurchasesSummaryResponse = zod
   .object({
-    period: zod
-      .object({
-        from: zod.iso
-          .date()
-          .nullable()
-          .describe("対象期間の開始日（この日を含みます）。全期間の場合は null です。"),
-        to: zod.iso
-          .date()
-          .nullable()
-          .describe("対象期間の終了日（この日を含みます）。全期間の場合は null です。"),
-      })
-      .describe(
-        "集計に実際に用いた対象期間。両端の暦日を含みます（サーバのタイムゾーン Asia\/Tokyo 基準）。\n相対指定（period=recent）や暦月指定（period=month）を解決した後の値なので、\nクライアントは要求した区分に関わらずこの 2 日付で対象期間を確定できます。\nperiod=all（全期間）のときは期間で絞り込んでいないため、いずれも null です。\n",
-      ),
     totalCount: zod
       .int()
       .describe(
@@ -683,7 +643,7 @@ export const GetUsersMePurchasesSummaryResponse = zod
       ),
   })
   .describe(
-    "認証ユーザー自身の購入集計のレスポンススキーマ。対象期間・件数・合計金額・ステータス別内訳と、\nグループ化を指定した場合はその内訳のみを返し、購入一覧・明細は含みません。金額は USD セント単位の整数です。\nすべての集計値はキャンセル済みを除外した同一の母集団から算出します。\n",
+    "認証ユーザー自身の購入集計のレスポンススキーマ。件数・合計金額・ステータス別内訳と、\nグループ化を指定した場合はその内訳のみを返し、購入一覧・明細は含みません。金額は USD セント単位の整数です。\nすべての集計値はキャンセル済みを除外した同一の母集団から算出します。\n",
   );
 
 /**
@@ -991,14 +951,22 @@ export const GetProductCategoriesResponseItem = zod
 export const GetProductCategoriesResponse = zod.array(GetProductCategoriesResponseItem);
 
 /**
- * 公開済みの商品を cursor ページネーションで取得します。認証不要の公開エンドポイントです。
- * 既定では公開日時の降順（publishedAt DESC, id DESC）で並び、sort=publishedAt で昇順に切り替えられます。
+ * 商品を cursor ページネーションで取得します。認証は任意です。
+ * 既定の母集団は公開済みの商品のみで、公開日時の降順（publishedAt DESC, id DESC）で並び、
+ * sort=publishedAt で昇順に切り替えられます。
+ * includeUnpublished=true を指定すると、公開日時が未設定（未公開）の商品も母集団に含みます。
+ * このときの並び順は登録日時の降順（createdAt DESC, id DESC）になり、sort は向きだけを適用します。
+ * 未公開の商品は公開日時を持たないため、公開日時を並び順の第 1 キーにできないためです。
+ * includeUnpublished=true を指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 を返します。
+ * 母集団が変わると並び順の軸も変わるため、cursor は取得したときと同じ includeUnpublished の指定でのみ使えます。
+ * 別の指定へ持ち越した cursor は 400 を返します。
  * categoryCodes / statusCodes でフィルタ（同じ名前を繰り返して複数指定可）、keyword で商品名・説明の部分一致検索ができます。
  * categoryId / statusId は非推奨で、後継の categoryCodes / statusCodes と同時に指定すると 400 を返します。
  * minPrice / maxPrice で価格、minQuantity / maxQuantity で在庫数を境界値を含めて範囲検索できます。
  * いずれの範囲も下限が上限を超える場合は 400 を返します。
- * 公開日時が未設定（未公開）の商品は返しません。ステータスによる可視範囲の絞り込みは今後対応予定です。
  * price は USD ドル建ての decimal 文字列です。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * @summary 商品一覧の取得
  */
 export const getProductsQueryAfterMax = 512;
@@ -1038,6 +1006,7 @@ export const getProductsQueryMinQuantityMin = 0;
 export const getProductsQueryMaxQuantityMin = 0;
 
 export const getProductsQuerySortDefault = `-publishedAt`;
+export const getProductsQueryIncludeUnpublishedDefault = false;
 
 export const GetProductsQueryParams = zod.object({
   after: zod
@@ -1115,6 +1084,12 @@ export const GetProductsQueryParams = zod.object({
     .default(getProductsQuerySortDefault)
     .describe(
       "並び順。`-publishedAt`（既定）は公開日時の降順、`publishedAt` は公開日時の昇順です。\nいずれも同一公開日時の商品は ID で安定ソートします。\n",
+    ),
+  includeUnpublished: zod
+    .boolean()
+    .default(getProductsQueryIncludeUnpublishedDefault)
+    .describe(
+      "未公開（公開日時が未設定）の商品を母集団に含める場合は true を指定します。既定は false で、\n指定しない場合の母集団は公開済みの商品のみです。\ntrue を指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 で拒否します。\nfalse を明示した場合は認証を要しません（指定しない場合と同じ扱いです）。\n",
     ),
 });
 
@@ -1347,10 +1322,16 @@ export const PostProductsResponse = zod
   .describe("商品情報のレスポンススキーマ");
 
 /**
- * 公開済み商品のうち、指定した検索条件に一致する件数のみを返します。認証不要の公開エンドポイントです。
- * categoryCodes / statusCodes / keyword / minPrice / maxPrice / minQuantity / maxQuantity の意味は
- * GET /v1/products と同一です。検索条件を指定しない場合は公開済み商品の総数を返します。
+ * 指定した検索条件に一致する商品の件数のみを返します。認証は任意です。
+ * 既定の母集団は公開済みの商品のみで、検索条件を指定しない場合は公開済み商品の総数を返します。
+ * includeUnpublished=true を指定すると、公開日時が未設定（未公開）の商品も母集団に含みます。
+ * 指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 を返します。
+ * 母集団の定義は GET /v1/products と同一で、同じ指定に対して両者の母集団は必ず一致します。
+ * categoryCodes / statusCodes / keyword / minPrice / maxPrice / minQuantity / maxQuantity の意味も
+ * GET /v1/products と同一です。
  * categoryId / statusId は非推奨で、後継の categoryCodes / statusCodes と同時に指定すると 400 を返します。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * @summary 商品検索の一致件数の取得
  */
 export const getProductsCountQueryCategoryIdMax = 36;
@@ -1382,6 +1363,8 @@ export const getProductsCountQueryMaxPriceRegExp = new RegExp("^\\d{1,20}(\\.\\d
 export const getProductsCountQueryMinQuantityMin = 0;
 
 export const getProductsCountQueryMaxQuantityMin = 0;
+
+export const getProductsCountQueryIncludeUnpublishedDefault = false;
 
 export const GetProductsCountQueryParams = zod.object({
   categoryId: zod
@@ -1442,6 +1425,12 @@ export const GetProductsCountQueryParams = zod.object({
     .min(getProductsCountQueryMaxQuantityMin)
     .optional()
     .describe("最高在庫数（この値以下）。"),
+  includeUnpublished: zod
+    .boolean()
+    .default(getProductsCountQueryIncludeUnpublishedDefault)
+    .describe(
+      "未公開（公開日時が未設定）の商品を母集団に含める場合は true を指定します。既定は false で、\n指定しない場合の母集団は公開済みの商品のみです。\ntrue を指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 で拒否します。\nfalse を明示した場合は認証を要しません（指定しない場合と同じ扱いです）。\n",
+    ),
 });
 
 export const getProductsCountResponseCountMin = 0;
@@ -1456,9 +1445,15 @@ export const GetProductsCountResponse = zod
   .describe("商品検索の一致件数レスポンス");
 
 /**
- * 指定された UUID に該当する公開済み商品の詳細情報を取得します。認証不要の公開エンドポイントです。
- * 公開日時が未設定（未公開）の商品、および存在しない商品はいずれも 404 を返し、存在を秘匿します。
- * price は USD セント単位の整数です。statusId / categoryId の名称はマスタ API で解決します。
+ * 指定された UUID に該当する商品の詳細情報を取得します。認証は任意です。
+ * 既定の母集団は公開済みの商品のみで、公開日時が未設定（未公開）の商品と存在しない商品は
+ * いずれも 404 を返し、存在を秘匿します。
+ * includeUnpublished=true を指定すると未公開の商品も取得できます。
+ * 指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 を返します。
+ * 拒否は商品の存在を調べる前に判定するため、403 から商品の存在有無は分かりません。
+ * price は USD ドル建ての decimal 文字列です。statusId / categoryId の名称はマスタ API で解決します。
+ * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * @summary 単一商品の取得
  */
 export const getProductsDetailPathProductIdMax = 36;
@@ -1473,6 +1468,17 @@ export const GetProductsDetailParams = zod.object({
     .max(getProductsDetailPathProductIdMax)
     .regex(getProductsDetailPathProductIdRegExp)
     .describe("商品のUUID"),
+});
+
+export const getProductsDetailQueryIncludeUnpublishedDefault = false;
+
+export const GetProductsDetailQueryParams = zod.object({
+  includeUnpublished: zod
+    .boolean()
+    .default(getProductsDetailQueryIncludeUnpublishedDefault)
+    .describe(
+      "未公開（公開日時が未設定）の商品を母集団に含める場合は true を指定します。既定は false で、\n指定しない場合の母集団は公開済みの商品のみです。\ntrue を指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 で拒否します。\nfalse を明示した場合は認証を要しません（指定しない場合と同じ扱いです）。\n",
+    ),
 });
 
 export const getProductsDetailResponseNameMax = 255;
@@ -1819,36 +1825,51 @@ export const PatchProductsStockResponse = zod
   .describe("商品情報のレスポンススキーマ");
 
 /**
- * 購入明細を集計し、販売数量の多い順に商品ランキングを返します。認証不要の公開エンドポイントです。
- * キャンセル済みの購入は集計から除外します。未払いの購入は集計に含みます。
- * period=30d の場合は注文日時が直近30日以内の購入のみを集計します。
+ * 購入明細を商品単位で集計し、販売数量の多い順に商品ランキングを返します。認証不要の公開エンドポイントです。
+ * 集計の母集団は「公開済み（published_at 非 NULL）の商品」×「キャンセルされていない購入」の明細です。
+ * 未払いの購入は集計に含みます。
+ * この母集団は GET /v1/dashboard/summary の salesAmount とは一致しません。salesAmount は購入の
+ * 支払金額（小計 + 税額 + 送料）を商品の公開状態に関わらず合計するのに対し、こちらは明細を
+ * 公開済み商品に限って集計するためです。
+ * 集計対象期間は orderedAfter / orderedBefore が指す半開区間 [orderedAfter, orderedBefore) です。
+ * いずれも省略でき、両方省略した場合は全期間を集計します。orderedBefore が orderedAfter 以前
+ * （同値を含む）の場合は 400 を返します。
  * 同一販売数量の商品は商品 ID の昇順で安定的に並びます。
- * @summary 商品売上ランキングの取得
+ * @summary 販売数量による商品ランキングの取得
  */
-export const getProductsRankingQueryPeriodDefault = `all`;
-export const getProductsRankingQueryLimitDefault = 10;
-export const getProductsRankingQueryLimitMax = 100;
+export const getProductsRankingQuantityQueryLimitDefault = 10;
+export const getProductsRankingQuantityQueryLimitMax = 100;
 
-export const GetProductsRankingQueryParams = zod.object({
-  period: zod
-    .enum(["all", "30d"])
-    .default(getProductsRankingQueryPeriodDefault)
+export const GetProductsRankingQuantityQueryParams = zod.object({
+  orderedAfter: zod.iso
+    .datetime({ offset: true })
+    .optional()
     .describe(
-      "集計対象期間。`all`（既定）は全期間、`30d` は注文日時が直近30日以内の購入のみを集計します。\n",
+      "集計対象期間の下限となる瞬時（RFC3339）。\*\*この瞬時を含みます\*\*。\n対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。\n省略すると下限を設けません。`orderedBefore` と併せて省略すると全期間が対象になります。\n`orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。\ncursor ページネーションの `after` とは別のパラメータです。\n",
+    ),
+  orderedBefore: zod.iso
+    .datetime({ offset: true })
+    .optional()
+    .describe(
+      "集計対象期間の上限となる瞬時（RFC3339）。\*\*この瞬時を含みません\*\*。\n対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。\n省略すると上限を設けません。`orderedAfter` と併せて省略すると全期間が対象になります。\n`orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。\n",
     ),
   limit: zod
     .int()
     .min(1)
-    .max(getProductsRankingQueryLimitMax)
-    .default(getProductsRankingQueryLimitDefault)
-    .describe("取得する上位件数。売上数量の降順で上位 limit 件を返します。"),
+    .max(getProductsRankingQuantityQueryLimitMax)
+    .default(getProductsRankingQuantityQueryLimitDefault)
+    .describe(
+      "取得する上位件数。その口の軸（販売数量または売上金額）の降順で上位 limit 件を返します。",
+    ),
 });
 
-export const getProductsRankingResponseRankingsItemNameMax = 255;
+export const getProductsRankingQuantityResponseRankingsItemNameMax = 255;
 
-export const getProductsRankingResponseRankingsItemPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+export const getProductsRankingQuantityResponseRankingsItemPriceRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
 
-export const GetProductsRankingResponse = zod
+export const GetProductsRankingQuantityResponse = zod
   .object({
     rankings: zod
       .array(
@@ -1857,11 +1878,11 @@ export const GetProductsRankingResponse = zod
             productId: zod.uuid().describe("商品ID"),
             name: zod
               .string()
-              .max(getProductsRankingResponseRankingsItemNameMax)
+              .max(getProductsRankingQuantityResponseRankingsItemNameMax)
               .describe("商品名"),
             price: zod
               .string()
-              .regex(getProductsRankingResponseRankingsItemPriceRegExp)
+              .regex(getProductsRankingQuantityResponseRankingsItemPriceRegExp)
               .describe(
                 '価格。サブセント精度を保持する decimal 文字列で表します（例 \"19.99\" は 19.99 ドル）。 JSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。',
               ),
@@ -1869,12 +1890,94 @@ export const GetProductsRankingResponse = zod
               .int()
               .describe("集計期間内の販売数量（キャンセル済みの購入を除く合算値）。"),
           })
-          .describe("売上ランキング 1 商品分の項目です。"),
+          .describe("販売数量ランキング 1 商品分の項目です。"),
       )
       .describe("販売数量の降順で並んだ商品ランキングです。"),
   })
   .describe(
-    "売上ランキングのレスポンススキーマ。販売数量の降順（同数量は商品 ID 昇順）で並びます。",
+    "販売数量ランキングのレスポンススキーマ。販売数量の降順（同数量は商品 ID 昇順）で並びます。",
+  );
+
+/**
+ * 購入明細を商品単位で集計し、売上金額（単価 × 数量の総和）の多い順に商品ランキングを返します。
+ * 認証必須です。販売数量と違い実売上額を露出するため、認証なしでは引けません
+ * （GET /v1/dashboard/summary の salesAmount と同じ扱い）。
+ * 集計の母集団は「公開済み（published_at 非 NULL）の商品」×「キャンセルされていない購入」の明細です。
+ * 未払いの購入は集計に含みます。
+ * この母集団は GET /v1/dashboard/summary の salesAmount とは一致しません。salesAmount は購入の
+ * 支払金額（小計 + 税額 + 送料）を商品の公開状態に関わらず合計するのに対し、こちらは明細を
+ * 公開済み商品に限って集計するためです。
+ * 集計対象期間は orderedAfter / orderedBefore が指す半開区間 [orderedAfter, orderedBefore) です。
+ * いずれも省略でき、両方省略した場合は全期間を集計します。orderedBefore が orderedAfter 以前
+ * （同値を含む）の場合は 400 を返します。
+ * 同一売上金額の商品は商品 ID の昇順で安定的に並びます。
+ * @summary 売上金額による商品ランキングの取得
+ */
+export const getProductsRankingAmountQueryLimitDefault = 10;
+export const getProductsRankingAmountQueryLimitMax = 100;
+
+export const GetProductsRankingAmountQueryParams = zod.object({
+  orderedAfter: zod.iso
+    .datetime({ offset: true })
+    .optional()
+    .describe(
+      "集計対象期間の下限となる瞬時（RFC3339）。\*\*この瞬時を含みます\*\*。\n対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。\n省略すると下限を設けません。`orderedBefore` と併せて省略すると全期間が対象になります。\n`orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。\ncursor ページネーションの `after` とは別のパラメータです。\n",
+    ),
+  orderedBefore: zod.iso
+    .datetime({ offset: true })
+    .optional()
+    .describe(
+      "集計対象期間の上限となる瞬時（RFC3339）。\*\*この瞬時を含みません\*\*。\n対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。\n省略すると上限を設けません。`orderedAfter` と併せて省略すると全期間が対象になります。\n`orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。\n",
+    ),
+  limit: zod
+    .int()
+    .min(1)
+    .max(getProductsRankingAmountQueryLimitMax)
+    .default(getProductsRankingAmountQueryLimitDefault)
+    .describe(
+      "取得する上位件数。その口の軸（販売数量または売上金額）の降順で上位 limit 件を返します。",
+    ),
+});
+
+export const getProductsRankingAmountResponseRankingsItemNameMax = 255;
+
+export const getProductsRankingAmountResponseRankingsItemPriceRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
+export const getProductsRankingAmountResponseRankingsItemSalesAmountRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
+
+export const GetProductsRankingAmountResponse = zod
+  .object({
+    rankings: zod
+      .array(
+        zod
+          .object({
+            productId: zod.uuid().describe("商品ID"),
+            name: zod
+              .string()
+              .max(getProductsRankingAmountResponseRankingsItemNameMax)
+              .describe("商品名"),
+            price: zod
+              .string()
+              .regex(getProductsRankingAmountResponseRankingsItemPriceRegExp)
+              .describe(
+                '商品の単価。サブセント精度を保持する decimal 文字列で表します（例 \"19.99\" は 19.99 ドル）。 JSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。 集計値ではなく商品の属性であり、salesAmount とは役割が異なります。',
+              ),
+            salesAmount: zod
+              .string()
+              .regex(getProductsRankingAmountResponseRankingsItemSalesAmountRegExp)
+              .describe(
+                "集計期間内の売上金額（明細の単価 × 数量の総和、キャンセル済みの購入を除く）。 価格スケールの正確な decimal 文字列で、決済スケール（セント整数）へは丸めません （丸めは決済確定の 1 箇所のみ・ADR-0038）。順位はこの正確な値で決まります。",
+              ),
+          })
+          .describe("売上金額ランキング 1 商品分の項目です。"),
+      )
+      .describe("売上金額の降順で並んだ商品ランキングです。"),
+  })
+  .describe(
+    "売上金額ランキングのレスポンススキーマ。売上金額の降順（同額は商品 ID 昇順）で並びます。",
   );
 
 /**
@@ -2118,14 +2221,19 @@ export const GetAddressesResponse = zod
   );
 
 /**
- * 認証主体（自分）の購入履歴を cursor ページネーションで取得します。認証必須です。
+ * 購入履歴を cursor ページネーションで取得します。認証必須です。
+ * 既定の母集団は認証主体（自分）の購入のみで、他ユーザーの購入は返しません
+ * （所有権フィルタで閉じるため、対象がなければ空一覧です）。
  * 注文日時の降順（orderedAt DESC, id DESC）で安定して並び、前ページのレスポンスに含まれる
  * nextCursor を after に渡して次ページを取得します（無限スクロール）。
  * 一覧は概要（code / totalAmount / status / orderedAt）のみを返し、明細は含みません。
- * 他ユーザーの購入は返しません（所有権フィルタで閉じるため、対象がなければ空一覧です）。
- * period で注文日時の対象期間を絞り込めます（既定は全期間）。month / range / recent の境界は
- * サーバのタイムゾーン（Asia/Tokyo）の暦日基準で算出し、両端の暦日を含みます。区分ごとの必須
- * パラメータ（month / from と to / days）の欠落、および to が from より前の場合は 400 を返します。
+ * includeOtherUsers=true を指定すると、他ユーザーの購入も母集団に含みます。指定できるのは
+ * 管理者（admin）だけで、管理者でなければ 403 を返します。母集団が変わっても並び順の軸は
+ * 変わりません。
+ * statusCodes で購入ステータスを絞り込めます（同じ名前を繰り返して複数指定可）。
+ * orderedAfter / orderedBefore が指す半開区間 [orderedAfter, orderedBefore) で注文日時を絞り込めます。
+ * いずれも省略でき、両方省略した場合は全期間が対象です。orderedBefore が orderedAfter 以前
+ * （同値を含む）の場合は 400 を返します。
  * ページ送りの間は同じ絞り込み条件を渡してください（条件が変わると keyset の連続性は保証されません）。
  * totalAmount は USD セント単位の整数です。
  * @summary 購入履歴一覧の取得
@@ -2136,9 +2244,11 @@ export const getPurchasesQueryAfterRegExp = new RegExp("^[A-Za-z0-9_-]+$");
 export const getPurchasesQueryFirstDefault = 50;
 export const getPurchasesQueryFirstMax = 200;
 
-export const getPurchasesQueryPeriodDefault = `all`;
-export const getPurchasesQueryMonthRegExp = new RegExp("^\\d{4}-(0[1-9]|1[0-2])$");
-export const getPurchasesQueryDaysMax = 365;
+export const getPurchasesQueryStatusCodesItemMax = 32767;
+
+export const getPurchasesQueryStatusCodesMax = 32;
+
+export const getPurchasesQueryIncludeOtherUsersDefault = false;
 
 export const GetPurchasesQueryParams = zod.object({
   after: zod
@@ -2153,38 +2263,30 @@ export const GetPurchasesQueryParams = zod.object({
     .max(getPurchasesQueryFirstMax)
     .default(getPurchasesQueryFirstDefault)
     .describe("取得件数の上限"),
-  period: zod
-    .enum(["all", "month", "range", "recent"])
-    .default(getPurchasesQueryPeriodDefault)
-    .describe(
-      "集計・絞り込み対象期間の区分。`all`（既定）は全期間、`month` は `month` で指定した暦月、\n`range` は `from` \/ `to` で指定した期間、`recent` は今日から `days` 日前までを対象とします。\n各区分の境界はサーバのタイムゾーン（Asia\/Tokyo）の暦日基準で算出し、両端の暦日を含みます。\n区分ごとの必須パラメータ（`month` \/ `from` と `to` \/ `days`）が欠落している場合は 400 を返します。\n",
-    ),
-  from: zod.iso
-    .date()
+  orderedAfter: zod.iso
+    .datetime({ offset: true })
     .optional()
     .describe(
-      "対象期間の開始日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。\n日付はサーバのタイムゾーン（Asia\/Tokyo）の暦日として解釈します。\n",
+      "集計対象期間の下限となる瞬時（RFC3339）。\*\*この瞬時を含みます\*\*。\n対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。\n省略すると下限を設けません。`orderedBefore` と併せて省略すると全期間が対象になります。\n`orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。\ncursor ページネーションの `after` とは別のパラメータです。\n",
     ),
-  to: zod.iso
-    .date()
+  orderedBefore: zod.iso
+    .datetime({ offset: true })
     .optional()
     .describe(
-      "対象期間の終了日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。\n日付はサーバのタイムゾーン（Asia\/Tokyo）の暦日として解釈します。`from` より前の日付を指定した場合は 400 を返します。\n",
+      "集計対象期間の上限となる瞬時（RFC3339）。\*\*この瞬時を含みません\*\*。\n対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。\n省略すると上限を設けません。`orderedAfter` と併せて省略すると全期間が対象になります。\n`orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。\n",
     ),
-  month: zod
-    .string()
-    .regex(getPurchasesQueryMonthRegExp)
+  statusCodes: zod
+    .array(zod.int().min(1).max(getPurchasesQueryStatusCodesItemMax))
+    .max(getPurchasesQueryStatusCodesMax)
     .optional()
     .describe(
-      "対象とする暦月（`YYYY-MM`）。`period=month` のときのみ必須で、それ以外の区分では無視します。\n月初日から月末日までを、サーバのタイムゾーン（Asia\/Tokyo）の暦日基準で対象とします。\n",
+      "購入ステータスコードでフィルタします（複数指定は同じ名前を繰り返します: `statusCodes=7&statusCodes=8`）。\n指定したコードのいずれかに一致する購入を返します。\n指定しない場合は全ステータスを対象とします。存在しないコードは 0 件として扱い、エラーにはしません。\nコードは購入ステータスの業務キーで、値は到達順序を意味しません。\nページ送りの間は同じ絞り込み条件を渡してください（条件が変わると keyset の連続性は保証されません）。\n",
     ),
-  days: zod
-    .int()
-    .min(1)
-    .max(getPurchasesQueryDaysMax)
-    .optional()
+  includeOtherUsers: zod
+    .boolean()
+    .default(getPurchasesQueryIncludeOtherUsersDefault)
     .describe(
-      "今日から遡る日数。`period=recent` のときのみ必須で、それ以外の区分では無視します。\n今日を終了日、今日の `days` 日前を開始日とし、両端の暦日を含みます\n（2026-01-31 に `days=10` を指定した場合の対象は 2026-01-21 〜 2026-01-31 です）。\n暦日はサーバのタイムゾーン（Asia\/Tokyo）基準です。\n",
+      "他ユーザーの購入も母集団に含める場合は true を指定します。既定は false で、\n指定しない場合の母集団は認証主体（自分）の購入のみです。\ntrue を指定できるのは管理者（admin）だけで、管理者でなければ 403 で拒否します。\n並び順・ページ送りの規則は母集団によらず同一（注文日時の降順）です。\nページ送りの間は同じ指定を渡してください（母集団が変わると keyset の連続性は保証されません）。\n",
     ),
 });
 
@@ -2568,8 +2670,11 @@ export const PatchPurchasesCancelResponse = zod
 /**
  * 認証主体（本人）の購入を支払い済みへ遷移させます。認証必須です。
  * 決済 SDK / PSP 連携は行わず、paidAt のセットと status の「支払い済み」への更新で擬似決済を代替します
- * （金額・決済結果の検証は行いません）。未払い相当（未処理 / 受付中 / 確認中 / 処理中）からのみ遷移でき、
- * 既に支払い済みの購入は 409（二重支払い）、キャンセル済み・完了・発送済み・配達済みの購入は 409（不正遷移）で拒否します。
+ * （金額・決済結果の検証は行いません）。未払い相当（未処理 / 受付中 / 確認中）からのみ遷移でき、
+ * 既に支払い済みの購入は 409（二重支払い）、処理中・キャンセル済み・完了・発送済み・配達済みの購入は 409（不正遷移）で拒否します。
+ * 処理中は支払いを終えたあとの段階であり、未払い相当には含みません。
+ * 未払い相当であっても支払い日時が既に記録されている購入は、支払い済みとみなして 409（二重支払い）で拒否します
+ * （記録済みの支払い日時を上書きしないため）。
  * 他ユーザーの購入は 404 で存在を秘匿します。金額はすべて USD セント単位の整数です。
  * @summary 購入の支払い
  */
@@ -2632,7 +2737,7 @@ export const PatchPurchasesPayResponse = zod
 /**
  * 購入を発送済みへ遷移させます。認証必須で、管理者（admin）のみ実行できます。
  * 支払い済みからのみ遷移でき、status を「発送済み」へ更新し shippedAt をセットします。
- * 未払い相当（未処理 / 受付中 / 確認中 / 処理中）・完了・キャンセル済み・配達済みの購入は 409（不正遷移）、
+ * 未払い相当（未処理 / 受付中 / 確認中）・処理中・完了・キャンセル済み・配達済みの購入は 409（不正遷移）、
  * 既に発送済みの購入も 409（二重発送）で拒否します。配送追跡（追跡番号 / 配送業者 / 追跡 URL）は扱いません。
  * 購入者本人であっても管理者でなければ 403 で拒否します。金額はすべて USD セント単位の整数です。
  * @summary 購入の発送
@@ -2696,7 +2801,7 @@ export const PatchPurchasesShipResponse = zod
 /**
  * 購入を配達済みへ遷移させます。認証必須で、管理者（admin）のみ実行できます。
  * 発送済みからのみ遷移でき、status を「配達済み」へ更新し deliveredAt をセットします。
- * 未払い相当（未処理 / 受付中 / 確認中 / 処理中）・支払い済み（未発送）・完了・キャンセル済みの購入は 409（不正遷移）、
+ * 未払い相当（未処理 / 受付中 / 確認中）・処理中・支払い済み（未発送）・完了・キャンセル済みの購入は 409（不正遷移）、
  * 既に配達済みの購入も 409（二重配達）で拒否します。配達確認の証跡（署名 / 受領写真 / GPS 位置）は扱いません。
  * 購入者本人であっても管理者でなければ 403 で拒否します。金額はすべて USD セント単位の整数です。
  * @summary 購入の配達完了
@@ -2762,9 +2867,9 @@ export const PatchPurchasesDeliverResponse = zod
 /**
  * 購入・商品を横断した集計を 1 レスポンスに合成して返します（1 画面 1 API）。認証必須で、管理者（admin）のみ
  * 実行できます。管理者でなければ 403 で拒否します。数値カード向けの集計値のみを返し、一覧・時系列は含みません。
- * 集計対象期間は period で切り替えます。today / month の境界はサーバのタイムゾーン（Asia/Tokyo）基準で
- * 算出し、range は from / to の暦日をいずれも含む期間として集計します。range で from / to が欠落している
- * 場合、および to が from より前の場合は 400 を返します。
+ * 集計対象期間は orderedAfter / orderedBefore が指す半開区間 [orderedAfter, orderedBefore) です。
+ * いずれも省略でき、両方省略した場合は全期間を集計します。orderedBefore が orderedAfter 以前
+ * （同値を含む）の場合は 400 を返します。
  * 売上（salesAmount / salesCount）はキャンセル済みの購入を除外し未払いの購入を含みます。一方
  * purchaseStatusCounts はキャンセル済みも 1 ステータスとして含むため、両者の母集団は一致しません。
  * 商品数は期間に依存しないマスタの現在値です。金額は USD セント単位の整数です。
@@ -2773,26 +2878,18 @@ export const PatchPurchasesDeliverResponse = zod
  * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
  * @summary admin ダッシュボードの横断集計の取得
  */
-export const getDashboardSummaryQueryPeriodDefault = `today`;
-
 export const GetDashboardSummaryQueryParams = zod.object({
-  period: zod
-    .enum(["today", "month", "range"])
-    .default(getDashboardSummaryQueryPeriodDefault)
-    .describe(
-      "集計対象期間の区分。`today`（既定）は今日、`month` は今月、`range` は `from` \/ `to` で指定した期間を集計します。\n`today` \/ `month` の境界はサーバのタイムゾーン（Asia\/Tokyo）基準で算出します。\n`range` を指定した場合は `from` \/ `to` が必須で、欠落時は 400 を返します。\n",
-    ),
-  from: zod.iso
-    .date()
+  orderedAfter: zod.iso
+    .datetime({ offset: true })
     .optional()
     .describe(
-      "集計対象期間の開始日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。\n日付はサーバのタイムゾーン（Asia\/Tokyo）の暦日として解釈します。\n",
+      "集計対象期間の下限となる瞬時（RFC3339）。\*\*この瞬時を含みます\*\*。\n対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。\n省略すると下限を設けません。`orderedBefore` と併せて省略すると全期間が対象になります。\n`orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。\ncursor ページネーションの `after` とは別のパラメータです。\n",
     ),
-  to: zod.iso
-    .date()
+  orderedBefore: zod.iso
+    .datetime({ offset: true })
     .optional()
     .describe(
-      "集計対象期間の終了日（この日を含みます）。`period=range` のときのみ必須で、それ以外の区分では無視します。\n日付はサーバのタイムゾーン（Asia\/Tokyo）の暦日として解釈します。`from` より前の日付を指定した場合は 400 を返します。\n",
+      "集計対象期間の上限となる瞬時（RFC3339）。\*\*この瞬時を含みません\*\*。\n対象は半開区間 `[orderedAfter, orderedBefore)` で、注文日時がこの区間に入る購入だけを集計します。\n省略すると上限を設けません。`orderedAfter` と併せて省略すると全期間が対象になります。\n`orderedBefore` が `orderedAfter` 以前（同値を含む）の場合は 400 を返します。\n",
     ),
 });
 
@@ -2801,7 +2898,7 @@ export const GetDashboardSummaryResponse = zod
     salesAmount: zod
       .int()
       .describe(
-        "集計対象期間の売上合計。USD セント単位の整数です。キャンセル済みの購入は除外し、未払いの購入は含みます\n（商品売上ランキングと同一の母集団）。対象がない場合は 0 です。\n",
+        "集計対象期間の売上合計。USD セント単位の整数です。キャンセル済みの購入は除外し、未払いの購入は含みます\n（購入レベルの絞りは商品売上ランキングと同じですが、ランキングはさらに公開済み商品に限るため合計は一致しません）。対象がない場合は 0 です。\n",
       ),
     salesCount: zod
       .int()

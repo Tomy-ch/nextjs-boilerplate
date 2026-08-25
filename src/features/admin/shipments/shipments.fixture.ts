@@ -1,4 +1,5 @@
-import type { PurchaseDispatchGroup } from "@/model/purchase/purchase";
+import type { PurchaseDispatchGroup, PurchaseHistoryEntry } from "@/model/purchase/purchase";
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 
 /** 同じ宛先へ 3 件たまっている便。まとめて発送する値打ちがある形。 */
 const MULTI_PURCHASE_GROUP: PurchaseDispatchGroup = {
@@ -40,4 +41,22 @@ export { MULTI_PURCHASE_GROUP, SINGLE_PURCHASE_GROUP };
 export const DISPATCH_GROUPS: readonly PurchaseDispatchGroup[] = [
   MULTI_PURCHASE_GROUP,
   SINGLE_PURCHASE_GROUP,
+];
+
+/** 配達の確認を待っている注文。発送済みだけが並ぶ。 */
+export const SHIPPED_PURCHASES: readonly PurchaseHistoryEntry[] = [
+  {
+    code: "0195f0c2-0000-7000-9000-000000000011",
+    totalAmount: 8_580,
+    statusCode: PURCHASE_STATUS.SHIPPED,
+    statusName: "発送済み",
+    orderedAt: new Date("2026-08-10T11:20:00+09:00"),
+  },
+  {
+    code: "0195f0c2-0000-7000-9000-000000000012",
+    totalAmount: 132_000,
+    statusCode: PURCHASE_STATUS.SHIPPED,
+    statusName: "発送済み",
+    orderedAt: new Date("2026-08-12T15:48:00+09:00"),
+  },
 ];

@@ -72,7 +72,7 @@ function withPageFrame(Story: () => React.ReactElement) {
           <div>
             <PageHeaderTitle>商品一覧管理</PageHeaderTitle>
             <PageHeaderDescription>
-              公開済みの商品を確認し、作成・編集・在庫の補充へ進みます。
+              未公開を含むすべての商品を確認し、作成・編集・在庫の補充へ進みます。
             </PageHeaderDescription>
           </div>
         </PageHeader>
