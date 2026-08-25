@@ -78,7 +78,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # Preview first. An unclosed marker block, or a replacement region holding anything
       # but commented-out lines, fails here before anything is rewritten.

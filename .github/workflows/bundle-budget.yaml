@@ -105,7 +105,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.scope.outputs.relevant == 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build
         if: steps.scope.outputs.relevant == 'true'
@@ -131,7 +131,7 @@ jobs:
         continue-on-error: true
         working-directory: base
         run: |
-          pnpm install --frozen-lockfile
+          pnpm install --frozen-lockfile --ignore-scripts
           pnpm build
 
       - name: Measure and hold against the budget

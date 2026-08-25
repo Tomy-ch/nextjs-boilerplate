@@ -335,7 +335,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.gate.outputs.deferred == 'false'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # The two kinds are retaken in their own steps because the rule that bounds each is
       # its own — one reads VRT's report, the other E2E's — and they change for different
