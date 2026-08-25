@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { artifactDirOf, initialChunks, unionByRoute } from "./manifest";
+import {
+  artifactDirOf,
+  deferredChunks,
+  entryStylesheets,
+  initialChunks,
+  unionByRoute,
+} from "./manifest";
 
 describe("initialChunks", () => {
   // ----- 正常系 -----
@@ -74,36 +80,164 @@ describe("artifactDirOf", () => {
   });
 });
 
-describe("unionByRoute", () => {
+describe("entryStylesheets", () => {
   // ----- 正常系 -----
-  it("同じ公開 route を指す entry の chunk を和集合にする", () => {
+  it("entry ごとの stylesheet を和集合にする", () => {
+    expect(
+      entryStylesheets({
+        entryCSSFiles: {
+          "[project]/src/app/layout": [{ path: "static/chunks/base.css" }],
+          "[project]/src/app/admin/page": [
+            { path: "static/chunks/base.css" },
+            { path: "static/chunks/admin.css" },
+          ],
+        },
+      }),
+    ).toEqual(["static/chunks/base.css", "static/chunks/admin.css"]);
+  });
+
+  it("`_next` を先頭に持つ綴りを成果物からの相対へ均す", () => {
+    expect(
+      entryStylesheets({ entryCSSFiles: { a: [{ path: "/_next/static/chunks/a.css" }] } }),
+    ).toEqual(["static/chunks/a.css"]);
+  });
+
+  // ----- 異常系 -----
+  it("manifest が無ければ空を返す", () => {
+    expect(entryStylesheets(undefined)).toEqual([]);
+  });
+
+  it("stylesheet を持たない route では空を返す", () => {
+    expect(entryStylesheets({ entryCSSFiles: {} })).toEqual([]);
+  });
+});
+
+describe("deferredChunks", () => {
+  /** 綴りを中身へ写す、テストの中だけの成果物。 */
+  const artifact = (files: Readonly<Record<string, string>>) => (chunk: string) =>
+    files[chunk] ?? null;
+
+  // ----- 正常系 -----
+  it("初期の chunk が名指しする chunk を挙げる", () => {
+    const found = deferredChunks(
+      ["static/chunks/loader.js"],
+      artifact({
+        "static/chunks/loader.js": 'Promise.all(["static/chunks/lazy.js"].map(load))',
+      }),
+    );
+
+    expect(found).toEqual(["static/chunks/lazy.js"]);
+  });
+
+  it("遅延の先が名指しする chunk まで辿る", () => {
+    const found = deferredChunks(
+      ["static/chunks/loader.js"],
+      artifact({
+        "static/chunks/loader.js": '"static/chunks/lazy.js"',
+        "static/chunks/lazy.js": '"static/chunks/deeper.js"',
+      }),
+    );
+
+    expect(found).toEqual(["static/chunks/lazy.js", "static/chunks/deeper.js"]);
+  });
+
+  it("遅延の先の stylesheet も挙げる", () => {
+    const found = deferredChunks(
+      ["static/chunks/loader.js"],
+      artifact({ "static/chunks/loader.js": '"static/chunks/lazy.css"' }),
+    );
+
+    expect(found).toEqual(["static/chunks/lazy.css"]);
+  });
+
+  it("初期で読む chunk は遅延に数えない", () => {
+    const found = deferredChunks(
+      ["static/chunks/a.js", "static/chunks/b.js"],
+      artifact({ "static/chunks/a.js": '"static/chunks/b.js"' }),
+    );
+
+    expect(found).toEqual([]);
+  });
+
+  it("互いを名指しする chunk でも止まる", () => {
+    const found = deferredChunks(
+      ["static/chunks/a.js"],
+      artifact({
+        "static/chunks/a.js": '"static/chunks/b.js"',
+        "static/chunks/b.js": '"static/chunks/a.js""static/chunks/b.js"',
+      }),
+    );
+
+    expect(found).toEqual(["static/chunks/b.js"]);
+  });
+
+  // ----- 異常系 -----
+  it("読めない chunk は辿らない", () => {
+    expect(deferredChunks(["static/chunks/missing.js"], () => null)).toEqual([]);
+  });
+
+  it("初期が空なら空を返す", () => {
+    expect(deferredChunks([], () => '"static/chunks/lazy.js"')).toEqual([]);
+  });
+
+  it("名指しの綴りを持たない chunk からは何も出ない", () => {
+    const found = deferredChunks(
+      ["static/chunks/a.js"],
+      artifact({ "static/chunks/a.js": "export const a = 1;" }),
+    );
+
+    expect(found).toEqual([]);
+  });
+});
+
+describe("unionByRoute", () => {
+  const entry = (
+    route: string,
+    initial: string[],
+    deferred: string[] = [],
+    css: string[] = [],
+  ) => ({
+    route,
+    initial,
+    deferred,
+    css,
+  });
+
+  // ----- 正常系 -----
+  it("同じ公開 route を指す entry の資材を和集合にする", () => {
     expect(
       unionByRoute([
-        { route: "/admin", chunks: ["a.js", "shared.js"] },
-        { route: "/admin", chunks: ["breadcrumb.js", "shared.js"] },
+        entry("/admin", ["a.js", "shared.js"], ["lazy.js"], ["base.css"]),
+        entry("/admin", ["breadcrumb.js", "shared.js"], ["lazy.js"], ["admin.css"]),
       ]),
-    ).toEqual([{ route: "/admin", chunks: ["a.js", "shared.js", "breadcrumb.js"] }]);
+    ).toEqual([
+      {
+        route: "/admin",
+        initial: ["a.js", "shared.js", "breadcrumb.js"],
+        deferred: ["lazy.js"],
+        css: ["base.css", "admin.css"],
+      },
+    ]);
+  });
+
+  it("別の entry が初期で読むものは遅延から外す", () => {
+    expect(
+      unionByRoute([entry("/admin", [], ["shared.js"]), entry("/admin", ["shared.js"])]),
+    ).toEqual([{ route: "/admin", initial: ["shared.js"], deferred: [], css: [] }]);
   });
 
   it("公開 route が違えば畳まない", () => {
-    expect(
-      unionByRoute([
-        { route: "/admin", chunks: ["a.js"] },
-        { route: "/admin/users", chunks: ["b.js"] },
-      ]),
-    ).toEqual([
-      { route: "/admin", chunks: ["a.js"] },
-      { route: "/admin/users", chunks: ["b.js"] },
+    expect(unionByRoute([entry("/admin", ["a.js"]), entry("/admin/users", ["b.js"])])).toEqual([
+      { route: "/admin", initial: ["a.js"], deferred: [], css: [] },
+      { route: "/admin/users", initial: ["b.js"], deferred: [], css: [] },
     ]);
   });
 
   it("最初に現れた順で返す", () => {
     expect(
-      unionByRoute([
-        { route: "/b", chunks: [] },
-        { route: "/a", chunks: [] },
-        { route: "/b", chunks: ["x.js"] },
-      ]).map((entry) => entry.route),
+      unionByRoute([entry("/b", []), entry("/a", []), entry("/b", ["x.js"])]).map(
+        (row) => row.route,
+      ),
     ).toEqual(["/b", "/a"]);
   });
 

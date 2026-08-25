@@ -1,22 +1,35 @@
-# client JavaScript の予算（[ADR 0101](docs/adr/0101-performance-budget.md)）。
+# client 側の資材の予算（[ADR 0101](docs/adr/0101-performance-budget.md)）。
 #
 # ## 何を測るか
 #
-# route を開いたときに browser が最初に読む client JavaScript を、gzip した合計。`next build` の
-# 出力にこの列は無いため、成果物（`.next`）の側から引く。route 固有の chunk（その route が参照する
-# client component）と、共有 chunk（framework の runtime）の和集合で、対応ブラウザが静的 route の
-# HTML から読む script と一致する。CSS は含めない。
+# `next build` の出力にこれらの列は無いため、成果物（`.next`）の側から引く。route ごとに 4 つ。
+#
+# 初期 JS  route を開いたときに browser が最初に読む client JavaScript を gzip した合計。route
+#          固有の chunk（その route が参照する client component）と共有 chunk（framework の
+#          runtime）の和集合で、対応ブラウザが静的 route の HTML から読む script と一致する
+# 遅延 JS  初期の chunk が読み込み器へ渡す chunk。`next/dynamic` の先がここに出る
+# 合計 JS  初期と遅延の和。**その画面を使い切ると払う量**
+# CSS      その route の entry が読む stylesheet
+#
+# **初期だけでは足りない。** 重いものを `next/dynamic` の先へ移すと初期は減るが、操作する人が
+# 最終的に落とす量は変わらない。初期だけを見る予算はその変更を歓迎し、規約（`docs/rules.md` #66）
+# の「初期表示に不要で大きいものに限る」を検査できない。合計を併せて見ると、移しただけの変更が
+# 「初期が減り合計は変わらない」として現れる。
+#
+# **CSS を入れるのは、描画をブロックするため。** ADR 0101 が見ている Core Web Vitals のうち LCP に
+# 直接効く。JS と同じ数字へ混ぜないのは、片方の悪化がもう片方の改善で消えるためである。
 #
 # polyfill は含めない。Next.js が `<script nomodule>` で出すため、ADR 0102 が対応対象とする
 # ブラウザは取得しないからである。含めると、誰も読まない約 40 KB が全 route へ一律に乗る。
 #
 # ## 書き方
 #
-# routes.<route>.gzipKb  その route の上限（KB, gzip）。**宣言した route だけ**が上限で落ちる。
-#                        宣言の無い route は表に出るだけで判定されない
-# routes.<route>.reason  その値の根拠。空にできない（読み込み時に落ちる）
-# growth.gzipKb          base ブランチからの増分の上限（KB, gzip）。**全 route に効く**
-# growth.reason          同上
+# routes.<route>.gzipKb    その route の**初期 JS** の上限（KB, gzip）。**宣言した route だけ**が
+#                          上限で落ちる。宣言の無い route は表に出るだけで判定されない
+# routes.<route>.reason    その値の根拠。空にできない（読み込み時に落ちる）
+# growth.<量>.gzipKb       base ブランチからの増分の上限（KB, gzip）。**全 route に効く**。
+#                          量は initialJs / totalJs / css の 3 つ
+# growth.<量>.reason       同上
 #
 # 上限と増分は役割が違う。上限は総量の天井で、増分は「予算の余裕を小刻みに食い潰して、最後に
 # 線を越えた PR だけが赤くなる」を防ぐ。宣言の無い route を守るのも増分の側である。
@@ -39,13 +52,26 @@ routes:
     reason: 実測 146.0 KB に約 10% の余裕。client component をほぼ持たない下限に近い route である
 
 growth:
-  gzipKb: 30
-  reason: >-
-    依存の patch 更新や chunk の切り直しで数 KB は動くため、本来は 10 KB で足りる。30 KB へ広げて
-    あるのは、route を器（app shell）の内と外で移すと、その route が器の client 島をまとめて背負う
-    ためである。同梱サンプルではこれが 25 KB 前後で、器を持つ route と持たない route の差そのものに
-    あたる。**サンプルを破棄したら 10 KB へ戻すこと** —— fork 先が器を 1 つに保つ限り、この段差は
-    起きない
+  initialJs:
+    gzipKb: 30
+    reason: >-
+      依存の patch 更新や chunk の切り直しで数 KB は動くため、本来は 10 KB で足りる。30 KB へ広げて
+      あるのは、route を器（app shell）の内と外で移すと、その route が器の client 島をまとめて背負う
+      ためである。同梱サンプルではこれが 25 KB 前後で、器を持つ route と持たない route の差そのものに
+      あたる。**サンプルを破棄したら 10 KB へ戻すこと** —— fork 先が器を 1 つに保つ限り、この段差は
+      起きない
+  totalJs:
+    gzipKb: 30
+    reason: >-
+      初期と同じ幅にしてある。合計は初期を含むので、初期が動く理由はそのまま合計にも効き、別の値に
+      すると同じ 1 つの揺れで片方だけが鳴る。**この行が守っているのは「移しただけ」を通さないこと**
+      で、`next/dynamic` の先へ寄せた変更は初期が減っても合計が動かないため、ここは静かなままになる
+  css:
+    gzipKb: 8
+    reason: >-
+      utility CSS は部品が増えたぶんだけ増える種類の量で、動く幅が JS と桁で違う。JS と同じ 30 KB を
+      置くと、この行は何も鳴らさない飾りになる。同梱サンプル全 route の CSS が 20 KB 前後なので、
+      8 KB は「1 回の変更で 4 割増えた」に当たる
 
 # ---------------------------------------------------------------------------------------
 # Core Web Vitals の予算（同じ [ADR 0101](docs/adr/0101-performance-budget.md)）。

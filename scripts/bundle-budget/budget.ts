@@ -2,7 +2,7 @@ import { parse } from "yaml";
 import { z } from "zod";
 
 /**
- * client JavaScript の予算の読み取りと判定。
+ * client 側の資材の予算の読み取りと判定。
  *
  * @remarks
  * 値そのものは [`performance-budget.yaml`](../../performance-budget.yaml) が持ちます。コードの外へ
@@ -11,6 +11,11 @@ import { z } from "zod";
  *
  * 根拠を必須項目にしてあるのは、宣言だけが増えて理由が残らない状態を作らないためです。空文字は
  * 読み込みの時点で落ちます。
+ *
+ * **増分は 3 つの量へ別々に効きます。** 初期 JS・合計 JS・CSS はそれぞれ別の壊れ方をするためです。
+ * 初期だけを見ると重いものを `next/dynamic` の先へ移した変更が「減った」として通り、合計だけを
+ * 見ると器の島が増えたことが遅延の減少に紛れます。CSS は描画をブロックするので、JS と同じ数字へ
+ * 混ぜると片方の悪化がもう片方の改善で消えます。
  */
 
 const entrySchema = z.object({
@@ -20,30 +25,58 @@ const entrySchema = z.object({
 
 const budgetSchema = z.object({
   routes: z.record(z.string(), entrySchema),
-  growth: entrySchema,
+  growth: z.object({
+    initialJs: entrySchema,
+    totalJs: entrySchema,
+    css: entrySchema,
+  }),
 });
 
 /** 予算の宣言。 */
 export type Budget = z.infer<typeof budgetSchema>;
 
-/** route 1 つぶんの計測結果。 */
+/** route 1 つぶんの計測結果。すべて gzip した byte。 */
 export type Measurement = {
   /** 公開されている route。 */
   readonly route: string;
-  /** gzip した合計（byte）。 */
-  readonly gzip: number;
+  /** 開いた時点で読む JS。 */
+  readonly initialJs: number;
+  /** そのうち、2 つ以上の route が読む chunk のぶん。 */
+  readonly sharedJs: number;
+  /** 遅延で読みうる JS。 */
+  readonly deferredJs: number;
+  /** 開いた時点で読む CSS。 */
+  readonly css: number;
+};
+
+/** 量 1 つぶんの判定。 */
+export type Quantity = {
+  /** この PR の計測（byte）。 */
+  readonly current: number;
+  /** base での同じ計測。base に無い route なら `undefined`。 */
+  readonly base: number | undefined;
+  /** 増分の上限を超えた量（byte）。超えていなければ `undefined`。 */
+  readonly overGrowth: number | undefined;
 };
 
 /** route 1 つぶんの判定。 */
-export type Verdict = Measurement & {
-  /** base での同じ route の計測。base に無い route なら `undefined`。 */
-  readonly baseGzip: number | undefined;
-  /** 上限（byte）。宣言が無ければ `undefined`。 */
+export type Verdict = {
+  /** 公開されている route。 */
+  readonly route: string;
+  /** 開いた時点で読む JS。上限が効くのはこの量。 */
+  readonly initialJs: Quantity;
+  /** そのうち、2 つ以上の route が読む chunk のぶん。判定は持たず、内訳として出す。 */
+  readonly sharedJs: Quantity;
+  /** 遅延で読みうる JS。判定は合計の側が持つ。 */
+  readonly deferredJs: Quantity;
+  /** 初期と遅延の和。 */
+  readonly totalJs: Quantity;
+  /** 開いた時点で読む CSS。 */
+  readonly css: Quantity;
+  /** 初期 JS の上限（byte）。宣言が無ければ `undefined`。 */
   readonly limit: number | undefined;
   /** 上限を超えた量（byte）。超えていなければ `undefined`。 */
   readonly overLimit: number | undefined;
-  /** 増分の上限を超えた量（byte）。超えていなければ `undefined`。 */
-  readonly overGrowth: number | undefined;
 };
 
 const BYTES_PER_KB = 1024;
@@ -56,6 +89,13 @@ const BYTES_PER_KB = 1024;
  */
 export function parseBudget(text: string): Budget {
   return budgetSchema.parse(parse(text));
+}
+
+/** 1 つの量を、base と増分の上限に照らす。 */
+function judgeQuantity(current: number, base: number | undefined, limit: number): Quantity {
+  const growth = base === undefined ? 0 : current - base;
+
+  return { current, base, overGrowth: growth > limit ? growth - limit : undefined };
 }
 
 /**
@@ -75,28 +115,42 @@ export function judge(
   base: readonly Measurement[],
   budget: Budget,
 ): Verdict[] {
-  const baseByRoute = new Map(base.map((row) => [row.route, row.gzip]));
-  const growthLimit = budget.growth.gzipKb * BYTES_PER_KB;
+  const baseByRoute = new Map(base.map((row) => [row.route, row]));
+  const initialLimit = budget.growth.initialJs.gzipKb * BYTES_PER_KB;
+  const totalLimit = budget.growth.totalJs.gzipKb * BYTES_PER_KB;
+  const cssLimit = budget.growth.css.gzipKb * BYTES_PER_KB;
 
   return current.map((row) => {
     const declared = budget.routes[row.route];
     const limit = declared === undefined ? undefined : declared.gzipKb * BYTES_PER_KB;
-    const baseGzip = baseByRoute.get(row.route);
-    const growth = baseGzip === undefined ? 0 : row.gzip - baseGzip;
+    const previous = baseByRoute.get(row.route);
+    const total = row.initialJs + row.deferredJs;
+    const baseTotal = previous === undefined ? undefined : previous.initialJs + previous.deferredJs;
 
     return {
-      ...row,
-      baseGzip,
+      route: row.route,
+      initialJs: judgeQuantity(row.initialJs, previous?.initialJs, initialLimit),
+      // 内訳なので増分では落とさない。同じ増分が全 route へ並ぶのを避けるため、判定は
+      // 初期 JS の側が 1 度だけ持つ。
+      sharedJs: { current: row.sharedJs, base: previous?.sharedJs, overGrowth: undefined },
+      deferredJs: { current: row.deferredJs, base: previous?.deferredJs, overGrowth: undefined },
+      totalJs: judgeQuantity(total, baseTotal, totalLimit),
+      css: judgeQuantity(row.css, previous?.css, cssLimit),
       limit,
-      overLimit: limit !== undefined && row.gzip > limit ? row.gzip - limit : undefined,
-      overGrowth: growth > growthLimit ? growth - growthLimit : undefined,
+      overLimit: limit !== undefined && row.initialJs > limit ? row.initialJs - limit : undefined,
     };
   });
 }
 
 /** 判定が 1 つでも超過しているか。 */
 export function hasFailure(verdicts: readonly Verdict[]): boolean {
-  return verdicts.some((v) => v.overLimit !== undefined || v.overGrowth !== undefined);
+  return verdicts.some(
+    (v) =>
+      v.overLimit !== undefined ||
+      v.initialJs.overGrowth !== undefined ||
+      v.totalJs.overGrowth !== undefined ||
+      v.css.overGrowth !== undefined,
+  );
 }
 
 /**
