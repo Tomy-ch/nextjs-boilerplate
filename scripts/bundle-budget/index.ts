@@ -3,13 +3,16 @@ import { runInNewContext } from "node:vm";
 import { gzipSync } from "node:zlib";
 
 import { hasFailure, judge, type Measurement, missingRoutes, parseBudget } from "./budget";
+import { deferredChunks } from "./deferred";
 import {
   artifactDirOf,
-  deferredChunks,
   entryStylesheets,
   initialChunks,
   type RouteBuildManifest,
+  type RouteBundleStats,
   type RscManifest,
+  sharedChunks,
+  statsChunks,
   unionByRoute,
 } from "./manifest";
 import { renderReport } from "./report";
@@ -59,6 +62,10 @@ function measure(dir: string): Survey {
 
   // route handler は client bundle を持たない。0 KB の行を並べても読む人が得るものが無い。
   const pages = Object.entries(routes).filter(([pagePath]) => pagePath.endsWith("/page"));
+  // Next 自身が数えた初期の一式。持っていない route だけ manifest の和集合へ落ちる。
+  const stats = statsChunks(
+    readJson<RouteBundleStats>(`${dir}/diagnostics/route-bundle-stats.json`),
+  );
 
   // 中身を読むのは chunk 1 つにつき 1 度だけ。遅延の閉包は route をまたいで同じ chunk を辿る。
   const contents = new Map<string, string | null>();
@@ -79,10 +86,9 @@ function measure(dir: string): Survey {
   const perEntry = pages.map(([pagePath, route]) => {
     const artifact = `${dir}/${artifactDirOf(pagePath)}`;
     const rsc = readRscManifest(`${artifact}_client-reference-manifest.js`, pagePath);
-    const initial = initialChunks(
-      rsc,
-      readJson<RouteBuildManifest>(`${artifact}/build-manifest.json`),
-    );
+    const initial =
+      stats.get(route) ??
+      initialChunks(rsc, readJson<RouteBuildManifest>(`${artifact}/build-manifest.json`));
 
     return {
       route,
@@ -93,15 +99,7 @@ function measure(dir: string): Survey {
   });
 
   const byRoute = unionByRoute(perEntry);
-
-  // 共有の判定は「2 つ以上の route が初期で読む」。route が 1 つしかない fork では全てが固有に
-  // なるが、そのとき共有の内訳は情報を持たないので、それで正しい。
-  const routeCount = new Map<string, number>();
-  for (const { initial } of byRoute) {
-    for (const chunk of initial) {
-      routeCount.set(chunk, (routeCount.get(chunk) ?? 0) + 1);
-    }
-  }
+  const shared = sharedChunks(byRoute);
 
   const gzip = (chunk: string): number => {
     const path = `${dir}/${chunk}`;
@@ -111,17 +109,15 @@ function measure(dir: string): Survey {
   const sum = (chunks: readonly string[]): number =>
     chunks.reduce((total, chunk) => total + gzip(chunk), 0);
 
-  const isShared = (chunk: string): boolean => (routeCount.get(chunk) ?? 0) > 1;
-
   return {
     measurements: byRoute.map(({ route, initial, deferred, css }) => ({
       route,
       initialJs: sum(initial),
-      sharedJs: sum(initial.filter(isShared)),
+      sharedJs: sum(initial.filter((chunk) => shared.has(chunk))),
       deferredJs: sum(deferred),
       css: sum(css),
     })),
-    sharedJs: sum([...routeCount.keys()].filter(isShared)),
+    sharedJs: sum([...shared]),
     deferredChunkCount: new Set(byRoute.flatMap(({ deferred }) => deferred)).size,
   };
 }
@@ -143,6 +139,24 @@ function main(): void {
   }
 
   const previous = base === undefined ? undefined : measure(base);
+
+  // 遅延の抽出は Turbopack の出力形式へ依存する（`deferred.ts`）。形が変われば 0 件へ落ち、
+  // 「遅延なし」として静かに緑になる。base で引けていたものが引けなくなったことは、その形が
+  // 変わった合図でしかないので、量の判定より先にここで落とす。
+  if (
+    previous !== undefined &&
+    previous.deferredChunkCount > 0 &&
+    survey.deferredChunkCount === 0
+  ) {
+    console.error(
+      `❌ base では ${previous.deferredChunkCount} 件あった遅延 chunk を 1 件も引けませんでした。\n` +
+        "成果物の形が変わって抽出が効かなくなった可能性があります（scripts/bundle-budget/deferred.ts）。",
+    );
+    process.exitCode = 1;
+
+    return;
+  }
+
   const verdicts = judge(survey.measurements, previous?.measurements ?? [], budget);
 
   console.log(

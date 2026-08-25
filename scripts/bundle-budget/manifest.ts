@@ -19,7 +19,7 @@
  *
  * 初期の一式のほかに 2 つを引きます。
  *
- * - **遅延** — 初期の chunk が読み込み器へ渡す chunk（{@link deferredChunks}）。`next/dynamic` の
+ * - **遅延** — 初期の chunk が読み込み器へ渡す chunk（`deferred.ts`）。`next/dynamic` の
  *   先がここに出ます。初期だけを見ると、重いものを遅延へ移した変更が「減った」として通ります
  * - **CSS** — `entryCSSFiles`。描画をブロックするため LCP に直接効きます
  *   （[0101](../../docs/adr/0101-performance-budget.md)）
@@ -36,9 +36,48 @@ export type RouteBuildManifest = {
   readonly rootMainFiles?: readonly string[];
 };
 
-/** chunk の参照を成果物ディレクトリからの相対へ均す。 */
+/**
+ * `next build` が自分で書き出す route ごとの初期 JS（`.next/diagnostics/route-bundle-stats.json`）。
+ *
+ * @remarks
+ * Next.js 自身が `entryJSFiles` から数えた一次情報です。**こちらを正とします。** manifest から
+ * 和集合を組み直すと、Next が初期の一式として扱う chunk を取りこぼします（同梱サンプルの実測で
+ * 1 route あたり約 3.6 KB。`clientModules` は client component の参照ごとの entry で、route の
+ * 初期の一式そのものではありません）。数える範囲もこちらと同じで、CSS と polyfill を含みません。
+ *
+ * ただし**全 route を持つわけではありません**（同梱サンプルでは `/_global-error` が欠けます）。
+ * 欠けた route は {@link initialChunks} の和集合へ落とします。
+ */
+export type RouteBundleStats = readonly {
+  readonly route: string;
+  readonly firstLoadChunkPaths?: readonly string[];
+}[];
+
+/**
+ * `route-bundle-stats.json` を route ごとの chunk へ。
+ *
+ * @param stats - 読めなかった場合は省略。空の Map が返り、呼び出し側は和集合へ落ちる。
+ * @returns 公開 route から、成果物ディレクトリからの相対パスへの対応。
+ */
+export function statsChunks(stats: RouteBundleStats | undefined): Map<string, string[]> {
+  return new Map(
+    (stats ?? []).map(({ route, firstLoadChunkPaths }) => [
+      route,
+      (firstLoadChunkPaths ?? []).map(toArtifactPath),
+    ]),
+  );
+}
+
+/**
+ * chunk の参照を成果物ディレクトリからの相対へ均す。
+ *
+ * @remarks
+ * 出所ごとに綴りが違います。manifest は `/_next/static/...`、`route-bundle-stats.json` は
+ * build を回した場所から見た `.next/static/...` で書きます。同じ chunk が 2 通りに数えられる
+ * のを防ぐため、入口で 1 つへ寄せます。
+ */
 function toArtifactPath(reference: string): string {
-  return reference.replace(/^\/?_next\//, "");
+  return reference.replace(/^\/?_next\//, "").replace(/^\.next\//, "");
 }
 
 /**
@@ -90,64 +129,6 @@ export function entryStylesheets(rsc: RscManifest | undefined): string[] {
   }
 
   return [...found];
-}
-
-/**
- * chunk の中身が名指ししている chunk。
- *
- * @remarks
- * Turbopack は遅延読み込みを、**読み込む chunk のパスを文字列として埋め込んだ小さな chunk**として
- * 出します（`Promise.all([...].map((path) => load(path)))` の形）。遅延の先は manifest のどこにも
- * 現れないため、成果物の側からはこの綴りが唯一の手がかりになります。
- *
- * **この綴りは Turbopack の出力形式に依存します。** 形が変わると抽出が 0 件へ落ち、遅延の量が
- * 「無い」として通ります。抽出できた件数を報告へ載せてあるのはそのためで、0 件は「遅延が無い」
- * とも「読めなくなった」とも読める合図です。
- */
-const CHUNK_REFERENCE = /static\/chunks\/[A-Za-z0-9_@./-]+?\.(?:js|css)/g;
-
-/**
- * 初期の一式から辿り着ける、遅延読み込みの chunk。
- *
- * @remarks
- * 初期の chunk が名指しする chunk を推移的に閉じ、初期そのものを引きます。開いた人が必ず払う量
- * ではなく、**その画面を使い切ると払う量**です。`next/dynamic` の先へ移した分がここへ現れるので、
- * 初期と合わせて見ると「移しただけ」と「減らした」を区別できます。
- *
- * @param initial - 初期に読む chunk（{@link initialChunks}）。
- * @param read - chunk の中身を読む。読めない場合は null。
- * @returns 初期を含まない、遅延で読みうる chunk。
- */
-export function deferredChunks(
-  initial: readonly string[],
-  read: (chunk: string) => string | null,
-): string[] {
-  // 初期のものを最初から見たことにしておく。こうすると「まだ見ていない」がそのまま「遅延」
-  // になり、初期かどうかをもう一度確かめる分岐が要らない。
-  const seen = new Set(initial);
-  // 走査の途中で伸ばす。Array の反復子は毎回 length を読み直すので、押し込んだ先も同じ回で辿る。
-  const queue = [...initial];
-  const found: string[] = [];
-
-  for (const current of queue) {
-    const content = read(current);
-
-    if (content === null) {
-      continue;
-    }
-
-    for (const reference of content.match(CHUNK_REFERENCE) ?? []) {
-      if (seen.has(reference)) {
-        continue;
-      }
-
-      seen.add(reference);
-      queue.push(reference);
-      found.push(reference);
-    }
-  }
-
-  return found;
 }
 
 /**
@@ -217,4 +198,28 @@ export function unionByRoute(entries: readonly RouteChunks[]): RouteChunks[] {
     deferred: [...found.deferred].filter((chunk) => !found.initial.has(chunk)),
     css: [...found.css],
   }));
+}
+
+/**
+ * 2 つ以上の route が初期で読む chunk。
+ *
+ * @remarks
+ * 共有が 8 KB 増えれば route ごとの行はすべて +8 KB として並びますが、原因は 1 つです。報告の側で
+ * 1 度だけ出すために、どれが共有かをここで決めます。
+ *
+ * route が 1 つしかない fork では全てが固有になりますが、そのとき共有の内訳は情報を持たないので
+ * それで正しい判定です。
+ *
+ * @param byRoute - 公開 route ごとの資材。
+ */
+export function sharedChunks(byRoute: readonly RouteChunks[]): Set<string> {
+  const count = new Map<string, number>();
+
+  for (const { initial } of byRoute) {
+    for (const chunk of initial) {
+      count.set(chunk, (count.get(chunk) ?? 0) + 1);
+    }
+  }
+
+  return new Set([...count].filter(([, routes]) => routes > 1).map(([chunk]) => chunk));
 }

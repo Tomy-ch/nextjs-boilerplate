@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   artifactDirOf,
-  deferredChunks,
   entryStylesheets,
   initialChunks,
+  sharedChunks,
+  statsChunks,
   unionByRoute,
 } from "./manifest";
 
@@ -112,84 +113,6 @@ describe("entryStylesheets", () => {
   });
 });
 
-describe("deferredChunks", () => {
-  /** 綴りを中身へ写す、テストの中だけの成果物。 */
-  const artifact = (files: Readonly<Record<string, string>>) => (chunk: string) =>
-    files[chunk] ?? null;
-
-  // ----- 正常系 -----
-  it("初期の chunk が名指しする chunk を挙げる", () => {
-    const found = deferredChunks(
-      ["static/chunks/loader.js"],
-      artifact({
-        "static/chunks/loader.js": 'Promise.all(["static/chunks/lazy.js"].map(load))',
-      }),
-    );
-
-    expect(found).toEqual(["static/chunks/lazy.js"]);
-  });
-
-  it("遅延の先が名指しする chunk まで辿る", () => {
-    const found = deferredChunks(
-      ["static/chunks/loader.js"],
-      artifact({
-        "static/chunks/loader.js": '"static/chunks/lazy.js"',
-        "static/chunks/lazy.js": '"static/chunks/deeper.js"',
-      }),
-    );
-
-    expect(found).toEqual(["static/chunks/lazy.js", "static/chunks/deeper.js"]);
-  });
-
-  it("遅延の先の stylesheet も挙げる", () => {
-    const found = deferredChunks(
-      ["static/chunks/loader.js"],
-      artifact({ "static/chunks/loader.js": '"static/chunks/lazy.css"' }),
-    );
-
-    expect(found).toEqual(["static/chunks/lazy.css"]);
-  });
-
-  it("初期で読む chunk は遅延に数えない", () => {
-    const found = deferredChunks(
-      ["static/chunks/a.js", "static/chunks/b.js"],
-      artifact({ "static/chunks/a.js": '"static/chunks/b.js"' }),
-    );
-
-    expect(found).toEqual([]);
-  });
-
-  it("互いを名指しする chunk でも止まる", () => {
-    const found = deferredChunks(
-      ["static/chunks/a.js"],
-      artifact({
-        "static/chunks/a.js": '"static/chunks/b.js"',
-        "static/chunks/b.js": '"static/chunks/a.js""static/chunks/b.js"',
-      }),
-    );
-
-    expect(found).toEqual(["static/chunks/b.js"]);
-  });
-
-  // ----- 異常系 -----
-  it("読めない chunk は辿らない", () => {
-    expect(deferredChunks(["static/chunks/missing.js"], () => null)).toEqual([]);
-  });
-
-  it("初期が空なら空を返す", () => {
-    expect(deferredChunks([], () => '"static/chunks/lazy.js"')).toEqual([]);
-  });
-
-  it("名指しの綴りを持たない chunk からは何も出ない", () => {
-    const found = deferredChunks(
-      ["static/chunks/a.js"],
-      artifact({ "static/chunks/a.js": "export const a = 1;" }),
-    );
-
-    expect(found).toEqual([]);
-  });
-});
-
 describe("unionByRoute", () => {
   const entry = (
     route: string,
@@ -244,5 +167,49 @@ describe("unionByRoute", () => {
   // ----- 異常系 -----
   it("entry が 1 つも無ければ空を返す", () => {
     expect(unionByRoute([])).toEqual([]);
+  });
+});
+
+describe("statsChunks", () => {
+  // ----- 正常系 -----
+  it("route ごとの初期 JS を、成果物からの相対へ均して返す", () => {
+    const chunks = statsChunks([
+      { route: "/", firstLoadChunkPaths: [".next/static/chunks/a.js", "static/chunks/b.js"] },
+    ]);
+
+    expect(chunks.get("/")).toEqual(["static/chunks/a.js", "static/chunks/b.js"]);
+  });
+
+  it("chunk を持たない route も鍵として残す", () => {
+    expect(statsChunks([{ route: "/" }]).get("/")).toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("読めなかった場合は空を返し、呼び出し側が和集合へ落ちられる", () => {
+    expect(statsChunks(undefined).size).toBe(0);
+  });
+});
+
+describe("sharedChunks", () => {
+  const entry = (route: string, initial: string[]) => ({ route, initial, deferred: [], css: [] });
+
+  // ----- 正常系 -----
+  it("2 つ以上の route が読む chunk を挙げる", () => {
+    expect([
+      ...sharedChunks([entry("/a", ["shared.js", "a.js"]), entry("/b", ["shared.js", "b.js"])]),
+    ]).toEqual(["shared.js"]);
+  });
+
+  it("1 つの route しか読まない chunk は挙げない", () => {
+    expect([...sharedChunks([entry("/a", ["a.js"]), entry("/b", ["b.js"])])]).toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("route が 1 つしか無ければ、共有は無いものとして扱う", () => {
+    expect([...sharedChunks([entry("/a", ["a.js", "b.js"])])]).toEqual([]);
+  });
+
+  it("route が 1 つも無ければ空を返す", () => {
+    expect([...sharedChunks([])]).toEqual([]);
   });
 });
