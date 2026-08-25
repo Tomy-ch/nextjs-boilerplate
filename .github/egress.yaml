@@ -63,7 +63,11 @@ workflows:
   # 取得そのもの (cdn.playwright.dev) と、起動した Chrome 自身の背景通信の 2 系統。
   # 撮影側 (a11y / e2e / vrt) に取得先が要らないのは、あちらが digest 固定のコンテナを引くため。
   lighthouse:
+    # ブラウザの取得。`cdn.playwright.dev` は入口で、実体はここから 2 つの配信元へ回る。
+    # 3 つとも要る —— 入口だけを許すと、繋がったうえで本体の取得が落ちる。
     - cdn.playwright.dev:443
+    - playwright.download.prss.microsoft.com:443
+    - storage.googleapis.com:443
     - fonts.googleapis.com:443
     - fonts.gstatic.com:443
     - accounts.google.com:443
@@ -128,8 +132,3 @@ audit:
     月次でしか動かず、実行の記録がまだ無い。外す条件は同上。
   sonarcloud: >-
     解析結果の送信先を実測できていない。外す条件は、成功した実行のログで宛先を確認すること。
-  lighthouse: >-
-    ブラウザを取得する実行の記録がまだ無い。遮断へ回したときの実測はどれも Playwright の
-    cache が当たっており、取得そのものが 1 度も記録されていなかった（この宣言の冒頭が戒めて
-    いる「cache が当たった実行だけを見ない」を踏んだ）。外す条件は、cache を外した実行の
-    ログで取得先を確認すること。
