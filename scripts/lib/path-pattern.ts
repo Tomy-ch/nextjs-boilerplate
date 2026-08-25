@@ -16,7 +16,7 @@
 export function toPathPattern(glob: string): RegExp {
   const segments = glob.split("/");
 
-  if (segments[segments.length - 1] === "**") {
+  if (segments.at(-1) === "**") {
     throw new Error(`末尾が ** のパターンは受け付けません: ${glob}`);
   }
 
@@ -30,5 +30,5 @@ export function toPathPattern(glob: string): RegExp {
 
 /** 1 段ぶんを正規表現へ直す。`*` だけが meta として生き、他は文字として照合される。 */
 function escapeSegment(segment: string): string {
-  return segment.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*");
+  return segment.replace(/[.+^${}()|[\]\\]/g, String.raw`\$&`).replace(/\*/g, "[^/]*");
 }

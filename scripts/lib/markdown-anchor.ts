@@ -26,9 +26,7 @@ const CLOSING_HASHES = /\s+#+\s*$/;
  * 合わせて先に外します。
  */
 export function toAnchor(heading: string): string {
-  return heading
-    .trim()
-    .replace(/<[^>]*>/g, "")
+  return withoutTags(heading.trim())
     .replace(/\[([^\]]*)\]\([^()]*\)/g, "$1")
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\p{M} _-]/gu, "")
@@ -89,4 +87,24 @@ function decodeFragment(fragment: string): string {
   } catch {
     return fragment;
   }
+}
+
+/**
+ * タグの記法を落とす。
+ *
+ * @remarks
+ * 1 度で終えません。`<<em>>` のように入れ子・壊れた形で書かれると、1 度剥がした跡がもう一度
+ * タグの形になります。残ると `em` のような綴りがアンカーへ紛れ込み、GitHub の付ける値と
+ * 食い違います。
+ */
+function withoutTags(heading: string): string {
+  let current = heading;
+  let previous = "";
+
+  while (current !== previous) {
+    previous = current;
+    current = current.replace(/<[^<>]*>/g, "");
+  }
+
+  return current;
 }

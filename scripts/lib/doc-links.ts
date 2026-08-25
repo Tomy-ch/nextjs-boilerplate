@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, type Stats, statSync } from "node:fs";
 import { dirname, extname, relative, resolve } from "node:path";
 
 import { hasAnchor } from "./markdown-anchor";
@@ -27,7 +27,7 @@ export type BrokenLink = {
  * するのに切れていると報告されます。囲みを要求するのは Markdown の記法そのものの制約で、
  * 括弧の対応を数える簡易パーサを持つより、記法に従わせるほうが読み手にも伝わります。
  */
-const LINK = /\]\(\s*<?([^)<>\s]+)>?[^)]*\)/g;
+const LINK = /\]\(\s*<?([^)<>\s]+)>?(?:\s+"[^"]*")?\s*\)/g;
 
 /**
  * 参照形式リンクの定義行。
@@ -137,20 +137,45 @@ export function findBrokenDocLinks(file: string, content: string, root: string):
       const target = path === "" ? resolve(root, file) : resolve(root, dirname(file), path);
       const line = index + 1;
 
-      if (escapesRoot(root, target) || !existsSync(target)) {
+      // 在るかを確かめてから開くのではなく、開いて確かめる。2 度触ると、その間に消えた場合に
+      // 「在ることになっているのに読めない」経路が生まれる。
+      const stats = escapesRoot(root, target) ? null : statOf(target);
+
+      if (stats === null) {
         broken.push({ file, href, line, reason: "path" });
         continue;
       }
 
       if (!fragment) continue;
-      if (statSync(target).isDirectory() || extname(target) !== ".md") continue;
-      if (!hasAnchor(readFileSync(target, "utf8"), fragment)) {
+      if (stats.isDirectory() || extname(target) !== ".md") continue;
+
+      const markdown = readOf(target);
+
+      if (markdown !== null && !hasAnchor(markdown, fragment)) {
         broken.push({ file, href, line, reason: "anchor" });
       }
     }
   });
 
   return broken;
+}
+
+/** 指し先の情報。無ければ null。 */
+function statOf(target: string): Stats | null {
+  try {
+    return statSync(target);
+  } catch {
+    return null;
+  }
+}
+
+/** 指し先の中身。読めなければ null。 */
+function readOf(target: string): string | null {
+  try {
+    return readFileSync(target, "utf8");
+  } catch {
+    return null;
+  }
 }
 
 /** 解決先がリポジトリの外か。 */
