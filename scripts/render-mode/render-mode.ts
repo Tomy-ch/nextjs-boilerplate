@@ -52,7 +52,8 @@ export function prerenderedRoutes(manifest: PrerenderManifest): string[] {
 }
 
 /** 「build 時に固める」の宣言。 */
-const FORCE_STATIC = /^\s*export\s+const\s+dynamic\s*=\s*["']force-static["']/m;
+// 空白は行内のものだけを許す。`\s` は改行を含むため、複数行にまたがる解釈が生まれて後戻りする。
+const FORCE_STATIC = /^[ \t]*export[ \t]+const[ \t]+dynamic[ \t]*=[ \t]*["']force-static["']/m;
 
 /**
  * build 時に固めると宣言している route。

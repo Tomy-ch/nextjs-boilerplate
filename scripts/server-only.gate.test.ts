@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -28,10 +28,12 @@ const SOURCE_ROOT = join(REPOSITORY_ROOT, "src");
 const EXCLUDED = /\.test\.tsx?$/;
 
 function collect(directory: string, into: ServerModule[]): ServerModule[] {
-  for (const entry of readdirSync(directory)) {
-    const path = join(directory, entry);
+  // 種別を同じ走査から受け取る。名前だけ拾って改めて調べ直すと、その隙間に入れ替わったものを
+  // 読むことになる。
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
 
-    if (statSync(path).isDirectory()) {
+    if (entry.isDirectory()) {
       collect(path, into);
       continue;
     }

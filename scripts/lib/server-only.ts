@@ -64,51 +64,43 @@ function isSideEffectImport(statement: ts.Statement): boolean {
  * @param modules - 走査対象。テストと story は呼び出し側で外しておく。
  */
 export function findUnguardedServerModules(modules: readonly ServerModule[]): UnguardedModule[] {
-  const found: UnguardedModule[] = [];
+  return modules
+    .filter((module) => SERVER_MODULE.test(module.path))
+    .flatMap((module) => {
+      const reason = guardStateOf(module);
 
-  for (const module of modules) {
-    if (!SERVER_MODULE.test(module.path)) {
+      return reason === null ? [] : [{ path: module.path, reason }];
+    });
+}
+
+/** 番人の在り方を 1 module ぶん見る。揃っていれば null。 */
+function guardStateOf(module: ServerModule): UnguardedModule["reason"] | null {
+  const source = ts.createSourceFile(
+    module.path,
+    module.content,
+    ts.ScriptTarget.Latest,
+    // 位置は要らない。要るのは文の並びだけで、親を張らないぶん速い。
+    false,
+    module.path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+
+  let precededByImport = false;
+
+  for (const statement of source.statements) {
+    const specifier = specifierOf(statement);
+
+    if (specifier === null) {
       continue;
     }
 
-    const source = ts.createSourceFile(
-      module.path,
-      module.content,
-      ts.ScriptTarget.Latest,
-      // 位置は要らない。要るのは文の並びだけで、親を張らないぶん速い。
-      false,
-      module.path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-    );
-
-    let guarded = false;
-    let precededByImport = false;
-
-    for (const statement of source.statements) {
-      const specifier = specifierOf(statement);
-
-      if (specifier === null) {
-        continue;
-      }
-
-      if (specifier === GUARD_SPECIFIER && isSideEffectImport(statement)) {
-        guarded = true;
-        break;
-      }
-
-      precededByImport = true;
+    if (specifier === GUARD_SPECIFIER && isSideEffectImport(statement)) {
+      return precededByImport ? "not-first" : null;
     }
 
-    if (!guarded) {
-      found.push({ path: module.path, reason: "missing" });
-      continue;
-    }
-
-    if (precededByImport) {
-      found.push({ path: module.path, reason: "not-first" });
-    }
+    precededByImport = true;
   }
 
-  return found;
+  return "missing";
 }
 
 /** 見つかったものを人が読む形にする。 */
@@ -122,6 +114,6 @@ export function formatUnguardedServerModules(found: readonly UnguardedModule[]):
             : 'import "server-only" が import の先頭にありません'
         }`,
     )
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .join("\n");
 }
