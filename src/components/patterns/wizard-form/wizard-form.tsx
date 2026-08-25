@@ -186,6 +186,10 @@ export function WizardForm({
    *
    * 到達済みで、いま居る段ではなく、いま居る段を終えられているなら移れる。前へ戻る側は
    * 終えられていなくても移れる —— 戻ることは、その段を済ませたと主張しないため。
+   *
+   * **`index <= furthestIndex` を緩めると、飛ばした段が mount されないまま送信される。**
+   * 段を DOM へ残すかは `StepPanel` が「一度でも現在地だったか」で決めており、ここが 1 段ずつ
+   * しか進ませないことがその判断の前提になっている。
    */
   const canGoTo = useCallback(
     (index: number) =>
