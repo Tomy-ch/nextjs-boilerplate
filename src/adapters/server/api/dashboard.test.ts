@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 
-import { serveJson } from "../../../../vitest.setup";
+import { serveJson } from "../../../../vitest.setup.msw";
 
 const { getAccessToken, getEnvironment, signOut } = vi.hoisted(() => ({
   getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),

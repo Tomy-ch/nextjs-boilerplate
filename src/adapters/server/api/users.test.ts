@@ -3,7 +3,7 @@ import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { toUserId } from "@/model/user/user";
-import { serveJson, serveStatus, serveWrite } from "../../../../vitest.setup";
+import { serveJson, serveStatus, serveWrite } from "../../../../vitest.setup.msw";
 import { getUsersQueryPerPageMax } from "../../gen/api/endpoints.zod";
 
 const { getAccessToken, getEnvironment, getLogger, signOut, verifySession, warn } = vi.hoisted(

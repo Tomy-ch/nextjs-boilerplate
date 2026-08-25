@@ -44,10 +44,6 @@ const lighthouseSchema = z.object({
     reason: z.string().trim().min(1),
   }),
   metrics: limitsSchema,
-  pullRequest: z.object({
-    alertAt: z.number().int().positive(),
-    reason: z.string().trim().min(1),
-  }),
   screens: z.record(z.string(), limitsSchema.partial()).default({}),
 });
 

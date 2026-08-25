@@ -5,20 +5,13 @@
  * 全数の計測は保護ブランチと日次に置いてあります（[0101](../../docs/adr/0101-performance-budget.md)
  * §2）。ここが答えるのは**その待ち方では遅すぎる差分かどうか**だけです。
  *
- * **判定は 2 段で、根拠の種類が違います。**
- *
- * - **強制**は構造で決めます。数値を要さず、なぜ測るのかを 1 文で言えるものだけです
- * - **合図**は量で決めます。こちらは根拠のある数を置けないので、gate ではなく人へ知らせる線
- *   として扱います
+ * **判定は構造だけで行います。**量で見る合図は
+ * [`../deferred-checks/volume.ts`](../deferred-checks/volume.ts) が持ちます。分担の理由は
+ * [0101](../../docs/adr/0101-performance-budget.md) §2 と
+ * [0153](../../docs/adr/0153-ci-configuration.md) §2。
  */
 
-/** 変更されたファイル 1 件。 */
-export type Change = {
-  /** リポジトリルート相対のパス。 */
-  readonly path: string;
-  /** 増えた行と減った行の合計。 */
-  readonly changedLines: number;
-};
+import type { Change } from "../lib/numstat";
 
 /** 差分に対する判定。 */
 export type Trigger =
@@ -27,12 +20,6 @@ export type Trigger =
       readonly kind: "force";
       /** なぜ測るのか。人が読む。 */
       readonly reasons: readonly string[];
-    }
-  | {
-      /** 測ったほうがよいと知らせる。 */
-      readonly kind: "alert";
-      /** 合図の線を超えた変更行数。 */
-      readonly changedLines: number;
     }
   | {
       /** 保護ブランチでの計測に任せる。 */
@@ -44,12 +31,6 @@ const SCREEN_DECLARATION = "e2e/lib/screens.ts";
 
 /** 全画面が通る器。 */
 const SHELL_SUFFIX = "/layout.tsx";
-
-/** 量を数える対象。描画に効く宣言と、画面を組み立てるロジック。 */
-const COUNTED_PREFIXES: readonly string[] = ["tokens/", "src/features/", "src/app/"];
-
-/** 量から外す。描かれるものを変えない。 */
-const NOT_COUNTED = /\.(test|stories)\.tsx?$|\.md$/;
 
 /**
  * そのパスが待たずに測る理由に当たるなら、その理由。
@@ -70,21 +51,15 @@ function forceReasonOf(path: string): string | undefined {
   return undefined;
 }
 
-/** 量に数えるパスか。 */
-function isCounted(path: string): boolean {
-  return COUNTED_PREFIXES.some((prefix) => path.startsWith(prefix)) && !NOT_COUNTED.test(path);
-}
-
 /**
  * 差分を判定する。
  *
  * @param changes - 変更されたファイルと、その変更行数。
- * @param alertAt - 合図を出す変更行数の線。
  *
  * @remarks
- * **強制が量に優先します。** 器を 1 行だけ直した差分は量では拾えませんが、効く範囲は全画面です。
+ * 器を 1 行だけ直した差分は量では拾えませんが、効く範囲は全画面です。構造で見るのはそのためです。
  */
-export function decideTrigger(changes: readonly Change[], alertAt: number): Trigger {
+export function decideTrigger(changes: readonly Change[]): Trigger {
   const reasons = [
     ...new Set(
       changes
@@ -93,31 +68,5 @@ export function decideTrigger(changes: readonly Change[], alertAt: number): Trig
     ),
   ];
 
-  if (reasons.length > 0) {
-    return { kind: "force", reasons };
-  }
-
-  const changedLines = changes
-    .filter((change) => isCounted(change.path))
-    .reduce((total, change) => total + change.changedLines, 0);
-
-  return changedLines >= alertAt ? { kind: "alert", changedLines } : { kind: "skip" };
-}
-
-/**
- * `git diff --numstat` の出力を読む。
- *
- * @remarks
- * 二進ファイルの行は行数の代わりに `-` を持ちます。行では表せないので 0 として数えます ——
- * 画像を差し替えた差分は、描画に効いても行数に現れません。
- */
-export function parseNumstat(text: string): Change[] {
-  return text
-    .split("\n")
-    .map((line) => line.split("\t"))
-    .filter((columns): columns is [string, string, string] => columns.length === 3)
-    .map(([added, removed, path]) => ({
-      path,
-      changedLines: Number.parseInt(added, 10) + Number.parseInt(removed, 10) || 0,
-    }));
+  return reasons.length > 0 ? { kind: "force", reasons } : { kind: "skip" };
 }

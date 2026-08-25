@@ -47,7 +47,23 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -118,17 +134,11 @@ jobs:
       # `!= 'success'`, not `== 'failure'`: the comparison can fail to start at all — the
       # baseline store may be unreachable — and that has to raise too. `!cancelled()` is
       # what keeps a run superseded by the next merge out of that same net.
-      - name: Raise the failure for a human
+      - name: Compose what the issue says
         if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ github.ref_name }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          title="[VRT] ${BRANCH} で基準画像と食い違いが出ている"
-          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" \
-            --json number --jq '.[0].number')"
-
           {
             # The comparison may never have run — the baseline store can be
             # unreachable. Raising the issue matters more than the table, so every
@@ -151,12 +161,14 @@ jobs:
           NOTE
           } > /tmp/vrt-guard.md
 
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/vrt-guard.md
-          else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label test \
-              --body-file /tmp/vrt-guard.md
-          fi
+      - name: Raise it where it has an owner
+        if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}
+        uses: ./.github/actions/upsert-issue
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: '[VRT] ${{ github.ref_name }} で基準画像と食い違いが出ている'
+          body-file: /tmp/vrt-guard.md
+          label: test
 
       - name: Fail if a story changed
         if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}

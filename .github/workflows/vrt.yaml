@@ -16,13 +16,23 @@ name: VisualRegressionTest
 # the store's compare view and accepted with the `baseline-approve` label that
 # `baseline-approval.yaml` requires.
 #
+# ## Why the comparison is split across machines
+#
+# The cost is linear in the number of stories, and one runner has four cores that
+# `playwright.config.ts` already saturates — so the only way to shorten the wall clock is
+# to add machines. `vrt-shard` is that fan-out; `vrt` collects what came back.
+#
+# **The required status check is `vrt`, and it must stay that way.** A matrix job reports one
+# context per entry (`vrt-shard (1)` …), which no required check can name — so the collecting
+# job carries the name, and what it guarantees is stated on the job itself.
+#
 # The comparison and the pull-request comment are separate jobs. The baseline store
 # may be private, which means the comparison job needs a GitHub App secret; a job
 # holding a secret must not also produce a comment body, because secret masking does
 # not survive a `tee` to a file (ADR 0153).
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
-# every PR is in README.md. The job always starts and then asks `diff-scope` whether the
+# every PR is in README.md. `vrt-scope` always starts and asks `diff-scope` whether the
 # diff can reach a picture, so the context is reported even when the expensive steps stand
 # down. That gate and the input hash `make vrt` computes are two different layers of the
 # same question — which layer decides what is in `vrt/README.md`.
@@ -46,24 +56,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  vrt:
+  # Asked once, for every job below. Deciding it per shard would be four answers to one
+  # question, and `vrt` would need a fifth to know whether the others were even asked.
+  vrt-scope:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       contents: read
 
     outputs:
-      title: ${{ steps.vrt.outputs.title || steps.standdown.outputs.title }}
-      # Standing down is a success for the comment: nothing is created on a quiet PR,
-      # and an earlier FAIL comment is overwritten by the stand-down body instead of
-      # being left beside a green check.
-      status: ${{ steps.vrt.outputs.status || 'success' }}
+      relevant: ${{ steps.scope.outputs.relevant }}
 
     steps:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -88,15 +112,66 @@ jobs:
             .cursor/*
             .gemini/*
 
+  # One machine per slice of the story list. Not a required check — `vrt` below is.
+  vrt-shard:
+    needs: vrt-scope
+    if: needs.vrt-scope.outputs.relevant == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    strategy:
+      # One machine failing says nothing about the others, and the comment has to list
+      # every story that moved. Cancelling the rest would report a subset as the whole.
+      fail-fast: false
+      matrix:
+        # **The only declaration of how many machines the stories are split across.** The
+        # denominator each machine passes to `--shard` is read back from `strategy.job-total`,
+        # so there is no second number to keep in step with this one. Writing it twice would
+        # let the two drift, and the drift is silent: with a denominator of 5 and four entries
+        # here, nothing computes the fifth bucket, so those stories are never compared and the
+        # required check still reports green.
+        #
+        # Four is where the curve flattens. The fixed cost per machine (setup, Storybook build,
+        # image pull) is roughly 80s against a comparison of roughly 380s, so a fifth machine
+        # buys seconds while every machine is billed to whoever forked this.
+        shard: [1, 2, 3, 4]
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
       - name: Fetch the baseline images
-        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-baselines
         with:
           app-id: ${{ secrets.BASELINE_APP_ID }}
           private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
 
       - name: Setup mise and the pinned tools
-        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
@@ -104,14 +179,12 @@ jobs:
 
       - name: Resolve the pnpm store path
         id: pnpm-store
-        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           path="$(pnpm store path)"
           echo "path=${path}" >> "$GITHUB_OUTPUT"
 
       - name: Cache the pnpm store
-        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
@@ -119,25 +192,31 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        if: steps.scope.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       # The record of which input state already compared clean. `make vrt` hashes the
       # rendering inputs itself and skips the comparison when they match, so the cache only
       # has to carry the record forward — the newest one this branch (or its base) produced.
       # A miss restores nothing and the comparison runs, which is the safe direction.
+      #
+      # **Every shard restores it, and they must all restore the same thing.** Each machine
+      # decides the gate for itself (why it cannot be decided once: `vrt-gate` in vrt.mk), so
+      # they agree only because they start from the same record.
       - name: Restore the last verified input state
-        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: tmp/vrt/verified-inputs.sha256
           key: vrt-verified-${{ github.run_id }}
           restore-keys: vrt-verified-
 
-      - name: Build Storybook and compare every story
+      - name: Build Storybook and compare this shard's stories
         id: vrt
-        if: steps.scope.outputs.relevant == 'true'
         continue-on-error: true
+        env:
+          SHARD: ${{ matrix.shard }}
+          # Resolved from the matrix itself, so the denominator cannot disagree with how many
+          # machines actually run.
+          SHARDS: ${{ strategy.job-total }}
         shell: bash
         run: |
           set +e
@@ -147,29 +226,274 @@ jobs:
           # exact case worth diagnosing — the slow one — is the case that leaves no log at
           # all. Streaming also gets every line stamped with the runner's clock, which is
           # what tells apart a slow Storybook build, a slow image pull and a slow comparison.
-          make vrt 2>&1 | tee /tmp/vrt-full.log
+          make vrt "VRT_SHARD=${SHARD}/${SHARDS}" 2>&1 | tee /tmp/vrt-full.log
           code=${PIPESTATUS[0]}
+
+          # Green because these stories were compared, or green because the inputs had
+          # already compared clean — the reader needs to be able to tell those apart, and
+          # only the log says which. Every shard reads the same record, so every shard
+          # reports the same decision.
+          if grep -qx 'vrt-gate: skip' /tmp/vrt-full.log; then
+            echo "gate=skip" >> "$GITHUB_OUTPUT"
+          else
+            echo "gate=run" >> "$GITHUB_OUTPUT"
+          fi
 
           if [ "${code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
-            # Green because every story was compared, or green because the inputs had already
-            # compared clean — the reader needs to be able to tell those apart.
-            if grep -qx 'vrt-gate: skip' /tmp/vrt-full.log; then
-              echo "title=## ✅ VRT: PASS (inputs unchanged, comparison skipped)" >> "$GITHUB_OUTPUT"
-            else
-              echo "title=## ✅ VRT: PASS (no visual change)" >> "$GITHUB_OUTPUT"
-            fi
           else
             echo "status=failure" >> "$GITHUB_OUTPUT"
-            echo "title=## ❌ VRT: FAIL" >> "$GITHUB_OUTPUT"
           fi
 
           exit 0
 
-      # Only a clean comparison is worth carrying forward. The key is unique per run so the
-      # save always lands; `restore-keys` above then picks up the newest one.
-      - name: Save the verified input state
-        if: steps.vrt.outputs.status == 'success'
+      # The blob report is the only reporter `merge-reports` can recombine, and it carries
+      # the attachments — so the merged HTML holds the expected/actual/diff triplets even
+      # though each triplet was written on a different machine.
+      - name: Upload this shard's report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vrt-blob-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 1
+          if-no-files-found: ignore
+
+      # The raw triplets as they were written, kept beside the merged report so the
+      # `vrt-diff` artifact keeps the shape it had before the split.
+      - name: Upload this shard's diff images
+        if: always() && steps.vrt.outputs.status == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vrt-results-${{ matrix.shard }}
+          path: tmp/vrt/results
+          retention-days: 1
+          if-no-files-found: ignore
+
+      # Sixty lines per machine, concatenated by `vrt` in shard order. The tail is what
+      # explains a machine that timed out, which is the case the comment cannot reconstruct
+      # from the report.
+      - name: Upload this shard's log tail
+        if: always()
+        shell: bash
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          mkdir -p /tmp/vrt-logs
+          tail -n 60 /tmp/vrt-full.log > "/tmp/vrt-logs/shard-${SHARD}.log"
+
+      - name: Hand the log tail to the collecting job
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vrt-log-${{ matrix.shard }}
+          path: /tmp/vrt-logs/
+          retention-days: 1
+          if-no-files-found: ignore
+
+      # Only the machine that built Storybook can compute this: the hash covers
+      # `storybook-static`. One machine is enough — the inputs are the tree, not the result.
+      # Whether the value is worth keeping is `vrt`'s call below, not this machine's.
+      - name: Hash the rendering inputs
+        if: matrix.shard == 1 && steps.vrt.outputs.status == 'success'
+        run: make vrt-record-verified
+
+      - name: Hand the hash to the collecting job
+        if: matrix.shard == 1 && steps.vrt.outputs.status == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vrt-verified
+          path: tmp/vrt/verified-inputs.sha256
+          retention-days: 1
+          if-no-files-found: error
+
+      # The shards report their own verdict so `needs.vrt-shard.result` carries it. Without
+      # this the job ends green — the comparison step is `continue-on-error` so that the
+      # uploads above still run — and the collecting job would read every run as passing.
+      - name: Fail if a story changed
+        if: steps.vrt.outputs.status != 'success'
+        run: exit 1
+
+  # **The required status check.** Runs on every pull request except a cancelled one,
+  # including the ones where every shard stood down — a required context that never reports
+  # blocks its pull request forever (README.md). Holds no App secret: it builds the comment
+  # body, and a job that holds a secret must not (ADR 0153).
+  vrt:
+    needs: [vrt-scope, vrt-shard]
+    # Not `always()`: reading a cancelled run as a failure is the condition's responsibility to
+    # avoid (README.md, concurrency). A superseded run has no business leaving a red comment.
+    if: '!cancelled()'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    outputs:
+      title: ${{ steps.verdict.outputs.title }}
+      # Standing down is a success for the comment: nothing is created on a quiet PR,
+      # and an earlier FAIL comment is overwritten by the stand-down body instead of
+      # being left beside a green check. Only a real failure has to be announced.
+      status: ${{ steps.verdict.outputs.status == 'failure' && 'failure' || 'success' }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        if: needs.vrt-scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        if: needs.vrt-scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        if: needs.vrt-scope.outputs.relevant == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        if: needs.vrt-scope.outputs.relevant == 'true'
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Collect what the shards left behind
+        if: needs.vrt-scope.outputs.relevant == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: vrt-blob-*
+          path: tmp/vrt/blob
+          merge-multiple: true
+
+      - name: Collect the diff images
+        if: needs.vrt-scope.outputs.relevant == 'true'
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: vrt-results-*
+          path: tmp/vrt/results
+          merge-multiple: true
+
+      - name: Collect the log tails
+        if: needs.vrt-scope.outputs.relevant == 'true'
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: vrt-log-*
+          path: tmp/vrt/logs
+          merge-multiple: true
+
+      # One report out of four. `merge-reports` reads the reporters from the config, which
+      # is what puts `report.json` and `report/` exactly where an unsplit run left them —
+      # `scripts/vrt table|ids|orphans` and `baseline-retake.yaml` both read those paths.
+      - name: Merge the shard reports into one
+        if: needs.vrt-scope.outputs.relevant == 'true'
+        continue-on-error: true
+        run: pnpm exec playwright merge-reports --config playwright.config.ts tmp/vrt/blob
+
+      # Read back from the logs rather than from a matrix job output. A matrix reports one
+      # output for the whole job and which entry wrote it is not defined; the shards all
+      # decide the same thing, but "all agree" is not a reason to read an undefined one.
+      - name: Decide what to report
+        id: verdict
+        shell: bash
+        env:
+          RELEVANT: ${{ needs.vrt-scope.outputs.relevant }}
+          SCOPE: ${{ needs.vrt-scope.result }}
+          SHARDS: ${{ needs.vrt-shard.result }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p /tmp/vrt-comment
+
+          # Reading a run whose scope never resolved as "cannot reach a picture" reports green
+          # without ever looking at the diff. Stand down only when it ANSWERED that it cannot.
+          if [ "${SCOPE}" != "success" ]; then
+            echo 'title=## ❌ VRT: FAIL (scope could not be decided)' >> "$GITHUB_OUTPUT"
+            echo 'status=failure' >> "$GITHUB_OUTPUT"
+            echo '差分が絵に届くかを判定できませんでした。vrt-scope ジョブのログを見てください。' \
+              > /tmp/vrt-comment/vrt.log
+            : > /tmp/vrt-comment/vrt-notes.md
+            exit 0
+          fi
+
+          if [ "${RELEVANT}" != "true" ]; then
+            # A job that stood down still owes the pull request a verdict. Without this, the
+            # ❌ comment an earlier push produced stays beside a green check once the diff
+            # stops reaching a picture — README.md's "update the comment on success too"
+            # invariant, applied to standing down.
+            echo 'title=## ⏭️ VRT: SKIP (diff cannot reach a picture)' >> "$GITHUB_OUTPUT"
+            echo 'status=standdown' >> "$GITHUB_OUTPUT"
+            echo 'この PR の差分は絵に届かないため、比較していません。' > /tmp/vrt-comment/vrt.log
+            : > /tmp/vrt-comment/vrt-notes.md
+            exit 0
+          fi
+
+          cat tmp/vrt/logs/*.log > /tmp/vrt-comment/vrt.log 2>/dev/null || true
+
+          if [ "${SHARDS}" != "success" ]; then
+            echo 'title=## ❌ VRT: FAIL' >> "$GITHUB_OUTPUT"
+            echo 'status=failure' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo 'status=success' >> "$GITHUB_OUTPUT"
+
+          # Every machine writes one of these lines, so "skipped" is only true when none of
+          # them ran. Reading a single `skip` as the whole verdict would report a comparison
+          # that did happen as one that was skipped.
+          if grep -qx 'vrt-gate: skip' /tmp/vrt-comment/vrt.log \
+            && ! grep -qx 'vrt-gate: run' /tmp/vrt-comment/vrt.log; then
+            echo 'title=## ✅ VRT: PASS (inputs unchanged, comparison skipped)' >> "$GITHUB_OUTPUT"
+          else
+            echo 'title=## ✅ VRT: PASS (no visual change)' >> "$GITHUB_OUTPUT"
+          fi
+
+      # Only a clean comparison is worth carrying forward, and only once every machine came
+      # back clean. Writing it inside a shard would record the inputs of a run whose other
+      # machines were red, and the next run would skip the comparison on that basis.
+      # The key is unique per run so the save always lands; `restore-keys` picks the newest.
+      - name: Collect the hash of the rendering inputs
+        if: steps.verdict.outputs.status == 'success'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: vrt-verified
+          path: tmp/vrt
+
+      - name: Record the verified input state
+        if: steps.verdict.outputs.status == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: tmp/vrt/verified-inputs.sha256
@@ -179,7 +503,7 @@ jobs:
       # JSON report is turned into a table of exactly which stories moved and by how
       # much — the same set the `baseline-retake` label is allowed to retake.
       - name: Summarise which stories changed
-        if: always() && steps.vrt.outputs.status == 'failure'
+        if: steps.verdict.outputs.status == 'failure'
         env:
           HEAD_REF: ${{ github.head_ref }}
           RUN_ID: ${{ github.run_id }}
@@ -190,8 +514,11 @@ jobs:
           # printed — source text a pull request controls, which must not become markup. The
           # notes are workflow-authored prose plus the generated table, and they render, because
           # a table and a copy-me command say nothing when shown as literal characters.
-          mkdir -p /tmp/vrt-comment
-          tail -n 60 /tmp/vrt-full.log > /tmp/vrt-comment/vrt.log
+          if [ ! -f tmp/vrt/report.json ]; then
+            echo '**どの story が動いたかを出せませんでした。**各 shard のレポートを 1 本へ束ね直せていません。' \
+              > /tmp/vrt-comment/vrt-notes.md
+            exit 0
+          fi
 
           ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json || true)"
 
@@ -237,42 +564,31 @@ jobs:
       # Both files always exist together: the commenting job passes both paths, and a missing
       # one fails the action rather than silently dropping half the comment.
       - name: Note that nothing changed
-        if: always() && steps.vrt.outputs.status == 'success'
+        if: steps.verdict.outputs.status == 'success'
         shell: bash
         run: |
-          mkdir -p /tmp/vrt-comment
           echo '全 story が基準画像と一致しました。' > /tmp/vrt-comment/vrt.log
           : > /tmp/vrt-comment/vrt-notes.md
 
-      # A job that stood down still owes the pull request a verdict. Without this, the ❌
-      # comment an earlier push produced stays beside a green check once the diff stops
-      # reaching a picture — README.md's "update the comment on success too" invariant,
-      # applied to standing down.
-      - name: Note that the diff cannot reach a picture
-        id: standdown
-        if: steps.scope.outputs.relevant != 'true'
-        shell: bash
-        run: |
-          echo 'title=## ⏭️ VRT: SKIP (diff cannot reach a picture)' >> "$GITHUB_OUTPUT"
-          mkdir -p /tmp/vrt-comment
-          echo 'この PR の差分は絵に届かないため、比較していません。' > /tmp/vrt-comment/vrt.log
-          : > /tmp/vrt-comment/vrt-notes.md
-
-      # Expected / actual / diff triplets per failing story. Without them the only
-      # evidence of a visual change is the assertion text, which cannot be judged.
+      # Expected / actual / diff triplets per failing story, plus the merged HTML report.
+      # Without them the only evidence of a visual change is the assertion text, which
+      # cannot be judged.
       - name: Upload the visual diff
-        if: always() && steps.vrt.outputs.status == 'failure'
+        if: steps.verdict.outputs.status == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-diff
-          path: tmp/vrt
+          # The pre-merge zips carry the same content the merged report already holds.
+          path: |
+            tmp/vrt
+            !tmp/vrt/blob
           retention-days: 7
           if-no-files-found: warn
 
       # Read back by `baseline-retake.yaml` to bound what the label may retake. Kept
       # separate from the diff bundle so the retake path downloads only the report.
       - name: Upload the machine-readable report
-        if: always() && steps.vrt.outputs.status == 'failure'
+        if: steps.verdict.outputs.status == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-report
@@ -283,7 +599,7 @@ jobs:
       # Handed to the commenting job through an artifact rather than a job output,
       # because the body is a file whose size is not bounded by the output limit.
       - name: Hand the comment body to the commenting job
-        if: always() && github.event_name == 'pull_request' && (steps.vrt.outputs.status != '' || steps.standdown.outcome == 'success')
+        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-comment
@@ -291,11 +607,8 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      # `status` is empty when the comparison stood down, which is not a failure. The scope
-      # guard has to be repeated here rather than left to `status`, because "no verdict" and
-      # "a bad verdict" read the same to the expression below.
       - name: Fail if a story changed
-        if: always() && steps.scope.outputs.relevant == 'true' && steps.vrt.outputs.status != 'success'
+        if: steps.verdict.outputs.status == 'failure'
         run: exit 1
 
   # Holds no secret beyond `GITHUB_TOKEN`, so the body it publishes cannot carry one.
@@ -311,7 +624,23 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
