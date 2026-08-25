@@ -78,9 +78,13 @@ export function collectMarkdownFiles(root: string): string[] {
   return found.sort(byCodeUnit);
 }
 
-/** コード単位で比べる。ロケールに依らず同じ順序を返す。 */
+/**
+ * コード単位で比べる。ロケールに依らず同じ順序を返す。
+ *
+ * @remarks
+ * 等しい場合を持ちません。走査は 1 つのパスを 2 度出さないので、比較の対象が同じ綴りになる
+ * ことがありません。
+ */
 function byCodeUnit(left: string, right: string): number {
-  if (left < right) return -1;
-
-  return left > right ? 1 : 0;
+  return left < right ? -1 : 1;
 }
