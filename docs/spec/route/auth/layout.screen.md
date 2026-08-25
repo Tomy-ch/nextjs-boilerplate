@@ -2,8 +2,10 @@
 
 > 機能要件は持ちません。この外枠が約束するのは見え方だけです。
 
-認証の往復に関わる画面（[`/login`](login/page.screen.md) / [`/onboarding`](onboarding/page.screen.md)）を
-包む器。
+認証の往復に関わる画面を包む器。
+
+- [`/login`](login/page.screen.md)
+- [`/onboarding`](onboarding/page.screen.md) <!-- sample:line -->
 
 ## 見せるもの
 

@@ -68,7 +68,7 @@ const ENDPOINTS = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", 
  * 生成物と同じ形だけを取り出しています —— 口ごとに `get<名前>MockHandler` と
  * `get<名前>ResponseMock` を並べ、resolver は `async` で、応答の差し替えを受け取ります
  * （`api/endpoints.msw.ts`）。生成物そのものへ依存しないのは、契約が変わるたびにこの検査が
- * 動く必要はないためです。生成物との対応は [handlers.test.ts](handlers.test.ts) が見ます。
+ * 動く必要はないためです。生成物との対応は隣の検査が見ます。
  */
 const generated: Record<string, unknown> = {
   ...Object.fromEntries(

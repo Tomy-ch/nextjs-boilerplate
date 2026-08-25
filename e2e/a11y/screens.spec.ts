@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 
 import { CONFORMANCE_TAGS, SCREEN_ONLY_RULES, screenDisabledRuleIds } from "../lib/a11y-rules";
-import { ENGINES } from "../lib/browsers";
 import {
   listScreenRoutes,
   resolveScreens,
@@ -33,6 +32,9 @@ import { expect, test } from "../lib/test";
  *
  * 開く画面は撮影と同じ一覧（[screens](../lib/screens.ts)）から採ります。手で持つと、新しく
  * 足した画面が黙って対象外のまま残ります。
+ *
+ * **回すエンジンは 1 つです。** 見ているのは DOM の構造で、描画エンジンでは変わりません。
+ * どのエンジンで回すかは `playwright.e2e.config.ts` が決めます。
  */
 
 const screens = selectScreens(
@@ -41,11 +43,7 @@ const screens = selectScreens(
 );
 
 for (const screen of screens) {
-  test(screen.name, async ({ page, signIn }, testInfo) => {
-    // 見ているのは DOM の構造で、描画エンジンでは変わらない。3 つで回すと同じ違反が 3 回並ぶ。
-    // ジャーニーが 3 つのエンジンを要るのは、エンジンごとに挙動が違うものを見ているためである。
-    test.skip(testInfo.project.name !== ENGINES[0], "構造の検査はエンジンを 1 つ選んで回す");
-
+  test(screen.name, async ({ page, signIn }) => {
     if (screen.signedIn !== undefined) {
       await signIn(screen.signedIn);
     }

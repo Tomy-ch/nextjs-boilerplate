@@ -40,4 +40,4 @@
 
 ## 関連
 
-- 同じ器に載る次の画面 [`/onboarding`](../onboarding/page.screen.md)
+- 同じ器に載る次の画面 [`/onboarding`](../onboarding/page.screen.md) <!-- sample:line -->
