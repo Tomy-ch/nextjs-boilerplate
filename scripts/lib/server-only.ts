@@ -1,3 +1,5 @@
+import ts from "typescript";
+
 // server 専用として名乗った module が、client の束へ入ることを止める番人を持っているかの判定。
 
 /** 走査する module 1 件。 */
@@ -18,11 +20,32 @@ export type UnguardedModule = {
 /** server 専用と名乗る綴り。 */
 const SERVER_MODULE = /\.server\.tsx?$/;
 
-/** 番人そのもの。 */
-const GUARD = /^\s*import\s+["']server-only["']\s*;?\s*$/;
+/** 番人が引く先。 */
+const GUARD_SPECIFIER = "server-only";
 
-/** 何かを引いている行。副作用だけの import も含む。 */
-const IMPORT = /^\s*(?:import|export)\s[\s\S]*?from\s|^\s*import\s+["']/;
+/**
+ * その文が引いている先。引いていない文なら null。
+ *
+ * @remarks
+ * **構文木で見ます。**行ごとの綴りで判定すると、複数行にまたがる import はどの行も import に
+ * 見えず、番人より前にあっても「前に何も無い」として通ります。逆にコメントの中の import らしき
+ * 1 行は import として数えられます。どちらも検査が黙る側・鳴りすぎる側へ倒れる壊れ方です。
+ */
+function specifierOf(statement: ts.Statement): string | null {
+  const specifier =
+    ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)
+      ? statement.moduleSpecifier
+      : undefined;
+
+  // 綴りが壊れている（`from bad;` のような）文は、構文木の上では import だが引き先を持たない。
+  // 引き先の無いものを「何かを引いた」と数えると、番人より前に何も無い module が not-first になる。
+  return specifier !== undefined && ts.isStringLiteral(specifier) ? specifier.text : null;
+}
+
+/** 副作用だけの import か。番人はこの形で引かれる。 */
+function isSideEffectImport(statement: ts.Statement): boolean {
+  return ts.isImportDeclaration(statement) && statement.importClause === undefined;
+}
 
 /**
  * 名乗りに対して番人が居るかを見る。
@@ -48,17 +71,39 @@ export function findUnguardedServerModules(modules: readonly ServerModule[]): Un
       continue;
     }
 
-    const lines = module.content.split("\n");
-    const guardAt = lines.findIndex((line) => GUARD.test(line));
+    const source = ts.createSourceFile(
+      module.path,
+      module.content,
+      ts.ScriptTarget.Latest,
+      // 位置は要らない。要るのは文の並びだけで、親を張らないぶん速い。
+      false,
+      module.path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    );
 
-    if (guardAt < 0) {
+    let guarded = false;
+    let precededByImport = false;
+
+    for (const statement of source.statements) {
+      const specifier = specifierOf(statement);
+
+      if (specifier === null) {
+        continue;
+      }
+
+      if (specifier === GUARD_SPECIFIER && isSideEffectImport(statement)) {
+        guarded = true;
+        break;
+      }
+
+      precededByImport = true;
+    }
+
+    if (!guarded) {
       found.push({ path: module.path, reason: "missing" });
       continue;
     }
 
-    const firstImportAt = lines.findIndex((line) => IMPORT.test(line));
-
-    if (firstImportAt >= 0 && firstImportAt < guardAt) {
+    if (precededByImport) {
       found.push({ path: module.path, reason: "not-first" });
     }
   }

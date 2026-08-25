@@ -66,6 +66,66 @@ describe("findUnguardedServerModules", () => {
     expect(found).toEqual([{ path: "src/config/late.server.ts", reason: "not-first" }]);
   });
 
+  it("コメントの中の import らしき行は import として数えない", () => {
+    const found = findUnguardedServerModules(
+      modules([
+        "src/config/commented.server.ts",
+        '/*\nimport { a } from "./a";\n*/\nimport "server-only";\n',
+      ]),
+    );
+
+    expect(found).toEqual([]);
+  });
+
+  it("複数行にまたがる import が番人より前にあれば not-first として挙げる", () => {
+    const found = findUnguardedServerModules(
+      modules([
+        "src/config/wrapped.server.ts",
+        'import {\n  a,\n  b,\n} from "./a";\n\nimport "server-only";\n',
+      ]),
+    );
+
+    expect(found).toEqual([{ path: "src/config/wrapped.server.ts", reason: "not-first" }]);
+  });
+
+  it("`export ... from` も import と同じく番人より前を禁じる", () => {
+    const found = findUnguardedServerModules(
+      modules([
+        "src/config/reexport.server.ts",
+        'export { a } from "./a";\nimport "server-only";\n',
+      ]),
+    );
+
+    expect(found).toEqual([{ path: "src/config/reexport.server.ts", reason: "not-first" }]);
+  });
+
+  it("`server-only` を名前付きで引く形は番人と見なさない", () => {
+    const found = findUnguardedServerModules(
+      modules(["src/config/named.server.ts", 'import x from "server-only";\n']),
+    );
+
+    expect(found).toEqual([{ path: "src/config/named.server.ts", reason: "missing" }]);
+  });
+
+  it("引き先を持たない `export {}` は import として数えない", () => {
+    const found = findUnguardedServerModules(
+      modules([
+        "src/config/local.server.ts",
+        'const a = 1;\nexport { a };\nimport "server-only";\n',
+      ]),
+    );
+
+    expect(found).toEqual([]);
+  });
+
+  it("引き先の綴りが壊れている文は import として数えない", () => {
+    const found = findUnguardedServerModules(
+      modules(["src/config/broken.server.ts", 'import { a } from bad;\nimport "server-only";\n']),
+    );
+
+    expect(found).toEqual([]);
+  });
+
   it("番人より前の doc コメントは import ではないので許す", () => {
     const found = findUnguardedServerModules(
       modules(["src/config/doc.server.ts", '/** 説明。 */\nimport "server-only";\n']),
