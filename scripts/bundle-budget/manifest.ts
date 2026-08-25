@@ -1,28 +1,16 @@
 /**
- * build 成果物から、route ごとに browser が最初に読む chunk を引く。
+ * build 成果物から、route ごとに browser が読む資材を引く。
  *
  * @remarks
- * `next build` の出力に First Load JS の列は無いため、成果物の側から引きます。route が読む
- * client chunk は 2 系統に分かれます。
+ * 初期 JS は Next.js 自身が数えた {@link RouteBundleStats} を正とし、それが持たない route だけ
+ * manifest の和集合（{@link initialChunks}）へ落とします。CSS は `entryCSSFiles`、遅延の側は
+ * `deferred.ts` が引きます。
  *
- * - **route 固有** — `__RSC_MANIFEST[<page>].clientModules[*].chunks`。その route が参照する
- *   client component の実体
- * - **共有** — route ごとの `build-manifest.json` の `rootMainFiles`。framework の runtime で、
- *   どの route でも読まれる
+ * **なぜ 4 つを測るのかは [0101](../../docs/adr/0101-performance-budget.md) §2 が持ちます。**
  *
- * 和集合を取ると、対応ブラウザが静的 route の HTML から読む script と一致します。
- *
- * **`polyfillFiles` は数えません。** Next.js はそれを `<script nomodule>` で出すので、
+ * `polyfillFiles` を数えないのは、Next.js がそれを `<script nomodule>` で出すためです。
  * [0102](../../docs/adr/0102-browser-support.md) が対応対象とするブラウザ（Next.js 既定の
- * browserslist = モダン）は一度も取得しません。数えると、誰も読まない約 40 KB が全 route の
- * 数値へ一律に乗り、予算が見ているはずの「開いた人が払う量」から離れます。
- *
- * 初期の一式のほかに 2 つを引きます。
- *
- * - **遅延** — 初期の chunk が読み込み器へ渡す chunk（`deferred.ts`）。`next/dynamic` の
- *   先がここに出ます。初期だけを見ると、重いものを遅延へ移した変更が「減った」として通ります
- * - **CSS** — `entryCSSFiles`。描画をブロックするため LCP に直接効きます
- *   （[0101](../../docs/adr/0101-performance-budget.md)）
+ * browserslist = モダン）は一度も取得しません。
  */
 
 /** `__RSC_MANIFEST` の 1 route ぶん。必要な形だけを受け取る。 */
