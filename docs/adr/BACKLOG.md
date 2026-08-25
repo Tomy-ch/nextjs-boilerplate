@@ -174,7 +174,7 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、boile
 
 ### 機械的強制が文書に追いついていない箇所
 
-- **`app` の element 分割が `architecture.ts` に無い。** [0025](0025-app-layer-elements.md) は `app` を 4 element(`route-segment` / `route-handler` / `server-action` / `metadata`)に分け、それぞれ許可 import 先を定めているが、`architecture.ts` は `app` を 1 層に畳んでいる。したがって `page.tsx` が `server config` を読む、`route-segment` が `adapters/server` を直接叩く、といった **element 間の違反は ESLint を素通りする**。層の粒度では表現できず、区画(`SHARED_AREAS` 相当)の粒度で `src/app/**/route.ts` / `src/app/**/actions.ts` を分ける必要がある。現状は意味的監査(GB-1)と人のレビューだけが拾える
+- **`app` の element 分割は `route-handler` だけが機械で強制されている。** [0025](0025-app-layer-elements.md) は `app` を 4 element(`route-segment` / `route-handler` / `server-action` / `metadata`)に分け、それぞれ許可 import 先を定める。`architecture.ts` の `APP_ELEMENTS` はこのうち `route-handler` をファイル名で分類し、層の許可から UI 部品・横断状態・設定・feature の内側を削る。残る 2 element は `app` の粒度で検査され、`page.dev.tsx` が `server config` を直読する形が実在する。境界検査の要素はディレクトリに対応するため名前で分けるには層の許可を後から削るしかなく、**削る側の集合が ADR の表と実装で食い違っている**(表が `components` / `errors` / client 側 `config` を挙げていない)。表を実態へ合わせるのが先で、それまでは意味的監査(GB-1)と人のレビューが拾う
 
 ---
 
@@ -292,6 +292,21 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 | **W23** | Node / JS 特化の SAST (njsscan) を持たない | [0110](0110-security-operations.md) 3 | **`sast` のルール供給が Node / Express 固有のパターンを覆わなくなったとき。** 現状 opengrep が semgrep レジストリの `p/javascript` / `p/typescript` / `p/owasp-top-ten` を当てており、実測で njsscan の所見は 0 件だった。semgrep レジストリを離れる判断をした場合、置き換え先のルール集合が薄ければこの条件は満たされる —— njsscan が同梱するルールはライセンス変更前の semgrep-rules 由来で、レジストリを引かずに Node 向けの面を戻せる。**「層が 1 つ減ったこと」は条件にならない** — 減らしたのは重なっていた層である |
 | **W24** | SAST のルールを semgrep レジストリ (`p/*`) から引かない (`opengrep/opengrep-rules` の commit を固定して読む) | [0110](0110-security-operations.md) 3 | (a) レジストリのルールが OSI 承認ライセンスへ戻ったとき / (b) `opengrep/opengrep-rules` が更新を止め、**CodeQL でも補えない面**が実測で見つかったとき。現状ルール数は 563 から 77 へ減っており、鮮度は CodeQL が補っている前提でこの判断が成立している。**「ルールが少ない」「上流の更新が鈍い」ことだけでは条件にならない** — 減ること自体は承知のうえで選んでおり、条件は「減った分がどこにも無い」と実測で言えることである |
 
+| **W25** | i18n 本体(ライブラリ・ロケール解決・翻訳キー体系)を同梱しない | [0121](0121-i18n-strategy.md) | **本体が複数ロケールの文面を持つようになったとき** —— 同梱する画面のいずれかが `[locale]` セグメントか `proxy.ts` のロケール解決を実際に通るようになったときである。設置面の無い seam は腐り、採用時に必ず書き直される。**「fork 先に多言語の要望があること」は条件にならない** — 用途依存の判断は fork 先が持ち、本体が持つのは採用時の座標だけである |
+| **W26** | PWA(Web App Manifest / Service Worker / オフラインキャッシュ / A2HS)を同梱しない | [0130](0130-pwa-strategy.md) | **オフラインで成立させたい画面が本体に現れたとき**、または Service Worker の登録と更新が Next.js の既定機構として設定だけで載るようになったとき。**「モバイルで使われること」は条件にならない** — 画面が online 前提で成立している限り、Service Worker は保守対象が増えるだけである |
+| **W27** | DnD の seam を v1 で置かない | [0053](0053-ui-component-interaction-seam.md) | **並べ替え・移動が操作の本体になる画面を本体が持つようになったとき**。**「一覧があること」は条件にならない** — 並び順の変更が URL の変更と RSC 再取得で成立している間は、掴んで動かす面が存在しない |
+| **W28** | 決済 SDK の mount seam を v1 でコードとして置かない | [0076](0076-payment-ui-seam.md) | **決済画面を本体が同梱するようになったとき**。PCI 境界(生カード情報をフロントに持たせない)は採否によらず不変なので、撤回の対象は mount seam の実体化だけである。**「EC のサンプルを持っていること」は条件にならない** — 現行の支払いは擬似決済で、PSP の SDK を載せる面が無い |
+| **W29** | プロダクト分析の発火 IF / no-op sink を v1 で置かない | [0082](0082-client-observability.md) | **本体が計測したいプロダクト指標を持つようになったとき**。consent gate 述語は [0131](0131-cookie-consent.md) / [0031](0031-policy-state-supply.md) 側に v1 で実在するため、撤回の対象は発火 IF と sink だけである。**「同意機構が動いていること」は条件にならない** — ゲートの先へ何も繋がないことが、現在の決定そのものである |
+| **W30** | WebSocket / SSE の購読 seam を v1 でコードとして置かない | [0074](0074-runtime-communication-seam.md) | **サーバから押し出される更新を必要とする画面が本体に現れたとき**。**「バックエンドが SSE の口を持ったこと」は条件にならない** — 設置面は供給側の能力ではなく、消費する画面の実在で決まる |
+| **W31** | 動的 feature flag の供給 seam を v1 でコードとして置かない | [0078](0078-dynamic-feature-flag-seam.md) | **再デプロイなしで切り替えたい対象が本体に実際に現れたとき**。再デプロイ単位で固定するフラグは [0030](0030-environment-variable-management.md) の env / 目的別 config が既に受け持つため、**その種のフラグが増えたことは条件にならない** — 凍結が正しい振る舞いであるものは、動的 flag の設置面ではない |
+| **W32** | グローバルキーボードショートカットの実行機構を置かない | [0053](0053-ui-component-interaction-seam.md) §5 | **入力欄フォーカス時の誤発火を含む競合解決を、プラットフォームが標準機構として提供するようになったとき**。現状は登録機構を自前で持つ以外に手が無く、それが散在実装の事故を招くことが、やらない理由そのものである。**「操作を速くしたい」ことは条件にならない** — 表示側の `KeyboardShortcut` / `Kbd` は鍵の見せ方であって実行機構ではなく、この決定の対象外である |
+| **W33** | Prettier を併用しない(フォーマッタは biome 単独) | [0002](0002-formatter-linter.md) | **biome の整形が、本リポジトリで実際に扱う言語のいずれかを覆わなくなったとき** — 対応言語が減る、または新たに扱う言語が biome の対象外であるとき。**「Prettier の方が plugin が豊富であること」は条件にならない** — 2 つのフォーマッタが同じファイルを触った時点で、どちらが正かを決める仕事が恒久的に増える |
+| **W34** | Renovate を併用しない(依存更新は Dependabot に一本化) | [0110](0110-security-operations.md) 1 | **Dependabot が cooldown を落としたとき**、または本リポジトリが扱う ecosystem を Dependabot が覆わなくなったとき。cooldown は 0110 が敷いた検疫の実装そのもので、これを持たない更新機構への乗り換えは検疫の撤回を意味する。**「設定の自由度が高いこと」は条件にならない** |
+| **W35** | GTM(タグマネージャ)を同梱しない | [0082](0082-client-observability.md) / [0131](0131-cookie-consent.md) | **本体がタグを実際に配信するようになったとき**。現状は同意ゲートの先に繋ぐものが無く、置いても「何も配信しないタグマネージャ」だけが残る。**「GTM がデファクトであること」は条件にならない** — デファクトかどうかは、配信するタグが実在するかとは無関係である |
+| **W36** | CMP・IAB TCF 相当の同意管理を同梱しない(軽量機構のみ持つ) | [0131](0131-cookie-consent.md) | **本体が対象法域を 1 つに定めるようになったとき**。同意管理は法域とベンダー選定に強く依存し、本体で一律に決めると fork 先の要件を狭める。**「GDPR 対応が要ること」は条件にならない** — gate 述語の消費側は変えずに差し替えられる形が既にあり、差し替えるかは fork 先の判断である |
+| **W37** | 観測性 / RUM の vendor SDK(Sentry / Datadog 等)を同梱しない | [0081](0081-observability-logging.md) 6 | **OTLP で表現できない観測面が実測で見つかったとき** — そのベンダーの SDK を通してしか取れない情報が、運用上どうしても要ると言えるとき。エラー通知・アラートは fork が向け先に選ぶ OTLP 互換バックエンド側で足りる。**「導入が速いこと」は条件にならない** — 速さは vendor 直参照の恒久コストと釣り合わない |
+| **W38** | `nuqs` 等の searchParams 同期ヘルパを採らない | [0060](0060-state-management.md) | **URL と client 状態を同期させる層が無いと成立しない画面が現れたとき** — 一覧のフィルタ / sort / ページングが「URL 変更 → RSC 再取得」で成立しなくなったとき。**「フィルタの数が増えたこと」は条件にならない** — 数ではなく、同期層なしで成立するかどうかで決まる |
+
 新しく「やらない」を決めたら、**その場でここに撤回条件を書く**。条件を書けない「やらない」は、判断ではなく先送りである。
 
 ---
@@ -344,16 +359,3 @@ Go 側の本丸は **spec 駆動 scaffold + 層別監査体系**。今移植す�
 **分類合計**: スキル = 移植済 17 + 対象外 2 + 未着手 4 + 保留(C) 12 = **35**。エージェント = 移植済 6 + 保留(C) 13 = **19**。
 
 **推奨着手順序**(BACKLOG 依存順): A1 決定 → GB-3 採否確定 →(採用なら)GB-4 翻案 / A3・A5 決定(層別 README 整備)→ GB-1・GB-2・GB-7 / B8 決定 → GB-5。各グループ着手時は該当枠が Accepted であることと Instruction Priority(ADR > BACKLOG > agent config)を再確認する。
-
-### 付録: go-upgrade / repo-ops の処遇判断(経緯記録)
-
-> **暫定セクション — v1.0.0 到達時に削除する**(この節は v1.0.0 時には消すこと)。
->
-> 本節は経緯記録であり、[AGENTS.md](../../AGENTS.md)「Temporary Operating Rules until v1.0.0」の
-> 「本文に経緯・変更履歴を残さない」に反する。削除は P9-3 が担う。
-> 決定の実体は上の「移植済 / 対象外」節(`node-upgrade`(← go-upgrade。`mise.toml` SSOT のみ伝播)/
-> `repo-ops`(器のみ))と `.claude/skills/node-upgrade/SKILL.md` の `Positioning (vs tools-upgrade)` 節が
-> 現在形で持つため、削除しても情報は失われない。
-
-- **go-upgrade → node-upgrade に翻案**: `tools-upgrade` が mise 経由で node 更新をカバーし役割が一部重複するが、「リリースノート確認 + 破壊的変更チェック + フルリビルド検証」を伴う*意図的な単一ランタイム移動*の専用スキルとして価値があるため翻案移植。役割分担(node-upgrade=熟慮の単発 / tools-upgrade=定期一括監査)は go リポの go-upgrade vs tools-upgrade と同型。Go 版の `make sync-versions` / Dockerfile / go.mod / CI 同期は本リポジトリに存在しない(ADR 0011、B9 未着手)ため伝播先は `mise.toml` のみに簡素化。
-- **repo-ops は器のみ**: Go 版の中身(Docker ツールランナー / sqlc / `schema.gen.sql` / root 所有生成物 / 稼働 DB)は ADR 0011(no-docker)と非互換でほぼ全滅。「read-only 運用 runbook」の型のみ再利用し、実在する落とし穴(mise / pnpm lockfile / make DRY_RUN の非空真値 / `tmp/reviews` の gitignore 漏れ / lefthook 未導入 = G2 ※2026-07-12 解消済・スキル本文の更新は未)だけを記載。新トラップを踏んだら追記して育てる。
