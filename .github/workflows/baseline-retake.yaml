@@ -540,19 +540,12 @@ jobs:
             echo 'image table suppressed: paths carry shell metacharacters' >&2
           fi
 
-          # The before/after pair per image is what a person judges the pixels from. The
-          # store's compare view cannot show it: every snapshot is committed onto the store
-          # root, so the merge base holds no images and GitHub lists the whole set as added
-          # (scripts/baseline-store/index.ts).
+          # The before/after pair per image is what a person judges the pixels from; the
+          # store's compare view cannot show it, and an embedded image 404s for a private
+          # store, so this table carries links (vrt/README.md).
           #
-          # Links, never embedded images. A private store answers GitHub's image proxy
-          # anonymously, so an embedded picture 404s there however the reader is
-          # authenticated; a blob link stays inside GitHub's UI and carries their session.
-          # The reasoning is in vrt/README.md.
-          #
-          # A full retake moves hundreds of images, so the table is bounded. What is left out
-          # is stated rather than dropped in silence — the local review command below opens
-          # every one of them.
+          # Bounded, because a full retake moves hundreds of images. What is left out is
+          # stated rather than dropped in silence.
           IMAGE_ROW_LIMIT=20
           image_table() {
             total="$(printf '%s' "$IMAGES" | tr ',' '\n' | grep -c . || true)"

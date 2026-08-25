@@ -62,8 +62,7 @@ function printSnapshotRef(branch: string | undefined): void {
  * 一式まるごとを 1 コミットにし、親は常に置き場の根にする。撮り直しどうしを繋げると古い一式が
  * 新しい一式の祖先になり、掃除でどれも落とせなくなる。
  *
- * **この形は GitHub の compare では読めない。** 根は説明 1 枚しか持たないので、snapshot どうしを
- * 比べると共通の祖先は根になり、動いた数枚ではなく一式まるごとが「追加」として並ぶ。動いた枚を
+ * **この形は GitHub の compare では読めない**（[vrt/README.md](../../vrt/README.md)）。動いた枚を
  * 見せるのは撮り直しのコメント側の仕事で、そのために `images=` を出す。
  *
  * 手元と CI が同じ形の木を積むよう、`make baseline-push` も撮り直しの workflow もここを通る。
@@ -103,8 +102,7 @@ function push(branch: string | undefined): void {
 
   console.log(`before=${before}`);
   console.log(`after=${store(["rev-parse", "HEAD"])}`);
-  // 数えるのは画像だけ。staged には絵を決める入力のハッシュも載るので、そのまま数えると
-  // 撮った覚えのない 1 枚が毎回上乗せされる。
+  // 数えるのは画像だけ。`staged` には絵を決める入力のハッシュも載る。
   console.log(`count=${images.length}`);
   console.log(`images=${images.join(",")}`);
   console.log(`added=${added.join(",")}`);
