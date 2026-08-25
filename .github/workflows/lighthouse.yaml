@@ -116,6 +116,8 @@ jobs:
             nodejs.org:443
             registry.npmjs.org:443
             cdn.playwright.dev:443
+            playwright.download.prss.microsoft.com:443
+            storage.googleapis.com:443
             fonts.googleapis.com:443
             fonts.gstatic.com:443
             accounts.google.com:443

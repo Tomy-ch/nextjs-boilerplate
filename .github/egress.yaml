@@ -63,7 +63,11 @@ workflows:
   # 取得そのもの (cdn.playwright.dev) と、起動した Chrome 自身の背景通信の 2 系統。
   # 撮影側 (a11y / e2e / vrt) に取得先が要らないのは、あちらが digest 固定のコンテナを引くため。
   lighthouse:
+    # ブラウザの取得。`cdn.playwright.dev` は入口で、実体はここから 2 つの配信元へ回る。
+    # 3 つとも要る —— 入口だけを許すと、繋がったうえで本体の取得が落ちる。
     - cdn.playwright.dev:443
+    - playwright.download.prss.microsoft.com:443
+    - storage.googleapis.com:443
     - fonts.googleapis.com:443
     - fonts.gstatic.com:443
     - accounts.google.com:443
