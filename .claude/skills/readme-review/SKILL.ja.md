@@ -54,7 +54,7 @@ Step 2 のキーワード集合は、`portal-manifest-sync` の実行で false-n
 
 `AskUserQuestion`:
 
-1. **対象 README パス** — canonical 英語版。引数 / 直近メッセージにあれば候補として提示
+1. **対象 README パス** — canonical 版。v1.0.0 までは接尾辞なしのパスにある日本語版が canonical（[0140](../../../docs/adr/0140-documentation-operations.md)）なので `README.md` を対象にし、`.ja.md` は例外扱い。引数 / 直近メッセージにあれば候補として提示
 2. **出力詳細度** — 簡潔スコアカード（デフォルト）/ パターン別フル breakdown
 
 `*.ja.md` パスが渡された場合は、ja を直接 review するか canonical sibling に切り替えるか確認。
@@ -100,10 +100,49 @@ N1〜N4 は保守的に適用。Design / Role / Architecture セクションが�
 
 ### 分類しきい値
 
-- **manual-worthy**: positive ≥ 3 かつ negative トリガなし
+- **manual-worthy**: positive ≥ 3 かつ negative トリガなし。feature README の場合は Step 2b の必須節がすべて present であることも要る
 - **borderline**: positive 1〜2 かつ negative トリガなし
 - **not-yet-manual-grade**: positive 0、または positive あっても N2/N3 がトリガ
 - **out-of-scope-for-portal**: N1（godoc 領域）または N4（CLI ref）トリガ
+
+## Step 2b. feature README の必須節チェック
+
+**この段はターゲットが `src/features/` 配下のときだけ走ります**（入れ子の
+`src/features/admin/shipments/README.md` も含む）。`src/features/README.md` 自身は対象外です ——
+あれは層 README で、層としての務めは他のカーネル README と同じく P1〜P7 で採点します。
+
+**必須節の一覧をここに焼き込みません。**`docs/templates/feature-readme.md` を読み、その H2 見出しを
+必須の集合として扱います。feature README が何を持つべきかの正はテンプレート側であり、節が増減しても
+このスキルを書き換えずに追従します。
+
+テンプレートが宣言する各 H2 について、見出しの一致ではなく中身で判定します。
+
+| 必須節 | 満たしている状態 |
+| --- | --- |
+| Route と契約 | その slice が持つ route がすべて並び、`docs/spec/route/**` の対へ link が張られ、使う operationId が挙がっている（使わないなら、その旨と理由がある） |
+| 状態とデザイン参照 | 出しうる状態それぞれに Storybook の story 識別子（`<title>/<export>`）が対応している。story が無いならその理由が書いてある |
+| 構成 | その slice が所有するファイル / ディレクトリの表がある |
+| 依存カーネル | 引いているカーネルと、その用途が書いてある |
+| Action 戻り値契約 | Server Action ごとに置き場・戻り値・成功後・失敗時がある。無いなら `なし` |
+| テスト観点 | **その slice でしか出てこない**観点である（ADR 0090 の層別責務の再掲になっていない） |
+
+それぞれを present / thin / missing で報告します。**thin** は見出しはあるが上の表の問いに答えて
+いない状態です —— operationId の載っていない operationId の表、story の付いていない状態表、層の
+宣言を繰り返すだけのテスト観点。
+
+**書いてあることを信じず、突き合わせます。** feature README が story・operationId・route・Action を
+名指ししているとき、それは照合できる主張です。
+
+- story 識別子 → その slice の `*.stories.tsx` の `title:` と export 名
+- operationId → `openapi/api.gen.yaml`
+- 仕様書への link → `docs/spec/route/` 配下の実ファイル
+- Action 名 → `"use server"` を持つ module の `export async function`
+
+**解決しない主張は指摘であり、節の欠落より重い**です。読み手にとって、間違った案内は無い案内より
+高く付きます。
+
+**必須節に missing か thin がある feature README は `manual-worthy` になりません。**P1〜P7 の点数に
+かかわらず `borderline` を上限とし、該当する節をギャップに並べます。
 
 ## Step 3. スコアカード出力
 
@@ -182,6 +221,8 @@ verbose 時は、raw H2 リスト / 散文語数 / Mermaid・テーブル件数 
 - [ ] Mermaid / テーブルの有無を確認した
 - [ ] 各 positive 観点（P1〜P7）を Yes/No + 根拠で評価した
 - [ ] 各 negative 観点（N1〜N4）をチェックした
+- [ ] feature README なら、必須節を `docs/templates/feature-readme.md` から読み、present / thin / missing で採点した
+- [ ] README が名指しした story 識別子・operationId・仕様書 link・Action 名を出所と突き合わせた
 - [ ] 最終分類が閾値と一致している
 - [ ] 出力は日本語で、各観点に対する具体的根拠を併記
 - [ ] 次アクション提案を含む

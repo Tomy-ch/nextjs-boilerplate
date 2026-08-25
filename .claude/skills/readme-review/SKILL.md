@@ -1,6 +1,6 @@
 ---
 name: readme-review
-description: Review a single README (canonical English) and judge whether it has "manual-worthy" characteristics for inclusion in the portal manifest curated per ADR 0141. The evaluation criteria are derived from patterns observed in currently-registered manifest entries (Role / Design Intent / Rules / Architecture diagram / Navigation / Notes / substantive prose). Produces a scorecard with strengths, gaps, concrete improvement suggestions, and a final classification (manual-worthy / borderline / not-yet-manual-grade / out-of-scope-for-portal). Read-only by default; never edits the README or the manifest. When the result is manual-worthy, the skill suggests chaining into `portal-manifest-sync` (curation flow) as the natural next step; it does not perform the addition itself.
+description: Review a single canonical README and judge whether it has "manual-worthy" characteristics for inclusion in the portal manifest curated per ADR 0141. The evaluation criteria are derived from patterns observed in currently-registered manifest entries (Role / Design Intent / Rules / Architecture diagram / Navigation / Notes / substantive prose). Produces a scorecard with strengths, gaps, concrete improvement suggestions, and a final classification (manual-worthy / borderline / not-yet-manual-grade / out-of-scope-for-portal). Read-only by default; never edits the README or the manifest. For a README under `src/features/`, it additionally grades the required sections a feature README must carry (route + contract, state-to-story map, kernel dependencies, Server Action contract, test viewpoints), reading that list from `docs/templates/feature-readme.md` at runtime and resolving every story id, operationId, spec link and Action name the README asserts; a missing or thin required section caps the verdict at `borderline`. When the result is manual-worthy, the skill suggests chaining into `portal-manifest-sync` (curation flow) as the natural next step; it does not perform the addition itself.
 ---
 
 # Readme Review
@@ -61,7 +61,7 @@ Examples already added:
 
 This skill **MUST call `AskUserQuestion` immediately after invocation** to confirm:
 
-1. **Target README path** — the canonical English README to review. If the user supplied a path in skill arguments or the recent message, present it as the default candidate.
+1. **Target README path** — the canonical README to review. Below v1.0.0 the canonical file is the Japanese one on the suffix-less path (ADR 0140), so `README.md` is the target and a `.ja.md` sibling is the exception, not the rule. If the user supplied a path in skill arguments or the recent message, present it as the default candidate.
 2. **Output verbosity** — concise scorecard (default) or full per-pattern breakdown.
 
 If the user provided a `*.ja.md` path, ask whether to review the Japanese file directly (rare) or switch to the canonical sibling.
@@ -107,10 +107,50 @@ Apply N1–N4 conservatively. If the README has *any* substantial Design / Role 
 
 ### Classification thresholds
 
-- **manual-worthy**: positive score ≥ 3 AND no negative trigger
+- **manual-worthy**: positive score ≥ 3 AND no negative trigger AND (for a feature README) every required section from Step 2b is present and substantive
 - **borderline**: positive score 1–2 AND no negative trigger
 - **not-yet-manual-grade**: positive score 0 (or any positive but with N2/N3 triggered)
 - **out-of-scope-for-portal**: N1 (godoc territory) or N4 (CLI reference) triggered
+
+## Step 2b. Feature READMEs: Required-Section Check
+
+**This step runs only when the target sits under `src/features/`** (a feature slice README, including
+a nested one such as `src/features/admin/shipments/README.md`). It does NOT apply to
+`src/features/README.md` itself — that is the layer README, and the layer's own duties are graded by
+P1–P7 like any other kernel README.
+
+The required-section list is **not hardcoded here**. Read `docs/templates/feature-readme.md` and take
+its H2 headings as the required set. That template is the single source of truth for what a feature
+README must carry; if it gains or loses a section, this check follows without editing this skill.
+
+For each required H2 the template declares, decide by content rather than exact heading text:
+
+| Required section | Satisfied when |
+| --- | --- |
+| Route と契約 | Every route this slice owns is listed with a link to its `docs/spec/route/**` pair, plus the operationIds it uses (or an explicit statement that it uses none, with the reason) |
+| 状態とデザイン参照 | Each state the slice can show is mapped to a Storybook story id (`<title>/<export>`), or the absence of a story is stated with its reason |
+| 構成 | A file/directory table covering what the slice owns |
+| 依存カーネル | Each kernel it imports, with what it is used for |
+| Action 戻り値契約 | Each Server Action with its placement, return type, success and failure behavior — or `なし` |
+| テスト観点 | Viewpoints specific to THIS slice (not a restatement of ADR 0090's per-layer duties) |
+
+Report each as present / thin / missing. **Thin** means the heading exists but the content does not
+answer the question in the table above — an operationId table with no operationIds, a state table
+that lists states without stories, a テスト観点 section that only repeats the layer's declaration.
+
+**Verify the claims, do not trust them.** A feature README that names a story, an operationId, a
+route, or an Action is asserting something checkable:
+
+- story ids against the `title:` plus exported story names in the slice's `*.stories.tsx`
+- operationIds against `openapi/api.gen.yaml`
+- spec links against the files under `docs/spec/route/`
+- Action names against the `export async function` declarations in modules carrying `"use server"`
+
+A claim that does not resolve is a finding, and it outranks a missing section: a wrong pointer costs
+the reader more than an absent one.
+
+**A feature README that is missing or thin on any required section cannot be `manual-worthy`**,
+whatever its P1–P7 score. Cap it at `borderline` and name the sections in the gap list.
 
 ## Step 3. Output Scorecard
 
@@ -130,6 +170,11 @@ README Review: <path>
 [ギャップ] (positive criteria absent)
   ✗ P2 Design Intent / Why セクションなし
   ✗ P3 Rules / Do-Don't の明文化なし
+
+[B1 必須節] (feature README のときだけ出す)
+  ✓ Route と契約: 2 route と 4 operationId。spec への link も解決する
+  △ テスト観点: 見出しはあるが層の宣言の再掲で、この slice 固有の観点が無い
+  ✗ Action 戻り値契約: 節が無い
 
 [アンチパターン] (negative triggers)
   なし
@@ -193,6 +238,8 @@ Before reporting completion, confirm:
 - [ ] Mermaid / table presence was checked
 - [ ] Each positive criterion (P1–P7) was evaluated with a Yes/No + evidence
 - [ ] Each negative criterion (N1–N4) was checked
+- [ ] For a feature README, the required sections were read from `docs/templates/feature-readme.md` and each was graded present / thin / missing
+- [ ] Story ids, operationIds, spec links and Action names asserted by the README were resolved against the source
 - [ ] Final classification matches the thresholds
 - [ ] Output is in Japanese with concrete evidence per criterion
 - [ ] Next-action suggestion is included
