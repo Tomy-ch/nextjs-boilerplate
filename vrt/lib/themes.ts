@@ -12,7 +12,7 @@ export const THEMES = ["light", "dark"] as const;
  * 全 story を撮り、axe を掛けるテーマ。基準画像を分けるディレクトリ名でもある。
  *
  * @remarks
- * 明るい面を選ぶのは、基準画像を人が承認する場（置き場の compare ビュー）が明るく、暗い画像の
+ * 明るい面を選ぶのは、基準画像を人が承認する場（GitHub 上で開く絵）が明るく、暗い画像の
  * 差分は読み取りづらいためです。`:root` の既定が light である側でもあります。
  */
 export const SHOT_THEMES = ["light"] as const;

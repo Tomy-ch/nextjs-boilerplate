@@ -106,7 +106,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.scope.outputs.relevant == 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # The record of which input state axe already cleared. `make a11y` hashes the rendering
       # inputs itself and skips the run when they match, so the cache only has to carry the

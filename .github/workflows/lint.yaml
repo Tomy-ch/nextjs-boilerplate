@@ -64,7 +64,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # The status is captured rather than allowed to abort the step: the PR comment
       # has to be produced whether the check passed or failed. The last step turns

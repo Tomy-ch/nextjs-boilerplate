@@ -191,7 +191,7 @@ function clean(root: string): void {
 
 /** 作業ツリーへ依存を入れる。lockfile どおりに入れるので、ブランチの依存がそのまま再現される。 */
 function install(tree: string): void {
-  const result = spawnSync("pnpm", ["install", "--frozen-lockfile"], {
+  const result = spawnSync("pnpm", ["install", "--frozen-lockfile", "--ignore-scripts"], {
     cwd: tree,
     stdio: "inherit",
   });

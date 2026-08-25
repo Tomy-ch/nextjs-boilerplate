@@ -51,7 +51,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # Exit code 10 means "worth cleaning"; 0 means "nothing to say". Anything else
       # is the query itself failing, which must not be reported as a clean store.
