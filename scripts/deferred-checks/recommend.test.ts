@@ -1,7 +1,16 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import type { Change } from "../lib/numstat";
 import { CHECKS, pending, recommend } from "./recommend";
+
+/** リポジトリが実際に作るラベルの名前。 */
+function declaredLabels(): string[] {
+  const declaration: unknown = JSON.parse(readFileSync(".github/settings/labels.json", "utf8"));
+
+  return (declaration as { readonly name: string }[]).map((label) => label.name);
+}
 
 /** 変更 1 件。 */
 function change(path: string, changedLines = 1): Change {
@@ -15,12 +24,16 @@ function labelsOf(changes: readonly Change[], labels: readonly string[] = []): s
 
 describe("CHECKS", () => {
   // ----- 正常系 -----
-  it("ラベルの表記は run- で始まり、リポジトリのラベルと綴りが揃っている", () => {
+  it("勧めるラベルは 3 つで、宣言の順に並ぶ", () => {
     expect(CHECKS.map((check) => check.label)).toStrictEqual([
       "run-a11y",
       "run-e2e",
       "run-lighthouse",
     ]);
+  });
+
+  it("勧めるラベルは、リポジトリが実際に作るラベルとして宣言されている", () => {
+    expect(declaredLabels()).toEqual(expect.arrayContaining(CHECKS.map((check) => check.label)));
   });
 
   it("表の升目に区切り文字を含まない", () => {
@@ -86,6 +99,31 @@ describe("recommend", () => {
     ]);
   });
 
+  it("story の並べ方を決める設定が動けば axe を勧める", () => {
+    expect(labelsOf([change(".storybook/main.ts")])).toStrictEqual(["run-a11y"]);
+    expect(labelsOf([change(".storybook/preview.css")])).toStrictEqual(["run-a11y"]);
+  });
+
+  it("カタログ自身が持つ story が動けば axe を勧める", () => {
+    expect(labelsOf([change(".storybook/design-token.stories.tsx")])).toStrictEqual(["run-a11y"]);
+  });
+
+  it("ジャーニーの手順そのものが動けばジャーニーを勧める", () => {
+    expect(labelsOf([change("e2e/journeys/browse.spec.ts")])).toStrictEqual(["run-e2e"]);
+  });
+
+  it("入れ子の画面の器が動けばジャーニーを勧める", () => {
+    expect(labelsOf([change("src/app/(shop)/layout.tsx")])).toStrictEqual(["run-e2e"]);
+  });
+
+  it("画像とバンドルの既定が動けば計測を勧める", () => {
+    expect(labelsOf([change("next.config.ts")])).toStrictEqual(["run-lighthouse"]);
+  });
+
+  it("変更が 1 つも無ければ、どれも勧めない", () => {
+    expect(labelsOf([])).toStrictEqual([]);
+  });
+
   // ----- 異常系 -----
   it("挙げていないパスは、どれも勧めない", () => {
     expect(
@@ -110,10 +148,6 @@ describe("recommend", () => {
     expect(labelsOf([change("src/app/layout.tsx"), change("src/app/fonts.ts")])).toStrictEqual([
       "run-e2e",
     ]);
-  });
-
-  it("変更が 1 つも無ければ、どれも勧めない", () => {
-    expect(labelsOf([])).toStrictEqual([]);
   });
 });
 

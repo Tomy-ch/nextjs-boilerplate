@@ -39,12 +39,13 @@ describe("parseNumstat", () => {
 
 describe("numstatArgs", () => {
   // ----- 正常系 -----
-  it("パスの引用を切ってから差分を取る", () => {
+  it("パスの引用とリネームの畳み込みを、どちらも切ってから差分を取る", () => {
     expect(numstatArgs(["origin/main...HEAD"])).toEqual([
       "-c",
       "core.quotePath=false",
       "diff",
       "--numstat",
+      "--no-renames",
       "origin/main...HEAD",
     ]);
   });
@@ -55,6 +56,7 @@ describe("numstatArgs", () => {
       "core.quotePath=false",
       "diff",
       "--numstat",
+      "--no-renames",
       "origin/main",
       "HEAD",
     ]);

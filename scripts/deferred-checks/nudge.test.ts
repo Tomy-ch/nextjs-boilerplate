@@ -8,6 +8,23 @@ function change(path: string, changedLines = 1): Change {
   return { path, changedLines };
 }
 
+/** 本文の最後の段落。 */
+function lastBlockOf(body: string | undefined): string | undefined {
+  return body?.trimEnd().split("\n\n").at(-1);
+}
+
+/** 表のうち、そのラベルの行 1 本。 */
+function rowFor(body: string | undefined, label: string): string | undefined {
+  return body?.split("\n").find((line) => line.startsWith(`| \`${label}\``));
+}
+
+/** どちらのコメントも最後に置く断り。 */
+const NOT_A_GATE = [
+  "**これはゲートではありません。** どれも付けずに merge できます。全数は保護ブランチへの",
+  "merge と日次で回り（ADR 0091 §3）、`develop` / `staging` / `production` を base とする PR",
+  "では 3 つとも必ず回ります。",
+].join("\n");
+
 describe("decideNudge", () => {
   // ----- 正常系 -----
   it("構造から名指しできたら、行数を見ずに名指しを返す", () => {
@@ -82,15 +99,19 @@ describe("renderNudge", () => {
 
     expect(comment?.title).toBe("## 🔎 先送りにしている検査を回しておくことを勧めます");
     expect(comment?.body).toContain("**512 行**");
-    expect(comment?.body).toContain("| `run-a11y` | 全 story への axe | 約 10 分 |");
+    expect(rowFor(comment?.body, "run-a11y")).toBe("| `run-a11y` | 全 story への axe | 約 10 分 |");
   });
 
-  it("どちらのコメントも、ゲートではないことを最後に書く", () => {
-    for (const changes of [[change("src/proxy.ts")], [change("src/app/globals.css", 900)]]) {
-      expect(renderNudge(decideNudge(changes, [], 400))?.body).toContain(
-        "**これはゲートではありません。**",
-      );
-    }
+  it("名指しの表は、ゲートではないという断りで終わる", () => {
+    expect(lastBlockOf(renderNudge(decideNudge([change("src/proxy.ts")], [], 400))?.body)).toBe(
+      NOT_A_GATE,
+    );
+  });
+
+  it("行数の表も、ゲートではないという断りで終わる", () => {
+    expect(
+      lastBlockOf(renderNudge(decideNudge([change("src/app/globals.css", 900)], [], 400))?.body),
+    ).toBe(NOT_A_GATE);
   });
 
   // ----- 異常系 -----

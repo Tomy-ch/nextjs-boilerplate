@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync, writeFileSync } from "node:fs";
 
 import { numstatArgs, parseNumstat } from "../lib/numstat.js";
+import { parseLabels } from "./labels.js";
 import { decideNudge, renderNudge } from "./nudge.js";
 
 const USAGE = "usage: deferred-checks nudge <base ref> <line> <body file>";
@@ -38,7 +39,9 @@ function nudge(baseRef: string, alertAt: number, bodyFile: string): void {
     throw new Error(`${baseRef} との差分を取れませんでした。base を fetch していますか。`);
   }
 
-  const comment = renderNudge(decideNudge(parseNumstat(numstat.stdout), readLabels(), alertAt));
+  const comment = renderNudge(
+    decideNudge(parseNumstat(numstat.stdout), parseLabels(process.env.PR_LABELS), alertAt),
+  );
   const output = process.env.GITHUB_OUTPUT;
 
   if (output === undefined) {
@@ -53,23 +56,6 @@ function nudge(baseRef: string, alertAt: number, bodyFile: string): void {
   );
 
   console.error(comment === undefined ? "🔎 言うことなし" : `🔎 ${comment.title}`);
-}
-
-/**
- * その PR が既に持つラベル。
- *
- * @remarks
- * 読めなければ「1 枚も無い」として続けます。倒れる先は知らせる側で、**黙る側ではありません**
- * —— 読めなかったことと、付いていないことを取り違えても、余分なコメントで済みます。
- */
-function readLabels(): string[] {
-  try {
-    const labels: unknown = JSON.parse(process.env.PR_LABELS ?? "[]");
-
-    return Array.isArray(labels) ? labels.filter((label) => typeof label === "string") : [];
-  } catch {
-    return [];
-  }
 }
 
 function fail(message: string): never {
