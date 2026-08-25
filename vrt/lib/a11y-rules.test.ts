@@ -58,7 +58,7 @@ describe("DISABLED_RULES", () => {
   // ----- 異常系 -----
   it("無効化が増え続けないよう、宣言の数を目に見える形に保つ", () => {
     // 増やすときはこの数を更新する。更新が要ること自体が、無効化を足した事実を差分へ出す。
-    expect(DISABLED_RULES).toHaveLength(3);
+    expect(DISABLED_RULES).toHaveLength(0);
   });
 
   it("色コントラストを無効にしない（実ブラウザで撮るために相乗りしている）", () => {
