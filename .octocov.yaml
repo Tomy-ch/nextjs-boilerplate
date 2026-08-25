@@ -12,6 +12,10 @@ testExecutionTime:
   if: true
 comment:
   if: is_pull_request
+  # 既定は push のたびに新しいコメントを作る。3 回 push した PR には 3 枚並ぶ。
+  # ほかの検査ログは同じ PR で 1 枚を更新し続けるので（.github/actions/upsert-pr-comment）、
+  # ここだけ積み上がると、緑の検査を黙らせて減らした分をそのまま埋め戻すことになる。
+  updatePrevious: true
 report:
   if: env.GITHUB_BASE_REF == 'production'
   datastores:

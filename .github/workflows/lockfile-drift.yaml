@@ -115,6 +115,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- lockfile-drift-result -->'
+          status: ${{ steps.drift.outputs.status }}
           title: ${{ steps.drift.outputs.title }}
           body-file: /tmp/lockfile-drift.log
           details-summary: 'pnpm install / git diff log'

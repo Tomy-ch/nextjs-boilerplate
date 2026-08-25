@@ -179,6 +179,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- bundle-budget-result -->'
+          status: ${{ steps.budget.outputs.status || 'success' }}
           title: ${{ steps.budget.outputs.title || steps.standdown.outputs.title }}
           body-file: /tmp/bundle-budget.log
           details-summary: 'route ごとの client JS'

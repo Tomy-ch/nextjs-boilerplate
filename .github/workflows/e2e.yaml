@@ -54,6 +54,7 @@ jobs:
 
     outputs:
       title: ${{ steps.e2e.outputs.title }}
+      status: ${{ steps.e2e.outputs.status }}
 
     steps:
       - name: Harden the runner
@@ -325,6 +326,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- e2e-result -->'
+          status: ${{ needs.e2e.outputs.status }}
           title: ${{ needs.e2e.outputs.title }}
           body-file: /tmp/e2e-comment/e2e.log
           notes-file: /tmp/e2e-comment/e2e-notes.md
