@@ -5,6 +5,7 @@ import {
   findRenderModeDrift,
   formatRenderModeDrift,
   type Page,
+  prerenderedRoutes,
 } from "./render-mode";
 
 function pages(...entries: readonly [string, string][]): Page[] {
@@ -39,6 +40,48 @@ describe("declaredStaticRoutes", () => {
     expect(
       declaredStaticRoutes(pages(["/", "// force-static にはしない\nexport default 1;\n"])),
     ).toEqual([]);
+  });
+});
+
+describe("prerenderedRoutes", () => {
+  // ----- 正常系 -----
+  it("解決済みのパスを、元のパターンへ畳み戻す", () => {
+    expect(
+      prerenderedRoutes({
+        routes: {
+          "/products/1": { srcRoute: "/products/[id]" },
+          "/products/2": { srcRoute: "/products/[id]" },
+        },
+      }),
+    ).toEqual(["/products/[id]"]);
+  });
+
+  it("パターンを持たない route は鍵をそのまま使う", () => {
+    expect(prerenderedRoutes({ routes: { "/terms": { srcRoute: null } } })).toEqual(["/terms"]);
+  });
+
+  it("`srcRoute` を持たない形でも鍵をそのまま使う", () => {
+    expect(prerenderedRoutes({ routes: { "/terms": {} } })).toEqual(["/terms"]);
+  });
+
+  it("動的セグメントの側に居るパターンも挙げる", () => {
+    expect(prerenderedRoutes({ dynamicRoutes: { "/products/[id]": {} } })).toEqual([
+      "/products/[id]",
+    ]);
+  });
+
+  it("両方に現れるパターンを 1 度だけ挙げる", () => {
+    expect(
+      prerenderedRoutes({
+        routes: { "/products/1": { srcRoute: "/products/[id]" } },
+        dynamicRoutes: { "/products/[id]": {} },
+      }),
+    ).toEqual(["/products/[id]"]);
+  });
+
+  // ----- 異常系 -----
+  it("固まった route が無ければ空を返す", () => {
+    expect(prerenderedRoutes({})).toEqual([]);
   });
 });
 

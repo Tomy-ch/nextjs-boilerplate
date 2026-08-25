@@ -1,6 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 
-import { findRenderModeDrift, formatRenderModeDrift, type Page } from "./render-mode";
+import {
+  findRenderModeDrift,
+  formatRenderModeDrift,
+  type Page,
+  type PrerenderManifest,
+  prerenderedRoutes,
+} from "./render-mode";
 
 /**
  * 画面をどう描くかの宣言と、build がそう扱ったかを突き合わせる。
@@ -18,8 +24,6 @@ import { findRenderModeDrift, formatRenderModeDrift, type Page } from "./render-
  * 描けるため、Next.js は常に固めます。`favicon.ico` はそもそも画面ではありません。
  */
 const EXEMPT = ["/_not-found", "/_global-error", "/favicon.ico"];
-
-type PrerenderManifest = { readonly routes?: Readonly<Record<string, unknown>> };
 
 /** 内部 page パスから、その page ファイルの位置を組み立てる。 */
 function sourceOf(pagePath: string): string {
@@ -58,7 +62,7 @@ function main(): void {
     return;
   }
 
-  const drift = findRenderModeDrift(Object.keys(manifest.routes ?? {}), pages, EXEMPT);
+  const drift = findRenderModeDrift(prerenderedRoutes(manifest), pages, EXEMPT);
 
   if (drift.length > 0) {
     console.error(
