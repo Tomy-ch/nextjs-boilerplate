@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features] # 相手の facade/ と、画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
 coverage-exclusions:
@@ -36,6 +36,42 @@ coverage-exclusions:
 - 金額の計算（小計も税も送料も合計もバックエンドが決めます）
 - 買えるか・値が変わったかの判定（同上。届いた事情を読むだけです）
 
+## Route と契約
+
+| Route | 仕様書 | 認証 |
+| --- | --- | --- |
+| `/checkout` | [`screen`](../../../docs/spec/route/shop/checkout/page.screen.md) / [`function`](../../../docs/spec/route/shop/checkout/page.function.md) | 必要 |
+| `/checkout/complete` | [`screen`](../../../docs/spec/route/shop/checkout/complete/page.screen.md) / [`function`](../../../docs/spec/route/shop/checkout/complete/page.function.md) | 必要 |
+
+使う operationId。
+
+| operationId | 用途 |
+| --- | --- |
+| `GetCartsMe` | 確定前のカート。確定の直前にもう一度読み、明細を組み直す |
+| `GetUsersMe` | 届け先。登録情報をそのまま使う |
+| `GetExchangeRates` | 参考換算額。読めなくても購入を止めない |
+| `PostPurchases` | 購入の確定。冪等キーを載せる |
+| `GetPurchasesDetail` | 完了画面が取り直す購入 |
+| `PutCartsMeItem` | 値の変更を承知したとき、その明細を今の数量で設定し直す |
+| `DeleteCartsMeItem` | 成立の後、購入した明細をカートから取り除く |
+
+## 状態とデザイン参照
+
+| 画面 | 状態 | story |
+| --- | --- | --- |
+| 購入確認 | success | `Page/Checkout/Confirm/Default` |
+| | empty（確定できる明細が無い） | `Page/Checkout/Confirm/Empty` |
+| | 進めない（買える明細が無い） | `Page/Checkout/Confirm/Blocked` |
+| | 外れる明細がある | `Page/Checkout/Confirm/WithExcludedLines` |
+| | 参考換算額が読めなかった | `Page/Checkout/Confirm/WithoutReference` |
+| | loading | `Features/Checkout/Skeleton/PC` |
+| | 値の変更を確かめる | `Features/Checkout/PriceChangeConfirm/Default` |
+| 購入完了 | success | `Page/Checkout/Complete/Default` |
+| | 参考換算額が読めなかった | `Page/Checkout/Complete/WithoutReference` |
+
+error は route の `error` 境界（`src/app/(shop)/checkout/error.tsx`）が受けます。完了画面で指し先が
+読めない場合は `not-found.tsx` です。
+
 ## 構成
 
 画面（`confirm` / `complete`）ごとに掘り、その中を性質で分けます（[0027](../../../docs/adr/0027-directory-structure.md)）。
@@ -48,6 +84,7 @@ coverage-exclusions:
 | `form-state.ts` | 確定の戻り値の型。`ActionState<T>` をこの画面の形で閉じる |
 | `form-fields.ts` | 値の変更を承知した合図を載せるフォーム項目の名前 |
 | `order.ts` | 購入に載せる明細の取り出しと、金額が変わった明細の判定 |
+| `checkout.fixture.ts` | story とテストが読む固定のカートと購入 |
 | `paths.ts` | 完了画面の場所と、そこへ載せる検索条件。あわせてこの画面から出る先 |
 | `confirm/page-content.tsx` | カートと登録情報の並行取得、参考換算額の付与 |
 | `confirm/view.tsx` | 購入確認の表示。内容と集計を左右に分ける |
@@ -58,10 +95,41 @@ coverage-exclusions:
 | `confirm/ui/place-order-form/` | 確定の送信。そのまま送る姿 |
 | `confirm/ui/price-change-confirm/` | 金額が変わったときに確かめてから送る姿 |
 | `confirm/ui/place-order-submit/` | 送信部と失敗の表示。2 つの姿が共有する |
+| `confirm/ui/place-order-state/` | 確定の結果を 2 つの姿へ配る器。鍵ごとに鮮度を持つ |
 | `confirm/ui/skeleton/` | 購入確認の待機表示 |
 | `complete/page-content.tsx` | 成立した購入の取得。指し先が読めなければ `not-found` |
-| `complete/purchase-id.ts` | 完了画面が見せる購入を検索条件から読む |
+| `complete/purchase-code.ts` | 完了画面が見せる購入を検索条件から読む |
 | `complete/view.tsx` | 購入完了の表示。控え・内訳・明細・次の導線 |
+
+## 依存カーネル
+
+| カーネル | 用途 |
+| --- | --- |
+| `adapters` | カート・登録情報・参考換算額の取得と、購入の確定 |
+| `model` | 表示モデル（`Cart` / `Purchase` / `User`）、冪等キー、`ActionState` |
+| `components` | 面を組む器（カード・確認ダイアログ・操作の帯・待機表示・金額の切り替え） |
+| `errors` | 確定の失敗を、画面が出す分類へ写す |
+| `logging` | 後始末（カートからの取り除き）が失敗したときの記録。完了は見せ続ける |
+| `observability` | 描画を span に載せる |
+
+他 feature の `facade/` も引きます —— 購入の表示（`purchases`）と、明細に立った事情の言い方
+（`cart`）。借りている理由は「借りているもの」に書いてあります。
+
+## Action 戻り値契約
+
+| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| --- | --- | --- | --- | --- |
+| `placeOrderAction` | `actions.ts` | `PlaceOrderFormState` | 完了画面へ `redirect`。購入した明細をカートから取り除く | 分類を確定の操作の隣に出す |
+
+冪等キーと、承知の合図が無い送信の扱いは「設計上の判断」に書いてあります。
+
+## テスト観点
+
+- [ ] 確定が、画面の見せていた内容ではなくその時点のカートから明細を組み直す
+- [ ] 承知の合図が無い送信を Action が止める
+- [ ] 後始末（カートからの取り除き）が失敗しても完了が出る
+- [ ] 参考換算額が読めなくても確定できる
+- [ ] 冪等キーが 1 回の画面の組み立てにつき 1 つになる
 
 ## 設計上の判断
 

@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features] # 画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
 ---
@@ -19,6 +19,40 @@ test-requirement: feature
 - 汎用に使える表示（`Card` / `Badge` / `MediaImage` などは `components` から取る）
 - 業務ロジック（在庫や価格の決定はバックエンドの領分）
 
+## Route と契約
+
+| Route | 仕様書 | 認証 |
+| --- | --- | --- |
+| `/products` | [`screen`](../../../docs/spec/route/shop/products/page.screen.md) / [`function`](../../../docs/spec/route/shop/products/page.function.md) | 不要 |
+| `/products/[id]` | [`screen`](<../../../docs/spec/route/shop/products/[id]/page.screen.md>) / [`function`](<../../../docs/spec/route/shop/products/[id]/page.function.md>) | 不要 |
+
+使う operationId。
+
+| operationId | 用途 |
+| --- | --- |
+| `GetProducts` | 条件に一致する一覧。初回はサーバ側、続きは `/api/products` 経由 |
+| `GetProductsCount` | 条件に一致する総件数。一覧と同じ条件を渡す |
+| `GetProductsDetail` | 1 件の詳細 |
+| `GetProductCategories` | 絞り込みの選択肢。条件では変わらない |
+
+## 状態とデザイン参照
+
+| 画面 | 状態 | story |
+| --- | --- | --- |
+| 一覧 | success | `Page/Products/List/Default` |
+| | empty | `Page/Products/List/Empty` |
+| | loading | `Features/Products/List/Skeleton/Default` |
+| | error | `Features/Products/List/ErrorState/Default` |
+| | 続きを読んでいる | `Page/Products/List/LoadingMore` |
+| | 続きの取得に失敗 | `Page/Products/List/LoadMoreFailed` |
+| | 末尾まで読んだ | `Page/Products/List/ReachedEnd` |
+| 詳細 | success | `Page/Products/Detail/Default` |
+| | 在庫が無い | `Page/Products/Detail/OutOfStock` |
+| | 画像が無い | `Page/Products/Detail/NoImage` |
+
+error の面を出すのは route の境界（`error.tsx`）で、上の story はその境界が置く中身です。一覧と
+詳細は同じ表示を使い、詳細の「見つからない」だけが `not-found.tsx` の別の面になります。
+
 ## 構成
 
 画面（`list` / `detail`）ごとに掘り、その中を性質で分けます（[0027](../../../docs/adr/0027-directory-structure.md)）。
@@ -30,6 +64,7 @@ test-requirement: feature
 | `list/results.tsx` | 条件に一致する一覧と件数の取得。待機表示の境界がここに掛かる |
 | `facade/list-url/` | 一覧の URL 契約（パス・絞り込みのキー・URL の組み立て）。他の feature も引く |
 | `list/query.ts` | 素の `searchParams` の均し、件数、選択肢の型 |
+| `list/page-size.ts` | 1 度に読み込む件数。条件の解釈から切り離し、client へ zod を持ち込ませない |
 | `list/price-range.ts` | 価格の目盛りと、URL の下限・上限との写し |
 | `list/stock-availability.ts` | 在庫の有無と、URL の在庫数の条件との写し |
 | `list/filter-draft.tsx` | 組み立て中の条件を持ち、画面で 1 つに保つ |
@@ -56,6 +91,31 @@ test-requirement: feature
 | `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
 | `detail/view.tsx` | 1 件の詳細の表示。骨格と値の表示を持ち、画像の面は下へ渡す |
 | `detail/ui/gallery/` | 画像を送りながら見る面。枚数によらず carousel に載せ、拡大は実画像だけに出す |
+
+## 依存カーネル
+
+| カーネル | 用途 |
+| --- | --- |
+| `adapters` | 一覧・件数・詳細・分類の取得と、表示モデルへの変換。画像 URL の解決も含む |
+| `model` | 業務型（`Product` など）と、条件の型 |
+| `components` | 汎用の表示（`Card` / `Badge` / `MediaImage` / 入力欄の素） |
+| `capabilities` | 末尾到達の検知（`use-on-visible`）と、上端の取り合いに使う scroll の向き |
+| `errors` | 正規化済みの失敗を、画面が出す文言へ写す |
+| `logging` | 取得の失敗の記録 |
+| `observability` | 描画を span に載せる |
+
+## Action 戻り値契約
+
+なし。カートへ入れる操作は `cart` が持ち、この feature は
+[`cart/facade/add-to-cart/`](../cart/facade/add-to-cart/) を置くだけです。
+
+## テスト観点
+
+- [ ] 条件が URL に載り、共有・戻る操作・再読み込みのいずれでも同じ結果になる
+- [ ] 契約に照らして写せなかった条件が、黙って落ちずに画面へ出る
+- [ ] 幅によって絞り込みの確定の仕方が変わる（脇では即時、overlay ではまとめて）
+- [ ] 読み進めた件数が URL へ書き戻り、契約の上限までは復元される
+- [ ] 分類の選択が上限に達したとき、未選択が `disabled` ではなく `aria-disabled` になる
 
 ## 運用
 

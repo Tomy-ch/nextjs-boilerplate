@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features] # 画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
 ---
@@ -17,8 +17,30 @@ test-requirement: feature
 
 ## 受け入れないもの
 
-- 取得。どちらの画面も閲覧者によって内容が変わりません
+- 取得。どの画面も閲覧者によって内容が変わりません
 - 他 feature への直接依存
+
+## Route と契約
+
+| Route | 仕様書 | 認証 |
+| --- | --- | --- |
+| `/about` | [`screen`](../../../docs/spec/route/shop/about/page.screen.md) / [`function`](../../../docs/spec/route/shop/about/page.function.md) | 不要 |
+| `/privacy` | [`screen`](../../../docs/spec/route/shop/privacy/page.screen.md) / [`function`](../../../docs/spec/route/shop/privacy/page.function.md) | 不要 |
+| `/terms` | [`screen`](../../../docs/spec/route/shop/terms/page.screen.md) / [`function`](../../../docs/spec/route/shop/terms/page.function.md) | 不要 |
+
+**operationId は使いません。** 取得を持たないためで、契約が増えても変わりません。
+
+## 状態とデザイン参照
+
+| 画面 | 状態 | story |
+| --- | --- | --- |
+| 3 画面 | success | 画面まるごとの story は置いていない（下記） |
+| フッターの導線 | 既定 | `Features/SiteInfo/RepositoryLinks/Default` |
+| | 補足を開いた | `Features/SiteInfo/RepositoryLinks/WithHoverCard` |
+
+**取得が無い画面は状態を 1 つしか持たないため、画面の story を置いていません。**置いても
+`Default` 1 本になり、story が増えた分だけ VRT の実行時間だけが伸びます。3 画面の見た目は
+E2E の画面比較が受け持ちます（`e2e/lib/screens.ts` に `about` / `privacy` / `terms` があります）。
 
 ## 構成
 
@@ -32,6 +54,25 @@ test-requirement: feature
 | `ui/repository-links/` | フッターへ置く 2 リポジトリへの導線。説明は補足として HoverCard に載せる |
 | `ui/repository-cards/` | このサイトについて に置く、リポジトリ 2 つの説明 |
 | `ui/repository-supplement/` | それぞれの目的とできることを畳んだ面 |
+
+## 依存カーネル
+
+| カーネル | 用途 |
+| --- | --- |
+| `components` | 文章を並べる器（見出し・カード・畳める面・HoverCard） |
+| `observability` | 描画を span に載せる |
+
+取得を持たないため `adapters` を引きません。`model` も持ちません —— 表示するのは自分が持つ
+文面だけで、feature をまたいで共有する表示モデルがありません。
+
+## Action 戻り値契約
+
+なし。この 3 画面に操作がありません。
+
+## テスト観点
+
+- [ ] 免責が利用規約だけに出る（「このサイトについて」に写っていない）
+- [ ] フッターの導線が、補足を読めなくても行き先の判る文言を持つ
 
 ## 運用
 

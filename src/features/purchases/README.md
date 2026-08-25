@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features] # 相方の facade/ と、画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
 ---
@@ -20,6 +20,45 @@ test-requirement: feature
 - 購入を作ること（`checkout` の領分）
 - 金額の計算（小計・税・送料・合計はバックエンドが決めた値。[0070](../../../docs/adr/0070-backend-role-separation.md)）
 
+## Route と契約
+
+| Route | 仕様書 | 認証 |
+| --- | --- | --- |
+| `/purchases` | [`screen`](../../../docs/spec/route/shop/purchases/page.screen.md) / [`function`](../../../docs/spec/route/shop/purchases/page.function.md) | 必要 |
+| `/purchases/[code]` | [`screen`](<../../../docs/spec/route/shop/purchases/[code]/page.screen.md>) / [`function`](<../../../docs/spec/route/shop/purchases/[code]/page.function.md>) | 必要 |
+
+使う operationId。
+
+| operationId | 用途 |
+| --- | --- |
+| `GetPurchases` | 履歴。先頭ページはサーバ側、続きは `/api/purchases` 経由 |
+| `GetPurchasesDetail` | 1 件の詳細 |
+| `PatchPurchasesCancel` | 取り消し |
+| `PatchPurchasesPay` | 支払い |
+| `GetExchangeRates` | 参考換算額。読めなくても詳細は出す |
+
+**発送と配達（`PatchPurchasesShip` / `PatchPurchasesDeliver`）はここが呼びません。** 売り手側の
+遷移で、`admin` が持ちます。
+
+## 状態とデザイン参照
+
+| 画面 | 状態 | story |
+| --- | --- | --- |
+| 履歴 | success | `Page/Purchases/History/Default` |
+| | empty（購入が 1 件も無い） | `Page/Purchases/History/NoPurchases` |
+| | empty（その期間に無い） | `Page/Purchases/History/NoResultInPeriod` |
+| | loading | `Features/Purchases/HistorySkeleton/Default` |
+| | 続きを読んでいる | `Page/Purchases/History/LoadingMore` |
+| | 続きの取得に失敗 | `Page/Purchases/History/LoadMoreFailed` |
+| | 末尾まで読んだ | `Page/Purchases/History/ReachedEnd` |
+| 詳細 | success | `Page/Purchases/Detail/Default` |
+| | 支払い済み / 配達済み | `Page/Purchases/Detail/{Paid,Delivered}` |
+| | 参考換算額が読めなかった | `Page/Purchases/Detail/WithoutReference` |
+
+**空の状態を 2 つに分けています。**「まだ買っていない」と「その期間に無い」は利用者が次に取る
+行動が違います。**詳細は loading を持ちません** —— 理由は「設計」にあります。error は route の
+`error` 境界、見つからない場合は `not-found` が受けます。
+
 ## 構成
 
 画面（`history` / `detail`）ごとに掘り、その中を性質で分けます（[0027](../../../docs/adr/0027-directory-structure.md)）。
@@ -33,11 +72,13 @@ test-requirement: feature
 | `facade/amount-summary/` | 請求額の内訳と円の参考換算額。**購入完了も同じ形で出す** |
 | `facade/status-emphasis/` | ステータスの名称から badge の見た目を選ぶ。3 つに束ねる |
 | `purchases.fixture.ts` | story とテストが使う固定の購入 |
+| `facade/purchase.fixture.ts` | `facade/` の 3 つと、それを借りる `checkout` が読む固定値 |
 | `actions.ts` | 状態を進める送信。契約の遷移を呼び、競合だけ言い分ける |
 | `form-names.ts` | 送信が持つ項目の名前 |
 | `form-state.ts` | 送信の結果の器と、状況で拒まれたときの文言 |
 | `history/query.ts` | 画面が受け取る素の条件と、ページ送りの寸法（件数・カーソルのキー） |
-| `history/period.ts` | 期間の条件。URL のキー・読み取り・URL の組み立て・利用者への言い換え |
+| `history/period.ts` | 期間の条件。URL のキーと組み立て、利用者への言い換え |
+| `history/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md) #76） |
 | `history/period-draft.ts` | 組み立て中の期間。入力欄が経由する途中の姿と、確定できるかの判定 |
 | `history/page-content.tsx` | 条件の解釈と、画面と待機の境界の組み立て |
 | `history/results.tsx` | 先頭ページの取得。期間が変わったときに取り直す範囲 |
@@ -58,6 +99,37 @@ test-requirement: feature
 | `detail/ui/transitions/` | その購入にいまできる操作と、成立の知らせ |
 | `detail/ui/transitions/presentation.ts` | 遷移ごとの言葉と見た目。開く操作と確定する操作で分ける |
 | `detail/ui/transition-button/` | 状態を 1 つ進める操作。確認を開き、通らなかったことをその中で伝える |
+
+## 依存カーネル
+
+| カーネル | 用途 |
+| --- | --- |
+| `adapters` | 履歴・詳細・参考換算額の取得と、状態を進める送信 |
+| `model` | 表示モデル（`Purchase` / ステータス）、期間の型、`ActionState` |
+| `components` | 面を組む器（カード・バッジ・入力欄・続きの読み込み・印刷の操作） |
+| `capabilities` | 末尾到達の検知（`use-on-visible`） |
+| `errors` | 遷移が通らなかったときの分類を文言へ写す |
+| `observability` | 描画を span に載せる |
+
+商品一覧の URL は `products` の `facade/` から取ります（キーを写しません）。
+
+## Action 戻り値契約
+
+| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| --- | --- | --- | --- | --- |
+| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `revalidatePath` | 確認を開いたまま、その中で伝える |
+| `payPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | 同上 | 同上 |
+
+**競合（409）だけ言い分けます。** ほかの誰か・別のタブが先に進めた状態で押した場合で、押した人が
+取れる行動（画面を読み直す）が他の失敗と違います。
+
+## テスト観点
+
+- [ ] 期間の絞り込みがクエリでサーバへ渡る（取得済みのページを絞らない）
+- [ ] 必須の欠けた期間の URL が全期間へ倒れ、400 にならない
+- [ ] いまできない遷移の操作が現れない
+- [ ] 遷移が通らなかったことが、開いたままの確認の中に出る
+- [ ] 知らないステータスの業務キーが進行中へ倒れ、一覧が読める
 
 ## 設計
 
