@@ -115,6 +115,12 @@ pre-commit:
       # ロックファイルの 3 か所いずれの変更でも発火させる必要があるため。
       glob: ".github/**"
       run: make actions-pin-check
+    egress-check:
+      # harden-runner の許可リストが宣言どおりかを検査する (ADR 0153)。
+      # actions-pin-check と同じくネットワークに出ないため hook の速度目標に収まる。
+      # workflow 定義と宣言のどちらの変更でも発火させる。
+      glob: ".github/**"
+      run: make egress-check
     images-pin-check:
       # container image の参照がロックファイル通りに digest 固定されているかを検査する。
       # actions-pin-check と同じくネットワークに出ないため hook の速度目標に収まる。

@@ -203,6 +203,8 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 | `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>] [ACTIONS_PIN_ALLOW_MOVED="<key>..."]` | コメント tag を `git ls-remote` で SHA へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます。既定の検疫日数は 14。不変を宣言した tag の解決先が変わると exit 1（下記）。GitHub API のレート制限に掛かる場合は `GITHUB_TOKEN`（または `GH_TOKEN`）を設定してください。 |
 | `make actions-pin-apply` | ロックファイルを元に `uses:` の `@<sha>` を書き換えます。 | コメント tag は保持します。 |
 | `make actions-pin-check` | `uses:` がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-pin` job が実行します。未登録の参照 / 未固定・不一致の SHA / 壊れたロックファイル / 参照されなくなったエントリ / 解釈できない `uses:` 記法を検出して exit 1（fail-closed）。 |
+| `make egress-apply` | `.github/egress.yaml` を workflow の harden-runner へ反映します。 | 許可した宛先以外への外向き通信は遮断されます（`egress-policy: block`）。**足す根拠は実測**（`audit` が記録した `domain resolved:` 行）に置いてください。記録が揃っていない workflow は宣言側で `audit` に留め、理由と外す条件を書きます。 |
+| `make egress-check` | workflow が宣言どおり固定済みかを検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-lint` job が実行します。宣言との差分 / 想定外の記述 / 参照されなくなったエントリを検出して exit 1（fail-closed）。 |
 
 `uses:` は **1 行 1 ステップのブロック記法**で書いてください。YAML の flow mapping
 （`- {name: X, uses: owner/repo@v1}`）は検査の網に入らないため、素通りではなく error になります。
