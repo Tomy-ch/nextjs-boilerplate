@@ -26,7 +26,7 @@ PC の header で、カテゴリなど階層のあるサイト遷移を提供す
 
 **下位階層を開かない単純な navigation にはこの部品を使いません。** `nav` と `Link` を並べるだけで足り、client runtime も不要です。この部品を選ぶのは、trigger で下位項目を開く必要が確定した場合に限ります。
 
-現在地までの階層は [`Breadcrumb`](../breadcrumb/README.md)、一覧の送りは [`Pagination`](../pagination/README.md) が担います。行に対する操作をまとめるのは [`DropdownMenu`](../dropdown-menu/README.md) で、こちらは遷移ではなく操作が対象です。
+現在地までの階層は [`Breadcrumb`](../breadcrumb/README.md)、一覧の送りは [`Pagination`](../pagination/README.md) が担います。行に対する操作をまとめるのは [`DropdownMenu`](../../overlay/dropdown-menu/README.md) で、こちらは遷移ではなく操作が対象です。
 
 ## 責務境界
 

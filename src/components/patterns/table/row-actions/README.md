@@ -29,7 +29,7 @@ admin の一覧で、行ごとに編集画面への遷移や削除操作をま�
 
 操作列の見出しは既定で視覚的に隠します。見える見出しは不要ですが、column header が空だと table の意味論が崩れるため、読み上げ用の文言は保持します。
 
-同じ操作へ右クリックからも到達させたい場合は、[`ContextMenu`](../../../ui/context-menu/README.md) を行へ重ねて使えます。context menu は画面上に trigger が現れないため単独の導線にはできず、この sugar が出す可視の trigger が到達手段の本体であり続けます。
+同じ操作へ右クリックからも到達させたい場合は、[`ContextMenu`](../../../design-system/overlay/context-menu/README.md) を行へ重ねて使えます。context menu は画面上に trigger が現れないため単独の導線にはできず、この sugar が出す可視の trigger が到達手段の本体であり続けます。
 
 ## Server / Client の境界
 

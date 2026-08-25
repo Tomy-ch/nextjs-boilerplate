@@ -43,7 +43,7 @@
 
 並び順、event の意味、取得、件数の追加読み込みは持ちません。新しい順に並べるか古い順に並べるかは呼び出し元が決めます。
 
-続きの読み込みは [`cursor-pagination`](../../navigation/cursor-pagination/README.md) を隣に合成します。URL の組み立ては呼び出し元の責務です。
+続きの読み込みは [`cursor-pagination`](../../../app-starter/cursor-pagination/README.md) を隣に合成します。URL の組み立ては呼び出し元の責務です。
 
 ## Storybook とテスト
 

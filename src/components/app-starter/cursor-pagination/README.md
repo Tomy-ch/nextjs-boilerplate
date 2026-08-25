@@ -34,7 +34,7 @@ SSR first の component です。`next/link` による URL 遷移だけで成り
 
 **URL の組み立ては呼び出し元が持ちます。** API が返す `nextCursor` を query へ載せることも、現在の絞り込みや並び順を引き継ぐことも呼び出し元の責務で、この component は受け取った `href` へ移動させるだけです。取得も再取得も行いません。
 
-**前後移動の機構は独自に持ちません。** `Pagination` の `PaginationPrevious` / `PaginationNext` をそのまま合成しており、行き先が無い端を link ではなく操作できない control として描く挙動も、実体は [`Pagination`](../../ui/pagination/README.md) 側にあります。この component が担うのは「ページ番号を並べない」という cursor 方式の契約です。
+**前後移動の機構は独自に持ちません。** `Pagination` の `PaginationPrevious` / `PaginationNext` をそのまま合成しており、行き先が無い端を link ではなく操作できない control として描く挙動も、実体は [`Pagination`](../../design-system/navigation/pagination/README.md) 側にあります。この component が担うのは「ページ番号を並べない」という cursor 方式の契約です。
 
 **行き先が無い向きは `href` を省略します。** 位置が保たれ、支援技術にも「あるが今は使えない」と伝わります。
 

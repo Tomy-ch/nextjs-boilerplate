@@ -33,7 +33,7 @@ toolbar の右端に**プレビュー**の切り替えを持ちます。押し�
 - 説明文や告知文のように、書き手が見出しと箇条書きで構造を付けたい本文を編集する場合
 - 保存済みの本文を読み込み、書式を保ったまま編集し直す場合
 
-単一行の文字列には [`Input`](../../ui/input/README.md)、書式を持たない複数行には [`Textarea`](../../ui/textarea/README.md) を使います。この部品を選ぶのは、保存する内容そのものが構造を持つ場合だけです。
+単一行の文字列には [`Input`](../../form/input/README.md)、書式を持たない複数行には [`Textarea`](../../form/textarea/README.md) を使います。この部品を選ぶのは、保存する内容そのものが構造を持つ場合だけです。
 
 ### 書いた内容が表示に届くまで
 
@@ -43,7 +43,7 @@ toolbar の右端に**プレビュー**の切り替えを持ちます。押し�
 | --- | --- | --- |
 | 編集 | HTML 文字列 | `RichTextEditor`（client island） |
 | 保存・受け渡し | HTML 文字列 | 呼び出し元の form / Server Action / backend |
-| 検査 | HTML 文字列 → `SanitizedRichText` | [`model/rich-text/`](../../../model/rich-text/README.md) の `SanitizedRichText.from` |
+| 検査 | HTML 文字列 → `SanitizedRichText` | [`model/rich-text/`](../../../../model/rich-text/README.md) の `SanitizedRichText.from` |
 | 表示 | `SanitizedRichText` | [`RichTextContent`](../rich-text-content/README.md)（Server Component） |
 
 プレビューも表示側と同じ経路を通ります。`SanitizedRichText.from` を通して [`RichTextContent`](../rich-text-content/README.md) で描くため、**プレビューで見えないものは保存しても表示されません**。編集面の見た目をそのまま拡大するのではなく、allowlist を通した後の姿を見せるのが目的です。
@@ -76,7 +76,7 @@ export function DescriptionField({ defaultHtml = "" }: { defaultHtml?: string })
 }
 ```
 
-送信の結果表示は [`FormFeedback`](../../feedback/form-feedback/README.md)、項目名や説明文を伴う form の一項目として組む場合は [`Field`](../../ui/field/README.md) と合成します。この部品自身は `label` 以外の form 要素を持ちません。
+送信の結果表示は [`FormFeedback`](../../../app-starter/form-feedback/README.md)、項目名や説明文を伴う form の一項目として組む場合は [`Field`](../../form/field/README.md) と合成します。この部品自身は `label` 以外の form 要素を持ちません。
 
 ### 保存済みの内容を編集し直す
 
@@ -114,9 +114,9 @@ export function Description({ html }: { html: string }) {
 | 部品 | 関係 |
 | --- | --- |
 | [`RichTextContent`](../rich-text-content/README.md) | 書いた内容の表示側。この部品の相方であり、同じ allowlist の範囲を描画する |
-| [`model/rich-text/`](../../../model/rich-text/README.md) | allowlist と sanitize の所有者。この部品が書ける範囲はここから導出する |
+| [`model/rich-text/`](../../../../model/rich-text/README.md) | allowlist と sanitize の所有者。この部品が書ける範囲はここから導出する |
 | [`typeset`](../../foundation/typeset/README.md) | 組版の CSS 基盤。編集面と表示側の両方がこれを使うため、書いている最中と表示後で組版が揃う |
-| [`Input`](../../ui/input/README.md) / [`Textarea`](../../ui/textarea/README.md) | 書式を持たない入力。構造が要らない項目はこちらを選ぶ |
+| [`Input`](../../form/input/README.md) / [`Textarea`](../../form/textarea/README.md) | 書式を持たない入力。構造が要らない項目はこちらを選ぶ |
 
 ## 責務境界
 
@@ -126,7 +126,7 @@ ProseMirror の編集面を browser 側で組み立てるため hydration が必
 
 ### 書けるものは sanitizer の allowlist から導出する
 
-editor が読み書きする node と mark は `RICH_TEXT_EDITOR_EXTENSIONS` が決めており、その集合は [`src/model/rich-text/`](../../../model/rich-text/README.md) の allowlist（`RICH_TEXT_TAG_NAMES`）に収まる範囲だけで組んであります。**editor が出せるタグ ⊆ sanitizer が通すタグ**という関係を保つためです。この関係が崩れると、書けたのに表示されない内容が生まれます。
+editor が読み書きする node と mark は `RICH_TEXT_EDITOR_EXTENSIONS` が決めており、その集合は [`src/model/rich-text/`](../../../../model/rich-text/README.md) の allowlist（`RICH_TEXT_TAG_NAMES`）に収まる範囲だけで組んであります。**editor が出せるタグ ⊆ sanitizer が通すタグ**という関係を保つためです。この関係が崩れると、書けたのに表示されない内容が生まれます。
 
 そのため、書けるのは見出し（2〜4）・箇条書き・番号付き箇条書き・引用・区切り線・太字・斜体・打ち消し線・行内コード・改行・リンクだけです。表・画像・コードブロック・下線は書けません。allowlist に無い書式を要求されたときは、allowlist・extension・test の 3 点を揃えて足します。extension だけを足すと、この関係が無言で崩れます。
 
