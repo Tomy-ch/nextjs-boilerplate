@@ -36,6 +36,7 @@ go-boilerplate は logging を **抽象 `Logger` interface(ctx-native・zap 実�
 ### 3. シグナル別 config gating(go ADR 0059 翻案)
 
 - traces / metrics / logs を **`OBS_*` config(例 `OBS_TRACES_EXPORTER` / `OBS_METRICS_EXPORTER` / `OBS_LOGS_EXPORTER` / `OBS_OTLP_ENDPOINT`)で個別に on/off** する。専用 enable flag は持たず、**exporter 値が non-empty かつ `none` でなければ enabled** と derive する
+- **何を計装するかは transport と別の軸で持つ**。描画の計装は `OBS_RENDER_SPANS`(`none` / `screen` / `part`)で範囲を選び、起動境界から注入する。exporter の無効化を計装の無効化の代わりに使えない —— `OBS_TRACES_EXPORTER=none` でも他の signal が有効なら SDK は tracer provider を立て、span は記録されたうえで捨てられる(成果物だけがゼロになり計装のコストは残る)
 - gating は **構築時**に効かせる(disabled シグナルは exporter / batcher / reader を一切作らない)。config は [0030](0030-environment-variable-management.md)(A7)の型付き Config で供給し、`observability` は config を注入で受ける([0021](0021-frontend-responsibility.md))
 - **`logging` は `observability` を import しない**(依存方向を逆転させない)。trace 抽出は `observability` が提供する抽出器を logging へ**注入**する(go ADR 0059 の翻案)
 
@@ -63,6 +64,7 @@ go はバックエンドのみで、**server 常駐の OTel exporter / batch gor
 - ❌ vendor 具象へアプリコードを直結し **差し替え不能にすること**(依存先は `observability` カーネルの公開面。OTLP / OTel 骨格を迂回して vendor 固有機能へロックインしない)
 - ❌ custom / vendor-specific な semconv キーを typed config に入れること(公式 semconv のみ)
 - ❌ `logging` が `observability` を import すること(依存逆転。trace 抽出は注入で受ける)
+- ❌ 起動境界からの注入をモジュール変数へ置くこと(Next は起動境界と RSC を別のモジュールグラフとして組み、同じファイルが 1 プロセス内で 2 回インスタンス化される。realm を共有する registered symbol で渡す)
 - ❌ `logging` / `observability` カーネルが config を直読すること(注入で受ける。直読は config カーネルのみ = [0030](0030-environment-variable-management.md)。vendor の DSN / endpoint も typed config 経由)
 - ❌ ブラウザから直接 SaaS へテレメトリを送ること(BFF 中継 seam。vendor SDK 使用時も自ドメイン経由に保つ)
 - ❌ PII / token / password をログに出すこと / `console.log` をコミットに残すこと([0002](0002-formatter-linter.md))
