@@ -115,6 +115,7 @@ jobs:
             mise-versions.jdx.dev:443
             nodejs.org:443
             registry.npmjs.org:443
+            cdn.playwright.dev:443
             fonts.googleapis.com:443
             fonts.gstatic.com:443
             accounts.google.com:443
@@ -263,6 +264,7 @@ jobs:
       # Only off a pull request. There the failure is already visible on the pull request
       # itself, and an issue per branch would outlive the branch.
       - name: Compose what the issue says
+        id: guard
         if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -274,7 +276,13 @@ jobs:
           # every fallback ends in something printable.
           body="$(sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log 2>/dev/null)"
 
-          if [ -z "${body}" ]; then
+          # Its presence is also the only evidence that screens were measured at all, so it
+          # decides the title. Calling an install failure "over budget" names a cause nobody
+          # established, and the title is what a reader sees first.
+          if [ -n "${body}" ]; then
+            echo "subject=Core Web Vitals が予算を超えている" >> "$GITHUB_OUTPUT"
+          else
+            echo "subject=計測が実行できていない" >> "$GITHUB_OUTPUT"
             body="$(tail -n 60 /tmp/lighthouse-full.log 2>/dev/null)"
           fi
 
@@ -304,7 +312,7 @@ jobs:
         uses: ./.github/actions/upsert-issue
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          title: '[Lighthouse] ${{ github.ref_name }} で Core Web Vitals が予算を超えている'
+          title: '[Lighthouse] ${{ github.ref_name }} で ${{ steps.guard.outputs.subject }}'
           body-file: /tmp/lighthouse-guard.md
           label: chore
 

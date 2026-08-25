@@ -59,8 +59,11 @@ workflows:
   vrt: *browser
   vrt-guard: *browser
 
-  # Chrome 自身の背景通信。計測はブラウザをコンテナへ閉じ込めないため、これが出る。
+  # 計測はブラウザをコンテナへ閉じ込めないため、ホストへ取得したうえで走らせる。出るのは
+  # 取得そのもの (cdn.playwright.dev) と、起動した Chrome 自身の背景通信の 2 系統。
+  # 撮影側 (a11y / e2e / vrt) に取得先が要らないのは、あちらが digest 固定のコンテナを引くため。
   lighthouse:
+    - cdn.playwright.dev:443
     - fonts.googleapis.com:443
     - fonts.gstatic.com:443
     - accounts.google.com:443
