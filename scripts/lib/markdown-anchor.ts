@@ -46,7 +46,9 @@ export function collectAnchors(markdown: string): Set<string> {
   const seen = new Map<string, number>();
   let inFence = false;
 
-  for (const line of markdown.split("\n")) {
+  // BOM は 1 行目の見出しの手前に付く。剥がさないと `^#` に当たらず、実在する節への参照が
+  // 「見出しが無い」として報告される。
+  for (const line of markdown.replace(/^\uFEFF/, "").split("\n")) {
     if (FENCE.test(line)) {
       inFence = !inFence;
       continue;

@@ -129,9 +129,45 @@ describe("findBrokenDocLinks", () => {
   });
 
   it("同じ行に複数あればすべて返す", () => {
-    const source = `/** [a](..${"/nope-a.md"}) [b](..${"/nope-b.md"}) */`;
+    const first = `..${"/nope-a.md"}`;
+    const second = `..${"/nope-b.md"}`;
+    const source = `/** [a](${first}) [b](${second}) */`;
 
-    expect(findBrokenDocLinks("src/x.ts", source, root)).toHaveLength(2);
+    expect(findBrokenDocLinks("src/x.ts", source, root)).toEqual([
+      { file: "src/x.ts", href: first, line: 1, reason: "path" },
+      { file: "src/x.ts", href: second, line: 1, reason: "path" },
+    ]);
+  });
+
+  it("複数行コメントの継続行（先頭が `*`）に書かれたリンクも見る", () => {
+    const href = `..${"/docs/nope.md"}`;
+    const source = `/**\n * 詳細は [手引き](${href})。\n */`;
+
+    expect(findBrokenDocLinks("src/x.ts", source, root)).toEqual([
+      { file: "src/x.ts", href, line: 2, reason: "path" },
+    ]);
+  });
+
+  it("閉じないコードフェンスの後ろも見る", () => {
+    // 閉じないフェンスを「そこから先ぜんぶコード」と読むと、残りが丸ごと無検査になる。
+    const href = `..${"/docs/nope.md"}`;
+    const source = ["```md", `[a](${href})`].join("\n");
+
+    expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([
+      { file: "src/x.md", href, line: 2, reason: "path" },
+    ]);
+  });
+
+  it("参照形式定義とインラインリンクが同じ行にあれば両方拾う", () => {
+    const definition = `..${"/nope-a.md"}`;
+    const inline = `..${"/nope-b.md"}`;
+    const source = `[手引き]: ${definition} "見本 [x](${inline})"`;
+
+    expect(
+      findBrokenDocLinks("src/x.md", source, root)
+        .map(({ href }) => href)
+        .sort(),
+    ).toEqual([definition, inline].sort());
   });
 
   it("指し先に無い見出しを、アンカー切れとして返す", () => {

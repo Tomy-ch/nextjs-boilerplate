@@ -171,4 +171,13 @@ describe("findUndeclaredDirectories", () => {
 
     expect(undeclared).toEqual(["mocks"]);
   });
+
+  it("複数の未宣言ディレクトリを名前順に並べる", () => {
+    const undeclared = findUndeclaredDirectories(
+      ["src/zzz/a.test.ts", "src/aaa/b.test.ts"],
+      readerOf({}),
+    );
+
+    expect(undeclared).toEqual(["src/aaa", "src/zzz"]);
+  });
 });

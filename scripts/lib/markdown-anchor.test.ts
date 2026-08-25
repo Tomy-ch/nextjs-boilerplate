@@ -19,6 +19,11 @@ describe("toAnchor", () => {
   it("HTML タグを落とす", () => {
     expect(toAnchor("<em>強調</em>した見出し")).toBe("強調した見出し");
   });
+
+  // ----- 異常系 -----
+  it("記号だけの見出しは空文字になる", () => {
+    expect(toAnchor("!!!")).toBe("");
+  });
 });
 
 describe("collectAnchors", () => {
@@ -40,6 +45,10 @@ describe("collectAnchors", () => {
   // ----- 異常系 -----
   it("コードフェンスの中の `#` は見出しではない", () => {
     expect(collectAnchors("# 表題\n\n```md\n## 例の節\n```\n")).toEqual(new Set(["表題"]));
+  });
+
+  it("先頭に BOM があっても 1 行目の見出しを拾う", () => {
+    expect(collectAnchors("\uFEFF# 表題\n")).toEqual(new Set(["表題"]));
   });
 
   it("見出しでない行は数えない", () => {

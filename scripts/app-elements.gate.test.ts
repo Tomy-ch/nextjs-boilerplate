@@ -50,7 +50,10 @@ describe("app の element の禁止", () => {
       );
 
       expect(errors).toHaveLength(1);
+      // 件数だけでは、別の policy が偶然 1 件当たった場合と区別できない。落ちた向き
+      // （どの category から、どの層へ）まで見る。
       expect(errors[0]).toContain("app-route-handler");
+      expect(errors[0]).toContain("features");
     },
     TIMEOUT_MS,
   );
@@ -64,6 +67,8 @@ describe("app の element の禁止", () => {
       );
 
       expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain("app-route-handler");
+      expect(errors[0]).toContain("components");
     },
     TIMEOUT_MS,
   );
@@ -96,7 +101,7 @@ describe("app の element の禁止", () => {
   );
 });
 
-describe("APP_ELEMENTS", () => {
+describe("app の element の許可と禁止の網羅", () => {
   // ----- 正常系 -----
   it("層が許すカーネルは、element の許可か禁止のどちらかに必ず属する", () => {
     for (const element of APP_ELEMENTS) {

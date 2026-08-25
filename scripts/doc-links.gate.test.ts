@@ -65,6 +65,16 @@ function brokenIn(files: readonly string[]) {
 // 走査の遅さがそのまま赤になる（`docs/testing-conventions.md`「リポジトリ全体を走査するゲート」）。
 const TIMEOUT_MS = 300_000;
 
+/**
+ * 走査対象の下限。
+ *
+ * @remarks
+ * 実数より十分低く採る。**現在の件数に合わせると、ファイルを 1 つ消すたびに落ちる**ゲートに
+ * なってしまう。ここが守るのは縮退であって増減ではない。
+ */
+const MINIMUM_SOURCES = 500;
+const MINIMUM_MARKDOWN = 200;
+
 describe("文書リンクの解決", () => {
   // ----- 正常系 -----
   it(
@@ -74,6 +84,9 @@ describe("文書リンクの解決", () => {
         [...walk(join(REPOSITORY_ROOT, root))].map((file) => relative(REPOSITORY_ROOT, file)),
       );
 
+      // 走査対象そのものが空へ縮退しても、壊れたリンクは 0 件になる。ゲートが「違反なし」を
+      // 報告する向きに壊れたことを、結果からは見分けられない。下限を置いて縮退を落とす。
+      expect(files.length).toBeGreaterThan(MINIMUM_SOURCES);
       expect(formatBrokenDocLinks(brokenIn(files), REPOSITORY_ROOT)).toBe("");
     },
     TIMEOUT_MS,
@@ -84,6 +97,7 @@ describe("文書リンクの解決", () => {
     () => {
       const files = collectMarkdownFiles(REPOSITORY_ROOT);
 
+      expect(files.length).toBeGreaterThan(MINIMUM_MARKDOWN);
       expect(formatBrokenDocLinks(brokenIn(files), REPOSITORY_ROOT)).toBe("");
     },
     TIMEOUT_MS,

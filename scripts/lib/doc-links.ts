@@ -82,10 +82,14 @@ function scannableLines(file: string, content: string): string[] {
     });
   }
 
+  // 閉じないフェンスを「そこから先ぜんぶコード」と読むと、**残りの行が丸ごと無検査になる**。
+  // 見落としは無言なので、対応の取れない最後の開きは開きとして数えない。
+  const fences = lines.flatMap((line, index) => (FENCE.test(line) ? [index] : []));
+  const unclosed = fences.length % 2 === 1 ? fences[fences.length - 1] : -1;
   let inFence = false;
 
-  return lines.map((line) => {
-    if (FENCE.test(line)) {
+  return lines.map((line, index) => {
+    if (FENCE.test(line) && index !== unclosed) {
       inFence = !inFence;
 
       return "";
