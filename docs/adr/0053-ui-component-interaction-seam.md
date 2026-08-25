@@ -36,7 +36,9 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 
 ### 3. リッチテキスト/エディタ = TipTap を v1 採用 + sanitizer port + 表示 seam(#15)
 
-- **WYSIWYG エディタは TipTap を v1 で採用**する(商品説明が実使用面)。エディタ本体は `components` カーネルに置き、[0052](0052-ui-component-policy.md) の配置・exact-pin 要件に従う
+- **WYSIWYG エディタは TipTap を v1 で採用**する。エディタ本体は `components` カーネルに置き、[0052](0052-ui-component-policy.md) の配置・exact-pin 要件に従う
+- **採る理由はエディタ本体ではなく、その隣に要る表示側の継ぎ目にある。** 利用者が書いた内容を安全に表示する経路は、**後から足すと「通し忘れ」が既に散った後**になる。同梱するのは、その経路を型で塞いだ形（下記の port と nominal type）を実物として置くためであり、fork 先がエディタ本体を差し替えてもこの形は残る
+- 実使用面は、**利用者が書いた長文が他の利用者へ表示される欄**である。そういう欄を持たない fork は、エディタごと落として sanitizer port だけを残してよい <!-- sample:line -->
 - 「表示」側の拡張点(seam): **信頼できない HTML を安全な表示へ変換する sanitizer を、差し替え可能な named port(seam)として扱う**(rehype/rehype-sanitize / DOMPurify 等は port の実装であって本体前提ではない)。リッチテキスト表示は、この sanitizer port を必ず通す
 - sanitizer port は外部ライブラリの wrap であり、[0021](0021-frontend-responsibility.md) のカーネル受入基準(複数箇所参照 or 外部ライブラリ wrap → カーネル)に従って **`model` カーネル**に置く。表示 seam(sanitize 済みコンテンツの描画)は `components` に置く
 - **port は sanitize 済みであることを型で表す。** 通過後の値を nominal type として返し、表示側はその型だけを受け取る。生の HTML 文字列を props に取らないため、**sanitizer を迂回する経路が公開 API にも実装にも存在しない**。「通し忘れ」を規約ではなく型で塞ぐ形である
@@ -137,7 +139,7 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 - **分類**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は a11y interaction seam(採用部品 / v2 局所ライブラリ共通の相互作用 a11y 契約 + 名前付き seam)を主とし、§4 の native `<dialog>` 既定という affirmative decision を内包する。いずれも ADR に属する分類(decision = ADR)であり、日常強制の粒度規約(rule)は 0110(XSS)/ 0100(a11y チェック)/ rules.md 側が持つ
 - **0052 との主題分担**: [0052](0052-ui-component-policy.md) は「どの UI 部品を v1/v2 で持つか(採用・同梱可否)」を所有し、本 ADR は「持った / 持つ interaction UI の相互作用 a11y 品質(seam + 契約)」を所有する。両者は主題が重複しない
 - **採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**(独立起票)
-- **採用区分**: リッチテキスト(TipTap)= **v1 採用**(§3。実使用面は商品説明)。DnD(dnd-kit)= v2 局所採用([master-plan §1.2](../plan/master-plan.md))。キーボードショートカット = 据え置き除外(§5)。いずれの場合も本体は seam と a11y 契約を保持し、ライブラリは [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。§1 built-in 優先と §3〜6 の a11y 契約は採用区分によらず不変
+- **採用区分**: リッチテキスト(TipTap)= **v1 採用**(§3)。DnD(dnd-kit)= v2 局所採用([master-plan §1.2](../plan/master-plan.md))。キーボードショートカット = 据え置き除外(§5)。いずれの場合も本体は seam と a11y 契約を保持し、ライブラリは [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。§1 built-in 優先と §3〜6 の a11y 契約は採用区分によらず不変
 
 ## 関連 ADR
 

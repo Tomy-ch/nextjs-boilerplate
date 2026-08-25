@@ -27,7 +27,7 @@ BACKLOG C5 は、`next/font` / `next/image` の使い方規約・`public/` の�
 
 ### 2.1 バックエンド由来画像 = public storage 前提・自前の配信レイヤを持たない
 
-- バックエンドが返すのは**オブジェクトキー**(例: `products/{uuid}.{ext}`)であり、**表示 URL の組み立てはフロントの責務**とする(backend にフル URL を保存させない)
+- バックエンドが返すのは**オブジェクトキー**(例: `{資源}/{uuid}.{ext}`)であり、**表示 URL の組み立てはフロントの責務**とする(backend にフル URL を保存させない)
 - ストレージは **public storage**(匿名 read 可 / listing 不可)を前提とする。したがって本リポジトリに**配信プロキシ(Route Handler)を置かない**。持つのは配信オリジンを前置する純関数(`mediaUrl()`)と `next.config.ts` の `images.remotePatterns` のみで、最適化は `next/image` が単独で担う
 - 配信オリジンは env(`MEDIA_ORIGIN`)で供給する([0030](0030-environment-variable-management.md))。`remotePatterns` と CSP の `img-src`([0111](0111-csp-security-headers.md))の**両方**に同一オリジンを登録し、**ワイルドカードは使わない**
 - **`mediaUrl()` はオリジンの前置ではなく閉じ込めである。** キーは検証されないまま届くため、`data:` のように自分でスキームを持つ値は前置をすり抜けて配信元の外を指す。`next/image` はスキームを持つ値を最適化の経路から外すので、`remotePatterns` の許可はこの経路に効かない。**組み立てた URL が配信元の下に収まらなければ表示 URL を作らない**(代替画像へ倒す)
