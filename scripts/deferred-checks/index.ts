@@ -8,7 +8,7 @@
 import { spawnSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 
-import { parseNumstat } from "../lib/numstat.js";
+import { numstatArgs, parseNumstat } from "../lib/numstat.js";
 import { countChangedLines } from "./volume.js";
 
 const USAGE = "usage: deferred-checks volume <base ref> <line>";
@@ -32,7 +32,7 @@ function main(): void {
  * それを持ちません。差は「分岐後に base 側で入った変更も数える」ことで、知らせる側へ倒れます。
  */
 function volume(baseRef: string, alertAt: number): void {
-  const numstat = spawnSync("git", ["diff", "--numstat", baseRef, "HEAD"], { encoding: "utf8" });
+  const numstat = spawnSync("git", numstatArgs([baseRef, "HEAD"]), { encoding: "utf8" });
 
   if (numstat.status !== 0) {
     throw new Error(`${baseRef} との差分を取れませんでした。base を fetch していますか。`);

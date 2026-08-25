@@ -34,9 +34,14 @@ describe("isCounted", () => {
     expect(isCounted("mocks/handlers.ts")).toBe(true);
   });
 
+  it("撮影の手順そのものである spec を数える", () => {
+    expect(isCounted("vrt/stories.spec.ts")).toBe(true);
+  });
+
   // ----- 異常系 -----
   it("単体テストは数えない", () => {
     expect(isCounted("src/features/cart/cart-view.test.tsx")).toBe(false);
+    expect(isCounted("src/features/cart/total.test.ts")).toBe(false);
   });
 
   it("散文は数えない", () => {
@@ -62,12 +67,12 @@ describe("countChangedLines", () => {
     ).toBe(42);
   });
 
+  it("変更が 1 つも無ければ 0 を返す", () => {
+    expect(countChangedLines([])).toBe(0);
+  });
+
   // ----- 異常系 -----
   it("数える対象が無ければ 0 を返す", () => {
     expect(countChangedLines([change("README.md", 500)])).toBe(0);
-  });
-
-  it("変更が 1 つも無ければ 0 を返す", () => {
-    expect(countChangedLines([])).toBe(0);
   });
 });

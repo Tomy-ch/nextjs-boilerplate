@@ -12,7 +12,7 @@ import {
   SCREENS,
   selectScreens,
 } from "../../e2e/lib/screens";
-import { parseNumstat } from "../lib/numstat";
+import { numstatArgs, parseNumstat } from "../lib/numstat";
 import {
   hasFailure,
   judge,
@@ -155,7 +155,7 @@ function measure(target: Target, runs: number, headersFile: string | undefined):
  * [`trigger.ts`](trigger.ts) が持ちます。
  */
 function trigger(baseRef: string): void {
-  const numstat = spawnSync("git", ["diff", "--numstat", `${baseRef}...HEAD`], {
+  const numstat = spawnSync("git", numstatArgs([`${baseRef}...HEAD`]), {
     encoding: "utf8",
   });
 

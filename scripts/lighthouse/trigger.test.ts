@@ -44,6 +44,10 @@ describe("decideTrigger", () => {
     expect(decideTrigger([change("src/app/layout.tsx", 1)])).toMatchObject({ kind: "force" });
   });
 
+  it("変更が 1 つも無ければ、保護ブランチの計測に任せる", () => {
+    expect(decideTrigger([])).toEqual({ kind: "skip" });
+  });
+
   // ----- 異常系 -----
   it("構造に当たらない変更は、どれだけ大きくても保護ブランチの計測に任せる", () => {
     expect(
@@ -54,11 +58,19 @@ describe("decideTrigger", () => {
     ).toEqual({ kind: "skip" });
   });
 
+  it("app 配下でも layout.tsx でなければ器として扱わない", () => {
+    expect(decideTrigger([change("src/app/(shop)/page.tsx", 900)])).toEqual({ kind: "skip" });
+  });
+
   it("`layout` を名前に含むだけのファイルは器として扱わない", () => {
+    expect(decideTrigger([change("src/app/product-layout.tsx", 500)])).toEqual({ kind: "skip" });
+  });
+
+  it("app の外に置かれた layout.tsx は器として扱わない", () => {
     expect(decideTrigger([change("src/components/layout.tsx", 500)])).toEqual({ kind: "skip" });
   });
 
-  it("変更が 1 つも無ければ、保護ブランチの計測に任せる", () => {
-    expect(decideTrigger([])).toEqual({ kind: "skip" });
+  it("末尾が一致するだけのパスは画面の宣言と見なさない", () => {
+    expect(decideTrigger([change("packages/e2e/lib/screens.ts", 500)])).toEqual({ kind: "skip" });
   });
 });
