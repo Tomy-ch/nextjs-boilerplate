@@ -3,21 +3,26 @@ import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { findBrokenDocLinks, formatBrokenDocLinks } from "./lib/doc-links";
+import { collectMarkdownFiles } from "./lib/markdown-files";
 
 /**
- * ソースの中から文書を指す相対リンクが、実在するかを見るゲート。
+ * 文書を指す相対リンクが、実在するかを見るゲート。
  *
  * @remarks
  * 検査の中身は `lib/doc-links.ts` が持ち、ここはツリーの走査だけを担う。ゲートを `scripts/` へ
  * 置くのは、これがアプリの振る舞いではなく開発機構の検査だから（`one-to-one.gate.test.ts` と同形）。
  *
  * **段数を手で書く相対パスは、ファイルを動かした時点で静かに切れる。**型検査も lint も文字列の
- * 中までは見ないため、壊れても何も落ちず、読む人が辿って初めて気づく。
+ * 中までは見ないため、壊れても何も落ちず、読む人が辿って初めて気づく。`pnpm md-lint` が見るのは
+ * Markdown の体裁だけで、リンク先の実在は見ない。
+ *
+ * 見る先は 2 系統ある。Markdown は本文（コードフェンスとコードスパンを除く）、ソースはコメント行。
+ * どちらも `#見出し` まで解決する。
  */
 
 const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");
 
-/** 走査する範囲（リポジトリルート相対）。ここに並ばないディレクトリは丸ごと無検査になる。 */
+/** ソースを走査する範囲（リポジトリルート相対）。ここに並ばないディレクトリは丸ごと無検査になる。 */
 const SCAN_ROOTS = [
   "src",
   "scripts",
@@ -50,25 +55,36 @@ function* walk(directory: string): Generator<string> {
   }
 }
 
+function brokenIn(files: readonly string[]) {
+  return files.flatMap((file) =>
+    findBrokenDocLinks(file, readFileSync(join(REPOSITORY_ROOT, file), "utf8"), REPOSITORY_ROOT),
+  );
+}
+
 // リポジトリ全体を走査するため、既定の 5 秒では足りない。全量を並列で回すと取り合いでさらに伸び、
 // 走査の遅さがそのまま赤になる（`docs/testing-conventions.md`「リポジトリ全体を走査するゲート」）。
 const TIMEOUT_MS = 300_000;
 
 describe("文書リンクの解決", () => {
+  // ----- 正常系 -----
   it(
-    "ソースの中から文書を指す相対リンクは、すべて実在する",
+    "ソースのコメントから文書を指す相対リンクは、すべて実在する",
     () => {
-      const broken = SCAN_ROOTS.flatMap((root) => {
-        const absolute = join(REPOSITORY_ROOT, root);
+      const files = SCAN_ROOTS.flatMap((root) =>
+        [...walk(join(REPOSITORY_ROOT, root))].map((file) => relative(REPOSITORY_ROOT, file)),
+      );
 
-        return [...walk(absolute)].flatMap((file) => {
-          const inRepository = relative(REPOSITORY_ROOT, file);
+      expect(formatBrokenDocLinks(brokenIn(files), REPOSITORY_ROOT)).toBe("");
+    },
+    TIMEOUT_MS,
+  );
 
-          return findBrokenDocLinks(inRepository, readFileSync(file, "utf8"), REPOSITORY_ROOT);
-        });
-      });
+  it(
+    "Markdown 本文の相対リンクは、すべて実在する",
+    () => {
+      const files = collectMarkdownFiles(REPOSITORY_ROOT);
 
-      expect(formatBrokenDocLinks(broken, REPOSITORY_ROOT)).toBe("");
+      expect(formatBrokenDocLinks(brokenIn(files), REPOSITORY_ROOT)).toBe("");
     },
     TIMEOUT_MS,
   );

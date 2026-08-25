@@ -9,7 +9,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 
-import { collectMarkdownFiles } from "./markdown-files.js";
+import { collectMarkdownFiles } from "../lib/markdown-files.js";
 import { errorMessage, extractMermaidBlocks, isDependencyMissing } from "./mermaid-blocks.js";
 
 // このスクリプトが使う mermaid の最小面。mermaid の公開型は DOM 前提で重く、
