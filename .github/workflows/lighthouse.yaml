@@ -241,17 +241,11 @@ jobs:
       # run superseded by the next merge out of that same net.
       # Only off a pull request. There the failure is already visible on the pull request
       # itself, and an issue per branch would outlive the branch.
-      - name: Raise the failure for a human
+      - name: Compose what the issue says
         if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ github.ref_name }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          title="[Lighthouse] ${BRANCH} で Core Web Vitals が予算を超えている"
-          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" \
-            --json number --jq '.[0].number')"
-
           # The table is what says which screen moved, and it is left to render as markdown:
           # its cells are screen names the declaration fixes and numbers this job computed
           # (ADR 0153 §5 — the accepted character set cannot make markup). The measurement
@@ -284,12 +278,14 @@ jobs:
           NOTE
           } > /tmp/lighthouse-guard.md
 
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/lighthouse-guard.md
-          else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label chore \
-              --body-file /tmp/lighthouse-guard.md
-          fi
+      - name: Raise it where it has an owner
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
+        uses: ./.github/actions/upsert-issue
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: '[Lighthouse] ${{ github.ref_name }} で Core Web Vitals が予算を超えている'
+          body-file: /tmp/lighthouse-guard.md
+          label: chore
 
       - name: Fail if a screen is over its budget
         if: ${{ !cancelled() && steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success' }}

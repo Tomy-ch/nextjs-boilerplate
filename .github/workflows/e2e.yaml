@@ -389,17 +389,11 @@ jobs:
       # This is what the deferred cadence costs, and for this job it is the cost that matters
       # most — a hydration mismatch is visible nowhere else, so if nobody opens the run, the
       # defect is simply not known.
-      - name: Raise the failure for a human
+      - name: Compose what the issue says
         if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ github.ref_name }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          title="[E2E] ${BRANCH} でジャーニーまたは画面が落ちている"
-          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" \
-            --json number --jq '.[0].number')"
-
           # Indented four spaces rather than fenced: markdown renders that as a code block and
           # it needs no fence, which keeps Playwright's own output — assertion text this
           # repository does not author — from being read as markup (ADR 0153 §5).
@@ -421,12 +415,14 @@ jobs:
           NOTE
           } > /tmp/e2e-guard.md
 
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/e2e-guard.md
-          else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label bug \
-              --body-file /tmp/e2e-guard.md
-          fi
+      - name: Raise it where it has an owner
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success' }}
+        uses: ./.github/actions/upsert-issue
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: '[E2E] ${{ github.ref_name }} でジャーニーまたは画面が落ちている'
+          body-file: /tmp/e2e-guard.md
+          label: bug
 
       # `status` is empty when the run stood down, which is not a failure. The scope guard
       # has to be repeated here rather than left to `status`, because "no verdict" and "a bad

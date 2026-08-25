@@ -57,8 +57,6 @@ jobs:
       # is the query itself failing, which must not be reported as a clean store.
       - name: Measure the store
         id: measure
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
           pnpm exec tsx scripts/baseline-store report > /tmp/baseline-store.md 2>&1
@@ -73,15 +71,11 @@ jobs:
 
       # One issue, reopened rather than duplicated. A second month over the threshold
       # is the same unresolved fact, not a new one.
-      - name: Raise the cleanup for a human
+      - name: Compose what the issue says
         if: steps.measure.outputs.needed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          title='[VRT] 基準画像の置き場を掃除する'
-          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" \
-            --json number --jq '.[0].number')"
-
           {
             cat /tmp/baseline-store.md
             echo
@@ -93,9 +87,11 @@ jobs:
           NOTE
           } > /tmp/baseline-store-issue.md
 
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/baseline-store-issue.md
-          else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label test \
-              --body-file /tmp/baseline-store-issue.md
-          fi
+      - name: Raise it where it has an owner
+        if: steps.measure.outputs.needed == 'true'
+        uses: ./.github/actions/upsert-issue
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: '[VRT] 基準画像の置き場を掃除する'
+          body-file: /tmp/baseline-store-issue.md
+          label: test

@@ -118,17 +118,11 @@ jobs:
       # `!= 'success'`, not `== 'failure'`: the comparison can fail to start at all — the
       # baseline store may be unreachable — and that has to raise too. `!cancelled()` is
       # what keeps a run superseded by the next merge out of that same net.
-      - name: Raise the failure for a human
+      - name: Compose what the issue says
         if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ github.ref_name }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          title="[VRT] ${BRANCH} で基準画像と食い違いが出ている"
-          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" \
-            --json number --jq '.[0].number')"
-
           {
             # The comparison may never have run — the baseline store can be
             # unreachable. Raising the issue matters more than the table, so every
@@ -151,12 +145,14 @@ jobs:
           NOTE
           } > /tmp/vrt-guard.md
 
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/vrt-guard.md
-          else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label test \
-              --body-file /tmp/vrt-guard.md
-          fi
+      - name: Raise it where it has an owner
+        if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}
+        uses: ./.github/actions/upsert-issue
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: '[VRT] ${{ github.ref_name }} で基準画像と食い違いが出ている'
+          body-file: /tmp/vrt-guard.md
+          label: test
 
       - name: Fail if a story changed
         if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}

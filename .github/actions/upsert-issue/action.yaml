@@ -1,0 +1,72 @@
+name: Upsert issue
+description: Raise one issue per title, commenting on the open one rather than opening a second
+
+# For a failure that happens where no pull request can carry it — a push to a protected branch,
+# a nightly run, a monthly measurement. A red check is only readable on a pull request, so off
+# one the finding has to become something with an owner.
+#
+# **One issue per title, reopened rather than duplicated.** A second failure on a branch already
+# flagged is the same unresolved fact, and a second issue splits the conversation about it in
+# two. The title is therefore the identity: callers put whatever distinguishes one occurrence
+# from another — usually the branch — into it.
+#
+# The body is composed by the caller and handed over as a file. That split is the point: what
+# the issue says is the caller's subject knowledge, and finding-or-creating is this action's.
+# Neither has to be read to change the other. `upsert-pr-comment` is the same shape for the
+# pull-request side.
+#
+# ## The body is the caller's to make safe
+#
+# Nothing here escapes or fences anything. An issue body renders as Markdown, and these bodies
+# carry tool output — axe rule ids, Playwright assertion text, a Lighthouse table — which in a
+# public repository is text this repository does not author. Indent it four spaces so it renders
+# as a code block, or filter it to a character set that cannot make markup (ADR 0153 §5).
+
+inputs:
+  github-token:
+    required: true
+    description: 'Token used to search, create and comment. Needs `issues: write`.'
+  title:
+    required: true
+    description: >-
+      The issue title, and the identity used to find an existing one. Matched with
+      `in:title`, so it has to be stable across runs of the same condition — put the varying
+      part (the branch) in, and nothing that changes per run (a run id, a timestamp).
+  body-file:
+    required: true
+    description: Path to the file read as the issue body. See the safety note above.
+  label:
+    required: true
+    description: Label applied when the issue is created. Not applied to an existing one.
+
+runs:
+  using: composite
+  steps:
+    - name: Find the open issue with this title, or open one
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        TITLE: ${{ inputs.title }}
+        BODY_FILE: ${{ inputs.body-file }}
+        LABEL: ${{ inputs.label }}
+      run: |
+        set -euo pipefail
+
+        if [ ! -f "${BODY_FILE}" ]; then
+          echo "::error::${BODY_FILE} not found"
+          exit 1
+        fi
+
+        # `--search` is a full-text query, so it can return a near match; `in:title` keeps it to
+        # the title, and the exact comparison below is what makes the identity exact. Without
+        # it a differently-branched issue could absorb this one's comment.
+        existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+          --search "${TITLE} in:title" --json number,title \
+          --jq "map(select(.title == \$ENV.TITLE)) | .[0].number")"
+
+        if [ -n "${existing}" ]; then
+          gh issue comment "${existing}" --repo "$GITHUB_REPOSITORY" --body-file "${BODY_FILE}"
+        else
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "${TITLE}" --label "${LABEL}" \
+            --body-file "${BODY_FILE}"
+        fi
