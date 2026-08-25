@@ -6,13 +6,9 @@ import {
   FieldError,
   FieldLabel,
 } from "../../design-system/form/field/field";
+import { toDescriptionId, toErrorId } from "../../design-system/form/field/field.definition";
 import { RequirementBadge } from "../../design-system/form/requirement-badge/requirement-badge";
-import {
-  type FieldControlAttributes,
-  fieldControlAttributes,
-  toDescriptionId,
-  toErrorId,
-} from "./field-attributes";
+import { type FieldControlAttributes, fieldControlAttributes } from "./field-attributes";
 
 /** {@link FormField} の props。 */
 export type FormFieldProps = {

@@ -38,8 +38,11 @@
 消すと支援技術にとって「一度も検証していない」と区別が付かないためです。何を与えるかは
 `fieldControlAttributes()` が 1 か所で決めます。
 
-**誤りと補足の `id` も生成しません**——`controlId` から導きます（`toErrorId` / `toDescriptionId`）。
-接尾の綴りを呼び出し元が書くと、綴りを変えたい人が全ての呼び出し元を開くことになります。
+**誤りと補足の `id` も生成しません**——`controlId` から導きます。接尾の綴りは
+[`design-system/form/field`](../../design-system/form/field/field.definition.ts) が持ちます
+（`toErrorId` / `toDescriptionId`）。`id` を受け取るのは `FieldDescription` / `FieldError` なので、
+規約もその隣に置いてあります。ここへ置くと、素の `Field` を直接組むカタログや画面が届かず、
+同じ綴りを手で書くことになります。
 
 **補足は外枠へ渡すだけで足ります。** 描画も、入力欄から指すことも外枠が引き受けます。補足と誤りが
 揃うときは、描画される順（補足 → 誤り）で `aria-describedby` に並びます。
