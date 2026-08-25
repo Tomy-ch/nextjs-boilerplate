@@ -28,12 +28,8 @@ type TestLayer = (typeof TEST_LAYERS)[number];
  * README を持たないまま宣言を負う入口。
  *
  * @remarks
- * `src/proxy.ts` / `src/instrumentation.ts` は起動 / 境界エントリで、どのカーネルにも属さないため
- * README の walk に乗らない([0021](../../docs/adr/0021-frontend-responsibility.md))。層を持たない
- * ディレクトリへ README を置いて宣言すると、そこに層があることになってしまうので、
- * [0090](../../docs/adr/0090-testing-strategy.md) が直接持つ宣言をここへ写して機械が読める形にする。
- *
- * ここから外れるのは、その入口がカーネルの内側へ移ったとき。
+ * 値の一次情報は [0090](../../docs/adr/0090-testing-strategy.md) の起動 / 境界エントリの節で、
+ * ここはその写しです。ここから外れるのは、その入口がカーネルの内側へ移ったとき。
  */
 const ENTRY_DECLARATIONS: ReadonlyMap<string, TestLayer> = new Map([
   ["src/instrumentation.test.ts", "unit"],
@@ -44,16 +40,12 @@ const ENTRY_DECLARATIONS: ReadonlyMap<string, TestLayer> = new Map([
 const ENTRY_DECLARATION_SOURCE = "docs/adr/0090-testing-strategy.md";
 
 /**
- * ファイル名が役割を決める element の宣言。
+ * ファイル名が役割を決める element の宣言（[0090](../../docs/adr/0090-testing-strategy.md) の
+ * 「置き場ではなく element」）。
  *
  * @remarks
- * 負う観点を決めるのは**置き場ではなく element** である。Route Handler が確かめるのはリクエスト
- * に対する結果で、それは `api/` の下に置こうが `dev/` の下に置こうが変わらない。ディレクトリを
- * 遡る README はこれを表せず、`api/` の下にだけ nested な上書きを置く形になり、外へ出た同じ
- * element が親の宣言を継いでしまう([0025](../../docs/adr/0025-app-layer-elements.md))。
- *
- * 対象のテストは、element のパターンの拡張子の手前へ `.test` を挿した位置に居る。glob の
- * 解釈は [path-pattern](path-pattern.ts) が持つ。
+ * 対象のテストは、element のパターンの拡張子の手前へ `.test` を挿した位置に居ます。glob の
+ * 解釈は [path-pattern](path-pattern.ts) が持ちます。
  */
 const ELEMENT_DECLARATIONS: readonly { readonly matches: RegExp; readonly layer: TestLayer }[] =
   APP_ELEMENTS.flatMap(({ patterns, testRequirement }) =>
@@ -109,9 +101,10 @@ export type ResolvedTestRequirement = {
  * テストファイルを支配する宣言を解決する。
  *
  * @remarks
- * ファイル名が element を決めるものは、README より先に {@link ELEMENT_DECLARATIONS} が答える。
- * それ以外は遡って**最初に宣言を持つ** README を採る。宣言を持たない README は素通しする。README が
- * 在ることと責務を宣言していることは別で、素通ししないと途中の 1 枚が上位の宣言を遮る。
+ * 3 段で答える。{@link ENTRY_DECLARATIONS} に載る入口が最優先、次にファイル名が element を
+ * 決めるものを {@link ELEMENT_DECLARATIONS}、それ以外は遡って**最初に宣言を持つ** README。
+ * 宣言を持たない README は素通しする。README が在ることと責務を宣言していることは別で、
+ * 素通ししないと途中の 1 枚が上位の宣言を遮る。
  *
  * @param testFile - テストファイル(リポジトリルート相対、区切りは `/`)
  * @param readReadme - ディレクトリの README を読む

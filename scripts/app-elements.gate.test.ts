@@ -9,11 +9,9 @@ import { APP_ELEMENTS, DEPENDENCIES, type Kernel } from "../architecture";
  * `app` の element の禁止が、実際に効いていることを見るゲート。
  *
  * @remarks
- * この禁止は **fail-open へ倒れうる形で書かれている**。境界検査の要素はディレクトリに対応する
- * ため、同じディレクトリに居るファイルを名前で分けるには「層の許可を後から削る」しかなく、
- * 削る側は許可の**後ろ**で評価される必要がある（`eslint-plugin-boundaries` は最後に一致した
- * policy が勝つ）。並びが崩れても lint は緑のままで、禁止だけが静かに消える。だから宣言を読む
- * のではなく、**ESLint に実際に掛けて落ちることを確かめる**。
+ * {@link APP_ELEMENTS} の `forbidden` は **fail-open へ倒れうる列**である。評価の並びが崩れても
+ * lint は緑のままで、禁止だけが静かに消える。だから宣言を読むのではなく、**ESLint に実際に
+ * 掛けて落ちることを確かめる**。
  *
  * 減算方式のもう一つの穴は、`DEPENDENCIES.app` が広がったときに `forbidden` が追随しないこと
  * である。新しいカーネルを層へ足した人が element 側を忘れると、`route.ts` は何もしなくても

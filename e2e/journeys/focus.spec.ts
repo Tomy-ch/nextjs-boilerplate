@@ -7,10 +7,9 @@ import { loadBreakpoints, VIEWPORT_HEIGHT } from "../lib/viewports";
  * 被せた面を開いたときの焦点の行き先（[0053](../../docs/adr/0053-ui-component-interaction-seam.md)）。
  *
  * @remarks
- * **jsdom はフォーカスの実装を持ちません。** `inert` を実装せず、focus trap はブラウザの実装で
- * あって jsdom のそれではなく、`Tab` の巡回順も DOM 順から算出した近似です。したがって
- * component テストの `toHaveFocus` が確かめているのは「その要素へ focus を当てられること」で
- * あって、**開いたときに焦点が入るか・Tab が背面へ抜けないか・閉じたときに戻るか**ではありません。
+ * jsdom はフォーカスの実装を持ちません（[README](../README.md) の「フォーカス」）。component
+ * テストの `toHaveFocus` が確かめているのは「その要素へ focus を当てられること」であって、
+ * **開いたときに焦点が入るか・Tab が背面へ抜けないか・閉じたときに戻るか**ではありません。
  * ここが唯一の検査地点です。
  *
  * 見るのはその 3 点だけで、網羅はしません。**題材の画面ではなく機構を見ている**ので、ジャーニーを

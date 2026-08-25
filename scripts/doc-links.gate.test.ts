@@ -9,15 +9,14 @@ import { collectMarkdownFiles } from "./lib/markdown-files";
  * 文書を指す相対リンクが、実在するかを見るゲート。
  *
  * @remarks
- * 検査の中身は `lib/doc-links.ts` が持ち、ここはツリーの走査だけを担う。ゲートを `scripts/` へ
- * 置くのは、これがアプリの振る舞いではなく開発機構の検査だから（`one-to-one.gate.test.ts` と同形）。
+ * 検査の中身は {@link findBrokenDocLinks} が持ち、ここはツリーの走査だけを担う。ゲートを
+ * `scripts/` へ置くのは、これがアプリの振る舞いではなく開発機構の検査だから
+ * （`one-to-one.gate.test.ts` と同形）。
  *
- * **段数を手で書く相対パスは、ファイルを動かした時点で静かに切れる。**型検査も lint も文字列の
- * 中までは見ないため、壊れても何も落ちず、読む人が辿って初めて気づく。`pnpm md-lint` が見るのは
- * Markdown の体裁だけで、リンク先の実在は見ない。
+ * `pnpm md-lint` は Markdown の体裁だけを見てリンク先の実在は見ないため、この検査はそちらでは
+ * 代替できない。
  *
  * 見る先は 2 系統ある。Markdown は本文（コードフェンスとコードスパンを除く）、ソースはコメント行。
- * どちらも `#見出し` まで解決する。
  */
 
 const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");
@@ -69,6 +68,9 @@ const TIMEOUT_MS = 300_000;
  * 走査対象の下限。
  *
  * @remarks
+ * 走査対象そのものが空へ縮退すると、壊れたリンクも 0 件になり、ゲートが「違反なし」を報告する
+ * 向きに壊れたことを結果からは見分けられない。だから下限を置く。
+ *
  * 実数より十分低く採る。**現在の件数に合わせると、ファイルを 1 つ消すたびに落ちる**ゲートに
  * なってしまう。ここが守るのは縮退であって増減ではない。
  */
@@ -84,8 +86,6 @@ describe("文書リンクの解決", () => {
         [...walk(join(REPOSITORY_ROOT, root))].map((file) => relative(REPOSITORY_ROOT, file)),
       );
 
-      // 走査対象そのものが空へ縮退しても、壊れたリンクは 0 件になる。ゲートが「違反なし」を
-      // 報告する向きに壊れたことを、結果からは見分けられない。下限を置いて縮退を落とす。
       expect(files.length).toBeGreaterThan(MINIMUM_SOURCES);
       expect(formatBrokenDocLinks(brokenIn(files), REPOSITORY_ROOT)).toBe("");
     },

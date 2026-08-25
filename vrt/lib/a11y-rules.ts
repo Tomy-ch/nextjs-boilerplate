@@ -5,8 +5,8 @@
 // 「いまは直せない」は理由にならない —— 直せない違反は [excluded-stories](excluded-stories.ts) で
 // story ごと外すか、実装を直す。特定の story でだけ外す宣言は STORY_DISABLED_RULES が持つ。
 //
-// landmark と h1 の 3 ルールはここから降りた。部品を単独で描く限り成立せず、組み上げた画面で
-// 初めて壊れるため、画面単位の検査（[e2e/lib/a11y-rules.ts](../../e2e/lib/a11y-rules.ts)）が持つ。
+// landmark と h1 の 3 ルールは、ここでは無効化しない。部品を単独で描く限り成立せず、組み上げた
+// 画面で初めて壊れるため、画面単位の検査（[e2e/lib/a11y-rules.ts](../../e2e/lib/a11y-rules.ts)）が持つ。
 
 /**
  * 検査するルールの範囲。適合目標そのものを axe のタグで表す。
