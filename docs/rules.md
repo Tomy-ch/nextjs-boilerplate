@@ -8,7 +8,7 @@
 
 | # | 規約 | 強制手段 | Rationale |
 | --- | --- | --- | --- |
-| 4 | mutation 後は、データの所有境界で `revalidateTag`、`revalidatePath`、または `router.refresh()` により UI を更新する。 | P4-3 以降の adapter / feature テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 4 | mutation 後は、データの所有境界で `revalidateTag`、`revalidatePath`、または `router.refresh()` により UI を更新する。所有境界の決め方は #78、タグの綴りは #79 が持つ。 | P4-3 以降の adapter / feature テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
 | 5 | 同一 render 内で重複し得る取得は adapters 側で `cache()` または fetch memoization を使い、呼び出し側に重複排除を委ねない。 | P4-3 の adapter テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
 | 6 | `<Link>` の prefetch は既定で許可する。大量リンクを持つ一覧では `prefetch={false}` を明示する。 | 散文。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 8 | Route Handler は Node runtime の薄い proxy に留め、業務ロジックを置かない。非同期の後処理には必要な場合だけ `waitUntil` を使う。 | ESLint boundaries と Route Handler テスト。 | [ADR 0070](adr/0070-backend-role-separation.md) |
@@ -52,6 +52,10 @@
 | 74 | 画面の骨格は器の幅(container query)で分岐させない。どこに何を置くか・出すか出さないかは帯で決める。 | 散文。 | [ADR 0051](adr/0051-styling-system.md) |
 | 75 | 資材はルート絶対の URL で指し、実体を配信の根へ置く。アプリが出すものは `public/`、カタログでだけ使うものは `.storybook/public/` で、後者の綴りは `.storybook/lib/sample-asset.ts` が公開する。**`/src/...` を指さない** —— dev サーバは素通しで配信するが `storybook build` の成果物には入らず、**壊れた絵がそのまま基準画像として承認される**。解決しないことが正しい参照は `scripts/lib/catalog-assets.ts` へ理由と撤去条件つきで宣言する。 | `scripts/catalog-assets.gate.test.ts`。 | [ADR 0054](adr/0054-ui-catalog-storybook.md) / [ADR 0091](adr/0091-test-verification-methods.md) |
 | 76 | `searchParams` を読むスキーマは、その条件を URL へ組む側とは別の module へ置く（読む側は `read-<対象>.ts`、組む側は語彙と行き先を持つ module）。同じ module に置くと、スキーマを組み立てる module 直下の式が tree-shaking を妨げ、**語彙を参照しただけの画面まで検証ライブラリごと client の束に載る**。 | `bundle-budget` job（route ごとの増分の上限）と review。 | [ADR 0101](adr/0101-performance-budget.md) |
+| 77 | 描く内容が**バックエンドの状態に依る**画面は、動的な API（`cookies()` / `searchParams` 等）に触れていなくても `export const dynamic = "force-dynamic"` を宣言する。判定に使うのは「使っている API」ではなく**描く内容の出所**である。宣言が無い画面は build 時に 1 度だけ描かれ、更新が反映されないまま型検査もテストも通り、**CI は緑のまま古い内容を配る**。build にバックエンドへの到達性を要求する副作用も付く。 | 散文。`next build` が route ごとに出す描画モードを base と突き合わせ、静的へ落ちた画面を PR で報告する検知を入れる（`bundle-budget` と同型）。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
+| 78 | 捨てるのは、その mutation が変えたデータを**実際に描いている route** だけにする。`revalidatePath("/", "layout")` はアプリ全体を捨てる呼び方であって所有境界ではない。捨てる先が複数の route にまたがるなら、route を並べるのではなく `revalidateTag` を使う。 | 散文。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 79 | タグは `<資源>` と `<資源>:<識別子>` の 2 段だけを使う。資源名はバックエンド契約の集合名（`cart` / `products` / `purchases`）に揃え、識別子はその資源の URL に現れる鍵を使う。**タグを付けるのは取得側（`adapters`）1 か所**で、捨てる側は同じ綴りを書く。取得と再検証で綴りを別々に決めると、捨てたつもりのものが残る。 | 散文。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 80 | 上の 3 つは **Cache Components を無効にした現在のモデルでの使い分け**である。有効化すると既定が反転し（動的が既定になり、キャッシュしたいものに `"use cache"` を付ける）、#77 の宣言は不要になる。有効化の判断より先にこの 3 行を書き換えない。 | [ADR 0041](adr/0041-cache-components-decision.md) の判断が動いたときの棚卸し。 | [ADR 0041](adr/0041-cache-components-decision.md) |
 
 ## 運用
 
