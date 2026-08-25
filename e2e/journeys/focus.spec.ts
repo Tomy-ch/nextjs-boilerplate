@@ -16,9 +16,10 @@ import { loadBreakpoints, VIEWPORT_HEIGHT } from "../lib/viewports";
  * 見るのはその 3 点だけで、網羅はしません。**題材の画面ではなく機構を見ている**ので、ジャーニーを
  * 自分の画面へ書き換えるときも、機構ごとに 1 本という形は残してください（[README](../README.md)）。
  *
- * **面の種類で 3 点目の形が違います。** dialog は開いている間じゅう巡回を閉じ込めますが、menu は
- * `Tab` で閉じるのが正しい挙動です（巡回するのは矢印キーで、menu は文書の巡回から外れる）。
- * 同じ主張を当てると、正しい実装のほうが落ちます。
+ * **menu も面の中へ閉じ込めます。** WAI-ARIA の作法では menu は `Tab` で閉じますが、Radix の
+ * menu は既定で modal であり、dialog と同じく巡回を閉じ込めます。ここが確かめるのは作法への
+ * 適合ではなく「**開いている面の外へ焦点が漏れないこと**」なので、実装が現に約束している形を
+ * 当てます。
  */
 
 /** 面の中と外を往復させるのに十分な回数。巡回が閉じていれば、何周しても外へは出ない。 */
@@ -125,6 +126,10 @@ test.describe("モーダル", () => {
 });
 
 test.describe("メニュー", () => {
+  // 行操作の trigger は、操作を持つ行が 1 行も無いと描かれない。契約から生成したモックは
+  // 要求ごとに固定の応答を返すので（`mocks/stable-responses.ts`）、行の顔ぶれは実行のたびに
+  // 変わらない。ただし固定の根拠は要求 URL であり、一覧の取り方（頁の大きさ・絞り込み）を
+  // 変えると別の応答になる。ここが要素なしで落ちたときは、まず一覧側の変更を疑う。
   test("開くと焦点が面へ入り、閉じると導線へ戻る", async ({ page, signIn }) => {
     await signIn("admin");
     await page.goto("/admin/users");
@@ -136,19 +141,22 @@ test.describe("メニュー", () => {
     );
   });
 
-  test("Tab で閉じ、背面に開いたままの面を残さない", async ({ page, signIn }) => {
+  test("開いている間、Tab が背面へ抜けない", async ({ page, signIn }) => {
     await signIn("admin");
     await page.goto("/admin/users");
 
-    const trigger = page.getByRole("button", { name: /の操作$/ }).first();
     const surface = page.getByRole("menu");
 
-    await trigger.click();
+    await page
+      .getByRole("button", { name: /の操作$/ })
+      .first()
+      .click();
     await expect(surface).toBeVisible();
 
-    // menu は文書の巡回から外れる。閉じずに残ると、見えている面の外を Tab が進むことになる。
-    await page.keyboard.press("Tab");
+    for (let step = 0; step < TAB_COUNT; step += 1) {
+      await page.keyboard.press("Tab");
 
-    await expect(surface).toBeHidden();
+      expect(await focusIsInside(surface)).toBe(true);
+    }
   });
 });

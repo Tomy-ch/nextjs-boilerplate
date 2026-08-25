@@ -2,9 +2,14 @@
 // `rules: { ... }` を書けるようにすると、画面を足した人がその場で黙らせられる
 // （story 側の [vrt/lib/a11y-rules.ts](../../vrt/lib/a11y-rules.ts) と同じ立て方）。
 //
-// 適合目標と、タグ指定の副作用で有効化されるものの打ち消しは story 側と共有する。目標は
+// 適合目標と、タグ指定の副作用で有効化されるものの打ち消しは story 側から借りる。目標は
 // 1 つの決定（[0100](../../docs/adr/0100-accessibility-target.md)）であり、検査地点ごとに
 // 別の水準を持つと、どちらが正なのかが読めなくなる。
+//
+// **中立の置き場へ昇格させず、story 側を直に読んでいる。** 昇格させるなら `vrt/` と `e2e/` の
+// どちらでもない場所が要るが、両者の外に共有の器は無く（`baseline/` は基準画像の置き場である）、
+// 器そのものを新設すると、2 つの定数のために木を 1 段増やすことになる。この向きが逆転する条件は
+// **3 つ目の検査地点が現れたとき**で、そのときは借り手が 2 つになるので昇格の代価が釣り合う。
 import { CONFORMANCE_TAGS, DEFAULT_OFF_RULES, type DisabledRule } from "../../vrt/lib/a11y-rules";
 
 export { CONFORMANCE_TAGS };
@@ -16,21 +21,16 @@ export { CONFORMANCE_TAGS };
  * story は部品を単独で描くため、内容を包む landmark も `main` も h1 も持てません。この 3 つは
  * **画面を組み上げてはじめて壊れる**種類で、部品をいくら足しても鳴りません。
  *
- * 配信される document 水準（`html-has-lang` / `document-title`）も同じ事情です。story は
- * Storybook の iframe document の中で描かれるため、あちらが評価しているのは Storybook の器で
- * あって `src/app/layout.tsx` ではありません。
+ * **この 3 つは axe では `best-practice` タグしか持たず、適合目標のタグ集合
+ * （{@link CONFORMANCE_TAGS}）では走りません。** タグで範囲を宣言する限り、有効にしたつもりでも
+ * 評価されないままになります。だからここは**規則名で名指しして別に走らせる**列であり、単なる
+ * 記録ではありません。ここへタグ側で走るルールを入れると、同じ違反が 2 度並びます。
  *
- * この並びは検査するルールの列挙ではなく、**「なぜここに検査が要るのか」の記録**です。実際に
- * 走るのは {@link CONFORMANCE_TAGS} に一致する全ルールから {@link screenDisabledRuleIds} を
- * 引いたものなので、ここへ足しても走るルールは変わりません。
+ * 配信される document 水準（`html-has-lang` / `document-title`）はこの列に入りません。どちらも
+ * `wcag2a` なので適合目標の側で走ります。story との違いはルールではなく**評価される document** で、
+ * あちらは Storybook の iframe の器を見ており、`src/app/layout.tsx` を見ていません。
  */
-export const SCREEN_ONLY_RULES = [
-  "region",
-  "page-has-heading-one",
-  "landmark-one-main",
-  "html-has-lang",
-  "document-title",
-] as const;
+export const SCREEN_ONLY_RULES = ["region", "page-has-heading-one", "landmark-one-main"] as const;
 
 /** 画面を名指しして外すルール 1 件。 */
 export type ScreenDisabledRule = DisabledRule & {

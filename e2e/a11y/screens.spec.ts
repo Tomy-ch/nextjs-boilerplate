@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import AxeBuilder from "@axe-core/playwright";
 
-import { CONFORMANCE_TAGS, screenDisabledRuleIds } from "../lib/a11y-rules";
+import { CONFORMANCE_TAGS, SCREEN_ONLY_RULES, screenDisabledRuleIds } from "../lib/a11y-rules";
 import { ENGINES } from "../lib/browsers";
 import {
   listScreenRoutes,
@@ -26,6 +26,11 @@ import { expect, test } from "../lib/test";
  * `html-has-lang` / `document-title` が評価しているのは Storybook の器であって
  * `src/app/layout.tsx` ではありません。ここで開くのは実際に配信される document です。
  *
+ * **axe を 2 度かけます。** 適合目標はタグで宣言するのが正ですが、landmark と h1 の 3 ルールは
+ * axe では `best-practice` タグしか持たず、タグ集合に入りません。タグの側へ `best-practice` を
+ * 足すと目標に無い水準まで全画面へ課すことになるので、**その 3 つだけを規則名で名指しして
+ * 別に走らせます**。
+ *
  * 開く画面は撮影と同じ一覧（[screens](../lib/screens.ts)）から採ります。手で持つと、新しく
  * 足した画面が黙って対象外のまま残ります。
  */
@@ -46,11 +51,21 @@ for (const screen of screens) {
     }
 
     await page.goto(screen.path);
+    // 撮影と同じ待ち合わせを通す。待たずに評価すると、`Suspense` の fallback（skeleton）を
+    // 画面として見てしまう。skeleton は landmark も見出しも持たないことが多く、**違反が出ない**
+    // 方向へ倒れるので、偽陰性は結果からは判らない。
+    await page.evaluate(() => document.fonts.ready);
 
-    const { violations } = await new AxeBuilder({ page })
+    const disabled = screenDisabledRuleIds(screen.name);
+    const conformance = await new AxeBuilder({ page })
       .withTags([...CONFORMANCE_TAGS])
-      .disableRules(screenDisabledRuleIds(screen.name))
+      .disableRules(disabled)
       .analyze();
+    const structural = await new AxeBuilder({ page })
+      .withRules([...SCREEN_ONLY_RULES])
+      .disableRules(disabled)
+      .analyze();
+    const violations = [...conformance.violations, ...structural.violations];
 
     // 件数ではなく違反そのものを並べる。どのルールがどの要素で落ちたかが出ないと、
     // 落ちた人は画面を開いて探し直すことになる。
