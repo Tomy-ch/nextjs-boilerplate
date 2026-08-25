@@ -6,6 +6,7 @@ import {
 } from "@/adapters/server/api/products";
 import { getDefaultErrorMeta, resolveErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
+import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { withScreenSpan } from "@/observability/render-span";
 import { HomeView, type SectionState } from "./view";
 
@@ -22,12 +23,17 @@ const NEW_ARRIVAL_COUNT = 8;
  * 表示する文言は分類から引きます。取得側のメッセージをそのまま出すと、バックエンドの都合が
  * 画面の文言になります（[0080](../../../docs/adr/0080-error-handling.md)）。
  */
-// TODO: 落ちた系統を記録する。`logging` の singleton が instrumentation と server component で
-// 共有されておらず、`getLogger()` がこの位置から使えない。
-function toSectionState<T>(settled: PromiseSettledResult<T>): SectionState<T> {
+function toSectionState<T>(section: string, settled: PromiseSettledResult<T>): SectionState<T> {
   if (settled.status === "fulfilled") {
     return { status: "ready", value: settled.value };
   }
+
+  reportQuietly(() =>
+    getLogger().warn("トップの節を読めませんでした", {
+      section,
+      cause: String(settled.reason),
+    }),
+  );
 
   return {
     status: "failed",
@@ -56,9 +62,9 @@ export const HomePageContent = withScreenSpan("features/home/page-content", asyn
 
   return (
     <HomeView
-      categories={toSectionState(categories)}
-      newArrivals={toSectionState(newArrivals)}
-      ranking={toSectionState(ranking)}
+      categories={toSectionState("categories", categories)}
+      newArrivals={toSectionState("new-arrivals", newArrivals)}
+      ranking={toSectionState("ranking", ranking)}
     />
   );
 });
