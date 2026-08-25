@@ -44,7 +44,8 @@ name: E2E
 # Two things keep that bounded. The cadence includes every push into `release/**`, so the
 # finding arrives one merge later and still names a single pull request rather than a
 # day's worth of them. And `run-e2e` is there for the diff that should not wait — a change
-# to routing, to the shell, or to anything the journeys walk.
+# to the proxy, to the shell, to the journey declaration or to the mocked responses, which
+# `deferred-checks.yaml` names on the pull request rather than leaving anyone to notice.
 
 on:
   pull_request:

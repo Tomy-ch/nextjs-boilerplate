@@ -12,7 +12,7 @@ description: Decide whether an expensive check has to run on this event, or can 
 #   * A promotion pull request (`develop` / `staging` / `production` as the base) — why
 #     promotion needs a complete answer rather than a recent one is in ADR 0153 §2.
 #   * The pull request carries the label. A human looked at the diff and decided this one is
-#     worth the wait.
+#     worth the wait. This is the one reason a caller can opt out of, by omitting `label`.
 #   * `workflow_dispatch`. Someone asked for it by hand.
 #
 # Everything else defers. What that costs is one merge of detection latency, and what it buys
