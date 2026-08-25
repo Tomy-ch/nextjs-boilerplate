@@ -57,24 +57,6 @@ describe("findBrokenDocLinks", () => {
     expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([]);
   });
 
-  it("同じ見出しの 2 つ目は `-1` 付きで数える", () => {
-    const source = "[2 つ目](../docs/guide.md#置き場-1)";
-
-    expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([]);
-  });
-
-  it("記号を含む見出しは、落とした形のアンカーで引ける", () => {
-    const source = "[cn](<../docs/guide.md#cn-の使い方>)";
-
-    expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([]);
-  });
-
-  it("URL エンコードされたアンカーも解決する", () => {
-    const source = `[置き場](../docs/guide.md#${encodeURIComponent("置き場")})`;
-
-    expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([]);
-  });
-
   it("パスを持たないアンカーは、自分自身の見出しを見る", () => {
     place("docs/self.md", "# 表題\n\n[表題へ](#表題)\n");
     const source = "# 表題\n\n[表題へ](#表題)\n";
@@ -95,11 +77,17 @@ describe("findBrokenDocLinks", () => {
     expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([]);
   });
 
-  it("ソースはコメント行だけを見る", () => {
+  it("ソースは文字列リテラルを見ない", () => {
     const href = `..${"/docs/nope.md"}`;
     const source = `const template = "[a](${href})";`;
 
     expect(findBrokenDocLinks("src/x.ts", source, root)).toEqual([]);
+  });
+
+  it("参照形式リンクの定義も解決する", () => {
+    const source = "[手引き]: ../docs/guide.md\n";
+
+    expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([]);
   });
 
   // ----- 異常系 -----
@@ -110,6 +98,33 @@ describe("findBrokenDocLinks", () => {
 
     expect(findBrokenDocLinks("src/x.ts", source, root)).toEqual([
       { file: "src/x.ts", href, line: 2, reason: "path" },
+    ]);
+  });
+
+  it("行の途中から始まる行コメントも見る", () => {
+    const href = `..${"/docs/nope.md"}`;
+    // 行コメントの印も組み立てて置く。書き下すと、このゲート自身がこの行を拾う。
+    const source = `const x = 1; ${"/"}${"/"} [a](${href})`;
+
+    expect(findBrokenDocLinks("src/x.ts", source, root)).toEqual([
+      { file: "src/x.ts", href, line: 1, reason: "path" },
+    ]);
+  });
+
+  it("参照形式リンクの定義が指し先を持たなければ返す", () => {
+    const href = `..${"/docs/nope.md"}`;
+    const source = `[手引き]: ${href}`;
+
+    expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([
+      { file: "src/x.md", href, line: 1, reason: "path" },
+    ]);
+  });
+
+  it("リポジトリの外を指すリンクは、実在しても解決しないものとして返す", () => {
+    const href = `${"../".repeat(8)}etc/hostname`;
+
+    expect(findBrokenDocLinks("src/x.md", `[外](${href})`, root)).toEqual([
+      { file: "src/x.md", href, line: 1, reason: "path" },
     ]);
   });
 
@@ -124,15 +139,6 @@ describe("findBrokenDocLinks", () => {
     const source = `[無い節](${href})`;
 
     expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([
-      { file: "src/x.md", href, line: 1, reason: "anchor" },
-    ]);
-  });
-
-  it("コードフェンスの中の見出しは、アンカーとして数えない", () => {
-    place("docs/fenced.md", "# 表題\n\n```md\n## 例の節\n```\n");
-    const href = `../docs/fenced.md#${"例の節"}`;
-
-    expect(findBrokenDocLinks("src/x.md", `[例](${href})`, root)).toEqual([
       { file: "src/x.md", href, line: 1, reason: "anchor" },
     ]);
   });

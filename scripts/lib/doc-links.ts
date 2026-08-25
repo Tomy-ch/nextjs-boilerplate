@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, relative, resolve } from "node:path";
 
+import { hasAnchor } from "./markdown-anchor";
+
 /** 解決しなかったリンク 1 件。 */
 export type BrokenLink = {
   /** リポジトリ相対のファイルパス。 */
@@ -14,14 +16,27 @@ export type BrokenLink = {
 };
 
 /**
- * 相対リンク 1 本。
+ * インラインリンク 1 本。
  *
  * @remarks
  * `](path)` と `](<path>)` の両方を拾います。`<>` 囲みは `docs/spec/**` が `[id]` を含むパスに
  * 使っているので、落とすとその一群が丸ごと無検査になります。題名付き（`](path "title")`）は
  * 空白で切れるため、パスだけが残ります。
+ *
+ * **`(` `)` を含むパスは `<>` で囲む必要があります。** 囲まずに書くと最初の `)` で切れ、実在
+ * するのに切れていると報告されます。囲みを要求するのは Markdown の記法そのものの制約で、
+ * 括弧の対応を数える簡易パーサを持つより、記法に従わせるほうが読み手にも伝わります。
  */
 const LINK = /\]\(\s*<?([^)<>\s]+)>?[^)]*\)/g;
+
+/**
+ * 参照形式リンクの定義行。
+ *
+ * @remarks
+ * `[ref]: path "title"` の形。`](` を含まないため {@link LINK} には当たりません。使う側
+ * （`[text][ref]`）はこの定義を経由するので、定義さえ見れば宛先は覆えます。
+ */
+const LINK_DEFINITION = /^\s*\[[^\]]+\]:\s*<?([^\s<>]+)>?/;
 
 /** 相対リンクではないもの。URL・プロトコル相対・ルート絶対を外す。 */
 const NOT_RELATIVE = /^([a-z][a-z0-9+.-]*:|\/)/i;
@@ -32,8 +47,15 @@ const FENCE = /^\s*(```|~~~)/;
 /** 行頭がコメントである行（TSDoc の継続行と行コメント）。 */
 const COMMENT_LINE = /^\s*(\*|\/\/|\/\*)/;
 
-/** ATX 見出し。 */
-const HEADING = /^(#{1,6})\s+(.+)$/;
+/**
+ * 行の途中から始まる行コメント。
+ *
+ * @remarks
+ * 文字列リテラルの中の `//` にも当たります。URL は {@link NOT_RELATIVE} が落とすので素通りし、
+ * 残るのは「文字列の中に相対リンクの形を書いた行」だけです。**そちらへ倒してあります** ——
+ * 見落としは無言ですが、拾いすぎは赤になって直せるからです。
+ */
+const TRAILING_COMMENT = /\/\/(.*)$/;
 
 /**
  * リンクを探す対象の行だけを残す。行番号を保つため、外した行は空文字にして詰めない。
@@ -42,15 +64,22 @@ const HEADING = /^(#{1,6})\s+(.+)$/;
  * どちらもコードスパンを外します。外さないと、書き方そのものを示した例（バッククォートで
  * 囲んだリンクの形）を実在するリンクとして数えてしまいます。Markdown はコードフェンスも外します。
  *
- * ソースはコメント行だけを見ます。文字列リテラルの中のリンクは、そのファイルからの相対ではなく
- * 生成先からの相対なので、同じ規則で解決すると誤って落ちます。
+ * ソースはコメントだけを見ます。文字列リテラルの中のリンクは、そのファイルからの相対ではなく
+ * 生成先からの相対なので、同じ規則で解決すると誤って落ちます。行頭がコードでも、途中から
+ * 始まる行コメントはコメントなので、その部分だけを取り出します。
  */
 function scannableLines(file: string, content: string): string[] {
   const lines = content.split("\n");
   const withoutSpans = (line: string): string => line.replace(/`[^`]*`/g, "");
 
   if (extname(file) !== ".md") {
-    return lines.map((line) => (COMMENT_LINE.test(line) ? withoutSpans(line) : ""));
+    return lines.map((line) => {
+      if (COMMENT_LINE.test(line)) return withoutSpans(line);
+
+      const trailing = TRAILING_COMMENT.exec(line);
+
+      return trailing === null ? "" : withoutSpans(trailing[1]);
+    });
   }
 
   let inFence = false;
@@ -66,59 +95,14 @@ function scannableLines(file: string, content: string): string[] {
   });
 }
 
-/**
- * 見出しを GitHub と同じ規則でアンカーへ変換する。
- *
- * @remarks
- * 小文字化し、英数字・空白・ハイフン・アンダースコア以外を落とし、空白をハイフンにします。
- * 日本語の見出しはそのまま残るため、`#storybook-の表示規約` のような形になります。
- */
-function toAnchor(heading: string): string {
-  return heading
-    .trim()
-    .replace(/<[^>]*>/g, "")
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\p{M} _-]/gu, "")
-    .replace(/ /g, "-");
-}
+/** その行に書かれた相対リンクをすべて取り出す。 */
+function hrefsIn(text: string): string[] {
+  const definition = LINK_DEFINITION.exec(text);
 
-/**
- * Markdown が持つアンカーを集める。
- *
- * @remarks
- * 同じ見出しが 2 度目以降に現れたときは `-1` / `-2` が付きます。GitHub の採番に合わせています。
- */
-function collectAnchors(markdown: string): Set<string> {
-  const anchors = new Set<string>();
-  const seen = new Map<string, number>();
-  let inFence = false;
-
-  for (const line of markdown.split("\n")) {
-    if (FENCE.test(line)) {
-      inFence = !inFence;
-      continue;
-    }
-
-    const heading = inFence ? null : HEADING.exec(line);
-
-    if (!heading) continue;
-
-    const base = toAnchor(heading[2]);
-    const count = seen.get(base) ?? 0;
-
-    seen.set(base, count + 1);
-    anchors.add(count === 0 ? base : `${base}-${count}`);
-  }
-
-  return anchors;
-}
-
-/** 指し先の Markdown がそのアンカーを持つか。 */
-function hasAnchor(target: string, fragment: string): boolean {
-  return collectAnchors(readFileSync(target, "utf8")).has(
-    decodeURIComponent(fragment).toLowerCase(),
-  );
+  return [
+    ...[...text.matchAll(LINK)].map((match) => match[1]),
+    ...(definition ? [definition[1]] : []),
+  ];
 }
 
 /**
@@ -131,6 +115,9 @@ function hasAnchor(target: string, fragment: string): boolean {
  * 指し先が Markdown なら、`#見出し` まで見ます。節の名前を変えたときに、それを指していた側が
  * どこにも現れないのは、パスが切れているのと同じことだからです。
  *
+ * **リポジトリの外は見ません。** `../` を積めば木の外へ出られますが、外に何が在るかは書き手にも
+ * 読み手にも意味を持たず、在ることを確かめられるだけで検査の外の事実がゲートの合否に混ざります。
+ *
  * @param file - リポジトリ相対のファイルパス
  * @param content - そのファイルの中身
  * @param root - 相対パスを解決する起点（リポジトリルート）
@@ -139,27 +126,32 @@ export function findBrokenDocLinks(file: string, content: string, root: string):
   const broken: BrokenLink[] = [];
 
   scannableLines(file, content).forEach((text, index) => {
-    for (const match of text.matchAll(LINK)) {
-      const href = match[1];
-
+    for (const href of hrefsIn(text)) {
       if (NOT_RELATIVE.test(href)) continue;
 
       const [path, fragment] = href.split("#");
       const target = path === "" ? resolve(root, file) : resolve(root, dirname(file), path);
       const line = index + 1;
 
-      if (!existsSync(target)) {
+      if (escapesRoot(root, target) || !existsSync(target)) {
         broken.push({ file, href, line, reason: "path" });
         continue;
       }
 
       if (!fragment) continue;
       if (statSync(target).isDirectory() || extname(target) !== ".md") continue;
-      if (!hasAnchor(target, fragment)) broken.push({ file, href, line, reason: "anchor" });
+      if (!hasAnchor(readFileSync(target, "utf8"), fragment)) {
+        broken.push({ file, href, line, reason: "anchor" });
+      }
     }
   });
 
   return broken;
+}
+
+/** 解決先がリポジトリの外か。 */
+function escapesRoot(root: string, target: string): boolean {
+  return relative(root, target).startsWith("..");
 }
 
 /** 見つかったものを、そのまま直せる形の文言にする。 */
