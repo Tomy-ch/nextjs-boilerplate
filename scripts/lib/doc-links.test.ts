@@ -45,6 +45,13 @@ describe("findBrokenDocLinks", () => {
     expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([]);
   });
 
+  it("`<>` の中の丸括弧は、宛先の一部として読む", () => {
+    place("src/app/(shop)/page.tsx");
+    const source = "[一覧](<../src/app/(shop)/page.tsx>)";
+
+    expect(findBrokenDocLinks("docs/x.md", source, root)).toEqual([]);
+  });
+
   it("題名付きのリンクは、パスだけを見る", () => {
     const source = '[使い方](../docs/guide.md "手引き")';
 

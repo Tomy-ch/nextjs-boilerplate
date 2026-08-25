@@ -26,8 +26,12 @@ export type BrokenLink = {
  * **`(` `)` を含むパスは `<>` で囲む必要があります。** 囲まずに書くと最初の `)` で切れ、実在
  * するのに切れていると報告されます。囲みを要求するのは Markdown の記法そのものの制約で、
  * 括弧の対応を数える簡易パーサを持つより、記法に従わせるほうが読み手にも伝わります。
+ *
+ * **そのため囲みの中だけは `)` を通します。** 通さないと囲んでも同じ位置で切れ、
+ * `src/app/(shop)/**` のような route group を指すリンクが、書き手には打ちようが無いまま
+ * 「実在しない」と報告され続けます。
  */
-const LINK = /\]\(\s*<?([^)<>\s]+)>?(?:\s+"[^"]*")?\s*\)/g;
+const LINK = /\]\(\s*(?:<([^<>\s]+)>|([^)<>\s]+))(?:\s+"[^"]*")?\s*\)/g;
 
 /**
  * 参照形式リンクの定義行。
@@ -103,7 +107,7 @@ function hrefsIn(text: string): string[] {
   const definition = LINK_DEFINITION.exec(text);
 
   return [
-    ...[...text.matchAll(LINK)].map((match) => match[1]),
+    ...[...text.matchAll(LINK)].map((match) => match[1] ?? match[2]),
     ...(definition ? [definition[1]] : []),
   ];
 }
