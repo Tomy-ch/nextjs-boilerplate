@@ -2,10 +2,10 @@ import { z } from "zod";
 
 import { type RawSearchParams, singleValue } from "@/model/search-params";
 
-import { LOGIN_NOTICE, LOGIN_NOTICE_KEY, type LoginNotice } from "./login-notice";
+import { LOGIN_NOTICE, LOGIN_NOTICE_KEY, type LoginNotice } from "./facade/login-notice";
 
 /**
- * URL を読む側。**組む側（[`login-notice.ts`](login-notice.ts)）と分けてある**
+ * URL を読む側。**組む側（[`login-notice.ts`](facade/login-notice.ts)）と分けてある**
  * （`docs/rules.md` #76）。組むのは行き先を返す Route Handler です。
  */
 

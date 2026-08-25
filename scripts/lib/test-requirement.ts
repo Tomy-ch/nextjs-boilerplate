@@ -7,6 +7,8 @@
  * ツリーの走査は `scripts/test-requirement.gate.test.ts` が担う。
  */
 
+import { APP_ELEMENTS } from "../../architecture";
+
 import { parseFrontmatter } from "./frontmatter";
 
 /**
@@ -39,6 +41,50 @@ const ENTRY_DECLARATIONS: ReadonlyMap<string, TestLayer> = new Map([
 
 /** 入口宣言の出所。README ではなく ADR が持つため、報告にはこの経路を出す。 */
 const ENTRY_DECLARATION_SOURCE = "docs/adr/0090-testing-strategy.md";
+
+/**
+ * ファイル名が役割を決める element の宣言。
+ *
+ * @remarks
+ * 負う観点を決めるのは**置き場ではなく element** である。Route Handler が確かめるのはリクエスト
+ * に対する結果で、それは `api/` の下に置こうが `dev/` の下に置こうが変わらない。ディレクトリを
+ * 遡る README はこれを表せず、`api/` の下にだけ nested な上書きを置く形になり、外へ出た同じ
+ * element が親の宣言を継いでしまう([0025](../../docs/adr/0025-app-layer-elements.md))。
+ *
+ * 対象のテストは、element のパターンの拡張子の手前へ `.test` を挿した位置に居る。
+ */
+const ELEMENT_DECLARATIONS: readonly { readonly matches: RegExp; readonly layer: TestLayer }[] =
+  APP_ELEMENTS.flatMap(({ patterns, testRequirement }) =>
+    patterns.map((pattern) => ({
+      matches: toPathPattern(pattern.replace(/\.(tsx?)$/, ".test.$1")),
+      layer: testRequirement,
+    })),
+  );
+
+/** element の宣言の出所。README ではなく依存マトリクスが持つため、報告にはこの経路を出す。 */
+const ELEMENT_DECLARATION_SOURCE = "architecture.ts";
+
+/**
+ * `**` と `*` だけの glob を正規表現へ直す。
+ *
+ * @remarks
+ * `architecture.ts` のパターンはこの 2 つしか使わない。汎用の glob 実装を持ち込むと、ここが
+ * 受け付ける記法が宣言側の記法より広くなり、書けるが検査されない形が生まれる。
+ */
+function toPathPattern(glob: string): RegExp {
+  const source = glob
+    .split("/")
+    .map((segment) => {
+      // `**` は 0 段以上のディレクトリ。ファイル名で終わるパターンしか無いため、末尾には来ない。
+      if (segment === "**") return "(?:[^/]+/)*";
+
+      return `${segment.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*")}/`;
+    })
+    .join("")
+    .replace(/\/$/, "");
+
+  return new RegExp(`^${source}$`);
+}
 
 /** frontmatter で層を宣言するキー。 */
 const DECLARATION_KEY = "test-requirement";
@@ -83,8 +129,9 @@ export type ResolvedTestRequirement = {
  * テストファイルを支配する宣言を解決する。
  *
  * @remarks
- * 遡って**最初に宣言を持つ** README を採る。宣言を持たない README は素通しする。README が在ることと
- * 責務を宣言していることは別で、素通ししないと途中の 1 枚が上位の宣言を遮る。
+ * ファイル名が element を決めるものは、README より先に {@link ELEMENT_DECLARATIONS} が答える。
+ * それ以外は遡って**最初に宣言を持つ** README を採る。宣言を持たない README は素通しする。README が
+ * 在ることと責務を宣言していることは別で、素通ししないと途中の 1 枚が上位の宣言を遮る。
  *
  * @param testFile - テストファイル(リポジトリルート相対、区切りは `/`)
  * @param readReadme - ディレクトリの README を読む
@@ -98,6 +145,12 @@ export function resolveTestRequirement(
 
   if (entry !== undefined) {
     return { declaredIn: ENTRY_DECLARATION_SOURCE, layers: [entry] };
+  }
+
+  const element = ELEMENT_DECLARATIONS.find(({ matches }) => matches.test(testFile));
+
+  if (element !== undefined) {
+    return { declaredIn: ELEMENT_DECLARATION_SOURCE, layers: [element.layer] };
   }
 
   const segments = testFile.split("/").slice(0, -1);

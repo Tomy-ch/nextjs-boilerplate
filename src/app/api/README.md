@@ -1,22 +1,20 @@
 ---
 imports-allowed: [features, components, capabilities, stores, adapters, errors, logging, config, model]
 forbidden: [business-logic, direct-fetch]
-test-requirement: integration
 ---
 
 # api
 
-Route Handler だけを置く区画です。`app` の中にありますが、検証の要求だけが親と異なります。
+Route Handler だけを置く区画です。`app` の中にありますが、負う検証の観点だけが親と異なります。
 
 ## 親と違う点
 
-親（`src/app/`）は `route` を宣言しています。あれは `layout.tsx` / `page.tsx` の**合成**を確かめる
-要求で、手段は React Testing Library での描画です。Route Handler は描画を持たず、確かめるのは
-**HTTP 境界の型と形**（status・ヘッダ・本文）なので、[0090](../../../docs/adr/0090-testing-strategy.md)
-の層別責務表では `integration` に当たります。
+**検証の要求はここが宣言しません。** Route Handler が確かめるのは描画ではなく **HTTP 境界の型と形**
+（status・ヘッダ・本文）で、それは `api/` の下に置こうが外に置こうが変わりません。置き場ではなく
+element が決めるものなので、宣言は `architecture.ts` の `APP_ELEMENTS` が `route.ts` / `route.dev.ts`
+に対して持ちます（[0025](../../../docs/adr/0025-app-layer-elements.md) / [0090](../../../docs/adr/0090-testing-strategy.md)）。
 
-判定の基準は「描画を返すか、応答を返すか」です。`app` の下に新しく応答を返す区画を作るときは、
-同じ基準でここと同じ宣言を持たせます。
+ここに書くと、`api/` の外へ出た同じ element が親の `route` を継いでしまいます。
 
 ## 受け入れるもの
 

@@ -136,6 +136,45 @@ export const ENTRY_POINTS = [
 }[];
 
 /**
+ * `app` 層の element。置き場ではなく**ファイル名**が役割を決めるため、層ではなくファイルの分類で持つ。
+ *
+ * @remarks
+ * [0025](docs/adr/0025-app-layer-elements.md) の element 表を機械で持つ面です。`app` を 1 層に
+ * 畳むと許可は全 element の和集合になり、`route.ts` が UI 部品や横断状態へ手を伸ばしても咎め
+ * られません。thin proxy という原則が散文だけになります。
+ *
+ * 境界検査の要素はディレクトリに対応するため、同じディレクトリに居るファイルを名前で分けるには
+ * **層の許可を狭める禁止**として書きます。`forbidden` はそのための列で、層の許可より後に評価され
+ * ます。
+ *
+ * - `app-route-handler`: 唯一の HTTP 口。バックエンドへの中継とその応答の組み立てだけを持つため、
+ *   UI 部品・横断状態・設定と、feature の内側を落とします。**feature を指すなら `facade/` から**
+ *   —— 送り先に要るのはルートの識別子だけで、それは所有する feature が `facade/` へ出しています
+ *   （[0021](docs/adr/0021-frontend-responsibility.md)）。スライスの内側まで開けると、業務ロジックが
+ *   ここへ降りてくる経路になります。受け口の本体を隣のモジュールへ薄く出す形（`app` 内の相互参照）
+ *   は残ります
+ *
+ * `route-segment` / `server-action` はまだこの表に無く、`app` の粒度で検査されます。
+ *
+ * `testRequirement` をここが持つのは、負う観点を決めるのが**置き場ではなく element** だからです。
+ * ディレクトリから遡る README は、`api/` の外に置いた Route Handler へ届きません。対象のテストは
+ * `<pattern>` の `.ts` を `.test.ts` に読み替えた位置に居ます。
+ */
+export const APP_ELEMENTS = [
+  {
+    category: "app-route-handler",
+    patterns: ["src/app/**/route.ts", "src/app/**/route.dev.ts"],
+    forbidden: ["components", "capabilities", "stores", "config", "features"],
+    testRequirement: "integration",
+  },
+] as const satisfies readonly {
+  category: string;
+  patterns: readonly string[];
+  forbidden: readonly Kernel[];
+  testRequirement: "component" | "feature" | "integration" | "route" | "unit";
+}[];
+
+/**
  * 層の内側にありながら、外の層から import してよい区画。
  *
  * @remarks

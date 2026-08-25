@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 import { toSafeReturnUrl } from "@/model/return-url";
 
-import { LOGIN_NOTICE } from "./login-notice";
+import { LOGIN_NOTICE } from "./facade/login-notice";
 import { LoginView } from "./login-view";
 
 describe("LoginView", () => {

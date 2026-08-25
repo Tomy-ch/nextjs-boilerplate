@@ -23,7 +23,7 @@ Pages Router(`pages/` / `pages/api`)は採用しない。裏取り: 公式 doc `
 | element | 対象ファイル | 許可 import 先 | 原則 |
 | --- | --- | --- | --- |
 | `app/route-segment` | `page.tsx` / `layout.tsx` / `loading.tsx` / `error.tsx`(App Router UI) | `features` / **入口の保護に限り** `adapters/server/auth` の `verifySession()` と `model` の述語([0079](0079-auth-frontend-seam.md) §4) | driving adapter・薄い呼び口。保護の編成は「呼ぶ・判定する・送り返す」だけで、取得も業務ロジックも持たない |
-| `app/route-handler` | **`route.ts`**(= Pages API Routes の App Router 置換・**唯一の HTTP 口**) | `adapters/server`([0024](0024-adapters-server-client-split.md))/ `errors` / `logging` | **thin proxy・業務ロジック禁止**([0011](0011-no-docker.md) / [0070](0070-backend-role-separation.md))。`actions.ts` の HTTP 版 |
+| `app/route-handler` | **`route.ts`**(= Pages API Routes の App Router 置換・**唯一の HTTP 口**) | `adapters/server`([0024](0024-adapters-server-client-split.md))/ `model` / `errors` / `logging` / feature の **`facade/` のみ**([0021](0021-frontend-responsibility.md)) | **thin proxy・業務ロジック禁止**([0011](0011-no-docker.md) / [0070](0070-backend-role-separation.md))。`actions.ts` の HTTP 版。送り先を指すのに要るのはルートの識別子だけで、それは所有する feature が `facade/` へ出している。スライスの内側まで開けると業務ロジックがここへ降りる |
 | `app/server-action` | **`actions.ts`**(`"use server"` の変更口) | `adapters/server` / `features` / `model` / `errors` / `logging` | **主体の断言をここで行う**。公開 HTTP 口であり、描画した画面の認可を前提にしない |
 | `app/metadata` | `robots.ts` / `sitemap.ts` / `manifest.ts` / `opengraph-image` 等 | `config` / `model` | ビルド / 描画時の framework ファイル。起動・ビルド境界の薄い例外(`instrumentation.ts` と同格) |
 
@@ -37,6 +37,14 @@ Pages Router(`pages/` / `pages/api`)は採用しない。裏取り: 公式 doc `
 
 - ❌ `route.ts` に業務ロジック / 重い集約を書くこと(thin proxy。[0011](0011-no-docker.md) / [0070](0070-backend-role-separation.md))
 - ❌ Pages Router(`pages/` / `pages/api`)を追加すること(App Router 単独)
+**この表のうち機械で強制されるのは `app/route-handler` の行だけである。** `architecture.ts` の
+`APP_ELEMENTS` がファイル名で `route.ts` / `route.dev.ts` を分類し、層の許可から UI 部品・横断状態・
+設定・feature の内側を削る。`route-segment` / `server-action` は `app` の粒度（層の許可の和集合）で
+検査される —— 境界検査の要素はディレクトリに対応するため、同じディレクトリに居るファイルを名前で
+分けるには層の許可を後から削るしかなく、その 2 つは削る側の集合が実装と合っていない（`components` /
+`errors` / client 側 `config` を表が挙げていない）。**表を実態へ合わせる作業が先に要る**ため、
+現時点では指針として読む。
+
 - ❌ `app/route-handler` から `config` を直接 import すること(config は `adapters/server` 経由。metadata は例外として config 可)
 - ❌ `app/server-action` から **`server config`** を直接 import すること(route-handler と同じ理由。secret を持つ runtime object は `adapters/server` の側で読む)
 - ❌ `app/server-action` で主体の断言を省き、その action を描いた画面が保護されていることに依拠すること(action id を知る者は任意の route から呼べる)

@@ -4,7 +4,7 @@ import { AppShell } from "@/components/shell/app-shell/app-shell";
 
 import { toSafeReturnUrl } from "@/model/return-url";
 
-import { LOGIN_NOTICE } from "./login-notice";
+import { LOGIN_NOTICE } from "./facade/login-notice";
 import { LoginView } from "./login-view";
 
 /**

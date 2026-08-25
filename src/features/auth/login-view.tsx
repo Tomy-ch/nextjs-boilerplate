@@ -9,7 +9,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
 import type { SafeReturnUrl } from "@/model/return-url";
 
-import { LOGIN_NOTICE, type LoginNotice } from "./login-notice";
+import { LOGIN_NOTICE, type LoginNotice } from "./facade/login-notice";
 
 /** 理由ごとの案内。 */
 const NOTICE_TEXT = {
