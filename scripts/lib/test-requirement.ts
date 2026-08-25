@@ -10,6 +10,7 @@
 import { APP_ELEMENTS } from "../../architecture";
 
 import { parseFrontmatter } from "./frontmatter";
+import { toPathPattern } from "./path-pattern";
 
 /**
  * 宣言できる層。
@@ -51,7 +52,8 @@ const ENTRY_DECLARATION_SOURCE = "docs/adr/0090-testing-strategy.md";
  * 遡る README はこれを表せず、`api/` の下にだけ nested な上書きを置く形になり、外へ出た同じ
  * element が親の宣言を継いでしまう([0025](../../docs/adr/0025-app-layer-elements.md))。
  *
- * 対象のテストは、element のパターンの拡張子の手前へ `.test` を挿した位置に居る。
+ * 対象のテストは、element のパターンの拡張子の手前へ `.test` を挿した位置に居る。glob の
+ * 解釈は [path-pattern](path-pattern.ts) が持つ。
  */
 const ELEMENT_DECLARATIONS: readonly { readonly matches: RegExp; readonly layer: TestLayer }[] =
   APP_ELEMENTS.flatMap(({ patterns, testRequirement }) =>
@@ -63,28 +65,6 @@ const ELEMENT_DECLARATIONS: readonly { readonly matches: RegExp; readonly layer:
 
 /** element の宣言の出所。README ではなく依存マトリクスが持つため、報告にはこの経路を出す。 */
 const ELEMENT_DECLARATION_SOURCE = "architecture.ts";
-
-/**
- * `**` と `*` だけの glob を正規表現へ直す。
- *
- * @remarks
- * `architecture.ts` のパターンはこの 2 つしか使わない。汎用の glob 実装を持ち込むと、ここが
- * 受け付ける記法が宣言側の記法より広くなり、書けるが検査されない形が生まれる。
- */
-function toPathPattern(glob: string): RegExp {
-  const source = glob
-    .split("/")
-    .map((segment) => {
-      // `**` は 0 段以上のディレクトリ。ファイル名で終わるパターンしか無いため、末尾には来ない。
-      if (segment === "**") return "(?:[^/]+/)*";
-
-      return `${segment.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*")}/`;
-    })
-    .join("")
-    .replace(/\/$/, "");
-
-  return new RegExp(`^${source}$`);
-}
 
 /** frontmatter で層を宣言するキー。 */
 const DECLARATION_KEY = "test-requirement";
