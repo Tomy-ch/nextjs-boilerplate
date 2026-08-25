@@ -166,7 +166,7 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # Everything above this point is what the pull-request path pays: about a minute, and
       # only to answer whether the expensive part is warranted.

@@ -110,7 +110,7 @@ jobs:
           fi
 
           if [ -z "${accepted}" ]; then
-            echo "❌ 基準画像が変わっています。置き場の compare ビューで画素を確かめ、baseline-approve ラベルを付けてください。" >&2
+            echo "❌ 基準画像が変わっています。撮り直しのコメントが並べた前後の絵で画素を確かめ、baseline-approve ラベルを付けてください。" >&2
             exit 1
           fi
 

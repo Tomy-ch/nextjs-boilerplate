@@ -8,6 +8,7 @@ import {
   FilterBarControls,
   FilterChip,
 } from "@/components/patterns/filter-bar/filter-bar";
+import { withScreenSpan } from "@/observability/render-span";
 import { ADMIN_PRODUCT_LIST_PATH, ADMIN_PRODUCT_NEW_PATH } from "../../paths";
 import { toAdminActiveFilters } from "./active-filters";
 import type { AdminProductFilterOption } from "./filter-option";
@@ -58,68 +59,66 @@ export type AdminProductListViewProps = {
  * 作成への導線は絞り込みの外の右端へ置きます。一覧を絞る操作と一覧を増やす操作は対象が違い、
  * 同じ landmark に入れると「絞り込み」の中に絞り込みでない操作が混ざります。
  */
-export function AdminProductListView({
-  conditions,
-  categoryOptions,
-  statusOptions,
-  children,
-}: AdminProductListViewProps) {
-  const activeFilters = toAdminActiveFilters(conditions, categoryOptions, statusOptions);
+export const AdminProductListView = withScreenSpan(
+  "features/admin/products/list/view",
+  ({ conditions, categoryOptions, statusOptions, children }: AdminProductListViewProps) => {
+    const activeFilters = toAdminActiveFilters(conditions, categoryOptions, statusOptions);
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <FilterBar className="min-w-0 flex-1" label="商品の検索と絞り込み">
-          <FilterBarControls>
-            <AdminProductKeywordField conditions={conditions} />
-            {/* 狭い段の同じ条件は下端の操作から overlay で開く。両方を同時には出さない。 */}
-            <div className="hidden flex-wrap items-center gap-2 md:flex">
-              <AdminProductFilterSelect
-                conditions={conditions}
-                field="categoryCodes"
-                label="分類"
-                options={categoryOptions}
-              />
-              <AdminProductFilterSelect
-                conditions={conditions}
-                field="statusCodes"
-                label="状態"
-                options={statusOptions}
-              />
-            </div>
-          </FilterBarControls>
-          {activeFilters.length === 0 ? null : (
-            <div className="flex items-end justify-between gap-4">
-              <FilterBarActiveFilters className="min-w-0 flex-1">
-                {activeFilters.map((filter) => (
-                  <FilterChip
-                    key={filter.key}
-                    label={filter.label}
-                    removeHref={filter.removeHref}
-                    value={filter.value}
-                  />
-                ))}
-              </FilterBarActiveFilters>
-              {activeFilters.length > 1 ? (
-                <Button asChild className="shrink-0" size="sm" variant="ghost">
-                  <Link href={ADMIN_PRODUCT_LIST_PATH}>条件をすべて解除</Link>
-                </Button>
-              ) : null}
-            </div>
-          )}
-        </FilterBar>
-        <Button asChild className="shrink-0">
-          <Link href={ADMIN_PRODUCT_NEW_PATH}>商品を作成</Link>
-        </Button>
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <FilterBar className="min-w-0 flex-1" label="商品の検索と絞り込み">
+            <FilterBarControls>
+              <AdminProductKeywordField conditions={conditions} />
+              {/* 狭い段の同じ条件は下端の操作から overlay で開く。両方を同時には出さない。 */}
+              <div className="hidden flex-wrap items-center gap-2 md:flex">
+                <AdminProductFilterSelect
+                  conditions={conditions}
+                  field="categoryCodes"
+                  label="分類"
+                  options={categoryOptions}
+                />
+                <AdminProductFilterSelect
+                  conditions={conditions}
+                  field="statusCodes"
+                  label="状態"
+                  options={statusOptions}
+                />
+              </div>
+            </FilterBarControls>
+            {activeFilters.length === 0 ? null : (
+              <div className="flex items-end justify-between gap-4">
+                <FilterBarActiveFilters className="min-w-0 flex-1">
+                  {activeFilters.map((filter) => (
+                    <FilterChip
+                      key={filter.key}
+                      label={filter.label}
+                      removeHref={filter.removeHref}
+                      value={filter.value}
+                    />
+                  ))}
+                </FilterBarActiveFilters>
+                {activeFilters.length > 1 ? (
+                  <Button asChild className="shrink-0" size="sm" variant="ghost">
+                    <Link href={ADMIN_PRODUCT_LIST_PATH}>条件をすべて解除</Link>
+                  </Button>
+                ) : null}
+              </div>
+            )}
+          </FilterBar>
+          <Button asChild className="shrink-0">
+            <Link href={ADMIN_PRODUCT_NEW_PATH}>商品を作成</Link>
+          </Button>
+        </div>
+        {children}
+        <div className="md:hidden">
+          <AdminProductFilterSheet
+            categoryOptions={categoryOptions}
+            conditions={conditions}
+            statusOptions={statusOptions}
+          />
+        </div>
       </div>
-      {children}
-      <div className="md:hidden">
-        <AdminProductFilterSheet
-          categoryOptions={categoryOptions}
-          conditions={conditions}
-          statusOptions={statusOptions}
-        />
-      </div>
-    </div>
-  );
-}
+    );
+  },
+);

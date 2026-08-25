@@ -89,12 +89,12 @@ jobs:
           : > /tmp/lockfile-drift.log
           status=success
 
-          pnpm install --frozen-lockfile 2>&1 | tee -a /tmp/lockfile-drift.log
+          pnpm install --frozen-lockfile --ignore-scripts 2>&1 | tee -a /tmp/lockfile-drift.log
           if [ "${PIPESTATUS[0]}" -ne 0 ]; then
             status=failure
             {
               echo ""
-              echo "--- pnpm install --frozen-lockfile failed ---"
+              echo "--- pnpm install --frozen-lockfile --ignore-scripts failed ---"
               echo "pnpm-lock.yaml does not describe package.json."
               echo "Run 'pnpm install' locally and commit the updated lockfile."
             } | tee -a /tmp/lockfile-drift.log

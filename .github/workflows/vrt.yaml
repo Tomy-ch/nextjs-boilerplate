@@ -192,7 +192,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # The record of which input state already compared clean. `make vrt` hashes the
       # rendering inputs itself and skips the comparison when they match, so the cache only
@@ -387,7 +387,7 @@ jobs:
 
       - name: Install dependencies
         if: needs.vrt-scope.outputs.relevant == 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Collect what the shards left behind
         if: needs.vrt-scope.outputs.relevant == 'true'

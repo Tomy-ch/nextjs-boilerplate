@@ -1,6 +1,7 @@
 import { AmountWithReference } from "@/components/design-system/display/amount-with-reference/amount-with-reference";
 import type { Cart } from "@/model/cart/cart";
 import type { ReferenceAmount } from "@/model/money";
+import { withPartSpan } from "@/observability/render-span";
 import { hasExcludedLines, orderLinesOf, priceChangedNames } from "../../../order";
 import { PlaceOrderForm } from "../place-order-form/place-order-form";
 import { PriceChangeConfirm } from "../price-change-confirm/price-change-confirm";
@@ -32,30 +33,33 @@ export type OrderSummaryProps = {
  * **確定できないときは確かめの姿を出しません。** 載せる明細が 1 つも無い状態で「このまま進んで
  * よいか」を問うても、答えたところで進めません。
  */
-export function OrderSummary({ cart, reference, size }: OrderSummaryProps) {
-  const orderable = orderLinesOf(cart).length > 0;
-  const changedNames = priceChangedNames(cart);
+export const OrderSummary = withPartSpan(
+  "features/checkout/confirm/ui/order-summary/order-summary",
+  ({ cart, reference, size }: OrderSummaryProps) => {
+    const orderable = orderLinesOf(cart).length > 0;
+    const changedNames = priceChangedNames(cart);
 
-  return (
-    <div className="flex flex-col gap-4">
-      <AmountWithReference
-        amount={cart.subtotalAmount}
-        label="小計"
-        reference={reference}
-        size={size}
-      />
-      <div className="flex flex-col gap-1 text-muted-foreground text-xs">
-        <p>税と送料は、注文を確定した時点で決まります。</p>
-        {hasExcludedLines(cart) ? <p>買えない明細は今回の購入から外れます。</p> : null}
-        {changedNames.length === 0 ? null : (
-          <p>金額の変わった明細は小計に入っていません。確定のときに確かめます。</p>
+    return (
+      <div className="flex flex-col gap-4">
+        <AmountWithReference
+          amount={cart.subtotalAmount}
+          label="小計"
+          reference={reference}
+          size={size}
+        />
+        <div className="flex flex-col gap-1 text-muted-foreground text-xs">
+          <p>税と送料は、注文を確定した時点で決まります。</p>
+          {hasExcludedLines(cart) ? <p>買えない明細は今回の購入から外れます。</p> : null}
+          {changedNames.length === 0 ? null : (
+            <p>金額の変わった明細は小計に入っていません。確定のときに確かめます。</p>
+          )}
+        </div>
+        {!orderable || changedNames.length === 0 ? (
+          <PlaceOrderForm orderable={orderable} />
+        ) : (
+          <PriceChangeConfirm changedNames={changedNames} orderable={orderable} />
         )}
       </div>
-      {!orderable || changedNames.length === 0 ? (
-        <PlaceOrderForm orderable={orderable} />
-      ) : (
-        <PriceChangeConfirm changedNames={changedNames} orderable={orderable} />
-      )}
-    </div>
-  );
-}
+    );
+  },
+);

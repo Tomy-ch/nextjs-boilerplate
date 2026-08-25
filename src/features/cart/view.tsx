@@ -6,7 +6,7 @@ import {
   APP_SHELL_STICKY_GAP,
 } from "@/components/shell/app-shell/app-shell.definition";
 import type { Cart } from "@/model/cart/cart";
-
+import { withScreenSpan } from "@/observability/render-span";
 import { CartClearButton } from "./ui/clear-button/clear-button";
 import { CartLineList } from "./ui/line-list/line-list";
 import { CartLineRow } from "./ui/line-row/line-row";
@@ -36,7 +36,7 @@ const PRODUCTS_PATH = "/products";
  *
  * 明細の下端には引き出しのぶんの余白を空けます。空けないと、最後の行の操作が引き出しに隠れます。
  */
-export function CartView({ cart }: CartViewProps) {
+export const CartView = withScreenSpan("features/cart/view", ({ cart }: CartViewProps) => {
   const presentProductIds = cart.lines.map((line) => line.productId);
 
   if (cart.lines.length === 0) {
@@ -81,4 +81,4 @@ export function CartView({ cart }: CartViewProps) {
       </CartSummaryDock>
     </>
   );
-}
+});

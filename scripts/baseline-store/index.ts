@@ -60,12 +60,14 @@ function printSnapshotRef(branch: string | undefined): void {
  * 撮り直した一式を置き場へ送り、サブモジュールのポインタを進める。
  *
  * 一式まるごとを 1 コミットにし、親は常に置き場の根にする。撮り直しどうしを繋げると古い一式が
- * 新しい一式の祖先になり、掃除でどれも落とせなくなる。根を共有させるのは、GitHub の compare が
- * 無関係な履歴どうしを比較できないため。
+ * 新しい一式の祖先になり、掃除でどれも落とせなくなる。
+ *
+ * **この形は GitHub の compare では読めない**（[vrt/README.md](../../vrt/README.md)）。動いた枚を
+ * 見せるのは撮り直しのコメント側の仕事で、そのために `images=` を出す。
  *
  * 手元と CI が同じ形の木を積むよう、`make baseline-push` も撮り直しの workflow もここを通る。
- * 呼び出し側が読めるよう `before=` / `after=` / `count=` と、撮り直した対象を見直しの入口が
- * 取る形にした `stories=` / `screens=` を出す。
+ * 呼び出し側が読めるよう `before=` / `after=` / `count=` / `images=` / `unpaired=` と、撮り直した
+ * 対象を見直しの入口が取る形にした `stories=` / `screens=` を出す。
  */
 function push(branch: string | undefined): void {
   if (!existsSync(`${SUBMODULE_PATH}/.git`)) {
@@ -86,7 +88,7 @@ function push(branch: string | undefined): void {
 
   // 読むのは commit の手前だけ —— 送出は置き場の根へ reset してから積むので、そのあとでは
   // 差分の相手が変わる。
-  const { stories, screens } = retakenTargets(
+  const { stories, screens, images, unpaired } = retakenTargets(
     store(["diff", "--cached", "--name-status"]).split("\n"),
   );
 
@@ -100,7 +102,10 @@ function push(branch: string | undefined): void {
 
   console.log(`before=${before}`);
   console.log(`after=${store(["rev-parse", "HEAD"])}`);
-  console.log(`count=${staged.split("\n").length}`);
+  // 数えるのは画像だけ。`staged` には絵を決める入力のハッシュも載る。
+  console.log(`count=${images.length}`);
+  console.log(`images=${images.join(",")}`);
+  console.log(`unpaired=${unpaired.join(",")}`);
   console.log(`stories=${stories.join(",")}`);
   console.log(`screens=${screens.join(",")}`);
 }

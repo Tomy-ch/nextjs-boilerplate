@@ -78,7 +78,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Verify the component ledger
         run: pnpm check:ui --offline
@@ -133,7 +133,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # One request per recorded source file, so the unauthenticated rate limit is not enough.
       # gh is preinstalled on the runner and picks up GH_TOKEN.

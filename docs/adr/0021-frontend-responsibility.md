@@ -44,7 +44,7 @@ AGENTS.md の `[TODO] Frontend Responsibility Separation` が敷いていた暫�
 | `app/route-handler`(`route.ts`) | `adapters/server` / `errors` / `logging`(thin proxy・業務ロジック禁止) |
 | `app/server-action`(`actions.ts`。[0025](0025-app-layer-elements.md)) | `adapters/server` / `features` / `model` / `errors` / `logging`(**主体の断言をここで行う**・業務ロジック禁止) |
 | `app/metadata`(robots等) | `config` / `model`(起動 / ビルド境界例外) |
-| `features` | `model` / `components` / `adapters`(公開面のみ)/ **`capabilities`** / **`stores`** / `errors` / `logging` |
+| `features` | `model` / `components` / `adapters`(公開面のみ)/ **`capabilities`** / **`stores`** / `errors` / `logging` / `observability`(描画を span へ載せる口。[0081](0081-observability-logging.md)) |
 | `adapters/server`([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / **`config`(= `server config` の唯一の許可層 — A7 整合)**。`server-only` |
 | `adapters/client`([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / client config(**`server config` 不可**・NEXT_PUBLIC リテラルは可)。`"use client"` |
 | `capabilities`([0022](0022-capabilities-kernel.md)) | `model` / `errors` / `logging` / client config(`server config` 不可・NEXT_PUBLIC リテラルは可)。`"use client"` |

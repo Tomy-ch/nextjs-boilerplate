@@ -4,6 +4,7 @@ import {
   StaticDataTable,
   type StaticDataTableColumn,
 } from "@/components/patterns/table/static-data/static-data";
+import { withPartSpan } from "@/observability/render-span";
 import { formatCount } from "../../../count";
 import { productDetailPath } from "../../../paths";
 import type { AdminRankingRow } from "../../ranking-rows";
@@ -84,19 +85,22 @@ function rowKey(row: AdminRankingRow): string {
  *
  * @see Storybook `Page/Admin/Analytics`
  */
-export function RankingTable({ rows }: RankingTableProps) {
-  return (
-    <section>
-      <h2 className="text-lg font-emphasis">{`${TITLE}（直近 30 日）`}</h2>
-      <div className="mt-4">
-        <StaticDataTable
-          columns={COLUMNS}
-          emptyMessage="直近 30 日に売れた商品はありません。"
-          getRowKey={rowKey}
-          label={TITLE}
-          rows={rows}
-        />
-      </div>
-    </section>
-  );
-}
+export const RankingTable = withPartSpan(
+  "features/admin/analytics/ui/ranking-table/ranking-table",
+  ({ rows }: RankingTableProps) => {
+    return (
+      <section>
+        <h2 className="text-lg font-emphasis">{`${TITLE}（直近 30 日）`}</h2>
+        <div className="mt-4">
+          <StaticDataTable
+            columns={COLUMNS}
+            emptyMessage="直近 30 日に売れた商品はありません。"
+            getRowKey={rowKey}
+            label={TITLE}
+            rows={rows}
+          />
+        </div>
+      </section>
+    );
+  },
+);

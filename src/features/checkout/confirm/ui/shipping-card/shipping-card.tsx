@@ -19,7 +19,7 @@ import {
   KeyValueValue,
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import type { UserProfile } from "@/model/user/user";
-
+import { withPartSpan } from "@/observability/render-span";
 import { PROFILE_EDIT_PATH } from "../../../paths";
 
 /** `ShippingCard` の props。 */
@@ -43,33 +43,36 @@ function formatAddress(profile: UserProfile): string {
  * 決まります。ここに入力欄を置くと、送っていない値を編集させることになります。変更は登録情報の
  * 側で行い、この画面はその導線だけを持ちます。
  */
-export function ShippingCard({ profile }: ShippingCardProps) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>お届け先</CardTitle>
-        <CardAction>
-          <Button asChild size={BUTTON_SIZE.SMALL} variant={BUTTON_VARIANT.OUTLINE}>
-            <Link href={PROFILE_EDIT_PATH}>変更する</Link>
-          </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        <KeyValueList>
-          <KeyValueItem>
-            <KeyValueLabel>氏名</KeyValueLabel>
-            <KeyValueValue>{`${profile.lastName} ${profile.firstName}`}</KeyValueValue>
-          </KeyValueItem>
-          <KeyValueItem>
-            <KeyValueLabel>住所</KeyValueLabel>
-            <KeyValueValue>{formatAddress(profile)}</KeyValueValue>
-          </KeyValueItem>
-          <KeyValueItem>
-            <KeyValueLabel>電話番号</KeyValueLabel>
-            <KeyValueValue>{profile.phone}</KeyValueValue>
-          </KeyValueItem>
-        </KeyValueList>
-      </CardContent>
-    </Card>
-  );
-}
+export const ShippingCard = withPartSpan(
+  "features/checkout/confirm/ui/shipping-card/shipping-card",
+  ({ profile }: ShippingCardProps) => {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>お届け先</CardTitle>
+          <CardAction>
+            <Button asChild size={BUTTON_SIZE.SMALL} variant={BUTTON_VARIANT.OUTLINE}>
+              <Link href={PROFILE_EDIT_PATH}>変更する</Link>
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <KeyValueList>
+            <KeyValueItem>
+              <KeyValueLabel>氏名</KeyValueLabel>
+              <KeyValueValue>{`${profile.lastName} ${profile.firstName}`}</KeyValueValue>
+            </KeyValueItem>
+            <KeyValueItem>
+              <KeyValueLabel>住所</KeyValueLabel>
+              <KeyValueValue>{formatAddress(profile)}</KeyValueValue>
+            </KeyValueItem>
+            <KeyValueItem>
+              <KeyValueLabel>電話番号</KeyValueLabel>
+              <KeyValueValue>{profile.phone}</KeyValueValue>
+            </KeyValueItem>
+          </KeyValueList>
+        </CardContent>
+      </Card>
+    );
+  },
+);

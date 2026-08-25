@@ -5,7 +5,7 @@ import { Badge } from "@/components/design-system/display/badge/badge";
 import { formatDateTime } from "@/model/datetime";
 import { formatMoney } from "@/model/money";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
-
+import { withPartSpan } from "@/observability/render-span";
 import { toStatusEmphasis } from "../../../facade/status-emphasis/status-emphasis";
 
 /** `PurchaseRow` の props。 */
@@ -35,23 +35,31 @@ export type PurchaseRowProps = {
  * 購入コードは折り返さずに詰めます。契約が返すのは UUID で、折り返すと 1 行の高さが 2 倍になり、
  * 一覧を読み進める密度が落ちます。全文は詳細の控えにあります。
  */
-export function PurchaseRow({ purchase, href }: PurchaseRowProps) {
-  return (
-    <li>
-      <Link
-        className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 transition-colors hover:bg-accent focus-visible:bg-accent"
-        href={href}
-      >
-        <div className="flex min-w-0 flex-1 basis-48 flex-col gap-1">
-          <span className="font-emphasis">{formatDateTime(purchase.orderedAt)}</span>
-          <span className="truncate font-mono text-muted-foreground text-xs">{purchase.code}</span>
-        </div>
-        <div className="ml-auto flex items-center gap-3">
-          <Badge variant={toStatusEmphasis(purchase.statusCode)}>{purchase.statusName}</Badge>
-          <span className="tabular-nums">{formatMoney(purchase.totalAmount)}</span>
-          <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-        </div>
-      </Link>
-    </li>
-  );
-}
+export const PurchaseRow = withPartSpan(
+  "features/purchases/history/ui/purchase-row/purchase-row",
+  ({ purchase, href }: PurchaseRowProps) => {
+    return (
+      <li>
+        <Link
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 transition-colors hover:bg-accent focus-visible:bg-accent"
+          href={href}
+        >
+          <div className="flex min-w-0 flex-1 basis-48 flex-col gap-1">
+            <span className="font-emphasis">{formatDateTime(purchase.orderedAt)}</span>
+            <span className="truncate font-mono text-muted-foreground text-xs">
+              {purchase.code}
+            </span>
+          </div>
+          <div className="ml-auto flex items-center gap-3">
+            <Badge variant={toStatusEmphasis(purchase.statusCode)}>{purchase.statusName}</Badge>
+            <span className="tabular-nums">{formatMoney(purchase.totalAmount)}</span>
+            <ChevronRightIcon
+              aria-hidden="true"
+              className="size-4 shrink-0 text-muted-foreground"
+            />
+          </div>
+        </Link>
+      </li>
+    );
+  },
+);

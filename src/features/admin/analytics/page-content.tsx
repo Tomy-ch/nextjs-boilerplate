@@ -4,6 +4,7 @@ import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-fee
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import type { RawSearchParams } from "@/model/search-params";
+import { withScreenSpan } from "@/observability/render-span";
 import { ADMIN_ANALYTICS_PATH } from "../paths";
 import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
 import { PERIOD_KEY_LABEL, toPeriodRequest } from "./period";
@@ -33,39 +34,42 @@ import { AnalyticsView } from "./view";
  * 要ります。別々に読むと、境目の時刻に添え書きと集計の対象がずれます。描画のたびに実時計を読む
  * 部品にしないのは、基準画像が撮った時刻に依存させないためです。
  */
-export function AdminAnalyticsPageContent({ searchParams }: { searchParams: RawSearchParams }) {
-  const parsed = parsePeriodSelection(searchParams);
+export const AdminAnalyticsPageContent = withScreenSpan(
+  "features/admin/analytics/page-content",
+  ({ searchParams }: { searchParams: RawSearchParams }) => {
+    const parsed = parsePeriodSelection(searchParams);
 
-  if (!parsed.ok) {
+    if (!parsed.ok) {
+      return (
+        <InvalidQueryFeedback
+          invalidKeys={parsed.invalidKeys}
+          keyLabels={PERIOD_KEY_LABEL}
+          message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
+          resetHref={ADMIN_ANALYTICS_PATH}
+          resetLabel="期間を外して見る"
+          title="この期間では集計を表示できません"
+        />
+      );
+    }
+
+    const now = new Date();
+    const request = toPeriodRequest(parsed.selection, now);
+
     return (
-      <InvalidQueryFeedback
-        invalidKeys={parsed.invalidKeys}
-        keyLabels={PERIOD_KEY_LABEL}
-        message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
-        resetHref={ADMIN_ANALYTICS_PATH}
-        resetLabel="期間を外して見る"
-        title="この期間では集計を表示できません"
+      <AnalyticsView
+        query={parsed.selection}
+        ranking={
+          <Suspense fallback={null}>
+            <AnalyticsRankingSection now={now} />
+          </Suspense>
+        }
+        summary={
+          <Suspense fallback={<AdminSummarySkeleton />} key={JSON.stringify(request)}>
+            <AnalyticsSummarySection request={request} />
+          </Suspense>
+        }
+        window={toPeriodWindow(parsed.selection, now)}
       />
     );
-  }
-
-  const now = new Date();
-  const request = toPeriodRequest(parsed.selection, now);
-
-  return (
-    <AnalyticsView
-      query={parsed.selection}
-      ranking={
-        <Suspense fallback={null}>
-          <AnalyticsRankingSection now={now} />
-        </Suspense>
-      }
-      summary={
-        <Suspense fallback={<AdminSummarySkeleton />} key={JSON.stringify(request)}>
-          <AnalyticsSummarySection request={request} />
-        </Suspense>
-      }
-      window={toPeriodWindow(parsed.selection, now)}
-    />
-  );
-}
+  },
+);

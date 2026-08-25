@@ -5,7 +5,7 @@ import { getMyPurchase } from "@/adapters/server/api/purchases";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import type { Purchase } from "@/model/purchase/purchase";
-
+import { withScreenSpan } from "@/observability/render-span";
 import { PurchaseDetailView } from "./view";
 
 /** `PurchaseDetailPageContent` の props。 */
@@ -45,9 +45,12 @@ async function loadPurchase(purchaseCode: string): Promise<Purchase> {
  * 購入を取ってから換算額を引きます。並行にできますが、購入が `not-found` のときに換算の取得を
  * 始めるのは無駄で、外部のレート提供元へ余計な要求を出すことになります。
  */
-export async function PurchaseDetailPageContent({ purchaseCode }: PurchaseDetailPageContentProps) {
-  const purchase = await loadPurchase(purchaseCode);
-  const reference = await readReferenceAmount(purchase.totalAmount);
+export const PurchaseDetailPageContent = withScreenSpan(
+  "features/purchases/detail/page-content",
+  async ({ purchaseCode }: PurchaseDetailPageContentProps) => {
+    const purchase = await loadPurchase(purchaseCode);
+    const reference = await readReferenceAmount(purchase.totalAmount);
 
-  return <PurchaseDetailView purchase={purchase} reference={reference} />;
-}
+    return <PurchaseDetailView purchase={purchase} reference={reference} />;
+  },
+);

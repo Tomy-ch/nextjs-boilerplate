@@ -26,6 +26,36 @@ describe("getObservabilityConfig", () => {
     });
   });
 
+  it("描画の範囲が screen なら画面の最上位だけを有効にする", async () => {
+    vi.stubEnv("OBS_RENDER_SPANS", "screen");
+    const { getObservabilityConfig } = await import("./observability.server");
+
+    expect(getObservabilityConfig()).toMatchObject({
+      renderScreenSpansEnabled: true,
+      renderPartSpansEnabled: false,
+    });
+  });
+
+  it("描画の範囲が part なら部品まで有効にする", async () => {
+    vi.stubEnv("OBS_RENDER_SPANS", "part");
+    const { getObservabilityConfig } = await import("./observability.server");
+
+    expect(getObservabilityConfig()).toMatchObject({
+      renderScreenSpansEnabled: true,
+      renderPartSpansEnabled: true,
+    });
+  });
+
+  it("描画の範囲が none ならどちらも無効にする", async () => {
+    vi.stubEnv("OBS_RENDER_SPANS", "none");
+    const { getObservabilityConfig } = await import("./observability.server");
+
+    expect(getObservabilityConfig()).toMatchObject({
+      renderScreenSpansEnabled: false,
+      renderPartSpansEnabled: false,
+    });
+  });
+
   it("同じ singleton を返す", async () => {
     const { getObservabilityConfig } = await import("./observability.server");
 

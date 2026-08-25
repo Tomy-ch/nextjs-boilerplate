@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
-
+import { withPartSpan } from "@/observability/render-span";
 import type { WithdrawUserState } from "../../form-state";
 
 /** `WithdrawFeedback` の props。 */
@@ -22,26 +22,29 @@ export type WithdrawFeedbackProps = {
  *
  * @see Storybook `Page/Admin/Users`
  */
-export function WithdrawFeedback({ state }: WithdrawFeedbackProps) {
-  if (state.status === "success") {
-    return (
-      <Alert>
-        <AlertTitle>{state.value.name} を退会させました</AlertTitle>
-        <AlertDescription>
-          進行中の購入の取消と在庫の戻しは後から順に進みます。一覧にすぐ反映されないことがあります。
-        </AlertDescription>
-      </Alert>
-    );
-  }
+export const WithdrawFeedback = withPartSpan(
+  "features/admin/users/ui/withdraw-feedback/withdraw-feedback",
+  ({ state }: WithdrawFeedbackProps) => {
+    if (state.status === "success") {
+      return (
+        <Alert>
+          <AlertTitle>{state.value.name} を退会させました</AlertTitle>
+          <AlertDescription>
+            進行中の購入の取消と在庫の戻しは後から順に進みます。一覧にすぐ反映されないことがあります。
+          </AlertDescription>
+        </Alert>
+      );
+    }
 
-  if (state.status === "error" && state.formError !== null) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>退会させられませんでした</AlertTitle>
-        <AlertDescription>{state.formError}</AlertDescription>
-      </Alert>
-    );
-  }
+    if (state.status === "error" && state.formError !== null) {
+      return (
+        <Alert variant="destructive">
+          <AlertTitle>退会させられませんでした</AlertTitle>
+          <AlertDescription>{state.formError}</AlertDescription>
+        </Alert>
+      );
+    }
 
-  return null;
-}
+    return null;
+  },
+);

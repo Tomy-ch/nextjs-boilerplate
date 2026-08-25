@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_SIZE } from "@/components/design-system/action/button/button.definition";
 import type { Cart } from "@/model/cart/cart";
-
+import { withPartSpan } from "@/observability/render-span";
 import { canCheckout } from "../../checkout";
 import { CHECKOUT_PATH } from "../../paths";
 
@@ -28,18 +28,21 @@ const LABEL = "購入手続きへ";
  * 押せない状態を link のままにしません。link は押せば必ず移動するもので、移動しない link は
  * 支援技術から見ると壊れた導線です。
  */
-export function CartCheckoutLink({ cart, size = BUTTON_SIZE.DEFAULT }: CartCheckoutLinkProps) {
-  if (!canCheckout(cart)) {
+export const CartCheckoutLink = withPartSpan(
+  "features/cart/ui/checkout-link/checkout-link",
+  ({ cart, size = BUTTON_SIZE.DEFAULT }: CartCheckoutLinkProps) => {
+    if (!canCheckout(cart)) {
+      return (
+        <Button className="w-full" disabled size={size} type="button">
+          {LABEL}
+        </Button>
+      );
+    }
+
     return (
-      <Button className="w-full" disabled size={size} type="button">
-        {LABEL}
+      <Button asChild className="w-full" size={size}>
+        <Link href={CHECKOUT_PATH}>{LABEL}</Link>
       </Button>
     );
-  }
-
-  return (
-    <Button asChild className="w-full" size={size}>
-      <Link href={CHECKOUT_PATH}>{LABEL}</Link>
-    </Button>
-  );
-}
+  },
+);

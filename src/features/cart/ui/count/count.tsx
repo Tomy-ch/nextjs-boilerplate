@@ -1,4 +1,5 @@
 import { ShoppingCartIcon } from "lucide-react";
+import { withPartSpan } from "@/observability/render-span";
 
 /** `CartCount` の props。 */
 export type CartCountProps = {
@@ -20,16 +21,19 @@ export type CartCountProps = {
  * 足すと銘が折り返します。読み上げの名前は呼び出し元の `aria-label` が持つため、文字を隠しても
  * 名前は失われません。
  */
-export function CartCount({ count }: CartCountProps) {
-  return (
-    <p className="flex items-center gap-1.5 px-3 py-2 text-sm">
-      <ShoppingCartIcon aria-hidden="true" className="size-4" />
-      <span className="hidden md:inline">カート</span>
-      {count === 0 ? null : (
-        <span className="min-w-5 rounded-full bg-foreground px-1.5 text-center text-background text-xs leading-5">
-          {count}
-        </span>
-      )}
-    </p>
-  );
-}
+export const CartCount = withPartSpan(
+  "features/cart/ui/count/count",
+  ({ count }: CartCountProps) => {
+    return (
+      <p className="flex items-center gap-1.5 px-3 py-2 text-sm">
+        <ShoppingCartIcon aria-hidden="true" className="size-4" />
+        <span className="hidden md:inline">カート</span>
+        {count === 0 ? null : (
+          <span className="min-w-5 rounded-full bg-foreground px-1.5 text-center text-background text-xs leading-5">
+            {count}
+          </span>
+        )}
+      </p>
+    );
+  },
+);

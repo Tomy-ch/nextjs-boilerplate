@@ -87,9 +87,9 @@ sequenceDiagram
     gha->>store: 一式を push
     store-->>gha: 新しい sha
     gha->>main: gitlink を進めて push
-    gha->>main: compare リンクを PR へ
+    gha->>main: 動いた画像の前後一覧を PR へ
 
-    rev->>store: compare で画素を見る
+    rev->>store: 前後の絵を開いて画素を見る
     rev->>main: baseline-approve ラベルを付ける
     main->>gha: baseline-approval が承認の時刻を検査
     Note over main,gha: 撮り直しより後に付いたラベルだけを通す

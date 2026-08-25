@@ -114,7 +114,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.cadence.outputs.run != 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Count what the diff moves
         id: volume

@@ -8,6 +8,7 @@ import {
 } from "@/components/design-system/display/media-image/media-image.definition";
 import { NO_IMAGE_URL } from "@/model/media";
 import type { ProductListItem } from "@/model/product/product";
+import { withPartSpan } from "@/observability/render-span";
 
 /** `ProductTeaser` の props。 */
 export type ProductTeaserProps = {
@@ -30,29 +31,32 @@ export type ProductTeaserProps = {
  *
  * 段の中での大きさは器が決めます。この部品は幅を持たず、置かれた枠に従います。
  */
-export function ProductTeaser({ item, imagePriority }: ProductTeaserProps) {
-  return (
-    <Card className="h-full gap-0 overflow-hidden py-0 transition-colors hover:bg-muted/50">
-      <Link
-        className="flex h-full flex-col rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary"
-        href={`/products/${item.id}`}
-      >
-        <MediaImage
-          alt={item.name}
-          aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
-          fallbackAlt="画像なし"
-          fallbackSrc={NO_IMAGE_URL}
-          priority={imagePriority}
-          sizes="(min-width: 1024px) 240px, 45vw"
-          src={item.imageUrl}
-        />
-        <div className="flex flex-1 flex-col gap-1 p-3">
-          <p className="line-clamp-2 text-sm font-emphasis break-words">{item.name}</p>
-          {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
-              数値へ変換するとサブセント精度が落ちる。 */}
-          <p className="mt-auto font-emphasis">${item.price}</p>
-        </div>
-      </Link>
-    </Card>
-  );
-}
+export const ProductTeaser = withPartSpan(
+  "features/home/ui/product-teaser/product-teaser",
+  ({ item, imagePriority }: ProductTeaserProps) => {
+    return (
+      <Card className="h-full gap-0 overflow-hidden py-0 transition-colors hover:bg-muted/50">
+        <Link
+          className="flex h-full flex-col rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary"
+          href={`/products/${item.id}`}
+        >
+          <MediaImage
+            alt={item.name}
+            aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
+            fallbackAlt="画像なし"
+            fallbackSrc={NO_IMAGE_URL}
+            priority={imagePriority}
+            sizes="(min-width: 1024px) 240px, 45vw"
+            src={item.imageUrl}
+          />
+          <div className="flex flex-1 flex-col gap-1 p-3">
+            <p className="line-clamp-2 text-sm font-emphasis break-words">{item.name}</p>
+            {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
+                数値へ変換するとサブセント精度が落ちる。 */}
+            <p className="mt-auto font-emphasis">${item.price}</p>
+          </div>
+        </Link>
+      </Card>
+    );
+  },
+);

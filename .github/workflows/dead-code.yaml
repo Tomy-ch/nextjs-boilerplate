@@ -81,7 +81,7 @@ jobs:
       # the run would then report every import as unresolved, or worse, silently narrow what
       # it walked and come back clean.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Report unused files, exports and dependencies
         run: pnpm knip

@@ -149,7 +149,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.scope.outputs.relevant == 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build
         if: steps.scope.outputs.relevant == 'true'

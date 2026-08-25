@@ -106,7 +106,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # Through `make` rather than `pnpm` directly, so the same check the screenshots rely on
       # also guards what gets published. `storybook build` returns 0 even when the preview

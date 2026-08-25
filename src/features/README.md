@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features]
 test-requirement: feature
 ---
@@ -17,6 +17,31 @@ test-requirement: feature
 
 - 他 feature への直接依存
 - 複数 feature で共有すべき要素、バックエンドの業務ロジック
+
+## 描画を span に載せる
+
+エクスポートを `observability` の 2 つで包む。**どちらで包むかは置き場で決まる。**
+
+| 置き場 | 使うもの | 既定 |
+| --- | --- | --- |
+| `<screen>/page-content` / `<screen>/view` | `withScreenSpan` | 有効 |
+| `<screen>/ui/**` | `withPartSpan` | 無効（`OBS_RENDER_SPANS=part` で開く） |
+
+```tsx
+export const XxxPageContent = withScreenSpan(
+  "features/<name>/<screen>/page-content",
+  async ({ id }: XxxPageContentProps) => {
+    // 取得と組み立て
+  },
+);
+```
+
+仕組みと span の読み方は [observability/README.md](../observability/README.md) が持つ。
+
+- **名前は `src/` からのモジュールパスと一致させる。** span 名がそのまま置き場を指すので、ずれると trace からファイルへ戻れない。利用者の入力を混ぜない
+- **client component（`"use client"` を持つファイル）は包まない。** ブラウザでの描画では span を作らないため、包んでも得られるのは server 描画の 1 回分だけである
+- **取得を持つ側を包むと帰属が付く。** `page-content` が待つ通信はその span の中に入るので、外向きの `fetch` を画面へ結び付けられる
+- **部品は常用しない。** `part` を開けると 1 描画の span が描く部品の数だけ増える。値打ちが出るのは、分岐した結果——どの姿を返したか——を trace から読みたいときである
 
 ## 運用
 

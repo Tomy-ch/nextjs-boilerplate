@@ -9,6 +9,8 @@ describe("retakenTargets", () => {
     expect(retakenTargets(["A\taction/light/button--default.png"])).toEqual({
       stories: ["button--default"],
       screens: [],
+      images: ["action/light/button--default.png"],
+      unpaired: ["action/light/button--default.png"],
     });
   });
 
@@ -16,19 +18,31 @@ describe("retakenTargets", () => {
     expect(retakenTargets([`M\t${SCREEN_AREA}/desktop/top.png`])).toEqual({
       stories: [],
       screens: ["top"],
+      images: [`${SCREEN_AREA}/desktop/top.png`],
+      unpaired: [],
     });
   });
 
   it("同じ名前でも区画が違えば別の対象として扱う", () => {
     expect(
       retakenTargets(["A\taction/light/top.png", `A\t${SCREEN_AREA}/desktop/top.png`]),
-    ).toEqual({ stories: ["top"], screens: ["top"] });
+    ).toEqual({
+      stories: ["top"],
+      screens: ["top"],
+      images: ["action/light/top.png", `${SCREEN_AREA}/desktop/top.png`],
+      unpaired: ["action/light/top.png", `${SCREEN_AREA}/desktop/top.png`],
+    });
   });
 
   it("story と画面を混ぜて渡しても種類ごとに分かれる", () => {
     expect(
       retakenTargets(["M\tform/dark/input--error.png", `M\t${SCREEN_AREA}/mobile/sign-in.png`]),
-    ).toEqual({ stories: ["input--error"], screens: ["sign-in"] });
+    ).toEqual({
+      stories: ["input--error"],
+      screens: ["sign-in"],
+      images: ["form/dark/input--error.png", `${SCREEN_AREA}/mobile/sign-in.png`],
+      unpaired: [],
+    });
   });
 
   it("テーマ違い・帯違いの同じ対象を 1 つに畳む", () => {
@@ -39,7 +53,17 @@ describe("retakenTargets", () => {
         `M\t${SCREEN_AREA}/desktop/top.png`,
         `M\t${SCREEN_AREA}/mobile/top.png`,
       ]),
-    ).toEqual({ stories: ["button--default"], screens: ["top"] });
+    ).toEqual({
+      stories: ["button--default"],
+      screens: ["top"],
+      images: [
+        "action/light/button--default.png",
+        "action/dark/button--default.png",
+        `${SCREEN_AREA}/desktop/top.png`,
+        `${SCREEN_AREA}/mobile/top.png`,
+      ],
+      unpaired: [],
+    });
   });
 
   it("畳んだあとも最初に現れた順序のまま並べる", () => {
@@ -52,22 +76,44 @@ describe("retakenTargets", () => {
     ).toEqual(["b--x", "a--y"]);
   });
 
+  it("初めて置かれた画像を、前を引けないものとして扱う", () => {
+    expect(retakenTargets(["A\taction/light/new--x.png", "M\taction/light/old--x.png"])).toEqual({
+      stories: ["new--x", "old--x"],
+      screens: [],
+      images: ["action/light/new--x.png", "action/light/old--x.png"],
+      unpaired: ["action/light/new--x.png"],
+    });
+  });
+
   it("改名された画像は行き先の名前で数える", () => {
     expect(retakenTargets(["R100\taction/light/old--x.png\taction/light/new--x.png"])).toEqual({
       stories: ["new--x"],
       screens: [],
+      images: ["action/light/new--x.png"],
+      unpaired: ["action/light/new--x.png"],
     });
+  });
+
+  it("改名された画像も、前を引けないものとして扱う", () => {
+    expect(
+      retakenTargets([
+        "R100\taction/light/old--x.png\taction/light/new--x.png",
+        "M\taction/light/kept--x.png",
+      ]).unpaired,
+    ).toEqual(["action/light/new--x.png"]);
   });
 
   it("置き場自身の説明と入力のハッシュを落とす", () => {
     expect(retakenTargets(["M\tREADME.md", "M\trender-inputs.sha256"])).toEqual({
       stories: [],
       screens: [],
+      images: [],
+      unpaired: [],
     });
   });
 
   it("何も渡されなければ空を返す", () => {
-    expect(retakenTargets([])).toEqual({ stories: [], screens: [] });
+    expect(retakenTargets([])).toEqual({ stories: [], screens: [], images: [], unpaired: [] });
   });
 
   // ----- 異常系 -----
@@ -75,6 +121,8 @@ describe("retakenTargets", () => {
     expect(retakenTargets(["D\taction/light/gone--x.png"])).toEqual({
       stories: [],
       screens: [],
+      images: [],
+      unpaired: [],
     });
   });
 
@@ -82,14 +130,21 @@ describe("retakenTargets", () => {
     expect(retakenTargets(["M\taction/light/notes.txt"])).toEqual({
       stories: [],
       screens: [],
+      images: [],
+      unpaired: [],
     });
   });
 
   it("区画を持たない画像を落とす", () => {
-    expect(retakenTargets(["A\tstray.png"])).toEqual({ stories: [], screens: [] });
+    expect(retakenTargets(["A\tstray.png"])).toEqual({
+      stories: [],
+      screens: [],
+      images: [],
+      unpaired: [],
+    });
   });
 
   it("状態とパスに分かれていない行を落とす", () => {
-    expect(retakenTargets([""])).toEqual({ stories: [], screens: [] });
+    expect(retakenTargets([""])).toEqual({ stories: [], screens: [], images: [], unpaired: [] });
   });
 });

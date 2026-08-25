@@ -6,7 +6,8 @@ import {
 } from "@/adapters/server/api/products";
 import { getDefaultErrorMeta, resolveErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
-
+import { getLogger, reportQuietly } from "@/logging/logging.server";
+import { withScreenSpan } from "@/observability/render-span";
 import { HomeView, type SectionState } from "./view";
 
 /** ランキングに載せる件数。 */
@@ -22,12 +23,17 @@ const NEW_ARRIVAL_COUNT = 8;
  * 表示する文言は分類から引きます。取得側のメッセージをそのまま出すと、バックエンドの都合が
  * 画面の文言になります（[0080](../../../docs/adr/0080-error-handling.md)）。
  */
-// TODO: 落ちた系統を記録する。`logging` の singleton が instrumentation と server component で
-// 共有されておらず、`getLogger()` がこの位置から使えない。
-function toSectionState<T>(settled: PromiseSettledResult<T>): SectionState<T> {
+function toSectionState<T>(section: string, settled: PromiseSettledResult<T>): SectionState<T> {
   if (settled.status === "fulfilled") {
     return { status: "ready", value: settled.value };
   }
+
+  reportQuietly(() =>
+    getLogger().warn("トップの節を読めませんでした", {
+      section,
+      cause: String(settled.reason),
+    }),
+  );
 
   return {
     status: "failed",
@@ -45,7 +51,7 @@ function toSectionState<T>(settled: PromiseSettledResult<T>): SectionState<T> {
  * `Promise.all` ではなく `allSettled` を使うのは、1 つの失敗で残りを捨てないためです。`all` は
  * 最初の失敗で待機を打ち切るため、成功した系統の結果が手元にあっても使えません。
  */
-export async function HomePageContent() {
+export const HomePageContent = withScreenSpan("features/home/page-content", async () => {
   const [newArrivals, ranking, categories] = await Promise.allSettled([
     getProductListPage({ first: NEW_ARRIVAL_COUNT, sort: PRODUCT_SORT.NEWEST }).then(
       (page) => page.items,
@@ -56,9 +62,9 @@ export async function HomePageContent() {
 
   return (
     <HomeView
-      categories={toSectionState(categories)}
-      newArrivals={toSectionState(newArrivals)}
-      ranking={toSectionState(ranking)}
+      categories={toSectionState("categories", categories)}
+      newArrivals={toSectionState("new-arrivals", newArrivals)}
+      ranking={toSectionState("ranking", ranking)}
     />
   );
-}
+});

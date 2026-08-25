@@ -1,4 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
+import { withPartSpan } from "@/observability/render-span";
 
 /** `SectionFailure` の props。 */
 export type SectionFailureProps = {
@@ -23,13 +24,16 @@ export type SectionFailureProps = {
  * 節の名前を文言に含めるのは、複数の節が同時に落ちたときに同じ文が並ぶためです。どれが
  * 落ちたのかが文からわかる必要があります。
  */
-export function SectionFailure({ label, message }: SectionFailureProps) {
-  return (
-    <Alert variant="warning">
-      <AlertTitle>{label}を表示できませんでした</AlertTitle>
-      <AlertDescription>
-        <p>{message}</p>
-      </AlertDescription>
-    </Alert>
-  );
-}
+export const SectionFailure = withPartSpan(
+  "features/home/ui/section-failure/section-failure",
+  ({ label, message }: SectionFailureProps) => {
+    return (
+      <Alert variant="warning">
+        <AlertTitle>{label}を表示できませんでした</AlertTitle>
+        <AlertDescription>
+          <p>{message}</p>
+        </AlertDescription>
+      </Alert>
+    );
+  },
+);

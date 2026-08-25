@@ -105,7 +105,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # Every check runs unconditionally so one failure does not hide another's
       # findings, and all logs land in the same PR comment.

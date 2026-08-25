@@ -81,7 +81,7 @@ jobs:
       # and report a clean run. It fails loudly on an unresolved import instead, so the
       # trees have to be here.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # The full variant: coverage with no cache, and the thresholds in
       # `vitest.scripts.config.ts` are part of the gate. A new decision branch that nobody
