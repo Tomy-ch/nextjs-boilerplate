@@ -120,7 +120,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.scope.outputs.relevant == 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # The record of which input state already compared clean. `make vrt` hashes the
       # rendering inputs itself and skips the comparison when they match, so the cache only
