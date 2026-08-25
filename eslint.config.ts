@@ -184,7 +184,10 @@ export default [
         "error",
         {
           selector:
-            'Identifier[name="process"]:not(MemberExpression > .property):not(Property > .key)',
+            // `.property` を外すのは `foo.process` のような無関係な名前を拾わないため。ただし
+            // `globalThis.process` はその除外にそのまま当たってしまう同じ global の別の綴りなので、
+            // 名指しで塞ぐ。塞がないと規則が 1 語で迂回できる。
+            'Identifier[name="process"]:not(MemberExpression > .property):not(Property > .key), MemberExpression[object.name="globalThis"][property.name="process"]',
           message:
             "`process` を読んでよいのは config カーネルと起動境界だけです（ADR 0030）。値は config を通して受け取ってください。",
         },
@@ -208,6 +211,11 @@ export default [
     // 付けると配下の子まで束へ引き込む（`docs/design/rendering.md`）。島は葉に差す。
     //
     // `error.tsx` / `global-error.tsx` は framework が client を要求するため、ここに挙げない。
+    //
+    // **対象のファイル名を `architecture.ts` へ出さないのは、これが framework の綴りだから。**
+    // 隣の `NODE_RUNTIME_ACCESS` はこのリポジトリが決めた区画（どの層が実行環境へ触れてよいか）
+    // なので宣言を 1 箇所へ集めるが、`layout` / `page` / `template` / `default` を決めたのは
+    // Next.js であり、リポジトリの構造の宣言に混ぜると出所の違う 2 種類が同居する。
     files: ["src/app/**/{layout,page,template,default}.tsx"],
     rules: {
       "no-restricted-syntax": [
