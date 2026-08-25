@@ -56,8 +56,9 @@ flowchart TD
 [`features/products/README.md`](../src/features/products/README.md) が持つ。
 <!-- sample:end -->
 
-**サンプルを捨てた後は、この節の代わりに層ごとの README を読む。**入口は
+**層ごとの README も同じ役割を持つ。**入口は
 [`src/features/README.md`](../src/features/README.md) で、そこから各カーネルの README へ辿れる。
+サンプルを捨てた後に残るのはこちらである。
 
 ## 実装前・実装後の確認
 
