@@ -39,7 +39,7 @@ export function HomeSkeleton() {
         </div>
       </section>
       <section>
-        <h2 className="text-lg font-emphasis">売上ランキング</h2>
+        <h2 className="text-lg font-emphasis">売れ筋ランキング</h2>
         <ul className="mt-4 space-y-1">
           {Array.from({ length: RANKING_ROW_COUNT }, (_, index) => index).map((index) => (
             <li className="flex items-center gap-4 py-3" key={index}>

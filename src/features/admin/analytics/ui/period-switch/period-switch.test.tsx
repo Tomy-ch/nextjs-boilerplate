@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import { DASHBOARD_PERIOD, type DashboardPeriod } from "@/model/dashboard/dashboard";
+import { DASHBOARD_PERIOD, type DashboardPeriod } from "../../period";
 
 import { PeriodSwitch } from "./period-switch";
 

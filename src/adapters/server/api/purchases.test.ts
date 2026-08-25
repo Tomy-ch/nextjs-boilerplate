@@ -16,9 +16,11 @@ import { toProductId } from "@/model/product/product";
 import {
   cancelMyPurchase,
   createPurchase,
+  deliverPurchase,
   getMyPurchase,
   getMyPurchases,
   getShippablePurchases,
+  getShippedPurchases,
   parsePurchaseHistoryQuery,
   payMyPurchase,
   shipPurchase,
@@ -49,8 +51,8 @@ async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> 
   return undefined;
 }
 
-/** 履歴の取得条件。件数と区分だけを固定し、各ケースはそこから派生させる。 */
-const HISTORY_QUERY = { first: 10, period: "all" } as const;
+/** 履歴の取得条件。件数と母集団だけを固定し、各ケースはそこから派生させる。 */
+const HISTORY_QUERY = { first: 10, includeOtherUsers: false } as const;
 
 describe("getMyPurchases", () => {
   // ----- 正常系 -----
@@ -76,12 +78,29 @@ describe("getMyPurchases", () => {
     expect(page.items[0]).not.toHaveProperty("statusId");
   });
 
-  it("取得件数の上限と期間の区分をクエリへ載せる", async () => {
+  it("取得件数と母集団をクエリへ載せる", async () => {
     const requests = serveJson(PURCHASES_URL, wirePage);
 
     await getMyPurchases(HISTORY_QUERY);
 
-    expect(requests[0]?.url).toBe(`${PURCHASES_URL}?first=10&period=all`);
+    expect(requests[0]?.url).toBe(`${PURCHASES_URL}?first=10&includeOtherUsers=false`);
+  });
+
+  it("区間の両端をオフセット付きのままクエリへ載せる", async () => {
+    const requests = serveJson(PURCHASES_URL, wirePage);
+
+    await getMyPurchases({
+      ...HISTORY_QUERY,
+      orderedAfter: "2026-07-01T00:00:00+09:00",
+      orderedBefore: "2026-08-01T00:00:00+09:00",
+    });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("orderedAfter")).toBe(
+      "2026-07-01T00:00:00+09:00",
+    );
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("orderedBefore")).toBe(
+      "2026-08-01T00:00:00+09:00",
+    );
   });
 
   it("次ページのカーソルを引き継ぐ", async () => {
@@ -267,22 +286,42 @@ describe("createPurchase", () => {
 describe("parsePurchaseHistoryQuery", () => {
   // ----- 正常系 -----
   it("素のクエリを契約の型へ照らす", () => {
-    expect(parsePurchaseHistoryQuery({ first: "20", period: "recent", days: "30" })).toEqual({
+    expect(
+      parsePurchaseHistoryQuery({
+        first: "20",
+        orderedAfter: "2026-07-01T00:00:00+09:00",
+        orderedBefore: "2026-08-01T00:00:00+09:00",
+      }),
+    ).toEqual({
       ok: true,
-      query: expect.objectContaining({ first: 20, period: "recent", days: 30 }),
+      query: expect.objectContaining({
+        first: 20,
+        orderedAfter: "2026-07-01T00:00:00+09:00",
+        orderedBefore: "2026-08-01T00:00:00+09:00",
+      }),
     });
   });
 
   it("指定が無ければ契約の既定で埋める", () => {
     const parsed = parsePurchaseHistoryQuery({});
 
-    expect(parsed.ok && parsed.query.period).toBe("all");
+    expect(parsed.ok && parsed.query.includeOtherUsers).toBe(false);
+  });
+
+  it("真偽値の条件を、URL の綴りから真偽値へ直す", () => {
+    const included = parsePurchaseHistoryQuery({ includeOtherUsers: "true" });
+    const excluded = parsePurchaseHistoryQuery({ includeOtherUsers: "false" });
+
+    expect(included.ok && included.query.includeOtherUsers).toBe(true);
+    expect(excluded.ok && excluded.query.includeOtherUsers).toBe(false);
   });
 
   it("繰り返された条件は指定なしとして落とす", () => {
-    const parsed = parsePurchaseHistoryQuery({ month: ["2026-07", "2026-08"] });
+    const parsed = parsePurchaseHistoryQuery({
+      orderedAfter: ["2026-07-01T00:00:00+09:00", "2026-08-01T00:00:00+09:00"],
+    });
 
-    expect(parsed.ok && parsed.query.month).toBeUndefined();
+    expect(parsed.ok && parsed.query.orderedAfter).toBeUndefined();
   });
 
   // ----- 異常系 -----
@@ -293,18 +332,25 @@ describe("parsePurchaseHistoryQuery", () => {
     });
   });
 
-  it("知らない区分も読めなかったキーとして返す", () => {
-    expect(parsePurchaseHistoryQuery({ period: "yesterday" })).toEqual({
+  it("オフセットの無い時刻は読めなかったキーとして返す", () => {
+    expect(parsePurchaseHistoryQuery({ orderedAfter: "2026-07-01T00:00:00" })).toEqual({
       ok: false,
-      invalidKeys: ["period"],
+      invalidKeys: ["orderedAfter"],
+    });
+  });
+
+  it("真偽値として読めない綴りは、既定へ倒さず読めなかったキーとして返す", () => {
+    expect(parsePurchaseHistoryQuery({ includeOtherUsers: "yes" })).toEqual({
+      ok: false,
+      invalidKeys: ["includeOtherUsers"],
     });
   });
 
   it("読めなかったキーを重複させない", () => {
-    const parsed = parsePurchaseHistoryQuery({ first: "0", period: "yesterday" });
+    const parsed = parsePurchaseHistoryQuery({ first: "0", orderedAfter: "きのう" });
 
     expect(parsed.ok).toBe(false);
-    expect(!parsed.ok && parsed.invalidKeys).toEqual(["first", "period"]);
+    expect(!parsed.ok && parsed.invalidKeys).toEqual(["first", "orderedAfter"]);
   });
 });
 
@@ -505,6 +551,81 @@ describe("shipPurchase", () => {
     serveStatus("patch", `${PURCHASE_URL}/ship`, 403);
 
     expect(await kindOf(() => shipPurchase(wireTransitioned.code))).toBe(
+      ErrorKind.PERMISSION_DENIED,
+    );
+  });
+});
+
+describe("getShippedPurchases", () => {
+  // ----- 正常系 -----
+  it("発送済みだけを、他の利用者の購入も含めて求める", async () => {
+    const requests = serveJson(PURCHASES_URL, wirePage);
+
+    await getShippedPurchases(50);
+
+    const query = new URL(requests[0]?.url ?? "").searchParams;
+
+    expect(query.get("statusCodes")).toBe("8");
+    expect(query.get("includeOtherUsers")).toBe("true");
+    expect(query.get("first")).toBe("50");
+  });
+
+  it("契約の 1 件を表示用の項目へ写す", async () => {
+    serveJson(PURCHASES_URL, wirePage);
+
+    await expect(getShippedPurchases(50)).resolves.toEqual([
+      {
+        code: wireItem.code,
+        totalAmount: 123_456,
+        statusCode: 8,
+        statusName: "発送済み",
+        orderedAt: new Date("2026-08-07T00:00:00.000Z"),
+      },
+    ]);
+  });
+
+  it("配達を待っている注文が無いとき空の並びを返す", async () => {
+    serveJson(PURCHASES_URL, { items: [], nextCursor: null, hasNext: false });
+
+    await expect(getShippedPurchases(50)).resolves.toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("役割が足りない要求を、権限なしとして返す", async () => {
+    serveStatus("get", PURCHASES_URL, 403);
+
+    expect(await kindOf(() => getShippedPurchases(50))).toBe(ErrorKind.PERMISSION_DENIED);
+  });
+});
+
+describe("deliverPurchase", () => {
+  // ----- 正常系 -----
+  it("購入コードを載せた配達確認の要求を送る", async () => {
+    const requests = serveWrite("patch", `${PURCHASE_URL}/deliver`, {
+      ...wireTransitioned,
+      status: { id: "0195f0c2-0000-7000-8000-0000000000d4", code: 9, name: "配達済み" },
+      canceledAt: undefined,
+      shippedAt: "2026-08-18T01:30:00.000Z",
+      deliveredAt: "2026-08-20T01:30:00.000Z",
+    });
+
+    await deliverPurchase(wireTransitioned.code);
+
+    expect(requests[0]?.url).toBe(`${PURCHASES_URL}/${wireTransitioned.code}/deliver`);
+    expect(requests[0]?.method).toBe("PATCH");
+  });
+
+  // ----- 異常系 -----
+  it("いまの状態では通らない要求を、競合として返す", async () => {
+    serveStatus("patch", `${PURCHASE_URL}/deliver`, 409);
+
+    expect(await kindOf(() => deliverPurchase(wireTransitioned.code))).toBe(ErrorKind.CONFLICT);
+  });
+
+  it("役割が足りない要求を、権限なしとして返す", async () => {
+    serveStatus("patch", `${PURCHASE_URL}/deliver`, 403);
+
+    expect(await kindOf(() => deliverPurchase(wireTransitioned.code))).toBe(
       ErrorKind.PERMISSION_DENIED,
     );
   });

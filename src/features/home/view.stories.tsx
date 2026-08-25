@@ -57,7 +57,7 @@ function withPageFrame(Story: () => React.ReactElement) {
             <div>
               <PageHeaderTitle>ようこそ</PageHeaderTitle>
               <PageHeaderDescription>
-                新着商品と売上ランキング、カテゴリから商品を探せます。
+                新着商品と売れ筋ランキング、カテゴリから商品を探せます。
               </PageHeaderDescription>
             </div>
           </PageHeader>

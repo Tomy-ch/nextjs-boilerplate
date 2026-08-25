@@ -51,11 +51,9 @@ describe("GET", () => {
   it("URL の条件を契約の型へ写して取得へ渡す", async () => {
     await GET(requestFor("?keyword=%E6%9C%AC&first=20&sort=publishedAt"));
 
-    expect(getProductListPage).toHaveBeenCalledWith({
-      keyword: "本",
-      first: 20,
-      sort: "publishedAt",
-    });
+    expect(getProductListPage).toHaveBeenCalledWith(
+      expect.objectContaining({ keyword: "本", first: 20, sort: "publishedAt" }),
+    );
   });
 
   it("繰り返された分類を並びのまま取得へ渡す", async () => {
@@ -69,7 +67,11 @@ describe("GET", () => {
   it("条件が無いとき契約の既定値で取得する", async () => {
     await GET(requestFor(""));
 
-    expect(getProductListPage).toHaveBeenCalledWith({ first: 50, sort: "-publishedAt" });
+    expect(getProductListPage).toHaveBeenCalledWith({
+      first: 50,
+      sort: "-publishedAt",
+      includeUnpublished: false,
+    });
   });
 
   // ----- 異常系 -----

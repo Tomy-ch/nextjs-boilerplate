@@ -13,23 +13,26 @@ vi.mock("./results", () => ({ ShipmentQueueResults }));
 import { ShipmentQueuePageContent } from "./page-content";
 
 const shipAction = vi.fn();
+const deliverAction = vi.fn();
 
 describe("ShipmentQueuePageContent", () => {
   it("取得の待ちを一覧本体だけに掛ける", () => {
-    render(<ShipmentQueuePageContent shipAction={shipAction} />);
+    render(<ShipmentQueuePageContent deliverAction={deliverAction} shipAction={shipAction} />);
 
     expect(screen.getByText("便の並び")).toBeVisible();
   });
 
   it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(<ShipmentQueuePageContent shipAction={shipAction} />);
+    const { container } = render(
+      <ShipmentQueuePageContent deliverAction={deliverAction} shipAction={shipAction} />,
+    );
 
     expect((await axe(container)).violations).toEqual([]);
   });
 
-  it("送信先をそのまま一覧へ渡す", () => {
-    render(<ShipmentQueuePageContent shipAction={shipAction} />);
+  it("2 つの送信先をそのまま一覧へ渡す", () => {
+    render(<ShipmentQueuePageContent deliverAction={deliverAction} shipAction={shipAction} />);
 
-    expect(ShipmentQueueResults).toHaveBeenCalledWith({ shipAction }, undefined);
+    expect(ShipmentQueueResults).toHaveBeenCalledWith({ shipAction, deliverAction }, undefined);
   });
 });

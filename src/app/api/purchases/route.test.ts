@@ -41,30 +41,38 @@ beforeEach(() => {
 describe("GET", () => {
   // ----- 正常系 -----
   it("取得した 1 ページをそのまま返す", async () => {
-    const response = await GET(request("first=20&period=all"));
+    const response = await GET(request("first=20"));
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ nextCursor: "next" });
   });
 
   it("読み取った条件を取得口へ渡す", async () => {
-    await GET(request("first=20&period=recent&days=30&after=cursor"));
+    await GET(
+      request(
+        `first=20&orderedAfter=${encodeURIComponent("2026-07-01T00:00:00+09:00")}&after=cursor`,
+      ),
+    );
 
     expect(getMyPurchases).toHaveBeenCalledWith(
-      expect.objectContaining({ first: 20, period: "recent", days: 30, after: "cursor" }),
+      expect.objectContaining({
+        first: 20,
+        orderedAfter: "2026-07-01T00:00:00+09:00",
+        after: "cursor",
+      }),
     );
   });
 
   // ----- 異常系 -----
   it("契約の範囲を外れた条件は取得を始めずに拒む", async () => {
-    const response = await GET(request("first=0&period=all"));
+    const response = await GET(request("first=0"));
 
     expect(response.status).toBe(400);
     expect(getMyPurchases).not.toHaveBeenCalled();
   });
 
-  it("知らない区分も取得を始めずに拒む", async () => {
-    const response = await GET(request("period=yesterday"));
+  it("オフセットの無い時刻も取得を始めずに拒む", async () => {
+    const response = await GET(request("orderedAfter=2026-07-01T00:00:00"));
 
     expect(response.status).toBe(400);
     expect(getMyPurchases).not.toHaveBeenCalled();
@@ -73,19 +81,19 @@ describe("GET", () => {
   it("資格情報が無い取得は、そのまま認証の必要として返す", async () => {
     getMyPurchases.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
 
-    expect((await GET(request("first=20&period=all"))).status).toBe(401);
+    expect((await GET(request("first=20"))).status).toBe(401);
   });
 
   it("分類の付いていない失敗は internal へ矯正する", async () => {
     getMyPurchases.mockRejectedValue(new Error("想定外"));
 
-    expect((await GET(request("first=20&period=all"))).status).toBe(500);
+    expect((await GET(request("first=20"))).status).toBe(500);
   });
 
   it("内側の事情を応答の本文へ出さない", async () => {
     getMyPurchases.mockRejectedValue(new Error("接続文字列が不正です"));
 
-    await expect((await GET(request("first=20&period=all"))).json()).resolves.not.toMatchObject({
+    await expect((await GET(request("first=20"))).json()).resolves.not.toMatchObject({
       message: expect.stringContaining("接続文字列"),
     });
   });

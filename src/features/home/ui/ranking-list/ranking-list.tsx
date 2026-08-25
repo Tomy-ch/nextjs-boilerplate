@@ -10,7 +10,7 @@ export type RankingListProps = {
 };
 
 /**
- * 売上ランキング。
+ * 売れ筋ランキング。
  *
  * @remarks
  * カードではなく行で並べます。ランキングの取得口が返すのは名前・価格・販売数量だけで画像を
@@ -30,7 +30,7 @@ export function RankingList({ entries }: RankingListProps) {
 
   return (
     <section>
-      <h2 className="text-lg font-emphasis">売上ランキング</h2>
+      <h2 className="text-lg font-emphasis">売れ筋ランキング</h2>
       <ol className="mt-4">
         {entries.map((entry, index) => (
           <li key={entry.productId}>

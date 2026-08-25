@@ -24,7 +24,8 @@ vi.mock("@/adapters/client/api/purchases", async (importOriginal) => ({
   fetchPurchaseHistoryPage,
 }));
 
-import type { PeriodSelection } from "./period";
+import type { TimeWindow } from "@/model/time-window";
+
 import { useInfinitePurchases } from "./use-infinite-purchases";
 
 type IntersectionCallback = (entries: readonly { isIntersecting: boolean }[]) => void;
@@ -72,16 +73,16 @@ function pageOf(
 }
 
 const PAGE_SIZE = 20;
-const ALL: PeriodSelection = { kind: "all" };
+const WHOLE: TimeWindow = {};
 
 function Subject({
   initial,
-  period = ALL,
+  window = WHOLE,
 }: {
   initial: CursorPage<PurchaseHistoryEntry>;
-  period?: PeriodSelection;
+  window?: TimeWindow;
 }) {
-  const { items, loadMore, sentinelRef } = useInfinitePurchases(initial, period, PAGE_SIZE);
+  const { items, loadMore, sentinelRef } = useInfinitePurchases(initial, window, PAGE_SIZE);
 
   return (
     <>
@@ -133,20 +134,39 @@ describe("useInfinitePurchases", () => {
     expect(screen.getByTestId("status")).toHaveTextContent("exhausted");
   });
 
-  it("続きの取得へ、効いている期間と件数と鍵を渡す", async () => {
+  it("続きの取得へ、効いている区間と件数と鍵を渡す", async () => {
     fetchPurchaseHistoryPage.mockResolvedValue(pageOf(["c"]));
 
-    render(<Subject initial={pageOf(["a"], "cursor-1")} period={{ kind: "recent", days: 30 }} />);
+    render(
+      <Subject
+        initial={pageOf(["a"], "cursor-1")}
+        window={{ after: "2026-07-01T00:00:00+09:00", before: "2026-08-01T00:00:00+09:00" }}
+      />,
+    );
     reachEnd();
 
     await waitFor(() => expect(fetchPurchaseHistoryPage).toHaveBeenCalled());
 
     const params = fetchPurchaseHistoryPage.mock.calls[0]?.[0];
 
-    expect(params?.get("period")).toBe("recent");
-    expect(params?.get("days")).toBe("30");
+    expect(params?.get("orderedAfter")).toBe("2026-07-01T00:00:00+09:00");
+    expect(params?.get("orderedBefore")).toBe("2026-08-01T00:00:00+09:00");
     expect(params?.get("first")).toBe(String(PAGE_SIZE));
     expect(params?.get("after")).toBe("cursor-1");
+  });
+
+  it("境界の無い区間では、期間の条件を載せない", async () => {
+    fetchPurchaseHistoryPage.mockResolvedValue(pageOf(["c"]));
+
+    render(<Subject initial={pageOf(["a"], "cursor-1")} />);
+    reachEnd();
+
+    await waitFor(() => expect(fetchPurchaseHistoryPage).toHaveBeenCalled());
+
+    const params = fetchPurchaseHistoryPage.mock.calls[0]?.[0];
+
+    expect(params?.has("orderedAfter")).toBe(false);
+    expect(params?.has("orderedBefore")).toBe(false);
   });
 
   it("内容が同じまま作り直された最初のページで、積み上げを捨てない", async () => {

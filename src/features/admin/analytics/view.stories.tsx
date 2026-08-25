@@ -12,11 +12,7 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
-import {
-  DASHBOARD_PERIOD,
-  type DashboardSummary,
-  type PurchaseStatusCount,
-} from "@/model/dashboard/dashboard";
+import type { DashboardSummary, PurchaseStatusCount } from "@/model/dashboard/dashboard";
 import { toProductId } from "@/model/product/product";
 
 import { ADMIN_ANALYTICS_PATH, ADMIN_DASHBOARD_PATH, ADMIN_PRODUCT_LIST_PATH } from "../paths";
@@ -24,6 +20,7 @@ import { toSummaryCards } from "../summary-cards";
 import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
 import { StatCards } from "../ui/stat-cards/stat-cards";
 import { StatusBreakdown } from "../ui/status-breakdown/status-breakdown";
+import { DASHBOARD_PERIOD } from "./period";
 import type { AdminRankingRow } from "./ranking-rows";
 import { RankingTable } from "./ui/ranking-table/ranking-table";
 import { AnalyticsView } from "./view";
@@ -143,8 +140,9 @@ const meta = {
           "数値が変わらないのはそのためで、実際は押した時点でその URL の集計へ移ります。",
           "**取り直すのは選択肢の下だけ**で、選択肢と対象期間の表示は出たまま残ります。",
           "「期間を指定」だけは押しても遷移せず、両端を決めてから遷移する overlay を開きます。",
-          "売れ筋は期間の選択に従いません。ランキングの取得口が受け付ける期間は全期間と直近 30 日の",
-          "2 つだけで、この画面の選択肢と対応しないためです。見出しに期間を書いているのがその断りです。",
+          "売れ筋は期間の選択に従いません。ここが見せるのは「いま何が動いているか」で、過去の月を",
+          "選んだときに当時の順位が出ても品揃えの判断には使えないためです。見出しに期間を書いて",
+          "いるのがその断りです。",
         ].join(""),
       },
     },

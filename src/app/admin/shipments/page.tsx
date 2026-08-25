@@ -8,7 +8,7 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { ShipmentQueuePageContent } from "@/features/admin/shipments/page-content";
 
-import { shipPurchasesAction } from "./actions";
+import { deliverPurchaseAction, shipPurchasesAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "発送",
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * 発送を待っている注文を、まとめて発送してよい便ごとに見る画面。
+ * 発送を待っている注文を便ごとに見て、発送済みの注文の配達を確認する画面。
  *
  * @remarks
  * 検索エンジンに拾わせません。管理の面は認可の内側にあり、索引に載っても辿り着けないうえ、
@@ -32,11 +32,14 @@ export default function AdminShipmentQueuePage() {
         <div>
           <PageHeaderTitle>発送</PageHeaderTitle>
           <PageHeaderDescription>
-            支払いを終えてまだ発送していない注文を、まとめて発送してよい便ごとに確認します。
+            支払いを終えてまだ発送していない注文を便ごとに確認し、発送済みの注文を配達済みにします。
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <ShipmentQueuePageContent shipAction={shipPurchasesAction} />
+      <ShipmentQueuePageContent
+        deliverAction={deliverPurchaseAction}
+        shipAction={shipPurchasesAction}
+      />
     </ContentContainer>
   );
 }

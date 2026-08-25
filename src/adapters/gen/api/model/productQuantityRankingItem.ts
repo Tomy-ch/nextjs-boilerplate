@@ -9,13 +9,13 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
 
 /**
- * 売上ランキング 1 商品分の項目です。
+ * 販売数量ランキング 1 商品分の項目です。
  */
-export interface ProductRankingItem {
+export interface ProductQuantityRankingItem {
   /** 商品ID */
   productId: string;
   /**

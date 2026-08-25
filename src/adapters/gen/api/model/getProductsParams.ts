@@ -9,12 +9,13 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+151bc17
+ * OpenAPI spec version: 2.2.0+f6c9463
  */
 import type { CategoryCodesParamParameter } from "./categoryCodesParamParameter";
 import type { CategoryIdParamParameter } from "./categoryIdParamParameter";
 import type { CursorAfterParamParameter } from "./cursorAfterParamParameter";
 import type { CursorFirstParamParameter } from "./cursorFirstParamParameter";
+import type { IncludeUnpublishedParamParameter } from "./includeUnpublishedParamParameter";
 import type { KeywordParamParameter } from "./keywordParamParameter";
 import type { MaxPriceParamParameter } from "./maxPriceParamParameter";
 import type { MaxQuantityParamParameter } from "./maxQuantityParamParameter";
@@ -108,4 +109,11 @@ export type GetProductsParams = {
    * いずれも同一公開日時の商品は ID で安定ソートします。
    */
   sort?: SortParamParameter;
+  /**
+   * 未公開（公開日時が未設定）の商品を母集団に含める場合は true を指定します。既定は false で、
+   * 指定しない場合の母集団は公開済みの商品のみです。
+   * true を指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 で拒否します。
+   * false を明示した場合は認証を要しません（指定しない場合と同じ扱いです）。
+   */
+  includeUnpublished?: IncludeUnpublishedParamParameter;
 };

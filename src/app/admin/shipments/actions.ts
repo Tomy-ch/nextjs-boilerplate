@@ -2,13 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 
-import { shipPurchase } from "@/adapters/server/api/purchases";
+import { deliverPurchase, shipPurchase } from "@/adapters/server/api/purchases";
 import { verifySession } from "@/adapters/server/auth/session";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { ADMIN_SHIPMENT_QUEUE_PATH } from "@/features/admin/paths";
 import { SHIPMENT_FORM_NAMES } from "@/features/admin/shipments/form-names";
 import {
+  DELIVERY_CONFLICT_MESSAGE,
+  type DeliveryState,
   SHIPMENT_CONFLICT_MESSAGE,
   SHIPMENT_TARGET_LOST_MESSAGE,
   type ShipmentState,
@@ -130,4 +132,48 @@ export async function shipPurchasesAction(
   }
 
   return succeededActionState({ shipped, refused });
+}
+
+/**
+ * 配達を確認する。
+ *
+ * @remarks
+ * **1 件だけ受けます。** 契約の配達確認は購入 1 件ずつで、この画面もまとめる軸を持ちません
+ * （{@link DeliveryState}）。送信に複数並んでいても先頭しか見ないのではなく、そもそも並べる
+ * 送信を作りません。
+ *
+ * 通ったら一覧を取り直させます。配達済みになった注文は発送済みではなくなるので、残したままに
+ * すると押せば必ず競合になる操作が並び続けます。
+ *
+ * 置き場の判断は {@link shipPurchasesAction} と同じです。
+ */
+export async function deliverPurchaseAction(
+  _previous: DeliveryState,
+  formData: FormData,
+): Promise<DeliveryState> {
+  try {
+    await assertAdmin();
+  } catch (error) {
+    return actionStateFromError(error);
+  }
+
+  const [purchaseCode] = readPurchaseCodes(formData);
+
+  if (purchaseCode === undefined) {
+    return failedActionState({ formError: SHIPMENT_TARGET_LOST_MESSAGE });
+  }
+
+  try {
+    await deliverPurchase(purchaseCode);
+  } catch (error) {
+    if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
+      return failedActionState({ formError: DELIVERY_CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });
+    }
+
+    return actionStateFromError(error);
+  }
+
+  revalidatePath(ADMIN_SHIPMENT_QUEUE_PATH);
+
+  return succeededActionState({ purchaseCode });
 }
