@@ -59,6 +59,11 @@ export const SAMPLE_PATHS: readonly string[] = [
   "mocks/api",
   "mocks/contract-conformance.test.ts",
   "mocks/handlers.test.ts",
+  // 題材の画面の仕様書。実装と 1 対 1 で対応するため、画面が消えれば仕様書も消える。
+  // 残るのは `docs/spec/README.md` と、コア残留の画面（`auth` の器 / `/login` / `/dev/session`）の分。
+  "docs/spec/route/shop",
+  "docs/spec/route/admin",
+  "docs/spec/route/auth/onboarding",
   // 題材の画面を通す E2E。土台（`e2e/lib` / `e2e/visual`）と、題材に依らない認証の前捌きは残す。
   "e2e/journeys/browse.spec.ts",
   "e2e/journeys/responsive.spec.ts",

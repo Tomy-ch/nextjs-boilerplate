@@ -25,12 +25,12 @@
 
 | 実装 | 仕様書 |
 | --- | --- |
-| `(shop)/layout.tsx` | `route/shop/layout.{screen,function}.md` |
-| `(shop)/cart/page.tsx` | `route/shop/cart/page.{screen,function}.md` |
-| `(shop)/mypage/edit/page.tsx` | `route/shop/mypage/edit/page.{screen,function}.md` |
-| `(shop)/products/[id]/page.tsx` | `route/shop/products/[id]/page.{screen,function}.md` |
+| `(group)/layout.tsx` | `route/<group>/layout.{screen,function}.md` |
+| `(group)/<segment>/page.tsx` | `route/<group>/<segment>/page.{screen,function}.md` |
+| `(group)/<segment>/<child>/page.tsx` | `route/<group>/<segment>/<child>/page.{screen,function}.md` |
+| `(group)/<segment>/[id]/page.tsx` | `route/<group>/<segment>/[id]/page.{screen,function}.md` |
 
-route group は URL に現れないため、括弧を外した名前で置きます（`(shop)` → `shop/`）。動的
+route group は URL に現れないため、括弧を外した名前で置きます（`(group)` → `<group>/`）。動的
 セグメントは URL に現れるため、角括弧を含む名前のまま置きます。
 
 **layout の仕様はその配下すべてに効きます。** 画面をまたぐ約束（外枠に出るカート、認証の扱い）は
@@ -43,31 +43,31 @@ route group は URL に現れないため、括弧を外した名前で置きま
 
 | ルート | 仕様書 |
 | --- | --- |
-| `(shop)` 外枠 | [`layout.screen.md`](route/shop/layout.screen.md) / [`layout.function.md`](route/shop/layout.function.md) |
-| `/products` | [`screen`](route/shop/products/page.screen.md) / [`function`](route/shop/products/page.function.md) |
-| `/products/[id]` | [`screen`](<route/shop/products/[id]/page.screen.md>) / [`function`](<route/shop/products/[id]/page.function.md>) |
-| `/cart` | [`screen`](route/shop/cart/page.screen.md) / [`function`](route/shop/cart/page.function.md) |
-| `/checkout` | [`screen`](route/shop/checkout/page.screen.md) / [`function`](route/shop/checkout/page.function.md) |
-| `/checkout/complete` | [`screen`](route/shop/checkout/complete/page.screen.md) / [`function`](route/shop/checkout/complete/page.function.md) |
-| `/purchases` | [`screen`](route/shop/purchases/page.screen.md) / [`function`](route/shop/purchases/page.function.md) |
-| `/purchases/[code]` | [`screen`](<route/shop/purchases/[code]/page.screen.md>) / [`function`](<route/shop/purchases/[code]/page.function.md>) |
-| `/mypage` | [`screen`](route/shop/mypage/page.screen.md) / [`function`](route/shop/mypage/page.function.md) |
-| `/mypage/edit` | [`screen`](route/shop/mypage/edit/page.screen.md) / [`function`](route/shop/mypage/edit/page.function.md) |
-| `/about` | [`screen`](route/shop/about/page.screen.md) / [`function`](route/shop/about/page.function.md) |
-| `/privacy` | [`screen`](route/shop/privacy/page.screen.md) / [`function`](route/shop/privacy/page.function.md) |
-| `/terms` | [`screen`](route/shop/terms/page.screen.md) / [`function`](route/shop/terms/page.function.md) |
-| `admin` 外枠 | [`screen`](route/admin/layout.screen.md) / [`function`](route/admin/layout.function.md) |
-| `/admin` | [`screen`](route/admin/page.screen.md) / [`function`](route/admin/page.function.md) |
-| `/admin/analytics` | [`screen`](route/admin/analytics/page.screen.md) / [`function`](route/admin/analytics/page.function.md) |
-| `/admin/products` | [`screen`](route/admin/products/page.screen.md) / [`function`](route/admin/products/page.function.md) |
-| `/admin/products/new` | [`screen`](route/admin/products/new/page.screen.md) / [`function`](route/admin/products/new/page.function.md) |
-| `/admin/products/[id]/edit` | [`screen`](<route/admin/products/[id]/edit/page.screen.md>) / [`function`](<route/admin/products/[id]/edit/page.function.md>) |
-| `/admin/products/[id]/stock` | [`screen`](<route/admin/products/[id]/stock/page.screen.md>) / [`function`](<route/admin/products/[id]/stock/page.function.md>) |
-| `/admin/shipments` | [`screen`](route/admin/shipments/page.screen.md) / [`function`](route/admin/shipments/page.function.md) |
-| `/admin/users` | [`screen`](route/admin/users/page.screen.md) / [`function`](route/admin/users/page.function.md) |
+| `(shop)` 外枠 | [`layout.screen.md`](route/shop/layout.screen.md) / [`layout.function.md`](route/shop/layout.function.md) <!-- sample:line --> |
+| `/products` | [`screen`](route/shop/products/page.screen.md) / [`function`](route/shop/products/page.function.md) <!-- sample:line --> |
+| `/products/[id]` | [`screen`](<route/shop/products/[id]/page.screen.md>) / [`function`](<route/shop/products/[id]/page.function.md>) <!-- sample:line --> |
+| `/cart` | [`screen`](route/shop/cart/page.screen.md) / [`function`](route/shop/cart/page.function.md) <!-- sample:line --> |
+| `/checkout` | [`screen`](route/shop/checkout/page.screen.md) / [`function`](route/shop/checkout/page.function.md) <!-- sample:line --> |
+| `/checkout/complete` | [`screen`](route/shop/checkout/complete/page.screen.md) / [`function`](route/shop/checkout/complete/page.function.md) <!-- sample:line --> |
+| `/purchases` | [`screen`](route/shop/purchases/page.screen.md) / [`function`](route/shop/purchases/page.function.md) <!-- sample:line --> |
+| `/purchases/[code]` | [`screen`](<route/shop/purchases/[code]/page.screen.md>) / [`function`](<route/shop/purchases/[code]/page.function.md>) <!-- sample:line --> |
+| `/mypage` | [`screen`](route/shop/mypage/page.screen.md) / [`function`](route/shop/mypage/page.function.md) <!-- sample:line --> |
+| `/mypage/edit` | [`screen`](route/shop/mypage/edit/page.screen.md) / [`function`](route/shop/mypage/edit/page.function.md) <!-- sample:line --> |
+| `/about` | [`screen`](route/shop/about/page.screen.md) / [`function`](route/shop/about/page.function.md) <!-- sample:line --> |
+| `/privacy` | [`screen`](route/shop/privacy/page.screen.md) / [`function`](route/shop/privacy/page.function.md) <!-- sample:line --> |
+| `/terms` | [`screen`](route/shop/terms/page.screen.md) / [`function`](route/shop/terms/page.function.md) <!-- sample:line --> |
+| `admin` 外枠 | [`screen`](route/admin/layout.screen.md) / [`function`](route/admin/layout.function.md) <!-- sample:line --> |
+| `/admin` | [`screen`](route/admin/page.screen.md) / [`function`](route/admin/page.function.md) <!-- sample:line --> |
+| `/admin/analytics` | [`screen`](route/admin/analytics/page.screen.md) / [`function`](route/admin/analytics/page.function.md) <!-- sample:line --> |
+| `/admin/products` | [`screen`](route/admin/products/page.screen.md) / [`function`](route/admin/products/page.function.md) <!-- sample:line --> |
+| `/admin/products/new` | [`screen`](route/admin/products/new/page.screen.md) / [`function`](route/admin/products/new/page.function.md) <!-- sample:line --> |
+| `/admin/products/[id]/edit` | [`screen`](<route/admin/products/[id]/edit/page.screen.md>) / [`function`](<route/admin/products/[id]/edit/page.function.md>) <!-- sample:line --> |
+| `/admin/products/[id]/stock` | [`screen`](<route/admin/products/[id]/stock/page.screen.md>) / [`function`](<route/admin/products/[id]/stock/page.function.md>) <!-- sample:line --> |
+| `/admin/shipments` | [`screen`](route/admin/shipments/page.screen.md) / [`function`](route/admin/shipments/page.function.md) <!-- sample:line --> |
+| `/admin/users` | [`screen`](route/admin/users/page.screen.md) / [`function`](route/admin/users/page.function.md) <!-- sample:line --> |
 | `auth` 外枠 | [`screen`](route/auth/layout.screen.md) |
 | `/login` | [`screen`](route/auth/login/page.screen.md) / [`function`](route/auth/login/page.function.md) |
-| `/onboarding` | [`screen`](route/auth/onboarding/page.screen.md) / [`function`](route/auth/onboarding/page.function.md) |
+| `/onboarding` | [`screen`](route/auth/onboarding/page.screen.md) / [`function`](route/auth/onboarding/page.function.md) <!-- sample:line --> |
 | `/dev/session` | [`screen`](route/dev/session/page.screen.md) / [`function`](route/dev/session/page.function.md) |
 
 **この目録は「書いた画面の一覧」であって、画面の一覧ではありません。**実装済みの画面は
