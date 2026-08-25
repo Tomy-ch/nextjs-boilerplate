@@ -38,9 +38,13 @@ inputs:
   labels:
     required: true
     description: |
-      Labels the pull request carries, as a JSON array. Pass
-      `${{ toJSON(github.event.pull_request.labels.*.name) }}`; off a pull request it is `null`,
-      which reads as "no labels".
+      Labels the pull request carries, as a JSON array. Callers pass a `toJSON` of
+      `github.event.pull_request.labels.*.name`; off a pull request that is `null`, which reads
+      as "no labels".
+
+      **An expression cannot be written literally here.** An action manifest is itself a
+      template, so a `$`-brace pair in a description is evaluated when the action loads — and
+      the `github` context does not exist there, which fails every caller at once.
 
 outputs:
   run:
