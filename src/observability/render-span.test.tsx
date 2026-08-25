@@ -55,7 +55,7 @@ describe("configureRenderSpans", () => {
     // `vi.resetModules()` を挟んで読み直す。これが起動境界と描画で別々に評価される状況にあたる。
     vi.resetModules();
     const { withPartSpan } = await import("./render-span");
-    const Component = withPartSpan("features/example/ui/card/card", () => <li>商品</li>);
+    const Component = withPartSpan("features/example/ui/row/row", () => <li>一件</li>);
 
     Component();
 
@@ -182,19 +182,19 @@ describe("withPartSpan", () => {
 
   it("parts が無効なら span を作らない", async () => {
     const { withPartSpan } = await loadRenderSpan({ screens: true, parts: false });
-    const Component = withPartSpan("features/example/ui/card/card", () => <li>商品</li>);
+    const Component = withPartSpan("features/example/ui/row/row", () => <li>一件</li>);
 
-    expect(Component()).toEqual(<li>商品</li>);
+    expect(Component()).toEqual(<li>一件</li>);
     expect(mocks.startActiveSpan).not.toHaveBeenCalled();
   });
 
   it("parts が有効なら span を作る", async () => {
     const { withPartSpan } = await loadRenderSpan({ screens: false, parts: true });
-    const Component = withPartSpan("features/example/ui/card/card", () => <li>商品</li>);
+    const Component = withPartSpan("features/example/ui/row/row", () => <li>一件</li>);
 
-    expect(Component()).toEqual(<li>商品</li>);
+    expect(Component()).toEqual(<li>一件</li>);
     expect(mocks.startActiveSpan).toHaveBeenCalledWith(
-      "render features/example/ui/card/card",
+      "render features/example/ui/row/row",
       expect.any(Function),
     );
     expect(mocks.end).toHaveBeenCalledOnce();
