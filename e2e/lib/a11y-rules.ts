@@ -10,9 +10,9 @@
 // どちらでもない場所が要るが、両者の外に共有の器は無く（`baseline/` は基準画像の置き場である）、
 // 器そのものを新設すると、2 つの定数のために木を 1 段増やすことになる。この向きが逆転する条件は
 // **3 つ目の検査地点が現れたとき**で、そのときは借り手が 2 つになるので昇格の代価が釣り合う。
-import { CONFORMANCE_TAGS, DEFAULT_OFF_RULES, type DisabledRule } from "../../vrt/lib/a11y-rules";
+import { DEFAULT_OFF_RULES, type DisabledRule } from "../../vrt/lib/a11y-rules";
 
-export { CONFORMANCE_TAGS };
+export { CONFORMANCE_TAGS } from "../../vrt/lib/a11y-rules";
 
 /**
  * story では原理的に成立せず、ここで初めて見られるルール。

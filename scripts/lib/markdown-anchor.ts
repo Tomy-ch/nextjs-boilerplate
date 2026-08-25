@@ -9,8 +9,11 @@
 /** コードフェンスの開閉。 */
 const FENCE = /^\s*(```|~~~)/;
 
-/** ATX 見出し。末尾の閉じハッシュは見出しの一部ではない。 */
-const HEADING = /^(#{1,6})\s+(.+?)\s*(?:#+\s*)?$/;
+/** ATX 見出し。 */
+const HEADING = /^#{1,6}\s+(.*)$/;
+
+/** 見出しの末尾に付く閉じハッシュ。見出しの一部ではない。 */
+const CLOSING_HASHES = /\s+#+\s*$/;
 
 /**
  * 見出しを GitHub と同じ規則でアンカーへ変換する。
@@ -26,7 +29,7 @@ export function toAnchor(heading: string): string {
   return heading
     .trim()
     .replace(/<[^>]*>/g, "")
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]*)\]\([^()]*\)/g, "$1")
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\p{M} _-]/gu, "")
     .replace(/ /g, "-");
@@ -58,7 +61,7 @@ export function collectAnchors(markdown: string): Set<string> {
 
     if (!heading) continue;
 
-    const base = toAnchor(heading[2]);
+    const base = toAnchor(heading[1].replace(CLOSING_HASHES, ""));
     const count = seen.get(base) ?? 0;
 
     seen.set(base, count + 1);

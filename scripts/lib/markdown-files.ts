@@ -37,7 +37,14 @@ export function isExcludedPath(relativePath: string): boolean {
   );
 }
 
-/** ルート配下の `*.md` をルート相対パスで、名前順に集める。 */
+/**
+ * ルート配下の `*.md` をルート相対パスで、名前順に集める。
+ *
+ * @remarks
+ * 並びは**コード単位の順**で、環境によって変わりません。`localeCompare` を使わないのは、
+ * 同じ木を別のロケールで走査したときに順序が変わり、順序に依存する呼び出し側（差分の比較・
+ * 報告の並び）が環境ごとに違う結果を出すためです。
+ */
 export function collectMarkdownFiles(root: string): string[] {
   const found: string[] = [];
 
@@ -68,5 +75,12 @@ export function collectMarkdownFiles(root: string): string[] {
 
   walk(root);
 
-  return found.sort();
+  return found.sort(byCodeUnit);
+}
+
+/** コード単位で比べる。ロケールに依らず同じ順序を返す。 */
+function byCodeUnit(left: string, right: string): number {
+  if (left < right) return -1;
+
+  return left > right ? 1 : 0;
 }
