@@ -45,6 +45,10 @@ export const PurchaseDetailView = withScreenSpan(
   ({ purchase, reference }: PurchaseDetailViewProps) => {
     return (
       <article className="flex flex-col gap-6">
+        {/* 画面には出さない。見出しを負っているのはパンくずの現在地で、重ねると同じ識別子が
+            2 度並ぶ（画面要件「見出し」）。ただし文書としては見出しが要る —— 支援技術から
+            「いまどの購入を見ているか」を得る手段が、パンくずを辿る以外に無くなる。 */}
+        <h1 className="sr-only">購入 {purchase.code}</h1>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumb className="print-hidden">
             <BreadcrumbList>

@@ -70,13 +70,18 @@ export type LoginViewProps = {
  *
  * 始められなかったときの案内を操作の手前へ置きます。押した結果として戻されているので、押す前に
  * 読む位置に無いと、同じ操作をもう一度押すまで理由が目に入りません。
+ *
+ * **面の見出しを `h1` として描きます。** `CardTitle` は見た目だけを持つので、文書構造上の見出しは
+ * 呼び出し元が子として渡します。この画面は `PageHeader` を持たないため、ここが唯一の h1 です。
  */
 export function LoginView({ returnUrl, notice }: LoginViewProps) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4 py-12">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>ログイン</CardTitle>
+          <CardTitle>
+            <h1>ログイン</h1>
+          </CardTitle>
           <CardDescription>{DESCRIPTION}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

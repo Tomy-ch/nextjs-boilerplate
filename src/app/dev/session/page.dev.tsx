@@ -31,7 +31,8 @@ export const metadata: Metadata = {
  * 403 にしないのは、存在を知らせないほうが設定を誤ったまま公開したときの被害が小さいためです。
  *
  * 外枠（`(shop)` の layout）の内側に置きません。買い物の導線とは別物で、header の nav に並べる
- * ものでもないためです。
+ * ものでもないためです。**そのぶん `main` はこの画面が自分で置きます** —— shell を通らないと
+ * いうことは、shell が置いている landmark も無いということです。
  *
  * **session の読み取りと送信先をここが持ちます。** `adapters/server/auth` へ触れてよいのは app 層で
  * （`architecture.ts` の `adapters-auth`）、画面の側は受け取った値と送信先を使うだけです。
@@ -60,26 +61,28 @@ export default async function DevSessionPage({
   const state = params[STATE_PARAM];
 
   return (
-    <ContentContainer className="py-8">
-      <PageHeader>
-        <div>
-          <PageHeaderTitle>開発用 session</PageHeaderTitle>
-          <PageHeaderDescription>
-            IdP を通さずに session を発行します。この画面は開発と CI でだけ開きます。
-          </PageHeaderDescription>
-        </div>
-      </PageHeader>
-      <DevSessionView
-        authorization={
-          typeof state === "string" ? { state, notice: readAuthorizeError(params) } : null
-        }
-        connectsLiveApi={getApiConfig().mode === "live"}
-        defaultIssuer={getAuthConfig().issuer}
-        discardAction={discardDevSessionAction}
-        issueAction={issueDevSessionAction}
-        returnUrl={toSafeReturnUrl(typeof returnUrl === "string" ? returnUrl : undefined)}
-        session={await verifySession()}
-      />
-    </ContentContainer>
+    <main>
+      <ContentContainer className="py-8">
+        <PageHeader>
+          <div>
+            <PageHeaderTitle>開発用 session</PageHeaderTitle>
+            <PageHeaderDescription>
+              IdP を通さずに session を発行します。この画面は開発と CI でだけ開きます。
+            </PageHeaderDescription>
+          </div>
+        </PageHeader>
+        <DevSessionView
+          authorization={
+            typeof state === "string" ? { state, notice: readAuthorizeError(params) } : null
+          }
+          connectsLiveApi={getApiConfig().mode === "live"}
+          defaultIssuer={getAuthConfig().issuer}
+          discardAction={discardDevSessionAction}
+          issueAction={issueDevSessionAction}
+          returnUrl={toSafeReturnUrl(typeof returnUrl === "string" ? returnUrl : undefined)}
+          session={await verifySession()}
+        />
+      </ContentContainer>
+    </main>
   );
 }
