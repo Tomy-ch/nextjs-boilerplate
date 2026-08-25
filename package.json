@@ -29,6 +29,7 @@
     "portal:guides": "tsx scripts/portal/gen-portal-docs.ts",
     "portal:preview": "pnpm portal:site && vite preview --outDir dist",
     "portal:site": "pnpm portal:build && tsx scripts/portal/build-site.ts",
+    "render-mode": "tsx scripts/render-mode",
     "start": "next start",
     "storybook": "APP_ENV=${APP_ENV:-local} storybook dev -p 6006",
     "test": "vitest run --coverage --no-cache",
