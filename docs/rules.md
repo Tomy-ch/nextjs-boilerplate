@@ -8,7 +8,10 @@
 
 | # | 規約 | 強制手段 | Rationale |
 | --- | --- | --- | --- |
-| 4 | mutation 後は、データの所有境界で `revalidateTag`、`revalidatePath`、または `router.refresh()` により UI を更新する。 | P4-3 以降の adapter / feature テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 4 | mutation 後に UI を更新する単位は、**そのデータを所有する取得口**である。所有口が Data Cache に居るなら印を無効化し（Server Action からは `updateTag`、Route Handler からは `revalidateTag`）、居ないなら描き直す（その画面の経路への `revalidatePath`、または `router.refresh()`）。**`revalidatePath("/", "layout")` はアプリ全体を捨てる呼び方であって、所有境界ではない。** 使ってよいのは、更新した値がどの画面にも付く外枠（header・脇の領域）に出るときだけで、そのときは理由をその場に書く。 | 散文と feature テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 4b | **Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ。** 入れ物は server 側で共有され、鍵は URL・method・ヘッダ・本文である。資格情報を載せる取得を入れると、鍵が主体ごとに割れて再利用はほぼ起きないのに、入れ物だけが主体の数だけ増える。**入れないものへ印（`next.tags`）を付けない** —— 印は入っているものにしか付かないので、付けた側も捨てる側も動いていないのに動いて見える。 | adapters テストと review。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 4c | 印の名前は**バックエンドの資源**に対応させ（`products` / `product-masters`）、画面名や feature 名を使わない。印は取得を持つ `adapters` の module が定数として公開し、`features` / `app` はその定数だけを使う。文字列を書く側が増えると、綴りの食い違いが「捨てたのに古いまま」として現れる。 | adapters テストと review。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 4d | **画面を build 時に固めるのは宣言したときだけ。** 固める画面は page で `export const dynamic = "force-static"` を宣言し、宣言していない画面が固まっていたら直す。固まった画面は型検査もテストも通り、CI は緑のまま古い内容を配る。そのうえ build にバックエンドへの到達性を要求する（[ADR 0011](adr/0011-no-docker.md) はそれを約束しない）。**逆向きも同じ** —— 宣言したのに動的なら、その宣言は効いていない。 | `scripts/render-mode`（`Build` job）。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 5 | 同一 render 内で重複し得る取得は adapters 側で `cache()` または fetch memoization を使い、呼び出し側に重複排除を委ねない。 | P4-3 の adapter テスト。 | [ADR 0071](adr/0071-bff-api-integration.md) |
 | 6 | `<Link>` の prefetch は既定で許可する。大量リンクを持つ一覧では `prefetch={false}` を明示する。 | 散文。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 8 | Route Handler は Node runtime の薄い proxy に留め、業務ロジックを置かない。非同期の後処理には必要な場合だけ `waitUntil` を使う。 | ESLint boundaries と Route Handler テスト。 | [ADR 0070](adr/0070-backend-role-separation.md) |
@@ -41,8 +44,8 @@
 | 57 | polling は必要な場合だけ採用し、間隔・停止条件・バックグラウンドタブ抑制を定義する。 | feature テスト。 | [ADR 0060](adr/0060-state-management.md) |
 | 63 | preview / staging は `noindex` を強制し、環境識別バナーの有無は fork 先の要件として Config で決める。 | P6-3 の metadata テスト。 | [ADR 0044](adr/0044-seo-metadata-strategy.md) |
 | 65 | build info を露出するときは commit SHA と build time の出所を明示し、機微な環境変数を含めない。 | P4-2 の生成 / health endpoint テスト。 | [ADR 0072](adr/0072-api-type-generation.md) |
-| 66 | `next/dynamic` は初期表示に不要で大きい client-only 機能に限る。`ssr: false` は SSR が不可能な理由を持つ場合だけ使う。 | `bundle-budget` job と review。 | [ADR 0101](adr/0101-performance-budget.md) |
-| 67 | server 専用モジュールは先頭で `import "server-only"` し、client component から参照させない。 | `server-only` の build-time failure と ESLint boundaries。 | [ADR 0071](adr/0071-bff-api-integration.md) |
+| 66 | `next/dynamic` は初期表示に不要で大きい client-only 機能に限る。`ssr: false` は SSR が不可能な理由を持つ場合だけ使う。**隠れたまま DOM に残る器（tab）へ置くときは、開かれるまで mount しない** —— `next/dynamic` は mount で取りに行くので、そうしないと初期の一式から外しただけで、取得と実行は最初の描画の直後に走る。 | `bundle-budget` job の「遅延 JS」「合計 JS」の列と review。移した先の量が見えるので、初期だけが減って合計が動かない変更として現れる。 | [ADR 0101](adr/0101-performance-budget.md) |
+| 67 | server 専用モジュールは先頭で `import "server-only"` し、client component から参照させない。 | `scripts/server-only.gate.test.ts`（`*.server.ts` の綴りと突合）、`server-only` の build-time failure、ESLint boundaries。 | [ADR 0071](adr/0071-bff-api-integration.md) |
 | 68 | Server Action ID の version skew が起きたら、再試行を繰り返さず full reload へ誘導する。 | P5-7 の integration テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 69 | 内部リンクは `next/link` を使い、生の `<a>` を使わない。外部リンクには必要な `rel` を付与する。 | ESLint の `project-rules/no-internal-anchor`。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 70 | DOM マークアップは UI を担う層（`app` / `features` / `components`）にだけ置く。`adapters` / `capabilities` / `stores` / `config` などの内側で画面を描かない。Provider の合成は許す（[ADR 0022](adr/0022-capabilities-kernel.md) / [ADR 0026](adr/0026-layout-shell-mount.md)）。 | ESLint の `project-rules/no-markup-outside-ui-layers`（置いてよい層の宣言は `architecture.ts` の `UI_KERNELS`）。 | [ADR 0021](adr/0021-frontend-responsibility.md) |
@@ -51,7 +54,13 @@
 | 73 | 部品の中身は帯(viewport)で分岐させない。同じ部品が広い場所にも狭い場所にも置かれる分岐はコンテナクエリで書く。 | 散文。 | [ADR 0051](adr/0051-styling-system.md) |
 | 74 | 画面の骨格は器の幅(container query)で分岐させない。どこに何を置くか・出すか出さないかは帯で決める。 | 散文。 | [ADR 0051](adr/0051-styling-system.md) |
 | 75 | 資材はルート絶対の URL で指し、実体を配信の根へ置く。アプリが出すものは `public/`、カタログでだけ使うものは `.storybook/public/` で、後者の綴りは `.storybook/lib/sample-asset.ts` が公開する。**`/src/...` を指さない** —— dev サーバは素通しで配信するが `storybook build` の成果物には入らず、**壊れた絵がそのまま基準画像として承認される**。解決しないことが正しい参照は `scripts/lib/catalog-assets.ts` へ理由と撤去条件つきで宣言する。 | `scripts/catalog-assets.gate.test.ts`。 | [ADR 0054](adr/0054-ui-catalog-storybook.md) / [ADR 0091](adr/0091-test-verification-methods.md) |
+| 77 | `process` と `node:` の組み込みモジュールへ触ってよいのは、config カーネルと起動境界、およびリポジトリ自身を操作する道具だけ（宣言は `architecture.ts` の `NODE_RUNTIME_ACCESS`）。層の依存表は import の向きしか見ておらず、**server と client のどちらで動くか**を見ていない。client の束へ載った時点で壊れる参照は、層とは別の軸で止める。 | ESLint の `no-restricted-syntax` / `no-restricted-imports`。 | [ADR 0030](adr/0030-environment-variable-management.md) |
+| 78 | route segment の器（`layout` / `page` / `template` / `default`）を Client Component にしない。`"use client"` は bundle 境界なので、器に付けると配下をまとめて束へ引き込む。client が要るのは葉で、そこへ島として差す（[rendering](design/rendering.md)）。`error.tsx` / `global-error.tsx` は framework が client を要求するため対象外。 | ESLint の `no-restricted-syntax`。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 76 | `searchParams` を読むスキーマは、その条件を URL へ組む側とは別の module へ置く（読む側は `read-<対象>.ts`、組む側は語彙と行き先を持つ module）。同じ module に置くと、スキーマを組み立てる module 直下の式が tree-shaking を妨げ、**語彙を参照しただけの画面まで検証ライブラリごと client の束に載る**。 | `bundle-budget` job（route ごとの増分の上限）と review。 | [ADR 0101](adr/0101-performance-budget.md) |
+
+## キャッシュの前提
+
+**#4 から #4d は、`cacheComponents` を無効にしたいまのモデルでの使い分けである**（[ADR 0041](adr/0041-cache-components-decision.md)）。有効にすると既定が反転し、動的が既定になってキャッシュしたいものへ `"use cache"` を付ける形になる。判断を動かすときは、この 4 行を一緒に書き直す。
 
 ## 運用
 
