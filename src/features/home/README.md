@@ -23,7 +23,7 @@ test-requirement: feature
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/` | 未作成 | 不要 |
+| `/` | [`screen`](../../../docs/spec/route/shop/page.screen.md) / [`function`](../../../docs/spec/route/shop/page.function.md) | 不要 |
 
 外枠の約束は [`(shop)` の layout](../../../docs/spec/route/shop/layout.function.md) が持ちます。
 
