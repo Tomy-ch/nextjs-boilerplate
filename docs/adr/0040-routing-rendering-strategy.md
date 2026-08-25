@@ -46,6 +46,7 @@ Accepted
 
 - 本 boilerplate は **CSR / SSR / SSG / ISR のいずれのモードも閉ざさない**。特定モードを一律強制せず、静的シェルのプリレンダーと request-time のストリーミングの**両対応を保つ**
 - 導出根拠: [0011](0011-no-docker.md) の想定デプロイは静的 CDN と SSR PaaS の**両方が主想定**であり、boilerplate 本体はどのモードも前提にしない
+- **ただし「固める」は宣言でだけ選ぶ。** build 時に固める画面は `export const dynamic = "force-static"` を page に宣言し、宣言していない画面が固まっていたら直す。固まった画面は型検査もテストも通り、CI は緑のまま古い内容を配る。そのうえ build にバックエンドへの到達性を要求するが、[0011](0011-no-docker.md) の役割分担はそれを約束しない。**逆向きも同じで**、宣言したのに動的なら、その宣言は効いていない。宣言を page 自身に置くのは、route の一覧を別に持つと画面を足した人が 2 箇所へ書くことになり、片方だけの状態が「宣言どおり」として通るためである
 - **Next.js 16 のキャッシュ挙動**: `fetch` 既定 uncached を前提とし、キャッシュは opt-in とする(Cache Components 有効時は `use cache` / PPR、無効の間は従来モデルの `cache: 'force-cache'` 等)。ただし**具体的なキャッシュ方針(どこを `use cache` するか / `cacheLife` / `<Suspense>` 境界の切り方)は本 ADR で固定しない**。データ取得のキャッシュ・再検証設計は **B3([0071](0071-bff-api-integration.md))「データ取得のキャッシュ・再検証」節**、`loading.tsx` / Suspense 境界は **B6([0080](0080-error-handling.md))** が引き取り確定済み
 - **`Cache Components`(PPR を既定化する設定)の有効化可否は [0041](0041-cache-components-decision.md) が「0.0.x = 無効」に確定済み**。本 ADR は「モードを強制しない」ことのみ確定し、有効化判断は 0041 に委ねる
 
