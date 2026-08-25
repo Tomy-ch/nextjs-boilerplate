@@ -12,6 +12,7 @@ import {
   ENTRY_POINTS,
   KERNEL_PATTERNS,
   KERNELS,
+  NODE_RUNTIME_ACCESS,
   RESTRICTED_AREAS,
   SHARED_AREAS,
 } from "./architecture";
@@ -163,6 +164,58 @@ export default [
         "error",
         {
           assertionStyle: "never",
+        },
+      ],
+    },
+  },
+  {
+    // 実行場所の境界。層の依存表は import の向きしか見ておらず、server と client のどちらで動くかは
+    // 見ていない（宣言は `architecture.ts` の `NODE_RUNTIME_ACCESS` が正）。
+    //
+    // テストは束に入らないので外す。ここが守っているのはブラウザへ届く成果物であって、Node で
+    // 走る検査ではない。story は Storybook の束に入るため外さない。
+    files: ["src/**/*.{js,jsx,ts,tsx}"],
+    ignores: [
+      ...NODE_RUNTIME_ACCESS.map((path) => (path.endsWith("/**") ? `${path}/*` : path)),
+      "src/**/*.test.{js,jsx,ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            'Identifier[name="process"]:not(MemberExpression > .property):not(Property > .key)',
+          message:
+            "`process` を読んでよいのは config カーネルと起動境界だけです（ADR 0030）。値は config を通して受け取ってください。",
+        },
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["node:*"],
+              message:
+                "Node の組み込みモジュールは client の束へ載った時点で壊れます。server 側へ寄せるか、config カーネルを通してください。",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // 器（route segment）を Client Component にしない。`"use client"` は bundle 境界なので、器に
+    // 付けると配下の子まで束へ引き込む（`docs/design/rendering.md`）。島は葉に差す。
+    //
+    // `error.tsx` / `global-error.tsx` は framework が client を要求するため、ここに挙げない。
+    files: ["src/app/**/{layout,page,template,default}.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'Program > ExpressionStatement > Literal[value="use client"]',
+          message:
+            "route segment の器を Client Component にしないでください。client が要るのは葉で、そこへ島として差します。",
         },
       ],
     },
