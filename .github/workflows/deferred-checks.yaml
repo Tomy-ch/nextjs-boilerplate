@@ -1,25 +1,19 @@
 name: Deferred Checks
 
-# Tells a pull request when its diff is large enough that leaving the deferred checks to the
-# merge is probably the wrong call.
+# Names, on the pull request, which of the deferred checks its diff has earned.
 #
 # `a11y`, `e2e` and `lighthouse` do not run their expensive steps on an ordinary pull request.
-# Each of them says so on the pull request itself, in its own result comment. That covers the
-# question "did this check run?" — it does not cover "should I have made it run?", because
-# each of those jobs only ever sees the diff through its own lens and none of them counts what
-# the change actually amounts to.
+# Each of them says so in its own result comment, which covers "did this check run?" — it does
+# not cover "should I have made it run?", because each job sees the diff only through its own
+# lens and none of them looks at the other two.
 #
-# So this workflow counts once, for all three, and leaves at most one comment.
+# So this workflow reads the diff once, for all three, and leaves at most one comment.
 #
 # ## This is not a gate
 #
-# It cannot fail, and it is not a required status check. There is no principled number here —
-# `ALERT_AT` below is a line drawn to be useful, not one derived from anything — so it must not
-# be able to block a merge. The reasons that ARE principled live where they can be stated in a
-# sentence: `lighthouse.yaml` measures without asking when the screen declaration or a layout
-# moved, and `check-trigger` runs everything when the pull request is a promotion.
-#
-# What it produces is a prompt for a human, whose answer is a label.
+# It cannot fail, and it is not a required status check. What it produces is a prompt whose
+# answer is a label. `scripts/deferred-checks/recommend.ts` holds which paths name which label
+# and why; `volume.ts` holds the fallback that fires on size alone.
 
 on:
   pull_request:
@@ -32,13 +26,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The changed-line count past which the comment appears, over the source the three deferred
-  # checks read (`scripts/deferred-checks/volume.ts` declares which paths those are).
-  #
-  # **There is no theoretical basis for 400.** It is set so that a focused change stays quiet
-  # and a change nobody can hold in their head at once does not. Crossing it costs a comment
-  # and nothing else, so the failure modes are asymmetric and cheap: too low is noise, too high
-  # is a missed reminder. If it nags, raise it; if things land unchecked, lower it.
+  # The changed-line count past which the comment appears when no label could be named from the
+  # diff's structure. **There is no theoretical basis for 400** — crossing it costs a comment
+  # and nothing else, so if it nags, raise it; if things land unchecked, lower it.
   ALERT_AT: '400'
 
 jobs:
@@ -76,18 +66,14 @@ jobs:
           # a small change.
           fetch-depth: 0
 
-      # Asked for all three at once. As soon as one of them is already forced — a promotion
-      # pull request, or any of the labels — the pull request is no longer deferring, and a
-      # comment telling it to stop deferring would be wrong.
+      # Asked without labels on purpose. A label forces one check, not three, and the script
+      # below drops that one from what it names — so answering "already forced" here would
+      # silence the other two along with it. What is left for this step is the part that is
+      # all-or-nothing: a promotion pull request runs everything, and there is nothing to ask
+      # for on one.
       - name: Decide whether the checks are still deferred on this pull request
         id: cadence
         uses: ./.github/actions/check-trigger
-        with:
-          label: |
-            run-a11y
-            run-e2e
-            run-lighthouse
-          labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
 
       - name: Setup mise and the pinned tools
         if: steps.cadence.outputs.run != 'true'
@@ -116,47 +102,25 @@ jobs:
         if: steps.cadence.outputs.run != 'true'
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Count what the diff moves
-        id: volume
+      - name: Decide what to say about the deferred checks
+        id: nudge
         if: steps.cadence.outputs.run != 'true'
         env:
           BASE_REF: ${{ github.base_ref }}
-        run: pnpm exec tsx scripts/deferred-checks volume "origin/${BASE_REF}" "${ALERT_AT}"
-
-      # Workflow-authored prose, and the one interpolated value is a number this job computed.
-      # Nothing here is taken from the diff's own text.
-      - name: Say that the change is large enough to check now
-        if: steps.volume.outputs.over == 'true'
-        env:
-          CHANGED_LINES: ${{ steps.volume.outputs.changed-lines }}
-        run: |
-          {
-            printf 'この PR は、先送りにしている検査が見る範囲を **%s 行**動かしています。\n' "${CHANGED_LINES}"
-            cat <<'NOTE'
-
-          差分を読んで影響を追いきれる規模を超えているので、merge を待たずに回しておくことを勧めます。
-          回したい検査のラベルを付けてください。
-
-          | ラベル | 回るもの | 目安 |
-          | --- | --- | --- |
-          | `run-a11y` | 全 story への axe | 約 10 分 |
-          | `run-e2e` | 主要ジャーニーと画面の比較 | 約 5 分 |
-          | `run-lighthouse` | 全画面の Core Web Vitals | 約 16 分 |
-
-          **これはゲートではありません。** どれも付けずに merge できます。全数は保護ブランチへの
-          merge と日次で回り（ADR 0091 §3）、`develop` / `staging` / `production` を base とする PR
-          では 3 つとも必ず回ります。
-          NOTE
-          } > /tmp/deferred-checks-nudge.md
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: >-
+          pnpm exec tsx scripts/deferred-checks nudge
+          "origin/${BASE_REF}" "${ALERT_AT}" /tmp/deferred-checks-nudge.md
 
       - name: Comment the nudge on PR
-        if: steps.volume.outputs.over == 'true'
+        if: steps.nudge.outputs.comment == 'true'
         continue-on-error: true
         uses: ./.github/actions/upsert-pr-comment
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- deferred-checks-nudge -->'
-          title: '## 🔎 先送りにしている検査を回しておくことを勧めます'
+          title: ${{ steps.nudge.outputs.title }}
           body-file: /tmp/deferred-checks-nudge.md
-          # Workflow-authored prose, and the one interpolated value is a number.
+          # Every cell comes from the declaration in `recommend.ts`, and the one computed value
+          # is a line count. Nothing here is taken from the diff's own text.
           body-sanitized: 'true'

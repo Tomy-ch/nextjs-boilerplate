@@ -2,16 +2,13 @@
  * 差分の量から、先送りにした検査を「この PR で回しておくべき」と知らせるかを決める。
  *
  * @remarks
- * `a11y` / `e2e` / `lighthouse` は既定では PR で回らず、保護ブランチへの merge と日次が全数を
- * 持ちます（各ワークフローの冒頭と [0153](../../docs/adr/0153-ci-configuration.md) §2）。**ここが答えるのは、その待ち方で構わないかを
- * 人が判断する材料だけ**で、ゲートではありません。
- *
- * 量で決めているのは、根拠のある数を置けないためです。構造で決まる理由は
- * [`../lighthouse/trigger.ts`](../lighthouse/trigger.ts) が持ちます。分担の理由は
+ * **構造から名指しできなかったときの予備です**（[`recommend.ts`](recommend.ts)）。どの検査が要る
+ * かを言えないまま「大きい」とだけ言うので、根拠のある線は引けません。分担の理由は
  * [0101](../../docs/adr/0101-performance-budget.md) §2 と
  * [0153](../../docs/adr/0153-ci-configuration.md) §2。
  */
 import type { Change } from "../lib/numstat";
+import { movesResult } from "./subject";
 
 /**
  * 量に数えるパス。
@@ -33,18 +30,9 @@ const COUNTED_PREFIXES: readonly string[] = [
   "vrt/",
 ] as const;
 
-/**
- * 量から外す。
- *
- * @remarks
- * 外すのは単体テストと散文だけです。**story と spec は外しません** —— story は撮影と axe の対象
- * そのもので、spec は検査の手順そのものなので、動けば結果が動きます。
- */
-const NOT_COUNTED = /\.test\.tsx?$|\.md$/;
-
 /** 量に数えるパスか。 */
 export function isCounted(path: string): boolean {
-  return COUNTED_PREFIXES.some((prefix) => path.startsWith(prefix)) && !NOT_COUNTED.test(path);
+  return COUNTED_PREFIXES.some((prefix) => path.startsWith(prefix)) && movesResult(path);
 }
 
 /** 数える対象の変更行数を合計する。 */
