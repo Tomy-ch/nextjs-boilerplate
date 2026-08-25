@@ -61,14 +61,50 @@ jobs:
 
       - name: Run Vitest with coverage
         id: test
-        continue-on-error: true
         shell: bash
-        run: make test-full
+        run: |
+          set +e
+
+          make test-full 2>&1 | tee /tmp/test.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Test: PASS (Vitest + coverage)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Test: FAIL (Vitest + coverage)" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # The TAIL, not the head. Vitest prints each failure's diff and then the run summary,
+      # so a body truncated from the front drops exactly the part that says what broke —
+      # and the coverage table, which is what a threshold failure is about, is last of all.
+      - name: Cut the comment body down to the failures
+        if: always() && steps.test.outputs.status != ''
+        shell: bash
+        run: tail -n 400 /tmp/test.log > /tmp/test-comment.log
 
       - name: Report test coverage
         if: always()
         uses: k1LoW/octocov-action@a167dc0dee441b7ffc45e1b862ab55ec0d87f278 # v1
 
+      # octocov reports coverage under its own comment and says nothing about which test
+      # failed. A red check with no body sends the author to the run log for something CI
+      # already had in hand.
+      - name: Comment the test result on PR
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- test-result -->'
+          status: ${{ steps.test.outputs.status }}
+          title: ${{ steps.test.outputs.title }}
+          body-file: /tmp/test-comment.log
+          details-summary: 'Vitest log (末尾 400 行)'
+
       - name: Fail if Vitest failed
-        if: always() && steps.test.outcome != 'success'
+        if: always() && steps.test.outputs.status != 'success'
         run: exit 1

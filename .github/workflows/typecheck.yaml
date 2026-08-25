@@ -86,6 +86,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- typecheck-result -->'
+          status: ${{ steps.typecheck.outputs.status }}
           title: ${{ steps.typecheck.outputs.title }}
           body-file: /tmp/typecheck.log
           details-summary: 'tsc log'

@@ -20,6 +20,17 @@ const RENDER_TIMEOUT_MS = 15_000;
 const PENDING_PHASES = ["preparing", "loading", "beforeEach", "rendering", "playing"];
 
 /**
+ * DOM の変化が止まったと見なすまでの静止時間。
+ *
+ * @remarks
+ * Storybook が「描画が終わった」と言うのは**最初の commit まで**で、そこから遅れて届くものが
+ * ある。`next/dynamic` の別チャンクが実測 23ms 後に中身を差し込む例があり、待たずに撮ると
+ * 枠だけの絵になる。1 フレームでは足りず、長く取ると story 数の分だけ実行時間へ効くので、
+ * 遅れて届くものを跨げる最小の幅を置く。
+ */
+const QUIET_MS = 150;
+
+/**
  * 描画・操作・フォントの読み込みが終わるのを待つ。
  *
  * @remarks
@@ -35,6 +46,15 @@ const PENDING_PHASES = ["preparing", "loading", "beforeEach", "rendering", "play
  *
  * フォントは差し替わった瞬間に字形が変わるため、待たずに撮ると同じ story が撮るたびに違う
  * 画像になります。
+ *
+ * **ページのスクロールを先頭へ戻します。** 撮るのはビューポートのぶんだけなので、
+ * スクロール位置が違えば同じ状態でも別の絵になります。`play` を持つ story は操作の途中で
+ * focus が動き、ブラウザはその要素を見せるためにページを送ります。送る量は操作した時点の
+ * 文書の高さで決まるので、story の宣言のどこにも現れません。
+ *
+ * **最後に DOM が静止し、画像が出そろうのを待ちます。** Storybook の言う描画完了は最初の
+ * commit までで、`next/dynamic` の別チャンクや遅れて走る effect はそのあとに届きます。画像は
+ * DOM を変えないまま絵を変えるので、静止の判定とは別に見ます。
  */
 export async function settle(page: Page, theme: string): Promise<void> {
   try {
@@ -79,4 +99,48 @@ export async function settle(page: Page, theme: string): Promise<void> {
   }
 
   await page.evaluate(() => document.fonts.ready);
+
+  // 戻すのはページのスクロールだけ。送り終えた位置そのものが見せたい状態である story
+  // （carousel / message-scroller など）は、内側の領域を送っているので動かない。
+  //
+  // behavior を明示するのは、`scroll-behavior: smooth` の下では既定が滑らかな送りになり、
+  // 撮影が動いている最中に掛かるため。
+  await page.evaluate(() => window.scrollTo({ behavior: "instant", left: 0, top: 0 }));
+
+  // 変化の時刻を記録する側と、静止を判定する側を分ける。判定のたびに購読を張り直すと、
+  // そのたびに「いま張った」時点からの静止しか見えない。
+  await page.evaluate(() => {
+    const marker = globalThis as unknown as { __vrtLastMutation?: number };
+    marker.__vrtLastMutation = performance.now();
+    new MutationObserver(() => {
+      marker.__vrtLastMutation = performance.now();
+    }).observe(document.documentElement, {
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    });
+  });
+
+  try {
+    await page.waitForFunction(
+      (quiet) => {
+        const marker = globalThis as unknown as { __vrtLastMutation?: number };
+        const last = marker.__vrtLastMutation;
+        if (last === undefined || performance.now() - last < quiet) return false;
+
+        // `complete` は読み終わりと失敗の両方で立つ。撮るのは届いた結果であって成否ではない。
+        return [...document.images].every((image) => image.complete);
+      },
+      QUIET_MS,
+      { timeout: RENDER_TIMEOUT_MS },
+    );
+  } catch (cause) {
+    throw new Error(
+      `story が静止しませんでした（${RENDER_TIMEOUT_MS / 1000} 秒）。DOM を書き換え続けている` +
+        "か、読み終わらない画像があります。Storybook で同じ story を開き、要素の追加が止まるか、" +
+        "読めない画像が無いか確かめてください。",
+      { cause },
+    );
+  }
 }

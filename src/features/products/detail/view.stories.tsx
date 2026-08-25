@@ -209,6 +209,9 @@ export const MaxLengthPC: Story = {
     imageUrls: SAMPLE_ITEM_URLS,
     product: product({
       name: longText(MAX_NAME_LENGTH),
+      // description は rich text の経路を通る見本で、view.tsx が SanitizedRichText を
+      // 挟んでから描画する。ここでタグを外すと、その経路を通らない見本になる。
+      // nosemgrep: html-in-template-string
       description: `<p>${longText(600)}</p>`,
       category: { id: "c1", name: longText(40) },
       status: { id: "s1", name: longText(24) },

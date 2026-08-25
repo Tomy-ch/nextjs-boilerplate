@@ -36,6 +36,9 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    outputs:
+      status: ${{ steps.osv.outputs.status }}
+      detail: ${{ steps.detail.outputs.markdown }}
 
     steps:
       - name: Harden the runner
@@ -48,15 +51,48 @@ jobs:
         with:
           persist-credentials: false
 
+      # A dependency scanner reads the lockfile; no source change can alter what it finds.
+      # This is the one place an allow-list is admissible (see the note in the action), and it
+      # is admissible only because the weekly schedule above still scans the whole tree — a
+      # mistake in this list defers a scan by at most a week rather than removing it.
+      - name: Decide whether the diff can reach the dependency graph
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          only: |
+            pnpm-lock.yaml
+            package.json
+            docs-viewer/package.json
+            pnpm-workspace.yaml
+            .trivyignore.yaml
+            osv-scanner.toml
+            .makefiles/security/trivy.mk
+            .makefiles/security/osv.mk
+            .makefiles/security/audit.mk
+            scripts/audit-gate/*
+            .github/workflows/dependency-scan.yaml
+            .github/workflows/osv-scan.yaml
+            .github/actions/diff-scope/*
+
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: aqua:google/osv-scanner
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Three outcomes, not two. `OSV_DETECT_EXIT=1` stops the make target swallowing the
+      # scanner's exit code, and osv-scanner answers exactly 1 for "found something" —
+      # anything else non-zero is the tool itself failing. Findings still do not fail this
+      # job; the separation exists so the comment below is only created when there is
+      # something in it, and so the scheduled run can push a detection to a human.
       - name: Run the OSV scan
         id: osv
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
+        env:
+          OSV_DETECT_EXIT: '1'
         run: |
           set +e
 
@@ -66,6 +102,9 @@ jobs:
           if [ "${code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
             echo "title=## 📋 OSV scan: report" >> "$GITHUB_OUTPUT"
+          elif [ "${code}" -eq 1 ]; then
+            echo "status=findings" >> "$GITHUB_OUTPUT"
+            echo "title=## ⚠️ OSV scan: 脆弱性を検出" >> "$GITHUB_OUTPUT"
           else
             echo "status=failure" >> "$GITHUB_OUTPUT"
             echo "title=## ⚠️ OSV scan: the scan itself failed" >> "$GITHUB_OUTPUT"
@@ -73,20 +112,40 @@ jobs:
 
           exit 0
 
+      # Identifiers only. The detection notification has to name what was found, and the
+      # action carries advisory ids out of the log rather than the log itself.
+      - name: Build the detection detail
+        id: detail
+        if: steps.osv.outputs.status == 'findings'
+        uses: ./.github/actions/notify-detail
+        with:
+          log-file: /tmp/osv.log
+
+      # A job that stood down still owes the pull request a verdict; see dependency-scan.yaml.
+      - name: Note that the diff cannot reach the dependency graph
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ OSV scan: SKIP (依存グラフに届かない差分)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は lockfile に届かないため、走査していません。木そのものは週次で走査します。' > /tmp/osv.log
+
       - name: Comment OSV result on PR
-        if: github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
         continue-on-error: true
         uses: ./.github/actions/upsert-pr-comment
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- osv-scan-result -->'
-          title: ${{ steps.osv.outputs.title }}
+          status: ${{ steps.osv.outputs.status || 'success' }}
+          title: ${{ steps.osv.outputs.title || steps.standdown.outputs.title }}
           body-file: /tmp/osv.log
           details-summary: 'osv-scanner log'
 
-      # Findings do not fail this job; the scanner failing to run does.
+      # Findings do not fail this job; the scanner failing to run does. An empty status
+      # is the capture step never having run, which belongs on the failing side.
       - name: Fail if the scan could not run
-        if: always() && steps.osv.outputs.status != 'success'
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.osv.outputs.status != 'success' && steps.osv.outputs.status != 'findings'
         run: exit 1
 
   osv-gate:
@@ -142,6 +201,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- osv-gate-result -->'
+          status: ${{ steps.osv.outputs.status }}
           title: ${{ steps.osv.outputs.title }}
           body-file: /tmp/osv-release.log
           details-summary: 'osv-scanner log (release)'
@@ -149,3 +209,30 @@ jobs:
       - name: Fail if a vulnerability was found
         if: always() && steps.osv.outputs.status != 'success'
         run: exit 1
+
+  # Report-only by design, so a finding leaves the job green and the failure notification
+  # below can never fire for one. On a pull request the finding is already in a comment
+  # addressed to the author; on the weekly run nobody is watching, and a finding there means
+  # a newly published advisory now applies to code that has not changed.
+  notify-detection:
+    needs: osv-scan
+    if: ${{ github.event_name == 'schedule' && needs.osv-scan.outputs.status == 'findings' }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      detected: OSV scan found known vulnerabilities
+      details: ${{ needs.osv-scan.outputs.detail }}
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  notify-failure:
+    needs: [osv-scan, osv-gate]
+    if: >-
+      ${{ always() && github.event_name == 'schedule'
+      && (contains(fromJSON('["failure", "cancelled"]'), needs.osv-scan.result)
+      || contains(fromJSON('["failure", "cancelled"]'), needs.osv-gate.result)) }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      failed-job: osv-scan / osv-gate
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

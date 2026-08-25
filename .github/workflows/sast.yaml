@@ -21,6 +21,13 @@ name: SAST
 # variables there, because a gate and an alert list describing different scans is
 # worse than either one alone.
 #
+# THE RULES DO NOT COME FROM THE REGISTRY. `--config p/javascript` would fetch them from
+# semgrep.dev under the Semgrep Rules License, which permits internal use only and forbids
+# redistribution — handing a fork exactly the licence judgement that choosing the OSS
+# engine was meant to avoid. They are pinned to a commit of `opengrep/opengrep-rules` and
+# fetched by `scripts/opengrep-rules`, which verifies a digest over the extracted rules
+# (ADR 0110 §3).
+#
 # Deliberately unfiltered by `paths`; the reason every workflow runs on every PR is
 # in README.md.
 
@@ -59,14 +66,56 @@ jobs:
         with:
           persist-credentials: false
 
+      # What cannot change this scan's answer. The list is the deny side on purpose: anything
+      # not named here still runs, so a missing entry costs one needless run while a wrong
+      # entry would leave a scanner reporting on nothing (see the note in the action).
+      # `public/**` is assets; opengrep's target list in opengrep.mk never opens them.
+      - name: Decide whether the diff can reach this scan
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            public/*
+
+      # node and pnpm join opengrep here because the rule set is fetched by
+      # `scripts/opengrep-rules` rather than downloaded from the registry by the scanner.
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
-          tools: aqua:opengrep/opengrep
+          tools: core:node aqua:pnpm/pnpm aqua:opengrep/opengrep
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
+        run: pnpm install --frozen-lockfile
 
       - name: Run the SAST gate
         id: sast
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           set +e
@@ -92,31 +141,53 @@ jobs:
       # scanning is where the detail goes, not where the answer lives, so losing it
       # costs navigability rather than the check itself.
       - name: Write the SARIF
-        if: always() && steps.sast.outputs.status != ''
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.sast.outputs.status != ''
         continue-on-error: true
         env:
           SAST_SARIF_FILE: opengrep.sarif
         run: make sast-sarif
 
       - name: Upload the SARIF to code scanning
-        if: always() && hashFiles('opengrep.sarif') != ''
+        if: always() && steps.scope.outputs.relevant == 'true' && hashFiles('opengrep.sarif') != ''
         continue-on-error: true
         uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           sarif_file: opengrep.sarif
           category: opengrep
 
+      # A job that stood down still owes the pull request a verdict: without a body here the
+      # ❌ comment an earlier push produced would stay beside a green check once the diff
+      # stops reaching the scanned source.
+      - name: Note that the diff cannot reach the scan
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ SAST: SKIP (走査対象に届かない差分)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は opengrep の走査対象に届かないため、走査していません。木そのものは週次で走査します。' > /tmp/sast.log
+
       - name: Comment SAST result on PR
-        if: github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
         continue-on-error: true
         uses: ./.github/actions/upsert-pr-comment
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- sast-result -->'
-          title: ${{ steps.sast.outputs.title }}
+          status: ${{ steps.sast.outputs.status || 'success' }}
+          title: ${{ steps.sast.outputs.title || steps.standdown.outputs.title }}
           body-file: /tmp/sast.log
           details-summary: 'opengrep log'
 
       - name: Fail if a finding was reported
-        if: always() && steps.sast.outputs.status != 'success'
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.sast.outputs.status != 'success'
         run: exit 1
+
+  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  notify-failure:
+    needs: sast
+    if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.sast.result) }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      failed-job: sast
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

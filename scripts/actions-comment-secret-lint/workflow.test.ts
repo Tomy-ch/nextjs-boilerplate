@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { UPSERT_ACTION_DIR } from "./comment-actions";
-import { parseWorkflow } from "./workflow";
+import { localWorkflowFile, parseWorkflow } from "./workflow";
 
 const commentDirs = new Set([UPSERT_ACTION_DIR]);
+
+/** `${{ body }}` の式を組み立てる。 */
+const expr = (body: string): string => `\${{ ${body} }}`;
 
 /** 投稿ジョブ 1 本を持つワークフローを組み立てる。 */
 const postingWorkflow = (...extra: string[]): string =>
@@ -22,6 +25,44 @@ describe("parseWorkflow", () => {
     const source = "jobs:\n  build:\n    steps:\n      - uses: actions/checkout@v7\n";
 
     expect(parseWorkflow("w.yaml", source, commentDirs).postingJobIds).toEqual([]);
+  });
+
+  it("投稿するローカル reusable workflow を呼ぶジョブを投稿ジョブとして同定する", () => {
+    const source = "jobs:\n  call:\n    uses: ./.github/workflows/notify.yaml\n";
+
+    const workflow = parseWorkflow(
+      "w.yaml",
+      source,
+      commentDirs,
+      new Set([".github/workflows/notify.yaml"]),
+    );
+
+    expect(workflow.postingJobIds).toEqual(["call"]);
+  });
+
+  it("投稿しないローカル reusable workflow を呼ぶジョブは投稿ジョブとして同定しない", () => {
+    const source = "jobs:\n  call:\n    uses: ./.github/workflows/notify.yaml\n";
+
+    expect(parseWorkflow("w.yaml", source, commentDirs).postingJobIds).toEqual([]);
+  });
+
+  it("投稿する reusable workflow へ渡した secret を走査対象に含める", () => {
+    const source = [
+      "jobs:",
+      "  call:",
+      "    uses: ./.github/workflows/notify.yaml",
+      "    secrets:",
+      `      webhook: ${expr("secrets.SLACK_WEBHOOK_URL")}`,
+    ].join("\n");
+
+    const texts = parseWorkflow(
+      "w.yaml",
+      source,
+      commentDirs,
+      new Set([".github/workflows/notify.yaml"]),
+    ).texts;
+
+    expect(texts.some((scalar) => scalar.text.includes("secrets.SLACK_WEBHOOK_URL"))).toBe(true);
   });
 
   it("jobs の外に置いた値をワークフロー全体に及ぶ文字列として集める", () => {
@@ -120,11 +161,19 @@ describe("parseWorkflow", () => {
     );
   });
 
-  it("reusable workflow を呼ぶジョブがあれば未対応として落とす", () => {
+  it("リモートの reusable workflow を呼ぶジョブがあれば未対応として落とす", () => {
     const source = "jobs:\n  call:\n    uses: owner/repo/.github/workflows/w.yaml@v1\n";
 
     expect(() => parseWorkflow("w.yaml", source, commentDirs)).toThrow(
-      /ジョブ `call` は reusable workflow を呼び出しています/,
+      /ジョブ `call` はリモートの reusable workflow を呼び出しています/,
+    );
+  });
+
+  it("ワークフロー定義の外を指すローカル参照もリモートとして落とす", () => {
+    const source = "jobs:\n  call:\n    uses: ./.github/actions/x/action.yaml\n";
+
+    expect(() => parseWorkflow("w.yaml", source, commentDirs)).toThrow(
+      /ジョブ `call` はリモートの reusable workflow を呼び出しています/,
     );
   });
 
@@ -134,5 +183,29 @@ describe("parseWorkflow", () => {
     expect(() => parseWorkflow("w.yaml", source, commentDirs)).toThrow(
       /^w\.yaml: YAML を解決できません: /,
     );
+  });
+});
+
+describe("localWorkflowFile", () => {
+  // ----- 正常系 -----
+  it("ローカル参照をリポジトリルート相対のパスへ正規化する", () => {
+    expect(localWorkflowFile("  ./.github/workflows/notify.yaml  ")).toBe(
+      ".github/workflows/notify.yaml",
+    );
+  });
+
+  it("途中に . を挟んだローカル参照も同じパスへ畳む", () => {
+    expect(localWorkflowFile("./.github/workflows/./notify.yaml")).toBe(
+      ".github/workflows/notify.yaml",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("リモート参照は解決しない", () => {
+    expect(localWorkflowFile("owner/repo/.github/workflows/notify.yaml@v1")).toBeNull();
+  });
+
+  it("ワークフロー定義の置き場の外を指すローカル参照は解決しない", () => {
+    expect(localWorkflowFile("./.github/actions/notify/action.yaml")).toBeNull();
   });
 });

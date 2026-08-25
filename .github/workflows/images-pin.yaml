@@ -96,6 +96,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- images-pin-result -->'
+          status: ${{ steps.images-pin.outputs.status }}
           title: ${{ steps.images-pin.outputs.title }}
           body-file: /tmp/images-pin.log
           details-summary: 'images-pin log'
