@@ -18,10 +18,25 @@ const endpoint = z
   .string()
   .regex(/^(\*\.)?[A-Za-z0-9][A-Za-z0-9.-]*:\d{1,5}$/, "host:port の形である必要があります");
 
+/**
+ * 省いてよい対応表。
+ *
+ * @remarks
+ * **キーだけが残った状態（`audit:` の下に何も無い）も空として受けます。**中身を 1 件ずつ
+ * 落とす道具 —— サンプルの剥がしがこれをする —— は、最後の 1 件を落とした時点でキーを
+ * 取り残します。そこで落とすと、剥がした木でだけ宣言が読めなくなります。
+ */
+function optionalMap<T extends z.ZodType>(value: T) {
+  return z
+    .record(z.string(), value)
+    .nullish()
+    .transform((entries) => entries ?? {});
+}
+
 const declarationSchema = z.object({
   baseline: z.array(endpoint).min(1),
-  workflows: z.record(z.string(), z.array(endpoint).min(1)).default({}),
-  audit: z.record(z.string(), z.string().trim().min(1)).default({}),
+  workflows: optionalMap(z.array(endpoint).min(1)),
+  audit: optionalMap(z.string().trim().min(1)),
 });
 
 /** 許可する宛先の宣言。 */

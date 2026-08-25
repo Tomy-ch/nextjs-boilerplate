@@ -73,3 +73,6 @@ export const BINARY_EXTENSIONS: readonly string[] = [
 
 /** action pin のロックファイル（リポジトリルート相対）。 */
 export const ACTIONS_PIN_LOCK_FILE = ".github/actions-pin.toml";
+
+/** 許可する外向きの宛先の宣言。剥がしで参照が消える塊をここから落とす。 */
+export const EGRESS_DECLARATION_FILE = ".github/egress.yaml";

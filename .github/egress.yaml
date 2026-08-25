@@ -47,6 +47,7 @@ workflows:
   smoke: *fonts
   strip-verify: *fonts
   storybook-build: *fonts
+  deploy-docs: *fonts
 
   # 撮影と axe は digest 固定した Playwright のコンテナで動く。地域ごとの配信元が回る。
   a11y: &browser

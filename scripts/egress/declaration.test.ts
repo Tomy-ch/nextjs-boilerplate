@@ -57,6 +57,14 @@ describe("parseDeclaration", () => {
     });
   });
 
+  it("キーだけが残った対応表を空として読む", () => {
+    expect(parseDeclaration("baseline:\n  - github.com:443\nworkflows:\naudit:")).toEqual({
+      baseline: ["github.com:443"],
+      workflows: {},
+      audit: {},
+    });
+  });
+
   it("ワイルドカードの宛先を受け取る", () => {
     expect(parseDeclaration("baseline:\n  - '*.blob.core.windows.net:443'").baseline).toEqual([
       "*.blob.core.windows.net:443",

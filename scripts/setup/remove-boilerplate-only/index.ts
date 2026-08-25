@@ -9,10 +9,12 @@ import path from "node:path";
 import { listFilesRecursive, removeTarget, toRelativePath, updateFile } from "../lib/file-utils.js";
 import { stripMarkers } from "../lib/markers.js";
 import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
+import { dropOrphanedEndpoints, ORPHANED_WORKFLOWS } from "./egress.js";
 import {
   ACTIONS_PIN_LOCK_FILE,
   BINARY_EXTENSIONS,
   BOILERPLATE_ONLY_MARKER,
+  EGRESS_DECLARATION_FILE,
   EXCLUDED_DIRECTORIES,
   SELF_DESTRUCT_PATHS,
 } from "./manifest.js";
@@ -69,6 +71,14 @@ function run(dryRun: boolean): void {
     dryRun,
   );
 
+  // 同じ形が egress の宣言にもある。消えた workflow のための宛先は、そのまま残すと
+  // `make egress-check` が孤児として落とす。
+  const prunedEndpoints = updateFile(
+    EGRESS_DECLARATION_FILE,
+    (content) => dropOrphanedEndpoints(content, ORPHANED_WORKFLOWS),
+    dryRun,
+  );
+
   const deleted: string[] = [];
 
   // 自消滅は最後に行う。先に消すと、剥がしの途中で落ちたときに道具だけが失われる。
@@ -86,6 +96,10 @@ function run(dryRun: boolean): void {
 
   if (prunedPins !== null) {
     console.log(`- pin 除去 ${ACTIONS_PIN_LOCK_FILE}`);
+  }
+
+  if (prunedEndpoints !== null) {
+    console.log(`- 宛先の宣言を除去 ${EGRESS_DECLARATION_FILE}`);
   }
 
   for (const entry of stripped) {
