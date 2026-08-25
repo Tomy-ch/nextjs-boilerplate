@@ -8,6 +8,7 @@ import { fetchPurchaseHistoryPage } from "./purchases";
 const entry = {
   code: "0195f0c2-0000-7000-9000-000000000001",
   totalAmount: 21_287,
+  statusCode: 1,
   statusName: "未処理",
   orderedAt: "2026-08-17T10:30:00+09:00",
 };

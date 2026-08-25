@@ -9,17 +9,15 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+8f733fb
+ * OpenAPI spec version: 2.2.0+151bc17
  */
 
 /**
- * まとめ発送の組に含まれる購入 1 件のスキーマ。発送指示は購入 1 件ずつ行うため id を返します。
+ * まとめ発送の組に含まれる購入 1 件のスキーマ。発送指示は購入 1 件ずつ code を指定して行います。
  * 組に入っている時点で発送可能なので、status は返しません。明細も含みません（購入詳細 API で取得します）。
  */
 export interface PurchaseShippableItemResponse {
-  /** 購入ID。発送指示（`POST /v1/purchases/{purchaseId}/ship`）に用います。 */
-  id: string;
-  /** 購入コード（UUIDv7 文字列・一意） */
+  /** 購入コード（利用者へ注文番号として見せる一意の識別子）。発送指示（`PATCH /v1/purchases/{purchaseCode}/ship`）に用います。 */
   code: string;
   /** 合計（小計 + 税額 + 送料）。USD セント単位の整数です。 */
   totalAmount: number;

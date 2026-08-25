@@ -9,15 +9,18 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+8f733fb
+ * OpenAPI spec version: 2.2.0+151bc17
  */
 
 /**
- * 購入に紐づくステータス（ID と名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。
+ * 購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。
+ * 表示には name を、分岐にはドメインの業務キーである code を用います。
  */
 export interface PurchaseStatusRef {
   /** 購入ステータスID */
   id: string;
+  /** 購入ステータスの業務キー。値は到達順序を意味しません（完了より支払い済みのほうが大きい）。 */
+  code: number;
   /** 購入ステータス名 */
   name: string;
 }

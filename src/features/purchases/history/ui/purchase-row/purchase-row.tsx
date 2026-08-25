@@ -51,7 +51,7 @@ export const PurchaseRow = withPartSpan(
             </span>
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <Badge variant={toStatusEmphasis(purchase.statusName)}>{purchase.statusName}</Badge>
+            <Badge variant={toStatusEmphasis(purchase.statusCode)}>{purchase.statusName}</Badge>
             <span className="tabular-nums">{formatMoney(purchase.totalAmount)}</span>
             <ChevronRightIcon
               aria-hidden="true"

@@ -6,6 +6,7 @@ import { axe } from "vitest-axe";
 
 import type { CursorPage } from "@/model/pagination";
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 
 const { useInfinitePurchases } = vi.hoisted(() => ({ useInfinitePurchases: vi.fn() }));
 
@@ -16,6 +17,7 @@ import { PurchaseInfiniteList } from "./infinite-list";
 const ENTRY: PurchaseHistoryEntry = {
   code: "0195f0c2-0000-7000-9000-000000000001",
   totalAmount: 21_287,
+  statusCode: PURCHASE_STATUS.UNPROCESSED,
   statusName: "未処理",
   orderedAt: new Date("2026-08-17T10:30:00+09:00"),
 };

@@ -30,14 +30,14 @@ beforeEach(() => {
 
 describe("PurchaseDetailPageContent", () => {
   it("受け取った識別子で購入を引く", async () => {
-    render(await PurchaseDetailPageContent({ purchaseId: "0195f0c2" }));
+    render(await PurchaseDetailPageContent({ purchaseCode: "0195f0c2" }));
 
     expect(getMyPurchase).toHaveBeenCalledWith("0195f0c2");
     expect(screen.getByText("2026/08/17 10:30")).toBeVisible();
   });
 
   it("合計の参考換算額を引いて渡す", async () => {
-    render(await PurchaseDetailPageContent({ purchaseId: "0195f0c2" }));
+    render(await PurchaseDetailPageContent({ purchaseCode: "0195f0c2" }));
 
     expect(readReferenceAmount).toHaveBeenCalledWith(PURCHASE_DETAIL.totalAmount);
     expect(screen.getByRole("button", { name: "円で見る" })).toBeVisible();
@@ -46,7 +46,7 @@ describe("PurchaseDetailPageContent", () => {
   it("参考換算額を引けなくても購入は出す", async () => {
     readReferenceAmount.mockResolvedValue(null);
 
-    render(await PurchaseDetailPageContent({ purchaseId: "0195f0c2" }));
+    render(await PurchaseDetailPageContent({ purchaseCode: "0195f0c2" }));
 
     expect(screen.getByText("2026/08/17 10:30")).toBeVisible();
     expect(screen.queryByRole("button", { name: "円で見る" })).not.toBeInTheDocument();
@@ -55,7 +55,7 @@ describe("PurchaseDetailPageContent", () => {
   it("見つからない購入は not-found の境界へ渡す", async () => {
     getMyPurchase.mockRejectedValue(createAppError(ErrorKind.NOT_FOUND));
 
-    await expect(PurchaseDetailPageContent({ purchaseId: "無い" })).rejects.toThrow(
+    await expect(PurchaseDetailPageContent({ purchaseCode: "無い" })).rejects.toThrow(
       "NEXT_NOT_FOUND",
     );
     expect(notFound).toHaveBeenCalledOnce();
@@ -64,7 +64,7 @@ describe("PurchaseDetailPageContent", () => {
   it("見つからない以外の失敗は分類のまま投げ直す", async () => {
     getMyPurchase.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 
-    await expect(PurchaseDetailPageContent({ purchaseId: "x" })).rejects.toSatisfy(
+    await expect(PurchaseDetailPageContent({ purchaseCode: "x" })).rejects.toSatisfy(
       (error: unknown) => findAppError(error)?.kind === ErrorKind.UNAVAILABLE,
     );
     expect(notFound).not.toHaveBeenCalled();
@@ -73,12 +73,12 @@ describe("PurchaseDetailPageContent", () => {
   it("購入が見つからないとき、換算の取得を始めない", async () => {
     getMyPurchase.mockRejectedValue(createAppError(ErrorKind.NOT_FOUND));
 
-    await expect(PurchaseDetailPageContent({ purchaseId: "無い" })).rejects.toThrow();
+    await expect(PurchaseDetailPageContent({ purchaseCode: "無い" })).rejects.toThrow();
     expect(readReferenceAmount).not.toHaveBeenCalled();
   });
 
   it("a11y 自動検査に違反しない", async () => {
-    const { container } = render(await PurchaseDetailPageContent({ purchaseId: "0195f0c2" }));
+    const { container } = render(await PurchaseDetailPageContent({ purchaseCode: "0195f0c2" }));
 
     expect((await axe(container)).violations).toEqual([]);
   });

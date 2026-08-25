@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+8f733fb
+ * OpenAPI spec version: 2.2.0+151bc17
  */
 import type {
   AddressCandidatesResponse,
@@ -2421,7 +2421,7 @@ export const getGetPurchasesShippableUrl = (params?: GetPurchasesShippableParams
  * limit は読み出す購入の件数で、まとめ判定はその範囲の中で行います。範囲の外にある同一購入者の購入は
  * 別の便になります。ページネーションは行わず、上位 limit 件のみを対象とします。
  * 発送待ちの購入がない場合はエラーではなく空配列を返します。
- * 発送の実行は購入 1 件ずつ `POST /v1/purchases/{purchaseId}/ship` で行います。
+ * 発送の実行は購入 1 件ずつ `PATCH /v1/purchases/{purchaseCode}/ship` で行います。
  * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
  * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
  * @summary 発送待ち購入のまとめ発送一覧の取得
@@ -2488,8 +2488,8 @@ export type getPurchasesDetailResponse =
   | getPurchasesDetailResponseSuccess
   | getPurchasesDetailResponseError;
 
-export const getGetPurchasesDetailUrl = (purchaseId: string) => {
-  return `/v1/purchases/${purchaseId}`;
+export const getGetPurchasesDetailUrl = (purchaseCode: string) => {
+  return `/v1/purchases/${purchaseCode}`;
 };
 
 /**
@@ -2501,10 +2501,10 @@ export const getGetPurchasesDetailUrl = (purchaseId: string) => {
  * @summary 購入詳細の取得
  */
 export const getPurchasesDetail = async (
-  purchaseId: string,
+  purchaseCode: string,
   options?: RequestInit,
 ): Promise<getPurchasesDetailResponse> => {
-  const res = await fetch(getGetPurchasesDetailUrl(purchaseId), {
+  const res = await fetch(getGetPurchasesDetailUrl(purchaseCode), {
     ...options,
     method: "GET",
   });
@@ -2574,8 +2574,8 @@ export type patchPurchasesCancelResponse =
   | patchPurchasesCancelResponseSuccess
   | patchPurchasesCancelResponseError;
 
-export const getPatchPurchasesCancelUrl = (purchaseId: string) => {
-  return `/v1/purchases/${purchaseId}/cancel`;
+export const getPatchPurchasesCancelUrl = (purchaseCode: string) => {
+  return `/v1/purchases/${purchaseCode}/cancel`;
 };
 
 /**
@@ -2588,10 +2588,10 @@ export const getPatchPurchasesCancelUrl = (purchaseId: string) => {
  * @summary 購入のキャンセル
  */
 export const patchPurchasesCancel = async (
-  purchaseId: string,
+  purchaseCode: string,
   options?: RequestInit,
 ): Promise<patchPurchasesCancelResponse> => {
-  const res = await fetch(getPatchPurchasesCancelUrl(purchaseId), {
+  const res = await fetch(getPatchPurchasesCancelUrl(purchaseCode), {
     ...options,
     method: "PATCH",
   });
@@ -2661,8 +2661,8 @@ export type patchPurchasesPayResponse =
   | patchPurchasesPayResponseSuccess
   | patchPurchasesPayResponseError;
 
-export const getPatchPurchasesPayUrl = (purchaseId: string) => {
-  return `/v1/purchases/${purchaseId}/pay`;
+export const getPatchPurchasesPayUrl = (purchaseCode: string) => {
+  return `/v1/purchases/${purchaseCode}/pay`;
 };
 
 /**
@@ -2674,10 +2674,10 @@ export const getPatchPurchasesPayUrl = (purchaseId: string) => {
  * @summary 購入の支払い
  */
 export const patchPurchasesPay = async (
-  purchaseId: string,
+  purchaseCode: string,
   options?: RequestInit,
 ): Promise<patchPurchasesPayResponse> => {
-  const res = await fetch(getPatchPurchasesPayUrl(purchaseId), {
+  const res = await fetch(getPatchPurchasesPayUrl(purchaseCode), {
     ...options,
     method: "PATCH",
   });
@@ -2747,8 +2747,8 @@ export type patchPurchasesShipResponse =
   | patchPurchasesShipResponseSuccess
   | patchPurchasesShipResponseError;
 
-export const getPatchPurchasesShipUrl = (purchaseId: string) => {
-  return `/v1/purchases/${purchaseId}/ship`;
+export const getPatchPurchasesShipUrl = (purchaseCode: string) => {
+  return `/v1/purchases/${purchaseCode}/ship`;
 };
 
 /**
@@ -2760,10 +2760,10 @@ export const getPatchPurchasesShipUrl = (purchaseId: string) => {
  * @summary 購入の発送
  */
 export const patchPurchasesShip = async (
-  purchaseId: string,
+  purchaseCode: string,
   options?: RequestInit,
 ): Promise<patchPurchasesShipResponse> => {
-  const res = await fetch(getPatchPurchasesShipUrl(purchaseId), {
+  const res = await fetch(getPatchPurchasesShipUrl(purchaseCode), {
     ...options,
     method: "PATCH",
   });
@@ -2833,8 +2833,8 @@ export type patchPurchasesDeliverResponse =
   | patchPurchasesDeliverResponseSuccess
   | patchPurchasesDeliverResponseError;
 
-export const getPatchPurchasesDeliverUrl = (purchaseId: string) => {
-  return `/v1/purchases/${purchaseId}/deliver`;
+export const getPatchPurchasesDeliverUrl = (purchaseCode: string) => {
+  return `/v1/purchases/${purchaseCode}/deliver`;
 };
 
 /**
@@ -2846,10 +2846,10 @@ export const getPatchPurchasesDeliverUrl = (purchaseId: string) => {
  * @summary 購入の配達完了
  */
 export const patchPurchasesDeliver = async (
-  purchaseId: string,
+  purchaseCode: string,
   options?: RequestInit,
 ): Promise<patchPurchasesDeliverResponse> => {
-  const res = await fetch(getPatchPurchasesDeliverUrl(purchaseId), {
+  const res = await fetch(getPatchPurchasesDeliverUrl(purchaseCode), {
     ...options,
     method: "PATCH",
   });
@@ -3013,7 +3013,7 @@ export const getGetCartsMeUrl = () => {
  * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
  * パスに他者の識別子を持たないため、他人のカートは取得できません。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0020 (optional-authentication-fail-closed)）。
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * 明細ごとに商品の現在値を突き合わせ、買えないもの・値の変わったものに issues を立てます。
  * 問題のある明細があっても 200 で返します。取得は成功しており、問題があるのは明細であって
  * 要求ではないためで、エラーにすると買える明細が何であったかを利用者に見せられなくなります。
@@ -3093,7 +3093,7 @@ export const getDeleteCartsMeUrl = () => {
  * 期限切れの掃除とログイン時のマージ後の破棄に限り、API としては公開しません。
  * 主体の決まり方は取得（GET）と同じで、両方が提示された場合は認証済みユーザーが優先されます。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0020 (optional-authentication-fail-closed)）。
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * **既に空のカートを空にしても、カートを持たない主体が呼んでも成功します**。カートを持たない
  * 主体にカートを作ることはなく、提示されたセッショントークンでカートを引けなかった場合も
  * 採番し直しません（応答が本文を持たないため、新しいトークンを返す場所がありません）。
@@ -3184,7 +3184,7 @@ export const getPutCartsMeItemUrl = (productId: string) => {
  * 主体は認証済みユーザー（Bearer トークンの内部 UserID）か、ゲスト（X-Cart-Session ヘッダ）の
  * いずれかで、両方が提示された場合は認証済みユーザーが優先されます。
  * 認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0020 (optional-authentication-fail-closed)）。
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * **カートがまだ無い主体にはこの操作がカートを作ります**。ゲストの場合はセッショントークンを
  * 発行して sessionToken に載せて返すので、以降のリクエストで X-Cart-Session に載せてください。
  * 提示されたトークンでカートを引けなかった場合、その値では作らず新しい値を発行します
@@ -3271,7 +3271,7 @@ export const getDeleteCartsMeItemUrl = (productId: string) => {
  * **対象の明細が無くても成功します**。「無かった」と「消した」を呼び出し側に区別させないため、
  * 404 を持ちません。主体の決まり方は設定（PUT）と同じで、両方が提示された場合は認証済みユーザーが
  * 優先されます。認証は任意ですが、**提示された資格情報が無効な場合は匿名として通さず 401 を返します**
- * （ADR-0020 (optional-authentication-fail-closed)）。
+ * （ADR-0021 (optional-authentication-fail-closed)）。
  * **カートを持たない主体が呼んでもカートは作りません**。提示されたセッショントークンでカートを
  * 引けなかった場合も採番し直さず、何もせずに成功を返します（応答が本文を持たないため、新しい
  * トークンを返す場所がありません）。

@@ -13,11 +13,8 @@ export const PURCHASE_HISTORY_PATH = "/purchases";
 /**
  * 購入 1 件の詳細を指す。
  *
- * @remarks
- * 受け取るのは購入の ID です。利用者へ見せる購入コードでは次の取得ができません。
- *
- * @param purchaseId - 購入の ID。利用者へ見せる購入コードではない
+ * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
  */
-export function purchaseDetailPath(purchaseId: string): string {
-  return `${PURCHASE_HISTORY_PATH}/${encodeURIComponent(purchaseId)}`;
+export function purchaseDetailPath(purchaseCode: string): string {
+  return `${PURCHASE_HISTORY_PATH}/${encodeURIComponent(purchaseCode)}`;
 }

@@ -197,6 +197,42 @@ function encodePayload(
 const ABSOLUTE_URL_PATTERN = /^https?:\/\//i;
 
 /**
+ * パスを 1 階層上へ畳む区間。
+ *
+ * @remarks
+ * `.` と `..` は URL の正規化で消費され、**組み立てたはずの路と違う路を叩かせます。**
+ * 呼び出し側は可変の区間を `encodeURIComponent` で包みますが、この 2 つは符号化しても
+ * そのまま残るため（どちらも未予約文字だけでできています）、包んだだけでは止まりません。
+ *
+ * 先頭を `/` で始めるのは、検査に掛ける前に路が正規化されているためです（{@link assertNoDotSegment}）。
+ */
+const DOT_SEGMENT_PATTERN = /\/\.{1,2}(?:\/|$)/;
+
+/**
+ * 路を組み立てる前に、畳み込む区間が無いことを確かめる。
+ *
+ * @remarks
+ * **通した路をそのまま返します。** 先頭の `/` を補う整形も兼ねると、検査を通さずに組み立てる
+ * 書き方が作れなくなります。
+ *
+ * 弾いたものは `invalid-argument` です。接続先の不調ではなく、渡された値が路として成り立って
+ * いないためで、再試行しても結果は変わりません。
+ *
+ * @throws 畳み込む区間を含むとき
+ */
+function assertNoDotSegment(path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+
+  if (DOT_SEGMENT_PATTERN.test(normalized)) {
+    throw createAppError(ErrorKind.INVALID_ARGUMENT, {
+      cause: new Error("路を畳む区間は接続先の路に含められません"),
+    });
+  }
+
+  return normalized;
+}
+
+/**
  * 接続先とパスを繋ぐ。
  *
  * @remarks
@@ -206,7 +242,7 @@ const ABSOLUTE_URL_PATTERN = /^https?:\/\//i;
  * issuer にパスを連結した位置を well-known の場所と定めています）、実物の IdP でも起こります。
  *
  * **絶対 URL はそのまま使います。** Discovery が返す各エンドポイントは絶対 URL であり、それを
- * 接続先へ繋ぎ直す意味がありません。
+ * 接続先へ繋ぎ直す意味がありません。組み立てていない路なので、畳み込みの検査も掛けません。
  */
 function buildUrl(
   baseUrl: string,
@@ -215,7 +251,7 @@ function buildUrl(
 ): URL {
   const url = ABSOLUTE_URL_PATTERN.test(path)
     ? new URL(path)
-    : new URL(`${baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`);
+    : new URL(`${baseUrl.replace(/\/$/, "")}${assertNoDotSegment(path)}`);
 
   for (const [key, value] of Object.entries(searchParams ?? {})) {
     if (value === undefined) {

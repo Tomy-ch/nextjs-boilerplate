@@ -8,7 +8,7 @@ import type { Purchase } from "@/model/purchase/purchase";
 
 import type { RawSearchParams } from "@/model/search-params";
 import { withScreenSpan } from "@/observability/render-span";
-import { readPurchaseId } from "./purchase-id";
+import { readPurchaseCode } from "./purchase-code";
 import { CheckoutCompleteView } from "./view";
 
 /** `CheckoutCompletePageContent` の props。 */
@@ -26,9 +26,9 @@ export type CheckoutCompletePageContentProps = {
  *
  * try の範囲は取得だけです。描画中の例外はここでは捕まらないため、捕まるように見える形にしません。
  */
-async function loadPurchase(purchaseId: string): Promise<Purchase> {
+async function loadPurchase(purchaseCode: string): Promise<Purchase> {
   try {
-    return await getMyPurchase(purchaseId);
+    return await getMyPurchase(purchaseCode);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.NOT_FOUND) {
       notFound();
@@ -52,13 +52,13 @@ async function loadPurchase(purchaseId: string): Promise<Purchase> {
 export const CheckoutCompletePageContent = withScreenSpan(
   "features/checkout/complete/page-content",
   async ({ searchParams }: CheckoutCompletePageContentProps) => {
-    const purchaseId = readPurchaseId(searchParams);
+    const purchaseCode = readPurchaseCode(searchParams);
 
-    if (purchaseId === null) {
+    if (purchaseCode === null) {
       notFound();
     }
 
-    const purchase = await loadPurchase(purchaseId);
+    const purchase = await loadPurchase(purchaseCode);
 
     return (
       <CheckoutCompleteView

@@ -10,15 +10,8 @@ import { PurchaseDetailView } from "./view";
 
 /** `PurchaseDetailPageContent` の props。 */
 export type PurchaseDetailPageContentProps = {
-  /**
-   * route が受け取った購入の識別子。
-   *
-   * @remarks
-   * 一覧が持っているのは購入コードで、契約の取得口が要求するのは購入 ID です。**この 2 つは
-   * 別の値で、一覧の応答から ID は取れません。** 契約側で公開識別子を購入コードへ一本化する
-   * のを待っており、それが着地したらこの引数はそのまま購入コードになります。
-   */
-  purchaseId: string;
+  /** route が受け取った購入コード。利用者へ注文番号として見せている値。 */
+  purchaseCode: string;
 };
 
 /**
@@ -30,9 +23,9 @@ export type PurchaseDetailPageContentProps = {
  *
  * try の範囲は取得だけです。描画中の例外はここでは捕まらないため、捕まるように見える形にしません。
  */
-async function loadPurchase(purchaseId: string): Promise<Purchase> {
+async function loadPurchase(purchaseCode: string): Promise<Purchase> {
   try {
-    return await getMyPurchase(purchaseId);
+    return await getMyPurchase(purchaseCode);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.NOT_FOUND) {
       notFound();
@@ -54,8 +47,8 @@ async function loadPurchase(purchaseId: string): Promise<Purchase> {
  */
 export const PurchaseDetailPageContent = withScreenSpan(
   "features/purchases/detail/page-content",
-  async ({ purchaseId }: PurchaseDetailPageContentProps) => {
-    const purchase = await loadPurchase(purchaseId);
+  async ({ purchaseCode }: PurchaseDetailPageContentProps) => {
+    const purchase = await loadPurchase(purchaseCode);
     const reference = await readReferenceAmount(purchase.totalAmount);
 
     return <PurchaseDetailView purchase={purchase} reference={reference} />;
