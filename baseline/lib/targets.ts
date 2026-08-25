@@ -11,12 +11,31 @@ import { SCREEN_AREA } from "./store";
 /** 消えた画像を表す状態。`git diff --name-status` が行頭に置く。 */
 const DELETED = "D";
 
+/** 初めて置かれた画像を表す状態。改名（`R`）は行き先が既に在ったわけではないが、前の絵は在る。 */
+const ADDED = "A";
+
 /** 撮り直した対象。見直しの入口が種類ごとに分かれているので、ここでも分けて返す。 */
 export type RetakenTargets = {
   /** story の id。`make vrt-review` の `VRT_ONLY` に渡せる形。 */
   readonly stories: readonly string[];
   /** 画面の名前。`make e2e-review` の `E2E_ONLY` に渡せる形。 */
   readonly screens: readonly string[];
+  /**
+   * 動いた画像の置き場相対のパス。畳まずに 1 枚ずつ持つ。
+   *
+   * @remarks
+   * 名前の側（`stories` / `screens`）はテーマ違い・帯違いを 1 つに畳むので、枚数を数える器には
+   * なりません。**撮り直しのコメントが数えるのも並べるのもここです。**
+   */
+  readonly images: readonly string[];
+  /**
+   * そのうち、この撮り直しで初めて置かれたもの。
+   *
+   * @remarks
+   * 前後を並べる側が要ります。**新しく置かれた画像に「前」は存在しません。** 区別せずに前の
+   * 一式へのリンクを並べると、開けない先を「前の絵」として案内することになります。
+   */
+  readonly added: readonly string[];
 };
 
 /**
@@ -32,6 +51,8 @@ export type RetakenTargets = {
  *
  * **同じ対象が複数の画像を持ちます。** story はテーマごと、画面は帯ごとに 1 枚ずつなので、
  * 畳まないと同じ名前が並びます。重複は最初の 1 つだけ残し、順序は受け取ったままにします。
+ * 畳むのは名前の側だけで、`images` は 1 枚ずつ残します —— 枚数を数える側と、1 枚ごとに
+ * 前後を並べる側が要るためです。
  *
  * 画像以外は落とします。置き場は根に説明と絵を決める入力のハッシュを持つためです。
  *
@@ -40,6 +61,8 @@ export type RetakenTargets = {
 export function retakenTargets(entries: readonly string[]): RetakenTargets {
   const stories = new Set<string>();
   const screens = new Set<string>();
+  const images: string[] = [];
+  const added: string[] = [];
 
   for (const entry of entries) {
     const field = entry.indexOf("\t");
@@ -55,7 +78,9 @@ export function retakenTargets(entries: readonly string[]): RetakenTargets {
     const area = image.slice(0, image.indexOf("/"));
 
     (area === SCREEN_AREA ? screens : stories).add(name);
+    images.push(image);
+    if (entry.startsWith(ADDED)) added.push(image);
   }
 
-  return { stories: [...stories], screens: [...screens] };
+  return { stories: [...stories], screens: [...screens], images, added };
 }

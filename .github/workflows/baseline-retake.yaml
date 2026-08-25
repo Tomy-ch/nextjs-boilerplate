@@ -510,6 +510,8 @@ jobs:
           # taken from, so the images the comment counts and the ones it opens agree.
           STORIES: ${{ steps.push-store.outputs.stories }}
           SCREENS: ${{ steps.push-store.outputs.screens }}
+          IMAGES: ${{ steps.push-store.outputs.images }}
+          ADDED: ${{ steps.push-store.outputs.added }}
         shell: bash
         run: |
           store_repo="$(git config --file .gitmodules --get submodule.baseline/images.url |
@@ -533,6 +535,53 @@ jobs:
             SCREENS=''
             echo 'screen line suppressed: screen names carry shell metacharacters' >&2
           fi
+          if unsafe "${IMAGES}"; then
+            IMAGES=''
+            echo 'image table suppressed: paths carry shell metacharacters' >&2
+          fi
+
+          # The before/after pair per image is what a person judges the pixels from. The
+          # store's compare view cannot show it: every snapshot is committed onto the store
+          # root, so the merge base holds no images and GitHub lists the whole set as added
+          # (scripts/baseline-store/index.ts).
+          #
+          # Links, never embedded images. A private store answers GitHub's image proxy
+          # anonymously, so an embedded picture 404s there however the reader is
+          # authenticated; a blob link stays inside GitHub's UI and carries their session.
+          # The reasoning is in vrt/README.md.
+          #
+          # A full retake moves hundreds of images, so the table is bounded. What is left out
+          # is stated rather than dropped in silence — the local review command below opens
+          # every one of them.
+          IMAGE_ROW_LIMIT=20
+          image_table() {
+            total="$(printf '%s' "$IMAGES" | tr ',' '\n' | grep -c . || true)"
+
+            echo '### 動いた画像'
+            echo
+            echo '| 画像 | 前 | 後 |'
+            echo '| --- | --- | --- |'
+
+            # The newline matters: `read` drops a final line that has none, so the last
+            # image would be missing from the table.
+            printf '%s\n' "$IMAGES" | tr ',' '\n' | head -n "$IMAGE_ROW_LIMIT" |
+              while IFS= read -r path; do
+                [ -n "$path" ] || continue
+
+                # A baseline placed for the first time has no "before" to link to.
+                case ",${ADDED}," in
+                  *",${path},"*) before_cell='新規' ;;
+                  *) before_cell="[前](https://github.com/${store_repo}/blob/${BEFORE}/${path})" ;;
+                esac
+
+                echo "| \`${path}\` | ${before_cell} | [後](https://github.com/${store_repo}/blob/${AFTER}/${path}) |"
+              done
+
+            if [ "$total" -gt "$IMAGE_ROW_LIMIT" ]; then
+              echo
+              echo "動いた ${total} 枚のうち ${IMAGE_ROW_LIMIT} 枚だけを並べています。残りは下の見直しの入口で開いてください。"
+            fi
+          }
 
           {
             if [ "$DEFERRED" = 'true' ]; then
@@ -542,9 +591,12 @@ jobs:
             elif [ -n "$SHA" ]; then
               echo "🎞️ 基準画像を ${COUNT} 枚撮り直しました (${SHA})。"
               echo
-              echo "画像差分: https://github.com/${store_repo}/compare/${BEFORE}..${AFTER}"
-              echo
               echo "対象: ${IDS}"
+
+              if [ -n "${IMAGES}" ]; then
+                echo
+                image_table
+              fi
 
               if [ "$SCREENS_PENDING" = 'true' ]; then
                 echo
@@ -574,13 +626,13 @@ jobs:
                 fi
 
                 echo
-                echo "ここで見えるのは**なぜ変わったか**です。**画素を判断する面は上の画像差分**のままで、手元の描画はホストのフォントで描くため元から一致しません（\`vrt/README.md\`）。"
+                echo "ここで見えるのは**なぜ変わったか**です。**画素を判断する面は上の表**のままで、手元の描画はホストのフォントで描くため元から一致しません（\`vrt/README.md\`）。"
                 echo
                 echo "作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。"
               fi
 
               echo
-              echo "**まだ承認ではありません。** 上の画像差分を見て、意図した変更であることを確かめたうえで \`baseline-approve\` ラベルを付けてください。"
+              echo "**まだ承認ではありません。** 上の表の前後を見比べ、意図した変更であることを確かめたうえで \`baseline-approve\` ラベルを付けてください。"
               echo
               echo "**\`baseline-retake\` は外しました。** 1 回の依頼につき 1 回だけ撮ります。もう一度撮るには、付け直したうえで比較（VRT / E2E）を実行し直してください（ラベルは引き金ではなく、完了時に読まれる条件です）。"
             else
