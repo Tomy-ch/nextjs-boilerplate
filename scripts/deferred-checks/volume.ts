@@ -3,12 +3,13 @@
  *
  * @remarks
  * `a11y` / `e2e` / `lighthouse` は既定では PR で回らず、保護ブランチへの merge と日次が全数を
- * 持ちます（各ワークフローの冒頭と ADR 0091 §3）。**ここが答えるのは、その待ち方で構わないかを
+ * 持ちます（各ワークフローの冒頭と [0153](../../docs/adr/0153-ci-configuration.md) §2）。**ここが答えるのは、その待ち方で構わないかを
  * 人が判断する材料だけ**で、ゲートではありません。
  *
- * 量で決めているのは、根拠のある数を置けないためです。構造で決まる理由 —— 画面の宣言が動いた、
- * 器が動いた —— は lighthouse が自分で持ちます（[`../lighthouse/trigger.ts`](../lighthouse/trigger.ts)）。
- * そちらは数を要さず、なぜ測るのかを 1 文で言えます。こちらは言えないので、赤にせず知らせます。
+ * 量で決めているのは、根拠のある数を置けないためです。構造で決まる理由は
+ * [`../lighthouse/trigger.ts`](../lighthouse/trigger.ts) が持ちます。分担の理由は
+ * [0101](../../docs/adr/0101-performance-budget.md) §2 と
+ * [0153](../../docs/adr/0153-ci-configuration.md) §2。
  */
 import type { Change } from "../lib/numstat";
 

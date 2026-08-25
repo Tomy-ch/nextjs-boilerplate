@@ -215,9 +215,8 @@ jobs:
         if: steps.scope.outputs.relevant != 'true'
         shell: bash
         env:
-          # Compared in the shell rather than interpolated into it. The two gates stand down
-          # for different reasons and the reader has to be able to act on the difference:
-          # one is answered by waiting, the other by nothing at all.
+          # Compared in the shell rather than interpolated into it. Why the two stand-down
+          # reasons stay distinguishable: README.md, "降りた理由は 2 つあり、書き分ける".
           DEFERRED: ${{ steps.trigger.outputs.run != 'true' }}
         run: |
           if [ "${DEFERRED}" = "true" ]; then
@@ -251,9 +250,8 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      # Off a pull request there is nowhere for a red check to be read, so the failure has to
-      # become something with an owner. One issue per branch, reopened rather than duplicated:
-      # a second failure on a branch already flagged is the same unresolved fact.
+      # One issue per branch, reopened rather than duplicated — README.md,
+      # "PR の外で落ちたら、issue にする".
       #
       # This is what the deferred cadence costs. A violation now lands and is found after the
       # merge, so the finding has to arrive somewhere a human looks rather than in a run nobody

@@ -22,11 +22,9 @@ name: VisualRegressionTest
 # `playwright.config.ts` already saturates — so the only way to shorten the wall clock is
 # to add machines. `vrt-shard` is that fan-out; `vrt` collects what came back.
 #
-# **The required status check is `vrt`, and it must stay that way.** A matrix job reports
-# one context per entry (`vrt-shard (1)` …), which no required check can name; a required
-# context that never reports blocks its pull request forever (README.md). So `vrt` runs
-# `if: always()`, reports on every pull request, and reads its verdict from what the shards
-# left behind.
+# **The required status check is `vrt`, and it must stay that way.** A matrix job reports one
+# context per entry (`vrt-shard (1)` …), which no required check can name — so the collecting
+# job carries the name, and what it guarantees is stated on the job itself.
 #
 # The comparison and the pull-request comment are separate jobs. The baseline store
 # may be private, which means the comparison job needs a GitHub App secret; a job
@@ -169,10 +167,9 @@ jobs:
       # has to carry the record forward — the newest one this branch (or its base) produced.
       # A miss restores nothing and the comparison runs, which is the safe direction.
       #
-      # **Every shard restores it, and they must all restore the same thing.** The hash
-      # covers `storybook-static`, so the decision cannot be taken before a build and
-      # therefore cannot be taken once for all of them; each machine decides for itself, and
-      # they agree only because they read the same record.
+      # **Every shard restores it, and they must all restore the same thing.** Each machine
+      # decides the gate for itself (why it cannot be decided once: `vrt-gate` in vrt.mk), so
+      # they agree only because they start from the same record.
       - name: Restore the last verified input state
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -263,9 +260,8 @@ jobs:
           if-no-files-found: ignore
 
       # Only the machine that built Storybook can compute this: the hash covers
-      # `storybook-static`. One machine is enough — the inputs are the tree, not the result
-      # — and whether the value is worth keeping is decided by `vrt`, which is the only job
-      # that knows every shard came back clean.
+      # `storybook-static`. One machine is enough — the inputs are the tree, not the result.
+      # Whether the value is worth keeping is `vrt`'s call below, not this machine's.
       - name: Hash the rendering inputs
         if: matrix.shard == 1 && steps.vrt.outputs.status == 'success'
         run: make vrt-record-verified
@@ -286,14 +282,14 @@ jobs:
         if: steps.vrt.outputs.status != 'success'
         run: exit 1
 
-  # **The required status check.** Runs on every pull request, including the ones where
-  # every shard stood down, because a required context that never reports blocks its pull
-  # request forever (README.md). Holds no App secret: it builds the comment body, and a job
-  # that holds a secret must not (ADR 0153).
+  # **The required status check.** Runs on every pull request except a cancelled one,
+  # including the ones where every shard stood down — a required context that never reports
+  # blocks its pull request forever (README.md). Holds no App secret: it builds the comment
+  # body, and a job that holds a secret must not (ADR 0153).
   vrt:
     needs: [vrt-scope, vrt-shard]
-    # `always()` ではない。打ち切られた実行を失敗と読まないのは条件式側の責任である
-    # (README.md の concurrency)。取り下げられた実行にまで赤いコメントを残す理由が無い。
+    # Not `always()`: reading a cancelled run as a failure is the condition's responsibility to
+    # avoid (README.md, concurrency). A superseded run has no business leaving a red comment.
     if: '!cancelled()'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -390,8 +386,8 @@ jobs:
 
           mkdir -p /tmp/vrt-comment
 
-          # 判定そのものが立たなかった実行を「絵に届かない」と読むと、差分を一度も見ないまま
-          # 緑を報告する。届かないと**答えた**ときだけ降りる。
+          # Reading a run whose scope never resolved as "cannot reach a picture" reports green
+          # without ever looking at the diff. Stand down only when it ANSWERED that it cannot.
           if [ "${SCOPE}" != "success" ]; then
             echo 'title=## ❌ VRT: FAIL (scope could not be decided)' >> "$GITHUB_OUTPUT"
             echo 'status=failure' >> "$GITHUB_OUTPUT"
@@ -530,7 +526,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vrt-diff
-          # 束ね直す前の zip は、束ね直した後のレポートと同じ中身を二重に運ぶだけである。
+          # The pre-merge zips carry the same content the merged report already holds.
           path: |
             tmp/vrt
             !tmp/vrt/blob

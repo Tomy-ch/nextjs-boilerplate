@@ -34,10 +34,8 @@ VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
 
 # 撮影対象の何分割目か (`3/4` の形)。空なら 1 台で全数を撮る。割るのは CI だけである。
 #
-# **判定は台ごとに引く。**絵を決める入力に `storybook-static` が入っており、build しないと
-# 数えられないので、「先に判定してから割る」形が取れない。同じ入力からは同じ答えが出るため、
-# 台の間で食い違わない —— ただし判定の材料である記録 (`$(VRT_VERIFIED_FILE)`) を、
-# **どの台にも同じように渡すこと**が前提になる。
+# **判定は台ごとに引く**(理由は下の `vrt-gate`)。前提は、判定の材料である記録
+# (`$(VRT_VERIFIED_FILE)`) を**どの台にも同じように渡す**ことである。
 #
 # 分けた実行のレポートは blob で出す。json と HTML は全 shard を集めてから `merge-reports` が
 # 束ね直すので、割った側がそれぞれ書くと、どれか 1 台ぶんの表が全数の表として残る。
@@ -119,8 +117,8 @@ vrt: build-storybook
 vrt-gate:
 	@pnpm exec tsx scripts/vrt gate $(VRT_INPUTS_FILE) $(VRT_VERIFIED_FILE)
 
-# 記録は全 shard が緑になってから書く。shard の中で書くと、他の台が落ちた実行の入力を
-# 「通った」として残し、次の実行がその状態を根拠に比較を省く。
+# 記録の実体を書くだけ。**いつ確定させるかは呼ぶ側が決める** —— 割った実行では全台の結果を
+# 知っている `vrt` ジョブ (.github/workflows/vrt.yaml)、割らない実行では本ファイルの `vrt` 自身。
 vrt-record-verified:
 	@$(call RECORD_VERIFIED,$(VRT_VERIFIED_FILE))
 

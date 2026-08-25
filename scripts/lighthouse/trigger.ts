@@ -5,10 +5,10 @@
  * 全数の計測は保護ブランチと日次に置いてあります（[0101](../../docs/adr/0101-performance-budget.md)
  * §2）。ここが答えるのは**その待ち方では遅すぎる差分かどうか**だけです。
  *
- * **判定は構造だけで行います。**数値を要さず、なぜ測るのかを 1 文で言えるものしか置きません。
- * 量で見る合図は、先送りにした 3 つの検査を 1 度に数える側が持ちます
- * （[`../deferred-checks/volume.ts`](../deferred-checks/volume.ts)）。線を 2 箇所に置くと、
- * 根拠の無い数が 2 つ並び、同じ PR に同じ趣旨のコメントが 2 件残ります。
+ * **判定は構造だけで行います。**量で見る合図は
+ * [`../deferred-checks/volume.ts`](../deferred-checks/volume.ts) が持ちます。分担の理由は
+ * [0101](../../docs/adr/0101-performance-budget.md) §2 と
+ * [0153](../../docs/adr/0153-ci-configuration.md) §2。
  */
 
 import type { Change } from "../lib/numstat";

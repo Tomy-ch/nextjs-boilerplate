@@ -2,13 +2,10 @@ import "@testing-library/jest-dom/vitest";
 import { act, cleanup, configure } from "@testing-library/react";
 import { afterEach, beforeAll, vi } from "vitest";
 
-// テストから外へ出る取得を、宛先を名指しして落とす。
+// テストから外へ出る取得を、宛先を名指しして落とす。**応答は作らない。**
 //
-// HTTP を止めるのは MSW である（[0090](docs/adr/0090-testing-strategy.md)）。ただし interception を
-// 立てる費用は 1 ファイルあたり約 480ms で、HTTP 境界を持つのは `adapters` の API クライアントと
-// Route Handler だけなので、立てるのはそこだけにしてある（`vitest.setup.msw.ts`）。残りのファイルで
-// この番人が担うのは、宛先を打ち間違えた取得が本物の網へ出ていき「手元では届いて CI では時間切れに
-// なる」という形でしか現れなくなることを、潰すことだけである。**応答は作らない。**
+// HTTP を止めるのは MSW で、立てるのは要るファイルだけである（`vitest.setup.msw.ts`）。誰が読み込み、
+// なぜ全ファイルへ掛けないかは `docs/testing-conventions.md`「mock の境界」が持つ。
 //
 // 据えるのが hook なのは、`vitest.setup.msw.ts` を読み込んだファイルでは MSW が module の評価時に
 // 先に席を取り、ここが何もしないで済むようにするためである。応答を自分で作るテスト
