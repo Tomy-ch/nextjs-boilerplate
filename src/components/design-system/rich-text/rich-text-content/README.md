@@ -91,10 +91,10 @@ editor は内容が変わるたびに HTML 文字列を返し、保存した文�
 
 | 部品 | 関係 |
 | --- | --- |
-| [`model/rich-text`](../../../model/rich-text/README.md) | `content` の型と allowlist の owner。何を通し何を落とすかはここが決めます。 |
+| [`model/rich-text`](../../../../model/rich-text/README.md) | `content` の型と allowlist の owner。何を通し何を落とすかはここが決めます。 |
 | [`rich-text-editor`](../rich-text-editor/README.md) | 書く側の相方。出力した HTML 文字列が、保存を経てこの component の入力になります。 |
 | [`foundation/typeset`](../../foundation/typeset/README.md) | 組版の実体。`.typeset` と preset class を公開する CSS 基盤です。 |
-| [`view-state/feedback-state`](../../view-state/feedback-state/README.md) | 本文が無い・取得に失敗した状態の表示。この component は空の枠を描くだけです。 |
+| [`view-state/feedback-state`](../../../app-starter/feedback-state/README.md) | 本文が無い・取得に失敗した状態の表示。この component は空の枠を描くだけです。 |
 
 ## 利用ケース
 

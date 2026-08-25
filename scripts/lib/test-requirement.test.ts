@@ -22,6 +22,33 @@ describe("resolveTestRequirement", () => {
     expect(resolved).toEqual({ declaredIn: "src/model/README.md", layers: ["unit"] });
   });
 
+  it("Route Handler のテストは、`api/` の外に居ても element の宣言を引く", () => {
+    const resolved = resolveTestRequirement(
+      "src/app/dev/session/authorize/route.dev.test.ts",
+      readerOf({ "src/app": frontmatter("test-requirement: route") }),
+    );
+
+    expect(resolved).toEqual({ declaredIn: "architecture.ts", layers: ["integration"] });
+  });
+
+  it("element の宣言は、同じディレクトリの README より先に効く", () => {
+    const resolved = resolveTestRequirement(
+      "src/app/api/products/route.test.ts",
+      readerOf({ "src/app/api/products": frontmatter("test-requirement: route") }),
+    );
+
+    expect(resolved).toEqual({ declaredIn: "architecture.ts", layers: ["integration"] });
+  });
+
+  it("element に当たらない同じディレクトリのテストは、README の宣言を引く", () => {
+    const resolved = resolveTestRequirement(
+      "src/app/dev/session/to-session-input.test.ts",
+      readerOf({ "src/app": frontmatter("test-requirement: route") }),
+    );
+
+    expect(resolved).toEqual({ declaredIn: "src/app/README.md", layers: ["route"] });
+  });
+
   it("宣言が無いディレクトリからは、遡って最初に宣言を持つ README を引く", () => {
     const resolved = resolveTestRequirement(
       "src/features/cart/ui/panel/panel.test.tsx",
@@ -143,5 +170,14 @@ describe("findUndeclaredDirectories", () => {
     );
 
     expect(undeclared).toEqual(["mocks"]);
+  });
+
+  it("複数の未宣言ディレクトリを名前順に並べる", () => {
+    const undeclared = findUndeclaredDirectories(
+      ["src/zzz/a.test.ts", "src/aaa/b.test.ts"],
+      readerOf({}),
+    );
+
+    expect(undeclared).toEqual(["src/aaa", "src/zzz"]);
   });
 });

@@ -22,7 +22,7 @@ AGENTS.md の `[TODO] Frontend Responsibility Separation` が敷いていた暫�
 
 | カーネル | 系統 | 責務 | 受け入れないもの |
 | --- | --- | --- | --- |
-| `app` | スライス | driving adapter。**4 element**(`route-segment`=page/layout→features / `route-handler`=`route.ts`→adapters/server / `server-action`=`actions.ts`→adapters/server+features / `metadata`=robots等→config。[0025](0025-app-layer-elements.md))。`layout` は横断 UI/Provider を薄く mount 可([0026](0026-layout-shell-mount.md)) | 業務ロジック / 編成 / (route-segment の)直接 fetch |
+| `app` | スライス | driving adapter。**4 element**(`route-segment`=page/layout→features / `route-handler`=`route.ts`→adapters/server + model + feature の `facade/` / `server-action`=`actions.ts`→adapters/server+features / `metadata`=robots等→config。[0025](0025-app-layer-elements.md))。`layout` は横断 UI/Provider を薄く mount 可([0026](0026-layout-shell-mount.md)) | 業務ロジック / 編成 / (route-segment の)直接 fetch |
 | `features/<name>` | スライス | 画面ユースケース(データ取得の編成 / 複数 API 集約 / フォーム送信フロー / 楽観更新)+ スライス専用 UI / hooks / Server Action(主体の断言を要さないもの)。hook + UI の合成点。内部はフラット共置 | 他 feature への依存(下記昇格ルール) |
 | `model` | カーネル | 表示用 ValueObject / フォーマッタ / 単位変換 / 表示バリデーション規則 / **表示結果型(`ActionState<T>` 等)**。純粋・依存最小 | **ビジネスルール**(バックエンド責務)/ fetch / config |
 | `components` | カーネル | 横断 UI(デザインシステム的な純 UI コンポーネント)。トースト等の UI 状態は持てる | fetch / config / 業務状態 / `capabilities` ・ `stores` の import |
@@ -41,7 +41,7 @@ AGENTS.md の `[TODO] Frontend Responsibility Separation` が敷いていた暫�
 | 層(import する側) | 許可される import 先 |
 | --- | --- |
 | `app/route-segment`(page/layout。[0025](0025-app-layer-elements.md)) | `features` / **入口の保護に限り** `adapters/server/auth` の確定認可(`verifySession()`)と `model` の述語([0079](0079-auth-frontend-seam.md))(+ `layout` は横断 UI/Provider を `components`/`capabilities`/ポリシー seam から薄く mount 可。[0026](0026-layout-shell-mount.md)) |
-| `app/route-handler`(`route.ts`) | `adapters/server` / `errors` / `logging`(thin proxy・業務ロジック禁止) |
+| `app/route-handler`(`route.ts`) | `adapters/server` / `model` / `errors` / `logging` / feature の `facade/` のみ(thin proxy・業務ロジック禁止。[0025](0025-app-layer-elements.md)。`architecture.ts` の `APP_ELEMENTS` が機械強制する) |
 | `app/server-action`(`actions.ts`。[0025](0025-app-layer-elements.md)) | `adapters/server` / `features` / `model` / `errors` / `logging`(**主体の断言をここで行う**・業務ロジック禁止) |
 | `app/metadata`(robots等) | `config` / `model`(起動 / ビルド境界例外) |
 | `features` | `model` / `components` / `adapters`(公開面のみ)/ **`capabilities`** / **`stores`** / `errors` / `logging` / `observability`(描画を span へ載せる口。[0081](0081-observability-logging.md)) |
@@ -215,7 +215,7 @@ Server Action は `actions.ts`(controller 相当)に置く。**どこの `action
 - [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — `capabilities` カーネル(10 個目・本 ADR のマトリクス / 昇格ルールに反映)
 - [0023-stores-kernel.md](0023-stores-kernel.md) — `stores` カーネル(11 個目・横断 client 状態。本 ADR の責務テーブル / 依存マトリクス / 昇格ルール 5 出口目に反映)
 - [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters` の server/client 2 element 分割
-- [0025-app-layer-elements.md](0025-app-layer-elements.md) — `app` の route-segment/route-handler/metadata 3 element
+- [0025-app-layer-elements.md](0025-app-layer-elements.md) — `app` の route-segment/route-handler/server-action/metadata の 4 element（許可 import 先の正は同 ADR の element 表）
 - [0031-policy-state-supply.md](0031-policy-state-supply.md) — consent/flag の供給方針(source adapter + stateless props)
 - [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — `layout` の横断 UI/Provider mount 例外
 - [0011-no-docker.md](0011-no-docker.md) — 表示層ロール定義(ビジネスロジック禁止 / thin proxy)。`model` のビジネスルール禁止・Server Action 編成限定の根拠

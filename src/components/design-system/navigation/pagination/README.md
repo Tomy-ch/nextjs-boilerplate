@@ -32,7 +32,7 @@ link は `next/link` で描画します。アプリ内の route 遷移のため�
 
 `PaginationPrevious` / `PaginationNext` の `href` は省略できます。先頭・末尾のように**行き先が無い端**では省略し、link ではなく操作できない control として描きます。要素ごと消さないのは、片側だけになったときに残った操作が左右へ動いて誤操作を招くためです。位置が保たれ、支援技術にも「あるが今は使えない」と伝わります。
 
-表示内容は `children`、アクセシブルな名前は `aria-label` で差し替えられます。cursor 方式の前後移動はこの機構をそのまま使うため、[`CursorPagination`](../../navigation/cursor-pagination/README.md) は独自の前後移動を持ちません。
+表示内容は `children`、アクセシブルな名前は `aria-label` で差し替えられます。cursor 方式の前後移動はこの機構をそのまま使うため、[`CursorPagination`](../../../app-starter/cursor-pagination/README.md) は独自の前後移動を持ちません。
 
 ## Storybook とテスト
 

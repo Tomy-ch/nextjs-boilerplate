@@ -90,7 +90,9 @@ export default defineConfig({
     // 根拠は e2e/lib/browsers.ts にある。
     ...ENGINES.map((engine) => ({
       name: engine,
-      testIgnore: "**/visual/**",
+      // 画面単位の a11y は DOM の構造を見るので、エンジンでは変わらない。実行時に飛ばすと
+      // **飛ばす回数だけブラウザの器が立つ**ので、収集の段で外す。
+      testIgnore: engine === ENGINES[0] ? "**/visual/**" : ["**/visual/**", "**/a11y/**"],
       use: { ...devices[deviceFor(engine)], viewport: { width: 1280, height: VIEWPORT_HEIGHT } },
     })),
     // 画面の比較は 1 つのエンジンで、帯の数だけ回す。project 名がそのまま基準画像を分ける区画に

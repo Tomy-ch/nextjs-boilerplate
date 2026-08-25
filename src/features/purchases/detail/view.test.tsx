@@ -53,10 +53,14 @@ describe("PurchaseDetailView", () => {
     );
   });
 
-  it("見出しを重ねない", () => {
+  it("注文番号の見出しを持つが、画面には出さない", () => {
     render(<PurchaseDetailView purchase={PURCHASE_DETAIL} reference={null} />);
 
-    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+    const heading = screen.getByRole("heading", { level: 1 });
+
+    expect(heading).toHaveTextContent(PURCHASE_DETAIL.code);
+    // 見えないことをこの class で表す。出してしまうと、パンくずの現在地と同じ識別子が 2 度並ぶ。
+    expect(heading).toHaveClass("sr-only");
   });
 
   it("参考換算額を引けなかったときは切り替えを出さない", () => {

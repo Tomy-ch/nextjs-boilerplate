@@ -36,7 +36,7 @@ frontmatter が `test-requirement: [unit, component]` と 2 つ挙げるのは�
 
 ## デザインシステムとの関係
 
-UI は [`src/components/design-system`](../src/components/design-system/README.md) の部品で組みます。
+UI は [`src/components/design-system`](../src/components/README.md) の部品で組みます。
 **コピーせず、`@` alias でアプリ本体のソースを直接参照します。** コピーすると乖離した時点で、
 実運用の画面でデザインシステムを検証するという目的が失われるためです。
 

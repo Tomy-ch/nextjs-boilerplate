@@ -95,7 +95,7 @@
 | `PATCH /v1/purchases/{purchaseCode}/pay` | 要 | 支払い(擬似決済、U8)。未処理 / 受付中 / 確認中 からのみ | — | 更新後ステータス | 400, 401, 404, 409(二重支払い・不正遷移) |
 | `PATCH /v1/purchases/{purchaseCode}/ship` | 要 admin | 発送(A8) | — | 更新後ステータス | 400, 401, 403, 404, 409 |
 | `PATCH /v1/purchases/{purchaseCode}/deliver` | 要 admin | 配達完了 | — | 更新後ステータス | 400, 401, 403, 404, 409 |
-| `GET /v1/purchases/shippable` | 要 admin | まとめ発送の組(A8) | limit | groups[](購入者ごとの組) | 400, 401, 403 |
+| `GET /v1/purchases/shippable` | 要 admin | まとめ発送の組(A8) | limit | `groups[]`（購入者ごとの組） | 400, 401, 403 |
 
 ### 集計・在庫
 

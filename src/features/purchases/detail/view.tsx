@@ -33,10 +33,6 @@ export type PurchaseDetailViewProps = {
  * 購入 1 件の詳細表示。
  *
  * @remarks
- * **この購入にできることは控えの中に置きます。** 何ができるかを決めているのが控えの出している
- * 状況そのものなので、根拠と操作を離すと、押せる操作が変わった理由を画面の別の場所へ探しに
- * 行くことになります。
- *
  * 画面が何を見せ、どう組み替え、紙に何を出すかは
  * [画面要件](../../../../docs/spec/route/shop/purchases/[code]/page.screen.md)。
  */
@@ -45,6 +41,8 @@ export const PurchaseDetailView = withScreenSpan(
   ({ purchase, reference }: PurchaseDetailViewProps) => {
     return (
       <article className="flex flex-col gap-6">
+        {/* 画面には出さない見出し（画面要件「見出し」）。 */}
+        <h1 className="sr-only">購入 {purchase.code}</h1>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumb className="print-hidden">
             <BreadcrumbList>

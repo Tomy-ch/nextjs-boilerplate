@@ -18,7 +18,7 @@
 
 - 新しいページを組むときに、縦積み・横並び・grid をどの class で書くかを確かめる
 - breakpoint をまたぐ切り替えを、viewport と器のどちらで分岐させるか決める
-- sticky な header / footer を [`ContentContainer`](../content-container/README.md) とどう重ねるか確かめる
+- sticky な header / footer を [`ContentContainer`](../../../shell/content-container/README.md) とどう重ねるか確かめる
 
 ## 間隔の段
 
@@ -49,7 +49,7 @@ breakpoint は Tailwind の既定（`sm` / `md` / `lg` / `xl` / `2xl`）をそ�
 </div>
 ```
 
-重なる以上、面は不透明にします。`z-10` は一覧の中の重なりより上、overlay（`z-50`）より下に置く値で、[`SelectionToolbar`](../../ui/container/selection-toolbar/README.md) の sticky と同じ段です。z-index の token 化は未着手のため、現状はこの実例に揃えます。
+重なる以上、面は不透明にします。`z-10` は一覧の中の重なりより上、overlay（`z-50`）より下に置く値で、[`SelectionToolbar`](../../../patterns/selection-toolbar/README.md) の sticky と同じ段です。z-index の token 化は未着手のため、現状はこの実例に揃えます。
 
 ## 責務境界
 
@@ -63,7 +63,7 @@ sticky な header / footer を持つ外枠そのもの（`main` 要素・skip li
 
 story の title は `Layout/Layout` です。縦積みと間隔の段、折り返す横並び、等幅 grid と「内容幅と残り」の 2 列、viewport breakpoint による 1 → 2 → 3 カラム、container query による同じ切り替え、sticky header / footer、ページ 1 枚の組み立てを置いています。
 
-公開 component を持たないため、title の先頭セグメントは置き場の `layout/` と同じ `Layout` です（[`components/README.md` §Storybook の表示規約](../../README.md#storybook-の表示規約)）。
+公開 component を持たないため、title の先頭セグメントは置き場の `layout/` と同じ `Layout` です（[`components/README.md` §Storybook の表示規約](../../../README.md#storybook-の表示規約)）。
 
 container query の story は枠の右下を掴んで幅を変えられます。窓の幅を変えずに切り替わることを確かめるためです。
 

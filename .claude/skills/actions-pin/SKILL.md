@@ -49,8 +49,7 @@ is [ADR 0153](../../../docs/adr/0153-ci-configuration.md) §3.
   moves** on `resolve`; bumping it requires editing the comment.
 - **The shape of the comment tag declares which of the two it is.** A bare major number (`v6` / `6`)
   is moving; everything else (`v6.1.0`, `v6.1`, `main`) is immutable and its SHA moving is a fail.
-  This is not a guess about upstream's tagging — it is the intent of whoever wrote the pin. An
-  upstream with a moving minor tag (`v6.1`) therefore produces a false positive, which fails safe.
+  An upstream with a moving minor tag (`v6.1`) therefore produces a false positive, which fails safe.
 
 ### Re-pointed tags
 
@@ -58,11 +57,6 @@ is [ADR 0153](../../../docs/adr/0153-ci-configuration.md) §3.
 when an immutable-declared tag resolves to a different SHA, printing `key: <old> -> <new>` per
 finding. Once a re-pointed SHA lands in the lockfile, `check` answers "consistent" forever after, so
 the write is withheld rather than reported alongside.
-
-The check runs on the candidate SHA **before** the quarantine. A freshly re-pointed SHA is the
-newest thing there is, so a post-quarantine comparison would see it turn into `既存ピンを維持` and
-stay silent until the window clears — the detection would sleep through exactly the moment it exists
-for.
 
 An intended update to an immutable tag is approved per key:
 
@@ -74,6 +68,8 @@ Approval covers one move. A key that did not move is reported as a redundant app
 stale one in place would wave the next re-point through. The quarantine still applies independently;
 `ACTIONS_PIN_ALLOW_MOVED` silences only the re-point failure. A key no `uses:` references is an
 error, so a typo cannot pass as a granted approval.
+
+> Rationale: [0153](../../../docs/adr/0153-ci-configuration.md) decision 3.
 
 ## When to Use
 

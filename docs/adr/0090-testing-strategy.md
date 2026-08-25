@@ -85,6 +85,8 @@ describe("resolveExchangeRate", () => {
 
 他の層は README frontmatter の `test-requirement` が宣言する。**テストを持つディレクトリは、遡って必ずどこかの宣言に当たる**こと。当たらないと層別責務表のどの行に照らせばよいかが引けず、レビューする側は対象の見た目から推測することになる。宣言の有無は `scripts/test-requirement.gate.test.ts` が機械判定する。解決は「遡って最初に `test-requirement` を持つ README」で、宣言を持たない README は素通しする。手段が同じ 3 層(`component` / `feature` / `route`)の判別は**対象の合成の度合い**で決める。単一コンポーネントの描画契約なら `component`、複数のカーネルや feature 内部品を画面単位で組み上げたものなら `feature`、その画面を route に載せる器なら `route` である。手段ではなく合成の度合いで分けるのは、負う観点が変わるためで、`feature` と `route` は「部品が揃って初めて成立する振る舞い」を負う。
 
+**負う観点が置き場ではなく element で決まるものは、README より先に `architecture.ts` が宣言する。** `app` の Route Handler が確かめるのはリクエストに対する結果で、それは `api/` の下に置こうが外に置こうが変わらない。ディレクトリを遡る README はこれを表せず、`api/` の下にだけ nested な上書きを置く形になり、外へ出た同じ element が親の宣言を継ぐ。宣言は `architecture.ts` の `APP_ELEMENTS` が持ち（[0025](0025-app-layer-elements.md)）、`resolveTestRequirement` は README の walk より先にそちらを引く。
+
 **宣言は、テスト手段が到達できる範囲で割る。** 1 つのモジュールが 1 つの層に収まるとは限らない。収まらない部分を宣言から黙って落とすと、誰も負わない観点がそこに残る。割ったなら、割った先の層も宣言に書く —— frontmatter は `test-requirement: [unit, component]` の並びを受け付ける。
 
 **カーネルの外側にある起動 / 境界エントリ**(`src/proxy.ts` / `src/instrumentation.ts`)は README を持たず、どの `test-requirement` の walk にも乗らない([0021](0021-frontend-responsibility.md) の起動 / ビルド境界)。層を持たないディレクトリへ README を置いて宣言すると、そこに層があることになってしまうためである。宣言は本 ADR が直接持ち、**関数本体は `unit`** とする。機械が読めるよう、この宣言だけは `scripts/lib/test-requirement.ts` が写しを持つ。関数として呼べば分岐は行使できるためである。ただし `proxy.ts` の `export const config` の `matcher` は、関数を直接呼ぶ経路を通らないので `unit` では原理的に検査できない。**選別の漏れは `e2e` が負う**([0043](0043-middleware-policy.md))。

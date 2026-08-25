@@ -1589,7 +1589,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **主な変更先**:
   - `docs/adr/0140-documentation-operations.md` — ADR 不可変性を immutable へ切替(accepted 後は Status 行のみ編集 / supersede は新 ADR / 番号は再利用しない)
   - `docs/adr/*.md` — **全 ADR 本文から経緯記述を除去**(「当初は X だったが」「2026-07-14 に反転」等)
-  - `docs/adr/BACKLOG.md` — **経緯記述を除去**。BACKLOG は ADR 本文ではなく進捗ボードだが、経緯を本文に残さない規約は同じく掛かる。対象は末尾の「付録: go-upgrade / repo-ops の処遇判断(経緯記録)」節に加え、各 Tier の de facto 状態欄に散在する「当初 N → その後 M」「YYYY-MM-DD に反転」型の記述。付録は決定の実体を「移植済 / 対象外」節と各スキル本文が現在形で持つため削除でよく、de facto 状態欄は現在の状態だけを残して経緯を落とす
+  - `docs/adr/BACKLOG.md` — **経緯記述を除去**。BACKLOG は ADR 本文ではなく進捗ボードだが、経緯を本文に残さない規約は同じく掛かる。対象は各 Tier の de facto 状態欄に散在する「当初 N → その後 M」「YYYY-MM-DD に反転」型の記述で、現在の状態だけを残して経緯を落とす
   - `AGENTS.md` — 「v1.0.0 までの暫定運用」節を**削除**し、Protected Documentation / AI Modification Scope を復活
   - `docs/plan/v1-implementation-plan.md` — **本書 §2 を削除**
 - **完了条件**: 全 ADR と `docs/adr/BACKLOG.md` に改定履歴・検討経緯の記述がない。保護が復活している。本書と AGENTS.md から暫定運用節が消えている

@@ -15,7 +15,7 @@ function place(relativePath: string, content = ""): void {
 }
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "mermaid-markdown-"));
+  root = mkdtempSync(join(tmpdir(), "markdown-files-"));
 });
 
 afterEach(() => {
