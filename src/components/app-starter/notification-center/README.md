@@ -4,7 +4,7 @@
 
 永続する通知を確認する面です。未読の件数、通知の一覧、既読にする操作、通知が無い状態を扱います。
 
-一時的な操作結果の通知は [`toaster`](../../feedback/toaster/README.md) が担います。数秒で消えるものと、後から確認するものは別物です。
+一時的な操作結果の通知は [`toaster`](../../shell/toaster/README.md) が担います。数秒で消えるものと、後から確認するものは別物です。
 
 ## 役割と公開 component
 
@@ -46,7 +46,7 @@
 
 詳細へ遷移する場合は、内容として `ListItemLink` を渡すか、内容の中へ link を置きます。遷移先を決めるのは呼び出し元です。
 
-件数の追加読み込みが要る場合は [`cursor-pagination`](../../navigation/cursor-pagination/README.md) を一覧の下へ合成します。
+件数の追加読み込みが要る場合は [`cursor-pagination`](../cursor-pagination/README.md) を一覧の下へ合成します。
 
 ## Storybook とテスト
 

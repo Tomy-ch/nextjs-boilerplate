@@ -1,10 +1,10 @@
-import { loginPath } from "./facade/paths";
+import { loginPath } from "./paths";
 
 /**
  * 認証を始められなかった理由を載せる URL のキー。
  *
  * @remarks
- * 組む側（この module）と読む側（[`read-login-notice.ts`](read-login-notice.ts)）が同じ名前を
+ * 組む側（この module）と読む側（[`read-login-notice.ts`](../read-login-notice.ts)）が同じ名前を
  * 共有します。**片方だけが知っている名前にすると、送った側は案内したつもりで、受け取る側は何も
  * 出しません。**
  */
@@ -29,10 +29,6 @@ export type LoginNotice = (typeof LOGIN_NOTICE)[keyof typeof LOGIN_NOTICE];
  * 認証を始められなかったときに戻す行き先を組む。
  *
  * @remarks
- * `facade/` ではなくスライスの内側に置きます（[0021](../../../docs/adr/0021-frontend-responsibility.md)）。
- * この行き先を使うのはこのスライスと app 層だけで、宛先そのもの（`loginPath`）は他の feature が
- * 指すため facade に残ります。ここはそれを借ります。
- *
  * {@link loginPath} の上に理由を足すだけにしてあります。戻り先を載せる箇所を 2 つに増やすと、
  * 検証を通していない方が生まれます。
  *

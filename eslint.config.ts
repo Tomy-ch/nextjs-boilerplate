@@ -8,6 +8,7 @@ import security from "eslint-plugin-security";
 import tseslint from "typescript-eslint";
 
 import {
+  APP_ELEMENTS,
   DEPENDENCIES,
   ENTRY_POINTS,
   KERNEL_PATTERNS,
@@ -65,7 +66,10 @@ export default [
       },
     },
     settings: {
-      "boundaries/files": ENTRY_POINTS.map(({ category, pattern }) => ({ category, pattern })),
+      "boundaries/files": [
+        ...ENTRY_POINTS.map(({ category, pattern }) => ({ category, pattern })),
+        ...APP_ELEMENTS.map(({ category, patterns }) => ({ category, pattern: [...patterns] })),
+      ],
       // 境界検査は import 先を実ファイルまで解決できて初めて成立する。解決できない import は
       // 「どの層でもない」と見なされ、違反があっても黙って通る。`@/*` を含めて解決させる。
       "import/resolver": { typescript: { project: "./tsconfig.json" } },
@@ -150,6 +154,11 @@ export default [
             ...ENTRY_POINTS.map(({ category }) => ({
               from: { file: { categories: category } },
               allow: { to: { file: { categories: category } } },
+            })),
+            // `app` の element（`architecture.ts` の `APP_ELEMENTS`）。
+            ...APP_ELEMENTS.map(({ category, forbidden }) => ({
+              from: { file: { categories: category } },
+              disallow: { to: { element: { types: { anyOf: forbidden } } } },
             })),
           ],
         },

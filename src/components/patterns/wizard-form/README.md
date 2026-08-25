@@ -64,7 +64,7 @@
 
 途中保存も持ちません。必要なら呼び出し元が `blocked` の計算と同じ場所で行います。
 
-離脱の抑止が要る場合は [`unload-guard`](../unload-guard/README.md) と [`navigation-guard`](../navigation-guard/README.md) を併用します。
+離脱の抑止が要る場合は [`unload-guard`](../../app-starter/unload-guard/README.md) と [`navigation-guard`](../../app-starter/navigation-guard/README.md) を併用します。
 
 ## Storybook とテスト
 

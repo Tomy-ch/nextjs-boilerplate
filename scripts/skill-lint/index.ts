@@ -320,7 +320,7 @@ function configFileExists(name: string): boolean {
 //   - 末尾セグメントに `.` も末尾 `/` も無いもの — モジュール指定子（`next/image`）と区別できない
 //   - `...` を含むもの — 「以下同様」を表す省略記法
 //   - `<name>` プレースホルダを含むもの — `src/features/<name>/actions.ts` のような表記は
-//     [0027](docs/adr/0027-directory-structure.md) が定める規約上の配置であって、実在ファイルの参照ではない
+//     [0027](../../docs/adr/0027-directory-structure.md) が定める規約上の配置であって、実在ファイルの参照ではない
 //   - 未作成のカーネルを指すもの — isUncreatedKernelPath を参照
 function asRepoPath(span: string): string | null {
   let text = span.trim();
@@ -338,7 +338,7 @@ function asRepoPath(span: string): string | null {
 }
 
 // `src/` 直下のカーネル（`config` / `features` 等）と境界エントリ（`proxy.ts` / `instrumentation.ts`）は、
-// その決定が着地した時点で作られる（[0027](docs/adr/0027-directory-structure.md) / [0043](docs/adr/0043-middleware-policy.md)）。
+// その決定が着地した時点で作られる（[0027](../../docs/adr/0027-directory-structure.md) / [0043](../../docs/adr/0043-middleware-policy.md)）。
 // まだ無いものへの参照は「これから置く場所」であって実在ファイルの主張ではないため検査しない。
 // 実体化した時点で配下のパスは自動的に検査対象へ入り、以後は rename / 削除が検出される
 // （= 骨組みの現状を恒久ルールとして焼き込まない）。

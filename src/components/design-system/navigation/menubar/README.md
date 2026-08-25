@@ -36,8 +36,8 @@
 | 状況 | 使うもの |
 | --- | --- |
 | 操作の対象が画面全体で、分類が複数あり常時見せたい | `Menubar` |
-| 操作の対象が個々の行・項目で、trigger は一つ | [`DropdownMenu`](../dropdown-menu/README.md) |
-| 可視の導線がすでにあり、右クリックから加速したい | [`ContextMenu`](../context-menu/README.md) |
+| 操作の対象が個々の行・項目で、trigger は一つ | [`DropdownMenu`](../../overlay/dropdown-menu/README.md) |
+| 可視の導線がすでにあり、右クリックから加速したい | [`ContextMenu`](../../overlay/context-menu/README.md) |
 | サイトの階層を辿る遷移 | [`NavigationMenu`](../navigation-menu/README.md) / [`Breadcrumb`](../breadcrumb/README.md) |
 
 最後の行を守れないことが最も多い誤用です。menubar は操作の構造であり、遷移リンクを混ぜると「操作」と「遷移」の区別が利用者側から失われます。

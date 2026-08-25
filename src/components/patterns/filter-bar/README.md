@@ -17,7 +17,7 @@
 
 ## 利用ケース
 
-検索欄は持たないので、[`search-field-native`](../../ui/search-field-native/README.md) か [`search-field-client`](../../ui/search-field-client/README.md) を `FilterBarControls` へ合成します。条件の入力欄の中身は画面ごとに異なるため、`Sheet` や `Popover` を呼び出し元が組み立て、`FilterBarTrigger` をその trigger として渡します。
+検索欄は持たないので、[`search-field-native`](../../design-system/form/search-field-native/README.md) か [`search-field-client`](../../design-system/form/search-field-client/README.md) を `FilterBarControls` へ合成します。条件の入力欄の中身は画面ごとに異なるため、`Sheet` や `Popover` を呼び出し元が組み立て、`FilterBarTrigger` をその trigger として渡します。
 
 ## 条件が 1 つの画面では使いません
 

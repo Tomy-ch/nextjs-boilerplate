@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { LOGIN_NOTICE, unavailableLoginPath } from "./login-notice";
+import { LOGIN_NOTICE, unavailableLoginPath } from "./facade/login-notice";
 import { readLoginNotice } from "./read-login-notice";
 
 describe("readLoginNotice", () => {

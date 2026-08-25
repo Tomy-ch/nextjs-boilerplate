@@ -28,7 +28,7 @@
 | 効き方 | その画面の見せ方を変える | 保存して永続する |
 | 例 | 表示密度、折り返しの有無 | 通知の受け取り、公開 / 非公開 |
 
-保存されて次に開いたときも残るなら [`SwitchNative`](../switch-native/README.md) / [`SwitchClient`](../switch-client/README.md)、その場の見え方だけならこちらです。form の値として複数選択や同意を送るなら `CheckboxNative` を使います。
+保存されて次に開いたときも残るなら [`SwitchNative`](../../form/switch-native/README.md) / [`SwitchClient`](../../form/switch-client/README.md)、その場の見え方だけならこちらです。form の値として複数選択や同意を送るなら `CheckboxNative` を使います。
 
 ## 責務境界
 

@@ -4,6 +4,9 @@
 // 全 story から外してよいのは、story が部品を単独で描画していることの副作用として鳴るものだけ。
 // 「いまは直せない」は理由にならない —— 直せない違反は [excluded-stories](excluded-stories.ts) で
 // story ごと外すか、実装を直す。特定の story でだけ外す宣言は STORY_DISABLED_RULES が持つ。
+//
+// landmark と h1 の 3 ルールは、ここでは無効化しない。部品を単独で描く限り成立せず、組み上げた
+// 画面で初めて壊れるため、画面単位の検査（[e2e/lib/a11y-rules.ts](../../e2e/lib/a11y-rules.ts)）が持つ。
 
 /**
  * 検査するルールの範囲。適合目標そのものを axe のタグで表す。
@@ -54,24 +57,7 @@ export type DisabledRule = {
   readonly removeWhen: string;
 };
 
-export const DISABLED_RULES: readonly DisabledRule[] = [
-  {
-    id: "region",
-    reason:
-      "story は部品だけを描画するので、内容を包む landmark が無い。画面としての landmark 構成は page 単位の検査が持つ責務。",
-    removeWhen: "画面単位の a11y 検査が入り、landmark をそちらで見るようになったとき。",
-  },
-  {
-    id: "page-has-heading-one",
-    reason: "同上。story に h1 を置くと、部品を組み合わせた画面で h1 が重複する。",
-    removeWhen: "同上。",
-  },
-  {
-    id: "landmark-one-main",
-    reason: "同上。部品単体に main を置くことはできない。",
-    removeWhen: "同上。",
-  },
-];
+export const DISABLED_RULES: readonly DisabledRule[] = [];
 
 /** story を名指しして外すルール 1 件。 */
 export type StoryDisabledRule = DisabledRule & {

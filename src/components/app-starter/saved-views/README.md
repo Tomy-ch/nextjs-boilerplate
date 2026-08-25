@@ -76,8 +76,8 @@ const selectView = useCallback(
 
 ### 絞り込み UI との併置
 
-絞り込みの操作そのものは [`filter-bar`](../../navigation/filter-bar/README.md) が、表の見せ方は
-[`table-view-options`](../table-view-options/README.md) が持ちます。この component はその結果を
+絞り込みの操作そのものは [`filter-bar`](../../patterns/filter-bar/README.md) が、表の見せ方は
+[`table-view-options`](../../patterns/table-view-options/README.md) が持ちます。この component はその結果を
 名前付きで呼び戻す層で、条件の編集 UI を持ちません。
 
 ## 利用ケース
