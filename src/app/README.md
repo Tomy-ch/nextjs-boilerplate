@@ -25,21 +25,35 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 
 - 業務ロジック、画面ユースケースの編成、route segment からの直接 fetch
 
-## 現在の実装の位置づけ
+## この層が持つ判断
 
-**この層の現在の中身は足場であり、画面実装の段階で全面的に置き換わります。** route segment・layout の構成・metadata の値は、app shell の情報設計と画面一覧が確定した時点で作り直す前提です。
+route ごとに決まることがここにあります。**そのうちいくつかは、この README にも ADR にも書けません**
+—— 画面ごとに違う答えを持つものだからです。答えを書く場所は決まっています。
 
-そのため、いまここに情報設計を先取りした構造を作りません。今すぐ必要な配線だけを最小限で置き、判断が要る部分は画面実装まで持ち越します。この層を読むときは、**構造の参考にはせず、mount の作法だけを参考にしてください**。
-
-現時点で足場として置いてあるもの。
-
-| 対象 | 現状 | 置き換わる契機 |
+| 判断 | 宣言する場所 | 答えを持つ文書 |
 | --- | --- | --- |
-| `layout.tsx` の html / body | 言語と font 変数、`min-h-full` の骨格のみ | app shell の実装 |
-| `fonts.ts` | `next/font` の書体定義と、変数を配る class 名 | どの要素にどの書体を当てるか（token と部品が持つ） |
-| `metadata` の `title` / `description` | リポジトリ名と一行説明の**仮値**。`title.template` の雛形だけが恒久的な枠 | fork 先または画面実装 |
+| 描画の時点（`dynamic` / `revalidate`） | `page.tsx` | その画面の機能要件（[`docs/spec/route/**`](../../docs/spec/README.md)） |
+| 待ちの境界（`Suspense` をどこへ掛けるか） | `page.tsx` | 同上 |
+| 失敗と不在の面 | `error.tsx` / `not-found.tsx` | 同上 + [0080](../../docs/adr/0080-error-handling.md) |
+| metadata | `page.tsx` / `layout.tsx` | [0044](../../docs/adr/0044-seo-metadata-strategy.md) |
+| 横断 UI と Provider の mount | `layout.tsx` **だけ** | [0026](../../docs/adr/0026-layout-shell-mount.md) |
+| 外部との往復 | `api/**/route.ts` | [0071](../../docs/adr/0071-bff-api-integration.md) / [0025](../../docs/adr/0025-app-layer-elements.md) |
+
+**描画の時点は画面ごとに選びます。**この層のどこかに宣言があっても、それは boilerplate 全体の
+既定ではありません（[0040](../../docs/adr/0040-routing-rendering-strategy.md)）。宣言しなければ
+動的な API を使わない画面は build 時に 1 度だけ描かれるので、**選ばないことも選択**になります。
+
+**選んだ理由は仕様書へ書きます。** route の隣の doc コメントだけに置くと、その画面がいつ描かれる
+かを文書から辿れなくなります。コードのコメントに残すのは、その場で効く注意だけです。
+
+**待ちの境界も同じです。** 節ごとに分けるか画面全体で 1 つにするかは、何を同時に待つかで決まる
+画面の判断であり、層の既定ではありません。
+
+### まだ埋まっていないもの
+
+| 対象 | 現状 | 埋まる契機 |
+| --- | --- | --- |
 | `metadata` の `metadataBase` | **未設定**。公開 URL を保持する config が無いため | 公開 URL を config へ足す時点 |
-| `page.tsx` | 動作確認用の最小ページ | 画面実装 |
 
 ## 運用
 
