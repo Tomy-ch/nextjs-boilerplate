@@ -7,7 +7,7 @@ import {
   TableRow,
 } from "@/components/design-system/display/table/table";
 import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
-
+import { withPartSpan } from "@/observability/render-span";
 import { formatCount } from "../../count";
 import { StatusChart } from "../status-chart/status-chart";
 
@@ -40,35 +40,40 @@ const TITLE = "ステータス別の件数";
  *
  * @see Storybook `Page/Admin/Dashboard`
  */
-export function StatusBreakdown({ counts }: StatusBreakdownProps) {
-  return (
-    <section>
-      <h2 className="text-lg font-emphasis">{TITLE}</h2>
-      {counts.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">この期間に注文された購入はありません。</p>
-      ) : (
-        <div className="mt-4 grid gap-6 lg:grid-cols-2 lg:items-start">
-          <StatusChart counts={counts} />
-          <Table label={TITLE}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ステータス</TableHead>
-                <TableHead className="text-right">件数</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {counts.map((entry) => (
-                <TableRow key={entry.statusId}>
-                  <TableCell>{entry.statusName}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatCount(entry.count)}
-                  </TableCell>
+export const StatusBreakdown = withPartSpan(
+  "features/admin/ui/status-breakdown/status-breakdown",
+  ({ counts }: StatusBreakdownProps) => {
+    return (
+      <section>
+        <h2 className="text-lg font-emphasis">{TITLE}</h2>
+        {counts.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            この期間に注文された購入はありません。
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-6 lg:grid-cols-2 lg:items-start">
+            <StatusChart counts={counts} />
+            <Table label={TITLE}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ステータス</TableHead>
+                  <TableHead className="text-right">件数</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </section>
-  );
-}
+              </TableHeader>
+              <TableBody>
+                {counts.map((entry) => (
+                  <TableRow key={entry.statusId}>
+                    <TableCell>{entry.statusName}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatCount(entry.count)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
+    );
+  },
+);

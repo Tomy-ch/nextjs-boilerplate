@@ -1,3 +1,4 @@
+import { withPartSpan } from "@/observability/render-span";
 import { STOCK_DIRECTION, type StockDirection } from "../../stock-direction";
 
 /** `StockProjection` の props。 */
@@ -20,20 +21,24 @@ export type StockProjectionProps = {
  * 参考値である理由と、量が読めないうちに出さない理由は
  * [画面要件](../../../../../../../docs/spec/route/admin/products/[id]/stock/page.screen.md)「送信後の見込みを出す」。
  */
-export function StockProjection({ current, direction, quantity }: StockProjectionProps) {
-  if (quantity === null) return null;
+export const StockProjection = withPartSpan(
+  "features/admin/products/stock/ui/projection/projection",
+  ({ current, direction, quantity }: StockProjectionProps) => {
+    if (quantity === null) return null;
 
-  const projected = direction === STOCK_DIRECTION.DEDUCT ? current - quantity : current + quantity;
+    const projected =
+      direction === STOCK_DIRECTION.DEDUCT ? current - quantity : current + quantity;
 
-  return (
-    <p className="text-sm">
-      <span className="text-muted-foreground">送信後の見込み</span>{" "}
-      <span className="font-emphasis tabular-nums">{projected}</span>
-      {projected < 0 ? (
-        <span className="ml-2 text-muted-foreground">
-          在庫より多く差し引く要求は受け付けられません。
-        </span>
-      ) : null}
-    </p>
-  );
-}
+    return (
+      <p className="text-sm">
+        <span className="text-muted-foreground">送信後の見込み</span>{" "}
+        <span className="font-emphasis tabular-nums">{projected}</span>
+        {projected < 0 ? (
+          <span className="ml-2 text-muted-foreground">
+            在庫より多く差し引く要求は受け付けられません。
+          </span>
+        ) : null}
+      </p>
+    );
+  },
+);

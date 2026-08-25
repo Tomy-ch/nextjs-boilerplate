@@ -1,4 +1,5 @@
 import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
+import { withScreenSpan } from "@/observability/render-span";
 import type { CreateProductAction, UploadProductImageAction } from "../form-state";
 import { toMasterOptions } from "../master-option";
 import { AdminProductCreateView } from "./view";
@@ -14,20 +15,22 @@ export type AdminProductCreatePageContentProps = {
 };
 
 /** 作成の画面に要るマスタを揃える。 */
-export async function AdminProductCreatePageContent({
-  createAction,
-  maxUploadBytes,
-  uploadAction,
-}: AdminProductCreatePageContentProps) {
-  const [categories, statuses] = await Promise.all([getProductCategories(), getProductStatuses()]);
+export const AdminProductCreatePageContent = withScreenSpan(
+  "features/admin/products/new/page-content",
+  async ({ createAction, maxUploadBytes, uploadAction }: AdminProductCreatePageContentProps) => {
+    const [categories, statuses] = await Promise.all([
+      getProductCategories(),
+      getProductStatuses(),
+    ]);
 
-  return (
-    <AdminProductCreateView
-      categoryOptions={toMasterOptions(categories)}
-      createAction={createAction}
-      maxUploadBytes={maxUploadBytes}
-      statusOptions={toMasterOptions(statuses)}
-      uploadAction={uploadAction}
-    />
-  );
-}
+    return (
+      <AdminProductCreateView
+        categoryOptions={toMasterOptions(categories)}
+        createAction={createAction}
+        maxUploadBytes={maxUploadBytes}
+        statusOptions={toMasterOptions(statuses)}
+        uploadAction={uploadAction}
+      />
+    );
+  },
+);

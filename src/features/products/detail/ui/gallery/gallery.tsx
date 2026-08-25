@@ -16,6 +16,7 @@ import {
 } from "@/components/design-system/display/media-image/media-image.definition";
 import { ImageViewer } from "@/components/design-system/overlay/image-viewer/image-viewer";
 import { NO_IMAGE_URL } from "@/model/media";
+import { withPartSpan } from "@/observability/render-span";
 
 /** slide を指す `id`。送り操作と一覧の双方が同じ規則で参照する。 */
 function slideIdOf(index: number): string {
@@ -45,84 +46,89 @@ export type ProductGalleryProps = {
  * 紙には先頭の 1 枚だけを残し、幅も抑えます。carousel は横に送って見る形で、紙では送れないため
  * 全部並べると同じ商品の写真が紙を埋め、幅を抑えないと 1 枚でも紙 1 面を占めます。
  */
-export function ProductGallery({ imageUrls, productName }: ProductGalleryProps) {
-  const slides = imageUrls.length === 0 ? [null] : imageUrls;
-  const viewable = imageUrls.map((url) => ({ src: url, alt: productName }));
+export const ProductGallery = withPartSpan(
+  "features/products/detail/ui/gallery/gallery",
+  ({ imageUrls, productName }: ProductGalleryProps) => {
+    const slides = imageUrls.length === 0 ? [null] : imageUrls;
+    const viewable = imageUrls.map((url) => ({ src: url, alt: productName }));
 
-  return (
-    <Carousel aria-label={`${productName}の画像`} className="print:max-w-64">
-      <CarouselContent>
-        {slides.map((src, index) => (
-          <CarouselItem
-            aria-label={`${index + 1} / ${slides.length}`}
-            className={index === 0 ? undefined : "print-hidden"}
-            id={slideIdOf(index)}
-            key={slideIdOf(index)}
-          >
-            {src === null ? (
-              <MediaImage
-                alt={productName}
-                className="rounded-lg border border-border"
-                fallbackAlt="画像なし"
-                fallbackSrc={NO_IMAGE_URL}
-                priority={MEDIA_IMAGE_PRIORITY.PRELOAD}
-                sizes="(min-width: 1024px) 50vw, 100vw"
-                src={null}
-              />
-            ) : (
-              <ImageViewer images={viewable} index={index}>
+    return (
+      <Carousel aria-label={`${productName}の画像`} className="print:max-w-64">
+        <CarouselContent>
+          {slides.map((src, index) => (
+            <CarouselItem
+              aria-label={`${index + 1} / ${slides.length}`}
+              className={index === 0 ? undefined : "print-hidden"}
+              id={slideIdOf(index)}
+              key={slideIdOf(index)}
+            >
+              {src === null ? (
                 <MediaImage
                   alt={productName}
                   className="rounded-lg border border-border"
-                  priority={index === 0 ? MEDIA_IMAGE_PRIORITY.PRELOAD : MEDIA_IMAGE_PRIORITY.LAZY}
+                  fallbackAlt="画像なし"
+                  fallbackSrc={NO_IMAGE_URL}
+                  priority={MEDIA_IMAGE_PRIORITY.PRELOAD}
                   sizes="(min-width: 1024px) 50vw, 100vw"
-                  src={src}
+                  src={null}
                 />
-              </ImageViewer>
-            )}
-            {/* 送る操作は画像より後ろに置く。位置指定要素は DOM の順で重なるため、
-                前に置くと画像に覆われて押せない。 */}
-            {index === 0 ? null : (
-              <CarouselPrevious
-                className="print-hidden"
-                href={`#${slideIdOf(index - 1)}`}
-                tabIndex={-1}
-              />
-            )}
-            {index === slides.length - 1 ? null : (
-              <CarouselNext
-                className="print-hidden"
-                href={`#${slideIdOf(index + 1)}`}
-                tabIndex={-1}
-              />
-            )}
-          </CarouselItem>
-        ))}
-      </CarouselContent>
+              ) : (
+                <ImageViewer images={viewable} index={index}>
+                  <MediaImage
+                    alt={productName}
+                    className="rounded-lg border border-border"
+                    priority={
+                      index === 0 ? MEDIA_IMAGE_PRIORITY.PRELOAD : MEDIA_IMAGE_PRIORITY.LAZY
+                    }
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    src={src}
+                  />
+                </ImageViewer>
+              )}
+              {/* 送る操作は画像より後ろに置く。位置指定要素は DOM の順で重なるため、
+                  前に置くと画像に覆われて押せない。 */}
+              {index === 0 ? null : (
+                <CarouselPrevious
+                  className="print-hidden"
+                  href={`#${slideIdOf(index - 1)}`}
+                  tabIndex={-1}
+                />
+              )}
+              {index === slides.length - 1 ? null : (
+                <CarouselNext
+                  className="print-hidden"
+                  href={`#${slideIdOf(index + 1)}`}
+                  tabIndex={-1}
+                />
+              )}
+            </CarouselItem>
+          ))}
+        </CarouselContent>
 
-      <CarouselThumbnails
-        aria-label="画像の一覧"
-        className="print-hidden"
-        defaultCurrentId={slideIdOf(0)}
-      >
-        {slides.map((src, index) => (
-          <CarouselLink
-            aria-label={`${index + 1} 枚目`}
-            className="w-20 shrink-0 p-0"
-            href={`#${slideIdOf(index)}`}
-            key={slideIdOf(index)}
-          >
-            <MediaImage
-              alt=""
-              aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
-              className="w-full rounded-sm"
-              fallbackSrc={NO_IMAGE_URL}
-              sizes="5rem"
-              src={src}
-            />
-          </CarouselLink>
-        ))}
-      </CarouselThumbnails>
-    </Carousel>
-  );
-}
+        <CarouselThumbnails
+          aria-label="画像の一覧"
+          className="print-hidden"
+          defaultCurrentId={slideIdOf(0)}
+        >
+          {slides.map((src, index) => (
+            <CarouselLink
+              aria-label={`${index + 1} 枚目`}
+              className="w-20 shrink-0 p-0"
+              href={`#${slideIdOf(index)}`}
+              key={slideIdOf(index)}
+            >
+              <MediaImage
+                alt=""
+                aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
+                className="w-full rounded-sm"
+                fallbackSrc={NO_IMAGE_URL}
+                sizes="5rem"
+                src={src}
+              />
+            </CarouselLink>
+          ))}
+        </CarouselThumbnails>
+      </Carousel>
+    );
+  },
+);

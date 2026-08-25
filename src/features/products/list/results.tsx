@@ -4,6 +4,7 @@ import {
   type ProductQuery,
 } from "@/adapters/server/api/products";
 
+import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { type ProductListSelection, toConditions } from "../facade/list-url/list-url";
 import { ProductInfiniteList } from "./ui/infinite-list/infinite-list";
 
@@ -29,12 +30,16 @@ export type ProductListResultsProps = {
  * 一覧ごとエラー境界へ送ると、手元にある読める結果まで消えます。逆に一覧が取れなければ画面の
  * 中身が無いので、そちらは通します。
  */
-// TODO: 落ちた件数の取得を記録する。`logging` の singleton が instrumentation と server component
-// で共有されておらず、`getLogger()` がこの位置から使えない。
 export async function ProductListResults({ query, selection }: ProductListResultsProps) {
   const [page, total] = await Promise.all([
     getProductListPage(query),
-    getProductCount(query).catch(() => undefined),
+    getProductCount(query).catch((cause: unknown) => {
+      reportQuietly(() =>
+        getLogger().warn("一覧の件数を読めませんでした", { cause: String(cause) }),
+      );
+
+      return undefined;
+    }),
   ]);
 
   return (

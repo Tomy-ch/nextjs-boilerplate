@@ -2,6 +2,7 @@ import { cn } from "@/components/cn";
 import { CartLineIssues } from "@/features/cart/facade/line-issues/line-issues";
 import type { CartLine } from "@/model/cart/cart";
 import { hasBlockingIssue } from "@/model/cart/issue-notice";
+import { withPartSpan } from "@/observability/render-span";
 
 /** `OrderLineRow` の props。 */
 export type OrderLineRowProps = {
@@ -31,26 +32,29 @@ const PRICE_CHANGED_NOTE = "この金額で購入してよいかを、確定の�
  * 一緒に薄くなり、地との比が [0100](../../../../../../docs/adr/0100-accessibility-target.md) の
  * 要求を割ります。読ませたいのはその理由なので、弱めるのは対象の名前に留めます。
  */
-export function OrderLineRow({ line }: OrderLineRowProps) {
-  const blocked = hasBlockingIssue(line);
-  const note = blocked ? EXCLUDED_NOTE : PRICE_CHANGED_NOTE;
+export const OrderLineRow = withPartSpan(
+  "features/checkout/confirm/ui/order-line-row/order-line-row",
+  ({ line }: OrderLineRowProps) => {
+    const blocked = hasBlockingIssue(line);
+    const note = blocked ? EXCLUDED_NOTE : PRICE_CHANGED_NOTE;
 
-  return (
-    <li className="flex flex-wrap items-start gap-x-4 gap-y-1 py-4">
-      <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
-        <p className={cn("font-emphasis text-sm", blocked && "text-muted-foreground")}>
-          {line.name ?? UNKNOWN_NAME}
-        </p>
-        {line.unitPrice === null ? null : (
-          <p className="text-muted-foreground text-sm">{`$${line.unitPrice} / 個`}</p>
-        )}
-        <CartLineIssues
-          availableQuantity={line.availableQuantity}
-          issues={line.issues}
-          note={note}
-        />
-      </div>
-      <p className="text-sm tabular-nums">{`${line.quantity} 個`}</p>
-    </li>
-  );
-}
+    return (
+      <li className="flex flex-wrap items-start gap-x-4 gap-y-1 py-4">
+        <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
+          <p className={cn("font-emphasis text-sm", blocked && "text-muted-foreground")}>
+            {line.name ?? UNKNOWN_NAME}
+          </p>
+          {line.unitPrice === null ? null : (
+            <p className="text-muted-foreground text-sm">{`$${line.unitPrice} / 個`}</p>
+          )}
+          <CartLineIssues
+            availableQuantity={line.availableQuantity}
+            issues={line.issues}
+            note={note}
+          />
+        </div>
+        <p className="text-sm tabular-nums">{`${line.quantity} 個`}</p>
+      </li>
+    );
+  },
+);

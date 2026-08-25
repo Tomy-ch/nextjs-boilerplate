@@ -12,6 +12,7 @@ import {
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import { Separator } from "@/components/design-system/display/separator/separator";
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { withPartSpan } from "@/observability/render-span";
 
 /** 待機表示が出すカードの数。出来上がりの段組みと同じ枚数を同時に出す。 */
 export const PLACEHOLDER_CARDS = 2;
@@ -50,7 +51,7 @@ const ACTIONS = Array.from({ length: PLACEHOLDER_ACTIONS }, (_, index) => index)
  * （[0101](../../../../../../docs/adr/0101-performance-budget.md) §4）。退会は戻せない操作なので、
  * 読み込み中に押せる位置へ現れてはいけません。
  */
-export function MypageSkeleton() {
+export const MypageSkeleton = withPartSpan("features/account/mypage/ui/skeleton/skeleton", () => {
   return (
     <div aria-hidden="true" className="flex flex-col gap-8">
       <div className="grid items-start gap-6 lg:grid-cols-2">
@@ -102,4 +103,4 @@ export function MypageSkeleton() {
       </div>
     </div>
   );
-}
+});

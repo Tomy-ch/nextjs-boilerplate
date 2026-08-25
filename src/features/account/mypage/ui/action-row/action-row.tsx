@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { ABOUT_PATH, PRIVACY_PATH } from "@/features/site-info/facade/paths/paths";
-
+import { withPartSpan } from "@/observability/render-span";
 import { WithdrawButton } from "../withdraw-button/withdraw-button";
 
 /**
@@ -27,25 +27,28 @@ import { WithdrawButton } from "../withdraw-button/withdraw-button";
  * 広い画面では伸ばし切りません。ボタン 3 つが本文いっぱいまで広がると、押す場所を探して視線が
  * 端まで動きます。
  */
-export function MypageActionRow() {
-  return (
-    <nav
-      aria-label="このサイトについての案内と退会"
-      className="flex flex-col divide-y divide-border sm:grid sm:max-w-2xl sm:grid-cols-3 sm:gap-3 sm:divide-y-0"
-    >
-      <div className="py-3 sm:py-0">
-        <Button asChild className="w-full" variant={BUTTON_VARIANT.OUTLINE}>
-          <Link href={ABOUT_PATH}>このサイトについて</Link>
-        </Button>
-      </div>
-      <div className="py-3 sm:py-0">
-        <Button asChild className="w-full" variant={BUTTON_VARIANT.OUTLINE}>
-          <Link href={PRIVACY_PATH}>プライバシーポリシー</Link>
-        </Button>
-      </div>
-      <div className="flex flex-col gap-3 py-3 sm:py-0">
-        <WithdrawButton />
-      </div>
-    </nav>
-  );
-}
+export const MypageActionRow = withPartSpan(
+  "features/account/mypage/ui/action-row/action-row",
+  () => {
+    return (
+      <nav
+        aria-label="このサイトについての案内と退会"
+        className="flex flex-col divide-y divide-border sm:grid sm:max-w-2xl sm:grid-cols-3 sm:gap-3 sm:divide-y-0"
+      >
+        <div className="py-3 sm:py-0">
+          <Button asChild className="w-full" variant={BUTTON_VARIANT.OUTLINE}>
+            <Link href={ABOUT_PATH}>このサイトについて</Link>
+          </Button>
+        </div>
+        <div className="py-3 sm:py-0">
+          <Button asChild className="w-full" variant={BUTTON_VARIANT.OUTLINE}>
+            <Link href={PRIVACY_PATH}>プライバシーポリシー</Link>
+          </Button>
+        </div>
+        <div className="flex flex-col gap-3 py-3 sm:py-0">
+          <WithdrawButton />
+        </div>
+      </nav>
+    );
+  },
+);

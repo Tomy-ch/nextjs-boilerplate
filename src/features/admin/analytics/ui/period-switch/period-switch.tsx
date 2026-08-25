@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cn } from "@/components/cn";
+import { withPartSpan } from "@/observability/render-span";
 import { DASHBOARD_PERIOD, type DashboardPeriod, toPeriodHref } from "../../period";
 import {
   PERIOD_CHOICE_CLASS,
@@ -40,30 +41,33 @@ const LINK_CHOICES: readonly { readonly period: DashboardPeriod; readonly label:
  *
  * @see Storybook `Page/Admin/Analytics`
  */
-export function PeriodSwitch({ current, rangeChoice }: PeriodSwitchProps) {
-  return (
-    <nav aria-label="集計対象期間">
-      <ul className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/40 p-1">
-        {LINK_CHOICES.map((choice) => {
-          const selected = choice.period === current;
+export const PeriodSwitch = withPartSpan(
+  "features/admin/analytics/ui/period-switch/period-switch",
+  ({ current, rangeChoice }: PeriodSwitchProps) => {
+    return (
+      <nav aria-label="集計対象期間">
+        <ul className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/40 p-1">
+          {LINK_CHOICES.map((choice) => {
+            const selected = choice.period === current;
 
-          return (
-            <li key={choice.period}>
-              <Link
-                aria-current={selected ? "page" : undefined}
-                className={cn(
-                  PERIOD_CHOICE_CLASS,
-                  selected ? PERIOD_CHOICE_SELECTED_CLASS : PERIOD_CHOICE_IDLE_CLASS,
-                )}
-                href={toPeriodHref(choice.period)}
-              >
-                {choice.label}
-              </Link>
-            </li>
-          );
-        })}
-        <li>{rangeChoice}</li>
-      </ul>
-    </nav>
-  );
-}
+            return (
+              <li key={choice.period}>
+                <Link
+                  aria-current={selected ? "page" : undefined}
+                  className={cn(
+                    PERIOD_CHOICE_CLASS,
+                    selected ? PERIOD_CHOICE_SELECTED_CLASS : PERIOD_CHOICE_IDLE_CLASS,
+                  )}
+                  href={toPeriodHref(choice.period)}
+                >
+                  {choice.label}
+                </Link>
+              </li>
+            );
+          })}
+          <li>{rangeChoice}</li>
+        </ul>
+      </nav>
+    );
+  },
+);

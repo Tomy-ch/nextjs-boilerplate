@@ -13,6 +13,7 @@ const validEnvironment = {
   OBS_TRACES_EXPORTER: "otlp",
   OBS_METRICS_EXPORTER: "none",
   OBS_LOGS_EXPORTER: "",
+  OBS_RENDER_SPANS: "screen",
   AUTH_MODE: "idp",
   AUTH_ISSUER: "https://id.example.test",
   AUTH_CLIENT_ID: "nextjs-boilerplate",
@@ -32,6 +33,7 @@ function stubValidEnvironment(): void {
   vi.stubEnv("OBS_TRACES_EXPORTER", validEnvironment.OBS_TRACES_EXPORTER);
   vi.stubEnv("OBS_METRICS_EXPORTER", validEnvironment.OBS_METRICS_EXPORTER);
   vi.stubEnv("OBS_LOGS_EXPORTER", validEnvironment.OBS_LOGS_EXPORTER);
+  vi.stubEnv("OBS_RENDER_SPANS", validEnvironment.OBS_RENDER_SPANS);
   vi.stubEnv("AUTH_MODE", validEnvironment.AUTH_MODE);
   vi.stubEnv("AUTH_ISSUER", validEnvironment.AUTH_ISSUER);
   vi.stubEnv("AUTH_CLIENT_ID", validEnvironment.AUTH_CLIENT_ID);

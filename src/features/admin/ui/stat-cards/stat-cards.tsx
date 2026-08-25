@@ -2,7 +2,7 @@ import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Card } from "@/components/design-system/display/card/card";
-
+import { withPartSpan } from "@/observability/render-span";
 import type { SummaryCard } from "../../summary-cards";
 
 /** `StatCards` の props。 */
@@ -41,38 +41,41 @@ const FOCUS_RING =
  *
  * @see Storybook `Page/Admin/Dashboard`
  */
-export function StatCards({ cards, label }: StatCardsProps) {
-  return (
-    <section aria-label={label}>
-      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        {cards.map((card) => (
-          <Card
-            className={`gap-1 px-4 py-4 lg:px-5 lg:py-5 ${
-              card.href === undefined ? "" : "relative cursor-pointer hover:border-active"
-            }`}
-            key={card.id}
-          >
-            <dt className="text-sm text-muted-foreground">
-              {card.href === undefined ? (
-                card.label
-              ) : (
-                <Link
-                  aria-label={card.linkLabel}
-                  className={`${FOCUS_RING} inline-flex items-center gap-0.5 text-foreground underline-offset-4 after:absolute after:inset-0 hover:underline`}
-                  href={card.href}
-                >
-                  {card.label}
-                  <ChevronRightIcon aria-hidden="true" className="size-3.5" />
-                </Link>
-              )}
-            </dt>
-            <dd>
-              <p className="text-2xl font-emphasis tabular-nums lg:text-3xl">{card.value}</p>
-              <p className="mt-2 text-xs text-muted-foreground">{card.note}</p>
-            </dd>
-          </Card>
-        ))}
-      </dl>
-    </section>
-  );
-}
+export const StatCards = withPartSpan(
+  "features/admin/ui/stat-cards/stat-cards",
+  ({ cards, label }: StatCardsProps) => {
+    return (
+      <section aria-label={label}>
+        <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+          {cards.map((card) => (
+            <Card
+              className={`gap-1 px-4 py-4 lg:px-5 lg:py-5 ${
+                card.href === undefined ? "" : "relative cursor-pointer hover:border-active"
+              }`}
+              key={card.id}
+            >
+              <dt className="text-sm text-muted-foreground">
+                {card.href === undefined ? (
+                  card.label
+                ) : (
+                  <Link
+                    aria-label={card.linkLabel}
+                    className={`${FOCUS_RING} inline-flex items-center gap-0.5 text-foreground underline-offset-4 after:absolute after:inset-0 hover:underline`}
+                    href={card.href}
+                  >
+                    {card.label}
+                    <ChevronRightIcon aria-hidden="true" className="size-3.5" />
+                  </Link>
+                )}
+              </dt>
+              <dd>
+                <p className="text-2xl font-emphasis tabular-nums lg:text-3xl">{card.value}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{card.note}</p>
+              </dd>
+            </Card>
+          ))}
+        </dl>
+      </section>
+    );
+  },
+);

@@ -22,6 +22,7 @@ import { AddToCartButton } from "@/features/cart/facade/add-to-cart/add-to-cart-
 import { formatDateTime } from "@/model/datetime";
 import type { Product } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
+import { withScreenSpan } from "@/observability/render-span";
 import { PRODUCT_LIST_PATH } from "../facade/list-url/list-url";
 import { ProductGallery } from "./ui/gallery/gallery";
 
@@ -56,90 +57,93 @@ type ProductDetailProps = {
  * 紙に出すのは内容だけです。押せない操作（パンくず・画像の送り・一覧・カートへの追加・印刷そのもの）
  * は紙面の場所を取るだけなので落とします。
  */
-export function ProductDetail({ product, imageUrls }: ProductDetailProps) {
-  const isLowStock =
-    product.stockWarningThreshold !== null && product.quantity <= product.stockWarningThreshold;
+export const ProductDetail = withScreenSpan(
+  "features/products/detail/view",
+  ({ product, imageUrls }: ProductDetailProps) => {
+    const isLowStock =
+      product.stockWarningThreshold !== null && product.quantity <= product.stockWarningThreshold;
 
-  return (
-    <article className="flex flex-col gap-8 pb-24 lg:pb-0">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Breadcrumb className="print-hidden">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">トップ</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href={PRODUCT_LIST_PATH}>商品一覧</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
-              <BreadcrumbPage className="max-w-40 truncate">{product.name}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-        <PrintButton />
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-2">
-        <ProductGallery imageUrls={imageUrls} productName={product.name} />
-
-        <div className="flex flex-col items-start gap-6">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
-            <Badge className="whitespace-normal break-words" variant="secondary">
-              {product.category.name}
-            </Badge>
-            <Badge className="whitespace-normal break-words" variant="outline">
-              {product.status.name}
-            </Badge>
-          </div>
-
-          <h1 className="text-3xl font-emphasis tracking-tight">{product.name}</h1>
-
-          <p className="text-3xl font-emphasis">{`$${product.price}`}</p>
-
-          <KeyValueList className="w-full">
-            <KeyValueItem>
-              <KeyValueLabel>在庫</KeyValueLabel>
-              <KeyValueValue className="flex flex-wrap items-center gap-2">
-                {`${product.quantity} 個`}
-                {product.quantity === 0 ? <Badge variant="destructive">在庫なし</Badge> : null}
-                {product.quantity > 0 && isLowStock ? (
-                  <Badge variant="outline">残りわずか</Badge>
-                ) : null}
-              </KeyValueValue>
-            </KeyValueItem>
-            <KeyValueItem>
-              <KeyValueLabel>公開日時</KeyValueLabel>
-              <KeyValueValue>
-                {product.publishedAt === null ? (
-                  <KeyValueEmpty>未公開</KeyValueEmpty>
-                ) : (
-                  formatDateTime(product.publishedAt)
-                )}
-              </KeyValueValue>
-            </KeyValueItem>
-          </KeyValueList>
-
-          <ActionBar
-            className="w-full print-hidden"
-            position={ACTION_BAR_POSITION.FIXED_WITHOUT_ASIDE}
-          >
-            <AddToCartButton productId={product.id} stockQuantity={product.quantity} />
-          </ActionBar>
+    return (
+      <article className="flex flex-col gap-8 pb-24 lg:pb-0">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Breadcrumb className="print-hidden">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">トップ</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href={PRODUCT_LIST_PATH}>商品一覧</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
+                <BreadcrumbPage className="max-w-40 truncate">{product.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <PrintButton />
         </div>
-      </div>
 
-      {product.description === null ? null : (
-        <section aria-labelledby={DESCRIPTION_HEADING_ID} className="flex flex-col gap-3">
-          <h2 className="text-lg font-emphasis" id={DESCRIPTION_HEADING_ID}>
-            商品説明
-          </h2>
-          <RichTextContent content={SanitizedRichText.from(product.description)} />
-        </section>
-      )}
-    </article>
-  );
-}
+        <div className="grid gap-8 lg:grid-cols-2">
+          <ProductGallery imageUrls={imageUrls} productName={product.name} />
+
+          <div className="flex flex-col items-start gap-6">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
+              <Badge className="whitespace-normal break-words" variant="secondary">
+                {product.category.name}
+              </Badge>
+              <Badge className="whitespace-normal break-words" variant="outline">
+                {product.status.name}
+              </Badge>
+            </div>
+
+            <h1 className="text-3xl font-emphasis tracking-tight">{product.name}</h1>
+
+            <p className="text-3xl font-emphasis">{`$${product.price}`}</p>
+
+            <KeyValueList className="w-full">
+              <KeyValueItem>
+                <KeyValueLabel>在庫</KeyValueLabel>
+                <KeyValueValue className="flex flex-wrap items-center gap-2">
+                  {`${product.quantity} 個`}
+                  {product.quantity === 0 ? <Badge variant="destructive">在庫なし</Badge> : null}
+                  {product.quantity > 0 && isLowStock ? (
+                    <Badge variant="outline">残りわずか</Badge>
+                  ) : null}
+                </KeyValueValue>
+              </KeyValueItem>
+              <KeyValueItem>
+                <KeyValueLabel>公開日時</KeyValueLabel>
+                <KeyValueValue>
+                  {product.publishedAt === null ? (
+                    <KeyValueEmpty>未公開</KeyValueEmpty>
+                  ) : (
+                    formatDateTime(product.publishedAt)
+                  )}
+                </KeyValueValue>
+              </KeyValueItem>
+            </KeyValueList>
+
+            <ActionBar
+              className="w-full print-hidden"
+              position={ACTION_BAR_POSITION.FIXED_WITHOUT_ASIDE}
+            >
+              <AddToCartButton productId={product.id} stockQuantity={product.quantity} />
+            </ActionBar>
+          </div>
+        </div>
+
+        {product.description === null ? null : (
+          <section aria-labelledby={DESCRIPTION_HEADING_ID} className="flex flex-col gap-3">
+            <h2 className="text-lg font-emphasis" id={DESCRIPTION_HEADING_ID}>
+              商品説明
+            </h2>
+            <RichTextContent content={SanitizedRichText.from(product.description)} />
+          </section>
+        )}
+      </article>
+    );
+  },
+);

@@ -5,9 +5,20 @@ const mocks = vi.hoisted(() => ({ createLogger: vi.fn() }));
 
 vi.mock("./pino.server", () => ({ createLogger: mocks.createLogger }));
 
+/**
+ * 前のケースが注入した logger を捨てる。
+ *
+ * @remarks
+ * 注入先は realm の registered symbol なので `vi.resetModules()` では消えません。
+ */
+function clearLogger(): void {
+  Reflect.deleteProperty(globalThis, Symbol.for("nextjs-boilerplate.logging.logger"));
+}
+
 describe("initializeLogger", () => {
   beforeEach(() => {
     vi.resetModules();
+    clearLogger();
     mocks.createLogger.mockReset();
   });
 
@@ -28,6 +39,7 @@ describe("initializeLogger", () => {
 describe("getLogger", () => {
   beforeEach(() => {
     vi.resetModules();
+    clearLogger();
     mocks.createLogger.mockReset();
   });
 

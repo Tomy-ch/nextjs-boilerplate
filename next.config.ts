@@ -61,6 +61,10 @@ const nextConfig = async (): Promise<NextConfig> => {
     // 使っているフレームワークと版を名乗らない。攻撃者が既知の脆弱性を引き当てる手間が減るだけで、
     // 名乗ることで得られるものが無い。
     poweredByHeader: false,
+    // `next dev` が `AGENTS.md` を生成し直さないようにする。この repo の `AGENTS.md` は
+    // `<!-- BEGIN:nextjs-agent-rules -->` の内側に自分の規約を持っており、生成が走ると
+    // その中身ごと置き換わる。差分として現れるので気付けはするが、気付くたびに戻す作りにしない。
+    agentRules: false,
     // `APP_ENV` が明示されていない build も開発ではない側へ倒す。判定は
     // `isDevelopmentOnlyEndpointOpen()` が持ち、実行時の判定と同じ 1 つの条件を見る。
     pageExtensions: isDevelopmentOnlyEndpointOpen()

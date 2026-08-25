@@ -3,6 +3,7 @@ import { readReferenceAmount } from "@/adapters/server/api/exchange-rates";
 import { getMyProfile } from "@/adapters/server/api/users";
 
 import { newIdempotencyKey } from "@/model/idempotency-key";
+import { withScreenSpan } from "@/observability/render-span";
 import { CheckoutConfirmView } from "./view";
 
 /**
@@ -22,15 +23,18 @@ import { CheckoutConfirmView } from "./view";
  * 失敗は route の `error` 境界が受けます（[0080](../../../../docs/adr/0080-error-handling.md)）。
  * 参考換算額だけは読めなくても投げません。
  */
-export async function CheckoutConfirmPageContent() {
-  const [cart, profile] = await Promise.all([getMyCart(), getMyProfile()]);
+export const CheckoutConfirmPageContent = withScreenSpan(
+  "features/checkout/confirm/page-content",
+  async () => {
+    const [cart, profile] = await Promise.all([getMyCart(), getMyProfile()]);
 
-  return (
-    <CheckoutConfirmView
-      cart={cart}
-      idempotencyKey={newIdempotencyKey()}
-      profile={profile}
-      reference={await readReferenceAmount(cart.subtotalAmount)}
-    />
-  );
-}
+    return (
+      <CheckoutConfirmView
+        cart={cart}
+        idempotencyKey={newIdempotencyKey()}
+        profile={profile}
+        reference={await readReferenceAmount(cart.subtotalAmount)}
+      />
+    );
+  },
+);

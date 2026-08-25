@@ -1,6 +1,7 @@
 import { AlertTriangleIcon } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
+import { withScreenSpan } from "@/observability/render-span";
 
 /**
  * 入力した情報がどこへ行くかの説明。
@@ -13,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/
  * 偽名を使うよう求める文を先頭の警告に置きます。3 通りの説明を読み終えてから書いても、
  * 既に入力した後です。
  */
-export function PrivacyView() {
+export const PrivacyView = withScreenSpan("features/site-info/privacy/view", () => {
   return (
     <div className="flex max-w-3xl flex-col gap-8 text-sm leading-relaxed">
       <Alert variant="destructive">
@@ -64,4 +65,4 @@ export function PrivacyView() {
       </section>
     </div>
   );
-}
+});
