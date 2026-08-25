@@ -100,7 +100,7 @@ Server Action です（下記）。
 APP_ENV=ci pnpm dev
 ```
 
-バックエンドを起動せずに済みます（`APP_API_MODE=mock`）。`/dev/session?returnUrl=/checkout` のように
+バックエンドを起動せずに済みます（`APP_API_MODE=mock`）。`/dev/session?returnUrl=<保護された画面>` のように
 戻り先を付けて開き、誰として・どの役割で入るかを決めて「この内容で入る」を押すと、その画面へ着地します。
 **Access Token は空欄で足ります** —— モックには Bearer を検証する先がありません。
 
