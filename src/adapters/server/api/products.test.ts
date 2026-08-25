@@ -22,7 +22,6 @@ import {
   getProductListPage,
   getProductRanking,
   getProducts,
-  PRODUCTS_TAG,
   parseProductQuery,
   toProduct,
   toProductPage,
@@ -326,13 +325,16 @@ describe("getProducts", () => {
     expect(requests[0]?.url).toBe(`${PRODUCTS_URL}?keyword=%E9%9E%84`);
   });
 
-  it("再検証のタグを付ける", async () => {
+  it("Data Cache へ入れず、印も付けない", async () => {
     serveJson(PRODUCTS_URL, wirePage);
     const fetchImpl = watchFetch();
 
     await getProducts({ keyword: "靴" });
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: [PRODUCTS_TAG] } });
+    const options = fetchImpl.mock.calls[0]?.[1];
+
+    expect(options).not.toHaveProperty("next.tags");
+    expect(options).not.toMatchObject({ cache: "force-cache" });
   });
 
   it("条件を省略しても取得できる", async () => {
@@ -442,13 +444,16 @@ describe("getProduct", () => {
     expect(requests[0]?.url).toBe(`${PRODUCTS_URL}/${wireProduct.id}`);
   });
 
-  it("再検証のタグを付ける", async () => {
+  it("Data Cache へ入れず、印も付けない", async () => {
     serveJson(PRODUCT_URL, wireProduct);
     const fetchImpl = watchFetch();
 
     await getProduct(toProductId(wireProduct.id));
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: [PRODUCTS_TAG] } });
+    const options = fetchImpl.mock.calls[0]?.[1];
+
+    expect(options).not.toHaveProperty("next.tags");
+    expect(options).not.toMatchObject({ cache: "force-cache" });
   });
 
   it("ID をパスへ載せる前に URL として安全な形へ変換する", async () => {
