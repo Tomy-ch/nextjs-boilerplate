@@ -1,3 +1,4 @@
+import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_OFF_RULES } from "../../vrt/lib/a11y-rules";
@@ -5,6 +6,7 @@ import {
   CONFORMANCE_TAGS,
   SCREEN_DISABLED_RULES,
   SCREEN_ONLY_RULES,
+  type ScreenDisabledRule,
   screenDisabledRuleIds,
 } from "./a11y-rules";
 
@@ -22,17 +24,37 @@ describe("SCREEN_ONLY_RULES", () => {
 
     expect(SCREEN_ONLY_RULES.filter((rule) => disabled.includes(rule))).toEqual([]);
   });
+
+  it("axe に実在するルールだけを挙げる", () => {
+    const known = new Set(axe.getRules().map((rule) => rule.ruleId));
+
+    expect(SCREEN_ONLY_RULES.filter((rule) => !known.has(rule))).toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("適合目標のタグでは走らないものだけを挙げる", () => {
+    // タグで走るものをここへ入れると、同じ違反が 2 度並ぶ。逆に、タグで走らないものをここから
+    // 落とすと、**有効にしたつもりで一度も評価されない**状態が黙って戻る。後者が実際に起きた。
+    const tags = new Set<string>(CONFORMANCE_TAGS);
+    const reachedByTags = axe
+      .getRules()
+      .filter((rule) => rule.tags.some((tag) => tags.has(tag)))
+      .map((rule) => rule.ruleId);
+
+    expect(SCREEN_ONLY_RULES.filter((rule) => reachedByTags.includes(rule))).toEqual([]);
+  });
 });
 
 describe("SCREEN_DISABLED_RULES", () => {
   // ----- 正常系 -----
   it("すべての宣言が理由と撤去条件と対象の画面を持つ", () => {
-    const incomplete = SCREEN_DISABLED_RULES.filter(
-      (rule) =>
-        rule.reason.trim() === "" || rule.removeWhen.trim() === "" || rule.screens.length === 0,
-    );
+    expect(incompleteIdsOf(SCREEN_DISABLED_RULES)).toEqual([]);
+  });
 
-    expect(incomplete.map((rule) => rule.id)).toEqual([]);
+  it("同じ画面で同じルールを二重に宣言していない", () => {
+    expect(screenRulePairsOf(SCREEN_DISABLED_RULES)).toEqual([
+      ...new Set(screenRulePairsOf(SCREEN_DISABLED_RULES)),
+    ]);
   });
 
   // ----- 異常系 -----
@@ -40,7 +62,43 @@ describe("SCREEN_DISABLED_RULES", () => {
     // 増やすときはこの数を更新する。更新が要ること自体が、無効化を足した事実を差分へ出す。
     expect(SCREEN_DISABLED_RULES.flatMap((rule) => rule.screens)).toHaveLength(0);
   });
+
+  it("理由・撤去条件・対象の画面が欠けた宣言を見つけられる", () => {
+    // 宣言が空の間、上の 2 つは中身を見ずに通る。**述語そのものが働くこと**をここで確かめる。
+    expect(
+      incompleteIdsOf([
+        { id: "reason", reason: " ", removeWhen: "条件", screens: ["a"] },
+        { id: "when", reason: "理由", removeWhen: " ", screens: ["a"] },
+        { id: "screens", reason: "理由", removeWhen: "条件", screens: [] },
+        { id: "ok", reason: "理由", removeWhen: "条件", screens: ["a"] },
+      ]),
+    ).toEqual(["reason", "when", "screens"]);
+  });
+
+  it("同じ画面へ同じルールを二重に宣言したことを見つけられる", () => {
+    const pairs = screenRulePairsOf([
+      { id: "region", reason: "理由", removeWhen: "条件", screens: ["a", "b"] },
+      { id: "region", reason: "理由", removeWhen: "条件", screens: ["a"] },
+    ]);
+
+    expect(pairs).not.toEqual([...new Set(pairs)]);
+  });
 });
+
+/** 理由・撤去条件・対象の画面のどれかが欠けている宣言の id。 */
+function incompleteIdsOf(rules: readonly ScreenDisabledRule[]): string[] {
+  return rules
+    .filter(
+      (rule) =>
+        rule.reason.trim() === "" || rule.removeWhen.trim() === "" || rule.screens.length === 0,
+    )
+    .map((rule) => rule.id);
+}
+
+/** 画面とルールの組。二重宣言はここで重複として現れる。 */
+function screenRulePairsOf(rules: readonly ScreenDisabledRule[]): string[] {
+  return rules.flatMap((rule) => rule.screens.map((screen) => `${screen}:${rule.id}`));
+}
 
 describe("screenDisabledRuleIds", () => {
   // ----- 正常系 -----
