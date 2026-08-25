@@ -21,7 +21,8 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 - `initialize.server.ts` は Node.js runtime の `NodeSDK` をプロセスごとに一度だけ初期化する。resource には公式 semantic convention の `service.name` を設定し、W3C Trace Context と W3C Baggage を伝播する。HTTP instrumentation は受信 HTTP request の trace を作り、Undici instrumentation は許可された API origin への server-side `fetch` へ trace context を注入する。伝播が働くのは signal のいずれかが有効で SDK が構築されたときだけである。Undici の外向き span からは `url.query` を落とし、`url.full` も query の無い形にする。
 - `trace-context.ts` は現在の有効な span から trace ID と span ID を抽出する。logging にはこの関数を起動境界で注入する。
-- `render-span.ts` は描画を span にする。載せる範囲は起動境界から注入で受ける。対象と読み方は下記「描画の計装」が持つ。
+- `render-span.ts` は描画を span にする。**feature が import する面であり、OTel を import しない。**載せる範囲も包む実装も起動境界から注入で受ける。対象と読み方は下記「描画の計装」が持つ。
+- `render-span-runner.server.ts` は span で包む実装。`@opentelemetry/api` を使うのはこちらで、起動境界が `render-span.ts` へ注入する。
 - `otlp-log-sink.server.ts` は logging が渡す正規化済みレコードを OTel Logs API へ変換する。OTLP 属性へ変換できない値は送出しない。
 
 ## 描画の計装
@@ -32,7 +33,9 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 ### 載せる範囲
 
-範囲は `configureRenderSpans({ screens, parts })` で**起動境界から注入する**。既定はどちらも無効で、注入を受けない実行（テスト・Storybook）では span を作らない。
+範囲と実装は `configureRenderSpans({ screens, parts, run })` で**起動境界から注入する**。注入を受けない実行（テスト・Storybook・ブラウザ）では span を作らない。
+
+**実装を注入で渡すのは、feature 向けの面に OTel を持ち込まないためである。** `render-span.ts` は feature が import するのでブラウザのバンドルにも入る。`@opentelemetry/api` を連れて行くと、Vite が取り込む CJS ビルドがブラウザに無い `__dirname` を参照し、**モジュール評価の時点で落ちる** —— その面を import した story は 1 つも描けなくなる。
 
 **SDK の有無を無効化の代わりに使えない。** `OBS_TRACES_EXPORTER=none` にしても、logs か metrics が有効なら `NodeSDK` は tracer provider を立てるため、span は記録されたうえで捨てられる —— 成果物だけがゼロになり、計装のコストは残る。だから範囲を独立した軸として持つ。
 

@@ -1,19 +1,34 @@
-import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
-import { unstable_rethrow } from "next/navigation";
 import type { ReactNode } from "react";
 
-const tracer = trace.getTracer("render");
+/** コンポーネントが返しうるもの。 */
+type RenderResult = ReactNode | Promise<ReactNode>;
 
-/** 起動境界が注入する、描画を span に載せる範囲です。 */
+/**
+ * 描画を span で包む実装。
+ *
+ * @remarks
+ * **実装をここへ静的に import しません。** このモジュールは feature が import するため、ブラウザ
+ * （Storybook・client component）のバンドルにも入ります。`@opentelemetry/api` を連れて行くと、
+ * Vite が取り込む CJS ビルドがブラウザに無い `__dirname` を参照し、モジュール評価の時点で落ちます。
+ * 実装は起動境界から注入し、注入の無い実行では計装そのものが動きません。
+ */
+export type RenderSpanRunner = <Result extends RenderResult>(
+  name: string,
+  render: () => Result,
+) => Result;
+
+/** 起動境界が注入する、描画を span に載せる範囲と実装です。 */
 type RenderSpanConfiguration = Readonly<{
   /** 画面の最上位（`page-content` / `view`）を載せるか。 */
   screens: boolean;
   /** feature が持つ部品（`ui/`）まで載せるか。 */
   parts: boolean;
+  /** 描画を span で包む実装。 */
+  run: RenderSpanRunner;
 }>;
 
 /**
- * 注入された範囲を置く場所。
+ * 注入された構成を置く場所。
  *
  * @remarks
  * **モジュール変数では届きません。** Next は起動境界と RSC を別のモジュールグラフとして組むため、
@@ -23,37 +38,9 @@ type RenderSpanConfiguration = Readonly<{
  */
 const CONFIGURATION_KEY = Symbol.for("nextjs-boilerplate.observability.render-spans");
 
-/**
- * 注入を受けていないときの範囲。
- *
- * @remarks
- * **どちらも無効にします。** 起動境界を通らない実行（テスト・Storybook）で計装を働かせないため
- * です。SDK の有無には頼れません —— trace exporter を切っても、他の signal が有効なら `NodeSDK` は
- * tracer provider を立て、span は記録されたうえで捨てられます。
- */
-const DISABLED: RenderSpanConfiguration = { screens: false, parts: false };
-
-/** 描画を span に載せる範囲を起動境界から注入する。 */
+/** 描画を span に載せる範囲と実装を、起動境界から注入する。 */
 export function configureRenderSpans(next: RenderSpanConfiguration): void {
   Reflect.set(globalThis, CONFIGURATION_KEY, next);
-}
-
-/** 注入された範囲を読む。別のモジュールインスタンスが書いた値なので、形を確かめてから使う。 */
-function readConfiguration(): RenderSpanConfiguration {
-  const value: unknown = Reflect.get(globalThis, CONFIGURATION_KEY);
-
-  return isConfiguration(value) ? value : DISABLED;
-}
-
-function isConfiguration(value: unknown): value is RenderSpanConfiguration {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "screens" in value &&
-    typeof value.screens === "boolean" &&
-    "parts" in value &&
-    typeof value.parts === "boolean"
-  );
 }
 
 /**
@@ -66,12 +53,17 @@ function isConfiguration(value: unknown): value is RenderSpanConfiguration {
  * @param name - span 名に載せる `src/` からのモジュールパス。利用者の入力を混ぜてはいけません
  *   （span 名の redaction は [0081](../../docs/adr/0081-observability-logging.md)）。
  */
-export function withScreenSpan<
-  Args extends readonly unknown[],
-  Result extends ReactNode | Promise<ReactNode>,
->(name: string, render: (...args: Args) => Result): (...args: Args) => Result {
-  return (...args: Args): Result =>
-    readConfiguration().screens ? runInSpan(name, render, args) : render(...args);
+export function withScreenSpan<Args extends readonly unknown[], Result extends RenderResult>(
+  name: string,
+  render: (...args: Args) => Result,
+): (...args: Args) => Result {
+  return (...args: Args): Result => {
+    const configuration = findConfiguration();
+
+    return configuration?.screens === true
+      ? configuration.run(name, () => render(...args))
+      : render(...args);
+  };
 }
 
 /**
@@ -83,77 +75,35 @@ export function withScreenSpan<
  *
  * @param name - {@link withScreenSpan} と同じ。
  */
-export function withPartSpan<
-  Args extends readonly unknown[],
-  Result extends ReactNode | Promise<ReactNode>,
->(name: string, render: (...args: Args) => Result): (...args: Args) => Result {
-  return (...args: Args): Result =>
-    readConfiguration().parts ? runInSpan(name, render, args) : render(...args);
-}
-
-/**
- * 描画を span の中で実行する。
- *
- * @remarks
- * span が覆うのはこの実行だけです。子は戻り値を React が受け取った後に描画されるため中に入らず、
- * 本体で待つ取得だけが中に入ります。
- */
-function runInSpan<Args extends readonly unknown[], Result extends ReactNode | Promise<ReactNode>>(
+export function withPartSpan<Args extends readonly unknown[], Result extends RenderResult>(
   name: string,
   render: (...args: Args) => Result,
-  args: Args,
-): Result {
-  return tracer.startActiveSpan(`render ${name}`, (span): Result => {
-    try {
-      const result = render(...args);
+): (...args: Args) => Result {
+  return (...args: Args): Result => {
+    const configuration = findConfiguration();
 
-      if (result instanceof Promise) {
-        // 派生した promise ではなく元を返す。React が待つ対象を差し替えない。
-        result.then(
-          () => span.end(),
-          (error: unknown) => endWithFailure(span, error),
-        );
-
-        return result;
-      }
-
-      span.end();
-
-      return result;
-    } catch (error) {
-      endWithFailure(span, error);
-
-      throw error;
-    }
-  });
+    return configuration?.parts === true
+      ? configuration.run(name, () => render(...args))
+      : render(...args);
+  };
 }
 
-/** 失敗として span を閉じる。ただし Next が制御に使う throw は失敗として記録しない。 */
-function endWithFailure(span: Span, error: unknown): void {
-  if (!isNavigationSignal(error)) {
-    span.setStatus({ code: SpanStatusCode.ERROR });
+/** 注入された構成を読む。別のモジュールインスタンスが書いた値なので、形を確かめてから使う。 */
+function findConfiguration(): RenderSpanConfiguration | undefined {
+  const value: unknown = Reflect.get(globalThis, CONFIGURATION_KEY);
 
-    if (error instanceof Error) {
-      span.recordException(error);
-    }
-  }
-
-  span.end();
+  return isConfiguration(value) ? value : undefined;
 }
 
-/**
- * Next が制御に使う throw（`notFound` / `redirect` など）か。
- *
- * @remarks
- * 判定を digest の中身から読み取らず `unstable_rethrow` に委ねます。対象は framework の内部表現で、
- * 版が変われば形も変わります。
- */
-function isNavigationSignal(error: unknown): boolean {
-  try {
-    unstable_rethrow(error);
-
-    return false;
-  } catch {
-    return true;
-  }
+function isConfiguration(value: unknown): value is RenderSpanConfiguration {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "screens" in value &&
+    typeof value.screens === "boolean" &&
+    "parts" in value &&
+    typeof value.parts === "boolean" &&
+    "run" in value &&
+    typeof value.run === "function"
+  );
 }

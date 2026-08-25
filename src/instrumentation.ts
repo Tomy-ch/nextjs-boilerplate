@@ -12,6 +12,7 @@ export async function register(): Promise<void> {
       { LogLevel },
       { initializeObservability },
       { configureRenderSpans },
+      { runRenderSpan },
       { createOtlpLogSink },
       { extractActiveTraceContext },
     ] = await Promise.all([
@@ -21,6 +22,7 @@ export async function register(): Promise<void> {
       import("./logging/logger"),
       import("./observability/initialize.server"),
       import("./observability/render-span"),
+      import("./observability/render-span-runner.server"),
       import("./observability/otlp-log-sink.server"),
       import("./observability/trace-context"),
     ]);
@@ -53,6 +55,7 @@ export async function register(): Promise<void> {
     configureRenderSpans({
       screens: config.tracesEnabled && config.renderScreenSpansEnabled,
       parts: config.tracesEnabled && config.renderPartSpansEnabled,
+      run: runRenderSpan,
     });
     initializeLogger({
       level: LogLevel.INFO,

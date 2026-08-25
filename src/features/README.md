@@ -39,7 +39,7 @@ export const XxxPageContent = withScreenSpan(
 仕組みと span の読み方は [observability/README.md](../observability/README.md) が持つ。
 
 - **名前は `src/` からのモジュールパスと一致させる。** span 名がそのまま置き場を指すので、ずれると trace からファイルへ戻れない。利用者の入力を混ぜない
-- **client component（`"use client"` を持つファイル）は包まない。** ブラウザでの描画では span を作らない一方で、`@opentelemetry/api` がその画面のクライアントバンドルへ入る（[0101](../../docs/adr/0101-performance-budget.md)）。**範囲を無効にしても入る** —— import の辺が残るためで、払った分は返らない
+- **client component（`"use client"` を持つファイル）は包まない。** ブラウザでの描画では span を作らないため、包んでも得られるのは server 描画の 1 回分だけである
 - **取得を持つ側を包むと帰属が付く。** `page-content` が待つ通信はその span の中に入るので、外向きの `fetch` を画面へ結び付けられる
 - **部品は常用しない。** `part` を開けると 1 描画の span が描く部品の数だけ増える。値打ちが出るのは、分岐した結果——どの姿を返したか——を trace から読みたいときである
 
