@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features]
 test-requirement: feature
 ---
@@ -22,6 +22,27 @@ IdP を通さずに session を発行し、保護された画面へ入るため�
 - 実在の IdP との往復（この画面はそれを通らないための画面です）
 - 対応づける値が正しいかの判定（突き合わせるのは `/api/auth/callback` が復元する一時状態です）
 
+## Route と契約
+
+| Route | 仕様書 | 認証 |
+| --- | --- | --- |
+| `/dev/session` | [`screen`](../../../docs/spec/route/dev/session/page.screen.md) / [`function`](../../../docs/spec/route/dev/session/page.function.md) | 不要（開ける環境の判定が代わりに掛かる） |
+
+`/dev/session/authorize` は同じ画面が送信先に選ぶ Route Handler で、画面ではありません。
+
+**operationId は使いません。** バックエンドの契約を一切引かない画面です。トークンを取りに行く
+経路も IdP 側の口で、`openapi/api.gen.yaml` には現れません。
+
+## 状態とデザイン参照
+
+| 画面 | 状態 | story |
+| --- | --- | --- |
+| 開発用 session | session を持っていない | `Page/DevSession/WithoutSession` |
+| | session を持っている | `Page/DevSession/WithSession` |
+
+loading / empty / error の 3 つは持ちません。**取得が無いためです** —— 画面が読むのは cookie から
+復元した現在の session だけで、失敗は操作の戻り値として `form-state.ts` の型に載ります。
+
 ## 構成
 
 | ファイル | 役割 |
@@ -38,6 +59,37 @@ IdP を通さずに session を発行し、保護された画面へ入るため�
 > トークンを IdP から取る手順は、この画面ではなく
 > [`adapters/server/auth/development-token.ts`](../../adapters/server/auth/development-token.ts) が持ちます。
 
+## 依存カーネル
+
+| カーネル | 用途 |
+| --- | --- |
+| `model` | 発行の指定と戻り値の型（`action-state` / `session`）、URL の値の読み |
+| `components` | 入力の面を組む器（入力欄・切り替え・カード） |
+| `observability` | 描画を span に載せる |
+
+**`adapters` を引きません。** session の封緘へ触れてよいのは app 層だけで、この画面が呼ぶのは
+Server Action です（下記）。
+
+## Action 戻り値契約
+
+**置き場は feature の下ではなく app 層です。** 理由は「設計上の判断」の 1 つめ。
+
+| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| --- | --- | --- | --- | --- |
+| `issueDevSessionAction` | `src/app/dev/session/actions.ts` | `DevSessionFormState` | session を置き、戻り先へ `redirect` | 項目ごとの理由を画面に残す |
+| `discardDevSessionAction` | 同上 | `DiscardSessionFormState` | cookie を落として同じ画面へ戻す | 分類だけを返す |
+
+認可の往復の途中で開かれたときは、送信先が `/dev/session/authorize`（Route Handler）に替わり、
+上の Action は通りません。**その経路の失敗は分類だけを URL で戻します** —— 素の送信は状態を
+持ち越せないためです。
+
+## テスト観点
+
+- [ ] 開ける環境の判定が、画面と Server Action の両方に掛かる
+- [ ] 認可の往復の途中では session をここで置かず、認可コードを callback へ渡す
+- [ ] 貼った Access Token を読み返す欄が無い
+- [ ] IdP が応えなかった段（立っていない / 宛先違い）で文面が分かれる
+
 ## 使い方
 
 **この画面は開発と CI の手元の宛先でだけ開きます。** production build には route ごと入りません。
@@ -48,7 +100,7 @@ IdP を通さずに session を発行し、保護された画面へ入るため�
 APP_ENV=ci pnpm dev
 ```
 
-バックエンドを起動せずに済みます（`APP_API_MODE=mock`）。`/dev/session?returnUrl=/checkout` のように
+バックエンドを起動せずに済みます（`APP_API_MODE=mock`）。`/dev/session?returnUrl=<保護された画面>` のように
 戻り先を付けて開き、誰として・どの役割で入るかを決めて「この内容で入る」を押すと、その画面へ着地します。
 **Access Token は空欄で足ります** —— モックには Bearer を検証する先がありません。
 

@@ -352,11 +352,11 @@ Go 側の本丸は **spec 駆動 scaffold + 層別監査体系**。今移植す�
 | --- | --- | --- | --- | --- |
 | GB-1 層別アーキ監査 | `arch-check` + `arch-auditor-{domain,usecase,controller,infra,pkg}` | A1 / A3 / A5 | A3 Accepted + 層別 README が `src/**` に整備 | 層マッピングを差し替えるのみ。並列 fan-out + 「自層 README を正として実行時読込」構造は流用可。full-verify Pass1 との分担を明記 |
 | GB-2 層別ドリフト検出 | `back-prop` + `drift-detector-{domain,usecase,controller,infra,pkg}` | A3 / A5 | GB-1 と同時期 | 検出カテゴリ A/B/C と read-only 原則は流用可。`sync-readme`(構造ドリフト)との分担を明記 |
-| GB-3 spec 生成・検証 | `new-spec` / `new-spec-{domain,usecase}`、`verify-spec` + `spec-validator-{domain,usecase}`、`.claude/scaffold-spec/*`(5) | A1 / A3 | **採否判断は Phase 5 の画面実装後**(v1 計画 P5-18)。採用と決まった場合のみ移植 | 「spec フォーマットを外部ファイルから実行時読込 = SSOT」設計は言語非依存で採用可。**不採用なら破棄**。**spec の置き場と 2 層構造は P5-5 で確定済み**(`docs/spec/route/**`。機能要件 / 画面要件の 2 層で、go の domain / usecase とは分け方が異なる)。残る判断は生成 scaffold の採否だけ |
+| GB-3 spec 生成・検証 | `new-spec` / `new-spec-{domain,usecase}`、`verify-spec` + `spec-validator-{domain,usecase}`、`.claude/scaffold-spec/*`(5) | A1 / A3 | **採用**(v1 計画 P5-18)。**ただし具体的な How は v1 を切る直前の最終品質チェックで確定する** | **spec の置き場と 2 層構造は P5-5 で確定済み**(`docs/spec/route/**`。機能要件 / 画面要件の 2 層で、go の domain / usecase とは分け方が異なる)。**未確定なのは 3 つ** —— 生成 scaffold を持つか(持つなら P4-6 の生成入力の扱い)/ 輸入資産のどれを翻案しどれを破棄するか / spec を先に書くことを手順として強制するか。3 つ目が未確定なのは「先に書くほうが速いか」を測れる未実装の画面が残っていないためである。「spec フォーマットを外部ファイルから実行時読込 = SSOT」設計は言語非依存で、採るならここが軸になる |
 | GB-4 onion scaffold | `scaffold-endpoint` / `scaffold-domain` / `scaffold-usecase` / `scaffold-controller` | A1 / A2 / A3 / A5(+B3 / B4) | A1/A3/A5 + B3(BFF/API)+ B4(型生成)確定後 | Go の onion + sqlc/OpenAPI 前提はほぼ載らない(表示層に DB 無し)。流用は chain 構造と「gen 由来マッピングを name-match 導出 → 不能なら halt/hand-off」の骨格のみ。**翻案コスト最大** |
 | GB-5 テスト scaffold/review | **移植済(3 資産すべて)** — `scaffold-test` / `scaffold-integration-test` / `test-review` | B8 | 完了(P4-0) | 「テスト観点を README から実行時導出」+ 2 段レビュー構造は流用可。`test-review` は既移植ワーカーを再利用。full-apply/node-upgrade/repo-ops の `pnpm test` 条件分岐も併せて見直す |
 | GB-7 型設計レビュー | agent: `type-design-reviewer` | A3 | A3 Accepted + `src/model/` の型設計規約(層別 README + `docs/rules.md`)確定 | 4 軸ルーブリックは言語非依存。Go の非公開フィールド + getter / `New()` 不変条件検査を TypeScript の型表現へ読み替えるのみ。`arch-auditor` 系の二値判定では拾えない「規約は満たすが弱い型」を程度で拾う |
 
 **分類合計**: スキル = 移植済 17 + 対象外 2 + 未着手 4 + 保留(C) 12 = **35**。エージェント = 移植済 6 + 保留(C) 13 = **19**。
 
-**推奨着手順序**(BACKLOG 依存順): A1 決定 → GB-3 採否確定 →(採用なら)GB-4 翻案 / A3・A5 決定(層別 README 整備)→ GB-1・GB-2・GB-7 / B8 決定 → GB-5。各グループ着手時は該当枠が Accepted であることと Instruction Priority(ADR > BACKLOG > agent config)を再確認する。
+**推奨着手順序**(BACKLOG 依存順): A1 決定 → GB-3 の How 確定(v1 直前)→ GB-4 翻案 / A3・A5 決定(層別 README 整備)→ GB-1・GB-2・GB-7 / B8 決定 → GB-5。各グループ着手時は該当枠が Accepted であることと Instruction Priority(ADR > BACKLOG > agent config)を再確認する。

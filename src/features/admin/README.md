@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features] # 画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
 ---
@@ -23,6 +23,66 @@ test-requirement: feature
 - 汎用に使える表示（`StaticDataTable` / `Badge` / `CursorPagination` などは `components` から取る）
 - 認可の判定そのもの（役割の宣言は `model/authz`、確定認可は route の layout が持つ）
 
+## Route と契約
+
+**認証はすべて「役割: admin」**です。二段で守る仕組みは「認可」に書いてあります。外枠の約束は
+[`admin` の layout](../../../docs/spec/route/admin/layout.function.md) が持ちます。
+
+| Route | 仕様書 |
+| --- | --- |
+| `/admin` | [`screen`](../../../docs/spec/route/admin/page.screen.md) / [`function`](../../../docs/spec/route/admin/page.function.md) |
+| `/admin/analytics` | [`screen`](../../../docs/spec/route/admin/analytics/page.screen.md) / [`function`](../../../docs/spec/route/admin/analytics/page.function.md) |
+| `/admin/products` | [`screen`](../../../docs/spec/route/admin/products/page.screen.md) / [`function`](../../../docs/spec/route/admin/products/page.function.md) |
+| `/admin/products/new` | [`screen`](../../../docs/spec/route/admin/products/new/page.screen.md) / [`function`](../../../docs/spec/route/admin/products/new/page.function.md) |
+| `/admin/products/[id]/edit` | [`screen`](<../../../docs/spec/route/admin/products/[id]/edit/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/products/[id]/edit/page.function.md>) |
+| `/admin/products/[id]/stock` | [`screen`](<../../../docs/spec/route/admin/products/[id]/stock/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/products/[id]/stock/page.function.md>) |
+| `/admin/shipments` | [`screen`](../../../docs/spec/route/admin/shipments/page.screen.md) / [`function`](../../../docs/spec/route/admin/shipments/page.function.md) |
+| `/admin/users` | [`screen`](../../../docs/spec/route/admin/users/page.screen.md) / [`function`](../../../docs/spec/route/admin/users/page.function.md) |
+
+**`/admin/shipments` の契約・状態・Action は [shipments/README.md](shipments/README.md) が持ちます。**
+route の地図はここが持ちますが、その画面の中身は自分の README を持つ側の担当です。以下の表に
+発送の行が無いのはそのためです。
+
+この slice の画面が通す operationId。**変更する側はこの feature が呼びません** —— Server Action が
+app 層にあるためで、理由は「Action 戻り値契約」に書いてあります。
+
+| operationId | 用途 | 呼ぶ側 |
+| --- | --- | --- |
+| `GetDashboardSummary` | 入口と集計の数値 | feature |
+| `GetProductsRankingQuantity` | 売れ筋の表 | feature |
+| `GetProducts` | 商品の一覧 | feature |
+| `GetProductsDetail` | 編集・在庫補充が読む 1 件 | feature |
+| `GetProductCategories` / `GetProductStatuses` | 絞り込みとフォームの候補 | feature |
+| `GetUsers` | 利用者の一覧 | feature |
+| `PostProductsImages` | 画像の送信 | app 層の Action |
+| `PostProducts` / `PatchProductsDetail` | 商品の作成・編集 | app 層の Action |
+| `PatchProductsStock` | 在庫の増減 | app 層の Action |
+| `DeleteUsersDetail` | 利用者の退会 | app 層の Action |
+
+## 状態とデザイン参照
+
+| 画面 | 状態 | story |
+| --- | --- | --- |
+| 入口 | success | `Page/Admin/Dashboard/Default` |
+| | empty（購入が無い） | `Page/Admin/Dashboard/NoPurchases` |
+| 集計 | 期間が決まっていない | `Page/Admin/Analytics/SummaryPending` |
+| | 期間を選んだ | `Page/Admin/Analytics/RangeSelected` |
+| | 両端が逆 | `Page/Admin/Analytics/RangeReversed` |
+| | 売れ筋が空 | `Page/Admin/Analytics/NoRanking` |
+| 商品一覧 | success | `Page/Admin/Products/List/Default` |
+| | empty | `Page/Admin/Products/List/Empty` |
+| | 絞り込み・検索・ページ送り | `Page/Admin/Products/List/{MultipleFiltered,Searched,MiddlePage,LastPage}` |
+| 商品作成 | 入力・確認・拒否 | `Page/Admin/Products/Create/{Default,Confirm,Rejected}` |
+| 商品編集 | 拒否 / 版の食い違い | `Page/Admin/Products/Edit/{Rejected,Conflicted}` |
+| 在庫補充 | 補充 / 引き落とし / 在庫切れ | `Page/Admin/Products/Stock/{Replenishing,Deducting,OutOfStock}` |
+| | 量が読めない / 版の食い違い / 取り直せない | `Page/Admin/Products/Stock/{RejectedQuantity,Conflicted,Unavailable}` |
+| 利用者 | success / empty | `Page/Admin/Users/{Default,Empty}` |
+| | 退会の確認・成立・競合 | `Page/Admin/Users/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
+
+**loading と error に story がありません。**待機表示（`ui/skeleton/` と各画面の `ui/skeleton/`）と
+失敗表示（`ui/error-state/`）は実装がありますが story を持たないため、VRT の対象外です。この 2 つの
+見た目は E2E の画面比較にも現れません（どちらも取得が成立した後の画面を撮るため）。
+
 ## 構成
 
 画面ごとに掘り、その中を性質で分けます（[0027](../../../docs/adr/0027-directory-structure.md)）。
@@ -35,6 +95,7 @@ test-requirement: feature
 | --- | --- |
 | `paths.ts` | 管理画面のパス。画面どうしの導線と、利用者向けの器からの入口が引く |
 | `analytics/period.ts` | 集計の URL 契約（期間の区分と両端の日付）とキーの呼び名。指定が成立しているかの判断も持つ |
+| `analytics/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md) #76） |
 | `analytics/period-window.ts` | 選ばれた期間が対象にしている暦日。契約が返さないので同じ規則を辿る |
 | `count.ts` | 件数の locale 対応整形。2 つ目の feature が要る段で `model` へ上げる |
 | `summary-cards.ts` | 合成済みの集計を数値カードの並びへ写す。母集団の断りを値に添える |
@@ -58,12 +119,12 @@ test-requirement: feature
 | `products/product-rules.ts` | 入力 1 項目の判定と文言。送る側と受ける側の両方が通る |
 | `products/form-state.ts` | 商品のフォームの結果の型と、送信先の型。版の食い違いの文言もここが持つ |
 | `products/parse-product-form.ts` | 送られてきた内容の読み取り。入力欄の名前もここだけが持つ |
-| `products/validation-errors.ts` | 項目ごとの誤りを要約の形へ写し、誤りを含む最初の段を返す |
+| `products/form-sections.ts` | フォームが持つ段とその並び。確認は作る画面にしかないので含めない |
 | `products/master-option.ts` | マスタをフォームで選べる候補へ直す。送る値は識別子 |
 | `products/use-product-values.ts` | 入力の値・触れた印・段ごとの妥当性 |
 | `products/use-product-images.ts` | 選んだ画像の一覧と、送信・並び替え |
 | `products/use-image-rejection.ts` | 送る前に弾かれたファイルの文言 |
-| `products/use-unsaved-changes.ts` | 書きかけがあることを器へ申告する |
+| `products/use-action-result-freshness.ts` | 直前の送信の結果を、いま出してよいか |
 | `products/use-product-form.ts` | 作成と編集が共有する状態の組み立て。送信の結果の鮮度も持つ |
 | `products/form-names.ts` | 入力欄の `name`。送る側と読む側が同じ綴りを見る |
 | `products/validation-summary.ts` | 項目ごとの誤りを、要約が並べる形へ写す |
@@ -116,6 +177,7 @@ test-requirement: feature
 | `users/ui/submit-button/` | 退会の送信。`useFormStatus` を読むため form の子で切り出す |
 | `users/ui/skeleton/` | 表の待機表示 |
 | `ui/error-state/` | 取得に失敗したときの表示。`/admin` の error 境界が使う。境界は 1 枚なので画面を名指ししない |
+| `shipments/` | 発送の画面。**自分の README を持つ**（[README](shipments/README.md)） |
 
 **`feature` の宣言が掛かるのは、画面の単位で組み上げたものです**。`page-content.tsx` / `view.tsx` /
 `*-section.tsx` が対象で、部品が揃って初めて成立する振る舞いを負います
@@ -124,6 +186,47 @@ test-requirement: feature
 a11y の自動検査——で、**画面を跨ぐ純関数（`count.ts` / `summary-cards.ts` / `paths.ts` /
 `analytics/period.ts` など）は `unit` の形**——描画を持たず、戻り値と分岐を直接照合する——で
 確かめます。合成を持たないものへ合成のテストを課しても、確かめる相手が無いためです。
+
+## 依存カーネル
+
+| カーネル | 用途 |
+| --- | --- |
+| `adapters` | 集計・商品・購入・利用者の取得と、画像 URL の解決 |
+| `model` | 表示モデル（`Product` / `Purchase` / `Dashboard`）、ページ送り、期間、`ActionState` |
+| `components` | 面を組む器（表・ページ送り・ファイル送信・離脱の警告・入力の要約） |
+| `errors` | 取得と送信の失敗を、画面が出す文言へ写す |
+| `observability` | 描画を span に載せる |
+
+**他 feature の `facade/` を引きません。**利用者向けの slice と同じ対象を扱っても部品を共有しない、
+という冒頭の線引きがそのまま依存にも出ています。
+
+## Action 戻り値契約
+
+**この slice の Server Action は feature の下ではなく app 層にあります。**
+
+| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| --- | --- | --- | --- | --- |
+| `uploadProductImageAction` | `src/app/admin/products/actions.ts` | `ProductImageUploadState` | 送信済みの鍵を返す | 弾かれた理由を選んだ面に出す |
+| `createProductAction` | 同上 | `ProductFormState` | 一覧へ `redirect` | 項目ごとの誤りを段へ戻す |
+| `updateProductAction` | 同上 | `ProductFormState` | 同上 | 同上。版の食い違いは言い分ける |
+| `adjustProductStockAction` | 同上 | `StockFormState` | 同上 | 同上 |
+| `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **一覧は取り直させない** | 競合は言い分け、確認が閉じても残る場所に出す |
+
+**退会だけ一覧を取り直させません。**後始末が結果整合で続くため、直後に取り直しても反映前の
+一覧を見せるだけになります。何が起きたかは送信の結果が伝えます。
+
+画面は Action を props で受け取るだけです。**`route` の器が Action を持つ形にしてあるのは、
+`page.tsx` と同じ段に置いた `actions.ts` が route の入口と 1 対 1 に対応するため**で、判定と
+組み立ては feature 側（`products/parse-product-form.ts` など）が持ちます。
+
+## テスト観点
+
+- [ ] 役割を持たない主体に、管理の面への導線が出ない
+- [ ] 写せなかった条件が捨てられず、一覧の代わりにそのことが出る
+- [ ] 版の食い違い（409）が、ほかの失敗と言い分けられる
+- [ ] 退会済みの行に操作が出ない
+
+層の割り当て（`feature` / `component` / `unit`）は「構成」の末尾にあります。
 
 ## 認可
 
@@ -149,10 +252,14 @@ URL から読んだ条件は、**取得の口が持つ検証**（`adapters/serve
 取得の失敗は `src/app/admin/error.tsx` が受けます。ここが無いと `global-error` まで抜け、脇の導線も
 header も失われた素の画面になります（[0080](../../../docs/adr/0080-error-handling.md)）。
 
-## 現契約でできないこと
+## 契約との関係で気を付けること
 
-`GET /v1/products` は**公開済みの商品だけ**を返します。未公開を含む管理一覧はバックエンドの契約
-追加を要します。
+**未公開の商品を並べるのは `includeUnpublished` の指定です。** admin だけが `true` を通せ、未認証は
+401、役割が足りなければ 403 になります。**母集団が変わると並び順の軸も変わる**ため、ページ送りの
+鍵は同じ指定の中でだけ使えます（`products/list/results.tsx`）。
 
 商品の「状態」は在庫・販売の状態（在庫あり・在庫切れ・廃盤など）で、**公開の可否とは別の軸**です。
-状態での絞り込みは現契約でそのまま効きます。
+公開の可否は `publishedAt` が持ち、状態マスタでの絞り込みが効くかどうかとは関係しません。
+
+**在庫僅少の一覧（`GetProductsLowStock`）は契約にありますが、この slice は使っていません。**入口の
+数値カードとは独立した後続の機能です。

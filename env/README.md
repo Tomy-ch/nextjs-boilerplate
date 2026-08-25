@@ -46,8 +46,8 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
 | `AUTH_MODE` | 認可の開始先 | `idp` / `dev` | `idp` | Code default `idp`。`dev` は IdP を立てずに `/dev/session` から session を発行させる。開発専用の口が開く環境（`local` / `ci`）でしか効かない |
-| `AUTH_ISSUER` | OIDC issuer と Discovery の起点 | URL | `http://localhost:2010/default` | Required。local は go-boilerplate の開発用 IdP |
-| `AUTH_CLIENT_ID` | Authorization Code + PKCE の public client ID | string | `go-boilerplate-client` | Required。client secret は不要 |
+| `AUTH_ISSUER` | OIDC issuer と Discovery の起点 | URL | `https://idp.example.com/realms/main` | Required。**同梱の `local` / `ci` が指すのはサンプルの開発用 IdP**で、fork は最初に自分の IdP へ差し替える |
+| `AUTH_CLIENT_ID` | Authorization Code + PKCE の public client ID | string | `<IdP が発行した public client ID>` | Required。client secret は不要。同梱の値はサンプルの IdP に登録されたものなので、そのままでは通らない |
 | `AUTH_REDIRECT_URI` | OIDC callback URL | URL | `http://localhost:3000/api/auth/callback` | Required。IdP 登録値と完全一致させる |
 | `AUTH_SCOPES` | 認可リクエストの space-delimited scope | string | `openid profile email api.read api.write` | Required |
 | `AUTH_SESSION_SECRET` | BFF session cookie を保護する秘密値 | string | `local-development-session-secret-change-before-production` | **Secret management required**。32 文字以上。`local` / `ci` に同梱している値は公開リポジトリに載っているため、それ以外の環境では起動時に拒否される |

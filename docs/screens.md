@@ -7,8 +7,6 @@
 - 本書に列挙された画面・feature は**原則としてサンプル破棄(爆破)の対象**である。**例外**(U9 ログイン画面等のコア残留分)と正確な境界は [v1 実装計画](plan/v1-implementation-plan.md) §3.5 が正
 - backend API の実装計画は [go-boilerplate #596](https://redirect.github.com/Tomy-ch/go-boilerplate/issues/596) を参照する。**未チェックの項目は未実装であり、OpenAPI に追加されるまでフロントから呼び出さない**。本書では現行 OpenAPI に存在する API だけを使用 API として記載する
 
-> **画像まわりの注記**: 本書 §0 / §4 の「画像はURL文字列として保存・表示するのみ / アップロード機能は存在しない」は **go-boilerplate #651(画像アップロード基盤)で改訂済み**である。実際は `POST /v1/products/images`(multipart)でアップロードし、backend が発行したオブジェクトキー(`products/{uuid}.{ext}`)を保存する。配信元は Garage(公開エンドポイント。go-boilerplate #668)であり、`image-origin` ではない。A6 / A7 は URL 文字列入力ではなく**アップロード UI** を実装する。
-
 ---
 
 ## 0. 認証・共通事項(フロントが意識する範囲)
@@ -22,20 +20,20 @@
 - 403 は「ログイン済みだが権限不足」。admin 系画面(A 系)で非 admin ユーザーがアクセスした場合に発生。UI 上は該当ボタン / 導線ごと出し分けるのが基本
 - 通貨: 商品の `price` は USD の decimal 文字列、購入集計の金額は USD セント整数である。`displayCurrency=JPY` を明示指定した時だけ `referenceAmount` が参考値として付与される。フロントは「参考」であることを表示上明示する
 - カート(U4)は **バックエンドが持つ**(`/v1/carts/me`)。未ログインでも使え、主体はゲストが `X-Cart-Session`、ログイン済みが Bearer で、両方あればログイン済みが優先される。**取得は明細ごとの再評価つき**で、買えない明細・値の変わった明細に `issues` が立ち、小計は `issues` が空の明細だけの合算(参考値)である。ログイン時のゲストからの引き継ぎは BFF が callback で起こす([ADR 0079](adr/0079-auth-frontend-seam.md) §7)
-- ~~画像は URL 文字列として保存・表示するのみ。アップロード機能は存在しない~~ → **冒頭の注記を参照(#651 で改訂)**。`next/image` の `remotePatterns` には Garage の公開エンドポイントを allowlist 登録する。**ワイルドカードは使わない**
+- 画像は `POST /v1/products/images`(multipart)でアップロードし、backend が発行したオブジェクトキー(`products/{uuid}.{ext}`)を保存する。配信元は Garage の公開エンドポイントで、`next/image` の `remotePatterns` へ allowlist 登録する。**ワイルドカードは使わない**
 - 商品説明(description)は **リッチテキスト**(TipTap で作成)。表示側は必ず sanitizer を通す(生の `dangerouslySetInnerHTML` 直接使用は禁止。`rules.md` #48)
 - ページネーションは基本 **cursor 方式**。無限スクロール(増分取得)の画面とページ送り相当の画面が混在するので、画面ごとの実装パターンに注意
 - Idempotency-Key が必要な書き込みは購入作成(U6)のみ。二重送信防止として実装すること
 
 ---
 
-## 1. 画面一覧(20)
+## 1. 画面一覧(24)
 
 ### ユーザー側(12)
 
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
-| U1 | トップ | `GET /v1/products/ranking/quantity` / `GET /v1/products`(新着 sort) / `GET /v1/products/categories` | 売れ筋ランキング・新着商品・カテゴリ導線を並べるだけのトップページ。パーソナライズなし | 3 系統のデータを並置するだけなので RSC 内で並行 fetch(`Promise.all`)で十分 |
+| U1 | トップ | `GET /v1/products/ranking/quantity` / `GET /v1/products`(新着 sort) / `GET /v1/products/categories` | 売れ筋ランキング・新着商品・カテゴリ導線を並べるだけのトップページ。パーソナライズなし | 3 系統は RSC 内で `Promise.allSettled` で取る。`all` は最初の失敗で待機を打ち切るため、成功した系統の結果が使えない。落ちた系統だけを失敗表示へ替える |
 | U2 | 商品一覧 | `GET /v1/products`(`after` / `first` / `categoryCodes` / `keyword` / `sort`) / `GET /v1/products/categories` | 検索・絞り込み・並び替え付き一覧 | 条件は `searchParams` に載せ、変わるたびに RSC が再取得する。絞り込みは広い段ではサイドバーで選択即時、狭い段では sheet 内でまとめて確定する(並び替えはどちらの段でも即時)。増分取得は無限スクロール方式。状態で絞り込む口は置かない。`statusCodes` は契約も backend も受け付けて実際に効くが、状態マスタは在庫・販売の 10 状態で売り手の語彙であり、どれを買い手へ出すかが未決のため(公開の可否は `publishedAt` の別軸で、状態マスタとは無関係) |
 | U3 | 商品詳細 | `GET /v1/products/{productId}` / `GET /v1/products`(`categoryCodes`) | 単一商品の詳細表示。関連商品は一覧 API をカテゴリフィルタで再利用(専用 API なし) | description はリッチテキストなので必ず sanitizer 経由で表示 |
 | U4 | カート | `GET /v1/carts/me` / `PUT /v1/carts/me/items/{productId}` / `DELETE /v1/carts/me/items/{productId}` / `DELETE /v1/carts/me` | 商品追加・数量変更・削除・全消し | **リロードで消えない**。数量は加算ではなく設定(upsert)で、自然キーが冪等性を持つため `Idempotency-Key` は要らない。買えない明細・値の変わった明細は `issues` として画面に出す。カートのサイドバー / drawer の副導線「カートを見る」から入る。**認証を要さない**ため、未ログインでも中身を全画面で確かめられる唯一の経路である |
@@ -52,7 +50,7 @@
 
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
-| A1 | ダッシュボード | `GET /v1/dashboard/summary` | 数値カードのみ。グラフ・一覧なし | サマリは **backend 側で合成済み**の値をそのまま表示する。在庫僅少一覧は `GET /v1/products/low-stock` (#566) が実装・契約化されるまで追加しない |
+| A1 | ダッシュボード | `GET /v1/dashboard/summary` | 数値カードと、ステータス別内訳の横棒 | サマリは **backend 側で合成済み**の値をそのまま表示する。在庫僅少一覧は契約(`GET /v1/products/low-stock`)が入ったが、A1 は使っていない(独立した後続機能) |
 | A2 | 商品一覧 | `GET /v1/products`(`includeUnpublished=true`) / `GET /v1/products/statuses` | admin 操作一覧。作成・編集・補充への導線 | 未公開の商品も母集団に含める。含める指定は admin だけが通せる。母集団を変えると並び順の第 1 キーが登録日時へ変わるため、ページ送りの鍵は同じ指定の中でだけ使える |
 | A3 | 商品補充 | `PATCH /v1/products/{productId}/stock` | 在庫数の加算 / 調整のみ | `delta` は符号付き。409 は再取得、503 は時間を空けて再試行する。在庫以外は編集しない(A7 の担当) |
 | A4 | 集計 | `GET /v1/dashboard/summary` / `GET /v1/products/ranking/quantity` | 売上・ランキング系の集計表示 | A1 と共通 API を使うが表示観点が異なる。期間は瞬時の半開区間 `[orderedAfter, orderedBefore)` で送り、暦の区分（今日・今月）を解くのは画面の側。売れ筋は直近 30 日に固定し、期間の選択に従わない |
@@ -60,6 +58,19 @@
 | A6 | 商品作成 | `POST /v1/products` / `GET /v1/products/categories` / `GET /v1/products/statuses` / `POST /v1/products/images` | 新規商品登録フォーム | description は TipTap。**画像はアップロード UI**。`price` は USD の decimal 文字列、画像 upload の `imagePath` を作成 API へ渡す |
 | A7 | 商品編集 | `GET /v1/products/{productId}` / `PATCH /v1/products/{productId}` / `POST /v1/products/images` | 既存商品の編集フォーム | 読み込んだ `version` を必ず送る。409 時は「他の人が更新済み」の再読み込み導線を表示する。在庫数はここでは編集不可(A3 の担当) |
 | A8 | 発送 | `GET /v1/purchases/shippable` / `PATCH /v1/purchases/{purchaseCode}/ship` / `GET /v1/purchases`(`statusCodes=8` + `includeOtherUsers=true`) / `PATCH /v1/purchases/{purchaseCode}/deliver` | 支払い済み・未発送の注文を、まとめて発送してよい便ごとに並べて発送する。発送済みの注文はその下に並べ、1 件ずつ配達済みにする | 便の分け方も並び順も契約が決めるので画面は並べ直さない。発送は購入 1 件ずつなので、まとめる操作は同じ送信に注文を並べて送る。途中まで通った送信を失敗にせず、通った件数と通らなかった件数を両方出す。確認は挟まない(流れ作業のため)。配達の確認はまとめる軸を持たず常に 1 件 —— 届いたかどうかは注文ごとに分かれる |
+
+### 輸入元に無い画面(4)
+
+輸入した EC サンプルには無く、この repo が足した画面である。**題材(EC)を持つのは静的 3 画面の
+うち「このサイトについて」だけ**で、残りは boilerplate 自身の説明と開発用の面なので、サンプルを
+捨てた後も `/dev/session` は残る。
+
+| # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
+| --- | --- | --- | --- | --- |
+| S1 | このサイトについて(`/about`) | — | 何のためのサイトか・何で出来ているか・何が動かないか | 取得を持たない。静的に描画する |
+| S2 | プライバシー(`/privacy`) | — | 入力した情報がどこに残るかを、起動のしかたごとに 3 通りで説明する | 定型文にしない。利用者が自分の起動構成を判断できる形で書く |
+| S3 | 利用規約(`/terms`) | — | 閲覧の同意・セキュリティ上のリスク・提供条件・免責 | 免責はこの画面だけが持つ。S1 に写さない |
+| D1 | 開発用 session(`/dev/session`) | — (IdP の口のみ) | IdP を通さずに session を発行し、保護された画面へ入る | production build には route ごと入らない。開ける環境の判定を画面と Server Action の両方に掛ける |
 
 ### 合成パターンの使い分け(実装判断の指針)
 
@@ -139,7 +150,7 @@ Go API の OpenAPI には存在しない。BFF の Route Handler が次の mock 
 | 1 | **`style-src`(CSP)の運用方式** — TipTap が inline style を出力するため、nonce 運用かハッシュ運用かで A6 / A7 のエディタ組み込み方法が変わる | v1 実装計画 P6-2 |
 | 2 | ~~**sanitizer ライブラリの選定**~~ — **決着済み**。`hast-util-from-html` + `hast-util-sanitize` + `hast-util-to-jsx-runtime` を採用し、port は `src/model/rich-text/` に置く(v1 実装計画 §3.10) | 決着済み |
 | 3 | ~~**未公開商品を含む admin 商品一覧**~~ — **決着済み**。`GET /v1/products` に `includeUnpublished` が入り、admin だけが `true` を指定できる。A2 はこれを指定して未公開の商品も並べる | 決着済み |
-| 4 | **在庫僅少一覧** — `GET /v1/products/low-stock` は API 作成計画 #566 で未実装。A1 の数値カードとは独立した後続機能として扱う | #566 の OpenAPI 追加後 |
+| 4 | ~~**在庫僅少一覧**~~ — **契約は決着済み**。`GET /v1/products/low-stock` が OpenAPI に入った。A1 の数値カードとは独立した後続機能なので、画面はまだ持たない | 契約は決着済み / 画面は後続 |
 | 5 | ~~**配達完了の対象を admin が指せない**~~ — **決着済み**。`GET /v1/purchases` に `statusCodes` と `includeOtherUsers` が入り、admin は発送済みの注文を列挙できる。A8 がその一覧と `deliver` を持つ | 決着済み |
 
 > **PostHog / Cookie 同意**: 本資料は「採否未決」としていたが、**v1 実装計画で「軽量 consent 機構 + ゲートは採用 / GTM・PostHog 本体は不採用」に確定**した([0131](adr/0131-cookie-consent.md) を exclusion から反転)。
@@ -152,5 +163,5 @@ Go API の OpenAPI には存在しない。BFF の Route Handler が次の mock 
 - リアルタイム機能(SSE / WebSocket)
 - 推薦・パーソナライズ機能
 - 商品説明以外のリッチテキスト編集画面
-- ダッシュボードのグラフ・時系列チャート(数値カード + 一覧のみ)
+- 時系列チャート(数値カードと、ステータス別内訳の横棒までとする)
 - i18n 切替、DnD、feature flag UI

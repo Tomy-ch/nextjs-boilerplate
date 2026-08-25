@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features] # 画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
 coverage-exclusions:
@@ -23,6 +23,46 @@ coverage-exclusions:
 - 他 feature への直接依存
 - 汎用に使える表示（`Card` / `Table` / `AlertDialog` / `Field` などは `components` から取る）
 - 認証そのもの（session の復元・破棄は `adapters/server/auth` の領分）
+
+## Route と契約
+
+| Route | 仕様書 | 認証 |
+| --- | --- | --- |
+| `/mypage` | [`screen`](../../../docs/spec/route/shop/mypage/page.screen.md) / [`function`](../../../docs/spec/route/shop/mypage/page.function.md) | 必要 |
+| `/mypage/edit` | [`screen`](../../../docs/spec/route/shop/mypage/edit/page.screen.md) / [`function`](../../../docs/spec/route/shop/mypage/edit/page.function.md) | 必要 |
+| `/onboarding` | [`screen`](../../../docs/spec/route/auth/onboarding/page.screen.md) / [`function`](../../../docs/spec/route/auth/onboarding/page.function.md) | 必要（登録はまだ無い状態） |
+
+使う operationId。
+
+| operationId | 用途 |
+| --- | --- |
+| `GetUsersMe` | 自分の情報。登録の有無の判定も同じ口を引く |
+| `PostUsers` | 登録。冪等キーを載せる |
+| `PutUsersDetail` | プロフィールの更新 |
+| `DeleteUsersDetail` | 退会 |
+| `GetUsersMePurchasesSummary` | 購入の集計 |
+| `GetPurchases` | マイページの履歴 dialog に並べる分 |
+| `GetPrefectures` | 都道府県の候補。全 47 件が固定で返る |
+| `GetAddresses` | 郵便番号からの住所補完。`/api/addresses` 経由 |
+
+## 状態とデザイン参照
+
+| 画面 | 状態 | story |
+| --- | --- | --- |
+| マイページ | success | `Page/Account/Mypage/Default` |
+| | empty（購入が無い） | `Page/Account/Mypage/NoPurchases` |
+| | loading | `Features/Account/MypageSkeleton/Default` |
+| プロフィール編集 | success | `Page/Account/ProfileEdit/Default` |
+| | loading | `Features/Account/ProfileEditSkeleton/Default` |
+| | 誤りを見せている | `Features/Account/ProfileForm/ValidationErrors` |
+| | 住所が埋まった | `Features/Account/ProfileForm/AddressCompleted` |
+| | 該当が無い | `Features/Account/ProfileForm/AddressNotFound` |
+| 登録 | 段ごと | `Page/Account/Onboarding/{Default,AddressStep,ConfirmStepFilled}` |
+| | 誤りを見せている | `Page/Account/Onboarding/ValidationErrors` |
+| | 補完の機構が動いていない | `Page/Account/Onboarding/AddressUnavailable` |
+
+error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
+`src/app/(shop)/mypage/edit/error.tsx`）が受けます。
 
 ## 構成
 
@@ -63,6 +103,7 @@ coverage-exclusions:
 | `onboarding/page-content.tsx` | 都道府県マスタの取得と、この登録 1 回ぶんの鍵の生成 |
 | `onboarding/view.tsx` | 登録の表示。段の器と送信を持つ client island |
 | `onboarding/steps.ts` | どの項目がどの段に属するかと、その段を終えられるかの判定 |
+| `onboarding/form-names.ts` | 隠し項目の `name`。綴りだけを持ち、検証は読む側へ置かない |
 | `onboarding/parse-registration-form.ts` | 送信された `FormData` を、登録に渡せる形へ解く |
 | `onboarding/ui/basics-section/` | 名前と連絡先の段 |
 | `onboarding/ui/address-section/` | 住所の段。郵便番号からの補完をここが配線する |
@@ -85,6 +126,37 @@ coverage-exclusions:
 | 段の構成と進んでよいか | `onboarding/steps.ts` | 段の割り方が変わったとき |
 | 送信を編成する | `actions.ts` | 更新の手順が変わったとき |
 | 並び | `edit/ui/profile-form/` / `onboarding/ui/*-section/` | 見た目 |
+
+## 依存カーネル
+
+| カーネル | 用途 |
+| --- | --- |
+| `adapters` | 自分の情報・集計・履歴・都道府県・住所補完の取得と、登録 / 更新 / 退会 |
+| `model` | 表示検証スキーマ（`user/profile-schema`）、表示モデル、冪等キー、`ActionState` |
+| `components` | 面を組む器（カード・表・入力欄・確認 dialog） |
+| `errors` | 送信が通らなかったときの分類を文言へ写す |
+| `observability` | 描画を span に載せる |
+
+他 feature の `facade/` も引きます —— ログイン（`auth`）、購入の行き先（`purchases`）、
+サイト説明（`site-info`）。
+
+## Action 戻り値契約
+
+| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| --- | --- | --- | --- | --- |
+| `registerAction` | `actions.ts` | `ProfileFormState` | 戻り先へ `redirect` | 項目ごとの誤りを画面に残す |
+| `updateProfileAction` | `actions.ts` | `ProfileFormState` | `revalidatePath`。画面は移さず toast | 同上 |
+| `withdrawAction` | `actions.ts` | `WithdrawFormState` | session を破棄してトップへ | 確認を開いたまま、その中で伝える |
+
+**対象を指す識別子は戻り値にも送信にも載りません。** 解決するのは `adapters` の中です。
+
+## テスト観点
+
+- [ ] 登録の有無まで確かめる入口が、認証済みでも登録前なら登録へ送る
+- [ ] focus が当たっている項目へ、当てた時点より後の誤りが出ない
+- [ ] 候補が割れた郵便番号で町域が埋まらない
+- [ ] 「該当が無い」と「補完が動いていない」で操作の見え方が変わる
+- [ ] 退会の確認が、送信中も失敗時も開いたままになる
 
 ## 運用
 

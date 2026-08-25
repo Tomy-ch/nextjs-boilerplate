@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features] # 画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
 coverage-exclusions:
@@ -24,6 +24,43 @@ coverage-exclusions:
 - 買えるか・値が変わったか・数量の上限の判定（業務ロジックであり、バックエンドの領分です）
 - 商品の取得・商品詳細の表示（`products` の領分。feature 間で直接参照しません）
 
+## Route と契約
+
+| Route | 仕様書 | 認証 |
+| --- | --- | --- |
+| `/cart` | [`screen`](../../../docs/spec/route/shop/cart/page.screen.md) / [`function`](../../../docs/spec/route/shop/cart/page.function.md) | 不要（ゲストのまま使える） |
+
+**この slice は route 以外の場所にも出ます。** header の入口・脇の領域・被せる領域は
+`(shop)/layout.tsx` が mount するもので、外枠の約束は
+[`(shop)` の layout](../../../docs/spec/route/shop/layout.function.md) が持ちます。
+
+使う operationId。
+
+| operationId | 用途 |
+| --- | --- |
+| `GetCartsMe` | カートの取得。明細ごとの再評価つきで届く |
+| `PutCartsMeItem` | 数量の設定。加算ではないため二重送信で結果が変わらない |
+| `DeleteCartsMeItem` | 明細 1 行の削除 |
+| `DeleteCartsMe` | 全消し |
+
+`PostCartsMeMerge`（ゲストのカートの引き継ぎ）はこの slice が呼びません。**ログインの往復の中で
+起きる**もので、呼ぶのは `/api/auth/callback` です（[0079](../../../docs/adr/0079-auth-frontend-seam.md) §7）。
+
+## 状態とデザイン参照
+
+| 画面 | 状態 | story |
+| --- | --- | --- |
+| カート | success | `Page/Cart/PC` |
+| | empty | `Page/Cart/Empty` |
+| | 事情の立った明細がある | `Page/Cart/WithIssues` |
+| | 買える明細が 1 つも無い | `Page/Cart/WithoutPurchasable` |
+| 脇の領域 | 中身あり / 空 / 閉じている | `Features/Cart/Panel/{WithLines,Empty,Closed}` |
+| header の入口 | 帯ごとの姿 | `Features/Cart/HeaderAction/{PC,Tablet,Mobile}` |
+
+**loading を持ちません。**理由は「運用」の 1 つめ。**error も画面としては持たず**、操作の失敗は
+その操作の隣に出ます（`ui/action-error/`）。取得の失敗は route の `error` 境界
+（`src/app/(shop)/cart/error.tsx`）が受けます。
+
 ## 構成
 
 画面が 1 つなので画面ディレクトリを省き、表示だけを `ui/` に分けています（[0027](../../../docs/adr/0027-directory-structure.md)）。
@@ -34,7 +71,6 @@ coverage-exclusions:
 | `view.tsx` | 全画面の表示。明細と集計を左右に分ける |
 | `actions.ts` | 数量の設定・明細の削除・全消しの Server Action |
 | `__mocks__/actions.ts` | カタログでの Server Action の差し替え（[0054](../../../docs/adr/0054-ui-catalog-storybook.md)） |
-| `issue-notice.ts` | 明細に立った事情を画面に出す一文へ写す |
 | `checkout.ts` | 購入手続きへ進めるかの判定 |
 | `line-order.ts` | 明細を描く順。覚えている並びと、いま居る明細を突き合わせる |
 | `parse-cart-form.ts` | 送信された内容から商品と数量を取り出す |
@@ -42,6 +78,7 @@ coverage-exclusions:
 | `use-dock-visibility.ts` | 画面の下から出す器を、出すかどうかの判断 |
 | `paths.ts` | この feature が指す行き先（カート・購入手続き） |
 | `shell-cart.ts` | 外枠に出すカートの取得。読めなくても投げない |
+| `cart.fixture.ts` | story とテストが読む固定のカート |
 | `facade/add-to-cart/` | 商品をカートへ入れる操作。**他の feature が使う口** |
 | `facade/add-to-cart/__mocks__/` | 同じ口のカタログでの差し替え |
 | `facade/line-issues/` | 明細に立った事情の表示。**購入確認も同じ強さと言い方で出すための口** |
@@ -64,6 +101,41 @@ coverage-exclusions:
 | `ui/remove-button/` | 明細 1 行の削除 |
 | `ui/clear-button/` | カートを空にする。確認を挟む |
 | `ui/action-error/` | 操作が失敗したことを、その操作の隣に出す |
+
+## 依存カーネル
+
+| カーネル | 用途 |
+| --- | --- |
+| `adapters` | カートの取得と変更、代表画像の表示 URL への解決 |
+| `model` | 表示モデル（`Cart` / `Product`）、事情を一文へ写す `cart/issue-notice`、`ActionState` |
+| `components` | 面を組む器（drawer・scroll 領域・確認ダイアログ・画像） |
+| `capabilities` | 帯の判定（`use-media-query`）と、引き出しを出す向き（`use-scroll-direction`） |
+| `stores` | 中身を開いているかどうか。**開く操作が別の feature にあるため client 横断になる** |
+| `logging` | 外枠のカートが読めなかったときの記録。投げずに記録だけ残す |
+| `observability` | 描画を span に載せる |
+
+## Action 戻り値契約
+
+| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| --- | --- | --- | --- | --- |
+| `setCartItemQuantityAction` | `actions.ts` | `CartActionState` | `revalidatePath` | その操作の隣に出す |
+| `removeCartItemAction` | `actions.ts` | `CartActionState` | 同上。取り消しの案内を消えた行の場所へ | 同上 |
+| `clearCartAction` | `actions.ts` | `CartActionState` | 同上 | 同上 |
+| `addToCartAction` | `facade/add-to-cart/` | `ActionState<void>` | 同上。中身を開く | 同上 |
+
+**`addToCartAction` だけ置き場が違います。** 呼ぶのは他の feature で、区画は feature の内部を
+参照できないため（`architecture.ts` の `features-facade`）、Action も区画の中に置きます。
+
+**どれも冪等キーを持ちません。** 数量は加算ではなく設定で、削除も全消しも 2 度届いて結果が
+変わりません。
+
+## テスト観点
+
+- [ ] 数量が加算ではなく設定として送られる
+- [ ] 取り消しの案内が、消えた行が居た場所に出る（番号ではなく見せていた並びで解決する）
+- [ ] 続けて取り除いた分だけ案内が並び、先の案内が置き換わらない
+- [ ] 買える明細が 1 つも無いとき、購入手続きへの導線が押せない
+- [ ] 外枠のカートが読めなくても、カートと無関係な画面が落ちない
 
 ## 運用
 

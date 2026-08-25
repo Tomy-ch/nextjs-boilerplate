@@ -18,6 +18,32 @@ test-requirement: feature
 - 他 feature への直接依存
 - 複数 feature で共有すべき要素、バックエンドの業務ロジック
 
+## slice の一覧
+
+**この層の役割論はここが持ち、各 slice の README はそれを再掲しません。** 子が書くのは、その
+slice に固有の線引きと、契約・仕様・デザインへの索引です。雛形は
+[feature README テンプレート](../../docs/templates/feature-readme.md) が持ちます。
+
+| slice | 役割 | README |
+| --- | --- | --- |
+| `auth/` | 身元を預ける入口。認証そのものは持たず、BFF の口へ渡す | [README](auth/README.md) |
+| `dev-session/` | 開発時に主体を差し替える面。本番の束には載らない | [README](dev-session/README.md) |
+
+<!-- sample:begin -->
+同梱のサンプルが加えるもの:
+
+| slice | 役割 | README |
+| --- | --- | --- |
+| `home/` | 入口の面。複数の取得を並べ、片方の失敗で全体を落とさない | [README](home/README.md) |
+| `products/` | 題材を探して眺める。条件を URL に載せ、増分で読み進める | [README](products/README.md) |
+| `cart/` | 買う前の入れ物。他 slice へ操作の口を facade で貸す | [README](cart/README.md) |
+| `checkout/` | 確定の手前。カートと届け先を突き合わせ、1 回だけ送る | [README](checkout/README.md) |
+| `purchases/` | 確定したものの履歴と 1 件の詳細、そこからの状態遷移 | [README](purchases/README.md) |
+| `account/` | 自分の記録。登録・編集・退会と、自分向けの集計 | [README](account/README.md) |
+| `admin/` | 役割を持つ主体だけが入る運用面 | [README](admin/README.md) |
+| `site-info/` | 取得を持たない静的な面 | [README](site-info/README.md) |
+<!-- sample:end -->
+
 ## 描画を span に載せる
 
 エクスポートを `observability` の 2 つで包む。**どちらで包むかは置き場で決まる。**

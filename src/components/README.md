@@ -8,6 +8,24 @@ test-requirement: component
 
 複数 feature で使うデザインシステム的な純 UI コンポーネントを置くカーネルです。
 
+## ここにあるものは参考実装です
+
+**作り替えてもよく、捨ててもよい。**この目録に並んでいる部品も、[`tokens/`](../../tokens/README.md)
+が持つ値も、fork した先が自分のデザインへ差し替える前提で置いてあります。**そのまま使うことは
+要件ではありません。**
+
+残してほしいのは部品ではなく、部品の**置き方**です。
+
+| 残るもの | 捨ててよいもの |
+| --- | --- |
+| 層の分け方（`design-system` / `patterns` / `shell` / `app-starter`）と、その軸（誰が書き換えるか × 何のための部品か） | 個々の部品の見た目・variant・命名 |
+| 依存の向き（`model` と `errors` だけを引く。fetch も config も業務状態も持たない） | shadcn/ui を起点にするという選択そのもの |
+| 部品ごとに README と story を co-locate するという規律 | いま並んでいる story の内容 |
+| semantic token を通して色と余白を決めるという形 | token の値 |
+
+**`app-starter` は特に作り替える前提の層です。**バックエンドの契約を知っている部品がそこに居る
+ので、契約が変われば作り直しになります（[配置・命名](#配置命名)）。
+
 ## 受け入れるもの
 
 - 横断 UI、表示に必要な UI 状態、アクセシブルな操作部品
@@ -27,7 +45,6 @@ test-requirement: component
 - どこに置くかは [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) の `layer` と `as` が正であり、`pnpm check:ui` が `directory` との一致を検査する。**`layer` は「誰が書き換えるか」、`as` は「何のための部品か」**で軸が違うので畳まない。`design-system/navigation/pagination` と `app-starter/cursor-pagination` がどちらも `as: navigation` になるのは、目的が同じで層が違うためである
 - Story は boilerplate を利用する人がそのまま参照できる中立なカタログとして保つ。汎用的な文言・props・リンクで部品自身の使い方を示し、特定の業務や画面に結び付く例は feature 側の Story に置く
 - 状態を自身の責務として持つ UI は loading / empty / error / success を story で示す。`Button` のようにその状態を所有しない UI へ無意味な state story は作らず、disabled・pending など当該 UI の操作状態を示す。画面固有の状態は feature 側で合成する
-- boilerplate の基礎部品・トークンは、fork 後に作り替えても捨ててもよい参考実装である
 - 単一 feature 専用の UI は feature 内に置く
 - 依存先は `model` と `errors` に限定する
 - class 名の条件分岐と Tailwind utility の競合解消には [`cn.ts`](./cn.ts) を使う。`clsx` と `tailwind-merge` を直接利用する実装は増やさない

@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features] # 相方の facade/ と、画面まるごとの story は例外 (ADR 0021)
 test-requirement: feature
 ---
@@ -20,6 +20,36 @@ test-requirement: feature
 - 役割の確認（送信の受け口である app 層が持つ。[0025](../../../../docs/adr/0025-app-layer-elements.md)）
 - 購入 1 件の詳細（本人向けの画面が持ち、管理側に 1 件を眺める面は無い）
 
+## Route と契約
+
+| Route | 仕様書 | 認証 |
+| --- | --- | --- |
+| `/admin/shipments` | [`screen`](../../../../docs/spec/route/admin/shipments/page.screen.md) / [`function`](../../../../docs/spec/route/admin/shipments/page.function.md) | 役割: admin |
+
+親（[`admin`](../README.md)）の「認可」がこの画面にもそのまま掛かります。
+
+使う operationId。
+
+| operationId | 用途 | 呼ぶ側 |
+| --- | --- | --- |
+| `GetPurchasesShippable` | 発送待ちの便 | feature |
+| `GetPurchases` | 発送済みの確認待ち | feature |
+| `PatchPurchasesShip` | 発送。便をまとめても購入 1 件ずつ呼ぶ | app 層の Action |
+| `PatchPurchasesDeliver` | 配達の確認 | app 層の Action |
+
+## 状態とデザイン参照
+
+| 画面 | 状態 | story |
+| --- | --- | --- |
+| 発送 | success | `Page/Admin/Shipments/Default` |
+| | empty（どちらの区画も空） | `Page/Admin/Shipments/Empty` |
+| | 発送待ちが無い | `Page/Admin/Shipments/ShippedOnly` |
+| 便 1 つ | 未発送 / 発送済み / 途中まで通った / 拒まれた | `Features/Admin/Shipments/DispatchGroupCard/{Default,Shipped,PartiallyShipped,Refused}` |
+
+**途中まで通った送信に専用の story を置いてあります。** まとめて発送する画面の要は
+「1 つの成否に畳まない」ことなので、その姿が実物として残っている必要があります。loading と error は
+親と同じく story を持ちません（[`admin`](../README.md) の「状態とデザイン参照」）。
+
 ## 構成
 
 | ファイル | 役割 |
@@ -34,6 +64,35 @@ test-requirement: feature
 | `ui/delivery-list/` | 発送済みの並び。配達を確認する操作と結果 |
 | `ui/empty/` | どちらの区画も空のときの表示 |
 | `ui/skeleton/` | 便の待機表示 |
+
+## 依存カーネル
+
+| カーネル | 用途 |
+| --- | --- |
+| `adapters` | 発送待ちと発送済みの取得 |
+| `model` | 表示モデル（便・購入・ステータス）と `ActionState` |
+| `components` | 面を組む器（カード・表・送信の操作） |
+| `observability` | 描画を span に載せる |
+
+## Action 戻り値契約
+
+**Server Action は app 層にあります**（理由は親の「Action 戻り値契約」）。
+
+| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| --- | --- | --- | --- | --- |
+| `shipPurchasesAction` | `src/app/admin/shipments/actions.ts` | `ShipmentState` | 1 件でも通れば一覧を取り直し、通った件数と競合で飛ばした件数を返す | 1 件も通らなければ競合として返す。競合以外はその場で打ち切り、分類だけを返す |
+| `deliverPurchaseAction` | 同上 | `DeliveryState` | 一覧を取り直し、確認した注文を返す | 競合とそれ以外を言い分け、その操作の隣に出す |
+
+**件数が載るのは成功したときだけです。** 打ち切った送信が返すのは分類で、そこまでに通った分は
+返り値ではなく取り直した一覧に現れます。
+
+## テスト観点
+
+- [ ] まとめる操作が、同じ送信に注文を並べて送る形になっている
+- [ ] 途中で打ち切られた送信でも、そこまでに通った発送が一覧へ反映される
+- [ ] 1 件でも通ったら一覧が取り直される
+- [ ] 配達の確認がまとめられない
+- [ ] 便と便の中の順序を画面が並べ直さない
 
 ## 設計
 
