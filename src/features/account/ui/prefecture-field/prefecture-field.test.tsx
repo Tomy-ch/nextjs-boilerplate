@@ -28,7 +28,6 @@ function renderField(overrides: Partial<Parameters<typeof PrefectureField>[0]> =
   return render(
     <PrefectureField
       controlId={CONTROL_ID}
-      errorId={ERROR_ID}
       message={undefined}
       prefectures={PREFECTURES}
       registration={registrationOf()}

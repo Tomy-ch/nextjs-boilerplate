@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useId } from "react";
-
+import { toErrorId } from "../field/field.definition";
 import { Textarea } from "./textarea";
 
 function LabeledTextarea() {
@@ -16,7 +16,7 @@ function LabeledTextarea() {
 
 function InvalidTextarea() {
   const textareaId = useId();
-  const errorId = `${textareaId}-error`;
+  const errorId = toErrorId(textareaId);
 
   return (
     <div className="grid gap-2">

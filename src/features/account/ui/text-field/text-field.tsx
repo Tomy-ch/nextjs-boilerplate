@@ -2,7 +2,6 @@
 
 import type { InputProps } from "@/components/design-system/form/input/input";
 import { Input } from "@/components/design-system/form/input/input";
-import { fieldControlAttributes } from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
 import type { ProfileFieldProps } from "../../use-profile-fields";
 
@@ -22,7 +21,6 @@ type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placehold
 export function TextField({
   controlId,
   description,
-  errorId,
   label,
   message,
   registration,
@@ -33,16 +31,11 @@ export function TextField({
     <FormField
       controlId={controlId}
       description={description}
-      errorId={errorId}
       label={label}
       message={message}
       required={required}
     >
-      <Input
-        {...fieldControlAttributes({ controlId, description, errorId, message, required })}
-        {...input}
-        {...registration}
-      />
+      {(control) => <Input {...control} {...input} {...registration} />}
     </FormField>
   );
 }

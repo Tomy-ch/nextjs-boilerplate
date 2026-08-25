@@ -27,7 +27,6 @@ function renderField(overrides: Partial<Parameters<typeof PostalCodeField>[0]> =
   return render(
     <PostalCodeField
       controlId={CONTROL_ID}
-      errorId={ERROR_ID}
       message={undefined}
       onSearch={vi.fn()}
       registration={registrationOf()}

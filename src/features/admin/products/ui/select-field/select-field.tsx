@@ -6,10 +6,6 @@ import {
   SelectNative,
   SelectNativeOption,
 } from "@/components/design-system/form/select-native/select-native";
-import {
-  fieldControlAttributes,
-  toErrorId,
-} from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
 
 /** 選べる候補 1 件。 */
@@ -58,35 +54,23 @@ export function ProductSelectField({
   options,
   value,
 }: ProductSelectFieldProps) {
-  const errorId = toErrorId(controlId);
-
   const change = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => onValueChange(event.target.value),
     [onValueChange],
   );
 
   return (
-    <FormField
-      controlId={controlId}
-      errorId={errorId}
-      label={label}
-      message={message}
-      required={true}
-    >
-      <SelectNative
-        {...fieldControlAttributes({ controlId, errorId, message, required: true })}
-        className="w-full"
-        name={name}
-        onChange={change}
-        value={value}
-      >
-        <SelectNativeOption value="">選んでください</SelectNativeOption>
-        {options.map((option) => (
-          <SelectNativeOption key={option.value} value={option.value}>
-            {option.label}
-          </SelectNativeOption>
-        ))}
-      </SelectNative>
+    <FormField controlId={controlId} label={label} message={message} required={true}>
+      {(control) => (
+        <SelectNative {...control} className="w-full" name={name} onChange={change} value={value}>
+          <SelectNativeOption value="">選んでください</SelectNativeOption>
+          {options.map((option) => (
+            <SelectNativeOption key={option.value} value={option.value}>
+              {option.label}
+            </SelectNativeOption>
+          ))}
+        </SelectNative>
+      )}
     </FormField>
   );
 }

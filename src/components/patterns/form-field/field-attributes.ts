@@ -1,25 +1,6 @@
-/**
- * 誤りの文言に与える `id`。入力欄の `aria-describedby` が指す。
- *
- * @remarks
- * `errorId` を受け取る側（{@link fieldControlAttributes}）と対になる規約なので、隣に置きます。
- * 項目の部品の側に住むと、接尾の綴りを変えたい人がその部品を開くことになり、同じ規約を使う
- * 他の部品への波及が import を辿らないと見えません。
- */
-export function toErrorId(controlId: string): string {
-  return `${controlId}-error`;
-}
+import { toDescriptionId } from "@/components/design-system/form/field/field.definition";
 
-/**
- * 入力の補足に与える `id`。入力欄の `aria-describedby` が指す。
- *
- * @remarks
- * 補足は**見えているだけでは足りません**。`aria-describedby` から指さないと、支援技術には
- * 項目名と入力欄しか届かず、単位や制約を読み上げから知る手段がなくなります。
- */
-export function toDescriptionId(controlId: string): string {
-  return `${controlId}-description`;
-}
+// 入力欄そのものへ与える a11y 属性の組み立て。
 
 /** 入力欄そのものへ与える属性を組むために要る、項目の状態。 */
 export type FieldControlState = {
@@ -33,8 +14,8 @@ export type FieldControlState = {
    * 入力の補足。
    *
    * @remarks
-   * **`FormField` へ渡すなら、ここへも渡します。** 描画する側と指す側が別なので、片方だけに
-   * 渡すと「見えているのに読み上げられない」補足になります。
+   * 描画する側と指す側は別なので、**両方が同じ値を見る**必要があります。`FormField` が自分の
+   * `description` をそのままここへ渡すので、片方だけに渡る状態は作れません。
    */
   readonly description?: string;
   /** 空欄を受け付けない項目か。 */
@@ -53,10 +34,8 @@ export type FieldControlAttributes = {
  * 入力欄へ与える a11y 属性を組む。
  *
  * @remarks
- * [`FormField`](./README.md) は children を受け取る形で入力欄そのものへ触れないため、属性を
- * 与えるのは項目の部品です。**何を与えるかはここが決めます。** 部品ごとに書き写すと、項目の
- * 種類が増えたときに `aria-invalid` や `aria-describedby` の付け忘れが起き、画面が増えるほど
- * 写しの数だけ食い違います。
+ * **何を与えるかをここが 1 か所で決めます。** 呼ぶのは `FormField` だけで、結果は children へ
+ * 渡ります（渡す形にした理由は `FormField` の `children` が持ちます）。
  *
  * 誤りが無いときも `aria-invalid` を落とさず `false` で置きます。属性ごと消すと、支援技術に
  * とっては「一度も検証していない」と区別が付きません。

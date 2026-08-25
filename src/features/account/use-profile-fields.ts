@@ -31,7 +31,6 @@ export type FieldRegistration = UseFormRegisterReturn & {
 /** 入力欄 1 つを描くのに要るもの一式。 */
 export type ProfileFieldProps = {
   readonly controlId: string;
-  readonly errorId: string;
   readonly required: boolean;
   /** 実際に出す文言。出さないなら undefined。 */
   readonly message: string | undefined;
@@ -107,7 +106,6 @@ export function useProfileFields(
 
     return {
       controlId: `${idPrefix}-${field}`,
-      errorId: `${idPrefix}-${field}-error`,
       required: isRequiredProfileField(field),
       message: errorVisibility.visible(field, current),
       registration: {

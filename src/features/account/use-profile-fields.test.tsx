@@ -35,7 +35,6 @@ function Probe({
             <input id={props.controlId} {...props.registration} />
             <p data-testid={`${field}-message`}>{props.message ?? ""}</p>
             <p data-testid={`${field}-required`}>{props.required ? "必須" : "任意"}</p>
-            <p data-testid={`${field}-error-id`}>{props.errorId}</p>
           </div>
         );
       })}
@@ -79,12 +78,6 @@ describe("useProfileFields", () => {
     render(<Probe />);
 
     expect(screen.getByTestId("two-ids")).toHaveTextContent("別");
-  });
-
-  it("誤りの id を入力欄の id から導く", () => {
-    render(<Probe />);
-
-    expect(screen.getByTestId("lastName-error-id").textContent).toMatch(/-lastName-error$/);
   });
 
   it("触っていない項目には誤りを出さない", () => {

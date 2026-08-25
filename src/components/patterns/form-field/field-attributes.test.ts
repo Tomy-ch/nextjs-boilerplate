@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fieldControlAttributes, toDescriptionId, toErrorId } from "./field-attributes";
+import { fieldControlAttributes } from "./field-attributes";
 
 const CONTROL_ID = "profile-email";
 const ERROR_ID = "profile-email-error";
@@ -67,19 +67,5 @@ describe("fieldControlAttributes", () => {
 
     expect(attributes["aria-invalid"]).toBe(true);
     expect(attributes["aria-describedby"]).toBe(ERROR_ID);
-  });
-});
-
-describe("toDescriptionId", () => {
-  // ----- 正常系 -----
-  it("入力欄の id から、補足の id を導く", () => {
-    expect(toDescriptionId(CONTROL_ID)).toBe(DESCRIPTION_ID);
-  });
-});
-
-describe("toErrorId", () => {
-  // ----- 正常系 -----
-  it("入力欄の id から、誤りの文言の id を導く", () => {
-    expect(toErrorId(CONTROL_ID)).toBe(ERROR_ID);
   });
 });

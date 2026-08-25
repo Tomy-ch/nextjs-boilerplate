@@ -117,7 +117,6 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
           </p>
           <PostalCodeField
             controlId={postalCode.controlId}
-            errorId={postalCode.errorId}
             message={postalCode.message}
             onSearch={address.onSearch}
             registration={address.registration}
