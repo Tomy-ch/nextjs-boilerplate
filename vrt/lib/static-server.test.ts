@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { passThroughOrigin } from "../../vitest.setup";
+import { passThroughOrigin } from "../../vitest.setup.msw";
 import { contentType, createStaticServer, resolveFilePath } from "./static-server";
 
 let root: string;

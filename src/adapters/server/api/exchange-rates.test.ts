@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { serveJson, serveStatus } from "../../../../vitest.setup";
+import { serveJson, serveStatus } from "../../../../vitest.setup.msw";
 
 const { getAccessToken, getEnvironment, warn } = vi.hoisted(() => ({
   getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),

@@ -12,6 +12,7 @@ import {
   SCREENS,
   selectScreens,
 } from "../../e2e/lib/screens";
+import { numstatArgs, parseNumstat } from "../lib/numstat";
 import {
   hasFailure,
   judge,
@@ -25,7 +26,7 @@ import { aggregate, readMetrics } from "./metrics";
 import { planTargets, type Target } from "./plan";
 import { renderReport } from "./report";
 import { buildCookieHeader } from "./session";
-import { decideTrigger, parseNumstat } from "./trigger";
+import { decideTrigger } from "./trigger";
 
 /**
  * 画面ごとの Core Web Vitals を測り、予算と照らす。
@@ -150,12 +151,11 @@ function measure(target: Target, runs: number, headersFile: string | undefined):
  * 差分を判定し、GitHub Actions の出力へ書く。
  *
  * @remarks
- * `kind` が `force` なら計測へ進み、`alert` なら知らせるだけです。判定そのものは
+ * `kind` が `force` なら計測へ進み、`skip` なら保護ブランチの計測に任せます。判定そのものは
  * [`trigger.ts`](trigger.ts) が持ちます。
  */
 function trigger(baseRef: string): void {
-  const budget = parseBudget(readFileSync(BUDGET_FILE, "utf8"));
-  const numstat = spawnSync("git", ["diff", "--numstat", `${baseRef}...HEAD`], {
+  const numstat = spawnSync("git", numstatArgs([`${baseRef}...HEAD`]), {
     encoding: "utf8",
   });
 
@@ -163,7 +163,7 @@ function trigger(baseRef: string): void {
     throw new Error(`${baseRef} との差分を取れませんでした。base を fetch していますか。`);
   }
 
-  const decision = decideTrigger(parseNumstat(numstat.stdout), budget.pullRequest.alertAt);
+  const decision = decideTrigger(parseNumstat(numstat.stdout));
   const output = process.env.GITHUB_OUTPUT;
 
   if (output === undefined) {
@@ -175,7 +175,6 @@ function trigger(baseRef: string): void {
     [
       `kind=${decision.kind}`,
       `detail=${decision.kind === "force" ? decision.reasons.join(" / ") : ""}`,
-      `changed-lines=${decision.kind === "alert" ? decision.changedLines : 0}`,
       "",
     ].join("\n"),
   );

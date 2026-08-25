@@ -8,7 +8,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 | グループ | 走るタイミング | 役割 |
 | --- | --- | --- |
-| CI Checks | 全 PR | lint / typecheck / build / test / 起動が壊れていればマージを止める |
+| CI Checks | 全 PR | lint / typecheck / build / test / 起動が壊れていればマージを止める。**費用が PR 1 本に見合わない 3 本（`a11y` / `e2e` / `lighthouse`）は重いステップだけが降りる** —— 下記「先送りにする検査」 |
 | Security | 全 PR + 週次スケジュール | コード・依存・ワークフロー定義・コミット済みシークレットの脆弱性を可視化する |
 | Deployment | 保護ブランチへの push | ビルド成果物の配信 |
 | Documentation | portal 配信 | 生成ドキュメントの再生成と配信 |
@@ -16,6 +16,42 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 実体があるのは **CI Checks** / **Security** / **Documentation**。Deployment はアプリ本体の配信先が fork 先の決定であるため（[0011](../../docs/adr/0011-no-docker.md)）本リポには置かない。
 
 ## ワークフロー一覧（CI Checks）
+
+### 先送りにする検査
+
+`a11y` / `e2e` / `lighthouse` は、**普通の PR では重いステップを走らせない**。実行が回るのは 5 経路
+—— 昇格 PR（base が `develop` / `staging` / `production`）/ 保護ブランチへの push / 日次 / ラベル
+（`run-a11y` / `run-e2e` / `run-lighthouse`）/ `workflow_dispatch` —— で、判定は
+[`../actions/check-trigger`](../actions/check-trigger/action.yaml) 1 箇所が持つ。
+
+**降りるのは `if:` であって `on:` ではない。**job は必ず起動して context を報告する。理由は下記
+「`paths:` フィルタを使わない」と同じで、必須 check に登録した context が報告されないと PR は
+永久に止まる。
+
+払う代償は検知が 1 マージぶん遅れることで、買うのは「結果がマージの判断をほとんど動かさない検査を、
+どの PR も待たない」ことである。差分がその判断を動かしうる規模なら `Deferred Checks` が知らせる。
+
+#### 降りた理由は 2 つあり、書き分ける
+
+降りる判定は 2 段ある。**先送り**（この節の 5 経路に当たらなかった）と、**差分が届かない**
+（`diff-scope` が絵にもジャーニーにも届かないと答えた）である。読み手にとっては別物で、前者は
+merge を待てば答えが出るが、後者はいくら待っても何も出ない。**PR コメントはこの 2 つを書き分ける** ——
+どちらも「回っていません」で済ませると、ラベルを付けるべき PR と付けても無駄な PR が同じ顔になる。
+
+#### PR の外で落ちたら、issue にする
+
+`pull_request` 以外（保護ブランチへの push / 日次）で落ちた失敗は、赤いチェックを読む場所が無い。
+**持ち主のいる形に変える必要があるので issue を立てる。ブランチごとに 1 本で、2 度目は同じ issue へ
+コメントする** —— 既に旗の立っているブランチでもう一度落ちたのは、同じ 1 つの未解決の事実である。
+
+同じ形を `a11y` / `e2e` / `lighthouse` / `vrt-guard` / `baseline-prune` が持ち、探して立てる側は
+[`../actions/upsert-issue`](../actions/upsert-issue/action.yaml) が 1 つだけ持つ。各ワークフローに
+残るのは**本文を組み立てるステップ**で、書き足すのはその検査に固有の一文（axe なら「rule を切って
+通さないでください」）だけでよい。
+
+**本文を安全にするのは呼ぶ側の責務である。**issue の本文は Markdown として描かれ、そこへ流すのは
+道具の出力 —— このリポジトリが書いたのではない文字列 —— なので、4 スペース字下げでコードブロックに
+するか、markup を作れない文字集合へ濾してから渡す（[0153](../../docs/adr/0153-ci-configuration.md) §5）。
 
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
@@ -36,10 +72,11 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、追跡下の `*.sh` を `make shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で、mise のピンの整合を `make actions-mise-pin-lint` で、必須ステータスチェックの宣言と実体の突合を `make actions-required-check-lint` で、定義そのものの静的解析を `make actions-zizmor` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 | Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
-| Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナに相乗りするので追加のランナーを入れない（ADR 0091 §3）。**実ブラウザなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。検査するのは撮影と同じ 1 テーマだけで、片テーマでだけ出る違反は届かない（[`vrt/README.md`](../../vrt/README.md)）。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないまま基準画像だけが承認済みになるため。VRT と同じく、省く判定は 2 層ある — PR の差分が story に届かなければ CI の入口で丸ごと降り、届いても絵を決める入力が前に通った時点と同じなら axe を省く（[`vrt/README.md`](../../vrt/README.md)） |
-| E2E | `e2e.yaml` | `e2e` / `e2e-comment` | build したアプリを実際のブラウザで動かす。主要ジャーニー・ブラウザが報告する異常（hydration の不一致 / 描画中の例外 / 通信の失敗）・帯ごとの出し分けを 3 つの描画エンジンで回し、画面単位の見た目を基準画像と比べる（[`e2e/README.md`](../../e2e/README.md)）。**見ているのは 3 つの描画エンジンだけで、ブラウザの銘柄も版も見ていない** —— モダンブラウザ（[0102](../../docs/adr/0102-browser-support.md)）が実装として畳まれる先が Chromium / Firefox / WebKit であり、版は digest 固定したイメージが決める。アプリはランナーで起動し、コンテナで動かすのはブラウザだけ（`node_modules` は入れた OS と CPU 向けに解決されるため）。比較とコメントを別ジョブに割る理由は VRT と同じ |
+| Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナに相乗りするので追加のランナーを入れない（ADR 0091 §3）。**実ブラウザなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。検査するのは撮影と同じ 1 テーマだけで、片テーマでだけ出る違反は届かない（[`vrt/README.md`](../../vrt/README.md)）。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないまま基準画像だけが承認済みになるため。省く判定は 3 層ある — **普通の PR ではそもそも回さず**（上記「先送りにする検査」）、回す事由があっても差分が story に届かなければ降り、届いても絵を決める入力が前に通った時点と同じなら axe を省く（[`vrt/README.md`](../../vrt/README.md)）。PR 以外で落ちたときはブランチごとに issue を立てる |
+| E2E | `e2e.yaml` | `e2e` / `e2e-comment` | build したアプリを実際のブラウザで動かす。主要ジャーニー・ブラウザが報告する異常（hydration の不一致 / 描画中の例外 / 通信の失敗）・帯ごとの出し分けを 3 つの描画エンジンで回し、画面単位の見た目を基準画像と比べる（[`e2e/README.md`](../../e2e/README.md)）。**見ているのは 3 つの描画エンジンだけで、ブラウザの銘柄も版も見ていない** —— モダンブラウザ（[0102](../../docs/adr/0102-browser-support.md)）が実装として畳まれる先が Chromium / Firefox / WebKit であり、版は digest 固定したイメージが決める。アプリはランナーで起動し、コンテナで動かすのはブラウザだけ（`node_modules` は入れた OS と CPU 向けに解決されるため）。比較とコメントを別ジョブに割る理由は VRT と同じ。**普通の PR では回さない**（上記「先送りにする検査」）。回す事由があっても、差分が画面に届かなければ降りる |
 | Baseline Approval | `baseline-approval.yaml` | `baseline-approval` | 基準画像が動いている PR で `baseline-approve` ラベルを要求する。ラベルの有無だけでなく、付いた時刻がポインタを動かした最後のコミットより後であることを見る（古い承認を新しい一式へ持ち越さない）。PR のレビュー承認を使わないのは、承認の対象が PR 全体ではなく基準画像であるため（[`vrt/README.md`](../../vrt/README.md)） |
-| VisualRegressionTest | `vrt.yaml` | `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、基準画像と撮影対象が 1 対 1 で対応することも併せて検査する。省く判定は 2 層ある — PR の差分が絵に届かなければ CI の入口で丸ごと降り、届いても `make vrt` が絵を決める入力のハッシュを基準画像を撮った時点の値と突き合わせ、一致していれば比較を省く（[`vrt/README.md`](../../vrt/README.md)）。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない） |
+| VisualRegressionTest | `vrt.yaml` | `vrt-scope` / `vrt-shard` / `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、基準画像と撮影対象が 1 対 1 で対応することも併せて検査する。省く判定は 2 層ある — PR の差分が絵に届かなければ CI の入口で丸ごと降り、届いても `make vrt` が絵を決める入力のハッシュを基準画像を撮った時点の値と突き合わせ、一致していれば比較を省く（[`vrt/README.md`](../../vrt/README.md)）。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない）。**撮影は `vrt-shard` が 4 台に割る** —— 費用が story 数に比例する一方、1 台の 4 コアは `playwright.config.ts` が既に埋めているため、実時間を縮める手は台数しかない。**必須 context は束ねる側の `vrt` で、matrix の側ではない** —— matrix は `vrt-shard (1)` のように 1 件ずつ報告し、必須 check はその名前を指定できない |
+| Deferred Checks | `deferred-checks.yaml` | `deferred-checks` | 先送りにしている 3 本が見る範囲をこの PR がどれだけ動かしたかを 1 回だけ数え、線を超えていれば**コメントを 1 件だけ**残す。**ゲートではない。**必須 check にも登録しない —— 線（`ALERT_AT`）に理論的な根拠は無く、「集中した変更は黙らせ、一度に頭へ入らない変更は黙らせない」ように引いただけの値だからで、マージを止められる場所に根拠の無い数字を置かない。超えても出るのはコメント 1 件だけなので、低すぎれば煩く、高すぎれば言い忘れるという対称で安い失敗しかしない。3 本がそれぞれ「回ったか」を自分のコメントで答えるのに対し、ここが答えるのは**「回すべきだったか」**である |
 
 ### 並列度に台数を書かない
 
@@ -145,7 +182,7 @@ PR ごとには走らず、ラベルや保護ブランチへの push で起動�
 | --- | --- | --- | --- |
 | Baseline Retake | `baseline-retake.yaml` | `retake` / `report` | VRT または E2E の**完了**で発火し、`baseline-retake` ラベルが付いていれば、**story と画面の基準画像をまとめて**撮り直し、置き場へ push してサブモジュールのポインタを進める。story は報告された差分だけ、画面は全数が対象（E2E は差分の報告を出さない）。両方が赤いときは E2E 側の実行が VRT 側へ譲る —— 片方だけでラベルを使い切らないためで、これが「1 ラベル 1 撮り直し」を保つ。ラベルはトリガではなく条件なので、PR 作成時に付けておける（VRT の完了を待つ必要がない）。**絵を動かしうるチェック**（`baseline-retake.yaml` の `DECIDES_PIXELS` が名指しする）が落ちている間は撮らずに見送り、ラベルを残す（次の実行で自動的に再開する）。見るのは各チェックの最新の試行だけで、名指しは allowlist である — 落ちているもの全部を数えると、撮るまで存在しない画像を待つ `baseline-approval` と互いに待ち合う。`revert-` で始まるブランチではラベル無しで全数を撮り直す（掃除で復帰先の一式が消えているため）。ポインタの push は `GITHUB_TOKEN` ではなく App のトークンで行う（`GITHUB_TOKEN` の push は実行を起こさないため、確認用の VRT が走らない）。**承認ではない** — 画素の判断は、コメントが並べる動いた画像の前後を見て PR レビューで行う |
 | VRT Guard | `vrt-guard.yaml` | `guard` | 保護ブランチへの push 後に story の比較をやり直す。通常は鳴らない（PR はマージ結果に対して判定され、ブランチは最新であることを要求されるため）。鳴ったら前提が崩れた合図として issue を立てる。**基準画像は撮り直さない** |
-| Lighthouse | `lighthouse.yaml` | `lighthouse` | 保護ブランチへの push と毎日 1 回、`e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らす（[0101](../../docs/adr/0101-performance-budget.md)）。落ちたら issue を立てる（ブランチごとに 1 本、2 度目は同じ issue へコメント）。**performance スコアは見ない** —— 5 指標の加重平均は、下がったときにどれが下がったかを答えられない。INP は実ユーザの操作を要して lab では測れないため TBT が代わる。撮影（`vrt` / `a11y` / `e2e`）と違ってブラウザをコンテナへ閉じ込めないのは、比べるのが画素ではなく数値だから —— 固定すべきはフォントのラスタライズではなくブラウザの版で、それは lockfile が担う。**PR でも起動はするが、測るのは差分が要求したときだけ** —— 画面の宣言か器が動いていれば待たずに測り、token とロジックの変更量が `performance-budget.yaml` の線を超えていれば「測っておくと安全」とコメントする（ゲートではない）。**全量を PR で回さない理由は実測にある** —— 計測は直列でしか成立せず（同時に測ると並列度そのものが数値へ混ざる）、23 画面 × 3 試行 × 約 14 秒 ≒ 16 分に対し build は約 1 分。費用は `画面数 × 試行回数` に張り付いており、試行を削れば runner のぶれを吸う中央値を失い、画面を削れば宣言から全数を引く意味を失う。**削るなら網羅ではなく頻度**という判断で、検知が 1 マージぶん遅れる代わりに PR は 1 秒も待たない |
+| Lighthouse | `lighthouse.yaml` | `lighthouse` | 保護ブランチへの push と毎日 1 回、`e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らす（[0101](../../docs/adr/0101-performance-budget.md)）。落ちたら issue を立てる（ブランチごとに 1 本、2 度目は同じ issue へコメント）。**performance スコアは見ない** —— 5 指標の加重平均は、下がったときにどれが下がったかを答えられない。INP は実ユーザの操作を要して lab では測れないため TBT が代わる。撮影（`vrt` / `a11y` / `e2e`）と違ってブラウザをコンテナへ閉じ込めないのは、比べるのが画素ではなく数値だから —— 固定すべきはフォントのラスタライズではなくブラウザの版で、それは lockfile が担う。**PR でも起動はするが、測るのは差分が要求したときだけ** —— 画面の宣言か器が動いていれば待たずに測る。**この job が見るのは構造だけ**で、単に大きいだけの差分は `Deferred Checks` が 3 本ぶんまとめて数える。ラベル（`run-lighthouse`）でも回る。**全量を PR で回さない理由は実測にある** —— 計測は直列でしか成立せず（同時に測ると並列度そのものが数値へ混ざる）、23 画面 × 3 試行 × 約 14 秒 ≒ 16 分に対し build は約 1 分。費用は `画面数 × 試行回数` に張り付いており、試行を削れば runner のぶれを吸う中央値を失い、画面を削れば宣言から全数を引く意味を失う。**削るなら網羅ではなく頻度**という判断で、検知が 1 マージぶん遅れる代わりに PR は 1 秒も待たない |
 | Baseline Prune | `baseline-prune.yaml` | `report` | 月次で基準画像の置き場を測り、閾値を超えたときだけ掃除を促す issue を立てる。**消さない** — 履歴の書き換えは取り消せないので、実行は人が `make baseline-prune` で起こす |
 
 ## ワークフロー一覧（Documentation）
@@ -246,9 +283,9 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 - **actions の SHA ピン** — `uses: owner/repo@<40hex> # <tag>`。moving tag は禁止。**版の SSOT は末尾コメントの tag** であり、tag → SHA の対応は [`../actions-pin.toml`](../actions-pin.toml) が持つ。`make actions-pin-resolve` で解決、`make actions-pin-apply` で反映、`make actions-pin-check` で検査する（`actions-pin` job と pre-commit hook が回す。詳細は [`.makefiles/README.md`](../../.makefiles/README.md)）
 - **最小 permissions** — トップレベルは `contents: read`。PR コメントを書く job だけが `pull-requests: write` を加算する
 - **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.md) §3）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る。**保護ブランチの検査を積むために `false` へ倒すのも禁じる** — 古い木の結果が新しい木の結果を追い越して報告される。打ち切られた実行を失敗と読まないのは、条件式側（`!cancelled()`）の責任である
-- **harden-runner** — 全 job 冒頭で egress を `audit` で記録する
+- **harden-runner** — 全 job 冒頭で外向き通信を**遮断**する（`block`）。許可した宛先の SSOT は [`../egress.yaml`](../egress.yaml) 1 枚で、`make egress-apply` が反映し `make egress-check` が差分で落とす（`actions-pin` と同形。composite action へ寄せられない理由は [0153](../../docs/adr/0153-ci-configuration.md) §3）。**宛先を足す根拠は実測**で、記録が揃っていないものは宣言で `audit` に留める
 - **絵を動かしうる検査は撮り直しへ登録する** — 落ちたときに story の見た目が変わりうる job を足したら、[`baseline-retake.yaml`](baseline-retake.yaml) の `DECIDES_PIXELS` へその job 名を加える。**job を改名するときは新旧の両方を置く** — この配列を読むのは `workflow_run` で起動する撮り直し側であり、そこで使われるのは既定ブランチの定義である（上記）。改名した PR が既定ブランチへ入るまで、照合されるのは旧名のままになる。旧名は既定ブランチが追いついてから外す。該当する check run が無い名前は、単に一致しないだけで害を持たない。**書き漏らすと、壊れた木から撮った絵が基準画像になる**（allowlist なので、登録されていないものは黙って無視される）。逆に、落ちても絵が変わらない検査は入れない — 撮り直しが止まるだけで、止まった理由は撮り直しの側からは説明できない
-- **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck / zizmor の版はワークフロー側に書かない。[`../actions/setup-mise`](../actions/setup-mise/action.yaml) が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.md)）。`matrix` は使わず `ubuntu-latest` 単一
+- **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck / zizmor の版はワークフロー側に書かない。[`../actions/setup-mise`](../actions/setup-mise/action.yaml) が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.md)）。`matrix` を**版や OS の掛け合わせには使わず**、`ubuntu-latest` 単一とする。仕事を割るための `matrix` は別で、費用が件数に比例し 1 台の並列度を使い切っている検査だけが使う（現状は `vrt-shard` の 1 件）。その場合も **required check にするのは束ねる側の単独 job**で、matrix の側ではない（[0153](../../docs/adr/0153-ci-configuration.md) §6）
 - **例外は mise CLI 自身の版** — `mise.toml` は mise が解決する対象を宣言するもので、mise 自身の版を宣言できない。この 1 つだけは `setup-mise` の中に**版と SHA256 の対で**書かれている（[下記](#mise-の導入)）
 
 ## `paths:` フィルタを使わない

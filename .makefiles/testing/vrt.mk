@@ -4,6 +4,8 @@
 # (vrt/README.md)。取り込んでいない状態で回すと全 story が「基準画像が無い」で落ち、
 # 退行と見分けが付かないため手前で止める。
 .PHONY: vrt ## story の見た目を基準画像と比較する (コンテナ内で実行)
+.PHONY: vrt-gate ## 比較を省いてよいかだけを答える (run / skip。build-storybook の後でしか答えられない)
+.PHONY: vrt-record-verified ## 検査が通った時点の入力のハッシュを記録する (全 shard が緑のときだけ)
 .PHONY: vrt-retake ## story の基準画像を撮り直して置き場へ送る (手元からの撮り直しはこれ)
 .PHONY: vrt-update ## story の基準画像を撮り直す (置き場へは送らない)
 .PHONY: baseline-push ## 撮り直した基準画像を置き場へ送り、サブモジュールのポインタを進める
@@ -30,6 +32,29 @@ export BASELINE_RETAKE
 VRT_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
 	-e VRT_ONLY -e BASELINE_RETAKE browser_runner
 
+# 撮影対象の何分割目か (`3/4` の形)。空なら 1 台で全数を撮る。割るのは CI だけである。
+#
+# **判定は台ごとに引く**(理由は下の `vrt-gate`)。前提は、判定の材料である記録
+# (`$(VRT_VERIFIED_FILE)`) を**どの台にも同じように渡す**ことである。
+#
+# 分けた実行のレポートは blob で出す。json と HTML は全 shard を集めてから `merge-reports` が
+# 束ね直すので、割った側がそれぞれ書くと、どれか 1 台ぶんの表が全数の表として残る。
+#
+# **`list` を併せて指定する。**`--reporter` は設定の宣言を上書きするもので、足すものではない
+# （playwright の `takeFirst`）。blob だけを渡すと `list` まで消え、blob は標準出力へ何も書かない
+# ので、実行ログに残るのが build のログだけになる。どの story で詰まったかは、そこにしか出ない。
+VRT_SHARD ?=
+# reporter の区切りのカンマ。`$(if ...)` の引数の区切りと同じ文字なので、直に書くと
+# そこで切られて blob が落ちる。
+COMMA := ,
+
+VRT_SHARD_ARGS := $(if $(VRT_SHARD),--shard=$(VRT_SHARD) --reporter=list$(COMMA)blob,)
+
+# 割っていないか、割った 1 台目か。比較を省いたときに残る対応の検査を担う側である。
+# 数える相手は置き場のファイルと story の全目録で、その実行で走った test ではないため、
+# 台の数だけ繰り返しても同じ答えが出るだけになる。
+VRT_LEAD_SHARD := $(if $(VRT_SHARD),$(filter 1/%,$(VRT_SHARD)),lead)
+
 # 基準画像を撮った時点の入力のハッシュ。置き場が画像と同じコミットで持つ (vrt/README.md)。
 VRT_INPUTS_FILE := baseline/images/render-inputs.sha256
 
@@ -51,6 +76,10 @@ VRT_GATE_MARKER := vrt-gate:
 # 比較を省いた実行でも走らせる検査。基準画像と撮影対象の 1 対 1 の対応だけを選ぶ。
 VRT_BASELINE_TAG := @baselines
 
+# その検査を走らせる形。呼ぶのは 1 台目だけである（$(VRT_LEAD_SHARD)）。
+VRT_BASELINE_CHECK = $(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts \
+	--grep $(VRT_BASELINE_TAG) $(VRT_ARGS)
+
 # 配線の確認。撮り直しは空の置き場から始められる必要があるので、中身までは要求しない。
 VRT_REQUIRE_WIRING = \
 	if [ ! -f .gitmodules ]; then \
@@ -69,15 +98,29 @@ vrt: build-storybook
 	@if [ -z "$$(ls -A baseline/images 2>/dev/null)" ]; then \
 		echo "❌ baseline/images が空です。git submodule update --init baseline/images を実行してください。"; exit 1; \
 	fi
-	@decision="$$(if [ -n "$(VRT_ONLY)" ]; then echo run; else pnpm exec tsx scripts/vrt gate $(VRT_INPUTS_FILE) $(VRT_VERIFIED_FILE); fi)"; \
+	@decision="$$(if [ -n "$(VRT_ONLY)" ]; then echo run; else $(MAKE) --no-print-directory vrt-gate; fi)"; \
 	echo "$(VRT_GATE_MARKER) $$decision"; \
 	if [ "$$decision" = "skip" ]; then \
 		echo "⏭️ 絵を決める入力が前に判定した時点と同じです。比較を省き、対応の検査だけを行います。"; \
-		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --grep $(VRT_BASELINE_TAG) $(VRT_ARGS); \
+		if [ -n "$(VRT_LEAD_SHARD)" ]; then $(VRT_BASELINE_CHECK); \
+		else echo "   対応の検査は 1 台目が担います。"; fi; \
 	else \
-		$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_SPECS) $(VRT_ARGS) \
-			&& $(call RECORD_VERIFIED,$(VRT_VERIFIED_FILE)); \
+		$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_SPECS) $(VRT_SHARD_ARGS) $(VRT_ARGS) \
+			&& $(if $(VRT_SHARD),true,$(call RECORD_VERIFIED,$(VRT_VERIFIED_FILE))); \
 	fi
+
+# 判定だけを答える。**build-storybook の後でしか答えられない** —— 絵を決める入力に
+# `storybook-static` が入っており、build しないと数える相手が無い。
+#
+# よって「先に判定してから撮る側を割る」形は取れない。割った側がそれぞれ build して
+# それぞれ判定する。同じ入力からは同じ答えが出るので、台の間で食い違わない。
+vrt-gate:
+	@pnpm exec tsx scripts/vrt gate $(VRT_INPUTS_FILE) $(VRT_VERIFIED_FILE)
+
+# 記録の実体を書くだけ。**いつ確定させるかは呼ぶ側が決める** —— 割った実行では全台の結果を
+# 知っている `vrt` ジョブ (.github/workflows/vrt.yaml)、割らない実行では本ファイルの `vrt` 自身。
+vrt-record-verified:
+	@$(call RECORD_VERIFIED,$(VRT_VERIFIED_FILE))
 
 # 入力のハッシュは撮った直後に書く。送る側で書くと、撮らずに置き場を直した木でも「この入力で
 # 撮った」と記録でき、次の実行が比較を省いてしまう。

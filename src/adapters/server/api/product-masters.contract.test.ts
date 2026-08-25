@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+// 契約から生成したハンドラそのものを相手にするため、応答を割り当てずに interception だけを立てる。
+import "../../../../vitest.setup.msw";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 
 const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => PARSED_ENVIRONMENT) }));

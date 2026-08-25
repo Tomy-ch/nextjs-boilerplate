@@ -44,10 +44,17 @@ name: Lighthouse
 #     measured at all, so there is no earlier number for the release run to compare against.
 #   * A layout moved — every screen renders through it.
 #
-# Both are structural, which is why neither needs a number to justify it. Volume gets the
-# weaker treatment: past a line count declared in `performance-budget.yaml`, the job leaves a
-# comment naming the command to run and stays green. That threshold is a nudge, not a gate,
-# and it says so where it lives.
+# Both are structural, which is why neither needs a number to justify it — and structural is
+# all this job decides. A diff that is merely large is handled by `deferred-checks.yaml`,
+# which counts once for all three deferred checks and leaves one comment. Keeping a second
+# line count here would put two unprincipled numbers in the repository and two comments
+# saying the same thing on the same pull request.
+#
+# Those two structural reasons are this job's own, and they sit ALONGSIDE the four events
+# `check-trigger` shares with the other deferred checks (promotion, label, manual, and the
+# cadence itself). They exist here and not there because they answer a question only this job
+# has: a screen added on this branch has no earlier number for the release run to compare
+# against, so deferring it defers the comparison too, not just the detection.
 #
 # The job reports a context on every pull request either way, which is what would let it
 # become a required check later; it is deliberately not one today, because the budget is not
@@ -55,6 +62,9 @@ name: Lighthouse
 
 on:
   pull_request:
+    # Spelled out because naming `types` replaces the default set rather than adding to it,
+    # and `labeled` is what lets `run-lighthouse` start a run on a pull request already open.
+    types: [opened, synchronize, reopened, labeled]
   push:
     branches:
       - production
@@ -92,7 +102,27 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            accounts.google.com:443
+            android.clients.google.com:443
+            clients2.google.com:443
+            mtalk.google.com:443
+            update.googleapis.com:443
+            www.google.com:443
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -140,69 +170,28 @@ jobs:
 
       # Everything above this point is what the pull-request path pays: about a minute, and
       # only to answer whether the expensive part is warranted.
-      - name: Decide whether this pull request has to be measured now
+      - name: Decide whether this event has to be measured now
+        id: cadence
+        uses: ./.github/actions/check-trigger
+        with:
+          label: run-lighthouse
+          labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+
+      # Only asked when the shared four did not already say yes, because its answer can only
+      # add reasons to measure, never remove one.
+      - name: Decide whether the diff itself earns a measurement
         id: trigger
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.cadence.outputs.run != 'true'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: pnpm exec tsx scripts/lighthouse trigger "origin/${BASE_REF}"
-
-      # Workflow-authored prose only: the line count is a number this job computed, and the
-      # branch name is filtered below. Nothing here is taken from the diff's own text.
-      - name: Say that the change is large enough to be worth measuring
-        if: steps.trigger.outputs.kind == 'alert'
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-          CHANGED_LINES: ${{ steps.trigger.outputs.changed-lines }}
-        run: |
-          # The block below is pasted into a shell, so a value outside the accepted set is
-          # dropped rather than quoted. Why quoting is not enough is in ADR 0153 §5.
-          ref="${HEAD_REF}"
-
-          if printf '%s' "${ref}" | LC_ALL=C grep -q "[^A-Za-z0-9/._-]"; then
-            ref=''
-          fi
-
-          {
-            printf 'この PR は token とロジックを **%s 行**動かしています。\n' "${CHANGED_LINES}"
-            cat <<'NOTE'
-          差分を読んで critical path への影響を推し量れる規模を超えているので、測っておくことを勧めます。
-          NOTE
-
-            # Indented four spaces: markdown renders that as a code block, and it needs no
-            # fence — a literal fence in a single-quoted string is what shellcheck reads as
-            # a command substitution that will not expand.
-            if [ -n "${ref}" ]; then
-              printf '\n    gh workflow run lighthouse.yaml --ref %s\n' "${ref}"
-            fi
-
-            cat <<'NOTE'
-
-          **これはゲートではありません。** 全画面の計測は保護ブランチへの push と日次で回ります
-          (ADR 0101 §2)。知らせる線は performance-budget.yaml の lighthouse.pullRequest が
-          根拠付きで持ちます。
-          NOTE
-          } > /tmp/lighthouse-alert.md
-
-      - name: Comment the nudge on PR
-        if: steps.trigger.outputs.kind == 'alert'
-        continue-on-error: true
-        uses: ./.github/actions/upsert-pr-comment
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          marker: '<!-- lighthouse-nudge -->'
-          status: alert
-          title: '## 🔎 Lighthouse: この変更は測っておくと安全です'
-          body-file: /tmp/lighthouse-alert.md
-          # Workflow-authored prose, and the one interpolated value is filtered above.
-          body-sanitized: 'true'
 
       # The Next.js build cache is deliberately NOT restored here. A restored cache changes
       # how much work the first render does, and the numbers this job produces would then
       # depend on which branch last populated it rather than on this branch's code.
       - name: Build the app, start it and measure every screen
         id: lighthouse
-        if: github.event_name != 'pull_request' || steps.trigger.outputs.kind == 'force'
+        if: steps.cadence.outputs.run == 'true' || steps.trigger.outputs.kind == 'force'
         continue-on-error: true
         shell: bash
         run: |
@@ -273,17 +262,11 @@ jobs:
       # run superseded by the next merge out of that same net.
       # Only off a pull request. There the failure is already visible on the pull request
       # itself, and an issue per branch would outlive the branch.
-      - name: Raise the failure for a human
+      - name: Compose what the issue says
         if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ github.ref_name }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          title="[Lighthouse] ${BRANCH} で Core Web Vitals が予算を超えている"
-          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" \
-            --json number --jq '.[0].number')"
-
           # The table is what says which screen moved, and it is left to render as markdown:
           # its cells are screen names the declaration fixes and numbers this job computed
           # (ADR 0153 §5 — the accepted character set cannot make markup). The measurement
@@ -316,12 +299,14 @@ jobs:
           NOTE
           } > /tmp/lighthouse-guard.md
 
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/lighthouse-guard.md
-          else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label chore \
-              --body-file /tmp/lighthouse-guard.md
-          fi
+      - name: Raise it where it has an owner
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
+        uses: ./.github/actions/upsert-issue
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: '[Lighthouse] ${{ github.ref_name }} で Core Web Vitals が予算を超えている'
+          body-file: /tmp/lighthouse-guard.md
+          label: chore
 
       - name: Fail if a screen is over its budget
         if: ${{ !cancelled() && steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success' }}

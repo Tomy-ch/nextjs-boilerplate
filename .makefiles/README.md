@@ -203,6 +203,8 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 | `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>] [ACTIONS_PIN_ALLOW_MOVED="<key>..."]` | コメント tag を `git ls-remote` で SHA へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます。既定の検疫日数は 14。不変を宣言した tag の解決先が変わると exit 1（下記）。GitHub API のレート制限に掛かる場合は `GITHUB_TOKEN`（または `GH_TOKEN`）を設定してください。 |
 | `make actions-pin-apply` | ロックファイルを元に `uses:` の `@<sha>` を書き換えます。 | コメント tag は保持します。 |
 | `make actions-pin-check` | `uses:` がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-pin` job が実行します。未登録の参照 / 未固定・不一致の SHA / 壊れたロックファイル / 参照されなくなったエントリ / 解釈できない `uses:` 記法を検出して exit 1（fail-closed）。 |
+| `make egress-apply` | `.github/egress.yaml` を workflow の harden-runner へ反映します。 | 許可した宛先以外への外向き通信は遮断されます（`egress-policy: block`）。**足す根拠は実測**（`audit` が記録した `domain resolved:` 行）に置いてください。記録が揃っていない workflow は宣言側で `audit` に留め、理由と外す条件を書きます。 |
+| `make egress-check` | workflow が宣言どおり固定済みかを検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-lint` job が実行します。宣言との差分 / 想定外の記述 / 参照されなくなったエントリを検出して exit 1（fail-closed）。 |
 
 `uses:` は **1 行 1 ステップのブロック記法**で書いてください。YAML の flow mapping
 （`- {name: X, uses: owner/repo@v1}`）は検査の網に入らないため、素通りではなく error になります。
@@ -281,10 +283,12 @@ tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入�
 | `make scripts-test-cached` | 補助スクリプト（`scripts/**`）の suite を cache 利用で実行します。 | pre-commit 用。export と describe の 1:1 ゲートを含みます。 |
 | `make scripts-test` | 補助スクリプトの suite を cache 無効・coverage 付きで実行します。 | pre-push / CI（`scripts-check`）用。アプリ本体の suite と分けるのは、`scripts/` に居るのが検査機構そのもので、落ちた理由を取り違えないためです（[0090](../docs/adr/0090-testing-strategy.md)）。 |
 | `make build-storybook` | Storybook を静的に build します。 | VRT の撮影対象。`make vrt` / `make vrt-update` が前段で呼びます。 |
-| `make vrt [VRT_ARGS=<args>]` | 全 story を基準画像と比較します。 | digest 固定した Playwright コンテナ内で実行します（[`vrt/README.md`](../vrt/README.md)）。ホスト直実行は比較の前に落ちます。 |
+| `make vrt [VRT_SHARD=<i>/<N>] [VRT_ARGS=<args>]` | 全 story を基準画像と比較します。`VRT_SHARD` は撮影対象の何分割目かで、渡すのは CI だけです。 | digest 固定した Playwright コンテナ内で実行します（[`vrt/README.md`](../vrt/README.md)）。ホスト直実行は比較の前に落ちます。 |
 | `make vrt-retake [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>] [BASELINE_BRANCH=<branch>]` | 基準画像を撮り直して置き場へ送ります（`vrt-update` → `baseline-push`）。 | 手元から撮り直す入口はこれです。撮って送らないと親の gitlink が古いままになり、手元の `make vrt` は通るのに CI だけ落ちます。 |
 | `make vrt-update [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>]` | 基準画像を撮り直します（置き場へは送りません）。 | `VRT_ONLY` は撮り直す story を id で絞ります（該当 0 件なら失敗）。CI 側の同じ操作は `baseline-retake` ラベルが起動し、直前の実行が報告した story だけを対象にします。撮り直しは承認ではなく、見た目の判断は置き場の compare ビューを見て PR レビューで行います。 |
 | `make baseline-push [BASELINE_BRANCH=<branch>]` | 撮り直した一式を置き場へ送り、サブモジュールのポインタを進めます。 | 置き場へ送る経路はここだけです。サブモジュールの中で直接コミットすると撮り直しどうしが繋がり、掃除でどれも落とせなくなります。`BASELINE_BRANCH` の既定は現在のブランチ。 |
+| `make vrt-gate` | 比較を省いてよいかだけを答えます（`run` / `skip`）。 | **`build-storybook` の後でしか答えられません** —— 絵を決める入力に `storybook-static` が入っているためで、CI が「先に判定してから撮影を割る」形を取れない理由もこれです。 |
+| `make vrt-record-verified` | 検査が通った時点の入力のハッシュを記録します。 | CI が呼びます。割った実行では**全 shard が緑になってから**書きます（`vrt.yaml`）。 |
 | `make vrt-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/vrt/`（追跡対象外）。 |
 | `make e2e [E2E_ARGS=<args>] [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | build したアプリを実際のブラウザで動かし、主要ジャーニー・ブラウザが報告する異常・帯ごとの出し分けを 3 つの描画エンジンで回して、画面単位の見た目を基準画像と比べます。 | **アプリはホスト、ブラウザはコンテナ**で動きます（[`e2e/README.md`](../e2e/README.md)）。`node_modules` は入れた OS と CPU 向けに解決されるため、コンテナ内で `next start` は起動できません。起動と後片付けもこのターゲットが持ちます。待ち受けるアドレスはコンテナが到達に使う経路 1 本へ絞ります —— この起動が使う `APP_ENV=ci` ではテスト専用の session 発行の口が開いているため、全インターフェースで待ち受けると LAN から叩ける状態になります。 |
 | `make e2e-update [E2E_ARGS=<args>]` | 画面の基準画像を撮り直します（置き場へは送りません）。 | 送るのは `make baseline-push` です。画面の基準画像も story と同じ置き場の `screen/` 区画に入ります。撮り直しは承認ではありません。 |
