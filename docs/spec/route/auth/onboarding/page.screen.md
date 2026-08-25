@@ -2,7 +2,8 @@
 
 > 機能要件は [`page.function.md`](page.function.md)。
 
-初めての利用で登録情報を作る画面。認証の器に載り、ナビゲーションも脇の領域も出さない。
+初めての利用で登録情報を作る画面。認証の器（[`layout.screen.md`](../layout.screen.md)）に載る。
+ここへ来る前に [`/login`](../login/page.screen.md) で認証が済んでいる。
 
 ## 見せるもの
 
@@ -65,11 +66,6 @@
 成功しても失敗しても、この画面には結果を残さない。成立したときは画面が移り、失敗したときは
 理由をフォームの先頭に出す。
 
-## パンくず
-
-置かない。この画面に着いた利用者はまだどの画面にも入れず、戻れる祖先がない
-（[0026](../../../../adr/0026-layout-shell-mount.md)）。
-
 ## カタログでの確認
 
 Storybook では住所を引く口が存在しないため、応答をカタログ自身が返す。引ける郵便番号は
@@ -80,4 +76,5 @@ Storybook では住所を引く口が存在しないため、応答をカタロ�
 ## 関連
 
 - 実装 `src/features/account/onboarding/`
+- 認証の側 [`/login`](../login/page.screen.md)
 - 同じ項目を扱う画面 [`/mypage/edit`](../../shop/mypage/edit/page.screen.md)
