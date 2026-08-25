@@ -120,13 +120,23 @@ a nested one such as `src/features/admin/shipments/README.md`). It does NOT appl
 P1–P7 like any other kernel README.
 
 The required-section list is **not hardcoded here**. Read `docs/templates/feature-readme.md` and take
-its H2 headings as the required set. That template is the single source of truth for what a feature
-README must carry; if it gains or loses a section, this check follows without editing this skill.
+the `required-sections:` list its header comment declares. That template is the single source of
+truth for what a feature README must carry; if it gains or loses a section, this check follows
+without editing this skill. **Do not derive the set from the template's H2 headings** — the template
+also carries sections that are deliberately optional (a design-rationale section whose heading name
+is not fixed, and a fork-notes section that only some slices need), and treating those as required
+would fail every README in the repository.
 
-For each required H2 the template declares, decide by content rather than exact heading text:
+The table below explains what each currently-declared section means. It is a reading aid, not the
+list: when the template's declaration and this table disagree, the template wins, and a section the
+template declares but this table does not describe is still required.
+
+For each required section, decide by content rather than exact heading text:
 
 | Required section | Satisfied when |
 | --- | --- |
+| 受け入れるもの | The slice's own line — what it takes on — not a restatement of the layer README's acceptance criteria |
+| 受け入れないもの | What it hands to a neighbour, naming the destination (`components` / `model` / another feature's facade) |
 | Route と契約 | Every route this slice owns is listed with a link to its `docs/spec/route/**` pair, plus the operationIds it uses (or an explicit statement that it uses none, with the reason) |
 | 状態とデザイン参照 | Each state the slice can show is mapped to a Storybook story id (`<title>/<export>`), or the absence of a story is stated with its reason |
 | 構成 | A file/directory table covering what the slice owns |
