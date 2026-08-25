@@ -11,12 +11,38 @@ import { SCREEN_AREA } from "./store";
 /** 消えた画像を表す状態。`git diff --name-status` が行頭に置く。 */
 const DELETED = "D";
 
+/**
+ * 前の一式に同じパスが無いことを表す状態。
+ *
+ * @remarks
+ * `A` は初めて置かれたもの、`R` は行き先のパスが新しいもの。**改名を新規と同じ側に置きます** ——
+ * 絵そのものは前の一式にも在りますが、在るのは改名前のパスなので、行き先のパスで前を引くと
+ * 存在しない先を指します。
+ */
+const WITHOUT_PREVIOUS = ["A", "R"];
+
 /** 撮り直した対象。見直しの入口が種類ごとに分かれているので、ここでも分けて返す。 */
 export type RetakenTargets = {
   /** story の id。`make vrt-review` の `VRT_ONLY` に渡せる形。 */
   readonly stories: readonly string[];
   /** 画面の名前。`make e2e-review` の `E2E_ONLY` に渡せる形。 */
   readonly screens: readonly string[];
+  /**
+   * 動いた画像の置き場相対のパス。畳まずに 1 枚ずつ持つ。
+   *
+   * @remarks
+   * 名前の側（`stories` / `screens`）はテーマ違い・帯違いを 1 つに畳むので、枚数を数える器には
+   * なりません。**撮り直しのコメントが数えるのも並べるのもここです。**
+   */
+  readonly images: readonly string[];
+  /**
+   * そのうち、前の一式に同じパスが無いもの。
+   *
+   * @remarks
+   * **前を引ける先がありません。** 初めて置かれたものと、改名で行き先のパスが変わったものが
+   * 入ります。前後を並べる側は、この集合を「前」の無いものとして扱う必要があります。
+   */
+  readonly unpaired: readonly string[];
 };
 
 /**
@@ -32,6 +58,7 @@ export type RetakenTargets = {
  *
  * **同じ対象が複数の画像を持ちます。** story はテーマごと、画面は帯ごとに 1 枚ずつなので、
  * 畳まないと同じ名前が並びます。重複は最初の 1 つだけ残し、順序は受け取ったままにします。
+ * 畳むのは名前の側だけです（{@link RetakenTargets.images}）。
  *
  * 画像以外は落とします。置き場は根に説明と絵を決める入力のハッシュを持つためです。
  *
@@ -40,6 +67,8 @@ export type RetakenTargets = {
 export function retakenTargets(entries: readonly string[]): RetakenTargets {
   const stories = new Set<string>();
   const screens = new Set<string>();
+  const images: string[] = [];
+  const unpaired: string[] = [];
 
   for (const entry of entries) {
     const field = entry.indexOf("\t");
@@ -55,7 +84,9 @@ export function retakenTargets(entries: readonly string[]): RetakenTargets {
     const area = image.slice(0, image.indexOf("/"));
 
     (area === SCREEN_AREA ? screens : stories).add(name);
+    images.push(image);
+    if (WITHOUT_PREVIOUS.some((status) => entry.startsWith(status))) unpaired.push(image);
   }
 
-  return { stories: [...stories], screens: [...screens] };
+  return { stories: [...stories], screens: [...screens], images, unpaired };
 }
