@@ -36,6 +36,33 @@ async function loadRenderSpan(scope?: { screens: boolean; parts: boolean }) {
   return module;
 }
 
+describe("configureRenderSpans", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    for (const mock of Object.values(mocks)) {
+      mock.mockReset();
+    }
+    mocks.startActiveSpan.mockImplementation((_name: string, run: (span: unknown) => unknown) =>
+      run({ end: mocks.end, setStatus: mocks.setStatus, recordException: mocks.recordException }),
+    );
+    mocks.getTracer.mockReturnValue({ startActiveSpan: mocks.startActiveSpan });
+  });
+
+  it("注入した範囲は、別のモジュールインスタンスから読んでも同じである", async () => {
+    const { configureRenderSpans } = await loadRenderSpan();
+
+    configureRenderSpans({ screens: true, parts: true });
+    // `vi.resetModules()` を挟んで読み直す。これが起動境界と描画で別々に評価される状況にあたる。
+    vi.resetModules();
+    const { withPartSpan } = await import("./render-span");
+    const Component = withPartSpan("features/example/ui/card/card", () => <li>商品</li>);
+
+    Component();
+
+    expect(mocks.startActiveSpan).toHaveBeenCalledOnce();
+  });
+});
+
 describe("withScreenSpan", () => {
   beforeEach(() => {
     vi.resetModules();
