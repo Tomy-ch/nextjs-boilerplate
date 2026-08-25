@@ -43,7 +43,7 @@ flowchart TD
 
 | 層 | 実物 | そこが持っているもの |
 | --- | --- | --- |
-| `app` | [`(shop)/products/page.tsx`](../src/app/%28shop%29/products/page.tsx) | metadata・待機の境界・feature の呼び出しだけ。判断を持たない |
+| `app` | [`(shop)/products/page.tsx`](<../src/app/(shop)/products/page.tsx>) | metadata・待機の境界・feature の呼び出しだけ。判断を持たない |
 | `features` | [`products/list/page-content.tsx`](../src/features/products/list/page-content.tsx) | 条件の解釈と組み立て。取り直す範囲の区切り |
 | `features` | [`products/list/view.tsx`](../src/features/products/list/view.tsx) | 表示。取得を持たないので story で全状態を出せる |
 | `adapters` | [`server/api/products.ts`](../src/adapters/server/api/products.ts) | 取得・検証・表示モデルへの変換。生成型はここから出ない |

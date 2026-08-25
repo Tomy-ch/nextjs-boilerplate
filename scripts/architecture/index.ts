@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { KERNELS, type Kernel } from "../../architecture";
@@ -20,16 +20,18 @@ import { findBoundaryDrift, parseBoundaryFrontmatter } from "./readme-boundaries
 function collectBoundaryReadmes(): { path: string; kernel: Kernel }[] {
   const found: { path: string; kernel: Kernel }[] = [];
 
+  // 種別は `readdirSync` が返したものを使い、`statSync` で問い直さない。問い直すと
+  // 「調べた時点」と「読む時点」が別々になり、その間に入れ替わったものを読む形になる。
   const walk = (directory: string, kernel: Kernel): void => {
-    for (const entry of readdirSync(directory)) {
-      const path = join(directory, entry);
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
 
-      if (statSync(path).isDirectory()) {
+      if (entry.isDirectory()) {
         walk(path, kernel);
         continue;
       }
 
-      if (entry !== "README.md") {
+      if (entry.name !== "README.md") {
         continue;
       }
 

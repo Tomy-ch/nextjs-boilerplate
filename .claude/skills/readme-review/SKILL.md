@@ -114,8 +114,8 @@ Apply N1–N4 conservatively. If the README has *any* substantial Design / Role 
 
 ## Step 2b. Feature READMEs: Required-Section Check
 
-**This step runs only when the target sits under `src/features/`** (a feature slice README, including
-a nested one such as `src/features/admin/shipments/README.md`). It does NOT apply to
+**This step runs only when the target sits under `src/features/`** — a feature slice README, including
+a nested one when a screen inside a slice carries its own. It does NOT apply to
 `src/features/README.md` itself — that is the layer README, and the layer's own duties are graded by
 P1–P7 like any other kernel README.
 
@@ -152,7 +152,7 @@ that lists states without stories, a テスト観点 section that only repeats t
 route, or an Action is asserting something checkable:
 
 - story ids against the `title:` plus exported story names in the slice's `*.stories.tsx`
-- operationIds against `openapi/api.gen.yaml`
+- operationIds against the repository's OpenAPI contract under `openapi/` <!-- skill-lint-ignore -->
 - spec links against the files under `docs/spec/route/`
 - Action names against the `export async function` declarations in modules carrying `"use server"`
 

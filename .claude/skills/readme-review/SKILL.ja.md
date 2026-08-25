@@ -107,8 +107,8 @@ N1〜N4 は保守的に適用。Design / Role / Architecture セクションが�
 
 ## Step 2b. feature README の必須節チェック
 
-**この段はターゲットが `src/features/` 配下のときだけ走ります**（入れ子の
-`src/features/admin/shipments/README.md` も含む）。`src/features/README.md` 自身は対象外です ——
+**この段はターゲットが `src/features/` 配下のときだけ走ります** —— slice の中の 1 画面が自分の
+README を持っている場合、その入れ子も含みます。`src/features/README.md` 自身は対象外です ——
 あれは層 README で、層としての務めは他のカーネル README と同じく P1〜P7 で採点します。
 
 **必須節の一覧をここに焼き込みません。**`docs/templates/feature-readme.md` を読み、冒頭のコメントが
@@ -143,7 +143,7 @@ N1〜N4 は保守的に適用。Design / Role / Architecture セクションが�
 名指ししているとき、それは照合できる主張です。
 
 - story 識別子 → その slice の `*.stories.tsx` の `title:` と export 名
-- operationId → `openapi/api.gen.yaml`
+- operationId → `openapi/` に置かれたこのリポジトリの OpenAPI 契約 <!-- skill-lint-ignore -->
 - 仕様書への link → `docs/spec/route/` 配下の実ファイル
 - Action 名 → `"use server"` を持つ module の `export async function`
 
