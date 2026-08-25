@@ -11,7 +11,6 @@ const {
   createProduct,
   redirect,
   updateProduct,
-  updateTag,
   uploadProductImage,
   verifySession,
 } = vi.hoisted(() => ({
@@ -21,12 +20,10 @@ const {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
   updateProduct: vi.fn(),
-  updateTag: vi.fn(),
   uploadProductImage: vi.fn(),
   verifySession: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ updateTag }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/config/http/http.client", () => ({ MAX_UPLOAD_BYTES: 4 * 1024 * 1024 }));
@@ -165,13 +162,12 @@ describe("uploadProductImageAction", () => {
 
 describe("createProductAction", () => {
   // ----- 正常系 -----
-  it("成立したら一覧へ送り、商品を読む取得を取り直させる", async () => {
+  it("成立したら一覧へ送る", async () => {
     createProduct.mockResolvedValue({});
 
     await expect(createProductAction(idleActionState(), productForm())).rejects.toThrow(
       "NEXT_REDIRECT:/admin/products",
     );
-    expect(updateTag).toHaveBeenCalledWith("products");
   });
 
   // ----- 異常系 -----
@@ -218,13 +214,12 @@ describe("createProductAction", () => {
 
 describe("updateProductAction", () => {
   // ----- 正常系 -----
-  it("成立したら一覧へ送り、商品を読む取得を取り直させる", async () => {
+  it("成立したら一覧へ送る", async () => {
     updateProduct.mockResolvedValue({});
 
     await expect(updateProductAction(idleActionState(), productForm())).rejects.toThrow(
       "NEXT_REDIRECT:/admin/products",
     );
-    expect(updateTag).toHaveBeenCalledWith("products");
   });
 
   it("読み込んだ時点の版を添えて送る", async () => {
@@ -311,12 +306,10 @@ describe("adjustProductStockAction", () => {
     expect(adjustProductStock).toHaveBeenCalledWith(PRODUCT_ID, -50);
   });
 
-  it("成立したら商品を読む取得を取り直させる", async () => {
+  it("成立したら一覧へ送る", async () => {
     await expect(adjustProductStockAction(idleActionState(), stockForm())).rejects.toThrow(
       "NEXT_REDIRECT:/admin/products",
     );
-
-    expect(updateTag).toHaveBeenCalledWith("products");
   });
 
   // ----- 異常系 -----
@@ -356,7 +349,6 @@ describe("adjustProductStockAction", () => {
     const state = await adjustProductStockAction(idleActionState(), stockForm());
 
     expect(state).toMatchObject({ status: "error", kind: ErrorKind.CONFLICT });
-    expect(updateTag).not.toHaveBeenCalled();
   });
 
   it("一時的に受け付けられないときは、時間を空ける旨の分類で返す", async () => {

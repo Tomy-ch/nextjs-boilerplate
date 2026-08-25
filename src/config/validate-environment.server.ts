@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * この module を import すると、全 server Config singleton が評価される。
  *

@@ -3,17 +3,22 @@ import { runInNewContext } from "node:vm";
 import { gzipSync } from "node:zlib";
 
 import { hasFailure, judge, type Measurement, missingRoutes, parseBudget } from "./budget";
+import { deferredChunks } from "./deferred";
 import {
   artifactDirOf,
+  entryStylesheets,
   initialChunks,
   type RouteBuildManifest,
+  type RouteBundleStats,
   type RscManifest,
+  sharedChunks,
+  statsChunks,
   unionByRoute,
 } from "./manifest";
 import { renderReport } from "./report";
 
 /**
- * client JavaScript の量を成果物から測り、予算と照らす。
+ * client 側の資材の量を成果物から測り、予算と照らす。
  *
  * 使い方: `tsx scripts/bundle-budget [<current .next>] [<base .next>]`
  *
@@ -39,7 +44,16 @@ function readRscManifest(path: string, pagePath: string): RscManifest | undefine
   return context.__RSC_MANIFEST?.[pagePath];
 }
 
-function measure(dir: string): Measurement[] {
+/** 1 つの build 成果物から引いた計測。 */
+type Survey = {
+  readonly measurements: Measurement[];
+  /** 2 つ以上の route が初期で読む chunk の総量（gzip した byte）。 */
+  readonly sharedJs: number;
+  /** 遅延として引けた chunk の総数。抽出が生きていることを報告へ載せるために持つ。 */
+  readonly deferredChunkCount: number;
+};
+
+function measure(dir: string): Survey {
   const routes = readJson<Record<string, string>>(`${dir}/app-path-routes-manifest.json`);
 
   if (routes === undefined) {
@@ -48,37 +62,71 @@ function measure(dir: string): Measurement[] {
 
   // route handler は client bundle を持たない。0 KB の行を並べても読む人が得るものが無い。
   const pages = Object.entries(routes).filter(([pagePath]) => pagePath.endsWith("/page"));
+  // Next 自身が数えた初期の一式。持っていない route だけ manifest の和集合へ落ちる。
+  const stats = statsChunks(
+    readJson<RouteBundleStats>(`${dir}/diagnostics/route-bundle-stats.json`),
+  );
+
+  // 中身を読むのは chunk 1 つにつき 1 度だけ。遅延の閉包は route をまたいで同じ chunk を辿る。
+  const contents = new Map<string, string | null>();
+  const read = (chunk: string): string | null => {
+    const cached = contents.get(chunk);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const path = `${dir}/${chunk}`;
+    const content = existsSync(path) ? readFileSync(path, "utf8") : null;
+    contents.set(chunk, content);
+
+    return content;
+  };
 
   const perEntry = pages.map(([pagePath, route]) => {
     const artifact = `${dir}/${artifactDirOf(pagePath)}`;
+    const rsc = readRscManifest(`${artifact}_client-reference-manifest.js`, pagePath);
+    const initial =
+      stats.get(route) ??
+      initialChunks(rsc, readJson<RouteBuildManifest>(`${artifact}/build-manifest.json`));
 
     return {
       route,
-      chunks: initialChunks(
-        readRscManifest(`${artifact}_client-reference-manifest.js`, pagePath),
-        readJson<RouteBuildManifest>(`${artifact}/build-manifest.json`),
-      ),
+      initial,
+      deferred: deferredChunks(initial, read),
+      css: entryStylesheets(rsc),
     };
   });
 
-  return unionByRoute(perEntry).map(({ route, chunks }) => {
-    let gzip = 0;
-    for (const chunk of chunks) {
-      const path = `${dir}/${chunk}`;
-      if (existsSync(path)) {
-        gzip += gzipSync(readFileSync(path)).length;
-      }
-    }
+  const byRoute = unionByRoute(perEntry);
+  const shared = sharedChunks(byRoute);
 
-    return { route, gzip };
-  });
+  const gzip = (chunk: string): number => {
+    const path = `${dir}/${chunk}`;
+
+    return existsSync(path) ? gzipSync(readFileSync(path)).length : 0;
+  };
+  const sum = (chunks: readonly string[]): number =>
+    chunks.reduce((total, chunk) => total + gzip(chunk), 0);
+
+  return {
+    measurements: byRoute.map(({ route, initial, deferred, css }) => ({
+      route,
+      initialJs: sum(initial),
+      sharedJs: sum(initial.filter((chunk) => shared.has(chunk))),
+      deferredJs: sum(deferred),
+      css: sum(css),
+    })),
+    sharedJs: sum([...shared]),
+    deferredChunkCount: new Set(byRoute.flatMap(({ deferred }) => deferred)).size,
+  };
 }
 
 function main(): void {
   const [current = ".next", base] = process.argv.slice(2);
   const budget = parseBudget(readFileSync(BUDGET_FILE, "utf8"));
-  const measured = measure(current);
-  const missing = missingRoutes(measured, budget);
+  const survey = measure(current);
+  const missing = missingRoutes(survey.measurements, budget);
 
   if (missing.length > 0) {
     console.error(
@@ -90,18 +138,42 @@ function main(): void {
     return;
   }
 
-  const verdicts = judge(measured, base === undefined ? [] : measure(base), budget);
+  const previous = base === undefined ? undefined : measure(base);
 
-  console.log(renderReport(verdicts));
-
-  if (hasFailure(verdicts)) {
-    console.error("\n❌ client JavaScript が予算を超えました。");
+  // 遅延の抽出は Turbopack の出力形式へ依存する（`deferred.ts`）。形が変われば 0 件へ落ち、
+  // 「遅延なし」として静かに緑になる。base で引けていたものが引けなくなったことは、その形が
+  // 変わった合図でしかないので、量の判定より先にここで落とす。
+  if (
+    previous !== undefined &&
+    previous.deferredChunkCount > 0 &&
+    survey.deferredChunkCount === 0
+  ) {
+    console.error(
+      `❌ base では ${previous.deferredChunkCount} 件あった遅延 chunk を 1 件も引けませんでした。\n` +
+        "成果物の形が変わって抽出が効かなくなった可能性があります（scripts/bundle-budget/deferred.ts）。",
+    );
     process.exitCode = 1;
 
     return;
   }
 
-  console.log("\n✅ client JavaScript は予算に収まっています。");
+  const verdicts = judge(survey.measurements, previous?.measurements ?? [], budget);
+
+  console.log(
+    renderReport(verdicts, {
+      sharedJs: { current: survey.sharedJs, base: previous?.sharedJs, overGrowth: undefined },
+      deferredChunkCount: survey.deferredChunkCount,
+    }),
+  );
+
+  if (hasFailure(verdicts)) {
+    console.error("\n❌ client 側の資材が予算を超えました。");
+    process.exitCode = 1;
+
+    return;
+  }
+
+  console.log("\n✅ client 側の資材は予算に収まっています。");
 }
 
 main();

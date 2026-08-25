@@ -1,11 +1,9 @@
 "use server";
 
-import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   adjustProductStock,
   createProduct,
-  PRODUCTS_TAG,
   updateProduct,
   uploadProductImage,
 } from "@/adapters/server/api/products";
@@ -51,20 +49,6 @@ async function assertAdmin(): Promise<void> {
       cause: new Error("管理の操作に必要な役割がありません"),
     });
   }
-}
-
-/**
- * 商品を読む取得をまとめて取り直させる。
- *
- * @remarks
- * `updateTag` を使うのは、この直後に一覧へ送るためです。次の要求は新しい値を待ってから描かれる
- * ので、たった今作った商品が並んでいない一覧を見せずに済みます。
- *
- * 印は取得の側が付けており（`PRODUCTS_TAG`）、管理と利用者向けのどちらの画面から読んでも同じ
- * 印が付きます。路ごとに個別へ取り直させると、印の付いた取得が増えるたびに書き足しが要ります。
- */
-function revalidateProducts(): void {
-  updateTag(PRODUCTS_TAG);
 }
 
 /**
@@ -144,7 +128,6 @@ export async function createProductAction(
     return actionStateFromError(error);
   }
 
-  revalidateProducts();
   redirect(ADMIN_PRODUCT_LIST_PATH);
 }
 
@@ -192,7 +175,6 @@ export async function updateProductAction(
     return actionStateFromError(error);
   }
 
-  revalidateProducts();
   redirect(ADMIN_PRODUCT_LIST_PATH);
 }
 
@@ -228,6 +210,5 @@ export async function adjustProductStockAction(
     return actionStateFromError(error);
   }
 
-  revalidateProducts();
   redirect(ADMIN_PRODUCT_LIST_PATH);
 }

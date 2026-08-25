@@ -270,3 +270,26 @@ export const RESTRICTED_AREAS = [
   allowedFromCategories: readonly string[];
   dependencies: readonly Kernel[];
 }[];
+
+/**
+ * Node.js の実行環境そのものへ触ってよい場所。
+ *
+ * @remarks
+ * 層の依存表が見ているのは「どの層がどの層を import してよいか」だけで、**その層のコードが
+ * server と client のどちらで動くか**は見ていません。`process` と `node:` の組み込みモジュールは
+ * client の束へ載った時点で壊れるため、届く範囲を層とは別の軸で宣言します。
+ *
+ * - `src/config/**` — 環境変数の読み取りをこのカーネルへ閉じるのは
+ *   [0030](docs/adr/0030-environment-variable-management.md) の決定です。`process.env` の直読が
+ *   他所へ散ると、値の出所と既定値がコードのどこにでも書けるようになります
+ * - `src/instrumentation.ts` — 起動境界。どの runtime に居るかを `NEXT_RUNTIME` で分けるため、
+ *   config を読む前に `process` へ触る必要があります
+ * - `src/components/scripts/**` — リポジトリ自身を操作する道具（`pnpm add:ui` /
+ *   `pnpm check:ui` / `pnpm check:classes`）で、アプリの束には入りません。部品の隣に置いてあるのは
+ *   対象が部品だからで、実行するのは Node であってブラウザではありません
+ */
+export const NODE_RUNTIME_ACCESS = [
+  "src/config/**",
+  "src/instrumentation.ts",
+  "src/components/scripts/**",
+] as const;

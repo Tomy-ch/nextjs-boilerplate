@@ -22,7 +22,6 @@ import {
   getProductListPage,
   getProductRanking,
   getProducts,
-  PRODUCTS_TAG,
   parseProductQuery,
   toProduct,
   toProductPage,
@@ -326,13 +325,16 @@ describe("getProducts", () => {
     expect(requests[0]?.url).toBe(`${PRODUCTS_URL}?keyword=%E9%9E%84`);
   });
 
-  it("再検証のタグを付ける", async () => {
+  it("Data Cache へ入れず、印も付けない", async () => {
     serveJson(PRODUCTS_URL, wirePage);
     const fetchImpl = watchFetch();
 
     await getProducts({ keyword: "靴" });
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: [PRODUCTS_TAG] } });
+    const options = fetchImpl.mock.calls[0]?.[1];
+
+    expect(options).not.toHaveProperty("next.tags");
+    expect(options).not.toMatchObject({ cache: "force-cache" });
   });
 
   it("条件を省略しても取得できる", async () => {
@@ -422,6 +424,18 @@ describe("getProductCount", () => {
 
     await expect(getProductCount()).resolves.toBe(7);
   });
+
+  it("Data Cache へ入れず、印も付けない", async () => {
+    serveJson(COUNT_URL, { count: 0 });
+    const fetchImpl = watchFetch();
+
+    await getProductCount({ keyword: "靴" });
+
+    const options = fetchImpl.mock.calls[0]?.[1];
+
+    expect(options).not.toHaveProperty("next.tags");
+    expect(options).not.toMatchObject({ cache: "force-cache" });
+  });
 });
 
 describe("getProduct", () => {
@@ -442,13 +456,16 @@ describe("getProduct", () => {
     expect(requests[0]?.url).toBe(`${PRODUCTS_URL}/${wireProduct.id}`);
   });
 
-  it("再検証のタグを付ける", async () => {
+  it("Data Cache へ入れず、印も付けない", async () => {
     serveJson(PRODUCT_URL, wireProduct);
     const fetchImpl = watchFetch();
 
     await getProduct(toProductId(wireProduct.id));
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: [PRODUCTS_TAG] } });
+    const options = fetchImpl.mock.calls[0]?.[1];
+
+    expect(options).not.toHaveProperty("next.tags");
+    expect(options).not.toMatchObject({ cache: "force-cache" });
   });
 
   it("ID をパスへ載せる前に URL として安全な形へ変換する", async () => {
@@ -579,8 +596,8 @@ describe("uploadProductImage", () => {
     serveStatus("post", IMAGES_URL, 413);
 
     await expect(
-      uploadProductImage(new File(["x"], "a.png", { type: "image/png" })),
-    ).rejects.toThrow();
+      kindOf(() => uploadProductImage(new File(["x"], "a.png", { type: "image/png" }))),
+    ).resolves.toBe(ErrorKind.PAYLOAD_TOO_LARGE);
   });
 });
 
@@ -653,7 +670,9 @@ describe("updateProduct", () => {
   it("版が食い違った応答を分類済みのエラーとして返す", async () => {
     serveStatus("patch", PRODUCT_URL, 409);
 
-    await expect(updateProduct(id, { ...DRAFT, version: 1 })).rejects.toThrow();
+    await expect(kindOf(() => updateProduct(id, { ...DRAFT, version: 1 }))).resolves.toBe(
+      ErrorKind.CONFLICT,
+    );
   });
 });
 

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { artifactDirOf, initialChunks, unionByRoute } from "./manifest";
+import {
+  artifactDirOf,
+  entryStylesheets,
+  initialChunks,
+  sharedChunks,
+  statsChunks,
+  unionByRoute,
+} from "./manifest";
 
 describe("initialChunks", () => {
   // ----- 正常系 -----
@@ -74,41 +81,131 @@ describe("artifactDirOf", () => {
   });
 });
 
-describe("unionByRoute", () => {
+describe("entryStylesheets", () => {
   // ----- 正常系 -----
-  it("同じ公開 route を指す entry の chunk を和集合にする", () => {
+  it("entry ごとの stylesheet を和集合にする", () => {
+    expect(
+      entryStylesheets({
+        entryCSSFiles: {
+          "[project]/src/app/layout": [{ path: "static/chunks/base.css" }],
+          "[project]/src/app/admin/page": [
+            { path: "static/chunks/base.css" },
+            { path: "static/chunks/admin.css" },
+          ],
+        },
+      }),
+    ).toEqual(["static/chunks/base.css", "static/chunks/admin.css"]);
+  });
+
+  it("`_next` を先頭に持つ綴りを成果物からの相対へ均す", () => {
+    expect(
+      entryStylesheets({ entryCSSFiles: { a: [{ path: "/_next/static/chunks/a.css" }] } }),
+    ).toEqual(["static/chunks/a.css"]);
+  });
+
+  it("manifest が無ければ空を返す", () => {
+    expect(entryStylesheets(undefined)).toEqual([]);
+  });
+
+  it("stylesheet を持たない route では空を返す", () => {
+    expect(entryStylesheets({ entryCSSFiles: {} })).toEqual([]);
+  });
+});
+
+describe("unionByRoute", () => {
+  const entry = (
+    route: string,
+    initial: string[],
+    deferred: string[] = [],
+    css: string[] = [],
+  ) => ({
+    route,
+    initial,
+    deferred,
+    css,
+  });
+
+  // ----- 正常系 -----
+  it("同じ公開 route を指す entry の資材を和集合にする", () => {
     expect(
       unionByRoute([
-        { route: "/admin", chunks: ["a.js", "shared.js"] },
-        { route: "/admin", chunks: ["breadcrumb.js", "shared.js"] },
+        entry("/admin", ["a.js", "shared.js"], ["lazy.js"], ["base.css"]),
+        entry("/admin", ["breadcrumb.js", "shared.js"], ["lazy.js"], ["admin.css"]),
       ]),
-    ).toEqual([{ route: "/admin", chunks: ["a.js", "shared.js", "breadcrumb.js"] }]);
+    ).toEqual([
+      {
+        route: "/admin",
+        initial: ["a.js", "shared.js", "breadcrumb.js"],
+        deferred: ["lazy.js"],
+        css: ["base.css", "admin.css"],
+      },
+    ]);
+  });
+
+  it("別の entry が初期で読むものは遅延から外す", () => {
+    expect(
+      unionByRoute([entry("/admin", [], ["shared.js"]), entry("/admin", ["shared.js"])]),
+    ).toEqual([{ route: "/admin", initial: ["shared.js"], deferred: [], css: [] }]);
   });
 
   it("公開 route が違えば畳まない", () => {
-    expect(
-      unionByRoute([
-        { route: "/admin", chunks: ["a.js"] },
-        { route: "/admin/users", chunks: ["b.js"] },
-      ]),
-    ).toEqual([
-      { route: "/admin", chunks: ["a.js"] },
-      { route: "/admin/users", chunks: ["b.js"] },
+    expect(unionByRoute([entry("/admin", ["a.js"]), entry("/admin/users", ["b.js"])])).toEqual([
+      { route: "/admin", initial: ["a.js"], deferred: [], css: [] },
+      { route: "/admin/users", initial: ["b.js"], deferred: [], css: [] },
     ]);
   });
 
   it("最初に現れた順で返す", () => {
     expect(
-      unionByRoute([
-        { route: "/b", chunks: [] },
-        { route: "/a", chunks: [] },
-        { route: "/b", chunks: ["x.js"] },
-      ]).map((entry) => entry.route),
+      unionByRoute([entry("/b", []), entry("/a", []), entry("/b", ["x.js"])]).map(
+        (row) => row.route,
+      ),
     ).toEqual(["/b", "/a"]);
   });
 
-  // ----- 異常系 -----
   it("entry が 1 つも無ければ空を返す", () => {
     expect(unionByRoute([])).toEqual([]);
+  });
+});
+
+describe("statsChunks", () => {
+  // ----- 正常系 -----
+  it("route ごとの初期 JS を、成果物からの相対へ均して返す", () => {
+    const chunks = statsChunks([
+      { route: "/", firstLoadChunkPaths: [".next/static/chunks/a.js", "static/chunks/b.js"] },
+    ]);
+
+    expect(chunks.get("/")).toEqual(["static/chunks/a.js", "static/chunks/b.js"]);
+  });
+
+  it("chunk を持たない route も鍵として残す", () => {
+    expect(statsChunks([{ route: "/" }]).get("/")).toEqual([]);
+  });
+
+  it("読めなかった場合は空を返し、呼び出し側が和集合へ落ちられる", () => {
+    expect(statsChunks(undefined).size).toBe(0);
+  });
+});
+
+describe("sharedChunks", () => {
+  const entry = (route: string, initial: string[]) => ({ route, initial, deferred: [], css: [] });
+
+  // ----- 正常系 -----
+  it("2 つ以上の route が読む chunk を挙げる", () => {
+    expect([
+      ...sharedChunks([entry("/a", ["shared.js", "a.js"]), entry("/b", ["shared.js", "b.js"])]),
+    ]).toEqual(["shared.js"]);
+  });
+
+  it("1 つの route しか読まない chunk は挙げない", () => {
+    expect([...sharedChunks([entry("/a", ["a.js"]), entry("/b", ["b.js"])])]).toEqual([]);
+  });
+
+  it("route が 1 つしか無ければ、共有は無いものとして扱う", () => {
+    expect([...sharedChunks([entry("/a", ["a.js", "b.js"])])]).toEqual([]);
+  });
+
+  it("route が 1 つも無ければ空を返す", () => {
+    expect([...sharedChunks([])]).toEqual([]);
   });
 });

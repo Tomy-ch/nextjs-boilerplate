@@ -1,12 +1,19 @@
 name: Bundle Budget
 
-# Measures the client JavaScript each route makes the browser download first, and holds it
-# against `performance-budget.yaml` (ADR 0101).
+# Measures what each route makes the browser download, and holds it against
+# `performance-budget.yaml` (ADR 0101).
 #
 # Next 16 prints no size column, so the numbers come from the build output itself: the
-# route's own client chunks (`__RSC_MANIFEST`) unioned with the shared runtime and polyfill
-# chunks (the route's `build-manifest.json`). For a static route that union equals the
-# scripts its emitted HTML loads, which is what makes the number checkable.
+# route's own client chunks (`__RSC_MANIFEST`) unioned with the shared runtime chunks (the
+# route's `build-manifest.json`). For a static route that union equals the scripts its
+# emitted HTML loads, which is what makes the number checkable.
+#
+# Three more quantities sit beside that initial figure. **Deferred JavaScript** is read out
+# of the chunk loader Turbopack emits, so what `next/dynamic` hides still gets counted —
+# without it, moving something heavy behind a dynamic import reads as a shrink even though
+# the person using the screen downloads exactly as much. **Total** is the sum, and it is
+# what keeps such a move honest. **CSS** is measured because it blocks rendering and lands
+# straight on LCP, which is the metric ADR 0101 budgets.
 #
 # The base branch is built too. A ceiling alone lets a change spend the headroom a few KB at
 # a time until some later pull request crosses the line — the red then lands on whoever went
@@ -71,9 +78,11 @@ jobs:
         with:
           persist-credentials: false
 
-      # What cannot change the amount of client JavaScript. CSS, tokens, stories and tests are
-      # listed because this job measures `.js` alone; `.github/**` and `scripts/**` are not,
-      # because a change to this workflow or to the measurement has to be measured.
+      # What cannot change what a route downloads. Stories and tests are listed because they
+      # never reach the application bundle; `.github/**` and `scripts/**` are not, because a
+      # change to this workflow or to the measurement has to be measured. CSS and the design
+      # tokens are not listed either: the budget now covers stylesheets, and a diff that only
+      # moves CSS is exactly the diff that used to leave this job asleep.
       - name: Decide whether the diff can reach the bundle
         id: scope
         uses: ./.github/actions/diff-scope
@@ -88,8 +97,6 @@ jobs:
             .gemini/*
             vrt/*
             .storybook/*
-            tokens/*
-            *.css
             *.test.ts
             *.test.tsx
             *.stories.tsx
@@ -165,10 +172,10 @@ jobs:
 
           if [ "${code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
-            echo "title=## ✅ Bundle budget: PASS (client JS)" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Bundle budget: PASS (client JS / CSS)" >> "$GITHUB_OUTPUT"
           else
             echo "status=failure" >> "$GITHUB_OUTPUT"
-            echo "title=## ❌ Bundle budget: FAIL (client JS)" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Bundle budget: FAIL (client JS / CSS)" >> "$GITHUB_OUTPUT"
           fi
 
           exit 0
@@ -184,7 +191,7 @@ jobs:
         shell: bash
         run: |
           echo 'title=## ⏭️ Bundle budget: SKIP (diff cannot reach the bundle)' >> "$GITHUB_OUTPUT"
-          echo 'この PR の差分は client JS に届かないため、測っていません。' > /tmp/bundle-budget.log
+          echo 'この PR の差分は route が配るものに届かないため、測っていません。' > /tmp/bundle-budget.log
 
       - name: Comment the measurement on PR
         if: github.event_name == 'pull_request' && (steps.budget.outputs.status != '' || steps.standdown.outcome == 'success')
@@ -196,7 +203,7 @@ jobs:
           status: ${{ steps.budget.outputs.status || 'success' }}
           title: ${{ steps.budget.outputs.title || steps.standdown.outputs.title }}
           body-file: /tmp/bundle-budget.log
-          details-summary: 'route ごとの client JS'
+          details-summary: 'route ごとの初期 / 遅延 / 合計 JS と CSS'
 
       - name: Fail if a route is over its budget
         if: always() && steps.scope.outputs.relevant == 'true' && steps.budget.outputs.status != 'success'
