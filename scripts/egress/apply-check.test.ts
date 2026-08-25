@@ -131,6 +131,17 @@ describe("rewriteHarden", () => {
     expect(out).toBe(odd);
   });
 
+  it("with の後で行が尽きる形も書き換えない", () => {
+    const odd = [
+      "        uses: step-security/harden-runner@bf7454d0 # v2.20.0",
+      "        with:",
+    ].join("\n");
+    const { out, malformed } = rewriteHarden(odd, ["github.com:443"]);
+
+    expect(malformed).toEqual([1]);
+    expect(out).toBe(odd);
+  });
+
   it("egress-policy が続かない形も書き換えない", () => {
     const odd = [
       "        uses: step-security/harden-runner@bf7454d0 # v2.20.0",

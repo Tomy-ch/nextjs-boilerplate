@@ -48,35 +48,56 @@ export function rewriteHarden(data: string, endpoints: readonly string[] | null)
       continue;
     }
 
-    const indent = line.slice(0, line.length - line.trimStart().length);
+    const indent = indentOf(line);
 
-    if (
-      lines[at + 1] !== `${indent}with:` ||
-      !lines[at + 2]?.startsWith(`${indent}  egress-policy:`)
-    ) {
+    if (!isExpectedShape(lines, at, indent)) {
       malformed.push(at + 1);
       out.push(line);
       continue;
     }
 
-    out.push(line, `${indent}with:`);
-
-    if (endpoints === null) {
-      out.push(`${indent}  egress-policy: audit`);
-    } else {
-      out.push(`${indent}  egress-policy: block`, `${indent}  allowed-endpoints: >`);
-      for (const endpoint of endpoints) out.push(`${indent}    ${endpoint}`);
-    }
-
-    // 読み飛ばすのは、書き換えた 3 行と、既にあった許可リストの続き。
-    consumed = at + 2;
-    if (lines[consumed + 1]?.startsWith(`${indent}  allowed-endpoints:`)) {
-      consumed += 1;
-      while (lines[consumed + 1]?.startsWith(`${indent}    `)) consumed += 1;
-    }
+    out.push(line, ...policyBlock(indent, endpoints));
+    consumed = endOfStep(lines, at, indent);
   }
 
   return { out: out.join("\n"), malformed };
+}
+
+/** その行の字下げ。 */
+function indentOf(line: string): string {
+  return line.slice(0, line.length - line.trimStart().length);
+}
+
+/** 書き換えてよい形か。`with:` と `egress-policy:` がこの順で続くことだけを見る。 */
+function isExpectedShape(lines: readonly string[], at: number, indent: string): boolean {
+  return (
+    lines[at + 1] === `${indent}with:` &&
+    (lines[at + 2]?.startsWith(`${indent}  egress-policy:`) ?? false)
+  );
+}
+
+/** 書き出す `with:` の中身。 */
+function policyBlock(indent: string, endpoints: readonly string[] | null): string[] {
+  if (endpoints === null) return [`${indent}with:`, `${indent}  egress-policy: audit`];
+
+  return [
+    `${indent}with:`,
+    `${indent}  egress-policy: block`,
+    `${indent}  allowed-endpoints: >`,
+    ...endpoints.map((endpoint) => `${indent}    ${endpoint}`),
+  ];
+}
+
+/** 読み飛ばす末尾。書き換えた 3 行と、既にあった許可リストの続き。 */
+function endOfStep(lines: readonly string[], at: number, indent: string): number {
+  let last = at + 2;
+
+  if (lines[last + 1]?.startsWith(`${indent}  allowed-endpoints:`)) {
+    last += 1;
+    while (lines[last + 1]?.startsWith(`${indent}    `)) last += 1;
+  }
+
+  return last;
 }
 
 /** 走査した結果。 */
@@ -96,7 +117,7 @@ export function workflowNames(root: string): string[] {
   return readdirSync(join(root, WORKFLOW_DIR))
     .filter((entry) => entry.endsWith(".yaml"))
     .map((entry) => basename(entry, ".yaml"))
-    .sort();
+    .sort((a, b) => a.localeCompare(b));
 }
 
 /**

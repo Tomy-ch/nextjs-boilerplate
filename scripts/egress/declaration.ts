@@ -86,5 +86,5 @@ export function orphanKeys(declaration: Declaration, names: readonly string[]): 
 
   return [...Object.keys(declaration.workflows), ...Object.keys(declaration.audit)]
     .filter((key) => !present.has(key))
-    .sort();
+    .sort((a, b) => a.localeCompare(b));
 }
