@@ -1,5 +1,6 @@
 import { cn } from "@/components/cn";
 import { formatMoney } from "@/model/money";
+import { withPartSpan } from "@/observability/render-span";
 
 /** `CartSubtotal` の props。 */
 export type CartSubtotalProps = {
@@ -23,13 +24,16 @@ export type CartSubtotalProps = {
  *
  * 金額の書式は locale に従います（[0120](../../../../../docs/adr/0120-locale-aware-formatting.md)）。
  */
-export function CartSubtotal({ amount, size = "prominent" }: CartSubtotalProps) {
-  return (
-    <p className="flex items-baseline justify-between gap-2">
-      <span className="text-muted-foreground text-sm">小計</span>
-      <strong className={cn(size === "compact" ? "text-lg" : "text-2xl")}>
-        {formatMoney(amount)}
-      </strong>
-    </p>
-  );
-}
+export const CartSubtotal = withPartSpan(
+  "features/cart/ui/subtotal/subtotal",
+  ({ amount, size = "prominent" }: CartSubtotalProps) => {
+    return (
+      <p className="flex items-baseline justify-between gap-2">
+        <span className="text-muted-foreground text-sm">小計</span>
+        <strong className={cn(size === "compact" ? "text-lg" : "text-2xl")}>
+          {formatMoney(amount)}
+        </strong>
+      </p>
+    );
+  },
+);

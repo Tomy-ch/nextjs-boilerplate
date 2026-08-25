@@ -39,6 +39,7 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 | `OBS_TRACES_EXPORTER` | trace exporter の有効化値 | string | `otlp` / `none` | 空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |
 | `OBS_METRICS_EXPORTER` | metrics exporter の有効化値 | string | `otlp` / `none` | 空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |
 | `OBS_LOGS_EXPORTER` | logs exporter の有効化値 | string | `otlp` / `none` | 空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |
+| `OBS_RENDER_SPANS` | 描画を span に載せる範囲 | `none` / `screen` / `part` | `screen` | Code default `screen`。`screen` は画面の最上位（`page-content` / `view`）、`part` は feature が持つ部品まで。`part` は 1 描画の span が描く部品の数だけ増えるため、調査のときに開ける。trace 自体が無効なら効かない |
 
 ### Authentication
 

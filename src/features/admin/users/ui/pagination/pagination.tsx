@@ -7,7 +7,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/design-system/navigation/pagination/pagination";
-
+import { withPartSpan } from "@/observability/render-span";
 import { toPageWindow } from "../../page-window";
 import { type AdminUserListLocation, toUserListHref } from "../../query";
 
@@ -32,40 +32,43 @@ export type AdminUserPaginationProps = {
  *
  * @see Storybook `Page/Admin/Users`
  */
-export function AdminUserPagination({ location, pageCount }: AdminUserPaginationProps) {
-  const { page, scope } = location;
+export const AdminUserPagination = withPartSpan(
+  "features/admin/users/ui/pagination/pagination",
+  ({ location, pageCount }: AdminUserPaginationProps) => {
+    const { page, scope } = location;
 
-  return (
-    <Pagination aria-label="利用者一覧のページ送り">
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            {...(page > 1 ? { href: toUserListHref({ scope, page: page - 1 }) } : {})}
-          />
-        </PaginationItem>
-        {toPageWindow(page, pageCount).map((entry) =>
-          entry.kind === "gap" ? (
-            <PaginationItem key={`gap-${entry.after}`}>
-              <PaginationEllipsis />
-            </PaginationItem>
-          ) : (
-            <PaginationItem key={entry.page}>
-              <PaginationLink
-                aria-label={`${entry.page} ページ目`}
-                href={toUserListHref({ scope, page: entry.page })}
-                isActive={entry.page === page}
-              >
-                {entry.page}
-              </PaginationLink>
-            </PaginationItem>
-          ),
-        )}
-        <PaginationItem>
-          <PaginationNext
-            {...(page < pageCount ? { href: toUserListHref({ scope, page: page + 1 }) } : {})}
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  );
-}
+    return (
+      <Pagination aria-label="利用者一覧のページ送り">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              {...(page > 1 ? { href: toUserListHref({ scope, page: page - 1 }) } : {})}
+            />
+          </PaginationItem>
+          {toPageWindow(page, pageCount).map((entry) =>
+            entry.kind === "gap" ? (
+              <PaginationItem key={`gap-${entry.after}`}>
+                <PaginationEllipsis />
+              </PaginationItem>
+            ) : (
+              <PaginationItem key={entry.page}>
+                <PaginationLink
+                  aria-label={`${entry.page} ページ目`}
+                  href={toUserListHref({ scope, page: entry.page })}
+                  isActive={entry.page === page}
+                >
+                  {entry.page}
+                </PaginationLink>
+              </PaginationItem>
+            ),
+          )}
+          <PaginationItem>
+            <PaginationNext
+              {...(page < pageCount ? { href: toUserListHref({ scope, page: page + 1 }) } : {})}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    );
+  },
+);

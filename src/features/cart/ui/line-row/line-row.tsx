@@ -6,6 +6,7 @@ import { MEDIA_IMAGE_ASPECT_RATIO } from "@/components/design-system/display/med
 import type { CartLine } from "@/model/cart/cart";
 import { hasBlockingIssue } from "@/model/cart/issue-notice";
 import { NO_IMAGE_URL } from "@/model/media";
+import { withPartSpan } from "@/observability/render-span";
 import { CartLineIssues } from "../../facade/line-issues/line-issues";
 import { CartMatchStockButton } from "../match-stock-button/match-stock-button";
 import { CartQuantityStepper } from "../quantity-stepper/quantity-stepper";
@@ -47,61 +48,64 @@ const SUBTOTAL_NOTE = "小計には含めていません。";
  * 以上、利用者に数え直させる理由がありません。在庫が 1 つも無い明細には出しません（合わせる先が
  * ありません）。
  */
-export function CartLineRow({ line }: CartLineRowProps) {
-  const blocked = hasBlockingIssue(line);
-  const label = line.name ?? UNKNOWN_NAME;
+export const CartLineRow = withPartSpan(
+  "features/cart/ui/line-row/line-row",
+  ({ line }: CartLineRowProps) => {
+    const blocked = hasBlockingIssue(line);
+    const label = line.name ?? UNKNOWN_NAME;
 
-  return (
-    <li className="@container/line flex flex-wrap items-start gap-x-4 gap-y-2 py-4">
-      <MediaImage
-        alt=""
-        aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
-        className={cn("w-12 shrink-0 rounded-md @sm/line:w-16", blocked && "opacity-60")}
-        fallbackSrc={NO_IMAGE_URL}
-        sizes="4rem"
-        src={line.imageUrl}
-      />
-      <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
-        {line.name === null ? (
-          <p className="font-emphasis text-muted-foreground text-sm">{UNKNOWN_NAME}</p>
-        ) : (
-          <Link
-            className={cn(
-              "line-clamp-2 font-emphasis text-sm hover:underline",
-              blocked && "text-muted-foreground",
-            )}
-            href={`/products/${line.productId}`}
-          >
-            {line.name}
-          </Link>
-        )}
-        {line.unitPrice === null ? null : (
-          <p className={cn("text-sm", blocked ? "text-muted-foreground" : undefined)}>
-            {`$${line.unitPrice} / 個`}
-          </p>
-        )}
-        <CartLineIssues
-          availableQuantity={line.availableQuantity}
-          issues={line.issues}
-          note={SUBTOTAL_NOTE}
+    return (
+      <li className="@container/line flex flex-wrap items-start gap-x-4 gap-y-2 py-4">
+        <MediaImage
+          alt=""
+          aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
+          className={cn("w-12 shrink-0 rounded-md @sm/line:w-16", blocked && "opacity-60")}
+          fallbackSrc={NO_IMAGE_URL}
+          sizes="4rem"
+          src={line.imageUrl}
         />
-        {line.availableQuantity === null || line.availableQuantity <= 0 ? null : (
-          <CartMatchStockButton
+        <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
+          {line.name === null ? (
+            <p className="font-emphasis text-muted-foreground text-sm">{UNKNOWN_NAME}</p>
+          ) : (
+            <Link
+              className={cn(
+                "line-clamp-2 font-emphasis text-sm hover:underline",
+                blocked && "text-muted-foreground",
+              )}
+              href={`/products/${line.productId}`}
+            >
+              {line.name}
+            </Link>
+          )}
+          {line.unitPrice === null ? null : (
+            <p className={cn("text-sm", blocked ? "text-muted-foreground" : undefined)}>
+              {`$${line.unitPrice} / 個`}
+            </p>
+          )}
+          <CartLineIssues
             availableQuantity={line.availableQuantity}
-            label={label}
-            productId={line.productId}
+            issues={line.issues}
+            note={SUBTOTAL_NOTE}
           />
-        )}
-      </div>
-      <div className="flex items-start gap-1">
-        <CartQuantityStepper
-          label={label}
-          max={line.availableQuantity ?? undefined}
-          productId={line.productId}
-          quantity={line.quantity}
-        />
-        <CartRemoveButton label={label} productId={line.productId} quantity={line.quantity} />
-      </div>
-    </li>
-  );
-}
+          {line.availableQuantity === null || line.availableQuantity <= 0 ? null : (
+            <CartMatchStockButton
+              availableQuantity={line.availableQuantity}
+              label={label}
+              productId={line.productId}
+            />
+          )}
+        </div>
+        <div className="flex items-start gap-1">
+          <CartQuantityStepper
+            label={label}
+            max={line.availableQuantity ?? undefined}
+            productId={line.productId}
+            quantity={line.quantity}
+          />
+          <CartRemoveButton label={label} productId={line.productId} quantity={line.quantity} />
+        </div>
+      </li>
+    );
+  },
+);

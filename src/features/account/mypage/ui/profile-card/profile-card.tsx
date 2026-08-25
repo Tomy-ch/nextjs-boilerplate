@@ -19,7 +19,7 @@ import {
   KeyValueValue,
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import type { UserProfile } from "@/model/user/user";
-
+import { withPartSpan } from "@/observability/render-span";
 import { PROFILE_EDIT_PATH } from "../../../paths";
 
 /**
@@ -42,38 +42,41 @@ function formatAddress(profile: UserProfile): string {
  * 編集への導線をこのカードが持つのは、編集する対象がここに出ている情報そのものだからです。
  * 画面の下端にまとめると、何を変えに行くのかが操作の位置から読み取れなくなります。
  */
-export function ProfileCard({ profile }: { readonly profile: UserProfile }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>プロフィール</CardTitle>
-        <CardAction>
-          <Button asChild size={BUTTON_SIZE.SMALL} variant={BUTTON_VARIANT.OUTLINE}>
-            <Link href={PROFILE_EDIT_PATH}>編集する</Link>
-          </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        <KeyValueList>
-          <KeyValueItem>
-            <KeyValueLabel>氏名</KeyValueLabel>
-            <KeyValueValue>{`${profile.lastName} ${profile.firstName}`}</KeyValueValue>
-          </KeyValueItem>
-          <KeyValueItem>
-            <KeyValueLabel>メールアドレス</KeyValueLabel>
-            {/* 契約は長さの上限を置いていないので、1 行に収まる前提を置けない。 */}
-            <KeyValueValue className="break-all">{profile.email}</KeyValueValue>
-          </KeyValueItem>
-          <KeyValueItem>
-            <KeyValueLabel>電話番号</KeyValueLabel>
-            <KeyValueValue>{profile.phone}</KeyValueValue>
-          </KeyValueItem>
-          <KeyValueItem>
-            <KeyValueLabel>住所</KeyValueLabel>
-            <KeyValueValue>{formatAddress(profile)}</KeyValueValue>
-          </KeyValueItem>
-        </KeyValueList>
-      </CardContent>
-    </Card>
-  );
-}
+export const ProfileCard = withPartSpan(
+  "features/account/mypage/ui/profile-card/profile-card",
+  ({ profile }: { readonly profile: UserProfile }) => {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>プロフィール</CardTitle>
+          <CardAction>
+            <Button asChild size={BUTTON_SIZE.SMALL} variant={BUTTON_VARIANT.OUTLINE}>
+              <Link href={PROFILE_EDIT_PATH}>編集する</Link>
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <KeyValueList>
+            <KeyValueItem>
+              <KeyValueLabel>氏名</KeyValueLabel>
+              <KeyValueValue>{`${profile.lastName} ${profile.firstName}`}</KeyValueValue>
+            </KeyValueItem>
+            <KeyValueItem>
+              <KeyValueLabel>メールアドレス</KeyValueLabel>
+              {/* 契約は長さの上限を置いていないので、1 行に収まる前提を置けない。 */}
+              <KeyValueValue className="break-all">{profile.email}</KeyValueValue>
+            </KeyValueItem>
+            <KeyValueItem>
+              <KeyValueLabel>電話番号</KeyValueLabel>
+              <KeyValueValue>{profile.phone}</KeyValueValue>
+            </KeyValueItem>
+            <KeyValueItem>
+              <KeyValueLabel>住所</KeyValueLabel>
+              <KeyValueValue>{formatAddress(profile)}</KeyValueValue>
+            </KeyValueItem>
+          </KeyValueList>
+        </CardContent>
+      </Card>
+    );
+  },
+);

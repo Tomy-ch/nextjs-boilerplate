@@ -1,5 +1,5 @@
 import type { PurchaseDispatchGroup, PurchaseHistoryEntry } from "@/model/purchase/purchase";
-
+import { withScreenSpan } from "@/observability/render-span";
 import type { DeliveryAction, ShipmentAction } from "./form-state";
 import { DeliveryListCard } from "./ui/delivery-list/delivery-list";
 import { DispatchGroupCard } from "./ui/dispatch-group/dispatch-group";
@@ -32,22 +32,20 @@ export type ShipmentQueueViewProps = {
  * 契約が決めた並びをそのまま出します。並べ直さない理由は
  * [機能要件](../../../../docs/spec/route/admin/shipments/page.function.md)「取得」。
  */
-export function ShipmentQueueView({
-  groups,
-  shipped,
-  shipAction,
-  deliverAction,
-}: ShipmentQueueViewProps) {
-  if (groups.length === 0 && shipped.length === 0) {
-    return <ShipmentQueueEmpty />;
-  }
+export const ShipmentQueueView = withScreenSpan(
+  "features/admin/shipments/view",
+  ({ groups, shipped, shipAction, deliverAction }: ShipmentQueueViewProps) => {
+    if (groups.length === 0 && shipped.length === 0) {
+      return <ShipmentQueueEmpty />;
+    }
 
-  return (
-    <div className="flex flex-col gap-4">
-      {groups.map((group) => (
-        <DispatchGroupCard group={group} key={group.userId} shipAction={shipAction} />
-      ))}
-      <DeliveryListCard deliverAction={deliverAction} purchases={shipped} />
-    </div>
-  );
-}
+    return (
+      <div className="flex flex-col gap-4">
+        {groups.map((group) => (
+          <DispatchGroupCard group={group} key={group.userId} shipAction={shipAction} />
+        ))}
+        <DeliveryListCard deliverAction={deliverAction} purchases={shipped} />
+      </div>
+    );
+  },
+);

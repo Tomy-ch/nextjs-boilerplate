@@ -1,6 +1,6 @@
 import { getMyPurchases } from "@/adapters/server/api/purchases";
 import { getMyProfile, getMyPurchaseSummary } from "@/adapters/server/api/users";
-
+import { withScreenSpan } from "@/observability/render-span";
 import { MypageView } from "./view";
 
 /**
@@ -27,12 +27,15 @@ const HISTORY_PAGE_SIZE = 50;
  * 以上のことを伝えないためです。失敗は route の `error` 境界が受けます
  * （[0080](../../../../docs/adr/0080-error-handling.md)）。
  */
-export async function MypagePageContent() {
-  const [profile, summary, purchases] = await Promise.all([
-    getMyProfile(),
-    getMyPurchaseSummary(),
-    getMyPurchases({ first: HISTORY_PAGE_SIZE, includeOtherUsers: false }),
-  ]);
+export const MypagePageContent = withScreenSpan(
+  "features/account/mypage/page-content",
+  async () => {
+    const [profile, summary, purchases] = await Promise.all([
+      getMyProfile(),
+      getMyPurchaseSummary(),
+      getMyPurchases({ first: HISTORY_PAGE_SIZE, includeOtherUsers: false }),
+    ]);
 
-  return <MypageView profile={profile} purchases={purchases} summary={summary} />;
-}
+    return <MypageView profile={profile} purchases={purchases} summary={summary} />;
+  },
+);
