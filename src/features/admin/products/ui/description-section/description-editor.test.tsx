@@ -23,7 +23,7 @@ describe("ProductDescriptionEditor", () => {
   // 抱え込むため、2 つ目を足しても枠を通らない）。
   it("届くまでは、出来上がりと同じ高さの枠を読み上げの外へ置く", () => {
     const { container } = render(
-      <ProductDescriptionEditor id={CONTROL_ID} label="商品説明" onChange={noop} />,
+      <ProductDescriptionEditor active={true} id={CONTROL_ID} label="商品説明" onChange={noop} />,
     );
     const frame = container.firstElementChild;
 
@@ -33,14 +33,42 @@ describe("ProductDescriptionEditor", () => {
   });
 
   it("読み込みが終わると、書式付きの本文を書く面を出す", async () => {
-    render(<ProductDescriptionEditor id={CONTROL_ID} label="商品説明" onChange={noop} />);
+    render(
+      <ProductDescriptionEditor active={true} id={CONTROL_ID} label="商品説明" onChange={noop} />,
+    );
 
     expect(await screen.findByRole("textbox", { name: "商品説明" })).toBeInTheDocument();
+  });
+
+  it("開かれるまでは編集面を出さず、枠のまま置く", async () => {
+    const { container } = render(
+      <ProductDescriptionEditor active={false} id={CONTROL_ID} label="商品説明" onChange={noop} />,
+    );
+
+    await Promise.resolve();
+
+    expect(screen.queryByRole("textbox", { name: "商品説明" })).not.toBeInTheDocument();
+    expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("一度開いたら、閉じても編集面を外さない", async () => {
+    const { rerender } = render(
+      <ProductDescriptionEditor active={true} id={CONTROL_ID} label="商品説明" onChange={noop} />,
+    );
+
+    await screen.findByRole("textbox", { name: "商品説明" });
+
+    rerender(
+      <ProductDescriptionEditor active={false} id={CONTROL_ID} label="商品説明" onChange={noop} />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "商品説明" })).toBeInTheDocument();
   });
 
   it("保存済みの本文を開いた時点の内容として渡す", async () => {
     render(
       <ProductDescriptionEditor
+        active={true}
         defaultValue="<p>軽い</p>"
         id={CONTROL_ID}
         label="商品説明"
@@ -53,7 +81,7 @@ describe("ProductDescriptionEditor", () => {
 
   it("a11y 検査を通る", async () => {
     const { container } = render(
-      <ProductDescriptionEditor id={CONTROL_ID} label="商品説明" onChange={noop} />,
+      <ProductDescriptionEditor active={true} id={CONTROL_ID} label="商品説明" onChange={noop} />,
     );
 
     await screen.findByRole("textbox", { name: "商品説明" });

@@ -7,6 +7,8 @@ import { ProductDescriptionEditor } from "./description-editor";
 
 /** `ProductDescriptionSection` の props。 */
 export type ProductDescriptionSectionProps = {
+  /** この段が開かれているか。開かれるまで編集面を読み込まない。 */
+  active: boolean;
   /** 入力欄の `id` の前置き。 */
   idPrefix: string;
   /** 最初に表示する本文。編集面はここからしか初期化されない。 */
@@ -30,8 +32,13 @@ export type ProductDescriptionSectionProps = {
  *
  * ここで送るのは HTML 文字列です。検査は表示の直前に行うもので、保存のときに一度通した値を以後
  * ずっと検査済みとして扱いません（`model/rich-text`）。
+ *
+ * **送信に載せる欄は、編集面より先に置きます。** 編集面は開かれるまで読み込まれない一方で、
+ * 開かれないまま送られる経路（tab の器）があります。値は器が持っているので、編集面の有無に
+ * かかわらずここから送ります。
  */
 export function ProductDescriptionSection({
+  active,
   idPrefix,
   initialValue,
   onValueChange,
@@ -40,6 +47,7 @@ export function ProductDescriptionSection({
   return (
     <div className="grid gap-2">
       <ProductDescriptionEditor
+        active={active}
         defaultValue={initialValue}
         id={controlIdOf(idPrefix, "description")}
         label="商品説明"

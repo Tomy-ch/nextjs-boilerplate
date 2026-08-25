@@ -169,6 +169,7 @@ export function AdminProductEditView({
         </TabsClientContent>
         <TabsClientContent forceMount={true} hidden={section !== "description"} value="description">
           <ProductDescriptionSection
+            active={section === "description"}
             idPrefix={idPrefix}
             initialValue={initialValues.description}
             onValueChange={changeDescription}

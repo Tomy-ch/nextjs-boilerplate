@@ -116,6 +116,9 @@ export function AdminProductCreateView({
             title: PRODUCT_SECTION_TITLES.description,
             content: (
               <ProductDescriptionSection
+                // 段は到達したものだけが mount される（`WizardForm` の `reached`）。ここへ
+                // 来た時点で開かれているので、編集面を待たせる理由が無い。
+                active={true}
                 idPrefix={idPrefix}
                 initialValue={initialValues.description}
                 onValueChange={changeDescription}
