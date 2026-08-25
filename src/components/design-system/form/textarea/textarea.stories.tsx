@@ -16,6 +16,9 @@ function LabeledTextarea() {
 
 function InvalidTextarea() {
   const textareaId = useId();
+  // 綴りを手で組んでいるのは、接尾を持つ `toErrorId` が `patterns/form-field` に居るため。
+  // `design-system` から引くと層の向き（patterns → design-system）が逆流する。画面の側は
+  // `FormField` を通るので、手で組む場所はこのカタログだけに留まる。
   const errorId = `${textareaId}-error`;
 
   return (

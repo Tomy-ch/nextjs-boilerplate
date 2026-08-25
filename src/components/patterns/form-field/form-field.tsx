@@ -7,16 +7,26 @@ import {
   FieldLabel,
 } from "../../design-system/form/field/field";
 import { RequirementBadge } from "../../design-system/form/requirement-badge/requirement-badge";
-import { toDescriptionId } from "./field-attributes";
+import {
+  type FieldControlAttributes,
+  fieldControlAttributes,
+  toDescriptionId,
+  toErrorId,
+} from "./field-attributes";
 
 /** {@link FormField} の props。 */
 export type FormFieldProps = {
-  /** 入力欄。`id` に `controlId`、誤りがあるとき `aria-describedby` に `errorId` を与える。 */
-  children: ReactNode;
-  /** 入力欄の `id`。label の `htmlFor` が指す。 */
+  /**
+   * 入力欄を組み立てる。渡される属性をそのまま入力欄へ広げる。
+   *
+   * @remarks
+   * **受け取る形にしてあるのは、付け忘れを起こせなくするためです。** 属性を呼び出し元が自分で
+   * 組んでいた頃は、`FormField` だけを使って属性を通さない画面が実在し、`aria-invalid` が
+   * 落ちていました。何を与えるかは `fieldControlAttributes` が 1 か所で決めます。
+   */
+  children: (control: FieldControlAttributes) => ReactNode;
+  /** 入力欄の `id`。label の `htmlFor` が指し、誤りと補足の `id` もここから導く。 */
   controlId: string;
-  /** 誤りの文言の `id`。入力欄の `aria-describedby` が指す。 */
-  errorId: string;
   /** 項目の名前。 */
   label: string;
   /** 誤りの文言。無ければ誤りは描画しない。 */
@@ -42,19 +52,19 @@ export type FormFieldProps = {
  * 位置も種類ごとにずれていく。
  *
  * **`id` を生成しない。** 同じフォームを 1 つの文書へ 2 度置いたときに重複するため、生成は
- * `useId()` を持てる呼び出し元が行う。ここは受け取った `id` を label と誤りへ配るだけである。
+ * `useId()` を持てる呼び出し元が行う。ここは受け取った `id` から誤りと補足の `id` を導き、
+ * label と入力欄へ配る。
  *
- * **`aria-invalid` / `aria-describedby` / `aria-required` は入力欄へ付かない。** children を
- * 受け取る形である以上ここからは触れないので、**呼び出し元が入力欄へ与える**。外枠が持つのは
- * `data-invalid` による見た目の切り替えまでである。
+ * **入力欄の `aria-*` は、children へ渡して呼び出し元に広げてもらう。** 入力欄そのものは
+ * 受け取らないので直接は触れないが、**何を与えるかはここが決める**。呼び出し元が組む形にすると、
+ * 外枠だけを使って属性を通さない画面が書けてしまう。
  *
  * 検証も、必須かどうかの判定も持たない。どちらも呼び出し元が検証スキーマから導いて渡す。
  *
  * @example
  * ```tsx
- * <FormField controlId={id} errorId={`${id}-error`} label="姓" message={error} required>
- *   <Input aria-describedby={error && `${id}-error`} aria-invalid={error !== undefined}
- *     aria-required id={id} {...register("lastName")} />
+ * <FormField controlId={id} label="姓" message={error} required>
+ *   {(control) => <Input {...control} {...register("lastName")} />}
  * </FormField>
  * ```
  *
@@ -64,18 +74,19 @@ export function FormField({
   children,
   controlId,
   description,
-  errorId,
   label,
   message,
   required,
 }: FormFieldProps) {
+  const errorId = toErrorId(controlId);
+
   return (
     <Field data-invalid={message !== undefined}>
       <div className="flex items-center gap-2">
         <RequirementBadge required={required} />
         <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
       </div>
-      {children}
+      {children(fieldControlAttributes({ controlId, description, errorId, message, required }))}
       {description === undefined ? null : (
         <FieldDescription id={toDescriptionId(controlId)}>{description}</FieldDescription>
       )}

@@ -4,10 +4,6 @@ import { useCallback } from "react";
 
 import type { InputProps } from "@/components/design-system/form/input/input";
 import { Input } from "@/components/design-system/form/input/input";
-import {
-  fieldControlAttributes,
-  toErrorId,
-} from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
 
 /** `ProductTextField` の props。 */
@@ -57,8 +53,6 @@ export function ProductTextField({
   value,
   ...input
 }: ProductTextFieldProps) {
-  const errorId = toErrorId(controlId);
-
   const change = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => onValueChange(event.target.value),
     [onValueChange],
@@ -68,19 +62,20 @@ export function ProductTextField({
     <FormField
       controlId={controlId}
       description={description}
-      errorId={errorId}
       label={label}
       message={message}
       required={required}
     >
-      <Input
-        {...fieldControlAttributes({ controlId, description, errorId, message, required })}
-        {...input}
-        name={name}
-        onBlur={onLeave}
-        onChange={change}
-        value={value}
-      />
+      {(control) => (
+        <Input
+          {...control}
+          {...input}
+          name={name}
+          onBlur={onLeave}
+          onChange={change}
+          value={value}
+        />
+      )}
     </FormField>
   );
 }

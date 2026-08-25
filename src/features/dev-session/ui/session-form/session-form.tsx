@@ -13,10 +13,6 @@ import {
 } from "@/components/design-system/form/radio-group-native/radio-group-native";
 import { SwitchNative } from "@/components/design-system/form/switch-native/switch-native";
 import { Textarea } from "@/components/design-system/form/textarea/textarea";
-import {
-  fieldControlAttributes,
-  toErrorId,
-} from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE, type SessionRole } from "@/model/session";
@@ -90,8 +86,8 @@ const ROLE_LABEL: Readonly<Record<SessionRole, string>> = {
  * 項目ごとの補足。
  *
  * @remarks
- * 描画する外枠と、それを指す入力欄の両方へ同じ値を渡すため、リテラルを 2 か所に置かず束ねます
- * （`fieldControlAttributes`）。
+ * 同じ文言を複数の項目が使うため、リテラルを埋め込まず束ねます。外枠と入力欄の両方へ配るのは
+ * `FormField` の側の仕事です。
  */
 const SUBJECT_DESCRIPTION = "この値がそのまま session の利用者 ID になります。";
 const EXPIRES_DESCRIPTION = "短くすると、失効したあとの見え方をその場で確かめられます。";
@@ -210,22 +206,11 @@ export function DevSessionForm({
       <FormField
         controlId={subjectId}
         description={SUBJECT_DESCRIPTION}
-        errorId={toErrorId(subjectId)}
         label="誰として入るか"
         message={errors?.subject?.[0]}
         required
       >
-        <Input
-          {...fieldControlAttributes({
-            controlId: subjectId,
-            description: SUBJECT_DESCRIPTION,
-            errorId: toErrorId(subjectId),
-            message: errors?.subject?.[0],
-            required: true,
-          })}
-          defaultValue={DEFAULT_SUBJECT}
-          name="subject"
-        />
+        {(control) => <Input {...control} defaultValue={DEFAULT_SUBJECT} name="subject" />}
       </FormField>
 
       <RadioGroupNative>
@@ -246,23 +231,18 @@ export function DevSessionForm({
       <FormField
         controlId={expiresId}
         description={EXPIRES_DESCRIPTION}
-        errorId={toErrorId(expiresId)}
         label="失効までの秒数"
         message={errors?.expiresInSeconds?.[0]}
         required
       >
-        <Input
-          {...fieldControlAttributes({
-            controlId: expiresId,
-            description: EXPIRES_DESCRIPTION,
-            errorId: toErrorId(expiresId),
-            message: errors?.expiresInSeconds?.[0],
-            required: true,
-          })}
-          defaultValue={DEFAULT_EXPIRES_IN_SECONDS}
-          inputMode="numeric"
-          name="expiresInSeconds"
-        />
+        {(control) => (
+          <Input
+            {...control}
+            defaultValue={DEFAULT_EXPIRES_IN_SECONDS}
+            inputMode="numeric"
+            name="expiresInSeconds"
+          />
+        )}
       </FormField>
 
       <div className="flex flex-col gap-2">
@@ -286,24 +266,19 @@ export function DevSessionForm({
         <FormField
           controlId={issuerId}
           description={ISSUER_DESCRIPTION}
-          errorId={toErrorId(issuerId)}
           label="IdP の接続先"
           message={errors?.issuerUrl?.[0]}
           required
         >
-          <Input
-            {...fieldControlAttributes({
-              controlId: issuerId,
-              description: ISSUER_DESCRIPTION,
-              errorId: toErrorId(issuerId),
-              message: errors?.issuerUrl?.[0],
-              required: true,
-            })}
-            className="font-mono text-xs"
-            defaultValue={defaultIssuer}
-            inputMode="url"
-            name="issuerUrl"
-          />
+          {(control) => (
+            <Input
+              {...control}
+              className="font-mono text-xs"
+              defaultValue={defaultIssuer}
+              inputMode="url"
+              name="issuerUrl"
+            />
+          )}
         </FormField>
       ) : null}
 
@@ -311,23 +286,13 @@ export function DevSessionForm({
         <FormField
           controlId={tokenId}
           description={TOKEN_DESCRIPTION}
-          errorId={toErrorId(tokenId)}
           label="Access Token（任意）"
           message={errors?.accessToken?.[0]}
           required={false}
         >
-          <Textarea
-            {...fieldControlAttributes({
-              controlId: tokenId,
-              description: TOKEN_DESCRIPTION,
-              errorId: toErrorId(tokenId),
-              message: errors?.accessToken?.[0],
-              required: false,
-            })}
-            className="font-mono text-xs"
-            name="accessToken"
-            rows={4}
-          />
+          {(control) => (
+            <Textarea {...control} className="font-mono text-xs" name="accessToken" rows={4} />
+          )}
         </FormField>
       )}
 

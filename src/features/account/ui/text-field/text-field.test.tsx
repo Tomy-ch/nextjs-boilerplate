@@ -27,7 +27,6 @@ function renderField(overrides: Partial<Parameters<typeof TextField>[0]> = {}) {
   return render(
     <TextField
       controlId={CONTROL_ID}
-      errorId={ERROR_ID}
       label="名字"
       message={undefined}
       registration={registrationOf()}

@@ -10,15 +10,11 @@ import {
   INPUT_GROUP_ADDON_ALIGN,
   INPUT_GROUP_BUTTON_SIZE,
 } from "@/components/design-system/form/input-group/input-group.definition";
-import { fieldControlAttributes } from "@/components/patterns/form-field/field-attributes";
 import { FormField } from "@/components/patterns/form-field/form-field";
 import type { AddressField } from "../../use-address-field";
 import type { ProfileFieldProps } from "../../use-profile-fields";
 
-type PostalCodeFieldProps = Pick<
-  ProfileFieldProps,
-  "controlId" | "errorId" | "message" | "required"
-> &
+type PostalCodeFieldProps = Pick<ProfileFieldProps, "controlId" | "message" | "required"> &
   Pick<AddressField, "onSearch" | "registration" | "searching" | "unavailable">;
 
 /**
@@ -36,7 +32,6 @@ type PostalCodeFieldProps = Pick<
  */
 export function PostalCodeField({
   controlId,
-  errorId,
   message,
   onSearch,
   registration,
@@ -45,32 +40,28 @@ export function PostalCodeField({
   unavailable,
 }: PostalCodeFieldProps) {
   return (
-    <FormField
-      controlId={controlId}
-      errorId={errorId}
-      label="郵便番号"
-      message={message}
-      required={required}
-    >
-      <InputGroup className="sm:max-w-sm">
-        <InputGroupInput
-          {...fieldControlAttributes({ controlId, errorId, message, required })}
-          autoComplete="postal-code"
-          inputMode="numeric"
-          placeholder="150-0001"
-          {...registration}
-        />
-        <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
-          <InputGroupButton
-            disabled={searching || unavailable}
-            onClick={onSearch}
-            size={INPUT_GROUP_BUTTON_SIZE.SMALL}
-            type="button"
-          >
-            住所を検索
-          </InputGroupButton>
-        </InputGroupAddon>
-      </InputGroup>
+    <FormField controlId={controlId} label="郵便番号" message={message} required={required}>
+      {(control) => (
+        <InputGroup className="sm:max-w-sm">
+          <InputGroupInput
+            {...control}
+            autoComplete="postal-code"
+            inputMode="numeric"
+            placeholder="150-0001"
+            {...registration}
+          />
+          <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
+            <InputGroupButton
+              disabled={searching || unavailable}
+              onClick={onSearch}
+              size={INPUT_GROUP_BUTTON_SIZE.SMALL}
+              type="button"
+            >
+              住所を検索
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
+      )}
     </FormField>
   );
 }

@@ -9,12 +9,13 @@ import { FormField } from "./form-field";
 
 const CONTROL_ID = "last-name";
 const ERROR_ID = "last-name-error";
+const DESCRIPTION_ID = "last-name-description";
 
 /** 入力欄を差し込んだ既定の組。個別の props だけを上書きして用いる。 */
 function renderField(props: Partial<Parameters<typeof FormField>[0]> = {}) {
   return render(
-    <FormField controlId={CONTROL_ID} errorId={ERROR_ID} label="姓" required {...props}>
-      <Input id={CONTROL_ID} name="lastName" />
+    <FormField controlId={CONTROL_ID} label="姓" required {...props}>
+      {(control) => <Input {...control} name="lastName" />}
     </FormField>,
   );
 }
@@ -95,10 +96,29 @@ describe("FormField", () => {
     expect(container.querySelector("[data-slot=field]")).toHaveAttribute("data-invalid", "false");
   });
 
-  it("入力欄の ARIA 属性を外枠が勝手に与えない", () => {
+  it("入力欄の ARIA 属性を children へ渡す", () => {
+    renderField({ description: "半角で入力してください。", message: "姓を入力してください。" });
+
+    const control = screen.getByLabelText("姓");
+
+    expect(control).toHaveAttribute("id", CONTROL_ID);
+    expect(control).toHaveAttribute("aria-invalid", "true");
+    expect(control).toHaveAttribute("aria-required", "true");
+    expect(control).toHaveAttribute("aria-describedby", `${DESCRIPTION_ID} ${ERROR_ID}`);
+  });
+
+  it("誤りが無くても `aria-invalid` を落とさない", () => {
+    // 属性ごと消すと、支援技術には「一度も検証していない」と区別が付かない。
+    renderField();
+
+    expect(screen.getByLabelText("姓")).toHaveAttribute("aria-invalid", "false");
+  });
+
+  it("誤りの id を入力欄の id から導き、呼び出し元に組ませない", () => {
     renderField({ message: "姓を入力してください。" });
 
-    expect(screen.getByLabelText("姓")).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByRole("alert")).toHaveAttribute("id", ERROR_ID);
+    expect(screen.getByLabelText("姓")).toHaveAttribute("aria-describedby", ERROR_ID);
   });
 
   it("a11y 自動検査に違反しない", async () => {

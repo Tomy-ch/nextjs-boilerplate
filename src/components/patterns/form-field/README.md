@@ -10,7 +10,7 @@
 | --- | --- |
 | `FormField` | 外枠。label と必須の印を組み、children として渡された入力欄の下へ補足と誤りを置きます。 |
 
-`fieldControlAttributes()`（`field-attributes.ts`）は、入力欄そのものへ与える a11y 属性を組む純関数です。外枠と対で使います。
+`fieldControlAttributes()`（`field-attributes.ts`）は、入力欄そのものへ与える a11y 属性を組む純関数です。外枠が呼び、結果を children へ渡します。呼び出し元が直接使うことはありません。
 
 ## 利用ケース
 
@@ -28,31 +28,25 @@
 **`id` を生成しません。** 同じフォームを 1 つの文書へ 2 度置いたときに重複するため、生成は
 `useId()` を持てる呼び出し元が行います。ここは受け取った `id` を label と誤りへ配るだけです。
 
-**入力欄の ARIA 属性を付けません。** children を受け取る形である以上ここからは触れないので、
-`aria-invalid` / `aria-describedby` / `aria-required` は**呼び出し元が入力欄へ与えます**。外枠が
-持つのは `data-invalid` による見た目の切り替えまでです。
+**入力欄の ARIA 属性は、children へ渡します。** 入力欄そのものは受け取らないので直接は触れません
+が、`aria-invalid` / `aria-describedby` / `aria-required` / `id` を組んで children の引数に渡すので、
+**呼び出し元はそれを入力欄へ広げるだけ**です。外枠が自分で持つのは `data-invalid` による見た目の
+切り替えまでです。
 
-与える属性の**中身**は `fieldControlAttributes()` が決めます。項目の部品ごとに書き写すと、種類が
-増えたときに `aria-invalid` や `aria-describedby` の付け忘れが起き、写しの数だけ食い違います。
-誤りが無いときも `aria-invalid` を落とさず `false` で置くのは、属性ごと消すと支援技術にとって
-「一度も検証していない」と区別が付かないためです。
+**呼び出し元に組ませません。** 組ませると、外枠だけを使って属性を通さない画面が書けてしまい、
+実際に書かれていました。誤りが無いときも `aria-invalid` を落とさず `false` で置くのは、属性ごと
+消すと支援技術にとって「一度も検証していない」と区別が付かないためです。何を与えるかは
+`fieldControlAttributes()` が 1 か所で決めます。
 
-**補足は外枠と `fieldControlAttributes()` の両方へ渡します。** 描画するのは外枠、指すのは入力欄で、
-片方だけに渡すと「見えているのに読み上げられない」補足になります。補足と誤りが揃うときは、
-描画される順（補足 → 誤り）で `aria-describedby` に並びます。
+**誤りと補足の `id` も生成しません**——`controlId` から導きます（`toErrorId` / `toDescriptionId`）。
+接尾の綴りを呼び出し元が書くと、綴りを変えたい人が全ての呼び出し元を開くことになります。
+
+**補足は外枠へ渡すだけで足ります。** 描画も、入力欄から指すことも外枠が引き受けます。補足と誤りが
+揃うときは、描画される順（補足 → 誤り）で `aria-describedby` に並びます。
 
 ```tsx
-<FormField
-  controlId={id}
-  description={description}
-  errorId={errorId}
-  label="メールアドレス"
-  message={message}
-  required
->
-  <Input
-    {...fieldControlAttributes({ controlId: id, description, errorId, message, required: true })}
-  />
+<FormField controlId={id} description={description} label="メールアドレス" message={message} required>
+  {(control) => <Input {...control} {...register("email")} />}
 </FormField>
 ```
 
@@ -65,6 +59,7 @@
 ## Storybook とテスト
 
 Storybook は必須・任意・誤りあり・補足ありと、select を差し込んだ場合を示します。テストは label と
-入力欄の関連付け、誤りが無いときに誤りの要素を描画しないこと、a11y 自動検査を確認します。
-`fieldControlAttributes()` は、誤りの有無で `aria-invalid` と `aria-describedby` が切り替わること、
-補足と誤りが揃うと両方の id が描画順で並ぶこと、必須が属性へ出ることを別に確認します。
+入力欄の関連付け、誤りが無いときに誤りの要素を描画しないこと、**組んだ属性が children へ渡ること**、
+a11y 自動検査を確認します。`fieldControlAttributes()` は、誤りの有無で `aria-invalid` と
+`aria-describedby` が切り替わること、補足と誤りが揃うと両方の id が描画順で並ぶこと、必須が属性へ
+出ることを別に確認します。

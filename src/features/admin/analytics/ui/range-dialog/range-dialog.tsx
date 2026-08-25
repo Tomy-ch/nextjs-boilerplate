@@ -86,27 +86,29 @@ export function RangeDialog({ selected, from, to }: RangeDialogProps) {
         </DialogHeader>
         <form action={ADMIN_ANALYTICS_PATH} className="flex flex-col gap-4" method="get">
           <input name={PERIOD_KEY.PERIOD} type="hidden" value="range" />
-          <FormField controlId={fromId} errorId={`${fromId}-error`} label="開始日" required>
-            <Input
-              aria-required
-              defaultValue={from}
-              id={fromId}
-              max={to}
-              name={PERIOD_KEY.FROM}
-              required
-              type="date"
-            />
+          <FormField controlId={fromId} label="開始日" required>
+            {(control) => (
+              <Input
+                {...control}
+                defaultValue={from}
+                max={to}
+                name={PERIOD_KEY.FROM}
+                required
+                type="date"
+              />
+            )}
           </FormField>
-          <FormField controlId={toId} errorId={`${toId}-error`} label="終了日" required>
-            <Input
-              aria-required
-              defaultValue={to}
-              id={toId}
-              min={from}
-              name={PERIOD_KEY.TO}
-              required
-              type="date"
-            />
+          <FormField controlId={toId} label="終了日" required>
+            {(control) => (
+              <Input
+                {...control}
+                defaultValue={to}
+                min={from}
+                name={PERIOD_KEY.TO}
+                required
+                type="date"
+              />
+            )}
           </FormField>
           <DialogFooter>
             <Button type="submit">この期間で見る</Button>
