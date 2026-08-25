@@ -12,6 +12,7 @@ import {
   STEPPER_ORIENTATION,
   STEPPER_STATE,
 } from "@/components/design-system/display/stepper/stepper.definition";
+import { useLatched } from "@/components/use-latched";
 
 /** 入力の段階 1 つ。 */
 export type WizardStep = {
@@ -237,7 +238,6 @@ export function WizardForm({
           active={index === currentIndex}
           id={`${panelId}-${step.id}`}
           key={step.id}
-          reached={index <= furthestIndex}
           title={step.title}
         >
           {step.content}
@@ -298,15 +298,17 @@ function StepPanel({
   active,
   children,
   id,
-  reached,
   title,
 }: {
   active: boolean;
   children: ReactNode;
   id: string;
-  reached: boolean;
   title: string;
 }) {
+  // 到達済みかは「一度でも現在地だったか」と同じである —— 次へは 1 段ずつしか進まず、飛べる先も
+  // 到達済みに限られるため、先の段が現在地を飛ばして開くことがない。
+  const reached = useLatched(active);
+
   return (
     <fieldset
       className="flex min-w-0 flex-col gap-3 outline-hidden"

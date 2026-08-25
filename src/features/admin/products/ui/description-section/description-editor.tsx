@@ -1,9 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
 
 import type { RichTextEditorProps } from "@/components/design-system/rich-text/rich-text-editor/rich-text-editor";
+import { useLatched } from "@/components/use-latched";
 
 /**
  * 編集面は、最初に読む一式から外す。
@@ -49,13 +49,11 @@ export type ProductDescriptionEditorProps = RichTextEditorProps & {
  * 外すと、戻ったときに書いた内容が初期値へ戻ります。
  */
 export function ProductDescriptionEditor({ active, ...props }: ProductDescriptionEditorProps) {
-  const [opened, setOpened] = useState(active);
-
-  if (active && !opened) {
-    setOpened(true);
-  }
-
-  return opened ? <RichTextEditorLazy {...props} /> : <ProductDescriptionEditorPlaceholder />;
+  return useLatched(active) ? (
+    <RichTextEditorLazy {...props} />
+  ) : (
+    <ProductDescriptionEditorPlaceholder />
+  );
 }
 
 /**
