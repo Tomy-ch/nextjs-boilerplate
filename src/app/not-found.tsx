@@ -11,8 +11,7 @@ import { ErrorKind } from "@/errors/error-kind";
  * root layout の中で描画されるため `html` / `body` を持ちません。route group の shell は
  * 通らないので、この画面だけで戻る導線を完結させます（[0026](../../docs/adr/0026-layout-shell-mount.md)）。
  *
- * **`main` もこの画面が自分で置きます。** shell を通らないということは、shell が置いている
- * landmark も無いということで、包む物が無いと支援技術から本文へ直接跳べません。
+ * **`main` もこの画面が自分で置きます**（[README](./README.md)）。
  *
  * より近い segment に `not-found.tsx` があればそちらが優先されます。ここは受け口が他に
  * 無い場合にだけ描画されます。

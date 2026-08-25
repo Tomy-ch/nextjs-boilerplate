@@ -17,6 +17,10 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 - route segment、route handler、metadata と layout への横断 UI / Provider の mount
 - Next.js が規定する特殊ファイルと route segment
 
+**shell を通らない画面は、自分で `main` を置く。** route group の外に立つ画面（`not-found.tsx` や
+`dev/` の下）は、`(shop)` / `admin` の layout が置く landmark を持たない。包む物が無いと、支援技術
+から本文へ直接跳べない。
+
 ## 受け入れないもの
 
 - 業務ロジック、画面ユースケースの編成、route segment からの直接 fetch

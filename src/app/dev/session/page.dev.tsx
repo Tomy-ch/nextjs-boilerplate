@@ -31,8 +31,8 @@ export const metadata: Metadata = {
  * 403 にしないのは、存在を知らせないほうが設定を誤ったまま公開したときの被害が小さいためです。
  *
  * 外枠（`(shop)` の layout）の内側に置きません。買い物の導線とは別物で、header の nav に並べる
- * ものでもないためです。**そのぶん `main` はこの画面が自分で置きます** —— shell を通らないと
- * いうことは、shell が置いている landmark も無いということです。
+ * ものでもないためです。**そのぶん `main` はこの画面が自分で置きます**
+ * （[README](../../README.md)）。
  *
  * **session の読み取りと送信先をここが持ちます。** `adapters/server/auth` へ触れてよいのは app 層で
  * （`architecture.ts` の `adapters-auth`）、画面の側は受け取った値と送信先を使うだけです。

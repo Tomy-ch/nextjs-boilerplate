@@ -155,8 +155,7 @@ export default [
               from: { file: { categories: category } },
               allow: { to: { file: { categories: category } } },
             })),
-            // `app` の element。層より狭い許可は「層の許可を後から削る」形でしか書けない。
-            // 要素はディレクトリに対応するため、同じ `src/app` に居るファイルを名前で分けられない。
+            // `app` の element（`architecture.ts` の `APP_ELEMENTS`）。
             ...APP_ELEMENTS.map(({ category, forbidden }) => ({
               from: { file: { categories: category } },
               disallow: { to: { element: { types: { anyOf: forbidden } } } },

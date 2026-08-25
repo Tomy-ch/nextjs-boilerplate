@@ -1,4 +1,4 @@
-import { readFileSync, type Stats, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { dirname, extname, relative, resolve } from "node:path";
 
 import { hasAnchor } from "./markdown-anchor";
@@ -84,7 +84,7 @@ function scannableLines(file: string, content: string): string[] {
   // 閉じないフェンスを「そこから先ぜんぶコード」と読むと、**残りの行が丸ごと無検査になる**。
   // 見落としは無言なので、対応の取れない最後の開きは開きとして数えない。
   const fences = lines.flatMap((line, index) => (FENCE.test(line) ? [index] : []));
-  const unclosed = fences.length % 2 === 1 ? (fences.at(-1) ?? -1) : -1;
+  const unclosed = fences.length % 2 === 1 ? fences.at(-1) : undefined;
   let inFence = false;
 
   return lines.map((line, index) => {
@@ -136,18 +136,16 @@ export function findBrokenDocLinks(file: string, content: string, root: string):
       const target = path === "" ? resolve(root, file) : resolve(root, dirname(file), path);
       const line = index + 1;
 
-      // 在るかを確かめてから開くのではなく、開いて確かめる。2 度触ると、その間に消えた場合に
-      // 「在ることになっているのに読めない」経路が生まれる。
-      const stats = escapesRoot(root, target) ? null : statOf(target);
-
-      if (stats === null) {
+      if (escapesRoot(root, target) || !exists(target)) {
         broken.push({ file, href, line, reason: "path" });
         continue;
       }
 
       if (!fragment) continue;
-      if (stats.isDirectory() || extname(target) !== ".md") continue;
+      if (extname(target) !== ".md") continue;
 
+      // 在るかを確かめてから開くのではなく、開いて確かめる。2 度触ると、その間に消えた場合に
+      // 「在ることになっているのに読めない」経路が生まれる。
       const markdown = readOf(target);
 
       if (markdown !== null && !hasAnchor(markdown, fragment)) {
@@ -159,16 +157,24 @@ export function findBrokenDocLinks(file: string, content: string, root: string):
   return broken;
 }
 
-/** 指し先の情報。無ければ null。 */
-function statOf(target: string): Stats | null {
+/** 指し先が在るか。 */
+function exists(target: string): boolean {
   try {
-    return statSync(target);
+    statSync(target);
+
+    return true;
   } catch {
-    return null;
+    return false;
   }
 }
 
-/** 指し先の中身。読めなければ null。 */
+/**
+ * 指し先の中身。読めなければ null。
+ *
+ * @remarks
+ * `.md` で終わる**ディレクトリ**もここへ来ます。名前だけでは中身が読めるかは決まらないので、
+ * 開いて確かめます。
+ */
 function readOf(target: string): string | null {
   try {
     return readFileSync(target, "utf8");

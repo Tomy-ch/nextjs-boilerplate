@@ -64,6 +64,13 @@ describe("findBrokenDocLinks", () => {
     expect(findBrokenDocLinks("docs/self.md", source, root)).toEqual([]);
   });
 
+  it("`.md` で終わるディレクトリは、アンカーを見ない", () => {
+    // 名前だけでは中身が読めるかは決まらない。開いて確かめる経路がここを通る。
+    mkdirSync(join(root, "docs/dir.md"), { recursive: true });
+
+    expect(findBrokenDocLinks("src/x.md", "[木](../docs/dir.md#無い)", root)).toEqual([]);
+  });
+
   it("ディレクトリと Markdown 以外は、アンカーを見ない", () => {
     const source = "[木](../docs/nested#無い) [図](../docs/logo.svg#無い)";
 
