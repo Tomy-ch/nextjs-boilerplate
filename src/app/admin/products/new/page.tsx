@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
@@ -8,6 +9,7 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { MAX_UPLOAD_BYTES } from "@/config/http/http.client";
 import { AdminProductCreatePageContent } from "@/features/admin/products/new/page-content";
+import { AdminProductCreateSkeleton } from "@/features/admin/products/new/ui/skeleton/skeleton";
 
 import { createProductAction, uploadProductImageAction } from "../actions";
 
@@ -34,11 +36,13 @@ export default function AdminProductNewPage() {
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <AdminProductCreatePageContent
-        createAction={createProductAction}
-        maxUploadBytes={MAX_UPLOAD_BYTES}
-        uploadAction={uploadProductImageAction}
-      />
+      <Suspense fallback={<AdminProductCreateSkeleton />}>
+        <AdminProductCreatePageContent
+          createAction={createProductAction}
+          maxUploadBytes={MAX_UPLOAD_BYTES}
+          uploadAction={uploadProductImageAction}
+        />
+      </Suspense>
     </ContentContainer>
   );
 }
