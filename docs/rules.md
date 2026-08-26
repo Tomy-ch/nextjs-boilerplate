@@ -59,6 +59,7 @@
 | 80 | 上の 4 つは **Cache Components を無効にした現在のモデルでの使い分け**である。有効化すると既定が反転し（動的が既定になり、キャッシュしたいものに `"use cache"` を付ける）、#77 の宣言は不要になる。有効化の判断より先にこの 3 行を書き換えない。 | [ADR 0041](adr/0041-cache-components-decision.md) の判断が動いたときの棚卸し。 | [ADR 0041](adr/0041-cache-components-decision.md) |
 | 81 | `process` と `node:` の組み込みモジュールへ触ってよいのは、config カーネルと起動境界、およびリポジトリ自身を操作する道具だけ（宣言は `architecture.ts` の `NODE_RUNTIME_ACCESS`）。層の依存表は import の向きしか見ておらず、**server と client のどちらで動くか**を見ていない。client の束へ載った時点で壊れる参照は、層とは別の軸で止める。 | ESLint の `no-restricted-syntax` / `no-restricted-imports`。 | [ADR 0030](adr/0030-environment-variable-management.md) |
 | 82 | route segment の器（`layout` / `page` / `template` / `default`）を Client Component にしない。`"use client"` は bundle 境界なので、器に付けると配下をまとめて束へ引き込む。client が要るのは葉で、そこへ島として差す（[rendering](design/rendering.md)）。`error.tsx` / `global-error.tsx` は framework が client を要求するため対象外。 | ESLint の `no-restricted-syntax`。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
+| 83 | 他の層が握る問題を、こちらで予防的に手当てしない。書かないのは「下の層が既に握っているもの」と「起こり得ないもの」で、「下では捕まえられないもの」「UX 上こちらに在るべきもの(入力の即時フィードバック等)」は対象外。**セキュリティ上の懸念(XSS 等)は重複を理由に落とさない。** | 散文。 | [ADR 0020](adr/0020-adopted-architecture.md) |
 
 ## 運用
 
