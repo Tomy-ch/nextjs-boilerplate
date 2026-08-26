@@ -8,6 +8,7 @@ import { EXCLUDED_STORIES } from "./lib/excluded-stories";
 import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
+import { openAtDeclaredViewport } from "./lib/viewport";
 
 // Storybook の全 story に axe を掛ける。ADR [0054](../docs/adr/0054-ui-catalog-storybook.md) の
 // 「a11y の自動検査を story に効かせる」を、追加のランナーを入れずに満たす経路
@@ -55,8 +56,14 @@ for (const story of stories) {
     const crashes: Error[] = [];
     page.on("pageerror", (error) => crashes.push(error));
 
-    await page.goto(storyURL(story.id, testInfo.project.name));
+    const url = storyURL(story.id, testInfo.project.name);
+    await page.goto(url);
     await settle(page, testInfo.project.name);
+
+    // 撮影と同じ幅で見る。宣言された幅でしか出ない違反（畳んだ操作面の名前・順序）がある。
+    if (await openAtDeclaredViewport(page, url)) {
+      await settle(page, testInfo.project.name);
+    }
 
     expect(crashes.map((crash) => crash.message)).toEqual([]);
 
