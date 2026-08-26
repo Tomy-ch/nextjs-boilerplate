@@ -64,12 +64,6 @@ jobs:
             registry.npmjs.org:443
             check.trivy.dev:443
             mirror.gcr.io:443
-            # Trivy pulls its vulnerability database from the mirror first and falls back to
-            # ghcr.io when the mirror does not answer. Blocking the fallback defeats the
-            # two-tier design: a mirror hiccup then reds a required check, and the failure
-            # reads as a finding rather than as a download that did not happen. Blobs for a
-            # ghcr.io pull come from pkg-containers, so both hosts are needed for the
-            # fallback to complete (dast.yaml allows the same pair).
             ghcr.io:443
             pkg-containers.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
@@ -206,6 +200,8 @@ jobs:
             registry.npmjs.org:443
             check.trivy.dev:443
             mirror.gcr.io:443
+            ghcr.io:443
+            pkg-containers.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
 
       - name: Checkout
@@ -344,12 +340,6 @@ jobs:
             registry.npmjs.org:443
             check.trivy.dev:443
             mirror.gcr.io:443
-            # Trivy pulls its vulnerability database from the mirror first and falls back to
-            # ghcr.io when the mirror does not answer. Blocking the fallback defeats the
-            # two-tier design: a mirror hiccup then reds a required check, and the failure
-            # reads as a finding rather than as a download that did not happen. Blobs for a
-            # ghcr.io pull come from pkg-containers, so both hosts are needed for the
-            # fallback to complete (dast.yaml allows the same pair).
             ghcr.io:443
             pkg-containers.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
