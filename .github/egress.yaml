@@ -116,8 +116,6 @@ workflows:
     - api.nuget.org:443
     - crl3.digicert.com:443
   dependency-review:
-    # 診断した依存それぞれの scorecard を引く。v5 の宛先はこちらで、
-    # `api.securityscorecards.dev` は移行前の宛先。
     - api.deps.dev:443
     - api.securityscorecards.dev:443
   scorecard:
