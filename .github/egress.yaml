@@ -58,6 +58,8 @@ workflows:
   e2e: *browser
   vrt: *browser
   vrt-guard: *browser
+  # 撮り直しは撮影と同じ仕事をする —— Storybook を build し、同じコンテナで走らせる。
+  baseline-retake: *browser
 
   # 計測はブラウザをコンテナへ閉じ込めないため、ホストへ取得したうえで走らせる。出るのは
   # 取得そのもの (cdn.playwright.dev) と、起動した Chrome 自身の背景通信の 2 系統。
