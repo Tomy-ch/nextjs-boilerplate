@@ -121,9 +121,12 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: test-blob-${{ matrix.shard }}
-          path: .vitest-reports/
+          path: tmp/test-blob/
           retention-days: 1
-          if-no-files-found: ignore
+          # `error`, not `ignore`. A machine that recorded nothing has to say so here, where
+          # its own log is in hand — swallowing it makes the collecting job report "no
+          # machine reported" for a cause that happened four minutes earlier and elsewhere.
+          if-no-files-found: error
 
   test:
     needs: test-shard
@@ -186,7 +189,7 @@ jobs:
       - name: Collect what every machine recorded
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          path: .vitest-reports/
+          path: tmp/test-blob/
           pattern: test-blob-*
           merge-multiple: true
 
@@ -204,7 +207,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          mapfile -t blobs < <(find .vitest-reports -name 'blob-*-*.json' -printf '%f\n' | sort)
+          mapfile -t blobs < <(find tmp/test-blob -name 'blob-*-*.json' -printf '%f\n' | sort)
 
           if [ "${#blobs[@]}" -eq 0 ]; then
             echo "❌ 分割の結果が 1 台ぶんも届いていません。" >&2
