@@ -15,7 +15,7 @@ export type Shard = {
   readonly total: number;
 };
 
-const SHARD_PATTERN = /^([1-9][0-9]*)\/([1-9][0-9]*)$/;
+const SHARD_PATTERN = /^([1-9]\d*)\/([1-9]\d*)$/;
 
 /**
  * 分割の指定を読む。書式は Playwright / Vitest の `--shard` と同じ「台目 / 台数」。
@@ -57,7 +57,20 @@ export function shardFileName(shard: Shard): string {
   return `measurements-${shard.index}-${shard.total}.json`;
 }
 
-const FILE_PATTERN = /^measurements-([1-9][0-9]*)-([1-9][0-9]*)\.json$/;
+const FILE_PATTERN = /^measurements-([1-9]\d*)-([1-9]\d*)\.json$/;
+
+/**
+ * その名前が、台の書いた結果かどうか。
+ *
+ * @remarks
+ * **綴りを知っているのはこのモジュールだけです。** 名前を組み立てるのも（{@link shardFileName}）、
+ * 台数を読み戻すのも（{@link expectedTotal}）ここなので、選り分けだけを呼び出し側が自前で
+ * 書くと、名前の付け方を変えたときに片方だけが古びます。しかも黙って古びます —— 選り分けが
+ * 外れた結果は合流の対象から落ちるだけで、台数の突合は「揃っている」と答えます。
+ */
+export function isShardFile(fileName: string): boolean {
+  return FILE_PATTERN.test(fileName);
+}
 
 /**
  * 届いた結果が全台ぶん揃っているかを、綴りだけから確かめる。

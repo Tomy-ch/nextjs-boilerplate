@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { expectedTotal, parseShard, selectShard, shardFileName } from "./shard";
+import { expectedTotal, isShardFile, parseShard, selectShard, shardFileName } from "./shard";
 
 describe("parseShard", () => {
   // ----- 正常系 -----
@@ -59,6 +59,27 @@ describe("shardFileName", () => {
   // ----- 正常系 -----
   it("台目と台数を綴りに持たせる", () => {
     expect(shardFileName({ index: 2, total: 4 })).toBe("measurements-2-4.json");
+  });
+});
+
+describe("isShardFile", () => {
+  // ----- 正常系 -----
+  it("台の書いた結果を、その名前で見分ける", () => {
+    expect(isShardFile("measurements-2-4.json")).toBe(true);
+  });
+
+  it("組み立てた名前をそのまま受け付ける", () => {
+    expect(isShardFile(shardFileName({ index: 3, total: 4 }))).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("同じ置き場にある別の生成物を結果と見なさない", () => {
+    expect(isShardFile("headers-admin.json")).toBe(false);
+    expect(isShardFile("top-1.json")).toBe(false);
+  });
+
+  it("0 台目を名乗る綴りを受け付けない", () => {
+    expect(isShardFile("measurements-0-4.json")).toBe(false);
   });
 });
 

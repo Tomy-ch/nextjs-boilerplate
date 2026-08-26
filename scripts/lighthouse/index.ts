@@ -27,7 +27,7 @@ import { aggregate, readMetrics } from "./metrics";
 import { planTargets, type Target } from "./plan";
 import { renderReport } from "./report";
 import { buildCookieHeader } from "./session";
-import { expectedTotal, parseShard, selectShard, shardFileName } from "./shard";
+import { expectedTotal, isShardFile, parseShard, selectShard, shardFileName } from "./shard";
 import { decideTrigger } from "./trigger";
 
 /**
@@ -241,7 +241,7 @@ function merge(): void {
   expectedTotal(names);
 
   const measurements = names
-    .filter((name) => /^measurements-[0-9]+-[0-9]+\.json$/.test(name))
+    .filter(isShardFile)
     .flatMap((name) => JSON.parse(readFileSync(join(OUTPUT_DIR, name), "utf8")) as Measurement[]);
 
   judgeAll(measurements, budget);
