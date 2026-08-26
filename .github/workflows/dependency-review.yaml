@@ -69,6 +69,7 @@ jobs:
             mise-versions.jdx.dev:443
             nodejs.org:443
             registry.npmjs.org:443
+            api.deps.dev:443
             api.securityscorecards.dev:443
 
       - name: Checkout

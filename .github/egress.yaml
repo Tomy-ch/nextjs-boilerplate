@@ -116,6 +116,7 @@ workflows:
     - api.nuget.org:443
     - crl3.digicert.com:443
   dependency-review:
+    - api.deps.dev:443
     - api.securityscorecards.dev:443
   scorecard:
     - api.deps.dev:443
