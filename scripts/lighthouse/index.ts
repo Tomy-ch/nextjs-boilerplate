@@ -263,11 +263,9 @@ async function measureAll(): Promise<void> {
     process.env.E2E_ONLY,
   );
 
-  // 分割の指定が無ければ 1 台。手元の `make lighthouse` と、誰も待っていない保護ブランチ /
-  // 日次の実行はこちらを通る。
-  const shard = process.env.LIGHTHOUSE_SHARD
-    ? parseShard(process.env.LIGHTHOUSE_SHARD)
-    : { index: 1, total: 1 };
+  // 分割の指定が無ければ 1 台。手元の `make lighthouse` だけがこちらを通る。
+  const spec = process.env.LIGHTHOUSE_SHARD;
+  const shard = spec === undefined ? { index: 1, total: 1 } : parseShard(spec);
   const screens = selectShard(selected, shard);
 
   mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -290,8 +288,12 @@ async function measureAll(): Promise<void> {
     );
   }
 
-  // 分割した台は判定しない。全画面を見ていないので、在るべき画面の検査に答えられない。
-  if (shard.total > 1) {
+  // 呼ばれ方で決める。台数では決めない —— 1 台に割った実行も束ねる側を持っており、そちらが
+  // 判定するのに、ここで台数を見て書き出しを飛ばすと束ねる側は何も見つけられない。
+  //
+  // 判定するのは束ねる側 1 箇所。台は全画面を見ているとは限らず、在るべき画面の検査に
+  // 答えられない。
+  if (spec !== undefined) {
     writeFileSync(join(OUTPUT_DIR, shardFileName(shard)), JSON.stringify(measurements));
     console.error(
       `📦 ${measurements.length} 画面ぶんを書き出しました（${shard.index}/${shard.total}）`,
