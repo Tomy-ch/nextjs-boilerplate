@@ -3,16 +3,19 @@
 globs:
   - "**/*.md"
 
-# mermaid-lint / skill-lint の除外（EXCLUDE_DIRS/PREFIXES/FILES）と一致させる。
+# mermaid-lint の除外（scripts/lib/markdown-files.ts の EXCLUDE_DIRS / EXCLUDE_PREFIXES）と一致させる。
+# 突合は scripts/markdown-exclusions.gate.test.ts が行うので、片方だけを直すと落ちる。
+# skill-lint は走査の目的が別（リポジトリ全エントリを索引して参照を解決する）なので、一致は求めない。
 # 保護対象であることは除外の理由にならない（保護は「誰が編集してよいか」の話で、linter が読んでよいかとは
 # 無関係）。除外してよいのは、このリポジトリのソースではない領域だけ — 依存・git の管理領域・別ブランチの
 # 作業ツリー・ツールの生成物。markdownlint-cli2 は既定で .gitignore を読まないため、ここに書かない限り
 # 対象に入る。
 ignores:
   - "**/node_modules/**"
-  - ".git/**"
+  - "**/.git/**"
   - ".claude/worktrees/**"
   - "graphify-out/**"
+  - "storybook-static/**"
   - "tmp/**"
   - "docs/portal/guides/**"
   - "dist/**"

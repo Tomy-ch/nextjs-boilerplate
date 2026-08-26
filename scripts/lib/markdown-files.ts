@@ -10,19 +10,24 @@ import path from "node:path";
  */
 
 /** 名前がどこに現れても降りないディレクトリ。 */
-const EXCLUDE_DIRS = new Set(["node_modules", ".git"]);
+export const EXCLUDE_DIRS: ReadonlySet<string> = new Set(["node_modules", ".git"]);
 
 /**
  * ルートからの相対パスの先頭一致で外すもの。
  *
  * @remarks
- * `graphify-out` は gitignore 済みですが、この走査は `.gitignore` を見ません。外さないと
- * グラフを生成した人だけ手元の生成物で pre-commit が落ちます。
+ * **この走査は `.gitignore` を見ません。** 並ぶのはすべて gitignore 済みの生成物で、外さないと
+ * それを生成した人だけ手元の成果物で pre-commit が落ちます。
  */
-const EXCLUDE_PREFIXES: readonly string[] = [path.join(".claude", "worktrees"), "graphify-out"];
-
-/** 完全一致で外すもの。 */
-const EXCLUDE_FILES = new Set<string>([]);
+export const EXCLUDE_PREFIXES: readonly string[] = [
+  path.join(".claude", "worktrees"),
+  "graphify-out",
+  // カタログの build が `.storybook/README.md` を写し込むため、リンクが 1 段ずれた写しが入る。
+  "storybook-static",
+  "tmp",
+  "dist",
+  path.join("docs", "portal", "guides"),
+];
 
 /**
  * 除外接頭辞に当たるか。
@@ -67,7 +72,7 @@ export function collectMarkdownFiles(root: string): string[] {
         continue;
       }
 
-      if (entry.name.endsWith(".md") && !EXCLUDE_FILES.has(relative)) {
+      if (entry.name.endsWith(".md")) {
         found.push(relative);
       }
     }
@@ -84,7 +89,11 @@ export function collectMarkdownFiles(root: string): string[] {
  * @remarks
  * 等しい場合を持ちません。走査は 1 つのパスを 2 度出さないので、比較の対象が同じ綴りになる
  * ことがありません。
+ *
+ * **公開しているのは、両向きを固定できるようにするためです。** 走査が積む順は OS と
+ * ファイルシステムが決めるので、`collectMarkdownFiles` 経由では「後の方が先に来る」組を
+ * 意図して作れず、向きが反転しても実行環境によっては落ちません。
  */
-function byCodeUnit(left: string, right: string): number {
+export function byCodeUnit(left: string, right: string): number {
   return left < right ? -1 : 1;
 }
