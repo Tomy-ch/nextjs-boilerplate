@@ -65,23 +65,31 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | --- | --- | --- |
 | 入口 | success | `Page/Admin/Dashboard/Default` |
 | | empty（購入が無い） | `Page/Admin/Dashboard/NoPurchases` |
-| 集計 | 期間が決まっていない | `Page/Admin/Analytics/SummaryPending` |
-| | 期間を選んだ | `Page/Admin/Analytics/RangeSelected` |
+| | loading | `Features/Admin/Skeleton/{Default,Mobile}` |
+| 集計 | 期間を選んだ | `Page/Admin/Analytics/RangeSelected` |
 | | 両端が逆 | `Page/Admin/Analytics/RangeReversed` |
 | | 売れ筋が空 | `Page/Admin/Analytics/NoRanking` |
+| | loading（下だけ取り直している間） | `Page/Admin/Analytics/SummaryPending` |
 | 商品一覧 | success | `Page/Admin/Products/List/Default` |
 | | empty | `Page/Admin/Products/List/Empty` |
 | | 絞り込み・検索・ページ送り | `Page/Admin/Products/List/{MultipleFiltered,Searched,MiddlePage,LastPage}` |
+| | loading | `Features/Admin/Products/List/Skeleton/Default` |
 | 商品作成 | 入力・確認・拒否 | `Page/Admin/Products/Create/{Default,Confirm,Rejected}` |
+| | loading | `Features/Admin/Products/New/Skeleton/Default` |
 | 商品編集 | 拒否 / 版の食い違い | `Page/Admin/Products/Edit/{Rejected,Conflicted}` |
+| | loading | `Features/Admin/Products/Edit/Skeleton/Default` |
 | 在庫補充 | 補充 / 引き落とし / 在庫切れ | `Page/Admin/Products/Stock/{Replenishing,Deducting,OutOfStock}` |
 | | 量が読めない / 版の食い違い / 取り直せない | `Page/Admin/Products/Stock/{RejectedQuantity,Conflicted,Unavailable}` |
+| | loading | `Features/Admin/Products/Stock/Skeleton/Default` |
 | 利用者 | success / empty | `Page/Admin/Users/{Default,Empty}` |
 | | 退会の確認・成立・競合 | `Page/Admin/Users/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
+| | loading | `Features/Admin/Users/Skeleton/Default` |
+| 配下の全画面 | error | `Features/Admin/ErrorState/{Default,WithDigest}` |
 
-**loading と error に story がありません。**待機表示（`ui/skeleton/` と各画面の `ui/skeleton/`）と
-失敗表示（`ui/error-state/`）は実装がありますが story を持たないため、VRT の対象外です。この 2 つの
-見た目は E2E の画面比較にも現れません（どちらも取得が成立した後の画面を撮るため）。
+**loading と error は画面の合成ではなく部品の story で押さえます。**待機表示は `Suspense` の
+fallback、失敗表示は `/admin` の error 境界が描くもので、どちらも取得が成立した後の画面を撮る
+E2E の画面比較には現れません。VRT へ載せる経路は story しか無いため、部品そのものを story に
+してあります。
 
 ## 構成
 
@@ -149,7 +157,9 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | `products/list/ui/filter-sheet/` | 狭い段の絞り込み。下端の操作から開き、overlay の中でまとめて確定する |
 | `products/list/ui/skeleton/` | 表の待機表示 |
 | `products/new/page-content.tsx` `products/new/view.tsx` | 作成。段階に分けて進み、最後に確認を置く |
+| `products/new/ui/skeleton/` | フォームの待機表示。段階の進捗を先頭に持つ |
 | `products/edit/page-content.tsx` `products/edit/view.tsx` | 編集。観点を切り替えて直す。版を持ち回る |
+| `products/edit/ui/skeleton/` | フォームの待機表示。観点の切り替えを先頭に持つ |
 | `products/stock/stock-direction.ts` | 在庫を動かす向きと、契約が受け取る符号付きの増減量への畳み方 |
 | `products/stock/stock-quantity.ts` | 動かせる量として読めるかの規則。送信を読む側と見込みを出す側が同じものを見る |
 | `products/stock/form-state.ts` | 在庫のフォームの結果の型と、送信先の型 |
