@@ -20,21 +20,25 @@ name: SonarQube Cloud Scan
 # on a third-party account cannot be a condition for merging in a repository that ships to
 # people who do not have that account.
 #
-# PULL REQUESTS AND PROTECTED BRANCHES, NOT EVERY PUSH. On the free plan SonarCloud analyses
+# PULL REQUESTS EVERYWHERE, PUSH ON THE TRUNK ALONE. On the free plan SonarCloud analyses
 # one branch per organization and refuses the rest, while pull-request analysis is exempt.
-# The push half is kept for the protected branches because code scanning only closes an
-# alert when a later analysis for the same ref stops reporting it — without an analysis on
-# the default branch, an exclusion added here would silence the gate while the alert it was
-# written for stayed open forever.
+# The push half exists because code scanning only closes an alert when a later analysis for
+# the same ref stops reporting it — without an analysis on the trunk, an exclusion added
+# here would silence the gate while the alert it was written for stayed open forever.
+#
+# That rationale reaches `production` and stops there. Naming the other protected branches
+# asked the free plan for a second branch, so their push analysis was refused server-side,
+# and on a `release/**` branch with an open pull request the refused branch analysis ran
+# beside the pull-request one for the same commit and took it down with it — the release
+# pull request went red on a scan that is green on every feature branch. A protected branch
+# other than the trunk is always on its way into one through a pull request, and that pull
+# request is analysed, so nothing here goes unscanned.
 
 on:
   pull_request:
   push:
     branches:
       - production
-      - staging
-      - develop
-      - 'release/**'
   workflow_dispatch:
 
 permissions:
