@@ -3,6 +3,24 @@ name: Test
 # Vitest with coverage — the same full, cache-free command the pre-push hook
 # runs. The hook catches failures before push; CI is the authoritative gate.
 #
+# ## Why the run is split across machines
+#
+# The cost is linear in the number of test files and one runner saturates well before
+# the suite ends, so the only way to shorten the wall clock is to add machines.
+# `test-shard` is that fan-out; `test` collects what came back. This workflow only ever
+# starts on a pull request, which is the one path where a person is waiting.
+#
+# **The required status check is `test`, and it must stay that way.** A matrix job reports
+# one context per entry (`test-shard (1)` …), which no required check can name — so the
+# collecting job carries the name, and what it guarantees is stated on the job itself.
+#
+# **The coverage threshold is the collecting job's, not each machine's.** A shard reaches
+# only the files it was given; everything covered by its siblings reads as unreached. The
+# shards therefore write blob reports with the threshold switched off (`VITEST_SHARDED`),
+# and the merge recomputes coverage over the whole population before judging it. Merging
+# is what makes the 100% gate mean the same thing it meant on one machine — measured on
+# the full suite, the merged totals equal the single-machine totals exactly.
+#
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
 
@@ -18,7 +36,101 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test-shard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    strategy:
+      # One machine failing says nothing about the others, and the comment has to list
+      # every test that broke. Cancelling the rest would report a subset as the whole.
+      fail-fast: false
+      matrix:
+        # **The only declaration of how many machines the suite is split across.** The
+        # denominator each machine passes to `--shard` is read back from `strategy.job-total`,
+        # so there is no second number to keep in step with this one. Writing it twice would
+        # let the two drift, and the drift is silent: with a denominator of 5 and four entries
+        # here, nothing runs the fifth bucket, so those tests never execute — and the merge
+        # would then fail the coverage threshold for a reason that names the wrong cause.
+        #
+        # Four is where the curve flattens. The fixed cost per machine (setup, dependency
+        # install) is roughly 30s against a run of roughly 100s, so a fifth machine buys
+        # seconds while every machine is billed to whoever forked this.
+        shard: [1, 2, 3, 4]
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Failures are not reported from here. The blob carries them, and the merge replays
+      # every one of them in the collecting job — so the comment is composed once, from one
+      # log, instead of being stitched together out of four partial ones.
+      - name: Run this machine's share of the suite
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ strategy.job-total }}
+        run: make test-shard SHARD="${SHARD_INDEX}/${SHARD_TOTAL}"
+
+      # `if: always()` so a shard that failed still hands over what it recorded. Without it
+      # a single failure would leave the merge with a hole, and the hole would surface as a
+      # coverage shortfall rather than as the test that actually broke.
+      - name: Hand the recorded run to the collecting job
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-blob-${{ matrix.shard }}
+          path: .vitest-reports/
+          retention-days: 1
+          if-no-files-found: ignore
+
   test:
+    needs: test-shard
+    # The collecting job runs whatever the shards did. A shard that failed still has to
+    # produce a red `test` and a comment saying which test broke; a job that never starts
+    # reports nothing, and a required context that never arrives blocks the merge forever.
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -71,13 +183,56 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Run Vitest with coverage
+      - name: Collect what every machine recorded
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: .vitest-reports/
+          pattern: test-blob-*
+          merge-multiple: true
+
+      # **A missing blob is not a coverage shortfall.** A shard that died before writing one
+      # leaves the merge measuring less than the whole suite, and the threshold would then
+      # report unreached lines for code whose tests never ran. Naming the count first means
+      # the report says which machine went missing instead of blaming the code.
+      #
+      # The expected count is read out of the file names rather than declared here. Vitest
+      # names each blob `blob-<index>-<total>.json`, so the denominator the shards actually
+      # ran with is already in hand — writing `4` in this job would be the second number the
+      # matrix comment warns about, and it would be the one that goes stale.
+      - name: Fail if a machine did not report
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t blobs < <(find .vitest-reports -name 'blob-*-*.json' -printf '%f\n' | sort)
+
+          if [ "${#blobs[@]}" -eq 0 ]; then
+            echo "❌ 分割の結果が 1 台ぶんも届いていません。" >&2
+            exit 1
+          fi
+
+          totals="$(printf '%s\n' "${blobs[@]}" | sed -E 's/^blob-[0-9]+-([0-9]+)\.json$/\1/' | sort -u)"
+
+          if [ "$(printf '%s\n' "${totals}" | wc -l | tr -d ' ')" -ne 1 ]; then
+            echo "❌ 届いた結果が別々の台数で割られています: ${totals}" >&2
+            echo "   実行の途中で分割数が変わると、合流させても全量になりません。" >&2
+            exit 1
+          fi
+
+          if [ "${#blobs[@]}" -ne "${totals}" ]; then
+            echo "❌ 分割 ${totals} 台のうち ${#blobs[@]} 台ぶんしか結果が届いていません。" >&2
+            echo "   届かなかった台の実行ログを読んでください。このまま合流させると、走らなかった" >&2
+            echo "   テストがカバレッジの不足として現れ、原因を取り違えます。" >&2
+            exit 1
+          fi
+
+      - name: Merge the runs and check coverage
         id: test
         shell: bash
         run: |
           set +e
 
-          make test-full 2>&1 | tee /tmp/test.log
+          make test-merge 2>&1 | tee /tmp/test.log
           code=${PIPESTATUS[0]}
 
           if [ "${code}" -eq 0 ]; then
@@ -117,6 +272,9 @@ jobs:
           body-file: /tmp/test-comment.log
           details-summary: 'Vitest log (末尾 400 行)'
 
+      # Two conditions, because they fail for different reasons. The merge speaks for the
+      # tests and the threshold; `needs` speaks for a machine that never got that far — a
+      # cancelled run, a runner that died, a step before the suite that broke.
       - name: Fail if Vitest failed
-        if: always() && steps.test.outputs.status != 'success'
+        if: always() && (steps.test.outputs.status != 'success' || needs.test-shard.result != 'success')
         run: exit 1

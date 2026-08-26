@@ -194,7 +194,13 @@
       }
     },
     {
-      "includes": ["baseline/lib/**", "vrt/**", "e2e/**", "playwright.e2e.config.ts"],
+      "includes": [
+        "baseline/lib/**",
+        "vrt/**",
+        "e2e/**",
+        "playwright.e2e.config.ts",
+        "vitest.config.ts"
+      ],
       "linter": {
         "rules": {
           "correctness": {
