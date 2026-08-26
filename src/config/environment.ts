@@ -9,6 +9,7 @@ import {
   authScopesValidator,
   authSessionSecretValidator,
 } from "./auth/auth.schema";
+import { fixedNowValidator } from "./clock/clock.schema";
 import { maxUploadBytesValidator, maxUrlBytesValidator } from "./http/http.schema";
 import { findApplicationEnvironment } from "./load-environment";
 import { mediaOriginValidator } from "./media/media.schema";
@@ -35,6 +36,7 @@ function allowsShippedSecrets(): boolean {
 const environmentSchema = z.object({
   APP_API_BASE_URL: apiBaseUrlValidator(),
   APP_API_MODE: apiModeValidator(),
+  CLOCK_FIXED_NOW: fixedNowValidator(),
   MEDIA_ORIGIN: mediaOriginValidator(),
   OBS_SERVICE_NAME: serviceNameValidator(),
   OTEL_EXPORTER_OTLP_ENDPOINT: otlpEndpointValidator(),

@@ -24,6 +24,16 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 | `APP_API_BASE_URL` | BFF が接続する API の base URL | URL | `http://localhost:8080` | Required。環境ごとの API 接続先 |
 | `APP_API_MODE` | API 接続モード | `live` / `mock` | `live` | Required。`mock` は local / CI のみで用いる |
 
+### Clock
+
+| Variable Name | Description | Type | Example | Notes |
+| --- | --- | --- | --- | --- |
+| `CLOCK_FIXED_NOW` | 画面が「いま」として読む瞬間の固定 | ISO 8601 の日時 | `2026-01-01T00:00:00.000Z` | Optional。未設定・空文字なら実時計。検証の環境だけが指定する |
+
+暦日で区切る画面は、区切りを要求のクエリへ載せます。クエリが実時計から導かれると、契約から応答を
+組み立てるモックの seed も一緒に動くため、その画面の基準画像は撮った暦日のあいだしか一致しません。
+`env/.env.ci` だけが値を持つのはこのためで、配信する環境は未設定のまま実時計で動きます。
+
 ### Media
 
 | Variable Name | Description | Type | Example | Notes |

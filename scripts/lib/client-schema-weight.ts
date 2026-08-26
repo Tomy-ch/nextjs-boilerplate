@@ -20,8 +20,14 @@ export type HeavyImport = {
 /** client の島の入口。 */
 const CLIENT_ENTRY = /^\s*["']use client["']/;
 
-/** server 側で切れる境界。ここから先は client bundle に載らない。 */
-const SERVER_BOUNDARY = /^\s*["']use server["']|import\s+["']server-only["']/;
+/**
+ * server 側で切れる境界。ここから先は client bundle に載らない。
+ *
+ * @remarks
+ * 選択肢を括るのは、`^` が掛かる範囲を綴りの上で見えるようにするためです。`"use server"` は
+ * 先頭になければ効きませんが、`server-only` の import は他の import の後ろにも現れます。
+ */
+const SERVER_BOUNDARY = /(?:^\s*["']use server["'])|(?:import\s+["']server-only["'])/;
 
 /**
  * 実行時に消える import。

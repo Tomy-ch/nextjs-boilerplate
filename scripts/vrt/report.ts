@@ -151,9 +151,15 @@ function diffPixels(results: unknown): number | null {
  * story の見出しはソースが決めるので、PR を出した側が中身を持ちます。この表は畳んだフェンスの
  * 外で描画されるため、升目の区切りと改行をそのまま通すと、行の形を壊して以降を任意の Markdown
  * として書けます。
+ *
+ * **逆斜線を先に退避します。** 後に回すと、退避のために足した逆斜線まで対象になり、区切りの
+ * 退避が打ち消されます。
  */
 function cell(text: string): string {
-  return text.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/[\r\n]+/g, " ");
 }
 
 function formatPixels(pixels: number | null): string {

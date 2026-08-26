@@ -140,8 +140,6 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     name: "admin-analytics",
     path: "/admin/analytics",
     signedIn: "admin",
-    // 集計の期間は要求時刻から導くため、モックでは固定できない。
-    mask: ['[data-slot="period-caption"] .tabular-nums'],
   },
   { route: "/admin/products", name: "admin-products", path: "/admin/products", signedIn: "admin" },
   {

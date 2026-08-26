@@ -13,6 +13,7 @@ import type { Environment } from "./environment";
 const VALID_ENVIRONMENT = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
+  CLOCK_FIXED_NOW: "2026-01-01T00:00:00.000Z",
   MEDIA_ORIGIN: "https://media.example.test",
   OBS_SERVICE_NAME: "Boilerplate Web",
   OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.test/v1/traces",
@@ -51,6 +52,7 @@ export function stubValidEnvironment(): void {
 export const PARSED_ENVIRONMENT: Environment = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
+  CLOCK_FIXED_NOW: "2026-01-01T00:00:00.000Z",
   MEDIA_ORIGIN: "https://media.example.test",
   OBS_SERVICE_NAME: "Boilerplate Web",
   OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.test/v1/traces",

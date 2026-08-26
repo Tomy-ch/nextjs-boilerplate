@@ -64,6 +64,8 @@ jobs:
             registry.npmjs.org:443
             check.trivy.dev:443
             mirror.gcr.io:443
+            ghcr.io:443
+            pkg-containers.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
 
       - name: Checkout
@@ -198,6 +200,8 @@ jobs:
             registry.npmjs.org:443
             check.trivy.dev:443
             mirror.gcr.io:443
+            ghcr.io:443
+            pkg-containers.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
 
       - name: Checkout
@@ -336,6 +340,8 @@ jobs:
             registry.npmjs.org:443
             check.trivy.dev:443
             mirror.gcr.io:443
+            ghcr.io:443
+            pkg-containers.githubusercontent.com:443
             tuf-repo-cdn.sigstore.dev:443
 
       - name: Checkout
@@ -383,7 +389,11 @@ jobs:
           body-file: /tmp/trivy-release.log
           details-summary: 'Trivy log (release)'
 
-      - name: Fail if a vulnerability was found
+      # Named for what the exit code actually says. A non-zero status means the gate did
+      # not pass, which covers a finding and equally a scan that could not run at all —
+      # the sibling report-only job spells its own step the same way. Asserting a finding
+      # here made a blocked database download read as a vulnerability.
+      - name: Fail if the release gate did not pass
         if: always() && steps.trivy.outputs.status != 'success'
         run: exit 1
 

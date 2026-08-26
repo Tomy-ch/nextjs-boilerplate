@@ -30,10 +30,12 @@ const TIMEOUT_MS = 60_000;
 const EXCLUDED = /\.(test|stories)\.tsx?$/;
 
 function collect(directory: string, into: SourceModule[]): SourceModule[] {
-  for (const entry of readdirSync(directory)) {
-    const path = join(directory, entry);
+  // 種別は dirent から読む。`statSync` で確かめてから読み直すと、その間に対象が
+  // 入れ替わりうるうえ、走査 1 件につき system call が 1 つ増える。
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
 
-    if (statSync(path).isDirectory()) {
+    if (entry.isDirectory()) {
       collect(path, into);
       continue;
     }

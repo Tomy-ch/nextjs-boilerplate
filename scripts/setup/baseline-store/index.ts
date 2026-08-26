@@ -193,13 +193,20 @@ async function setupApp(): Promise<void> {
  * 端末へ貼り付けさせないのは、改行で終わらない貼り付けが 1 回目の Ctrl+D で EOF にならず、
  * 「押しても終わらない」に見えるためである。
  */
-function setPrivateKey(keyPath: string): void {
-  if (!fs.existsSync(keyPath)) {
+/** 秘密鍵を読み取り用に開く。開けなかったことを、その場の理由として言い直す。 */
+function openPrivateKey(keyPath: string): number {
+  try {
+    return fs.openSync(keyPath, "r");
+  } catch {
     throw new Error(`秘密鍵が見つかりません: ${keyPath}`);
   }
+}
 
+function setPrivateKey(keyPath: string): void {
+  // 存在を先に確かめない。確かめてから開くまでの間に対象が入れ替わりうるため、
+  // 開けたかどうかそのものを判定にする。
   const head = Buffer.alloc(64);
-  const probe = fs.openSync(keyPath, "r");
+  const probe = openPrivateKey(keyPath);
   try {
     fs.readSync(probe, head, 0, head.length, 0);
   } finally {
@@ -209,7 +216,7 @@ function setPrivateKey(keyPath: string): void {
     throw new Error(`秘密鍵の形式ではありません: ${keyPath}`);
   }
 
-  const key = fs.openSync(keyPath, "r");
+  const key = openPrivateKey(keyPath);
   try {
     execFileSync("gh", ["secret", "set", "BASELINE_APP_PRIVATE_KEY"], {
       stdio: [key, "inherit", "inherit"],

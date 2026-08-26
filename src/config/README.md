@@ -25,6 +25,7 @@ coverage-exclusions:
 | --- | --- | --- | --- |
 | `api/api.schema.ts` / `api/api.server.ts` | API base URL と接続モードの schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `auth/auth.schema.ts` / `auth/auth.server.ts` | OIDC と BFF session の schema / Config | server | `adapters/server` と起動・ビルド境界 |
+| `clock/clock.schema.ts` / `clock/clock.server.ts` | 画面が読む「いま」の schema / Config | server | `app` と起動・ビルド境界 |
 | `media/media.schema.ts` / `media/media.server.ts` | media origin の schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `observability/observability.schema.ts` / `observability/observability.server.ts` | service 名・OTLP endpoint・signal 別 exporter の schema / Config | server | 起動・ビルド境界 |
 | `http/http.schema.ts` / `http/http.server.ts` / `http/http.client.ts` | 要求 URL とアップロードに許すバイト数の上限の schema / Config | server + client | `adapters/server` / `adapters/client` と起動・ビルド境界 |
