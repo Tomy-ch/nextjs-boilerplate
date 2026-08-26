@@ -7,16 +7,12 @@ import { CartRemovalNoticeProvider } from "@/features/cart/removal-memory";
 import { readShellCart } from "@/features/cart/shell-cart";
 import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action";
 import { CartPanel } from "@/features/cart/ui/panel/panel";
-import { RepositoryLinks } from "@/features/site-info/ui/repository-links/repository-links";
+import { SiteFooter } from "@/features/site-info/ui/site-footer/site-footer";
 import { isAdmin } from "@/model/authz";
 
-const SITE_NAME = "nextjs-boilerplate";
+import { GLOBAL_NAV_ITEMS } from "../global-nav";
 
-const NAV_ITEMS = [
-  { href: "/products", label: "商品" },
-  { href: "/purchases", label: "購入履歴" },
-  { href: "/mypage", label: "マイページ" },
-];
+const SITE_NAME = "nextjs-boilerplate";
 
 /**
  * 管理画面への入口。
@@ -43,10 +39,10 @@ const ADMIN_NAV_ITEM = { href: ADMIN_PRODUCT_LIST_PATH, label: "管理" };
  * カートの中身をここで取ります。器は client ですが、明細の出所はバックエンドであり、client の
  * 状態として持ち回りません（[0023](../../../docs/adr/0023-stores-kernel.md)）。
  *
- * **この取得は cookie を読むため、この route group の画面はすべて動的描画になります。** 取得を
- * 持たない `/about` `/privacy` `/terms` も含みます。静的な殻と動的な穴を分ける仕組み（PPR）は
- * 採っていないため（[0041](../../../docs/adr/0041-cache-components-decision.md)）、どの画面にも
- * 同じカートを出すことと引き換えに払う代償です。
+ * **この取得は cookie を読むため、この route group の画面はすべて動的描画になります。** 静的な殻と
+ * 動的な穴を分ける仕組み（PPR）は採っていないため（[0041](../../../docs/adr/0041-cache-components-decision.md)）、
+ * どの画面にも同じカートを出すことと引き換えに払う代償です。取得を持たない案内の 3 枚は、この器を
+ * 通さないところへ出して固めてあります（`src/app/(site-info)/layout.tsx`）。
  *
  * **読めなかったときはカートを出さずに続けます。** ここで投げると、同じ段の layout を包む
  * `error` 境界が無いため（子の `error.tsx` は親 layout の失敗を捕まえません）、header も nav も
@@ -55,11 +51,13 @@ const ADMIN_NAV_ITEM = { href: ADMIN_PRODUCT_LIST_PATH, label: "管理" };
  * （[0080](../../../docs/adr/0080-error-handling.md)）。
  *
  * 取り消しの記憶も**カートの器より外**へ置きます。最後の 1 件を取り除くと脇の領域もカートの画面も
- * 空の姿へ変わるため、器の内側に持つとその切り替わりで記憶ごと失われます。
+ * 空の姿へ変わるため、器の内側に持つとその切り替わりで記憶ごと失われます。**ただしこの器を離れると
+ * 失われます** —— route group の境界は client 状態の境界でもあり、買い物から出た時点で失ってよい
+ * ものとして扱っています（[0026](../../../docs/adr/0026-layout-shell-mount.md)）。
  */
 export default async function ShopLayout({ children }: { children: ReactNode }) {
   const [cart, session] = await Promise.all([readShellCart(), verifySession()]);
-  const navItems = isAdmin(session) ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS;
+  const navItems = isAdmin(session) ? [...GLOBAL_NAV_ITEMS, ADMIN_NAV_ITEM] : GLOBAL_NAV_ITEMS;
 
   return (
     <CartRemovalNoticeProvider>
@@ -68,12 +66,7 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
         navItems={navItems}
         headerActions={cart === null ? null : <CartHeaderAction cart={cart} />}
         sidebar={cart === null ? null : <CartPanel cart={cart} />}
-        footer={
-          <div className="flex flex-col gap-3">
-            <p>Next.js / React のプレゼンテーション層 boilerplate です。</p>
-            <RepositoryLinks />
-          </div>
-        }
+        footer={<SiteFooter />}
       >
         {children}
       </AppShell>
