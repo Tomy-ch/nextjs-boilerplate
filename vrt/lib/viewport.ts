@@ -21,7 +21,7 @@ export type ViewportSize = {
 
 /** viewport 1 件の定義。Storybook の `styles` と同じ形。 */
 type ViewportDefinition = {
-  styles?: { width?: string; height?: string } | undefined;
+  styles?: { width?: string; height?: string };
 };
 
 /**
@@ -34,9 +34,9 @@ type ViewportDefinition = {
  */
 export type ViewportDeclaration = {
   /** 選ばれている viewport の名前。 */
-  value?: string | undefined;
+  value?: string;
   /** その story が持ち込む定義。 */
-  options?: Record<string, ViewportDefinition> | undefined;
+  options?: Record<string, ViewportDefinition>;
 };
 
 /** `"414px"` の形を数へ落とす。px 以外は撮影の寸法にできない。 */
