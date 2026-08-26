@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 
@@ -14,6 +14,7 @@ import {
 } from "../../e2e/lib/screens";
 import { numstatArgs, parseNumstat } from "../lib/numstat";
 import {
+  type Budget,
   hasFailure,
   judge,
   type Measurement,
@@ -26,6 +27,7 @@ import { aggregate, readMetrics } from "./metrics";
 import { planTargets, type Target } from "./plan";
 import { renderReport } from "./report";
 import { buildCookieHeader } from "./session";
+import { expectedTotal, parseShard, selectShard, shardFileName } from "./shard";
 import { decideTrigger } from "./trigger";
 
 /**
@@ -34,7 +36,12 @@ import { decideTrigger } from "./trigger";
  * 使い方:
  *
  *   `tsx scripts/lighthouse`                     画面を測り、予算と照らす（`make lighthouse`）
+ *   `tsx scripts/lighthouse merge`               分割した台の結果を束ね、予算と照らす
  *   `tsx scripts/lighthouse trigger <base ref>`  その差分を PR で測るべきかを GitHub の出力へ書く
+ *
+ * 分割して測るときは `LIGHTHOUSE_SHARD=<i>/<n>` を渡す。台は結果を置き場へ書くだけで判定せず、
+ * `merge` が全台ぶんを読んでから予算と照らす。**判定を台へ配れない**のは、予算の緩和が宣言
+ * されている画面が居るかどうかを、全画面を見た側でしか答えられないためである。
  *
  *
  * アプリもブラウザもホストで動く。撮影（`vrt` / `e2e`）と違ってコンテナを使わない理由は
@@ -182,42 +189,15 @@ function trigger(baseRef: string): void {
   console.error(`🔎 ${decision.kind}`);
 }
 
-async function measureAll(): Promise<void> {
-  const baseUrl = process.env.E2E_BASE_URL;
-
-  if (baseUrl === undefined) {
-    throw new Error("E2E_BASE_URL がありません。make lighthouse から呼んでください。");
-  }
-
-  const budget = parseBudget(readFileSync(BUDGET_FILE, "utf8"));
-
-  // 絞りは撮影側と同じ入口を使う（`E2E_ONLY`）。1 枚を見たいだけの実行が全画面を回すと、
-  // 手元では 16 分を払うことになり、実際には誰も回さなくなる。
-  const screens = selectScreens(
-    resolveScreens(listScreenRoutes(readFileSync(SCREEN_MANIFEST_FILE, "utf8")), SCREENS),
-    process.env.E2E_ONLY,
-  );
-
-  mkdirSync(OUTPUT_DIR, { recursive: true });
-
-  const headerFiles = new Map<string, string>();
-  const measurements: Measurement[] = [];
-
-  for (const target of planTargets(screens, baseUrl)) {
-    if (target.role !== undefined && !headerFiles.has(target.role)) {
-      headerFiles.set(target.role, await issueSessionHeaders(baseUrl, target.role));
-    }
-
-    console.error(`⏱️  ${target.name}`);
-    measurements.push(
-      measure(
-        target,
-        budget.runs.count,
-        target.role === undefined ? undefined : headerFiles.get(target.role),
-      ),
-    );
-  }
-
+/**
+ * 測り終えた結果を、予算と照らして報告する。
+ *
+ * @remarks
+ * **全画面を測った側でしか呼べません。** 在るべき画面が居るかどうかの検査は、測った集合が
+ * 全体であることを前提にしています。分割した 1 台がこれを呼ぶと、他の台が持つ画面がすべて
+ * 「宣言されているのに居ない」として上がります。
+ */
+function judgeAll(measurements: readonly Measurement[], budget: Budget): void {
   // 絞った実行では見ない。在るべき画面の集合が絞った側に縮み、対象外の緩和がすべて
   // 「居ない画面への宣言」として上がる（`selectScreens` が撮影側について言うのと同じ）。
   const missing = process.env.E2E_ONLY ? [] : missingScreens(measurements, budget);
@@ -246,8 +226,94 @@ async function measureAll(): Promise<void> {
   console.log("\n✅ 全ての画面が予算に収まっています。");
 }
 
-function main(): Promise<void> {
+/**
+ * 分割した台の結果を束ね、予算と照らす。
+ *
+ * @remarks
+ * 台数は結果の綴りから読み、束ねる側では宣言しません（[`shard.ts`](shard.ts)）。足りないまま
+ * 束ねると、測らなかった画面が「緩和が宣言されているのに居ない画面」として現れ、原因を
+ * 取り違えます。
+ */
+function merge(): void {
+  const budget = parseBudget(readFileSync(BUDGET_FILE, "utf8"));
+  const names = readdirSync(OUTPUT_DIR);
+
+  expectedTotal(names);
+
+  const measurements = names
+    .filter((name) => /^measurements-[0-9]+-[0-9]+\.json$/.test(name))
+    .flatMap((name) => JSON.parse(readFileSync(join(OUTPUT_DIR, name), "utf8")) as Measurement[]);
+
+  judgeAll(measurements, budget);
+}
+
+async function measureAll(): Promise<void> {
+  const baseUrl = process.env.E2E_BASE_URL;
+
+  if (baseUrl === undefined) {
+    throw new Error("E2E_BASE_URL がありません。make lighthouse から呼んでください。");
+  }
+
+  const budget = parseBudget(readFileSync(BUDGET_FILE, "utf8"));
+
+  // 絞りは撮影側と同じ入口を使う（`E2E_ONLY`）。1 枚を見たいだけの実行が全画面を回すと、
+  // 手元では 16 分を払うことになり、実際には誰も回さなくなる。
+  const selected = selectScreens(
+    resolveScreens(listScreenRoutes(readFileSync(SCREEN_MANIFEST_FILE, "utf8")), SCREENS),
+    process.env.E2E_ONLY,
+  );
+
+  // 分割の指定が無ければ 1 台。手元の `make lighthouse` と、誰も待っていない保護ブランチ /
+  // 日次の実行はこちらを通る。
+  const shard = process.env.LIGHTHOUSE_SHARD
+    ? parseShard(process.env.LIGHTHOUSE_SHARD)
+    : { index: 1, total: 1 };
+  const screens = selectShard(selected, shard);
+
+  mkdirSync(OUTPUT_DIR, { recursive: true });
+
+  const headerFiles = new Map<string, string>();
+  const measurements: Measurement[] = [];
+
+  for (const target of planTargets(screens, baseUrl)) {
+    if (target.role !== undefined && !headerFiles.has(target.role)) {
+      headerFiles.set(target.role, await issueSessionHeaders(baseUrl, target.role));
+    }
+
+    console.error(`⏱️  ${target.name}`);
+    measurements.push(
+      measure(
+        target,
+        budget.runs.count,
+        target.role === undefined ? undefined : headerFiles.get(target.role),
+      ),
+    );
+  }
+
+  // 分割した台は判定しない。全画面を見ていないので、在るべき画面の検査に答えられない。
+  if (shard.total > 1) {
+    writeFileSync(join(OUTPUT_DIR, shardFileName(shard)), JSON.stringify(measurements));
+    console.error(
+      `📦 ${measurements.length} 画面ぶんを書き出しました（${shard.index}/${shard.total}）`,
+    );
+
+    return;
+  }
+
+  judgeAll(measurements, budget);
+}
+
+// `async` にするのは、副命令が同期に throw するため。素の関数だと `main()` が Promise を
+// 返す前に例外が抜け、末尾の `catch` が付く前に Node が生のスタックを出す。読む側に届くのは
+// 「何が足りないか」の 1 行であるべきで、tsx の変換経路を含んだ呼び出し履歴ではない。
+async function main(): Promise<void> {
   const [command, baseRef] = process.argv.slice(2);
+
+  if (command === "merge") {
+    merge();
+
+    return Promise.resolve();
+  }
 
   if (command === "trigger") {
     if (baseRef === undefined) {
