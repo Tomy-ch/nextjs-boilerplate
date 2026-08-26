@@ -17,12 +17,18 @@ export type Shard = {
 
 const SHARD_PATTERN = /^([1-9][0-9]*)\/([1-9][0-9]*)$/;
 
-/** 分割の指定を読む。書式は Playwright / Vitest の `--shard` と同じ `<i>/<n>`。 */
+/**
+ * 分割の指定を読む。書式は Playwright / Vitest の `--shard` と同じ「台目 / 台数」。
+ *
+ * @remarks
+ * 案内の綴りに山括弧を使いません。SAST が「変数を挿した HTML に見える文字列」として拾い、
+ * 0 件を保つゲートが落ちます。実例を挙げるほうが、書式の記法より読む側に速く届きます。
+ */
 export function parseShard(spec: string): Shard {
   const matched = SHARD_PATTERN.exec(spec.trim());
 
   if (matched === null) {
-    throw new Error(`分割の指定が読めません: ${spec}（<i>/<n> の形で渡してください）`);
+    throw new Error(`分割の指定が読めません: ${spec}（「1/4」のように渡してください）`);
   }
 
   const index = Number(matched[1]);
