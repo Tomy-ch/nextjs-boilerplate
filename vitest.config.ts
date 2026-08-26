@@ -4,6 +4,34 @@ import { defineConfig } from "vitest/config";
 
 import { EXCLUDED_FROM_CHECKS } from "./scripts/lib/untested-modules";
 
+/**
+ * 100% を要求する 4 指標。
+ *
+ * @remarks
+ * **1 台で全量を走らせた実行だけが判定できます。** 分割した実行が見るのは自分に割り当てられた
+ * ファイルだけで、他の分に覆われている行は未到達として数えられます。分割の各実行へ掛けると、
+ * 割り方を変えるたびに落ち方が変わる検査になります。
+ *
+ * 判定は blob を合流させた側が行います（`vitest run --mergeReports --coverage`）。合流後の
+ * 母数と到達は 1 台で走らせたときと同じものになるため、**閾値そのものは緩みません**。
+ */
+const COVERAGE_THRESHOLDS = {
+  branches: 100,
+  functions: 100,
+  lines: 100,
+  statements: 100,
+} as const;
+
+/**
+ * この実行が分割の 1 台かどうか。
+ *
+ * @remarks
+ * `--shard` は CLI にしか現れず、設定からは読めません。分割して走らせる側（CI）が宣言し、
+ * ここはそれを読むだけにします。**未設定が既定**なので、手元の `pnpm test` と保護ブランチの
+ * 実行は今までどおり閾値を持ちます。
+ */
+const isShard = process.env.VITEST_SHARDED === "1";
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -69,12 +97,7 @@ export default defineConfig({
         ".storybook/**/*.stories.{ts,tsx}",
         ...EXCLUDED_FROM_CHECKS,
       ],
-      thresholds: {
-        branches: 100,
-        functions: 100,
-        lines: 100,
-        statements: 100,
-      },
+      thresholds: isShard ? undefined : COVERAGE_THRESHOLDS,
     },
   },
 });
