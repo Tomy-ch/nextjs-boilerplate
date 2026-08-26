@@ -21,31 +21,22 @@ beforeAll(async () => {
   await import("../status-bars/status-bars");
 });
 
-/** 直近に作られた observer へ交差を知らせる口。 */
-let fire: (entries: { isIntersecting: boolean }[]) => void = () => undefined;
-let options: IntersectionObserverInit | undefined;
+/** 手空きの知らせを、テストが好きな時点で起こすための口。 */
+let idle: (() => void) | undefined;
 
 beforeEach(() => {
-  options = undefined;
-  vi.stubGlobal(
-    "IntersectionObserver",
-    class {
-      constructor(
-        callback: (entries: { isIntersecting: boolean }[]) => void,
-        init?: IntersectionObserverInit,
-      ) {
-        options = init;
-        fire = callback;
-      }
-      observe(): void {}
-      disconnect(): void {}
-    },
-  );
+  idle = undefined;
+  vi.stubGlobal("requestIdleCallback", (callback: () => void) => {
+    idle = callback;
+
+    return 1;
+  });
+  vi.stubGlobal("cancelIdleCallback", () => undefined);
 });
 
-/** 帯が近づいたことを知らせる。 */
-function scrollIntoView(): void {
-  act(() => fire([{ isIntersecting: true }]));
+/** ブラウザが手空きになったことを知らせる。 */
+function settle(): void {
+  act(() => idle?.());
 }
 
 const COUNTS: readonly PurchaseStatusCount[] = [
@@ -58,34 +49,28 @@ describe("StatusChart", () => {
   // 抱え込むため、2 つ目を足しても枠を通らない）。
   it("届くまでは、出来上がりと同じ高さの枠を読み上げの外へ置く", () => {
     const { container } = render(<StatusChart counts={COUNTS} />);
-    const frame = container.firstElementChild?.firstElementChild;
+    const frame = container.firstElementChild;
 
     expect(frame).toHaveClass("h-56");
     expect(frame).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("近づくまでは帯を読み込まない", () => {
+  it("手空きになるまでは帯を読み込まない", () => {
     const { container } = render(<StatusChart counts={COUNTS} />);
 
     expect(container.querySelector('[data-slot="chart"]')).toBeNull();
   });
 
-  it("手前の距離を置かず、実際に交差してから読む", () => {
-    render(<StatusChart counts={COUNTS} />);
-
-    expect(options?.rootMargin).toBeUndefined();
-  });
-
   it("読み込みが終わると、帯の容れ物を出す", async () => {
     const { container } = render(<StatusChart counts={COUNTS} />);
-    scrollIntoView();
+    settle();
 
     await expect.poll(() => container.querySelector('[data-slot="chart"]')).not.toBeNull();
   });
 
   it("受け取った件数をそのまま帯へ渡す", async () => {
     const { container } = render(<StatusChart counts={COUNTS} />);
-    scrollIntoView();
+    settle();
 
     await expect
       .poll(() => container.querySelector('[data-slot="chart-style"]')?.textContent)
@@ -94,14 +79,14 @@ describe("StatusChart", () => {
 
   it("件数が空でも容れ物は出す", async () => {
     const { container } = render(<StatusChart counts={[]} />);
-    scrollIntoView();
+    settle();
 
     await expect.poll(() => container.querySelector('[data-slot="chart"]')).not.toBeNull();
   });
 
   it("a11y 検査を通る", async () => {
     const { container } = render(<StatusChart counts={COUNTS} />);
-    scrollIntoView();
+    settle();
 
     await expect.poll(() => container.querySelector('[data-slot="chart"]')).not.toBeNull();
 

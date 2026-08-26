@@ -18,22 +18,6 @@ beforeAll(async () => {
     disconnect() {}
   };
 
-  // 図は近づいてから読む（`../status-chart/`）。その判断に使う API も jsdom には無い。
-  // **交差を知らせない stub で足りる。** ここが確かめるのは表と見出しであって、図が届いた
-  // 後の姿は `../status-chart/` のテストが持つ。
-  globalThis.IntersectionObserver ??= class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-    takeRecords() {
-      return [];
-    }
-    readonly root = null;
-    readonly rootMargin = "";
-    readonly scrollMargin = "";
-    readonly thresholds = [];
-  };
-
   await import("../status-bars/status-bars");
 });
 

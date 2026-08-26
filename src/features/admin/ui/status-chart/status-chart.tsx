@@ -1,9 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { useOnVisible } from "@/capabilities/use-on-visible";
 import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
 
 /** `StatusChart` の props。 */
@@ -47,26 +46,36 @@ function StatusBarsPlaceholder() {
  * あるのは `ssr: false` を書ける場所が client component に限られるためです。呼び出し元
  * （`../status-breakdown/`）は server component のまま置けます。
  *
- * **読むのは帯が近づいてからです。** `dynamic` が遅らせるのは初期の一式に載せるかどうかで、
- * 描画され次第そのまま取得と評価が走ります。読み込みの最中に走れば main thread を塞ぎ、
- * TBT に乗ります —— 実測でこの画面だけが recharts を読み、167 ms の長いタスクを 1 本作って
- * いました（他の画面は 34〜83 ms）。`dynamic` だけでは初期バンドルの大きさにしか効きません。
+ * **読むのは、ブラウザが手空きになってからです。** `dynamic` が遅らせるのは初期の一式へ載せるか
+ * どうかで、描画され次第そのまま取得と評価が走ります（[0101](../../../../../docs/adr/0101-performance-budget.md) §4）。
+ * 読み込みの最中に走れば main thread を塞ぎ、TBT に乗ります —— 実測でこの画面と集計の画面だけが
+ * recharts を読み、予算 200 ms に対して両方が縁にいました。
  *
- * **手前の距離を置きません。** 置くと、縦長の viewport では帯が折り返しのすぐ下に来るため
- * 範囲に入り、即座に読まれて遅延そのものが無くなります（手前 200px を置いた実測で、読み込みは
- * 変わらず走っていました）。距離は「間を詰める」ためのものですが、詰めた結果として遅延が
- * 消えるなら、詰めない側が正しい。
+ * **見えたかどうかでは足りません。** 計測の viewport（412×823）では帯が折り返しの内側に来るため、
+ * 交差は最初から起きています。同じ理由で、実際の利用でも「開いたら見えている」ことが多い面です。
  *
- * 出来上がりの位置と高さは変わりません。枠が同じ高さを占めているので、届いた瞬間に周りが
- * 動くこともありません。
+ * 手空きを待つ形にすると、**出来上がりは変わらないまま**、帯の評価が最初の描画の後ろへ回ります。
+ * 同じ画面の編集面（`admin/products`）が操作まで mount しないのと同じ考え方で、あちらは遅延
+ * 187 KB を持ちながら TBT 67 ms です。
  *
  * @see Storybook `Page/Admin/Dashboard`
  */
 export function StatusChart({ counts }: StatusChartProps) {
-  const [reached, setReached] = useState(false);
-  const ref = useOnVisible(() => setReached(true));
+  const [settled, setSettled] = useState(false);
 
-  return (
-    <div ref={ref}>{reached ? <StatusBars counts={counts} /> : <StatusBarsPlaceholder />}</div>
-  );
+  useEffect(() => {
+    // `requestIdleCallback` を持たないブラウザでは、次の tick へ回すだけに留める。
+    // 待つ長さではなく「最初の描画の後ろへ回す」ことが目的なので、これで足りる。
+    if (typeof requestIdleCallback !== "function") {
+      const timer = setTimeout(() => setSettled(true));
+
+      return () => clearTimeout(timer);
+    }
+
+    const handle = requestIdleCallback(() => setSettled(true));
+
+    return () => cancelIdleCallback(handle);
+  }, []);
+
+  return settled ? <StatusBars counts={counts} /> : <StatusBarsPlaceholder />;
 }
