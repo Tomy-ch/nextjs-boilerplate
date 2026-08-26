@@ -55,7 +55,7 @@ function jsonResponse(body: unknown): Response {
 function fetchUpstream(): (url: string) => Promise<Response> {
   return (url: string) =>
     Promise.resolve(
-      jsonResponse(url.includes("api.github.com") ? upstreamCommitsBody : registryItemBody),
+      jsonResponse(new URL(url).host === "api.github.com" ? upstreamCommitsBody : registryItemBody),
     );
 }
 

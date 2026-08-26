@@ -117,11 +117,14 @@ function toBoolean(value: string): boolean | string {
  * 同じ判定を 2 か所に置くと、増えた区分に片方だけが追いつきます。画面の側は送る前に
  * 組み立てを確かめており（`features/purchases/history/period-draft.ts`）、ここが受け持つのは
  * 「URL に載っている値が契約の型と範囲に収まるか」だけです。
+ *
+ * **キーは利用者が決めます。** 空の object へ添字で書くと `__proto__` が代入の対象になるため、
+ * 並びを組んでから `Object.fromEntries` で畳みます。同じ綴りでも自前のプロパティになります。
  */
 export function parsePurchaseHistoryQuery(
   raw: Readonly<Record<string, string | readonly string[]>>,
 ): PurchaseHistoryQueryParseResult {
-  const typed: Record<string, unknown> = {};
+  const typed: [string, unknown][] = [];
 
   for (const [key, value] of Object.entries(raw)) {
     if (typeof value !== "string") {
@@ -129,14 +132,14 @@ export function parsePurchaseHistoryQuery(
     }
 
     if (BOOLEAN_KEYS.includes(key)) {
-      typed[key] = toBoolean(value);
+      typed.push([key, toBoolean(value)]);
       continue;
     }
 
-    typed[key] = NUMERIC_KEYS.includes(key) ? Number(value) : value;
+    typed.push([key, NUMERIC_KEYS.includes(key) ? Number(value) : value]);
   }
 
-  const parsed = GetPurchasesQueryParams.safeParse(typed);
+  const parsed = GetPurchasesQueryParams.safeParse(Object.fromEntries(typed));
 
   if (!parsed.success) {
     return {

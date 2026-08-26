@@ -24,6 +24,15 @@ export function readUtf8File(filePath: string): string | null {
   return content;
 }
 
+/** 読み取れたときだけ中身を返す。対象が無い場合も `null` になる。 */
+function readExistingUtf8File(filePath: string): string | null {
+  try {
+    return readUtf8File(filePath);
+  } catch {
+    return null;
+  }
+}
+
 export function updateFile(
   relativePath: string,
   transformer: (content: string) => string | null,
@@ -37,11 +46,9 @@ export function updateAbsoluteFile(
   transformer: (content: string) => string | null,
   dryRun: boolean,
 ): string | null {
-  if (!fs.existsSync(filePath)) {
-    return null;
-  }
-
-  const original = readUtf8File(filePath);
+  // 存在を先に確かめない。確かめてから読むまでの間に消えうるため、読めたかどうかそのものを
+  // 判定にする。読めなかったことと UTF-8 として扱えないことは、どちらも「置換しない」で同じ。
+  const original = readExistingUtf8File(filePath);
 
   if (original === null) {
     return null;
