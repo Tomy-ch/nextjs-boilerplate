@@ -1535,7 +1535,7 @@ sources:
 ### P6-9: データ分類とキャッシュ境界(PII / user-scoped の取り扱い)
 
 - **目的**: 値を「どの実行境界・どのキャッシュ範囲で使ってよいか」で分類し、**誤った置き場へ入れる書き方を通常の実装経路から消す**
-- **対象 ADR**: [0020](../adr/0020-adopted-architecture.md)(設計原則 6)/ [0071](../adr/0071-bff-api-integration.md)(キャッシュの所有層)/ [0030](../adr/0030-environment-variable-management.md) §8(漏洩防御)/ [0041](../adr/0041-cache-components-decision.md)(PPR)/ [0029](../adr/0029-type-design-discipline.md)(型設計)
+- **対象 ADR**: **[0112](../adr/0112-data-classification-cache-boundary.md)(本 PR の決定が正)** / [0020](../adr/0020-adopted-architecture.md)(設計原則 6)/ [0071](../adr/0071-bff-api-integration.md)(キャッシュの所有層)/ [0030](../adr/0030-environment-variable-management.md) §8(漏洩防御)/ [0041](../adr/0041-cache-components-decision.md)(PPR)/ [0040](../adr/0040-routing-rendering-strategy.md)(モード選択)
 - **爆破対象外**: 本 PR が置くものは**すべて基盤**である。サンプル API 固有ではなく、Server / Client 境界とキャッシュ境界そのものを守る機構であり、サンプル破棄後も残る
 
 #### 防ぎたい事故クラス
@@ -1549,6 +1549,16 @@ sources:
 | 5 | projection / clone で分類が消える | **無し** |
 | 6 | サンプル破棄でセキュリティ基盤まで消える | 破棄対象の宣言次第 |
 | 7 | キャッシュの口を直接使って制約を迂回する | **無し**(`use cache` / `unstable_cache` は誰でも書ける) |
+
+#### 最上位の原則
+
+**PII はレンダリング最適化の対象ではなく、露出範囲を最小化する対象である。** 性能最適化はその機密性制約の内側でのみ行う。
+
+```text
+機密性 > キャッシュ効率 > SSR 率 > PPR 適用率 > バンドル最小化
+```
+
+SSR-First([0040](../adr/0040-routing-rendering-strategy.md))は性能と UX 上の既定値であって、機密性を上回る制約ではない。**PII のために SSR / PPR を諦めることは許可する**が、CSR にする範囲は PII を必要とする最小の Client Island に限る。不変条件 6 件は [0112](../adr/0112-data-classification-cache-boundary.md) が正。
 
 #### 分類は値ではなく「取得の口」に持たせる
 

@@ -60,6 +60,9 @@
 | 81 | `process` と `node:` の組み込みモジュールへ触ってよいのは、config カーネルと起動境界、およびリポジトリ自身を操作する道具だけ（宣言は `architecture.ts` の `NODE_RUNTIME_ACCESS`）。層の依存表は import の向きしか見ておらず、**server と client のどちらで動くか**を見ていない。client の束へ載った時点で壊れる参照は、層とは別の軸で止める。 | ESLint の `no-restricted-syntax` / `no-restricted-imports`。 | [ADR 0030](adr/0030-environment-variable-management.md) |
 | 82 | route segment の器（`layout` / `page` / `template` / `default`）を Client Component にしない。`"use client"` は bundle 境界なので、器に付けると配下をまとめて束へ引き込む。client が要るのは葉で、そこへ島として差す（[rendering](design/rendering.md)）。`error.tsx` / `global-error.tsx` は framework が client を要求するため対象外。 | ESLint の `no-restricted-syntax`。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 83 | 他の層が握る問題を、こちらで予防的に手当てしない。書かないのは「下の層が既に握っているもの」と「起こり得ないもの」で、「下では捕まえられないもの」「UX 上こちらに在るべきもの(入力の即時フィードバック等)」は対象外。**セキュリティ上の懸念(XSS 等)は重複を理由に落とさない。** | 散文。 | [ADR 0020](adr/0020-adopted-architecture.md) |
+| 84 | **PII を含むという理由で画面全体を CSR 化しない。** PII のために SSR / PPR を諦めるのは許されるが、CSR にするのは PII を必要とする最小の Client Island に限る。 | 散文とレビュー。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) |
+| 85 | **public data と PII を同じキャッシュ可能な DTO へ混在させない。** 混ざった時点で全体が user-scoped になり、共有キャッシュの選択肢を失う。 | adapters テストとレビュー。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) |
+| 86 | **取得する PII を最小化する。** 一部しか使わないのに User オブジェクト全体を取得・保持・送信しない。必要な属性を特定し、取得の口で詰め替える。 | adapters テストとレビュー。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) |
 
 ## 運用
 

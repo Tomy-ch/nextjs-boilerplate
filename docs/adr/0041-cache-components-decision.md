@@ -31,10 +31,13 @@ Accepted
   - **交差関心の未確定**: 0030(A7)の env プリレンダー凍結・0080 §4 の Suspense × PPR 相互作用と交差する。これらを固める前に既定を反転させない。
 - **有効化しない間のキャッシュモデル**は、0040 / 0071 が既に敷いた **従来モデル(`fetch` 既定 uncached + `cache: 'force-cache'` 等の opt-in)** を用いる(本 ADR は新モデルを導入しない)。キャッシュ指定の所有層(`adapters` / 呼び出す RSC)・tag 命名・ミューテーション後 revalidate の規約は [0071](0071-bff-api-integration.md)「データ取得のキャッシュ・再検証」節が正であり、本決定はそれと整合する。
 
+- **PPR は public data に対する性能最適化として扱う。** user-scoped な値については、共有・静的キャッシュの恩恵より機密性を優先する([0112](0112-data-classification-cache-boundary.md) 不変条件 1 / 2)。有効化は同 ADR のキャッシュ境界を前提とする。
+
 ## 禁止事項
 
 - ❌ 0.0.x で `next.config.ts` に `cacheComponents: true` を設定すること(有効化は v1 / fork 先の再評価事項)
 - ❌ `cacheComponents` 無効のまま `use cache` / `cacheLife` / `cacheTag` に依存した設計を書くこと(これらは有効時の機構。無効時は従来モデルの opt-in を使う)
+- ❌ キャッシュヒット率や PPR 適用率を理由に、user-scoped な値を静的な殻・共有キャッシュへ載せること([0112](0112-data-classification-cache-boundary.md))
 
 ## 補足
 

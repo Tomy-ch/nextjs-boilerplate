@@ -99,6 +99,7 @@ Compiler を SSR-First の前提や標準挙動には置かない。Compiler を
 - ❌ 計測されたボトルネックを伴わずに `"use memo"` を付けること(決定 4)
 - ❌ `"use no memo"` を恒常的な運用の前提に置くこと(escape hatch に留める。決定 4)
 - ❌ 既存の手書き `memo` / `useMemo` / `useCallback` を一律に削除して Compiler へ委ねること(決定 4)
+- ❌ Compiler による性能上の利益を理由に、PII / キャッシュ / セキュリティ境界を緩めること([0112](0112-data-classification-cache-boundary.md) 不変条件 6)
 - ❌ **責務を超えた手当て**、および**意味を持たないメモ化**を撒くこと —— 下の層が握るもの / 同一性に依存する先が無い / 再描画の費用が問題にならない([0020](0020-adopted-architecture.md) 設計原則 6・決定 4)
 - ❌ 本 ADR で **RSC / Client 境界の置き方**(0040)・**データ取得のキャッシュ設計**(0071)・**Suspense 境界の配置**(0080)を再決定すること(射程外)
 
