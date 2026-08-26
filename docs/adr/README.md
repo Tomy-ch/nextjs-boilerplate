@@ -67,6 +67,7 @@
 - [0102-browser-support.md](0102-browser-support.md) - ブラウザサポート行列（Next.js 既定 browserslist 追認 / 切り捨ては fork 先）
 - [0110-security-operations.md](0110-security-operations.md) - セキュリティ運用（Dependabot cooldown / gitleaks / Trivy 二段 / CodeQL / image-scan は exclusion）
 - [0111-csp-security-headers.md](0111-csp-security-headers.md) - CSP・セキュリティヘッダ（実行時）
+- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md) - データ分類とキャッシュ境界（PII / user-scoped / secret の置き場と段ごとの関所）
 - [0120-locale-aware-formatting.md](0120-locale-aware-formatting.md) - ロケール対応フォーマット（日付・数値 + Intl / date-fns 日付演算）
 - [0121-i18n-strategy.md](0121-i18n-strategy.md) - i18n 戦略（本体非同梱 = exclusion / 採用時の seam）
 - [0130-pwa-strategy.md](0130-pwa-strategy.md) - PWA 戦略（Manifest / SW / オフライン本体非同梱 = exclusion）
