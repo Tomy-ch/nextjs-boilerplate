@@ -71,6 +71,11 @@ jobs:
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: block
+          # This job builds Storybook and runs Playwright in the official container,
+          # exactly as the shooting job in vrt.yaml does. The last four endpoints are
+          # what that work needs: `next/font` fetches the families at build time, and
+          # the Playwright image is pulled from mcr. Blocking them fails the build
+          # itself, so this list has to stay in step with vrt.yaml's.
           allowed-endpoints: >
             github.com:443
             api.github.com:443
@@ -83,6 +88,10 @@ jobs:
             mise-versions.jdx.dev:443
             nodejs.org:443
             registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
 
       # `workflow_run` carries the commit but not the pull request, so everything the
       # later steps branch on is resolved here in one API call.
