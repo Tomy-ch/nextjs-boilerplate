@@ -24,7 +24,7 @@
 **利用規約への導線を同じ断り書きに置く。** 閲覧した時点で同意とみなす以上、同意の対象へ最初に
 届く必要があり、フッターまで下りないと辿れない位置では成立しない。
 
-詳しい説明はここが持たない。[`/about`](about/page.screen.md) と [`/terms`](terms/page.screen.md)
+詳しい説明はここが持たない。[`/about`](../site-info/about/page.screen.md) と [`/terms`](../site-info/terms/page.screen.md)
 が持ち、ここは短く保つ。
 
 ## 節の並び

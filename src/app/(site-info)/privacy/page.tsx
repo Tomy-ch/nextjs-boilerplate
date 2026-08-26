@@ -8,6 +8,15 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { PrivacyView } from "@/features/site-info/privacy/view";
 
+/**
+ * build 時に 1 度だけ描く。
+ *
+ * @remarks
+ * 描く内容の出所がコードだけなので固めます。器も何も読みません（`../layout.tsx`）。宣言と実態は
+ * build の成果物と突き合わせます（`scripts/render-mode`）。
+ */
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "プライバシーポリシー",
   description: "入力した情報がどこに保存されるかを、起動のしかたごとに説明します。",
@@ -17,9 +26,6 @@ export const metadata: Metadata = {
  * プライバシーポリシー。
  *
  * @remarks
- * 取得を持たないので静的に描画されます
- * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
- *
  * 保護の対象にしません。情報の保存先は、入力する前に読めなければ意味を持ちません。
  */
 export default function PrivacyPage() {

@@ -54,9 +54,10 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/purchases/[code]` | [`screen`](<route/shop/purchases/[code]/page.screen.md>) / [`function`](<route/shop/purchases/[code]/page.function.md>) <!-- sample:line --> |
 | `/mypage` | [`screen`](route/shop/mypage/page.screen.md) / [`function`](route/shop/mypage/page.function.md) <!-- sample:line --> |
 | `/mypage/edit` | [`screen`](route/shop/mypage/edit/page.screen.md) / [`function`](route/shop/mypage/edit/page.function.md) <!-- sample:line --> |
-| `/about` | [`screen`](route/shop/about/page.screen.md) / [`function`](route/shop/about/page.function.md) <!-- sample:line --> |
-| `/privacy` | [`screen`](route/shop/privacy/page.screen.md) / [`function`](route/shop/privacy/page.function.md) <!-- sample:line --> |
-| `/terms` | [`screen`](route/shop/terms/page.screen.md) / [`function`](route/shop/terms/page.function.md) <!-- sample:line --> |
+| `(site-info)` 外枠 | [`layout.screen.md`](route/site-info/layout.screen.md) / [`layout.function.md`](route/site-info/layout.function.md) <!-- sample:line --> |
+| `/about` | [`screen`](route/site-info/about/page.screen.md) / [`function`](route/site-info/about/page.function.md) <!-- sample:line --> |
+| `/privacy` | [`screen`](route/site-info/privacy/page.screen.md) / [`function`](route/site-info/privacy/page.function.md) <!-- sample:line --> |
+| `/terms` | [`screen`](route/site-info/terms/page.screen.md) / [`function`](route/site-info/terms/page.function.md) <!-- sample:line --> |
 | `admin` 外枠 | [`screen`](route/admin/layout.screen.md) / [`function`](route/admin/layout.function.md) <!-- sample:line --> |
 | `/admin` | [`screen`](route/admin/page.screen.md) / [`function`](route/admin/page.function.md) <!-- sample:line --> |
 | `/admin/analytics` | [`screen`](route/admin/analytics/page.screen.md) / [`function`](route/admin/analytics/page.function.md) <!-- sample:line --> |
