@@ -70,10 +70,10 @@ describe("StatusChart", () => {
     expect(container.querySelector('[data-slot="chart"]')).toBeNull();
   });
 
-  it("画面へ入り切る手前から読み始める", () => {
+  it("手前の距離を置かず、実際に交差してから読む", () => {
     render(<StatusChart counts={COUNTS} />);
 
-    expect(options?.rootMargin).toBe("200px");
+    expect(options?.rootMargin).toBeUndefined();
   });
 
   it("読み込みが終わると、帯の容れ物を出す", async () => {

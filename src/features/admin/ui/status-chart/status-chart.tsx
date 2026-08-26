@@ -52,14 +52,19 @@ function StatusBarsPlaceholder() {
  * TBT に乗ります —— 実測でこの画面だけが recharts を読み、167 ms の長いタスクを 1 本作って
  * いました（他の画面は 34〜83 ms）。`dynamic` だけでは初期バンドルの大きさにしか効きません。
  *
- * 手前の距離を置くのは、見えてから読み始めると帯が出るまでの間が空くためです。読み込みを
- * 始める判断だけを前倒しし、出来上がりの位置と高さは変えません。
+ * **手前の距離を置きません。** 置くと、縦長の viewport では帯が折り返しのすぐ下に来るため
+ * 範囲に入り、即座に読まれて遅延そのものが無くなります（手前 200px を置いた実測で、読み込みは
+ * 変わらず走っていました）。距離は「間を詰める」ためのものですが、詰めた結果として遅延が
+ * 消えるなら、詰めない側が正しい。
+ *
+ * 出来上がりの位置と高さは変わりません。枠が同じ高さを占めているので、届いた瞬間に周りが
+ * 動くこともありません。
  *
  * @see Storybook `Page/Admin/Dashboard`
  */
 export function StatusChart({ counts }: StatusChartProps) {
   const [reached, setReached] = useState(false);
-  const ref = useOnVisible(() => setReached(true), { rootMargin: "200px" });
+  const ref = useOnVisible(() => setReached(true));
 
   return (
     <div ref={ref}>{reached ? <StatusBars counts={counts} /> : <StatusBarsPlaceholder />}</div>
