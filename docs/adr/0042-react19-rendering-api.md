@@ -46,25 +46,67 @@ ADR 空白の遡及監査(#36)で、**React 19 のレンダリング関連 API �
 - **禁止方向**: props / state から導出できる **派生値** を effect + state で同期しない(render 中の計算、または event handler で求める)。React 公式「You Might Not Need an Effect」の方針に乗る。**vendor-independent 根拠**: 派生値の effect 同期は余分な再レンダリングと同期ズレのバグ源であり、これは React の版に依らない状態管理上の一般原則である。
 - **昇格**: 複数 feature から使う reactive な横断 client hook(runtime 能力)へ育つ `useEffect` は、feature 内に留めず **`capabilities` カーネル**([0022](0022-capabilities-kernel.md))へ昇格させる([0021](0021-frontend-responsibility.md) 昇格ルール)。effect は client 実行であり、RSC 既定([0040](0040-routing-rendering-strategy.md))の葉への押し下げと整合する。
 
-### 4. React Compiler は 0.0.x では有効化しない(保守的・v1 / fork 先で再評価)
+### 4. React Compiler は基盤の必須機能にしない(opt-in の性能最適化手段)
 
-- **0.0.x の間は React Compiler を有効化しない**(`next.config.ts` の `reactCompiler` を設定しない)。あわせて **手書きの `memo` / `useMemo` / `useCallback` は「計測に基づく局所最適化」に限り、既定では書かない**(まず最適化しない)。
-- **理由(保守側に倒す)**: React Compiler の有効化は自動メモ化により最適化モデルを反転させる大改変であり、(a) `next.config.ts`(保護対象のリポジトリルート config)の変更と、(b) `babel-plugin-react-compiler` の追加([0004](0004-library-management.md) の exact pin + `pnpm audit` フロー)を伴う。安定運用前の boilerplate では opt-in 側に倒す。これは [0041](0041-cache-components-decision.md) の Cache Components 判断(0.0.x 無効・v1 で再評価に**確定済み**)と同型の判断である。
-- **再評価トリガー**: v1 大規模整理、または fork 先の判断。採用時は「手書き memo 系を原則禁止(Compiler に委ねる)」という**連動規約**が発生する(採否で規約が反転する。下記「補足」)。
+- **本体は React Compiler を前提にしない。** Compiler が無くても通常の React / Next.js 実装がそのまま成立する状態を保つ。Compiler を使わない component を劣った実装として扱わない。
+- **全体適用(full-auto / infer)は採らない。** 適用するときは `compilationMode: "annotation"` と `"use memo"` による opt-in を基本候補とする。`"use no memo"` は escape hatch であって、恒常運用の前提には置かない。
+- **`"use memo"` は実装詳細ではなく performance annotation** である。「この component / hook について Compiler による最適化を許可する」という明示の宣言であり、**計測されたボトルネックに対してのみ**付ける。
+- **Compiler-ready は全体で維持し、Compiler execution だけを opt-in にする。** Rules of React への適合と `eslint-plugin-react-hooks` の Compiler 由来ルールは、Compiler の利用有無に関わらず維持する。これらは Compiler のための検査ではなく、effect で state を導出する形・描画中の副作用・ref の扱いといった**通常実装のバグを止める検査**だからである([0002](0002-formatter-linter.md))。
+- **手書きの `memo` / `useMemo` / `useCallback` を一律に Compiler へ置き換えない。** 既存のメモ化を機械的に削除しない。
+- **予防的なメモ化そのものは禁じない。** 起こりうる費用を先に潰すことは止めない。禁じるのは [0020](0020-adopted-architecture.md) 設計原則 6 の**責務を超えた手当て**と、**意味を持たないメモ化**である。
+  - **その下の層が握るもの** —— メモ化した値はそのまま下へ渡る。その値が妥当かを確かめるのは受け取る側(feature / `adapters` / 契約 / バックエンド)であって、渡す側で先回りしない
+  - **同一性に依存する先が無い** —— その値が依存配列にも、メモ化された子にも渡らない(素の DOM 属性へ渡すだけの handler など)
+  - **再描画が起きても費用が問題にならない** —— エッジケースのさらにエッジケースだけを捕まえるもの
+- **計測は「書いてよいかの条件」ではない。** 意味があるかを言えないときの決め手である。逆に、意味があると言えるものを書くのに計測は要らない。
+- **理由は成熟度ではなく blast radius**: Compiler は stable であり、実装も React 本体である。問題は品質ではなく**壊れ方が fail-fast でない**ことにある。[0030](0030-environment-variable-management.md) §8 の taint は違反時に throw し、[0041](0041-cache-components-decision.md) の Cache Components は前提を満たさなければ build が落ちる。Compiler は落ちない —— build 時に component を自動変換してメモ化を導入するため、**値の参照同一性・effect の依存・購読・第三者ライブラリとの相互作用**に、fail-fast でない静かな挙動差分が出うる。lint / E2E / VRT / a11y の網は持っているが、それを**全体自動適用を正当化する根拠にはしない**。
+- **コストの及ぶ範囲は適用範囲に一致させる**: full-auto は共有 chunk +16.4 KB gzip・各 route の初期 JS +4〜15 KB を全 route へ乗せる。`annotation` で 1 component を opt-in した場合、共有 chunk は増えず、その component が乗る route だけが +0.5 KB になる。
+- **利益は TBT ではなく INP に出る。** JS の増加は TBT(実行時間)を悪化させる側であり、Compiler が縮めるのは再描画で、これは実ユーザーの操作からしか観測できない。したがって**測れているコストを払って、まだ測れていない利益を全 route へ先行適用することはしない**。
+- **採用条件は「stable 化」ではない**(既に stable である)。**性能上必要であり、かつその効果を測定できること**が条件である。
+
+### 4-1. 性能改善の順序(Compiler はその一手段)
+
+性能問題は、原因を特定してから手段を選ぶ。Compiler は選択肢の 1 つであって、既定の入口ではない。
+
+```text
+性能問題を検出
+  ↓
+原因分析
+  ↓
+適切な改善策を選択
+  ├─ Server Component 化
+  ├─ client JS 削減
+  ├─ component / state 境界の見直し
+  ├─ データ取得 / キャッシュの見直し
+  ├─ 手動メモ化
+  └─ React Compiler の opt-in
+```
+
+**SSR-First との関係を取り違えない。**
+
+```text
+SSR-First       → client で実行する必要そのものを減らす
+React Compiler  → client で実行する必要が残った箇所に対する最適化候補
+```
+
+Compiler を SSR-First の前提や標準挙動には置かない。Compiler を使うためにアーキテクチャを歪めない。
 
 ## 禁止事項
 
 - ❌ 新規コンポーネントで `forwardRef` を使うこと(ref as prop に乗る。決定 1)
 - ❌ `use()` を `<Suspense>` / error boundary の外に裸で置くこと(決定 2 の不変条件)
 - ❌ props / state から導出できる派生値を `useEffect` + `useState` で同期すること(render 中計算 or event handler。決定 3)
-- ❌ 0.0.x で `next.config.ts` に `reactCompiler` を設定して React Compiler を有効化すること(保護 config 変更 + ライブラリ採否 = ユーザ判断。決定 4)
-- ❌ 計測なしに `memo` / `useMemo` / `useCallback` を予防的に撒くこと(既定は書かない。決定 4)
+- ❌ `reactCompiler` を `compilationMode` の指定なしに設定し、全 component へ暗黙に適用すること(決定 4)
+- ❌ 計測されたボトルネックを伴わずに `"use memo"` を付けること(決定 4)
+- ❌ `"use no memo"` を恒常的な運用の前提に置くこと(escape hatch に留める。決定 4)
+- ❌ 既存の手書き `memo` / `useMemo` / `useCallback` を一律に削除して Compiler へ委ねること(決定 4)
+- ❌ **責務を超えた手当て**、および**意味を持たないメモ化**を撒くこと —— 下の層が握るもの / 同一性に依存する先が無い / 再描画の費用が問題にならない([0020](0020-adopted-architecture.md) 設計原則 6・決定 4)
 - ❌ 本 ADR で **RSC / Client 境界の置き方**(0040)・**データ取得のキャッシュ設計**(0071)・**Suspense 境界の配置**(0080)を再決定すること(射程外)
 
 ## 補足
 
-- **decision と rule の分界**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は React Compiler の**採否**(decision)と各 API の**採用方針**(decision)を確定する。他方、日常強制される制約 —— 「`forwardRef` を書かない」「派生値を effect 同期しない」「予防的 memo を撒かない」、および Compiler 採用時の「手書き memo 系を書かない」—— は **rule 分類**であり、`docs/rules.md` 新設([0140](0140-documentation-operations.md) 決定 3)時に `> Rationale: [ADR-0042]` 逆参照付きでそちらへ段階移行する。本 ADR 本文には rule の芯(なぜ)のみを残す。
-- **React Compiler 採用時の連動規約の帰属は未確定**: 採用へ転じた場合、`compilationMode: 'annotation'`(`"use memo"` opt-in)を採るか全体適用かの選択と、それに連動する手書き memo 禁止規約の**置き場**(本 ADR 追補 vs rules.md)は、採用判断と同時にユーザが確定する(下記 flags)。
+- **decision と rule の分界**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は React Compiler の**採否**(decision)と各 API の**採用方針**(decision)を確定する。他方、日常強制される制約 —— 「`forwardRef` を書かない」「派生値を effect 同期しない」「意味を持たないメモ化を撒かない」 —— は **rule 分類**であり、`docs/rules.md` 新設([0140](0140-documentation-operations.md) 決定 3)時に `> Rationale: [ADR-0042]` 逆参照付きでそちらへ段階移行する。本 ADR 本文には rule の芯(なぜ)のみを残す。
+- **「手書き memo 禁止」という連動規約は発生しない**: 決定 4 が全体適用を採らないため、Compiler にメモ化を委ねることを前提にした手書き禁止規約は生じない。`compilationMode` の選択も決定 4 が `annotation` を基本候補として持つ。
+- **React Compiler は correctness / architecture / runtime の前提ではない**: 本体の実装・レビュー・テストは Compiler の有無に依存しない。opt-in された箇所は、E2E / VRT / 操作の応答性 / 性能計測で効果を確認したうえで維持する。
 - **単一項目性への注記**: 本 ADR は #36 単独の小 ADR である。将来 [0071](0071-bff-api-integration.md) 近傍に「データ取得・レンダリング」を束ねる ADR が起こる場合、`use()` のデータ取得側面はそちらへ吸収し得る(本 ADR はレンダリング API の書き方に純化する)。この整理も v1 大規模整理で行う。
 - 本 ADR の Accepted に伴う AGENTS.md への反映は不要(該当 `[TODO]` 節を持たない領域)。
 
@@ -75,8 +117,10 @@ ADR 空白の遡及監査(#36)で、**React 19 のレンダリング関連 API �
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 昇格ルール(横断 client hook → `capabilities`)/ rule の rules.md 段階移行
 - [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — reactive な横断 client hook の家(`useEffect` 昇格先)
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — `use()` を用いるデータ取得の編成・キャッシュ・重複排除(本 ADR から委譲)
-- [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components 0.0.x 無効の確定(React Compiler 判断と同型)
+- [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components の採否(前提を満たさなければ build が落ちる fail-fast 型の機構。決定 4 の blast radius の対比先)
 - [0080-error-handling.md](0080-error-handling.md) — `<Suspense>` / `loading.tsx` 境界の配置・粒度(`use()` の前提)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠(React 規約に乗る)+ vendor-independent 正当性材料の必須化
 - [0140-documentation-operations.md](0140-documentation-operations.md) — decision / rule タクソノミー(本 ADR = decision / 連動制約 = rule → rules.md)
-- [0004-library-management.md](0004-library-management.md) — `babel-plugin-react-compiler` 導入時の exact pin + `pnpm audit` フロー
+- [0004-library-management.md](0004-library-management.md) — `babel-plugin-react-compiler` を実際に opt-in する時点での exact pin + `pnpm audit` フロー
+- [0101-performance-budget.md](0101-performance-budget.md) — 性能予算(Compiler の適用可否を判断する計測の側)
+- [0082-client-observability.md](0082-client-observability.md) — INP を含む Web Vitals の RUM(効果測定の前提)
