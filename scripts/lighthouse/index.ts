@@ -312,20 +312,20 @@ async function main(): Promise<void> {
   if (command === "merge") {
     merge();
 
-    return Promise.resolve();
+    return;
   }
 
   if (command === "trigger") {
     if (baseRef === undefined) {
-      return Promise.reject(new Error("usage: lighthouse trigger <base ref>"));
+      throw new Error("usage: lighthouse trigger <base ref>");
     }
 
     trigger(baseRef);
 
-    return Promise.resolve();
+    return;
   }
 
-  return measureAll();
+  await measureAll();
 }
 
 // トップレベル await にしない。tsx は CJS へ落とすので変換の時点で落ちる。
