@@ -13,7 +13,18 @@
 # している。一方で判定は TypeScript で書かれており、node_modules を入れた OS 向けに解決される
 # esbuild がコンテナの中では動かない。
 .PHONY: lighthouse ## 画面ごとの Core Web Vitals を測り、予算と照らす
+.PHONY: lighthouse-merge ## 分割した台の結果を束ね、予算と照らす
 .PHONY: lighthouse-report ## 直前の実行が残した LHR から、動いた要素と重い script を引く
+
+# 分割の 1 台ぶんの指定 (<i>/<n>)。空なら割らない。
+#
+# **1 台の中で並べる指定ではない。**測っているのは CPU 律速の値なので、同じ機械で計測を並べた
+# 時点で互いの CPU を奪い合い、予算と照らす意味が消える。割るのは機械であって中ではない。
+#
+# 割るのは PR の待ち時間のためだけである。保護ブランチと日次と手元は割らない —— 台数を増やす
+# ほど固定費 (準備・依存の取得・ビルド) が重複するので、誰も待っていない実行で払う理由が無い。
+LIGHTHOUSE_SHARD ?=
+export LIGHTHOUSE_SHARD
 
 # 基準画像は要らない。撮るのではなく測るので、置き場が空でも判定は成立する。代わりに、測る
 # ブラウザがホストへ入っていることを確かめる (入っていれば何もしない)。
@@ -40,3 +51,6 @@ lighthouse-report:
 	@pnpm exec tsx scripts/lighthouse/diagnose
 	@echo ""
 	@echo "📄 LHR そのものは tmp/lighthouse/<画面名>-<試行>.json にあります。https://googlechrome.github.io/lighthouse/viewer/ へ落とすと全項目を読めます。"
+
+lighthouse-merge:
+	@pnpm exec tsx scripts/lighthouse merge
