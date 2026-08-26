@@ -6,6 +6,7 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { getClockConfig } from "@/config/clock/clock.server";
 import { AdminAnalyticsPageContent } from "@/features/admin/analytics/page-content";
 import type { RawSearchParams } from "@/model/search-params";
 
@@ -19,6 +20,8 @@ export const metadata: Metadata = {
  *
  * @remarks
  * 索引に載せない理由はダッシュボード（`../page.tsx`）と同じです。
+ *
+ * 「いま」をここで読んで渡す理由はダッシュボード（`../page.tsx`）と同じです。
  *
  * **待機の境界をここに置きません。** 期間を選び直したときに待つのは集計だけで、選択肢まで
  * 置き換わると押したものが消えてから戻ってきます。境界の位置は中身が持ちます
@@ -41,7 +44,7 @@ export default async function AdminAnalyticsPage({
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <AdminAnalyticsPageContent searchParams={params} />
+      <AdminAnalyticsPageContent now={getClockConfig().now()} searchParams={params} />
     </ContentContainer>
   );
 }

@@ -29,8 +29,11 @@ import type { RawSearchParams } from "@/model/search-params";
 
 import { AdminAnalyticsPageContent } from "./page-content";
 
+/** 暦日の境目に寄らない、固定の基準時刻。 */
+const NOW = new Date("2026-08-25T03:00:00.000Z");
+
 function renderContent(searchParams: RawSearchParams) {
-  return render(<AdminAnalyticsPageContent searchParams={searchParams} />);
+  return render(<AdminAnalyticsPageContent now={NOW} searchParams={searchParams} />);
 }
 
 beforeEach(() => {
@@ -114,7 +117,7 @@ describe("AdminAnalyticsPageContent", () => {
 
     expect(summaryMounted).toHaveBeenCalledTimes(1);
 
-    rerender(<AdminAnalyticsPageContent searchParams={{ period: "month" }} />);
+    rerender(<AdminAnalyticsPageContent now={NOW} searchParams={{ period: "month" }} />);
 
     expect(summaryMounted).toHaveBeenCalledTimes(2);
   });
@@ -122,7 +125,7 @@ describe("AdminAnalyticsPageContent", () => {
   it("売れ筋は期間が変わっても作り直されない", () => {
     const { rerender } = renderContent({ period: "today" });
 
-    rerender(<AdminAnalyticsPageContent searchParams={{ period: "month" }} />);
+    rerender(<AdminAnalyticsPageContent now={NOW} searchParams={{ period: "month" }} />);
 
     expect(rankingMounted).toHaveBeenCalledTimes(1);
   });
@@ -130,7 +133,7 @@ describe("AdminAnalyticsPageContent", () => {
   it("同じ期間を描き直しても作り直さない", () => {
     const { rerender } = renderContent({ period: "today" });
 
-    rerender(<AdminAnalyticsPageContent searchParams={{ period: "today" }} />);
+    rerender(<AdminAnalyticsPageContent now={NOW} searchParams={{ period: "today" }} />);
 
     expect(summaryMounted).toHaveBeenCalledTimes(1);
   });

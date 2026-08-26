@@ -14,6 +14,14 @@ import { parsePeriodSelection } from "./read-period";
 import { AnalyticsSummarySection } from "./summary-section";
 import { AnalyticsView } from "./view";
 
+/** `AdminAnalyticsPageContent` の props。 */
+export type AdminAnalyticsPageContentProps = {
+  /** 暦日を区切る基準の瞬間。実時計を読む場所は `app` が持つ。 */
+  now: Date;
+  /** URL の検索条件。 */
+  searchParams: RawSearchParams;
+};
+
 /**
  * 集計の画面の中身。URL の解釈と、取り直す範囲の区切りを行う。
  *
@@ -30,13 +38,14 @@ import { AnalyticsView } from "./view";
  * URL の条件は `parsePeriodSelection` へ通し、独自の変換を持ちません。読めない期間は集計の代わりに
  * {@link InvalidQueryFeedback} が引き受けます。
  *
- * **いまの時刻をここで 1 度だけ読みます。** どの暦日を見ているかの表示にも、区分を区間へ解くのにも
- * 要ります。別々に読むと、境目の時刻に添え書きと集計の対象がずれます。描画のたびに実時計を読む
- * 部品にしないのは、基準画像が撮った時刻に依存させないためです。
+ * **いまの時刻は受け取ります。** どの暦日を見ているかの表示にも、区分を区間へ解くのにも要り、
+ * 1 つの値を両方へ配ります。別々に読むと、境目の時刻に添え書きと集計の対象がずれます。実時計を
+ * 読む場所を `app` に置くのは、既定の「今日」が要求のクエリへ入るためです。ここで読むと、
+ * その画面の基準画像は撮った暦日のあいだしか一致しません（`config/clock`）。
  */
 export const AdminAnalyticsPageContent = withScreenSpan(
   "features/admin/analytics/page-content",
-  ({ searchParams }: { searchParams: RawSearchParams }) => {
+  ({ now, searchParams }: AdminAnalyticsPageContentProps) => {
     const parsed = parsePeriodSelection(searchParams);
 
     if (!parsed.ok) {
@@ -52,7 +61,6 @@ export const AdminAnalyticsPageContent = withScreenSpan(
       );
     }
 
-    const now = new Date();
     const request = toPeriodRequest(parsed.selection, now);
 
     return (

@@ -34,7 +34,6 @@ const SUMMARY: DashboardSummary = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.useRealTimers();
   getDashboardSummary.mockResolvedValue(SUMMARY);
 });
 
@@ -43,10 +42,7 @@ const AFTER_MIDNIGHT_IN_TOKYO = new Date("2026-08-24T15:30:00.000Z");
 
 describe("AdminDashboardPageContent", () => {
   it("店のタイムゾーンで見た今日 1 日を、区間の両端を挙げて求める", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(AFTER_MIDNIGHT_IN_TOKYO);
-
-    render(await AdminDashboardPageContent());
+    render(await AdminDashboardPageContent({ now: AFTER_MIDNIGHT_IN_TOKYO }));
 
     expect(getDashboardSummary).toHaveBeenCalledWith({
       after: "2026-08-25T00:00:00+09:00",
@@ -55,7 +51,7 @@ describe("AdminDashboardPageContent", () => {
   });
 
   it("a11y 検査を通る", async () => {
-    const { container } = render(await AdminDashboardPageContent());
+    const { container } = render(await AdminDashboardPageContent({ now: AFTER_MIDNIGHT_IN_TOKYO }));
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
@@ -63,7 +59,7 @@ describe("AdminDashboardPageContent", () => {
   });
 
   it("取得した集計を数値カードと内訳にする", async () => {
-    render(await AdminDashboardPageContent());
+    render(await AdminDashboardPageContent({ now: AFTER_MIDNIGHT_IN_TOKYO }));
 
     expect(screen.getByRole("region", { name: "今日の集計" })).toBeInTheDocument();
     expect(screen.getByText("$1,234.56")).toBeInTheDocument();
