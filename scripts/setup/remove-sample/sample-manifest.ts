@@ -25,7 +25,11 @@
 export const SAMPLE_PATHS: readonly string[] = [
   // 画面
   "src/app/(shop)",
+  "src/app/(site-info)",
   "src/app/admin",
+  // 2 つの器が読む global nav。行き先が題材の画面なので、器と一緒に消える。
+  "src/app/global-nav.ts",
+  "src/app/global-nav.test.ts",
   // 認証の器（`src/app/(auth)`）はコア残留で、その配下の登録だけが題材の画面である。
   "src/app/(auth)/onboarding",
   "src/features/products",
@@ -62,6 +66,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   // 題材の画面の仕様書。実装と 1 対 1 で対応するため、画面が消えれば仕様書も消える。
   // 残るのは `docs/spec/README.md` と、コア残留の画面（`auth` の器 / `/login` / `/dev/session`）の分。
   "docs/spec/route/shop",
+  "docs/spec/route/site-info",
   "docs/spec/route/admin",
   "docs/spec/route/auth/onboarding",
   // 題材の画面を通す E2E。土台（`e2e/lib` / `e2e/visual`）と、題材に依らない認証の前捌きは残す。

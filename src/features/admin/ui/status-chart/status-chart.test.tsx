@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { render } from "@testing-library/react";
-import { beforeAll, describe, expect, it } from "vitest";
+import { act, render } from "@testing-library/react";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
@@ -21,6 +21,24 @@ beforeAll(async () => {
   await import("../status-bars/status-bars");
 });
 
+/** 手空きの知らせを、テストが好きな時点で起こすための口。 */
+let idle: (() => void) | undefined;
+
+beforeEach(() => {
+  idle = undefined;
+  vi.stubGlobal("requestIdleCallback", (callback: () => void) => {
+    idle = callback;
+
+    return 1;
+  });
+  vi.stubGlobal("cancelIdleCallback", () => undefined);
+});
+
+/** ブラウザが手空きになったことを知らせる。 */
+function settle(): void {
+  act(() => idle?.());
+}
+
 const COUNTS: readonly PurchaseStatusCount[] = [
   { statusId: "1", statusName: "検討中", count: 22 },
   { statusId: "2", statusName: "支払い済み", count: 5 },
@@ -37,14 +55,22 @@ describe("StatusChart", () => {
     expect(frame).toHaveAttribute("aria-hidden", "true");
   });
 
+  it("手空きになるまでは帯を読み込まない", () => {
+    const { container } = render(<StatusChart counts={COUNTS} />);
+
+    expect(container.querySelector('[data-slot="chart"]')).toBeNull();
+  });
+
   it("読み込みが終わると、帯の容れ物を出す", async () => {
     const { container } = render(<StatusChart counts={COUNTS} />);
+    settle();
 
     await expect.poll(() => container.querySelector('[data-slot="chart"]')).not.toBeNull();
   });
 
   it("受け取った件数をそのまま帯へ渡す", async () => {
     const { container } = render(<StatusChart counts={COUNTS} />);
+    settle();
 
     await expect
       .poll(() => container.querySelector('[data-slot="chart-style"]')?.textContent)
@@ -53,12 +79,14 @@ describe("StatusChart", () => {
 
   it("件数が空でも容れ物は出す", async () => {
     const { container } = render(<StatusChart counts={[]} />);
+    settle();
 
     await expect.poll(() => container.querySelector('[data-slot="chart"]')).not.toBeNull();
   });
 
   it("a11y 検査を通る", async () => {
     const { container } = render(<StatusChart counts={COUNTS} />);
+    settle();
 
     await expect.poll(() => container.querySelector('[data-slot="chart"]')).not.toBeNull();
 

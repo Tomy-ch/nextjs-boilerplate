@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 
 import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
 
@@ -45,8 +46,36 @@ function StatusBarsPlaceholder() {
  * あるのは `ssr: false` を書ける場所が client component に限られるためです。呼び出し元
  * （`../status-breakdown/`）は server component のまま置けます。
  *
+ * **読むのは、ブラウザが手空きになってからです。** `dynamic` が遅らせるのは初期の一式へ載せるか
+ * どうかで、描画され次第そのまま取得と評価が走ります（[0101](../../../../../docs/adr/0101-performance-budget.md) §4）。
+ * 読み込みの最中に走れば main thread を塞ぎ、TBT に乗ります —— 実測でこの画面と集計の画面だけが
+ * recharts を読み、予算 200 ms に対して両方が縁にいました。
+ *
+ * **見えたかどうかでは足りません。** 計測の viewport（412×823）では帯が折り返しの内側に来るため、
+ * 交差は最初から起きています。同じ理由で、実際の利用でも「開いたら見えている」ことが多い面です。
+ *
+ * 手空きを待つ形にすると、**出来上がりは変わらないまま**、帯の評価が最初の描画の後ろへ回ります。
+ * 同じ画面の編集面（`admin/products`）が操作まで mount しないのと同じ考え方で、あちらは遅延
+ * 187 KB を持ちながら TBT 67 ms です。
+ *
  * @see Storybook `Page/Admin/Dashboard`
  */
 export function StatusChart({ counts }: StatusChartProps) {
-  return <StatusBars counts={counts} />;
+  const [settled, setSettled] = useState(false);
+
+  useEffect(() => {
+    // `requestIdleCallback` を持たないブラウザでは、次の tick へ回すだけに留める。
+    // 待つ長さではなく「最初の描画の後ろへ回す」ことが目的なので、これで足りる。
+    if (typeof requestIdleCallback !== "function") {
+      const timer = setTimeout(() => setSettled(true));
+
+      return () => clearTimeout(timer);
+    }
+
+    const handle = requestIdleCallback(() => setSettled(true));
+
+    return () => cancelIdleCallback(handle);
+  }, []);
+
+  return settled ? <StatusBars counts={counts} /> : <StatusBarsPlaceholder />;
 }
