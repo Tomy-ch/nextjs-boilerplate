@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 
-import { render } from "@testing-library/react";
+import { render, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import { AdminProductStockSkeleton } from "./skeleton";
 
 describe("AdminProductStockSkeleton", () => {
-  it("現在の在庫・向き・量・送信の 4 つぶんの枠を出す", () => {
+  it("フォームの形が伝わる数の枠を出す", () => {
     const { container } = render(<AdminProductStockSkeleton />);
 
     expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(4);
@@ -17,6 +17,7 @@ describe("AdminProductStockSkeleton", () => {
     const { container } = render(<AdminProductStockSkeleton />);
 
     expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
+    expect(within(container).queryAllByRole("generic")).toHaveLength(0);
   });
 
   it("a11y 検査を通る", async () => {
