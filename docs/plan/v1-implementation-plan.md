@@ -450,7 +450,8 @@ backend が server→client push の入口機構(SSE)と、その配信基盤で
 | P6-5 | capabilities カーネル | 6 | P5-7 |
 | P6-6 | メンテナンスモード | 6 | P5-4 |
 | P6-7 | Cookie 同意(軽量 consent 機構 + ゲート) | 6 | P6-2 |
-| P6-8 | プラットフォーム機能の有効化判断 | 6 | P6-4 |
+| P6-8 | プラットフォーム機能の有効化判断 | 6 | P6-4, P6-9 |
+| P6-9 | データ分類とキャッシュ境界(PII / user-scoped の取り扱い) | 6 | P5-4 |
 | P7-1 | 爆破スクリプト移植 | 7 | P5-16 |
 | P7-2 | マーカー埋め込み + purge 検証 CI | 7 | P7-1, P6-4 |
 | P7-3 | `new-feature` スキル(B12) | 7 | P4-6, P3-10 |
@@ -1527,8 +1528,86 @@ sources:
 | React taint API | 無効 | 有効化して `NEXT_PUBLIC_` 境界を強化するか |
 
 - **設計**: E2E + VR(P6-4)が揃った後に判断する。有効化の影響を回帰で検証できるため
+- **Cache Components の有効化は P6-9 を前提にする**: PPR は「何が静的な殻へ入るか」を決める機構であり、user-scoped な値が共有・静的な領域へ載る経路をここで作る。**分類とキャッシュ境界(P6-9)が無いまま有効化すると、事故の起こる面だけが先に開く**
 - **完了条件**: 3 機能それぞれの扱いが該当 ADR に記録されている。Cache Components と taint は「有効化した」または「v1 では無効のまま」、React Compiler は**基盤の前提にしない opt-in 機構としての方針**が記録されていること
-- **依存**: P6-4
+- **依存**: P6-4, **P6-9**
+
+### P6-9: データ分類とキャッシュ境界(PII / user-scoped の取り扱い)
+
+- **目的**: 値を「どの実行境界・どのキャッシュ範囲で使ってよいか」で分類し、**誤った置き場へ入れる書き方を通常の実装経路から消す**
+- **対象 ADR**: [0020](../adr/0020-adopted-architecture.md)(設計原則 6)/ [0071](../adr/0071-bff-api-integration.md)(キャッシュの所有層)/ [0030](../adr/0030-environment-variable-management.md) §8(漏洩防御)/ [0041](../adr/0041-cache-components-decision.md)(PPR)/ [0029](../adr/0029-type-design-discipline.md)(型設計)
+- **爆破対象外**: 本 PR が置くものは**すべて基盤**である。サンプル API 固有ではなく、Server / Client 境界とキャッシュ境界そのものを守る機構であり、サンプル破棄後も残る
+
+#### 防ぎたい事故クラス
+
+| # | 事故 | 現在の防御 |
+| --- | --- | --- |
+| 1 | PII を含む server object を Client Component へ丸ごと渡す | 規約のみ(詰め替えを書く人が判断) |
+| 2 | token / secret を RSC ペイロードへ載せる | `import "server-only"` + 目的別 config |
+| 3 | request 固有の値を static generation へ焼き込む | **無し**(PPR 未導入のため面が無い) |
+| 4 | User A のデータを共有キャッシュへ入れ、User B へ配る | **無し**(`cache` / `tags` は全 client が受け取れる) |
+| 5 | projection / clone で分類が消える | **無し** |
+| 6 | サンプル破棄でセキュリティ基盤まで消える | 破棄対象の宣言次第 |
+| 7 | キャッシュの口を直接使って制約を迂回する | **無し**(`use cache` / `unstable_cache` は誰でも書ける) |
+
+#### 分類は値ではなく「取得の口」に持たせる
+
+`PublicData<T>` / `UserScopedData<T>` のように**値を包む**方式は採らない。理由は 2 つある。
+
+- **unwrap で分類が消える**。`wrapped.value.email` と書いた瞬間に `string` へ戻り、保証は最初の描画地点で切れる。そこは PII が正当に出ていく場所であり、**保証が要る場所には届かない**
+- 代わりに全 feature が包み/解きの記述を払う。**費用は全行に、効果は 2 箇所に**しか出ない
+
+事故が起きる面は **キャッシュへ入れる瞬間**と **client へ渡す瞬間**の 2 つに集中している。したがって分類は、値が生まれる場所 = **取得の口(`adapters/server/http` の client)**に宣言し、**その口が受け取れる引数を分類ごとに変える**。
+
+- `createHttpClient({ scope: "public" })` —— 共有キャッシュへ入れてよい。`cache` / `tags` を受け取る
+- `createHttpClient({ scope: "user-scoped" })` —— **`cache` / `tags` を型として持たない**。共有キャッシュへ入れる書き方が存在しない
+
+**「PII を共有キャッシュへ入れるな」を注意書きではなく、引数の不在にする。** 新しい adapter を書く人は口を選ぶだけでよく、user-scoped を選んだ時点でキャッシュの選択肢が消える。
+
+`secret`(署名鍵・トークン)はこの経路を通らない。`config/*.server.ts` に閉じ、`import "server-only"` と [0030](../adr/0030-environment-variable-management.md) §8 の taint が持つ。**値の数が少なく描画へ出ないため、こちらは branded / opaque な値型が費用に見合う**(分類を包むのは secret だけ)。
+
+#### 将来穴を開けさせないための層
+
+今ある穴を塞ぐだけでなく、**後から穴を開けられないこと**を条件にする。
+
+| 層 | 何を止めるか | 検出時点 |
+| --- | --- | --- |
+| **型** | user-scoped の取得に `cache` / `tags` を渡す(事故 4) | typecheck |
+| **lint** | `use cache` を持つモジュールから user-scoped adapter を import する(事故 7) | `lint:ci` |
+| **framework** | cached scope から `cookies()` / `headers()` を読む —— 資格情報は必ず cookie から解決するため、user-scoped な取得を `use cache` の下へ置くと `next-request-in-use-cache` で落ちる(事故 3 / 4) | build または実行時 |
+| **runtime(取得)** | `cache` / `tags` の指定と、資格情報またはセッションヘッダの付与が**同時に成立**した要求(事故 4) | 要求時に throw |
+| **runtime(境界)** | server object をそのまま client へ渡す(事故 1 / 2 / 5) | 描画時に throw([0030](../adr/0030-environment-variable-management.md) §8 の taint) |
+
+- **framework の防御を維持することが規約になる**: 資格情報を `cookies()` 以外の経路(モジュール変数・引数での持ち回り)で解決すると、この防御は静かに外れる。**トークンの解決は必ず cookie から**という規約を維持する
+- **runtime(取得)の関門が要るのは、型で塞げない分岐があるため**。`products` の client は `allowAnonymous: true` を持ち、**同じ口が匿名にも認証済みにもなる**。分類が実行時に決まる以上、型だけでは足りない
+- user-scoped な値をキャッシュしたい場合の唯一の手段は **`use cache: private`**(サーバへ保存されず、ブラウザのメモリにのみ載る)とする
+
+#### 責務の分離(混同しない)
+
+| 機構 | 担当 |
+| --- | --- |
+| 分類 + 取得の口 | **どこで使ってよいか**を型と引数で制約する |
+| PPR / Cache Components | 共有・静的領域への誤投入を防ぐ(キャッシュ方針の側) |
+| taint | Server → Client の誤送信を実行時に検知する |
+| React Compiler | **性能最適化のみ**。PII / キャッシュ / セキュリティ境界とは独立で、opt-in([0042](../adr/0042-react19-rendering-api.md) 決定 4) |
+
+#### 主な変更先
+
+- `src/adapters/server/http/request.ts` —— `scope` の宣言、分類ごとの spec 型、取得時の関門
+- `src/adapters/server/api/*.ts` —— 各 client の `scope` 宣言(既に public / 認証つきで分かれており、宣言を足すだけ)
+- `eslint.config.ts` —— `use cache` を持つモジュールの import 制約
+- `docs/rules.md` —— 分類の選び方と `use cache: private` の位置づけ
+
+#### トレードオフ
+
+- **通常実装の可読性はほぼ変わらない**。feature 側の記述は増えず、変わるのは adapter を書くときに口を選ぶ 1 行だけである
+- 代わりに **`allowAnonymous` の口では実行時の関門に頼る**。ここだけ型で表現できない
+- **`use cache` の lint は import で判定するため、間接参照の深い経路を取りこぼしうる**。framework の防御(cookie 経由の解決)と runtime の関門が二重に覆う前提で受け入れる
+
+- **完了条件**: user-scoped な取得に `cache` / `tags` を渡すコードが**型検査で落ちる**。`use cache` の下から user-scoped adapter へ到達する import が `lint:ci` で落ちる。資格情報つきの要求にキャッシュ指定を与えると実行時に落ちる。上の 5 層が `docs/rules.md` と ADR に記録されている
+- **依存**: P5-4(認証の口が揃っていること)
+
+---
 
 ---
 
