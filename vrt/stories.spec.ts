@@ -11,6 +11,7 @@ import { BASELINE_TAG, expectedBaselines } from "./lib/expected-baselines";
 import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, selectStories, storyURL } from "./lib/story-index";
+import { openAtDeclaredViewport } from "./lib/viewport";
 
 // Storybook の全 story を基準画像と比べる。
 //
@@ -64,8 +65,14 @@ for (const story of stories) {
 
     // 時計はページを開く前に固定する。
     await installFixedClock(page);
-    await page.goto(storyURL(story.id, testInfo.project.name));
+    const url = storyURL(story.id, testInfo.project.name);
+    await page.goto(url);
     await settle(page, testInfo.project.name);
+
+    // 宣言を読めるのは描き終えてからで、開き直した後はもう一度描き切るのを待つ。
+    if (await openAtDeclaredViewport(page, url)) {
+      await settle(page, testInfo.project.name);
+    }
 
     // 描画中に投げた例外は、画像が撮れてしまうぶん差分に出ないことがある。壊れた story を
     // 「見た目が変わっていない」で通さないため、画像より先に見る。
