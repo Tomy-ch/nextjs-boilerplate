@@ -266,9 +266,6 @@ export default [
     // - `detect-possible-timing-attacks` — 識別子の名前で判定する。比較の中身を見ていない
     // - `detect-non-literal-regexp` — 引数から RegExp を組む形をすべて鳴らす。ReDoS の判定は
     //   していないので、上の 1 つ目と同じく形だけを見ている
-    //
-    // ReDoS と path traversal がこれで検査されなくなるわけではない。どちらも opengrep が
-    // 担う。
     files: ["src/**/*.{js,jsx,ts,tsx}"],
     plugins: { security },
     rules: {
