@@ -7,16 +7,6 @@ import { axe } from "vitest-axe";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
 
-// TODO: jsdom に ResizeObserver が無く、arrow の寸法計測が落ちる。共有の vitest.setup.ts へ移す。
-vi.stubGlobal(
-  "ResizeObserver",
-  class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-);
-
 function TooltipFixture({ defaultOpen = false }: { defaultOpen?: boolean }) {
   return (
     <TooltipProvider>

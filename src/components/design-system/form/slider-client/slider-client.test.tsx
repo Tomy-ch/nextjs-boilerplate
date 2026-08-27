@@ -8,16 +8,6 @@ import { axe } from "vitest-axe";
 
 import { SliderClient } from "./slider-client";
 
-// TODO: jsdom に ResizeObserver が無く、thumb の寸法計測が落ちる。共有の vitest.setup.ts へ移す。
-vi.stubGlobal(
-  "ResizeObserver",
-  class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-);
-
 function LabelledSliderFixture() {
   return <SliderClient defaultValue={[20, 70]} thumbLabels={["下限価格", "上限価格"]} />;
 }
