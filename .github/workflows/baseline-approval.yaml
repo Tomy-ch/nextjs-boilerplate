@@ -90,16 +90,9 @@ jobs:
       # The label alone is not the gate: an acceptance given before the current images
       # existed accepted something else. The pointer's own commit date is the line.
       #
-      # The acceptance is looked for on this pull request AND on the one that introduced
-      # the pointer commit. A branch the ruleset guards cannot take the pointer by push, so
-      # the retake proposes it in a pull request of its own (`baseline-retake.yaml`); the
-      # person accepts the pixels there, where the before/after table is. Reading only this
-      # pull request would then demand a second acceptance of the same images from the same
-      # person — the invariant being kept is that a human looked at THESE pixels, and which
-      # pull request they were looking at does not change that.
-      #
-      # Resolved from the pointer commit rather than from a branch name, so nothing here
-      # depends on how the retake names its branches.
+      # Looked for on this pull request AND on the one that introduced the pointer commit:
+      # what is kept is that a human looked at THESE pixels, not which pull request they
+      # were looking at. Resolved from the commit, so it survives any branch naming.
       - name: Require an acceptance newer than the baselines
         if: steps.moved.outputs.moved == 'true'
         env:
@@ -119,8 +112,8 @@ jobs:
             exit 1
           fi
 
-          # Latest acceptance across the pull requests that could carry one, so the
-          # comparison below has one value to make regardless of where it was given.
+          # Latest across the pull requests that could carry one, so the comparison below
+          # has a single value regardless of where the acceptance was given.
           latest_acceptance() {
             for number in "$@"; do
               [ -n "${number}" ] || continue

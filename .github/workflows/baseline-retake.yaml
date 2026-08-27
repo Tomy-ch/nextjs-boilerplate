@@ -247,12 +247,8 @@ jobs:
             exit 1
           fi
 
-      # Whether the pointer may be pushed straight onto the branch is the repository's
-      # answer, not this workflow's assumption: `.github/settings/branch-protection.json`
-      # puts `release/**` and `hotfix/**` under a `pull_request` rule, and those are the
-      # branches whose baselines drift the most (see the note on resolving the pull
-      # request). Asked of the API rather than matched against a second copy of those
-      # patterns here, so the route cannot drift from the ruleset that enforces it.
+      # Asked of the ruleset itself. A second copy of the guarded branch patterns here would
+      # drift from `.github/settings/branch-protection.json`, which is what enforces them.
       - name: Decide how the pointer can reach the branch
         id: route
         if: steps.gate.outputs.deferred == 'false'
@@ -277,9 +273,8 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.pr.outputs.head_ref }}
-          # Only the pull-request route needs history: `create-pull-request` reconciles its
-          # branch against the base, and a depth-1 tree gives it nothing to reconcile with.
-          # The push route stays shallow, which is what makes this job affordable.
+          # `create-pull-request` reconciles against the base; a depth-1 tree gives it nothing
+          # to reconcile with. The push route stays shallow.
           fetch-depth: ${{ steps.route.outputs.route == 'pull-request' && 0 || 1 }}
           # The pointer is pushed with the App token instead, so `GITHUB_TOKEN` is
           # dropped here as in every other workflow. A push made with `GITHUB_TOKEN`
@@ -295,9 +290,8 @@ jobs:
           app-id: ${{ secrets.BASELINE_APP_ID }}
           private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
           persist-credentials: 'true'
-          # Asked for only on the route that opens one. Requesting it unconditionally makes
-          # the mint itself fail with 422 on an installation that has not granted it, which
-          # takes down the push route too — the one that never needed the permission.
+          # Only on the route that opens one. Unconditional, the mint 422s on an installation
+          # that has not granted it and takes the push route down with it.
           pull-requests: ${{ steps.route.outputs.route == 'pull-request' && 'write' || '' }}
 
       - name: Refuse without a token for the baseline store
@@ -548,20 +542,6 @@ jobs:
 
           git config --local --unset-all http.extraheader
 
-      # A guarded branch takes the pointer the way every other change to it travels: on a
-      # branch of its own, through a pull request.
-      #
-      # ONE branch and ONE pull request per served pull request, both named after it and both
-      # reused. `create-pull-request` updates the branch and the open pull request in place,
-      # so a second retake replaces the proposal rather than adding one — a fresh name per
-      # retake would leave the list filling with proposals nobody merged. Same mechanism the
-      # sibling boilerplate uses to keep generated artifacts in sync.
-      #
-      # `delete-branch: true` removes the branch once the pull request closes, merged or not.
-      #
-      # The acceptance stays a single human act. `baseline-approve` goes on THIS pull
-      # request, where the before/after table is, and `baseline-approval.yaml` carries it
-      # forward to every later pull request that inherits the same pointer commit.
       - name: Build the pointer pull request body
         id: pointer-body
         if: steps.gate.outputs.deferred == 'false' && steps.route.outputs.route == 'pull-request'
@@ -586,10 +566,9 @@ jobs:
             echo 'POINTER_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # Opened with the App token rather than `GITHUB_TOKEN`, because a pull request opened by
-      # `GITHUB_TOKEN` reports no checks at all — GitHub suppresses the events that token
-      # raises — and the required ones are exactly what has to be seen before the pointer is
-      # allowed onto the branch.
+      # One branch and one pull request per served pull request, both reused — a fresh name
+      # per retake would leave proposals nobody merged. Not `GITHUB_TOKEN`: a pull request it
+      # opens reports no checks, and the required ones are what gate the pointer.
       - name: Open a pull request for the submodule pointer
         id: pointer-pr
         if: steps.gate.outputs.deferred == 'false' && steps.route.outputs.route == 'pull-request'
@@ -599,10 +578,8 @@ jobs:
           branch: baseline-retake/${{ steps.pr.outputs.number }}
           base: ${{ steps.pr.outputs.head_ref }}
           delete-branch: true
-          # The pointer and nothing else. Left unset the action commits everything the run
-          # left in the tree, and this job runs a Storybook build and a browser suite before
-          # reaching here — "this pull request moves only the pointer" has to be a property
-          # of what is staged, not a claim in its body.
+          # The pointer and nothing else: this job runs a Storybook build and a browser suite
+          # before reaching here, and unset commits whatever they left behind.
           add-paths: baseline/images
           commit-message: |
             Test: 基準画像を撮り直す
@@ -772,18 +749,14 @@ jobs:
             echo 'VRT_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # One label, one retake: removed only once the pointer has been placed AND every
-      # reported kind was covered. Anything else leaves it on, so the retake resumes by
-      # itself once the cause is gone. The second condition is what keeps a run that moved
-      # the pointer for the stories alone from spending the label while E2E is still
-      # deciding whether the screens moved — the screens would then never be retaken for
-      # this branch.
+      # One label, one retake: removed only once the pointer has been placed AND every reported
+      # kind was covered. Anything else leaves it on, so the retake resumes by itself once
+      # the cause is gone. The second condition is what keeps a run that moved the pointer
+      # for the stories alone from spending the label while E2E is still deciding whether
+      # the screens moved — the screens would then never be retaken for this branch.
       #
-      # On the pull-request route the pointer is proposed rather than landed, and the label
-      # is spent all the same. The retake itself is what the label buys, and it has
-      # happened: the images are in the store and a pull request carries the pointer. Left
-      # on, every later comparison run would retake again and replace that pull request
-      # underneath the person reviewing it.
+      # On the pull-request route the pointer is proposed rather than landed; the label is
+      # spent all the same, or every later run would replace the pull request under review.
       #
       # `baseline-approve` is NOT touched here. Whether an acceptance still holds is decided
       # by `baseline-approval.yaml` comparing its timestamp against the pointer's commit, so
