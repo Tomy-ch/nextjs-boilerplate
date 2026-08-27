@@ -43,7 +43,7 @@
 - **濃淡の定義**: Full = 常用・深く統合・参照実装まで同梱 / Medium = 統合するが既定は控えめ(必要時に使う)/ Thin = seam + 配線 + 最小デモのみ(実使用は fork 次第)
 - **1.1 の改訂に伴い、上記 7 件は v1 では何も置かない**(設置面が実在しないため)
 - **v1 採用へ移した 2 件**: リッチテキスト(TipTap)は商品説明で実使用するため / Cookie 同意は [0031](../adr/0031-policy-state-supply.md) が状態供給を規定済みで設置面があり、かつサードパーティスクリプトのゲートは後付けコストが高いため
-- **プラットフォーム機能**(ライブラリとは別軸): Cache Components([0041](../adr/0041-cache-components-decision.md))/ React Compiler([0042](../adr/0042-react19-rendering-api.md))/ React taint API([0030](../adr/0030-environment-variable-management.md))= 現状は無効。Cache Components と React taint API は v1 時点で有効化の可否を確定する。React Compiler は基盤の必須機能にせず、opt-in の性能最適化手段として扱う([0042](../adr/0042-react19-rendering-api.md) 決定 4)
+- **プラットフォーム機能**(ライブラリとは別軸): Cache Components([0041](../adr/0041-cache-components-decision.md))/ React Compiler([0042](../adr/0042-react19-rendering-api.md))/ React taint API([0030](../adr/0030-environment-variable-management.md))—— Cache Components は **v1 で採用**、React taint API は **v1 で採用**(experimental を承知の例外)、React Compiler は**基盤の必須機能にせず opt-in の性能最適化手段として扱う**([0042](../adr/0042-react19-rendering-api.md) 決定 4)
 - **capabilities の hook・機構として v1 実装する 4 件**: 離脱ガード(navigation-block hook = [0022](../adr/0022-capabilities-kernel.md) に記載)/ オンライン・オフライン検知(`useConnectivity` = 同)/ **Web Worker(オフロード seam。どの ADR にも記載がなく本行が唯一の記録)**/ メンテナンスモード(proxy rewrite 機構 + env フラグ seam。capabilities ではなく proxy 側)
 - **全採用の共通条件**: [0010](../adr/0010-standards-and-non-lockin.md) の vendor-independent 正当化 + adapters / seam 越しで差し替え可能に保つ(vendor 直参照を feature / component に散らさない)+ exact-pin + `pnpm audit`([0004](../adr/0004-library-management.md))
 

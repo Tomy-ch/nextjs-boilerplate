@@ -1551,56 +1551,14 @@ sources:
 | 6 | サンプル破棄でセキュリティ基盤まで消える | 破棄対象の宣言次第 |
 | 7 | キャッシュの口を直接使って制約を迂回する | **無し**(`use cache` / `unstable_cache` は誰でも書ける) |
 
-#### 最上位の原則
+#### 設計は [0112](../adr/0112-data-classification-cache-boundary.md) が正
 
-**PII はレンダリング最適化の対象ではなく、露出範囲を最小化する対象である。** 性能最適化はその機密性制約の内側でのみ行う。
+不変条件 6 件・分類の持たせ方・段ごとの関所・責務分界は同 ADR が持つ。本 PR はその実装であり、
+着手時はまず 0112 を読む。要点だけ:
 
-```text
-機密性 > キャッシュ効率 > SSR 率 > PPR 適用率 > バンドル最小化
-```
-
-SSR-First([0040](../adr/0040-routing-rendering-strategy.md))は性能と UX 上の既定値であって、機密性を上回る制約ではない。**PII のために SSR / PPR を諦めることは許可する**が、CSR にする範囲は PII を必要とする最小の Client Island に限る。不変条件 6 件は [0112](../adr/0112-data-classification-cache-boundary.md) が正。
-
-#### 分類は値ではなく「取得の口」に持たせる
-
-`PublicData<T>` / `UserScopedData<T>` のように**値を包む**方式は採らない。理由は 2 つある。
-
-- **unwrap で分類が消える**。`wrapped.value.email` と書いた瞬間に `string` へ戻り、保証は最初の描画地点で切れる。そこは PII が正当に出ていく場所であり、**保証が要る場所には届かない**
-- 代わりに全 feature が包み/解きの記述を払う。**費用は全行に、効果は 2 箇所に**しか出ない
-
-事故が起きる面は **キャッシュへ入れる瞬間**と **client へ渡す瞬間**の 2 つに集中している。したがって分類は、値が生まれる場所 = **取得の口(`adapters/server/http` の client)**に宣言し、**その口が受け取れる引数を分類ごとに変える**。
-
-- `createHttpClient({ scope: "public" })` —— 共有キャッシュへ入れてよい。`cache` / `tags` を受け取る
-- `createHttpClient({ scope: "user-scoped" })` —— **`cache` / `tags` を型として持たない**。共有キャッシュへ入れる書き方が存在しない
-
-**「PII を共有キャッシュへ入れるな」を注意書きではなく、引数の不在にする。** 新しい adapter を書く人は口を選ぶだけでよく、user-scoped を選んだ時点でキャッシュの選択肢が消える。
-
-`secret`(署名鍵・トークン)はこの経路を通らない。`config/*.server.ts` に閉じ、`import "server-only"` と [0030](../adr/0030-environment-variable-management.md) §8 の taint が持つ。**値の数が少なく描画へ出ないため、こちらは branded / opaque な値型が費用に見合う**(分類を包むのは secret だけ)。
-
-#### 将来穴を開けさせないための層
-
-今ある穴を塞ぐだけでなく、**後から穴を開けられないこと**を条件にする。
-
-| 層 | 何を止めるか | 検出時点 |
-| --- | --- | --- |
-| **型** | user-scoped の取得に `cache` / `tags` を渡す(事故 4) | typecheck |
-| **lint** | `use cache` を持つモジュールから user-scoped adapter を import する(事故 7) | `lint:ci` |
-| **framework** | cached scope から `cookies()` / `headers()` を読む —— 資格情報は必ず cookie から解決するため、user-scoped な取得を `use cache` の下へ置くと `next-request-in-use-cache` で落ちる(事故 3 / 4) | build または実行時 |
-| **runtime(取得)** | `cache` / `tags` の指定と、資格情報またはセッションヘッダの付与が**同時に成立**した要求(事故 4) | 要求時に throw |
-| **runtime(境界)** | server object をそのまま client へ渡す(事故 1 / 2 / 5) | 描画時に throw([0030](../adr/0030-environment-variable-management.md) §8 の taint) |
-
-- **framework の防御を維持することが規約になる**: 資格情報を `cookies()` 以外の経路(モジュール変数・引数での持ち回り)で解決すると、この防御は静かに外れる。**トークンの解決は必ず cookie から**という規約を維持する
-- **runtime(取得)の関門が要るのは、型で塞げない分岐があるため**。`products` の client は `allowAnonymous: true` を持ち、**同じ口が匿名にも認証済みにもなる**。分類が実行時に決まる以上、型だけでは足りない
-- user-scoped な値をキャッシュしたい場合の唯一の手段は **`use cache: private`**(サーバへ保存されず、ブラウザのメモリにのみ載る)とする
-
-#### 責務の分離(混同しない)
-
-| 機構 | 担当 |
-| --- | --- |
-| 分類 + 取得の口 | **どこで使ってよいか**を型と引数で制約する |
-| PPR / Cache Components | 共有・静的領域への誤投入を防ぐ(キャッシュ方針の側) |
-| taint | Server → Client の誤送信を実行時に検知する |
-| React Compiler | **性能最適化のみ**。PII / キャッシュ / セキュリティ境界とは独立で、opt-in([0042](../adr/0042-react19-rendering-api.md) 決定 4) |
+- **機密性 > キャッシュ効率 > SSR 率 > PPR 適用率 > バンドル最小化**。PII は最適化の対象ではなく露出範囲を最小化する対象
+- 分類は値ではなく**取得の口**に持たせ、user-scoped の口からキャッシュ能力を型ごと外す
+- 守りは 1 か所に集約せず、**型 / lint / framework / 取得時 / 境界 / 配信**の段に分ける
 
 #### 主な変更先
 
@@ -1609,11 +1567,16 @@ SSR-First([0040](../adr/0040-routing-rendering-strategy.md))は性能と UX 上�
 - `eslint.config.ts` —— `use cache` を持つモジュールの import 制約
 - `docs/rules.md` —— 分類の選び方と `use cache: private` の位置づけ
 
+#### この PR で確かめること
+
+- **`cache()` メモ化と cached scope の関係**。`verifySession` は React `cache()` でメモ化されており、cached scope の外で解決済みの値が中で再利用されると `cookies()` が再読されず、framework 側の防御が発火しない可能性がある
+- **資格情報の解決経路を機械検査にできるか**。framework の防御は「使用地点で cookie から解決される」ことに乗っており、持ち回りやメモ化で静かに外れる
+
 #### トレードオフ
 
-- **通常実装の可読性はほぼ変わらない**。feature 側の記述は増えず、変わるのは adapter を書くときに口を選ぶ 1 行だけである
-- 代わりに **`allowAnonymous` の口では実行時の関門に頼る**。ここだけ型で表現できない
-- **`use cache` の lint は import で判定するため、間接参照の深い経路を取りこぼしうる**。framework の防御(cookie 経由の解決)と runtime の関門が二重に覆う前提で受け入れる
+- 通常実装の可読性はほぼ変わらない。feature 側の記述は増えず、変わるのは adapter を書くときに口を選ぶ 1 行だけ
+- 資格情報を載せうる口は共有キャッシュの選択肢を失う。「匿名でも取れるものを共有キャッシュへ」という最適化は、口を分けない限り選べなくなる
+- `use cache` の lint は import で判定するため、間接参照の深い経路を取りこぼしうる
 
 - **完了条件**: user-scoped な取得に `cache` / `tags` を渡すコードが**型検査で落ちる**。`use cache` の下から user-scoped adapter へ到達する import が `lint:ci` で落ちる。資格情報つきの要求にキャッシュ指定を与えると実行時に落ちる。上の 5 層が `docs/rules.md` と ADR に記録されている
 - **依存**: P5-4(認証の口が揃っていること)
