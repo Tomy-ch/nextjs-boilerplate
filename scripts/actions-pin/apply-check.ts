@@ -58,6 +58,41 @@ export function rewritePins(data: string, lock: Map<string, string>): RewriteRes
   return { out, missing, referenced };
 }
 
+/** 書き込む前に、全ファイルを読み切って可否の材料と保留中の内容を集める。 */
+function scanPins(
+  root: string,
+  files: string[],
+  lock: Map<string, string>,
+): {
+  missing: Set<string>;
+  referenced: Set<string>;
+  unparsed: string[];
+  unsupportedTags: string[];
+  pending: { file: string; out: string }[];
+} {
+  const missing = new Set<string>();
+  const referenced = new Set<string>();
+  const unparsed: string[] = [];
+  const unsupportedTags: string[] = [];
+  const pending: { file: string; out: string }[] = [];
+
+  for (const file of files) {
+    const data = fs.readFileSync(file, "utf8");
+    const relative = path.relative(root, file);
+
+    for (const line of unparsedUsesLines(data)) unparsed.push(`${relative}:${line}`);
+    for (const line of unsupportedTagLines(data)) unsupportedTags.push(`${relative}:${line}`);
+
+    const result = rewritePins(data, lock);
+
+    for (const key of result.missing) missing.add(key);
+    for (const key of result.referenced) referenced.add(key);
+    if (result.out !== data) pending.push({ file, out: result.out });
+  }
+
+  return { missing, referenced, unparsed, unsupportedTags, pending };
+}
+
 // dryRun=false なら各ファイルを固定し、true なら書き換えずに差分を報告する。
 //
 // 全ファイルを読み切って可否を確定させてから書き込む二段構えにしている。ファイル単位で
@@ -69,23 +104,7 @@ export function applyPins(
   lock: Map<string, string>,
   dryRun: boolean,
 ): PinReport {
-  const missing = new Set<string>();
-  const referenced = new Set<string>();
-  const unparsed: string[] = [];
-  const unsupportedTags: string[] = [];
-  const pending: { file: string; out: string }[] = [];
-
-  for (const file of files) {
-    const data = fs.readFileSync(file, "utf8");
-    const relative = path.relative(root, file);
-    for (const line of unparsedUsesLines(data)) unparsed.push(`${relative}:${line}`);
-    for (const line of unsupportedTagLines(data)) unsupportedTags.push(`${relative}:${line}`);
-
-    const result = rewritePins(data, lock);
-    for (const key of result.missing) missing.add(key);
-    for (const key of result.referenced) referenced.add(key);
-    if (result.out !== data) pending.push({ file, out: result.out });
-  }
+  const { missing, referenced, unparsed, unsupportedTags, pending } = scanPins(root, files, lock);
 
   const orphans = [...lock.keys()].filter((key) => !referenced.has(key)).sort();
   const blocked =
@@ -104,7 +123,7 @@ export function applyPins(
     drifted: dryRun ? pending.map((entry) => path.relative(root, entry.file)).sort() : [],
     updated: updated.sort(),
     orphans,
-    unparsed: unparsed.sort(),
-    unsupportedTags: unsupportedTags.sort(),
+    unparsed: unparsed.toSorted(),
+    unsupportedTags: unsupportedTags.toSorted(),
   };
 }

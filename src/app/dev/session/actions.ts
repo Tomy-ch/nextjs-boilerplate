@@ -65,7 +65,7 @@ export async function issueDevSessionAction(
     return actionStateFromError(error);
   }
 
-  redirect(toSafeReturnUrl(formData.get(RETURN_URL_PARAM)?.toString()));
+  redirect(toSafeReturnUrl(formData.get(RETURN_URL_PARAM)));
 }
 
 /**

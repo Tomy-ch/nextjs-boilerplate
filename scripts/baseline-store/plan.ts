@@ -123,7 +123,7 @@ export function parseDefaultBranch(lsRemoteOutput: string): string {
 }
 
 function escapeRegExp(literal: string): string {
-  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 // git の ref 名の制約のうち、ブランチ名として実際に踏むものだけを見る。全数の検証は

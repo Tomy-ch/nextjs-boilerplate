@@ -1,7 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createContext, type ReactNode, use, useCallback, useState, useTransition } from "react";
+import {
+  createContext,
+  type ReactNode,
+  use,
+  useCallback,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 
 import {
   FILTER_KEY,
@@ -110,20 +118,12 @@ export function ProductFilterDraftProvider({
     navigate(draft);
   }, [draft, navigate]);
 
-  return (
-    <FilterDraftContext
-      value={{
-        draft,
-        pending,
-        change,
-        commit,
-        clear,
-        apply,
-      }}
-    >
-      {children}
-    </FilterDraftContext>
+  const value = useMemo(
+    () => ({ draft, pending, change, commit, clear, apply }),
+    [draft, pending, change, commit, clear, apply],
   );
+
+  return <FilterDraftContext value={value}>{children}</FilterDraftContext>;
 }
 
 /**

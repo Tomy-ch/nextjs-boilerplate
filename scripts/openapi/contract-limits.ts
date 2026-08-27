@@ -17,7 +17,7 @@ export type ContractLimit = {
  * 内側の定数が消えます。整形の前に走るか後に走るかで結果が変わる形を持ち込まないため、
  * **宣言の始まりで区切ってから**、その中だけを見ます。
  */
-const DECLARATION_START = /^export const (?=[A-Za-z0-9_]+ = )/m;
+const DECLARATION_START = /^export const (?=\w+ = )/m;
 
 /** 宣言の終わり。行末の `;`。 */
 const DECLARATION_END = /;\s*$/m;
@@ -51,7 +51,7 @@ export function collectContractLimits(source: string): ContractLimit[] {
       }
 
       const name = declaration.slice(0, separator);
-      const literal = declaration.slice(separator + 3, end).replace(/\s*\n\s*/g, "");
+      const literal = declaration.slice(separator + 3, end).replace(/[ \t]*\n[ \t]*/g, "");
 
       return USES_ZOD.test(literal) ? [] : [{ name, literal }];
     });

@@ -24,7 +24,7 @@ const SUBSTITUTE = 2;
 // `<!-- = ... -->` 形式を別の枝に分けているのは、閉じ記号を剥がす処理が行末に触れるため。
 // `//`/`#` 側の行末はそのまま返す必要がある（Markdown の行末 2 スペースは hard line break で、
 // 落とすと意味が変わる）。HTML コメント側は閉じ記号を必須にして、閉じ忘れを通さない。
-const REPLACE_CONTENT = /^(\s*)(?:(?:\/\/|#)\s*=\s?(.*)|<!--\s*=\s?(.*?)\s*-->)$/;
+const REPLACE_CONTENT = /^([ \t]*)(?:(?:\/\/|#)[ \t]*=[ \t]?(.*)|<!--[ \t]*=[ \t]?(.*?)[ \t]*-->)$/;
 
 /** 引用行。継ぎ目の両側が引用なら、空行では分断されてしまう。 */
 const QUOTE_LINE = /^\s*>/;
@@ -32,7 +32,7 @@ const QUOTE_LINE = /^\s*>/;
 /** `<comment> <marker>:<suffix>` に当たる正規表現を組み立てる。 */
 function markerPattern(marker: string, suffix: string): RegExp {
   return new RegExp(
-    `(?:\\/\\/|#|<!--)\\s*${marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:${suffix}\\b`,
+    String.raw`(?:\/\/|#|<!--)\s*${marker.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)}:${suffix}\b`,
   );
 }
 

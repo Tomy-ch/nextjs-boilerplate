@@ -274,7 +274,7 @@ describe("AdminProductEditView", () => {
   it("a11y 自動検査に違反しない", async () => {
     const { container } = renderView();
 
-    await waitFor(() => expect(screen.getByLabelText("商品名")).toBeInTheDocument());
+    await screen.findByLabelText("商品名");
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,

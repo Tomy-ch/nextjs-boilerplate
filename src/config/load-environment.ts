@@ -52,7 +52,7 @@ export function findApplicationEnvironment(): ApplicationEnvironment | null {
  * 開きます。判定を API の接続モードではなく環境そのものに置いているのは、接続モードが
  * 「mock を実環境に置かない」という散文の約束でしか守られていないためです。
  */
-const developmentOnlyEnvironments: readonly ApplicationEnvironment[] = ["local", "ci"];
+const developmentOnlyEnvironments: ReadonlySet<ApplicationEnvironment> = new Set(["local", "ci"]);
 
 /**
  * 開発専用の口を開けてよい環境か。
@@ -67,7 +67,7 @@ const developmentOnlyEnvironments: readonly ApplicationEnvironment[] = ["local",
 export function isDevelopmentOnlyEndpointOpen(): boolean {
   const environment = findApplicationEnvironment();
 
-  return environment !== null && developmentOnlyEnvironments.includes(environment);
+  return environment !== null && developmentOnlyEnvironments.has(environment);
 }
 
 /**

@@ -53,10 +53,10 @@ export function authScopesValidator() {
  * 開発と CI を `git clone` 直後に動かすための値であり、**公開リポジトリに平文で載っています**。
  * 誰でも読めるため、これで封緘した session cookie は誰でも偽造できます。
  */
-const SHIPPED_SECRETS: readonly string[] = [
+const SHIPPED_SECRETS: ReadonlySet<string> = new Set([
   "local-development-session-secret-change-before-production",
   "ci-session-secret-must-never-be-used-in-production",
-];
+]);
 
 /**
  * BFF session を保護する秘密値を検証する。
@@ -75,7 +75,7 @@ export function authSessionSecretValidator(allowShipped: boolean) {
   return z
     .string()
     .min(32)
-    .refine((value) => allowShipped || !SHIPPED_SECRETS.includes(value), {
+    .refine((value) => allowShipped || !SHIPPED_SECRETS.has(value), {
       error: "AUTH_SESSION_SECRET が同梱の値のままです。環境ごとの秘密値を設定してください",
     });
 }

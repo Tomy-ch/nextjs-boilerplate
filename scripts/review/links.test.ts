@@ -65,7 +65,7 @@ describe("screenLinks", () => {
     expect(
       screenLinks(APP, ["/_global-error"], SCREENS, DEV_SESSION_PATH, DEV_SESSION_RETURN_PARAM)[0]
         ?.url,
-    ).toBe(null);
+    ).toBeNull();
   });
 });
 

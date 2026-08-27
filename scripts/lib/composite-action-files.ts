@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 export const COMPOSITE_ACTION_DIR = ".github/actions";
-const ACTION_FILENAMES = ["action.yml", "action.yaml"];
+const ACTION_FILENAMES: ReadonlySet<string> = new Set(["action.yml", "action.yaml"]);
 
 // composite action は `uses: ./.github/actions/<group>/<name>` のように入れ子に置けるため
 // 走査は再帰する。1 階層で打ち切ると入れ子の定義が検査されないまま通る。
@@ -14,7 +14,7 @@ export function collectActionDefinitions(dir: string, out: string[]): void {
     const target = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       collectActionDefinitions(target, out);
-    } else if (entry.isFile() && ACTION_FILENAMES.includes(entry.name)) {
+    } else if (entry.isFile() && ACTION_FILENAMES.has(entry.name)) {
       out.push(target);
     }
   }

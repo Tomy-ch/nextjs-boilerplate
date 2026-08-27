@@ -53,12 +53,12 @@ const COMPOSE_IMAGE_LOOSE = /^[ \t]+image[ \t]*:[ \t]*\S/;
 
 // FROM [--platform=...] <ref> [AS <stage>]
 export function dockerfileFromPattern(): RegExp {
-  return /^(FROM[ \t]+)(?:--platform=\S+[ \t]+)?([^\s'"]+)((?:[ \t]+[Aa][Ss][ \t]+\S+)?[ \t]*)$/gim;
+  return /^(FROM[ \t]+)(?:--platform=\S+[ \t]+)?([^\s'"]+)((?:[ \t]+as[ \t]+\S+)?[ \t]*)$/gim;
 }
 const DOCKERFILE_FROM_LOOSE = /^[ \t]*FROM[ \t]+\S/i;
 
 // `FROM <ref> AS <stage>` の接尾辞から宣言されたステージ名を取り出す。
-const FROM_STAGE_NAME = /[ \t]+[Aa][Ss][ \t]+(\S+)/;
+const FROM_STAGE_NAME = /[ \t]+as[ \t]+(\S+)/i;
 
 // registry の image を指さない `FROM` の値。ビルドステージ参照は Docker が大文字小文字を
 // 区別しないため、比較は小文字へ揃える。

@@ -3,12 +3,12 @@ import type { ComponentProps, ReactNode } from "react";
 
 import { cn } from "@/components/cn";
 import { List, ListItem, ListItemMedia } from "@/components/design-system/display/list/list";
-import type { StepperOrientation } from "./stepper.definition";
 import {
   STEPPER_ORIENTATION,
   STEPPER_PASSED_CURRENT_LABEL,
   STEPPER_STATE,
   STEPPER_STATE_LABEL,
+  type StepperOrientation,
   type StepperState,
 } from "./stepper.definition";
 

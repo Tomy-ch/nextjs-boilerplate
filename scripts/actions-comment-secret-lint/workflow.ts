@@ -71,7 +71,7 @@ export function localWorkflowFile(uses: string): string | null {
 export function parseWorkflow(
   file: string,
   source: string,
-  commentDirs: Set<string>,
+  commentDirs: ReadonlySet<string>,
   postingWorkflows: ReadonlySet<string> = new Set(),
 ): Workflow {
   const lineCounter = new LineCounter();
@@ -98,23 +98,9 @@ export function parseWorkflow(
   for (const pair of jobsNode.items) {
     const id = readJobId(file, pair.key);
     const job = (jobsValue as Record<string, unknown>)[id];
-    const callee = (job as { uses?: unknown } | null)?.uses;
-    if (typeof callee === "string") {
-      const target = localWorkflowFile(callee);
-      // リモートの reusable workflow は定義がこのリポジトリに無く、渡した secret がその先で
-      // 何に使われるかを読めない。投稿ジョブでないものとして通すと、検査が届かない経路が
-      // 緑のまま増える。
-      if (target === null) {
-        throw new Error(
-          `${file}: ジョブ \`${id}\` はリモートの reusable workflow を呼び出しています。呼び出し先へ渡る secret を追えないため、この検査は未対応です`,
-        );
-      }
-      if (!postingWorkflows.has(target)) continue;
-      postingJobIds.push(id);
-      collectScalars(doc, lineCounter, pair.value, id, texts, new Set());
-      continue;
-    }
-    if (!postsComment(job, commentDirs)) continue;
+
+    if (!isPostingJob(file, id, job, commentDirs, postingWorkflows)) continue;
+
     postingJobIds.push(id);
     collectScalars(doc, lineCounter, pair.value, id, texts, new Set());
   }
@@ -122,7 +108,39 @@ export function parseWorkflow(
   return { file, postingJobIds, texts };
 }
 
-function postsComment(job: unknown, commentDirs: Set<string>): boolean {
+/**
+ * そのジョブが PR コメントを投稿するか。
+ *
+ * @throws 呼び出し先がこのリポジトリに無い reusable workflow のとき
+ */
+function isPostingJob(
+  file: string,
+  id: string,
+  job: unknown,
+  commentDirs: ReadonlySet<string>,
+  postingWorkflows: ReadonlySet<string>,
+): boolean {
+  const callee = (job as { uses?: unknown } | null)?.uses;
+
+  if (typeof callee !== "string") {
+    return postsComment(job, commentDirs);
+  }
+
+  const target = localWorkflowFile(callee);
+
+  // リモートの reusable workflow は定義がこのリポジトリに無く、渡した secret がその先で
+  // 何に使われるかを読めない。投稿ジョブでないものとして通すと、検査が届かない経路が
+  // 緑のまま増える。
+  if (target === null) {
+    throw new Error(
+      `${file}: ジョブ \`${id}\` はリモートの reusable workflow を呼び出しています。呼び出し先へ渡る secret を追えないため、この検査は未対応です`,
+    );
+  }
+
+  return postingWorkflows.has(target);
+}
+
+function postsComment(job: unknown, commentDirs: ReadonlySet<string>): boolean {
   const uses: string[] = [];
   collectUsesFromValue(job, uses);
   return uses.some((value) => {

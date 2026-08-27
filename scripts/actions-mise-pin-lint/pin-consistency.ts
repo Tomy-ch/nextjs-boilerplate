@@ -17,9 +17,9 @@ export type MisePin = {
   cacheKey: string | null;
 };
 
-const VERSION_PATTERN = /^\s*MISE_VERSION:\s*(\S+)\s*$/m;
-const DIGEST_PATTERN = /^\s*MISE_SHA256:\s*(\S+)\s*$/m;
-const CACHE_KEY_PATTERN = /^\s*key:\s*(\S.*?)\s*$/m;
+const VERSION_PATTERN = /^[ \t]*MISE_VERSION:[ \t]*(\S+)[ \t]*$/m;
+const DIGEST_PATTERN = /^[ \t]*MISE_SHA256:[ \t]*(\S+)[ \t]*$/m;
+const CACHE_KEY_PATTERN = /^[ \t]*key:[ \t]*(\S.*?)[ \t]*$/m;
 /** キャッシュキーへ埋める digest の桁数。全 64 桁はキーが読めなくなるため頭だけを使う。 */
 export const DIGEST_PREFIX_LENGTH = 8;
 

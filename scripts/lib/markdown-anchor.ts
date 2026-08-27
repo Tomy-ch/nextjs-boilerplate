@@ -10,10 +10,10 @@
 const FENCE = /^\s*(```|~~~)/;
 
 /** ATX 見出し。 */
-const HEADING = /^#{1,6}\s+(.*)$/;
+const HEADING = /^#{1,6}[ \t]+(.*)$/;
 
 /** 見出しの末尾に付く閉じハッシュ。見出しの一部ではない。 */
-const CLOSING_HASHES = /\s+#+\s*$/;
+const CLOSING_HASHES = /[ \t]+#+[ \t]*$/;
 
 /**
  * 見出しを GitHub と同じ規則でアンカーへ変換する。

@@ -67,7 +67,7 @@ export function readRequiredContexts(source: string): string[] {
 
   const rules = (parsed as { rules?: unknown } | null)?.rules;
   if (!Array.isArray(rules)) {
-    throw new Error("rules: が配列として読めません");
+    throw new TypeError("rules: が配列として読めません");
   }
 
   const rule = rules.find(
@@ -86,7 +86,7 @@ export function readRequiredContexts(source: string): string[] {
   return checks.map((check, index) => {
     const context = (check as { context?: unknown } | null)?.context;
     if (typeof context !== "string") {
-      throw new Error(`required_status_checks[${index}] の context を読み取れません`);
+      throw new TypeError(`required_status_checks[${index}] の context を読み取れません`);
     }
     return context;
   });
@@ -174,8 +174,10 @@ export function findViolations(
     }
 
     const only = declaring[0];
-    violations.push(...findJobViolations(context, only.workflow, only.job));
-    violations.push(...findTriggerViolations(context, only.workflow));
+    violations.push(
+      ...findJobViolations(context, only.workflow, only.job),
+      ...findTriggerViolations(context, only.workflow),
+    );
   }
 
   return violations;

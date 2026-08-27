@@ -49,10 +49,10 @@ export type UnsavedChangesGuardProps = {
  * browser の戻る / 進むはどちらでも塞げません（`NavigationGuard` の README）。
  */
 export function UnsavedChangesGuard({ children }: UnsavedChangesGuardProps) {
-  const [hasUnsavedChanges, setUnsavedChanges] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   return (
-    <UnsavedChangesContext.Provider value={setUnsavedChanges}>
+    <UnsavedChangesContext.Provider value={setHasUnsavedChanges}>
       <NavigationGuard description={DESCRIPTION} title={TITLE} when={hasUnsavedChanges}>
         <UnloadGuard when={hasUnsavedChanges} />
         {children}
@@ -72,13 +72,13 @@ export function UnsavedChangesGuard({ children }: UnsavedChangesGuardProps) {
  * ことで、確認を出す相手が居ません。
  */
 export function useUnsavedChanges(hasUnsavedChanges: boolean): void {
-  const setUnsavedChanges = useContext(UnsavedChangesContext);
+  const setHasUnsavedChanges = useContext(UnsavedChangesContext);
 
   useEffect(() => {
-    if (setUnsavedChanges === undefined) return;
+    if (setHasUnsavedChanges === undefined) return;
 
-    setUnsavedChanges(hasUnsavedChanges);
+    setHasUnsavedChanges(hasUnsavedChanges);
 
-    return () => setUnsavedChanges(false);
-  }, [hasUnsavedChanges, setUnsavedChanges]);
+    return () => setHasUnsavedChanges(false);
+  }, [hasUnsavedChanges, setHasUnsavedChanges]);
 }
