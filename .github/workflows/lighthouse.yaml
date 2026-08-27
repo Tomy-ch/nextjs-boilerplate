@@ -523,7 +523,14 @@ jobs:
       # instead of re-measuring to find out which one it was.
       - name: Compose what the issue says
         id: guard
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
+        # The same predicate the failing step below uses, so an issue is raised exactly when
+        # this job fails. An EMPTY status is not a failing one: the input gate can decide the
+        # measurement is not owed at all, and then nothing was measured — reading that as
+        # "over budget" files an issue about a screen nobody looked at.
+        if: >-
+          ${{ !cancelled() && github.event_name != 'pull_request' &&
+          ((steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success')
+          || (needs.plan.outputs.run == 'true' && needs.lighthouse-shard.result != 'success')) }}
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -532,7 +539,10 @@ jobs:
           # (ADR 0153 §5 — the accepted character set cannot make markup). The measurement
           # may never have produced a table at all — the browser can fail to install — so
           # every fallback ends in something printable.
-          body="$(sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log 2>/dev/null)"
+          # `|| true` is what makes the fallbacks below reachable. The step runs under `-e`, so
+          # a `sed` against a log that was never written takes the whole step with it — and the
+          # step after this one then has no body file to raise anything with.
+          body="$(sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log 2>/dev/null || true)"
 
           # Its presence is also the only evidence that screens were measured at all, so it
           # decides the title. Calling an install failure "over budget" names a cause nobody
@@ -541,7 +551,7 @@ jobs:
             echo "subject=Core Web Vitals が予算を超えている" >> "$GITHUB_OUTPUT"
           else
             echo "subject=計測が実行できていない" >> "$GITHUB_OUTPUT"
-            body="$(tail -n 60 /tmp/lighthouse-full.log 2>/dev/null)"
+            body="$(tail -n 60 /tmp/lighthouse-full.log 2>/dev/null || true)"
           fi
 
           if [ -z "${body}" ]; then
@@ -566,7 +576,11 @@ jobs:
           } > /tmp/lighthouse-guard.md
 
       - name: Raise it where it has an owner
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
+        # Same predicate as the step that composes the body — see the note there.
+        if: >-
+          ${{ !cancelled() && github.event_name != 'pull_request' &&
+          ((steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success')
+          || (needs.plan.outputs.run == 'true' && needs.lighthouse-shard.result != 'success')) }}
         uses: ./.github/actions/upsert-issue
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
