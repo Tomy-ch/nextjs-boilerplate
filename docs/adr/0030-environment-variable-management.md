@@ -88,7 +88,41 @@ go の「コンストラクタが SubConfig を受け取る」1 パターンは�
 ### 8. 漏洩防御(2 段構え)
 
 - **`import "server-only"`** を server config の必須ガードとする(確実・安定)
-- **React taint API**(`experimental_taintObjectReference` / `experimental_taintUniqueValue`)は Next.js 16 時点で experimental フラグ + React experimental チャンネル切替を伴うため**現時点では採用しない**。**stable 化したら有効化**する(本 ADR に記録するに留める)
+- **React taint API**(`experimental_taintObjectReference` / `experimental_taintUniqueValue`)を **v1 で採用する**。有効化範囲は全環境とする
+
+#### taint を experimental のまま採る根拠(例外)
+
+有効化(`next.config.ts` の `experimental.taint`)は、Next.js が client へ配る React を stable から **experimental チャンネルのビルドへ差し替える**(`needsExperimentalReact()`)。実測では client chunk の React が `19.3.0` から `19.3.0-experimental-<date>` へ変わり、呼び出しを 1 つも書かない状態で**全 route 一律 +6.3 KB gzip** になる。それでも採るのは次の 2 点による。
+
+- **実装が React 本体そのものである**(第三者の実験的ライブラリではない)
+- **本体側に taint を明示的に扱う資料がある**(react.dev の両 API のリファレンス、および Next.js の `data-security` ガイドが利用を案内している)
+
+**dev / CI だけで有効化する道は採らない。** 本番から experimental を外せる代わりに「検証する React と配る React が違う」という別の不整合を作るためである。
+
+#### 構造では代替できない理由
+
+取得の口を投影必須の形にしても、**恒等射影(`to: (w) => w`)が残る**。これは逸脱ではなく「画面が欲しい形と応答が同じ」ときに書かれる自然な形であり、構造でできるのは「正しく書けば守れる」までで機構ではない。
+
+#### 位置づけ —— 主機構ではなく補助防御
+
+taint は [0112](0112-data-classification-cache-boundary.md) の**段 4(client 送信前)**であり、PII 防御の主機構ではない。主防御は取得範囲の最小化・キャッシュ能力の制限・request scope・Client DTO の最小化であり、taint はそれらを抜けた誤送信を実行時に捕まえる。**参照でしか追えず、コピーと派生値には及ばない**。
+
+#### 実装時に決めること
+
+- **テストの React 解決** —— Vitest は `node_modules/react`(stable)を引くため `experimental_taint*` が存在しない。alias を Next 同梱の experimental へ向けるか、taint を注入で差し替えられる形にするか
+- **文字列の秘密をどこで登録するか** —— `config` は `imports-allowed: []` を宣言しており react を持ち込めない。登録は消費側(`adapters/server`)へ置く
+- **汚す対象と粒度** —— 取得の口で一律に汚すか値ごとか。入れ子まで届かせるか
+- **爆破対象外**であること([0112](0112-data-classification-cache-boundary.md) 決定 7)
+
+#### 例外の解消条件
+
+`experimental_taint*` が stable の React に入り、有効化が channel 切替を伴わなくなったとき、本 ADR から例外の記述を落とす。判定は機械的に行える。
+
+```text
+node -e "console.log(Object.keys(require('react')).filter(k=>/taint/i.test(k)))"
+[]                                               → 例外の適用中
+[ 'taintObjectReference', 'taintUniqueValue' ]   → 例外の解消
+```
 
 ## 周辺ルール(他 ADR への引き渡し)
 

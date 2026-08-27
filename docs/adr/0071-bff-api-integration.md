@@ -60,7 +60,7 @@ go-boilerplate は outbound HTTP を `internal/infrastructure/httpclient`(**go �
 - **ミューテーション後の再検証**: 変更系 Server Action(上記 / [0040](0040-routing-rendering-strategy.md) `actions.ts`)成功後は、影響する tag / path を `revalidateTag` / `revalidatePath` で無効化する(または `router.refresh()`)。「更新したのに画面が古い / 二重に再取得する」を防ぐ既定経路をこの層が定める。**単位はそのデータを所有する取得口**で、所有口がキャッシュに居るなら印を無効化し、居ないなら描き直す。アプリ全体を捨てる呼び方(`revalidatePath("/", "layout")`)は所有境界ではない —— 更新した値がどの画面にも付く外枠に出るときだけの例外とし、理由をその場に書く
 - **キャッシュへ入れてよいのは、主体を名乗らずに取れるものだけ**。Data Cache は server 側で共有され、鍵は URL・method・ヘッダ・本文である。資格情報を載せる取得を入れると、鍵が主体ごとに割れて再利用はほとんど起きない一方、入れ物だけが主体の数だけ増える。**入れないものへ印(`next.tags`)を付けない** —— 印は入っているものにしか付かないため、付けた側も無効化する側も、動いていないのに動いて見える
 - **重複排除**: 同一リクエスト内の重複 fetch は React `cache()` / fetch memoization で排除し、BFF・バックエンドへの重複呼び出しを抑止する
-- **`Cache Components`(PPR 既定化 = `next.config.ts` の `cacheComponents: true`)の有効化可否は [0040](0040-routing-rendering-strategy.md) の保留に従う**。有効化した場合の `use cache` / PPR 前提のキャッシュ設計もこの層が受け皿となる。具体値(何を・どれだけ・どの tag で)は用途依存のため実装 PR / fork 先で確定する(本 ADR は所有層と既定方針 = opt-in・境界集約・ミューテーション連動を定める)
+- **`Cache Components`(PPR 既定化 = `next.config.ts` の `cacheComponents: true`)は [0041](0041-cache-components-decision.md) が v1 採用に確定した**。有効化した場合の `use cache` / PPR 前提のキャッシュ設計もこの層が受け皿となる。具体値(何を・どれだけ・どの tag で)は用途依存のため実装 PR / fork 先で確定する(本 ADR は所有層と既定方針 = opt-in・境界集約・ミューテーション連動を定める)
 
 ### 実装ライブラリ
 

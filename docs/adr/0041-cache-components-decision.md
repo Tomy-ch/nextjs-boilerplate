@@ -20,37 +20,39 @@ Accepted
 
 ## 決定
 
-### Cache Components(PPR)は 0.0.x では有効化しない(`cacheComponents: false`)
+### Cache Components(PPR)を v1 で採用する(`cacheComponents: true`)
 
-- **0.0.x の間は `cacheComponents` を有効化しない**(`next.config.ts` に `cacheComponents: true` を書かない = 既定の無効のまま)。0040 が保留した判断を、本 ADR が **「0.0.x = 無効」に確定**する。**v1.0.0 / fork 先で再評価**する余地は残す(恒久禁止ではなく、安定運用前の既定選択)。
-- `next.config.ts` は保護対象の root config([AGENTS.md](../../AGENTS.md) AI Modification Scope)であり、本 ADR は**方針を確定するのみ**で同ファイルは編集しない。現状すでに未設定(= 無効)であるため、本決定は現状の追認 + 明文化にあたる。
-- **vendor-independent な正当性材料**([0010](0010-standards-and-non-lockin.md) §2 = Next.js の推奨だけを根拠にしない):
-  - **可逆性 / 最小コミットメント**: 無効 → 有効は「必要な箇所に `use cache` を足す」非破壊的な前進移行だが、有効前提で書いたツリー(PPR の static shell / dynamic hole 分割・`use cache` 粒度)を無効へ戻すのは書き直しになる。基盤(boilerplate)の既定は、最も広い fork 先が乗れる **可逆で低サプライズな側**に倒すべきであり、これは Next.js の推奨とは独立した「基盤既定の設計原則」である。
-  - **選択肢の先食い回避**: `cacheComponents: true` は「何を `use cache` するか / どの粒度で」という**特定のキャッシュ・アーキテクチャを先に確定する**ことを事実上要求する。しかし 0071 は具体値(何を・どれだけ・どの tag で)を「用途依存のため実装 PR / fork 先で確定」と意図的に開けている。有効化は 0071 が開けた選択肢を先食いする。
-  - **遷移意味論の非既定化**: 有効時は全ルートの client-side navigation が `<Activity>` により状態保存挙動へ変わり、dropdown / dialog 等の UI パターンが影響を受ける(裏取り: `cacheComponents.md`)。安定運用前の boilerplate でこの意味論を既定化しない。
-  - **交差関心の未確定**: 0030(A7)の env プリレンダー凍結・0080 §4 の Suspense × PPR 相互作用と交差する。これらを固める前に既定を反転させない。
-- **有効化しない間のキャッシュモデル**は、0040 / 0071 が既に敷いた **従来モデル(`fetch` 既定 uncached + `cache: 'force-cache'` 等の opt-in)** を用いる(本 ADR は新モデルを導入しない)。キャッシュ指定の所有層(`adapters` / 呼び出す RSC)・tag 命名・ミューテーション後 revalidate の規約は [0071](0071-bff-api-integration.md)「データ取得のキャッシュ・再検証」節が正であり、本決定はそれと整合する。
-
-- **PPR は public data に対する性能最適化として扱う。** user-scoped な値については、共有・静的キャッシュの恩恵より機密性を優先する([0112](0112-data-classification-cache-boundary.md) 不変条件 1 / 2)。有効化は同 ADR のキャッシュ境界を前提とする。
+- **v1 で有効化する。** [0040](0040-routing-rendering-strategy.md) が保留した判断を、本 ADR が「採用」に確定する。
+- **根拠は実測である。** 現状は 31 route すべてが動的で、prerender された route は 1 つも無い。`(shop)` の layout 1 ファイルだけを直し、cookie を読む 2 つの取得(カートとセッション)を `<Suspense>` の穴へ落としたところ、`/` / `/about` / `/privacy` / `/terms` / `/products/[id]` / `/purchases/[code]` と admin の 2 枚が **ƒ から ◐(部分プリレンダー)へ変わった**。`/about` の静的な殻は header・nav・footer・本文を含む 12.4 KB の HTML で、**バックエンドへ 1 度も行かずに配れる**。同じページは現在、カートとセッションの往復を待ってから 1 バイト目を返している。**トップは無改造で ◐ になった** —— 見出しを `Suspense` の外、取得を内に置く形が既に書けているためである。
+- **待つコストが実在する。** 殻と穴の分割・`use cache` の粒度は route の構造そのものであり、後から入れることは同じ画面を二度書くことを意味する。これが、同じく保留していた他のプラットフォーム機能と本件が分かれる点である。
+- **有効化の前提は [0112](0112-data-classification-cache-boundary.md)** のデータ分類とキャッシュ境界である。PPR は「何が静的な殻へ入るか」を決める機構であり、**分類が無いまま有効化すると事故の面だけが先に開く**。
+- **PPR は public data に対する性能最適化として扱う。** user-scoped な値については、共有・静的キャッシュの恩恵より機密性を優先する([0112](0112-data-classification-cache-boundary.md) 不変条件 1 / 2)。
+- **本 ADR は方針を確定するのみで、有効化と移行は実装 PR が持つ。** 移行には shell の穴あけ・共有 fetch wrapper の締切を壁時計から単調時計へ寄せること・`export const dynamic` を読む描画モード突合ゲートの作り直し・各 route の分割・`<Activity>` の回帰確認が含まれる。
+- **引き受ける代償**(採用によって発生し、消えないもの):
+  - **可逆性の低下**: 無効 → 有効は `use cache` を足す前進移行だが、有効前提で書いたツリー(静的な殻 / 動的な穴の分割・`use cache` の粒度)を無効へ戻すのは書き直しになる。v1 で採る判断はこれを引き受ける。
+  - **キャッシュ設計の骨格を本体が持つこと**: 「何を `use cache` するか / どの粒度で」は [0071](0071-bff-api-integration.md) が具体値を fork 先へ開けている領域である。**具体値は開けたまま、寿命をどこへ置くかの骨格だけを本体が決める**。
+  - **遷移意味論の変更**: 全ルートの client-side navigation が `<Activity>` により状態保存挙動へ変わる(前の route を unmount せず hidden にする)。dropdown / dialog / 一覧の位置復元への影響は E2E と VRT で見る。
+  - **交差関心の確定が実装 PR へ移ること**: [0030](0030-environment-variable-management.md) の env プリレンダー凍結と [0080](0080-error-handling.md) §4 の Suspense × PPR 相互作用は、移行 PR で確定する。
+- **有効化後のキャッシュモデル**は `use cache` + `cacheLife` / `cacheTag` を正とする。キャッシュ指定の所有層(`adapters` / 呼び出す RSC)・tag 命名・ミューテーション後 revalidate の規約は [0071](0071-bff-api-integration.md)「データ取得のキャッシュ・再検証」節が引き続き正であり、**user-scoped な値は [0112](0112-data-classification-cache-boundary.md) に従い既定で uncached** とする。
 
 ## 禁止事項
 
-- ❌ 0.0.x で `next.config.ts` に `cacheComponents: true` を設定すること(有効化は v1 / fork 先の再評価事項)
-- ❌ `cacheComponents` 無効のまま `use cache` / `cacheLife` / `cacheTag` に依存した設計を書くこと(これらは有効時の機構。無効時は従来モデルの opt-in を使う)
+- ❌ [0112](0112-data-classification-cache-boundary.md) の分類とキャッシュ境界が無い状態で有効化すること
+- ❌ 有効化と移行が着地する前に `use cache` / `cacheLife` / `cacheTag` へ依存した設計を書くこと(これらは有効時の機構である)
 - ❌ キャッシュヒット率や PPR 適用率を理由に、user-scoped な値を静的な殻・共有キャッシュへ載せること([0112](0112-data-classification-cache-boundary.md))
 
 ## 補足
 
-- **既存 ADR 本体の相互参照の張り直しは別作業**: 本 ADR は 0040 の保留を「0.0.x = 無効」に確定するが、参照元である **0040 本文の「有効化可否は保留」/ 0071 の「0040 の保留に従う」/ 0080 §4 の「0040 の保留に従う」** はいずれも Accepted の Protected Documentation であり、本 ADR 作成時点では編集しない。これらへ本 ADR への back-link を付す作業は、[0010](0010-standards-and-non-lockin.md) 補足と同じく **AGENTS.md 整合 / v1 の大規模整理フェーズ**でまとめて行う。それまで旧参照は「保留に従う」の文言のまま残る(読み手が旧 ADR だけを読むと本 ADR の確定を見落とし得る点に留意)。
 - 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーにおいて **judgment** 分類に属する(#1 = 保留の判断を下す judgment)。
-- 再評価トリガー(v1 / fork 先)で `cacheComponents: true` を採用する場合、`use cache` 粒度・PPR の static shell / dynamic hole 分割・0030 の env プリレンダー凍結との整合・0080 §4 の Suspense × PPR は、その時点で 0071 / 0080 のキャッシュ節を追補して確定する。
-- ページネーション / 無限スクロールのデータ取得境界(旧 §2 / §3 = #7)は本 ADR の対象外であり、[0073](0073-pagination-fetch-boundary.md) が所有する。無限スクロールの初回 RSC 取得が拠って立つキャッシュモデルは本 ADR の「0.0.x = 従来モデル」確定に従う。
+- `use cache` の粒度・静的な殻 / 動的な穴の分割・[0030](0030-environment-variable-management.md) の env プリレンダー凍結との整合・[0080](0080-error-handling.md) §4 の Suspense × PPR は、移行 PR の中で 0071 / 0080 のキャッシュ節を追補して確定する。
+- ページネーション / 無限スクロールのデータ取得境界(旧 §2 / §3 = #7)は本 ADR の対象外であり、[0073](0073-pagination-fetch-boundary.md) が所有する。無限スクロールの初回 RSC 取得が拠って立つキャッシュモデルは本 ADR の確定に従う。
 
 ## 関連 ADR
 
 - [0073-pagination-fetch-boundary.md](0073-pagination-fetch-boundary.md)— ページネーション / 無限スクロールのデータ取得境界(#7。本 ADR からの per-subject 分割先。従来キャッシュモデルの上に乗る)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4)— `Cache Components` 有効化可否を保留(本 ADR が「0.0.x = 無効」に確定)/ レンダリングモード非強制
-- [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3)— データ取得のキャッシュ・再検証(既定 uncached・opt-in・所有層)/ `Cache Components` 判断を 0040 保留へ差し戻していた(本 ADR が確定)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md)(A4)— `Cache Components` 有効化可否を保留(本 ADR が v1 採用に確定)/ レンダリングモード非強制
+- [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3)— データ取得のキャッシュ・再検証(既定 uncached・opt-in・所有層)。有効化後のキャッシュ節の追補先
+- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md)— データ分類とキャッシュ境界(本 ADR の有効化の前提)
 - [0080-error-handling.md](0080-error-handling.md)(B6)— §4 Suspense × PPR は 0040 保留に従う(本 ADR と連動・張り直しは補足参照)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md)(A7)— env プリレンダー凍結(Cache Components 判断との交差)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 標準準拠・非ロックイン判断軸(本 ADR の vendor-independent 正当性材料の根拠)

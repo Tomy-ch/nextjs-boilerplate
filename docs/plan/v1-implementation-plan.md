@@ -1531,6 +1531,7 @@ sources:
 - **Cache Components の有効化は P6-9 を前提にする**: PPR は「何が静的な殻へ入るか」を決める機構であり、user-scoped な値が共有・静的な領域へ載る経路をここで作る。**分類とキャッシュ境界(P6-9)が無いまま有効化すると、事故の起こる面だけが先に開く**
 - **完了条件**: 3 機能それぞれの扱いが該当 ADR に記録されている。Cache Components と taint は「有効化した」または「v1 では無効のまま」、React Compiler は**基盤の前提にしない opt-in 機構としての方針**が記録されていること
 - **依存**: P6-4, **P6-9**
+- **状態**: **判断は確定済み**。Cache Components は [0041](../adr/0041-cache-components-decision.md) が v1 採用に確定(有効化と移行は別 PR。前提は P6-9)。React taint API は [0030](../adr/0030-environment-variable-management.md) §8 が experimental を承知の例外として採用に確定(有効化範囲は全環境)。React Compiler は [0042](../adr/0042-react19-rendering-api.md) 決定 4 が「基盤の必須機能にしない opt-in の性能最適化手段」に確定し、実際に opt-in する箇所があるかの判断は RUM(P6-1)後へ分離
 
 ### P6-9: データ分類とキャッシュ境界(PII / user-scoped の取り扱い)
 
