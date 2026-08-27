@@ -57,19 +57,20 @@ function readLinkHref(editor: Editor): string {
 }
 
 /**
- * ボタンに、その操作と同じことを起こすキーを添えます。
+ * toolbar のボタンに、その操作の名前と、同じことを起こすキーを添えます。
  *
  * @remarks
- * **キーを持たない操作はそのまま返します。** 何も足さない入れ物を挟むと、案内の有無が DOM の形の
- * 違いになって現れます。
+ * **toolbar のボタンはすべてこれを通します。** キーを持つものと持たないものが混ざりますが、案内の
+ * 出方は 1 つに揃えます。片方を browser 標準の `title` のままにすると、同じ toolbar の中で出る速さも
+ * 見た目も違うものが並びます。
  *
  * `aria-keyshortcuts` は付けていません。値が `Control+B` と `Meta+B` のどちらになるかは動かして
  * いる環境で決まり、その判定は {@link KeyboardShortcut} が既に持っています。ここで二つ目の判定を
  * 持つと、表示と読み上げが食い違いうる状態を自分で作ることになります。
  *
  * @param props.label - 操作の名前
- * @param props.shortcut - 同じことを起こすキー。押す順に並べる
- * @param props.children - キーを添える対象のボタン
+ * @param props.shortcut - 同じことを起こすキー。押す順に並べる。持たない操作もある
+ * @param props.children - 案内を添える対象のボタン
  */
 function RichTextEditorHint({
   label,
@@ -80,15 +81,15 @@ function RichTextEditorHint({
   shortcut?: readonly string[];
   children: ReactNode;
 }) {
-  if (shortcut === undefined) {
-    return children;
-  }
-
   return (
     <Tooltip>
       <TooltipTrigger asChild={true}>{children}</TooltipTrigger>
       <TooltipContent>
-        <KeyboardShortcut keys={shortcut}>{label}</KeyboardShortcut>
+        {shortcut === undefined ? (
+          label
+        ) : (
+          <KeyboardShortcut keys={shortcut}>{label}</KeyboardShortcut>
+        )}
       </TooltipContent>
     </Tooltip>
   );
@@ -267,29 +268,30 @@ function RichTextEditorFrame({ className, editor }: { className?: string; editor
           <Button onClick={applyLink} size={BUTTON_SIZE.SMALL} type="button">
             適用
           </Button>
-          <Button
-            aria-label="リンクを解除"
-            className={TOOLBAR_BUTTON_CLASS_NAME}
-            disabled={!isLinkActive}
-            onClick={removeLink}
-            size={BUTTON_SIZE.SMALL}
-            title="リンクを解除"
-            type="button"
-            variant={BUTTON_VARIANT.GHOST}
-          >
-            <UnlinkIcon aria-hidden="true" />
-          </Button>
+          <RichTextEditorHint label="リンクを解除">
+            <Button
+              aria-label="リンクを解除"
+              className={TOOLBAR_BUTTON_CLASS_NAME}
+              disabled={!isLinkActive}
+              onClick={removeLink}
+              size={BUTTON_SIZE.SMALL}
+              type="button"
+              variant={BUTTON_VARIANT.GHOST}
+            >
+              <UnlinkIcon aria-hidden="true" />
+            </Button>
+          </RichTextEditorHint>
         </div>
         {linkErrorMessage}
       </div>
     ) : null;
 
   return (
-    <div
-      className={cn("rounded-md border border-border bg-background", className)}
-      data-slot="rich-text-editor"
-    >
-      <TooltipProvider>
+    <TooltipProvider>
+      <div
+        className={cn("rounded-md border border-border bg-background", className)}
+        data-slot="rich-text-editor"
+      >
         <div
           aria-label="書式"
           className="flex flex-wrap items-center gap-1 border-border border-b p-1"
@@ -307,40 +309,45 @@ function RichTextEditorFrame({ className, editor }: { className?: string; editor
                 <RichTextEditorToggle action={action} editor={editor} key={action.id} />
               ))}
           {isPreviewing ? null : (
-            <Toggle
-              aria-expanded={isLinkFormOpen}
-              aria-label="リンク"
-              className={TOOLBAR_BUTTON_CLASS_NAME}
-              data-slot="rich-text-editor-link"
-              onClick={toggleLinkForm}
-              pressed={isLinkActive}
-              title="リンク"
-            >
-              <LinkIcon aria-hidden="true" />
-            </Toggle>
+            <RichTextEditorHint label="リンク">
+              <Toggle
+                aria-expanded={isLinkFormOpen}
+                aria-label="リンク"
+                className={TOOLBAR_BUTTON_CLASS_NAME}
+                data-slot="rich-text-editor-link"
+                onClick={toggleLinkForm}
+                pressed={isLinkActive}
+              >
+                <LinkIcon aria-hidden="true" />
+              </Toggle>
+            </RichTextEditorHint>
           )}
           {commandActions}
-          <Toggle
-            aria-label="プレビュー"
-            className={cn(TOOLBAR_BUTTON_CLASS_NAME, "ms-auto")}
-            data-slot="rich-text-editor-preview"
-            onClick={togglePreview}
-            pressed={isPreviewing}
-            title="プレビュー"
-          >
-            <EyeIcon aria-hidden="true" />
-          </Toggle>
+          <RichTextEditorHint label="プレビュー">
+            <Toggle
+              aria-label="プレビュー"
+              className={cn(TOOLBAR_BUTTON_CLASS_NAME, "ms-auto")}
+              data-slot="rich-text-editor-preview"
+              onClick={togglePreview}
+              pressed={isPreviewing}
+            >
+              <EyeIcon aria-hidden="true" />
+            </Toggle>
+          </RichTextEditorHint>
         </div>
-      </TooltipProvider>
-      {linkForm}
-      {/* 編集面は DOM へ残す。外すと editor の view が壊れ、戻ったときに書きかけが失われる。 */}
-      <div hidden={isPreviewing}>
-        <EditorContent editor={editor} />
+        {linkForm}
+        {/* 編集面は DOM へ残す。外すと editor の view が壊れ、戻ったときに書きかけが失われる。 */}
+        <div hidden={isPreviewing}>
+          <EditorContent editor={editor} />
+        </div>
+        {isPreviewing ? (
+          <RichTextContent
+            className="px-3 py-2"
+            content={SanitizedRichText.from(editor.getHTML())}
+          />
+        ) : null}
       </div>
-      {isPreviewing ? (
-        <RichTextContent className="px-3 py-2" content={SanitizedRichText.from(editor.getHTML())} />
-      ) : null}
-    </div>
+    </TooltipProvider>
   );
 }
 
