@@ -39,6 +39,10 @@ const FOCUS_RING =
  * 数だけを見て帰る利用者にも巻き取りを強います。値は `tabular-nums` で桁を揃え、列が細くても
  * 隣と比べられるようにしています。
  *
+ * **列に収まらない値は末尾を落とします。** 桁数に上限を置けるのは画面ではなく契約の側で、
+ * ここへ来る時点の値の長さは決まっていません。落とすのを末尾にするのは、上位の桁が残れば
+ * 大きさが読めるためです。読み上げには全桁が渡ります —— 落ちるのは描画だけです。
+ *
  * @see Storybook `Page/Admin/Dashboard`
  */
 export const StatCards = withPartSpan(
@@ -49,7 +53,9 @@ export const StatCards = withPartSpan(
         <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
           {cards.map((card) => (
             <Card
-              className={`gap-1 px-4 py-4 lg:px-5 lg:py-5 ${
+              // `min-w-0` が要る。grid の子は既定で中身より狭くならないため、これが無いと
+              // 長い値がカードの枠ごと押し広げ、隣へはみ出す。
+              className={`min-w-0 gap-1 px-4 py-4 lg:px-5 lg:py-5 ${
                 card.href === undefined ? "" : "relative cursor-pointer hover:border-active"
               }`}
               key={card.id}
@@ -69,7 +75,9 @@ export const StatCards = withPartSpan(
                 )}
               </dt>
               <dd>
-                <p className="text-2xl font-emphasis tabular-nums lg:text-3xl">{card.value}</p>
+                <p className="truncate text-2xl font-emphasis tabular-nums lg:text-3xl">
+                  {card.value}
+                </p>
                 <p className="mt-2 text-xs text-muted-foreground">{card.note}</p>
               </dd>
             </Card>
