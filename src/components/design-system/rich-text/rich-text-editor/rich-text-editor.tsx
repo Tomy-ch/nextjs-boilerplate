@@ -113,6 +113,7 @@ function RichTextEditorToggle({
   editor: Editor;
 }) {
   const isActive = useEditorState({ editor, selector: (state) => action.isActive(state.editor) });
+  const isEditable = useEditorState({ editor, selector: (state) => state.editor.isEditable });
   const handleClick = useCallback(() => action.run(editor), [action, editor]);
 
   return (
@@ -121,6 +122,7 @@ function RichTextEditorToggle({
         aria-label={action.label}
         className={TOOLBAR_BUTTON_CLASS_NAME}
         data-slot="rich-text-editor-toggle"
+        disabled={!isEditable}
         onClick={handleClick}
         pressed={isActive}
       >
@@ -144,7 +146,10 @@ function RichTextEditorCommand({
   action: RichTextEditorCommandAction;
   editor: Editor;
 }) {
-  const isEnabled = useEditorState({ editor, selector: (state) => action.isEnabled(state.editor) });
+  const isEnabled = useEditorState({
+    editor,
+    selector: (state) => state.editor.isEditable && action.isEnabled(state.editor),
+  });
   const handleClick = useCallback(() => action.run(editor), [action, editor]);
 
   return (
@@ -183,6 +188,7 @@ function RichTextEditorFrame({ className, editor }: { className?: string; editor
     editor,
     selector: (state) => state.editor.isActive("link"),
   });
+  const isEditable = useEditorState({ editor, selector: (state) => state.editor.isEditable });
 
   const togglePreview = useCallback(() => {
     setIsLinkFormOpen(false);
@@ -318,6 +324,7 @@ function RichTextEditorFrame({ className, editor }: { className?: string; editor
                 aria-label="リンク"
                 className={TOOLBAR_BUTTON_CLASS_NAME}
                 data-slot="rich-text-editor-link"
+                disabled={!isEditable}
                 onClick={toggleLinkForm}
                 pressed={isLinkActive}
               >

@@ -15,6 +15,16 @@ import { RICH_TEXT_EDITOR_EXTENSIONS } from "./rich-text-editor.definition";
 
 const noop = () => undefined;
 
+// TODO: jsdom に ResizeObserver が無く、tooltip の arrow の寸法計測が落ちる。共有の vitest.setup.ts へ移す。
+vi.stubGlobal(
+  "ResizeObserver",
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+);
+
 // **リンク先の入力だけは `user-event` を使いません。**打ち込むと本文側の入力位置が動き、
 // ProseMirror がその座標を測りに来ます。jsdom は文字の矩形を持たないため、そこで落ちます。
 // 本文そのものが contenteditable であることと同じ理由で、この編集器は打鍵の再現の外にあります。
@@ -119,6 +129,51 @@ describe("RichTextEditor", () => {
       "contenteditable",
       "false",
     );
+  });
+
+  it("読み取り専用のときは toolbar の操作も効かない", () => {
+    renderEditor({ defaultValue: "<p>本文</p>", disabled: true });
+
+    expect(toolbarButton("太字")).toBeDisabled();
+    expect(toolbarButton("箇条書き")).toBeDisabled();
+    expect(toolbarButton("リンク")).toBeDisabled();
+    expect(toolbarButton("区切り線")).toBeDisabled();
+  });
+
+  it("読み取り専用でもプレビューへは切り替えられる", () => {
+    renderEditor({ defaultValue: "<p>本文</p>", disabled: true });
+
+    expect(toolbarButton("プレビュー")).toBeEnabled();
+  });
+
+  // 案内は hover / focus でしか開かないため、押下ではなく focus で確かめる。
+  it("キーを持つ操作は、案内にそのキーを添える", async () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.focus(toolbarButton("太字"));
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(/太字.*B/);
+  });
+
+  it("キーを持たない操作の案内は、名前だけを出す", async () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.focus(toolbarButton("プレビュー"));
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("プレビュー");
+    expect(screen.getByRole("tooltip").textContent).toBe("プレビュー");
+  });
+
+  it("リンク入力欄を開いたままプレビューへ切り替えると入力欄を閉じる", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("リンク"));
+    expect(screen.getByLabelText("リンク先")).toBeInTheDocument();
+
+    fireEvent.click(toolbarButton("プレビュー"));
+    fireEvent.click(toolbarButton("プレビュー"));
+
+    expect(screen.queryByLabelText("リンク先")).not.toBeInTheDocument();
   });
 
   it("外枠へ class を追加できる", () => {
@@ -414,6 +469,7 @@ describe("RichTextEditor", () => {
       });
 
       expect(screen.getByLabelText("リンク先")).toHaveAttribute("aria-invalid", "false");
+      expect(screen.queryByText(/http \/ https \/ mailto/)).not.toBeInTheDocument();
     });
 
     it("リンクがかかっていない間は解除を押せない", () => {
@@ -436,7 +492,10 @@ describe("RichTextEditor", () => {
   });
 
   describe("sanitizer の allowlist との関係", () => {
-    it("読み書きする node と mark が、allowlist から導出した集合と一致する", () => {
+    // 一覧を書き写すのは、これが**留め金**だからである。extension を足し引きすると必ず落ち、
+    // 足したものが allowlist に収まるかを人が見ることになる。対象から導出すると両辺が一緒に
+    // 動いてしまい、何も止まらない。
+    it("読み書きする node と mark を、この一覧に固定する", () => {
       const editor = createHeadlessEditor();
 
       expect(Object.keys(editor.schema.nodes).sort()).toEqual([

@@ -20,6 +20,10 @@ describe("isRichTextHrefAllowed", () => {
     expect(isRichTextHrefAllowed("//attacker.example.com")).toBe(false);
   });
 
+  it("スラッシュの後ろに colon を持つ相対パスを通す", () => {
+    expect(isRichTextHrefAllowed("path/10:30")).toBe(true);
+  });
+
   it("protocol を持たない URL を通す", () => {
     expect(isRichTextHrefAllowed("/items/1")).toBe(true);
     expect(isRichTextHrefAllowed("#section")).toBe(true);
