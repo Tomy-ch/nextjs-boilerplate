@@ -110,6 +110,8 @@ export function MessageScroller({
 }: MessageScrollerProps) {
   const [viewportElement, setViewportElement] = useState<HTMLElement | null>(null);
   const [contentElement, setContentElement] = useState<HTMLElement | null>(null);
+  // 要素が付くまで scroll 位置は測れない。初期表示は末尾を映すため、その間も末尾にいるものとして
+  // 扱う。false から始めると、末尾へ戻す操作が一瞬現れる。
   const [atEnd, setAtEnd] = useState(true);
   const followingRef = useRef(true);
   const lastScrollTopRef = useRef(0);
@@ -121,6 +123,8 @@ export function MessageScroller({
   );
 
   const scrollToEnd = useCallback(
+    /* istanbul ignore next -- 呼び出し元は器の中の 2 箇所だけで、どちらも値を渡す。context は
+       外へ出していないため、引数を省いた呼び出しが起こる経路が無い。 */
     (behavior: ScrollBehavior = "auto") => {
       if (!viewportElement) {
         return;
@@ -160,7 +164,6 @@ export function MessageScroller({
 
     viewportElement.scrollTo({ behavior: "auto", top: viewportElement.scrollHeight });
     lastScrollTopRef.current = viewportElement.scrollTop;
-    setAtEnd(true);
   }, [viewportElement]);
 
   useEffect(() => {

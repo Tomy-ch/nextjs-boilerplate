@@ -2,7 +2,12 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cn } from "@/components/cn";
-import { APP_SHELL_MAIN_ID, type AppShellNavItem } from "./app-shell.definition";
+import { PullToRefresh } from "../pull-to-refresh/pull-to-refresh";
+import {
+  APP_SHELL_HEADER_HEIGHT,
+  APP_SHELL_MAIN_ID,
+  type AppShellNavItem,
+} from "./app-shell.definition";
 import { AppShellMenu } from "./app-shell-menu";
 
 /** `AppShell` の props。 */
@@ -13,6 +18,10 @@ export type AppShellProps = {
   navItems: readonly AppShellNavItem[];
   /** `main` の中身。 */
   children: ReactNode;
+  /** header の導線の後ろに並べる要素。 */
+  headerActions?: ReactNode;
+  /** `main` の脇に並べる領域。幅と区切り線は渡す側が決める。 */
+  sidebar?: ReactNode;
   /** footer に置く文言。 */
   footer?: ReactNode;
   /** `main` に追加する class 名。 */
@@ -33,40 +42,72 @@ export type AppShellProps = {
  * admin 側は別の shell を持ちます。見せる相手も導線も違うため、1 枚にまとめると分岐を shell の
  * 中に抱えることになります。
  *
+ * **器は紙に出しません。** header・footer・skip link はいずれも画面を渡り歩くためのもので、紙の
+ * 上では押せず場所を取るだけです（`components/design-system/foundation/print`）。どの画面を
+ * 印刷しても器の判断は同じなのでここで決め、中身の何を落とすかは画面ごとに違うので画面が決めます。
+ *
+ * **`main` は縮める。** 脇に領域を並べる帯では `main` が flex の項目になり、既定では中身の
+ * 最小幅より狭くなれません。段組みや長い語を持つ画面がその最小幅を押し上げると、`main` が
+ * 親をはみ出して画面全体に横スクロールが出ます。中身の側で防ぐことはできないため、器が縮む
+ * ことを宣言します。
+ *
+ * **`sidebar` と `headerActions` の中身は知りません。** 置き場所だけを用意し、何を出すか・いつ出すか・
+ * どれだけの幅を取るかは渡す側が決めます。shell が中身を知ると、画面ごとの出し分けが分岐として
+ * ここに集まります（[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
+ *
  * @see Storybook `Layout/AppShell`
  */
-export function AppShell({ siteName, navItems, children, footer, className }: AppShellProps) {
+export function AppShell({
+  siteName,
+  navItems,
+  children,
+  headerActions,
+  sidebar,
+  footer,
+  className,
+}: AppShellProps) {
   return (
     <>
+      <PullToRefresh />
       <a
         href={`#${APP_SHELL_MAIN_ID}`}
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+        className="print-hidden sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary"
       >
         本文へスキップ
       </a>
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-2 px-4 md:px-6">
+      <header
+        className="print-hidden sticky top-0 z-40 border-b bg-background/95 backdrop-blur"
+        style={{ height: APP_SHELL_HEADER_HEIGHT }}
+      >
+        <div className="mx-auto flex h-full w-full max-w-5xl items-center gap-2 px-4 md:px-6">
           <AppShellMenu items={navItems} />
-          <Link href="/" className="font-semibold">
+          {/* 銘はラテンのみの書体を当てる。和文を含む文字列に当てると 1 語の中で書体が変わる */}
+          <Link href="/" className="font-brand tracking-wider">
             {siteName}
           </Link>
-          <nav aria-label="主要な導線" className="ml-auto hidden items-center gap-1 md:flex">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <div className="ml-auto flex items-center gap-1">
+            <nav aria-label="主要な導線" className="hidden items-center gap-1 md:flex">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            {headerActions}
+          </div>
         </div>
       </header>
-      <main id={APP_SHELL_MAIN_ID} className={cn("flex-1", className)}>
-        {children}
-      </main>
-      <footer className="border-t py-6">
+      <div className="flex flex-1 flex-col md:flex-row">
+        <main id={APP_SHELL_MAIN_ID} className={cn("min-w-0 flex-1", className)}>
+          {children}
+        </main>
+        {sidebar}
+      </div>
+      <footer className="border-t py-6 print-hidden">
         <div className="mx-auto w-full max-w-5xl px-4 text-sm text-muted-foreground md:px-6">
           {footer}
         </div>

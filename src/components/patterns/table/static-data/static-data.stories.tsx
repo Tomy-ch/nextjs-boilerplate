@@ -48,12 +48,20 @@ type Story = StoryObj<typeof meta>;
 /** 列定義と行を渡した基本形。`caption` が表全体の名前になる。 */
 export const Default: Story = {
   render: () => (
-    <StaticDataTable caption="現在の状態" columns={columns} getRowKey={getRowKey} rows={rows} />
+    <StaticDataTable
+      caption="現在の状態"
+      columns={columns}
+      getRowKey={getRowKey}
+      label="現在の状態"
+      rows={rows}
+    />
   ),
 };
 /** 行が 0 件の場合。表の骨格は残し、空であることを行として示す。 */
 export const Empty: Story = {
-  render: () => <StaticDataTable columns={columns} getRowKey={getRowKey} rows={[]} />,
+  render: () => (
+    <StaticDataTable columns={columns} getRowKey={getRowKey} label="現在の状態" rows={[]} />
+  ),
 };
 /** ページ移動を添える場合。移動そのものは `Pagination` が持ち、この sugar は場所だけを決める。 */
 export const WithPagination: Story = {
@@ -61,6 +69,7 @@ export const WithPagination: Story = {
     <StaticDataTable
       columns={columns}
       getRowKey={getRowKey}
+      label="現在の状態"
       pagination={
         <Pagination>
           <PaginationContent>
@@ -85,6 +94,7 @@ export const WithSearch: Story = {
     <StaticDataTable
       columns={columns}
       getRowKey={getRowKey}
+      label="現在の状態"
       rows={rows}
       toolbar={
         <form action="/" aria-label="項目を検索" className="max-w-sm" method="get">

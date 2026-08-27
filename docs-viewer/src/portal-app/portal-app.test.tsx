@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { HttpResponse, http } from "msw";
+import { delay, HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -73,7 +73,7 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe("PortalApp", () => {
-  // ----- 正常系 -----
+  // ----- 並べる項目があるとき -----
   it("題と副題を見出しとして示す", () => {
     render(<PortalApp docs={docs} />);
 
@@ -217,14 +217,26 @@ describe("PortalApp", () => {
     );
   });
 
-  it("文書を開くと題を先に示し、取得後に本文を描画する", async () => {
-    server.use(http.get("*/guides/0001.md", () => HttpResponse.text("## 節\n\n本文\n")));
+  it("文書を開くと題を先に示し、取得のあいだは取得中であることを出す", async () => {
+    // 応答を返さないままにする。返してしまうと、面が出た時点で本文が入っていることがあり、
+    // 取得中の姿を捉えられるかどうかが取得の速さ次第になる。
+    server.use(http.get("*/guides/0001.md", () => delay("infinite")));
 
     render(<PortalApp docs={docs} />);
     screen.getByRole("button", { name: "ADR 0001" }).click();
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("読み込んでいます...")).toBeInTheDocument();
+  });
+
+  it("取得が終わると本文へ差し替える", async () => {
+    server.use(http.get("*/guides/0001.md", () => HttpResponse.text("## 節\n\n本文\n")));
+
+    render(<PortalApp docs={docs} />);
+    screen.getByRole("button", { name: "ADR 0001" }).click();
+
     expect(await screen.findByRole("heading", { level: 2, name: "節" })).toBeInTheDocument();
+    expect(screen.queryByText("読み込んでいます...")).not.toBeInTheDocument();
   });
 
   it("面を閉じると開いていた文書を捨てる", async () => {
@@ -269,7 +281,8 @@ describe("PortalApp", () => {
       ).violations,
     ).toEqual([]);
   });
-  // ----- 異常系 -----
+
+  // ----- 並べる項目が無いとき -----
   it("表示できる group が無ければその旨を示す", () => {
     render(<PortalApp docs={{ ...docs, groups: [] }} />);
 
@@ -292,6 +305,7 @@ describe("PortalApp", () => {
     expect(await screen.findByText("一致する項目がありません。")).toBeInTheDocument();
   });
 
+  // ----- 開いた文書を取得できなかったとき -----
   it("文書の取得に失敗したら面を開いたままにしない", async () => {
     server.use(http.get("*/guides/0001.md", () => new HttpResponse(null, { status: 404 })));
 

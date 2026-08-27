@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { createEvent, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useId } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -16,8 +17,16 @@ function pngOf(name: string, size: number) {
   return file;
 }
 
-function choose(input: HTMLElement, files: File[]) {
-  fireEvent.change(input, { target: { files } });
+/**
+ * ファイル選択で入力へ渡す。
+ *
+ * @remarks
+ * `applyAccept` を切るのは、**形式の選り分けを持つのが picker ではなくこの部品**だからです。
+ * 落として入る経路には picker が居ないため、部品が自分で弾かなければなりません。picker 側の
+ * 絞り込みを掛けると、確かめたい判定へファイルが届きません。
+ */
+async function choose(input: HTMLElement, files: File[]) {
+  await userEvent.upload(input, files, { applyAccept: false });
 }
 
 function inputOf() {
@@ -49,6 +58,13 @@ function dropzoneOf() {
   return zone;
 }
 
+/**
+ * dropzone へファイルを落とす。
+ *
+ * @remarks
+ * **ここは `user-event` を使いません。**ドラッグ＆ドロップは扱う範囲の外で、`dataTransfer` を
+ * 伴う一連の入力を組み立てる手段がありません。
+ */
 function drop(files: File[]) {
   fireEvent.drop(dropzoneOf(), { dataTransfer: { files } });
 }
@@ -101,12 +117,35 @@ describe("FileUpload", () => {
     expect(input).toHaveAttribute("data-slot", "file-upload-input");
   });
 
-  it("受け付けたファイルの名前を並べ、onSelect へ渡す", () => {
+  it("空へ戻す指定では、渡し終えた名前を自分では並べない", async () => {
+    const onSelect = vi.fn();
+
+    renderUpload({ multiple: true, onSelect, resetOnSelect: true });
+
+    await choose(inputOf(), [pngOf("front.png", 10)]);
+
+    expect(onSelect).toHaveBeenCalledWith([expect.objectContaining({ name: "front.png" })]);
+    expect(screen.queryByText("front.png")).not.toBeInTheDocument();
+  });
+
+  it("空へ戻す指定では、同じファイルを選び直せる", async () => {
+    const onSelect = vi.fn();
+
+    renderUpload({ onSelect, resetOnSelect: true });
+
+    await choose(inputOf(), [pngOf("front.png", 10)]);
+    await choose(inputOf(), [pngOf("front.png", 10)]);
+
+    expect(onSelect).toHaveBeenCalledTimes(2);
+    expect(inputOf()).toHaveValue("");
+  });
+
+  it("受け付けたファイルの名前を並べ、onSelect へ渡す", async () => {
     const onSelect = vi.fn();
 
     renderUpload({ multiple: true, onSelect });
 
-    choose(inputOf(), [pngOf("front.png", 10), pngOf("back.png", 20)]);
+    await choose(inputOf(), [pngOf("front.png", 10), pngOf("back.png", 20)]);
 
     expect(onSelect).toHaveBeenCalledWith([
       expect.objectContaining({ name: "front.png" }),
@@ -116,13 +155,13 @@ describe("FileUpload", () => {
     expect(screen.getByText("back.png")).toBeInTheDocument();
   });
 
-  it("accept に合わない形式を弾き、理由を onReject へ渡す", () => {
+  it("accept に合わない形式を弾き、理由を onReject へ渡す", async () => {
     const onReject = vi.fn();
     const onSelect = vi.fn();
 
     renderUpload({ accept: "image/png", onReject, onSelect });
 
-    choose(inputOf(), [new File(["x"], "note.txt", { type: "text/plain" })]);
+    await choose(inputOf(), [new File(["x"], "note.txt", { type: "text/plain" })]);
 
     expect(onReject).toHaveBeenCalledWith([
       {
@@ -134,12 +173,15 @@ describe("FileUpload", () => {
     expect(screen.queryByText("note.txt")).not.toBeInTheDocument();
   });
 
-  it("拡張子と種別の総称でも accept を判定する", () => {
+  it("拡張子と種別の総称でも accept を判定する", async () => {
     const onSelect = vi.fn();
 
     renderUpload({ accept: ".png, image/*", multiple: true, onSelect });
 
-    choose(inputOf(), [pngOf("front.PNG", 10), new File(["x"], "a.gif", { type: "image/gif" })]);
+    await choose(inputOf(), [
+      pngOf("front.PNG", 10),
+      new File(["x"], "a.gif", { type: "image/gif" }),
+    ]);
 
     expect(onSelect).toHaveBeenCalledWith([
       expect.objectContaining({ name: "front.PNG" }),
@@ -147,23 +189,23 @@ describe("FileUpload", () => {
     ]);
   });
 
-  it("accept を指定しなければ形式で弾かない", () => {
+  it("accept を指定しなければ形式で弾かない", async () => {
     const onSelect = vi.fn();
 
     renderUpload({ onSelect });
 
-    choose(inputOf(), [new File(["x"], "note.txt", { type: "text/plain" })]);
+    await choose(inputOf(), [new File(["x"], "note.txt", { type: "text/plain" })]);
 
     expect(onSelect).toHaveBeenCalledWith([expect.objectContaining({ name: "note.txt" })]);
   });
 
-  it("maxSize を超えるものを弾き、収まるものは受け付ける", () => {
+  it("maxSize を超えるものを弾き、収まるものは受け付ける", async () => {
     const onReject = vi.fn();
     const onSelect = vi.fn();
 
     renderUpload({ maxSize: 100, multiple: true, onReject, onSelect });
 
-    choose(inputOf(), [pngOf("small.png", 100), pngOf("large.png", 101)]);
+    await choose(inputOf(), [pngOf("small.png", 100), pngOf("large.png", 101)]);
 
     expect(onSelect).toHaveBeenCalledWith([expect.objectContaining({ name: "small.png" })]);
     expect(onReject).toHaveBeenCalledWith([
@@ -174,22 +216,22 @@ describe("FileUpload", () => {
     ]);
   });
 
-  it("弾くものが無ければ onReject を呼ばない", () => {
+  it("弾くものが無ければ onReject を呼ばない", async () => {
     const onReject = vi.fn();
 
     renderUpload({ maxSize: 100, onReject });
 
-    choose(inputOf(), [pngOf("small.png", 10)]);
+    await choose(inputOf(), [pngOf("small.png", 10)]);
 
     expect(onReject).not.toHaveBeenCalled();
   });
 
-  it("accept の空の区切りは何にも一致させない", () => {
+  it("accept の空の区切りは何にも一致させない", async () => {
     const onReject = vi.fn();
 
     renderUpload({ accept: ",", onReject });
 
-    choose(inputOf(), [pngOf("front.png", 10)]);
+    await choose(inputOf(), [pngOf("front.png", 10)]);
 
     expect(onReject).toHaveBeenCalledWith([
       {
@@ -199,34 +241,36 @@ describe("FileUpload", () => {
     ]);
   });
 
-  it("空白だけの accept は指定なしとして扱う", () => {
+  it("空白だけの accept は指定なしとして扱う", async () => {
     const onSelect = vi.fn();
 
     renderUpload({ accept: "  ", onSelect });
 
-    choose(inputOf(), [new File(["x"], "note.txt", { type: "text/plain" })]);
+    await choose(inputOf(), [new File(["x"], "note.txt", { type: "text/plain" })]);
 
     expect(onSelect).toHaveBeenCalledWith([expect.objectContaining({ name: "note.txt" })]);
   });
 
-  it("選択が取り消されたときは空として扱う", () => {
+  it("選択が取り消されたときは空として扱う", async () => {
     const onSelect = vi.fn();
 
     renderUpload({ onSelect });
 
-    choose(inputOf(), [pngOf("front.png", 10)]);
+    await choose(inputOf(), [pngOf("front.png", 10)]);
+    // **ここは `user-event` を使いません。**picker を閉じただけの取り消しは、渡すファイルが
+    // 無いという形でしか表せません。
     fireEvent.change(inputOf(), { target: { files: null } });
 
     expect(onSelect).toHaveBeenLastCalledWith([]);
     expect(screen.queryByText("front.png")).not.toBeInTheDocument();
   });
 
-  it("呼び出し元の onChange も呼ぶ", () => {
+  it("呼び出し元の onChange も呼ぶ", async () => {
     const onChange = vi.fn();
 
     renderUpload({ onChange });
 
-    choose(inputOf(), [pngOf("front.png", 10)]);
+    await choose(inputOf(), [pngOf("front.png", 10)]);
 
     expect(onChange).toHaveBeenCalledTimes(1);
   });
@@ -348,7 +392,7 @@ describe("FileUpload", () => {
   it("a11y 自動検査に違反しない", async () => {
     const { container } = renderUpload({ pending: true, progress: 40 });
 
-    choose(inputOf(), [pngOf("front.png", 10)]);
+    await choose(inputOf(), [pngOf("front.png", 10)]);
 
     const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
 

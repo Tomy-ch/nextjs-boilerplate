@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ReactNode } from "react";
+import { SAMPLE_AVATAR_URL } from "~catalog/lib/sample-asset";
 import { Button } from "../../action/button/button";
 import { BUTTON_SIZE, BUTTON_VARIANT } from "../../action/button/button.definition";
 import { Avatar, AvatarFallback, AvatarImage } from "../avatar/avatar";
@@ -13,13 +14,11 @@ import {
 } from "./message";
 import { MESSAGE_ALIGN, type MessageAlign } from "./message.definition";
 
-const SAMPLE_SRC = "/src/components/design-system/display/media-image/invertocat.png";
-
 function SampleAvatar({ initial }: { initial: string }) {
   return (
     <MessageAvatar>
       <Avatar>
-        <AvatarImage alt="" src={SAMPLE_SRC} />
+        <AvatarImage alt="" src={SAMPLE_AVATAR_URL} />
         <AvatarFallback>{initial}</AvatarFallback>
       </Avatar>
     </MessageAvatar>

@@ -19,6 +19,7 @@ const meta = {
   parameters: {
     layout: "centered",
     docs: {
+      story: { inline: false, iframeHeight: 420 },
       description: {
         component: [
           "取り消せない操作を、実行する前に確認させる modal です。閉じる手段が 2 つの選択肢だけに",
@@ -38,12 +39,7 @@ function DeleteConfirmation({ defaultOpen = false }: { defaultOpen?: boolean }) 
   return (
     <AlertDialog defaultOpen={defaultOpen}>
       <AlertDialogTrigger asChild>
-        <Button
-          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          variant={BUTTON_VARIANT.DEFAULT}
-        >
-          削除する
-        </Button>
+        <Button variant={BUTTON_VARIANT.DESTRUCTIVE}>削除する</Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -52,12 +48,7 @@ function DeleteConfirmation({ defaultOpen = false }: { defaultOpen?: boolean }) 
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            variant={BUTTON_VARIANT.DEFAULT}
-          >
-            削除する
-          </AlertDialogAction>
+          <AlertDialogAction variant={BUTTON_VARIANT.DESTRUCTIVE}>削除する</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

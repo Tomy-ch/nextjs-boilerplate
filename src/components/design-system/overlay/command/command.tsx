@@ -104,7 +104,7 @@ function CommandDialog({
         </DialogHeader>
         <Command
           label={title}
-          className="**:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+          className="**:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-emphasis [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
         >
           {children}
         </Command>
@@ -180,6 +180,9 @@ function CommandList({
  * 表示の切り替えは cmdk が行うため、呼び出し元が候補数を数える必要はない。文言は
  * `children` として渡す。
  *
+ * **`CommandList` の外、その兄弟として置く。** listbox が持てるのは候補だけで、候補以外の
+ * 文言を中へ入れると、候補が無いあいだ listbox は「中身の役割が合わない listbox」になる。
+ *
  * @param props - cmdk `Command.Empty` の props。
  *
  * @see Storybook `Overlay/Command`
@@ -209,7 +212,7 @@ function CommandGroup({ className, ...props }: ComponentProps<typeof CommandPrim
   return (
     <CommandPrimitive.Group
       className={cn(
-        "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
+        "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-emphasis [&_[cmdk-group-heading]]:text-muted-foreground",
         className,
       )}
       data-slot="command-group"

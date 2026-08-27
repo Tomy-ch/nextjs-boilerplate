@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { MediaImage } from "./media-image";
-import { MEDIA_IMAGE_ASPECT_RATIO } from "./media-image.definition";
-
-const SAMPLE_SRC = "/src/components/design-system/display/media-image/invertocat.png";
+import { MEDIA_IMAGE_ASPECT_RATIO, MEDIA_IMAGE_PRIORITY } from "./media-image.definition";
 
 const meta = {
   title: "Display/MediaImage",
@@ -23,7 +21,7 @@ const meta = {
       },
     },
   },
-  args: { alt: "サンプルのロゴ", className: "w-80", sizes: "20rem", src: SAMPLE_SRC },
+  args: { alt: "サンプルの絵", className: "w-80", sizes: "20rem", src: SAMPLE_ITEM_URLS[0] },
 } satisfies Meta<typeof MediaImage>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -37,11 +35,28 @@ export const FixedAspectRatio: Story = {
 };
 
 /**
- * LCP になる画像。`preload` を指定した画像だけが先に取得される。**画面で最も大きい 1 枚に限る。**
- * 複数へ付けると帯域を奪い合い、どれも遅くなる。
+ * LCP になる画像。`priority` に `preload` を指定した画像だけが先に取得される。**画面で最も大きい
+ * 1 枚に限る。** 複数へ付けると帯域を奪い合い、どれも遅くなる。
  */
 export const Preloaded: Story = {
-  args: { aspectRatio: MEDIA_IMAGE_ASPECT_RATIO.WIDE, preload: true },
+  args: {
+    aspectRatio: MEDIA_IMAGE_ASPECT_RATIO.WIDE,
+    priority: MEDIA_IMAGE_PRIORITY.PRELOAD,
+  },
+};
+
+/**
+ * 画像が未設定の場合。`src` に `null` を渡すと `fallbackSrc` の画像へ差し替わる。代わりに置く
+ * 画像は呼び出し元が決めるため、この component は既定のパスを持たない。`fallbackSrc` も無い場合は
+ * 枠ごと描画されない。
+ */
+export const Fallback: Story = {
+  args: {
+    aspectRatio: MEDIA_IMAGE_ASPECT_RATIO.STANDARD,
+    fallbackAlt: "画像なし",
+    fallbackSrc: "/no-image.svg",
+    src: null,
+  },
 };
 
 /**

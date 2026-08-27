@@ -11,7 +11,7 @@ type StoryArgs = Omit<ComponentProps<typeof ApiErrorAlert>, "error"> & {
 const meta = {
   title: "Feedback/ApiErrorFeedback",
   component: ApiErrorAlert,
-  parameters: { layout: "centered" },
+  parameters: { layout: "centered", docs: { story: { inline: false, iframeHeight: 420 } } },
   render: ({ requestId, error, ...props }) => (
     <ApiErrorAlert {...props} error={{ ...error, requestId }} />
   ),
@@ -25,7 +25,9 @@ export const ClientError: Story = {
     requestId: "req_warning_demo",
   },
   parameters: {
-    docs: { description: { story: "warning 表示。requestId は Controls から変更できます。" } },
+    docs: {
+      description: { story: "warning 表示。requestId は Controls から変更できます。" },
+    },
   },
 };
 export const ServerError: Story = {

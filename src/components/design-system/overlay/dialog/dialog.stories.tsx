@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useId } from "react";
-
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { Button } from "../../action/button/button";
 import { MediaImage } from "../../display/media-image/media-image";
 import { MEDIA_IMAGE_ASPECT_RATIO } from "../../display/media-image/media-image.definition";
@@ -79,10 +79,10 @@ function DescriptionlessDialog() {
           <DialogTitle>画像の拡大表示</DialogTitle>
         </DialogHeader>
         <MediaImage
-          alt="サンプルのロゴ"
+          alt="サンプルの絵"
           aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
           sizes="28rem"
-          src="/src/components/design-system/display/media-image/invertocat.png"
+          src={SAMPLE_ITEM_URLS[0]}
         />
       </DialogContent>
     </Dialog>
@@ -113,7 +113,10 @@ function CustomCloseDialog() {
 const meta = {
   title: "Overlay/Dialog",
   component: Dialog,
-  parameters: { layout: "centered" },
+  parameters: {
+    docs: { story: { inline: false, iframeHeight: 420 } },
+    layout: "centered",
+  },
 } satisfies Meta<typeof Dialog>;
 
 export default meta;

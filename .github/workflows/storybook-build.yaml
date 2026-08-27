@@ -1,0 +1,124 @@
+name: Storybook Build
+
+# `build-storybook`. Separate from `deploy-docs` on purpose: that workflow owns the
+# delivery to Pages and only runs on `production`, so a broken story or addon import
+# would surface at release time rather than on the pull request that broke it.
+#
+# What this catches is what `test` cannot. Vitest imports story modules directly and
+# never resolves the addon graph or the builder config, so a story that fails to
+# bundle still passes the unit suite.
+#
+# `vrt` also builds Storybook, but only as a step on the way to the screenshots. A
+# bundling failure there reads as "the comparison could not run", which sends the
+# reader to the wrong place. This job answers the narrower question on its own.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# Select the CI environment file (env/.env.ci). Without this the loader falls back to
+# `local`, which ships a placeholder session secret that the config layer refuses outside
+# development. Storybook loads `next.config.ts` to build the preview, so the refusal lands
+# there — and `storybook build` reports success anyway, leaving a tree with no preview.
+env:
+  APP_ENV: ci
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  storybook-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run build-storybook
+        id: storybook-build
+        shell: bash
+        run: |
+          set +e
+
+          pnpm build-storybook 2>&1 | tee /tmp/storybook-build.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Storybook build: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Storybook build: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment Storybook build result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- storybook-build-result -->'
+          status: ${{ steps.storybook-build.outputs.status }}
+          title: ${{ steps.storybook-build.outputs.title }}
+          body-file: /tmp/storybook-build.log
+          details-summary: 'build-storybook log'
+
+      - name: Fail if build-storybook failed
+        if: always() && steps.storybook-build.outputs.status != 'success'
+        run: exit 1

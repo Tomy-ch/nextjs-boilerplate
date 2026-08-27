@@ -17,6 +17,8 @@ See [docs/adr/0011-no-docker.md](docs/adr/0011-no-docker.md) for details.
 
 This project adopts Next.js 16 / React 19, so APIs, conventions, and file structure may differ from your training data. Before writing any code, read the relevant guide under `node_modules/next/dist/docs/` and heed deprecation notices.
 
+The rendering model is where stale assumptions do the most damage — `"use client"` is a bundle boundary, not a "render on the client" instruction, and Client Components are still server-rendered. [docs/design/rendering.md](docs/design/rendering.md) collects the terms and the mistakes they cause, with commands to verify each claim yourself. Subject-scoped design references live under [docs/design/](docs/design/README.md).
+
 ## Temporary Operating Rules until v1.0.0
 
 > **TEMPORARY SECTION — delete it when v1.0.0 ships** (このセクションは v1.0.0 時には消すこと)
@@ -51,6 +53,31 @@ Follow instructions in this order. If conflicts occur, the higher-priority docum
 4. **`.github/copilot-instructions.md`** and other agent-specific configs
 5. User instructions
 
+<!-- boilerplate-only:begin -->
+## What to Recommend
+
+This section governs what you **recommend**, never what you may change. Authority to act is
+untouched: `Instruction Priority` above, the ADRs under `docs/adr/`, and `AI Modification Scope` /
+`Protected Documentation` below still decide that.
+
+This repository's product is **the state a fork receives when it is created from this template** —
+not the history that produced it. So when you weigh options and state a preference, weigh them for
+that snapshot: what reads as coherent to someone who has never seen this repository and will never
+read its git log.
+
+**On that axis, quality and consistency outrank the cost of reaching them.** A numbering that
+contradicts the order it teaches, a convention followed everywhere but here, a name that survives
+only because renaming it is work — recommend fixing them. State the cost plainly instead of letting
+the cost pick the answer; what this repository ships is a starting point, not a running deployment,
+so "it already shipped" carries little weight.
+
+Give the cost with the recommendation — files touched, what breaks for whom, what must be rebuilt —
+so a human can decline the scope while keeping the direction.
+
+Recommending is not deciding. Where BACKLOG still leaves an area blank, `Pending Decisions` below
+still applies: propose, and leave the ADR call to the user.
+<!-- boilerplate-only:end -->
+
 ## Accepted Rules (ADRs)
 
 ADRs under `docs/adr/` are the authoritative source. This file only summarizes them.
@@ -62,7 +89,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0003](docs/adr/0003-version-manager.md) | Version manager | `mise.toml` as SSOT / mise must not extend into delivery layers |
 | [0004](docs/adr/0004-library-management.md) | Library policy | Core deps exact-pinned / major updates in separate PRs / `pnpm audit` required |
 | [0010](docs/adr/0010-standards-and-non-lockin.md) | Design principle | Standards conformance & non-lock-in (permanent meta judgment axes) |
-| [0011](docs/adr/0011-no-docker.md) | Delivery / Role | Next.js as presentation layer / no Docker for app delivery |
+| [0011](docs/adr/0011-no-docker.md) | Delivery / Role | Next.js as presentation layer / no Docker for app delivery / environment definitions (stand-alone vs cloud) |
 | [0020](docs/adr/0020-adopted-architecture.md) | Architecture pattern | Adopted architecture / inward dependency / structural boundary types / no type leakage |
 | [0021](docs/adr/0021-frontend-responsibility.md) | Frontend responsibility | Layer responsibilities / kernel naming discipline / import boundaries |
 | [0022](docs/adr/0022-capabilities-kernel.md) | `capabilities` kernel | Cross-cutting client-hook kernel |
@@ -72,6 +99,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0026](docs/adr/0026-layout-shell-mount.md) | Layout shell mount | cross-cutting UI / Provider mount (app shell composition) |
 | [0027](docs/adr/0027-directory-structure.md) | Directory structure | Physical layout under `src/` / co-location policy |
 | [0028](docs/adr/0028-naming-convention.md) | Naming convention | All-source kebab-case files / identifier casing / route segments / env `{SUBSYSTEM}_{NAME}` |
+| [0029](docs/adr/0029-type-design-discipline.md) | Type design | Discriminated union / parse at the boundary / branded id / `satisfies` |
 | [0030](docs/adr/0030-environment-variable-management.md) | Env variables | `env/` structure / typed config loader / `NEXT_PUBLIC_` boundary / secrets |
 | [0031](docs/adr/0031-policy-state-supply.md) | Policy state supply | consent / feature-flag state supply policy |
 | [0040](docs/adr/0040-routing-rendering-strategy.md) | Routing / rendering | App Router / Server vs Client Components / CSR-SSR-SSG-ISR / Server Actions |
@@ -98,7 +126,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0076](docs/adr/0076-payment-ui-seam.md) | Payment UI seam | mount seam & PCI boundary |
 | [0077](docs/adr/0077-bff-abuse-protection-boundary.md) | BFF abuse protection | infra / edge seam boundary |
 | [0078](docs/adr/0078-dynamic-feature-flag-seam.md) | Feature-flag seam | dynamic feature flag / staged rollout (A-B) seam |
-| [0079](docs/adr/0079-auth-frontend-seam.md) | Auth frontend seam | authentication front-side seam |
+| [0079](docs/adr/0079-auth-frontend-seam.md) | Auth frontend seam | authentication front-side seam / relay credentials without verifying or knowing the IdP, own the sign-in screens |
 | [0080](docs/adr/0080-error-handling.md) | Error handling | `error.tsx`/`not-found.tsx` responsibilities / backend-error normalization |
 | [0081](docs/adr/0081-observability-logging.md) | Observability / logging | OTLP / OTel vendor-neutral (Sentry not adopted) / structured logs |
 | [0082](docs/adr/0082-client-observability.md) | Client observability | Web Vitals RUM / client error collection / analytics seam |
@@ -118,8 +146,8 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0142](docs/adr/0142-license.md) | License | MIT / OSS contribution policy / `private` flag alignment |
 | [0150](docs/adr/0150-git-workflow.md) | Git workflow | Branch strategy / commit convention / PR operations / release process |
 | [0151](docs/adr/0151-git-hooks.md) | Git hooks | pre-commit / pre-push via lefthook |
-| [0152](docs/adr/0152-agents-md-policy.md) | AGENTS.md policy | File placement / language / 12-section structure / Instruction Priority / `## [TODO]` convention |
-| [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / workflow-definition lint (actionlint) / hooks mirror CI / required checks / caching |
+| [0152](docs/adr/0152-agents-md-policy.md) | AGENTS.md policy | File placement / language / 13-section structure / Instruction Priority / `## [TODO]` convention |
+| [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / workflow-definition lint (actionlint / zizmor) / hooks mirror CI / required checks / caching |
 | [0154](docs/adr/0154-claude-skills-operations.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
 | [0155](docs/adr/0155-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` target structure |
 
@@ -207,8 +235,10 @@ pnpm dev                   # Start the dev server
 pnpm build                 # Production build
 pnpm start                 # Start the production server
 
-pnpm lint                  # biome check, light profile (ADR 0002)
-pnpm lint:ci               # biome check, full profile (biome.ci.jsonc + --error-on-warnings; pre-commit / CI)
+pnpm gen <kind> <name>     # Scaffold a feature / component / adapter (ADR 0027 / 0028)
+
+pnpm lint                  # biome check, light profile (ADR 0002). biome だけ — ESLint は含まない
+pnpm lint:ci               # biome (full profile) + ESLint + 境界の突合。pre-commit / CI が回すのはこちら
 pnpm typecheck             # tsc --noEmit (pre-push)
 pnpm fix                   # biome check --fix
 pnpm format                # biome format --write
@@ -220,11 +250,37 @@ pnpm format                # biome format --write
 make install-tools         # Install tools via mise (ADR 0003)
 make help                  # List every make target (warns on undocumented ones)
 make actionlint            # Lint .github/workflows with actionlint (ADR 0153)
+make actions-zizmor        # Static-analyse the Actions definitions with zizmor (ADR 0153)
 make actions-pin-resolve   # Resolve every `uses:` comment tag to a SHA into the lockfile (ADR 0153)
 make actions-pin-apply     # Rewrite every `uses:` @<sha> from the lockfile
 make actions-pin-check     # Verify the pins match the lockfile — fails on drift (pre-commit / CI)
+make images-pin-resolve    # Resolve every container image tag to a digest into the lockfile (ADR 0011)
+make images-pin-apply      # Rewrite every image reference from the lockfile
+make images-pin-check      # Verify the image pins match the lockfile — fails on drift (pre-commit / CI)
+make vrt                   # Compare every Storybook story against its baseline image (ADR 0091)
+make vrt-review            # Open the stories CI flagged, in a throwaway worktree — the line the PR comment prints
+make vrt-update            # Retake the story baselines locally — does NOT push them to the store
+make vrt-retake            # Retake and push. The only local entry point; the `baseline-retake` label is the default path
+make e2e                   # Drive the built app through its journeys and compare each screen (ADR 0090 / 0091)
+make e2e-review            # Same, for the screens CI flagged — starts the production build, not the dev server
+make review-clean          # Remove the throwaway worktrees the two review targets left under tmp/review/
+make e2e-update            # Retake the screen baselines locally — same split as vrt-update
+make e2e-retake            # Retake and push the screen baselines
+make baseline-push         # Push retaken baselines to the store and advance the submodule pointer
 make secret-scan           # gitleaks over the commits about to be pushed — fails on detection (ADR 0110)
+make secret-scan-history   # gitleaks over the whole history — the weekly CI pass, never the hook
 make trivy-fs              # Trivy dependency vulnerability scan — on demand, report only (ADR 0110)
+make trivy-fs-release      # Same, strict (keeps unfixed findings). The promotion gate CI runs
+make audit                 # Dependency audit gate — fails on a fixable high / critical (ADR 0110)
+make sast                  # Opengrep over this repo's own source — zero-finding gate (ADR 0110)
+make osv-scan              # Dependency vulnerabilities via the OSV database — report only
+make osv-scan-release      # Same, as the promotion gate. Fails on a finding
+make bearer-scan           # Where a value leaves the process, against what the value is
+make dast                  # Drive HTTP at the running app with OWASP ZAP (ADR 0110 §3.5)
+make test-cached           # Default. Same tests through Vitest's cache — the pre-commit variant
+make test-full             # Full run with coverage against the 100% threshold (ADR 0090). The gate
+                           #   itself — leave it to the hook and CI rather than running it by hand
+make load-status           # Show the current gate band and why (ADR 0151)
 make hotfix-patch          # Create a hotfix/v<patch> branch from production
 make tag-patch             # Tag production HEAD and create a GitHub Release
 make tag-minor             # Same (minor)
@@ -234,6 +290,22 @@ make tag-major             # Same (major)
 For release branches, follow 0150 (`git switch -c release/v<X.Y.Z> origin/develop`).
 
 See [`.makefiles/README.md`](.makefiles/README.md) for details.
+
+### Do not pre-run the gates
+
+**The hooks and CI run these for you, and CI is the authority** ([0151](docs/adr/0151-git-hooks.md)).
+`pre-commit` already runs the full lint profile and the cached tests; `pre-push` adds the type check,
+the full test run, and the secret scan. Running the same commands by hand before committing does not
+make the result more true — it only spends the time twice, and on a busy host the duplicate run is
+itself a source of failures that have nothing to do with the change.
+
+So: **commit, push, and read the verdict from the hook or CI.** Re-running a single file you just
+edited is fine; sweeping the whole suite, or the whole lint, is not.
+
+`make load-status` prints which gates run locally right now. When the host is loaded the band shifts
+and the heavy gates are delegated to CI automatically — that decision is measured, not guessed, so
+do not pre-empt it with `--no-verify`. Bypassing is governed by 0151's bypass policy, not by how
+slow the gate feels.
 
 ## Git Rules
 
@@ -369,10 +441,15 @@ If the user explicitly directs English output, the AI may respond in English.
 
 ```bash
 pnpm fix       # Auto-fix
-pnpm lint:ci   # Check remaining errors (full profile — same as the pre-commit hook)
+pnpm lint:ci   # Check remaining errors (same as the pre-commit hook)
 ```
 
 Fix items the auto-fixer could not handle by hand.
+
+**`pnpm lint` は biome だけで、`lint:ci` はその後に ESLint と境界の突合を続けて回す。** react hooks の規則
+（render 中の ref 書き込み・effect 内の setState）と型アサーションの禁止は **ESLint 側にしか無い**ため、
+`pnpm lint` が通っても `lint:ci` は落ちうる。手元で確かめるなら、対象を絞って `pnpm exec eslint <path>` を
+掛ける（[0002](docs/adr/0002-formatter-linter.md) の能力ベース分担）。
 
 ### Disallowed
 
@@ -380,6 +457,38 @@ Fix items the auto-fixer could not handle by hand.
 - Adding ESLint rules that biome can express, applying preset bundles (`eslint:recommended` / `eslint-config-next`), or using ESLint as a formatter (ADR 0002: capability-based split — biome-first, ESLint only fills the checks biome cannot express, e.g. layer-boundary imports)
 - Locally disabling biome's formatter / linter for case-specific reasons (require ADR revision and consensus instead)
 - Heavy use of `biome-ignore` comments (consider scoped `overrides` first)
+
+## Review Phase Protocol
+
+A request to review work that has already been implemented — 「レビューして」 or any equivalent —
+names **three** subjects this repository ships a skill for, not one:
+
+| Skill | Subject |
+| --- | --- |
+| `/impl-review` | the change itself — correctness / security / architecture / runtime gap |
+| `/test-review` | the tests that pin the change down |
+| `/comment-sweep` | the comment stock carried by the files the change touched |
+
+Do not silently pick one. **Estimate each skill's return from the context you already hold** — which
+layers the change touched, whether tests or comments moved at all, what an earlier skill in this
+session already covered — then **ask the user per skill whether to run it, stating that estimate and
+its reason**, and run what they approve.
+
+The estimate is the work. 「三つとも回しますか」 is not a question; it hands the cost back to the user
+unpriced. Say which pass you expect to pay off, which you expect to return nothing, and why.
+
+The three are **peers, and none of them invokes another.** Each is asked for, decided, and run beside
+the others — one subject to one skill, and that skill is the only place its subject is audited.
+
+A skill that offers to run the next one reads as convenience, and it costs more than it saves: the
+subjects stop being independently answerable, a drift in the entry skill's question silently removes
+the other two from every flow that went through it, and the user's decision about one subject arrives
+buried inside a run they started for another. Keep the coupling in the *asking*, where this protocol
+puts it, and out of the skills.
+
+So `/impl-review` audits the change and nothing else — it owns no test lens and no comment lens, and
+it hands nothing off. `/test-review` and `/comment-sweep` are invoked in their own right, whether or
+not `/impl-review` runs.
 
 ## Protected Documentation
 

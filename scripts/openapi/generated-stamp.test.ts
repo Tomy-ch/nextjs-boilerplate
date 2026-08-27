@@ -50,7 +50,7 @@ describe("findStampDrift", () => {
   it("他の契約の生成物を突合の対象にしない", () => {
     const artifacts = [
       artifact("src/adapters/gen/api/endpoints.zod.ts", "2.2.0+aa62bff"),
-      artifact("src/adapters/gen/auth/endpoints.zod.ts", "1.0.0+9be739a"),
+      artifact("src/adapters/gen/other/endpoints.zod.ts", "1.0.0+9be739a"),
     ];
 
     expect(findStampDrift([source], artifacts)).toEqual([]);

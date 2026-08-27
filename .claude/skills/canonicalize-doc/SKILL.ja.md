@@ -17,11 +17,11 @@
 対応ドキュメント種別:
 
 - Claude Code スキルファイル: `SKILL.md` / `SKILL.ja.md`（`.claude/skills/<name>/` 配下）
-- README: `README.md` / `README.ja.md`（同一ディレクトリ配置。例: `docker/server/`）
+- README: `README.md` / `README.ja.md`（同一ディレクトリ配置。例: `docker/`）
 - 一般的な `*.ja.md` サフィックス規約の Markdown（同一ディレクトリ配置）
 - `docs/**` のパラレルツリー規約のドキュメント（`docs/**/foo.md` と `docs/ja/**/foo.ja.md`） <!-- skill-lint-ignore -->
 
-## 最初に行うこと: 入力の確認
+## Step 0. 入力の確認
 
 このスキルでは、**スキル起動直後に必ず `AskUserQuestion` で以下を確認する**。
 
@@ -76,7 +76,7 @@
 
 ## AI Modification Scope
 
-AGENTS.md の "Exception: Skill Execution" 節に基づき、このスキル実行中は AI Modification Scope の縛りを解放する。ただしユーザーが最初のステップで確定した特定のドキュメントペアに限定する。
+AGENTS.md の "Exception: Skill Execution" 節に基づき、このスキル実行中は AI Modification Scope の縛りを解放する。ただしユーザーが Step 0 で確定した特定のドキュメントペアに限定する。
 
 変更可能なパス:
 
@@ -90,13 +90,11 @@ AGENTS.md の "Exception: Skill Execution" 節に基づき、このスキル実�
 - 生成ファイル（`**/*.gen.go`, `*.sql.go`, `*_mock.go`, `**/openapi.gen.yaml`, `docs/` 配下の生成物）
 - `.claude/settings.json` の `permissions.deny` に列挙された任意のパス
 
-## 実行ステップ
-
-### 1. 元ファイルの読み込み
+## Step 1. 元ファイルの読み込み
 
 確認済みの元ファイルを全文読み込む。方向が `sync-both` の場合は両ファイルを読む。
 
-### 2. 出力パスの決定
+## Step 2. 出力パスの決定
 
 - `canonical-from-translation`:
   - `foo.ja.md` → 同一ディレクトリの `foo.md`。
@@ -107,31 +105,31 @@ AGENTS.md の "Exception: Skill Execution" 節に基づき、このスキル実�
 - `sync-both`:
   - source of truth ではない側を書き換える。
 
-### 3. 翻訳（または同期）
+## Step 3. 翻訳（または同期）
 
 - 見出し構造、リスト階層、コードブロック、リンク先を正確に保持する。
 - 本文、コードブロック内コメント（元が翻訳されていた場合のみ）、インラインテキストを翻訳する。
 - 翻訳しないもの: 識別子、ファイルパス、コマンド、コードサンプル（自然言語文字列で元が翻訳されていたものを除く）。
 - SKILL ファイルでは、上記「リポジトリ規約」の frontmatter ルールと同期ノートルールも併せて適用する。
 
-### 4. 出力ファイルの書き込み
+## Step 4. 出力ファイルの書き込み
 
 - 生成したファイルを対象パスへ書き込む。
 - 両方存在しユーザーが `sync-both` を選択した場合は、source of truth ではない側のみ書き込む。
 
-### 5. 相互参照の追加
+## Step 5. 相互参照の追加
 
 - `SKILL.md` を作成する場合、`SKILL.ja.md` への 1 行ポインタが含まれていることを確認する。
 - `SKILL.ja.md` を作成する場合、冒頭の blockquote 同期ノートが含まれていることを確認する。
 - README ペアでは、canonical から翻訳へのリンクはユーザーの要望時のみ追加する。
 
-### 6. 検証
+## Step 6. 検証
 
 - 両ファイル間でセクション数と見出しテキストを diff し、1:1 で対応していることを確認する。
 - コードブロックがバイト同一であることを確認する（コードブロック内の翻訳済み散文部分を除く）。
 - きれいに対応付けられないセクションがあればユーザーに報告し、対応方針を確認する。
 
-### 7. Markdown Lint による検証
+## Step 7. Markdown Lint による検証
 
 生成ファイル（および `sync-both` モードでは同期側）の書き込み後、以下を実行する。
 

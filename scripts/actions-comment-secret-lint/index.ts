@@ -15,9 +15,10 @@
 // 読んで `needs.<job>.outputs` 経由で渡す間接参照は静的に追えないため、この検査は通る。
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { listWorkflowFiles, WORKFLOW_DIR } from "../lib/workflow-files.js";
 import { collectCommentActions, UPSERT_ACTION_DIR } from "./comment-actions.js";
 import { findSecretReferences } from "./secret-reference.js";
-import { listWorkflowFiles, parseWorkflow, WORKFLOW_DIR } from "./workflow.js";
+import { parseWorkflow } from "./workflow.js";
 
 const ALLOWED_SECRET = "GITHUB_TOKEN";
 
@@ -37,29 +38,10 @@ function main(): void {
     abort(`${WORKFLOW_DIR}/ にワークフローが見つかりません（リポジトリルートで実行してください）`);
   }
 
-  const findings: Finding[] = [];
-  let postingJobs = 0;
+  const sources = new Map(files.map((file) => [file, readFileSync(path.join(root, file), "utf8")]));
 
-  for (const file of files) {
-    const workflow = parseWorkflow(
-      file,
-      readFileSync(path.join(root, file), "utf8"),
-      commentActions.dirs,
-    );
-    postingJobs += workflow.postingJobIds.length;
-    if (workflow.postingJobIds.length === 0) continue;
-
-    for (const scalar of workflow.texts) {
-      for (const reference of findSecretReferences(scalar.text)) {
-        if (reference.name?.toUpperCase() === ALLOWED_SECRET) continue;
-        findings.push({
-          file,
-          line: scalar.lineAt(reference.offset),
-          message: describeViolation(scalar.jobId, reference.name),
-        });
-      }
-    }
-  }
+  const postingWorkflows = resolvePostingWorkflows(sources, commentActions.dirs);
+  const { findings, postingJobs } = collectFindings(sources, commentActions.dirs, postingWorkflows);
 
   // 定義があるのに投稿ジョブが 1 つも見つからないのは、参照の同定が壊れていることを意味する。
   // 検査対象が消えたまま緑になるのを塞ぐ。
@@ -70,6 +52,67 @@ function main(): void {
   }
 
   report(commentActions.defined, files.length, postingJobs, dedupe(findings));
+}
+
+/**
+ * 投稿する workflow の集合を、増えなくなるまで回して求める。
+ *
+ * @remarks
+ * reusable workflow の呼び出し元が投稿ジョブかどうかは、呼び出し先が投稿するかで決まる。
+ * 呼び出し先がさらに別の reusable workflow を呼ぶ形も書けるため、1 巡では収まらない
+ * （ローカル action の到達可能性と同じ形）。
+ */
+function resolvePostingWorkflows(
+  sources: ReadonlyMap<string, string>,
+  actionDirs: ReadonlySet<string>,
+): Set<string> {
+  const postingWorkflows = new Set<string>();
+
+  for (let grew = true; grew; ) {
+    grew = false;
+
+    for (const [file, source] of sources) {
+      if (postingWorkflows.has(file)) continue;
+      if (parseWorkflow(file, source, actionDirs, postingWorkflows).postingJobIds.length === 0) {
+        continue;
+      }
+
+      postingWorkflows.add(file);
+      grew = true;
+    }
+  }
+
+  return postingWorkflows;
+}
+
+/** 投稿ジョブが読む scalar から、渡してはいけない secret の参照を拾う。 */
+function collectFindings(
+  sources: ReadonlyMap<string, string>,
+  actionDirs: ReadonlySet<string>,
+  postingWorkflows: ReadonlySet<string>,
+): { findings: Finding[]; postingJobs: number } {
+  const findings: Finding[] = [];
+  let postingJobs = 0;
+
+  for (const [file, source] of sources) {
+    const workflow = parseWorkflow(file, source, actionDirs, postingWorkflows);
+    postingJobs += workflow.postingJobIds.length;
+    if (workflow.postingJobIds.length === 0) continue;
+
+    for (const scalar of workflow.texts) {
+      for (const reference of findSecretReferences(scalar.text)) {
+        if (reference.name?.toUpperCase() === ALLOWED_SECRET) continue;
+
+        findings.push({
+          file,
+          line: scalar.lineAt(reference.offset),
+          message: describeViolation(scalar.jobId, reference.name),
+        });
+      }
+    }
+  }
+
+  return { findings, postingJobs };
 }
 
 function describeViolation(jobId: string | null, name: string | null): string {

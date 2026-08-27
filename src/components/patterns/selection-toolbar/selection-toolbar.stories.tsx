@@ -140,7 +140,7 @@ function SelectableTable() {
           削除する
         </Button>
       </SelectionToolbar>
-      <Table>
+      <Table label="申請の一覧">
         <TableHeader>
           <TableRow>
             <TableHead>

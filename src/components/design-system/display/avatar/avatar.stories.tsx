@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-
+import { SAMPLE_AVATAR_URL } from "~catalog/lib/sample-asset";
 import {
   Avatar,
   AvatarBadge,
@@ -9,8 +9,6 @@ import {
   AvatarImage,
 } from "./avatar";
 import { AVATAR_SIZE } from "./avatar.definition";
-
-const SAMPLE_SRC = "/src/components/design-system/display/media-image/invertocat.png";
 
 const meta = {
   title: "Display/Avatar",
@@ -26,7 +24,7 @@ export const Default: Story = {
   render: () => (
     <div className="flex items-center gap-2">
       <Avatar>
-        <AvatarImage alt="" src={SAMPLE_SRC} />
+        <AvatarImage alt="" src={SAMPLE_AVATAR_URL} />
         <AvatarFallback>山</AvatarFallback>
       </Avatar>
       <span className="text-sm">山田 太郎</span>
@@ -52,15 +50,15 @@ export const Sizes: Story = {
   render: () => (
     <div className="flex items-center gap-3">
       <Avatar size={AVATAR_SIZE.SMALL}>
-        <AvatarImage alt="" src={SAMPLE_SRC} />
+        <AvatarImage alt="" src={SAMPLE_AVATAR_URL} />
         <AvatarFallback>小</AvatarFallback>
       </Avatar>
       <Avatar size={AVATAR_SIZE.DEFAULT}>
-        <AvatarImage alt="" src={SAMPLE_SRC} />
+        <AvatarImage alt="" src={SAMPLE_AVATAR_URL} />
         <AvatarFallback>中</AvatarFallback>
       </Avatar>
       <Avatar size={AVATAR_SIZE.LARGE}>
-        <AvatarImage alt="" src={SAMPLE_SRC} />
+        <AvatarImage alt="" src={SAMPLE_AVATAR_URL} />
         <AvatarFallback>大</AvatarFallback>
       </Avatar>
     </div>
@@ -72,7 +70,7 @@ export const WithBadge: Story = {
   render: () => (
     <div className="flex items-center gap-2">
       <Avatar>
-        <AvatarImage alt="" src={SAMPLE_SRC} />
+        <AvatarImage alt="" src={SAMPLE_AVATAR_URL} />
         <AvatarFallback>山</AvatarFallback>
         <AvatarBadge>
           <span className="sr-only">オンライン</span>
@@ -88,7 +86,7 @@ export const Group: Story = {
   render: () => (
     <AvatarGroup>
       <Avatar>
-        <AvatarImage alt="" src={SAMPLE_SRC} />
+        <AvatarImage alt="" src={SAMPLE_AVATAR_URL} />
         <AvatarFallback>山</AvatarFallback>
       </Avatar>
       <Avatar>
@@ -106,7 +104,7 @@ export const Group: Story = {
 export const StandaloneWithAlt: Story = {
   render: () => (
     <Avatar size={AVATAR_SIZE.LARGE}>
-      <AvatarImage alt="山田 太郎" src={SAMPLE_SRC} />
+      <AvatarImage alt="山田 太郎" src={SAMPLE_AVATAR_URL} />
       <AvatarFallback>山</AvatarFallback>
     </Avatar>
   ),

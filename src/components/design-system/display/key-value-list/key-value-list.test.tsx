@@ -108,7 +108,6 @@ describe("KeyValueList", () => {
 });
 
 describe("KeyValueItem", () => {
-  // ----- 正常系 -----
   it("項目 1 件として slot を持つ要素を描画する", () => {
     const { container } = render(
       <KeyValueList>
@@ -124,7 +123,6 @@ describe("KeyValueItem", () => {
 });
 
 describe("KeyValueLabel", () => {
-  // ----- 正常系 -----
   it("項目名として slot を持つ要素を描画する", () => {
     render(<KeyValueLabel>名称</KeyValueLabel>);
 
@@ -133,7 +131,6 @@ describe("KeyValueLabel", () => {
 });
 
 describe("KeyValueValue", () => {
-  // ----- 正常系 -----
   it("値として slot を持つ要素を描画する", () => {
     render(<KeyValueValue>標準プラン</KeyValueValue>);
 
@@ -142,7 +139,6 @@ describe("KeyValueValue", () => {
 });
 
 describe("KeyValueEmpty", () => {
-  // ----- 正常系 -----
   it("値が無いことを示す表示として slot を持つ要素を描画する", () => {
     const { container } = render(<KeyValueEmpty />);
 

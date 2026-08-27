@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { Kbd } from "../../display/kbd/kbd";
@@ -111,11 +112,11 @@ describe("DropdownMenu", () => {
     expect(shortcut).toHaveTextContent("⇧D");
   });
 
-  it("項目を選ぶと操作を実行して menu を閉じる", () => {
+  it("項目を選ぶと操作を実行して menu を閉じる", async () => {
     const onSelect = vi.fn();
     render(<ActionMenuFixture onSelect={onSelect} />);
 
-    fireEvent.click(screen.getByRole("menuitem", { name: /詳細を見る/ }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /詳細を見る/ }));
 
     expect(onSelect).toHaveBeenCalledOnce();
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
@@ -139,10 +140,10 @@ describe("DropdownMenu", () => {
     );
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<ActionMenuFixture />);
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
@@ -168,7 +169,7 @@ describe("DropdownMenu", () => {
     expect(screen.getByRole("menuitemradio", { name: "高密度" })).not.toBeChecked();
   });
 
-  it("checkbox 項目を選ぶと既定では menu が閉じる", () => {
+  it("checkbox 項目を選ぶと既定では menu が閉じる", async () => {
     render(
       <DropdownMenu defaultOpen>
         <DropdownMenuTrigger>表示設定</DropdownMenuTrigger>
@@ -178,12 +179,12 @@ describe("DropdownMenu", () => {
       </DropdownMenu>,
     );
 
-    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "名称" }));
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "名称" }));
 
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
-  it("onSelect で既定動作を止めると、続けて切り替えても menu が開いたままになる", () => {
+  it("onSelect で既定動作を止めると、続けて切り替えても menu が開いたままになる", async () => {
     const onCheckedChange = vi.fn();
     render(
       <DropdownMenu defaultOpen>
@@ -203,14 +204,14 @@ describe("DropdownMenu", () => {
       </DropdownMenu>,
     );
 
-    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "名称" }));
-    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "更新日時" }));
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "名称" }));
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "更新日時" }));
 
     expect(onCheckedChange).toHaveBeenCalledWith(true);
     expect(screen.getByRole("menu")).toBeInTheDocument();
   });
 
-  it("入れ子の menu を trigger の開閉状態とともに提供する", () => {
+  it("入れ子の menu を trigger の開閉状態とともに提供する", async () => {
     render(
       <DropdownMenu defaultOpen>
         <DropdownMenuTrigger>共有</DropdownMenuTrigger>
@@ -229,7 +230,7 @@ describe("DropdownMenu", () => {
 
     expect(subTrigger).toHaveAttribute("aria-expanded", "false");
 
-    fireEvent.keyDown(subTrigger, { key: "ArrowRight" });
+    await userEvent.keyboard("{ArrowDown}{ArrowRight}");
 
     expect(screen.getByRole("menuitem", { name: "閲覧のみ" })).toBeInTheDocument();
   });
@@ -261,8 +262,7 @@ describe("DropdownMenu", () => {
 });
 
 describe("DropdownMenuTrigger", () => {
-  // ----- 正常系 -----
-  it("押すと menu を開く", () => {
+  it("押すと menu を開く", async () => {
     render(
       <DropdownMenu>
         <DropdownMenuTrigger>操作</DropdownMenuTrigger>
@@ -272,17 +272,13 @@ describe("DropdownMenuTrigger", () => {
       </DropdownMenu>,
     );
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "操作" }), {
-      button: 0,
-      ctrlKey: false,
-    });
+    await userEvent.click(screen.getByRole("button", { name: "操作" }));
 
     expect(screen.getByRole("menu")).toBeInTheDocument();
   });
 });
 
 describe("DropdownMenuPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<ActionMenuFixture />);
 
@@ -292,7 +288,6 @@ describe("DropdownMenuPortal", () => {
 });
 
 describe("DropdownMenuContent", () => {
-  // ----- 正常系 -----
   it("menu の意味論と slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -301,7 +296,6 @@ describe("DropdownMenuContent", () => {
 });
 
 describe("DropdownMenuGroup", () => {
-  // ----- 正常系 -----
   it("項目の束として slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -310,7 +304,6 @@ describe("DropdownMenuGroup", () => {
 });
 
 describe("DropdownMenuLabel", () => {
-  // ----- 正常系 -----
   it("見出しとして slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -319,7 +312,6 @@ describe("DropdownMenuLabel", () => {
 });
 
 describe("DropdownMenuItem", () => {
-  // ----- 正常系 -----
   it("menuitem として slot を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -329,7 +321,6 @@ describe("DropdownMenuItem", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("disabled な項目を操作できないものとして示す", () => {
     render(<ActionMenuFixture />);
 
@@ -341,7 +332,6 @@ describe("DropdownMenuItem", () => {
 });
 
 describe("DropdownMenuSeparator", () => {
-  // ----- 正常系 -----
   it("区切りとして separator の意味論を持つ要素を描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -350,7 +340,6 @@ describe("DropdownMenuSeparator", () => {
 });
 
 describe("DropdownMenuShortcut", () => {
-  // ----- 正常系 -----
   it("shortcut 表示を kbd の意味論で描画する", () => {
     render(<ActionMenuFixture />);
 
@@ -362,7 +351,6 @@ describe("DropdownMenuShortcut", () => {
 });
 
 describe("DropdownMenuCheckboxItem", () => {
-  // ----- 正常系 -----
   it("選択状態を menuitemcheckbox として読み上げ可能にする", () => {
     render(
       <DropdownMenu defaultOpen>
@@ -380,7 +368,6 @@ describe("DropdownMenuCheckboxItem", () => {
 });
 
 describe("DropdownMenuRadioGroup", () => {
-  // ----- 正常系 -----
   it("排他選択の束として slot を持つ要素を描画する", () => {
     render(
       <DropdownMenu defaultOpen>
@@ -398,7 +385,6 @@ describe("DropdownMenuRadioGroup", () => {
 });
 
 describe("DropdownMenuRadioItem", () => {
-  // ----- 正常系 -----
   it("選択状態を menuitemradio として読み上げ可能にする", () => {
     render(
       <DropdownMenu defaultOpen>
@@ -418,7 +404,6 @@ describe("DropdownMenuRadioItem", () => {
 });
 
 describe("DropdownMenuSub", () => {
-  // ----- 正常系 -----
   it("入れ子の menu を閉じた状態で用意する", () => {
     render(<SubMenuFixture />);
 
@@ -430,7 +415,6 @@ describe("DropdownMenuSub", () => {
 });
 
 describe("DropdownMenuSubTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<SubMenuFixture />);
 
@@ -442,11 +426,10 @@ describe("DropdownMenuSubTrigger", () => {
 });
 
 describe("DropdownMenuSubContent", () => {
-  // ----- 正常系 -----
-  it("入れ子の menu を開くと項目を描画する", () => {
+  it("入れ子の menu を開くと項目を描画する", async () => {
     render(<SubMenuFixture />);
 
-    fireEvent.keyDown(screen.getByRole("menuitem", { name: "権限を変更" }), { key: "ArrowRight" });
+    await userEvent.keyboard("{ArrowDown}{ArrowRight}");
 
     expect(screen.getByRole("menuitem", { name: "閲覧のみ" })).toBeInTheDocument();
   });

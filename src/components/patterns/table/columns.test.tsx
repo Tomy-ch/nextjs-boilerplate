@@ -19,7 +19,6 @@ const COLUMNS: TableColumnDefinition[] = [
 ];
 
 describe("TableColumnGroup", () => {
-  // ----- 正常系 -----
   it("列の数だけ col を並べ、幅を持つ列へ幅を書く", () => {
     const { container } = render(
       <Table>
@@ -33,7 +32,6 @@ describe("TableColumnGroup", () => {
     expect(cols[0]).toHaveStyle({ width: "12rem" });
   });
 
-  // ----- 異常系 -----
   it("列が無ければ col を並べない", () => {
     const { container } = render(
       <Table>
@@ -46,7 +44,6 @@ describe("TableColumnGroup", () => {
 });
 
 describe("TableColumnHeaders", () => {
-  // ----- 正常系 -----
   it("列定義の順に見出しセルを並べる", () => {
     render(
       <Table>
@@ -80,7 +77,6 @@ describe("tableColumnCellClass", () => {
     expect(tableColumnCellClass({ id: "a", header: "a", align: "end" })).toBe("text-right");
   });
 
-  // ----- 異常系 -----
   it("寄せの指定が無ければ左寄せを返す", () => {
     expect(tableColumnCellClass({ id: "a", header: "a" })).toBe("text-left");
   });

@@ -1,11 +1,12 @@
-import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
+import { Slot } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
 
 import { Button } from "../../design-system/action/button/button";
 import { BUTTON_SIZE, BUTTON_VARIANT } from "../../design-system/action/button/button.definition";
+import { ScrollArea } from "../../design-system/container/scroll-area/scroll-area";
 import {
   ATTACHMENT_MEDIA_VARIANT,
   ATTACHMENT_ORIENTATION,
@@ -18,7 +19,7 @@ import {
 } from "./attachment.definition";
 
 const attachmentVariants = cva(
-  "group/attachment relative flex w-fit max-w-full min-w-0 shrink-0 flex-wrap rounded-xl border border-border bg-card text-card-foreground transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-foreground has-[>a,>button]:hover:bg-muted/50 data-[state=error]:border-destructive/30 data-[state=idle]:border-dashed data-[state=processing]:shimmer data-[state=uploading]:shimmer",
+  "group/attachment relative flex w-fit max-w-full min-w-0 shrink-0 flex-wrap rounded-xl border border-border bg-card backdrop-blur-panel text-card-foreground transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-active has-[>a,>button]:hover:bg-muted/50 data-[state=error]:border-destructive/30 data-[state=idle]:border-dashed data-[state=processing]:shimmer data-[state=uploading]:shimmer",
   {
     variants: {
       size: {
@@ -185,7 +186,7 @@ export function AttachmentContent({ className, ...props }: ComponentProps<"div">
 export function AttachmentTitle({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
-      className={cn("block max-w-full min-w-0 truncate font-medium", className)}
+      className={cn("block max-w-full min-w-0 truncate font-emphasis", className)}
       data-slot="attachment-title"
       {...props}
     />
@@ -206,7 +207,7 @@ export function AttachmentDescription({ className, ...props }: ComponentProps<"s
   return (
     <span
       className={cn(
-        "mt-0.5 block min-w-0 truncate text-xs text-muted-foreground group-data-[state=error]/attachment:text-destructive/80",
+        "mt-0.5 block min-w-0 truncate text-xs text-muted-foreground group-data-[state=error]/attachment:text-destructive",
         "max-w-full",
         className,
       )}
@@ -294,7 +295,7 @@ export function AttachmentTrigger({
   type,
   ...props
 }: AttachmentTriggerProps) {
-  const Component = asChild ? Slot : "button";
+  const Component = asChild ? Slot.Root : "button";
 
   return (
     <Component
@@ -306,24 +307,43 @@ export function AttachmentTrigger({
   );
 }
 
+/** {@link AttachmentGroup} の props。 */
+export type AttachmentGroupProps = ComponentProps<"section"> & {
+  /** 領域の名前。 */
+  label?: string;
+};
+
 /**
  * 複数の添付を横に並べる領域。
  *
  * @remarks
  * 収まらない場合は横スクロールし、添付の先頭で止まる。件数・並び順・上限は持たない。
  *
- * @param props - native `div` 属性。
+ * スクロールは `ScrollArea` が引き受けるため、keyboard だけでも横へ送れる。添付そのものが
+ * focus を持つ構成では `tabIndex={-1}` を渡し、領域自体の tab stop を外す。
+ *
+ * focus できる領域には名前が要り、名前は role を伴わないと公開されないため `role="group"` を
+ * 当てる。landmark にはしない。添付のまとまりは画面の骨格ではない。
+ *
+ * @param props - native `section` 属性と `label`。
  *
  * @see Storybook `Display/Attachment`
  */
-export function AttachmentGroup({ className, ...props }: ComponentProps<"div">) {
+export function AttachmentGroup({
+  className,
+  label = "添付の一覧",
+  ...props
+}: AttachmentGroupProps) {
   return (
-    <div
+    <ScrollArea
+      aria-label={label}
       className={cn(
-        "flex min-w-0 scroll-fade-x snap-x snap-mandatory scroll-px-1 scrollbar-none gap-3 overflow-x-auto overscroll-x-contain py-1 *:data-[slot=attachment]:flex-none *:data-[slot=attachment]:snap-start",
+        "flex min-w-0 scroll-fade-x snap-x snap-mandatory scroll-px-1 scrollbar-none gap-3 py-1 *:data-[slot=attachment]:flex-none *:data-[slot=attachment]:snap-start",
         className,
       )}
       data-slot="attachment-group"
+      orientation="horizontal"
+      role="group"
       {...props}
     />
   );

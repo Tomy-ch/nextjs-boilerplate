@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useId } from "react";
-
+import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { MediaImage } from "../../display/media-image/media-image";
 import { MEDIA_IMAGE_ASPECT_RATIO } from "../../display/media-image/media-image.definition";
 import { Carousel, CarouselContent, CarouselItem, CarouselNav } from "./carousel";
@@ -24,10 +24,10 @@ function ImageSlides({ itemClassName }: { itemClassName?: string }) {
           key={position}
         >
           <MediaImage
-            alt="サンプルのロゴ"
+            alt="サンプルの絵"
             aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
             sizes="20rem"
-            src="/src/components/design-system/display/media-image/invertocat.png"
+            src={SAMPLE_ITEM_URLS[0]}
           />
         </CarouselItem>
       ))}
@@ -48,10 +48,10 @@ function NavigableCarousel() {
             key={position}
           >
             <MediaImage
-              alt="サンプルのロゴ"
+              alt="サンプルの絵"
               aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
               sizes="20rem"
-              src="/src/components/design-system/display/media-image/invertocat.png"
+              src={SAMPLE_ITEM_URLS[0]}
             />
           </CarouselItem>
         ))}
@@ -80,10 +80,10 @@ function SteppableCarousel() {
             key={position}
           >
             <MediaImage
-              alt="サンプルのロゴ"
+              alt="サンプルの絵"
               aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
               sizes="20rem"
-              src="/src/components/design-system/display/media-image/invertocat.png"
+              src={SAMPLE_ITEM_URLS[0]}
             />
             {position > 1 ? <CarouselPrevious href={`#${slideId}-${position - 1}`} /> : null}
             {position < SLIDE_COUNT ? <CarouselNext href={`#${slideId}-${position + 1}`} /> : null}
@@ -115,10 +115,10 @@ function ThumbnailCarousel({
             key={position}
           >
             <MediaImage
-              alt="サンプルのロゴ"
+              alt="サンプルの絵"
               aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
               sizes="20rem"
-              src="/src/components/design-system/display/media-image/invertocat.png"
+              src={SAMPLE_ITEM_URLS[0]}
             />
             {position > 1 ? <CarouselPrevious href={`#${slideId}-${position - 1}`} /> : null}
             {position < SLIDE_COUNT ? <CarouselNext href={`#${slideId}-${position + 1}`} /> : null}
@@ -142,7 +142,7 @@ function ThumbnailCarousel({
               aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.SQUARE}
               className="w-full"
               sizes="4rem"
-              src="/src/components/design-system/display/media-image/invertocat.png"
+              src={SAMPLE_ITEM_URLS[0]}
             />
           </CarouselLink>
         ))}
@@ -221,7 +221,7 @@ export const TextContent: Story = {
         {SLIDES.map((position) => (
           <CarouselItem aria-label={`${position} / ${SLIDE_COUNT}`} key={position}>
             <div className="rounded-md border border-border p-4">
-              <p className="font-medium text-sm">見出し {position}</p>
+              <p className="font-emphasis text-sm">見出し {position}</p>
               <p className="mt-1 text-muted-foreground text-sm">
                 slide の中身は carousel が決めない。要約・数値・操作など、順に読ませたい内容を置く。
               </p>

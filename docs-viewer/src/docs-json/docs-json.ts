@@ -6,7 +6,7 @@ import { z } from "zod";
  * `lang` の `all` は言語を問わず常に表示する項目を表し、言語フィルタの対象外になる
  * （生成物 HTML や外部リンクのように翻訳の対になる相方を持たないもの）。
  */
-export const portalItemSchema = z.object({
+const portalItemSchema = z.object({
   name: z.string(),
   path: z.string(),
   source: z.string().optional(),
@@ -14,12 +14,12 @@ export const portalItemSchema = z.object({
 });
 
 /** section 内を役割で再分割したまとまり。 */
-export const portalSubgroupSchema = z.object({
+const portalSubgroupSchema = z.object({
   title: z.string(),
   items: z.array(portalItemSchema),
 });
 
-export const portalSectionSchema = z.object({
+const portalSectionSchema = z.object({
   id: z.string(),
   slug: z.string(),
   title: z.string(),
@@ -27,20 +27,20 @@ export const portalSectionSchema = z.object({
   subgroups: z.array(portalSubgroupSchema).nullish(),
 });
 
-export const portalGroupSchema = z.object({
+const portalGroupSchema = z.object({
   title: z.string(),
   slug: z.string(),
   sections: z.array(portalSectionSchema),
 });
 
 /** サイドバー下部に常設する、生成 HTML / 外部ツールへのリンク。 */
-export const portalReferenceLinkSchema = z.object({
+const portalReferenceLinkSchema = z.object({
   sectionId: z.string(),
   title: z.string(),
   path: z.string(),
 });
 
-export const docsJsonSchema = z.object({
+const docsJsonSchema = z.object({
   title: z.string(),
   subtitle: z.string(),
   groups: z.array(portalGroupSchema),
@@ -48,7 +48,6 @@ export const docsJsonSchema = z.object({
 });
 
 export type PortalItem = z.infer<typeof portalItemSchema>;
-export type PortalSubgroup = z.infer<typeof portalSubgroupSchema>;
 export type PortalSection = z.infer<typeof portalSectionSchema>;
 export type PortalGroup = z.infer<typeof portalGroupSchema>;
 export type PortalReferenceLink = z.infer<typeof portalReferenceLinkSchema>;

@@ -17,7 +17,10 @@ import {
 } from "./input-group.definition";
 
 /** {@link InputGroup} の props。 */
-export type InputGroupProps = ComponentProps<"div">;
+export type InputGroupProps = ComponentProps<"div"> & {
+  /** 枠ごと操作できない状態にするか。内側の control の `disabled` とは別に指定する。 */
+  disabled?: boolean;
+};
 
 /**
  * 一つの入力欄と、その前後に置く addon を一続きの枠として見せる外枠。
@@ -29,7 +32,8 @@ export type InputGroupProps = ComponentProps<"div">;
  * 切り替える。
  *
  * 枠線は control の `disabled` から自動で控えめな色へ落ちる。addon も同時に減光する場合は、
- * 外枠へ `data-disabled="true"` を渡す。
+ * 外枠へ `disabled` を渡す。減光の見た目を作る `data-disabled` と、枠ごと操作できないことを
+ * 支援技術へ伝える `aria-disabled` の両方が付く。
  *
  * addon を押したときに control へ focus を移すため hydration が必要で、Server Component から
  * 直接 render できない。単位や補助操作を枠内へ収める必要がない場合は、`Input` と `Label` /
@@ -45,10 +49,10 @@ export type InputGroupProps = ComponentProps<"div">;
  * </InputGroup>
  * ```
  *
- * @param props - native `div` 属性。`role="group"` は既定で付与する。
+ * @param props - native `div` 属性と `disabled`。`role="group"` は既定で付与する。
  * @see Storybook `Form/InputGroup`
  */
-export function InputGroup({ className, ...props }: InputGroupProps) {
+export function InputGroup({ className, disabled, ...props }: InputGroupProps) {
   return (
     // biome-ignore lint/a11y/useSemanticElements: fieldset は legend を伴う複数 control の集合を表す。ここは一つの control と装飾の外枠であり、意味論は role="group" が正しい
     <div
@@ -63,7 +67,7 @@ export function InputGroup({ className, ...props }: InputGroupProps) {
         "has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-end]]:[&>input]:pt-3",
 
         // Focus state.
-        "has-[[data-slot=input-group-control]:focus-visible]:outline-2 has-[[data-slot=input-group-control]:focus-visible]:outline-offset-2 has-[[data-slot=input-group-control]:focus-visible]:outline-foreground",
+        "has-[[data-slot=input-group-control]:focus-visible]:outline-2 has-[[data-slot=input-group-control]:focus-visible]:outline-offset-2 has-[[data-slot=input-group-control]:focus-visible]:outline-active",
 
         // Error state.
         "has-[[data-slot][aria-invalid=true]]:border-destructive has-[[data-slot][aria-invalid=true]]:ring-destructive/20 dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40",
@@ -73,6 +77,8 @@ export function InputGroup({ className, ...props }: InputGroupProps) {
 
         className,
       )}
+      aria-disabled={disabled || undefined}
+      data-disabled={disabled ? "true" : undefined}
       data-slot="input-group"
       role="group"
       {...props}
@@ -81,7 +87,7 @@ export function InputGroup({ className, ...props }: InputGroupProps) {
 }
 
 const inputGroupAddonVariants = cva(
-  "flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium text-muted-foreground select-none group-data-[disabled=true]/input-group:opacity-50 [&>kbd]:rounded-sm [&>svg:not([class*='size-'])]:size-4",
+  "flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-emphasis text-muted-foreground select-none group-data-[disabled=true]/input-group:opacity-50 [&>kbd]:rounded-sm [&>svg:not([class*='size-'])]:size-4",
   {
     variants: {
       align: {

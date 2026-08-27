@@ -1,0 +1,111 @@
+name: Check trigger
+description: Decide whether an expensive check has to run on this event, or can wait for the cadence that carries it
+
+# For a check whose cost does not fit a pull request. The full run lives on a cadence — every
+# merge into a protected branch, plus a nightly pass — and this action answers the one
+# question that leaves open: does THIS event have to pay for it now?
+#
+# It answers yes for four reasons, and they are not the same kind of reason:
+#
+#   * Not a pull request at all. A push into a protected branch and the nightly pass ARE the
+#     cadence; there is nothing to defer to.
+#   * A promotion pull request (`develop` / `staging` / `production` as the base) — why
+#     promotion needs a complete answer rather than a recent one is in ADR 0153 §2.
+#   * The pull request carries the label. A human looked at the diff and decided this one is
+#     worth the wait. This is the one reason a caller can opt out of, by omitting `label`.
+#   * `workflow_dispatch`. Someone asked for it by hand.
+#
+# Everything else defers. What that costs is one merge of detection latency, and what it buys
+# is that no ordinary pull request waits on a check whose result almost never changes the
+# decision to merge.
+#
+# ## Why this does not gate the job from `on:`
+#
+# Because a required status check that never reports blocks its pull request forever. The job
+# has to start and report its context on every pull request; only the expensive steps stand
+# down. workflows/README.md ("`paths:` フィルタを使わない") has the full reasoning, and
+# `diff-scope` is the same shape applied to a different question — which is why the two
+# compose: this action asks whether the cadence can wait, `diff-scope` asks whether the diff
+# can reach anything at all, and a step runs when both say yes.
+
+inputs:
+  label:
+    required: false
+    default: ''
+    description: |
+      Newline-separated labels, ANY of which makes a pull request run now (e.g. `run-a11y`).
+
+      Omit it to ask the cadence question alone. That is for a caller whose answer is per
+      label rather than one verdict — `deferred-checks.yaml` names one check at a time, so a
+      label forcing one of them must not answer for the rest.
+  labels:
+    required: false
+    default: ''
+    description: |
+      Labels the pull request carries, as a JSON array. Callers pass a `toJSON` of
+      `github.event.pull_request.labels.*.name`; off a pull request that is `null`, which reads
+      as "no labels".
+
+      **An expression cannot be written literally here.** An action manifest is itself a
+      template, so a `$`-brace pair in a description is evaluated when the action loads — and
+      the `github` context does not exist there, which fails every caller at once.
+
+outputs:
+  run:
+    value: ${{ steps.decide.outputs.run }}
+    description: '`true` when the expensive steps have to run on this event'
+  reason:
+    value: ${{ steps.decide.outputs.reason }}
+    description: Why, in one line. Written for a human reading the log, not parsed anywhere.
+
+runs:
+  using: composite
+  steps:
+    - name: Decide whether this event has to run the check
+      id: decide
+      shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        BASE_REF: ${{ github.base_ref }}
+        LABEL: ${{ inputs.label }}
+        LABELS: ${{ inputs.labels }}
+      run: |
+        set -euo pipefail
+
+        # Naming a label with nothing to match it against would never fire, and the check
+        # would silently stop being forceable by hand. Rejected rather than treated as "no
+        # labels", which is what an omitted `label` means and is a different question.
+        if [ -n "${LABEL}" ] && [ -z "${LABELS}" ]; then
+          echo "::error::check-trigger was given label without labels."
+          exit 1
+        fi
+
+        decide() {
+          echo "run=$1" >> "$GITHUB_OUTPUT"
+          echo "reason=$2" >> "$GITHUB_OUTPUT"
+          echo "::notice::$2"
+          exit 0
+        }
+
+        if [ "${EVENT_NAME}" != "pull_request" ]; then
+          decide true "${EVENT_NAME} is the cadence itself; running."
+        fi
+
+        # The branches an environment is deployed from (ADR 0150). Held here rather than in
+        # each caller so that adding an environment is one edit, not one per check.
+        case "${BASE_REF}" in
+          develop | staging | production)
+            decide true "Promotion into ${BASE_REF}; the answer has to be complete here."
+            ;;
+        esac
+
+        # `null` off a pull request, and jq reads that as an empty stream rather than an error.
+        while IFS= read -r wanted; do
+          [ -n "${wanted}" ] || continue
+
+          if printf '%s' "${LABELS}" | jq -e --arg wanted "${wanted}" 'any(.[]?; . == $wanted)' >/dev/null 2>&1; then
+            decide true "Labelled ${wanted}; someone asked for it on this pull request."
+          fi
+        done <<< "${LABEL}"
+
+        decide false "Deferred to the next merge and the nightly pass; label to run it here."

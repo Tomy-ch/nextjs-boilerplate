@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -47,10 +48,10 @@ describe("Dialog", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("trigger の操作で modal を開き、title と説明を関連付ける", () => {
+  it("trigger の操作で modal を開き、title と説明を関連付ける", async () => {
     render(<DialogFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
+    await userEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
 
     const content = screen.getByRole("dialog", { name: "表示条件" });
 
@@ -75,10 +76,10 @@ describe("Dialog", () => {
     );
   });
 
-  it("右上の閉じる操作は読み上げ可能な名前を持ち、押すと閉じる", () => {
+  it("右上の閉じる操作は読み上げ可能な名前を持ち、押すと閉じる", async () => {
     render(<DialogFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
+    await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -90,18 +91,18 @@ describe("Dialog", () => {
     expect(screen.getByRole("dialog", { name: "表示条件" })).toBeInTheDocument();
   });
 
-  it("DialogClose で内容側からも閉じられる", () => {
+  it("DialogClose で内容側からも閉じられる", async () => {
     render(<DialogFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<DialogFixture defaultOpen />);
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -134,7 +135,6 @@ describe("Dialog", () => {
 });
 
 describe("DialogTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<DialogFixture />);
 
@@ -144,17 +144,16 @@ describe("DialogTrigger", () => {
     );
   });
 
-  it("押すと内容を開く", () => {
+  it("押すと内容を開く", async () => {
     render(<DialogFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
+    await userEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
 
     expect(screen.getByRole("dialog")).toBeVisible();
   });
 });
 
 describe("DialogPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<DialogFixture defaultOpen />);
 
@@ -164,14 +163,12 @@ describe("DialogPortal", () => {
 });
 
 describe("DialogOverlay", () => {
-  // ----- 正常系 -----
   it("開いている間だけ背面の覆いを描画する", () => {
     render(<DialogFixture defaultOpen />);
 
     expect(document.querySelector('[data-slot="dialog-overlay"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は背面の覆いを描画しない", () => {
     render(<DialogFixture />);
 
@@ -180,14 +177,12 @@ describe("DialogOverlay", () => {
 });
 
 describe("DialogContent", () => {
-  // ----- 正常系 -----
   it("開いた内容として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
     expect(screen.getByRole("dialog")).toHaveAttribute("data-slot", "dialog-content");
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<DialogFixture />);
 
@@ -196,7 +191,6 @@ describe("DialogContent", () => {
 });
 
 describe("DialogHeader", () => {
-  // ----- 正常系 -----
   it("見出し枠として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
@@ -205,7 +199,6 @@ describe("DialogHeader", () => {
 });
 
 describe("DialogFooter", () => {
-  // ----- 正常系 -----
   it("操作枠として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
@@ -214,7 +207,6 @@ describe("DialogFooter", () => {
 });
 
 describe("DialogTitle", () => {
-  // ----- 正常系 -----
   it("題名として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
@@ -223,7 +215,6 @@ describe("DialogTitle", () => {
 });
 
 describe("DialogDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
@@ -235,7 +226,6 @@ describe("DialogDescription", () => {
 });
 
 describe("DialogClose", () => {
-  // ----- 正常系 -----
   it("閉じる操作として slot を持つ要素を描画する", () => {
     render(<DialogFixture defaultOpen />);
 
@@ -245,10 +235,10 @@ describe("DialogClose", () => {
     );
   });
 
-  it("押すと内容を閉じる", () => {
+  it("押すと内容を閉じる", async () => {
     render(<DialogFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.queryByRole("dialog")).toBeNull();
   });

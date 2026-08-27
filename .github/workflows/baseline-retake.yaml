@@ -1,0 +1,832 @@
+name: Baseline Retake
+
+# Retakes the baseline images, pushes them to the baseline store, and moves this
+# branch's submodule pointer onto the result. That push re-runs the comparisons,
+# which then pass.
+#
+# Both kinds of baseline are retaken together — one store, one push, one approval
+# label. Why that follows from the store's shape is in docs/design/vrt.md. How each
+# is bounded differs:
+#
+#   * Stories (`make vrt-update`) — bounded to what the VRT run reported, so a story
+#     that never appeared in the pull-request comment cannot enter the baselines here.
+#   * Screens (`make e2e-update`) — bounded the same way, from the E2E run's report for
+#     this commit. Both kinds therefore obey one invariant: the set that was reported is
+#     the set that may be retaken.
+#
+# The label is NOT an approval and NOT a trigger. It develops the pixels into a
+# reviewable image diff, and accepting them is a separate label required by
+# `baseline-approval.yaml`; it is read when a comparison run completes, so it may be applied
+# at any time, pull-request creation included. Both properties are in
+# docs/design/vrt.md.
+#
+# The label is spent only when the pointer moves; every other outcome leaves it on.
+# Both halves of that asymmetry are in docs/design/vrt.md, and what it means for the
+# person applying the label is in vrt/README.md.
+#
+# Fork pull requests cannot be served, and under `workflow_run` refusing them is a
+# security requirement rather than a limitation: this trigger runs in the context of
+# the base repository and would hand a fork's head a token with `contents: write`.
+# The refusal therefore runs before anything is checked out. Those contributors run
+# `make vrt-update` locally instead.
+
+on:
+  workflow_run:
+    workflows: [VisualRegressionTest, E2E]
+    types: [completed]
+
+# Select the CI environment file (env/.env.ci). Without this the loader falls back to
+# `local`, which ships a placeholder session secret that the config layer refuses outside
+# development. Storybook loads `next.config.ts` to build the preview, so the refusal lands
+# there — and `storybook build` reports success anyway, leaving a tree with no preview.
+env:
+  APP_ENV: ci
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  retake:
+    # A green VRT has nothing to retake, and a run outside a pull request has no
+    # branch to push a pointer onto.
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+
+    outputs:
+      comment: ${{ steps.outcome.outputs.comment }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
+
+      # `workflow_run` carries the commit but not the pull request, so everything the
+      # later steps branch on is resolved here in one API call.
+      #
+      # RESOLVED BY BRANCH, NOT BY COMMIT. `/commits/<sha>/pulls` answers "which pull
+      # request introduced this commit", which is not the same question. On a release
+      # branch the head commit is the merge commit of the last feature pull request, so
+      # that endpoint returns the feature one — already closed, and carrying none of the
+      # labels a human put on the release pull request. The release pull request never
+      # appears in the answer at all, which made the retake unreachable for exactly the
+      # branch whose baselines drift the most.
+      - name: Resolve the pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
+        run: |
+          set -euo pipefail
+
+          pr="$(gh api "repos/$GITHUB_REPOSITORY/pulls" --method GET \
+            -f "head=${HEAD_OWNER}:${HEAD_BRANCH}" -f state=open --jq '.[0] // empty')"
+          if [ -z "$pr" ]; then
+            echo 'ℹ️ このブランチを head に持つ開いた PR がありません。何もしません。'
+            echo 'found=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo 'found=true'
+            echo "number=$(jq -r '.number' <<<"$pr")"
+            echo "head_ref=$(jq -r '.head.ref' <<<"$pr")"
+            echo "head_repo=$(jq -r '.head.repo.full_name' <<<"$pr")"
+            echo "base_ref=$(jq -r '.base.ref' <<<"$pr")"
+            echo "labelled=$(jq -r '[.labels[].name] | index("baseline-retake") != null' <<<"$pr")"
+          } >> "$GITHUB_OUTPUT"
+
+      # Before any checkout: this trigger holds a writable token even for a fork.
+      - name: Refuse fork pull requests
+        if: >-
+          steps.pr.outputs.found == 'true' &&
+          steps.pr.outputs.head_repo != github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ steps.pr.outputs.number }}
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
+            '❌ fork からの PR には基準画像を push できません。手元で make vrt-update を実行してコミットしてください。' || true
+          exit 1
+
+      # A revert retakes everything and needs no label; everything else needs one. Why
+      # the exception is safe is in docs/design/vrt.md.
+      - name: Decide what to retake
+        id: mode
+        if: steps.pr.outputs.found == 'true'
+        env:
+          LABELLED: ${{ steps.pr.outputs.labelled }}
+          HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+        run: |
+          if [ "$LABELLED" = 'true' ]; then
+            mode=reported
+          elif [ "${HEAD_REF#revert-}" != "$HEAD_REF" ]; then
+            mode=full
+          else
+            mode=none
+          fi
+          echo "mode=${mode}" >> "$GITHUB_OUTPUT"
+
+      # Screens are retaken whichever comparison reported; stories only when the run
+      # that reported them is the one that triggered this, because their scope comes
+      # from that run's artifact.
+      - name: Note which comparison reported
+        id: trigger
+        if: steps.mode.outputs.mode != 'none' && steps.mode.outputs.mode != ''
+        env:
+          TRIGGER: ${{ github.event.workflow_run.name }}
+        run: |
+          if [ "$TRIGGER" = 'VisualRegressionTest' ]; then
+            echo 'stories=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'stories=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      # Baselines taken from a failing tree bake that failure into the store, so the
+      # retake waits. Why the gate names the checks that can move a pixel instead of
+      # counting every red one, and why only each check's latest attempt is read, are
+      # in docs/design/vrt.md. The allowlist also keeps `baseline-approval` out: it is red
+      # until a human accepts images this step has not produced yet, so counting it
+      # would leave the approval waiting on the retake and the retake on the approval.
+      - name: Defer while a check that decides the pixels is failing
+        id: gate
+        if: steps.mode.outputs.mode != 'none' && steps.mode.outputs.mode != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          STORIES: ${{ steps.trigger.outputs.stories }}
+          # Everything whose failure can change what a story renders as.
+          DECIDES_PIXELS: >-
+            ["lint","typecheck","build","storybook-build","component-classes","classes","tokens-drift","shadcn-manifest","manifest"]
+        run: |
+          set -euo pipefail
+
+          # `--slurp` and a real jq: `gh api --jq` takes no `--argjson`, and applies its
+          # filter per page, so the names would be deduplicated within a page instead of
+          # across the commit.
+          failed="$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
+            | jq -r --argjson names "$DECIDES_PIXELS" '[.[].check_runs[]
+              | select(.name | IN($names[]))]
+              | group_by(.name) | map(max_by(.started_at))
+              | map(select(.conclusion == "failure" or .conclusion == "timed_out"))
+              | map(.name) | unique | join(", ")')"
+
+          if [ -n "$failed" ]; then
+            echo "deferred=true" >> "$GITHUB_OUTPUT"
+            echo "failed=${failed}" >> "$GITHUB_OUTPUT"
+            echo "⏸️ 他のチェックが落ちているため撮り直しません: ${failed}"
+            exit 0
+          fi
+
+          # Triggered by E2E while the story comparison is also red: yield to the run
+          # VRT will trigger, which retakes both. Both kinds land in one pointer move,
+          # and the label — spent only when the pointer moves — stays on until then.
+          if [ "$STORIES" = 'false' ]; then
+            vrt="$(gh api --paginate --slurp \
+              "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
+              | jq -r '[.[].check_runs[] | select(.name == "vrt")]
+                | group_by(.name) | map(max_by(.started_at))
+                | map(select(.conclusion != "success")) | length')"
+
+            if [ "$vrt" != "0" ]; then
+              echo "deferred=true" >> "$GITHUB_OUTPUT"
+              echo "failed=vrt（story と画面をまとめて撮り直します）" >> "$GITHUB_OUTPUT"
+              echo '⏸️ story の比較も赤なので、VRT の完了に合わせてまとめて撮り直します。'
+              exit 0
+            fi
+          fi
+
+          echo "deferred=false" >> "$GITHUB_OUTPUT"
+
+      # The check that must go green runs against `refs/pull/N/merge` — the branch
+      # merged into its base. Retaking on a head that is behind base would capture a
+      # different tree than the one being judged, so the label would never clear.
+      # Refusing is the honest move: the person merges base in and the next VRT run
+      # picks the label up again.
+      - name: Refuse a branch that is behind its base
+        if: steps.gate.outputs.deferred == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ steps.pr.outputs.number }}
+          BASE: ${{ steps.pr.outputs.base_ref }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          behind="$(gh api "repos/$GITHUB_REPOSITORY/compare/$BASE...$HEAD_SHA" --jq .behind_by)"
+          if [ "$behind" != "0" ]; then
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
+              "❌ base より ${behind} コミット遅れています。判定される木と撮る木が食い違うため、${BASE} を取り込んでください。"
+            exit 1
+          fi
+
+      # Asked of the ruleset itself. A second copy of the guarded branch patterns here would
+      # drift from `.github/settings/branch-protection.json`, which is what enforces them.
+      - name: Decide how the pointer can reach the branch
+        id: route
+        if: steps.gate.outputs.deferred == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.pr.outputs.head_ref }}
+        run: |
+          set -euo pipefail
+
+          guarded="$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$BRANCH" \
+            --jq 'any(.[]; .type == "pull_request")')"
+
+          if [ "$guarded" = 'true' ]; then
+            echo 'route=pull-request' >> "$GITHUB_OUTPUT"
+            echo "::notice::${BRANCH} は直接 push できないため、ポインタは PR で入れます。"
+          else
+            echo 'route=push' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout the pull request branch
+        if: steps.gate.outputs.deferred == 'false'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.pr.outputs.head_ref }}
+          # `create-pull-request` reconciles against the base; a depth-1 tree gives it nothing
+          # to reconcile with. The push route stays shallow.
+          fetch-depth: ${{ steps.route.outputs.route == 'pull-request' && 0 || 1 }}
+          # The pointer is pushed with the App token instead, so `GITHUB_TOKEN` is
+          # dropped here as in every other workflow. A push made with `GITHUB_TOKEN`
+          # does not start a workflow run, and this design depends on the push
+          # starting the VRT run that confirms the new baselines.
+          persist-credentials: false
+
+      - name: Fetch the baseline images
+        id: baselines
+        if: steps.gate.outputs.deferred == 'false'
+        uses: ./.github/actions/setup-baselines
+        with:
+          app-id: ${{ secrets.BASELINE_APP_ID }}
+          private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
+          persist-credentials: 'true'
+          # Only on the route that opens one. Unconditional, the mint 422s on an installation
+          # that has not granted it and takes the push route down with it.
+          pull-requests: ${{ steps.route.outputs.route == 'pull-request' && 'write' || '' }}
+
+      - name: Refuse without a token for the baseline store
+        if: steps.gate.outputs.deferred == 'false' && steps.baselines.outputs.token == ''
+        run: |
+          echo '❌ BASELINE_APP_ID / BASELINE_APP_PRIVATE_KEY が設定されていません。make setup-baseline-app を実行してください。' >&2
+          exit 1
+
+      # The report belongs to the run that triggered this one, so there is nothing to
+      # search for and no way to pick up a different commit's failures.
+      - name: Download the reported failures
+        id: report
+        if: >-
+          steps.gate.outputs.deferred == 'false' &&
+          steps.mode.outputs.mode == 'reported' &&
+          steps.trigger.outputs.stories == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name vrt-report --dir tmp/vrt || {
+            echo "reason=VRT に差分の報告がありません。artifact の保持期限が切れているか、落ちた原因が比較以外です。" >> "$GITHUB_OUTPUT"
+            exit 1
+          }
+
+      # Screens are bounded by the same rule as stories: what was reported is what may
+      # be retaken. The report belongs to the E2E run for this commit, which is the run
+      # that triggered this one only when E2E is what reported — otherwise it is a
+      # different run on the same head, resolved here.
+      #
+      # A missing report is two different states and they must not be collapsed. E2E has
+      # finished and reported nothing → there is no screen difference, and retaking the
+      # full set instead would accept pixels no comment ever showed a reviewer. E2E has
+      # NOT finished → the answer is not known yet, and this run must not spend the label
+      # on a retake that covers only half of what was reported. `pending` carries that
+      # apart, and `Remove the label` reads it.
+      #
+      # This is the direction the deferral gate above cannot cover on its own: it waits
+      # for the checks that decide the pixels, and E2E's own verdict is not among them —
+      # a red E2E is the reason to retake, not a reason to hold off.
+      - name: Download the reported screens
+        id: screens
+        if: >-
+          steps.gate.outputs.deferred == 'false' &&
+          steps.mode.outputs.mode == 'reported'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          STORIES: ${{ steps.trigger.outputs.stories }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo 'found=false'
+            echo 'pending=false'
+          } >> "$GITHUB_OUTPUT"
+
+          if [ "$STORIES" = 'false' ]; then
+            # E2E is what reported, so its run is the one that triggered this and it has
+            # finished by definition.
+            run_id="$RUN_ID"
+          else
+            run="$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/e2e.yaml/runs?head_sha=${HEAD_SHA}&per_page=1" \
+              --jq 'if (.workflow_runs | length) == 0 then empty
+                    else (.workflow_runs[0] | "\(.id) \(.status)") end')"
+
+            if [ -z "$run" ]; then
+              echo 'ℹ️ この commit に E2E の実行がありません。画面は撮り直しません。'
+              exit 0
+            fi
+
+            run_id="${run%% *}"
+            if [ "${run##* }" != 'completed' ]; then
+              echo 'pending=true' >> "$GITHUB_OUTPUT"
+              echo '⏸️ E2E がまだ完了していません。画面は次の実行で撮り直します（ラベルは残します）。'
+              exit 0
+            fi
+          fi
+
+          if gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name e2e-report --dir tmp/e2e; then
+            echo 'found=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ℹ️ E2E に差分の報告がありません。画面は撮り直しません。'
+          fi
+
+      - name: Setup mise and the pinned tools
+        if: steps.gate.outputs.deferred == 'false'
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        if: steps.gate.outputs.deferred == 'false'
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # The two kinds are retaken in their own steps because the rule that bounds each is
+      # its own — one reads VRT's report, the other E2E's — and they change for different
+      # reasons. They still land in one commit: the push below happens once, so the store's
+      # compare view shows the whole visual change of this branch in one place, which is
+      # what the reviewer has to look at before accepting it.
+      #
+      # An orphan — a baseline whose subject was renamed or deleted — is not removed by a
+      # bounded retake, and a bounded run cannot tell an orphan from an image that is
+      # simply out of scope. So when one is reported, the retake falls back to the full set.
+      - name: Retake the story baselines
+        id: retake-stories
+        if: >-
+          steps.gate.outputs.deferred == 'false' &&
+          steps.trigger.outputs.stories == 'true'
+        env:
+          MODE: ${{ steps.mode.outputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          orphans=false
+          if [ "$MODE" != 'full' ]; then
+            orphans="$(pnpm exec tsx scripts/vrt orphans tmp/vrt/report.json)"
+          fi
+
+          if [ "$MODE" = 'full' ] || [ "$orphans" = 'true' ]; then
+            echo 'taken=全 story' >> "$GITHUB_OUTPUT"
+            make vrt-update
+            exit 0
+          fi
+
+          ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json)"
+          if [ -z "$ids" ]; then
+            echo '❌ 報告に差分がありません。撮り直す対象がありません。'
+            exit 1
+          fi
+          # What comes out of the report flows straight into make's argument, the commit
+          # message and the pull-request comment. It originates in the story catalogue
+          # committed to this repository, so it should never leave the accepted set — if it
+          # does, the report's shape changed, and this refuses rather than pass it on
+          # (ADR 0153 §5).
+          if printf '%s' "$ids" | LC_ALL=C grep -q '[^A-Za-z0-9/._,-]'; then
+            echo '❌ 報告の story id が許可した文字集合を外れています。'
+            exit 1
+          fi
+
+          echo "taken=${ids}" >> "$GITHUB_OUTPUT"
+          make vrt-update VRT_ONLY="$ids"
+
+      - name: Retake the screen baselines
+        id: retake-screens
+        if: >-
+          steps.gate.outputs.deferred == 'false' &&
+          (steps.mode.outputs.mode == 'full' || steps.screens.outputs.found == 'true')
+        env:
+          MODE: ${{ steps.mode.outputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Screens fall back to the full set on an orphan for the same reason stories do,
+          # and their names are checked against the same set before they leave this step.
+          if [ "$MODE" = 'full' ] ||
+            [ "$(pnpm exec tsx scripts/e2e orphans tmp/e2e/report.json)" = 'true' ]; then
+            echo 'taken=全画面' >> "$GITHUB_OUTPUT"
+            make e2e-update
+            exit 0
+          fi
+
+          names="$(pnpm exec tsx scripts/e2e names tmp/e2e/report.json)"
+          if [ -z "$names" ]; then
+            echo '❌ 画面の報告に差分がありません。撮り直す対象がありません。'
+            exit 1
+          fi
+          if printf '%s' "$names" | LC_ALL=C grep -q '[^A-Za-z0-9/._,-]'; then
+            echo '❌ 報告の画面名が許可した文字集合を外れています。'
+            exit 1
+          fi
+
+          echo "taken=${names}" >> "$GITHUB_OUTPUT"
+          make e2e-update E2E_ONLY="$names"
+
+      - name: Note what was retaken
+        id: retake
+        if: steps.gate.outputs.deferred == 'false'
+        env:
+          STORY_IDS: ${{ steps.retake-stories.outputs.taken }}
+          SCREEN_IDS: ${{ steps.retake-screens.outputs.taken }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          taken=()
+
+          if [ -n "$STORY_IDS" ]; then
+            taken+=("$STORY_IDS")
+          fi
+          if [ -n "$SCREEN_IDS" ]; then
+            taken+=("$SCREEN_IDS")
+          fi
+
+          if [ ${#taken[@]} -eq 0 ]; then
+            echo '❌ story も画面も報告に差分がありません。撮り直す対象がありません。'
+            exit 1
+          fi
+
+          ids="$(IFS=,; echo "${taken[*]}")"
+          echo "ids=${ids}" >> "$GITHUB_OUTPUT"
+
+      # The same command a developer runs as `make baseline-push`, so the shape of what lands
+      # in the store does not depend on who took the screenshots.
+      - name: Push the baselines to the store
+        id: push-store
+        if: steps.gate.outputs.deferred == 'false'
+        env:
+          BRANCH: ${{ steps.pr.outputs.head_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C baseline/images config user.name 'github-actions[bot]'
+          git -C baseline/images config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          pnpm exec tsx scripts/baseline-store push "$BRANCH" >> "$GITHUB_OUTPUT"
+
+      # Pushed with the App token, not `GITHUB_TOKEN`. Two things follow from that.
+      # The push starts the VRT run that confirms the baselines, which `GITHUB_TOKEN`
+      # would not do. And the run is attributed to the App rather than to
+      # `github-actions[bot]`, which keeps the repository's fork-PR approval policy
+      # out of an internal bot's way.
+      - name: Move the submodule pointer
+        id: push
+        if: steps.gate.outputs.deferred == 'false' && steps.route.outputs.route == 'push'
+        env:
+          IDS: ${{ steps.retake.outputs.ids }}
+          TOKEN: ${{ steps.baselines.outputs.token }}
+          TRIGGER: ${{ github.event.workflow_run.name }}
+        run: |
+          set -euo pipefail
+
+          # The value never appears in argv, so it stays out of `ps` and out of any
+          # process listing a later step might produce.
+          header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git config --local http.extraheader "$header"
+
+          git commit -m "Test: 基準画像を撮り直す" -m "撮り直し: ${TRIGGER} / 対象: ${IDS}"
+          git push
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+          git config --local --unset-all http.extraheader
+
+      - name: Build the pointer pull request body
+        id: pointer-body
+        if: steps.gate.outputs.deferred == 'false' && steps.route.outputs.route == 'pull-request'
+        env:
+          IDS: ${{ steps.retake.outputs.ids }}
+          PR: ${{ steps.pr.outputs.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          {
+            echo 'body<<POINTER_EOF'
+            echo "🎞️ #${PR} の基準画像を撮り直しました。この PR は submodule のポインタだけを動かします。"
+            echo
+            echo "撮り直した対象: ${IDS}"
+            echo
+            echo "**前後の画素は #${PR} の撮り直しコメントで見比べてください。** 意図した変更であることを確かめたら、**この PR に** \`baseline-approve\` ラベルを付けて merge してください。merge すると #${PR} の比較が回り直します。"
+            echo
+            echo '承認は 1 回で足ります。ここに付いたラベルは、同じポインタを引き継ぐ後続の PR でも有効です。'
+            echo
+            echo '撮り直しのたびにこの PR は更新されます。新しく開き直さないので、ここで交わした議論は残ります。'
+            echo 'POINTER_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # One branch and one pull request per served pull request, both reused — a fresh name
+      # per retake would leave proposals nobody merged. Not `GITHUB_TOKEN`: a pull request it
+      # opens reports no checks, and the required ones are what gate the pointer.
+      - name: Open a pull request for the submodule pointer
+        id: pointer-pr
+        if: steps.gate.outputs.deferred == 'false' && steps.route.outputs.route == 'pull-request'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        with:
+          token: ${{ steps.baselines.outputs.token }}
+          branch: baseline-retake/${{ steps.pr.outputs.number }}
+          base: ${{ steps.pr.outputs.head_ref }}
+          delete-branch: true
+          # The pointer and nothing else: this job runs a Storybook build and a browser suite
+          # before reaching here, and unset commits whatever they left behind.
+          add-paths: baseline/images
+          commit-message: |
+            Test: 基準画像を撮り直す
+
+            撮り直し: ${{ github.event.workflow_run.name }} / 対象: ${{ steps.retake.outputs.ids }}
+          title: 'Test: 基準画像を撮り直す (#${{ steps.pr.outputs.number }})'
+          body: ${{ steps.pointer-body.outputs.body }}
+
+      # The body is built here but published by a job that holds no App secret, so a
+      # token cannot reach a public comment through the file (ADR 0153).
+      - name: Build the outcome comment
+        id: outcome
+        if: always() && steps.mode.outputs.mode != 'none' && steps.mode.outputs.mode != ''
+        continue-on-error: true
+        env:
+          IDS: ${{ steps.retake.outputs.ids }}
+          COUNT: ${{ steps.push-store.outputs.count }}
+          BEFORE: ${{ steps.push-store.outputs.before }}
+          AFTER: ${{ steps.push-store.outputs.after }}
+          SHA: ${{ steps.push.outputs.sha || steps.pointer-pr.outputs.pull-request-head-sha }}
+          POINTER_PR: ${{ steps.pointer-pr.outputs.pull-request-url }}
+          REASON: ${{ steps.report.outputs.reason }}
+          DEFERRED: ${{ steps.gate.outputs.deferred }}
+          FAILED: ${{ steps.gate.outputs.failed }}
+          SCREENS_PENDING: ${{ steps.screens.outputs.pending }}
+          HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+          # What actually moved, not what was asked for — the same set the count above is
+          # taken from, so the images the comment counts and the ones it opens agree.
+          STORIES: ${{ steps.push-store.outputs.stories }}
+          SCREENS: ${{ steps.push-store.outputs.screens }}
+          IMAGES: ${{ steps.push-store.outputs.images }}
+          UNPAIRED: ${{ steps.push-store.outputs.unpaired }}
+        shell: bash
+        run: |
+          store_repo="$(git config --file .gitmodules --get submodule.baseline/images.url |
+            sed -e 's|^https://github.com/||' -e 's|\.git$||')"
+
+          # The review lines are pasted into a shell, so a value outside the accepted set is
+          # dropped rather than quoted. Why quoting is not enough, and why the same set is
+          # what lets these values render as markdown, is in ADR 0153 §5.
+          unsafe() { printf '%s' "$1" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; }
+
+          if unsafe "${HEAD_REF}"; then
+            STORIES=''
+            SCREENS=''
+            echo 'review lines suppressed: head_ref carries shell metacharacters' >&2
+          fi
+          if unsafe "${STORIES}"; then
+            STORIES=''
+            echo 'story line suppressed: story ids carry shell metacharacters' >&2
+          fi
+          if unsafe "${SCREENS}"; then
+            SCREENS=''
+            echo 'screen line suppressed: screen names carry shell metacharacters' >&2
+          fi
+          if unsafe "${IMAGES}"; then
+            IMAGES=''
+            echo 'image table suppressed: paths carry shell metacharacters' >&2
+          fi
+
+          # The before/after pair per image is what a person judges the pixels from; the
+          # store's compare view cannot show it, and an embedded image 404s for a private
+          # store, so this table carries links (vrt/README.md).
+          #
+          # Bounded, because a full retake moves hundreds of images. What is left out is
+          # stated rather than dropped in silence.
+          IMAGE_ROW_LIMIT=20
+          image_table() {
+            total="$(printf '%s' "$IMAGES" | tr ',' '\n' | grep -c . || true)"
+
+            echo '### 動いた画像'
+            echo
+            echo '| 画像 | 前 | 後 |'
+            echo '| --- | --- | --- |'
+
+            # The newline matters: `read` drops a final line that has none, so the last
+            # image would be missing from the table.
+            printf '%s\n' "$IMAGES" | tr ',' '\n' | head -n "$IMAGE_ROW_LIMIT" |
+              while IFS= read -r path; do
+                [ -n "$path" ] || continue
+
+                # No image answers to this path in the previous snapshot: either it was
+                # placed for the first time, or a rename moved it here.
+                case ",${UNPAIRED}," in
+                  *",${path},"*) before_cell='前が無い' ;;
+                  *) before_cell="[前](https://github.com/${store_repo}/blob/${BEFORE}/${path})" ;;
+                esac
+
+                echo "| \`${path}\` | ${before_cell} | [後](https://github.com/${store_repo}/blob/${AFTER}/${path}) |"
+              done
+
+            if [ "$total" -gt "$IMAGE_ROW_LIMIT" ]; then
+              echo
+              echo "動いた ${total} 枚のうち ${IMAGE_ROW_LIMIT} 枚だけを並べています。残りは下の見直しの入口で開いてください。"
+            fi
+          }
+
+          {
+            if [ "$DEFERRED" = 'true' ]; then
+              echo "⏸️ 他のチェックが落ちているため、基準画像は撮り直していません: ${FAILED}"
+              echo
+              echo "落ちている木から撮ると、その原因ごと基準画像に焼き込まれます。**ラベルは付けたままです** — 修正を push すれば、比較の完了に合わせて自動で撮り直します。"
+            elif [ -n "$SHA" ]; then
+              echo "🎞️ 基準画像を ${COUNT} 枚撮り直しました (${SHA})。"
+              echo
+              echo "対象: ${IDS}"
+
+              if [ -n "${POINTER_PR}" ]; then
+                echo
+                echo "このブランチは直接 push できないため、**ポインタは PR で入れます**: ${POINTER_PR}"
+              fi
+
+              if [ -n "${IMAGES}" ]; then
+                echo
+                image_table
+              fi
+
+              if [ "$SCREENS_PENDING" = 'true' ]; then
+                echo
+                echo '画面は E2E がまだ判定していないため撮り直していません。**ラベルは付けたままです** — E2E の完了に合わせて自動で撮り直します。'
+              fi
+
+              # Each block is emitted on its own so a retake that moved only one kind does not
+              # print a command whose target list is empty — `make *-review` refuses that.
+              if [ -n "${STORIES}" ] || [ -n "${SCREENS}" ]; then
+                echo
+                echo '### 手元で見る'
+                echo
+                echo '画素が動いた対象を、使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。'
+
+                if [ -n "${STORIES}" ]; then
+                  echo
+                  echo '```bash'
+                  echo "make vrt-review BRANCH='${HEAD_REF}' VRT_ONLY='${STORIES}'"
+                  echo '```'
+                fi
+
+                if [ -n "${SCREENS}" ]; then
+                  echo
+                  echo '```bash'
+                  echo "make e2e-review BRANCH='${HEAD_REF}' E2E_ONLY='${SCREENS}'"
+                  echo '```'
+                fi
+
+                echo
+                echo "ここで見えるのは**なぜ変わったか**です。**画素を判断する面は上の表**のままで、手元の描画はホストのフォントで描くため元から一致しません（\`vrt/README.md\`）。"
+                echo
+                echo "作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。"
+              fi
+
+              echo
+              if [ -n "${POINTER_PR}" ]; then
+                echo "**まだ承認ではありません。** 上の表の前後を見比べ、意図した変更であることを確かめたうえで、**上のポインタ PR に** \`baseline-approve\` ラベルを付けて merge してください。承認はそこに 1 回で足ります。"
+              else
+                echo "**まだ承認ではありません。** 上の表の前後を見比べ、意図した変更であることを確かめたうえで \`baseline-approve\` ラベルを付けてください。"
+              fi
+              echo
+              echo "**\`baseline-retake\` は外しました。** 1 回の依頼につき 1 回だけ撮ります。もう一度撮るには、付け直したうえで比較（VRT / E2E）を実行し直してください（ラベルは引き金ではなく、完了時に読まれる条件です）。"
+            else
+              echo "❌ 基準画像を撮り直せませんでした。${REASON:-詳細は実行ログを確認してください。}"
+            fi
+          } > comment.md
+
+          {
+            echo 'comment<<VRT_EOF'
+            cat comment.md
+            echo 'VRT_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # One label, one retake: removed only once the pointer has been placed AND every reported
+      # kind was covered. Anything else leaves it on, so the retake resumes by itself once
+      # the cause is gone. The second condition is what keeps a run that moved the pointer
+      # for the stories alone from spending the label while E2E is still deciding whether
+      # the screens moved — the screens would then never be retaken for this branch.
+      #
+      # On the pull-request route the pointer is proposed rather than landed; the label is
+      # spent all the same, or every later run would replace the pull request under review.
+      #
+      # `baseline-approve` is NOT touched here. Whether an acceptance still holds is decided
+      # by `baseline-approval.yaml` comparing its timestamp against the pointer's commit, so
+      # removing the label changes no verdict — a stale acceptance is refused either way.
+      # What it does change is the noise: `baseline-approval` runs on `unlabeled`, so dropping
+      # the label starts a run whose only purpose is to report a state the next run would
+      # report anyway, and it reads to the person who applied it as though their
+      # acceptance had been revoked by someone else.
+      - name: Remove the label
+        if: >-
+          always() && steps.mode.outputs.mode == 'reported' &&
+          (steps.push.outputs.sha != '' ||
+            steps.pointer-pr.outputs.pull-request-head-sha != '') &&
+          steps.screens.outputs.pending != 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ steps.pr.outputs.number }}
+        run: |
+          gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label baseline-retake
+
+  report:
+    if: always() && needs.retake.result != 'skipped' && needs.retake.outputs.comment != ''
+    needs: retake
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
+
+      # Resolved by branch for the reason the retake job states: on a release branch the
+      # head commit belongs to the feature pull request that was merged, not to the
+      # release pull request this outcome is about.
+      - name: Resolve the pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
+        run: |
+          number="$(gh api "repos/$GITHUB_REPOSITORY/pulls" --method GET \
+            -f "head=${HEAD_OWNER}:${HEAD_BRANCH}" -f state=open --jq '.[0].number // empty')"
+          echo "number=${number}" >> "$GITHUB_OUTPUT"
+
+      - name: Comment the outcome on PR
+        if: steps.pr.outputs.number != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ steps.pr.outputs.number }}
+          BODY: ${{ needs.retake.outputs.comment }}
+        run: gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$BODY"

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -66,20 +67,20 @@ describe("ToggleGroupNative", () => {
     expect(option).toHaveAttribute("value", "usd");
   });
 
-  it("選ぶと排他的に切り替わる", () => {
+  it("選ぶと排他的に切り替わる", async () => {
     render(<SingleFixture />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "USD" }));
+    await userEvent.click(screen.getByRole("radio", { name: "USD" }));
 
     expect(screen.getByRole("radio", { name: "USD" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "JPY" })).not.toBeChecked();
   });
 
-  it("複数選択では同時に選べる", () => {
+  it("複数選択では同時に選べる", async () => {
     render(<MultipleFixture />);
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "価格" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "アーカイブ" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "価格" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "アーカイブ" }));
 
     expect(screen.getByRole("checkbox", { name: "価格" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "アーカイブ" })).toBeChecked();
@@ -131,7 +132,6 @@ describe("ToggleGroupNative", () => {
 });
 
 describe("ToggleGroupNativeItem", () => {
-  // ----- 正常系 -----
   it("選択肢 1 件を label で包んだ radio として描画する", () => {
     render(<SingleFixture />);
 

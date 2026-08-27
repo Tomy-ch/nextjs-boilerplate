@@ -1,10 +1,12 @@
 "use client";
 
-import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
+import { Dialog as DialogPrimitive } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
+
+import { useOverlayHistory } from "../use-overlay-history";
 
 /**
  * 内容の補助表示や通常の編集操作を、画面を覆う modal として開く client island root。
@@ -22,8 +24,22 @@ import { cn } from "@/components/cn";
  *
  * @see Storybook `Overlay/Dialog`
  */
-function Dialog({ ...props }: ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+function Dialog({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: ComponentProps<typeof DialogPrimitive.Root>) {
+  const history = useOverlayHistory({ defaultOpen, onOpenChange, open });
+
+  return (
+    <DialogPrimitive.Root
+      data-slot="dialog"
+      onOpenChange={history.setOpen}
+      open={history.open}
+      {...props}
+    />
+  );
 }
 
 /**
@@ -132,7 +148,7 @@ function DialogContent({
         {children}
         {showCloseButton ? (
           <DialogPrimitive.Close
-            className="absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            className="absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
             data-slot="dialog-close"
           >
             <XIcon />
@@ -195,7 +211,7 @@ function DialogFooter({ className, ...props }: ComponentProps<"div">) {
 function DialogTitle({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn("text-lg leading-none font-semibold", className)}
+      className={cn("text-lg leading-none font-emphasis", className)}
       data-slot="dialog-title"
       {...props}
     />

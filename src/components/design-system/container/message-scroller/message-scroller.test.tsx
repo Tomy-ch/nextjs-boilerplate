@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -49,6 +50,8 @@ function getViewport(): HTMLElement {
 /** 利用者が viewport を動かしたことを、jsdom に無い layout の代わりに再現する。 */
 function scrollTo(element: HTMLElement, top: number): void {
   metricsOf(element).scrollTop = Math.min(Math.max(0, top), maxScrollTop(element));
+  // **ここは `user-event` を使いません。**スクロールは押す・打つといった入力ではなく、
+  // 位置が変わったという通知そのものです。
   fireEvent.scroll(element);
 }
 
@@ -163,12 +166,12 @@ describe("MessageScroller", () => {
     expect(screen.getByRole("button", { name: "最新へ移動" })).toBeVisible();
   });
 
-  it("末尾へ戻す操作で末尾まで戻り、操作が消える", () => {
+  it("末尾へ戻す操作で末尾まで戻り、操作が消える", async () => {
     render(<Fixture />);
     const viewport = getViewport();
     scrollTo(viewport, 0);
 
-    fireEvent.click(screen.getByRole("button", { name: "最新へ移動" }));
+    await userEvent.click(screen.getByRole("button", { name: "最新へ移動" }));
 
     expect(viewport.scrollTop).toBe(maxScrollTop(viewport));
     expect(screen.queryByRole("button", { name: "最新へ移動" })).not.toBeInTheDocument();
@@ -311,7 +314,6 @@ describe("MessageScroller", () => {
 });
 
 describe("MessageScrollerViewport", () => {
-  // ----- 正常系 -----
   it("スクロールする枠として slot を持つ要素を、名前つきで描画する", () => {
     render(<Fixture />);
 
@@ -323,7 +325,6 @@ describe("MessageScrollerViewport", () => {
 });
 
 describe("MessageScrollerContent", () => {
-  // ----- 正常系 -----
   it("やり取りの本体として slot を持つ要素を描画する", () => {
     const { container } = render(<Fixture />);
 
@@ -332,7 +333,6 @@ describe("MessageScrollerContent", () => {
 });
 
 describe("MessageScrollerButton", () => {
-  // ----- 異常系 -----
   it("末尾に居る間は最新へ戻る操作を描画しない", () => {
     const { container } = render(<Fixture />);
 

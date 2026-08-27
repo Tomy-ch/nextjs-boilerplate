@@ -14,7 +14,7 @@ The canonical examples of the target format are:
 
 A Japanese reference translation of this skill is available at `SKILL.ja.md` in the same directory (not loaded as a skill; for human reference only).
 
-## First Step: Confirm the FROM Tag and the New Version
+## Step 0. Confirm the FROM Tag and the New Version
 
 This skill **MUST call `AskUserQuestion` immediately after invocation** to confirm two values, in the following order. Do NOT silently adopt a value from skill arguments or recent messages — an explicit confirmation is required to prevent misconfiguration.
 
@@ -48,7 +48,8 @@ This skill **MUST call `AskUserQuestion` immediately after invocation** to confi
     - Options: patch / minor / major candidates from `scripts/semver`, plus the branch-derived candidate if present.
 4. Validate the answer matches `^v[0-9]+\.[0-9]+\.[0-9]+$`. Use it as `<NEW_VERSION>`.
 
-Do NOT read git history, run diffs, or write any file until both values are confirmed.
+Do NOT read git history, run diffs, or write any file until both values are confirmed. Step 1 onward
+runs only once `<FROM_TAG>` and `<NEW_VERSION>` are both fixed.
 
 ## Preconditions
 
@@ -69,11 +70,7 @@ The following remain protected even during skill execution:
 - Generated files (`**/*.gen.go`, `*.sql.go`, `*_mock.go`, `**/openapi.gen.yaml`, generated content under `docs/`)
 - Everything outside `.github/release/`
 
-## Execution Steps
-
-Once `<FROM_TAG>` and `<NEW_VERSION>` are confirmed, execute the following.
-
-### 1. Guard: Output File Does Not Exist
+## Step 1. Guard: Output File Does Not Exist
 
 ```sh
 test ! -e .github/release/<NEW_VERSION>.md
@@ -81,7 +78,7 @@ test ! -e .github/release/<NEW_VERSION>.md
 
 If the file already exists, stop and ask the user how to proceed (do not overwrite silently).
 
-### 2. Collect Diff Metadata
+## Step 2. Collect Diff Metadata
 
 Gather the following from `<FROM_TAG>..HEAD`:
 
@@ -106,7 +103,7 @@ Optionally, for richer context on individual commits:
 git log --no-merges --pretty=format:'%h%n%s%n%b%n---' <FROM_TAG>..HEAD
 ```
 
-### 3. Categorize Commits
+## Step 3. Categorize Commits
 
 Inspect each non-merge commit subject and bucket it. Match both English and Japanese-style prefixes used in this repo (`Feat:`, `Fix:`, `Refactor:`, `Docs:`, `Chore:`, `Test:`, etc.):
 
@@ -120,7 +117,7 @@ Inspect each non-merge commit subject and bucket it. Match both English and Japa
 
 When the bucket is ambiguous, inspect the changed file paths from step 2 to infer scope (e.g., `database/` → DB, `openapi/` → API, `.github/workflows/` → CI).
 
-### 4. Compose the Release Note
+## Step 4. Compose the Release Note
 
 Write `.github/release/<NEW_VERSION>.md` in **Japanese**, following the canonical `v1.1.0` format. The required top-level structure is:
 
@@ -176,7 +173,7 @@ Rules for the content:
 - **Be honest about scope.** If a section has no content (e.g., no bug fixes), write `- 該当なし` rather than fabricating items.
 - **Match existing tone.** Compare to `.github/release/v0.0.6.md` for sentence style.
 
-### 5. Show a Preview Before Writing
+## Step 5. Show a Preview Before Writing
 
 Before calling `Write`, present the proposed content to the user (either inline or via a short summary plus the file path), and confirm with one final `AskUserQuestion`:
 
@@ -185,7 +182,7 @@ Before calling `Write`, present the proposed content to the user (either inline 
 
 Only proceed with `Write` after the user confirms.
 
-### 6. Verify with Markdown Lint
+## Step 6. Verify with Markdown Lint
 
 After writing, run:
 
@@ -206,7 +203,7 @@ Do NOT report the skill as complete until `pnpm md-lint` exits cleanly.
 
 `pnpm md-fix` operates on the entire repository, so it may modify Markdown files unrelated to this release note. List any such files when reporting completion so the user can review the broader change set.
 
-### 7. Final Verification
+## Step 7. Final Verification
 
 After writing and lint:
 

@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features]
 test-requirement: feature
 ---
@@ -18,8 +18,60 @@ test-requirement: feature
 - 他 feature への直接依存
 - 複数 feature で共有すべき要素、バックエンドの業務ロジック
 
+## slice の一覧
+
+**この層の役割論はここが持ち、各 slice の README はそれを再掲しません。** 子が書くのは、その
+slice に固有の線引きと、契約・仕様・デザインへの索引です。雛形は
+[feature README テンプレート](../../docs/templates/feature-readme.md) が持ちます。
+
+| slice | 役割 | README |
+| --- | --- | --- |
+| `auth/` | 身元を預ける入口。認証そのものは持たず、BFF の口へ渡す | [README](auth/README.md) |
+| `dev-session/` | 開発時に主体を差し替える面。本番の束には載らない | [README](dev-session/README.md) |
+
+<!-- sample:begin -->
+同梱のサンプルが加えるもの:
+
+| slice | 役割 | README |
+| --- | --- | --- |
+| `home/` | 入口の面。複数の取得を並べ、片方の失敗で全体を落とさない | [README](home/README.md) |
+| `products/` | 題材を探して眺める。条件を URL に載せ、増分で読み進める | [README](products/README.md) |
+| `cart/` | 買う前の入れ物。他 slice へ操作の口を facade で貸す | [README](cart/README.md) |
+| `checkout/` | 確定の手前。カートと届け先を突き合わせ、1 回だけ送る | [README](checkout/README.md) |
+| `purchases/` | 確定したものの履歴と 1 件の詳細、そこからの状態遷移 | [README](purchases/README.md) |
+| `account/` | 自分の記録。登録・編集・退会と、自分向けの集計 | [README](account/README.md) |
+| `admin/` | 役割を持つ主体だけが入る運用面 | [README](admin/README.md) |
+| `site-info/` | 取得を持たない静的な面 | [README](site-info/README.md) |
+<!-- sample:end -->
+
+## 描画を span に載せる
+
+エクスポートを `observability` の 2 つで包む。**どちらで包むかは置き場で決まる。**
+
+| 置き場 | 使うもの | 既定 |
+| --- | --- | --- |
+| `<screen>/page-content` / `<screen>/view` | `withScreenSpan` | 有効 |
+| `<screen>/ui/**` | `withPartSpan` | 無効（`OBS_RENDER_SPANS=part` で開く） |
+
+```tsx
+export const XxxPageContent = withScreenSpan(
+  "features/<name>/<screen>/page-content",
+  async ({ id }: XxxPageContentProps) => {
+    // 取得と組み立て
+  },
+);
+```
+
+仕組みと span の読み方は [observability/README.md](../observability/README.md) が持つ。
+
+- **名前は `src/` からのモジュールパスと一致させる。** span 名がそのまま置き場を指すので、ずれると trace からファイルへ戻れない。利用者の入力を混ぜない
+- **client component（`"use client"` を持つファイル）は包まない。** ブラウザでの描画では span を作らないため、包んでも得られるのは server 描画の 1 回分だけである
+- **取得を持つ側を包むと帰属が付く。** `page-content` が待つ通信はその span の中に入るので、外向きの `fetch` を画面へ結び付けられる
+- **部品は常用しない。** `part` を開けると 1 描画の span が描く部品の数だけ増える。値打ちが出るのは、分岐した結果——どの姿を返したか——を trace から読みたいときである
+
 ## 運用
 
 - 横断利用が必要になった要素は責務に応じて `model`、`components`、`adapters`、`capabilities`、`stores` へ昇格する
 - Server Action は編成だけを担い、業務ロジックを置かない
 - feature ごとにも同じ frontmatter を持つ README を置く
+- **`test-requirement: feature` が掛かるのは画面の合成**（`view` / `page-content` と、その feature 専用の UI）である。値を返す対象——純関数、hook、Server Action の補助——は [0090](../../docs/adr/0090-testing-strategy.md) 層別責務表の `unit` 行（「feature 内純関数」）に従う。宣言が feature の下の全ファイルへ一律に掛かると、React のツリーを要さない対象にまで合成の観点を課すことになり、テストの側が正しいのに宣言と食い違う

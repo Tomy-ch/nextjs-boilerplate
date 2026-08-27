@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import Link from "next/link";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -103,7 +104,7 @@ describe("Attachment", () => {
     );
   });
 
-  it("操作にはアクセシブルな名前を与えられ、押下を呼び出し元へ渡す", () => {
+  it("操作にはアクセシブルな名前を与えられ、押下を呼び出し元へ渡す", async () => {
     const onClick = vi.fn();
     render(
       <Attachment>
@@ -119,7 +120,7 @@ describe("Attachment", () => {
     );
 
     const action = screen.getByRole("button", { name: "仕様書.pdf を取り消す" });
-    fireEvent.click(action);
+    await userEvent.click(action);
 
     expect(action).toHaveAttribute("data-slot", "attachment-action");
     expect(screen.getByTestId("actions")).toContainElement(action);
@@ -180,9 +181,9 @@ describe("Attachment", () => {
 });
 
 describe("AttachmentGroup", () => {
-  it("複数の添付をまとまりとして含み、自身は role を持たない", () => {
+  it("複数の添付を、名前を持つ group としてまとめる", () => {
     render(
-      <AttachmentGroup data-testid="group">
+      <AttachmentGroup data-testid="group" label="添付した資料">
         <Attachment data-testid="first">
           <AttachmentContent>
             <AttachmentTitle>仕様書.pdf</AttachmentTitle>
@@ -199,7 +200,8 @@ describe("AttachmentGroup", () => {
     const group = screen.getByTestId("group");
 
     expect(group).toHaveAttribute("data-slot", "attachment-group");
-    expect(group).not.toHaveAttribute("role");
+    expect(group).toHaveAttribute("role", "group");
+    expect(group).toHaveAccessibleName("添付した資料");
     expect(group).toContainElement(screen.getByTestId("first"));
     expect(group).toContainElement(screen.getByTestId("second"));
   });
@@ -238,7 +240,6 @@ describe("AttachmentGroup", () => {
 });
 
 describe("AttachmentMedia", () => {
-  // ----- 正常系 -----
   it("見た目の枠として slot と variant を持つ要素を描画する", () => {
     render(
       <Attachment>
@@ -256,7 +257,6 @@ describe("AttachmentMedia", () => {
 });
 
 describe("AttachmentContent", () => {
-  // ----- 正常系 -----
   it("本文の枠として slot を持つ要素を描画する", () => {
     render(<Fixture />);
 
@@ -265,7 +265,6 @@ describe("AttachmentContent", () => {
 });
 
 describe("AttachmentTitle", () => {
-  // ----- 正常系 -----
   it("名称として slot を持つ要素を描画する", () => {
     render(<Fixture />);
 
@@ -274,7 +273,6 @@ describe("AttachmentTitle", () => {
 });
 
 describe("AttachmentDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<Fixture />);
 
@@ -283,7 +281,6 @@ describe("AttachmentDescription", () => {
 });
 
 describe("AttachmentActions", () => {
-  // ----- 正常系 -----
   it("操作の枠として slot を持つ要素を描画する", () => {
     render(
       <Attachment>
@@ -298,8 +295,7 @@ describe("AttachmentActions", () => {
 });
 
 describe("AttachmentAction", () => {
-  // ----- 正常系 -----
-  it("名前を持つ操作として slot を持つ要素を描画する", () => {
+  it("名前を持つ操作として slot を持つ要素を描画する", async () => {
     const onClick = vi.fn();
     render(
       <Attachment>
@@ -315,14 +311,13 @@ describe("AttachmentAction", () => {
 
     expect(action).toHaveAttribute("data-slot", "attachment-action");
 
-    fireEvent.click(action);
+    await userEvent.click(action);
 
     expect(onClick).toHaveBeenCalledOnce();
   });
 });
 
 describe("AttachmentTrigger", () => {
-  // ----- 正常系 -----
   it("既定では button として全体を開く操作にする", () => {
     render(
       <Attachment>

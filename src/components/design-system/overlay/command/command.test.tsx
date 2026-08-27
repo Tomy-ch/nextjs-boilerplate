@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -37,7 +38,6 @@ function CommandFixture({
     <Command label="操作を検索" shouldFilter={shouldFilter}>
       <CommandInput placeholder="操作を検索" />
       <CommandList>
-        <CommandEmpty>一致する操作はありません。</CommandEmpty>
         <CommandGroup heading="移動">
           <CommandItem onSelect={onSelect}>一覧を開く</CommandItem>
           <CommandItem onSelect={onSelect}>予定を開く</CommandItem>
@@ -53,6 +53,7 @@ function CommandFixture({
           </CommandItem>
         </CommandGroup>
       </CommandList>
+      <CommandEmpty>一致する操作はありません。</CommandEmpty>
     </Command>
   );
 }
@@ -94,29 +95,29 @@ describe("Command", () => {
     expect(screen.getByRole("listbox")).toHaveAccessibleName("候補");
   });
 
-  it("入力した語で候補を絞り込む", () => {
+  it("入力した語で候補を絞り込む", async () => {
     render(<CommandFixture />);
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "予定" } });
+    await userEvent.type(screen.getByRole("combobox"), "予定");
 
     expect(screen.getByRole("option", { name: "予定を開く" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "一覧を開く" })).not.toBeInTheDocument();
   });
 
-  it("一致する候補が無いときだけ空の案内を表示する", () => {
+  it("一致する候補が無いときだけ空の案内を表示する", async () => {
     render(<CommandFixture />);
 
     expect(screen.queryByText("一致する操作はありません。")).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "該当なし" } });
+    await userEvent.type(screen.getByRole("combobox"), "該当なし");
 
     expect(screen.getByText("一致する操作はありません。")).toBeVisible();
   });
 
-  it("shouldFilter を false にすると入力しても候補を絞り込まない", () => {
+  it("shouldFilter を false にすると入力しても候補を絞り込まない", async () => {
     render(<CommandFixture shouldFilter={false} />);
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "該当なし" } });
+    await userEvent.type(screen.getByRole("combobox"), "該当なし");
 
     expect(screen.getAllByRole("option")).toHaveLength(4);
   });
@@ -128,7 +129,7 @@ describe("Command", () => {
     expect(screen.getByRole("group", { name: "設定" })).toBeInTheDocument();
   });
 
-  it("disabled の候補は選択対象から外れる", () => {
+  it("disabled の候補は選択対象から外れる", async () => {
     const onSelect = vi.fn();
     render(<CommandFixture onSelect={onSelect} />);
 
@@ -136,21 +137,21 @@ describe("Command", () => {
 
     expect(disabledOption).toHaveAttribute("aria-disabled", "true");
 
-    fireEvent.click(disabledOption);
+    await userEvent.click(disabledOption);
 
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it("候補を選ぶと onSelect を呼ぶ", () => {
+  it("候補を選ぶと onSelect を呼ぶ", async () => {
     const onSelect = vi.fn();
     render(<CommandFixture onSelect={onSelect} />);
 
-    fireEvent.click(screen.getByRole("option", { name: "一覧を開く" }));
+    await userEvent.click(screen.getByRole("option", { name: "一覧を開く" }));
 
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it("下キーで選択中の候補を移動する", () => {
+  it("下キーで選択中の候補を移動する", async () => {
     render(<CommandFixture />);
 
     const input = screen.getByRole("combobox");
@@ -160,7 +161,7 @@ describe("Command", () => {
       "true",
     );
 
-    fireEvent.keyDown(input, { key: "ArrowDown" });
+    await userEvent.type(input, "{ArrowDown}");
 
     expect(screen.getByRole("option", { name: "予定を開く" })).toHaveAttribute(
       "aria-selected",
@@ -233,7 +234,7 @@ describe("CommandDialog", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     const onOpenChange = vi.fn();
     render(
       <CommandDialog onOpenChange={onOpenChange} open>
@@ -244,7 +245,7 @@ describe("CommandDialog", () => {
       </CommandDialog>,
     );
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
@@ -254,11 +255,11 @@ describe("CommandDialog", () => {
       <CommandDialog open title="操作の検索">
         <CommandInput placeholder="操作を検索" />
         <CommandList>
-          <CommandEmpty>一致する操作はありません。</CommandEmpty>
           <CommandGroup heading="移動">
             <CommandItem>一覧を開く</CommandItem>
           </CommandGroup>
         </CommandList>
+        <CommandEmpty>一致する操作はありません。</CommandEmpty>
       </CommandDialog>,
     );
 
@@ -269,17 +270,16 @@ describe("CommandDialog", () => {
 });
 
 describe("CommandInput", () => {
-  // ----- 正常系 -----
   it("検索欄として slot を持つ要素を描画する", () => {
     render(<CommandFixture />);
 
     expect(screen.getByPlaceholderText("操作を検索")).toHaveAttribute("data-slot", "command-input");
   });
 
-  it("入力すると一致する候補だけを残す", () => {
+  it("入力すると一致する候補だけを残す", async () => {
     render(<CommandFixture />);
 
-    fireEvent.change(screen.getByPlaceholderText("操作を検索"), { target: { value: "予定" } });
+    await userEvent.type(screen.getByPlaceholderText("操作を検索"), "予定");
 
     expect(screen.getByRole("option", { name: "予定を開く" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "一覧を開く" })).toBeNull();
@@ -287,7 +287,6 @@ describe("CommandInput", () => {
 });
 
 describe("CommandList", () => {
-  // ----- 正常系 -----
   it("候補の一覧として slot を持つ要素を描画する", () => {
     render(<CommandFixture />);
 
@@ -296,7 +295,6 @@ describe("CommandList", () => {
 });
 
 describe("CommandGroup", () => {
-  // ----- 正常系 -----
   it("見出し付きの束として slot を持つ要素を描画する", () => {
     render(<CommandFixture />);
 
@@ -306,7 +304,6 @@ describe("CommandGroup", () => {
 });
 
 describe("CommandItem", () => {
-  // ----- 正常系 -----
   it("候補 1 件を option として描画する", () => {
     render(<CommandFixture />);
 
@@ -316,7 +313,6 @@ describe("CommandItem", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("disabled な候補を操作できないものとして示す", () => {
     render(<CommandFixture />);
 
@@ -328,7 +324,6 @@ describe("CommandItem", () => {
 });
 
 describe("CommandSeparator", () => {
-  // ----- 正常系 -----
   it("区切りとして slot を持つ要素を描画する", () => {
     render(<CommandFixture />);
 
@@ -337,7 +332,6 @@ describe("CommandSeparator", () => {
 });
 
 describe("CommandShortcut", () => {
-  // ----- 正常系 -----
   it("shortcut 表示として slot を持つ要素を描画する", () => {
     render(<CommandFixture />);
 
@@ -346,15 +340,12 @@ describe("CommandShortcut", () => {
 });
 
 describe("CommandEmpty", () => {
-  // ----- 異常系 -----
-  it("一致する候補が無いときだけ不在の案内を出す", () => {
+  it("一致する候補が無いときだけ不在の案内を出す", async () => {
     render(<CommandFixture />);
 
     expect(screen.queryByText("一致する操作はありません。")).toBeNull();
 
-    fireEvent.change(screen.getByPlaceholderText("操作を検索"), {
-      target: { value: "該当なし" },
-    });
+    await userEvent.type(screen.getByPlaceholderText("操作を検索"), "該当なし");
 
     expect(screen.getByText("一致する操作はありません。")).toBeInTheDocument();
   });

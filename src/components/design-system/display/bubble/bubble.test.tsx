@@ -223,7 +223,6 @@ describe("BubbleReactions", () => {
 });
 
 describe("BubbleContent", () => {
-  // ----- 正常系 -----
   it("本文として slot を持つ要素を描画する", () => {
     render(
       <Bubble>

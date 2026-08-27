@@ -1,8 +1,9 @@
-import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Slot } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
+import { Spinner } from "@/components/design-system/status/spinner/spinner";
 import {
   BUTTON_SIZE,
   BUTTON_VARIANT,
@@ -25,16 +26,24 @@ import {
  * @see Storybook `Action/Button`
  */
 export const buttonVariants = cva(
-  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:cursor-default disabled:opacity-50",
+  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-md font-emphasis tracking-wide transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary disabled:pointer-events-none disabled:cursor-default disabled:opacity-50",
   {
     variants: {
       variant: {
+        // 主行動だけは休止時から光らせる。画面の中で「いま生きている操作」は 1 つなので、
+        // 常時の装飾ではなく状態の表示にあたる。
         [BUTTON_VARIANT.DEFAULT]:
-          "bg-foreground text-background hover:bg-foreground/85 active:bg-foreground/70",
+          "bg-primary text-primary-foreground shadow-glow-primary hover:bg-primary/85 active:bg-primary/70",
         [BUTTON_VARIANT.OUTLINE]:
           "border border-border bg-background text-foreground hover:bg-foreground hover:text-background active:bg-foreground/80",
         [BUTTON_VARIANT.GHOST]:
           "bg-transparent text-foreground hover:bg-foreground hover:text-background active:bg-foreground/80",
+        // hover と active の差を他の variant（`/85` と `/70`）より大きく取る。暗い配色の上では
+        // 不透明度をわずかに下げても背景との差が出ず、押せることが hover で判らない。
+        //
+        // 自分の色で、hover / focus-visible にだけ光らせる（`src/components/README.md`「発光」）
+        [BUTTON_VARIANT.DESTRUCTIVE]:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/75 hover:shadow-glow-destructive focus-visible:shadow-glow-destructive active:bg-destructive/60",
       },
       size: {
         [BUTTON_SIZE.DEFAULT]: "h-10 px-4 py-2",
@@ -69,6 +78,7 @@ export type ButtonProps = ComponentProps<"button"> &
      * - `default`: 画面の主要操作
      * - `outline`: 主要操作に並ぶ副次操作
      * - `ghost`: 表示の主張を抑える補助操作
+     * - `destructive`: 取り消せない結果を伴う操作
      */
     variant?: ButtonVariant;
     /**
@@ -79,6 +89,31 @@ export type ButtonProps = ComponentProps<"button"> &
      * - `lg`: 単独で目立たせる主要操作
      */
     size?: ButtonSize;
+    /**
+     * 送信などの処理を待っているか。
+     *
+     * @remarks
+     * **文言はそのままの場所に残し、その上へ回転する印を重ねます。**文言を「送信しています…」の
+     * ように差し替えると幅が動き、脇に貼り付いた要素や下端に固定した帯では周りの位置まで動きます。
+     * 印を文言の隣へ足す形でも同じだけ幅が伸びます。重ねれば、待っているあいだも器の大きさが
+     * 変わりません。
+     *
+     * 待っているあいだは押せなくします。もう一度押せると、受け付けられたのかどうかが利用者から
+     * 判りません。
+     *
+     * 文言は視覚から外れると、その文言から組み立てていた名前も消えます。待っていることは
+     * `pendingLabel` が操作自身の名前として伝えます。
+     *
+     * `asChild` とは併せられません。合成先の要素の中身をこの component が組み替えられないためです。
+     */
+    pending?: boolean;
+    /**
+     * 待っているあいだのアクセシブルな名前。
+     *
+     * @remarks
+     * 省略すると、待っているあいだ操作が名前を持ちません。`pending` を使うなら併せて渡します。
+     */
+    pendingLabel?: string;
     /** 子要素へボタンの見た目と props を合成するか。 */
     asChild?: boolean;
   };
@@ -88,8 +123,8 @@ export type ButtonProps = ComponentProps<"button"> &
  *
  * @remarks
  * `variant` は操作の優先度を表す。既定の `default` は主要操作、`outline` は副次操作、
- * `ghost` は周囲の情報量を増やさない補助操作に使う。画面固有の配色を直接指定せず、
- * variant の追加または design token の見直しで扱う。
+ * `ghost` は周囲の情報量を増やさない補助操作、`destructive` は取り消せない結果を伴う操作に
+ * 使う。画面固有の配色を直接指定せず、variant の追加または design token の見直しで扱う。
  *
  * disabled 状態は native `disabled` 属性で指定する。`asChild` でリンクを使う場合、
  * HTML の link には `disabled` が存在しないため、遷移禁止の状態を表す別の UI を選ぶ。
@@ -111,8 +146,46 @@ export type ButtonProps = ComponentProps<"button"> &
  * @param props.asChild - 子要素へボタンの見た目と props を合成するか。
  * @see Storybook `Action/Button`
  */
-export function Button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
-  const Component = asChild ? Slot : "button";
+export function Button({
+  className,
+  variant,
+  size,
+  asChild = false,
+  pending = false,
+  pendingLabel,
+  children,
+  disabled,
+  ...props
+}: ButtonProps) {
+  const Component = asChild ? Slot.Root : "button";
 
-  return <Component className={cn(buttonVariants({ variant, size, className }))} {...props} />;
+  if (asChild || !pending) {
+    return (
+      <Component
+        className={cn(buttonVariants({ variant, size, className }))}
+        disabled={disabled}
+        {...props}
+      >
+        {children}
+      </Component>
+    );
+  }
+
+  return (
+    <Component
+      // 文言を視覚から外すと、その文言から組み立てていた名前も消える。待っていることは操作自身の
+      // 名前で伝える。
+      aria-label={pendingLabel}
+      aria-busy={true}
+      className={cn(buttonVariants({ variant, size, className }), "relative")}
+      disabled={true}
+      {...props}
+    >
+      {/* 文言は場所を取ったまま見えなくする。取り除くと幅が縮む。 */}
+      <span className="invisible inline-flex items-center gap-2">{children}</span>
+      <span className="absolute inset-0 inline-flex items-center justify-center">
+        <Spinner />
+      </span>
+    </Component>
+  );
 }

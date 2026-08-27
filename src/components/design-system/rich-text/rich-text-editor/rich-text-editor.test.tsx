@@ -15,6 +15,10 @@ import { RICH_TEXT_EDITOR_EXTENSIONS } from "./rich-text-editor.definition";
 
 const noop = () => undefined;
 
+// **リンク先の入力だけは `user-event` を使いません。**打ち込むと本文側の入力位置が動き、
+// ProseMirror がその座標を測りに来ます。jsdom は文字の矩形を持たないため、そこで落ちます。
+// 本文そのものが contenteditable であることと同じ理由で、この編集器は打鍵の再現の外にあります。
+
 type ElementSignature = { tagName: string; propertyNames: readonly string[] };
 
 function elementSignatures(node: Nodes): ElementSignature[] {
@@ -57,6 +61,33 @@ afterEach(() => {
 });
 
 describe("RichTextEditor", () => {
+  it("プレビューへ切り替えると、表示側と同じ形で読める", async () => {
+    render(<RichTextEditor label="説明文" defaultValue="<h2>見出し</h2>" onChange={noop} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "プレビュー" }));
+
+    expect(screen.getByRole("heading", { name: "見出し", level: 2 })).toBeInTheDocument();
+  });
+
+  it("プレビュー中は書式の操作を出さない", async () => {
+    render(<RichTextEditor label="説明文" onChange={noop} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "プレビュー" }));
+
+    expect(screen.queryByRole("button", { name: "リンク" })).not.toBeInTheDocument();
+  });
+
+  it("プレビューから戻ると書きかけが残っている", async () => {
+    render(<RichTextEditor label="説明文" defaultValue="<p>書きかけ</p>" onChange={noop} />);
+
+    const preview = await screen.findByRole("button", { name: "プレビュー" });
+
+    fireEvent.click(preview);
+    fireEvent.click(preview);
+
+    expect(screen.getByRole("textbox", { name: "説明文" })).toHaveTextContent("書きかけ");
+  });
+
   it("書式の toolbar と、名前を持つ編集面を描画する", () => {
     renderEditor();
 
@@ -322,10 +353,10 @@ describe("RichTextEditor", () => {
 
       const input = screen.getByLabelText("リンク先");
 
-      fireEvent.change(input, { target: { value: "/products/1" } });
+      fireEvent.change(input, { target: { value: "/items/1" } });
       fireEvent.keyDown(input, { key: "Enter" });
 
-      expect(screen.getByRole("link", { name: "リンク" })).toHaveAttribute("href", "/products/1");
+      expect(screen.getByRole("link", { name: "リンク" })).toHaveAttribute("href", "/items/1");
     });
 
     it("Enter 以外のキーでは適用しない", () => {
@@ -461,7 +492,7 @@ describe("RichTextEditor", () => {
         [
           "<h2>見出し</h2>",
           '<p><strong>太字</strong><a href="https://example.com">リンク</a><br>改行</p>',
-          '<p><a href="mailto:info@example.com">メール</a><a href="/products/1">アプリ内</a></p>',
+          '<p><a href="mailto:info@example.com">メール</a><a href="/items/1">アプリ内</a></p>',
           "<ul><li>箇条書き</li></ul><blockquote><p>引用</p></blockquote><hr>",
         ].join(""),
       );
@@ -486,6 +517,20 @@ describe("RichTextEditor", () => {
 
       editor.destroy();
     });
+  });
+
+  it("渡された id を編集面そのものへ与える", async () => {
+    const controlId = "profile-bio";
+
+    render(<RichTextEditor id={controlId} label="説明文" onChange={noop} />);
+
+    expect(await screen.findByRole("textbox", { name: "説明文" })).toHaveAttribute("id", controlId);
+  });
+
+  it("id を渡さなければ付けない。外から指す必要が無いため", async () => {
+    render(<RichTextEditor label="説明文" onChange={noop} />);
+
+    expect(await screen.findByRole("textbox", { name: "説明文" })).not.toHaveAttribute("id");
   });
 
   it("a11y 自動検査に違反しない", async () => {

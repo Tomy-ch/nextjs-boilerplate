@@ -1,0 +1,143 @@
+# runner から外へ出てよい宛先（SSOT）。
+# `make egress-apply` で workflow へ反映し、`make egress-check` で突合する。
+#
+# ここに無い宛先へ出ようとした実行は落ちる（`egress-policy: block`）。**取りこぼすと CI が
+# 止まる**ので、足す根拠は推測ではなく実測に置く —— harden-runner が `audit` で記録した
+# `domain resolved:` 行が、ジョブログにそのまま残っている。
+#
+#   gh api "repos/<owner>/<repo>/actions/runs/<RUN_ID>/jobs" --jq '.jobs[].id'
+#   gh api "repos/<owner>/<repo>/actions/jobs/<JOB_ID>/logs" \
+#     | grep -a "domain resolved:" | sed 's/.*domain resolved: //; s/\., ip address.*//' | sort -u
+#
+# **cache が当たった実行だけを見ないこと。**依存を取りに行かない実行には
+# `registry.npmjs.org` が出ない。lockfile を動かした実行、ツールを入れ直した実行、
+# コンテナを pull した実行を必ず混ぜる。
+#
+# 書式は harden-runner の `allowed-endpoints` と同じ `host:port`。`*.example.com` の形の
+# ワイルドカードが使える —— 添字が回る宛先（Actions の cache と log の置き場、hosted runner の
+# 監視系）は個別に並べても意味を持たないので畳む。
+
+# 全 job が要るもの。checkout・ツールチェインの取得・依存の取得・結果の返送。
+baseline:
+  - github.com:443
+  - api.github.com:443
+  - codeload.github.com:443
+  - release-assets.githubusercontent.com:443
+  # 結果の返送と cache。添字が回るので畳む。
+  - '*.actions.githubusercontent.com:443'
+  - '*.blob.core.windows.net:443'
+  # hosted runner 自身の監視系。
+  - '*.githubapp.com:443'
+  # harden-runner 自身の記録の送り先。
+  - prod.app-api.stepsecurity.io:443
+  # mise とそれが入れるランタイム。
+  - mise-versions.jdx.dev:443
+  - nodejs.org:443
+  - registry.npmjs.org:443
+
+# job 固有。キーは workflow のファイル名（拡張子を除く）。
+# ここに無い workflow は baseline だけで足りる。
+workflows:
+  # `next/font` が build 時に取りに行く。
+  build: &fonts
+    - fonts.googleapis.com:443
+    - fonts.gstatic.com:443
+  bundle-budget: *fonts
+  purge-verify: *fonts
+  smoke: *fonts
+  strip-verify: *fonts
+  storybook-build: *fonts
+  deploy-docs: *fonts
+
+  # 撮影と axe は digest 固定した Playwright のコンテナで動く。地域ごとの配信元が回る。
+  a11y: &browser
+    - fonts.googleapis.com:443
+    - fonts.gstatic.com:443
+    - mcr.microsoft.com:443
+    - '*.data.mcr.microsoft.com:443'
+  e2e: *browser
+  vrt: *browser
+  vrt-guard: *browser
+  # 撮り直しは撮影と同じ仕事をする —— Storybook を build し、同じコンテナで走らせる。
+  baseline-retake: *browser
+
+  # 計測はブラウザをコンテナへ閉じ込めないため、ホストへ取得したうえで走らせる。出るのは
+  # 取得そのもの (cdn.playwright.dev) と、起動した Chrome 自身の背景通信の 2 系統。
+  # 撮影側 (a11y / e2e / vrt) に取得先が要らないのは、あちらが digest 固定のコンテナを引くため。
+  lighthouse:
+    # ブラウザの取得。`cdn.playwright.dev` は入口で、実体はここから 2 つの配信元へ回る。
+    # 3 つとも要る —— 入口だけを許すと、繋がったうえで本体の取得が落ちる。
+    - cdn.playwright.dev:443
+    - playwright.download.prss.microsoft.com:443
+    - storage.googleapis.com:443
+    - fonts.googleapis.com:443
+    - fonts.gstatic.com:443
+    - accounts.google.com:443
+    - android.clients.google.com:443
+    - clients2.google.com:443
+    - mtalk.google.com:443
+    - update.googleapis.com:443
+    - www.google.com:443
+
+  # ZAP のコンテナと、その add-on / 更新確認。
+  dast:
+    - fonts.googleapis.com:443
+    - fonts.gstatic.com:443
+    - ghcr.io:443
+    - pkg-containers.githubusercontent.com:443
+    - raw.githubusercontent.com:443
+    - cfu.zaproxy.org:443
+    - news.zaproxy.org:443
+    - tel.zaproxy.org:443
+
+  # aqua が入れる道具の署名を検証する。
+  actions-lint: &sigstore
+    - tuf-repo-cdn.sigstore.dev:443
+  osv-scan:
+    - api.osv.dev:443
+    - tuf-repo-cdn.sigstore.dev:443
+  dependency-scan:
+    - check.trivy.dev:443
+    - mirror.gcr.io:443
+    # Trivy は脆弱性 DB を mirror から取り、応えなければ ghcr へ落ちる。2 段目を塞ぐと
+    # 二段構えが成立せず、mirror が詰まるたびに必須チェックが赤くなる。しかも落ちるのは
+    # 検出のステップなので、取得できなかったことが脆弱性の検出として報告される。
+    # ghcr の pull は blob を pkg-containers から取るため、2 ホストで 1 組。
+    - ghcr.io:443
+    - pkg-containers.githubusercontent.com:443
+    - tuf-repo-cdn.sigstore.dev:443
+
+  # 各スキャナが自分の索引・DB・テレメトリへ出る。
+  bearer:
+    - api.cycode.com:443
+  sast:
+    - semgrep.dev:443
+  devskim:
+    - api.nuget.org:443
+    - crl3.digicert.com:443
+  dependency-review:
+    - api.deps.dev:443
+    - api.securityscorecards.dev:443
+  scorecard:
+    - api.deps.dev:443
+    - api.osv.dev:443
+    - oss-fuzz-build-logs.storage.googleapis.com:443
+    - www.bestpractices.dev:443
+
+  # SARIF の送信先。
+  codeql:
+    - uploads.github.com:443
+  # shadcn の目録の取得元。
+  shadcn-drift:
+    - cafe.github.com:443
+
+# まだ遮断しない workflow。**理由と、外す条件をここに書く。**
+# 記録が揃っていないものを推測で並べると、止めてはいけない実行を止める。
+audit:
+  notify: >-
+    Slack の incoming webhook へ出るが、実行の記録がまだ 1 件も無い（週次のスキャンが落ちた
+    ときにしか動かない）。外す条件は、実際に通知が飛んだ実行のログで宛先を確認すること。
+  baseline-prune: >-
+    月次でしか動かず、実行の記録がまだ無い。外す条件は同上。
+  sonarcloud: >-
+    解析結果の送信先を実測できていない。外す条件は、成功した実行のログで宛先を確認すること。

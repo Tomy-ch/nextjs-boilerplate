@@ -46,10 +46,11 @@ Accepted
 | `sync-readme` | README ↔ ディスク同期 | 単一 README の記述を実ディレクトリ状態に合わせて更新。子ディレクトリの README は digest + 参照リンクのみ |
 | `readme-review` | README の portal 価値評価 | 単一 README を `docs/portal/manifest.yaml` 登録基準で採点 |
 | `new-env` | 環境変数の e2e 追加 | 目的別 config モジュール / env ファイル / 変数表 docs を一括で同期 (対象構造は A7 = [0030](0030-environment-variable-management.md)、後述) |
-| `impl-review` | adversarial code review | 5 観点 (correctness / security / architecture / runtime-gap / test-gap) + コメント品質の subagent fanout + verifier による多段検証。コメント指摘のみライフサイクル内で自動修正し、残る指摘は PR へインライン投稿する |
-| `scaffold-test` | テストの新規作成 (unit / component) | テストを持たない対象について、対象自身の分岐からケースを導き `<subject>.test.ts(x)` を書く。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) / 最近傍 README の `test-requirement` / `scripts/lib/untested-modules.ts` を実行時に読む。対象は read-only で、検証できない分岐は skip せず所見として報告する |
+| `impl-review` | adversarial code review | 5 観点 (correctness / security / architecture / cohesion / runtime-gap) の subagent fanout + verifier による多段検証。`cohesion` は「1 つの単位が変わる理由を複数持つ」を見る単位内の観点で、カーネル跨ぎの配置を持つ `architecture` とは重ならない。対象は変更そのものだけで、ソースへは書き込まず、指摘は PR へインライン投稿する |
+| `scaffold-test` | テストの新規作成 (unit / component) | テストを持たない対象の**集合**について、対象自身の分岐からケースを導き `<subject>.test.ts(x)` を書く。画面 1 枚分の一斉配置を単位とし、`test-requirement` の宣言元ディレクトリごとに確認を取る。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) / 最近傍 README の `test-requirement` / 1:1 ゲート自身を実行時に読む。責務はディレクトリではなくシンボルに従い、HTTP 境界を跨ぐものは `scaffold-integration-test` へ残す。対象は read-only で、検証できない分岐は skip せず所見として報告する |
 | `scaffold-integration-test` | HTTP 境界の結合テスト作成 | `adapters` のクライアントや Route Handler を、契約から生成された MSW ハンドラで動かすテストを書く。[0090](0090-testing-strategy.md) の「integration = HTTP 境界のみ / 内側は mock / 形と型をアサート」を保ち、ハンドラの手書きと `fetch` stub を禁じる |
-| `test-review` | テストの品質レビュー | 5 レンズ (構造準拠 / 観点カバレッジ / 意味的品質 / 分岐×意味 / シンボル網羅) の fanout + verifier。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む。read-only で、`impl-review` Step 4.5 の委譲先を兼ねる |
+| `comment-sweep` | コメント在庫の管轄判定 | 蓄積したコメントを 維持 / 削除 / 書換 / **移設** の 4 判定で裁く。移設は根拠を ADR や層 README へ動かし、コードには効力のある残余と 1 行の参照を残す。read-only のレビュアーが出せない判定であり(移設先の文書を書く必要がある)、判断対象も差分ではなく在庫である。さらにファイル単位のパスが **集約**（重複 / 分散 / 総量過多）を拾う。1 件ずつの管轄判定では各コピーが単独で通ってしまうためで、対象がコメントの集合になる唯一の判定である。適用は 確認して適用 / 自動適用 (`--apply`) / 報告のみ (`--report-only`) の 3 モードで、自動適用は文書書き込みを伴う移設を適用せず、集約は確度 high のときだけ適用する |
+| `test-review` | テストの品質レビュー | 5 レンズ (構造準拠 / 観点カバレッジ / 意味的品質 / 分岐×意味 / シンボル網羅) の fanout + verifier。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む。報告は read-only だが、意味網羅の穴だけは確認 1 回で塞ぐ (Step 5) |
 | `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
 | `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
 | `adr-scan` | ADR 候補の全リポ発見 | de facto に存在するが BACKLOG 未追跡の設計判断を read-only で走査し、taxonomy (decision / exclusion / rule / inventory) と Tier / frame ID へ分類した候補 inventory を出力 (※ 暫定 / one-off。BACKLOG 反映後に削除・アーカイブ予定) |
@@ -67,10 +68,8 @@ impl-review (orchestrator)
  │   ├─ correctness 観点
  │   ├─ security 観点
  │   ├─ architecture 観点
- │   ├─ runtime-gap 観点
- │   └─ test-gap 観点 (テストランナー導入後に有効)
- ├─ comment-reviewer                  ← .claude/agents/comment-reviewer.md
- │   (コメント内容の品質。指摘はオーケストレーターが作業ツリーへ適用)
+ │   ├─ cohesion 観点
+ │   └─ runtime-gap 観点
  └─ review-verifier                   ← .claude/agents/review-verifier.md
      (各 finding を CONFIRMED / PLAUSIBLE / REFUTED 判定)
 
@@ -81,9 +80,9 @@ full-verify (orchestrator / in-session fast-path)
      (unit ごとの実装品質。基準は skills/full-verify/prompts/verify-impl.md が SSOT)
 ```
 
-このほか、特定スキルへの固定 wiring を持たない **単独起動の read-only レビュー subagent** として `doc-reviewer` (ドキュメント散文の品質) が `.claude/agents/` に存在する。下記の subagent 規約 (read-only / sonnet 既定 / モデル分散) に従う。
+このほか、特定スキルへの固定 wiring を持たない **単独起動の read-only レビュー subagent** として `doc-reviewer` (ドキュメント散文の品質) と `comment-reviewer` (コメント内容の品質基準。`comment-sweep` が実行時に基準の出所として読む) が `.claude/agents/` に存在する。下記の subagent 規約 (read-only / sonnet 既定 / モデル分散) に従う。
 
-subagent 自身が read-only である規約は `comment-reviewer` にも等しく適用される。`impl-review` がコメント指摘を修正できるのは、**オーケストレーター側が適用する**からであって、subagent に編集権限を与えているからではない。
+subagent 自身が read-only である規約は例外を持たない。書き込みを行うスキル (`comment-sweep` / `test-review` の Step 5) がソースを変えられるのは、**オーケストレーター側が適用する**からであって、subagent に編集権限を与えているからではない。
 
 ### subagent 規約
 
@@ -106,7 +105,8 @@ subagent 自身が read-only である規約は `comment-reviewer` にも等し�
 
 | スキル | 入力 | 出力 | 用途 |
 | --- | --- | --- | --- |
-| `scaffold-test` | テストを持たない対象 | `<subject>.test.ts(x)` 1 ファイル | 1:1 ゲートとカバレッジゲートを満たすテストの新規作成 |
+| `comment-sweep` | 1 ディレクトリのコメント在庫 | 5 判定の適用（コードと移設先の両方を書く。3 適用モード） | 置き場所の誤りと、同じ内容の分散を在庫から抜く |
+| `scaffold-test` | テストを持たない対象の集合 | 対象ごとの `<subject>.test.ts(x)` | 1:1 ゲートとカバレッジゲートを満たすテストの新規作成 |
 | `scaffold-integration-test` | HTTP 境界を持つ継ぎ目 | `<subject>.contract.test.ts` 1 ファイル | 契約駆動のハンドラで境界を固定する |
 | `canonicalize-doc` | EN または JA のドキュメント | 不足側を生成 / 両側の drift を同期 | 1 ドキュメントの 2 言語ペア管理 |
 | `sync-readme` | README + そのディレクトリ | 実状に合わせて README を書き換え | README ↔ ディスク drift 解消 |
@@ -142,7 +142,7 @@ subagent 自身が read-only である規約は `comment-reviewer` にも等し�
 
 - subagent 設定 (`.claude/agents/`) は本 ADR と対になる。新規 subagent を追加する場合は `SKILL.md` 側の参照も更新する
 - スキルの組み合わせ (`sync-readme` → `canonicalize-doc`) は `SKILL.md` 内で chain として明示する
-- `impl-review` の lens (correctness / security / architecture / runtime-gap / test-gap) と `test-review` のレンズは追加・削除可能だが、本 ADR の趣旨 (adversarial / 多視点) を逸脱しないこと。テスト観点の所管は `test-review` にあり、`impl-review` の `test-gap` は委譲が動かない場合の fallback である
+- `impl-review` の lens (correctness / security / architecture / cohesion / runtime-gap) と `test-review` のレンズは追加・削除可能だが、本 ADR の趣旨 (adversarial / 多視点) を逸脱しないこと。**レビュー 3 スキルは対等で、互いを呼ばない** —— テストの所管は `test-review`、コメントの所管は `comment-sweep` にあり、`impl-review` はどちらのレンズも持たない ([AGENTS.md](../../AGENTS.md) Review Phase Protocol)
 
 ## 関連 ADR
 

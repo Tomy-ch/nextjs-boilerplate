@@ -7,6 +7,8 @@ import { DEFAULT_PROFILE, type ResilienceProfile } from "./resilience-profile";
 
 const schema = z.object({ ok: z.boolean() });
 
+const MAX_URL_BYTES = 8_000;
+
 const profile: ResilienceProfile = {
   ...DEFAULT_PROFILE,
   breaker: { ...DEFAULT_PROFILE.breaker, sampleSize: 2, failureRate: 1 },
@@ -26,6 +28,7 @@ function createClient(
 ) {
   return createHttpClient({
     baseUrl: "https://api.example.test",
+    maxUrlBytes: MAX_URL_BYTES,
     profile,
     fetchImpl,
     now: () => 0,
@@ -47,6 +50,22 @@ async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> 
 
 describe("createHttpClient", () => {
   // ----- 正常系 -----
+  it("実装を渡さなければ呼び出し時の fetch を使う", async () => {
+    const globalFetch = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    vi.stubGlobal("fetch", globalFetch);
+
+    const client = createHttpClient({
+      baseUrl: "https://api.example.test",
+      maxUrlBytes: MAX_URL_BYTES,
+      profile,
+    });
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(globalFetch).toHaveBeenCalledOnce();
+    vi.unstubAllGlobals();
+  });
+
   it("契約に沿う応答を検証して返す", async () => {
     const client = createClient(vi.fn(async () => jsonResponse(200, { ok: true })));
 
@@ -58,23 +77,63 @@ describe("createHttpClient", () => {
     const client = createClient(fetchImpl);
 
     await client.request({
-      path: "/v1/products",
-      searchParams: { keyword: "本", categoryId: undefined },
+      path: "/v1/items",
+      searchParams: { keyword: "本", tag: undefined },
       schema,
     });
 
     expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/v1/products?keyword=%E6%9C%AC",
+      "https://api.example.test/v1/items?keyword=%E6%9C%AC",
     );
+  });
+
+  it("base URL の path を残したまま繋ぐ", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { baseUrl: "https://api.example.test/api/" });
+
+    await client.request({ path: "v1/items", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/api/v1/items");
+  });
+
+  it("接続先を離れる要求には資格情報を載せない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { getBearerToken: async () => "token" });
+
+    await client.request({ path: "https://idp.example.test/default/token", schema });
+
+    expect(new Headers(fetchImpl.mock.calls[0]?.[1]?.headers).has("Authorization")).toBe(false);
+  });
+
+  it("絶対 URL を渡されたら base URL へ繋がない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({ path: "https://idp.example.test/default/token", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://idp.example.test/default/token");
+  });
+
+  it("並びで渡した値を同じキーの繰り返しにする", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({
+      path: "/v1/items",
+      searchParams: { tag: ["a", "b"], state: [] },
+      schema,
+    });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/items?tag=a&tag=b");
   });
 
   it("再検証のタグを渡す", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);
 
-    await client.request({ path: "/v1/products", schema, tags: ["products"] });
+    await client.request({ path: "/v1/items", schema, tags: ["items"] });
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: ["products"] } });
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: ["items"] } });
   });
 
   it("本文があれば JSON として送る", async () => {
@@ -82,16 +141,111 @@ describe("createHttpClient", () => {
     const client = createClient(fetchImpl);
 
     await client.request({
-      path: "/v1/products",
+      path: "/v1/items",
       method: "POST",
-      body: { name: "商品" },
+      body: { name: "名前" },
       schema,
     });
 
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
-      body: '{"name":"商品"}',
+      body: '{"name":"名前"}',
       headers: { "Content-Type": "application/json" },
     });
+  });
+
+  it("form を指定すれば URL 符号化して送る", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({
+      path: "/token",
+      method: "POST",
+      form: { grant_type: "authorization_code", code: "a b" },
+      schema,
+    });
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      body: "grant_type=authorization_code&code=a+b",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+  });
+
+  it("multipart を指定すれば FormData をそのまま送る", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+    const multipart = new FormData();
+
+    multipart.append("file", new File(["x"], "a.png", { type: "image/png" }));
+
+    await client.request({ method: "POST", path: "/uploads", multipart, schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.body).toBe(multipart);
+  });
+
+  it("multipart には Content-Type を付けない。境界文字列を決めるのは runtime のため", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+    const multipart = new FormData();
+
+    multipart.append("file", new File(["x"], "a.png", { type: "image/png" }));
+
+    await client.request({ method: "POST", path: "/uploads", multipart, schema });
+
+    const headers = fetchImpl.mock.calls[0]?.[1]?.headers;
+
+    expect(headers).not.toHaveProperty("Content-Type");
+  });
+
+  it("本文が無ければ Content-Type を付けない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).not.toHaveProperty("Content-Type");
+  });
+
+  it("204 は本文を読まず、本文を持たない契約として通す", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
+    const client = createClient(fetchImpl);
+
+    await expect(
+      client.request({ path: "/v1/items/1", method: "DELETE", schema: z.void() }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("Bearer の取得口を渡さない接続先へ認証ヘッダを付けない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).not.toHaveProperty("Authorization");
+  });
+
+  it("Bearer を解決できたら Authorization を付ける", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { getBearerToken: async () => "access-token" });
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).toMatchObject({
+      Authorization: "Bearer access-token",
+    });
+  });
+
+  it("Bearer の解決を試行ごとに繰り返さない", async () => {
+    const getBearerToken = vi.fn(async () => "access-token");
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse(503, {}))
+      .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { getBearerToken });
+
+    await client.request({ path: "/v1/items", schema });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(getBearerToken).toHaveBeenCalledOnce();
   });
 
   it("5xx のあとに成功すれば結果を返す", async () => {
@@ -138,6 +292,7 @@ describe("createHttpClient", () => {
       .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
     const client = createHttpClient({
       baseUrl: "https://api.example.test",
+      maxUrlBytes: MAX_URL_BYTES,
       profile,
       fetchImpl,
       now: () => 0,
@@ -154,15 +309,168 @@ describe("createHttpClient", () => {
       .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);
 
-    await client.request({ path: "/v1/purchases", method: "POST", idempotent: true, schema });
+    await client.request({ path: "/v1/items", method: "POST", idempotent: true, schema });
 
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
+
+  it("呼び出し固有のヘッダを送る", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({ path: "/v1/ping", headers: { "X-Session-Token": "token" }, schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({ "X-Session-Token": "token" }),
+    });
+  });
+
+  it("認証を任意にした接続先は、資格情報が無くても認証なしで送る", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, {
+      allowAnonymous: true,
+      getBearerToken: async () => null,
+    });
+
+    await expect(client.request({ path: "/v1/ping", schema })).resolves.toEqual({ ok: true });
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.not.objectContaining({ Authorization: expect.anything() }),
+    });
+  });
+
+  it("認証を任意にした接続先でも、取得できた資格情報は載せる", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, {
+      allowAnonymous: true,
+      getBearerToken: async () => "token",
+    });
+
+    await client.request({ path: "/v1/ping", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({ Authorization: "Bearer token" }),
+    });
+  });
+
+  it("区間の途中にある点は落とさない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    await client.request({ path: "/v1/items/a..b/ship", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/items/a..b/ship");
+  });
+
   // ----- 異常系 -----
+  it("路を畳む区間を含む path を、送らずに invalid-argument で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    expect(
+      await kindOf(() =>
+        client.request({ path: `/v1/items/${encodeURIComponent("..")}/ship`, schema }),
+      ),
+    ).toBe(ErrorKind.INVALID_ARGUMENT);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("路の末尾で畳む区間も落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    expect(await kindOf(() => client.request({ path: "/v1/items/..", schema }))).toBe(
+      ErrorKind.INVALID_ARGUMENT,
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("路の先頭が畳む区間でも落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    expect(await kindOf(() => client.request({ path: "../v1/items", schema }))).toBe(
+      ErrorKind.INVALID_ARGUMENT,
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("現在地を指す区間も落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    expect(await kindOf(() => client.request({ path: "/v1/items/./ship", schema }))).toBe(
+      ErrorKind.INVALID_ARGUMENT,
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("予算を超えた URL を、送らずに uri-too-long で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { maxUrlBytes: 60 });
+
+    expect(
+      await kindOf(() =>
+        client.request({ path: "/v1/items", searchParams: { keyword: "x".repeat(100) }, schema }),
+      ),
+    ).toBe(ErrorKind.URI_TOO_LONG);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("base URL のパスを含めた合成後の長さで予算を判定する", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, {
+      baseUrl: "https://api.example.test/very/long/prefix",
+      maxUrlBytes: 20,
+    });
+
+    expect(await kindOf(() => client.request({ path: "/v1/items", schema }))).toBe(
+      ErrorKind.URI_TOO_LONG,
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("予算を超えた要求では Bearer の解決を試みない", async () => {
+    const getBearerToken = vi.fn(async () => "token");
+    const client = createClient(
+      vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true })),
+      {
+        maxUrlBytes: 60,
+        getBearerToken,
+      },
+    );
+
+    await kindOf(() =>
+      client.request({ path: "/v1/items", searchParams: { keyword: "x".repeat(100) }, schema }),
+    );
+
+    expect(getBearerToken).not.toHaveBeenCalled();
+  });
+
+  it("予算を超えた要求では遮断器を進めない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { maxUrlBytes: 60 });
+    const tooLong = { path: "/v1/items", searchParams: { keyword: "x".repeat(100) }, schema };
+
+    await kindOf(() => client.request(tooLong));
+    await kindOf(() => client.request(tooLong));
+
+    await expect(client.request({ path: "/v1/items", schema })).resolves.toEqual({ ok: true });
+  });
+
+  it("認証が要る接続先で Bearer を解決できないとき、送らずに未認証で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, { getBearerToken: async () => null });
+
+    expect(await kindOf(() => client.request({ path: "/v1/items", schema }))).toBe(
+      ErrorKind.UNAUTHENTICATED,
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("生の status を漏らさず分類で落とす", async () => {
     const client = createClient(vi.fn(async () => jsonResponse(404, {})));
 
-    expect(await kindOf(() => client.request({ path: "/v1/products/1", schema }))).toBe(
+    expect(await kindOf(() => client.request({ path: "/v1/items/1", schema }))).toBe(
       ErrorKind.NOT_FOUND,
     );
   });
@@ -171,7 +479,7 @@ describe("createHttpClient", () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(400, {}));
     const client = createClient(fetchImpl);
 
-    await kindOf(() => client.request({ path: "/v1/products", schema }));
+    await kindOf(() => client.request({ path: "/v1/items", schema }));
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
@@ -180,7 +488,7 @@ describe("createHttpClient", () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(503, {}));
     const client = createClient(fetchImpl);
 
-    await kindOf(() => client.request({ path: "/v1/purchases", method: "POST", schema }));
+    await kindOf(() => client.request({ path: "/v1/items", method: "POST", schema }));
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
@@ -230,8 +538,13 @@ describe("createHttpClient", () => {
 
   it("全体の期限を過ぎた中断を canceled として扱う", async () => {
     const client = createClient(
-      vi.fn(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 5));
+      // 期限そのものを待ってから失敗する。実時間の長さで競争させると、どちらが先に来るかを
+      // ホストの混み具合が決める。
+      vi.fn(async (_url, init) => {
+        await new Promise((resolve) => {
+          init?.signal?.addEventListener("abort", resolve, { once: true });
+        });
+
         throw new DOMException("中断されました", "AbortError");
       }),
       { profile: { ...profile, overallTimeoutMs: 1 } },
@@ -267,11 +580,17 @@ describe("createHttpClient", () => {
     const client = createClient(fetchImpl, {
       profile: { ...profile, breaker: { ...profile.breaker, sampleSize: 1_000 } },
     });
+    const attemptsPerRequest: number[] = [];
 
     for (let count = 0; count < 3; count += 1) {
+      const before = fetchImpl.mock.calls.length;
+
       await kindOf(() => client.request({ path: "/v1/ping", schema }));
+      attemptsPerRequest.push(fetchImpl.mock.calls.length - before);
     }
 
-    expect(fetchImpl.mock.calls.length).toBeLessThan(profile.maxAttempts * 3);
+    // 予算は失敗 1 件につき 1 消費し、上限の半分を下回ると再試行を止める。失敗だけが続くと
+    // 要求ごとの試行回数がそのぶん減り、3 度目には 1 度も再試行できない。
+    expect(attemptsPerRequest).toEqual([profile.maxAttempts, 2, 1]);
   });
 });

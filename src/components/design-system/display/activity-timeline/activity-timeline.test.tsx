@@ -123,7 +123,6 @@ describe("ActivityTimeline", () => {
 });
 
 describe("ActivityTimelineItem", () => {
-  // ----- 正常系 -----
   it("出来事 1 件として slot を持つ listitem を描画する", () => {
     render(<TimelineFixture />);
 
@@ -135,7 +134,6 @@ describe("ActivityTimelineItem", () => {
 });
 
 describe("ActivityTimelineTime", () => {
-  // ----- 正常系 -----
   it("機械可読な日時を持つ time 要素として描画する", () => {
     const { container } = render(<TimelineFixture />);
     const time = container.querySelector('[data-slot="activity-timeline-time"]');

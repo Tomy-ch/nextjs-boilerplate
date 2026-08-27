@@ -68,7 +68,6 @@ describe("Kbd", () => {
 });
 
 describe("KbdGroup", () => {
-  // ----- 正常系 -----
   it("複数のキーをまとめる枠として slot を持つ要素を描画する", () => {
     const { container } = render(
       <KbdGroup>

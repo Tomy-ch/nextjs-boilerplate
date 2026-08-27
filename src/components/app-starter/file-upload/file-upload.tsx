@@ -6,8 +6,8 @@ import {
   type ComponentProps,
   type DragEvent,
   useCallback,
-  useEffect,
   useId,
+  useRef,
   useState,
 } from "react";
 
@@ -27,8 +27,22 @@ export type FileUploadProps = Omit<ComponentProps<"input">, "onSelect" | "type" 
   prompt?: string;
   /** 選ぶ操作の文言。 */
   triggerLabel?: string;
-  /** 選択された内容を伝える。受け付けたものだけが渡る。 */
+  /**
+   * 選択された内容を伝える。受け付けたものだけが渡る。
+   */
   onSelect?: (files: File[]) => void;
+  /**
+   * 渡し終えたら受け口を空へ戻すか。
+   *
+   * @remarks
+   * 選んだ内容の持ち主が呼び出し元にある場合に使います。受け口が自分の控えを持ち続けると、
+   * 呼び出し元が 1 件外しても受け口の表示は変わらず、同じファイルが 2 か所に食い違って
+   * 並びます。空へ戻せば持ち主は 1 つになります。
+   *
+   * 同じファイルを選び直せるようにもなります。`input` は値が変わらないと `change` を出さない
+   * ため、控えを残したままだと一度外したファイルを選び直せません。
+   */
+  resetOnSelect?: boolean;
   /** 受け付けなかったファイルと、その理由を伝える。 */
   onReject?: (rejections: FileUploadRejection[]) => void;
 };
@@ -138,6 +152,7 @@ export function FileUpload({
   onChange,
   onReject,
   onSelect,
+  resetOnSelect,
   pending = false,
   progress,
   prompt = "ここにドラッグ、またはクリックして選択",
@@ -147,25 +162,10 @@ export function FileUpload({
   const generatedId = useId();
   const progressId = useId();
   const controlId = id ?? generatedId;
-  const [input, setInput] = useState<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<File[]>([]);
-  const [dropped, setDropped] = useState<File[] | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const isBlocked = disabled === true || pending;
-
-  useEffect(() => {
-    if (input === null || dropped === null) {
-      return;
-    }
-
-    const transfer = new DataTransfer();
-
-    for (const file of dropped) {
-      transfer.items.add(file);
-    }
-
-    input.files = transfer.files;
-  }, [dropped, input]);
 
   const applySelection = useCallback(
     (chosen: File[]) => {
@@ -177,7 +177,7 @@ export function FileUpload({
         (file) => !rejections.some((rejection) => rejection.file === file),
       );
 
-      setSelected(accepted);
+      setSelected(resetOnSelect === true ? [] : accepted);
       onSelect?.(accepted);
 
       if (rejections.length > 0) {
@@ -186,15 +186,20 @@ export function FileUpload({
 
       return accepted;
     },
-    [accept, maxSize, multiple, onReject, onSelect],
+    [accept, maxSize, multiple, onReject, onSelect, resetOnSelect],
   );
 
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       onChange?.(event);
       applySelection([...(event.target.files ?? [])]);
+
+      if (resetOnSelect === true) {
+        // 値を空へ戻さないと、同じファイルを選び直しても `change` が出ない。
+        event.target.value = "";
+      }
     },
-    [applySelection, onChange],
+    [applySelection, onChange, resetOnSelect],
   );
 
   const handleDragOver = useCallback(
@@ -225,7 +230,19 @@ export function FileUpload({
         return;
       }
 
-      setDropped(applySelection([...event.dataTransfer.files]));
+      const accepted = applySelection([...event.dataTransfer.files]);
+      const input = inputRef.current;
+      /* istanbul ignore next -- drop を受けるのは input を包む label で、要素が無い状態では起きない。TS の絞り込みのためだけの分岐。 */
+      if (input === null) return;
+
+      const transfer = new DataTransfer();
+
+      for (const file of accepted) {
+        transfer.items.add(file);
+      }
+
+      // 落としたファイルは選択ダイアログを通らないため、書き戻さないと native form の送信に載らない。
+      input.files = transfer.files;
     },
     [applySelection, isBlocked],
   );
@@ -237,7 +254,7 @@ export function FileUpload({
           "flex flex-col items-center gap-2 rounded-md border-2 border-border border-dashed px-4 py-6 text-center transition-colors",
           isBlocked ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-foreground",
           isDraggingOver && "border-foreground bg-accent",
-          "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-foreground has-[input:focus-visible]:outline-offset-2",
+          "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-active has-[input:focus-visible]:outline-offset-2",
           "has-[input[aria-invalid=true]]:border-destructive",
         )}
         data-dragging={isDraggingOver ? "true" : undefined}
@@ -255,14 +272,14 @@ export function FileUpload({
           id={controlId}
           multiple={multiple}
           onChange={handleChange}
-          ref={setInput}
+          ref={inputRef}
           type="file"
           {...props}
         />
         <UploadIcon aria-hidden="true" className="size-6 text-muted-foreground" />
         <span className="text-muted-foreground text-sm">{prompt}</span>
         <span
-          className="inline-flex h-9 items-center justify-center rounded-md border border-border px-4 font-medium text-foreground text-sm"
+          className="inline-flex h-9 items-center justify-center rounded-md border border-border px-4 font-emphasis text-foreground text-sm"
           data-slot="file-upload-trigger"
         >
           {triggerLabel}

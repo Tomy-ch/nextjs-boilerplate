@@ -109,7 +109,7 @@ export function componentDirectoryOf(
  * 見出しに対応する Storybook sidebar の表示名。
  *
  * @remarks
- * sidebar の区画は目録の見出しと同じである。並び順は `.storybook/preview.ts` の `storySort` が持つ。
+ * sidebar の区画は目録の見出しと同じである。並び順は `.storybook/preview.tsx` の `storySort` が持つ。
  */
 export const CATALOG_HEADING_TITLE: Readonly<Record<CatalogHeading, string>> = {
   [CATALOG_HEADING.ACTION]: "Action",
@@ -267,7 +267,7 @@ const RUNTIME_PACKAGES: ReadonlySet<string> = new Set(["react", "react-dom"]);
  * import 指定子から package 名を取り出す。
  *
  * @remarks
- * `next/image` は `next` に、`@radix-ui/react-slot` はそのまま数える。台帳が答えるのは
+ * `next/image` は `next` に、`@tiptap/react` はそのまま数える。台帳が答えるのは
  * 「どの package を参照しているか」であって、その package のどの入口を使ったかではない。
  */
 export function packageOf(specifier: string): string {
@@ -497,7 +497,7 @@ export async function fetchJson(url: string): Promise<unknown> {
   return JSON.parse(stdout);
 }
 
-/* v8 ignore start -- CLI のエントリポイントは pnpm check:ui が実地で通す。 */
+/* istanbul ignore next -- CLI のエントリポイントは pnpm check:ui が実地で通す。 */
 async function main(): Promise<void> {
   const manifestSource = await readFile(manifestPath, "utf8");
   const contents = await readdir(componentsDirectoryPath, { recursive: true, withFileTypes: true });
@@ -562,10 +562,10 @@ async function main(): Promise<void> {
   process.exitCode = checkExitCode(result);
 }
 
+/* istanbul ignore next -- 同上（`main` と同じ）。 */
 if (process.argv[1]?.endsWith("check-shadcn.ts")) {
   void main().catch((error: unknown) => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;
   });
 }
-/* v8 ignore stop */

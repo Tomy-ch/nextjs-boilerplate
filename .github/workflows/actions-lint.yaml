@@ -1,7 +1,7 @@
 name: Actions Lint
 
 # Lints the Actions definitions themselves — the same commands the pre-commit hook
-# runs (ADR 0153: hooks mirror CI). Three checks, one concern:
+# runs (ADR 0153: hooks mirror CI). Seven checks, one concern:
 #
 #   actionlint          — workflow syntax, plus the shell of every `run:` in
 #                         `.github/workflows`. shellcheck is installed alongside it
@@ -17,10 +17,27 @@ name: Actions Lint
 #                         bytes written to a file with `tee` pass through unmasked and
 #                         land verbatim in a public comment. actionlint cannot express
 #                         that rule, so it is checked here (ADR 0153 §5).
+#   actions-mise-pin-…  — the mise version, its digest and the cache key agree. mise's
+#     …lint               own version cannot live in `mise.toml`, so it is declared in
+#                         `.github/actions/setup-mise` in three places at once.
+#   actions-required-…  — every context the ruleset marks required is reported on every
+#     …check-lint         pull request. A required context that is never reported blocks
+#                         the merge forever, and the reasons it goes unreported (a job
+#                         renamed, two jobs sharing a name, a `paths:` filter) span two
+#                         files at once, which actionlint never reads together.
+#   actions-zizmor      — static analysis of the definitions themselves. Neither of the two
+#                         above can see quoting inside `${{ … }}`; ADR 0153 §1 has why.
+#                         zizmor reads the expressions and gates on high findings only.
+#   shellcheck          — every tracked standalone `*.sh`. What lives there is shell
+#                         only because it has to run before dependencies are installed
+#                         (the exception ADR 0155 allows). Nothing else covers it: it is
+#                         not TypeScript, so neither the 1:1 gate nor coverage applies,
+#                         and it sits outside `.github` so actionlint and
+#                         actions-shellcheck both miss it.
 #
-# All three are reported through a single PR comment: they answer the same question —
-# are the Actions definitions we are about to execute correct — and splitting them
-# would add further required checks for one concern.
+# All of them are reported through a single PR comment: they answer the same question
+# — is the automation we are about to execute correct — and splitting them would add
+# further required checks for one concern.
 #
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
@@ -47,26 +64,31 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            tuf-repo-cdn.sigstore.dev:443
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
-      - name: Setup mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.12
-          install: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Node and pnpm are here for the composite-action check, which is a TypeScript
-      # script run through tsx.
-      - name: Install actionlint, shellcheck, Node and pnpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install aqua:rhysd/actionlint aqua:koalaman/shellcheck core:node aqua:pnpm/pnpm
+          tools: aqua:rhysd/actionlint aqua:koalaman/shellcheck aqua:zizmorcore/zizmor core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve the pnpm store path
         id: pnpm-store
@@ -83,7 +105,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # Every check runs unconditionally so one failure does not hide another's
       # findings, and all logs land in the same PR comment.
@@ -102,10 +124,30 @@ jobs:
           make actions-comment-secret-lint 2>&1 | tee -a /tmp/actions-lint.log
           secret_lint_code=${PIPESTATUS[0]}
 
-          summary="actionlint + composite-action shellcheck + pr-comment secret lint"
+          make actions-mise-pin-lint 2>&1 | tee -a /tmp/actions-lint.log
+          mise_pin_code=${PIPESTATUS[0]}
+
+          make actions-required-check-lint 2>&1 | tee -a /tmp/actions-lint.log
+          required_check_code=${PIPESTATUS[0]}
+
+          make actions-zizmor 2>&1 | tee -a /tmp/actions-lint.log
+          zizmor_code=${PIPESTATUS[0]}
+
+          make shellcheck 2>&1 | tee -a /tmp/actions-lint.log
+          script_shellcheck_code=${PIPESTATUS[0]}
+
+          make egress-check 2>&1 | tee -a /tmp/actions-lint.log
+          egress_code=${PIPESTATUS[0]}
+
+          summary="actionlint + shellcheck + pr-comment secret lint + mise pin + required check + zizmor + egress"
           if [ "${actionlint_code}" -eq 0 ] \
             && [ "${shellcheck_code}" -eq 0 ] \
-            && [ "${secret_lint_code}" -eq 0 ]; then
+            && [ "${secret_lint_code}" -eq 0 ] \
+            && [ "${mise_pin_code}" -eq 0 ] \
+            && [ "${required_check_code}" -eq 0 ] \
+            && [ "${zizmor_code}" -eq 0 ] \
+            && [ "${script_shellcheck_code}" -eq 0 ] \
+            && [ "${egress_code}" -eq 0 ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
             echo "title=## ✅ Actions lint: PASS (${summary})" >> "$GITHUB_OUTPUT"
           else
@@ -122,6 +164,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- actions-lint-result -->'
+          status: ${{ steps.actions-lint.outputs.status }}
           title: ${{ steps.actions-lint.outputs.title }}
           body-file: /tmp/actions-lint.log
           details-summary: 'Actions lint log'

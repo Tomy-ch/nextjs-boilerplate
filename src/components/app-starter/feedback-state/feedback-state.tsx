@@ -60,7 +60,7 @@ export function FeedbackState({ kind, title, description }: FeedbackStateProps) 
       ) : (
         <FeedbackStateIcon kind={kind} />
       )}
-      <h2 className="font-medium">{title}</h2>
+      <h2 className="font-emphasis">{title}</h2>
       {description === undefined ? null : <p className="text-muted-foreground">{description}</p>}
     </section>
   );

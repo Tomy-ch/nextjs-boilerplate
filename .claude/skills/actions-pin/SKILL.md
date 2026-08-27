@@ -49,8 +49,7 @@ is [ADR 0153](../../../docs/adr/0153-ci-configuration.md) §3.
   moves** on `resolve`; bumping it requires editing the comment.
 - **The shape of the comment tag declares which of the two it is.** A bare major number (`v6` / `6`)
   is moving; everything else (`v6.1.0`, `v6.1`, `main`) is immutable and its SHA moving is a fail.
-  This is not a guess about upstream's tagging — it is the intent of whoever wrote the pin. An
-  upstream with a moving minor tag (`v6.1`) therefore produces a false positive, which fails safe.
+  An upstream with a moving minor tag (`v6.1`) therefore produces a false positive, which fails safe.
 
 ### Re-pointed tags
 
@@ -58,11 +57,6 @@ is [ADR 0153](../../../docs/adr/0153-ci-configuration.md) §3.
 when an immutable-declared tag resolves to a different SHA, printing `key: <old> -> <new>` per
 finding. Once a re-pointed SHA lands in the lockfile, `check` answers "consistent" forever after, so
 the write is withheld rather than reported alongside.
-
-The check runs on the candidate SHA **before** the quarantine. A freshly re-pointed SHA is the
-newest thing there is, so a post-quarantine comparison would see it turn into `既存ピンを維持` and
-stay silent until the window clears — the detection would sleep through exactly the moment it exists
-for.
 
 An intended update to an immutable tag is approved per key:
 
@@ -74,6 +68,8 @@ Approval covers one move. A key that did not move is reported as a redundant app
 stale one in place would wave the next re-point through. The quarantine still applies independently;
 `ACTIONS_PIN_ALLOW_MOVED` silences only the re-point failure. A key no `uses:` references is an
 error, so a typo cannot pass as a granted approval.
+
+> Rationale: [0153](../../../docs/adr/0153-ci-configuration.md) decision 3.
 
 ## When to Use
 
@@ -150,9 +146,7 @@ Notes on the rule:
 - An exact step-back (step 2) deviates from the moving-major convention. Record in the commit that
   it can be returned to `# vM` once `vM` ages.
 
-## Execution Steps
-
-### 0. Pre-flight
+## Step 0. Pre-flight
 
 Install dependencies and export a token so `resolve` (GitHub API for release dates) is not
 rate-limited:
@@ -162,7 +156,7 @@ pnpm install --frozen-lockfile
 export GITHUB_TOKEN="$(gh auth token)"
 ```
 
-### 1. Parse Arguments and Inventory
+## Step 1. Parse Arguments and Inventory
 
 Parse the arguments (above) into `<MODE>` (minor / major) and `<N>` (exclusion days). Then:
 
@@ -170,7 +164,7 @@ Parse the arguments (above) into `<MODE>` (minor / major) and `<N>` (exclusion d
 - Grep `uses:` across `.github/workflows/` and `.github/actions/` to map each external action to its
   file locations and current comment tag (note actions referenced in multiple files).
 
-### 2. Query Releases and Compute the Target Pin
+## Step 2. Query Releases and Compute the Target Pin
 
 For each distinct external action, fetch its release list with dates
 (`gh api repos/<owner>/<repo>/releases -q '.[] | "\(.tag_name)\t\(.published_at)\t\(.prerelease)"'`;
@@ -181,7 +175,7 @@ must match the upstream tag string exactly or `resolve` fails with `ref ... が�
 step 1 candidates also confirm the moving `vM` tag actually exists (`git ls-remote … vM`); if
 absent, fall to step 2.
 
-### 3. Verify `with:` for Major Bumps
+## Step 3. Verify `with:` for Major Bumps
 
 `resolve` / `apply` / `actionlint` catch syntax, NOT semantic input changes. For every action whose
 **major changes**, read its release notes and the upstream action's own definition file, then compare
@@ -189,7 +183,7 @@ them against every `with:` block this repo uses. If the repo's actual inputs rem
 change applies → **hold the action and report the required change**; do not auto-apply. Minor-only
 refreshes within a major skip this check.
 
-### 3.5. Where Step-back Is Not Available
+## Step 4. Where Step-back Is Not Available
 
 The quarantine's normal answer is the **step-back** (rule 2): pin the newest already-aged exact
 version. It needs no evidence gathering — it adopts something the window has already cleared. The
@@ -207,7 +201,7 @@ already have (publisher, the commit range between the lockfile SHA and the candi
 the action's own entry point, and the `with:` surface), state plainly that no vetted alternative
 exists, and let the user decide via `AskUserQuestion`.
 
-### 4. Display Plan and Confirm
+## Step 5. Display Plan and Confirm
 
 Print a Japanese summary: bumps to apply (moving `# vM` / exact step-back `# vM.x.y`, each with the
 chosen version + its age), held items (with reason: still-fresh new major / breaking `with:` / no
@@ -215,7 +209,7 @@ aged release), and unchanged. Then confirm the concrete set via `AskUserQuestion
 (`multiSelect: true` when several independent bumps are offered) so the step-back and hold decisions
 are visible before any write.
 
-### 5. Edit Comment Tags
+## Step 6. Edit Comment Tags
 
 For each approved bump, edit the trailing comment tag of the relevant `uses:` line(s) to the
 computed target (`# v7`, or exact `# v4.1.0`). Leave the `@<sha>` as-is (`apply` rewrites it). When
@@ -223,7 +217,7 @@ an action appears in multiple files with an identical `uses:` line, a per-file r
 appropriate; when several distinct actions share the same old comment in one file, match the full
 unique `uses:` line so only the intended one changes. Leave held / unchanged actions untouched.
 
-### 6. Resolve → Apply
+## Step 7. Resolve → Apply
 
 ```sh
 export GITHUB_TOKEN="$(gh auth token)"
@@ -247,7 +241,7 @@ judgment. If it is confirmed, re-run with the key approved and note in the commi
 If `resolve` aborts with `ref "vN" が見つかりません`, the moving-major tag does not exist — that
 action should have been a step-2 exact pin; fix and re-run.
 
-### 7. Verify
+## Step 8. Verify
 
 ```sh
 make actions-pin-check     # pins match the lockfile
@@ -256,10 +250,10 @@ make actionlint            # actionlint over the workflow definitions
 
 Report OK / FAIL per command. Do NOT auto-roll-back on failure — the user decides.
 
-### 8. Final Report
+## Step 9. Final Report
 
 Summarize: actions bumped (moving / exact step-back), actions SHA-refreshed, actions held (with
-reason), any re-pointed tag `resolve` failed on in step 6, verification result. List any exact-version pins
+reason), any re-pointed tag `resolve` failed on in step 7, verification result. List any exact-version pins
 introduced so the user knows to revisit them once aged. Do NOT commit, stage, or push — the user
 runs `/commit` (these changes take the `CI:` prefix) manually.
 
@@ -269,13 +263,13 @@ runs `/commit` (these changes take the `CI:` prefix) manually.
   aged release exists in the target major.
 - **A tag is a name, not an identity.** The lockfile exists because a tag can be re-pointed; an
   immutable-declared tag whose SHA moves is the case it was built to catch, and `resolve` fails
-  closed on it (step 6).
+  closed on it (step 7).
 - **The quarantine buys time; it does not prove age.** It reads the more recent of the release's
   `published_at` and the commit's date. A release object is bound to the tag *name* and does not move
   when the tag is re-pointed, and a commit date is git metadata the publisher can set freely — so
   neither signal alone describes the resolved SHA, and even together they are defeatable by a
   determined publisher. The gate is a delay against automated compromise, not a guarantee. Catching a
-  re-point is `resolve`'s fail-closed job (step 6), not the quarantine's.
+  re-point is `resolve`'s fail-closed job (step 7), not the quarantine's.
 - **Quarantine vs new majors**: the gate keys off SHA age, and a new major has no prior lockfile
   entry, so a fresh major's moving tag is skipped by `resolve` until it ages — which is exactly why
   step 2 pins an aged exact version instead.

@@ -25,6 +25,8 @@ export function normalizeVersion(version: string): string | null {
 
 /** 正規化済みの版を 1 段進め、`v` を付けて返す。 */
 export function bumpVersion(version: string, type: BumpType): string {
+  /* istanbul ignore next -- 受け取るのは正規化済みの `x.y.z` で、`split` は必ず 3 要素を返す。
+     既定値は `noUncheckedIndexedAccess` の下で型を絞るためだけに置いている。 */
   const [major = 0, minor = 0, patch = 0] = version.split(".").map(Number);
 
   if (type === "major") {

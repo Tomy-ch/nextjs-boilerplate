@@ -70,9 +70,21 @@ make help
 | --- | --- | --- |
 | `make setup-replace-license-copyright COPYRIGHT_HOLDER=<name> [COPYRIGHT_YEAR=<year>]` | LICENSE の著作権表記を更新します。 | 年は省略可能です。 |
 | `make setup-replace-repository-reference REPOSITORY=<owner>/<repo>` | GitHub リポジトリ参照とプロジェクト名（`package.json` の `name`）をフォーク先へ置換します。 | `docs/` / `.claude/` / `scripts/setup/` / ビルド成果物（`.next` / `dist` / `build` / `tmp`）/ ロックファイルは対象外です。 |
+| `make setup-remove-boilerplate-only` | boilerplate 限定の記述（配る側にしか意味を持たない規則・注記）を剥がします。 | 剥がし終えると道具自身も消えます。飛ばす選択肢はありません（[0152](../docs/adr/0152-agents-md-policy.md)）。 <!-- boilerplate-only:line --> |
 
-どちらの補助コマンドも `DRY_RUN=1` を付けると、書き換えずに変更予定だけを出力します。有効値は `1` のみで、
+いずれの補助コマンドも `DRY_RUN=1` を付けると、書き換えずに変更予定だけを出力します。有効値は `1` のみで、
 それ以外（`DRY_RUN=0` や変数の省略）はすべて実際に書き換えます。
+
+### VRT 基準画像の置き場関連
+
+基準画像は別リポジトリに置き、`baseline/images` からサブモジュールとして参照します
+（[`vrt/README.md`](../vrt/README.md)）。置き場側は workflow を持たないので、操作はすべてここから出ます。
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make setup-baseline-store` | 置き場を用意し、`baseline/images` へ配線します。 | 既存リポジトリの指定を先に問います（組織では新規作成が権限で縛られていることがあるため）。新規作成時は README を置く初期コミットまで作ります。配線済みなら張り替えるので、組織の移動やリポジトリ名の変更でも同じコマンドで済みます。 |
+| `make setup-baseline-app` | 撮り直しに使う GitHub App を `BASELINE_APP_ID` / `BASELINE_APP_PRIVATE_KEY` へ登録します。 | App の作成と鍵の生成は自動化できません。App ID は slug から解決するので控える必要はなく、秘密鍵は標準入力へ貼るのでディスクにも履歴にも残りません。 |
+| `make baseline-prune [DRY_RUN=1]` | 生きた ref から指されていない基準画像の一式を置き場から消します。 | 取り消せません。実行を促すのは月次の [`baseline-prune.yaml`](../.github/workflows/baseline-prune.yaml) で、閾値を超えたときだけ issue を立てます。保持の条件は [`scripts/baseline-store/retention.ts`](../scripts/baseline-store/retention.ts)。 |
 
 ### GitHub Actions Lint 関連
 
@@ -80,7 +92,11 @@ make help
 | --- | --- | --- |
 | `make actionlint` | `.github/workflows` のワークフロー定義を actionlint で検査します。 | ディレクトリが存在しない場合はスキップします。 |
 | `make actions-shellcheck` | composite action（`.github/actions/**/action.yaml`）の `run:` シェルを shellcheck で検査します。 | 指摘は `action.yaml` の行・列で報告します。`bash` / `sh` 以外の `shell:` は検査せず、位置と方言を添えて skip として出力します。 |
+| `make actions-mise-pin-lint` | `setup-mise` の版 / digest / キャッシュキーが揃っているか検査します。 | mise 自身の版は `mise.toml` に書けないため composite action が宣言を持ち、`with:` から `env:` を参照できない制約でキャッシュキーが同じ値を二度目に持ちます。片方だけ直した状態は落ちますが原因が遠いので検査します。整合違反は exit 1、検査が成立していない状態は exit 2。 |
 | `make actions-comment-secret-lint` | PR コメントを投稿するジョブに `GITHUB_TOKEN` 以外の secret が渡っていないか検査します。 | 規約違反は exit 1、検査そのものが成立していない状態は exit 2 で区別します。 |
+| `make actions-required-check-lint` | required status check に登録した context が、すべての PR で報告されるか検査します。 | 判定に要るのが ruleset の宣言とワークフロー定義の 2 ファイルなので actionlint では表現できません。宣言違反は exit 1、検査が成立していない状態は exit 2 で区別します。 |
+| `make actions-zizmor` | workflows と composite action の定義を zizmor で静的解析します。 | actionlint / `actions-shellcheck` が shellcheck へ渡す前に `${{ … }}` を潰すため見えない観点（`run:` での未クオートな式展開など）を担います。落とすのは high の所見だけで、抑止は `.github/zizmor.yml` に理由付きで宣言します。hook / CI とも `--offline` で走ります。 |
+| `make shellcheck` | 追跡下の `*.sh` を shellcheck で検査します。 | 対象は「依存の導入前に走る必要があってシェルで書くしかないもの」（ADR 0155 の例外）です。TypeScript ではないので 1:1 ゲートもカバレッジも掛からず、`.github` の外なので actionlint も届きません。shellcheck が無ければ検査範囲が黙って縮むため落とします。 |
 
 actionlint は `run:` ステップのシェルも shellcheck 経由で検査するため、両バイナリを `mise.toml` で版固定して
 います（[ADR 0003](../docs/adr/0003-version-manager.md)）。先に `make install-tools` を実行してください。
@@ -122,6 +138,28 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
   見つからない（参照の同定が壊れている）/ ジョブが reusable workflow を呼び出している（呼び出し先へ
   `with:` で渡る secret を追えないため未対応）
 
+`make actions-required-check-lint` は、[`../.github/settings/branch-protection.json`](../.github/settings/branch-protection.json)
+が必須にしている context ごとに、**その名前を報告し続ける job がちょうど 1 つあること**を検査します。報告
+されない context は「必須チェック待ち」のまま永久にマージできず、壊れたと分かるのは原因を入れた PR では
+なく次に上がってきた PR です。
+
+落とすのは次の 6 つ。いずれも登録した時点では緑に見え、条件を満たさない PR が来た瞬間にマージ不能へ変わ
+ります。
+
+- その名前を宣言する job が無い（job の rename が典型）
+- 複数の job が同じ名前を宣言している（どちらの結果を必須にしているのか決まらない）
+- その workflow が `pull_request` で走らない
+- `pull_request` が `paths` / `paths-ignore` / `branches` / `branches-ignore` で絞られている
+- `types:` を絞っていて `opened` / `synchronize` を含まない
+- context 名が実行時に枝分かれする（`strategy.matrix` / reusable workflow の呼び出し）
+
+`if:` で降りる job は落としません。降りた job は `skipped` を報告し、必須チェックはそれを成功として数える
+ため、報告そのものは途切れないからです。
+
+ワークフローの列挙と `jobs:` へ降りるまでの読み取りは [`../scripts/lib/workflow-files.ts`](../scripts/lib/workflow-files.ts)
+が持ちます。**同じ判断を検査ごとに書き起こすと、片方だけが直った状態が黙って生まれる**ため、
+`make actions-comment-secret-lint` と共有します。
+
 ### リリースブランチ関連
 
 | コマンド | 説明 | 補足 |
@@ -145,7 +183,7 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make install-tools` | `mise.toml` の `[tools]`（Node.js / pnpm / actionlint / shellcheck / gitleaks / Trivy）をインストールします。 | mise の事前インストールが必要。全エントリが backend を明示します。詳細は [ADR 0003](../docs/adr/0003-version-manager.md) 参照 |
+| `make install-tools` | `mise.toml` の `[tools]`（Node.js / pnpm / actionlint / shellcheck / zizmor / gitleaks / Trivy）をインストールします。 | mise の事前インストールが必要。全エントリが backend を明示します。詳細は [ADR 0003](../docs/adr/0003-version-manager.md) 参照 |
 
 ### コミットメッセージ検証関連
 
@@ -165,6 +203,8 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 | `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>] [ACTIONS_PIN_ALLOW_MOVED="<key>..."]` | コメント tag を `git ls-remote` で SHA へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます。既定の検疫日数は 14。不変を宣言した tag の解決先が変わると exit 1（下記）。GitHub API のレート制限に掛かる場合は `GITHUB_TOKEN`（または `GH_TOKEN`）を設定してください。 |
 | `make actions-pin-apply` | ロックファイルを元に `uses:` の `@<sha>` を書き換えます。 | コメント tag は保持します。 |
 | `make actions-pin-check` | `uses:` がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-pin` job が実行します。未登録の参照 / 未固定・不一致の SHA / 壊れたロックファイル / 参照されなくなったエントリ / 解釈できない `uses:` 記法を検出して exit 1（fail-closed）。 |
+| `make egress-apply` | `.github/egress.yaml` を workflow の harden-runner へ反映します。 | 許可した宛先以外への外向き通信は遮断されます（`egress-policy: block`）。**足す根拠は実測**（`audit` が記録した `domain resolved:` 行）に置いてください。記録が揃っていない workflow は宣言側で `audit` に留め、理由と外す条件を書きます。 |
+| `make egress-check` | workflow が宣言どおり固定済みかを検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-lint` job が実行します。宣言との差分 / 想定外の記述 / 参照されなくなったエントリを検出して exit 1（fail-closed）。 |
 
 `uses:` は **1 行 1 ステップのブロック記法**で書いてください。YAML の flow mapping
 （`- {name: X, uses: owner/repo@v1}`）は検査の網に入らないため、素通りではなく error になります。
@@ -184,9 +224,9 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 書きません**（承認済みの移動や他のエントリを含め、一切書きません）。付け替えられた SHA が一度ロックファイルへ
 入れば、以降 `make actions-pin-check` は「整合している」と答え続けるためです。
 
-`# v6` のような **bare な major 番号だけを moving**（前進してよい）とみなします。これは上流の tag 運用の推測では
-なく、その tag を書いた側の宣言です。`# v6.1.0` / `# v6.1` / `# main` はすべて不変として扱われ、解決先が動けば
-落ちます。上流が `v6.1` のような moving minor tag を持つ場合は誤検知しますが、その向きの誤りは停止で済みます。
+`# v6` のような **bare な major 番号だけを moving**（前進してよい）とみなします。`# v6.1.0` / `# v6.1` / `# main`
+はすべて不変として扱われ、解決先が動けば落ちます。上流が `v6.1` のような moving minor tag を持つ場合は誤検知
+しますが、その向きの誤りは停止で済みます。
 
 意図した更新であれば、ロックファイルのキーを空白区切りで並べて承認します。
 
@@ -197,11 +237,43 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 承認は 1 回の移動に対して与えるものです。移動していないキーを承認に残していると次の付け替えを黙って通すため、
 その場合は「承認は不要でした」と表示されます。承認しても検疫は独立に掛かります。
 
-この値は make のレシピへ展開されず、環境変数のままスクリプトが読みます。キーは `uses:` のコメント tag に由来する
-ため、レシピ行へ埋めるとリポジトリの中身がシェルの解釈対象になります。同じ理由で、検知の失敗出力はキーを埋め込んだ
-承認コマンドを組み立てません（キーは 1 行ずつ上に並びます）。
+検知の失敗出力は、キーを埋め込んだ承認コマンドを組み立てません。キーは 1 行ずつ上に並ぶので、承認する分だけを
+自分で並べ直してください。
 
 更新の運用手順は `actions-pin` スキルが持ちます。
+
+> Rationale: [0153](../docs/adr/0153-ci-configuration.md) 決定 3
+
+### container image の digest ピン関連
+
+registry の tag は、同じ名前のまま別の中身を指せます。`image:` / `FROM` / `uses: docker://` を tag の
+ままにしておくと、指し先が差し替わったことに気づかないまま新しい中身を引きます。そこで参照は
+digest へ固定し、`image:tag` → digest の対応を `docker/images-pin.toml` が持ちます。**版の SSOT は
+tag 側**であり、digest ではありません。走査対象は `docker-compose*.{yml,yaml}`、
+`docker/<用途>/Dockerfile`、そして `.github/workflows/**` / `.github/actions/**` の
+`uses: docker://<image>:<tag>` です。
+
+最後のものは `uses:` の行ですが参照先は registry なので、SHA ピンを担う actions-pin ではなくこちらが
+固定します（actions-pin は tag を `git ls-remote` で commit へ解決する機構で、registry には効きません）。
+両機構は同じファイルを走査しますが、掴む行は重なりません。
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make images-pin-resolve [IMAGES_PIN_MIN_AGE_DAYS=<days>]` | tag を `docker buildx imagetools inspect` で digest へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます（docker の認証情報を使います）。既定の検疫日数は 14。 |
+| `make images-pin-apply` | ロックファイルを元に参照を `image:tag@sha256:...` へ書き換えます。 | tag と行末コメントは保持します。 |
+| `make images-pin-check` | 参照がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `images-pin` job が実行します。未登録 / 未固定・不一致 / 参照されなくなったエントリ / 解釈できない記法を検出して exit 1（fail-closed）。 |
+
+参照は **1 行 1 件・引用符なし・tag 明示**で書いてください。`image: "alpine:3.24"` のような記法や、
+tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入らないため、素通りではなく error に
+なります。
+
+`IMAGES_PIN_MIN_AGE_DAYS` は供給網検疫の窓で、経過日数は image config の `created` から見ます
+（マルチアーキでは最も古いものを採ります）。既存のピンがあればそれを維持し、無ければ tag のまま
+残さず失敗させます。tag だけの運用を許すと、未検証の digest をそのまま引くためです。
+
+**tag の付け替えは検知しません。** base image の tag は patch 版が出るたび前進するのが通例で、
+「解決先が変わったら止める」を入れると日常的な更新と区別が付かなくなります（Actions の SHA ピンとは
+ここだけ運用が異なります）。image に対して働く防壁は検疫と固定の 2 つです。
 
 ## `.makefiles/testing` 系
 
@@ -211,17 +283,46 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 | `make test-full` | Vitest を cache 無効・coverage 付きで実行します。 | pre-push / CI 用。Statements / Branches / Functions / Lines の各 100% を下回ると失敗します。 |
 | `make scripts-test-cached` | 補助スクリプト（`scripts/**`）の suite を cache 利用で実行します。 | pre-commit 用。export と describe の 1:1 ゲートを含みます。 |
 | `make scripts-test` | 補助スクリプトの suite を cache 無効・coverage 付きで実行します。 | pre-push / CI（`scripts-check`）用。アプリ本体の suite と分けるのは、`scripts/` に居るのが検査機構そのもので、落ちた理由を取り違えないためです（[0090](../docs/adr/0090-testing-strategy.md)）。 |
+| `make build-storybook` | Storybook を静的に build します。 | VRT の撮影対象。`make vrt` / `make vrt-update` が前段で呼びます。 |
+| `make vrt [VRT_SHARD=<i>/<N>] [VRT_ARGS=<args>]` | 全 story を基準画像と比較します。`VRT_SHARD` は撮影対象の何分割目かで、渡すのは CI だけです。 | digest 固定した Playwright コンテナ内で実行します（[`vrt/README.md`](../vrt/README.md)）。ホスト直実行は比較の前に落ちます。 |
+| `make vrt-retake [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>] [BASELINE_BRANCH=<branch>]` | 基準画像を撮り直して置き場へ送ります（`vrt-update` → `baseline-push`）。 | 手元から撮り直す入口はこれです。撮って送らないと親の gitlink が古いままになり、手元の `make vrt` は通るのに CI だけ落ちます。 |
+| `make vrt-update [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>]` | 基準画像を撮り直します（置き場へは送りません）。 | `VRT_ONLY` は撮り直す story を id で絞ります（該当 0 件なら失敗）。CI 側の同じ操作は `baseline-retake` ラベルが起動し、直前の実行が報告した story だけを対象にします。撮り直しは承認ではなく、見た目の判断は置き場の compare ビューを見て PR レビューで行います。 |
+| `make baseline-push [BASELINE_BRANCH=<branch>]` | 撮り直した一式を置き場へ送り、サブモジュールのポインタを進めます。 | 置き場へ送る経路はここだけです。サブモジュールの中で直接コミットすると撮り直しどうしが繋がり、掃除でどれも落とせなくなります。`BASELINE_BRANCH` の既定は現在のブランチ。 |
+| `make vrt-gate` | 比較を省いてよいかだけを答えます（`run` / `skip`）。 | **`build-storybook` の後でしか答えられません** —— 絵を決める入力に `storybook-static` が入っているためで、CI が「先に判定してから撮影を割る」形を取れない理由もこれです。 |
+| `make vrt-record-verified` | 検査が通った時点の入力のハッシュを記録します。 | CI が呼びます。割った実行では**全 shard が緑になってから**書きます（`vrt.yaml`）。 |
+| `make vrt-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/vrt/`（追跡対象外）。 |
+| `make e2e [E2E_ARGS=<args>] [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | build したアプリを実際のブラウザで動かし、主要ジャーニー・ブラウザが報告する異常・帯ごとの出し分けを 3 つの描画エンジンで回して、画面単位の見た目を基準画像と比べます。 | **アプリはホスト、ブラウザはコンテナ**で動きます（[`e2e/README.md`](../e2e/README.md)）。`node_modules` は入れた OS と CPU 向けに解決されるため、コンテナ内で `next start` は起動できません。起動と後片付けもこのターゲットが持ちます。待ち受けるアドレスはコンテナが到達に使う経路 1 本へ絞ります —— この起動が使う `APP_ENV=ci` ではテスト専用の session 発行の口が開いているため、全インターフェースで待ち受けると LAN から叩ける状態になります。 |
+| `make e2e-update [E2E_ARGS=<args>]` | 画面の基準画像を撮り直します（置き場へは送りません）。 | 送るのは `make baseline-push` です。画面の基準画像も story と同じ置き場の `screen/` 区画に入ります。撮り直しは承認ではありません。 |
+| `make e2e-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/e2e/`（追跡対象外）。trace も同じ場所に出ます。 |
+| `make lighthouse [E2E_PORT=<port>]` | `e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らします。 | 起動は `make e2e` と同じ仕組みを使い、**ブラウザだけホストで動かします** —— 比べるのが画素ではなく数値なので、固定すべきはフォントのラスタライズではなくブラウザの版で、それは lockfile の `@playwright/test` が担います。画面ごとに複数回測って中央値を採り、回数も同じ宣言が持ちます（[ADR 0101](../docs/adr/0101-performance-budget.md)）。 |
+| `make lighthouse-gate` | 測定を省いてよいかだけを答えます（`run` / `skip`）。 | 数える入力は build 生成物ではなく元なので、**台を割る前の段で 1 度だけ引けます**。撮影側（`vrt-gate`）が台ごとに引くのは `storybook-static` を数えているためで、こちらにその制約はありません。 |
+| `make lighthouse-record-verified` | 予算を通った時点の入力のハッシュを記録します。 | CI が呼びます。割った実行では**全台の結果を知っている束ねる側**が書きます（`lighthouse.yaml`）。 |
+| `make lighthouse-report` | 直前の実行が残した LHR から、動いた要素・押し下げの量・重い script を引きます。 | 出力は `tmp/lighthouse/`（追跡対象外）。 |
+| `make vrt-review BRANCH=<branch> VRT_ONLY=<id>,<id> [RUN=<run-id>] [VRT_REVIEW_PORT=<port>]` | CI が落とした story を、使い捨ての作業ツリーで立てた Storybook に並べます。 | 引数は PR コメントがコピー用の 1 行として書き出します。**手元の作業ツリーは動かしません** —— `tmp/review/vrt/<ブランチ>` に `origin/<ブランチ>` を切り離して展開します。`RUN` を渡すと `vrt-diff` も落として隣のポートで配ります（`gh` が要る）。ここで見えるのは「なぜ変わったか」であって画素の一致ではありません（ホストのフォントで描くため）。 |
+| `make e2e-review BRANCH=<branch> E2E_ONLY=<name>,<name> [RUN=<run-id>] [E2E_REVIEW_PORT=<port>]` | CI が落とした画面を、使い捨ての作業ツリーで起動したアプリに並べます。 | 起動するのは**本番ビルド**です（画面の基準画像がそれで撮られているため）。役割の要る画面は行き先を持たせた開発用 session の面を経由します。待ち受けは loopback へ絞ります —— `APP_ENV=ci` で session 発行の口が開いているためです。 |
+| `make review-clean` | 上の 2 つが生やした作業ツリーを、git の登録ごと片付けます。 | 作業ツリーは Ctrl-C では消えず、`node_modules` と build 生成物を抱えたまま `tmp/review/` に溜まります。ディレクトリを直接消すと実体を失った登録が残り、次の `git worktree add` がそこで断られるため、片付けはこの入口から行います。 |
 
 ## `.makefiles/security` 系
 
 シークレットの混入と脆弱な依存をローカルで検知するためのスキャンです（[ADR 0110](../docs/adr/0110-security-operations.md)）。
 
-抑止は `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に限定し、各ファイル冒頭の抑止ポリシーに従って理由付きで記録します。
+抑止は `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に限定し、各ファイル冒頭の抑止ポリシーに従って理由付きで記録します。**`make audit` だけは抑止ファイルを持ちません** —— 閾値が「修正版がある」ことなので、抑止するくらいなら上げられる、という前提で組んであります。上流が脆弱な版を厳密固定していると、この前提は崩れます。
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
 | `make secret-scan` | push 予定のコミット範囲を gitleaks でスキャンします。 | pre-push hook から実行されます。対象は「`HEAD` から辿れてどのリモートにも無いコミット」。検出時は exit 1 で失敗します（fail-closed）。検出値は `--redact` で出力しません。 |
-| `make trivy-fs` | 依存ライブラリの脆弱性を Trivy fs でスキャンします。 | 手動実行専用で、**意図的に hook へ接続していません**。exit code でも落としません。脆弱性は push する当事者がその場で解消できず、diff と独立に状態が変わるためです。ブロックは昇格ゲートが持ちます（[ADR 0110](../docs/adr/0110-security-operations.md) 3.1）。 |
+| `make secret-scan-history` | コミット履歴全体を gitleaks でスキャンします。 | CI の週次実行だけが呼びます。マージ済みの履歴に埋もれた秘密を拾う用途で、走査時間がコミット数に比例して伸びるため hook には載せません（撤回条件 W4）。 |
+| `make trivy-fs` | 依存ライブラリの脆弱性を Trivy fs でスキャンします。 | 手動実行専用で、**意図的に hook へ接続していません**。exit code でも落としません。脆弱性は push する当事者がその場で解消できず、diff と独立に状態が変わるためです。ブロックは昇格ゲートが持ちます（[ADR 0110](../docs/adr/0110-security-operations.md) 3.1）。 **CI だけが `TRIVY_FS_DETECT_EXIT=1` を渡し**、検出を exit code で受け取ってコメントの要否を決めます（手元の既定は 0 で、従来どおり落ちません）。 |
+| `make trivy-fs-release` | 昇格前の依存脆弱性を Trivy fs で厳格にスキャンします。 | 保護ブランチ宛 PR で CI が呼ぶゲート。上の報告専用との差分は `--ignore-unfixed` を外すことだけで、severity の範囲は同じです。検出で exit 1。 |
+| `make opengrep-rules` | SAST のルールを固定した commit から取り出します。 | `make sast` / `make sast-sarif` の前段で自動的に走ります。レジストリ（semgrep.dev）を引かない理由と、検体を置かない取り出し方は [`.github/workflows/README.md`](../.github/workflows/README.md) の「SAST のルールをレジストリから引かない」が持ちます。固定値は `opengrep-rules-pin.toml`（`.github/actions-pin.toml` と同じ形）が持ち、commit を上げるときは `pnpm exec tsx scripts/opengrep-rules --resolve --commit <sha>` が書き直します。 |
+| `make sast` | 自分が書いたコードの脆弱なパターンを opengrep で検査します。 | **0 件の baseline を前提にしたゲート**で、所見があれば exit 1。許容する所見はソースへ `// nosemgrep: <rule-id>` を理由付きで置きます。CodeQL と重複しますが、あちらは GitHub の外へ持ち出せないため、持ち出せる SAST を別に持ちます。 |
+| `make sast-sarif` | 同じ検査を SARIF で書き出します。 | code scanning への取り込み用。**検査条件は `make sast` と同じ変数を読む** —— ゲートと Security タブの一覧が違う走査を指すと、どちらも信用できなくなります。書き出したあと `scripts/sarif` が整えます —— `// nosemgrep:` で抑止した所見は SARIF に残るため、落とさないと Security タブにだけ積み上がります。 |
+| `make osv-scan` | 依存の脆弱性を OSV データベースで見ます。 | 報告専用。Trivy とも `pnpm audit` とも参照先が違うので件数は一致しません。**CI だけが `OSV_DETECT_EXIT=1` を渡し**、検出を exit code で受け取ってコメントの要否を決めます（手元の既定は 0 で、従来どおり落ちません）。 |
+| `make osv-scan-release` | 昇格前の依存脆弱性を OSV で見ます。 | 保護ブランチ宛 PR で CI が呼ぶゲート。検出で exit 1。抑止は `osv-scanner.toml` が持ち、**フィルタした所見は理由付きで出力に残ります**。 |
+| `make dast` | 走っているアプリへ HTTP を撃ち、配信面を検査します。 | **ここだけが成果物ではなく応答を読みます。** 撃つ相手は `DAST_TARGET` で渡します（既定はコンテナから見たホストの :3000）。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は exit 1**。ZAP は `IGNORE` にした規則も出力に残すので、黙殺と区別が付きます。 |
+| `make bearer-scan` | 値がプロセスの外へ出る地点を、その値の分類と併せて見ます。 | **落としません。** 誤検知の傾向が強く、fail-closed にすると規則単位の無効化へ寄っていくためです（それは禁止）。所見は code scanning へ送り、差分が持ち込んだものを GitHub 側のチェックが赤にします。個別の誤検知は `bearer.ignore` がフィンガープリントで受けます。 |
+| `make bearer-sarif` | 同じ検査を SARIF で書き出します。 | code scanning への取り込み用。所見が 0 件のとき Bearer は `results: null` を書きますが SARIF にその値は無いため、`scripts/sarif` が配列へ揃えます。揃えないと取り込みが弾かれ、「所見が無い」と「報告できていない」が見分けられなくなります。 |
+| `make audit` | 依存監査ゲート（`pnpm audit`）。 | 修正版のある `high` / `critical` が 1 件でもあれば exit 1。判定と表の組み立ては `scripts/audit-gate` が持ちます。Trivy とは集計単位も参照する DB も違うため件数は一致せず、**突合して差分を潰そうとしません** —— どちらか一方でも閾値に達したものを blocking として扱います（[ADR 0110](../docs/adr/0110-security-operations.md) 3）。 |
 
 ## 補足
 

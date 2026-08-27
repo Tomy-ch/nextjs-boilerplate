@@ -26,7 +26,15 @@
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-sans);
+  background: var(--semantic-color-background);
+  color: var(--semantic-color-foreground);
+  font-family: var(--semantic-font-sans);
+}
+
+/*
+ * 系統ごとの本文書体を部分木へ効かせる。`font-family` は継承する値であり、`body` で解決した
+ * 書体がそのまま下りてくるため、変数を差し替えただけでは追従しない。
+ */
+[data-surface] {
+  font-family: var(--semantic-font-sans);
 }

@@ -77,6 +77,16 @@ export const WithContent: Story = {
 };
 
 /** 送信中や権限が無いときなど、読み取り専用にする場合。toolbar の操作も効かない。 */
+/** プレビューへ切り替えた状態。書式の操作は下がり、読者に届く形だけが残る。 */
+export const Preview: Story = {
+  ...WithContent,
+  play: async ({ canvasElement }) => {
+    const { userEvent, within } = await import("storybook/test");
+
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "プレビュー" }));
+  },
+};
+
 export const Disabled: Story = {
   render: () => <RichTextEditorFixture defaultValue={SAMPLE_HTML} disabled />,
 };

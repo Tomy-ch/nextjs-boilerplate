@@ -59,7 +59,10 @@ export function PageHeader({ className, ...props }: ComponentProps<"header">) {
 export function PageHeaderTitle({ className, ...props }: ComponentProps<"h1">) {
   return (
     <h1
-      className={cn("text-2xl font-bold text-foreground sm:col-start-1 sm:row-start-1", className)}
+      className={cn(
+        "text-2xl font-emphasis tracking-wide text-foreground text-shadow-glow sm:col-start-1 sm:row-start-1",
+        className,
+      )}
       data-slot="page-header-title"
       {...props}
     />

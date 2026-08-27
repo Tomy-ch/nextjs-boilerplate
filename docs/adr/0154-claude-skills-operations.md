@@ -77,7 +77,7 @@ Accepted
 | Slug | 役割 | カバー範囲 |
 | --- | --- | --- |
 | `commit` | コミット分割と実行 | 作業ツリーの変更を prefix 規約 (Feat/Fix/...) で分割し、`git commit --no-verify` で個別に積む。最後に lefthook 相当の検証を 1 回まとめて回す |
-| `submit-pr` | PR 作成・更新 | 現ブランチに既存 PR があれば update、なければ create を自動選択。PR 本文は `.github/pull_request_template.md` から生成 |
+| `submit-pr` | PR 作成・更新 | 現ブランチに既存 PR があれば update、なければ create を自動選択。push 前にベースブランチを取り込む (保護ブランチは checkout も push もしない)。PR 本文は `.github/pull_request_template.md` から生成 |
 | `release-notes` | リリースノート生成 | `AskUserQuestion` で FROM タグと NEXT_VERSION を確認し、`.github/release/<NEXT>.md` を生成 |
 | `tools-upgrade` | `mise.toml` の依存監査 | upstream の latest と比較し、`min_age_days` でサプライチェーン検疫。承認後に `mise.toml` 更新 |
 | `node-upgrade` | Node.js バージョン更新 | SSOT である `mise.toml` `[tools] node` ([ADR 0003](0003-version-manager.md)) を対象バージョンへ更新し、lockfile 再構築 + `pnpm install` / `pnpm lint` / `pnpm build` で検証。`@types/node` のメジャー追随は別 PR ([0004](0004-library-management.md)) |

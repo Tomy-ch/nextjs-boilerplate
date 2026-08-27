@@ -1,45 +1,102 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Environment } from "@/config/environment";
+// 契約から生成したハンドラそのものを相手にするため、応答を割り当てずに interception だけを立てる。
+import "../../../../vitest.setup.msw";
+import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 
-const environment: Environment = {
-  APP_API_BASE_URL: "https://api.example.test",
-  APP_API_MODE: "mock",
-  MEDIA_ORIGIN: "https://media.example.test",
-  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.test/v1/traces",
-  OBS_TRACES_EXPORTER: "none",
-  OBS_METRICS_EXPORTER: "none",
-  OBS_LOGS_EXPORTER: "none",
-  AUTH_ISSUER: "https://id.example.test",
-  AUTH_CLIENT_ID: "nextjs-boilerplate",
-  AUTH_REDIRECT_URI: "https://app.example.test/auth/callback",
-  AUTH_SCOPES: "openid profile",
-  AUTH_SESSION_SECRET: "01234567890123456789012345678901",
-};
-
-const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => environment) }));
+const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
+  getAccessToken: vi.fn(async (): Promise<string | null> => null),
+  getEnvironment: vi.fn(() => PARSED_ENVIRONMENT),
+}));
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
+vi.mock("../auth/session", () => ({ getAccessToken }));
 
-import { getProducts } from "./products";
+import { toProductId } from "@/model/product/product";
+import { getProduct, getProductRanking, getProducts } from "./products";
+
+/**
+ * 表示用の商品が公開する項目。
+ *
+ * @remarks
+ * 並びごと照合します。生成ハンドラは契約の全項目を返すため、`toMatchObject` で数項目だけを
+ * 見ると、写し漏れも wire の項目の漏れ出しも通ります。
+ */
+const PRODUCT_KEYS = [
+  "category",
+  "description",
+  "id",
+  "imagePaths",
+  "name",
+  "price",
+  "publishedAt",
+  "quantity",
+  "status",
+  "stockWarningThreshold",
+  "version",
+];
+
+describe("getProduct", () => {
+  // ----- 正常系 -----
+  it("生成ハンドラの応答から、表示に使う項目だけを組み立てる", async () => {
+    const product = await getProduct(toProductId("0195f0c2-0000-7000-8000-000000000001"));
+
+    expect(Object.keys(product).sort()).toEqual(PRODUCT_KEYS);
+  });
+
+  it("契約が文字列で返す公開日時を Date にして受け取る", async () => {
+    const product = await getProduct(toProductId("0195f0c2-0000-7000-8000-000000000001"));
+
+    // zod の検証を抜けた時点ではまだ文字列で、Date にするのは adapter 自身。契約の応答が
+    // 通ることだけを見ると、この写しが外れても気づけない。
+    expect(product.publishedAt).toBeInstanceOf(Date);
+  });
+
+  it("契約が decimal 文字列で返す価格を数値へ丸めない", async () => {
+    const product = await getProduct(toProductId("0195f0c2-0000-7000-8000-000000000001"));
+
+    expect(product.price).toBe("19.99");
+  });
+
+  it("生成ハンドラの応答から画像をパスの並びへ均す", async () => {
+    const product = await getProduct(toProductId("0195f0c2-0000-7000-8000-000000000002"));
+
+    // 件数を名指しできるのは、生成ハンドラの応答が要求ごとに再現するため（`mocks/stable-responses.ts`）。
+    expect(product.imagePaths).toHaveLength(3);
+    expect(product.imagePaths.every((path) => path.length > 0)).toBe(true);
+  });
+});
 
 describe("getProducts", () => {
   // ----- 正常系 -----
-  it("契約から生成したハンドラの応答を検証して受け取る", async () => {
-    const page = await getProducts({ keyword: "契約駆動" });
+  it("生成ハンドラの応答から、表示に使う項目だけを持つ一覧を組み立てる", async () => {
+    const [product] = (await getProducts({ keyword: "型の確認" })).items;
 
-    expect(Array.isArray(page.products)).toBe(true);
+    expect(Object.keys(product ?? {}).sort()).toEqual(PRODUCT_KEYS);
   });
 
-  it("生成ハンドラの応答が表示用の型を満たす", async () => {
-    const [product] = (await getProducts({ keyword: "型の確認" })).products;
+  it("公開日時を持たない商品の公開日時を null のまま持つ", async () => {
+    const [product] = (await getProducts({ keyword: "型の確認" })).items;
 
-    expect(product).toMatchObject({
-      id: expect.any(String),
+    expect(product?.publishedAt).toBeNull();
+  });
+});
+
+describe("getProductRanking", () => {
+  // ----- 正常系 -----
+  it("契約から生成したハンドラの応答を検証して受け取る", async () => {
+    const rankings = await getProductRanking({ limit: 5 });
+
+    expect(rankings.length).toBeGreaterThan(0);
+  });
+
+  it("1 件の形が契約どおりである", async () => {
+    const [entry] = await getProductRanking({ limit: 5 });
+
+    expect(entry).toEqual({
+      productId: expect.stringMatching(/^[0-9a-f-]{36}$/),
       name: expect.any(String),
-      price: expect.any(String),
-      quantity: expect.any(Number),
-      status: { id: expect.any(String), name: expect.any(String) },
-      category: { id: expect.any(String), name: expect.any(String) },
+      price: expect.stringMatching(/^\d+(\.\d+)?$/),
+      soldQuantity: expect.any(Number),
     });
   });
 });

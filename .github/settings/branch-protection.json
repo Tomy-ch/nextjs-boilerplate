@@ -46,6 +46,37 @@
       "parameters": {
         "severity": "errors"
       }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "a11y" },
+          { "context": "actions-lint" },
+          { "context": "actions-pin" },
+          { "context": "build" },
+          { "context": "bundle-budget" },
+          { "context": "component-classes" },
+          { "context": "dead-code" },
+          { "context": "e2e" },
+          { "context": "gen-drift" },
+          { "context": "images-pin" },
+          { "context": "lint" },
+          { "context": "lockfile-drift" },
+          { "context": "md-lint" },
+          { "context": "scripts-check" },
+          { "context": "shadcn-manifest" },
+          { "context": "smoke" },
+          { "context": "storybook-build" },
+          { "context": "test" },
+          { "context": "tokens-drift" },
+          { "context": "typecheck" },
+          { "context": "vrt" },
+          { "context": "baseline-approval" }
+        ]
+      }
     }
   ],
   "bypass_actors": []

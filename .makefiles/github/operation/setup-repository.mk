@@ -2,6 +2,12 @@
 .PHONY: setup-repo ## リポジトリの初期化
 .PHONY: setup-replace-license-copyright ## LICENSEの著作権表示を更新
 .PHONY: setup-replace-repository-reference ## リポジトリ参照とプロジェクト名をフォーク先へ置換
+# boilerplate-only:begin
+.PHONY: setup-remove-boilerplate-only ## boilerplate 限定の記述を剥がす
+# boilerplate-only:end
+# sample:begin
+.PHONY: setup-remove-sample ## 同梱サンプルを一括破棄し、検証まで実行
+# sample:end
 
 # make の $(if) は空文字列判定のため、そのまま使うと DRY_RUN=0 も真になる。
 # 文書化された唯一の有効値 1 に限定する
@@ -118,3 +124,47 @@ setup-replace-repository-reference:
 	@pnpm exec tsx scripts/setup/replace-repository-reference \
 		--repository "$$REPOSITORY" \
 		$(SETUP_DRY_RUN_FLAG)
+
+# boilerplate-only:begin
+# boilerplate 限定の記述（この template を配る側にしか意味を持たない規則・注記）を剥がす。
+#
+# サンプル破棄と違い、飛ばす選択肢が無い。fork を作った時点で前提が失効するため、残すと fork 先が
+# 自分に効かない規則に従うことになる。破棄と同じく、剥がしの道具そのものも消える。
+#
+# 剥がすのは散文だけなので build / test は連鎖させない。手順の最後の確認でまとめて通す。
+setup-remove-boilerplate-only:
+	@pnpm exec tsx scripts/setup/remove-boilerplate-only $(SETUP_DRY_RUN_FLAG)
+	@if [ -n "$(filter 1,$(DRY_RUN))" ]; then \
+		echo "🟡 DRY_RUN のため整形・検査はスキップしました。"; \
+	else \
+		pnpm md-fix && pnpm md-lint && \
+		echo "✅ boilerplate 限定の記述を剥がしました。"; \
+	fi
+# boilerplate-only:end
+
+# sample:begin
+# 同梱サンプル（EC の題材を持つ画面群と、その題材に固有の契約・モック）の破棄。
+#
+# make は起動時に makefile を全読込するため、手順 1 のスクリプトがこの .mk から自分のターゲットを
+# strip（自消滅）しても、実行中のレシピは継続して検証まで走る。
+#
+# 破棄後の整形・検査・build・test を連鎖させるのは、参照の消し残しがその場で判るのが唯一この
+# タイミングだからである。各手順は && で連鎖し、途中の失敗が完了メッセージに隠れない。
+# プレビューは DRY_RUN=1 を付ける（破棄も検証も行わない）。
+setup-remove-sample:
+	@pnpm exec tsx scripts/setup/remove-sample $(SETUP_DRY_RUN_FLAG)
+	@if [ -n "$(filter 1,$(DRY_RUN))" ]; then \
+		echo "🟡 DRY_RUN のため整形・検査・検証はスキップしました。"; \
+	else \
+		echo "🔧 整形・検査・build・test を実行します..." && \
+		pnpm fix && \
+		pnpm lint:ci && \
+		pnpm typecheck && \
+		pnpm md-lint && \
+		APP_ENV=local pnpm build && \
+		pnpm test && \
+		echo "🔍 過不足と残留参照を検証します..." && \
+		pnpm exec tsx scripts/setup/verify-sample-removal && \
+		echo "✅ サンプルの破棄・検査・検証が完了しました。"; \
+	fi
+# sample:end

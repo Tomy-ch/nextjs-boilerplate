@@ -2,7 +2,8 @@
 
 import { MenuIcon } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
 import {
@@ -28,13 +29,23 @@ export type AppShellMenuProps = {
  * shell の中で唯一の client island です。開閉の状態だけがブラウザ側の関心であり、それ以外は
  * server で描けます。
  *
- * 選んだら閉じます。開いたまま遷移すると、遷移先の内容がメニューに覆われたままになります。
+ * **選んだら閉じますが、閉じるのは移った後です。** 押した時点で閉じると、overlay が積んだ履歴 1 件を
+ * 戻す動きが遷移そのものと競合し、閉じるだけで移らない回が出ます。移る側は置き換えで移るため、
+ * 積んだ 1 件は移り先に上書きされます（[0053](../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
  *
  * @see Storybook `Layout/AppShell`
  */
 export function AppShellMenu({ items }: AppShellMenuProps) {
   const [open, setOpen] = useState(false);
-  const close = useCallback(() => setOpen(false), []);
+  const pathname = usePathname();
+  const [shownAt, setShownAt] = useState(pathname);
+
+  // 移った先で閉じる。effect ではなく描画中に畳むのは、閉じた姿を最初の描画で出すためで、
+  // 待つと移った先の内容がメニューに覆われたまま 1 フレーム出る。
+  if (shownAt !== pathname) {
+    setShownAt(pathname);
+    setOpen(false);
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -53,7 +64,7 @@ export function AppShellMenu({ items }: AppShellMenuProps) {
               key={item.href}
               href={item.href}
               className="rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-              onClick={close}
+              replace
             >
               {item.label}
             </Link>

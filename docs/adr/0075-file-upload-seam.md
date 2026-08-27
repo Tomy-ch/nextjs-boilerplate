@@ -34,9 +34,12 @@ Accepted
   - 署名付き URL の発行は backend の責務(フロントは発行結果を受け取るだけ)。フロント側の取得口は `adapters/server`(認可付きで backend から署名を得る)/ 直 PUT の送信は `adapters/client`(client 側 remote IO を所有する唯一の層。同一オリジン外への送信は本件 #13 のように ADR が明示に許す場合に限る)に置く([0024](0024-adapters-server-client-split.md) 決定表 #13)。進捗表示・中断・再開は client 側の **upload seam(hook / IF)** に集約し、コンポーネントに散らさない。
   - サイズ制限・許可 content-type・有効期限は **署名ポリシー側**(backend が発行時に埋め込む)で担保し、フロントは表示・事前バリデーション(UX)に留める。
   - **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md) §2)**: 署名付き URL は S3 / GCS / Cloudflare R2 / Azure Blob いずれも備える業界横断パターンであり、特定ストレージ SDK・特定 PaaS に依存しない(署名を発行元から抜いても「事前署名 + HTTP PUT」という構造は正当)。BFF が大容量ボディを中継しないことの根拠は、serverless 実行の**実行時間・メモリ・ボディサイズという vendor 横断の物理制約** + thin proxy(0070)であって、フレームワーク推奨ではない。
-- **もう一方の経路 = multipart proxy(`/api/*` 経由)**。Route Handler が `request.formData()` 等でボディを受けて backend / ストレージへ中継する **named seam** を置く。presigned が使えない構成(直アクセス不可なストレージ、送信前にサーバ加工が必須、backend が multipart 受け口しか持たない、等)で用いる。
-  - この経路ではサイズ上限・content-type 検証を**必ずフロント側の Route Handler にも置く**(presigned なら署名ポリシーが担保していた層が無くなるため)。413 / 415 / 422 を扱う。
-  - **本 ADR は許容ボディサイズ上限・ストリーミング中継の要否といった具体値を確定しない**(用途 / PaaS 依存。保留 = 実装 PR / fork 先)。
+- **もう一方の経路 = multipart proxy**。フロント側のサーバがボディを受けて backend / ストレージへ中継する **named seam** を置く。presigned が使えない構成(直アクセス不可なストレージ、送信前にサーバ加工が必須、backend が multipart 受け口しか持たない、等)で用いる。
+  - **受け口は Route Handler(`/api/*`)と Server Action のどちらでもよい**。どちらもフロント側サーバがボディを受ける点で同じ経路であり、選択は**進捗・中断を持つ必要があるか**で決まる。ブラウザが送信の進捗を観測できるのは client 発の HTTP に限られるため、進捗・中断・再開を持つなら Route Handler を選び、送信が form の submit と一体で完結してよいなら Server Action を選ぶ。
+  - **Server Action を選ぶと進捗・中断は持てない**(送信の途中経過を観測する口が無い)。また framework が持つ既定のボディ上限を明示的に引き上げる必要があり、**その設定は個々の action ではなくアプリ内の全 Server Action に効く**。この 2 点は後から経路を変えずに解消できないため、選択時に引き受ける。
+  - この経路ではサイズ上限・content-type 検証を**必ず受け口側にも置く**(presigned なら署名ポリシーが担保していた層が無くなるため)。413 / 415 / 422 を扱う。宣言された content-type は送信側が自由に付けられるので、これだけを根拠にしない。
+  - **Server Action を受け口に選ぶと、上限は全 Server Action へ及ぶ。** Next.js の `serverActions.bodySizeLimit` はアプリ単位の設定で、action ごとの上限を持たない。したがってアップロードのために上げた値は、テキストしか受け取らない他の action にも同じ上限で効く。受け入れられないなら受け口を Route Handler へ寄せる —— そちらは route ごとに扱いを決められる。この帰結は受け口の選択と不可分なので、選ぶ時点で確認する。
+  - **本 ADR は許容ボディサイズ上限・ストリーミング中継の要否といった具体値を確定しない**(用途 / PaaS 依存。保留 = 実装 PR / fork 先)。ただし**上限は配備先のボディ上限より内側に取る**。中継経路では配備先が先に要求を打ち切るため、それより外側に置いた上限は表明されるだけで効かない。値は config が持ち、経路上で最も小さい上限を入れる。
 
 ### 経路の選択は backend の能力で決まる
 
@@ -50,7 +53,9 @@ Accepted
 
 - ❌ **presigned URL を発行できる backend に対して** multipart proxy を選ぶこと(その構成では直 PUT が既定。大容量ボディを BFF へ通す理由が無い。[0070](0070-backend-role-separation.md) thin proxy)
 - ❌ multipart proxy を「劣った例外」として扱い、seam を片方だけ実装すること(経路は backend の能力で決まる。両経路を対等に持つ)
-- ❌ multipart proxy 経路でサイズ上限・content-type 検証を Route Handler に置かないこと(署名ポリシーが担保していた層を落とすことになる)
+- ❌ multipart proxy 経路でサイズ上限・content-type 検証を受け口(Route Handler / Server Action)に置かないこと(署名ポリシーが担保していた層を落とすことになる)
+- ❌ 中継経路の上限を配備先のボディ上限より外側に置くこと(配備先が先に打ち切るため、その上限は効かない)
+- ❌ Server Action を受け口に選びながら、上限の引き上げが他の action へ及ぶことを確認せずに済ませること
 - ❌ アップロードの生 fetch / 進捗管理をコンポーネントに散らすこと(`adapters/client` の upload seam へ集約。[0024](0024-adapters-server-client-split.md))
 
 ## 補足

@@ -2,7 +2,14 @@
 // dryRun で共用し、「検査は通るのに適用結果が違う」乖離が構造的に起きないようにする。
 import fs from "node:fs";
 import path from "node:path";
-import { parseUses, refKey, refPath, USES_PATTERN, unparsedUsesLines } from "./uses-reference.js";
+import {
+  parseUses,
+  refKey,
+  refPath,
+  unparsedUsesLines,
+  unsupportedTagLines,
+  usesPattern,
+} from "./uses-reference.js";
 
 const FILE_MODE = 0o644;
 
@@ -25,6 +32,8 @@ export type PinReport = {
   orphans: string[];
   // 対応記法の外にあり解釈できなかった `uses:` の位置（`<相対パス>:<行番号>`）。
   unparsed: string[];
+  // 版に使えない文字を含む `uses:` の位置（`<相対パス>:<行番号>`）。
+  unsupportedTags: string[];
 };
 
 // ロックファイルを元に `uses:` を `@<sha> # <tag>` へ固定した内容を返す。
@@ -32,7 +41,7 @@ export function rewritePins(data: string, lock: Map<string, string>): RewriteRes
   const missing: string[] = [];
   const referenced: string[] = [];
   const out = data.replace(
-    USES_PATTERN,
+    usesPattern(),
     (line: string, prefix: string, usesPath: string, ref: string, comment?: string) => {
       const action = parseUses(usesPath, ref, comment);
       if (!action) return line;
@@ -49,6 +58,41 @@ export function rewritePins(data: string, lock: Map<string, string>): RewriteRes
   return { out, missing, referenced };
 }
 
+/** 書き込む前に、全ファイルを読み切って可否の材料と保留中の内容を集める。 */
+function scanPins(
+  root: string,
+  files: string[],
+  lock: Map<string, string>,
+): {
+  missing: Set<string>;
+  referenced: Set<string>;
+  unparsed: string[];
+  unsupportedTags: string[];
+  pending: { file: string; out: string }[];
+} {
+  const missing = new Set<string>();
+  const referenced = new Set<string>();
+  const unparsed: string[] = [];
+  const unsupportedTags: string[] = [];
+  const pending: { file: string; out: string }[] = [];
+
+  for (const file of files) {
+    const data = fs.readFileSync(file, "utf8");
+    const relative = path.relative(root, file);
+
+    for (const line of unparsedUsesLines(data)) unparsed.push(`${relative}:${line}`);
+    for (const line of unsupportedTagLines(data)) unsupportedTags.push(`${relative}:${line}`);
+
+    const result = rewritePins(data, lock);
+
+    for (const key of result.missing) missing.add(key);
+    for (const key of result.referenced) referenced.add(key);
+    if (result.out !== data) pending.push({ file, out: result.out });
+  }
+
+  return { missing, referenced, unparsed, unsupportedTags, pending };
+}
+
 // dryRun=false なら各ファイルを固定し、true なら書き換えずに差分を報告する。
 //
 // 全ファイルを読み切って可否を確定させてから書き込む二段構えにしている。ファイル単位で
@@ -60,24 +104,11 @@ export function applyPins(
   lock: Map<string, string>,
   dryRun: boolean,
 ): PinReport {
-  const missing = new Set<string>();
-  const referenced = new Set<string>();
-  const unparsed: string[] = [];
-  const pending: { file: string; out: string }[] = [];
-
-  for (const file of files) {
-    const data = fs.readFileSync(file, "utf8");
-    const relative = path.relative(root, file);
-    for (const line of unparsedUsesLines(data)) unparsed.push(`${relative}:${line}`);
-
-    const result = rewritePins(data, lock);
-    for (const key of result.missing) missing.add(key);
-    for (const key of result.referenced) referenced.add(key);
-    if (result.out !== data) pending.push({ file, out: result.out });
-  }
+  const { missing, referenced, unparsed, unsupportedTags, pending } = scanPins(root, files, lock);
 
   const orphans = [...lock.keys()].filter((key) => !referenced.has(key)).sort();
-  const blocked = missing.size > 0 || orphans.length > 0 || unparsed.length > 0;
+  const blocked =
+    missing.size > 0 || orphans.length > 0 || unparsed.length > 0 || unsupportedTags.length > 0;
 
   const updated: string[] = [];
   if (!dryRun && !blocked) {
@@ -92,6 +123,7 @@ export function applyPins(
     drifted: dryRun ? pending.map((entry) => path.relative(root, entry.file)).sort() : [],
     updated: updated.sort(),
     orphans,
-    unparsed: unparsed.sort(),
+    unparsed: unparsed.toSorted(),
+    unsupportedTags: unsupportedTags.toSorted(),
   };
 }

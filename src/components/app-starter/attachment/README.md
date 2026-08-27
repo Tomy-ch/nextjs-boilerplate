@@ -8,7 +8,7 @@
 
 | Component | 役割 |
 | --- | --- |
-| `AttachmentGroup` | 複数の添付を横に並べる領域です。収まらない分は横スクロールします。 |
+| `AttachmentGroup` | 複数の添付を横に並べる、名前を持つ `group` です。収まらない分は横スクロールします。 |
 | `Attachment` | 添付 1 件の枠です。`size` / `orientation` / `state` で見た目を選びます。 |
 | `AttachmentMedia` | 種類を示すアイコンまたは縮小表示を置く枠です。 |
 | `AttachmentContent` | 名前と補足を縦に並べる領域です。 |
@@ -66,4 +66,4 @@ Storybook は既定の添付、段階 5 種、自動で消えるまでの見え�
 
 自動削除は一覧を持つ側の設定であり、この component の機能ではありません。対処が必要な `error` は対象にしません。
 
-テストは既定が `done` / `default` / `horizontal` であること、3 つの値を data 属性として公開すること、`state` が支援技術へ何も伝えないこと、媒体の種類を公開すること、操作にアクセシブルな名前を与えて押下を呼び出し元へ渡せること、trigger が既定で `type="button"` になり `asChild` で link へ合成できること、trigger と個別の操作を同時に置けること、`AttachmentGroup` が複数を含み role を持たないこと、a11y 自動検査を確認します。
+テストは既定が `done` / `default` / `horizontal` であること、3 つの値を data 属性として公開すること、`state` が支援技術へ何も伝えないこと、媒体の種類を公開すること、操作にアクセシブルな名前を与えて押下を呼び出し元へ渡せること、trigger が既定で `type="button"` になり `asChild` で link へ合成できること、trigger と個別の操作を同時に置けること、`AttachmentGroup` が複数を含み、名前を持つ `group` になること、a11y 自動検査を確認します。

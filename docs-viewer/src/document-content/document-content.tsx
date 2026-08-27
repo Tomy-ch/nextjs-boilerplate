@@ -1,10 +1,25 @@
+import type { Element } from "hast";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import type { ComponentProps } from "react";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 
 import { cn } from "@/components/cn";
 
+import { MermaidDiagram } from "../mermaid-diagram/mermaid-diagram";
+import { mermaidSourceOf } from "../mermaid-diagram/mermaid-source";
 import type { SanitizedDocument } from "../sanitize/sanitized-document";
+
+/**
+ * mermaid のコードフェンスだけを図へ差し替えます。
+ *
+ * 判断は木の形だけで行い（{@link mermaidSourceOf}）、それ以外の `pre` は素の要素のまま返します。
+ */
+function DocumentPre({ node, ...props }: ComponentProps<"pre"> & { node?: Element }) {
+  /* istanbul ignore next -- `passNode` が木の節を必ず渡すため、TS の絞り込みのためだけの分岐。 */
+  const source = node === undefined ? undefined : mermaidSourceOf(node);
+
+  return source === undefined ? <pre {...props} /> : <MermaidDiagram source={source} />;
+}
 
 /**
  * {@link DocumentContent} が受け取る props です。
@@ -32,11 +47,20 @@ export type DocumentContentProps = Omit<
  *
  * 見出しは allowlist が `h1` を落とすため `h2` から始まります。文書の題は、この本文を開いた面の
  * title が持ちます。
+ *
+ * mermaid のコードフェンスだけは図として描きます。差し替えは要素 1 つに閉じており、木のほかの
+ * 部分は sanitize が通した形のまま描かれます。
  */
 export function DocumentContent({ content, className, ...props }: DocumentContentProps) {
   return (
     <div className={cn("typeset typeset-docs", className)} data-slot="document-content" {...props}>
-      {toJsxRuntime(content.root, { Fragment, jsx, jsxs })}
+      {toJsxRuntime(content.root, {
+        Fragment,
+        jsx,
+        jsxs,
+        components: { pre: DocumentPre },
+        passNode: true,
+      })}
     </div>
   );
 }

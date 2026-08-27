@@ -59,6 +59,9 @@ export type SegmentedInputSlotProps = ComponentProps<"div"> & {
  * - `inputMode` — 呼び出す keyboard
  * - `mask` — 入力した文字を伏せるか
  *
+ * **アクセシブルな名前は必ず与える。** 実体は 1 本の `input` で、桁の枠は名前を持たない。`Field` の
+ * `FieldLabel` を `htmlFor` で結ぶか、`aria-label` を渡す。
+ *
  * **`mask` は見た目だけを伏せる。** 実体は `text` の `input` のままなので、支援技術は値をそのまま
  * 読み上げ、password manager も文字列として扱う。肩越しに覗かれることは防げるが、秘密を扱う入力
  * そのものとしては扱わない。
@@ -161,7 +164,7 @@ export function SegmentedInputSlot({ className, index, mask, ...props }: Segment
   return (
     <div
       className={cn(
-        "relative flex h-9 w-9 items-center justify-center border-input border-y border-r text-sm shadow-xs transition-all first:rounded-l-md first:border-l last:rounded-r-md aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-foreground data-[active=true]:outline-2 data-[active=true]:outline-foreground data-[active=true]:outline-offset-2 data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:outline-destructive dark:bg-input/30",
+        "relative flex h-9 w-9 items-center justify-center border-input border-y border-r text-sm shadow-xs transition-all first:rounded-l-md first:border-l last:rounded-r-md aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-foreground data-[active=true]:outline-2 data-[active=true]:outline-active data-[active=true]:outline-offset-2 data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:outline-destructive dark:bg-input/30",
         className,
       )}
       data-active={isActive}

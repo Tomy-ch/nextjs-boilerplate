@@ -1,6 +1,6 @@
 "use client";
 
-import * as PopoverPrimitive from "@radix-ui/react-popover";
+import { Popover as PopoverPrimitive } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -133,7 +133,7 @@ function PopoverHeader({ className, ...props }: ComponentProps<"div">) {
  * @see Storybook `Overlay/Popover`
  */
 function PopoverTitle({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("font-medium", className)} data-slot="popover-title" {...props} />;
+  return <div className={cn("font-emphasis", className)} data-slot="popover-title" {...props} />;
 }
 
 /**

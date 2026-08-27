@@ -20,6 +20,11 @@ name: Deploy Docs
 # does not touch it reports no context at all (see README.md). It also never
 # deploys: the deploy job is gated on the event below, so no pull request can
 # publish from its branch.
+#
+# The jobs are named for the site they publish rather than for what they do. A
+# status context is named after the job, so a bare `build` here and a bare `build`
+# in build.yaml would report two check runs under one name, and a required check by
+# that name could not say which of the two it means.
 
 on:
   push:
@@ -29,6 +34,13 @@ on:
     paths:
       - .github/workflows/deploy-docs.yaml
   workflow_dispatch:
+
+# Select the CI environment file (env/.env.ci). Without this the loader falls back to
+# `local`, which ships a placeholder session secret that the config layer refuses outside
+# development. Storybook loads `next.config.ts` to build the preview, so the refusal lands
+# there — and `storybook build` reports success anyway, leaving a tree with no preview.
+env:
+  APP_ENV: ci
 
 permissions:
   contents: read
@@ -43,31 +55,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  docs-build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
-      - name: Setup mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.12
-          install: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Node and pnpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install core:node aqua:pnpm/pnpm
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve the pnpm store path
         id: pnpm-store
@@ -86,10 +106,14 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
+      # Through `make` rather than `pnpm` directly, so the same check the screenshots rely on
+      # also guards what gets published. `storybook build` returns 0 even when the preview
+      # build threw, and a site shipped from that tree carries a Storybook with no stories in
+      # it — a failure nobody sees until someone opens the published page.
       - name: Build Storybook
-        run: pnpm build-storybook
+        run: make build-storybook
 
       - name: Build the documentation portal and assemble the site tree
         # Generates the portal artifacts, bundles the viewer, and lays out dist/.
@@ -103,8 +127,8 @@ jobs:
         with:
           path: dist
 
-  deploy:
-    needs: build
+  docs-deploy:
+    needs: docs-build
     # Pull requests build but never publish. Deploying from a PR branch would put
     # unreviewed content on the live site.
     if: github.event_name != 'pull_request'
@@ -124,7 +148,21 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
 
       - name: Deploy to GitHub Pages
         id: deployment

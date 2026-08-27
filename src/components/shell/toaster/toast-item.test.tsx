@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { ToastItem } from "./toast-item";
 import { TOAST_POSITION, TOAST_VARIANT, type Toast } from "./toaster.definition";
@@ -23,7 +25,6 @@ function renderItem(toast: Toast, onDismiss = vi.fn()) {
 }
 
 describe("ToastItem", () => {
-  // ----- 正常系 -----
   it("既定では status として見出しを伝える", () => {
     renderItem(TOAST);
 
@@ -36,28 +37,35 @@ describe("ToastItem", () => {
     expect(screen.getByText("変更は反映済みです。")).toBeInTheDocument();
   });
 
-  it("閉じる操作を押すと呼び出し元へ id を渡す", () => {
+  it("閉じる操作を押すと呼び出し元へ id を渡す", async () => {
     const onDismiss = renderItem(TOAST);
 
-    fireEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
+    await userEvent.click(screen.getByRole("button", { name: "通知を閉じる" }));
 
     expect(onDismiss).toHaveBeenCalledWith("1");
   });
 
-  it("操作を押すと実行してから閉じる", () => {
+  it("操作を押すと実行してから閉じる", async () => {
     const onClick = vi.fn();
     const onDismiss = renderItem({ ...TOAST, action: { label: "元に戻す", onClick } });
 
-    fireEvent.click(screen.getByRole("button", { name: "元に戻す" }));
+    await userEvent.click(screen.getByRole("button", { name: "元に戻す" }));
 
     expect(onClick).toHaveBeenCalledOnce();
     expect(onDismiss).toHaveBeenCalledWith("1");
   });
 
-  // ----- 異常系 -----
   it("destructive な通知は alert として即時に伝える", () => {
     renderItem({ ...TOAST, variant: TOAST_VARIANT.DESTRUCTIVE });
 
     expect(screen.getByRole("alert")).toHaveTextContent("保存しました");
+  });
+
+  it("a11y 違反を持たない", async () => {
+    renderItem(TOAST);
+
+    expect(
+      (await axe(document.body, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

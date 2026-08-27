@@ -47,7 +47,7 @@ export function SwitchNative({
         "after:absolute after:top-1/2 after:left-0 after:-translate-y-1/2 after:rounded-full after:bg-background after:transition-transform after:content-['']",
         "data-[size=default]:after:size-4 data-[size=sm]:after:size-3",
         "checked:bg-primary checked:after:translate-x-[calc(100%-2px)]",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}

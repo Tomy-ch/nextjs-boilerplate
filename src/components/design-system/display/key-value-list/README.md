@@ -18,7 +18,7 @@
 
 - 詳細画面で、対象の属性をまとめて示す場合
 - 設定画面で、現在の設定値を読み取り専用で並べる場合
-- 識別子のように、利用者が別の場所へ貼り付ける値を示す場合（[`CopyButton`](../copy-button/README.md) を添える）
+- 識別子のように、利用者が別の場所へ貼り付ける値を示す場合（[`CopyButton`](../../action/copy-button/README.md) を添える）
 
 二つの軸で比較される表形式のデータには使いません。列見出しと行見出しの両方が意味を持つ場合は `Table` を使います。
 
@@ -36,7 +36,7 @@ SSR first の選定では `◎` に当たります。`KeyValueList` から `KeyV
 
 ### 写す操作は合成する
 
-写す操作は [`CopyButton`](../copy-button/README.md) を合成します。clipboard を扱うため hydration が必要で、一覧そのものは Server Component のまま保ちます。写す操作は key-value 以外の場所でも要るため、この一覧の一部としては持ちません。
+写す操作は [`CopyButton`](../../action/copy-button/README.md) を合成します。clipboard を扱うため hydration が必要で、一覧そのものは Server Component のまま保ちます。写す操作は key-value 以外の場所でも要るため、この一覧の一部としては持ちません。
 
 写す文字列と失敗時の扱いは `CopyButton` の README にまとめてあります。
 

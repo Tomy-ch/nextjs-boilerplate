@@ -4,6 +4,8 @@
 
 実装者とは**別モデル**で回す、ローカルの敵対的・低バイアスなコードレビュー。Copilot もクラウド `/code-review` も使わない。実装者自身のモデルには盲点があり、その盲点を別モデルで拾うのが本質。`/code-review` の finder → verify パターンを下敷きにしつつ、すべてローカルで完結させ、さらにモックのコンポーネントテストでは構造的に届かない **build + リクエストのランタイム検証** を足す。
 
+対象は**変更そのもの**だけである。テストのレンズもコメントのレンズも持たず、他のスキルを呼ばない。
+
 ## 使うとき
 
 - commit / PR 前に、実装者のモデル単独では出ないセカンドオピニオンが欲しいとき。
@@ -14,16 +16,19 @@
 
 - formatting / style — `pnpm fix` / `pnpm lint:ci`
 - 静的な層境界の強制 — `pnpm lint:ci` が `eslint-plugin-boundaries`（ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement）と `pnpm check:architecture` を走らせており、import 方向は静的に**ゲートされている**。よって `architecture` レンズはその上に載る*意味的*なパスであり、マトリクスで表現できない違反（正当な import を通って型が漏れている / 責務が別カーネルに置かれている / 名目上だけ依存を反転させた抽象）に使う。ESLint が既に落とすものを再導出することに使わない。網羅的なレイヤ適合監査は専用の監査スキルの仕事だが、**それはまだ実体が無い**（BACKLOG GB-1）
-- コメント以外の修正の適用 — コードレンズについてはソースに対し read-only。指摘するだけで直すのはユーザー。（例外: **コメント品質の指摘は Step 5.5 で自動適用する** — 冗長・ナレーション的なコメントは報告で終わらず実際に直す。）
+- 修正の適用 — ソースに対して read-only。指摘するだけで、直すのはユーザー
+- テスト（`/test-review`）やコメント在庫（`/comment-sweep`）の監査 — 対等な相方であって下位の手順ではない
 
 ## 中核アイデア — reviewer ≠ implementer
 
 バイアス低減が設計上の制約であって、おまけではない。よって reviewer は **コードを書いた者とは別モデルの subagent** として動く:
 
-- reviewer エージェント（`adversarial-reviewer` / `comment-reviewer` / `review-verifier`）は frontmatter で既定 **`sonnet`**。通常の Opus 実装者と異なる。
+- reviewer エージェント（`adversarial-reviewer` / `review-verifier`）は frontmatter で既定 **`sonnet`**。通常の Opus 実装者と異なる。
 - **reviewer のモデルは Step 0 でユーザーが選ぶ。** 選択肢は `fable`（Fable 5）/ `sonnet` / `opus` / `haiku`、および *auto*（実装者と異なるモデルへ解決する既定）。選ばれたモデルは全 reviewer subagent へ `Agent` ツールの `model` 引数で渡す（この引数はエージェント定義の `sonnet` 既定より優先）— 深さなら `opus`、安価な発散なら `haiku`、独立した視点なら `fable`。
 - **オーケストレーターは reviewer ≠ implementer を必ず保証する。** ユーザーが本セッションの実装者と同一モデルを選んだ場合、別モデルによるバイアス低減が損なわれる旨を警告し、続行前に確認する。黙って同一モデルにしない。
-- reviewer subagent は **read-only**（エージェント定義に Edit/Write 権限なし）— finding を返すだけ。本スキルがソースを変更する唯一の場所は Step 5.5 で、そこでは **オーケストレーター**（subagent ではない）がユーザー確認後にコメント指摘を適用する。コードレンズが自動修正されることはない。
+- reviewer subagent は **read-only**（エージェント定義に Edit/Write 権限なし）— finding を返すだけであり、このスキルはソースを一切書き換えない。何を直すかはレポートを読んだユーザーの判断である。
+
+**このスキルは変更そのものだけを監査する。** テストのレンズもコメントのレンズも持たず、他のスキルを呼ばない。それらは `/test-review` と `/comment-sweep` の主題であり、`AGENTS.md` の Review Phase Protocol に従って、このスキルの傍らでそれぞれ独立に問われ実行される。次を呼びますかと差し出すレビュースキルは、3 つの主題を独立に答えられないものにし、入口の問いのずれが、そこを通った全ての流れから残り 2 つを黙って落とす。
 
 ## Step 0 — スコープ確認
 
@@ -52,12 +57,13 @@
   - haiku（安価・高速な発散パス）
 ```
 
-*auto* は、実装者が `sonnet` でなければエージェント定義の既定（`sonnet`）へ、`sonnet` なら別ティアへ解決する。ユーザーが実装者自身のモデルを選んだ場合は中核アイデアに従って警告し、続行前に確認する。選ばれたモデルは Step 2 / Step 3 の全 `adversarial-reviewer` / `comment-reviewer` / `review-verifier` の `Agent` 呼び出しへ `model` 引数で渡す。
+*auto* は、実装者が `sonnet` でなければエージェント定義の既定（`sonnet`）へ、`sonnet` なら別ティアへ解決する。ユーザーが実装者自身のモデルを選んだ場合は中核アイデアに従って警告し、続行前に確認する。選ばれたモデルは Step 2 / Step 3 の全 `adversarial-reviewer` / `review-verifier` の `Agent` 呼び出しへ `model` 引数で渡す。
+
+**問いは 2 つで、それ以上は置かない。** テストの問いもコメントの問いもここには無い。それらは `/test-review` と `/comment-sweep` の主題で、ユーザーが別に問われる。ここへ畳み込むと、ある主題についての判断が別の主題のために始めた実行の中に埋もれ、このスキルが残り 2 つを思い出す唯一の経路になってしまう。
 
 ### フラグ
 
 - `--no-comment` — Step 6 を抑止（PR へ投稿しない）。ローカルレポートのみを出す。**既定は opt-out**: 現ブランチに open な PR があれば、このフラグが無い限り Step 6 が残った finding をインラインレビューコメントとして投稿する。
-- `--no-apply` — Step 5.5 を抑止（コメント指摘を自動修正しない）。代わりに報告し、他レンズと同様 Step 6（PR 投稿）へ流す。**既定は適用**: コメント品質の指摘は 1 度の確認後に作業ツリーへ自動修正される。
 
 ## Step 1 — コンテキスト収集
 
@@ -65,37 +71,26 @@
 - どの**カーネル / element** が触られたか検出する。何が在るかは ADR [0027](../../../docs/adr/0027-directory-structure.md) の物理レイアウト、各々が何を import してよいかは ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) の依存マトリクスが正: `src/app/**`（3 element — route-segment `page`/`layout` / route-handler `route.ts` / metadata）、`src/features/<name>/**`、`src/model/**`、`src/components/**`、`src/adapters/server/**`・`src/adapters/client/**`、`src/capabilities/**`、`src/stores/**`、`src/config/**`、`src/errors/**`、`src/logging/**`、`src/observability/**` — に加えて**カーネルの外側にある起動 / ビルド境界エントリ**: `src/proxy.ts`、`src/instrumentation.ts`、`next.config.ts`。いくつかのカーネルはまだディスク上に無い（ADR 0027 は対応決定が下りた時点で作成する）ので、全部揃っている前提を置かず実在するものを検出する。
 - **リクエスト時の seam** が触られたか — Route Handler（`src/app/**/route.ts`）/ Server Action（`src/features/<name>/actions.ts`）/ `src/proxy.ts` / レスポンスヘッダ設定（`next.config.ts` の `headers()`）/ **layout shell・Provider 合成**（`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.md)。Provider の欠落は当該ルートが実際に描画されて初めて落ちる）。Step 4-2 を回すかの判定。 <!-- skill-lint-ignore -->
 - **生成 API 成果物**（`**/gen/**` — ADR [0072](../../../docs/adr/0072-api-type-generation.md) の型 / zod スキーマ）が触られたか。再生成は全 consumer に波及するので、変更ファイルだけでなくそれを import する `adapters` 変換と feature までレビュー範囲を広げる。
-- **`src/**` 配下の非生成な本番 `.ts` / `.tsx`** が触られたか（除外: `*.test.ts(x)` / `*.spec.ts(x)` / `**/gen/**` / `Code generated … DO NOT EDIT` バナーを持つファイル）— `test-gap` レンズへ渡す変更シンボル一覧の材料。
-- **`*.test.ts(x)` / `*.spec.ts(x)`** が触られたかを別に記録する。前項と合わせて**テスト観点の判定式**が決まる: `本番ソースが触られた OR テストファイルが触られた`。テストのみの変更は後者だけで成立し、それはまさに `test-gap` が見られないケースである（本番ソースを読むため）。4 状態のどれかで所管が決まる。
-  - 判定式が真 **かつ** Step 4.5 の委譲が動く → 委譲先の所管。`test-gap` は走らせない
-  - 判定式が真、委譲が不可、**本番ソースが触られた** → `test-gap` が高シグナルな部分集合として走る
-  - 判定式が真、委譲が不可、**テストファイルのみが触られた** → **どちらも走らせない。** `test-gap` は列挙するシンボルを持たず、空の結果が「監査済み」と読めてしまう。テスト観点が完全に未検査になる唯一の状態なので、空のレンズで代替せず `テスト観点:` 行にそう書く
-  - 判定式が偽 → どちらも走らせない。監査すべきテスト観点が無い
-- **そもそもテストランナーが構成されているか**を確認: `package.json` の `test` スクリプト、またはツリー内の `*.test.ts(x)` / `*.spec.ts(x)`。どちらも無ければ `test-gap` レンズは本実行で **無効**（Step 2 参照）— 黙ってスキップせず Step 5 のレポートに明記する。
 
 ## Step 2 — Finder の fan-out（別モデル、並列）
 
-全 finder を並列起動（`Agent` 呼び出しを1メッセージにまとめる）。Step 0 でユーザーが選んだ reviewer モデルを全 `Agent` 呼び出しへ `model` 引数で渡す（*auto* がエージェント定義の既定へ解決する場合のみ省略可）。エージェントは 2 種類:
-
-- **コードレンズ**は `adversarial-reviewer` — レンズごとに1体、`agentType: "adversarial-reviewer"`、`label` は `find:security` のように。
-- **コメント次元**は専用の `comment-reviewer` — `agentType: "comment-reviewer"`、`label: "find:comment"`。1 段落のレンズより豊かな分類体系を持つコメント特化エージェントで、その finding が Step 5.5 の自動修正へ流れる。
+全 finder を並列起動（`Agent` 呼び出しを1メッセージにまとめる）。Step 0 でユーザーが選んだ reviewer モデルを全 `Agent` 呼び出しへ `model` 引数で渡す（*auto* がエージェント定義の既定へ解決する場合のみ省略可）。finder はすべて `adversarial-reviewer` — レンズごとに1体、`agentType: "adversarial-reviewer"`、`label` は `find:security` のように。
 
 | Finder | エージェント | 起動条件 |
 | --- | --- | --- |
 | `correctness` | adversarial-reviewer | 常時 |
 | `security` | adversarial-reviewer | 常時（Route Handler / Server Action / `src/proxy.ts` / auth / 生成 API のリクエスト・レスポンス型が触られた時は特に） |
 | `architecture` | adversarial-reviewer | 常時 |
+| `cohesion` | adversarial-reviewer | 常時 |
 | `runtime-gap` | adversarial-reviewer | Route Handler / Server Action / `src/proxy.ts` / Provider マウント / 生成 API 成果物が触られた時 — モックのコンポーネントテストが通らない継ぎ目 |
-| `test-gap` | adversarial-reviewer | **fallback のみ** — Step 4.5 の `/test-review` への委譲が動かせなかった時に spawn する。それ以外ではテスト観点は委譲先の所管 |
-| コメント品質 | **comment-reviewer** | diff がコードコメントを追加/変更した時（ほぼ常時） |
+
+**ここにテストやコメントを監査するレンズは無い。** 変更が未テストであるという finding は `/test-review` の、コメントの内容についての finding は `/comment-sweep` の主題である。レンズがついでに気づいたなら、補足の節に観察として書き、所管するスキル名を添える —— レンズを生やしてはならない。ここで生やしたレンズは、主題を所管スキルから取り上げるだけで、深さは連れてこない。
 
 各 `adversarial-reviewer` プロンプトに必ず含める: レンズ名 + その定義、ベース ref + 変更ファイル一覧 + diff、`AGENTS.md` / 該当 `README.md` / 根拠となる ADR へのポインタ。
 
-**`test-gap` レンズの定義**（このレンズは *code-origin* — テストファイルではなく変更された本番ソースを読む）: diff で追加/変更された本番シンボルごとに、論理分岐 / 送出するエラー型 / 境界条件 / null・undefined 防御を列挙し、対応するテストが各々へ到達し *区別可能な形で* アサートしているか確認する — 具体的なエラークラス（`await expect(fn()).rejects.toThrow(SpecificError)`）、区別可能な値や描画状態であって、素の `expect(fn).toThrow()` / `toBeTruthy()` では不足。報告する形は 2 つ: diff で変更された本番シンボルに **テストが一切無い**、および変更シンボルの到達可能な分岐が **未テストまたは空虚なアサート**。各 finding は diff 内の対象行へアンカーし、インライン投稿できるようにする。これは **高シグナルな部分集合** — *変更された*コードの到達可能なギャップを挙げるのであって、モジュール全体のシンボル網羅列挙は行わない。finding は read-only な提案（自動修正しない）。
+**`cohesion` レンズの定義。** `architecture` が問うのは*どの層が持つか*、`cohesion` が問うのは*同じ関数やファイルに何種類の依頼が降ってくるか*である。両者は重ならず、その間に実際の隙間がある — ある単位が寸分違わず正しいカーネルに座り、`eslint-plugin-boundaries` も `pnpm check:architecture` も通ったうえで、エラー文言を直したい人にネットワークを叩くコードを読ませ続けることがある。ツールチェーンのどれもそれを見ておらず、きれいさ・保守性を実際に持っている `full-verify` の `impl-verifier` はリポジトリ全体の監査でしか走らない。このレンズが無いと、その指摘は「持ち込んだ diff」ではなく「いつかの監査」まで待つことになる。
 
-**Step 4.5 が委譲している間、`test-gap` は抑止する。** テスト観点には専任の所管ができた — `/test-review` が同じ変更に対し 5 レンズの監査を回し、このレンズが標本抽出しているだけの subject シンボル網羅と分岐 × 意味を持つ。Step 4.5 が委譲を実行するときは `test-gap` を **spawn しない** — 所管は 1 つ、二重報告なし。`test-gap` は委譲が辞退・不可だった実行のための fallback としてのみ残す。その fallback にも Step 1 のランナー確認が掛かる。
-
-`comment-reviewer` プロンプトに必ず含める: ベース ref + 変更ファイル一覧 + diff、および **行ポリシー**（diff スコープでは変更行のコメントのみを判定する）。全言語一律の基準（TS/TSX も非 TS も同じ — shell / `.mjs` / CSS / YAML。非 TS は例外ではなく、むしろ高リスク）、`docs/rules.md`（Comment Rules 節があればそれ）と `AGENTS.md` を実行時に権威として読むこと、機能ディレクティブ / export 宣言のガードは既にエージェント側が持っている — ここで再指定したり緩めたりしない。渡すファイル一覧はコメントを持つソースに限定する: 生成ファイル（`**/gen/**`、`// Code generated … DO NOT EDIT`）、deny リスト、Markdown / docs 散文（コメント規則が統べるのはソースコメントであって独立した文書ではない — そちらは `doc-reviewer` の担当）を除外する。
+好みに堕ちないための規律: すべての finding が **異なる 2 つの変更理由と、それぞれを誰が依頼するか**を名指しし、そのうえで継ぎ目を名指しする。そう書けない finding は落とす — 失敗する入力を示せない `correctness` の finding を落とすのと同じである。分割は無料ではなく、継ぎ目が 1 つ増えるたびに全体を見るために開くファイルが 1 つ増える。その代金を払うのが 2 つの理由である。長さそのものは finding にならない。
 
 ## Step 3 — 敵対的 verify
 
@@ -142,30 +137,15 @@ build 失敗は **それ自体が CONFIRMED な finding**。出力付きで報�
 
 ランタイムで確証した不具合は CONFIRMED として build 出力 / curl 証拠付きでレポートに統合。
 
-## Step 4.5 — テスト観点を `/test-review` へ委譲
-
-テスト観点はここでは監査しない。`/test-review` が所管し、このスキルの `test-gap` の抽出よりも深く見る — subject の export シンボル表を作り（テストが 1 つも無いシンボルはテストファイル起点の読み方では見えない）、関数ごとに分岐 × 意味の行列を回す。両方を走らせると同じギャップを 2 つの語彙で二重報告することになる。
-
-この実行が既に解決したことを訊き直させないよう、payload を付けて chain する。
-
-- `scope` — Step 1 で解決したファイル一覧。**ペアのテストが存在しない production ファイルも含める。** その不在こそ委譲先のシンボルレンズが報告する対象である
-- `base_ref` — ブランチ base 比較で動いている場合
-- `reviewer_model` — Step 2 で解決したモデル。reviewer ≠ implementer をスキル境界を跨いで保つ
-- `skip_verifier` — この実行が検証を飛ばしている場合だけ渡す
-
-返ってきたレポートは Step 5 のレポートの 1 節として埋め込み、**severity 語彙をそのまま保つ**（修正必須 / 補完推奨 / 再考 / 追加検討 + criticality）。このスキルの severity へ写すと「規則に違反している」と「この分岐が未検証である」の区別が失われる。
-
-委譲が動かせない場合は、その旨をレポートに書いたうえで、この実行に限り `test-gap` レンズへ fallback する。観点を黙って未検査のままにしない。
-
 ## Step 5 — レポート合成（日本語）
 
-1つの日本語レポートを出す:
+日本語のレポートを 1 つ出す:
 
 ```text
 ## ローカルレビュー結果（reviewer: <model> / implementer: <model>）
 
-スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, runtime-gap, comment-style（テスト観点は /test-review へ委譲）
-テスト観点: <4 状態のいずれか。下記の定型から選ぶ>
+スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, cohesion, runtime-gap
+未監査の観点: テスト（/test-review）・コメント（/comment-sweep）は本スキルの対象外
 ランタイム検証: 4-1 build 実施 / 4-2 リクエスト検証 実施（curl）・対象外（リクエスト時 seam の変更なし）・到達不能（バックエンド不在で未検証の経路: <経路>）
 
 ### CONFIRMED（要対応）
@@ -176,52 +156,23 @@ build 失敗は **それ自体が CONFIRMED な finding**。出力付きで報�
 ### PLAUSIBLE（要確認・判断保留）
 - ...
 
-### コメント品質（Step 5.5 で適用）
-- [重大度] 対象コメント — path:行 / 分類 / 実施したアクション（削除・書換・加筆）
-
 ### 補足
 - REFUTED: <n> 件（finder が挙げたが verifier が否定）
 - ランタイム検証でカバーした経路 / スキップした経路
+- 他スキルが所管する観点として気づいた点（あれば。所管スキル名を添える）
 ```
 
-**`テスト観点:` 行は必須**で、Step 1 が解決した状態に対応する次の 4 つのうち 1 つを厳密に取る。
+`lens:` 行には実際に走ったレンズだけを並べる。
 
-- `委譲実施（/test-review Lens 1-5 / CONFIRMED <n>・PLAUSIBLE <m>。レポートは別節に埋め込み）`
-- `test-gap レンズのみ（変更シンボルの高シグナル・サブセット。全シンボル網羅は未実施）`
-- `未実施（テストのみの変更で委譲できず、test-gap にも対象が無い）`
-- `未実施（テスト関連の変更なし）`
+**`未監査の観点:` 行は必須**であり、定型文ではない。このスキルが監査するのは 3 つのレビュー主題のうち 1 つだけで、残り 2 つについて何も言わないレポートは、それらを回していない読み手には全体レビューとして読める。テストとコメントをここでは見ていないことを平明に述べ、`lens:` 行に現れなかったという事実からの推測にしない。推奨の形に和らげないこと —— 残り 2 つを回すかは Review Phase Protocol の下でユーザーが決めることであり、この行が記録するのはこの実行が覆わなかった範囲だけである。
 
-この行が要るのはランタイム行と同じ理由である。無ければ `lens:` に `test-gap` が並んでいるだけで「テストは監査された」と読めてしまうが、実際には変更シンボルの部分集合しか見ていない。テスト分析が一切無い実行は痕跡すら残らない。弱い側の事実をそのまま書き、省略をカバレッジの代わりにしない。
-
-重大度順、CONFIRMED を PLAUSIBLE より先に。ランタイムで何を検査し何をスキップしたか、そして **どのレンズが動かなかったか・なぜか** は必ず明記（黙って省くと「全部見た」と誤読される）。レポート内では **コメント品質** の finding を独立した節に保つ — それらは Step 5.5 で*処理*されるものであって、PR へ投稿されるものではない。
-
-## Step 5.5 — コメント修正の適用（既定。`--no-apply` でスキップ）
-
-本スキルがソースを変更する唯一の場所。verify 済みの **コメント品質** finding（CONFIRMED、およびユーザーが選んだ PLAUSIBLE）を自分で適用する — `comment-reviewer` subagent は決して編集しない。コードレンズはここでは自動修正せず、Step 6 へ回す。
-
-編集前に 1 度だけ確認する:
-
-- `AskUserQuestion`: 「コメント指摘 <N> 件をライフサイクル内で修正適用しますか？」 — 選択肢は「すべて適用」/「1件ずつ確認」/「適用しない（レポートのみ／PR コメント化）」。
-
-各 finding が持つアクションを適用する — 内容の悪いコメントは **削除**、正しい振る舞い記述への **書換**、薄い What / 欠けた非自明な契約 / 欠けた制約の **加筆**。`誤り/陳腐化` の finding（What がコードと矛盾）は削除ではなく訂正する。以下のガードを守る（ここでの誤削除は本物のリグレッション）:
-
-- **機能ディレクティブ / 指示コメントを決して削除しない**: `// @ts-expect-error`、`// @ts-ignore`、`// biome-ignore …`、`// eslint-disable` / `// eslint-disable-next-line` / `/* eslint-disable … */`（ADR [0002](../../../docs/adr/0002-formatter-linter.md) は biome が表現できない検査のために ESLint を残している）、`/** @jsxImportSource … */`、`// prettier-ignore`、`// Code generated … DO NOT EDIT`、shebang、shell / YAML のツールディレクティブ。（`"use client"` / `"use server"` はコメントではなく文字列ディレクティブ — こちらも触らない。）
-- **保護パスを決して編集しない。** `AGENTS.md` の *AI Modification Scope* と *Protected Documentation* が権威: `AGENTS.md` 自身 / Accepted な ADR 本文 / `LICENSE` / `.claude/settings.json` の `permissions.deny` に載るものは、スキル実行中であっても触らない。ルート設定（`package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/`）の保護解除は v1.0.0 未満の暫定運用によるものであり、コメント修正はそこへ手を入れる理由にならない。コメント指摘がこれらのパスに当たった場合は適用せず報告に留める。
-- **export 宣言**: doc コメントが実際の契約（エラー意味論 / 単位 / 境界 / 副作用）を述べているなら、**書換 or 加筆であって削除は不可** — 型シグネチャがその情報を運ばないため。削除してよいのは、名前と型の純粋な言い換えに留まる場合のみ。どちらのケースかは `comment-reviewer` が export 宣言の finding ごとに明記する。明記が無ければ契約ありとみなして書換にする。
-- **良いコメントは残す**: 正しく十分で実質のある What、および**前提がその呼び出し箇所に在る制約**は finding ではない — 剥ぎ取らない。書換・加筆は **What + その制約**を書き、**How** や開発の経緯は書かない。前提が遠い根拠（上流サービスの挙動 / 運用ポリシー）は、ここで要求も移設もしない — レビュアーの判定のまま残す。コメントは日本語で書く（AGENTS.md Language Rules）。編集はスコープ内のファイルのみ。生成ファイル / Markdown 散文 / deny リストには決して触れない。`Edit` を使い、finding（またはファイル）1 件ずつ進める。
-
-編集後に検証する:
-
-1. `pnpm fix` — フォーマット / 自動修正を吸収。
-2. `pnpm lint:ci` — `--error-on-warnings` 付きの完全プロファイル。pre-commit hook と同じ。
-3. 触ったファイルを `git diff` し、散文コメントだけが変わったことを確認（機能ディレクティブを巻き込んでいないか）。非 TS ファイルは変更ハンクを読み直す。
-4. 失敗したら表に出して止める — 自動 revert しない（判断はユーザー）。commit はしない — 変更はユーザー（または後続の `/commit`）に残す。
-
-`--no-apply` の場合は本ステップをスキップし、コメント finding を Step 6（他レンズ同様 PR へ投稿）へ流す。`--no-apply` と `--no-comment` を **両方** 指定された場合は受け皿が無くなるため、Step 5 のローカルレポートへ全件を列挙し、その節の見出しを「コメント品質（未適用・未投稿）」に変える — 起きていない適用を起きたことにしない。
+重大度順、CONFIRMED を PLAUSIBLE より先に。ランタイムで何を検査し何をスキップしたかは必ず明記する（黙って省くと「全部見た」と誤読される）。
 
 ## Step 6 — finding を PR インラインコメントとして投稿（既定。`--no-comment` で opt out）
 
-既定では Step 5.5 の後、**コードレンズ**（correctness / security / architecture / runtime-gap / test-gap）で残った **CONFIRMED + PLAUSIBLE** の finding を、現ブランチの PR へ **インラインレビューコメント**として投稿する — 1 つの巨大コメントではなく、finding ごとに 1 件、その `path:line` へアンカーする。**REFUTED は決して投稿しない。** コメント品質の finding はここでは投稿しない — Step 5.5 で適用済みのため（`--no-apply` の場合のみ、この投稿に含める）。Step 5 のローカルレポートはいずれにせよ出力する。本ステップは追加分。
+既定では、残った **CONFIRMED + PLAUSIBLE** の finding を、現ブランチの PR へ **インラインレビューコメント**として投稿する — 1 つの巨大コメントではなく、finding ごとに 1 件、その `path:line` へアンカーする。**REFUTED は決して投稿しない。** Step 5 のローカルレポートはいずれにせよ出力する。本ステップは追加分。
+
+投稿するのはこのスキル自身の finding だけである。`/test-review` と `/comment-sweep` はそれぞれ自分の出力を持ち、ここからそこへ手を伸ばさない —— 他スキルの finding をこのスキルのレビューとして投稿すると、ある主題の監査が別の主題の中で起きたように見える。
 
 以下の場合は本ステップを丸ごとスキップ:
 
@@ -287,23 +238,22 @@ GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ**
 ## やる / やらない
 
 - ✅ reviewer モデル ≠ implementer モデルを保証（Step 0 でユーザーが選択。実装者のモデルを選んだら警告 + 確認）。
-- ✅ finder は並列（1メッセージ・複数 `Agent` 呼び出し）: コードレンズは `adversarial-reviewer`、コメント品質は `comment-reviewer`。
+- ✅ finder は並列（1メッセージ・複数 `Agent` 呼び出し）。すべて `adversarial-reviewer` で、レンズごとに 1 体。
 - ✅ レポート前に全 finding を独立 verify、REFUTED は落とす。
 - ✅ アプリコードが触られたら `pnpm build`（Step 4-1）、リクエスト時 seam が触られたらリクエスト検証（Step 4-2）。
 - ✅ 生成成果物が変更されたら、それを import する全 consumer まで *finder* の読解範囲（Step 1）を広げる — Step 4 は広げない。届く経路を検証するだけ。
 - ✅ バックエンド不在で塞がっている経路は 到達不能 と明言する — 模擬しない、合格と呼ばない。
 - ✅ 共有バックエンドの状態を変える Server Action の実行は事前にユーザー確認。
-- ✅ コメント品質の指摘は Step 5.5 で 1 度の確認後に適用（削除 / 書換 / 加筆）し、`pnpm fix` + `pnpm lint:ci`。`--no-apply` でスキップ。
-- ✅ 既定でコードレンズの CONFIRMED + PLAUSIBLE を PR へインラインレビューコメントとして投稿（Step 6）。`--no-comment` または open な PR が無い場合は抑止。
+- ✅ どのレポートでも `未監査の観点:` 行に、テストとコメント在庫をここでは監査していないと明記。
+- ✅ 既定で CONFIRMED + PLAUSIBLE を PR へインラインレビューコメントとして投稿（Step 6）。`--no-comment` または open な PR が無い場合は抑止。
 - ✅ PR 投稿（外向き操作）の前に 1 度だけ確認。各コメントは `path:line` へアンカーし、diff 外の finding はレビューサマリへ畳む。
 - ✅ 投稿前に各 finding 本文から秘密らしき具体値を伏せ字化する — 本リポジトリは public で、投稿は取り消せない。
 - ❌ `gh api` が許可されているからと Step 6 の確認を省く — 安全性を担保しているのは権限規則ではなく確認のほう。
 - ❌ deny されたコマンドを許可済みインタプリタ経由で送り直す / `permissions.deny` を編集して解除する — ブロックを提示し、サマリコメントのフォールバックを提案すること。
-- ✅ どのレンズが動かなかったか・なぜか、そしてテスト観点が `/test-review` の委譲から来たのか `test-gap` の fallback から来たのかをレポートに明記。
+- ✅ どのレンズが動かなかったか・なぜかをレポートに明記。
 - ❌ REFUTED を投稿する / `REQUEST_CHANGES` / `APPROVE` を使う — 投稿するレビューは助言的な `COMMENT` のみ。
-- ❌ コードレンズを自動修正する — 指摘まで、直すのはユーザー。自動適用はコメント品質のみ（Step 5.5）。
-- ❌ Step 5.5 で機能ディレクティブ（`// biome-ignore` 等）や契約を述べた export 宣言の doc コメントを削除する（書換にする）/ 生成ファイル・Markdown・deny リストに触れる / 自動 commit する。
-- ❌ `/test-review` への委譲が走っている状態で `test-gap` を spawn する — 同じギャップを 2 つの語彙で二重報告することになる。
+- ❌ ソースを一切書き換える — レンズは指摘までで、直すのはユーザー。
+- ❌ テストやコメントを監査するレンズを生やす / ここから `/test-review` や `/comment-sweep` を呼ぶ。Review Phase Protocol の下では対等な相方であり、気づいたことは補足に観察として書き、所管スキル名を添える。
 - ❌ reviewer を implementer と同一モデルで回す。
 - ❌ 思いつきの style nit を finding として出す / 網羅に見せるための水増し。
 - ❌ verify 中に生成ファイルや deny リスト対象を編集する。
@@ -312,9 +262,10 @@ GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ**
 
 - [ ] `AskUserQuestion` でスコープ確認、ベース ref 解決。
 - [ ] Step 0 で reviewer モデルを選択し、implementer と異なることを確認（同一なら警告 + 確認）。
-- [ ] finder を並列 fan-out: コードレンズ（`adversarial-reviewer`）+ コメント品質（`comment-reviewer`）。`test-gap` は Step 4.5 の委譲が動かせなかった時の fallback としてのみ。
+- [ ] finder を並列 fan-out: レンズごとに `adversarial-reviewer` 1 体。テストのレンズもコメントのレンズも無い。
+- [ ] この実行から他のスキルを呼んでいない。
 - [ ] 全 finding を独立 verify、REFUTED は除外（件数は保持）。
 - [ ] アプリコードが触られたら Step 4-1 `pnpm build` 実施、リクエスト時 seam が触られたら Step 4-2 curl 実施。到達不能な経路は明記済み、状態を変える Server Action は事前確認済み。
-- [ ] 1つの日本語レポート: CONFIRMED → PLAUSIBLE、コメント finding は独立節、ランタイムのカバー範囲と未実行レンズを明記。
-- [ ] `--no-apply` でない限り: コメント finding を Step 5.5 で適用（機能ディレクティブは不変、契約を述べた export の doc コメントは削除でなく書換）し、`pnpm fix` + `pnpm lint:ci`。自動 commit はしない。
+- [ ] 委譲したときは Step 6 を実行（`scope` / `mode`（`apply` は渡さない）/ `base_ref` / `hold` / `claimed` を渡す）。
+- [ ] 1つの日本語レポート: CONFIRMED → PLAUSIBLE、ランタイムのカバー範囲を明記、`未監査の観点:` 行が存在。
 - [ ] `--no-comment` / PR 無しでない限り: 1 度確認のうえコードレンズの CONFIRMED + PLAUSIBLE をインライン PR コメントとして投稿（diff 外はサマリ本文へ）。REFUTED は除外、`event: COMMENT`。

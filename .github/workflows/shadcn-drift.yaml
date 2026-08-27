@@ -8,12 +8,14 @@ name: shadcn Drift
 # The ledger check is hermetic and caused by the change under review, so it gates pull requests.
 # The upstream check needs the network and is not caused by the change under review, so it runs on
 # a schedule instead: failing a PR for it would block work for a reason the author cannot fix.
+# For the same reason `upstream` must never become a required status check.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on every PR is in
+# README.md. A filtered workflow reports no context on the pull requests it skips, and a required
+# context that is never reported blocks the merge forever.
 
 on:
   pull_request:
-    paths:
-      - "src/components/**"
-      - ".github/workflows/shadcn-drift.yaml"
   schedule:
     # Monday 03:00 UTC. Weekly is enough: acting on drift is a manual review either way.
     - cron: "0 3 * * 1"
@@ -27,7 +29,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  manifest:
+  shadcn-manifest:
     # The ledger check runs for every trigger. It needs no network.
     runs-on: ubuntu-latest
 
@@ -35,24 +37,31 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            cafe.github.com:443
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
-      - name: Setup mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.12
-          install: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Node and pnpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install core:node aqua:pnpm/pnpm
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve the pnpm store path
         id: pnpm-store
@@ -69,7 +78,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Verify the component ledger
         run: pnpm check:ui --offline
@@ -83,24 +92,31 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            cafe.github.com:443
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
-      - name: Setup mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.12
-          install: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Node and pnpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install core:node aqua:pnpm/pnpm
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve the pnpm store path
         id: pnpm-store
@@ -117,7 +133,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # One request per recorded source file, so the unauthenticated rate limit is not enough.
       # gh is preinstalled on the runner and picks up GH_TOKEN.

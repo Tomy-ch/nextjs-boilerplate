@@ -15,6 +15,8 @@ label、入力、説明、エラーを一つの form field として構成しま
 | `FieldTitle` | control を持たない項目の見出しを示します。入力欄の名称には `FieldLabel` を使います。 |
 | `FieldSeparator` | field 群の視覚的な区切りを置きます。 |
 
+[`field.definition.ts`](./field.definition.ts) は、`FieldDescription` / `FieldError` に与える `id` の綴りを持ちます（`toErrorId` / `toDescriptionId`）。入力欄の `aria-describedby` がその `id` を指すため、綴りを決めているのは受け取る側の都合です。項目の外枠を組む [`patterns/form-field`](../../../patterns/form-field/README.md) もここを引きます。
+
 ## 利用ケース
 
 native form の入力、選択、説明文、Server Action の検証結果を構成する場合に使います。

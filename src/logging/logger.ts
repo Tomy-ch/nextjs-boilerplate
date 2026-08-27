@@ -13,7 +13,7 @@ export const LogLevel: Readonly<Record<Uppercase<LogLevel>, LogLevel>> = {
 };
 
 /** logger が出力先へ渡す、正規化済みのログレコードです。 */
-export type LogRecord = Readonly<{
+type LogRecord = Readonly<{
   level: LogLevel;
   message: string;
   fields: LogFields;
@@ -23,7 +23,7 @@ export type LogRecord = Readonly<{
 export type LogRecordSink = (record: LogRecord) => void;
 
 /** アクティブな trace から抽出するログ相関情報です。 */
-export type TraceContext = Readonly<{
+type TraceContext = Readonly<{
   traceId: string;
   spanId: string;
 }>;

@@ -37,7 +37,7 @@ export type DescribeNode = {
   readonly line: number;
 };
 
-export type ViolationKind =
+type ViolationKind =
   /** export に対応する describe が無い。 */
   | "missing-describe"
   /** テストファイルそのものが無い。 */
@@ -45,7 +45,9 @@ export type ViolationKind =
   /** 同じ export に describe が 2 つ以上ある。 */
   | "duplicate-describe"
   /** 最上位 describe の名前がどの export とも対応しない(束ね describe を含む)。 */
-  | "unknown-describe";
+  | "unknown-describe"
+  /** テストファイルに対応する production ファイルが無く、宣言もされていない。 */
+  | "orphan-test-file";
 
 export type Violation = {
   readonly kind: ViolationKind;
@@ -234,6 +236,79 @@ function unknownDescribes(input: FileInput, testFile: string): Violation[] {
       line: node.line,
       message: `describe("${node.name}") はどの export にも対応しません。最上位の describe は export 名にし、観点ごとの束ねは \`// ----- 正常系 -----\` のコメント区切りで行ってください`,
     }));
+}
+
+/**
+ * ソースに対応するテストファイルの位置を決める。見つからなければ `null` を返す。
+ *
+ * @remarks
+ * 拡張子はソースに合わせるが、`.ts` のモジュールは `.test.tsx` も受け付ける。hook は本体に JSX を
+ * 持たないまま、検証には React のツリーが必要になる。テストの拡張子はハーネス側の性質であって
+ * subject の性質ではないため、どちらかへ寄せると本体か検証のどちらかが歪む。
+ *
+ * 逆向きは受け付けません。`.tsx` の subject を JSX 無しで描画する手段はありません。
+ */
+export function resolveTestFile(
+  sourcePath: string,
+  exists: (path: string) => boolean,
+): string | null {
+  const candidates = sourcePath.endsWith(".tsx")
+    ? [sourcePath.replace(/\.tsx$/, ".test.tsx")]
+    : [sourcePath.replace(/\.ts$/, ".test.ts"), sourcePath.replace(/\.ts$/, ".test.tsx")];
+
+  return candidates.find((candidate) => exists(candidate)) ?? null;
+}
+
+/**
+ * テストファイルに対応するソースの位置を決める。見つからなければ `null` を返す。
+ *
+ * @remarks
+ * {@link resolveTestFile} の逆向きです。`.test.tsx` は `.ts` のモジュールにも対応しうるため
+ * (hook は本体に JSX を持たないまま、検証には React のツリーが要る)、候補が 1 つに定まりません。
+ */
+export function resolveSourceFile(
+  testPath: string,
+  exists: (path: string) => boolean,
+): string | null {
+  const candidates = testPath.endsWith(".test.tsx")
+    ? [testPath.replace(/\.test\.tsx$/, ".tsx"), testPath.replace(/\.test\.tsx$/, ".ts")]
+    : [testPath.replace(/\.test\.ts$/, ".ts")];
+
+  return candidates.find((candidate) => exists(candidate)) ?? null;
+}
+
+/**
+ * 主語を持たないテストファイルを違反として挙げる。
+ *
+ * @remarks
+ * **ゲートはソース側から歩きます。**対応する production ファイルが無いテストファイルには
+ * 入口が無く、`unknown-describe` の検査へ一度も掛かりません。別モジュールの export をまとめて
+ * 1 つの describe へ束ねたテストがそこに置かれると、CI はそれを赤にできないまま黙ります。
+ *
+ * 主語を持たないテスト自体は在ってよいものです(契約から生成したハンドラを相手にする検査、
+ * 開発機構そのもののゲート)。**在ってよいことと、黙って在れることは違う**ので、宣言を求めます。
+ *
+ * @param file - リポジトリ相対のテストファイル
+ * @param sourceFile - 対応する production ファイル。無ければ null
+ * @param declared - 主語を持たないテストとして宣言済みか
+ */
+export function checkTestFile(
+  file: string,
+  sourceFile: string | null,
+  declared: boolean,
+): Violation[] {
+  if (sourceFile !== null || declared) {
+    return [];
+  }
+
+  return [
+    {
+      kind: "orphan-test-file",
+      file,
+      line: 1,
+      message: `対応する production ファイルがありません。テストは subject の隣に置き、最上位 describe はその export 名にしてください。主語を持たないテストは scripts/lib/untested-modules.ts の SUBJECTLESS_TESTS へ理由付きで宣言してください`,
+    },
+  ];
 }
 
 /**

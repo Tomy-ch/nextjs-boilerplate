@@ -9,7 +9,7 @@ function HoverCardExample({ open }: { open?: boolean }) {
         <a href="https://github.com/">GitHub</a>
       </HoverCardTrigger>
       <HoverCardContent>
-        <p className="font-medium">GitHub</p>
+        <p className="font-emphasis">GitHub</p>
         <p className="mt-1 text-sm text-muted-foreground">
           公開されているプロジェクト情報を確認できます。
         </p>
@@ -24,6 +24,7 @@ const meta = {
   parameters: {
     layout: "centered",
     docs: {
+      story: { inline: false, iframeHeight: 420 },
       description: {
         component: [
           "trigger に hover するか keyboard focus を当てたとき、その近くへ短い補足を開きます。",

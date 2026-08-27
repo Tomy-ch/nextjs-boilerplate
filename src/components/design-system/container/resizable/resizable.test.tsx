@@ -123,7 +123,6 @@ describe("ResizablePanelGroup", () => {
 });
 
 describe("ResizablePanel", () => {
-  // ----- 正常系 -----
   it("区画 1 つとして slot を持つ要素を描画する", () => {
     const { container } = render(<TwoPanes />);
 
@@ -132,7 +131,6 @@ describe("ResizablePanel", () => {
 });
 
 describe("ResizableHandle", () => {
-  // ----- 正常系 -----
   it("境界を動かす操作として slot を持つ要素を描画する", () => {
     const { container } = render(<TwoPanes />);
 

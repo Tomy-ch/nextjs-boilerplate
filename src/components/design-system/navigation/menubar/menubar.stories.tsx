@@ -202,7 +202,10 @@ function InsetMenubar() {
 const meta = {
   title: "Navigation/Menubar",
   component: Menubar,
-  parameters: { layout: "centered" },
+  parameters: {
+    docs: { story: { inline: false, iframeHeight: 420 } },
+    layout: "centered",
+  },
 } satisfies Meta<typeof Menubar>;
 
 export default meta;

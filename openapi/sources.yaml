@@ -3,21 +3,15 @@
 # name / repo / path / ref は人が宣言する。sha / fetchedAt は取得時にスクリプトが
 # 書き戻すため手で編集しない。取得物は `openapi/<name>.gen.yaml` に落ちる。
 sources:
+  # sample:begin
   # go-boilerplate 本体の API 契約。admin と一般が同居しており、tags でも security でも
   # scope でも機械的に分割できないため 1 ユニットとして扱う。
   - name: api
     repo: Tomy-ch/go-boilerplate
     path: openapi/openapi.gen.yaml
-    # コミット SHA で固定する。tag v2.1.0 には /v1/products が存在せず、商品 API は未タグの
-    # release/v2.2.0 にしかない。上流の進展の取り込みはこの ref の書き換えとして明示的に行う。
-    ref: d38429464b44e354e4386b0b0ed94d884003a008
-    sha: b6488311da4fa6b4a117c809a5d08a67b8a66bec
-    fetchedAt: 2026-08-07T09:16:03.273Z
-  # mock OIDC Provider の契約。go-boilerplate 本体とは別サービスであり、認証の契約はこちらが正
-  # (docs/screens.md §0)。本体の契約には認証エンドポイントが存在しない。
-  - name: auth
-    repo: Tomy-ch/go-boilerplate
-    path: docker/mock-auth-server/openapi/openapi.gen.yaml
-    ref: d38429464b44e354e4386b0b0ed94d884003a008
-    sha: 9be739a99afc691e446df2704d12b60e6e2431f1
-    fetchedAt: 2026-08-07T09:16:03.273Z
+    # コミット SHA で固定する。商品 API は未タグの release/v2.2.0 にしかなく、tag では指せない。
+    # 上流の進展の取り込みはこの ref の書き換えとして明示的に行う。
+    ref: fa6264452ae2cb430d998d652b68fb246f8a8ad1
+    sha: f6c9463a6a26a31ca4ddc9c7b644d3187ff6a086
+    fetchedAt: 2026-08-23T15:37:47.976Z
+  # sample:end

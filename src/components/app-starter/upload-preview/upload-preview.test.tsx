@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -20,6 +21,16 @@ beforeAll(() => {
 const ITEMS = [
   { description: "1.2 MB", id: "1", name: "cover.png" },
   { description: "0.4 MB", id: "2", name: "handbook.pdf" },
+];
+
+/** 送れなかった件。再試行はこの状態にだけ現れる。 */
+const FAILED_ITEMS = [
+  {
+    description: "送信できませんでした。",
+    id: "1",
+    name: "cover.png",
+    state: ATTACHMENT_STATE.ERROR,
+  },
 ];
 
 describe("UploadPreview", () => {
@@ -45,27 +56,75 @@ describe("UploadPreview", () => {
     expect(screen.getAllByRole("button", { name: /を取り消す$/ })).toHaveLength(2);
     expect(screen.queryByRole("button", { name: /を差し替える$/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /を再試行する$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /を前へ移動する$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /を後ろへ移動する$/ })).not.toBeInTheDocument();
   });
 
-  it("操作の名前に対象のファイル名を含める", () => {
+  it("操作の名前に対象のファイル名を含める", async () => {
     const onRemove = vi.fn();
     render(<UploadPreview items={ITEMS} onRemove={onRemove} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "handbook.pdf を取り消す" }));
+    await userEvent.click(screen.getByRole("button", { name: "handbook.pdf を取り消す" }));
 
     expect(onRemove).toHaveBeenCalledWith("2");
   });
 
-  it("差し替えと再試行を、対象の id とともに呼び出し元へ返す", () => {
+  it("差し替えを、対象の id とともに呼び出し元へ返す", async () => {
     const onReplace = vi.fn();
-    const onRetry = vi.fn();
-    render(<UploadPreview items={ITEMS} onReplace={onReplace} onRetry={onRetry} />);
+    render(<UploadPreview items={ITEMS} onReplace={onReplace} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "cover.png を差し替える" }));
-    fireEvent.click(screen.getByRole("button", { name: "cover.png を再試行する" }));
+    await userEvent.click(screen.getByRole("button", { name: "cover.png を差し替える" }));
 
     expect(onReplace).toHaveBeenCalledWith("1");
+  });
+
+  it("再試行を、対象の id とともに呼び出し元へ返す", async () => {
+    const onRetry = vi.fn();
+    render(<UploadPreview items={FAILED_ITEMS} onRetry={onRetry} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "cover.png を再試行する" }));
+
     expect(onRetry).toHaveBeenCalledWith("1");
+  });
+
+  it("送れている件には再試行を出さない", () => {
+    render(<UploadPreview items={ITEMS} onRetry={vi.fn()} />);
+
+    expect(
+      screen.queryByRole("button", { name: "cover.png を再試行する" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("並び替えを、対象の id とともに呼び出し元へ返す", async () => {
+    const onMoveUp = vi.fn();
+    const onMoveDown = vi.fn();
+    render(<UploadPreview items={ITEMS} onMoveDown={onMoveDown} onMoveUp={onMoveUp} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "handbook.pdf を前へ移動する" }));
+    await userEvent.click(screen.getByRole("button", { name: "cover.png を後ろへ移動する" }));
+
+    expect(onMoveUp).toHaveBeenCalledWith("2");
+    expect(onMoveDown).toHaveBeenCalledWith("1");
+  });
+
+  it("端の項目は、その先へ動かす操作を押せなくする", () => {
+    render(<UploadPreview items={ITEMS} onMoveDown={vi.fn()} onMoveUp={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: "cover.png を前へ移動する" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "handbook.pdf を後ろへ移動する" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "cover.png を後ろへ移動する" })).toBeEnabled();
+  });
+
+  it("横の束では、件を折り返して並べる", () => {
+    render(<UploadPreview items={ITEMS} orientation="row" />);
+
+    expect(screen.getByRole("list", { name: "選択中のファイル" })).toHaveClass("flex-wrap");
+  });
+
+  it("既定では縦の一覧として並べる", () => {
+    render(<UploadPreview items={ITEMS} />);
+
+    expect(screen.getByRole("list", { name: "選択中のファイル" })).toHaveClass("grid");
   });
 
   it("送信中は操作を止めるが、一覧は残す", () => {

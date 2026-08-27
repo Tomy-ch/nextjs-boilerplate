@@ -61,6 +61,29 @@ describe("SearchFieldNative", () => {
     expect(entries.get("view")).toBe("compact");
   });
 
+  it("並びで渡した query を、同じキーの繰り返しとして引き継ぐ", () => {
+    const { container } = render(
+      <SearchFieldNative
+        action="/items"
+        hiddenParams={{ categoryId: ["a", "b"], sort: "newest" }}
+        label="項目を検索"
+      />,
+    );
+
+    const entries = new FormData(searchForm(container));
+
+    expect(entries.getAll("categoryId")).toEqual(["a", "b"]);
+    expect(entries.get("sort")).toBe("newest");
+  });
+
+  it("空の並びを渡した query は引き継がない", () => {
+    const { container } = render(
+      <SearchFieldNative action="/items" hiddenParams={{ categoryId: [] }} label="項目を検索" />,
+    );
+
+    expect(new FormData(searchForm(container)).getAll("categoryId")).toEqual([]);
+  });
+
   it("引き継ぐ query を渡さない場合は検索語だけを送信する", () => {
     const { container } = render(
       <SearchFieldNative action="/items" defaultValue="標準" label="項目を検索" />,

@@ -1,5 +1,5 @@
-import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Slot } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -7,15 +7,19 @@ import { cn } from "@/components/cn";
 import { BADGE_VARIANT, type BadgeVariant } from "./badge.definition";
 
 const badgeVariants = cva(
-  "inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground [&>svg]:pointer-events-none [&>svg]:size-3",
+  "inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-full border border-transparent px-2 py-0.5 text-xs font-emphasis whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary [&>svg]:pointer-events-none [&>svg]:size-3",
   {
     variants: {
       variant: {
         [BADGE_VARIANT.DEFAULT]: "bg-foreground text-background",
         [BADGE_VARIANT.SECONDARY]: "bg-muted text-foreground",
+        [BADGE_VARIANT.SUCCESS]: "bg-success text-success-foreground",
         [BADGE_VARIANT.DESTRUCTIVE]: "bg-destructive text-destructive-foreground",
+        [BADGE_VARIANT.WARNING]: "bg-warning text-warning-foreground",
+        // 縁だけで成り立つ variant なので、枠線は `border` ではなく `input` を取る
+        // （`components/README.md`「境界を示す線」）。
         [BADGE_VARIANT.OUTLINE]:
-          "border-border text-foreground hover:bg-foreground hover:text-background",
+          "border-input text-foreground hover:bg-foreground hover:text-background",
         [BADGE_VARIANT.GHOST]: "text-foreground hover:bg-foreground hover:text-background",
         [BADGE_VARIANT.LINK]: "text-foreground underline-offset-4 hover:underline",
       },
@@ -63,7 +67,7 @@ export type BadgeProps = ComponentProps<"span"> &
  * @see Storybook `Display/Badge`
  */
 export function Badge({ className, variant, asChild = false, ...props }: BadgeProps) {
-  const Component = asChild ? Slot : "span";
+  const Component = asChild ? Slot.Root : "span";
 
   return (
     <Component

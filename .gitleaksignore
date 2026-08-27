@@ -8,4 +8,12 @@
 #
 # パスやルールの面で除外したい場合は、本ファイルではなく .gitleaks.toml の allowlist を使う。
 #
-# 現時点でエントリなし。
+# テストが組み立てに使う固定値。バックエンドへ送らず、どの環境の資格情報でもない。
+# 秘密スキャンを CI に載せたのが 1408f520 で、この 2 つはそれより前のコミットのため、
+# PR 単位の走査（base..HEAD）を一度も通っていない。
+c21c383992553921e71b26e5ff31829a8359ea38:src/adapters/server/api/cart-session.test.ts:generic-api-key:22
+c21c383992553921e71b26e5ff31829a8359ea38:src/adapters/server/api/cart.test.ts:generic-api-key:38
+
+# 秘密鍵を検出する関数（looksLikePrivateKey）へ与える入力。本体は 4 文字で鍵ではない。
+# 走査対象は履歴の blob であり、当該パスは baseline-store へ改名済みで tip には無い。
+819590bfe6d1319b4305ffb540eef1eaa92d9816:scripts/setup/vrt-images/plan.test.ts:private-key:229

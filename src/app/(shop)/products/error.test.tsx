@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 import ProductsError from "./error";
 
 describe("ProductsError", () => {
-  // ----- 正常系 -----
   it("生のエラー本文を出さずに正規化済みの文言を出す", () => {
     render(
       <ProductsError
@@ -31,12 +32,27 @@ describe("ProductsError", () => {
     expect(screen.getByText("2741564515")).toBeInTheDocument();
   });
 
-  it("再試行が境界の reset を呼ぶ", () => {
+  it("再試行が境界の reset を呼ぶ", async () => {
     const reset = vi.fn();
     render(<ProductsError error={new Error("失敗")} reset={reset} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "再試行" }));
+    await userEvent.click(screen.getByRole("button", { name: "再試行" }));
 
     expect(reset).toHaveBeenCalledOnce();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(
+      <ProductsError
+        error={Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:8080"), {
+          digest: "2741564515",
+        })}
+        reset={vi.fn()}
+      />,
+    );
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

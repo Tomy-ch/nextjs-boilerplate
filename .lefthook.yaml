@@ -60,6 +60,22 @@ pre-commit:
         - "scripts/actions-shellcheck/*.ts"
         - "scripts/lib/*.ts"
       run: make actions-shellcheck
+    actions-zizmor:
+      # Actions 定義そのものの静的解析 (ADR 0153)。上の 2 つが届かない観点を埋めるため、
+      # 別コマンドとして持つ (何が届かないかは make 側 / ADR 0153 §1 が正)。
+      # 抑止の宣言も発火対象に含める。設定が変われば所見の集合が変わる。
+      glob:
+        - ".github/workflows/*.{yml,yaml}"
+        - ".github/actions/**/*.{yml,yaml}"
+        - ".github/zizmor.yml"
+      run: make actions-zizmor
+    shellcheck:
+      # 単体のシェルスクリプトを検査する (ADR 0153)。ここに居るのは、依存の導入前に走る
+      # 必要があってシェルで書くしかないもの (ADR 0155 の例外)。TypeScript ではないので
+      # 1:1 ゲートもカバレッジも掛からず、.github の外に居るので actionlint も届かない。
+      # 静的検査だけが唯一の網になる。
+      glob: "**/*.sh"
+      run: make shellcheck
     actions-comment-secret-lint:
       # PR コメントを投稿するジョブに secret が渡っていないかを検査する (ADR 0153)。
       # 規約 (検査ログをそのまま公開コメントへ複製するため本文を作るジョブに secret を
@@ -72,6 +88,16 @@ pre-commit:
         - "scripts/actions-comment-secret-lint/*.ts"
         - "scripts/lib/*.ts"
       run: make actions-comment-secret-lint
+    actions-required-check-lint:
+      # 必須ステータスチェックに登録した context が全 PR で報告されるかを検査する (ADR 0153)。
+      # 報告されない context は必須チェック待ちのまま永久にマージできず、壊れたことに気づくのは
+      # 変更を入れた PR ではなく次に上がってきた PR になる。判定に要るのは workflow 定義と
+      # ruleset の宣言の 2 つで、どちらの変更でも発火させる。
+      glob:
+        - ".github/workflows/*.{yml,yaml}"
+        - ".github/settings/branch-protection.json"
+        - "scripts/required-check-lint/*.ts"
+      run: make actions-required-check-lint
     gen-api-check:
       # 取得した契約と生成物の版が揃っているかを検査する (ADR 0072)。CI は再生成して差分を
       # 見るが、hook では生成せず版の突合だけを行う。生成は数秒かかるうえ、契約を取得した
@@ -89,6 +115,23 @@ pre-commit:
       # ロックファイルの 3 か所いずれの変更でも発火させる必要があるため。
       glob: ".github/**"
       run: make actions-pin-check
+    egress-check:
+      # harden-runner の許可リストが宣言どおりかを検査する (ADR 0153)。
+      # actions-pin-check と同じくネットワークに出ないため hook の速度目標に収まる。
+      # workflow 定義と宣言のどちらの変更でも発火させる。
+      glob: ".github/**"
+      run: make egress-check
+    images-pin-check:
+      # container image の参照がロックファイル通りに digest 固定されているかを検査する。
+      # actions-pin-check と同じくネットワークに出ないため hook の速度目標に収まる。
+      # compose 定義・Dockerfile・ロックファイルのいずれの変更でも発火させる。
+      # .github/** を含めるのは、workflow / composite action の `uses: docker://` も
+      # この機構が digest 固定するため。
+      glob:
+        - "docker-compose*.{yml,yaml}"
+        - "docker/**"
+        - ".github/**"
+      run: make images-pin-check
 
 commit-msg:
   commands:
@@ -103,20 +146,23 @@ pre-push:
     test-full:
       # pre-push は Vitest のキャッシュを使わず、CI のカバレッジ付き完全実行と同じ挙動で
       # 検査する。対象の TypeScript・設定・依存定義が変わるときだけ起動する。
+      #
+      # gate-* 越しに走らせる。帯が ci-first のときだけ CI へ委ねる (ADR 0151)。
+      # 現在の判定は `make load-status` で確認できる。
       glob:
         - "**/*.{ts,tsx}"
         - "package.json"
         - "pnpm-lock.yaml"
         - "pnpm-workspace.yaml"
-      run: make test-full
+      run: make gate-test-full
     scripts-test:
       # 補助スクリプトの suite も CI (scripts-check) と同じ完全実行で回す。
       glob:
         - "**/*.{ts,tsx}"
         - "vitest.scripts.config.ts"
-      run: make scripts-test
+      run: make gate-scripts-test
     typecheck:
-      run: pnpm typecheck
+      run: make gate-typecheck
     secret-scan:
       # push 予定のコミット範囲に秘密が含まれていれば fail-closed で止める。
       # 依存脆弱性スキャン (make trivy-fs) をここに置かないのは ADR 0110 3.1 の判断による。

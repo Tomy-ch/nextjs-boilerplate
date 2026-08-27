@@ -4,26 +4,54 @@ import { apiBaseUrlValidator, apiModeValidator } from "./api/api.schema";
 import {
   authClientIdValidator,
   authIssuerValidator,
+  authModeValidator,
   authRedirectUriValidator,
   authScopesValidator,
   authSessionSecretValidator,
 } from "./auth/auth.schema";
+import { fixedNowValidator } from "./clock/clock.schema";
+import { maxUploadBytesValidator, maxUrlBytesValidator } from "./http/http.schema";
+import { findApplicationEnvironment } from "./load-environment";
 import { mediaOriginValidator } from "./media/media.schema";
-import { otlpEndpointValidator, otlpExporterValidator } from "./observability/observability.schema";
+import {
+  otlpEndpointValidator,
+  otlpExporterValidator,
+  renderSpansValidator,
+  serviceNameValidator,
+} from "./observability/observability.schema";
+
+/**
+ * 同梱の秘密値を許す環境。
+ *
+ * @remarks
+ * 開発と CI の ENV ファイルが積む同梱値を通すための例外です。`APP_ENV` の未指定は許しません
+ * —— 未指定は `null` で返り、`local` にも `ci` にも一致しないためです。
+ */
+function allowsShippedSecrets(): boolean {
+  const environment = findApplicationEnvironment();
+
+  return environment === "local" || environment === "ci";
+}
 
 const environmentSchema = z.object({
   APP_API_BASE_URL: apiBaseUrlValidator(),
   APP_API_MODE: apiModeValidator(),
+  CLOCK_FIXED_NOW: fixedNowValidator(),
   MEDIA_ORIGIN: mediaOriginValidator(),
+  OBS_SERVICE_NAME: serviceNameValidator(),
   OTEL_EXPORTER_OTLP_ENDPOINT: otlpEndpointValidator(),
   OBS_TRACES_EXPORTER: otlpExporterValidator(),
   OBS_METRICS_EXPORTER: otlpExporterValidator(),
   OBS_LOGS_EXPORTER: otlpExporterValidator(),
+  OBS_RENDER_SPANS: renderSpansValidator(),
+  AUTH_MODE: authModeValidator(),
   AUTH_ISSUER: authIssuerValidator(),
   AUTH_CLIENT_ID: authClientIdValidator(),
   AUTH_REDIRECT_URI: authRedirectUriValidator(),
   AUTH_SCOPES: authScopesValidator(),
-  AUTH_SESSION_SECRET: authSessionSecretValidator(),
+  AUTH_SESSION_SECRET: authSessionSecretValidator(allowsShippedSecrets()),
+  NEXT_PUBLIC_HTTP_MAX_URL_BYTES: maxUrlBytesValidator(),
+  NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: maxUploadBytesValidator(),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

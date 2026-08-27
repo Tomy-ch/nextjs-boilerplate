@@ -1,0 +1,87 @@
+name: Dead Code
+
+# Reports files, exports and dependencies that nothing reaches (ADR 0004 / 0091).
+#
+# This closes a gap the other gates cannot see. The 1:1 correspondence gate in Scripts Check
+# asks whether an export has a matching `describe`, and the coverage thresholds ask whether
+# its branches run — an export nobody calls satisfies both, because its own test is the
+# caller. Only reachability from a real entry point separates "supported API" from
+# "code that survived a refactor".
+#
+# The published surface is declared as entry points in `knip.ts`. A boilerplate exports the
+# components a fork consumes, so "unused inside this repository" is the expected steady
+# state there and is not a finding; everything else is internal and is.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on every PR
+# is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dead-code:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      # The whole workspace is installed, not just the root. Reachability is decided from
+      # resolved imports, and a package whose dependencies are absent resolves to nothing —
+      # the run would then report every import as unresolved, or worse, silently narrow what
+      # it walked and come back clean.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Report unused files, exports and dependencies
+        run: pnpm knip

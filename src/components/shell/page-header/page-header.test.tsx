@@ -84,7 +84,6 @@ describe("PageHeader", () => {
 });
 
 describe("PageHeaderTitle", () => {
-  // ----- 正常系 -----
   it("題名として slot を持つ要素を描画する", () => {
     render(<Fixture />);
 
@@ -93,7 +92,6 @@ describe("PageHeaderTitle", () => {
 });
 
 describe("PageHeaderDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<Fixture />);
 
@@ -105,7 +103,6 @@ describe("PageHeaderDescription", () => {
 });
 
 describe("PageHeaderActions", () => {
-  // ----- 正常系 -----
   it("操作の枠として slot を持つ要素を描画する", () => {
     const { container } = render(<Fixture />);
 

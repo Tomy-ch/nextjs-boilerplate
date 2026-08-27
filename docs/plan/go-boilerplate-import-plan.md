@@ -107,7 +107,7 @@
 | IM-25 | 2 段 lint 構成の思想を ESLint へ適用 | B | P3-2 | P3-2 | 未着手 |
 | IM-48 | DDD / 語彙 / コンテキストマップ系の採否判断 | C | — | A3 Accepted。IM-22 の前 | 未着手 |
 | **W7: spec / scaffold**(v1 Phase 4 前後) | | | | | |
-| IM-26 | GB-3(spec 駆動)の採否判断 | C | P5-18 | Phase 5 の画面実装完了 | 未着手 |
+| IM-26 | GB-3(spec 駆動)の採否判断 | C | P5-18 | v1 を切る直前の最終品質チェック | **採用は決定 / How は未確定** |
 | IM-27 | GB-4 の骨格のみ P4-6 へ吸収 | B | P4-6 | P4-5(着地済み) | 未着手 |
 | **W8: テスト**(v1 Phase 3 後) | | | | | |
 | IM-28 | `scaffold-test` / `test-review`(GB-5) | C | P4-0 | P3-6 完了 | `test-review` 完了 / `scaffold-test` 未着手 |
@@ -213,7 +213,7 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 
 - **完了条件**: 5 レンズ + comment-reviewer が走り、コメント指摘が自動修正され、残る指摘が PR へインライン投稿される。`--no-comment` / `--no-apply` が効く
 - **依存**: IM-01
-- **状態**: **完了**(issue #40)。その後 `test-review` の移植(IM-28)に伴い、スキル名を `local-review` から go 側と同じ `impl-review` へ改名し、テスト観点は Step 4.5 で `test-review` へ委譲する形にした(`test-gap` レンズは委譲が動かない場合の fallback)。PR インライン投稿は `gh api` の実行許可が前提で、これを許可する判断は issue #48 で別途決着させた。Step 1 の layer 検出・ランタイム検証段・`runtime-gap` のレンズ定義本文には go 由来の記述が残っており、未翻案分は BACKLOG の移植バックログ節が持つ。その後の追随で 3 点を取り込んだ — コメント内容の判定を go 側現行の分類へ揃え(下記 IM-36 の 3 番目を除く)、テスト観点委譲の状態を 4 分岐へ割り直して「テストのみの変更で委譲不可」のとき `test-gap` を空振りさせない形にし、`テスト観点:` 行を必須の 4 値へ固定した。併せて `architecture` レンズの前提を実態(`pnpm lint:ci` が `eslint-plugin-boundaries` と `check:architecture` を走らせる)へ訂正した
+- **状態**: **完了**(issue #40)。その後 `test-review` の移植(IM-28)に伴い、スキル名を `local-review` から go 側と同じ `impl-review` へ改名し、テスト観点は Step 5 で `test-review` へ委譲する形にした(`test-gap` レンズは委譲が動かない場合の fallback)。PR インライン投稿は `gh api` の実行許可が前提で、これを許可する判断は issue #48 で別途決着させた。Step 1 の layer 検出・ランタイム検証段・`runtime-gap` のレンズ定義本文には go 由来の記述が残っており、未翻案分は BACKLOG の移植バックログ節が持つ。その後の追随で 3 点を取り込んだ — コメント内容の判定を go 側現行の分類へ揃え(下記 IM-36 の 3 番目を除く)、テスト観点委譲の状態を 4 分岐へ割り直して「テストのみの変更で委譲不可」のとき `test-gap` を空振りさせない形にし、`テスト観点:` 行を必須の 4 値へ固定した。併せて `architecture` レンズの前提を実態(`pnpm lint:ci` が `eslint-plugin-boundaries` と `check:architecture` を走らせる)へ訂正した
 
 #### IM-36: `comment-sweep` + コメント在庫の管轄ゲート
 
@@ -519,13 +519,15 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 
 #### IM-26: GB-3(spec 駆動)の採否判断
 
-- **判断すべきこと**: `docs/spec/<feature>/` に 2 層 spec を置き、そこから実装を生成する **lean A 方式を採るか**
-- **輸入可能な設計(採用する場合)**: **spec フォーマットを外部ファイル(`.claude/scaffold-spec/*`)から実行時に読み込む = SSOT** という構造は言語非依存。フォーマット変更がスキル改修なしで伝播する
-- **注意**: v1 計画の **P4-6(スキャフォールドジェネレータ)は `architecture.ts` を読んで生成する方式**であり、spec 駆動とは前提が異なる。**両方を持つと SSOT が二重化する**ため、どちらか一方に倒す。go 側は spec 側に語彙表への登録まで足しており、採用する場合は IM-48 の 3 と一体で判断する
-- **不採用の場合**: GB-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
-- **判断の時期**: **Phase 5 の画面実装が済んでから**(受け皿 P5-18)。画面が 1 枚も無い状態では、spec が実装のどれだけを言い当てられるかを測れない。実装済みの feature を 1 つ選び、後から spec を書き起こして材料にする
-- **P4-6 は判断を待たずに着地させる**: 生成入力を `architecture.ts` の 1 本に固定して進める。採用の決定が出た場合は生成入力を差し替える改修が発生する
-- **トリガー**: Phase 5 の画面実装完了
+- **決定: 採用する**(v1 計画 P5-18)。仕様書は `docs/spec/route/**` の 2 層で確定しており、そこから実装を導く方針を採る
+- **ただし具体的な How は v1 を切る直前の最終品質チェックで確定する。** 未確定なのは次の 3 つ
+  1. 生成 scaffold を持つか。持つなら P4-6 の生成入力(`architecture.ts`)をどう扱うか。**両方を同じ役割で残すと SSOT が二重化する**
+  2. 輸入資産(`new-spec` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)のどれを翻案し、どれを破棄するか
+  3. spec を先に書くことを手順として強制するか
+- **輸入可能な設計**: **spec フォーマットを外部ファイル(`.claude/scaffold-spec/*`)から実行時に読み込む = SSOT** という構造は言語非依存。フォーマット変更がスキル改修なしで伝播する。採るならここが軸になる
+- **注意**: go 側は spec 側に語彙表への登録まで足しており、How を確定させるときは IM-48 の 3 と一体で判断する
+- **P4-6 は How の確定を待たずに着地済み**: 生成入力は `architecture.ts` の 1 本。差し替えの要否は上記 1 の確定待ちで、**改修 PR はまだ起票しない**
+- **トリガー**: v1 を切る直前の最終品質チェック
 
 #### IM-27: GB-4 の骨格のみ P4-6 へ吸収
 
@@ -543,7 +545,7 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
   - `scaffold-test` — **テスト観点を README から実行時に導出**する構造。「1 関数 = 1 テスト」「正常系 / 異常系のグループ分け」「table-driven 禁止」は [0090](../adr/0090-testing-strategy.md) / [0091](../adr/0091-test-verification-methods.md) の規約に置き換える
   - `test-review` — 5 レンズ二段レビュー(構造準拠 / 観点カバレッジ / 意味品質 / 分岐 × 意味網羅 / 対象シンボル完全性)。**既移植の `adversarial-reviewer` / `review-verifier` を再利用**する
 - **併せて見直す**: `full-apply` / `node-upgrade` に残る `pnpm test` の条件分岐(テスト基盤が無い前提で書かれている)。`repo-ops` は `make test-full` へ更新済み
-- **状態**: `test-review` は移植済み(規則は [0090](../adr/0090-testing-strategy.md) / [0091](../adr/0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む形へ翻案し、`impl-review` Step 4.5 の委譲先として結線した)。その後の追随で 3 点を取り込んだ — Lens 1 の構造規約を [0090](../adr/0090-testing-strategy.md) の実態(最外 `describe` は export 名 / 観点はコメント区切り)へ是正し、`it.skip` の許容条件(検証不可能なときのみ。「別テストでカバー済み」は無効)を ADR と Lens 1 の両方へ足し、`test-requirement` の宣言とテストが食い違うときの裁定基準 4 則を Lens 2 へ置いた。**skip 理由の機械検査は未実装**(規約は ADR にあるがゲートが無い)。`scaffold-test` は未着手
+- **状態**: `test-review` は移植済み(規則は [0090](../adr/0090-testing-strategy.md) / [0091](../adr/0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む形へ翻案し、`impl-review` Step 5 の委譲先として結線した)。その後の追随で 3 点を取り込んだ — Lens 1 の構造規約を [0090](../adr/0090-testing-strategy.md) の実態(最外 `describe` は export 名 / 観点はコメント区切り)へ是正し、`it.skip` の許容条件(検証不可能なときのみ。「別テストでカバー済み」は無効)を ADR と Lens 1 の両方へ足し、`test-requirement` の宣言とテストが食い違うときの裁定基準 4 則を Lens 2 へ置いた。**skip 理由の機械検査は未実装**(規約は ADR にあるがゲートが無い)。`scaffold-test` は未着手
 
 #### IM-49: `scripts/` の 1:1 テスト対応ゲート + ツールのディレクトリ化
 

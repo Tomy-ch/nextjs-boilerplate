@@ -37,24 +37,30 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
-      - name: Setup mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.12
-          install: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Node and pnpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install core:node aqua:pnpm/pnpm
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve the pnpm store path
         id: pnpm-store
@@ -83,12 +89,12 @@ jobs:
           : > /tmp/lockfile-drift.log
           status=success
 
-          pnpm install --frozen-lockfile 2>&1 | tee -a /tmp/lockfile-drift.log
+          pnpm install --frozen-lockfile --ignore-scripts 2>&1 | tee -a /tmp/lockfile-drift.log
           if [ "${PIPESTATUS[0]}" -ne 0 ]; then
             status=failure
             {
               echo ""
-              echo "--- pnpm install --frozen-lockfile failed ---"
+              echo "--- pnpm install --frozen-lockfile --ignore-scripts failed ---"
               echo "pnpm-lock.yaml does not describe package.json."
               echo "Run 'pnpm install' locally and commit the updated lockfile."
             } | tee -a /tmp/lockfile-drift.log
@@ -121,6 +127,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- lockfile-drift-result -->'
+          status: ${{ steps.drift.outputs.status }}
           title: ${{ steps.drift.outputs.title }}
           body-file: /tmp/lockfile-drift.log
           details-summary: 'pnpm install / git diff log'

@@ -35,6 +35,10 @@ const defaultErrorMeta: Readonly<Record<ErrorKindType, ErrorMeta>> = {
     code: "PAYLOAD_TOO_LARGE",
     message: "送信するデータのサイズが大きすぎます。",
   }),
+  [ErrorKind.URI_TOO_LONG]: createErrorMeta({
+    code: "URI_TOO_LONG",
+    message: "条件が多すぎます。条件を減らしてから再試行してください。",
+  }),
   [ErrorKind.TOO_MANY_REQUESTS]: createErrorMeta({
     code: "TOO_MANY_REQUESTS",
     message: "しばらく時間をおいてから再試行してください。",

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useId } from "react";
-
+import { toErrorId } from "../field/field.definition";
 import { Input } from "./input";
 
 function LabeledInput() {
@@ -16,7 +16,7 @@ function LabeledInput() {
 
 function InvalidInput() {
   const inputId = useId();
-  const errorId = `${inputId}-error`;
+  const errorId = toErrorId(inputId);
 
   return (
     <div className="grid gap-2">

@@ -1,3 +1,9 @@
+---
+test-requirement: [unit, component]
+coverage-exclusions:
+  - "docs-viewer/src/main.tsx"
+---
+
 # docs-viewer
 
 ドキュメントポータルのビューアーです。アプリ本体とは**別パッケージ**で、Next.js のランタイムには
@@ -21,9 +27,16 @@
 依存も共有しません。アプリ本体の `package.json` とこのパッケージの `package.json` は別物で、
 ビューアーが引いた依存がアプリの供給面に乗ることはありません。
 
+## テストの責務
+
+frontmatter が `test-requirement: [unit, component]` と 2 つ挙げるのは、この配下が両方を抱える
+ためです（[0090](../docs/adr/0090-testing-strategy.md)）。文書の解釈・整形・検索・経路は純粋
+ロジックとして確かめ、描画する部品は React Testing Library で確かめます。どちらを負うかは対象が
+描画を返すかで決まります。
+
 ## デザインシステムとの関係
 
-UI は [`src/components/design-system`](../src/components/design-system/README.md) の部品で組みます。
+UI は [`src/components/design-system`](../src/components/README.md) の部品で組みます。
 **コピーせず、`@` alias でアプリ本体のソースを直接参照します。** コピーすると乖離した時点で、
 実運用の画面でデザインシステムを検証するという目的が失われるためです。
 

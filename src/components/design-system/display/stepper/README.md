@@ -8,12 +8,14 @@
 
 | Component | 役割 |
 | --- | --- |
-| `Stepper` | 段階を並べる `ol` です。進捗の名前を `label` で受け取ります。 |
+| `Stepper` | 段階を並べる `ol` です。進捗の名前を `label`、並べる向きを `orientation` で受け取ります。 |
 | `StepperItem` | 段階 1 つです。`state` で位置を示し、`current` へ `aria-current="step"` を与えます。 |
 
-`STEPPER_STATE`（`complete` / `current` / `upcoming`）と `STEPPER_STATE_LABEL` は `stepper.definition.ts` が owner です。
+`STEPPER_STATE`（`complete` / `current` / `upcoming`）・`STEPPER_STATE_LABEL`・`STEPPER_ORIENTATION`（`vertical` / `horizontal`）・`STEPPER_PASSED_CURRENT_LABEL` は `stepper.definition.ts` が owner です。
 
 内容は [`List`](../list/README.md) の `ListItemContent` / `ListItemTitle` / `ListItemDescription` で組み立てます。縦に並ぶ行・先頭の印・見出しと説明は `List` が既に持つため、同じものを作り直していません。
+
+**向きは既定で縦です。**`orientation` に `horizontal` を与えると横並びになり、入りきらない分は折り返します。段の数が少なく、名前が短いときに、入力欄の上へ進捗を置けます。どちらの向きでも組み立てる要素は同じで、変わるのは並べ方だけです。
 
 ## 利用ケース
 
@@ -46,6 +48,8 @@
 
 **`current` は 1 つの `Stepper` の中で 1 つだけにします。** 複数あると現在地が定まりません。
 
+**済ませたことと、今どこに居ることは別の事実です。** 一度通った段へ戻ると `current` に戻りますが、入力そのものは済んでいます。`passed` を与えると印だけが `complete` と同じ check になり、`state` は `current` のまま残ります。読み上げには `STEPPER_PASSED_CURRENT_LABEL`（既定「現在の段階・完了」）が出ます。`state` の側を `complete` にして代用しないでください —— 現在地が消えます。
+
 **進捗の名前を必ず与えます。** 同じ画面に複数の進捗があるとき、名前が無いとどちらの進捗か判りません。
 
 印は装飾です。`complete` では check、それ以外では `marker` に渡した番号を出します。**色と印だけでは支援技術へ伝わらない**ため、状態を表す語を読み上げ専用のテキストとして各段階に添えています。
@@ -58,4 +62,4 @@ Server Component として使えます。hydration は不要です。
 
 ## Storybook とテスト
 
-Storybook は途中まで進んだ状態、まだ始まっていない状態、すべて通過した状態、説明を持たない場合、番号を持たない場合、状態の語を段階の呼び名へ差し替えた場合を確認します。差し替えは読み上げ専用のため見た目には現れず、実挙動はテストで固定しています。テストは `ol` として名前つきで並ぶこと、現在地だけへ `aria-current` を与えること、状態を読み上げ用の語でも示すこと、通過済みが番号ではなく check になること、`state` を省くと未着手になること、`stateLabel` で語を差し替えられること、`marker` を省いても印の枠が残ること、操作を持たないこと、a11y 自動検査を確認します。
+Storybook は途中まで進んだ状態、まだ始まっていない状態、すべて通過した状態、説明を持たない場合、番号を持たない場合、状態の語を段階の呼び名へ差し替えた場合を確認します。差し替えは読み上げ専用のため見た目には現れず、実挙動はテストで固定しています。テストは `ol` として名前つきで並ぶこと、現在地だけへ `aria-current` を与えること、状態を読み上げ用の語でも示すこと、通過済みが番号ではなく check になること、現在地であっても `passed` なら印と読み上げの両方でそれを示すこと、`state` を省くと未着手になること、`stateLabel` で語を差し替えられること、`marker` を省いても印の枠が残ること、横に並べる指定が属性にも出ること、操作を持たないこと、a11y 自動検査を確認します。

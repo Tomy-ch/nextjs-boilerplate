@@ -28,7 +28,7 @@
 | 効き方 | その画面の見せ方を変える | 保存して永続する |
 | 例 | 表示密度、折り返しの有無 | 通知の受け取り、公開 / 非公開 |
 
-保存されて次に開いたときも残るなら [`SwitchNative`](../switch-native/README.md) / [`SwitchClient`](../switch-client/README.md)、その場の見え方だけならこちらです。form の値として複数選択や同意を送るなら `CheckboxNative` を使います。
+保存されて次に開いたときも残るなら [`SwitchNative`](../../form/switch-native/README.md) / [`SwitchClient`](../../form/switch-client/README.md)、その場の見え方だけならこちらです。form の値として複数選択や同意を送るなら `CheckboxNative` を使います。
 
 ## 責務境界
 
@@ -43,7 +43,7 @@ SSR first の選定では `◎` に当たります。押下状態を `pressed` �
 
 icon だけを置く場合は `aria-label` でアクセシブルな名前を与えます。押下状態は `aria-pressed` が伝えるため、**名前を「〜を有効にする」「〜を無効にする」と状態で切り替えません**。名前は変えずに状態だけを変えます。
 
-focus 表示は `outline` の idiom（`focus-visible:outline-2` / `outline-offset-2` / `outline-foreground`）に揃えています。押下中と hover の面はどちらも `accent` を使います。生成物は hover に `muted` を当てますが、このリポジトリの `muted` は `muted-foreground` と同じ値のため、背景と文字が同色になって読めなくなります。
+focus 表示は `outline` の idiom（`focus-visible:outline-2` / `outline-offset-2` / `outline-active`）に揃えています。押下中と hover の面はどちらも `accent` を使います。生成物は hover に `muted` を当てますが、このリポジトリの `muted` は `muted-foreground` と同じ値のため、背景と文字が同色になって読めなくなります。
 
 ## Storybook とテスト
 

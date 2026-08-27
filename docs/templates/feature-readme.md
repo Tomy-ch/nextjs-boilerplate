@@ -1,74 +1,123 @@
-# <機能名>
+---
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
+forbidden: [features]
+test-requirement: feature
+---
 
-<!-- feature を追加するとき、このファイルを src/features/<feature-name>/README.md へコピーして記入する。 -->
+# <feature 名>
 
-## 目的
+<!--
+feature を追加するとき、このファイルを src/features/<feature-name>/README.md へコピーして記入する。
 
-<!-- ユーザーが達成できることと、この feature が担当する範囲を1〜3文で記す。 -->
+書く前に置き場を決める。この README が持つのは、この slice に固有の役割論と、契約・仕様・
+デザインへの索引だけである。次の 3 つはここには書かない。
+
+- 層そのものの役割・受入基準・import 境界 → src/features/README.md
+- 画面が何を約束するか（条件・遷移・失敗の意味論）→ docs/spec/route/**
+- 状態がどう見えるか → Storybook の story
+
+同じことを 2 か所へ書くと、片方だけが腐る。索引は腐っても壊れた link として現れるが、写しは
+黙って食い違う。**入れ子の README を持つ画面（例: `admin/shipments/`）は、その画面の契約・
+状態・Action を子が持ち、親は route の地図と子への索引だけを持つ。**
+-->
+
+<!-- 必須節。readme-review の採点はこの一覧を読む。見出しの文字列で一致させる。
+required-sections:
+  - 受け入れるもの
+  - 受け入れないもの
+  - Route と契約
+  - 状態とデザイン参照
+  - 構成
+  - 依存カーネル
+  - Action 戻り値契約
+  - テスト観点
+-->
+
+<!-- この slice が引き受ける画面と範囲を 1〜2 文で書く。 -->
+
+## 受け入れるもの
+
+<!-- この slice が持つもの。層の受入基準の再掲ではなく、この slice の線引きを書く。 -->
+
+## 受け入れないもの
+
+<!-- 隣へ渡すもの。渡す先（`components` / `model` / 他 feature の facade）を名前で挙げる。 -->
 
 ## Route と契約
 
-| 項目 | 内容 |
-| --- | --- |
-| Route | `<例: /products>` |
-| operationId | `<例: listProducts>` |
-| 認証 | `<不要 / 必要: 条件>` |
-| 表示モデル | `<model の型名>` |
+| Route | 仕様書 | 認証 |
+| --- | --- | --- |
+| `<例: /items>` | `<docs/spec/route/… の screen / function への link>` | `<不要 / 必要 / 役割: admin>` |
 
-operationId が未確定、または API を使わない feature は理由を記す。
+使う operationId。
+
+| operationId | 用途 |
+| --- | --- |
+| `<例: GetItems>` | `<例: 一覧の取得>` |
+
+API を使わない slice は表を置かず「使わない」と理由を書く。operationId が未確定なら、確定する
+契機を書く。
 
 ## 状態とデザイン参照
 
-v1 では Storybook story をデザイン参照とする。各状態に対応する story を記す。
+<!--
+状態が「どう見えるか」は story が持つ。ここが持つのは、どの状態にどの story が対応するかだけ。
+story の識別子は `<title>/<export 名>` で書く（title は stories.tsx の `title:`）。
+-->
 
-| 状態 | ユーザーに見せる内容 | Storybook story |
+| 画面 | 状態 | story |
 | --- | --- | --- |
-| loading | `<skeleton 等>` | `<例: ProductList/Loading>` |
-| empty | `<ゼロデータ時の案内>` | `<例: ProductList/Empty>` |
-| error | `<再試行・復帰導線>` | `<例: ProductList/Error>` |
-| success | `<通常表示>` | `<例: ProductList/Default>` |
+| `<例: 一覧>` | success | `<例: Page/Items/List/Default>` |
+| | empty | `<例: Page/Items/List/Empty>` |
+| | loading | `<例: Features/Items/Skeleton/Default>` |
+| | error | `<例: Features/Items/ErrorState/Default>` |
 
-部分失敗があり得る場合は、成功領域を残す表示と error story も追記する。
+部分失敗があり得る場合は、成功領域を残す表示の story も行として挙げる。
 
 ## 構成
 
-| 置き場 | 責務 |
+| ファイル | 役割 |
 | --- | --- |
-| `src/app/...` | route の driving adapter。feature を組み立てるだけで、業務判断を置かない。 |
-| `src/features/<feature-name>/` | 画面固有の UI、action、表示用の組み立て。 |
-| `src/adapters/` | API 呼び出し、生成型の変換、response 検証。 |
-| `src/model/` | feature をまたいで共有する表示モデル。 |
-| `src/components/` | 複数 feature で再利用する UI。 |
-
-使用しない層は表から削除せず、`使用しない` と理由を記す。
+| `<例: list/page-content.tsx>` | `<例: 取得条件の解釈と画面の組み立て>` |
 
 ## 依存カーネル
 
 | カーネル | 用途 |
 | --- | --- |
-| `<例: adapters>` | `<例: 商品一覧を取得して表示モデルへ変換する>` |
-| `<例: errors>` | `<例: 正規化済みの失敗を画面状態へ変換する>` |
+| `<例: adapters>` | `<例: 一覧を取得して表示モデルへ変換する>` |
 
-`architecture.ts` と各カーネル README の import 境界に従う。generated API 型を feature / components へ渡さない。
+`architecture.ts` と各カーネル README の import 境界に従う。generated API 型を feature /
+components へ渡さない。
 
 ## Action 戻り値契約
 
-<!-- Server Action がない場合は「なし」と記す。 -->
+<!-- Server Action が無ければ「なし」と書く。置き場は feature 直下とは限らない。 -->
 
-| Action | 入力 | 戻り値 | 成功後の更新 | 失敗時の表示 |
-| --- | --- | --- | --- |
-| `<例: addToCart>` | `<FormData 等>` | `<ActionState<Cart>>` | `<revalidateTag 等>` | `<field error / toast 等>` |
-
-mutation は二重送信を防ぎ、必要な場合は idempotency key を使う。
+| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| --- | --- | --- | --- | --- |
+| `<例: addItemAction>` | `<例: actions.ts>` | `<例: ActionState<void>>` | `<例: revalidatePath("/items")>` | `<例: field error>` |
 
 ## テスト観点
 
-- [ ] loading / empty / error / success の4状態
-- [ ] API 正常系と正規化済みエラー
-- [ ] 操作がある場合は二重送信・再試行・a11y
-- [ ] adapter 境界では schema 不一致、timeout、5xx など該当する失敗
-- [ ] Storybook story と実装の状態表が対応している
+<!--
+層の宣言（`test-requirement: feature`）と ADR 0090 の層別責務は再掲しない。ここへ書くのは、
+この slice でしか出てこない観点だけである。
+-->
 
-## Fork 時の変更点
+- [ ] `<例: 条件が URL へ載り、戻る操作で前の条件に戻る>`
 
-<!-- backend 契約・デザイン・認証など、boilerplate 採用先で差し替える箇所を記す。なければ「なし」。 -->
+## 運用
+
+<!--
+必須ではない —— **見出しの名前を固定しないため**である。ここに入るのはこの slice の設計判断で、
+何を書くかによって呼び名が変わる（`運用` / `設計` / `設計上の判断` / `使い方` / `隣に置くもの`）。
+名前を 1 つに決めると、決めた名前に合わない中身が別の節へ逃げる。
+
+書くのは「なぜその線を引いたか」であって、何をしているかではない。
+-->
+
+<!--
+必要なときだけ「Fork 時の変更点」の節を足す。fork 先が差し替える箇所（backend 契約・デザイン・
+認証）を書く節である。**題材のサンプルには要らない —— ファイルごと捨てられるためである。**
+残る slice で、fork 先が触らざるを得ない点があるときだけ置く。
+-->

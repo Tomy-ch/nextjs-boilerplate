@@ -8,7 +8,7 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-card text-card-foreground",
+        default: "bg-card backdrop-blur-panel text-card-foreground",
         warning:
           "border-warning/40 bg-warning/10 text-foreground *:data-[slot=alert-title]:text-warning *:data-[slot=alert-description]:text-muted-foreground [&>svg]:text-warning",
         destructive:
@@ -36,7 +36,7 @@ const alertVariants = cva(
  * @example
  * ```tsx
  * <Alert variant="warning">
- *   <AlertTitle>在庫が残りわずかです</AlertTitle>
+ *   <AlertTitle>保存されていない変更があります</AlertTitle>
  *   <AlertDescription>数量を減らすか、入荷通知を受け取ってください。</AlertDescription>
  * </Alert>
  * ```
@@ -75,7 +75,7 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-title"
-      className={cn("col-start-2 line-clamp-1 min-h-4 font-bold tracking-tight", className)}
+      className={cn("col-start-2 line-clamp-1 min-h-4 font-emphasis tracking-tight", className)}
       {...props}
     />
   );

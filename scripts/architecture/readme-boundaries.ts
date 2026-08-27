@@ -2,16 +2,15 @@ import { parse } from "yaml";
 import { z } from "zod";
 
 import { DEPENDENCIES, KERNELS, type Kernel } from "../../architecture";
+import { extractFrontmatter } from "../lib/frontmatter";
 
 /** 層 README の frontmatter が宣言する境界。`test-requirement` は境界の宣言ではないため見ない。 */
-export const boundaryFrontmatterSchema = z.object({
+const boundaryFrontmatterSchema = z.object({
   "imports-allowed": z.array(z.string()),
   forbidden: z.array(z.string()),
 });
 
 export type BoundaryFrontmatter = z.infer<typeof boundaryFrontmatterSchema>;
-
-const FRONTMATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---(\r?\n|$)/;
 
 /**
  * README 冒頭の frontmatter から境界宣言を取り出す。
@@ -21,13 +20,13 @@ const FRONTMATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---(\r?\n|$)/;
  * 素通しすると、「何も import できない層」と区別が付かなくなるためです。
  */
 export function parseBoundaryFrontmatter(source: string): BoundaryFrontmatter {
-  const matched = FRONTMATTER_PATTERN.exec(source);
+  const block = extractFrontmatter(source);
 
-  if (!matched) {
+  if (block === null) {
     throw new Error("先頭に frontmatter (`---` で囲まれたブロック) がありません");
   }
 
-  return boundaryFrontmatterSchema.parse(parse(matched[1]));
+  return boundaryFrontmatterSchema.parse(parse(block));
 }
 
 /**

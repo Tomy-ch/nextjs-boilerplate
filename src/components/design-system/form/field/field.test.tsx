@@ -74,7 +74,6 @@ describe("Field", () => {
 });
 
 describe("FieldSet", () => {
-  // ----- 正常系 -----
   it("項目の束として fieldset の意味論と slot を持つ要素を描画する", () => {
     const { container } = render(
       <FieldSet>
@@ -87,7 +86,6 @@ describe("FieldSet", () => {
 });
 
 describe("FieldLegend", () => {
-  // ----- 正常系 -----
   it("束の見出しとして group の名前になる", () => {
     render(
       <FieldSet>
@@ -101,7 +99,6 @@ describe("FieldLegend", () => {
 });
 
 describe("FieldGroup", () => {
-  // ----- 正常系 -----
   it("複数の項目をまとめる枠として slot を持つ要素を描画する", () => {
     render(<FieldGroup>まとまり</FieldGroup>);
 
@@ -110,7 +107,6 @@ describe("FieldGroup", () => {
 });
 
 describe("FieldContent", () => {
-  // ----- 正常系 -----
   it("control と補足を収める枠として slot を持つ要素を描画する", () => {
     render(<FieldContent>本文</FieldContent>);
 
@@ -130,7 +126,6 @@ function LabelledField() {
 }
 
 describe("FieldLabel", () => {
-  // ----- 正常系 -----
   it("control と結び付く label として描画する", () => {
     render(<LabelledField />);
 
@@ -140,7 +135,6 @@ describe("FieldLabel", () => {
 });
 
 describe("FieldTitle", () => {
-  // ----- 正常系 -----
   it("見出しとして slot を持つ要素を描画する", () => {
     render(<FieldTitle>題名</FieldTitle>);
 
@@ -149,7 +143,6 @@ describe("FieldTitle", () => {
 });
 
 describe("FieldDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<FieldDescription>連絡に使います。</FieldDescription>);
 
@@ -158,7 +151,6 @@ describe("FieldDescription", () => {
 });
 
 describe("FieldSeparator", () => {
-  // ----- 正常系 -----
   it("区切りとして slot を持つ要素を描画する", () => {
     const { container } = render(<FieldSeparator />);
 
@@ -167,7 +159,6 @@ describe("FieldSeparator", () => {
 });
 
 describe("FieldError", () => {
-  // ----- 正常系 -----
   it("エラーを即時に読み上げられる領域として描画する", () => {
     render(<FieldError>入力内容を確認してください。</FieldError>);
 

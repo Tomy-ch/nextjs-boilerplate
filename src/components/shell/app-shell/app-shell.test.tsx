@@ -1,26 +1,38 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
+
+const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/") }));
+
+vi.mock("next/navigation", () => ({
+  usePathname,
+  useRouter: () => ({ refresh: () => {} }),
+}));
+
 import { AppShell } from "./app-shell";
-import { APP_SHELL_MAIN_ID } from "./app-shell.definition";
+import { APP_SHELL_HEADER_HEIGHT, APP_SHELL_MAIN_ID } from "./app-shell.definition";
 
 const NAV_ITEMS = [
-  { href: "/products", label: "商品" },
-  { href: "/purchases", label: "購入履歴" },
+  { href: "/reports", label: "レポート" },
+  { href: "/settings", label: "設定" },
 ];
 
-function renderShell() {
-  return render(
+function shell() {
+  return (
     <AppShell siteName="サイト" navItems={NAV_ITEMS} footer={<p>フッター</p>}>
       <p>本文</p>
-    </AppShell>,
+    </AppShell>
   );
 }
 
+function renderShell() {
+  return render(shell());
+}
+
 describe("AppShell", () => {
-  // ----- 正常系 -----
   it("本文を main へ入れる", () => {
     renderShell();
 
@@ -40,7 +52,7 @@ describe("AppShell", () => {
   it("導線を header に並べる", () => {
     renderShell();
 
-    expect(screen.getByRole("navigation", { name: "主要な導線" })).toHaveTextContent("商品");
+    expect(screen.getByRole("navigation", { name: "主要な導線" })).toHaveTextContent("レポート");
   });
 
   it("footer の内容を出す", () => {
@@ -49,21 +61,24 @@ describe("AppShell", () => {
     expect(screen.getByRole("contentinfo")).toHaveTextContent("フッター");
   });
 
-  it("狭い画面の導線を side menu で開ける", () => {
+  it("狭い画面の導線を side menu で開ける", async () => {
     renderShell();
 
-    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
-    expect(screen.getByRole("dialog")).toHaveTextContent("購入履歴");
+    expect(screen.getByRole("dialog")).toHaveTextContent("設定");
   });
 
-  it("side menu の導線を選んだら閉じる", () => {
-    renderShell();
-    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+  it("side menu は移った先で閉じる", async () => {
+    usePathname.mockReturnValue("/");
 
-    const [link] = within(screen.getByRole("dialog")).getAllByRole("link");
+    const { rerender } = renderShell();
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
-    fireEvent.click(link);
+    expect(within(screen.getByRole("dialog")).getAllByRole("link").length).toBeGreaterThan(0);
+
+    usePathname.mockReturnValue("/reports");
+    rerender(shell());
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -74,6 +89,32 @@ describe("AppShell", () => {
     expect(screen.getByRole("main").className).not.toContain("max-w-");
   });
 
+  it("header の導線の後ろに渡された要素を並べる", () => {
+    render(
+      <AppShell headerActions={<p>お知らせ</p>} navItems={NAV_ITEMS} siteName="サイト">
+        <p>本文</p>
+      </AppShell>,
+    );
+
+    expect(within(screen.getByRole("banner")).getByText("お知らせ")).toBeVisible();
+  });
+
+  it("main の脇に渡された領域を並べる", () => {
+    render(
+      <AppShell navItems={NAV_ITEMS} siteName="サイト" sidebar={<aside aria-label="補助情報" />}>
+        <p>本文</p>
+      </AppShell>,
+    );
+
+    expect(screen.getByRole("complementary", { name: "補助情報" })).toBeInTheDocument();
+  });
+
+  it("脇の領域を渡さなければ本文だけを置く", () => {
+    renderShell();
+
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
+
   it("a11y 検査を通る", async () => {
     const { container } = renderShell();
 
@@ -81,7 +122,6 @@ describe("AppShell", () => {
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
   });
-  // ----- 異常系 -----
   it("導線が無くても骨格を保つ", () => {
     render(
       <AppShell siteName="サイト" navItems={[]}>
@@ -91,5 +131,11 @@ describe("AppShell", () => {
 
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "主要な導線" })).toBeEmptyDOMElement();
+  });
+
+  it("header を、下へ貼り付ける側が参照する高さのとおりに描く", () => {
+    renderShell();
+
+    expect(screen.getByRole("banner")).toHaveStyle({ height: `${APP_SHELL_HEADER_HEIGHT}px` });
   });
 });

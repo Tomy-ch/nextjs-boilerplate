@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -82,7 +83,7 @@ describe("AuthStateFeedback", () => {
     );
   });
 
-  it("サインインの導線は client 遷移せず document 遷移する", () => {
+  it("サインインの導線は client 遷移せず document 遷移する", async () => {
     let preventedByAction: boolean | undefined;
 
     function captureNavigation(event: Event) {
@@ -93,7 +94,7 @@ describe("AuthStateFeedback", () => {
     document.addEventListener("click", captureNavigation);
     render(<AuthSignInAction href="/api/auth/login" />);
 
-    fireEvent.click(screen.getByRole("link", { name: "サインインする" }));
+    await userEvent.click(screen.getByRole("link", { name: "サインインする" }));
     document.removeEventListener("click", captureNavigation);
 
     expect(preventedByAction).toBe(false);
@@ -119,7 +120,6 @@ describe("AuthStateFeedback", () => {
 });
 
 describe("AuthSignInAction", () => {
-  // ----- 正常系 -----
   it("サインイン先を指す link として既定の文言を出す", () => {
     render(<AuthSignInAction href="/auth/sign-in" />);
 

@@ -1,0 +1,3 @@
+[submodule "baseline/images"]
+	path = baseline/images
+	url = https://github.com/Tomy-ch/nextjs-boilerplate-baseline-images.git

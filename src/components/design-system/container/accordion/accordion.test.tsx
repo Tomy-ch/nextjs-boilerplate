@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -18,14 +19,14 @@ function ExampleAccordion() {
 }
 
 describe("Accordion", () => {
-  it("native details と summary で詳細を開閉する", () => {
+  it("native details と summary で詳細を開閉する", async () => {
     render(<ExampleAccordion />);
 
     const item = screen.getByText("補足情報").closest("details");
     if (item === null) throw new Error("accordion item が見つかりません。");
 
     expect(item).not.toHaveAttribute("open");
-    fireEvent.click(screen.getByText("補足情報"));
+    await userEvent.click(screen.getByText("補足情報"));
     expect(item).toHaveAttribute("open");
   });
 
@@ -64,7 +65,6 @@ describe("Accordion", () => {
 });
 
 describe("AccordionItem", () => {
-  // ----- 正常系 -----
   it("項目 1 件として slot を持つ要素を描画する", () => {
     const { container } = render(<ExampleAccordion />);
 
@@ -73,7 +73,6 @@ describe("AccordionItem", () => {
 });
 
 describe("AccordionTrigger", () => {
-  // ----- 正常系 -----
   it("開閉を切り替える操作として slot を持つ要素を描画する", () => {
     render(<ExampleAccordion />);
 
@@ -82,7 +81,6 @@ describe("AccordionTrigger", () => {
 });
 
 describe("AccordionContent", () => {
-  // ----- 正常系 -----
   it("内容として slot を持つ要素を描画する", () => {
     render(<ExampleAccordion />);
 

@@ -1,0 +1,4 @@
+# SAST が読むルール集合の固定（SSOT）。
+# pnpm exec tsx scripts/opengrep-rules --resolve で解決し、make sast が読む。
+# 値は取り出した YAML の集合に対する digest で、アーカイブのものではない。
+"opengrep/opengrep-rules@f1d2b562b414783763fd02a6ed2736eaed622efa" = "0dfbc521a0604b5388dd3988e5e55287833597c93e71d7425a805e0379e5973c"

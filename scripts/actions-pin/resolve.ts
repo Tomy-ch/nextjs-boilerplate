@@ -1,5 +1,8 @@
-// tag → SHA の解決と、解決先に対する 2 つのゲート（供給網検疫・付け替え検知）。
-// ネットワークに出るのはこのモジュールだけで、apply / check は完全にオフラインで動く。
+// tag → SHA の解決と、付け替え検知・解決先の経過日数。ネットワークに出るのはこのモジュール
+// だけで、apply / check は完全にオフラインで動く。
+//
+// 供給網検疫そのものの判断は [pin-quarantine](../lib/pin-quarantine.ts) が持つ（container
+// image 側と共通）。ここが渡すのは経過日数の調べ方だけ。
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -16,12 +19,6 @@ type ReleaseResponse = { published_at?: string };
 type CommitResponse = { commit?: { committer?: { date?: string } } };
 
 type GitHubResponse<T> = { status: number; body: T | null };
-
-// 検疫の判定結果。use が null なら採用しない（ロックファイルへ書かない）。
-export type QuarantineResult = {
-  use: string | null;
-  note: string | null;
-};
 
 // 解決先がロックファイルの記録から変わったキー 1 件。
 export type MovedRef = {
@@ -44,21 +41,16 @@ export type MoveCandidate = {
 };
 
 // コメント tag が「前進してよい」と宣言しているか。bare な major 番号（`v6` / `6`）だけを
-// moving とみなす。
-//
-// これは上流の tag 運用の推測ではなく、その tag を書いた側の宣言である。版の SSOT は
-// コメント tag であり、`# v6` と書く行為が「この参照は major の範囲で追随する」という意思を
-// 表す。宣言の外にある形（`v6.1.0` / `v6.1` / `main`）はすべて不変として扱われるため、
-// 上流が moving minor tag を持つ場合は誤検知するが、その向きの誤りは停止で済む。
+// moving とみなし、宣言の外にある形（`v6.1.0` / `v6.1` / `main`）はすべて不変として扱う。
+// tag の形を宣言として読む根拠は [0153](../../docs/adr/0153-ci-configuration.md) が持つ。
 export function isMovingTag(tag: string): boolean {
   return MOVING_TAG_PATTERN.test(tag);
 }
 
 // 解決先が変わったキーを、付け替えを疑うものと採用してよいものへ分ける。
 //
-// 渡す sha は検疫を掛ける前の候補でなければならない。検疫後の採用値で比べると、付け替え直後の
-// SHA は最も新しいがゆえに検疫へ掛かって「既存ピンを維持」に化けるため、検疫の窓が明けるまで
-// 付け替えを検知できない。
+// 渡す sha は検疫を掛ける前の候補でなければならない（理由は
+// [0153](../../docs/adr/0153-ci-configuration.md)）。
 export function classifyMoves(
   existing: Map<string, string>,
   candidates: readonly MoveCandidate[],
@@ -113,8 +105,8 @@ export function selectSHA(out: string, tag: string): string {
 // 日付が付く）。commit の日付は git のメタデータなので発行者が任意の値を書ける。新しい方を
 // 採れば、少なくとも片方が「新しい」と言っている限り検疫は掛かる。
 //
-// なお検疫は自動化された乗っ取りに対して時間を稼ぐ仕組みであり、日付偽装に耐える保証ではない。
-// tag 付け替えそのものの検知は classifyMoves が担う。
+// tag 付け替えそのものの検知は classifyMoves が担う（検疫が耐えられる範囲は
+// [0153](../../docs/adr/0153-ci-configuration.md)）。
 export async function refAgeDays(repo: string, tag: string, sha: string): Promise<number> {
   const release = await githubGet<ReleaseResponse>(
     `https://api.github.com/repos/${repo}/releases/tags/${encodeURIComponent(tag)}`,
@@ -139,32 +131,6 @@ export async function refAgeDays(repo: string, tag: string, sha: string): Promis
   const ages = [daysSince(commitDate)];
   if (release.body?.published_at) ages.push(daysSince(release.body.published_at));
   return Math.min(...ages);
-}
-
-// minAgeDays 未満の新しすぎる解決先は採用しない。既存ピンがあればそれを維持し、無ければ
-// 採用を見送る。minAgeDays が 0 以下なら検疫を行わず、経過日数の問い合わせもしない。
-export async function quarantine(
-  ageOf: () => Promise<number>,
-  key: string,
-  candidate: string,
-  minAgeDays: number,
-  existing: Map<string, string>,
-): Promise<QuarantineResult> {
-  if (minAgeDays <= 0) return { use: candidate, note: null };
-  const age = await ageOf();
-  if (age >= minAgeDays) return { use: candidate, note: null };
-
-  const previous = existing.get(key);
-  if (previous !== undefined) {
-    return {
-      use: previous,
-      note: `${key}: 解決先が ${age} 日 (<${minAgeDays}) のため既存ピンを維持`,
-    };
-  }
-  return {
-    use: null,
-    note: `${key}: 解決先が ${age} 日 (<${minAgeDays})・既存ピン無しのため skip`,
-  };
 }
 
 async function githubGet<T>(url: string): Promise<GitHubResponse<T>> {

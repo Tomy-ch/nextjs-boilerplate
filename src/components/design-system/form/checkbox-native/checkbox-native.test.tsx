@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useId } from "react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
@@ -42,11 +43,11 @@ describe("CheckboxNative", () => {
     expect(screen.getByRole("checkbox", { name: "設定を有効にする" })).toBeDisabled();
   });
 
-  it("クリックで native checkbox の選択状態を切り替える", () => {
+  it("クリックで native checkbox の選択状態を切り替える", async () => {
     render(<CheckboxNativeFixture />);
 
     const checkbox = screen.getByRole("checkbox", { name: "設定を有効にする" });
-    fireEvent.click(checkbox);
+    await userEvent.click(checkbox);
 
     expect(checkbox).not.toBeChecked();
   });

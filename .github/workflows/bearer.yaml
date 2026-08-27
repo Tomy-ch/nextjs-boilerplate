@@ -1,0 +1,165 @@
+name: Bearer Scan
+
+# Bearer follows a value to the point where it leaves the process — a log line, an
+# outbound request, a third-party client — and reports it against a classification of
+# what the value is. Nothing else here asks that: opengrep and CodeQL judge a pattern
+# or a taint path on its own terms, and neither knows that the string reaching a
+# logger happens to be an email address (ADR 0110 §3).
+#
+# WIRED THE WAY CodeQL IS: a FINDING never fails the job. Findings go to code scanning,
+# and what turns a pull request red is GitHub's own check over the alerts the diff
+# introduces.
+#
+# A BROKEN MECHANISM DOES fail it. Reporting is this job's entire output — there is no
+# gate and no PR comment — so a scan that crashed, a SARIF that was never written, or
+# an upload that did not land all produce the same green check as a clean run. That is
+# the one failure mode a reporting-only job must not have: "not scanned" is
+# indistinguishable from "nothing found". The distinction this job draws is the same
+# one `dependency-scan` draws.
+#
+# It never fails because THE BASELINE IS NOT ZERO, and it cannot honestly be made
+# zero. Measured on this tree: six findings, none of them real. Four were
+# `hardcoded_secret` on a test fixture and on the mock-OIDC development helper — both
+# excluded by path in `.makefiles/security/bearer.mk`, because a placeholder that
+# exists to be a placeholder is not a secret. The remaining two are
+# `observable_timing` on `href === current` and on `accessToken === ""`, neither of
+# which compares a secret. Silencing that rule would be a rule-wide disable, which
+# ADR 0110 §3.4 forbids, so the two stay visible instead.
+#
+# Deliberately unfiltered by `paths`; the reason every workflow runs on every PR is
+# in README.md.
+
+on:
+  pull_request:
+  schedule:
+    - cron: '15 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bearer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            api.cycode.com:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # What cannot change this scan's answer. The list is the deny side on purpose: anything
+      # not named here still runs, so a missing entry costs one needless run while a wrong
+      # entry would leave a scanner reporting on nothing (see the note in the action).
+      # Bearer reads `src` alone (bearer.mk), so the catalog, the baselines and the
+      # generated docs site cannot move its answer.
+      - name: Decide whether the diff can reach this scan
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            vrt/*
+            e2e/*
+            .storybook/*
+            docs-viewer/*
+            tokens/*
+            public/*
+            *.stories.tsx
+            *.test.ts
+            *.test.tsx
+
+      - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-mise
+        with:
+          # node and pnpm join bearer for `scripts/sarif` — see the note on the scan step.
+          tools: core:node aqua:pnpm/pnpm aqua:Bearer/bearer
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # `make bearer-scan` passes --exit-code 0, so findings leave the status at zero.
+      # Anything non-zero here is the tool failing, not the code.
+      #
+      # `bearer-sarif` normalises the report first: Bearer writes `results: null` when it
+      # finds nothing, and the upload below rejects it (bearer.mk).
+      - name: Run the Bearer scan
+        if: steps.scope.outputs.relevant == 'true'
+        env:
+          BEARER_SARIF_FILE: bearer.sarif
+        run: make bearer-sarif
+
+      # An empty or missing report means the scan produced nothing to report with.
+      - name: Require the SARIF to exist
+        if: steps.scope.outputs.relevant == 'true'
+        run: test -s bearer.sarif
+
+      # Not `continue-on-error`. Code scanning is where this job's output goes; if the
+      # upload does not land, the job produced nothing.
+      - name: Upload the SARIF to code scanning
+        if: steps.scope.outputs.relevant == 'true'
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          sarif_file: bearer.sarif
+          category: bearer
+
+  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  notify-failure:
+    needs: bearer
+    if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.bearer.result) }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      failed-job: bearer
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

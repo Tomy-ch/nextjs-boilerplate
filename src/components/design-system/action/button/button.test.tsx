@@ -1,12 +1,57 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { Button, buttonVariants } from "./button";
 import { BUTTON_SIZE, BUTTON_VARIANT } from "./button.definition";
 
 describe("Button", () => {
+  it("待っているあいだは、文言を場所ごと残したまま印を重ねる", () => {
+    render(
+      <Button pending={true} pendingLabel="送信しています">
+        登録する
+      </Button>,
+    );
+
+    const button = screen.getByRole("button");
+
+    // 文言は取り除かない。取り除くと器の幅が縮む。
+    expect(button).toHaveTextContent("登録する");
+    expect(button.querySelector('[data-slot="spinner"]')).toBeInTheDocument();
+  });
+
+  it("待っているあいだは押せず、待っていることを支援技術へ伝える", () => {
+    render(
+      <Button pending={true} pendingLabel="送信しています">
+        登録する
+      </Button>,
+    );
+
+    const button = screen.getByRole("button", { name: "送信しています" });
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("待っていなければ印を出さない", () => {
+    render(<Button pending={false}>登録する</Button>);
+
+    expect(screen.getByRole("button").querySelector('[data-slot="spinner"]')).toBeNull();
+  });
+
+  it("合成先へは待ちの見せ方を持ち込まない", () => {
+    const { container } = render(
+      <Button asChild={true} pending={true}>
+        <span>進む</span>
+      </Button>,
+    );
+
+    expect(screen.getByText("進む")).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="spinner"]')).toBeNull();
+  });
+
   it("既定の操作ボタンを表示する", () => {
     render(<Button>保存する</Button>);
 
@@ -26,7 +71,7 @@ describe("Button", () => {
     );
   });
 
-  it("disabled のときは操作を受け付けない", () => {
+  it("disabled のときは操作を受け付けない", async () => {
     const onClick = vi.fn();
 
     render(
@@ -34,7 +79,7 @@ describe("Button", () => {
         保存する
       </Button>,
     );
-    fireEvent.click(screen.getByRole("button", { name: "保存する" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存する" }));
 
     expect(screen.getByRole("button", { name: "保存する" })).toBeDisabled();
     expect(onClick).not.toHaveBeenCalled();

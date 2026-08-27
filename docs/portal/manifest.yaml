@@ -14,9 +14,9 @@ meta:
 
   groups:
     - title: Get Started
-      sections: [overview]
+      sections: [overview, get-started]
     - title: Architecture
-      sections: [layers, adr]
+      sections: [layers, design, adr]
     - title: Build & Operations
       sections: [operations]
     - title: Project
@@ -24,6 +24,8 @@ meta:
 
   section_titles:
     overview: Overview
+    get-started: Get Started
+    design: Design
     adr: Decisions (ADR)
     layers: Layers
     operations: Build & Operations

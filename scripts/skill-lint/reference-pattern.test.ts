@@ -35,7 +35,6 @@ describe("expandBraces", () => {
     expect(expandBraces("{a,b}.{ts,js}")).toEqual(["a.ts", "a.js", "b.ts", "b.js"]);
   });
 
-  // ----- 異常系 -----
   it("ブレースを持たない表記はそのまま 1 件で返す", () => {
     expect(expandBraces("scripts/index.ts")).toEqual(["scripts/index.ts"]);
   });
@@ -115,18 +114,18 @@ describe("scanInlineCode", () => {
     expect(scanInlineCode("`a` と `b`").spans).toEqual(["a", "b"]);
   });
 
+  it("コードスパンを持たない行はそのまま残る", () => {
+    const { spans, withoutCode } = scanInlineCode("ただの本文");
+
+    expect(spans).toEqual([]);
+    expect(withoutCode).toBe("ただの本文");
+  });
+
   // ----- 異常系 -----
   it("閉じないスパンは中身として取り出さない", () => {
     const { spans, withoutCode } = scanInlineCode("先頭 `閉じない");
 
     expect(spans).toEqual([]);
     expect(withoutCode).toContain("閉じない");
-  });
-
-  it("コードスパンを持たない行はそのまま残る", () => {
-    const { spans, withoutCode } = scanInlineCode("ただの本文");
-
-    expect(spans).toEqual([]);
-    expect(withoutCode).toBe("ただの本文");
   });
 });

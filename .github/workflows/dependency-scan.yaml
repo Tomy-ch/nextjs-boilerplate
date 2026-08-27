@@ -1,0 +1,426 @@
+name: Dependency Scan
+
+# The dependency half of the defence in depth (ADR 0110 §3). Three jobs, three
+# different verdicts over the same subject:
+#
+#   dependency-scan   Trivy fs, report only. Never fails.
+#   dependency-audit  pnpm audit, fails on a fixable high / critical.
+#   dependency-gate   Trivy fs without --ignore-unfixed, fails on any finding.
+#                     Only for a pull request aimed at a protected branch.
+#
+# Trivy and pnpm audit disagree on purpose and their counts are not reconciled: they
+# aggregate differently (CVE vs advisory) and read different databases. The union is
+# the truth, so either one reaching its threshold is enough to block (ADR 0110 §3).
+#
+# Why the report-only job exists at all: a vulnerability is not something the author
+# of a change can resolve on the spot, and its state moves without the code moving.
+# A gate built on that teaches people to bypass it. Promotion is where someone has
+# the standing to accept the risk, so that is where the strict job sits (ADR 0110 §3.1).
+#
+# Deliberately unfiltered by `paths`; the reason every workflow runs on every PR is
+# in README.md.
+
+on:
+  pull_request:
+  schedule:
+    # Weekly, so a CVE published against an unchanged tree still surfaces.
+    - cron: '30 1 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      status: ${{ steps.trivy.outputs.status }}
+      detail: ${{ steps.detail.outputs.markdown }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            check.trivy.dev:443
+            mirror.gcr.io:443
+            ghcr.io:443
+            pkg-containers.githubusercontent.com:443
+            tuf-repo-cdn.sigstore.dev:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # A dependency scanner reads the lockfile; no source change can alter what it finds.
+      # This is the one place an allow-list is admissible (see the note in the action), and it
+      # is admissible only because the weekly schedule above still scans the whole tree — a
+      # mistake in this list defers a scan by at most a week rather than removing it.
+      - name: Decide whether the diff can reach the dependency graph
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          only: |
+            pnpm-lock.yaml
+            package.json
+            docs-viewer/package.json
+            pnpm-workspace.yaml
+            .trivyignore.yaml
+            osv-scanner.toml
+            .makefiles/security/trivy.mk
+            .makefiles/security/osv.mk
+            .makefiles/security/audit.mk
+            scripts/audit-gate/*
+            .github/workflows/dependency-scan.yaml
+            .github/workflows/osv-scan.yaml
+            .github/actions/diff-scope/*
+
+      - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: aqua:aquasecurity/trivy
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Three outcomes, not two. `TRIVY_FS_DETECT_EXIT=1` makes the scanner answer 1 for
+      # "found something", which is what separates a clean report from a report nobody
+      # can act on because the scan never ran. Findings still do not fail this job — the
+      # separation exists so the comment below is only created when there is something in
+      # it, and so the scheduled run can push a detection to a human.
+      - name: Run Trivy
+        id: trivy
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        env:
+          TRIVY_FS_DETECT_EXIT: '1'
+        run: |
+          set +e
+
+          make trivy-fs 2>&1 | tee /tmp/trivy.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## 📋 Dependency scan: report (Trivy fs)" >> "$GITHUB_OUTPUT"
+          elif [ "${code}" -eq 1 ]; then
+            echo "status=findings" >> "$GITHUB_OUTPUT"
+            echo "title=## ⚠️ Dependency scan: 修正版のある脆弱性を検出 (Trivy fs)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ⚠️ Dependency scan: the scan itself failed" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # Identifiers only. The detection notification has to name what was found, and the
+      # action carries advisory ids out of the log rather than the log itself.
+      - name: Build the detection detail
+        id: detail
+        if: steps.trivy.outputs.status == 'findings'
+        uses: ./.github/actions/notify-detail
+        with:
+          log-file: /tmp/trivy.log
+
+      # A job that stood down still owes the pull request a verdict: without a body here the
+      # ❌ comment an earlier push produced would stay beside a green check once the lockfile
+      # returns to what base has.
+      - name: Note that the diff cannot reach the dependency graph
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ Dependency scan: SKIP (依存グラフに届かない差分)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は lockfile に届かないため、走査していません。木そのものは週次で走査します。' > /tmp/trivy.log
+
+      - name: Comment Trivy result on PR
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- dependency-scan-result -->'
+          status: ${{ steps.trivy.outputs.status || 'success' }}
+          title: ${{ steps.trivy.outputs.title || steps.standdown.outputs.title }}
+          body-file: /tmp/trivy.log
+          details-summary: 'Trivy log'
+
+      # Findings do not fail this job; the scanner failing to run does. A scan that
+      # never produced a result is not the same as a clean one, and reporting the
+      # latter for the former is how a report stops meaning anything. An empty status
+      # is the capture step never having run, which belongs on the failing side.
+      - name: Fail if the scan could not run
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.trivy.outputs.status != 'success' && steps.trivy.outputs.status != 'findings'
+        run: exit 1
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            check.trivy.dev:443
+            mirror.gcr.io:443
+            ghcr.io:443
+            pkg-containers.githubusercontent.com:443
+            tuf-repo-cdn.sigstore.dev:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # A dependency scanner reads the lockfile; no source change can alter what it finds.
+      # This is the one place an allow-list is admissible (see the note in the action), and it
+      # is admissible only because the weekly schedule above still scans the whole tree — a
+      # mistake in this list defers a scan by at most a week rather than removing it.
+      - name: Decide whether the diff can reach the dependency graph
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          only: |
+            pnpm-lock.yaml
+            package.json
+            docs-viewer/package.json
+            pnpm-workspace.yaml
+            .trivyignore.yaml
+            osv-scanner.toml
+            .makefiles/security/trivy.mk
+            .makefiles/security/osv.mk
+            .makefiles/security/audit.mk
+            scripts/audit-gate/*
+            .github/workflows/dependency-scan.yaml
+            .github/workflows/osv-scan.yaml
+            .github/actions/diff-scope/*
+
+      - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run the dependency audit gate
+        id: audit
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          set +e
+
+          make audit 2>&1 | tee /tmp/audit.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Dependency audit: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Dependency audit: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # Standing down is admissible for this gate and not for `dependency-gate` below: a
+      # verdict the author inherited from base is one they cannot act on (ADR 0110 §3.1),
+      # whereas promotion is precisely where someone accepts what the tree already carries.
+      - name: Note that the diff cannot reach the dependency graph
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ Dependency audit: SKIP (依存グラフに届かない差分)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は lockfile に届かないため、監査していません。木そのものは週次と昇格ゲートが見ます。' > /tmp/audit.log
+
+      - name: Comment audit result on PR
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- dependency-audit-result -->'
+          status: ${{ steps.audit.outputs.status || 'success' }}
+          title: ${{ steps.audit.outputs.title || steps.standdown.outputs.title }}
+          body-file: /tmp/audit.log
+          details-summary: 'pnpm audit'
+
+      - name: Fail if a fixable high or critical was found
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.audit.outputs.status != 'success'
+        run: exit 1
+
+  dependency-gate:
+    # The promotion half, expressed as a job condition rather than a `branches:`
+    # filter on the trigger. A filter that excludes a pull request starts no run at
+    # all, and a required context that is never reported is not read as "not
+    # applicable" — the merge waits for something that will never arrive. A job the
+    # condition skips reports `skipped`, which a required check counts as success
+    # (ADR 0153 §5).
+    if: ${{ github.event_name != 'pull_request' || contains(fromJSON('["production", "staging", "develop"]'), github.base_ref) || startsWith(github.base_ref, 'release/') || startsWith(github.base_ref, 'hotfix/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            check.trivy.dev:443
+            mirror.gcr.io:443
+            ghcr.io:443
+            pkg-containers.githubusercontent.com:443
+            tuf-repo-cdn.sigstore.dev:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: aqua:aquasecurity/trivy
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # The only difference from the report-only job is --ignore-unfixed. The
+      # severity range is the same; what changes is that a vulnerability with no fix
+      # is made visible, because promotion is where someone decides to carry it.
+      - name: Run Trivy in release mode
+        id: trivy
+        shell: bash
+        run: |
+          set +e
+
+          make trivy-fs-release 2>&1 | tee /tmp/trivy-release.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Release dependency gate: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## 🚨 Release dependency gate: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Comment release gate result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- dependency-gate-result -->'
+          status: ${{ steps.trivy.outputs.status }}
+          title: ${{ steps.trivy.outputs.title }}
+          body-file: /tmp/trivy-release.log
+          details-summary: 'Trivy log (release)'
+
+      # Named for what the exit code actually says. A non-zero status means the gate did
+      # not pass, which covers a finding and equally a scan that could not run at all —
+      # the sibling report-only job spells its own step the same way. Asserting a finding
+      # here made a blocked database download read as a vulnerability.
+      - name: Fail if the release gate did not pass
+        if: always() && steps.trivy.outputs.status != 'success'
+        run: exit 1
+
+  # Report-only by design, so a finding leaves the job green and the failure notification
+  # below can never fire for one. On a pull request the finding is already in a comment
+  # addressed to the author; on the weekly run nobody is watching, and a finding there means
+  # a newly published advisory now applies to code that has not changed.
+  notify-detection:
+    needs: dependency-scan
+    if: ${{ github.event_name == 'schedule' && needs.dependency-scan.outputs.status == 'findings' }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      detected: Dependency scan found fixable vulnerabilities (Trivy fs)
+      details: ${{ needs.dependency-scan.outputs.detail }}
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  notify-failure:
+    needs: [dependency-scan, dependency-audit, dependency-gate]
+    if: >-
+      ${{ always() && github.event_name == 'schedule'
+      && (contains(fromJSON('["failure", "cancelled"]'), needs.dependency-scan.result)
+      || contains(fromJSON('["failure", "cancelled"]'), needs.dependency-audit.result)
+      || contains(fromJSON('["failure", "cancelled"]'), needs.dependency-gate.result)) }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      failed-job: dependency-scan / dependency-audit / dependency-gate
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

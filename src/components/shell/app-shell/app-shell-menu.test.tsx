@@ -1,18 +1,22 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
+
+const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/") }));
+
+vi.mock("next/navigation", () => ({ usePathname }));
 
 import { AppShellMenu } from "./app-shell-menu";
 
 const ITEMS = [
-  { href: "/products", label: "商品" },
-  { href: "/orders", label: "注文" },
+  { href: "/reports", label: "レポート" },
+  { href: "/settings", label: "設定" },
 ];
 
 describe("AppShellMenu", () => {
-  // ----- 正常系 -----
   it("開く操作だけを最初に見せる", () => {
     render(<AppShellMenu items={ITEMS} />);
 
@@ -20,38 +24,51 @@ describe("AppShellMenu", () => {
     expect(screen.queryByRole("navigation", { name: "メニュー" })).toBeNull();
   });
 
-  it("開くと渡した導線を並べる", () => {
+  it("開くと渡した導線を並べる", async () => {
     render(<AppShellMenu items={ITEMS} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
-    expect(screen.getByRole("link", { name: "商品" })).toHaveAttribute("href", "/products");
-    expect(screen.getByRole("link", { name: "注文" })).toHaveAttribute("href", "/orders");
+    expect(screen.getByRole("link", { name: "レポート" })).toHaveAttribute("href", "/reports");
+    expect(screen.getByRole("link", { name: "設定" })).toHaveAttribute("href", "/settings");
   });
 
-  it("導線を選ぶと閉じる", () => {
+  it("移った先で閉じる", async () => {
+    usePathname.mockReturnValue("/");
+
+    const { rerender } = render(<AppShellMenu items={ITEMS} />);
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+
+    usePathname.mockReturnValue("/reports");
+    rerender(<AppShellMenu items={ITEMS} />);
+
+    expect(screen.queryByRole("link", { name: "レポート" })).toBeNull();
+  });
+
+  it("押した時点では閉じない", async () => {
+    usePathname.mockReturnValue("/");
+
     render(<AppShellMenu items={ITEMS} />);
-    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
-    fireEvent.click(screen.getByRole("link", { name: "商品" }));
+    await userEvent.click(screen.getByRole("link", { name: "レポート" }));
 
-    expect(screen.queryByRole("link", { name: "商品" })).toBeNull();
+    expect(screen.getByRole("link", { name: "レポート" })).toBeVisible();
   });
 
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(<AppShellMenu items={ITEMS} />);
-    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
   });
 
-  // ----- 異常系 -----
-  it("導線が無くてもメニューを開ける", () => {
+  it("導線が無くてもメニューを開ける", async () => {
     render(<AppShellMenu items={[]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
     expect(screen.getByRole("navigation", { name: "メニュー" })).toBeInTheDocument();
   });

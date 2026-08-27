@@ -1,0 +1,14 @@
+{
+  "14d6ee6d3b6ec29b6af7ef7502a023ee_0": {
+    "author": "nextjs-boilerplate",
+    "comment": "同一 origin の 2 つのパス（anchor の解決結果と現在地）を比べているだけで、秘密の値は関与しない。規則は比較の形に当たっており、比べている中身には当たっていない。撤回条件: この比較が秘密の値を読むようになったとき。",
+    "false_positive": true,
+    "ignored_at": "2026-08-27T14:39:25Z"
+  },
+  "6f006492fa60574c489c893e08ac817b_0": {
+    "author": "nextjs-boilerplate",
+    "comment": "form の欄が空かどうかを見る判定で、token を既知の値と突き合わせてはいない。空か否かしか分岐しない以上、所要時間から漏れる秘密が無い。撤回条件: この比較が token どうしの一致を見るようになったとき。",
+    "false_positive": true,
+    "ignored_at": "2026-08-27T14:39:26Z"
+  }
+}

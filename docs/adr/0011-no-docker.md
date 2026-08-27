@@ -102,6 +102,62 @@ Docker を維持する場合、以下を毎リリースで同期する必要が�
 
 これら以外（ECS / Kubernetes / 自社オンプレ等）にデプロイしたい場合は、本 ADR を **役割拡張** として再評価する（後述「再評価のトリガー」参照）。
 
+## 環境の定義
+
+`APP_ENV` が選べるのは `local` / `ci` / `dev` / `stg` / `prd` の 5 つである
+(`src/config/load-environment.ts`)。**各環境が何をする場所か**をここで定める。**変数をどう持つかは
+[0030](0030-environment-variable-management.md) の責務**で、本節は扱わない —— 0011 が「どの環境が
+何をする場所か」、0030 が「その環境の値をどう持つか」である。
+
+### stand-alone と cloud
+
+呼び名は 2 つだけ置く。**config の軸は増やさない** —— 実体は既存の `APP_ENV` と `env/.env.<環境>` で
+あり、呼び名は文書がその 2 群を指すための語である。
+
+| 呼び名 | `APP_ENV` | 何をする場所か |
+| --- | --- | --- |
+| **stand-alone** | `local` / `ci` | 何も契約せずに全画面が動く。compose を上げれば IdP も画像配信も API も揃い、外部サービスの account を持たない人がその日のうちに触れる |
+| **cloud** | `dev` / `stg` / `prd` | `env/.env.<環境>` の接続先を、fork 先自身の IdP / CDN / API へ向ける。fork が本番でやることと同じ経路を通す |
+
+各環境の位置づけ:
+
+- **`local`** — 手元の開発。開発専用の口が開く
+- **`ci`** — 自動検査。手元と同じ相手(mock)へ向き、人手を介さず全画面が動く必要がある。開発専用の
+  口が開く
+- **`dev`** — fork 先が最初に外部サービスへ繋ぐ場所。実 IdP・実 API を相手にし、**開発専用の口は
+  閉じる**
+- **`stg`** — 本番と同じ構成での確認
+- **`prd`** — 本番
+
+### 同梱サンプルはどちらでも動く
+
+**サンプルは cloud でもフル構成で動かす。** backend と実 IdP を立て、fork が本番でやることと同じ
+経路を通す。**frontend だけを mock のまま cloud に置く形は採らない** —— それは IdP 無しで session を
+出す口を cloud で開くことであり、`load-environment.ts` が名指しで閉じているものになる。
+
+cloud 側の IdP の具体は**実装の一例であって推奨ではない**。逸脱の吸収は Resolver
+([0079](0079-auth-frontend-seam.md) §6)の内側に閉じ、同梱するのは標準準拠の既定 Resolver のままと
+する([0010](0010-standards-and-non-lockin.md) 非ロックイン)。
+
+### 開発専用の口の判定
+
+**判定は `APP_ENV` と宛先が持ち、接続先の種類にも上の呼び名にも依存させない。**
+
+- **`APP_ENV`** — その環境で口を開けてよいか(`developmentOnlyEnvironments`)
+- **宛先** — その口が誰に向いているか。route / handler の側が持つ
+
+呼び名(`stand-alone` / `cloud`)を判定に使わないのは、呼び名が 2 群の**別名**であって独立した軸では
+ないためである。`APP_API_MODE` のような接続モードにも依存させない —— mock を実環境に置かないことは
+散文の約束でしかなく、約束を条件にした判定は約束が破られた瞬間に沈黙する。
+
+### 軸を束ねない
+
+`APP_MODE` のような「stand-alone / cloud」を値に持つ軸は**置かない**。束ねると
+**IdP は Cognito・ストレージは自前**や **IdP は Keycloak・配信は CloudFront** のような組み合わせが
+表現できなくなる。fork の現実はその組み合わせであり、束ねることは
+[0010](0010-standards-and-non-lockin.md) の非ロックインを config の形で否定することになる。
+**実装が本当に割れる点だけ、割れた分だけ独立した指定を置く。**
+
 ## 何を削除するか
 
 本 ADR の採用に伴い、以下（**アプリケーション本体の Docker 配送に関連するもの**）を削除する。
@@ -141,6 +197,12 @@ Docker を維持する場合、以下を毎リリースで同期する必要が�
 
 これらは「アプリ本体を Docker で動かす」のとは別レイヤであり、`mise.toml` / `pnpm-lock.yaml` との同期問題も発生しない（base image を独自に管理して構わない）。
 
+**採用済みは visual regression のランナーだけ**（[`docker-compose.dev-tools.yml`](../../docker-compose.dev-tools.yml) の `browser_runner`）。基準画像はフォントのラスタライズに依存し、それは OS でも CPU アーキテクチャでも変わるため、比較の基準を実行者の環境から切り離す手段が要る（[0091](0091-test-verification-methods.md) §3）。ここで Docker を採るのは「Docker でないと解決できないか」への答えが是であるためで、PaaS / SaaS で代替できる用途（下記）とは性質が違う。
+
+補助ツールの image は tag ではなく digest で固定する。registry の tag は同じ名前のまま別の中身を指せるため、tag だけの参照では実行環境が黙って変わる。運用は [`docker/README.md`](../../docker/README.md)。
+
+**registry の image を指す参照は、書かれた場所によらずこの機構が固定する。**対象は compose の `image:` と Dockerfile の `FROM` に加え、workflow / composite action の `uses: docker://<image>:<tag>`（GitHub Actions が registry の image を直接実行するステップ記法）。`uses:` の行であっても参照先は GitHub のリポジトリではないため、tag を `git ls-remote` で commit SHA へ解決する actions-pin（[0153](0153-ci-configuration.md)）では扱えない。走査するファイルは両機構で重なるが、掴む行は重ならない。`docker://` 参照に tag を必須とし、省略（＝`:latest`）は fail-closed で落とす。
+
 ### 採用する場合のルール
 
 1. **ファイル名で本体配送と区別する** — 例: `docker-compose.dev-tools.yml` / `docker-compose.docs.yml`。`docker-compose.yml`（無印）は本体配送と誤解されやすいため使わない
@@ -178,6 +240,9 @@ Docker を維持する場合、以下を毎リリースで同期する必要が�
 - ❌ **アプリケーション本体の `Dockerfile`** や **本体配送目的の `docker-compose.yml`**（無印）を主要構成として復活させること（fork 先での個別判断は対象外）
 - ❌ README / ドキュメントで「Docker での起動」を **アプリ本体の推奨デプロイ手段** として記載すること
 - ❌ CI / scripts に **アプリ本体の** Docker build を組み込むこと
+- ❌ `stand-alone` / `cloud` を値に持つ config の軸を置くこと(呼び名は 2 群の別名であって独立した軸ではない。組み合わせが表現できなくなる。§環境の定義)
+- ❌ 開発専用の口の開閉を、接続モード(`APP_API_MODE` 等)や環境の呼び名で判定すること(判定は `APP_ENV` と宛先が持つ。§環境の定義)
+- ❌ frontend だけを mock のまま cloud へ置くこと(IdP 無しで session を出す口を cloud で開くことになる。§環境の定義)
 
 > Dev インフラとしての docker-compose（`docker-compose.dev-tools.yml` 等の名前付きファイル）は本禁止事項の対象外。
 

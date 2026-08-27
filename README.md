@@ -20,8 +20,23 @@
 - **lefthook による git hook**（pre-commit / commit-msg / pre-push）— [ADR 0151](docs/adr/0151-git-hooks.md)
 - **ローカルのセキュリティスキャン**（gitleaks / Trivy）と抑止ポリシー — [ADR 0110](docs/adr/0110-security-operations.md)
 - **GitHub Actions 定義の lint**（actionlint + shellcheck）— [ADR 0153](docs/adr/0153-ci-configuration.md)
+- **story 単位の visual regression**（digest 固定した Playwright コンテナで撮る）— [ADR 0091](docs/adr/0091-test-verification-methods.md) / [`vrt/README.md`](vrt/README.md) / [機構](docs/design/vrt.md)
 - **ブランチ / コミット / リリース運用** — [ADR 0150](docs/adr/0150-git-workflow.md)
 - **リポジトリ運用の make ターゲット** — [`.makefiles/README.md`](.makefiles/README.md)
+
+## 運用が普通と違うところ
+
+ほとんどは見たままですが、**手順を知らないと詰まる**ところがいくつかあります。中身は所有者の側に
+あるので、ここは名前とリンクだけを置きます。
+
+- **CI のツールチェーンは digest で照合される** — mise 自身の版は `mise.toml` に書けないため
+  [`.github/actions/setup-mise`](.github/actions/setup-mise/action.yaml) が版と SHA256 を持ち、
+  実行前に照合します。上げ方は [`.github/workflows/README.md`](.github/workflows/README.md#mise-の導入)
+- **VRT の基準画像は別リポジトリにある** — `baseline/images` はサブモジュールです。テンプレートから作成した後は
+  `make setup-baseline-store` / `make setup-baseline-app` で自分の置き場と GitHub App を用意します。
+  理由と運用は [`vrt/README.md`](vrt/README.md)
+
+詰まったときの引き先は [`.claude/skills/repo-ops`](.claude/skills/repo-ops/SKILL.ja.md) です。
 
 ## 前提ツール
 
@@ -53,8 +68,10 @@ pnpm dev
 
 <http://localhost:3000> を開くと表示されます。`src/app/page.tsx` を編集すると自動で反映されます。
 
-このボイラープレートを新規プロジェクトへ fork する場合は追加の手順（リポジトリ初期化、プロジェクト名と
-著作権表記の置換）が必要です。[`.makefiles/README.md`](.makefiles/README.md) を参照してください。
+<!-- boilerplate-only:begin -->
+このボイラープレートから新規プロジェクトを作る場合（**Use this template**）は追加の手順が必要です。**順序に依存する箇所が
+あるので** [`docs/get-started/setup-repository.md`](docs/get-started/setup-repository.md) を上から辿ってください。
+<!-- boilerplate-only:end -->
 
 ## コマンド
 
@@ -62,7 +79,7 @@ pnpm dev
 ツールチェーン整備は `make` ターゲットが受け持ちます。
 
 ```bash
-pnpm dev / build / start        # 開発 / ビルド / 本番起動
+pnpm dev / build / start        # 開発 / ビルド / 本番起動（build と start は APP_ENV を指定する）
 pnpm lint / lint:ci / fix       # biome — エディタ相当 / 完全版 / 自動修正
 pnpm typecheck                  # tsc --noEmit
 pnpm md-lint                    # markdownlint + mermaid 構文検査
@@ -77,6 +94,7 @@ make help                       # 全 make ターゲットとその説明
 
 正は、それが規定する対象の隣にあります。ここを起点に、目的のトピックを所有するリンクを辿ってください。
 
+- [docs/get-started/](docs/get-started/) — テンプレートから作成して動かすまでの手順（順序と、人手が要る箇所）
 - [AGENTS.md](AGENTS.md) — AI コーディングエージェント向けの運用ルールと、リポジトリ規約の要約
 - [docs/adr/](docs/adr/) — アーキテクチャ決定記録（ADR）。本リポジトリの規約はすべてここにある
 - [docs/adr/BACKLOG.md](docs/adr/BACKLOG.md) — 未決の決定領域

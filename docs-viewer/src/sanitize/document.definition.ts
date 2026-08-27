@@ -6,7 +6,7 @@ import type { Schema } from "hast-util-sanitize";
  * `h1` を含めます。面の title が持つのはファイル名由来の見出しであって文書の題ではないため、
  * 本文側の `h1` と競合しません。落とすとタグだけが外れて題のテキストが本文の冒頭へ浮きます。
  */
-export const DOCUMENT_BLOCK_TAG_NAMES: readonly string[] = [
+const DOCUMENT_BLOCK_TAG_NAMES: readonly string[] = [
   "p",
   "h1",
   "h2",
@@ -30,7 +30,7 @@ export const DOCUMENT_BLOCK_TAG_NAMES: readonly string[] = [
 ];
 
 /** インラインとして通すタグです。 */
-export const DOCUMENT_INLINE_TAG_NAMES: readonly string[] = [
+const DOCUMENT_INLINE_TAG_NAMES: readonly string[] = [
   "strong",
   "em",
   "s",
@@ -42,13 +42,13 @@ export const DOCUMENT_INLINE_TAG_NAMES: readonly string[] = [
   "sub",
 ];
 
-export const DOCUMENT_TAG_NAMES: readonly string[] = [
+const DOCUMENT_TAG_NAMES: readonly string[] = [
   ...DOCUMENT_BLOCK_TAG_NAMES,
   ...DOCUMENT_INLINE_TAG_NAMES,
 ];
 
 /** `a` の `href` と `img` の `src` に通すプロトコルです。 */
-export const DOCUMENT_LINK_PROTOCOLS: readonly string[] = ["http", "https", "mailto"];
+const DOCUMENT_LINK_PROTOCOLS: readonly string[] = ["http", "https", "mailto"];
 
 /**
  * `code` の class に通す値の形です。
@@ -56,10 +56,10 @@ export const DOCUMENT_LINK_PROTOCOLS: readonly string[] = ["http", "https", "mai
  * コードブロックの言語表記だけを通します。class 属性はそれ自体が任意の文字列を運べるため、
  * 通す形を限定しないと、スタイルを持つ class 名を本文から指定できてしまいます。
  */
-export const DOCUMENT_CODE_CLASS_PATTERN = /^language-[\w+#.-]+$/;
+const DOCUMENT_CODE_CLASS_PATTERN = /^language-[\w+#.-]+$/;
 
 /** 内容ごと取り除くタグです。 */
-export const DOCUMENT_STRIPPED_TAG_NAMES: readonly string[] = ["script", "style"];
+const DOCUMENT_STRIPPED_TAG_NAMES: readonly string[] = ["script", "style"];
 
 /**
  * ドキュメント表示用の sanitize schema です。

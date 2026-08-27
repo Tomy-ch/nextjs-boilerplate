@@ -1,7 +1,7 @@
 "use client";
 
-import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
+import { ContextMenu as ContextMenuPrimitive } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -368,7 +368,10 @@ function ContextMenuLabel({
 }) {
   return (
     <ContextMenuPrimitive.Label
-      className={cn("px-2 py-1.5 text-sm font-medium text-foreground data-[inset]:pl-8", className)}
+      className={cn(
+        "px-2 py-1.5 text-sm font-emphasis text-foreground data-[inset]:pl-8",
+        className,
+      )}
       data-inset={inset}
       data-slot="context-menu-label"
       {...props}

@@ -6,23 +6,32 @@
 //   apply   : ロックファイルを SSOT に `uses:` を `@<sha> # <tag>` へ書き換える
 //   check   : apply と同じ判定を書き換えなしで行い、ずれがあれば非ゼロ終了する（CI / hook 用）
 //
-// resolve は不変を宣言した tag の解決先が変わった時点で fail-closed に落ちる。付け替えられた
-// SHA がロックファイルへ入ってしまえば、以降 check は「整合している」と答え続けるため。
+// resolve は不変を宣言した tag の解決先が変わった時点で fail-closed に落ちる。この設計の根拠は
+// [0153](../../docs/adr/0153-ci-configuration.md) の SHA ピンが持つ。
 //
 // 版の SSOT は `uses:` 行末尾のコメント tag であり、`@` 側の SHA ではない。固定済みの行も
 // コメント tag から再解決されるため resolve は冪等。ローカル参照（`uses: ./...`）は対象外。
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { quarantine } from "../lib/pin-quarantine.js";
 import { applyPins } from "./apply-check.js";
 import { LOCK_FILE, readLock, readLockOrEmpty, writeLock } from "./lockfile.js";
-import { classifyMoves, type MovedRef, quarantine, refAgeDays, resolveSHA } from "./resolve.js";
-import { type ActionRef, collectRefs, targetFiles, unparsedUsesLines } from "./uses-reference.js";
+import { classifyMoves, type MovedRef, refAgeDays, resolveSHA } from "./resolve.js";
+import {
+  type ActionRef,
+  collectRefs,
+  targetFiles,
+  unparsedUsesLines,
+  unsupportedTagLines,
+} from "./uses-reference.js";
 
 const USAGE = "usage: actions-pin <resolve|apply|check> [--min-age-days=N]";
 const MIN_AGE_PATTERN = /^--min-age-days=(\d+)$/;
 const ALLOW_MOVED_ENV = "ACTIONS_PIN_ALLOW_MOVED";
 const UNPARSED_MESSAGE =
   "解釈できない記法の uses: があります（1 行 1 ステップのブロック記法へ直してください）";
+const UNSUPPORTED_TAG_MESSAGE =
+  "版に使えない文字を含む uses: があります（英数と . _ - + / だけで書いてください）";
 
 // resolve の引数。allowMoved は解決先の移動を承認するロックファイルのキー集合。
 type ResolveOptions = {
@@ -33,10 +42,11 @@ type ResolveOptions = {
 async function runResolve(root: string, files: string[], options: ResolveOptions): Promise<void> {
   const refs = collectRefs(files);
   assertAllUsesParsed(root, files);
+  assertAllTagsSupported(root, files);
   assertAllowMovedReferenced(refs, options.allowMoved);
   const existing = readLockOrEmpty(path.join(root, LOCK_FILE));
 
-  const candidates = await Promise.all(
+  const candidates = await allOrAggregate(
     [...refs].map(async ([key, ref]) => ({
       key,
       ref,
@@ -52,7 +62,7 @@ async function runResolve(root: string, files: string[], options: ResolveOptions
   );
   if (moves.repointed.length > 0) failRepointed(moves.repointed);
 
-  const resolved = await Promise.all(
+  const resolved = await allOrAggregate(
     candidates.map(async ({ key, ref, sha }) => {
       const ageOf = () => refAgeDays(ref.repo, ref.tag, sha);
       const result = await withKey(key, () =>
@@ -81,8 +91,8 @@ async function runResolve(root: string, files: string[], options: ResolveOptions
 }
 
 // 不変を宣言した tag の解決先が変わった件を報告して落ちる。ロックファイルは書かない
-// （承認済みの移動を含めて一切書かない）。書いてしまえば次の実行では移動が消え、同じ検知は
-// 二度と起きない。旧新の SHA を並べるのは、上流へ付け替えを報告するときにこの 2 値が要るため。
+// （承認済みの移動も他のエントリも一切書かない — [0153](../../docs/adr/0153-ci-configuration.md)）。
+// 旧新の SHA を並べるのは、上流へ付け替えを報告するときにこの 2 値が要るため。
 function failRepointed(repointed: MovedRef[]): never {
   printError(
     `不変を宣言した tag の解決先が変わりました（付け替えの疑い。${LOCK_FILE} は更新していません）:`,
@@ -90,8 +100,7 @@ function failRepointed(repointed: MovedRef[]): never {
   for (const move of repointed) {
     console.error(`   ${move.key}: ${move.from} -> ${move.to}`);
   }
-  // 承認コマンドにキーを埋め込まない。キーはコメント tag 由来でシェルのメタ文字を含みうるため、
-  // 貼り付けられる 1 行を組み立てれば、その内容をリポジトリ側が決められることになる。
+  // 承認コマンドにキーを埋め込まない（理由は [0153](../../docs/adr/0153-ci-configuration.md)）。
   console.error(`   意図した更新なら上記のキーを ${ALLOW_MOVED_ENV} へ並べて再実行してください:`);
   console.error(`   make actions-pin-resolve ${ALLOW_MOVED_ENV}="<キー> [<キー>...]"`);
   process.exit(1);
@@ -125,6 +134,23 @@ function assertAllowMovedReferenced(refs: Map<string, ActionRef>, allowMoved: Se
   if (unknown.length > 0) {
     fail(`どの uses: からも参照されないキーが承認に含まれています: ${unknown.join(", ")}`);
   }
+}
+
+// 全件を走らせ切ってから、失敗をまとめて 1 つの例外にする。1 件目で打ち切ると、残りが成功
+// したのか未実行なのかが出力から読めず、直しては再実行を繰り返すことになる。
+async function allOrAggregate<T>(tasks: readonly Promise<T>[]): Promise<T[]> {
+  const settled = await Promise.allSettled(tasks);
+  const values: T[] = [];
+  const reasons: string[] = [];
+  for (const result of settled) {
+    if (result.status === "fulfilled") values.push(result.value);
+    else reasons.push(errorMessage(result.reason));
+  }
+  if (reasons.length > 0) {
+    throw new Error(["解決に失敗した参照があります:", ...reasons.toSorted()].join("\n   "));
+  }
+
+  return values;
 }
 
 // 失敗したキーを例外に添える。どの参照で落ちたかが分からないと、tag の綴り誤りとネットワーク
@@ -172,6 +198,10 @@ function runApplyOrCheck(root: string, files: string[], dryRun: boolean): void {
     printError(`${UNPARSED_MESSAGE}: ${report.unparsed.join(", ")}`);
     failed = true;
   }
+  if (report.unsupportedTags.length > 0) {
+    printError(`${UNSUPPORTED_TAG_MESSAGE}: ${report.unsupportedTags.join(", ")}`);
+    failed = true;
+  }
   if (failed) process.exit(1);
 
   if (dryRun) {
@@ -196,6 +226,19 @@ function assertAllUsesParsed(root: string, files: string[]): void {
   if (unparsed.length > 0) fail(`${UNPARSED_MESSAGE}: ${unparsed.join(", ")}`);
 }
 
+// 版に使えない文字を含む参照を、ネットワークへ出る前に落とす
+// （絞る理由は [0153](../../docs/adr/0153-ci-configuration.md)）。
+function assertAllTagsSupported(root: string, files: string[]): void {
+  const unsupported: string[] = [];
+  for (const file of files) {
+    const relative = path.relative(root, file);
+    for (const line of unsupportedTagLines(readFileSync(file, "utf8"))) {
+      unsupported.push(`${relative}:${line}`);
+    }
+  }
+  if (unsupported.length > 0) fail(`${UNSUPPORTED_TAG_MESSAGE}: ${unsupported.join(", ")}`);
+}
+
 function parseMinAgeDays(args: string[]): number {
   let days = 0;
   for (const arg of args) {
@@ -206,9 +249,8 @@ function parseMinAgeDays(args: string[]): number {
   return days;
 }
 
-// 承認リストはコマンドライン引数ではなく環境変数で受ける。キーは `uses:` のコメント tag に
-// 由来する（リポジトリの中身が決める）文字列であり、make のレシピへ展開すればシェルが
-// 再解釈する。環境変数ならシェルを一度も経由しない。
+// 承認リストはコマンドライン引数ではなく環境変数で受ける。環境変数ならシェルを一度も経由
+// しない（理由は [0153](../../docs/adr/0153-ci-configuration.md)）。
 function readAllowMoved(): Set<string> {
   const raw = process.env[ALLOW_MOVED_ENV] ?? "";
   return new Set(raw.split(/\s+/).filter((key) => key !== ""));

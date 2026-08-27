@@ -1,6 +1,6 @@
 ---
 name: impl-review
-description: Local adversarial, low-bias code review of the current change, run by subagents on a DIFFERENT model than the implementer. Mirrors `/code-review`'s finder → verify shape but keeps everything local and adds a runtime stage that mocked tests cannot cover. Confirms scope via `AskUserQuestion` (changed files vs branch-vs-base diff vs specific paths), fans out `adversarial-reviewer` subagents — one per lens (correctness / security / architecture / runtime-gap / test-gap, where `test-gap` is a code-origin pass that reads the changed production source and flags reachable branches / whole changed symbols left untested or vacuously asserted) — plus the dedicated `comment-reviewer` subagent for comment quality, each on a user-selected model (fable / sonnet / opus / haiku; default auto = a model ≠ the implementer) so reviewer ≠ implementer — then verifies each finding with an independent `review-verifier` subagent (CONFIRMED / PLAUSIBLE / REFUTED) and synthesizes a single Japanese report. Comment quality is not just reported but PROCESSED inside the lifecycle: CONFIRMED comment findings are auto-fixed in the working tree after one confirmation (delete / rewrite / enrich, with guards — never remove functional directives like `// @ts-expect-error` / `// biome-ignore`, rewrite-or-enrich rather than delete an exported declaration's contract-bearing TSDoc, skip generated files / Markdown prose / the deny list), then `pnpm fix` + `pnpm lint:ci` verify. The other lenses stay read-only on source (no auto-fix). By default the surviving CONFIRMED / PLAUSIBLE findings from the read-only lenses are posted to the branch's PR as inline review comments anchored to each finding's line (opt out with `--no-comment`; comment-style findings are applied, not posted). Use before commit / PR to get an independent second opinion that the implementer's own model would not surface. Flags: `--no-comment` (skip PR posting), `--no-apply` (report comment-style findings instead of auto-fixing).
+description: Local adversarial, low-bias code review of THE CHANGE ITSELF, run by subagents on a DIFFERENT model than the implementer. Mirrors `/code-review`'s finder → verify shape but keeps everything local and adds a runtime build + request stage that mocked component tests structurally cannot reach. Its subject is the implementation and nothing else: it carries no test lens and no comment lens, and it invokes no other skill — the tests belong to `/test-review` and the comment stock to `/comment-sweep`, peers asked for and run beside this one under the Review Phase Protocol in `AGENTS.md`, never chained from inside it (a review skill that offers to run the next one makes the three subjects stop being independently answerable, and lets a drift in one skill's question silently drop the others from every flow that went through it). Confirms scope and reviewer model via one `AskUserQuestion` (changed files vs branch-vs-base diff vs specific paths; fable / sonnet / opus / haiku, default auto = a model ≠ the implementer), fans out `adversarial-reviewer` subagents — one per lens (correctness / security / architecture / cohesion / runtime-gap, where `cohesion` flags a unit holding several reasons to change — the within-module counterpart to `architecture`, which owns cross-kernel placement — and requires each finding to name two distinct reasons so it cannot decay into taste) — then verifies each finding with an independent `review-verifier` subagent (CONFIRMED / PLAUSIBLE / REFUTED), runs `pnpm build` plus a curl stage for touched request-time seams, and synthesizes a single Japanese report whose mandatory `未監査の観点:` line records that the tests and the comments were not looked at here, so a one-subject review can never read as a full one. Read-only on source throughout — every lens reports and the user fixes. By default the surviving CONFIRMED / PLAUSIBLE findings are posted to the branch's PR as inline review comments anchored to each finding's line (opt out with `--no-comment`). Use before commit / PR to get an independent second opinion the implementer's own model would not surface. Flag: `--no-comment` (skip PR posting).
 ---
 
 # Local Review
@@ -19,16 +19,23 @@ Do NOT use this skill for:
 
 - Style / formatting — `pnpm fix` / `pnpm lint:ci`.
 - Static layer-boundary enforcement — `pnpm lint:ci` runs `eslint-plugin-boundaries` (ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement) plus `pnpm check:architecture`, so import direction **is** statically gated. The `architecture` lens is therefore the *semantic* pass on top of that gate: spend it on violations the matrix cannot express (a type leaking through a legal import, responsibility placed in the wrong kernel, an abstraction that inverts the dependency only nominally), not on re-deriving what ESLint already fails on. Exhaustive layer-compliance auditing belongs to a dedicated auditor skill, which **does not exist yet** (BACKLOG GB-1).
-- Applying non-comment fixes — for the code lenses this skill is read-only; it reports, the user fixes. (Exception: **comment-style findings are auto-applied** in Step 5.5 — verbose / narrating comments are actually fixed, not just reported.)
+- Applying fixes — this skill is read-only on source; it reports, the user fixes.
+- Auditing the tests (`/test-review`) or the comment stock (`/comment-sweep`) — peers, not sub-steps.
 
 ## Core Idea — reviewer ≠ implementer
 
 Bias reduction is the design constraint, not a nicety. Reviewers therefore run as **subagents on a different model than whoever wrote the code**:
 
-- The reviewer agents (`adversarial-reviewer`, `comment-reviewer`, `review-verifier`) default to **`sonnet`** in their frontmatter, which differs from the usual Opus implementer.
+- The reviewer agents (`adversarial-reviewer`, `review-verifier`) default to **`sonnet`** in their frontmatter, which differs from the usual Opus implementer.
 - **The reviewer model is chosen by the user in Step 0.** The options are `fable` (Fable 5) / `sonnet` / `opus` / `haiku`, plus an *auto* default that resolves to a model ≠ the session's implementer. Pass the chosen model to every reviewer subagent via the `Agent` tool's `model` parameter (it takes precedence over the agent file's `sonnet` default) — e.g. `opus` for depth, `haiku` for a cheap divergent pass, `fable` for a fresh independent perspective.
 - **The orchestrator MUST guarantee reviewer ≠ implementer.** If the user selects the same model as the session's implementer, warn that it undermines the different-model bias reduction and confirm before proceeding. Never silently let reviewer and implementer be the same model.
-- Reviewer subagents are **read-only** (their agent files grant no Edit/Write) — they only return findings. The single place this skill mutates source is Step 5.5, where the **orchestrator** (not a subagent) applies the verified comment-style fixes after user confirmation. The code lenses are never auto-fixed.
+- Reviewer subagents are **read-only** (their agent files grant no Edit/Write) — they only return findings, and this skill never mutates source at all. What to change is the user's call, made from the report.
+
+**This skill audits the change and nothing else.** It has no test lens and no comment lens, and it
+invokes no other skill. Those are `/test-review`'s and `/comment-sweep`'s subjects, each asked for and
+run in its own right beside this one, per the Review Phase Protocol in `AGENTS.md`. A review skill
+that offers to run the next one makes the subjects stop being independently answerable, and lets a
+drift in one skill's question silently drop the other two from every flow that went through it.
 
 ## Step 0 — Confirm Scope
 
@@ -61,13 +68,17 @@ reviewer subagents run on:
 *Auto* resolves to the agent-file default (`sonnet`) when the implementer is not `sonnet`,
 otherwise to a different tier. If the user picks the implementer's own model, warn (per Core
 Idea) that it weakens the different-model guarantee and confirm before continuing. The chosen
-model is passed to every `adversarial-reviewer` / `comment-reviewer` / `review-verifier`
+model is passed to every `adversarial-reviewer` / `review-verifier`
 `Agent` call via the `model` parameter in Step 2 and Step 3.
+
+**Two questions, and no more.** There is no test question and no comment question here. Those
+subjects belong to `/test-review` and `/comment-sweep`, which the user asks for separately; folding
+them in would put a decision about one subject inside a run started for another, and would make this
+skill the single point through which the other two are remembered.
 
 ### Flags
 
 - `--no-comment` — suppress Step 6 (do not post to the PR); produce the local report only. **Default is opt-out**: when an open PR exists for the current branch, Step 6 posts the surviving findings as inline review comments unless this flag is given.
-- `--no-apply` — suppress Step 5.5 (do not auto-fix comment findings); instead report them and let them flow into Step 6 (PR post) like the other lenses. **Default is to apply**: comment quality findings are auto-fixed in the working tree after one confirmation.
 
 ## Step 1 — Gather Context
 
@@ -75,37 +86,30 @@ model is passed to every `adversarial-reviewer` / `comment-reviewer` / `review-v
 - Detect which **kernels / elements** are touched. The inventory is ADR [0027](../../../docs/adr/0027-directory-structure.md)'s physical layout, and what each may import is ADR [0021](../../../docs/adr/0021-frontend-responsibility.md)'s dependency matrix: `src/app/**` (3 elements — route-segment `page`/`layout`, route-handler `route.ts`, metadata), `src/features/<name>/**`, `src/model/**`, `src/components/**`, `src/adapters/server/**` · `src/adapters/client/**`, `src/capabilities/**`, `src/stores/**`, `src/config/**`, `src/errors/**`, `src/logging/**`, `src/observability/**` — plus the **boot / build boundary entries that sit outside the kernels**: `src/proxy.ts`, `src/instrumentation.ts`, `next.config.ts`. Several kernels are not on disk yet (ADR 0027 creates each when its decision lands); detect what exists rather than assuming the full set.
 - Note whether a **request-time seam** is touched — a Route Handler (`src/app/**/route.ts`), a Server Action (`src/features/<name>/actions.ts`), `src/proxy.ts`, the response header configuration (`next.config.ts` `headers()`), or the **layout shell / Provider composition** (`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.md); a missing Provider only fails when the route actually renders). This decides whether Step 4-2 runs. <!-- skill-lint-ignore -->
 - Note whether a **generated API artifact** is touched (`**/gen/**` — the types / zod schemas of ADR [0072](../../../docs/adr/0072-api-type-generation.md)). A regenerated artifact ripples to every consumer, so widen the review to the `adapters` conversions and features that import it, not just the changed file.
-- Note whether any **non-generated production `.ts` / `.tsx` under `src/**`** is touched (exclude `*.test.ts(x)` / `*.spec.ts(x)` / `**/gen/**` / files carrying a `Code generated … DO NOT EDIT` banner) — this feeds the `test-gap` lens its changed-symbol list.
-- Note separately whether any **`*.test.ts(x)` / `*.spec.ts(x)`** is touched. Together with the previous bullet this resolves the **test-viewpoint predicate**: `production source touched OR test file touched`. A test-only change satisfies it through the second disjunct alone — which is exactly the case `test-gap` cannot see, since it reads production source. Which of four states holds decides who owns the viewpoint:
-  - Predicate true **and** the Step 4.5 delegation runs → the delegate owns it; `test-gap` does **not** run.
-  - Predicate true, delegation unavailable, **production source touched** → `test-gap` runs as the high-signal subset.
-  - Predicate true, delegation unavailable, **only test files touched** → **neither runs.** `test-gap` would have no symbol to enumerate and return an empty result that reads as a clean audit. This is the one state where the test viewpoint goes entirely unexamined — say so on the `テスト観点:` line instead of letting an empty lens stand in for it.
-  - Predicate false → neither runs; there is no test viewpoint to audit.
-- Check whether a **test runner is configured at all**: a `test` script in `package.json`, or any `*.test.ts(x)` / `*.spec.ts(x)` in the tree. If neither exists, the `test-gap` lens is **disabled** for this run (see Step 2) — say so in the Step 5 report rather than silently skipping it.
 
 ## Step 2 — Fan-out Finders (different model, concurrent)
 
-Spawn all finders concurrently (issue every `Agent` call in a single message). Pass the Step 0 user-selected reviewer model to every `Agent` call via the `model` parameter (omit only when *auto* already resolves to the agent-file default). Two agent types:
-
-- The **code lenses** run `adversarial-reviewer` — one per lens, `agentType: "adversarial-reviewer"`, `label` like `find:security`.
-- The **comment dimension** runs the dedicated `comment-reviewer` — `agentType: "comment-reviewer"`, `label: "find:comment"`. This is the stronger, comment-focused agent (a richer taxonomy than a one-paragraph lens), and its findings feed the Step 5.5 auto-fix.
+Spawn all finders concurrently (issue every `Agent` call in a single message). Pass the Step 0 user-selected reviewer model to every `Agent` call via the `model` parameter (omit only when *auto* already resolves to the agent-file default). Every finder runs `adversarial-reviewer` — one per lens, `agentType: "adversarial-reviewer"`, `label` like `find:security`.
 
 | Finder | Agent | Run when |
 | --- | --- | --- |
 | `correctness` | adversarial-reviewer | always |
 | `security` | adversarial-reviewer | always (especially when a Route Handler / Server Action / `src/proxy.ts` / auth / a generated API request-response type is touched) |
 | `architecture` | adversarial-reviewer | always |
+| `cohesion` | adversarial-reviewer | always |
 | `runtime-gap` | adversarial-reviewer | when a Route Handler / Server Action / `src/proxy.ts` / Provider mount / generated API artifact is touched — the seams a mocked component test does not exercise |
-| `test-gap` | adversarial-reviewer | **fallback only** — spawn it when Step 4.5's delegation to `/test-review` could not run. Otherwise the test viewpoint belongs to the delegate |
-| comment quality | **comment-reviewer** | when the diff adds / changes any code comment (almost always) |
+
+**No lens here audits the tests or the comments.** A finding that the change is untested belongs to
+`/test-review`, and one about a comment's content belongs to `/comment-sweep`. When a lens surfaces
+either in passing, say so in the 補足 section as an observation and name the skill that owns it —
+never grow a lens to cover it. A lens grown here takes the subject away from the skill that owns it
+without taking the depth with it.
 
 Each `adversarial-reviewer` prompt MUST include: the lens name + its definition, the base ref + changed-file list + the diff, and pointers to `AGENTS.md` / the relevant `README.md` / the governing ADRs.
 
-**`test-gap` lens definition** (this lens is *code-origin* — it reads the changed production source, not the test files): for each production symbol added or changed in the diff, enumerate its logical branches / thrown error types / boundary conditions / null-and-undefined defenses, then check the paired test reaches each and *distinctly* asserts it — the specific error class (`await expect(fn()).rejects.toThrow(SpecificError)`), the distinguishing value or rendered state, not a bare `expect(fn).toThrow()` / `toBeTruthy()`. Report two shapes: a production symbol changed in the diff with **no test at all**, and a reachable branch of a changed symbol left **untested or vacuously asserted**. This is a **high-signal subset** — flag the reachable gaps on the *changed* code; it does NOT do exhaustive per-symbol enumeration across a module. Findings are read-only suggestions (never auto-fixed) and anchor to the subject line in the diff, so they post inline like the other code lenses.
+**`cohesion` lens definition.** `architecture` asks *which layer owns this*; `cohesion` asks *how many different asks would land on this same function or file*. The two never overlap, and the gap between them is real: a unit can sit in exactly the right kernel and pass `eslint-plugin-boundaries` and `pnpm check:architecture` while still forcing whoever revises an error's wording to read the code that talks to the network. Nothing in the toolchain sees that, and `full-verify`'s `impl-verifier` — which does own cleanliness and maintainability — only runs over the whole repository, so without this lens the finding waits for an audit instead of surfacing on the diff that introduced it.
 
-**`test-gap` is suppressed while Step 4.5 delegates.** The test viewpoint now has a dedicated owner: `/test-review` runs a five-lens audit over the same change with the subject-symbol and branch×meaning lenses that this one only samples. When Step 4.5 runs the delegation, do **not** spawn `test-gap` — one owner, no double-reporting. Keep `test-gap` only as the fallback for a run where the delegation is declined or unavailable; the Step 1 runner check still gates that fallback.
-
-The `comment-reviewer` prompt MUST include: the base ref + changed-file list + the diff, and the **line policy** (judge only comments on changed lines for a diff scope). The agent already encodes the all-languages-uniform standard (TS/TSX and non-TS alike — shell / `.mjs` / CSS / YAML; non-TS is higher-risk, not exempt), reads `docs/rules.md` (its Comment Rules section, if present) and `AGENTS.md` at runtime as its authoritative policy, and carries the functional-directive / exported-declaration guards — do not re-specify or soften them here. Restrict the file list it sees to comment-bearing source files: exclude generated files (`**/gen/**`, `// Code generated … DO NOT EDIT`), the deny list, and Markdown / docs prose (the comment rules govern source comments, not standalone documents — that is `doc-reviewer`'s job).
+The discipline that keeps it from becoming taste: every finding must **name two distinct reasons to change and who would ask for each**, then name the seam. A finding that cannot be stated that way is dropped, the same way a `correctness` finding without a failing input is dropped. Splitting is not free — each seam is one more file to open before the whole picture is visible — so the two reasons are what pays for it. Length alone is never a finding.
 
 ## Step 3 — Adversarial Verify
 
@@ -152,28 +156,6 @@ Gate: Step 1 found a touched Route Handler (`src/app/**/route.ts`), Server Actio
 
 Fold any runtime-confirmed defect into the report as CONFIRMED with the build output / curl evidence.
 
-## Step 4.5 — Delegate the Test Viewpoint to `/test-review`
-
-The test viewpoint is not audited here. `/test-review` owns it, and it goes deeper than this skill's
-`test-gap` sample: it builds the subject's exported-symbol table (a symbol with no test at all is
-invisible to a test-file-first read) and runs a per-function branch × meaning matrix. Running both
-would double-report the same gaps under two vocabularies.
-
-Chain it with a payload so it does not re-ask what this run already resolved:
-
-- `scope` — the resolved file list from Step 1. **Include production files whose paired test does not
-  exist**; that absence is precisely what the delegate's symbol lens reports.
-- `base_ref` — when this run is in branch-vs-base mode.
-- `reviewer_model` — the model resolved in Step 2, so reviewer ≠ implementer holds across the boundary.
-- `skip_verifier` — pass through only if this run is skipping verification.
-
-Embed the returned report as a section of the Step 5 report, **keeping its severity vocabulary
-intact** (修正必須 / 補完推奨 / 再考 / 追加検討 + criticality). Remapping onto this skill's severities
-would lose the distinction between "the rule is violated" and "this branch is unverified".
-
-If the delegation cannot run, say so in the report and fall back to the `test-gap` lens for this run
-rather than leaving the viewpoint silently unexamined.
-
 ## Step 5 — Synthesize Report (Japanese)
 
 Produce one Japanese report:
@@ -181,8 +163,8 @@ Produce one Japanese report:
 ```text
 ## ローカルレビュー結果（reviewer: <model> / implementer: <model>）
 
-スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, runtime-gap, comment-style（テスト観点は /test-review へ委譲）
-テスト観点: <4 状態のいずれか。下記の定型から選ぶ>
+スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, cohesion, runtime-gap
+未監査の観点: テスト（/test-review）・コメント（/comment-sweep）は本スキルの対象外
 ランタイム検証: 4-1 build 実施 / 4-2 リクエスト検証 実施（curl）・対象外（リクエスト時 seam の変更なし）・到達不能（バックエンド不在で未検証の経路: <経路>）
 
 ### CONFIRMED（要対応）
@@ -193,52 +175,29 @@ Produce one Japanese report:
 ### PLAUSIBLE（要確認・判断保留）
 - ...
 
-### コメント品質（Step 5.5 で適用）
-- [重大度] 対象コメント — path:行 / 分類 / 実施したアクション（削除・書換・加筆）
-
 ### 補足
 - REFUTED: <n> 件（finder が挙げたが verifier が否定）
 - ランタイム検証でカバーした経路 / スキップした経路
+- 他スキルが所管する観点として気づいた点（あれば。所管スキル名を添える）
 ```
 
-The **`テスト観点:` line is mandatory** and takes exactly one of the four values below, matching the state Step 1 resolved:
+The `lens:` line lists only the lenses that actually ran.
 
-- `委譲実施（/test-review Lens 1-5 / CONFIRMED <n>・PLAUSIBLE <m>。レポートは別節に埋め込み）`
-- `test-gap レンズのみ（変更シンボルの高シグナル・サブセット。全シンボル網羅は未実施）`
-- `未実施（テストのみの変更で委譲できず、test-gap にも対象が無い）`
-- `未実施（テスト関連の変更なし）`
+The **`未監査の観点:` line is mandatory**, and it is not boilerplate: this skill audits one of the
+three review subjects, and a report that says nothing about the other two reads as a full review to
+anyone who did not run them. State plainly that the tests and the comments were not looked at here,
+so the omission is visible rather than inferred from a `lens:` list that never mentioned them. Do not
+soften it into a recommendation — whether to run the other two is the user's call under the Review
+Phase Protocol, and this line only records what this run did not cover.
 
-It exists for the same reason the runtime line does: without it, a `lens:` list containing `test-gap` reads as "the tests were audited" when only a subset of the changed symbols was looked at, and a run with no test analysis at all leaves no trace. State the weaker case plainly rather than letting the omission pass for coverage.
-
-Order by severity, CONFIRMED before PLAUSIBLE. Always state what runtime checks ran, what was skipped, and **which lenses did not run and why** — silent omission reads as "covered everything" when it was not. In the report, keep the **comment quality** findings in their own subsection — they are *processed* in Step 5.5, not posted to the PR.
-
-## Step 5.5 — Apply Comment Fixes (default; skip with `--no-apply`)
-
-This is the one place the skill mutates source. Apply the verified **comment quality** findings (CONFIRMED, plus any PLAUSIBLE the user opts in) yourself — the `comment-reviewer` subagent never edits. The code lenses are NOT auto-fixed here; they go to Step 6.
-
-Confirm once before editing:
-
-- `AskUserQuestion`: 「コメント指摘 <N> 件をライフサイクル内で修正適用しますか？」 — options: 「すべて適用」 / 「1件ずつ確認」 / 「適用しない（レポートのみ／PR コメント化）」.
-
-Apply the action each finding carries — **削除 (delete)** a bad-content comment, **書換 (rewrite)** to a correct/behavioral What, or **加筆 (enrich)** a thin What / missing non-obvious contract / missing constraint. A `誤り/陳腐化` finding (the What contradicts the code) is corrected, not deleted. Obey these guards (a wrong deletion here is a real regression):
-
-- **Never delete functional / directive comments**: `// @ts-expect-error`, `// @ts-ignore`, `// biome-ignore …`, `// eslint-disable` / `// eslint-disable-next-line` / `/* eslint-disable … */` (ADR [0002](../../../docs/adr/0002-formatter-linter.md) keeps ESLint for the checks biome cannot express), `/** @jsxImportSource … */`, `// prettier-ignore`, `// Code generated … DO NOT EDIT`, shebangs, tool directives in shell / YAML. (`"use client"` / `"use server"` are string directives, not comments — never touch them either.)
-- **Never edit a protected path.** `AGENTS.md`'s *AI Modification Scope* and *Protected Documentation* are authoritative: `AGENTS.md` itself, Accepted ADR bodies, `LICENSE`, and anything listed under `.claude/settings.json`'s `permissions.deny` stay untouched even during skill execution. Root config (`package.json` / `tsconfig.json` / `next.config.ts` / `mise.toml` / `biome.json` / `Makefile` / `.makefiles/` / `.github/` / `.claude/`) is lifted only by the temporary pre-v1.0.0 rules — a comment fix is never a good enough reason to reach into one. If a comment finding lands on such a path, report it instead of applying it.
-- **Exported declarations**: if the doc comment carries a real contract (error semantics / units / boundaries / side effects), **rewrite or enrich, never delete** — the type signature does not carry it. Delete only when the comment is a pure restatement of the name and type. The `comment-reviewer` marks which case applies on every exported-declaration finding; if it did not, treat it as contract-bearing and rewrite.
-- **Keep good comments**: a correct, sufficient What, and a constraint whose premise sits at that call site, are not findings — do not strip them. Rewrites/enrichments describe **What + such a constraint**, never **How** or development 経緯. A rationale whose premise is remote (an upstream service's behavior, an operational policy) is neither demanded nor relocated here — leave it as the reviewer judged it. Comments are written in Japanese (AGENTS.md Language Rules). Edit only in-scope files; never touch generated files, Markdown prose, or the deny list. Use `Edit`, one finding (or one file) at a time.
-
-After editing, verify:
-
-1. `pnpm fix` — absorb formatting / auto-fixes.
-2. `pnpm lint:ci` — the full profile with `--error-on-warnings`, same as the pre-commit hook.
-3. `git diff` the touched files and confirm only prose comments changed (no functional directive caught). For non-TS files, re-read the changed hunks.
-4. On failure, surface it and stop — do not auto-revert; the user decides. Do NOT commit — leave the changes for the user (or a later `/commit`).
-
-If `--no-apply`, skip this step and instead let the comment findings flow into Step 6 (posted to the PR like the other lenses). If **both** `--no-apply` and `--no-comment` are given, nothing consumes them — list them in full in the Step 5 local report instead, and retitle that subsection 「コメント品質（未適用・未投稿）」 so it does not claim an apply that never happened.
+Order by severity, CONFIRMED before PLAUSIBLE. Always state what runtime checks ran and what was
+skipped — silent omission reads as "covered everything" when it was not.
 
 ## Step 6 — Post Findings as Inline PR Comments (default; opt out with `--no-comment`)
 
-By default, after Step 5.5, post the surviving **CONFIRMED + PLAUSIBLE** findings **from the code lenses** (correctness / security / architecture / runtime-gap / test-gap) to the branch's PR as **inline review comments** — one per finding, anchored to its `path:line`, instead of a single wall-of-text comment. **Never post REFUTED.** Comment quality findings are NOT posted here — they were applied in Step 5.5 (unless `--no-apply` was given, in which case include them in this post). The Step 5 local report is still produced regardless; this step is additive.
+By default, post the surviving **CONFIRMED + PLAUSIBLE** findings to the branch's PR as **inline review comments** — one per finding, anchored to its `path:line`, instead of a single wall-of-text comment. **Never post REFUTED.** The Step 5 local report is still produced regardless; this step is additive.
+
+Only this skill's own findings are posted. `/test-review` and `/comment-sweep` produce their own output for the user to act on, and nothing here reaches into them — posting another skill's findings under this skill's review would make one subject's audit look like it happened inside another's.
 
 Skip this step entirely when:
 
@@ -304,23 +263,22 @@ The permission layer is not what makes this safe — a pattern rule cannot tell 
 ## Do / Do NOT
 
 - ✅ Guarantee reviewer model ≠ implementer model (user selects it in Step 0; warn + confirm if they pick the implementer's model).
-- ✅ Run finders concurrently (one message, multiple `Agent` calls): the code lenses via `adversarial-reviewer`, comment quality via `comment-reviewer`.
+- ✅ Run finders concurrently (one message, multiple `Agent` calls), all via `adversarial-reviewer` — one per lens.
 - ✅ Independently verify every finding before reporting; drop REFUTED.
 - ✅ Run `pnpm build` (Step 4-1) whenever app code is touched, and the request stage (Step 4-2) when a request-time seam is.
 - ✅ When a generated artifact changed, widen the *finders'* read scope (Step 1) to every consumer that imports it — Step 4 does not widen; it verifies the paths it can reach.
 - ✅ State a path as 到達不能 when the missing backend blocks it — never simulate it, never call it passing.
 - ✅ Confirm with the user before running a Server Action that would mutate shared backend state.
-- ✅ Apply comment quality findings in Step 5.5 after one confirmation (delete / rewrite / enrich), then `pnpm fix` + `pnpm lint:ci`; skip with `--no-apply`.
-- ✅ By default, post the code lenses' CONFIRMED + PLAUSIBLE findings to the branch's PR as inline review comments (Step 6); suppress with `--no-comment` or when no open PR exists.
+- ✅ State on the `未監査の観点:` line of every report that the tests and the comment stock were not audited here.
+- ✅ By default, post the CONFIRMED + PLAUSIBLE findings to the branch's PR as inline review comments (Step 6); suppress with `--no-comment` or when no open PR exists.
 - ✅ Confirm once before posting to the PR (outward action); anchor each comment to its `path:line`, fold off-diff findings into the review summary.
 - ✅ Redact secret-shaped values out of every finding body before posting — this repository is public and a post cannot be retracted.
 - ❌ Skip the Step 6 confirmation because `gh api` is allowed — the permission rule is not the safety control, the confirmation is.
 - ❌ Route a denied command through an allowed interpreter, or edit `permissions.deny` to unblock yourself — surface the block and offer the summary-comment fallback instead.
-- ✅ State in the report which lenses did not run and why, and whether the test viewpoint came from the `/test-review` delegation or the `test-gap` fallback.
+- ✅ State in the report which lenses did not run and why.
 - ❌ Post REFUTED findings, or use `REQUEST_CHANGES` / `APPROVE` — the posted review is advisory `COMMENT` only.
-- ❌ Auto-fix the code lenses — those are reported, the user fixes. Only comment quality is auto-applied (Step 5.5).
-- ❌ In Step 5.5, delete a functional directive (`// biome-ignore` etc.) or a contract-bearing exported doc comment (rewrite it); touch generated files / Markdown / the deny list; or auto-commit.
-- ❌ Spawn `test-gap` while the `/test-review` delegation runs — the two would report the same gaps under different vocabularies.
+- ❌ Mutate source at all — every lens reports, the user fixes.
+- ❌ Grow a lens that audits the tests or the comments, or invoke `/test-review` or `/comment-sweep` from here. They are peers under the Review Phase Protocol; surface such an observation in 補足 and name the skill that owns it.
 - ❌ Let a reviewer run on the same model as the implementer.
 - ❌ Report speculative style nits as findings, or pad the list to look thorough.
 - ❌ Edit generated files or anything in the deny list while verifying.
@@ -329,9 +287,9 @@ The permission layer is not what makes this safe — a pattern rule cannot tell 
 
 - [ ] Scope confirmed via `AskUserQuestion`; base ref resolved.
 - [ ] Reviewer model selected in Step 0 and verified ≠ implementer model (warn + confirm if same).
-- [ ] Finders fanned out concurrently: code lenses (`adversarial-reviewer`) + comment quality (`comment-reviewer`); `test-gap` only as the fallback when the Step 4.5 delegation could not run.
+- [ ] Finders fanned out concurrently, one `adversarial-reviewer` per lens — no test lens, no comment lens.
+- [ ] No other skill invoked from this run.
 - [ ] Every finding independently verified; REFUTED dropped (count kept).
 - [ ] Step 4-1 `pnpm build` run when app code was touched; Step 4-2 curl run when a request-time seam was; 到達不能 paths named; a mutating Server Action confirmed before running.
-- [ ] Single Japanese report: CONFIRMED → PLAUSIBLE, comment findings in their own subsection, runtime coverage and skipped lenses stated.
-- [ ] Unless `--no-apply`: comment findings applied in Step 5.5 (functional directives untouched, contract-bearing exported doc comments rewritten not deleted), then `pnpm fix` + `pnpm lint:ci`; no auto-commit.
-- [ ] Unless `--no-comment` / no PR: confirmed once, then posted the code lenses' CONFIRMED + PLAUSIBLE as inline PR comments (off-diff → summary body); REFUTED excluded; `event: COMMENT`.
+- [ ] Single Japanese report: CONFIRMED → PLAUSIBLE, runtime coverage stated, `未監査の観点:` line present.
+- [ ] Unless `--no-comment` / no PR: confirmed once, then posted CONFIRMED + PLAUSIBLE as inline PR comments (off-diff → summary body); REFUTED excluded; `event: COMMENT`.

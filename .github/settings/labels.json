@@ -10,5 +10,30 @@
   { "name": "test", "description": "テストコード関連", "color": "e4e669" },
   { "name": "security", "description": "セキュリティ関連", "color": "5fafe6" },
   { "name": "wontfix", "description": "対応なし", "color": "ffffff" },
-  { "name": "release", "description": "リリース用のラベル", "color": "c5def5" }
+  { "name": "release", "description": "リリース用のラベル", "color": "c5def5" },
+  {
+    "name": "baseline-retake",
+    "description": "報告された見た目の差分の基準画像を撮り直させる",
+    "color": "8b5cf6"
+  },
+  {
+    "name": "baseline-approve",
+    "description": "撮り直した基準画像の見た目を確認したことを表す",
+    "color": "22c55e"
+  },
+  {
+    "name": "run-a11y",
+    "description": "この PR で全 story への axe を回す（既定は merge 後と日次）",
+    "color": "1d76db"
+  },
+  {
+    "name": "run-e2e",
+    "description": "この PR で主要ジャーニーを走らせる（既定は merge 後と日次）",
+    "color": "1d76db"
+  },
+  {
+    "name": "run-lighthouse",
+    "description": "この PR で全画面の Core Web Vitals を測る（既定は merge 後と日次）",
+    "color": "1d76db"
+  }
 ]

@@ -24,7 +24,7 @@ function LabelledScrollArea() {
 
   return (
     <div className="flex w-72 flex-col gap-2">
-      <h2 className="font-medium text-sm" id={headingId}>
+      <h2 className="font-emphasis text-sm" id={headingId}>
         明細
       </h2>
       <ScrollArea

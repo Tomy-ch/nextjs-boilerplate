@@ -1,0 +1,210 @@
+name: Bundle Budget
+
+# Measures what each route makes the browser download, and holds it against
+# `performance-budget.yaml` (ADR 0101).
+#
+# Next 16 prints no size column, so the numbers come from the build output itself: the
+# route's own client chunks (`__RSC_MANIFEST`) unioned with the shared runtime chunks (the
+# route's `build-manifest.json`). For a static route that union equals the scripts its
+# emitted HTML loads, which is what makes the number checkable.
+#
+# Three more quantities sit beside that initial figure. **Deferred JavaScript** is read out
+# of the chunk loader Turbopack emits, so what `next/dynamic` hides still gets counted —
+# without it, moving something heavy behind a dynamic import reads as a shrink even though
+# the person using the screen downloads exactly as much. **Total** is the sum, and it is
+# what keeps such a move honest. **CSS** is measured because it blocks rendering and lands
+# straight on LCP, which is the metric ADR 0101 budgets.
+#
+# The base branch is built too. A ceiling alone lets a change spend the headroom a few KB at
+# a time until some later pull request crosses the line — the red then lands on whoever went
+# last rather than on whoever added the weight. Comparing against base also covers the routes
+# that carry no ceiling, which is every route the bundled sample owns (their names cannot be
+# written into the budget: the sample is deleted on purge and the names would dangle).
+#
+# A base build that fails is not this workflow's business. It degrades to ceilings only
+# rather than reporting a failure that belongs to the base branch.
+#
+# The job always starts and then asks `diff-scope` whether the diff can reach the bundle, so
+# the required context is reported even when the expensive steps stand down. A `paths:` filter
+# would not report it at all and would block the pull request forever (README.md).
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Select the CI environment file (env/.env.ci). Without this the loader falls back to
+# `local`, which ships a placeholder session secret that the config layer refuses outside
+# development — the build then fails on a value that is only meant for a workstation.
+env:
+  APP_ENV: ci
+
+jobs:
+  bundle-budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # What cannot change what a route downloads. Stories and tests are listed because they
+      # never reach the application bundle; `.github/**` and `scripts/**` are not, because a
+      # change to this workflow or to the measurement has to be measured. CSS and the design
+      # tokens are not listed either: the budget now covers stylesheets, and a diff that only
+      # moves CSS is exactly the diff that used to leave this job asleep.
+      - name: Decide whether the diff can reach the bundle
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            vrt/*
+            .storybook/*
+            *.test.ts
+            *.test.tsx
+            *.stories.tsx
+
+      - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build
+        if: steps.scope.outputs.relevant == 'true'
+        run: pnpm build
+
+      # After this branch's build, never before. `next build` type-checks everything the
+      # tsconfig reaches, and a second checkout inside the workspace is reached — with no
+      # dependencies installed under it yet, this branch's build fails on the other tree's
+      # imports.
+      - name: Checkout the base branch
+        if: steps.scope.outputs.relevant == 'true' && github.event_name == 'pull_request'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.base_ref }}
+          path: base
+          persist-credentials: false
+
+      # Its failure is the base branch's problem, not this pull request's. Losing the
+      # comparison is reported in the table as a missing delta rather than as a red mark.
+      - name: Build the base branch
+        id: base
+        if: steps.scope.outputs.relevant == 'true' && github.event_name == 'pull_request'
+        continue-on-error: true
+        working-directory: base
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm build
+
+      - name: Measure and hold against the budget
+        id: budget
+        if: steps.scope.outputs.relevant == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+
+          if [ "${{ steps.base.outcome }}" = "success" ]; then
+            pnpm bundle-budget .next base/.next 2>&1 | tee /tmp/bundle-budget.log
+          else
+            pnpm bundle-budget .next 2>&1 | tee /tmp/bundle-budget.log
+          fi
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Bundle budget: PASS (client JS / CSS)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Bundle budget: FAIL (client JS / CSS)" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # A job that stood down still owes the pull request a verdict. Without this, the ❌
+      # comment an earlier push produced stays beside a green check once the diff stops
+      # reaching the bundle — README.md's "update the comment on success too" invariant,
+      # applied to standing down. The body file is the one the comment step reads, so it has
+      # to be written here too.
+      - name: Note that the diff cannot reach the bundle
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ Bundle budget: SKIP (diff cannot reach the bundle)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は route が配るものに届かないため、測っていません。' > /tmp/bundle-budget.log
+
+      - name: Comment the measurement on PR
+        if: github.event_name == 'pull_request' && (steps.budget.outputs.status != '' || steps.standdown.outcome == 'success')
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- bundle-budget-result -->'
+          status: ${{ steps.budget.outputs.status || 'success' }}
+          title: ${{ steps.budget.outputs.title || steps.standdown.outputs.title }}
+          body-file: /tmp/bundle-budget.log
+          details-summary: 'route ごとの初期 / 遅延 / 合計 JS と CSS'
+
+      - name: Fail if a route is over its budget
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.budget.outputs.status != 'success'
+        run: exit 1

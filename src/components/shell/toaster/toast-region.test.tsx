@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { ToastRegion } from "./toast-region";
 import { DEFAULT_TOAST_HOTKEY, TOAST_POSITION, type Toast } from "./toaster.definition";
@@ -30,7 +32,6 @@ function renderRegion(toasts: Toast[] = TOASTS, expand = false) {
 }
 
 describe("ToastRegion", () => {
-  // ----- 正常系 -----
   it("名前を持つ region として通知を並べる", () => {
     renderRegion();
 
@@ -40,26 +41,33 @@ describe("ToastRegion", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
 
-  it("hotkey を押すと領域へ焦点を移す", () => {
+  it("hotkey を押すと領域へ焦点を移す", async () => {
     renderRegion();
 
-    fireEvent.keyDown(window, { code: "KeyT", altKey: true });
+    await userEvent.keyboard("{Alt>}t{/Alt}");
 
     expect(screen.getByRole("region", { name: "通知" })).toHaveFocus();
-  });
-
-  // ----- 異常系 -----
-  it("修飾キーが一致しない打鍵では焦点を移さない", () => {
-    renderRegion();
-
-    fireEvent.keyDown(window, { code: "KeyT", altKey: false });
-
-    expect(screen.getByRole("region", { name: "通知" })).not.toHaveFocus();
   });
 
   it("通知が無ければ項目を並べない", () => {
     renderRegion([]);
 
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("修飾キーが一致しない打鍵では焦点を移さない", async () => {
+    renderRegion();
+
+    await userEvent.keyboard("t");
+
+    expect(screen.getByRole("region", { name: "通知" })).not.toHaveFocus();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    renderRegion();
+
+    expect(
+      (await axe(document.body, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

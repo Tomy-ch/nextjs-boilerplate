@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -43,12 +44,12 @@ describe("Tooltip", () => {
     expect(trigger).toHaveAttribute("data-slot", "tooltip-trigger");
   });
 
-  it("keyboard focus で Portal の内容を表示し、trigger の説明にする", () => {
+  it("keyboard focus で Portal の内容を表示し、trigger の説明にする", async () => {
     render(<TooltipFixture />);
 
     const trigger = screen.getByRole("button", { name: "為替の参考額" });
 
-    fireEvent.focus(trigger);
+    await userEvent.tab();
 
     const content = screen.getByRole("tooltip");
 
@@ -56,25 +57,24 @@ describe("Tooltip", () => {
     expect(trigger).toHaveAccessibleDescription("表示時点の参考レートで換算した概算です。");
   });
 
-  it("focus が外れると閉じる", () => {
+  it("focus が外れると閉じる", async () => {
     render(<TooltipFixture />);
 
-    const trigger = screen.getByRole("button", { name: "為替の参考額" });
-    fireEvent.focus(trigger);
+    await userEvent.tab();
 
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
 
-    fireEvent.blur(trigger);
+    await userEvent.tab();
 
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<TooltipFixture defaultOpen />);
 
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
@@ -107,12 +107,10 @@ describe("Tooltip", () => {
 });
 
 describe("TooltipProvider", () => {
-  // ----- 正常系 -----
   it("配下の tooltip を成立させる", () => {
     expect(() => render(<TooltipFixture />)).not.toThrow();
   });
 
-  // ----- 異常系 -----
   it("provider の外に置いた tooltip を成立させない", () => {
     expect(() =>
       render(
@@ -126,7 +124,6 @@ describe("TooltipProvider", () => {
 });
 
 describe("TooltipTrigger", () => {
-  // ----- 正常系 -----
   it("補足の対象として slot を持つ要素を描画する", () => {
     render(<TooltipFixture />);
 
@@ -138,14 +135,12 @@ describe("TooltipTrigger", () => {
 });
 
 describe("TooltipContent", () => {
-  // ----- 正常系 -----
   it("開いている間は補足を tooltip として描画する", () => {
     render(<TooltipFixture defaultOpen />);
 
     expect(screen.getAllByText("表示時点の参考レートで換算した概算です。")[0]).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は補足を描画しない", () => {
     render(<TooltipFixture />);
 

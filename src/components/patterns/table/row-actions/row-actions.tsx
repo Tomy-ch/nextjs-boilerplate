@@ -38,9 +38,19 @@ export type RowActionsMenuProps<Row> = {
  * `link` だけで構成すれば Server Component から使える。`command` は関数を保持するため、
  * 呼び出し元が Client Component である必要がある。
  *
+ * **操作が 1 つも無い行には trigger ごと出さない。** 押せる物が並んでいるのに開くと空、という
+ * 面を作らないためで、行によって操作の有無が変わる一覧（すでに済んでいる行など）では `actions`
+ * が空を返すのが自然な表し方になる。
+ *
  * @see Storybook `Sugar/Table/RowActions`
  */
 export function RowActionsMenu<Row>({ actions, row, triggerLabel }: RowActionsMenuProps<Row>) {
+  const items = actions(row);
+
+  if (items.length === 0) {
+    return null;
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -50,7 +60,7 @@ export function RowActionsMenu<Row>({ actions, row, triggerLabel }: RowActionsMe
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {actions(row).map((action) => {
+        {items.map((action) => {
           if (action.kind === ROW_ACTION_KIND.SEPARATOR) {
             return <DropdownMenuSeparator key={action.id} />;
           }

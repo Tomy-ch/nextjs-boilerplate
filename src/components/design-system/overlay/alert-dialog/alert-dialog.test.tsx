@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 import {
@@ -34,15 +35,15 @@ function Example({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
 describe("AlertDialog", () => {
   it("開閉と確認 dialog の意味論を提供する", async () => {
     render(<Example />);
-    fireEvent.click(screen.getByRole("button", { name: "開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "開く" }));
     expect(screen.getByRole("alertdialog", { name: "確認" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<Example defaultOpen />);
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
@@ -59,18 +60,16 @@ describe("AlertDialog", () => {
 });
 
 describe("AlertDialogTrigger", () => {
-  // ----- 正常系 -----
-  it("押すと確認内容を開く", () => {
+  it("押すと確認内容を開く", async () => {
     render(<Example />);
 
-    fireEvent.click(screen.getByRole("button", { name: "開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "開く" }));
 
     expect(screen.getByRole("alertdialog")).toBeVisible();
   });
 });
 
 describe("AlertDialogPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<Example defaultOpen />);
 
@@ -80,14 +79,12 @@ describe("AlertDialogPortal", () => {
 });
 
 describe("AlertDialogOverlay", () => {
-  // ----- 正常系 -----
   it("開いている間だけ背面の覆いを描画する", () => {
     render(<Example defaultOpen />);
 
     expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は背面の覆いを描画しない", () => {
     render(<Example />);
 
@@ -96,14 +93,12 @@ describe("AlertDialogOverlay", () => {
 });
 
 describe("AlertDialogContent", () => {
-  // ----- 正常系 -----
   it("開いた内容として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
     expect(screen.getByRole("alertdialog")).toHaveAttribute("data-slot", "alert-dialog-content");
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<Example />);
 
@@ -112,7 +107,6 @@ describe("AlertDialogContent", () => {
 });
 
 describe("AlertDialogHeader", () => {
-  // ----- 正常系 -----
   it("見出し枠として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -121,7 +115,6 @@ describe("AlertDialogHeader", () => {
 });
 
 describe("AlertDialogFooter", () => {
-  // ----- 正常系 -----
   it("操作枠として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -130,7 +123,6 @@ describe("AlertDialogFooter", () => {
 });
 
 describe("AlertDialogTitle", () => {
-  // ----- 正常系 -----
   it("題名として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -139,7 +131,6 @@ describe("AlertDialogTitle", () => {
 });
 
 describe("AlertDialogDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -151,7 +142,6 @@ describe("AlertDialogDescription", () => {
 });
 
 describe("AlertDialogAction", () => {
-  // ----- 正常系 -----
   it("続行の操作として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -161,17 +151,16 @@ describe("AlertDialogAction", () => {
     );
   });
 
-  it("押すと確認内容を閉じる", () => {
+  it("押すと確認内容を閉じる", async () => {
     render(<Example defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "続行" }));
+    await userEvent.click(screen.getByRole("button", { name: "続行" }));
 
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 });
 
 describe("AlertDialogCancel", () => {
-  // ----- 正常系 -----
   it("取り消しの操作として slot を持つ要素を描画する", () => {
     render(<Example defaultOpen />);
 
@@ -181,10 +170,10 @@ describe("AlertDialogCancel", () => {
     );
   });
 
-  it("押すと確認内容を閉じる", () => {
+  it("押すと確認内容を閉じる", async () => {
     render(<Example defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });

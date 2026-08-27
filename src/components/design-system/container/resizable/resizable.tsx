@@ -70,13 +70,21 @@ export function ResizablePanelGroup({ className, ...props }: ResizablePanelGroup
  * 大きさは `defaultSize` / `minSize` / `maxSize` で決める。`collapsible` を指定すると
  * `collapsedSize` まで畳める。いずれも `%` や `px` などの単位つきで渡す。
  *
- * 中身のスクロールは持たない。収まらない内容を持つ場合は `ScrollArea` を中に置く。
+ * 中身のスクロールは持たない。収まらない内容は溢れた分が切られるので、送って読ませる必要が
+ * あるものは `ScrollArea` を中に置く。pane 自体をスクロールさせないのは、そこへ keyboard の
+ * focus を与える手段が無く、送れない領域ができるためである。
  *
  * @param props - `react-resizable-panels` の Panel props。
  * @see Storybook `Container/Resizable`
  */
-export function ResizablePanel(props: ResizablePanelProps) {
-  return <ResizablePrimitive.Panel data-slot="resizable-panel" {...props} />;
+export function ResizablePanel({ style, ...props }: ResizablePanelProps) {
+  return (
+    <ResizablePrimitive.Panel
+      data-slot="resizable-panel"
+      style={{ overflow: "hidden", ...style }}
+      {...props}
+    />
+  );
 }
 
 /**
@@ -104,7 +112,7 @@ export function ResizableHandle({
     <ResizablePrimitive.Separator
       aria-label={ariaLabel}
       className={cn(
-        "relative flex w-px items-center justify-center bg-border after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2 aria-[orientation=horizontal]:h-px aria-[orientation=horizontal]:w-full aria-[orientation=horizontal]:after:left-0 aria-[orientation=horizontal]:after:h-1 aria-[orientation=horizontal]:after:w-full aria-[orientation=horizontal]:after:translate-x-0 aria-[orientation=horizontal]:after:-translate-y-1/2 [&[aria-orientation=horizontal]>div]:rotate-90",
+        "relative flex w-px items-center justify-center bg-border after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:outline-2 focus-visible:outline-active focus-visible:shadow-glow-primary focus-visible:outline-offset-2 aria-[orientation=horizontal]:h-px aria-[orientation=horizontal]:w-full aria-[orientation=horizontal]:after:left-0 aria-[orientation=horizontal]:after:h-1 aria-[orientation=horizontal]:after:w-full aria-[orientation=horizontal]:after:translate-x-0 aria-[orientation=horizontal]:after:-translate-y-1/2 [&[aria-orientation=horizontal]>div]:rotate-90",
         className,
       )}
       data-slot="resizable-handle"

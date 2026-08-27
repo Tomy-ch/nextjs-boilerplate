@@ -23,7 +23,7 @@ describe("createOtlpLogSink", () => {
 
   it("OTel Logs API へ対応する severity と属性を送る", async () => {
     const { createOtlpLogSink } = await import("./otlp-log-sink.server");
-    const sink = createOtlpLogSink("nextjs-boilerplate");
+    const sink = createOtlpLogSink("Boilerplate Web");
 
     sink({
       level: "warn",
@@ -40,7 +40,7 @@ describe("createOtlpLogSink", () => {
       },
     });
 
-    expect(mocks.getLogger).toHaveBeenCalledWith("nextjs-boilerplate");
+    expect(mocks.getLogger).toHaveBeenCalledWith("Boilerplate Web");
     expect(mocks.emit).toHaveBeenCalledWith({
       severityNumber: 13,
       severityText: "warn",

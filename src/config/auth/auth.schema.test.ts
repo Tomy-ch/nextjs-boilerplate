@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   authClientIdValidator,
   authIssuerValidator,
+  authModeValidator,
   authRedirectUriValidator,
   authScopesValidator,
   authSessionSecretValidator,
@@ -17,6 +18,22 @@ describe("authIssuerValidator", () => {
   // ----- 異常系 -----
   it("http(s) 以外の issuer を拒否する", () => {
     expect(authIssuerValidator().safeParse("ftp://id.example.test").success).toBe(false);
+  });
+});
+
+describe("authModeValidator", () => {
+  // ----- 正常系 -----
+  it("開発用の開始先を受け入れる", () => {
+    expect(authModeValidator().safeParse("dev").data).toBe("dev");
+  });
+
+  it("省略を IdP へ倒す", () => {
+    expect(authModeValidator().safeParse(undefined).data).toBe("idp");
+  });
+
+  // ----- 異常系 -----
+  it("宣言に無い開始先を拒否する", () => {
+    expect(authModeValidator().safeParse("cognito").success).toBe(false);
   });
 });
 
@@ -63,13 +80,39 @@ describe("authScopesValidator", () => {
 describe("authSessionSecretValidator", () => {
   // ----- 正常系 -----
   it("32 文字の session secret を受け入れる", () => {
-    expect(authSessionSecretValidator().safeParse("01234567890123456789012345678901").success).toBe(
-      true,
-    );
+    expect(
+      authSessionSecretValidator(false).safeParse("01234567890123456789012345678901").success,
+    ).toBe(true);
+  });
+
+  it("開発と CI では同梱の値を受け入れる", () => {
+    expect(
+      authSessionSecretValidator(true).safeParse(
+        "local-development-session-secret-change-before-production",
+      ).success,
+    ).toBe(true);
   });
 
   // ----- 異常系 -----
   it("32 文字に満たない session secret を拒否する", () => {
-    expect(authSessionSecretValidator().safeParse("too-short").success).toBe(false);
+    expect(
+      authSessionSecretValidator(false).safeParse("0123456789012345678901234567890").success,
+    ).toBe(false);
+  });
+
+  it("同梱の値のままなら拒否する", () => {
+    expect(
+      authSessionSecretValidator(false).safeParse(
+        "local-development-session-secret-change-before-production",
+      ).success,
+    ).toBe(false);
+  });
+
+  it("CI 用の同梱値も本番では拒否する", () => {
+    expect(
+      authSessionSecretValidator(false).safeParse(
+        "ci-session-secret-must-never-be-used-in-production",
+      ).success,
+    ).toBe(false);
   });
 });

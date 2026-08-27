@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -15,7 +16,7 @@ import {
 
 const NOTIFICATIONS = [
   { id: "3", title: "申請が承認されました", unread: true },
-  { id: "2", title: "在庫が下限を下回りました", unread: true },
+  { id: "2", title: "使用量が上限に近づいています", unread: true },
   { id: "1", title: "月次レポートが生成されました", unread: false },
 ];
 
@@ -92,19 +93,19 @@ describe("NotificationPanel", () => {
     expect(screen.getByText("未読はありません")).toBeInTheDocument();
   });
 
-  it("すべて既読にする操作を呼び出し元へ返す", () => {
+  it("すべて既読にする操作を呼び出し元へ返す", async () => {
     const onMarkAllRead = vi.fn();
     render(<PanelFixture onMarkAllRead={onMarkAllRead} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "すべて既読にする" }));
+    await userEvent.click(screen.getByRole("button", { name: "すべて既読にする" }));
 
     expect(onMarkAllRead).toHaveBeenCalledOnce();
   });
 
-  it("すべて既読にすると focus が一覧へ移る", () => {
+  it("すべて既読にすると focus が一覧へ移る", async () => {
     render(<PanelFixture onMarkAllRead={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "すべて既読にする" }));
+    await userEvent.click(screen.getByRole("button", { name: "すべて既読にする" }));
 
     expect(screen.getByRole("list", { name: "通知の一覧" })).toHaveFocus();
   });
@@ -121,11 +122,11 @@ describe("NotificationPanel", () => {
     expect(screen.queryByRole("button", { name: "すべて既読にする" })).not.toBeInTheDocument();
   });
 
-  it("一覧の外に置いても押せる", () => {
+  it("一覧の外に置いても押せる", async () => {
     const onMarkAllRead = vi.fn();
     render(<NotificationPanel onMarkAllRead={onMarkAllRead} unreadCount={1} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "すべて既読にする" }));
+    await userEvent.click(screen.getByRole("button", { name: "すべて既読にする" }));
 
     expect(onMarkAllRead).toHaveBeenCalledOnce();
   });

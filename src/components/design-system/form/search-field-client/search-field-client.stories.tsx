@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { Marker, MarkerContent } from "../../display/marker/marker";
 import { MARKER_VARIANT } from "../../display/marker/marker.definition";
 import { SearchFieldClient } from "./search-field-client";
+import { SEARCH_FIELD_COMMIT, type SearchFieldCommit } from "./search-field-client.definition";
 
 type Row = { id: string; name: string };
 
@@ -15,13 +16,17 @@ const rows: readonly Row[] = [
 ];
 
 function SearchFieldFixture({
+  commit,
   debounceMs,
   defaultValue,
   placeholder,
+  submitDisabled,
 }: {
+  commit?: SearchFieldCommit;
   debounceMs?: number;
   defaultValue?: string;
   placeholder?: string;
+  submitDisabled?: boolean;
 }) {
   const [keyword, setKeyword] = useState(defaultValue ?? "");
   const handleSearch = useCallback((value: string) => setKeyword(value), []);
@@ -31,11 +36,13 @@ function SearchFieldFixture({
   return (
     <div className="flex flex-col gap-4">
       <SearchFieldClient
+        commit={commit}
         debounceMs={debounceMs}
         defaultValue={defaultValue}
         label="項目を検索"
         onSearch={handleSearch}
         placeholder={placeholder}
+        submitDisabled={submitDisabled}
       />
       <Marker>
         <MarkerContent>通知された検索語: {notified}</MarkerContent>
@@ -105,3 +112,16 @@ export const WithCurrentKeyword: Story = {
 
 /** 待ち時間を長くする場合。取得が重い検索で呼び出し回数を抑える。 */
 export const WithLongerDebounce: Story = { render: () => <SearchFieldFixture debounceMs={1000} /> };
+
+/**
+ * 送信の操作でだけ確定する場合。ほかの条件と一緒にまとめて確定する画面で選ぶ。打鍵しても
+ * 通知は飛ばない。
+ */
+export const CommitOnSubmit: Story = {
+  render: () => <SearchFieldFixture commit={SEARCH_FIELD_COMMIT.SUBMIT} />,
+};
+
+/** 送信しても結果が変わらないと呼び出し元が判っている状態。押せなくする判断は画面が持つ。 */
+export const SubmitDisabled: Story = {
+  render: () => <SearchFieldFixture commit={SEARCH_FIELD_COMMIT.SUBMIT} submitDisabled />,
+};

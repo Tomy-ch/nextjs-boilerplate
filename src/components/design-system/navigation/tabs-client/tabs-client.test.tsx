@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -21,6 +22,24 @@ function Fixture({ defaultValue = "summary" }: { defaultValue?: string }) {
       </TabsClientList>
       <TabsClientContent value="summary">サマリの内容です。</TabsClientContent>
       <TabsClientContent value="detail">明細の内容です。</TabsClientContent>
+    </TabsClient>
+  );
+}
+
+/** 入力途中の値を保つため、すべてのパネルを DOM へ残した組み。 */
+function ForcedFixture({ hideUnselected = false }: { hideUnselected?: boolean }) {
+  return (
+    <TabsClient defaultValue="summary">
+      <TabsClientList aria-label="表示する観点">
+        <TabsClientTrigger value="summary">サマリ</TabsClientTrigger>
+        <TabsClientTrigger value="detail">明細</TabsClientTrigger>
+      </TabsClientList>
+      <TabsClientContent forceMount={true} hidden={false} value="summary">
+        <input defaultValue="書きかけ" name="summary" />
+      </TabsClientContent>
+      <TabsClientContent forceMount={true} hidden={hideUnselected} value="detail">
+        <input defaultValue="こちらも" name="detail" />
+      </TabsClientContent>
     </TabsClient>
   );
 }
@@ -47,10 +66,25 @@ describe("TabsClient", () => {
     expect(screen.queryByText("明細の内容です。")).not.toBeInTheDocument();
   });
 
-  it("tab を選ぶと表示するパネルが入れ替わる", () => {
+  it("DOM へ残す指定では、選んでいないパネルの入力も送信に残る", () => {
+    render(<ForcedFixture />);
+
+    expect(screen.getByDisplayValue("こちらも")).toBeInTheDocument();
+  });
+
+  it("DOM へ残す指定でも、隠す指定を渡せば表示から外れる", () => {
+    render(<ForcedFixture hideUnselected={true} />);
+
+    const [summary, detail] = screen.getAllByRole("tabpanel", { hidden: true });
+
+    expect(summary).toBeVisible();
+    expect(detail).not.toBeVisible();
+  });
+
+  it("tab を選ぶと表示するパネルが入れ替わる", async () => {
     render(<Fixture />);
 
-    fireEvent.mouseDown(screen.getByRole("tab", { name: "明細" }), { button: 0 });
+    await userEvent.click(screen.getByRole("tab", { name: "明細" }));
 
     expect(screen.getByRole("tabpanel")).toHaveTextContent("明細の内容です。");
     expect(screen.getByRole("tab", { name: "明細" })).toHaveAttribute("aria-selected", "true");
@@ -59,9 +93,8 @@ describe("TabsClient", () => {
   it("矢印キーで隣の tab へ移動する", async () => {
     render(<Fixture />);
 
-    const first = screen.getByRole("tab", { name: "サマリ" });
-    fireEvent.focus(first);
-    fireEvent.keyDown(first, { key: "ArrowRight" });
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowRight}");
 
     await waitFor(() => expect(screen.getByRole("tab", { name: "明細" })).toHaveFocus());
   });
@@ -73,7 +106,7 @@ describe("TabsClient", () => {
     expect(screen.getByRole("tab", { name: "サマリ" }).tagName).toBe("BUTTON");
   });
 
-  it("disabled の tab は選択できない", () => {
+  it("disabled の tab は選択できない", async () => {
     render(
       <TabsClient defaultValue="summary">
         <TabsClientList aria-label="表示する観点">
@@ -91,7 +124,7 @@ describe("TabsClient", () => {
 
     expect(disabledTab).toBeDisabled();
 
-    fireEvent.mouseDown(disabledTab, { button: 0 });
+    await userEvent.click(disabledTab);
 
     expect(screen.getByRole("tabpanel")).toHaveTextContent("サマリの内容です。");
   });
@@ -106,7 +139,6 @@ describe("TabsClient", () => {
 });
 
 describe("TabsClientList", () => {
-  // ----- 正常系 -----
   it("tablist として名前と slot を持つ要素を描画する", () => {
     render(<Fixture />);
 
@@ -117,7 +149,6 @@ describe("TabsClientList", () => {
 });
 
 describe("TabsClientTrigger", () => {
-  // ----- 正常系 -----
   it("選択中の tab を選択状態として示す", () => {
     render(<Fixture />);
 
@@ -125,17 +156,16 @@ describe("TabsClientTrigger", () => {
     expect(screen.getByRole("tab", { name: "明細" })).toHaveAttribute("aria-selected", "false");
   });
 
-  it("押すと対応する内容へ切り替える", () => {
+  it("押すと対応する内容へ切り替える", async () => {
     render(<Fixture />);
 
-    fireEvent.mouseDown(screen.getByRole("tab", { name: "明細" }), { button: 0 });
+    await userEvent.click(screen.getByRole("tab", { name: "明細" }));
 
     expect(screen.getByRole("tabpanel")).toHaveTextContent("明細の内容です。");
   });
 });
 
 describe("TabsClientContent", () => {
-  // ----- 正常系 -----
   it("選択中の内容だけを tabpanel として描画する", () => {
     render(<Fixture />);
 

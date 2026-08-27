@@ -106,6 +106,12 @@
       }
     },
     {
+      "includes": ["src/**/generated/**"],
+      "formatter": {
+        "enabled": false
+      }
+    },
+    {
       "includes": [".vscode/**"],
       "json": {
         "parser": {
@@ -144,6 +150,16 @@
       }
     },
     {
+      "includes": [".storybook/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["scripts/**"],
       "linter": {
         "rules": {
@@ -158,11 +174,40 @@
       }
     },
     {
-      "includes": ["public/**"],
+      "includes": ["public/**", ".storybook/public/**"],
       "linter": {
         "rules": {
           "a11y": {
             "noSvgWithoutTitle": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/adapters/server/http/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noAwaitInLoops": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "baseline/lib/**",
+        "vrt/**",
+        "e2e/**",
+        "playwright.e2e.config.ts",
+        "vitest.config.ts"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noEmptyPattern": "off"
+          },
+          "style": {
+            "noProcessEnv": "off"
           }
         }
       }

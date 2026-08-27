@@ -71,6 +71,8 @@
 
 **Tier 5 の [0121](../adr/0121-i18n-strategy.md) / [0100](../adr/0100-accessibility-target.md) / [0101](../adr/0101-performance-budget.md) / [0102](../adr/0102-browser-support.md) は後回し**とし、必須条件から外す(P9-5 で現状のまま出せるか確認する)。
 
+**条件 1 の「実バックエンド接続」は、認証の主たる経路については stand-alone で判定する。** cloud の経路は別リポジトリ 2 本の後ろにあり、v1 のスコープに入らない(Phase 5「Phase 5 の範囲外: 認証の cloud 経路」)。
+
 ### 1.1 バージョン運用
 
 - **0.1.0 は「本書の方針が確定した時点」のタグ**。中身は Phase 0 完了分であり、Phase 1 の完了は待たない
@@ -358,11 +360,39 @@ shadcn/ui を import
 
 3.5 の破棄境界における位置づけは**ジャーニー側**であり、`app/**` の route segment は破棄対象である。ただし root layout の mount 作法と metadata の枠組みは機構であり、残す。この区別は `src/app/README.md` にも置き、この層を最初に読む人へ直接届くようにする。
 
+### 3.13 双方向/ストリーム通信 — 設置面が実在する場合に限り seam を実体化する
+
+3.4 により、[0074](../adr/0074-runtime-communication-seam.md) の購読 seam は v1 では何も置かない。設置面が無いためである。
+
+backend が server→client push の入口機構(SSE)と、その配信基盤である Pub/Sub を正式な機構として持つ場合、この設置面が生まれる(`go-boilerplate #1180`)。輸入 EC サンプルの「お問い合わせチャット」がその実使用箇所になる。
+
+**ただし v1.0.0 の完了条件には含めない。** backend 側の作り込みが大きく、こちらの着手がその機構実装に従属するためである。1 の完了条件に対しては必要条件ではなく、満たせば質が上がる十分条件として扱う。この位置づけの PR には `EX` を付す。
+
+実体化する場合の契約は次のとおり確定している。
+
+| 項目 | 内容 |
+| --- | --- |
+| transport | SSE。長寿命接続の hosting は backend が持ち、本体は同梱しない([0011](../adr/0011-no-docker.md) / [0074](../adr/0074-runtime-communication-seam.md) のまま) |
+| 認証 | BFF が発行する短命 ticket(user / thread / stream scope に束縛)を query に載せ、ブラウザが backend の endpoint を直接叩く。one-time にはしない — `EventSource` の標準再接続と競合するため |
+| stream が運ぶもの | message ではなく event(`message.created` 等)。意味ごとに event 名を分け、本文変更と状態変更を同居させる広い名前は使わない |
+| 順序 | event sequence は thread 単位で単調増加。**歯抜けを許容し、SSE の到達順は保証しない**。整列と重複排除はフロント側の責務 |
+| 初期表示 | History API が message projection を返す。応答の `eventCursor.sequence` が購読開始位置になる |
+| 送信 | REST + `Idempotency-Key`。`clientMessageId` の echo で、楽観追加した自分の発言と突合する |
+| 添付 | 初期実装では扱わない |
+
+**責務分界**: 順序・重複・再接続・cursor・接続状態は transport 都合であり `adapters/client` が持つ。`message.created` のようなドメインイベントの畳み込みは feature が持つ。`adapters` は境界であって状態の所有者ではない([0021](../adr/0021-frontend-responsibility.md) / [0024](../adr/0024-adapters-server-client-split.md))。
+
+**mock**: SSE は契約から MSW ハンドラを生成できない。`mocks/` の「生成物だけを置く」一方向を守り、**SSE は差し替えず実 compose に依存させる**。画像を差し替えない扱いと同じ列に置く。したがって開発時にオペレータ返信を発生させる手段は backend 側が持つ。
+
+**backend 側に残る未確定**: resume cursor を渡す query パラメータ名、heartbeat の形式(コメント行 / `event: ping`)と間隔の契約値、開発用モックオペレータの方式。いずれも着手を止めないが、実装 PR の入力として要る。
+
 ---
 
 ## 4. PR 一覧
 
-全 65 PR。issue 化の単位はこの 1 行 = 1 issue。
+全 66 PR。issue 化の単位はこの 1 行 = 1 issue。
+
+`EX-N` の行は**拡張枠**であり、この 66 本には含めない。v1.0.0 の完了条件から外れる(3.13)。**どの Phase にも属さない**ため、表の末尾と本文の末尾(Phase 9 の後)に置く。
 
 | ID | タイトル | Phase | 依存 |
 | --- | --- | --- | --- |
@@ -399,7 +429,7 @@ shadcn/ui を import
 | P5-2 | U2 商品一覧の完成(フィルタ / sort / cursor)+ ページネーション基盤 | 5 | P4-5 |
 | P5-3 | U1 トップ(並行 fetch)+ マスタ API | 5 | P5-2 |
 | P5-4 | 認証基盤(U9・PKCE + BFF Route Handler + 保護ルート) | 5 | P4-3, P4-5 |
-| P5-5 | U4 カート(stores カーネル・永続化なし) | 5 | P5-1 |
+| P5-5 | U4 カート(サーバカート + 明細の再評価) | 5 | P5-1, P5-4 |
 | P5-6 | U5 購入確認 + 通貨・為替(USD セント / `display_currency` / degrade) | 5 | P5-5, P5-4 |
 | P5-7 | U6 購入完了 + `ActionState<T>`(B8)+ Idempotency-Key | 5 | P5-6 |
 | P5-8 | U7 購入履歴(無限スクロール)+ U8 購入詳細 | 5 | P5-7 |
@@ -432,6 +462,9 @@ shadcn/ui を import
 | P9-5 | Tier 5 後回し分の最終確認 | 9 | P9-3 |
 | P9-6 | boilerplate 導入時の変更点を集約 | 9 | P9-2, P9-5 |
 | P9-7 | v1.0.0 リリース | 9 | P9-7 を除く全 PR |
+| EX-1 | ストリーム前提の文書反映(0074 / screens.md / mocks) | EX | — |
+| EX-2 | 購読 seam の実体化(subscription adapter) | EX | EX-1, P4-3 |
+| EX-3 | U13 お問い合わせ一覧 + U14 チャット画面 | EX | EX-2, P5-4 |
 
 ### 4.1 依存マップ
 
@@ -1024,7 +1057,7 @@ sources:
 - **対象 ADR**: [0027](../adr/0027-directory-structure.md) / [0028](../adr/0028-naming-convention.md) / [0021](../adr/0021-frontend-responsibility.md)
 - **主な変更先**: `scripts/gen/` — `pnpm gen feature` / `pnpm gen component` / `pnpm gen adapter`
 - **設計**: P4-5 で確定した構造をテンプレート化する。命名・配置・境界・テスト・README を**生成時点で正**にする。`architecture.ts`(P3-2)を読んで境界を決めるため、生成物が boundaries に違反しない
-- **spec 駆動は採らずに進める**: `docs/spec/<feature>/` の spec から生成する方式(BACKLOG GB-3)は**判断を P5-18 へ送る**。両方を持つと SSOT が二重化するため、本 PR の時点では `architecture.ts` を唯一の生成入力とする。P5-18 で spec 駆動を採る決定になった場合、本 PR の生成入力を差し替える改修が発生する
+- **spec 駆動は採らずに進める**: 仕様書(`docs/spec/route/**`)から生成する方式(BACKLOG GB-3)は**判断を P5-18 へ送る**。両方を持つと SSOT が二重化するため、本 PR の時点では `architecture.ts` を唯一の生成入力とする。P5-18 で spec 駆動を採る決定になった場合、本 PR の生成入力を差し替える改修が発生する
 - **完了条件**: `pnpm gen feature <name>` が出力した雛形が、無修正で `lint:ci` / boundaries / README 必須節 / カバレッジゲートを満たす
 - **依存**: P4-5
 
@@ -1066,6 +1099,7 @@ sources:
 - **画面判断**: **商品画像が単一か複数かをここで確定する。** 複数なら `Carousel` を使い、単一なら使わない(部品は `components` にあるので、判断は使う / 使わないだけである)
 - **完了条件**: 存在しない ID で `not-found.tsx` が出る。adapters が投げた分類ごとに適切なエラー画面が出る。`reset()` による再試行が動く。XSS ペイロードを含む description が無害化される
 - **依存**: P4-5
+- **状態**: **完了**（#156）
 
 ### P5-2: U2 商品一覧の完成 + ページネーション基盤
 
@@ -1075,10 +1109,14 @@ sources:
   - `src/app/(shop)/products/page.tsx` — filter / sort / keyword / cursor を `searchParams` から
   - `src/model/pagination.ts` — **cursor 型(コア残留)**
   - `src/features/products/` — フィルタ UI
+  - `src/adapters/server/api/products.ts` — 一覧と総件数の取得口
 - **設計**: **`searchParams` が変わるたびに RSC が再取得する構成が主眼**。URL とフィルタ状態を同期させる。`searchParams` は zod で検証する(`rules.md` #42)
 - **画面判断**: **一覧を URL 遷移型で通すか、client island で即時反映にするかをここで確定する。**この決定は A2(P5-11)/ A5(P5-13)の一覧も従う基盤側の判断であり、画面ごとに割らない。即時反映へ倒す場合に使う部品(`ComboboxClient` / `PopoverContent` / table の client 拡張)は `components` に揃っているので、判断は方式の選択だけである
-- **完了条件**: フィルタ / sort / keyword が URL に反映され、リロード・共有で再現する。不正な `searchParams` で 400 相当の表示になる。ブラウザバックでスクロール位置が復元される(`rules.md` #24)
+- **確定した方式**: 絞り込みは脇に常設できる幅では選ぶたびに反映し、それ未満では overlay の中でまとめて確定する(帯の境界は [0051](../adr/0051-styling-system.md) §2)。並び替えは幅によらず即時。増分取得は無限スクロールで、続きを読む操作は失敗したときだけ出す。読み進めた件数を `first` として URL へ書き戻し、戻る操作と再読み込みで復元する(契約の `first` 上限までが復元できる範囲)
+- **総件数**: cursor ページネーションは総数を持たないため、一覧の応答からは取り出せない。`GET /v1/products/count` が一覧と同じ条件を受け取って返す。条件を渡さない口にすると、絞り込んだ後も絞り込む前の数が出て並んでいる件数と食い違う
+- **完了条件**: フィルタ / sort / keyword が URL に反映され、リロード・共有で再現する。不正な `searchParams` で 400 相当の表示になる。ブラウザバックでスクロール位置が復元される(`rules.md` #24)。条件を変えると総件数が追随し、総件数の取得だけが失敗しても一覧は出る
 - **依存**: P4-5
+- **状態**: **完了**。#158 で着地し、#248 で絞り込みを作り直し、#263 で URL 長の予算ガードを足した
 
 ### P5-3: U1 トップ + マスタ API
 
@@ -1088,6 +1126,7 @@ sources:
 - **設計**: ランキング・新着・カテゴリ導線を並置するだけなので RSC 内で `Promise.all`。パーソナライズなし。マスタ系(categories / statuses)はキャッシュ opt-in の対象([0040](../adr/0040-routing-rendering-strategy.md))
 - **完了条件**: 3 系統が並行取得される(直列になっていないことをテストで確認)。一部の系統が失敗しても他が表示される(部分エラー = `rules.md` #18)
 - **依存**: P5-2
+- **状態**: **完了**（#187）
 
 ### P5-4: 認証基盤(U9)
 
@@ -1104,7 +1143,7 @@ sources:
 - **注意**: `proxy.ts` は thin・last resort。既定 Node runtime で `runtime` 指定不可([0043](../adr/0043-middleware-policy.md))。matcher で静的アセット・metadata ルートを除外する
 - **`mock_auth_server` の実測結果(調査済み)**: Authorization Code + PKCE(S256)を**必須強制**、OIDC discovery / JWKS あり、`redirect_uri` は **`http://localhost:3000/api/auth/callback` が登録済み**(nextjs 前提で作られている)。**PKCE 設計はそのまま動く**
 - **ただし mock 側に無いものが 3 つあり、設計で吸収する**:
-  - **refresh token が無い**(`grant_types_supported` は `authorization_code` のみ。access token TTL は 300 秒)。Resolver の refresh 部分は mock では検証できない
+  - **refresh token が無い**(`grant_types_supported` は `authorization_code` のみ。access token TTL は 3600 秒)。Resolver の refresh 部分は mock では検証できない。失効は TTL の経過ではなく `/bypass/token` の `expired` プロファイルで到達する
   - **authorize の subject が `user-john-doe` 固定で、その人は admin ロール保持者**。つまり **PKCE フローで取れるのは常に admin トークン**で、U1〜U12(一般ユーザー画面)を正規フローで検証できない。一般ユーザーは `POST /bypass/token {subject: "user-jane-smith"}` を使う
   - `end_session_endpoint` は **POST のみ**(ブラウザの GET ナビゲーションは 404)。CORS ヘッダも無い(= BFF 経由を維持すべき根拠)
 - **テスト用の認証経路をここで用意する**: 認証は Go API に存在せず OpenAPI 契約外のため **MSW では偽装できない**(P4-4)。また `mock_auth_server` は go 側 compose 内にあり、CI で compose を立てない方針(P6-4)と両立しない。したがって **テスト専用の session 発行経路**(go 側の `/bypass/token` を利用する、テスト環境限定の Route Handler)を本 PR で用意し、P6-4 の E2E がこれを使う。**本番モードでは起動を拒否する**ガードを付ける(go 側 `MOCK_AUTH_DEV_ENDPOINTS` と同型)
@@ -1112,18 +1151,31 @@ sources:
 - **強制手段**: 型(session 型は payload 最小)+ テスト(cookie 属性・リダイレクト・状態破棄)+ 環境ガード(本番で起動拒否)
 - **完了条件**: 未認証で保護ルートへアクセスすると `returnUrl` 付きでログインへリダイレクトされる。ログアウトで cookie と client 状態が破棄される。session cookie が httpOnly + Secure + SameSite で発行される。ブラウザの JS から Access Token が観測できない。**テスト専用経路が本番ビルドで無効化されることをテストで確認**
 - **依存**: P4-3, P4-5
+- **状態**: **完了**（#208）
 
 ### P5-5: U4 カート(stores カーネル)
 
-- **目的**: 横断 client 状態のカーネルを実体化する
-- **対象 ADR**: [0023](../adr/0023-stores-kernel.md) / [0060](../adr/0060-state-management.md)
+- **目的**: server state と横断 client 状態の境界を、同じ画面の中で引いて見せる
+- **対象 ADR**: [0023](../adr/0023-stores-kernel.md) / [0060](../adr/0060-state-management.md) / [0071](../adr/0071-bff-api-integration.md) / [0079](../adr/0079-auth-frontend-seam.md) §7
 - **主な変更先**:
-  - `src/stores/cart-store.ts` — Zustand。**破棄対象**(manifest 宣言)
   - `src/features/cart/` / `src/app/(shop)/cart/page.tsx`
-- **設計**: **永続化しない**([screens.md](../screens.md) U4。ページリロードで消える前提でよい)。購入確認へ渡す際に明細配列として組み立てる
-- **注意**: `stores` は**横断 client 状態のみ**。単一 feature に閉じる状態は feature 内 local に置く([0060](../adr/0060-state-management.md))。永続化しないため hydration mismatch(`rules.md` #53)の論点も発生しない
-- **完了条件**: 商品追加・数量変更・削除が動く。リロードで空になる。`stores` の store が乱立していない
-- **依存**: P5-1
+  - `src/stores/cart-store.ts` — Zustand。**「中身を見たいという要求」だけを持つ**。**破棄対象**(manifest 宣言)
+  - BFF — ゲストトークン(`X-Cart-Session`)の cookie 持ち回りと、callback からの引き継ぎ
+- **設計**: **カートはバックエンドが持つ**([screens.md](../screens.md) U4)。取得は明細ごとの再評価つきで、買えない明細・値の変わった明細に `issues` が立ち、小計は `issues` が空の明細だけの合算(参考値)である。数量は加算ではなく設定(upsert)で、自然キーが冪等性を持つため `Idempotency-Key` を要さない
+- **注意**: **「買えるか / 値が変わったか」の判定をフロントに持たない**([0070](../adr/0070-backend-role-separation.md))。client がスナップショットを持ち回ると、在庫切れと値上がりに気づけないまま U5 へ渡ることになり、それを塞ぐためにフロントへ業務ロジックを書くことになる。この画面が server state の側にある理由がここにある
+- **注意**: `stores` に残るのは「中身を見たい」という**要求**だけである。商品側の「カートに追加」がこれを立てるため feature を跨ぎ、README が挙げる「グローバル UI トグル」に当たる。明細そのものを store へ写すと [0023](../adr/0023-stores-kernel.md) の二重キャッシュ禁止に触れる
+- **P5-1 で先行して着地した範囲(ユーザのデザインディレクション由来)**: カートの状態と**画面右に出現するサイドバー**は P5-1 で実装済み。`zustand` の導入(exact pin)もそこで済んでいる
+  - `src/stores/cart-store.ts` — 追加 / 数量指定 / 削除。同じ商品の再追加は行を増やさず数量を上げ、数量 0 以下の指定は行を落とす
+  - `src/features/cart/` — サイドバー(空なら描画しない)/ header の点数(0 点なら数字を出さない)/ 数量ステッパー(**数量 1 のときだけ `−` をゴミ箱にする**)/ 小計(decimal 文字列のまま整数で合算)
+  - `src/features/products/detail/add-to-cart-button.tsx` — 在庫 0 なら押せない
+  - `AppShell` に `sidebar` / `headerActions` の差込口を追加し、mount は `(shop)/layout.tsx`([0026](../adr/0026-layout-shell-mount.md))
+- **この PR に残る範囲**: `src/app/(shop)/cart/page.tsx`(U4 のカートページ)と、サイドバーの「カートを見る」からの遷移。**先行分をサーバカートへ載せ替える**ぶんもここに含む — 明細と小計の出所、数量上限の判定、追加の経路が入れ替わる。**器(サイドバー / drawer / header の入口)の実装は移設せず、そのまま使う**
+- **サイドバー / drawer の導線は 2 本**: 主が「購入手続きへ」(U5)、副が「カートを見る」(U4)。ドロワーを持つ実装の定型に合わせる。**副を落とさない**のは、U5 が `GET /v1/users/me` を使う認証の内側にあり、未ログインの利用者がカートの中身を全画面で確かめられる経路が U4 しか無いためである。明細が増えたときの数量変更・削除も 280px 前後のレールでは辛い
+- **注意(先行分に対して)**: 数量の上限も `issues` の判定も**バックエンドが持つ**。先行分は在庫数を追加時点のスナップショットとして store に持ち、上限の判定も store に置いていたが、どちらも載せ替えで落ちる。`total.ts`(decimal 文字列のまま合算)は `subtotalAmount` が返るため用済みになる。数量ステッパーは 2 箇所目の参照が出るまで cart feature 内に置く([0021](../adr/0021-frontend-responsibility.md) 昇格ルール)
+- **この PR で併せて確定したこと(計画外)**: 画面仕様の置き場と構造。`docs/spec/route/**` へ `src/app` の階層を写し、画面ごとに**機能要件(`*.function.md`)と画面要件(`*.screen.md`)の 2 層**へ分ける。layout の仕様は配下すべてに効く。仕様書は契約 / token / `rules.md` / 部品カタログ / ADR を指すだけで写さない。既存の 5 本(account 2 / site-info 3)も同じ形へ移した。**P5-18 に残るのは生成 scaffold の採否だけ**になる(詳細は [`docs/spec/README.md`](../spec/README.md))
+- **完了条件**: カートページが動く。サイドバーの「カートを見る」が U4 へ、「購入手続きへ」が U5 へ遷移する。**リロードで消えない**。未ログイン(ゲスト)でも使える。買えない明細・値の変わった明細が画面に出て、小計は買える明細だけの合算である。ログイン時にゲストのカートが引き継がれる。`stores` の store が乱立していない
+- **依存**: P5-1, P5-4(ゲストトークンの持ち回りと引き継ぎが BFF に入るため)
+- **状態**: **完了**（#247）
 
 ### P5-6: U5 購入確認 + 通貨・為替
 
@@ -1135,8 +1187,11 @@ sources:
   - `src/components/price-display.tsx` — **USD-JPY 併記 UI(破棄対象)**
 - **設計**: 保存・表示の基準は **USD**。円換算は `display_currency=JPY` 指定時のみ `reference_amount` として付与される**参考値**であり、UI 上「参考」であることを明示する
 - **注意**: **為替取得失敗時は参考額なしで購入自体は継続できる(degrade)**。ここが [0080](../adr/0080-error-handling.md) の「部分エラーで全体を落とさない」の実例になる
-- **完了条件**: JPY 表示切替が動く。`exchange-rates` を落としても購入導線が生きている。金額の丸め・桁区切りがロケール依存で正しい
+- **注意**: カートのサイドバー / drawer の主操作「購入手続きへ」がこの画面の入口である。**認証の内側にある**ため、未ログインで踏んだ場合は P5-4 の保護ルート判定に乗って `returnUrl` 付きで戻る
+- **注意**: **明細は client から引き継がず、この画面が `GET /v1/carts/me` で取り直す**。再評価が入るため、U4 で見た時点から買えなくなった明細・値の変わった明細がここで初めて現れうる。買える明細が 1 件も無い状態で購入へ進ませない
+- **完了条件**: JPY 表示切替が動く。`exchange-rates` を落としても購入導線が生きている。金額の丸め・桁区切りがロケール依存で正しい。カートからの「購入手続きへ」が着地する。**U4 から遷移する間に買えなくなった明細が、この画面で利用者に伝わる**
 - **依存**: P5-5, P5-4
+- **状態**: **完了**。#261 で P5-7 と同一 PR として着地した
 
 ### P5-7: U6 購入完了 + `ActionState<T>`(B8)
 
@@ -1150,27 +1205,34 @@ sources:
 - **注意**: **二重送信防止 = submit disabled + Idempotency-Key**(`rules.md` #12)。二重クリック / リロードでの二重購入を防ぐ。409(在庫不足)の表示経路を持つ。CSRF は Server Actions の `allowedOrigins`(`rules.md` #47)
 - **完了条件**: 成功 / 検証エラー / 在庫不足 409 の 3 経路が動く。同じ Idempotency-Key での再送で二重購入が発生しない。`ActionState<T>` が `model` にあり、全 Server Action がこれを返す。live region がスクリーンリーダに読まれる
 - **依存**: P5-6
+- **状態**: **完了**。#261 で P5-6 と同一 PR として着地した
 
 ### P5-8: U7 購入履歴 + U8 購入詳細
 
 - **目的**: 無限スクロール(増分取得)を確定する。P5-2 のページ送りと**対**になる実例
 - **対象 ADR**: [0073](../adr/0073-pagination-fetch-boundary.md) / [0040](../adr/0040-routing-rendering-strategy.md)
 - **主な変更先**: `src/app/(shop)/purchases/page.tsx` / `[id]/page.tsx` / `src/features/purchases/` / `src/capabilities/`(交差監視 hook があればコア残留)
+- **パンくずを置く**: U8 購入詳細(`購入履歴 > 注文番号`)。基準は [0026](../adr/0026-layout-shell-mount.md)「パンくずを置く画面」。U7 一覧は nav が直接指すので置かない
 - **設計**: **無限スクロール方式でページ送り UI ではない**([screens.md](../screens.md) U7)。[0073](../adr/0073-pagination-fetch-boundary.md) は client 増分取得を「**same-origin(`/api/*` BFF / Route Handler)への薄い fetch**」に限定しているため、**その Route Handler を本 PR で新設する**(`src/app/api/purchases/route.ts` 等。[0070](../adr/0070-backend-role-separation.md) の thin proxy 規約に従う)。Server Action 経由や「もっと見る」の RSC 化に倒す場合も、選択理由をここで記録する
+- **期間で絞る操作はこの画面が持つ**。契約(`GET /v1/purchases`)は cursor(`after` / `first`)に加えて `period` / `from` / `to` / `month` / `days` を受け取る。**client 側で取得済みのページに日付の条件を掛けてはならない** —— 条件に合う古い購入が落ちた一覧になるためで、絞り込みは必ずクエリでサーバへ渡す。`period` の区分(`all` / `month` / `range` / `recent`)と DatePicker の対応、および区分ごとの必須パラメータが欠けたときの `400` の扱いをここで決める。P5-9 のマイページは集計の詳細を上位 10 件で打ち切ってこの画面へ送っているので、**ここに範囲選択が無いと「古い購入を見る」経路が閉じたままになる**
 - **強制手段**: ESLint boundaries(client から外部オリジンへの直 fetch を禁止)+ テスト
-- **完了条件**: スクロールで追加読み込みされる。取得中・末尾到達・エラーの 3 状態が表示される。詳細で JOIN 済み明細が表示される。**client から外部オリジンへ直接 fetch していない**
+- **完了条件**: スクロールで追加読み込みされる。取得中・末尾到達・エラーの 3 状態が表示される。詳細で JOIN 済み明細が表示される。**client から外部オリジンへ直接 fetch していない**。**期間で絞れる**(契約側のクエリ追加を含む)
 - **依存**: P5-7
+- **状態**: **完了**（#267）
 
 ### P5-9: U11 マイページ + U12 ユーザー更新(CollectAll)
 
 - **目的**: **CollectAll**(独立リソースをフロント側で並置合成)の実例を作る。A1 の backend 合成と対になる
 - **対象 ADR**: [0040](../adr/0040-routing-rendering-strategy.md) / [0061](../adr/0061-form-mutation-ux.md) / [0062](../adr/0062-form-input-validation.md)
 - **主な変更先**: `src/app/(shop)/mypage/page.tsx` / `mypage/edit/page.tsx` / `src/features/account/`
+- **パンくずを置く**: U12 ユーザー更新(`マイページ > プロフィール編集`)。基準は [0026](../adr/0026-layout-shell-mount.md)。U11 マイページは nav が直接指すので置かない
 - **設計**: U11 と U12 は**独立ルート**。U12 は「自分の情報 + 都道府県マスタ」を RSC 内 `Promise.all` で並置合成する。**合成にドメイン計算が要らないのでフロント合成でよい**(判断基準は [screens.md](../screens.md) §1)
 - **注意**: 退会は**確認モーダル必須**(不可逆操作)。退会後はキャンセル・在庫復元が非同期の結果整合で走るため、**即時反映を保証しない UI 文言**にする
 - **画面判断**: **U12 の各入力項目を、`SelectNative` の単純な選択で済ませるか `ComboboxClient` の候補検索にするかをここで決める。**静的で少数の選択肢は native を優先し(SSR first)、候補が多く絞り込みが要る項目だけ client island へ倒す
-- **完了条件**: プロフィール編集が動く。退会に確認モーダルがある。結果整合を前提とした文言になっている
+- **P5-4 からの申し送り — `verifySession()` のメモ化を実機で確かめる**: `src/adapters/server/auth/session.ts` は `readSessionRecord` / `verifySession` を React の `cache()` で包み、「復号は 1 リクエストにつき 1 度」を設計意図としている。しかし **Vitest は `react-server` 条件で解決しないため、公開 `react` の `cache` は素通しの実装になり、メモ化されているかをテストで確かめられない**。P5-4 の時点では `verifySession()` を呼ぶ画面が無く、実機でも踏めなかった。**この PR が最初の消費者になる**ので、`resolver.restore` の呼び出し回数を一時的に数え、同一リクエスト内で複数回 `verifySession()` を通しても 1 度で済むことを `pnpm build && pnpm start` の実プロセスで確認する。畳めていなければ `cache()` を外し、呼び出し側で 1 度だけ引く形へ倒す(効いていない機構をコメントで主張しない)
+- **完了条件**: プロフィール編集が動く。退会に確認モーダルがある。結果整合を前提とした文言になっている。`verifySession()` のメモ化が実機で確認済み、または `cache()` を外して呼び出し規約へ移してある
 - **依存**: P5-4
+- **状態**: **完了**（#229）
 
 ### P5-10: U10 登録(オンボーディング)+ 住所補完
 
@@ -1182,6 +1244,7 @@ sources:
 - **画面判断**: 都道府県などの選択項目も U12 と同じ基準で `SelectNative` / `ComboboxClient` を選ぶ(P5-9 の判断に揃える)
 - **完了条件**: 住所補完が動く。`addresses` API を落としても手入力で登録が完了する
 - **依存**: P5-9
+- **状態**: **完了**（#272）
 
 ### P5-11: admin シェル + RBAC + A2 商品一覧
 
@@ -1197,6 +1260,7 @@ sources:
 - **参照する Blocks**: `sidebar-03` / `sidebar-07`(submenu・折り畳み・breadcrumb と sidebar の組み合わせ)、`dashboard-01`(summary card と data table の併置)。いずれも固定 JSON を持つため、server-driven な検索・ページングへ差し替えて再構成する
 - **完了条件**: 非 admin が admin 画面へ到達しない(optimistic = proxy のリダイレクト / 確定 = データ取得時 403)。非 admin には admin 導線自体が出ない。RBAC ヘルパが manifest の破棄対象に入っていない
 - **依存**: P5-4, P5-2
+- **状態**: **完了**（#273）
 
 ### P5-12: A6 商品作成 / A7 商品編集
 
@@ -1207,6 +1271,7 @@ sources:
   - `src/features/admin/products/` — `RichTextEditor`(P3-8 で完成済み)を form へ載せ、送信値を `model/rich-text` の port へ通す配線
   - `src/features/admin/products/actions.ts` — Server Action(作成 / 更新 / 画像アップロード)
   - `next.config.ts` — **`serverActions.bodySizeLimit` を引き上げる**
+- **パンくずを置く**: A6 商品作成(`商品一覧 > 新規作成`)と A7 商品編集(`商品一覧 > 商品名 > 編集`)。基準は [0026](../adr/0026-layout-shell-mount.md)
 - **技術制約**: Server Action の body size limit は**既定 1MB**。アップロード上限 5MiB 想定のため引き上げ必須
 - **設計**:
   - **画像**: `POST /v1/products/images`(multipart)へ Server Action 経由で転送し、返却された `imagePath` を保存する(go-boilerplate #651)。[0075](../adr/0075-file-upload-seam.md) は 2 経路を対等な seam として持ち**選択は backend の能力で決まる**ため、multipart 受け口しか持たないこの構成では proxy が正規経路である(劣った例外ではない)。この経路ではサイズ上限・content-type 検証を Route Handler / Server Action 側にも置く
@@ -1219,15 +1284,18 @@ sources:
 - **注意**: Server Action は進捗イベントを持たないため、アップロード進捗表示は実装しない
 - **完了条件**: 商品の作成・編集が動く。画像をアップロードすると一覧に反映される。上限超過(413)/ 未対応 content-type(415)がエラー表示される。409 で再読み込み導線が出る
 - **依存**: P5-11
+- **状態**: **完了**（#274）
 
 ### P5-13: A3 商品補充 + A5 ユーザー一覧
 
 - **目的**: 単一項目更新と、結果整合を前提とした一覧操作を作る
 - **対象 ADR**: [0061](../adr/0061-form-mutation-ux.md) / [0080](../adr/0080-error-handling.md)
 - **主な変更先**: `src/app/(admin)/products/[id]/stock/page.tsx` / `src/app/(admin)/users/page.tsx` / `src/features/admin/`
+- **パンくずを置く**: A3 在庫補充(`商品一覧 > 商品名 > 在庫補充`)。基準は [0026](../adr/0026-layout-shell-mount.md)。A5 ユーザー一覧は置かない
 - **設計**: A3 は**在庫数のみ**を更新する(他項目は A7 の担当)。A5 の退会は**確認モーダル必須**で、キャンセル・在庫復元は非同期の結果整合のため**即時反映を保証しない文言**にする
 - **完了条件**: 在庫補充が動く。退会に確認モーダルがある。進行中購入がある場合の 409 が表示される
 - **依存**: P5-11
+- **状態**: **完了**（#275）
 
 ### P5-14: A1 ダッシュボード + A4 集計
 
@@ -1238,6 +1306,7 @@ sources:
 - **参照する Blocks**: `dashboard-01`(summary card と data table の併置)。固定 JSON は使わず、backend 合成済みの値へ差し替える
 - **完了条件**: ダッシュボードが表示される。フロント側に集計ロジックが存在しない(コードレビューで確認)
 - **依存**: P5-11
+- **状態**: **完了**（#276）
 
 ### P5-15: purchases ステータス遷移
 
@@ -1280,12 +1349,54 @@ sources:
 ### P5-18: spec 駆動の採否判断(GB-3)
 
 - **目的**: 実装済みの画面を材料に、spec 駆動を採るかを決める。画面が 1 枚も無い状態では、spec が実装のどれだけを言い当てられるかを測れない
-- **判断すべきこと**: `docs/spec/<feature>/` に spec を置き、そこから実装を生成する方式(BACKLOG GB-3)を採るか
-- **判断の材料**: Phase 5 で実装した 19 画面。**実装済みの feature を 1 つ選び、後から spec を書き起こしてみて**、(1) spec が実装を再現できるだけの情報を持てるか、(2) `architecture.ts` と重複しない情報だけで構成できるか、(3) 画面の追加時に spec を先に書くほうが速いか、を見る
-- **注意**: P4-6 は `architecture.ts` を唯一の生成入力として着地している。**採用する場合は P4-6 の生成入力を差し替える改修が発生する**。両方を残すと SSOT が二重化するため、どちらか一方に倒す
-- **不採用の場合**: GB-3 の全資産(`new-spec` / `new-spec-{domain,usecase}` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*`)を破棄と記録する
-- **完了条件**: 採否が BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の IM-26 へ反映されている。採用する場合は P4-6 の改修 PR が起票されている
+- **決定: 採用する。** 仕様書から実装を導く方式(BACKLOG GB-3)を採る。**ただし具体的な How はここでは確定しない** —— 下記「持ち越し」を参照
+- **確定済み(P5-5)**: 仕様書は `docs/spec/route/**` に置き、`src/app` の階層をそのまま写す。画面ごとに **機能要件(`*.function.md`)と画面要件(`*.screen.md`)の 2 層**へ分け、振り分けは「契約と利用者の目的が同じまま、その記述だけが違う画面があり得るか」で決める。layout の仕様はその配下すべてに効く。仕様書は契約 / token / `rules.md` / 部品カタログ / ADR を**指すだけ**で写さない(部品名・単位つきの数値・層をまたぐ規約を書かない)。詳細は [`docs/spec/README.md`](../spec/README.md)
+- **判断の材料と、実際に測れたこと**: `docs/spec/route/**` には **22 画面ぶん 43 本**の仕様書がある。当初の材料は「実装済みの feature を 1 つ選び、後から spec を書き起こす」ことだったが、3 点のうち測れたのは 2 点である
+
+  | 材料 | 結果 |
+  | --- | --- |
+  | (1) spec が実装を再現できるだけの情報を持てるか | **持てる。** 既存 43 本と同じ様式で破綻なく書ける |
+  | (2) `architecture.ts` と重複しない情報だけで構成できるか | **できる。** 依存の向きも層の責務も写していない |
+  | (3) 画面の追加時に spec を先に書くほうが速いか | **測れない。** 未実装の画面が残っていないため |
+
+  書き起こしで分かったのは、**画面の約束が文書の外に居やすい**ことである。トップの書き起こしでは、spec に載せた事実の出所が文書 12 / 実装のコード 6 / **実装の doc コメント 4** に分かれ、最後の 4 つ(描画の時点の宣言とその理由・待ちの境界の掛け方・断り書きを待ちの外へ置く理由・節の並びの理由)は画面の約束でありながら TSDoc にしか無かった。**spec 駆動を採る値打ちはここにある** —— 生成の速さではなく、約束の置き場が決まることである
+
+- **持ち越し: 具体的な How は v1 を切る直前の最終品質チェックで確定する。** いま決めたのは方針だけで、次の 3 つは確定していない
+
+  1. **生成 scaffold を持つか。** 持つなら、そのとき P4-6 の生成入力を `architecture.ts` から差し替えるのか、両方を別の役割で残すのか(**両方を同じ役割で残すと SSOT が二重化する**)
+  2. **輸入資産のうち何を使うか。** `new-spec` / `verify-spec` / `spec-validator-*` / `.claude/scaffold-spec/*` のどれを翻案し、どれを破棄するか。「spec フォーマットを外部ファイルから実行時読込 = SSOT」の構造は言語非依存なので、採るならここが軸になる
+  3. **spec を先に書くことを手順として強制するか。** (3) が測れていないため、いま強制すると測っていない前提を規約にすることになる
+
+  **確定を v1 直前へ置く理由**は、How が「画面をあと何枚足すか」に依存し、v1 の実装が出揃うまでその見積もりが立たないためである。方針だけ先に決めておくのは、確定までの間に `docs/spec/route/**` を**壊さず保つ**理由をはっきりさせるためである(採否未定のままだと仕様書の維持が惰性になる)
+
+- **完了条件**: 採用の決定が BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の IM-26 へ反映されている。**P4-6 の改修 PR はまだ起票しない** —— 差し替えの要否が上記 1 の確定待ちであるため
 - **依存**: P5-16, P4-6
+
+### Phase 5 の範囲外: 認証の cloud 経路
+
+**この Phase で着地するのは stand-alone(`local` / `ci`)の認証だけである。** cloud(`dev` / `stg` / `prd`)の経路は v1 のスコープに入らない。番号の付いた項目を持たないのはそのためで、**やり残しではなく範囲外**である。
+
+#### 前提の連鎖
+
+**aws-boilerplate での IdP 構築が先、次に go-boilerplate の認証機構、最後にこのリポジトリの画面。**
+
+逆順に着手すると、**正規化されたチャレンジの契約が無い状態で画面を書く**ことになり、契約が決まった時点で必ず書き直しになる。cloud 側の作業はすべてこの前提の下にあり、このリポジトリの中だけでは前へ進められない。
+
+| 待っているもの | 置き場 |
+| --- | --- |
+| IdP の構築 | 別リポジトリ(aws-boilerplate) |
+| 認証機構を backend に置き、正規化されたチャレンジを返す | 別リポジトリ(go-boilerplate) |
+| `/login` の主たる経路を所有画面へ変え、上記へ繋ぐ | 本リポジトリ |
+| `dev` / `stg` / `prd` の env を埋める | 本リポジトリ |
+| federation の連携先と IdP の終了口へ、design token から意匠を供給する | 本リポジトリ |
+
+#### v1 の間、実装と ADR は食い違ったままになる
+
+[0079](../adr/0079-auth-frontend-seam.md) §8 は**入力面を所有し、検証機構は持たない**(資格情報は backend へ中継するだけ)と定めている。しかし v1 の実装では、`/login` の主たる経路は認証基盤の authorize endpoint へ 302 する借り物の画面のままである。これは同 ADR §6 が **federation に限って**認めている形であり、主たる経路がその形を採っているのは上記の連鎖が解けていないためである。
+
+**この食い違いを既知として持ち越す。** ADR を実装に合わせて書き戻さないのは、**決定のほうが正しく、実装が追いついていないだけ**だからである。ADR を実態へ倒すと、連鎖が解けたときに戻す根拠が消える。
+
+**stand-alone の穴は v1 の範囲に残る** —— `ci` で `/login` が押しても何も起きない件と、mock で「認証済み・未登録」を作れず `/onboarding` へ到達できない件は、外部依存を持たないためこのリポジトリで閉じられる。
 
 ## Phase 6: 非機能
 
@@ -1314,7 +1425,8 @@ sources:
   - `.github/workflows/csp-check.yaml` — inline 違反検出 + ヘッダ well-formed 検証
 - **設計**: `img-src` に `MEDIA_ORIGIN` を含める必要がある(本書 §3.2)。**`script-src` の方式は未決 #1 の確定に従う**(seam A 既定 = 静的維持。seam B へ反転した場合のみ nonce)。`next/script` の strategy 使い分けは `rules.md` #50
 - **注意**: **[0111](../adr/0111-csp-security-headers.md)(実行時本体)と [0110](../adr/0110-security-operations.md)(CI 適合スライス)は両輪であり、片側だけでは閉じない**
-- **完了条件**: 全画面が CSP 違反ゼロで動作する。意図的に inline script を入れると CI が fail する。**0111 に enforce seam の確定が記録されている**
+- **入力**: `.github/zap/rules.tsv` の一覧。DAST([0110](../adr/0110-security-operations.md) 3.5)を先に置いてあるので、**配信面に何が足りないかは実測済みで並んでいる**。本 PR は「その一覧を空にする作業」であり、1 行 = 1 ヘッダ = 1 作業単位として並行して潰せる
+- **完了条件**: 全画面が CSP 違反ゼロで動作する。意図的に inline script を入れると CI が fail する。**0111 に enforce seam の確定が記録されている**。**`rules.tsv` からヘッダ由来の行が消えている**
 - **依存**: P5-16, **P6-8**(CSP seam と Cache Components を同時に決めるため — §3.9)
 
 ### P6-3: SEO / metadata + fonts
@@ -1329,22 +1441,34 @@ sources:
   - `src/app/fonts.ts` — `next/font`
   - `src/proxy.ts` — matcher から metadata ルートを除外
 - **注意**: preview / staging は `noindex` を強制する(`rules.md` #63)。アイコン体系は [0044](../adr/0044-seo-metadata-strategy.md) が持ち、[0045](../adr/0045-fonts-and-images.md) は静的 favicon の配置のみ
-- **強制手段**: CI(生成物の存在検査)+ 散文のみ(環境別 noindex は env 経由)
-- **完了条件**: `/sitemap.xml` / `/robots.txt` が生成される。詳細ページに canonical と JSON-LD が出る。preview 環境が `noindex` になる
+- **設計**: **検査は「在るか」ではなく「公開面として成立しているか」を見る。** 存在検査だけを置くと、空の `sitemap.xml`・他人を指す canonical・実行時に落ちる OG 画像が、いずれも緑で通る。metadata は**中身が壊れていても画面が壊れない**ため、通常のテストとレビューでは気づけない。見る対象は 4 つ:
+  - `sitemap.xml` が挙げる URL が実在する(404 を挙げていない)
+  - 各ページの canonical が自分自身を指す
+  - `opengraph-image` が画像を返す(`ImageResponse` は build を通っても実行時に落ちうる)
+  - `robots.txt` と `noindex` が `APP_ENV` で切り替わる
+- **強制手段**: CI(公開面の内容検査。上の 4 点)+ 散文のみ(環境別 noindex は env 経由)
+- **完了条件**: `/sitemap.xml` / `/robots.txt` が生成される。詳細ページに canonical と JSON-LD が出る。preview 環境が `noindex` になる。**上の 4 点が CI で緑になる**
 - **依存**: P5-1, **P5-4**(`src/proxy.ts` を新設するのは P5-4 のため)
 
 ### P6-4: E2E + visual regression
 
+> **story 単位の visual regression は前倒しで着地済み**（issue #159）。画面の量産が始まる前に退行を捕まえる必要があり、story 単位の VRT の依存は P3-8 だけで P5-16 を待つ理由が無かったため。残りは E2E ジャーニーと画面単位の比較。
+
 - **目的**: ジャーニー全体の回帰検知と、視覚的回帰の検知を入れる
 - **対象 ADR**: [0090](../adr/0090-testing-strategy.md) / [0091](../adr/0091-test-verification-methods.md)
 - **主な変更先**:
-  - `playwright.config.ts`
+  - `playwright.e2e.config.ts` — story 単位の撮影（`playwright.config.ts`）とは開く相手も走る単位も違うため分ける
   - `e2e/` — 主要ジャーニー(一覧 → 詳細 → カート → 注文 / ログイン → 管理画面 → 画像アップロード)。**破棄対象**
-  - `e2e/visual/` — スクリーンショット比較
+  - `e2e/visual/` — ページ単位のスクリーンショット比較（story 単位は着地済みの `vrt/`。**破棄対象と分けてある**）
   - `.github/workflows/e2e.yaml`
-- **設計**: E2E は **MSW モードで実行**しバックエンド非依存にする(CI で go の compose を立てない)。visual regression は Storybook(P3-8)のコンポーネント単位と、E2E のページ単位の両方を対象にする
+- **設計**: E2E は **MSW モードで実行**しバックエンド非依存にする(CI で go の compose を立てない)。ページ単位の比較は既存の `browser_runner`(digest 固定した Playwright コンテナ)へ相乗りし、基準画像の置き場も共有する。**アプリはホストで起動し、コンテナで動かすのはブラウザだけ**にする（`node_modules` は入れた OS と CPU 向けに解決されるため、コンテナ内で `next start` を起動できない）
+- **射程に含める 3 件**（同じ Playwright の土台に乗るため、独立させずここで扱う）:
+  - **Browser Errors** — hydration の不一致 / 描画中の例外 / 通信の失敗を検出する。**hydration の不一致は build も型検査も通り、実機でしか出ない**
+  - **Responsive** — [0051](../adr/0051-styling-system.md) §2 の 3 段で見る。境界の値は design token が持ち、テストへ数値を書かない
+  - **Cross Browser** — [0102](../adr/0102-browser-support.md) が追認するモダンブラウザを 3 つの描画エンジンへ畳んだもの（Chromium / Firefox / WebKit）だけを見る。**銘柄も版も見ていない**ことを job に書く
+- **前提**: モックが**同じ要求へ同じ応答を返す**こと。生成物は faker で応答を組み立てるため素のままでは呼ぶたび中身が変わり、画面の基準画像も中身の検証も成立しない
 - **注意**: visual regression の採用は P0-4 で [0091](../adr/0091-test-verification-methods.md) の「tooling defer」を反転済み
-- **完了条件**: 主要ジャーニーの E2E が CI で緑。VR ベースラインが登録され、意図的な UI 変更で差分が検出される
+- **完了条件**: 主要ジャーニーの E2E が 3 つの描画エンジンで CI で緑。ブラウザが報告する異常が全 spec で見張られる。主要画面の VR ベースラインが帯ごとに登録される（story 単位は着地済み）
 - **依存**: P5-16, P3-8
 
 ### P6-5: capabilities カーネル
@@ -1508,7 +1632,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **主な変更先**:
   - `docs/adr/0140-documentation-operations.md` — ADR 不可変性を immutable へ切替(accepted 後は Status 行のみ編集 / supersede は新 ADR / 番号は再利用しない)
   - `docs/adr/*.md` — **全 ADR 本文から経緯記述を除去**(「当初は X だったが」「2026-07-14 に反転」等)
-  - `docs/adr/BACKLOG.md` — **経緯記述を除去**。BACKLOG は ADR 本文ではなく進捗ボードだが、経緯を本文に残さない規約は同じく掛かる。対象は末尾の「付録: go-upgrade / repo-ops の処遇判断(経緯記録)」節に加え、各 Tier の de facto 状態欄に散在する「当初 N → その後 M」「YYYY-MM-DD に反転」型の記述。付録は決定の実体を「移植済 / 対象外」節と各スキル本文が現在形で持つため削除でよく、de facto 状態欄は現在の状態だけを残して経緯を落とす
+  - `docs/adr/BACKLOG.md` — **経緯記述を除去**。BACKLOG は ADR 本文ではなく進捗ボードだが、経緯を本文に残さない規約は同じく掛かる。対象は各 Tier の de facto 状態欄に散在する「当初 N → その後 M」「YYYY-MM-DD に反転」型の記述で、現在の状態だけを残して経緯を落とす
   - `AGENTS.md` — 「v1.0.0 までの暫定運用」節を**削除**し、Protected Documentation / AI Modification Scope を復活
   - `docs/plan/v1-implementation-plan.md` — **本書 §2 を削除**
 - **完了条件**: 全 ADR と `docs/adr/BACKLOG.md` に改定履歴・検討経緯の記述がない。保護が復活している。本書と AGENTS.md から暫定運用節が消えている
@@ -1537,7 +1661,38 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 | [0102](../adr/0102-browser-support.md) | Next.js 既定 browserslist の追認で足りている |
 | [0121](../adr/0121-i18n-strategy.md) | 文言が feature 内定数に寄っている(`rules.md` #55)= 将来の i18n 移行が容易 |
 
-- **完了条件**: 4 件について「v1 では現状のまま」または「対応 PR を切る」の判断が記録されている。§1 のとおり **BACKLOG に枠のない ADR 26 本の枠増設が完了している**
+#### 併せて開封する: spec 駆動の How(GB-3 / IM-26)
+
+**spec 駆動は採用が決まっている**(P5-18)。**確定していないのは How だけ**で、その確定をここへ
+持ち越してある。**v1 を切る前に決めきる。**
+
+| 決めること | 選択肢 | 決めるのに要る情報 |
+| --- | --- | --- |
+| 生成 scaffold を持つか | 持つ / 持たない | 持つなら P4-6 の生成入力(`architecture.ts`)をどう扱うか。**両方を同じ役割で残すと SSOT が二重化する** |
+| 輸入資産のどれを使うか | `new-spec` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*` の取捨 | 「spec フォーマットを外部ファイルから実行時読込 = SSOT」の構造は言語非依存。採るならここが軸 |
+| spec を先に書くことを強制するか | 手順に入れる / 入れない | **判断材料 (3)「先に書くほうが速いか」は測れていない**(未実装の画面が残っていないため)。測らずに強制すると、測っていない前提を規約にすることになる |
+
+**ここまでの材料**: 仕様書は 22 画面ぶん 43 本あり、(1) 実装を再現できるだけの情報を持てること、
+(2) `architecture.ts` と重複しない情報だけで構成できることは確認済み。書き起こしで分かったのは、
+**画面の約束が文書の外(実装の doc コメント)に居やすい**ことで、spec 駆動を採る値打ちは生成の
+速さではなく約束の置き場が決まることにある。
+
+**反映先**: BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の
+IM-26。**P4-6 の改修 PR は、上表 1 行目が確定してから起票する。**
+
+#### 併せて開封する: 認証の cloud 経路
+
+**v1 のスコープ外として持ち越してある**(Phase 5「Phase 5 の範囲外: 認証の cloud 経路」)。ここで
+確認するのは、**出す時点で前提の連鎖が解けているかどうか**の 1 点だけである。
+
+| 状態 | v1 で何をするか |
+| --- | --- |
+| 連鎖が解けていない | **現状のまま出す。** [0079](../adr/0079-auth-frontend-seam.md) §8 と実装の食い違いは既知として残り、ADR は書き戻さない |
+| 解けている | 主たる経路を所有画面へ変える PR を切るか、それでも v1 では出さないと決めて記録する |
+
+**判定を先送りにしない。** 連鎖が解けているのに気付かないまま出すと、v1 の利用者は ADR が決めた形とは違う認証を受け取り、しかもその差が文書のどこにも無い状態になる。
+
+- **完了条件**: 4 件について「v1 では現状のまま」または「対応 PR を切る」の判断が記録されている。**spec 駆動の How が上表の 3 点とも確定し、BACKLOG GB-3 / IM-26 へ反映されている**。§1 のとおり **BACKLOG に枠のない ADR 26 本の枠増設が完了している**
 - **依存**: P9-3
 
 ### P9-6: boilerplate 導入時の変更点を集約
@@ -1560,6 +1715,56 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 - **依存**: **P9-7 を除く全 PR**
 
 > **v1 対象外**: B11(構造 CI ゲート = README 必須節 / feature 完全性 lint / README 列挙 export と実ファイルの突合)は v1.x.x で追加する。
+
+---
+
+## 拡張枠(EX): リアルタイム型お問い合わせチャット
+
+3.13 の位置づけに従う枠であり、**v1.0.0 の完了条件に含めない**。着手は backend の stream 機構が契約として公開されることを前提とする。
+
+**どの Phase にも属させない。** 着手時期が backend 側の工程に従属するため、Phase の中に置くとその Phase の完了までが同じ従属を負う。番号も `P<Phase>-` 系列から外し `EX-N` とする。
+
+3 本に割るのは、寿命が違うものを同じ diff に混ぜないためである。EX-1 は前提文書、EX-2 は fork 後も残る機構、EX-3 は fork 時に破棄するサンプルであり、破棄 manifest(P7-1)への入力もそれぞれ異なる。
+
+会話系の component(`Message` / `Bubble` / `MessageScroller` / `Marker`)は、この枠以外に設置面を持たない。admin 画面をいくら積んでも埋まらないため、Phase 5 の他の PR では代替できない。
+
+### EX-1: ストリーム前提の文書反映
+
+- **目的**: stream 機構の設置面が確定したことを、前提側の文書へ反映する
+- **対象 ADR**: [0074](../adr/0074-runtime-communication-seam.md)
+- **主な変更先**: `docs/adr/0074-runtime-communication-seam.md` / `docs/screens.md` / `mocks/README.md`
+- **設計**: 0074 の「v1 では購読 seam をコードとして置かない」は、設置面が無いことを理由にしている。理由が消えるので、**設置面が実在する場合に実体化する**形へ書き換える。3.4 の滑走路原則そのものは変えない — 原則の適用結果が変わるだけである
+- **強制手段**: 散文のみ
+- **完了条件**: 0074 の本文が実体化の前提と契約(3.13 の表)を持つ。`docs/screens.md` の除外事項からリアルタイム機能が外れ、画面一覧に U13 / U14 が入る。`mocks/README.md` に SSE を差し替えない旨と、その理由が入る
+- **依存**: —
+
+### EX-2: 購読 seam の実体化(subscription adapter)
+
+- **目的**: [0074](../adr/0074-runtime-communication-seam.md) が座標だけ持っていた購読 seam を、動く実体として置く。**コア残留**
+- **対象 ADR**: [0074](../adr/0074-runtime-communication-seam.md) / [0024](../adr/0024-adapters-server-client-split.md) / [0021](../adr/0021-frontend-responsibility.md) / [0080](../adr/0080-error-handling.md)
+- **主な変更先**: `src/adapters/client/stream/` / `src/errors/redact.ts` / ticket 発行の Route Handler(`src/app/api/`)
+- **設計**: `EventSource` の組み込み再接続は使わない。backoff と jitter を自前で持つ以上、間隔をサーバの `retry:` でしか動かせない組み込み再接続とは共存できないため、`onerror` で即 `close()` して自前で張り直す。結果として `Last-Event-ID` ヘッダは使わず、cursor は毎回明示的に渡す
+- **設計**: 到達順が保証されないため、受信を短い時間窓で溜めて sequence 昇順へ整列してから上へ流す。窓を超えて遅れて届いたものは、描画済みの位置へ挿入すると append-only が崩れるので History を取り直して整合させる。歯抜けが正常である以上「穴が埋まるまで待つ」判断は成立しない
+- **設計**: 再接続ループが止まらない経路を作らない。ticket 取得の 401 はセッション切れとして打ち切り、再ログイン導線へ落とす。stream の 403 は権限喪失として打ち切る。5xx とネットワーク断だけが backoff の対象になる
+- **注意**: ticket は URL に載るため、接続エラーを `logging` へ送る経路で `redact` の対象に加える
+- **強制手段**: ESLint boundaries(`features` / `components` からの直接購読を禁止)+ テスト
+- **完了条件**: 切断 → 再接続 → resume で状態が復元される。重複配信と順不同到達を注入したテストが通る。ticket がログへ出ない。生の接続エラーが `errors` の分類へ正規化され、上位へ漏れない
+- **依存**: EX-1, P4-3
+
+### EX-3: U13 お問い合わせ一覧 + U14 チャット画面
+
+- **目的**: 会話系 component を実データ・実操作へ配線する。**破棄対象**
+- **対象 ADR**: [0061](../adr/0061-form-mutation-ux.md) / [0063](../adr/0063-mutation-result-notification.md) / [0060](../adr/0060-state-management.md) / [0091](../adr/0091-test-verification-methods.md)
+- **主な変更先**: `src/app/(shop)/inquiries/page.tsx` / `[threadId]/page.tsx` / `src/features/inquiry/`
+- **設計**: 初期表示は RSC が History API の message projection を取得する。以降は購読が渡す差分を feature の reducer が畳む。メッセージ列は feature の local state に置き、`stores` へは載せない — server state の二重キャッシュを禁じる [0060](../adr/0060-state-management.md) / [0023](../adr/0023-stores-kernel.md) に対し、差分は「まだ取り直していない追記分」であって server state の写しではないためである。画面を離れれば RSC が最新を返すので、消えても正しさが壊れない
+- **設計**: 送信は Server Action + `Idempotency-Key`。`clientMessageId` の echo で、楽観追加した自分の発言と受信したものを突合する。突合できないと自分の発言が二重に並ぶ
+- **使う component**: `Message` / `Bubble` / `MessageScroller` / `Marker` / `Avatar`。一覧側に `List` / `CursorPagination` / `FeedbackState`
+- **入口**: 商品一覧(U2)の在庫なしの商品に置く「お問い合わせ」がこの画面へ入る。**在庫の再入荷を尋ねる先が要る**ためで、この枠が着地するまでは押しても案内だけを出す。入口を先に置いておくのは、後から導線を足すと在庫なしのカードの構成を組み直すことになるからである
+- **画面判断**: 送信欄は `Textarea` を使う。`RichTextEditor` の設置面は商品登録(P5-12)であり、問い合わせの入力に書式は要らない
+- **a11y**: `MessageScrollerContent` の `log` は追加だけを通知する。配送状態・既読の変化は `MessageFooter` の表示更新に留め、`log` で読み上げさせない
+- **範囲外**: admin 返信画面は作らない。開発時の返信は backend の dev モックオペレータに依存する。添付も扱わない(3.13)
+- **完了条件**: 送信 → オペレータ返信の受信 → 切断 → 復帰 が通る。楽観追加した自分の発言が二重表示されない。`APP_API_MODE=mock` ではこの画面が動かないことが `docs/screens.md` に書かれている
+- **依存**: EX-2, P5-4
 
 ---
 

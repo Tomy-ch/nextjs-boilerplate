@@ -22,7 +22,6 @@ function CommandBody() {
     <>
       <CommandInput placeholder="操作を検索" />
       <CommandList>
-        <CommandEmpty>一致する操作はありません。</CommandEmpty>
         <CommandGroup heading="移動">
           <CommandItem onSelect={noop}>
             <FileTextIcon />
@@ -50,6 +49,7 @@ function CommandBody() {
           </CommandItem>
         </CommandGroup>
       </CommandList>
+      <CommandEmpty>一致する操作はありません。</CommandEmpty>
     </>
   );
 }
@@ -67,11 +67,11 @@ function NoResultCommand() {
     <Command className="rounded-lg border border-border" label="操作を検索">
       <CommandInput placeholder="操作を検索" value="該当なし" />
       <CommandList>
-        <CommandEmpty>一致する操作はありません。</CommandEmpty>
         <CommandGroup heading="移動">
           <CommandItem onSelect={noop}>一覧を開く</CommandItem>
         </CommandGroup>
       </CommandList>
+      <CommandEmpty>一致する操作はありません。</CommandEmpty>
     </Command>
   );
 }
@@ -81,12 +81,12 @@ function UnfilteredCommand() {
     <Command className="rounded-lg border border-border" label="操作を検索" shouldFilter={false}>
       <CommandInput placeholder="呼び出し元が絞り込む" />
       <CommandList>
-        <CommandEmpty>一致する操作はありません。</CommandEmpty>
         <CommandGroup heading="取得済みの候補">
           <CommandItem onSelect={noop}>入力に関係なく常に表示される候補</CommandItem>
           <CommandItem onSelect={noop}>並び順も呼び出し元が決める候補</CommandItem>
         </CommandGroup>
       </CommandList>
+      <CommandEmpty>一致する操作はありません。</CommandEmpty>
     </Command>
   );
 }
@@ -115,7 +115,7 @@ function DialogCommand() {
 const meta = {
   title: "Overlay/Command",
   component: Command,
-  parameters: { layout: "centered" },
+  parameters: { layout: "centered", docs: { story: { inline: false, iframeHeight: 480 } } },
   decorators: [
     (Story) => (
       <div className="w-[28rem] max-w-[calc(100vw-2rem)]">

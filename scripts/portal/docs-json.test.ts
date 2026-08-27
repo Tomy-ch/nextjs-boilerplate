@@ -290,6 +290,21 @@ describe("buildDocsJson", () => {
       { sectionId: "storybook", title: "Storybook", path: "../storybook/" },
     ]);
   });
+  it("項目が一つも無い section には subgroup を付けない", () => {
+    const { docs } = buildDocsJson(
+      {
+        meta: {
+          groups: [{ title: "Architecture", sections: ["adr"] }],
+          subgroups: { adr: [{ title: "Core", items: [] }] },
+        },
+        adr: [],
+      },
+      empty,
+    );
+
+    expect(docs.groups[0]?.sections[0]?.subgroups).toBeUndefined();
+  });
+
   // ----- 異常系 -----
   it("中身の無いディレクトリを section にしない", () => {
     const { docs } = buildDocsJson(
@@ -355,21 +370,6 @@ describe("buildDocsJson", () => {
 
     expect(docs.groups.map((group) => group.title)).toEqual(["First"]);
     expect(warnings[0]).toContain("複数の group");
-  });
-
-  it("項目が一つも無い section には subgroup を付けない", () => {
-    const { docs } = buildDocsJson(
-      {
-        meta: {
-          groups: [{ title: "Architecture", sections: ["adr"] }],
-          subgroups: { adr: [{ title: "Core", items: [] }] },
-        },
-        adr: [],
-      },
-      empty,
-    );
-
-    expect(docs.groups[0]?.sections[0]?.subgroups).toBeUndefined();
   });
 
   it("存在しない section の subgroup 指定を飛ばす", () => {

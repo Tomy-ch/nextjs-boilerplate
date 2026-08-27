@@ -17,7 +17,18 @@
 
 ## 利用ケース
 
-検索欄は持たないので、[`search-field-native`](../../ui/search-field-native/README.md) か [`search-field-client`](../../ui/search-field-client/README.md) を `FilterBarControls` へ合成します。条件の入力欄の中身は画面ごとに異なるため、`Sheet` や `Popover` を呼び出し元が組み立て、`FilterBarTrigger` をその trigger として渡します。
+検索欄は持たないので、[`search-field-native`](../../design-system/form/search-field-native/README.md) か [`search-field-client`](../../design-system/form/search-field-client/README.md) を `FilterBarControls` へ合成します。条件の入力欄の中身は画面ごとに異なるため、`Sheet` や `Popover` を呼び出し元が組み立て、`FilterBarTrigger` をその trigger として渡します。
+
+## 条件が 1 つの画面では使いません
+
+この組は**条件が複数あること**を前提にしています。効いている条件を chip で並べ、まとめて解除する
+導線を持つのはそのためで、条件が 1 つしか無い画面では入力欄そのものが効いている条件の表示に
+なり、chip はその写しにしかなりません。解除もその条件を既定へ戻すだけで足ります。
+
+条件が 1 つなら、入力欄を素の `form` に置き、`aria-label` を与えて landmark にすれば同じことが
+できます。**入力欄が overlay の中にあって閉じているあいだ見えない幅では、開く操作の文言に効いて
+いる条件そのものを出します** —— 件数の印だけでは「何かで絞られている」までしか伝わらず、何でかを
+見るために開くことになります。
 
 ## `SearchField*` との使い分け
 

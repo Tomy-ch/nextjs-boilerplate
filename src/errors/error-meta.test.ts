@@ -67,6 +67,14 @@ describe("createErrorMeta", () => {
     expect(meta.requestId).toBe("req-123");
     expect(meta.details).toEqual(["email"]);
   });
+
+  it("何も指定しなければ、空のメタ情報を生成する", () => {
+    const meta = createErrorMeta();
+
+    expect(meta.code).toBe("");
+    expect(meta.requestId).toBe("");
+    expect(meta.details).toEqual([]);
+  });
 });
 
 describe("withErrorMeta", () => {
@@ -80,7 +88,6 @@ describe("withErrorMeta", () => {
     expect(errorMetaFrom(wrapped)).toBe(meta);
   });
 
-  // ----- 異常系 -----
   it("undefined のエラーにはメタ情報を付与しない", () => {
     expect(withErrorMeta(undefined, createErrorMeta({ code: "IGNORED" }))).toBeUndefined();
   });
@@ -95,7 +102,6 @@ describe("withErrorDetails", () => {
     expect(errorMetaFrom(wrapped)?.code).toBe("");
   });
 
-  // ----- 異常系 -----
   it("undefined のエラーには詳細識別子を付与しない", () => {
     expect(withErrorDetails(undefined, ["email"])).toBeUndefined();
   });

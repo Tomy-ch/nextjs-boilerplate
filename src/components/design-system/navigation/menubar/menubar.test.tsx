@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { Kbd } from "../../display/kbd/kbd";
@@ -133,10 +134,10 @@ describe("Menubar", () => {
     );
   });
 
-  it("trigger を押すと対応する menu を開く", () => {
+  it("trigger を押すと対応する menu を開く", async () => {
     render(<EditorMenubarFixture />);
 
-    fireEvent.pointerDown(screen.getByRole("menuitem", { name: "ファイル" }), { button: 0 });
+    await userEvent.click(screen.getByRole("menuitem", { name: "ファイル" }));
 
     expect(screen.getByRole("menu")).toHaveAttribute("data-slot", "menubar-content");
     expect(screen.getByRole("menuitem", { name: "ファイル" })).toHaveAttribute(
@@ -162,11 +163,11 @@ describe("Menubar", () => {
     expect(shortcut).toHaveTextContent("⌘N");
   });
 
-  it("項目を選ぶと操作を実行して menu を閉じる", () => {
+  it("項目を選ぶと操作を実行して menu を閉じる", async () => {
     const onSelect = vi.fn();
     render(<EditorMenubarFixture defaultValue="file" onSelect={onSelect} />);
 
-    fireEvent.click(screen.getByRole("menuitem", { name: /新規作成/ }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /新規作成/ }));
 
     expect(onSelect).toHaveBeenCalledOnce();
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
@@ -190,18 +191,18 @@ describe("Menubar", () => {
     );
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
-    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
-  it("開いた menu から左右キーで隣の menu へ移る", () => {
+  it("開いた menu から左右キーで隣の menu へ移る", async () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
-    fireEvent.keyDown(screen.getByRole("menu"), { key: "ArrowRight" });
+    await userEvent.keyboard("{ArrowRight}");
 
     expect(screen.getByRole("menuitem", { name: "編集" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("menuitem", { name: "ファイル" })).toHaveAttribute(
@@ -233,7 +234,7 @@ describe("Menubar", () => {
     expect(screen.getByRole("menuitemradio", { name: "高密度" })).not.toBeChecked();
   });
 
-  it("onSelect で既定動作を止めると、続けて切り替えても menu が開いたままになる", () => {
+  it("onSelect で既定動作を止めると、続けて切り替えても menu が開いたままになる", async () => {
     const onCheckedChange = vi.fn();
     render(
       <Menubar aria-label="表示設定" defaultValue="view">
@@ -252,13 +253,13 @@ describe("Menubar", () => {
       </Menubar>,
     );
 
-    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "名称" }));
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "名称" }));
 
     expect(onCheckedChange).toHaveBeenCalledWith(true);
     expect(screen.getByRole("menu")).toBeInTheDocument();
   });
 
-  it("入れ子の menu を trigger の開閉状態とともに提供する", () => {
+  it("入れ子の menu を trigger の開閉状態とともに提供する", async () => {
     render(
       <Menubar aria-label="共有操作" defaultValue="share">
         <MenubarMenu value="share">
@@ -279,7 +280,7 @@ describe("Menubar", () => {
 
     expect(subTrigger).toHaveAttribute("aria-expanded", "false");
 
-    fireEvent.keyDown(subTrigger, { key: "ArrowRight" });
+    await userEvent.keyboard("{ArrowDown}{ArrowRight}");
 
     expect(screen.getByRole("menuitem", { name: "閲覧のみ" })).toBeInTheDocument();
   });
@@ -296,7 +297,6 @@ describe("Menubar", () => {
 });
 
 describe("MenubarMenu", () => {
-  // ----- 正常系 -----
   it("menu 1 つ分の trigger を menubar の項目として並べる", () => {
     render(<EditorMenubarFixture />);
 
@@ -305,7 +305,6 @@ describe("MenubarMenu", () => {
 });
 
 describe("MenubarTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<EditorMenubarFixture />);
 
@@ -326,7 +325,6 @@ describe("MenubarTrigger", () => {
 });
 
 describe("MenubarPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -336,14 +334,12 @@ describe("MenubarPortal", () => {
 });
 
 describe("MenubarContent", () => {
-  // ----- 正常系 -----
   it("開いた menu として slot を持つ要素を描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
     expect(document.querySelector('[data-slot="menubar-content"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<EditorMenubarFixture />);
 
@@ -352,7 +348,6 @@ describe("MenubarContent", () => {
 });
 
 describe("MenubarGroup", () => {
-  // ----- 正常系 -----
   it("項目の束として slot を持つ要素を描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -361,7 +356,6 @@ describe("MenubarGroup", () => {
 });
 
 describe("MenubarLabel", () => {
-  // ----- 正常系 -----
   it("見出しとして slot を持つ要素を描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -370,7 +364,6 @@ describe("MenubarLabel", () => {
 });
 
 describe("MenubarItem", () => {
-  // ----- 正常系 -----
   it("menuitem として slot を持つ要素を描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -380,7 +373,6 @@ describe("MenubarItem", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("disabled な項目を操作できないものとして示す", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -392,7 +384,6 @@ describe("MenubarItem", () => {
 });
 
 describe("MenubarSeparator", () => {
-  // ----- 正常系 -----
   it("区切りとして separator の意味論を持つ要素を描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -401,7 +392,6 @@ describe("MenubarSeparator", () => {
 });
 
 describe("MenubarShortcut", () => {
-  // ----- 正常系 -----
   it("shortcut 表示を kbd の意味論で描画する", () => {
     render(<EditorMenubarFixture defaultValue="file" />);
 
@@ -413,7 +403,6 @@ describe("MenubarShortcut", () => {
 });
 
 describe("MenubarCheckboxItem", () => {
-  // ----- 正常系 -----
   it("選択状態を menuitemcheckbox として読み上げ可能にする", () => {
     render(<SelectionMenubarFixture />);
 
@@ -423,7 +412,6 @@ describe("MenubarCheckboxItem", () => {
 });
 
 describe("MenubarRadioGroup", () => {
-  // ----- 正常系 -----
   it("排他選択の束として slot を持つ要素を描画する", () => {
     render(<SelectionMenubarFixture />);
 
@@ -432,7 +420,6 @@ describe("MenubarRadioGroup", () => {
 });
 
 describe("MenubarRadioItem", () => {
-  // ----- 正常系 -----
   it("群の値と一致するものが選択状態になる", () => {
     render(<SelectionMenubarFixture />);
 
@@ -442,7 +429,6 @@ describe("MenubarRadioItem", () => {
 });
 
 describe("MenubarSub", () => {
-  // ----- 正常系 -----
   it("入れ子の menu を閉じた状態で用意する", () => {
     render(<SubMenubarFixture />);
 
@@ -454,7 +440,6 @@ describe("MenubarSub", () => {
 });
 
 describe("MenubarSubTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<SubMenubarFixture />);
 
@@ -466,11 +451,10 @@ describe("MenubarSubTrigger", () => {
 });
 
 describe("MenubarSubContent", () => {
-  // ----- 正常系 -----
-  it("入れ子の menu を開くと項目を描画する", () => {
+  it("入れ子の menu を開くと項目を描画する", async () => {
     render(<SubMenubarFixture />);
 
-    fireEvent.keyDown(screen.getByRole("menuitem", { name: "書き出し" }), { key: "ArrowRight" });
+    await userEvent.keyboard("{ArrowDown}{ArrowRight}");
 
     expect(screen.getByRole("menuitem", { name: "PDF" })).toBeInTheDocument();
   });

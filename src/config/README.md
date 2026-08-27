@@ -2,6 +2,8 @@
 imports-allowed: []
 forbidden: [ui, fetch, business-logic]
 test-requirement: unit
+coverage-exclusions:
+  - "src/config/environment.fixture.ts"
 ---
 
 # config
@@ -23,8 +25,10 @@ test-requirement: unit
 | --- | --- | --- | --- |
 | `api/api.schema.ts` / `api/api.server.ts` | API base URL と接続モードの schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `auth/auth.schema.ts` / `auth/auth.server.ts` | OIDC と BFF session の schema / Config | server | `adapters/server` と起動・ビルド境界 |
+| `clock/clock.schema.ts` / `clock/clock.server.ts` | 画面が読む「いま」の schema / Config | server | `app` と起動・ビルド境界 |
 | `media/media.schema.ts` / `media/media.server.ts` | media origin の schema / Config | server | `adapters/server` と起動・ビルド境界 |
-| `observability/observability.schema.ts` / `observability/observability.server.ts` | OTLP endpoint と signal 別 exporter の schema / Config | server | 起動・ビルド境界 |
+| `observability/observability.schema.ts` / `observability/observability.server.ts` | service 名・OTLP endpoint・signal 別 exporter の schema / Config | server | 起動・ビルド境界 |
+| `http/http.schema.ts` / `http/http.server.ts` / `http/http.client.ts` | 要求 URL とアップロードに許すバイト数の上限の schema / Config | server + client | `adapters/server` / `adapters/client` と起動・ビルド境界 |
 | `bootstrap.server.ts` | 起動時の ENV 読込と全 config 検証 | server | `src/instrumentation.ts` |
 
 各 `config/<purpose>/<purpose>.schema.ts` が自分の目的に属する Zod validator を、対応する
@@ -41,7 +45,7 @@ singleton を作り、以後は import で配線します。
 build / Next.js 初期化
   next.config.ts
     ├─ loadEnvironment()
-    │    └─ APP_ENV (未指定なら local) から env/.env.<環境> を選択
+    │    └─ APP_ENV (指定必須) から env/.env.<環境> を選択
     └─ validateEnvironment()
          └─ getEnvironment() で全 ENV を一度だけ検証
 
@@ -50,7 +54,7 @@ Node.js サーバーインスタンスの起動
     └─ config/bootstrap.server.ts の bootstrapConfig()
          ├─ loadEnvironment()
          └─ validate-environment.server.ts を import
-              └─ api / auth / media / observability の getter を呼び singleton を初期化
+              └─ api / auth / http / media / observability の getter を呼び singleton を初期化
     └─ observability Config から signal 構成を読み、OTel SDK と logger を初期化
 
 リクエスト処理
@@ -89,5 +93,5 @@ OTel SDK と logger へ値を注入します。Config 自身は logger / observa
 
 - `process.env` の直読はこのカーネルだけに置く。
 - server config は `import "server-only"` で保護し、`adapters/server` と起動・ビルド境界だけが import する。
-- client config が必要になった場合は、`NEXT_PUBLIC_` の静的ドット参照だけを持つ `*.client.ts` を別途作る。server config の値を props として client へ渡さない。
+- client config は `NEXT_PUBLIC_` の静的ドット参照だけを持つ `*.client.ts` に置く（`http/http.client.ts`）。ここで検証はしない（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。
 - 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.md) を正とする。

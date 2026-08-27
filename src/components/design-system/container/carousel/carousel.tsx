@@ -33,8 +33,8 @@ import { cn } from "@/components/cn";
  *       <CarouselNext href={`#${slideId}-2`} />
  *     </CarouselItem>
  *     <CarouselItem aria-label="2 / 2" id={`${slideId}-2`}>
- *       <CarouselPrevious href={`#${slideId}-1`} />
  *       <MediaImage alt="背面" src={backUrl} />
+ *       <CarouselPrevious href={`#${slideId}-1`} />
  *     </CarouselItem>
  *   </CarouselContent>
  *   <CarouselNav aria-label="画像の送り">
@@ -84,7 +84,7 @@ export function CarouselContent({ className, ...props }: ComponentProps<"div">) 
   return (
     <div
       className={cn(
-        "flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2",
+        "flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-active focus-visible:shadow-glow-primary focus-visible:outline-offset-2",
         className,
       )}
       data-slot="carousel-content"
@@ -111,6 +111,10 @@ export function CarouselContent({ className, ...props }: ComponentProps<"div">) 
  * {@link CarouselNav} から `href` で指す場合、および `CarouselPrevious` /
  * `CarouselNext` を隣の slide から指す場合は `id` を与える。この二つは slide の左右端へ
  * 重ねて配置されるため、子として置く。
+ *
+ * **送る操作は中身より後ろに置く。** 位置指定要素は DOM の順で重なるため、`position` を持つ中身
+ * （`MediaImage` など）より前に置くと、その中身に覆われて押せない。段階値を持ち出さずに済むよう、
+ * 重なりは順序で決める。
  *
  * @param props - native `div` 属性。
  * @see Storybook `Container/Carousel`

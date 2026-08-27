@@ -1,0 +1,511 @@
+name: E2E
+
+# Drives the built application through its main journeys, and compares each screen
+# against its baseline image (ADR 0090 / 0091).
+#
+# What this job covers beyond the story-level checks (vrt.yaml / a11y.yaml):
+#
+#   * Journeys       — navigation, filters and the auth pre-dispatch across screens.
+#   * Browser errors — hydration mismatches, exceptions thrown while rendering, and
+#                      failed requests. A hydration mismatch compiles, type-checks and
+#                      only ever shows up in a real browser, so nothing else can see it.
+#   * Responsive     — the three bands ADR 0051 §2 fixes, read from the design tokens.
+#   * Cross browser  — Chromium, Firefox and WebKit. Those are the three rendering
+#                      engines modern browsers reduce to (ADR 0102 defers the version
+#                      floor to the fork), and they are ALL this job looks at: no
+#                      browser brands, no versions. The versions are whatever the
+#                      pinned Playwright image ships.
+#
+# The application runs on the runner and only the browsers run inside the digest-pinned
+# Playwright container. `node_modules` is resolved for the OS and CPU that installed it,
+# so starting the server inside the container would need a second, linux-specific tree.
+# Pinning the browsers and fonts is what the image is for; pinning the application's
+# runtime is not.
+#
+# Baselines are never written here. Producing them is a deliberate human act, the same
+# as for the story-level images (vrt/README.md).
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md. The job always starts and reports its context; only the
+# expensive steps stand down.
+#
+# ## Why this does not run on every pull request
+#
+# This is the cheapest of the deferred checks — about four and a half minutes on this
+# repository's own sample — so it is deferred for a weaker reason than `a11y.yaml` and
+# `lighthouse.yaml`: not because the cost is unreasonable on its own, but because four
+# checks each landing under five minutes still add up to a pull request that waits.
+#
+# The trade is worth naming, because it is the sharpest of the three. A hydration
+# mismatch compiles, type-checks, and shows up nowhere but a real browser — this job is
+# the only thing in the repository that sees one. Deferring means such a defect can land
+# and be found on the merge rather than before it.
+#
+# Two things keep that bounded. The cadence includes every push into `release/**`, so the
+# finding arrives one merge later and still names a single pull request rather than a
+# day's worth of them. And `run-e2e` is there for the diff that should not wait — a change
+# to the proxy, to the shell, to the journey declaration or to the mocked responses, which
+# `deferred-checks.yaml` names on the pull request rather than leaving anyone to notice.
+
+on:
+  pull_request:
+    # Spelled out because naming `types` replaces the default set rather than adding to it,
+    # and `labeled` is what lets `run-e2e` start a run on a pull request already open.
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches:
+      - production
+      - staging
+      - develop
+      - 'release/**'
+  schedule:
+    # 18:00 UTC daily (03:00 JST), alongside the other deferred checks.
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+# Select the CI environment file (env/.env.ci), which is the one that puts the API in
+# mock mode. Without a mocked API the journeys would need a backend, and the failures
+# would stop being about this repository.
+env:
+  APP_ENV: ci
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # Only for the branch issue a failure off a pull request raises; the reporting of a
+      # pull-request result stays in the `e2e-comment` job below.
+      issues: write
+
+    outputs:
+      title: ${{ steps.e2e.outputs.title || steps.standdown.outputs.title }}
+      # Standing down is a success for the comment: nothing is created on a quiet PR,
+      # and an earlier FAIL comment is overwritten by the stand-down body instead of
+      # being left beside a green check.
+      status: ${{ steps.e2e.outputs.status || 'success' }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Decide whether this event has to drive the journeys now
+        id: trigger
+        uses: ./.github/actions/check-trigger
+        with:
+          label: run-e2e
+          labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+
+      # Only asked once the cadence says this event pays. The list matches the story-level
+      # jobs': the journeys walk the built application, so anything it is built from decides
+      # what they see. Why each job keeps its own copy instead of a shared default is in
+      # README.md.
+      - name: Decide whether the diff can reach a journey
+        id: scope
+        if: steps.trigger.outputs.run == 'true'
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+
+      - name: Fetch the baseline images
+        if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-baselines
+        with:
+          app-id: ${{ secrets.BASELINE_APP_ID }}
+          private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
+
+      - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      # Restored before `pnpm install`, and keyed, for the reasons spelled out on the
+      # same step in build.yaml. The three must stay identical to share a generation.
+      - name: Cache the Next.js build cache
+        if: steps.scope.outputs.relevant == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build the app, start it and drive it
+        id: e2e
+        if: steps.scope.outputs.relevant == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+
+          # Streamed through `tee` rather than tailed at the end: a run that is cancelled
+          # or hits the job timeout never reaches the tail, so the slow case — the one
+          # worth diagnosing — would leave no log at all.
+          make e2e 2>&1 | tee /tmp/e2e-full.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ E2E: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ E2E: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # The guidance is split by what actually failed. A retake fixes a changed pixel and
+      # nothing else, so printing the retake note unconditionally tells the reader to
+      # retake a journey failure or a missing screen declaration — neither of which a
+      # retake can repair, and the second of which a retake would bake in as the truth.
+      - name: Collect the comment body
+        if: always() && steps.e2e.outputs.status != ''
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          RUN_ID: ${{ github.run_id }}
+        shell: bash
+        run: |
+          # The comment is written to two files, and the split is what decides what renders.
+          # `e2e.log` is folded inside a code block because a log line is whatever the tools
+          # printed — source text a pull request controls, which must not become markup. The
+          # notes are workflow-authored prose, and they render, because a copy-me command says
+          # nothing when shown as literal characters.
+          mkdir -p /tmp/e2e-comment
+
+          if [ "${{ steps.e2e.outputs.status }}" = "success" ]; then
+            echo '主要ジャーニーが 3 つの描画エンジンで通り、画面の見た目も基準画像と一致しました。' > /tmp/e2e-comment/e2e.log
+            : > /tmp/e2e-comment/e2e-notes.md
+            exit 0
+          fi
+
+          # Markers, not exit codes: one run can fail in several kinds at once, and the
+          # kinds are what decide which next step is the right one.
+          undeclared=false
+          journey=false
+          pixels=false
+
+          if grep -q '画面の宣言がありません' /tmp/e2e-full.log; then
+            undeclared=true
+          fi
+
+          if grep -qE '✘.*e2e/journeys/' /tmp/e2e-full.log; then
+            journey=true
+          fi
+
+          if grep -qE "toHaveScreenshot|A snapshot doesn't exist|@screen-baselines" /tmp/e2e-full.log; then
+            pixels=true
+          fi
+
+          tail -n 80 /tmp/e2e-full.log > /tmp/e2e-comment/e2e.log
+
+          {
+            cat <<'ARTIFACT'
+          `e2e-diff` artifact に HTML レポートと、失敗した検証の trace が入っています。
+          ARTIFACT
+
+            if [ "${undeclared}" = 'true' ]; then
+              cat <<'UNDECLARED'
+
+          ### 画面の宣言が足りていません
+
+          `e2e/lib/screens.ts` へ宣言を足してください。巡回の対象は build の出力から取り、宣言と突き合わせています。**撮り直しでは直りません。**
+          UNDECLARED
+            fi
+
+            if [ "${journey}" = 'true' ]; then
+              cat <<'JOURNEY'
+
+          ### ジャーニーが落ちています
+
+          trace を開いて原因を特定してください。**撮り直しでは直りません。** 1 つの描画エンジンだけが落ちているなら、その engine 固有の挙動か実行環境のゆらぎです。落ちた検証を名指しで実行し直して切り分けてください。
+          JOURNEY
+            fi
+
+            if [ "${pixels}" = 'true' ]; then
+              cat <<'PIXELS'
+
+          ### 画面の見た目が基準画像と違います
+
+          変化が意図したものなら `baseline-retake` ラベルを付けてください。story と画面の基準画像をまとめて CI が撮り直します。手元で撮るなら `make e2e-update` → `make baseline-push` です。
+
+          - **ラベルは引き金ではありません。** VRT / E2E の完了時に読まれる条件なので、完了したあとに付けたなら再実行が要ります（`gh run rerun <run-id>`）
+          - **ラベルは撮り直しが置き場へ push した時点で外れます。** もう一度撮るには付け直してください
+          - **撮り直しは承認ではありません。** 画素を見て `baseline-approve` を付けるのが承認です（`vrt/README.md` の「撮り直しと承認は別の操作」）
+
+          **落ちた画面それぞれについて、なぜ変わったかを言えるまで撮り直さないでください。** 全画面が一度に落ちる形は原因が 1 つとは限らず、混ざっている不具合ごと撮り直すとそれが次の正になります（`docs/design/vrt.md` の「限界」）。
+          PIXELS
+
+              # The failing set in the form the local review target takes. Emitted as its own
+              # fenced block so it survives a copy — a command spread across a prose paragraph
+              # does not.
+              names="$(pnpm exec tsx scripts/e2e names tmp/e2e/report.json || true)"
+
+              # The block below is pasted into a shell, so a value outside the accepted set is
+              # dropped rather than quoted. Why quoting is not enough, and why the same set is
+              # what lets these values render as markdown, is in ADR 0153 §5.
+              if printf '%s%s' "${HEAD_REF}" "${names}" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; then
+                names=''
+                echo "review block suppressed: head_ref or screen names carry shell metacharacters" >&2
+              fi
+
+              if [ -n "${names}" ]; then
+                cat <<REVIEW
+
+          #### 手元で見る
+
+          落ちた画面を使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。役割の要る画面は開発用 session の面を経由します。
+
+          \`\`\`bash
+          make e2e-review BRANCH='${HEAD_REF}' RUN='${RUN_ID}' E2E_ONLY='${names}'
+          \`\`\`
+
+          作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。
+          REVIEW
+              fi
+            fi
+
+            if [ "${undeclared}" = 'false' ] && [ "${journey}" = 'false' ] && [ "${pixels}" = 'false' ]; then
+              cat <<'UNKNOWN'
+
+          ### 種別を判定できませんでした
+
+          上のログと artifact を見てください。ここに案内が出ないのは、build か起動の段で落ちているか、判定に使っている目印が変わったときです。
+          UNKNOWN
+            fi
+          } > /tmp/e2e-comment/e2e-notes.md
+
+      # A job that stood down still owes the pull request a verdict. Without this, the ❌
+      # comment an earlier push produced stays beside a green check once the journeys stop
+      # running — README.md's "update the comment on success too" invariant, applied to
+      # standing down. The two files are the ones the comment job reads, so the split
+      # between them (log folded into a code block, notes rendered) has to hold here too.
+      - name: Note that the journeys did not run
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        env:
+          # Compared in the shell rather than interpolated into it. Why the two stand-down
+          # reasons stay distinguishable: README.md, "降りた理由は 2 つあり、書き分ける".
+          DEFERRED: ${{ steps.trigger.outputs.run != 'true' }}
+        run: |
+          mkdir -p /tmp/e2e-comment
+
+          if [ "${DEFERRED}" = "true" ]; then
+            echo 'title=## ⏭️ E2E: SKIP (deferred to the merge and the nightly pass)' >> "$GITHUB_OUTPUT"
+            echo '主要ジャーニーの走行は、保護ブランチへの merge と日次で回ります。この PR では実行していません。' > /tmp/e2e-comment/e2e.log
+            cat <<'NOTE' > /tmp/e2e-comment/e2e-notes.md
+
+          この PR で回すなら `run-e2e` ラベルを付けてください。`develop` / `staging` / `production`
+          を base とする PR では、ラベルの有無に関わらず必ず回ります。
+
+          **routing・器（layout）・ジャーニーが辿るものを動かしたなら、待たずに回してください。**
+          hydration の不一致はこのジョブでしか見えません。
+          NOTE
+          else
+            echo 'title=## ⏭️ E2E: SKIP (diff cannot reach a journey)' >> "$GITHUB_OUTPUT"
+            echo 'この PR の差分はジャーニーに届かないため、実行していません。' > /tmp/e2e-comment/e2e.log
+            : > /tmp/e2e-comment/e2e-notes.md
+          fi
+
+      # The HTML report and the traces. Without them the only evidence of a failure is
+      # the assertion text, which cannot be judged for a visual difference.
+      - name: Upload the report and traces
+        if: always() && steps.e2e.outputs.status == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-diff
+          path: tmp/e2e
+          retention-days: 7
+          if-no-files-found: warn
+
+      # Read back by `baseline-retake.yaml` to bound what the label may retake. Kept
+      # separate from the diff bundle so the retake path downloads only the report.
+      #
+      # `warn`, not `error`: this step fires on any failure, and a run that failed while
+      # building or booting the app never started Playwright, so there is no report to
+      # upload. Failing here would add a red step whose cause is the one already reported,
+      # and the retake path already treats a missing report as "no screen was reported".
+      - name: Upload the machine-readable report
+        if: always() && steps.e2e.outputs.status == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-report
+          path: tmp/e2e/report.json
+          retention-days: 7
+          if-no-files-found: warn
+
+      # Handed to the commenting job through an artifact rather than a job output,
+      # because the body is a file whose size is not bounded by the output limit.
+      - name: Hand the comment body to the commenting job
+        if: always() && github.event_name == 'pull_request' && (steps.e2e.outputs.status != '' || steps.standdown.outcome == 'success')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-comment
+          path: /tmp/e2e-comment/
+          retention-days: 1
+          if-no-files-found: error
+
+      # One issue per branch, reopened rather than duplicated — README.md,
+      # "PR の外で落ちたら、issue にする".
+      #
+      # This is what the deferred cadence costs, and for this job it is the cost that matters
+      # most — a hydration mismatch is visible nowhere else, so if nobody opens the run, the
+      # defect is simply not known.
+      - name: Compose what the issue says
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success' }}
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Indented four spaces rather than fenced: markdown renders that as a code block and
+          # it needs no fence, which keeps Playwright's own output — assertion text this
+          # repository does not author — from being read as markup (ADR 0153 §5).
+          {
+            echo '落ちた内容:'
+            echo
+            tail -n 80 /tmp/e2e-full.log 2>/dev/null | sed 's/^/    /'
+            echo
+            echo "実行: ${RUN_URL}"
+            echo
+            cat <<'NOTE'
+          `e2e-diff` artifact に HTML レポートと trace が入っています。
+
+          手元で確かめるなら `make e2e`、CI が落とした画面だけなら `make e2e-review` です。
+
+          **見た目の差分だけなら基準画像の撮り直しで済みますが、ジャーニーの失敗と画面の宣言漏れは
+          撮り直しでは直りません。** 撮り直すと、後者は誤った状態が正として焼き付きます
+          (`e2e/README.md`)。
+          NOTE
+          } > /tmp/e2e-guard.md
+
+      - name: Raise it where it has an owner
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success' }}
+        uses: ./.github/actions/upsert-issue
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: '[E2E] ${{ github.ref_name }} でジャーニーまたは画面が落ちている'
+          body-file: /tmp/e2e-guard.md
+          label: bug
+
+      # `status` is empty when the run stood down, which is not a failure. The scope guard
+      # has to be repeated here rather than left to `status`, because "no verdict" and "a bad
+      # verdict" read the same to the expression below.
+      - name: Fail if a journey or a screen failed
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success'
+        run: exit 1
+
+  # Holds no secret beyond `GITHUB_TOKEN`, so the body it publishes cannot carry one
+  # (ADR 0153: secret masking does not survive a `tee` to a file).
+  e2e-comment:
+    if: always() && github.event_name == 'pull_request'
+    needs: e2e
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Download the comment body
+        id: body
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: e2e-comment
+          path: /tmp/e2e-comment
+
+      - name: Comment the E2E result on PR
+        if: steps.body.outcome == 'success'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- e2e-result -->'
+          status: ${{ needs.e2e.outputs.status }}
+          title: ${{ needs.e2e.outputs.title }}
+          body-file: /tmp/e2e-comment/e2e.log
+          notes-file: /tmp/e2e-comment/e2e-notes.md
+          details-summary: 'E2E の実行ログ'

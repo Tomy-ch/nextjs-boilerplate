@@ -20,11 +20,11 @@ Use this skill when:
 Supported document types:
 
 - Claude Code skill files: `SKILL.md` / `SKILL.ja.md` (under `.claude/skills/<name>/`)
-- READMEs: `README.md` / `README.ja.md` (co-located in the same directory, e.g. `docker/server/`)
+- READMEs: `README.md` / `README.ja.md` (co-located in the same directory, e.g. `docker/`)
 - Generic Markdown docs with the `*.ja.md` suffix convention (co-located).
 - `docs/**` documents using the parallel directory convention (`docs/**/foo.md` and `docs/ja/**/foo.ja.md`). <!-- skill-lint-ignore -->
 
-## First Step: Confirm Input
+## Step 0. Confirm Input
 
 This skill **MUST call `AskUserQuestion` immediately after invocation** to confirm:
 
@@ -93,13 +93,11 @@ The following remain protected even during skill execution:
 - Generated files (`**/*.gen.go`, `*.sql.go`, `*_mock.go`, `**/openapi.gen.yaml`, generated content under `docs/`)
 - Any path listed under `permissions.deny` in `.claude/settings.json`
 
-## Execution Steps
-
-### 1. Read the source
+## Step 1. Read the source
 
 Read the confirmed source file in full. If the direction is `sync-both`, read both files.
 
-### 2. Determine the output path
+## Step 2. Determine the output path
 
 - `canonical-from-translation`:
   - `foo.ja.md` → `foo.md` in the same directory.
@@ -110,31 +108,31 @@ Read the confirmed source file in full. If the direction is `sync-both`, read bo
 - `sync-both`:
   - Rewrite the non-source-of-truth side.
 
-### 3. Translate (or sync)
+## Step 3. Translate (or sync)
 
 - Preserve heading structure, list nesting, code blocks, and link targets exactly.
 - Translate prose, comments within code blocks (only if originally translated), and inline text.
 - Do NOT translate: identifiers, file paths, command invocations, code samples (unless they contain natural-language strings that were originally translated).
 - For SKILL files, also apply the frontmatter and sync-note rules described in "Repo Conventions" above.
 
-### 4. Write the output
+## Step 4. Write the output
 
 - Write the produced file to its target path.
 - If both files exist and the user chose `sync-both`, write only to the non-source-of-truth side.
 
-### 5. Add cross-references
+## Step 5. Add cross-references
 
 - If creating a `SKILL.md`, ensure it contains the one-line pointer to `SKILL.ja.md`.
 - If creating a `SKILL.ja.md`, ensure the leading blockquote sync note is present.
 - For README pairs, add the link from canonical to translation only if requested.
 
-### 6. Verify
+## Step 6. Verify
 
 - Diff section counts and heading text between the two files; they should match 1:1.
 - Confirm code blocks are byte-identical (except where prose was translated inside them).
 - Report any sections that could not be cleanly mapped and ask the user how to resolve them.
 
-### 7. Verify with Markdown Lint
+## Step 7. Verify with Markdown Lint
 
 After writing the produced file (and the synced side in `sync-both` mode), run:
 

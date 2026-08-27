@@ -120,7 +120,6 @@ describe("Pagination", () => {
 });
 
 describe("PaginationContent", () => {
-  // ----- 正常系 -----
   it("ページ操作を並べるリストとして slot を持つ要素を描画する", () => {
     render(<PaginationContent />);
 
@@ -135,7 +134,6 @@ describe("PaginationContent", () => {
 });
 
 describe("PaginationItem", () => {
-  // ----- 正常系 -----
   it("操作 1 件を listitem として描画する", () => {
     render(
       <PaginationContent>
@@ -148,7 +146,6 @@ describe("PaginationItem", () => {
 });
 
 describe("PaginationLink", () => {
-  // ----- 正常系 -----
   it("遷移先を持つ link として描画する", () => {
     render(<PaginationLink href="?page=2">2</PaginationLink>);
 
@@ -170,14 +167,12 @@ describe("PaginationLink", () => {
 });
 
 describe("PaginationPrevious", () => {
-  // ----- 正常系 -----
   it("遷移先があれば「前のページ」という名前の link にする", () => {
     render(<PaginationPrevious href="?page=1" />);
 
     expect(screen.getByRole("link", { name: "前のページ" })).toHaveAttribute("href", "?page=1");
   });
 
-  // ----- 異常系 -----
   it("遷移先が無ければ押せない操作にする", () => {
     render(<PaginationPrevious />);
 
@@ -186,14 +181,12 @@ describe("PaginationPrevious", () => {
 });
 
 describe("PaginationNext", () => {
-  // ----- 正常系 -----
   it("遷移先があれば「次のページ」という名前の link にする", () => {
     render(<PaginationNext href="?page=3" />);
 
     expect(screen.getByRole("link", { name: "次のページ" })).toHaveAttribute("href", "?page=3");
   });
 
-  // ----- 異常系 -----
   it("遷移先が無ければ押せない操作にする", () => {
     render(<PaginationNext />);
 
@@ -202,7 +195,6 @@ describe("PaginationNext", () => {
 });
 
 describe("PaginationEllipsis", () => {
-  // ----- 正常系 -----
   it("記号を隠し、省略の説明だけを読み上げさせる", () => {
     const { container } = render(<PaginationEllipsis />);
     const ellipsis = container.querySelector('[data-slot="pagination-ellipsis"]');

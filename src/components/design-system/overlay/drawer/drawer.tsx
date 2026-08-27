@@ -5,6 +5,8 @@ import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/components/cn";
 
+import { useOverlayHistory } from "../use-overlay-history";
+
 /**
  * 画面端から引き出し、drag でも閉じられる modal panel の root。
  *
@@ -26,8 +28,22 @@ import { cn } from "@/components/cn";
  *
  * @see Storybook `Overlay/Drawer`
  */
-function Drawer({ ...props }: ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
+function Drawer({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: ComponentProps<typeof DrawerPrimitive.Root>) {
+  const history = useOverlayHistory({ defaultOpen, onOpenChange, open });
+
+  return (
+    <DrawerPrimitive.Root
+      data-slot="drawer"
+      onOpenChange={history.setOpen}
+      open={history.open}
+      {...props}
+    />
+  );
 }
 
 /**
@@ -207,7 +223,7 @@ function DrawerFooter({ className, ...props }: ComponentProps<"div">) {
 function DrawerTitle({ className, ...props }: ComponentProps<typeof DrawerPrimitive.Title>) {
   return (
     <DrawerPrimitive.Title
-      className={cn("font-semibold text-foreground", className)}
+      className={cn("font-emphasis text-foreground", className)}
       data-slot="drawer-title"
       {...props}
     />

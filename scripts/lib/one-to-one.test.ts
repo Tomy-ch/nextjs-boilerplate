@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   checkFile,
+  checkTestFile,
   collectTestableExports,
   collectTopLevelDescribes,
   type ExportedSymbol,
   formatViolations,
+  resolveSourceFile,
+  resolveTestFile,
   type Violation,
 } from "./one-to-one";
 
@@ -399,8 +402,83 @@ describe("formatViolations", () => {
     expect(formatViolations([same, same]).split("\n")).toHaveLength(2);
   });
 
-  // ----- 異常系 -----
   it("違反が無ければ空文字を返す", () => {
     expect(formatViolations([])).toBe("");
+  });
+});
+
+describe("resolveTestFile", () => {
+  // ----- 正常系 -----
+  it("tsx のソースには tsx のテストを対応させる", () => {
+    expect(resolveTestFile("src/ui/button.tsx", (path) => path === "src/ui/button.test.tsx")).toBe(
+      "src/ui/button.test.tsx",
+    );
+  });
+
+  it("ts のソースには同じ拡張子のテストを優先して対応させる", () => {
+    expect(resolveTestFile("src/lib/total.ts", () => true)).toBe("src/lib/total.test.ts");
+  });
+
+  it("ts のソースでも tsx のテストを受け付ける", () => {
+    expect(resolveTestFile("src/capabilities/use-x.ts", (path) => path.endsWith(".test.tsx"))).toBe(
+      "src/capabilities/use-x.test.tsx",
+    );
+  });
+
+  it("tsx のソースに ts のテストは対応させない", () => {
+    expect(resolveTestFile("src/ui/button.tsx", (path) => path.endsWith(".test.ts"))).toBeNull();
+  });
+
+  it("どちらも無ければ null を返す", () => {
+    expect(resolveTestFile("src/lib/total.ts", () => false)).toBeNull();
+  });
+});
+
+describe("resolveSourceFile", () => {
+  // ----- 正常系 -----
+  it("tsx のテストには tsx のソースを優先して対応させる", () => {
+    expect(resolveSourceFile("src/ui/button.test.tsx", () => true)).toBe("src/ui/button.tsx");
+  });
+
+  it("tsx のテストでも ts のソースを受け付ける", () => {
+    expect(
+      resolveSourceFile("src/capabilities/use-x.test.tsx", (path) => path.endsWith(".ts")),
+    ).toBe("src/capabilities/use-x.ts");
+  });
+
+  it("ts のテストには ts のソースを対応させる", () => {
+    expect(resolveSourceFile("src/lib/total.test.ts", () => true)).toBe("src/lib/total.ts");
+  });
+
+  // ----- 異常系 -----
+  it("ts のテストに tsx のソースは対応させない", () => {
+    expect(resolveSourceFile("src/ui/button.test.ts", (path) => path.endsWith(".tsx"))).toBeNull();
+  });
+
+  it("どちらも無ければ null を返す", () => {
+    expect(resolveSourceFile("src/lib/total.test.ts", () => false)).toBeNull();
+  });
+});
+
+describe("checkTestFile", () => {
+  // ----- 正常系 -----
+  it("対応するソースを持つテストを咎めない", () => {
+    expect(checkTestFile("src/lib/total.test.ts", "src/lib/total.ts", false)).toEqual([]);
+  });
+
+  it("宣言された主語なしのテストを咎めない", () => {
+    expect(checkTestFile("scripts/one-to-one.gate.test.ts", null, true)).toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("対応するソースも宣言も無いテストを orphan-test-file として挙げる", () => {
+    expect(checkTestFile("src/config/config.server.test.ts", null, false)).toEqual([
+      {
+        kind: "orphan-test-file",
+        file: "src/config/config.server.test.ts",
+        line: 1,
+        message: expect.stringContaining("SUBJECTLESS_TESTS"),
+      },
+    ]);
   });
 });

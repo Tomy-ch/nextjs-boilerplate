@@ -1,7 +1,7 @@
 "use client";
 
-import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Tabs as TabsPrimitive } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -105,7 +105,7 @@ export function TabsClientTrigger({
   return (
     <TabsPrimitive.Trigger
       className={cn(
-        "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-muted-foreground transition-all group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50 group-data-[variant=default]/tabs-list:data-[state=active]:shadow-sm group-data-[variant=line]/tabs-list:data-[state=active]:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-emphasis whitespace-nowrap text-muted-foreground transition-all group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary disabled:pointer-events-none disabled:opacity-50 group-data-[variant=default]/tabs-list:data-[state=active]:shadow-sm group-data-[variant=line]/tabs-list:data-[state=active]:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         "group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent dark:group-data-[variant=line]/tabs-list:data-[state=active]:border-transparent dark:group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent",
         "data-[state=active]:bg-background data-[state=active]:text-foreground dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 dark:data-[state=active]:text-foreground",
         "after:absolute after:bg-foreground after:opacity-0 after:transition-opacity group-data-[orientation=horizontal]/tabs:after:inset-x-0 group-data-[orientation=horizontal]/tabs:after:bottom-[-5px] group-data-[orientation=horizontal]/tabs:after:h-0.5 group-data-[orientation=vertical]/tabs:after:inset-y-0 group-data-[orientation=vertical]/tabs:after:-right-1 group-data-[orientation=vertical]/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-100",
@@ -121,8 +121,11 @@ export function TabsClientTrigger({
  * tab に対応するパネル。
  *
  * @remarks
- * `role="tabpanel"` を持ち、選択中の 1 枚だけが render される。既定では非選択のパネルが DOM から
+ * `role="tabpanel"` を持ち、選択中の 1 枚だけが見える。既定では非選択のパネルが DOM から
  * 外れるため、入力途中の値を保持したい場合は呼び出し元が state を持つか `forceMount` を指定する。
+ *
+ * **`forceMount` で DOM へ残しても、非表示にするのはこの component が担う。**支援技術からも
+ * 外すなら、呼び出し元が選択外のパネルへ `hidden` を渡す。
  *
  * @param props - Radix `Tabs.Content` の props。`value` は必須で、対応する tab と一致させる。
  * @see Storybook `Navigation/TabsClient`
@@ -134,7 +137,10 @@ export function TabsClientContent({
   return (
     <TabsPrimitive.Content
       className={cn(
-        "flex-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+        "flex-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary",
+        // 選んでいないパネルを隠す。`forceMount` を渡すと vendor は常に「在る」と見なして
+        // `hidden` を付けないため、これが無いと全パネルが同時に見え、tab が飾りになる。
+        "data-[state=inactive]:hidden",
         className,
       )}
       data-slot="tabs-content"

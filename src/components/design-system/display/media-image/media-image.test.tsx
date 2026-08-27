@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { MediaImage } from "./media-image";
-import { MEDIA_IMAGE_ASPECT_RATIO } from "./media-image.definition";
+import { MEDIA_IMAGE_ASPECT_RATIO, MEDIA_IMAGE_PRIORITY } from "./media-image.definition";
 
 vi.mock("next/image", () => ({
   default: ({
@@ -13,6 +13,7 @@ vi.mock("next/image", () => ({
     fill,
     placeholder,
     preload,
+    unoptimized,
     alt,
     ...props
   }: {
@@ -21,6 +22,7 @@ vi.mock("next/image", () => ({
     fill?: boolean;
     placeholder?: string;
     preload?: boolean;
+    unoptimized?: boolean;
     src: string;
   }) => (
     // biome-ignore lint/performance/noImgElement: next/image の test mock として DOM の img を返す。
@@ -30,6 +32,7 @@ vi.mock("next/image", () => ({
       data-fill={String(fill)}
       data-placeholder={placeholder}
       data-preload={String(preload)}
+      data-unoptimized={String(unoptimized)}
       {...props}
     />
   ),
@@ -43,6 +46,7 @@ describe("MediaImage", () => {
     const wrapper = image.closest("[data-slot=media-image]");
 
     expect(image).toHaveAttribute("data-fill", "true");
+    expect(image).toHaveAttribute("data-unoptimized", "false");
     if (wrapper === null) {
       throw new Error("MediaImage wrapper が見つかりません");
     }
@@ -56,7 +60,7 @@ describe("MediaImage", () => {
       <MediaImage
         alt="サンプル画像"
         aspectRatio={MEDIA_IMAGE_ASPECT_RATIO.WIDE}
-        preload
+        priority={MEDIA_IMAGE_PRIORITY.PRELOAD}
         src="/sample.svg"
       />,
     );
@@ -147,12 +151,77 @@ describe("MediaImage", () => {
   });
 
   it("preload でも Skeleton の表示を明示すれば従う", () => {
-    render(<MediaImage alt="サンプル画像" preload showSkeleton src="/sample.svg" />);
+    render(
+      <MediaImage
+        alt="サンプル画像"
+        priority={MEDIA_IMAGE_PRIORITY.PRELOAD}
+        showSkeleton
+        src="/sample.svg"
+      />,
+    );
 
     const wrapper = screen
       .getByRole("img", { name: "サンプル画像" })
       .closest("[data-slot=media-image]");
 
     expect(wrapper?.querySelector("[data-slot=skeleton]")).toBeInTheDocument();
+  });
+
+  it("画像が無ければ代替画像へ差し替える", () => {
+    const { container } = render(
+      <MediaImage alt="サンプル画像" fallbackSrc="/no-image.svg" src={null} />,
+    );
+
+    expect(container.querySelector("[data-slot=media-image-image]")).toHaveAttribute(
+      "src",
+      "/no-image.svg",
+    );
+  });
+
+  it("代替画像は最適化を通さない", () => {
+    const { container } = render(
+      <MediaImage alt="サンプル画像" fallbackSrc="/no-image.svg" src={null} />,
+    );
+
+    expect(container.querySelector("[data-slot=media-image-image]")).toHaveAttribute(
+      "data-unoptimized",
+      "true",
+    );
+  });
+
+  it("Skeleton の表示を明示的に無効化すれば preload なしでも省略する", () => {
+    const { container } = render(
+      <MediaImage alt="サンプル画像" showSkeleton={false} src="/sample.svg" />,
+    );
+
+    expect(container.querySelector("[data-slot=skeleton]")).toBeNull();
+  });
+
+  it("代替画像は既定で装飾として扱う", () => {
+    const { container } = render(
+      <MediaImage alt="サンプル画像" fallbackSrc="/no-image.svg" src={null} />,
+    );
+
+    expect(container.querySelector("[data-slot=media-image-image]")).toHaveAttribute("alt", "");
+    expect(screen.queryByRole("img", { name: "サンプル画像" })).not.toBeInTheDocument();
+  });
+
+  it("代替画像の代替テキストを明示すれば従う", () => {
+    render(
+      <MediaImage
+        alt="サンプル画像"
+        fallbackAlt="画像なし"
+        fallbackSrc="/no-image.svg"
+        src={null}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "画像なし" })).toBeVisible();
+  });
+
+  it("画像も代替画像も無ければ枠ごと描画しない", () => {
+    const { container } = render(<MediaImage alt="サンプル画像" src={null} />);
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

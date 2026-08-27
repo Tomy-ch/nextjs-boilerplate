@@ -2,6 +2,7 @@ import "server-only";
 
 import type { ZodType } from "zod";
 
+import { assertRequestTargetWithinBudget } from "@/adapters/http/url-budget";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
@@ -16,16 +17,74 @@ import {
   toErrorKind,
 } from "./retry-policy";
 
+/**
+ * 本文の符号化。JSON と form のどちらか一方だけを指定できる。
+ *
+ * @remarks
+ * 型で排他にしているのは、両方を渡した実装が「どちらが送られるか」を読む側に推測させるためです。
+ * 送る形は 1 つに決まっていなければなりません。
+ */
+type RequestPayload =
+  | {
+      /** 送信する本文。JSON として送る。 */
+      body?: unknown;
+      form?: never;
+      multipart?: never;
+    }
+  | {
+      body?: never;
+      /**
+       * 送信する本文。form として符号化して送る。
+       *
+       * @remarks
+       * OAuth / OIDC の token endpoint は `application/x-www-form-urlencoded` を要求します
+       * （RFC 6749 §4.1.3）。JSON を受け付けない相手が実在するため、符号化の選択をこの境界が持ちます。
+       */
+      form?: Readonly<Record<string, string>>;
+      multipart?: never;
+    }
+  | {
+      body?: never;
+      form?: never;
+      /**
+       * 送信する本文。`multipart/form-data` として送る。
+       *
+       * @remarks
+       * ファイルを受け取る口が multipart しか持たない場合に使います（
+       * [0075](../../../../docs/adr/0075-file-upload-seam.md)）。JSON と違い、値がバイト列の
+       * ままで運べます。
+       */
+      multipart?: FormData;
+    };
+
 /** 呼び出し 1 件の指定。 */
-export type RequestSpec<T> = {
-  /** base URL からの相対パス。 */
+type RequestSpec<T> = RequestPayload & {
+  /**
+   * 呼び出し先。base URL からの相対パス、または絶対 URL。
+   *
+   * @remarks
+   * 絶対 URL は base URL へ繋がず、そのまま叩きます（{@link buildUrl}）。Discovery が返す
+   * エンドポイントがこの形で届きます。
+   */
   path: string;
   /** HTTP メソッド。既定は GET。 */
   method?: string;
-  /** クエリ文字列。 */
-  searchParams?: Record<string, string | undefined>;
-  /** 送信する本文。JSON として送る。 */
-  body?: unknown;
+  /**
+   * クエリ文字列。
+   *
+   * @remarks
+   * 配列を渡すと同じキーを繰り返して並べます。1 つの条件に複数の値を許す契約は、値を区切り
+   * 文字で連結した 1 つの値ではなく繰り返しで受け取るためです。空配列は未指定として扱います。
+   */
+  searchParams?: Record<string, string | readonly string[] | undefined>;
+  /**
+   * この呼び出しに固有のヘッダ。
+   *
+   * @remarks
+   * 認証ヘッダはここで組みません（`getBearerToken` が持ちます）。ここに置くのは、呼び出しごとに
+   * 値の変わる契約上のヘッダだけです。
+   */
+  headers?: Readonly<Record<string, string>>;
   /**
    * 応答の検証スキーマ。
    *
@@ -48,11 +107,44 @@ export type RequestSpec<T> = {
 
 /** 接続先ごとの実行環境。 */
 export type HttpClient = {
+  /**
+   * 要求を 1 件送り、契約の形へ通した応答を返す。
+   *
+   * @throws 失敗はすべて分類済みのエラーになる。生の status は表に出ません
+   *   （[0080](../../../../docs/adr/0080-error-handling.md)）。
+   */
   request<T>(spec: RequestSpec<T>): Promise<T>;
 };
 
 type ClientDeps = {
   baseUrl: string;
+  /**
+   * 1 つの要求 URL に許すバイト数の上限。既定を持たない。
+   *
+   * @remarks
+   * 何を数え、閾値をどこが持つかは [adapters](../../README.md) の「URL の予算」節が持ちます。
+   */
+  maxUrlBytes: number;
+  /**
+   * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
+   *
+   * @remarks
+   * ヘッダの組み立てをこの境界が持つのは、呼び出し側が個別に `Authorization` を作らないよう
+   * にするためです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。接続先ごとに
+   * 認証が要るかどうかが決まるので、指定はクライアントの生成時に 1 度だけ行います。
+   *
+   * @returns 認証できないときは null
+   */
+  getBearerToken?: () => Promise<string | null>;
+  /**
+   * 認証を伴わない呼び出しを認める接続先の宣言。
+   *
+   * @remarks
+   * 契約が資格情報の無い呼び出しを受け付ける場合だけ立てます。立てても、取得できた資格情報は
+   * 常に載せます。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として
+   * 扱われるためです。
+   */
+  allowAnonymous?: boolean;
   profile?: ResilienceProfile;
   fetchImpl?: typeof fetch;
   now?: () => number;
@@ -61,21 +153,117 @@ type ClientDeps = {
 };
 
 const JSON_CONTENT_TYPE = "application/json";
+const FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
 
+const NO_CONTENT_STATUS = 204;
+
+/**
+ * 応答の本文を読む。
+ *
+ * @remarks
+ * `204` は本文を持たないと HTTP が定めている（RFC 9110 §15.3.5）ため、読みに行きません。
+ * 空の本文を JSON として解釈しようとすると構文エラーになり、成功した呼び出しが失敗として
+ * 表に出ます。
+ */
+async function readBody(response: Response): Promise<unknown> {
+  return response.status === NO_CONTENT_STATUS ? undefined : response.json();
+}
+
+/** 指定された本文を、送出できる形と Content-Type の組へ変換する。本文が無ければ undefined。 */
+function encodePayload(
+  spec: RequestPayload,
+): { headers: Record<string, string>; body: BodyInit } | undefined {
+  if (spec.multipart !== undefined) {
+    // Content-Type を組みません。multipart は各部を区切る境界文字列を header に含める必要があり、
+    // その値を決めるのは本文を直列化する runtime です。手で付けると本文の境界と食い違います。
+    return { headers: {}, body: spec.multipart };
+  }
+
+  if (spec.form !== undefined) {
+    return {
+      headers: { "Content-Type": FORM_CONTENT_TYPE },
+      body: new URLSearchParams(spec.form).toString(),
+    };
+  }
+
+  if (spec.body !== undefined) {
+    return { headers: { "Content-Type": JSON_CONTENT_TYPE }, body: JSON.stringify(spec.body) };
+  }
+
+  return undefined;
+}
+
+/** 絶対 URL かどうか。scheme から始まるものを絶対と見なす。 */
+const ABSOLUTE_URL_PATTERN = /^https?:\/\//i;
+
+/**
+ * パスを 1 階層上へ畳む区間。
+ *
+ * @remarks
+ * `.` と `..` は URL の正規化で消費され、**組み立てたはずの路と違う路を叩かせます。**
+ * 呼び出し側は可変の区間を `encodeURIComponent` で包みますが、この 2 つは符号化しても
+ * そのまま残るため（どちらも未予約文字だけでできています）、包んだだけでは止まりません。
+ *
+ * 先頭を `/` で始めるのは、検査に掛ける前に路が正規化されているためです（{@link assertNoDotSegment}）。
+ */
+const DOT_SEGMENT_PATTERN = /\/\.{1,2}(?:\/|$)/;
+
+/**
+ * 路を組み立てる前に、畳み込む区間が無いことを確かめる。
+ *
+ * @remarks
+ * **通した路をそのまま返します。** 先頭の `/` を補う整形も兼ねると、検査を通さずに組み立てる
+ * 書き方が作れなくなります。
+ *
+ * 弾いたものは `invalid-argument` です。接続先の不調ではなく、渡された値が路として成り立って
+ * いないためで、再試行しても結果は変わりません。
+ *
+ * @throws 畳み込む区間を含むとき
+ */
+function assertNoDotSegment(path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+
+  if (DOT_SEGMENT_PATTERN.test(normalized)) {
+    throw createAppError(ErrorKind.INVALID_ARGUMENT, {
+      cause: new Error("路を畳む区間は接続先の路に含められません"),
+    });
+  }
+
+  return normalized;
+}
+
+/**
+ * 接続先とパスを繋ぐ。
+ *
+ * @remarks
+ * **接続先が持つパスを残します。** `new URL(path, baseUrl)` は絶対パスを渡すと base の path を
+ * 捨てるため、`https://idp.example.com/realms/foo` のようにパスを持つ接続先では、その部分が
+ * 落ちた URL を叩くことになります。OIDC の issuer は路を持ち得るもので（Discovery 1.0 §4 は
+ * issuer にパスを連結した位置を well-known の場所と定めています）、実物の IdP でも起こります。
+ *
+ * **絶対 URL はそのまま使います。** Discovery が返す各エンドポイントは絶対 URL であり、それを
+ * 接続先へ繋ぎ直す意味がありません。組み立てていない路なので、畳み込みの検査も掛けません。
+ */
 function buildUrl(
   baseUrl: string,
   path: string,
   searchParams?: RequestSpec<unknown>["searchParams"],
-): string {
-  const url = new URL(path, baseUrl);
+): URL {
+  const url = ABSOLUTE_URL_PATTERN.test(path)
+    ? new URL(path)
+    : new URL(`${baseUrl.replace(/\/$/, "")}${assertNoDotSegment(path)}`);
 
   for (const [key, value] of Object.entries(searchParams ?? {})) {
-    if (value !== undefined) {
-      url.searchParams.set(key, value);
+    if (value === undefined) {
+      continue;
+    }
+
+    for (const single of typeof value === "string" ? [value] : value) {
+      url.searchParams.append(key, single);
     }
   }
 
-  return url.toString();
+  return url;
 }
 
 /**
@@ -91,6 +279,9 @@ function buildUrl(
  */
 export function createHttpClient({
   baseUrl,
+  maxUrlBytes,
+  getBearerToken,
+  allowAnonymous = false,
   profile = DEFAULT_PROFILE,
   // 既定を `fetch` そのものではなく呼び出し時の解決にする。クライアントは接続先ごとに
   // 1 つを長く使い回すため、生成時点の実装を握ると、後から差し込まれた実装（モックなど）に
@@ -103,18 +294,51 @@ export function createHttpClient({
   const breaker: CircuitBreaker = createCircuitBreaker(profile.breaker, now);
   const budget: RetryBudget = createRetryBudget(profile.retryBudgetRatio);
 
+  /**
+   * 認証ヘッダを解決する。認証を要求する接続先で認証できなければ、送らずに投げる。
+   *
+   * @remarks
+   * 再試行の外側で 1 度だけ呼びます。試行のたびに解決すると、認証できないことが接続の失敗と
+   * 同じ扱いになり、通るはずのない要求を最大試行回数ぶん送ります。
+   *
+   * **接続先と生成元が違えば載せません。** 絶対 URL を渡された要求は接続先を離れるため、
+   * 載せると資格情報がその宛先へ渡ります。宛先は Discovery のような外の応答から来ることが
+   * あり、呼び出し側が相対パスしか渡さない慣習だけでは止まりません。
+   */
+  async function authorizationHeader(url: URL): Promise<Record<string, string>> {
+    if (getBearerToken === undefined || url.origin !== new URL(baseUrl).origin) {
+      return {};
+    }
+
+    const token = await getBearerToken();
+
+    if (token === null) {
+      if (allowAnonymous) {
+        return {};
+      }
+
+      throw createAppError(ErrorKind.UNAUTHENTICATED, {
+        cause: new Error(`認証が要る接続先です: ${url}`),
+      });
+    }
+
+    return { Authorization: `Bearer ${token}` };
+  }
+
   async function attempt(
-    url: string,
+    url: URL,
     spec: RequestSpec<unknown>,
     signal: AbortSignal,
+    authorization: Record<string, string>,
   ): Promise<Response> {
     const timeout = AbortSignal.timeout(profile.perAttemptTimeoutMs);
+    const payload = encodePayload(spec);
 
-    return fetchImpl(url, {
+    return fetchImpl(url.toString(), {
       method: spec.method ?? "GET",
       signal: AbortSignal.any([signal, timeout]),
-      headers: spec.body === undefined ? undefined : { "Content-Type": JSON_CONTENT_TYPE },
-      body: spec.body === undefined ? undefined : JSON.stringify(spec.body),
+      headers: { ...payload?.headers, ...spec.headers, ...authorization },
+      body: payload?.body,
       cache: spec.cache,
       next: spec.tags === undefined ? undefined : { tags: [...spec.tags] },
     });
@@ -122,13 +346,19 @@ export function createHttpClient({
 
   return {
     async request<T>(spec: RequestSpec<T>): Promise<T> {
+      const url = buildUrl(baseUrl, spec.path, spec.searchParams);
+
+      // 遮断の判定より先に確かめる。予算を超えた要求は接続先の状態によらず通らないため、
+      // 遮断中に投げる `unavailable` で覆うと、直せる入力の誤りが一時的な障害に見える。
+      assertRequestTargetWithinBudget(`${url.pathname}${url.search}`, maxUrlBytes);
+
       if (!breaker.canAttempt()) {
         throw createAppError(ErrorKind.UNAVAILABLE, {
           cause: new Error(`接続先が遮断されています: ${spec.path}`),
         });
       }
 
-      const url = buildUrl(baseUrl, spec.path, spec.searchParams);
+      const authorization = await authorizationHeader(url);
       const deadline = now() + profile.overallTimeoutMs;
       const overall = AbortSignal.timeout(profile.overallTimeoutMs);
       const retryable = isRetryableMethod(spec.method ?? "GET", spec.idempotent ?? false);
@@ -139,7 +369,7 @@ export function createHttpClient({
         let response: Response | undefined;
 
         try {
-          response = await attempt(url, spec, overall);
+          response = await attempt(url, spec, overall, authorization);
         } catch (cause) {
           lastError = cause instanceof Error ? cause : new Error(String(cause));
           lastKind = overall.aborted ? ErrorKind.CANCELED : ErrorKind.UNAVAILABLE;
@@ -149,7 +379,7 @@ export function createHttpClient({
           breaker.record(true);
           budget.record(true);
 
-          return parse(spec.schema, await response.json(), spec.path);
+          return parse(spec.schema, await readBody(response), spec.path);
         }
 
         breaker.record(false);

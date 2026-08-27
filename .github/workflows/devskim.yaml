@@ -1,0 +1,157 @@
+name: DevSkim Scan
+
+# DevSkim is a regex linter with no language front-end, so it reads every file in the
+# tree with one rule set. That is the whole reason it is here: opengrep and CodeQL
+# both go deeper and both only reach the languages they parse, so a weak cipher name
+# or a hardcoded credential in a file neither opens is currently seen by nothing
+# (ADR 0110 §3).
+#
+# The overlap with opengrep is real and accepted. What is NOT overlapped is the set of
+# files opengrep never opens — YAML that is not a workflow, JSON, plain text, the
+# Markdown under `docs/`.
+#
+# A FINDING never fails the job; findings go to code scanning. The baseline has not
+# been held at zero, and a language-agnostic regex scanner over a whole repository is
+# the wrong shape for a gate — the diff check over new alerts is the right one.
+#
+# A BROKEN MECHANISM DOES fail it, for the reason spelled out in `bearer.yaml`:
+# reporting is this job's entire output, so a crashed scan, a missing SARIF or a failed
+# upload would otherwise be indistinguishable from a clean run.
+#
+# The CLI is installed from NuGet rather than run through `microsoft/DevSkim-Action`.
+# That action is a Docker action whose Dockerfile builds from a floating
+# `mcr.microsoft.com/dotnet/sdk:8.0` tag and then runs an unversioned
+# `dotnet tool install`, so pinning the action to a SHA would pin the recipe and not
+# the code it executes. Installing the tool here keeps the version an explicit,
+# reviewable literal.
+#
+# The version is not in `mise.toml`, and the reason is not that mise cannot reach
+# NuGet. Its `dotnet:` backend needs the .NET runtime itself to become a mise-managed
+# tool, which puts a whole language runtime into the version SSOT for one scanner that
+# only ever runs in CI.
+#
+# Deliberately unfiltered by `paths`. A language-agnostic scanner's verdict can change
+# with any file, and narrowing the trigger to a language list would contradict the
+# reason for adopting it.
+
+on:
+  pull_request:
+  schedule:
+    - cron: '45 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEVSKIM_VERSION: 1.0.90
+
+jobs:
+  devskim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            api.nuget.org:443
+            crl3.digicert.com:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # What cannot change this scan's answer. The list is the deny side on purpose: anything
+      # not named here still runs, so a missing entry costs one needless run while a wrong
+      # entry would leave a scanner reporting on nothing (see the note in the action).
+      # DevSkim's value is the files the other scanners never parse, so the list stays
+      # short — only prose and agent configuration come off.
+      - name: Decide whether the diff can reach this scan
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+
+      - name: Install the DevSkim CLI
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet tool install --global Microsoft.CST.DevSkim.CLI --version "${DEVSKIM_VERSION}"
+          echo "${HOME}/.dotnet/tools" >> "${GITHUB_PATH}"
+
+      # Generated and vendored files are excluded because a finding there is not
+      # actionable — the fix belongs upstream in the contract or the generator.
+      # `--base-path` keeps the SARIF locations repository-relative.
+      #
+      # TEST FILES ARE EXCLUDED, and that is a considered exclusion rather than a
+      # convenience. A regex secret-detector reads a fixture SHA, a fake bearer token
+      # and a `http://localhost` target as findings, and in a test file every one of
+      # those is the normal case — measured here: three `DS173237` errors, all of them
+      # hex fixtures in one unit test. The layer that watches test files for a REAL
+      # secret is gitleaks, which scans them and is fail-closed; leaving DevSkim on
+      # them would only bury the surfaces where its verdict means something.
+      #
+      # Excluded by path, never by rule id. A rule id switched off globally would take
+      # the same detection down on the files this scanner exists for
+      # (ADR 0110 §3.4).
+      - name: Run the DevSkim scan
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          devskim analyze \
+            --source-code . \
+            --output-file devskim.sarif \
+            --file-format sarif \
+            --base-path . \
+            --ignore-globs '**/.git/**,**/node_modules/**,**/dist/**,**/coverage/**,**/.next/**,**/storybook-static/**,**/src/adapters/gen/**,**/mocks/api/**,**/pnpm-lock.yaml,**/openapi.gen.yaml,**/.claude/worktrees/**,**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.fixture.ts'
+
+      - name: Require the SARIF to exist
+        if: steps.scope.outputs.relevant == 'true'
+        run: test -s devskim.sarif
+
+      - name: Upload the SARIF to code scanning
+        if: steps.scope.outputs.relevant == 'true'
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          sarif_file: devskim.sarif
+          category: devskim
+
+  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  notify-failure:
+    needs: devskim
+    if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.devskim.result) }}
+    uses: ./.github/workflows/notify.yaml
+    with:
+      failed-job: devskim
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

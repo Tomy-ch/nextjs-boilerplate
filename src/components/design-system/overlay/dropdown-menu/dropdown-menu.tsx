@@ -1,7 +1,7 @@
 "use client";
 
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
+import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
@@ -264,7 +264,7 @@ function DropdownMenuLabel({
 }) {
   return (
     <DropdownMenuPrimitive.Label
-      className={cn("px-2 py-1.5 text-sm font-medium data-[inset]:pl-8", className)}
+      className={cn("px-2 py-1.5 text-sm font-emphasis data-[inset]:pl-8", className)}
       data-inset={inset}
       data-slot="dropdown-menu-label"
       {...props}

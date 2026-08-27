@@ -65,7 +65,6 @@ describe("buildSiteTree", () => {
     expect(existsSync(join(layout.siteRoot, "stale.html"))).toBe(false);
   });
 
-  // ----- 異常系 -----
   it("Storybook が無ければ /storybook/ を作らない", () => {
     expect(buildSiteTree(layout).storybook).toBe(false);
     expect(existsSync(join(layout.siteRoot, "storybook"))).toBe(false);

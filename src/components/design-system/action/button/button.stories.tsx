@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { Spinner } from "../../status/spinner/spinner";
 import { Button } from "./button";
 import { BUTTON_SIZE, BUTTON_VARIANT } from "./button.definition";
 
@@ -50,6 +49,14 @@ export const Ghost: Story = {
   },
 };
 
+/** 取り消せない結果を伴う操作。配色だけに頼らず、文言でも何が起きるかを示す。 */
+export const Destructive: Story = {
+  args: {
+    children: "削除する",
+    variant: BUTTON_VARIANT.DESTRUCTIVE,
+  },
+};
+
 /** 表や密度の高い領域へ置く場合。 */
 export const Small: Story = {
   args: {
@@ -72,20 +79,13 @@ export const Disabled: Story = {
 };
 
 /**
- * 送信中。**`disabled` だけでは支援技術に「処理中」が伝わらない**ため `aria-busy` を添え、
- * 文言も進行中の語へ変える。
+ * 送信中。**文言はその場所に残し、その上へ印を重ねる。**
+ *
+ * 文言を進行中の語へ差し替えたり、印を隣へ足したりすると器の幅が動く。休止時と見比べて、幅が
+ * 変わらないことを確かめる。
  */
 export const Pending: Story = {
-  args: {
-    "aria-busy": true,
-    disabled: true,
-    children: (
-      <>
-        <Spinner />
-        処理中…
-      </>
-    ),
-  },
+  args: { children: "保存する", pending: true, pendingLabel: "保存しています" },
 };
 
 /**

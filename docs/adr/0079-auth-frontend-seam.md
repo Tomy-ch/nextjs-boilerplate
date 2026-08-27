@@ -39,7 +39,7 @@ Accepted
 Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 
 - **optimistic(楽観)層 = `proxy.ts`**(optional・[0043](0043-middleware-policy.md))— cookie の session のみを読み、権限ベースの **リダイレクト / UI 出し分け**に使う。**DB / データ源参照は禁止**(Proxy は prefetch 含む全 route で走るため。cookie 読みは `req.cookies.get(...)` に留める)。**唯一の防御線にしない**。Node.js runtime([0043](0043-middleware-policy.md))。
-- **確定認可層 = Data Access Layer(DAL)**— session を検証する `verifySession()` を **`adapters/server`**([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md))に置き、**React `cache()` で 1 render pass 内を memo 化**する。データ取得 / Server Action / Route Handler は必ずこの `verifySession()` を通してから進む。「security checks はデータ源に最も近い所で行う」= **確定認可の本丸はデータ境界**([0070](0070-backend-role-separation.md) / [0043](0043-middleware-policy.md) と一貫)。
+- **確定認可層 = Data Access Layer(DAL)**— session を検証する `verifySession()` を **`adapters/server`**([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md))に置き、**React `cache()` で 1 render pass 内を memo 化**する。app 層の入口(route-segment / Route Handler / Server Action)は必ずこの `verifySession()` を通してから feature へ進む。「security checks はデータ源に最も近い所で行う」= **確定認可の本丸はデータ境界**([0070](0070-backend-role-separation.md) / [0043](0043-middleware-policy.md) と一貫)。
 - **カーネル座標の導出**(べき論): `verifySession()` は session cookie(`server-only`)と secret を扱う **remote/runtime 境界 = `adapters/server`** に属する(secret を持てる唯一の実行層 = `adapters/server`。[0021](0021-frontend-responsibility.md) 依存マトリクス / [0024](0024-adapters-server-client-split.md))。DAL を `adapters/server` に置くことで「session verify は境界アダプタが所有し、内側の層(`model` / feature 純粋ロジック)は session を知らない」が保たれる(型漏洩禁止・[0020](0020-adopted-architecture.md))。
 - **vendor-independent 正当性材料**(0010 §2 必須):
   - **データ境界での確定認可 = 多層防御(defense in depth)** — Proxy(edge/入口)の楽観チェックは最適化配置(CDN)や prefetch の都合で信頼の単一点にできないため、検査を **データ源直近**に置いて最終防御線とする。これは「認可はリソースアクセス直前に行う」という web セキュリティ一般原則であり、Next.js を正当化から抜いても成立する(0010 運用テスト: Yes)。
@@ -52,14 +52,18 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 
 ### 4. 保護ルートの表現 / チェックの各所配置
 
-- 保護は **各所でチェック**する(layout / page / leaf / Server Actions / Route Handlers)。`proxy.ts` の optimistic リダイレクトは入口の pre-filter に過ぎず、各データアクセス点で `verifySession()`(DAL)を通すことを既定とする。
-- app(route / page)は **thin driving adapter** のまま([0040](0040-routing-rendering-strategy.md) / [0021](0021-frontend-responsibility.md))。保護のための編成(verifySession 呼び出し → 分岐 → feature 呼び出し)は **feature の server 関数 / RSC**([0021](0021-frontend-responsibility.md))が行い、`page.tsx` に認可ロジックを直書きしない。
+- 保護は **入口ごとにチェック**する(`layout.tsx` / `page.tsx` / `route.ts` / `actions.ts`)。`proxy.ts` の optimistic リダイレクトは入口の pre-filter に過ぎず、app 層の各入口で `verifySession()`(DAL)か、`adapters` が分類した結果を通すことを既定とする。Server Action は route を経由せずに呼べる独立した入口なので、画面が保護されていることを理由に断言を省かない([0021](0021-frontend-responsibility.md)「Server Action の置き場」)。
+- **session に基づく保護の編成は app 層が行う。** `verifySession()` を呼び、結果で分岐し、リダイレクトするか feature を呼ぶ —— これは driving adapter の合成であって業務ロジックではない([0040](0040-routing-rendering-strategy.md) / [0021](0021-frontend-responsibility.md))。`features` がこれを持てないのは、DAL を含む `adapters/server/auth` へ触れてよいのが `app` と `adapters` だけだからで(`architecture.ts` の `adapters-auth`)、依存マトリクスの帰結であって例外規定ではない([0021](0021-frontend-responsibility.md))。
+- **feature が受け取ってよいのは `adapters` が分類した結果であって、session そのものではない。** 「未認証 / 未登録 / 登録済み」のような列挙は表示用の値であり、session の型も secret も内側の層へ渡らない([0020](0020-adopted-architecture.md) 型漏洩禁止)。この形なら入口ガードを feature に 1 つ置いて、同じ判定を画面ごとに書き写さずに済む。**分類を作るのは `adapters` の仕事**であり、feature のために session を素通しする関数を `adapters` へ足してはならない —— それは依存マトリクスを迂回して session の分岐を feature へ持ち込む経路になる。判定に使う規則そのものはバックエンドが持つ([0070](0070-backend-role-separation.md))。
+- **判定の述語は `model` が持つ。** 「この session が役割を満たすか」は session を入力に取る純粋な判定であり、app 層にも feature にも書かない。前捌き(`proxy.ts`)と確定認可が同じ述語を引くことで、2 層の判定がずれない。
 - **静的ルートの注意**: build 時に取得され全ユーザで共有される静的 route は DAL(request 時検証)が効かないため、その保護は `proxy.ts`(optimistic)側で行う(Next.js ガイド注記)。
 
 ### 5. 未認証リダイレクト / `returnUrl` / ログアウト時の状態破棄
 
 - 未認証時のリダイレクト先(サインイン route)と復帰用 `returnUrl`(元 URL の保持・検証)の規約は seam として名前を付けて残す。**open redirect を避けるため `returnUrl` は同一 origin の相対パスに限定検証する**(web 一般の入力検証)。
 - ログアウトは **session cookie の破棄(server)+ client 側の派生状態・キャッシュの teardown** を伴う。破棄の起点は `adapters/server`(cookie 削除)に置く。
+- **利用者のブラウザが IdP の session を持っている場合は、加えてブラウザを IdP の終了口へ遷移させる。** IdP 側の session を保持しているのは利用者のブラウザが持つ cookie であり、サーバから発した要求にそれは載らない —— 要求は成功を返しながら、IdP 側は何も終わらない。**この機構をここが持つ**ので、実装側は繰り返さずに本節を指す(呼び出しの連鎖に沿って同じ根拠が何度も書かれることになるため)。
+- **遷移が要るかどうかは、ログインが借り物の画面を経由したかで決まる。** 所有画面から資格情報を渡した経路(§6)では、ブラウザは IdP を一度も訪れておらず、破棄すべき IdP 側 cookie が存在しない。federation の経路(§6)だけがブラウザに IdP の session を残すため、終了口への遷移もその経路に限る。**どちらで確立したかは session 側が保持する** —— ログアウト時に推測すると、破棄漏れか無駄な往復のどちらかが必ず出る。
 - サインイン UI・session 更新(refresh)の具体は §6 の Resolver に閉じる。本 ADR は座標(どの層が何を所有するか)と拡張点の名前を敷く。
 
 ### 6. 動く最小 session 機構を本体へ同梱する(Resolver IF 方式)
@@ -67,12 +71,80 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 **IF 定義だけを置いて実装を fork 先に丸投げしない。** 使われない IF は腐り、実装時に必ず書き直されるため、**既定実装を 1 つ同梱して実際に動かす**。禁止事項の「特定の session 実装詳細を本体に前提として組み込まない」は、次の切り分けで満たす。
 
 - **コアに残すもの(fork 先が書き直さない部分)** — seam の座標 / 保護ルート判定 / `returnUrl` の検証 / ログアウト時の状態破棄 / RBAC ヘルパ / `verifySession()` の呼び出し規約
-- **Resolver の裏に隠すもの(各社の事情が入る部分)** — session の暗号化・署名方式 / OIDC クライアントの実装 / トークンの保管形式。これらは **Resolver IF** の内部処理とし、fork 先は Resolver を差し替えるだけで自社方式へ移行できる
+- **Resolver の裏に隠すもの(各社の事情が入る部分)** — session の暗号化・署名方式 / バックエンドの認証エンドポイントの叩き方 / federation の開始と復帰 / トークンの保管形式。これらは **Resolver IF** の内部処理とし、fork 先は Resolver を差し替えるだけで自社方式へ移行できる
 - **既定実装を 1 つ同梱する**。サンプルが実際にこの既定 Resolver を使う(= 設置面が実在する)ため、空の IF 定義にはならない
-- 認証フローは **Authorization Code + PKCE** とし、**Route Handler(`/api/auth/*`)が IdP と直接やりとりする**。ブラウザが持つのは httpOnly の BFF session cookie のみで、**Access Token をブラウザへ露出しない**。画面側の実装は「ログインボタン → `/api/auth/login` へ遷移」に留める
+- 認証フローは **所有画面 + バックエンド仲介**とする。資格情報とチャレンジ応答は所有画面が受け取り、**Route Handler(`/api/auth/*`)がバックエンドへ中継する**。**IdP の API をこのリポジトリから直接叩かない** —— IdP 固有 SDK も IdP の資格情報もこのリポジトリの依存に入らない。ブラウザが持つのは httpOnly の BFF session cookie のみで、**Access Token をブラウザへ露出しない**
+- **バックエンドが返すチャレンジは正規化された形とする。** 追加入力が要るとき、バックエンドは「どの種類の入力が要るか」を中立の列挙で返し、このリポジトリは種類から画面を選ぶ。IdP 固有のチャレンジ名・継続用の文字列・エラーコードを画面と `features` へ持ち込まない([0070](0070-backend-role-separation.md) / [0020](0020-adopted-architecture.md) 型漏洩禁止)。**この正規化が無いと、IdP の語彙が画面まで到達する** —— 認証の本流が特定プロバイダへ結合し、差し替え可能性(0010)が Resolver の外で壊れる
+- **federation(ソーシャル / 企業 IdP 連携)だけは借り物の画面へ遷移する。** 連携先での認可は利用者のブラウザの遷移でしか成立せず、サーバ間 API では代替できない。この経路の意匠は §8 の供給が扱う
 - 認証が要る API 呼び出しは、**BFF 経由で Bearer が自動付与される前提**で実装する(個別に Authorization ヘッダを組み立てない)
 - **401 = 未ログイン / セッション切れ → サインインへ**、**403 = 権限不足 → 導線ごと出し分け**([0080](0080-error-handling.md) の分類に対応させる)
-- Resolver の IF 形状 / 既定実装のライブラリ選定 / refresh の扱い / role の取得元は**実装 PR で確定**する([v1 実装計画](../plan/v1-implementation-plan.md) P5-4)
+- Resolver の IF 形状 / 既定実装のライブラリ選定 / refresh の扱いは実装で確定済み
+- **role の取得元はバックエンドとする。** IdP が持つのは身元（誰であるか）で、何をしてよいかは業務側のデータである([0070](0070-backend-role-separation.md))。ID Token の claim から読むと、IdP を差し替えるたびに役割の出所が変わり、IdP 側に業務の役割体系を持たせる圧力が生まれる。既定 Resolver は取得口を依存として受け取り、session を確立する途中で 1 度だけ引く。役割が 1 つも無い主体は権限を持たない側へ倒す
+
+### 7. 未認証時の状態を、ログイン成立の時点で引き継ぐ
+
+未認証のまま操作を始められる機能は、ログイン成立の時点でその状態を認証済みの主体へ**引き継ぐ**必要がある。§5 がログアウト時の破棄を扱うのに対し、本節は逆向きの接続点を敷く。
+
+- **引き継ぎ元の識別子は httpOnly cookie に置き、BFF が持つ**。ブラウザへ露出させない理由は §1 の session と同じ(XSS 起点の窃取の緩和)。**session cookie とは別の cookie** にする — 未認証でも発行され、寿命も主体も session と一致しないため、session payload へ混ぜると §1 の「payload は最小」に反する。用途接頭辞と `Secure` / `HttpOnly` / `SameSite` / `Max-Age` の明示は `rules.md` #44 に従う。
+- **引き継ぎを起こすのは `/api/auth/*` の callback ただ 1 箇所**。未認証時の識別子と確立直後の session が同時に手元にあるのはここだけで、1 回の認証往復につき 1 回だけ走る。`proxy.ts` は不可(§2 / [0043](0043-middleware-policy.md) — optimistic 層に副作用を置かない)。画面側からも呼ばない(ブラウザは Access Token を持たない。§6)。
+- **引き継ぎの失敗でログインを失敗させない**。ログインの成否は認証の成否で決まる。引き継ぎは付随する処理であり、失敗はログに残して利用者にはログイン成功として見せる。
+- **引き継ぎの規則はバックエンドが持つ**([0070](0070-backend-role-separation.md))。合算・上限・優先といった判断は業務ロジックであり、BFF は起点を与えるだけで規則を実装しない。
+- **引き継ぎの結果は BFF が受け取れる形にする**。切り捨てや丸めなど利用者へ知らせるべき結果が生じうる場合、バックエンド内部の認証完了フックに寄せると報告先が無くなる。表示するかどうかは画面の判断に残す。
+- **引き継ぎ後、元の識別子の cookie は破棄する**。引き継ぎ済みの識別子が残ると、二重適用の経路になり、引き継ぎ先が他者の主体である場合には到達経路にもなる。ログアウト時の teardown(§5)にも含める。
+
+**vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md) §2): 引き継ぎを認証往復の**片側 1 箇所**に閉じるのは、同じ状態遷移を複数の起点から起こすと二重適用と競合の面が増えるという一般原則(単一の書き込み経路)による。失敗でログインを落とさないのは、**関心の分離** — 認証の可否を、認証と無関係な処理の成否に従属させないこと。
+
+### 8. 資格情報を検証しない / 認証画面は意匠ごと所有する
+
+**入力面の所有と、検証機構の所有は別の話であり、畳むと必ず片方を落とす。** 「検証が向こうだから
+画面も向こうのもの」も、「画面がこちらだから検証もこちらでよい」も、同じ畳み方の裏表である。
+本 ADR が禁じているのは**このリポジトリが資格情報を検証・保持すること**であって、入力を受け取る
+画面を持つことではない。
+
+#### 用語
+
+| 呼び名 | 意味 |
+| --- | --- |
+| **所有画面** | このリポジトリが実装し、配信する画面。`/login` / `/onboarding` など |
+| **借り物の画面** | IdP が実装し、IdP が配信する画面。サインイン・MFA・パスワード再設定など |
+
+本 ADR で **`面` は接続点(差し替え境界)の意味**で使い、画面の意味では使わない。同じ語を両方に
+使うと、`session-resolver.ts` の「この面の内側」が画面の話に読める。
+
+#### 所有の線
+
+| | 入力面 | 検証機構 | 意匠 |
+| --- | --- | --- | --- |
+| `/login`・チャレンジ画面(所有画面) | **所有** | **持たない(中継のみ)** | 所有 |
+| federation の連携先(借り物) | 借り物 | 借り物 | **所有(供給する)** |
+| IdP の終了口(借り物) | — | 借り物 | **所有(供給する)** |
+| `/onboarding`(所有画面) | 所有 | — | 所有 |
+
+**主たる経路に借り物の画面は現れない。** `/login`(所有)→ 必要ならチャレンジ画面(所有)→
+`/onboarding`(所有)で、利用者は最後まで自分のドメインを離れない。借り物の画面が現れるのは
+federation の連携先と IdP の終了口だけであり、そこには意匠を供給する(§6 / §5)。
+
+- **資格情報の入力面は所有する。** ID / パスワード / MFA コードの入力欄を所有画面へ置く。利用者から
+  見た認証は、遷移の途中で見知らぬドメインへ着地しない 1 本の導線になる
+- **このリポジトリは資格情報を検証しない。** できるのは**バックエンドへの中継だけ**である。受け取った
+  資格情報を保存しない / ログへ出さない / session payload へ載せない(§1)/ 中継以外の判断へ使わない。
+  正しさの判定・試行回数の制限・ロックアウトはすべてバックエンドが持つ([0070](0070-backend-role-separation.md))
+- **IdP の API を直接叩かない。** IdP 固有 SDK をこのリポジトリの依存に入れず、IdP の資格情報も持たない。
+  叩けば、認証の本流がその IdP へ結合し、Resolver の外で差し替え可能性が壊れる(§6 / [0010](0010-standards-and-non-lockin.md))。
+  **IdP の選択に依存しない恒久の線**はここに引く —— 入力欄の有無ではなく、**IdP を知っているかどうか**が線である
+- **認証画面の意匠は所有する。** 所有画面は design token が直接効く。借り物なのは federation の連携先と
+  終了口だけなので、そこへは IdP のブランディング機構を通して token から供給する。**手で二重管理しない**
+  —— 色や書体を IdP の管理画面へ書き写すと、token を動かしてもその画面だけが古い姿で残る
+- **供給できる範囲は IdP のブランディング機構が決める。** 供給しきれない部分が残ることは、意匠を
+  所有しないことを意味しない —— 供給できる範囲を供給し、できない範囲を分かって残すのと、何も
+  供給しないのは別である
+
+**vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md) §2): 中継に留めて検証も
+保持もしないのは、**扱わないデータは漏らせない**という一般原則(最小露出)による。通過するだけの値に
+対して責任範囲が広がるのは、保存・ログ・派生を始めた時点である。IdP を知らないままにするのは、
+**依存は差し替えられる形で持つ**という一般原則であり、IdP を替えてもこの線は動かない。意匠を供給元
+1 つに寄せるのは、同じ値を 2 箇所で持つと必ず片方がずれるという、この repo が token の SSOT でも
+採っている一般原則である。
 
 ## 禁止事項
 
@@ -81,11 +153,21 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 - ❌ 特定の認証プロバイダ・IdP・session 実装詳細(暗号化方式 / stateless vs DB)を **Resolver の外**へ組み込むこと(§6。既定実装は Resolver の裏に閉じ、差し替え可能に保つ。[0070](0070-backend-role-separation.md))
 - ❌ Access Token をブラウザ(client JS / localStorage / 非 httpOnly cookie)へ露出させること(§6)
 - ❌ 設置面のない空の IF / port 定義だけを置いて実装を持たないこと(§6)
+- ❌ 受け取った資格情報を保存・ログ出力・session payload へ載せること / 中継以外の判断へ使うこと(§8)
+- ❌ 資格情報の正しさの判定・試行回数の制限・ロックアウトをこのリポジトリで実装すること(バックエンドが持つ。§8 / [0070](0070-backend-role-separation.md))
+- ❌ IdP の API を直接叩くこと / IdP 固有 SDK・IdP の資格情報をこのリポジトリの依存に入れること(§6 / §8)
+- ❌ IdP 固有のチャレンジ名・継続用の文字列・エラーコードを画面や `features` へ持ち込むこと(バックエンドが正規化した列挙のみを受け取る。§6)
+- ❌ 借り物の画面の意匠を放棄すること / ブランディングの設定を design token と別に手で持つこと(§8)
+- ❌ `面` を画面の意味で使うこと(接続点の意味で予約済み。§8 の用語)
 - ❌ `proxy.ts` を確定認可の主機構・唯一の防御線にすること / Proxy 内で DB・データ源を参照すること(optimistic・cookie 読みのみ。[0043](0043-middleware-policy.md))
 - ❌ 確定認可(`verifySession()` / DAL)を `adapters/server` 以外に置くこと / session・secret を内側の層(`model` / feature 純粋ロジック / client)へ漏らすこと([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md) / [0020](0020-adopted-architecture.md))
 - ❌ cookie payload に PII・機微情報を載せること / user オブジェクト全体を DTO なしで client へ渡すこと
-- ❌ `page.tsx` / `layout.tsx` に認可の編成ロジックを直書きすること(thin driving adapter。編成は feature。[0040](0040-routing-rendering-strategy.md))
+- ❌ 認可の**判定規則**(どの役割が何を満たすか)を app 層 / `features` / `proxy.ts` へ直書きすること(述語は `model`。app が持つのは編成のみ。§4)
+- ❌ `features` から `adapters/server/auth`(DAL / session)を import すること / session の型を `features` へ渡すこと(依存マトリクスの帰結と型漏洩禁止。[0021](0021-frontend-responsibility.md) / [0020](0020-adopted-architecture.md) / `architecture.ts` の `adapters-auth`)
 - ❌ `returnUrl` を検証せず外部 URL へリダイレクトすること(open redirect。同一 origin 相対パスに限定)
+- ❌ 未認証時の識別子をブラウザから読める形(localStorage / 非 httpOnly cookie)で持つこと / session cookie の payload へ混ぜること(§7)
+- ❌ 引き継ぎを callback 以外(`proxy.ts` / 画面 / 複数の起点)から起こすこと / 引き継ぎの失敗でログインを失敗させること(§7)
+- ❌ 引き継ぎの規則(合算・上限・優先)をフロントに実装すること(業務ロジックはバックエンド。§7 / [0070](0070-backend-role-separation.md))
 
 ## 補足
 

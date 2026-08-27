@@ -1,0 +1,143 @@
+// サンプルを破棄する入口。判定は plan.ts、対象の宣言は sample-manifest.ts が持ち、ここは
+// ファイル入出力・スナップショットの書き出し・終了コードだけを担う。
+
+import fs from "node:fs";
+import path from "node:path";
+
+import {
+  listFilesRecursive,
+  readUtf8File,
+  removeTarget,
+  toAbsolutePath,
+  toRelativePath,
+} from "../lib/file-utils.js";
+import { stripMarkers } from "../lib/markers.js";
+import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
+import { buildSteps, canHoldMarker, findRedundantPaths, isScanTarget } from "./plan.js";
+import {
+  BINARY_EXTENSIONS,
+  DANGLING_PATTERN,
+  EXCLUDED_DIRECTORIES,
+  EXCLUDED_PATH_PREFIXES,
+  MARKER_LITERAL_FILES,
+  SAMPLE_MARKER,
+  SAMPLE_PATHS,
+} from "./sample-manifest.js";
+
+/** 検証ツールが読む、削除した対象の記録。 */
+const SNAPSHOT_PATH = "tmp/sample-removal.json";
+
+function printUsage(): void {
+  console.log(
+    [
+      "使い方: pnpm exec tsx scripts/setup/remove-sample [--dry-run]",
+      "",
+      "  サンプル（EC の題材を持つ画面群と、その題材に固有の契約・モック）を破棄する。",
+      "  --dry-run  実際には書き換えず、対象だけを表示する",
+      "",
+      "  破棄後は pnpm exec tsx scripts/setup/verify-sample-removal で過不足を検証する。",
+    ].join("\n"),
+  );
+}
+
+/**
+ * 1 ファイルからマーカーで囲まれた行を落とす。
+ *
+ * @returns 報告に出す 1 行。マーカーを持てないファイルと、落ちる行が無かったファイルは `null`。
+ */
+function stripStep(relativePath: string, dryRun: boolean): string | null {
+  const content = readUtf8File(toAbsolutePath(relativePath));
+
+  // UTF-8 として往復できないファイル（画像など）はマーカーを持てない。
+  if (content === null) {
+    return null;
+  }
+
+  const result = stripMarkers(content, SAMPLE_MARKER);
+
+  if (result.removed === 0) {
+    return null;
+  }
+
+  if (!dryRun) {
+    fs.writeFileSync(toAbsolutePath(relativePath), result.content);
+  }
+
+  return `${relativePath} (${result.removed} 行)`;
+}
+
+function run(dryRun: boolean): void {
+  const redundant = findRedundantPaths(SAMPLE_PATHS);
+
+  if (redundant.length > 0) {
+    throw new Error(`宣言に重複があります:\n${redundant.join("\n")}`);
+  }
+
+  const scanned = listFilesRecursive(ROOT_DIR, { excludedDirectories: EXCLUDED_DIRECTORIES })
+    .map((filePath) => toRelativePath(filePath).split(path.sep).join("/"))
+    .filter(
+      (relativePath) =>
+        canHoldMarker(relativePath, BINARY_EXTENSIONS) &&
+        isScanTarget(relativePath, EXCLUDED_PATH_PREFIXES, MARKER_LITERAL_FILES),
+    );
+
+  const steps = buildSteps(scanned, SAMPLE_PATHS, ROOT_DIR);
+  const stripped: string[] = [];
+  const deleted: string[] = [];
+
+  for (const step of steps) {
+    if (step.kind === "strip") {
+      const summary = stripStep(step.relativePath, dryRun);
+
+      if (summary !== null) {
+        stripped.push(summary);
+      }
+
+      continue;
+    }
+
+    const removed = removeTarget(step.relativePath, dryRun);
+
+    if (removed !== null) {
+      deleted.push(removed);
+    }
+  }
+
+  if (!dryRun) {
+    fs.mkdirSync(toAbsolutePath("tmp"), { recursive: true });
+    fs.writeFileSync(
+      toAbsolutePath(SNAPSHOT_PATH),
+      `${JSON.stringify({ registeredPaths: SAMPLE_PATHS, danglingPattern: DANGLING_PATTERN }, null, 2)}\n`,
+    );
+  }
+
+  console.log(
+    `${dryRun ? "ドライラン" : "破棄完了"}: マーカー ${stripped.length} / 削除 ${deleted.length}`,
+  );
+
+  for (const entry of stripped) {
+    console.log(`- マーカー除去 ${entry}`);
+  }
+
+  for (const entry of deleted) {
+    console.log(`- 削除 ${entry}`);
+  }
+}
+
+/* istanbul ignore next -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */
+function main(): void {
+  const options = parseCommonFlags(process.argv.slice(2));
+
+  if (options.help) {
+    printUsage();
+    return;
+  }
+
+  try {
+    run(options.dryRun);
+  } catch (error) {
+    exitWithUsage(error as Error, printUsage);
+  }
+}
+
+main();

@@ -229,7 +229,7 @@ export function FilterChip({ label, value, removeHref, onRemove }: FilterChipPro
  * 縮めると、指で押す対象として小さすぎる。
  */
 const REMOVE_CONTROL_CLASS =
-  "inline-flex size-6 shrink-0 items-center justify-center rounded-full hover:bg-foreground/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-foreground [&>svg]:size-3";
+  "inline-flex size-6 shrink-0 items-center justify-center rounded-full hover:bg-foreground/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-active focus-visible:shadow-glow-primary [&>svg]:size-3";
 
 /**
  * 外した条件の解除操作は消えるため、focus を一覧へ移してから外す。捕捉段階で受け取るのは、

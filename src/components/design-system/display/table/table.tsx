@@ -1,13 +1,36 @@
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
+import { ScrollArea } from "../../container/scroll-area/scroll-area";
+
+/** {@link Table} の props。 */
+type TableProps = ComponentProps<"table"> & {
+  /** スクロールする領域の名前。 */
+  label?: string;
+  /**
+   * スクロールする領域へ与える class 名。
+   *
+   * @remarks
+   * `className` は `table` に付くため、高さの上限（`max-h-*`）はこちらへ渡す。行数で縦に
+   * 伸ばしたくない表は、外側をもう 1 枚のスクロール領域で包むのではなくここを使う。包むと
+   * スクロール領域が入れ子になり、focus を受け取る領域も二重になる。
+   */
+  containerClassName?: string;
+};
 
 /**
  * 列と行の関係が読み取りに必要な、構造化データを表す表。
  *
  * @remarks
- * 横幅が不足したときに横スクロールする wrapper で native `table` を包む。表そのものは
+ * 横幅が不足したときに横スクロールする `ScrollArea` で native `table` を包む。表そのものは
  * `TableHeader` / `TableBody` / `TableFooter` を子として合成して組み立てる。
+ *
+ * 包んだ領域は keyboard だけで横へ送れるよう focus を受け取るため、**`label` で名前を与える**。
+ * 名前が無いと、focus したときに何の領域へ入ったのかが判らない。`TableCaption` と同じ語を渡す。
+ *
+ * 端まで来たらスクロールを外側へ渡す。`ScrollArea` の既定は内側で止める指定だが、表は本文の
+ * 途中に置かれるものであり、上端で止まると**表の上に指を置いている間だけページが動かない**
+ * 状態になる。内側で止める必要があるのは、独立した面として重なる領域だけである。
  *
  * 取得・並べ替え・filter・pagination・行ごとの操作・業務型は持たない。これらは feature が
  * この部品を合成して実装する。列定義から表の骨格を展開したい場合は `sugar/table` を使う。
@@ -17,11 +40,11 @@ import { cn } from "@/components/cn";
  *
  * @example
  * ```tsx
- * <Table>
- *   <TableCaption>直近の注文</TableCaption>
+ * <Table label="直近の申請">
+ *   <TableCaption>直近の申請</TableCaption>
  *   <TableHeader>
  *     <TableRow>
- *       <TableHead scope="col">注文番号</TableHead>
+ *       <TableHead scope="col">申請番号</TableHead>
  *       <TableHead scope="col">金額</TableHead>
  *     </TableRow>
  *   </TableHeader>
@@ -40,18 +63,23 @@ import { cn } from "@/components/cn";
  * </Table>
  * ```
  *
- * @param props - native `table` 属性。
+ * @param props - native `table` 属性と `label`。
  * @see Storybook `Display/Table`
  */
-function Table({ className, ...props }: ComponentProps<"table">) {
+function Table({ className, containerClassName, label, ...props }: TableProps) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <ScrollArea
+      aria-label={label}
+      className={cn("relative w-full overscroll-auto", containerClassName)}
+      data-slot="table-container"
+      orientation="horizontal"
+    >
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
         {...props}
       />
-    </div>
+    </ScrollArea>
   );
 }
 
@@ -99,7 +127,7 @@ function TableFooter({ className, ...props }: ComponentProps<"tfoot">) {
   return (
     <tfoot
       data-slot="table-footer"
-      className={cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
+      className={cn("border-t bg-muted/50 font-emphasis [&>tr]:last:border-b-0", className)}
       {...props}
     />
   );
@@ -145,7 +173,7 @@ function TableHead({ className, ...props }: ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "h-10 px-2 text-left align-middle font-emphasis whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className,
       )}
       {...props}
@@ -196,4 +224,5 @@ function TableCaption({ className, ...props }: ComponentProps<"caption">) {
   );
 }
 
+export type { TableProps };
 export { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow };

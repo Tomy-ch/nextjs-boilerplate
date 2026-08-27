@@ -204,9 +204,9 @@ PR タイトルも日本語で書き、関連 issue / ADR を本文末尾に記�
 
 - 「最新の `release/*` から派生する」ルールがあるため、複数の `release/*` が並行する期間は **どの release に乗せるかを issue / PR 段階で決める**。曖昧な場合は最新の `release/*` を採る
 - **GitHub のデフォルトブランチは最新の `release/vX.Y.Z`** とする。リポジトリを開いた人が「現在作業中のリリース」を最初に見る形にするためで、go-boilerplate と同形式。デフォルトブランチはリリースを切るたびに新しい `release/*` へ張り替える
-- **PR の base 既定は `develop`**(デフォルトブランチとは一致しない)。`release/*` が開いている期間中は手動で base を `release/*` に向ける
+- **派生元と PR の base は、どちらもデフォルトブランチが指す `release/vX.Y.Z`。** 現行の `release/*` は `gh repo view --json defaultBranchRef` で引ける。デフォルトブランチが正しく張られていれば、`git switch -c <branch> origin/<release>` の宛先と、GitHub が PR で最初に提示する base が一致する
+- **`develop` を base に取ってよいのは `release/*` → `develop` の統合 PR だけ。** `feature/*` / `bugfix/*` の PR が `develop` を向いていたら、派生元を取り違えている。`develop` は統合先であり、開いている `release/*` より必ず後ろにいるため、そこを起点にすると既に載っている変更を差分として引き連れる
 - 本 ADR ではブランチ命名・保護対象・コミット粒度のみを宣言する。CI ジョブの具体構成 (どの job をどのブランチで走らせるか) や自動デプロイ連携の詳細は別 ADR で扱う
-- 旧運用との差分: 過去にはフィーチャブランチを `develop` から派生していた時期があるが、本 ADR 採用以降は `release/*` 派生で統一する
 
 ## 関連 ADR
 

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -61,10 +62,10 @@ describe("Drawer", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("trigger の操作で開き、title と説明を関連付ける", () => {
+  it("trigger の操作で開き、title と説明を関連付ける", async () => {
     render(<DrawerFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "補足を開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "補足を開く" }));
 
     const content = screen.getByRole("dialog", { name: "表示条件" });
 
@@ -124,27 +125,27 @@ describe("Drawer", () => {
     expect(trigger).toHaveAttribute("aria-controls", content.id);
   });
 
-  it("DrawerClose で内容側から閉じられる", () => {
+  it("DrawerClose で内容側から閉じられる", async () => {
     render(<DrawerFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("Escape で閉じる", () => {
+  it("Escape で閉じる", async () => {
     render(<DrawerFixture defaultOpen />);
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("dismissible を false にすると Escape でも DrawerClose でも閉じない", () => {
+  it("dismissible を false にすると Escape でも DrawerClose でも閉じない", async () => {
     render(<DrawerFixture defaultOpen dismissible={false} />);
 
-    fireEvent.keyDown(document, { key: "Escape" });
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.getByRole("dialog", { name: "表示条件" })).toBeInTheDocument();
   });
@@ -187,7 +188,6 @@ describe("Drawer", () => {
 });
 
 describe("DrawerTrigger", () => {
-  // ----- 正常系 -----
   it("開く操作として slot を持つ要素を描画する", () => {
     render(<DrawerFixture />);
 
@@ -197,17 +197,16 @@ describe("DrawerTrigger", () => {
     );
   });
 
-  it("押すと内容を開く", () => {
+  it("押すと内容を開く", async () => {
     render(<DrawerFixture />);
 
-    fireEvent.click(screen.getByRole("button", { name: "補足を開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "補足を開く" }));
 
     expect(screen.getByRole("dialog")).toBeVisible();
   });
 });
 
 describe("DrawerPortal", () => {
-  // ----- 正常系 -----
   it("内容を呼び出し位置の外へ描画する", () => {
     const { container } = render(<DrawerFixture defaultOpen />);
 
@@ -217,14 +216,12 @@ describe("DrawerPortal", () => {
 });
 
 describe("DrawerOverlay", () => {
-  // ----- 正常系 -----
   it("開いている間だけ背面の覆いを描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
     expect(document.querySelector('[data-slot="drawer-overlay"]')).not.toBeNull();
   });
 
-  // ----- 異常系 -----
   it("閉じている間は背面の覆いを描画しない", () => {
     render(<DrawerFixture />);
 
@@ -233,14 +230,12 @@ describe("DrawerOverlay", () => {
 });
 
 describe("DrawerContent", () => {
-  // ----- 正常系 -----
   it("開いた内容として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
     expect(screen.getByRole("dialog")).toHaveAttribute("data-slot", "drawer-content");
   });
 
-  // ----- 異常系 -----
   it("閉じている間は内容を描画しない", () => {
     render(<DrawerFixture />);
 
@@ -249,7 +244,6 @@ describe("DrawerContent", () => {
 });
 
 describe("DrawerHeader", () => {
-  // ----- 正常系 -----
   it("見出し枠として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
@@ -258,7 +252,6 @@ describe("DrawerHeader", () => {
 });
 
 describe("DrawerFooter", () => {
-  // ----- 正常系 -----
   it("操作枠として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
@@ -267,7 +260,6 @@ describe("DrawerFooter", () => {
 });
 
 describe("DrawerTitle", () => {
-  // ----- 正常系 -----
   it("題名として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
@@ -276,7 +268,6 @@ describe("DrawerTitle", () => {
 });
 
 describe("DrawerDescription", () => {
-  // ----- 正常系 -----
   it("補足として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
@@ -288,7 +279,6 @@ describe("DrawerDescription", () => {
 });
 
 describe("DrawerClose", () => {
-  // ----- 正常系 -----
   it("閉じる操作として slot を持つ要素を描画する", () => {
     render(<DrawerFixture defaultOpen />);
 
@@ -298,10 +288,10 @@ describe("DrawerClose", () => {
     );
   });
 
-  it("押すと内容を閉じる", () => {
+  it("押すと内容を閉じる", async () => {
     render(<DrawerFixture defaultOpen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "戻る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
 
     expect(screen.queryByRole("dialog")).toBeNull();
   });

@@ -51,8 +51,21 @@ next-env.d.ts
 # 作業用スクラッチ（レビュー所見の出力先 / repo 外作業計画書の symlink / ツールのロックファイル）
 /tmp
 
+# 撮影を複数台へ割ったときの中間レポート。Playwright が既定で置く場所で、
+# `merge-reports` が 1 本へ束ね直すまでの間しか存在しない（`.github/workflows/vrt.yaml`）
+/blob-report
+
 # エージェントが作る worktree の実体。別ブランチの作業ツリーであってこのリポジトリのソースではない
 /.claude/worktrees/
 
 # graphify の出力（graph.json / GRAPH_REPORT.md 等）。コード変更ごとに動く派生物
 /graphify-out
+
+# 取得を横取りする service worker。カタログの設定が起動のたびに依存から写すため、依存の版と
+# 必ず揃う。置き場そのものは追跡する（.storybook/public/README.md）
+/.storybook/public/mockServiceWorker.js
+
+# ZAP が組み立てる automation plan。`make dast` が走るたびに書き直される派生物で、
+# 走査の条件そのものは .github/zap/rules.tsv と make のターゲットが持つ。
+# 出力先はツール側が /zap/wrk 直下に決めており、cwd では動かせない
+/zap.yaml

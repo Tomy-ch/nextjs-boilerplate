@@ -29,21 +29,35 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 | PermissionDenied | `FORBIDDEN` | 403 | ユーザ起因 |
 | NotFound | `NOT_FOUND` | 404 | ユーザ起因 |
 | Conflict | `RESOURCE_CONFLICT` | 409 | ユーザ起因 |
+| PayloadTooLarge | `PAYLOAD_TOO_LARGE` | 413 | ユーザ起因 |
+| UriTooLong | `URI_TOO_LONG` | 414 | ユーザ起因 |
+| UnsupportedMediaType | `UNSUPPORTED_MEDIA_TYPE` | 415 | ユーザ起因 |
 | Validation | `VALIDATION_FAILED` | 422 | ユーザ起因 |
 | TooManyRequests | `TOO_MANY_REQUESTS` | 429 | ユーザ起因 |
+| Canceled | `CANCELED` | 499 | ユーザ起因 |
 | Unavailable | `SERVICE_UNAVAILABLE` | 503 | システム起因(リトライ含意) |
 | Unimplemented | `NOT_IMPLEMENTED` | 501 | システム起因 |
 | Internal | `INTERNAL` | 500 | システム起因 |
 
 - go の worker 分類 sentinel(`ErrRetryable` / `ErrPermanent` / `ErrFatal`)はメッセージング worker 固有のため**採用しない**(表示層は HTTP taxonomy のみ翻案)
 - **エラーコード語彙は wire 契約に整合させる(独自語彙を発明しない)**: 上表の安定エラーコード文字列は暫定ラベルであり、**バックエンドが実際に `ErrorResponse.code` で返すコード enum(契約 SSOT = バックエンドリポの `openapi.gen.yaml`。[0070](0070-backend-role-separation.md) A2 / [0072](0072-api-type-generation.md) B4)に実装時に整合させる**。エラーコードは「ソースファイル / 識別子の命名」ではなく **wire contract の値**であるため、[0028](0028-naming-convention.md) の「命名の権威を go に置かない」方針の対象外であり、契約忠実(= バックエンドの語彙に従う)を優先する。フロント内部で追加の分類ラベルが要る場合も、wire コードと別語彙を競合させない。※上表(gRPC canonical 寄りの暫定名)と go 実体(`UNAUTHORIZED` / `ACCESS_DENIED` / `INTERNAL_ERROR` 等)の差異は、実際の契約が判明した実装時に解消する
-- go の HTTP taxonomy には 11 個目の分類 **`Canceled`(コード `CLIENT_CLOSED_REQUEST` / status 499・非標準)** が存在するが、本表には含めていない。fetch の中断([0071](0071-bff-api-integration.md) の dual timeout / `AbortSignal`)を独立分類として扱うかは実装 PR で判断し、採用時は本表へ追補する
+- **`Canceled`(status 499・非標準)を独立分類として採る**。fetch の中断([0071](0071-bff-api-integration.md) の dual timeout / `AbortSignal`)は失敗ではなく打ち切りであり、システム起因の失敗へ畳むと再試行の対象になる
+- **`UriTooLong`(414)を `PayloadTooLarge`(413)と分けて持つ**。要求の本体が大きいのと、条件を載せた URL が長いのとでは、利用者が減らすべきものが違う。畳むと「送信するデータが大きすぎます」しか出せず、条件を減らせばよいことが伝わらない
 
 ### 2. 境界での HTTP status 正規化(1 回のみ)
 
 - バックエンド応答の生 HTTP status → sentinel 分類 + 安定エラーコード + ユーザ向けメッセージ への変換は、**`adapters` 境界で 1 回だけ**行う([0071](0071-bff-api-integration.md) B3 の「生 status を errors へ正規化」の詳細=本 ADR。go `http_error.go` の対応表 + `lookupErrorMetaByAppError` の翻案)
 - **生 HTTP status・生エラーを内層 / UI へ漏らさない**([0071](0071-bff-api-integration.md) と一致)。未知エラーは `Internal`(500)へ矯正する
 - ユーザ向けメッセージは日本語(AGENTS.md Language Rules)。メッセージ本文は実装時に確定(本 ADR は分類とコードの対応表を定める)
+- **クライアント経路も同じ境界で分類する。** 同一オリジンの BFF を叩く `adapters/client` も生 status を
+  そのまま投げ直さず、この対応表へ写す。特に `Unauthenticated`(401)を `Internal` へ畳まないこと ——
+  畳むと呼び出し側は「再試行できる失敗」としか扱えず、資格情報が切れているのに読み直す操作しか
+  出せない画面になる(再試行は 401 / 403 / 404 では誤り。`components/app-starter/auth-state-feedback`)
+- **補助的な値の degrade は、画面ごとに決めさせず境界で 1 度畳む。** 表示のためだけにあり、
+  読めなくても画面が成り立つ値(参考換算額のような添え物)は、`adapters` に「読めなければ `null`」を
+  返す口を置き、投げる口も残す。画面ごとに try / catch を書かせると、同じ判断が画面の数だけ増え、
+  片方だけが落ちる画面が生まれる。**逆に、落として良いかどうかが画面で割れる値は畳まない** ——
+  畳めるのは「どの画面も同じ扱いをする」ことが言い切れるときだけである
 
 ### 3. App Router のエラー特殊ファイル階層
 
@@ -63,6 +77,12 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - `loading.tsx`(セグメントの pending UI)と `<Suspense fallback>` は、**待機表示を担う薄い表示境界**とする。`error.tsx` と対をなし、いずれも業務ロジックを持たない。中身のコンポーネントは feature 側に置き、特殊ファイルからは薄く委譲する(error.tsx と同じ / [0040](0040-routing-rendering-strategy.md) driving adapter 原則)
 - **Suspense 境界の粒度**: streaming SSR で「先に出せるシェル」と「待つ部分」を分けるため、境界は **feature 内の、実際にデータ待ちする部分の近く**に置く(`"use client"` を葉へ押し下げる [0040](0040-routing-rendering-strategy.md) と同じ発想で、fallback 境界も過度に上位へ置かない)。`page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにしない
 - `loading.tsx` も `app/` 配下の App Router 特殊ファイル([0027](0027-directory-structure.md) / [0028](0028-naming-convention.md))である
+- **一次資源が見つからないことのある route に `loading.tsx` を置かない。** 置くと応答が streaming になり、
+  本文より先にヘッダが出る。その後で `notFound()` に達しても status はもう 200 で、見つからない購入・記事・
+  ユーザが 200 として配信される。待機を見せたいなら、**取得が終わってから内側の一部分を `<Suspense>` で包む**
+- **その結果、待機の状態を持たない画面がある。** `rules.md` #18 の 4 状態は「4 つ必ず作る」ではなく
+  「4 つを設計して、所有するものを実装・テストする」である。所有しない状態の部品を作ると、
+  どこからも参照されない skeleton が残る。**所有しないと決めたことと、その理由を README に書く**
 - fallback の**見た目(スケルトン / スピナー)の UI 規約と、Suspense × PPR(`Cache Components`)の相互作用**は用途依存 / [0040](0040-routing-rendering-strategy.md) の保留に従う。本節は「境界の配置と薄さ」までを定め、UI 表現・PPR 前提設計は実装 PR で確定する
 
 ### 5. swallow 禁止・cause chain・redact(go `rules.md` 翻案)
@@ -76,6 +96,12 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - エラーのログは **境界で 1 回**(`adapters` の正規化点 / route の error 境界)出力し、二重ログを抑止する(go errorhandler の翻案)
 - **5xx(システム起因)= error レベル / 4xx(ユーザ起因)= warn レベル**(go の `errorLevelBoundHTTPStatus=500` の翻案)。ログの具体(スキーマ・出力先・trace 相関)は **B7([0081](0081-observability-logging.md))** が正
 
+### 境界の粒度
+
+`error.tsx` は**失われて困る範囲の外側**に置く。境界の内側は丸ごと差し替わるため、境界が広いほど、1 つの取得の失敗で消える導線が増える。route 直下に置くのは、その route の本文が失敗しても header・nav・footer を残すためである。
+
+**部分的な失敗を許す画面では、境界ではなく表示で受ける。** 落ちてよい 1 系統のために画面全体を差し替えない([0063](0063-mutation-result-notification.md) の通知手段を使う)。
+
 ## 禁止事項
 
 - ❌ `errors` カーネルに HTTP status / レスポンス形式を持たせること(分類は transport 非依存。変換は境界)
@@ -84,6 +110,10 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - ❌ `error.tsx` / `global-error.tsx` / `not-found.tsx` / `loading.tsx` / Suspense fallback に業務ロジックを書くこと(薄い表示境界)
 - ❌ `page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにし、Suspense 境界を待つ部分の近くへ置かないこと(ストリーミングの利点を捨てる)
 - ❌ 同一エラーを複数箇所で重複ログすること(境界で 1 回)
+- ❌ `Unauthenticated`(401)を `Internal` へ畳むこと(§2。再試行できる失敗と混ざる)
+- ❌ 画面が成り立つために要らない値の degrade を、画面ごとの try / catch で書くこと(§2。境界で畳む)
+- ❌ 一次資源が 404 になりうる route に `loading.tsx` を置くこと(§4。200 で配信される)
+- ❌ 画面が所有しない状態の部品を作ること(§4。参照されない skeleton が残る)
 
 ## 補足
 

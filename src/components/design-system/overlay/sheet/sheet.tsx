@@ -1,11 +1,13 @@
 "use client";
 
-import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
 import { XIcon } from "lucide-react";
+import { Dialog as SheetPrimitive } from "radix-ui";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
+
+import { useOverlayHistory } from "../use-overlay-history";
 
 import { SHEET_SIDE, type SheetSide } from "./sheet.definition";
 
@@ -46,8 +48,22 @@ const sheetContentVariants = cva(
  *
  * @see Storybook `Overlay/Sheet`
  */
-function Sheet({ ...props }: ComponentProps<typeof SheetPrimitive.Root>) {
-  return <SheetPrimitive.Root data-slot="sheet" {...props} />;
+function Sheet({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: ComponentProps<typeof SheetPrimitive.Root>) {
+  const history = useOverlayHistory({ defaultOpen, onOpenChange, open });
+
+  return (
+    <SheetPrimitive.Root
+      data-slot="sheet"
+      onOpenChange={history.setOpen}
+      open={history.open}
+      {...props}
+    />
+  );
 }
 
 /**
@@ -169,7 +185,7 @@ function SheetContent({
         {children}
         {showCloseButton ? (
           <SheetPrimitive.Close
-            className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none data-[state=open]:bg-accent"
+            className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary disabled:pointer-events-none data-[state=open]:bg-accent"
             data-slot="sheet-close"
           >
             <XIcon className="size-4" />
@@ -233,7 +249,7 @@ function SheetFooter({ className, ...props }: ComponentProps<"div">) {
 function SheetTitle({ className, ...props }: ComponentProps<typeof SheetPrimitive.Title>) {
   return (
     <SheetPrimitive.Title
-      className={cn("font-semibold text-foreground", className)}
+      className={cn("font-emphasis text-foreground", className)}
       data-slot="sheet-title"
       {...props}
     />
