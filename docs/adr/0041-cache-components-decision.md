@@ -1,6 +1,6 @@
 # Cache Components(PPR)有効化判断
 
-[0040](0040-routing-rendering-strategy.md)(A4)が「レンダリングモードを強制しない」までを確定し、データ取得のキャッシュ設計を [0071](0071-bff-api-integration.md)(B3)へ、`loading.tsx` / Suspense 境界を [0080](0080-error-handling.md)(B6)へ引き渡した結果、なお **穴が残った**。`Cache Components`(PPR 既定化 = `next.config.ts` の `cacheComponents: true`)の有効化可否が「B3 / B6 確定後に判断」と保留されたまま宙吊りである(両者は既に Accepted)。本 ADR はこの 1 点を、[0010](0010-standards-and-non-lockin.md) の標準準拠・非ロックイン判断軸の下で確定する。
+`Cache Components`(PPR 既定化 = `next.config.ts` の `cacheComponents: true`)の採否を、[0010](0010-standards-and-non-lockin.md) の標準準拠・非ロックイン判断軸の下で定める。レンダリングモードの選択は [0040](0040-routing-rendering-strategy.md) が、データ取得のキャッシュ・再検証は [0071](0071-bff-api-integration.md) が、Suspense 境界の配置は [0080](0080-error-handling.md) が持ち、本 ADR はそれらの上で **PPR を採るかどうか** の 1 点だけを持つ。
 
 ## Status
 
@@ -8,13 +8,9 @@ Accepted
 
 （**採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**。本 ADR は triage #1 から独立起票したものである。日付 2026-07-14。0.0.x の ADR は living document として本文を直接上書きし、改定履歴を積まない）
 
-**分割注記**: 本 ADR は当初「Cache Components 判定(#1)+ ページネーション(#7)」を束ねていたが、「1 ADR = 1 主題」の原則に照らして per-subject 分割し、ページネーション / 無限スクロールのデータ取得境界(旧 §2 / §3)を [0073](0073-pagination-fetch-boundary.md) へ分離した。本 ADR は Cache Components 有効化判断(旧 §1 = #1)に縮約している。
-
 ## 背景
 
-設計フェーズの遡及監査で、0040 が下流 ADR へ引き渡した後に残った **「委譲先消失」に近い件**が特定された(triage #1 = 判定)。
-
-- **#1 Cache Components(PPR)有効化判断**: 0040 は本文で「`Cache Components` の有効化可否は保留する。データ取得([B3])・env のプリレンダー凍結([0030](0030-environment-variable-management.md) A7)と交差するため、それらの確定後に判断する」と明示保留した。0071(B3)/ 0080(B6)は Accepted になり、0071 は「`Cache Components` の有効化可否は 0040 の保留に従う」、0080 §4 も「Suspense × PPR の相互作用は 0040 の保留に従う」と、いずれも 0040 へ差し戻す形で判断を先送りしていた。トリガー(B3 / B6 Accepted)は成立済みであり、**判断を下すだけ**の状態にある。
+この判断は、データ取得のキャッシュ設計([0071](0071-bff-api-integration.md))・env のプリレンダー凍結([0030](0030-environment-variable-management.md))・Suspense 境界の配置([0080](0080-error-handling.md))と交差する。いずれも既に確定しているため、本 ADR は採否だけを扱う。
 
 裏取り(`node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/cacheComponents.md`): `cacheComponents` は 16.0.0 で導入され、従来の `ppr` / `useCache` / `dynamicIO` を **1 つに統合**した設定である。有効化するとデータ取得は明示 `use cache` しない限りプリレンダーから除外され、`use cache` を page / function / component 粒度で置く運用が前提になる。さらに有効時は client-side navigation で React `<Activity>` により旧ルートを unmount せず **state を保存**する(遷移意味論そのものが変わる)。
 
@@ -43,9 +39,9 @@ Accepted
 
 ## 補足
 
-- 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーにおいて **judgment** 分類に属する(#1 = 保留の判断を下す judgment)。
+- 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーにおいて **judgment** 分類に属する。
 - `use cache` の粒度・静的な殻 / 動的な穴の分割・[0030](0030-environment-variable-management.md) の env プリレンダー凍結との整合・[0080](0080-error-handling.md) §4 の Suspense × PPR は、移行 PR の中で 0071 / 0080 のキャッシュ節を追補して確定する。
-- ページネーション / 無限スクロールのデータ取得境界(旧 §2 / §3 = #7)は本 ADR の対象外であり、[0073](0073-pagination-fetch-boundary.md) が所有する。無限スクロールの初回 RSC 取得が拠って立つキャッシュモデルは本 ADR の確定に従う。
+- ページネーション / 無限スクロールのデータ取得境界は本 ADR の対象外であり、[0073](0073-pagination-fetch-boundary.md) が所有する。無限スクロールの初回 RSC 取得が拠って立つキャッシュモデルは本 ADR の確定に従う。
 
 ## 関連 ADR
 

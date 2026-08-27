@@ -10,7 +10,7 @@ Accepted
 
 ## 背景
 
-ADR 空白の遡及監査(#36)で、**React 19 のレンダリング関連 API の書き方規約がどの ADR にも存在しない**ことが判明した。[0040](0040-routing-rendering-strategy.md) は「Server / Client 境界を **どこに置くか**(WHERE)」を定めるルーティング ADR であり、「境界の内側で React API を **どう書くか**(HOW)」は射程外である。
+[0040](0040-routing-rendering-strategy.md) は「Server / Client 境界を **どこに置くか**(WHERE)」を定めるルーティング ADR であり、「境界の内側で React API を **どう書くか**(HOW)」は射程外である。本 ADR がその HOW を持つ。
 
 本リポジトリは **React 19.2 / Next.js 16** を採用しており([0011](0011-no-docker.md) / App Router de facto の帰結)、この領域は AI エージェントの訓練データと乖離が大きい([AGENTS.md](../../AGENTS.md)「This is NOT the Next.js you know」)。規約が無いと、新旧パターン(`forwardRef` / 手書き `memo` / `useCallback` と、ref as prop / React Compiler)が実装者ごとに混在する。本 ADR はレンダリング関連 React API の使用規約を成文化する。
 
@@ -105,11 +105,9 @@ Compiler を SSR-First の前提や標準挙動には置かない。Compiler を
 
 ## 補足
 
-- **decision と rule の分界**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は React Compiler の**採否**(decision)と各 API の**採用方針**(decision)を確定する。他方、日常強制される制約 —— 「`forwardRef` を書かない」「派生値を effect 同期しない」「意味を持たないメモ化を撒かない」 —— は **rule 分類**であり、`docs/rules.md` 新設([0140](0140-documentation-operations.md) 決定 3)時に `> Rationale: [ADR-0042]` 逆参照付きでそちらへ段階移行する。本 ADR 本文には rule の芯(なぜ)のみを残す。
+- **decision と rule の分界**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は React Compiler の**採否**(decision)と各 API の**採用方針**(decision)を確定する。他方、日常強制される制約 —— 「`forwardRef` を書かない」「派生値を effect 同期しない」「意味を持たないメモ化を撒かない」 —— は **rule 分類**であり、[`docs/rules.md`](../rules.md) が Rationale 逆参照付きで持つ。本 ADR 本文には rule の芯(なぜ)のみを残す。
 - **「手書き memo 禁止」という連動規約は発生しない**: 決定 4 が全体適用を採らないため、Compiler にメモ化を委ねることを前提にした手書き禁止規約は生じない。`compilationMode` の選択も決定 4 が `annotation` を基本候補として持つ。
 - **React Compiler は correctness / architecture / runtime の前提ではない**: 本体の実装・レビュー・テストは Compiler の有無に依存しない。opt-in された箇所は、E2E / VRT / 操作の応答性 / 性能計測で効果を確認したうえで維持する。
-- **単一項目性への注記**: 本 ADR は #36 単独の小 ADR である。将来 [0071](0071-bff-api-integration.md) 近傍に「データ取得・レンダリング」を束ねる ADR が起こる場合、`use()` のデータ取得側面はそちらへ吸収し得る(本 ADR はレンダリング API の書き方に純化する)。この整理も v1 大規模整理で行う。
-- 本 ADR の Accepted に伴う AGENTS.md への反映は不要(該当 `[TODO]` 節を持たない領域)。
 
 ## 関連 ADR
 
