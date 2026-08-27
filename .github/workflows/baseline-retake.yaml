@@ -565,9 +565,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Named after the pull request being served, so one release pull request has at
-          # most one pointer proposal open against it at a time.
-          branch="baseline-retake/${PR}"
+          # Read BEFORE the replacement exists, so the supersede below cannot reach the
+          # proposal this run is about to open.
+          prefix="baseline-retake/${PR}-"
+          superseded="$(GH_TOKEN="$TOKEN" gh pr list --repo "$GITHUB_REPOSITORY" \
+            --base "$BASE" --state open --json number,headRefName \
+            --jq '.[] | "\(.number) \(.headRefName)"' |
+            awk -v p="$prefix" 'index($2, p) == 1 { print $1 }')"
 
           # The value never appears in argv, so it stays out of `ps` and out of any
           # process listing a later step might produce.
@@ -576,12 +580,13 @@ jobs:
 
           git commit -m "Test: 基準画像を撮り直す" -m "撮り直し: ${TRIGGER} / 対象: ${IDS}"
 
-          # A pointer branch left from an earlier retake holds superseded images, and its
-          # commit is not an ancestor of what was just taken. Dropping it first keeps this
-          # push a fast-forward rather than a rewrite, and closes the pull request that
-          # proposed those images — which is the right outcome, because they are no longer
-          # the ones being proposed.
-          git push origin --delete "$branch" || true
+          # Named after the commit it carries, so **every push here creates a ref that did
+          # not exist**. Reusing one name would make a second retake either a force push or
+          # a delete-then-create, and both are worse than an extra branch: the first rewrites
+          # history, and the second opens a window in which no pointer is proposed at all
+          # and takes the review thread with it.
+          sha="$(git rev-parse HEAD)"
+          branch="${prefix}$(git rev-parse --short HEAD)"
           git push origin "HEAD:refs/heads/${branch}"
 
           git config --local --unset-all http.extraheader
@@ -603,7 +608,15 @@ jobs:
             --title "Test: 基準画像を撮り直す (#${PR})" \
             --body-file pointer-pr-body.md)"
 
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          # Only now that the replacement exists. Closed rather than deleted, so the thread
+          # that discussed the earlier pixels survives and the reviewer can see where it
+          # went; the branch goes with it because nothing else refers to it.
+          for old in ${superseded}; do
+            GH_TOKEN="$TOKEN" gh pr close "$old" --repo "$GITHUB_REPOSITORY" --delete-branch \
+              --comment "🎞️ 基準画像を撮り直したので、この提案は ${url} に置き換わりました。" || true
+          done
+
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
 
       # The body is built here but published by a job that holds no App secret, so a
