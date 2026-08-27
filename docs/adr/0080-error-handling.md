@@ -83,7 +83,7 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - **その結果、待機の状態を持たない画面がある。** `rules.md` #18 の 4 状態は「4 つ必ず作る」ではなく
   「4 つを設計して、所有するものを実装・テストする」である。所有しない状態の部品を作ると、
   どこからも参照されない skeleton が残る。**所有しないと決めたことと、その理由を README に書く**
-- fallback の**見た目(スケルトン / スピナー)の UI 規約と、Suspense × PPR(`Cache Components`)の相互作用**は用途依存 / [0040](0040-routing-rendering-strategy.md) の保留に従う。本節は「境界の配置と薄さ」までを定め、UI 表現・PPR 前提設計は実装 PR で確定する
+- fallback の**見た目(スケルトン / スピナー)の UI 規約と、Suspense × PPR(`Cache Components`)の相互作用**は用途依存であり、PPR の採否は [0041](0041-cache-components-decision.md) が v1 採用に確定した(相互作用の確定は移行 PR)。本節は「境界の配置と薄さ」までを定め、UI 表現・PPR 前提設計は実装 PR で確定する
 
 ### 5. swallow 禁止・cause chain・redact(go `rules.md` 翻案)
 

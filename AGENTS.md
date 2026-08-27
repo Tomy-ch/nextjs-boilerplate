@@ -137,6 +137,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0102](docs/adr/0102-browser-support.md) | Browser support | Support matrix |
 | [0110](docs/adr/0110-security-operations.md) | Security ops | Dependabot + cooldown / gitleaks secret scan (fail-closed) / vulnerability scan is report-only / suppression-policy format |
 | [0111](docs/adr/0111-csp-security-headers.md) | CSP / security headers | runtime CSP & security headers |
+| [0112](docs/adr/0112-data-classification-cache-boundary.md) | データ分類 / キャッシュ境界 | PII・user-scoped・secret の置き場 / 分類は取得の口が持つ / 段ごとの関所 |
 | [0120](docs/adr/0120-locale-aware-formatting.md) | Locale formatting | date/number formatting + date-fns date arithmetic |
 | [0121](docs/adr/0121-i18n-strategy.md) | i18n (exclusion) | i18n not adopted (negative decision) |
 | [0130](docs/adr/0130-pwa-strategy.md) | PWA (exclusion) | PWA not adopted (negative decision) |
