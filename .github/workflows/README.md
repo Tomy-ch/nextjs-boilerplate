@@ -413,18 +413,3 @@ detection は「何が見つかったか」を言えなければ、報告して�
 **これがリポジトリ唯一の `workflow_call`。** 他の共有物は composite action だが、composite action は呼び出し元の job の中で動くため、webhook が「たった今スキャンした依存ツリーを展開したランナー」に載る。`workflow_call` は必ず自前のランナーを取り、このファイルはリポジトリを checkout しない。
 
 なお `make actions-comment-secret-lint` は、この呼び出しを**呼び出し先が投稿するかどうか**で判定する（`notify.yaml` は投稿しないので、呼び出し元は投稿ジョブにならない）。リモートの reusable workflow は解決できないため、従来どおり exit 2 で落ちる。
-
-## 不採用の判断
-
-| 候補 | 判断 | 理由 |
-| --- | --- | --- |
-| `sync-versions-check` | 不採用 | `mise.toml` の版数を複製する下流が本リポに存在しない（Dockerfile 無し / CI は `setup-mise` が `mise.toml` を直読み）。検査対象そのものが無い。`package.json` の `engines` / `packageManager` 等、版数の第二宣言を置いた時点で採用する |
-| `auto-generate-docs` | 不採用 | portal の生成物（`guides/` / `docs.json`）は追跡せず配信時に組み立てるため、drift が発生しえない。追跡する生成物を持つのは型生成（[0072](../../docs/adr/0072-api-type-generation.md)）が入る時点で、そこで再検討する |
-| njsscan | 不採用 | **重複が実測で確かめられた。** 導入して走らせたところ、このツリーに対する所見は 0 件で、`sast`（opengrep）が既に `p/javascript` / `p/typescript` / `p/owasp-top-ten` を当てている。**ライセンスは理由ではない** —— njsscan 自身は LGPL-3.0 で、ルールもライセンス変更前の semgrep-rules 由来を同梱しており、`sast` がレジストリから引くルールより制約が緩い。落とすのは、重なる層のために semgrep 本体（47 MB）を供給網へ足すことになるため |
-| Snyk | 不採用 | SaaS への登録が前提。**最低保証の層を、fork 先が契約していない事業者に預けない。** 見る面（依存の脆弱性）は Trivy / OSV / `pnpm audit` の 3 つが既に覆っており、増えるのは死角ではなく依存先である |
-<!-- boilerplate-only:replace-begin -->
-| SonarQube（self-host） | 不採用 | self-host できる点は Snyk と違うが、boilerplate が配る前提としては重い —— サーバと DB を建てて初めて 1 つの検査が動く。**同じ解析は SonarCloud 版（`sonarcloud.yaml`）が持ち、そちらはアカウントが無ければ黙って降りる。** self-host したい fork は、あの workflow のサーバ URL を差し替えれば届く |
-<!-- boilerplate-only:replace-with -->
-<!-- = | SonarQube（self-host） | 不採用 | self-host できる点は Snyk と違うが、配る前提としては重い —— サーバと DB を建てて初めて 1 つの検査が動く。同じ問いには `sast`（opengrep）と `codeql` が答える | -->
-<!-- boilerplate-only:replace-end -->
-| `eslint-plugin-security` の推奨プリセット | 部分採用 | プラグインは採るが、`security.configs.recommended` は当てない（[0002](../../docs/adr/0002-formatter-linter.md) の能力ベース分担は束の適用を禁じる）。**0 件の baseline を保てる 9 規則だけ**を `eslint.config.ts` で有効にし、落とした 5 規則とその理由もそこに書いてある |
