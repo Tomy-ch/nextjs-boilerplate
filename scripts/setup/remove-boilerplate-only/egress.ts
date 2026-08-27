@@ -17,6 +17,7 @@
  * 1 本消すときだけなので、[manifest](manifest.ts) の削除対象と対で動きます。
  */
 export const ORPHANED_WORKFLOWS: readonly string[] = [
+  "codeql",
   "dependency-review",
   "sonarcloud",
   "strip-verify",

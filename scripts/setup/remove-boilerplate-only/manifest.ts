@@ -30,6 +30,13 @@ export const SELF_DESTRUCT_PATHS: readonly string[] = [
   // 「金が掛かる」か「コードでは直せない赤」かのどちらかを受け取る。
   // ファイルまるごと消すものはマーカーを持てない（消える側に印を書くことになる）ため、ここで宣言する。
   ".github/workflows/dependency-review.yaml",
+  // 走らせる解析が無料なのは public のときだけで、private では Code Security のライセンスを
+  // 要求する。dependency-review と同じ理由で、既定として配ると fork は「金が掛かる」か
+  // 「コードでは直せない赤」かのどちらかを受け取る。設定は読む相手が消えるので一緒に落とす。
+  // **`github/codeql-action` の pin は残す** —— `upload-sarif` を bearer / devskim / sast /
+  // scorecard が使い続ける。
+  ".github/workflows/codeql.yaml",
+  ".github/codeql",
   // 解析先がこのリポジトリの SonarCloud organization に紐づく検査。projectKey も
   // organization もここの名前なので、そのまま渡ると fork では死んだ設定になる。SONAR_TOKEN が
   // 無い間は赤くならない作りだが、赤くならないことと持っている意味があることは別である。
