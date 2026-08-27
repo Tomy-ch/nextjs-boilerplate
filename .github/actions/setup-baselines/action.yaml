@@ -54,10 +54,8 @@ runs:
     # ends: fetching the recorded commit here, and — for the caller that retakes — pushing
     # the new baselines to the store and the moved pointer to this repository.
     #
-    # `pull_requests` is requested only when the caller asks for it, and an unset input
-    # leaves it out of the token entirely. A branch the ruleset guards takes the pointer
-    # through a pull request rather than a push, and opening one needs this; the callers
-    # that only read baselines must not carry it.
+    # `pull_requests` only when the caller asks: an unset input leaves it out of the token,
+    # and the callers that only read baselines must not carry it.
     - name: Mint a token for the baseline store
       id: token
       if: inputs.app-id != ''
