@@ -89,7 +89,11 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 | --- | --- | --- |
 | **ゲート** | gitleaks / Opengrep / eslint-plugin-security / 依存監査 / Trivy・OSV の昇格側 / Dependency Review | job 自身の exit code |
 | **報告専用** | Trivy・OSV の報告側 | 何も赤にしない(スキャナが走らなかったときだけ落ちる) |
+<!-- boilerplate-only:replace-begin -->
 | **code scanning へ送る** | CodeQL / Bearer / DevSkim / SonarQube Cloud | **その変更が新しく持ち込んだ所見**に対する GitHub 側の差分チェック |
+<!-- boilerplate-only:replace-with -->
+<!-- = | **code scanning へ送る** | CodeQL / Bearer / DevSkim | **その変更が新しく持ち込んだ所見**に対する GitHub 側の差分チェック | -->
+<!-- boilerplate-only:replace-end -->
 
 3 つ目は「落とさない」と「見せない」を分けるための配線である。job は緑を返すが、**差分が持ち込んだ alert は PR を赤にする**。baseline を 0 件にできない層 —— 誤検知の傾向が強く、0 へ寄せるには規則単位の無効化が要る層 —— はここに置く。規則単位の無効化は下記 3.4 が禁じている。
 
@@ -118,7 +122,7 @@ Security グループは**週次スケジュール + 差分が届く PR** で走
 | `.gitleaksignore` | 検出 1 件(フィンガープリント `<path>:<rule-id>:<line>`) |
 | `.trivyignore.yaml` | 脆弱性 ID 1 件(`paths` でパスを限定) |
 | `osv-scanner.toml` | 脆弱性 ID 1 件(`reason` が必須)。**フィルタした所見をツールが理由付きで出力へ残す**ため、抑止と黙殺が見分けられる |
-| `sonar-project.properties` | ルール 1 件 × パスの組(`sonar.issue.ignore.multicriteria`)。**SonarCloud は hotspot を UI で review する仕組みを持つが、それはリポジトリの外に決定を置く** —— fork 先が同じ判断を引き継げないので、リポジトリが持つ抑止はこのファイルに限る |
+| `sonar-project.properties` | ルール 1 件 × パスの組(`sonar.issue.ignore.multicriteria`)。**SonarCloud は hotspot を UI で review する仕組みを持つが、それはリポジトリの外に決定を置く** —— fork 先が同じ判断を引き継げないので、リポジトリが持つ抑止はこのファイルに限る <!-- boilerplate-only:line --> |
 | `bearer.ignore` | 検出 1 件(フィンガープリント)。`comment` に理由を書く。**JSON なので冒頭のポリシー明記が置けない** —— 様式は `bearer ignore add` が決め、理由は各エントリが持つ |
 | `.github/zizmor.yml` | ファイル 1 件(`ignore`)。**ファイルで絞れない audit は severity の remap(監査 ID 単位)** —— composite action は全て `action.yaml` で、`ignore` はベース名一致のため 1 つ挙げると全ての composite action が黙る(zizmor 1.29.0 の制約。ファイル単位の remap が入ったら remap は撤回する) |
 
@@ -130,6 +134,12 @@ Security グループは**週次スケジュール + 差分が届く PR** で走
 - **条件が変われば削除する**。恒久 allowlist にしない
 - 抑止の妥当性そのものはレビュー時の人間判断に残る。機械が強制できるのは「抑止が上記の様式に載っていること」までである
 - **本ポリシーが及ぶのは自リポジトリが書いた抑止だけ**である。gitleaks の `useDefault` が同伴する global allowlist(上記 2 参照)や Trivy 本体の既定除外はツール側に埋め込まれており、ここには現れない。**「抑止ファイルが空 = 何も除外されていない」ではない**
+
+<!-- boilerplate-only:begin -->
+**SonarQube Cloud はこの様式の例外で、抑止の理由をリポジトリの他の場所へ書かない。** 上記 3 のとおりこの層は剥がしの対象であり、`sonar-project.properties` と `.github/workflows/sonarcloud.yaml` は fork の初期化で消える。理由をそれ以外——ソースのコメントや、剥がしを生き延びる文書——へ置くと、**指摘した規則ごと消えたあとに理由だけが残り、何の話をしているのか誰にも辿れなくなる**。
+
+この検査の所見に応じてコードの形を変えるときも同じで、**規則名も「Sonar がこう言った」もコメントに書かない**。残す価値のある制約なら、規則を名指しせずにその場の性質として書けるはずで、書けないならそれは抑止ファイルだけが持つべき理由である。
+<!-- boilerplate-only:end -->
 
 ### 3.5 CSP 適合ゲート
 
