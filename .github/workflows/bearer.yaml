@@ -2,11 +2,11 @@ name: Bearer Scan
 
 # Bearer follows a value to the point where it leaves the process — a log line, an
 # outbound request, a third-party client — and reports it against a classification of
-# what the value is. Nothing else here asks that: opengrep and CodeQL judge a pattern
+# what the value is. Nothing else here asks that: opengrep judges a pattern
 # or a taint path on its own terms, and neither knows that the string reaching a
 # logger happens to be an email address (ADR 0110 §3).
 #
-# WIRED THE WAY CodeQL IS: a FINDING never fails the job. Findings go to code scanning,
+# A FINDING never fails the job. Findings go to code scanning,
 # and what turns a pull request red is GitHub's own check over the alerts the diff
 # introduces.
 #

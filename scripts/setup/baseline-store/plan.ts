@@ -111,7 +111,6 @@ export function renderReadme(
     .replaceAll("{{REPO_NAME}}", values.repositoryName)
     .replaceAll("{{PARENT_REPO}}", values.parentRepository);
 
-  // 中身から波括弧を締め出す。緩めると `{{{{` の並びで走査が開始位置ごとに末尾まで伸びる。
   const leftover = /\{\{[^{}]+\}\}/.exec(rendered);
   if (leftover !== null) {
     throw new Error(`README のテンプレートに差し込めない箇所があります: ${leftover[0]}`);

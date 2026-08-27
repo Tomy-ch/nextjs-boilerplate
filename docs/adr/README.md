@@ -65,7 +65,11 @@
 - [0100-accessibility-target.md](0100-accessibility-target.md) - アクセシビリティ目標（WCAG AA / biome a11y / 手動チェック）
 - [0101-performance-budget.md](0101-performance-budget.md) - パフォーマンス予算（Core Web Vitals / 仕組みは定義・閾値は fork 先）
 - [0102-browser-support.md](0102-browser-support.md) - ブラウザサポート行列（Next.js 既定 browserslist 追認 / 切り捨ては fork 先）
+<!-- boilerplate-only:replace-begin -->
 - [0110-security-operations.md](0110-security-operations.md) - セキュリティ運用（Dependabot cooldown / gitleaks / Trivy 二段 / CodeQL / image-scan は exclusion）
+<!-- boilerplate-only:replace-with -->
+<!-- = - [0110-security-operations.md](0110-security-operations.md) - セキュリティ運用（Dependabot cooldown / gitleaks / Trivy 二段 / Opengrep / image-scan は exclusion） -->
+<!-- boilerplate-only:replace-end -->
 - [0111-csp-security-headers.md](0111-csp-security-headers.md) - CSP・セキュリティヘッダ（実行時）
 - [0120-locale-aware-formatting.md](0120-locale-aware-formatting.md) - ロケール対応フォーマット（日付・数値 + Intl / date-fns 日付演算）
 - [0121-i18n-strategy.md](0121-i18n-strategy.md) - i18n 戦略（本体非同梱 = exclusion / 採用時の seam）

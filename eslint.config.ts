@@ -247,7 +247,7 @@ export default [
     },
   },
   {
-    // 危険なパターンの検出。SAST（opengrep / CodeQL）と同じ問いを、**型を解決したうえで
+    // 危険なパターンの検出。SAST（opengrep）と同じ問いを、**型を解決したうえで
     // 編集中に**答える層として置く。走査が CI にしか無いと、指摘が届くのは push の後になる。
     //
     // **推奨プリセット（`security.configs.recommended`）は当てない。** 0002 の能力ベース分担は
@@ -266,10 +266,6 @@ export default [
     // - `detect-possible-timing-attacks` — 識別子の名前で判定する。比較の中身を見ていない
     // - `detect-non-literal-regexp` — 引数から RegExp を組む形をすべて鳴らす。ReDoS の判定は
     //   していないので、上の 1 つ目と同じく形だけを見ている
-    //
-    // ReDoS と path traversal がこれで検査されなくなるわけではない。どちらも opengrep と
-    // CodeQL が担い、そちらは所見を code scanning へ送る層なので、baseline を 0 に保つ必要が
-    // 無い（0110 §3.2 の「落とさない層」）。
     files: ["src/**/*.{js,jsx,ts,tsx}"],
     plugins: { security },
     rules: {
