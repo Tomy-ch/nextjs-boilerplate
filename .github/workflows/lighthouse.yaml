@@ -371,15 +371,10 @@ jobs:
     # Runs whatever the machines did. A shard that FAILED still has to produce a red
     # `lighthouse` and say which screen moved; a job that never starts reports nothing.
     #
-    # A shard that was CANCELLED is the other case, and it is excluded. `cancel-in-progress`
-    # kills the machines mid-measurement whenever a newer push lands, and then no result
-    # reaches the collecting job — which reads exactly like a measurement that produced
-    # nothing, and files an issue about screens nobody looked at. The run that superseded
-    # this one is already measuring; a superseded run has nothing of its own to say.
-    #
-    # `test.yaml` keeps a bare `always()` on the same shape for a reason that does not hold
-    # here: its context is required, so a report that never arrives blocks the merge forever.
-    # This one is not required, so declining to report costs nothing.
+    # A CANCELLED shard is excluded: no result reaches here, which is indistinguishable from
+    # a measurement that produced nothing. The run that superseded this one is measuring
+    # already. `test.yaml` keeps a bare `always()` because its context is required and an
+    # absent report blocks the merge forever; this one is not required.
     if: ${{ !cancelled() && needs.lighthouse-shard.result != 'cancelled' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -533,10 +528,8 @@ jobs:
       # instead of re-measuring to find out which one it was.
       - name: Compose what the issue says
         id: guard
-        # The same predicate the failing step below uses, so an issue is raised exactly when
-        # this job fails. An EMPTY status is not a failing one: the input gate can decide the
-        # measurement is not owed at all, and then nothing was measured — reading that as
-        # "over budget" files an issue about a screen nobody looked at.
+        # The same predicate the failing step below uses. An EMPTY status is not a failing
+        # one — the input gate can decide the measurement is not owed, and nothing was measured.
         if: >-
           ${{ !cancelled() && github.event_name != 'pull_request' &&
           ((steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success')
@@ -549,9 +542,8 @@ jobs:
           # (ADR 0153 §5 — the accepted character set cannot make markup). The measurement
           # may never have produced a table at all — the browser can fail to install — so
           # every fallback ends in something printable.
-          # `|| true` is what makes the fallbacks below reachable. The step runs under `-e`, so
-          # a `sed` against a log that was never written takes the whole step with it — and the
-          # step after this one then has no body file to raise anything with.
+          # `|| true` is what makes the fallbacks below reachable: under `-e`, a `sed` against
+          # a log that was never written takes the step with it.
           body="$(sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log 2>/dev/null || true)"
 
           # Its presence is also the only evidence that screens were measured at all, so it
