@@ -21,19 +21,41 @@ const SUBSTITUTE = 2;
 // 差し替え行の退避コメント。先頭の空白（インデント）は保持し、コメント記号と `=` マーカー・
 // 直後の空白1つだけ剥がす。
 //
-// `<!-- = ... -->` 形式を別の枝に分けているのは、閉じ記号を剥がす処理が行末に触れるため。
-// `//`/`#` 側の行末はそのまま返す必要がある（Markdown の行末 2 スペースは hard line break で、
-// 落とすと意味が変わる）。HTML コメント側は閉じ記号を必須にして、閉じ忘れを通さない。
-const REPLACE_CONTENT = /^([ \t]*)(?:(?:\/\/|#)[ \t]*=[ \t]?(.*)|<!--[ \t]*=[ \t]?(.*?)[ \t]*-->)$/;
+// 2 つに分けてあるのは、閉じ記号を剥がす処理が行末に触れるため。`//`/`#` 側の行末はそのまま
+// 返す必要がある（Markdown の行末 2 スペースは hard line break で、落とすと意味が変わる）。
+const REPLACE_LINE_COMMENT = /^([ \t]*)(?:\/\/|#)[ \t]*=[ \t]?(.*)$/;
+
+// HTML コメント側は閉じ記号を必須にして、閉じ忘れを通さない。
+const REPLACE_HTML_COMMENT = /^([ \t]*)<!--[ \t]*=[ \t]?(.*)-->$/;
+
+/**
+ * 差し替え行の退避コメントを剥がす。
+ *
+ * @returns 剥がした行。退避コメントとして書かれていなければ `null`。
+ */
+function uncommentSubstitute(line: string): string | null {
+  const lineComment = REPLACE_LINE_COMMENT.exec(line);
+
+  if (lineComment !== null) {
+    return lineComment[1] + lineComment[2];
+  }
+
+  const htmlComment = REPLACE_HTML_COMMENT.exec(line);
+
+  return htmlComment === null ? null : htmlComment[1] + htmlComment[2].trimEnd();
+}
 
 /** 引用行。継ぎ目の両側が引用なら、空行では分断されてしまう。 */
 const QUOTE_LINE = /^\s*>/;
 
+/** 正規表現の中でリテラルとして扱うための逃がし。 */
+function escapeForRegExp(literal: string): string {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
 /** `<comment> <marker>:<suffix>` に当たる正規表現を組み立てる。 */
 function markerPattern(marker: string, suffix: string): RegExp {
-  return new RegExp(
-    String.raw`(?:\/\/|#|<!--)\s*${marker.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)}:${suffix}\b`,
-  );
+  return new RegExp(String.raw`(?:\/\/|#|<!--)\s*${escapeForRegExp(marker)}:${suffix}\b`);
 }
 
 /**
@@ -150,13 +172,13 @@ export function stripMarkers(content: string, marker: string): StripResult {
     }
     if (replaceState === SUBSTITUTE) {
       // 差し替え側は退避コメントをアンコメントして残す。
-      const matched = REPLACE_CONTENT.exec(line);
-      if (matched === null) {
+      const uncommented = uncommentSubstitute(line);
+      if (uncommented === null) {
         throw new Error(
           `${marker}:replace-with 〜 replace-end の行は // = / # = / <!-- = --> のいずれかで書いてください: ${line}`,
         );
       }
-      keep(matched[1] + (matched[2] ?? matched[3]));
+      keep(uncommented);
       continue;
     }
 

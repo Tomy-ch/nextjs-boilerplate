@@ -51,7 +51,11 @@ export function collectContractLimits(source: string): ContractLimit[] {
       }
 
       const name = declaration.slice(0, separator);
-      const literal = declaration.slice(separator + 3, end).replace(/[ \t]*\n[ \t]*/g, "");
+      const literal = declaration
+        .slice(separator + 3, end)
+        .split("\n")
+        .map((part) => part.trim())
+        .join("");
 
       return USES_ZOD.test(literal) ? [] : [{ name, literal }];
     });

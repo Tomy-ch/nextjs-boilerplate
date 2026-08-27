@@ -58,7 +58,7 @@ export function dockerfileFromPattern(): RegExp {
 const DOCKERFILE_FROM_LOOSE = /^[ \t]*FROM[ \t]+\S/i;
 
 // `FROM <ref> AS <stage>` の接尾辞から宣言されたステージ名を取り出す。
-const FROM_STAGE_NAME = /[ \t]+as[ \t]+(\S+)/i;
+const FROM_STAGE_NAME = /\bas[ \t]+(\S+)/i;
 
 // registry の image を指さない `FROM` の値。ビルドステージ参照は Docker が大文字小文字を
 // 区別しないため、比較は小文字へ揃える。

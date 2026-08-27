@@ -19,7 +19,7 @@ export type MisePin = {
 
 const VERSION_PATTERN = /^[ \t]*MISE_VERSION:[ \t]*(\S+)[ \t]*$/m;
 const DIGEST_PATTERN = /^[ \t]*MISE_SHA256:[ \t]*(\S+)[ \t]*$/m;
-const CACHE_KEY_PATTERN = /^[ \t]*key:[ \t]*(\S.*?)[ \t]*$/m;
+const CACHE_KEY_PATTERN = /^[ \t]*key:(.*)$/m;
 /** キャッシュキーへ埋める digest の桁数。全 64 桁はキーが読めなくなるため頭だけを使う。 */
 export const DIGEST_PREFIX_LENGTH = 8;
 
@@ -28,7 +28,7 @@ export function readPin(source: string): MisePin {
   return {
     version: VERSION_PATTERN.exec(source)?.[1] ?? null,
     digest: DIGEST_PATTERN.exec(source)?.[1] ?? null,
-    cacheKey: CACHE_KEY_PATTERN.exec(source)?.[1] ?? null,
+    cacheKey: CACHE_KEY_PATTERN.exec(source)?.[1].trim() || null,
   };
 }
 
