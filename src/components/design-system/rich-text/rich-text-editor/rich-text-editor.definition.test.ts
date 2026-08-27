@@ -16,10 +16,6 @@ describe("isRichTextHrefAllowed", () => {
     expect(isRichTextHrefAllowed("mailto:info@example.com")).toBe(true);
   });
 
-  it("外部ホストへ解決される protocol-relative な URL を落とす", () => {
-    expect(isRichTextHrefAllowed("//attacker.example.com")).toBe(false);
-  });
-
   it("スラッシュの後ろに colon を持つ相対パスを通す", () => {
     expect(isRichTextHrefAllowed("path/10:30")).toBe(true);
   });
@@ -29,6 +25,11 @@ describe("isRichTextHrefAllowed", () => {
     expect(isRichTextHrefAllowed("#section")).toBe(true);
     expect(isRichTextHrefAllowed("?q=10:00")).toBe(true);
     expect(isRichTextHrefAllowed("items#10:00")).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("外部ホストへ解決される protocol-relative な URL を落とす", () => {
+    expect(isRichTextHrefAllowed("//attacker.example.com")).toBe(false);
   });
 
   it("allowlist 外の protocol を通さない", () => {

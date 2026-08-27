@@ -593,4 +593,52 @@ describe("RichTextEditor", () => {
 
     expect(result.violations).toEqual([]);
   });
+
+  // 案内は開いたときにしか DOM へ現れない。閉じたままの検査では、その中身が一度も見られない。
+  it("案内を開いた状態で a11y 自動検査に違反しない", async () => {
+    const { baseElement } = renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.focus(toolbarButton("太字"));
+    await screen.findByRole("tooltip");
+
+    // 案内は portal で body の直下へ出るため、landmark の外に置かれる。これは部品を単体で
+    // 描いたことによるもので、画面へ載れば landmark の内側に入る。
+    const result = await axe(baseElement, {
+      rules: { "color-contrast": { enabled: false }, region: { enabled: false } },
+    });
+
+    expect(result.violations).toEqual([]);
+  });
+
+  it("リンク先の誤りを出した状態で a11y 自動検査に違反しない", async () => {
+    const { container } = renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("リンク"));
+    fireEvent.change(screen.getByLabelText("リンク先"), { target: { value: "javascript:x" } });
+    fireEvent.click(screen.getByRole("button", { name: "適用" }));
+
+    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+    expect(result.violations).toEqual([]);
+  });
+
+  it("プレビューの状態で a11y 自動検査に違反しない", async () => {
+    const { container } = renderEditor({
+      defaultValue: "<h2>見出し</h2><ul><li>項目</li></ul><blockquote><p>引用</p></blockquote>",
+    });
+
+    fireEvent.click(toolbarButton("プレビュー"));
+
+    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+    expect(result.violations).toEqual([]);
+  });
+
+  it("読み取り専用の状態で a11y 自動検査に違反しない", async () => {
+    const { container } = renderEditor({ defaultValue: "<p>本文</p>", disabled: true });
+
+    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+    expect(result.violations).toEqual([]);
+  });
 });
