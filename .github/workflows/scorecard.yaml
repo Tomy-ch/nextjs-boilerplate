@@ -67,6 +67,20 @@ jobs:
       # `publish_results: false` — publishing sends the score to the OpenSSF public
       # dataset. That is a decision about this repository's name, not a technical one,
       # so it is left to whoever runs the fork.
+      #
+      # NO `repo_token`. Three of the checks are therefore capped, and all three are held
+      # there on purpose (BACKLOG W39 / W40 / W41):
+      #
+      #   * `Branch-Protection` reads the full settings only through a long-lived PAT.
+      #     The protection itself is declared in `.github/settings/branch-protection.json`
+      #     and enforced — a capped score is not an absent control, and standing up a
+      #     permanent credential to raise a number contradicts what the check measures.
+      #   * `Fuzzing` has nothing to fuzz: this layer parses no bytes of its own.
+      #   * `CII-Best-Practices` is a registration against THIS repository's name, which a
+      #     fork does not inherit.
+      #
+      # The findings still reach code scanning, so the reasons above live where someone
+      # reading the alert can find them rather than only in the score.
       - name: Run the analysis
         uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
         with:

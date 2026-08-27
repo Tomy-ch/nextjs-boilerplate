@@ -50,9 +50,17 @@ sast: opengrep-rules
 	@opengrep scan $(OPENGREP_FLAGS) --error $(OPENGREP_TARGETS)
 
 # 取り込み用。ここでは落とさない（落とす判断は上の sast が持つ）。
+#
+# **抑止済みの所見は取り込む前に落とす。** opengrep の text 出力は `// nosemgrep:` を尊重して
+# 所見を消すが、SARIF には `suppressions` を付けたまま残す。GitHub の code scanning はそれを
+# 閉じた alert として扱わないため、そのまま渡すとゲートは緑のまま Security タブにだけ所見が
+# 積み上がり、上に書いた「ゲートと取り込みは同じ走査を指す」が崩れる。落とす判断そのものは
+# ソースの `// nosemgrep:` が既に持っているので、ここはそれを取り込みの側へ運ぶだけである。
+# 整える工程は scripts/sarif が持ち、bearer の取り込みと共有する。
 sast-sarif: opengrep-rules
 	@command -v opengrep >/dev/null 2>&1 || { echo "❌ opengrep が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
 	@opengrep scan $(OPENGREP_FLAGS) --sarif --output $(SAST_SARIF_FILE) $(OPENGREP_TARGETS)
+	@pnpm exec tsx scripts/sarif $(SAST_SARIF_FILE)
 
 # 書き出し先。CI が上書きする。
 SAST_SARIF_FILE ?= opengrep.sarif

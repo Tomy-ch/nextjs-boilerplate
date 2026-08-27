@@ -111,7 +111,9 @@ export function renderReadme(
     .replaceAll("{{REPO_NAME}}", values.repositoryName)
     .replaceAll("{{PARENT_REPO}}", values.parentRepository);
 
-  const leftover = /\{\{[^}]+\}\}/.exec(rendered);
+  // 中身から波括弧を締め出すのは、差し込み先の名前が波括弧を含まないため。含めると
+  // `{{{{` のような並びで開始位置ごとに走査が末尾まで伸び、行数に対して二乗で効く。
+  const leftover = /\{\{[^{}]+\}\}/.exec(rendered);
   if (leftover !== null) {
     throw new Error(`README のテンプレートに差し込めない箇所があります: ${leftover[0]}`);
   }

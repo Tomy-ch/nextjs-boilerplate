@@ -47,7 +47,7 @@ export type PinTarget = {
 // `"alpine` を image 名として固定対象に載せてしまうため。締め出せば一致しなくなり、
 // unparsedLines が対応記法の外として拾う。
 export function composeImagePattern(): RegExp {
-  return /^([ \t]+image:[ \t]+)([^\s'"]+)([ \t]*(?:#.*)?)$/gm;
+  return /^([ \t]+image:[ \t]+)([^\s'"#]+)([ \t]*(?:#.*)?)$/gm;
 }
 const COMPOSE_IMAGE_LOOSE = /^[ \t]+image[ \t]*:[ \t]*\S/;
 

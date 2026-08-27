@@ -26,6 +26,12 @@ inputs:
     description: Leave the credentials in the submodule's git config so later steps can push.
     required: false
     default: 'false'
+  pull-requests:
+    description: >-
+      Ask the installation for `pull_requests: write` as well. Only the caller that has to
+      open a pull request sets this; every other caller leaves the token narrower.
+    required: false
+    default: ''
 
 outputs:
   token:
@@ -47,6 +53,11 @@ runs:
     # need rather than everything the installation grants. `contents: write` covers both
     # ends: fetching the recorded commit here, and — for the caller that retakes — pushing
     # the new baselines to the store and the moved pointer to this repository.
+    #
+    # `pull_requests` is requested only when the caller asks for it, and an unset input
+    # leaves it out of the token entirely. A branch the ruleset guards takes the pointer
+    # through a pull request rather than a push, and opening one needs this; the callers
+    # that only read baselines must not carry it.
     - name: Mint a token for the baseline store
       id: token
       if: inputs.app-id != ''
@@ -56,6 +67,7 @@ runs:
         private-key: ${{ inputs.private-key }}
         owner: ${{ github.repository_owner }}
         permission-contents: write
+        permission-pull-requests: ${{ inputs.pull-requests }}
 
     - name: Fetch the baseline images
       id: fetch
