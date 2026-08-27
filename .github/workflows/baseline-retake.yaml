@@ -277,6 +277,10 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.pr.outputs.head_ref }}
+          # Only the pull-request route needs history: `create-pull-request` reconciles its
+          # branch against the base, and a depth-1 tree gives it nothing to reconcile with.
+          # The push route stays shallow, which is what makes this job affordable.
+          fetch-depth: ${{ steps.route.outputs.route == 'pull-request' && 0 || 1 }}
           # The pointer is pushed with the App token instead, so `GITHUB_TOKEN` is
           # dropped here as in every other workflow. A push made with `GITHUB_TOKEN`
           # does not start a workflow run, and this design depends on the push
@@ -545,66 +549,67 @@ jobs:
           git config --local --unset-all http.extraheader
 
       # A guarded branch takes the pointer the way every other change to it travels: on a
-      # branch of its own, through a pull request. Opened with the App token rather than
-      # `GITHUB_TOKEN`, because a pull request opened by `GITHUB_TOKEN` reports no checks
-      # at all, and the required ones are exactly what has to be seen before the pointer
-      # is allowed onto the branch.
+      # branch of its own, through a pull request.
+      #
+      # ONE branch and ONE pull request per served pull request, both named after it and both
+      # reused. `create-pull-request` updates the branch and the open pull request in place,
+      # so a second retake replaces the proposal rather than adding one — a fresh name per
+      # retake would leave the list filling with proposals nobody merged. Same mechanism the
+      # sibling boilerplate uses to keep generated artifacts in sync.
+      #
+      # `delete-branch: true` removes the branch once the pull request closes, merged or not.
       #
       # The acceptance stays a single human act. `baseline-approve` goes on THIS pull
       # request, where the before/after table is, and `baseline-approval.yaml` carries it
       # forward to every later pull request that inherits the same pointer commit.
-      - name: Open a pull request for the submodule pointer
-        id: pointer-pr
+      - name: Build the pointer pull request body
+        id: pointer-body
         if: steps.gate.outputs.deferred == 'false' && steps.route.outputs.route == 'pull-request'
         env:
           IDS: ${{ steps.retake.outputs.ids }}
-          TOKEN: ${{ steps.baselines.outputs.token }}
-          TRIGGER: ${{ github.event.workflow_run.name }}
-          BASE: ${{ steps.pr.outputs.head_ref }}
           PR: ${{ steps.pr.outputs.number }}
+        shell: bash
         run: |
           set -euo pipefail
 
-          # Named after the pull request being served, so one release pull request has at
-          # most one pointer proposal open against it at a time.
-          branch="baseline-retake/${PR}"
-
-          # The value never appears in argv, so it stays out of `ps` and out of any
-          # process listing a later step might produce.
-          header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
-          git config --local http.extraheader "$header"
-
-          git commit -m "Test: 基準画像を撮り直す" -m "撮り直し: ${TRIGGER} / 対象: ${IDS}"
-
-          # A pointer branch left from an earlier retake holds superseded images, and its
-          # commit is not an ancestor of what was just taken. Dropping it first keeps this
-          # push a fast-forward rather than a rewrite, and closes the pull request that
-          # proposed those images — which is the right outcome, because they are no longer
-          # the ones being proposed.
-          git push origin --delete "$branch" || true
-          git push origin "HEAD:refs/heads/${branch}"
-
-          git config --local --unset-all http.extraheader
-
           {
+            echo 'body<<POINTER_EOF'
             echo "🎞️ #${PR} の基準画像を撮り直しました。この PR は submodule のポインタだけを動かします。"
             echo
             echo "撮り直した対象: ${IDS}"
             echo
             echo "**前後の画素は #${PR} の撮り直しコメントで見比べてください。** 意図した変更であることを確かめたら、**この PR に** \`baseline-approve\` ラベルを付けて merge してください。merge すると #${PR} の比較が回り直します。"
             echo
-            echo "承認は 1 回で足ります。ここに付いたラベルは、同じポインタを引き継ぐ後続の PR でも有効です。"
-          } > pointer-pr-body.md
+            echo '承認は 1 回で足ります。ここに付いたラベルは、同じポインタを引き継ぐ後続の PR でも有効です。'
+            echo
+            echo '撮り直しのたびにこの PR は更新されます。新しく開き直さないので、ここで交わした議論は残ります。'
+            echo 'POINTER_EOF'
+          } >> "$GITHUB_OUTPUT"
 
-          url="$(GH_TOKEN="$TOKEN" gh pr create \
-            --repo "$GITHUB_REPOSITORY" \
-            --base "$BASE" \
-            --head "$branch" \
-            --title "Test: 基準画像を撮り直す (#${PR})" \
-            --body-file pointer-pr-body.md)"
+      # Opened with the App token rather than `GITHUB_TOKEN`, because a pull request opened by
+      # `GITHUB_TOKEN` reports no checks at all — GitHub suppresses the events that token
+      # raises — and the required ones are exactly what has to be seen before the pointer is
+      # allowed onto the branch.
+      - name: Open a pull request for the submodule pointer
+        id: pointer-pr
+        if: steps.gate.outputs.deferred == 'false' && steps.route.outputs.route == 'pull-request'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        with:
+          token: ${{ steps.baselines.outputs.token }}
+          branch: baseline-retake/${{ steps.pr.outputs.number }}
+          base: ${{ steps.pr.outputs.head_ref }}
+          delete-branch: true
+          # The pointer and nothing else. Left unset the action commits everything the run
+          # left in the tree, and this job runs a Storybook build and a browser suite before
+          # reaching here — "this pull request moves only the pointer" has to be a property
+          # of what is staged, not a claim in its body.
+          add-paths: baseline/images
+          commit-message: |
+            Test: 基準画像を撮り直す
 
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "url=${url}" >> "$GITHUB_OUTPUT"
+            撮り直し: ${{ github.event.workflow_run.name }} / 対象: ${{ steps.retake.outputs.ids }}
+          title: 'Test: 基準画像を撮り直す (#${{ steps.pr.outputs.number }})'
+          body: ${{ steps.pointer-body.outputs.body }}
 
       # The body is built here but published by a job that holds no App secret, so a
       # token cannot reach a public comment through the file (ADR 0153).
@@ -617,8 +622,8 @@ jobs:
           COUNT: ${{ steps.push-store.outputs.count }}
           BEFORE: ${{ steps.push-store.outputs.before }}
           AFTER: ${{ steps.push-store.outputs.after }}
-          SHA: ${{ steps.push.outputs.sha || steps.pointer-pr.outputs.sha }}
-          POINTER_PR: ${{ steps.pointer-pr.outputs.url }}
+          SHA: ${{ steps.push.outputs.sha || steps.pointer-pr.outputs.pull-request-head-sha }}
+          POINTER_PR: ${{ steps.pointer-pr.outputs.pull-request-url }}
           REASON: ${{ steps.report.outputs.reason }}
           DEFERRED: ${{ steps.gate.outputs.deferred }}
           FAILED: ${{ steps.gate.outputs.failed }}
@@ -790,7 +795,8 @@ jobs:
       - name: Remove the label
         if: >-
           always() && steps.mode.outputs.mode == 'reported' &&
-          (steps.push.outputs.sha != '' || steps.pointer-pr.outputs.sha != '') &&
+          (steps.push.outputs.sha != '' ||
+            steps.pointer-pr.outputs.pull-request-head-sha != '') &&
           steps.screens.outputs.pending != 'true'
         continue-on-error: true
         env:
