@@ -445,8 +445,15 @@ make setup-baseline-app      # 撮り直しに使う GitHub App を secret へ�
 
 GitHub App の作成と鍵の生成だけは自動化できない（REST に作成の口が無く、鍵は生成時に一度しか
 表示されない）。App は**本体と置き場の 2 つだけ**に installation を絞り、権限は
-**Contents: Read and write** のみにする。置き場にルールセットを掛けてはいけない — 撮り直しの
-push を自分で塞ぐことになる。
+**Contents: Read and write** と **Pull requests: Read and write** の 2 つにする。置き場に
+ルールセットを掛けてはいけない — 撮り直しの push を自分で塞ぐことになる。
+
+`Pull requests` が要るのは、保護されたブランチではポインタを PR で入れるためである（前述
+「保護されたブランチではポインタが PR で入る」）。**権限を後から足したときは、インストール側で
+承認するまで反映されない** —— App の設定を変えただけでは足りず、
+`https://github.com/settings/installations/<id>` で新しい権限を承認する。承認していないと、
+トークンの発行そのものが `422 The permissions requested are not granted to this installation.`
+で落ちる。
 
 置き場の公開範囲は既定で `private`。**非公開にすると、外部（fork）からの PR で `vrt` が落ちる**
 （fork の PR には secrets が渡らず、基準画像を読むトークンを取れない）。外部の PR を受けるなら `public`。

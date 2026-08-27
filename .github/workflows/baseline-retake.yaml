@@ -291,10 +291,10 @@ jobs:
           app-id: ${{ secrets.BASELINE_APP_ID }}
           private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
           persist-credentials: 'true'
-          # Only this caller opens a pull request, and only when the branch is guarded.
-          # Requested unconditionally because the token is minted before the route is
-          # known, and a token that could not open one would fail exactly there.
-          pull-requests: 'write'
+          # Asked for only on the route that opens one. Requesting it unconditionally makes
+          # the mint itself fail with 422 on an installation that has not granted it, which
+          # takes down the push route too — the one that never needed the permission.
+          pull-requests: ${{ steps.route.outputs.route == 'pull-request' && 'write' || '' }}
 
       - name: Refuse without a token for the baseline store
         if: steps.gate.outputs.deferred == 'false' && steps.baselines.outputs.token == ''
