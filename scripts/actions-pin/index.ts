@@ -147,7 +147,7 @@ async function allOrAggregate<T>(tasks: readonly Promise<T>[]): Promise<T[]> {
     else reasons.push(errorMessage(result.reason));
   }
   if (reasons.length > 0) {
-    throw new Error(["解決に失敗した参照があります:", ...reasons.sort()].join("\n   "));
+    throw new Error(["解決に失敗した参照があります:", ...reasons.toSorted()].join("\n   "));
   }
 
   return values;

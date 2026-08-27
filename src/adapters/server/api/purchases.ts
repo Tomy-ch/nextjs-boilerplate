@@ -84,10 +84,10 @@ export type PurchaseHistoryQueryParseResult =
   | { readonly ok: false; readonly invalidKeys: readonly string[] };
 
 /** 数として宣言されている条件。クエリ文字列からは文字列で届くため、照合の前に直す。 */
-const NUMERIC_KEYS: readonly string[] = ["first"];
+const NUMERIC_KEYS: ReadonlySet<string> = new Set(["first"]);
 
 /** 真偽値として宣言されている条件。同じく、クエリ文字列からは文字列で届く。 */
-const BOOLEAN_KEYS: readonly string[] = ["includeOtherUsers"];
+const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeOtherUsers"]);
 
 /**
  * 契約が受け付ける綴りだけを真偽値へ直す。
@@ -131,12 +131,12 @@ export function parsePurchaseHistoryQuery(
       continue;
     }
 
-    if (BOOLEAN_KEYS.includes(key)) {
+    if (BOOLEAN_KEYS.has(key)) {
       typed.push([key, toBoolean(value)]);
       continue;
     }
 
-    typed.push([key, NUMERIC_KEYS.includes(key) ? Number(value) : value]);
+    typed.push([key, NUMERIC_KEYS.has(key) ? Number(value) : value]);
   }
 
   const parsed = GetPurchasesQueryParams.safeParse(Object.fromEntries(typed));

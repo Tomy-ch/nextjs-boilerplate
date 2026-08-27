@@ -151,7 +151,9 @@ test.describe("配色トークン", () => {
   test("もう一方のテーマとは違う配色になる", async ({ page }, testInfo) => {
     const own = await readTokens(page, TOKENS);
     await page.evaluate(
-      (theme) => document.documentElement.setAttribute("data-theme", theme),
+      (theme) => {
+        document.documentElement.dataset.theme = theme;
+      },
       testInfo.project.name === "dark" ? "light" : "dark",
     );
     const other = await readTokens(page, TOKENS);

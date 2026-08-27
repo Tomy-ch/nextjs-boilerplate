@@ -43,7 +43,7 @@ const auditSchema = z.object({
 const NO_PATCH = "<0.0.0";
 
 /** blocking へ上げる severity（[0110](../../docs/adr/0110-security-operations.md) 3）。 */
-const BLOCKING_SEVERITIES: readonly string[] = ["high", "critical"];
+const BLOCKING_SEVERITIES: ReadonlySet<string> = new Set(["high", "critical"]);
 
 /** 検出 1 件。 */
 export type Advisory = {
@@ -85,5 +85,5 @@ export function parseAudit(text: string): Advisory[] {
 
 /** その検出がマージを止めるか。 */
 export function isBlocking(advisory: Advisory): boolean {
-  return BLOCKING_SEVERITIES.includes(advisory.severity) && advisory.patched !== undefined;
+  return BLOCKING_SEVERITIES.has(advisory.severity) && advisory.patched !== undefined;
 }

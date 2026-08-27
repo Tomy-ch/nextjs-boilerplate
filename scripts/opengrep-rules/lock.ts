@@ -15,7 +15,7 @@ export type RulesPin = {
 // 供給元の名前をそのまま正規表現へ入れない。`.` や `-` を含みうる文字列で、字面のまま埋めると
 // 別の綴りのキーに一致しうる。
 function escapeForPattern(literal: string): string {
-  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 const KEY_PATTERN = new RegExp(`^${escapeForPattern(RULES_REPO)}@([0-9a-f]{40})$`);

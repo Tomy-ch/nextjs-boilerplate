@@ -187,10 +187,10 @@ function buildPlan(): { plan: ReturnType<typeof planPrune>; sizeMiB: number; ima
 function resolveImagesRepository(): string {
   const url = readFileSync(".gitmodules", "utf8")
     .split("\n")
-    .map((line) => /^\s*url\s*=\s*(.+?)\s*$/.exec(line)?.[1])
-    .find((candidate) => candidate !== undefined);
+    .map((line) => /^[ \t]*url[ \t]*=(.*)$/.exec(line)?.[1].trim())
+    .find((candidate) => candidate !== undefined && candidate !== "");
 
-  const owned = url === undefined ? null : /github\.com[:/]+([^/]+\/[^/]+?)(?:\.git)?$/.exec(url);
+  const owned = url === undefined ? null : /github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?$/.exec(url);
   if (owned === null) fail(".gitmodules から基準画像のリポジトリを読めません。");
   return owned[1];
 }

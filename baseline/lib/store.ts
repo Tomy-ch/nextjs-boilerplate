@@ -26,7 +26,11 @@ export const RETAKE_ENV = "BASELINE_RETAKE";
  * `screen` は画面単位の撮影が持つ区画で、story の撮影は 1 枚も書きません。残りは置き場自身の
  * 説明と、絵を決める入力のハッシュです。
  */
-const PRESERVED_ENTRIES: readonly string[] = [SCREEN_AREA, "README.md", "render-inputs.sha256"];
+const PRESERVED_ENTRIES: ReadonlySet<string> = new Set([
+  SCREEN_AREA,
+  "README.md",
+  "render-inputs.sha256",
+]);
 
 /**
  * story の全数撮り直しの前に消す要素を返す。
@@ -47,7 +51,7 @@ const PRESERVED_ENTRIES: readonly string[] = [SCREEN_AREA, "README.md", "render-
  * @param entries - 置き場の直下にある要素の名前
  */
 export function clearableStoryEntries(entries: readonly string[]): string[] {
-  return entries.filter((entry) => !entry.startsWith(".") && !PRESERVED_ENTRIES.includes(entry));
+  return entries.filter((entry) => !entry.startsWith(".") && !PRESERVED_ENTRIES.has(entry));
 }
 
 /**

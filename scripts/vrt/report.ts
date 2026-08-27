@@ -28,7 +28,7 @@ export type Failure = {
 };
 
 const STORY_ANNOTATION = "story";
-const DIFF_PIXELS_PATTERN = /^\s*(\d+) pixels .* are different\.$/m;
+const DIFF_PIXELS_PATTERN = /^[ \t]*(\d+) pixels .* are different\.$/m;
 /** 一覧表に並べる上限。これを超えた分は件数だけを添える。 */
 export const TABLE_LIMIT = 20;
 
@@ -158,7 +158,7 @@ function diffPixels(results: unknown): number | null {
 function cell(text: string): string {
   return text
     .replace(/\\/g, "\\\\")
-    .replace(/\|/g, "\\|")
+    .replace(/\|/g, String.raw`\|`)
     .replace(/[\r\n]+/g, " ");
 }
 

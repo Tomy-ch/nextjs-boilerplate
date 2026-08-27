@@ -122,7 +122,7 @@ export type RawProductQuery = Readonly<Record<string, string | readonly string[]
  * @remarks
  * URL の値は常に文字列なので、そのまま渡すと整数の宣言に当たって落ちます。
  */
-const INTEGER_KEYS: readonly string[] = ["first", "minQuantity", "maxQuantity"];
+const INTEGER_KEYS: ReadonlySet<string> = new Set(["first", "minQuantity", "maxQuantity"]);
 
 /**
  * 契約が整数の並びで宣言しているキー。
@@ -135,7 +135,7 @@ const INTEGER_KEYS: readonly string[] = ["first", "minQuantity", "maxQuantity"];
  * ときで、指している条件は 1 度のときと同じです。畳んでから照らさないと、意味の同じ条件が
  * 契約を外れた要求として backend まで届きます。
  */
-const INTEGER_ARRAY_KEYS: readonly string[] = ["categoryCodes", "statusCodes"];
+const INTEGER_ARRAY_KEYS: ReadonlySet<string> = new Set(["categoryCodes", "statusCodes"]);
 
 /**
  * 契約が真偽値で宣言しているキー。
@@ -143,7 +143,7 @@ const INTEGER_ARRAY_KEYS: readonly string[] = ["categoryCodes", "statusCodes"];
  * @remarks
  * URL の値は常に文字列なので、そのまま渡すと真偽値の宣言に当たって落ちます。
  */
-const BOOLEAN_KEYS: readonly string[] = ["includeUnpublished"];
+const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeUnpublished"]);
 
 /**
  * 契約が受け付ける綴りだけを真偽値へ直す。
@@ -173,7 +173,7 @@ function toTypedQuery(raw: RawProductQuery): Record<string, unknown> {
 }
 
 function toTypedValue(key: string, value: string | readonly string[]): unknown {
-  if (INTEGER_ARRAY_KEYS.includes(key)) {
+  if (INTEGER_ARRAY_KEYS.has(key)) {
     return [...new Set((typeof value === "string" ? [value] : value).map(Number))];
   }
 
@@ -181,11 +181,11 @@ function toTypedValue(key: string, value: string | readonly string[]): unknown {
     return value;
   }
 
-  if (BOOLEAN_KEYS.includes(key)) {
+  if (BOOLEAN_KEYS.has(key)) {
     return toBoolean(value);
   }
 
-  return INTEGER_KEYS.includes(key) ? Number(value) : value;
+  return INTEGER_KEYS.has(key) ? Number(value) : value;
 }
 
 /** URL の検索条件を契約に照らした結果。 */

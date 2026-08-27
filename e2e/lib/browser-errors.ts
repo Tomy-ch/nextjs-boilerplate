@@ -26,14 +26,14 @@ export type BrowserProblem = {
  * 一覧は回す描画エンジン（[browsers](browsers.ts)）に閉じます。増えるのはエンジンを足したとき
  * だけで、際限なく伸びる除外表にはなりません。
  */
-const CANCELLED: readonly string[] = [
+const CANCELLED: ReadonlySet<string> = new Set([
   // Chromium
   "net::ERR_ABORTED",
   // Firefox
   "NS_BINDING_ABORTED",
   // WebKit
   "Load request cancelled",
-];
+]);
 
 /**
  * 応答を異常として数える下限のステータス。
@@ -50,7 +50,7 @@ const SERVER_ERROR_STATUS = 500;
 
 /** 打ち切りではない通信失敗か。 */
 export function isTransportFailure(errorText: string | undefined): boolean {
-  return errorText !== undefined && !CANCELLED.includes(errorText);
+  return errorText !== undefined && !CANCELLED.has(errorText);
 }
 
 /**

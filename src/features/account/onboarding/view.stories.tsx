@@ -149,15 +149,24 @@ export const AddressUnavailable: Story = {
   play: ({ canvasElement }) => searchAddress(canvasElement, "000-0000"),
 };
 
-/** 検証に落ちた状態。必須・形式の誤りが focus を外した時点で出る。 */
+/**
+ * 検証に落ちた状態。必須・形式の誤りが focus を外した時点で出る。
+ *
+ * @remarks
+ * 最後は焦点を移さずに外します。`tab()` で次の項目へ移すと、主題ではない focus ring が絵に
+ * 残り、その角の aa が実行ごとに揺れます。検証に要るのは焦点が外れることだけです。
+ */
 export const ValidationErrors: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     await userEvent.click(canvas.getByLabelText("名字"));
     await userEvent.tab();
-    await userEvent.type(canvas.getByLabelText("メールアドレス"), "not-an-email");
-    await userEvent.tab();
+
+    const email = canvas.getByLabelText("メールアドレス");
+
+    await userEvent.type(email, "not-an-email");
+    email.blur();
   },
 };
 

@@ -1,7 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createContext, type ReactNode, use, useCallback, useState, useTransition } from "react";
+import {
+  createContext,
+  type ReactNode,
+  use,
+  useCallback,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 
 import { ALL_PERIOD, type PeriodSelection, toPurchaseHistoryHref } from "./period";
 import { type PeriodDraft, toAppliedPeriod, toPeriodDraft } from "./period-draft";
@@ -92,11 +100,12 @@ export function PurchaseFilterDraftProvider({
     navigate(ALL_PERIOD);
   }, [navigate]);
 
-  return (
-    <PeriodFilterDraftContext value={{ draft, applied, pending, change, apply, reset }}>
-      {children}
-    </PeriodFilterDraftContext>
+  const value = useMemo(
+    () => ({ draft, applied, pending, change, apply, reset }),
+    [draft, applied, pending, change, apply, reset],
   );
+
+  return <PeriodFilterDraftContext value={value}>{children}</PeriodFilterDraftContext>;
 }
 
 /**

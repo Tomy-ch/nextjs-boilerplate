@@ -16,7 +16,7 @@ export const CURSOR_KEY = "after";
 export const COUNT_KEY = "first";
 
 /** 条件が変わったときに引き継がない URL のキー。読み進めた位置は前の条件に属する。 */
-const POSITION_KEYS: readonly string[] = [CURSOR_KEY, COUNT_KEY];
+const POSITION_KEYS: ReadonlySet<string> = new Set([CURSOR_KEY, COUNT_KEY]);
 
 /** 絞り込みと並び替えを載せる URL のキー。契約のクエリ名と揃える。 */
 export const FILTER_KEY: Readonly<{
@@ -103,7 +103,11 @@ export function toSelectedValues(selection: ProductListSelection, key: string): 
     return [];
   }
 
-  return typeof value === "string" ? (value === "" ? [] : [value]) : value;
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  return value === "" ? [] : [value];
 }
 
 /**
@@ -113,9 +117,7 @@ export function toSelectedValues(selection: ProductListSelection, key: string): 
  * 増分取得へ渡す条件を作ります。位置を含めたまま渡すと、続きの取得が「続きの続き」を指します。
  */
 export function toConditions(selection: ProductListSelection): ProductListSelection {
-  return Object.fromEntries(
-    Object.entries(selection).filter(([key]) => !POSITION_KEYS.includes(key)),
-  );
+  return Object.fromEntries(Object.entries(selection).filter(([key]) => !POSITION_KEYS.has(key)));
 }
 
 /**
@@ -146,7 +148,7 @@ export function toProductListHref(selection: ProductListSelection): string {
 export function toProductListSearchParams(selection: ProductListSelection): URLSearchParams {
   const params = new URLSearchParams();
   const keys = Object.keys(selection)
-    .filter((key) => !POSITION_KEYS.includes(key))
+    .filter((key) => !POSITION_KEYS.has(key))
     .sort((left, right) => left.localeCompare(right));
 
   for (const key of keys) {

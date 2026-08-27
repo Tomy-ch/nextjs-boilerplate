@@ -5,7 +5,7 @@ import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 
 /** 契約が受け付ける郵便番号の形。ここを通らない要求はバックエンドへ出さない。 */
-const POSTAL_CODE_PATTERN = /^[0-9]{3}-[0-9]{4}$/;
+const POSTAL_CODE_PATTERN = /^\d{3}-\d{4}$/;
 
 /** 分類から、返す status と文言を組む。分類の付いていない失敗は internal へ矯正する。 */
 function toErrorResponse(error: unknown): Response {

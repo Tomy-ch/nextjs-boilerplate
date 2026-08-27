@@ -53,6 +53,24 @@ describe("StatCards", () => {
     expect(within(screen.getByRole("region", { name: "集計" })).getByText("売上")).toBeVisible();
   });
 
+  it("列に収まらない値でも、全桁が読み上げに残る", () => {
+    render(
+      <StatCards
+        cards={[
+          {
+            id: "sales-amount",
+            label: "売上",
+            value: "$6,560,225,599,441,753.25",
+            note: "キャンセルを除きます",
+          },
+        ]}
+        label="集計"
+      />,
+    );
+
+    expect(screen.getByText("$6,560,225,599,441,753.25")).toBeInTheDocument();
+  });
+
   it("a11y 検査を通る", async () => {
     const { container } = renderCards();
 

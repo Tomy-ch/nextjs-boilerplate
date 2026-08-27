@@ -42,13 +42,13 @@ export const profileSchema = z.object({
     .string()
     .check(
       z.minLength(1, "電話番号を入力してください。"),
-      z.regex(/^\+?[0-9]{10,15}$/, "電話番号はハイフンなしの 10〜15 桁で入力してください。"),
+      z.regex(/^\+?\d{10,15}$/, "電話番号はハイフンなしの 10〜15 桁で入力してください。"),
     ),
   postalCode: z
     .string()
     .check(
       z.minLength(1, "郵便番号を入力してください。"),
-      z.regex(/^[0-9]{3}-[0-9]{4}$/, "郵便番号は 123-4567 の形式で入力してください。"),
+      z.regex(/^\d{3}-\d{4}$/, "郵便番号は 123-4567 の形式で入力してください。"),
     ),
   prefecture: z
     .string()

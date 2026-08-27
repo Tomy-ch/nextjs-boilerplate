@@ -90,17 +90,27 @@ jobs:
 
       # `workflow_run` carries the commit but not the pull request, so everything the
       # later steps branch on is resolved here in one API call.
+      #
+      # RESOLVED BY BRANCH, NOT BY COMMIT. `/commits/<sha>/pulls` answers "which pull
+      # request introduced this commit", which is not the same question. On a release
+      # branch the head commit is the merge commit of the last feature pull request, so
+      # that endpoint returns the feature one — already closed, and carrying none of the
+      # labels a human put on the release pull request. The release pull request never
+      # appears in the answer at all, which made the retake unreachable for exactly the
+      # branch whose baselines drift the most.
       - name: Resolve the pull request
         id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
         run: |
           set -euo pipefail
 
-          pr="$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/pulls" --jq '.[0] // empty')"
+          pr="$(gh api "repos/$GITHUB_REPOSITORY/pulls" --method GET \
+            -f "head=${HEAD_OWNER}:${HEAD_BRANCH}" -f state=open --jq '.[0] // empty')"
           if [ -z "$pr" ]; then
-            echo 'ℹ️ この commit に対応する PR がありません。何もしません。'
+            echo 'ℹ️ このブランチを head に持つ開いた PR がありません。何もしません。'
             echo 'found=false' >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -710,13 +720,18 @@ jobs:
             mcr.microsoft.com:443
             *.data.mcr.microsoft.com:443
 
+      # Resolved by branch for the reason the retake job states: on a release branch the
+      # head commit belongs to the feature pull request that was merged, not to the
+      # release pull request this outcome is about.
       - name: Resolve the pull request
         id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
         run: |
-          number="$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/pulls" --jq '.[0].number // empty')"
+          number="$(gh api "repos/$GITHUB_REPOSITORY/pulls" --method GET \
+            -f "head=${HEAD_OWNER}:${HEAD_BRANCH}" -f state=open --jq '.[0].number // empty')"
           echo "number=${number}" >> "$GITHUB_OUTPUT"
 
       - name: Comment the outcome on PR

@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, type ReactNode, useActionState, useContext, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useActionState,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 import { idleActionState } from "@/model/action-state";
 import { placeOrderAction } from "../../../actions";
@@ -51,10 +58,13 @@ export function PlaceOrderStateProvider({
     idleActionState(),
   );
 
+  const value = useMemo(
+    () => ({ formAction, state, isPending, idempotencyKey }),
+    [formAction, state, isPending, idempotencyKey],
+  );
+
   return (
-    <PlaceOrderStateContext.Provider value={{ formAction, state, isPending, idempotencyKey }}>
-      {children}
-    </PlaceOrderStateContext.Provider>
+    <PlaceOrderStateContext.Provider value={value}>{children}</PlaceOrderStateContext.Provider>
   );
 }
 

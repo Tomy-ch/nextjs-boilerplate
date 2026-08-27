@@ -91,7 +91,7 @@ export const SAMPLE_PATHS: readonly string[] = [
  * 英語の語には語境界を付けます。付けないと別語の一部に当たります（`CartesianGrid` が `cart` に
  * 一致し、題材と無関係な部品が消し残しとして報告されます）。
  */
-export const DANGLING_PATTERN = "商品|カート|在庫|購入|注文|\\bproducts\\b|\\bcart\\b";
+export const DANGLING_PATTERN = String.raw`商品|カート|在庫|購入|注文|\bproducts\b|\bcart\b`;
 
 // 破棄後に手で戻すもの（削除では表せない）:
 // - `performance-budget.yaml` の `growth.gzipKb` を 30 から 10 へ。広げてあるのは、器の内と外で

@@ -27,7 +27,7 @@ import { readDirOrEmpty } from "./composite-action-files.js";
 export const WORKFLOW_DIR = ".github/workflows";
 
 /** ワークフロー定義として読む拡張子。 */
-const WORKFLOW_EXTENSIONS = [".yaml", ".yml"];
+const WORKFLOW_EXTENSIONS: ReadonlySet<string> = new Set([".yaml", ".yml"]);
 
 const JOBS_KEY = "jobs";
 
@@ -44,7 +44,7 @@ const JOBS_KEY = "jobs";
  */
 export function selectWorkflowFiles(dir: string, names: readonly string[]): string[] {
   return names
-    .filter((name) => WORKFLOW_EXTENSIONS.includes(path.extname(name)))
+    .filter((name) => WORKFLOW_EXTENSIONS.has(path.extname(name)))
     .map((name) => `${dir}/${name}`)
     .sort();
 }

@@ -40,6 +40,32 @@ function printUsage(): void {
   );
 }
 
+/**
+ * 1 ファイルからマーカーで囲まれた行を落とす。
+ *
+ * @returns 報告に出す 1 行。マーカーを持てないファイルと、落ちる行が無かったファイルは `null`。
+ */
+function stripStep(relativePath: string, dryRun: boolean): string | null {
+  const content = readUtf8File(toAbsolutePath(relativePath));
+
+  // UTF-8 として往復できないファイル（画像など）はマーカーを持てない。
+  if (content === null) {
+    return null;
+  }
+
+  const result = stripMarkers(content, SAMPLE_MARKER);
+
+  if (result.removed === 0) {
+    return null;
+  }
+
+  if (!dryRun) {
+    fs.writeFileSync(toAbsolutePath(relativePath), result.content);
+  }
+
+  return `${relativePath} (${result.removed} 行)`;
+}
+
 function run(dryRun: boolean): void {
   const redundant = findRedundantPaths(SAMPLE_PATHS);
 
@@ -61,24 +87,12 @@ function run(dryRun: boolean): void {
 
   for (const step of steps) {
     if (step.kind === "strip") {
-      const content = readUtf8File(toAbsolutePath(step.relativePath));
+      const summary = stripStep(step.relativePath, dryRun);
 
-      if (content === null) {
-        // UTF-8 として往復できないファイル（画像など）はマーカーを持てない。
-        continue;
+      if (summary !== null) {
+        stripped.push(summary);
       }
 
-      const result = stripMarkers(content, SAMPLE_MARKER);
-
-      if (result.removed === 0) {
-        continue;
-      }
-
-      if (!dryRun) {
-        fs.writeFileSync(toAbsolutePath(step.relativePath), result.content);
-      }
-
-      stripped.push(`${step.relativePath} (${result.removed} 行)`);
       continue;
     }
 

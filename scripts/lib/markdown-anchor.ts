@@ -10,10 +10,10 @@
 const FENCE = /^\s*(```|~~~)/;
 
 /** ATX 見出し。 */
-const HEADING = /^#{1,6}\s+(.*)$/;
+const HEADING = /^#{1,6}[ \t]+(.*)/;
 
-/** 見出しの末尾に付く閉じハッシュ。見出しの一部ではない。 */
-const CLOSING_HASHES = /\s+#+\s*$/;
+/** 見出しの末尾に付く閉じハッシュ。見出しの一部ではない。手前の空白は `trimEnd` が落とす。 */
+const CLOSING_HASHES = /[ \t]#+$/;
 
 /**
  * 見出しを GitHub と同じ規則でアンカーへ変換する。
@@ -59,7 +59,7 @@ export function collectAnchors(markdown: string): Set<string> {
 
     if (!heading) continue;
 
-    const base = toAnchor(heading[1].replace(CLOSING_HASHES, ""));
+    const base = toAnchor(heading[1].trimEnd().replace(CLOSING_HASHES, ""));
     const count = seen.get(base) ?? 0;
 
     seen.set(base, count + 1);
