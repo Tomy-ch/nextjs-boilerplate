@@ -22,6 +22,7 @@ const FALLBACK_RETURN_URL = "/";
  * `.invalid` は名前解決されないことが保証された予約 TLD（RFC 6761）です。判定に使うだけで
  * 接続はしませんが、実在の名前を借りると、その名前が将来別の意味を持ったときに判定が変わります。
  */
+// DevSkim: ignore DS137138 - 接続しない判定用の origin。理由は上の @remarks が持つ。
 const PROBE_ORIGIN = "http://internal.invalid";
 
 /**
