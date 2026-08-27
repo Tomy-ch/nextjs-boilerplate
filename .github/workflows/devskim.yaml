@@ -1,8 +1,8 @@
 name: DevSkim Scan
 
 # DevSkim is a regex linter with no language front-end, so it reads every file in the
-# tree with one rule set. That is the whole reason it is here: opengrep and CodeQL
-# both go deeper and both only reach the languages they parse, so a weak cipher name
+# tree with one rule set. That is the whole reason it is here: opengrep goes deeper
+# but only reaches the languages it parses, so a weak cipher name
 # or a hardcoded credential in a file neither opens is currently seen by nothing
 # (ADR 0110 §3).
 #
