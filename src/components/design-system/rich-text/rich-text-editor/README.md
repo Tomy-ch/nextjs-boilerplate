@@ -11,7 +11,7 @@
 | `RichTextEditor` | toolbar と編集面をまとめた client island です。内容が変わるたびに、現在の内容を HTML 文字列として呼び出し元へ渡します。 |
 | `RICH_TEXT_EDITOR_EXTENSIONS` | editor が読み書きする node と mark の全体です。ここに登録されたものだけが書けます。 |
 | `RICH_TEXT_EDITOR_HEADING_LEVELS` | 見出しとして書ける階層（2 / 3 / 4）です。 |
-| `RICH_TEXT_EDITOR_MARK_ACTIONS` | 太字・斜体・打ち消し線・コードなど、文字そのものの見え方を変える toolbar の操作です。 |
+| `RICH_TEXT_EDITOR_MARK_ACTIONS` | 太字・斜体・打ち消し線・コードなど、文字そのものの見え方を変える toolbar の操作です。同じことを起こすキーを併せて持ちます。 |
 | `RICH_TEXT_EDITOR_BLOCK_ACTIONS` | 見出し・箇条書き・引用など、段落の種類を変える toolbar の操作です。 |
 | `RICH_TEXT_EDITOR_COMMAND_ACTIONS` | 区切り線の挿入・取り消し・やり直しなど、適用状態を持たない toolbar の操作です。 |
 | `isRichTextHrefAllowed` | `a` の `href` として書ける値かどうかを判定します。 |
@@ -146,6 +146,18 @@ toolbar の「リンク」から入力するほか、URL を入力または貼�
 
 編集中はリンクを click しても開きません。編集面の中で意図せず遷移することを避けるためです。
 
+### キー操作の案内
+
+toolbar のボタンには、**同じことを起こすキー**を hover / focus で添えます。案内するのは `KeyboardShortcut` で、`⌘` と `Ctrl` の出し分けはその部品が持ちます。
+
+**キーの実体は editor の extension が持っており、この部品は登録しません。** editor が focus を持っているあいだだけ効く、閉じたキー操作です。任意の操作を任意のキーへ結び付ける汎用の登録機構は持ちません（[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md) §5）。
+
+**案内と実体が食い違わないことをテストで固定しています。** 宣言したキーが extension の登録に無ければ落ちるため、extension の版が変わってキーが動いた場合はテストが先に気づきます。
+
+キーを持たない操作（区切り線・リンク）には案内を出しません。案内を出しながら押しても効かない状態は作りません。
+
+`aria-keyshortcuts` は付けていません。値が `Control+B` と `Meta+B` のどちらになるかは動かしている環境で決まり、その判定は `KeyboardShortcut` が既に持っています。ここで二つ目の判定を持つと、表示と読み上げが食い違いうる状態を自分で作ることになります。
+
 ### 見た目
 
 編集面には [`typeset`](../../foundation/typeset/README.md) の `.typeset` を付けています。書いている最中の組版と、`RichTextContent` が描画したあとの組版を同じ規則に揃えるためです。
@@ -158,6 +170,6 @@ toolbar のボタンは `Toggle` と `Button` を合成して得ており、こ�
 
 Storybook は、何も書かれていない状態、保存済みの内容を読み込んだ状態、読み取り専用の状態、allowlist の外にあるタグを初期値へ渡した場合を確認します。呼び出し元へ渡る HTML を各 story に並べ、操作と出力の対応を実際に確かめられるようにしています。
 
-テストは、toolbar と名前を持つ編集面を描画すること、初期値の読み込みと allowlist 外のタグが落ちること、読み取り専用のときに編集できないこと、すべての書式ボタンが押下状態を切り替えること、段落の種類を変えると変更後の HTML を通知すること、取り消しとやり直しが実行できる間だけ押せること、リンクの入力・選択範囲の有無による適用・Enter での適用・allowlist 外の protocol と空入力を拒む理由の表示・解除、a11y 自動検査を確認します。
+テストは、toolbar と名前を持つ編集面を描画すること、初期値の読み込みと allowlist 外のタグが落ちること、読み取り専用のときに編集できないこと、すべての書式ボタンが押下状態を切り替えること、段落の種類を変えると変更後の HTML を通知すること、取り消しとやり直しが実行できる間だけ押せること、リンクの入力・選択範囲の有無による適用・Enter での適用・allowlist 外の protocol と空入力を拒む理由の表示・解除、**案内するキーが extension の登録と一致すること**、a11y 自動検査を確認します。
 
 **allowlist との関係は test で固定しています。** editor が読み書きする node と mark の一覧が導出した集合と一致すること、editor が出せるタグが `RICH_TEXT_TAG_NAMES` に収まること、editor の出力が sanitize を通しても要素と属性が変わらないこと、allowlist 外の protocol を editor 自身が出力しないことを確認します。extension を足すとこの 4 つが落ちます。

@@ -310,6 +310,8 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 | **W39** | ファジングを持たない(OpenSSF Scorecard の `Fuzzing` は 0 のまま置く) | [0090](0090-testing-strategy.md) / [0110](0110-security-operations.md) 3 | **本体が、外から来たバイト列を自前で解く層を持つようになったとき**。いまの表現層が解くのは 契約から生成した型を通った値で、パーサそのものは持たない —— ファズする対象が無い。**「Scorecard の点が上がること」は条件にならない** — 点は対象の有無を測っていない |
 | **W40** | OpenSSF Best Practices バッジを取得しない(`CII-Best-Practices` は 0 のまま置く) | [0142](0142-license.md) | **本リポジトリが、fork 元ではなく成果物そのものとして公開運用へ移るとき**。バッジは*このリポジトリの名前*に紐づく登録で、fork 先へは引き継がれない。boilerplate が取っても fork 先の姿勢は 1 ミリも変わらない。**「Scorecard の点が上がること」は条件にならない** |
 | **W41** | Scorecard に PAT を渡さない(`Branch-Protection` の点は頭打ちのまま置く) | [0110](0110-security-operations.md) 3 | **Scorecard が既定の `GITHUB_TOKEN` で ruleset を読み切れるようになったとき**。満点に要るのは classic branch protection を読める長命の PAT で、点を上げるために 常設の資格情報を 1 つ増やすのは、この検査が測ろうとしている姿勢そのものに反する。保護の実体は [`.github/settings/branch-protection.json`](../../.github/settings/branch-protection.json) が宣言しており、**点が低いことと保護が無いことは別**である。**「点が赤いこと」は条件にならない** |
+| **W42** | 回線の有無を読む hook(`useConnectivity`)を `capabilities` へ置かない | [0022](0022-capabilities-kernel.md) / [0020](0020-adopted-architecture.md) 設計原則 6 | **長寿命接続を持つ画面が本体に現れたとき** —— そこで初めて「回線が無い」と「接続が切れた」を区別して見せる必要が生まれる。**「送信の前にオフラインを知らせたい」ことは条件にならない** —— `navigator.onLine` は回線があってインターネットへ出られない状態を `true` と答えるため送信可否の判断に使えず、送れなかったことを伝える経路は [0063](0063-mutation-result-notification.md) が既に持っている |
+| **W43** | Web Worker のオフロード seam を置かない | [0022](0022-capabilities-kernel.md) | **client 側に、主スレッドを塞ぐ処理が実際に現れたとき**。現状は `canvas` / `FileReader` / client 側パースのいずれも使っておらず、画像も Server Action 経由で送っている。**「重い画面がある」ことは条件にならない** —— 重さの出どころが取得か描画なら、Worker は何も速くしない |
 
 新しく「やらない」を決めたら、**その場でここに撤回条件を書く**。条件を書けない「やらない」は、判断ではなく先送りである。
 

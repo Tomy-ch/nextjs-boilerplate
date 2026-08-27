@@ -1472,19 +1472,23 @@ sources:
 - **完了条件**: 主要ジャーニーの E2E が 3 つの描画エンジンで CI で緑。ブラウザが報告する異常が全 spec で見張られる。主要画面の VR ベースラインが帯ごとに登録される（story 単位は着地済み）
 - **依存**: P5-16, P3-8
 
-### P6-5: capabilities カーネル
+### P6-5: capabilities カーネル —— 足すものの確定
 
-- **目的**: 横断 client hook のカーネルを実体化する
-- **対象 ADR**: [0022](../adr/0022-capabilities-kernel.md)
-- **主な変更先**: `src/capabilities/`
-  - 離脱ガード(navigation-block hook)— P5-7 の注文フォームで使用
-  - `useConnectivity`(オンライン / オフライン検知)
-  - Web Worker オフロード seam
-- **注意**: **Web Worker はどの ADR にも記載がなく master-plan 1.2 が唯一の記録**のため、実装時に ADR 化の要否を判断する
-- **キーボード shortcut の実行機構をここで判断する**: `keyboard-shortcut` component は「何が起きるか」と「どのキーか」の表示だけを持ち、キーの登録も `keydown` の待ち受けも持たない。任意の操作をキーへ結び付ける汎用機構は横断的な client hook であり置き場所は `capabilities` だが、`components` は `capabilities` を import できない(層境界。`eslint-plugin-boundaries` で強制)ため、component 側は構造的にこれを持てない。キーと handler の結線は両方を import できる `features` 以上の層が担う。その component 自身の UI 内で完結するキー操作は例外で、component の中に置いてよい(`toaster` の hotkey が先例)。**判断が済むまで「`⌘K` と表示されているのに何も起きない」状態を作れる余地が残り、担保は呼び出し元の責任である。** registry は [0022](../adr/0022-capabilities-kernel.md) から据え置き除外されている(P0-4)ため、採るなら 0022 の範囲判断から入る
-- **設計**: 本書 §3.4 の改訂滑走路原則に従い、**3 件とも設置面(実使用箇所)を伴って作る**。使われない hook は置かない
-- **完了条件**: 3 機構が動作し、それぞれサンプルから 1 箇所以上使われている。キーボード shortcut の実行機構の採否が決まっている(採るなら [0022](../adr/0022-capabilities-kernel.md) の範囲を広げて実装し、採らないなら BACKLOG の撤回条件へ記録する)
-- **依存**: P5-7
+- **目的**: 横断 client hook として `capabilities` へ足すものを確定する
+- **対象 ADR**: [0022](../adr/0022-capabilities-kernel.md) / [0021](../adr/0021-frontend-responsibility.md)(昇格ルール)/ [0053](../adr/0053-ui-component-interaction-seam.md) §5
+- **設計**: 3.4 の滑走路原則に従い、**設置面(実使用箇所)を伴わないものは置かない**。この PR の仕事は「作ること」ではなく、候補ごとに設置面の有無を確かめて足す / 足さないを確定することである
+
+| 候補 | 判断 |
+| --- | --- |
+| 離脱ガード(navigation-block) | **着地済み**。`components/app-starter/navigation-guard`(link click の傍受)と `unload-guard`(`beforeunload`)を、`features/admin/ui/unsaved-changes-guard` の器が束ね、商品フォームが `dirty` を申告している。**`capabilities` へは上げない** —— 申告するのが 1 つの feature だけである以上、[0021](../adr/0021-frontend-responsibility.md) の昇格ルール(複数 feature からの参照)を満たさない。2 つ目の feature が申告した時点で上げる |
+| `useConnectivity` | **置かない**。`navigator.onLine` は「回線はあるがインターネットへ出られない」を `true` と答えるため、送信可否の判断に使うと嘘をつく。送れなかったことを伝える経路は [0063](../adr/0063-mutation-result-notification.md) が既に持っており、そこへ精度の低い二つ目の答えを足すことになる([0020](../adr/0020-adopted-architecture.md) 設計原則 6)。本命の設置面は長寿命接続を持つ画面(EX 枠)側にある |
+| Web Worker オフロード seam | **置かない**。client 側に重い処理が存在しない(`canvas` / `FileReader` / client 側パースのいずれも不使用で、画像は Server Action 経由)。EX 枠が着地しても、client が持つのは重複排除と時間窓バッファだけで設置面は生まれない |
+| キーボード shortcut の実行機構 | **判断しない**。[0053](../adr/0053-ui-component-interaction-seam.md) §5 が exclusion を確定し、BACKLOG の撤回条件も既にある。ここで再決定しない |
+
+- **代わりに置くもの**: **リッチテキストの toolbar へキー操作の案内を出す**。extension が登録しているキー(`Mod-B` 等)は既に効いているが、どのキーで効くのかがどこにも出ていない。案内は `KeyboardShortcut` が持ち、**案内と登録が食い違わないことをテストで固定する**。これは表示であって機構ではないため、0053 §5 の除外に触れない
+- **強制手段**: 案内と extension の登録の突合(component テスト)+ 散文
+- **完了条件**: 上の 4 候補それぞれの判断が記録され、置かないものは BACKLOG の撤回条件を持つ。リッチテキストの toolbar が、実際に効くキーだけを案内している
+- **依存**: —
 
 ### P6-6: メンテナンスモード
 
@@ -1780,6 +1784,14 @@ IM-26。**P4-6 の改修 PR は、上表 1 行目が確定してから起票す�
 3 本に割るのは、寿命が違うものを同じ diff に混ぜないためである。EX-1 は前提文書、EX-2 は fork 後も残る機構、EX-3 は fork 時に破棄するサンプルであり、破棄 manifest(P7-1)への入力もそれぞれ異なる。
 
 会話系の component(`Message` / `Bubble` / `MessageScroller` / `Marker`)は、この枠以外に設置面を持たない。admin 画面をいくら積んでも埋まらないため、Phase 5 の他の PR では代替できない。
+
+**runtime の能力は `capabilities` へ置く(P6-5 からの申し送り)。** この枠は、**本体で唯一 runtime 能力の設置面がまとまって現れる場所**である。P6-5 は候補を調べたうえで「設置面が無い」ことを理由に `useConnectivity` を置かず、本命の設置面がこちらにあると判断して見送っている。したがって EX 枠が着手されるとき、次を feature の内側で書き切らないこと。
+
+- **回線の有無**(`navigator.onLine` の購読)は `capabilities` へ置く。これは runtime の能力であり、chat に固有ではない
+- **stream が生きているか**(`EventSource` の状態・backoff の残り)は `capabilities` **ではない**。通信機構の状態であり、EX-2 の購読 adapter が持つ。**この 2 つは別物で、画面はどちらも必要とする**
+- **ページの可視性**(既読の確定・隠れている間の再接続の抑制)も runtime の能力であり、`capabilities` へ置く
+- **下書きの永続化**を `localStorage` へ持たせる場合、[0112](../adr/0112-data-classification-cache-boundary.md) 決定 8 が先に効く —— 本文は user-scoped であり、保持を最小にし、必要性を説明できる範囲に限る
+- **キー操作**(`⌘Enter` で送信・`Esc` で閉じる)は chat の UI 内で完結するため [0053](../adr/0053-ui-component-interaction-seam.md) §5 の例外に当たり、**登録機構を作らずに置ける**。作らないこと
 
 ### EX-1: ストリーム前提の文書反映
 
