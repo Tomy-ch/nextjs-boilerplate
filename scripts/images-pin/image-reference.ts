@@ -47,18 +47,18 @@ export type PinTarget = {
 // `"alpine` を image 名として固定対象に載せてしまうため。締め出せば一致しなくなり、
 // unparsedLines が対応記法の外として拾う。
 export function composeImagePattern(): RegExp {
-  return /^([ \t]+image:[ \t]+)([^\s'"]+)([ \t]*(?:#.*)?)$/gm;
+  return /^([ \t]+image:[ \t]+)([^\s'"#]+)([ \t]*(?:#.*)?)$/gm;
 }
 const COMPOSE_IMAGE_LOOSE = /^[ \t]+image[ \t]*:[ \t]*\S/;
 
 // FROM [--platform=...] <ref> [AS <stage>]
 export function dockerfileFromPattern(): RegExp {
-  return /^(FROM[ \t]+)(?:--platform=\S+[ \t]+)?([^\s'"]+)((?:[ \t]+[Aa][Ss][ \t]+\S+)?[ \t]*)$/gim;
+  return /^(FROM[ \t]+)(?:--platform=\S+[ \t]+)?([^\s'"]+)((?:[ \t]+as[ \t]+\S+)?[ \t]*)$/gim;
 }
 const DOCKERFILE_FROM_LOOSE = /^[ \t]*FROM[ \t]+\S/i;
 
 // `FROM <ref> AS <stage>` の接尾辞から宣言されたステージ名を取り出す。
-const FROM_STAGE_NAME = /[ \t]+[Aa][Ss][ \t]+(\S+)/;
+const FROM_STAGE_NAME = /\bas[ \t]+(\S+)/i;
 
 // registry の image を指さない `FROM` の値。ビルドステージ参照は Docker が大文字小文字を
 // 区別しないため、比較は小文字へ揃える。

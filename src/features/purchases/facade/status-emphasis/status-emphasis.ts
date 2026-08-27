@@ -10,13 +10,13 @@ import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
  * @remarks
  * バックエンドの状態遷移で「そこから他の状態へ遷移しない」かつ「取り消しではない」ものです。
  */
-const SETTLED_STATUS_CODES: readonly number[] = [
+const SETTLED_STATUS_CODES: ReadonlySet<number> = new Set([
   PURCHASE_STATUS.COMPLETED,
   PURCHASE_STATUS.DELIVERED,
-];
+]);
 
 /** 取り消された購入のステータス。買ったものが届かない終端はこれだけです。 */
-const CANCELED_STATUS_CODES: readonly number[] = [PURCHASE_STATUS.CANCELED];
+const CANCELED_STATUS_CODES: ReadonlySet<number> = new Set([PURCHASE_STATUS.CANCELED]);
 
 /**
  * ステータスの業務キーから、badge の見た目を選ぶ。
@@ -32,11 +32,11 @@ const CANCELED_STATUS_CODES: readonly number[] = [PURCHASE_STATUS.CANCELED];
  * [画面要件](../../../../../docs/spec/route/shop/purchases/page.screen.md)「状況」。
  */
 export function toStatusEmphasis(statusCode: number): BadgeVariant {
-  if (SETTLED_STATUS_CODES.includes(statusCode)) {
+  if (SETTLED_STATUS_CODES.has(statusCode)) {
     return BADGE_VARIANT.SUCCESS;
   }
 
-  if (CANCELED_STATUS_CODES.includes(statusCode)) {
+  if (CANCELED_STATUS_CODES.has(statusCode)) {
     return BADGE_VARIANT.DESTRUCTIVE;
   }
 

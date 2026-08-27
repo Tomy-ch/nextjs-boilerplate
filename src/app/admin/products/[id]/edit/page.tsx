@@ -9,7 +9,7 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { MAX_UPLOAD_BYTES } from "@/config/http/http.client";
 import { AdminProductEditPageContent } from "@/features/admin/products/edit/page-content";
-import { AdminProductListSkeleton } from "@/features/admin/products/list/ui/skeleton/skeleton";
+import { AdminProductEditSkeleton } from "@/features/admin/products/edit/ui/skeleton/skeleton";
 import { toProductId } from "@/model/product/product";
 
 import { updateProductAction, uploadProductImageAction } from "../../actions";
@@ -19,13 +19,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/**
- * 商品を編集する画面。
- *
- * @remarks
- * 在庫数はここで扱いません。在庫は加算で動かすもので、読んで書き戻す形にすると読んでから送るまで
- * の間に売れた分を打ち消します。
- */
+/** 商品を編集する画面。 */
 export default async function AdminProductEditPage({
   params,
 }: {
@@ -43,7 +37,7 @@ export default async function AdminProductEditPage({
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <Suspense fallback={<AdminProductListSkeleton />}>
+      <Suspense fallback={<AdminProductEditSkeleton />}>
         <AdminProductEditPageContent
           id={toProductId(id)}
           maxUploadBytes={MAX_UPLOAD_BYTES}

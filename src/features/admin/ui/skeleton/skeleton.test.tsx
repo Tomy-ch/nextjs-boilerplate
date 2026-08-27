@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render } from "@testing-library/react";
+import { render, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -34,6 +34,7 @@ describe("AdminSummarySkeleton", () => {
     const { container } = render(<AdminSummarySkeleton />);
 
     expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
+    expect(within(container).queryAllByRole("generic")).toHaveLength(0);
   });
 
   it("a11y 検査を通る", async () => {

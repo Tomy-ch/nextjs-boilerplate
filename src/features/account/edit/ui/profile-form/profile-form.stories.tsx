@@ -12,6 +12,11 @@ import { ProfileForm } from "./profile-form";
  * 到達できない状態で、操作を経ないと出ません。
  *
  * 3 種類を混ぜるのは、必須・形式・桁数のどれも同じ見た目で出るかを 1 つの story で見るためです。
+ *
+ * **最後だけ `tab()` を使いません。** 次の項目は郵便番号で、そこへ focus が移ると離れた時点で
+ * 住所の補完が走り、この story の主題ではない状態まで進みます。focus ring も絵に残り、その角は
+ * 実行ごとに aa が揺れるため、この story だけが 2 画素で落ち続けていました。検証を起こすのに
+ * 要るのは焦点が外れることだけなので、移さずに外します。
  */
 async function showValidationErrors({
   canvasElement,
@@ -31,7 +36,7 @@ async function showValidationErrors({
   const phone = canvas.getByLabelText("電話番号");
   await userEvent.clear(phone);
   await userEvent.type(phone, "0901");
-  await userEvent.tab();
+  phone.blur();
 }
 
 /**

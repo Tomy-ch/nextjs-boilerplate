@@ -70,8 +70,10 @@ function flattenSpecs(suites: JSONSuite[]): JSONSpec[] {
   const specs: JSONSpec[] = [];
 
   for (const suite of suites) {
-    specs.push(...asArray<JSONSpec>(suite.specs));
-    specs.push(...flattenSpecs(asArray<JSONSuite>(suite.suites)));
+    specs.push(
+      ...asArray<JSONSpec>(suite.specs),
+      ...flattenSpecs(asArray<JSONSuite>(suite.suites)),
+    );
   }
 
   return specs;

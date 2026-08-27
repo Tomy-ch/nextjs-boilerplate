@@ -105,16 +105,40 @@ jobs:
         if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
-          tools: aqua:Bearer/bearer
+          # node and pnpm join bearer for `scripts/sarif` — see the note on the scan step.
+          tools: core:node aqua:pnpm/pnpm aqua:Bearer/bearer
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        if: steps.scope.outputs.relevant == 'true'
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        if: steps.scope.outputs.relevant == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # `make bearer-scan` passes --exit-code 0, so findings leave the status at zero.
       # Anything non-zero here is the tool failing, not the code.
+      #
+      # `bearer-sarif` normalises the report first: Bearer writes `results: null` when it
+      # finds nothing, and the upload below rejects it (bearer.mk).
       - name: Run the Bearer scan
         if: steps.scope.outputs.relevant == 'true'
         env:
-          BEARER_ARGS: --format sarif --output bearer.sarif
-        run: make bearer-scan
+          BEARER_SARIF_FILE: bearer.sarif
+        run: make bearer-sarif
 
       # An empty or missing report means the scan produced nothing to report with.
       - name: Require the SARIF to exist

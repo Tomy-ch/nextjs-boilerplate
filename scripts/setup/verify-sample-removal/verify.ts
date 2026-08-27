@@ -48,7 +48,7 @@ export function parseSnapshot(json: string): {
 export function parseDeletedPaths(porcelain: string): string[] {
   return porcelain
     .split("\n")
-    .filter((line) => line.length > 3 && (line[0] === "D" || line[1] === "D"))
+    .filter((line) => line.length > 3 && (line.startsWith("D") || line[1] === "D"))
     .map((line) => line.slice(3));
 }
 

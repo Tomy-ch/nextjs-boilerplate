@@ -22,7 +22,7 @@ const FALLBACK_RETURN_URL = "/";
  * `.invalid` は名前解決されないことが保証された予約 TLD（RFC 6761）です。判定に使うだけで
  * 接続はしませんが、実在の名前を借りると、その名前が将来別の意味を持ったときに判定が変わります。
  */
-const PROBE_ORIGIN = "http://internal.invalid";
+const PROBE_ORIGIN = "http://internal.invalid"; // DevSkim: ignore DS137138
 
 /**
  * 未認証で弾いた利用者を、認証後に戻す先を検証する。
@@ -40,16 +40,16 @@ const PROBE_ORIGIN = "http://internal.invalid";
  * 先頭が `/` であることも併せて要求します。origin の一致だけを見ると `reports/1` のような
  * 相対パスも通り、呼び出し側がどこを基準に解決するかで行き先が変わります。
  *
- * @param candidate - クエリ等から受け取った復帰先候補
+ * @param candidate - クエリや form から受け取った復帰先候補。文字列でない値もここへ届く
  * @returns 安全と判定した、解決済みの相対パス。判定に落ちたときは `/`
  */
-export function toSafeReturnUrl(candidate: string | null | undefined): SafeReturnUrl {
+export function toSafeReturnUrl(candidate: unknown): SafeReturnUrl {
   return safeReturnUrlSchema.parse(resolveReturnUrl(candidate));
 }
 
 /** 候補を、通ってよい形へ倒す。 */
-function resolveReturnUrl(candidate: string | null | undefined): string {
-  if (candidate === null || candidate === undefined || !candidate.startsWith("/")) {
+function resolveReturnUrl(candidate: unknown): string {
+  if (typeof candidate !== "string" || !candidate.startsWith("/")) {
     return FALLBACK_RETURN_URL;
   }
 

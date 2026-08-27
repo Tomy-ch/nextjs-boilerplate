@@ -39,7 +39,7 @@ const APP_SERVED_ROOT = "public";
 const ASSET_EXTENSIONS = "svg|png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|pdf|mp4|webm" as const;
 
 /** 二重引用符で囲まれた、ルート絶対の資材 URL。 */
-const ASSET_URL = new RegExp(`"(/[^"\\s]*\\.(?:${ASSET_EXTENSIONS}))"`, "g");
+const ASSET_URL = new RegExp(String.raw`"(/[^"\s]*\.(?:${ASSET_EXTENSIONS}))"`, "g");
 
 /**
  * 解決しないことが正しい参照。

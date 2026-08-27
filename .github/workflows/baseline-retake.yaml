@@ -83,20 +83,34 @@ jobs:
             mise-versions.jdx.dev:443
             nodejs.org:443
             registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
 
       # `workflow_run` carries the commit but not the pull request, so everything the
       # later steps branch on is resolved here in one API call.
+      #
+      # RESOLVED BY BRANCH, NOT BY COMMIT. `/commits/<sha>/pulls` answers "which pull
+      # request introduced this commit", which is not the same question. On a release
+      # branch the head commit is the merge commit of the last feature pull request, so
+      # that endpoint returns the feature one — already closed, and carrying none of the
+      # labels a human put on the release pull request. The release pull request never
+      # appears in the answer at all, which made the retake unreachable for exactly the
+      # branch whose baselines drift the most.
       - name: Resolve the pull request
         id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
         run: |
           set -euo pipefail
 
-          pr="$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/pulls" --jq '.[0] // empty')"
+          pr="$(gh api "repos/$GITHUB_REPOSITORY/pulls" --method GET \
+            -f "head=${HEAD_OWNER}:${HEAD_BRANCH}" -f state=open --jq '.[0] // empty')"
           if [ -z "$pr" ]; then
-            echo 'ℹ️ この commit に対応する PR がありません。何もしません。'
+            echo 'ℹ️ このブランチを head に持つ開いた PR がありません。何もしません。'
             echo 'found=false' >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -233,11 +247,35 @@ jobs:
             exit 1
           fi
 
+      # Asked of the ruleset itself. A second copy of the guarded branch patterns here would
+      # drift from `.github/settings/branch-protection.json`, which is what enforces them.
+      - name: Decide how the pointer can reach the branch
+        id: route
+        if: steps.gate.outputs.deferred == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.pr.outputs.head_ref }}
+        run: |
+          set -euo pipefail
+
+          guarded="$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$BRANCH" \
+            --jq 'any(.[]; .type == "pull_request")')"
+
+          if [ "$guarded" = 'true' ]; then
+            echo 'route=pull-request' >> "$GITHUB_OUTPUT"
+            echo "::notice::${BRANCH} は直接 push できないため、ポインタは PR で入れます。"
+          else
+            echo 'route=push' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout the pull request branch
         if: steps.gate.outputs.deferred == 'false'
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.pr.outputs.head_ref }}
+          # `create-pull-request` reconciles against the base; a depth-1 tree gives it nothing
+          # to reconcile with. The push route stays shallow.
+          fetch-depth: ${{ steps.route.outputs.route == 'pull-request' && 0 || 1 }}
           # The pointer is pushed with the App token instead, so `GITHUB_TOKEN` is
           # dropped here as in every other workflow. A push made with `GITHUB_TOKEN`
           # does not start a workflow run, and this design depends on the push
@@ -252,6 +290,9 @@ jobs:
           app-id: ${{ secrets.BASELINE_APP_ID }}
           private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
           persist-credentials: 'true'
+          # Only on the route that opens one. Unconditional, the mint 422s on an installation
+          # that has not granted it and takes the push route down with it.
+          pull-requests: ${{ steps.route.outputs.route == 'pull-request' && 'write' || '' }}
 
       - name: Refuse without a token for the baseline store
         if: steps.gate.outputs.deferred == 'false' && steps.baselines.outputs.token == ''
@@ -482,7 +523,7 @@ jobs:
       # out of an internal bot's way.
       - name: Move the submodule pointer
         id: push
-        if: steps.gate.outputs.deferred == 'false'
+        if: steps.gate.outputs.deferred == 'false' && steps.route.outputs.route == 'push'
         env:
           IDS: ${{ steps.retake.outputs.ids }}
           TOKEN: ${{ steps.baselines.outputs.token }}
@@ -501,6 +542,52 @@ jobs:
 
           git config --local --unset-all http.extraheader
 
+      - name: Build the pointer pull request body
+        id: pointer-body
+        if: steps.gate.outputs.deferred == 'false' && steps.route.outputs.route == 'pull-request'
+        env:
+          IDS: ${{ steps.retake.outputs.ids }}
+          PR: ${{ steps.pr.outputs.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          {
+            echo 'body<<POINTER_EOF'
+            echo "🎞️ #${PR} の基準画像を撮り直しました。この PR は submodule のポインタだけを動かします。"
+            echo
+            echo "撮り直した対象: ${IDS}"
+            echo
+            echo "**前後の画素は #${PR} の撮り直しコメントで見比べてください。** 意図した変更であることを確かめたら、**この PR に** \`baseline-approve\` ラベルを付けて merge してください。merge すると #${PR} の比較が回り直します。"
+            echo
+            echo '承認は 1 回で足ります。ここに付いたラベルは、同じポインタを引き継ぐ後続の PR でも有効です。'
+            echo
+            echo '撮り直しのたびにこの PR は更新されます。新しく開き直さないので、ここで交わした議論は残ります。'
+            echo 'POINTER_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # One branch and one pull request per served pull request, both reused — a fresh name
+      # per retake would leave proposals nobody merged. Not `GITHUB_TOKEN`: a pull request it
+      # opens reports no checks, and the required ones are what gate the pointer.
+      - name: Open a pull request for the submodule pointer
+        id: pointer-pr
+        if: steps.gate.outputs.deferred == 'false' && steps.route.outputs.route == 'pull-request'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        with:
+          token: ${{ steps.baselines.outputs.token }}
+          branch: baseline-retake/${{ steps.pr.outputs.number }}
+          base: ${{ steps.pr.outputs.head_ref }}
+          delete-branch: true
+          # The pointer and nothing else: this job runs a Storybook build and a browser suite
+          # before reaching here, and unset commits whatever they left behind.
+          add-paths: baseline/images
+          commit-message: |
+            Test: 基準画像を撮り直す
+
+            撮り直し: ${{ github.event.workflow_run.name }} / 対象: ${{ steps.retake.outputs.ids }}
+          title: 'Test: 基準画像を撮り直す (#${{ steps.pr.outputs.number }})'
+          body: ${{ steps.pointer-body.outputs.body }}
+
       # The body is built here but published by a job that holds no App secret, so a
       # token cannot reach a public comment through the file (ADR 0153).
       - name: Build the outcome comment
@@ -512,7 +599,8 @@ jobs:
           COUNT: ${{ steps.push-store.outputs.count }}
           BEFORE: ${{ steps.push-store.outputs.before }}
           AFTER: ${{ steps.push-store.outputs.after }}
-          SHA: ${{ steps.push.outputs.sha }}
+          SHA: ${{ steps.push.outputs.sha || steps.pointer-pr.outputs.pull-request-head-sha }}
+          POINTER_PR: ${{ steps.pointer-pr.outputs.pull-request-url }}
           REASON: ${{ steps.report.outputs.reason }}
           DEFERRED: ${{ steps.gate.outputs.deferred }}
           FAILED: ${{ steps.gate.outputs.failed }}
@@ -599,6 +687,11 @@ jobs:
               echo
               echo "対象: ${IDS}"
 
+              if [ -n "${POINTER_PR}" ]; then
+                echo
+                echo "このブランチは直接 push できないため、**ポインタは PR で入れます**: ${POINTER_PR}"
+              fi
+
               if [ -n "${IMAGES}" ]; then
                 echo
                 image_table
@@ -638,7 +731,11 @@ jobs:
               fi
 
               echo
-              echo "**まだ承認ではありません。** 上の表の前後を見比べ、意図した変更であることを確かめたうえで \`baseline-approve\` ラベルを付けてください。"
+              if [ -n "${POINTER_PR}" ]; then
+                echo "**まだ承認ではありません。** 上の表の前後を見比べ、意図した変更であることを確かめたうえで、**上のポインタ PR に** \`baseline-approve\` ラベルを付けて merge してください。承認はそこに 1 回で足ります。"
+              else
+                echo "**まだ承認ではありません。** 上の表の前後を見比べ、意図した変更であることを確かめたうえで \`baseline-approve\` ラベルを付けてください。"
+              fi
               echo
               echo "**\`baseline-retake\` は外しました。** 1 回の依頼につき 1 回だけ撮ります。もう一度撮るには、付け直したうえで比較（VRT / E2E）を実行し直してください（ラベルは引き金ではなく、完了時に読まれる条件です）。"
             else
@@ -652,11 +749,14 @@ jobs:
             echo 'VRT_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # One label, one retake: removed only once the pointer has moved AND every reported
+      # One label, one retake: removed only once the pointer has been placed AND every reported
       # kind was covered. Anything else leaves it on, so the retake resumes by itself once
       # the cause is gone. The second condition is what keeps a run that moved the pointer
       # for the stories alone from spending the label while E2E is still deciding whether
       # the screens moved — the screens would then never be retaken for this branch.
+      #
+      # On the pull-request route the pointer is proposed rather than landed; the label is
+      # spent all the same, or every later run would replace the pull request under review.
       #
       # `baseline-approve` is NOT touched here. Whether an acceptance still holds is decided
       # by `baseline-approval.yaml` comparing its timestamp against the pointer's commit, so
@@ -668,7 +768,9 @@ jobs:
       - name: Remove the label
         if: >-
           always() && steps.mode.outputs.mode == 'reported' &&
-          steps.push.outputs.sha != '' && steps.screens.outputs.pending != 'true'
+          (steps.push.outputs.sha != '' ||
+            steps.pointer-pr.outputs.pull-request-head-sha != '') &&
+          steps.screens.outputs.pending != 'true'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -701,14 +803,23 @@ jobs:
             mise-versions.jdx.dev:443
             nodejs.org:443
             registry.npmjs.org:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            mcr.microsoft.com:443
+            *.data.mcr.microsoft.com:443
 
+      # Resolved by branch for the reason the retake job states: on a release branch the
+      # head commit belongs to the feature pull request that was merged, not to the
+      # release pull request this outcome is about.
       - name: Resolve the pull request
         id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
         run: |
-          number="$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/pulls" --jq '.[0].number // empty')"
+          number="$(gh api "repos/$GITHUB_REPOSITORY/pulls" --method GET \
+            -f "head=${HEAD_OWNER}:${HEAD_BRANCH}" -f state=open --jq '.[0].number // empty')"
           echo "number=${number}" >> "$GITHUB_OUTPUT"
 
       - name: Comment the outcome on PR

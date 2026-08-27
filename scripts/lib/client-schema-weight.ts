@@ -38,10 +38,10 @@ const SERVER_BOUNDARY = /(?:^\s*["']use server["'])|(?:import\s+["']server-only[
  * **行頭の `import type` に加えて、名前がすべて `type` 修飾子を持つ形も落とします。**
  * `import { type A, type B } from "x"` は完全に型だけで、実行時には何も残りません。
  */
-const TYPE_ONLY = /^\s*(?:import|export)\s+type\s[^;]*?;/gm;
+const TYPE_ONLY = /^[ \t]*(?:import|export)\s+type\s[^;]*?;/gm;
 
 /** 名前がすべて `type` 修飾子を持つ import。 */
-const ALL_NAMED_TYPES = /^\s*import\s*\{([^}]*)\}\s*from\s*["'][^"']+["'];/gm;
+const ALL_NAMED_TYPES = /^[ \t]*import\s*\{([^}]*)\}\s*from\s*["'][^"']+["'];/gm;
 
 /**
  * 引いた先を挙げる。

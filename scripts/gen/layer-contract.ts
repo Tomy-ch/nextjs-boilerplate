@@ -17,7 +17,7 @@ export type LayerContract = {
 
 /** `key: [a, b]` 形式の 1 行から値を取り出す。 */
 function readListValue(frontmatter: string, key: string): string[] | null {
-  const matched = frontmatter.match(new RegExp(`^${key}:\\s*\\[(.*)\\]\\s*$`, "m"));
+  const matched = new RegExp(String.raw`^${key}:\s*\[(.*)\]\s*$`, "m").exec(frontmatter);
 
   if (matched === null) {
     return null;
@@ -31,7 +31,7 @@ function readListValue(frontmatter: string, key: string): string[] | null {
 
 /** `key: value` 形式の 1 行から値を取り出す。 */
 function readScalarValue(frontmatter: string, key: string): string | null {
-  const matched = frontmatter.match(new RegExp(`^${key}:\\s*(\\S+)\\s*$`, "m"));
+  const matched = new RegExp(String.raw`^${key}:\s*(\S+)\s*$`, "m").exec(frontmatter);
 
   return matched === null ? null : matched[1];
 }
@@ -43,7 +43,7 @@ function readScalarValue(frontmatter: string, key: string): string | null {
  * @returns 読み取れた契約。frontmatter が無い / 必要な宣言が欠けている場合は `null`。
  */
 export function readLayerContract(readmeText: string): LayerContract | null {
-  const frontmatter = readmeText.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatter = /^---\n([\s\S]*?)\n---/.exec(readmeText);
 
   if (frontmatter === null) {
     return null;

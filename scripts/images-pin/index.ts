@@ -54,7 +54,7 @@ async function runResolve(root: string, minAgeDays: number): Promise<void> {
   const skipped = resolved.filter((entry) => entry.use === null).map((entry) => entry.key);
   if (skipped.length > 0) {
     fail(
-      `${minAgeDays} 日未満・既存ピン無しのため採用できません。日を置いて再実行するか、緊急時のみ --min-age-days=0 で明示採用してください: ${skipped.sort().join(", ")}`,
+      `${minAgeDays} 日未満・既存ピン無しのため採用できません。日を置いて再実行するか、緊急時のみ --min-age-days=0 で明示採用してください: ${skipped.toSorted().join(", ")}`,
     );
   }
 }

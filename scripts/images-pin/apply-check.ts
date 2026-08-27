@@ -106,9 +106,9 @@ export function applyPins(
   return {
     missing: [...missing].sort(),
     drifted: dryRun ? pending.map((entry) => path.relative(root, entry.file)).sort() : [],
-    updated: updated.sort(),
+    updated: updated.toSorted(),
     orphans,
-    unparsed: unparsed.sort(),
+    unparsed: unparsed.toSorted(),
   };
 }
 

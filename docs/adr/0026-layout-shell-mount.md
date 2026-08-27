@@ -31,6 +31,27 @@ Accepted
 - **トースト queue** → `components`(UI 状態・Provider + `useToast()`)。feature は `features → components`(既存許可)で `useToast().show()` を呼ぶ
 - **テーマ** → `capabilities` / `components` の Provider
 
+### route group は shell の単位であり、client 状態の境界でもある
+
+route group を分けると器が分かれる。**その境界を跨ぐ遷移は、共有していない layout を unmount する**
+(client-side transition が保つのは shared layout だけである)。したがってその layout へ mount した
+Provider が持つ状態は、境界の向こうへ持ち越されない。`Cache Components` は採らないため
+([0041](0041-cache-components-decision.md))、React `<Activity>` による保存も効かない。
+
+**これは欠陥ではなく、route group をジャーニーの単位として使うことの裏返しである。** あるジャーニー
+の内側でしか意味を持たない状態は、そのジャーニーを離れた時点で失われてよい。器を分ける理由は
+**見せたい姿の違いでも、描く時点の違いでもよい**([0040](0040-routing-rendering-strategy.md))——
+どちらで分けても、境界がジャーニーの境界になることは変わらない。
+
+したがって:
+
+- ある group の `layout.tsx` へ mount してよいのは、**そのジャーニーの内側で閉じる状態**だけである
+- 状態が境界を跨いで生き残る必要があるなら、**跨ぐこと自体が同じジャーニーの一部**である。その場合は
+  2 つを親の route group でまとめ、親の `layout.tsx` へ Provider を置く。root layout へ上げるのは
+  最後の手段で、1 つのジャーニーで閉じる状態をグローバルへ持ち上げることになる(下記「禁止事項」)
+- **どちらを選んだかは、その器の仕様書に書く。** 失われることを受け入れたのか、跨ぐ必要があると
+  判断したのかは成果物から読めない
+
 ### パンくずを置く画面(器ではなく画面が持つ)
 
 パンくずは**器が全画面へ一律に置くものではない**。置くのは次の条件を満たす画面だけである。

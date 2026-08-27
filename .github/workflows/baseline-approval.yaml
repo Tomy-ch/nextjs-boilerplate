@@ -89,6 +89,10 @@ jobs:
 
       # The label alone is not the gate: an acceptance given before the current images
       # existed accepted something else. The pointer's own commit date is the line.
+      #
+      # Looked for on this pull request AND on the one that introduced the pointer commit:
+      # what is kept is that a human looked at THESE pixels, not which pull request they
+      # were looking at. Resolved from the commit, so it survives any branch naming.
       - name: Require an acceptance newer than the baselines
         if: steps.moved.outputs.moved == 'true'
         env:
@@ -99,15 +103,28 @@ jobs:
         run: |
           set -euo pipefail
 
-          taken="$(gh api "repos/${GITHUB_REPOSITORY}/commits?path=baseline/images&sha=${HEAD_SHA}&per_page=1" \
-            --jq '.[0].commit.committer.date // empty')"
-          accepted="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/events?per_page=100" --paginate \
-            --jq '[.[] | select(.event == "labeled" and .label.name == "baseline-approve") | .created_at] | max // empty')"
+          pointer="$(gh api "repos/${GITHUB_REPOSITORY}/commits?path=baseline/images&sha=${HEAD_SHA}&per_page=1" \
+            --jq '.[0] // empty')"
+          taken="$(jq -r '.commit.committer.date // empty' <<<"${pointer}")"
 
           if [ -z "${taken}" ]; then
             echo '❌ 基準画像を動かしたコミットを特定できませんでした。' >&2
             exit 1
           fi
+
+          # Latest across the pull requests that could carry one, so the comparison below
+          # has a single value regardless of where the acceptance was given.
+          latest_acceptance() {
+            for number in "$@"; do
+              [ -n "${number}" ] || continue
+              gh api "repos/${GITHUB_REPOSITORY}/issues/${number}/events?per_page=100" --paginate \
+                --jq '.[] | select(.event == "labeled" and .label.name == "baseline-approve") | .created_at'
+            done | sort | tail -n 1
+          }
+
+          origin_pr="$(gh api "repos/${GITHUB_REPOSITORY}/commits/$(jq -r .sha <<<"${pointer}")/pulls" \
+            --jq '.[0].number // empty')"
+          accepted="$(latest_acceptance "${PR}" "${origin_pr}")"
 
           if [ -z "${accepted}" ]; then
             echo "❌ 基準画像が変わっています。撮り直しのコメントが並べた前後の絵で画素を確かめ、baseline-approve ラベルを付けてください。" >&2

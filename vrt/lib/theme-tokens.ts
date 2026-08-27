@@ -4,7 +4,7 @@
 // 2 箇所に持つことになる。名前だけを取り、実ブラウザで読んだ結果の突き合わせに使う。
 
 /** 意味トークンの別名の宣言。primitive(`--color-neutral-100: #ededed`)とはこの形で分かれる。 */
-const SEMANTIC_ALIAS = /^\s*--color-[a-z0-9-]+:\s*var\((--semantic-color-[a-z0-9-]+)\);/gm;
+const SEMANTIC_ALIAS = /^[ \t]*--color-[a-z0-9-]+:[ \t]*var\((--semantic-color-[a-z0-9-]+)\);/gm;
 
 /**
  * 色以外の意味トークンと、その値を読むために使う CSS プロパティ。
@@ -16,10 +16,19 @@ const SEMANTIC_ALIAS = /^\s*--color-[a-z0-9-]+:\s*var\((--semantic-color-[a-z0-9
  */
 const SEMANTIC_ALIAS_BY_PROPERTY: ReadonlyArray<readonly [RegExp, string]> = [
   // `--font-weight-*` を書体として読まないよう、先頭で除く
-  [/^\s*--font-(?!weight-)[a-z0-9-]+:\s*var\((--semantic-font-[a-z0-9-]+)\);/gm, "fontFamily"],
-  [/^\s*--font-weight-[a-z0-9-]+:\s*var\((--semantic-font-weight-[a-z0-9-]+)\);/gm, "fontWeight"],
-  [/^\s*--shadow-[a-z0-9-]+:\s*var\((--semantic-shadow-[a-z0-9-]+)\);/gm, "boxShadow"],
-  [/^\s*--text-shadow-[a-z0-9-]+:\s*var\((--semantic-text-shadow-[a-z0-9-]+)\);/gm, "textShadow"],
+  [
+    /^[ \t]*--font-(?!weight-)[a-z0-9-]+:[ \t]*var\((--semantic-font-[a-z0-9-]+)\);/gm,
+    "fontFamily",
+  ],
+  [
+    /^[ \t]*--font-weight-[a-z0-9-]+:[ \t]*var\((--semantic-font-weight-[a-z0-9-]+)\);/gm,
+    "fontWeight",
+  ],
+  [/^[ \t]*--shadow-[a-z0-9-]+:[ \t]*var\((--semantic-shadow-[a-z0-9-]+)\);/gm, "boxShadow"],
+  [
+    /^[ \t]*--text-shadow-[a-z0-9-]+:[ \t]*var\((--semantic-text-shadow-[a-z0-9-]+)\);/gm,
+    "textShadow",
+  ],
 ];
 
 /**

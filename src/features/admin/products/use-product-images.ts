@@ -2,7 +2,10 @@
 
 import { useCallback, useState } from "react";
 
-import { ATTACHMENT_STATE } from "@/components/app-starter/attachment/attachment.definition";
+import {
+  ATTACHMENT_STATE,
+  type AttachmentState,
+} from "@/components/app-starter/attachment/attachment.definition";
 import type { UploadPreviewItem } from "@/components/app-starter/upload-preview/upload-preview.definition";
 import { idleActionState } from "@/model/action-state";
 import { PRODUCT_FORM_NAMES } from "./form-names";
@@ -96,6 +99,15 @@ function swap(
   next.splice(target, 0, ...next.splice(index, 1));
 
   return next;
+}
+
+/** 明細 1 件の見た目の状態。送信に失敗していれば、その先の判定は要らない。 */
+function attachmentStateOf(entry: ProductImageEntry): AttachmentState {
+  if (entry.failure !== undefined) {
+    return ATTACHMENT_STATE.ERROR;
+  }
+
+  return entry.imagePath === undefined ? ATTACHMENT_STATE.UPLOADING : ATTACHMENT_STATE.DONE;
 }
 
 /**
@@ -202,12 +214,7 @@ export function useProductImages(
       id: entry.id,
       name: entry.name,
       preview: entry.file ?? entry.url,
-      state:
-        entry.failure !== undefined
-          ? ATTACHMENT_STATE.ERROR
-          : entry.imagePath === undefined
-            ? ATTACHMENT_STATE.UPLOADING
-            : ATTACHMENT_STATE.DONE,
+      state: attachmentStateOf(entry),
     })),
     imagePaths: entries
       .map((entry) => entry.imagePath)

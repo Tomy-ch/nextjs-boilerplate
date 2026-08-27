@@ -2,9 +2,9 @@
 //
 // 基準画像を撮った時点のハッシュは置き場が持ち、`make vrt` は撮る前に現在の値と突き合わせる。
 // 一致していれば、撮っても前と同じ絵にしかならない。
-import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import path from "node:path";
+import { collectInputs, inputsHash } from "../lib/input-hash.js";
+
+export { decideGate } from "../lib/input-hash.js";
 
 /**
  * 絵を決める入力(リポジトリルート相対)。
@@ -55,41 +55,10 @@ function isInput(relative: string): boolean {
  * ハッシュを持ち得ます。
  */
 export function collectRenderInputs(root: string): string[] {
-  return RENDER_INPUTS.flatMap((entry) => walk(root, entry))
-    .filter(isInput)
-    .sort();
+  return collectInputs(root, RENDER_INPUTS, isInput);
 }
 
 /** 列挙したファイルのパスと中身から 1 つのハッシュを作る。 */
 export function renderInputsHash(root: string, files: readonly string[]): string {
-  const digest = createHash("sha256");
-  for (const file of files) {
-    digest.update(file);
-    digest.update(readFileSync(path.join(root, file)));
-  }
-
-  return digest.digest("hex");
-}
-
-/**
- * 記録された値と現在の値から、検査を省いてよいかを決める。
- *
- * @remarks
- * 記録は複数受け取り、1 つでも一致すれば省きます。同じ入力状態でも「基準画像を撮った時点」と
- * 「検査が通った時点」は別々に記録されるためです。
- *
- * 記録が 1 つも無いときは省きません。判定できないことを「変わっていない」と読むと、絵が
- * 変わったまま緑で通ります。
- */
-export function decideGate(recorded: readonly (string | null)[], current: string): "skip" | "run" {
-  return recorded.some((value) => value !== null && value.trim() === current) ? "skip" : "run";
-}
-
-function walk(root: string, entry: string): string[] {
-  const absolute = path.join(root, entry);
-  if (!statSync(absolute).isDirectory()) return [entry];
-
-  return readdirSync(absolute, { recursive: true })
-    .map((found) => path.join(entry, found.toString()))
-    .filter((relative) => statSync(path.join(root, relative)).isFile());
+  return inputsHash(root, files);
 }

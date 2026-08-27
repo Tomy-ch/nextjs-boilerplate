@@ -232,7 +232,7 @@ export function resolveScreens(
   const stale = declarations.map((entry) => entry.route).filter((route) => !known.has(route));
 
   if (stale.length > 0) {
-    throw new Error(`宣言が指す画面がありません: ${stale.sort().join(", ")}`);
+    throw new Error(`宣言が指す画面がありません: ${stale.toSorted().join(", ")}`);
   }
 
   const screens = declarations

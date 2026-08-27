@@ -58,8 +58,11 @@ export async function authorizeDevelopmentSession(request: Request): Promise<Aut
   }
 
   const formData = await request.formData();
-  const state = formData.get(STATE_PARAM)?.toString() ?? "";
-  const returnUrl = toSafeReturnUrl(formData.get(RETURN_URL_PARAM)?.toString());
+  // File が送られても文字列として扱わない。`[object File]` は state として成立しないため、
+  // 対応づかない送信として落とす。
+  const stateEntry = formData.get(STATE_PARAM);
+  const state = typeof stateEntry === "string" ? stateEntry : "";
+  const returnUrl = toSafeReturnUrl(formData.get(RETURN_URL_PARAM));
 
   if (state === "") {
     // 対応づける値が無い送信は認可の往復の外から来ている。戻す先も決められない。

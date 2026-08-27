@@ -78,6 +78,31 @@ on:
 # Select the CI environment file (env/.env.ci), which is the one that puts the API in mock
 # mode. Without a mocked API the screens would need a backend, and a slow response over
 # there would read as a regression in here.
+# ## Why the measurement is split across machines
+#
+# The cost is linear in the number of screens and each screen is measured three times over,
+# so the only way to shorten the wall clock is to add machines. `lighthouse-shard` is that
+# fan-out; `lighthouse` collects what came back.
+#
+# **Never inside one machine.** What is being measured is CPU-bound (TBT, LCP), so putting
+# two measurements on one runner has them take each other's CPU — the numbers stop meaning
+# anything against the budget, and they stop meaning it differently on every run. The split
+# is across machines, not within one.
+#
+# **Only a pull request is split.** The protected-branch and daily runs are measured on one
+# machine as before: nobody is waiting on them, and every extra machine repeats the fixed
+# cost (setup, dependency install, build). The width is the matrix's own declaration and the
+# denominator is read back from `strategy.job-total`, so there is one number, not two.
+#
+# **The decision to measure is asked once, in `plan`.** Asking it per shard would be four
+# answers to one question, and — because standing down is the common case — it would make
+# the cheap path four times as expensive to make the rare path faster.
+#
+# **The budget is judged by the collecting job.** A shard measures only the screens it was
+# given, and the check for "the budget declares a screen that no longer exists" can only be
+# answered by something that saw all of them. The shards write their measurements out; the
+# merge reads every one before judging.
+
 env:
   APP_ENV: ci
 
@@ -89,13 +114,146 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lighthouse:
+  # Asked once, for every job below. Deciding it per shard would be four answers to one
+  # question, and the answer decides whether any machine starts at all.
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    outputs:
+      # The gate can only REMOVE a reason to measure, never add one: an input state that
+      # already met the budget cannot start meeting it differently, so measuring it again
+      # only re-samples the runner. Every other reason still has to say yes first.
+      run: >-
+        ${{ steps.gate.outputs.decision != 'skip'
+        && (steps.cadence.outputs.run == 'true' || steps.trigger.outputs.kind == 'force') }}
+      # The width, as data rather than as a condition on a job. A pull request is the only
+      # event where a person is waiting, so it is the only one that pays for extra machines.
+      shards: ${{ github.event_name == 'pull_request' && '[1, 2, 3, 4]' || '[1]' }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            cdn.playwright.dev:443
+            playwright.download.prss.microsoft.com:443
+            storage.googleapis.com:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            accounts.google.com:443
+            android.clients.google.com:443
+            clients2.google.com:443
+            mtalk.google.com:443
+            update.googleapis.com:443
+            www.google.com:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          # The base ref has to be resolvable for the `trigger` diff; the default shallow
+          # checkout leaves it a bad object and the decision would silently see no changes.
+          #
+          # The condition is inverted on purpose. `<cond> && 0 || 1` always yields 1, because
+          # GitHub's pseudo-ternary falls through to the `||` side whenever the value before it
+          # is falsy — and `0` is. So the branch that has to carry `0` is the one after `||`.
+          fetch-depth: ${{ github.event_name != 'pull_request' && 1 || 0 }}
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      # The browser is downloaded rather than taken from the digest-pinned container the VRT
+      # and E2E jobs use, so it has to be cached or every run pays for it again. Keyed by the
+      # lockfile because that is what fixes the Playwright version, and therefore the build.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Everything above this point is what the pull-request path pays: about a minute, and
+      # only to answer whether the expensive part is warranted.
+      - name: Decide whether this event has to be measured now
+        id: cadence
+        uses: ./.github/actions/check-trigger
+        with:
+          label: run-lighthouse
+          labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+
+      # Only asked when the shared four did not already say yes, because its answer can only
+      # add reasons to measure, never remove one.
+      # The record of which input state already met the budget. `make lighthouse-gate` hashes
+      # the inputs itself and answers `skip` when they match, so the cache only has to carry
+      # the previous answer forward — a miss reads as "never measured" and measures.
+      - name: Restore the last measured input state
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/lighthouse/verified-inputs.sha256
+          key: lighthouse-verified-${{ github.run_id }}
+          restore-keys: lighthouse-verified-
+
+      # Asked before the diff, because its answer costs nothing and can settle the question on
+      # its own — a label applied to an open pull request re-triggers this workflow with a tree
+      # that is byte-for-byte what the previous run already measured.
+      - name: Decide whether the inputs already met the budget
+        id: gate
+        run: |
+          echo "decision=$(make --no-print-directory lighthouse-gate)" >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether the diff itself earns a measurement
+        id: trigger
+        if: github.event_name == 'pull_request' && steps.cadence.outputs.run != 'true'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: pnpm exec tsx scripts/lighthouse trigger "origin/${BASE_REF}"
+
+      # The Next.js build cache is deliberately NOT restored here. A restored cache changes
+      # how much work the first render does, and the numbers this job produces would then
+      # depend on which branch last populated it rather than on this branch's code.
+
+  lighthouse-shard:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
       contents: read
-      issues: write
-      pull-requests: write
+
+    strategy:
+      # One machine failing says nothing about the others, and the table has to list every
+      # screen that was measured. Cancelling the rest would report a subset as the whole.
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
 
     steps:
       - name: Harden the runner
@@ -172,37 +330,150 @@ jobs:
 
       # Everything above this point is what the pull-request path pays: about a minute, and
       # only to answer whether the expensive part is warranted.
-      - name: Decide whether this event has to be measured now
-        id: cadence
-        uses: ./.github/actions/check-trigger
-        with:
-          label: run-lighthouse
-          labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
-
-      # Only asked when the shared four did not already say yes, because its answer can only
-      # add reasons to measure, never remove one.
-      - name: Decide whether the diff itself earns a measurement
-        id: trigger
-        if: github.event_name == 'pull_request' && steps.cadence.outputs.run != 'true'
+      - name: Build the app, start it and measure this machine's share
+        shell: bash
         env:
-          BASE_REF: ${{ github.base_ref }}
-        run: pnpm exec tsx scripts/lighthouse trigger "origin/${BASE_REF}"
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ strategy.job-total }}
+        run: |
+          set -euo pipefail
 
-      # The Next.js build cache is deliberately NOT restored here. A restored cache changes
-      # how much work the first render does, and the numbers this job produces would then
-      # depend on which branch last populated it rather than on this branch's code.
-      - name: Build the app, start it and measure every screen
+          # Streamed through `tee` rather than tailed at the end: a run that is cancelled
+          # or hits the job timeout never reaches the tail, so the slow case — the one
+          # worth diagnosing — would leave no log at all.
+          #
+          # This machine does not judge. It measured a subset, so it cannot answer whether
+          # the budget names a screen that no longer exists; the collecting job does that
+          # once, over everything that came back.
+          make lighthouse LIGHTHOUSE_SHARD="${SHARD_INDEX}/${SHARD_TOTAL}" 2>&1 \
+            | tee /tmp/lighthouse-full.log
+
+      # Only the table, and only when there is one. The cells are screen names — which
+      # `resolveScreens` has already constrained to a set that cannot make markup — and
+      # numbers this job computed, so it renders rather than sitting in a code block. When
+      # the measurement died before printing a table there is nothing sanitized to show, so
+      # the comment says that instead of pasting raw log into a rendered body.
+
+      # `if: always()` so a machine that failed still hands over what it recorded. The
+      # collecting job counts what arrived: a hole surfaces as a missing machine rather than
+      # as a screen that looks unmeasured.
+      - name: Hand the measurements to the collecting job
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: lighthouse-lhr-${{ matrix.shard }}
+          path: tmp/lighthouse
+          retention-days: 30
+          if-no-files-found: error
+
+  lighthouse:
+    needs: [plan, lighthouse-shard]
+    # Runs whatever the machines did. A shard that FAILED still has to produce a red
+    # `lighthouse` and say which screen moved; a job that never starts reports nothing.
+    #
+    # A CANCELLED shard is excluded: no result reaches here, which is indistinguishable from
+    # a measurement that produced nothing. The run that superseded this one is measuring
+    # already. `test.yaml` keeps a bare `always()` because its context is required and an
+    # absent report blocks the merge forever; this one is not required.
+    if: ${{ !cancelled() && needs.lighthouse-shard.result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            cdn.playwright.dev:443
+            playwright.download.prss.microsoft.com:443
+            storage.googleapis.com:443
+            fonts.googleapis.com:443
+            fonts.gstatic.com:443
+            accounts.google.com:443
+            android.clients.google.com:443
+            clients2.google.com:443
+            mtalk.google.com:443
+            update.googleapis.com:443
+            www.google.com:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          # The base ref has to be resolvable for the `trigger` diff; the default shallow
+          # checkout leaves it a bad object and the decision would silently see no changes.
+          #
+          # The condition is inverted on purpose. `<cond> && 0 || 1` always yields 1, because
+          # GitHub's pseudo-ternary falls through to the `||` side whenever the value before it
+          # is falsy — and `0` is. So the branch that has to carry `0` is the one after `||`.
+          fetch-depth: ${{ github.event_name != 'pull_request' && 1 || 0 }}
+
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          path="$(pnpm store path)"
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      # The browser is downloaded rather than taken from the digest-pinned container the VRT
+      # and E2E jobs use, so it has to be cached or every run pays for it again. Keyed by the
+      # lockfile because that is what fixes the Playwright version, and therefore the build.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Everything above this point is what the pull-request path pays: about a minute, and
+      # only to answer whether the expensive part is warranted.
+      - name: Collect what every machine measured
+        if: needs.plan.outputs.run == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: tmp/lighthouse/
+          pattern: lighthouse-lhr-*
+          merge-multiple: true
+
+      # The step id stays `lighthouse` because everything downstream reads it. What changed
+      # is what it runs: the judging half, over every machine's measurements at once. A
+      # machine that never reported is named as such here — the merge refuses to judge a
+      # partial set, because the screens it never saw would read as screens the budget
+      # declares and the tree no longer has.
+      - name: Merge the measurements and judge them against the budget
         id: lighthouse
-        if: steps.cadence.outputs.run == 'true' || steps.trigger.outputs.kind == 'force'
+        if: needs.plan.outputs.run == 'true'
         continue-on-error: true
         shell: bash
         run: |
           set +e
 
-          # Streamed through `tee` rather than tailed at the end: a run that is cancelled
-          # or hits the job timeout never reaches the tail, so the slow case — the one
-          # worth diagnosing — would leave no log at all.
-          make lighthouse 2>&1 | tee /tmp/lighthouse-full.log
+          make lighthouse-merge 2>&1 | tee /tmp/lighthouse-full.log
           code=${PIPESTATUS[0]}
 
           if [ "${code}" -eq 0 ]; then
@@ -213,11 +484,19 @@ jobs:
 
           exit 0
 
-      # Only the table, and only when there is one. The cells are screen names — which
-      # `resolveScreens` has already constrained to a set that cannot make markup — and
-      # numbers this job computed, so it renders rather than sitting in a code block. When
-      # the measurement died before printing a table there is nothing sanitized to show, so
-      # the comment says that instead of pasting raw log into a rendered body.
+      # Written only after the budget was met, and only from the collecting job — a shard
+      # knows its own screens met theirs, not that every screen did.
+      - name: Hash the measured inputs
+        if: steps.lighthouse.outputs.status == 'success'
+        run: make lighthouse-record-verified
+
+      - name: Record the measured input state
+        if: steps.lighthouse.outputs.status == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/lighthouse/verified-inputs.sha256
+          key: lighthouse-verified-${{ github.run_id }}
+
       - name: Collect the table for the pull request
         id: table
         if: ${{ !cancelled() && github.event_name == 'pull_request' && steps.lighthouse.outputs.status != '' }}
@@ -247,26 +526,14 @@ jobs:
 
       # The per-run results, so whoever picks up the issue can open the screen that moved
       # instead of re-measuring to find out which one it was.
-      - name: Upload the measurements
-        if: ${{ !cancelled() && steps.lighthouse.outputs.status == 'failure' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: lighthouse-lhr
-          path: tmp/lighthouse
-          retention-days: 30
-          if-no-files-found: warn
-
-      # One issue per branch, reopened rather than duplicated. A second failure on a branch
-      # that is already flagged is the same unresolved fact, not a new one.
-      #
-      # `!= 'success'`, not `== 'failure'`: the measurement can fail to start at all — the
-      # browser may not install — and that has to raise too. `!cancelled()` is what keeps a
-      # run superseded by the next merge out of that same net.
-      # Only off a pull request. There the failure is already visible on the pull request
-      # itself, and an issue per branch would outlive the branch.
       - name: Compose what the issue says
         id: guard
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
+        # The same predicate the failing step below uses. An EMPTY status is not a failing
+        # one — the input gate can decide the measurement is not owed, and nothing was measured.
+        if: >-
+          ${{ !cancelled() && github.event_name != 'pull_request' &&
+          ((steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success')
+          || (needs.plan.outputs.run == 'true' && needs.lighthouse-shard.result != 'success')) }}
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -275,7 +542,9 @@ jobs:
           # (ADR 0153 §5 — the accepted character set cannot make markup). The measurement
           # may never have produced a table at all — the browser can fail to install — so
           # every fallback ends in something printable.
-          body="$(sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log 2>/dev/null)"
+          # `|| true` is what makes the fallbacks below reachable: under `-e`, a `sed` against
+          # a log that was never written takes the step with it.
+          body="$(sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log 2>/dev/null || true)"
 
           # Its presence is also the only evidence that screens were measured at all, so it
           # decides the title. Calling an install failure "over budget" names a cause nobody
@@ -284,7 +553,7 @@ jobs:
             echo "subject=Core Web Vitals が予算を超えている" >> "$GITHUB_OUTPUT"
           else
             echo "subject=計測が実行できていない" >> "$GITHUB_OUTPUT"
-            body="$(tail -n 60 /tmp/lighthouse-full.log 2>/dev/null)"
+            body="$(tail -n 60 /tmp/lighthouse-full.log 2>/dev/null || true)"
           fi
 
           if [ -z "${body}" ]; then
@@ -309,7 +578,11 @@ jobs:
           } > /tmp/lighthouse-guard.md
 
       - name: Raise it where it has an owner
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
+        # Same predicate as the step that composes the body — see the note there.
+        if: >-
+          ${{ !cancelled() && github.event_name != 'pull_request' &&
+          ((steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success')
+          || (needs.plan.outputs.run == 'true' && needs.lighthouse-shard.result != 'success')) }}
         uses: ./.github/actions/upsert-issue
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -318,5 +591,5 @@ jobs:
           label: chore
 
       - name: Fail if a screen is over its budget
-        if: ${{ !cancelled() && steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success' }}
+        if: ${{ !cancelled() && ((steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success') || (needs.plan.outputs.run == 'true' && needs.lighthouse-shard.result != 'success')) }}
         run: exit 1

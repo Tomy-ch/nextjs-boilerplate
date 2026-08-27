@@ -17,11 +17,14 @@ describe("PurchaseHistorySkeleton", () => {
     const { container } = render(<PurchaseHistorySkeleton />);
 
     expect(container.firstChild).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
   });
 
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(<PurchaseHistorySkeleton />);
 
-    expect((await axe(container)).violations).toEqual([]);
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

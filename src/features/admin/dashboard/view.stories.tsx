@@ -149,7 +149,7 @@ export const LargeAmount: Story = {
   args: {
     summary: {
       ...SUMMARY,
-      salesAmount: 98_765_432_10,
+      salesAmount: 9_876_543_210,
       salesCount: 12_480,
       totalProductCount: 128_400,
       publishedProductCount: 119_872,

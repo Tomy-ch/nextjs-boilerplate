@@ -129,8 +129,24 @@ export async function settle(page: Page, theme: string): Promise<void> {
         const last = marker.__vrtLastMutation;
         if (last === undefined || performance.now() - last < quiet) return false;
 
+        // 見るのはビューポートに掛かっている画像だけ。**外にある画像を待ってはいけない。**
+        // `loading="lazy"` は画面へ近づくまで取得を始めないので、外にあるものの `complete` は
+        // 永久に false のままで、待てば必ず時間切れになる。撮るのはビューポートのぶんなので、
+        // 外にある画像は絵にも現れない。
+        //
         // `complete` は読み終わりと失敗の両方で立つ。撮るのは届いた結果であって成否ではない。
-        return [...document.images].every((image) => image.complete);
+        return [...document.images]
+          .filter((image) => {
+            const rect = image.getBoundingClientRect();
+
+            return (
+              rect.bottom > 0 &&
+              rect.top < window.innerHeight &&
+              rect.right > 0 &&
+              rect.left < window.innerWidth
+            );
+          })
+          .every((image) => image.complete);
       },
       QUIET_MS,
       { timeout: RENDER_TIMEOUT_MS },

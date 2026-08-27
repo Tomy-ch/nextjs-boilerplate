@@ -24,9 +24,9 @@ test-requirement: feature
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/about` | [`screen`](../../../docs/spec/route/shop/about/page.screen.md) / [`function`](../../../docs/spec/route/shop/about/page.function.md) | 不要 |
-| `/privacy` | [`screen`](../../../docs/spec/route/shop/privacy/page.screen.md) / [`function`](../../../docs/spec/route/shop/privacy/page.function.md) | 不要 |
-| `/terms` | [`screen`](../../../docs/spec/route/shop/terms/page.screen.md) / [`function`](../../../docs/spec/route/shop/terms/page.function.md) | 不要 |
+| `/about` | [`screen`](../../../docs/spec/route/site-info/about/page.screen.md) / [`function`](../../../docs/spec/route/site-info/about/page.function.md) | 不要 |
+| `/privacy` | [`screen`](../../../docs/spec/route/site-info/privacy/page.screen.md) / [`function`](../../../docs/spec/route/site-info/privacy/page.function.md) | 不要 |
+| `/terms` | [`screen`](../../../docs/spec/route/site-info/terms/page.screen.md) / [`function`](../../../docs/spec/route/site-info/terms/page.function.md) | 不要 |
 
 **operationId は使いません。** 取得を持たないためで、契約が増えても変わりません。
 
@@ -51,6 +51,7 @@ E2E の画面比較が受け持ちます（`e2e/lib/screens.ts` に `about` / `p
 | `about/view.tsx` | 何のためのサイトか・何で出来ているか・何が動かないか |
 | `privacy/view.tsx` | 入力した情報がどこに残るかを、起動のしかたごとに説明する |
 | `terms/view.tsx` | 閲覧の同意・セキュリティ上のリスク・サービスの提供条件・免責 |
+| `ui/site-footer/` | 利用者向けの器が出すフッター。器が 2 つあるので中身はここが 1 つだけ持つ |
 | `ui/repository-links/` | フッターへ置く 2 リポジトリへの導線。説明は補足として HoverCard に載せる |
 | `ui/repository-cards/` | このサイトについて に置く、リポジトリ 2 つの説明 |
 | `ui/repository-supplement/` | それぞれの目的とできることを畳んだ面 |

@@ -79,9 +79,7 @@ describe("mountPortal", () => {
 
     await mountPortal(createContainer());
 
-    await waitFor(() =>
-      expect(screen.getByRole("heading", { level: 1, name: "Documentation" })).toBeInTheDocument(),
-    );
+    await screen.findByRole("heading", { level: 1, name: "Documentation" });
   });
 
   it("a11y 自動検査に違反しない", async () => {

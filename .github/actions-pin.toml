@@ -13,4 +13,5 @@
 "github/codeql-action@v4.37.6" = "5595ccaf912efad79be6eef63a5619ff05969be3"
 "k1LoW/octocov-action@v1" = "a167dc0dee441b7ffc45e1b862ab55ec0d87f278"
 "ossf/scorecard-action@v2.4.4" = "2d1146689b8cda280b9bc96326124645441f03bc"
+"peter-evans/create-pull-request@v8" = "5f6978faf089d4d20b00c7766989d076bb2fc7f1"
 "step-security/harden-runner@v2.20.0" = "bf7454d06d71f1098171f2acdf0cd4708d7b5920"

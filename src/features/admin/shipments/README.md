@@ -44,11 +44,12 @@ test-requirement: feature
 | 発送 | success | `Page/Admin/Shipments/Default` |
 | | empty（どちらの区画も空） | `Page/Admin/Shipments/Empty` |
 | | 発送待ちが無い | `Page/Admin/Shipments/ShippedOnly` |
+| | loading | `Features/Admin/Shipments/Skeleton/Default` |
 | 便 1 つ | 未発送 / 発送済み / 途中まで通った / 拒まれた | `Features/Admin/Shipments/DispatchGroupCard/{Default,Shipped,PartiallyShipped,Refused}` |
 
 **途中まで通った送信に専用の story を置いてあります。** まとめて発送する画面の要は
-「1 つの成否に畳まない」ことなので、その姿が実物として残っている必要があります。loading と error は
-親と同じく story を持ちません（[`admin`](../README.md) の「状態とデザイン参照」）。
+「1 つの成否に畳まない」ことなので、その姿が実物として残っている必要があります。error は親が持つ
+`Features/Admin/ErrorState` が受けます（[`admin`](../README.md) の「状態とデザイン参照」）。
 
 ## 構成
 
