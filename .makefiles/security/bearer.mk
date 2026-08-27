@@ -10,8 +10,8 @@
 # 赤にする（docs/adr/0110-security-operations.md）。
 #
 # 除外は 2 つだけで、どちらも「秘密ではないと分かっている値」である。パスは走査の起点からの相対。
-# **個別の誤検知はパスではなく `bearer.ignore` がフィンガープリントで受ける**（同 ADR 3.4）——
-# パスで外すと、そのファイルに後から入る本物の所見まで一緒に消える。
+# **個別の誤検知は `bearer.ignore` がフィンガープリントで受ける**（同 ADR 3.4）—— パスで外すと、
+# そのファイルに後から入る本物の所見まで消える。
 BEARER_SKIP := config/environment.fixture.ts,adapters/server/auth/development-token.ts
 
 bearer-scan:
@@ -20,10 +20,8 @@ bearer-scan:
 
 .PHONY: bearer-sarif ## 同じ検査を SARIF で書き出す（code scanning への取り込み用）
 
-# 取り込み用。**`bearer` は所見が 0 件のとき `results` を `null` で書き出す**が、SARIF 2.1.0 の
-# `results` は配列で `null` を取れず、GitHub 側の検証がそこで落ちる。落ちると「所見が無い」と
-# 「報告できていない」が見分けられなくなるため、書き出した直後に scripts/sarif で整える
-# （opengrep の取り込みと同じ工程）。
+# 取り込み用。**所見が 0 件のとき `bearer` は `results` を `null` で書く**が SARIF にその値は無く、
+# 取り込みが弾かれると「所見が無い」と「報告できていない」が見分けられない。scripts/sarif が整える。
 BEARER_SARIF_FILE ?= bearer.sarif
 
 bearer-sarif:

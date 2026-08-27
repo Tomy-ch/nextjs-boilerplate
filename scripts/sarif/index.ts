@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 
 // スキャナが書き出した SARIF を、code scanning へ取り込める形へ整える。
-//
-// `make sast-sarif` と `make bearer-sarif` が走査の直後に呼ぶ。なぜ取り込みの手前でこれが要るの
-// かは normalize.ts の `normalizeSarif` が持つ。
+// `make sast-sarif` と `make bearer-sarif` が走査の直後に呼ぶ。
 import fs from "node:fs";
 
 import { normalizeSarif } from "./normalize.js";

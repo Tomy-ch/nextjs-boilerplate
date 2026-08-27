@@ -368,9 +368,14 @@ jobs:
 
   lighthouse:
     needs: [plan, lighthouse-shard]
-    # Runs whatever the machines did. A shard that failed still has to produce a red
+    # Runs whatever the machines did. A shard that FAILED still has to produce a red
     # `lighthouse` and say which screen moved; a job that never starts reports nothing.
-    if: always()
+    #
+    # A CANCELLED shard is excluded: no result reaches here, which is indistinguishable from
+    # a measurement that produced nothing. The run that superseded this one is measuring
+    # already. `test.yaml` keeps a bare `always()` because its context is required and an
+    # absent report blocks the merge forever; this one is not required.
+    if: ${{ !cancelled() && needs.lighthouse-shard.result != 'cancelled' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -523,7 +528,12 @@ jobs:
       # instead of re-measuring to find out which one it was.
       - name: Compose what the issue says
         id: guard
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
+        # The same predicate the failing step below uses. An EMPTY status is not a failing
+        # one — the input gate can decide the measurement is not owed, and nothing was measured.
+        if: >-
+          ${{ !cancelled() && github.event_name != 'pull_request' &&
+          ((steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success')
+          || (needs.plan.outputs.run == 'true' && needs.lighthouse-shard.result != 'success')) }}
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -532,7 +542,9 @@ jobs:
           # (ADR 0153 §5 — the accepted character set cannot make markup). The measurement
           # may never have produced a table at all — the browser can fail to install — so
           # every fallback ends in something printable.
-          body="$(sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log 2>/dev/null)"
+          # `|| true` is what makes the fallbacks below reachable: under `-e`, a `sed` against
+          # a log that was never written takes the step with it.
+          body="$(sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log 2>/dev/null || true)"
 
           # Its presence is also the only evidence that screens were measured at all, so it
           # decides the title. Calling an install failure "over budget" names a cause nobody
@@ -541,7 +553,7 @@ jobs:
             echo "subject=Core Web Vitals が予算を超えている" >> "$GITHUB_OUTPUT"
           else
             echo "subject=計測が実行できていない" >> "$GITHUB_OUTPUT"
-            body="$(tail -n 60 /tmp/lighthouse-full.log 2>/dev/null)"
+            body="$(tail -n 60 /tmp/lighthouse-full.log 2>/dev/null || true)"
           fi
 
           if [ -z "${body}" ]; then
@@ -566,7 +578,11 @@ jobs:
           } > /tmp/lighthouse-guard.md
 
       - name: Raise it where it has an owner
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.lighthouse.outputs.status != 'success' }}
+        # Same predicate as the step that composes the body — see the note there.
+        if: >-
+          ${{ !cancelled() && github.event_name != 'pull_request' &&
+          ((steps.lighthouse.outputs.status != '' && steps.lighthouse.outputs.status != 'success')
+          || (needs.plan.outputs.run == 'true' && needs.lighthouse-shard.result != 'success')) }}
         uses: ./.github/actions/upsert-issue
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
