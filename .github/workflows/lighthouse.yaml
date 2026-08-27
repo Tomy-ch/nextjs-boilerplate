@@ -123,7 +123,12 @@ jobs:
       contents: read
 
     outputs:
-      run: ${{ steps.cadence.outputs.run == 'true' || steps.trigger.outputs.kind == 'force' }}
+      # The gate can only REMOVE a reason to measure, never add one: an input state that
+      # already met the budget cannot start meeting it differently, so measuring it again
+      # only re-samples the runner. Every other reason still has to say yes first.
+      run: >-
+        ${{ steps.gate.outputs.decision != 'skip'
+        && (steps.cadence.outputs.run == 'true' || steps.trigger.outputs.kind == 'force') }}
       # The width, as data rather than as a condition on a job. A pull request is the only
       # event where a person is waiting, so it is the only one that pays for extra machines.
       shards: ${{ github.event_name == 'pull_request' && '[1, 2, 3, 4]' || '[1]' }}
@@ -206,6 +211,24 @@ jobs:
 
       # Only asked when the shared four did not already say yes, because its answer can only
       # add reasons to measure, never remove one.
+      # The record of which input state already met the budget. `make lighthouse-gate` hashes
+      # the inputs itself and answers `skip` when they match, so the cache only has to carry
+      # the previous answer forward — a miss reads as "never measured" and measures.
+      - name: Restore the last measured input state
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/lighthouse/verified-inputs.sha256
+          key: lighthouse-verified-${{ github.run_id }}
+          restore-keys: lighthouse-verified-
+
+      # Asked before the diff, because its answer costs nothing and can settle the question on
+      # its own — a label applied to an open pull request re-triggers this workflow with a tree
+      # that is byte-for-byte what the previous run already measured.
+      - name: Decide whether the inputs already met the budget
+        id: gate
+        run: |
+          echo "decision=$(make --no-print-directory lighthouse-gate)" >> "$GITHUB_OUTPUT"
+
       - name: Decide whether the diff itself earns a measurement
         id: trigger
         if: github.event_name == 'pull_request' && steps.cadence.outputs.run != 'true'
@@ -455,6 +478,19 @@ jobs:
           fi
 
           exit 0
+
+      # Written only after the budget was met, and only from the collecting job — a shard
+      # knows its own screens met theirs, not that every screen did.
+      - name: Hash the measured inputs
+        if: steps.lighthouse.outputs.status == 'success'
+        run: make lighthouse-record-verified
+
+      - name: Record the measured input state
+        if: steps.lighthouse.outputs.status == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/lighthouse/verified-inputs.sha256
+          key: lighthouse-verified-${{ github.run_id }}
 
       - name: Collect the table for the pull request
         id: table
