@@ -13,6 +13,8 @@
 # している。一方で判定は TypeScript で書かれており、node_modules を入れた OS 向けに解決される
 # esbuild がコンテナの中では動かない。
 .PHONY: lighthouse ## 画面ごとの Core Web Vitals を測り、予算と照らす
+.PHONY: lighthouse-gate ## 測定を省いてよいかだけを答える (run / skip)
+.PHONY: lighthouse-record-verified ## 予算を通った時点の入力のハッシュを記録する
 .PHONY: lighthouse-merge ## 分割した台の結果を束ね、予算と照らす
 .PHONY: lighthouse-report ## 直前の実行が残した LHR から、動いた要素と重い script を引く
 
@@ -54,3 +56,25 @@ lighthouse-report:
 
 lighthouse-merge:
 	@pnpm exec tsx scripts/lighthouse merge
+
+# 予算を通った時点の入力のハッシュ。**撮影側 (vrt.mk) と同じ仕組みで、数える入力だけが違う。**
+# 追跡下に置かないのは、これが木の状態ではなく「その木を測った」という実行の履歴であるため。
+# CI は cache で持ち回る (.github/workflows/lighthouse.yaml)。
+LIGHTHOUSE_VERIFIED_FILE := tmp/lighthouse/verified-inputs.sha256
+
+# 省いたのか測ったのかを機械可読で残す。緑の理由が「測って通った」なのか「前と同じだから
+# 測っていない」なのかは、読む人にとって別物である。
+LIGHTHOUSE_GATE_MARKER := lighthouse-gate:
+
+# 判定だけを答える。**build より前に答えられる** —— 数える入力は build 生成物ではなく元なので、
+# 台を割る前の段 (plan) で 1 度だけ引ける。撮影側が台ごとに引くのは storybook-static を
+# 数えているためで、こちらにその制約は無い。
+lighthouse-gate:
+	@pnpm exec tsx scripts/lighthouse gate $(LIGHTHOUSE_VERIFIED_FILE)
+
+# 記録は予算を通った後にだけ書く。手前で書くと、超えた状態を「通った」として残す。
+# **いつ確定させるかは呼ぶ側が決める** —— 割った実行では全台の結果を知っている `lighthouse`
+# ジョブ (.github/workflows/lighthouse.yaml)、割らない実行では手元の `make lighthouse` の後。
+lighthouse-record-verified:
+	@mkdir -p "$$(dirname $(LIGHTHOUSE_VERIFIED_FILE))"
+	@pnpm exec tsx scripts/lighthouse inputs > $(LIGHTHOUSE_VERIFIED_FILE)

@@ -1,5 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 
@@ -12,6 +19,7 @@ import {
   SCREENS,
   selectScreens,
 } from "../../e2e/lib/screens";
+import { decideGate } from "../lib/input-hash";
 import { numstatArgs, parseNumstat } from "../lib/numstat";
 import {
   type Budget,
@@ -23,6 +31,7 @@ import {
   parseBudget,
 } from "./budget";
 import { buildChromeFlags, buildLighthouseArgs } from "./command";
+import { collectMeasureInputs, measureInputsHash } from "./measure-inputs";
 import { aggregate, readMetrics } from "./metrics";
 import { planTargets, type Target } from "./plan";
 import { renderReport } from "./report";
@@ -38,6 +47,8 @@ import { decideTrigger } from "./trigger";
  *   `tsx scripts/lighthouse`                     画面を測り、予算と照らす（`make lighthouse`）
  *   `tsx scripts/lighthouse merge`               分割した台の結果を束ね、予算と照らす
  *   `tsx scripts/lighthouse trigger <base ref>`  その差分を PR で測るべきかを GitHub の出力へ書く
+ *   `tsx scripts/lighthouse inputs`               数値を決める入力のハッシュ
+ *   `tsx scripts/lighthouse gate <記録した値のファイル...>`  測定を省いてよいか（skip / run）
  *
  * 分割して測るときは `LIGHTHOUSE_SHARD=<i>/<n>` を渡す。台は結果を置き場へ書くだけで判定せず、
  * `merge` が全台ぶんを読んでから予算と照らす。**判定を台へ配れない**のは、予算の緩和が宣言
@@ -305,6 +316,16 @@ async function measureAll(): Promise<void> {
   judgeAll(measurements, budget);
 }
 
+/** 記録した値。まだ無ければ `null` —— 判定できないことは「変わっていない」ではない。 */
+function recordedInputsOf(file: string): string | null {
+  return existsSync(file) ? readFileSync(file, "utf8") : null;
+}
+
+/** いまの木が持つ、数値を決める入力のハッシュ。 */
+function currentInputsHash(): string {
+  return measureInputsHash(process.cwd(), collectMeasureInputs(process.cwd()));
+}
+
 // `async` にするのは、副命令が同期に throw するため。素の関数だと `main()` が Promise を
 // 返す前に例外が抜け、末尾の `catch` が付く前に Node が生のスタックを出す。読む側に届くのは
 // 「何が足りないか」の 1 行であるべきで、tsx の変換経路を含んだ呼び出し履歴ではない。
@@ -323,6 +344,24 @@ async function main(): Promise<void> {
     }
 
     trigger(baseRef);
+
+    return;
+  }
+
+  if (command === "inputs") {
+    console.log(currentInputsHash());
+
+    return;
+  }
+
+  if (command === "gate") {
+    const files = process.argv.slice(3);
+
+    if (files.length === 0) {
+      throw new Error("usage: lighthouse gate <記録した値のファイル...>");
+    }
+
+    console.log(decideGate(files.map(recordedInputsOf), currentInputsHash()));
 
     return;
   }
