@@ -17,7 +17,7 @@ import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 import { Button } from "../../action/button/button";
 import { BUTTON_SIZE, BUTTON_VARIANT } from "../../action/button/button.definition";
 import { Toggle } from "../../action/toggle/toggle";
-import { KeyboardShortcut } from "../../display/keyboard-shortcut/keyboard-shortcut";
+import { KeyboardShortcutKeys } from "../../display/keyboard-shortcut/keyboard-shortcut-keys";
 import { Input } from "../../form/input/input";
 import { Label } from "../../form/label/label";
 import {
@@ -64,9 +64,13 @@ function readLinkHref(editor: Editor): string {
  * 出方は 1 つに揃えます。片方を browser 標準の `title` のままにすると、同じ toolbar の中で出る速さも
  * 見た目も違うものが並びます。
  *
+ * キーの表示に使うのは {@link KeyboardShortcutKeys} です。説明とキーを `dt` / `dd` の組にする
+ * `KeyboardShortcut` は `dl` の子であることを前提にしており、`dl` を持たないこの位置へ置くと
+ * 孤立した `dt` / `dd` になります。ここでは説明が隣に並ぶだけで足りるため、組にしません。
+ *
  * `aria-keyshortcuts` は付けていません。値が `Control+B` と `Meta+B` のどちらになるかは動かして
- * いる環境で決まり、その判定は {@link KeyboardShortcut} が既に持っています。ここで二つ目の判定を
- * 持つと、表示と読み上げが食い違いうる状態を自分で作ることになります。
+ * いる環境で決まり、その判定は {@link KeyboardShortcutKeys} が既に持っています。ここで二つ目の
+ * 判定を持つと、表示と読み上げが食い違いうる状態を自分で作ることになります。
  *
  * @param props.label - 操作の名前
  * @param props.shortcut - 同じことを起こすキー。押す順に並べる。持たない操作もある
@@ -84,11 +88,10 @@ function RichTextEditorHint({
   return (
     <Tooltip>
       <TooltipTrigger asChild={true}>{children}</TooltipTrigger>
-      <TooltipContent>
-        {shortcut === undefined ? (
-          label
-        ) : (
-          <KeyboardShortcut keys={shortcut}>{label}</KeyboardShortcut>
+      <TooltipContent className="flex items-center gap-2">
+        {label}
+        {shortcut === undefined ? null : (
+          <KeyboardShortcutKeys className="text-xs tracking-widest" keys={shortcut} />
         )}
       </TooltipContent>
     </Tooltip>

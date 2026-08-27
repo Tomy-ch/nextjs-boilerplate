@@ -148,7 +148,11 @@ toolbar の「リンク」から入力するほか、URL を入力または貼�
 
 ### キー操作の案内
 
-toolbar のボタンには、**同じことを起こすキー**を hover / focus で添えます。案内するのは `KeyboardShortcut` で、`⌘` と `Ctrl` の出し分けはその部品が持ちます。
+toolbar のボタンには、**同じことを起こすキー**を hover / focus で添えます。キーの表示は `KeyboardShortcutKeys` が持ち、`⌘` と `Ctrl` の出し分けもその部品が引き受けます。
+
+説明とキーを `dt` / `dd` の組にする `KeyboardShortcut` は使いません。あれは `dl` の子であることを前提にしており、tooltip の中には `dl` が無いため、孤立した `dt` / `dd` になります。ここでは説明が隣に並ぶだけで足ります。
+
+**`TooltipProvider` はこの部品が自分で持ちます。** 置くだけで動く状態を保つためで、外へ出すと、呼び出し側が Provider を mount し忘れた瞬間に描画時の例外になります。内部の tooltip どうしは 1 つの Provider を共有するので、ボタン間を移るときに遅延を挟みません。
 
 **キーの実体は editor の extension が持っており、この部品は登録しません。** editor が focus を持っているあいだだけ効く、閉じたキー操作です。任意の操作を任意のキーへ結び付ける汎用の登録機構は持ちません（[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md) §5）。
 

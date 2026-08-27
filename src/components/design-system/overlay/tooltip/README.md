@@ -26,6 +26,8 @@ SSR first の選定では `△` に当たります。既定は静的な補足文
 
 表示する文言、取得、業務判断は持ちません。`TooltipProvider` を mount する位置も feature 側の判断です。tooltip を使う画面の外側で一度だけ mount し、`Tooltip` ごとに入れ子で置きません。Provider を分けると、trigger を移動したときに遅延を省く連続性が失われます。
 
+**ただし、内部に複数の tooltip を持つ部品は自分で Provider を持ちます。** `RichTextEditor` が先例で、外へ出すと呼び出し側が mount し忘れた瞬間に描画時の例外になるためです。この場合、その部品の中の tooltip どうしだけが遅延の連続性を共有します。上の「feature 側の判断」が指すのは、feature が `Tooltip` を自分で並べる場合です。
+
 `TooltipContent` は `role="tooltip"` を持ち、開いている間だけ trigger の `aria-describedby` から参照される**説明**です。trigger のアクセシブルな名前にはならないため、アイコンだけの trigger には `aria-label` か視覚的に隠したテキストを trigger 側で必ず与えます。内容には link・button・入力などの focus 可能な要素を入れません。pointer が離れると閉じるため、tooltip 内の操作には到達できません。
 
 tooltip は pointer hover と keyboard focus でしか開かず、touch 環境では到達できません。操作や判断に不可欠な情報は tooltip だけに置かず、常時表示または明示的な導線を feature 側にも用意します。
