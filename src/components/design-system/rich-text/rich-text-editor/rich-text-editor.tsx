@@ -221,6 +221,7 @@ function RichTextEditorFrame({ className, editor }: { className?: string; editor
           marks: [{ type: "link", attrs: { href: linkHref } }],
           text: linkHref,
         })
+        // 挿入したあと mark を外す。外さないと、続けて打った文字までリンクへ入る。
         .unsetMark("link");
     } else {
       chain.setLink({ href: linkHref });
@@ -296,6 +297,7 @@ function RichTextEditorFrame({ className, editor }: { className?: string; editor
     ) : null;
 
   return (
+    // Provider をこの部品が持つ。外へ出すと、呼び出し元が mount し忘れた時点で描画が例外になる。
     <TooltipProvider>
       <div
         className={cn("rounded-md border border-border bg-background", className)}
@@ -413,8 +415,8 @@ export type RichTextEditorProps = {
  * 収まっているが、それは editor の設定が満たしている性質であって、引数として渡された文字列が
  * 満たす性質ではない。sanitize は保存のときではなく表示の直前に行う。
  *
- * 書けるのは見出し（2〜4）・箇条書き・引用・区切り線・太字・斜体・打ち消し線・コード・改行と
- * リンクに限る。表・画像・コードブロック・下線は書けない。
+ * 書けるのは見出し（2〜4）・箇条書き・番号付き箇条書き・引用・区切り線・太字・斜体・打ち消し線・
+ * コード・改行とリンクに限る。表・画像・コードブロック・下線は書けない。
  *
  * リンクは toolbar の「リンク」から入力するほか、URL を入力または貼り付けると自動でリンクになる。
  * `http` / `https` / `mailto` とアプリ内のパスだけを受け付ける。

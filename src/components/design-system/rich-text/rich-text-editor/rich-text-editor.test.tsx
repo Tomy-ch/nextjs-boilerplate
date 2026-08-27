@@ -15,16 +15,6 @@ import { RICH_TEXT_EDITOR_EXTENSIONS } from "./rich-text-editor.definition";
 
 const noop = () => undefined;
 
-// TODO: jsdom に ResizeObserver が無く、tooltip の arrow の寸法計測が落ちる。共有の vitest.setup.ts へ移す。
-vi.stubGlobal(
-  "ResizeObserver",
-  class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-);
-
 // **リンク先の入力だけは `user-event` を使いません。**打ち込むと本文側の入力位置が動き、
 // ProseMirror がその座標を測りに来ます。jsdom は文字の矩形を持たないため、そこで落ちます。
 // 本文そのものが contenteditable であることと同じ理由で、この編集器は打鍵の再現の外にあります。

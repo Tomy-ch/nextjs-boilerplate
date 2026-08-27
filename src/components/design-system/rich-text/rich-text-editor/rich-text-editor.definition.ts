@@ -81,7 +81,7 @@ export function isRichTextHrefAllowed(href: string): boolean {
  * editor が読み書きする node と mark の全体です。
  *
  * この集合が editor の出力できるタグを決めます。sanitizer の allowlist
- * （{@link RICH_TEXT_TAG_NAMES}）に収まる範囲だけを登録しており、外へ出るものを足すと、書けたのに
+ * （`model/rich-text` の `RICH_TEXT_TAG_NAMES`）に収まる範囲だけを登録しており、外へ出るものを足すと、書けたのに
  * 表示されない内容が生まれます。extension を足すときは allowlist・この集合・test を揃えて変えます。
  *
  * @see Storybook `Rich Text/RichTextEditor`
