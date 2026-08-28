@@ -82,6 +82,19 @@ describe("buildSecurityHeaders", () => {
     expect(directives(production).has("upgrade-insecure-requests")).toBe(true);
   });
 
+  it("http で配信しているときは HSTS も upgrade-insecure-requests も出さない", () => {
+    expect(header(local, "Strict-Transport-Security")).toBeUndefined();
+    expect(directives(local).has("upgrade-insecure-requests")).toBe(false);
+  });
+
+  it("style と font と connect は同一 origin に閉じ、style だけ inline を許す", () => {
+    const csp = directives(production);
+
+    expect(csp.get("style-src")).toStrictEqual(["'self'", "'unsafe-inline'"]);
+    expect(csp.get("font-src")).toStrictEqual(["'self'"]);
+    expect(csp.get("connect-src")).toStrictEqual(["'self'"]);
+  });
+
   it("clickjacking と MIME sniffing を閉じる", () => {
     expect(header(production, "X-Frame-Options")).toBe("DENY");
     expect(header(production, "X-Content-Type-Options")).toBe("nosniff");
@@ -110,9 +123,4 @@ describe("buildSecurityHeaders", () => {
     expect(policy.endsWith(";")).toBe(false);
   });
 
-  // ----- 異常系 -----
-  it("http で配信しているときは HSTS も upgrade-insecure-requests も出さない", () => {
-    expect(header(local, "Strict-Transport-Security")).toBeUndefined();
-    expect(directives(local).has("upgrade-insecure-requests")).toBe(false);
-  });
 });

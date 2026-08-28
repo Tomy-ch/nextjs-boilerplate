@@ -50,6 +50,12 @@ describe("allowedOriginsValidator", () => {
     ).toStrictEqual(["https://a.example.test", "https://b.example.test:8443"]);
   });
 
+  it("空の要素が混ざっていても、有効な origin だけを残す", () => {
+    expect(
+      allowedOriginsValidator().parse("https://a.example.test,, https://b.example.test,"),
+    ).toStrictEqual(["https://a.example.test", "https://b.example.test"]);
+  });
+
   it("未指定と空文字は同一 origin だけ（空の一覧）として受け入れる", () => {
     expect(allowedOriginsValidator().parse(undefined)).toStrictEqual([]);
     expect(allowedOriginsValidator().parse("")).toStrictEqual([]);

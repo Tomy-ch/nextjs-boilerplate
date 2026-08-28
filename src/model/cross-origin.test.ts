@@ -33,6 +33,12 @@ describe("judgeOrigin", () => {
     ).toStrictEqual({ kind: "allowed", origin: "https://partner.example.test" });
   });
 
+  it("自分の host が分からなくても、宣言で許した origin は allowed として扱う", () => {
+    expect(
+      judgeOrigin({ origin: "https://partner.example.test", host: null }, ALLOWED),
+    ).toStrictEqual({ kind: "allowed", origin: "https://partner.example.test" });
+  });
+
   // ----- 異常系 -----
   it("宣言に無い別 origin は untrusted", () => {
     expect(
@@ -64,10 +70,8 @@ describe("judgeOrigin", () => {
 
 describe("isStateChanging", () => {
   // ----- 正常系 -----
-  it("POST / PUT / PATCH / DELETE は状態を変えうる", () => {
-    for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
-      expect(isStateChanging(method)).toBe(true);
-    }
+  it.each(["POST", "PUT", "PATCH", "DELETE"])("%s は状態を変えうる", (method) => {
+    expect(isStateChanging(method)).toBe(true);
   });
 
   it("小文字のメソッドも同じに扱う", () => {
@@ -76,10 +80,8 @@ describe("isStateChanging", () => {
   });
 
   // ----- 異常系 -----
-  it("GET / HEAD / OPTIONS は状態を変えない", () => {
-    for (const method of ["GET", "HEAD", "OPTIONS"]) {
-      expect(isStateChanging(method)).toBe(false);
-    }
+  it.each(["GET", "HEAD", "OPTIONS"])("%s は状態を変えない", (method) => {
+    expect(isStateChanging(method)).toBe(false);
   });
 });
 

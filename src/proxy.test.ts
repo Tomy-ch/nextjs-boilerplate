@@ -245,6 +245,30 @@ describe("proxy", () => {
     expect(response.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
+  it("宣言に無い origin からの読み出しは止めないが CORS ヘッダを付けない", async () => {
+    const response = await proxy(crossOrigin("/api/help", "https://evil.example.test"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
+  it("許した origin でも画面の経路には CORS ヘッダを付けない", async () => {
+    allowedOrigins.current = [PARTNER_ORIGIN];
+
+    const response = await proxy(crossOrigin("/help", PARTNER_ORIGIN));
+
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
+  it("許した origin でも画面の経路への preflight は素通しにする", async () => {
+    allowedOrigins.current = [PARTNER_ORIGIN];
+
+    const response = await proxy(crossOrigin("/help", PARTNER_ORIGIN, { method: "OPTIONS" }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-methods")).toBeNull();
+  });
+
   // ----- 異常系 -----
   it("未認証で保護されたパスへ来たらログインへ送る", async () => {
     const response = await proxy(request("/account"));
@@ -322,27 +346,4 @@ describe("proxy", () => {
     expect(response.status).toBe(403);
   });
 
-  it("宣言に無い origin からの読み出しは止めないが CORS ヘッダを付けない", async () => {
-    const response = await proxy(crossOrigin("/api/help", "https://evil.example.test"));
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("access-control-allow-origin")).toBeNull();
-  });
-
-  it("許した origin でも画面の経路には CORS ヘッダを付けない", async () => {
-    allowedOrigins.current = [PARTNER_ORIGIN];
-
-    const response = await proxy(crossOrigin("/help", PARTNER_ORIGIN));
-
-    expect(response.headers.get("access-control-allow-origin")).toBeNull();
-  });
-
-  it("許した origin でも画面の経路への preflight は素通しにする", async () => {
-    allowedOrigins.current = [PARTNER_ORIGIN];
-
-    const response = await proxy(crossOrigin("/help", PARTNER_ORIGIN, { method: "OPTIONS" }));
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("access-control-allow-methods")).toBeNull();
-  });
 });
