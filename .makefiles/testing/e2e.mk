@@ -28,11 +28,14 @@ E2E_PORT ?= 3100
 # コンテナの中から見たアプリの場所。
 E2E_BASE_URL ?= http://host.docker.internal:$(E2E_PORT)
 
+# 宣言した別 origin の文書だけを返すサーバのポート。アプリと同じホストに置く。
+E2E_PARTNER_PORT ?= 3102
+
 # BFF を別 origin から呼ばせる相手として、起動時に宣言する origin (HTTP_ALLOWED_ORIGINS)。
-# 実在しなくてよい —— spec がこの origin の文書をブラウザの中で偽装し、そこからアプリへ fetch する
-# (e2e/journeys/cross-origin.spec.ts)。実在の名前を借りると、その名前が別の意味を持った日に
-# 判定が変わる。宣言と spec が同じ綴りを読むよう、コンテナへも渡す。
-E2E_ALLOWED_ORIGIN ?= http://partner.example.test
+# コンテナから見た上のサーバである。ブラウザの中で文書を偽装する手は採らない —— Chromium は
+# 偽装した文書を公開ネットワーク由来と扱い、ホスト (プライベート IP) への fetch を Private Network
+# Access で止める (scripts/e2e/partner-origin.ts)。宣言と spec が同じ綴りを読むよう、コンテナへも渡す。
+E2E_ALLOWED_ORIGIN ?= http://host.docker.internal:$(E2E_PARTNER_PORT)
 
 # 生成物をホストの所有者で書き出すために渡す。compose 側の既定 (1000) は Linux の初回
 # ユーザであって、実行者と一致する保証が無い。
@@ -129,13 +132,17 @@ e2e-run: e2e-build
 	@mkdir -p tmp/e2e
 	@set -e; \
 	$(E2E_RESOLVE_HOSTNAME); \
-	if curl -s --max-time 2 "http://$$hostname:$(E2E_PORT)/" >/dev/null 2>&1; then \
-		echo "❌ $$hostname:$(E2E_PORT) を既に何かが使っています。空いているポートを E2E_PORT で指定してください。"; \
-		exit 1; \
-	fi; \
+	for port in $(E2E_PORT) $(E2E_PARTNER_PORT); do \
+		if curl -s --max-time 2 "http://$$hostname:$$port/" >/dev/null 2>&1; then \
+			echo "❌ $$hostname:$$port を既に何かが使っています。空いているポートを E2E_PORT / E2E_PARTNER_PORT で指定してください。"; \
+			exit 1; \
+		fi; \
+	done; \
 	APP_ENV=$(E2E_APP_ENV) HTTP_ALLOWED_ORIGINS=$(E2E_ALLOWED_ORIGIN) $(E2E_APP_ENV_EXTRA) pnpm start --hostname "$$hostname" --port $(E2E_PORT) > tmp/e2e/server.log 2>&1 & \
 	server_pid=$$!; \
-	trap 'kill $$server_pid 2>/dev/null || true' EXIT INT TERM; \
+	pnpm exec tsx scripts/e2e serve-partner "$$hostname" $(E2E_PARTNER_PORT) > tmp/e2e/partner.log 2>&1 & \
+	partner_pid=$$!; \
+	trap 'kill $$server_pid $$partner_pid 2>/dev/null || true' EXIT INT TERM; \
 	booted=0; \
 	for _ in $$(seq 1 $(E2E_BOOT_TIMEOUT)); do \
 		if ! kill -0 $$server_pid 2>/dev/null; then \
