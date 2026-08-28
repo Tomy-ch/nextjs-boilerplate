@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, errors, logging, config]
+imports-allowed: [model, errors, logging, config, observability]
 forbidden: [components, capabilities, stores, business-logic]
 test-requirement: integration
 ---
@@ -73,13 +73,50 @@ test-requirement: integration
 原理的に分からず、置けば画面の数だけ当て推量の定数が増えます。超過は `uri-too-long` として落ち、
 画面には `errors` の分類 1 つとして現れます（[0080](../../docs/adr/0080-error-handling.md)）。
 
+## ブラウザ発のテレメトリの中継
+
+**ブラウザから collector を直接叩かせません**（[0081](../../docs/adr/0081-observability-logging.md)）。
+endpoint も資格情報もブラウザへ出さず、同一オリジンの BFF が受けて OTLP へ載せます。この経路は
+3 つに分かれ、境界ごとに持ち物が違います。
+
+| 置き場 | 持つもの |
+| --- | --- |
+| `http/telemetry-report.ts` | 送る側と受ける側が共有する報告の形。型と、送る前に切り詰める長さだけ |
+| `client/telemetry/report-telemetry.ts` | 測定と例外を報告へ組み、`sendBeacon` で送る |
+| `client/telemetry/browser-tracer.ts` | ブラウザ側の計装。動的な import でだけ読まれる |
+| `server/telemetry/browser-telemetry.ts` | 報告を検証し、signal へ載せる |
+| `server/telemetry/browser-traces.ts` | ブラウザが作った span を collector へ渡す |
+
+**検証は受け側にしかありません。** 送る側にも同じ長さの宣言がありますが、それは通信量を抑える
+ためのもので、送信者は差し替えられます。認証を要求しない口なので、受け側が自分で確かめます
+（[0077](../../docs/adr/0077-bff-abuse-protection-boundary.md)）。
+
+**`observability` を import できるのは受け側だけです。** Web Vitals は指標ごとのヒストグラムとして
+出すため OTel の Metrics API へ、例外は返ってきた `traceparent` の文脈で記録するため trace 相関の口へ
+触ります（[0082](../../docs/adr/0082-client-observability.md)）。
+**この許可は `client/` にも機械的に及びます。** 境界検査の要素は `adapters` ひとつで、`server/` と
+`client/` を区別しません（層より細かい単位を分けているのは `features` だけです）。効いているのは
+**`observability` の側が `server-only` を名乗っていること**で、client から引いた時点でビルドが落ちます。
+同じ形は `config` にもあります —— ADR 0021 は server config を `adapters/server` だけに許しますが、
+機械強制は層の粒度で当たります。
+
+**ブラウザ側の計装は動的な import でだけ読みます。** 要求境界（`client/http/request.ts`）は画面を
+開いた時点で読まれるので、そこから OTel へ辺を張ると計装の重さが初期の読み込みに乗ります。要求を
+span にするのは `fetch` を包む計装のほうで、要求境界のコードは計装を知りません。
+
+**包むのは自分が呼んでいる要求だけではありません。** router が画面遷移と先読みで出す RSC の要求も
+対象です。自分で呼んでいる場所だけを包むと、client 遷移が trace から抜けて別の trace の根になります。
+そのぶん 1 つの trace に載る span は増えます —— 先読みは見えている画面ぶんだけ出るためです。
+
 ## 運用
 
 - **`integration` の宣言が掛かるのは、外部との往復を持つモジュールです**。`fetch`（または注入された
   `fetchImpl`）を直接持つものが対象で、そこでは HTTP 境界だけを対象に、内側を mock して型と形を
   確かめます（[0090](../../docs/adr/0090-testing-strategy.md)）。**外部 IO を持たない純粋な変換**
   （`http/url-budget.ts` / `server/http/search-params.ts` / `server/http/retry-policy.ts` /
-  `server/http/error-status.ts` など、境界の前後で値を写すだけのもの）は、その変換自体を `unit` の
+  `server/http/error-status.ts` / `server/http/error-response.ts` / `server/http/json-request.ts` /
+  `client/telemetry/route-pattern.ts` / `server/telemetry/browser-telemetry.ts` など、境界の前後で
+  値を写すだけのもの）は、その変換自体を `unit` の
   形——HTTP を模さず値を直接照合する——で検証します。境界を持たないものへ境界のテストを課しても、
   確かめる相手が無いためです。**`http/` はこの形しか置きません**——実行文脈を持たない規則の置き場
   なので、外部との往復を持つものは `server/` か `client/` に属します

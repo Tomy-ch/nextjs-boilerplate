@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, errors, logging, config]
+imports-allowed: [model, errors, logging, config, observability]
 forbidden: [components, capabilities, stores, business-logic]
 test-requirement: unit
 ---

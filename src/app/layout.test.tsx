@@ -5,6 +5,10 @@ vi.mock("next/font/google", () => ({
   Geist_Mono: () => ({ variable: "--typeface-geist-mono" }),
   Michroma: () => ({ variable: "--typeface-michroma" }),
 }));
+// 計装は router の文脈と計測器を要求する。器が何を mount しているかはここの観点ではないので、
+// 供給だけを差し替える（計装そのものは telemetry.test.tsx が持つ）。
+vi.mock("next/navigation", () => ({ usePathname: () => "/", useParams: () => ({}) }));
+vi.mock("next/web-vitals", () => ({ useReportWebVitals: () => undefined }));
 
 import RootLayout, { metadata } from "./layout";
 

@@ -62,6 +62,7 @@ export const DEPENDENCIES = {
     "logging",
     "config",
     "model",
+    "observability",
   ],
   features: [
     "model",
@@ -75,7 +76,7 @@ export const DEPENDENCIES = {
   ],
   model: ["errors"],
   components: ["model", "errors"],
-  adapters: ["model", "errors", "logging", "config"],
+  adapters: ["model", "errors", "logging", "config", "observability"],
   capabilities: ["model", "errors", "logging", "config"],
   stores: ["model", "errors", "config"],
   config: [],
@@ -163,7 +164,12 @@ export const ENTRY_POINTS = [
  *   ここへ降りてくる経路になります。受け口の本体を隣のモジュールへ薄く出す形（`app` 内の相互参照）
  *   は残ります
  *
- * `route-segment` / `server-action` はまだこの表に無く、`app` の粒度で検査されます。
+ * `route-segment` / `server-action` はまだこの表に無く、`app` の粒度で検査されます。**したがって
+ * `observability` は、[0021](docs/adr/0021-frontend-responsibility.md) が `route-segment` の計装 mount
+ * だけに許した口であるにもかかわらず、`server-action` からも届きます。**ここで塞げるのは `route.ts`
+ * だけで、残りは意味的な監査と人のレビューが拾います。表を実態へ揃える作業は
+ * [BACKLOG](docs/adr/BACKLOG.md) の GB-1 が持ちます —— `server-action` を宣言するには、既に
+ * `config` を読んでいる `actions.ts` をどう扱うかを先に決める必要があり、この 1 行では済みません。
  *
  * `testRequirement` をここが持つのは、負う観点を決めるのが**置き場ではなく element** だからです。
  * ディレクトリから遡る README は、`api/` の外に置いた Route Handler へ届きません。対象のテストは
@@ -173,7 +179,7 @@ export const APP_ELEMENTS = [
   {
     category: "app-route-handler",
     patterns: ["src/app/**/route.ts", "src/app/**/route.dev.ts"],
-    forbidden: ["components", "capabilities", "stores", "config", "features"],
+    forbidden: ["components", "capabilities", "stores", "config", "features", "observability"],
     testRequirement: "integration",
   },
 ] as const satisfies readonly {

@@ -1,5 +1,5 @@
 ---
-imports-allowed: [features, components, capabilities, stores, adapters, errors, logging, config, model]
+imports-allowed: [features, components, capabilities, stores, adapters, errors, logging, config, model, observability]
 forbidden: [business-logic, direct-fetch]
 test-requirement: route
 coverage-exclusions:
@@ -18,6 +18,10 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 - Next.js が規定する特殊ファイルと route segment
 - **複数の route group の器が共有する宣言モジュール**（`fonts.ts` / `global-nav.ts`）。route 要素の
   どれにも当たらないが、器ごとに書くと片方だけが動く。テストは `unit` として扱う
+- **root layout が mount する計装**（`telemetry.tsx`）。描画するものを持たず、ブラウザ側のシグナルを
+  中継へ送り出すだけの client component である。`components` にも `capabilities` にも置けない ——
+  どちらも外部への送信を持てないため（[0082](../../docs/adr/0082-client-observability.md)）。
+  テストは `component` として扱う
 
 **shell を通らない画面は、自分で `main` を置く。** route group の外に立つ画面（`not-found.tsx` や
 `dev/` の下）は、`(shop)` / `admin` の layout が置く landmark を持たない。包む物が無いと、支援技術
