@@ -7,9 +7,9 @@ const ALLOWED = ["https://partner.example.test"];
 describe("judgeOrigin", () => {
   // ----- 正常系 -----
   it("Origin を持たない要求は自分自身からのものとして扱う", () => {
-    expect(
-      judgeOrigin({ origin: null, host: "app.example.test" }, ALLOWED),
-    ).toStrictEqual({ kind: "same-origin" });
+    expect(judgeOrigin({ origin: null, host: "app.example.test" }, ALLOWED)).toStrictEqual({
+      kind: "same-origin",
+    });
   });
 
   it("Origin の host が自分の host と一致すれば自分自身からのものとして扱う", () => {
@@ -28,9 +28,9 @@ describe("judgeOrigin", () => {
         [],
       ),
     ).toStrictEqual({ kind: "same-origin" });
-    expect(
-      judgeOrigin({ origin: "http://localhost:3000", host: "localhost:3000" }, []),
-    ).toStrictEqual({ kind: "same-origin" });
+    expect(judgeOrigin({ origin: "http://localhost:3000", host: "localhost:3000" }, [])).toStrictEqual(
+      { kind: "same-origin" },
+    );
   });
 
   it("宣言で許した別 origin は allowed として origin を返す", () => {
@@ -62,15 +62,15 @@ describe("judgeOrigin", () => {
   });
 
   it("Origin が null 文字列なら untrusted", () => {
-    expect(
-      judgeOrigin({ origin: "null", host: "app.example.test" }, ALLOWED),
-    ).toStrictEqual({ kind: "untrusted" });
+    expect(judgeOrigin({ origin: "null", host: "app.example.test" }, ALLOWED)).toStrictEqual({
+      kind: "untrusted",
+    });
   });
 
   it("自分の host が分からなければ、別 origin の判定に倒す", () => {
-    expect(
-      judgeOrigin({ origin: "https://app.example.test", host: null }, []),
-    ).toStrictEqual({ kind: "untrusted" });
+    expect(judgeOrigin({ origin: "https://app.example.test", host: null }, [])).toStrictEqual({
+      kind: "untrusted",
+    });
   });
 });
 

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { allowedOriginsValidator, maxUploadBytesValidator, maxUrlBytesValidator } from "./http.schema";
+import {
+  allowedOriginsValidator,
+  maxUploadBytesValidator,
+  maxUrlBytesValidator,
+} from "./http.schema";
 
 describe("maxUrlBytesValidator", () => {
   // ----- 正常系 -----
