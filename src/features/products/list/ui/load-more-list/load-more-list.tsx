@@ -5,6 +5,7 @@ import type { LoadMoreState } from "@/components/app-starter/load-more/load-more
 import type { ProductListItem } from "@/model/product/product";
 import { withPartSpan } from "@/observability/render-span";
 import { ProductGrid } from "../grid/grid";
+import { ProductListSkeleton } from "../skeleton/skeleton";
 
 /** `ProductLoadMoreList` の props。 */
 export type ProductLoadMoreListProps = {
@@ -47,7 +48,11 @@ export const ProductLoadMoreList = withPartSpan(
             : `全 ${total} 件中 ${items.length} 件を表示中`}
         </p>
         <ProductGrid items={items} />
-        <LoadMore sentinelRef={sentinelRef} state={loadMore} />
+        <LoadMore
+          placeholder={<ProductListSkeleton />}
+          sentinelRef={sentinelRef}
+          state={loadMore}
+        />
       </div>
     );
   },
