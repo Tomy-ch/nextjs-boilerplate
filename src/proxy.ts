@@ -29,6 +29,29 @@ const MAINTENANCE_PATH = "/maintenance";
 const OPEN_PATHS: readonly string[] = [MAINTENANCE_PATH, "/api/health"];
 
 /**
+ * 止めているあいだも描いてよい method。
+ *
+ * @remarks
+ * **差し替えは描く先を変えるだけで、要求そのものは後段へ流れます。** method も body も
+ * `Next-Action` ヘッダもそのままなので、止まっていることを要求側へ言うのは差し替えの仕事では
+ * ありません。ここで読み取り以外を断るのは、**止めるという約束を自分の境界で言い切るため**です。
+ *
+ * Next.js 側でも Server Action は結局実行されません（action の実体は entry ごとの表から引かれ、
+ * 停止画面の entry には無いため 404 に落ちます）。しかしそれは framework の内部の成り行きであって、
+ * こちらが約束したことではありません。**依存すると、その内部が変わった日に黙って開きます。**
+ */
+const OPEN_METHODS: readonly string[] = ["GET", "HEAD"];
+
+/**
+ * 止めているあいだ、断る要求へ返す状態。
+ *
+ * @remarks
+ * ここは差し替えではなく proxy が自分で返す応答なので、状態がそのまま配信されます
+ * （rewrite に載せた status は読まれません。`docs/spec/route/maintenance/page.function.md`）。
+ */
+const STOPPED_STATUS = 503;
+
+/**
  * 役割が足りないときに送る先。
  *
  * @remarks
@@ -38,8 +61,8 @@ const OPEN_PATHS: readonly string[] = [MAINTENANCE_PATH, "/api/health"];
 const FALLBACK_PATH = "/";
 
 /**
- * 入口の前捌き。配信を止めているあいだは停止画面へ差し替え、そうでなければ到達してよい役割を
- * 持たないリクエストを捌く。
+ * 入口の前捌き。配信を止めているあいだは読み取りを停止画面へ差し替えてそれ以外を断り、そうで
+ * なければ到達してよい役割を持たないリクエストを捌く。
  *
  * @remarks
  * **停止の判定を先に置きます。** 止めているあいだに認可を先に見ると、未認証の要求だけがログイン
@@ -47,10 +70,10 @@ const FALLBACK_PATH = "/";
  * 対する一つの判断なので、経路ごとの判定より前に済ませます。差し替えるのは応答の中身だけで、
  * URL は動かしません —— 復帰後に同じ URL をもう一度開けば元の画面へ戻ります。
  *
- * **停止中も状態は 200 です。** rewrite に載せた status は Next.js が読まず、応答は差し替え先を
+ * **読み取りの応答は 200 です。** rewrite に載せた status は Next.js が読まず、応答は差し替え先を
  * 描いた結果になります（`resolve-routes.js` は `x-middleware-rewrite` から宛先を取り、status は
- * `location` を redirect と見なすかの判定にしか使いません）。503 を返したい配備では、配信面
- * （CDN / ロードバランサ）が前に立ちます（`docs/spec/route/maintenance/page.function.md`）。
+ * `location` を redirect と見なすかの判定にしか使いません）。画面へ 503 を返したい配備では、
+ * 配信面（CDN / ロードバランサ）が前に立ちます（`docs/spec/route/maintenance/page.function.md`）。
  *
  * 認可について、**ここは防御線ではありません。** cookie を読むだけの前捌きであり、確定認可は
  * データ源に最も近い所（`adapters/server` の `verifySession()`）が持ちます
@@ -70,7 +93,9 @@ export async function proxy(request: NextRequest): Promise<Response> {
   const url = new URL(request.url);
 
   if (getMaintenanceConfig().isStopped && !OPEN_PATHS.includes(url.pathname)) {
-    return NextResponse.rewrite(new URL(MAINTENANCE_PATH, url));
+    return OPEN_METHODS.includes(request.method)
+      ? NextResponse.rewrite(new URL(MAINTENANCE_PATH, url))
+      : new NextResponse(null, { status: STOPPED_STATUS });
   }
 
   const allowed = allowedRolesFor(url.pathname);

@@ -24,6 +24,14 @@ function request(path: string, sealed?: string): NextRequest {
   return new NextRequest(new URL(path, "http://localhost:3000"), { headers });
 }
 
+/** Server Action の送信。使用先の route へ `Next-Action` 付きの POST として届く。 */
+function serverAction(path: string): NextRequest {
+  return new NextRequest(new URL(path, "http://localhost:3000"), {
+    method: "POST",
+    headers: { "next-action": "0123456789abcdef" },
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   readOptimisticSession.mockResolvedValue(null);
@@ -85,6 +93,22 @@ describe("proxy", () => {
     await proxy(request("/account", "sealed"));
 
     expect(readOptimisticSession).not.toHaveBeenCalled();
+  });
+
+  it("停止中は状態を変える要求を差し替えずに断る", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(serverAction("/checkout"));
+
+    expect(response.status).toBe(503);
+  });
+
+  it("停止中に断った要求は停止画面を描かせない", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(serverAction("/checkout"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
   it("停止中も生存確認は通す", async () => {
