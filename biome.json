@@ -199,6 +199,7 @@
         "vrt/**",
         "e2e/**",
         "playwright.e2e.config.ts",
+        "playwright.maintenance.config.ts",
         "vitest.config.ts"
       ],
       "linter": {
