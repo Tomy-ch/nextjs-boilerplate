@@ -40,7 +40,7 @@
 | 55 | UI 文言は feature 内の定数へ寄せる。エラー文言は errors の分類・表示モデルに従い、画面ごとに再定義しない。 | review。 | [ADR 0121](adr/0121-i18n-strategy.md) |
 | 57 | polling は必要な場合だけ採用し、間隔・停止条件・バックグラウンドタブ抑制を定義する。 | feature テスト。 | [ADR 0060](adr/0060-state-management.md) |
 | 63 | preview / staging は `noindex` を強制し、環境識別バナーの有無は fork 先の要件として Config で決める。 | P6-3 の metadata テスト。 | [ADR 0044](adr/0044-seo-metadata-strategy.md) |
-| 65 | build info を露出するときは commit SHA と build time の出所を明示し、機微な環境変数を含めない。 | P4-2 の生成 / health endpoint テスト。 | [ADR 0072](adr/0072-api-type-generation.md) |
+| 65 | build info を露出するときは commit SHA と build time の出所を明示し、機微な環境変数を含めない。 | P4-2 の生成 / `src/app/api/health/route.test.ts`（生存以外を答えないことを固定する）。 | [ADR 0072](adr/0072-api-type-generation.md) |
 | 66 | `next/dynamic` は初期表示に不要で大きい client-only 機能に限る。`ssr: false` は SSR が不可能な理由を持つ場合だけ使う。**隠れたまま DOM に残る器（tab）へ置くときは、開かれるまで mount しない** —— `next/dynamic` は mount で取りに行くので、そうしないと初期の一式から外しただけで、取得と実行は最初の描画の直後に走る。 | `bundle-budget` job の「遅延 JS」「合計 JS」の列と review。移した先の量が見えるので、初期だけが減って合計が動かない変更として現れる。 | [ADR 0101](adr/0101-performance-budget.md) |
 | 67 | server 専用モジュールは先頭で `import "server-only"` し、client component から参照させない。 | `scripts/server-only.gate.test.ts`（`*.server.ts` の綴りと突合）、`server-only` の build-time failure、ESLint boundaries。 | [ADR 0071](adr/0071-bff-api-integration.md) |
 | 68 | Server Action ID の version skew が起きたら、再試行を繰り返さず full reload へ誘導する。 | P5-7 の integration テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |

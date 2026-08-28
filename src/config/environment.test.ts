@@ -7,6 +7,7 @@ const SHIPPED_SESSION_SECRET = "local-development-session-secret-change-before-p
 const validEnvironment = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
+  APP_MAINTENANCE_MODE: "off",
   CLOCK_FIXED_NOW: "2026-01-01T00:00:00.000Z",
   MEDIA_ORIGIN: "https://media.example.test",
   OBS_SERVICE_NAME: "Boilerplate Web",
@@ -29,6 +30,7 @@ const validEnvironment = {
 function stubValidEnvironment(): void {
   vi.stubEnv("APP_API_BASE_URL", validEnvironment.APP_API_BASE_URL);
   vi.stubEnv("APP_API_MODE", validEnvironment.APP_API_MODE);
+  vi.stubEnv("APP_MAINTENANCE_MODE", validEnvironment.APP_MAINTENANCE_MODE);
   vi.stubEnv("CLOCK_FIXED_NOW", validEnvironment.CLOCK_FIXED_NOW);
   vi.stubEnv("MEDIA_ORIGIN", validEnvironment.MEDIA_ORIGIN);
   vi.stubEnv("OBS_SERVICE_NAME", validEnvironment.OBS_SERVICE_NAME);

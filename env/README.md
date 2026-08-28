@@ -23,6 +23,7 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 | --- | --- | --- | --- | --- |
 | `APP_API_BASE_URL` | BFF が接続する API の base URL | URL | `http://localhost:8080` | Required。環境ごとの API 接続先 |
 | `APP_API_MODE` | API 接続モード | `live` / `mock` | `live` | Required。`mock` は local / CI のみで用いる |
+| `APP_MAINTENANCE_MODE` | 配信を止めているか | `off` / `on` | `on` | Code default `off`。`on` で全ルートを停止画面へ差し替える。切り替えには起動し直しが要る |
 
 ### Clock
 

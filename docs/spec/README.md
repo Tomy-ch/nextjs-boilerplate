@@ -71,6 +71,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/login` | [`screen`](route/auth/login/page.screen.md) / [`function`](route/auth/login/page.function.md) |
 | `/onboarding` | [`screen`](route/auth/onboarding/page.screen.md) / [`function`](route/auth/onboarding/page.function.md) <!-- sample:line --> |
 | `/dev/session` | [`screen`](route/dev/session/page.screen.md) / [`function`](route/dev/session/page.function.md) |
+| `/maintenance` | [`screen`](route/maintenance/page.screen.md) / [`function`](route/maintenance/page.function.md) |
 
 **この目録は「書いた画面の一覧」であって、画面の一覧ではありません。**実装済みの画面は
 [`screens.md`](../screens.md) が持ちます。

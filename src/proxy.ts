@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { readOptimisticSession } from "@/adapters/server/auth/optimistic-session";
 import { SESSION_COOKIE_NAME } from "@/adapters/server/auth/session-cookie";
 import { getHttpConfig } from "@/config/http/http.server";
+import { getMaintenanceConfig } from "@/config/maintenance/maintenance.server";
 import { allowedRolesFor } from "@/model/authz";
 import {
   corsHeadersFor,
@@ -16,6 +17,45 @@ import { hasAllowedRole } from "@/model/session";
 
 /** 認証をやり直させる先。 */
 const LOGIN_PATH = "/login";
+
+/** 停止中に見せる画面。 */
+const MAINTENANCE_PATH = "/maintenance";
+
+/**
+ * 停止中も通す経路。
+ *
+ * @remarks
+ * 停止中の画面自身が資材を取りに行けなくなるため、静的アセットを止めません。ただしそれは
+ * {@link config} の選別が既に外しているので、ここに並ぶのは選別を通ってくる経路だけです。
+ *
+ * 生存確認は外形監視のため止めません（理由は `src/app/api/health/route.ts`）。
+ *
+ * 停止画面自身を含めます。差し替え先を差し替えの対象にすると、rewrite が自分を指します。
+ */
+const OPEN_PATHS: ReadonlySet<string> = new Set([MAINTENANCE_PATH, "/api/health"]);
+
+/**
+ * 止めているあいだも描いてよい method。
+ *
+ * @remarks
+ * **差し替えは描く先を変えるだけで、要求そのものは後段へ流れます。** method も body も
+ * `Next-Action` ヘッダもそのままなので、止まっていることを要求側へ言うのは差し替えの仕事では
+ * ありません。ここで読み取り以外を断るのは、**止めるという約束を自分の境界で言い切るため**です。
+ *
+ * Next.js 側でも結局は実行されませんが、それは framework の内部の成り行きであって、こちらが
+ * 約束したことではありません。**依存すると、その内部が変わった日に黙って開きます**
+ * （成り行きの中身は `docs/spec/route/maintenance/page.function.md`）。
+ */
+const OPEN_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD"]);
+
+/**
+ * 止めているあいだ、断る要求へ返す状態。
+ *
+ * @remarks
+ * ここは差し替えではなく proxy が自分で返す応答なので、状態がそのまま配信されます
+ * （rewrite に載せた status は読まれません。`docs/spec/route/maintenance/page.function.md`）。
+ */
+const STOPPED_STATUS = 503;
 
 /**
  * 別 origin へ開く口の接頭辞。
@@ -49,10 +89,19 @@ const PRIVATE_CACHE_CONTROL = "private, no-store";
 const FALLBACK_PATH = "/";
 
 /**
- * 入口の楽観的な認可。到達してよい役割を持たないリクエストを前捌きする。
+ * 入口の前捌き。配信を止めているあいだは読み取りを停止画面へ差し替えてそれ以外を断り、そうで
+ * なければ到達してよい役割を持たないリクエストを捌く。
  *
  * @remarks
- * **ここは防御線ではありません。** cookie を読むだけの前捌きであり、確定認可はデータ源に最も
+ * **停止の判定を先に置きます。** 止めているあいだに認可を先に見ると、未認証の要求だけがログイン
+ * へ送られ、止まっていることが経路によって見えたり見えなかったりします。止めるのは全ルートに
+ * 対する一つの判断なので、経路ごとの判定より前に済ませます。差し替えるのは応答の中身だけで、
+ * URL は動かしません —— 復帰後に同じ URL をもう一度開けば元の画面へ戻ります。
+ *
+ * **読み取りの応答は 200 です**（{@link STOPPED_STATUS}）。画面へ 503 を返したい配備では、配信面
+ * （CDN / ロードバランサ）が前に立ちます。
+ *
+ * 認可について、**ここは防御線ではありません。** cookie を読むだけの前捌きであり、確定認可はデータ源に最も
  * 近い所（`adapters/server` の `verifySession()`）が持ちます
  * （[0043](../docs/adr/0043-middleware-policy.md) / [0079](../docs/adr/0079-auth-frontend-seam.md)）。
  * ここを唯一の検査にすると、Proxy を通らない経路がそのまま穴になります。
@@ -72,6 +121,14 @@ const FALLBACK_PATH = "/";
  * origin の判定は `model/cross-origin` が持ち、ここは判定の結果を応答へ写すだけです。
  */
 export async function proxy(request: NextRequest): Promise<Response> {
+  const url = new URL(request.url);
+
+  if (getMaintenanceConfig().isStopped && !OPEN_PATHS.has(url.pathname)) {
+    return OPEN_METHODS.has(request.method)
+      ? NextResponse.rewrite(new URL(MAINTENANCE_PATH, url))
+      : new NextResponse(null, { status: STOPPED_STATUS });
+  }
+
   const verdict = judgeOrigin(
     {
       origin: request.headers.get("origin"),
@@ -87,7 +144,7 @@ export async function proxy(request: NextRequest): Promise<Response> {
   }
 
   const response =
-    verdict.kind === "allowed" && new URL(request.url).pathname.startsWith(BFF_PREFIX)
+    verdict.kind === "allowed" && url.pathname.startsWith(BFF_PREFIX)
       ? await openCors(request, verdict.origin)
       : await authorize(request);
 

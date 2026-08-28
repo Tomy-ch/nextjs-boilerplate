@@ -5,9 +5,13 @@ import { SESSION_ROLE } from "@/model/session";
 import { proxy } from "./proxy";
 
 const readOptimisticSession = vi.hoisted(() => vi.fn());
+const maintenance = vi.hoisted(() => ({ isStopped: false }));
 const allowedOrigins = vi.hoisted((): { current: readonly string[] } => ({ current: [] }));
 
 vi.mock("@/adapters/server/auth/optimistic-session", () => ({ readOptimisticSession }));
+vi.mock("@/config/maintenance/maintenance.server", () => ({
+  getMaintenanceConfig: () => maintenance,
+}));
 vi.mock("@/config/http/http.server", () => ({
   getHttpConfig: () => ({ allowedOrigins: allowedOrigins.current }),
 }));
@@ -38,10 +42,24 @@ function crossOrigin(
   });
 }
 
+/** 読み取りだが GET ではない要求。 */
+function headRequest(path: string): NextRequest {
+  return new NextRequest(new URL(path, "http://localhost:3000"), { method: "HEAD" });
+}
+
+/** Server Action の送信。使用先の route へ `Next-Action` 付きの POST として届く。 */
+function serverAction(path: string): NextRequest {
+  return new NextRequest(new URL(path, "http://localhost:3000"), {
+    method: "POST",
+    headers: { "next-action": "0123456789abcdef" },
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   readOptimisticSession.mockResolvedValue(null);
   allowedOrigins.current = [];
+  maintenance.isStopped = false;
 });
 
 describe("proxy", () => {
@@ -151,6 +169,80 @@ describe("proxy", () => {
     );
 
     expect(response.status).toBe(200);
+  });
+
+  it("停止中はどのパスも停止画面へ差し替える", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(request("/help"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/maintenance");
+  });
+
+  it("停止中は URL を動かさない", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(request("/help"));
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("停止中は認可の前捌きへ進まない", async () => {
+    maintenance.isStopped = true;
+
+    await proxy(request("/account", "sealed"));
+
+    expect(readOptimisticSession).not.toHaveBeenCalled();
+  });
+
+  it("停止中は状態を変える要求を差し替えずに断る", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(serverAction("/help"));
+
+    expect(response.status).toBe(503);
+  });
+
+  it("停止中に断った要求は停止画面を描かせない", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(serverAction("/help"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+  });
+
+  it("停止中でも読み取りであれば HEAD も停止画面へ差し替える", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(headRequest("/help"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/maintenance");
+  });
+
+  it("停止中も生存確認は通す", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(request("/api/health"));
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("停止中の生存確認は method を問わず通す", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(serverAction("/api/health"));
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.status).not.toBe(503);
+  });
+
+  it("停止中も停止画面自身は差し替えない", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(request("/maintenance"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
   // ----- 異常系 -----

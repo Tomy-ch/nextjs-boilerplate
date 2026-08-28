@@ -16,6 +16,7 @@ import {
   maxUrlBytesValidator,
 } from "./http/http.schema";
 import { findApplicationEnvironment } from "./load-environment";
+import { maintenanceModeValidator } from "./maintenance/maintenance.schema";
 import { mediaOriginValidator } from "./media/media.schema";
 import {
   otlpEndpointValidator,
@@ -40,6 +41,7 @@ function allowsShippedSecrets(): boolean {
 const environmentSchema = z.object({
   APP_API_BASE_URL: apiBaseUrlValidator(),
   APP_API_MODE: apiModeValidator(),
+  APP_MAINTENANCE_MODE: maintenanceModeValidator(),
   CLOCK_FIXED_NOW: fixedNowValidator(),
   MEDIA_ORIGIN: mediaOriginValidator(),
   OBS_SERVICE_NAME: serviceNameValidator(),
