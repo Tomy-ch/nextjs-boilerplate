@@ -4,8 +4,8 @@ import {
   allowsBlocking,
   findRenderModeDrift,
   formatRenderModeDrift,
+  formatRenderModeSummary,
   type PrerenderManifest,
-  type RenderMode,
   renderModes,
 } from "./render-mode";
 
@@ -61,11 +61,6 @@ function declaresBlocking(pagePaths: readonly string[]): boolean {
     .some((source) => existsSync(source) && allowsBlocking(readFileSync(source, "utf8")));
 }
 
-/** 扱いを、報告に使う綴りへ直す。 */
-function labelOf(mode: RenderMode): string {
-  return mode === "static" ? "○ 静的" : mode === "partial" ? "◐ 部分" : "ƒ 動的";
-}
-
 function main(): void {
   const [dir = ".next"] = process.argv.slice(2);
   const routesFile = `${dir}/app-path-routes-manifest.json`;
@@ -114,19 +109,7 @@ function main(): void {
     return;
   }
 
-  const counts = new Map<string, number>();
-
-  for (const route of pagePathsByRoute.keys()) {
-    const mode = EXEMPT.includes(route) ? undefined : observed.get(route);
-
-    if (mode !== undefined) {
-      counts.set(labelOf(mode), (counts.get(labelOf(mode)) ?? 0) + 1);
-    }
-  }
-
-  const breakdown = [...counts].map(([label, count]) => `${label} ${count}`).join(" / ");
-
-  console.log(`✅ ${pagePathsByRoute.size} 枚の描画モードは宣言どおりです（${breakdown}）。`);
+  console.log(formatRenderModeSummary([...pagePathsByRoute.keys()], observed, EXEMPT));
 }
 
 main();

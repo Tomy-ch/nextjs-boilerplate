@@ -4,6 +4,7 @@ import {
   allowsBlocking,
   findRenderModeDrift,
   formatRenderModeDrift,
+  formatRenderModeSummary,
   type RenderMode,
   renderModes,
 } from "./render-mode";
@@ -153,5 +154,44 @@ describe("formatRenderModeDrift", () => {
 
     expect(formatted).toContain("/login");
     expect(formatted).toContain("外して");
+  });
+});
+
+describe("formatRenderModeSummary", () => {
+  // ----- 正常系 -----
+  it("扱いごとの枚数を内訳として並べる", () => {
+    const observed = new Map<string, RenderMode>([
+      ["/about", "static"],
+      ["/", "partial"],
+      ["/products", "partial"],
+      ["/admin", "blocking"],
+    ]);
+
+    const summary = formatRenderModeSummary(["/about", "/", "/products", "/admin"], observed, []);
+
+    expect(summary).toContain("4 枚");
+    expect(summary).toContain("○ 静的 1");
+    expect(summary).toContain("◐ 部分 2");
+    expect(summary).toContain("ƒ 動的 1");
+  });
+
+  it("突合の対象外にした route は内訳に数えない", () => {
+    const observed = new Map<string, RenderMode>([
+      ["/about", "static"],
+      ["/dev/session", "blocking"],
+    ]);
+
+    const summary = formatRenderModeSummary(["/about", "/dev/session"], observed, ["/dev/session"]);
+
+    expect(summary).toContain("○ 静的 1");
+    expect(summary).not.toContain("ƒ 動的");
+  });
+
+  // ----- 異常系 -----
+  it("成果物に扱いの無い route は内訳から落とす", () => {
+    const summary = formatRenderModeSummary(["/ghost"], new Map<string, RenderMode>(), []);
+
+    expect(summary).toContain("1 枚");
+    expect(summary).not.toContain("○");
   });
 });

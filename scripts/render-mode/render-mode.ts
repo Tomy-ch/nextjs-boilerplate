@@ -117,3 +117,29 @@ export function formatRenderModeDrift(drift: readonly RenderModeDrift[]): string
     )
     .join("\n");
 }
+
+/** 扱いを、報告に使う綴りへ直す。 */
+function labelOf(mode: RenderMode): string {
+  return mode === "static" ? "○ 静的" : mode === "partial" ? "◐ 部分" : "ƒ 動的";
+}
+
+/** 違反が無かったときの内訳を、扱いごとの枚数として整える。 */
+export function formatRenderModeSummary(
+  routes: readonly string[],
+  observed: ReadonlyMap<string, RenderMode>,
+  exempt: readonly string[],
+): string {
+  const counts = new Map<string, number>();
+
+  for (const route of routes) {
+    const mode = exempt.includes(route) ? undefined : observed.get(route);
+
+    if (mode !== undefined) {
+      counts.set(labelOf(mode), (counts.get(labelOf(mode)) ?? 0) + 1);
+    }
+  }
+
+  const breakdown = [...counts].map(([label, count]) => `${label} ${count}`).join(" / ");
+
+  return `✅ ${routes.length} 枚の描画モードは宣言どおりです（${breakdown}）。`;
+}
