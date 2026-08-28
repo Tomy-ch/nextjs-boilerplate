@@ -450,7 +450,8 @@ backend が server→client push の入口機構(SSE)と、その配信基盤で
 | P6-5 | capabilities カーネル | 6 | P5-7 |
 | P6-6 | メンテナンスモード | 6 | P5-4 |
 | P6-7 | Cookie 同意(軽量 consent 機構 + ゲート) | 6 | P6-2 |
-| P6-8 | プラットフォーム機能の有効化判断 | 6 | P6-4 |
+| P6-8 | プラットフォーム機能の有効化判断 | 6 | P6-4, P6-9 |
+| P6-9 | データ分類とキャッシュ境界(PII / user-scoped の取り扱い) | 6 | P5-4 |
 | P7-1 | 爆破スクリプト移植 | 7 | P5-16 |
 | P7-2 | マーカー埋め込み + purge 検証 CI | 7 | P7-1, P6-4 |
 | P7-3 | `new-feature` スキル(B12) | 7 | P4-6, P3-10 |
@@ -1526,12 +1527,64 @@ sources:
 | 機能 | 現状 | 判断内容 |
 | --- | --- | --- |
 | Cache Components(PPR) | 無効 | 有効化するか、無効のまま v1 を出すか |
-| React Compiler | 無効 | 同上 |
+| React Compiler | 無効 | 基盤の必須機能にはしない。opt-in の性能最適化手段として扱う([0042](../adr/0042-react19-rendering-api.md) 決定 4)。実際に適用するかは計測で決まるため、本 PR の判断対象は方針まで |
 | React taint API | 無効 | 有効化して `NEXT_PUBLIC_` 境界を強化するか |
 
 - **設計**: E2E + VR(P6-4)が揃った後に判断する。有効化の影響を回帰で検証できるため
-- **完了条件**: 3 機能それぞれについて「有効化した」または「v1 では無効のまま」の判断が該当 ADR に記録されている
-- **依存**: P6-4
+- **Cache Components の有効化は P6-9 を前提にする**: PPR は「何が静的な殻へ入るか」を決める機構であり、user-scoped な値が共有・静的な領域へ載る経路をここで作る。**分類とキャッシュ境界(P6-9)が無いまま有効化すると、事故の起こる面だけが先に開く**
+- **完了条件**: 3 機能それぞれの扱いが該当 ADR に記録されている。Cache Components と taint は「有効化した」または「v1 では無効のまま」、React Compiler は**基盤の前提にしない opt-in 機構としての方針**が記録されていること
+- **依存**: P6-4, **P6-9**
+- **状態**: **判断は確定済み**。Cache Components は [0041](../adr/0041-cache-components-decision.md) が v1 採用に確定(有効化と移行は別 PR。前提は P6-9)。React taint API は [0030](../adr/0030-environment-variable-management.md) §8 が experimental を承知の例外として採用に確定(有効化範囲は全環境)。React Compiler は [0042](../adr/0042-react19-rendering-api.md) 決定 4 が「基盤の必須機能にしない opt-in の性能最適化手段」に確定し、実際に opt-in する箇所があるかの判断は RUM(P6-1)後へ分離
+
+### P6-9: データ分類とキャッシュ境界(PII / user-scoped の取り扱い)
+
+- **目的**: 値を「どの実行境界・どのキャッシュ範囲で使ってよいか」で分類し、**誤った置き場へ入れる書き方を通常の実装経路から消す**
+- **対象 ADR**: **[0112](../adr/0112-data-classification-cache-boundary.md)(本 PR の決定が正)** / [0020](../adr/0020-adopted-architecture.md)(設計原則 6)/ [0071](../adr/0071-bff-api-integration.md)(キャッシュの所有層)/ [0030](../adr/0030-environment-variable-management.md) §8(漏洩防御)/ [0041](../adr/0041-cache-components-decision.md)(PPR)/ [0040](../adr/0040-routing-rendering-strategy.md)(モード選択)
+- **爆破対象外**: 本 PR が置くものは**すべて基盤**である。サンプル API 固有ではなく、Server / Client 境界とキャッシュ境界そのものを守る機構であり、サンプル破棄後も残る
+
+#### 防ぎたい事故クラス
+
+| # | 事故 | 現在の防御 |
+| --- | --- | --- |
+| 1 | PII を含む server object を Client Component へ丸ごと渡す | 規約のみ(詰め替えを書く人が判断) |
+| 2 | token / secret を RSC ペイロードへ載せる | `import "server-only"` + 目的別 config |
+| 3 | request 固有の値を static generation へ焼き込む | **無し**(PPR 未導入のため面が無い) |
+| 4 | User A のデータを共有キャッシュへ入れ、User B へ配る | **無し**(`cache` / `tags` は全 client が受け取れる) |
+| 5 | projection / clone で分類が消える | **無し** |
+| 6 | サンプル破棄でセキュリティ基盤まで消える | 破棄対象の宣言次第 |
+| 7 | キャッシュの口を直接使って制約を迂回する | **無し**(`use cache` / `unstable_cache` は誰でも書ける) |
+
+#### 設計は [0112](../adr/0112-data-classification-cache-boundary.md) が正
+
+不変条件 6 件・分類の持たせ方・段ごとの関所・責務分界は同 ADR が持つ。本 PR はその実装であり、
+着手時はまず 0112 を読む。要点だけ:
+
+- **機密性 > キャッシュ効率 > SSR 率 > PPR 適用率 > バンドル最小化**。PII は最適化の対象ではなく露出範囲を最小化する対象
+- 分類は値ではなく**取得の口**に持たせ、user-scoped の口からキャッシュ能力を型ごと外す
+- 守りは 1 か所に集約せず、**型 / lint / framework / 取得時 / 境界 / 配信**の段に分ける
+
+#### 主な変更先
+
+- `src/adapters/server/http/request.ts` —— `scope` の宣言、分類ごとの spec 型、取得時の関門
+- `src/adapters/server/api/*.ts` —— 各 client の `scope` 宣言(既に public / 認証つきで分かれており、宣言を足すだけ)
+- `eslint.config.ts` —— `use cache` を持つモジュールの import 制約
+- `docs/rules.md` —— 分類の選び方と `use cache: private` の位置づけ
+
+#### この PR で確かめること
+
+- **`cache()` メモ化と cached scope の関係**。`verifySession` は React `cache()` でメモ化されており、cached scope の外で解決済みの値が中で再利用されると `cookies()` が再読されず、framework 側の防御が発火しない可能性がある
+- **資格情報の解決経路を機械検査にできるか**。framework の防御は「使用地点で cookie から解決される」ことに乗っており、持ち回りやメモ化で静かに外れる
+
+#### トレードオフ
+
+- 通常実装の可読性はほぼ変わらない。feature 側の記述は増えず、変わるのは adapter を書くときに口を選ぶ 1 行だけ
+- 資格情報を載せうる口は共有キャッシュの選択肢を失う。「匿名でも取れるものを共有キャッシュへ」という最適化は、口を分けない限り選べなくなる
+- `use cache` の lint は import で判定するため、間接参照の深い経路を取りこぼしうる
+
+- **完了条件**: user-scoped な取得に `cache` / `tags` を渡すコードが**型検査で落ちる**。`use cache` の下から user-scoped adapter へ到達する import が `lint:ci` で落ちる。資格情報つきの要求にキャッシュ指定を与えると実行時に落ちる。上の 5 層が `docs/rules.md` と ADR に記録されている
+- **依存**: P5-4(認証の口が揃っていること)
+
+---
 
 ---
 

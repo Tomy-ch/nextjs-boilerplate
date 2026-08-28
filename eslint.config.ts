@@ -84,6 +84,9 @@ export default [
     rules: {
       // Biome では effect で state を導出する形や描画中の副作用を表現できないため、React Compiler
       // 由来の診断だけを担う。有効化するルールの選び方は 0002 が正。
+      //
+      // **React Compiler を使うかどうかとは独立に維持する。** これらが止めるのは通常実装のバグで
+      // あって、Compiler の前提充足ではない（0042 決定 4）。
       "react-hooks/capitalized-calls": "error",
       "react-hooks/error-boundaries": "error",
       "react-hooks/gating": "error",
