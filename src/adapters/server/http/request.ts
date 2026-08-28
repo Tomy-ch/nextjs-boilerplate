@@ -120,8 +120,8 @@ type PublicRequestSpec<T> = BaseRequestSpec<T> & {
  *
  * @remarks
  * **キャッシュの指定を型として持ちません。**「PII を共有キャッシュへ入れるな」を注意書きでは
- * なく引数の不在にするのが、この分類の目的です（0112 決定 1）。どうしてもキャッシュしたい値の
- * 手段は `use cache: private` に限り、それは明示的な例外能力であって一般許可ではありません。
+ * なく引数の不在にするのが、この分類の目的です（0112 決定 1）。それでもキャッシュしたい値の
+ * 扱いは `docs/rules.md` #86b が持ちます。
  */
 type UserScopedRequestSpec<T> = BaseRequestSpec<T> & { cache?: never; tags?: never };
 

@@ -7,12 +7,8 @@ import { ErrorKind } from "@/errors/error-kind";
  * 取得の口が扱う値の分類。
  *
  * @remarks
- * 分類は値ではなく**口**に持たせます（[0112](../../../../docs/adr/0112-data-classification-cache-boundary.md)
- * 決定 1）。値を包む形にすると、包みを解いた時点で分類が消えます。解くのは PII が正当に出ていく
- * 描画の地点であり、そこは保証が要る場所ではありません。
- *
- * **資格情報を載せうる口は、載せなかった回も含めて `user-scoped` です**（同 決定 3）。分類は口の
- * 性質であって要求ごとの結果ではないため、静的に決まります。
+ * 分類を値ではなく**口**に持たせる理由は
+ * [0112](../../../../docs/adr/0112-data-classification-cache-boundary.md) 決定 1 が持ちます。
  *
  * 呼び出し側に値を綴りのまま書かせるのは、この宣言を検査が読むためです
  * （`project-rules/no-user-scoped-in-cached-module`）。綴りを定数へ寄せると検査が黙って外れるので、
@@ -25,9 +21,8 @@ export type DataScope = "public" | "user-scoped";
  *
  * @remarks
  * HTTP が資格情報の運び手として定めているものです（RFC 9110 §11.6.2 / RFC 6265）。アプリ固有の
- * 名前は並べません —— どのヘッダが主体を指すかは接続先の契約が決めることで、この境界が知って
- * よいのは HTTP の語彙までです。契約が独自に持つ識別子のヘッダは、それを載せる口の分類が
- * `user-scoped` になることで覆います。
+ * 名前を足しません —— 契約が独自に持つ識別子は、それを載せる口の分類が `user-scoped` になる
+ * ことで覆います（[adapters](../../README.md)）。
  */
 const CREDENTIAL_HEADERS: readonly string[] = ["authorization", "cookie"];
 

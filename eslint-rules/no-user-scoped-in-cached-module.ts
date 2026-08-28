@@ -4,18 +4,15 @@ import { dirname, join, resolve } from "node:path";
 import type { Rule } from "eslint";
 
 /**
- * サーバに保存されるキャッシュを持つモジュールから、user-scoped な取得の口を import させないルール。
+ * サーバに保存されるキャッシュを持つモジュールから、user-scoped な取得の口を import させないルール
+ * （[0112](../docs/adr/0112-data-classification-cache-boundary.md) 決定 4 の段 2 /
+ * `docs/rules.md` #86b）。
  *
- * 分類は取得の口が持ち、その口は `cache` / `tags` を型として受け取らない
- * ([0112](../docs/adr/0112-data-classification-cache-boundary.md) 決定 1)。しかし `use cache` は
- * **口の外側からモジュールごと**キャッシュへ入れるため、口の型では止まらない。同じ値が User A の
- * 分のまま User B へ配られる経路がここで開く。
- *
- * `use cache: private` は対象外にする。サーバへ保存されず、ブラウザのメモリにしか載らないため、
- * user-scoped な値をキャッシュしてよい唯一の手段として同 ADR 決定 3 が名指ししている。
+ * `use cache` は**口の外側からモジュールごと**キャッシュへ入れるため、口の型では止まらない。
+ * `use cache: private` はサーバへ保存されないので対象外。
  *
  * **判定は直接の import だけを見る。** 間接参照の深い経路は取りこぼすが、そこは framework の防御
- * (cached scope からの `cookies()` 読み出し) と取得時の関門が覆う (同 決定 4)。
+ * (cached scope からの `cookies()` 読み出し) と取得時の関門が覆う。
  *
  * **判定の単位はモジュールであって、import した名前ではない。** 口を作るモジュールが純粋な変換も
  * 一緒に export していると、変換だけを引いた `use cache` も止まる。名前ごとに口へ辿り着くかを

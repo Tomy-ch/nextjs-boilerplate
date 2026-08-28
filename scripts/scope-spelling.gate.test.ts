@@ -15,9 +15,9 @@ import {
  * 判定の中身は `lib/scope-spelling.ts` が持ち、ここはツリーの走査だけを担う
  * （`server-only.gate.test.ts` と同形）。
  *
- * **lint の段は綴りを読んでいる。** 宣言を定数へ寄せた変更は型検査も lint も通り、そのぶん
- * `use cache` の下から user-scoped な口を引く検査だけが黙って外れる。外れたことが見えないので、
- * 前提が生きていること自体をここで見張る。
+ * **綴りが崩れても何も赤くならない。** 型検査も lint も通り、`use cache` の下から user-scoped な
+ * 口を引く検査だけが静かに何も言わなくなる。壊れたことが誰の目にも見えないので、走査した件数
+ * そのものをここで主張する。
  */
 
 const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");

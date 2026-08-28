@@ -3,11 +3,7 @@ import type { Rule, Scope } from "eslint";
 /**
  * 資格情報の取得口に、その場で組んだ関数や掴んだ値を渡させないルール。
  *
- * `use cache` の下で user-scoped な取得を止めているのは framework 側の防御で、それは
- * **資格情報が使用地点で `cookies()` から解決されること**にぶら下がっている
- * ([0112](../docs/adr/0112-data-classification-cache-boundary.md) 決定 5)。解決済みの値を掴んだ
- * 関数を渡すと `cookies()` が読まれず、`next-request-in-use-cache` は何も言わずに黙る。**外れた
- * ことが誰にも見えない**のがこの形の危うさで、だから前提そのものを検査の対象にする。
+ * この検査が守る前提は [0112](../docs/adr/0112-data-classification-cache-boundary.md) 決定 5 が持つ。
  *
  * 綴りごとに通す形が違う。
  *
@@ -16,12 +12,10 @@ import type { Rule, Scope } from "eslint";
  * | `getBearerToken` | import した口 | 宣言が 1 か所にあり、そこを読めば解決の経路が分かる |
  * | `bearerToken` | 囲む関数の引数 | 確立中の 1 往復は、トークンが呼び出しと一緒に届く |
  *
- * **`bearerToken` も検査する。** これは cookie がまだ無い session 確立のための例外だが、綴りを
- * 分けただけでは「渡してよい場所が増えていない」ことを誰も確かめない。周囲の adapter は
- * `let client; client ??= createHttpClient(...)` でクライアントをモジュール変数へ固定する形を
- * 採っており、その形へ `bearerToken` を持ち込むと、最初の要求のトークンがプロセスの寿命だけ
- * 居座って、以後の全員がその主体として出ていく。引数だけを通すのは、掴んだ値がこの綴りからも
- * 入れないようにするためである。
+ * **例外の綴りも見る。** 周囲の adapter は `let client; client ??= createHttpClient(...)` で
+ * クライアントをモジュール変数へ固定する形を採っており、その形へ `bearerToken` を持ち込むと、
+ * 最初の要求のトークンがプロセスの寿命だけ居座って、以後の全員がその主体として出ていく。引数
+ * だけを通すのは、掴んだ値がこの綴りからも入れないようにするためである。
  *
  * テストは対象外にする。取得口の振る舞いを確かめる側であり、束には載らない。
  */

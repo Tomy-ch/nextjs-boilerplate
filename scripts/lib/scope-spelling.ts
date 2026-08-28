@@ -1,11 +1,8 @@
 /**
- * 取得の口が分類を綴りのまま宣言しているかの判定。
+ * 取得の口が分類を綴りのまま宣言しているかの判定
+ * （[0112](../../docs/adr/0112-data-classification-cache-boundary.md) 決定 4 の段 2）。
  *
  * @remarks
- * `project-rules/no-user-scoped-in-cached-module` は import 先の**綴り**を読んで分類を知る
- * （[0112](../../docs/adr/0112-data-classification-cache-boundary.md) 決定 4 の段 2）。宣言を
- * 定数へ寄せた瞬間に検査は何も言わずに黙るので、綴りのままであることを別の口から見張る。
- *
  * 判定だけをここに置き、ツリーの走査は `scripts/scope-spelling.gate.test.ts` が担う。
  */
 
