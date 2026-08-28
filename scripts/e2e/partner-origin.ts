@@ -1,4 +1,4 @@
-import { createServer, type Server } from "node:http";
+import { createServer } from "node:http";
 
 /**
  * 宣言した別 origin として返す文書。
@@ -19,31 +19,24 @@ export const PARTNER_DOCUMENT = "<!doctype html><title>partner</title>";
  * 描画エンジンで同じ判定に乗ります。
  *
  * @param hostname - 待ち受けるアドレス。アプリと同じもの（`.makefiles/testing/e2e.mk`）
- * @param port - 待ち受けるポート。0 なら空いているものを取る
- * @returns 待ち受けた port と、止める関数
+ * @param port - 待ち受けるポート
+ * @returns 止める関数。既に止まっていれば拒む
  */
-export function servePartnerOrigin(
-  hostname: string,
-  port: number,
-): Promise<{ readonly port: number; readonly close: () => Promise<void> }> {
+export function servePartnerOrigin(hostname: string, port: number): Promise<() => Promise<void>> {
   return new Promise((resolve, reject) => {
-    const server: Server = createServer((_request, response) => {
+    const server = createServer((_request, response) => {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       response.end(PARTNER_DOCUMENT);
     });
 
     server.once("error", reject);
     server.listen(port, hostname, () => {
-      const address = server.address();
-      const bound = typeof address === "object" && address !== null ? address.port : port;
-
-      resolve({
-        port: bound,
-        close: () =>
+      resolve(
+        () =>
           new Promise<void>((done, fail) => {
             server.close((error) => (error ? fail(error) : done()));
           }),
-      });
+      );
     });
   });
 }

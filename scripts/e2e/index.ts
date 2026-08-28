@@ -30,8 +30,8 @@ function main(): void {
   if (command === "serve-partner") {
     if (!file || !port) fail(USAGE);
     // 止めるのは起動側（`make` の trap）。ここは待ち受けたことを報せるだけでよい。
-    void servePartnerOrigin(file, Number(port)).then(({ port: bound }) => {
-      console.log(`🤝 別 origin の文書を ${file}:${bound} で返します。`);
+    void servePartnerOrigin(file, Number(port)).then(() => {
+      console.log(`🤝 別 origin の文書を ${file}:${port} で返します。`);
     });
 
     return;
