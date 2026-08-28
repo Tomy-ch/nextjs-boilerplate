@@ -79,7 +79,7 @@ describe("proxy", () => {
   it("停止中はどのパスも停止画面へ差し替える", async () => {
     maintenance.isStopped = true;
 
-    const response = await proxy(request("/products/1"));
+    const response = await proxy(request("/help"));
 
     expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/maintenance");
   });
@@ -87,7 +87,7 @@ describe("proxy", () => {
   it("停止中は URL を動かさない", async () => {
     maintenance.isStopped = true;
 
-    const response = await proxy(request("/products/1"));
+    const response = await proxy(request("/help"));
 
     expect(response.headers.get("location")).toBeNull();
   });
@@ -103,7 +103,7 @@ describe("proxy", () => {
   it("停止中は状態を変える要求を差し替えずに断る", async () => {
     maintenance.isStopped = true;
 
-    const response = await proxy(serverAction("/checkout"));
+    const response = await proxy(serverAction("/help"));
 
     expect(response.status).toBe(503);
   });
@@ -111,7 +111,7 @@ describe("proxy", () => {
   it("停止中に断った要求は停止画面を描かせない", async () => {
     maintenance.isStopped = true;
 
-    const response = await proxy(serverAction("/checkout"));
+    const response = await proxy(serverAction("/help"));
 
     expect(response.headers.get("x-middleware-rewrite")).toBeNull();
   });
@@ -119,7 +119,7 @@ describe("proxy", () => {
   it("停止中でも読み取りであれば HEAD も停止画面へ差し替える", async () => {
     maintenance.isStopped = true;
 
-    const response = await proxy(headRequest("/products/1"));
+    const response = await proxy(headRequest("/help"));
 
     expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/maintenance");
   });
