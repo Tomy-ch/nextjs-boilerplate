@@ -17,6 +17,12 @@ import type { Rule } from "eslint";
  * **判定は直接の import だけを見る。** 間接参照の深い経路は取りこぼすが、そこは framework の防御
  * (cached scope からの `cookies()` 読み出し) と取得時の関門が覆う (同 決定 4)。
  *
+ * **判定の単位はモジュールであって、import した名前ではない。** 口を作るモジュールが純粋な変換も
+ * 一緒に export していると、変換だけを引いた `use cache` も止まる。名前ごとに口へ辿り着くかを
+ * 追うには、export から `createHttpClient` までの到達可能性を解く必要があり、この段の役目
+ * (キャッシュへ入れる前に止める) に見合わない。**止まったほうを直す** —— 口と一緒に居る変換は、
+ * 引く側が増えた時点で自分のモジュールを持つに値する。
+ *
  * 分類の宣言そのものを読む。写した一覧を持つと、口の宣言が動いたときに黙って古いままになる。
  * その読み方の帰結として、口を作る kernel（`adapters/server/http/request.ts`）自身も当たる。外さない
  * —— `use cache` の下で client をその場で組む形も、作る先が user-scoped なら同じ事故を作る。
@@ -75,7 +81,7 @@ const noUserScopedInCachedModule: Rule.RuleModule = {
     schema: [],
     messages: {
       noUserScopedInCachedModule:
-        "`{{specifier}}` は主体に紐づく取得の口です。`use cache` の下から引くと、ある主体の値が別の主体へ配られます。取得を穴（Suspense の内側）へ落とすか、`use cache: private` を選んでください。",
+        "`{{specifier}}` は主体に紐づく取得の口を持つモジュールです。`use cache` の下から引くと、ある主体の値が別の主体へ配られます。取得を穴（Suspense の内側）へ落とすか、`use cache: private` を選んでください。口ではなく同居している純粋な変換だけが要るなら、その変換を別のモジュールへ出してください。",
     },
   },
   create(context) {

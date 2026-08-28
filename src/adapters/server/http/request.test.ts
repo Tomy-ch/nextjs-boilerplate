@@ -438,16 +438,6 @@ describe("createHttpClient", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("user-scoped な口へ再検証のタグを与えたら、送らずに invalid-argument で落とす", async () => {
-    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
-    const client = createEscapedClient(fetchImpl);
-
-    expect(
-      await kindOf(() => client.request({ path: "/v1/users/me", schema, tags: ["users"] })),
-    ).toBe(ErrorKind.INVALID_ARGUMENT);
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
-
   it("呼び出しごとの指定に資格情報のヘッダを置いたら、送らずに invalid-argument で落とす", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);
@@ -455,18 +445,6 @@ describe("createHttpClient", () => {
     expect(
       await kindOf(() =>
         client.request({ path: "/v1/items", schema, headers: { authorization: "Bearer x" } }),
-      ),
-    ).toBe(ErrorKind.INVALID_ARGUMENT);
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
-
-  it("資格情報のヘッダの綴りは大文字小文字を問わずに弾く", async () => {
-    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
-    const client = createPublicClient(fetchImpl);
-
-    expect(
-      await kindOf(() =>
-        client.request({ path: "/v1/items", schema, headers: { Cookie: "session=x" } }),
       ),
     ).toBe(ErrorKind.INVALID_ARGUMENT);
     expect(fetchImpl).not.toHaveBeenCalled();

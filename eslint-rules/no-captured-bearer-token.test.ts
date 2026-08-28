@@ -21,8 +21,20 @@ describe("noCapturedBearerToken", () => {
         },
         // 短縮記法でも、指しているのは import した口である。
         {
-          code: `import { getBearerToken } from "../auth/session";\nconst client = createHttpClient({ getBearerToken });`,
+          code: 'import { getBearerToken } from "../auth/session";\nconst client = createHttpClient({ getBearerToken });',
           filename: FILENAME,
+        },
+      ],
+      invalid: [],
+    });
+  });
+
+  it("確立中の口が呼び出しで受け取った引数を通す", () => {
+    ruleTester.run("no-captured-bearer-token", noCapturedBearerToken, {
+      valid: [
+        {
+          code: "export function fetchRole(accessToken) {\n  return createHttpClient({ bearerToken: accessToken });\n}",
+          filename: "src/adapters/server/api/user-roles.ts",
         },
       ],
       invalid: [],
@@ -31,17 +43,18 @@ describe("noCapturedBearerToken", () => {
 
   it("受け取る側の分解代入を通す", () => {
     ruleTester.run("no-captured-bearer-token", noCapturedBearerToken, {
-      valid: [{ code: "function create({ getBearerToken }) { return getBearerToken; }" }],
+      valid: [
+        { code: "function create({ getBearerToken, bearerToken }) { return [getBearerToken, bearerToken]; }" },
+      ],
       invalid: [],
     });
   });
 
-  it("同じ綴りの別物を通す", () => {
+  it("実行時にしか綴りが決まらないキーを通す", () => {
     ruleTester.run("no-captured-bearer-token", noCapturedBearerToken, {
       valid: [
-        // 計算されたキー。綴りが一致するのは実行時であり、静的には別物と区別が付かない。
         {
-          code: `${IMPORT_RESOLVER}const client = createHttpClient({ ["getBearerToken"]: async () => "t" });`,
+          code: 'const key = "getBearerToken";\nconst client = createHttpClient({ [key]: async () => "t" });',
           filename: FILENAME,
         },
         { code: "const options = { retries: 3, timeout: 100 };", filename: FILENAME },
@@ -54,7 +67,7 @@ describe("noCapturedBearerToken", () => {
     ruleTester.run("no-captured-bearer-token", noCapturedBearerToken, {
       valid: [
         {
-          code: 'const client = createHttpClient({ getBearerToken: async () => "token" });',
+          code: 'const client = createHttpClient({ getBearerToken: async () => "token", bearerToken: "token" });',
           filename: "src/adapters/server/api/users.test.ts",
         },
       ],
@@ -70,13 +83,19 @@ describe("noCapturedBearerToken", () => {
         {
           code: "const client = createHttpClient({ getBearerToken: async () => accessToken });",
           filename: FILENAME,
-          errors: [{ messageId: "noCapturedBearerToken" }],
+          errors: [{ messageId: "noCapturedResolver" }],
         },
         // 文字列キーでも渡す先は同じ。
         {
           code: 'const client = createHttpClient({ "getBearerToken": async () => accessToken });',
           filename: FILENAME,
-          errors: [{ messageId: "noCapturedBearerToken" }],
+          errors: [{ messageId: "noCapturedResolver" }],
+        },
+        // 括弧で包んでも綴りは確定している。ここを通すと、書き方を変えるだけで規則が外れる。
+        {
+          code: 'const client = createHttpClient({ ["getBearerToken"]: async () => accessToken });',
+          filename: FILENAME,
+          errors: [{ messageId: "noCapturedResolver" }],
         },
       ],
     });
@@ -89,19 +108,45 @@ describe("noCapturedBearerToken", () => {
         {
           code: "const resolve = async () => accessToken;\nconst client = createHttpClient({ getBearerToken: resolve });",
           filename: FILENAME,
-          errors: [{ messageId: "noCapturedBearerToken" }],
+          errors: [{ messageId: "noCapturedResolver" }],
         },
-        // 引数で持ち回った値。解決の経路が呼び出し側へ散る。
+        // 引数で持ち回った口。解決の経路が呼び出し側へ散る。
         {
           code: "function create(resolve) {\n  return createHttpClient({ getBearerToken: resolve });\n}",
           filename: FILENAME,
-          errors: [{ messageId: "noCapturedBearerToken" }],
+          errors: [{ messageId: "noCapturedResolver" }],
         },
         // どこにも宣言の無い名前。指す先が読めない以上、import した口とは言えない。
         {
           code: "const client = createHttpClient({ getBearerToken: ambientResolver });",
           filename: FILENAME,
-          errors: [{ messageId: "noCapturedBearerToken" }],
+          errors: [{ messageId: "noCapturedResolver" }],
+        },
+      ],
+    });
+  });
+
+  it("確立中の口が掴んだ値を受け取る形を落とす", () => {
+    ruleTester.run("no-captured-bearer-token", noCapturedBearerToken, {
+      valid: [],
+      invalid: [
+        // モジュール変数。最初の要求の資格情報がプロセスの寿命だけ居座る。
+        {
+          code: "let cached;\nfunction getClient() {\n  return createHttpClient({ bearerToken: cached });\n}",
+          filename: FILENAME,
+          errors: [{ messageId: "noCapturedToken" }],
+        },
+        // import した値。呼び出しと一緒には届かない。
+        {
+          code: 'import { token } from "./token";\nconst client = createHttpClient({ bearerToken: token });',
+          filename: FILENAME,
+          errors: [{ messageId: "noCapturedToken" }],
+        },
+        // 式で組んだ値。
+        {
+          code: "const client = createHttpClient({ bearerToken: readToken() });",
+          filename: FILENAME,
+          errors: [{ messageId: "noCapturedToken" }],
         },
       ],
     });

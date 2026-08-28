@@ -20,6 +20,7 @@ test-requirement: unit
 
 | モジュール | 検証 | 理由 |
 | --- | --- | --- |
+| [`data-scope.ts`](data-scope.ts) | `unit` | 取得の口の分類と、キャッシュ・資格情報ヘッダの関門 |
 | [`error-status.ts`](error-status.ts) | `unit` | 分類から status への表 |
 | [`error-response.ts`](error-response.ts) | `unit` | 分類から応答を組む |
 | [`json-request.ts`](json-request.ts) | `unit` | 受け取った要求の型と大きさを見る |
