@@ -1,3 +1,5 @@
+import type { Page } from "@playwright/test";
+
 import { expect, test } from "../lib/test";
 
 /**
@@ -19,7 +21,7 @@ const FOREIGN_ORIGIN = "https://foreign.invalid";
 const ALLOWED_ORIGIN = process.env.E2E_ALLOWED_ORIGIN ?? "http://partner.example.test";
 
 /** 宣言した origin の文書として、空の HTML を返す。 */
-async function openAllowedOriginPage(page: Parameters<Parameters<typeof test>[1]>[0]["page"]) {
+async function openAllowedOriginPage(page: Page): Promise<void> {
   await page.route(`${ALLOWED_ORIGIN}/**`, (route) =>
     route.fulfill({ contentType: "text/html", body: "<!doctype html><title>partner</title>" }),
   );
