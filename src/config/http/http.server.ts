@@ -6,10 +6,16 @@ import type { HttpEnvironment } from "./http.schema";
 class HttpConfig {
   readonly #maxUrlBytes: number;
   readonly #maxUploadBytes: number;
+  readonly #allowedOrigins: readonly string[];
 
-  private constructor(maxUrlBytes: number, maxUploadBytes: number) {
+  private constructor(
+    maxUrlBytes: number,
+    maxUploadBytes: number,
+    allowedOrigins: readonly string[],
+  ) {
     this.#maxUrlBytes = maxUrlBytes;
     this.#maxUploadBytes = maxUploadBytes;
+    this.#allowedOrigins = allowedOrigins;
   }
 
   /** 検証済み ENV から production singleton を組み立てる。 */
@@ -17,7 +23,20 @@ class HttpConfig {
     return new HttpConfig(
       values.NEXT_PUBLIC_HTTP_MAX_URL_BYTES,
       values.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES,
+      values.HTTP_ALLOWED_ORIGINS,
     );
+  }
+
+  /**
+   * BFF（`/api/*`）を別 origin から呼ばせる相手。
+   *
+   * @remarks
+   * 空なら同一 origin だけです。ここに挙げた origin は `src/proxy.ts` が CORS で開き、同時に
+   * 状態を変える要求の送信元としても信頼します（`docs/rules.md` #47）。宣言を 1 つにするのは、
+   * 「読ませる相手」と「書かせる相手」がずれないようにするためです。
+   */
+  get allowedOrigins(): readonly string[] {
+    return this.#allowedOrigins;
   }
 
   /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { maxUploadBytesValidator, maxUrlBytesValidator } from "./http.schema";
+import { allowedOriginsValidator, maxUploadBytesValidator, maxUrlBytesValidator } from "./http.schema";
 
 describe("maxUrlBytesValidator", () => {
   // ----- 正常系 -----
@@ -35,5 +35,30 @@ describe("maxUploadBytesValidator", () => {
   it("整数でないバイト数を拒否する", () => {
     expect(maxUploadBytesValidator().safeParse("4194304.5").success).toBe(false);
     expect(maxUploadBytesValidator().safeParse("4MiB").success).toBe(false);
+  });
+});
+
+describe("allowedOriginsValidator", () => {
+  // ----- 正常系 -----
+  it("カンマ区切りの origin を一覧にする", () => {
+    expect(
+      allowedOriginsValidator().parse("https://a.example.test, https://b.example.test:8443"),
+    ).toStrictEqual(["https://a.example.test", "https://b.example.test:8443"]);
+  });
+
+  it("未指定と空文字は同一 origin だけ（空の一覧）として受け入れる", () => {
+    expect(allowedOriginsValidator().parse(undefined)).toStrictEqual([]);
+    expect(allowedOriginsValidator().parse("")).toStrictEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("パスや末尾の / が付いた値を拒否する", () => {
+    expect(allowedOriginsValidator().safeParse("https://a.example.test/").success).toBe(false);
+    expect(allowedOriginsValidator().safeParse("https://a.example.test/api").success).toBe(false);
+  });
+
+  it("origin の形をしていない値を拒否する", () => {
+    expect(allowedOriginsValidator().safeParse("a.example.test").success).toBe(false);
+    expect(allowedOriginsValidator().safeParse("*").success).toBe(false);
   });
 });

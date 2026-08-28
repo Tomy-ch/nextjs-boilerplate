@@ -89,11 +89,15 @@ CSP は「別ドメイン(infra / backend)の責務」ではなく **表示層�
 | 静的ヘッダ(§2) | `next.config.ts` `headers()` | リクエスト非依存。宣言的・実行時コストなし |
 | 非 nonce CSP(seam A) | `next.config.ts` `headers()` | 静的・CDN 両立(既定) |
 | nonce CSP(seam B) | `src/proxy.ts` | per-request。opt-in。dynamic 固定 |
-| **資格情報を載せた要求への `Cache-Control`** | **`src/proxy.ts`** | **要求に依る**唯一のヘッダ(下記) |
+| **資格情報を載せた要求への `Cache-Control`** | **`src/proxy.ts`** | **要求に依る**(下記) |
+| **許可した別 origin への `Access-Control-*`** | **`src/proxy.ts`** | 要求の `Origin` に依る。宣言は `HTTP_ALLOWED_ORIGINS`(下記) |
+| **origin 検証(許可外 origin からの書き込みを 403)** | **`src/proxy.ts`** | 同じ宣言を読む。`docs/rules.md` #47 |
 | HSTS の終端強制 | **PaaS/CDN も可(境界 seam)** | edge で一括付与する構成もある。二重掛けの整合は fork が確認 |
 
 - **要求に依らないヘッダを `proxy.ts` で足さない。** 前捌きを通る経路にしか載らず、静的に配れる応答が漏れる。
 - **資格情報を載せた要求への応答は `Cache-Control: private, no-store`。** [0112](0112-data-classification-cache-boundary.md) 段 5(配信)の実体で、主体に紐づく応答が CDN / プロキシの共有キャッシュへ載り別の主体へ配られる事故を、応答ヘッダで止める。**判定は要求の側で行う** —— session cookie を載せた要求は、その応答が何であれ主体に紐づく。画面や Route Handler ごとに書かせず、宣言を持たない handler にも届く。代償はログイン済み利用者への静的画面が CDN で共有されないことで、これは 0112 の優先順位(機密性 > キャッシュ効率)どおりである。framework が動的な応答に付ける `no-store` はアプリ内側の判断で、静的に固まった応答には付かない —— 主体に紐づく画面が誤って固まった回に効くのは、この段だけである。
+- **別 origin へ開く口は 1 つの宣言で持つ。** `HTTP_ALLOWED_ORIGINS`(`config/http`)に挙げた origin だけに、`src/proxy.ts` が BFF(`/api/*`)の応答へ `Access-Control-Allow-Origin` / `Access-Control-Allow-Credentials` / `Vary: Origin` を返し、preflight に 204 で答える。credentials を許すのは BFF の口が session cookie で主体を判定するためで、`*` は使えない。**既定は空 = 同一 origin だけ**であり、ブラウザから叩く先は BFF に限る(§3 `connect-src 'self'`)ので、この構成では宣言する相手が居ない。別 origin の SPA / 管理画面が BFF を叩く fork が、その origin を宣言する。
+- **同じ宣言が書き込みの送信元を決める。** `Origin` を持つ要求のうち、自分自身(host が `X-Forwarded-Host` / `Host` と一致)でも宣言した origin でもないものからの状態を変えるメソッド(`GET` / `HEAD` / `OPTIONS` 以外)は、handler へ届く前に 403 で止める。読むだけの要求は止めない —— CORS ヘッダを付けないので、ブラウザ側で応答を読めない。「読ませる相手」と「書かせる相手」を別々の宣言にすると、片方だけ開けた状態を作れる。Server Action は Next.js 自身が `Origin` と `Host` を突合しており、リバースプロキシで Host が書き換わる配備だけが `serverActions.allowedOrigins` を要する。判定は `src/model/cross-origin.ts` が持つ。
 - **PaaS/CDN での付与は「境界 seam」**として認める(HSTS・一部の静的ヘッダは配送層で終端する構成が現実的)。boilerplate 本体は `next.config.ts` を SSOT とするが、**PaaS 側と重複・矛盾しない**ことを fork がデプロイ時に確認する(同一ヘッダの二重付与を避ける)。
 
 ### 6. CI 適合スライスは 0110 が持つ(本 ADR は実行時本体)
@@ -113,6 +117,8 @@ CSP は「別ドメイン(infra / backend)の責務」ではなく **表示層�
 - ❌ `script-src` / `style-src` に `'unsafe-inline'` を残したまま「strict CSP を敷いた」と称すること(弱い許可の明示。strict を謳うなら nonce か SRI へ)
 - ❌ 配信元(`MEDIA_ORIGIN` / `AUTH_ISSUER`)を CSP へ直接書くこと(検証済み ENV から組み立てる)
 - ❌ 主体に紐づく応答の `Cache-Control` を画面や handler ごとに書くこと(`proxy.ts` が要求の側で一律に付ける)
+- ❌ `Access-Control-Allow-Origin: *` や、CORS の許可と書き込みの許可を別々の宣言で持つこと(§5)
+- ❌ Route Handler ごとに CORS ヘッダや origin 検証を書くこと(`proxy.ts` が宣言から一律に付ける)
 
 ## 補足
 

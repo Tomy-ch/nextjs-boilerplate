@@ -3,12 +3,28 @@ import { NextResponse } from "next/server";
 
 import { readOptimisticSession } from "@/adapters/server/auth/optimistic-session";
 import { SESSION_COOKIE_NAME } from "@/adapters/server/auth/session-cookie";
+import { getHttpConfig } from "@/config/http/http.server";
 import { allowedRolesFor } from "@/model/authz";
+import {
+  corsHeadersFor,
+  isStateChanging,
+  judgeOrigin,
+  preflightHeadersFor,
+} from "@/model/cross-origin";
 import { toSafeReturnUrl } from "@/model/return-url";
 import { hasAllowedRole } from "@/model/session";
 
 /** 認証をやり直させる先。 */
 const LOGIN_PATH = "/login";
+
+/**
+ * 別 origin へ開く口の接頭辞。
+ *
+ * @remarks
+ * CORS で開くのは BFF だけです（[0071](../docs/adr/0071-bff-api-integration.md)）。画面の HTML まで
+ * 許した origin から credentials 付きで読めるようにする理由は無く、開く面は契約の面に揃えます。
+ */
+const BFF_PREFIX = "/api/";
 
 /**
  * 資格情報を載せた要求への応答に付ける `Cache-Control`。
@@ -50,14 +66,55 @@ const FALLBACK_PATH = "/";
  * 未認証と役割不足を分けます。前者はやり直せるのでログインへ戻し、後者はやり直しても同じ結果に
  * なるため戻しません。
  *
- * 認可とは別に、資格情報を載せた要求への応答へ `Cache-Control` を付けます（{@link PRIVATE_CACHE_CONTROL}）。
- * 要求の内容に依るヘッダはここにしか置けず、要求に依らないヘッダは `next.config.ts` が持ちます。
+ * 認可とは別に、要求の内容に依るヘッダをここで扱います —— 資格情報を載せた要求への
+ * `Cache-Control`（{@link PRIVATE_CACHE_CONTROL}）と、宣言で許した別 origin への CORS ヘッダ
+ * （`HTTP_ALLOWED_ORIGINS`）です。要求に依らないヘッダは `next.config.ts` が持ちます。
+ * origin の判定は `model/cross-origin` が持ち、ここは判定の結果を応答へ写すだけです。
  */
 export async function proxy(request: NextRequest): Promise<Response> {
-  const response = await authorize(request);
+  const verdict = judgeOrigin(
+    {
+      origin: request.headers.get("origin"),
+      host: request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+    },
+    getHttpConfig().allowedOrigins,
+  );
+
+  // 許していない origin からの書き込みは、handler へ届く前に止める（`docs/rules.md` #47）。
+  // 読むだけの要求は止めない —— CORS ヘッダを付けないので、ブラウザ側で応答を読めない。
+  if (verdict.kind === "untrusted" && isStateChanging(request.method)) {
+    return new NextResponse(null, { status: 403 });
+  }
+
+  const response =
+    verdict.kind === "allowed" && new URL(request.url).pathname.startsWith(BFF_PREFIX)
+      ? await openCors(request, verdict.origin)
+      : await authorize(request);
 
   if (request.cookies.has(SESSION_COOKIE_NAME)) {
     response.headers.set("Cache-Control", PRIVATE_CACHE_CONTROL);
+  }
+
+  return response;
+}
+
+/** 許可した別 origin からの BFF への要求。preflight はここで答え、それ以外は CORS ヘッダを添える。 */
+async function openCors(request: NextRequest, origin: string): Promise<NextResponse> {
+  if (request.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 204,
+      headers: preflightHeadersFor(
+        origin,
+        request.headers.get("access-control-request-method"),
+        request.headers.get("access-control-request-headers"),
+      ),
+    });
+  }
+
+  const response = await authorize(request);
+
+  for (const [key, value] of Object.entries(corsHeadersFor(origin))) {
+    response.headers.set(key, value);
   }
 
   return response;

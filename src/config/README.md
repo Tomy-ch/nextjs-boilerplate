@@ -28,7 +28,7 @@ coverage-exclusions:
 | `clock/clock.schema.ts` / `clock/clock.server.ts` | 画面が読む「いま」の schema / Config | server | `app` と起動・ビルド境界 |
 | `media/media.schema.ts` / `media/media.server.ts` | media origin の schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `observability/observability.schema.ts` / `observability/observability.server.ts` | service 名・OTLP endpoint・signal 別 exporter の schema / Config | server | 起動・ビルド境界 |
-| `http/http.schema.ts` / `http/http.server.ts` / `http/http.client.ts` | 要求 URL とアップロードに許すバイト数の上限の schema / Config | server + client | `adapters/server` / `adapters/client` と起動・ビルド境界 |
+| `http/http.schema.ts` / `http/http.server.ts` / `http/http.client.ts` | 要求 URL とアップロードに許すバイト数の上限、BFF を別 origin から呼ばせる相手の schema / Config | server + client | `adapters/server` / `adapters/client` / `src/proxy.ts` と起動・ビルド境界 |
 | `security-headers/security-headers.ts` | 全経路に付ける配信ヘッダ（CSP と同伴ヘッダ）の組み立て | build 境界 | `next.config.ts` |
 | `bootstrap.server.ts` | 起動時の ENV 読込と全 config 検証 | server | `src/instrumentation.ts` |
 
