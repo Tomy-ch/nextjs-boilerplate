@@ -23,6 +23,7 @@ const validEnvironment = {
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
   NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: "4194304",
+  HTTP_ALLOWED_ORIGINS: "",
 } satisfies Record<keyof Environment, string>;
 
 function stubValidEnvironment(): void {
@@ -47,6 +48,7 @@ function stubValidEnvironment(): void {
     "NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES",
     validEnvironment.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES,
   );
+  vi.stubEnv("HTTP_ALLOWED_ORIGINS", validEnvironment.HTTP_ALLOWED_ORIGINS);
 }
 
 beforeEach(() => {
@@ -72,6 +74,7 @@ describe("getEnvironment", () => {
       ...validEnvironment,
       NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
       NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
+      HTTP_ALLOWED_ORIGINS: [],
     });
     expect(() => validateEnvironment()).not.toThrow();
   });

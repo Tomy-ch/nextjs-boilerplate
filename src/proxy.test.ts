@@ -97,6 +97,62 @@ describe("proxy", () => {
     expect(response.headers.get("cache-control")).toBeNull();
   });
 
+  it("宣言で許した origin からの BFF への要求に CORS ヘッダを付ける", async () => {
+    allowedOrigins.current = [PARTNER_ORIGIN];
+
+    const response = await proxy(crossOrigin("/api/products", PARTNER_ORIGIN));
+
+    expect(response.headers.get("access-control-allow-origin")).toBe(PARTNER_ORIGIN);
+    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(response.headers.get("vary")).toBe("Origin");
+  });
+
+  it("宣言で許した origin からの preflight には 204 で求められたメソッドとヘッダを返す", async () => {
+    allowedOrigins.current = [PARTNER_ORIGIN];
+
+    const response = await proxy(
+      crossOrigin("/api/purchases", PARTNER_ORIGIN, {
+        method: "OPTIONS",
+        headers: {
+          "access-control-request-method": "POST",
+          "access-control-request-headers": "content-type",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-methods")).toBe("POST");
+    expect(response.headers.get("access-control-allow-headers")).toBe("content-type");
+    expect(response.headers.get("access-control-max-age")).toBe("600");
+  });
+
+  it("自分自身からの書き込みは通す", async () => {
+    const response = await proxy(
+      crossOrigin("/api/telemetry", "http://localhost:3000", { method: "POST" }),
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("リバースプロキシの後ろでは X-Forwarded-Host を自分の host として読む", async () => {
+    const response = await proxy(
+      crossOrigin("/api/telemetry", "https://app.example.test", {
+        method: "POST",
+        headers: { "x-forwarded-host": "app.example.test" },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("Origin を持たない書き込みは通す", async () => {
+    const response = await proxy(
+      new NextRequest(new URL("/api/telemetry", "http://localhost:3000"), { method: "POST" }),
+    );
+
+    expect(response.status).toBe(200);
+  });
+
   // ----- 異常系 -----
   it("未認証で保護されたパスへ来たらログインへ送る", async () => {
     const response = await proxy(request("/account"));
@@ -158,67 +214,7 @@ describe("proxy", () => {
     expect(response.headers.get("location")).toContain("/login");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
-});
 
-describe("proxy（別 origin からの要求）", () => {
-  // ----- 正常系 -----
-  it("宣言で許した origin からの BFF への要求に CORS ヘッダを付ける", async () => {
-    allowedOrigins.current = [PARTNER_ORIGIN];
-
-    const response = await proxy(crossOrigin("/api/products", PARTNER_ORIGIN));
-
-    expect(response.headers.get("access-control-allow-origin")).toBe(PARTNER_ORIGIN);
-    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
-    expect(response.headers.get("vary")).toBe("Origin");
-  });
-
-  it("宣言で許した origin からの preflight には 204 で求められたメソッドとヘッダを返す", async () => {
-    allowedOrigins.current = [PARTNER_ORIGIN];
-
-    const response = await proxy(
-      crossOrigin("/api/purchases", PARTNER_ORIGIN, {
-        method: "OPTIONS",
-        headers: {
-          "access-control-request-method": "POST",
-          "access-control-request-headers": "content-type",
-        },
-      }),
-    );
-
-    expect(response.status).toBe(204);
-    expect(response.headers.get("access-control-allow-methods")).toBe("POST");
-    expect(response.headers.get("access-control-allow-headers")).toBe("content-type");
-    expect(response.headers.get("access-control-max-age")).toBe("600");
-  });
-
-  it("自分自身からの書き込みは通す", async () => {
-    const response = await proxy(
-      crossOrigin("/api/telemetry", "http://localhost:3000", { method: "POST" }),
-    );
-
-    expect(response.status).toBe(200);
-  });
-
-  it("リバースプロキシの後ろでは X-Forwarded-Host を自分の host として読む", async () => {
-    const response = await proxy(
-      crossOrigin("/api/telemetry", "https://app.example.test", {
-        method: "POST",
-        headers: { "x-forwarded-host": "app.example.test" },
-      }),
-    );
-
-    expect(response.status).toBe(200);
-  });
-
-  it("Origin を持たない書き込みは通す", async () => {
-    const response = await proxy(
-      new NextRequest(new URL("/api/telemetry", "http://localhost:3000"), { method: "POST" }),
-    );
-
-    expect(response.status).toBe(200);
-  });
-
-  // ----- 異常系 -----
   it("宣言に無い origin からの書き込みは 403 で止める", async () => {
     const response = await proxy(
       crossOrigin("/api/telemetry", "https://evil.example.test", { method: "POST" }),
