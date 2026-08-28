@@ -27,7 +27,10 @@ describe("findUnspelledScopes", () => {
   it("public の綴りも読む", () => {
     expect(
       findUnspelledScopes([
-        { path: "src/adapters/server/api/prefectures.ts", content: 'createHttpClient({ scope: "public" });' },
+        {
+          path: "src/adapters/server/api/prefectures.ts",
+          content: 'createHttpClient({ scope: "public" });',
+        },
       ]),
     ).toEqual([]);
   });
@@ -38,7 +41,10 @@ describe("findUnspelledScopes", () => {
   });
 
   it("分類を宣言していない口を挙げる", () => {
-    const missing = { path: "src/adapters/server/api/new.ts", content: "createHttpClient({ baseUrl });" };
+    const missing = {
+      path: "src/adapters/server/api/new.ts",
+      content: "createHttpClient({ baseUrl });",
+    };
 
     expect(findUnspelledScopes([missing])).toEqual([missing]);
   });

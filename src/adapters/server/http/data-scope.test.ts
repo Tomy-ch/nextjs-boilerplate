@@ -32,7 +32,9 @@ describe("assertSpecWithinScope", () => {
   // ----- 異常系 -----
   it("主体に紐づく取得のキャッシュ指定を invalid-argument で落とす", () => {
     expect(
-      kindOf(() => assertSpecWithinScope("user-scoped", { path: "/v1/users/me", cache: "force-cache" })),
+      kindOf(() =>
+        assertSpecWithinScope("user-scoped", { path: "/v1/users/me", cache: "force-cache" }),
+      ),
     ).toBe(ErrorKind.INVALID_ARGUMENT);
   });
 

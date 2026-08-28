@@ -44,7 +44,9 @@ describe("noCapturedBearerToken", () => {
   it("受け取る側の分解代入を通す", () => {
     ruleTester.run("no-captured-bearer-token", noCapturedBearerToken, {
       valid: [
-        { code: "function create({ getBearerToken, bearerToken }) { return [getBearerToken, bearerToken]; }" },
+        {
+          code: "function create({ getBearerToken, bearerToken }) { return [getBearerToken, bearerToken]; }",
+        },
       ],
       invalid: [],
     });

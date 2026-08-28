@@ -49,7 +49,9 @@ describe("取得の口の分類の綴り", () => {
     const modules = collect(SOURCE_ROOT, []);
 
     // 走査が空振りすると、違反ゼロを報告したままゲートが黙る。違反より先に「見た件数」を主張する。
-    expect(modules.filter(({ content }) => content.includes("createHttpClient(")).length).toBeGreaterThan(0);
+    expect(
+      modules.filter(({ content }) => content.includes("createHttpClient(")).length,
+    ).toBeGreaterThan(0);
     expect(formatUnspelledScopes(findUnspelledScopes(modules))).toBe("");
   });
 });

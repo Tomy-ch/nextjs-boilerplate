@@ -79,9 +79,7 @@ function boundAs(
   name: string,
   definition: "ImportBinding" | "Parameter",
 ): boolean {
-  return (
-    findVariable(scope, name)?.defs.some((each) => each.type === definition) === true
-  );
+  return findVariable(scope, name)?.defs.some((each) => each.type === definition) === true;
 }
 
 const noCapturedBearerToken: Rule.RuleModule = {
