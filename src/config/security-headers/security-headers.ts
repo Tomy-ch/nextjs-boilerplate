@@ -21,21 +21,12 @@ export type SecurityHeaderInputs = {
  *
  * @remarks
  * 同一 origin へは URL 全体、別 origin へは origin だけを送り、降格（https → http）では何も
- * 送りません。
- *
- * **認証の往復がクエリに秘密を載せます。** ログアウトは `id_token_hint` を、認可の戻りは `code`
- * を URL に持ちます（[0079](../../../docs/adr/0079-auth-frontend-seam.md)）。既定の挙動のままだと、
- * その画面から外部のリンクを踏んだときにパスとクエリごと相手へ渡ります。
+ * 送りません（[0111](../../../docs/adr/0111-csp-security-headers.md) §2 /
+ * [0079](../../../docs/adr/0079-auth-frontend-seam.md)）。
  */
 const REFERRER_POLICY = "strict-origin-when-cross-origin";
 
-/**
- * 使わない強力な機能を明示して閉じる。
- *
- * @remarks
- * 使う fork が開けます。`payment` を閉じているのは、決済 UI をフロントに置かない前提
- * （[0076](../../../docs/adr/0076-payment-ui-seam.md)）に合わせるためです。
- */
+/** 使わない強力な機能を明示して閉じる。使う fork が開ける。`payment` を閉じる理由は [0076](../../../docs/adr/0076-payment-ui-seam.md)。 */
 const PERMISSIONS_POLICY = [
   "accelerometer=()",
   "camera=()",
@@ -105,9 +96,9 @@ function buildContentSecurityPolicy({
  * （[0111](../../../docs/adr/0111-csp-security-headers.md) §5）。要求に依るヘッダ（資格情報を
  * 載せた要求への `Cache-Control`）は `src/proxy.ts` が持ちます。
  *
- * `Cross-Origin-Embedder-Policy: require-corp` は、別 origin の副資源を `Cross-Origin-Resource-Policy`
- * の無いまま読み込めなくします。画像は `next/image` の最適化経路（同一 origin）を通るため
- * 影響を受けません。別 origin の iframe や script を差す fork は、この値から降りる判断を伴います。
+ * `Cross-Origin-Embedder-Policy: require-corp` は画像が `next/image`（同一 origin）経由のため影響を
+ * 受けません（[0111](../../../docs/adr/0111-csp-security-headers.md) §2）。別 origin の iframe や script を
+ * 差す fork は、この値から降りる判断を伴います。
  *
  * @param inputs - 検証済みの ENV と配信の条件
  * @returns `headers()` の `headers` にそのまま渡せる一覧

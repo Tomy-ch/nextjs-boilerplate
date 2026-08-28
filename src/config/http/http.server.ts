@@ -31,9 +31,8 @@ class HttpConfig {
    * BFF（`/api/*`）を別 origin から呼ばせる相手。
    *
    * @remarks
-   * 空なら同一 origin だけです。ここに挙げた origin は `src/proxy.ts` が CORS で開き、同時に
-   * 状態を変える要求の送信元としても信頼します（`docs/rules.md` #47）。宣言を 1 つにするのは、
-   * 「読ませる相手」と「書かせる相手」がずれないようにするためです。
+   * 空なら同一 origin だけです。`src/proxy.ts` が CORS と origin 検証の両方でこの値を読みます
+   * （`docs/rules.md` #47 / [0111](../../../docs/adr/0111-csp-security-headers.md) §5）。
    */
   get allowedOrigins(): readonly string[] {
     return this.#allowedOrigins;

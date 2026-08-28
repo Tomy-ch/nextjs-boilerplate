@@ -1,8 +1,5 @@
-// 全ての spec が使う test。ブラウザが報告する異常の見張りと、ログイン済みの状態を作る手立てを
-// 積んである。
-//
-// 見張りを spec ごとに書かせない。書き忘れた spec だけが「異常があっても緑」になり、その状態は
-// 見た目にも結果にも現れない。
+// 全ての spec が使う test。ブラウザが報告する異常の見張りと、ログイン済みの状態を作る手立てを持つ
+// （見張りを spec ごとに書かせない理由は README「何を異常と数えるか」）。
 import { test as base, expect } from "@playwright/test";
 
 import type { SessionRole } from "@/model/session";
@@ -18,17 +15,7 @@ import {
 } from "./browser-errors";
 import { TEST_SESSION_ISSUED_STATUS, TEST_SESSION_PATH } from "./dev-session.js";
 
-/**
- * 画像の代わりに返す 1×1 の PNG。
- *
- * @remarks
- * mock で動かす以上、配信元（`MEDIA_ORIGIN`）は在りません。素通しにすると `next/image` の
- * 最適化が取得に失敗して 500 を返し、縮小表示のように最適化を通さない経路は取得を拒まれます。
- * どちらも見張りが鳴り、画面ではなく配信元の不在で落ちます。
- *
- * **画像の取得経路は E2E の射程外です。** ここで確かめられるのは配信元が在るときの挙動では
- * ないので、代わりの絵を返して、比較の対象を配信元によらない形に固定します。
- */
+/** 画像の代わりに返す 1×1 の PNG。配信元を差し替える理由は README「画像は差し替える」。 */
 const PLACEHOLDER_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
@@ -83,7 +70,6 @@ export const test = base.extend<Fixtures>({
       }
     });
 
-    // CSP の違反はブラウザ自身が console へ書くため、上の console の見張りには掛からない。
     // document のイベントで受ける。購読は文書ごとに張り直す必要があり、Playwright の
     // 初期化 script がそれを持つ。
     await page.exposeBinding(CSP_VIOLATION_BINDING, (_source, violation: CspViolation) => {

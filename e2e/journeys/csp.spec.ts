@@ -1,16 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * CSP が配信され、ブラウザが enforce していること（[0111](../../docs/adr/0111-csp-security-headers.md)）。
- *
- * @remarks
- * **見張りの外で書く唯一の spec です。** 宣言に無い配信元の script を自分で差し、違反として
- * 報告されることを確かめます。見張り（[`lib/test.ts`](../lib/test.ts)）の内側で書くと、確かめた
- * 違反そのもので落ちます。
- *
- * 見ているのは違反の検知であって、ヘッダの存在ではありません。存在は DAST が見ます
- * （[0110](../../docs/adr/0110-security-operations.md) §3.5）。`Report-Only` へ緩めても、
- * ヘッダを読むだけの検査は通ります —— この spec は通りません。
+ * CSP が配信され、ブラウザが enforce していること（[0111](../../docs/adr/0111-csp-security-headers.md) §6）。
+ * 見張りの外で書く理由は `e2e/README.md`「何を異常と数えるか」。
  */
 
 /** 宣言に無い配信元。解決しない名前を使い、CSP より後ろへ行かないことを確かにする。 */

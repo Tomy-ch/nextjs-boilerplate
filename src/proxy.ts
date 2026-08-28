@@ -57,25 +57,12 @@ const OPEN_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD"]);
  */
 const STOPPED_STATUS = 503;
 
-/**
- * 別 origin へ開く口の接頭辞。
- *
- * @remarks
- * CORS で開くのは BFF だけです（[0071](../docs/adr/0071-bff-api-integration.md)）。画面の HTML まで
- * 許した origin から credentials 付きで読めるようにする理由は無く、開く面は契約の面に揃えます。
- */
+/** 別 origin への CORS を開く経路の接頭辞。開くのは BFF だけ（[0111](../docs/adr/0111-csp-security-headers.md) §5）。 */
 const BFF_PREFIX = "/api/";
 
 /**
- * 資格情報を載せた要求への応答に付ける `Cache-Control`。
- *
- * @remarks
- * 主体に紐づく応答が CDN やプロキシの共有キャッシュへ載り、別の主体へ配られる事故を、応答
- * ヘッダで止めます（[0112](../docs/adr/0112-data-classification-cache-boundary.md) 段 5）。
- * 前の段はどれもアプリの内側しか見ておらず、ここは応答ヘッダでしか止まりません。
- *
- * **画面や handler ごとに書かせません。** session cookie を載せた要求は、その応答が何であれ
- * 主体に紐づきます。要求の側で判定するので、宣言を持たない Route Handler にも届きます。
+ * 資格情報を載せた要求への応答に付ける `Cache-Control`。画面や handler ごとには書かない
+ * （`docs/rules.md` #87 / [0112](../docs/adr/0112-data-classification-cache-boundary.md) 段 5）。
  */
 const PRIVATE_CACHE_CONTROL = "private, no-store";
 

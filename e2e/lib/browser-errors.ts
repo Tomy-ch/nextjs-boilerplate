@@ -1,8 +1,8 @@
 // ブラウザが報告する異常の判定。何を異常と数えるかだけを持ち、購読そのものは
 // [test.ts](test.ts) が張る。
 //
-// hydration の不一致は build も型検査も通り、**実機で描いたときにしか現れない**。React は
-// これを console の error として報告するため、console を見ていない限り検出手段が無い。
+// React は hydration の不一致を console の error として報告するため、console を見ていない限り
+// 検出手段が無い。
 
 /** ブラウザが報告した異常 1 件。 */
 export type BrowserProblem = {
@@ -53,17 +53,7 @@ const CANCELLED: ReadonlySet<string> = new Set([
   "Load request cancelled",
 ]);
 
-/**
- * 応答を異常として数える下限のステータス。
- *
- * @remarks
- * 4xx を数えないのは、それがアプリの**設計された結果**だからです。存在しない資源は 404 を返し、
- * 未認証は 401 を返します。どれも「そう返ること」を spec が名指しで確かめる対象であり、
- * 横断の見張りが一律に落とすと、確かめたい経路そのものを通せなくなります。
- *
- * 5xx と transport の失敗は設計された結果になり得ません。どの画面でも等しく異常なので、
- * 個別の spec ではなく見張りの側が持ちます。
- */
+/** 応答を異常として数える下限のステータス。4xx を含めない理由は README「何を異常と数えるか」。 */
 const SERVER_ERROR_STATUS = 500;
 
 /** 打ち切りではない通信失敗か。 */
@@ -82,9 +72,8 @@ export function isTransportFailure(errorText: string | undefined): boolean {
  * resource…"）。その判断は {@link isServerError} と {@link isTransportFailure} が既に持っているので、
  * ここでも数えると同じ出来事を 2 度数えるうえ、そこで外したはずの 4xx が裏口から戻ります。
  *
- * 見分けるのに文言を使いません。文言は描画エンジンごとに違い、増える一方の除外表になります。
- * 代わりに**引数を持つか**で分けます。`console.error(...)` は渡された値を引数として持ち、ブラウザ
- * 自身が書いた行は持ちません。React が hydration の不一致を報せるのは前者です。
+ * 文言ではなく**引数を持つか**で分けます（`console.error(...)` は引数を持ち、ブラウザ自身が書いた
+ * 行は持ちません）。
  *
  * @param type - console のメソッド名（Playwright の `ConsoleMessage.type()`）
  * @param argumentCount - console へ渡された引数の数
@@ -102,8 +91,6 @@ export function isServerError(status: number): boolean {
  * CSP 違反 1 件を、失敗メッセージへ載せる 1 行にする。
  *
  * @remarks
- * CSP の違反は、上の console の見張りには掛かりません。ブラウザ自身が書く行なので引数を持たず、
- * {@link isReportableConsoleError} が外します。document のイベントで受け、経路を分けて数えます。
  * 出所が採れないときは場所を省きます。空の括弧を出すと、採れなかったのか空だったのかが読めません。
  */
 export function formatCspViolation(violation: CspViolation): string {

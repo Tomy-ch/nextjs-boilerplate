@@ -91,9 +91,10 @@ export function isStateChanging(method: string): boolean {
  * 許可した別 origin への応答に付ける CORS ヘッダ。
  *
  * @remarks
- * `Access-Control-Allow-Credentials` を付けるのは、BFF の口が session cookie で主体を判定する
- * ためです。credentials を許す応答では `*` が使えないので、origin をそのまま返し、キャッシュが
- * 別の origin へ同じ応答を配らないよう `Vary: Origin` を添えます。
+ * `Access-Control-Allow-Credentials: true` を返すため、`Access-Control-Allow-Origin` に `*` は
+ * 使えません。origin をそのまま返し、キャッシュが別の origin へ同じ応答を配らないよう
+ * `Vary: Origin` を添えます。credentials を許す理由は
+ * [0111](../../docs/adr/0111-csp-security-headers.md) §5。
  *
  * @param origin - 許可した別 origin（{@link judgeOrigin} が返したもの）
  */
