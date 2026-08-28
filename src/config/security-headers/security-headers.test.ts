@@ -122,5 +122,4 @@ describe("buildSecurityHeaders", () => {
     expect(policy).not.toMatch(/\s{2,}/);
     expect(policy.endsWith(";")).toBe(false);
   });
-
 });

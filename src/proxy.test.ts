@@ -345,5 +345,4 @@ describe("proxy", () => {
 
     expect(response.status).toBe(403);
   });
-
 });
