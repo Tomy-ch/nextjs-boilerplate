@@ -11,7 +11,7 @@ import {
   GetProductCategoriesResponse,
   GetProductStatusesResponse,
 } from "../../gen/api/endpoints.zod";
-import { createHttpClient, type HttpClient } from "../http/request";
+import { createHttpClient, type PublicHttpClient } from "../http/request";
 
 type WireCategories = z.infer<typeof GetProductCategoriesResponse>;
 type WireStatuses = z.infer<typeof GetProductStatusesResponse>;
@@ -25,10 +25,11 @@ type WireStatuses = z.infer<typeof GetProductStatusesResponse>;
  */
 export const PRODUCT_MASTERS_TAG = "product-masters";
 
-let client: HttpClient | undefined;
+let client: PublicHttpClient | undefined;
 
-function getClient(): HttpClient {
+function getClient(): PublicHttpClient {
   client ??= createHttpClient({
+    scope: "public",
     baseUrl: getApiConfig().baseUrl,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
   });

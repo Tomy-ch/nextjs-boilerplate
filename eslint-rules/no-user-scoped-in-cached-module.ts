@@ -1,0 +1,115 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+
+import type { Rule } from "eslint";
+
+/**
+ * サーバに保存されるキャッシュを持つモジュールから、user-scoped な取得の口を import させないルール。
+ *
+ * 分類は取得の口が持ち、その口は `cache` / `tags` を型として受け取らない
+ * ([0112](../docs/adr/0112-data-classification-cache-boundary.md) 決定 1)。しかし `use cache` は
+ * **口の外側からモジュールごと**キャッシュへ入れるため、口の型では止まらない。同じ値が User A の
+ * 分のまま User B へ配られる経路がここで開く。
+ *
+ * `use cache: private` は対象外にする。サーバへ保存されず、ブラウザのメモリにしか載らないため、
+ * user-scoped な値をキャッシュしてよい唯一の手段として同 ADR 決定 3 が名指ししている。
+ *
+ * **判定は直接の import だけを見る。** 間接参照の深い経路は取りこぼすが、そこは framework の防御
+ * (cached scope からの `cookies()` 読み出し) と取得時の関門が覆う (同 決定 4)。
+ *
+ * 分類の宣言そのものを読む。写した一覧を持つと、口の宣言が動いたときに黙って古いままになる。
+ * その読み方の帰結として、口を作る kernel（`adapters/server/http/request.ts`）自身も当たる。外さない
+ * —— `use cache` の下で client をその場で組む形も、作る先が user-scoped なら同じ事故を作る。
+ */
+const CACHE_DIRECTIVE_PATTERN = /^use cache(?::\s*([\w-]+))?$/;
+
+/** サーバへ保存しないキャッシュの profile。 */
+const CLIENT_ONLY_CACHE_PROFILE = "private";
+
+/** 取得の口が user-scoped を名乗る綴り。 */
+const USER_SCOPED_DECLARATION = /scope:\s*"user-scoped"/;
+
+/** import 先の候補になる拡張子。 */
+const MODULE_SUFFIXES: readonly string[] = [".ts", ".tsx", "/index.ts", "/index.tsx"];
+
+/** サーバへ保存されるキャッシュの宣言か。 */
+function isServerCacheDirective(value: string): boolean {
+  const match = CACHE_DIRECTIVE_PATTERN.exec(value);
+
+  return match !== null && match[1] !== CLIENT_ONLY_CACHE_PROFILE;
+}
+
+/**
+ * import の綴りを実ファイルへ解決する。解決できなければ `undefined`。
+ *
+ * 見るのはこのリポジトリのソースだけである。依存パッケージは取得の口を持たないうえ、解決に
+ * `node_modules` の探索が要る。
+ */
+function resolveModule(specifier: string, filename: string, cwd: string): string | undefined {
+  const base = specifier.startsWith("@/")
+    ? join(cwd, "src", specifier.slice("@/".length))
+    : specifier.startsWith(".")
+      ? resolve(dirname(filename), specifier)
+      : undefined;
+
+  if (base === undefined) {
+    return undefined;
+  }
+
+  return MODULE_SUFFIXES.map((suffix) => `${base}${suffix}`).find((candidate) =>
+    existsSync(candidate),
+  );
+}
+
+/** そのモジュールが user-scoped な取得の口を宣言しているか。 */
+function declaresUserScopedClient(path: string): boolean {
+  return USER_SCOPED_DECLARATION.test(readFileSync(path, "utf8"));
+}
+
+const noUserScopedInCachedModule: Rule.RuleModule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "サーバに保存されるキャッシュから user-scoped な取得の口を引かない",
+    },
+    schema: [],
+    messages: {
+      noUserScopedInCachedModule:
+        "`{{specifier}}` は主体に紐づく取得の口です。`use cache` の下から引くと、ある主体の値が別の主体へ配られます。取得を穴（Suspense の内側）へ落とすか、`use cache: private` を選んでください。",
+    },
+  },
+  create(context) {
+    const imports: { node: Rule.Node; specifier: string }[] = [];
+    let cached = false;
+
+    return {
+      Literal(node) {
+        if (
+          node.parent.type === "ExpressionStatement" &&
+          typeof node.value === "string" &&
+          isServerCacheDirective(node.value)
+        ) {
+          cached = true;
+        }
+      },
+      ImportDeclaration(node) {
+        imports.push({ node, specifier: String(node.source.value) });
+      },
+      "Program:exit"() {
+        if (!cached) {
+          return;
+        }
+
+        for (const { node, specifier } of imports) {
+          const path = resolveModule(specifier, context.filename, context.cwd);
+
+          if (path !== undefined && declaresUserScopedClient(path)) {
+            context.report({ node, messageId: "noUserScopedInCachedModule", data: { specifier } });
+          }
+        }
+      },
+    };
+  },
+};
+
+export default noUserScopedInCachedModule;

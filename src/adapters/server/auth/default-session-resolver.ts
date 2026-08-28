@@ -105,6 +105,7 @@ export type DefaultSessionResolverDeps = {
 export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): SessionResolver {
   const now = deps.now ?? Date.now;
   const client = createHttpClient({
+    scope: "user-scoped",
     baseUrl: deps.issuer,
     maxUrlBytes: deps.maxUrlBytes,
     fetchImpl: deps.fetchImpl,

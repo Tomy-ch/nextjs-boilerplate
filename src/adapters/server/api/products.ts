@@ -36,7 +36,7 @@ import type {
   ProductsPostRequest,
 } from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
-import { createHttpClient, type HttpClient } from "../http/request";
+import { createHttpClient, type UserScopedHttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
 
 type WireProductQuery = z.infer<typeof GetProductsQueryParams>;
@@ -246,7 +246,7 @@ function toFilterParams(
   };
 }
 
-let client: HttpClient | undefined;
+let client: UserScopedHttpClient | undefined;
 
 /**
  * 商品の口を叩く client。
@@ -261,8 +261,9 @@ let client: HttpClient | undefined;
  * ほぼ起きないのに、入れ物だけが主体の数だけ増えます。印（`next.tags`）を付けても、入っていない
  * ものは捨てられません（`docs/rules.md` #5b）。
  */
-function getClient(): HttpClient {
+function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
+    scope: "user-scoped",
     allowAnonymous: true,
     baseUrl: getApiConfig().baseUrl,
     getBearerToken: getAccessToken,

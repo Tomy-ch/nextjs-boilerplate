@@ -57,8 +57,23 @@ type RequestPayload =
       multipart?: FormData;
     };
 
-/** 呼び出し 1 件の指定。 */
-type RequestSpec<T> = RequestPayload & {
+/**
+ * 取得の口が扱う値の分類。
+ *
+ * @remarks
+ * 分類は値ではなく**口**に持たせます（[0112](../../../../docs/adr/0112-data-classification-cache-boundary.md)
+ * 決定 1）。値を包む形にすると、包みを解いた時点で分類が消えます。解くのは PII が正当に出ていく
+ * 描画の地点であり、そこは保証が要る場所ではありません。
+ *
+ * **資格情報を載せうる口は、載せなかった回も含めて `user-scoped` です**（同 決定 3）。分類は口の
+ * 性質であって要求ごとの結果ではないため、静的に決まります。
+ *
+ * 値を綴りのまま書かせるのは、この宣言を検査が読むためです（`project-rules/no-user-scoped-in-cached-module`）。
+ */
+type DataScope = "public" | "user-scoped";
+
+/** 呼び出し 1 件の指定のうち、分類によらず共通のもの。 */
+type BaseRequestSpec<T> = RequestPayload & {
   /**
    * 呼び出し先。base URL からの相対パス、または絶対 URL。
    *
@@ -99,24 +114,51 @@ type RequestSpec<T> = RequestPayload & {
    * 呼び出し側が保証したときだけ（Idempotency-Key の付与など）。
    */
   idempotent?: boolean;
+};
+
+/**
+ * 主体を名乗らずに取れるものの指定。
+ *
+ * @remarks
+ * 共有キャッシュへ入れられるのはこちらだけです。
+ */
+type PublicRequestSpec<T> = BaseRequestSpec<T> & {
   /** Next.js のキャッシュ指定。指定しなければキャッシュしない。 */
   cache?: RequestCache;
   /** キャッシュの再検証に使うタグ。 */
   tags?: readonly string[];
 };
 
-/** 接続先ごとの実行環境。 */
-export type HttpClient = {
-  /**
-   * 要求を 1 件送り、契約の形へ通した応答を返す。
-   *
-   * @throws 失敗はすべて分類済みのエラーになる。生の status は表に出ません
-   *   （[0080](../../../../docs/adr/0080-error-handling.md)）。
-   */
-  request<T>(spec: RequestSpec<T>): Promise<T>;
+/**
+ * 主体に紐づくものの指定。
+ *
+ * @remarks
+ * **キャッシュの指定を型として持ちません。**「PII を共有キャッシュへ入れるな」を注意書きでは
+ * なく引数の不在にするのが、この分類の目的です（0112 決定 1）。どうしてもキャッシュしたい値の
+ * 手段は `use cache: private` に限り、それは明示的な例外能力であって一般許可ではありません。
+ */
+type UserScopedRequestSpec<T> = BaseRequestSpec<T> & { cache?: never; tags?: never };
+
+type RequestSpec<T> = PublicRequestSpec<T> | UserScopedRequestSpec<T>;
+
+/**
+ * 主体を名乗らずに取れるものを運ぶ client。
+ *
+ * @remarks
+ * 要求を 1 件送り、契約の形へ通した応答を返します。失敗はすべて分類済みのエラーになり、生の
+ * status は表に出ません（[0080](../../../../docs/adr/0080-error-handling.md)）。
+ */
+export type PublicHttpClient = {
+  request<T>(spec: PublicRequestSpec<T>): Promise<T>;
 };
 
-type ClientDeps = {
+/** {@link PublicHttpClient} の user-scoped 版。キャッシュの指定を受け取らない。 */
+export type UserScopedHttpClient = {
+  request<T>(spec: UserScopedRequestSpec<T>): Promise<T>;
+};
+
+/** 分類によらず要る、接続先ごとの実行環境。 */
+type BaseClientDeps = {
   baseUrl: string;
   /**
    * 1 つの要求 URL に許すバイト数の上限。既定を持たない。
@@ -125,32 +167,82 @@ type ClientDeps = {
    * 何を数え、閾値をどこが持つかは [adapters](../../README.md) の「URL の予算」節が持ちます。
    */
   maxUrlBytes: number;
-  /**
-   * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
-   *
-   * @remarks
-   * ヘッダの組み立てをこの境界が持つのは、呼び出し側が個別に `Authorization` を作らないよう
-   * にするためです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。接続先ごとに
-   * 認証が要るかどうかが決まるので、指定はクライアントの生成時に 1 度だけ行います。
-   *
-   * @returns 認証できないときは null
-   */
-  getBearerToken?: () => Promise<string | null>;
-  /**
-   * 認証を伴わない呼び出しを認める接続先の宣言。
-   *
-   * @remarks
-   * 契約が資格情報の無い呼び出しを受け付ける場合だけ立てます。立てても、取得できた資格情報は
-   * 常に載せます。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として
-   * 扱われるためです。
-   */
-  allowAnonymous?: boolean;
   profile?: ResilienceProfile;
   fetchImpl?: typeof fetch;
   now?: () => number;
   random?: () => number;
   sleep?: (ms: number) => Promise<void>;
 };
+
+/**
+ * 資格情報の解決方法。どちらか一方だけを指定できる。
+ *
+ * @remarks
+ * 型で排他にしているのは、両方を渡した実装が「どちらの資格情報で出ていくか」を読む側に推測
+ * させるためです。
+ */
+type UserScopedCredential =
+  | {
+      /**
+       * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
+       *
+       * @remarks
+       * ヘッダの組み立てをこの境界が持つのは、呼び出し側が個別に `Authorization` を作らないよう
+       * にするためです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。接続先ごとに
+       * 認証が要るかどうかが決まるので、指定はクライアントの生成時に 1 度だけ行います。
+       *
+       * **要求のたびに `cookies()` から解決する口を渡します**（0112 決定 5）。解決済みの値を掴む
+       * と、cached scope の中で `cookies()` が読まれなくなり、framework 側の防御
+       * （`next-request-in-use-cache`）が何も言わずに外れます。
+       *
+       * @returns 認証できないときは null
+       */
+      getBearerToken?: () => Promise<string | null>;
+      bearerToken?: never;
+    }
+  | {
+      getBearerToken?: never;
+      /**
+       * 解決済みの Bearer。
+       *
+       * @remarks
+       * **session を確立する途中の 1 往復だけの口です。** その時点では cookie がまだ無く、
+       * 通常の取得口（cookie から Bearer を組む）は存在しません。綴りを分けてあるのは、
+       * 上の防御が外れる箇所を数えられるようにするためです（0112 決定 5 の例外）。
+       */
+      bearerToken: string;
+    };
+
+/**
+ * 主体を名乗らずに取れるものだけを運ぶ口。
+ *
+ * @remarks
+ * **資格情報の口を持ちません。** 認証が要る接続先は {@link UserScopedClientDeps} を選びます。
+ */
+type PublicClientDeps = BaseClientDeps & {
+  scope: "public";
+  getBearerToken?: never;
+  bearerToken?: never;
+  allowAnonymous?: never;
+};
+
+/** 主体に紐づくものを運ぶ口。 */
+type UserScopedClientDeps = BaseClientDeps &
+  UserScopedCredential & {
+    scope: "user-scoped";
+    /**
+     * 認証を伴わない呼び出しを認める接続先の宣言。
+     *
+     * @remarks
+     * 契約が資格情報の無い呼び出しを受け付ける場合だけ立てます。立てても、取得できた資格情報は
+     * 常に載せます。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として
+     * 扱われるためです。
+     *
+     * **立てても分類は動きません。** 資格情報を載せうる口は、載せなかった回も含めて
+     * user-scoped です（0112 決定 3）。
+     */
+    allowAnonymous?: boolean;
+  };
 
 const JSON_CONTENT_TYPE = "application/json";
 const FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
@@ -233,6 +325,56 @@ function assertNoDotSegment(path: string): string {
 }
 
 /**
+ * 資格情報を運ぶヘッダ。
+ *
+ * @remarks
+ * HTTP が資格情報の運び手として定めているものです（RFC 9110 §11.6.2 / RFC 6265）。アプリ固有の
+ * 名前は並べません —— どのヘッダが主体を指すかは接続先の契約が決めることで、この境界が知って
+ * よいのは HTTP の語彙までです。
+ */
+const CREDENTIAL_HEADERS: readonly string[] = ["authorization", "cookie"];
+
+/**
+ * 呼び出しごとの指定が、口の分類に許された範囲に収まっていることを確かめる。
+ *
+ * @remarks
+ * 同じことを型が既に禁じています（{@link UserScopedRequestSpec}）。ここに置くのは**型を迂回した
+ * 書き方**への後詰めで、別の口の使い回しや組み立てた spec から入ってくる経路を止めます
+ * （[0112](../../../../docs/adr/0112-data-classification-cache-boundary.md) 決定 4）。
+ *
+ * @throws 分類に許されない指定を含むとき
+ */
+function assertSpecWithinScope(scope: DataScope, spec: RequestSpec<unknown>): void {
+  if (scope === "user-scoped" && (spec.cache !== undefined || spec.tags !== undefined)) {
+    throw createAppError(ErrorKind.INVALID_ARGUMENT, {
+      cause: new Error(`主体に紐づく取得はキャッシュへ入れられません: ${spec.path}`),
+    });
+  }
+}
+
+/**
+ * 資格情報のヘッダが呼び出しごとの指定に混ざっていないことを確かめる。
+ *
+ * @remarks
+ * 資格情報を組むのはこの境界だけです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。
+ * 呼び出しごとに組める余地が残っていると、**口の分類が「その client が資格情報を載せるか」を
+ * 言い当てられなくなります** —— 分類の前提そのものが崩れるため、綴りの段階で塞ぎます。
+ *
+ * @throws 資格情報のヘッダを含むとき
+ */
+function assertNoCredentialHeader(spec: RequestSpec<unknown>): void {
+  const credential = Object.keys(spec.headers ?? {}).find((name) =>
+    CREDENTIAL_HEADERS.includes(name.toLowerCase()),
+  );
+
+  if (credential !== undefined) {
+    throw createAppError(ErrorKind.INVALID_ARGUMENT, {
+      cause: new Error(`資格情報のヘッダは呼び出しごとに組めません: ${credential}`),
+    });
+  }
+}
+
+/**
  * 接続先とパスを繋ぐ。
  *
  * @remarks
@@ -277,10 +419,14 @@ function buildUrl(
  * 時刻・乱数・待機・fetch は引数で受け取ります。これらを内部で直接掴むと、再試行や遮断の
  * 振る舞いを実時間を待たずに検証できなくなります。
  */
+export function createHttpClient(deps: PublicClientDeps): PublicHttpClient;
+export function createHttpClient(deps: UserScopedClientDeps): UserScopedHttpClient;
 export function createHttpClient({
+  scope,
   baseUrl,
   maxUrlBytes,
   getBearerToken,
+  bearerToken,
   allowAnonymous = false,
   profile = DEFAULT_PROFILE,
   // 既定を `fetch` そのものではなく呼び出し時の解決にする。クライアントは接続先ごとに
@@ -290,7 +436,7 @@ export function createHttpClient({
   now = Date.now,
   random = Math.random,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-}: ClientDeps): HttpClient {
+}: PublicClientDeps | UserScopedClientDeps): PublicHttpClient | UserScopedHttpClient {
   const breaker: CircuitBreaker = createCircuitBreaker(profile.breaker, now);
   const budget: RetryBudget = createRetryBudget(profile.retryBudgetRatio);
 
@@ -306,11 +452,13 @@ export function createHttpClient({
    * あり、呼び出し側が相対パスしか渡さない慣習だけでは止まりません。
    */
   async function authorizationHeader(url: URL): Promise<Record<string, string>> {
-    if (getBearerToken === undefined || url.origin !== new URL(baseUrl).origin) {
+    const carriesCredential = getBearerToken !== undefined || bearerToken !== undefined;
+
+    if (!carriesCredential || url.origin !== new URL(baseUrl).origin) {
       return {};
     }
 
-    const token = await getBearerToken();
+    const token = bearerToken ?? (await getBearerToken?.()) ?? null;
 
     if (token === null) {
       if (allowAnonymous) {
@@ -346,6 +494,9 @@ export function createHttpClient({
 
   return {
     async request<T>(spec: RequestSpec<T>): Promise<T> {
+      assertSpecWithinScope(scope, spec);
+      assertNoCredentialHeader(spec);
+
       const url = buildUrl(baseUrl, spec.path, spec.searchParams);
 
       // 遮断の判定より先に確かめる。予算を超えた要求は接続先の状態によらず通らないため、

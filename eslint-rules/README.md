@@ -13,9 +13,11 @@ biome が表現できない検査だけを持つ自作 ESLint ルールの置き
 | ルール | 検査するもの |
 | --- | --- |
 | [`no-anonymous-default-export`](no-anonymous-default-export.ts) | 名前を持たない default export。1:1 ゲートが `describe` で指せる名前を要求する（[0090](../docs/adr/0090-testing-strategy.md)） |
+| [`no-captured-bearer-token`](no-captured-bearer-token.ts) | `getBearerToken` に渡す、その場で組んだ関数やローカルの値。掴んだ値を返すと `cookies()` が読まれず、cached scope の防御が黙って外れる（[0112](../docs/adr/0112-data-classification-cache-boundary.md) 決定 5） |
 | [`no-internal-anchor`](no-internal-anchor.ts) | 内部リンクの生の `<a href="/...">`。client 遷移と prefetch を失う |
 | [`no-markup-outside-ui-layers`](no-markup-outside-ui-layers.ts) | UI を置いてよい層の外にある DOM マークアップ（[`architecture.ts`](../architecture.ts) の `UI_KERNELS`） |
 | [`no-raw-font-weight`](no-raw-font-weight.ts) | 太さの直接指定（`font-medium` 等）。書体が持たない段は丸められ強調にならない（[0051](../docs/adr/0051-styling-system.md) §5）。`font-normal` は打ち消しなので対象外 |
+| [`no-user-scoped-in-cached-module`](no-user-scoped-in-cached-module.ts) | サーバへ保存されるキャッシュ（`use cache`）を持つモジュールからの、user-scoped な取得の口の import（[0112](../docs/adr/0112-data-classification-cache-boundary.md) 決定 4 の段 2） |
 
 ## テストの責務
 

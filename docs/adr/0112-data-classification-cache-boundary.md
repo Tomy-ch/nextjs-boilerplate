@@ -45,11 +45,11 @@ Cache Components(PPR)を有効化すると、**user-scoped な値が共有・静
 事故が起きる面は **キャッシュへ入れる瞬間**と **client へ渡す瞬間**に集中している。したがって分類は、値が生まれる場所 = **取得の口(`adapters/server/http` の client)**に宣言し、**その口が受け取れる引数を分類ごとに変える**。
 
 ```ts
-createHttpClient({ scope: "public" })       // cache / tags を受け取る
-createHttpClient({ scope: "user-scoped" })  // cache / tags を型として持たない
+createHttpClient({ scope: "public" })       // cache / tags を受け取る。資格情報の口は持たない
+createHttpClient({ scope: "user-scoped" })  // 資格情報を載せられる。cache / tags を型として持たない
 ```
 
-**「PII を共有キャッシュへ入れるな」を注意書きではなく、引数の不在にする。**
+**「PII を共有キャッシュへ入れるな」を注意書きではなく、引数の不在にする。** 不在は両側に置く —— public な口は資格情報の取得口そのものを型として持たない。分類が「その client が資格情報を載せるか」を言い当てられなければ、口に分類を持たせた意味が無い。
 
 ### 2. 分類と、許される置き場
 
@@ -76,8 +76,9 @@ user-scoped な値をキャッシュしたい場合の唯一の手段は **`use 
 | 段 | 止めるもの | 手段 | 検出時点 |
 | --- | --- | --- | --- |
 | **取得の口** | user-scoped の取得に `cache` / `tags` を渡す | 型(引数の不在) | typecheck |
-| **キャッシュ投入前** | `use cache` を持つモジュールから user-scoped adapter を import する | lint | `lint:ci` |
+| **キャッシュ投入前** | `use cache` を持つモジュールから user-scoped adapter を import する | lint(`project-rules/no-user-scoped-in-cached-module`) | `lint:ci` |
 | **描画** | cached scope からの `cookies()` / `headers()` 読み出し。資格情報が cookie 由来であるため、user-scoped な取得を `use cache` の下へ置くと `next-request-in-use-cache` で落ちる | framework | build または実行時 |
+| **取得時** | 型を迂回して組まれた spec のキャッシュ指定と、呼び出しごとに持ち込まれた資格情報のヘッダ | `adapters/server/http` の関門 | 要求時に throw |
 | **client 送信前** | server object をそのまま client へ渡す | taint([0030](0030-environment-variable-management.md) §8) | 描画時 |
 | **配信** | user-scoped な応答が共有キャッシュへ載る(CDN / プロキシ) | 応答ヘッダ([0111](0111-csp-security-headers.md)) | 応答時 |
 
@@ -88,6 +89,10 @@ user-scoped な値をキャッシュしたい場合の唯一の手段は **`use 
 段 3(framework)の防御は、**資格情報が使用地点で `cookies()` から解決されること**にぶら下がっている。トークンをモジュール変数へ置く、引数で持ち回る、境界をまたいでメモ化する —— いずれでも **この防御は何も言わずに外れる**。
 
 したがってこの前提自体を規約とし、機械検査の対象とする。段を増やしても、増えた段が同じ前提に乗る限り薄くならない。**閉じ方は層の追加ではなく、前提を検査可能にすることである。**
+
+検査の形は「**資格情報の取得口には import した口だけを渡せる**」とする(`project-rules/no-captured-bearer-token`)。その場で組んだ関数は掴んだ値を隠せるが、import された口は宣言が 1 か所にあり、そこを読めば解決の経路が分かる。
+
+**例外は session を確立する 1 往復だけである。** その時点では cookie がまだ無く、cookie から解決する口は存在しない。この 1 か所は `bearerToken`(解決済みの値)という別の綴りで渡す。**綴りを分けるのは、防御が外れる箇所を数えられるようにするため**であり、渡してよい場所が増えたのではない。
 
 ### 6. 責務を混同しない
 
@@ -154,7 +159,7 @@ PII を含む画面 / component は、次の順で決める。**最初から CSR
 
 - ❌ user-scoped な取得に `cache` / `tags` を渡すこと(決定 1 / 3)
 - ❌ user-scoped な値を、サーバ側に保存されるキャッシュ(Data Cache / `use cache` / `unstable_cache`)へ入れること。手段は `use cache: private` に限る(決定 3)
-- ❌ 資格情報を `cookies()` 以外の経路(モジュール変数・引数での持ち回り・境界をまたぐメモ化)で解決すること(決定 5)
+- ❌ 資格情報を `cookies()` 以外の経路(モジュール変数・引数での持ち回り・境界をまたぐメモ化)で解決すること(決定 5。cookie が存在しない session 確立の 1 往復だけが例外で、そこは `bearerToken` の綴りで渡す)
 - ❌ 分類をラッパ型で表現し、feature 層に unwrap を配ること(決定 1)
 - ❌ どれか 1 つの段で全部を守れると見なして他の段を省くこと(決定 4)
 - ❌ React Compiler を PII / キャッシュ境界の防御として数えること(決定 6)
