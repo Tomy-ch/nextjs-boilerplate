@@ -27,7 +27,10 @@ test("session を持っていれば保護された経路で前捌きされない
   await expect(page).toHaveURL(PROTECTED_PATH);
 });
 
-test("session を持つ要求の応答は、静的な画面でも共有キャッシュへ載せない", async ({ page, signIn }) => {
+test("session を持つ要求の応答は、静的な画面でも共有キャッシュへ載せない", async ({
+  page,
+  signIn,
+}) => {
   await signIn();
 
   // 静的に配れる画面を選ぶ。動的な画面は framework が自分で `no-store` を付けるため、

@@ -52,11 +52,10 @@ describe("buildSecurityHeaders", () => {
   });
 
   it("配信元にパスやポートが付いていても origin だけを載せる", () => {
-    expect(directives(local).get("img-src")).toContain("http://gobp-local.web.garage.localhost:3902");
-    expect(directives(local).get("form-action")).toStrictEqual([
-      "'self'",
-      "http://localhost:2010",
-    ]);
+    expect(directives(local).get("img-src")).toContain(
+      "http://gobp-local.web.garage.localhost:3902",
+    );
+    expect(directives(local).get("form-action")).toStrictEqual(["'self'", "http://localhost:2010"]);
   });
 
   it("form の送信先に IdP の origin を含める", () => {

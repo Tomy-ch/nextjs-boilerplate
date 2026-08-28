@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   authClientIdValidator,
-  isServedOverTls,
   authIssuerValidator,
   authModeValidator,
   authRedirectUriValidator,
   authScopesValidator,
   authSessionSecretValidator,
+  isServedOverTls,
 } from "./auth.schema";
 
 describe("authIssuerValidator", () => {
