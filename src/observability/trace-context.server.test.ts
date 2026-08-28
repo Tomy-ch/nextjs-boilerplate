@@ -68,6 +68,10 @@ afterAll(() => {
   context.disable();
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("extractActiveTraceContext", () => {
   it("有効な active span の trace_id と span_id を返す", () => {
     const span = trace.wrapSpanContext({
@@ -85,20 +89,12 @@ describe("extractActiveTraceContext", () => {
     });
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("active span がなければ undefined を返す", () => {
     expect(extractActiveTraceContext()).toBeUndefined();
   });
 });
 
 describe("findActiveTraceparent", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   // ----- 正常系 -----
   it("採取された span を W3C の traceparent として書き出す", () => {
     vi.spyOn(trace, "getActiveSpan").mockReturnValue(
