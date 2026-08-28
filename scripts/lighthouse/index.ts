@@ -12,6 +12,7 @@ import { join } from "node:path";
 
 import { chromium } from "@playwright/test";
 import { TEST_SESSION_ISSUED_STATUS, TEST_SESSION_PATH } from "../../e2e/lib/dev-session";
+import { CONSENT_CHOICE, CONSENT_COOKIE_NAME } from "../../src/model/consent";
 import {
   listScreenRoutes,
   resolveScreens,
@@ -90,6 +91,36 @@ const LIGHTHOUSE_CLI = createRequire(import.meta.url).resolve("lighthouse/cli/in
  *
  * @returns 書き出したヘッダ宣言のパス。
  */
+/**
+ * 同意を尋ねる面を出さないための cookie。
+ *
+ * @remarks
+ * **選び終えた状態から計測します。** この面は選ぶまで画面を覆うので、撒かずに測ると、どの画面の
+ * 数値も面が乗った状態のものになります（[0131](../../docs/adr/0131-cookie-consent.md)）。拒否の側で
+ * 選ぶのは、同意すると計測 id が配られ、測っている画面と関係のない `Set-Cookie` が応答に載るためです。
+ *
+ * `e2e/lib/test.ts` が同じ前提を置いています。**両方に要ります** —— あちらは Playwright の
+ * context へ、こちらは Lighthouse へ渡すヘッダへ載せるもので、経路が別です。
+ */
+const CONSENT_COOKIE = `${CONSENT_COOKIE_NAME}=${CONSENT_CHOICE.denied}`;
+
+/**
+ * 役割を持たない画面へ送るヘッダの宣言を書き出す。
+ *
+ * @remarks
+ * 役割が要らない画面にも同意 cookie は要ります。送らないと、その画面だけが面に覆われた絵で
+ * 測られます。
+ *
+ * @returns 書き出したヘッダ宣言のパス。
+ */
+function writeAnonymousHeaders(): string {
+  const path = join(OUTPUT_DIR, "headers-anonymous.json");
+
+  writeFileSync(path, JSON.stringify({ Cookie: CONSENT_COOKIE }));
+
+  return path;
+}
+
 async function issueSessionHeaders(baseUrl: string, role: string): Promise<string> {
   const response = await fetch(new URL(TEST_SESSION_PATH, baseUrl), {
     method: "POST",
@@ -112,7 +143,10 @@ async function issueSessionHeaders(baseUrl: string, role: string): Promise<strin
 
   const path = join(OUTPUT_DIR, `headers-${role}.json`);
 
-  writeFileSync(path, JSON.stringify({ Cookie: buildCookieHeader(cookies) }));
+  writeFileSync(
+    path,
+    JSON.stringify({ Cookie: `${buildCookieHeader(cookies)}; ${CONSENT_COOKIE}` }),
+  );
 
   return path;
 }
@@ -283,6 +317,8 @@ async function measureAll(): Promise<void> {
 
   const headerFiles = new Map<string, string>();
   const measurements: Measurement[] = [];
+  // 役割を持たない画面もヘッダを送る。同意 cookie が要るのは役割の有無に依らない。
+  const anonymousHeaders = writeAnonymousHeaders();
 
   for (const target of planTargets(screens, baseUrl)) {
     if (target.role !== undefined && !headerFiles.has(target.role)) {
@@ -294,7 +330,7 @@ async function measureAll(): Promise<void> {
       measure(
         target,
         budget.runs.count,
-        target.role === undefined ? undefined : headerFiles.get(target.role),
+        target.role === undefined ? anonymousHeaders : headerFiles.get(target.role),
       ),
     );
   }

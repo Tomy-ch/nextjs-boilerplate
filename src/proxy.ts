@@ -12,7 +12,6 @@ import {
   CONSENT_COOKIE_NAME,
   CONSENT_MAX_AGE_SECONDS,
   MEASUREMENT_ID_COOKIE_NAME,
-  newMeasurementId,
   parseConsentState,
 } from "@/model/consent";
 import {
@@ -123,9 +122,13 @@ export async function proxy(request: NextRequest): Promise<Response> {
   const url = new URL(request.url);
 
   if (getMaintenanceConfig().isStopped && !OPEN_PATHS.has(url.pathname)) {
-    return OPEN_METHODS.has(request.method)
-      ? NextResponse.rewrite(new URL(MAINTENANCE_PATH, url))
-      : new NextResponse(null, { status: STOPPED_STATUS });
+    return finalize(
+      request,
+      OPEN_METHODS.has(request.method)
+        ? NextResponse.rewrite(new URL(MAINTENANCE_PATH, url))
+        : new NextResponse(null, { status: STOPPED_STATUS }),
+      url,
+    );
   }
 
   const verdict = judgeOrigin(
@@ -147,11 +150,28 @@ export async function proxy(request: NextRequest): Promise<Response> {
       ? await openCors(request, verdict.origin)
       : await authorize(request);
 
-  if (request.cookies.has(SESSION_COOKIE_NAME)) {
+  return finalize(request, response, url);
+}
+
+/**
+ * 応答を返す前の始末。同意と計測 id を突き合わせ、共有してよいかを決める。
+ *
+ * @remarks
+ * **全ての出口がここを通ります。** 止めているあいだの応答も同じ始末を受けます。通さないと、
+ * 停止中に同意を外した利用者の計測 id が、停止が明けるまで消えません —— 差し替えは URL を
+ * 動かさないので、開いたままの経路への要求は止まっているあいだ何度でもこの分岐へ落ちます。
+ *
+ * **cookie を書き換えた応答は共有キャッシュへ載せません。** 資格情報を載せた要求への応答だけを
+ * 外すと、**匿名で同意済みの訪問者へ計測 id を配る応答**が漏れます。固めて配れる画面は
+ * `s-maxage` を伴うため、その応答を保存した CDN は以後の訪問者全員へ同じ id を配ります
+ * （`docs/rules.md` #87 / [0112](../docs/adr/0112-data-classification-cache-boundary.md) 段 5）。
+ */
+function finalize(request: NextRequest, response: NextResponse, url: URL): NextResponse {
+  syncMeasurementId(request, response, url);
+
+  if (request.cookies.has(SESSION_COOKIE_NAME) || response.headers.getSetCookie().length > 0) {
     response.headers.set("Cache-Control", PRIVATE_CACHE_CONTROL);
   }
-
-  syncMeasurementId(request, response, url);
 
   return response;
 }
@@ -172,6 +192,10 @@ export async function proxy(request: NextRequest): Promise<Response> {
  * `httpOnly` を付けません。読むのはブラウザ側で動く計測であり、サーバは配るだけだからです。
  * ゲートの先に何も繋いでいない状態では読み手が居ませんが、読めない形で配ると、繋いだ時点で
  * 発行の口ごと作り直すことになります。
+ *
+ * 採番はここで行います。**同意を確かめてからでなければ呼べない**という制約が、判定と採番を
+ * 同じ関数に置いて初めて読み取れる形になります。値そのものは推測されて困るものではなく、同じ
+ * ブラウザからの訪問を繋ぐためだけの識別子です。
  */
 function syncMeasurementId(request: NextRequest, response: NextResponse, url: URL): void {
   const consent = parseConsentState(request.cookies.get(CONSENT_COOKIE_NAME)?.value);
@@ -189,7 +213,7 @@ function syncMeasurementId(request: NextRequest, response: NextResponse, url: UR
     return;
   }
 
-  response.cookies.set(MEASUREMENT_ID_COOKIE_NAME, newMeasurementId(), {
+  response.cookies.set(MEASUREMENT_ID_COOKIE_NAME, crypto.randomUUID(), {
     httpOnly: false,
     maxAge: CONSENT_MAX_AGE_SECONDS,
     path: "/",

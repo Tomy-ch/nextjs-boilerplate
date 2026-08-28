@@ -4,7 +4,6 @@ import {
   allowsCategory,
   CONSENT_CATEGORY,
   CONSENT_CHOICE,
-  newMeasurementId,
   parseConsentState,
   shouldAskConsent,
   UNREAD_CONSENT,
@@ -81,12 +80,5 @@ describe("shouldAskConsent", () => {
   // ----- 異常系 -----
   it("まだ読んでいない間は尋ねない", () => {
     expect(shouldAskConsent(UNREAD_CONSENT)).toBe(false);
-  });
-});
-
-describe("newMeasurementId", () => {
-  // ----- 正常系 -----
-  it("呼ぶたびに違う識別子を作る", () => {
-    expect(newMeasurementId()).not.toBe(newMeasurementId());
   });
 });

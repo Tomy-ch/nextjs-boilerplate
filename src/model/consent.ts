@@ -130,17 +130,3 @@ export function allowsCategory(state: ConsentState, category: ConsentCategory): 
 export function shouldAskConsent(state: ConsentState): boolean {
   return state.status === "unset";
 }
-
-/**
- * 計測 id を新しく作る。
- *
- * @remarks
- * **同意が得られたときだけ呼べます。** 未同意の間に作ると、識別子を配ってから同意を尋ねることに
- * なり、ゲートの意味が消えます（[0131](../../docs/adr/0131-cookie-consent.md)）。呼び出し側が
- * {@link allowsCategory} を通すことが条件で、この関数自身は判定を持ちません。
- *
- * 推測されて困る値ではありません。同じブラウザからの訪問を繋ぐためだけの識別子です。
- */
-export function newMeasurementId(): string {
-  return crypto.randomUUID();
-}
