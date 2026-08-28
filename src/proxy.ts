@@ -25,7 +25,7 @@ const MAINTENANCE_PATH = "/maintenance";
  *
  * 停止画面自身を含めます。差し替え先を差し替えの対象にすると、rewrite が自分を指します。
  */
-const OPEN_PATHS: readonly string[] = [MAINTENANCE_PATH, "/api/health"];
+const OPEN_PATHS: ReadonlySet<string> = new Set([MAINTENANCE_PATH, "/api/health"]);
 
 /**
  * 止めているあいだも描いてよい method。
@@ -39,7 +39,7 @@ const OPEN_PATHS: readonly string[] = [MAINTENANCE_PATH, "/api/health"];
  * 約束したことではありません。**依存すると、その内部が変わった日に黙って開きます**
  * （成り行きの中身は `docs/spec/route/maintenance/page.function.md`）。
  */
-const OPEN_METHODS: readonly string[] = ["GET", "HEAD"];
+const OPEN_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD"]);
 
 /**
  * 止めているあいだ、断る要求へ返す状態。
@@ -89,8 +89,8 @@ const FALLBACK_PATH = "/";
 export async function proxy(request: NextRequest): Promise<Response> {
   const url = new URL(request.url);
 
-  if (getMaintenanceConfig().isStopped && !OPEN_PATHS.includes(url.pathname)) {
-    return OPEN_METHODS.includes(request.method)
+  if (getMaintenanceConfig().isStopped && !OPEN_PATHS.has(url.pathname)) {
+    return OPEN_METHODS.has(request.method)
       ? NextResponse.rewrite(new URL(MAINTENANCE_PATH, url))
       : new NextResponse(null, { status: STOPPED_STATUS });
   }
