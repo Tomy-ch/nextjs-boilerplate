@@ -88,7 +88,7 @@ export async function issueDevelopmentAccessToken(input: {
   const { tokenEndpoint } = await fetchOidcEndpoints(issuer, maxUrlBytes).catch(
     rethrowAs(issuer, "OIDC Discovery から接続先を引けませんでした"),
   );
-  const client = createHttpClient({ baseUrl: issuer, maxUrlBytes });
+  const client = createHttpClient({ scope: "user-scoped", baseUrl: issuer, maxUrlBytes });
 
   const { access_token } = await client
     .request({

@@ -7,7 +7,7 @@ import { BASE_CURRENCY, type ReferenceAmount } from "@/model/money";
 
 import { GetExchangeRatesResponse } from "../../gen/api/endpoints.zod";
 import { getAccessToken } from "../auth/session";
-import { createHttpClient, type HttpClient } from "../http/request";
+import { createHttpClient, type UserScopedHttpClient } from "../http/request";
 
 /** 参考換算に使える表示通貨。契約が受け付ける値そのもの。 */
 const DISPLAY_CURRENCY = "JPY";
@@ -18,7 +18,7 @@ const MINOR_UNITS_PER_UNIT = 100;
 /** 基準通貨の小数桁。 */
 const MINOR_UNIT_DIGITS = 2;
 
-let client: HttpClient | undefined;
+let client: UserScopedHttpClient | undefined;
 
 /**
  * 為替の接続先。
@@ -27,8 +27,9 @@ let client: HttpClient | undefined;
  * 認証を任意にします。参考換算は購入前の利用者にも要るため、契約が資格情報の無い呼び出しも
  * 受け付けます。
  */
-function getClient(): HttpClient {
+function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
+    scope: "user-scoped",
     baseUrl: getApiConfig().baseUrl,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
     getBearerToken: getAccessToken,

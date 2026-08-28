@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { createHttpClient } from "./request";
+import { createHttpClient, type PublicHttpClient } from "./request";
 import { DEFAULT_PROFILE, type ResilienceProfile } from "./resilience-profile";
 
 const schema = z.object({ ok: z.boolean() });
@@ -22,11 +22,18 @@ function jsonResponse(
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-function createClient(
-  fetchImpl: typeof fetch,
-  overrides: Partial<Parameters<typeof createHttpClient>[0]> = {},
-) {
+type ClientOverrides = {
+  baseUrl?: string;
+  maxUrlBytes?: number;
+  profile?: ResilienceProfile;
+  getBearerToken?: () => Promise<string | null>;
+  allowAnonymous?: boolean;
+  sleep?: (ms: number) => Promise<void>;
+};
+
+function createClient(fetchImpl: typeof fetch, overrides: ClientOverrides = {}) {
   return createHttpClient({
+    scope: "user-scoped",
     baseUrl: "https://api.example.test",
     maxUrlBytes: MAX_URL_BYTES,
     profile,
@@ -35,6 +42,36 @@ function createClient(
     random: () => 0,
     sleep: async () => {},
     ...overrides,
+  });
+}
+
+/**
+ * user-scoped な口を、キャッシュを指定できる面として受け取る。
+ *
+ * @remarks
+ * 型が禁じている組み合わせを実行時の関門へ届けるために要ります。関門が見ているのは
+ * **型を迂回して組み立てられた spec** なので、型の側で通る書き方を用意しないと到達できません。
+ */
+function createEscapedClient(fetchImpl: typeof fetch): PublicHttpClient {
+  return createHttpClient({
+    scope: "user-scoped",
+    baseUrl: "https://api.example.test",
+    maxUrlBytes: MAX_URL_BYTES,
+    profile,
+    fetchImpl,
+  });
+}
+
+function createPublicClient(fetchImpl: typeof fetch) {
+  return createHttpClient({
+    scope: "public",
+    baseUrl: "https://api.example.test",
+    maxUrlBytes: MAX_URL_BYTES,
+    profile,
+    fetchImpl,
+    now: () => 0,
+    random: () => 0,
+    sleep: async () => {},
   });
 }
 
@@ -55,6 +92,7 @@ describe("createHttpClient", () => {
     vi.stubGlobal("fetch", globalFetch);
 
     const client = createHttpClient({
+      scope: "public",
       baseUrl: "https://api.example.test",
       maxUrlBytes: MAX_URL_BYTES,
       profile,
@@ -127,13 +165,40 @@ describe("createHttpClient", () => {
     expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/items?tag=a&tag=b");
   });
 
-  it("再検証のタグを渡す", async () => {
+  it("public な口では再検証のタグを渡す", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
-    const client = createClient(fetchImpl);
+    const client = createPublicClient(fetchImpl);
 
     await client.request({ path: "/v1/items", schema, tags: ["items"] });
 
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: ["items"] } });
+  });
+
+  it("public な口ではキャッシュの指定を渡す", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createPublicClient(fetchImpl);
+
+    await client.request({ path: "/v1/items", schema, cache: "force-cache" });
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ cache: "force-cache" });
+  });
+
+  it("確立中の口では解決済みの Bearer を載せる", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createHttpClient({
+      scope: "user-scoped",
+      baseUrl: "https://api.example.test",
+      maxUrlBytes: MAX_URL_BYTES,
+      profile,
+      fetchImpl,
+      bearerToken: "establishing-token",
+    });
+
+    await client.request({ path: "/v1/users/me/roles", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).toMatchObject({
+      Authorization: "Bearer establishing-token",
+    });
   });
 
   it("本文があれば JSON として送る", async () => {
@@ -291,6 +356,7 @@ describe("createHttpClient", () => {
       .mockResolvedValueOnce(jsonResponse(503, {}))
       .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
     const client = createHttpClient({
+      scope: "public",
       baseUrl: "https://api.example.test",
       maxUrlBytes: MAX_URL_BYTES,
       profile,
@@ -361,7 +427,55 @@ describe("createHttpClient", () => {
     expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/items/a..b/ship");
   });
 
+  it("確立中の口でも、接続先を離れる要求には資格情報を載せない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createHttpClient({
+      scope: "user-scoped",
+      baseUrl: "https://api.example.test",
+      maxUrlBytes: MAX_URL_BYTES,
+      profile,
+      fetchImpl,
+      bearerToken: "establishing-token",
+    });
+
+    await client.request({ path: "https://idp.example.test/token", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).not.toHaveProperty("Authorization");
+  });
+
   // ----- 異常系 -----
+  it("user-scoped な口へキャッシュ指定を与えたら、送らずに invalid-argument で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createEscapedClient(fetchImpl);
+
+    expect(
+      await kindOf(() => client.request({ path: "/v1/users/me", schema, cache: "force-cache" })),
+    ).toBe(ErrorKind.INVALID_ARGUMENT);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("user-scoped な口へ再検証のタグを与えたら、送らずに invalid-argument で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createEscapedClient(fetchImpl);
+
+    expect(
+      await kindOf(() => client.request({ path: "/v1/users/me", schema, tags: ["users"] })),
+    ).toBe(ErrorKind.INVALID_ARGUMENT);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("呼び出しごとの指定に資格情報のヘッダを置いたら、送らずに invalid-argument で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    expect(
+      await kindOf(() =>
+        client.request({ path: "/v1/items", schema, headers: { authorization: "Bearer x" } }),
+      ),
+    ).toBe(ErrorKind.INVALID_ARGUMENT);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("路を畳む区間を含む path を、送らずに invalid-argument で落とす", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);

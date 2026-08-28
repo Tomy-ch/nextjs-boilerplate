@@ -8,7 +8,7 @@ import { getHttpConfig } from "@/config/http/http.server";
 import type { Prefecture } from "@/model/user/user";
 
 import { GetPrefecturesResponse } from "../../gen/api/endpoints.zod";
-import { createHttpClient, type HttpClient } from "../http/request";
+import { createHttpClient, type PublicHttpClient } from "../http/request";
 
 type WirePrefectures = z.infer<typeof GetPrefecturesResponse>;
 
@@ -21,10 +21,11 @@ type WirePrefectures = z.infer<typeof GetPrefecturesResponse>;
  */
 export const PREFECTURE_MASTERS_TAG = "prefecture-masters";
 
-let client: HttpClient | undefined;
+let client: PublicHttpClient | undefined;
 
-function getClient(): HttpClient {
+function getClient(): PublicHttpClient {
   client ??= createHttpClient({
+    scope: "public",
     baseUrl: getApiConfig().baseUrl,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
   });

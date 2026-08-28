@@ -18,7 +18,7 @@ import {
 } from "../../gen/api/endpoints.zod";
 import type { CartItemPutRequest } from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
-import { createHttpClient, type HttpClient } from "../http/request";
+import { createHttpClient, type UserScopedHttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
 import { clearCartSession, readCartSession, storeCartSession } from "./cart-session";
 
@@ -29,7 +29,7 @@ const CART_PATH = "/v1/carts/me";
 
 type WireCart = z.infer<typeof GetCartsMeResponse>;
 
-let client: HttpClient | undefined;
+let client: UserScopedHttpClient | undefined;
 
 /**
  * カートの接続先。
@@ -38,8 +38,9 @@ let client: HttpClient | undefined;
  * 認証を任意にします。カートは未ログインでも使え、主体はゲストの識別子か認証済みの利用者かの
  * どちらかで、契約が両方の呼び出しを受け付けます。
  */
-function getClient(): HttpClient {
+function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
+    scope: "user-scoped",
     baseUrl: getApiConfig().baseUrl,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
     getBearerToken: getAccessToken,

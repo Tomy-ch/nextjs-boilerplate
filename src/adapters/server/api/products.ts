@@ -36,7 +36,7 @@ import type {
   ProductsPostRequest,
 } from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
-import { createHttpClient, type HttpClient } from "../http/request";
+import { createHttpClient, type UserScopedHttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
 
 type WireProductQuery = z.infer<typeof GetProductsQueryParams>;
@@ -246,7 +246,7 @@ function toFilterParams(
   };
 }
 
-let client: HttpClient | undefined;
+let client: UserScopedHttpClient | undefined;
 
 /**
  * 商品の口を叩く client。
@@ -256,13 +256,12 @@ let client: HttpClient | undefined;
  * します。読み書きが 1 つの client に同居するときの形と、落としたときの症状は
  * [adapters](../../README.md) の「主体を名乗るかは、口ではなく client が決める」節。
  *
- * **だからこの口の取得は Data Cache へ入れません。**入れ物は server 側で共有され、鍵は URL と
- * method とヘッダと本文です。資格情報を載せる取得を入れると、鍵が token ごとに割れて再利用は
- * ほぼ起きないのに、入れ物だけが主体の数だけ増えます。印（`next.tags`）を付けても、入っていない
- * ものは捨てられません（`docs/rules.md` #5b）。
+ * **だからこの口の分類は `user-scoped` で、キャッシュの指定は型として渡せません**
+ * （`docs/rules.md` #86a）。入れてはいけない理由は同 #79b が持ちます。
  */
-function getClient(): HttpClient {
+function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
+    scope: "user-scoped",
     allowAnonymous: true,
     baseUrl: getApiConfig().baseUrl,
     getBearerToken: getAccessToken,
