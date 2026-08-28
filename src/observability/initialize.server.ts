@@ -1,6 +1,5 @@
 import "server-only";
 
-import type { Attributes } from "@opentelemetry/api";
 import {
   CompositePropagator,
   W3CBaggagePropagator,
@@ -15,11 +14,7 @@ import { resourceFromAttributes } from "@opentelemetry/resources";
 import { BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
-import {
-  ATTR_SERVICE_NAME,
-  ATTR_URL_FULL,
-  ATTR_URL_QUERY,
-} from "@opentelemetry/semantic-conventions";
+import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
 /** 起動境界が observability SDK へ注入する構成です。 */
 type ObservabilityInitialization = Readonly<{
@@ -72,7 +67,6 @@ export function initializeObservability({
         requireParentforSpans: true,
         // 許可 origin 以外へは伝播しない（伝播先の方針は [0081](../../docs/adr/0081-observability-logging.md)）。
         ignoreRequestHook: ({ origin }) => !allowedOrigins.has(new URL(origin).origin),
-        startSpanHook: redactUrlQuery,
       }),
     ],
     ...(tracesEnabled
@@ -106,25 +100,6 @@ export function initializeObservability({
       : {}),
   });
   sdk.start();
-}
-
-/**
- * 外向き HTTP span の URL 属性から query 文字列を落とす。
- *
- * @remarks
- * Undici instrumentation は既定で `url.full` と `url.query` を span 属性へ載せます。query を落とす
- * 方針は [0081](../../docs/adr/0081-observability-logging.md)。`url.path` はどの口を叩いたかを示す
- * だけなので残します。
- *
- * `undefined` を返した属性は span へ記録されません。
- */
-export function redactUrlQuery({ origin, path }: { origin: string; path: string }): Attributes {
-  const queryIndex = path.indexOf("?");
-
-  return {
-    [ATTR_URL_FULL]: `${origin}${queryIndex === -1 ? path : path.slice(0, queryIndex)}`,
-    [ATTR_URL_QUERY]: undefined,
-  };
 }
 
 /** OTLP HTTP の base endpoint から signal 固有の resource endpoint を組み立てる。 */

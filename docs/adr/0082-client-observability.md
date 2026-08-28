@@ -20,18 +20,41 @@ Accepted (一部 exclusion)
 
 ## 決定
 
-3 経路はすべて 0081 の **ブラウザ→BFF 中継 seam** に載せる。送信面 = `adapters/client`([0024](0024-adapters-server-client-split.md))、受け = `app/route-handler`(`route.ts` → `adapters/server` → OTLP / サーバログ。[0025](0025-app-layer-elements.md) の thin proxy)。**ブラウザから直接 SaaS へ送らない**(0081 禁止事項)。
+3 経路はすべて 0081 の **ブラウザ→BFF 中継 seam** に載せる。送信面 = `adapters/client`([0024](0024-adapters-server-client-split.md))、受け = `app/route-handler`(`route.ts` → `adapters/server` → OTLP / サーバログ。[0025](0025-app-layer-elements.md) の thin proxy)。**ブラウザから直接 SaaS / collector へ送らない**(0081 禁止事項)。
+
+ブラウザ側の trace(§0)を加えた 4 経路は、載せる signal で分かれる。
+
+| 経路 | signal | 中継の口 |
+| --- | --- | --- |
+| ブラウザ側の trace(§0) | traces | OTLP をそのまま渡す口 |
+| Web Vitals RUM(§1) | metrics | このリポジトリが決めた形の報告を受ける口 |
+| client エラー(§2) | logs | 同上 |
+| プロダクト分析(§3) | — | exclusion。v1 では置かない |
+
+口を 2 つに分けるのは、**契約の出所が違う**ためである —— OTLP は OTel が決めるので読み替えずに渡し、報告の形はこのリポジトリが決めるので検証して signal へ載せ替える。
+
+### 0. ブラウザ側の trace = 採用
+
+- ブラウザで **OTel の Web SDK** を動かし、ブラウザ発の外向き要求を span にする。export は中継経由で、collector の endpoint も資格情報もブラウザへ出さない(0081)。
+- **包むのは `fetch` すべてである。** 自分で呼んでいる取得だけを包むと、router が画面遷移と先読みで出す RSC の要求が抜け、別の trace の根になる。そのぶん 1 つの trace に載る span は増える。
+- **span 名は方式とパスで置く**(`GET /docs/[slug]` ではなく実際のパス)。計装の既定は方式だけ(`GET`)で、どの経路への要求かを持たない。クエリは名前に載せない —— 条件は要求ごとに違うので、載せると同じ経路が別の名前へ散る。
+- **ブラウザは自分の trace を始めない。** 画面を組んだ要求の `traceparent` をサーバから受け取って親に取る。こうすると SSR から、その画面が後で出した取得までが 1 本の trace になる。渡らない実行(静的生成された画面)では新しい trace を始める。
+- **計装は最初の描画の後に読み込む。** 計測のための資材を初期の読み込みへ載せると、[0101](0101-performance-budget.md) が一次指標に置く当の値を悪くする。
+- **service 名は中継が上書きする。** 認証を要求しない口なので、ブラウザの名乗りをそのまま通すと誰でも任意の service の trace へ span を書ける。ブラウザは自分がどの service の一部かを知る必要がない。
+- **vendor-independent**: OTel の SDK は CNCF の実装であって観測性 SaaS ではなく、送り先は任意の OTLP バックエンドである(§1 と同じ論理)。
 
 ### 1. Web Vitals RUM(#59)= 採用
 
 - `useReportWebVitals`(Next.js 組込 hook)で LCP / INP / CLS 等を収集し、同一オリジン BFF 経由でサーバへ送り、**サーバ側で OTLP export**(0081)する。これで [0101](0101-performance-budget.md) の lab 計測(CI Lighthouse)に対する **field 値の欠落経路を閉じる**。
 - **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): CWV は web.dev / W3C 由来の業界標準指標(0101 が既に一次指標として独立採用済み)/ 送信 transport は OTLP/OTel = vendor-neutral(0081)/ BFF 中継は secret 非露出([0030](0030-environment-variable-management.md))と lock-in 回避。**RUM 観測性 vendor SDK(Datadog RUM 等)を正当化から抜いても、CWV を OTLP/OTel で収集する構成は成立** する = 非ロックイン(0081 のスタンスは OTLP/OTel vendor-neutral・vendor SDK 非同梱であり、特定 vendor を前提としない)。`useReportWebVitals` の使用は「App Router を選んだ」既決の帰結(0010 §2)であって機能固有ロックインではない。
 - **RUM 観測性 SaaS の同梱は fork 先判断(exclusion)**(0081 と一致。Collector / OTLP 経由を基本とする)。
+- **サーバ側では metric(指標ごとのヒストグラム)として持つ**。求めるのは実利用者ぶんの百分位であり、1 件ずつのレコードから毎回それを組むより計器の側が分布を持つほうが、読む手数も保持のコストも小さい。公式 semantic convention が web vitals へ与えているのは `browser.web_vital` という event 名だけで metric 名を定めていないが、event で出すと 1 レコードごとに中継要求の span が付き、測定が起きていない要求と親子になる。
 - これは **運用テレメトリ(パフォーマンス)** であり、[0131](0131-cookie-consent.md) が consent gate の対象とする **ユーザ行動トラッキングとは区別** される。→ **既定で consent gate の対象外**(下記 §4)。
 
 ### 2. client エラー収集(#60)= 採用
 
 - `window.onerror` / `unhandledrejection`、および `error.tsx` / `global-error.tsx` 到達([0080](0080-error-handling.md))時のエラーを捕捉し、BFF 中継で **サーバログ**(0081)へ送る。
+- **記録は画面を組んだ要求の trace へ紐づける**(§0 の `traceparent` を報告に載せて返す)。渡らなければ trace を付けない —— 中継要求の span を付けると、例外が起きていない要求と親子になる。
 - エラー分類は `errors` カーネルのセンチネル([0080](0080-error-handling.md))を用い、**PII / token の redact**([0080](0080-error-handling.md) / [0081](0081-observability-logging.md) の masking と一致)・**サンプリング / レート制御** を送信前に掛ける。
 - **vendor-independent**: ブラウザ側エラーの可視化は 0080 / 0081 がサーバ側で完結していた観測性の片翼を埋めるもので、収集経路は構造化ログ / OTLP(0081)= vendor-neutral。エラー監視 SaaS の同梱は fork 先判断(#59 と同じ exclusion 論理)。
 - **運用テレメトリ扱い**(consent gate 対象外。0131。§4)。
@@ -70,7 +93,7 @@ Accepted (一部 exclusion)
 
 - **採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**(独立起票・triage 観測性クラスタ = 1 ADR)。
 - **consent 結線の現在地**: #61 は [0031](0031-policy-state-supply.md) の gate 述語で結線済み。#59 / #60 の consent 要否は **法域依存で本体では確定せず**、operational = gate 対象外の保守的既定 + 0031 述語の再利用拡張点、に留める(§4。flags)。
-- **エンドポイント物理分割**(単一 vs signal 別)は seam のみ確定し実装 PR へ委譲(§5。flags)。
+- **エンドポイントは 2 つに分ける**(§決定の表)。OTLP をそのまま渡す口と、このリポジトリが決めた形の報告を受ける口。
 - **保護は #49(0077)へ委譲**(§5)。無防備な公開中継エンドポイントの保護は別ドメイン寄りの境界 seam であり、参照先が本 ADR 外に分散する点を明示。
 - **AGENTS.md B7 TODO との関係**: 0081 の Accepted で B7 は確定済み。本 ADR は 0081 のブラウザ側 seam を 3 経路へ具体化する **従属決定** であり、AGENTS.md への追加反映は生じない(0081 の反映に含まれる)。
 - 送信・redact・サンプリングの具体実装(バッチ / `sendBeacon` vs `fetch` / サンプリング率)は用途依存で実装 PR(本体は seam と発火 IF・no-op sink のみ備える)。

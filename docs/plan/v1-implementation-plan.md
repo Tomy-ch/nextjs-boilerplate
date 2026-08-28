@@ -1408,11 +1408,14 @@ sources:
 - **目的**: ブラウザ側のシグナルを OTLP へ集約する
 - **対象 ADR**: [0082](../adr/0082-client-observability.md) / [0081](../adr/0081-observability-logging.md) / [0101](../adr/0101-performance-budget.md)
 - **主な変更先**:
-  - `src/observability/client/` — Web Vitals RUM / client error 収集
-  - `src/app/api/telemetry/route.ts` — **ブラウザ → BFF 中継 seam**([0081](../adr/0081-observability-logging.md))。ブラウザから OTLP を直接叩かせない
-  - `src/app/layout.tsx` — 計装の mount
+  - `src/adapters/http/telemetry-report.ts` — 送る側と受ける側が共有する報告の形
+  - `src/adapters/client/telemetry/` — Web Vitals / client error を報告へ組んで送る面と、ブラウザ側の計装([0082](../adr/0082-client-observability.md) の送信面)
+  - `src/adapters/server/telemetry/` — 受けた本体の検証と signal への受け渡し、ブラウザが作った span の collector への中継
+  - `src/observability/web-vital-metric.server.ts` — Web Vitals を OTel の metric として記録する口
+  - `src/app/api/telemetry/route.ts` / `traces/route.ts` — **ブラウザ → BFF 中継 seam**([0081](../adr/0081-observability-logging.md))。ブラウザから collector を直接叩かせない
+  - `src/app/telemetry.tsx` / `src/app/layout.tsx` — 計装の mount
 - **注意**: RUM SaaS は [0081](../adr/0081-observability-logging.md) で exclusion(fork 先判断)。PostHog 等の分析 adapter は v2 マトリクス
-- **設計**: [0101](../adr/0101-performance-budget.md) は「計測の仕組みは持つ / 具体閾値は fork 先」なので、閾値は設定せず計測経路のみ作る
+- **設計**: [0101](../adr/0101-performance-budget.md) は「計測の仕組みは持つ / 具体閾値は fork 先」なので、閾値は設定せず計測経路のみ作る。**収集と送信は `observability` ではなく `adapters` に置く** —— [0082](../adr/0082-client-observability.md) が送信面を `adapters/client`・受けを `adapters/server` と定めており、`observability` は末端カーネルで `adapters` を参照できないため、そこへ置くと送る先が無い。Web Vitals は指標ごとのヒストグラムで出す —— 公式 semconv は event 名(`browser.web_vital`)しか定めていないが、event で出すと 1 レコードごとに中継の POST の span が付き、測定が起きていない要求と親子になる
 - **完了条件**: Web Vitals(LCP / CLS / INP)が Grafana に届く。client の未捕捉例外が中継経由で記録される
 - **依存**: P3-5, P4-5
 
@@ -1846,7 +1849,6 @@ IM-26。**P4-6 の改修 PR は、上表 1 行目が確定してから起票す�
 | 5 | **U10 登録フローの方式**(JIT 自動プロビジョニング / 明示オンボーディング)。[screens.md](../screens.md) の推奨に従い後者で実装し、確定後に差分吸収する | P5-10 |
 | 6 | **sanitizer ライブラリの選定**(`rules.md` #48。#1 の入力でもある) | P5-1 |
 | 7 | **status を持たない失敗の分類** — [0080](../adr/0080-error-handling.md) は一次キーを HTTP status とし、timeout / abort / DNS 失敗の分類を「実装 PR で判断」と保留している | P4-3 |
-| 8 | `/api/telemetry` の最小防御(ボディサイズ上限 / content-type 検証)。[0077](../adr/0077-bff-abuse-protection-boundary.md) が実装 PR へ保留 | P6-1 |
 | 9 | `ActionState<T>` の具体型(判別子 / fieldErrors の形 / sentinel の直列化)。**B1 テンプレ(P3-10)と scaffold(P4-6)が P5-7 より先行するため、P4-6 時点で草案を切る** | P4-6 で草案 → P5-7 で確定 |
 | 10 | **外部デザイン支援ツール連携スキルの仕様**(書き出し形式 / 同期手順 / 対象パス)。§3.11 の方針変更で新たに生じた | P3-8 |
 | 11 | Phase 2 の残余候補(sync-versions-check / auto-generate-docs)の採否 | Phase 6 実装時 |
@@ -1864,6 +1866,7 @@ IM-26。**P4-6 の改修 PR は、上表 1 行目が確定してから起票す�
 | `cn()` の実装ライブラリ | **`clsx` + `tailwind-merge`**。[0052](../adr/0052-ui-component-policy.md) が既に名指ししており追認(§3.10) |
 | `rules.md` #69(生 `<a>` 禁止) | **ESLint で拾う**。`next/link` を必須にするため機械強制が要る(P3-2) |
 | Figma Variables の輸出経路 | §3.11 の方針変更により**消滅**(SSOT がコード側) |
+| `/api/telemetry` の最小防御([0077](../adr/0077-bff-abuse-protection-boundary.md) §2 の保留分) | **Route Handler が持つ**。content-type が JSON を名乗らない要求を 415、契約が許す最大の報告(約 15.7 KB)を超える本体を 413 で落とす。宣言された長さで先に落とし、宣言の無い要求は読んだ後の実測で落とす。レート制限と大域的な遮断は同 §1 のとおり edge / WAF の責務であり本体に置かない |
 
 ## 6. go-boilerplate への依頼
 

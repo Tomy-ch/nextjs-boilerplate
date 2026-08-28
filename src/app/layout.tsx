@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 
 import { ToastProvider } from "@/components/shell/toaster/toaster";
+import { findActiveTraceparent } from "@/observability/trace-context.server";
 
 import { FONT_VARIABLES } from "./fonts";
+import { Telemetry } from "./telemetry";
 import "./globals.css";
 
 const SITE_NAME = "nextjs-boilerplate";
@@ -23,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="ja" className={`${FONT_VARIABLES} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
+        <Telemetry traceparent={findActiveTraceparent()} />
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

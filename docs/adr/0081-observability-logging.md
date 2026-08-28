@@ -31,7 +31,9 @@ go-boilerplate は logging を **抽象 `Logger` interface(ctx-native・zap 実�
 - テレメトリの export transport は **OTLP に固定**する(go ADR 0060 の翻案)。**アプリコード(`features` / `components` / `model` 等の内層)は vendor SDK を import しない**。vendor SDK を使う場合でもそれは `observability` カーネルの **OTLP / OTel exporter 実装**として境界の裏に閉じ込め(§6)、vendor-specific なルーティング / 認証は **Collector / Agent 側 or その exporter 実装内**に置く
 - resource attribute は **公式 semconv のみ**(`service.name` / `deployment.environment.name` / `service.version` 等)。custom / vendor-specific キーを typed config に入れない(go ADR 0061 の翻案)
 - W3C `TraceContext` + `Baggage` を伝播規約とする(サービス境界越えの trace 伝播)。外向き `fetch` への注入先は **backend API の origin に限定**し、IdP など別の接続先へ `Baggage` を渡さない
-- **span にもログと同じ redaction を掛ける**(上記 1 の PII / token / password 規則は span 属性と span 名の双方に及ぶ)。外向き HTTP span は `url.query` を記録せず `url.full` からも query を落とす。framework が自前で張る span が query 付き URL を span 名に載せる場合は、その span を抑止する
+- **span にもログと同じ redaction を掛ける**(上記 1 の PII / token / password 規則は span 属性と span 名の双方に及ぶ)。
+- **query 文字列は span から落とさない。** 秘匿すべき値を query へ載せていること自体が誤りであり、そこに置いた時点でブラウザの履歴・リファラ・経路上のアクセスログへ残っている。trace で伏せても守るものが無く、代わりに「どの条件の要求が遅いか」を追えなくする。
+- **span 名には query を載せない。** これは秘匿ではなく**集約**の要求である —— 条件は要求ごとに違うので、名前に含めると同じ経路の要求が別の名前へ散り、名前を単位にした集計が成り立たなくなる。条件そのものは属性(`url.full` / `url.query`)に残るので、1 件ずつ辿るときは読める。
 
 ### 3. シグナル別 config gating(go ADR 0059 翻案)
 
@@ -49,7 +51,8 @@ go-boilerplate は logging を **抽象 `Logger` interface(ctx-native・zap 実�
 go はバックエンドのみで、**server 常駐の OTel exporter / batch goroutine / shutdown hook** を前提とする。これは Next.js のブラウザ・serverless / edge には**そのまま載らない**ため、以下へ翻案する:
 
 - **サーバ側(Node runtime)**: 上記 1〜4 の pino + otel-js 相当を適用。serverless では長寿命 exporter を前提にせず、リクエスト境界での flush / OTLP 送信を基本とする
-- **ブラウザ側テレメトリは BFF 中継を seam とする**: クライアントで計測した値は **`/api/*`(BFF)経由でサーバへ送り、サーバ側で OTLP export** する(ブラウザから直接 SaaS へ送らない)。これは [0030](0030-environment-variable-management.md) の「secret を `NEXT_PUBLIC_` に出さない」「BFF runtime config」と整合し、vendor lock-in も避ける。fork が vendor SDK を使う場合も、ブラウザ→SaaS の直送でなく **自ドメイン `/api/*` 経由のリレー**でこの seam を保つ
+- **ブラウザ側テレメトリは BFF 中継を seam とする**: クライアントで計測した値は **`/api/*`(BFF)経由でサーバへ送り、サーバ側で OTLP export** する(ブラウザから直接 SaaS / collector へ送らない)。これは [0030](0030-environment-variable-management.md) の「secret を `NEXT_PUBLIC_` に出さない」「BFF runtime config」と整合し、vendor lock-in も避ける。fork が vendor SDK を使う場合も、ブラウザ→SaaS の直送でなく **自ドメイン `/api/*` 経由のリレー**でこの seam を保つ
+- **ブラウザ側も OTel の SDK で計装する**: ブラウザは自分で span を作り、それを上記の中継へ流す。中継が受けるのは OTLP そのもので、サーバは読み替えずに collector へ渡す。**送り先だけがブラウザから見えない** —— collector の endpoint も資格情報もサーバ側に留まり、seam は変わらない。ブラウザは自分の trace を始めず、サーバが配った `traceparent` を親に取る(これが無いと、ブラウザ発の記録は中継要求の span に紐づき、測定が起きていない要求と親子になる)。**計装は最初の描画の後に読み込む** —— 計測のための資材を初期の読み込みへ載せると、測っている当のものを悪くする
 
 ### 6. 観測性バックエンド = OTLP/OTel(vendor-neutral・vendor SDK 非同梱)
 

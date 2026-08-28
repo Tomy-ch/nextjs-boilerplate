@@ -1,21 +1,9 @@
 import { findAddresses } from "@/adapters/server/api/addresses";
-import { toHttpStatus } from "@/adapters/server/http/error-status";
-import { findAppError } from "@/errors/app-error";
-import { getDefaultErrorMeta } from "@/errors/error-catalog";
+import { toCaughtErrorResponse, toErrorResponse } from "@/adapters/server/http/error-response";
 import { ErrorKind } from "@/errors/error-kind";
 
 /** 契約が受け付ける郵便番号の形。ここを通らない要求はバックエンドへ出さない。 */
 const POSTAL_CODE_PATTERN = /^\d{3}-\d{4}$/;
-
-/** 分類から、返す status と文言を組む。分類の付いていない失敗は internal へ矯正する。 */
-function toErrorResponse(error: unknown): Response {
-  const kind = findAppError(error)?.kind ?? ErrorKind.INTERNAL;
-
-  return Response.json(
-    { message: getDefaultErrorMeta(kind).message },
-    { status: toHttpStatus(kind) },
-  );
-}
 
 /**
  * 郵便番号からの住所補完。
@@ -35,15 +23,12 @@ export async function GET(request: Request): Promise<Response> {
   const postalCode = new URL(request.url).searchParams.get("postalCode") ?? "";
 
   if (!POSTAL_CODE_PATTERN.test(postalCode)) {
-    return Response.json(
-      { message: getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message },
-      { status: toHttpStatus(ErrorKind.INVALID_ARGUMENT) },
-    );
+    return toErrorResponse(ErrorKind.INVALID_ARGUMENT);
   }
 
   try {
     return Response.json(await findAddresses(postalCode));
   } catch (error) {
-    return toErrorResponse(error);
+    return toCaughtErrorResponse(error);
   }
 }

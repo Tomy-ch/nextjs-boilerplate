@@ -24,7 +24,7 @@ export async function register(): Promise<void> {
       import("./observability/render-span"),
       import("./observability/render-span-runner.server"),
       import("./observability/otlp-log-sink.server"),
-      import("./observability/trace-context"),
+      import("./observability/trace-context.server"),
     ]);
 
     await bootstrapConfig();
