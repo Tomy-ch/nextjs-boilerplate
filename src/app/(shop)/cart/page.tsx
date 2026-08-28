@@ -7,6 +7,8 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { CartPageContent } from "@/features/cart/page-content";
+import { Suspense } from "react";
+import { CartSkeleton } from "@/features/cart/ui/skeleton/skeleton";
 
 export const metadata: Metadata = {
   title: "カート",
@@ -39,7 +41,9 @@ export default function CartPage() {
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <CartPageContent />
+      <Suspense fallback={<CartSkeleton />}>
+        <CartPageContent />
+      </Suspense>
     </ContentContainer>
   );
 }

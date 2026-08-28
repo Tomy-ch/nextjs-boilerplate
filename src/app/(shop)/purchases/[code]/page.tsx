@@ -4,6 +4,8 @@ import { ContentContainer } from "@/components/shell/content-container/content-c
 import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { PurchaseDetailPageContent } from "@/features/purchases/detail/page-content";
 import { purchaseDetailPath } from "@/features/purchases/facade/paths/paths";
+import { Suspense } from "react";
+import { PurchaseDetailSkeleton } from "@/features/purchases/detail/ui/skeleton/skeleton";
 
 export const metadata: Metadata = {
   title: "購入詳細",
@@ -26,18 +28,27 @@ export const metadata: Metadata = {
  * 見出しを置きません。この画面の見出しはパンくずの現在地（注文番号）が担っており、
  * `PageHeader` を重ねると同じ識別子が 2 度並びます。
  */
-export default async function PurchaseDetailPage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
+/**
+ * 控えの中身。
+ *
+ * @remarks
+ * **取得と判定を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../../docs/adr/0041-cache-components-decision.md)）。器は promise のまま渡し、穴の内側で解きます。
+ */
+async function PurchaseDetailContent({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
 
   await requireRegisteredUser(purchaseDetailPath(code));
 
+  return <PurchaseDetailPageContent purchaseCode={code} />;
+}
+
+export default function PurchaseDetailPage({ params }: { params: Promise<{ code: string }> }) {
   return (
     <ContentContainer className="py-8">
-      <PurchaseDetailPageContent purchaseCode={code} />
+      <Suspense fallback={<PurchaseDetailSkeleton />}>
+        <PurchaseDetailContent params={params} />
+      </Suspense>
     </ContentContainer>
   );
 }

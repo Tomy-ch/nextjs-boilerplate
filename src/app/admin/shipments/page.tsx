@@ -9,6 +9,8 @@ import {
 import { ShipmentQueuePageContent } from "@/features/admin/shipments/page-content";
 
 import { deliverPurchaseAction, shipPurchasesAction } from "./actions";
+import { Suspense } from "react";
+import { ShipmentQueueSkeleton } from "@/features/admin/shipments/ui/skeleton/skeleton";
 
 export const metadata: Metadata = {
   title: "発送",
@@ -36,10 +38,12 @@ export default function AdminShipmentQueuePage() {
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <ShipmentQueuePageContent
-        deliverAction={deliverPurchaseAction}
-        shipAction={shipPurchasesAction}
-      />
+      <Suspense fallback={<ShipmentQueueSkeleton />}>
+        <ShipmentQueuePageContent
+          deliverAction={deliverPurchaseAction}
+          shipAction={shipPurchasesAction}
+        />
+      </Suspense>
     </ContentContainer>
   );
 }

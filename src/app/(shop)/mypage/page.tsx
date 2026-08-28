@@ -27,9 +27,21 @@ export const metadata: Metadata = {
  * パンくずは置きません。global nav がこの画面を直接指しており、階層が 1 段だからです
  * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
  */
-export default async function MypagePage() {
+/**
+ * マイページの中身。
+ *
+ * @remarks
+ * **登録済みかの判定を穴の内側で行います。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../docs/adr/0041-cache-components-decision.md)）。送り返す働きは描画の途中でも効き、殻に主体の情報は載りません
+ * （[0112](../../../../docs/adr/0112-data-classification-cache-boundary.md)）。
+ */
+async function MypageContent() {
   await requireRegisteredUser(MYPAGE_PATH);
 
+  return <MypagePageContent />;
+}
+
+export default function MypagePage() {
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -39,7 +51,7 @@ export default async function MypagePage() {
         </div>
       </PageHeader>
       <Suspense fallback={<MypageSkeleton />}>
-        <MypagePageContent />
+        <MypageContent />
       </Suspense>
     </ContentContainer>
   );

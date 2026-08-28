@@ -24,9 +24,21 @@ export const metadata: Metadata = {
  * マイページとは独立したルートです。1 つの画面に表示と編集を同居させると、どちらの状態で
  * 開いているかが URL から失われ、戻る操作も共有もできなくなります。
  */
-export default async function ProfileEditPage() {
+/**
+ * プロフィール編集の中身。
+ *
+ * @remarks
+ * **登録済みかの判定を穴の内側で行います。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../../docs/adr/0041-cache-components-decision.md)）。送り返す働きは描画の途中でも効き、殻に主体の情報は載りません
+ * （[0112](../../../../../docs/adr/0112-data-classification-cache-boundary.md)）。
+ */
+async function ProfileEditContent() {
   await requireRegisteredUser(PROFILE_EDIT_PATH);
 
+  return <ProfileEditPageContent />;
+}
+
+export default function ProfileEditPage() {
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -36,7 +48,7 @@ export default async function ProfileEditPage() {
         </div>
       </PageHeader>
       <Suspense fallback={<ProfileEditSkeleton />}>
-        <ProfileEditPageContent />
+        <ProfileEditContent />
       </Suspense>
     </ContentContainer>
   );

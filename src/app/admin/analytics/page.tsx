@@ -9,6 +9,9 @@ import {
 import { getClockConfig } from "@/config/clock/clock.server";
 import { AdminAnalyticsPageContent } from "@/features/admin/analytics/page-content";
 import type { RawSearchParams } from "@/model/search-params";
+import { Suspense } from "react";
+import { AdminSummarySkeleton } from "@/features/admin/ui/skeleton/skeleton";
+import { connection } from "next/server";
 
 export const metadata: Metadata = {
   title: "集計",
@@ -27,13 +30,29 @@ export const metadata: Metadata = {
  * 置き換わると押したものが消えてから戻ってきます。境界の位置は中身が持ちます
  * （`features/admin/analytics/page-content.tsx`）。
  */
-export default async function AdminAnalyticsPage({
+/**
+ * 集計の中身。
+ *
+ * @remarks
+ * **`searchParams` を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../docs/adr/0041-cache-components-decision.md)）。器は promise のまま渡し、穴の内側で解きます。
+ *
+ * **「いま」を読むのもここです。** 実時計はプリレンダーの最中には値が定まらないため、
+ * `connection()` を待って「要求のときに描く」ことを確定させてから読みます。
+ */
+async function AdminAnalyticsContent({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
+  await connection();
+
+  return (
+    <AdminAnalyticsPageContent now={getClockConfig().now()} searchParams={await searchParams} />
+  );
+}
+
+export default function AdminAnalyticsPage({
   searchParams,
 }: {
   searchParams: Promise<RawSearchParams>;
 }) {
-  const params = await searchParams;
-
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -44,7 +63,9 @@ export default async function AdminAnalyticsPage({
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <AdminAnalyticsPageContent now={getClockConfig().now()} searchParams={params} />
+      <Suspense fallback={<AdminSummarySkeleton />}>
+        <AdminAnalyticsContent searchParams={searchParams} />
+      </Suspense>
     </ContentContainer>
   );
 }

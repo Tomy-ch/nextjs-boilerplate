@@ -37,6 +37,22 @@ export type AppShellMenuProps = {
  *
  * @see Storybook `Layout/AppShell`
  */
+/**
+ * side menu が届くまでの枠。
+ *
+ * @remarks
+ * **押せないだけで、大きさは同じです。** menu は現在地を読むため、動的な区間を持つ route では
+ * 殻の中で解決できません（[0041](../../../../docs/adr/0041-cache-components-decision.md)）。枠を
+ * 置かずに待つと、届いた瞬間に header の中身が右へずれます（`docs/rules.md` #17b）。
+ */
+export function AppShellMenuFallback() {
+  return (
+    <Button aria-label="メニューを開く" className="md:hidden" disabled size="sm" variant="ghost">
+      <MenuIcon aria-hidden="true" />
+    </Button>
+  );
+}
+
 export function AppShellMenu({ items, navSlot }: AppShellMenuProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();

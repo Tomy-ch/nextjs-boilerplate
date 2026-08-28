@@ -28,9 +28,21 @@ export const metadata: Metadata = {
  * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
  * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
  */
-export default async function CheckoutPage() {
+/**
+ * 購入確認の中身。
+ *
+ * @remarks
+ * **登録済みかの判定を穴の内側で行います。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../docs/adr/0041-cache-components-decision.md)）。送り返す働きは描画の途中でも効き、殻に主体の情報は載りません
+ * （[0112](../../../../docs/adr/0112-data-classification-cache-boundary.md)）。
+ */
+async function CheckoutConfirmContent() {
   await requireRegisteredUser(CHECKOUT_PATH);
 
+  return <CheckoutConfirmPageContent />;
+}
+
+export default function CheckoutPage() {
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -42,7 +54,7 @@ export default async function CheckoutPage() {
         </div>
       </PageHeader>
       <Suspense fallback={<CheckoutConfirmSkeleton />}>
-        <CheckoutConfirmPageContent />
+        <CheckoutConfirmContent />
       </Suspense>
     </ContentContainer>
   );

@@ -10,6 +10,8 @@ import { AdminUserListPageContent } from "@/features/admin/users/page-content";
 import type { RawSearchParams } from "@/model/search-params";
 
 import { withdrawUserAction } from "./actions";
+import { Suspense } from "react";
+import { AdminUserListSkeleton } from "@/features/admin/users/ui/skeleton/skeleton";
 
 export const metadata: Metadata = {
   title: "利用者一覧",
@@ -23,13 +25,27 @@ export const metadata: Metadata = {
  * 検索エンジンに拾わせません。管理の面は認可の内側にあり、索引に載っても辿り着けないうえ、
  * 存在だけが外へ出ます（[0044](../../../../docs/adr/0044-seo-metadata-strategy.md)）。
  */
-export default async function AdminUserListPage({
+/**
+ * 一覧の中身。
+ *
+ * @remarks
+ * **`searchParams` を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../docs/adr/0041-cache-components-decision.md)）。器は promise のまま渡し、穴の内側で解きます。
+ */
+async function AdminUserListContent({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
+  return (
+    <AdminUserListPageContent
+      searchParams={await searchParams}
+      withdrawAction={withdrawUserAction}
+    />
+  );
+}
+
+export default function AdminUserListPage({
   searchParams,
 }: {
   searchParams: Promise<RawSearchParams>;
 }) {
-  const params = await searchParams;
-
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -40,7 +56,9 @@ export default async function AdminUserListPage({
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <AdminUserListPageContent searchParams={params} withdrawAction={withdrawUserAction} />
+      <Suspense fallback={<AdminUserListSkeleton />}>
+        <AdminUserListContent searchParams={searchParams} />
+      </Suspense>
     </ContentContainer>
   );
 }

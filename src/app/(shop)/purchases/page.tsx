@@ -10,6 +10,8 @@ import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { PURCHASE_HISTORY_PATH } from "@/features/purchases/facade/paths/paths";
 import { PurchaseHistoryPageContent } from "@/features/purchases/history/page-content";
 import type { RawSearchParams } from "@/model/search-params";
+import { Suspense } from "react";
+import { PurchaseHistorySkeleton } from "@/features/purchases/history/ui/skeleton/skeleton";
 
 export const metadata: Metadata = {
   title: "購入履歴",
@@ -29,13 +31,32 @@ export const metadata: Metadata = {
  * パンくずは置きません。global nav がこの画面を直接指しており、階層が 1 段だからです
  * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
  */
-export default async function PurchaseHistoryPage({
+/**
+ * 履歴の中身。
+ *
+ * @remarks
+ * **取得と判定を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../docs/adr/0041-cache-components-decision.md)）。器は promise のまま渡し、穴の内側で解きます。
+ *
+ * **登録済みかの判定も穴の内側です。** 送り返す働きは描画の途中でも効き、殻を先に配ったぶん
+ * だけ早く判定へ入ります。殻に主体の情報は載りません
+ * （[0112](../../../../docs/adr/0112-data-classification-cache-boundary.md)）。
+ */
+async function PurchaseHistoryContent({
   searchParams,
 }: {
   searchParams: Promise<RawSearchParams>;
 }) {
   await requireRegisteredUser(PURCHASE_HISTORY_PATH);
 
+  return <PurchaseHistoryPageContent searchParams={await searchParams} />;
+}
+
+export default function PurchaseHistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<RawSearchParams>;
+}) {
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -46,7 +67,9 @@ export default async function PurchaseHistoryPage({
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <PurchaseHistoryPageContent searchParams={await searchParams} />
+      <Suspense fallback={<PurchaseHistorySkeleton />}>
+        <PurchaseHistoryContent searchParams={searchParams} />
+      </Suspense>
     </ContentContainer>
   );
 }
