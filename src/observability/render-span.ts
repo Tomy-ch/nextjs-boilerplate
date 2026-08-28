@@ -50,8 +50,8 @@ export function configureRenderSpans(next: RenderSpanConfiguration): void {
  * 対象は `features/<name>/<screen>/` の `page-content` と `view` です。範囲の線引きは
  * [features の README](../features/README.md) が持ちます。
  *
- * @param name - span 名に載せる `src/` からのモジュールパス。利用者の入力を混ぜてはいけません
- *   （span 名の redaction は [0081](../../docs/adr/0081-observability-logging.md)）。
+ * @param name - span 名に載せる `src/` からのモジュールパス。**利用者の入力を混ぜてはいけません**
+ *   （理由は [README](./README.md) の「描画の計装」）。
  */
 export function withScreenSpan<Args extends readonly unknown[], Result extends RenderResult>(
   name: string,
