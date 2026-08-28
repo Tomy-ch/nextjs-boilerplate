@@ -89,6 +89,21 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 例外のほうは metric ではなく `logging` の構造化ログへ載せる。1 件ずつ辿るものであり、`exception.type` / `exception.message` / `exception.stacktrace` という公式 semconv の属性がそのまま使える。**`trace_id` は画面を組んだ要求のもの**である —— ブラウザが返してきた `traceparent` の文脈で記録するためで、渡ってこなければ trace を付けない。中継要求の span を付けると、例外が起きていない要求と親子になる。
 
+## span の属性名は出所で違う
+
+同じ trace の中でも、span を張った計装によって HTTP の属性名が違う。**`http.request.method` で絞ると Next.js のスパンだけが引っかからない。**
+
+| scope | 属性名 |
+| --- | --- |
+| `next.js` | `http.method` / `http.target` / `http.status_code` / `http.url` |
+| `browser-telemetry` / `@opentelemetry/instrumentation-undici` | `http.request.method` / `url.path` / `http.response.status_code` |
+
+Next.js 自身の計装が v1.0 前の命名のままであり、このカーネルからは変えられない。**絞り込むときは両方の名前を見る。**
+
+```text
+{ span.http.request.method = "GET" || span.http.method = "GET" }
+```
+
 ## signal の有効化
 
 `OTEL_EXPORTER_OTLP_ENDPOINT` は OTLP HTTP の base endpoint を、`OBS_TRACES_EXPORTER`、`OBS_METRICS_EXPORTER`、`OBS_LOGS_EXPORTER` は signal ごとの有効化を表す。各値は `otlp`、`none`、または空文字列であり、`otlp` だけが有効である。base endpoint には各 signal の `/v1/traces`、`/v1/metrics`、`/v1/logs` を自動付与する。無効な signal は exporter、batch processor、metric reader を生成しない。描画の範囲を決める `OBS_RENDER_SPANS` は signal ではないので、この gate とは別に効く（trace 自体が無効なら描画 span も出ない）。変数の一覧と環境別の供給方法は [env/README.md](../../env/README.md) を参照する。
