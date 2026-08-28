@@ -34,7 +34,7 @@
 | 44 | アプリ cookie は用途を接頭辞に含め、`Secure`、`HttpOnly`、`SameSite`、`Max-Age` を用途ごとに明示する。読み書きは server 境界へ閉じ込める。 | P5-4 の Route Handler テスト。 | [ADR 0131](adr/0131-cookie-consent.md) |
 | 47 | Server Action は `allowedOrigins` を設定し、Route Handler は state-changing request の origin を検証する。 | P5-4 と P6-2 のテスト / CI。 | [ADR 0070](adr/0070-backend-role-separation.md) |
 | 48 | `dangerouslySetInnerHTML` は原則禁止する。リッチテキストは sanitizer を通し、外部 URL も利用前に検証する。 | Biome `noDangerouslySetInnerHtml`。 | [ADR 0110](adr/0110-security-operations.md) |
-| 50 | 第三者 script は `next/script` の strategy を明示し、CSP と同時に設計する。`@next/third-parties` の採否は用途ごとに判断する。 | P6-2 の CSP 検証。 | [ADR 0131](adr/0131-cookie-consent.md) |
+| 50 | 第三者 script は `next/script` の strategy を明示し、CSP と同時に設計する。`@next/third-parties` の採否は用途ごとに判断する。配信元は `src/config/security-headers/` の CSP へ足し、[0111](adr/0111-csp-security-headers.md) §2 の `Cross-Origin-Embedder-Policy` を緩める判断を伴う。 | E2E の見張り（`securitypolicyviolation`）と DAST。宣言に無い配信元は実ブラウザで拒まれ、赤になる。 | [ADR 0131](adr/0131-cookie-consent.md) |
 | 53 | 日時は表示 timezone を明示し、server と client で異なる値を初期 render しない。`suppressHydrationWarning` は理由を記録した例外だけにする。 | hydration を含む component テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 54 | 相対時刻は `Intl.RelativeTimeFormat` で表示し、更新が必要な client component だけを interval で再描画する。 | component テスト。 | [ADR 0040](adr/0040-routing-rendering-strategy.md) |
 | 55 | UI 文言は feature 内の定数へ寄せる。エラー文言は errors の分類・表示モデルに従い、画面ごとに再定義しない。 | review。 | [ADR 0121](adr/0121-i18n-strategy.md) |
@@ -63,6 +63,7 @@
 | 84 | **PII を含むという理由で画面全体を CSR 化しない。** PII のために SSR / PPR を諦めるのは許されるが、CSR にするのは PII を必要とする最小の Client Island に限る。 | 散文とレビュー。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) |
 | 85 | **public data と PII を同じキャッシュ可能な DTO へ混在させない。** 混ざった時点で全体が user-scoped になり、共有キャッシュの選択肢を失う。 | adapters テストとレビュー。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) |
 | 86 | **取得する PII を最小化する。** 一部しか使わないのに User オブジェクト全体を取得・保持・送信しない。必要な属性を特定し、取得の口で詰め替える。 | adapters テストとレビュー。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) |
+| 87 | **主体に紐づく応答の `Cache-Control` を画面や Route Handler ごとに書かない。** session cookie を載せた要求への応答には `src/proxy.ts` が `private, no-store` を一律に付ける。共有キャッシュを許してよいのは、資格情報を載せずに取れる応答だけ。 | `src/proxy.test.ts` と E2E（静的な画面でもヘッダが残ること）。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) / [ADR 0111](adr/0111-csp-security-headers.md) |
 
 ## 運用
 

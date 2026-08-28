@@ -79,7 +79,7 @@ user-scoped な値をキャッシュしたい場合の唯一の手段は **`use 
 | **キャッシュ投入前** | `use cache` を持つモジュールから user-scoped adapter を import する | lint | `lint:ci` |
 | **描画** | cached scope からの `cookies()` / `headers()` 読み出し。資格情報が cookie 由来であるため、user-scoped な取得を `use cache` の下へ置くと `next-request-in-use-cache` で落ちる | framework | build または実行時 |
 | **client 送信前** | server object をそのまま client へ渡す | taint([0030](0030-environment-variable-management.md) §8) | 描画時 |
-| **配信** | user-scoped な応答が共有キャッシュへ載る(CDN / プロキシ) | 応答ヘッダ([0111](0111-csp-security-headers.md)) | 応答時 |
+| **配信** | user-scoped な応答が共有キャッシュへ載る(CDN / プロキシ) | 応答ヘッダ。session cookie を載せた要求への応答に `src/proxy.ts` が `Cache-Control: private, no-store` を付ける([0111](0111-csp-security-headers.md) §5) | 応答時 |
 
 **どの段も、他の段が見えないものを見ている。** 取得の口だけでは `use cache` を書かれた時点で外れ、taint だけでは派生値とコピーで抜け、ヘッダだけではアプリ内部の共有キャッシュに効かない。
 
