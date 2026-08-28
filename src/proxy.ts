@@ -151,7 +151,8 @@ async function authorize(request: NextRequest): Promise<NextResponse> {
  *
  * @remarks
  * 静的アセットと画像最適化の経路を外します。認証の判断が要らないうえリクエスト数が最も多く、
- * ここへ処理を挟むと配信そのものが遅くなります。
+ * ここへ処理を挟むと配信そのものが遅くなります。**外した経路には {@link PRIVATE_CACHE_CONTROL} も
+ * 届きません** —— 画像最適化に載るのが公開画像だけであることが、その前提です。
  *
  * `/api` は外しません。Route Handler も保護の対象になり得るためです。
  */
