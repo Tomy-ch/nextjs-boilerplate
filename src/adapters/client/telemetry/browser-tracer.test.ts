@@ -3,17 +3,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  register: vi.fn(),
+  register: vi.fn<(config: { contextManager: ContextManager }) => void>(),
   forceFlush: vi.fn(),
   updateName: vi.fn(),
   setAttribute: vi.fn(),
-  extract: vi.fn(),
   enableInstrumentation: vi.fn(),
   provider: vi.fn(),
   processor: vi.fn(),
   serialize: vi.fn(),
   sendBeacon: vi.fn(),
-  exporter: vi.fn(),
   instrumentation: vi.fn(),
   stackActive: vi.fn(),
 }));
@@ -60,7 +58,7 @@ vi.mock("@opentelemetry/instrumentation-fetch", () => ({
   },
 }));
 
-import { ROOT_CONTEXT, trace } from "@opentelemetry/api";
+import { type Context, type ContextManager, ROOT_CONTEXT, trace } from "@opentelemetry/api";
 
 /** 立ち上げ済みかを覚えるので、1 件ごとに読み直す。 */
 async function load(): Promise<typeof import("./browser-tracer")> {
@@ -68,34 +66,20 @@ async function load(): Promise<typeof import("./browser-tracer")> {
 }
 
 const TRACEPARENT = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
-const DOCUMENT_CONTEXT = { document: true };
 
 /** 立ち上げ時に登録された文脈の実装から、有効な文脈を読む。 */
-function activeContext(): unknown {
-  const registered: unknown = mocks.register.mock.calls[0]?.[0];
-  const manager =
-    typeof registered === "object" && registered !== null && "contextManager" in registered
-      ? registered.contextManager
-      : undefined;
+function activeContext(): Context {
+  const manager = mocks.register.mock.calls[0]?.[0].contextManager;
 
-  if (
-    typeof manager !== "object" ||
-    manager === null ||
-    !("active" in manager) ||
-    typeof manager.active !== "function"
-  ) {
+  if (manager === undefined) {
     throw new Error("文脈の実装が登録されていない");
   }
 
   return manager.active();
 }
 
-/** 立ち上げ時に組まれた exporter を取り出す。 */
-function exporter(): {
-  export: (spans: unknown[], done: (result: { code: number }) => void) => void;
-  shutdown: () => Promise<void>;
-  forceFlush: () => Promise<void>;
-} {
+/** 立ち上げ時に組まれた送出の口へ、span を渡す。 */
+function exportSpans(spans: unknown[], done: (result: { code: number }) => void): void {
   const built: unknown = mocks.processor.mock.calls[0]?.[0];
 
   if (
@@ -104,10 +88,22 @@ function exporter(): {
     !("export" in built) ||
     typeof built.export !== "function"
   ) {
-    throw new Error("exporter が組まれていない");
+    throw new Error("送出の口が組まれていない");
   }
 
-  return built as never;
+  built.export(spans, done);
+}
+
+/** 送出の口が持つ、待ちの口を呼ぶ。 */
+async function awaitExporter(name: "shutdown" | "forceFlush"): Promise<unknown> {
+  const built: Readonly<Record<string, unknown>> = mocks.processor.mock.calls[0]?.[0];
+  const method = built[name];
+
+  if (typeof method !== "function") {
+    throw new Error("送出の口が組まれていない");
+  }
+
+  return method();
 }
 
 /** 立ち上げ時に渡された、span を名づけるフックを取り出す。 */
@@ -180,7 +176,7 @@ describe("startBrowserTracing", () => {
   it("何も囲まれていないとき、画面を組んだ要求を親にする", async () => {
     (await load()).startBrowserTracing(TRACEPARENT);
 
-    expect(trace.getSpanContext(activeContext() as never)).toMatchObject({
+    expect(trace.getSpanContext(activeContext())).toMatchObject({
       traceId: "0af7651916cd43dd8448eb211c80319c",
       spanId: "b7ad6b7169203331",
     });
@@ -220,7 +216,7 @@ describe("startBrowserTracing", () => {
     (await load()).startBrowserTracing(TRACEPARENT);
     const done = vi.fn();
 
-    exporter().export([{ name: "GET /api/docs" }], done);
+    exportSpans([{ name: "GET /api/docs" }], done);
 
     expect(mocks.serialize).toHaveBeenCalledWith([{ name: "GET /api/docs" }]);
     expect(mocks.sendBeacon.mock.calls[0]?.[0]).toBe("/api/telemetry/traces");
@@ -265,7 +261,7 @@ describe("startBrowserTracing", () => {
     mocks.serialize.mockReturnValue(undefined);
     const done = vi.fn();
 
-    exporter().export([], done);
+    exportSpans([], done);
 
     expect(mocks.sendBeacon).not.toHaveBeenCalled();
     expect(done).toHaveBeenCalledWith({ code: 0 });
@@ -274,8 +270,8 @@ describe("startBrowserTracing", () => {
   it("送出は beacon が引き受けるので、待つ口は何もしない", async () => {
     (await load()).startBrowserTracing(TRACEPARENT);
 
-    await expect(exporter().shutdown()).resolves.toBeUndefined();
-    await expect(exporter().forceFlush()).resolves.toBeUndefined();
+    await expect(awaitExporter("shutdown")).resolves.toBeUndefined();
+    await expect(awaitExporter("forceFlush")).resolves.toBeUndefined();
   });
 
   it("要求先が読めないときは名づけ直さない", async () => {
