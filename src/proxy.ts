@@ -5,6 +5,15 @@ import { readOptimisticSession } from "@/adapters/server/auth/optimistic-session
 import { SESSION_COOKIE_NAME } from "@/adapters/server/auth/session-cookie";
 import { getMaintenanceConfig } from "@/config/maintenance/maintenance.server";
 import { allowedRolesFor } from "@/model/authz";
+import {
+  allowsCategory,
+  CONSENT_CATEGORY,
+  CONSENT_COOKIE_NAME,
+  CONSENT_MAX_AGE_SECONDS,
+  MEASUREMENT_ID_COOKIE_NAME,
+  newMeasurementId,
+  parseConsentState,
+} from "@/model/consent";
 import { toSafeReturnUrl } from "@/model/return-url";
 import { hasAllowedRole } from "@/model/session";
 
@@ -85,6 +94,10 @@ const FALLBACK_PATH = "/";
  *
  * 未認証と役割不足を分けます。前者はやり直せるのでログインへ戻し、後者はやり直しても同じ結果に
  * なるため戻しません。
+ *
+ * 認可とは別に、同意に紐づく計測 id の発行と撤去をここが持ちます（{@link syncMeasurementId}）。
+ * cookie を書くのはこの境界の仕事であり（[0043](../docs/adr/0043-middleware-policy.md)）、画面の
+ * どれか一つに置くと、その画面を通らない訪問で発行されません。
  */
 export async function proxy(request: NextRequest): Promise<Response> {
   const url = new URL(request.url);
@@ -95,6 +108,57 @@ export async function proxy(request: NextRequest): Promise<Response> {
       : new NextResponse(null, { status: STOPPED_STATUS });
   }
 
+  const response = await authorize(request, url);
+
+  syncMeasurementId(request, response, url);
+
+  return response;
+}
+
+/**
+ * 同意に紐づく計測 id を、いまの同意状態へ合わせる。
+ *
+ * @remarks
+ * **発行するのは同意が得られている間だけです。** 未同意のうちに配ると、識別子を渡してから
+ * 同意を尋ねることになり、ゲートの意味が消えます（[0131](../docs/adr/0131-cookie-consent.md)）。
+ *
+ * **同意が外れたら消します。** 期限切れも、cookie を消した利用者も、選び直した利用者も同じ
+ * 扱いです。id だけが残ると、同意していない主体を前の識別子で繋げてしまいます。
+ *
+ * **すでに配ってあれば作り直しません。** 要求のたびに新しくすると、同じブラウザからの訪問を
+ * 繋ぐという id の役目そのものが果たせません。
+ *
+ * `httpOnly` を付けません。読むのはブラウザ側で動く計測であり、サーバは配るだけだからです。
+ * ゲートの先に何も繋いでいない状態では読み手が居ませんが、読めない形で配ると、繋いだ時点で
+ * 発行の口ごと作り直すことになります。
+ */
+function syncMeasurementId(request: NextRequest, response: NextResponse, url: URL): void {
+  const consent = parseConsentState(request.cookies.get(CONSENT_COOKIE_NAME)?.value);
+  const issued = request.cookies.has(MEASUREMENT_ID_COOKIE_NAME);
+
+  if (!allowsCategory(consent, CONSENT_CATEGORY.optional)) {
+    if (issued) {
+      response.cookies.delete(MEASUREMENT_ID_COOKIE_NAME);
+    }
+
+    return;
+  }
+
+  if (issued) {
+    return;
+  }
+
+  response.cookies.set(MEASUREMENT_ID_COOKIE_NAME, newMeasurementId(), {
+    httpOnly: false,
+    maxAge: CONSENT_MAX_AGE_SECONDS,
+    path: "/",
+    sameSite: "lax",
+    secure: url.protocol === "https:",
+  });
+}
+
+/** 到達してよい役割を持たない要求を送り返し、それ以外を通す。 */
+async function authorize(request: NextRequest, url: URL): Promise<NextResponse> {
   const allowed = allowedRolesFor(url.pathname);
 
   if (allowed === null) {
