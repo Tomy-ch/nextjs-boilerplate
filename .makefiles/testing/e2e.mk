@@ -28,6 +28,12 @@ E2E_PORT ?= 3100
 # コンテナの中から見たアプリの場所。
 E2E_BASE_URL ?= http://host.docker.internal:$(E2E_PORT)
 
+# BFF を別 origin から呼ばせる相手として、起動時に宣言する origin (HTTP_ALLOWED_ORIGINS)。
+# 実在しなくてよい —— spec がこの origin の文書をブラウザの中で偽装し、そこからアプリへ fetch する
+# (e2e/journeys/cross-origin.spec.ts)。実在の名前を借りると、その名前が別の意味を持った日に
+# 判定が変わる。宣言と spec が同じ綴りを読むよう、コンテナへも渡す。
+E2E_ALLOWED_ORIGIN ?= http://partner.example.test
+
 # 生成物をホストの所有者で書き出すために渡す。compose 側の既定 (1000) は Linux の初回
 # ユーザであって、実行者と一致する保証が無い。
 RUNNER_UID ?= $(shell id -u)
@@ -48,7 +54,7 @@ export E2E_ONLY
 # 暗黙依存すると include の順序を変えただけで静かに壊れるためである。
 
 E2E_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
-	-e E2E_BASE_URL=$(E2E_BASE_URL) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE -e E2E_ONLY browser_runner
+	-e E2E_BASE_URL=$(E2E_BASE_URL) -e E2E_ALLOWED_ORIGIN=$(E2E_ALLOWED_ORIGIN) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE -e E2E_ONLY browser_runner
 
 E2E_CONFIG := --config=playwright.e2e.config.ts
 
@@ -127,7 +133,7 @@ e2e-run: e2e-build
 		echo "❌ $$hostname:$(E2E_PORT) を既に何かが使っています。空いているポートを E2E_PORT で指定してください。"; \
 		exit 1; \
 	fi; \
-	APP_ENV=$(E2E_APP_ENV) $(E2E_APP_ENV_EXTRA) pnpm start --hostname "$$hostname" --port $(E2E_PORT) > tmp/e2e/server.log 2>&1 & \
+	APP_ENV=$(E2E_APP_ENV) HTTP_ALLOWED_ORIGINS=$(E2E_ALLOWED_ORIGIN) $(E2E_APP_ENV_EXTRA) pnpm start --hostname "$$hostname" --port $(E2E_PORT) > tmp/e2e/server.log 2>&1 & \
 	server_pid=$$!; \
 	trap 'kill $$server_pid 2>/dev/null || true' EXIT INT TERM; \
 	booted=0; \

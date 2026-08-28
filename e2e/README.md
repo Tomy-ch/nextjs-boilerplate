@@ -23,6 +23,7 @@ story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象�
 | Responsive | 帯ごとの出し分け（[`docs/rules.md`](../docs/rules.md) #71） | 帯は viewport の関数であり、jsdom には幅が無い |
 | 履歴 | 被せた面と画面遷移が同じ履歴を奪い合わないか（[0053](../docs/adr/0053-ui-component-interaction-seam.md)） | 競合するのは実ブラウザの履歴操作どうしで、jsdom には相手が居ない |
 | Cross Browser | 描画エンジン固有の破綻 | 1 つのエンジンで通ることは、他の 2 つで通ることを意味しない |
+| 別 origin | 宣言した origin から BFF が読めること・宣言に無い origin からの書き込みが止まること（[0111](../docs/adr/0111-csp-security-headers.md) §5） | preflight の自動発行と CORS の読み取り制限は実ブラウザにしか無い。宣言した origin の文書は `page.route` で偽装する |
 | 画面単位の見た目 | 画面 1 枚ぶんの基準画像との比較 | 部品の比較を全部足しても、並べた結果にはならない |
 | 画面単位の a11y | landmark・`main`・h1 と、配信される document（[`lib/a11y-rules.ts`](lib/a11y-rules.ts)） | story は部品を単独で描くのでこの 4 つが成立せず、Storybook の iframe document を評価してしまう |
 | フォーカス | 被せた面が焦点を受け取り、閉じ込め、閉じたら返すか | **jsdom はフォーカスの実装を持たない。**`inert` も focus trap も無く、`Tab` の巡回順は近似である |
