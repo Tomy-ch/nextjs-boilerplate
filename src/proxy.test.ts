@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PROTECTED_PREFIXES } from "@/model/authz";
+import { CONSENT_CHOICE, CONSENT_COOKIE_NAME, MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
 import { SESSION_ROLE } from "@/model/session";
 import { proxy } from "./proxy";
 
@@ -40,6 +41,24 @@ function crossOrigin(
     method: init.method ?? "GET",
     headers: { origin, host: "localhost:3000", ...init.headers },
   });
+}
+
+/** cookie を載せた要求。同意と計測 id の有無を組み替える。 */
+function withCookies(cookies: Record<string, string>): NextRequest {
+  const cookie = Object.entries(cookies)
+    .map(([name, value]) => `${name}=${value}`)
+    .join("; ");
+
+  return new NextRequest(new URL("/help", "http://localhost:3000"), { headers: { cookie } });
+}
+
+/** 応答が発行した計測 id。撤去のときは空文字が載る。 */
+function issuedMeasurementId(response: Response): string | undefined {
+  return response.headers
+    .getSetCookie()
+    .find((entry) => entry.startsWith(`${MEASUREMENT_ID_COOKIE_NAME}=`))
+    ?.slice(MEASUREMENT_ID_COOKIE_NAME.length + 1)
+    .split(";")[0];
 }
 
 /** 読み取りだが GET ではない要求。 */
@@ -269,6 +288,23 @@ describe("proxy", () => {
     expect(response.headers.get("access-control-allow-methods")).toBeNull();
   });
 
+  it("同意が得られていれば計測 id を発行する", async () => {
+    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted }));
+
+    expect(issuedMeasurementId(response)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it("すでに配ってある計測 id は作り直さない", async () => {
+    const response = await proxy(
+      withCookies({
+        [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted,
+        [MEASUREMENT_ID_COOKIE_NAME]: "issued-earlier",
+      }),
+    );
+
+    expect(issuedMeasurementId(response)).toBeUndefined();
+  });
+
   // ----- 異常系 -----
   it("未認証で保護されたパスへ来たらログインへ送る", async () => {
     const response = await proxy(request("/account"));
@@ -344,5 +380,23 @@ describe("proxy", () => {
     const response = await proxy(crossOrigin("/api/telemetry", "null", { method: "POST" }));
 
     expect(response.status).toBe(403);
+  });
+
+  it("同意が無い間は計測 id を発行しない", async () => {
+    const response = await proxy(withCookies({}));
+
+    expect(issuedMeasurementId(response)).toBeUndefined();
+  });
+
+  it("拒否されている間も計測 id を発行しない", async () => {
+    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.denied }));
+
+    expect(issuedMeasurementId(response)).toBeUndefined();
+  });
+
+  it("同意が外れていれば、配ってある計測 id を撤去する", async () => {
+    const response = await proxy(withCookies({ [MEASUREMENT_ID_COOKIE_NAME]: "issued-earlier" }));
+
+    expect(issuedMeasurementId(response)).toBe("");
   });
 });

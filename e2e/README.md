@@ -211,6 +211,19 @@ seed は要求の URL から導かれるので、暦日で区切る画面が実�
 書く spec が 1 つだけある —— [`journeys/csp.spec.ts`](journeys/csp.spec.ts) は宣言に無い配信元を
 自分で差して違反が報告されることを確かめるため、見張りの内側に置くと確かめた違反で落ちる。
 
+## 同意は選び終えた状態から始める
+
+同意を尋ねる面は、選び終えるまで画面を覆う（[0131](../docs/adr/0131-cookie-consent.md)）。
+[`lib/test.ts`](lib/test.ts) はこれを**拒否の側で選んだ状態**にしてから spec へ渡す。ジャーニーが
+確かめたいのはその先の画面であり、全ての spec が最初に同意を押すことになると、押し忘れた spec
+だけが「面に覆われたまま緑」になる。同意ではなく拒否から始めるのは、同意すると計測 id が配られ、
+どのジャーニーも本題と関係のない cookie を持つことになるためである。
+
+**尋ねる面そのものを見る spec だけがこの test を使わない。**
+[`journeys/consent.spec.ts`](journeys/consent.spec.ts) は選ぶ前の状態を確かめるので、`lib/test.ts`
+ではなく Playwright の `test` を直接使う。CSP の spec と同じ理由で、見張りの内側に置けない側では
+なく**前提の内側に置けない**側である。
+
 ## 帯とエンジンは宣言から引く
 
 **どちらもここに数値や銘柄を書かない。**
@@ -284,7 +297,7 @@ E2E の報告が無い commit では画面を 1 枚も撮り直さない。1 対
 | [`lib/viewports.ts`](lib/viewports.ts) | design token から帯を組み立てる |
 | [`lib/screens.ts`](lib/screens.ts) | build の出力と宣言を突き合わせ、開く画面を決める |
 | [`lib/screen-baselines.ts`](lib/screen-baselines.ts) | 画面と帯から、在るべき基準画像のパスを組み立てる |
-| `journeys/` | ジャーニー・帯ごとの出し分け・CSP の enforce。3 つのエンジンで回る |
+| `journeys/` | ジャーニー・帯ごとの出し分け・CSP の enforce・同意の面。3 つのエンジンで回る |
 | `visual/` | 画面単位の比較。1 つのエンジンで、帯の数だけ回る |
 | `maintenance/` | 配信を止めた状態の成立。**別の起動で回る**（下記） |
 
