@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatCspViolation,
   formatProblems,
   isReportableConsoleError,
   isServerError,
@@ -68,6 +69,34 @@ describe("isServerError", () => {
 
   it("成功を異常として数えない", () => {
     expect(isServerError(200)).toBe(false);
+  });
+});
+
+describe("formatCspViolation", () => {
+  // ----- 正常系 -----
+  it("拒んだディレクティブと読み込み先に、出所を添える", () => {
+    expect(
+      formatCspViolation({
+        violatedDirective: "script-src-elem",
+        blockedURI: "https://probe.invalid/script.js",
+        sourceFile: "http://127.0.0.1:3000/about",
+        lineNumber: 12,
+      }),
+    ).toBe(
+      "script-src-elem が https://probe.invalid/script.js を拒否 (http://127.0.0.1:3000/about:12)",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("出所が採れなければ場所を省く", () => {
+    expect(
+      formatCspViolation({
+        violatedDirective: "img-src",
+        blockedURI: "data",
+        sourceFile: "",
+        lineNumber: 0,
+      }),
+    ).toBe("img-src が data を拒否");
   });
 });
 

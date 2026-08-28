@@ -26,6 +26,19 @@ describe("getHttpConfig", () => {
     expect(getHttpConfig()).toMatchObject({ maxUploadBytes: 4194304 });
   });
 
+  it("環境変数から別 origin の許可一覧を組み立てる", async () => {
+    vi.stubEnv("HTTP_ALLOWED_ORIGINS", "https://partner.example.test");
+    const { getHttpConfig } = await import("./http.server");
+
+    expect(getHttpConfig().allowedOrigins).toStrictEqual(["https://partner.example.test"]);
+  });
+
+  it("許可一覧が未指定なら同一 origin だけにする", async () => {
+    const { getHttpConfig } = await import("./http.server");
+
+    expect(getHttpConfig().allowedOrigins).toStrictEqual([]);
+  });
+
   it("同じ singleton を返す", async () => {
     const { getHttpConfig } = await import("./http.server");
 

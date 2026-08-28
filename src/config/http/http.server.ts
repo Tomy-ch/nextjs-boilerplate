@@ -6,10 +6,16 @@ import type { HttpEnvironment } from "./http.schema";
 class HttpConfig {
   readonly #maxUrlBytes: number;
   readonly #maxUploadBytes: number;
+  readonly #allowedOrigins: readonly string[];
 
-  private constructor(maxUrlBytes: number, maxUploadBytes: number) {
+  private constructor(
+    maxUrlBytes: number,
+    maxUploadBytes: number,
+    allowedOrigins: readonly string[],
+  ) {
     this.#maxUrlBytes = maxUrlBytes;
     this.#maxUploadBytes = maxUploadBytes;
+    this.#allowedOrigins = allowedOrigins;
   }
 
   /** 検証済み ENV から production singleton を組み立てる。 */
@@ -17,7 +23,19 @@ class HttpConfig {
     return new HttpConfig(
       values.NEXT_PUBLIC_HTTP_MAX_URL_BYTES,
       values.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES,
+      values.HTTP_ALLOWED_ORIGINS,
     );
+  }
+
+  /**
+   * BFF（`/api/*`）を別 origin から呼ばせる相手。
+   *
+   * @remarks
+   * 空なら同一 origin だけです。`src/proxy.ts` が CORS と origin 検証の両方でこの値を読みます
+   * （`docs/rules.md` #47 / [0111](../../../docs/adr/0111-csp-security-headers.md) §5）。
+   */
+  get allowedOrigins(): readonly string[] {
+    return this.#allowedOrigins;
   }
 
   /**

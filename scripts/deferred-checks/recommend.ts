@@ -78,6 +78,10 @@ export const CHECKS: readonly Check[] = [
         reason: "全てのリクエストが通る proxy が動いています",
       },
       {
+        globs: ["next.config.ts", "src/config/security-headers/**/*.ts"],
+        reason: "全ての応答に載る配信ヘッダが動いています。CSP の違反は実ブラウザでしか出ません",
+      },
+      {
         globs: ["src/app/**/layout.tsx"],
         reason: "全ての画面が通る器が動いています",
       },
