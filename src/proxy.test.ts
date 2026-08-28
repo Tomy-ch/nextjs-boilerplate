@@ -24,6 +24,11 @@ function request(path: string, sealed?: string): NextRequest {
   return new NextRequest(new URL(path, "http://localhost:3000"), { headers });
 }
 
+/** 読み取りだが GET ではない要求。 */
+function headRequest(path: string): NextRequest {
+  return new NextRequest(new URL(path, "http://localhost:3000"), { method: "HEAD" });
+}
+
 /** Server Action の送信。使用先の route へ `Next-Action` 付きの POST として届く。 */
 function serverAction(path: string): NextRequest {
   return new NextRequest(new URL(path, "http://localhost:3000"), {
@@ -111,12 +116,30 @@ describe("proxy", () => {
     expect(response.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
+  it("停止中でも読み取りであれば HEAD も停止画面へ差し替える", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(headRequest("/products/1"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/maintenance");
+  });
+
   it("停止中も生存確認は通す", async () => {
     maintenance.isStopped = true;
 
     const response = await proxy(request("/api/health"));
 
-    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("停止中の生存確認は method を問わず通す", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(serverAction("/api/health"));
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.status).not.toBe(503);
   });
 
   it("停止中も停止画面自身は差し替えない", async () => {

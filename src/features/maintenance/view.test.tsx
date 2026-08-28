@@ -30,6 +30,7 @@ describe("MaintenanceView", () => {
     render(<MaintenanceView />);
 
     expect(screen.getByText(/終了の予定はお知らせしていません/)).toBeVisible();
+    expect(screen.queryByText(/\d/)).not.toBeInTheDocument();
   });
 
   it("a11y 自動検査に違反しない", async () => {
