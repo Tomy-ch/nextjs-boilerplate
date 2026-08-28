@@ -123,8 +123,9 @@ export const ENTRY_POINTS = [
     category: "proxy",
     pattern: "src/proxy*",
     dependencies: ["model", "config", "errors"],
-    // 応答を返す境界なので、確かめるのは描画ではなくリクエストに対する結果である。
-    testRequirement: "integration",
+    // 関数として呼べば分岐も差し替え先も行使できるので unit である（[0043](docs/adr/0043-middleware-policy.md)
+    // §4）。matcher の選び足りなさだけは関数を呼ぶ経路を通らないため e2e が負う。
+    testRequirement: "unit",
   },
   {
     // 画面の合成を見せる story。合成は `app` 層の管轄だが、`app` に story は置けない

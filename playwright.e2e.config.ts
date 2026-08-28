@@ -92,7 +92,12 @@ export default defineConfig({
       name: engine,
       // 画面単位の a11y は DOM の構造を見るので、エンジンでは変わらない。実行時に飛ばすと
       // **飛ばす回数だけブラウザの器が立つ**ので、収集の段で外す。
-      testIgnore: engine === ENGINES[0] ? "**/visual/**" : ["**/visual/**", "**/a11y/**"],
+      // 停止中の検証は開く相手の状態が違うので、こちらの起動では成立しない
+      // （`playwright.maintenance.config.ts`）。
+      testIgnore:
+        engine === ENGINES[0]
+          ? ["**/visual/**", "**/maintenance/**"]
+          : ["**/visual/**", "**/a11y/**", "**/maintenance/**"],
       use: { ...devices[deviceFor(engine)], viewport: { width: 1280, height: VIEWPORT_HEIGHT } },
     })),
     // 画面の比較は 1 つのエンジンで、帯の数だけ回す。project 名がそのまま基準画像を分ける区画に

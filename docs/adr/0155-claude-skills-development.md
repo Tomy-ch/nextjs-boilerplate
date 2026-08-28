@@ -116,7 +116,7 @@ subagent 自身が read-only である規約は例外を持たない。書き込
 
 ## `new-env` の対象構造
 
-`new-env` は **A7 ([0030](0030-environment-variable-management.md)) の config カーネル**を対象とする。すなわち `src/config/` の目的別 config モジュール (`<purpose>.server.ts` / `<purpose>.client.ts` のスキーマ項目 + `#` private フィールド + getter)、`env/.env.{local,ci,dev,stg,prd}`、変数表ドキュメントの 3 点を同期する。
+`new-env` は **A7 ([0030](0030-environment-variable-management.md)) の config カーネル**を対象とする。すなわち `src/config/` の目的別 config モジュール (`<purpose>.server.ts` / `<purpose>.client.ts` のスキーマ項目 + `#` private フィールド + getter)、検証を通る変数一式を持つ fixture、`env/.env.{local,ci,dev,stg,prd}`、変数表ドキュメントの 4 点を同期する。**fixture を対象に含めるのは、変数一式が型で結ばれているためである** —— 足し忘れると、書いた場所ではなく別ファイルの型検査が落ちる。
 
 スキルは purpose インベントリ・スキーマライブラリ・env ファイル集合を**実行時に実ツリーから検出**し、固定値で持たない。スキーマライブラリの選定は [0030](0030-environment-variable-management.md) が A7 実装 PR へ委ねているため、スキル側でライブラリ名を前提にしない。
 

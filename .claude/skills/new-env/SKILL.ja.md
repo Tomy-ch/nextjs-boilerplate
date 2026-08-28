@@ -174,6 +174,17 @@ secret ラベルを選んだ場合は Notes 列に含める。この行は**す�
 
 質問 2 が「はい」のときだけ。周囲の記述に倣って値を解説する: どの purpose に属するか、server / client のどちら側か、required か code default か、受け手がどう受け取るか。env 行の内容をここへ**再掲しない** — 変数が存在する事実は env、値の意味と扱いは config が持つ。config README が個別の値ではなく purpose 単位の解説になっている場合は、何も足さずその旨を計画で述べる（ファイルの構造に無い変数別セクションを勝手に作らない）。
 
+### `src/config/environment.fixture.ts` — 全量のスタブ（config 経由の変数のみ）
+
+**config 経由の変数はここにも足す。**fixture は検証を通る変数一式を書く唯一の場所で、
+`satisfies Record<keyof Environment, string>` で型付けされている — つまり `environment.ts` へ
+足して fixture へ足し忘れると、**書いた場所ではなく、著者が開いてもいないファイルの型検査**が
+落ちる。fixture が export する 2 つのオブジェクト（生のスタブ一式と、検証後の結果）の両方へ、
+隣と同じ形の値で鍵を足す。
+
+置き場は決め打ちせず見つける: purpose のテストが `stubValidEnvironment` を import している先が
+それである。将来の整理で移動・分割されたら、import を辿る。
+
 ### テスト
 
 config のテスト方針は **env スタブ + factory 再生成**（`vi.stubEnv`） — [0030](../../../docs/adr/0030-environment-variable-management.md) 周辺ルール / [0090](../../../docs/adr/0090-testing-strategy.md)。purpose ディレクトリに config テストが在れば、本体変更と歩調を合わせて拡張する: 新 getter を検証するケースと、required 変数なら欠落時に検証が失敗することを確認するケース。config テストがまだ無い場合（テスト基盤は P3-6 で入る）はスキップし、その旨を Step 2 の計画で明示する。
@@ -192,10 +203,11 @@ config のテスト方針は **env スタブ + factory 再生成**（`vi.stubEnv
 読み取り済みコンテキストから導いた厳密なアンカー（対象セクションの最後のスキーマ項目 / フィールド / getter / 表の行）で `Edit` を使う。順序:
 
 1. `src/config/<purpose>/<purpose>.schema.ts`、対応 runtime モジュール、`src/config/environment.ts`（validator → 環境スキーマ項目 → getter）— config 経由の経路のみ
-2. config テスト（存在する場合）
-3. env ファイル（1 ファイル 1 編集）
-4. `env/README.md`
-5. `src/config/README.md` — config 経由の経路のみ
+2. `src/config/environment.fixture.ts` — config 経由の経路のみ
+3. config テスト（存在する場合）
+4. env ファイル（1 ファイル 1 編集）
+5. `env/README.md`
+6. `src/config/README.md` — config 経由の経路のみ
 
 いずれかの編集が失敗したら停止して報告する。残りのファイルへ進まない。
 
@@ -224,7 +236,7 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 
 `CLAUDE.md` / `AGENTS.md` の「Exception: Skill Execution」に従い、本スキル実行中は以下へスコープを限定して AI 変更スコープが緩和される:
 
-- env ファイル群と `env/README.md`。config 経由の経路ではさらに、purpose schema、対応する runtime モジュール、`src/config/environment.ts`、同居するテストファイル、`src/config/README.md` — またはユーザが承認した部分集合
+- env ファイル群と `env/README.md`。config 経由の経路ではさらに、purpose schema、対応する runtime モジュール、`src/config/environment.ts`、`src/config/environment.fixture.ts`、同居するテストファイル、`src/config/README.md` — またはユーザが承認した部分集合
 
 保護されたまま:
 
@@ -266,6 +278,7 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - [ ] 実在する env ファイルすべてを該当セクション配下で更新した
 - [ ] `env/README.md` の変数表に行を足した（常に）
 - [ ] config 経由の経路では `src/config/README.md` を更新した（env 行の再掲なし）
+- [ ] config 経由の経路: `src/config/environment.fixture.ts` にも鍵を足した
 - [ ] config テストを更新した、または不在を明示した
 - [ ] `pnpm fix` / `lint:ci` / `typecheck` / `build` を実行し結果を報告した
 - [ ] コミット / push を行っていない

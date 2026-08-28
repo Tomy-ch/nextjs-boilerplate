@@ -19,13 +19,14 @@ story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象�
 | | 見ているもの | ここでしか見えない理由 |
 | --- | --- | --- |
 | ジャーニー | 画面をまたぐ遷移・絞り込み・認証の前捌き | 経路が繋がっているかは、画面 1 枚では答えられない |
-| Browser Errors | hydration の不一致・描画中の例外・通信の失敗 | **hydration の不一致は build も型検査も通る。**実機で描いたときにしか現れない |
+| Browser Errors | hydration の不一致・描画中の例外・通信の失敗・CSP 違反 | **hydration の不一致は build も型検査も通る。**実機で描いたときにしか現れない。CSP の違反も同じで、ヘッダを読む検査（DAST）は enforce の結果を見ない |
 | Responsive | 帯ごとの出し分け（[`docs/rules.md`](../docs/rules.md) #71） | 帯は viewport の関数であり、jsdom には幅が無い |
 | 履歴 | 被せた面と画面遷移が同じ履歴を奪い合わないか（[0053](../docs/adr/0053-ui-component-interaction-seam.md)） | 競合するのは実ブラウザの履歴操作どうしで、jsdom には相手が居ない |
 | Cross Browser | 描画エンジン固有の破綻 | 1 つのエンジンで通ることは、他の 2 つで通ることを意味しない |
 | 画面単位の見た目 | 画面 1 枚ぶんの基準画像との比較 | 部品の比較を全部足しても、並べた結果にはならない |
 | 画面単位の a11y | landmark・`main`・h1 と、配信される document（[`lib/a11y-rules.ts`](lib/a11y-rules.ts)） | story は部品を単独で描くのでこの 4 つが成立せず、Storybook の iframe document を評価してしまう |
 | フォーカス | 被せた面が焦点を受け取り、閉じ込め、閉じたら返すか | **jsdom はフォーカスの実装を持たない。**`inert` も focus trap も無く、`Tab` の巡回順は近似である |
+| 配信の停止 | `APP_MAINTENANCE_MODE=on` で起動したプロセスが、実際に全ルートを差し替えるか | **入口の分岐も設定も、層ごとには mock 越しにしか確かめていない。**結線は起動してみないと分からない |
 
 **ジャーニーの実体は題材と一緒に消えるが、観点は消えない。** 上の表は fork が自分の画面へ
 書き換えたあとも成り立つもので、題材の破棄で失われるのは spec ファイルだけである。**書き換える
@@ -43,6 +44,7 @@ Vitest からは呼べない。何を異常と数えるか・どの画面を開�
 
 ```bash
 make e2e          # 主要ジャーニーを回し、画面の見た目を基準画像と比較する
+make e2e-maintenance  # 配信を止めた状態で起動し、停止の機構が成立することを確かめる
 make e2e-update   # 画面の基準画像を撮り直す（置き場へ送るのは make baseline-push）
 make e2e-report   # 直前の実行の HTML レポートを開く
 make e2e-review   # CI が落とした画面を手元で開く（後述「落ちた画面を手元で開く」）
@@ -101,6 +103,23 @@ session 発行の口が開いているため）。
 > **story 単位の側（[`vrt/README.md`](../vrt/README.md)）と同じ限界がある。**ここで見えるのは
 > 「なぜ変わったか」であって、画素の一致ではない。手元のブラウザとホストのフォントで描くので、
 > CI が撮った画像とは元から一致しない。
+
+## 停止中だけは別の起動で回る
+
+`APP_MAINTENANCE_MODE` は**全ルートに効き、切り替えに起動し直しが要る**
+（[仕様書](../docs/spec/route/maintenance/page.function.md)）。1 回の起動の中に「止まっている画面」
+と「止まっていない画面」を同居させられないので、`maintenance/` だけは自分の設定
+（`playwright.maintenance.config.ts`）と自分の起動を持つ。
+
+```bash
+make e2e-maintenance   # 止めた状態で起動し、3 つの応答を確かめる
+```
+
+見るのは応答の成立だけで、**基準画像を撮らない**。停止画面の見た目は通常の巡回が `/maintenance`
+を開いて撮っている —— この画面は止めていなくても URL で開けるためである。
+
+`lib/test.ts` の `test` を使わないのもここだけである。あれはサーバ側の 5xx を異常として数えるが、
+停止中の 503 は意図した応答なので、見張りに掛けると成立が失敗として現れる。
 
 ## 落ちたときにどれをやるか
 
@@ -171,6 +190,7 @@ seed は要求の URL から導かれるので、暦日で区切る画面が実�
 | console の error | JavaScript が書いた行（React の hydration 不一致はこれ） | ブラウザ自身が書いた行（副資源の取得失敗の narration） |
 | 描画中の例外 | すべて | — |
 | 通信 | 5xx と transport の失敗 | 打ち切り（`net::ERR_ABORTED`）と 4xx |
+| CSP 違反 | すべて（`securitypolicyviolation`） | — |
 
 **4xx を数えないのは、それがアプリの設計された結果だから**である。存在しない資源は 404 を返し、
 未認証は 401 を返す。どれも spec が名指しで確かめる対象であり、横断の見張りが一律に落とすと、
@@ -185,6 +205,11 @@ seed は要求の URL から導かれるので、暦日で区切る画面が実�
 ない**ので、この向きなら文言に頼れる。一覧は回すエンジンに閉じており、際限なく伸びない。
 
 判定は [`lib/browser-errors.ts`](lib/browser-errors.ts) が持つ。
+
+**CSP の違反は console の見張りには掛からない。** ブラウザ自身が書く行なので引数を持たず、上の
+規則で外される。document の `securitypolicyviolation` で受け、経路を分けて数える。見張りの外で
+書く spec が 1 つだけある —— [`journeys/csp.spec.ts`](journeys/csp.spec.ts) は宣言に無い配信元を
+自分で差して違反が報告されることを確かめるため、見張りの内側に置くと確かめた違反で落ちる。
 
 ## 帯とエンジンは宣言から引く
 
@@ -259,8 +284,9 @@ E2E の報告が無い commit では画面を 1 枚も撮り直さない。1 対
 | [`lib/viewports.ts`](lib/viewports.ts) | design token から帯を組み立てる |
 | [`lib/screens.ts`](lib/screens.ts) | build の出力と宣言を突き合わせ、開く画面を決める |
 | [`lib/screen-baselines.ts`](lib/screen-baselines.ts) | 画面と帯から、在るべき基準画像のパスを組み立てる |
-| `journeys/` | ジャーニー・帯ごとの出し分け。3 つのエンジンで回る |
+| `journeys/` | ジャーニー・帯ごとの出し分け・CSP の enforce。3 つのエンジンで回る |
 | `visual/` | 画面単位の比較。1 つのエンジンで、帯の数だけ回る |
+| `maintenance/` | 配信を止めた状態の成立。**別の起動で回る**（下記） |
 
 同梱サンプルを破棄すると、題材の画面を通す spec（`journeys/browse` / `journeys/responsive`）は
 一緒に消える。**帯の出し分けを見る spec が消えるのは、見る相手が居なくなるため**である —— 残る
