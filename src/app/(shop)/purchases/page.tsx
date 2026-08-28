@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-
+import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -9,9 +9,8 @@ import {
 import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { PURCHASE_HISTORY_PATH } from "@/features/purchases/facade/paths/paths";
 import { PurchaseHistoryPageContent } from "@/features/purchases/history/page-content";
-import type { RawSearchParams } from "@/model/search-params";
-import { Suspense } from "react";
 import { PurchaseHistorySkeleton } from "@/features/purchases/history/ui/skeleton/skeleton";
+import type { RawSearchParams } from "@/model/search-params";
 
 export const metadata: Metadata = {
   title: "購入履歴",

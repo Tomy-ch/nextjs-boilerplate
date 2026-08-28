@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-
+import { connection } from "next/server";
+import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -8,10 +9,8 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { getClockConfig } from "@/config/clock/clock.server";
 import { AdminAnalyticsPageContent } from "@/features/admin/analytics/page-content";
-import type { RawSearchParams } from "@/model/search-params";
-import { Suspense } from "react";
 import { AdminSummarySkeleton } from "@/features/admin/ui/skeleton/skeleton";
-import { connection } from "next/server";
+import type { RawSearchParams } from "@/model/search-params";
 
 export const metadata: Metadata = {
   title: "集計",

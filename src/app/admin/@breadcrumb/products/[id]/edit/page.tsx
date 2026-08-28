@@ -1,6 +1,6 @@
+import { Suspense } from "react";
 import { AdminProductEditBreadcrumbContent } from "@/features/admin/products/edit/breadcrumb-content";
 import { toProductId } from "@/model/product/product";
-import { Suspense } from "react";
 
 /**
  * パンくずの中身。

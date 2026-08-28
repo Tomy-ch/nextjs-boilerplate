@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-
+import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { PurchaseDetailPageContent } from "@/features/purchases/detail/page-content";
-import { purchaseDetailPath } from "@/features/purchases/facade/paths/paths";
-import { Suspense } from "react";
 import { PurchaseDetailSkeleton } from "@/features/purchases/detail/ui/skeleton/skeleton";
+import { purchaseDetailPath } from "@/features/purchases/facade/paths/paths";
 
 export const metadata: Metadata = {
   title: "購入詳細",

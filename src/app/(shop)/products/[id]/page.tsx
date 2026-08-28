@@ -1,6 +1,6 @@
+import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import { ProductDetailPageContent } from "@/features/products/detail/page-content";
-import { Suspense } from "react";
 import { ProductDetailSkeleton } from "@/features/products/detail/ui/skeleton/skeleton";
 
 /**

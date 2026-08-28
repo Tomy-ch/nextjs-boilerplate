@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-
+import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -7,11 +7,9 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { AdminUserListPageContent } from "@/features/admin/users/page-content";
-import type { RawSearchParams } from "@/model/search-params";
-
-import { withdrawUserAction } from "./actions";
-import { Suspense } from "react";
 import { AdminUserListSkeleton } from "@/features/admin/users/ui/skeleton/skeleton";
+import type { RawSearchParams } from "@/model/search-params";
+import { withdrawUserAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "利用者一覧",

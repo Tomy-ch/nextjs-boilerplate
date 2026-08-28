@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
-
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -10,7 +10,6 @@ import {
 import { getClockConfig } from "@/config/clock/clock.server";
 import { AdminDashboardPageContent } from "@/features/admin/dashboard/page-content";
 import { AdminSummarySkeleton } from "@/features/admin/ui/skeleton/skeleton";
-import { connection } from "next/server";
 
 export const metadata: Metadata = {
   title: "ダッシュボード",

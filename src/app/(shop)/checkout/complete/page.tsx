@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-
+import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -7,9 +7,8 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { CheckoutCompletePageContent } from "@/features/checkout/complete/page-content";
-import type { RawSearchParams } from "@/model/search-params";
-import { Suspense } from "react";
 import { CheckoutCompleteSkeleton } from "@/features/checkout/complete/ui/skeleton/skeleton";
+import type { RawSearchParams } from "@/model/search-params";
 
 export const metadata: Metadata = {
   title: "購入完了",

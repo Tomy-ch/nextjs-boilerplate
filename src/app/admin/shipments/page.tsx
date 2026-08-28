@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-
+import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -7,10 +7,8 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { ShipmentQueuePageContent } from "@/features/admin/shipments/page-content";
-
-import { deliverPurchaseAction, shipPurchasesAction } from "./actions";
-import { Suspense } from "react";
 import { ShipmentQueueSkeleton } from "@/features/admin/shipments/ui/skeleton/skeleton";
+import { deliverPurchaseAction, shipPurchasesAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "発送",

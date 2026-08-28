@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-
+import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -7,7 +7,6 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { CartPageContent } from "@/features/cart/page-content";
-import { Suspense } from "react";
 import { CartSkeleton } from "@/features/cart/ui/skeleton/skeleton";
 
 export const metadata: Metadata = {
