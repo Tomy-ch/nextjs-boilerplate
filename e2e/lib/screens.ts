@@ -171,6 +171,9 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   { route: "/admin/users", name: "admin-users", path: "/admin/users", signedIn: "admin" },
   // sample:end
   { route: "/login", name: "login", path: "/login" },
+  // `APP_MAINTENANCE_MODE` を立てずに撮れる（判定は入口が持つ。理由は
+  // `src/features/maintenance/README.md` の「状態とデザイン参照」）。
+  { route: "/maintenance", name: "maintenance", path: "/maintenance" },
   { route: DEV_SESSION_PATH, name: "dev-session", path: DEV_SESSION_PATH },
   { route: "/_not-found", name: "not-found", path: "/この経路は存在しない" },
   {
