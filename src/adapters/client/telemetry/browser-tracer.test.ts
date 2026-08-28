@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   enableInstrumentation: vi.fn(),
   provider: vi.fn(),
   processor: vi.fn(),
+  serialize: vi.fn(),
+  sendBeacon: vi.fn(),
   exporter: vi.fn(),
   instrumentation: vi.fn(),
   stackActive: vi.fn(),
@@ -22,10 +24,8 @@ const SPAN_CONTEXT = {
   traceFlags: 1,
 };
 
-vi.mock("@opentelemetry/core", () => ({
-  W3CTraceContextPropagator: class {
-    extract = mocks.extract;
-  },
+vi.mock("@opentelemetry/otlp-transformer", () => ({
+  JsonTraceSerializer: { serializeRequest: mocks.serialize },
 }));
 
 vi.mock("@opentelemetry/sdk-trace-web", () => ({
@@ -47,14 +47,6 @@ vi.mock("@opentelemetry/sdk-trace-web", () => ({
     }
     enable(): this {
       return this;
-    }
-  },
-}));
-
-vi.mock("@opentelemetry/exporter-trace-otlp-http", () => ({
-  OTLPTraceExporter: class {
-    constructor(options: unknown) {
-      mocks.exporter(options);
     }
   },
 }));
@@ -98,6 +90,26 @@ function activeContext(): unknown {
   return manager.active();
 }
 
+/** 立ち上げ時に組まれた exporter を取り出す。 */
+function exporter(): {
+  export: (spans: unknown[], done: (result: { code: number }) => void) => void;
+  shutdown: () => Promise<void>;
+  forceFlush: () => Promise<void>;
+} {
+  const built: unknown = mocks.processor.mock.calls[0]?.[0];
+
+  if (
+    typeof built !== "object" ||
+    built === null ||
+    !("export" in built) ||
+    typeof built.export !== "function"
+  ) {
+    throw new Error("exporter が組まれていない");
+  }
+
+  return built as never;
+}
+
 /** 立ち上げ時に渡された、span を名づけるフックを取り出す。 */
 function nameSpan(request: Request | RequestInit, result: unknown): void {
   const config: unknown = mocks.instrumentation.mock.calls[0]?.[0];
@@ -139,17 +151,17 @@ beforeEach(() => {
     mock.mockReset();
   }
 
-  mocks.extract.mockReturnValue(DOCUMENT_CONTEXT);
   mocks.stackActive.mockReturnValue(ROOT_CONTEXT);
+  mocks.serialize.mockReturnValue(new TextEncoder().encode('{"resourceSpans":[]}'));
+  vi.stubGlobal("navigator", { sendBeacon: mocks.sendBeacon });
   Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
 });
 
 describe("startBrowserTracing", () => {
   // ----- 正常系 -----
-  it("span の送り先を同一オリジンの中継にする", async () => {
+  it("計装を大域へ登録する", async () => {
     (await load()).startBrowserTracing(TRACEPARENT);
 
-    expect(mocks.exporter).toHaveBeenCalledWith({ url: "/api/telemetry/traces" });
     expect(mocks.register).toHaveBeenCalled();
   });
 
@@ -168,12 +180,10 @@ describe("startBrowserTracing", () => {
   it("何も囲まれていないとき、画面を組んだ要求を親にする", async () => {
     (await load()).startBrowserTracing(TRACEPARENT);
 
-    expect(mocks.extract).toHaveBeenCalledWith(
-      ROOT_CONTEXT,
-      { traceparent: TRACEPARENT },
-      expect.anything(),
-    );
-    expect(activeContext()).toBe(DOCUMENT_CONTEXT);
+    expect(trace.getSpanContext(activeContext() as never)).toMatchObject({
+      traceId: "0af7651916cd43dd8448eb211c80319c",
+      spanId: "b7ad6b7169203331",
+    });
   });
 
   it("囲まれている間は、その内側の文脈を親にする", async () => {
@@ -186,10 +196,10 @@ describe("startBrowserTracing", () => {
 
   it("span を要求の方式とパスで名づけ、クエリを名前に載せない", async () => {
     (await load()).startBrowserTracing(TRACEPARENT);
-    nameSpan(new Request("http://localhost/api/products?first=20"), undefined);
+    nameSpan(new Request("http://localhost/api/docs?first=20"), undefined);
 
-    expect(mocks.updateName).toHaveBeenCalledWith("GET /api/products");
-    expect(mocks.setAttribute).toHaveBeenCalledWith("url.path", "/api/products");
+    expect(mocks.updateName).toHaveBeenCalledWith("GET /api/docs");
+    expect(mocks.setAttribute).toHaveBeenCalledWith("url.path", "/api/docs");
   });
 
   it("要求先を応答からも読む", async () => {
@@ -201,9 +211,20 @@ describe("startBrowserTracing", () => {
 
   it("方式を名乗らない要求を GET として名づける", async () => {
     (await load()).startBrowserTracing(TRACEPARENT);
-    nameSpan({}, { url: "http://localhost/products/42?_rsc=abc" });
+    nameSpan({}, { url: "http://localhost/docs/42?_rsc=abc" });
 
-    expect(mocks.updateName).toHaveBeenCalledWith("GET /products/42");
+    expect(mocks.updateName).toHaveBeenCalledWith("GET /docs/42");
+  });
+
+  it("span を OTLP へ直列化して中継へ送る", async () => {
+    (await load()).startBrowserTracing(TRACEPARENT);
+    const done = vi.fn();
+
+    exporter().export([{ name: "GET /api/docs" }], done);
+
+    expect(mocks.serialize).toHaveBeenCalledWith([{ name: "GET /api/docs" }]);
+    expect(mocks.sendBeacon.mock.calls[0]?.[0]).toBe("/api/telemetry/traces");
+    expect(done).toHaveBeenCalledWith({ code: 0 });
   });
 
   it("画面が隠れたときに溜めた span を送り切る", async () => {
@@ -236,8 +257,25 @@ describe("startBrowserTracing", () => {
   it("画面を組んだ要求が渡らないときは、新しい trace を始める", async () => {
     (await load()).startBrowserTracing(undefined);
 
-    expect(mocks.extract).not.toHaveBeenCalled();
     expect(activeContext()).toBe(ROOT_CONTEXT);
+  });
+
+  it("直列化できない span を送らず、送出を終わったものとして閉じる", async () => {
+    (await load()).startBrowserTracing(TRACEPARENT);
+    mocks.serialize.mockReturnValue(undefined);
+    const done = vi.fn();
+
+    exporter().export([], done);
+
+    expect(mocks.sendBeacon).not.toHaveBeenCalled();
+    expect(done).toHaveBeenCalledWith({ code: 0 });
+  });
+
+  it("送出は beacon が引き受けるので、待つ口は何もしない", async () => {
+    (await load()).startBrowserTracing(TRACEPARENT);
+
+    await expect(exporter().shutdown()).resolves.toBeUndefined();
+    await expect(exporter().forceFlush()).resolves.toBeUndefined();
   });
 
   it("要求先が読めないときは名づけ直さない", async () => {

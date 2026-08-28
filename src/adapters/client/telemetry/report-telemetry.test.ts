@@ -38,13 +38,13 @@ describe("reportWebVital", () => {
   it("測定と route を中継の受け口へ送る", async () => {
     const beacon = stubBeacon(true);
 
-    reportWebVital(measurement, "/products/[id]");
+    reportWebVital(measurement, "/docs/[slug]");
 
     expect(beacon.mock.calls[0]?.[0]).toBe("/api/telemetry");
     await expect(sentBody(beacon)).resolves.toBe(
       JSON.stringify({
         kind: "web-vital",
-        route: "/products/[id]",
+        route: "/docs/[slug]",
         name: "LCP",
         value: 1234.5,
         rating: "good",
@@ -75,30 +75,6 @@ describe("reportWebVital", () => {
   });
 
   // ----- 異常系 -----
-  it("契約に無い指標を送らない", () => {
-    const beacon = stubBeacon(true);
-
-    reportWebVital({ ...measurement, name: "Next.js-hydration" }, "/");
-
-    expect(beacon).not.toHaveBeenCalled();
-  });
-
-  it("契約に無い評価を送らない", () => {
-    const beacon = stubBeacon(true);
-
-    reportWebVital({ ...measurement, rating: "unknown" }, "/");
-
-    expect(beacon).not.toHaveBeenCalled();
-  });
-
-  it("契約に無い遷移種別を送らない", () => {
-    const beacon = stubBeacon(true);
-
-    reportWebVital({ ...measurement, navigationType: "soft-navigate" }, "/");
-
-    expect(beacon).not.toHaveBeenCalled();
-  });
-
   it("取得が失敗しても、その拒否を呼び出し元へ持ち出さない", async () => {
     stubBeacon(false);
     const rejected = new Error("送れない");
@@ -125,12 +101,12 @@ describe("reportClientError", () => {
     const error = new TypeError("読めない");
     error.stack = "TypeError: 読めない\n    at page";
 
-    reportClientError(error, "/cart", TRACEPARENT);
+    reportClientError(error, "/terms", TRACEPARENT);
 
     await expect(sentBody(beacon)).resolves.toBe(
       JSON.stringify({
         kind: "error",
-        route: "/cart",
+        route: "/terms",
         name: "TypeError",
         message: "読めない",
         stack: "TypeError: 読めない\n    at page",

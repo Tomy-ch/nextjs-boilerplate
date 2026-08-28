@@ -1,15 +1,9 @@
-import {
-  type Context,
-  defaultTextMapGetter,
-  ROOT_CONTEXT,
-  type Span,
-  trace,
-} from "@opentelemetry/api";
-import { W3CTraceContextPropagator } from "@opentelemetry/core";
-import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { type Context, ROOT_CONTEXT, type Span, TraceFlags, trace } from "@opentelemetry/api";
 import { FetchInstrumentation } from "@opentelemetry/instrumentation-fetch";
+import { JsonTraceSerializer } from "@opentelemetry/otlp-transformer";
 import {
   BatchSpanProcessor,
+  type ReadableSpan,
   StackContextManager,
   WebTracerProvider,
 } from "@opentelemetry/sdk-trace-web";
@@ -85,6 +79,21 @@ let started = false;
  * @param traceparent - 画面を組んだ要求の trace。静的生成された画面では渡らず、その場合は
  *   ブラウザ側で新しい trace が始まる
  */
+/** span を OTLP の JSON へ直列化し、中継へ送る。公式 exporter の再送・圧縮の機構は要らない。 */
+const relayExporter = {
+  export: (spans: ReadableSpan[], done: (result: { code: number }) => void): void => {
+    const body = JsonTraceSerializer.serializeRequest(spans);
+
+    if (body !== undefined) {
+      navigator.sendBeacon(ENDPOINT, new Blob([body.slice()], { type: "application/json" }));
+    }
+
+    done({ code: 0 });
+  },
+  shutdown: async (): Promise<void> => undefined,
+  forceFlush: async (): Promise<void> => undefined,
+};
+
 export function startBrowserTracing(traceparent: string | undefined): void {
   if (started) {
     return;
@@ -94,7 +103,7 @@ export function startBrowserTracing(traceparent: string | undefined): void {
 
   const provider = new WebTracerProvider({
     spanProcessors: [
-      new BatchSpanProcessor(new OTLPTraceExporter({ url: ENDPOINT }), {
+      new BatchSpanProcessor(relayExporter, {
         maxExportBatchSize: MAX_EXPORT_BATCH_SIZE,
       }),
     ],
@@ -114,18 +123,28 @@ export function startBrowserTracing(traceparent: string | undefined): void {
   });
 }
 
+/** W3C Trace Context の `traceparent`。version は `00` で固定されている。 */
+const TRACEPARENT = /^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/;
+
 /**
  * サーバーが配った `traceparent` を文脈へ読み替える。渡っていなければ新しい trace を始める。
  *
  * @remarks
- * **伝播器を名指しで使います。** 大域に登録されたものは `register()` が済むまで何もしない実装の
- * ままで、この読み替えはその前に要ります（登録の引数に渡す文脈だからです）。名指しなら順番に
- * 依らず、読む形式もここで宣言したものに固定されます。
+ * **伝播器を通しません。** 大域に登録されたものは `register()` が済むまで何もしない実装のままで、
+ * この読み替えはその前に要ります（登録の引数に渡す文脈だからです）。読む形式は 1 つだけなので、
+ * 書式を確かめて位置で切り出します。
  */
 function toDocumentContext(traceparent: string | undefined): Context {
-  return traceparent === undefined
-    ? ROOT_CONTEXT
-    : new W3CTraceContextPropagator().extract(ROOT_CONTEXT, { traceparent }, defaultTextMapGetter);
+  if (traceparent === undefined || !TRACEPARENT.test(traceparent)) {
+    return ROOT_CONTEXT;
+  }
+
+  return trace.setSpanContext(ROOT_CONTEXT, {
+    traceId: traceparent.slice(3, 35),
+    spanId: traceparent.slice(36, 52),
+    traceFlags: Number.parseInt(traceparent.slice(53, 55), 16) & TraceFlags.SAMPLED,
+    isRemote: true,
+  });
 }
 
 /**

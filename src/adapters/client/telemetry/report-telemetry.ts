@@ -11,53 +11,34 @@ import {
 /** 中継の受け口。同一オリジンなので、送り先は設定に持たない。 */
 const ENDPOINT = "/api/telemetry";
 
-const WEB_VITAL_NAMES: readonly WebVitalName[] = ["LCP", "INP", "CLS", "FCP", "TTFB", "FID"];
-const RATINGS: readonly WebVitalRating[] = ["good", "needs-improvement", "poor"];
-const NAVIGATION_TYPES: readonly NavigationType[] = [
-  "navigate",
-  "reload",
-  "back-forward",
-  "back-forward-cache",
-  "prerender",
-  "restore",
-];
-
 /**
  * ブラウザの計測器が渡してくる 1 件の測定。
  *
  * @remarks
  * `next/web-vitals` の型をそのまま受けません。ここが要るのは 4 つの値だけで、計測器の型を
- * 引き込むと、その型が変わるたびにこの境界が動きます。
+ * 引き込むと、その型が変わるたびにこの境界が動きます。**綴りは契約の union で受けます** ——
+ * 実行時に同じ表をもう 1 つ持つ代わりに、渡す側が型で外れます。
  */
 export type WebVitalMeasurement = Readonly<{
-  name: string;
+  name: WebVitalName;
   value: number;
-  rating: string;
-  navigationType: string;
+  rating: WebVitalRating;
+  navigationType: NavigationType;
 }>;
 
 /**
  * 測定した Web Vitals を中継へ送る。
  *
  * @remarks
- * 知らない綴りの指標・評価・遷移種別は送りません。計測器が増やした値をそのまま通すと、受け側の
- * 契約を通らない報告を送り続けることになります。
+ * **綴りの検査はここでは持ちません。** 受け側が契約で弾くので、同じ表を送る側にも置くと、契約が
+ * 動いたときに 2 か所を揃える必要が出ます。計測器が契約外の綴りを出したときは、受け側が 400 で
+ * 落とします。
  *
  * @param measurement - 計測器が報告した 1 件
  * @param route - 測定した画面の route の型
  */
 export function reportWebVital(measurement: WebVitalMeasurement, route: string): void {
-  const { name, value, rating, navigationType } = measurement;
-
-  if (
-    !isOneOf(WEB_VITAL_NAMES, name) ||
-    !isOneOf(RATINGS, rating) ||
-    !isOneOf(NAVIGATION_TYPES, navigationType)
-  ) {
-    return;
-  }
-
-  send({ kind: "web-vital", route, name, value, rating, navigationType });
+  send({ kind: "web-vital", route, ...measurement });
 }
 
 /**
@@ -115,9 +96,4 @@ function send(report: TelemetryReport): void {
     body,
     keepalive: true,
   }).catch(() => undefined);
-}
-
-/** 契約が挙げている綴りのどれかであることを確かめる。 */
-function isOneOf<T extends string>(allowed: readonly T[], value: string): value is T {
-  return allowed.some((candidate) => candidate === value);
 }
