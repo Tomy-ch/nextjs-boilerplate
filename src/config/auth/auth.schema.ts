@@ -41,6 +41,20 @@ export function authRedirectUriValidator() {
   return httpUrl;
 }
 
+/**
+ * 自分が https で配信されているか。
+ *
+ * @remarks
+ * 判定に callback URL を使います。あれは IdP がブラウザを戻す先、すなわち**自分の origin** であり、
+ * 環境の種類を別の変数で持たずに scheme を知れる唯一の既存の値です。cookie の `secure` と
+ * 配信ヘッダ（HSTS / `upgrade-insecure-requests`）が同じ答えを要るため、綴りをここに 1 つ置きます。
+ *
+ * @param redirectUri - 検証済みの `AUTH_REDIRECT_URI`
+ */
+export function isServedOverTls(redirectUri: string): boolean {
+  return new URL(redirectUri).protocol === "https:";
+}
+
 /** 認可リクエストの scope を検証する。 */
 export function authScopesValidator() {
   return z.string().trim().min(1);

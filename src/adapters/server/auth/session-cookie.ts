@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isServedOverTls } from "@/config/auth/auth.schema";
 import { getAuthConfig } from "@/config/auth/auth.server";
 
 /**
@@ -38,9 +39,8 @@ export const TRANSACTION_MAX_AGE_SECONDS = 600;
  * cookie が届かず、認証が成立しません。
  *
  * `secure` は自分が https で配信されているときだけ付けます。常に付けると `http://localhost` の
- * 開発で cookie が保存されず、逆に常に外すと本番で平文の経路に載ります。判定には設定の
- * callback URL を使います。あれは IdP がブラウザを戻す先、すなわち**自分の origin** であり、
- * 環境の種類を別の変数で持たずに scheme を知れる唯一の既存の値です。
+ * 開発で cookie が保存されず、逆に常に外すと本番で平文の経路に載ります。判定は
+ * {@link isServedOverTls} が持ちます。
  */
 export function baseCookieOptions(): {
   httpOnly: true;
@@ -50,7 +50,7 @@ export function baseCookieOptions(): {
 } {
   return {
     httpOnly: true,
-    secure: new URL(getAuthConfig().redirectUri).protocol === "https:",
+    secure: isServedOverTls(getAuthConfig().redirectUri),
     sameSite: "lax",
     path: "/",
   };

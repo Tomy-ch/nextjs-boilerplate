@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 
+import { isServedOverTls } from "./src/config/auth/auth.schema";
 import { getEnvironment, validateEnvironment } from "./src/config/environment";
 import { isDevelopmentOnlyEndpointOpen, loadEnvironment } from "./src/config/load-environment";
+import { buildSecurityHeaders } from "./src/config/security-headers/security-headers";
 
 /** すべての環境で route として扱う拡張子。 */
 const ROUTE_EXTENSIONS = ["tsx", "ts"];
@@ -29,25 +32,9 @@ const DEVELOPMENT_ROUTE_EXTENSIONS = ["dev.tsx", "dev.ts"];
 const REQUEST_ENVELOPE_BYTES = 32 * 1024;
 
 /**
- * 外部への遷移で `Referer` に載せてよい範囲。
- *
- * @remarks
- * 同一 origin へは URL 全体、別 origin へは origin だけを送り、降格（https → http）では何も
- * 送りません（[0111](docs/adr/0111-csp-security-headers.md) §2）。
- *
- * **認証の往復がクエリに秘密を載せます。** ログアウトは `id_token_hint` を、認可の戻りは `code`
- * を URL に持ちます（[0079](docs/adr/0079-auth-frontend-seam.md)）。既定の挙動のままだと、その
- * 画面から外部のリンクを踏んだときにパスとクエリごと相手へ渡ります。
- *
- * `headers()` へ置くのは、この値が要求の内容に依存しないためです。`src/proxy.ts` で足すと
- * 前捌きを通る経路にしか載らず、静的に配れる応答が漏れます。
- */
-const REFERRER_POLICY = "strict-origin-when-cross-origin";
-
-/**
  * Next.js の build / 開発サーバー初期化時に ENV を読み込み、全量検証してから設定を返す。
  */
-const nextConfig = async (): Promise<NextConfig> => {
+const nextConfig = async (phase: string): Promise<NextConfig> => {
   loadEnvironment();
   validateEnvironment();
 
@@ -55,8 +42,20 @@ const nextConfig = async (): Promise<NextConfig> => {
   const mediaOrigin = new URL(environment.MEDIA_ORIGIN);
 
   return {
+    // 要求の内容に依らないヘッダは全経路へ静的に付ける（[0111](docs/adr/0111-csp-security-headers.md)
+    // §5）。`src/proxy.ts` で足すと前捌きを通る経路にしか載らず、静的に配れる応答が漏れる。
     async headers() {
-      return [{ source: "/:path*", headers: [{ key: "Referrer-Policy", value: REFERRER_POLICY }] }];
+      return [
+        {
+          source: "/:path*",
+          headers: buildSecurityHeaders({
+            mediaOrigin: environment.MEDIA_ORIGIN,
+            authIssuer: environment.AUTH_ISSUER,
+            servesOverTls: isServedOverTls(environment.AUTH_REDIRECT_URI),
+            development: phase === PHASE_DEVELOPMENT_SERVER,
+          }),
+        },
+      ];
     },
     // 使っているフレームワークと版を名乗らない。攻撃者が既知の脆弱性を引き当てる手間が減るだけで、
     // 名乗ることで得られるものが無い。

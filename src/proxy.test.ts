@@ -58,6 +58,26 @@ describe("proxy", () => {
     expect(readOptimisticSession).toHaveBeenCalledWith("sealed-value");
   });
 
+  it("session cookie を載せた要求の応答は共有キャッシュへ載せない", async () => {
+    readOptimisticSession.mockResolvedValue(session);
+
+    const response = await proxy(request("/account", "sealed"));
+
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("保護されていないパスでも session cookie があれば共有キャッシュへ載せない", async () => {
+    const response = await proxy(request("/api/purchases", "sealed"));
+
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("session cookie を持たない要求の応答には Cache-Control を付けない", async () => {
+    const response = await proxy(request("/help"));
+
+    expect(response.headers.get("cache-control")).toBeNull();
+  });
+
   // ----- 異常系 -----
   it("未認証で保護されたパスへ来たらログインへ送る", async () => {
     const response = await proxy(request("/account"));
@@ -111,5 +131,12 @@ describe("proxy", () => {
     expect(response.headers.get("location")).toBe(
       "http://localhost:3000/login?returnUrl=%2Fadmin%2Freports",
     );
+  });
+
+  it("復元できない cookie で送り返す応答も共有キャッシュへ載せない", async () => {
+    const response = await proxy(request("/account", "broken"));
+
+    expect(response.headers.get("location")).toContain("/login");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
 });

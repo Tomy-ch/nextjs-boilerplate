@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   authClientIdValidator,
+  isServedOverTls,
   authIssuerValidator,
   authModeValidator,
   authRedirectUriValidator,
@@ -114,5 +115,17 @@ describe("authSessionSecretValidator", () => {
         "ci-session-secret-must-never-be-used-in-production",
       ).success,
     ).toBe(false);
+  });
+});
+
+describe("isServedOverTls", () => {
+  // ----- 正常系 -----
+  it("callback URL が https なら https で配信されていると判定する", () => {
+    expect(isServedOverTls("https://shop.example.com/api/auth/callback")).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("callback URL が http なら https で配信されていないと判定する", () => {
+    expect(isServedOverTls("http://localhost:3000/api/auth/callback")).toBe(false);
   });
 });

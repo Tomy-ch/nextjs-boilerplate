@@ -8,11 +8,6 @@
 #
 # **各行に撤回条件を書く。** 条件が満たされた行は削除する。この一覧が空になることが目標であって、
 # 一覧そのものは成果物ではない。
-10038	IGNORE	CSP 未設定。ADR 0111 が内容を定めており、実装は計画 P6-2。P6-2 で CSP が載った時点で削除する。
-10020	IGNORE	clickjacking 対策ヘッダ未設定。同じく P6-2 の担当（frame-ancestors か X-Frame-Options）。載った時点で削除する。
-10021	IGNORE	X-Content-Type-Options 未設定。同じく P6-2。載った時点で削除する。
-10063	IGNORE	Permissions-Policy 未設定。同じく P6-2。載った時点で削除する。
-90004	IGNORE	Cross-Origin-Resource-Policy 未設定。同じく P6-2。載った時点で削除する。
 10062	IGNORE	PII 検出。実体は商品一覧の在庫数で、faker が生成した 16 桁が Luhn を通っただけ。サンプル破棄で消えるため、破棄機構が働いた後は削除する。
 10202	IGNORE	anti-CSRF token が無いという指摘。Server Actions は Origin と Host の突合で自前の防御を持ち、ZAP はそれを知らない。form を素の POST で受ける経路を作った時点で見直す。
 10031	IGNORE	searchParams が HTML 属性へ現れるという指摘。React が値をエスケープする。dangerouslySetInnerHTML か手組みの HTML を増やした時点で見直す。

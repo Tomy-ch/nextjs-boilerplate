@@ -11,6 +11,19 @@ import { hasAllowedRole } from "@/model/session";
 const LOGIN_PATH = "/login";
 
 /**
+ * 資格情報を載せた要求への応答に付ける `Cache-Control`。
+ *
+ * @remarks
+ * 主体に紐づく応答が CDN やプロキシの共有キャッシュへ載り、別の主体へ配られる事故を、応答
+ * ヘッダで止めます（[0112](../docs/adr/0112-data-classification-cache-boundary.md) 段 5）。
+ * 前の段はどれもアプリの内側しか見ておらず、ここは応答ヘッダでしか止まりません。
+ *
+ * **画面や handler ごとに書かせません。** session cookie を載せた要求は、その応答が何であれ
+ * 主体に紐づきます。要求の側で判定するので、宣言を持たない Route Handler にも届きます。
+ */
+const PRIVATE_CACHE_CONTROL = "private, no-store";
+
+/**
  * 役割が足りないときに送る先。
  *
  * @remarks
@@ -36,8 +49,22 @@ const FALLBACK_PATH = "/";
  *
  * 未認証と役割不足を分けます。前者はやり直せるのでログインへ戻し、後者はやり直しても同じ結果に
  * なるため戻しません。
+ *
+ * 認可とは別に、資格情報を載せた要求への応答へ `Cache-Control` を付けます（{@link PRIVATE_CACHE_CONTROL}）。
+ * 要求の内容に依るヘッダはここにしか置けず、要求に依らないヘッダは `next.config.ts` が持ちます。
  */
 export async function proxy(request: NextRequest): Promise<Response> {
+  const response = await authorize(request);
+
+  if (request.cookies.has(SESSION_COOKIE_NAME)) {
+    response.headers.set("Cache-Control", PRIVATE_CACHE_CONTROL);
+  }
+
+  return response;
+}
+
+/** 到達してよい役割を持たない要求を送り返し、それ以外を通す。 */
+async function authorize(request: NextRequest): Promise<NextResponse> {
   const url = new URL(request.url);
   const allowed = allowedRolesFor(url.pathname);
 
