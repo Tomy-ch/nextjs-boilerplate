@@ -40,7 +40,7 @@ CSP 適合の検査は **CI 時点で払える**ため [0110](0110-security-oper
 | `Permissions-Policy` | `accelerometer` / `camera` / `geolocation` / `gyroscope` / `magnetometer` / `microphone` / `payment` / `usb` を `()` | deny-by-default 寄りの最小許可。使う fork が開ける。`payment` を閉じるのは決済 UI をフロントに置かない前提([0076](0076-payment-ui-seam.md)) |
 | `Cross-Origin-Opener-Policy` | `same-origin` | 別 origin の window から `opener` 経由で触れなくする。認証はリダイレクトで往復するため popup を要しない |
 | `Cross-Origin-Embedder-Policy` | `require-corp` | 別 origin の副資源を `Cross-Origin-Resource-Policy` の無いまま読み込めなくする。**画像は `next/image` の最適化経路(同一 origin)を通るため影響を受けない。** 別 origin の iframe / script を差す fork は、この値から降りる判断を伴う |
-| `Cross-Origin-Resource-Policy` | `same-origin` | 自分の応答を別 origin の文書へ埋め込ませない |
+| `Cross-Origin-Resource-Policy` | `same-origin` | 自分の応答を別 origin の文書へ埋め込ませない。効くのは `no-cors` の読み込み（`<img>` / `<script>` / nested navigation）だけで、§5 の CORS で開いた `fetch` には掛からない |
 | `Strict-Transport-Security` | `max-age=31536000` | **https で配信しているときだけ出す**(下記)。1 年は preload list の下限と同じ値。`includeSubDomains` / `preload` の付与と PaaS/CDN 側での終端は **fork 先判断**(§5) |
 
 **https で配信しているかの判定は `isServedOverTls()`(`src/config/auth/auth.schema.ts`)が持つ。** callback URL(`AUTH_REDIRECT_URI`)の scheme を読む —— あれは IdP がブラウザを戻す先、すなわち自分の origin であり、環境の種類を別の変数で持たずに scheme を知れる唯一の既存の値である。cookie の `secure`(`docs/rules.md` #44)と同じ述語を使い、綴りを 2 つにしない。
