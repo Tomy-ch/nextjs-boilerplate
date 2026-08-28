@@ -40,7 +40,9 @@ type TestLayer = (typeof TEST_LAYERS)[number];
  */
 const ENTRY_DECLARATIONS: readonly { readonly matches: RegExp; readonly layer: TestLayer }[] =
   ENTRY_POINTS.flatMap(({ pattern, testRequirement }) =>
-    isTestLayer(testRequirement) ? [{ matches: toPathPattern(pattern), layer: testRequirement }] : [],
+    isTestLayer(testRequirement)
+      ? [{ matches: toPathPattern(pattern), layer: testRequirement }]
+      : [],
   );
 
 /** 入口宣言の出所。README ではなく依存マトリクスが持つため、報告にはこの経路を出す。 */
