@@ -26,6 +26,7 @@ coverage-exclusions:
 | `api/api.schema.ts` / `api/api.server.ts` | API base URL と接続モードの schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `auth/auth.schema.ts` / `auth/auth.server.ts` | OIDC と BFF session の schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `clock/clock.schema.ts` / `clock/clock.server.ts` | 画面が読む「いま」の schema / Config | server | `app` と起動・ビルド境界 |
+| `maintenance/maintenance.schema.ts` / `maintenance/maintenance.server.ts` | 配信を止めているかの schema / Config | server | `proxy` と起動・ビルド境界 |
 | `media/media.schema.ts` / `media/media.server.ts` | media origin の schema / Config | server | `adapters/server` と起動・ビルド境界 |
 | `observability/observability.schema.ts` / `observability/observability.server.ts` | service 名・OTLP endpoint・signal 別 exporter の schema / Config | server | 起動・ビルド境界 |
 | `http/http.schema.ts` / `http/http.server.ts` / `http/http.client.ts` | 要求 URL とアップロードに許すバイト数の上限の schema / Config | server + client | `adapters/server` / `adapters/client` と起動・ビルド境界 |
@@ -84,7 +85,7 @@ OTel SDK と logger へ値を注入します。Config 自身は logger / observa
 - `next.config.ts` は build 境界として `loadEnvironment()` と `validateEnvironment()` を直接呼ぶ。
 - `src/instrumentation.ts` は起動境界として `bootstrapConfig()` だけを呼ぶ。
 - `bootstrap.server.ts` は `validate-environment.server.ts` を import し、全 server Config getter を一度呼ぶ。
-- `adapters/server` は必要な目的の `get*Config()` だけを import し、feature / model / component は Config を import しない。
+- `adapters/server` と `proxy.ts` は必要な目的の `get*Config()` だけを import し、feature / model / component は Config を import しない。
 - 内側のロジックへ設定値が必要な場合は、adapter が getter から取り出した値を引数で渡す。
 - Config class と ENV parser は module 外へ export しない。通常コードが任意の ENV から Config を再生成する経路を持たせない。
 - P3-6 以降の unit test は `vi.stubEnv()` と `vi.resetModules()` で module cache を再評価し、公開 singleton を検証する。
@@ -92,6 +93,6 @@ OTel SDK と logger へ値を注入します。Config 自身は logger / observa
 ## 運用
 
 - `process.env` の直読はこのカーネルだけに置く。
-- server config は `import "server-only"` で保護し、`adapters/server` と起動・ビルド境界だけが import する。
+- server config は `import "server-only"` で保護し、`adapters/server` と起動・ビルド境界、そして入口の `proxy.ts` だけが import する。
 - client config は `NEXT_PUBLIC_` の静的ドット参照だけを持つ `*.client.ts` に置く（`http/http.client.ts`）。ここで検証はしない（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。
 - 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.md) を正とする。
