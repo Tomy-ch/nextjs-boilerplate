@@ -9,7 +9,7 @@ const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/") }));
 
 vi.mock("next/navigation", () => ({ usePathname }));
 
-import { AppShellMenu } from "./app-shell-menu";
+import { AppShellMenu, AppShellMenuFallback } from "./app-shell-menu";
 
 const ITEMS = [
   { href: "/reports", label: "レポート" },
@@ -71,5 +71,13 @@ describe("AppShellMenu", () => {
     await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
     expect(screen.getByRole("navigation", { name: "メニュー" })).toBeInTheDocument();
+  });
+});
+
+describe("AppShellMenuFallback", () => {
+  it("menu と同じ大きさの枠を、押せない状態で出す", () => {
+    render(<AppShellMenuFallback />);
+
+    expect(screen.getByRole("button", { name: "メニューを開く" })).toBeDisabled();
   });
 });
