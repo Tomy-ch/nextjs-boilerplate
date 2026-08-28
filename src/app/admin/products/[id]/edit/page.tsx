@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** 商品を編集する画面。 */
 /**
  * 編集の中身。
  *
@@ -41,6 +40,7 @@ async function AdminProductEditContent({ params }: { params: Promise<{ id: strin
   );
 }
 
+/** 商品を編集する画面。 */
 export default function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <ContentContainer className="py-8">

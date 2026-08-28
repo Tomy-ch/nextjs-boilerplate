@@ -25,19 +25,6 @@ export type AppShellMenuProps = {
 };
 
 /**
- * 狭い画面での導線をまとめる side menu。
- *
- * @remarks
- * shell の中で唯一の client island です。開閉の状態だけがブラウザ側の関心であり、それ以外は
- * server で描けます。
- *
- * **選んだら閉じますが、閉じるのは移った後です。** 押した時点で閉じると、overlay が積んだ履歴 1 件を
- * 戻す動きが遷移そのものと競合し、閉じるだけで移らない回が出ます。移る側は置き換えで移るため、
- * 積んだ 1 件は移り先に上書きされます（[0053](../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
- *
- * @see Storybook `Layout/AppShell`
- */
-/**
  * side menu が届くまでの枠。
  *
  * @remarks
@@ -53,6 +40,19 @@ export function AppShellMenuFallback() {
   );
 }
 
+/**
+ * 狭い画面での導線をまとめる side menu。
+ *
+ * @remarks
+ * 開閉の状態だけがブラウザ側の関心で、それ以外は server で描けます。そのため client island は
+ * この部品に閉じています。
+ *
+ * **選んだら閉じますが、閉じるのは移った後です。** 押した時点で閉じると、overlay が積んだ履歴 1 件を
+ * 戻す動きが遷移そのものと競合し、閉じるだけで移らない回が出ます。移る側は置き換えで移るため、
+ * 積んだ 1 件は移り先に上書きされます（[0053](../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
+ *
+ * @see Storybook `Layout/AppShell`
+ */
 export function AppShellMenu({ items, navSlot }: AppShellMenuProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();

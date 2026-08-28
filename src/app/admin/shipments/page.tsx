@@ -19,11 +19,7 @@ export const metadata: Metadata = {
  * 発送を待っている注文を便ごとに見て、発送済みの注文の配達を確認する画面。
  *
  * @remarks
- * 検索エンジンに拾わせません。管理の面は認可の内側にあり、索引に載っても辿り着けないうえ、
- * 存在だけが外へ出ます（[0044](../../../../docs/adr/0044-seo-metadata-strategy.md)）。
- *
- * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
- * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
+ * 索引に載せない理由は `docs/spec/route/admin/layout.function.md`「索引に載せない」。
  */
 export default function AdminShipmentQueuePage() {
   return (

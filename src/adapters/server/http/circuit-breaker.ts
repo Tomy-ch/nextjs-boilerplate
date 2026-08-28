@@ -1,15 +1,12 @@
 import type { ResilienceProfile } from "./resilience-profile";
 
-/** 遮断器の状態。 */
 type BreakerState = "closed" | "open" | "half-open";
 
 /** 接続先 1 つ分の遮断器。 */
 export type CircuitBreaker = {
   /** いま試行してよいか。遮断中なら false。 */
   canAttempt(): boolean;
-  /** 試行の結果を記録する。 */
   record(succeeded: boolean): void;
-  /** 現在の状態。 */
   state(): BreakerState;
 };
 

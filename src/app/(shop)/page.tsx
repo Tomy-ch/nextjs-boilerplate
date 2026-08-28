@@ -20,9 +20,6 @@ export const metadata: Metadata = {
  * トップ。
  *
  * @remarks
- * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
- * （[0040](../../../docs/adr/0040-routing-rendering-strategy.md)）。
- *
  * 断り書きは見出しより前、かつ `Suspense` の外に置きます。取得を待って出すと、待っている間は
  * 普通の EC に見えます。読み始める前に目に入る位置でなければ、書いた意味が薄れます。
  *

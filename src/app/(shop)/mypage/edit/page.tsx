@@ -18,13 +18,6 @@ export const metadata: Metadata = {
 };
 
 /**
- * プロフィール編集。
- *
- * @remarks
- * マイページとは独立したルートです。1 つの画面に表示と編集を同居させると、どちらの状態で
- * 開いているかが URL から失われ、戻る操作も共有もできなくなります。
- */
-/**
  * プロフィール編集の中身。
  *
  * @remarks
@@ -44,6 +37,13 @@ async function ProfileEditContent() {
   return <ProfileEditPageContent />;
 }
 
+/**
+ * プロフィール編集。
+ *
+ * @remarks
+ * マイページとは独立したルートです。1 つの画面に表示と編集を同居させると、どちらの状態で
+ * 開いているかが URL から失われ、戻る操作も共有もできなくなります。
+ */
 export default function ProfileEditPage() {
   return (
     <ContentContainer className="py-8">

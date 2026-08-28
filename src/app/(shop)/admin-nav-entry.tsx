@@ -3,14 +3,6 @@ import { AppShellNavLink } from "@/components/shell/app-shell/app-shell-nav-link
 import { ADMIN_PRODUCT_LIST_PATH } from "@/features/admin/paths";
 import { isAdmin } from "@/model/authz";
 
-/**
- * 管理画面への入口。
- *
- * @remarks
- * 役割を持つ人にしか出しません。**押せる場所を作らないことが出し分けです。** 出したうえで押した
- * 先で断ると、管理の面がある事実だけが誰にでも伝わります
- * （[0079](../../../docs/adr/0079-auth-frontend-seam.md)）。
- */
 const ADMIN_NAV_ITEM = { href: ADMIN_PRODUCT_LIST_PATH, label: "管理" };
 
 /** `AdminNavEntry` の props。 */
@@ -23,6 +15,9 @@ export type AdminNavEntryProps = {
  * 主体の役割で出し分ける、管理への導線。
  *
  * @remarks
+ * **押せる場所を作らないことが出し分けです。** 出したうえで押した先で断ると、管理の面がある事実
+ * だけが誰にでも伝わります（[0079](../../../docs/adr/0079-auth-frontend-seam.md)）。
+ *
  * **session の読み出しをこの中に閉じます。** 器の側で読むと cookie に触れた時点で殻が動的になり、
  * この器を通る画面がすべてバックエンドの往復を待ってから 1 バイト目を返します
  * （[0041](../../../docs/adr/0041-cache-components-decision.md)）。穴として差せば、殻は主体を

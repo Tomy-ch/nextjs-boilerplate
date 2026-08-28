@@ -123,7 +123,13 @@ function labelOf(mode: RenderMode): string {
   return mode === "static" ? "○ 静的" : mode === "partial" ? "◐ 部分" : "ƒ 動的";
 }
 
-/** 違反が無かったときの内訳を、扱いごとの枚数として整える。 */
+/**
+ * 違反が無かったときの内訳を、扱いごとの枚数として整える。
+ *
+ * @remarks
+ * 突合の対象外にした route は内訳から外れますが、冒頭の枚数には数えます。内訳の合計が枚数に
+ * 満たないのはそのためです。
+ */
 export function formatRenderModeSummary(
   routes: readonly string[],
   observed: ReadonlyMap<string, RenderMode>,

@@ -19,16 +19,6 @@ export const metadata: Metadata = {
 };
 
 /**
- * 登録（オンボーディング）。
- *
- * @remarks
- * 認証は済んでいるが利用者の記録がまだ無い主体だけが入れます。登録済みで踏んだ場合は戻り先へ
- * 送り返します。2 人目の利用者を作る操作を見せないためです。
- *
- * 利用者向けの shell ではなく認証の器に載せます。ここを通る主体は保護された画面のどれも開けず、
- * nav を出しても行ける先がありません（[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
- */
-/**
  * 登録の中身。
  *
  * @remarks
@@ -51,6 +41,16 @@ async function OnboardingContent({
   return <OnboardingPageContent returnUrl={destination} />;
 }
 
+/**
+ * 登録（オンボーディング）。
+ *
+ * @remarks
+ * 認証は済んでいるが利用者の記録がまだ無い主体だけが入れます。登録済みで踏んだ場合は戻り先へ
+ * 送り返します。2 人目の利用者を作る操作を見せないためです。
+ *
+ * 利用者向けの shell ではなく認証の器に載せます。ここを通る主体は保護された画面のどれも開けず、
+ * nav を出しても行ける先がありません（[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
+ */
 export default function OnboardingPage({
   searchParams,
 }: {

@@ -36,8 +36,7 @@ async function AdminProductListContent({
  * 管理側の商品一覧管理。
  *
  * @remarks
- * 検索エンジンに拾わせません。管理の面は認可の内側にあり、索引に載っても辿り着けないうえ、
- * 存在だけが外へ出ます（[0044](../../../../docs/adr/0044-seo-metadata-strategy.md)）。
+ * 索引に載せない理由は `docs/spec/route/admin/layout.function.md`「索引に載せない」。
  */
 export default function AdminProductsPage({
   searchParams,

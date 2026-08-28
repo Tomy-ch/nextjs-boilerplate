@@ -32,9 +32,6 @@ async function ProductListContent({ searchParams }: { searchParams: Promise<RawS
  * 商品一覧。
  *
  * @remarks
- * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
- * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
- *
  * `Suspense` に鍵を与えません。条件が変わったときに取り直す範囲は
  * [`page-content.tsx`](../../../features/products/list/page-content.tsx) の内側で区切られており、
  * ここで鍵を与えると絞り込みの入力欄まで待機表示へ落ちます。この境界が受け持つのは初回の

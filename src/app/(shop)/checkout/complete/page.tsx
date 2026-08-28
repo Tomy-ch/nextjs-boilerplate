@@ -38,8 +38,6 @@ async function CheckoutCompleteContent({
  * 購入完了。
  *
  * @remarks
- * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
- * （[0040](../../../../../docs/adr/0040-routing-rendering-strategy.md)）。
  */
 export default function CheckoutCompletePage({
   searchParams,

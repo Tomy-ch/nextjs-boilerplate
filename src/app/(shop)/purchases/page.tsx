@@ -18,19 +18,6 @@ export const metadata: Metadata = {
 };
 
 /**
- * 購入履歴。
- *
- * @remarks
- * 確定認可をここで通します。`proxy.ts` の判定は cookie を読むだけの前捌きで、防御線ではありません
- * （[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）。
- *
- * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
- * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
- *
- * パンくずは置きません。global nav がこの画面を直接指しており、階層が 1 段だからです
- * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
- */
-/**
  * 履歴の中身。
  *
  * @remarks
@@ -56,6 +43,15 @@ async function PurchaseHistoryContent({
   return <PurchaseHistoryPageContent searchParams={await searchParams} />;
 }
 
+/**
+ * 購入履歴。
+ *
+ * @remarks
+ * 確定認可をここで通します。`proxy.ts` の判定は前捌きです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）。
+ *
+ * パンくずは置きません。global nav がこの画面を直接指しており、階層が 1 段だからです
+ * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
+ */
 export default function PurchaseHistoryPage({
   searchParams,
 }: {

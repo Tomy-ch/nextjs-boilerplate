@@ -17,13 +17,6 @@ export const metadata: Metadata = {
 };
 
 /**
- * 利用者を一覧で見る画面。
- *
- * @remarks
- * 検索エンジンに拾わせません。管理の面は認可の内側にあり、索引に載っても辿り着けないうえ、
- * 存在だけが外へ出ます（[0044](../../../../docs/adr/0044-seo-metadata-strategy.md)）。
- */
-/**
  * 一覧の中身。
  *
  * @remarks
@@ -39,6 +32,12 @@ async function AdminUserListContent({ searchParams }: { searchParams: Promise<Ra
   );
 }
 
+/**
+ * 利用者を一覧で見る画面。
+ *
+ * @remarks
+ * 索引に載せない理由は `docs/spec/route/admin/layout.function.md`「索引に載せない」。
+ */
 export default function AdminUserListPage({
   searchParams,
 }: {

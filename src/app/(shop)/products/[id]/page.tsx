@@ -24,8 +24,6 @@ async function ProductDetailContent({ params }: { params: Promise<{ id: string }
  * 商品詳細の route segment。
  *
  * @remarks
- * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
- * （[0040](../../../../../docs/adr/0040-routing-rendering-strategy.md)）。
  */
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (

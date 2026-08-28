@@ -17,6 +17,20 @@ export const metadata: Metadata = {
 };
 
 /**
+ * ダッシュボードの中身。
+ *
+ * @remarks
+ * **「いま」を読むのは穴の内側です。** 実時計はプリレンダーの最中には値が定まらないため、
+ * `connection()` を待って「要求のときに描く」ことを確定させてから読みます
+ * （[0041](../../../docs/adr/0041-cache-components-decision.md)）。
+ */
+async function AdminDashboardContent() {
+  await connection();
+
+  return <AdminDashboardPageContent now={getClockConfig().now()} />;
+}
+
+/**
  * 管理の入口。
  *
  * @remarks
@@ -31,20 +45,6 @@ export const metadata: Metadata = {
  * `features` の中にあると検証で固定できません（`config/clock`）。`config` を参照できるのは
  * `app` までで、合成の入口が外から来る値を解決するのは層の役目どおりです。
  */
-/**
- * ダッシュボードの中身。
- *
- * @remarks
- * **「いま」を読むのは穴の内側です。** 実時計はプリレンダーの最中には値が定まらないため、
- * `connection()` を待って「要求のときに描く」ことを確定させてから読みます
- * （[0041](../../../docs/adr/0041-cache-components-decision.md)）。
- */
-async function AdminDashboardContent() {
-  await connection();
-
-  return <AdminDashboardPageContent now={getClockConfig().now()} />;
-}
-
 export default function AdminDashboardPage() {
   return (
     <ContentContainer className="py-8">

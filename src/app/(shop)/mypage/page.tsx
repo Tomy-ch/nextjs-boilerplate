@@ -18,16 +18,6 @@ export const metadata: Metadata = {
 };
 
 /**
- * マイページ。
- *
- * @remarks
- * 確定認可をここで通します。`proxy.ts` の判定は cookie を読むだけの前捌きで、防御線ではありません
- * （[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）。
- *
- * パンくずは置きません。global nav がこの画面を直接指しており、階層が 1 段だからです
- * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
- */
-/**
  * マイページの中身。
  *
  * @remarks
@@ -47,6 +37,15 @@ async function MypageContent() {
   return <MypagePageContent />;
 }
 
+/**
+ * マイページ。
+ *
+ * @remarks
+ * 確定認可をここで通します。`proxy.ts` の判定は前捌きです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）。
+ *
+ * パンくずは置きません。global nav がこの画面を直接指しており、階層が 1 段だからです
+ * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
+ */
 export default function MypagePage() {
   return (
     <ContentContainer className="py-8">

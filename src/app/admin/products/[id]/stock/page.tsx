@@ -19,12 +19,6 @@ export const metadata: Metadata = {
 };
 
 /**
- * 在庫を補充する画面。
- *
- * @remarks
- * 在庫以外はここで扱いません。編集の画面が持ちます。
- */
-/**
  * 補充の中身。
  *
  * @remarks
@@ -40,6 +34,12 @@ async function AdminProductStockContent({ params }: { params: Promise<{ id: stri
   );
 }
 
+/**
+ * 在庫を補充する画面。
+ *
+ * @remarks
+ * 在庫以外はここで扱いません。編集の画面が持ちます。
+ */
 export default function AdminProductStockPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <ContentContainer className="py-8">
