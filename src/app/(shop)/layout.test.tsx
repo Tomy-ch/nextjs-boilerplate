@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -47,10 +48,13 @@ describe("ShopLayout", () => {
     expect(within(screen.getByRole("banner")).getByText("管理（header）")).toBeVisible();
   });
 
-  it("side menu の穴には履歴を積まない指定で差す", () => {
-    renderLayout();
+  it("side menu の穴には履歴を積まない指定で差す", async () => {
+    const user = userEvent.setup();
 
-    expect(screen.getByText("管理（menu）")).toBeVisible();
+    renderLayout();
+    await user.click(screen.getByRole("button", { name: "メニューを開く" }));
+
+    expect(await screen.findByText("管理（menu）")).toBeVisible();
   });
 
   it("カートの入口を header の穴へ差す", () => {
