@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { readOptimisticSession } from "@/adapters/server/auth/optimistic-session";
 import { SESSION_COOKIE_NAME } from "@/adapters/server/auth/session-cookie";
+import { getHttpConfig } from "@/config/http/http.server";
 import { getMaintenanceConfig } from "@/config/maintenance/maintenance.server";
 import { allowedRolesFor } from "@/model/authz";
 import {
@@ -14,6 +15,12 @@ import {
   newMeasurementId,
   parseConsentState,
 } from "@/model/consent";
+import {
+  corsHeadersFor,
+  isStateChanging,
+  judgeOrigin,
+  preflightHeadersFor,
+} from "@/model/cross-origin";
 import { toSafeReturnUrl } from "@/model/return-url";
 import { hasAllowedRole } from "@/model/session";
 
@@ -59,6 +66,15 @@ const OPEN_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD"]);
  */
 const STOPPED_STATUS = 503;
 
+/** 別 origin への CORS を開く経路の接頭辞。開くのは BFF だけ（[0111](../docs/adr/0111-csp-security-headers.md) §5）。 */
+const BFF_PREFIX = "/api/";
+
+/**
+ * 資格情報を載せた要求への応答に付ける `Cache-Control`。画面や handler ごとには書かない
+ * （`docs/rules.md` #87 / [0112](../docs/adr/0112-data-classification-cache-boundary.md) 段 5）。
+ */
+const PRIVATE_CACHE_CONTROL = "private, no-store";
+
 /**
  * 役割が足りないときに送る先。
  *
@@ -81,8 +97,8 @@ const FALLBACK_PATH = "/";
  * **読み取りの応答は 200 です**（{@link STOPPED_STATUS}）。画面へ 503 を返したい配備では、配信面
  * （CDN / ロードバランサ）が前に立ちます。
  *
- * 認可について、**ここは防御線ではありません。** cookie を読むだけの前捌きであり、確定認可は
- * データ源に最も近い所（`adapters/server` の `verifySession()`）が持ちます
+ * 認可について、**ここは防御線ではありません。** cookie を読むだけの前捌きであり、確定認可はデータ源に最も
+ * 近い所（`adapters/server` の `verifySession()`）が持ちます
  * （[0043](../docs/adr/0043-middleware-policy.md) / [0079](../docs/adr/0079-auth-frontend-seam.md)）。
  * ここを唯一の検査にすると、Proxy を通らない経路がそのまま穴になります。
  *
@@ -95,9 +111,13 @@ const FALLBACK_PATH = "/";
  * 未認証と役割不足を分けます。前者はやり直せるのでログインへ戻し、後者はやり直しても同じ結果に
  * なるため戻しません。
  *
- * 認可とは別に、同意に紐づく計測 id の発行と撤去をここが持ちます（{@link syncMeasurementId}）。
- * cookie を書くのはこの境界の仕事であり（[0043](../docs/adr/0043-middleware-policy.md)）、画面の
- * どれか一つに置くと、その画面を通らない訪問で発行されません。
+ * 認可とは別に、要求の内容に依るヘッダをここで扱います —— 資格情報を載せた要求への
+ * `Cache-Control`（{@link PRIVATE_CACHE_CONTROL}）と、宣言で許した別 origin への CORS ヘッダ
+ * （`HTTP_ALLOWED_ORIGINS`）です。要求に依らないヘッダは `next.config.ts` が持ちます。
+ * origin の判定は `model/cross-origin` が持ち、ここは判定の結果を応答へ写すだけです。
+ *
+ * 同意に紐づく計測 id の発行と撤去も同じ理由でここが持ちます（{@link syncMeasurementId}）。
+ * 画面のどれか一つに置くと、その画面を通らない訪問で発行されません。
  */
 export async function proxy(request: NextRequest): Promise<Response> {
   const url = new URL(request.url);
@@ -108,7 +128,28 @@ export async function proxy(request: NextRequest): Promise<Response> {
       : new NextResponse(null, { status: STOPPED_STATUS });
   }
 
-  const response = await authorize(request, url);
+  const verdict = judgeOrigin(
+    {
+      origin: request.headers.get("origin"),
+      host: request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+    },
+    getHttpConfig().allowedOrigins,
+  );
+
+  // 許していない origin からの書き込みは、handler へ届く前に止める（`docs/rules.md` #47）。
+  // 読むだけの要求は止めない —— CORS ヘッダを付けないので、ブラウザ側で応答を読めない。
+  if (verdict.kind === "untrusted" && isStateChanging(request.method)) {
+    return new NextResponse(null, { status: 403 });
+  }
+
+  const response =
+    verdict.kind === "allowed" && url.pathname.startsWith(BFF_PREFIX)
+      ? await openCors(request, verdict.origin)
+      : await authorize(request);
+
+  if (request.cookies.has(SESSION_COOKIE_NAME)) {
+    response.headers.set("Cache-Control", PRIVATE_CACHE_CONTROL);
+  }
 
   syncMeasurementId(request, response, url);
 
@@ -157,8 +198,31 @@ function syncMeasurementId(request: NextRequest, response: NextResponse, url: UR
   });
 }
 
+/** 許可した別 origin からの BFF への要求。preflight はここで答え、それ以外は CORS ヘッダを添える。 */
+async function openCors(request: NextRequest, origin: string): Promise<NextResponse> {
+  if (request.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 204,
+      headers: preflightHeadersFor(
+        origin,
+        request.headers.get("access-control-request-method"),
+        request.headers.get("access-control-request-headers"),
+      ),
+    });
+  }
+
+  const response = await authorize(request);
+
+  for (const [key, value] of Object.entries(corsHeadersFor(origin))) {
+    response.headers.set(key, value);
+  }
+
+  return response;
+}
+
 /** 到達してよい役割を持たない要求を送り返し、それ以外を通す。 */
-async function authorize(request: NextRequest, url: URL): Promise<NextResponse> {
+async function authorize(request: NextRequest): Promise<NextResponse> {
+  const url = new URL(request.url);
   const allowed = allowedRolesFor(url.pathname);
 
   if (allowed === null) {
@@ -187,7 +251,8 @@ async function authorize(request: NextRequest, url: URL): Promise<NextResponse> 
  *
  * @remarks
  * 静的アセットと画像最適化の経路を外します。認証の判断が要らないうえリクエスト数が最も多く、
- * ここへ処理を挟むと配信そのものが遅くなります。
+ * ここへ処理を挟むと配信そのものが遅くなります。**外した経路には {@link PRIVATE_CACHE_CONTROL} も
+ * 届きません** —— 画像最適化に載るのが公開画像だけであることが、その前提です。
  *
  * `/api` は外しません。Route Handler も保護の対象になり得るためです。
  */

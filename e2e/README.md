@@ -19,7 +19,7 @@ story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象�
 | | 見ているもの | ここでしか見えない理由 |
 | --- | --- | --- |
 | ジャーニー | 画面をまたぐ遷移・絞り込み・認証の前捌き | 経路が繋がっているかは、画面 1 枚では答えられない |
-| Browser Errors | hydration の不一致・描画中の例外・通信の失敗 | **hydration の不一致は build も型検査も通る。**実機で描いたときにしか現れない |
+| Browser Errors | hydration の不一致・描画中の例外・通信の失敗・CSP 違反 | **hydration の不一致は build も型検査も通る。**実機で描いたときにしか現れない。CSP の違反も同じで、ヘッダを読む検査（DAST）は enforce の結果を見ない |
 | Responsive | 帯ごとの出し分け（[`docs/rules.md`](../docs/rules.md) #71） | 帯は viewport の関数であり、jsdom には幅が無い |
 | 履歴 | 被せた面と画面遷移が同じ履歴を奪い合わないか（[0053](../docs/adr/0053-ui-component-interaction-seam.md)） | 競合するのは実ブラウザの履歴操作どうしで、jsdom には相手が居ない |
 | Cross Browser | 描画エンジン固有の破綻 | 1 つのエンジンで通ることは、他の 2 つで通ることを意味しない |
@@ -190,6 +190,7 @@ seed は要求の URL から導かれるので、暦日で区切る画面が実�
 | console の error | JavaScript が書いた行（React の hydration 不一致はこれ） | ブラウザ自身が書いた行（副資源の取得失敗の narration） |
 | 描画中の例外 | すべて | — |
 | 通信 | 5xx と transport の失敗 | 打ち切り（`net::ERR_ABORTED`）と 4xx |
+| CSP 違反 | すべて（`securitypolicyviolation`） | — |
 
 **4xx を数えないのは、それがアプリの設計された結果だから**である。存在しない資源は 404 を返し、
 未認証は 401 を返す。どれも spec が名指しで確かめる対象であり、横断の見張りが一律に落とすと、
@@ -204,6 +205,11 @@ seed は要求の URL から導かれるので、暦日で区切る画面が実�
 ない**ので、この向きなら文言に頼れる。一覧は回すエンジンに閉じており、際限なく伸びない。
 
 判定は [`lib/browser-errors.ts`](lib/browser-errors.ts) が持つ。
+
+**CSP の違反は console の見張りには掛からない。** ブラウザ自身が書く行なので引数を持たず、上の
+規則で外される。document の `securitypolicyviolation` で受け、経路を分けて数える。見張りの外で
+書く spec が 1 つだけある —— [`journeys/csp.spec.ts`](journeys/csp.spec.ts) は宣言に無い配信元を
+自分で差して違反が報告されることを確かめるため、見張りの内側に置くと確かめた違反で落ちる。
 
 ## 帯とエンジンは宣言から引く
 
@@ -278,7 +284,7 @@ E2E の報告が無い commit では画面を 1 枚も撮り直さない。1 対
 | [`lib/viewports.ts`](lib/viewports.ts) | design token から帯を組み立てる |
 | [`lib/screens.ts`](lib/screens.ts) | build の出力と宣言を突き合わせ、開く画面を決める |
 | [`lib/screen-baselines.ts`](lib/screen-baselines.ts) | 画面と帯から、在るべき基準画像のパスを組み立てる |
-| `journeys/` | ジャーニー・帯ごとの出し分け。3 つのエンジンで回る |
+| `journeys/` | ジャーニー・帯ごとの出し分け・CSP の enforce。3 つのエンジンで回る |
 | `visual/` | 画面単位の比較。1 つのエンジンで、帯の数だけ回る |
 | `maintenance/` | 配信を止めた状態の成立。**別の起動で回る**（下記） |
 

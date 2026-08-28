@@ -223,7 +223,10 @@ jobs:
       - name: Drive the app with delivery stopped
         if: steps.scope.outputs.relevant == 'true'
         shell: bash
-        run: make e2e-maintenance
+        # On a different port from the journeys above: `make e2e` kills the `pnpm start`
+        # wrapper but the `next start` child it spawned can outlive it and keep :3100
+        # bound (issue #465). Sharing the port makes this step fail before it drives anything.
+        run: make e2e-maintenance E2E_PORT=3101
 
       # The guidance is split by what actually failed. A retake fixes a changed pixel and
       # nothing else, so printing the retake note unconditionally tells the reader to

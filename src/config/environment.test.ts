@@ -28,6 +28,7 @@ describe("getEnvironment", () => {
       ...VALID_ENVIRONMENT,
       NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
       NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
+      HTTP_ALLOWED_ORIGINS: [],
     });
     expect(() => validateEnvironment()).not.toThrow();
   });
