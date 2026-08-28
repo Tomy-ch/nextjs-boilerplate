@@ -28,6 +28,7 @@ slice に固有の線引きと、契約・仕様・デザインへの索引で�
 | --- | --- | --- |
 | `auth/` | 身元を預ける入口。認証そのものは持たず、BFF の口へ渡す | [README](auth/README.md) |
 | `dev-session/` | 開発時に主体を差し替える面。本番の束には載らない | [README](dev-session/README.md) |
+| `maintenance/` | 配信を止めているあいだ、全ルートの代わりに見せる面 | [README](maintenance/README.md) |
 
 <!-- sample:begin -->
 同梱のサンプルが加えるもの:

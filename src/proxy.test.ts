@@ -5,8 +5,12 @@ import { SESSION_ROLE } from "@/model/session";
 import { proxy } from "./proxy";
 
 const readOptimisticSession = vi.hoisted(() => vi.fn());
+const maintenance = vi.hoisted(() => ({ isStopped: false }));
 
 vi.mock("@/adapters/server/auth/optimistic-session", () => ({ readOptimisticSession }));
+vi.mock("@/config/maintenance/maintenance.server", () => ({
+  getMaintenanceConfig: () => maintenance,
+}));
 
 const session = {
   userId: "user-1",
@@ -23,6 +27,7 @@ function request(path: string, sealed?: string): NextRequest {
 beforeEach(() => {
   vi.clearAllMocks();
   readOptimisticSession.mockResolvedValue(null);
+  maintenance.isStopped = false;
 });
 
 describe("proxy", () => {
@@ -56,6 +61,46 @@ describe("proxy", () => {
     await proxy(request("/account", "sealed-value"));
 
     expect(readOptimisticSession).toHaveBeenCalledWith("sealed-value");
+  });
+
+  it("停止中はどのパスも停止画面へ差し替える", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(request("/products/1"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/maintenance");
+  });
+
+  it("停止中は URL を動かさない", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(request("/products/1"));
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("停止中は認可の前捌きへ進まない", async () => {
+    maintenance.isStopped = true;
+
+    await proxy(request("/account", "sealed"));
+
+    expect(readOptimisticSession).not.toHaveBeenCalled();
+  });
+
+  it("停止中も生存確認は通す", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(request("/api/health"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+  });
+
+  it("停止中も停止画面自身は差し替えない", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(request("/maintenance"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
   // ----- 異常系 -----

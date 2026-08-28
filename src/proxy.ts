@@ -3,12 +3,30 @@ import { NextResponse } from "next/server";
 
 import { readOptimisticSession } from "@/adapters/server/auth/optimistic-session";
 import { SESSION_COOKIE_NAME } from "@/adapters/server/auth/session-cookie";
+import { getMaintenanceConfig } from "@/config/maintenance/maintenance.server";
 import { allowedRolesFor } from "@/model/authz";
 import { toSafeReturnUrl } from "@/model/return-url";
 import { hasAllowedRole } from "@/model/session";
 
 /** 認証をやり直させる先。 */
 const LOGIN_PATH = "/login";
+
+/** 停止中に見せる画面。 */
+const MAINTENANCE_PATH = "/maintenance";
+
+/**
+ * 停止中も通す経路。
+ *
+ * @remarks
+ * 停止中の画面自身が資材を取りに行けなくなるため、静的アセットを止めません。ただしそれは
+ * {@link config} の選別が既に外しているので、ここに並ぶのは選別を通ってくる経路だけです。
+ *
+ * 生存確認を止めないのは、外形監視が**計画停止と障害を区別できなくなる**ためです。全経路が
+ * 停止画面を返すと、監視から見えるのは「応答が変わった」ことだけになります。
+ *
+ * 停止画面自身を含めます。差し替え先を差し替えの対象にすると、rewrite が自分を指します。
+ */
+const OPEN_PATHS: readonly string[] = [MAINTENANCE_PATH, "/api/health"];
 
 /**
  * 役割が足りないときに送る先。
@@ -20,11 +38,22 @@ const LOGIN_PATH = "/login";
 const FALLBACK_PATH = "/";
 
 /**
- * 入口の楽観的な認可。到達してよい役割を持たないリクエストを前捌きする。
+ * 入口の前捌き。配信を止めているあいだは停止画面へ差し替え、そうでなければ到達してよい役割を
+ * 持たないリクエストを捌く。
  *
  * @remarks
- * **ここは防御線ではありません。** cookie を読むだけの前捌きであり、確定認可はデータ源に最も
- * 近い所（`adapters/server` の `verifySession()`）が持ちます
+ * **停止の判定を先に置きます。** 止めているあいだに認可を先に見ると、未認証の要求だけがログイン
+ * へ送られ、止まっていることが経路によって見えたり見えなかったりします。止めるのは全ルートに
+ * 対する一つの判断なので、経路ごとの判定より前に済ませます。差し替えるのは応答の中身だけで、
+ * URL は動かしません —— 復帰後に同じ URL をもう一度開けば元の画面へ戻ります。
+ *
+ * **停止中も状態は 200 です。** rewrite に載せた status は Next.js が読まず、応答は差し替え先を
+ * 描いた結果になります（`resolve-routes.js` は `x-middleware-rewrite` から宛先を取り、status は
+ * `location` を redirect と見なすかの判定にしか使いません）。503 を返したい配備では、配信面
+ * （CDN / ロードバランサ）が前に立ちます（`docs/spec/route/maintenance/page.function.md`）。
+ *
+ * 認可について、**ここは防御線ではありません。** cookie を読むだけの前捌きであり、確定認可は
+ * データ源に最も近い所（`adapters/server` の `verifySession()`）が持ちます
  * （[0043](../docs/adr/0043-middleware-policy.md) / [0079](../docs/adr/0079-auth-frontend-seam.md)）。
  * ここを唯一の検査にすると、Proxy を通らない経路がそのまま穴になります。
  *
@@ -39,6 +68,11 @@ const FALLBACK_PATH = "/";
  */
 export async function proxy(request: NextRequest): Promise<Response> {
   const url = new URL(request.url);
+
+  if (getMaintenanceConfig().isStopped && !OPEN_PATHS.includes(url.pathname)) {
+    return NextResponse.rewrite(new URL(MAINTENANCE_PATH, url));
+  }
+
   const allowed = allowedRolesFor(url.pathname);
 
   if (allowed === null) {

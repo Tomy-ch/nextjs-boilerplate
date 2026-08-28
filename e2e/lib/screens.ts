@@ -171,6 +171,9 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   { route: "/admin/users", name: "admin-users", path: "/admin/users", signedIn: "admin" },
   // sample:end
   { route: "/login", name: "login", path: "/login" },
+  // 止めていなくても URL で開ける。差し替えの判定は入口が持ち、この画面自身は何も読まない
+  // ため、`APP_MAINTENANCE_MODE` を立てずにそのまま撮れる。
+  { route: "/maintenance", name: "maintenance", path: "/maintenance" },
   { route: DEV_SESSION_PATH, name: "dev-session", path: DEV_SESSION_PATH },
   { route: "/_not-found", name: "not-found", path: "/この経路は存在しない" },
   {
