@@ -87,6 +87,8 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 **閾値はここに置かない。** [0101](../../docs/adr/0101-performance-budget.md) が持つのは計測の仕組みであり、good / poor の境界をどこに引くかは fork 先の判断である。属性の `rating` は web.dev が公表している境界による評価で、このリポジトリが引いた線ではない。
 
+**伏せる項目は中継が伏せる。** ブラウザが作った span の属性のうち、`logging` が持つ表（`authorization` / `cookie` / `password` / `token`）に当たる名前は、collector へ渡す前に censor へ置き換わる。掛ける場所が中継なのは、そこが全部を通る唯一の場所だからである —— ブラウザ側で掛けても送信者は差し替えられる。**値の中身は見ない**（名前で持ち回っている限り効き、そうでないものは元の設計が誤っている）。
+
 例外のほうは metric ではなく `logging` の構造化ログへ載せる。1 件ずつ辿るものであり、`exception.type` / `exception.message` / `exception.stacktrace` という公式 semconv の属性がそのまま使える。**`trace_id` は画面を組んだ要求のもの**である —— ブラウザが返してきた `traceparent` の文脈で記録するためで、渡ってこなければ trace を付けない。中継要求の span を付けると、例外が起きていない要求と親子になる。
 
 ## span の属性名は出所で違う

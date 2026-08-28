@@ -6,6 +6,8 @@ import {
   type Logger,
   LogLevel,
   type LogRecordSink,
+  REDACTED,
+  REDACTED_FIELD_NAMES,
   type TraceContextExtractor,
 } from "./logger";
 
@@ -16,8 +18,6 @@ type CreateLoggerOptions = Readonly<{
   logRecordSink?: LogRecordSink;
   destination?: DestinationStream;
 }>;
-
-const redactedKeys = ["authorization", "cookie", "password", "token"];
 
 class PinoStructuredLogger implements Logger {
   readonly #logger: PinoLogger;
@@ -79,7 +79,7 @@ export function createLogger({
       {
         level,
         base: undefined,
-        redact: { paths: redactedKeys, censor: "[REDACTED]" },
+        redact: { paths: [...REDACTED_FIELD_NAMES], censor: REDACTED },
       },
       destination,
     ),
@@ -93,7 +93,7 @@ function redactFields(fields: LogFields): LogFields {
   return Object.fromEntries(
     Object.entries(fields).map(([key, value]) => [
       key,
-      redactedKeys.includes(key.toLowerCase()) ? "[REDACTED]" : value,
+      REDACTED_FIELD_NAMES.includes(key.toLowerCase()) ? REDACTED : value,
     ]),
   );
 }
