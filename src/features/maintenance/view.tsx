@@ -4,11 +4,8 @@ import { withScreenSpan } from "@/observability/render-span";
  * 配信を止めているあいだに見せる面。
  *
  * @remarks
- * **戻る導線を置きません。** 止めているのは全ルートなので、どこへ送っても同じ画面が返ります。
- * 押せる物を出すと、押した結果が変わらないことを利用者が確かめて初めて判ります。
- *
- * **終了の予定を書きません。** 予定を出すには運用がそれを供給する必要があり、供給が無いまま
- * 文面へ書くと、当たらない予定が画面に残ります。
+ * **戻る導線と終了の予定は出しません。** 理由は [README](./README.md) の「受け入れないもの」と
+ * `docs/spec/route/maintenance/page.screen.md` の「書かないこと」。
  */
 export const MaintenanceView = withScreenSpan("features/maintenance/view", () => {
   return (

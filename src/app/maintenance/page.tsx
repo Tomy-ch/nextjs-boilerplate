@@ -7,8 +7,8 @@ import { MaintenanceView } from "@/features/maintenance/view";
  * build 時に 1 度だけ描く。
  *
  * @remarks
- * 止めているかどうかは入口（`src/proxy.ts`）が判定するので、この画面自身は何も読みません。
- * ここで判定を持つと、止まっているあいだ**全ルートが動的になります**。宣言と実態は build の
+ * **止めているかどうかをこの画面は読みません**（理由は
+ * `docs/spec/route/maintenance/page.function.md` の「レンダリング」）。宣言と実態は build の
  * 成果物と突き合わせます（`scripts/render-mode`）。
  */
 export const dynamic = "force-static";
@@ -23,11 +23,8 @@ export const metadata: Metadata = {
  * 配信を止めているあいだの画面。
  *
  * @remarks
- * **器を通りません。** 入口が全ルートをここへ差し替えるため、route group の layout は挟まりません。
- * したがって `main` はこの画面が自分で置きます（[README](../README.md)）。
- *
- * 出す先が停止中の面だけであるにもかかわらず header と nav を出すと、押した先がすべてこの画面へ
- * 戻ります。
+ * **器を通らないので `main` は自分で置きます**（[README](../README.md)）。header と nav を出さない
+ * 理由は `docs/spec/route/maintenance/page.screen.md` の「器」。
  */
 export default function MaintenancePage() {
   return (
