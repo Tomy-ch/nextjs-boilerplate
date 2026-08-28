@@ -6,7 +6,7 @@
  * （[0112](../../docs/adr/0112-data-classification-cache-boundary.md) 決定 4 の段 2）。宣言を
  * 定数へ寄せた瞬間に検査は何も言わずに黙るので、綴りのままであることを別の口から見張る。
  *
- * 判定だけをここに置き、ツリーの走査は `scripts/data-scope.gate.test.ts` が担う。
+ * 判定だけをここに置き、ツリーの走査は `scripts/scope-spelling.gate.test.ts` が担う。
  */
 
 /** 分類を受け取る口の呼び出し。 */

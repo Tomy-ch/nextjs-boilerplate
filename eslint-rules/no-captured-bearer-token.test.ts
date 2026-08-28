@@ -60,6 +60,8 @@ describe("noCapturedBearerToken", () => {
           filename: FILENAME,
         },
         { code: "const options = { retries: 3, timeout: 100 };", filename: FILENAME },
+        // 綴りを持たないリテラルのキー。文字列でない以上、どの綴りとも名指しが一致しない。
+        { code: 'const client = createHttpClient({ 0: async () => "t" });', filename: FILENAME },
       ],
       invalid: [],
     });

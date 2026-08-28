@@ -65,7 +65,7 @@ describe("assertNoCredentialHeader", () => {
   });
 
   it("綴りの大文字小文字を問わずに落とす", () => {
-    expect(kindOf(() => assertNoCredentialHeader({ cookie: "session=x" }))).toBe(
+    expect(kindOf(() => assertNoCredentialHeader({ Cookie: "session=x" }))).toBe(
       ErrorKind.INVALID_ARGUMENT,
     );
   });

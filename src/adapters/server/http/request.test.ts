@@ -427,6 +427,22 @@ describe("createHttpClient", () => {
     expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/items/a..b/ship");
   });
 
+  it("確立中の口でも、接続先を離れる要求には資格情報を載せない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createHttpClient({
+      scope: "user-scoped",
+      baseUrl: "https://api.example.test",
+      maxUrlBytes: MAX_URL_BYTES,
+      profile,
+      fetchImpl,
+      bearerToken: "establishing-token",
+    });
+
+    await client.request({ path: "https://idp.example.test/token", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).not.toHaveProperty("Authorization");
+  });
+
   // ----- 異常系 -----
   it("user-scoped な口へキャッシュ指定を与えたら、送らずに invalid-argument で落とす", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
@@ -434,6 +450,16 @@ describe("createHttpClient", () => {
 
     expect(
       await kindOf(() => client.request({ path: "/v1/users/me", schema, cache: "force-cache" })),
+    ).toBe(ErrorKind.INVALID_ARGUMENT);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("user-scoped な口へ再検証のタグを与えたら、送らずに invalid-argument で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createEscapedClient(fetchImpl);
+
+    expect(
+      await kindOf(() => client.request({ path: "/v1/users/me", schema, tags: ["users"] })),
     ).toBe(ErrorKind.INVALID_ARGUMENT);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
