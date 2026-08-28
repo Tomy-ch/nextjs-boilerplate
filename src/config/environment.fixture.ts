@@ -9,8 +9,11 @@ import type { Environment } from "./environment";
  * schema は全 purpose の変数をまとめて検証するため、purpose を 1 つだけ確かめたい場合でも
  * 一式を揃える必要があります。各テストが自分の分だけを stub すると、他の purpose の欠落で
  * 落ちて検査したい判定へ到達しません。
+ *
+ * **変数の並びを書くのはここだけです。** 同じ一式をテスト側にも持つと、変数を 1 つ足すたびに
+ * 同じ追記が写しの数だけ要り、片方を忘れた状態を型検査が拾うまで気づけません。
  */
-const VALID_ENVIRONMENT = {
+export const VALID_ENVIRONMENT = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
   APP_MAINTENANCE_MODE: "off",

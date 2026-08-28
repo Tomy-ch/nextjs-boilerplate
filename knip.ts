@@ -68,6 +68,7 @@ const config: KnipConfig = {
         "playwright.config.ts",
         "e2e/**/*.spec.ts",
         "playwright.e2e.config.ts",
+        "playwright.maintenance.config.ts",
       ],
       ignore: [...GENERATED_MODULES],
       ignoreDependencies: NON_IMPORTED_DEPENDENCIES,
