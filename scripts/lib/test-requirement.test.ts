@@ -88,13 +88,19 @@ describe("resolveTestRequirement", () => {
     expect(resolved).toEqual({ declaredIn: "README.md", layers: ["unit"] });
   });
 
-  it("README を持てない起動エントリの宣言は ADR から引く", () => {
+  it("README を持てない起動エントリの宣言は依存マトリクスから引く", () => {
     const resolved = resolveTestRequirement("src/proxy.test.ts", readerOf({}));
 
-    expect(resolved).toEqual({
-      declaredIn: "docs/adr/0090-testing-strategy.md",
-      layers: ["unit"],
-    });
+    expect(resolved).toEqual({ declaredIn: "architecture.ts", layers: ["unit"] });
+  });
+
+  it("起動エントリの宣言は README より優先する", () => {
+    const resolved = resolveTestRequirement(
+      "src/instrumentation.test.ts",
+      readerOf({ src: frontmatter("test-requirement: feature") }),
+    );
+
+    expect(resolved).toEqual({ declaredIn: "architecture.ts", layers: ["unit"] });
   });
 
   // ----- 異常系 -----
