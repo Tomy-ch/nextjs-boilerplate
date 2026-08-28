@@ -100,7 +100,7 @@ describe("proxy", () => {
   it("宣言で許した origin からの BFF への要求に CORS ヘッダを付ける", async () => {
     allowedOrigins.current = [PARTNER_ORIGIN];
 
-    const response = await proxy(crossOrigin("/api/products", PARTNER_ORIGIN));
+    const response = await proxy(crossOrigin("/api/help", PARTNER_ORIGIN));
 
     expect(response.headers.get("access-control-allow-origin")).toBe(PARTNER_ORIGIN);
     expect(response.headers.get("access-control-allow-credentials")).toBe("true");
@@ -231,7 +231,7 @@ describe("proxy", () => {
   });
 
   it("宣言に無い origin からの読み出しは止めないが CORS ヘッダを付けない", async () => {
-    const response = await proxy(crossOrigin("/api/products", "https://evil.example.test"));
+    const response = await proxy(crossOrigin("/api/help", "https://evil.example.test"));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
@@ -240,7 +240,7 @@ describe("proxy", () => {
   it("許した origin でも画面の経路には CORS ヘッダを付けない", async () => {
     allowedOrigins.current = [PARTNER_ORIGIN];
 
-    const response = await proxy(crossOrigin("/products", PARTNER_ORIGIN));
+    const response = await proxy(crossOrigin("/help", PARTNER_ORIGIN));
 
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
   });
@@ -248,7 +248,7 @@ describe("proxy", () => {
   it("許した origin でも画面の経路への preflight は素通しにする", async () => {
     allowedOrigins.current = [PARTNER_ORIGIN];
 
-    const response = await proxy(crossOrigin("/products", PARTNER_ORIGIN, { method: "OPTIONS" }));
+    const response = await proxy(crossOrigin("/help", PARTNER_ORIGIN, { method: "OPTIONS" }));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("access-control-allow-methods")).toBeNull();
