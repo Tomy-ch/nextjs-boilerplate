@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 import { findActiveTraceparent } from "@/observability/trace-context.server";
 
+import { Consent } from "./consent";
 import { FONT_VARIABLES } from "./fonts";
 import { Telemetry } from "./telemetry";
 import "./globals.css";
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <Telemetry traceparent={findActiveTraceparent()} />
         <ToastProvider>{children}</ToastProvider>
+        <Consent />
       </body>
     </html>
   );

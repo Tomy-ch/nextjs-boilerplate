@@ -20,6 +20,7 @@ test-requirement: unit
 
 | モジュール | 役割 |
 | --- | --- |
+| `consent-store.ts` | 任意の用途に cookie を使ってよいかという意思。選んだ結果を cookie へ残し、その場でツリーへ反映する |
 
 <!-- sample:begin -->
 同梱のサンプルが加えるもの:

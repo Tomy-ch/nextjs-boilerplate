@@ -122,6 +122,15 @@ components:
     as: layout
     directory: src/components/shell/content-container
     addedAt: 2026-08-04T00:55:00.000Z
+  consent-banner:
+    kind: original
+    layer: shell
+    as: overlay
+    directory: src/components/shell/consent-banner
+    addedAt: 2026-08-29T00:00:00.000Z
+    dependencies:
+      - next
+      - radix-ui
   pull-to-refresh:
     kind: original
     layer: shell
