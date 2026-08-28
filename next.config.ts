@@ -55,6 +55,13 @@ const nextConfig = async (): Promise<NextConfig> => {
   const mediaOrigin = new URL(environment.MEDIA_ORIGIN);
 
   return {
+    // 静的な殻と動的な穴に分けて配る（[0041](docs/adr/0041-cache-components-decision.md)）。
+    // 取得は `use cache` を付けたものだけがプリレンダーへ入り、それ以外は穴として後から届く。
+    //
+    // **segment config（`export const dynamic`）はこのフラグと併存しない。** 描くモードの宣言は
+    // 器の形そのもの（何を `Suspense` の外に置くか）へ移り、突合は `scripts/render-mode` が
+    // プリレンダーの実態と照らす。
+    cacheComponents: true,
     async headers() {
       return [{ source: "/:path*", headers: [{ key: "Referrer-Policy", value: REFERRER_POLICY }] }];
     },

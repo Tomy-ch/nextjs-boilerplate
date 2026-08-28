@@ -17,18 +17,6 @@ export const metadata: Metadata = {
 };
 
 /**
- * リクエストごとに描く。
- *
- * @remarks
- * 動的な API を使わない画面なので、宣言しなければ build 時に 1 度だけ描かれます。並ぶのは
- * 新着とランキングで、どちらもバックエンドの状態が変われば変わる値です。build 時に固めると
- * 更新が反映されず、そのうえ build にバックエンドへの到達性を要求します
- * （[0040](../../../docs/adr/0040-routing-rendering-strategy.md)。モードは画面ごとに選ぶもので、
- * ここでの宣言は boilerplate 全体の既定ではありません）。
- */
-export const dynamic = "force-dynamic";
-
-/**
  * トップ。
  *
  * @remarks
