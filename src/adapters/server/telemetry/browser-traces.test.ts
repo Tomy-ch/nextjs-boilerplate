@@ -125,6 +125,49 @@ describe("forwardTraceExport", () => {
     });
   });
 
+  it("伏せる名前の属性を、値を差し替えて渡す", async () => {
+    const fetchImpl = stubFetch(200);
+    const withSecret = {
+      resourceSpans: [
+        {
+          resource: { attributes: [] },
+          scopeSpans: [
+            {
+              spans: [
+                {
+                  name: "GET /api/docs",
+                  attributes: [
+                    { key: "url.path", value: { stringValue: "/api/docs" } },
+                    { key: "Authorization", value: { stringValue: "Bearer 秘密" } },
+                    { key: "token", value: { stringValue: "秘密" } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    await forwardTraceExport(withSecret);
+
+    const sent = JSON.stringify(sentBody(fetchImpl));
+
+    expect(sent).not.toContain("秘密");
+    expect(sent).toContain("[REDACTED]");
+    expect(sent).toContain("/api/docs");
+  });
+
+  it("span を持たない封筒でも渡せる", async () => {
+    const fetchImpl = stubFetch(200);
+
+    await forwardTraceExport(JSON.parse(exportOf()));
+
+    expect(sentBody(fetchImpl)).toMatchObject({
+      resourceSpans: [{ scopeSpans: [{ spans: [span] }] }],
+    });
+  });
+
   it("ブラウザが名乗った service 名を捨てる", async () => {
     const fetchImpl = stubFetch(200);
 

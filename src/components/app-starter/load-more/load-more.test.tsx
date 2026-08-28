@@ -8,6 +8,20 @@ import { axe } from "vitest-axe";
 import { LoadMore } from "./load-more";
 
 describe("LoadMore", () => {
+  it("取得中は、届く分の場所を先に取る骨組みを並べる", () => {
+    render(
+      <LoadMore placeholder={<div data-testid="placeholder" />} state={{ status: "loading" }} />,
+    );
+
+    expect(screen.getByTestId("placeholder")).toBeInTheDocument();
+  });
+
+  it("取得中でなければ骨組みを並べない", () => {
+    render(<LoadMore placeholder={<div data-testid="placeholder" />} state={{ status: "idle" }} />);
+
+    expect(screen.queryByTestId("placeholder")).not.toBeInTheDocument();
+  });
+
   it("続きがあるあいだは、操作も進行も出さずに目印だけを置く", () => {
     render(<LoadMore state={{ status: "idle" }} />);
 

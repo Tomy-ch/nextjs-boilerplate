@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 
 import { getObservabilityConfig } from "@/config/observability/observability.server";
+import { REDACTED, REDACTED_FIELD_NAMES } from "@/logging/logger";
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { getSignalEndpoint, OtelSignal } from "@/observability/initialize.server";
 
@@ -24,13 +25,16 @@ export const MAX_TRACE_EXPORT_BYTES = 128 * 1024;
 /** 1 回の送信に許す resource の数。ブラウザ 1 つが名乗る resource は 1 つである。 */
 const MAX_RESOURCE_SPANS = 4;
 
-const attribute = z.looseObject({ key: z.string() });
+const attribute = z.looseObject({ key: z.string(), value: z.unknown().optional() });
+
+const span = z.looseObject({ attributes: z.array(attribute).optional() });
 
 const TraceExport = z.looseObject({
   resourceSpans: z
     .array(
       z.looseObject({
         resource: z.looseObject({ attributes: z.array(attribute).optional() }).optional(),
+        scopeSpans: z.array(z.looseObject({ spans: z.array(span).optional() })).optional(),
       }),
     )
     .min(1)
@@ -81,7 +85,7 @@ export async function forwardTraceExport(traces: TraceExport): Promise<void> {
     const response = await fetch(getSignalEndpoint(config.otlpEndpoint, OtelSignal.TRACES), {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(withServiceName(traces, config.serviceName)),
+      body: JSON.stringify(redactAttributes(withServiceName(traces, config.serviceName))),
     });
 
     if (!response.ok) {
@@ -100,6 +104,42 @@ function reportFailure(fields: Readonly<Record<string, unknown>>): void {
   reportQuietly(() => {
     getLogger().warn("ブラウザの span を collector へ渡せませんでした", fields);
   });
+}
+
+/**
+ * 伏せる名前を持つ span の属性を censor へ置き換える。
+ *
+ * @remarks
+ * **ここで掛けるのは、ここが全部を通る唯一の場所だからです。** ブラウザ側で掛けても、送信者は
+ * 差し替えられるので受け側の根拠になりません（[0077](../../../../docs/adr/0077-bff-abuse-protection-boundary.md)）。
+ * 名前の表は `logging` が持ちます —— ログと span へ同じ redaction を求めているのは
+ * [0081](../../../../docs/adr/0081-observability-logging.md) §3 の 1 つの規則で、表が 2 つに割れると
+ * 片方だけが緩みます。
+ *
+ * **値の中身は見ません。** 上流や第三者が組んだ URL の中まで洗い出すことは表現層の設計目標に
+ * 入れていません。名前で持ち回っている限り効き、そうでないものは元の設計が誤っています。
+ */
+function redactAttributes(traces: TraceExport): TraceExport {
+  return {
+    ...traces,
+    resourceSpans: traces.resourceSpans.map((resourceSpan) => ({
+      ...resourceSpan,
+      scopeSpans: resourceSpan.scopeSpans?.map((scopeSpan) => ({
+        ...scopeSpan,
+        spans: scopeSpan.spans?.map((item) => ({
+          ...item,
+          attributes: item.attributes?.map(censorSecret),
+        })),
+      })),
+    })),
+  };
+}
+
+/** 伏せる名前の属性なら値を差し替える。 */
+function censorSecret(item: z.infer<typeof attribute>): z.infer<typeof attribute> {
+  return REDACTED_FIELD_NAMES.includes(item.key.toLowerCase())
+    ? { ...item, value: { stringValue: REDACTED } }
+    : item;
 }
 
 /** 各 resource の service 名を、このアプリが名乗っているものへ揃える。 */
