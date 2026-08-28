@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { VALID_ENVIRONMENT, stubValidEnvironment } from "./environment.fixture";
+import { stubValidEnvironment, VALID_ENVIRONMENT } from "./environment.fixture";
 
 /** リポジトリが同梱している秘密値。`env/.env.local` が積んでいるものと同じ。 */
 const SHIPPED_SESSION_SECRET = "local-development-session-secret-change-before-production";
