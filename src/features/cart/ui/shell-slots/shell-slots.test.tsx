@@ -2,6 +2,7 @@
 
 import { render, screen, within } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",

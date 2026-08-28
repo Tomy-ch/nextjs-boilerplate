@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 const { verifySession } = vi.hoisted(() => ({ verifySession: vi.fn() }));
 
