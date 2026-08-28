@@ -25,7 +25,7 @@ export type CircuitBreaker = {
  * 時間だけで戻すと、復旧していない接続先へ再び全量が流れ込みます。
  *
  * @param config - 失敗率・観測数・遮断時間・復帰試行数
- * @param now - 現在時刻のミリ秒を返す関数。呼び出し側が渡す
+ * @param now - 経過時間をミリ秒で返す時計。呼び出し側が渡す。差だけを見るので単調なものを渡す
  */
 export function createCircuitBreaker(
   config: ResilienceProfile["breaker"],

@@ -26,6 +26,7 @@ type ClientOverrides = {
   baseUrl?: string;
   maxUrlBytes?: number;
   profile?: ResilienceProfile;
+  wallClockNow?: () => number;
   getBearerToken?: () => Promise<string | null>;
   allowAnonymous?: boolean;
   sleep?: (ms: number) => Promise<void>;
@@ -332,6 +333,25 @@ describe("createHttpClient", () => {
     const client = createClient(fetchImpl);
 
     await expect(client.request({ path: "/v1/ping", schema })).resolves.toEqual({ ok: true });
+  });
+
+  it("Retry-After が日時なら壁時計との差を待ち時間に使う", async () => {
+    const sleep = vi.fn(async () => {});
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        jsonResponse(503, {}, { "Retry-After": "Fri, 07 Aug 2026 00:00:03 GMT" }),
+      )
+      .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, {
+      sleep,
+      wallClockNow: () => Date.parse("2026-08-07T00:00:00.000Z"),
+      profile: { ...profile, overallTimeoutMs: 10_000 },
+    });
+
+    await client.request({ path: "/v1/ping", schema });
+
+    expect(sleep).toHaveBeenCalledWith(3_000);
   });
 
   it("Retry-After の指示を待ち時間に使う", async () => {
