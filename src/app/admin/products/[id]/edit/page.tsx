@@ -20,13 +20,28 @@ export const metadata: Metadata = {
 };
 
 /** 商品を編集する画面。 */
-export default async function AdminProductEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+/**
+ * 編集の中身。
+ *
+ * @remarks
+ * **`params` を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../../../docs/adr/0041-cache-components-decision.md)）。器は promise のまま
+ * 渡し、穴の内側で解きます。識別子を契約の型へ通すのもこの層の仕事です。
+ */
+async function AdminProductEditContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
+  return (
+    <AdminProductEditPageContent
+      id={toProductId(id)}
+      maxUploadBytes={MAX_UPLOAD_BYTES}
+      updateAction={updateProductAction}
+      uploadAction={uploadProductImageAction}
+    />
+  );
+}
+
+export default function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -38,12 +53,7 @@ export default async function AdminProductEditPage({
         </div>
       </PageHeader>
       <Suspense fallback={<AdminProductEditSkeleton />}>
-        <AdminProductEditPageContent
-          id={toProductId(id)}
-          maxUploadBytes={MAX_UPLOAD_BYTES}
-          updateAction={updateProductAction}
-          uploadAction={uploadProductImageAction}
-        />
+        <AdminProductEditContent params={params} />
       </Suspense>
     </ContentContainer>
   );

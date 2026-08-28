@@ -17,6 +17,18 @@ export const metadata: Metadata = {
 };
 
 /**
+ * 一覧の中身。
+ *
+ * @remarks
+ * **`searchParams` を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../docs/adr/0041-cache-components-decision.md)）。器は promise のまま渡し、
+ * 穴の内側で解きます。
+ */
+async function ProductListContent({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
+  return <ProductListPageContent searchParams={await searchParams} />;
+}
+
+/**
  * 商品一覧。
  *
  * @remarks
@@ -28,13 +40,7 @@ export const metadata: Metadata = {
  * ここで鍵を与えると絞り込みの入力欄まで待機表示へ落ちます。この境界が受け持つのは初回の
  * 組み立てだけです。
  */
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams: Promise<RawSearchParams>;
-}) {
-  const params = await searchParams;
-
+export default function ProductsPage({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -44,7 +50,7 @@ export default async function ProductsPage({
         </div>
       </PageHeader>
       <Suspense fallback={<ProductListSkeleton />}>
-        <ProductListPageContent searchParams={params} />
+        <ProductListContent searchParams={searchParams} />
       </Suspense>
     </ContentContainer>
   );

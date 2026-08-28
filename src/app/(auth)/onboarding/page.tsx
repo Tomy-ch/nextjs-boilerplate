@@ -28,7 +28,17 @@ export const metadata: Metadata = {
  * 利用者向けの shell ではなく認証の器に載せます。ここを通る主体は保護された画面のどれも開けず、
  * nav を出しても行ける先がありません（[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
  */
-export default async function OnboardingPage({
+/**
+ * 登録の中身。
+ *
+ * @remarks
+ * **`searchParams` と登録済みかの判定を解くのはここです。** どちらも器の側で待つと、待っている
+ * 間は殻すら配れません（[0041](../../../../docs/adr/0041-cache-components-decision.md)）。
+ *
+ * 判定を穴の内側へ置いても、登録済みの主体を送り返す働きは変わりません。転送は描画の途中でも
+ * 効き、殻を先に配ったぶんだけ早く判定へ入ります。
+ */
+async function OnboardingContent({
   searchParams,
 }: {
   searchParams: Promise<{ returnUrl?: string }>;
@@ -38,6 +48,14 @@ export default async function OnboardingPage({
 
   await requireUnregisteredUser(destination);
 
+  return <OnboardingPageContent returnUrl={destination} />;
+}
+
+export default function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnUrl?: string }>;
+}) {
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -49,7 +67,7 @@ export default async function OnboardingPage({
         </div>
       </PageHeader>
       <Suspense fallback={<OnboardingSkeleton />}>
-        <OnboardingPageContent returnUrl={destination} />
+        <OnboardingContent searchParams={searchParams} />
       </Suspense>
     </ContentContainer>
   );

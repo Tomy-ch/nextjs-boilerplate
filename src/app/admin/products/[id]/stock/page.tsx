@@ -24,13 +24,23 @@ export const metadata: Metadata = {
  * @remarks
  * 在庫以外はここで扱いません。編集の画面が持ちます。
  */
-export default async function AdminProductStockPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+/**
+ * 補充の中身。
+ *
+ * @remarks
+ * **`params` を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../../../docs/adr/0041-cache-components-decision.md)）。器は promise のまま
+ * 渡し、穴の内側で解きます。
+ */
+async function AdminProductStockContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
+  return (
+    <AdminProductStockPageContent adjustAction={adjustProductStockAction} id={toProductId(id)} />
+  );
+}
+
+export default function AdminProductStockPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -42,10 +52,7 @@ export default async function AdminProductStockPage({
         </div>
       </PageHeader>
       <Suspense fallback={<AdminProductStockSkeleton />}>
-        <AdminProductStockPageContent
-          adjustAction={adjustProductStockAction}
-          id={toProductId(id)}
-        />
+        <AdminProductStockContent params={params} />
       </Suspense>
     </ContentContainer>
   );
