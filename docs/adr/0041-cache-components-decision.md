@@ -23,7 +23,11 @@ Accepted
 - **待つコストが実在する。** 殻と穴の分割・`use cache` の粒度は route の構造そのものであり、後から入れることは同じ画面を二度書くことを意味する。
 - **有効化の前提は [0112](0112-data-classification-cache-boundary.md)** のデータ分類とキャッシュ境界である。PPR は「何が静的な殻へ入るか」を決める機構であり、**分類が無いまま有効化すると事故の面だけが先に開く**。
 - **PPR は public data に対する性能最適化として扱う。** user-scoped な値については、共有・静的キャッシュの恩恵より機密性を優先する([0112](0112-data-classification-cache-boundary.md) 不変条件 1 / 2)。
-- **本 ADR は方針を確定するのみで、有効化と移行は実装 PR が持つ。** 移行には shell の穴あけ・共有 fetch wrapper の締切を壁時計から単調時計へ寄せること・`export const dynamic` を読む描画モード突合ゲートの作り直し・各 route の分割・`<Activity>` の回帰確認が含まれる。
+- **有効化は着地している**(`next.config.ts` の `cacheComponents: true`)。器の形が殻と穴の分かれ目そのものになり、次が実装の作法として効く。
+  - **描くモードを画面が宣言しない。** segment config は併存しない。`params` / `searchParams` / cookie / 認可の判定 / 実時計は、すべて穴の内側で解く(実時計はさらに `connection()` を待ってから読む)
+  - **殻を配れない画面だけが `export const instant = false` を理由つきで名乗る。** 宣言と実態の突合は `scripts/render-mode` が `prerender-manifest.json` の `compute` に照らし、宣言なしにブロックしている route と、宣言が余っている route の双方を見る
+  - **現在地を読む client 部品も穴を要る。** `usePathname` / `useSearchParams` は動的な区間を持つ route の殻では解決できない
+  - **認可で殻を配れない区画は、区画ごと名乗る。** 判定を穴へ落とすと、確かめる前にその面の殻が誰にでも配られる([0079](0079-auth-frontend-seam.md))
 - **引き受ける代償**(採用によって発生し、消えないもの):
   - **可逆性の低下**: 無効 → 有効は `use cache` を足す前進移行だが、有効前提で書いたツリー(静的な殻 / 動的な穴の分割・`use cache` の粒度)を無効へ戻すのは書き直しになる。v1 で採る判断はこれを引き受ける。
   - **キャッシュ設計の骨格を本体が持つこと**: 「何を `use cache` するか / どの粒度で」は [0071](0071-bff-api-integration.md) が具体値を fork 先へ開けている領域である。**具体値は開けたまま、寿命をどこへ置くかの骨格だけを本体が決める**。

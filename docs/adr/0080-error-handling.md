@@ -83,7 +83,9 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - **その結果、待機の状態を持たない画面がある。** `rules.md` #18 の 4 状態は「4 つ必ず作る」ではなく
   「4 つを設計して、所有するものを実装・テストする」である。所有しない状態の部品を作ると、
   どこからも参照されない skeleton が残る。**所有しないと決めたことと、その理由を README に書く**
-- fallback の**見た目(スケルトン / スピナー)の UI 規約と、Suspense × PPR(`Cache Components`)の相互作用**は用途依存であり、PPR の採否は [0041](0041-cache-components-decision.md) が v1 採用に確定した(相互作用の確定は移行 PR)。本節は「境界の配置と薄さ」までを定め、UI 表現・PPR 前提設計は実装 PR で確定する
+- **Suspense × PPR の相互作用**: `Cache Components` は有効なので([0041](0041-cache-components-decision.md))、`<Suspense>` の位置は待機表示の話ではなく**静的な殻と動的な穴の境界そのもの**である。上の「待つ部分の近くへ置く」は、有効化後は性能の助言ではなく**殻を配れるかどうかの条件**になる —— 境界より外にある取得が 1 つでも残っていれば、その route は殻を配れない
+- **fallback は場所を取る。** 穴が埋まる瞬間に周りが動かないよう、待機表示は実物と同じ大きさの枠を出す(`docs/rules.md` #17 / #17b)。描くものを持たない穴(計測など)だけが `null` を fallback にしてよい
+- fallback の**見た目(スケルトン / スピナー)の UI 規約**は用途依存であり、fork 先で確定する
 
 ### 5. swallow 禁止・cause chain・redact(go `rules.md` 翻案)
 
