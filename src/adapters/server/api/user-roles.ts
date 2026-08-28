@@ -29,9 +29,10 @@ const ROLES_PATH = "/v1/users/me/roles";
  */
 export async function fetchSessionRole(accessToken: string): Promise<SessionRole> {
   const wire = await createHttpClient({
+    scope: "user-scoped",
     baseUrl: getApiConfig().baseUrl,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: async () => accessToken,
+    bearerToken: accessToken,
   }).request({ path: ROLES_PATH, schema: GetUsersMeRolesResponse });
 
   return wire.roles.some((role) => role.code === ADMIN_ROLE_CODE)

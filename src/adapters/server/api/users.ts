@@ -25,14 +25,15 @@ import {
 } from "../../gen/api/endpoints.zod";
 import type { UserPutRequest, UsersPostRequest } from "../../gen/api/model";
 import { getAccessToken, signOut, verifySession } from "../auth/session";
-import { createHttpClient, type HttpClient } from "../http/request";
+import { createHttpClient, type UserScopedHttpClient } from "../http/request";
 
 type WireUser = z.infer<typeof GetUsersMeResponse>;
 
-let client: HttpClient | undefined;
+let client: UserScopedHttpClient | undefined;
 
-function getClient(): HttpClient {
+function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
+    scope: "user-scoped",
     baseUrl: getApiConfig().baseUrl,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
     getBearerToken: getAccessToken,

@@ -29,7 +29,7 @@ import {
 import { getPurchasesDetailPathPurchaseCodeMax } from "../../gen/api/limits";
 import type { PurchasesPostRequest } from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
-import { createHttpClient, type HttpClient } from "../http/request";
+import { createHttpClient, type UserScopedHttpClient } from "../http/request";
 
 const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
@@ -38,10 +38,11 @@ const PURCHASES_PATH = "/v1/purchases";
 type WirePurchases = z.infer<typeof GetPurchasesResponse>;
 type WirePurchaseDetail = z.infer<typeof GetPurchasesDetailResponse>;
 
-let client: HttpClient | undefined;
+let client: UserScopedHttpClient | undefined;
 
-function getClient(): HttpClient {
+function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
+    scope: "user-scoped",
     baseUrl: getApiConfig().baseUrl,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
     getBearerToken: getAccessToken,
