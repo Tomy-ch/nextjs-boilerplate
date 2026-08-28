@@ -1,4 +1,4 @@
-import { createServer } from "node:http";
+import { createServer, type Server } from "node:http";
 
 /**
  * 宣言した別 origin として返す文書。
@@ -30,13 +30,13 @@ export function servePartnerOrigin(hostname: string, port: number): Promise<() =
     });
 
     server.once("error", reject);
-    server.listen(port, hostname, () => {
-      resolve(
-        () =>
-          new Promise<void>((done, fail) => {
-            server.close((error) => (error ? fail(error) : done()));
-          }),
-      );
-    });
+    server.listen(port, hostname, () => resolve(() => closeServer(server)));
+  });
+}
+
+/** 待ち受けをやめる。既に止まっていれば拒む。 */
+function closeServer(server: Server): Promise<void> {
+  return new Promise((done, fail) => {
+    server.close((error) => (error ? fail(error) : done()));
   });
 }
