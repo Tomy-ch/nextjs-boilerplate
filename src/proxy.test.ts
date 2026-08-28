@@ -5,7 +5,7 @@ import { SESSION_ROLE } from "@/model/session";
 import { proxy } from "./proxy";
 
 const readOptimisticSession = vi.hoisted(() => vi.fn());
-const allowedOrigins = vi.hoisted(() => ({ current: [] as readonly string[] }));
+const allowedOrigins = vi.hoisted((): { current: readonly string[] } => ({ current: [] }));
 
 vi.mock("@/adapters/server/auth/optimistic-session", () => ({ readOptimisticSession }));
 vi.mock("@/config/http/http.server", () => ({
