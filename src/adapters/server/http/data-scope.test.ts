@@ -53,7 +53,7 @@ describe("assertNoCredentialHeader", () => {
 
   it("契約が要求するヘッダを通す", () => {
     expect(() =>
-      assertNoCredentialHeader({ "Idempotency-Key": "key", "X-Cart-Session": "session" }),
+      assertNoCredentialHeader({ "Idempotency-Key": "key", "X-Request-Scope": "scope" }),
     ).not.toThrow();
   });
 

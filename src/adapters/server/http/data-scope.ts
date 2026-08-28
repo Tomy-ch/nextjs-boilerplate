@@ -26,8 +26,8 @@ export type DataScope = "public" | "user-scoped";
  * @remarks
  * HTTP が資格情報の運び手として定めているものです（RFC 9110 §11.6.2 / RFC 6265）。アプリ固有の
  * 名前は並べません —— どのヘッダが主体を指すかは接続先の契約が決めることで、この境界が知って
- * よいのは HTTP の語彙までです。契約が独自に持つ識別子（ゲストのカートを指すヘッダなど）は、
- * それを載せる口の分類が `user-scoped` になることで覆います。
+ * よいのは HTTP の語彙までです。契約が独自に持つ識別子のヘッダは、それを載せる口の分類が
+ * `user-scoped` になることで覆います。
  */
 const CREDENTIAL_HEADERS: readonly string[] = ["authorization", "cookie"];
 
