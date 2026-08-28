@@ -114,19 +114,19 @@ function main(): void {
     return;
   }
 
-  const counts = [...pagePathsByRoute.keys()]
-    .filter((route) => !EXEMPT.includes(route))
-    .flatMap((route) => observed.get(route) ?? [])
-    .reduce<Record<string, number>>(
-      (into, mode) => ({ ...into, [labelOf(mode)]: (into[labelOf(mode)] ?? 0) + 1 }),
-      {},
-    );
+  const counts = new Map<string, number>();
 
-  console.log(
-    `✅ ${pagePathsByRoute.size} 枚の描画モードは宣言どおりです（${Object.entries(counts)
-      .map(([label, count]) => `${label} ${count}`)
-      .join(" / ")}）。`,
-  );
+  for (const route of pagePathsByRoute.keys()) {
+    const mode = EXEMPT.includes(route) ? undefined : observed.get(route);
+
+    if (mode !== undefined) {
+      counts.set(labelOf(mode), (counts.get(labelOf(mode)) ?? 0) + 1);
+    }
+  }
+
+  const breakdown = [...counts].map(([label, count]) => `${label} ${count}`).join(" / ");
+
+  console.log(`✅ ${pagePathsByRoute.size} 枚の描画モードは宣言どおりです（${breakdown}）。`);
 }
 
 main();
