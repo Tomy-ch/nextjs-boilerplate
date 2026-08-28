@@ -9,11 +9,17 @@
 .PHONY: e2e ## 主要ジャーニーを回し、画面の見た目を基準画像と比較する
 .PHONY: e2e-retake ## 画面の基準画像を撮り直して置き場へ送る (手元からの撮り直しはこれ)
 .PHONY: e2e-update ## 画面の基準画像を撮り直す (置き場へは送らない)
+.PHONY: e2e-maintenance ## 配信を止めた状態で起動し、停止の機構が成立することを確かめる
 .PHONY: e2e-report ## 直前の実行の HTML レポートを開く
 
 # 相手はモックでなければならない。既定の local は live を指すので、明示していない呼び出しを
 # 実物のバックエンドへ向けない。
 E2E_APP_ENV ?= ci
+
+# 起動へ足す環境変数（`NAME=value` の並び）。停止中の検証だけが使う。ENV ファイルではなく
+# 起動の側で渡すのは、`loadEnvironment()` が override: false で読むため、既に process.env に
+# 在る値が勝つからである（src/config/README.md）。
+E2E_APP_ENV_EXTRA ?=
 
 # アプリを待ち受けるポート。開発サーバの 3000 を避ける。同じポートを使うと、既に何かが待ち受けて
 # いる環境で「起動を待つ」が他人のサーバへの疎通で満たされ、その相手に対してテストが走る。
@@ -121,7 +127,7 @@ e2e-run: e2e-build
 		echo "❌ $$hostname:$(E2E_PORT) を既に何かが使っています。空いているポートを E2E_PORT で指定してください。"; \
 		exit 1; \
 	fi; \
-	APP_ENV=$(E2E_APP_ENV) pnpm start --hostname "$$hostname" --port $(E2E_PORT) > tmp/e2e/server.log 2>&1 & \
+	APP_ENV=$(E2E_APP_ENV) $(E2E_APP_ENV_EXTRA) pnpm start --hostname "$$hostname" --port $(E2E_PORT) > tmp/e2e/server.log 2>&1 & \
 	server_pid=$$!; \
 	trap 'kill $$server_pid 2>/dev/null || true' EXIT INT TERM; \
 	booted=0; \
@@ -156,6 +162,16 @@ e2e-update: E2E_UPDATE := --update-snapshots
 e2e-update: BASELINE_RETAKE := 1
 e2e-update: e2e-run
 	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です（make e2e-retake なら続けて送ります）。"
+
+# 停止中の検証。同じ立て付け（build → 起動 → コンテナのブラウザから当てる → 片付け）へ、
+# 起動の環境と当てる設定だけを差し替えて乗せる。
+#
+# 基準画像を要求しないので前提検査を外す。撮らない実行に submodule の取得を求めると、
+# 画像を持たない環境でこの検証だけが動かせなくなる。
+e2e-maintenance: E2E_APP_ENV_EXTRA := APP_MAINTENANCE_MODE=on
+e2e-maintenance: E2E_PRECHECK := true
+e2e-maintenance: E2E_COMMAND = $(E2E_RUN) ./node_modules/.bin/playwright test --config=playwright.maintenance.config.ts $(E2E_ARGS)
+e2e-maintenance: e2e-run
 
 e2e-report:
 	@docker compose -f docker-compose.dev-tools.yml run --rm --service-ports browser_runner \
