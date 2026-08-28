@@ -51,9 +51,6 @@ export function ConsentBanner({ open, onDecide, policyHref }: ConsentBannerProps
         data-slot="consent-banner-overlay"
       />
       <DialogPrimitive.Content
-        // Radix は背面へ `aria-hidden` を立てるだけで、この属性を出さない。標準の属性で modal だと
-        // 名乗れないと、`aria-modal` を目印にしている部品（`pull-to-refresh`）から見えなくなる。
-        aria-modal
         className="fixed inset-x-0 bottom-0 z-50 border-border border-t bg-background p-6 text-foreground shadow-lg data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-4"
         data-slot="consent-banner"
         onEscapeKeyDown={(event) => event.preventDefault()}
