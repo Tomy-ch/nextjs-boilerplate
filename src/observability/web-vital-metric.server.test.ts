@@ -19,7 +19,7 @@ const vital = {
   value: 1234.5,
   rating: "good",
   navigationType: "navigate",
-  route: "/products/[id]",
+  route: "/docs/[slug]",
 } as const;
 
 describe("recordWebVital", () => {
@@ -45,7 +45,7 @@ describe("recordWebVital", () => {
       advice: { explicitBucketBoundaries: expect.arrayContaining([2500]) },
     });
     expect(mocks.record).toHaveBeenCalledWith(1234.5, {
-      "http.route": "/products/[id]",
+      "http.route": "/docs/[slug]",
       "browser.web_vital.rating": "good",
       "browser.web_vital.navigation_type": "navigate",
     });

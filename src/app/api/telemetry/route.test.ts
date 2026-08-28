@@ -20,7 +20,7 @@ import { POST } from "./route";
 
 const report = {
   kind: "web-vital",
-  route: "/products/[id]",
+  route: "/docs/[slug]",
   name: "LCP",
   value: 1234.5,
   rating: "good",

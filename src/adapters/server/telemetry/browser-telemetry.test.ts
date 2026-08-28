@@ -38,7 +38,7 @@ import {
 
 const webVital = {
   kind: "web-vital",
-  route: "/products/[id]",
+  route: "/docs/[slug]",
   name: "LCP",
   value: 1234.5,
   rating: "good",
@@ -47,7 +47,7 @@ const webVital = {
 
 const clientError = {
   kind: "error",
-  route: "/cart",
+  route: "/terms",
   name: "TypeError",
   message: "読めない",
   stack: "TypeError: 読めない",
@@ -93,7 +93,7 @@ describe("parseTelemetryReport", () => {
 
     expect(parseTelemetryReport(withoutStack)).toEqual({
       kind: "error",
-      route: "/cart",
+      route: "/terms",
       name: "TypeError",
       message: "読めない",
     });
@@ -153,7 +153,7 @@ describe("recordTelemetryReport", () => {
       "exception.type": "TypeError",
       "exception.message": "読めない",
       "exception.stacktrace": "TypeError: 読めない",
-      "http.route": "/cart",
+      "http.route": "/terms",
     });
   });
 

@@ -18,7 +18,7 @@ vi.mock("@/config/observability/observability.server", () => ({
 
 import { forwardTraceExport, MAX_TRACE_EXPORT_BYTES, parseTraceExport } from "./browser-traces";
 
-const span = { name: "GET /api/products", spanId: "b7ad6b7169203331" };
+const span = { name: "GET /api/docs", spanId: "b7ad6b7169203331" };
 
 function exportOf(attributes: readonly unknown[] = []): string {
   return JSON.stringify({

@@ -52,8 +52,8 @@ function throwUncaught(error: unknown): void {
 }
 
 beforeEach(() => {
-  mocks.pathname = "/products/42";
-  mocks.params = { id: "42" };
+  mocks.pathname = "/docs/42";
+  mocks.params = { slug: "42" };
   mocks.onWebVital = () => undefined;
   mocks.reportWebVital.mockReset();
   mocks.reportClientError.mockReset();
@@ -79,30 +79,30 @@ describe("Telemetry", () => {
 
     mocks.onWebVital(measurement);
 
-    expect(mocks.reportWebVital).toHaveBeenCalledWith(measurement, "/products/[id]");
+    expect(mocks.reportWebVital).toHaveBeenCalledWith(measurement, "/docs/[slug]");
   });
 
   it("client 遷移の後も、測定は読み込みが始まった route へ紐づける", () => {
     const { rerender } = render(<Telemetry traceparent={TRACEPARENT} />);
 
-    mocks.pathname = "/cart";
+    mocks.pathname = "/terms";
     mocks.params = {};
     rerender(<Telemetry traceparent={TRACEPARENT} />);
     mocks.onWebVital(measurement);
 
-    expect(mocks.reportWebVital).toHaveBeenCalledWith(measurement, "/products/[id]");
+    expect(mocks.reportWebVital).toHaveBeenCalledWith(measurement, "/docs/[slug]");
   });
 
   it("client 遷移の後の例外は、遷移後の route と併せて送る", () => {
     const error = new Error("遷移後に壊れた");
     const { rerender } = render(<Telemetry traceparent={TRACEPARENT} />);
 
-    mocks.pathname = "/cart";
+    mocks.pathname = "/terms";
     mocks.params = {};
     rerender(<Telemetry traceparent={TRACEPARENT} />);
     throwUncaught(error);
 
-    expect(mocks.reportClientError).toHaveBeenCalledWith(error, "/cart", TRACEPARENT);
+    expect(mocks.reportClientError).toHaveBeenCalledWith(error, "/terms", TRACEPARENT);
   });
 
   it("捕捉されない例外を、起きた時点の route と併せて送る", () => {
@@ -111,7 +111,7 @@ describe("Telemetry", () => {
     render(<Telemetry traceparent={TRACEPARENT} />);
     throwUncaught(error);
 
-    expect(mocks.reportClientError).toHaveBeenCalledWith(error, "/products/[id]", TRACEPARENT);
+    expect(mocks.reportClientError).toHaveBeenCalledWith(error, "/docs/[slug]", TRACEPARENT);
   });
 
   it("捕捉されない reject を送る", () => {
@@ -123,7 +123,7 @@ describe("Telemetry", () => {
 
     expect(mocks.reportClientError).toHaveBeenCalledWith(
       new Error("解決しない"),
-      "/products/[id]",
+      "/docs/[slug]",
       TRACEPARENT,
     );
   });
@@ -135,7 +135,7 @@ describe("Telemetry", () => {
 
     expect(mocks.reportClientError).toHaveBeenCalledWith(
       "Script error.",
-      "/products/[id]",
+      "/docs/[slug]",
       TRACEPARENT,
     );
   });

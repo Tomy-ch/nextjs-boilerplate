@@ -79,7 +79,7 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 **刻みは指標ごとに持つ。** 既定はミリ秒の量を想定した並びなので、0 から 1 に収まる `CLS` は最初の 1 区間へ全部入り、百分位が区間の内挿だけで決まる —— 0.03 の実測から 3.75 が出る。刻みは分布をどの粗さで持つかの選択であって、good / poor の境界ではない。
 
-属性は `http.route`（公式 semconv）と `browser.web_vital.rating` / `browser.web_vital.navigation_type` である。route は 1 件ぶんのパスではなく **route の型**（`/products/[id]`）で、これはブラウザ側で戻している —— パスをそのまま載せると属性の値が閲覧された件数だけ増え、識別子も一緒に流れる。
+属性は `http.route`（公式 semconv）と `browser.web_vital.rating` / `browser.web_vital.navigation_type` である。route は 1 件ぶんのパスではなく **route の型**（`/docs/[slug]`）で、これはブラウザ側で戻している —— パスをそのまま載せると属性の値が閲覧された件数だけ増え、識別子も一緒に流れる。
 
 **log の event にはしない。** 公式 semantic convention が web vitals へ与えているのは `browser.web_vital` という event 名だけで、metric 名は定めていない。それでも event で出さないのは、そうすると **1 レコードごとに中継の POST の span が付く**ためである —— 測定はブラウザで起きており、その要求の中では起きていない。因果の無いところに親子が生まれ、trace から辿っても「beacon が届いた」以上のことは言わない。計器の名前はこのリポジトリが決めるが、下記「運用」が禁じているのは vendor 固有のスキーマを持ち込むことであり、名前空間を切って OTel の命名規則に沿わせる限り移送先を選ばない。
 

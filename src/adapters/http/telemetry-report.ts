@@ -38,7 +38,7 @@ export const MAX_ERROR_STACK_LENGTH = 2000;
  * ブラウザが 1 回の中継で送る報告。
  *
  * @remarks
- * `route` に載せるのは実際のパスではなく **route の型**（`/products/[id]`）です。変換の理由と方法は
+ * `route` に載せるのは実際のパスではなく **route の型**（`/docs/[slug]`）です。変換の理由と方法は
  * `toRoutePattern` が持ちます。
  *
  * 例外だけが `traceparent` を持ちます。**画面を組んだ要求の trace をサーバから受け取って返す**もので、
