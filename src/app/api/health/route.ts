@@ -1,0 +1,17 @@
+/**
+ * 外形監視が生存を確かめる口。
+ *
+ * @remarks
+ * **配信を止めているあいだも通します**（`src/proxy.ts`）。全経路が停止画面を返すと、監視から
+ * 見えるのは「応答が変わった」ことだけになり、計画停止と障害を区別できません。
+ *
+ * **プロセスが生きていること以外は答えません。** バックエンドへの到達性をここへ足すと、相手の
+ * 不調がこちらの死活として報告されます。commit SHA や build 時刻も載せません
+ * （`docs/rules.md` #65）。
+ */
+export const dynamic = "force-dynamic";
+
+/** 生存していることだけを返す。 */
+export function GET(): Response {
+  return Response.json({ status: "ok" });
+}
