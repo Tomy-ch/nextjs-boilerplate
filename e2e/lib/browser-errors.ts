@@ -7,9 +7,27 @@
 /** ブラウザが報告した異常 1 件。 */
 export type BrowserProblem = {
   /** どの経路から来たか。 */
-  readonly kind: "console" | "exception" | "request";
+  readonly kind: "console" | "exception" | "request" | "csp";
   /** 失敗メッセージへそのまま載せる説明。 */
   readonly detail: string;
+};
+
+/**
+ * ブラウザが報告した CSP 違反 1 件。
+ *
+ * @remarks
+ * `SecurityPolicyViolationEvent` のうち、直す場所を指すのに要る項目だけを持ちます。イベント
+ * そのものはブラウザの外へ持ち出せないので、購読側が読み出して渡します。
+ */
+export type CspViolation = {
+  /** 拒んだディレクティブ。 */
+  readonly violatedDirective: string;
+  /** 拒まれた読み込み先。inline なら `inline`、eval なら `eval`。 */
+  readonly blockedURI: string;
+  /** 違反を起こした文書か script。ブラウザが特定できなければ空。 */
+  readonly sourceFile: string;
+  /** その中の行。特定できなければ 0。 */
+  readonly lineNumber: number;
 };
 
 /**
@@ -78,6 +96,21 @@ export function isReportableConsoleError(type: string, argumentCount: number): b
 /** 応答を異常として数えるか。 */
 export function isServerError(status: number): boolean {
   return status >= SERVER_ERROR_STATUS;
+}
+
+/**
+ * CSP 違反 1 件を、失敗メッセージへ載せる 1 行にする。
+ *
+ * @remarks
+ * CSP の違反は、上の console の見張りには掛かりません。ブラウザ自身が書く行なので引数を持たず、
+ * {@link isReportableConsoleError} が外します。document のイベントで受け、経路を分けて数えます。
+ * 出所が採れないときは場所を省きます。空の括弧を出すと、採れなかったのか空だったのかが読めません。
+ */
+export function formatCspViolation(violation: CspViolation): string {
+  const location =
+    violation.sourceFile === "" ? "" : ` (${violation.sourceFile}:${violation.lineNumber})`;
+
+  return `${violation.violatedDirective} が ${violation.blockedURI} を拒否${location}`;
 }
 
 /**

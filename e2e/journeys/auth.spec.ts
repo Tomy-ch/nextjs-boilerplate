@@ -27,6 +27,16 @@ test("session を持っていれば保護された経路で前捌きされない
   await expect(page).toHaveURL(PROTECTED_PATH);
 });
 
+test("session を持つ要求の応答は、静的な画面でも共有キャッシュへ載せない", async ({ page, signIn }) => {
+  await signIn();
+
+  // 静的に配れる画面を選ぶ。動的な画面は framework が自分で `no-store` を付けるため、
+  // 前捌きの付けたヘッダが配信まで残ったことの証拠にならない。
+  const response = await page.request.get("/about");
+
+  expect(response.headers()["cache-control"]).toBe("private, no-store");
+});
+
 test("ログアウトすると保護された経路へ戻れなくなる", async ({ page, signIn }) => {
   await signIn();
   await page.goto(PROTECTED_PATH);
