@@ -26,6 +26,7 @@ type ClientOverrides = {
   baseUrl?: string;
   maxUrlBytes?: number;
   profile?: ResilienceProfile;
+  now?: () => number;
   wallClockNow?: () => number;
   getBearerToken?: () => Promise<string | null>;
   allowAnonymous?: boolean;
@@ -74,6 +75,16 @@ function createPublicClient(fetchImpl: typeof fetch) {
     random: () => 0,
     sleep: async () => {},
   });
+}
+
+async function causeOf(run: () => Promise<unknown>): Promise<unknown> {
+  try {
+    await run();
+  } catch (error) {
+    return findAppError(error)?.cause;
+  }
+
+  return undefined;
 }
 
 async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
@@ -658,6 +669,36 @@ describe("createHttpClient", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
+  it("経過時間だけで期限に達したら、待ちが短くても諦める", async () => {
+    // 締切は単調時計で測る。待ちの長さではなく、試行に費やした時間の積算で越えさせる。
+    const now = vi.fn(() => 0);
+
+    now.mockReturnValueOnce(0).mockReturnValue(profile.overallTimeoutMs);
+
+    const sleep = vi.fn(async () => {});
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(503, {}));
+    const client = createClient(fetchImpl, { now, sleep });
+
+    await kindOf(() => client.request({ path: "/v1/ping", schema }));
+
+    expect(sleep).not.toHaveBeenCalled();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("Error の失敗は原因をそのまま残す", async () => {
+    const cause = new Error("接続できません");
+
+    expect(
+      await causeOf(() =>
+        createClient(
+          vi.fn(async () => {
+            throw cause;
+          }),
+        ).request({ path: "/v1/ping", schema }),
+      ),
+    ).toBe(cause);
+  });
+
   it("通信が中断されたら待たせずに落とす", async () => {
     const client = createClient(
       vi.fn(async () => {
@@ -689,11 +730,14 @@ describe("createHttpClient", () => {
     );
   });
 
-  it("Error でない失敗も分類して落とす", async () => {
-    const client = createClient(vi.fn(async () => Promise.reject("切断")));
+  it("Error でない失敗は文字列を残した Error へ包んで落とす", async () => {
+    const disconnect = () => createClient(vi.fn(async () => Promise.reject("切断")));
 
-    expect(await kindOf(() => client.request({ path: "/v1/ping", schema }))).toBe(
+    expect(await kindOf(() => disconnect().request({ path: "/v1/ping", schema }))).toBe(
       ErrorKind.UNAVAILABLE,
+    );
+    expect(await causeOf(() => disconnect().request({ path: "/v1/ping", schema }))).toStrictEqual(
+      new Error("切断"),
     );
   });
 

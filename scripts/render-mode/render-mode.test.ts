@@ -41,17 +41,17 @@ describe("renderModes", () => {
     ).toBe("partial");
   });
 
-  it("成果物が空でも落ちない", () => {
-    expect(renderModes({}).size).toBe(0);
-  });
-
-  // ----- 異常系 -----
   it("殻を配らない route をブロッキングとして読む", () => {
     expect(renderModes({ routes: { "/admin": { compute: "blocking" } } }).get("/admin")).toBe(
       "blocking",
     );
   });
 
+  it("成果物が空でも落ちない", () => {
+    expect(renderModes({}).size).toBe(0);
+  });
+
+  // ----- 異常系 -----
   it("知らない綴りをブロッキング側へ倒す", () => {
     // 通す側へ倒すと、Next.js が値を増やした日にゲートが黙る。
     expect(renderModes({ routes: { "/x": { compute: "未知" } } }).get("/x")).toBe("blocking");

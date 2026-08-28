@@ -76,8 +76,22 @@ describe("AppShellMenu", () => {
 
 describe("AppShellMenuFallback", () => {
   it("menu と同じ大きさの枠を、押せない状態で出す", () => {
-    render(<AppShellMenuFallback />);
+    const { unmount } = render(<AppShellMenuFallback />);
+    const fallbackClass = screen.getByRole("button", { name: "メニューを開く" }).className;
 
     expect(screen.getByRole("button", { name: "メニューを開く" })).toBeDisabled();
+
+    unmount();
+    render(<AppShellMenu items={ITEMS} />);
+
+    expect(screen.getByRole("button", { name: "メニューを開く" })).toHaveClass(fallbackClass);
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(<AppShellMenuFallback />);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

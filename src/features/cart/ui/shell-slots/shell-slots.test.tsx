@@ -44,14 +44,12 @@ beforeEach(() => {
 });
 
 describe("CartHeaderSlot", () => {
-  // ----- 正常系 -----
   it("カートの入口を出す", async () => {
     render(await CartHeaderSlot());
 
     expect(screen.getByRole("button", { name: "カートを閉じる" })).toBeVisible();
   });
 
-  // ----- 異常系 -----
   it("カートを読めなかったときは何も出さない", async () => {
     getMyCart.mockRejectedValue(new Error("上流が応答しません"));
 
@@ -59,10 +57,18 @@ describe("CartHeaderSlot", () => {
 
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(await CartHeaderSlot());
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
+  });
 });
 
 describe("CartPanelSlot", () => {
-  // ----- 正常系 -----
+  // ----- 中身があるとき -----
   it("カートの中身を本文の脇へ出す", async () => {
     render(await CartPanelSlot());
 
@@ -72,6 +78,15 @@ describe("CartPanelSlot", () => {
     expect(await within(cart).findByText("小計")).toBeVisible();
   });
 
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(await CartPanelSlot());
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
+  });
+
+  // ----- 空のとき -----
   it("カートが空なら脇の領域を出さない", async () => {
     getMyCart.mockResolvedValue(EMPTY_CART);
 
@@ -80,7 +95,7 @@ describe("CartPanelSlot", () => {
     expect(screen.queryByRole("complementary", { name: "カート" })).not.toBeInTheDocument();
   });
 
-  // ----- 異常系 -----
+  // ----- 読めなかったとき -----
   it("カートを読めなかったときは何も出さない", async () => {
     getMyCart.mockRejectedValue(new Error("上流が応答しません"));
 

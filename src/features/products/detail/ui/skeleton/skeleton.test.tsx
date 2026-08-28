@@ -13,10 +13,10 @@ describe("ProductDetailSkeleton", () => {
     expect(container.firstChild).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("実物の段組みと同じ枠を出す", () => {
+  it("実物の段組みと同じ数の枠を出す", () => {
     const { container } = render(<ProductDetailSkeleton />);
 
-    expect(container.querySelectorAll("[data-slot='skeleton']").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll("[data-slot='skeleton']")).toHaveLength(9);
   });
 
   it("a11y 自動検査に違反しない", async () => {

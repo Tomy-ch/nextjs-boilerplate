@@ -19,7 +19,7 @@ beforeEach(() => {
 });
 
 describe("AdminNavEntry", () => {
-  // ----- 正常系 -----
+  // ----- 入口を出すとき -----
   it("管理の役割を持つ主体には管理への入口を出す", async () => {
     verifySession.mockResolvedValue({
       userId: "admin-1",
@@ -44,7 +44,7 @@ describe("AdminNavEntry", () => {
     expect(screen.getByRole("link", { name: "管理" })).toHaveAttribute("href", "/admin/products");
   });
 
-  // ----- 異常系 -----
+  // ----- 入口を出さないとき -----
   it("役割を持たない主体には管理への入口を出さない", async () => {
     verifySession.mockResolvedValue({
       userId: "user-1",
@@ -61,5 +61,19 @@ describe("AdminNavEntry", () => {
     const { container } = render(await AdminNavEntry({}));
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    verifySession.mockResolvedValue({
+      userId: "admin-1",
+      role: SESSION_ROLE.admin,
+      expiresAt: EXPIRES_AT,
+    });
+
+    const { container } = render(await AdminNavEntry({}));
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });
