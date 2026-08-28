@@ -28,9 +28,11 @@ Accepted
   - **殻を配れない画面だけが `export const instant = false` を理由つきで名乗る。** 宣言と実態の突合は `scripts/render-mode` が `prerender-manifest.json` の `compute` に照らし、宣言なしにブロックしている route と、宣言が余っている route の双方を見る
   - **現在地を読む client 部品も穴を要る。** `usePathname` / `useSearchParams` は動的な区間を持つ route の殻では解決できない
   - **認可で殻を配れない区画は、区画ごと名乗る。** 判定を穴へ落とすと、確かめる前にその面の殻が誰にでも配られる([0079](0079-auth-frontend-seam.md))
+  - **一次資源が見つからないことは 200 で伝わる。** 殻を配り始めた時点でヘッダは 200 で出ており、その後 `notFound()` / `redirect()` に達してもステータスは変えられない。`instant = false` でも変わらない —— 有効時は動的な route が必ず殻から流れるためである。見つからないことは `noindex` と見つからない画面が伝える([0080](0080-error-handling.md) §4)
 - **引き受ける代償**(採用によって発生し、消えないもの):
   - **可逆性の低下**: 無効 → 有効は `use cache` を足す前進移行だが、有効前提で書いたツリー(静的な殻 / 動的な穴の分割・`use cache` の粒度)を無効へ戻すのは書き直しになる。v1 で採る判断はこれを引き受ける。
   - **キャッシュ設計の骨格を本体が持つこと**: 「何を `use cache` するか / どの粒度で」は [0071](0071-bff-api-integration.md) が具体値を fork 先へ開けている領域である。**具体値は開けたまま、寿命をどこへ置くかの骨格だけを本体が決める**。
+  - **一次資源の不在を示すステータスを失うこと**: `notFound()` / `redirect()` は殻が流れた後に達するため、応答は 200 のままとなり、`noindex` メタタグと meta refresh へ落ちる。索引は `noindex` が防ぐが、**ステータスで判定する監視・DAST・非 JS クライアントからは成功と区別できない**。Next 自身が案内する回避は `proxy` での事前確認だが、それは [0043](0043-middleware-policy.md)(cookie を読むだけの前捌き)と [0079](0079-auth-frontend-seam.md)(防御線ではない)に反するため採らない。この代償を引き受ける([0080](0080-error-handling.md) §4)。
   - **遷移意味論の変更**: 全ルートの client-side navigation が `<Activity>` により状態保存挙動へ変わる(前の route を unmount せず hidden にする)。dropdown / dialog / 一覧の位置復元への影響は E2E と VRT で見る。
   - **交差関心の確定が実装 PR へ移ること**: [0030](0030-environment-variable-management.md) の env プリレンダー凍結と [0080](0080-error-handling.md) §4 の Suspense × PPR 相互作用は、移行 PR で確定する。
 - **有効化後のキャッシュモデル**は `use cache` + `cacheLife` / `cacheTag` を正とする。キャッシュ指定の所有層(`adapters` / 呼び出す RSC)・tag 命名・ミューテーション後 revalidate の規約は [0071](0071-bff-api-integration.md)「データ取得のキャッシュ・再検証」節が引き続き正であり、**user-scoped な値は [0112](0112-data-classification-cache-boundary.md) に従い既定で uncached** とする。
@@ -40,6 +42,7 @@ Accepted
 - ❌ [0112](0112-data-classification-cache-boundary.md) の分類とキャッシュ境界が無い状態で有効化すること
 - ❌ 有効化と移行が着地する前に `use cache` / `cacheLife` / `cacheTag` へ依存した設計を書くこと(これらは有効時の機構である)
 - ❌ キャッシュヒット率や PPR 適用率を理由に、user-scoped な値を静的な殻・共有キャッシュへ載せること([0112](0112-data-classification-cache-boundary.md))
+- ❌ `export const instant = false` を、応答ステータスを 404 / 3xx へ戻す手段として使うこと(戻らない。有効時は動的な route が必ず殻から流れる)
 
 ## 補足
 
