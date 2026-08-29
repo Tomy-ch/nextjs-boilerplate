@@ -74,7 +74,7 @@ describe("allowsCategory", () => {
   });
 
   it("任意の用途は、同意が得られていれば動かしてよい", () => {
-    const granted = parseConsentState(CONSENT_CHOICE.granted);
+    const granted = parseConsentState(toConsentCookieValue(CONSENT_CHOICE.granted));
 
     expect(allowsCategory(granted, CONSENT_CATEGORY.optional)).toBe(true);
   });
@@ -89,7 +89,7 @@ describe("allowsCategory", () => {
   });
 
   it("任意の用途は、拒否されていれば動かさない", () => {
-    const denied = parseConsentState(CONSENT_CHOICE.denied);
+    const denied = parseConsentState(toConsentCookieValue(CONSENT_CHOICE.denied));
 
     expect(allowsCategory(denied, CONSENT_CATEGORY.optional)).toBe(false);
   });
@@ -102,7 +102,9 @@ describe("shouldAskConsent", () => {
   });
 
   it("選び終えていれば尋ねない", () => {
-    expect(shouldAskConsent(parseConsentState(CONSENT_CHOICE.denied))).toBe(false);
+    expect(shouldAskConsent(parseConsentState(toConsentCookieValue(CONSENT_CHOICE.denied)))).toBe(
+      false,
+    );
   });
 
   // ----- 異常系 -----
