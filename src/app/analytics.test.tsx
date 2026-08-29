@@ -60,26 +60,20 @@ afterEach(() => {
 });
 
 describe("Analytics", () => {
-  it("容器 ID を宣言した配備では、タグマネージャを読み込む", async () => {
+  it("容器 ID を宣言した配備では、タグマネージャを afterInteractive で読み込む", async () => {
     const Analytics = await loadIsland("GTM-ABC1234");
 
     const { container } = render(<Analytics />);
 
     await waitFor(() => expect(tagManagerScripts()).toHaveLength(1));
+    // `docs/rules.md` #50 は strategy の明示を求めるが、`GoogleTagManager` は prop を公開して
+    // いない。選べない以上、いま効いている値を固定して、ライブラリが既定を変えたら落とす。
+    // 読み込みと同じ 1 回の描画についての事実なので、ここへ畳む —— 同じファイルで動的な解決を
+    // 二度行うと、二度目が待ち時間に収まらない。
+    expect(tagManagerScripts()[0]?.getAttribute("data-nscript")).toBe("afterInteractive");
     // 読み込んでも器の見た目には何も足さない。a11y の自動検査を置かないのはこれが前提で、
     // 前提そのものをここで固定する（`telemetry.tsx` と同じ形）。
     expect(container).toBeEmptyDOMElement();
-  });
-
-  it("読み込みは afterInteractive で行う。ライブラリが既定を変えたら気付けるようにする", async () => {
-    const Analytics = await loadIsland("GTM-ABC1234");
-
-    render(<Analytics />);
-
-    // `docs/rules.md` #50 は strategy の明示を求めるが、`GoogleTagManager` は prop を公開して
-    // いない。選べない以上、いま何が効いているかを固定して、変わった時点で落とす。
-    await waitFor(() => expect(tagManagerScripts()).toHaveLength(1));
-    expect(tagManagerScripts()[0]?.getAttribute("data-nscript")).toBe("afterInteractive");
   });
 
   it("容器 ID が空なら何も描かない。読み込まないという指定である", async () => {
