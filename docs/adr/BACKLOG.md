@@ -152,7 +152,7 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、boile
 | **C6** | 0043 | Middleware 方針 | ✅ | ⬜ | A4, B3 | **Next.js 16 で Middleware→Proxy(`proxy.ts`)** / thin・last resort / 既定 Node runtime(`runtime` 指定不可・Edge 互換維持)/ 認証は fork 先(optimistic のみ・確定認可はデータ境界) |
 | **C7** | 0044 | SEO / メタデータ戦略 | ✅ | ⬜ | A4, C5 | Metadata API 既定(`metadataBase`/`title.template`)/ `sitemap.ts`・`robots.ts` / `alternates.canonical` / JSON-LD 枠 / アイコン体系(0045 と責務分担)/ proxy matcher 除外 / 具体値は fork 先 |
 | **C8** | 0130 | PWA 戦略 | ✅ | ⬜ | C7 | **exclusion**: Web App Manifest / Service Worker / オフライン本体非同梱(fork 先判断)+ 採用時の `manifest.*` seam |
-| **C9** | 0131 | Cookie 同意 | ✅ | ⬜ | A2, C6 | **v1 採用(exclusion から反転)**: 軽量 consent 機構(同意状態保持 / バナー / スクリプト読み込みゲート / 計測 cookie_id)を同梱 / **CMP・IAB TCF とトラッキング製品本体は非同梱**(一部 exclusion)/ 状態供給は 0031 |
+| **C9** | 0131 | Cookie 同意 | ✅ | ⬜ | A2, C6 | **v1 採用(exclusion から反転)**: 軽量 consent 機構(同意状態保持 / バナー / スクリプト読み込みゲート / 計測 cookie_id)と、**ゲートの裏のタグマネージャ**を同梱 / **CMP・IAB TCF は非同梱**(一部 exclusion)。計測製品そのものは容器の中身として fork が選ぶ / 状態供給は 0031 |
 
 ### Tier 5 の状態
 
@@ -160,7 +160,7 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、boile
 - **C5(ADR 0045・実装 ⚠️)**: `next/font` による font 読み込みと、`next/image` を CSS のみの skeleton + `aspect-ratio` で包む `MediaImage` を実装済み。**未実装は backend 由来画像の経路** — `mediaUrl()` と `next.config.ts` の `remotePatterns`、および `ImageResponse` による動的 OG は、画像を持つ API と画面が入る後続 PR で実装する
 - **C3(ADR 0101・実装 ✅)**: 画面ごとの Core Web Vitals(`lighthouse` / `scripts/lighthouse/`)と route ごとの client JavaScript(`bundle-budget`)の 2 つを CI のハードゲートに載せ、閾値と試行回数は `performance-budget.yaml` が根拠付きで持つ。開く画面は `e2e/lib/screens.ts` の宣言をそのまま使い、一覧を持ち直さない。**Lighthouse は PR ではなく保護ブランチへの push と日次で回す** —— 計測が直列でしか成立せず費用が `画面数 × 試行回数` に張り付くため、網羅ではなく頻度を削る判断(0101 §2)
 - **C1 / C4 / C6(各 ADR として策定済み・実装未)**: 2026-07-13 に成文化。用途依存の Tier 5 のため多くは exclusion / fork 先判断 / Next.js 組込み追認。C1=[0121](0121-i18n-strategy.md)(i18n exclusion)/ C2=[0100](0100-accessibility-target.md)(WCAG AA + biome a11y)/ C4=[0102](0102-browser-support.md)(Next.js 既定 browserslist 追認)/ C5=[0045](0045-fonts-and-images.md)(next/font・next/image)/ C6=[0043](0043-middleware-policy.md)(**Next.js 16 = proxy.ts**・thin・認証は fork 先)。go はバックエンドで C 系にほぼ対応物がなく(フロント固有)、AGENTS.md にも C 系 `[TODO]` はない(0152 掲載基準 = ブロック項目のみ)ため BACKLOG C 枠のみを根拠に成文化
-- **C7〜C9(各 ADR として策定済み・実装未)**: 2026-07-13 の敵対的レビューで、当初の C 列挙(C1〜C6)が**表示層 boilerplate の中心的関心事である SEO / メタデータ体系を取りこぼしていた**ことが判明し補完。C7=[0044](0044-seo-metadata-strategy.md)(Metadata API 既定 + `sitemap.ts`/`robots.ts` + canonical + JSON-LD 枠 + アイコン体系。0045 と責務分担)/ C8=[0130](0130-pwa-strategy.md)(PWA exclusion。沈黙だった線引きを明文化)/ C9=[0131](0131-cookie-consent.md)(Cookie 同意。**軽量機構 + スクリプトゲートは v1 採用 / CMP・トラッキング製品本体は非同梱**)。テーマ / ダークモードは新枠を立てず [0050](0050-styling-strategy.md)(B1)に「テーマ / ダークモード」節を追記(token 切替 + `prefers-color-scheme` 追従)。favicon / app icon の体系は C7(0044)がアイコン規約として吸収(0045 は静的 favicon の `public/` 配置のみ)
+- **C7〜C9(各 ADR として策定済み・実装未)**: 2026-07-13 の敵対的レビューで、当初の C 列挙(C1〜C6)が**表示層 boilerplate の中心的関心事である SEO / メタデータ体系を取りこぼしていた**ことが判明し補完。C7=[0044](0044-seo-metadata-strategy.md)(Metadata API 既定 + `sitemap.ts`/`robots.ts` + canonical + JSON-LD 枠 + アイコン体系。0045 と責務分担)/ C8=[0130](0130-pwa-strategy.md)(PWA exclusion。沈黙だった線引きを明文化)/ C9=[0131](0131-cookie-consent.md)(Cookie 同意。**軽量機構 + スクリプトゲート + ゲートの裏のタグマネージャが v1 採用 / CMP・IAB TCF は非同梱**)。テーマ / ダークモードは新枠を立てず [0050](0050-styling-strategy.md)(B1)に「テーマ / ダークモード」節を追記(token 切替 + `prefers-color-scheme` 追従)。favicon / app icon の体系は C7(0044)がアイコン規約として吸収(0045 は静的 favicon の `public/` 配置のみ)
 
 ### 予算に対して残っている重さ (0101)
 
