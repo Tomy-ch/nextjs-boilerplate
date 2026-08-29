@@ -25,7 +25,6 @@ import {
   GetProductsRankingQuantityResponse,
   GetProductsResponse,
   getProductsQueryCategoryCodesMax,
-  getProductsQueryFirstMax,
   PatchProductsDetailResponse,
   PatchProductsStockResponse,
   PostProductsImagesResponse,
@@ -37,11 +36,7 @@ import type {
   ProductsPostRequest,
 } from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
-import {
-  createHttpClient,
-  type PublicHttpClient,
-  type UserScopedHttpClient,
-} from "../http/request";
+import { createHttpClient, type UserScopedHttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
 
 type WireProductQuery = z.infer<typeof GetProductsQueryParams>;
@@ -72,9 +67,6 @@ type ProductSort = (typeof PRODUCT_SORT)[keyof typeof PRODUCT_SORT];
  * 古い数のまま利用者を止めます。契約は重複を許さないため、これは種類の数の上限です。
  */
 export const PRODUCT_CATEGORY_LIMIT: number = getProductsQueryCategoryCodesMax;
-
-/** 一覧の口が 1 度に返せる最大件数。全件を辿る側（`app/sitemap.ts`）が 1 歩の幅として使う。 */
-export const PRODUCT_PAGE_LIMIT: number = getProductsQueryFirstMax;
 
 /**
  * この面が受け付ける取得条件のスキーマ。
@@ -277,49 +269,6 @@ function getClient(): UserScopedHttpClient {
   });
 
   return client;
-}
-
-let publicClient: PublicHttpClient | undefined;
-
-/**
- * 主体を名乗らずに商品の口を叩く client。
- *
- * @remarks
- * 上の client は要求のたびに cookie を読むため、`use cache` の中から呼べません
- * （[0112](../../../../docs/adr/0112-data-classification-cache-boundary.md) 決定 3）。主体に依らない
- * 読み —— サイトマップの列挙 —— だけがこちらを使います。資格情報を持たないので、返るのは
- * 公開中のものだけです。
- */
-function getPublicClient(): PublicHttpClient {
-  publicClient ??= createHttpClient({
-    scope: "public",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-  });
-
-  return publicClient;
-}
-
-/**
- * 公開中の商品の ID を 1 ページぶん、主体を名乗らずに取得する。
- *
- * @remarks
- * サイトマップが末尾まで辿るための口です。1 ページの幅は契約の上限（{@link PRODUCT_PAGE_LIMIT}）
- * で固定し、辿る側は cursor だけを持ち回ります。
- *
- * @param after - 前のページが返した cursor。先頭なら省略
- */
-export async function getPublicProductIds(after?: string): Promise<CursorPage<ProductId>> {
-  const page = await getPublicClient().request({
-    path: "/v1/products",
-    searchParams: { first: String(PRODUCT_PAGE_LIMIT), after },
-    schema: GetProductsResponse,
-  });
-
-  return {
-    items: page.products.map((product) => toProductId(product.id)),
-    nextCursor: page.nextCursor,
-  };
 }
 
 /**

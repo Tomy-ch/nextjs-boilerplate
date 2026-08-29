@@ -9,7 +9,7 @@ vi.mock("next/cache", () => ({ cacheLife }));
 vi.mock("@/config/site/site.server", () => ({
   getSiteConfig: () => ({ publicOrigin: "https://www.example.test", isIndexable: true }),
 }));
-vi.mock("@/adapters/server/api/products", () => ({ getPublicProductIds })); // sample:line
+vi.mock("@/adapters/server/api/public-products", () => ({ getPublicProductIds })); // sample:line
 
 import { PROTECTED_PREFIXES } from "@/model/authz"; // sample:line
 
@@ -37,17 +37,12 @@ describe("sitemap", () => {
     expect(connection).toHaveBeenCalledOnce();
   });
 
-  it("挙げる URL はすべて外から見た origin の下にある", async () => {
+  it("誰でも開ける画面を、外から見た origin の絶対 URL で挙げる", async () => {
     const urls = (await sitemap()).map((entry) => entry.url);
 
+    expect(urls).toContain("https://www.example.test/");
     expect(urls.every((url) => url.startsWith("https://www.example.test/"))).toBe(true);
   });
-
-  // sample:begin
-  it("誰でも開ける画面を挙げる", async () => {
-    expect((await sitemap()).map((entry) => entry.url)).toContain("https://www.example.test/");
-  });
-  // sample:end
 
   it("更新日時や優先度のような根拠の無い値を付けない", async () => {
     for (const entry of await sitemap()) {

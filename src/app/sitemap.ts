@@ -1,14 +1,10 @@
 import type { MetadataRoute } from "next";
+import { cacheLife } from "next/cache"; // sample:line
 import { connection } from "next/server";
 
+import { getPublicProductIds } from "@/adapters/server/api/public-products"; // sample:line
 import { getSiteConfig } from "@/config/site/site.server";
-
-// sample:begin
-import { cacheLife } from "next/cache";
-
-import { getPublicProductIds } from "@/adapters/server/api/products";
-import { toProductDetailHref } from "@/features/products/facade/detail-url/detail-url";
-// sample:end
+import { toProductDetailHref } from "@/features/products/facade/detail-url/detail-url"; // sample:line
 
 /**
  * 1 つのサイトマップに載せてよい URL の上限。
@@ -27,10 +23,11 @@ const SITEMAP_URL_LIMIT = 50_000;
  * @remarks
  * 認証の要る画面と、開けても索引させない画面（ログイン・停止画面）は挙げません。
  * サイトマップは「索引してほしいもの」の宣言で、到達できるものの一覧ではありません。
+ * `/` はどのサイトにもあるので、題材を破棄しても残します。
  */
 const PUBLIC_PATHS: readonly string[] = [
-  // sample:begin
   "/",
+  // sample:begin
   "/products",
   "/about",
   "/privacy",
@@ -49,7 +46,7 @@ const PUBLIC_PATHS: readonly string[] = [
  * 商品の一覧に合わせています。
  *
  * 主体を名乗らない口を使うのは、`use cache` の中で cookie を読めないためです
- * （`adapters/server/api/products`）。
+ * （`adapters/server/api/public-products`）。
  */
 async function listProductPaths(): Promise<string[]> {
   "use cache";
