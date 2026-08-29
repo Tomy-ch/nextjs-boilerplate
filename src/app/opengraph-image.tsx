@@ -2,7 +2,13 @@ import { ImageResponse } from "next/og";
 
 import { SITE_NAME } from "./site";
 
-/** 共有先が読む代替文。 */
+/**
+ * 共有先が読む代替文。
+ *
+ * @remarks
+ * `export … from` では書けません。Next.js は metadata ファイルの export を segment の設定として
+ * 読み、再 export を不正として build を止めます。
+ */
 export const alt = SITE_NAME;
 
 /** OG 画像の推奨サイズ（1.91:1）。 */
