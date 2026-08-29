@@ -11,6 +11,7 @@ import { AboutView } from "@/features/site-info/about/view";
 export const metadata: Metadata = {
   title: "このサイトについて",
   description: "このサイトが何のためのもので、何が動かないかを説明します。",
+  alternates: { canonical: "/about" },
 };
 
 /**

@@ -15,6 +15,7 @@ import { CHECKOUT_PATH } from "@/features/checkout/paths";
 export const metadata: Metadata = {
   title: "購入確認",
   description: "お届け先と注文内容を確かめて、注文を確定できます。",
+  robots: { index: false, follow: false },
 };
 
 /**

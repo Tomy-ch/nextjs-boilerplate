@@ -2,20 +2,35 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { ToastProvider } from "@/components/shell/toaster/toaster";
+import { getSiteConfig } from "@/config/site/site.server";
 import { findActiveTraceparent } from "@/observability/trace-context.server";
 
 import { FONT_VARIABLES } from "./fonts";
+import { SITE_DESCRIPTION, SITE_NAME } from "./site";
 import { Telemetry } from "./telemetry";
 import "./globals.css";
 
-const SITE_NAME = "nextjs-boilerplate";
+const site = getSiteConfig();
 
+/**
+ * 全 route の metadata の土台（[0044](../../docs/adr/0044-seo-metadata-strategy.md)）。
+ *
+ * @remarks
+ * `metadataBase` があるので、各 segment は canonical と OG 画像を経路だけで宣言できます。
+ * **canonical はここに置きません** —— 理由は [README](./README.md)「metadata の土台と差分」。
+ *
+ * 索引させない環境では `noindex` をここで宣言します（`docs/rules.md` #63）。個々の画面が `robots`
+ * を持たない限り継承されるので、画面の側は索引させる環境でも隠すもの（認証の要る画面など）だけを
+ * 宣言します。
+ */
 export const metadata: Metadata = {
+  metadataBase: new URL(site.publicOrigin),
   title: {
     default: SITE_NAME,
     template: `%s | ${SITE_NAME}`,
   },
-  description: "Next.js / React のプレゼンテーション層 boilerplate です。",
+  description: SITE_DESCRIPTION,
+  ...(site.isIndexable ? {} : { robots: { index: false, follow: false } }),
 };
 
 /**

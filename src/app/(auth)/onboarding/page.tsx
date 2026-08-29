@@ -16,6 +16,7 @@ import { toSafeReturnUrl } from "@/model/return-url";
 export const metadata: Metadata = {
   title: "登録",
   description: "はじめて利用するときに、お届け先などの情報を登録します。",
+  robots: { index: false, follow: false },
 };
 
 /**

@@ -11,6 +11,7 @@ import { PrivacyView } from "@/features/site-info/privacy/view";
 export const metadata: Metadata = {
   title: "プライバシーポリシー",
   description: "入力した情報がどこに保存されるかを、起動のしかたごとに説明します。",
+  alternates: { canonical: "/privacy" },
 };
 
 /**

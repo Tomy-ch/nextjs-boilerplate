@@ -22,7 +22,9 @@ import {
   getProductListPage,
   getProductRanking,
   getProducts,
+  getPublicProductIds,
   parseProductQuery,
+  PRODUCT_PAGE_LIMIT,
   toProduct,
   toProductPage,
   updateProduct,
@@ -341,6 +343,62 @@ describe("getProducts", () => {
     serveJson(PRODUCTS_URL, wirePage);
 
     await expect(getProducts()).resolves.toMatchObject({ nextCursor: "next" });
+  });
+});
+
+describe("getPublicProductIds", () => {
+  // ----- 正常系 -----
+  it("公開中の商品の ID へ写す", async () => {
+    serveJson(PRODUCTS_URL, wirePage);
+
+    const page = await getPublicProductIds();
+
+    expect(page.items).toEqual([toProductId(wireProduct.id)]);
+  });
+
+  it("次ページのカーソルを引き継ぐ", async () => {
+    serveJson(PRODUCTS_URL, wirePage);
+
+    await expect(getPublicProductIds()).resolves.toMatchObject({ nextCursor: "next" });
+  });
+
+  it("最終ページのカーソルを null にする", async () => {
+    serveJson(PRODUCTS_URL, { ...wirePage, nextCursor: null, hasNext: false });
+
+    await expect(getPublicProductIds()).resolves.toMatchObject({ nextCursor: null });
+  });
+
+  it("1 ページの幅を契約の上限で固定する", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getPublicProductIds();
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("first")).toBe(
+      String(PRODUCT_PAGE_LIMIT),
+    );
+  });
+
+  it("前ページの cursor を after へ載せる", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getPublicProductIds("cursor-1");
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("after")).toBe("cursor-1");
+  });
+
+  it("主体を名乗らない", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getPublicProductIds();
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("契約に合わない応答は契約破れとして投げる", async () => {
+    serveJson(PRODUCTS_URL, { unexpected: true });
+
+    await expect(kindOf(() => getPublicProductIds())).resolves.toBe(ErrorKind.INTERNAL);
   });
 });
 
