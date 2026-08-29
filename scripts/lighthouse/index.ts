@@ -19,7 +19,7 @@ import {
   SCREENS,
   selectScreens,
 } from "../../e2e/lib/screens";
-import { CONSENT_CHOICE, CONSENT_COOKIE_NAME } from "../../src/model/consent";
+import { CONSENT_CHOICE, CONSENT_COOKIE_NAME, toConsentCookieValue } from "../../src/model/consent";
 import { decideGate } from "../lib/input-hash";
 import { numstatArgs, parseNumstat } from "../lib/numstat";
 import {
@@ -102,7 +102,7 @@ const LIGHTHOUSE_CLI = createRequire(import.meta.url).resolve("lighthouse/cli/in
  * `e2e/lib/test.ts` が同じ前提を置いています。**両方に要ります** —— あちらは Playwright の
  * context へ、こちらは Lighthouse へ渡すヘッダへ載せるもので、経路が別です。
  */
-const CONSENT_COOKIE = `${CONSENT_COOKIE_NAME}=${CONSENT_CHOICE.denied}`;
+const CONSENT_COOKIE = `${CONSENT_COOKIE_NAME}=${toConsentCookieValue(CONSENT_CHOICE.denied)}`;
 
 /**
  * 役割を持たない画面へ送るヘッダの宣言を書き出す。

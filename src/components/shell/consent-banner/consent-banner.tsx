@@ -86,16 +86,10 @@ export function ConsentBanner({ open, onDecide, policyHref }: ConsentBannerProps
             </DialogPrimitive.Description>
           </div>
           <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-            <Button
-              onClick={deny}
-              variant={BUTTON_VARIANT.OUTLINE}
-            >
+            <Button onClick={deny} variant={BUTTON_VARIANT.OUTLINE}>
               {CONSENT_BANNER_COPY.reject}
             </Button>
-            <Button
-              onClick={grant}
-              variant={BUTTON_VARIANT.OUTLINE}
-            >
+            <Button onClick={grant} variant={BUTTON_VARIANT.OUTLINE}>
               {CONSENT_BANNER_COPY.accept}
             </Button>
           </div>
