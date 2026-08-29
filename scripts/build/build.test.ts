@@ -18,7 +18,7 @@ describe("portOf", () => {
 
   // ----- 異常系 -----
   it("URL として読めなければ投げる", () => {
-    expect(() => portOf("localhost:8080")).toThrow();
+    expect(() => portOf("8080")).toThrow();
   });
 });
 

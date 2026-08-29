@@ -1,8 +1,6 @@
 import { createServer } from "node:http";
 import { Readable } from "node:stream";
 
-import { mockServer } from "./node";
-
 /**
  * 契約から生成したハンドラを、HTTP で応答する 1 プロセスとして立てる。
  *
@@ -17,12 +15,13 @@ import { mockServer } from "./node";
  * 掴むため、届いた要求をそのまま `fetch` へ渡し、返ってきたものを中継すれば、**ハンドラを二重に
  * 持たずに**同じ応答を HTTP へ出せます。自分自身へ繋ぎに行くことはありません。
  *
+ * **interception を立てるのは呼ぶ側です。** ここで立てると、既に立っている文脈（テストの
+ * `vitest.setup.msw.ts`）から呼べなくなります —— MSW は二度目の `listen()` を投げます。
+ *
  * ハンドラの無い宛先は 502 で返します。素通しにすると、掴まれなかった要求がこのサーバ自身へ
  * 向き直って輪になります。
  */
 export function startMockApi(port: number): ReturnType<typeof createServer> {
-  mockServer.listen({ onUnhandledRequest: "error" });
-
   const server = createServer((incoming, response) => {
     // 待ち受けている口をそのまま名乗る。`0` を渡された（空きを選ばせた）ときは、
     // 引数のままだと組み立てられない URL になる。

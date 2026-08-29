@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 
+import { mockServer } from "../../mocks/node";
 import { startMockApi } from "../../mocks/serve";
 import { loadEnvironment } from "../../src/config/load-environment";
 import { portOf, servesMockApi } from "./build";
@@ -18,10 +19,13 @@ import { portOf, servesMockApi } from "./build";
 loadEnvironment();
 
 const baseUrl = process.env.APP_API_BASE_URL;
-const server =
-  servesMockApi(process.env.APP_API_MODE) && baseUrl !== undefined
-    ? startMockApi(portOf(baseUrl))
-    : undefined;
+let server: ReturnType<typeof startMockApi> | undefined;
+
+if (servesMockApi(process.env.APP_API_MODE) && baseUrl !== undefined) {
+  // 素通しにすると、掴まれなかった要求がこの口自身へ向き直って輪になる。
+  mockServer.listen({ onUnhandledRequest: "error" });
+  server = startMockApi(portOf(baseUrl));
+}
 
 const build = spawn("next", ["build"], { stdio: "inherit" });
 
