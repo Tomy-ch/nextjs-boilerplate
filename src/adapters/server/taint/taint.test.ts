@@ -1,8 +1,10 @@
+import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
+import path from "node:path";
 import { Writable } from "node:stream";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { experimentalReactPaths } from "./experimental-react.fixture";
+import { EXPERIMENTAL_REACT_MODULES } from "./experimental-react.fixture";
 
 /**
  * `react` を Next.js 同梱の experimental build（react-server）へ向ける。
@@ -13,29 +15,27 @@ import { experimentalReactPaths } from "./experimental-react.fixture";
  */
 vi.mock("react", async () => {
   const { createRequire: create } = await import("node:module");
-  const { experimentalReactPaths: paths } = await import("./experimental-react.fixture");
+  const { EXPERIMENTAL_REACT_MODULES: modules } = await import("./experimental-react.fixture");
+  const mockRequire = create(import.meta.url);
 
-  return create(import.meta.url)(paths().react);
+  return mockRequire(mockRequire.resolve(modules.react));
 });
 
 import { taintObjectReference, taintUniqueValue } from "./taint";
 
-const paths = experimentalReactPaths();
 const localRequire = createRequire(import.meta.url);
 
-type ClientReference = object;
+/** 綴りを、pnpm の配置を解いた実体の位置へ直す。CJS の名前解決へ渡すため symlink も解く。 */
+function locate(specifier: string): string {
+  return realpathSync(
+    path.join(path.dirname(localRequire.resolve("next/package.json")), "..", specifier),
+  );
+}
 
-type ReactServerDom = {
-  registerClientReference(proxy: object, id: string, exportName: string): ClientReference;
-  renderToPipeableStream(
-    model: unknown,
-    manifest: Record<string, unknown>,
-    options: { onError(error: unknown): void },
-  ): { pipe(sink: Writable): void };
-};
-
-type ReactServer = {
-  createElement(type: ClientReference, props: Record<string, unknown>): unknown;
+const paths = {
+  react: locate(EXPERIMENTAL_REACT_MODULES.react),
+  reactDom: locate(EXPERIMENTAL_REACT_MODULES.reactDom),
+  serverDom: locate(EXPERIMENTAL_REACT_MODULES.serverDom),
 };
 
 /**
@@ -43,7 +43,7 @@ type ReactServer = {
  *
  * @remarks
  * 直列化器は `require("react")` / `require("react-dom")` で引き、同梱ビルドどうしも
- * `next/dist/compiled/*` で名指し合う。4 つとも同じ実体へ向けないと、taint の登録簿を持つ React と
+ * `next/dist/compiled/*` で名指し合う。すべて同じ実体へ向けないと、taint の登録簿を持つ React と
  * 直列化器が見る React が別になり、汚したはずの値が素通りする。
  */
 const RESOLUTIONS: ReadonlyMap<string, string> = new Map([
@@ -59,32 +59,54 @@ const RESOLVE_FILENAME = "_resolveFilename";
 const CLIENT_MODULE_ID = "file:///user-card.tsx";
 const CLIENT_EXPORT_NAME = "UserCard";
 
-let serverDom: ReactServerDom;
-let react: ReactServer;
-let originalResolve: (...args: unknown[]) => string;
+/** 直列化の相手にする Client Component の実体。呼ばれないので中身を持たない。 */
+const clientComponent = () => null;
+
+let serverDom: unknown;
+let react: unknown;
+let originalResolve: unknown;
+
+/** `owner` の関数を名前で引いて呼ぶ。生成物は型を持たないので、呼ぶ直前に形だけ確かめる。 */
+function callFunction(owner: unknown, name: string, args: readonly unknown[]): unknown {
+  const candidate = typeof owner === "object" && owner !== null ? Reflect.get(owner, name) : owner;
+
+  if (typeof candidate !== "function") {
+    throw new Error(`${name} を呼べません`);
+  }
+
+  return Reflect.apply(candidate, owner, args);
+}
 
 beforeAll(async () => {
   const nodeModule = await import("node:module");
-  const resolve = Reflect.get(nodeModule.default, RESOLVE_FILENAME);
 
-  if (typeof resolve !== "function") {
+  originalResolve = Reflect.get(nodeModule.default, RESOLVE_FILENAME);
+
+  if (typeof originalResolve !== "function") {
     throw new Error("Node の CJS 名前解決を差し替えられません");
   }
 
-  originalResolve = resolve as (...args: unknown[]) => string;
   Reflect.set(
     nodeModule.default,
     RESOLVE_FILENAME,
-    function patched(this: unknown, ...args: unknown[]) {
+    function patched(this: unknown, ...args: unknown[]): unknown {
       const [request] = args;
       const mapped = typeof request === "string" ? RESOLUTIONS.get(request) : undefined;
 
-      return mapped ?? originalResolve.apply(this, args);
+      if (mapped !== undefined) {
+        return mapped;
+      }
+
+      if (typeof originalResolve !== "function") {
+        throw new Error("Node の CJS 名前解決を失いました");
+      }
+
+      return Reflect.apply(originalResolve, this, args);
     },
   );
 
-  serverDom = localRequire(paths.serverDom) as ReactServerDom;
-  react = localRequire(paths.react) as ReactServer;
+  serverDom = localRequire(paths.serverDom);
+  react = localRequire(paths.react);
 });
 
 afterAll(async () => {
@@ -93,17 +115,14 @@ afterAll(async () => {
   Reflect.set(nodeModule.default, RESOLVE_FILENAME, originalResolve);
 });
 
-/** 直列化の相手にする Client Component の実体。呼ばれないので中身を持たない。 */
-const clientComponent = () => null;
-
 /** Client Component に `props` を渡して直列化し、直列化器が報告した失敗を集める。 */
 async function renderToClient(props: Record<string, unknown>): Promise<string[]> {
   const errors: string[] = [];
-  const client = serverDom.registerClientReference(
+  const client = callFunction(serverDom, "registerClientReference", [
     clientComponent,
     CLIENT_MODULE_ID,
     CLIENT_EXPORT_NAME,
-  );
+  ]);
   const manifest = {
     [`${CLIENT_MODULE_ID}#${CLIENT_EXPORT_NAME}`]: {
       id: CLIENT_MODULE_ID,
@@ -120,13 +139,19 @@ async function renderToClient(props: Record<string, unknown>): Promise<string[]>
     });
 
     sink.on("finish", resolve);
-    serverDom
-      .renderToPipeableStream(react.createElement(client, props), manifest, {
-        onError(error) {
+
+    const element = callFunction(react, "createElement", [client, props]);
+    const stream = callFunction(serverDom, "renderToPipeableStream", [
+      element,
+      manifest,
+      {
+        onError(error: unknown) {
           errors.push(String(error));
         },
-      })
-      .pipe(sink);
+      },
+    ]);
+
+    callFunction(stream, "pipe", [sink]);
   });
 
   return errors;

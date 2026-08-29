@@ -75,11 +75,7 @@ describe("getSessionResolver", () => {
 
     getSessionResolver();
 
-    expect(taintUniqueValue).toHaveBeenCalledWith(
-      expect.any(String),
-      config,
-      config.sessionSecret,
-    );
+    expect(taintUniqueValue).toHaveBeenCalledWith(expect.any(String), config, config.sessionSecret);
   });
 
   // sample:begin

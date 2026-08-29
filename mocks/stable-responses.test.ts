@@ -116,9 +116,7 @@ const server = setupServer(...stableHandlers(generated));
 
 /** 参照を整合させる差し替えを渡したときだけ立ち上げる、別の口の一式。 */
 function patchedServer(patch: ReferencePatch) {
-  return setupServer(
-    ...stableHandlers(generated, new Map([["getAlphaResponseMock", patch]])),
-  );
+  return setupServer(...stableHandlers(generated, new Map([["getAlphaResponseMock", patch]])));
 }
 
 /** ハンドラが受け持つ口。並びと集合の比較に使う。 */
