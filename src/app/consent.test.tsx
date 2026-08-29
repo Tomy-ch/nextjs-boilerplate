@@ -10,7 +10,7 @@ import { CONSENT_BANNER_COPY } from "@/components/shell/consent-banner/consent-b
 import { CONSENT_COOKIE_NAME } from "@/model/consent";
 
 /** ゲートの先に置く資材。同意が無い間は DOM に現れてはならない。 */
-const GATED = <script data-testid="gated" src="https://analytics.example.com/tag.js" />;
+const GATED = <script async data-testid="gated" src="https://analytics.example.com/tag.js" />;
 
 /**
  * 島を読み込み直す。
