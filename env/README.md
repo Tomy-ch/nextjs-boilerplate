@@ -14,8 +14,12 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 
 **`APP_API_BASE_URL` は build 時にも使われます。** リクエストをまたいで残す取得
 （[ADR 0071](../docs/adr/0071-bff-api-integration.md) の `use cache`）は、キャッシュの中身を作るために
-build 中にも呼ばれます。取得先へ到達できない場所で `pnpm build` を回すと、そこで落ちます。到達できない
-なら `APP_API_MODE=mock` の環境（`ci`）で組みます。
+build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達できない場所から `pnpm build` を回すと、
+そこで落ちます。
+
+**`mock` のときは `pnpm build` が取得先を自分で立てます**（[mocks/serve.ts](../mocks/serve.ts)）。
+`src/instrumentation.ts` の interception はそれを立てたプロセスにしか効かず、プリレンダーは別の worker
+プロセスで走るため、HTTP の口として立てないと届きません。`APP_API_BASE_URL` はその待ち受け先になります。
 
 `dev` / `stg` / `prd` の required 値は PaaS の環境設定または secret store から供給します。
 そのため、これらのファイルは変数名と既定値候補だけをコメントで保持します。
