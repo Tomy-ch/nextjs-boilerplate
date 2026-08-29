@@ -1,12 +1,17 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-const { HomePageContent } = vi.hoisted(() => ({ HomePageContent: vi.fn() }));
+const { HomePageContent, HomeCategoriesContent } = vi.hoisted(() => ({
+  HomePageContent: vi.fn(),
+  HomeCategoriesContent: vi.fn<() => ReactNode>(() => null),
+}));
 
 vi.mock("@/features/home/page-content", () => ({ HomePageContent }));
+vi.mock("@/features/home/categories-content", () => ({ HomeCategoriesContent }));
 
 import HomePage, { metadata } from "./page";
 
@@ -14,6 +19,10 @@ import HomePage, { metadata } from "./page";
 function pending() {
   HomePageContent.mockImplementation(() => new Promise(() => undefined));
 }
+
+beforeEach(() => {
+  HomeCategoriesContent.mockReset().mockImplementation(() => null);
+});
 
 describe("HomePage", () => {
   it("この画面の名前と説明を metadata に持つ", () => {
@@ -50,6 +59,18 @@ describe("HomePage", () => {
     const { container } = render(<HomePage />);
 
     expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+  });
+
+  it("待たずに配れる分類の節は、待機表示と同時に出す", () => {
+    pending();
+    HomeCategoriesContent.mockImplementation(() => <p>カテゴリから探す</p>);
+
+    const { container } = render(<HomePage />);
+
+    // 待機表示が出ている＝中身は未解決。この時点で分類が DOM に居るなら、
+    // それは待機の内側に居ないということである。
+    expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+    expect(screen.getByText("カテゴリから探す")).toBeVisible();
   });
 
   it("a11y 違反を持たない", async () => {

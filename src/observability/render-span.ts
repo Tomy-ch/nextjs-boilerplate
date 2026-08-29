@@ -47,7 +47,8 @@ export function configureRenderSpans(next: RenderSpanConfiguration): void {
  * 画面の最上位の描画を span で包んだコンポーネントを返す。
  *
  * @remarks
- * 対象は `features/<name>/<screen>/` の `page-content` と `view` です。範囲の線引きは
+ * 対象は画面の最上位——`features/<name>/<screen>/` の `page-content` と `view`、および殻の側で取得を
+ * 持つ合成——です。殻と穴に割れた画面では最上位が 2 つ以上になります。範囲の線引きは
  * [features の README](../features/README.md) が持ちます。
  *
  * @param name - span 名に載せる `src/` からのモジュールパス。**利用者の入力を混ぜてはいけません**

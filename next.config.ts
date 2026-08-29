@@ -49,6 +49,23 @@ const nextConfig = async (phase: string): Promise<NextConfig> => {
     // 器の形そのもの（何を `Suspense` の外に置くか）へ移り、突合は `scripts/render-mode` が
     // プリレンダーの実態と照らす。
     cacheComponents: true,
+    // リクエストをまたいで残す取得の寿命（[0041](docs/adr/0041-cache-components-decision.md) /
+    // [0071](docs/adr/0071-bff-api-integration.md)）。**取得の口は profile の名前だけを名乗り、秒数は
+    // ここが持つ。** fork は口を 1 つも触らずにこの値だけを動かせる。
+    cacheLife: {
+      // バックエンドが持ち、この面からは更新しないマスタ（分類・状態・都道府県）。
+      //
+      // **`expire` を置かない**（理由は [0071](docs/adr/0071-bff-api-integration.md) の profile の項）。
+      // 置かないと既定 profile の「期限で切れない」を継ぎ、書き出される値は 1 年になる —— Next が
+      // 期限なしを表す値であって、1 年で切れるという意味ではない。
+      masters: {
+        // 5 分。30 秒を下回ると殻から外れ、5 分を超えると client が持ち歩く時間だけが伸びる。
+        stale: 60 * 5,
+        // 1 日。無効化を撃つ口を持たない取得なので（`product-masters.ts` のタグの項）、
+        // 古さの上限を決めているのはこの値だけである。
+        revalidate: 60 * 60 * 24,
+      },
+    },
     // 要求の内容に依らないヘッダは全経路へ静的に付ける（[0111](docs/adr/0111-csp-security-headers.md)
     // §5）。`src/proxy.ts` で足すと前捌きを通る経路にしか載らず、静的に配れる応答が漏れる。
     async headers() {
