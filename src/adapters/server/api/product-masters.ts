@@ -25,21 +25,6 @@ type WireStatuses = z.infer<typeof GetProductStatusesResponse>;
 export const PRODUCT_MASTERS_TAG = "product-masters";
 
 /**
- * 商品マスタの寿命。
- *
- * @remarks
- * 分類も状態も、店の運用で足したり畳んだりされるものです。日をまたいで古いままにはしません。
- *
- * **このリポジトリからマスタを更新する経路はありません。** 更新はバックエンド側で起きるため、
- * {@link PRODUCT_MASTERS_TAG} を撃つ側がここには居ません。古さの上限を決めているのはこの
- * プロファイルの時間だけで、タグは webhook などの無効化口を持つ fork のために置いてあります。
- *
- * 具体の秒数はこの値ではなく `next.config.ts` の profile が持ちます
- * （[0041](../../../../docs/adr/0041-cache-components-decision.md)）。
- */
-const PRODUCT_MASTERS_LIFE = "days";
-
-/**
  * マスタの応答を表示用の分類へ写す。
  *
  * @remarks
@@ -56,16 +41,25 @@ function toProductCategories(wire: WireCategories): readonly ProductCategory[] {
  * 商品カテゴリのマスタを取得する。
  *
  * @remarks
- * 分類は画面を開くたびに変わる種類のデータではないので、リクエストをまたいで残します
- * （[0071](../../../../docs/adr/0071-bff-api-integration.md)）。寿命は
- * {@link PRODUCT_MASTERS_LIFE}、捨てる印は {@link PRODUCT_MASTERS_TAG} が持ちます。
+ * 分類は画面を開くたびに変わる種類のデータではないので、キャッシュへ入れます。寿命は
+ * `next.config.ts` の `masters` profile、捨てる印は {@link PRODUCT_MASTERS_TAG} が持ちます
+ * （[0071](../../../../docs/adr/0071-bff-api-integration.md)）。
+ *
+ * **確実に残るのは、組み立て時に殻へ焼かれた分だけです。** `use cache` の既定の入れ物はプロセスの
+ * メモリなので、serverless では要求ごとに別のインスタンスへ着地しえて、再利用が起きない回があります
+ * （[0011](../../../../docs/adr/0011-no-docker.md) の配備先はこちら側）。インスタンスをまたいで
+ * 残したい fork は `cacheHandlers` か `use cache: remote` を選びます。
+ *
+ * **このリポジトリから {@link PRODUCT_MASTERS_TAG} を撃つ経路はありません。** マスタの更新は
+ * バックエンド側で起きるためで、古さの上限を決めているのは profile の時間だけです。タグは
+ * webhook などの無効化口を持つ fork のために置いてあります。
  *
  * 外側の `cache()` は同一リクエスト内の重複を畳みます。`use cache` はリクエストをまたぐ層で、
  * 別物です。
  */
 export const getProductCategories = cache(async (): Promise<readonly ProductCategory[]> => {
   "use cache";
-  cacheLife(PRODUCT_MASTERS_LIFE);
+  cacheLife("masters");
   cacheTag(PRODUCT_MASTERS_TAG);
 
   const categories = await getPublicClient().request({
@@ -94,7 +88,7 @@ function toProductStatuses(wire: WireStatuses): readonly ProductStatus[] {
  */
 export const getProductStatuses = cache(async (): Promise<readonly ProductStatus[]> => {
   "use cache";
-  cacheLife(PRODUCT_MASTERS_LIFE);
+  cacheLife("masters");
   cacheTag(PRODUCT_MASTERS_TAG);
 
   const statuses = await getPublicClient().request({

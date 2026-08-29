@@ -48,12 +48,12 @@ describe("getPrefectures", () => {
     expect(prefectures.map(({ name }) => name)).toEqual(["東京都", "北海道"]);
   });
 
-  it("行政区画に合わせた最長の寿命と再検証タグを宣言する", async () => {
+  it("マスタの寿命を名乗り、都道府県だけの再検証タグを付ける", async () => {
     serveJson(PREFECTURES_URL, wirePrefectures);
 
     await getPrefectures();
 
-    expect(cacheLife).toHaveBeenCalledWith("max");
+    expect(cacheLife).toHaveBeenCalledWith("masters");
     expect(cacheTag).toHaveBeenCalledWith(PREFECTURE_MASTERS_TAG);
   });
 

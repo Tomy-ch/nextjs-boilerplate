@@ -21,18 +21,6 @@ type WirePrefectures = z.infer<typeof GetPrefecturesResponse>;
 export const PREFECTURE_MASTERS_TAG = "prefecture-masters";
 
 /**
- * 都道府県マスタの寿命。
- *
- * @remarks
- * 行政区画は数年から数十年に一度しか変わりません。商品マスタと別の profile を選ぶのはこの差の
- * ためで、同じ「マスタ」でも古さの許容が違います。
- *
- * 商品マスタと同じく、このリポジトリから更新する経路はありません
- * （`product-masters.ts` の寿命の項）。
- */
-const PREFECTURE_MASTERS_LIFE = "max";
-
-/**
  * マスタの応答を表示用の型へ写す。
  *
  * @remarks
@@ -50,13 +38,14 @@ function toPrefectures(wire: WirePrefectures): readonly Prefecture[] {
  * 認証を要しない公開の口です。クライアントに Bearer の取得口を渡していないのはそのためで、
  * 未ログインの画面からも同じ取得口を使えます。
  *
- * 都道府県は画面を開くたびに変わる種類のデータではないので、リクエストをまたいで残します
- * （[0071](../../../../docs/adr/0071-bff-api-integration.md)）。寿命は
- * {@link PREFECTURE_MASTERS_LIFE}、捨てる印は {@link PREFECTURE_MASTERS_TAG} が持ちます。
+ * 都道府県は画面を開くたびに変わる種類のデータではないので、キャッシュへ入れます。寿命と
+ * 入れ物の性質は商品マスタと同じで、`getProductCategories` の項が持ちます。捨てる印だけが
+ * 別で、{@link PREFECTURE_MASTERS_TAG} を使います
+ * （[0071](../../../../docs/adr/0071-bff-api-integration.md)）。
  */
 export const getPrefectures = cache(async (): Promise<readonly Prefecture[]> => {
   "use cache";
-  cacheLife(PREFECTURE_MASTERS_LIFE);
+  cacheLife("masters");
   cacheTag(PREFECTURE_MASTERS_TAG);
 
   const prefectures = await getPublicClient().request({

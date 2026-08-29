@@ -50,13 +50,27 @@ user-scoped な値をキャッシュしたいときの手段は `use cache: priv
 **内側の `fetch` には寿命を持たせません。** `use cache` の内側の取得はまとめて外側の寿命に従うので、
 二重に持つと内側が切れないぶん、外側が取り直しても同じ古い応答を掴みます。
 
+**寿命は profile の名前で名乗り、秒数は `next.config.ts` の `cacheLife` が持ちます。** 口の側は「何の
+寿命か」だけを言い、fork は口を触らずに値を動かせます。**殻へ載る取得の profile に `expire` を置きません**
+—— `expire` はその時間トラフィックが途絶えた直後の 1 要求へ同期の取り直しを課すので、そこで取得先へ届かないと
+殻を配れていたはずの route が丸ごと失敗へ倒れます。
+
+**確実に残るのは、組み立て時に殻へ焼かれた分だけです。** `use cache` の既定の入れ物はプロセスのメモリなので、
+serverless では要求ごとに別のインスタンスへ着地しえて再利用が起きない回があり、デプロイをまたぐと鍵ごと
+捨てられます。`fetch` の `cache: "force-cache"` が持っていた「デプロイとインスタンスをまたいで残る」性質は
+ここで失われるもので、**request 時の再利用を保証と読まないでください**。必要になった fork は `cacheHandlers`
+か `use cache: remote` を選びます（配備先に依存するので本体は選びません）。
+
 **`use cache` を持つモジュールは `createHttpClient` を直に引けません。** 直に引けるモジュールは
 user-scoped な client も組める状態にあり、`project-rules/no-user-scoped-in-cached-module` が止めます。
 公開の口は `server/api/public-client.ts` の `getPublicClient` を引きます —— そこが作れるのは公開の
 client だけなので、キャッシュの下で分類を取り違えようがありません。
 
 その口が 1 つである理由はもう 1 つあります。retry budget と circuit breaker は client の中に状態として
-載るため、同じ downstream へ client を分けると、劣化したかどうかの判断が分けた数だけ割れます。
+載るため、同じ downstream へ client を分けると、劣化したかどうかの判断が分けた数だけ割れます。**この理由は
+user-scoped 側にも同じだけ当てはまりますが、そちらはまだ各口が自前で組んでいます** —— 資格情報の取得口を
+どこへ寄せるかが `project-rules/no-captured-bearer-token` と交差するためで、扱いは
+[BACKLOG](../../docs/adr/BACKLOG.md) の Tier 4 が持ちます。
 
 ## 主体を名乗るかは、口ではなく client が決める
 

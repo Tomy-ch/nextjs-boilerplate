@@ -54,12 +54,12 @@ describe("getProductCategories", () => {
     expect(requests[0]?.url).toBe(CATEGORIES_URL);
   });
 
-  it("日をまたがない寿命とマスタの再検証タグを宣言する", async () => {
+  it("マスタの寿命と再検証タグを宣言する", async () => {
     serveJson(CATEGORIES_URL, wireCategories);
 
     await getProductCategories();
 
-    expect(cacheLife).toHaveBeenCalledWith("days");
+    expect(cacheLife).toHaveBeenCalledWith("masters");
     expect(cacheTag).toHaveBeenCalledWith(PRODUCT_MASTERS_TAG);
   });
 
@@ -107,12 +107,12 @@ describe("getProductStatuses", () => {
     expect(requests[0]?.url).toBe(STATUSES_URL);
   });
 
-  it("カテゴリと同じ寿命と再検証タグを宣言する", async () => {
+  it("カテゴリと同じ寿命を名乗り、同じ再検証タグを付ける", async () => {
     serveJson(STATUSES_URL, wireStatuses);
 
     await getProductStatuses();
 
-    expect(cacheLife).toHaveBeenCalledWith("days");
+    expect(cacheLife).toHaveBeenCalledWith("masters");
     expect(cacheTag).toHaveBeenCalledWith(PRODUCT_MASTERS_TAG);
   });
 

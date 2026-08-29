@@ -62,7 +62,9 @@ go-boilerplate は outbound HTTP を `internal/infrastructure/httpclient`(**go �
 - **重複排除**: 同一リクエスト内の重複 fetch は React `cache()` / fetch memoization で排除し、BFF・バックエンドへの重複呼び出しを抑止する
 - **`Cache Components` は有効である**([0041](0041-cache-components-decision.md))。上の既定 uncached はそのまま効き、残したいものに `use cache` を付け、寿命は `cacheLife`、捨てる印は `cacheTag` で持つ。所有層(取得の口とそれを呼ぶ RSC)も、タグの綴りも、ミューテーション連動も変わらない
 - **`use cache` を置ける粒度は 3 つ**(page / 関数 / component)。**取得の口の側へ寄せる。** 呼ぶ側へ置くと、同じ取得が呼び出しの数だけ別の寿命を持ち、捨てる印の付け先が散る
-- **寿命は preset の profile 名で名乗る。** 秒数は `next.config.ts` の `cacheLife` profile が持ち、口の側は「どれくらいの頻度で変わるものか」だけを言う。fork は profile の定義を差し替えるだけで、口を 1 つも触らずに全部の寿命を動かせる
+- **寿命は profile の名前で名乗る。** 秒数は `next.config.ts` の `cacheLife` に定義した profile が持ち、口の側は「何の寿命か」だけを言う。fork は口を 1 つも触らずにその値だけを動かせる
+- **殻へ載る取得の profile に `expire` を置かない。** `expire` はその時間トラフィックが途絶えた直後の 1 要求へ同期の取り直しを課すため、そこで取得先へ届かないと、殻を配れていたはずの route が丸ごと失敗へ倒れる。置かなければ取り直しは常に背後で起き、失敗しても最後に読めた内容が出続ける
+- **`use cache` が確実に残すのは、組み立て時に殻へ焼かれた分だけである。** 既定の入れ物はプロセスのメモリなので、serverless では要求ごとに別のインスタンスへ着地しえて再利用が起きない回があり、デプロイをまたぐと鍵ごと捨てられる。これは `fetch` の `cache: "force-cache"`(Data Cache。デプロイとインスタンスをまたいで残る)から失うもので、**request 時の再利用を保証と読んではならない**。インスタンスをまたいで残す必要が出た fork は `cacheHandlers` か `use cache: remote` を選ぶ —— どちらも配備先に依存するため、本体は選ばない([0010](0010-standards-and-non-lockin.md))
 - **`use cache` の内側の取得に個別のキャッシュ指定(`cache` / `next.tags`)を置かない。** 内側はまとめて外側の寿命に従うため、二重に持つと内側が切れないぶん、外側が取り直しても同じ古い応答を掴む
 - **`use cache` を持つモジュールは、client を組む kernel を直に引かない。** 分類ごとの接続口(`adapters/server/api/public-client.ts`)を経由する。直に引けるモジュールは user-scoped な client も組める状態にあり、[0112](0112-data-classification-cache-boundary.md) 決定 4 の段 2 がその import を落とす
 - **`use cache` を持つ口は組み立て時にも呼ばれる。** キャッシュの中身は build 中に作られるため、**build 環境から取得先へ到達できることが前提になる**。到達できない環境で組むなら `APP_API_MODE=mock` を選ぶ([0011](0011-no-docker.md) の環境定義)。これは request 時の往復を減らすことと引き換えに受け取る制約である
