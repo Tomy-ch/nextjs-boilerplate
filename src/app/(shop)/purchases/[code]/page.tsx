@@ -9,6 +9,7 @@ import { purchaseDetailPath } from "@/features/purchases/facade/paths/paths";
 export const metadata: Metadata = {
   title: "購入詳細",
   description: "購入 1 件の控えと明細を確認できます。",
+  robots: { index: false, follow: false },
 };
 
 /**

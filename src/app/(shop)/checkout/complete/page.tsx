@@ -13,6 +13,7 @@ import type { RawSearchParams } from "@/model/search-params";
 export const metadata: Metadata = {
   title: "購入完了",
   description: "確定した注文の控えと内訳を確認できます。",
+  robots: { index: false, follow: false },
 };
 
 /**

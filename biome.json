@@ -200,6 +200,7 @@
         "e2e/**",
         "playwright.e2e.config.ts",
         "playwright.maintenance.config.ts",
+        "playwright.metadata.config.ts",
         "vitest.config.ts"
       ],
       "linter": {

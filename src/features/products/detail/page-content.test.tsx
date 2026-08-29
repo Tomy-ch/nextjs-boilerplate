@@ -74,6 +74,20 @@ describe("ProductDetailPageContent", () => {
     );
   });
 
+  it("商品の構造化データを ld+json として置く", async () => {
+    getProduct.mockResolvedValue(PRODUCT);
+
+    const { container } = render(await ProductDetailPageContent({ id: PRODUCT.id }));
+
+    const script = container.querySelector('script[type="application/ld+json"]');
+
+    expect(JSON.parse(script?.textContent ?? "")).toMatchObject({
+      "@type": "Product",
+      name: "深煎りブレンド",
+      image: ["https://media.test/coffee.png"],
+    });
+  });
+
   it("見つからない商品は Next の not-found 境界へ渡す", async () => {
     getProduct.mockRejectedValue(new AppError(ErrorKind.NOT_FOUND));
 

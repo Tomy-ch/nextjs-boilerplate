@@ -15,6 +15,7 @@ import { requireRegisteredUser } from "@/features/account/registration-gate";
 export const metadata: Metadata = {
   title: "プロフィール編集",
   description: "登録情報を変更できます。",
+  robots: { index: false, follow: false },
 };
 
 /**

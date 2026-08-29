@@ -264,6 +264,7 @@ make vrt-update            # Retake the story baselines locally — does NOT pus
 make vrt-retake            # Retake and push. The only local entry point; the `baseline-retake` label is the default path
 make e2e                   # Drive the built app through its journeys and compare each screen (ADR 0090 / 0091)
 make e2e-maintenance       # Boot with delivery stopped and check the stop mechanism holds (ADR 0043)
+make e2e-metadata          # Build with indexing on and check the public surface holds — robots / sitemap / canonical / OG (ADR 0044)
 make e2e-review            # Same, for the screens CI flagged — starts the production build, not the dev server
 make review-clean          # Remove the throwaway worktrees the two review targets left under tmp/review/
 make e2e-update            # Retake the screen baselines locally — same split as vrt-update

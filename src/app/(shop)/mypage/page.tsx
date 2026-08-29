@@ -15,6 +15,7 @@ import { requireRegisteredUser } from "@/features/account/registration-gate";
 export const metadata: Metadata = {
   title: "マイページ",
   description: "登録情報と購入の集計を確認できます。",
+  robots: { index: false, follow: false },
 };
 
 /**

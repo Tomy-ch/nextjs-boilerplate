@@ -11,6 +11,7 @@ import { TermsView } from "@/features/site-info/terms/view";
 export const metadata: Metadata = {
   title: "利用規約",
   description: "このサイトを閲覧・利用するうえで同意していただく内容です。",
+  alternates: { canonical: "/terms" },
 };
 
 /**

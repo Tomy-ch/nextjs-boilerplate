@@ -14,6 +14,7 @@ import type { RawSearchParams } from "@/model/search-params";
 export const metadata: Metadata = {
   title: "商品一覧",
   description: "取り扱っている商品を検索して一覧で確認できます。",
+  alternates: { canonical: "/products" },
 };
 
 /**

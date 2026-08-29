@@ -198,8 +198,17 @@ async function authorize(request: NextRequest): Promise<NextResponse> {
  * ここへ処理を挟むと配信そのものが遅くなります。**外した経路には {@link PRIVATE_CACHE_CONTROL} も
  * 届きません** —— 画像最適化に載るのが公開画像だけであることが、その前提です。
  *
+ * metadata ファイル（`robots.txt` / `sitemap.xml` / アイコン / OG 画像）も外します
+ * （[0044](../docs/adr/0044-seo-metadata-strategy.md) §6）。いずれも誰でも開ける配信物で、前捌きが
+ * 横取りする理由がありません。**綴りは末尾まで固定します** —— `icon` を接頭辞で外すと、その綴りで
+ * 始まる画面を後から足したとき、その画面だけが前捌きを素通りします。
+ *
  * `/api` は外しません。Route Handler も保護の対象になり得るためです。
  */
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // 文字列リテラルでしか書けない。Next.js はこの export を静的に読み、`String.raw` のような式では
+  // 値を取れず build を止める。
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico$|icon$|apple-icon$|opengraph-image$|sitemap\\.xml$|robots\\.txt$).*)",
+  ],
 };

@@ -40,10 +40,10 @@ AGENTS.md の `[TODO] Frontend Responsibility Separation` が敷いていた暫�
 
 | 層(import する側) | 許可される import 先 |
 | --- | --- |
-| `app/route-segment`(page/layout。[0025](0025-app-layer-elements.md)) | `features` / **入口の保護に限り** `adapters/server/auth` の確定認可(`verifySession()`)と `model` の述語([0079](0079-auth-frontend-seam.md))/ **計装の mount に限り** `observability` の trace 相関の取り出し([0082](0082-client-observability.md))(+ `layout` は横断 UI/Provider を `components`/`capabilities`/ポリシー seam から薄く mount 可。[0026](0026-layout-shell-mount.md)) |
+| `app/route-segment`(page/layout。[0025](0025-app-layer-elements.md)) | `features` / **入口の保護に限り** `adapters/server/auth` の確定認可(`verifySession()`)と `model` の述語([0079](0079-auth-frontend-seam.md))/ **計装の mount に限り** `observability` の trace 相関の取り出し([0082](0082-client-observability.md))(+ `layout` は横断 UI/Provider を `components`/`capabilities`/ポリシー seam から薄く mount 可。[0026](0026-layout-shell-mount.md))/ **Next.js の規約が route segment に置くことを要求する値に限り** `config`(root layout の `metadata` export が読む `config/site`、画面が読む `config/clock`。[0025](0025-app-layer-elements.md) の禁止事項の例外) |
 | `app/route-handler`(`route.ts`) | `adapters/server` / `model` / `errors` / `logging` / feature の `facade/` のみ(thin proxy・業務ロジック禁止。[0025](0025-app-layer-elements.md)。`architecture.ts` の `APP_ELEMENTS` が機械強制する) |
 | `app/server-action`(`actions.ts`。[0025](0025-app-layer-elements.md)) | `adapters/server` / `features` / `model` / `errors` / `logging`(**主体の断言をここで行う**・業務ロジック禁止) |
-| `app/metadata`(robots等) | `config` / `model`(起動 / ビルド境界例外) |
+| `app/metadata`(robots等) | `config` / `model`(起動 / ビルド境界例外)。要求時に一覧を辿る `sitemap.ts` に限り `adapters/server` と対象 feature の `facade/`([0025](0025-app-layer-elements.md)) |
 | `features` | `model` / `components` / `adapters`(公開面のみ)/ **`capabilities`** / **`stores`** / `errors` / `logging` / `observability`(描画を span へ載せる口。[0081](0081-observability-logging.md)) |
 | `adapters/server`([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / **`config`(= `server config` の唯一の許可層 — A7 整合)**/ `observability`(ブラウザから中継したテレメトリを signal へ載せる口。[0082](0082-client-observability.md))。`server-only` |
 | `adapters/client`([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / client config(**`server config` 不可**・NEXT_PUBLIC リテラルは可)。`"use client"` |
