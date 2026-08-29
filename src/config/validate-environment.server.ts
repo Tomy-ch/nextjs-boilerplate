@@ -12,6 +12,7 @@ import { getHttpConfig } from "./http/http.server";
 import { getMaintenanceConfig } from "./maintenance/maintenance.server";
 import { getMediaConfig } from "./media/media.server";
 import { getObservabilityConfig } from "./observability/observability.server";
+import { getSiteConfig } from "./site/site.server";
 
 getApiConfig();
 getAuthConfig();
@@ -20,3 +21,4 @@ getHttpConfig();
 getMaintenanceConfig();
 getMediaConfig();
 getObservabilityConfig();
+getSiteConfig();

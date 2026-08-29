@@ -34,6 +34,8 @@ export const VALID_ENVIRONMENT = {
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
   NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: "4194304",
   HTTP_ALLOWED_ORIGINS: "",
+  SITE_PUBLIC_ORIGIN: "https://www.example.test",
+  SITE_INDEXABLE: "off",
 } satisfies Record<keyof Environment, string>;
 
 /** 検証を通る環境変数一式を stub する。 */
@@ -75,4 +77,6 @@ export const PARSED_ENVIRONMENT: Environment = {
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
   NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
   HTTP_ALLOWED_ORIGINS: [],
+  SITE_PUBLIC_ORIGIN: "https://www.example.test",
+  SITE_INDEXABLE: "off",
 };
