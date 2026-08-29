@@ -89,15 +89,13 @@ export const test = base.extend<Fixtures>({
 
     // 同意を尋ねる面は選び終えるまで画面を覆う。拒否の側で始める理由は README「同意は選び終えた
     // 状態から始める」。
-    await page
-      .context()
-      .addCookies([
-        {
-          name: CONSENT_COOKIE_NAME,
-          value: toConsentCookieValue(CONSENT_CHOICE.denied),
-          url: baseURL,
-        },
-      ]);
+    await page.context().addCookies([
+      {
+        name: CONSENT_COOKIE_NAME,
+        value: toConsentCookieValue(CONSENT_CHOICE.denied),
+        url: baseURL,
+      },
+    ]);
 
     // 宛先ではなく**絵であること**で判る。配信元は設定の値で、ここへ書き写すと変えたときに
     // 古い宛先だけを見張り続ける。最適化を通す経路も通さない経路も同じ扱いになる。
