@@ -34,8 +34,8 @@ describe("resolveProductMetadata", () => {
   });
 
   // ----- 正常系 -----
-  it("商品名を題にし、自分の経路を正規 URL として名乗る", async () => {
-    getProduct.mockResolvedValue(PRODUCT);
+  it("商品名を題にし、開かれた経路を正規 URL として名乗る", async () => {
+    getProduct.mockResolvedValue({ ...PRODUCT, id: "0195f0c2-0000-7000-8000-000000000002" });
 
     const metadata = await resolveProductMetadata(PRODUCT.id);
 

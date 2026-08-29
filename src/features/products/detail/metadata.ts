@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getProduct } from "@/adapters/server/api/products";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { toProductId } from "@/model/product/product";
+import { type ProductId, toProductId } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 
 import { toProductDetailHref } from "../facade/detail-url/detail-url";
@@ -27,7 +27,8 @@ const NOT_FOUND_TITLE = "商品が見つかりません";
  * @param id - route の動的セグメントが渡す商品の ID
  */
 export async function resolveProductMetadata(id: string): Promise<Metadata> {
-  const product = await findProduct(id);
+  const productId = toProductId(id);
+  const product = await findProduct(productId);
 
   if (product === null) {
     return { title: NOT_FOUND_TITLE, robots: { index: false, follow: false } };
@@ -38,14 +39,15 @@ export async function resolveProductMetadata(id: string): Promise<Metadata> {
   return {
     title: product.name,
     ...(description === null ? {} : { description }),
-    alternates: { canonical: toProductDetailHref(product.id) },
+    // 正規 URL は開かれた経路の ID で組む。画面の同一性を決めるのは route であって応答ではない。
+    alternates: { canonical: toProductDetailHref(productId) },
   };
 }
 
 /** 見つからないものだけを null へ写し、それ以外の失敗は投げる。 */
-async function findProduct(id: string) {
+async function findProduct(id: ProductId) {
   try {
-    return await getProduct(toProductId(id));
+    return await getProduct(id);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.NOT_FOUND) {
       return null;
