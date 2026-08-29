@@ -206,7 +206,9 @@ async function authorize(request: NextRequest): Promise<NextResponse> {
  * `/api` は外しません。Route Handler も保護の対象になり得るためです。
  */
 export const config = {
+  // 文字列リテラルでしか書けない。Next.js はこの export を静的に読み、`String.raw` のような式では
+  // 値を取れず build を止める。
   matcher: [
-    String.raw`/((?!_next/static|_next/image|favicon\.ico$|icon$|apple-icon$|opengraph-image$|sitemap\.xml$|robots\.txt$).*)`,
+    "/((?!_next/static|_next/image|favicon\\.ico$|icon$|apple-icon$|opengraph-image$|sitemap\\.xml$|robots\\.txt$).*)",
   ],
 };
