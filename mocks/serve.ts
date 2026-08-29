@@ -18,8 +18,8 @@ import { Readable } from "node:stream";
  * **interception を立てるのは呼ぶ側です。** ここで立てると、既に立っている文脈（テストの
  * `vitest.setup.msw.ts`）から呼べなくなります —— MSW は二度目の `listen()` を投げます。
  *
- * ハンドラの無い宛先は 502 で返します。素通しにすると、掴まれなかった要求がこのサーバ自身へ
- * 向き直って輪になります。
+ * 答えが返らなかった要求は 502 にします。**素通しへ倒さないのは呼ぶ側の仕事です** —— 掴まれなかった
+ * 要求を素通しにすると、この口自身へ向き直って輪になります（`onUnhandledRequest: "error"`）。
  */
 export function startMockApi(port: number): ReturnType<typeof createServer> {
   const server = createServer((incoming, response) => {

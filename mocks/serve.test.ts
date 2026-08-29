@@ -56,8 +56,14 @@ describe("startMockApi", () => {
   });
 
   // ----- 異常系 -----
-  it("ハンドラの無い宛先は 502 で返す（素通しにすると自分自身へ向き直る）", async () => {
-    const response = await fetch(`${await serve()}/has-no-handler`);
+  it("取得が答えを返せなければ 502 で返す", async () => {
+    mockServer.use(
+      http.get("*/probe", () => {
+        throw new Error("応答を作れない");
+      }),
+    );
+
+    const response = await fetch(`${await serve()}/probe`);
 
     expect(response.status).toBe(502);
   });
