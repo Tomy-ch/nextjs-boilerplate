@@ -9,6 +9,11 @@ vi.mock("@/adapters/server/api/products", () => ({ getProduct }));
 
 import { resolveProductMetadata } from "./metadata";
 
+/** 段落 1 つの説明。 */
+function paragraph(text: string): string {
+  return "<p>".concat(text, "</p>");
+}
+
 const PRODUCT = {
   id: "0195f0c2-0000-7000-8000-000000000001",
   name: "深煎りブレンド",
@@ -52,19 +57,19 @@ describe("resolveProductMetadata", () => {
   });
 
   it("説明が 160 文字までなら全文を採る", async () => {
-    getProduct.mockResolvedValue({ ...PRODUCT, description: `<p>${"あ".repeat(160)}</p>` });
+    getProduct.mockResolvedValue({ ...PRODUCT, description: paragraph("あ".repeat(160)) });
 
     expect((await resolveProductMetadata(PRODUCT.id)).description).toBe("あ".repeat(160));
   });
 
   it("説明が 160 文字を超えれば先頭 160 文字だけを採る", async () => {
-    getProduct.mockResolvedValue({ ...PRODUCT, description: `<p>${"あ".repeat(161)}</p>` });
+    getProduct.mockResolvedValue({ ...PRODUCT, description: paragraph("あ".repeat(161)) });
 
     expect((await resolveProductMetadata(PRODUCT.id)).description).toBe("あ".repeat(160));
   });
 
   it("切り詰めは文字単位で、サロゲートペアを壊さない", async () => {
-    getProduct.mockResolvedValue({ ...PRODUCT, description: `<p>${"😀".repeat(161)}</p>` });
+    getProduct.mockResolvedValue({ ...PRODUCT, description: paragraph("😀".repeat(161)) });
 
     expect((await resolveProductMetadata(PRODUCT.id)).description).toBe("😀".repeat(160));
   });

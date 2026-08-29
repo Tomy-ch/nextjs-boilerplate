@@ -1,14 +1,12 @@
 import type { MetadataRoute } from "next";
-// sample:begin
-import { cacheLife } from "next/cache";
-// sample:end
 import { connection } from "next/server";
 
-// sample:begin
-import { getPublicProductIds } from "@/adapters/server/api/products";
-// sample:end
 import { getSiteConfig } from "@/config/site/site.server";
+
 // sample:begin
+import { cacheLife } from "next/cache";
+
+import { getPublicProductIds } from "@/adapters/server/api/products";
 import { toProductDetailHref } from "@/features/products/facade/detail-url/detail-url";
 // sample:end
 

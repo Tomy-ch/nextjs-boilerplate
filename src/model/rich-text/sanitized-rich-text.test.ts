@@ -54,7 +54,9 @@ describe("SanitizedRichText", () => {
   });
 
   it("平文は markup を落として text を文書順に繋ぐ", () => {
-    const content = SanitizedRichText.from("<p>前半<strong>強調</strong></p><ul><li>後半</li></ul>");
+    const content = SanitizedRichText.from(
+      "<p>前半<strong>強調</strong></p><ul><li>後半</li></ul>",
+    );
 
     expect(content.text).toBe("前半強調後半");
   });

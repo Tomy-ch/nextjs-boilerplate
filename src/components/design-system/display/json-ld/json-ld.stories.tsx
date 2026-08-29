@@ -9,7 +9,7 @@ const meta = {
     docs: {
       description: {
         component: [
-          "画面が持つ構造化データを `<script type=\"application/ld+json\">` として埋め込みます。",
+          '画面が持つ構造化データを `<script type="application/ld+json">` として埋め込みます。',
           "**見える要素を持ちません。** 何を伝えるか（schema.org の type と項目）は画面の判断で、",
           "この component は直列化と `<` の逃がしだけを持ちます。",
         ].join(""),
