@@ -12,6 +12,11 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 `pnpm build-storybook` が `local` を渡すため、clone 直後はそのまま動きます。配信物を作る
 `pnpm build` と `pnpm start` は既定を持たないので、`APP_ENV=local pnpm build` のように指定します。
 
+**`APP_API_BASE_URL` は build 時にも使われます。** リクエストをまたいで残す取得
+（[ADR 0071](../docs/adr/0071-bff-api-integration.md) の `use cache`）は、キャッシュの中身を作るために
+build 中にも呼ばれます。取得先へ到達できない場所で `pnpm build` を回すと、そこで落ちます。到達できない
+なら `APP_API_MODE=mock` の環境（`ci`）で組みます。
+
 `dev` / `stg` / `prd` の required 値は PaaS の環境設定または secret store から供給します。
 そのため、これらのファイルは変数名と既定値候補だけをコメントで保持します。
 

@@ -1,14 +1,13 @@
 import "server-only";
 
+import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import type { Prefecture } from "@/model/user/user";
 
 import { GetPrefecturesResponse } from "../../gen/api/endpoints.zod";
-import { createHttpClient, type PublicHttpClient } from "../http/request";
+import { getPublicClient } from "./public-client";
 
 type WirePrefectures = z.infer<typeof GetPrefecturesResponse>;
 
@@ -21,17 +20,17 @@ type WirePrefectures = z.infer<typeof GetPrefecturesResponse>;
  */
 export const PREFECTURE_MASTERS_TAG = "prefecture-masters";
 
-let client: PublicHttpClient | undefined;
-
-function getClient(): PublicHttpClient {
-  client ??= createHttpClient({
-    scope: "public",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-  });
-
-  return client;
-}
+/**
+ * 都道府県マスタの寿命。
+ *
+ * @remarks
+ * 行政区画は数年から数十年に一度しか変わりません。商品マスタと別の profile を選ぶのはこの差の
+ * ためで、同じ「マスタ」でも古さの許容が違います。
+ *
+ * 商品マスタと同じく、このリポジトリから更新する経路はありません
+ * （`product-masters.ts` の寿命の項）。
+ */
+const PREFECTURE_MASTERS_LIFE = "max";
 
 /**
  * マスタの応答を表示用の型へ写す。
@@ -51,15 +50,18 @@ function toPrefectures(wire: WirePrefectures): readonly Prefecture[] {
  * 認証を要しない公開の口です。クライアントに Bearer の取得口を渡していないのはそのためで、
  * 未ログインの画面からも同じ取得口を使えます。
  *
- * キャッシュを明示しているのは、都道府県が画面を開くたびに変わる種類のデータではないためです
- * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
+ * 都道府県は画面を開くたびに変わる種類のデータではないので、リクエストをまたいで残します
+ * （[0071](../../../../docs/adr/0071-bff-api-integration.md)）。寿命は
+ * {@link PREFECTURE_MASTERS_LIFE}、捨てる印は {@link PREFECTURE_MASTERS_TAG} が持ちます。
  */
 export const getPrefectures = cache(async (): Promise<readonly Prefecture[]> => {
-  const prefectures = await getClient().request({
+  "use cache";
+  cacheLife(PREFECTURE_MASTERS_LIFE);
+  cacheTag(PREFECTURE_MASTERS_TAG);
+
+  const prefectures = await getPublicClient().request({
     path: "/v1/prefectures",
     schema: GetPrefecturesResponse,
-    cache: "force-cache",
-    tags: [PREFECTURE_MASTERS_TAG],
   });
 
   return toPrefectures(prefectures);

@@ -3,8 +3,10 @@ import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { serveJson } from "../../../../vitest.setup.msw";
 
 const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => PARSED_ENVIRONMENT) }));
+const { cacheLife, cacheTag } = vi.hoisted(() => ({ cacheLife: vi.fn(), cacheTag: vi.fn() }));
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
+vi.mock("next/cache", () => ({ cacheLife, cacheTag }));
 
 import { getProductCategories, getProductStatuses, PRODUCT_MASTERS_TAG } from "./product-masters";
 
@@ -52,16 +54,23 @@ describe("getProductCategories", () => {
     expect(requests[0]?.url).toBe(CATEGORIES_URL);
   });
 
-  it("キャッシュとマスタの再検証タグを指定する", async () => {
+  it("日をまたがない寿命とマスタの再検証タグを宣言する", async () => {
+    serveJson(CATEGORIES_URL, wireCategories);
+
+    await getProductCategories();
+
+    expect(cacheLife).toHaveBeenCalledWith("days");
+    expect(cacheTag).toHaveBeenCalledWith(PRODUCT_MASTERS_TAG);
+  });
+
+  it("取得そのものには寿命を持たせない", async () => {
     serveJson(CATEGORIES_URL, wireCategories);
     const fetchImpl = vi.spyOn(globalThis, "fetch");
 
     await getProductCategories();
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
-      cache: "force-cache",
-      next: { tags: [PRODUCT_MASTERS_TAG] },
-    });
+    expect(fetchImpl.mock.calls[0]?.[1]).not.toMatchObject({ cache: "force-cache" });
+    expect(fetchImpl.mock.calls[0]?.[1]).not.toHaveProperty("next.tags");
   });
 
   it("マスタが空でも空の一覧を返す", async () => {
@@ -98,16 +107,13 @@ describe("getProductStatuses", () => {
     expect(requests[0]?.url).toBe(STATUSES_URL);
   });
 
-  it("キャッシュとマスタの再検証タグを指定する", async () => {
+  it("カテゴリと同じ寿命と再検証タグを宣言する", async () => {
     serveJson(STATUSES_URL, wireStatuses);
-    const fetchImpl = vi.spyOn(globalThis, "fetch");
 
     await getProductStatuses();
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
-      cache: "force-cache",
-      next: { tags: [PRODUCT_MASTERS_TAG] },
-    });
+    expect(cacheLife).toHaveBeenCalledWith("days");
+    expect(cacheTag).toHaveBeenCalledWith(PRODUCT_MASTERS_TAG);
   });
 
   it("マスタが空でも空の一覧を返す", async () => {

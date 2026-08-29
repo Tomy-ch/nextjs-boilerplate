@@ -41,6 +41,23 @@ method・ヘッダ・本文なので、主体ごとに割れた値がそこへ�
 user-scoped な値をキャッシュしたいときの手段は `use cache: private`（サーバへ保存されず、ブラウザの
 メモリにのみ載る）に限ります。**これは明示的な例外能力であって一般許可ではありません。**
 
+## リクエストをまたいで残すのは `use cache` の側
+
+**寿命を持つのは取得の口です**（[0071](../../docs/adr/0071-bff-api-integration.md)）。残す口の中で
+`use cache` を宣言し、寿命は `cacheLife`、捨てる印は `cacheTag` が持ちます。呼ぶ側（feature / page）へ
+置くと、同じ取得が呼び出しの数だけ別の寿命を持ち、印の付け先が散ります。
+
+**内側の `fetch` には寿命を持たせません。** `use cache` の内側の取得はまとめて外側の寿命に従うので、
+二重に持つと内側が切れないぶん、外側が取り直しても同じ古い応答を掴みます。
+
+**`use cache` を持つモジュールは `createHttpClient` を直に引けません。** 直に引けるモジュールは
+user-scoped な client も組める状態にあり、`project-rules/no-user-scoped-in-cached-module` が止めます。
+公開の口は `server/api/public-client.ts` の `getPublicClient` を引きます —— そこが作れるのは公開の
+client だけなので、キャッシュの下で分類を取り違えようがありません。
+
+その口が 1 つである理由はもう 1 つあります。retry budget と circuit breaker は client の中に状態として
+載るため、同じ downstream へ client を分けると、劣化したかどうかの判断が分けた数だけ割れます。
+
 ## 主体を名乗るかは、口ではなく client が決める
 
 **`createHttpClient` に `getBearerToken` を渡さない client は、そこを通る要求のすべてが匿名になります。**

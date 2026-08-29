@@ -62,6 +62,10 @@ go-boilerplate は outbound HTTP を `internal/infrastructure/httpclient`(**go �
 - **重複排除**: 同一リクエスト内の重複 fetch は React `cache()` / fetch memoization で排除し、BFF・バックエンドへの重複呼び出しを抑止する
 - **`Cache Components` は有効である**([0041](0041-cache-components-decision.md))。上の既定 uncached はそのまま効き、残したいものに `use cache` を付け、寿命は `cacheLife`、捨てる印は `cacheTag` で持つ。所有層(取得の口とそれを呼ぶ RSC)も、タグの綴りも、ミューテーション連動も変わらない
 - **`use cache` を置ける粒度は 3 つ**(page / 関数 / component)。**取得の口の側へ寄せる。** 呼ぶ側へ置くと、同じ取得が呼び出しの数だけ別の寿命を持ち、捨てる印の付け先が散る
+- **寿命は preset の profile 名で名乗る。** 秒数は `next.config.ts` の `cacheLife` profile が持ち、口の側は「どれくらいの頻度で変わるものか」だけを言う。fork は profile の定義を差し替えるだけで、口を 1 つも触らずに全部の寿命を動かせる
+- **`use cache` の内側の取得に個別のキャッシュ指定(`cache` / `next.tags`)を置かない。** 内側はまとめて外側の寿命に従うため、二重に持つと内側が切れないぶん、外側が取り直しても同じ古い応答を掴む
+- **`use cache` を持つモジュールは、client を組む kernel を直に引かない。** 分類ごとの接続口(`adapters/server/api/public-client.ts`)を経由する。直に引けるモジュールは user-scoped な client も組める状態にあり、[0112](0112-data-classification-cache-boundary.md) 決定 4 の段 2 がその import を落とす
+- **`use cache` を持つ口は組み立て時にも呼ばれる。** キャッシュの中身は build 中に作られるため、**build 環境から取得先へ到達できることが前提になる**。到達できない環境で組むなら `APP_API_MODE=mock` を選ぶ([0011](0011-no-docker.md) の環境定義)。これは request 時の往復を減らすことと引き換えに受け取る制約である
 - **user-scoped な値は `use cache` の下へ置かない**([0112](0112-data-classification-cache-boundary.md))。手段は `use cache: private` に限り、それは明示的な例外能力である。強制は `project-rules/no-user-scoped-in-cached-module` と framework の `next-request-in-use-cache` が持つ
 - 具体値(何を・どれだけ・どの tag で)は用途依存のため fork 先で確定する(本 ADR は所有層と既定方針 = opt-in・境界集約・ミューテーション連動を定める)
 
@@ -78,6 +82,7 @@ go-boilerplate は outbound HTTP を `internal/infrastructure/httpclient`(**go �
 - ❌ `adapters` の fetch wrapper に業務ロジックを書くこと(外部接続と変換のみ。[0021](0021-frontend-responsibility.md))
 - ❌ response を検証せず内層へ流すこと(adapters 境界で zod 検証。[0070](0070-backend-role-separation.md) / [0072](0072-api-type-generation.md))
 - ❌ キャッシュ / 再検証の指定をコンポーネント各所へ散らすこと(データ取得の所有層 = adapters / 呼び出す RSC に集約)
+- ❌ `use cache` の内側の `fetch` へ `cache` / `next.tags` を置くこと(寿命が二重になり、外側の再取得が古い応答を掴む)
 - ❌ 用途を問わないグローバルキャッシュを既定で敷くこと(既定 uncached・opt-in)/ ミューテーション後に影響 tag / path を再検証せず古い表示を放置すること
 
 ## 補足
