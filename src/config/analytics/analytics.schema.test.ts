@@ -18,10 +18,10 @@ describe("gtmContainerIdValidator", () => {
 
   // ----- 異常系 -----
   it("接頭辞が違う値を弾く", () => {
-    expect(() => gtmContainerIdValidator().parse("GA-ABC1234")).toThrow();
+    expect(() => gtmContainerIdValidator().parse("GA-ABC1234")).toThrow(/GTM- で始まる/);
   });
 
   it("小文字を含む値を弾く", () => {
-    expect(() => gtmContainerIdValidator().parse("GTM-abc1234")).toThrow();
+    expect(() => gtmContainerIdValidator().parse("GTM-abc1234")).toThrow(/GTM- で始まる/);
   });
 });

@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 
-import { render } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
 
 // 島は遷移を合図に計測 id を渡し直すため、経路を要求する。合図そのものはここの観点では
-// ないので、供給だけを差し替える。
-vi.mock("next/navigation", () => ({ usePathname: () => "/about" }));
+// ないので、供給だけを差し替える。遷移を起こすケースがあるので値を動かせる形にする。
+const navigation = vi.hoisted(() => ({ pathname: "/about" }));
+vi.mock("next/navigation", () => ({ usePathname: () => navigation.pathname }));
 
 /**
  * 容器 ID を差し替えて島を読み込み直す。
@@ -18,6 +19,12 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/about" }));
 async function loadIsland(containerId: string) {
   vi.stubEnv("NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID", containerId);
   vi.resetModules();
+
+  // 島が動的に読む module を、先に解決しておく（`docs/testing-conventions.md`
+  // 「`next/dynamic` を含む木を描くとき」）。**待ち時間の中に読み込みを入れない** ——
+  // 入れると、落ちるかどうかがそのときの混み具合で決まる。`beforeAll` に置けないのは、
+  // ここで毎回 registry を作り直すため先読みが捨てられるからで、作り直した直後に読む。
+  await import("@next/third-parties/google");
 
   return (await import("./analytics")).Analytics;
 }
@@ -43,6 +50,7 @@ function dataLayer(): object[] {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  navigation.pathname = "/about";
   document.cookie = `${MEASUREMENT_ID_COOKIE_NAME}=; max-age=0; path=/`;
   // 渡した値と差し込まれた script は次のケースへ持ち越さない。
   window.dataLayer = undefined;
@@ -55,9 +63,12 @@ describe("Analytics", () => {
   it("容器 ID を宣言した配備では、タグマネージャを読み込む", async () => {
     const Analytics = await loadIsland("GTM-ABC1234");
 
-    render(<Analytics />);
+    const { container } = render(<Analytics />);
 
-    expect(tagManagerScripts()).toHaveLength(1);
+    await waitFor(() => expect(tagManagerScripts()).toHaveLength(1));
+    // 読み込んでも器の見た目には何も足さない。a11y の自動検査を置かないのはこれが前提で、
+    // 前提そのものをここで固定する（`telemetry.tsx` と同じ形）。
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("読み込みは afterInteractive で行う。ライブラリが既定を変えたら気付けるようにする", async () => {
@@ -67,6 +78,7 @@ describe("Analytics", () => {
 
     // `docs/rules.md` #50 は strategy の明示を求めるが、`GoogleTagManager` は prop を公開して
     // いない。選べない以上、いま何が効いているかを固定して、変わった時点で落とす。
+    await waitFor(() => expect(tagManagerScripts()).toHaveLength(1));
     expect(tagManagerScripts()[0]?.getAttribute("data-nscript")).toBe("afterInteractive");
   });
 
@@ -74,6 +86,9 @@ describe("Analytics", () => {
     const Analytics = await loadIsland("");
 
     const { container } = render(<Analytics />);
+
+    // 読み込みは動的なので、起きる余地を与えてから「起きていない」を見る。
+    await act(async () => undefined);
 
     expect(container).toBeEmptyDOMElement();
     expect(tagManagerScripts()).toHaveLength(0);
@@ -85,15 +100,44 @@ describe("Analytics", () => {
 
     render(<Analytics />);
 
-    expect(dataLayer()).toContainEqual({
-      [MEASUREMENT_ID_COOKIE_NAME]: "649689b1-c53d-4c4e-9335-c3758e51703c",
-    });
+    await waitFor(() =>
+      expect(dataLayer()).toContainEqual({
+        [MEASUREMENT_ID_COOKIE_NAME]: "649689b1-c53d-4c4e-9335-c3758e51703c",
+      }),
+    );
+  });
+
+  it("形の合わない値は渡さない。この cookie は httpOnly を付けられず、書ける相手が居る", async () => {
+    document.cookie = `${MEASUREMENT_ID_COOKIE_NAME}=</script><script>x=1</script>; path=/`;
+    const Analytics = await loadIsland("GTM-ABC1234");
+
+    render(<Analytics />);
+    await act(async () => undefined);
+
+    expect(dataLayer().some((entry) => MEASUREMENT_ID_COOKIE_NAME in entry)).toBe(false);
+  });
+
+  it("遷移しても同じ id は二度渡さない。GTM 側で別々の出来事として並ぶため", async () => {
+    document.cookie = `${MEASUREMENT_ID_COOKIE_NAME}=649689b1-c53d-4c4e-9335-c3758e51703c; path=/`;
+    const Analytics = await loadIsland("GTM-ABC1234");
+    const { rerender } = render(<Analytics />);
+    await waitFor(() =>
+      expect(dataLayer().filter((entry) => MEASUREMENT_ID_COOKIE_NAME in entry)).toHaveLength(1),
+    );
+
+    navigation.pathname = "/products";
+    rerender(<Analytics />);
+    await act(async () => undefined);
+
+    expect(dataLayer().filter((entry) => MEASUREMENT_ID_COOKIE_NAME in entry)).toHaveLength(1);
   });
 
   it("計測 id がまだ配られていなければ渡さない。同意した直後の 1 回がこれにあたる", async () => {
     const Analytics = await loadIsland("GTM-ABC1234");
 
     render(<Analytics />);
+
+    await act(async () => undefined);
 
     expect(dataLayer().some((entry) => MEASUREMENT_ID_COOKIE_NAME in entry)).toBe(false);
   });
