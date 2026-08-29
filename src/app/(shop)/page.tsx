@@ -28,9 +28,8 @@ export const metadata: Metadata = {
  * 位置が下へずれていきます。要求ごとに取る 2 系統は同時に取得しており、待つ時間は最も遅い 1 つ分
  * なので、まとめて待たせても増える待ち時間はありません。
  *
- * **分類はその外に置きます。** 取得がリクエストをまたいで残るので待つ理由が無く、静的な殻へ入れる
- * と最初の HTML から辿れます（[0041](../../../docs/adr/0041-cache-components-decision.md)）。枠が
- * 増えるわけではないので、上の理由とは衝突しません。
+ * **分類はその外に置きます**（[categories-content.tsx](../../features/home/categories-content.tsx)）。
+ * 枠が増えるわけではないので、上のまとめる理由とは衝突しません。
  */
 export default function HomePage() {
   return (

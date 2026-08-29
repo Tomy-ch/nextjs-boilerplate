@@ -17,7 +17,7 @@ const RANKING_ROW_COUNT = 5;
  * 見出しの文字は枠にしません。取得を待たずに確定している文言で、枠に置き換えると出てくる
  * ときに 2 度読ませることになります。
  *
- * 分類の帯を持ちません。あれは待たずに配れる節で、最初の HTML に本物が入っています
+ * 分類の帯を持ちません。待機の対象ではないためです
  * （[categories-content.tsx](../../categories-content.tsx)）。
  */
 export const HomeSkeleton = withPartSpan("features/home/ui/skeleton/skeleton", () => {

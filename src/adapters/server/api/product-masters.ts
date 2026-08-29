@@ -45,10 +45,8 @@ function toProductCategories(wire: WireCategories): readonly ProductCategory[] {
  * `next.config.ts` の `masters` profile、捨てる印は {@link PRODUCT_MASTERS_TAG} が持ちます
  * （[0071](../../../../docs/adr/0071-bff-api-integration.md)）。
  *
- * **確実に残るのは、組み立て時に殻へ焼かれた分だけです。** `use cache` の既定の入れ物はプロセスの
- * メモリなので、serverless では要求ごとに別のインスタンスへ着地しえて、再利用が起きない回があります
- * （[0011](../../../../docs/adr/0011-no-docker.md) の配備先はこちら側）。インスタンスをまたいで
- * 残したい fork は `cacheHandlers` か `use cache: remote` を選びます。
+ * **確実に残るのは、組み立て時に殻へ焼かれた分だけです**（入れ物の性質は
+ * [adapters](../../README.md) の「リクエストをまたいで残すのは `use cache` の側」）。
  *
  * **このリポジトリから {@link PRODUCT_MASTERS_TAG} を撃つ経路はありません。** マスタの更新は
  * バックエンド側で起きるためで、古さの上限を決めているのは profile の時間だけです。タグは

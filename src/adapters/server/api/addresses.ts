@@ -10,7 +10,7 @@ import { getPublicClient } from "./public-client";
 
 type WireAddresses = z.infer<typeof GetAddressesResponse>;
 
-/** 契約の応答を表示用の候補へ写す。 */
+/** 契約の応答を表示用の候補へ写す。`prefectureName` は `prefecture` へ改名する。 */
 function toAddressCandidates(wire: WireAddresses): readonly AddressCandidate[] {
   return wire.candidates.map(({ prefectureName, city, town }) => ({
     prefecture: prefectureName,

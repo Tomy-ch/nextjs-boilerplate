@@ -50,8 +50,7 @@ function toSectionState<T>(section: string, settled: PromiseSettledResult<T>): S
  * `Promise.all` ではなく `allSettled` を使うのは、1 つの失敗で残りを捨てないためです。`all` は
  * 最初の失敗で待機を打ち切るため、成功した系統の結果が手元にあっても使えません。
  *
- * 分類はここに居ません。取得がリクエストをまたいで残るので、待たずに配れる側
- * （[categories-content.tsx](./categories-content.tsx)）へ出してあります。
+ * 分類はここに居ません。待たずに配れる側（[categories-content.tsx](./categories-content.tsx)）です。
  */
 export const HomePageContent = withScreenSpan("features/home/page-content", async () => {
   const [newArrivals, ranking] = await Promise.allSettled([
