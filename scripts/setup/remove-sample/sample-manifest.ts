@@ -63,6 +63,10 @@ export const SAMPLE_PATHS: readonly string[] = [
   "mocks/api",
   "mocks/contract-conformance.test.ts",
   "mocks/handlers.test.ts",
+  // 口をまたいで指し合う項目の表。契約ごとの知識なので、整合を取る機構（`stable-responses.ts`）
+  // とは別に置いてある。
+  "mocks/references.ts",
+  "mocks/references.test.ts",
   // 題材の画面の仕様書。実装と 1 対 1 で対応するため、画面が消えれば仕様書も消える。
   // 残るのは `docs/spec/README.md` と、コア残留の画面（`auth` の器 / `/login` / `/dev/session`）の分。
   "docs/spec/route/shop",

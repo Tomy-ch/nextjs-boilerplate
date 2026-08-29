@@ -63,6 +63,34 @@ type ResponseOverride = (info: { request: Request }) => Promise<unknown>;
 type HandlerFactory = (overrideResponse?: ResponseOverride) => HttpHandler;
 
 /**
+ * 別の口の応答を、その口が返すのと同じ内容で引く。
+ *
+ * @remarks
+ * 応答は seed から決まる純粋な関数なので、その口へ届く要求と同じ seed を与えれば、画面が実際に
+ * 受け取るのと同じ内容が得られます。
+ *
+ * @param name - 生成物が公開する応答生成関数の名前（`get<名前>ResponseMock`）
+ * @param path - その口のパス。seed は要求の URL から決まるため、綴りまで合わせる
+ */
+export type DrawFromEndpoint = (name: string, path: string) => unknown;
+
+/**
+ * 生成した応答のうち、他の口を指す項目を整合させる差し替え。
+ *
+ * @remarks
+ * 契約から生成した応答は口ごとに独立しているため、ある口が返す識別子が、それを一覧する口の
+ * 応答に**存在しない**という組み合わせが生まれます。画面はその状態を「選べない値が入っている」
+ * として扱うので、参照の整合はモックの側で取ります。
+ *
+ * **この機構は表を持ちません。** どの項目がどの口を指すかは契約ごとの知識であり、`stableHandlers`
+ * の呼び出し側が渡します。
+ */
+export type ReferencePatch = (response: unknown, draw: DrawFromEndpoint) => unknown;
+
+/** 応答生成関数の名前から、その応答へ掛ける差し替えを引く表。 */
+export type ReferencePatches = ReadonlyMap<string, ReferencePatch>;
+
+/**
  * 契約から生成したハンドラを、応答が再現する形で組み立てる。
  *
  * @remarks
@@ -88,7 +116,10 @@ type HandlerFactory = (overrideResponse?: ResponseOverride) => HttpHandler;
  * @param generated - 契約から生成したモックの module
  * @returns 口ごとのハンドラ。並び順は生成関数の名前順
  */
-export function stableHandlers(generated: Readonly<Record<string, unknown>>): HttpHandler[] {
+export function stableHandlers(
+  generated: Readonly<Record<string, unknown>>,
+  patches: ReferencePatches = new Map(),
+): HttpHandler[] {
   const handlers: HttpHandler[] = [];
   const entries = Object.entries(generated).sort(([left], [right]) => (left < right ? -1 : 1));
 
@@ -105,6 +136,9 @@ export function stableHandlers(generated: Readonly<Record<string, unknown>>): Ht
       continue;
     }
 
+    const responseName = `${name.slice(0, -HANDLER_SUFFIX.length)}${RESPONSE_SUFFIX}`;
+    const patch = patches.get(responseName);
+
     handlers.push(
       build(async ({ request }) => {
         const body = await request.clone().text();
@@ -112,7 +146,11 @@ export function stableHandlers(generated: Readonly<Record<string, unknown>>): Ht
         faker.seed(seedFor(request.method, request.url, body));
         faker.setDefaultRefDate(REFERENCE_DATE);
 
-        return (respond as () => unknown)();
+        const response = (respond as () => unknown)();
+
+        // 参照の整合は本体を組み立て**終えてから**取る。途中で seed を与え直すと、本体の続きが
+        // 別の seed の並びから作られ、同じ要求に同じ応答を返せなくなる。
+        return patch === undefined ? response : patch(response, drawFrom(generated, request.url));
       }),
     );
   }
@@ -122,4 +160,32 @@ export function stableHandlers(generated: Readonly<Record<string, unknown>>): Ht
   }
 
   return handlers;
+}
+
+/**
+ * 参照先の口の応答を引く口を、要求の出所に合わせて組み立てる。
+ *
+ * @remarks
+ * seed は要求の URL から決まるため、参照先の URL も**同じ出所**で組みます。書き写した固定の出所を
+ * 使うと、配信先が変わった環境で参照先だけ別の seed になり、整合が黙って外れます。
+ *
+ * @param generated - 契約から生成したモックの module
+ * @param requestUrl - いま応答を組み立てている要求の URL
+ */
+function drawFrom(
+  generated: Readonly<Record<string, unknown>>,
+  requestUrl: string,
+): DrawFromEndpoint {
+  return (name, path) => {
+    const respond = generated[name];
+
+    if (typeof respond !== "function") {
+      throw new Error(`参照先の応答を生成できません: ${name}`);
+    }
+
+    faker.seed(seedFor("GET", new URL(path, requestUrl).toString()));
+    faker.setDefaultRefDate(REFERENCE_DATE);
+
+    return (respond as () => unknown)();
+  };
 }

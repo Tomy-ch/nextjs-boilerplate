@@ -1,5 +1,6 @@
 // sample:replace-begin
 import * as generated from "./api/endpoints.msw";
+import { REFERENCE_PATCHES } from "./references";
 import { stableHandlers } from "./stable-responses";
 
 /** 契約から生成したハンドラ 1 件。生成物は HTTP ハンドラだけを返す。 */
@@ -37,12 +38,14 @@ function parameterCount(handler: GeneratedHandler): number {
  * **契約に書かれた順ではありません。**
  *
  * 組み立てを [stable-responses](stable-responses.ts) に通すのは、同じ要求へ同じ応答を返させる
- * ためです。応答の形は生成物のままで、手で組み立てたものは含みません。
+ * ためです。応答の形は生成物のままで、手で組み立てたものは含みません。口をまたいで指し合う項目
+ * だけは、呼び出し側が渡す表に従って揃えます —— 生成物は口ごとに独立しており、ある口が名乗る
+ * 識別子が、それを一覧する口の応答に存在しないためです。
  *
  * mock が差し替えるのは API だけです。画像は配信元（`MEDIA_ORIGIN`）から実物を取得します。
  */
 // sample:replace-begin
-export const handlers = stableHandlers(generated).sort(
+export const handlers = stableHandlers(generated, REFERENCE_PATCHES).sort(
   (left, right) => parameterCount(left) - parameterCount(right),
 );
 // sample:replace-with
