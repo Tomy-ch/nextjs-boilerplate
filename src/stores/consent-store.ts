@@ -9,6 +9,7 @@ import {
   type ConsentChoice,
   type ConsentState,
   parseConsentState,
+  toConsentCookieValue,
   UNREAD_CONSENT,
 } from "@/model/consent";
 
@@ -55,7 +56,7 @@ function writeConsentCookie(choice: ConsentChoice): void {
     ...(location.protocol === "https:" ? ["secure"] : []),
   ];
 
-  document.cookie = `${CONSENT_COOKIE_NAME}=${choice}; ${attributes.join("; ")}`;
+  document.cookie = `${CONSENT_COOKIE_NAME}=${toConsentCookieValue(choice)}; ${attributes.join("; ")}`;
 }
 
 /**
