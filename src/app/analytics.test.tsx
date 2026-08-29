@@ -60,6 +60,16 @@ describe("Analytics", () => {
     expect(tagManagerScripts()).toHaveLength(1);
   });
 
+  it("読み込みは afterInteractive で行う。ライブラリが既定を変えたら気付けるようにする", async () => {
+    const Analytics = await loadIsland("GTM-ABC1234");
+
+    render(<Analytics />);
+
+    // `docs/rules.md` #50 は strategy の明示を求めるが、`GoogleTagManager` は prop を公開して
+    // いない。選べない以上、いま何が効いているかを固定して、変わった時点で落とす。
+    expect(tagManagerScripts()[0]?.getAttribute("data-nscript")).toBe("afterInteractive");
+  });
+
   it("容器 ID が空なら何も描かない。読み込まないという指定である", async () => {
     const Analytics = await loadIsland("");
 
