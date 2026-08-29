@@ -66,6 +66,18 @@ export type Screen = {
    * 外すのは値を描く最小の範囲に留めます。広く覆うほど、崩れても気づけない面が増えます。
    */
   readonly mask?: readonly string[];
+  /**
+   * 撮る前に現れているべき要素の CSS 選択子。
+   *
+   * @remarks
+   * **最初の一式から外した島（`next/dynamic`）を持つ画面にだけ与えます。** その島は枠だけを置いて
+   * 後から描かれるので、届く前に撮ると枠のまま写ります。枠は連続して撮っても同じなので、
+   * **Playwright の「同じ絵が 2 回続いたら撮る」判定を素通りします** —— 撮る側が待つ相手を
+   * 知っていなければ、届いた日と届かなかった日の絵が交互に基準へ入ります。
+   *
+   * 指すのは島が描き終えた印です。枠（`loading`）ではなく、中身にしか現れない要素を選びます。
+   */
+  readonly settled?: string;
 };
 
 /** route 1 つに対する宣言。開くか、開かない理由を持つ。 */
@@ -77,12 +89,25 @@ export type ScreenDeclaration =
       readonly signedIn?: SessionRole;
       /** 撮影から外す領域の CSS 選択子（{@link Screen.mask}）。 */
       readonly mask?: readonly string[];
+      /** 撮る前に現れているべき要素の CSS 選択子（{@link Screen.settled}）。 */
+      readonly settled?: string;
     }
   | {
       readonly route: string;
       /** 開かない理由と、その理由が消える条件。 */
       readonly skip: string;
     };
+
+// sample:begin
+/**
+ * 作図の島が描き終えた印。
+ *
+ * @remarks
+ * recharts は実寸を測ってから面を描くため、この要素は中身が出来た後にしか現れません。枠
+ * （`loading`）は空の `div` なので、待つ相手にできません。
+ */
+const SETTLED_CHART = "svg.recharts-surface";
+// sample:end
 
 /**
  * 巡回・撮影の対象と、対象から外す route の宣言。
@@ -134,11 +159,20 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   { route: "/about", name: "about", path: "/about" },
   { route: "/privacy", name: "privacy", path: "/privacy" },
   { route: "/terms", name: "terms", path: "/terms" },
-  { route: "/admin", name: "admin-dashboard", path: "/admin", signedIn: "admin" },
+  {
+    route: "/admin",
+    name: "admin-dashboard",
+    path: "/admin",
+    // 帯は最初の一式から外してある（`features/admin/ui/status-chart/`）。届く前に撮ると枠のまま写る。
+    settled: SETTLED_CHART,
+    signedIn: "admin",
+  },
   {
     route: "/admin/analytics",
     name: "admin-analytics",
     path: "/admin/analytics",
+    // ダッシュボードと同じ帯を持つ。
+    settled: SETTLED_CHART,
     signedIn: "admin",
   },
   { route: "/admin/products", name: "admin-products", path: "/admin/products", signedIn: "admin" },
@@ -240,7 +274,14 @@ export function resolveScreens(
 
   const screens = declarations
     .filter((entry): entry is Extract<ScreenDeclaration, { name: string }> => "name" in entry)
-    .map(({ route, name, path, signedIn, mask }) => ({ route, name, path, signedIn, mask }));
+    .map(({ route, name, path, signedIn, mask, settled }) => ({
+      route,
+      name,
+      path,
+      signedIn,
+      mask,
+      settled,
+    }));
 
   const malformed = screens.filter((screen) => !SCREEN_NAME.test(screen.name));
 

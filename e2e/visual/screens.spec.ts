@@ -42,6 +42,13 @@ for (const screen of screens) {
     }
 
     await page.goto(screen.path);
+
+    // 最初の一式から外した島は、枠だけを置いて後から描かれる。枠は連続して撮っても同じなので、
+    // Playwright の安定判定では待てない（`e2e/lib/screens.ts` の `settled`）。
+    if (screen.settled !== undefined) {
+      await page.locator(screen.settled).first().waitFor({ state: "visible" });
+    }
+
     // フォントは差し替わった瞬間に字形が変わる。待たずに撮ると同じ画面が撮るたび違う絵になる。
     await page.evaluate(() => document.fonts.ready);
 
