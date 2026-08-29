@@ -336,11 +336,13 @@ describe("proxy", () => {
   });
 
   it("https で配信されていれば、計測 id に secure を付ける", async () => {
-    const request = new NextRequest(new URL("/help", "https://app.example.test"), {
-      headers: { cookie: `${CONSENT_COOKIE_NAME}=${CONSENT_CHOICE.granted}` },
+    const secured = new NextRequest(new URL("/help", "https://app.example.test"), {
+      headers: {
+        cookie: `${CONSENT_COOKIE_NAME}=${toConsentCookieValue(CONSENT_CHOICE.granted)}`,
+      },
     });
 
-    const response = await proxy(request);
+    const response = await proxy(secured);
 
     expect(setCookieFor(response, MEASUREMENT_ID_COOKIE_NAME)).toContain("Secure");
   });

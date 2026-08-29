@@ -86,7 +86,9 @@ describe("decideConsent", () => {
 
     decideConsent(CONSENT_CHOICE.granted);
 
-    expect(document.cookie).toContain(`${CONSENT_COOKIE_NAME}=${CONSENT_CHOICE.granted}`);
+    expect(document.cookie).toContain(
+      `${CONSENT_COOKIE_NAME}=${toConsentCookieValue(CONSENT_CHOICE.granted)}`,
+    );
   });
 
   it("期限を付けて残す。無期限にはしない", async () => {

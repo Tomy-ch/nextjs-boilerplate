@@ -70,9 +70,12 @@ describe("ConsentBanner", () => {
 
   it("面の外を押しても閉じず、意思も返さない", async () => {
     const onDecide = vi.fn();
+    // 面の外は `pointer-events: none` に落ちているので、押せるかの検査を外さないと届く前に弾かれる。
+    // 押せないこと自体は背面を触らせない仕組みの側で、ここで見たいのは届いた場合に閉じないこと。
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     render(<ConsentBanner onDecide={onDecide} open />);
 
-    await userEvent.click(document.body);
+    await user.click(document.body);
 
     expect(screen.getByRole("dialog")).toBeVisible();
     expect(onDecide).not.toHaveBeenCalled();

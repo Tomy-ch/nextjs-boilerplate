@@ -195,6 +195,20 @@
     },
     {
       "includes": [
+        "src/stores/consent-store.ts",
+        "src/stores/consent-store.test.ts",
+        "src/app/consent.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noDocumentCookie": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
         "baseline/lib/**",
         "vrt/**",
         "e2e/**",
