@@ -11,7 +11,7 @@ vi.mock("@/config/site/site.server", () => ({
 }));
 vi.mock("@/adapters/server/api/products", () => ({ getPublicProductIds })); // sample:line
 
-import { PROTECTED_PREFIXES } from "@/model/authz";
+import { PROTECTED_PREFIXES } from "@/model/authz"; // sample:line
 
 import sitemap from "./sitemap";
 

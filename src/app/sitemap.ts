@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
+// sample:begin
 import { cacheLife } from "next/cache";
+// sample:end
 import { connection } from "next/server";
 
 // sample:begin
