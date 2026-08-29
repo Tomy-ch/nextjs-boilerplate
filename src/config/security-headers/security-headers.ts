@@ -14,8 +14,15 @@ export type SecurityHeaderInputs = {
   readonly servesOverTls: boolean;
   /** 開発サーバーか。React が eval を要求する。 */
   readonly development: boolean;
-  /** 同意ゲートの裏でタグマネージャを読み込む配備か（容器 ID が空でない）。 */
-  readonly loadsTagManager: boolean;
+  /**
+   * タグマネージャの容器 ID（`NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID`）。
+   *
+   * @remarks
+   * **解釈せずに渡します。** 空が「読み込まない」を意味することの判定はここが持ちます —— 呼び出し
+   * 側で真偽値へ潰すと、同じ意味づけが渡す側と受ける側の 2 か所に現れます。他の項目
+   * （`mediaOrigin` / `authIssuer`）も検証済みの生値のまま受けています。
+   */
+  readonly gtmContainerId: string;
 };
 
 /**
@@ -97,8 +104,9 @@ function buildContentSecurityPolicy({
   authIssuer,
   servesOverTls,
   development,
-  loadsTagManager,
+  gtmContainerId,
 }: SecurityHeaderInputs): string {
+  const loadsTagManager = gtmContainerId !== "";
   const tagManagerScript = loadsTagManager ? [TAG_MANAGER_SCRIPT_ORIGIN] : [];
   const tagManagerCollect = loadsTagManager
     ? [TAG_MANAGER_SCRIPT_ORIGIN, ...TAG_MANAGER_COLLECT_ORIGINS]
@@ -153,9 +161,9 @@ export function buildSecurityHeaders(inputs: SecurityHeaderInputs): ResponseHead
     { key: "Referrer-Policy", value: REFERRER_POLICY },
     { key: "Permissions-Policy", value: PERMISSIONS_POLICY },
     { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-    ...(inputs.loadsTagManager
-      ? []
-      : [{ key: "Cross-Origin-Embedder-Policy", value: "require-corp" }]),
+    ...(inputs.gtmContainerId === ""
+      ? [{ key: "Cross-Origin-Embedder-Policy", value: "require-corp" }]
+      : []),
     { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
     ...(inputs.servesOverTls
       ? [{ key: "Strict-Transport-Security", value: STRICT_TRANSPORT_SECURITY }]

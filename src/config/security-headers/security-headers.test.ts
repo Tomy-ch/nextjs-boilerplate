@@ -7,7 +7,7 @@ const production: SecurityHeaderInputs = {
   authIssuer: "https://idp.example.com/realms/shop",
   servesOverTls: true,
   development: false,
-  loadsTagManager: false,
+  gtmContainerId: "",
 };
 
 const local: SecurityHeaderInputs = {
@@ -15,11 +15,11 @@ const local: SecurityHeaderInputs = {
   authIssuer: "http://localhost:2010/default",
   servesOverTls: false,
   development: true,
-  loadsTagManager: false,
+  gtmContainerId: "",
 };
 
 /** 容器 ID を宣言した配備。タグマネージャを読み込む。 */
-const withTagManager: SecurityHeaderInputs = { ...production, loadsTagManager: true };
+const withTagManager: SecurityHeaderInputs = { ...production, gtmContainerId: "GTM-ABC1234" };
 
 function header(inputs: SecurityHeaderInputs, key: string): string | undefined {
   return buildSecurityHeaders(inputs).find((entry) => entry.key === key)?.value;
