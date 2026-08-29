@@ -9,18 +9,26 @@ const config = {
   sessionSecret: "local-development-session-secret-change-before-production",
 };
 
-const { createDefaultSessionResolver, createDevelopmentSessionResolver, getAuthConfig } =
-  vi.hoisted(() => ({
-    createDefaultSessionResolver: vi.fn((_deps: { resolveRole: unknown }) => ({
-      marker: "default",
-    })),
-    createDevelopmentSessionResolver: vi.fn(() => ({ marker: "development" })),
-    getAuthConfig: vi.fn(),
-  }));
+const {
+  createDefaultSessionResolver,
+  createDevelopmentSessionResolver,
+  getAuthConfig,
+  taintUniqueValue,
+} = vi.hoisted(() => ({
+  createDefaultSessionResolver: vi.fn((_deps: { resolveRole: unknown }) => ({
+    marker: "default",
+  })),
+  createDevelopmentSessionResolver: vi.fn(() => ({ marker: "development" })),
+  getAuthConfig: vi.fn(),
+  taintUniqueValue: vi.fn(),
+}));
 
 const isDevelopmentOnlyEndpointOpen = vi.hoisted(() => vi.fn());
 
 vi.mock("@/config/auth/auth.server", () => ({ getAuthConfig }));
+// 本物は experimental の React を要求する。効くことは `taint/taint.test.ts` が直列化器で確かめ、
+// ここは呼んだかどうかだけを見る。
+vi.mock("../taint/taint", () => ({ taintUniqueValue }));
 vi.mock("@/config/http/http.server", () => ({ getHttpConfig: () => ({ maxUrlBytes: 8_000 }) }));
 // 環境の判定だけを差し替える。この module は ENV の読み込みそのものも持っており、丸ごと
 // 置き換えると、設定を読む側（`api.server.ts` など）が起動できない。
@@ -60,6 +68,18 @@ describe("getSessionResolver", () => {
       maxUrlBytes: 8_000,
       resolveRole: expect.any(Function), // sample:line
     });
+  });
+
+  it("署名鍵を、client へ渡せない値として登録する", async () => {
+    const { getSessionResolver } = await importResolver();
+
+    getSessionResolver();
+
+    expect(taintUniqueValue).toHaveBeenCalledWith(
+      expect.any(String),
+      config,
+      config.sessionSecret,
+    );
   });
 
   // sample:begin

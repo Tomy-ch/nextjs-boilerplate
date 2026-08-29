@@ -94,6 +94,16 @@ const nextConfig = async (phase: string): Promise<NextConfig> => {
       ? [...DEVELOPMENT_ROUTE_EXTENSIONS, ...ROUTE_EXTENSIONS]
       : ROUTE_EXTENSIONS,
     experimental: {
+      // server の object と秘密値を Client Component へ渡した時点で落とす
+      // （[0030](docs/adr/0030-environment-variable-management.md) §8 / [0112](docs/adr/0112-data-classification-cache-boundary.md) 段 4）。
+      //
+      // **client へ配る React が experimental チャンネルへ変わる。** 呼び出しを 1 つも書かなくても
+      // 全 route が gzip で数 KB 増える。それを承知で採るのは、実装が React 本体そのもので、
+      // 本体側に利用を案内する資料があるため（同 §8 の例外）。
+      //
+      // **環境で切り替えない。** dev だけ有効にすると、検証する React と配る React が違うという
+      // 別の不整合を作る。
+      taint: true,
       serverActions: {
         // 上限の出所は env の 1 行で、ここは封筒のぶんを足すだけにする。単位付きの文字列で
         // 書き直すと同じ閾値が 2 か所に現れ、片方だけ動かせる状態になる。

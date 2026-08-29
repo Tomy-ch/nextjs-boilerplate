@@ -111,9 +111,14 @@ const NON_DECIDING_MODULES = [
  *
  * `account.fixture.ts` は story とテストの双方が読みます。都道府県の 47 件のように、
  * 実物どおりの件数でなければ器の幅を確かめられない入力があるためです。
+ *
+ * `experimental-react.fixture.ts` が返すのは Next.js 同梱の experimental React の位置です。本番は
+ * Next.js が `react` の解決先を差し替えるため、この位置を綴るのはテストだけです
+ * （[0030](../../docs/adr/0030-environment-variable-management.md) §8）。
  */
 const TEST_FIXTURE_MODULES = [
   "src/config/environment.fixture.ts",
+  "src/adapters/server/taint/experimental-react.fixture.ts",
   "src/features/account/account.fixture.ts", // sample:line
   "src/features/cart/cart.fixture.ts", // sample:line
   "src/features/checkout/checkout.fixture.ts", // sample:line
