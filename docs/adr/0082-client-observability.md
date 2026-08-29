@@ -65,8 +65,8 @@ Accepted (一部 exclusion)
 - **物理配置 = `app` の client island**(`src/app/analytics.tsx`)。`adapters/client` ではない。あそこが受け持つのは**このアプリが送信を組み立てる経路**(§1 RUM / §2 client エラー)であり、タグマネージャは**読み込むだけで送信は容器の中身が行う**。送信の組み立てを持たないものに source adapter を立てても、通り道が 1 つ増えるだけになる。
 - **fork がタグから値を送るようになった時点で、発火 IF を `adapters/client` へ立てる。** そのとき初めて「直書き vs 抽象を通す」という構造問題が実在する。本体が先に空の IF を置くことはしない。
 - **`dataLayer` へ値を渡してよいのはこの island だけ**とする。feature / component から直接触ると、何が外へ出るかが散る。
-- **consent gating**: プロダクト分析は 0131 の consent 対象(ユーザ行動トラッキング)そのものであるため、発火 IF は [0031](0031-policy-state-supply.md) の **純関数 gate 述語**(既定 = 「未同意で全 gate」)を参照してから sink へ渡す。gate の具体粒度・consent ソースは用途依存で fork 先 / 実装 PR(0031 と一致)。
-- **vendor-independent**: 「直書き vs 抽象を通す」という構造問題は SaaS 選定と独立(0031)であり、本体が備えるのは IF + no-op 既定のみ。
+- **consent gating**: プロダクト分析は 0131 の consent 対象(ユーザ行動トラッキング)そのものである。掛け方は**呼び出しの手前で述語を見る形ではなく、島そのものを mount しない形**を採る —— [0031](0031-policy-state-supply.md) の純関数 gate 述語(既定 = 「未同意で全 gate」)が偽である間、`src/app/consent.tsx` は島を描かない。**要素が在る時点で取得が始まる資材は、述語では止められない**(0131 §1)。gate の具体粒度・consent ソースは用途依存で fork 先 / 実装 PR(0031 と一致)。
+- **vendor-independent**: 同梱するのは容器を読み込む口だけで、**どの計測ベンダーへ繋ぐかは容器の中身が持つ**。ベンダーを替えても本体のコードは変わらない。外すのは容器 ID を空にするだけで済み、外した配備の初期 JS にライブラリは載らない([0131](0131-cookie-consent.md) §2)。
 
 ### 4. consent gate の線引き(運用テレメトリ vs 行動トラッキング)
 
@@ -93,20 +93,20 @@ Accepted (一部 exclusion)
 ## 補足
 
 - **採番はブロック帯で確定(2026-07-14・0001〜0155(トピック順ブロック帯))**(独立起票・triage 観測性クラスタ = 1 ADR)。
-- **consent 結線の現在地**: #61 は [0031](0031-policy-state-supply.md) の gate 述語で結線済み。#59 / #60 の consent 要否は **法域依存で本体では確定せず**、operational = gate 対象外の保守的既定 + 0031 述語の再利用拡張点、に留める(§4。flags)。
+- **consent 結線の現在地**: #61 は [0031](0031-policy-state-supply.md) の gate 述語で結線済み(掛け方は島を mount しない形。§3)。#59 / #60 の consent 要否は **法域依存で本体では確定せず**、operational = gate 対象外の保守的既定 + 0031 述語の再利用拡張点、に留める(§4。flags)。
 - **エンドポイントは 2 つに分ける**(§決定の表)。OTLP をそのまま渡す口と、このリポジトリが決めた形の報告を受ける口。
 - **保護は #49(0077)へ委譲**(§5)。無防備な公開中継エンドポイントの保護は別ドメイン寄りの境界 seam であり、参照先が本 ADR 外に分散する点を明示。
 - **AGENTS.md B7 TODO との関係**: 0081 の Accepted で B7 は確定済み。本 ADR は 0081 のブラウザ側 seam を 3 経路へ具体化する **従属決定** であり、AGENTS.md への追加反映は生じない(0081 の反映に含まれる)。
-- 送信・redact・サンプリングの具体実装(バッチ / `sendBeacon` vs `fetch` / サンプリング率)は用途依存で実装 PR(本体は seam と発火 IF・no-op sink のみ備える)。
-- **計測製品そのものを本体が選ぶことはしない**: 同梱するのはタグマネージャ(容器を読み込む口)までで、容器の中に何を入れるかは fork の判断である。SaaS の SDK を直接同梱すると、その 1 つを選んだことが fork の選択肢を狭める —— タグマネージャなら、繋ぎ替えは容器の中身の入れ替えで済む。発火 IF / no-op sink の設置条件は §3 が持つ。**consent gate 述語は [0131](0131-cookie-consent.md) / [0031](0031-policy-state-supply.md) 側に実在する**。なお §1 RUM / §2 client エラーは運用テレメトリ(0081・OTLP)であり、本注記の対象外。
+- 送信・redact・サンプリングの具体実装(バッチ / `sendBeacon` vs `fetch` / サンプリング率)は用途依存で実装 PR(本体が備えるのは seam までで、§1 RUM / §2 client エラーの話である)。
+- **計測製品そのものを本体が選ぶことはしない**: 同梱するのはタグマネージャ(容器を読み込む口)までで、容器の中に何を入れるかは fork の判断である。SaaS の SDK を直接同梱すると、その 1 つを選んだことが fork の選択肢を狭める —— タグマネージャなら、繋ぎ替えは容器の中身の入れ替えで済む。fork がタグから値を送るようになったとき発火 IF をどこへ立てるかは §3 が持つ。**consent gate 述語は [0131](0131-cookie-consent.md) / [0031](0031-policy-state-supply.md) 側に実在する**。なお §1 RUM / §2 client エラーは運用テレメトリ(0081・OTLP)であり、本注記の対象外。
 
 ## 関連 ADR
 
 - [0081-observability-logging.md](0081-observability-logging.md)(B7)— ブラウザ→BFF 中継 seam / OTLP-only / SaaS 非同梱。本 ADR はその 3 経路を具体化する
 - [0101-performance-budget.md](0101-performance-budget.md)(C3)— CWV 一次指標 / lab 計測。本 ADR が field 値(RUM)収集経路を補完
 - [0131-cookie-consent.md](0131-cookie-consent.md)(C9)— consent gate 対象 = 行動トラッキング(#61)/ 運用テレメトリ(#59 / #60)との区別
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md)(S1)— `adapters/client`(telemetry / analytics 送信面の家)
-- [0031-policy-state-supply.md](0031-policy-state-supply.md)(S3)— analytics no-op sink / consent gate 述語の供給(#61 の発火 IF / no-op sink)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md)(S1)— `adapters/client`(**このアプリが送信を組み立てる**経路の家。タグマネージャはここに置かない —— §3)
+- [0031-policy-state-supply.md](0031-policy-state-supply.md)(S3)— consent gate 述語の供給(#61 は述語が真の間だけ島が mount される)
 - [0080-error-handling.md](0080-error-handling.md)(B6)— エラー分類センチネル / redact(#60 の分類・masking)
 - [0071-bff-api-integration.md](0071-bff-api-integration.md)(B3)— client→BFF fetch 経路(送信の実装層)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md)(A7)— secret 非露出 / BFF runtime config(BFF 中継の根拠)
