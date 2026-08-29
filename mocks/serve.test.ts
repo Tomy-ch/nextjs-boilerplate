@@ -71,9 +71,7 @@ describe("startMockApi", () => {
   });
 
   it("URL として組めない要求行は 502 で返す", async () => {
-    await serve();
-
-    const { port } = server?.address() as AddressInfo;
+    const port = Number(new URL(await serve()).port);
 
     // proxy へ出すときの要求行。`req.url` が絶対 URL になり、この口の宛先として組み直せない。
     const status = await new Promise<string>((resolve, reject) => {
