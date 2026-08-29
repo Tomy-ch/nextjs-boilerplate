@@ -120,7 +120,7 @@ describe("Analytics", () => {
       expect(dataLayer().filter((entry) => MEASUREMENT_ID_COOKIE_NAME in entry)).toHaveLength(1),
     );
 
-    navigation.pathname = "/products";
+    navigation.pathname = "/terms";
     rerender(<Analytics />);
     await act(async () => undefined);
 
