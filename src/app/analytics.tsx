@@ -1,6 +1,6 @@
 "use client";
 
-import { GoogleTagManager, sendGTMEvent } from "@next/third-parties/google";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
@@ -8,7 +8,21 @@ import { GTM_CONTAINER_ID } from "@/config/analytics/analytics.client";
 import { MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
 
 /**
- * 前捌きが配った計測 id。まだ配られていなければ `undefined`。
+ * 前捌きが配る計測 id の形。
+ *
+ * @remarks
+ * **渡す前に形を確かめます。** この値はライブラリの手で inline script へ文字列として埋め込まれ、
+ * `JSON.stringify` は `</script` を綴り替えません。いまは島がブラウザ側でしか描かれないので HTML の
+ * 解析を通りませんが、それは**偶然の性質**です —— 同意状態をサーバ側供給へ変えれば
+ * （[0031](../../docs/adr/0031-policy-state-supply.md) の既定がまさにそれです）解析を通ります。
+ * **自分が fork へ勧めている変更で崩れる前提に、守りを預けません。**
+ *
+ * 形から外れた値は渡しません。cookie は `httpOnly` を付けられないので、書ける相手が居ます。
+ */
+const MEASUREMENT_ID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * 前捌きが配った計測 id。形が合わなければ `undefined`。
  *
  * @remarks
  * **同意した直後はまだ配られていません。** 発行するのは前捌きで、同意を書いた後の最初の要求から
@@ -18,11 +32,28 @@ import { MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
  * です —— `stores` は `capabilities` を引けないため、共通の読み手へ寄せられません。
  */
 function readMeasurementId(): string | undefined {
-  return document.cookie
+  const value = document.cookie
     .split("; ")
     .find((entry) => entry.startsWith(`${MEASUREMENT_ID_COOKIE_NAME}=`))
     ?.slice(MEASUREMENT_ID_COOKIE_NAME.length + 1);
+
+  return value !== undefined && MEASUREMENT_ID_SHAPE.test(value) ? value : undefined;
 }
+
+/**
+ * タグマネージャの読み込み口。
+ *
+ * @remarks
+ * **動的に読みます。** 静的に import すると、容器 ID を空にした配備 —— Google への依存を外した
+ * fork —— の初期 JS にもライブラリのコードが載ります。**拒否した相手にバイト数を運ばせない**のが
+ * 同梱の条件です（[0131](../../docs/adr/0131-cookie-consent.md) §2）。
+ *
+ * 同意を得るまで取りに行かない、という性質も同時に付きます。ゲートの裏の資材は、要素だけでなく
+ * 転送量も同意の前には発生しません。
+ */
+const GoogleTagManager = dynamic(() =>
+  import("@next/third-parties/google").then((module) => module.GoogleTagManager),
+);
 
 /**
  * この読み込みのあいだに、すでに渡した計測 id。
@@ -50,7 +81,12 @@ function MeasurementId(): null {
     }
 
     deliveredId = measurementId;
-    sendGTMEvent({ [MEASUREMENT_ID_COOKIE_NAME]: measurementId });
+
+    // 押す側も動的に読む。静的に import すると、同じ module から出ている読み込み口ごと
+    // 初期 JS へ載り、容器 ID を空にした配備で動的化が効かなくなる。
+    void import("@next/third-parties/google").then(({ sendGTMEvent }) => {
+      sendGTMEvent({ [MEASUREMENT_ID_COOKIE_NAME]: measurementId });
+    });
   }, []);
 
   return null;
@@ -74,6 +110,10 @@ function MeasurementId(): null {
  * **この先は中継を通りません。** タグマネージャは各タグを Google と直接喋らせる仕組みで、
  * `/api/telemetry` の伏せ字が掛かる経路の外にあります（[0082](../../docs/adr/0082-client-observability.md)
  * 禁止事項の唯一の例外）。**容器へ何を入れるかが、そのまま何が外へ出るかになります。**
+ *
+ * **読み込みの strategy は選べません。** `GoogleTagManager` は prop を公開しておらず、`next/script`
+ * の既定（`afterInteractive`）が効きます。`docs/rules.md` #50 が求める「明示」を宣言では満たせない
+ * ため、いま効いている値をテストで固定し、ライブラリが既定を変えた時点で落ちるようにしています。
  *
  * 運用テレメトリ（`telemetry.tsx`）はここを通りません。同意の対象は行動の追跡であり、障害と性能の
  * 計測とは区別します（同 ADR §4）。**計測 id を渡すのもこの経路だけ**です —— 運用テレメトリへ同じ
