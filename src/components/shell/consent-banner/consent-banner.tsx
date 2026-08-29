@@ -67,7 +67,7 @@ export function ConsentBanner({ open, onDecide, policyHref }: ConsentBannerProps
       >
         <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
-            <DialogPrimitive.Title className="font-semibold text-base">
+            <DialogPrimitive.Title className="font-emphasis text-base">
               {CONSENT_BANNER_COPY.title}
             </DialogPrimitive.Title>
             <DialogPrimitive.Description className="text-muted-foreground text-sm">
