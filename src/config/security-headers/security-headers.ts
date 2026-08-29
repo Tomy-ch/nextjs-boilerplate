@@ -29,8 +29,8 @@ export type SecurityHeaderInputs = {
  * タグマネージャとその先のタグが使う配信元。
  *
  * @remarks
- * **容器 ID を宣言した配備にだけ載せます。** 外した配備で開けたままにすると、読み込まないものの
- * ために攻撃面だけが残ります（[0131](../../../docs/adr/0131-cookie-consent.md) §2）。
+ * **容器 ID を宣言した配備にだけ載せます**（空の意味は `config/analytics/analytics.schema.ts`）。
+ * 外した配備で開けたままにすると、読み込まないもののために攻撃面だけが残ります。
  *
  * `googletagmanager.com` は容器そのものと、そこから読み込まれる Google 製タグの配信元です。
  * `google-analytics.com` は計測の送り先で、こちらは `connect-src` と `img-src` にだけ要ります
@@ -141,14 +141,9 @@ function buildContentSecurityPolicy({
  * （[0111](../../../docs/adr/0111-csp-security-headers.md) §5）。要求に依るヘッダ（資格情報を
  * 載せた要求への `Cache-Control`）は `src/proxy.ts` が持ちます。
  *
- * **`Cross-Origin-Embedder-Policy` は、タグマネージャを読み込む配備では出しません。**
- * `require-corp` は副資源に `Cross-Origin-Resource-Policy` か CORS を要求しますが、タグが読む
- * Google の配信元はそれを返しません。**cross-origin isolation を失うことを受け入れた結果**で、
- * `SharedArrayBuffer` 等の isolation を前提とする機能はその配備では使えません
- * （[0111](../../../docs/adr/0111-csp-security-headers.md) §5）。
- *
- * 読み込まない配備では出したままにします。**読まないもののために isolation を捨てる理由が無い**
- * ためで、容器 ID を空にすることが isolation を取り戻す口になります。
+ * **`Cross-Origin-Embedder-Policy` は、タグマネージャを読み込む配備（`gtmContainerId` が空でない）
+ * では出しません。読み込まない配備では出したままにします。** 理由と、それによって失うものは
+ * [0111](../../../docs/adr/0111-csp-security-headers.md) §5 が持ちます。
  *
  * @param inputs - 検証済みの ENV と配信の条件
  * @returns `headers()` の `headers` にそのまま渡せる一覧

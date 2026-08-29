@@ -11,13 +11,9 @@ import { MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
  * 前捌きが配る計測 id の形。
  *
  * @remarks
- * **渡す前に形を確かめます。** この値はライブラリの手で inline script へ文字列として埋め込まれ、
- * `JSON.stringify` は `</script` を綴り替えません。いまは島がブラウザ側でしか描かれないので HTML の
- * 解析を通りませんが、それは**偶然の性質**です —— 同意状態をサーバ側供給へ変えれば
- * （[0031](../../docs/adr/0031-policy-state-supply.md) の既定がまさにそれです）解析を通ります。
- * **自分が fork へ勧めている変更で崩れる前提に、守りを預けません。**
- *
- * 形から外れた値は渡しません。cookie は `httpOnly` を付けられないので、書ける相手が居ます。
+ * **渡す前に形を確かめます。** この cookie は `httpOnly` を付けられないので、書ける相手が居ます。
+ * 渡した先の容器が値をどう使うかはこちらの管轄外で、URL へ載せるタグを入れることもできます。
+ * 自分が出す値の形は自分で保証します。
  */
 const MEASUREMENT_ID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -28,8 +24,8 @@ const MEASUREMENT_ID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[
  * **同意した直後はまだ配られていません。** 発行するのは前捌きで、同意を書いた後の最初の要求から
  * 載ります（`docs/spec/route/layout.function.md`）。
  *
- * cookie の読み出しがここと `stores/consent-store` の 2 か所にあるのは、依存の許可がそれぞれ別だから
- * です —— `stores` は `capabilities` を引けないため、共通の読み手へ寄せられません。
+ * `document.cookie` を生で読む実装がここと `stores/consent-store`（読む相手は同意の cookie で別物）の
+ * 2 か所にあるのは、`stores` が `capabilities` を引けず、共通の読み手へ寄せられないためです。
  */
 function readMeasurementId(): string | undefined {
   const value = document.cookie
@@ -48,8 +44,7 @@ function readMeasurementId(): string | undefined {
  * fork —— の初期 JS にもライブラリのコードが載ります。**拒否した相手にバイト数を運ばせない**のが
  * 同梱の条件です（[0131](../../docs/adr/0131-cookie-consent.md) §2）。
  *
- * 同意を得るまで取りに行かない、という性質も同時に付きます。ゲートの裏の資材は、要素だけでなく
- * 転送量も同意の前には発生しません。
+ * 同意を得るまで取りに行かない、という性質も同時に付きます。
  */
 const GoogleTagManager = dynamic(() =>
   import("@next/third-parties/google").then((module) => module.GoogleTagManager),
@@ -82,8 +77,7 @@ function MeasurementId(): null {
 
     deliveredId = measurementId;
 
-    // 押す側も動的に読む。静的に import すると、同じ module から出ている読み込み口ごと
-    // 初期 JS へ載り、容器 ID を空にした配備で動的化が効かなくなる。
+    // 読み込み口と同じ module からの export なので、ここも動的に読む。
     void import("@next/third-parties/google").then(({ sendGTMEvent }) => {
       sendGTMEvent({ [MEASUREMENT_ID_COOKIE_NAME]: measurementId });
     });
@@ -99,25 +93,22 @@ function MeasurementId(): null {
  * **`Consent` の children として置きます。** 同意が得られていない間はこの要素そのものが描かれない
  * ので、DOM にも script が現れません（[0131](../../docs/adr/0131-cookie-consent.md) §2）。
  *
- * **容器 ID が空なら何も描きません。** 空は「未設定」ではなく「読み込まない」という指定で、fork が
- * Google への依存を外す口がこれです。外した配備では配信ヘッダも緩みません
- * （`config/security-headers`）。
+ * **容器 ID が空なら何も描きません。** 空の意味は `config/analytics/analytics.schema.ts` が持ちます。
+ * 配信ヘッダが連動することは `config/security-headers` の契約です。
  *
- * **`<noscript>` の iframe は置きません。** 提供元の導入手順は `<script>` と対で貼らせますが、あれは
- * ゲートへ掛けられません —— JS が無効な訪問者では尋ねる面が描かれず、同意を与える手段が無いので、
- * 置けば同意できない相手にだけ無条件で発火します（[0131](../../docs/adr/0131-cookie-consent.md) §2）。
+ * **`<noscript>` の iframe は置きません。** JS が無効な訪問者には同意を与える手段が無く、置けば
+ * その相手にだけ無条件で発火するためです（[0131](../../docs/adr/0131-cookie-consent.md) §2）。
  *
- * **この先は中継を通りません。** タグマネージャは各タグを Google と直接喋らせる仕組みで、
- * `/api/telemetry` の伏せ字が掛かる経路の外にあります（[0082](../../docs/adr/0082-client-observability.md)
- * 禁止事項の唯一の例外）。**容器へ何を入れるかが、そのまま何が外へ出るかになります。**
+ * **この先は中継を通りません。** Google と直接通信する仕組みで、`/api/telemetry` の伏せ字の外に
+ * あります（[0082](../../docs/adr/0082-client-observability.md) 禁止事項の唯一の例外。理由は
+ * [0131](../../docs/adr/0131-cookie-consent.md) §2）。
  *
  * **読み込みの strategy は選べません。** `GoogleTagManager` は prop を公開しておらず、`next/script`
  * の既定（`afterInteractive`）が効きます。`docs/rules.md` #50 が求める「明示」を宣言では満たせない
  * ため、いま効いている値をテストで固定し、ライブラリが既定を変えた時点で落ちるようにしています。
  *
- * 運用テレメトリ（`telemetry.tsx`）はここを通りません。同意の対象は行動の追跡であり、障害と性能の
- * 計測とは区別します（同 ADR §4）。**計測 id を渡すのもこの経路だけ**です —— 運用テレメトリへ同じ
- * id を載せると、区別しているはずの 2 つが同じ主体で繋がります。
+ * 計測 id はこの経路以外へ渡しません。運用テレメトリ（`telemetry.tsx`）とは主体を分けます
+ * （[0082](../../docs/adr/0082-client-observability.md) §4 / 禁止事項）。
  */
 export function Analytics() {
   const pathname = usePathname();

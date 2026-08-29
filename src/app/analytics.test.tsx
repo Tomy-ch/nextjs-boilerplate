@@ -20,10 +20,9 @@ async function loadIsland(containerId: string) {
   vi.stubEnv("NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID", containerId);
   vi.resetModules();
 
-  // 島が動的に読む module を、先に解決しておく（`docs/testing-conventions.md`
-  // 「`next/dynamic` を含む木を描くとき」）。**待ち時間の中に読み込みを入れない** ——
-  // 入れると、落ちるかどうかがそのときの混み具合で決まる。`beforeAll` に置けないのは、
-  // ここで毎回 registry を作り直すため先読みが捨てられるからで、作り直した直後に読む。
+  // 島が動的に読む module を先に解決する（`docs/testing-conventions.md`「`next/dynamic` を含む
+  // 木を描くとき」）。`beforeAll` に置けないのは、ここで毎回 registry を作り直して先読みが
+  // 捨てられるためで、作り直した直後に読む。
   await import("@next/third-parties/google");
 
   return (await import("./analytics")).Analytics;
@@ -66,10 +65,6 @@ describe("Analytics", () => {
     const { container } = render(<Analytics />);
 
     await waitFor(() => expect(tagManagerScripts()).toHaveLength(1));
-    // `docs/rules.md` #50 は strategy の明示を求めるが、`GoogleTagManager` は prop を公開して
-    // いない。選べない以上、いま効いている値を固定して、ライブラリが既定を変えたら落とす。
-    // 読み込みと同じ 1 回の描画についての事実なので、ここへ畳む —— 同じファイルで動的な解決を
-    // 二度行うと、二度目が待ち時間に収まらない。
     expect(tagManagerScripts()[0]?.getAttribute("data-nscript")).toBe("afterInteractive");
     // 読み込んでも器の見た目には何も足さない。a11y の自動検査を置かないのはこれが前提で、
     // 前提そのものをここで固定する（`telemetry.tsx` と同じ形）。
