@@ -137,8 +137,14 @@ describe("buildSecurityHeaders", () => {
   it("容器 ID を宣言した配備は、計測の送り先を connect-src と img-src へ載せる", () => {
     const declared = directives(withTagManager);
 
-    expect(declared.get("connect-src")).toContain("https://www.google-analytics.com");
-    expect(declared.get("img-src")).toContain("https://www.google-analytics.com");
+    expect(declared.get("connect-src")).toContain("https://*.google-analytics.com");
+    expect(declared.get("img-src")).toContain("https://*.google-analytics.com");
+  });
+
+  it("代表的なホストをワイルドカードと重ねて挙げない", () => {
+    expect(directives(withTagManager).get("connect-src")).not.toContain(
+      "https://www.google-analytics.com",
+    );
   });
 
   it("容器 ID を宣言した配備は、cross-origin isolation を降ろす", () => {

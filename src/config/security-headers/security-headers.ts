@@ -31,9 +31,15 @@ export type SecurityHeaderInputs = {
  */
 const TAG_MANAGER_SCRIPT_ORIGIN = "https://www.googletagmanager.com";
 
-/** 計測の送り先。ワイルドカードは地域別のホスト（`region1.google-analytics.com` 等）に要る。 */
+/**
+ * 計測の送り先。
+ *
+ * @remarks
+ * **ワイルドカードだけを挙げます。** `*.google-analytics.com` は `www.google-analytics.com` も
+ * 含むので、代表的なホストを別に並べても増えるのは行数だけです。地域別のホスト
+ * （`region1.google-analytics.com` 等）へ振り分けられるため、いずれにせよワイルドカードが要ります。
+ */
 const TAG_MANAGER_COLLECT_ORIGINS = [
-  "https://www.google-analytics.com",
   "https://*.google-analytics.com",
   "https://*.analytics.google.com",
 ] as const;
