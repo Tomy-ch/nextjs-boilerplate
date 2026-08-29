@@ -61,7 +61,7 @@ Accepted (一部 exclusion)
 
 ### 3. プロダクト分析 seam(#61)= exclusion + 採用時の拡張点
 
-- **SaaS 非同梱**(0081 / 0131 と一致)。やらない宣言で終えるのではなく、採用時に置くもの —— ① analytics **発火 IF** + ② ローカル **no-op sink** + ③ 明示拡張点 —— の座標を先に確定する。**ただし v1 では実使用面が無いためコードとしては置かない**(空の IF を置かない。§補足)。
+- **タグマネージャを同梱する**([0131](0131-cookie-consent.md) §2)。ゲートの裏に実使用面が在るため、① analytics **発火 IF** + ② ローカル **no-op sink** + ③ 明示拡張点 を**コードとして置く**。容器 ID を宣言しない配備では sink が no-op のまま働き、画面は成立する。
 - 物理配置 = `adapters/client` の **source adapter**。これは [0031](0031-policy-state-supply.md) の分解②「セマンティクス + no-op 既定」に **#61 analytics no-op sink** として既に位置づけられている家に一致する。
 - **発火はコンポーネント / feature への直書きを禁止** し、必ず発火 IF を通す([0031](0031-policy-state-supply.md) 禁止事項「consent / flag の値取得を各 feature / component に直書きすること」と同型)。
 - **consent gating**: プロダクト分析は 0131 の consent 対象(ユーザ行動トラッキング)そのものであるため、発火 IF は [0031](0031-policy-state-supply.md) の **純関数 gate 述語**(既定 = 「未同意で全 gate」)を参照してから sink へ渡す。gate の具体粒度・consent ソースは用途依存で fork 先 / 実装 PR(0031 と一致)。
@@ -82,8 +82,8 @@ Accepted (一部 exclusion)
 
 ## 禁止事項
 
-- ❌ ブラウザから直接 SaaS へ RUM / エラー / 分析を送ること(BFF 中継 seam。[0081](0081-observability-logging.md))
-- ❌ 観測性 / 分析 SaaS SDK を boilerplate 本体に同梱すること(fork 先判断。[0081](0081-observability-logging.md) / [0131](0131-cookie-consent.md))
+- ❌ ブラウザから直接 SaaS へ RUM / エラーを送ること(BFF 中継 seam。[0081](0081-observability-logging.md))。**唯一の例外が同意ゲートの裏のタグマネージャ**で、これは中継へ通すことが原理的にできないため、[0131](0131-cookie-consent.md) §2 が帰結ごと引き受ける。**例外はその経路に閉じる** —— §1 の RUM と §2 の client エラーは中継を通したままにする
+- ❌ 観測性 SaaS SDK を boilerplate 本体に同梱すること([0081](0081-observability-logging.md) の OTLP 中立に反する)。**プロダクト分析のタグマネージャは [0131](0131-cookie-consent.md) §2 が同梱を決めており、この禁止の対象外**
 - ❌ analytics 発火を feature / component に直書きすること(発火 IF を通す。[0031](0031-policy-state-supply.md))
 - ❌ プロダクト分析を consent gate 無しで発火させること(0031 gate 述語必須。[0131](0131-cookie-consent.md))
 - ❌ client エラー / RUM ペイロードに PII / token を redact せず載せること([0080](0080-error-handling.md) / [0081](0081-observability-logging.md) masking)
