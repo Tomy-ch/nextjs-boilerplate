@@ -18,9 +18,9 @@
 ## このスキルを使わないとき
 
 - **既存 feature の変更** —— 直接編集する。このスキルは何も無いところから始まる前提で書かれている。
-- **カーネル側の部品**（`components` / `adapters` / `model` / `stores` / `capabilities`）——
-  `pnpm gen <kind> <name>` を直接叩く。`docs/playbook.md` はカーネルを story 先行の順序から除外して
-  いる。見た目が先に決まらないためである。
+- **`src/components/**` / `src/adapters/**` / `src/model/**` / `src/stores/**` / `src/capabilities/**`
+  配下への追加** —— これらはカーネルなので `pnpm gen <kind> <name>` を直接叩き、story 先行の順序は
+  踏まない。あの順序は画面の見た目を確定させる場面にしか要らない。
 - **既にあるコードへのテスト作成** —— それは `scaffold-test` の仕事である。
 - **レビュー** —— `impl-review` / `test-review` / `comment-sweep` は `AGENTS.md` の Review Phase
   Protocol における peers である。このスキルは判断を user へ渡すだけで、**それらを呼ばない**。呼ぶ
@@ -75,6 +75,11 @@
 スライスに `pnpm gen feature <name>` を、設計が要求する共有部品に `pnpm gen component <name>` を回す。
 配置・命名・境界は生成器に委ね、**手で置かない**。生成器が取る入力以外を渡さない（`architecture.ts`
 ＋層 README が唯一の入力であり、`docs/spec/**` は**生成入力ではない**）。
+
+出るのは `README.md` / `<name>.tsx` / `<name>.test.tsx` のフラットな 3 ファイルで、`list/` と
+`detail/` への**分割はしない**。これは意図されたもので、ADR 0027 が「2 つ目の画面が来るまで画面軸を
+畳んでおく」と定めているためである。分割は Step 5 の仕事であり、ここではない。生成器が作らなかった
+ディレクトリを先回りして作らない。
 
 そのうえで、README の状態表が宣言する 4 状態 —— loading / empty / error / success —— すべての story
 を書く。取得を持たない形へ view を切ると、全状態が story から出せる。
