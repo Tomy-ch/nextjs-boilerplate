@@ -1,6 +1,8 @@
 "use client";
 
-import { GoogleTagManager } from "@next/third-parties/google";
+import { GoogleTagManager, sendGTMEvent } from "@next/third-parties/google";
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 import { GTM_CONTAINER_ID } from "@/config/analytics/analytics.client";
 import { MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
@@ -9,8 +11,8 @@ import { MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
  * 前捌きが配った計測 id。まだ配られていなければ `undefined`。
  *
  * @remarks
- * **同意した直後の 1 回は配られていません。** 発行するのは前捌きで、同意を書いた後の最初の要求から
- * 載ります（`docs/spec/route/layout.function.md`）。その 1 回だけ id の無い計測になります。
+ * **同意した直後はまだ配られていません。** 発行するのは前捌きで、同意を書いた後の最初の要求から
+ * 載ります（`docs/spec/route/layout.function.md`）。
  *
  * cookie の読み出しがここと `stores/consent-store` の 2 か所にあるのは、依存の許可がそれぞれ別だから
  * です —— `stores` は `capabilities` を引けないため、共通の読み手へ寄せられません。
@@ -20,6 +22,38 @@ function readMeasurementId(): string | undefined {
     .split("; ")
     .find((entry) => entry.startsWith(`${MEASUREMENT_ID_COOKIE_NAME}=`))
     ?.slice(MEASUREMENT_ID_COOKIE_NAME.length + 1);
+}
+
+/**
+ * この読み込みのあいだに、すでに渡した計測 id。
+ *
+ * @remarks
+ * 遷移のたびに {@link MeasurementId} を作り直すため、部品の中に控えると毎回消えます。同じ id を
+ * 何度も渡すと、GTM 側では別々の出来事として並びます。
+ */
+let deliveredId: string | undefined;
+
+/**
+ * 配られている計測 id を GTM へ渡す。描くものは持たない。
+ *
+ * @remarks
+ * **遷移のたびに作り直される前提です**（呼び出し元が `key` に経路を渡す）。mount の 1 回だけでは
+ * 届きません —— 同意を押した時点では前捌きがまだ id を配っておらず、器は遷移で作り直されないため、
+ * その後に配られた id を拾う機会がここにしか無いからです。
+ */
+function MeasurementId(): null {
+  useEffect(() => {
+    const measurementId = readMeasurementId();
+
+    if (measurementId === undefined || measurementId === deliveredId) {
+      return;
+    }
+
+    deliveredId = measurementId;
+    sendGTMEvent({ [MEASUREMENT_ID_COOKIE_NAME]: measurementId });
+  }, []);
+
+  return null;
 }
 
 /**
@@ -46,18 +80,16 @@ function readMeasurementId(): string | undefined {
  * id を載せると、区別しているはずの 2 つが同じ主体で繋がります。
  */
 export function Analytics() {
+  const pathname = usePathname();
+
   if (GTM_CONTAINER_ID === "") {
     return null;
   }
 
-  const measurementId = readMeasurementId();
-
   return (
-    <GoogleTagManager
-      dataLayer={
-        measurementId === undefined ? undefined : { [MEASUREMENT_ID_COOKIE_NAME]: measurementId }
-      }
-      gtmId={GTM_CONTAINER_ID}
-    />
+    <>
+      <GoogleTagManager gtmId={GTM_CONTAINER_ID} />
+      <MeasurementId key={pathname} />
+    </>
   );
 }
