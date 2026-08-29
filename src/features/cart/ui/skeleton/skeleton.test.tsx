@@ -13,6 +13,12 @@ describe("CartSkeleton", () => {
     expect(screen.getAllByRole("listitem", { hidden: true })).toHaveLength(3);
   });
 
+  it("1 画面ぶんの高さを確保し、中身が届いても footer を動かさない", () => {
+    const { container } = render(<CartSkeleton />);
+
+    expect(container.firstChild).toHaveClass("min-h-svh");
+  });
+
   it("読み上げの対象にしない", () => {
     const { container } = render(<CartSkeleton />);
 

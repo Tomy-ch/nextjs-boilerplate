@@ -26,11 +26,17 @@ export function listSitemapLocations(xml: string): string[] {
   return [...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map((match) => unescapeXml(match[1]));
 }
 
-/** タグの属性を、名前を小文字にして並べる。 */
+/**
+ * タグの属性を、名前を小文字にして並べる。
+ *
+ * @remarks
+ * `=` の前後に空白を許しません。読む相手は React が直列化した HTML で、属性は常に `name="value"` の
+ * 綴りで出ます。許すと照合が後戻りを持ち、長いタグで所要時間が伸びます。
+ */
 function attributesOf(tag: string): Map<string, string> {
   const attributes = new Map<string, string>();
 
-  for (const match of tag.matchAll(/([a-zA-Z:-]+)\s*=\s*"([^"]*)"/g)) {
+  for (const match of tag.matchAll(/([a-zA-Z:-]+)="([^"]*)"/g)) {
     attributes.set(match[1].toLowerCase(), match[2]);
   }
 
@@ -59,14 +65,24 @@ export function findCanonicalHref(html: string): string | null {
 }
 
 /**
+ * 文書が名乗る Open Graph の値。無ければ null。
+ *
+ * @param html - 画面の本文
+ * @param property - `og:image` のような property 名
+ */
+export function findOpenGraphContent(html: string, property: string): string | null {
+  const meta = listMetas(html).find((entry) => entry.get("property") === property);
+
+  return meta?.get("content") ?? null;
+}
+
+/**
  * 文書が名乗る OG 画像の URL。無ければ null。
  *
  * @param html - 画面の本文
  */
 export function findOpenGraphImage(html: string): string | null {
-  const image = listMetas(html).find((meta) => meta.get("property") === "og:image");
-
-  return image?.get("content") ?? null;
+  return findOpenGraphContent(html, "og:image");
 }
 
 /** アイコンとして読まれる `rel`。 */

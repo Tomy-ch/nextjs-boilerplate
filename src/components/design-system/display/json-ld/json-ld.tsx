@@ -44,5 +44,5 @@ export function JsonLd({ data }: JsonLdProps) {
  * @param data - 構造化データ
  */
 export function toJsonLdScriptContent(data: Readonly<Record<string, unknown>>): string {
-  return JSON.stringify(data).replaceAll("<", "\\u003c");
+  return JSON.stringify(data).replaceAll("<", String.raw`\u003c`);
 }

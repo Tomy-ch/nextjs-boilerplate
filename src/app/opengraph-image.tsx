@@ -3,7 +3,7 @@ import { ImageResponse } from "next/og";
 import { SITE_NAME } from "./site";
 
 /** 共有先が読む代替文。 */
-export const alt = SITE_NAME;
+export { SITE_NAME as alt } from "./site";
 
 /** OG 画像の推奨サイズ（1.91:1）。 */
 export const size = { width: 1200, height: 630 };

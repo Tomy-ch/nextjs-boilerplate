@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   findCanonicalHref,
+  findOpenGraphContent,
   findOpenGraphImage,
   isNoindex,
   isSameLocation,
@@ -66,6 +67,21 @@ describe("findCanonicalHref", () => {
 
   it("href を持たない canonical は null", () => {
     expect(findCanonicalHref('<link rel="canonical">')).toBeNull();
+  });
+});
+
+describe("findOpenGraphContent", () => {
+  // ----- 正常系 -----
+  it("指定した property の content を返す", () => {
+    const html = '<meta property="og:image:alt" content="Acme"/>';
+
+    expect(findOpenGraphContent(html, "og:image:alt")).toBe("Acme");
+  });
+
+  it("無ければ null", () => {
+    const html = '<meta property="og:title" content="t"/>';
+
+    expect(findOpenGraphContent(html, "og:image:alt")).toBeNull();
   });
 });
 

@@ -7,6 +7,7 @@ import { expect, test } from "@playwright/test";
 
 import {
   findCanonicalHref,
+  findOpenGraphContent,
   findOpenGraphImage,
   isNoindex,
   isSameLocation,
@@ -69,6 +70,7 @@ test("画面が名乗る OG 画像は、実際に絵として返る", async ({ r
   const image = findOpenGraphImage(html);
 
   expect(image).not.toBeNull();
+  expect(findOpenGraphContent(html, "og:image:alt")).not.toBeNull();
   expect((image ?? "").startsWith(`${PUBLIC_ORIGIN}/`)).toBe(true);
 
   const response = await request.get(image ?? "");
