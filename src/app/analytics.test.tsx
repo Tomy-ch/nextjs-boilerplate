@@ -28,6 +28,9 @@ async function loadIsland(containerId: string) {
   return (await import("./analytics")).Analytics;
 }
 
+/** タグマネージャの配信元。 */
+const TAG_MANAGER_HOST = "www.googletagmanager.com";
+
 /**
  * 差し込まれた script のうち、タグマネージャの配信元を指すもの。
  *
@@ -37,9 +40,12 @@ async function loadIsland(containerId: string) {
  * container の子孫には現れません。
  */
 function tagManagerScripts(): Element[] {
-  return [...document.body.querySelectorAll("script")].filter((script) =>
-    (script.getAttribute("src") ?? "").includes("googletagmanager.com"),
-  );
+  return [...document.body.querySelectorAll("script")].filter((script) => {
+    const source = script.getAttribute("src");
+
+    // host を取り出して突き合わせる。部分一致で見ると、この綴りを含むだけの別 host を通す。
+    return source !== null && URL.parse(source, document.baseURI)?.host === TAG_MANAGER_HOST;
+  });
 }
 
 /** GTM へ渡した値の並び。型はライブラリが `Window` へ宣言している。 */
@@ -97,7 +103,7 @@ describe("Analytics", () => {
   });
 
   it("形の合わない値は渡さない。この cookie は httpOnly を付けられず、書ける相手が居る", async () => {
-    document.cookie = `${MEASUREMENT_ID_COOKIE_NAME}=</script><script>x=1</script>; path=/`;
+    document.cookie = `${MEASUREMENT_ID_COOKIE_NAME}=someone-elses-value; path=/`;
     const Analytics = await loadIsland("GTM-ABC1234");
 
     render(<Analytics />);
