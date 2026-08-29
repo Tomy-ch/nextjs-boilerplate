@@ -1,4 +1,5 @@
 import type { AddressInfo } from "node:net";
+import { connect } from "node:net";
 import { HttpResponse, http } from "msw";
 import { afterEach, describe, expect, it } from "vitest";
 // interception はこの setup が立てる。口の側は立てない（`serve.ts` の項）。
@@ -56,7 +57,7 @@ describe("startMockApi", () => {
   });
 
   // ----- 異常系 -----
-  it("取得が答えを返せなければ 502 で返す", async () => {
+  it("ハンドラが落ちた応答も、状態をそのまま流す", async () => {
     mockServer.use(
       http.get("*/probe", () => {
         throw new Error("応答を作れない");
@@ -65,6 +66,27 @@ describe("startMockApi", () => {
 
     const response = await fetch(`${await serve()}/probe`);
 
-    expect(response.status).toBe(502);
+    // 作り替えない。中継が状態を決めると、口の向こうで何が起きたかが読めなくなる。
+    expect(response.status).toBe(500);
+  });
+
+  it("URL として組めない要求行は 502 で返す", async () => {
+    await serve();
+
+    const { port } = server?.address() as AddressInfo;
+
+    // proxy へ出すときの要求行。`req.url` が絶対 URL になり、この口の宛先として組み直せない。
+    const status = await new Promise<string>((resolve, reject) => {
+      const socket = connect(port, "localhost", () => {
+        socket.write(
+          "GET http://elsewhere.invalid/probe HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+        );
+      });
+
+      socket.once("data", (chunk) => resolve(chunk.toString()));
+      socket.once("error", reject);
+    });
+
+    expect(status).toContain("502");
   });
 });
