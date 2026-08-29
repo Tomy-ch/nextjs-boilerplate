@@ -34,14 +34,14 @@ export type ConsentBannerProps = {
  * なります。焦点だけを閉じ込めて見た目の背面を開けておくと、見えている人と読み上げる人で操作
  * できる範囲が食い違います。
  *
- * **2 つの選択肢を同じ重さで並べます。** 拒否だけを目立たない見た目にすると、同意が自由に
- * 与えられたものではなくなります。
+ * **2 つの選択肢を同じ重さで並べます。** どちらも副次操作の見た目を採り、主要操作の強調は
+ * どちらにも与えません。片方を目立たせると、同意が自由に与えられたものではなくなります。
  *
  * @param props.open - 尋ねている最中か
  * @param props.onDecide - 選ばれた意思を受け取る callback
  * @param props.policyHref - 判断の材料を示す文書の行き先
  *
- * @see Storybook `Feedback/ConsentBanner`
+ * @see Storybook `Overlay/ConsentBanner`
  */
 export function ConsentBanner({ open, onDecide, policyHref }: ConsentBannerProps) {
   return (
@@ -83,7 +83,10 @@ export function ConsentBanner({ open, onDecide, policyHref }: ConsentBannerProps
             >
               {CONSENT_BANNER_COPY.reject}
             </Button>
-            <Button onClick={() => onDecide(CONSENT_CHOICE.granted)}>
+            <Button
+              onClick={() => onDecide(CONSENT_CHOICE.granted)}
+              variant={BUTTON_VARIANT.OUTLINE}
+            >
               {CONSENT_BANNER_COPY.accept}
             </Button>
           </div>

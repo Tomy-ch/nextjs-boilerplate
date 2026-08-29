@@ -28,16 +28,13 @@ describe("ConsentBanner", () => {
     expect(onDecide).toHaveBeenCalledWith(CONSENT_CHOICE.denied);
   });
 
-  it("2 つの選択肢を同じ大きさで並べる。拒否だけを小さくしない", () => {
+  it("2 つの選択肢を同じ重さで並べる。片方だけを目立たせない", () => {
     render(<ConsentBanner onDecide={vi.fn()} open />);
 
     const accept = screen.getByRole("button", { name: CONSENT_BANNER_COPY.accept });
     const reject = screen.getByRole("button", { name: CONSENT_BANNER_COPY.reject });
-    const sizeOf = (button: HTMLElement) =>
-      button.className.split(" ").filter((name) => /^h-\d/.test(name));
 
-    expect(sizeOf(reject)).toEqual(sizeOf(accept));
-    expect(sizeOf(accept)).not.toHaveLength(0);
+    expect(reject.className).toBe(accept.className);
   });
 
   it("尋ねていない間は面を描かない", () => {
@@ -84,16 +81,18 @@ describe("ConsentBanner", () => {
   it("閉じる操作を置かない。選ぶこと以外に面から出る手段が無い", () => {
     render(<ConsentBanner onDecide={vi.fn()} open policyHref="/privacy" />);
 
-    expect(screen.getAllByRole("button")).toHaveLength(2);
+    // 個数では見ない。拒否を消して × を足しても数は 2 のまま保たれる。
+    expect(screen.getAllByRole("button").map((button) => button.textContent?.trim())).toEqual([
+      CONSENT_BANNER_COPY.reject,
+      CONSENT_BANNER_COPY.accept,
+    ]);
   });
 
   it("読み上げのための名前と説明を持つ", () => {
     render(<ConsentBanner onDecide={vi.fn()} open />);
 
     expect(screen.getByRole("dialog", { name: CONSENT_BANNER_COPY.title })).toBeVisible();
-    expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
-      CONSENT_BANNER_COPY.description,
-    );
+    expect(screen.getByRole("dialog")).toHaveAccessibleDescription(CONSENT_BANNER_COPY.description);
   });
 
   it("a11y 違反を持たない", async () => {
