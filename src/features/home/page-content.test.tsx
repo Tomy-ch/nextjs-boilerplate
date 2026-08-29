@@ -93,13 +93,22 @@ describe("HomePageContent", () => {
     expect(screen.getByText("ワイヤレスイヤホン")).toBeVisible();
   });
 
-  it("1 系統が落ちても残りを描く", async () => {
+  it("ランキングが落ちても残りを描く", async () => {
     getProductRanking.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 
     render(await HomePageContent());
 
     expect(screen.getByText("売れ筋ランキングを表示できませんでした")).toBeVisible();
     expect(screen.getByText("ワイヤレスイヤホン")).toBeVisible();
+  });
+
+  it("新着が落ちても残りを描く", async () => {
+    getProductListPage.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
+
+    render(await HomePageContent());
+
+    expect(screen.getByText("新着商品を表示できませんでした")).toBeVisible();
+    expect(screen.getByText("スマートウォッチ")).toBeVisible();
   });
 
   it("落ちた系統の文言を分類から引く", async () => {
@@ -128,7 +137,8 @@ describe("HomePageContent", () => {
 
     render(await HomePageContent());
 
-    expect(screen.getAllByRole("alert")).toHaveLength(2);
+    expect(screen.getByText("新着商品を表示できませんでした")).toBeVisible();
+    expect(screen.getByText("売れ筋ランキングを表示できませんでした")).toBeVisible();
   });
 
   it("a11y 違反を持たない", async () => {

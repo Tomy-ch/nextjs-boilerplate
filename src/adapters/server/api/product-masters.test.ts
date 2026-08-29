@@ -116,6 +116,16 @@ describe("getProductStatuses", () => {
     expect(cacheTag).toHaveBeenCalledWith(PRODUCT_MASTERS_TAG);
   });
 
+  it("取得そのものには寿命を持たせない", async () => {
+    serveJson(STATUSES_URL, wireStatuses);
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+
+    await getProductStatuses();
+
+    expect(fetchImpl.mock.calls[0]?.[1]).not.toMatchObject({ cache: "force-cache" });
+    expect(fetchImpl.mock.calls[0]?.[1]).not.toHaveProperty("next.tags");
+  });
+
   it("マスタが空でも空の一覧を返す", async () => {
     serveJson(STATUSES_URL, []);
 
