@@ -2,6 +2,8 @@
 imports-allowed: [model, errors, logging, config, observability]
 forbidden: [components, capabilities, stores, business-logic]
 test-requirement: integration
+coverage-exclusions:
+  - "src/adapters/server/taint/experimental-react.fixture.ts"
 ---
 
 # adapters

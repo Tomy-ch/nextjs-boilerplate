@@ -63,20 +63,6 @@ describe("verifySession", () => {
     expect(await verifySession()).toEqual(session);
   });
 
-  // ----- 異常系 -----
-  it("cookie が無ければ null にする", async () => {
-    expect(await verifySession()).toBeNull();
-  });
-
-  it("復元できなければ null にする", async () => {
-    cookieStore.get.mockReturnValue({ value: "broken" });
-
-    expect(await verifySession()).toBeNull();
-  });
-});
-
-describe("readSessionRecord", () => {
-  // ----- 正常系 -----
   it("復元した記録を、client へ渡せないものとして登録する", async () => {
     cookieStore.get.mockReturnValue({ value: "sealed" });
     resolver.restore.mockResolvedValue(record);
@@ -87,7 +73,17 @@ describe("readSessionRecord", () => {
   });
 
   // ----- 異常系 -----
-  it("復元できなければ登録しない", async () => {
+  it("cookie が無ければ null にする", async () => {
+    expect(await verifySession()).toBeNull();
+  });
+
+  it("復元できなければ null にする", async () => {
+    cookieStore.get.mockReturnValue({ value: "broken" });
+
+    expect(await verifySession()).toBeNull();
+  });
+
+  it("復元できなければ、client へ渡せないものとして登録しない", async () => {
     cookieStore.get.mockReturnValue({ value: "broken" });
 
     await verifySession();

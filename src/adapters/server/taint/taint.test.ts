@@ -72,12 +72,16 @@ beforeAll(async () => {
   }
 
   originalResolve = resolve as (...args: unknown[]) => string;
-  Reflect.set(nodeModule.default, RESOLVE_FILENAME, function patched(this: unknown, ...args: unknown[]) {
-    const [request] = args;
-    const mapped = typeof request === "string" ? RESOLUTIONS.get(request) : undefined;
+  Reflect.set(
+    nodeModule.default,
+    RESOLVE_FILENAME,
+    function patched(this: unknown, ...args: unknown[]) {
+      const [request] = args;
+      const mapped = typeof request === "string" ? RESOLUTIONS.get(request) : undefined;
 
-    return mapped ?? originalResolve.apply(this, args);
-  });
+      return mapped ?? originalResolve.apply(this, args);
+    },
+  );
 
   serverDom = localRequire(paths.serverDom) as ReactServerDom;
   react = localRequire(paths.react) as ReactServer;
@@ -89,11 +93,14 @@ afterAll(async () => {
   Reflect.set(nodeModule.default, RESOLVE_FILENAME, originalResolve);
 });
 
+/** 直列化の相手にする Client Component の実体。呼ばれないので中身を持たない。 */
+const clientComponent = () => null;
+
 /** Client Component に `props` を渡して直列化し、直列化器が報告した失敗を集める。 */
 async function renderToClient(props: Record<string, unknown>): Promise<string[]> {
   const errors: string[] = [];
   const client = serverDom.registerClientReference(
-    function UserCard() {},
+    clientComponent,
     CLIENT_MODULE_ID,
     CLIENT_EXPORT_NAME,
   );
