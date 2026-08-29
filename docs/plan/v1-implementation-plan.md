@@ -225,8 +225,8 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 [0131](../adr/0131-cookie-consent.md) の exclusion を**採用へ反転**する。
 
 - **理由**: [0031](../adr/0031-policy-state-supply.md)(policy state supply)が consent 状態供給を既に規定しており**設置面が実在する**(§3.4)。加えて同意はサードパーティスクリプトの**読み込みをゲートする**機構であり、layout / CSP `script-src` / `next/script` strategy に同時に食い込むため、後付けコストが高い
-- **範囲は「軽量 consent 機構 + ゲート」まで**。同意状態の保持([0031](../adr/0031-policy-state-supply.md) 経由)/ 同意バナー / スクリプト読み込みゲート / 計測用 cookie_id の発行までを持つ
-- **GTM / PostHog 本体は v1 では入れない**(master-plan の「Medium = 統合するが既定は控えめ」)。CMP・IAB TCF 等の本格的な同意管理も対象外
+- **範囲は「軽量 consent 機構 + ゲート + ゲートの裏のタグマネージャ」**。同意状態の保持([0031](../adr/0031-policy-state-supply.md) 経由)/ 同意バナー / スクリプト読み込みゲート / 計測用 cookie_id の発行に加え、ゲートの裏へ繋いだ状態までを持つ
+- **PostHog 本体は v1 では入れない**(master-plan の「Medium = 統合するが既定は控えめ」)。CMP・IAB TCF 等の本格的な同意管理も対象外。**GTM 本体は同意ゲートの裏へ同梱する** —— 決定と受け入れる帰結は [0131](../adr/0131-cookie-consent.md) §2 が持つ
 
 ### 3.8 TipTap を v1 スコープへ繰り上げる
 
@@ -1513,12 +1513,13 @@ sources:
   - `src/model/consent.ts` — 同意状態の型(**コア残留**)
   - `src/stores/consent-store.ts` — client 側の同意状態(**コア残留**)
   - `src/proxy.ts` / `src/app/layout.tsx` — 同意 cookie の読み出しと初期状態の供給([0031](../adr/0031-policy-state-supply.md))
-  - `src/components/consent-banner/` — 同意バナー(**コア残留**)
-  - `src/components/analytics-gate.tsx` — **同意が無いとサードパーティスクリプトを読み込まないゲート**
+  - `src/components/shell/consent-banner/` — 同意バナー(**コア残留**)
+  - `src/app/consent.tsx` — **同意が無いとサードパーティスクリプトを読み込まないゲート**
+  - `src/app/analytics.tsx` / `src/config/analytics/` — ゲートの裏へ置くタグマネージャと容器 ID
 - **設計**: 計測用 cookie_id はここで発行する。cookie の命名・属性(SameSite / Secure / HttpOnly / Max-Age)は `rules.md` #44、スクリプト読み込みは `next/script` の strategy(`rules.md` #50)に従う
-- **スコープ外**: **GTM / PostHog 本体は入れない**。CMP・IAB TCF 等の本格的な同意管理も対象外。ゲートの先に何も繋がっていない状態で v1 を出す
+- **スコープ外**: **PostHog 本体は入れない**。CMP・IAB TCF 等の本格的な同意管理も対象外
 - **注意**: CSP(P6-2)の `script-src` と連動する。同意前はゲート対象のスクリプトが DOM に存在しないことをテストで担保する
-- **完了条件**: 同意前後でゲート対象スクリプトの読み込み有無が切り替わる。同意状態が cookie で永続化され RSC 側から読める。バナーが a11y 要件(フォーカストラップ / キーボード操作)を満たす
+- **完了条件**: 同意前後でゲート対象スクリプトの読み込み有無が切り替わる。同意状態が cookie で永続化され、前捌きとブラウザの双方から同じ綴りで読める。バナーが a11y 要件(フォーカストラップ / キーボード操作)を満たす
 - **依存**: P6-2
 
 ### P6-8: プラットフォーム機能の有効化判断

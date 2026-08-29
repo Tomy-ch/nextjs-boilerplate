@@ -81,7 +81,7 @@
 - **v1 / v2 とも採用しない 3 件**: キーボードショートカット / Prettier / Renovate。撤回条件は [BACKLOG](../adr/BACKLOG.md#撤回条件-決定を見直すトリガ) が持つ
 - **印刷 CSS は棄却しない**: [0051](../adr/0051-styling-system.md) §4 が print CSS をフロント領域の拡張点として採り、最小の実装を `foundation/print` として同梱する。棄却は PDF 生成(backend 責務)の側だけである
 - **ADR 化済みの exclusion**(参照のみ): [0121](../adr/0121-i18n-strategy.md)(i18n 本体)/ [0130](../adr/0130-pwa-strategy.md)(PWA 本体)等
-- **v1 では入れない**: GTM / PostHog 本体(Cookie 同意は機構とゲートのみ採用し、その先には何も繋がない)。CMP・IAB TCF 等の本格的な同意管理も対象外
+- **v1 では入れない**: PostHog 本体。CMP・IAB TCF 等の本格的な同意管理も対象外。GTM 本体は同意ゲートの裏へ同梱する側へ反転済みで、決定は [0131](../adr/0131-cookie-consent.md) §2 が持つ
 - [0011](../adr/0011-no-docker.md) の性格転換(「用途未定の表示層」→「オピニオン付き全部入り starter」)は **v2 時点**の話。v1 の 0011 は「アプリケーション基盤」で現状維持とする
 
 ---
