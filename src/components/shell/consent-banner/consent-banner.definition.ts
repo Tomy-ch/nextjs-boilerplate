@@ -8,6 +8,10 @@
  *
  * `description` は「必要なもの」と「任意のもの」の区別が読み取れる形にします。区別が読めない
  * 文面で得た同意は、区分ごとの意思として扱えません。
+ *
+ * **書き換えたら `model/consent` の `CONSENT_COPY_VERSION` を上げてください。** 版は意思と一緒に
+ * cookie へ載り、いまの版と違う同意は未選択へ倒れます。上げないと、**新しい文面を見ていない利用者の
+ * 同意が効いたまま**になります。
  */
 export const CONSENT_BANNER_COPY: Readonly<{
   title: string;

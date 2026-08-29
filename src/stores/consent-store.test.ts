@@ -3,7 +3,12 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CONSENT_CHOICE, CONSENT_COOKIE_NAME, CONSENT_MAX_AGE_SECONDS } from "@/model/consent";
+import {
+  CONSENT_CHOICE,
+  CONSENT_COOKIE_NAME,
+  CONSENT_MAX_AGE_SECONDS,
+  toConsentCookieValue,
+} from "@/model/consent";
 
 /**
  * cookie を置いた状態で store を読み込み直す。
@@ -38,7 +43,7 @@ describe("useConsentState", () => {
   });
 
   it("cookie に載った意思をそのまま配る", async () => {
-    const { useConsentState } = await loadStore(CONSENT_CHOICE.granted);
+    const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
 
     const { result } = renderHook(() => useConsentState());
 

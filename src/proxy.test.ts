@@ -1,7 +1,12 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PROTECTED_PREFIXES } from "@/model/authz";
-import { CONSENT_CHOICE, CONSENT_COOKIE_NAME, MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
+import {
+  CONSENT_CHOICE,
+  CONSENT_COOKIE_NAME,
+  MEASUREMENT_ID_COOKIE_NAME,
+  toConsentCookieValue,
+} from "@/model/consent";
 import { SESSION_ROLE } from "@/model/session";
 import { proxy } from "./proxy";
 
@@ -294,7 +299,9 @@ describe("proxy", () => {
   });
 
   it("同意が得られていれば計測 id を発行する", async () => {
-    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted }));
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.granted) }),
+    );
 
     expect(issuedMeasurementId(response)).toMatch(/^[0-9a-f-]{36}$/);
   });
@@ -302,7 +309,7 @@ describe("proxy", () => {
   it("すでに配ってある計測 id は作り直さない", async () => {
     const response = await proxy(
       withCookies({
-        [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted,
+        [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.granted),
         [MEASUREMENT_ID_COOKIE_NAME]: "issued-earlier",
       }),
     );
@@ -311,7 +318,9 @@ describe("proxy", () => {
   });
 
   it("計測 id を配る応答は、資格情報が無くても共有キャッシュへ載せない", async () => {
-    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted }));
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.granted) }),
+    );
 
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
@@ -319,7 +328,9 @@ describe("proxy", () => {
   it("止めているあいだも、同意が得られていれば計測 id を配る", async () => {
     maintenance.isStopped = true;
 
-    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted }));
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.granted) }),
+    );
 
     expect(issuedMeasurementId(response)).toMatch(/^[0-9a-f-]{36}$/);
   });
@@ -335,7 +346,9 @@ describe("proxy", () => {
   });
 
   it("https でなければ secure を付けない。付けると手元で保存されない", async () => {
-    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted }));
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.granted) }),
+    );
 
     expect(setCookieFor(response, MEASUREMENT_ID_COOKIE_NAME)).not.toContain("Secure");
   });
@@ -424,7 +437,9 @@ describe("proxy", () => {
   });
 
   it("拒否されている間も計測 id を発行しない", async () => {
-    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.denied }));
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.denied) }),
+    );
 
     expect(issuedMeasurementId(response)).toBeUndefined();
   });
@@ -442,7 +457,9 @@ describe("proxy", () => {
   });
 
   it("cookie を書き換えない応答は共有キャッシュへ載せてよい", async () => {
-    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.denied }));
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.denied) }),
+    );
 
     expect(response.headers.get("cache-control")).toBeNull();
   });

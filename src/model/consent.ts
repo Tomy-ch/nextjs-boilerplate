@@ -16,13 +16,7 @@ export const CONSENT_CATEGORY = {
 /** {@link CONSENT_CATEGORY} のいずれか。 */
 export type ConsentCategory = (typeof CONSENT_CATEGORY)[keyof typeof CONSENT_CATEGORY];
 
-/**
- * 任意の用途について利用者が示した意思。
- *
- * @remarks
- * **この値がそのまま cookie に載ります。** 保存用の綴りを別に持つと、読む側と書く側で対応表が
- * 二重になり、片方だけ足した区分が黙って未同意へ倒れます。
- */
+/** 任意の用途について利用者が示した意思。 */
 export const CONSENT_CHOICE = {
   /** 任意の用途を動かしてよい。 */
   granted: "granted",
@@ -63,6 +57,20 @@ export const UNREAD_CONSENT: ConsentState = { status: "unread" };
 /** 同意の意思を載せる cookie の名前。 */
 export const CONSENT_COOKIE_NAME = "consent_choice";
 
+/**
+ * 同意を尋ねた文面の版。
+ *
+ * @remarks
+ * **意思と一緒に cookie へ載せ、いまの版と違えば未選択へ倒します。** 期限だけでは、文面を書き
+ * 換えても古い文面に同意した意思がそのまま効き続けます —— 何に同意したかが変わったのに、同意
+ * だけが残ります。版を添えると、書き換えた瞬間に全員へ尋ね直せます。
+ *
+ * **文面を書き換えたらこの値を上げます。** 上げ忘れると、新しい文面を見ていない利用者の同意が
+ * 効いたままになります。文面の所有者は `components/shell/consent-banner` の
+ * `CONSENT_BANNER_COPY` で、そちらの doc が上げる義務を持ちます。
+ */
+export const CONSENT_COPY_VERSION = 1;
+
 /** 同意に紐づけて発行する計測 id を載せる cookie の名前。 */
 export const MEASUREMENT_ID_COOKIE_NAME = "analytics_id";
 
@@ -87,17 +95,39 @@ export const CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 180;
  * 増やした版が残した綴りは、どれも意思として読めません。読めない値を同意として扱わないことが、
  * このカーネルが負う唯一の安全側です。
  *
+ * **尋ねた文面の版が今と違えば、意思として読みません。** 何に同意したかが変わっている以上、前の
+ * 意思はその文面に対するものでしかありません（{@link CONSENT_COPY_VERSION}）。
+ *
  * @param raw - cookie の値。cookie そのものが無ければ `undefined`
  * @returns 読み取れた同意状態。`"unread"` は返さない —— 呼んだ時点で読んでいる
  */
 export function parseConsentState(raw: string | undefined): ConsentState {
-  for (const choice of Object.values(CONSENT_CHOICE)) {
-    if (raw === choice) {
-      return { status: "decided", optional: choice };
+  const [choice, version] = (raw ?? "").split(".");
+
+  if (version !== String(CONSENT_COPY_VERSION)) {
+    return { status: "unset" };
+  }
+
+  for (const known of Object.values(CONSENT_CHOICE)) {
+    if (choice === known) {
+      return { status: "decided", optional: known };
     }
   }
 
   return { status: "unset" };
+}
+
+/**
+ * 選ばれた意思を cookie へ載せる綴りへ直す。
+ *
+ * @remarks
+ * 尋ねた文面の版を添えます。読む側（{@link parseConsentState}）が版で弾けるのは、書く側がここを
+ * 通っているからです。
+ *
+ * @param choice - 利用者が選んだ意思
+ */
+export function toConsentCookieValue(choice: ConsentChoice): string {
+  return `${choice}.${CONSENT_COPY_VERSION}`;
 }
 
 /**
