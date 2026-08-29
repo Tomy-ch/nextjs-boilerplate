@@ -24,6 +24,15 @@ export const metadata: Metadata = {
 };
 
 /**
+ * 待たずに配れる殻を持たない画面として宣言する。
+ *
+ * @remarks
+ * 開発でしか build に含まれない面です（`next.config.ts` の `pageExtensions`）。実環境の配信に
+ * 現れないので、殻と穴へ割く手間に見合いません。
+ */
+export const instant = false;
+
+/**
  * 開発用 session の発行。
  *
  * @remarks

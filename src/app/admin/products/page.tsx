@@ -17,19 +17,32 @@ export const metadata: Metadata = {
 };
 
 /**
- * 管理側の商品一覧管理。
+ * 一覧の中身。
  *
  * @remarks
- * 検索エンジンに拾わせません。管理の面は認可の内側にあり、索引に載っても辿り着けないうえ、
- * 存在だけが外へ出ます（[0044](../../../../docs/adr/0044-seo-metadata-strategy.md)）。
+ * **`searchParams` を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../docs/adr/0041-cache-components-decision.md)）。器は promise のまま渡し、
+ * 穴の内側で解きます。
  */
-export default async function AdminProductsPage({
+async function AdminProductListContent({
   searchParams,
 }: {
   searchParams: Promise<RawSearchParams>;
 }) {
-  const params = await searchParams;
+  return <AdminProductListPageContent searchParams={await searchParams} />;
+}
 
+/**
+ * 管理側の商品一覧管理。
+ *
+ * @remarks
+ * 索引に載せない理由は `docs/spec/route/admin/layout.function.md`「索引に載せない」。
+ */
+export default function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<RawSearchParams>;
+}) {
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -41,7 +54,7 @@ export default async function AdminProductsPage({
         </div>
       </PageHeader>
       <Suspense fallback={<AdminProductListSkeleton />}>
-        <AdminProductListPageContent searchParams={params} />
+        <AdminProductListContent searchParams={searchParams} />
       </Suspense>
     </ContentContainer>
   );

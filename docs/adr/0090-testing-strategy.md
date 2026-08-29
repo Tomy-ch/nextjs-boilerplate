@@ -92,7 +92,7 @@ describe("resolveExchangeRate", () => {
 **カーネルの外側にある起動 / 境界エントリ**(`src/proxy.ts` / `src/instrumentation.ts`)は README を持たず、どの `test-requirement` の walk にも乗らない([0021](0021-frontend-responsibility.md) の起動 / ビルド境界)。層を持たないディレクトリへ README を置いて宣言すると、そこに層があることになってしまうためである。**関数本体は `unit`** とする —— 関数として呼べば分岐は行使できるためである。宣言の置き場は element と同じで、`architecture.ts` の `ENTRY_POINTS` が持ち、`resolveTestRequirement` はそこを引く。**本 ADR も `scripts/` も写しを持たない** —— 宣言が 2 か所にあると、片方だけ動いた状態を誰も検出できない。ただし `proxy.ts` の `export const config` の `matcher` は、関数を直接呼ぶ経路を通らないので `unit` では原理的に検査できない。**選別の漏れは `e2e` が負う**([0043](0043-middleware-policy.md))。
 
 - **`unit` の対象が React の hook API を使う場合は RTL の `render` / `act` を用いてよい**。hook は React のツリーを介してしか呼べず、純粋ロジックと同じ手段では検証できない(`capabilities` カーネル)
-- **integration = HTTP 境界のみ**を対象とし、**内側は mock**、**型 / 形状をアサート**する(値の正しさは unit で担保。go 規約の翻案)
+- **integration = HTTP 境界のみ**を対象とし、**内側は mock**、**型 / 形状をアサート**する(値の正しさは unit で担保。go 規約の翻案)。**ただし境界自身が判定を持つ Route Handler では、その判定結果(status / body / header)が対象の契約であり、integration がその値を直接アサートする** —— その判定を担保する unit 層は他に無く、形だけを見ると 400 と 401 の分岐が区別できない
 - **Server Components のテスト方針 / RSC・route handler・E2E の線引き**は、Next.js の現実に合わせて**実装時に確定**する(本 ADR で先取りしない)
 
 ### カバレッジゲート

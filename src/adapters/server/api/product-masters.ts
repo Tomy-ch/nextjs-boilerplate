@@ -1,17 +1,16 @@
 import "server-only";
 
+import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import type { ProductCategory, ProductStatus } from "@/model/product/product";
 
 import {
   GetProductCategoriesResponse,
   GetProductStatusesResponse,
 } from "../../gen/api/endpoints.zod";
-import { createHttpClient, type PublicHttpClient } from "../http/request";
+import { getPublicClient } from "./public-client";
 
 type WireCategories = z.infer<typeof GetProductCategoriesResponse>;
 type WireStatuses = z.infer<typeof GetProductStatusesResponse>;
@@ -24,18 +23,6 @@ type WireStatuses = z.infer<typeof GetProductStatusesResponse>;
  * 変わっていないものを捨てているだけです。
  */
 export const PRODUCT_MASTERS_TAG = "product-masters";
-
-let client: PublicHttpClient | undefined;
-
-function getClient(): PublicHttpClient {
-  client ??= createHttpClient({
-    scope: "public",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-  });
-
-  return client;
-}
 
 /**
  * マスタの応答を表示用の分類へ写す。
@@ -54,15 +41,28 @@ function toProductCategories(wire: WireCategories): readonly ProductCategory[] {
  * 商品カテゴリのマスタを取得する。
  *
  * @remarks
- * キャッシュを明示しているのは、分類が画面を開くたびに変わる種類のデータではないためです
- * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。更新はタグの無効化で反映します。
+ * 分類は画面を開くたびに変わる種類のデータではないので、キャッシュへ入れます。寿命は
+ * `next.config.ts` の `masters` profile、捨てる印は {@link PRODUCT_MASTERS_TAG} が持ちます
+ * （[0071](../../../../docs/adr/0071-bff-api-integration.md)）。
+ *
+ * **確実に残るのは、組み立て時に殻へ焼かれた分だけです**（入れ物の性質は
+ * [adapters](../../README.md) の「リクエストをまたいで残すのは `use cache` の側」）。
+ *
+ * **このリポジトリから {@link PRODUCT_MASTERS_TAG} を撃つ経路はありません。** マスタの更新は
+ * バックエンド側で起きるためで、古さの上限を決めているのは profile の時間だけです。タグは
+ * webhook などの無効化口を持つ fork のために置いてあります。
+ *
+ * 外側の `cache()` は同一リクエスト内の重複を畳みます。`use cache` はリクエストをまたぐ層で、
+ * 別物です。
  */
 export const getProductCategories = cache(async (): Promise<readonly ProductCategory[]> => {
-  const categories = await getClient().request({
+  "use cache";
+  cacheLife("masters");
+  cacheTag(PRODUCT_MASTERS_TAG);
+
+  const categories = await getPublicClient().request({
     path: "/v1/products/categories",
     schema: GetProductCategoriesResponse,
-    cache: "force-cache",
-    tags: [PRODUCT_MASTERS_TAG],
   });
 
   return toProductCategories(categories);
@@ -85,11 +85,13 @@ function toProductStatuses(wire: WireStatuses): readonly ProductStatus[] {
  * キャッシュの扱いは {@link getProductCategories} と同じです。
  */
 export const getProductStatuses = cache(async (): Promise<readonly ProductStatus[]> => {
-  const statuses = await getClient().request({
+  "use cache";
+  cacheLife("masters");
+  cacheTag(PRODUCT_MASTERS_TAG);
+
+  const statuses = await getPublicClient().request({
     path: "/v1/products/statuses",
     schema: GetProductStatusesResponse,
-    cache: "force-cache",
-    tags: [PRODUCT_MASTERS_TAG],
   });
 
   return toProductStatuses(statuses);

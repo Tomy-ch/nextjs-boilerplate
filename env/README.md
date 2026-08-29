@@ -12,6 +12,15 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 `pnpm build-storybook` が `local` を渡すため、clone 直後はそのまま動きます。配信物を作る
 `pnpm build` と `pnpm start` は既定を持たないので、`APP_ENV=local pnpm build` のように指定します。
 
+**`APP_API_BASE_URL` は build 時にも使われます。** リクエストをまたいで残す取得
+（[ADR 0071](../docs/adr/0071-bff-api-integration.md) の `use cache`）は、キャッシュの中身を作るために
+build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達できない場所から `pnpm build` を回すと、
+そこで落ちます。
+
+**`mock` のときは `pnpm build` が取得先を自分で立てます**（[mocks/serve.ts](../mocks/serve.ts)）。
+`src/instrumentation.ts` の interception はそれを立てたプロセスにしか効かず、プリレンダーは別の worker
+プロセスで走るため、HTTP の口として立てないと届きません。`APP_API_BASE_URL` はその待ち受け先になります。
+
 `dev` / `stg` / `prd` の required 値は PaaS の環境設定または secret store から供給します。
 そのため、これらのファイルは変数名と既定値候補だけをコメントで保持します。
 
@@ -70,6 +79,16 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 | `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | 1 つの要求 URL に許すバイト数の上限 | integer | `8000` | Required。ブラウザ / CDN / リバースプロキシ / backend のうち、経路上で最も小さい上限を入れる。既定値はどれも持たない |
 | `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | 中継する 1 件のアップロードに許すバイト数の上限 | integer | `4194304` | Required。配備先が要求本体に課す上限より内側に取る。外側の値は配備先が先に打ち切るため効かない |
 | `HTTP_ALLOWED_ORIGINS` | BFF（`/api/*`）を別 origin から呼ばせる相手 | origin のカンマ区切り | `https://admin.example.com,https://app.example.com` | Optional。空なら同一 origin だけ。挙げた origin は CORS で開き、状態を変える要求の送信元としても信頼する（[0111](../docs/adr/0111-csp-security-headers.md) §5）。パス付き・`*` は不可 |
+
+### Site
+
+| Variable Name | Description | Type | Example | Notes |
+| --- | --- | --- | --- | --- |
+| `SITE_PUBLIC_ORIGIN` | 外から見たこのサイトの origin | origin（パス無し） | `https://www.example.com` | Required。canonical / `sitemap.xml` / OG 画像の絶対 URL はこの値へ経路を足して組み立てる。要求の `Host` からは採らない（配信面を挟むと公開名と一致しない） |
+| `SITE_INDEXABLE` | 検索エンジンに索引させてよいか | `off` / `on` | `on` | Code default `off`。`on` で `robots.txt` が巡回を許し、画面から `noindex` が外れる。**索引させてよい環境（通常は `prd`）だけが `on` を宣言する**（[`docs/rules.md`](../docs/rules.md) #63） |
+
+**この 2 つは build 時にも読まれる。** 静的に描かれる画面の metadata と `robots.txt` はプリレンダーに
+焼き込まれるため、`pnpm build` と `pnpm start` に同じ値を渡す。起動時の差し替えだけでは効かない。
 
 ### Analytics
 

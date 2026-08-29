@@ -155,7 +155,24 @@ type BaseClientDeps = {
   maxUrlBytes: number;
   profile?: ResilienceProfile;
   fetchImpl?: typeof fetch;
+  /**
+   * 経過時間を測る時計。既定は `performance.now`。
+   *
+   * @remarks
+   * **壁時計を使いません。** 締切と遮断が見ているのは「どれだけ経ったか」であり、壁時計は
+   * NTP の補正で前後へ飛びます。飛んだ幅がそのまま引き算に入るため、まだ余裕のある要求が
+   * 期限切れとして捨てられたり、閉じたはずの遮断が即座に開いたりします。単調に進む時計だけが
+   * この引き算に耐えます。
+   */
   now?: () => number;
+  /**
+   * 壁時計。既定は `Date.now`。
+   *
+   * @remarks
+   * `Retry-After` が日時で来たときの差にだけ使います。相手が名指しているのは実世界の時刻なので
+   * （RFC 9110 §10.2.3）、ここだけは経過時間の時計では答えられません。
+   */
+  wallClockNow?: () => number;
   random?: () => number;
   sleep?: (ms: number) => Promise<void>;
 };
@@ -369,7 +386,8 @@ export function createHttpClient({
   // 1 つを長く使い回すため、生成時点の実装を握ると、後から差し込まれた実装（モックなど）に
   // 切り替わらない。
   fetchImpl = (input, init) => fetch(input, init),
-  now = Date.now,
+  now = () => performance.now(),
+  wallClockNow = Date.now,
   random = Math.random,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 }: PublicClientDeps | UserScopedClientDeps): PublicHttpClient | UserScopedHttpClient {
@@ -489,7 +507,7 @@ export function createHttpClient({
         }
 
         const delay =
-          retryAfterDelayMs(response?.headers.get("Retry-After") ?? null, now()) ??
+          retryAfterDelayMs(response?.headers.get("Retry-After") ?? null, wallClockNow()) ??
           backoffDelayMs(count, random);
 
         // 待った先が全体の期限を越えるなら、待たずに諦める。期限に間に合わない再試行は

@@ -8,18 +8,10 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { TermsView } from "@/features/site-info/terms/view";
 
-/**
- * build 時に 1 度だけ描く。
- *
- * @remarks
- * 描く内容の出所がコードだけなので固めます。器も何も読みません（`../layout.tsx`）。宣言と実態は
- * build の成果物と突き合わせます（`scripts/render-mode`）。
- */
-export const dynamic = "force-static";
-
 export const metadata: Metadata = {
   title: "利用規約",
   description: "このサイトを閲覧・利用するうえで同意していただく内容です。",
+  alternates: { canonical: "/terms" },
 };
 
 /**

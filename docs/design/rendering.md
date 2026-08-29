@@ -360,9 +360,15 @@ slot が残る。
 
 Next 16 では `cacheComponents: true` の 1 つに束ねられ、有効にすると PPR が既定の挙動になる。Next 15 にあった `experimental.ppr` と route 単位の `experimental_ppr` は**削除された**。つまり**リポジトリ全体のモデルを切り替えるスイッチ**であり、1 画面だけ試すことはできない。
 
-#### このリポジトリは無効にしている
+#### このリポジトリは有効にしている
 
-`next.config.ts` に `cacheComponents` を書いていない（= 無効）。したがって**従来モデル**で動いており、`fetch` は既定でキャッシュせず、必要なところで opt-in する。判断と根拠は [ADR 0041](../adr/0041-cache-components-decision.md) が持つ。
+`next.config.ts` に `cacheComponents: true` を書いている。したがって**このモデル**で動いており、取得は `use cache` を付けたものだけがプリレンダーへ入り、それ以外は穴として後から届く。判断と根拠は [ADR 0041](../adr/0041-cache-components-decision.md) が持つ。
+
+有効にした結果、次の 3 つが実装の作法として効いてくる。
+
+- **描くモードを画面が宣言しない。** segment config（`export const dynamic`）は併存しない。殻と穴の分かれ目は `<Suspense>` の位置そのもので、`params` / `searchParams` / cookie / 認可の判定 / 実時計はすべて穴の内側で解く
+- **殻を配れない画面だけが名乗る。** `export const instant = false` がその宣言で、宣言と実態の突合は `scripts/render-mode` が `prerender-manifest.json` の `compute` に照らす
+- **現在地を読む client 部品も穴を要る。** `usePathname` / `useSearchParams` は動的な区間を持つ route の殻では解決できず、読む側を `<Suspense>` で包むまで build が通らない
 
 **外部の情報を読むときは、どちらのモデルの話かを先に確かめる。** Next.js 自身のドキュメントも Cache Components 前提のページと従来モデル向けのページが別々にある。区別を見落とすと、書いてあるとおりにしても動かない。
 

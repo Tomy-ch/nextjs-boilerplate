@@ -50,12 +50,14 @@ describe("validateEnvironment", () => {
       { getHttpConfig },
       { getMediaConfig },
       { getObservabilityConfig },
+      { getSiteConfig },
     ] = await Promise.all([
       import("./api/api.server"),
       import("./auth/auth.server"),
       import("./http/http.server"),
       import("./media/media.server"),
       import("./observability/observability.server"),
+      import("./site/site.server"),
     ]);
 
     expect(getApiConfig()).toMatchObject({
@@ -80,6 +82,10 @@ describe("validateEnvironment", () => {
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
+    });
+    expect(getSiteConfig()).toMatchObject({
+      publicOrigin: VALID_ENVIRONMENT.SITE_PUBLIC_ORIGIN,
+      isIndexable: false,
     });
   });
 

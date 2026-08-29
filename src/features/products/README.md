@@ -88,7 +88,10 @@ error の面を出すのは route の境界（`error.tsx`）で、上の story �
 | `list/ui/load-more-list/` | 読み進めた一覧の見た目。件数を告知し、続きの状態は `LoadMore` が持つ |
 | `list/ui/skeleton/` | 待機表示 |
 | `list/ui/error-state/` | 取得に失敗したときの表示 |
-| `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
+| `facade/detail-url/` | 商品詳細の経路。正規 URL とサイトマップが同じ綴りを名乗るための 1 か所 |
+| `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける。構造化データもここで置く |
+| `detail/metadata.ts` | 商品ごとの題・要約・正規 URL。見つからなければ `noindex` を名乗る。page の `generateMetadata` が薄く呼ぶ |
+| `detail/structured-data.ts` | 商品を schema.org の `Product` へ写す。markup を持つ説明は載せない |
 | `detail/view.tsx` | 1 件の詳細の表示。骨格と値の表示を持ち、画像の面は下へ渡す |
 | `detail/ui/gallery/` | 画像を送りながら見る面。枚数によらず carousel に載せ、拡大は実画像だけに出す |
 
@@ -116,6 +119,8 @@ error の面を出すのは route の境界（`error.tsx`）で、上の story �
 - [ ] 幅によって絞り込みの確定の仕方が変わる（脇では即時、overlay ではまとめて）
 - [ ] 読み進めた件数が URL へ書き戻り、契約の上限までは復元される
 - [ ] 分類の選択が上限に達したとき、未選択が `disabled` ではなく `aria-disabled` になる
+- [ ] 見つからない商品の metadata が `noindex` を名乗り、正規 URL を持たない
+- [ ] 要約と構造化データが商品説明の markup を含まない
 
 ## 運用
 

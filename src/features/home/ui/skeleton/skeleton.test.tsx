@@ -12,7 +12,12 @@ describe("HomeSkeleton", () => {
 
     expect(screen.getByText("新着商品")).toBeInTheDocument();
     expect(screen.getByText("売れ筋ランキング")).toBeInTheDocument();
-    expect(screen.getByText("カテゴリから探す")).toBeInTheDocument();
+  });
+
+  it("待たずに配れる分類の帯は持たない", () => {
+    render(<HomeSkeleton />);
+
+    expect(screen.queryByText("カテゴリから探す")).not.toBeInTheDocument();
   });
 
   it("読み上げの対象から外す", () => {

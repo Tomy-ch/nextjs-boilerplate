@@ -1,15 +1,12 @@
 import type { ResilienceProfile } from "./resilience-profile";
 
-/** 遮断器の状態。 */
 type BreakerState = "closed" | "open" | "half-open";
 
 /** 接続先 1 つ分の遮断器。 */
 export type CircuitBreaker = {
   /** いま試行してよいか。遮断中なら false。 */
   canAttempt(): boolean;
-  /** 試行の結果を記録する。 */
   record(succeeded: boolean): void;
-  /** 現在の状態。 */
   state(): BreakerState;
 };
 
@@ -25,7 +22,7 @@ export type CircuitBreaker = {
  * 時間だけで戻すと、復旧していない接続先へ再び全量が流れ込みます。
  *
  * @param config - 失敗率・観測数・遮断時間・復帰試行数
- * @param now - 現在時刻のミリ秒を返す関数。呼び出し側が渡す
+ * @param now - 経過時間をミリ秒で返す時計。呼び出し側が渡す。差だけを見るので単調なものを渡す
  */
 export function createCircuitBreaker(
   config: ResilienceProfile["breaker"],

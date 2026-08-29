@@ -39,6 +39,7 @@ frontmatter の `test-requirement: unit` が掛かるのは、取りまとめが
 | `handlers.ts` | 生成ハンドラの取りまとめ。手書きのハンドラは足しません |
 | `stable-responses.ts` | 同じ要求へ同じ応答を返させる組み立て(下記) |
 | `node.ts` | Node 側の interception。Server Components からの取得もここを通ります |
+| `serve.ts` | 同じハンドラを HTTP の口として立てる。プロセスをまたいで届く必要があるとき（下記） |
 | `contract-conformance.test.ts` | 全ハンドラの応答を、対応する zod で検証します |
 
 `mocks/<契約名>/` だけが生成物です。直下のファイルは手書きであり、linter の対象に残しています。
@@ -48,6 +49,16 @@ frontmatter の `test-requirement: unit` が掛かるのは、取りまとめが
 `APP_API_MODE=mock` のとき、`src/instrumentation.ts` が Config の確定後に Node 側の interception を
 立てます。テストは `vitest.setup.msw.ts` が同じハンドラを使います。dev サーバーとテストで別のスタブを
 持つと、契約が変わってもテストだけが古い形のまま通り続けるためです。
+
+**build だけは HTTP の口が要ります。** interception は立てたプロセスの中でしか効かず、`next build` の
+プリレンダーは別の worker プロセスで走ります（`src/instrumentation.ts` からも `next.config.ts` からも
+届かないことを実測で確かめました）。`use cache` を持つ取得は組み立て時に評価されるので
+（[0071](../docs/adr/0071-bff-api-integration.md)）、`pnpm build` は mock のとき
+[`serve.ts`](serve.ts) を `APP_API_BASE_URL` の口へ立ててから `next build` を回します。
+
+**応答は interception に作らせます。** `serve.ts` は届いた要求をそのまま `fetch` へ渡すだけで、MSW が
+socket へ出る前に掴みます。ハンドラを二重に持たないので、HTTP から見た応答と in-process の応答が
+食い違いません。
 
 **テスト側で interception を立てるのは、読み込んだファイルだけです。**全ファイルへ掛けると 1 ファイル
 あたり約 480ms 掛かり、Vitest の setup がテスト本体より長くなります。読み込む相手は HTTP 境界を持つ

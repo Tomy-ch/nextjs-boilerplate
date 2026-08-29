@@ -6,6 +6,9 @@ coverage-exclusions:
   - "src/app/**/page.dev.tsx"
   - "src/app/**/page.tsx"
   - "src/app/fonts.ts"
+  - "src/app/icon.tsx"
+  - "src/app/apple-icon.tsx"
+  - "src/app/opengraph-image.tsx"
 ---
 
 # app
@@ -16,8 +19,15 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 
 - route segment、route handler、metadata と layout への横断 UI / Provider の mount
 - Next.js が規定する特殊ファイルと route segment
-- **複数の route group の器が共有する宣言モジュール**（`fonts.ts` / `global-nav.ts`）。route 要素の
-  どれにも当たらないが、器ごとに書くと片方だけが動く。テストは `unit` として扱う
+- **複数の route group の器が共有する宣言モジュール**（`fonts.ts` / `global-nav.ts` / `site.ts`）。route
+  要素のどれにも当たらないが、器ごとに書くと片方だけが動く。テストは `unit` として扱う
+- **metadata ファイル**（`sitemap.ts` / `robots.ts` / `icon.tsx` / `apple-icon.tsx` /
+  `opengraph-image.tsx`）。Next.js の規約で特殊な Route Handler になる（[0044](../../docs/adr/0044-seo-metadata-strategy.md)）。
+  宣言は `architecture.ts` の `app-metadata` element が持つ —— 何を挙げるか・何を断るかの判定を持つ
+  `sitemap.ts` / `robots.ts` は `unit` として扱い、絵を 1 枚返すだけの 3 つは判定を持たないので単体では
+  回さない（`scripts/lib/untested-modules.ts`）。
+  絵として返ることと、挙げた URL が実在すること・正規 URL が自分を指すことは、起動したアプリから
+  取って見る（`make e2e-metadata`）
 - **root layout が mount する計装**（`telemetry.tsx`）。描画するものを持たず、ブラウザ側のシグナルを
   中継へ送り出すだけの client component である。`components` にも `capabilities` にも置けない ——
   どちらも外部への送信を持てないため（[0082](../../docs/adr/0082-client-observability.md)）。
@@ -62,11 +72,22 @@ route ごとに決まることがここにあります。**そのうちいくつ
 **待ちの境界も同じです。** 節ごとに分けるか画面全体で 1 つにするかは、何を同時に待つかで決まる
 画面の判断であり、層の既定ではありません。
 
-### まだ埋まっていないもの
+### metadata の土台と差分
 
-| 対象 | 現状 | 埋まる契機 |
-| --- | --- | --- |
-| `metadata` の `metadataBase` | **未設定**。公開 URL を保持する config が無いため | 公開 URL を config へ足す時点 |
+root layout が `metadataBase`（外から見た origin。`config/site`）と `title.template` を置き、索引させ
+ない環境では `noindex` も置く。各 segment が宣言するのはそこからの差分で、置くものは決まっている。
+
+| 画面 | 宣言するもの |
+| --- | --- |
+| 誰でも開け、索引させたい画面 | `title` / `description` / `alternates.canonical`（自分の経路） |
+| 認証の要る画面、利用者ごとに中身が変わる画面 | 上に加えて `robots: { index: false, follow: false }`。索引させる環境でも隠す |
+| 動的セグメントの画面 | `generateMetadata`。取得の分類を写す判定は feature 側の module に置き、page は薄く呼ぶ |
+
+canonical を root に置かないのは、`alternates` が segment 単位で丸ごと差し替わるためである。root
+に置くと、宣言していない画面がすべて `/` を正規 URL として名乗る。
+
+`sitemap.ts` が挙げるのは索引させたい画面だけで、`robots.ts` が断る経路は保護の宣言（`model/authz`）
+から採る。どちらも書き写しを持たない。
 
 ## 運用
 

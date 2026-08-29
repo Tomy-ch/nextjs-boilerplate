@@ -17,6 +17,7 @@ import type {
 import { toProductId } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
+import { CategoryLinks } from "./ui/category-links/category-links";
 import { SampleNotice } from "./ui/sample-notice/sample-notice";
 import { HomeView } from "./view";
 
@@ -38,6 +39,9 @@ const FAILURE_MESSAGE = "問題が発生しました。時間をおいて再試�
  * 変わって段の見え方が実物とずれる。
  *
  * 断り書きも枠に含める。実画面では見出しより前に出るため、外すと余白と重心が実物とずれる。
+ *
+ * 分類の帯も枠が持つ。実画面ではこの節が静的な殻の側に居て `HomeView` の外にあるため
+ * （[categories-content.tsx](./categories-content.tsx)）、枠に置かないと段の見え方が実物とずれる。
  */
 function withPageFrame(Story: () => React.ReactElement) {
   useCartStore.setState({ isOpen: false });
@@ -61,7 +65,10 @@ function withPageFrame(Story: () => React.ReactElement) {
               </PageHeaderDescription>
             </div>
           </PageHeader>
-          <Story />
+          <div className="space-y-10 py-4">
+            <Story />
+            <CategoryLinks categories={CATEGORIES} />
+          </div>
         </ContentContainer>
       </AppShell>
     </div>
@@ -141,14 +148,13 @@ const meta = {
   args: {
     newArrivals: { status: "ready", value: NEW_ARRIVALS },
     ranking: { status: "ready", value: RANKING },
-    categories: { status: "ready", value: CATEGORIES },
   },
 } satisfies Meta<typeof HomeView>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** 3 系統すべてが揃った状態。 */
+/** 要求ごとに取る 2 系統が揃った状態。 */
 export const Default: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
 };
@@ -163,19 +169,18 @@ export const DefaultMobile: Story = {
   globals: { viewport: { value: "mobile2", isRotated: false } },
 };
 
-/** ランキングだけが落ちた状態。残りの 2 系統はそのまま出る。 */
+/** ランキングだけが落ちた状態。残りはそのまま出る。 */
 export const RankingFailed: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: { ranking: { status: "failed", message: FAILURE_MESSAGE } },
 };
 
-/** 3 系統とも落ちた状態。どれが落ちたかが文からわかる。 */
+/** 取りに行った 2 系統とも落ちた状態。どれが落ちたかが文からわかる。分類は殻の側なので残る。 */
 export const AllFailed: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   args: {
     newArrivals: { status: "failed", message: FAILURE_MESSAGE },
     ranking: { status: "failed", message: FAILURE_MESSAGE },
-    categories: { status: "failed", message: FAILURE_MESSAGE },
   },
 };
 
@@ -185,6 +190,5 @@ export const Empty: Story = {
   args: {
     newArrivals: { status: "ready", value: [] },
     ranking: { status: "ready", value: [] },
-    categories: { status: "ready", value: [] },
   },
 };

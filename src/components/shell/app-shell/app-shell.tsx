@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 
 import { cn } from "@/components/cn";
 import { PullToRefresh } from "../pull-to-refresh/pull-to-refresh";
@@ -8,7 +8,8 @@ import {
   APP_SHELL_MAIN_ID,
   type AppShellNavItem,
 } from "./app-shell.definition";
-import { AppShellMenu } from "./app-shell-menu";
+import { AppShellMenu, AppShellMenuFallback } from "./app-shell-menu";
+import { AppShellNavLink } from "./app-shell-nav-link";
 
 /** `AppShell` の props。 */
 export type AppShellProps = {
@@ -16,6 +17,20 @@ export type AppShellProps = {
   siteName: string;
   /** header に並べる導線。狭い画面では side menu に畳まれる。 */
   navItems: readonly AppShellNavItem[];
+  /**
+   * header の導線の末尾へ差す要素。
+   *
+   * @remarks
+   * **主体を知らなければ決まらない導線の置き場です。** 取得を待つものを {@link navItems} へ混ぜると、
+   * 器そのものが待つことになり、この器を通る画面がすべて動的描画になります
+   * （[0041](../../../../docs/adr/0041-cache-components-decision.md)）。待つ側を穴として渡します。
+   *
+   * **side menu の側は {@link menuNavSlot} が別に受け取ります。** 同じ要素を両方へ流せないのは、
+   * menu の中の導線だけが履歴を積まずに移るためです（`AppShellNavLink`）。
+   */
+  navSlot?: ReactNode;
+  /** side menu の導線の末尾へ差す要素。header 側は {@link navSlot}。 */
+  menuNavSlot?: ReactNode;
   /** `main` の中身。 */
   children: ReactNode;
   /** header の導線の後ろに並べる要素。 */
@@ -60,6 +75,8 @@ export type AppShellProps = {
 export function AppShell({
   siteName,
   navItems,
+  navSlot,
+  menuNavSlot,
   children,
   headerActions,
   sidebar,
@@ -80,7 +97,9 @@ export function AppShell({
         style={{ height: APP_SHELL_HEADER_HEIGHT }}
       >
         <div className="mx-auto flex h-full w-full max-w-5xl items-center gap-2 px-4 md:px-6">
-          <AppShellMenu items={navItems} />
+          <Suspense fallback={<AppShellMenuFallback />}>
+            <AppShellMenu items={navItems} navSlot={menuNavSlot} />
+          </Suspense>
           {/* 銘はラテンのみの書体を当てる。和文を含む文字列に当てると 1 語の中で書体が変わる */}
           <Link href="/" className="font-brand tracking-wider">
             {siteName}
@@ -88,14 +107,9 @@ export function AppShell({
           <div className="ml-auto flex items-center gap-1">
             <nav aria-label="主要な導線" className="hidden items-center gap-1 md:flex">
               {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                >
-                  {item.label}
-                </Link>
+                <AppShellNavLink key={item.href} item={item} />
               ))}
+              {navSlot}
             </nav>
             {headerActions}
           </div>
