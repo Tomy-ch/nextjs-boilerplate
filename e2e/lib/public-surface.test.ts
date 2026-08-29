@@ -55,6 +55,12 @@ describe("findCanonicalHref", () => {
     expect(findCanonicalHref('<link REL="canonical" HREF="/b">')).toBe("/b");
   });
 
+  it("値の無い属性や閉じていない引用符に惑わされない", () => {
+    expect(findCanonicalHref('<link hidden rel="canonical" href="/b" data-x="unclosed>')).toBe("/b");
+    expect(findCanonicalHref('<link rel="canonical" href="/b"')).toBe("/b");
+    expect(findCanonicalHref('<link "stray" rel="canonical" href="/b">')).toBe("/b");
+  });
+
   it("body の末尾に足されたものも読む", () => {
     const html = '<html><head></head><body><p>x</p><link rel="canonical" href="/c"></body></html>';
 

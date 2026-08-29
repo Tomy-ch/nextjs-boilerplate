@@ -30,14 +30,25 @@ export function listSitemapLocations(xml: string): string[] {
  * タグの属性を、名前を小文字にして並べる。
  *
  * @remarks
- * `=` の前後に空白を許しません。読む相手は React が直列化した HTML で、属性は常に `name="value"` の
- * 綴りで出ます。許すと照合が後戻りを持ち、長いタグで所要時間が伸びます。
+ * 読む相手は React が直列化した HTML で、属性は常に `name="value"` の綴りで出ます。値は `"` で
+ * 囲まれるので、`"` で切った偶数番目の末尾が `name=` になります。正規表現で名前を拾わないのは、
+ * `+` の照合が後戻りを持ち、長いタグで所要時間が伸びるためです。
  */
 function attributesOf(tag: string): Map<string, string> {
   const attributes = new Map<string, string>();
+  const parts = tag.split('"');
 
-  for (const match of tag.matchAll(/([a-zA-Z:-]+)="([^"]*)"/g)) {
-    attributes.set(match[1].toLowerCase(), match[2]);
+  for (let index = 1; index < parts.length; index += 2) {
+    const before = parts[index - 1].trimEnd();
+
+    if (!before.endsWith("=")) {
+      continue;
+    }
+
+    const tokens = before.slice(0, -1).split(/[\s<]+/);
+    const name = tokens[tokens.length - 1];
+
+    attributes.set(name.toLowerCase(), parts[index]);
   }
 
   return attributes;
