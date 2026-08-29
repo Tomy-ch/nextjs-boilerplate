@@ -98,6 +98,7 @@ export type ScreenDeclaration =
       readonly skip: string;
     };
 
+// sample:begin
 /**
  * 作図の島が描き終えた印。
  *
@@ -106,6 +107,7 @@ export type ScreenDeclaration =
  * （`loading`）は空の `div` なので、待つ相手にできません。
  */
 const SETTLED_CHART = "svg.recharts-surface";
+// sample:end
 
 /**
  * 巡回・撮影の対象と、対象から外す route の宣言。
