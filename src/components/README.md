@@ -396,6 +396,7 @@ trigger から本文の上へ面を開く部品。
 | [`bubble`](./design-system/display/bubble/README.md) | 発話や通知の 1 かたまりを吹き出しとして表示する。`Message` の中では送信者の向きへ追従する |
 | [`card`](./design-system/display/card/README.md) | 関連する情報や補助操作を一つの視覚的なまとまりにする |
 | [`chart`](./design-system/display/chart/README.md) | 集計値の推移や内訳を、系列ごとの色と形で表示する |
+| [`json-ld`](./design-system/display/json-ld/README.md) | 画面が持つ構造化データを `application/ld+json` の script として埋め込む。読み手は検索エンジンで、見える要素を持たない |
 | [`kbd`](./design-system/display/kbd/README.md) | 利用者が押すキーを、キーボード入力として表示する |
 | [`key-value-list`](./design-system/display/key-value-list/README.md) | 項目名と値の対を並べて表示する |
 | [`keyboard-shortcut`](./design-system/display/keyboard-shortcut/README.md) | キーボードで実行できる操作を、説明とキーの対として案内する |

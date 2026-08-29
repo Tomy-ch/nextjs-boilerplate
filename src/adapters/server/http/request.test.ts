@@ -26,6 +26,8 @@ type ClientOverrides = {
   baseUrl?: string;
   maxUrlBytes?: number;
   profile?: ResilienceProfile;
+  now?: () => number;
+  wallClockNow?: () => number;
   getBearerToken?: () => Promise<string | null>;
   allowAnonymous?: boolean;
   sleep?: (ms: number) => Promise<void>;
@@ -73,6 +75,16 @@ function createPublicClient(fetchImpl: typeof fetch) {
     random: () => 0,
     sleep: async () => {},
   });
+}
+
+async function causeOf(run: () => Promise<unknown>): Promise<unknown> {
+  try {
+    await run();
+  } catch (error) {
+    return findAppError(error)?.cause;
+  }
+
+  return undefined;
 }
 
 async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
@@ -332,6 +344,25 @@ describe("createHttpClient", () => {
     const client = createClient(fetchImpl);
 
     await expect(client.request({ path: "/v1/ping", schema })).resolves.toEqual({ ok: true });
+  });
+
+  it("Retry-After が日時なら壁時計との差を待ち時間に使う", async () => {
+    const sleep = vi.fn(async () => {});
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        jsonResponse(503, {}, { "Retry-After": "Fri, 07 Aug 2026 00:00:03 GMT" }),
+      )
+      .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, {
+      sleep,
+      wallClockNow: () => Date.parse("2026-08-07T00:00:00.000Z"),
+      profile: { ...profile, overallTimeoutMs: 10_000 },
+    });
+
+    await client.request({ path: "/v1/ping", schema });
+
+    expect(sleep).toHaveBeenCalledWith(3_000);
   });
 
   it("Retry-After の指示を待ち時間に使う", async () => {
@@ -638,6 +669,36 @@ describe("createHttpClient", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
+  it("経過時間だけで期限に達したら、待ちが短くても諦める", async () => {
+    // 締切は単調時計で測る。待ちの長さではなく、試行に費やした時間の積算で越えさせる。
+    const now = vi.fn(() => 0);
+
+    now.mockReturnValueOnce(0).mockReturnValue(profile.overallTimeoutMs);
+
+    const sleep = vi.fn(async () => {});
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(503, {}));
+    const client = createClient(fetchImpl, { now, sleep });
+
+    await kindOf(() => client.request({ path: "/v1/ping", schema }));
+
+    expect(sleep).not.toHaveBeenCalled();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("Error の失敗は原因をそのまま残す", async () => {
+    const cause = new Error("接続できません");
+
+    expect(
+      await causeOf(() =>
+        createClient(
+          vi.fn(async () => {
+            throw cause;
+          }),
+        ).request({ path: "/v1/ping", schema }),
+      ),
+    ).toBe(cause);
+  });
+
   it("通信が中断されたら待たせずに落とす", async () => {
     const client = createClient(
       vi.fn(async () => {
@@ -669,11 +730,14 @@ describe("createHttpClient", () => {
     );
   });
 
-  it("Error でない失敗も分類して落とす", async () => {
-    const client = createClient(vi.fn(async () => Promise.reject("切断")));
+  it("Error でない失敗は文字列を残した Error へ包んで落とす", async () => {
+    const disconnect = () => createClient(vi.fn(async () => Promise.reject("切断")));
 
-    expect(await kindOf(() => client.request({ path: "/v1/ping", schema }))).toBe(
+    expect(await kindOf(() => disconnect().request({ path: "/v1/ping", schema }))).toBe(
       ErrorKind.UNAVAILABLE,
+    );
+    expect(await causeOf(() => disconnect().request({ path: "/v1/ping", schema }))).toStrictEqual(
+      new Error("切断"),
     );
   });
 

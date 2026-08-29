@@ -4,8 +4,11 @@ import "../../../../vitest.setup.msw";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 
 const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => PARSED_ENVIRONMENT) }));
+const { cacheLife, cacheTag } = vi.hoisted(() => ({ cacheLife: vi.fn(), cacheTag: vi.fn() }));
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
+// `cacheLife` / `cacheTag` は `cacheComponents` を有効にした Next の実行文脈でしか動かない。
+vi.mock("next/cache", () => ({ cacheLife, cacheTag }));
 
 import { getProductCategories } from "./product-masters";
 

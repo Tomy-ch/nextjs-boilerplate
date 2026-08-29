@@ -1,114 +1,151 @@
 // 画面をどう描くかの宣言と、build がそう扱ったかの突合。
 
-/** `src/app` の page 1 枚。 */
-export type Page = {
-  /** 公開されている route。 */
-  readonly route: string;
-  /** その page ファイルの中身。 */
-  readonly content: string;
-};
+/**
+ * build がその route の殻をどこまで配れるか。
+ *
+ * @remarks
+ * `prerender-manifest.json` の `compute` をそのまま採らず 3 つへ畳むのは、ゲートが見たいのが
+ * **殻を配れるかどうか**だからです。`static` と `resuming` はどちらも配れる側で、区別は報告の
+ * ためだけに残します。
+ */
+export type RenderMode = "static" | "partial" | "blocking";
 
 /** 宣言と実態が食い違った route。 */
 export type RenderModeDrift = {
   /** 食い違っている route。 */
   readonly route: string;
   /** どちらへ食い違っているか。 */
-  readonly reason: "undeclared-static" | "declared-but-dynamic";
+  readonly reason: "undeclared-blocking" | "declared-but-prerendered";
 };
 
-/**
- * `prerender-manifest.json` のうち、固まった route を知るのに要る形だけ。
- *
- * @remarks
- * `routes` の鍵は**解決済みの具体パス**です。`generateStaticParams` を持つ route は
- * `/products/1` のように 1 件ずつ並び、元のパターンは `srcRoute` が持ちます。パターン自身は
- * `dynamicRoutes` の側に居ます。
- */
+/** `prerender-manifest.json` のうち、扱いを知るのに要る形だけ。 */
 export type PrerenderManifest = {
-  readonly routes?: Readonly<Record<string, { readonly srcRoute?: string | null }>>;
-  readonly dynamicRoutes?: Readonly<Record<string, unknown>>;
+  readonly routes?: Readonly<Record<string, { readonly compute?: string }>>;
+  readonly dynamicRoutes?: Readonly<Record<string, { readonly compute?: string }>>;
 };
 
 /**
- * 固まった route を、`src/app` が使うパターンの綴りへ畳み戻す。
+ * `compute` を扱いへ畳む。
  *
  * @remarks
- * 鍵をそのまま使うと、動的セグメントを持つ route が**必ず**二重に誤検知されます。解決済みの
- * `/products/1` は宣言側（`/products/[id]`）と一致せず「宣言なしに固まった」に、パターン
- * `/products/[id]` は固まった側に現れず「宣言したのに動的」に、同時に挙がります。
+ * 知らない綴りは `blocking` へ倒します。**黙って通す側へ倒すと、Next.js が値を増やした日に
+ * ゲートが何も言わなくなります。**
  */
-export function prerenderedRoutes(manifest: PrerenderManifest): string[] {
-  const found = new Set<string>();
-
-  for (const [route, entry] of Object.entries(manifest.routes ?? {})) {
-    found.add(entry.srcRoute ?? route);
+function toRenderMode(compute: string | undefined): RenderMode {
+  if (compute === "static") {
+    return "static";
   }
 
-  for (const route of Object.keys(manifest.dynamicRoutes ?? {})) {
-    found.add(route);
-  }
-
-  return [...found];
+  return compute === "resuming" ? "partial" : "blocking";
 }
 
-/** 「build 時に固める」の宣言。 */
-// 空白は行内のものだけを許す。`\s` は改行を含むため、複数行にまたがる解釈が生まれて後戻りする。
-const FORCE_STATIC = /^[ \t]*export[ \t]+const[ \t]+dynamic[ \t]*=[ \t]*["']force-static["']/m;
+/** route ごとに、build が実際に採った扱いを引く。 */
+export function renderModes(manifest: PrerenderManifest): Map<string, RenderMode> {
+  const found = new Map<string, RenderMode>();
+
+  for (const [route, entry] of [
+    ...Object.entries(manifest.routes ?? {}),
+    ...Object.entries(manifest.dynamicRoutes ?? {}),
+  ]) {
+    found.set(route, toRenderMode(entry.compute));
+  }
+
+  return found;
+}
 
 /**
- * build 時に固めると宣言している route。
+ * 「殻を配らずにブロックしてよい」の宣言。
  *
  * @remarks
- * 宣言を **page ファイル自身**から読むのは、置き場を 1 つに保つためです。route の一覧を別の
- * ファイルへ持つと、画面を足した人が 2 箇所へ書くことになり、片方だけを足した状態が「宣言どおり」
- * として通ります。
+ * Cache Components を有効にすると segment config（`export const dynamic`）は併存しません。
+ * 描くモードの宣言はこの 1 つだけになり、置ける場所は page / layout / 並行 slot です。
  */
-export function declaredStaticRoutes(pages: readonly Page[]): string[] {
-  return pages.filter((page) => FORCE_STATIC.test(page.content)).map((page) => page.route);
+const ALLOW_BLOCKING = /^[ \t]*export[ \t]+const[ \t]+instant[ \t]*=[ \t]*false/m;
+
+/** その内容が、ブロッキングを許す宣言を持つか。 */
+export function allowsBlocking(content: string): boolean {
+  return ALLOW_BLOCKING.test(content);
 }
 
 /**
  * 宣言と実態を突き合わせる。
  *
  * @remarks
- * **build 時に固まった画面は、型検査もテストも通ります。** CI は緑のまま、配るものだけが古く
- * なります。バックエンドが持つ状態を映す画面でこれが起きると、更新が反映されないうえに、build に
- * バックエンドへの到達性を要求します（[0011](../../docs/adr/0011-no-docker.md) の役割分担では
- * build 時にバックエンドが居るとは限りません）。
+ * 見るのは 2 方向です。**宣言なしにブロックしている**route は、誰かが殻を黙って捨てた跡で、
+ * その画面はバックエンドの往復を待ってから 1 バイト目を返すようになっています。逆に**宣言した
+ * のにプリレンダーされている**route は、宣言のほうが古く、外せる印が残ったままです。
  *
- * **逆向きも見ます。** 宣言したのに動的のままなら、その宣言は効いていません。request 時の API を
- * 1 つ足しただけで起きるので、宣言を残したまま黙って外れます。
- *
- * @param prerendered - build が固めた route（{@link prerenderedRoutes}）。
- * @param pages - `src/app` の page と、その中身。
- * @param exempt - framework が持つ route。アプリの判断ではないので突合しない。
+ * 片方だけを見ると、宣言が実態から離れていく方向にだけ緩みます。
  */
 export function findRenderModeDrift(
-  prerendered: readonly string[],
-  pages: readonly Page[],
+  observed: ReadonlyMap<string, RenderMode>,
+  declared: ReadonlyMap<string, boolean>,
   exempt: readonly string[],
 ): RenderModeDrift[] {
-  const exemptSet = new Set(exempt);
-  const staticSet = new Set(prerendered.filter((route) => !exemptSet.has(route)));
-  const declaredSet = new Set(declaredStaticRoutes(pages));
+  const drift: RenderModeDrift[] = [];
 
-  return [
-    ...[...staticSet]
-      .filter((route) => !declaredSet.has(route))
-      .map((route) => ({ route, reason: "undeclared-static" as const })),
-    ...[...declaredSet]
-      .filter((route) => !staticSet.has(route))
-      .map((route) => ({ route, reason: "declared-but-dynamic" as const })),
-  ].sort((a, b) => a.route.localeCompare(b.route));
+  for (const [route, mode] of observed) {
+    if (exempt.includes(route)) {
+      continue;
+    }
+
+    const allowed = declared.get(route);
+
+    if (allowed === undefined) {
+      continue;
+    }
+
+    if (mode === "blocking" && !allowed) {
+      drift.push({ route, reason: "undeclared-blocking" });
+    }
+
+    if (mode !== "blocking" && allowed) {
+      drift.push({ route, reason: "declared-but-prerendered" });
+    }
+  }
+
+  return drift.sort((left, right) => left.route.localeCompare(right.route));
 }
 
-/** 見つかったものを人が読む形にする。 */
+/** 検出結果を、直せる形の文言へ整える。違反が無ければ空文字。 */
 export function formatRenderModeDrift(drift: readonly RenderModeDrift[]): string {
   return drift
     .map(({ route, reason }) =>
-      reason === "undeclared-static"
-        ? `${route}: build 時に固まっています。固めてよいなら page で \`export const dynamic = "force-static"\` を宣言し、そうでないなら固まる原因（request 時の API を触らない取得）を断ってください。`
-        : `${route}: \`force-static\` を宣言していますが動的に描かれています。宣言が効いていないので、外すか原因を取り除いてください。`,
+      reason === "undeclared-blocking"
+        ? `${route}: 殻を配れていません。取得を \`Suspense\` の内側へ落とすか、ブロックしてよい理由を添えて \`export const instant = false\` を宣言してください`
+        : `${route}: \`export const instant = false\` が余っています。殻は配れているので宣言を外してください`,
     )
     .join("\n");
+}
+
+/** 扱いを、報告に使う綴りへ直す。 */
+function labelOf(mode: RenderMode): string {
+  return mode === "static" ? "○ 静的" : mode === "partial" ? "◐ 部分" : "ƒ 動的";
+}
+
+/**
+ * 違反が無かったときの内訳を、扱いごとの枚数として整える。
+ *
+ * @remarks
+ * 突合の対象外にした route は内訳から外れますが、冒頭の枚数には数えます。内訳の合計が枚数に
+ * 満たないのはそのためです。
+ */
+export function formatRenderModeSummary(
+  routes: readonly string[],
+  observed: ReadonlyMap<string, RenderMode>,
+  exempt: readonly string[],
+): string {
+  const counts = new Map<string, number>();
+
+  for (const route of routes) {
+    const mode = exempt.includes(route) ? undefined : observed.get(route);
+
+    if (mode !== undefined) {
+      counts.set(labelOf(mode), (counts.get(labelOf(mode)) ?? 0) + 1);
+    }
+  }
+
+  const breakdown = [...counts].map(([label, count]) => `${label} ${count}`).join(" / ");
+
+  return `✅ ${routes.length} 枚の描画モードは宣言どおりです（${breakdown}）。`;
 }

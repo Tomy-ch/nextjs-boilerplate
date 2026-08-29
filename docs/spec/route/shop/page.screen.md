@@ -70,6 +70,9 @@
 
 **知らせは警告の強さで出す。** 画面全体が壊れたわけではなく、他の節は読める。
 
+**分類の節はこの扱いに入らない。** 静的な殻の側に居て、読めないまま配ることをしない
+（[`page.function.md`](page.function.md)）。
+
 ## 関連
 
 - 実装 `src/features/home/` — [README](../../../../src/features/home/README.md)

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-
+import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -7,7 +7,7 @@ import {
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
 import { ShipmentQueuePageContent } from "@/features/admin/shipments/page-content";
-
+import { ShipmentQueueSkeleton } from "@/features/admin/shipments/ui/skeleton/skeleton";
 import { deliverPurchaseAction, shipPurchasesAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -19,11 +19,7 @@ export const metadata: Metadata = {
  * 発送を待っている注文を便ごとに見て、発送済みの注文の配達を確認する画面。
  *
  * @remarks
- * 検索エンジンに拾わせません。管理の面は認可の内側にあり、索引に載っても辿り着けないうえ、
- * 存在だけが外へ出ます（[0044](../../../../docs/adr/0044-seo-metadata-strategy.md)）。
- *
- * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
- * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
+ * 索引に載せない理由は `docs/spec/route/admin/layout.function.md`「索引に載せない」。
  */
 export default function AdminShipmentQueuePage() {
   return (
@@ -36,10 +32,12 @@ export default function AdminShipmentQueuePage() {
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <ShipmentQueuePageContent
-        deliverAction={deliverPurchaseAction}
-        shipAction={shipPurchasesAction}
-      />
+      <Suspense fallback={<ShipmentQueueSkeleton />}>
+        <ShipmentQueuePageContent
+          deliverAction={deliverPurchaseAction}
+          shipAction={shipPurchasesAction}
+        />
+      </Suspense>
     </ContentContainer>
   );
 }

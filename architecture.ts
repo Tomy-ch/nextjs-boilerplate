@@ -165,6 +165,13 @@ export const ENTRY_POINTS = [
  *   ここへ降りてくる経路になります。受け口の本体を隣のモジュールへ薄く出す形（`app` 内の相互参照）
  *   は残ります
  *
+ * - `app-metadata`: クローラと共有先が読む配信物（[0044](docs/adr/0044-seo-metadata-strategy.md)）。
+ *   `config`（外から見た origin・索引の可否）と `model`（保護している経路の宣言）を読み、要求時に
+ *   一覧を辿る `sitemap.ts` だけが `adapters/server` と feature の `facade/` へ届きます
+ *   （[0025](docs/adr/0025-app-layer-elements.md)）。UI 部品と横断状態は持ちません —— 描くのは絵 1 枚か
+ *   文書 1 つで、画面ではないためです。判定を持つ `sitemap.ts` / `robots.ts` は `unit` で検証し、
+ *   絵を返すだけの 3 つは判定を持たないので単体では回しません（`scripts/lib/untested-modules.ts`）
+ *
  * `route-segment` / `server-action` はまだこの表に無く、`app` の粒度で検査されます。**したがって
  * `observability` は、[0021](docs/adr/0021-frontend-responsibility.md) が `route-segment` の計装 mount
  * だけに許した口であるにもかかわらず、`server-action` からも届きます。**ここで塞げるのは `route.ts`
@@ -182,6 +189,26 @@ export const APP_ELEMENTS = [
     patterns: ["src/app/**/route.ts", "src/app/**/route.dev.ts"],
     forbidden: ["components", "capabilities", "stores", "config", "features", "observability"],
     testRequirement: "integration",
+  },
+  {
+    category: "app-metadata",
+    patterns: [
+      "src/app/**/sitemap.ts",
+      "src/app/**/robots.ts",
+      "src/app/**/opengraph-image.tsx",
+      "src/app/**/icon.tsx",
+      "src/app/**/apple-icon.tsx",
+    ],
+    forbidden: [
+      "components",
+      "capabilities",
+      "stores",
+      "features",
+      "errors",
+      "logging",
+      "observability",
+    ],
+    testRequirement: "unit",
   },
 ] as const satisfies readonly {
   category: string;

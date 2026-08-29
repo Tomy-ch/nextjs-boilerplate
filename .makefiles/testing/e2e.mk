@@ -10,6 +10,7 @@
 .PHONY: e2e-retake ## 画面の基準画像を撮り直して置き場へ送る (手元からの撮り直しはこれ)
 .PHONY: e2e-update ## 画面の基準画像を撮り直す (置き場へは送らない)
 .PHONY: e2e-maintenance ## 配信を止めた状態で起動し、停止の機構が成立することを確かめる
+.PHONY: e2e-metadata ## 索引させる設定で build して起動し、公開面 (robots / sitemap / canonical / OG 画像) が成立することを確かめる
 .PHONY: e2e-report ## 直前の実行の HTML レポートを開く
 
 # 相手はモックでなければならない。既定の local は live を指すので、明示していない呼び出しを
@@ -21,12 +22,26 @@ E2E_APP_ENV ?= ci
 # 在る値が勝つからである（src/config/README.md）。
 E2E_APP_ENV_EXTRA ?=
 
+# build へ足す環境変数（同じ形）。公開面の検証だけが使う。起動と別に持つのは、静的に描かれる
+# 画面の metadata と robots.txt が build 時の値で焼き込まれるためで（src/config/site/site.server.ts）、
+# 起動の側だけ差し替えても配信物は変わらない。
+E2E_BUILD_ENV_EXTRA ?=
+
 # アプリを待ち受けるポート。開発サーバの 3000 を避ける。同じポートを使うと、既に何かが待ち受けて
 # いる環境で「起動を待つ」が他人のサーバへの疎通で満たされ、その相手に対してテストが走る。
 E2E_PORT ?= 3100
 
 # コンテナの中から見たアプリの場所。
 E2E_BASE_URL ?= http://host.docker.internal:$(E2E_PORT)
+
+# 宣言した別 origin の文書だけを返すサーバのポート。アプリと同じホストに置く。
+E2E_PARTNER_PORT ?= 3102
+
+# BFF を別 origin から呼ばせる相手として、起動時に宣言する origin (HTTP_ALLOWED_ORIGINS)。
+# コンテナから見た上のサーバである。ブラウザの中で文書を偽装する手は採らない —— Chromium は
+# 偽装した文書を公開ネットワーク由来と扱い、ホスト (プライベート IP) への fetch を Private Network
+# Access で止める (scripts/e2e/partner-origin.ts)。宣言と spec が同じ綴りを読むよう、コンテナへも渡す。
+E2E_ALLOWED_ORIGIN ?= http://host.docker.internal:$(E2E_PARTNER_PORT)
 
 # 生成物をホストの所有者で書き出すために渡す。compose 側の既定 (1000) は Linux の初回
 # ユーザであって、実行者と一致する保証が無い。
@@ -48,7 +63,7 @@ export E2E_ONLY
 # 暗黙依存すると include の順序を変えただけで静かに壊れるためである。
 
 E2E_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
-	-e E2E_BASE_URL=$(E2E_BASE_URL) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE -e E2E_ONLY browser_runner
+	-e E2E_BASE_URL=$(E2E_BASE_URL) -e E2E_ALLOWED_ORIGIN=$(E2E_ALLOWED_ORIGIN) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE -e E2E_ONLY browser_runner
 
 E2E_CONFIG := --config=playwright.e2e.config.ts
 
@@ -106,7 +121,7 @@ e2e-build:
 	@# .next/cache へ残り、CI では別のブランチの build が作ったものが復元される。残したまま撮ると、
 	@# 絵が木の状態ではなく「前の build が何をキャッシュしたか」で決まる。
 	@rm -rf .next/cache/fetch-cache
-	@APP_ENV=$(E2E_APP_ENV) pnpm build
+	@APP_ENV=$(E2E_APP_ENV) $(E2E_BUILD_ENV_EXTRA) pnpm build
 	@if [ ! -d .next/server/app ]; then \
 		echo "❌ アプリの build 生成物がありません（.next/server/app）。"; exit 1; \
 	fi
@@ -123,13 +138,17 @@ e2e-run: e2e-build
 	@mkdir -p tmp/e2e
 	@set -e; \
 	$(E2E_RESOLVE_HOSTNAME); \
-	if curl -s --max-time 2 "http://$$hostname:$(E2E_PORT)/" >/dev/null 2>&1; then \
-		echo "❌ $$hostname:$(E2E_PORT) を既に何かが使っています。空いているポートを E2E_PORT で指定してください。"; \
-		exit 1; \
-	fi; \
-	APP_ENV=$(E2E_APP_ENV) $(E2E_APP_ENV_EXTRA) pnpm start --hostname "$$hostname" --port $(E2E_PORT) > tmp/e2e/server.log 2>&1 & \
+	for port in $(E2E_PORT) $(E2E_PARTNER_PORT); do \
+		if curl -s --max-time 2 "http://$$hostname:$$port/" >/dev/null 2>&1; then \
+			echo "❌ $$hostname:$$port を既に何かが使っています。空いているポートを E2E_PORT / E2E_PARTNER_PORT で指定してください。"; \
+			exit 1; \
+		fi; \
+	done; \
+	APP_ENV=$(E2E_APP_ENV) HTTP_ALLOWED_ORIGINS=$(E2E_ALLOWED_ORIGIN) $(E2E_APP_ENV_EXTRA) pnpm start --hostname "$$hostname" --port $(E2E_PORT) > tmp/e2e/server.log 2>&1 & \
 	server_pid=$$!; \
-	trap 'kill $$server_pid 2>/dev/null || true' EXIT INT TERM; \
+	pnpm exec tsx scripts/e2e serve-partner "$$hostname" $(E2E_PARTNER_PORT) > tmp/e2e/partner.log 2>&1 & \
+	partner_pid=$$!; \
+	trap 'kill $$server_pid $$partner_pid 2>/dev/null || true' EXIT INT TERM; \
 	booted=0; \
 	for _ in $$(seq 1 $(E2E_BOOT_TIMEOUT)); do \
 		if ! kill -0 $$server_pid 2>/dev/null; then \
@@ -172,6 +191,21 @@ e2e-maintenance: E2E_APP_ENV_EXTRA := APP_MAINTENANCE_MODE=on
 e2e-maintenance: E2E_PRECHECK := true
 e2e-maintenance: E2E_COMMAND = $(E2E_RUN) ./node_modules/.bin/playwright test --config=playwright.maintenance.config.ts $(E2E_ARGS)
 e2e-maintenance: e2e-run
+
+# 公開面の検証。索引させる設定で build と起動をやり直し、クローラが読むもの（robots.txt /
+# sitemap.xml / 各画面の canonical / アイコンと OG 画像）が成立することを確かめる。build から
+# 差し替える理由は E2E_BUILD_ENV_EXTRA の宣言にある。
+#
+# 外から見た origin にはコンテナから見たアプリの場所を渡す。canonical と sitemap はその値を土台に
+# 組まれるので、spec が開いた URL と画面が名乗る URL が同じ綴りになる。
+#
+# 索引させない側（既定の起動）は通常の巡回が確かめる（e2e/journeys/metadata.spec.ts）。
+E2E_METADATA_ENV = SITE_INDEXABLE=on SITE_PUBLIC_ORIGIN=$(E2E_BASE_URL)
+e2e-metadata: E2E_BUILD_ENV_EXTRA = $(E2E_METADATA_ENV)
+e2e-metadata: E2E_APP_ENV_EXTRA = $(E2E_METADATA_ENV)
+e2e-metadata: E2E_PRECHECK := true
+e2e-metadata: E2E_COMMAND = $(E2E_RUN) ./node_modules/.bin/playwright test --config=playwright.metadata.config.ts $(E2E_ARGS)
+e2e-metadata: e2e-run
 
 e2e-report:
 	@docker compose -f docker-compose.dev-tools.yml run --rm --service-ports browser_runner \

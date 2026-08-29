@@ -10,5 +10,11 @@
     "comment": "form の欄が空かどうかを見る判定で、token を既知の値と突き合わせてはいない。空か否かしか分岐しない以上、所要時間から漏れる秘密が無い。撤回条件: この比較が token どうしの一致を見るようになったとき。",
     "false_positive": true,
     "ignored_at": "2026-08-27T14:39:26Z"
+  },
+  "eb224fc9b711bb291db2bfda6b6b971b_0": {
+    "author": "nextjs-boilerplate",
+    "comment": "JSON-LD を script の本文として置く唯一の口。埋め込む値は JSON.stringify の出力で、`<` を `\\u003c` へ逃がしてから渡している（json-ld.tsx の toJsonLdScriptContent）。React にはこれ以外に script の本文を書く手段が無い。撤回条件: 逃がしを通さない値をこの prop へ渡すようになったとき。",
+    "false_positive": true,
+    "ignored_at": "2026-08-29T12:16:51Z"
   }
 }

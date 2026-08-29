@@ -3,16 +3,6 @@ import type { Metadata } from "next";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import { MaintenanceView } from "@/features/maintenance/view";
 
-/**
- * build 時に 1 度だけ描く。
- *
- * @remarks
- * **止めているかどうかをこの画面は読みません**（理由は
- * `docs/spec/route/maintenance/page.function.md` の「レンダリング」）。宣言と実態は build の
- * 成果物と突き合わせます（`scripts/render-mode`）。
- */
-export const dynamic = "force-static";
-
 export const metadata: Metadata = {
   title: "メンテナンス中",
   description: "システムのメンテナンスのため、現在ご利用いただけません。",

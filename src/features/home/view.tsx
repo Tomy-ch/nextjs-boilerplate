@@ -1,10 +1,5 @@
-import type {
-  ProductCategory,
-  ProductListItem,
-  ProductRankingEntry,
-} from "@/model/product/product";
+import type { ProductListItem, ProductRankingEntry } from "@/model/product/product";
 import { withScreenSpan } from "@/observability/render-span";
-import { CategoryLinks } from "./ui/category-links/category-links";
 import { NewArrivals } from "./ui/new-arrivals/new-arrivals";
 import { RankingList } from "./ui/ranking-list/ranking-list";
 import { SectionFailure } from "./ui/section-failure/section-failure";
@@ -26,25 +21,24 @@ export type HomeViewProps = {
   newArrivals: SectionState<readonly ProductListItem[]>;
   /** 売れ筋ランキング。 */
   ranking: SectionState<readonly ProductRankingEntry[]>;
-  /** 分類の導線。 */
-  categories: SectionState<readonly ProductCategory[]>;
 };
 
 /**
- * トップの画面。
+ * 要求ごとに取る 2 節。
  *
  * @remarks
- * 取得を持ちません。3 つの節を受け取って積むだけにしてあるのは、節ごとの成否の組み合わせを
- * 取得なしで確かめられるようにするためです。
+ * 取得を持ちません。節を受け取って積むだけにしてあるのは、節ごとの成否の組み合わせを取得なしで
+ * 確かめられるようにするためです。
  *
- * 節の並びは、画像のある帯・行の帯・小さな導線の帯の順です。同じ密度の帯が続くと、どこまでが
- * 1 つの節なのかが読み取りにくくなります。
+ * 節の並びは、画像のある帯・行の帯の順です。同じ密度の帯が続くと、どこまでが 1 つの節なのかが
+ * 読み取りにくくなります。3 つ目の帯（分類）はこの器の外、静的な殻の側に居ます
+ * （[categories-content.tsx](./categories-content.tsx)）。
  */
 export const HomeView = withScreenSpan(
   "features/home/view",
-  ({ newArrivals, ranking, categories }: HomeViewProps) => {
+  ({ newArrivals, ranking }: HomeViewProps) => {
     return (
-      <div className="space-y-10 py-4">
+      <>
         {newArrivals.status === "ready" ? (
           <NewArrivals items={newArrivals.value} />
         ) : (
@@ -55,12 +49,7 @@ export const HomeView = withScreenSpan(
         ) : (
           <SectionFailure label="売れ筋ランキング" message={ranking.message} />
         )}
-        {categories.status === "ready" ? (
-          <CategoryLinks categories={categories.value} />
-        ) : (
-          <SectionFailure label="カテゴリ" message={categories.message} />
-        )}
-      </div>
+      </>
     );
   },
 );

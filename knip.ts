@@ -69,6 +69,7 @@ const config: KnipConfig = {
         "e2e/**/*.spec.ts",
         "playwright.e2e.config.ts",
         "playwright.maintenance.config.ts",
+        "playwright.metadata.config.ts",
       ],
       ignore: [...GENERATED_MODULES],
       ignoreDependencies: NON_IMPORTED_DEPENDENCIES,
