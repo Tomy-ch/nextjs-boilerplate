@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -68,14 +68,14 @@ describe("ConsentBanner", () => {
     expect(onDecide).not.toHaveBeenCalled();
   });
 
-  it("面の外を押しても閉じず、意思も返さない", async () => {
+  it("面の外は不活性で、押下が届いても閉じず意思も返さない", () => {
     const onDecide = vi.fn();
-    // 面の外は `pointer-events: none` に落ちているので、押せるかの検査を外さないと届く前に弾かれる。
-    // 押せないこと自体は背面を触らせない仕組みの側で、ここで見たいのは届いた場合に閉じないこと。
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
     render(<ConsentBanner onDecide={onDecide} open />);
 
-    await user.click(document.body);
+    // 背面が不活性であること自体が一次の仕組みで、`user-event` はこれを尊重して押下を作らない。
+    // 仕組みを迂回して届いた場合も閉じないことを、生のイベントで見る。
+    expect(getComputedStyle(document.body).pointerEvents).toBe("none");
+    fireEvent.pointerDown(document.body);
 
     expect(screen.getByRole("dialog")).toBeVisible();
     expect(onDecide).not.toHaveBeenCalled();

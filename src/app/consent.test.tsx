@@ -9,8 +9,14 @@ import { axe } from "vitest-axe";
 import { CONSENT_BANNER_COPY } from "@/components/shell/consent-banner/consent-banner.definition";
 import { CONSENT_COOKIE_NAME } from "@/model/consent";
 
-/** ゲートの先に置く資材。同意が無い間は DOM に現れてはならない。 */
-const GATED = <script async data-testid="gated" src="https://analytics.example.com/tag.js" />;
+/**
+ * ゲートの先に置く資材。同意が無い間は DOM に現れてはならない。
+ *
+ * @remarks
+ * **`async` を付けない。** React 19 は `async` の付いた `<script src>` を資源として `<head>` へ
+ * 巻き上げ、**unmount しても外さない**。付けるとこの木から消えたことを見られなくなる。
+ */
+const GATED = <script data-testid="gated" src="https://analytics.example.com/tag.js" />;
 
 /**
  * 島を読み込み直す。

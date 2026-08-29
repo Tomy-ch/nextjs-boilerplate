@@ -202,6 +202,9 @@
       ],
       "linter": {
         "rules": {
+          "performance": {
+            "noSyncScripts": "off"
+          },
           "suspicious": {
             "noDocumentCookie": "off"
           }
