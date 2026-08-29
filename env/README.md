@@ -71,6 +71,16 @@ CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、
 | `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | 中継する 1 件のアップロードに許すバイト数の上限 | integer | `4194304` | Required。配備先が要求本体に課す上限より内側に取る。外側の値は配備先が先に打ち切るため効かない |
 | `HTTP_ALLOWED_ORIGINS` | BFF（`/api/*`）を別 origin から呼ばせる相手 | origin のカンマ区切り | `https://admin.example.com,https://app.example.com` | Optional。空なら同一 origin だけ。挙げた origin は CORS で開き、状態を変える要求の送信元としても信頼する（[0111](../docs/adr/0111-csp-security-headers.md) §5）。パス付き・`*` は不可 |
 
+### Site
+
+| Variable Name | Description | Type | Example | Notes |
+| --- | --- | --- | --- | --- |
+| `SITE_PUBLIC_ORIGIN` | 外から見たこのサイトの origin | origin（パス無し） | `https://www.example.com` | Required。canonical / `sitemap.xml` / OG 画像の絶対 URL はこの値へ経路を足して組み立てる。要求の `Host` からは採らない（配信面を挟むと公開名と一致しない） |
+| `SITE_INDEXABLE` | 検索エンジンに索引させてよいか | `off` / `on` | `on` | Code default `off`。`on` で `robots.txt` が巡回を許し、画面から `noindex` が外れる。**索引させてよい環境（通常は `prd`）だけが `on` を宣言する**（[`docs/rules.md`](../docs/rules.md) #63） |
+
+**この 2 つは build 時にも読まれる。** 静的に描かれる画面の metadata と `robots.txt` はプリレンダーに
+焼き込まれるため、`pnpm build` と `pnpm start` に同じ値を渡す。起動時の差し替えだけでは効かない。
+
 ## 運用
 
 - config を経由して利用する変数は `src/config/` のスキーマで、ビルド時とサーバー起動時に検証される。

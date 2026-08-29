@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/font/google", () => ({
   Geist_Mono: () => ({ variable: "--typeface-geist-mono" }),
@@ -10,7 +10,18 @@ vi.mock("next/font/google", () => ({
 vi.mock("next/navigation", () => ({ usePathname: () => "/", useParams: () => ({}) }));
 vi.mock("next/web-vitals", () => ({ useReportWebVitals: () => undefined }));
 
+const site = vi.hoisted(() => ({ publicOrigin: "https://www.example.test", isIndexable: false }));
+
+vi.mock("@/config/site/site.server", () => ({ getSiteConfig: () => site }));
+
 import RootLayout, { metadata } from "./layout";
+
+/** 土台は module の評価時に決まるため、設定を変えたら読み直す。 */
+async function reloadMetadata() {
+  vi.resetModules();
+
+  return (await import("./layout")).metadata;
+}
 
 describe("RootLayout", () => {
   it("HTML の言語と子要素を設定する", () => {
@@ -67,6 +78,11 @@ describe("RootLayout", () => {
 });
 
 describe("metadata", () => {
+  beforeEach(() => {
+    site.publicOrigin = "https://www.example.test";
+    site.isIndexable = false;
+  });
+
   // ----- 正常系 -----
   it("各 route が差分だけを宣言できるよう、タイトルの雛形を置く", () => {
     expect(metadata.title).toMatchObject({
@@ -74,5 +90,23 @@ describe("metadata", () => {
       template: "%s | nextjs-boilerplate",
     });
     expect(metadata.description).toBeTypeOf("string");
+  });
+
+  it("絶対 URL の土台に、外から見た origin を置く", () => {
+    expect(metadata.metadataBase).toEqual(new URL("https://www.example.test"));
+  });
+
+  it("正規 URL は土台に置かない", () => {
+    expect(metadata.alternates).toBeUndefined();
+  });
+
+  it("索引させない環境では noindex を土台に置く", async () => {
+    expect((await reloadMetadata()).robots).toEqual({ index: false, follow: false });
+  });
+
+  it("索引させる環境では robots を宣言せず、画面ごとの宣言に委ねる", async () => {
+    site.isIndexable = true;
+
+    expect((await reloadMetadata()).robots).toBeUndefined();
   });
 });

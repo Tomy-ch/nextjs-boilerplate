@@ -2,11 +2,13 @@ import { notFound } from "next/navigation";
 
 import { getProduct } from "@/adapters/server/api/products";
 import { resolveMediaUrl } from "@/adapters/server/media/media-url";
+import { JsonLd } from "@/components/design-system/display/json-ld/json-ld";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { toProductId } from "@/model/product/product";
 import { withScreenSpan } from "@/observability/render-span";
 
+import { toProductStructuredData } from "./structured-data";
 import { ProductDetail } from "./view";
 
 /** `ProductDetailPageContent` の props。 */
@@ -42,6 +44,9 @@ async function loadProduct(id: string) {
  *
  * @remarks
  * 取得と画像 URL の解決をここで行います。理由は [feature の README](../README.md) が持ちます。
+ *
+ * 構造化データもここで置きます。商品を知っているのは取得を済ませたこの層で、表示（`view`）は
+ * 検索エンジンへ何を名乗るかを持ちません（[0044](../../../../docs/adr/0044-seo-metadata-strategy.md) §4）。
  */
 export const ProductDetailPageContent = withScreenSpan(
   "features/products/detail/page-content",
@@ -51,6 +56,11 @@ export const ProductDetailPageContent = withScreenSpan(
       .map((path) => resolveMediaUrl(path))
       .filter((url): url is string => url !== null);
 
-    return <ProductDetail imageUrls={imageUrls} product={product} />;
+    return (
+      <>
+        <JsonLd data={toProductStructuredData(product, imageUrls)} />
+        <ProductDetail imageUrls={imageUrls} product={product} />
+      </>
+    );
   },
 );

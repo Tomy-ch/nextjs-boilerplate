@@ -12,6 +12,7 @@ import { CartSkeleton } from "@/features/cart/ui/skeleton/skeleton";
 export const metadata: Metadata = {
   title: "カート",
   description: "カートに入れた商品の数量を変えたり、取り除いたりできます。",
+  robots: { index: false, follow: false },
 };
 
 /**

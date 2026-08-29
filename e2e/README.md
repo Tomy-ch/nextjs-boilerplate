@@ -28,6 +28,7 @@ story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象�
 | 画面単位の a11y | landmark・`main`・h1 と、配信される document（[`lib/a11y-rules.ts`](lib/a11y-rules.ts)） | story は部品を単独で描くのでこの 4 つが成立せず、Storybook の iframe document を評価してしまう |
 | フォーカス | 被せた面が焦点を受け取り、閉じ込め、閉じたら返すか | **jsdom はフォーカスの実装を持たない。**`inert` も focus trap も無く、`Tab` の巡回順は近似である |
 | 配信の停止 | `APP_MAINTENANCE_MODE=on` で起動したプロセスが、実際に全ルートを差し替えるか | **入口の分岐も設定も、層ごとには mock 越しにしか確かめていない。**結線は起動してみないと分からない |
+| 公開面 | `robots.txt` / `sitemap.xml` / 各画面の canonical / アイコンと OG 画像が、クローラが読む形で成立しているか。索引させる設定と索引させない設定の両方（[`docs/rules.md`](../docs/rules.md) #63） | **metadata は中身が壊れていても画面が壊れない。**空の sitemap・他人を指す canonical・実行時に落ちる `ImageResponse` は build も単体テストも通る |
 
 **ジャーニーの実体は題材と一緒に消えるが、観点は消えない。** 上の表は fork が自分の画面へ
 書き換えたあとも成り立つもので、題材の破棄で失われるのは spec ファイルだけである。**書き換える
@@ -46,6 +47,7 @@ Vitest からは呼べない。何を異常と数えるか・どの画面を開�
 ```bash
 make e2e          # 主要ジャーニーを回し、画面の見た目を基準画像と比較する
 make e2e-maintenance  # 配信を止めた状態で起動し、停止の機構が成立することを確かめる
+make e2e-metadata # 索引させる設定で build して起動し、公開面が成立することを確かめる
 make e2e-update   # 画面の基準画像を撮り直す（置き場へ送るのは make baseline-push）
 make e2e-report   # 直前の実行の HTML レポートを開く
 make e2e-review   # CI が落とした画面を手元で開く（後述「落ちた画面を手元で開く」）
@@ -121,6 +123,29 @@ make e2e-maintenance   # 止めた状態で起動し、3 つの応答を確か�
 
 `lib/test.ts` の `test` を使わないのもここだけである。あれはサーバ側の 5xx を異常として数えるが、
 停止中の 503 は意図した応答なので、見張りに掛けると成立が失敗として現れる。
+
+## 索引させる側だけは別の build で回る
+
+`SITE_INDEXABLE` は **build 時に読まれ、静的に描かれる画面の metadata と `robots.txt` へ焼き込まれる**
+（`src/config/site/site.server.ts`）。通常の巡回は既定（`off` = 索引させない）で build するので、
+索引させる側の公開面はその build には存在しない。`metadata/` だけは自分の設定
+（`playwright.metadata.config.ts`）と、`SITE_INDEXABLE=on` を build から渡す自分の起動を持つ。
+
+```bash
+make e2e-metadata   # 索引させる設定で build して起動し、公開面を読む
+```
+
+見るのはクローラが読む応答だけで、**基準画像を撮らない**。`robots.txt` が巡回を許しサイトマップの
+場所を知らせること、`sitemap.xml` が挙げる URL がすべて実在して自分を正規 URL として名乗り索引を
+断っていないこと、画面が名乗るアイコンと OG 画像が絵として返ることを確かめる。外から見た origin
+（`SITE_PUBLIC_ORIGIN`）にはコンテナから見たアプリの場所を渡すので、画面が名乗る URL と spec が
+開く URL は同じ綴りになる。
+
+索引させない側は通常の巡回が見る（`journeys/metadata.spec.ts`）。`robots.txt` が全経路を断り、
+画面が `noindex` を名乗ること。両方が通ってはじめて、切り替えが設定で効いていると言える。
+
+`lib/test.ts` の `test` を使わないのは停止中の検証と同じ理由に加えて、あれが画像の要求を 1 枚の
+代替に差し替えるためである。絵として返るかを見たい相手を、絵に差し替えた上では確かめられない。
 
 ## 落ちたときにどれをやるか
 

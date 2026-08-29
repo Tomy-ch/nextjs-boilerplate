@@ -15,6 +15,7 @@ import type { RawSearchParams } from "@/model/search-params";
 export const metadata: Metadata = {
   title: "購入履歴",
   description: "これまでの購入を、期間で絞り込みながら確認できます。",
+  robots: { index: false, follow: false },
 };
 
 /**
