@@ -26,6 +26,9 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
   要する資材のゲートを、1 つの購読の裏で束ねる client component である。`components` にも
   `capabilities` にも置けない —— どちらも `stores` を引けないため
   （[0031](../../docs/adr/0031-policy-state-supply.md)）。テストは `component` として扱う
+- **同意の島の裏へ置くタグマネージャ**（`analytics.tsx`）。容器 ID を config から読み、宣言のある
+  配備でだけ読み込む client component である。`components` に置けない —— `config` を引けないため。
+  テストは `component` として扱う
 
 **shell を通らない画面は、自分で `main` を置く。** route group の外に立つ画面（`not-found.tsx` や
 `dev/` の下）は、`(shop)` / `admin` の layout が置く landmark を持たない。包む物が無いと、支援技術
