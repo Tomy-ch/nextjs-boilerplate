@@ -2,11 +2,17 @@
 
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "radix-ui";
+import { useCallback } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { CONSENT_CHOICE, type ConsentChoice } from "@/model/consent";
 import { CONSENT_BANNER_COPY } from "./consent-banner.definition";
+
+/** 閉じる操作を握り潰す。選ぶこと以外でこの面は閉じない。 */
+function keepOpen(event: Event): void {
+  event.preventDefault();
+}
 
 /** `ConsentBanner` の props。 */
 export type ConsentBannerProps = {
@@ -44,6 +50,9 @@ export type ConsentBannerProps = {
  * @see Storybook `Overlay/ConsentBanner`
  */
 export function ConsentBanner({ open, onDecide, policyHref }: ConsentBannerProps) {
+  const deny = useCallback(() => onDecide(CONSENT_CHOICE.denied), [onDecide]);
+  const grant = useCallback(() => onDecide(CONSENT_CHOICE.granted), [onDecide]);
+
   return (
     <DialogPrimitive.Root modal open={open}>
       <DialogPrimitive.Overlay
@@ -53,8 +62,8 @@ export function ConsentBanner({ open, onDecide, policyHref }: ConsentBannerProps
       <DialogPrimitive.Content
         className="fixed inset-x-0 bottom-0 z-50 border-border border-t bg-background p-6 text-foreground shadow-lg data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-4"
         data-slot="consent-banner"
-        onEscapeKeyDown={(event) => event.preventDefault()}
-        onInteractOutside={(event) => event.preventDefault()}
+        onEscapeKeyDown={keepOpen}
+        onInteractOutside={keepOpen}
       >
         <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
@@ -78,13 +87,13 @@ export function ConsentBanner({ open, onDecide, policyHref }: ConsentBannerProps
           </div>
           <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
             <Button
-              onClick={() => onDecide(CONSENT_CHOICE.denied)}
+              onClick={deny}
               variant={BUTTON_VARIANT.OUTLINE}
             >
               {CONSENT_BANNER_COPY.reject}
             </Button>
             <Button
-              onClick={() => onDecide(CONSENT_CHOICE.granted)}
+              onClick={grant}
               variant={BUTTON_VARIANT.OUTLINE}
             >
               {CONSENT_BANNER_COPY.accept}
