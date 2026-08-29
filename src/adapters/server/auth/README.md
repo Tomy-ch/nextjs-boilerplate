@@ -40,6 +40,16 @@ test-requirement: unit
   `id_token_hint` を利用者のブラウザ経由で IdP へ届ける手順で、届かないと終わらせられません。
   出るのはこの 1 用途だけで、Access Token は今も外へ出しません
 
+## client へ渡さないものの登録
+
+`session.ts` が復元する記録には Access Token と ID Token が入ります。復元した時点で
+[taint](../taint/taint.ts) に登録するので、記録をそのまま Client Component へ渡すと描画が落ちます。
+署名鍵（`AUTH_SESSION_SECRET`）は読む側である `resolver.ts` が登録します —— `config` は
+`imports-allowed: []` で react を持ち込めないためです（[0030](../../../../docs/adr/0030-environment-variable-management.md) §8）。
+
+内側の層へ渡してよいのは `verifySession()` が返す身元だけ、という約束が主で、登録はそこを抜けた
+ときに実行時で捕まえる補助です。
+
 ## 差し替え点
 
 `session-resolver.ts` の `SessionResolver` が唯一の差し替え単位です。fork 先が自社方式へ移るときは

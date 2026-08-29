@@ -2,6 +2,8 @@
 imports-allowed: [model, errors, logging, config, observability]
 forbidden: [components, capabilities, stores, business-logic]
 test-requirement: integration
+coverage-exclusions:
+  - "src/adapters/server/taint/experimental-react.fixture.ts"
 ---
 
 # adapters
@@ -144,6 +146,7 @@ endpoint も資格情報もブラウザへ出さず、同一オリジンの BFF 
 | `client/telemetry/browser-tracer.ts` | ブラウザ側の計装。動的な import でだけ読まれる |
 | `server/telemetry/browser-telemetry.ts` | 報告を検証し、signal へ載せる |
 | `server/telemetry/browser-traces.ts` | ブラウザが作った span を collector へ渡す |
+| `server/taint/taint.ts` | server の object と秘密値を、Client Component へ渡せないものとして登録する |
 
 **検証は受け側にしかありません。** 送る側にも同じ長さの宣言がありますが、それは通信量を抑える
 ためのもので、送信者は差し替えられます。認証を要求しない口なので、受け側が自分で確かめます
@@ -165,6 +168,24 @@ span にするのは `fetch` を包む計装のほうで、要求境界のコー
 **包むのは自分が呼んでいる要求だけではありません。** router が画面遷移と先読みで出す RSC の要求も
 対象です。自分で呼んでいる場所だけを包むと、client 遷移が trace から抜けて別の trace の根になります。
 そのぶん 1 つの trace に載る span は増えます —— 先読みは見えている画面ぶんだけ出るためです。
+
+## client へ渡してはいけないものを登録する
+
+`server/taint/taint.ts` が [0030](../../docs/adr/0030-environment-variable-management.md) §8 の口です。
+汚した object や値を Client Component へ渡すと、**描画が実行時に落ちます**。
+
+| 汚すもの | 登録する場所 | 寿命 |
+| --- | --- | --- |
+| 資格情報を含む server の object | その object が生まれる場所 | object 自身 |
+| 文字列の秘密 | その値を**読む側**（`config` は react を持ち込めない） | 値を持つ singleton |
+
+**主機構ではありません。** 参照でしか追えないので、コピー（`{ ...record }`）にも派生値
+（`` `Bearer ${token}` ``）にも及びません。主防御は取得範囲と Client DTO の最小化で、これはそこを
+抜けた誤送信を実行時に捕まえる補助です（[0112](../../docs/adr/0112-data-classification-cache-boundary.md) 段 4）。
+
+**`react` を直接呼ばず、この口を通します。** テストはこのモジュール境界を差し替え、本物が効くことは
+`taint/taint.test.ts` が RSC の直列化器で確かめます。防御の中に「口があれば呼ぶ」分岐を置かないため
+です —— 置くと、口が消えた日に検査ごと黙って外れます。
 
 ## 運用
 

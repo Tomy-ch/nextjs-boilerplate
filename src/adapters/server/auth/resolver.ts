@@ -5,6 +5,7 @@ import { getHttpConfig } from "@/config/http/http.server";
 import { isDevelopmentOnlyEndpointOpen } from "@/config/load-environment";
 
 import { fetchSessionRole } from "../api/user-roles"; // sample:line
+import { taintUniqueValue } from "../taint/taint";
 import {
   createDefaultSessionResolver,
   type DefaultSessionResolverDeps,
@@ -41,6 +42,16 @@ function usesDevelopmentAuthorization(): boolean {
  */
 export function getSessionResolver(): SessionResolver {
   const config = getAuthConfig();
+
+  // 署名鍵を汚す。文字列は参照で追えないので値そのものを登録し、登録の寿命はこの値を持つ
+  // singleton に握らせる（[0030](../../../../docs/adr/0030-environment-variable-management.md) §8）。
+  // config カーネルは react を持ち込めないため、登録は読む側であるここが行う。
+  taintUniqueValue(
+    "session の署名鍵は server 専用です。Client Component へ渡さないでください",
+    config,
+    config.sessionSecret,
+  );
+
   const deps: DefaultSessionResolverDeps = {
     issuer: config.issuer,
     clientId: config.clientId,
