@@ -8,7 +8,7 @@ const { HomePageContent } = vi.hoisted(() => ({ HomePageContent: vi.fn() }));
 
 vi.mock("@/features/home/page-content", () => ({ HomePageContent }));
 
-import HomePage, { dynamic, metadata } from "./page";
+import HomePage, { metadata } from "./page";
 
 /** 取得が終わらない中身。待機中の見え方を固定するために使う。 */
 function pending() {
@@ -19,11 +19,6 @@ describe("HomePage", () => {
   it("この画面の名前と説明を metadata に持つ", () => {
     expect(metadata.title).toBe("トップ");
     expect(metadata.description).toBe("新着商品と売れ筋ランキング、カテゴリから商品を探せます。");
-  });
-
-  it("リクエストごとに描く", () => {
-    // 並ぶのはバックエンドの状態で変わる値なので、build 時に固めない。
-    expect(dynamic).toBe("force-dynamic");
   });
 
   it("取得を待つ間も断り書きと見出しを出す", () => {

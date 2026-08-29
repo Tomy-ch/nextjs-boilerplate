@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-
+import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -9,6 +9,7 @@ import {
 import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { PURCHASE_HISTORY_PATH } from "@/features/purchases/facade/paths/paths";
 import { PurchaseHistoryPageContent } from "@/features/purchases/history/page-content";
+import { PurchaseHistorySkeleton } from "@/features/purchases/history/ui/skeleton/skeleton";
 import type { RawSearchParams } from "@/model/search-params";
 
 export const metadata: Metadata = {
@@ -17,25 +18,45 @@ export const metadata: Metadata = {
 };
 
 /**
- * 購入履歴。
+ * 履歴の中身。
  *
  * @remarks
- * 確定認可をここで通します。`proxy.ts` の判定は cookie を読むだけの前捌きで、防御線ではありません
- * （[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）。
+ * **取得と判定を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません
+ * （[0041](../../../../docs/adr/0041-cache-components-decision.md)）。器は promise のまま渡し、穴の内側で解きます。
  *
- * 取得も組み立ても持ちません。route と feature をつなぐだけの薄い層です
- * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
+ * **登録済みかの判定も穴の内側です。** 殻に主体の情報は載りません
+ * （[0112](../../../../docs/adr/0112-data-classification-cache-boundary.md)）。
  *
- * パンくずは置きません。global nav がこの画面を直接指しており、階層が 1 段だからです
- * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
+ * **送り返しは殻を配り終えた後になります。** 応答は既に 200 で出ているため、転送は
+ * `Location` ヘッダではなく meta タグで伝わります。未認証の来訪は `proxy.ts` が入口で
+ * 本物の転送として捌くので、ここまで届くのは「認証済みだが登録が済んでいない」場合だけです
+ * （[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）。登録の有無はバックエンドに問わないと
+ * 分からず、入口では判定できません。
  */
-export default async function PurchaseHistoryPage({
+async function PurchaseHistoryContent({
   searchParams,
 }: {
   searchParams: Promise<RawSearchParams>;
 }) {
   await requireRegisteredUser(PURCHASE_HISTORY_PATH);
 
+  return <PurchaseHistoryPageContent searchParams={await searchParams} />;
+}
+
+/**
+ * 購入履歴。
+ *
+ * @remarks
+ * 確定認可をここで通します。`proxy.ts` の判定は前捌きです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）。
+ *
+ * パンくずは置きません。global nav がこの画面を直接指しており、階層が 1 段だからです
+ * （[0026](../../../../docs/adr/0026-layout-shell-mount.md)）。
+ */
+export default function PurchaseHistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<RawSearchParams>;
+}) {
   return (
     <ContentContainer className="py-8">
       <PageHeader>
@@ -46,7 +67,9 @@ export default async function PurchaseHistoryPage({
           </PageHeaderDescription>
         </div>
       </PageHeader>
-      <PurchaseHistoryPageContent searchParams={await searchParams} />
+      <Suspense fallback={<PurchaseHistorySkeleton />}>
+        <PurchaseHistoryContent searchParams={searchParams} />
+      </Suspense>
     </ContentContainer>
   );
 }

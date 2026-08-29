@@ -1,9 +1,8 @@
 "use client";
 
 import { MenuIcon } from "lucide-react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
 import {
@@ -15,19 +14,38 @@ import {
 } from "@/components/design-system/overlay/sheet/sheet";
 
 import type { AppShellNavItem } from "./app-shell.definition";
+import { AppShellNavLink } from "./app-shell-nav-link";
 
 /** `AppShellMenu` の props。 */
 export type AppShellMenuProps = {
   /** 並べる導線。header の横並びと同じものを渡す。 */
   items: readonly AppShellNavItem[];
+  /** 導線の末尾へ差す要素。主体を待つ導線がここへ来る（`AppShell` の `menuNavSlot`）。 */
+  navSlot?: ReactNode;
 };
+
+/**
+ * side menu が届くまでの枠。
+ *
+ * @remarks
+ * **押せないだけで、大きさは同じです。** menu は現在地を読むため、動的な区間を持つ route では
+ * 殻の中で解決できません（[0041](../../../../docs/adr/0041-cache-components-decision.md)）。枠を
+ * 置かずに待つと、届いた瞬間に header の中身が右へずれます（`docs/rules.md` #17b）。
+ */
+export function AppShellMenuFallback() {
+  return (
+    <Button aria-label="メニューを開く" className="md:hidden" disabled size="sm" variant="ghost">
+      <MenuIcon aria-hidden="true" />
+    </Button>
+  );
+}
 
 /**
  * 狭い画面での導線をまとめる side menu。
  *
  * @remarks
- * shell の中で唯一の client island です。開閉の状態だけがブラウザ側の関心であり、それ以外は
- * server で描けます。
+ * 開閉の状態だけがブラウザ側の関心で、それ以外は server で描けます。そのため client island は
+ * この部品に閉じています。
  *
  * **選んだら閉じますが、閉じるのは移った後です。** 押した時点で閉じると、overlay が積んだ履歴 1 件を
  * 戻す動きが遷移そのものと競合し、閉じるだけで移らない回が出ます。移る側は置き換えで移るため、
@@ -35,7 +53,7 @@ export type AppShellMenuProps = {
  *
  * @see Storybook `Layout/AppShell`
  */
-export function AppShellMenu({ items }: AppShellMenuProps) {
+export function AppShellMenu({ items, navSlot }: AppShellMenuProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [shownAt, setShownAt] = useState(pathname);
@@ -60,15 +78,9 @@ export function AppShellMenu({ items }: AppShellMenuProps) {
         </SheetHeader>
         <nav aria-label="メニュー" className="flex flex-col gap-1 px-4 pb-4">
           {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-              replace
-            >
-              {item.label}
-            </Link>
+            <AppShellNavLink key={item.href} item={item} replace />
           ))}
+          {navSlot}
         </nav>
       </SheetContent>
     </Sheet>

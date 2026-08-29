@@ -8,10 +8,9 @@
  * **プロセスが生きていること以外は答えません。** バックエンドへの到達性をここへ足すと、相手の
  * 不調がこちらの死活として報告されます。commit SHA や build 時刻も載せません
  * （`docs/rules.md` #65）。
+ *
+ * @returns 生存していることだけを載せた応答
  */
-export const dynamic = "force-dynamic";
-
-/** 生存していることだけを返す。 */
 export function GET(): Response {
   return Response.json({ status: "ok" });
 }

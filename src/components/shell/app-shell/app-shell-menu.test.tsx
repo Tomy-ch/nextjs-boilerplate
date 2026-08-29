@@ -9,7 +9,7 @@ const { usePathname } = vi.hoisted(() => ({ usePathname: vi.fn(() => "/") }));
 
 vi.mock("next/navigation", () => ({ usePathname }));
 
-import { AppShellMenu } from "./app-shell-menu";
+import { AppShellMenu, AppShellMenuFallback } from "./app-shell-menu";
 
 const ITEMS = [
   { href: "/reports", label: "レポート" },
@@ -71,5 +71,27 @@ describe("AppShellMenu", () => {
     await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
 
     expect(screen.getByRole("navigation", { name: "メニュー" })).toBeInTheDocument();
+  });
+});
+
+describe("AppShellMenuFallback", () => {
+  it("menu と同じ大きさの枠を、押せない状態で出す", () => {
+    const { unmount } = render(<AppShellMenuFallback />);
+    const fallbackClass = screen.getByRole("button", { name: "メニューを開く" }).className;
+
+    expect(screen.getByRole("button", { name: "メニューを開く" })).toBeDisabled();
+
+    unmount();
+    render(<AppShellMenu items={ITEMS} />);
+
+    expect(screen.getByRole("button", { name: "メニューを開く" })).toHaveClass(fallbackClass);
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const { container } = render(<AppShellMenuFallback />);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

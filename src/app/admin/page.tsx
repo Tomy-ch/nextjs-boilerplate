@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
-
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
   PageHeader,
@@ -15,6 +15,20 @@ export const metadata: Metadata = {
   title: "ダッシュボード",
   robots: { index: false, follow: false },
 };
+
+/**
+ * ダッシュボードの中身。
+ *
+ * @remarks
+ * **「いま」を読むのは穴の内側です。** 実時計はプリレンダーの最中には値が定まらないため、
+ * `connection()` を待って「要求のときに描く」ことを確定させてから読みます
+ * （[0041](../../../docs/adr/0041-cache-components-decision.md)）。
+ */
+async function AdminDashboardContent() {
+  await connection();
+
+  return <AdminDashboardPageContent now={getClockConfig().now()} />;
+}
 
 /**
  * 管理の入口。
@@ -41,7 +55,7 @@ export default function AdminDashboardPage() {
         </div>
       </PageHeader>
       <Suspense fallback={<AdminSummarySkeleton />}>
-        <AdminDashboardPageContent now={getClockConfig().now()} />
+        <AdminDashboardContent />
       </Suspense>
     </ContentContainer>
   );

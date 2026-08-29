@@ -1,11 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 
 import {
+  allowsBlocking,
   findRenderModeDrift,
   formatRenderModeDrift,
-  type Page,
+  formatRenderModeSummary,
   type PrerenderManifest,
-  prerenderedRoutes,
+  renderModes,
 } from "./render-mode";
 
 /**
@@ -25,9 +26,39 @@ import {
  */
 const EXEMPT = ["/_not-found", "/_global-error", "/favicon.ico"];
 
-/** 内部 page パスから、その page ファイルの位置を組み立てる。 */
-function sourceOf(pagePath: string): string {
-  return `src/app${pagePath}.tsx`;
+/**
+ * その route を覆う segment のファイル位置を、根から順に並べる。
+ *
+ * @remarks
+ * 宣言は page だけでなく **layout や並行 slot にも置けます**。admin のように区画ごとブロックする
+ * 判断は器の側にあり、page だけを見ると宣言が無いように見えます。
+ *
+ * 内部の page パス（`/(shop)/cart/page`）は route group と並行 slot を綴りに含むので、そのまま
+ * 辿れば実ファイルの位置になります。
+ */
+function coveringSources(pagePath: string): string[] {
+  const segments = pagePath.split("/").filter((segment) => segment !== "");
+  const sources = ["src/app/layout.tsx"];
+  let directory = "src/app";
+
+  for (const segment of segments) {
+    if (segment === "page") {
+      sources.push(`${directory}/page.tsx`, `${directory}/page.dev.tsx`);
+      break;
+    }
+
+    directory = `${directory}/${segment}`;
+    sources.push(`${directory}/layout.tsx`);
+  }
+
+  return sources;
+}
+
+/** 読める範囲の segment を読み、1 つでもブロッキングを許していれば true。 */
+function declaresBlocking(pagePaths: readonly string[]): boolean {
+  return pagePaths
+    .flatMap((pagePath) => coveringSources(pagePath))
+    .some((source) => existsSync(source) && allowsBlocking(readFileSync(source, "utf8")));
 }
 
 function main(): void {
@@ -46,23 +77,28 @@ function main(): void {
     readFileSync(`${dir}/prerender-manifest.json`, "utf8"),
   ) as PrerenderManifest;
 
-  const pages: Page[] = Object.entries(routes)
-    .filter(([pagePath]) => pagePath.endsWith("/page"))
-    .flatMap(([pagePath, route]) => {
-      const source = sourceOf(pagePath);
+  // 1 つの route を複数の内部 page が組む（並行 slot）。宣言はそのどれに置かれていても効く。
+  const pagePathsByRoute = new Map<string, string[]>();
 
-      return existsSync(source) ? [{ route, content: readFileSync(source, "utf8") }] : [];
-    });
+  for (const [pagePath, route] of Object.entries(routes)) {
+    if (pagePath.endsWith("/page")) {
+      pagePathsByRoute.set(route, [...(pagePathsByRoute.get(route) ?? []), pagePath]);
+    }
+  }
 
   // 走査が空振りすると、違反ゼロを報告したままゲートが黙る。違反より先に「見た件数」を主張する。
-  if (pages.length === 0) {
+  if (pagePathsByRoute.size === 0) {
     console.error("❌ page を 1 枚も読めませんでした。成果物と `src/app` の対応が崩れています。");
     process.exitCode = 1;
 
     return;
   }
 
-  const drift = findRenderModeDrift(prerenderedRoutes(manifest), pages, EXEMPT);
+  const declared = new Map(
+    [...pagePathsByRoute].map(([route, pagePaths]) => [route, declaresBlocking(pagePaths)]),
+  );
+  const observed = renderModes(manifest);
+  const drift = findRenderModeDrift(observed, declared, EXEMPT);
 
   if (drift.length > 0) {
     console.error(
@@ -73,7 +109,7 @@ function main(): void {
     return;
   }
 
-  console.log(`✅ ${pages.length} 枚の描画モードは宣言どおりです。`);
+  console.log(formatRenderModeSummary([...pagePathsByRoute.keys()], observed, EXEMPT));
 }
 
 main();

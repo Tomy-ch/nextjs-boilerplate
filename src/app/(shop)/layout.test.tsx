@@ -2,150 +2,75 @@
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
   useRouter: () => ({ refresh: () => {} }),
 }));
-vi.mock("@/features/cart/actions", () => ({
-  clearCartAction: vi.fn(),
-  removeCartItemAction: vi.fn(),
-  setCartItemQuantityAction: vi.fn(),
-}));
 
-const { getMyCart, useMediaQuery, verifySession } = vi.hoisted(() => ({
-  getMyCart: vi.fn(),
-  useMediaQuery: vi.fn<() => boolean>(),
-  verifySession: vi.fn(),
+// 穴の中身は取得を待つ Server Component で、client の描画器では解決できない。器が確かめるのは
+// **どの穴へ何を差したか**なので、中身は目印へ差し替える。中身そのものの検証は隣の
+// `admin-nav-entry.test.tsx` と `features/cart/ui/shell-slots` が持つ。
+vi.mock("./admin-nav-entry", () => ({
+  AdminNavEntry: ({ replace }: { replace?: boolean }) => (
+    <span>{replace === true ? "管理（menu）" : "管理（header）"}</span>
+  ),
 }));
-
-vi.mock("@/adapters/server/api/cart", () => ({ getMyCart }));
-vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
-vi.mock("@/logging/logging.server", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/logging/logging.server")>()),
-  getLogger: () => ({ warn: vi.fn() }),
+vi.mock("@/features/cart/ui/shell-slots/shell-slots", () => ({
+  CartHeaderSlot: () => <span>カートの入口</span>,
+  CartPanelSlot: () => <aside aria-label="カート">カートの中身</aside>,
 }));
-vi.mock("@/capabilities/use-media-query", () => ({ useMediaQuery }));
-
-import { CART, EMPTY_CART } from "@/features/cart/cart.fixture";
-import { SESSION_ROLE } from "@/model/session";
-import { useCartStore } from "@/stores/cart-store";
 
 import ShopLayout from "./layout";
 
-/** 外枠を組み立てる。取得は server 側で済むため、await してから描く。 */
-async function renderLayout(children = <p>本文</p>) {
-  return render(await ShopLayout({ children }));
+function renderLayout(children = <p>本文</p>) {
+  return render(<ShopLayout>{children}</ShopLayout>);
 }
 
-// カートの中身は `next/dynamic` で読まれる。先に解決しておかないと、要素を待つ時間の中に module の
-// 読み込みが入る（`docs/testing-conventions.md`「`next/dynamic` を含む木を描くとき」）。
-beforeAll(async () => {
-  await import("@/features/cart/ui/contents/contents");
-});
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  getMyCart.mockResolvedValue(CART);
-  useMediaQuery.mockReturnValue(false);
-  verifySession.mockResolvedValue(null);
-  useCartStore.setState({ isOpen: true });
-});
-
 describe("ShopLayout", () => {
-  it("利用者向けの外枠へ子要素を入れる", async () => {
-    await renderLayout(<p>テスト用コンテンツ</p>);
+  it("利用者向けの外枠へ子要素を入れる", () => {
+    renderLayout(<p>テスト用コンテンツ</p>);
 
     expect(within(screen.getByRole("main")).getByText("テスト用コンテンツ")).toBeVisible();
   });
 
-  it("商品への導線を持つ", async () => {
-    await renderLayout();
+  it("主体を知らずに決まる導線は器が直接並べる", () => {
+    renderLayout();
 
     expect(screen.getByRole("link", { name: "商品" })).toHaveAttribute("href", "/products");
   });
 
-  it("役割を持たない主体には管理への入口を出さない", async () => {
-    verifySession.mockResolvedValue({
-      userId: "user-1",
-      role: SESSION_ROLE.user,
-      expiresAt: new Date("2026-01-01T00:00:00Z"),
-    });
+  it("主体で決まる導線を header の穴へ差す", () => {
+    renderLayout();
 
-    await renderLayout();
-
-    expect(screen.queryByRole("link", { name: "管理" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("banner")).getByText("管理（header）")).toBeVisible();
   });
 
-  it("未認証にも管理への入口を出さない", async () => {
-    await renderLayout();
-
-    expect(screen.queryByRole("link", { name: "管理" })).not.toBeInTheDocument();
-  });
-
-  it("管理の役割を持つ主体には管理への入口を出す", async () => {
-    verifySession.mockResolvedValue({
-      userId: "admin-1",
-      role: SESSION_ROLE.admin,
-      expiresAt: new Date("2026-01-01T00:00:00Z"),
-    });
-
-    await renderLayout();
-
-    expect(screen.getByRole("link", { name: "管理" })).toHaveAttribute("href", "/admin/products");
-  });
-
-  it("カートの入口を header に置く", async () => {
-    await renderLayout();
-
-    expect(
-      within(screen.getByRole("banner")).getByRole("button", { name: "カートを閉じる" }),
-    ).toBeVisible();
-  });
-
-  it("カートの中身をサーバから取り、本文の脇に置く", async () => {
-    await renderLayout();
-
-    const cart = screen.getByRole("complementary", { name: "カート" });
-
-    expect(getMyCart).toHaveBeenCalledOnce();
-    expect(await within(cart).findByText("小計")).toBeVisible();
-  });
-
-  it("header の入口と脇の領域が同じ要求を読む", async () => {
+  it("side menu の穴には履歴を積まない指定で差す", async () => {
     const user = userEvent.setup();
 
-    await renderLayout();
-    await user.click(
-      within(screen.getByRole("banner")).getByRole("button", { name: "カートを閉じる" }),
-    );
+    renderLayout();
+    await user.click(screen.getByRole("button", { name: "メニューを開く" }));
 
-    expect(screen.queryByRole("complementary", { name: "カート" })).not.toBeInTheDocument();
+    expect(await screen.findByText("管理（menu）")).toBeVisible();
   });
 
-  it("カートが空なら脇の領域を出さない", async () => {
-    getMyCart.mockResolvedValue(EMPTY_CART);
+  it("カートの入口を header の穴へ差す", () => {
+    renderLayout();
 
-    await renderLayout();
-
-    expect(screen.queryByRole("complementary", { name: "カート" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("banner")).getByText("カートの入口")).toBeVisible();
   });
 
-  it("カートを読めなかったとき、カートを出さずに本文を出す", async () => {
-    getMyCart.mockRejectedValue(new Error("上流が応答しません"));
+  it("カートの中身を本文の脇の穴へ差す", () => {
+    renderLayout();
 
-    await renderLayout(<p>本文</p>);
-
-    expect(screen.getByText("本文")).toBeVisible();
-    expect(screen.getByRole("link", { name: "商品" })).toBeVisible();
-    expect(screen.queryByRole("complementary", { name: "カート" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /カートを/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "カート" })).toBeVisible();
   });
 
   it("a11y 違反を持たない", async () => {
-    const { container } = await renderLayout(<p>テスト用コンテンツ</p>);
+    const { container } = renderLayout(<p>テスト用コンテンツ</p>);
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,

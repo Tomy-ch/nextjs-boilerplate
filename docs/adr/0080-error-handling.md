@@ -77,13 +77,22 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - `loading.tsx`(セグメントの pending UI)と `<Suspense fallback>` は、**待機表示を担う薄い表示境界**とする。`error.tsx` と対をなし、いずれも業務ロジックを持たない。中身のコンポーネントは feature 側に置き、特殊ファイルからは薄く委譲する(error.tsx と同じ / [0040](0040-routing-rendering-strategy.md) driving adapter 原則)
 - **Suspense 境界の粒度**: streaming SSR で「先に出せるシェル」と「待つ部分」を分けるため、境界は **feature 内の、実際にデータ待ちする部分の近く**に置く(`"use client"` を葉へ押し下げる [0040](0040-routing-rendering-strategy.md) と同じ発想で、fallback 境界も過度に上位へ置かない)。`page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにしない
 - `loading.tsx` も `app/` 配下の App Router 特殊ファイル([0027](0027-directory-structure.md) / [0028](0028-naming-convention.md))である
-- **一次資源が見つからないことのある route に `loading.tsx` を置かない。** 置くと応答が streaming になり、
-  本文より先にヘッダが出る。その後で `notFound()` に達しても status はもう 200 で、見つからない購入・記事・
-  ユーザが 200 として配信される。待機を見せたいなら、**取得が終わってから内側の一部分を `<Suspense>` で包む**
+- **一次資源が見つからないことは 200 で配信される。** [0041](0041-cache-components-decision.md) により
+  `Cache Components` が有効な間、動的な route は必ず殻から流れる。本文より先にヘッダが出るため、その後で
+  `notFound()` に達しても status はもう 200 で、見つからない購入・記事・ユーザが 200 として配信される。
+  **これは route 側の書き方では解けない** —— `loading.tsx` を置かなくても、`<Suspense>` を使わなくても、
+  `export const instant = false` を名乗っても変わらない。Next 自身が案内する回避は `proxy` での事前確認だが、
+  [0043](0043-middleware-policy.md) は `proxy` を cookie を読むだけの前捌きに限っており、採らない
+- **見つからないことは `noindex` と画面が伝える。** status で伝えられない以上、伝える手段は
+  `not-found.tsx` が返す画面と、`notFound()` が挿す `<meta name="robots" content="noindex">` である。
+  索引はこれで防げる。**防げないのは status で判定する読み手** —— 外形監視・DAST・非 JS クライアントからは
+  成功と区別できない。この代償は [0041](0041-cache-components-decision.md) で引き受けた
 - **その結果、待機の状態を持たない画面がある。** `rules.md` #18 の 4 状態は「4 つ必ず作る」ではなく
   「4 つを設計して、所有するものを実装・テストする」である。所有しない状態の部品を作ると、
   どこからも参照されない skeleton が残る。**所有しないと決めたことと、その理由を README に書く**
-- fallback の**見た目(スケルトン / スピナー)の UI 規約と、Suspense × PPR(`Cache Components`)の相互作用**は用途依存であり、PPR の採否は [0041](0041-cache-components-decision.md) が v1 採用に確定した(相互作用の確定は移行 PR)。本節は「境界の配置と薄さ」までを定め、UI 表現・PPR 前提設計は実装 PR で確定する
+- **Suspense × PPR の相互作用**: `Cache Components` は有効なので([0041](0041-cache-components-decision.md))、`<Suspense>` の位置は待機表示の話ではなく**静的な殻と動的な穴の境界そのもの**である。上の「待つ部分の近くへ置く」は、有効化後は性能の助言ではなく**殻を配れるかどうかの条件**になる —— 境界より外にある取得が 1 つでも残っていれば、その route は殻を配れない
+- **fallback は場所を取る。** 穴が埋まる瞬間に周りが動かないよう、待機表示は実物と同じ大きさの枠を出す(`docs/rules.md` #17 / #17b)。描くものを持たない穴(計測など)だけが `null` を fallback にしてよい
+- fallback の**見た目(スケルトン / スピナー)の UI 規約**は用途依存であり、fork 先で確定する
 
 ### 5. swallow 禁止・cause chain・redact(go `rules.md` 翻案)
 
@@ -112,7 +121,7 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - ❌ 同一エラーを複数箇所で重複ログすること(境界で 1 回)
 - ❌ `Unauthenticated`(401)を `Internal` へ畳むこと(§2。再試行できる失敗と混ざる)
 - ❌ 画面が成り立つために要らない値の degrade を、画面ごとの try / catch で書くこと(§2。境界で畳む)
-- ❌ 一次資源が 404 になりうる route に `loading.tsx` を置くこと(§4。200 で配信される)
+- ❌ 一次資源の不在を status で伝えられる前提で設計すること(§4。有効な `Cache Components` の下では 200 で配信される)
 - ❌ 画面が所有しない状態の部品を作ること(§4。参照されない skeleton が残る)
 
 ## 補足
