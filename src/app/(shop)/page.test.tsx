@@ -4,9 +4,13 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-const { HomePageContent } = vi.hoisted(() => ({ HomePageContent: vi.fn() }));
+const { HomePageContent, HomeCategoriesContent } = vi.hoisted(() => ({
+  HomePageContent: vi.fn(),
+  HomeCategoriesContent: vi.fn(() => null),
+}));
 
 vi.mock("@/features/home/page-content", () => ({ HomePageContent }));
+vi.mock("@/features/home/categories-content", () => ({ HomeCategoriesContent }));
 
 import HomePage, { metadata } from "./page";
 
@@ -50,6 +54,13 @@ describe("HomePage", () => {
     const { container } = render(<HomePage />);
 
     expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+  });
+
+  it("待たずに配れる分類の節は待機表示の外に置く", () => {
+    pending();
+    render(<HomePage />);
+
+    expect(HomeCategoriesContent).toHaveBeenCalled();
   });
 
   it("a11y 違反を持たない", async () => {

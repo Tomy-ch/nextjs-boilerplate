@@ -1,4 +1,3 @@
-import { getProductCategories } from "@/adapters/server/api/product-masters";
 import {
   getProductListPage,
   getProductRanking,
@@ -42,27 +41,28 @@ function toSectionState<T>(section: string, settled: PromiseSettledResult<T>): S
 }
 
 /**
- * トップの中身。取得と組み立てを行う。
+ * トップのうち、要求ごとに取る中身。
  *
  * @remarks
- * 3 系統を並行して取得します。直列にすると、前の系統が返るまで次の取得が始まらず、待ち時間が
- * 3 つの合計になります。系統同士に依存はありません。
+ * 2 系統を並行して取得します。直列にすると、前の系統が返るまで次の取得が始まらず、待ち時間が
+ * 2 つの合計になります。系統同士に依存はありません。
  *
  * `Promise.all` ではなく `allSettled` を使うのは、1 つの失敗で残りを捨てないためです。`all` は
  * 最初の失敗で待機を打ち切るため、成功した系統の結果が手元にあっても使えません。
+ *
+ * 分類はここに居ません。取得がリクエストをまたいで残るので、待たずに配れる側
+ * （[categories-content.tsx](./categories-content.tsx)）へ出してあります。
  */
 export const HomePageContent = withScreenSpan("features/home/page-content", async () => {
-  const [newArrivals, ranking, categories] = await Promise.allSettled([
+  const [newArrivals, ranking] = await Promise.allSettled([
     getProductListPage({ first: NEW_ARRIVAL_COUNT, sort: PRODUCT_SORT.NEWEST }).then(
       (page) => page.items,
     ),
     getProductRanking({ limit: RANKING_LIMIT }),
-    getProductCategories(),
   ]);
 
   return (
     <HomeView
-      categories={toSectionState("categories", categories)}
       newArrivals={toSectionState("new-arrivals", newArrivals)}
       ranking={toSectionState("ranking", ranking)}
     />

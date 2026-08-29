@@ -7,21 +7,18 @@ import { axe } from "vitest-axe";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import type { CursorPage } from "@/model/pagination";
-import type { ProductListItem, ProductRankingEntry, ProductRef } from "@/model/product/product";
+import type { ProductListItem, ProductRankingEntry } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
 
 const { getProductListPage, getProductRanking } = vi.hoisted(() => ({
   getProductListPage: vi.fn(),
   getProductRanking: vi.fn(),
 }));
-const { getProductCategories } = vi.hoisted(() => ({ getProductCategories: vi.fn() }));
-
 vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/products")>()),
   getProductListPage,
   getProductRanking,
 }));
-vi.mock("@/adapters/server/api/product-masters", () => ({ getProductCategories }));
 
 import { HomePageContent } from "./page-content";
 
@@ -44,21 +41,17 @@ const ENTRY: ProductRankingEntry = {
   soldQuantity: 96,
 };
 
-const CATEGORIES: readonly ProductRef[] = [{ id: "c1", name: "オーディオ" }];
-
 beforeEach(() => {
   getProductListPage.mockReset().mockResolvedValue(PAGE);
   getProductRanking.mockReset().mockResolvedValue([ENTRY]);
-  getProductCategories.mockReset().mockResolvedValue(CATEGORIES);
 });
 
 describe("HomePageContent", () => {
-  it("3 系統を並べて描く", async () => {
+  it("2 系統を並べて描く", async () => {
     render(await HomePageContent());
 
     expect(screen.getByText("ワイヤレスイヤホン")).toBeVisible();
     expect(screen.getByText("スマートウォッチ")).toBeVisible();
-    expect(screen.getByRole("link", { name: "オーディオ" })).toBeInTheDocument();
   });
 
   it("新着を公開日時の新しい順で取る", async () => {
@@ -69,7 +62,7 @@ describe("HomePageContent", () => {
     );
   });
 
-  it("3 系統を直列にせず、どれも解決を待たずに始める", async () => {
+  it("2 系統を直列にせず、どちらも解決を待たずに始める", async () => {
     const started = new Set<string>();
     const release: (() => void)[] = [];
     const held = <T,>(name: string, value: T) =>
@@ -84,12 +77,11 @@ describe("HomePageContent", () => {
 
     getProductListPage.mockImplementation(held("newArrivals", PAGE));
     getProductRanking.mockImplementation(held("ranking", [ENTRY]));
-    getProductCategories.mockImplementation(held("categories", CATEGORIES));
 
     const rendering = HomePageContent();
 
     await vi.waitFor(() => {
-      expect(started).toEqual(new Set(["newArrivals", "ranking", "categories"]));
+      expect(started).toEqual(new Set(["newArrivals", "ranking"]));
     });
 
     for (const resolve of release) {
@@ -133,11 +125,10 @@ describe("HomePageContent", () => {
 
     getProductListPage.mockRejectedValue(failure);
     getProductRanking.mockRejectedValue(failure);
-    getProductCategories.mockRejectedValue(failure);
 
     render(await HomePageContent());
 
-    expect(screen.getAllByRole("alert")).toHaveLength(3);
+    expect(screen.getAllByRole("alert")).toHaveLength(2);
   });
 
   it("a11y 違反を持たない", async () => {
