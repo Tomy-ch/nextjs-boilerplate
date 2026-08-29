@@ -52,6 +52,11 @@ function withCookies(cookies: Record<string, string>): NextRequest {
   return new NextRequest(new URL("/help", "http://localhost:3000"), { headers: { cookie } });
 }
 
+/** その名前の cookie を載せた `Set-Cookie` の 1 行ぶん。属性まで含む。 */
+function setCookieFor(response: Response, name: string): string {
+  return response.headers.getSetCookie().find((entry) => entry.startsWith(`${name}=`)) ?? "";
+}
+
 /** 応答が発行した計測 id。撤去のときは空文字が載る。 */
 function issuedMeasurementId(response: Response): string | undefined {
   return response.headers
@@ -305,6 +310,36 @@ describe("proxy", () => {
     expect(issuedMeasurementId(response)).toBeUndefined();
   });
 
+  it("計測 id を配る応答は、資格情報が無くても共有キャッシュへ載せない", async () => {
+    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted }));
+
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("止めているあいだも、同意が得られていれば計測 id を配る", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted }));
+
+    expect(issuedMeasurementId(response)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it("https で配信されていれば、計測 id に secure を付ける", async () => {
+    const request = new NextRequest(new URL("/help", "https://app.example.test"), {
+      headers: { cookie: `${CONSENT_COOKIE_NAME}=${CONSENT_CHOICE.granted}` },
+    });
+
+    const response = await proxy(request);
+
+    expect(setCookieFor(response, MEASUREMENT_ID_COOKIE_NAME)).toContain("Secure");
+  });
+
+  it("https でなければ secure を付けない。付けると手元で保存されない", async () => {
+    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted }));
+
+    expect(setCookieFor(response, MEASUREMENT_ID_COOKIE_NAME)).not.toContain("Secure");
+  });
+
   // ----- 異常系 -----
   it("未認証で保護されたパスへ来たらログインへ送る", async () => {
     const response = await proxy(request("/account"));
@@ -400,12 +435,6 @@ describe("proxy", () => {
     expect(issuedMeasurementId(response)).toBe("");
   });
 
-  it("計測 id を配る応答は、資格情報が無くても共有キャッシュへ載せない", async () => {
-    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted }));
-
-    expect(response.headers.get("cache-control")).toBe("private, no-store");
-  });
-
   it("計測 id を撤去する応答も共有キャッシュへ載せない", async () => {
     const response = await proxy(withCookies({ [MEASUREMENT_ID_COOKIE_NAME]: "issued-earlier" }));
 
@@ -424,13 +453,5 @@ describe("proxy", () => {
     const response = await proxy(withCookies({ [MEASUREMENT_ID_COOKIE_NAME]: "issued-earlier" }));
 
     expect(issuedMeasurementId(response)).toBe("");
-  });
-
-  it("止めているあいだも、同意が得られていれば計測 id を配る", async () => {
-    maintenance.isStopped = true;
-
-    const response = await proxy(withCookies({ [CONSENT_COOKIE_NAME]: CONSENT_CHOICE.granted }));
-
-    expect(issuedMeasurementId(response)).toMatch(/^[0-9a-f-]{36}$/);
   });
 });

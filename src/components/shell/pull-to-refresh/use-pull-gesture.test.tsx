@@ -73,15 +73,21 @@ function Probe({
   onRelease,
   modal = false,
   backgroundHidden = false,
+  backgroundInert = false,
   decorated = false,
+  hasMain = true,
 }: {
   onRelease: () => void;
   /** 面が `aria-modal` を立てて名乗る形。 */
   modal?: boolean;
-  /** 面が背面を閉じて名乗る形。同梱の overlay が使う Radix はこちらしか採らない。 */
+  /** 面が背面を `aria-hidden` で閉じて名乗る形。同梱の overlay が使う Radix はこちらを採る。 */
   backgroundHidden?: boolean;
+  /** 面が背面を `inert` で閉じて名乗る形。 */
+  backgroundInert?: boolean;
   /** 本文の中に、装飾として隠した要素がある形。 */
   decorated?: boolean;
+  /** 本文の landmark を持つか。器を通らない画面では持たない。 */
+  hasMain?: boolean;
 }) {
   const { enabled, state, distance } = usePullGesture(onRelease);
 
@@ -90,8 +96,8 @@ function Probe({
       <p>{enabled ? "受け付ける" : "受け付けない"}</p>
       <p>{state}</p>
       <p>{`${distance}px`}</p>
-      <div aria-hidden={backgroundHidden || undefined}>
-        <main>{decorated ? <span aria-hidden="true" /> : null}</main>
+      <div aria-hidden={backgroundHidden || undefined} inert={backgroundInert || undefined}>
+        {hasMain ? <main>{decorated ? <span aria-hidden="true" /> : null}</main> : null}
       </div>
       {modal ? <div aria-modal="true" role="dialog" /> : null}
     </div>
@@ -310,6 +316,25 @@ describe("usePullGesture", () => {
 
     expect(screen.getByText(PULL_STATE.IDLE)).toBeVisible();
     expect(screen.getByText("0px")).toBeVisible();
+  });
+
+  it("背面を `inert` で閉じるだけの面でも拾わない", () => {
+    stubMatchMedia(true);
+    render(<Probe backgroundInert onRelease={vi.fn()} />);
+
+    pull(REACHING_MOVE);
+
+    expect(screen.getByText(PULL_STATE.IDLE)).toBeVisible();
+    expect(screen.getByText("0px")).toBeVisible();
+  });
+
+  it("本文の landmark が無い画面では、背面が閉じていても拾う", () => {
+    stubMatchMedia(true);
+    render(<Probe backgroundHidden hasMain={false} onRelease={vi.fn()} />);
+
+    pull(REACHING_MOVE);
+
+    expect(screen.getByText(PULL_STATE.READY)).toBeVisible();
   });
 
   it("本文の中の装飾を隠しているだけなら拾う", () => {

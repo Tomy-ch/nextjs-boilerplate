@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 import { CONSENT_BANNER_COPY } from "@/components/shell/consent-banner/consent-banner.definition";
 import { CONSENT_COOKIE_NAME } from "@/model/consent";
@@ -62,6 +63,16 @@ describe("Consent", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(document.querySelector('[data-testid="gated"]')).toBeNull();
+  });
+
+  it("a11y 違反を持たない", async () => {
+    const Consent = await loadIsland();
+
+    const { container } = render(<Consent>{GATED}</Consent>);
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 
   it("同意状態を知らないサーバ側では、尋ねも読み込みもしない", async () => {
