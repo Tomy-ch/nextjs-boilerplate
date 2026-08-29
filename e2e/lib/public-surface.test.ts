@@ -4,6 +4,7 @@ import {
   findCanonicalHref,
   findOpenGraphImage,
   isNoindex,
+  isSameLocation,
   listIconHrefs,
   listRobotsDirectives,
   listSitemapLocations,
@@ -127,6 +128,21 @@ describe("isNoindex", () => {
 
   it("content を持たない robots は偽", () => {
     expect(isNoindex('<meta name="robots"/>')).toBe(false);
+  });
+});
+
+describe("isSameLocation", () => {
+  // ----- 正常系 -----
+  it("root の末尾の区切りの有無を区別しない", () => {
+    expect(isSameLocation("https://a.test/", "https://a.test")).toBe(true);
+  });
+
+  it("経路が違えば別の場所", () => {
+    expect(isSameLocation("https://a.test/a", "https://a.test/b")).toBe(false);
+  });
+
+  it("origin が違えば別の場所", () => {
+    expect(isSameLocation("https://a.test/", "https://b.test/")).toBe(false);
   });
 });
 

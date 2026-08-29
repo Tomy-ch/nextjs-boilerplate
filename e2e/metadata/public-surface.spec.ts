@@ -9,6 +9,7 @@ import {
   findCanonicalHref,
   findOpenGraphImage,
   isNoindex,
+  isSameLocation,
   listIconHrefs,
   listRobotsDirectives,
   listSitemapLocations,
@@ -55,7 +56,10 @@ test("sitemap.xml が挙げる URL は実在し、自分を正規 URL として�
 
     const html = await response.text();
 
-    expect(findCanonicalHref(html), location).toBe(location);
+    const canonical = findCanonicalHref(html);
+
+    expect(canonical, location).not.toBeNull();
+    expect(isSameLocation(canonical ?? "", location), `${location} → ${canonical}`).toBe(true);
     expect(isNoindex(html), location).toBe(false);
   }
 });

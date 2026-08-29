@@ -101,6 +101,21 @@ export function isNoindex(html: string): boolean {
 }
 
 /**
+ * 2 つの URL が同じ場所を指すか。
+ *
+ * @remarks
+ * 綴りではなく解決した形で比べます。sitemap は root を `https://a.test/` と書き、Next.js の
+ * canonical は `metadataBase` に `/` を足した結果を `https://a.test` と出すため、文字列では
+ * 一致しません。
+ *
+ * @param left - 比べる URL
+ * @param right - 比べる URL
+ */
+export function isSameLocation(left: string, right: string): boolean {
+  return new URL(left).href === new URL(right).href;
+}
+
+/**
  * `robots.txt` の本文から、指定した field の値を書かれた順に返す。
  *
  * @param text - `robots.txt` の本文
