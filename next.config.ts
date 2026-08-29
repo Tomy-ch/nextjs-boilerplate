@@ -53,6 +53,8 @@ const nextConfig = async (phase: string): Promise<NextConfig> => {
             authIssuer: environment.AUTH_ISSUER,
             servesOverTls: isServedOverTls(environment.AUTH_REDIRECT_URI),
             development: phase === PHASE_DEVELOPMENT_SERVER,
+            // 容器 ID が空なら、読み込まないもののために配信ヘッダを緩めない。
+            loadsTagManager: environment.NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID !== "",
           }),
         },
       ];

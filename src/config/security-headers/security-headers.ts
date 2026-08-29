@@ -14,7 +14,29 @@ export type SecurityHeaderInputs = {
   readonly servesOverTls: boolean;
   /** 開発サーバーか。React が eval を要求する。 */
   readonly development: boolean;
+  /** 同意ゲートの裏でタグマネージャを読み込む配備か（容器 ID が空でない）。 */
+  readonly loadsTagManager: boolean;
 };
+
+/**
+ * タグマネージャとその先のタグが使う配信元。
+ *
+ * @remarks
+ * **容器 ID を宣言した配備にだけ載せます。** 外した配備で開けたままにすると、読み込まないものの
+ * ために攻撃面だけが残ります（[0131](../../../docs/adr/0131-cookie-consent.md) §2）。
+ *
+ * `googletagmanager.com` は容器そのものと、そこから読み込まれる Google 製タグの配信元です。
+ * `google-analytics.com` は計測の送り先で、こちらは `connect-src` と `img-src` にだけ要ります
+ * —— 送信は `fetch` / `sendBeacon` か、それが使えない環境では 1×1 の画像で行われるためです。
+ */
+const TAG_MANAGER_SCRIPT_ORIGIN = "https://www.googletagmanager.com";
+
+/** 計測の送り先。ワイルドカードは地域別のホスト（`region1.google-analytics.com` 等）に要る。 */
+const TAG_MANAGER_COLLECT_ORIGINS = [
+  "https://www.google-analytics.com",
+  "https://*.google-analytics.com",
+  "https://*.analytics.google.com",
+] as const;
 
 /**
  * 外部への遷移で `Referer` に載せてよい範囲。
@@ -69,14 +91,23 @@ function buildContentSecurityPolicy({
   authIssuer,
   servesOverTls,
   development,
+  loadsTagManager,
 }: SecurityHeaderInputs): string {
+  const tagManagerScript = loadsTagManager ? [TAG_MANAGER_SCRIPT_ORIGIN] : [];
+  const tagManagerCollect = loadsTagManager
+    ? [TAG_MANAGER_SCRIPT_ORIGIN, ...TAG_MANAGER_COLLECT_ORIGINS]
+    : [];
+
   const directives: readonly (readonly [string, readonly string[]])[] = [
     ["default-src", ["'self'"]],
-    ["script-src", ["'self'", "'unsafe-inline'", ...(development ? ["'unsafe-eval'"] : [])]],
+    [
+      "script-src",
+      ["'self'", "'unsafe-inline'", ...(development ? ["'unsafe-eval'"] : []), ...tagManagerScript],
+    ],
     ["style-src", ["'self'", "'unsafe-inline'"]],
-    ["img-src", ["'self'", "blob:", new URL(mediaOrigin).origin]],
+    ["img-src", ["'self'", "blob:", new URL(mediaOrigin).origin, ...tagManagerCollect]],
     ["font-src", ["'self'"]],
-    ["connect-src", ["'self'"]],
+    ["connect-src", ["'self'", ...tagManagerCollect]],
     ["object-src", ["'none'"]],
     ["base-uri", ["'self'"]],
     ["form-action", ["'self'", new URL(authIssuer).origin]],
@@ -96,9 +127,14 @@ function buildContentSecurityPolicy({
  * （[0111](../../../docs/adr/0111-csp-security-headers.md) §5）。要求に依るヘッダ（資格情報を
  * 載せた要求への `Cache-Control`）は `src/proxy.ts` が持ちます。
  *
- * `Cross-Origin-Embedder-Policy: require-corp` は画像が `next/image`（同一 origin）経由のため影響を
- * 受けません（[0111](../../../docs/adr/0111-csp-security-headers.md) §2）。別 origin の iframe や script を
- * 差す fork は、この値から降りる判断を伴います。
+ * **`Cross-Origin-Embedder-Policy` は、タグマネージャを読み込む配備では出しません。**
+ * `require-corp` は副資源に `Cross-Origin-Resource-Policy` か CORS を要求しますが、タグが読む
+ * Google の配信元はそれを返しません。**cross-origin isolation を失うことを受け入れた結果**で、
+ * `SharedArrayBuffer` 等の isolation を前提とする機能はその配備では使えません
+ * （[0111](../../../docs/adr/0111-csp-security-headers.md) §5）。
+ *
+ * 読み込まない配備では出したままにします。**読まないもののために isolation を捨てる理由が無い**
+ * ためで、容器 ID を空にすることが isolation を取り戻す口になります。
  *
  * @param inputs - 検証済みの ENV と配信の条件
  * @returns `headers()` の `headers` にそのまま渡せる一覧
@@ -111,7 +147,9 @@ export function buildSecurityHeaders(inputs: SecurityHeaderInputs): ResponseHead
     { key: "Referrer-Policy", value: REFERRER_POLICY },
     { key: "Permissions-Policy", value: PERMISSIONS_POLICY },
     { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-    { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+    ...(inputs.loadsTagManager
+      ? []
+      : [{ key: "Cross-Origin-Embedder-Policy", value: "require-corp" }]),
     { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
     ...(inputs.servesOverTls
       ? [{ key: "Strict-Transport-Security", value: STRICT_TRANSPORT_SECURITY }]

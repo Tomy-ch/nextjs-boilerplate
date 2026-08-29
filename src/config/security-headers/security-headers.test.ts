@@ -7,6 +7,7 @@ const production: SecurityHeaderInputs = {
   authIssuer: "https://idp.example.com/realms/shop",
   servesOverTls: true,
   development: false,
+  loadsTagManager: false,
 };
 
 const local: SecurityHeaderInputs = {
@@ -14,7 +15,11 @@ const local: SecurityHeaderInputs = {
   authIssuer: "http://localhost:2010/default",
   servesOverTls: false,
   development: true,
+  loadsTagManager: false,
 };
+
+/** 容器 ID を宣言した配備。タグマネージャを読み込む。 */
+const withTagManager: SecurityHeaderInputs = { ...production, loadsTagManager: true };
 
 function header(inputs: SecurityHeaderInputs, key: string): string | undefined {
   return buildSecurityHeaders(inputs).find((entry) => entry.key === key)?.value;
@@ -121,5 +126,30 @@ describe("buildSecurityHeaders", () => {
 
     expect(policy).not.toMatch(/\s{2,}/);
     expect(policy.endsWith(";")).toBe(false);
+  });
+
+  it("容器 ID を宣言した配備は、タグマネージャの配信元を script-src へ載せる", () => {
+    expect(directives(withTagManager).get("script-src")).toContain(
+      "https://www.googletagmanager.com",
+    );
+  });
+
+  it("容器 ID を宣言した配備は、計測の送り先を connect-src と img-src へ載せる", () => {
+    const declared = directives(withTagManager);
+
+    expect(declared.get("connect-src")).toContain("https://www.google-analytics.com");
+    expect(declared.get("img-src")).toContain("https://www.google-analytics.com");
+  });
+
+  it("容器 ID を宣言した配備は、cross-origin isolation を降ろす", () => {
+    expect(header(withTagManager, "Cross-Origin-Embedder-Policy")).toBeUndefined();
+  });
+
+  it("読み込まない配備は、配信元を開けず isolation も保つ", () => {
+    const declared = directives(production);
+
+    expect(declared.get("script-src")).not.toContain("https://www.googletagmanager.com");
+    expect(declared.get("connect-src")).toEqual(["'self'"]);
+    expect(header(production, "Cross-Origin-Embedder-Policy")).toBe("require-corp");
   });
 });
