@@ -87,13 +87,11 @@ export const test = base.extend<Fixtures>({
       });
     });
 
-    // 同意を尋ねる面は選び終えるまで画面を覆う。ジャーニーが確かめたいのはその先なので、
-    // 選び終えた状態から始める。**拒否の側で始める** —— 同意すると計測 id が配られ、どの
-    // ジャーニーも本題と関係のない cookie を持つことになる。尋ねる面そのものの検証は
-    // `e2e/journeys/consent.spec.ts` が持ち、そこはこの test を使わない。
-    await page.context().addCookies([
-      { name: CONSENT_COOKIE_NAME, value: CONSENT_CHOICE.denied, url: baseURL },
-    ]);
+    // 同意を尋ねる面は選び終えるまで画面を覆う。拒否の側で始める理由は README「同意は選び終えた
+    // 状態から始める」。
+    await page
+      .context()
+      .addCookies([{ name: CONSENT_COOKIE_NAME, value: CONSENT_CHOICE.denied, url: baseURL }]);
 
     // 宛先ではなく**絵であること**で判る。配信元は設定の値で、ここへ書き写すと変えたときに
     // 古い宛先だけを見張り続ける。最適化を通す経路も通さない経路も同じ扱いになる。

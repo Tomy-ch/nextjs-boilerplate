@@ -12,7 +12,6 @@ import { join } from "node:path";
 
 import { chromium } from "@playwright/test";
 import { TEST_SESSION_ISSUED_STATUS, TEST_SESSION_PATH } from "../../e2e/lib/dev-session";
-import { CONSENT_CHOICE, CONSENT_COOKIE_NAME } from "../../src/model/consent";
 import {
   listScreenRoutes,
   resolveScreens,
@@ -20,6 +19,7 @@ import {
   SCREENS,
   selectScreens,
 } from "../../e2e/lib/screens";
+import { CONSENT_CHOICE, CONSENT_COOKIE_NAME } from "../../src/model/consent";
 import { decideGate } from "../lib/input-hash";
 import { numstatArgs, parseNumstat } from "../lib/numstat";
 import {
@@ -317,7 +317,6 @@ async function measureAll(): Promise<void> {
 
   const headerFiles = new Map<string, string>();
   const measurements: Measurement[] = [];
-  // 役割を持たない画面もヘッダを送る。同意 cookie が要るのは役割の有無に依らない。
   const anonymousHeaders = writeAnonymousHeaders();
 
   for (const target of planTargets(screens, baseUrl)) {

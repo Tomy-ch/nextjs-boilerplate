@@ -47,7 +47,7 @@ export type ConsentState =
       readonly status: "unread";
     }
   | {
-      /** 読んだが、利用者はまだ選んでいない。尋ねるのはこの状態のときだけ。 */
+      /** 読んだが、利用者はまだ選んでいない。尋ねるかどうかは {@link shouldAskConsent} が判定する。 */
       readonly status: "unset";
     }
   | {
@@ -71,7 +71,8 @@ export const MEASUREMENT_ID_COOKIE_NAME = "analytics_id";
  *
  * @remarks
  * 同意は期限付きで、切れたらもう一度尋ねます。無期限にすると、繋ぐ製品も文面も変わったあとの
- * 画面が、何年も前の意思をもって動きます。180 日は EU の監督機関が目安として挙げる 6 か月です。
+ * 画面が、何年も前の意思をもって動きます。180 日という値の根拠は
+ * [0131](../../docs/adr/0131-cookie-consent.md) §1。
  *
  * 計測 id にも同じ期限を使います。id だけが同意より長く残ると、尋ね直している最中の利用者を
  * 前の id で識別できてしまいます。
