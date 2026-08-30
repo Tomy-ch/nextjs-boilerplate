@@ -107,12 +107,13 @@ go の「コンストラクタが SubConfig を受け取る」1 パターンは�
 
 taint は [0112](0112-data-classification-cache-boundary.md) の**段 4(client 送信前)**であり、PII 防御の主機構ではない。主防御は取得範囲の最小化・キャッシュ能力の制限・request scope・Client DTO の最小化であり、taint はそれらを抜けた誤送信を実行時に捕まえる。**参照でしか追えず、コピーと派生値には及ばない**。
 
-#### 実装時に決めること
+#### 実装
 
-- **テストの React 解決** —— Vitest は `node_modules/react`(stable)を引くため `experimental_taint*` が存在しない。alias を Next 同梱の experimental へ向けるか、taint を注入で差し替えられる形にするか
-- **文字列の秘密をどこで登録するか** —— `config` は `imports-allowed: []` を宣言しており react を持ち込めない。登録は消費側(`adapters/server`)へ置く
-- **汚す対象と粒度** —— 取得の口で一律に汚すか値ごとか。入れ子まで届かせるか
-- **爆破対象外**であること([0112](0112-data-classification-cache-boundary.md) 決定 7)
+- **口は `adapters/server/taint/taint.ts` の 1 つ**。アプリのコードは `react` の experimental API を直接呼ばない。テストはこのモジュール境界を差し替え、**本物が効くことはこの口自身のテスト**が Next.js 同梱の experimental React と RSC 直列化器で確かめる。防御の中に「口があれば呼ぶ」分岐は置かない(口が消えた日に検査ごと黙って外れるため)
+- **テストの React 解決** —— 全体の alias は動かさない(client 側のテストが stable を要る)。taint の口のテストだけが、Next.js 同梱の experimental build を CJS の名前解決ごと差し替えて読む。位置は `next` の package から辿る(`experimental-react.fixture.ts`)
+- **文字列の秘密の登録場所** —— 読む側に置く。`config` は `imports-allowed: []` を宣言しており react を持ち込めない。署名鍵は `adapters/server/auth/resolver.ts` が登録し、登録の寿命は値を持つ singleton(`AuthConfig`)が握る
+- **汚す対象と粒度** —— **値が生まれる場所で、その object 1 つを汚す**。session の記録は復元した直後に汚す。入れ子は追わない —— 参照でしか追えない以上、粒度を細かくしても抜ける経路(コピー・派生値)は塞がらず、主防御は取得範囲と Client DTO の最小化が持つ
+- **爆破対象外**([0112](0112-data-classification-cache-boundary.md) 決定 7)。サンプル API 固有ではなく Server / Client 境界そのものを守る
 
 #### 例外の解消条件
 

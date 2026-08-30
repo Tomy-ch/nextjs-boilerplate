@@ -3,7 +3,7 @@ import { type HttpHandler, HttpResponse, http, type RequestHandler } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { seedFor, stableHandlers } from "./stable-responses";
+import { type ReferencePatch, seedFor, stableHandlers } from "./stable-responses";
 
 describe("seedFor", () => {
   // ----- 正常系 -----
@@ -114,6 +114,11 @@ function randomBody(): Record<string, unknown> {
 
 const server = setupServer(...stableHandlers(generated));
 
+/** 参照を整合させる差し替えを渡したときだけ立ち上げる、別の口の一式。 */
+function patchedServer(patch: ReferencePatch) {
+  return setupServer(...stableHandlers(generated, new Map([["getAlphaResponseMock", patch]])));
+}
+
 /** ハンドラが受け持つ口。並びと集合の比較に使う。 */
 function endpointOf(handler: HttpHandler): string {
   return `${String(handler.info.method)} ${String(handler.info.path)}`;
@@ -149,6 +154,28 @@ describe("stableHandlers", () => {
   afterAll(() => {
     server.close();
   });
+
+  /**
+   * 差し替えを渡した一式で 1 回叩く。
+   *
+   * @remarks
+   * ハンドラは組み立ての時点で差し替えを抱えるため、渡す相手ごとに一式を立て直します。立てている
+   * 間だけ既定の一式を畳むのは、同じ URL を 2 つの一式が受け持つと照合が先勝ちになるためです。
+   */
+  async function fetchPatched(patch: ReferencePatch): Promise<unknown> {
+    server.close();
+
+    const patched = patchedServer(patch);
+
+    patched.listen({ onUnhandledRequest: "error" });
+
+    try {
+      return await fetch("https://mock.test/alpha").then((response) => response.json());
+    } finally {
+      patched.close();
+      server.listen({ onUnhandledRequest: "error" });
+    }
+  }
 
   /** 本文を持つ口を 1 回叩く。 */
   async function write(body: unknown): Promise<string> {
@@ -219,6 +246,33 @@ describe("stableHandlers", () => {
     expect(response.status).toBe(204);
   });
 
+  it("参照を整合させる差し替えを、組み立てた応答へ掛ける", async () => {
+    const body = await fetchPatched((response) => ({
+      ...(response as Record<string, unknown>),
+      aligned: true,
+    }));
+
+    expect(body).toMatchObject({ aligned: true });
+  });
+
+  it("差し替えは、別の口の応答をその口と同じ内容で引ける", async () => {
+    const drawn = (await fetchPatched((_response: unknown, draw) => ({
+      drawn: draw("getBetaResponseMock", "/beta"),
+    }))) as { drawn: unknown };
+    const direct = await fetch("https://mock.test/beta").then((response) => response.json());
+
+    expect(drawn.drawn).toEqual(direct);
+  });
+
+  it("差し替えを掛けても、同じ要求には同じ応答を返す", async () => {
+    const patch: ReferencePatch = (response, draw) => ({
+      ...(response as Record<string, unknown>),
+      drawn: draw("getBetaResponseMock", "/beta"),
+    });
+
+    expect(await fetchPatched(patch)).toEqual(await fetchPatched(patch));
+  });
+
   it("module のキーが並ぶ順序によらず同じ並びを返す", () => {
     // `import * as` が返す module のキーは仕様上ソート順で列挙されるが、bundler の変換を通すと
     // 宣言順で見えることがある。並びが読み込み経路で変わると、同じ具体度の口どうしの照合順が
@@ -231,6 +285,20 @@ describe("stableHandlers", () => {
   });
 
   // ----- 異常系 -----
+  it("参照先の応答を生成できない名前を引くと落ちる", async () => {
+    const body = (await fetchPatched((_response, draw) => {
+      try {
+        draw("getUnknownResponseMock", "/unknown");
+      } catch (error) {
+        return { failure: String(error) };
+      }
+
+      return { failure: null };
+    })) as { failure: string | null };
+
+    expect(body.failure).toContain("参照先の応答を生成できません");
+  });
+
   it("口の名前を持つが関数でない宣言を無視する", () => {
     const broken = { ...generated, getBrokenMockHandler: "組み立てられない値" };
 

@@ -84,6 +84,19 @@ describe("resolveScreens", () => {
     expect(resolveScreens(["/", "/_global-error"], declarations)[0]?.mask).toBeUndefined();
   });
 
+  it("描き終わりの目印の宣言を、撮る側まで運ぶ", () => {
+    // 運ばれないと、最初の一式から外した島を持つ画面が、枠のまま撮られた絵と交互に基準へ入る。
+    const withSettled: readonly ScreenDeclaration[] = [
+      { route: "/", name: "home", path: "/", settled: "svg.recharts-surface" },
+    ];
+
+    expect(resolveScreens(["/"], withSettled)[0]?.settled).toBe("svg.recharts-surface");
+  });
+
+  it("目印を持たない画面は、待たずに撮る側へ渡る", () => {
+    expect(resolveScreens(["/", "/_global-error"], declarations)[0]?.settled).toBeUndefined();
+  });
+
   it("動的な区間を宣言された URL へ置き換える", () => {
     const resolved = resolveScreens(
       ["/gamma/[id]"],
