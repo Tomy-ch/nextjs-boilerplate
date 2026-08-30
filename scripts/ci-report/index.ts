@@ -12,11 +12,7 @@
 import { readFileSync } from "node:fs";
 
 import { composeIssueBody, type IssueEvidence } from "../lib/issue-body.js";
-import {
-  composeReviewCommand,
-  REVIEW_KIND,
-  REVIEW_WORKTREE_NOTE,
-} from "../lib/review-command.js";
+import { composeReviewCommand, REVIEW_KIND, REVIEW_WORKTREE_NOTE } from "../lib/review-command.js";
 
 /** `--name value` の並びを表に読む。 */
 function readOptions(argv: readonly string[]): Map<string, string> {

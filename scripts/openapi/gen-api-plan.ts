@@ -13,7 +13,7 @@
  * **手書きを含めてはいけません。** `src/adapters/gen/README.md` と `mocks/` 直下は人が書いた
  * ものなので、消してよいのは契約ごとの部分木だけです。
  */
-export const GEN_API_OUTPUTS: readonly string[] = ["src/adapters/gen/api", "mocks/api"];
+const GEN_API_OUTPUTS: readonly string[] = ["src/adapters/gen/api", "mocks/api"];
 
 /**
  * 生成のあいだ、既存の生成物を置いておく場所。生成が失敗したらここから書き戻す。
@@ -22,7 +22,7 @@ export const GEN_API_OUTPUTS: readonly string[] = ["src/adapters/gen/api", "mock
  * **作業ツリーの中を指します。** 退避は名前の付け替えで行うため、別のファイルシステム
  * （`/tmp` など）を指すと動かせません。
  */
-export const GEN_API_BACKUP = "tmp/gen-api-backup";
+const GEN_API_BACKUP = "tmp/gen-api-backup";
 
 /** 生成物 1 件の移動。`from` を `to` へ動かす。 */
 export type StashMove = {

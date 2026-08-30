@@ -10,7 +10,7 @@ import {
 } from "./steps.js";
 
 /** 切れるブランチの種別。そのまま接頭辞になる。 */
-export const RELEASE_BRANCH_PREFIXES = ["hotfix", "release"] as const;
+const RELEASE_BRANCH_PREFIXES = ["hotfix", "release"] as const;
 
 export type ReleaseBranchPrefix = (typeof RELEASE_BRANCH_PREFIXES)[number];
 

@@ -36,7 +36,9 @@ describe("composeReviewCommand", () => {
 
   // ----- 異常系 -----
   it("対象が 1 つも無ければ組み立てない", () => {
-    expect(composeReviewCommand({ kind: REVIEW_KIND.story, ids: "", headRef: "develop" })).toBeNull();
+    expect(
+      composeReviewCommand({ kind: REVIEW_KIND.story, ids: "", headRef: "develop" }),
+    ).toBeNull();
   });
 
   it("id が文字集合を外れていれば組み立てない", () => {

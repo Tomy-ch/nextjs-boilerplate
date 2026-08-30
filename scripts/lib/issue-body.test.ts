@@ -12,7 +12,9 @@ describe("composeIssueBody", () => {
         runUrl: "https://example.test/runs/1",
         note: "trace を開いてください。",
       }),
-    ).toBe("落ちた内容:\n\n    1 failed\n\n実行: https://example.test/runs/1\n\ntrace を開いてください。\n");
+    ).toBe(
+      "落ちた内容:\n\n    1 failed\n\n実行: https://example.test/runs/1\n\ntrace を開いてください。\n",
+    );
   });
 
   it("道具の出力は空行も含めて字下げする", () => {

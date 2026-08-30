@@ -2,6 +2,7 @@
 
 // 画面単位の検証を挟む道具の入口。
 //
+//   comment <full.log> <report.json>  PR へ残す案内を組み立てて標準出力へ書く
 //   names   <report.json>   基準画像と食い違った画面の名前（カンマ区切り）
 //   orphans <report.json>   1 対 1 の対応が落ちたか（true / false）
 //   clear-screens           全数撮り直しの前に、画面の基準画像を置き場から消す
@@ -12,14 +13,22 @@
 import { existsSync, readFileSync, rmSync } from "node:fs";
 
 import { SCREEN_AREA, STORE_PATH } from "../../baseline/lib/store.js";
+import { classifyFailure, composeNotes } from "./comment.js";
 import { servePartnerOrigin } from "./partner-origin.js";
 import { collectFailedScreens, formatScreenNames, hasScreenBaselineFailure } from "./report.js";
 
 const USAGE =
-  "usage: e2e <names <report.json>|orphans <report.json>|clear-screens|serve-partner <host> <port>>";
+  "usage: e2e <comment <full.log> <report.json>|names <report.json>|orphans <report.json>|clear-screens|serve-partner <host> <port>>";
 
 function main(): void {
   const [command, file, port] = process.argv.slice(2);
+
+  if (command === "comment") {
+    if (!file || !port) fail(USAGE);
+    writeComment(file, port);
+
+    return;
+  }
 
   if (command === "clear-screens") {
     clearScreens();
@@ -48,6 +57,27 @@ function main(): void {
     );
   } catch (e) {
     fail(`レポートを読めません: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+// 落ちた画面の名前は、報告が読めなければ空にする。案内そのものは出したいので、ここで落とさない
+// —— 手元で開く節が消えるだけで、種別ごとの案内は残る。
+function writeComment(logFile: string, reportFile: string): void {
+  process.stdout.write(
+    composeNotes({
+      kinds: classifyFailure(readFileSync(logFile, "utf8")),
+      screenNames: readScreenNames(reportFile),
+      headRef: process.env.HEAD_REF ?? "",
+      runId: process.env.RUN_ID ?? "",
+    }),
+  );
+}
+
+function readScreenNames(reportFile: string): string {
+  try {
+    return formatScreenNames(collectFailedScreens(readFileSync(reportFile, "utf8")));
+  } catch {
+    return "";
   }
 }
 

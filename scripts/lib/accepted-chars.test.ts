@@ -5,7 +5,9 @@ import { containsUnsafe } from "./accepted-chars";
 describe("containsUnsafe", () => {
   // ----- 正常系 -----
   it("英数と経路・版・区切りの記号だけなら通す", () => {
-    expect(containsUnsafe("feature/419-consent-gate", "admin-dashboard,home", "v0.6.0")).toBe(false);
+    expect(containsUnsafe("feature/419-consent-gate", "admin-dashboard,home", "v0.6.0")).toBe(
+      false,
+    );
   });
 
   it("値を 1 つも渡さなければ通す", () => {

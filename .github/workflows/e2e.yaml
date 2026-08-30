@@ -275,104 +275,13 @@ jobs:
             exit 0
           fi
 
-          # Markers, not exit codes: one run can fail in several kinds at once, and the
-          # kinds are what decide which next step is the right one.
-          undeclared=false
-          unretakable=false
-          pixels=false
-
-          if grep -q '画面の宣言がありません' /tmp/e2e-full.log; then
-            undeclared=true
-          fi
-
-          # All three directories, not just the journeys: the stop mechanism and the public
-          # surface fail the same way and are repaired the same way. Naming only the journeys
-          # leaves their failures indistinguishable from a pixel drift.
-          if grep -qE '✘.*e2e/(journeys|maintenance|metadata)/' /tmp/e2e-full.log; then
-            unretakable=true
-          fi
-
-          if grep -qE "toHaveScreenshot|A snapshot doesn't exist|@screen-baselines" /tmp/e2e-full.log; then
-            pixels=true
-          fi
-
           cp /tmp/e2e-failed.log /tmp/e2e-comment/e2e.log
 
-          {
-            cat <<'ARTIFACT'
-          `e2e-diff` artifact に HTML レポートと、失敗した検証の trace が入っています。
-          ARTIFACT
-
-            if [ "${undeclared}" = 'true' ]; then
-              cat <<'UNDECLARED'
-
-          ### 画面の宣言が足りていません
-
-          `e2e/lib/screens.ts` へ宣言を足してください。巡回の対象は build の出力から取り、宣言と突き合わせています。**撮り直しでは直りません。**
-          UNDECLARED
-            fi
-
-            if [ "${unretakable}" = 'true' ]; then
-              cat <<'UNRETAKABLE'
-
-          ### 撮り直しでは直らない失敗があります
-
-          ジャーニー（`e2e/journeys/`）・停止中の扱い（`e2e/maintenance/`）・公開面（`e2e/metadata/`）のいずれかが落ちています。trace を開いて原因を特定してください。1 つの描画エンジンだけが落ちているなら、その engine 固有の挙動か実行環境のゆらぎです。落ちた検証を名指しで実行し直して切り分けてください。
-          UNRETAKABLE
-            fi
-
-            if [ "${pixels}" = 'true' ]; then
-              cat <<'PIXELS'
-
-          ### 画面の見た目が基準画像と違います
-
-          変化が意図したものなら `baseline-retake` ラベルを付けてください。story と画面の基準画像をまとめて CI が撮り直します。手元で撮るなら `make e2e-update` → `make baseline-push` です。
-
-          - **ラベルは引き金ではありません。** VRT / E2E の完了時に読まれる条件なので、完了したあとに付けたなら再実行が要ります（`gh run rerun <run-id>`）
-          - **ラベルは撮り直しが置き場へ push した時点で外れます。** もう一度撮るには付け直してください
-          - **撮り直しは承認ではありません。** 画素を見て `baseline-approve` を付けるのが承認です（`vrt/README.md` の「撮り直しと承認は別の操作」）
-
-          **落ちた画面それぞれについて、なぜ変わったかを言えるまで撮り直さないでください。** 全画面が一度に落ちる形は原因が 1 つとは限らず、混ざっている不具合ごと撮り直すとそれが次の正になります（`docs/design/vrt.md` の「限界」）。
-          PIXELS
-
-              # The failing set in the form the local review target takes. Emitted as its own
-              # fenced block so it survives a copy — a command spread across a prose paragraph
-              # does not.
-              names="$(pnpm exec tsx scripts/e2e names tmp/e2e/report.json || true)"
-
-              # The block below is pasted into a shell, so a value outside the accepted set is
-              # dropped rather than quoted. Why quoting is not enough, and why the same set is
-              # what lets these values render as markdown, is in ADR 0153 §5.
-              if printf '%s%s' "${HEAD_REF}" "${names}" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; then
-                names=''
-                echo "review block suppressed: head_ref or screen names carry shell metacharacters" >&2
-              fi
-
-              if [ -n "${names}" ]; then
-                cat <<REVIEW
-
-          #### 手元で見る
-
-          落ちた画面を使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。役割の要る画面は開発用 session の面を経由します。
-
-          \`\`\`bash
-          make e2e-review BRANCH='${HEAD_REF}' RUN='${RUN_ID}' E2E_ONLY='${names}'
-          \`\`\`
-
-          作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。
-          REVIEW
-              fi
-            fi
-
-            if [ "${undeclared}" = 'false' ] && [ "${unretakable}" = 'false' ] && [ "${pixels}" = 'false' ]; then
-              cat <<'UNKNOWN'
-
-          ### 種別を判定できませんでした
-
-          上のログと artifact を見てください。ここに案内が出ないのは、build か起動の段で落ちているか、判定に使っている目印が変わったときです。
-          UNKNOWN
-            fi
-          } > /tmp/e2e-comment/e2e-notes.md
+          # One run can fail in several kinds at once, and the kinds are what decide which next
+          # step is the right one — so the classification is a decision with cases, and it lives
+          # in `scripts/e2e/comment.ts` where those cases are pinned down.
+          pnpm exec tsx scripts/e2e comment /tmp/e2e-full.log tmp/e2e/report.json \
+            > /tmp/e2e-comment/e2e-notes.md
 
       # A job that stood down still owes the pull request a verdict. Without this, the ❌
       # comment an earlier push produced stays beside a green check once the journeys stop
