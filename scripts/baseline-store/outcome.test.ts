@@ -37,9 +37,9 @@ describe("composeRetakeOutcome", () => {
   });
 
   it("前が無い画像は、リンクではなくそのことを書く", () => {
-    expect(
-      composeRetakeOutcome({ ...BASE, unpaired: "screen/desktop/home.png" }),
-    ).toContain("| `screen/desktop/home.png` | 前が無い |");
+    expect(composeRetakeOutcome({ ...BASE, unpaired: "screen/desktop/home.png" })).toContain(
+      "| `screen/desktop/home.png` | 前が無い |",
+    );
   });
 
   it("上限を超えたら、切ったことと動いた総数を書く", () => {
