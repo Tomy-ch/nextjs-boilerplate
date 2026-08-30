@@ -2,6 +2,8 @@
 imports-allowed: [model, errors, logging, config, observability]
 forbidden: [components, capabilities, stores, business-logic]
 test-requirement: integration
+coverage-exclusions:
+  - "src/adapters/server/taint/experimental-react.fixture.ts"
 ---
 
 # adapters
@@ -144,6 +146,7 @@ endpoint も資格情報もブラウザへ出さず、同一オリジンの BFF 
 | `client/telemetry/browser-tracer.ts` | ブラウザ側の計装。動的な import でだけ読まれる |
 | `server/telemetry/browser-telemetry.ts` | 報告を検証し、signal へ載せる |
 | `server/telemetry/browser-traces.ts` | ブラウザが作った span を collector へ渡す |
+| `server/taint/taint.ts` | server の object と秘密値を、Client Component へ渡せないものとして登録する |
 
 **検証は受け側にしかありません。** 送る側にも同じ長さの宣言がありますが、それは通信量を抑える
 ためのもので、送信者は差し替えられます。認証を要求しない口なので、受け側が自分で確かめます
@@ -165,6 +168,59 @@ span にするのは `fetch` を包む計装のほうで、要求境界のコー
 **包むのは自分が呼んでいる要求だけではありません。** router が画面遷移と先読みで出す RSC の要求も
 対象です。自分で呼んでいる場所だけを包むと、client 遷移が trace から抜けて別の trace の根になります。
 そのぶん 1 つの trace に載る span は増えます —— 先読みは見えている画面ぶんだけ出るためです。
+
+## client へ渡してはいけないものを登録する
+
+`server/taint/taint.ts` が [0030](../../docs/adr/0030-environment-variable-management.md) §8 の口です。
+汚した object や値を Client Component へ渡すと、**描画が実行時に落ちます**。
+
+| 汚すもの | 例 | 登録する場所 | 寿命 |
+| --- | --- | --- | --- |
+| 資格情報を含む server の object | session の記録（Access Token / ID Token を持つ） | その object が生まれる場所 | object 自身 |
+| PII を含む取得結果 | 連絡先・住所・生年月日を持つ主体の詳細 | 取得の口（契約の形から表示の型へ写した直後） | object 自身 |
+| 文字列の秘密 | 署名鍵・外部サービスのキー | その値を**読む側**（`config` は react を持ち込めない） | 値を持つ singleton |
+
+**何が PII かはここが決めません。** 分類とその置き場は
+[0112](../../docs/adr/0112-data-classification-cache-boundary.md) が持ち、ここはその分類を実行時の
+関所へ写すだけです。
+
+### 参照実装
+
+取得の口で、写し終えた値を汚します。**呼び出し側では汚しません** —— 口が増えるたびに同じ 1 行が
+要り、書き忘れた経路がそのまま穴になります。
+
+```ts
+export const getAccount = cache(async (): Promise<Account> => {
+  const account = toAccount(
+    await getClient().request({ path: "/v1/accounts/me", schema: GetAccountResponse }),
+  );
+
+  taintObjectReference(
+    "主体の詳細には連絡先が含まれます。Client Component へ渡すのは画面が使う項目だけにしてください",
+    account,
+  );
+
+  return account;
+});
+```
+
+文字列の秘密は、値そのものを登録します。参照で追えないためで、登録の寿命はその値を持つ singleton
+に握らせます。
+
+```ts
+taintUniqueValue("署名鍵は server 専用です", config, config.sessionSecret);
+```
+
+**メッセージは落ちた人が読む唯一の手掛かりです。** 「渡すな」だけでなく、代わりに何を渡すのかまで
+書きます。落ちる場所は渡した側で、そこに居る人は何を選べばよいかを知りません。
+
+**主機構ではありません。** 参照でしか追えないので、コピー（`{ ...record }`）にも派生値
+（`` `Bearer ${token}` ``）にも及びません。主防御は取得範囲と Client DTO の最小化で、これはそこを
+抜けた誤送信を実行時に捕まえる補助です（[0112](../../docs/adr/0112-data-classification-cache-boundary.md) 段 4）。
+
+**`react` を直接呼ばず、この口を通します。** テストはこのモジュール境界を差し替え、本物が効くことは
+`taint/taint.test.ts` が RSC の直列化器で確かめます。防御の中に「口があれば呼ぶ」分岐を置かないため
+です —— 置くと、口が消えた日に検査ごと黙って外れます。
 
 ## 運用
 
