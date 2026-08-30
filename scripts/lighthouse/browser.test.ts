@@ -16,7 +16,10 @@ const COOKIE: BrowserCookie = {
  * `--user-data-dir=` の指定を引数から拾って、そこへ本物と同じ 2 行を書きます。本物を起動すると
  * 実行のたびにブラウザが 1 つ立ち上がり、待ち時間も後片付けも実機の都合に引きずられます。
  */
-function fakeBrowser(delayMs = 0, wrote = "9911\\n/devtools/browser/0195f0c2-0000-7000-8000-000000000001"): string[] {
+function fakeBrowser(
+  delayMs = 0,
+  wrote = "9911\\n/devtools/browser/0195f0c2-0000-7000-8000-000000000001",
+): string[] {
   const code = [
     "const fs = require('node:fs');",
     "const dir = process.argv.find((a) => a.startsWith('--user-data-dir=')).slice(16);",
@@ -87,7 +90,10 @@ describe("startBrowser", () => {
     // 上限を渡さない。既定でも待てることを、ここで一緒に見る。
     const browser = await startBrowser(process.execPath, fakeBrowser());
 
-    expect(browser).toMatchObject({ port: 9911, wsUrl: "ws://127.0.0.1:9911/devtools/browser/0195f0c2-0000-7000-8000-000000000001" });
+    expect(browser).toMatchObject({
+      port: 9911,
+      wsUrl: "ws://127.0.0.1:9911/devtools/browser/0195f0c2-0000-7000-8000-000000000001",
+    });
 
     browser.close();
   });
