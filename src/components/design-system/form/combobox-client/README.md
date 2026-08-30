@@ -20,7 +20,7 @@
 
 ## 責務境界
 
-**shadcn CLI の単独部品ではなく、`Popover` と `Command` を合成した実装パターンです。** `date-picker-client` と同じ位置づけで、`shadcn-manifest.yaml` にも登録していません。shadcn registry の `combobox` は別の headless ライブラリを前提としており、このリポジトリが採る vendor と一致しないため copy-in していません。
+**shadcn CLI の単独部品ではなく、`Popover` と `Command` を合成した実装パターンです。** shadcn registry の `combobox` は別の headless ライブラリを前提としており、このリポジトリが採る vendor と一致しないため、copy-in せず参考にとどめて組み直しています。台帳には `kind: reimplemented` として登録しています（`registryItem: combobox`）。上流を持たない `date-picker-client`（`kind: original`）とは、そこが違います。
 
 hydration が必要で、Server Component からは直接 render できません。選択値は hidden input として持つため、native form へそのまま載ります。
 
