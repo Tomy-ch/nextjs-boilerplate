@@ -5,6 +5,7 @@
 //   ref <branch>   撮影を指す ref 名を出す
 //   push [branch]  撮り直した一式を置き場へ送り、サブモジュールのポインタを進める
 //   report         掃除の要否を判定して本文を出す。促すときだけ終了コード 10 を返す
+//   outcome        撮り直しが成立したときの文面を出す（値は環境変数から取る）
 //   prune          消してよい ref を実際に消す
 //
 // 置き場側に workflow を持たせないため、GitHub への問い合わせはすべてここから出る。
@@ -12,6 +13,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
 import { retakenTargets } from "../../baseline/lib/targets.js";
+import { composeRetakeOutcome } from "./outcome.js";
 import {
   formatPrunePlan,
   needsPrune,
@@ -43,12 +45,45 @@ function main(argv: readonly string[]): void {
     case "report":
       report();
       break;
+    case "outcome":
+      printOutcome();
+      break;
     case "prune":
       prune(rest.includes("--dry-run"));
       break;
     default:
-      fail("使い方: baseline-store <ref <branch> | push [branch] | report | prune [--dry-run]>");
+      fail(
+        "使い方: baseline-store <ref <branch> | push [branch] | report | outcome | prune [--dry-run]>",
+      );
   }
+}
+
+/**
+ * 撮り直しの結果を出す。
+ *
+ * 値を引数ではなく環境変数から取るのは、workflow の出力をそのまま渡すため。1 つずつ引数へ
+ * 並べ替えると、増やしたときに渡し忘れた 1 つが空文字として通る。
+ */
+function printOutcome(): void {
+  const value = (name: string): string => process.env[name] ?? "";
+
+  process.stdout.write(
+    composeRetakeOutcome({
+      sha: value("SHA"),
+      count: value("COUNT"),
+      ids: value("IDS"),
+      pointerPrUrl: value("POINTER_PR"),
+      screensPending: value("SCREENS_PENDING") === "true",
+      headRef: value("HEAD_REF"),
+      stories: value("STORIES"),
+      screens: value("SCREENS"),
+      images: value("IMAGES"),
+      unpaired: value("UNPAIRED"),
+      before: value("BEFORE"),
+      after: value("AFTER"),
+      storeRepository: value("STORE_REPOSITORY"),
+    }),
+  );
 }
 
 function printSnapshotRef(branch: string | undefined): void {
