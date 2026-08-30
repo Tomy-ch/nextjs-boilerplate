@@ -194,6 +194,33 @@
       }
     },
     {
+      "includes": ["src/components/design-system/foundation/scrollbar/scrollbar.css"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/stores/consent-store.ts",
+        "src/stores/consent-store.test.tsx",
+        "src/app/consent.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noSyncScripts": "off"
+          },
+          "suspicious": {
+            "noDocumentCookie": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "baseline/lib/**",
         "vrt/**",

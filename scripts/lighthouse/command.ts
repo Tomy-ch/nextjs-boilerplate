@@ -16,6 +16,16 @@ import type { Target } from "./plan";
 const IGNORE_STATUS_CODE = "--ignore-status-code";
 
 /**
+ * 開く前に置いた cookie を消させないための指定。
+ *
+ * @remarks
+ * Lighthouse は既定で保存物を消してから開きます。**同意を選び終えた状態から測るには、開く前に
+ * 置いた cookie が残っていなければなりません**（`browser.ts`）。profile は実行ごとの使い捨てなので、
+ * 消さないことで前の実行が残るわけではありません。
+ */
+const KEEP_STORAGE = "--disable-storage-reset";
+
+/**
  * ブラウザへ渡す起動時の指定を決める。
  *
  * @param env - 実行時の環境変数。**読むものだけを型に書きます** —— 環境変数の全体を受け取る形に
@@ -35,8 +45,7 @@ export function buildChromeFlags(env: { readonly CI?: string }): string[] {
  * @param cli - CLI の入口。
  * @param target - 開く画面。
  * @param output - 結果（LHR）の書き出し先。
- * @param headersFile - 送るヘッダの宣言。役割の要らない画面では `undefined`。
- * @param chromeFlags - ブラウザへ渡す起動時の指定。
+ * @param port - 立ち上げ済みのブラウザが CDP を受け付けているポート。
  *
  * @remarks
  * 応答の成否を見ない指定は**常に**付けます。宣言には 404 を返す画面が含まれ
@@ -48,8 +57,7 @@ export function buildLighthouseArgs(
   cli: string,
   target: Target,
   output: string,
-  headersFile: string | undefined,
-  chromeFlags: readonly string[],
+  port: number,
 ): string[] {
   return [
     cli,
@@ -59,7 +67,7 @@ export function buildLighthouseArgs(
     `--output-path=${output}`,
     "--only-categories=performance",
     IGNORE_STATUS_CODE,
-    `--chrome-flags=${chromeFlags.join(" ")}`,
-    ...(headersFile === undefined ? [] : [`--extra-headers=${headersFile}`]),
+    `--port=${String(port)}`,
+    KEEP_STORAGE,
   ];
 }

@@ -36,6 +36,7 @@ coverage-exclusions:
 | `action-state.ts` | Server Action が画面へ返す結果の器。項目エラー・フォームエラー・成功値 |
 | `search-params.ts` | URL の同じキーが何回現れたかを値の意味へ直す規則。zod スキーマと組み合わせて使う |
 | `idempotency-key.ts` | 変更 1 回ぶんを指す鍵と、それを載せるフォーム項目の名前 |
+| `consent.ts` | 任意の用途に cookie を使ってよいかという意思と、その区分ごとのゲート述語 |
 | `money.ts` | 最小単位の整数で持つ金額を、locale に沿った通貨表記へ整える |
 | `cart/cart.ts` | サンプル画面が扱うカートの表示用の型 <!-- sample:line --> |
 | `dashboard/dashboard.ts` | サンプル画面が扱う管理側の横断集計の表示用の型と、集計対象期間の語彙 <!-- sample:line --> |

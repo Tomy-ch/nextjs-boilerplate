@@ -19,8 +19,11 @@ import {
   SCREENS,
   selectScreens,
 } from "../../e2e/lib/screens";
+import { CONSENT_CHOICE, CONSENT_COOKIE_NAME, toConsentCookieValue } from "../../src/model/consent";
+import { errorMessage } from "../lib/error-message";
 import { decideGate } from "../lib/input-hash";
 import { numstatArgs, parseNumstat } from "../lib/numstat";
+import { type BrowserCookie, putCookies, startBrowser } from "./browser";
 import {
   type Budget,
   hasFailure,
@@ -35,7 +38,7 @@ import { collectMeasureInputs, measureInputsHash } from "./measure-inputs";
 import { aggregate, readMetrics } from "./metrics";
 import { planTargets, type Target } from "./plan";
 import { renderReport } from "./report";
-import { buildCookieHeader } from "./session";
+import { parseCookiePairs } from "./session";
 import { expectedTotal, isShardFile, parseShard, selectShard, shardFileName } from "./shard";
 import { decideTrigger } from "./trigger";
 
@@ -90,7 +93,40 @@ const LIGHTHOUSE_CLI = createRequire(import.meta.url).resolve("lighthouse/cli/in
  *
  * @returns 書き出したヘッダ宣言のパス。
  */
-async function issueSessionHeaders(baseUrl: string, role: string): Promise<string> {
+/**
+ * 同意を選び終えたことをブラウザへ伝える cookie。
+ *
+ * @remarks
+ * **選び終えた状態から測ります。** この面は選ぶまで画面を覆うので、置かずに測ると、どの画面の
+ * 数値も面が乗った状態のものになります（[0131](../../docs/adr/0131-cookie-consent.md)）。拒否の側で
+ * 選ぶのは、同意すると計測 id が配られ、測っている画面と関係のない `Set-Cookie` が応答に載るためです。
+ *
+ * **要求ヘッダでは届きません。** 面を出すかどうかを決めるのはブラウザ側で `document.cookie` を
+ * 読む層であり、Lighthouse に足させられるのは要求ヘッダだけだからです。だからブラウザを自分で
+ * 立ち上げ、CDP で本物の cookie を置きます（[`browser.ts`](browser.ts)）。
+ *
+ * `e2e/lib/test.ts` が同じ前提を置いています。**両方に要ります** —— あちらは Playwright の
+ * context へ置くもので、経路が別です。
+ */
+function consentCookie(host: string): BrowserCookie {
+  return {
+    domain: host,
+    name: CONSENT_COOKIE_NAME,
+    path: "/",
+    value: toConsentCookieValue(CONSENT_CHOICE.denied),
+  };
+}
+
+/**
+ * 役割を持つ画面のための session cookie を発行する。
+ *
+ * @returns ブラウザへ置く cookie。同意ぶんは呼び出し側が足す。
+ */
+async function issueSessionCookies(
+  baseUrl: string,
+  role: string,
+  host: string,
+): Promise<BrowserCookie[]> {
   const response = await fetch(new URL(TEST_SESSION_PATH, baseUrl), {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -110,35 +146,69 @@ async function issueSessionHeaders(baseUrl: string, role: string): Promise<strin
     throw new Error(`${TEST_SESSION_PATH} が cookie を返しませんでした`);
   }
 
-  const path = join(OUTPUT_DIR, `headers-${role}.json`);
-
-  writeFileSync(path, JSON.stringify({ Cookie: buildCookieHeader(cookies) }));
-
-  return path;
+  return parseCookiePairs(cookies).map(([name, value]) => ({
+    domain: host,
+    name,
+    path: "/",
+    value,
+  }));
 }
 
 /**
- * 画面を 1 回測り、LHR を置き場へ書き出して指標を返す。
+ * 画面を 1 回測り、LHR を置き場へ書き出して指標を返す。落ちたら 1 度だけ引き直す。
+ *
+ * @param cookies - 開く前にブラウザへ置く cookie。
+ */
+async function runOnce(
+  target: Target,
+  run: number,
+  cookies: readonly BrowserCookie[],
+): Promise<MetricValues> {
+  try {
+    return await runOnceStrict(target, run, cookies);
+  } catch (cause) {
+    console.error(`↻ ${target.name} の ${run} 回目を引き直します（${errorMessage(cause)}）`);
+
+    return await runOnceStrict(target, run, cookies);
+  }
+}
+
+/**
+ * 引き直さずに 1 回だけ測る。
  *
  * @remarks
- * ブラウザは Lighthouse が `CHROME_PATH` から起動します。**銘柄も版もここでは選びません** ——
- * 版は lockfile の `@playwright/test` が決め、実体を入れるのは `make lighthouse` の手前の段です。
+ * **ブラウザはこちらで立ち上げ、Lighthouse には繋ぎ先だけを渡します。** CLI へ渡せるのは要求
+ * ヘッダの追加までで、cookie 置き場へは触れないためです（[`browser.ts`](browser.ts)）。銘柄も版も
+ * ここでは選びません —— 版は lockfile の `@playwright/test` が決め、実体を入れるのは
+ * `make lighthouse` の手前の段です。
  *
- * @param headersFile - 送るヘッダの宣言。役割の要らない画面では `undefined`。
+ * ブラウザ側がトレースの起点を取りこぼすこと（`NO_NAVSTART`）が一定の確率であり、これは
+ * 測っている木とは無関係に起きます。**1 度だけ引き直すのは、続けて 2 度落ちるなら木の側の
+ * 問題だから**です。無制限に引き直すと、常に落ちる変更が待ち時間だけ伸ばして緑になりません。
  */
-function runOnce(target: Target, run: number, headersFile: string | undefined): MetricValues {
+async function runOnceStrict(
+  target: Target,
+  run: number,
+  cookies: readonly BrowserCookie[],
+): Promise<MetricValues> {
   const output = join(OUTPUT_DIR, `${target.name}-${run}.json`);
-  const result = spawnSync(
-    process.execPath,
-    buildLighthouseArgs(
-      LIGHTHOUSE_CLI,
-      target,
-      output,
-      headersFile,
-      buildChromeFlags({ CI: process.env.CI }),
-    ),
-    { env: { ...process.env, CHROME_PATH: chromium.executablePath() }, stdio: "inherit" },
+  const browser = await startBrowser(
+    chromium.executablePath(),
+    buildChromeFlags({ CI: process.env.CI }),
   );
+
+  let result: ReturnType<typeof spawnSync>;
+
+  try {
+    await putCookies(browser.wsUrl, cookies);
+    result = spawnSync(
+      process.execPath,
+      buildLighthouseArgs(LIGHTHOUSE_CLI, target, output, browser.port),
+      { stdio: "inherit" },
+    );
+  } finally {
+    browser.close();
+  }
 
   // 起動そのものに失敗した場合、`status` は null で理由は `error` にしか入りません。終了コード
   // だけを見ると「終了コード null」だけが残り、ブラウザを起動できなかったのか計測が落ちたのかを
@@ -154,12 +224,22 @@ function runOnce(target: Target, run: number, headersFile: string | undefined): 
   return readMetrics(JSON.parse(readFileSync(output, "utf8")));
 }
 
-/** 画面 1 つを繰り返し測り、中央値を返す。 */
-function measure(target: Target, runs: number, headersFile: string | undefined): Measurement {
+/**
+ * 画面 1 つを繰り返し測り、中央値を返す。
+ *
+ * @remarks
+ * **並べません。** 測っているのは CPU 律速の値なので、同じ機械で並べた時点で互いの CPU を
+ * 奪い合い、予算と照らす意味が消えます。
+ */
+async function measure(
+  target: Target,
+  runs: number,
+  cookies: readonly BrowserCookie[],
+): Promise<Measurement> {
   const values: MetricValues[] = [];
 
   for (let run = 1; run <= runs; run += 1) {
-    values.push(runOnce(target, run, headersFile));
+    values.push(await runOnce(target, run, cookies));
   }
 
   return { name: target.name, values: aggregate(values) };
@@ -275,27 +355,31 @@ async function measureAll(): Promise<void> {
   );
 
   // 分割の指定が無ければ 1 台。手元の `make lighthouse` だけがこちらを通る。
-  const spec = process.env.LIGHTHOUSE_SHARD;
+  //
+  // **空文字列も「指定なし」として受けます。** make は既定値を空で `export` するので、手元の
+  // 実行では未定義ではなく空が届きます。`undefined` だけを見ると、割らない経路が誰も通れません。
+  const spec = process.env.LIGHTHOUSE_SHARD || undefined;
   const shard = spec === undefined ? { index: 1, total: 1 } : parseShard(spec);
   const screens = selectShard(selected, shard);
 
   mkdirSync(OUTPUT_DIR, { recursive: true });
 
-  const headerFiles = new Map<string, string>();
+  const host = new URL(baseUrl).hostname;
+  const consent = consentCookie(host);
+  const sessions = new Map<string, BrowserCookie[]>();
   const measurements: Measurement[] = [];
 
   for (const target of planTargets(screens, baseUrl)) {
-    if (target.role !== undefined && !headerFiles.has(target.role)) {
-      headerFiles.set(target.role, await issueSessionHeaders(baseUrl, target.role));
+    if (target.role !== undefined && !sessions.has(target.role)) {
+      sessions.set(target.role, await issueSessionCookies(baseUrl, target.role, host));
     }
 
     console.error(`⏱️  ${target.name}`);
     measurements.push(
-      measure(
-        target,
-        budget.runs.count,
-        target.role === undefined ? undefined : headerFiles.get(target.role),
-      ),
+      await measure(target, budget.runs.count, [
+        consent,
+        ...(target.role === undefined ? [] : (sessions.get(target.role) ?? [])),
+      ]),
     );
   }
 
@@ -371,6 +455,6 @@ async function main(): Promise<void> {
 
 // トップレベル await にしない。tsx は CJS へ落とすので変換の時点で落ちる。
 main().catch((error: unknown) => {
-  console.error(`❌ ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`❌ ${errorMessage(error)}`);
   process.exitCode = 1;
 });

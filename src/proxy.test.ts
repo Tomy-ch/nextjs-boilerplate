@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PROTECTED_PREFIXES } from "@/model/authz";
+import {
+  CONSENT_CHOICE,
+  CONSENT_COOKIE_NAME,
+  MEASUREMENT_ID_COOKIE_NAME,
+  toConsentCookieValue,
+} from "@/model/consent";
 import { SESSION_ROLE } from "@/model/session";
 import { proxy } from "./proxy";
 
@@ -40,6 +46,29 @@ function crossOrigin(
     method: init.method ?? "GET",
     headers: { origin, host: "localhost:3000", ...init.headers },
   });
+}
+
+/** cookie を載せた要求。同意と計測 id の有無を組み替える。 */
+function withCookies(cookies: Record<string, string>): NextRequest {
+  const cookie = Object.entries(cookies)
+    .map(([name, value]) => `${name}=${value}`)
+    .join("; ");
+
+  return new NextRequest(new URL("/help", "http://localhost:3000"), { headers: { cookie } });
+}
+
+/** その名前の cookie を載せた `Set-Cookie` の 1 行ぶん。属性まで含む。 */
+function setCookieFor(response: Response, name: string): string {
+  return response.headers.getSetCookie().find((entry) => entry.startsWith(`${name}=`)) ?? "";
+}
+
+/** 応答が発行した計測 id。撤去のときは空文字が載る。 */
+function issuedMeasurementId(response: Response): string | undefined {
+  return response.headers
+    .getSetCookie()
+    .find((entry) => entry.startsWith(`${MEASUREMENT_ID_COOKIE_NAME}=`))
+    ?.slice(MEASUREMENT_ID_COOKIE_NAME.length + 1)
+    .split(";")[0];
 }
 
 /** 読み取りだが GET ではない要求。 */
@@ -269,6 +298,63 @@ describe("proxy", () => {
     expect(response.headers.get("access-control-allow-methods")).toBeNull();
   });
 
+  it("同意が得られていれば計測 id を発行する", async () => {
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.granted) }),
+    );
+
+    expect(issuedMeasurementId(response)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it("すでに配ってある計測 id は作り直さない", async () => {
+    const response = await proxy(
+      withCookies({
+        [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.granted),
+        [MEASUREMENT_ID_COOKIE_NAME]: "issued-earlier",
+      }),
+    );
+
+    expect(issuedMeasurementId(response)).toBeUndefined();
+  });
+
+  it("計測 id を配る応答は、資格情報が無くても共有キャッシュへ載せない", async () => {
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.granted) }),
+    );
+
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("止めているあいだも、同意が得られていれば計測 id を配る", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.granted) }),
+    );
+
+    expect(issuedMeasurementId(response)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it("https で配信されていれば、計測 id に secure を付ける", async () => {
+    const secured = new NextRequest(new URL("/help", "https://app.example.test"), {
+      headers: {
+        cookie: `${CONSENT_COOKIE_NAME}=${toConsentCookieValue(CONSENT_CHOICE.granted)}`,
+      },
+    });
+
+    const response = await proxy(secured);
+
+    expect(setCookieFor(response, MEASUREMENT_ID_COOKIE_NAME)).toContain("Secure");
+  });
+
+  it("https でなければ secure を付けない。付けると手元で保存されない", async () => {
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.granted) }),
+    );
+
+    expect(setCookieFor(response, MEASUREMENT_ID_COOKIE_NAME)).not.toContain("Secure");
+  });
+
   // ----- 異常系 -----
   it("未認証で保護されたパスへ来たらログインへ送る", async () => {
     const response = await proxy(request("/account"));
@@ -344,5 +430,47 @@ describe("proxy", () => {
     const response = await proxy(crossOrigin("/api/telemetry", "null", { method: "POST" }));
 
     expect(response.status).toBe(403);
+  });
+
+  it("同意が無い間は計測 id を発行しない", async () => {
+    const response = await proxy(withCookies({}));
+
+    expect(issuedMeasurementId(response)).toBeUndefined();
+  });
+
+  it("拒否されている間も計測 id を発行しない", async () => {
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.denied) }),
+    );
+
+    expect(issuedMeasurementId(response)).toBeUndefined();
+  });
+
+  it("同意が外れていれば、配ってある計測 id を撤去する", async () => {
+    const response = await proxy(withCookies({ [MEASUREMENT_ID_COOKIE_NAME]: "issued-earlier" }));
+
+    expect(issuedMeasurementId(response)).toBe("");
+  });
+
+  it("計測 id を撤去する応答も共有キャッシュへ載せない", async () => {
+    const response = await proxy(withCookies({ [MEASUREMENT_ID_COOKIE_NAME]: "issued-earlier" }));
+
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("cookie を書き換えない応答は共有キャッシュへ載せてよい", async () => {
+    const response = await proxy(
+      withCookies({ [CONSENT_COOKIE_NAME]: toConsentCookieValue(CONSENT_CHOICE.denied) }),
+    );
+
+    expect(response.headers.get("cache-control")).toBeNull();
+  });
+
+  it("止めているあいだも、同意が外れた計測 id を撤去する", async () => {
+    maintenance.isStopped = true;
+
+    const response = await proxy(withCookies({ [MEASUREMENT_ID_COOKIE_NAME]: "issued-earlier" }));
+
+    expect(issuedMeasurementId(response)).toBe("");
   });
 });

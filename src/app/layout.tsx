@@ -5,6 +5,7 @@ import { ToastProvider } from "@/components/shell/toaster/toaster";
 import { getSiteConfig } from "@/config/site/site.server";
 import { findActiveTraceparent } from "@/observability/trace-context.server";
 
+import { Consent } from "./consent";
 import { FONT_VARIABLES } from "./fonts";
 import { SITE_DESCRIPTION, SITE_NAME } from "./site";
 import { Telemetry } from "./telemetry";
@@ -57,6 +58,7 @@ export default function RootLayout({
           <TelemetryHole />
         </Suspense>
         <ToastProvider>{children}</ToastProvider>
+        <Consent />
       </body>
     </html>
   );

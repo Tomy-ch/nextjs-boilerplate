@@ -32,6 +32,10 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
   中継へ送り出すだけの client component である。`components` にも `capabilities` にも置けない ——
   どちらも外部への送信を持てないため（[0082](../../docs/adr/0082-client-observability.md)）。
   テストは `component` として扱う
+- **root layout が mount する同意の島**（`consent.tsx`）。同意を尋ねる面（`components`）と、同意を
+  要する資材のゲートを、1 つの購読の裏で束ねる client component である。`components` にも
+  `capabilities` にも置けない —— どちらも `stores` を引けないため
+  （[0031](../../docs/adr/0031-policy-state-supply.md)）。テストは `component` として扱う
 
 **shell を通らない画面は、自分で `main` を置く。** route group の外に立つ画面（`not-found.tsx` や
 `dev/` の下）は、`(shop)` / `admin` の layout が置く landmark を持たない。包む物が無いと、支援技術

@@ -479,6 +479,7 @@ trigger から本文の上へ面を開く部品。
 | [`page-header`](./shell/page-header/README.md) | ページ先頭で、そのページの名前・説明・主要な操作を示す |
 | [`toaster`](./shell/toaster/README.md) | redirect しない mutation の成功・失敗を一時的な通知として表示する |
 | [`pull-to-refresh`](./shell/pull-to-refresh/README.md) | 画面の上端から引き下げて、いまの route を取り直す。touch のある環境でだけ働く |
+| [`consent-banner`](./shell/consent-banner/README.md) | 任意の用途に cookie を使ってよいかを、選び終えるまで下端で尋ね続ける |
 
 ### app-starter
 
