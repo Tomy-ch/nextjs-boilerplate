@@ -544,6 +544,11 @@ jobs:
           # every fallback ends in something printable.
           # `|| true` is what makes the fallbacks below reachable: under `-e`, a `sed` against
           # a log that was never written takes the step with it.
+          #
+          # **Which fallback fired also decides how the evidence may be rendered.** The table
+          # and this workflow's own sentence are ours; the log tail is whatever the tools
+          # printed and must not become markup.
+          kind=authored
           body="$(sed -n '/^| 画面 |/,$p' /tmp/lighthouse-full.log 2>/dev/null || true)"
 
           # Its presence is also the only evidence that screens were measured at all, so it
@@ -553,19 +558,16 @@ jobs:
             echo "subject=Core Web Vitals が予算を超えている" >> "$GITHUB_OUTPUT"
           else
             echo "subject=計測が実行できていない" >> "$GITHUB_OUTPUT"
+            kind=tool-output
             body="$(tail -n 60 /tmp/lighthouse-full.log 2>/dev/null || true)"
           fi
 
           if [ -z "${body}" ]; then
+            kind=authored
             body='(計測そのものが実行できませんでした。実行ログを確認してください。)'
           fi
 
-          {
-            echo "${body}"
-            echo
-            echo "実行: ${RUN_URL}"
-            echo
-            cat <<'NOTE'
+          cat <<'NOTE' > /tmp/lighthouse-note.md
           `lighthouse-lhr` artifact に、画面ごと・試行ごとの結果 (LHR) が入っています。
           <https://googlechrome.github.io/lighthouse/viewer/> へ落とすと読めます。
 
@@ -575,7 +577,14 @@ jobs:
           引き受けたときだけで、そのときは `performance-budget.yaml` の `lighthouse.screens` へ
           根拠付きで宣言します (ADR 0101)。
           NOTE
-          } > /tmp/lighthouse-guard.md
+
+          printf '%s\n' "${body}" > /tmp/lighthouse-evidence.md
+
+          pnpm exec tsx scripts/ci-report issue-body \
+            --kind "${kind}" \
+            --evidence /tmp/lighthouse-evidence.md \
+            --run-url "${RUN_URL}" \
+            --note /tmp/lighthouse-note.md > /tmp/lighthouse-guard.md
 
       - name: Raise it where it has an owner
         # Same predicate as the step that composes the body — see the note there.

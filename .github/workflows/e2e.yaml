@@ -456,17 +456,10 @@ jobs:
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          # Indented four spaces rather than fenced: markdown renders that as a code block and
-          # it needs no fence, which keeps Playwright's own output — assertion text this
-          # repository does not author — from being read as markup (ADR 0153 §5).
-          {
-            echo '落ちた内容:'
-            echo
-            sed 's/^/    /' /tmp/e2e-failed.log 2>/dev/null
-            echo
-            echo "実行: ${RUN_URL}"
-            echo
-            cat <<'NOTE'
+          # The evidence is Playwright's own output — assertion text this repository does not
+          # author — so it is handed over as `tool-output` and the composer indents it into a
+          # code block rather than letting it render as markup (ADR 0153 §5).
+          cat <<'NOTE' > /tmp/e2e-note.md
           `e2e-diff` artifact に HTML レポートと trace が入っています。
 
           手元で確かめるなら `make e2e`、CI が落とした画面だけなら `make e2e-review` です。停止中の
@@ -476,7 +469,13 @@ jobs:
           失敗と、画面の宣言漏れは撮り直しでは直りません。** 撮り直すと、後者は誤った状態が正として
           焼き付きます (`e2e/README.md`)。
           NOTE
-          } > /tmp/e2e-guard.md
+
+          pnpm exec tsx scripts/ci-report issue-body \
+            --heading '落ちた内容:' \
+            --kind tool-output \
+            --evidence /tmp/e2e-failed.log \
+            --run-url "${RUN_URL}" \
+            --note /tmp/e2e-note.md > /tmp/e2e-guard.md
 
       - name: Raise it where it has an owner
         if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success' }}

@@ -279,17 +279,12 @@ jobs:
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          # Indented four spaces rather than fenced: markdown renders that as a code block and
-          # it needs no fence, which keeps axe's own text — rule ids and help prose this
-          # repository does not author — from being read as markup (ADR 0153 §5).
-          {
-            echo '違反の詳細:'
-            echo
-            tail -n 80 /tmp/a11y-full.log 2>/dev/null | sed 's/^/    /'
-            echo
-            echo "実行: ${RUN_URL}"
-            echo
-            cat <<'NOTE'
+          # The evidence is axe's own text — rule ids and help prose this repository does not
+          # author — so it is handed over as `tool-output` and the composer indents it into a
+          # code block rather than letting it render as markup (ADR 0153 §5).
+          tail -n 80 /tmp/a11y-full.log > /tmp/a11y-evidence.txt 2>/dev/null || : > /tmp/a11y-evidence.txt
+
+          cat <<'NOTE' > /tmp/a11y-note.md
           `a11y-report` artifact に、story ごとの違反が入っています。
 
           手元で確かめるなら `make a11y` です。特定の story だけなら
@@ -299,7 +294,13 @@ jobs:
           依存する rule を component 側の suite で外すときだけで、ここは実ブラウザなのでその理由は
           立ちません (ADR 0100)。
           NOTE
-          } > /tmp/a11y-guard.md
+
+          pnpm exec tsx scripts/ci-report issue-body \
+            --heading '違反の詳細:' \
+            --kind tool-output \
+            --evidence /tmp/a11y-evidence.txt \
+            --run-url "${RUN_URL}" \
+            --note /tmp/a11y-note.md > /tmp/a11y-guard.md
 
       - name: Raise it where it has an owner
         if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.a11y.outputs.status != 'success' }}
