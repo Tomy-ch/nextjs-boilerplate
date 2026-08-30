@@ -60,18 +60,36 @@ flowchart TD
 [`src/features/README.md`](../src/features/README.md) で、そこから各カーネルの README へ辿れる。
 サンプルを捨てた後に残るのはこちらである。
 
-## 実装前・実装後の確認
+## 画面を作るときの順序
 
-実装前:
+**見た目が決まってからテストを書く。** 逆にすると見た目が動くたびにテストを書き直すことになり、
+書き直したテストは「通ること」だけを目的に緩む。
 
-- [ ] [feature README テンプレート](templates/feature-readme.md) の Route と契約・状態表・依存カーネルを埋めた
-- [ ] 画面なら [`spec/`](spec/README.md) に機能要件と画面要件を置いた
+| # | 工程 | そこで決まるもの |
+| --- | --- | --- |
+| 1 | ディレクション | 何を出すか。[feature README テンプレート](templates/feature-readme.md) の Route と契約・状態表・依存カーネルを埋める |
+| 2 | story | loading / empty / error / success の 4 状態。取得を持たない `view` に切ると 4 状態すべてを story から出せる |
+| 3 | レビュー | 見た目の確定。**ここを通るまでテストを書かない** |
+| 4 | 分離 | 確定した見た目の層への割り付け。基準は書き写さず、[逆引き](#逆引き)と ADR の参照パスで持つ |
+| 5 | 仕様書 | [`spec/`](spec/README.md) の機能要件と画面要件。確定した約束を書くので、ここが最初ではない |
+| 6 | テスト | 確定した形に対する検証 |
+
+**5 が終わるまで push しない。** 途中まででも CI は回るが、約束が書かれていない画面をレビューへ
+出すと、読む側が実装から約束を推定することになる。
+
+**カーネルはこの順序の対象外である。** `components` / `adapters` / `model` / `stores` /
+`capabilities` は見た目が先に決まらないため、実装とテストを並べて進めてよい。
+
+## 着手前・完了前の確認
+
+着手前:
+
 - [ ] Config、error、adapter の既存公開面を確認した
 - [ ] 各カーネル README と ESLint boundaries に反しない置き場を選んだ
 
-実装後:
+完了前:
 
-- [ ] 4 状態の story を追加し、feature README の状態表と対応させた
+- [ ] 4 状態の story が feature README の状態表と対応している
 - [ ] feature README と [rules.md](rules.md) の該当規約を更新した
 - [ ] commit / push して、hook と CI の判定を読んだ
 
