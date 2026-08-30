@@ -31,7 +31,10 @@ html {
  *
  * 止める実装 (react-remove-scroll) は、scrollbar が消えるぶんを body の余白で埋め合わせる。上で
  * 場所を常に確保しているので消える幅は無く、埋め合わせを入れられるとその量だけ内容が動く。
- * 宣言を実行時に差し込んでくる相手なので、詳細度を 1 段上げて打ち消す。
+ *
+ * **`!important` を使う。** 相手は `body[data-scroll-locked]` へ `!important` つきの宣言を実行時に
+ * 差し込むので、同じ強さで、かつ詳細度を 1 段上げなければ勝てない。この 1 箇所だけ
+ * `noImportantStyles` を biome.json の overrides で外している。
  */
 html body[data-scroll-locked] {
   margin-right: 0 !important;

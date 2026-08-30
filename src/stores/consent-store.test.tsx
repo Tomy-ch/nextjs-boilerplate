@@ -71,6 +71,16 @@ describe("useConsentState", () => {
     expect(renderToStaticMarkup(<Probe use={useConsentState} />)).toContain("unread");
   });
 
+  it("二度目の mount では読み直さない。読み終えた値をそのまま配る", async () => {
+    const { useConsentState } = await loadStore();
+    renderHook(() => useConsentState());
+
+    document.cookie = `${CONSENT_COOKIE_NAME}=${toConsentCookieValue(CONSENT_CHOICE.granted)}; path=/`;
+    const { result } = renderHook(() => useConsentState());
+
+    expect(result.current).toEqual({ status: "unset" });
+  });
+
   it("読み終えたあとのサーバ側スナップショットは、読んだ値を返す", async () => {
     const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
     renderHook(() => useConsentState());

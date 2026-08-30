@@ -145,7 +145,12 @@ async function issueSessionCookies(
     throw new Error(`${TEST_SESSION_PATH} が cookie を返しませんでした`);
   }
 
-  return parseCookiePairs(cookies).map(([name, value]) => ({ domain: host, name, path: "/", value }));
+  return parseCookiePairs(cookies).map(([name, value]) => ({
+    domain: host,
+    name,
+    path: "/",
+    value,
+  }));
 }
 
 /**
@@ -194,7 +199,7 @@ async function runOnceStrict(
   let result: ReturnType<typeof spawnSync>;
 
   try {
-    await putCookies(browser.port, cookies);
+    await putCookies(browser.wsUrl, cookies);
     result = spawnSync(
       process.execPath,
       buildLighthouseArgs(LIGHTHOUSE_CLI, target, output, browser.port),
