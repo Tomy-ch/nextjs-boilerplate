@@ -25,10 +25,9 @@ const HEALTH_PATH = "/api/health";
  */
 const STOPPED_PATH = "/help";
 
-// 同意を尋ねる面は選び終えるまで画面を覆う。止めているあいだも器は同じものを出すので、停止画面も
-// その裏に入り、面が周囲を `aria-hidden` にすることで役割で引く問い合わせが空になる。`lib/test.ts`
-// を使う spec は同じ状態を fixture から受け取っている（`e2e/README.md`「同意は選び終えた状態から
-// 始める」）。ここはその test を使えないため、同じ状態を自分で作る。
+// 同意を尋ねる面はこの画面も覆い、周囲を `aria-hidden` にする。作らないと見出しを役割で引けない。
+// `lib/test.ts` を使う spec は同じ状態を fixture から受け取る（`e2e/README.md`「同意は選び終えた
+// 状態から始める」）。
 test.beforeEach(async ({ context, baseURL }) => {
   await context.addCookies([
     {

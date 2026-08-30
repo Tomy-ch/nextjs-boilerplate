@@ -197,11 +197,10 @@ jobs:
       # with the default `off` — can only assert that side (`e2e/journeys/metadata.spec.ts`).
       # Each therefore gets its own build and its own server.
       #
-      # They were their own steps until a maintenance failure was reported as a PASS
-      # (issue #491). Everything the pull request and the branch issue read is composed from
-      # what THIS step logs and from `steps.e2e.outputs`, so a failure raised outside it
-      # reached neither the verdict, nor the notes, nor the artifact upload — leaving a
-      # reader who had been told to retake pixels for a journey no retake can repair.
+      # They share one step because everything downstream reads only this one. The comment,
+      # the branch issue, the artifact upload and the final verdict are all composed from
+      # what THIS step logs and from `steps.e2e.outputs`, so a stage raised outside it
+      # reaches none of them — and a green `make e2e` would report a PASS over it.
       - name: Build the app, start it and drive it
         id: e2e
         if: steps.scope.outputs.relevant == 'true'
@@ -287,8 +286,8 @@ jobs:
           fi
 
           # All three directories, not just the journeys: the stop mechanism and the public
-          # surface fail the same way and are repaired the same way, and naming only the
-          # journeys is what let issue #491 read as a pixel drift.
+          # surface fail the same way and are repaired the same way. Naming only the journeys
+          # leaves their failures indistinguishable from a pixel drift.
           if grep -qE '✘.*e2e/(journeys|maintenance|metadata)/' /tmp/e2e-full.log; then
             unretakable=true
           fi
