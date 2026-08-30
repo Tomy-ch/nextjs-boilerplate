@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 
 import { parseOptions, requireOption } from "../lib/cli-options.js";
 import { composeIssueBody, type IssueEvidence } from "../lib/issue-body.js";
-import { composeReviewCommand, REVIEW_KIND, REVIEW_WORKTREE_NOTE } from "../lib/review-command.js";
+import { composeReviewBlock } from "../lib/review-block.js";
 
 function fail(message: string): never {
   console.error(`❌ ${message}`);
@@ -41,31 +41,14 @@ function issueBody(options: Map<string, string>): string {
 }
 
 function reviewBlock(options: Map<string, string>): string {
-  const kind = requireOption(options, "kind");
-
-  if (kind !== REVIEW_KIND.story && kind !== REVIEW_KIND.screen) {
-    fail(`--kind は story か screen です: ${kind}`);
-  }
-
-  const command = composeReviewCommand({
-    kind,
+  return composeReviewBlock({
+    kind: requireOption(options, "kind"),
     ids: requireOption(options, "ids"),
     headRef: requireOption(options, "head-ref"),
     runId: options.get("run-id"),
+    heading: requireOption(options, "heading"),
+    lead: requireOption(options, "lead"),
   });
-
-  // 貼れない値が混ざっていれば節ごと出さない。案内だけを残すと、読み手は在るはずのコマンドを
-  // 探すことになる。
-  if (command === null) {
-    return "";
-  }
-
-  return [
-    requireOption(options, "heading"),
-    requireOption(options, "lead"),
-    `\`\`\`bash\n${command}\n\`\`\``,
-    REVIEW_WORKTREE_NOTE,
-  ].join("\n\n");
 }
 
 function main(): void {
