@@ -84,7 +84,8 @@ type FakeSocket = {
 describe("startBrowser", () => {
   // ----- 正常系 -----
   it("書き出された待ち受け先から、繋ぎ先を組み立てる", async () => {
-    const browser = await startBrowser(process.execPath, fakeBrowser(), 5_000);
+    // 上限を渡さない。既定でも待てることを、ここで一緒に見る。
+    const browser = await startBrowser(process.execPath, fakeBrowser());
 
     expect(browser).toMatchObject({ port: 9911, wsUrl: "ws://127.0.0.1:9911/devtools/browser/x" });
 
