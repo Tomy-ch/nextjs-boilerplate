@@ -295,12 +295,20 @@ jobs:
           立ちません (ADR 0100)。
           NOTE
 
+          # **The issue must still be raised if the body cannot be composed.** The step that
+          # raises it carries `!cancelled()`, so no implicit `success()` gates it on this one —
+          # a failure here would file an empty issue. And this path is reachable on its own:
+          # a broken `Install dependencies` skips the check step, leaving its status empty,
+          # which satisfies the `!= 'success'` predicate and brings us here without `tsx`.
+          # This is the last line of defence for a run nobody is watching, so it degrades to a
+          # body that says so rather than to silence.
           pnpm exec tsx scripts/ci-report issue-body \
             --heading '違反の詳細:' \
             --kind tool-output \
             --evidence /tmp/a11y-evidence.txt \
             --run-url "${RUN_URL}" \
-            --note /tmp/a11y-note.md > /tmp/a11y-guard.md
+            --note /tmp/a11y-note.md > /tmp/a11y-guard.md ||
+            printf '%s\n\n実行: %s\n' '❌ 本文を組み立てられませんでした。実行ログを読んでください。' "${RUN_URL}" > /tmp/a11y-guard.md
 
       - name: Raise it where it has an owner
         if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.a11y.outputs.status != 'success' }}

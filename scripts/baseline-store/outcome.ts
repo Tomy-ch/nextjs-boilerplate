@@ -126,7 +126,14 @@ function composeReviewSection(input: RetakeOutcomeInput): string[] {
  * @returns markdown の文面
  */
 export function composeRetakeOutcome(input: RetakeOutcomeInput): string {
-  const blocks = [`🎞️ 基準画像を ${input.count} 枚撮り直しました (${input.sha})。`, `対象: ${input.ids}`];
+  const blocks = [`🎞️ 基準画像を ${input.count} 枚撮り直しました (${input.sha})。`];
+
+  // 呼ぶ側も同じ集合で弾いているが、それに頼らない。**関門はこのモジュールが持ちます** ——
+  // 集合を 1 つに保つ意味は、呼び忘れた面が出ないことにあるので、自分が呼ばなければ同じこと
+  // になる（`scripts/lib/accepted-chars.ts`）。
+  if (!containsUnsafe(input.ids)) {
+    blocks.push(`対象: ${input.ids}`);
+  }
 
   if (input.pointerPrUrl !== "") {
     blocks.push(

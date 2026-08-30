@@ -33,12 +33,14 @@ const ISSUES_JSON = "sonar-issues.json";
 const SARIF_FILE = "sonarcloud.sarif";
 const SUMMARY_FILE = "sonarcloud-summary.md";
 
-const POLL_ATTEMPTS = 60;
+// 待つのは問い合わせの**あいだ**なので、間隔の数は回数より 1 つ少ない。上限を割り切れる形に
+// するため、回数は間隔の数 + 1 を置く。
+const POLL_ATTEMPTS = 61;
 const POLL_INTERVAL_MS = 10_000;
 const MS_PER_MINUTE = 60_000;
 
 /** 待ちの上限（分）。文言に書く数字を宣言から導き、片方だけが古びないようにする。 */
-const POLL_LIMIT_MINUTES = (POLL_ATTEMPTS * POLL_INTERVAL_MS) / MS_PER_MINUTE;
+const POLL_LIMIT_MINUTES = ((POLL_ATTEMPTS - 1) * POLL_INTERVAL_MS) / MS_PER_MINUTE;
 
 const NETWORK_TIMEOUT_MS = 30_000;
 

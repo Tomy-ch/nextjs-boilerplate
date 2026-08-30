@@ -280,8 +280,13 @@ jobs:
           # One run can fail in several kinds at once, and the kinds are what decide which next
           # step is the right one — so the classification is a decision with cases, and it lives
           # in `scripts/e2e/comment.ts` where those cases are pinned down.
+          # Degrades rather than reddening the step, the way the guarded call it replaced did.
+          # The comment is posted from an `always()` step either way, so a failure here would
+          # otherwise leave the reader an empty notes section with nothing saying why.
           pnpm exec tsx scripts/e2e comment /tmp/e2e-full.log tmp/e2e/report.json \
-            > /tmp/e2e-comment/e2e-notes.md
+            > /tmp/e2e-comment/e2e-notes.md ||
+            echo '（案内を組み立てられませんでした。上のログと artifact を見てください。）' \
+              > /tmp/e2e-comment/e2e-notes.md
 
       # A job that stood down still owes the pull request a verdict. Without this, the ❌
       # comment an earlier push produced stays beside a green check once the journeys stop
@@ -379,12 +384,20 @@ jobs:
           焼き付きます (`e2e/README.md`)。
           NOTE
 
+          # **The issue must still be raised if the body cannot be composed.** The step that
+          # raises it carries `!cancelled()`, so no implicit `success()` gates it on this one —
+          # a failure here would file an empty issue. And this path is reachable on its own:
+          # a broken `Install dependencies` skips the check step, leaving its status empty,
+          # which satisfies the `!= 'success'` predicate and brings us here without `tsx`.
+          # This is the last line of defence for a run nobody is watching, so it degrades to a
+          # body that says so rather than to silence.
           pnpm exec tsx scripts/ci-report issue-body \
             --heading '落ちた内容:' \
             --kind tool-output \
             --evidence /tmp/e2e-failed.log \
             --run-url "${RUN_URL}" \
-            --note /tmp/e2e-note.md > /tmp/e2e-guard.md
+            --note /tmp/e2e-note.md > /tmp/e2e-guard.md ||
+            printf '%s\n\n実行: %s\n' '❌ 本文を組み立てられませんでした。実行ログを読んでください。' "${RUN_URL}" > /tmp/e2e-guard.md
 
       - name: Raise it where it has an owner
         if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success' }}

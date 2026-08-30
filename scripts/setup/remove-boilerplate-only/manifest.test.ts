@@ -48,6 +48,9 @@ describe("SELF_DESTRUCT_PATHS", () => {
     expect(runners.filter((runner) => !SELF_DESTRUCT_PATHS.includes(runner))).toEqual([]);
   });
 
+  // 見るのはリテラルの言及だけで、TypeScript の import グラフは辿らない。捕まえたいのは
+  // 「`pnpm exec tsx scripts/<区画>` で起動される区画」であり、その起動は Makefile か workflow の
+  // 文字列として必ず現れる。相対 import しか経路を持たない区画は、この検査には載らない。
   it("消える検査だけが呼ぶ scripts の区画を、道具ごと消す", () => {
     const covered = (relativePath: string): boolean =>
       SELF_DESTRUCT_PATHS.some(

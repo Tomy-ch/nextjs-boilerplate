@@ -170,11 +170,19 @@ jobs:
           **基準画像をそのまま撮り直さないでください。**誰も画素を見ていない状態を正にすることになります。
           NOTE
 
+          # **The issue must still be raised if the body cannot be composed.** The step that
+          # raises it carries `!cancelled()`, so no implicit `success()` gates it on this one —
+          # a failure here would file an empty issue. And this path is reachable on its own:
+          # a broken `Install dependencies` skips the check step, leaving its status empty,
+          # which satisfies the `!= 'success'` predicate and brings us here without `tsx`.
+          # This is the last line of defence for a run nobody is watching, so it degrades to a
+          # body that says so rather than to silence.
           pnpm exec tsx scripts/ci-report issue-body \
             --kind "${kind}" \
             --evidence /tmp/vrt-evidence.md \
             --run-url "${RUN_URL}" \
-            --note /tmp/vrt-note.md > /tmp/vrt-guard.md
+            --note /tmp/vrt-note.md > /tmp/vrt-guard.md ||
+            printf '%s\n\n実行: %s\n' '❌ 本文を組み立てられませんでした。実行ログを読んでください。' "${RUN_URL}" > /tmp/vrt-guard.md
 
       - name: Raise it where it has an owner
         if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}

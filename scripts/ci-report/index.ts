@@ -11,36 +11,9 @@
 // 並べ方と、貼れる値かどうかの判定である。
 import { readFileSync } from "node:fs";
 
+import { parseOptions, requireOption } from "../lib/cli-options.js";
 import { composeIssueBody, type IssueEvidence } from "../lib/issue-body.js";
 import { composeReviewCommand, REVIEW_KIND, REVIEW_WORKTREE_NOTE } from "../lib/review-command.js";
-
-/** `--name value` の並びを表に読む。 */
-function readOptions(argv: readonly string[]): Map<string, string> {
-  const options = new Map<string, string>();
-
-  for (let position = 0; position < argv.length; position += 2) {
-    const name = argv[position];
-    const value = argv[position + 1];
-
-    if (name === undefined || value === undefined || !name.startsWith("--")) {
-      fail(`引数の並びが読めません: ${argv.join(" ")}`);
-    }
-
-    options.set(name.slice(2), value);
-  }
-
-  return options;
-}
-
-function requiredOption(options: Map<string, string>, name: string): string {
-  const value = options.get(name);
-
-  if (value === undefined) {
-    fail(`--${name} を渡してください`);
-  }
-
-  return value;
-}
 
 function fail(message: string): never {
   console.error(`❌ ${message}`);
@@ -48,7 +21,7 @@ function fail(message: string): never {
 }
 
 function issueBody(options: Map<string, string>): string {
-  const kind = requiredOption(options, "kind");
+  const kind = requireOption(options, "kind");
 
   if (kind !== "tool-output" && kind !== "authored") {
     fail(`--kind は tool-output か authored です: ${kind}`);
@@ -56,19 +29,19 @@ function issueBody(options: Map<string, string>): string {
 
   const evidence: IssueEvidence = {
     kind,
-    text: readFileSync(requiredOption(options, "evidence"), "utf8").trimEnd(),
+    text: readFileSync(requireOption(options, "evidence"), "utf8").trimEnd(),
   };
 
   return composeIssueBody({
     heading: options.get("heading"),
     evidence,
     runUrl: options.get("run-url"),
-    note: readFileSync(requiredOption(options, "note"), "utf8").trimEnd(),
+    note: readFileSync(requireOption(options, "note"), "utf8").trimEnd(),
   });
 }
 
 function reviewBlock(options: Map<string, string>): string {
-  const kind = requiredOption(options, "kind");
+  const kind = requireOption(options, "kind");
 
   if (kind !== REVIEW_KIND.story && kind !== REVIEW_KIND.screen) {
     fail(`--kind は story か screen です: ${kind}`);
@@ -76,8 +49,8 @@ function reviewBlock(options: Map<string, string>): string {
 
   const command = composeReviewCommand({
     kind,
-    ids: requiredOption(options, "ids"),
-    headRef: requiredOption(options, "head-ref"),
+    ids: requireOption(options, "ids"),
+    headRef: requireOption(options, "head-ref"),
     runId: options.get("run-id"),
   });
 
@@ -88,8 +61,8 @@ function reviewBlock(options: Map<string, string>): string {
   }
 
   return [
-    requiredOption(options, "heading"),
-    requiredOption(options, "lead"),
+    requireOption(options, "heading"),
+    requireOption(options, "lead"),
     `\`\`\`bash\n${command}\n\`\`\``,
     REVIEW_WORKTREE_NOTE,
   ].join("\n\n");
@@ -97,7 +70,7 @@ function reviewBlock(options: Map<string, string>): string {
 
 function main(): void {
   const [command, ...rest] = process.argv.slice(2);
-  const options = readOptions(rest);
+  const options = parseOptions(rest);
 
   if (command === "issue-body") {
     process.stdout.write(issueBody(options));
@@ -118,4 +91,8 @@ function main(): void {
   fail("usage: ci-report issue-body | ci-report review-block");
 }
 
-main();
+try {
+  main();
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}

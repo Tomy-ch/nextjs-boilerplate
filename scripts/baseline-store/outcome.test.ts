@@ -88,6 +88,10 @@ describe("composeRetakeOutcome", () => {
     );
   });
 
+  it("対象の名前が文字集合を外れていれば、その行を出さない", () => {
+    expect(composeRetakeOutcome({ ...BASE, ids: "home;id" })).not.toContain("対象:");
+  });
+
   it("どちらの種類も撮っていなければ、手元で開く節を出さない", () => {
     expect(composeRetakeOutcome({ ...BASE, screens: "", stories: "" })).not.toContain(
       "### 手元で見る",
