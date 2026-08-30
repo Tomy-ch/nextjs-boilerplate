@@ -16,11 +16,14 @@ const COOKIE: BrowserCookie = {
  * `--user-data-dir=` の指定を引数から拾って、そこへ本物と同じ 2 行を書きます。本物を起動すると
  * 実行のたびにブラウザが 1 つ立ち上がり、待ち時間も後片付けも実機の都合に引きずられます。
  */
-function fakeBrowser(delayMs = 0): string[] {
+function fakeBrowser(
+  delayMs = 0,
+  wrote = "9911\\n/devtools/browser/0195f0c2-0000-7000-8000-000000000001",
+): string[] {
   const code = [
     "const fs = require('node:fs');",
     "const dir = process.argv.find((a) => a.startsWith('--user-data-dir=')).slice(16);",
-    `setTimeout(() => fs.writeFileSync(dir + '/DevToolsActivePort', '9911\\n/devtools/browser/x'), ${String(delayMs)});`,
+    `setTimeout(() => fs.writeFileSync(dir + '/DevToolsActivePort', '${wrote}'), ${String(delayMs)});`,
     "setTimeout(() => {}, 3000);",
   ].join("");
 
@@ -87,7 +90,10 @@ describe("startBrowser", () => {
     // 上限を渡さない。既定でも待てることを、ここで一緒に見る。
     const browser = await startBrowser(process.execPath, fakeBrowser());
 
-    expect(browser).toMatchObject({ port: 9911, wsUrl: "ws://127.0.0.1:9911/devtools/browser/x" });
+    expect(browser).toMatchObject({
+      port: 9911,
+      wsUrl: "ws://127.0.0.1:9911/devtools/browser/0195f0c2-0000-7000-8000-000000000001",
+    });
 
     browser.close();
   });
@@ -113,6 +119,18 @@ describe("startBrowser", () => {
     await expect(
       startBrowser(process.execPath, ["-e", "process.exit(3)", "--"], 5_000),
     ).rejects.toThrow(/終了コード 3/);
+  });
+
+  it("読めない綴りが書かれていたら、繋ぎ先にしない", async () => {
+    await expect(
+      startBrowser(process.execPath, fakeBrowser(0, "9911\\nhttp://elsewhere/"), 5_000),
+    ).rejects.toThrow(/待ち受け先の綴りが読めません/);
+  });
+
+  it("ポートが数でなければ、繋ぎ先にしない", async () => {
+    await expect(
+      startBrowser(process.execPath, fakeBrowser(0, "x\\n/devtools/browser/0195f0c2-0000-7000-8000-000000000001"), 5_000),
+    ).rejects.toThrow(/待ち受け先の綴りが読めません/);
   });
 
   it("待っても始まらなければ、上限を告げて落ちる", async () => {

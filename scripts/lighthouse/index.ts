@@ -20,6 +20,7 @@ import {
   selectScreens,
 } from "../../e2e/lib/screens";
 import { CONSENT_CHOICE, CONSENT_COOKIE_NAME, toConsentCookieValue } from "../../src/model/consent";
+import { errorMessage } from "../lib/error-message";
 import { decideGate } from "../lib/input-hash";
 import { numstatArgs, parseNumstat } from "../lib/numstat";
 import { type BrowserCookie, putCookies, startBrowser } from "./browser";
@@ -166,7 +167,7 @@ async function runOnce(
   try {
     return await runOnceStrict(target, run, cookies);
   } catch (cause) {
-    console.error(`↻ ${target.name} の ${run} 回目を引き直します（${String(cause)}）`);
+    console.error(`↻ ${target.name} の ${run} 回目を引き直します（${errorMessage(cause)}）`);
 
     return await runOnceStrict(target, run, cookies);
   }
@@ -454,6 +455,6 @@ async function main(): Promise<void> {
 
 // トップレベル await にしない。tsx は CJS へ落とすので変換の時点で落ちる。
 main().catch((error: unknown) => {
-  console.error(`❌ ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`❌ ${errorMessage(error)}`);
   process.exitCode = 1;
 });

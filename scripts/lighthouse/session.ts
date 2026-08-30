@@ -25,7 +25,8 @@
  */
 export function parseCookiePairs(setCookies: readonly string[]): [string, string][] {
   return setCookies.map((cookie) => {
-    const pair = cookie.split(";")[0] ?? "";
+    const end = cookie.indexOf(";");
+    const pair = end === -1 ? cookie : cookie.slice(0, end);
     const at = pair.indexOf("=");
 
     return at === -1 ? [pair, ""] : [pair.slice(0, at), pair.slice(at + 1)];
