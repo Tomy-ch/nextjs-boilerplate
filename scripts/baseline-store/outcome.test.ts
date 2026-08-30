@@ -46,13 +46,17 @@ describe("composeRetakeOutcome", () => {
     const outcome = composeRetakeOutcome({ ...BASE, images: manyImages(25) });
 
     expect(outcome).toContain("動いた 25 枚のうち 20 枚だけを並べています。");
+    expect(outcome).toContain("s19.png");
     expect(outcome).not.toContain("s20.png");
   });
 
-  it("上限ちょうどなら、切ったことを書かない", () => {
-    expect(composeRetakeOutcome({ ...BASE, images: manyImages(20) })).not.toContain(
-      "枚だけを並べています",
-    );
+  it("上限ちょうどなら、切ったことを書かず、末尾の 1 枚まで並べる", () => {
+    const outcome = composeRetakeOutcome({ ...BASE, images: manyImages(20) });
+
+    expect(outcome).not.toContain("枚だけを並べています");
+    // 末尾を見る。切る位置が縮んでも、切ったことを書く文面は上限の宣言から作られるので、
+    // 文面だけを見ていると縮んだことに気付けない。
+    expect(outcome).toContain("s19.png");
   });
 
   it("動いた種類のぶんだけ、手元で開くコマンドを並べる", () => {
@@ -62,6 +66,20 @@ describe("composeRetakeOutcome", () => {
       "make vrt-review BRANCH='release/v0.6.0' VRT_ONLY='overlay-command--default'",
     );
     expect(outcome).toContain("make e2e-review BRANCH='release/v0.6.0' E2E_ONLY='home'");
+  });
+
+  it("直接 push した場合は、承認の付け先をその場に指す", () => {
+    const outcome = composeRetakeOutcome(BASE);
+
+    expect(outcome).toContain("`baseline-approve` ラベルを付けてください。");
+    expect(outcome).not.toContain("**上のポインタ PR に**");
+  });
+
+  it("画面だけを撮り直したなら、story を開く入口は出さない", () => {
+    const outcome = composeRetakeOutcome(BASE);
+
+    expect(outcome).toContain("e2e-review");
+    expect(outcome).not.toContain("vrt-review");
   });
 
   it("ポインタを PR で入れる場合は、その PR を承認先として指す", () => {
@@ -77,11 +95,11 @@ describe("composeRetakeOutcome", () => {
     );
   });
 
-  // ----- 異常系 -----
   it("動いた画像が無ければ、表を出さない", () => {
     expect(composeRetakeOutcome({ ...BASE, images: "" })).not.toContain("### 動いた画像");
   });
 
+  // ----- 異常系 -----
   it("画像の位置が文字集合を外れていれば、表ごと出さない", () => {
     expect(composeRetakeOutcome({ ...BASE, images: "screen/`id`.png" })).not.toContain(
       "### 動いた画像",

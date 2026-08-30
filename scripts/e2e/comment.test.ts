@@ -40,6 +40,12 @@ describe("classifyFailure", () => {
     expect(classifyFailure("A snapshot doesn't exist at ...").pixels).toBe(true);
   });
 
+  it("置き場との対応が崩れたことを指すログも画素の種別へ入れる", () => {
+    expect(classifyFailure("✘ 1 [mobile] › @screen-baselines 撮影対象と 1 対 1 で対応する").pixels).toBe(
+      true,
+    );
+  });
+
   it("複数の落ち方を同時に立てる", () => {
     expect(
       classifyFailure("画面の宣言がありません\n✘ e2e/journeys/a.spec.ts\ntoHaveScreenshot"),
@@ -69,9 +75,10 @@ describe("composeNotes", () => {
   });
 
   it("宣言漏れには、撮り直しで直らないことを添える", () => {
-    expect(composeNotes({ kinds: { ...NONE, undeclared: true }, ...REVIEW })).toContain(
-      "### 画面の宣言が足りていません",
-    );
+    const notes = composeNotes({ kinds: { ...NONE, undeclared: true }, ...REVIEW });
+
+    expect(notes).toContain("### 画面の宣言が足りていません");
+    expect(notes).not.toContain("### 種別を判定できませんでした");
   });
 
   it("撮り直しで直らない失敗には、3 つの置き場を名指しする", () => {
@@ -79,6 +86,7 @@ describe("composeNotes", () => {
 
     expect(notes).toContain("`e2e/maintenance/`");
     expect(notes).toContain("`e2e/metadata/`");
+    expect(notes).not.toContain("### 種別を判定できませんでした");
   });
 
   it("画素のずれには、撮り直しの案内と手元で開くコマンドを添える", () => {
@@ -86,6 +94,7 @@ describe("composeNotes", () => {
 
     expect(notes).toContain("### 画面の見た目が基準画像と違います");
     expect(notes).toContain("make e2e-review BRANCH='release/v0.6.0' RUN='1' E2E_ONLY='home,cart'");
+    expect(notes).not.toContain("### 種別を判定できませんでした");
   });
 
   // ----- 異常系 -----

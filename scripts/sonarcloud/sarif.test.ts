@@ -109,7 +109,6 @@ describe("toSarif", () => {
     expect(sarif.runs[0].tool.driver.informationUri).toBe(SERVER);
   });
 
-  // ----- 異常系 -----
   it("所見が 1 件も無ければ、空の走査として書き出す", () => {
     const sarif = toSarif({ issues: [] }, SERVER);
 
@@ -117,6 +116,7 @@ describe("toSarif", () => {
     expect(sarif.runs[0].tool.driver.rules).toEqual([]);
   });
 
+  // ----- 異常系 -----
   it("応答として読めない形も、空の走査として書き出す", () => {
     expect(toSarif("応答ではない", SERVER).runs[0].results).toEqual([]);
   });

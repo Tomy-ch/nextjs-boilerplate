@@ -30,7 +30,11 @@ describe("parseLabelSpecs", () => {
   });
 
   it("配列でない宣言を拒む", () => {
-    expect(() => parseLabelSpecs(JSON.stringify({ name: "bug" }))).toThrow();
+    // 1 件ぶんの項目としては揃えて渡す。欠けたまま渡すと、配列でないことではなく項目の不足で
+    // 落ち、配列を要求している検査そのものは通っていない。
+    expect(() =>
+      parseLabelSpecs(JSON.stringify({ name: "bug", description: "不具合", color: "d73a4a" })),
+    ).toThrow();
   });
 
   it("1 件も宣言されていなければ拒む", () => {

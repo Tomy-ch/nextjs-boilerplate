@@ -50,7 +50,6 @@ describe("planStash", () => {
     ]);
   });
 
-  // ----- 異常系 -----
   it("1 つも在らなければ退避しない", () => {
     expect(planStash(OUTPUTS, BACKUP, () => false)).toEqual([]);
   });
@@ -67,7 +66,6 @@ describe("planRestore", () => {
     });
   });
 
-  // ----- 異常系 -----
   it("退避が 0 件でも置き場の全数を消す", () => {
     expect(planRestore(OUTPUTS, [])).toEqual({ remove: OUTPUTS, moves: [] });
   });

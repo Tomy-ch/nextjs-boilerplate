@@ -37,11 +37,11 @@ describe("countResults", () => {
     expect(countResults(sarif)).toBe(2);
   });
 
-  // ----- 異常系 -----
   it("所見が 1 件も無ければ 0 件", () => {
     expect(countResults(sarifOf([]))).toBe(0);
   });
 
+  // ----- 異常系 -----
   it("SARIF として読めない形も 0 件として数える", () => {
     expect(countResults("SARIF ではない")).toBe(0);
   });
@@ -71,6 +71,14 @@ describe("renderSummary", () => {
     const body = renderSummary(sarifOf([NOTE_RESULT, ERROR_RESULT]), "ERROR", "");
 
     expect(body.indexOf("[error]")).toBeLessThan(body.indexOf("[note]"));
+  });
+
+  it("読ませたい段は、止めるべき段と参考の段のあいだへ置く", () => {
+    const warning = resultAt("warning", "src/app/error.tsx", 7);
+    const body = renderSummary(sarifOf([NOTE_RESULT, warning, ERROR_RESULT]), "ERROR", "");
+
+    expect(body.indexOf("[error]")).toBeLessThan(body.indexOf("[warning]"));
+    expect(body.indexOf("[warning]")).toBeLessThan(body.indexOf("[note]"));
   });
 
   it("説明の改行を空白へ潰し、箇条書きを崩さない", () => {
