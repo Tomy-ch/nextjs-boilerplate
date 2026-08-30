@@ -1,0 +1,116 @@
+// リリース / hotfix ブランチを切るときの判断。git と gh の呼び出しは入口が持ち、ここは
+// 受け取った観測だけで「何を、どの順で走らせるか」と「止めるときに出す行」を決める。
+
+import {
+  logStep,
+  PRODUCTION_BRANCH,
+  type ReleaseCommand,
+  type ReleaseStep,
+  runStep,
+} from "./steps.js";
+
+/** 切れるブランチの種別。そのまま接頭辞になる。 */
+export const RELEASE_BRANCH_PREFIXES = ["hotfix", "release"] as const;
+
+export type ReleaseBranchPrefix = (typeof RELEASE_BRANCH_PREFIXES)[number];
+
+/** 引数として渡された値がブランチの種別になっているか。 */
+export function isReleaseBranchPrefix(value: string): value is ReleaseBranchPrefix {
+  return (RELEASE_BRANCH_PREFIXES as readonly string[]).includes(value);
+}
+
+/**
+ * 基準にできるタグが 1 本も無いときに出す行。
+ *
+ * @remarks
+ * 次の版は最新のリリースタグから数えるので、1 本も無ければ数えようがありません。ここで
+ * `v0.0.0` を勝手に補うと、初期タグを打っていないリポジトリが黙って `v0.0.1` から始まります。
+ */
+export const NO_LATEST_TAG_STEPS: readonly ReleaseStep[] = [
+  logStep("❌ 最新のリリースタグを取得できませんでした。初期タグ作成が必要です。"),
+  logStep("➡️ 先に make release-tag などで初期タグを作成してから再実行してください。"),
+];
+
+/** ブランチを切って既定ブランチを張り替えるまでの手順。 */
+export type ReleaseBranchPlan = {
+  readonly branchName: string;
+  /** 名乗り。関門の手前で出す。 */
+  readonly notices: readonly ReleaseStep[];
+  /** 既に在るかを見る問い合わせ。成功したら在る。 */
+  readonly existenceProbe: ReleaseCommand;
+  /** 関門を抜けてから踏む手順。 */
+  readonly steps: readonly ReleaseStep[];
+};
+
+/**
+ * 次の版のブランチを `production` から切り、GitHub の既定ブランチをそこへ張り替える手順を組む。
+ *
+ * @remarks
+ * hotfix も release も `production` から切ります([0150](../../docs/adr/0150-git-workflow.md))。
+ * 出荷済みの断面から切らないと、まだ出していない変更をリリース版へ引き連れます。
+ *
+ * **順序は入れ替えられません。** 既定ブランチの張り替えは、push で ref が向こうに在ることが
+ * 前提です。先に張り替えると、GitHub は存在しないブランチを既定として指したまま止まります。
+ */
+export function planReleaseBranch(input: {
+  readonly latest: string;
+  readonly next: string;
+  readonly prefix: ReleaseBranchPrefix;
+}): ReleaseBranchPlan {
+  const branchName = `${input.prefix}/${input.next}`;
+
+  return {
+    branchName,
+    notices: [
+      logStep(`🔖 タグから最新リリースバージョンを取得: 【 ${input.latest} 】`),
+      logStep(`➡️ 次のリリースバージョンを作成: 【 ${input.next} 】`),
+      logStep(`🌱 ブランチを作成: ${PRODUCTION_BRANCH} → 【 ${branchName} 】`),
+    ],
+    existenceProbe: {
+      command: "git",
+      args: ["ls-remote", "--exit-code", "--heads", "origin", branchName],
+    },
+    steps: [
+      runStep("git", ["fetch", "origin", PRODUCTION_BRANCH]),
+      runStep("git", ["switch", "-c", branchName, `origin/${PRODUCTION_BRANCH}`]),
+      // push は `--no-verify` で行う。ここで押すのは `origin/production` に既に在るコミットへ
+      // 新しい ref を張るだけで、内容は production へ入った時点で全ゲートを通過している。
+      // フックを回しても新しい情報は出ず、テスト一式の実行時間だけが乗る。
+      runStep("git", ["push", "--no-verify", "origin", branchName]),
+      logStep(`⚙️ GitHub上のデフォルトブランチを ${branchName} に設定します。`),
+      runStep("gh", ["repo", "edit", "--default-branch", branchName]),
+      logStep(`✅ デフォルトブランチを ${branchName} に切り替えて、プッシュしました。`),
+    ],
+  };
+}
+
+/**
+ * ブランチを切ってよいか。止めるときだけ、出す行を返す。
+ *
+ * @remarks
+ * 見る順は変えられません。既に在るブランチを先に弾かないと、作業ツリーの汚れを直した人が
+ * 二度目に「既に存在します」で止まり、直すべき対象が入れ替わって見えます。
+ *
+ * 汚れた作業ツリーで進めないのは、`git switch -c` が持ち越した変更をリリースブランチへ連れて
+ * 行くためです。**押した後では取り消せません** —— 保護ブランチは force push を受けません。
+ */
+export function branchCreationBlocker(input: {
+  readonly branchName: string;
+  readonly branchExists: boolean;
+  readonly workTreeStatus: string;
+}): readonly ReleaseStep[] | null {
+  if (input.branchExists) {
+    return [logStep(`❌ ブランチ【 ${input.branchName} 】は既に存在します。処理を中止します。`)];
+  }
+
+  if (input.workTreeStatus.trim() !== "") {
+    return [
+      logStep(
+        "❌ 作業ツリーに未コミットの変更があります。変更をコミットまたは退避してから再実行してください。",
+      ),
+      runStep("git", ["status", "--short"]),
+    ];
+  }
+
+  return null;
+}
