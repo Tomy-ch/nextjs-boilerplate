@@ -86,6 +86,10 @@ export const CHECKS: readonly Check[] = [
         reason: "全ての画面が通る器が動いています",
       },
       {
+        globs: ["src/app/globals.css", "src/components/design-system/foundation/**/*.css"],
+        reason: "全ての画面が読む土台の CSS が動いています。1 つの宣言で全画面の折り返しが動きます",
+      },
+      {
         globs: ["e2e/lib/screens.ts", "e2e/journeys/**/*.spec.ts"],
         reason: "ジャーニーと画面の宣言そのものが動いています",
       },

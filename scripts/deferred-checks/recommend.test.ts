@@ -116,6 +116,13 @@ describe("recommend", () => {
     expect(labelsOf([change("src/app/(shop)/layout.tsx")])).toStrictEqual(["run-e2e"]);
   });
 
+  it("全画面が読む土台の CSS が動けばジャーニーを勧める", () => {
+    expect(labelsOf([change("src/app/globals.css")])).toStrictEqual(["run-e2e"]);
+    expect(
+      labelsOf([change("src/components/design-system/foundation/scrollbar/scrollbar.css")]),
+    ).toStrictEqual(["run-e2e"]);
+  });
+
   it("配信ヘッダと画像・バンドルの既定を兼ねる設定は、ジャーニーと計測の両方を勧める", () => {
     expect(labelsOf([change("next.config.ts")])).toStrictEqual(["run-e2e", "run-lighthouse"]);
   });

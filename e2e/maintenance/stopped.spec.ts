@@ -10,6 +10,8 @@
 // を開いて見ている（`e2e/lib/screens.ts`）。
 import { expect, test } from "@playwright/test";
 
+import { CONSENT_CHOICE, CONSENT_COOKIE_NAME, toConsentCookieValue } from "@/model/consent";
+
 /** 止めていても通る生存確認。 */
 const HEALTH_PATH = "/api/health";
 
@@ -22,6 +24,19 @@ const HEALTH_PATH = "/api/health";
  * 指す先を失います。
  */
 const STOPPED_PATH = "/help";
+
+// 同意を尋ねる面はこの画面も覆い、周囲を `aria-hidden` にする。作らないと見出しを役割で引けない。
+// `lib/test.ts` を使う spec は同じ状態を fixture から受け取る（`e2e/README.md`「同意は選び終えた
+// 状態から始める」）。
+test.beforeEach(async ({ context, baseURL }) => {
+  await context.addCookies([
+    {
+      name: CONSENT_COOKIE_NAME,
+      value: toConsentCookieValue(CONSENT_CHOICE.denied),
+      url: baseURL,
+    },
+  ]);
+});
 
 test("止めているあいだ、経路を問わず停止画面が返る", async ({ page }) => {
   await page.goto(STOPPED_PATH);

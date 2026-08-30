@@ -189,6 +189,18 @@ jobs:
         if: steps.scope.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      # Three stages, one verdict.
+      #
+      # Neither stage below the journeys can be reached from them. `APP_MAINTENANCE_MODE`
+      # applies to every route and only takes effect at boot; `SITE_INDEXABLE` is read at
+      # build time, so prerendered pages bake their metadata and the journeys — which build
+      # with the default `off` — can only assert that side (`e2e/journeys/metadata.spec.ts`).
+      # Each therefore gets its own build and its own server.
+      #
+      # They share one step because everything downstream reads only this one. The comment,
+      # the branch issue, the artifact upload and the final verdict are all composed from
+      # what THIS step logs and from `steps.e2e.outputs`, so a stage raised outside it
+      # reaches none of them — and a green `make e2e` would report a PASS over it.
       - name: Build the app, start it and drive it
         id: e2e
         if: steps.scope.outputs.relevant == 'true'
@@ -197,49 +209,47 @@ jobs:
         run: |
           set +e
 
-          # Streamed through `tee` rather than tailed at the end: a run that is cancelled
-          # or hits the job timeout never reaches the tail, so the slow case — the one
-          # worth diagnosing — would leave no log at all.
-          make e2e 2>&1 | tee /tmp/e2e-full.log
-          code=${PIPESTATUS[0]}
+          status=success
+          : > /tmp/e2e-full.log
+          : > /tmp/e2e-failed.log
 
-          if [ "${code}" -eq 0 ]; then
-            echo "status=success" >> "$GITHUB_OUTPUT"
+          # Each stage keeps its own log, and only the failing ones are excerpted. One
+          # shared excerpt would carry the markers but not the evidence: a pixel failure
+          # followed by two green stages pushes the pixels out of the last 80 lines.
+          stage() {
+            local name="$1"
+            shift
+
+            # Streamed through `tee` rather than tailed at the end: a run that is cancelled
+            # or hits the job timeout never reaches the tail, so the slow case — the one
+            # worth diagnosing — would leave no log at all.
+            "$@" 2>&1 | tee "/tmp/e2e-${name}.log"
+            local code=${PIPESTATUS[0]}
+
+            cat "/tmp/e2e-${name}.log" >> /tmp/e2e-full.log
+
+            if [ "${code}" -ne 0 ]; then
+              status=failure
+              tail -n 80 "/tmp/e2e-${name}.log" >> /tmp/e2e-failed.log
+            fi
+          }
+
+          # A port each: `make e2e` kills the `pnpm start` wrapper but the `next start` child
+          # it spawned can outlive it and keep :3100 bound (issue #465). Sharing the port
+          # makes the next stage fail before it drives anything.
+          stage journeys make e2e
+          stage maintenance make e2e-maintenance E2E_PORT=3101
+          stage metadata make e2e-metadata E2E_PORT=3103
+
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+
+          if [ "${status}" = 'success' ]; then
             echo "title=## ✅ E2E: PASS" >> "$GITHUB_OUTPUT"
           else
-            echo "status=failure" >> "$GITHUB_OUTPUT"
             echo "title=## ❌ E2E: FAIL" >> "$GITHUB_OUTPUT"
           fi
 
           exit 0
-
-      # The stop mechanism cannot be reached from the run above. `APP_MAINTENANCE_MODE`
-      # applies to every route and only takes effect at boot, so it needs its own build and
-      # its own server rather than a case inside the journey suite. It takes no baselines
-      # and asserts responses only, so it costs one more build and a handful of requests.
-      #
-      # Not wrapped in `continue-on-error`: there is no comment to compose from it and no
-      # retake that could repair it, so a failure here should stop the job outright.
-      - name: Drive the app with delivery stopped
-        if: steps.scope.outputs.relevant == 'true'
-        shell: bash
-        # On a different port from the journeys above: `make e2e` kills the `pnpm start`
-        # wrapper but the `next start` child it spawned can outlive it and keep :3100
-        # bound (issue #465). Sharing the port makes this step fail before it drives anything.
-        run: make e2e-maintenance E2E_PORT=3101
-
-      # The public surface cannot be judged from the journeys either: `SITE_INDEXABLE` is
-      # read at build time (prerendered pages bake their metadata), and the journeys build
-      # with the default `off`. So this boots one more build with indexing on and asserts
-      # what a crawler would read — robots.txt, every URL the sitemap lists, each page's
-      # canonical, and that the generated icons and OG image are actual images. The `off`
-      # side is asserted by the journeys above (`e2e/journeys/metadata.spec.ts`).
-      #
-      # Same reasoning as the step above for `continue-on-error` and the port.
-      - name: Drive the public surface with indexing on
-        if: steps.scope.outputs.relevant == 'true'
-        shell: bash
-        run: make e2e-metadata E2E_PORT=3103
 
       # The guidance is split by what actually failed. A retake fixes a changed pixel and
       # nothing else, so printing the retake note unconditionally tells the reader to
@@ -260,7 +270,7 @@ jobs:
           mkdir -p /tmp/e2e-comment
 
           if [ "${{ steps.e2e.outputs.status }}" = "success" ]; then
-            echo '主要ジャーニーが 3 つの描画エンジンで通り、画面の見た目も基準画像と一致しました。' > /tmp/e2e-comment/e2e.log
+            echo '主要ジャーニーが 3 つの描画エンジンで通り、画面の見た目も基準画像と一致しました。停止中の扱いと公開面も成立しています。' > /tmp/e2e-comment/e2e.log
             : > /tmp/e2e-comment/e2e-notes.md
             exit 0
           fi
@@ -268,22 +278,25 @@ jobs:
           # Markers, not exit codes: one run can fail in several kinds at once, and the
           # kinds are what decide which next step is the right one.
           undeclared=false
-          journey=false
+          unretakable=false
           pixels=false
 
           if grep -q '画面の宣言がありません' /tmp/e2e-full.log; then
             undeclared=true
           fi
 
-          if grep -qE '✘.*e2e/journeys/' /tmp/e2e-full.log; then
-            journey=true
+          # All three directories, not just the journeys: the stop mechanism and the public
+          # surface fail the same way and are repaired the same way. Naming only the journeys
+          # leaves their failures indistinguishable from a pixel drift.
+          if grep -qE '✘.*e2e/(journeys|maintenance|metadata)/' /tmp/e2e-full.log; then
+            unretakable=true
           fi
 
           if grep -qE "toHaveScreenshot|A snapshot doesn't exist|@screen-baselines" /tmp/e2e-full.log; then
             pixels=true
           fi
 
-          tail -n 80 /tmp/e2e-full.log > /tmp/e2e-comment/e2e.log
+          cp /tmp/e2e-failed.log /tmp/e2e-comment/e2e.log
 
           {
             cat <<'ARTIFACT'
@@ -299,13 +312,13 @@ jobs:
           UNDECLARED
             fi
 
-            if [ "${journey}" = 'true' ]; then
-              cat <<'JOURNEY'
+            if [ "${unretakable}" = 'true' ]; then
+              cat <<'UNRETAKABLE'
 
-          ### ジャーニーが落ちています
+          ### 撮り直しでは直らない失敗があります
 
-          trace を開いて原因を特定してください。**撮り直しでは直りません。** 1 つの描画エンジンだけが落ちているなら、その engine 固有の挙動か実行環境のゆらぎです。落ちた検証を名指しで実行し直して切り分けてください。
-          JOURNEY
+          ジャーニー（`e2e/journeys/`）・停止中の扱い（`e2e/maintenance/`）・公開面（`e2e/metadata/`）のいずれかが落ちています。trace を開いて原因を特定してください。1 つの描画エンジンだけが落ちているなら、その engine 固有の挙動か実行環境のゆらぎです。落ちた検証を名指しで実行し直して切り分けてください。
+          UNRETAKABLE
             fi
 
             if [ "${pixels}" = 'true' ]; then
@@ -351,7 +364,7 @@ jobs:
               fi
             fi
 
-            if [ "${undeclared}" = 'false' ] && [ "${journey}" = 'false' ] && [ "${pixels}" = 'false' ]; then
+            if [ "${undeclared}" = 'false' ] && [ "${unretakable}" = 'false' ] && [ "${pixels}" = 'false' ]; then
               cat <<'UNKNOWN'
 
           ### 種別を判定できませんでした
@@ -449,18 +462,19 @@ jobs:
           {
             echo '落ちた内容:'
             echo
-            tail -n 80 /tmp/e2e-full.log 2>/dev/null | sed 's/^/    /'
+            sed 's/^/    /' /tmp/e2e-failed.log 2>/dev/null
             echo
             echo "実行: ${RUN_URL}"
             echo
             cat <<'NOTE'
           `e2e-diff` artifact に HTML レポートと trace が入っています。
 
-          手元で確かめるなら `make e2e`、CI が落とした画面だけなら `make e2e-review` です。
+          手元で確かめるなら `make e2e`、CI が落とした画面だけなら `make e2e-review` です。停止中の
+          扱いと公開面は別の起動で回るので、`make e2e-maintenance` / `make e2e-metadata` です。
 
-          **見た目の差分だけなら基準画像の撮り直しで済みますが、ジャーニーの失敗と画面の宣言漏れは
-          撮り直しでは直りません。** 撮り直すと、後者は誤った状態が正として焼き付きます
-          (`e2e/README.md`)。
+          **見た目の差分だけなら基準画像の撮り直しで済みますが、ジャーニー・停止中の扱い・公開面の
+          失敗と、画面の宣言漏れは撮り直しでは直りません。** 撮り直すと、後者は誤った状態が正として
+          焼き付きます (`e2e/README.md`)。
           NOTE
           } > /tmp/e2e-guard.md
 
@@ -476,7 +490,7 @@ jobs:
       # `status` is empty when the run stood down, which is not a failure. The scope guard
       # has to be repeated here rather than left to `status`, because "no verdict" and "a bad
       # verdict" read the same to the expression below.
-      - name: Fail if a journey or a screen failed
+      - name: Fail if any of the three stages failed
         if: always() && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success'
         run: exit 1
 
