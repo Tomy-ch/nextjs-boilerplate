@@ -521,31 +521,21 @@ jobs:
 
           ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json || true)"
 
-          # The block below is pasted into a shell, so a value outside the accepted set is
-          # dropped rather than quoted. Why quoting is not enough, and why the same set is
-          # what lets these values render as markdown, is in ADR 0153 §5.
-          if printf '%s%s' "${HEAD_REF}" "${ids}" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; then
-            ids=''
-            echo "review block suppressed: head_ref or story ids carry shell metacharacters" >&2
-          fi
-
           {
             pnpm exec tsx scripts/vrt table tmp/vrt/report.json || true
 
-            if [ -n "${ids}" ]; then
-              cat <<REVIEW
-
-          ### 手元で見る
-
-          落ちた story を使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。
-
-          \`\`\`bash
-          make vrt-review BRANCH='${HEAD_REF}' RUN='${RUN_ID}' VRT_ONLY='${ids}'
-          \`\`\`
-
-          作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。
-          REVIEW
-            fi
+            # The command below is pasted into a shell, so a value outside the accepted set
+            # drops the whole block rather than being quoted into it. Both the set and that
+            # decision live in `scripts/lib/review-command.ts` — writing the check here is
+            # what let the same rule drift between the workflows that need it (ADR 0153 §5).
+            echo
+            pnpm exec tsx scripts/ci-report review-block \
+              --kind story \
+              --ids "${ids}" \
+              --head-ref "${HEAD_REF}" \
+              --run-id "${RUN_ID}" \
+              --heading '### 手元で見る' \
+              --lead '落ちた story を使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。'
 
             cat <<'NOTE'
 

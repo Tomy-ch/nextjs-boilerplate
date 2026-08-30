@@ -66,7 +66,8 @@ function isUnretakableLine(line: string): boolean {
   return marked !== -1 && UNRETAKABLE_DIRECTORIES.some((area) => line.includes(area, marked));
 }
 
-const ARTIFACT_NOTE = "`e2e-diff` artifact に HTML レポートと、失敗した検証の trace が入っています。";
+const ARTIFACT_NOTE =
+  "`e2e-diff` artifact に HTML レポートと、失敗した検証の trace が入っています。";
 
 const UNDECLARED_NOTE = `### 画面の宣言が足りていません
 

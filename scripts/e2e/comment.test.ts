@@ -21,9 +21,9 @@ describe("classifyFailure", () => {
   });
 
   it("停止中の扱いの失敗も同じ種別へ入れる", () => {
-    expect(classifyFailure("✘ 2 [chromium] › e2e/maintenance/stopped.spec.ts:41:5").unretakable).toBe(
-      true,
-    );
+    expect(
+      classifyFailure("✘ 2 [chromium] › e2e/maintenance/stopped.spec.ts:41:5").unretakable,
+    ).toBe(true);
   });
 
   it("公開面の失敗も同じ種別へ入れる", () => {
@@ -48,9 +48,9 @@ describe("classifyFailure", () => {
 
   // ----- 異常系 -----
   it("画素の比較が落ちた巡回を、ジャーニーの失敗として数えない", () => {
-    expect(classifyFailure("✘ 1 [mobile] › e2e/visual/screens.spec.ts:39:7 › home").unretakable).toBe(
-      false,
-    );
+    expect(
+      classifyFailure("✘ 1 [mobile] › e2e/visual/screens.spec.ts:39:7 › home").unretakable,
+    ).toBe(false);
   });
 
   it("置き場の名前が印より前にあるだけなら、立てない", () => {
@@ -69,9 +69,9 @@ describe("composeNotes", () => {
   });
 
   it("宣言漏れには、撮り直しで直らないことを添える", () => {
-    expect(
-      composeNotes({ kinds: { ...NONE, undeclared: true }, ...REVIEW }),
-    ).toContain("### 画面の宣言が足りていません");
+    expect(composeNotes({ kinds: { ...NONE, undeclared: true }, ...REVIEW })).toContain(
+      "### 画面の宣言が足りていません",
+    );
   });
 
   it("撮り直しで直らない失敗には、3 つの置き場を名指しする", () => {
@@ -85,9 +85,7 @@ describe("composeNotes", () => {
     const notes = composeNotes({ kinds: { ...NONE, pixels: true }, ...REVIEW });
 
     expect(notes).toContain("### 画面の見た目が基準画像と違います");
-    expect(notes).toContain(
-      "make e2e-review BRANCH='release/v0.6.0' RUN='1' E2E_ONLY='home,cart'",
-    );
+    expect(notes).toContain("make e2e-review BRANCH='release/v0.6.0' RUN='1' E2E_ONLY='home,cart'");
   });
 
   // ----- 異常系 -----
