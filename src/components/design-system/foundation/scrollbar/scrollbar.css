@@ -14,3 +14,25 @@
   scrollbar-width: thin;
   scrollbar-color: var(--semantic-color-muted-foreground) transparent;
 }
+
+/*
+ * scrollbar が取る場所を、出ていないときも確保しておく。
+ *
+ * 上の宣言が overlay を classic へ切り替えるため、scrollbar は場所を取る。取る場所が出入りすると
+ * 内容の幅がそのぶん変わり、**折り返しの位置ごと動く** —— 面を覆う overlay がページのスクロールを
+ * 止めた瞬間がこれで、実測では header のブランド名が 2 行になり、その下が全部押し下げられた。
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
+/*
+ * スクロールを止めるときの埋め合わせを打ち消す。
+ *
+ * 止める実装 (react-remove-scroll) は、scrollbar が消えるぶんを body の余白で埋め合わせる。上で
+ * 場所を常に確保しているので消える幅は無く、埋め合わせを入れられるとその量だけ内容が動く。
+ * 宣言を実行時に差し込んでくる相手なので、詳細度を 1 段上げて打ち消す。
+ */
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
+}
