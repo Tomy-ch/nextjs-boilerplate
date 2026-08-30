@@ -129,7 +129,11 @@ describe("startBrowser", () => {
 
   it("ポートが数でなければ、繋ぎ先にしない", async () => {
     await expect(
-      startBrowser(process.execPath, fakeBrowser(0, "x\\n/devtools/browser/0195f0c2-0000-7000-8000-000000000001"), 5_000),
+      startBrowser(
+        process.execPath,
+        fakeBrowser(0, "x\\n/devtools/browser/0195f0c2-0000-7000-8000-000000000001"),
+        5_000,
+      ),
     ).rejects.toThrow(/待ち受け先の綴りが読めません/);
   });
 
