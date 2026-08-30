@@ -37,6 +37,10 @@ const PORT_FILE = "DevToolsActivePort";
 /** `Storage.setCookies` へ振る番号。1 往復しかしないので固定でよい。 */
 const SET_COOKIES_ID = 1;
 
+/** 待ち受け先として認める綴り。1 行目は 10 進のポート、2 行目は browser の口の経路。 */
+const PORT_SHAPE = /^\d{1,5}$/;
+const WS_PATH_SHAPE = /^\/devtools\/browser\/[0-9a-fA-F-]+$/;
+
 /**
  * ブラウザが待ち受け先を書き出すまで待つ。
  *
@@ -66,6 +70,12 @@ async function waitForPortFile(
       : [undefined, undefined];
 
     if (port !== undefined && wsPath !== undefined && wsPath !== "") {
+      // **綴りを確かめてから繋ぎ先にする。** 中身を書くのはこちらが起動したプロセスだが、
+      // 読んだ値をそのまま繋ぎ先に使うと、書き換えられた置き場が別の宛先を指せる。
+      if (!PORT_SHAPE.test(port) || !WS_PATH_SHAPE.test(wsPath)) {
+        throw new Error(`待ち受け先の綴りが読めません: ${port} ${wsPath}`);
+      }
+
       return { port: Number(port), wsPath };
     }
 
