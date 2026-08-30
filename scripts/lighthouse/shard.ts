@@ -1,3 +1,5 @@
+import { expectedShardTotal } from "../lib/shard-completeness";
+
 /**
  * 計測を台数で割る。
  *
@@ -76,8 +78,9 @@ export function isShardFile(fileName: string): boolean {
  * 届いた結果が全台ぶん揃っているかを、綴りだけから確かめる。
  *
  * @remarks
- * **台数をここで宣言しません。** 各台が書いた名前が既に台数を持っているので、束ねる側が数字を
- * 書き写すと、それが古びる 2 つ目の宣言になります。
+ * **揃っているかの判定は [`scripts/lib/shard-completeness.ts`](../lib/shard-completeness.ts) が
+ * 持ちます。** ここが渡すのは綴りの読み方だけで、テストの分割も同じ判定を呼びます。判定を
+ * 各所で書き起こすと、名前の付け方を変えたときに片方だけが古びます。
  *
  * 足りないまま束ねると、測らなかった画面が「予算の緩和が宣言されているのに居ない画面」として
  * 現れます。原因を取り違えるので、束ねる前に落とします。
@@ -86,35 +89,9 @@ export function isShardFile(fileName: string): boolean {
  * @returns 割った台数
  */
 export function expectedTotal(fileNames: readonly string[]): number {
-  const totals = new Set<number>();
-  let found = 0;
-
-  for (const name of fileNames) {
+  return expectedShardTotal(fileNames, (name) => {
     const matched = FILE_PATTERN.exec(name);
 
-    if (matched === null) {
-      continue;
-    }
-
-    totals.add(Number(matched[2]));
-    found += 1;
-  }
-
-  if (found === 0) {
-    throw new Error("分割の結果が 1 台ぶんも届いていません");
-  }
-
-  if (totals.size > 1) {
-    throw new Error(
-      `届いた結果が別々の台数で割られています: ${[...totals].sort((a, b) => a - b).join(", ")}`,
-    );
-  }
-
-  const [total] = [...totals];
-
-  if (total !== found) {
-    throw new Error(`分割 ${total} 台のうち ${found} 台ぶんしか結果が届いていません`);
-  }
-
-  return total;
+    return matched === null ? undefined : Number(matched[2]);
+  });
 }

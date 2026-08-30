@@ -198,36 +198,17 @@ jobs:
       # report unreached lines for code whose tests never ran. Naming the count first means
       # the report says which machine went missing instead of blaming the code.
       #
-      # The expected count is read out of the file names rather than declared here. Vitest
-      # names each blob `blob-<index>-<total>.json`, so the denominator the shards actually
-      # ran with is already in hand — writing `4` in this job would be the second number the
-      # matrix comment warns about, and it would be the one that goes stale.
+      # The expected count is read out of the file names rather than declared here: each blob
+      # carries the denominator the shards actually ran with, so writing `4` in this job would
+      # be the second number the matrix comment warns about, and the one that goes stale.
+      #
+      # The judgement itself is `scripts/lib/shard-completeness.ts`, which the sharded
+      # Lighthouse run calls too; `scripts/test-shards/blob.ts` holds the spelling that
+      # `.makefiles/testing/test.mk` writes. Re-deriving either here is what let the two
+      # copies of this step drift apart.
       - name: Fail if a machine did not report
         shell: bash
-        run: |
-          set -euo pipefail
-
-          mapfile -t blobs < <(find tmp/test-blob -name 'blob-*-*.json' -printf '%f\n' | sort)
-
-          if [ "${#blobs[@]}" -eq 0 ]; then
-            echo "❌ 分割の結果が 1 台ぶんも届いていません。" >&2
-            exit 1
-          fi
-
-          totals="$(printf '%s\n' "${blobs[@]}" | sed -E 's/^blob-[0-9]+-([0-9]+)\.json$/\1/' | sort -u)"
-
-          if [ "$(printf '%s\n' "${totals}" | wc -l | tr -d ' ')" -ne 1 ]; then
-            echo "❌ 届いた結果が別々の台数で割られています: ${totals}" >&2
-            echo "   実行の途中で分割数が変わると、合流させても全量になりません。" >&2
-            exit 1
-          fi
-
-          if [ "${#blobs[@]}" -ne "${totals}" ]; then
-            echo "❌ 分割 ${totals} 台のうち ${#blobs[@]} 台ぶんしか結果が届いていません。" >&2
-            echo "   届かなかった台の実行ログを読んでください。このまま合流させると、走らなかった" >&2
-            echo "   テストがカバレッジの不足として現れ、原因を取り違えます。" >&2
-            exit 1
-          fi
+        run: make test-shards-verify
 
       - name: Merge the runs and check coverage
         id: test
