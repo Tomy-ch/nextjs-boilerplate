@@ -142,10 +142,7 @@ export async function startBrowser(
  * @param wsUrl - `startBrowser` が返した browser の口。
  * @param cookies - 置く cookie。1 つも無ければ繋ぎません。
  */
-export async function putCookies(
-  wsUrl: string,
-  cookies: readonly BrowserCookie[],
-): Promise<void> {
+export async function putCookies(wsUrl: string, cookies: readonly BrowserCookie[]): Promise<void> {
   if (cookies.length === 0) {
     return;
   }
