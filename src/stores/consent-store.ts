@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { create } from "zustand";
 
 import {
@@ -23,14 +23,9 @@ type ConsentStore = {
  * cookie から同意状態を読む。
  *
  * @remarks
- * サーバでは読めないため `"unread"` を返します。ここで「未選択」を返すと、選び終えた利用者にも
- * サーバ描画の時点でバナーが出ます。
+ * 呼ぶのはブラウザ側だけです（{@link useConsentState} の effect）。
  */
 function readConsentCookie(): ConsentState {
-  if (typeof document === "undefined") {
-    return UNREAD_CONSENT;
-  }
-
   const found = document.cookie
     .split("; ")
     .find((entry) => entry.startsWith(`${CONSENT_COOKIE_NAME}=`));
@@ -63,28 +58,37 @@ function writeConsentCookie(choice: ConsentChoice): void {
  * 同意状態を配る store。
  *
  * @remarks
- * **cookie は module の読み込み時に一度だけ読みます。** 書き換えるのはこの store だけなので、
- * 描画のたびに読み直す理由がありません。
+ * **初期値は「まだ読んでいない」で、サーバとブラウザで同じです。** cookie を読むのは
+ * {@link useConsentState} が mount された後の 1 回だけで、以後の書き換えは
+ * {@link decideConsent} だけが行います。
  */
-const useConsentStore = create<ConsentStore>(() => ({ state: readConsentCookie() }));
+const useConsentStore = create<ConsentStore>(() => ({ state: UNREAD_CONSENT }));
+
+/** いまの同意状態。サーバでもブラウザでも同じ口から読む。 */
+function snapshot(): ConsentState {
+  return useConsentStore.getState().state;
+}
 
 /**
  * いまの同意状態を購読する。
  *
  * @remarks
- * **サーバ側の値を明示的に分けます。** store の値をそのまま読むと、cookie を持つブラウザでは
- * hydration の 1 回目がサーバの出力と食い違います。`useSyncExternalStore` に別の初期値を渡すと、
- * React が hydration を済ませてから読み直します。
+ * **サーバ側とブラウザ側で同じ値を返します。** 別の値を返すと、`getServerSnapshot` が読まれる
+ * たびに「まだ読んでいない」へ巻き戻ります —— Cache Components の下では穴が届いた時点で
+ * subtree の hydration がもう一度走るため、**出したバナーがそこで一度消えて開き直り**、その消失が
+ * layout shift として数えられます（[0041](../../docs/adr/0041-cache-components-decision.md)）。
  *
- * この分け方の帰結として、**バナーは hydration の後に現れます。** サーバは同意状態を知らないため、
- * 知らないまま尋ねるか、知るまで待つかのどちらかしかありません。
+ * cookie を読むのは mount 後の 1 回だけです。サーバは同意状態を知らないので、**バナーはその読み
+ * 取りの後に現れます**。知らないまま尋ねるか、知るまで待つかのどちらかしかありません。
  */
 export function useConsentState(): ConsentState {
-  return useSyncExternalStore(
-    useConsentStore.subscribe,
-    () => useConsentStore.getState().state,
-    () => UNREAD_CONSENT,
-  );
+  useEffect(() => {
+    if (snapshot().status === "unread") {
+      useConsentStore.setState({ state: readConsentCookie() });
+    }
+  }, []);
+
+  return useSyncExternalStore(useConsentStore.subscribe, snapshot, snapshot);
 }
 
 /**

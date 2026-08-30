@@ -194,9 +194,19 @@
       }
     },
     {
+      "includes": ["src/components/design-system/foundation/scrollbar/scrollbar.css"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "src/stores/consent-store.ts",
-        "src/stores/consent-store.test.ts",
+        "src/stores/consent-store.test.tsx",
         "src/app/consent.test.tsx",
         "src/app/analytics.test.tsx"
       ],

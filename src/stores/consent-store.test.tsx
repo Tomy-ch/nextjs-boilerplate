@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, renderHook } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -14,7 +15,7 @@ import {
  * cookie を置いた状態で store を読み込み直す。
  *
  * @remarks
- * 読み込み時に一度だけ cookie を読む作りなので、初期状態を変えるには module ごと作り直す。
+ * cookie を読むのは mount 後の 1 回だけなので、初期状態を変えるには module ごと作り直す。
  */
 async function loadStore(cookie?: string) {
   if (cookie !== undefined) {
@@ -24,6 +25,11 @@ async function loadStore(cookie?: string) {
   vi.resetModules();
 
   return import("./consent-store");
+}
+
+/** 状態を綴りとして出すだけの読み手。サーバ側スナップショットを見るために使う。 */
+function Probe({ use }: { use: () => { status: string } }) {
+  return <span>{use().status}</span>;
 }
 
 afterEach(() => {
@@ -60,13 +66,26 @@ describe("useConsentState", () => {
   });
 
   it("cookie を読めないサーバ側では、まだ読んでいない状態を配る", async () => {
-    vi.stubGlobal("document", undefined);
-    const { useConsentState } = await loadStore();
-    vi.unstubAllGlobals();
+    const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
 
+    expect(renderToStaticMarkup(<Probe use={useConsentState} />)).toContain("unread");
+  });
+
+  it("二度目の mount では読み直さない。読み終えた値をそのまま配る", async () => {
+    const { useConsentState } = await loadStore();
+    renderHook(() => useConsentState());
+
+    document.cookie = `${CONSENT_COOKIE_NAME}=${toConsentCookieValue(CONSENT_CHOICE.granted)}; path=/`;
     const { result } = renderHook(() => useConsentState());
 
-    expect(result.current).toEqual({ status: "unread" });
+    expect(result.current).toEqual({ status: "unset" });
+  });
+
+  it("読み終えたあとのサーバ側スナップショットは、読んだ値を返す", async () => {
+    const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
+    renderHook(() => useConsentState());
+
+    expect(renderToStaticMarkup(<Probe use={useConsentState} />)).toContain("decided");
   });
 
   // ----- 異常系 -----

@@ -5,11 +5,9 @@ import type { Target } from "./plan";
 
 const TARGET: Target = { name: "home", url: "http://127.0.0.1:3300/", role: undefined };
 
-/** 引数を組み立てる。既定は役割の要らない画面。 */
-function args(headersFile?: string): string[] {
-  return buildLighthouseArgs("/cli/index.js", TARGET, "tmp/lighthouse/home-1.json", headersFile, [
-    "--headless=new",
-  ]);
+/** 引数を組み立てる。 */
+function args(): string[] {
+  return buildLighthouseArgs("/cli/index.js", TARGET, "tmp/lighthouse/home-1.json", 9222);
 }
 
 describe("buildChromeFlags", () => {
@@ -45,23 +43,16 @@ describe("buildLighthouseArgs", () => {
     expect(args()).toContain("--ignore-status-code");
   });
 
-  it("ブラウザへの指定を 1 つの引数へ畳む", () => {
-    expect(
-      buildLighthouseArgs("/cli/index.js", TARGET, "out.json", undefined, [
-        "--headless=new",
-        "--no-sandbox",
-      ]),
-    ).toContain("--chrome-flags=--headless=new --no-sandbox");
+  it("立ち上げ済みのブラウザへ繋ぐ。ここでは起動しない", () => {
+    expect(args()).toContain("--port=9222");
   });
 
-  it("ヘッダの宣言があれば、その場所を渡す", () => {
-    expect(args("tmp/lighthouse/headers-admin.json")).toContain(
-      "--extra-headers=tmp/lighthouse/headers-admin.json",
-    );
+  it("開く前に置いた cookie を消させない", () => {
+    expect(args()).toContain("--disable-storage-reset");
   });
 
   // ----- 異常系 -----
-  it("ヘッダの宣言が無ければ、ヘッダを渡さない", () => {
-    expect(args().some((arg) => arg.startsWith("--extra-headers"))).toBe(false);
+  it("ブラウザを自分で起動する指定は渡さない", () => {
+    expect(args().some((arg) => arg.startsWith("--chrome-flags"))).toBe(false);
   });
 });
