@@ -68,7 +68,8 @@ upgrade-insecure-requests                      ← https で配信している�
 - **`'unsafe-eval'` は開発サーバーだけ。** React が server 側のエラースタックをブラウザで組み直すのに eval を使う。本番の React も Next.js も eval を使わない
 - **`upgrade-insecure-requests` は https で配信しているときだけ。** http の開発環境で出すと `http://localhost` の副資源まで https へ書き換えられる
 - **`connect-src 'self'`**: ブラウザからの送信先は BFF(`/api/*`)に限る。観測性のシグナルも中継 seam を通る([0081](0081-observability-logging.md))。OTLP を直接叩かせない
-- **外部オリジン**(タグマネージャ・分析 SDK 等)の追加は、fork が [0131](0131-cookie-consent.md)(同意ゲート)と連動して `script-src` / `connect-src` / `img-src` に足す拡張点とする。同時に §2 の `Cross-Origin-Embedder-Policy` を緩める判断を伴う。サードパーティスクリプト規約は `docs/rules.md` #50
+- **外部オリジン**(タグマネージャ・分析 SDK 等)は、[0131](0131-cookie-consent.md) §2 の同意ゲートと連動して `script-src` / `connect-src` / `img-src` に載る。**同梱するタグマネージャのぶんは本体が宣言し、それ以外を足すのは fork の拡張点**とする。サードパーティスクリプト規約は `docs/rules.md` #50
+- **`Cross-Origin-Embedder-Policy` は降ろす。** `require-corp` は副資源に `Cross-Origin-Resource-Policy` か CORS を要求するが、タグマネージャが注入するタグの配信元はそれを返さない。**cross-origin isolation を失うことを受け入れた結果**であり、`SharedArrayBuffer` 等の isolation を前提とする機能はこの構成では使えない。isolation が要る fork は容器 ID を空にして本ヘッダを戻す
 - **`Content-Security-Policy-Report-Only` は経由しない。** 違反は CI が実ブラウザで検知する(§6)ので、可視化のためだけの段階導入は要らない。外部オリジンを足す fork が衝突を見たいときの手段として残す
 
 ### 4. enforce seam = seam A(静的・`next.config.ts`)

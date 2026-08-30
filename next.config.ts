@@ -77,6 +77,7 @@ const nextConfig = async (phase: string): Promise<NextConfig> => {
             authIssuer: environment.AUTH_ISSUER,
             servesOverTls: isServedOverTls(environment.AUTH_REDIRECT_URI),
             development: phase === PHASE_DEVELOPMENT_SERVER,
+            gtmContainerId: environment.NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID,
           }),
         },
       ];

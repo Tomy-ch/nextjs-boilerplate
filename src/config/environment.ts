@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { gtmContainerIdValidator } from "./analytics/analytics.schema";
 import { apiBaseUrlValidator, apiModeValidator } from "./api/api.schema";
 import {
   authClientIdValidator,
@@ -62,6 +63,7 @@ const environmentSchema = z.object({
   HTTP_ALLOWED_ORIGINS: allowedOriginsValidator(),
   SITE_PUBLIC_ORIGIN: publicOriginValidator(),
   SITE_INDEXABLE: indexableValidator(),
+  NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID: gtmContainerIdValidator(),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

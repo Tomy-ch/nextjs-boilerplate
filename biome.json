@@ -207,7 +207,8 @@
       "includes": [
         "src/stores/consent-store.ts",
         "src/stores/consent-store.test.tsx",
-        "src/app/consent.test.tsx"
+        "src/app/consent.test.tsx",
+        "src/app/analytics.test.tsx"
       ],
       "linter": {
         "rules": {

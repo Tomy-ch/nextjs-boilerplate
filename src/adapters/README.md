@@ -8,7 +8,9 @@ coverage-exclusions:
 
 # adapters
 
-バックエンド API、BFF fetch、analytics など外部接続だけを置く境界アダプタです。`server/` と `client/` の 2 element に分けます。
+バックエンド API、BFF fetch、telemetry の送信など外部接続だけを置く境界アダプタです。`server/` と `client/` の 2 element に分けます。
+
+**このアプリが送信を組み立てないものは、ここを通りません。** 同梱のタグマネージャは容器を読み込むだけで、送信は容器の中身が行うため、`app` の client island が受け持ちます（[0082](../../docs/adr/0082-client-observability.md) §3）。
 実行文脈を持たない規則——どちらの element が送る要求にも等しく効くもの——は `http/` に置き、契約からの生成物は `gen/` に置きます。どちらも `adapters` の中からだけ import できます。
 
 ## 受け入れるもの
