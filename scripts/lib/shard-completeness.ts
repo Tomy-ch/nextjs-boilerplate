@@ -68,8 +68,14 @@ export function expectedShardTotal(
 
   const [total] = [...totals];
 
-  if (total !== found) {
+  // 数が合わない向きで文面を分ける。多く届いているのに「しか届いていません」と言うと、
+  // 読み手は足りない台を探すことになる。多いほうは古い結果が残っている形である。
+  if (found < total) {
     throw new Error(`分割 ${total} 台のうち ${found} 台ぶんしか結果が届いていません`);
+  }
+
+  if (found > total) {
+    throw new Error(`分割 ${total} 台に対し ${found} 台ぶんの結果が届いています`);
   }
 
   return total;

@@ -39,4 +39,13 @@ describe("expectedShardTotal", () => {
       "分割 4 台のうち 2 台ぶんしか結果が届いていません",
     );
   });
+
+  it("台数を超えて届いていれば、足りないのとは別の文面で断る", () => {
+    expect(() =>
+      expectedShardTotal(
+        ["blob-1-3.json", "blob-2-3.json", "blob-3-3.json", "blob-4-3.json"],
+        readBlobTotal,
+      ),
+    ).toThrow("分割 3 台に対し 4 台ぶんの結果が届いています");
+  });
 });
