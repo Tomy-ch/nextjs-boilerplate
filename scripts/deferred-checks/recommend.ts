@@ -87,8 +87,7 @@ export const CHECKS: readonly Check[] = [
       },
       {
         globs: ["src/app/globals.css", "src/components/design-system/foundation/**/*.css"],
-        reason:
-          "全ての画面が読む土台の CSS が動いています。1 つの宣言で全画面の折り返しが動きます",
+        reason: "全ての画面が読む土台の CSS が動いています。1 つの宣言で全画面の折り返しが動きます",
       },
       {
         globs: ["e2e/lib/screens.ts", "e2e/journeys/**/*.spec.ts"],
