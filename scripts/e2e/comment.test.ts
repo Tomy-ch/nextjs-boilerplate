@@ -53,6 +53,10 @@ describe("classifyFailure", () => {
     );
   });
 
+  it("置き場の名前が印より前にあるだけなら、立てない", () => {
+    expect(classifyFailure("e2e/journeys/browse.spec.ts ✘ 1 失敗の一覧").unretakable).toBe(false);
+  });
+
   it("目印が 1 つも無ければ、どの種別も立てない", () => {
     expect(classifyFailure("Error: connect ECONNREFUSED")).toEqual(NONE);
   });

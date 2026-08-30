@@ -12,10 +12,15 @@ export function errorMessage(error: unknown): string {
   const text = error instanceof Error && error.message ? error.message : String(error);
 
   // 改行を先に、それだけを落とす。偽の 1 行を足せるのはこの 2 文字だけで、残りの制御文字は
-  // 見え方の問題にとどまる。**分けて書くのは、走査する側にここを関門として読ませるため**
-  // —— 制御文字の集合でまとめて落とすと、改行を落としていることが静的には読み取れない。
+  // 見え方の問題にとどまる。
+  //
+  // **`\r` と `\n` を 1 文字ずつ `replace` で落とす。** ここが関門であることは走査する側にも
+  // 読めなければならず、2 文字を集合（`[\r\n]`）へまとめた形は関門として読まれない —— 実測で
+  // `js/log-injection` が素通りし、この関数を通した先が sink として挙がる。制御文字をまとめて
+  // 落とす下の 1 行だけでは、改行を落としていることが静的に読み取れない。
   return text
-    .replaceAll(/[\r\n]/g, " ")
+    .replace(/\r/g, " ")
+    .replace(/\n/g, " ")
     .replaceAll(/[\p{Cc}\p{Cf}]/gu, " ")
     .trim();
 }

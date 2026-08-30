@@ -22,6 +22,9 @@ export type FailureKinds = {
 /** 宣言の無い画面が現れたときに、突合が書く文言。 */
 const UNDECLARED_MARK = "画面の宣言がありません";
 
+/** Playwright が落ちた検証の行頭へ書く印。 */
+const FAILURE_MARK = "✘";
+
 /**
  * 撮り直しでは直らない失敗が出る置き場。
  *
@@ -29,7 +32,7 @@ const UNDECLARED_MARK = "画面の宣言がありません";
  * **3 つとも見ます。** 停止中の扱いと公開面はジャーニーと同じ落ち方をし、同じ直し方をします。
  * ジャーニーだけを名指しすると、残る 2 つの失敗が画素のずれと見分けられなくなります。
  */
-const UNRETAKABLE_PATTERN = /✘.*e2e\/(journeys|maintenance|metadata)\//;
+const UNRETAKABLE_DIRECTORIES = ["e2e/journeys/", "e2e/maintenance/", "e2e/metadata/"] as const;
 
 /** 画素の比較が落ちたときに Playwright が書く綴り。 */
 const PIXEL_PATTERN = /toHaveScreenshot|A snapshot doesn't exist|@screen-baselines/;
@@ -42,9 +45,25 @@ const PIXEL_PATTERN = /toHaveScreenshot|A snapshot doesn't exist|@screen-baselin
 export function classifyFailure(log: string): FailureKinds {
   return {
     undeclared: log.includes(UNDECLARED_MARK),
-    unretakable: UNRETAKABLE_PATTERN.test(log),
+    unretakable: log.split("\n").some(isUnretakableLine),
     pixels: PIXEL_PATTERN.test(log),
   };
+}
+
+/**
+ * その 1 行が、撮り直しでは直らない失敗か。
+ *
+ * @remarks
+ * 印と置き場の**順**まで見ます。行のどこかに両方在れば足りるとすると、落ちた画面の一覧に
+ * 置き場の名前が出るだけで立ってしまいます。
+ *
+ * 正規表現を使いません。印と置き場のあいだへ任意長を置く形は後戻りを生み、行の長さで
+ * 実行時間が跳ねます。ログは PR の側が長さを決められます。
+ */
+function isUnretakableLine(line: string): boolean {
+  const marked = line.indexOf(FAILURE_MARK);
+
+  return marked !== -1 && UNRETAKABLE_DIRECTORIES.some((area) => line.includes(area, marked));
 }
 
 const ARTIFACT_NOTE = "`e2e-diff` artifact に HTML レポートと、失敗した検証の trace が入っています。";
