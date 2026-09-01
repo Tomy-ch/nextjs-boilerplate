@@ -115,44 +115,38 @@ jobs:
         run: |
           set +e
 
-          make actionlint 2>&1 | tee /tmp/actions-lint.log
-          actionlint_code=${PIPESTATUS[0]}
+          # One list, one place: a check is added here and nowhere else. The verdict, the log
+          # and the title are all derived from this array, so a check cannot be half-added —
+          # the shape that reports green while failing.
+          checks=(
+            'actionlint|actionlint'
+            'actions-shellcheck|shellcheck'
+            'actions-comment-secret-lint|pr-comment secret lint'
+            'actions-mise-pin-lint|mise pin'
+            'actions-required-check-lint|required check'
+            'actions-zizmor|zizmor'
+            'shellcheck|script shellcheck'
+            'egress-check|egress'
+          )
 
-          make actions-shellcheck 2>&1 | tee -a /tmp/actions-lint.log
-          shellcheck_code=${PIPESTATUS[0]}
+          status=success
+          names=''
+          : > /tmp/actions-lint.log
 
-          make actions-comment-secret-lint 2>&1 | tee -a /tmp/actions-lint.log
-          secret_lint_code=${PIPESTATUS[0]}
+          for check in "${checks[@]}"; do
+            # Appended in order, because the log is what the pull-request comment shows.
+            make "${check%%|*}" 2>&1 | tee -a /tmp/actions-lint.log
+            [ "${PIPESTATUS[0]}" -eq 0 ] || status=failure
 
-          make actions-mise-pin-lint 2>&1 | tee -a /tmp/actions-lint.log
-          mise_pin_code=${PIPESTATUS[0]}
+            names="${names:+${names} + }${check#*|}"
+          done
 
-          make actions-required-check-lint 2>&1 | tee -a /tmp/actions-lint.log
-          required_check_code=${PIPESTATUS[0]}
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
 
-          make actions-zizmor 2>&1 | tee -a /tmp/actions-lint.log
-          zizmor_code=${PIPESTATUS[0]}
-
-          make shellcheck 2>&1 | tee -a /tmp/actions-lint.log
-          script_shellcheck_code=${PIPESTATUS[0]}
-
-          make egress-check 2>&1 | tee -a /tmp/actions-lint.log
-          egress_code=${PIPESTATUS[0]}
-
-          summary="actionlint + shellcheck + pr-comment secret lint + mise pin + required check + zizmor + egress"
-          if [ "${actionlint_code}" -eq 0 ] \
-            && [ "${shellcheck_code}" -eq 0 ] \
-            && [ "${secret_lint_code}" -eq 0 ] \
-            && [ "${mise_pin_code}" -eq 0 ] \
-            && [ "${required_check_code}" -eq 0 ] \
-            && [ "${zizmor_code}" -eq 0 ] \
-            && [ "${script_shellcheck_code}" -eq 0 ] \
-            && [ "${egress_code}" -eq 0 ]; then
-            echo "status=success" >> "$GITHUB_OUTPUT"
-            echo "title=## ✅ Actions lint: PASS (${summary})" >> "$GITHUB_OUTPUT"
+          if [ "${status}" = 'success' ]; then
+            echo "title=## ✅ Actions lint: PASS (${names})" >> "$GITHUB_OUTPUT"
           else
-            echo "status=failure" >> "$GITHUB_OUTPUT"
-            echo "title=## ❌ Actions lint: FAIL (${summary})" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Actions lint: FAIL (${names})" >> "$GITHUB_OUTPUT"
           fi
 
           exit 0

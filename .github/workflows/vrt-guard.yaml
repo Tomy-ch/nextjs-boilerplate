@@ -139,17 +139,27 @@ jobs:
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          {
-            # The comparison may never have run — the baseline store can be
-            # unreachable. Raising the issue matters more than the table, so every
-            # fallback ends in something printable.
-            pnpm exec tsx scripts/vrt table tmp/vrt/report.json 2>/dev/null ||
-              tail -n 60 /tmp/vrt-full.log 2>/dev/null ||
-              echo '(比較そのものが実行できませんでした。実行ログを確認してください。)'
-            echo
-            echo "実行: ${RUN_URL}"
-            echo
-            cat <<'NOTE'
+          # The comparison may never have run — the baseline store can be unreachable. Raising
+          # the issue matters more than the table, so every fallback ends in something
+          # printable. **Which fallback fired decides how the evidence may be rendered**: the
+          # table is this repository's own, while the log tail is whatever the tools printed
+          # and must not become markup (ADR 0153 §5).
+          kind=authored
+          pnpm exec tsx scripts/vrt table tmp/vrt/report.json > /tmp/vrt-evidence.md 2>/dev/null ||
+            : > /tmp/vrt-evidence.md
+
+          if [ ! -s /tmp/vrt-evidence.md ]; then
+            kind=tool-output
+            tail -n 60 /tmp/vrt-full.log > /tmp/vrt-evidence.md 2>/dev/null ||
+              : > /tmp/vrt-evidence.md
+          fi
+
+          if [ ! -s /tmp/vrt-evidence.md ]; then
+            kind=authored
+            echo '(比較そのものが実行できませんでした。実行ログを確認してください。)' > /tmp/vrt-evidence.md
+          fi
+
+          cat <<'NOTE' > /tmp/vrt-note.md
           マージ済みの木で差分が出ています。PR の判定はマージ結果に対して行われ、ブランチは最新である
           ことを要求しているため、通常ここは鳴りません。鳴ったということは前提のどれかが崩れています。
 
@@ -159,7 +169,16 @@ jobs:
 
           **基準画像をそのまま撮り直さないでください。**誰も画素を見ていない状態を正にすることになります。
           NOTE
-          } > /tmp/vrt-guard.md
+
+          # Degrades to a fixed body rather than failing: the step that raises the issue does
+          # not gate on this one, so a failure here would file an empty issue (README.md,
+          # "PR の外で落ちたら、issue にする").
+          pnpm exec tsx scripts/ci-report issue-body \
+            --kind "${kind}" \
+            --evidence /tmp/vrt-evidence.md \
+            --run-url "${RUN_URL}" \
+            --note /tmp/vrt-note.md > /tmp/vrt-guard.md ||
+            printf '%s\n\n実行: %s\n' '❌ 本文を組み立てられませんでした。実行ログを読んでください。' "${RUN_URL}" > /tmp/vrt-guard.md
 
       - name: Raise it where it has an owner
         if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}

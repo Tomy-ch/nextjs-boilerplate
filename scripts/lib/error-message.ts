@@ -12,8 +12,7 @@ export function errorMessage(error: unknown): string {
   const text = error instanceof Error && error.message ? error.message : String(error);
 
   // 改行を先に、それだけを落とす。偽の 1 行を足せるのはこの 2 文字だけで、残りの制御文字は
-  // 見え方の問題にとどまる。**分けて書くのは、走査する側にここを関門として読ませるため**
-  // —— 制御文字の集合でまとめて落とすと、改行を落としていることが静的には読み取れない。
+  // 見え方の問題にとどまる。
   return text
     .replaceAll(/[\r\n]/g, " ")
     .replaceAll(/[\p{Cc}\p{Cf}]/gu, " ")
