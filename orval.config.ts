@@ -1,3 +1,4 @@
+import { faker } from "@faker-js/faker";
 import { defineConfig } from "orval";
 
 // 契約に載っているが本アプリが呼ばない operation の tag。
@@ -42,21 +43,6 @@ const PATTERNED_MOCK_PROPERTIES = {
 };
 
 /**
- * 都道府県マスタのモック応答。
- *
- * @remarks
- * この operation だけ応答そのものを差し替えます。項目名が汎用の `name` なので、上の
- * 項目名による指定では商品名や状態名まで巻き込みます。
- *
- * 全 47 件は置かず、地方の散った 11 件に絞ります。`code` は JIS X 0401 の実際の値であり、
- * 連番ではありません。**間引いても選択部品の幅は変わりません** —— 47 件の最長は 4 文字で、
- * 残す中の神奈川県が同じ 4 文字だからです。
- *
- * 契約は件数もコード体系も宣言していないため、生成器には本物を出す手がかりがありません。
- * ここに書いた値が実データと一致していることの保証はこの宣言だけで、**出所はバックエンドでは
- * ありません**。
- */
-/**
  * 商品状態マスタのモック応答。
  *
  * @remarks
@@ -95,6 +81,21 @@ const PRODUCT_CATEGORIES = [
   { id: "0195f0c2-2000-7000-9000-000000000005", code: 5, name: "日用品" },
 ];
 
+/**
+ * 都道府県マスタのモック応答。
+ *
+ * @remarks
+ * この operation だけ応答そのものを差し替えます。項目名が汎用の `name` なので、上の
+ * 項目名による指定では商品名や状態名まで巻き込みます。
+ *
+ * 全 47 件は置かず、地方の散った 11 件に絞ります。`code` は JIS X 0401 の実際の値であり、
+ * 連番ではありません。**間引いても選択部品の幅は変わりません** —— 47 件の最長は 4 文字で、
+ * 残す中の神奈川県が同じ 4 文字だからです。
+ *
+ * 契約は件数もコード体系も宣言していないため、生成器には本物を出す手がかりがありません。
+ * ここに書いた値が実データと一致していることの保証はこの宣言だけで、**出所はバックエンドでは
+ * ありません**。
+ */
 const PREFECTURES = [
   { code: 1, name: "北海道" },
   { code: 4, name: "宮城県" },
@@ -112,6 +113,45 @@ const PREFECTURES = [
   code,
   name,
 }));
+
+/**
+ * 商品名の作り方。
+ *
+ * @remarks
+ * 契約は商品名に 255 文字まで許すため、生成器はその上限までのランダム英字を返します。名前の列が
+ * 表の幅を独り占めし、分類・価格・在庫・状態・操作が描画の外へ出るので、表が何列で成り立つのかを
+ * 画面で確かめられません。
+ *
+ * **項目名ではなく経路で指定します。** `name` は分類名も状態名も利用者名も名乗る綴りなので、
+ * 項目名で指定すると指し先の表示名まで置き換わります。orval は正規表現を項目名と経路の両方に
+ * 当てるため（`@orval/mock` の `resolveMockOverride`）、商品自身の名前だけを経路で選べます。
+ */
+const PRODUCT_NAME_MOCK_PROPERTIES = {
+  "/^#(\\.(products|rankings)\\.\\[\\])?\\.name$/": () =>
+    faker.helpers.arrayElement([
+      "ワイヤレスイヤホン",
+      "全自動コーヒーメーカー ステンレスサーバー付き",
+      "オーガニックコットン クルーネックTシャツ",
+      "ステンレス保温マグ 480ml",
+      "折りたたみ傘 自動開閉 軽量",
+      "アロマディフューザー 超音波式",
+      "デスクライト 調光調色",
+      "ランニングシューズ 軽量クッション",
+      "詰め替え用ハンドソープ 800ml",
+      "文庫本カバー 帆布",
+    ]),
+};
+
+/** 商品を載せる operation。商品名の作り方は全部で同じ。 */
+const PRODUCT_OPERATIONS = [
+  "GetProducts",
+  "PostProducts",
+  "GetProductsDetail",
+  "PatchProductsDetail",
+  "PatchProductsStock",
+  "GetProductsLowStock",
+  "GetProductsRankingQuantity",
+];
 
 const apiInput = {
   target: "./openapi/api.gen.yaml",
@@ -142,10 +182,21 @@ export default defineConfig({
           GetPrefectures: { mock: { data: PREFECTURES } },
           GetProductStatuses: { mock: { data: PRODUCT_STATUSES } },
           GetProductCategories: { mock: { data: PRODUCT_CATEGORIES } },
+          ...Object.fromEntries(
+            PRODUCT_OPERATIONS.map((operation) => [
+              operation,
+              { mock: { properties: PRODUCT_NAME_MOCK_PROPERTIES } },
+            ]),
+          ),
           // 売上額は decimal 文字列だが、同じ項目名がダッシュボードの集計では整数で宣言されて
           // いる。項目名で指定すると整数のほうまで文字列に変わるため、この operation に閉じる。
           GetProductsRankingAmount: {
-            mock: { properties: { "/^salesAmount$/": () => "824.69" } },
+            mock: {
+              properties: {
+                ...PRODUCT_NAME_MOCK_PROPERTIES,
+                "/^salesAmount$/": () => "824.69",
+              },
+            },
           },
         },
       },
