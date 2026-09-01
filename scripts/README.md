@@ -6,6 +6,7 @@ coverage-exclusions:
   - "scripts/openapi/check-generated.ts"
   - "scripts/openapi/extract-limits.ts"
   - "scripts/openapi/fetch-api.ts"
+  - "scripts/openapi/gen-api.ts"
   - "scripts/portal/build-site.ts"
   - "scripts/portal/gen-*.ts"
   - "scripts/setup/*/index.ts"

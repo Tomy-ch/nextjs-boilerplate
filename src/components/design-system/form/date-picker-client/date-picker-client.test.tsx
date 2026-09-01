@@ -2,10 +2,21 @@
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { DatePickerClient } from "./date-picker-client";
+
+// calendar は初期値を持たなければ**今月**を開く。日を名指しで押すケースがあるので、時計を
+// 止めなければその月を跨いだ日に落ちる。`shouldAdvanceTime` は user-event が待てるようにする。
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(new Date("2026-08-15T12:00:00.000Z"));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("DatePickerClient", () => {
   it("初期値を表示し、calendar 選択値を hidden input へ反映する", () => {

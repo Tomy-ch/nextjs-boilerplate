@@ -27,6 +27,13 @@ test-shard:
 	@VITEST_SHARDED=1 pnpm exec vitest run --coverage --no-cache --shard=$(SHARD) \
 		--reporter=blob --outputFile=$(TEST_BLOB_DIR)/blob-$(subst /,-,$(SHARD)).json
 
+# 束ねる前に落とす。足りないまま束ねると、走らなかったテストがカバレッジの不足として現れ、
+# 原因を取り違える。台数は各台が書いた名前から読み戻すので、ここでは宣言しない
+# (`scripts/lib/shard-completeness.ts`)。
+.PHONY: test-shards-verify ## 分割の結果が全台ぶん届いているかを確かめる (合流の前)
+test-shards-verify:
+	@pnpm exec tsx scripts/test-shards verify $(TEST_BLOB_DIR)
+
 .PHONY: test-merge ## 分割の blob を合流させ、カバレッジのしきい値を検証する
 test-merge:
 	@pnpm exec vitest run --mergeReports=$(TEST_BLOB_DIR) --coverage

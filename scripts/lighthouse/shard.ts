@@ -1,3 +1,5 @@
+import { expectedShardTotal } from "../lib/shard-completeness";
+
 /**
  * 計測を台数で割る。
  *
@@ -5,6 +7,12 @@
  * **1 台の中で並べません。** 測っているのは CPU 律速の値（TBT / LCP）で、同じ機械で計測を
  * 並べると互いの CPU を奪い合い、予算と照らす意味が消えます。しかも壊れ方が実行ごとに違うため、
  * 「たまに超える」ゲートになります。割るのは機械であって、機械の中ではありません。
+ *
+ * **綴りの組み立て・選り分け・読み戻しはこのモジュールだけが持ちます。** 揃っているかどうかの
+ * 判定は [`scripts/lib/shard-completeness.ts`](../lib/shard-completeness.ts) へ委ねます。どちらかを
+ * 呼び出し側が書き起こすと、名前の付け方を変えたときに片方だけが古びます —— しかも黙って
+ * 古びます。選り分けが外れた結果は合流の対象から落ちるだけで、台数の突合は「揃っている」と
+ * 答えるためです。
  */
 
 /** 分割の 1 台ぶん。 */
@@ -63,10 +71,7 @@ const FILE_PATTERN = /^measurements-([1-9]\d*)-([1-9]\d*)\.json$/;
  * その名前が、台の書いた結果かどうか。
  *
  * @remarks
- * **綴りを知っているのはこのモジュールだけです。** 名前を組み立てるのも（{@link shardFileName}）、
- * 台数を読み戻すのも（{@link expectedTotal}）ここなので、選り分けだけを呼び出し側が自前で
- * 書くと、名前の付け方を変えたときに片方だけが古びます。しかも黙って古びます —— 選り分けが
- * 外れた結果は合流の対象から落ちるだけで、台数の突合は「揃っている」と答えます。
+ * 綴りの所有についてはこのファイル冒頭の `@remarks` を参照。
  */
 export function isShardFile(fileName: string): boolean {
   return FILE_PATTERN.test(fileName);
@@ -76,8 +81,9 @@ export function isShardFile(fileName: string): boolean {
  * 届いた結果が全台ぶん揃っているかを、綴りだけから確かめる。
  *
  * @remarks
- * **台数をここで宣言しません。** 各台が書いた名前が既に台数を持っているので、束ねる側が数字を
- * 書き写すと、それが古びる 2 つ目の宣言になります。
+ * 渡すのは綴りの読み方だけで、揃っているかの判定は
+ * [`scripts/lib/shard-completeness.ts`](../lib/shard-completeness.ts) が持ちます（このファイル
+ * 冒頭の `@remarks`）。テストの分割も同じ判定を呼びます。
  *
  * 足りないまま束ねると、測らなかった画面が「予算の緩和が宣言されているのに居ない画面」として
  * 現れます。原因を取り違えるので、束ねる前に落とします。
@@ -86,35 +92,9 @@ export function isShardFile(fileName: string): boolean {
  * @returns 割った台数
  */
 export function expectedTotal(fileNames: readonly string[]): number {
-  const totals = new Set<number>();
-  let found = 0;
-
-  for (const name of fileNames) {
+  return expectedShardTotal(fileNames, (name) => {
     const matched = FILE_PATTERN.exec(name);
 
-    if (matched === null) {
-      continue;
-    }
-
-    totals.add(Number(matched[2]));
-    found += 1;
-  }
-
-  if (found === 0) {
-    throw new Error("分割の結果が 1 台ぶんも届いていません");
-  }
-
-  if (totals.size > 1) {
-    throw new Error(
-      `届いた結果が別々の台数で割られています: ${[...totals].sort((a, b) => a - b).join(", ")}`,
-    );
-  }
-
-  const [total] = [...totals];
-
-  if (total !== found) {
-    throw new Error(`分割 ${total} 台のうち ${found} 台ぶんしか結果が届いていません`);
-  }
-
-  return total;
+    return matched === null ? undefined : Number(matched[2]);
+  });
 }

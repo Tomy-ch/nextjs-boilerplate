@@ -45,7 +45,7 @@ make help
 | --- | --- | --- |
 | `make gh-login` | `gh` コマンドで GitHub にログインします。 | ブラウザ認証方式でログインを行います。 |
 | `make delete-all-labels` | GitHub リポジトリ上の既存ラベルをすべて削除します。 | なし |
-| `make create-default-labels` | `.github/settings/labels.json` をもとに、デフォルトラベルを作成します。 | なし |
+| `make create-default-labels` | `.github/settings/labels.json` をもとに、デフォルトラベルを作成します。 | 宣言の読み取りと、宣言と実在の差分は [`scripts/github-settings/labels.ts`](../scripts/github-settings/labels.ts) が持ちます。名前が実在するラベルは色や説明が宣言と違っても触りません。 |
 | `make apply-branch-protection` | `.github/settings/branch-protection.json` をもとに、対象リポジトリへブランチルールセットを適用します。 | なし |
 
 ### GitHub リポジトリ初期化関連
@@ -162,18 +162,26 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 
 ### リリースブランチ関連
 
+いずれも取り消せない操作（`origin` への push / デフォルトブランチの張り替え）を含みます。何をどの順で
+実行するかの判断は [`scripts/release/branch.ts`](../scripts/release/branch.ts) が持ち、ターゲットは
+入口を呼ぶだけです。
+
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make hotfix-patch` | `production` から hotfix ブランチを作成し、GitHub のデフォルトブランチに設定します。 | 現在の最新タグを基準に patch を 1 つ進めます。 |
+| `make hotfix-patch` | `production` から hotfix ブランチを作成し、GitHub のデフォルトブランチに設定します。 | 現在の最新タグを基準に patch を 1 つ進めます。同名ブランチが既に在るとき、作業ツリーが汚れているときは何もせず終了します。 |
 | `make branch-patch` | `production` から patch リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に patch バージョンを進めます。 |
 | `make branch-minor` | `production` から minor リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に minor バージョンを進めます。 |
 | `make branch-major` | `production` から major リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に major バージョンを進めます。 |
 
 ### リリースタグ関連
 
+判断は [`scripts/release/tag.ts`](../scripts/release/tag.ts) が持ちます。基準にする最新タグの選定は
+[`scripts/semver/latest.ts`](../scripts/semver/latest.ts) が一箇所で担い、`pnpm exec tsx scripts/semver latest`
+としても引けます。
+
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make tag-patch` | patch バージョンを 1 つ進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準とし、リリースノートには `.github/release/<version>.md` を使用します。 |
+| `make tag-patch` | patch バージョンを 1 つ進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準とし、リリースノートには `.github/release/<version>.md` を使用します。ノートが無ければタグも Release も作りません。 |
 | `make tag-minor` | minor バージョンを進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準にします。 |
 | `make tag-major` | major バージョンを進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準にします。 |
 

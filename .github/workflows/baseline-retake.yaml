@@ -614,134 +614,25 @@ jobs:
           UNPAIRED: ${{ steps.push-store.outputs.unpaired }}
         shell: bash
         run: |
-          store_repo="$(git config --file .gitmodules --get submodule.baseline/images.url |
-            sed -e 's|^https://github.com/||' -e 's|\.git$||')"
-
-          # The review lines are pasted into a shell, so a value outside the accepted set is
-          # dropped rather than quoted. Why quoting is not enough, and why the same set is
-          # what lets these values render as markdown, is in ADR 0153 §5.
-          unsafe() { printf '%s' "$1" | LC_ALL=C grep -q "[^A-Za-z0-9/._,-]"; }
-
-          if unsafe "${HEAD_REF}"; then
-            STORIES=''
-            SCREENS=''
-            echo 'review lines suppressed: head_ref carries shell metacharacters' >&2
-          fi
-          if unsafe "${STORIES}"; then
-            STORIES=''
-            echo 'story line suppressed: story ids carry shell metacharacters' >&2
-          fi
-          if unsafe "${SCREENS}"; then
-            SCREENS=''
-            echo 'screen line suppressed: screen names carry shell metacharacters' >&2
-          fi
-          if unsafe "${IMAGES}"; then
-            IMAGES=''
-            echo 'image table suppressed: paths carry shell metacharacters' >&2
-          fi
-
-          # The before/after pair per image is what a person judges the pixels from; the
-          # store's compare view cannot show it, and an embedded image 404s for a private
-          # store, so this table carries links (vrt/README.md).
-          #
-          # Bounded, because a full retake moves hundreds of images. What is left out is
-          # stated rather than dropped in silence.
-          IMAGE_ROW_LIMIT=20
-          image_table() {
-            total="$(printf '%s' "$IMAGES" | tr ',' '\n' | grep -c . || true)"
-
-            echo '### 動いた画像'
-            echo
-            echo '| 画像 | 前 | 後 |'
-            echo '| --- | --- | --- |'
-
-            # The newline matters: `read` drops a final line that has none, so the last
-            # image would be missing from the table.
-            printf '%s\n' "$IMAGES" | tr ',' '\n' | head -n "$IMAGE_ROW_LIMIT" |
-              while IFS= read -r path; do
-                [ -n "$path" ] || continue
-
-                # No image answers to this path in the previous snapshot: either it was
-                # placed for the first time, or a rename moved it here.
-                case ",${UNPAIRED}," in
-                  *",${path},"*) before_cell='前が無い' ;;
-                  *) before_cell="[前](https://github.com/${store_repo}/blob/${BEFORE}/${path})" ;;
-                esac
-
-                echo "| \`${path}\` | ${before_cell} | [後](https://github.com/${store_repo}/blob/${AFTER}/${path}) |"
-              done
-
-            if [ "$total" -gt "$IMAGE_ROW_LIMIT" ]; then
-              echo
-              echo "動いた ${total} 枚のうち ${IMAGE_ROW_LIMIT} 枚だけを並べています。残りは下の見直しの入口で開いてください。"
-            fi
-          }
-
-          {
-            if [ "$DEFERRED" = 'true' ]; then
+          # The three branches differ in what they can even reach. Only the branch that
+          # actually retook has both the repository and `node_modules` on the runner, so only
+          # it hands the composition to the decision module, where the image table and the
+          # review lines are pinned down by cases. The other two say their piece in plain
+          # shell, which holds whether the deferral gate kept the checkout from happening at
+          # all or the retake itself failed after installing.
+          if [ "$DEFERRED" = 'true' ]; then
+            {
               echo "⏸️ 他のチェックが落ちているため、基準画像は撮り直していません: ${FAILED}"
               echo
               echo "落ちている木から撮ると、その原因ごと基準画像に焼き込まれます。**ラベルは付けたままです** — 修正を push すれば、比較の完了に合わせて自動で撮り直します。"
-            elif [ -n "$SHA" ]; then
-              echo "🎞️ 基準画像を ${COUNT} 枚撮り直しました (${SHA})。"
-              echo
-              echo "対象: ${IDS}"
-
-              if [ -n "${POINTER_PR}" ]; then
-                echo
-                echo "このブランチは直接 push できないため、**ポインタは PR で入れます**: ${POINTER_PR}"
-              fi
-
-              if [ -n "${IMAGES}" ]; then
-                echo
-                image_table
-              fi
-
-              if [ "$SCREENS_PENDING" = 'true' ]; then
-                echo
-                echo '画面は E2E がまだ判定していないため撮り直していません。**ラベルは付けたままです** — E2E の完了に合わせて自動で撮り直します。'
-              fi
-
-              # Each block is emitted on its own so a retake that moved only one kind does not
-              # print a command whose target list is empty — `make *-review` refuses that.
-              if [ -n "${STORIES}" ] || [ -n "${SCREENS}" ]; then
-                echo
-                echo '### 手元で見る'
-                echo
-                echo '画素が動いた対象を、使い捨ての作業ツリーで開きます。手元の作業ツリーは動かしません。'
-
-                if [ -n "${STORIES}" ]; then
-                  echo
-                  echo '```bash'
-                  echo "make vrt-review BRANCH='${HEAD_REF}' VRT_ONLY='${STORIES}'"
-                  echo '```'
-                fi
-
-                if [ -n "${SCREENS}" ]; then
-                  echo
-                  echo '```bash'
-                  echo "make e2e-review BRANCH='${HEAD_REF}' E2E_ONLY='${SCREENS}'"
-                  echo '```'
-                fi
-
-                echo
-                echo "ここで見えるのは**なぜ変わったか**です。**画素を判断する面は上の表**のままで、手元の描画はホストのフォントで描くため元から一致しません（\`vrt/README.md\`）。"
-                echo
-                echo "作業ツリーは Ctrl-C では消えません。溜まったら \`make review-clean\` で片付けてください。"
-              fi
-
-              echo
-              if [ -n "${POINTER_PR}" ]; then
-                echo "**まだ承認ではありません。** 上の表の前後を見比べ、意図した変更であることを確かめたうえで、**上のポインタ PR に** \`baseline-approve\` ラベルを付けて merge してください。承認はそこに 1 回で足ります。"
-              else
-                echo "**まだ承認ではありません。** 上の表の前後を見比べ、意図した変更であることを確かめたうえで \`baseline-approve\` ラベルを付けてください。"
-              fi
-              echo
-              echo "**\`baseline-retake\` は外しました。** 1 回の依頼につき 1 回だけ撮ります。もう一度撮るには、付け直したうえで比較（VRT / E2E）を実行し直してください（ラベルは引き金ではなく、完了時に読まれる条件です）。"
-            else
-              echo "❌ 基準画像を撮り直せませんでした。${REASON:-詳細は実行ログを確認してください。}"
-            fi
-          } > comment.md
+            } > comment.md
+          elif [ -n "$SHA" ]; then
+            STORE_REPOSITORY="$(git config --file .gitmodules --get submodule.baseline/images.url |
+              sed -e 's|^https://github.com/||' -e 's|\.git$||')" \
+              pnpm exec tsx scripts/baseline-store outcome > comment.md
+          else
+            echo "❌ 基準画像を撮り直せませんでした。${REASON:-詳細は実行ログを確認してください。}" > comment.md
+          fi
 
           {
             echo 'comment<<VRT_EOF'

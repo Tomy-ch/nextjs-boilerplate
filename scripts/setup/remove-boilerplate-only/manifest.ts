@@ -39,6 +39,9 @@ export const SELF_DESTRUCT_PATHS: readonly string[] = [
   // 無い間は赤くならない作りだが、赤くならないことと持っている意味があることは別である。
   ".github/workflows/sonarcloud.yaml",
   "sonar-project.properties",
+  // 上の検査だけが呼ぶ判定。検査が消えたあとも残すと、誰も呼ばないモジュールがカバレッジの
+  // 母数にだけ居座る。
+  "scripts/sonarcloud",
 ];
 
 /**
