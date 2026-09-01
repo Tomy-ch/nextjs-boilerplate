@@ -22,7 +22,7 @@ export const REVIEW_KIND = {
 } as const;
 
 /** {@link REVIEW_KIND} のいずれか。 */
-type ReviewKind = (typeof REVIEW_KIND)[keyof typeof REVIEW_KIND];
+export type ReviewKind = (typeof REVIEW_KIND)[keyof typeof REVIEW_KIND];
 
 /** 種類ごとの make の入口と、対象を渡す変数の名前。 */
 const REVIEW_TARGET = {

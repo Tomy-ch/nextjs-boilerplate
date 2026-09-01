@@ -104,7 +104,7 @@ describe("branchCreationBlocker", () => {
     // `git status` を見せられる。
     expect(
       branchCreationBlocker({
-        branch: "release/v0.7.0",
+        branchName: "release/v0.7.0",
         branchExists: true,
         workTreeStatus: " M src/app/page.tsx\n",
       }),
