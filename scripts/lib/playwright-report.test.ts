@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { asArray, parseSpecs, tagName } from "./playwright-report";
+import { asArray, isFailed, parseSpecs, tagName } from "./playwright-report";
 
 describe("asArray", () => {
   // ----- 正常系 -----
@@ -11,6 +11,30 @@ describe("asArray", () => {
   it("配列でない値を 0 件として読む", () => {
     expect(asArray(undefined)).toEqual([]);
     expect(asArray("a")).toEqual([]);
+  });
+});
+
+describe("isFailed", () => {
+  // ----- 正常系 -----
+  it("失敗した test を落ちたと答える", () => {
+    expect(isFailed({ status: "unexpected" })).toBe(true);
+  });
+
+  it("再試行で通った test も落ちたと答える", () => {
+    expect(isFailed({ status: "flaky" })).toBe(true);
+  });
+
+  it("通った test は落ちていない", () => {
+    expect(isFailed({ status: "expected" })).toBe(false);
+  });
+
+  it("走らせなかった test は落ちていない", () => {
+    expect(isFailed({ status: "skipped" })).toBe(false);
+  });
+
+  // ----- 異常系 -----
+  it("status が無い test は落ちていない", () => {
+    expect(isFailed({})).toBe(false);
   });
 });
 

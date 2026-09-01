@@ -7,6 +7,7 @@
 import { BASELINE_TAG } from "../../vrt/lib/expected-baselines.js";
 import {
   asArray,
+  isFailed,
   type JSONAnnotation,
   type JSONError,
   type JSONResult,
@@ -110,9 +111,7 @@ export function hasBaselineFailure(json: string): boolean {
     );
   }
 
-  return checks.some((spec) =>
-    asArray<JSONTest>(spec.tests).some((test) => test.status !== "expected"),
-  );
+  return checks.some((spec) => asArray<JSONTest>(spec.tests).some(isFailed));
 }
 
 /** 撮り直す範囲として渡す story の id。テーマ違いは同じ id なので 1 件に畳む。 */

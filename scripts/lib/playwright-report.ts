@@ -65,6 +65,22 @@ export function tagName(tag: unknown): string {
   return tag.startsWith("@") ? tag.slice(1) : tag;
 }
 
+/**
+ * その test が落ちたか。
+ *
+ * @remarks
+ * **`expected` でないことを「落ちた」と読みません。** Playwright の status には `skipped` が
+ * あり、条件付きで走らせない検査はそこに来ます。`!== "expected"` で判定すると、走らせないと
+ * 決めた検査が毎回「落ちた」ことになります。
+ *
+ * 落ちたのは `unexpected`（失敗）と `flaky`（再試行で通ったが 1 度落ちた）の 2 つです。
+ *
+ * @param test - レポートの test
+ */
+export function isFailed(test: JSONTest): boolean {
+  return test.status === "unexpected" || test.status === "flaky";
+}
+
 // suites は入れ子になる。spec は葉にしか無いので、たどって平らにする。
 function flattenSpecs(suites: JSONSuite[]): JSONSpec[] {
   const specs: JSONSpec[] = [];

@@ -129,6 +129,38 @@ describe("hasScreenBaselineFailure", () => {
     expect(hasScreenBaselineFailure(json)).toBe(true);
   });
 
+  it("走らせなかった帯の分を、落ちたと数えない", () => {
+    // 対応は帯を 1 つ選んで 1 回だけ見る（`e2e/visual/screens.spec.ts`）。残りの帯は skip に
+    // なるので、これを落ちたと数えると、孤児が 1 件も無くても必ず全画面の撮り直しになる。
+    const json = reportOf([
+      {
+        file: VISUAL,
+        tags: [SCREEN_BASELINE_TAG],
+        title: "対応",
+        tests: [
+          test({ band: "mobile", status: "expected" }),
+          test({ band: "tablet", status: "skipped" }),
+          test({ band: "desktop", status: "skipped" }),
+        ],
+      },
+    ]);
+
+    expect(hasScreenBaselineFailure(json)).toBe(false);
+  });
+
+  it("再試行で通った検査も、落ちたものとして数える", () => {
+    const json = reportOf([
+      {
+        file: VISUAL,
+        tags: [SCREEN_BASELINE_TAG],
+        title: "対応",
+        tests: [test({ status: "flaky" })],
+      },
+    ]);
+
+    expect(hasScreenBaselineFailure(json)).toBe(true);
+  });
+
   it("対応の検査が通っていれば偽を返す", () => {
     const json = reportOf([
       {

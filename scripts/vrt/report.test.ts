@@ -243,6 +243,16 @@ describe("hasBaselineFailure", () => {
     expect(hasBaselineFailure(json)).toBe(true);
   });
 
+  it("走らせなかった分を、落ちたと数えない", () => {
+    // 撮り直しの最中や範囲を絞った実行では、この検査は skip になる
+    // （`vrt/stories.spec.ts`）。落ちたと数えると、孤児が 1 件も無くても全数の撮り直しになる。
+    const json = reportOf([
+      { title: "基準画像", tags: ["baselines"], tests: [test({ status: "skipped" })] },
+    ]);
+
+    expect(hasBaselineFailure(json)).toBe(false);
+  });
+
   // ----- 異常系 -----
   it("tag がどの spec にも無ければ、孤児なしと答えずに落とす", () => {
     const json = reportOf([{ title: "Button", tests: [test({ id: "a" })] }]);

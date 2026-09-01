@@ -4,7 +4,7 @@
 // 見直す範囲で、どれも同じ集合であることに意味がある。一覧に出ていない画面が承認で撮り直され
 // ると、報告されていない差分が黙って基準画像へ入る（story 側と同じ不変条件）。
 import { SCREEN_BASELINE_TAG } from "../../e2e/lib/screen-baselines.js";
-import { asArray, type JSONTest, parseSpecs, tagName } from "../lib/playwright-report.js";
+import { asArray, isFailed, type JSONTest, parseSpecs, tagName } from "../lib/playwright-report.js";
 
 /** 画面の見た目を比べている spec の在り処。ここに居ない spec はジャーニーなので対象外。 */
 const VISUAL_SPEC = "visual/screens.spec.ts";
@@ -84,7 +84,5 @@ export function hasScreenBaselineFailure(json: string): boolean {
     );
   }
 
-  return checks.some((spec) =>
-    asArray<JSONTest>(spec.tests).some((test) => test.status !== "expected"),
-  );
+  return checks.some((spec) => asArray<JSONTest>(spec.tests).some(isFailed));
 }
