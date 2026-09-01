@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 // 契約から生成したハンドラそのものを相手にするため、応答は原則割り当てない。写しの分岐そのものを
 // 見るケースだけ、生成した応答の当該項目を差し替えて割り当てる。
 import {
@@ -6,7 +7,6 @@ import {
   getGetProductsResponseMock,
 } from "../../../../mocks/api/endpoints.msw";
 import { serveJson } from "../../../../vitest.setup.msw";
-import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 
 const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
   getAccessToken: vi.fn(async (): Promise<string | null> => null),
