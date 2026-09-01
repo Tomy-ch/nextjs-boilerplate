@@ -12,6 +12,7 @@ import {
 
 const BUDGET: Budget = {
   runs: { count: 3, reason: "runner のゆらぎ" },
+  floor: { screen: "not-found", reason: "器しか持たない" },
   metrics: {
     lcpMs: { limit: 2500, reason: "good の境界" },
     clsScore: { limit: 0.1, reason: "good の境界" },
@@ -30,6 +31,9 @@ const YAML = [
   "  runs:",
   "    count: 3",
   "    reason: runner のゆらぎ",
+  "  floor:",
+  "    screen: not-found",
+  "    reason: 器しか持たない",
   "  metrics:",
   "    lcpMs:",
   "      limit: 2500",
@@ -66,6 +70,10 @@ describe("parseBudget", () => {
     });
   });
 
+  it("床の画面の宣言を読む", () => {
+    expect(parseBudget(YAML).floor).toEqual({ screen: "not-found", reason: "器しか持たない" });
+  });
+
   it("client JavaScript の予算が同じファイルに居ても読める", () => {
     const text = ["routes: {}", "growth:", "  gzipKb: 10", "  reason: 幅", YAML].join("\n");
 
@@ -95,6 +103,21 @@ describe("parseBudget", () => {
     expect(() => parseBudget(YAML.replace("    count: 3", "    count: 0"))).toThrow(
       /runs[\s\S]*count/,
     );
+  });
+
+  it("床の画面を宣言していなければ、floor を指して落ちる", () => {
+    const text = YAML.replace(
+      ["  floor:", "    screen: not-found", "    reason: 器しか持たない"].join("\n"),
+      "",
+    );
+
+    expect(() => parseBudget(text)).toThrow(/floor/);
+  });
+
+  it("床の画面の根拠が空なら、floor を指して落ちる", () => {
+    expect(() =>
+      parseBudget(YAML.replace("    reason: 器しか持たない", '    reason: "  "')),
+    ).toThrow(/floor[\s\S]*reason/);
   });
 
   it("lighthouse 節そのものが無ければ、その節を指して落ちる", () => {
@@ -147,6 +170,12 @@ describe("judge", () => {
     expect(
       judge([measurement("home", { lcpMs: 2500, clsScore: 0.1, tbtMs: 200 })], BUDGET)[0]?.over,
     ).toEqual({});
+  });
+
+  it("機械の速さを読むためだけの計測は判定しない", () => {
+    const control: Measurement = { ...measurement("not-found", { tbtMs: 9999 }), control: true };
+
+    expect(judge([measurement("home"), control], BUDGET).map((v) => v.name)).toEqual(["home"]);
   });
 
   it("その画面へ効いた上限を判定に添える", () => {
@@ -217,6 +246,16 @@ describe("missingScreens", () => {
     };
 
     expect(missingScreens([measurement("heavy")], budget)).toEqual([]);
+  });
+
+  it("緩和を持つ画面が、機械の速さを読むためだけに測られていても足りたことにしない", () => {
+    const budget: Budget = {
+      ...BUDGET,
+      screens: { "not-found": { tbtMs: { limit: 400, reason: "重い" } } },
+    };
+    const control: Measurement = { ...measurement("not-found"), control: true };
+
+    expect(missingScreens([control], budget)).toEqual(["not-found"]);
   });
 
   // ----- 異常系 -----

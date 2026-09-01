@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Screen } from "../../e2e/lib/screens";
-import { planTargets } from "./plan";
+import { planScreens, planTargets } from "./plan";
 
 const BASE_URL = "http://127.0.0.1:3300";
 
@@ -45,5 +45,53 @@ describe("planTargets", () => {
 
   it("画面が 1 つも無ければ空を返す", () => {
     expect(planTargets([], BASE_URL)).toEqual([]);
+  });
+});
+
+/** 画面 1 枚。名前だけが判定に効く。 */
+function screen(name: string): Screen {
+  return { route: `/${name}`, name, path: `/${name}` };
+}
+
+const SELECTED: Screen[] = [screen("home"), screen("products"), screen("not-found")];
+
+describe("planScreens", () => {
+  // ----- 正常系 -----
+  it("担当ぶんだけを測る", () => {
+    const plan = planScreens(SELECTED, { index: 1, total: 2 }, "not-found");
+
+    expect(plan.screens.map((s) => s.name)).toEqual(["home", "not-found"]);
+  });
+
+  it("床を担当しない台は、床を足して測る", () => {
+    const plan = planScreens(SELECTED, { index: 2, total: 2 }, "not-found");
+
+    expect(plan.screens.map((s) => s.name)).toEqual(["products", "not-found"]);
+  });
+
+  it("足した床は、機械の速さを読むためだけのものとして返す", () => {
+    expect(planScreens(SELECTED, { index: 2, total: 2 }, "not-found").control?.name).toBe(
+      "not-found",
+    );
+  });
+
+  it("床を担当する台は、二度測らない", () => {
+    const plan = planScreens(SELECTED, { index: 1, total: 2 }, "not-found");
+
+    expect(plan.control).toBeUndefined();
+  });
+
+  it("割らない実行では足さない", () => {
+    const plan = planScreens(SELECTED, { index: 1, total: 1 }, "not-found");
+
+    expect(plan.screens.map((s) => s.name)).toEqual(["home", "products", "not-found"]);
+    expect(plan.control).toBeUndefined();
+  });
+
+  // ----- 異常系 -----
+  it("絞りが床を落としていれば足さない", () => {
+    const plan = planScreens([screen("products")], { index: 1, total: 2 }, "not-found");
+
+    expect(plan.control).toBeUndefined();
   });
 });

@@ -36,10 +36,10 @@ import {
 import { buildChromeFlags, buildLighthouseArgs } from "./command";
 import { collectMeasureInputs, measureInputsHash } from "./measure-inputs";
 import { aggregate, readMetrics } from "./metrics";
-import { planTargets, type Target } from "./plan";
-import { renderReport } from "./report";
+import { planScreens, planTargets, type Target } from "./plan";
+import { renderFloor, renderReport } from "./report";
 import { parseCookiePairs } from "./session";
-import { expectedTotal, isShardFile, parseShard, selectShard, shardFileName } from "./shard";
+import { expectedTotal, isShardFile, parseShard, shardFileName } from "./shard";
 import { decideTrigger } from "./trigger";
 
 /**
@@ -305,7 +305,9 @@ function judgeAll(measurements: readonly Measurement[], budget: Budget): void {
 
   const verdicts = judge(measurements, budget);
 
-  console.log(renderReport(verdicts, budget.runs.count));
+  console.log(
+    renderReport(verdicts, budget.runs.count, renderFloor(measurements, budget.floor.screen)),
+  );
 
   if (hasFailure(verdicts)) {
     console.error("\n❌ Core Web Vitals が予算を超えました。");
@@ -360,7 +362,7 @@ async function measureAll(): Promise<void> {
   // 実行では未定義ではなく空が届きます。`undefined` だけを見ると、割らない経路が誰も通れません。
   const spec = process.env.LIGHTHOUSE_SHARD || undefined;
   const shard = spec === undefined ? { index: 1, total: 1 } : parseShard(spec);
-  const screens = selectShard(selected, shard);
+  const { screens, control } = planScreens(selected, shard, budget.floor.screen);
 
   mkdirSync(OUTPUT_DIR, { recursive: true });
 
@@ -375,12 +377,17 @@ async function measureAll(): Promise<void> {
     }
 
     console.error(`⏱️  ${target.name}`);
-    measurements.push(
-      await measure(target, budget.runs.count, [
-        consent,
-        ...(target.role === undefined ? [] : (sessions.get(target.role) ?? [])),
-      ]),
-    );
+
+    const measurement = await measure(target, budget.runs.count, [
+      consent,
+      ...(target.role === undefined ? [] : (sessions.get(target.role) ?? [])),
+    ]);
+
+    measurements.push({
+      ...measurement,
+      ...(spec === undefined ? {} : { shard: shard.index }),
+      ...(target.name === control?.name ? { control: true } : {}),
+    });
   }
 
   // 呼ばれ方で決める。台数では決めない —— 1 台に割った実行も束ねる側を持っており、そちらが
