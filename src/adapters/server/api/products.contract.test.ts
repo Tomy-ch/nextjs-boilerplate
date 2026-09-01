@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 // 契約から生成したハンドラそのものを相手にするため、応答は原則割り当てない。写しの分岐そのものを
 // 見るケースだけ、生成した応答の当該項目を差し替えて割り当てる。
-import { serveJson } from "../../../../vitest.setup.msw";
 import {
   getGetProductsDetailResponseMock,
   getGetProductsResponseMock,
 } from "../../../../mocks/api/endpoints.msw";
+import { serveJson } from "../../../../vitest.setup.msw";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 
 const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
@@ -99,7 +99,7 @@ describe("getProducts", () => {
     const response = getGetProductsResponseMock();
     serveJson(PRODUCTS_URL, {
       ...response,
-      products: response.products.map((product) => ({ ...product, publishedAt: null })),
+      products: response.products.map((wire) => ({ ...wire, publishedAt: null })),
     });
 
     const [product] = (await getProducts({ keyword: "型の確認" })).items;
