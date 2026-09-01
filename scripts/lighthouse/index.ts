@@ -36,10 +36,10 @@ import {
 import { buildChromeFlags, buildLighthouseArgs } from "./command";
 import { collectMeasureInputs, measureInputsHash } from "./measure-inputs";
 import { aggregate, readMetrics } from "./metrics";
-import { planTargets, type Target } from "./plan";
+import { planScreens, planTargets, type Target } from "./plan";
 import { renderFloor, renderReport } from "./report";
 import { parseCookiePairs } from "./session";
-import { expectedTotal, isShardFile, parseShard, selectShard, shardFileName } from "./shard";
+import { expectedTotal, isShardFile, parseShard, shardFileName } from "./shard";
 import { decideTrigger } from "./trigger";
 
 /**
@@ -362,16 +362,7 @@ async function measureAll(): Promise<void> {
   // 実行では未定義ではなく空が届きます。`undefined` だけを見ると、割らない経路が誰も通れません。
   const spec = process.env.LIGHTHOUSE_SHARD || undefined;
   const shard = spec === undefined ? { index: 1, total: 1 } : parseShard(spec);
-  const screens = selectShard(selected, shard);
-
-  // 床の画面は、担当でない台でも測る。落ちた画面と床が別の機械で測られていては、その画面が
-  // 遅いのか機械が遅いのかを見比べられない（`performance-budget.yaml` の `floor.reason`）。
-  //
-  // 割らない実行では足しません —— 全画面が同じ機械で測られるので、床は既に居ます。
-  const floor = selected.find((screen) => screen.name === budget.floor.screen);
-  const control =
-    shard.total > 1 && floor !== undefined && !screens.includes(floor) ? floor : undefined;
-  const measured = control === undefined ? screens : [...screens, control];
+  const { screens, control } = planScreens(selected, shard, budget.floor.screen);
 
   mkdirSync(OUTPUT_DIR, { recursive: true });
 
@@ -380,7 +371,7 @@ async function measureAll(): Promise<void> {
   const sessions = new Map<string, BrowserCookie[]>();
   const measurements: Measurement[] = [];
 
-  for (const target of planTargets(measured, baseUrl)) {
+  for (const target of planTargets(screens, baseUrl)) {
     if (target.role !== undefined && !sessions.has(target.role)) {
       sessions.set(target.role, await issueSessionCookies(baseUrl, target.role, host));
     }
