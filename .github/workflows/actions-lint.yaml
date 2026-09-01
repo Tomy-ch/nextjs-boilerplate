@@ -90,25 +90,8 @@ jobs:
           tools: aqua:rhysd/actionlint aqua:koalaman/shellcheck aqua:zizmorcore/zizmor core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # Every check runs unconditionally so one failure does not hide another's
-      # findings, and all logs land in the same PR comment.
+        uses: ./.github/actions/setup-deps
       - name: Run Actions lint
         id: actions-lint
         shell: bash

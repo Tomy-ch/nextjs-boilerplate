@@ -159,24 +159,6 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        if: steps.scope.outputs.relevant == 'true'
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        if: steps.scope.outputs.relevant == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      # Restored before `pnpm install`, and keyed, for the reasons spelled out on the
-      # same step in build.yaml. The three must stay identical to share a generation.
       - name: Cache the Next.js build cache
         if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -187,20 +169,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.scope.outputs.relevant == 'true'
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # Three stages, one verdict.
-      #
-      # Neither stage below the journeys can be reached from them. `APP_MAINTENANCE_MODE`
-      # applies to every route and only takes effect at boot; `SITE_INDEXABLE` is read at
-      # build time, so prerendered pages bake their metadata and the journeys — which build
-      # with the default `off` — can only assert that side (`e2e/journeys/metadata.spec.ts`).
-      # Each therefore gets its own build and its own server.
-      #
-      # They share one step because everything downstream reads only this one. The comment,
-      # the branch issue, the artifact upload and the final verdict are all composed from
-      # what THIS step logs and from `steps.e2e.outputs`, so a stage raised outside it
-      # reaches none of them — and a green `make e2e` would report a PASS over it.
+        uses: ./.github/actions/setup-deps
       - name: Build the app, start it and drive it
         id: e2e
         if: steps.scope.outputs.relevant == 'true'

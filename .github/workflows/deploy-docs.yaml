@@ -89,29 +89,8 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          # Assigned first so a failure inside the substitution fails the step; an
-          # `echo "$(...)"` would report success and hand the cache an empty path.
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # Through `make` rather than `pnpm` directly, so the same check the screenshots rely on
-      # also guards what gets published. `storybook build` returns 0 even when the preview
-      # build threw, and a site shipped from that tree carries a Storybook with no stories in
-      # it — a failure nobody sees until someone opens the published page.
+        uses: ./.github/actions/setup-deps
       - name: Build Storybook
         run: make build-storybook
 

@@ -1,0 +1,37 @@
+name: Setup dependencies
+description: Resolve the pnpm store, restore its cache, and install exactly what the lockfile pins.
+
+# Every job that runs anything written in this repository needs the same three steps in the same
+# order, and they were written out at each of them. Three copies of one step is where a change
+# lands in two places and not the third — the store path and the cache key have to agree, and a
+# job that resolved the path but restored a differently-keyed cache installs from the registry
+# while reporting a hit.
+#
+# `setup-mise` stays separate: it supplies the toolchain and its callers ask for different tools.
+# This action assumes `pnpm` is already on `PATH`, so it runs after that one.
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve the pnpm store path
+      id: store
+      shell: bash
+      # Assigned first so a failure inside the substitution fails the step; an
+      # `echo "$(...)"` would report success and hand the cache an empty path.
+      run: |
+        path="$(pnpm store path)"
+        echo "path=${path}" >> "$GITHUB_OUTPUT"
+
+    - name: Cache the pnpm store
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.store.outputs.path }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: ${{ runner.os }}-pnpm-store-
+
+    # `--frozen-lockfile` refuses a lockfile that does not match `package.json`, so a drift shows
+    # here rather than as a version nobody chose. `--ignore-scripts` keeps a dependency's install
+    # hook from running on the runner (ADR 0004).
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile --ignore-scripts

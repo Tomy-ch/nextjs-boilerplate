@@ -87,26 +87,8 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # Failures are not reported from here. The blob carries them, and the merge replays
-      # every one of them in the collecting job — so the comment is composed once, from one
-      # log, instead of being stitched together out of four partial ones.
+        uses: ./.github/actions/setup-deps
       - name: Run this machine's share of the suite
         env:
           SHARD_INDEX: ${{ matrix.shard }}
@@ -169,22 +151,8 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        uses: ./.github/actions/setup-deps
 
       - name: Collect what every machine recorded
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
