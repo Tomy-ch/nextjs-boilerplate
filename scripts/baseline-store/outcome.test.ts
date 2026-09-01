@@ -117,6 +117,8 @@ describe("composeRetakeOutcome", () => {
   });
 
   it("ブランチ名が文字集合を外れていれば、手元で開く節を出さない", () => {
-    expect(composeRetakeOutcome({ ...BASE, headRef: "feat/$(id)" })).not.toContain("### 手元で見る");
+    expect(composeRetakeOutcome({ ...BASE, headRef: "feat/$(id)" })).not.toContain(
+      "### 手元で見る",
+    );
   });
 });

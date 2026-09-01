@@ -41,9 +41,9 @@ describe("classifyFailure", () => {
   });
 
   it("置き場との対応が崩れたことを指すログも画素の種別へ入れる", () => {
-    expect(classifyFailure("✘ 1 [mobile] › @screen-baselines 撮影対象と 1 対 1 で対応する").pixels).toBe(
-      true,
-    );
+    expect(
+      classifyFailure("✘ 1 [mobile] › @screen-baselines 撮影対象と 1 対 1 で対応する").pixels,
+    ).toBe(true);
   });
 
   it("複数の落ち方を同時に立てる", () => {

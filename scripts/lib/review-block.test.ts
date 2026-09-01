@@ -20,9 +20,9 @@ describe("composeReviewBlock", () => {
   });
 
   it("story は story 側の入口を指す", () => {
-    expect(composeReviewBlock({ ...BASE, kind: "story", ids: "overlay-command--default" })).toContain(
-      "make vrt-review BRANCH='release/v0.6.0' VRT_ONLY='overlay-command--default'",
-    );
+    expect(
+      composeReviewBlock({ ...BASE, kind: "story", ids: "overlay-command--default" }),
+    ).toContain("make vrt-review BRANCH='release/v0.6.0' VRT_ONLY='overlay-command--default'");
   });
 
   it("実行を渡せば、成果物を引く先を添える", () => {

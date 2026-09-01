@@ -108,7 +108,12 @@ describe("branchCreationBlocker", () => {
         branchExists: true,
         workTreeStatus: " M src/app/page.tsx\n",
       }),
-    ).toContain("release/v0.7.0");
+    ).toEqual([
+      {
+        kind: "log",
+        message: "❌ ブランチ【 release/v0.7.0 】は既に存在します。処理を中止します。",
+      },
+    ]);
   });
 
   it("作業ツリーに未コミットの変更があれば、内訳を出して止める", () => {
