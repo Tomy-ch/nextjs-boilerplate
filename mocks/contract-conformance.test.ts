@@ -1,6 +1,7 @@
 import { faker } from "@faker-js/faker";
 import { describe, expect, it } from "vitest";
 import type { ZodType } from "zod";
+import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 import * as zodSchemas from "../src/adapters/gen/api/endpoints.zod";
 import * as apiMocks from "./api/endpoints.msw";
 
@@ -74,5 +75,17 @@ describe("契約駆動モック", () => {
 
     expect(returned.length).toBeGreaterThan(0);
     expect(returned.filter((name) => !offered.has(name))).toEqual([]);
+  });
+
+  it("購入ステータスマスタが並べる業務キーは、アプリの転記と一致する", () => {
+    // 契約は値域を宣言しないため宣言が 2 つある（`orval.config.ts` とアプリ側の転記）。片方だけ
+    // 動くと、バッジの色も詳細に出せる操作も黙って既定へ倒れる。
+    const offered = (
+      apiMocks.getGetPurchaseStatusesResponseMock() as readonly { code: number }[]
+    ).map(({ code }) => code);
+
+    expect(offered.toSorted((left, right) => left - right)).toEqual(
+      Object.values(PURCHASE_STATUS).toSorted((left, right) => left - right),
+    );
   });
 });

@@ -82,6 +82,35 @@ const PRODUCT_CATEGORIES = [
 ];
 
 /**
+ * 購入ステータスマスタのモック応答。
+ *
+ * @remarks
+ * **`code` は画面が読む業務キーです。** バッジの見た目
+ * （`src/features/purchases/facade/status-emphasis/status-emphasis.ts`）も、詳細に出せる操作
+ * （`src/features/purchases/detail/available-transitions.ts`）もこの値で決まるので、生成器の既定
+ * （乱数）ではどの購入も既定へ倒れ、操作が 1 つも出ません。
+ *
+ * 契約は値域を宣言していないため、生成器には本物を出す手がかりがありません。ここに書いた値が
+ * アプリ側の転記（`src/model/purchase/purchase-status.ts`）と一致していることは
+ * `mocks/contract-conformance.test.ts` が見ます。
+ */
+const PURCHASE_STATUSES = [
+  { code: 1, name: "未処理" },
+  { code: 2, name: "受付中" },
+  { code: 3, name: "確認中" },
+  { code: 4, name: "処理中" },
+  { code: 5, name: "完了" },
+  { code: 6, name: "キャンセル" },
+  { code: 7, name: "支払い済み" },
+  { code: 8, name: "発送済み" },
+  { code: 9, name: "配達済み" },
+].map(({ code, name }) => ({
+  id: `0195f0c2-4000-7000-9000-${String(code).padStart(12, "0")}`,
+  code,
+  name,
+}));
+
+/**
  * 都道府県マスタのモック応答。
  *
  * @remarks
@@ -172,6 +201,7 @@ export default defineConfig({
           GetPrefectures: { mock: { data: PREFECTURES } },
           GetProductStatuses: { mock: { data: PRODUCT_STATUSES } },
           GetProductCategories: { mock: { data: PRODUCT_CATEGORIES } },
+          GetPurchaseStatuses: { mock: { data: PURCHASE_STATUSES } },
           // 売上額は decimal 文字列だが、同じ項目名がダッシュボードの集計では整数で宣言されて
           // いる。項目名で指定すると整数のほうまで文字列に変わるため、この operation に閉じる。
           GetProductsRankingAmount: {

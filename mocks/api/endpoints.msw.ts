@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+f6c9463
+ * OpenAPI spec version: 2.2.0+7b2778e
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
@@ -18,7 +18,9 @@ import type {
   AddressCandidatesResponse,
   CartMergeResponse,
   CartResponse,
+  ControlEvent,
   DashboardSummaryResponse,
+  DeliveryEvent,
   ExchangeRateResponse,
   PrefecturesResponse,
   ProductAmountRankingResponse,
@@ -39,6 +41,7 @@ import type {
   PurchaseResponse,
   PurchaseShippableResponse,
   PurchaseShipResponse,
+  PurchasesStatusesResponse,
   UserResponse,
   UserRolesResponse,
   UsersFeedResponse,
@@ -46,6 +49,54 @@ import type {
   UsersSearchResponse,
 } from "../../src/adapters/gen/api/model";
 import { CartItemIssue } from "../../src/adapters/gen/api/model";
+
+export const getGetStreamResponseDeliveryEventMock = (
+  overrideResponse: Partial<DeliveryEvent> = {},
+): DeliveryEvent => ({
+  ...{
+    eventId: faker.string.uuid(),
+    streamId: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    sequence: faker.helpers.fromRegExp("^(0|[1-9][0-9]{0,18})$"),
+    type: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    occurredAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+    schemaVersion: faker.number.int({ min: 1 }),
+    payload: {},
+  },
+  ...overrideResponse,
+});
+
+export const getGetStreamResponseControlEventMock = (
+  overrideResponse: Partial<ControlEvent> = {},
+): ControlEvent => ({
+  ...{
+    action: faker.helpers.arrayElement([
+      "RECONNECT",
+      "RETRY_LATER",
+      "REAUTHENTICATE",
+      "RESYNC",
+      "STOP",
+    ] as const),
+    reason: faker.helpers.arrayElement([
+      "SERVER_DRAINING",
+      "TEMPORARILY_OVERLOADED",
+      "AUTH_REFRESH_REQUIRED",
+      "AUTHORIZATION_REVOKED",
+      "CURSOR_TOO_OLD",
+      "STREAM_RECOVERY_FAILED",
+    ] as const),
+    retryAfterMs: faker.helpers.arrayElement([
+      faker.number.int({ min: 0, max: 86400000 }),
+      undefined,
+    ]),
+  },
+  ...overrideResponse,
+});
+
+export const getGetStreamResponseMock = (): DeliveryEvent | ControlEvent =>
+  faker.helpers.arrayElement([
+    { ...getGetStreamResponseDeliveryEventMock() },
+    { ...getGetStreamResponseControlEventMock() },
+  ]);
 
 export const getGetUsersResponseMock = (): UsersResponse => ({
   ...{
@@ -673,6 +724,18 @@ export const getPostPurchasesResponseMock = (
   ...overrideResponse,
 });
 
+export const getGetPurchaseStatusesResponseMock = () => [
+  { id: "0195f0c2-4000-7000-9000-000000000001", code: 1, name: "未処理" },
+  { id: "0195f0c2-4000-7000-9000-000000000002", code: 2, name: "受付中" },
+  { id: "0195f0c2-4000-7000-9000-000000000003", code: 3, name: "確認中" },
+  { id: "0195f0c2-4000-7000-9000-000000000004", code: 4, name: "処理中" },
+  { id: "0195f0c2-4000-7000-9000-000000000005", code: 5, name: "完了" },
+  { id: "0195f0c2-4000-7000-9000-000000000006", code: 6, name: "キャンセル" },
+  { id: "0195f0c2-4000-7000-9000-000000000007", code: 7, name: "支払い済み" },
+  { id: "0195f0c2-4000-7000-9000-000000000008", code: 8, name: "発送済み" },
+  { id: "0195f0c2-4000-7000-9000-000000000009", code: 9, name: "配達済み" },
+];
+
 export const getGetPurchasesShippableResponseMock = (
   overrideResponse: Partial<Extract<PurchaseShippableResponse, object>> = {},
 ): PurchaseShippableResponse => ({
@@ -927,6 +990,31 @@ export const getPostCartsMeMergeResponseMock = (
   ),
   ...overrideResponse,
 });
+
+export const getGetStreamMockHandler = (
+  overrideResponse?:
+    | DeliveryEvent
+    | ControlEvent
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<DeliveryEvent | ControlEvent> | DeliveryEvent | ControlEvent),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/streams/:destination",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetStreamResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
 
 export const getGetUsersMockHandler = (
   overrideResponse?:
@@ -1595,6 +1683,30 @@ export const getPostPurchasesMockHandler = (
   );
 };
 
+export const getGetPurchaseStatusesMockHandler = (
+  overrideResponse?:
+    | PurchasesStatusesResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<PurchasesStatusesResponse> | PurchasesStatusesResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/purchases/statuses",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetPurchaseStatusesResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
 export const getGetPurchasesShippableMockHandler = (
   overrideResponse?:
     | PurchaseShippableResponse
@@ -1873,6 +1985,7 @@ export const getPostCartsMeMergeMockHandler = (
   );
 };
 export const getGoBoilerplateAPIMock = () => [
+  getGetStreamMockHandler(),
   getGetUsersMockHandler(),
   getPostUsersMockHandler(),
   getGetUsersDetailMockHandler(),
@@ -1901,6 +2014,7 @@ export const getGoBoilerplateAPIMock = () => [
   getGetAddressesMockHandler(),
   getGetPurchasesMockHandler(),
   getPostPurchasesMockHandler(),
+  getGetPurchaseStatusesMockHandler(),
   getGetPurchasesShippableMockHandler(),
   getGetPurchasesDetailMockHandler(),
   getPatchPurchasesCancelMockHandler(),

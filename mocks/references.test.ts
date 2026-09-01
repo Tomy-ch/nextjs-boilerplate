@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 import { REFERENCE_PATCHES } from "./references";
 import type { DrawFromEndpoint } from "./stable-responses";
 
@@ -18,6 +17,12 @@ const STATUSES = [
   { id: "status-2", name: "状態 2" },
 ];
 
+const PURCHASE_STATUSES = [
+  { id: "purchase-status-1", code: 1, name: "未処理" },
+  { id: "purchase-status-2", code: 2, name: "受付中" },
+  { id: "purchase-status-3", code: 3, name: "確認中" },
+];
+
 /** マスタの口を引く相手。実物と同じく、名前で応答を返す。 */
 const draw: DrawFromEndpoint = (name) => {
   if (name === "getGetProductCategoriesResponseMock") {
@@ -26,6 +31,10 @@ const draw: DrawFromEndpoint = (name) => {
 
   if (name === "getGetProductStatusesResponseMock") {
     return STATUSES;
+  }
+
+  if (name === "getGetPurchaseStatusesResponseMock") {
+    return PURCHASE_STATUSES;
   }
 
   throw new Error(`知らない口です: ${name}`);
@@ -158,7 +167,7 @@ describe("REFERENCE_PATCHES", () => {
       status: { code: number };
     };
 
-    expect(Object.values(PURCHASE_STATUS)).toContain(patched.status.code);
+    expect(PURCHASE_STATUSES.map((status) => status.code)).toContain(patched.status.code);
   });
 
   it("購入の明細が名乗る商品名を題材の名前へ揃える", () => {
@@ -190,7 +199,7 @@ describe("REFERENCE_PATCHES", () => {
     ) as { items: readonly { status: { code: number }; firstItemName: string }[] };
 
     for (const entry of patched.items) {
-      expect(Object.values(PURCHASE_STATUS)).toContain(entry.status.code);
+      expect(PURCHASE_STATUSES.map((status) => status.code)).toContain(entry.status.code);
       expect(entry.firstItemName.length).toBeGreaterThan(0);
     }
   });
@@ -215,7 +224,7 @@ describe("REFERENCE_PATCHES", () => {
 
     const codes = patched.purchaseStatusCounts.map((entry) => entry.status.code);
 
-    expect(codes).toHaveLength(Object.values(PURCHASE_STATUS).length);
+    expect(codes).toHaveLength(PURCHASE_STATUSES.length);
     expect(new Set(codes).size).toBe(codes.length);
   });
 
@@ -228,18 +237,6 @@ describe("REFERENCE_PATCHES", () => {
     const codes = patched.statusBreakdown.map((entry) => entry.status.code);
 
     expect(new Set(codes).size).toBe(codes.length);
-  });
-
-  it("モックが宣言する購入ステータスは、アプリの転記と一致する", () => {
-    // 契約に列挙する口が無いため宣言が 2 つある。片方だけ動くと画面の分岐が黙って死ぬ。
-    const patched = patchOf("getGetDashboardSummaryResponseMock")(
-      { purchaseStatusCounts: Array.from({ length: 9 }, () => ({ count: 1 })) },
-      draw,
-    ) as { purchaseStatusCounts: readonly { status: { code: number; name: string } }[] };
-
-    expect(
-      patched.purchaseStatusCounts.map((entry) => entry.status.code).sort((a, b) => a - b),
-    ).toEqual(Object.values(PURCHASE_STATUS).toSorted((a, b) => a - b));
   });
 
   // ----- 異常系 -----

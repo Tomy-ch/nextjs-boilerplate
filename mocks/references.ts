@@ -8,9 +8,8 @@ import type { DrawFromEndpoint, ReferencePatches } from "./stable-responses";
  * 一覧する口の応答に**存在しません**。画面は選択肢に無い値を「選べない」として扱うので、参照の
  * 整合をここで取ります。
  *
- * **一覧する口が無い参照もここが受け持ちます。** 購入ステータスは `id` と業務キーと名称を 1 つの
- * object で持ち、契約はそれを列挙する口を持ちません。項目ごとの指定では組が壊れる（`id` と業務
- * キーを別々に引くことになる）ため、object ごと差し替えます。
+ * **組ごと差し替えます。** 購入ステータスは `id` と業務キーと名称を 1 つの object で持ちます。
+ * 項目ごとの指定では組が壊れる（`id` と業務キーを別々に引くことになる）ためです。
  *
  * **噛み合っていなければならない値も同じ理由でここに来ます。** 商品名と分類は互いを指しませんが、
  * 別々に決めると「Tシャツの分類が書籍」になります。生成器は項目を 1 つずつ作るので、組で決まる値を
@@ -25,6 +24,9 @@ const CATEGORIES_PATH = "/v1/products/categories";
 
 /** 状態マスタの口。 */
 const STATUSES_PATH = "/v1/products/statuses";
+
+/** 購入ステータスマスタの口。 */
+const PURCHASE_STATUSES_PATH = "/v1/purchases/statuses";
 
 /** マスタが返す 1 件。識別子と表示名だけを見る。 */
 type MasterEntry = { readonly id: string; readonly name: string };
@@ -49,35 +51,6 @@ const PRODUCT_CATALOGUE = [
   { name: "折りたたみ傘 自動開閉 軽量", categoryName: "日用品" },
   { name: "詰め替え用ハンドソープ 800ml", categoryName: "日用品" },
 ];
-
-/**
- * 購入ステータス。
- *
- * @remarks
- * **契約はこれを列挙する口を持ちません。** 名称は購入の応答へ解決済みで載るため、backend には
- * 一覧を返す理由がありません。その結果、値域を宣言する場所が契約の外にしか無く、ここが
- * モック側の宣言になります。
- *
- * 業務キーはアプリ側にも転記があります（`src/model/purchase/purchase-status.ts`）。**そちらを
- * 読み込まずに書き写すのは、モックが backend の代役だからです。** アプリの転記から作ると、
- * 転記そのものがずれていても両方が同じだけずれ、確かめる手立てが無くなります。2 つの宣言が
- * 一致していることは `references.test.ts` が見ます。
- */
-const PURCHASE_STATUSES = [
-  { code: 1, name: "未処理" },
-  { code: 2, name: "受付中" },
-  { code: 3, name: "確認中" },
-  { code: 4, name: "処理中" },
-  { code: 5, name: "完了" },
-  { code: 6, name: "キャンセル" },
-  { code: 7, name: "支払い済み" },
-  { code: 8, name: "発送済み" },
-  { code: 9, name: "配達済み" },
-].map(({ code, name }) => ({
-  id: `0195f0c2-4000-7000-9000-${String(code).padStart(12, "0")}`,
-  code,
-  name,
-}));
 
 /** 応答から、マスタの一覧として読める配列を取り出す。 */
 function entriesOf(response: unknown): readonly MasterEntry[] {
@@ -191,7 +164,7 @@ function alignProductRanking(response: unknown): unknown {
  * @remarks
  * 明細を持つのは購入詳細だけで、一覧の行や遷移の応答は持ちません。持っている応答にだけ触れます。
  */
-function alignPurchase(purchase: unknown): Record<string, unknown> {
+function alignPurchase(purchase: unknown, draw: DrawFromEndpoint): Record<string, unknown> {
   const record = recordOf(purchase, "購入");
 
   if (!("status" in record)) {
@@ -210,15 +183,17 @@ function alignPurchase(purchase: unknown): Record<string, unknown> {
       })
     : undefined;
 
+  const statuses = entriesOf(draw("getGetPurchaseStatusesResponseMock", PURCHASE_STATUSES_PATH));
+
   return {
     ...record,
     ...(named === undefined ? {} : { details: named }),
-    status: pick(PURCHASE_STATUSES, idOf(record.status)),
+    status: pick(statuses, idOf(record.status)),
   };
 }
 
 /** 一覧の応答に含まれる購入を、1 件ずつ揃える。 */
-function alignPurchaseList(response: unknown): unknown {
+function alignPurchaseList(response: unknown, draw: DrawFromEndpoint): unknown {
   const record = recordOf(response, "購入一覧");
 
   return {
@@ -227,7 +202,7 @@ function alignPurchaseList(response: unknown): unknown {
       const line = recordOf(purchase, "購入一覧の行");
 
       return {
-        ...alignPurchase(line),
+        ...alignPurchase(line, draw),
         firstItemName: pick(PRODUCT_CATALOGUE, line.code).name,
       };
     }),
@@ -243,16 +218,17 @@ function alignPurchaseList(response: unknown): unknown {
  * 超えられません。
  */
 function alignStatusBreakdown(key: string) {
-  return (response: unknown): unknown => {
+  return (response: unknown, draw: DrawFromEndpoint): unknown => {
     const record = recordOf(response, "内訳");
+    const statuses = entriesOf(draw("getGetPurchaseStatusesResponseMock", PURCHASE_STATUSES_PATH));
 
     return {
       ...record,
       [key]: arrayOf(record, key, "内訳")
-        .slice(0, PURCHASE_STATUSES.length)
+        .slice(0, statuses.length)
         .map((entry, index) => ({
           ...recordOf(entry, "内訳の行"),
-          status: PURCHASE_STATUSES[index],
+          status: statuses[index],
         })),
     };
   };

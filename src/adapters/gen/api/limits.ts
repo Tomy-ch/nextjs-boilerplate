@@ -4,8 +4,20 @@
  *
  * 生成した zod スキーマから、検証を伴わない定数だけを写したもの。client はこちらを引く。
  *
- * OpenAPI spec version: 2.2.0+f6c9463
+ * OpenAPI spec version: 2.2.0+7b2778e
  */
+
+export const getStreamPathDestinationMax = 128;
+
+export const getStreamPathDestinationRegExp = new RegExp("^[A-Za-z0-9._:-]{1,128}$");
+
+export const getStreamQueryAfterMax = 19;
+
+export const getStreamQueryAfterRegExp = new RegExp("^(0|[1-9][0-9]{0,18})$");
+
+export const getStreamHeaderLastEventIDMax = 19;
+
+export const getStreamHeaderLastEventIDRegExp = new RegExp("^(0|[1-9][0-9]{0,18})$");
 
 export const getUsersQueryPageDefault = 1;
 
