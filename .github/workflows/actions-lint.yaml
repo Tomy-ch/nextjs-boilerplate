@@ -115,10 +115,9 @@ jobs:
         run: |
           set +e
 
-          # One list, one place. Each check used to be written three times — a `tee` line, a
-          # code variable and a term in the final condition — plus a fourth time in the
-          # human-readable summary. A check that missed one of the four reports green while
-          # failing, and the summary had already drifted: it named seven of the eight.
+          # One list, one place: a check is added here and nowhere else. The verdict, the log
+          # and the title are all derived from this array, so a check cannot be half-added —
+          # the shape that reports green while failing.
           checks=(
             'actionlint|actionlint'
             'actions-shellcheck|shellcheck'

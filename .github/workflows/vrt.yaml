@@ -526,8 +526,7 @@ jobs:
 
             # The command below is pasted into a shell, so a value outside the accepted set
             # drops the whole block rather than being quoted into it. Both the set and that
-            # decision live in `scripts/lib/review-command.ts` — writing the check here is
-            # what let the same rule drift between the workflows that need it (ADR 0153 §5).
+            # decision live in `scripts/lib/review-command.ts` (ADR 0153 §5).
             echo
             pnpm exec tsx scripts/ci-report review-block \
               --kind story \

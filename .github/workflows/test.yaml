@@ -204,8 +204,7 @@ jobs:
       #
       # The judgement itself is `scripts/lib/shard-completeness.ts`, which the sharded
       # Lighthouse run calls too; `scripts/test-shards/blob.ts` holds the spelling that
-      # `.makefiles/testing/test.mk` writes. Re-deriving either here is what let the two
-      # copies of this step drift apart.
+      # `.makefiles/testing/test.mk` writes. Neither is re-derived here.
       - name: Fail if a machine did not report
         shell: bash
         run: make test-shards-verify
