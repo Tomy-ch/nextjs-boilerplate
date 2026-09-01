@@ -1,56 +1,60 @@
 // @vitest-environment jsdom
 
-import { render } from "@testing-library/react";
-import { beforeAll, describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
 
 import { StatusBars } from "./status-bars";
 
-beforeAll(() => {
-  // recharts が寸法を測るために使う API を jsdom が持たないため、ここで補う。
-  globalThis.ResizeObserver ??= class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
-});
-
 const COUNTS: readonly PurchaseStatusCount[] = [
-  { statusId: "1", statusName: "検討中", count: 22 },
-  { statusId: "2", statusName: "支払い済み", count: 5 },
+  { statusId: "1", statusName: "検討中", count: 4 },
+  { statusId: "2", statusName: "支払い済み", count: 2 },
 ];
 
-// 帯や軸ラベルはここに出ない。recharts は実寸を測ってから中身を描き、jsdom は寸法を持たないため
-// 容れ物が 0×0 のまま空で終わる。描いた結果そのものは基準画像（Storybook `Page/Admin/Analytics`）が
-// 持つので、ここで見るのは容れ物の側の契約だけにしてある。
 describe("StatusBars", () => {
-  it("図の容れ物を出す", () => {
-    const { container } = render(<StatusBars counts={COUNTS} />);
+  // ----- 件数が無いとき -----
+  it("行を 1 つも出さず、軸だけを残す", () => {
+    render(<StatusBars counts={[]} />);
 
-    expect(container.querySelector('[data-slot="chart"]')).toBeInTheDocument();
+    expect(screen.queryByText("検討中")).not.toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
   });
 
-  it("件数の系列に色を割り当てる", () => {
-    const { container } = render(<StatusBars counts={COUNTS} />);
+  // ----- 件数があるとき -----
+  it("受け取った順序のままステータス名を並べる", () => {
+    render(<StatusBars counts={COUNTS} />);
 
-    expect(container.querySelector('[data-slot="chart-style"]')?.textContent).toContain(
-      "--color-count",
-    );
+    const labels = screen.getAllByText(/^(検討中|支払い済み)$/);
+
+    expect(labels.map((label) => label.textContent)).toEqual(["検討中", "支払い済み"]);
   });
 
-  it("凡例も tooltip も置かない", () => {
-    const { container } = render(<StatusBars counts={COUNTS} />);
+  it("軸の目盛りを 0 から並べる", () => {
+    render(<StatusBars counts={COUNTS} />);
 
-    expect(container.querySelector(".recharts-legend-wrapper")).toBeNull();
-    expect(container.querySelector(".recharts-tooltip-wrapper")).toBeNull();
+    expect(screen.getByText("0")).toBeInTheDocument();
+    expect(screen.getByText("4")).toBeInTheDocument();
   });
 
-  it("件数が空でも落ちない", () => {
-    const { container } = render(<StatusBars counts={[]} />);
+  it("目盛りを桁区切りで出す", () => {
+    render(<StatusBars counts={[{ statusId: "1", statusName: "検討中", count: 4000 }]} />);
 
-    expect(container.querySelector('[data-slot="chart"]')).toBeInTheDocument();
+    expect(screen.getByText("4,000")).toBeInTheDocument();
+  });
+
+  it("先頭の目盛りだけは、指す位置へ寄せない", () => {
+    render(<StatusBars counts={COUNTS} />);
+
+    expect(screen.getByText("0")).not.toHaveStyle({ transform: "translateX(-50%)" });
+    expect(screen.getByText("2")).toHaveStyle({ transform: "translateX(-50%)" });
+  });
+
+  it("末尾の目盛りは、軸の内側へ寄せる", () => {
+    render(<StatusBars counts={COUNTS} />);
+
+    expect(screen.getByText("4")).toHaveStyle({ transform: "translateX(-100%)" });
   });
 
   it("a11y 検査を通る", async () => {

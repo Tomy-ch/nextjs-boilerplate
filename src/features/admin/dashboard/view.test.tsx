@@ -1,21 +1,12 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { DashboardSummary } from "@/model/dashboard/dashboard";
 
 import { DashboardView } from "./view";
-
-beforeAll(() => {
-  // 内訳に併置する図が寸法を測るために使う API を jsdom が持たないため、ここで補う。
-  globalThis.ResizeObserver ??= class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
-});
 
 const SUMMARY: DashboardSummary = {
   salesAmount: 123_456,
