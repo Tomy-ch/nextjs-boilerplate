@@ -61,7 +61,7 @@ export const REVIEW_WORKTREE_NOTE =
  * 手元で開くコマンドを 1 行組み立てる。
  *
  * @param input - 対象の種類・id・ブランチ・実行
- * @returns コマンド。差し込む値が文字集合を外れていれば `null`
+ * @returns コマンド。対象が 1 つも無いか、差し込む値が文字集合を外れていれば `null`
  */
 export function composeReviewCommand(input: ReviewCommandInput): string | null {
   if (input.ids === "" || containsUnsafe(input.ids, input.headRef, input.runId ?? "")) {
