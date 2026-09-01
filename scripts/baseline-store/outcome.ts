@@ -152,9 +152,8 @@ export function composeRetakeOutcome(input: RetakeOutcomeInput): string {
     );
   }
 
-  blocks.push(...composeReviewSection(input));
-
   blocks.push(
+    ...composeReviewSection(input),
     input.pointerPrUrl === ""
       ? "**まだ承認ではありません。** 上の表の前後を見比べ、意図した変更であることを確かめたうえで `baseline-approve` ラベルを付けてください。"
       : "**まだ承認ではありません。** 上の表の前後を見比べ、意図した変更であることを確かめたうえで、**上のポインタ PR に** `baseline-approve` ラベルを付けて merge してください。承認はそこに 1 回で足ります。",

@@ -14,6 +14,7 @@
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 
 import { errorMessage } from "../lib/error-message.js";
+import { formatOutputLines } from "../lib/github-output.js";
 import { nextPollOutcome, type PollOutcome, readCeTask } from "./analysis.js";
 import { ceTaskUrl, issuesSearchUrl, qualityGateUrl } from "./endpoints.js";
 import { readGateStatus, renderFailingConditions } from "./quality-gate.js";
@@ -226,7 +227,7 @@ function writeOutput(lines: readonly string[]): void {
     throw new Error("GITHUB_OUTPUT がありません。この副命令は CI から呼ばれます。");
   }
 
-  appendFileSync(file, lines.map((line) => `${line}\n`).join(""));
+  appendFileSync(file, formatOutputLines(lines));
 }
 
 /**
