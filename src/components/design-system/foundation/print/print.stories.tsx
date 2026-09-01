@@ -125,3 +125,25 @@ export const PageBreaks: Story = {
     </div>
   ),
 };
+
+/**
+ * 面の色を紙にも残す。browser は既定で背景のグラフィックを紙面から省くため、色が情報を担う面は
+ * `print-color-keep` を付けないと空白になる。印刷プレビューで、上の帯だけが残ることを確認する。
+ */
+export const ColorKeep: Story = {
+  render: () => (
+    <div className="flex max-w-xl flex-col gap-4">
+      <PrintButton />
+
+      <div className="flex flex-col gap-2">
+        <p className="text-sm">`print-color-keep` あり（紙にも色が残る）</p>
+        <div className="print-color-keep h-7 w-3/4 rounded-md bg-primary" />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <p className="text-sm">なし（既定の設定では紙から省かれる）</p>
+        <div className="h-7 w-1/2 rounded-md bg-primary" />
+      </div>
+    </div>
+  ),
+};
