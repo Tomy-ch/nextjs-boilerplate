@@ -138,8 +138,7 @@ const NUMBER_RANGE_MOCK_PROPERTIES = {
   "/^shippingFee$/": () => faker.number.int({ min: 0, max: 2000 }),
   "/^taxAmount$/": () => faker.number.int({ min: 0, max: 99_999 }),
   "/^(amount|subtotalAmount|totalAmount)$/": () => faker.number.int({ min: 1000, max: 999_999 }),
-  // 集計カードが値を切らずに収められる桁に留める。桁が溢れたときの姿は story
-  // （`src/features/admin/dashboard/view.stories.tsx`）が受け持つ。
+  // 期間の売上合計。1 日あたり $1,000〜$9,999 にあたる。
   // 商品売上ランキングの同名の項目は decimal 文字列で宣言されており、そちらは operation の指定が勝つ。
   "/^salesAmount$/": () => faker.number.int({ min: 100_000, max: 999_999 }),
 };
