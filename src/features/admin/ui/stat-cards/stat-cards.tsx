@@ -39,6 +39,9 @@ const FOCUS_RING =
  * 数だけを見て帰る利用者にも巻き取りを強います。値は `tabular-nums` で桁を揃え、列が細くても
  * 隣と比べられるようにしています。
  *
+ * **値を大きくするのは 4 列に割ってなお幅が余る段からです。** 4 列へ切り替わる段でそのまま
+ * 大きくすると、通貨記号と桁区切りを伴う金額が 1 列に収まらず、常に末尾が落ちます。
+ *
  * **列に収まらない値は末尾を落とします。** 桁数に上限を置けるのは画面ではなく契約の側で、
  * ここへ来る時点の値の長さは決まっていません。落とすのを末尾にするのは、上位の桁が残れば
  * 大きさが読めるためです。読み上げには全桁が渡ります —— 落ちるのは描画だけです。
@@ -75,7 +78,7 @@ export const StatCards = withPartSpan(
                 )}
               </dt>
               <dd>
-                <p className="truncate text-2xl font-emphasis tabular-nums lg:text-3xl">
+                <p className="truncate text-2xl font-emphasis tabular-nums xl:text-3xl">
                   {card.value}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">{card.note}</p>

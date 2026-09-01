@@ -334,19 +334,7 @@ export const getGetProductsResponseMock = (): ProductListResponse => ({
     products: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
       () => ({
         id: faker.string.uuid(),
-        name: (() =>
-          faker.helpers.arrayElement([
-            "ワイヤレスイヤホン",
-            "全自動コーヒーメーカー ステンレスサーバー付き",
-            "オーガニックコットン クルーネックTシャツ",
-            "ステンレス保温マグ 480ml",
-            "折りたたみ傘 自動開閉 軽量",
-            "アロマディフューザー 超音波式",
-            "デスクライト 調光調色",
-            "ランニングシューズ 軽量クッション",
-            "詰め替え用ハンドソープ 800ml",
-            "文庫本カバー 帆布",
-          ]))(),
+        name: faker.string.alpha({ length: { min: 10, max: 255 } }),
         description: faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
           null,
@@ -392,19 +380,7 @@ export const getPostProductsResponseMock = (
   overrideResponse: Partial<Extract<ProductResponse, object>> = {},
 ): ProductResponse => ({
   id: faker.string.uuid(),
-  name: (() =>
-    faker.helpers.arrayElement([
-      "ワイヤレスイヤホン",
-      "全自動コーヒーメーカー ステンレスサーバー付き",
-      "オーガニックコットン クルーネックTシャツ",
-      "ステンレス保温マグ 480ml",
-      "折りたたみ傘 自動開閉 軽量",
-      "アロマディフューザー 超音波式",
-      "デスクライト 調光調色",
-      "ランニングシューズ 軽量クッション",
-      "詰め替え用ハンドソープ 800ml",
-      "文庫本カバー 帆布",
-    ]))(),
+  name: faker.string.alpha({ length: { min: 10, max: 255 } }),
   description: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 20 } }),
     null,
@@ -442,19 +418,7 @@ export const getGetProductsDetailResponseMock = (
   overrideResponse: Partial<Extract<ProductResponse, object>> = {},
 ): ProductResponse => ({
   id: faker.string.uuid(),
-  name: (() =>
-    faker.helpers.arrayElement([
-      "ワイヤレスイヤホン",
-      "全自動コーヒーメーカー ステンレスサーバー付き",
-      "オーガニックコットン クルーネックTシャツ",
-      "ステンレス保温マグ 480ml",
-      "折りたたみ傘 自動開閉 軽量",
-      "アロマディフューザー 超音波式",
-      "デスクライト 調光調色",
-      "ランニングシューズ 軽量クッション",
-      "詰め替え用ハンドソープ 800ml",
-      "文庫本カバー 帆布",
-    ]))(),
+  name: faker.string.alpha({ length: { min: 10, max: 255 } }),
   description: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 20 } }),
     null,
@@ -485,19 +449,7 @@ export const getPatchProductsDetailResponseMock = (
   overrideResponse: Partial<Extract<ProductResponse, object>> = {},
 ): ProductResponse => ({
   id: faker.string.uuid(),
-  name: (() =>
-    faker.helpers.arrayElement([
-      "ワイヤレスイヤホン",
-      "全自動コーヒーメーカー ステンレスサーバー付き",
-      "オーガニックコットン クルーネックTシャツ",
-      "ステンレス保温マグ 480ml",
-      "折りたたみ傘 自動開閉 軽量",
-      "アロマディフューザー 超音波式",
-      "デスクライト 調光調色",
-      "ランニングシューズ 軽量クッション",
-      "詰め替え用ハンドソープ 800ml",
-      "文庫本カバー 帆布",
-    ]))(),
+  name: faker.string.alpha({ length: { min: 10, max: 255 } }),
   description: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 20 } }),
     null,
@@ -528,19 +480,7 @@ export const getPatchProductsStockResponseMock = (
   overrideResponse: Partial<Extract<ProductResponse, object>> = {},
 ): ProductResponse => ({
   id: faker.string.uuid(),
-  name: (() =>
-    faker.helpers.arrayElement([
-      "ワイヤレスイヤホン",
-      "全自動コーヒーメーカー ステンレスサーバー付き",
-      "オーガニックコットン クルーネックTシャツ",
-      "ステンレス保温マグ 480ml",
-      "折りたたみ傘 自動開閉 軽量",
-      "アロマディフューザー 超音波式",
-      "デスクライト 調光調色",
-      "ランニングシューズ 軽量クッション",
-      "詰め替え用ハンドソープ 800ml",
-      "文庫本カバー 帆布",
-    ]))(),
+  name: faker.string.alpha({ length: { min: 10, max: 255 } }),
   description: faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 20 } }),
     null,
@@ -573,19 +513,7 @@ export const getGetProductsRankingQuantityResponseMock = (
   rankings: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       productId: faker.string.uuid(),
-      name: (() =>
-        faker.helpers.arrayElement([
-          "ワイヤレスイヤホン",
-          "全自動コーヒーメーカー ステンレスサーバー付き",
-          "オーガニックコットン クルーネックTシャツ",
-          "ステンレス保温マグ 480ml",
-          "折りたたみ傘 自動開閉 軽量",
-          "アロマディフューザー 超音波式",
-          "デスクライト 調光調色",
-          "ランニングシューズ 軽量クッション",
-          "詰め替え用ハンドソープ 800ml",
-          "文庫本カバー 帆布",
-        ]))(),
+      name: faker.string.alpha({ length: { min: 10, max: 255 } }),
       price: (() => "19.99")(),
       soldQuantity: (() => faker.number.int({ min: 0, max: 99 }))(),
     }),
@@ -599,19 +527,7 @@ export const getGetProductsRankingAmountResponseMock = (
   rankings: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       productId: faker.string.uuid(),
-      name: (() =>
-        faker.helpers.arrayElement([
-          "ワイヤレスイヤホン",
-          "全自動コーヒーメーカー ステンレスサーバー付き",
-          "オーガニックコットン クルーネックTシャツ",
-          "ステンレス保温マグ 480ml",
-          "折りたたみ傘 自動開閉 軽量",
-          "アロマディフューザー 超音波式",
-          "デスクライト 調光調色",
-          "ランニングシューズ 軽量クッション",
-          "詰め替え用ハンドソープ 800ml",
-          "文庫本カバー 帆布",
-        ]))(),
+      name: faker.string.alpha({ length: { min: 10, max: 255 } }),
       price: (() => "19.99")(),
       salesAmount: (() => "824.69")(),
     }),
@@ -625,19 +541,7 @@ export const getGetProductsLowStockResponseMock = (
   products: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       id: faker.string.uuid(),
-      name: (() =>
-        faker.helpers.arrayElement([
-          "ワイヤレスイヤホン",
-          "全自動コーヒーメーカー ステンレスサーバー付き",
-          "オーガニックコットン クルーネックTシャツ",
-          "ステンレス保温マグ 480ml",
-          "折りたたみ傘 自動開閉 軽量",
-          "アロマディフューザー 超音波式",
-          "デスクライト 調光調色",
-          "ランニングシューズ 軽量クッション",
-          "詰め替え用ハンドソープ 800ml",
-          "文庫本カバー 帆布",
-        ]))(),
+      name: faker.string.alpha({ length: { min: 10, max: 255 } }),
       description: faker.helpers.arrayElement([
         faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,

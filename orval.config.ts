@@ -143,45 +143,6 @@ const NUMBER_RANGE_MOCK_PROPERTIES = {
   "/^salesAmount$/": () => faker.number.int({ min: 100_000, max: 999_999 }),
 };
 
-/**
- * 商品名の作り方。
- *
- * @remarks
- * 契約は商品名に 255 文字まで許すため、生成器はその上限までのランダム英字を返します。名前の列が
- * 表の幅を独り占めし、分類・価格・在庫・状態・操作が描画の外へ出るので、表が何列で成り立つのかを
- * 画面で確かめられません。
- *
- * **項目名ではなく経路で指定します。** `name` は分類名も状態名も利用者名も名乗る綴りなので、
- * 項目名で指定すると指し先の表示名まで置き換わります。orval は正規表現を項目名と経路の両方に
- * 当てるため（`@orval/mock` の `resolveMockOverride`）、商品自身の名前だけを経路で選べます。
- */
-const PRODUCT_NAME_MOCK_PROPERTIES = {
-  "/^#(\\.(products|rankings)\\.\\[\\])?\\.name$/": () =>
-    faker.helpers.arrayElement([
-      "ワイヤレスイヤホン",
-      "全自動コーヒーメーカー ステンレスサーバー付き",
-      "オーガニックコットン クルーネックTシャツ",
-      "ステンレス保温マグ 480ml",
-      "折りたたみ傘 自動開閉 軽量",
-      "アロマディフューザー 超音波式",
-      "デスクライト 調光調色",
-      "ランニングシューズ 軽量クッション",
-      "詰め替え用ハンドソープ 800ml",
-      "文庫本カバー 帆布",
-    ]),
-};
-
-/** 商品を載せる operation。商品名の作り方は全部で同じ。 */
-const PRODUCT_OPERATIONS = [
-  "GetProducts",
-  "PostProducts",
-  "GetProductsDetail",
-  "PatchProductsDetail",
-  "PatchProductsStock",
-  "GetProductsLowStock",
-  "GetProductsRankingQuantity",
-];
-
 const apiInput = {
   target: "./openapi/api.gen.yaml",
   filters: { mode: "exclude" as const, tags: NON_CLIENT_TAGS },
@@ -211,21 +172,10 @@ export default defineConfig({
           GetPrefectures: { mock: { data: PREFECTURES } },
           GetProductStatuses: { mock: { data: PRODUCT_STATUSES } },
           GetProductCategories: { mock: { data: PRODUCT_CATEGORIES } },
-          ...Object.fromEntries(
-            PRODUCT_OPERATIONS.map((operation) => [
-              operation,
-              { mock: { properties: PRODUCT_NAME_MOCK_PROPERTIES } },
-            ]),
-          ),
           // 売上額は decimal 文字列だが、同じ項目名がダッシュボードの集計では整数で宣言されて
           // いる。項目名で指定すると整数のほうまで文字列に変わるため、この operation に閉じる。
           GetProductsRankingAmount: {
-            mock: {
-              properties: {
-                ...PRODUCT_NAME_MOCK_PROPERTIES,
-                "/^salesAmount$/": () => "824.69",
-              },
-            },
+            mock: { properties: { "/^salesAmount$/": () => "824.69" } },
           },
         },
       },
