@@ -33,7 +33,7 @@ const ProductConfirmDetails = dynamic(
  * @remarks
  * 中身は [`confirm-details.tsx`](confirm-details.tsx) が持ちます。ここが持つのは**いつ読むか**
  * だけで、分けてあるのは、器（`../../new/view.tsx`）が段の構成を持つ場所であり、そこへ読み込みの
- * 都合を混ぜないためです（`../../../ui/status-chart/` と同じ形）。
+ * 都合を混ぜないためです。
  */
 export function ProductConfirmSection(props: ProductConfirmSectionProps) {
   return <ProductConfirmDetails {...props} />;
