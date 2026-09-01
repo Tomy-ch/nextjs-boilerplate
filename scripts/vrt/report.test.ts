@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import { BASELINE_MISSING, BASELINE_ORPHAN } from "../../baseline/lib/orphans";
 import {
   collectFailures,
+  collectMissingBaselines,
+  collectOrphanBaselines,
   type Failure,
   formatStoryIDs,
   formatTable,
-  hasBaselineFailure,
   TABLE_LIMIT,
 } from "./report";
 
@@ -229,73 +231,74 @@ describe("formatStoryIDs", () => {
   });
 });
 
-describe("hasBaselineFailure", () => {
+describe("collectOrphanBaselines", () => {
   // ----- 正常系 -----
-  it("1 対 1 対応の検査が落ちていれば true を返す", () => {
+  it("撮影対象を失った基準画像を、置き場からの相対パスで返す", () => {
+    const json = reportOf([
+      {
+        title: "基準画像",
+        tags: ["baselines"],
+        tests: [
+          {
+            status: "unexpected",
+            annotations: [{ type: BASELINE_ORPHAN, description: "page/light/消えた--story.png" }],
+          },
+        ],
+      },
+    ]);
+
+    expect(collectOrphanBaselines(json)).toEqual(["page/light/消えた--story.png"]);
+  });
+
+  it("対応が取れていれば空を返す", () => {
     const json = reportOf([{ title: "基準画像", tags: ["baselines"], tests: [test({})] }]);
 
-    expect(hasBaselineFailure(json)).toBe(true);
-  });
-
-  it("宣言どおり `@` 付きで載っていても見つける", () => {
-    const json = reportOf([{ title: "基準画像", tags: ["@baselines"], tests: [test({})] }]);
-
-    expect(hasBaselineFailure(json)).toBe(true);
-  });
-
-  it("走らせなかった分を、落ちたと数えない", () => {
-    // 撮り直しの最中や範囲を絞った実行では、この検査は skip になる
-    // （`vrt/stories.spec.ts`）。落ちたと数えると、孤児が 1 件も無くても全数の撮り直しになる。
-    const json = reportOf([
-      { title: "基準画像", tags: ["baselines"], tests: [test({ status: "skipped" })] },
-    ]);
-
-    expect(hasBaselineFailure(json)).toBe(false);
+    expect(collectOrphanBaselines(json)).toEqual([]);
   });
 
   // ----- 異常系 -----
-  it("tag がどの spec にも無ければ、孤児なしと答えずに落とす", () => {
-    const json = reportOf([{ title: "Button", tests: [test({ id: "a" })] }]);
-
-    expect(() => hasBaselineFailure(json)).toThrow(/@baselines/);
-  });
-
-  it("tag が test の側にしか載っていないときも落とす", () => {
+  it("対応の検査でない spec の注記は拾わない", () => {
     const json = reportOf([
-      { title: "基準画像", tests: [{ ...(test({}) as object), tags: ["baselines"] }] },
+      {
+        title: "Button",
+        tests: [
+          {
+            status: "unexpected",
+            annotations: [{ type: BASELINE_ORPHAN, description: "page/light/別.png" }],
+          },
+        ],
+      },
     ]);
 
-    expect(() => hasBaselineFailure(json)).toThrow(/@baselines/);
+    expect(collectOrphanBaselines(json)).toEqual([]);
   });
+});
 
-  it("story だけが食い違っているときは false を返す", () => {
+describe("collectMissingBaselines", () => {
+  // ----- 正常系 -----
+  it("基準画像を持たない story を、id で返す", () => {
     const json = reportOf([
-      { title: "Button", tests: [test({ id: "a" })] },
-      { title: "基準画像", tags: ["baselines"], tests: [test({ status: "expected" })] },
+      {
+        title: "基準画像",
+        tags: ["baselines"],
+        tests: [
+          {
+            status: "unexpected",
+            annotations: [
+              { type: BASELINE_MISSING, description: "foundation/light/foundation-print--x.png" },
+            ],
+          },
+        ],
+      },
     ]);
 
-    expect(hasBaselineFailure(json)).toBe(false);
-  });
-
-  it("1 対 1 対応の検査が通っていれば false を返す", () => {
-    const json = reportOf([
-      { title: "基準画像", tags: ["baselines"], tests: [test({ status: "expected" })] },
-    ]);
-
-    expect(hasBaselineFailure(json)).toBe(false);
-  });
-
-  it("入れ子の suite にあっても見つける", () => {
-    const json = reportOf(
-      [],
-      [{ specs: [{ title: "基準画像", tags: ["baselines"], tests: [test({})] }] }],
-    );
-
-    expect(hasBaselineFailure(json)).toBe(true);
+    expect(collectMissingBaselines(json)).toEqual(["foundation-print--x"]);
   });
 
   // ----- 異常系 -----
-  it("suites が無いレポートを弾く", () => {
-    expect(() => hasBaselineFailure("{}")).toThrow("JSON レポートに suites がありません");
+  it("欠けが無ければ空を返す", () => {
+    const json = reportOf([{ title: "基準画像", tags: ["baselines"], tests: [test({})] }]);
+
+    expect(collectMissingBaselines(json)).toEqual([]);
   });
 });

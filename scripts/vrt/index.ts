@@ -7,17 +7,24 @@
 //   inputs                絵を決める入力のハッシュ
 //   gate <記録した値のファイル...>  検査を省いてよいか（skip / run）。1 つでも一致すれば skip
 //   clear-stories         全数撮り直しの前に、story の基準画像を置き場から消す
-//   orphans <report.json> 孤児が報告されたか（true / false）。全数で撮り直す必要の有無
+//   orphans <report.json> 撮影対象を失った基準画像の相対パス（1 行 1 件）。撮り直しが消す相手
+//   missing <report.json> 基準画像を持たない story の id（1 行 1 件）。撮り直しが撮る相手
 //
 // table と ids を同じレポートから出すことで、表に出ていない story が承認で撮り直される余地を
 // 無くす。
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { clearableStoryEntries, STORE_PATH } from "../../baseline/lib/store.js";
 import { collectRenderInputs, decideGate, renderInputsHash } from "./render-hash.js";
-import { collectFailures, formatStoryIDs, formatTable, hasBaselineFailure } from "./report.js";
+import {
+  collectFailures,
+  collectMissingBaselines,
+  collectOrphanBaselines,
+  formatStoryIDs,
+  formatTable,
+} from "./report.js";
 
 const USAGE =
-  "usage: vrt <table|ids <report.json>|inputs|gate <file...>|clear-stories|orphans <report.json>>";
+  "usage: vrt <table|ids|orphans|missing <report.json>|inputs|gate <file...>|clear-stories>";
 
 function main(): void {
   const [command, file, ...rest] = process.argv.slice(2);
@@ -46,7 +53,12 @@ function main(): void {
       return;
     case "orphans":
       if (!file) fail(USAGE);
-      console.log(String(hasBaselineFailure(readFileSync(file, "utf8"))));
+      console.log(collectOrphanBaselines(readFileSync(file, "utf8")).join("\n"));
+
+      return;
+    case "missing":
+      if (!file) fail(USAGE);
+      console.log(collectMissingBaselines(readFileSync(file, "utf8")).join("\n"));
 
       return;
     default:

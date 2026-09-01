@@ -81,6 +81,58 @@ export function isFailed(test: JSONTest): boolean {
   return test.status === "unexpected" || test.status === "flaky";
 }
 
+/**
+ * 注記に載せて運ばれた値を、型を指定して取り出す。
+ *
+ * @remarks
+ * Playwright のレポートは test ごとに注記を持ちます。同じ型の注記が複数あることを前提に、
+ * すべてを順に返します。
+ *
+ * @param tests - 1 つの spec の test
+ * @param type - 取り出す注記の型
+ */
+/**
+ * tag で選んだ spec が注記へ載せた値を集める。
+ *
+ * @remarks
+ * 1 対 1 の検査は、孤児と欠けている基準画像の一覧を注記に載せます。それを読む側が story 単位と
+ * 画面単位で 2 つあり、違うのは tag と注記の型だけなので、たどり方をここへ置きます。
+ *
+ * @param json - Playwright の JSON レポート
+ * @param tag - spec を選ぶ tag
+ * @param type - 取り出す注記の型
+ */
+export function taggedAnnotations(json: string, tag: string, type: string): string[] {
+  return parseSpecs(json)
+    .filter((spec) => asArray(spec.tags).some((candidate) => tagName(candidate) === tagName(tag)))
+    .flatMap((spec) => annotationValues(asArray<JSONTest>(spec.tests), type))
+    .toSorted();
+}
+
+/**
+ * 注記に載せて運ばれた値を、型を指定して取り出す。
+ *
+ * @remarks
+ * Playwright のレポートは test ごとに注記を持ちます。同じ型の注記が複数あることを前提に、
+ * すべてを順に返します。
+ *
+ * @param tests - 1 つの spec の test
+ * @param type - 取り出す注記の型
+ */
+export function annotationValues(tests: readonly JSONTest[], type: string): string[] {
+  const values: string[] = [];
+
+  for (const test of tests) {
+    for (const annotation of asArray<JSONAnnotation>(test.annotations)) {
+      if (annotation.type === type && typeof annotation.description === "string") {
+        values.push(annotation.description);
+      }
+    }
+  }
+
+  return values;
+}
+
 // suites は入れ子になる。spec は葉にしか無いので、たどって平らにする。
 function flattenSpecs(suites: JSONSuite[]): JSONSpec[] {
   const specs: JSONSpec[] = [];

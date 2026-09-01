@@ -14,6 +14,30 @@ import { SCREEN_AREA } from "./store";
 export const EXTENSION = ".png";
 
 /**
+ * 孤児になった基準画像を、レポートへ運ぶための注記の型。
+ *
+ * @remarks
+ * **孤児は撮り直しでは直りません。** 対応する撮影対象が無いので撮る相手が居らず、消すしか
+ * ありません。消す側（撮り直しの workflow）は Playwright のレポートしか読めないため、検査が
+ * 見つけた一覧をここへ載せて運びます。
+ *
+ * 載せずに「対応が落ちた」だけを伝えると、撮り直しは孤児か対象外かを区別できず全数を撮り直す
+ * ことになります。全数の撮影は、報告されていない画像まで置き直します。
+ */
+export const BASELINE_ORPHAN = "baseline-orphan";
+
+/**
+ * 基準画像を持たない撮影対象を、レポートへ運ぶための注記の型。
+ *
+ * @remarks
+ * **比較した実行では、これを運ぶ必要はありません。** 画像が無い撮影対象は撮影そのものが落ち、
+ * 落ちた一覧に載るためです。**運ぶのは比較を省いた実行のためです** —— 絵を決める入力が前と
+ * 同じとき比較は省かれ、落ちるのはこの検査だけになります。そのとき一覧が無いと、撮り直しは
+ * 撮る相手を 1 つも見つけられません。
+ */
+export const BASELINE_MISSING = "baseline-missing";
+
+/**
  * 置き場にある story の基準画像を相対パスで列挙する。
  *
  * @remarks
@@ -47,4 +71,17 @@ export function missingBaselines(
   const found = new Set(present);
 
   return expected.filter((baseline) => !found.has(baseline)).sort();
+}
+
+/**
+ * 基準画像の相対パスから、撮影対象の名前を取る。
+ *
+ * @remarks
+ * story の id も画面の名前も、置き場ではファイル名そのものです。撮り直す範囲の指定は名前で
+ * 渡すため、一覧を運ぶ側とのあいだでここが変換になります。
+ *
+ * @param baseline - 置き場からの相対パス
+ */
+export function baselineName(baseline: string): string {
+  return path.basename(baseline, EXTENSION);
 }

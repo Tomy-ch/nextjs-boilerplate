@@ -4,6 +4,7 @@
 // 見直す範囲で、どれも同じ集合であることに意味がある。表に出ていない story が承認で撮り直され
 // ると、報告されていない差分が黙って基準画像へ入る。
 
+import { BASELINE_MISSING, BASELINE_ORPHAN, baselineName } from "../../baseline/lib/orphans.js";
 import { BASELINE_TAG } from "../../vrt/lib/expected-baselines.js";
 import {
   asArray,
@@ -13,6 +14,7 @@ import {
   type JSONResult,
   type JSONTest,
   parseSpecs,
+  taggedAnnotations,
   tagName,
 } from "../lib/playwright-report.js";
 
@@ -47,7 +49,7 @@ export function collectFailures(json: string): Failure[] {
 
   for (const spec of parseSpecs(json)) {
     for (const test of asArray<JSONTest>(spec.tests)) {
-      if (test.status === "expected") continue;
+      if (!isFailed(test)) continue;
       const id = storyID(test.annotations);
       if (id === null) continue;
       failures.push({
@@ -89,29 +91,34 @@ export function formatTable(failures: Failure[]): string {
 }
 
 /**
- * 基準画像と撮影対象の 1 対 1 対応が落ちたか。
+ * 撮影対象を失った基準画像の一覧。
  *
  * @remarks
- * この検査は story ではないので {@link collectFailures} は拾いません（id の注記を持たない）。
- * それでいて、落ちたときに要るのは**全数の撮り直し**です（理由は `baseline/lib/store.ts`）。
+ * **孤児は撮り直しでは直りません。** 撮る相手が居ないので、消すしかありません。一覧は 1 対 1 の
+ * 検査が注記へ載せます（`baseline/lib/orphans.ts`）。
+ *
+ * これを運ぶのは、撮り直しが**全数へ落ちずに済む**ようにするためです。孤児の名前が分かれば消す
+ * 対象を名指しできます。分からないと「対応が落ちた」という事実しか無く、孤児と範囲外を区別
+ * できないので全数を撮り直すほかありません —— そのとき、報告されていない画像まで置き直されます。
+ *
+ * @param json - Playwright の JSON レポート
+ * @returns 置き場からの相対パス
+ */
+export function collectOrphanBaselines(json: string): string[] {
+  return taggedAnnotations(json, BASELINE_TAG, BASELINE_ORPHAN);
+}
+
+/**
+ * 基準画像を持たない撮影対象の名前。
+ *
+ * @remarks
+ * 比較した実行では撮影そのものが落ちるので一覧に載りますが、**絵を決める入力が前と同じで比較を
+ * 省いた実行では、落ちるのは 1 対 1 の検査だけ**です。そのとき撮り直す相手はここからしか分かりません。
  *
  * @param json - Playwright の JSON レポート
  */
-export function hasBaselineFailure(json: string): boolean {
-  const checks = parseSpecs(json).filter((spec) =>
-    asArray(spec.tags).some((tag) => tagName(tag) === tagName(BASELINE_TAG)),
-  );
-
-  // 見つからないことを「孤児なし」と答えない。1 対 1 の検査は全数の撮影に必ず含まれるので、
-  // 当たらないのはレポートの形か tag の綴りが変わったときである。false を返すと、撮り直しは
-  // 絞り込み側へ落ちて「差分がありません」で止まり、原因の見えない失敗になる。
-  if (checks.length === 0) {
-    throw new Error(
-      `レポートに ${BASELINE_TAG} の spec がありません。全数の報告でないか、tag の載り方が変わっています`,
-    );
-  }
-
-  return checks.some((spec) => asArray<JSONTest>(spec.tests).some(isFailed));
+export function collectMissingBaselines(json: string): string[] {
+  return taggedAnnotations(json, BASELINE_TAG, BASELINE_MISSING).map(baselineName);
 }
 
 /** 撮り直す範囲として渡す story の id。テーマ違いは同じ id なので 1 件に畳む。 */

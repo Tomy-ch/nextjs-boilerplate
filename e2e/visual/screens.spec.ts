@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import type { TestInfo } from "@playwright/test";
-import { listBaselines, missingBaselines, orphanBaselines } from "../../baseline/lib/orphans";
+import {
+  BASELINE_MISSING,
+  BASELINE_ORPHAN,
+  listBaselines,
+  missingBaselines,
+  orphanBaselines,
+} from "../../baseline/lib/orphans";
 import { isRetaking } from "../../baseline/lib/store";
 import { expectedScreenBaselines, SCREEN_BASELINE_TAG } from "../lib/screen-baselines";
 import {
@@ -70,12 +76,22 @@ test("基準画像 / 撮影対象と 1 対 1 で対応する", { tag: SCREEN_BAS
 
   const present = listBaselines(baselineRoot(testInfo));
   const expected = expectedScreenBaselines(screens, bands);
+  const orphans = orphanBaselines(present, expected);
 
-  expect(
-    orphanBaselines(present, expected),
-    "撮り直して置き場へ送るか、対応する画面を戻してください",
-  ).toEqual([]);
-  expect(missingBaselines(present, expected), "make e2e-update で撮り直してください").toEqual([]);
+  // 一覧を注記へ載せる。孤児は撮り直しでは直らないので、消す側が名前を知る必要がある
+  // （`baseline/lib/orphans.ts` の `BASELINE_ORPHAN`）。
+  for (const baseline of orphans) {
+    testInfo.annotations.push({ type: BASELINE_ORPHAN, description: baseline });
+  }
+
+  expect(orphans, "撮り直して置き場へ送るか、対応する画面を戻してください").toEqual([]);
+  const missing = missingBaselines(present, expected);
+
+  for (const baseline of missing) {
+    testInfo.annotations.push({ type: BASELINE_MISSING, description: baseline });
+  }
+
+  expect(missing, "make e2e-update で撮り直してください").toEqual([]);
 });
 
 // 置き場の位置は `playwright.e2e.config.ts` の `snapshotPathTemplate` が決める。撮影と同じ解決を

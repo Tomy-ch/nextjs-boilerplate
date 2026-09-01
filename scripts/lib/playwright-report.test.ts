@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { asArray, isFailed, parseSpecs, tagName } from "./playwright-report";
+import {
+  annotationValues,
+  asArray,
+  isFailed,
+  parseSpecs,
+  taggedAnnotations,
+  tagName,
+} from "./playwright-report";
 
 describe("asArray", () => {
   // ----- 正常系 -----
@@ -83,5 +90,69 @@ describe("tagName", () => {
   it("文字列でない tag は、どの tag にも当たらない値へ倒す", () => {
     expect(tagName(123)).toBe("");
     expect(tagName(null)).toBe("");
+  });
+});
+
+describe("annotationValues", () => {
+  // ----- 正常系 -----
+  it("型が一致する注記の値を順に返す", () => {
+    const tests = [
+      { annotations: [{ type: "gap", description: "a" }] },
+      { annotations: [{ type: "gap", description: "b" }] },
+    ];
+
+    expect(annotationValues(tests, "gap")).toEqual(["a", "b"]);
+  });
+
+  it("型が違う注記は返さない", () => {
+    const tests = [{ annotations: [{ type: "story", description: "a" }] }];
+
+    expect(annotationValues(tests, "gap")).toEqual([]);
+  });
+
+  // ----- 異常系 -----
+  it("値が文字列でない注記は返さない", () => {
+    const tests = [{ annotations: [{ type: "gap", description: 42 }] }];
+
+    expect(annotationValues(tests, "gap")).toEqual([]);
+  });
+
+  it("注記が配列でない test を空として扱う", () => {
+    expect(annotationValues([{ annotations: "壊れている" }], "gap")).toEqual([]);
+  });
+});
+
+describe("taggedAnnotations", () => {
+  // ----- 正常系 -----
+  it("tag が一致する spec の注記だけを、並べ替えて返す", () => {
+    const json = JSON.stringify({
+      suites: [
+        {
+          specs: [
+            {
+              tags: ["baselines"],
+              tests: [{ annotations: [{ type: "gap", description: "b" }] }],
+            },
+            {
+              tags: ["baselines"],
+              tests: [{ annotations: [{ type: "gap", description: "a" }] }],
+            },
+            {
+              tags: ["other"],
+              tests: [{ annotations: [{ type: "gap", description: "z" }] }],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(taggedAnnotations(json, "@baselines", "gap")).toEqual(["a", "b"]);
+  });
+
+  // ----- 異常系 -----
+  it("tag がどの spec にも無ければ空を返す", () => {
+    const json = JSON.stringify({ suites: [{ specs: [{ tags: ["other"], tests: [] }] }] });
+
+    expect(taggedAnnotations(json, "@baselines", "gap")).toEqual([]);
   });
 });

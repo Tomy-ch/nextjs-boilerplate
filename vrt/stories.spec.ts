@@ -3,7 +3,13 @@ import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { test as base, expect, type TestInfo } from "@playwright/test";
-import { listBaselines, missingBaselines, orphanBaselines } from "../baseline/lib/orphans";
+import {
+  BASELINE_MISSING,
+  BASELINE_ORPHAN,
+  listBaselines,
+  missingBaselines,
+  orphanBaselines,
+} from "../baseline/lib/orphans";
 import { assertAreaUnclaimed, isRetaking } from "../baseline/lib/store";
 import { installFixedClock } from "./lib/clock";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
@@ -92,12 +98,22 @@ if (!process.env.VRT_ONLY) {
 
     const present = listBaselines(baselineRoot(testInfo));
     const expected = expectedBaselines(shootable);
+    const orphans = orphanBaselines(present, expected);
 
-    expect(
-      orphanBaselines(present, expected),
-      "撮り直して置き場へ送るか、対応する story を戻してください",
-    ).toEqual([]);
-    expect(missingBaselines(present, expected), "make vrt-retake で撮り直してください").toEqual([]);
+    // 一覧を注記へ載せる。孤児は撮り直しでは直らないので、消す側が名前を知る必要がある
+    // （`baseline/lib/orphans.ts` の `BASELINE_ORPHAN`）。
+    for (const baseline of orphans) {
+      testInfo.annotations.push({ type: BASELINE_ORPHAN, description: baseline });
+    }
+
+    expect(orphans, "撮り直して置き場へ送るか、対応する story を戻してください").toEqual([]);
+    const missing = missingBaselines(present, expected);
+
+    for (const baseline of missing) {
+      testInfo.annotations.push({ type: BASELINE_MISSING, description: baseline });
+    }
+
+    expect(missing, "make vrt-retake で撮り直してください").toEqual([]);
   });
 }
 

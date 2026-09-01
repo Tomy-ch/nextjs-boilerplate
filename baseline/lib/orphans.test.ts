@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { listBaselines, missingBaselines, orphanBaselines } from "./orphans";
+import { baselineName, listBaselines, missingBaselines, orphanBaselines } from "./orphans";
 import { SCREEN_AREA } from "./store";
 
 let root: string;
@@ -94,5 +94,18 @@ describe("missingBaselines", () => {
 
   it("対応する story を持たない画像は欠けとして挙げない", () => {
     expect(missingBaselines([...expected, "action/light/消えた--story.png"], expected)).toEqual([]);
+  });
+});
+
+describe("baselineName", () => {
+  // ----- 正常系 -----
+  it("置き場からの相対パスから、撮影対象の名前を取る", () => {
+    expect(baselineName("page/light/page-admin-dashboard--default.png")).toBe(
+      "page-admin-dashboard--default",
+    );
+  });
+
+  it("区画の階層が浅くても同じように取れる", () => {
+    expect(baselineName("screen/desktop/admin-dashboard.png")).toBe("admin-dashboard");
   });
 });

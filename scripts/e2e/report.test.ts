@@ -1,15 +1,25 @@
 import { describe, expect, it } from "vitest";
-
+import { BASELINE_MISSING, BASELINE_ORPHAN } from "../../baseline/lib/orphans";
 import { SCREEN_BASELINE_TAG } from "../../e2e/lib/screen-baselines";
-import { collectFailedScreens, formatScreenNames, hasScreenBaselineFailure } from "./report";
+import {
+  collectFailedScreens,
+  collectMissingScreenBaselines,
+  collectOrphanScreenBaselines,
+  formatScreenNames,
+} from "./report";
 
 const VISUAL = "e2e/visual/screens.spec.ts";
 
 /** 1 件分のテスト結果を組み立てる。tag は spec が持つため、ここには入れない。 */
-function test(options: { status?: string; band?: string }): unknown {
+function test(options: {
+  status?: string;
+  band?: string;
+  annotations?: { type: string; description: string }[];
+}): unknown {
   return {
     projectName: options.band ?? "desktop",
     status: options.status ?? "unexpected",
+    annotations: options.annotations ?? [],
   };
 }
 
@@ -119,49 +129,26 @@ describe("formatScreenNames", () => {
   });
 });
 
-describe("hasScreenBaselineFailure", () => {
+describe("collectOrphanScreenBaselines", () => {
   // ----- 正常系 -----
-  it("対応の検査が落ちていれば真を返す", () => {
-    const json = reportOf([
-      { file: VISUAL, tags: [SCREEN_BASELINE_TAG], title: "対応", tests: [test({})] },
-    ]);
-
-    expect(hasScreenBaselineFailure(json)).toBe(true);
-  });
-
-  it("走らせなかった帯の分を、落ちたと数えない", () => {
-    // 対応は帯を 1 つ選んで 1 回だけ見る（`e2e/visual/screens.spec.ts`）。残りの帯は skip に
-    // なるので、これを落ちたと数えると、孤児が 1 件も無くても必ず全画面の撮り直しになる。
+  it("撮影対象を失った基準画像を、置き場からの相対パスで返す", () => {
     const json = reportOf([
       {
         file: VISUAL,
         tags: [SCREEN_BASELINE_TAG],
         title: "対応",
         tests: [
-          test({ band: "mobile", status: "expected" }),
-          test({ band: "tablet", status: "skipped" }),
-          test({ band: "desktop", status: "skipped" }),
+          test({
+            annotations: [{ type: BASELINE_ORPHAN, description: "screen/desktop/消えた.png" }],
+          }),
         ],
       },
     ]);
 
-    expect(hasScreenBaselineFailure(json)).toBe(false);
+    expect(collectOrphanScreenBaselines(json)).toEqual(["screen/desktop/消えた.png"]);
   });
 
-  it("再試行で通った検査も、落ちたものとして数える", () => {
-    const json = reportOf([
-      {
-        file: VISUAL,
-        tags: [SCREEN_BASELINE_TAG],
-        title: "対応",
-        tests: [test({ status: "flaky" })],
-      },
-    ]);
-
-    expect(hasScreenBaselineFailure(json)).toBe(true);
-  });
-
-  it("対応の検査が通っていれば偽を返す", () => {
+  it("対応が取れていれば空を返す", () => {
     const json = reportOf([
       {
         file: VISUAL,
@@ -171,27 +158,59 @@ describe("hasScreenBaselineFailure", () => {
       },
     ]);
 
-    expect(hasScreenBaselineFailure(json)).toBe(false);
-  });
-
-  it("画面の失敗を対応の失敗と混同しない", () => {
-    const json = reportOf([
-      { file: VISUAL, title: "about", tests: [test({})] },
-      {
-        file: VISUAL,
-        tags: [SCREEN_BASELINE_TAG],
-        title: "対応",
-        tests: [test({ status: "expected" })],
-      },
-    ]);
-
-    expect(hasScreenBaselineFailure(json)).toBe(false);
+    expect(collectOrphanScreenBaselines(json)).toEqual([]);
   });
 
   // ----- 異常系 -----
-  it("対応の検査を含まないレポートを弾く", () => {
-    const json = reportOf([{ file: VISUAL, title: "about", tests: [test({})] }]);
+  it("対応の検査でない spec の注記は拾わない", () => {
+    const json = reportOf([
+      {
+        file: VISUAL,
+        title: "admin-dashboard",
+        tests: [
+          test({
+            annotations: [{ type: BASELINE_ORPHAN, description: "screen/desktop/別.png" }],
+          }),
+        ],
+      },
+    ]);
 
-    expect(() => hasScreenBaselineFailure(json)).toThrow(SCREEN_BASELINE_TAG);
+    expect(collectOrphanScreenBaselines(json)).toEqual([]);
+  });
+});
+
+describe("collectMissingScreenBaselines", () => {
+  // ----- 正常系 -----
+  it("基準画像を持たない画面を、名前で返す", () => {
+    const json = reportOf([
+      {
+        file: VISUAL,
+        tags: [SCREEN_BASELINE_TAG],
+        title: "対応",
+        tests: [
+          test({
+            annotations: [
+              { type: BASELINE_MISSING, description: "screen/mobile/admin-dashboard.png" },
+            ],
+          }),
+        ],
+      },
+    ]);
+
+    expect(collectMissingScreenBaselines(json)).toEqual(["admin-dashboard"]);
+  });
+
+  // ----- 異常系 -----
+  it("欠けが無ければ空を返す", () => {
+    const json = reportOf([
+      {
+        file: VISUAL,
+        tags: [SCREEN_BASELINE_TAG],
+        title: "対応",
+        tests: [test({ status: "expected" })],
+      },
+    ]);
+
+    expect(collectMissingScreenBaselines(json)).toEqual([]);
   });
 });
