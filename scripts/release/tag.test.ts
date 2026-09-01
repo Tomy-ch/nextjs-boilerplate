@@ -61,7 +61,6 @@ describe("planReleaseTag", () => {
     ]);
   });
 
-  // ----- 異常系 -----
   it("リリースノートが無いときに出す行を持つ", () => {
     const plan = planReleaseTag({ latest: "v1.2.3", next: "v1.3.0" });
 

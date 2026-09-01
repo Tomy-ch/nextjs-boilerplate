@@ -69,8 +69,11 @@ describe("renderFailingConditions", () => {
   });
 
   // ----- 異常系 -----
-  it("条件が 1 つも無ければ空にする", () => {
+  it("条件の一覧を持たない応答は空にする", () => {
     expect(renderFailingConditions({ projectStatus: {} })).toBe("");
+  });
+
+  it("応答として読めない形も空にする", () => {
     expect(renderFailingConditions("応答ではない")).toBe("");
   });
 
