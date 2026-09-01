@@ -1,4 +1,4 @@
-import { METRIC_KEYS, type MetricKey, type Verdict } from "./budget";
+import { type Measurement, METRIC_KEYS, type MetricKey, type Verdict } from "./budget";
 
 /**
  * 判定を PR コメントの本文へ畳む。
@@ -29,16 +29,45 @@ function cell(verdict: Verdict, key: MetricKey): string {
 }
 
 /**
+ * 台ごとの床を 1 行にする。割らなかった実行では空になる。
+ *
+ * @remarks
+ * **落ちた画面と同じ台の床が読めることが要点です。** TBT は runner の速さがそのまま乗数として
+ * 効くため、その画面が遅いのか機械が遅いのかは床と見比べて判別します
+ * （[0101](../../docs/adr/0101-performance-budget.md) §3）。割ると床は担当の台にしか居ないので、
+ * 担当でない台でも測って（判定はせず）ここへ並べます。
+ *
+ * @param measurements - 判定の対象を含む、その実行の全計測。
+ * @param screen - 床の画面の名前。
+ */
+export function renderFloor(measurements: readonly Measurement[], screen: string): string {
+  const floors = measurements
+    .filter((measurement) => measurement.name === screen && measurement.shard !== undefined)
+    .toSorted((left, right) => (left.shard ?? 0) - (right.shard ?? 0));
+
+  if (floors.length < 2) {
+    return "";
+  }
+
+  const cells = floors.map(
+    (floor) => `${floor.shard} 台目 ${METRIC_FORMAT.tbtMs.format(floor.values.tbtMs)}`,
+  );
+
+  return `台ごとの床（\`${screen}\` の TBT）: ${cells.join(" / ")}`;
+}
+
+/**
  * 表を組み立てる。
  *
  * @param verdicts - 判定。
  * @param runs - 1 画面あたりの試行回数。中央値であることが読み取れるように添える。
+ * @param floor - {@link renderFloor} が組んだ 1 行。空なら添えない。
  *
  * @remarks
  * 超過した画面を先に並べます。全画面を出すのは、超過していない画面の余裕がどれだけ残って
  * いるかが、次に重くする判断の材料になるためです。
  */
-export function renderReport(verdicts: readonly Verdict[], runs: number): string {
+export function renderReport(verdicts: readonly Verdict[], runs: number, floor = ""): string {
   const failed = verdicts.filter((verdict) => Object.keys(verdict.over).length > 0);
   const passed = verdicts.filter((verdict) => Object.keys(verdict.over).length === 0);
   const rows = [...failed, ...passed];
@@ -52,5 +81,6 @@ export function renderReport(verdicts: readonly Verdict[], runs: number): string
       (verdict) =>
         `| \`${verdict.name}\` | ${METRIC_KEYS.map((key) => cell(verdict, key)).join(" | ")} |`,
     ),
+    ...(floor === "" ? [] : ["", floor]),
   ].join("\n");
 }

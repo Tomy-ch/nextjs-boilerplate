@@ -37,7 +37,7 @@ import { buildChromeFlags, buildLighthouseArgs } from "./command";
 import { collectMeasureInputs, measureInputsHash } from "./measure-inputs";
 import { aggregate, readMetrics } from "./metrics";
 import { planTargets, type Target } from "./plan";
-import { renderReport } from "./report";
+import { renderFloor, renderReport } from "./report";
 import { parseCookiePairs } from "./session";
 import { expectedTotal, isShardFile, parseShard, selectShard, shardFileName } from "./shard";
 import { decideTrigger } from "./trigger";
@@ -305,7 +305,9 @@ function judgeAll(measurements: readonly Measurement[], budget: Budget): void {
 
   const verdicts = judge(measurements, budget);
 
-  console.log(renderReport(verdicts, budget.runs.count));
+  console.log(
+    renderReport(verdicts, budget.runs.count, renderFloor(measurements, budget.floor.screen)),
+  );
 
   if (hasFailure(verdicts)) {
     console.error("\n❌ Core Web Vitals が予算を超えました。");
@@ -362,6 +364,15 @@ async function measureAll(): Promise<void> {
   const shard = spec === undefined ? { index: 1, total: 1 } : parseShard(spec);
   const screens = selectShard(selected, shard);
 
+  // 床の画面は、担当でない台でも測る。落ちた画面と床が別の機械で測られていては、その画面が
+  // 遅いのか機械が遅いのかを見比べられない（`performance-budget.yaml` の `floor.reason`）。
+  //
+  // 割らない実行では足しません —— 全画面が同じ機械で測られるので、床は既に居ます。
+  const floor = selected.find((screen) => screen.name === budget.floor.screen);
+  const control =
+    shard.total > 1 && floor !== undefined && !screens.includes(floor) ? floor : undefined;
+  const measured = control === undefined ? screens : [...screens, control];
+
   mkdirSync(OUTPUT_DIR, { recursive: true });
 
   const host = new URL(baseUrl).hostname;
@@ -369,18 +380,23 @@ async function measureAll(): Promise<void> {
   const sessions = new Map<string, BrowserCookie[]>();
   const measurements: Measurement[] = [];
 
-  for (const target of planTargets(screens, baseUrl)) {
+  for (const target of planTargets(measured, baseUrl)) {
     if (target.role !== undefined && !sessions.has(target.role)) {
       sessions.set(target.role, await issueSessionCookies(baseUrl, target.role, host));
     }
 
     console.error(`⏱️  ${target.name}`);
-    measurements.push(
-      await measure(target, budget.runs.count, [
-        consent,
-        ...(target.role === undefined ? [] : (sessions.get(target.role) ?? [])),
-      ]),
-    );
+
+    const measurement = await measure(target, budget.runs.count, [
+      consent,
+      ...(target.role === undefined ? [] : (sessions.get(target.role) ?? [])),
+    ]);
+
+    measurements.push({
+      ...measurement,
+      ...(spec === undefined ? {} : { shard: shard.index }),
+      ...(target.name === control?.name ? { control: true } : {}),
+    });
   }
 
   // 呼ばれ方で決める。台数では決めない —— 1 台に割った実行も束ねる側を持っており、そちらが
