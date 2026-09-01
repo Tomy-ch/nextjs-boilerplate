@@ -98,6 +98,7 @@ function alignProductList(response: unknown, draw: DrawFromEndpoint): unknown {
  */
 export const REFERENCE_PATCHES: ReferencePatches = new Map([
   ["getGetProductsResponseMock", alignProductList],
+  ["getGetProductsLowStockResponseMock", alignProductList],
   ["getGetProductsDetailResponseMock", alignProduct],
   ["getPostProductsResponseMock", alignProduct],
   ["getPatchProductsDetailResponseMock", alignProduct],

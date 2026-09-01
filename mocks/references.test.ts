@@ -88,6 +88,17 @@ describe("REFERENCE_PATCHES", () => {
     expect(patched.nextCursor).toBe("next");
   });
 
+  it("在庫僅少の一覧も商品ごとに揃える", () => {
+    const patched = patchOf("getGetProductsLowStockResponseMock")(
+      { products: [product("p1"), product("p2")] },
+      draw,
+    ) as { products: readonly { status: { id: string } }[] };
+
+    for (const entry of patched.products) {
+      expect(STATUSES.map((status) => status.id)).toContain(entry.status.id);
+    }
+  });
+
   it("書き込みの応答も同じ形で揃える", () => {
     for (const name of [
       "getPostProductsResponseMock",
