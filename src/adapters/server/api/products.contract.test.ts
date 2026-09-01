@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 // 契約から生成したハンドラそのものを相手にするため、応答は原則割り当てない。写しの分岐そのものを
-// 見るケースだけ、生成した応答の当該項目を差し替えて割り当てる。
-import {
-  getGetProductsDetailResponseMock,
-  getGetProductsResponseMock,
-} from "../../../../mocks/api/endpoints.msw";
+// 見るケースだけ、下の wire を割り当てる。
 import { serveJson } from "../../../../vitest.setup.msw";
 
 const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
@@ -27,6 +23,27 @@ import { getProduct, getProductRanking, getProducts } from "./products";
  * 見ると、写し漏れも wire の項目の漏れ出しも通ります。
  */
 const PRODUCTS_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/products`;
+
+/**
+ * 契約が返す商品 1 件。
+ *
+ * @remarks
+ * 写しの分岐そのものを見るケースだけ、これを割り当てます。生成ハンドラの抽選結果に頼ると、
+ * モックの値域を変えるたびに seed の消費列がずれて落ちます。
+ */
+const wireProduct = {
+  id: "0195f0c2-0000-7000-8000-000000000002",
+  name: "ワイヤレスイヤホン",
+  description: null,
+  price: "19.99",
+  quantity: 12,
+  stockWarningThreshold: 5,
+  status: { id: "0195f0c2-1000-7000-9000-000000000001", name: "在庫あり" },
+  category: { id: "0195f0c2-2000-7000-9000-000000000001", name: "家電" },
+  publishedAt: "2026-04-01T09:00:00Z",
+  images: [{ imagePath: "products/only.webp", displaySort: 1 }],
+  version: 1,
+};
 
 const PRODUCT_KEYS = [
   "category",
@@ -51,11 +68,14 @@ describe("getProduct", () => {
   });
 
   it("契約が文字列で返す公開日時を Date にして受け取る", async () => {
-    const product = await getProduct(toProductId("0195f0c2-0000-7000-8000-000000000001"));
+    const id = toProductId("0195f0c2-0000-7000-8000-000000000001");
+    serveJson(`${PRODUCTS_URL}/${id}`, { ...wireProduct, publishedAt: "2026-04-01T09:00:00Z" });
+
+    const product = await getProduct(id);
 
     // zod の検証を抜けた時点ではまだ文字列で、Date にするのは adapter 自身。契約の応答が
     // 通ることだけを見ると、この写しが外れても気づけない。
-    expect(product.publishedAt).toBeInstanceOf(Date);
+    expect(product.publishedAt).toEqual(new Date("2026-04-01T09:00:00Z"));
   });
 
   it("契約が decimal 文字列で返す価格を数値へ丸めない", async () => {
@@ -66,16 +86,14 @@ describe("getProduct", () => {
 
   it("生成ハンドラの応答から画像をパスの並びへ均す", async () => {
     const id = toProductId("0195f0c2-0000-7000-8000-000000000002");
-    serveJson(
-      `${PRODUCTS_URL}/${id}`,
-      getGetProductsDetailResponseMock({
-        images: [
-          { imagePath: "products/first.webp", displaySort: 1 },
-          { imagePath: "products/second.webp", displaySort: 2 },
-          { imagePath: "products/third.webp", displaySort: 3 },
-        ],
-      }),
-    );
+    serveJson(`${PRODUCTS_URL}/${id}`, {
+      ...wireProduct,
+      images: [
+        { imagePath: "products/first.webp", displaySort: 1 },
+        { imagePath: "products/second.webp", displaySort: 2 },
+        { imagePath: "products/third.webp", displaySort: 3 },
+      ],
+    });
 
     const product = await getProduct(id);
 
@@ -96,10 +114,10 @@ describe("getProducts", () => {
   });
 
   it("公開日時を持たない商品の公開日時を null のまま持つ", async () => {
-    const response = getGetProductsResponseMock();
     serveJson(PRODUCTS_URL, {
-      ...response,
-      products: response.products.map((wire) => ({ ...wire, publishedAt: null })),
+      products: [{ ...wireProduct, publishedAt: null }],
+      nextCursor: null,
+      hasNext: false,
     });
 
     const [product] = (await getProducts({ keyword: "型の確認" })).items;
