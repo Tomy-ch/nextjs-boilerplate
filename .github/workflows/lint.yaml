@@ -59,28 +59,8 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          # Assigned first so a failure inside the substitution fails the step; an
-          # `echo "$(...)"` would report success and hand the cache an empty path.
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # The status is captured rather than allowed to abort the step: the PR comment
-      # has to be produced whether the check passed or failed. The last step turns
-      # the captured status into the verdict.
+        uses: ./.github/actions/setup-deps
       - name: Run lint
         id: lint
         shell: bash

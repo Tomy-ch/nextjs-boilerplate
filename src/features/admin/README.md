@@ -115,8 +115,7 @@ E2E の画面比較には現れません。VRT へ載せる経路は story し�
 | `dashboard/view.tsx` | 入口の画面。数値カードと内訳、期間指定への導線 |
 | `analytics/view.tsx` | 集計の画面。期間の選択の下へ、取り直す区画を slot で受ける |
 | `ui/stat-cards/` | 数値カードの並び。注記を値と同じ枠に置く |
-| `ui/status-chart/` | 横棒を**いつ読むか**だけを持つ。最初に読む一式から外す（取得は描画の直後に始まる） |
-| `ui/status-bars/` | 横棒の描画そのもの。実寸が要る client island |
+| `ui/status-bars/` | 横棒の描画そのもの。作図の一式を持ち込まず、要素と CSS だけで描く |
 | `ui/status-breakdown/` | 横棒と数値表の併置。合計は出さない |
 | `analytics/ui/period-switch/` | 集計対象期間の選び直し。日付の要らない 2 つは link |
 | `analytics/ui/period-caption/` | いま出ている数がどの暦日の話かを添える |

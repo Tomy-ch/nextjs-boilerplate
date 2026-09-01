@@ -157,7 +157,7 @@ make e2e-metadata   # 索引させる設定で build して起動し、公開面
 `settled` として**中身にしか現れない要素**を書く。枠そのものを指しても意味がない。
 
 ```ts
-{ route: "/admin", name: "admin-dashboard", path: "/admin", settled: "svg.recharts-surface" }
+{ route: "/<route>", name: "<画面名>", path: "/<開く URL>", settled: "<中身にしか現れない要素>" }
 ```
 
 **待つのは撮影だけである。** 巡回（journeys）は操作の前に対象を待つので、この宣言は要らない。

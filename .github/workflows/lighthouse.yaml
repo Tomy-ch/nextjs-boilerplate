@@ -180,28 +180,8 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      # The browser is downloaded rather than taken from the digest-pinned container the VRT
-      # and E2E jobs use, so it has to be cached or every run pays for it again. Keyed by the
-      # lockfile because that is what fixes the Playwright version, and therefore the build.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # Everything above this point is what the pull-request path pays: about a minute, and
-      # only to answer whether the expensive part is warranted.
+        uses: ./.github/actions/setup-deps
       - name: Decide whether this event has to be measured now
         id: cadence
         uses: ./.github/actions/check-trigger
@@ -302,23 +282,6 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      # The browser is downloaded rather than taken from the digest-pinned container the VRT
-      # and E2E jobs use, so it has to be cached or every run pays for it again. Keyed by the
-      # lockfile because that is what fixes the Playwright version, and therefore the build.
       - name: Cache the Playwright browser
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -326,10 +289,7 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # Everything above this point is what the pull-request path pays: about a minute, and
-      # only to answer whether the expensive part is warranted.
+        uses: ./.github/actions/setup-deps
       - name: Build the app, start it and measure this machine's share
         shell: bash
         env:
@@ -430,28 +390,8 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      # The browser is downloaded rather than taken from the digest-pinned container the VRT
-      # and E2E jobs use, so it has to be cached or every run pays for it again. Keyed by the
-      # lockfile because that is what fixes the Playwright version, and therefore the build.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # Everything above this point is what the pull-request path pays: about a minute, and
-      # only to answer whether the expensive part is warranted.
+        uses: ./.github/actions/setup-deps
       - name: Collect what every machine measured
         if: needs.plan.outputs.run == 'true'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1

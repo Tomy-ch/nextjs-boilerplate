@@ -142,33 +142,9 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        if: steps.scope.outputs.relevant == 'true'
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        if: steps.scope.outputs.relevant == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
         if: steps.scope.outputs.relevant == 'true'
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # The record of which input state axe already cleared. `make a11y` hashes the rendering
-      # inputs itself and skips the run when they match, so the cache only has to carry the
-      # record forward — the newest one this branch (or its base) produced. A miss restores
-      # nothing and the run happens, which is the safe direction.
-      #
-      # This record is a11y's own. Reusing VRT's would report green for an input state where
-      # axe fails but the baselines happened to be retaken.
+        uses: ./.github/actions/setup-deps
       - name: Restore the last verified input state
         if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

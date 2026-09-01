@@ -177,31 +177,8 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # The record of which input state already compared clean. `make vrt` hashes the
-      # rendering inputs itself and skips the comparison when they match, so the cache only
-      # has to carry the record forward — the newest one this branch (or its base) produced.
-      # A miss restores nothing and the comparison runs, which is the safe direction.
-      #
-      # **Every shard restores it, and they must all restore the same thing.** Each machine
-      # decides the gate for itself (why it cannot be decided once: `vrt-gate` in vrt.mk), so
-      # they agree only because they start from the same record.
+        uses: ./.github/actions/setup-deps
       - name: Restore the last verified input state
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -368,25 +345,9 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        if: needs.vrt-scope.outputs.relevant == 'true'
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        if: needs.vrt-scope.outputs.relevant == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
         if: needs.vrt-scope.outputs.relevant == 'true'
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        uses: ./.github/actions/setup-deps
 
       - name: Collect what the shards left behind
         if: needs.vrt-scope.outputs.relevant == 'true'

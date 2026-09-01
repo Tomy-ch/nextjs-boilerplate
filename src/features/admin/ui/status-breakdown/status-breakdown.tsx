@@ -9,7 +9,7 @@ import {
 import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
 import { withPartSpan } from "@/observability/render-span";
 import { formatCount } from "../../count";
-import { StatusChart } from "../status-chart/status-chart";
+import { StatusBars } from "../status-bars/status-bars";
 
 /** `StatusBreakdown` の props。 */
 export type StatusBreakdownProps = {
@@ -35,8 +35,8 @@ const TITLE = "ステータス別の件数";
  * **並べ替えません。** 契約はステータスマスタの表示順で返します。件数の多い順へ組み替えると、
  * 期間を切り替えるたびに行の位置が動き、同じステータスを追えなくなります。
  *
- * 描くのは client island（`../status-chart/`）だけで、表はサーバに残します
- * （[0040](../../../../../docs/adr/0040-routing-rendering-strategy.md)）。
+ * **棒も表もサーバで描き切ります。** 棒は渡された件数を並べるだけで操作を受けないため、
+ * client 島にする理由がありません（[0040](../../../../../docs/adr/0040-routing-rendering-strategy.md)）。
  *
  * @see Storybook `Page/Admin/Dashboard`
  */
@@ -52,7 +52,7 @@ export const StatusBreakdown = withPartSpan(
           </p>
         ) : (
           <div className="mt-4 grid gap-6 lg:grid-cols-2 lg:items-start">
-            <StatusChart counts={counts} />
+            <StatusBars counts={counts} />
             <Table label={TITLE}>
               <TableHeader>
                 <TableRow>
