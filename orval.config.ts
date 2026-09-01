@@ -115,6 +115,35 @@ const PREFECTURES = [
 }));
 
 /**
+ * 数の項目の値域。
+ *
+ * @remarks
+ * 契約は件数にも金額にも上下限を宣言しないため、生成器は 16 桁の整数を返します。集計の指標は
+ * カードの幅に収まらず途中で切れ、在庫は表の列を押し広げます。**値が切れている画面では、その
+ * カードや列の姿を確かめられません。**
+ *
+ * 金額は USD のセント単位の整数です（`DashboardSummaryResponse`）。税と送料に小さい範囲を別に
+ * 与えるのは、同じ範囲から独立に引くと送料が小計を超えるためです。
+ *
+ * ここに書いた範囲は契約から読める値ではありません。実在しうる桁数を与えるためだけのものです。
+ */
+const NUMBER_RANGE_MOCK_PROPERTIES = {
+  "/^(quantity|soldQuantity|availableQuantity)$/": () => faker.number.int({ min: 0, max: 99 }),
+  "/^stockWarningThreshold$/": () => faker.number.int({ min: 1, max: 20 }),
+  "/^version$/": () => faker.number.int({ min: 1, max: 20 }),
+  "/^(count|itemCount|total|totalCount|salesCount|totalProductCount|publishedProductCount)$/": () =>
+    faker.number.int({ min: 0, max: 9999 }),
+  "/^limit$/": () => faker.number.int({ min: 10, max: 50 }),
+  "/^offset$/": () => faker.number.int({ min: 0, max: 100 }),
+  "/^shippingFee$/": () => faker.number.int({ min: 0, max: 2000 }),
+  "/^taxAmount$/": () => faker.number.int({ min: 0, max: 99_999 }),
+  "/^(amount|subtotalAmount|totalAmount)$/": () => faker.number.int({ min: 1000, max: 999_999 }),
+  // 集計の売上は期間の合計なので、購入 1 件より 2 桁大きい。同じ operation の商品売上ランキングは
+  // decimal 文字列で宣言されており、そちらは operation の指定が勝つ。
+  "/^salesAmount$/": () => faker.number.int({ min: 100_000, max: 99_999_999 }),
+};
+
+/**
  * 商品名の作り方。
  *
  * @remarks
@@ -177,7 +206,7 @@ export default defineConfig({
       schemas: "./src/adapters/gen/api/model",
       mock: { generators: [{ type: "msw" }] },
       override: {
-        mock: { properties: PATTERNED_MOCK_PROPERTIES },
+        mock: { properties: { ...PATTERNED_MOCK_PROPERTIES, ...NUMBER_RANGE_MOCK_PROPERTIES } },
         operations: {
           GetPrefectures: { mock: { data: PREFECTURES } },
           GetProductStatuses: { mock: { data: PRODUCT_STATUSES } },
