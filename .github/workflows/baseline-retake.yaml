@@ -614,11 +614,12 @@ jobs:
           UNPAIRED: ${{ steps.push-store.outputs.unpaired }}
         shell: bash
         run: |
-          # The three branches differ in what they can even reach. Neither the repository nor
-          # `node_modules` is on the runner when the deferral gate held or when the job died
-          # before installing, so those two say their piece in shell; only the branch that
-          # actually retook — which implies both — hands the composition to the decision
-          # module, where the image table and the review lines are pinned down by cases.
+          # The three branches differ in what they can even reach. Only the branch that
+          # actually retook has both the repository and `node_modules` on the runner, so only
+          # it hands the composition to the decision module, where the image table and the
+          # review lines are pinned down by cases. The other two say their piece in plain
+          # shell, which holds whether the deferral gate kept the checkout from happening at
+          # all or the retake itself failed after installing.
           if [ "$DEFERRED" = 'true' ]; then
             {
               echo "⏸️ 他のチェックが落ちているため、基準画像は撮り直していません: ${FAILED}"
@@ -639,6 +640,22 @@ jobs:
             echo 'VRT_EOF'
           } >> "$GITHUB_OUTPUT"
 
+      # One label, one retake: removed only once the pointer has been placed AND every reported
+      # kind was covered. Anything else leaves it on, so the retake resumes by itself once
+      # the cause is gone. The second condition is what keeps a run that moved the pointer
+      # for the stories alone from spending the label while E2E is still deciding whether
+      # the screens moved — the screens would then never be retaken for this branch.
+      #
+      # On the pull-request route the pointer is proposed rather than landed; the label is
+      # spent all the same, or every later run would replace the pull request under review.
+      #
+      # `baseline-approve` is NOT touched here. Whether an acceptance still holds is decided
+      # by `baseline-approval.yaml` comparing its timestamp against the pointer's commit, so
+      # removing the label changes no verdict — a stale acceptance is refused either way.
+      # What it does change is the noise: `baseline-approval` runs on `unlabeled`, so dropping
+      # the label starts a run whose only purpose is to report a state the next run would
+      # report anyway, and it reads to the person who applied it as though their
+      # acceptance had been revoked by someone else.
       - name: Remove the label
         if: >-
           always() && steps.mode.outputs.mode == 'reported' &&
