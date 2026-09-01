@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-// 契約から生成したハンドラそのものを相手にするため、応答を割り当てずに interception だけを立てる。
-import "../../../../vitest.setup.msw";
+// 契約から生成したハンドラそのものを相手にするため、応答は原則割り当てない。写しの分岐そのものを
+// 見るケースだけ、生成した応答の当該項目を差し替えて割り当てる。
+import { serveJson } from "../../../../vitest.setup.msw";
+import {
+  getGetProductsDetailResponseMock,
+  getGetProductsResponseMock,
+} from "../../../../mocks/api/endpoints.msw";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 
 const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
@@ -21,6 +26,8 @@ import { getProduct, getProductRanking, getProducts } from "./products";
  * 並びごと照合します。生成ハンドラは契約の全項目を返すため、`toMatchObject` で数項目だけを
  * 見ると、写し漏れも wire の項目の漏れ出しも通ります。
  */
+const PRODUCTS_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/products`;
+
 const PRODUCT_KEYS = [
   "category",
   "description",
@@ -58,11 +65,25 @@ describe("getProduct", () => {
   });
 
   it("生成ハンドラの応答から画像をパスの並びへ均す", async () => {
-    const product = await getProduct(toProductId("0195f0c2-0000-7000-8000-000000000002"));
+    const id = toProductId("0195f0c2-0000-7000-8000-000000000002");
+    serveJson(
+      `${PRODUCTS_URL}/${id}`,
+      getGetProductsDetailResponseMock({
+        images: [
+          { imagePath: "products/first.webp", displaySort: 1 },
+          { imagePath: "products/second.webp", displaySort: 2 },
+          { imagePath: "products/third.webp", displaySort: 3 },
+        ],
+      }),
+    );
 
-    // 件数を名指しできるのは、生成ハンドラの応答が要求ごとに再現するため（`mocks/stable-responses.ts`）。
-    expect(product.imagePaths).toHaveLength(3);
-    expect(product.imagePaths.every((path) => path.length > 0)).toBe(true);
+    const product = await getProduct(id);
+
+    expect(product.imagePaths).toEqual([
+      "products/first.webp",
+      "products/second.webp",
+      "products/third.webp",
+    ]);
   });
 });
 
@@ -75,6 +96,12 @@ describe("getProducts", () => {
   });
 
   it("公開日時を持たない商品の公開日時を null のまま持つ", async () => {
+    const response = getGetProductsResponseMock();
+    serveJson(PRODUCTS_URL, {
+      ...response,
+      products: response.products.map((product) => ({ ...product, publishedAt: null })),
+    });
+
     const [product] = (await getProducts({ keyword: "型の確認" })).items;
 
     expect(product?.publishedAt).toBeNull();
