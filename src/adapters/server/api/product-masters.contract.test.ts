@@ -19,7 +19,7 @@ describe("getProductCategories", () => {
 
     // 件数を名指しできるのは、生成ハンドラの応答が要求ごとに再現するため
     // （`mocks/stable-responses.ts`）。件数を見ない形だと、写しが途中で 1 件に畳んでも通る。
-    expect(categories).toHaveLength(4);
+    expect(categories).toHaveLength(5);
   });
 
   it("生成ハンドラの応答から表示に使う項目だけを残す", async () => {
