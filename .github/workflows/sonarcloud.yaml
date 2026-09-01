@@ -332,6 +332,11 @@ jobs:
           path: reports
 
       # A missing summary file is a cut-off scan, and the action reports it as one.
+      #
+      # **`body-sanitized` stays unset.** The body carries SonarCloud's own text — rule
+      # messages and file paths this repository did not author — so it must be fenced rather
+      # than rendered. Setting it to make the list read as Markdown would let that text
+      # become markup in a comment posted under `GITHUB_TOKEN` (ADR 0153 §5).
       - name: Comment the SonarCloud result on PR
         if: always() && github.event_name == 'pull_request'
         continue-on-error: true
