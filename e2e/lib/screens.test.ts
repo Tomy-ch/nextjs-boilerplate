@@ -87,7 +87,7 @@ describe("resolveScreens", () => {
   it("描き終わりの目印の宣言を、撮る側まで運ぶ", () => {
     // 運ばれないと、最初の一式から外した島を持つ画面が、枠のまま撮られた絵と交互に基準へ入る。
     const withSettled: readonly ScreenDeclaration[] = [
-      { route: "/", name: "home", path: "/", settled: "[data-slot=\"quote\"]" },
+      { route: "/", name: "home", path: "/", settled: '[data-slot="quote"]' },
     ];
 
     expect(resolveScreens(["/"], withSettled)[0]?.settled).toBe('[data-slot="quote"]');

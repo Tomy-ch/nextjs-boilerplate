@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
 import { formatCount } from "../../count";
-import { type BarAxis, axisPercent, barAxis } from "./axis";
+import { axisPercent, type BarAxis, barAxis } from "./axis";
 
 /** `StatusBars` の props。 */
 export type StatusBarsProps = {
