@@ -94,8 +94,11 @@ function entriesOf(response: unknown): readonly MasterEntry[] {
  * @remarks
  * どの 1 件を選ぶかは、いま入っている識別子から決めます。要求ごとに同じ結果へ落ちる必要があり、
  * かつ商品ごとに違う分類が付いてほしいためです。
+ *
+ * `shift` は並びの中での位置です。同じ組の中で選び先を重ねたくないとき（1 つの注文の明細など）に
+ * 渡します。
  */
-function pick<T>(entries: readonly T[], current: unknown): T {
+function pick<T>(entries: readonly T[], current: unknown, shift = 0): T {
   const [first] = entries;
 
   if (first === undefined) {
@@ -105,7 +108,7 @@ function pick<T>(entries: readonly T[], current: unknown): T {
   const key = typeof current === "string" ? current : "";
   const offset = [...key].reduce((sum, character) => sum + character.charCodeAt(0), 0);
 
-  return entries[offset % entries.length] ?? first;
+  return entries[(offset + shift) % entries.length] ?? first;
 }
 
 /** object として読めない応答を弾く。 */
@@ -197,11 +200,12 @@ function alignPurchase(purchase: unknown): Record<string, unknown> {
 
   const details = record.details;
   const named = Array.isArray(details)
-    ? details.map((detail) => {
+    ? details.map((detail, index) => {
         const line = recordOf(detail, "購入の明細");
 
+        // 位置でずらします。明細ごとに識別子から引くと同じ商品が 1 つの注文に何度も並びます。
         return "productName" in line
-          ? { ...line, productName: pick(PRODUCT_CATALOGUE, line.productId).name }
+          ? { ...line, productName: pick(PRODUCT_CATALOGUE, record.code, index).name }
           : line;
       })
     : undefined;
@@ -234,8 +238,9 @@ function alignPurchaseList(response: unknown): unknown {
  * ステータスごとの内訳を、重複しないステータスへ揃える。
  *
  * @remarks
- * 並びの位置で選びます。識別子から選ぶと同じステータスが 2 行に出ることがあり、内訳としては
- * 成り立ちません。
+ * 並びの位置で選び、**ステータスの数を超える行は落とします**。識別子から選ぶと同じステータスが
+ * 2 行に出ますが、位置で選んでも一周すれば同じことが起きます。内訳の行数はステータスの数を
+ * 超えられません。
  */
 function alignStatusBreakdown(key: string) {
   return (response: unknown): unknown => {
@@ -243,10 +248,12 @@ function alignStatusBreakdown(key: string) {
 
     return {
       ...record,
-      [key]: arrayOf(record, key, "内訳").map((entry, index) => ({
-        ...recordOf(entry, "内訳の行"),
-        status: PURCHASE_STATUSES[index % PURCHASE_STATUSES.length],
-      })),
+      [key]: arrayOf(record, key, "内訳")
+        .slice(0, PURCHASE_STATUSES.length)
+        .map((entry, index) => ({
+          ...recordOf(entry, "内訳の行"),
+          status: PURCHASE_STATUSES[index],
+        })),
     };
   };
 }

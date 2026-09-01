@@ -207,6 +207,18 @@ describe("REFERENCE_PATCHES", () => {
     expect(patched.purchaseStatusCounts.map((entry) => entry.count)).toEqual([1, 2, 3]);
   });
 
+  it("ステータスの数を超える内訳の行は落とす", () => {
+    const patched = patchOf("getGetDashboardSummaryResponseMock")(
+      { purchaseStatusCounts: Array.from({ length: 12 }, (_, index) => ({ count: index })) },
+      draw,
+    ) as { purchaseStatusCounts: readonly { status: { code: number } }[] };
+
+    const codes = patched.purchaseStatusCounts.map((entry) => entry.status.code);
+
+    expect(codes).toHaveLength(Object.values(PURCHASE_STATUS).length);
+    expect(new Set(codes).size).toBe(codes.length);
+  });
+
   it("購入の集計の内訳も同じ形で揃える", () => {
     const patched = patchOf("getGetUsersMePurchasesSummaryResponseMock")(
       { statusBreakdown: [{ count: 1 }, { count: 2 }], totalCount: 3 },
