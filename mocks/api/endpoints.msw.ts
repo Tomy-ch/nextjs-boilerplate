@@ -300,17 +300,26 @@ export const getGetPrefecturesResponseMock = () => [
   { id: "0195f0c2-0000-7000-8000-000000000047", code: 47, name: "沖縄県" },
 ];
 
-export const getGetProductStatusesResponseMock = (): ProductsStatusesResponse =>
-  Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
-    ...{ id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
-    ...{ code: faker.number.int() },
-  }));
+export const getGetProductStatusesResponseMock = () => [
+  { id: "0195f0c2-1000-7000-9000-000000000001", code: 1, name: "在庫あり" },
+  { id: "0195f0c2-1000-7000-9000-000000000002", code: 2, name: "在庫切れ" },
+  { id: "0195f0c2-1000-7000-9000-000000000003", code: 3, name: "予約受付中" },
+  { id: "0195f0c2-1000-7000-9000-000000000004", code: 4, name: "販売終了" },
+  { id: "0195f0c2-1000-7000-9000-000000000005", code: 5, name: "取り寄せ中" },
+  { id: "0195f0c2-1000-7000-9000-000000000006", code: 6, name: "入荷待ち" },
+  { id: "0195f0c2-1000-7000-9000-000000000007", code: 7, name: "廃盤" },
+  { id: "0195f0c2-1000-7000-9000-000000000008", code: 8, name: "検討中" },
+  { id: "0195f0c2-1000-7000-9000-000000000009", code: 9, name: "再入荷予定" },
+  { id: "0195f0c2-1000-7000-9000-000000000010", code: 10, name: "限定販売" },
+];
 
-export const getGetProductCategoriesResponseMock = (): ProductsCategoriesResponse =>
-  Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
-    ...{ id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
-    ...{ code: faker.number.int() },
-  }));
+export const getGetProductCategoriesResponseMock = () => [
+  { id: "0195f0c2-2000-7000-9000-000000000001", code: 1, name: "家電" },
+  { id: "0195f0c2-2000-7000-9000-000000000002", code: 2, name: "食品" },
+  { id: "0195f0c2-2000-7000-9000-000000000003", code: 3, name: "衣類" },
+  { id: "0195f0c2-2000-7000-9000-000000000004", code: 4, name: "書籍" },
+  { id: "0195f0c2-2000-7000-9000-000000000005", code: 5, name: "日用品" },
+];
 
 export const getGetProductsResponseMock = (): ProductListResponse => ({
   ...{
@@ -570,7 +579,7 @@ export const getGetAddressesResponseMock = (
   candidates: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       prefectureId: faker.helpers.arrayElement([faker.string.uuid(), null]),
-      prefectureName: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      prefectureName: (() => "神奈川県")(),
       city: (() => "横浜市西区")(),
       town: faker.string.alpha({ length: { min: 10, max: 20 } }),
     }),
