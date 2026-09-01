@@ -98,17 +98,6 @@ export type ScreenDeclaration =
       readonly skip: string;
     };
 
-// sample:begin
-/**
- * 作図の島が描き終えた印。
- *
- * @remarks
- * recharts は実寸を測ってから面を描くため、この要素は中身が出来た後にしか現れません。枠
- * （`loading`）は空の `div` なので、待つ相手にできません。
- */
-const SETTLED_CHART = "svg.recharts-surface";
-// sample:end
-
 /**
  * 巡回・撮影の対象と、対象から外す route の宣言。
  *
@@ -159,20 +148,11 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   { route: "/about", name: "about", path: "/about" },
   { route: "/privacy", name: "privacy", path: "/privacy" },
   { route: "/terms", name: "terms", path: "/terms" },
-  {
-    route: "/admin",
-    name: "admin-dashboard",
-    path: "/admin",
-    // 帯は最初の一式から外してある（`features/admin/ui/status-chart/`）。届く前に撮ると枠のまま写る。
-    settled: SETTLED_CHART,
-    signedIn: "admin",
-  },
+  { route: "/admin", name: "admin-dashboard", path: "/admin", signedIn: "admin" },
   {
     route: "/admin/analytics",
     name: "admin-analytics",
     path: "/admin/analytics",
-    // ダッシュボードと同じ帯を持つ。
-    settled: SETTLED_CHART,
     signedIn: "admin",
   },
   { route: "/admin/products", name: "admin-products", path: "/admin/products", signedIn: "admin" },
