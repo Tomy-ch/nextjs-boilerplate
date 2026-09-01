@@ -234,8 +234,8 @@ function writeOutput(lines: readonly string[]): void {
  *
  * @remarks
  * `::error::` で出すのは、ここから渡す文言が**走査の結果ではなく走査が成立しなかったこと**を
- * 指すためです。job のログを開かなくても、実行の一覧に理由が出ます。渡してよいのはこの入口が
- * 綴った定型の文言だけで、外から届いた本文は例外として投げます。
+ * 指すためです。job のログを開かなくても、実行の一覧に理由が出ます。渡すのはこの入口自身が
+ * 綴った定型の文言だけです（外から届いた本文を注記へ混ぜない理由は {@link getText}）。
  */
 function fail(message: string): never {
   console.log(`::error::${message}`);
