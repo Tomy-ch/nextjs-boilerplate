@@ -14,14 +14,11 @@
 import { existsSync, readFileSync, rmSync } from "node:fs";
 
 import { SCREEN_AREA, STORE_PATH } from "../../baseline/lib/store.js";
+import { SCREEN_BASELINE_TAG } from "../../e2e/lib/screen-baselines.js";
+import { baselinelessTargets, orphanedBaselines } from "../lib/baseline-gap.js";
 import { classifyFailure, composeNotes } from "./comment.js";
 import { servePartnerOrigin } from "./partner-origin.js";
-import {
-  collectFailedScreens,
-  collectMissingScreenBaselines,
-  collectOrphanScreenBaselines,
-  formatScreenNames,
-} from "./report.js";
+import { collectFailedScreens, formatScreenNames } from "./report.js";
 
 const USAGE =
   "usage: e2e <comment <full.log> <report.json>|names|orphans|missing <report.json>|clear-screens|serve-partner <host> <port>>";
@@ -65,9 +62,9 @@ function main(): void {
 /** 読み取りの口を、命令ごとに選ぶ。 */
 function pick(command: string, json: string): string {
   if (command === "names") return formatScreenNames(collectFailedScreens(json));
-  if (command === "orphans") return collectOrphanScreenBaselines(json).join("\n");
+  if (command === "orphans") return orphanedBaselines(json, SCREEN_BASELINE_TAG).join("\n");
 
-  return collectMissingScreenBaselines(json).join("\n");
+  return baselinelessTargets(json, SCREEN_BASELINE_TAG).join("\n");
 }
 
 // 落ちた画面の名前は、報告が読めなければ空にする。案内そのものは出したいので、ここで落とさない

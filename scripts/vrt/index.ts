@@ -14,14 +14,10 @@
 // 無くす。
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { clearableStoryEntries, STORE_PATH } from "../../baseline/lib/store.js";
+import { BASELINE_TAG } from "../../vrt/lib/expected-baselines.js";
+import { baselinelessTargets, orphanedBaselines } from "../lib/baseline-gap.js";
 import { collectRenderInputs, decideGate, renderInputsHash } from "./render-hash.js";
-import {
-  collectFailures,
-  collectMissingBaselines,
-  collectOrphanBaselines,
-  formatStoryIDs,
-  formatTable,
-} from "./report.js";
+import { collectFailures, formatStoryIDs, formatTable } from "./report.js";
 
 const USAGE =
   "usage: vrt <table|ids|orphans|missing <report.json>|inputs|gate <file...>|clear-stories>";
@@ -53,12 +49,12 @@ function main(): void {
       return;
     case "orphans":
       if (!file) fail(USAGE);
-      console.log(collectOrphanBaselines(readFileSync(file, "utf8")).join("\n"));
+      console.log(orphanedBaselines(readFileSync(file, "utf8"), BASELINE_TAG).join("\n"));
 
       return;
     case "missing":
       if (!file) fail(USAGE);
-      console.log(collectMissingBaselines(readFileSync(file, "utf8")).join("\n"));
+      console.log(baselinelessTargets(readFileSync(file, "utf8"), BASELINE_TAG).join("\n"));
 
       return;
     default:

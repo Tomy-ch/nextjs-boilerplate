@@ -1,15 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { BASELINE_MISSING, BASELINE_ORPHAN } from "../../baseline/lib/orphans";
-import {
-  collectFailures,
-  collectMissingBaselines,
-  collectOrphanBaselines,
-  type Failure,
-  formatStoryIDs,
-  formatTable,
-  TABLE_LIMIT,
-} from "./report";
+import { collectFailures, type Failure, formatStoryIDs, formatTable, TABLE_LIMIT } from "./report";
 
 /** 1 件分のテスト結果を組み立てる。tag は spec が持つため、ここには入れない。 */
 function test(options: {
@@ -228,77 +219,5 @@ describe("formatStoryIDs", () => {
   // ----- 異常系 -----
   it("差分が無ければ空文字を返す", () => {
     expect(formatStoryIDs([])).toBe("");
-  });
-});
-
-describe("collectOrphanBaselines", () => {
-  // ----- 正常系 -----
-  it("撮影対象を失った基準画像を、置き場からの相対パスで返す", () => {
-    const json = reportOf([
-      {
-        title: "基準画像",
-        tags: ["baselines"],
-        tests: [
-          {
-            status: "unexpected",
-            annotations: [{ type: BASELINE_ORPHAN, description: "page/light/消えた--story.png" }],
-          },
-        ],
-      },
-    ]);
-
-    expect(collectOrphanBaselines(json)).toEqual(["page/light/消えた--story.png"]);
-  });
-
-  it("対応が取れていれば空を返す", () => {
-    const json = reportOf([{ title: "基準画像", tags: ["baselines"], tests: [test({})] }]);
-
-    expect(collectOrphanBaselines(json)).toEqual([]);
-  });
-
-  // ----- 異常系 -----
-  it("対応の検査でない spec の注記は拾わない", () => {
-    const json = reportOf([
-      {
-        title: "Button",
-        tests: [
-          {
-            status: "unexpected",
-            annotations: [{ type: BASELINE_ORPHAN, description: "page/light/別.png" }],
-          },
-        ],
-      },
-    ]);
-
-    expect(collectOrphanBaselines(json)).toEqual([]);
-  });
-});
-
-describe("collectMissingBaselines", () => {
-  // ----- 正常系 -----
-  it("基準画像を持たない story を、id で返す", () => {
-    const json = reportOf([
-      {
-        title: "基準画像",
-        tags: ["baselines"],
-        tests: [
-          {
-            status: "unexpected",
-            annotations: [
-              { type: BASELINE_MISSING, description: "foundation/light/foundation-print--x.png" },
-            ],
-          },
-        ],
-      },
-    ]);
-
-    expect(collectMissingBaselines(json)).toEqual(["foundation-print--x"]);
-  });
-
-  // ----- 異常系 -----
-  it("欠けが無ければ空を返す", () => {
-    const json = reportOf([{ title: "基準画像", tags: ["baselines"], tests: [test({})] }]);
-
-    expect(collectMissingBaselines(json)).toEqual([]);
   });
 });
