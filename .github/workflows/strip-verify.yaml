@@ -93,24 +93,8 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          # Assigned first so a failure inside the substitution fails the step; an
-          # `echo "$(...)"` would report success and hand the cache an empty path.
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        uses: ./.github/actions/setup-deps
 
       - name: Preview the strip
         run: pnpm exec tsx scripts/setup/remove-boilerplate-only --dry-run
@@ -175,27 +159,8 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          # Assigned first so a failure inside the substitution fails the step; an
-          # `echo "$(...)"` would report success and hand the cache an empty path.
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # Preview first. An unclosed marker block, or a replacement region holding anything
-      # but commented-out lines, fails here before anything is rewritten.
+        uses: ./.github/actions/setup-deps
       - name: Preview the strip
         run: pnpm exec tsx scripts/setup/remove-boilerplate-only --dry-run
 
