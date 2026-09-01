@@ -170,13 +170,9 @@ jobs:
           **基準画像をそのまま撮り直さないでください。**誰も画素を見ていない状態を正にすることになります。
           NOTE
 
-          # **The issue must still be raised if the body cannot be composed.** The step that
-          # raises it carries `!cancelled()`, so no implicit `success()` gates it on this one —
-          # a failure here would file an empty issue. And this path is reachable on its own:
-          # a broken `Install dependencies` skips the check step, leaving its status empty,
-          # which satisfies the `!= 'success'` predicate and brings us here without `tsx`.
-          # This is the last line of defence for a run nobody is watching, so it degrades to a
-          # body that says so rather than to silence.
+          # Degrades to a fixed body rather than failing: the step that raises the issue does
+          # not gate on this one, so a failure here would file an empty issue (README.md,
+          # "PR の外で落ちたら、issue にする").
           pnpm exec tsx scripts/ci-report issue-body \
             --kind "${kind}" \
             --evidence /tmp/vrt-evidence.md \
