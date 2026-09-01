@@ -225,9 +225,9 @@ describe("REFERENCE_PATCHES", () => {
       draw,
     ) as { purchaseStatusCounts: readonly { status: { code: number; name: string } }[] };
 
-    expect(patched.purchaseStatusCounts.map((entry) => entry.status.code).sort((a, b) => a - b)).toEqual(
-      Object.values(PURCHASE_STATUS).toSorted((a, b) => a - b),
-    );
+    expect(
+      patched.purchaseStatusCounts.map((entry) => entry.status.code).sort((a, b) => a - b),
+    ).toEqual(Object.values(PURCHASE_STATUS).toSorted((a, b) => a - b));
   });
 
   // ----- 異常系 -----
@@ -240,7 +240,11 @@ describe("REFERENCE_PATCHES", () => {
   it("マスタの一覧が空なら落ちる", () => {
     const patch = patchOf("getGetProductsDetailResponseMock");
 
-    expect(() => patch(product("p1"), () => [])).toThrow("空です");
+    expect(() =>
+      patch(product("p1"), (name) =>
+        name === "getGetProductStatusesResponseMock" ? [] : CATEGORIES,
+      ),
+    ).toThrow("空です");
   });
 
   it("題材が名乗る分類がマスタに無ければ落ちる", () => {

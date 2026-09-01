@@ -188,7 +188,7 @@ function alignProductRanking(response: unknown): unknown {
  * @remarks
  * 明細を持つのは購入詳細だけで、一覧の行や遷移の応答は持ちません。持っている応答にだけ触れます。
  */
-function alignPurchase(purchase: unknown): unknown {
+function alignPurchase(purchase: unknown): Record<string, unknown> {
   const record = recordOf(purchase, "購入");
 
   if (!("status" in record)) {
