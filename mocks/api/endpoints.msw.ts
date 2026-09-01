@@ -928,7 +928,7 @@ export const getPatchPurchasesDeliverResponseMock = (
 export const getGetDashboardSummaryResponseMock = (
   overrideResponse: Partial<Extract<DashboardSummaryResponse, object>> = {},
 ): DashboardSummaryResponse => ({
-  salesAmount: (() => faker.number.int({ min: 100_000, max: 99_999_999 }))(),
+  salesAmount: (() => faker.number.int({ min: 100_000, max: 999_999 }))(),
   salesCount: (() => faker.number.int({ min: 0, max: 9999 }))(),
   purchaseStatusCounts: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
