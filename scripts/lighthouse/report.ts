@@ -1,4 +1,4 @@
-import { type Measurement, METRIC_KEYS, type MetricKey, type Verdict } from "./budget";
+import { METRIC_KEYS, type Measurement, type MetricKey, type Verdict } from "./budget";
 
 /**
  * 判定を PR コメントの本文へ畳む。
@@ -41,16 +41,22 @@ function cell(verdict: Verdict, key: MetricKey): string {
  * @param screen - 床の画面の名前。
  */
 export function renderFloor(measurements: readonly Measurement[], screen: string): string {
+  // 台の番号と値だけを取り出してから並べる。`shard` を持つものだけを通した配列にしておかないと、
+  // 並べ替えが「番号を持たない場合」を書く羽目になり、決して通らない分岐が残る。
   const floors = measurements
-    .filter((measurement) => measurement.name === screen && measurement.shard !== undefined)
-    .toSorted((left, right) => (left.shard ?? 0) - (right.shard ?? 0));
+    .flatMap((measurement) =>
+      measurement.name === screen && measurement.shard !== undefined
+        ? [{ shard: measurement.shard, tbtMs: measurement.values.tbtMs }]
+        : [],
+    )
+    .toSorted((left, right) => left.shard - right.shard);
 
   if (floors.length < 2) {
     return "";
   }
 
   const cells = floors.map(
-    (floor) => `${floor.shard} 台目 ${METRIC_FORMAT.tbtMs.format(floor.values.tbtMs)}`,
+    (floor) => `${floor.shard} 台目 ${METRIC_FORMAT.tbtMs.format(floor.tbtMs)}`,
   );
 
   return `台ごとの床（\`${screen}\` の TBT）: ${cells.join(" / ")}`;

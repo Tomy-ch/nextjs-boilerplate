@@ -115,9 +115,9 @@ describe("parseBudget", () => {
   });
 
   it("床の画面の根拠が空なら、floor を指して落ちる", () => {
-    expect(() => parseBudget(YAML.replace("    reason: 器しか持たない", '    reason: "  "'))).toThrow(
-      /floor[\s\S]*reason/,
-    );
+    expect(() =>
+      parseBudget(YAML.replace("    reason: 器しか持たない", '    reason: "  "')),
+    ).toThrow(/floor[\s\S]*reason/);
   });
 
   it("lighthouse 節そのものが無ければ、その節を指して落ちる", () => {
