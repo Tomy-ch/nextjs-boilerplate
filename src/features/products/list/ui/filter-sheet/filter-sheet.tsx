@@ -69,6 +69,8 @@ export function ProductFilterSheet({
   categoryLimit,
   selection,
 }: ProductFilterSheetProps) {
+  "use memo";
+
   const [open, setOpen] = useState(false);
   const { draft, change, clear, apply } = useProductFilterDraft();
   const { count } = useFilteredCount(draft);

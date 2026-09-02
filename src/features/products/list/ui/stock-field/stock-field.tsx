@@ -34,6 +34,8 @@ export type ProductStockFieldProps = {
  * もう片方の選択が外れます。
  */
 export function ProductStockField({ value, onChange }: ProductStockFieldProps) {
+  "use memo";
+
   const scope = useId();
 
   return (
@@ -69,6 +71,8 @@ function StockOption({
   option: StockAvailabilityOption;
   scope: string;
 }) {
+  "use memo";
+
   const id = `${scope}-${option.value}`;
   const select = useCallback(() => {
     onChange(option.value);

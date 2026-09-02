@@ -33,6 +33,8 @@ export type ProductSortSelectProps = {
  * 支援技術からも既知の操作として扱えます。
  */
 export function ProductSortSelect({ options, selection }: ProductSortSelectProps) {
+  "use memo";
+
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const fieldId = useId();

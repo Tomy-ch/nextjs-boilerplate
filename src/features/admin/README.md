@@ -272,3 +272,11 @@ header も失われた素の画面になります（[0080](../../../docs/adr/008
 
 **在庫僅少の一覧（`GetProductsLowStock`）は契約にありますが、この slice は使っていません。**入口の
 数値カードとは独立した後続の機能です。
+
+## 運用
+
+- **期間の overlay（`analytics/ui/range-dialog/`）には `"use memo"` を付けています**
+  （[0042](../../../docs/adr/0042-react19-rendering-api.md) 決定 4）。開閉はこの画面で唯一
+  client state が動く操作で、開いた時点で日付の入力欄一式が下へ現れます。付けた費用は
+  `/admin/analytics` の初期 JS +0.5 KB で、共有 chunk は増えません。**外しても実装は成立します**
+  —— 印は `next.config.ts` の `reactCompiler` が無ければ無効な文字列式として残るだけです

@@ -75,6 +75,8 @@ export function ProductFilterDraftProvider({
   selection,
   children,
 }: ProductFilterDraftProviderProps) {
+  "use memo";
+
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const appliedHref = toProductListHref(selection);

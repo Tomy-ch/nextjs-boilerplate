@@ -61,6 +61,8 @@ function toRange(values: number[]): PriceRange {
  * セレクトボックスで選び直した値をスライダーが映さなくなります。
  */
 export function ProductPriceField({ value, onChange }: ProductPriceFieldProps) {
+  "use memo";
+
   const scope = useId();
   const [sliding, setSliding] = useState<PriceRange | null>(null);
   const [low, high] = sliding ?? value;

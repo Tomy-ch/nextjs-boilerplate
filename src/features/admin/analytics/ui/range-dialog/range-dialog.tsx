@@ -59,6 +59,8 @@ const LABEL = "期間を指定";
  * @see Storybook `Page/Admin/Analytics`
  */
 export function RangeDialog({ selected, from, to }: RangeDialogProps) {
+  "use memo";
+
   const fromId = useId();
   const toId = useId();
 
