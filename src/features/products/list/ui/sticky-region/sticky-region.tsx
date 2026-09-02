@@ -118,7 +118,7 @@ export function ProductStickyBar({ children }: { children: ReactNode }) {
  *
  * **画面に収まらない高さになったら、自分の中で送ります。** 分類が増えると絞り込みは画面より高く
  * なり得ますが、外側の送りは商品のためのものなので、そちらに任せると絞り込みの下端へ到達できま
- * せん。確定の操作はその送りの下端に貼り付くため、どれだけ分類が並んでも押せる位置に残ります。
+ * せん。自分の中で送れば、どれだけ分類が並んでも末尾の条件まで届きます。
  */
 export function ProductStickyAside({ children }: { children: ReactNode }) {
   "use memo";

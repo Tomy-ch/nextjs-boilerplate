@@ -69,16 +69,9 @@ const nextConfig = async (phase: string): Promise<NextConfig> => {
     // 印（`"use memo"`）を付けた component だけを React Compiler へ通す
     // （[0042](docs/adr/0042-react19-rendering-api.md) 決定 4）。
     //
-    // **全体適用（`reactCompiler: true`）は採らない。** 全体適用は共有 chunk を膨らませ、印を
-    // 付けていない route まで費用を負う。`annotation` なら共有 chunk は増えず、印の付いた
-    // component が乗る route だけが増える —— **費用の及ぶ範囲が適用範囲に一致する**（同 決定 4）。
-    //
     // **どこへ付けるかはここが決めない。** ここが持つのは「印の無いものは通さない」ことだけで、
     // 対象の宣言は component の側に `"use memo"` として立つ。付けた理由はその feature の README が
     // 持つ。
-    //
-    // **この設定は本体の前提ではない。** 外しても実装はそのまま成立し、印は無効な文字列式として
-    // 残るだけになる（同 決定 4「本体は Compiler を前提にしない」）。
     reactCompiler: { compilationMode: "annotation" },
     // 要求の内容に依らないヘッダは全経路へ静的に付ける（[0111](docs/adr/0111-csp-security-headers.md)
     // §5）。`src/proxy.ts` で足すと前捌きを通る経路にしか載らず、静的に配れる応答が漏れる。
