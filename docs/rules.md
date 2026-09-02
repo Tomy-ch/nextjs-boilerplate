@@ -69,6 +69,7 @@
 | 86c | **資格情報は使用地点で `cookies()` から解決する。** `getBearerToken` には import した取得口を渡し、その場で組んだ関数・ローカル変数・引数で持ち回った値を渡さない。解決済みの値を掴むと `cookies()` が読まれず、cached scope の防御が**何も言わずに**外れる。cookie がまだ無い session 確立の 1 往復だけは `bearerToken` という別の綴りで渡し、そこへ渡せるのは**囲む関数がその呼び出しで受け取った引数**だけとする。 | ESLint の `project-rules/no-captured-bearer-token`（両方の綴りを見る）。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) |
 | 86 | **取得する PII を最小化する。** 一部しか使わないのに User オブジェクト全体を取得・保持・送信しない。必要な属性を特定し、取得の口で詰め替える。 | adapters テストとレビュー。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) |
 | 87 | **主体に紐づく応答の `Cache-Control` を画面や Route Handler ごとに書かない。** session cookie を載せた要求への応答には `src/proxy.ts` が `private, no-store` を一律に付ける（`matcher` が除外する `_next/static` / `_next/image` / `favicon.ico` は対象外。主体固有の画像を `next/image` に載せるなら除外を見直す）。共有キャッシュを許してよいのは、資格情報を載せずに取れる応答だけ。 | `src/proxy.test.ts` と E2E（静的な画面でもヘッダが残ること）。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) / [ADR 0111](adr/0111-csp-security-headers.md) |
+| 88 | **最適化の効果を A/B で判定する前に、同一の成果物を 2 度測ってノイズの床を出す。** 床を超えない差は効果として報告しない。1 回ずつ比べると、施策の有無ではなく実行の順番を測ることになる。 | 散文。 | [ADR 0101](adr/0101-performance-budget.md) |
 
 ## 運用
 
