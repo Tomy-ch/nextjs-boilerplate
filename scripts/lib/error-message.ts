@@ -12,9 +12,11 @@ export function errorMessage(error: unknown): string {
   const text = error instanceof Error && error.message ? error.message : String(error);
 
   // 改行を先に、それだけを落とす。偽の 1 行を足せるのはこの 2 文字だけで、残りの制御文字は
-  // 見え方の問題にとどまる。
+  // 見え方の問題にとどまる。**2 文字は集合ではなく literal で名指しする** —— 走査する側は
+  // 落としている文字を綴りから読むので、集合で畳むとここが関門として読まれない。
   return text
-    .replaceAll(/[\r\n]/g, " ")
+    .replaceAll("\r", " ")
+    .replaceAll("\n", " ")
     .replaceAll(/[\p{Cc}\p{Cf}]/gu, " ")
     .trim();
 }
