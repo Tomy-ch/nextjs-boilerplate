@@ -13,12 +13,13 @@ import {
 } from "../../../facade/list-url/list-url";
 import type { FilterOption } from "../../query";
 
-const { push, fetchProductCount } = vi.hoisted(() => ({
+const { push, replace, fetchProductCount } = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
   fetchProductCount: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 vi.mock("@/adapters/client/api/products", () => ({ fetchProductCount }));
 
 import { ProductFilterDraftProvider } from "../../filter-draft";
@@ -47,6 +48,7 @@ async function open(): Promise<void> {
 
 beforeEach(() => {
   push.mockReset();
+  replace.mockReset();
   fetchProductCount.mockReset();
   fetchProductCount.mockResolvedValue(7);
 });
@@ -97,6 +99,7 @@ describe("ProductFilterSheet", () => {
     await userEvent.click(screen.getByLabelText("オーディオ"));
 
     expect(push).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("確定して初めて選んだ条件で一覧へ移る", async () => {
@@ -106,7 +109,45 @@ describe("ProductFilterSheet", () => {
     await userEvent.click(screen.getByLabelText("オーディオ"));
     await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
 
-    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10");
+    expect(replace).toHaveBeenCalledWith("/products?categoryCodes=10");
+  });
+
+  it("確定しても、結果が届くまでは閉じない", async () => {
+    renderSheet();
+
+    await open();
+    await userEvent.click(screen.getByLabelText("オーディオ"));
+    await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
+
+    expect(screen.getByLabelText("オーディオ")).toBeInTheDocument();
+  });
+
+  it("結果が届いたら閉じる", async () => {
+    const { rerender } = renderSheet();
+
+    await open();
+    await userEvent.click(screen.getByLabelText("オーディオ"));
+    await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
+
+    const applied: ProductListSelection = { [FILTER_KEY.CATEGORY]: ["10"] };
+
+    rerender(
+      <ProductFilterDraftProvider selection={applied}>
+        <ProductFilterSheet categories={CATEGORIES} categoryLimit={32} selection={applied} />
+      </ProductFilterDraftProvider>,
+    );
+
+    expect(screen.queryByLabelText("オーディオ")).not.toBeInTheDocument();
+  });
+
+  it("条件を変えずに確定したら、移らずにその場で閉じる", async () => {
+    renderSheet();
+
+    await open();
+    await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
+
+    expect(replace).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("オーディオ")).not.toBeInTheDocument();
   });
 
   it("確定した URL に他の条件を引き継ぎ、読み進めた位置を落とす", async () => {
@@ -120,7 +161,7 @@ describe("ProductFilterSheet", () => {
     await userEvent.click(screen.getByLabelText("オーディオ"));
     await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
 
-    expect(push).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");
+    expect(replace).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");
   });
 
   it("条件をすべて外すと、入力欄が受け持つ条件だけが外れる", async () => {
@@ -133,7 +174,7 @@ describe("ProductFilterSheet", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /この条件で見る/ }));
 
-    expect(push).toHaveBeenCalledWith("/products?keyword=%E9%9E%84");
+    expect(replace).toHaveBeenCalledWith("/products?keyword=%E9%9E%84");
   });
 
   it("確定する前の件数を確定の操作へ添える", async () => {
