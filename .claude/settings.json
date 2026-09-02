@@ -128,6 +128,32 @@
       "Bash(graphify explain *)",
       "Bash(graphify diagnose *)",
       "Bash(graphify update *)",
+      "Bash(agent-browser snapshot)",
+      "Bash(agent-browser back)",
+      "Bash(agent-browser forward)",
+      "Bash(agent-browser reload)",
+      "Bash(agent-browser close)",
+      "Bash(pnpm exec chrome-devtools status)",
+      "Bash(pnpm exec chrome-devtools stop)",
+      "Bash(pnpm exec chrome-devtools list_pages *)",
+      "Bash(pnpm exec chrome-devtools new_page *)",
+      "Bash(pnpm exec chrome-devtools navigate_page *)",
+      "Bash(pnpm exec chrome-devtools select_page *)",
+      "Bash(pnpm exec chrome-devtools close_page *)",
+      "Bash(pnpm exec chrome-devtools take_snapshot *)",
+      "Bash(pnpm exec chrome-devtools take_screenshot *)",
+      "Bash(pnpm exec chrome-devtools emulate *)",
+      "Bash(pnpm exec chrome-devtools resize_page *)",
+      "Bash(pnpm exec chrome-devtools performance_start_trace *)",
+      "Bash(pnpm exec chrome-devtools performance_stop_trace *)",
+      "Bash(pnpm exec chrome-devtools performance_analyze_insight *)",
+      "Bash(pnpm exec chrome-devtools list_console_messages *)",
+      "Bash(pnpm exec chrome-devtools get_console_message *)",
+      "Bash(pnpm exec chrome-devtools list_network_requests *)",
+      "Bash(pnpm exec chrome-devtools get_network_request *)",
+      "Bash(pnpm exec chrome-devtools lighthouse_audit *)",
+      "Bash(pnpm exec chrome-devtools take_heapsnapshot *)",
+      "Bash(pnpm exec chrome-devtools evaluate_script *)",
       "Bash(make help)",
       "Bash(make install-tools *)",
       "Bash(make setup-replace-license-copyright *)",
@@ -139,6 +165,17 @@
       "Bash(docker compose config *)"
     ],
     "deny": [
+      "Bash(agent-browser chat*)",
+      "Bash(agent-browser mcp*)",
+      "Bash(agent-browser connect *)",
+      "Bash(agent-browser --profile *)",
+      "Bash(agent-browser --auto-connect*)",
+      "Bash(agent-browser --cdp *)",
+      "Bash(chrome-devtools-mcp*)",
+      "Bash(pnpm exec chrome-devtools-mcp*)",
+      "Bash(pnpm exec chrome-devtools start --autoConnect*)",
+      "Bash(pnpm exec chrome-devtools start --browserUrl*)",
+      "Bash(pnpm exec chrome-devtools start --wsEndpoint*)",
       "Bash(rm -rf *)",
       "Bash(rm -fr *)",
       "Bash(sudo *)",
@@ -187,7 +224,9 @@
       "Bash(make tag-patch *)",
       "Bash(gh api *DELETE*)",
       "Bash(gh api *delete*)",
-      "Bash(gh api *git/refs*)"
+      "Bash(gh api *git/refs*)",
+      "Bash(pnpm exec playwright cli attach*)",
+      "Bash(agent-browser -q chat*)"
     ],
     "ask": [
       "Edit(AGENTS.md)",
@@ -208,5 +247,11 @@
   },
   "enabledPlugins": {
     "skill-creator@claude-plugins-official": true
+  },
+  "env": {
+    "AGENT_BROWSER_PROFILE": "",
+    "AGENT_BROWSER_AUTO_CONNECT": "false",
+    "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1",
+    "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1"
   }
 }

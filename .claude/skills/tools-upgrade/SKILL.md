@@ -5,7 +5,7 @@ description: Audit `mise.toml` `[tools]` entries against upstream latest version
 
 # Tool Version Upgrade
 
-This skill audits `mise.toml` against upstream latest versions for every tool in the `[tools]` table, with a **supply-chain quarantine gate**: releases newer than `min_age_days` are surfaced as informational only and are never applied automatically. The gate exists because malicious uploads to npm / PyPI / Go module proxies are typically detected and revoked within hours to days; waiting reduces exposure.
+This skill audits `mise.toml` against upstream latest versions for every tool in the `[tools]` table, with a **supply-chain quarantine gate**: releases newer than their backend's window are surfaced as informational only and are never applied automatically. The gate exists because malicious uploads to npm / PyPI / Go module proxies are typically detected and revoked within hours to days; waiting reduces exposure.
 
 A Japanese reference translation is available at `SKILL.ja.md` in the same directory (not loaded as a skill; for human reference only).
 
@@ -26,19 +26,31 @@ Do NOT use this skill for:
   version lives in `.github/actions/setup-mise/action.yaml` and is out of this skill's reach. The
   procedure, including the three places that must agree, is item 8 of the `repo-ops` runbook
 
-## Step 0. Confirm `min_age_days`
+## Step 0. Resolve the quarantine window per backend
 
-This skill **MUST call `AskUserQuestion` immediately after invocation** to confirm the quarantine threshold.
+**The window is not a single number, and it is not this file's to choose.** ADR
+[0110](../../../docs/adr/0110-security-operations.md) 1.1 sets one per backend, because the window
+tracks how fast a malicious release gets detected and revoked on that distribution channel — not how
+much damage the tool could do. A single value applied to every backend silently under-quarantines
+whichever channel has the longer window.
 
 Procedure:
 
-1. If a value is present in the skill arguments (e.g., `/tools-upgrade 14`), include it as a candidate in the question (e.g., "Candidate: `14`").
-2. Always invoke `AskUserQuestion`:
-    - Question: "Specify the minimum age (in days) for a release to be eligible for auto-apply. Recommended: `7`."
-    - Default candidate: `7`
-3. Validate the answer is a non-negative integer. Use it as `<MIN_AGE_DAYS>` throughout the rest of the procedure.
+1. **Read ADR 0110 1.1 this run** and build the backend → window table from what it currently says.
+   Do not keep a copy of the numbers in this file: a value written here is a second source of truth
+   that goes stale the moment the ADR moves.
+2. If a value is present in the skill arguments (e.g. `/tools-upgrade 14`), treat it as a proposed
+   override applying to **every** backend, and say so in the question.
+3. Always invoke `AskUserQuestion`, presenting the table from step 1 as the default:
+    - Question: 「リリースを自動適用の対象にするまでの最小経過日数を確認してください（既定は ADR 0110 1.1 の backend 別の窓）」
+    - Options: 「ADR どおり（backend 別）」 / 「全 backend に同じ日数を当てる（値を指定）」 / 「キャンセル」
+4. Validate every resolved value is a non-negative integer. Carry the result as
+   `<MIN_AGE_DAYS(backend)>` through the rest of the procedure.
+5. **When the ADR names no window for a backend that `mise.toml` actually uses**, do not invent one.
+   Apply the longest window the ADR states for that run, and report the omission as a finding — a
+   backend with no declared window is a gap in the ADR, not a licence to pick a number here.
 
-Do NOT fetch any upstream API or read `mise.toml` until `<MIN_AGE_DAYS>` is confirmed.
+Do NOT fetch any upstream API or read `mise.toml` until the window table is confirmed.
 
 ## AI Modification Scope
 
@@ -86,9 +98,11 @@ For each tool:
 | Class | Condition |
 | --- | --- |
 | **up-to-date** | `pinned == latest` (after normalizing the optional leading `v` prefix) |
-| **eligible** | `pinned != latest` AND `now - release_date >= MIN_AGE_DAYS` |
-| **pending** | `pinned != latest` AND `now - release_date < MIN_AGE_DAYS` |
+| **eligible** | `pinned != latest` AND `now - release_date >= MIN_AGE_DAYS(backend)` |
+| **pending** | `pinned != latest` AND `now - release_date < MIN_AGE_DAYS(backend)` |
 | **resolution_failed** | Backend lookup failed (network error, 404, parsing failure) |
+
+The window is the one Step 0 resolved **for that tool's backend** (Step 1 already determined it). Comparing every tool against one number is the defect this step exists to avoid.
 
 Sanity rule: refuse to "upgrade" to a strictly lower version per semver — if the parsed latest is `<` the pinned version, classify as `resolution_failed` with reason "potential downgrade".
 
@@ -97,13 +111,13 @@ Sanity rule: refuse to "upgrade" to a strictly lower version per semver — if t
 Print a Japanese-language summary grouped by class. Example:
 
 ```text
-ツールバージョン監査結果（min_age_days = 7）
+ツールバージョン監査結果（窓: backend 別 / ADR 0110 1.1）
 
-✅ 更新候補（公開から 7 日以上経過 / supply-chain quarantine 通過）:
+✅ 更新候補（backend の窓を満たした / supply-chain quarantine 通過）:
   - golangci-lint: 2.12.2 → 2.13.0 （公開 2026-05-18, 17 日前）
   - sqlc: 1.31.1 → 1.32.0 （公開 2026-04-29, 36 日前）
 
-⚠️ supply-chain quarantine（公開から 7 日未満、通知のみ）:
+⚠️ supply-chain quarantine（backend の窓の内側、通知のみ）:
   - air: 1.65.3 → 1.66.0 （公開 2026-06-02, 2 日前）
 
 ✓ 既に最新:
@@ -164,7 +178,7 @@ Do NOT commit, stage, or push. The user reviews the resulting working tree and r
 
 ## Notes
 
-- **Supply-chain quarantine rationale**: typical "dependency confusion" / "malicious release" attacks (e.g., npm `ua-parser-js` 2021, PyPI `ctx` 2022) were detected and yanked within 24–72 hours. A 7-day quarantine catches the vast majority while still being responsive for routine bumps.
+- **Supply-chain quarantine rationale**: typical "dependency confusion" / "malicious release" attacks (e.g. npm `ua-parser-js` 2021, PyPI `ctx` 2022) were detected and yanked within 24-72 hours, so waiting buys most of the protection. **How long to wait per backend is ADR [0110](../../../docs/adr/0110-security-operations.md) 1.1's decision, not this skill's** — it balances that detection latency against staying current, and it moves.
 - **Pre-release exclusion**: this skill always selects the latest **stable** release. Pre-release tags are visible in upstream but never chosen as `latest`.
 - **Calendar versioning**: for tools using calendar versioning (e.g., `2024.12.30`), comparison is lexicographic with semver fallback. The "potential downgrade" guard remains active.
 - **Rate limits**: GitHub API anonymous limit is 60 req/h per IP. The skill SHOULD use `gh api` which authenticates via `GITHUB_TOKEN` (1000 req/h authenticated).
@@ -175,7 +189,7 @@ Do NOT commit, stage, or push. The user reviews the resulting working tree and r
 
 Confirm the following before reporting completion:
 
-- [ ] `<MIN_AGE_DAYS>` confirmed via `AskUserQuestion`
+- [ ] Backend 別の窓を ADR 0110 1.1 から読み、`AskUserQuestion` で確認した
 - [ ] Every `[tools]` entry's backend was resolved (or surfaced as resolution_failed with a reason)
 - [ ] Each tool was classified (up-to-date / eligible / pending / resolution_failed)
 - [ ] Classification table presented to the user

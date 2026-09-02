@@ -34,6 +34,7 @@ go-boilerplate は **多層防御**(**go 側**の ADR 0077: SAST + 秘密スキ�
 `mise.toml`([0003](0003-version-manager.md))の pin は Dependabot の対象外で、bump は手作業になる。**同じ検疫原則を適用する**: 窓は blast radius ではなく**上流の検知レイテンシ**に比例させる。悪意ある版が公開されてから撤回されるまでの時間を待つのが目的であり、そのツールが何を壊しうるかとは別の話である。
 
 - **PyPI(`pipx:` backend)= 7 日**。npm と同じ根拠で導く(公開レジストリで、悪性パッケージの検知・撤回が同程度の速さで回る)
+- **GitHub Releases(`aqua:` / `ubi:` backend)= 14 日**。Actions の pin(`ACTIONS_PIN_MIN_AGE_DAYS`・[0153](0153-ci-configuration.md))と配布経路が同じで、検知レイテンシも揃うため同じ窓を当てる
 - bump では「最新」ではなく**「窓を満たす最新」**を採る。窓のために意図的に 1 つ前を採った pin は、その旨を `mise.toml` のコメントに書く(でないと次の担当者が「古い pin」として無条件に上げる)
 - 窓の実装は `tools-upgrade` スキルの `min_age_days`
 
