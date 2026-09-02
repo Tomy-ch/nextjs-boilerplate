@@ -44,8 +44,33 @@ name: E2E
 # Two things keep that bounded. The cadence includes every push into `release/**`, so the
 # finding arrives one merge later and still names a single pull request rather than a
 # day's worth of them. And `run-e2e` is there for the diff that should not wait — a change
-# to the proxy, to the shell, to the journey declaration or to the mocked responses, which
+# to the proxy, to the journey declaration or to the mocked responses, which
 # `deferred-checks.yaml` names on the pull request rather than leaving anyone to notice.
+#
+# ## What still runs on a pull request
+#
+# Waiting one merge is the wrong trade for three shapes of change, so the job starts on every
+# pull request, decides in about a minute, and drives the journeys when the diff earns it:
+#
+#   * The shell moved (`src/app/**/layout.tsx`) — every screen renders through it.
+#   * The foundation CSS moved — one declaration moves how every screen wraps and sticks.
+#   * The screen declaration moved — a screen may have been added that has no baseline yet.
+#
+# **The reason this job cannot simply wait, unlike `lighthouse.yaml`, is the repair path.**
+# Retaking a baseline is bounded by what the comparison reported, and the comparison only
+# reports on a pull request (`baseline/README.md`). A screen-shaped diff that was not compared
+# before the merge therefore leaves a red release branch with no pull request left to name the
+# images — the fix costs a second one. That asymmetry, not detection latency, draws the line.
+#
+# **Everything else stays a label.** Mocked responses and journey declarations move screens too,
+# but their author is looking at screens while writing them; the three above are structural and
+# do not read as screen work in the diff. Widening this list turns a deferred check into one
+# that runs on nearly every pull request, which is the thing being avoided.
+#
+# The cost is named rather than hidden: a pull request that ends up standing down now pays for
+# the toolchain (about a minute) to answer the question. `deferred-checks.yaml` stays silent
+# about `run-e2e` on a diff these three already run — nobody is told to ask for a run that has
+# already started.
 
 on:
   pull_request:
@@ -119,6 +144,13 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+          # The base ref has to be resolvable for the `force` diff below; the default shallow
+          # checkout leaves it a bad object and the decision would silently see no changes.
+          #
+          # The condition is inverted on purpose. `<cond> && 0 || 1` always yields 1, because
+          # GitHub's pseudo-ternary falls through to the `||` side whenever the value before it
+          # is falsy — and `0` is. So the branch that has to carry `0` is the one after `||`.
+          fetch-depth: ${{ github.event_name != 'pull_request' && 1 || 0 }}
 
       - name: Decide whether this event has to drive the journeys now
         id: trigger
@@ -127,13 +159,12 @@ jobs:
           label: run-e2e
           labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
 
-      # Only asked once the cadence says this event pays. The list matches the story-level
-      # jobs': the journeys walk the built application, so anything it is built from decides
-      # what they see. Why each job keeps its own copy instead of a shared default is in
-      # README.md.
+      # Asked before the toolchain, because it is the one answer that costs nothing and can
+      # settle the question on its own. The list matches the story-level jobs': the journeys
+      # walk the built application, so anything it is built from decides what they see. Why
+      # each job keeps its own copy instead of a shared default is in README.md.
       - name: Decide whether the diff can reach a journey
         id: scope
-        if: steps.trigger.outputs.run == 'true'
         uses: ./.github/actions/diff-scope
         with:
           base-ref: ${{ github.base_ref }}
@@ -145,13 +176,10 @@ jobs:
             .cursor/*
             .gemini/*
 
-      - name: Fetch the baseline images
-        if: steps.scope.outputs.relevant == 'true'
-        uses: ./.github/actions/setup-baselines
-        with:
-          app-id: ${{ secrets.BASELINE_APP_ID }}
-          private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
-
+      # Installed before the `force` decision because that decision is TypeScript, and on a
+      # run that goes ahead these are the same steps it would have paid for anyway. What is
+      # new is the pull request that ends up standing down: it now pays for the toolchain to
+      # be told so. That is the price of the question, and it is named in the header above.
       - name: Setup mise and the pinned tools
         if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
@@ -159,20 +187,81 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cache the Next.js build cache
+      - name: Install dependencies
         if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-deps
+
+      # Only asked when the cadence did not already say yes, because its answer can only add
+      # a reason to run, never remove one.
+      #
+      # `continue-on-error` because failing here must not take the verdict with it. Every step
+      # below carries an implicit `success()`, so a failure would skip the stand-down note too
+      # and leave the pull request a red check with no comment at all — the one thing the note
+      # exists to prevent. `gate` reads the outcome instead and says what happened.
+      - name: Decide whether the diff itself earns a run
+        id: force
+        continue-on-error: true
+        if: >-
+          github.event_name == 'pull_request' &&
+          steps.trigger.outputs.run != 'true' &&
+          steps.scope.outputs.relevant == 'true'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: pnpm exec tsx scripts/e2e trigger "origin/${BASE_REF}"
+
+      # One answer for every step below, so that the reason for standing down stays readable:
+      # a diff that cannot reach a journey is not the same as a diff that is waiting for the
+      # merge, and the comment tells them apart by `scope` alone.
+      - name: Note whether the journeys run
+        id: gate
+        env:
+          CADENCE: ${{ steps.trigger.outputs.run }}
+          FORCED: ${{ steps.force.outputs.kind }}
+          ASKED: ${{ steps.force.outcome }}
+          RELEVANT: ${{ steps.scope.outputs.relevant }}
+          DETAIL: ${{ steps.force.outputs.detail }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # A decision that could not be taken is not evidence that the diff does not earn a
+          # run, so it falls open — the same reading `diff-scope` applies to a diff it cannot
+          # take. It warns rather than notices: standing down would be the cheaper mistake to
+          # miss, and a silent fall-open reads afterwards like a diff that earned its run.
+          forced="${FORCED}"
+          if [ "${ASKED}" = 'failure' ]; then
+            echo '::warning::Could not decide whether the diff earns a run; running anyway.'
+            forced=force
+          fi
+
+          if [ "${RELEVANT}" = 'true' ] && { [ "${CADENCE}" = 'true' ] || [ "${forced}" = 'force' ]; }; then
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ "${FORCED}" = 'force' ]; then
+            echo "::notice::Running without a label: ${DETAIL}"
+          fi
+
+      - name: Fetch the baseline images
+        if: steps.gate.outputs.run == 'true'
+        uses: ./.github/actions/setup-baselines
+        with:
+          app-id: ${{ secrets.BASELINE_APP_ID }}
+          private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
+
+      - name: Cache the Next.js build cache
+        if: steps.gate.outputs.run == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ github.workspace }}/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
           restore-keys: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
 
-      - name: Install dependencies
-        if: steps.scope.outputs.relevant == 'true'
-        uses: ./.github/actions/setup-deps
       - name: Build the app, start it and drive it
         id: e2e
-        if: steps.scope.outputs.relevant == 'true'
+        if: steps.gate.outputs.run == 'true'
         continue-on-error: true
         shell: bash
         run: |
@@ -264,12 +353,15 @@ jobs:
       # between them (log folded into a code block, notes rendered) has to hold here too.
       - name: Note that the journeys did not run
         id: standdown
-        if: steps.scope.outputs.relevant != 'true'
+        if: steps.gate.outputs.run != 'true'
         shell: bash
         env:
           # Compared in the shell rather than interpolated into it. Why the two stand-down
           # reasons stay distinguishable: README.md, "降りた理由は 2 つあり、書き分ける".
-          DEFERRED: ${{ steps.trigger.outputs.run != 'true' }}
+          #
+          # `scope` alone, because standing down with a diff that CAN reach a journey means
+          # nothing asked for it: neither the label nor the diff's own structure.
+          DEFERRED: ${{ steps.scope.outputs.relevant == 'true' }}
         run: |
           mkdir -p /tmp/e2e-comment
 
@@ -281,8 +373,9 @@ jobs:
           この PR で回すなら `run-e2e` ラベルを付けてください。`develop` / `staging` / `production`
           を base とする PR では、ラベルの有無に関わらず必ず回ります。
 
-          **routing・器（layout）・ジャーニーが辿るものを動かしたなら、待たずに回してください。**
-          hydration の不一致はこのジョブでしか見えません。
+          **器（layout）・全画面が読む土台の CSS・画面の宣言を動かした差分は、ラベル無しでも回ります。**
+          この PR はそのどれにも当たりませんでした。routing やジャーニーが辿るものを動かしたなら、
+          待たずに回してください —— hydration の不一致はこのジョブでしか見えません。
           NOTE
           else
             echo 'title=## ⏭️ E2E: SKIP (diff cannot reach a journey)' >> "$GITHUB_OUTPUT"
@@ -335,7 +428,7 @@ jobs:
       # most — a hydration mismatch is visible nowhere else, so if nobody opens the run, the
       # defect is simply not known.
       - name: Compose what the issue says
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success' }}
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.gate.outputs.run == 'true' && steps.e2e.outputs.status != 'success' }}
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -365,7 +458,7 @@ jobs:
             printf '%s\n\n実行: %s\n' '❌ 本文を組み立てられませんでした。実行ログを読んでください。' "${RUN_URL}" > /tmp/e2e-guard.md
 
       - name: Raise it where it has an owner
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success' }}
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && steps.gate.outputs.run == 'true' && steps.e2e.outputs.status != 'success' }}
         uses: ./.github/actions/upsert-issue
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -377,7 +470,7 @@ jobs:
       # has to be repeated here rather than left to `status`, because "no verdict" and "a bad
       # verdict" read the same to the expression below.
       - name: Fail if any of the three stages failed
-        if: always() && steps.scope.outputs.relevant == 'true' && steps.e2e.outputs.status != 'success'
+        if: always() && steps.gate.outputs.run == 'true' && steps.e2e.outputs.status != 'success'
         run: exit 1
 
   # Holds no secret beyond `GITHUB_TOKEN`, so the body it publishes cannot carry one

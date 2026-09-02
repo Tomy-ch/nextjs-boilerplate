@@ -29,8 +29,10 @@ minimumReleaseAgeIgnoreMissingTime: false
 overrides:
   # ajv (commitlint / orval / shadcn / @hookform/resolvers が引く) の推移的依存。
   # GHSA-7p8r-x3mc-p8w7 (high): authority 部のバックスラッシュで host の解釈が他のパーサとずれる。
-  # ajv の宣言は ^3.0.1 で 3.1.5 はその内側。ajv が 3.1.5 以上を要求したら撤去する。
-  "fast-uri@<3.1.5": ">=3.1.5 <4"
+  # GHSA-5jgf-p345-68v8 / GHSA-f65p-4m7j-42xc / GHSA-fph4-wmhf-6fwf / GHSA-jqff-g426-hqxp (high):
+  # 同じ URI 解析の取り違えが 3.1.5 にも残っており、3.1.6 で塞がれた。
+  # ajv の宣言は ^3.0.1 で 3.1.6 はその内側。ajv が 3.1.6 以上を要求したら撤去する。
+  "fast-uri@<3.1.6": ">=3.1.6 <4"
   # dompurify (mermaid が引く) の推移的依存。mermaid は docs-viewer の実行時依存なので、これは
   # 公開されるドキュメントサイトで browser 上を走る。
   # GHSA-4gpp-cmpq-32hh (moderate): IN_PLACE hook の削除で切り離された部分木が実行可能なまま残り

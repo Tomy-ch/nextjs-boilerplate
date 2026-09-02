@@ -702,7 +702,7 @@ boilerplate の中核原則(状況を焼き込まない)を、規則と機械検
 | `ddd-audit` / `ddd-origin-auditor` | domain 層を持たず、DDD 整合を謳っていない。判断は IM-48 の 1 で記録する |
 | `repo-ops` の Docker / sqlc 項目 | 移植済みの器のみ採用。BACKLOG に記載済み |
 | `new-env` の再設計 | 再設計済([0030](../adr/0030-environment-variable-management.md) の `src/config/` 構造) |
-| `sync-versions-check` | v1 計画 §5 未決 #11(Phase 2 実装時に採否判断)へ委譲 |
+| `sync-versions-check` / `auto-generate-docs` | **不採用**。前者は版の宣言が 2 箇所以上あって初めて意味を持ち、本リポジトリは Docker を持たず `mise.toml` が唯一の宣言である。後者は生成物を bot が commit する形で、本リポジトリは drift 検査で落とす側を採る。撤回条件は BACKLOG W51 / W52 |
 | `repo-setup` | git / gh の初期化手順。本リポジトリは `.makefiles/github/` に同等の器を持つ。ツール化は必要になってから |
 
 ---

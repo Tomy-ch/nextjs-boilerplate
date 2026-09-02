@@ -235,7 +235,7 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 - 表示側は **必ず sanitizer を通す**(`rules.md` #48。生の `dangerouslySetInnerHTML` は禁止)
 - TipTap が inline style を出力するため、CSP の `style-src` が論点になる(§3.9)
 
-### 3.9 CSP — enforce seam は「sanitizer の検証結果」で決める
+### 3.9 CSP — enforce seam は seam A で確定した
 
 [0111](../adr/0111-csp-security-headers.md) は **seam A(`next.config.ts` の非 nonce CSP)を既定**とし、seam B(`proxy.ts` の per-request nonce)は「**既定にしない**」と明記している。理由は「nonce を使うと全ページが dynamic rendering を要求し、静的最適化・ISR・CDN キャッシュ・**PPR / Cache Components と非互換**になる」ため。
 
@@ -246,7 +246,7 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 1. **TipTap の inline `style=` 属性に nonce は原理的に効かない** — nonce は要素(`<style>` / `<script>`)にしか付かず、属性は `style-src-attr` の管轄で `'unsafe-inline'` 以外に許可手段がない。つまり「リッチテキストのために `'unsafe-inline'`」は **nonce へ倒しても解消しない**
 2. **sanitizer で `style` 属性を落とせるなら、`'unsafe-inline'` 自体が不要になる** — 商品説明に必要なのは太字 / 斜体 / リスト / 見出し / リンク程度で、いずれも inline style ではなくクラスへ写像できる
 
-**よって順序を固定する**: P3-8 の `rich-text` 実装(sanitizer と allowlist は §3.10 で確定済み)で「`style` 属性を落として TipTap の要件を満たせるか」を検証し、その結果と **P6-8 の Cache Components 判断**を入力として、**0111 追補(seam A 維持 / seam B へ反転)を P6-2 で確定する**(P0-4 では扱わない)。この検証には TipTap の出力サンプルがあれば足り、実 API や生成型を必要としないため、**Phase 4 / 5 の到達を待たない**。静的を保ったまま script を厳格化したい場合の道は nonce ではなく **hash ベース**([0111](../adr/0111-csp-security-headers.md) が挙げる実験的 SRI)であり、採るなら別途判断する。
+**判断の入力は 2 つだった**: P3-8 の `rich-text` 実装(sanitizer と allowlist は §3.10 で確定済み)による「`style` 属性を落として TipTap の要件を満たせるか」の検証と、**P6-8 の Cache Components 判断**である。この検証には TipTap の出力サンプルがあれば足り、実 API や生成型を必要としないため、**Phase 4 / 5 の到達を待たない**。静的を保ったまま script を厳格化したい場合の道は nonce ではなく **hash ベース**([0111](../adr/0111-csp-security-headers.md) が挙げる実験的 SRI)であり、採るなら別途判断する。
 
 **検証結果は次のとおり(P3-8 で実施済み)。上の 2 と 1 の順に対応する。**
 
@@ -254,7 +254,9 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 2. **ただし `'unsafe-inline'` はリッチテキストと無関係に必要な状態が残る。** Radix の popper が `position` / `transform` / `minWidth` / `zIndex` / `--radix-popper-*` を**要素の `style` 属性**へ書き、`next/image` も `color: transparent` を img へ付ける。これらは `style-src-attr` の管轄で **nonce も hash も効かない**。Radix を import する component は現時点で 27 個あり、浮動 UI は全て popper 経由である。
 3. **TipTap が注入する `<style data-tiptap-style>` は別問題として残る。** `@tiptap/core` の `injectCSS`(既定 `true`)が runtime で style **要素**を 1 本挿す。要素なので nonce / hash が効き、`injectCSS: false` にして CSS を `globals.css` 側で持てば消える。
 
-**したがって判断の形が変わる**: 「`'unsafe-inline'` を外せるか」ではなく「`style-src-elem` と `style-src-attr` を割って、要素側だけ厳格にするか」になる。属性側は Radix を使う限り `'unsafe-inline'` から降りられない。**割る指定は Safari が未対応で `style-src` にフォールバックする**ため、その環境では強化が効かないことも織り込む。要素側を厳格にするなら `injectCSS: false` が前提条件になるが、CSP 本体を書くまで単体では防御が変わらない(効果は FOUC の解消に留まる)。
+**判断の形は「`'unsafe-inline'` を外せるか」ではなく「`style-src-elem` と `style-src-attr` を割って、要素側だけ厳格にするか」になった。** 属性側は Radix を使う限り降りられず、**割る指定は Safari が未対応で `style-src` へフォールバックする**ため、要素側だけを絞っても効かない環境が残る。
+
+**結論は割らない(seam A のまま)**で、[0111](../adr/0111-csp-security-headers.md) §4 が根拠と撤回条件の両方を持つ。前提条件だった `injectCSS: false` も同じ理由で採らない。
 
 ### 3.10 TypeScript / ライブラリの確定事項
 
@@ -575,7 +577,7 @@ flowchart TD
 - **状態**: **実施済み**。上表の全件を ADR 本文へ反映し、BACKLOG の該当行(T2 / T4 / A6 / B1 / B2 / B5 / B10 / C5 / C9)を更新した。個別の補足:
   - **[0027](../adr/0027-directory-structure.md) は変更不要だった** — 同 ADR は既に「MSW 等のモック生成物は `src/` 外の `mocks/`」と規定しており、P4-4 の記述もこれに一致している(突合の結果、計画側の修正も不要)
   - **[0002](../adr/0002-formatter-linter.md) 側に tsconfig 節を新設**した(型で捕まえる検査は tsc / lint と重複させない、という同 ADR の能力ベース分担に接続するため。0020 には置かない)
-  - **[0022](../adr/0022-capabilities-kernel.md) の Web Worker seam は追加していない** — §5 未決 #14(ADR 化要否)が P6-5 の判断事項として残っているため、ここで先取りしない
+  - **[0022](../adr/0022-capabilities-kernel.md) の Web Worker seam は追加していない** — P6-5 が設置面の不在を理由に置かないと決め、撤回条件は BACKLOG W43 が持つ
 
 ### P0-5: master-plan の再編
 
@@ -1404,6 +1406,8 @@ sources:
 
 機能が出揃ってから掛ける横断的関心事。
 
+> **9 件とも着地済み。** 以降に残っているのは計画外の監視項目であって、この Phase の PR ではない。
+
 ### P6-1: クライアント観測性
 
 - **目的**: ブラウザ側のシグナルを OTLP へ集約する
@@ -1427,11 +1431,12 @@ sources:
 - **主な変更先**:
   - `next.config.ts` or `src/proxy.ts` — CSP / セキュリティヘッダ(**seam B へ反転した場合のみ** nonce 生成)
   - `docs/adr/0111-csp-security-headers.md` — **CSP enforce seam の確定追補**(§3.9。P0-4 から移管)
-  - `.github/workflows/csp-check.yaml` — inline 違反検出 + ヘッダ well-formed 検証
-- **設計**: `img-src` に `MEDIA_ORIGIN` を含める必要がある(本書 §3.2)。**`script-src` の方式は未決 #1 の確定に従う**(seam A 既定 = 静的維持。seam B へ反転した場合のみ nonce)。`next/script` の strategy 使い分けは `rules.md` #50
+  - `src/config/security-headers/` — ヘッダの組み立てと、その単体検査
+  - `e2e/lib/test.ts` / `e2e/journeys/csp.spec.ts` — **enforce の結果を実ブラウザで見る側**。違反は `securitypolicyviolation` で受ける（ヘッダを読むだけの検査は `Report-Only` でも通る）
+- **設計**: `img-src` に `MEDIA_ORIGIN` を含める必要がある(本書 §3.2)。**`script-src` は seam A(静的)のまま**([0111](../adr/0111-csp-security-headers.md) §4)。nonce は Cache Components と両立しないため、strict 化は fork の opt-in として seam B に名前だけ与える。`next/script` の strategy 使い分けは `rules.md` #50
 - **注意**: **[0111](../adr/0111-csp-security-headers.md)(実行時本体)と [0110](../adr/0110-security-operations.md)(CI 適合スライス)は両輪であり、片側だけでは閉じない**
 - **入力**: `.github/zap/rules.tsv` の一覧。DAST([0110](../adr/0110-security-operations.md) 3.5)を先に置いてあるので、**配信面に何が足りないかは実測済みで並んでいる**。本 PR は「その一覧を空にする作業」であり、1 行 = 1 ヘッダ = 1 作業単位として並行して潰せる
-- **完了条件**: 全画面が CSP 違反ゼロで動作する。意図的に inline script を入れると CI が fail する。**0111 に enforce seam の確定が記録されている**。**`rules.tsv` からヘッダ由来の行が消えている**
+- **完了条件**: 全画面が CSP 違反ゼロで動作する。宣言に無い配信元の script を差すと CI が fail する。**0111 に enforce seam の確定が記録されている**。**`rules.tsv` に残るヘッダ由来の行が、0111 が明示的に受け入れた弱い許可（`script-src` の `'unsafe-inline'`）だけになり、撤回条件を持っている**
 - **依存**: P5-16, **P6-8**(CSP seam と Cache Components を同時に決めるため — §3.9)
 
 ### P6-3: SEO / metadata + fonts
@@ -1842,21 +1847,16 @@ IM-26 —— どちらも反映済み。**P4-6 の改修 PR は起票しない**
 
 | # | 内容 | 決着させる時期 |
 | --- | --- | --- |
-| 1 | **CSP の enforce seam**(0111 seam A 維持 / seam B へ反転)。**sanitizer 検証は P3-8 で完了済み**(結果は §3.9)。残る判断は **P6-8 の Cache Components 判断と同時**に決める(両立しないため)。判断時に扱う論点は「`'unsafe-inline'` を外せるか」ではなく「`style-src-elem` / `style-src-attr` を割って要素側だけ厳格にするか」であり、属性側は Radix popper と `next/image` が要求するため降りられない | P6-8 と同時 → **P6-2 で ADR 追補・実装** |
-| 1b | **CSP 本体が未実装**。`next.config.ts` に `headers()` が無く、`src/proxy.ts` も存在しない。0111 は配置先を **seam A = `next.config.ts` `headers()`(既定)/ seam B = `src/proxy.ts`(nonce・opt-in)** と定めているが、どちらの実体も無い。`Content-Security-Policy-Report-Only` での段階導入(0111 §3)もこの実装に含める | #1 と同じ(P6-2) |
-| 1c | **`injectCSS: false` の採否**(`rich-text-editor` の `useEditor` options)。`style-src-elem` を厳格にする場合の前提条件。採る場合は ProseMirror の基礎 CSS を `globals.css` から持つ(0050「グローバル CSS は `globals.css` に集約」。`.ProseMirror` は library が生成する class 名のため CSS Modules ではスコープできない)。単体では防御が変わらず、効果は FOUC の解消に留まる | #1 の判断と同時 |
 | 2 | **認証 Resolver の具体化**(IF 形状 / 既定実装のライブラリ選定 / refresh の扱い / role の取得元)。refresh は mock に無いため実機検証できない | P5-4 |
 | 3 | **admin 判定の手段** — go 側の契約に `roles` が 1 度も出てこない(実測 0 件)。`UserResponse` にも roles が無く **admin かどうかを型から導けない**。[screens.md](../screens.md) §0 の「UI 上は導線ごと出し分ける」が実装できないため、go 側へ roles 露出を依頼するか別手段を設計する | **P5-11 着手前**(必要なら go 側へ起票) |
 | 4 | **`*.localhost` の名前解決** — `next/image` はサーバ側 fetch のため Next.js 実行ホストでの解決が要る。Linux コンテナ / CI では `/etc/hosts` 追記が必要な見込みで、IPv6(`::1`)解決の可能性もある(§3.2) | **P4-5 着手前に実測** |
 | 5 | **U10 登録フローの方式**(JIT 自動プロビジョニング / 明示オンボーディング)。[screens.md](../screens.md) の推奨に従い後者で実装し、確定後に差分吸収する | P5-10 |
-| 6 | **sanitizer ライブラリの選定**(`rules.md` #48。#1 の入力でもある) | P5-1 |
+| 6 | **sanitizer ライブラリの選定**(`rules.md` #48) | P5-1 |
 | 7 | **status を持たない失敗の分類** — [0080](../adr/0080-error-handling.md) は一次キーを HTTP status とし、timeout / abort / DNS 失敗の分類を「実装 PR で判断」と保留している | P4-3 |
 | 9 | `ActionState<T>` の具体型(判別子 / fieldErrors の形 / sentinel の直列化)。**B1 テンプレ(P3-10)と scaffold(P4-6)が P5-7 より先行するため、P4-6 時点で草案を切る** | P4-6 で草案 → P5-7 で確定 |
 | 10 | **外部デザイン支援ツール連携スキルの仕様**(書き出し形式 / 同期手順 / 対象パス)。§3.11 の方針変更で新たに生じた | P3-8 |
-| 11 | Phase 2 の残余候補(sync-versions-check / auto-generate-docs)の採否 | Phase 6 実装時 |
 | 12 | issue のラベル体系 / 親子関係(task list か Projects か) | issue 発行時 |
 | 13 | barrel(`index.ts`)の可否。**推奨は作らない** — 循環参照 / tree-shaking の問題に加え、[0021](../adr/0021-frontend-responsibility.md) の「公開面を明示する」目的に対し barrel はむしろ境界を曖昧にするため。公開面は `architecture.ts` と README frontmatter で宣言する | P3-1 |
-| 14 | Web Worker オフロード seam の ADR 化要否 | P6-5 |
 
 ### 解決済み(記録)
 
@@ -1868,6 +1868,9 @@ IM-26 —— どちらも反映済み。**P4-6 の改修 PR は起票しない**
 | `cn()` の実装ライブラリ | **`clsx` + `tailwind-merge`**。[0052](../adr/0052-ui-component-policy.md) が既に名指ししており追認(§3.10) |
 | `rules.md` #69(生 `<a>` 禁止) | **ESLint で拾う**。`next/link` を必須にするため機械強制が要る(P3-2) |
 | Figma Variables の輸出経路 | §3.11 の方針変更により**消滅**(SSOT がコード側) |
+| CSP の enforce seam / CSP 本体 / `injectCSS: false` の採否(旧 #1 / #1b / #1c) | **seam A(`next.config.ts` の `headers()`)で確定**([0111](../adr/0111-csp-security-headers.md) §4)。実体は `src/config/security-headers/` が組み立て、enforce の結果は実ブラウザの `securitypolicyviolation` が見張る。`style-src` は割らない —— 属性側は Radix と `next/image` が要求して降りられず、要素側だけ厳格にする案は Safari が割った指定を持たないため費用に見合わない。`injectCSS: false` はその前提条件だったので**採らない**(同 §4 の撤回条件が両方を持つ) |
+| Phase 2 の残余候補(sync-versions-check / auto-generate-docs)の採否(旧 #11) | **どちらも不採用**。前者は版の宣言が 2 箇所以上あって初めて意味を持つ検査で、本リポジトリは Docker を持たず `mise.toml` が唯一の宣言である(workflow が版を名乗る面は `make actions-mise-pin-lint` が見ている)。後者は生成物を bot が commit する形だが、本リポジトリの生成物は `gen-drift` / `tokens-drift` / `shadcn-drift` が**落とす**側で守っている。撤回条件は BACKLOG W51 / W52 |
+| Web Worker オフロード seam の ADR 化要否(旧 #14) | **ADR は起こさない**。P6-5 が設置面の不在を理由に置かないと決め、撤回条件を BACKLOG W43 が持つ。決定の本体は [0022](../adr/0022-capabilities-kernel.md) にあり、新しい記録を要しない |
 | `/api/telemetry` の最小防御([0077](../adr/0077-bff-abuse-protection-boundary.md) §2 の保留分) | **Route Handler が持つ**。content-type が JSON を名乗らない要求を 415、契約が許す最大の報告(約 15.7 KB)を超える本体を 413 で落とす。宣言された長さで先に落とし、宣言の無い要求は読んだ後の実測で落とす。レート制限と大域的な遮断は同 §1 のとおり edge / WAF の責務であり本体に置かない |
 
 ## 6. go-boilerplate への依頼
