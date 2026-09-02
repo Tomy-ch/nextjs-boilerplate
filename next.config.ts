@@ -66,6 +66,13 @@ const nextConfig = async (phase: string): Promise<NextConfig> => {
         revalidate: 60 * 60 * 24,
       },
     },
+    // 印（`"use memo"`）を付けた component だけを React Compiler へ通す
+    // （[0042](docs/adr/0042-react19-rendering-api.md) 決定 4）。
+    //
+    // **どこへ付けるかはここが決めない。** ここが持つのは「印の無いものは通さない」ことだけで、
+    // 対象の宣言は component の側に `"use memo"` として立つ。付けた理由はその feature の README が
+    // 持つ。
+    reactCompiler: { compilationMode: "annotation" },
     // 要求の内容に依らないヘッダは全経路へ静的に付ける（[0111](docs/adr/0111-csp-security-headers.md)
     // §5）。`src/proxy.ts` で足すと前捌きを通る経路にしか載らず、静的に配れる応答が漏れる。
     async headers() {

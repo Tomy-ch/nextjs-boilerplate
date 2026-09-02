@@ -33,6 +33,8 @@ export type ProductFilterSidebarProps = {
  * 同じ目的の landmark が 2 つ並びます。脇の領域そのものの名前は置く側が `aside` に与えます。
  */
 export function ProductFilterSidebar({ categories, categoryLimit }: ProductFilterSidebarProps) {
+  "use memo";
+
   const { draft, pending, commit } = useProductFilterDraft();
 
   return (

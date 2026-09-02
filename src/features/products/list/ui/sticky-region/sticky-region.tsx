@@ -49,6 +49,8 @@ function useRegion(): StickyRegion {
  * 条件の数で変わる（条件が折り返すと帯が伸びる）ため、値を書き写さず測った値を配ります。
  */
 export function ProductStickyRegion({ children }: { children: ReactNode }) {
+  "use memo";
+
   const shown = useScrollDirection() === "up";
   const [barHeight, setBarHeight] = useState(0);
   const reportBarHeight = useCallback((height: number) => setBarHeight(height), []);
@@ -74,6 +76,8 @@ export function ProductStickyRegion({ children }: { children: ReactNode }) {
  * 背景を敷きます。貼り付いているあいだ商品がこの下を通るため、透けると文字が重なって読めません。
  */
 export function ProductStickyBar({ children }: { children: ReactNode }) {
+  "use memo";
+
   const { shown, reportBarHeight } = useRegion();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -114,9 +118,11 @@ export function ProductStickyBar({ children }: { children: ReactNode }) {
  *
  * **画面に収まらない高さになったら、自分の中で送ります。** 分類が増えると絞り込みは画面より高く
  * なり得ますが、外側の送りは商品のためのものなので、そちらに任せると絞り込みの下端へ到達できま
- * せん。確定の操作はその送りの下端に貼り付くため、どれだけ分類が並んでも押せる位置に残ります。
+ * せん。自分の中で送れば、どれだけ分類が並んでも末尾の条件まで届きます。
  */
 export function ProductStickyAside({ children }: { children: ReactNode }) {
+  "use memo";
+
   const { shown, barHeight } = useRegion();
   const top = APP_SHELL_HEADER_HEIGHT + (shown ? barHeight : 0) + APP_SHELL_STICKY_GAP;
 
