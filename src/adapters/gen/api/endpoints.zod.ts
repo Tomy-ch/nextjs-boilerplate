@@ -9,9 +9,64 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+f6c9463
+ * OpenAPI spec version: 2.2.0+7b2778e
  */
 import * as zod from "zod";
+
+/**
+ * ticket に束縛された destination の event を Server-Sent Events で受信します。接続時に cursor（`Last-Event-ID` → `after` →
+ * ticket の初期位置の順）を解決し、その位置より後の event を sequence 順に配信したのち、新しい event を届け続けます。
+ * 拒否はすべてレスポンス確定前に行われます（ticket の不備は 401、cursor の形式不正は 400、保持期間外の cursor は 410、
+ * 受け入れ余力が無いときは 503）。503 には再接続までの目安を秒で表す `Retry-After` が伴います（接続数の上限・初回 replay の
+ * 枠・Realtime 依存の不調のいずれでも）。確定後の指示は `event: control` の ControlEvent で伝え、その `retryAfterMs` は
+ * 同じ目安をミリ秒で表したものです。
+ * @summary SSE stream への接続
+ */
+export const getStreamPathDestinationMax = 128;
+
+export const getStreamPathDestinationRegExp = new RegExp("^[A-Za-z0-9._:-]{1,128}$");
+
+export const GetStreamParams = zod.object({
+  destination: zod
+    .string()
+    .max(getStreamPathDestinationMax)
+    .regex(getStreamPathDestinationRegExp)
+    .describe(
+      "購読する stream の識別子。ticket に束縛された destination と一致しなければ 401 になります。",
+    ),
+});
+
+export const getStreamQueryAfterMax = 19;
+
+export const getStreamQueryAfterRegExp = new RegExp("^(0|[1-9][0-9]{0,18})$");
+
+export const GetStreamQueryParams = zod.object({
+  after: zod
+    .string()
+    .max(getStreamQueryAfterMax)
+    .regex(getStreamQueryAfterRegExp)
+    .optional()
+    .describe(
+      "この位置より後の event から配信を再開します。`Last-Event-ID` があればそちらが優先され、どちらも無ければ ticket に許可された初期位置から始まります。",
+    ),
+});
+
+export const getStreamHeaderLastEventIDMax = 19;
+
+export const getStreamHeaderLastEventIDRegExp = new RegExp("^(0|[1-9][0-9]{0,18})$");
+
+export const GetStreamHeader = zod.object({
+  "Last-Event-ID": zod
+    .string()
+    .max(getStreamHeaderLastEventIDMax)
+    .regex(getStreamHeaderLastEventIDRegExp)
+    .optional()
+    .describe(
+      "ブラウザの EventSource が自動再接続時に付ける、最後に受け取った business event の `id`（sequence）。`after` より優先されます。",
+    ),
+});
+
+export const GetStreamResponse = zod.unknown();
 
 /**
  * ユーザーの一覧を取得します。ページネーションを指定できます。
@@ -2458,6 +2513,26 @@ export const PostPurchasesResponse = zod
   .describe(
     "購入情報のレスポンススキーマ。金額（subtotalAmount \/ taxAmount \/ shippingFee \/ totalAmount \/\n明細 unitPrice）はすべて USD セント単位の整数です。\n",
   );
+
+/**
+ * 購入ステータスマスタの全件を sortKey（表示順）昇順で返します。
+ * 認証不要の公開エンドポイントであり、ページネーションは行いません（全 9 件を返します）。
+ * @summary 購入ステータスマスタ一覧の取得
+ */
+export const GetPurchaseStatusesResponseItem = zod
+  .object({
+    id: zod.uuid().describe("購入ステータスID"),
+    code: zod
+      .int()
+      .describe(
+        "購入ステータスの業務キー。値は到達順序を意味しません（完了より支払い済みのほうが大きい）。",
+      ),
+    name: zod.string().describe("購入ステータス名"),
+  })
+  .describe(
+    "購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。\n表示には name を、分岐にはドメインの業務キーである code を用います。\n",
+  );
+export const GetPurchaseStatusesResponse = zod.array(GetPurchaseStatusesResponseItem);
 
 /**
  * 発送可能な購入を、まとめて発送してよい組に分けて返します。認証必須で、

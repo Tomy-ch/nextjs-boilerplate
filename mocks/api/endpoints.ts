@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+f6c9463
+ * OpenAPI spec version: 2.2.0+7b2778e
  */
 import type {
   AddressCandidatesResponse,
@@ -18,7 +18,9 @@ import type {
   CartMergeResponse,
   CartResponse,
   Conflict409Response,
+  ControlEvent,
   DashboardSummaryResponse,
+  DeliveryEvent,
   ExchangeRateResponse,
   Forbidden403Response,
   GetAddressesParams,
@@ -32,10 +34,12 @@ import type {
   GetProductsRankingQuantityParams,
   GetPurchasesParams,
   GetPurchasesShippableParams,
+  GetStreamParams,
   GetUsersFeedParams,
   GetUsersMePurchasesSummaryParams,
   GetUsersParams,
   GetUsersSearchParams,
+  Gone410Response,
   InternalServerError500Response,
   MethodNotAllowed405Response,
   NotFound404Response,
@@ -65,6 +69,7 @@ import type {
   PurchaseShippableResponse,
   PurchaseShipResponse,
   PurchasesPostRequest,
+  PurchasesStatusesResponse,
   ServiceUnavailable503Response,
   Unauthorized401Response,
   UnprocessableEntity422Response,
@@ -78,6 +83,103 @@ import type {
   UsersResponse,
   UsersSearchResponse,
 } from "../../src/adapters/gen/api/model";
+
+export type getStreamResponse200 = {
+  data: DeliveryEvent | ControlEvent;
+  status: 200;
+};
+
+export type getStreamResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type getStreamResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getStreamResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getStreamResponse410 = {
+  data: Gone410Response;
+  status: 410;
+};
+
+export type getStreamResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getStreamResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getStreamResponseSuccess = getStreamResponse200 & {
+  headers: Headers;
+};
+export type getStreamResponseError = (
+  | getStreamResponse400
+  | getStreamResponse401
+  | getStreamResponse405
+  | getStreamResponse410
+  | getStreamResponse500
+  | getStreamResponse503
+) & {
+  headers: Headers;
+};
+
+export type getStreamResponse = getStreamResponseSuccess | getStreamResponseError;
+
+export const getGetStreamUrl = (destination: string, params?: GetStreamParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/v1/streams/${destination}?${stringifiedParams}`
+    : `/v1/streams/${destination}`;
+};
+
+/**
+ * ticket に束縛された destination の event を Server-Sent Events で受信します。接続時に cursor（`Last-Event-ID` → `after` →
+ * ticket の初期位置の順）を解決し、その位置より後の event を sequence 順に配信したのち、新しい event を届け続けます。
+ * 拒否はすべてレスポンス確定前に行われます（ticket の不備は 401、cursor の形式不正は 400、保持期間外の cursor は 410、
+ * 受け入れ余力が無いときは 503）。503 には再接続までの目安を秒で表す `Retry-After` が伴います（接続数の上限・初回 replay の
+ * 枠・Realtime 依存の不調のいずれでも）。確定後の指示は `event: control` の ControlEvent で伝え、その `retryAfterMs` は
+ * 同じ目安をミリ秒で表したものです。
+ * @summary SSE stream への接続
+ */
+export const getStream = async (
+  destination: string,
+  params?: GetStreamParams,
+  options?: RequestInit,
+): Promise<getStreamResponse> => {
+  const res = await fetch(getGetStreamUrl(destination, params), {
+    ...options,
+    method: "GET",
+  });
+
+  const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getStreamResponse["data"] = body
+    ? contentType.includes("json")
+      ? JSON.parse(body)
+      : body
+    : {};
+  return { data, status: res.status, headers: res.headers } as getStreamResponse;
+};
 
 export type getUsersResponse200 = {
   data: UsersResponse;
@@ -2530,6 +2632,64 @@ export const postPurchases = async (
 
   const data: postPurchasesResponse["data"] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as postPurchasesResponse;
+};
+
+export type getPurchaseStatusesResponse200 = {
+  data: PurchasesStatusesResponse;
+  status: 200;
+};
+
+export type getPurchaseStatusesResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getPurchaseStatusesResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getPurchaseStatusesResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getPurchaseStatusesResponseSuccess = getPurchaseStatusesResponse200 & {
+  headers: Headers;
+};
+export type getPurchaseStatusesResponseError = (
+  | getPurchaseStatusesResponse405
+  | getPurchaseStatusesResponse500
+  | getPurchaseStatusesResponse503
+) & {
+  headers: Headers;
+};
+
+export type getPurchaseStatusesResponse =
+  | getPurchaseStatusesResponseSuccess
+  | getPurchaseStatusesResponseError;
+
+export const getGetPurchaseStatusesUrl = () => {
+  return `/v1/purchases/statuses`;
+};
+
+/**
+ * 購入ステータスマスタの全件を sortKey（表示順）昇順で返します。
+ * 認証不要の公開エンドポイントであり、ページネーションは行いません（全 9 件を返します）。
+ * @summary 購入ステータスマスタ一覧の取得
+ */
+export const getPurchaseStatuses = async (
+  options?: RequestInit,
+): Promise<getPurchaseStatusesResponse> => {
+  const res = await fetch(getGetPurchaseStatusesUrl(), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getPurchaseStatusesResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getPurchaseStatusesResponse;
 };
 
 export type getPurchasesShippableResponse200 = {
