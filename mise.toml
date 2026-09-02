@@ -13,35 +13,20 @@ pipx.uvx = true
 
 # GitHub Actions 定義の Lint（make actionlint）
 "aqua:rhysd/actionlint" = "1.7.12"
-# run ステップのシェルの検査に使う。actionlint が PATH 上で参照する（同梱ではなく別バイナリ）ほか、
-# composite action 側の検査（make actions-shellcheck）が直接呼ぶ。版を固定しないと検査結果が
-# 実行者の環境依存になるため mise 側で持つ。
 "aqua:koalaman/shellcheck" = "0.11.0"
-
-# GitHub Actions 定義の静的解析（make actions-zizmor）。actionlint / shellcheck が
-# `${{ … }}` を潰してから解析するため原理的に見えない検査 —— run: での未クオートな式展開
-# （script injection）などを担う（docs/adr/0153-ci-configuration.md）。
 "aqua:zizmorcore/zizmor" = "1.29.0"
 
 # セキュリティスキャナ（make secret-scan / make trivy-fs）
 "aqua:gitleaks/gitleaks" = "8.30.1"
 "aqua:aquasecurity/trivy" = "0.72.0"
-# portable な SAST（make sast）。Semgrep 互換のルールを読むが、Semgrep 本体ではなく OSS fork の
-# opengrep を採る。CodeQL は GitHub の外へ持ち出せず、private + GHAS 無しの fork 先では層ごと
-# 消えるため、持ち出せる SAST を別に持つ（docs/adr/0110-security-operations.md）。
 "aqua:opengrep/opengrep" = "1.26.0"
-# 依存の脆弱性を OSV データベースで見る（make osv-scan）。Trivy とも pnpm audit とも参照先が
-# 違うため件数は一致しない。和集合を正とする決定は 0110 が持つ。
 "aqua:google/osv-scanner" = "2.4.0"
-# データがプロセスの外（log / 外向き要求 / 第三者クライアント）へ出る地点を、その値が何かの
-# 分類と併せて見る（make bearer-scan）。パターンと taint はこの問いに答えない。
 "aqua:Bearer/bearer" = "2.1.0"
 
-# 外部スキル（AI アシスタント向け。scripts/bootstrap-external-skills.ts が導入する）
-# uv は pipx backend の実行系（[settings] pipx.uvx）。graphifyy の解決を実行者の環境から切り離すために版を固定する。
+# AI アシスタント向け
 "aqua:astral-sh/uv" = "0.11.27"
-# コードベース知識グラフ（/graphify）。PyPI パッケージ名は graphifyy（y 2 つ）で CLI 名が graphify。
-# `graphify`（y 1 つ）は PyPI の空き名なので、手順書に書くときも必ず graphifyy を使う。
-# 版は「最新」ではなく「PyPI のクールダウン 7 日（docs/adr/0110-security-operations.md）を満たす最新」を採る。
-# 上流は高頻度でリリースするため、この pin は構造的に最新から数日遅れる。
+# `graphify`（y 1 つ）は PyPI の空き名。綴りは必ず graphifyy
 "pipx:graphifyy" = "0.9.25"
+
+# 画面の実測（AI アシスタント向け）
+"aqua:vercel-labs/agent-browser" = "0.34.0"
