@@ -78,13 +78,13 @@ describe("recommend", () => {
 
   it("理由が複数当たれば、宣言の順に並べて全て挙げる", () => {
     const [recommendation] = recommend(
-      [change("src/proxy.ts"), change("e2e/lib/screens.ts")],
+      [change("src/proxy.ts"), change("e2e/journeys/browse.spec.ts")],
       ["run-a11y", "run-lighthouse"],
     );
 
     expect(recommendation?.reasons).toStrictEqual([
       "全てのリクエストが通る proxy が動いています",
-      "ジャーニーと画面の宣言そのものが動いています",
+      "ジャーニーの宣言そのものが動いています",
     ]);
   });
 
@@ -112,15 +112,15 @@ describe("recommend", () => {
     expect(labelsOf([change("e2e/journeys/browse.spec.ts")])).toStrictEqual(["run-e2e"]);
   });
 
-  it("入れ子の画面の器が動けばジャーニーを勧める", () => {
-    expect(labelsOf([change("src/app/(shop)/layout.tsx")])).toStrictEqual(["run-e2e"]);
+  it("入れ子の画面の器が動けば、ジャーニーは自分で回るのでラベルを勧めない", () => {
+    expect(labelsOf([change("src/app/(shop)/layout.tsx")])).toStrictEqual([]);
   });
 
-  it("全画面が読む土台の CSS が動けばジャーニーを勧める", () => {
-    expect(labelsOf([change("src/app/globals.css")])).toStrictEqual(["run-e2e"]);
+  it("全画面が読む土台の CSS が動けば、ジャーニーは自分で回るのでラベルを勧めない", () => {
+    expect(labelsOf([change("src/app/globals.css")])).toStrictEqual([]);
     expect(
       labelsOf([change("src/components/design-system/foundation/scrollbar/scrollbar.css")]),
-    ).toStrictEqual(["run-e2e"]);
+    ).toStrictEqual([]);
   });
 
   it("配信ヘッダと画像・バンドルの既定を兼ねる設定は、ジャーニーと計測の両方を勧める", () => {
@@ -157,10 +157,14 @@ describe("recommend", () => {
     expect(labelsOf(changes, ["run-a11y"])).toStrictEqual(["run-e2e"]);
   });
 
-  it("器が動いて lighthouse が自分で測ると決めた差分では、計測のラベルを勧めない", () => {
-    expect(labelsOf([change("src/app/layout.tsx"), change("src/app/fonts.ts")])).toStrictEqual([
-      "run-e2e",
-    ]);
+  it("器が動いて両方が自分で回ると決めた差分では、どちらのラベルも勧めない", () => {
+    expect(labelsOf([change("src/app/layout.tsx"), change("src/app/fonts.ts")])).toStrictEqual([]);
+  });
+
+  it("画面の宣言が動いて e2e が自分で回ると決めても、他の検査は勧める", () => {
+    expect(
+      labelsOf([change("e2e/lib/screens.ts"), change("src/features/cart/cart-view.stories.tsx")]),
+    ).toStrictEqual(["run-a11y"]);
   });
 });
 
