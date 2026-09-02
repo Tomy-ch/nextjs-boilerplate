@@ -13,8 +13,11 @@ import { deviceFor, SHOT_ENGINE } from "./e2e/lib/browsers";
  * **基準画像を撮りません。** 見るのは応答の成立であって見た目ではなく、停止画面の見た目は
  * 通常の巡回が `/maintenance` を開いて撮っています。したがってフォントのラスタライズを
  * 揃える必要が無く、描画エンジンも 1 つで足ります。
+ *
+ * 開く先はこの手元の宿に固定します。測る相手は**この設定自身が起動させたアプリ**であり、
+ * 繋ぎ先が配信物に入ることはありません。別の宿へ向けるときだけ `E2E_BASE_URL` を渡します。
  */
-const BASE_URL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
+const BASE_URL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000"; // DevSkim: ignore DS162092
 
 export default defineConfig({
   testDir: "./e2e/maintenance",
