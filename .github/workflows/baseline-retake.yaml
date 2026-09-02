@@ -410,19 +410,34 @@ jobs:
         run: |
           set -euo pipefail
 
-          orphans=false
-          if [ "$MODE" != 'full' ]; then
-            orphans="$(pnpm exec tsx scripts/vrt orphans tmp/vrt/report.json)"
-          fi
-
-          if [ "$MODE" = 'full' ] || [ "$orphans" = 'true' ]; then
+          if [ "$MODE" = 'full' ]; then
             echo 'taken=全 story' >> "$GITHUB_OUTPUT"
             make vrt-update
             exit 0
           fi
 
-          ids="$(pnpm exec tsx scripts/vrt ids tmp/vrt/report.json)"
-          if [ -z "$ids" ]; then
+          # An orphan cannot be retaken — nothing renders it any more, so it is deleted.
+          # Naming the files instead of falling back to the whole set is what keeps the
+          # retake bounded: a full retake adopts whatever every other story happened to
+          # render at that moment, and those images were never reported (#502).
+          orphans="$(pnpm exec tsx scripts/vrt orphans tmp/vrt/report.json)"
+          if [ -n "$orphans" ]; then
+            echo "$orphans" | while IFS= read -r baseline; do
+              [ -n "$baseline" ] || continue
+              rm -f "baseline/images/${baseline}"
+            done
+          fi
+
+          # A story whose baseline is missing fails its own comparison, so it is already in
+          # the reported ids — except when the comparison was skipped, where the one-to-one
+          # check is the only thing that reports it.
+          ids="$(
+            {
+              pnpm exec tsx scripts/vrt ids tmp/vrt/report.json | tr ',' '\n'
+              pnpm exec tsx scripts/vrt missing tmp/vrt/report.json
+            } | grep -v '^$' | sort -u | paste -sd, -
+          )"
+          if [ -z "$ids" ] && [ -z "$orphans" ]; then
             echo '❌ 報告に差分がありません。撮り直す対象がありません。'
             exit 1
           fi
@@ -436,8 +451,10 @@ jobs:
             exit 1
           fi
 
-          echo "taken=${ids}" >> "$GITHUB_OUTPUT"
-          make vrt-update VRT_ONLY="$ids"
+          echo "taken=${ids:-孤児の削除のみ}" >> "$GITHUB_OUTPUT"
+          if [ -n "$ids" ]; then
+            make vrt-update VRT_ONLY="$ids"
+          fi
 
       - name: Retake the screen baselines
         id: retake-screens
@@ -450,17 +467,29 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Screens fall back to the full set on an orphan for the same reason stories do,
-          # and their names are checked against the same set before they leave this step.
-          if [ "$MODE" = 'full' ] ||
-            [ "$(pnpm exec tsx scripts/e2e orphans tmp/e2e/report.json)" = 'true' ]; then
+          if [ "$MODE" = 'full' ]; then
             echo 'taken=全画面' >> "$GITHUB_OUTPUT"
             make e2e-update
             exit 0
           fi
 
-          names="$(pnpm exec tsx scripts/e2e names tmp/e2e/report.json)"
-          if [ -z "$names" ]; then
+          # Same bounding as the stories above: delete what has no screen left, retake what
+          # was reported plus what has no baseline yet.
+          orphans="$(pnpm exec tsx scripts/e2e orphans tmp/e2e/report.json)"
+          if [ -n "$orphans" ]; then
+            echo "$orphans" | while IFS= read -r baseline; do
+              [ -n "$baseline" ] || continue
+              rm -f "baseline/images/${baseline}"
+            done
+          fi
+
+          names="$(
+            {
+              pnpm exec tsx scripts/e2e names tmp/e2e/report.json | tr ',' '\n'
+              pnpm exec tsx scripts/e2e missing tmp/e2e/report.json
+            } | grep -v '^$' | sort -u | paste -sd, -
+          )"
+          if [ -z "$names" ] && [ -z "$orphans" ]; then
             echo '❌ 画面の報告に差分がありません。撮り直す対象がありません。'
             exit 1
           fi
@@ -469,8 +498,10 @@ jobs:
             exit 1
           fi
 
-          echo "taken=${names}" >> "$GITHUB_OUTPUT"
-          make e2e-update E2E_ONLY="$names"
+          echo "taken=${names:-孤児の削除のみ}" >> "$GITHUB_OUTPUT"
+          if [ -n "$names" ]; then
+            make e2e-update E2E_ONLY="$names"
+          fi
 
       - name: Note what was retaken
         id: retake

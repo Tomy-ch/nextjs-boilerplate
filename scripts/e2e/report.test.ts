@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-
-import { SCREEN_BASELINE_TAG } from "../../e2e/lib/screen-baselines";
-import { collectFailedScreens, formatScreenNames, hasScreenBaselineFailure } from "./report";
+import { collectFailedScreens, formatScreenNames } from "./report";
 
 const VISUAL = "e2e/visual/screens.spec.ts";
 
@@ -116,50 +114,5 @@ describe("formatScreenNames", () => {
 
   it("1 件も落ちていなければ空を返す", () => {
     expect(formatScreenNames([])).toBe("");
-  });
-});
-
-describe("hasScreenBaselineFailure", () => {
-  // ----- 正常系 -----
-  it("対応の検査が落ちていれば真を返す", () => {
-    const json = reportOf([
-      { file: VISUAL, tags: [SCREEN_BASELINE_TAG], title: "対応", tests: [test({})] },
-    ]);
-
-    expect(hasScreenBaselineFailure(json)).toBe(true);
-  });
-
-  it("対応の検査が通っていれば偽を返す", () => {
-    const json = reportOf([
-      {
-        file: VISUAL,
-        tags: [SCREEN_BASELINE_TAG],
-        title: "対応",
-        tests: [test({ status: "expected" })],
-      },
-    ]);
-
-    expect(hasScreenBaselineFailure(json)).toBe(false);
-  });
-
-  it("画面の失敗を対応の失敗と混同しない", () => {
-    const json = reportOf([
-      { file: VISUAL, title: "about", tests: [test({})] },
-      {
-        file: VISUAL,
-        tags: [SCREEN_BASELINE_TAG],
-        title: "対応",
-        tests: [test({ status: "expected" })],
-      },
-    ]);
-
-    expect(hasScreenBaselineFailure(json)).toBe(false);
-  });
-
-  // ----- 異常系 -----
-  it("対応の検査を含まないレポートを弾く", () => {
-    const json = reportOf([{ file: VISUAL, title: "about", tests: [test({})] }]);
-
-    expect(() => hasScreenBaselineFailure(json)).toThrow(SCREEN_BASELINE_TAG);
   });
 });

@@ -4,7 +4,7 @@
 // 見直す範囲で、どれも同じ集合であることに意味がある。一覧に出ていない画面が承認で撮り直され
 // ると、報告されていない差分が黙って基準画像へ入る（story 側と同じ不変条件）。
 import { SCREEN_BASELINE_TAG } from "../../e2e/lib/screen-baselines.js";
-import { asArray, type JSONTest, parseSpecs, tagName } from "../lib/playwright-report.js";
+import { asArray, isFailed, type JSONTest, parseSpecs, tagName } from "../lib/playwright-report.js";
 
 /** 画面の見た目を比べている spec の在り処。ここに居ない spec はジャーニーなので対象外。 */
 const VISUAL_SPEC = "visual/screens.spec.ts";
@@ -24,8 +24,9 @@ export type ScreenFailure = {
  * 画面を比べている spec が 1 つも見つからなければ例外を投げます。0 件へ縮退させると、レポートの
  * 形か spec の置き場所が変わったときに「差分なし」と読めてしまいます。
  *
- * 1 対 1 の対応を見る spec は画面ではないので外します。落ちたときに要るのは全数の撮り直しで
- * あって、名指しで開き直すことではありません（{@link hasScreenBaselineFailure}）。
+ * 1 対 1 の対応を見る spec は画面ではないので外します。あの検査が落ちたときに要るのは、孤児を
+ * 消すことと欠けているぶんを撮ることで、どちらも別の一覧が運びます
+ * （{@link collectOrphanScreenBaselines} / {@link collectMissingScreenBaselines}）。
  *
  * @param json - Playwright の JSON レポート
  */
@@ -46,7 +47,7 @@ export function collectFailedScreens(json: string): ScreenFailure[] {
     }
 
     for (const test of asArray<JSONTest>(spec.tests)) {
-      if (test.status === "expected") continue;
+      if (!isFailed(test)) continue;
       failures.push({
         name: typeof spec.title === "string" ? spec.title : "",
         band: typeof test.projectName === "string" ? test.projectName : "",
@@ -60,31 +61,4 @@ export function collectFailedScreens(json: string): ScreenFailure[] {
 /** 手元で見直す範囲として渡す画面の名前。帯違いは同じ名前なので 1 件に畳む。 */
 export function formatScreenNames(failures: readonly ScreenFailure[]): string {
   return [...new Set(failures.map((failure) => failure.name))].sort().join(",");
-}
-
-/**
- * 基準画像と撮影対象の 1 対 1 対応が落ちたか。
- *
- * @remarks
- * この検査は画面ではないので {@link collectFailedScreens} は拾いません。落ちたときに要るのは
- * **全数の撮り直し**で、レポートに検査そのものが無ければ例外を投げます（0 件を「孤児なし」と
- * 答えない）。どちらの理由も story 側の同じ検査（`scripts/vrt/report.ts` の `hasBaselineFailure`）
- * と共通で、根拠は `baseline/lib/store.ts` が持ちます。
- *
- * @param json - Playwright の JSON レポート
- */
-export function hasScreenBaselineFailure(json: string): boolean {
-  const checks = parseSpecs(json).filter((spec) =>
-    asArray(spec.tags).some((tag) => tagName(tag) === tagName(SCREEN_BASELINE_TAG)),
-  );
-
-  if (checks.length === 0) {
-    throw new Error(
-      `レポートに ${SCREEN_BASELINE_TAG} の spec がありません。全数の報告でないか、tag の載り方が変わっています`,
-    );
-  }
-
-  return checks.some((spec) =>
-    asArray<JSONTest>(spec.tests).some((test) => test.status !== "expected"),
-  );
 }
