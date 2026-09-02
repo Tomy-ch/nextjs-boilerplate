@@ -1404,6 +1404,8 @@ sources:
 
 機能が出揃ってから掛ける横断的関心事。
 
+> **9 件とも着地済み。** 以降に残っているのは計画外の監視項目であって、この Phase の PR ではない。
+
 ### P6-1: クライアント観測性
 
 - **目的**: ブラウザ側のシグナルを OTLP へ集約する
@@ -1427,11 +1429,12 @@ sources:
 - **主な変更先**:
   - `next.config.ts` or `src/proxy.ts` — CSP / セキュリティヘッダ(**seam B へ反転した場合のみ** nonce 生成)
   - `docs/adr/0111-csp-security-headers.md` — **CSP enforce seam の確定追補**(§3.9。P0-4 から移管)
-  - `.github/workflows/csp-check.yaml` — inline 違反検出 + ヘッダ well-formed 検証
+  - `src/config/security-headers/` — ヘッダの組み立てと、その単体検査
+  - `e2e/lib/test.ts` / `e2e/journeys/csp.spec.ts` — **enforce の結果を実ブラウザで見る側**。違反は `securitypolicyviolation` で受ける（ヘッダを読むだけの検査は `Report-Only` でも通る）
 - **設計**: `img-src` に `MEDIA_ORIGIN` を含める必要がある(本書 §3.2)。**`script-src` の方式は未決 #1 の確定に従う**(seam A 既定 = 静的維持。seam B へ反転した場合のみ nonce)。`next/script` の strategy 使い分けは `rules.md` #50
 - **注意**: **[0111](../adr/0111-csp-security-headers.md)(実行時本体)と [0110](../adr/0110-security-operations.md)(CI 適合スライス)は両輪であり、片側だけでは閉じない**
 - **入力**: `.github/zap/rules.tsv` の一覧。DAST([0110](../adr/0110-security-operations.md) 3.5)を先に置いてあるので、**配信面に何が足りないかは実測済みで並んでいる**。本 PR は「その一覧を空にする作業」であり、1 行 = 1 ヘッダ = 1 作業単位として並行して潰せる
-- **完了条件**: 全画面が CSP 違反ゼロで動作する。意図的に inline script を入れると CI が fail する。**0111 に enforce seam の確定が記録されている**。**`rules.tsv` からヘッダ由来の行が消えている**
+- **完了条件**: 全画面が CSP 違反ゼロで動作する。宣言に無い配信元の script を差すと CI が fail する。**0111 に enforce seam の確定が記録されている**。**`rules.tsv` に残るヘッダ由来の行が、0111 が明示的に受け入れた弱い許可（`script-src` の `'unsafe-inline'`）だけになり、撤回条件を持っている**
 - **依存**: P5-16, **P6-8**(CSP seam と Cache Components を同時に決めるため — §3.9)
 
 ### P6-3: SEO / metadata + fonts
