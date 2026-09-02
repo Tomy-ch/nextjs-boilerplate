@@ -7,21 +7,25 @@
 //   orphans <report.json>   撮影対象を失った基準画像の相対パス（1 行 1 件）
 //   missing <report.json>   基準画像を持たない画面の名前（1 行 1 件）
 //   clear-screens           全数撮り直しの前に、画面の基準画像を置き場から消す
+//   trigger <base ref>      その差分を PR で回すべきかを GitHub の出力へ書く
 //   serve-partner <host> <port>  宣言した別 origin の文書だけを返すサーバを、止められるまで立てる
 //
 // story 単位の側（`scripts/vrt`）と語彙を揃える。撮り直す範囲は報告した集合と同じ出所から取る
 // —— 報告に出ていない差分を撮り直しの対象に入れないため（`vrt/README.md`）。
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { appendFileSync, existsSync, readFileSync, rmSync } from "node:fs";
 
 import { SCREEN_AREA, STORE_PATH } from "../../baseline/lib/store.js";
 import { SCREEN_BASELINE_TAG } from "../../e2e/lib/screen-baselines.js";
 import { baselinelessTargets, orphanedBaselines } from "../lib/baseline-gap.js";
+import { numstatArgs, parseNumstat } from "../lib/numstat.js";
 import { classifyFailure, composeNotes } from "./comment.js";
 import { servePartnerOrigin } from "./partner-origin.js";
 import { collectFailedScreens, formatScreenNames } from "./report.js";
+import { decideTrigger } from "./trigger.js";
 
 const USAGE =
-  "usage: e2e <comment <full.log> <report.json>|names|orphans|missing <report.json>|clear-screens|serve-partner <host> <port>>";
+  "usage: e2e <comment <full.log> <report.json>|names|orphans|missing <report.json>|clear-screens|trigger <base ref>|serve-partner <host> <port>>";
 
 function main(): void {
   const [command, file, port] = process.argv.slice(2);
@@ -35,6 +39,13 @@ function main(): void {
 
   if (command === "clear-screens") {
     clearScreens();
+
+    return;
+  }
+
+  if (command === "trigger") {
+    if (!file) fail(USAGE);
+    trigger(file);
 
     return;
   }
@@ -65,6 +76,39 @@ function pick(command: string, json: string): string {
   if (command === "orphans") return orphanedBaselines(json, SCREEN_BASELINE_TAG).join("\n");
 
   return baselinelessTargets(json, SCREEN_BASELINE_TAG).join("\n");
+}
+
+/**
+ * 差分を判定し、GitHub Actions の出力へ書く。
+ *
+ * @remarks
+ * `kind` が `force` ならラベルが無くても回し、`skip` なら保護ブランチの実行に任せます。判定
+ * そのものは [`trigger.ts`](trigger.ts) が持ちます。
+ */
+function trigger(baseRef: string): void {
+  const numstat = spawnSync("git", numstatArgs([`${baseRef}...HEAD`]), { encoding: "utf8" });
+
+  if (numstat.status !== 0) {
+    fail(`${baseRef} との差分を取れませんでした。base を fetch していますか。`);
+  }
+
+  const decision = decideTrigger(parseNumstat(numstat.stdout));
+  const output = process.env.GITHUB_OUTPUT;
+
+  if (output === undefined) {
+    fail("GITHUB_OUTPUT がありません。この副命令は CI から呼ばれます。");
+  }
+
+  appendFileSync(
+    output,
+    [
+      `kind=${decision.kind}`,
+      `detail=${decision.kind === "force" ? decision.reasons.join(" / ") : ""}`,
+      "",
+    ].join("\n"),
+  );
+
+  console.error(`🔎 ${decision.kind}`);
 }
 
 // 落ちた画面の名前は、報告が読めなければ空にする。案内そのものは出したいので、ここで落とさない

@@ -11,9 +11,10 @@
  * 勧める」へ戻り、行数だけを見ていた頃と同じものになります。
  */
 
+import { decideTrigger as decideE2eTrigger } from "../e2e/trigger";
 import type { Change } from "../lib/numstat";
 import { toPathPattern } from "../lib/path-pattern";
-import { decideTrigger } from "../lighthouse/trigger";
+import { decideTrigger as decideLighthouseTrigger } from "../lighthouse/trigger";
 import { movesResult } from "./subject";
 
 /** 勧める理由 1 件と、それに当たるパス。 */
@@ -82,16 +83,8 @@ export const CHECKS: readonly Check[] = [
         reason: "全ての応答に載る配信ヘッダが動いています。CSP の違反は実ブラウザでしか出ません",
       },
       {
-        globs: ["src/app/**/layout.tsx"],
-        reason: "全ての画面が通る器が動いています",
-      },
-      {
-        globs: ["src/app/globals.css", "src/components/design-system/foundation/**/*.css"],
-        reason: "全ての画面が読む土台の CSS が動いています。1 つの宣言で全画面の折り返しが動きます",
-      },
-      {
-        globs: ["e2e/lib/screens.ts", "e2e/journeys/**/*.spec.ts"],
-        reason: "ジャーニーと画面の宣言そのものが動いています",
+        globs: ["e2e/journeys/**/*.spec.ts"],
+        reason: "ジャーニーの宣言そのものが動いています",
       },
       {
         globs: ["mocks/**/*.ts"],
@@ -155,15 +148,20 @@ export function pending(labels: readonly string[]): CheckSummary[] {
  * 既に付いているラベルは挙げません。**検査ごとに落とします** —— 1 枚付いたことを理由に残る 2 つ
  * まで黙ると、付けた人が見なかった検査が名指しされないまま消えます。
  *
- * `lighthouse` は、[`../lighthouse/trigger.ts`](../lighthouse/trigger.ts) が構造を見て問答無用で
- * 測る差分では挙げません。既に測る PR へ「測るためのラベルを付けろ」と言うのは誤りです。
+ * `lighthouse` と `e2e` は、それぞれの `trigger.ts` が構造を見て問答無用で回す差分では挙げません。
+ * 既に回る PR へ「回すためのラベルを付けろ」と言うのは誤りです。
  */
 export function recommend(changes: readonly Change[], labels: readonly string[]): Recommendation[] {
   const paths = changes.map((change) => change.path).filter(movesResult);
-  const measured = decideTrigger(changes).kind === "force";
+  const forced = new Set(
+    [
+      decideLighthouseTrigger(changes).kind === "force" ? "run-lighthouse" : undefined,
+      decideE2eTrigger(changes).kind === "force" ? "run-e2e" : undefined,
+    ].filter((label): label is string => label !== undefined),
+  );
 
   return CHECKS.filter((check) => !labels.includes(check.label))
-    .filter((check) => !(measured && check.label === "run-lighthouse"))
+    .filter((check) => !forced.has(check.label))
     .map((check) => ({
       label: check.label,
       runs: check.runs,
