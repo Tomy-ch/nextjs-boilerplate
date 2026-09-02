@@ -7,15 +7,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FILTER_KEY, type ProductListSelection } from "../facade/list-url/list-url";
 
-const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+const { push, replace } = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 
 import { ProductFilterDraftProvider, useProductFilterDraft } from "./filter-draft";
 
 /** 下書きの中身と操作だけを出す部品。 */
 function Probe() {
-  const { draft, pending, change, commit, clear, apply } = useProductFilterDraft();
+  const { draft, pending, change, commit, clear, apply, applyInPlace } = useProductFilterDraft();
   const select = useCallback(() => {
     change({ ...draft, [FILTER_KEY.CATEGORY]: ["10"] });
   }, [change, draft]);
@@ -39,6 +39,9 @@ function Probe() {
       <button onClick={apply} type="button">
         反映
       </button>
+      <button onClick={applyInPlace} type="button">
+        積まずに反映
+      </button>
     </>
   );
 }
@@ -55,7 +58,10 @@ function shownDraft(): Record<string, string | readonly string[]> {
   return JSON.parse(screen.getAllByText(/^\{/)[0]?.textContent ?? "{}");
 }
 
-beforeEach(() => push.mockReset());
+beforeEach(() => {
+  push.mockReset();
+  replace.mockReset();
+});
 
 describe("ProductFilterDraftProvider", () => {
   it("いま効いている条件を下書きの初期値にする", () => {
@@ -96,6 +102,16 @@ describe("ProductFilterDraftProvider", () => {
     await userEvent.click(screen.getByRole("button", { name: "分類を選んで反映" }));
 
     expect(shownDraft()).toEqual({ [FILTER_KEY.CATEGORY]: ["20"] });
+  });
+
+  it("積まずに反映すると、履歴を増やさずに同じ URL へ移る", async () => {
+    renderProbe({ [FILTER_KEY.KEYWORD]: "鞄" });
+
+    await userEvent.click(screen.getByRole("button", { name: "分類を選ぶ" }));
+    await userEvent.click(screen.getByRole("button", { name: "積まずに反映" }));
+
+    expect(replace).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("入力欄が受け持つ条件だけをまとめて外す", async () => {

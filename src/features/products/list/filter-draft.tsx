@@ -38,8 +38,18 @@ export type FilterDraft = {
   readonly commit: (next: ProductListSelection) => void;
   /** 入力欄が受け持つ条件をすべて外す。 */
   readonly clear: () => void;
-  /** 組み立てた条件を一覧へ反映する。 */
+  /** 組み立てた条件を一覧へ反映する。履歴を 1 つ積む。 */
   readonly apply: () => void;
+  /**
+   * 組み立てた条件を、いま居る履歴を差し替えて反映する。
+   *
+   * @remarks
+   * **overlay の中の確定はこちらを使います。** 背面を塞ぐ overlay は開いた時点で履歴を 1 つ
+   * 積んでおり（`use-overlay-history.ts`）、そのうえで積むと、戻る操作が 1 度は同じ URL へ
+   * 落ちて何も起きない回になります。差し替えれば、overlay が積んだ 1 件が結果の 1 件へ
+   * 置き換わり、戻る操作は条件を付ける前の一覧へ 1 度で戻ります。
+   */
+  readonly applyInPlace: () => void;
 };
 
 const FilterDraftContext = createContext<FilterDraft | null>(null);
@@ -89,9 +99,17 @@ export function ProductFilterDraftProvider({
   }
 
   const navigate = useCallback(
-    (next: ProductListSelection) => {
+    (next: ProductListSelection, inPlace = false) => {
       startTransition(() => {
-        router.push(toProductListHref(next));
+        const href = toProductListHref(next);
+
+        if (inPlace) {
+          router.replace(href);
+
+          return;
+        }
+
+        router.push(href);
       });
     },
     [router],
@@ -120,9 +138,13 @@ export function ProductFilterDraftProvider({
     navigate(draft);
   }, [draft, navigate]);
 
+  const applyInPlace = useCallback(() => {
+    navigate(draft, true);
+  }, [draft, navigate]);
+
   const value = useMemo(
-    () => ({ draft, pending, change, commit, clear, apply }),
-    [draft, pending, change, commit, clear, apply],
+    () => ({ draft, pending, change, commit, clear, apply, applyInPlace }),
+    [draft, pending, change, commit, clear, apply, applyInPlace],
   );
 
   return <FilterDraftContext value={value}>{children}</FilterDraftContext>;

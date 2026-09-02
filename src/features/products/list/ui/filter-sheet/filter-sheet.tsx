@@ -19,6 +19,7 @@ import { FilterBarTrigger } from "@/components/patterns/filter-bar/filter-bar";
 import {
   FILTER_KEY,
   type ProductListSelection,
+  toProductListHref,
   toSelectedValues,
 } from "../../../facade/list-url/list-url";
 import { useProductFilterDraft } from "../../filter-draft";
@@ -57,6 +58,14 @@ function countActive(selection: ProductListSelection): number {
  * 見えないので、選んだ時点では反映せず、確定の操作を overlay の下端へ置きます。反映を待たずに
  * 結果の大きさが分かるよう、開いている間の該当件数もそこへ出します。
  *
+ * **確定では閉じません。閉じるのは、確定した条件が一覧へ届いたときです。** 閉じる操作と遷移を
+ * 同じ操作で撃つと、overlay が積んだ履歴を戻す動きが、まだ URL へ届いていない遷移を打ち消します
+ * （[use-overlay-history](../../../../../components/design-system/overlay/use-overlay-history.ts)）。
+ * 待っているあいだ overlay は開いたままなので、`aria-busy` で支援技術へ伝えます。
+ *
+ * **確定は履歴を積まずに差し替えます。** 開いた時点で overlay が 1 つ積んでいるので、そのうえで
+ * 積むと戻る操作が 1 度空振りします（`applyInPlace`）。
+ *
  * **開くときに下書きを捨てません。** 下書きは画面で 1 つで、閉じている間もキーワードの入力欄が
  * その一部を見せています。ここで戻すと、打ち込んだ検索語まで一緒に消えます。一覧に効いている条件が
  * 変われば下書きはそちらへ揃うので、確定した後に古い選択が残ることはありません。
@@ -72,13 +81,28 @@ export function ProductFilterSheet({
   "use memo";
 
   const [open, setOpen] = useState(false);
-  const { draft, change, clear, apply } = useProductFilterDraft();
+  const { draft, pending, change, clear, applyInPlace } = useProductFilterDraft();
   const { count } = useFilteredCount(draft);
+  const appliedHref = toProductListHref(selection);
+  const [knownHref, setKnownHref] = useState(appliedHref);
+
+  // 一覧に効いている条件が変わったら閉じる。確定で閉じるのではなく、確定した結果が届いたことで
+  // 閉じる。
+  if (knownHref !== appliedHref) {
+    setKnownHref(appliedHref);
+    setOpen(false);
+  }
 
   const confirm = useCallback(() => {
-    setOpen(false);
-    apply();
-  }, [apply]);
+    // 条件が変わらないなら届くものが無いので、その場で閉じる。
+    if (toProductListHref(draft) === appliedHref) {
+      setOpen(false);
+
+      return;
+    }
+
+    applyInPlace();
+  }, [appliedHref, applyInPlace, draft]);
 
   return (
     <Sheet onOpenChange={setOpen} open={open}>
@@ -87,7 +111,7 @@ export function ProductFilterSheet({
           <FilterBarTrigger className="w-full" count={countActive(selection)} />
         </SheetTrigger>
       </ActionBar>
-      <SheetContent className="flex flex-col" side="bottom">
+      <SheetContent aria-busy={pending} className="flex flex-col" side="bottom">
         <SheetHeader>
           <SheetTitle>絞り込み</SheetTitle>
           <SheetDescription>条件を選んでから、下の操作で一覧に反映します。</SheetDescription>
