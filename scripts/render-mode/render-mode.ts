@@ -118,9 +118,16 @@ export function formatRenderModeDrift(drift: readonly RenderModeDrift[]): string
     .join("\n");
 }
 
+/** 扱いごとの綴り。RenderMode を鍵にするので、扱いを足すと網羅が型で要求される。 */
+const MODE_LABELS: Record<RenderMode, string> = {
+  static: "○ 静的",
+  partial: "◐ 部分",
+  blocking: "ƒ 動的",
+};
+
 /** 扱いを、報告に使う綴りへ直す。 */
 function labelOf(mode: RenderMode): string {
-  return mode === "static" ? "○ 静的" : mode === "partial" ? "◐ 部分" : "ƒ 動的";
+  return MODE_LABELS[mode];
 }
 
 /**

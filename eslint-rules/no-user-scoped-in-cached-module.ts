@@ -43,17 +43,30 @@ function isServerCacheDirective(value: string): boolean {
 }
 
 /**
+ * import の綴りから、拡張子を除いた実ファイルの位置を組む。組めない綴りは `undefined`。
+ *
+ * 扱うのは別名（`@/`）と相対だけで、素の package 名はここで落ちる。
+ */
+function moduleBase(specifier: string, filename: string, cwd: string): string | undefined {
+  if (specifier.startsWith("@/")) {
+    return join(cwd, "src", specifier.slice("@/".length));
+  }
+
+  if (specifier.startsWith(".")) {
+    return resolve(dirname(filename), specifier);
+  }
+
+  return undefined;
+}
+
+/**
  * import の綴りを実ファイルへ解決する。解決できなければ `undefined`。
  *
  * 見るのはこのリポジトリのソースだけである。依存パッケージは取得の口を持たないうえ、解決に
  * `node_modules` の探索が要る。
  */
 function resolveModule(specifier: string, filename: string, cwd: string): string | undefined {
-  const base = specifier.startsWith("@/")
-    ? join(cwd, "src", specifier.slice("@/".length))
-    : specifier.startsWith(".")
-      ? resolve(dirname(filename), specifier)
-      : undefined;
+  const base = moduleBase(specifier, filename, cwd);
 
   if (base === undefined) {
     return undefined;

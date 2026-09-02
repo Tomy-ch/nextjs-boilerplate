@@ -45,8 +45,7 @@ function attributesOf(tag: string): Map<string, string> {
       continue;
     }
 
-    const tokens = before.slice(0, -1).split(/[\s<]+/);
-    const name = tokens[tokens.length - 1];
+    const [name] = before.slice(0, -1).split(/[\s<]+/).slice(-1);
 
     attributes.set(name.toLowerCase(), parts[index]);
   }
