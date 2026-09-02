@@ -70,6 +70,7 @@
 | 86 | **取得する PII を最小化する。** 一部しか使わないのに User オブジェクト全体を取得・保持・送信しない。必要な属性を特定し、取得の口で詰め替える。 | adapters テストとレビュー。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) |
 | 87 | **主体に紐づく応答の `Cache-Control` を画面や Route Handler ごとに書かない。** session cookie を載せた要求への応答には `src/proxy.ts` が `private, no-store` を一律に付ける（`matcher` が除外する `_next/static` / `_next/image` / `favicon.ico` は対象外。主体固有の画像を `next/image` に載せるなら除外を見直す）。共有キャッシュを許してよいのは、資格情報を載せずに取れる応答だけ。 | `src/proxy.test.ts` と E2E（静的な画面でもヘッダが残ること）。 | [ADR 0112](adr/0112-data-classification-cache-boundary.md) / [ADR 0111](adr/0111-csp-security-headers.md) |
 | 88 | **最適化の効果を A/B で判定する前に、同一の成果物を 2 度測ってノイズの床を出す。** 床を超えない差は効果として報告しない。1 回ずつ比べると、施策の有無ではなく実行の順番を測ることになる。 | 散文。 | [ADR 0101](adr/0101-performance-budget.md) |
+| 89 | **背面を塞ぐ overlay の中から遷移するときは、閉じる操作を同時に撃たない。** overlay は戻る操作のために履歴を 1 つ積んでおり、閉じるときにそれを戻す。client 側の遷移は取得が終わるまで URL を動かさないため、同じ操作で閉じると、その戻しが遷移を消す。**遷移が届いたこと（効いている条件・データが変わったこと）で閉じる。**積んだ 1 件は結果で差し替える（`router.replace`）—— そのうえで積むと戻る操作が 1 度空振りする。 | 散文と E2E（`e2e/journeys/browse.spec.ts`）。 | [ADR 0053](adr/0053-ui-component-interaction-seam.md) |
 
 ## 運用
 
