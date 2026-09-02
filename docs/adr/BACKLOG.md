@@ -59,11 +59,13 @@
 | **T2** | 0002 | formatter-linter (biome) | ✅ | ✅ | T1 | biome 優先 / biome 非対応検査のみ ESLint 補完 (能力ベース・重複禁止・縮小方向) / フォーマッタは biome 単独 / Prettier 不採用 / VSCode 連携 / **tsconfig 追加フラグ 5 件 + `target` 引き上げ**(型で捕まえる検査は tsc 側) |
 | **T3** | 0003 | version-manager (mise) | ✅ | ✅ | T1 | ツール・言語バージョンの SSOT に `mise.toml` を採用 / 配送層への mise 拡張禁止 |
 | **T4** | 0004 | library-management | ✅ | ✅ | T1 | npm 依存の選定・固定・更新・監査メタ方針 / コア依存は exact pin / メジャー更新は別 PR / 一次判定 (単一責務 × 単一 upstream) + 例外パス + fork コスト上限 |
+| **T5** | 0156 | ブラウザ実測ツール | ✅ | ⚠️ | T1, T3, B8 | 観測の 3 レーン(見る・触る / 測る / 掘る)と問い 1 つに道具 1 つ / CLI 前提・MCP 登録しない / 実ブラウザのプロファイルへ接続しない / 取得経路は Node パッケージ=pnpm・単体バイナリ=mise(`npm:` backend 不採用) / 基準画像とゲートには接続しない |
 
 ### Tier 1 の実装ギャップ
 
 - **T2 (0002)**: 「biome 非対応検査は ESLint で補完」を採択し、A3 ([0021](0021-frontend-responsibility.md)) がプラグイン (`eslint-plugin-boundaries`)・層定義マッピング (依存マトリクス)・severity (error) を確定した。biome 側の設定に加えて ESLint も導入済みで、依存マトリクスは `architecture.ts` を正に `eslint.config.ts` が import し、層 README の frontmatter との突合は `check:architecture` が担う。いずれも `lint:ci` に直列で載る
 - **T4 (0004)**: ギャップ解消済み。主要 dev ツールは `typescript` を含め exact pin で整合し、PR テンプレート (`.github/pull_request_template.md`) に「ライブラリ採用チェック」節を組み込んだ
+- **T5 (0156)**: 道具は導入済み（`mise.toml` の `agent-browser` / devDependency の `chrome-devtools-mcp`）で、エージェントの許可は「末尾に自由な入力を残さない + フラグ等価の環境変数を固定」の形で担保済み。**未了は 2 点** —— 観測に使うブラウザをゲートと同じ chromium へ向ける環境変数の置き場が決まっておらず呼ぶ側で都度解決していること、「掘る」レーン（`chrome-devtools`）を実際の調査で通していないこと
 
 ---
 
@@ -314,6 +316,9 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 | **W42** | 回線の有無を読む hook(`useConnectivity`)を `capabilities` へ置かない | [0022](0022-capabilities-kernel.md) / [0020](0020-adopted-architecture.md) 設計原則 6 | **長寿命接続を持つ画面が本体に現れたとき** —— そこで初めて「回線が無い」と「接続が切れた」を区別して見せる必要が生まれる。**「送信の前にオフラインを知らせたい」ことは条件にならない** —— `navigator.onLine` は回線があってインターネットへ出られない状態を `true` と答えるため送信可否の判断に使えず、送れなかったことを伝える経路は [0063](0063-mutation-result-notification.md) が既に持っている |
 | **W43** | Web Worker のオフロード seam を置かない | [0022](0022-capabilities-kernel.md) | **client 側に、主スレッドを塞ぐ処理が実際に現れたとき**。現状は `canvas` / `FileReader` / client 側パースのいずれも使っておらず、画像も Server Action 経由で送っている。**「重い画面がある」ことは条件にならない** —— 重さの出どころが取得か描画なら、Worker は何も速くしない |
 | **W44** | 先送りにした検査を勧める宣言(`scripts/deferred-checks/recommend.ts` の `CHECKS`)が実態から剥がれたことを検出するゲートを置かない | [0153](0153-ci-configuration.md) 2 | **宣言が、ADR かフレームワークの規約で位置の決まっていないパスを持つようになったとき。** 現在の全 10 規則は他所が位置を固定している —— story と `mocks/` の置き場は [0027](0027-directory-structure.md)、token の SSOT は [0051](0051-styling-system.md) 1、`.storybook/` の差し替え宣言は [0054](0054-ui-catalog-storybook.md)、`proxy.ts` は [0043](0043-middleware-policy.md)、`fonts.ts` は [0045](0045-fonts-and-images.md)、`e2e/` は Playwright の `testDir`、`layout.tsx` と `next.config.ts` は Next.js 自身。fork がそこを動かすことは規約を捨てることを意味するので、宣言だけが黙って古くなる形にならない。もう一方は **`deferred-checks` が required check かゲートに変わったとき** —— 現状は死んだ規則の代償がコメント 1 件の欠落だが、ゲートになれば「検査していないのに緑」へ化ける。**「fork で規則が死んだ事例が出た」「サンプル破棄で対象が減った」ことは条件にならない** —— どちらも状態であり、実測では破棄後も全 10 規則が対象を持つ |
+| **W45** | 観測ツールを MCP サーバとしてエージェントへ登録しない (CLI から呼ぶ) | [0156](0156-browser-observation-tooling.md) | **CLI に生成されない道具でしか答えられない問いが実測で現れたとき** — 待機と一括入力は CLI へ生成されないが、待機が要る観測は別レーンが担うため現状は成立している。登録する場合も置き場は利用者のホーム側で、リポジトリには残さない。**「MCP のほうが呼びやすい」ことは条件にならない** — 文脈の常時消費と、fork へエージェント構成が降ることが対価である |
+| **W46** | 実ブラウザのログイン済みプロファイルへ接続しない | [0156](0156-browser-observation-tooling.md) | **観測対象が手元の開発サーバの外へ出たとき** — 現状の認証は開発時だけ有効なセッション発行の口で足りており、実ブラウザの権限を要する観測が無い。**「そのほうが手数が少ない」ことは条件にならない** — 接続した時点でそのプロファイルの全ウィンドウが観測側へ開く |
+| **W47** | npm パッケージを `mise` の `npm:` backend で取らない (`pnpm` を経由する) | [0156](0156-browser-observation-tooling.md) / [0001](0001-package-manager.md) | **`pnpm` が冷却期間・lockfile・公開日時を返さないレジストリの拒否を提供しなくなったとき。** 取得にかかる負荷は両者で変わらず、選んでいるのは取得の安全性である。**「mise に寄せると SSOT が 1 つになる」ことは条件にならない** — バイナリと npm パッケージでは配布経路も検疫の手段も異なる |
 
 新しく「やらない」を決めたら、**その場でここに撤回条件を書く**。条件を書けない「やらない」は、判断ではなく先送りである。
 
