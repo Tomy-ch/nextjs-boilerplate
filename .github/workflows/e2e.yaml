@@ -193,8 +193,14 @@ jobs:
 
       # Only asked when the cadence did not already say yes, because its answer can only add
       # a reason to run, never remove one.
+      #
+      # `continue-on-error` because failing here must not take the verdict with it. Every step
+      # below carries an implicit `success()`, so a failure would skip the stand-down note too
+      # and leave the pull request a red check with no comment at all — the one thing the note
+      # exists to prevent. `gate` reads the outcome instead and says what happened.
       - name: Decide whether the diff itself earns a run
         id: force
+        continue-on-error: true
         if: >-
           github.event_name == 'pull_request' &&
           steps.trigger.outputs.run != 'true' &&
@@ -211,13 +217,24 @@ jobs:
         env:
           CADENCE: ${{ steps.trigger.outputs.run }}
           FORCED: ${{ steps.force.outputs.kind }}
+          ASKED: ${{ steps.force.outcome }}
           RELEVANT: ${{ steps.scope.outputs.relevant }}
           DETAIL: ${{ steps.force.outputs.detail }}
         shell: bash
         run: |
           set -euo pipefail
 
-          if [ "${RELEVANT}" = 'true' ] && { [ "${CADENCE}" = 'true' ] || [ "${FORCED}" = 'force' ]; }; then
+          # A decision that could not be taken is not evidence that the diff does not earn a
+          # run, so it falls open — the same reading `diff-scope` applies to a diff it cannot
+          # take. It warns rather than notices: standing down would be the cheaper mistake to
+          # miss, and a silent fall-open reads afterwards like a diff that earned its run.
+          forced="${FORCED}"
+          if [ "${ASKED}" = 'failure' ]; then
+            echo '::warning::Could not decide whether the diff earns a run; running anyway.'
+            forced=force
+          fi
+
+          if [ "${RELEVANT}" = 'true' ] && { [ "${CADENCE}" = 'true' ] || [ "${forced}" = 'force' ]; }; then
             echo 'run=true' >> "$GITHUB_OUTPUT"
           else
             echo 'run=false' >> "$GITHUB_OUTPUT"

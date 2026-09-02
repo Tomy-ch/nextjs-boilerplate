@@ -18,6 +18,7 @@ import { appendFileSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { SCREEN_AREA, STORE_PATH } from "../../baseline/lib/store.js";
 import { SCREEN_BASELINE_TAG } from "../../e2e/lib/screen-baselines.js";
 import { baselinelessTargets, orphanedBaselines } from "../lib/baseline-gap.js";
+import { formatOutputLines } from "../lib/github-output.js";
 import { numstatArgs, parseNumstat } from "../lib/numstat.js";
 import { classifyFailure, composeNotes } from "./comment.js";
 import { servePartnerOrigin } from "./partner-origin.js";
@@ -101,11 +102,10 @@ function trigger(baseRef: string): void {
 
   appendFileSync(
     output,
-    [
+    formatOutputLines([
       `kind=${decision.kind}`,
       `detail=${decision.kind === "force" ? decision.reasons.join(" / ") : ""}`,
-      "",
-    ].join("\n"),
+    ]),
   );
 
   console.error(`🔎 ${decision.kind}`);
