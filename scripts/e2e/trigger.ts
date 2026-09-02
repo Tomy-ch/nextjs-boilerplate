@@ -40,7 +40,7 @@ export type Trigger =
  * 3 つとも「その差分が何を意味するか」で選んでいます。器と土台の CSS は全画面が通り、画面の宣言が
  * 動くのは**基準画像を一度も持っていない画面が生まれた**ときです。
  */
-export const FORCE_RULES: readonly PathRule[] = [
+const FORCE_RULES: readonly PathRule[] = [
   {
     globs: ["src/app/**/layout.tsx"],
     reason: "器（layout）が動いています。全ての画面がこれを通ります",
