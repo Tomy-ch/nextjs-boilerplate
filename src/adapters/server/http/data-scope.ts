@@ -24,7 +24,7 @@ export type DataScope = "public" | "user-scoped";
  * 名前を足しません —— 契約が独自に持つ識別子は、それを載せる口の分類が `user-scoped` になる
  * ことで覆います（[adapters](../../README.md)）。
  */
-const CREDENTIAL_HEADERS: readonly string[] = ["authorization", "cookie"];
+const CREDENTIAL_HEADERS: ReadonlySet<string> = new Set(["authorization", "cookie"]);
 
 /**
  * 呼び出しごとの指定が、口の分類に許された範囲に収まっていることを確かめる。
@@ -59,7 +59,7 @@ export function assertSpecWithinScope(
  */
 export function assertNoCredentialHeader(headers?: Readonly<Record<string, string>>): void {
   const credential = Object.keys(headers ?? {}).find((name) =>
-    CREDENTIAL_HEADERS.includes(name.toLowerCase()),
+    CREDENTIAL_HEADERS.has(name.toLowerCase()),
   );
 
   if (credential !== undefined) {

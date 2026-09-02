@@ -55,7 +55,7 @@ const PRODUCT_CATALOGUE = [
 /** 応答から、マスタの一覧として読める配列を取り出す。 */
 function entriesOf(response: unknown): readonly MasterEntry[] {
   if (!Array.isArray(response)) {
-    throw new Error("マスタの応答が一覧ではありません");
+    throw new TypeError("マスタの応答が一覧ではありません");
   }
 
   return response as readonly MasterEntry[];
@@ -87,7 +87,7 @@ function pick<T>(entries: readonly T[], current: unknown, shift = 0): T {
 /** object として読めない応答を弾く。 */
 function recordOf(response: unknown, subject: string): Record<string, unknown> {
   if (typeof response !== "object" || response === null) {
-    throw new Error(`${subject}の応答が object ではありません`);
+    throw new TypeError(`${subject}の応答が object ではありません`);
   }
 
   return response as Record<string, unknown>;
@@ -98,7 +98,7 @@ function arrayOf(record: Record<string, unknown>, key: string, subject: string):
   const value = record[key];
 
   if (!Array.isArray(value)) {
-    throw new Error(`${subject}の応答が ${key} の配列を持ちません`);
+    throw new TypeError(`${subject}の応答が ${key} の配列を持ちません`);
   }
 
   return value;

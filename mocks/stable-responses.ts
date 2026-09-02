@@ -180,7 +180,7 @@ function drawFrom(
     const respond = generated[name];
 
     if (typeof respond !== "function") {
-      throw new Error(`参照先の応答を生成できません: ${name}`);
+      throw new TypeError(`参照先の応答を生成できません: ${name}`);
     }
 
     faker.seed(seedFor("GET", new URL(path, requestUrl).toString()));
