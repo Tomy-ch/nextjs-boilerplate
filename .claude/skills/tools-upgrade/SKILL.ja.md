@@ -6,7 +6,7 @@
 
 このスキルは `mise.toml` の `[tools]` table に並ぶ全ツールについて、upstream 最新版との差分を監査し、**サプライチェーン隔離ゲート（supply-chain quarantine gate）** 付きで適用候補を提示する。`min_age_days` 未満の新しいリリースは「通知のみ」として扱い、自動適用しない。
 
-理由: npm / PyPI / Go module proxy への悪意あるリリースの大半は、公開後 24〜72 時間以内に検知・取り下げが行われる。一定期間（既定 7 日）待つことで、コミュニティが検知する前に取り込んでしまうリスクを抑える。
+理由: npm / PyPI / Go module proxy への悪意あるリリースの大半は、公開後 24〜72 時間以内に検知・取り下げが行われる。backend ごとに定めた窓のあいだ待つことで、コミュニティが検知する前に取り込んでしまうリスクを抑える。
 
 ## 使用タイミング
 
@@ -25,19 +25,28 @@
   宣言できないため、版は `.github/actions/setup-mise/action.yaml` にあり本スキルの射程外。揃えるべき
   3 箇所を含む手順は `repo-ops` runbook の項目 8
 
-## Step 0. `min_age_days` の確認
+## Step 0. backend 別の検疫の窓を解決する
 
-このスキルでは、**スキル起動直後に必ず `AskUserQuestion` でしきい値を確認する**。
+**窓は単一の数値ではなく、この文書が決めるものでもない。** ADR
+[0110](../../../docs/adr/0110-security-operations.md) 1.1 が backend ごとに定めている。窓が追うのは
+その配布経路で悪性のリリースが検知・撤回されるまでの速さであって、そのツールが何を壊しうるかではない。
+全 backend に同じ値を当てると、窓の長いほうの経路が黙って検疫不足になる。
 
 手順:
 
-1. スキル引数に値があれば（例 `/tools-upgrade 14`）候補として質問文に併記する（「候補: `14`」）。
-2. 必ず `AskUserQuestion` を呼ぶ。
-    - 質問: 「自動適用候補と判定するための最小経過日数を指定してください（推奨: `7`）」
-    - 既定候補: `7`
-3. 受け取った回答が 0 以上の整数であることを軽く検証し、以下の手順で `<MIN_AGE_DAYS>` として使う。
+1. **ADR 0110 1.1 をその実行で読み**、現在の記述から backend → 窓の対応表を作る。数値をこの文書へ
+   写さない —— ここに書いた値は second source of truth になり、ADR が動いた時点で古くなる。
+2. スキル引数に値があれば（例 `/tools-upgrade 14`）**全 backend への上書き提案**として扱い、その旨を
+   質問文に書く。
+3. 必ず `AskUserQuestion` を呼び、手順 1 の表を既定として提示する。
+    - 質問: 「リリースを自動適用の対象にするまでの最小経過日数を確認してください（既定は ADR 0110 1.1 の backend 別の窓）」
+    - 選択肢: 「ADR どおり（backend 別）」 / 「全 backend に同じ日数を当てる（値を指定）」 / 「キャンセル」
+4. 解決した各値が 0 以上の整数であることを検証し、以降の手順で `<MIN_AGE_DAYS(backend)>` として使う。
+5. **`mise.toml` が実際に使っている backend の窓を ADR が定めていない場合、値を発明しない。** その実行では
+   ADR が示す最長の窓を当て、欠落を所見として報告する —— 窓の宣言が無い backend は ADR 側の欠落であって、
+   ここで数値を選んでよい理由にはならない。
 
-`<MIN_AGE_DAYS>` 確定までは upstream API へのアクセスや `mise.toml` の読み込みは行わない。
+窓の対応表が確定するまでは upstream API へのアクセスや `mise.toml` の読み込みは行わない。
 
 ## AI Modification Scope について
 
@@ -85,9 +94,11 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
 | クラス | 条件 |
 | --- | --- |
 | **up-to-date** | `pinned == latest`（先頭 `v` の有無を正規化したうえで一致） |
-| **eligible** | `pinned != latest` かつ `now - release_date >= MIN_AGE_DAYS` |
-| **pending** | `pinned != latest` かつ `now - release_date < MIN_AGE_DAYS` |
+| **eligible** | `pinned != latest` かつ `now - release_date >= MIN_AGE_DAYS(backend)` |
+| **pending** | `pinned != latest` かつ `now - release_date < MIN_AGE_DAYS(backend)` |
 | **resolution_failed** | backend lookup が失敗（ネットワークエラー / 404 / parse 失敗） |
+
+ここで使う窓は Step 0 が**そのツールの backend について**解決したものである（backend は Step 1 で判明している）。全ツールを 1 つの数値と突き合わせることが、この段が避けている欠陥そのものである。
 
 セーフガード: semver で「downgrade」になる場合は `resolution_failed` 扱い（reason: "potential downgrade"）。
 
@@ -96,13 +107,13 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
 分類結果を日本語で見出し別にまとめて表示する。例:
 
 ```text
-ツールバージョン監査結果（min_age_days = 7）
+ツールバージョン監査結果（窓: backend 別 / ADR 0110 1.1）
 
-✅ 更新候補（公開から 7 日以上経過 / supply-chain quarantine 通過）:
+✅ 更新候補（backend の窓を満たした / supply-chain quarantine 通過）:
   - golangci-lint: 2.12.2 → 2.13.0 （公開 2026-05-18, 17 日前）
   - sqlc: 1.31.1 → 1.32.0 （公開 2026-04-29, 36 日前）
 
-⚠️ supply-chain quarantine（公開から 7 日未満、通知のみ）:
+⚠️ supply-chain quarantine（backend の窓の内側、通知のみ）:
   - air: 1.65.3 → 1.66.0 （公開 2026-06-02, 2 日前）
 
 ✓ 既に最新:
@@ -163,7 +174,7 @@ pnpm build
 
 ## 注意事項
 
-- **supply-chain quarantine の根拠**: 典型的な dependency confusion / malicious release インシデント（npm `ua-parser-js` 2021、PyPI `ctx` 2022 等）は公開後 24〜72 時間以内に検知・yank されている。7 日 quarantine は大半をカバーしつつルーチン bump にも追従できるバランス点。
+- **supply-chain quarantine の根拠**: 典型的な dependency confusion / malicious release インシデント（npm `ua-parser-js` 2021、PyPI `ctx` 2022 等）は公開後 24〜72 時間以内に検知・yank されている。待つこと自体が防御の大半を買う。**backend ごとに何日待つかは ADR [0110](../../../docs/adr/0110-security-operations.md) 1.1 の決定であって、このスキルのものではない** —— 検知の速さとルーチン bump への追従のバランス点であり、動きうる。
 - **pre-release の除外**: 常に最新の **stable** リリースを選ぶ。upstream が pre-release タグを出していても latest として選択しない。
 - **calendar versioning**: `2024.12.30` のような calendar versioning を使うツールは lexicographic + semver fallback で比較する。downgrade ガードは常時有効。
 - **rate limit**: GitHub API は anonymous で 60 req/h（IP 単位）。本スキルは `gh api` を経由して `GITHUB_TOKEN` 認証で 1000 req/h に上げる。
@@ -174,7 +185,7 @@ pnpm build
 
 完了報告時に以下を確認すること。
 
-- [ ] `<MIN_AGE_DAYS>` を `AskUserQuestion` でユーザーに確認済み
+- [ ] backend 別の窓を ADR 0110 1.1 から読み、`AskUserQuestion` で確認済み
 - [ ] `[tools]` 全エントリの backend を resolve（不能なら理由付きで resolution_failed に分類）
 - [ ] 各ツールを up-to-date / eligible / pending / resolution_failed のいずれかに分類
 - [ ] 分類結果テーブルをユーザーに提示
