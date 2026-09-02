@@ -19,7 +19,7 @@
  */
 
 import type { Change } from "../lib/numstat";
-import { toPathPattern } from "../lib/path-pattern";
+import { matchesPathRule, type PathRule } from "../lib/path-rule";
 
 /** 差分に対する判定。 */
 export type Trigger =
@@ -34,14 +34,6 @@ export type Trigger =
       readonly kind: "skip";
     };
 
-/** 待たずに回す理由 1 件と、それに当たるパス。 */
-type Rule = {
-  /** `**` と `*` だけの glob。 */
-  readonly globs: readonly string[];
-  /** なぜ回すのか。人が読む。 */
-  readonly reason: string;
-};
-
 /**
  * 待たずに回す理由。
  *
@@ -49,7 +41,7 @@ type Rule = {
  * 3 つとも「その差分が何を意味するか」で選んでいます。器と土台の CSS は全画面が通り、画面の宣言が
  * 動くのは**基準画像を一度も持っていない画面が生まれた**ときです。
  */
-export const FORCE_RULES: readonly Rule[] = [
+export const FORCE_RULES: readonly PathRule[] = [
   {
     globs: ["src/app/**/layout.tsx"],
     reason: "器（layout）が動いています。全ての画面がこれを通ります",
@@ -75,16 +67,9 @@ export const FORCE_RULES: readonly Rule[] = [
  */
 export function decideTrigger(changes: readonly Change[]): Trigger {
   const paths = changes.map((change) => change.path);
-  const reasons = FORCE_RULES.filter((rule) => matches(rule, paths)).map((rule) => rule.reason);
+  const reasons = FORCE_RULES.filter((rule) => matchesPathRule(rule, paths)).map(
+    (rule) => rule.reason,
+  );
 
   return reasons.length > 0 ? { kind: "force", reasons } : { kind: "skip" };
-}
-
-/** その規則に当たるパスが差分にあるか。 */
-function matches(rule: Rule, paths: readonly string[]): boolean {
-  return rule.globs.some((glob) => {
-    const pattern = toPathPattern(glob);
-
-    return paths.some((path) => pattern.test(path));
-  });
 }

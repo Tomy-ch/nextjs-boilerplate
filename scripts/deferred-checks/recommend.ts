@@ -13,17 +13,9 @@
 
 import { decideTrigger as decideE2eTrigger } from "../e2e/trigger";
 import type { Change } from "../lib/numstat";
-import { toPathPattern } from "../lib/path-pattern";
+import { matchesPathRule, type PathRule } from "../lib/path-rule";
 import { decideTrigger as decideLighthouseTrigger } from "../lighthouse/trigger";
 import { movesResult } from "./subject";
-
-/** 勧める理由 1 件と、それに当たるパス。 */
-type Rule = {
-  /** `**` と `*` だけの glob。 */
-  readonly globs: readonly string[];
-  /** なぜ勧めるか。人が読む。 */
-  readonly reason: string;
-};
 
 /** 先送りにしている検査の、コメントに載る側。 */
 export type CheckSummary = {
@@ -38,7 +30,7 @@ export type CheckSummary = {
 /** 先送りにしている検査 1 つ。 */
 type Check = CheckSummary & {
   /** 勧める理由。 */
-  readonly rules: readonly Rule[];
+  readonly rules: readonly PathRule[];
 };
 
 /**
@@ -166,16 +158,9 @@ export function recommend(changes: readonly Change[], labels: readonly string[])
       label: check.label,
       runs: check.runs,
       duration: check.duration,
-      reasons: check.rules.filter((rule) => matches(rule, paths)).map((rule) => rule.reason),
+      reasons: check.rules
+        .filter((rule) => matchesPathRule(rule, paths))
+        .map((rule) => rule.reason),
     }))
     .filter((recommendation) => recommendation.reasons.length > 0);
-}
-
-/** その規則に当たるパスが差分にあるか。 */
-function matches(rule: Rule, paths: readonly string[]): boolean {
-  return rule.globs.some((glob) => {
-    const pattern = toPathPattern(glob);
-
-    return paths.some((path) => pattern.test(path));
-  });
 }
