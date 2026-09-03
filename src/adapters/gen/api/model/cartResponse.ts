@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+f6c9463
+ * OpenAPI spec version: 2.2.0+7b2778e
  */
 import type { CartItemResponse } from "./cartItemResponse";
 

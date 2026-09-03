@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import type { TestInfo } from "@playwright/test";
-import { listBaselines, missingBaselines, orphanBaselines } from "../../baseline/lib/orphans";
+import { listBaselines } from "../../baseline/lib/orphans";
+import { noteBaselineGap } from "../../baseline/lib/report-gap";
 import { isRetaking } from "../../baseline/lib/store";
 import { expectedScreenBaselines, SCREEN_BASELINE_TAG } from "../lib/screen-baselines";
 import {
@@ -42,6 +43,13 @@ for (const screen of screens) {
     }
 
     await page.goto(screen.path);
+
+    // 最初の一式から外した島は、枠だけを置いて後から描かれる。枠は連続して撮っても同じなので、
+    // Playwright の安定判定では待てない（`e2e/lib/screens.ts` の `settled`）。
+    if (screen.settled !== undefined) {
+      await page.locator(screen.settled).first().waitFor({ state: "visible" });
+    }
+
     // フォントは差し替わった瞬間に字形が変わる。待たずに撮ると同じ画面が撮るたび違う絵になる。
     await page.evaluate(() => document.fonts.ready);
 
@@ -61,14 +69,14 @@ test("基準画像 / 撮影対象と 1 対 1 で対応する", { tag: SCREEN_BAS
   // 範囲を絞った実行では対応を見ない（理由は selectScreens の doc）。
   test.skip(Boolean(process.env.E2E_ONLY), "範囲を絞った実行では対応を見ない");
 
-  const present = listBaselines(baselineRoot(testInfo));
-  const expected = expectedScreenBaselines(screens, bands);
+  const { orphans, missing } = noteBaselineGap(
+    testInfo.annotations,
+    listBaselines(baselineRoot(testInfo)),
+    expectedScreenBaselines(screens, bands),
+  );
 
-  expect(
-    orphanBaselines(present, expected),
-    "撮り直して置き場へ送るか、対応する画面を戻してください",
-  ).toEqual([]);
-  expect(missingBaselines(present, expected), "make e2e-update で撮り直してください").toEqual([]);
+  expect(orphans, "撮り直して置き場へ送るか、対応する画面を戻してください").toEqual([]);
+  expect(missing, "make e2e-update で撮り直してください").toEqual([]);
 });
 
 // 置き場の位置は `playwright.e2e.config.ts` の `snapshotPathTemplate` が決める。撮影と同じ解決を

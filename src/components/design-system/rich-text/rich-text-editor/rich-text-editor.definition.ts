@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 
 import { RICH_TEXT_LINK_PROTOCOLS } from "@/model/rich-text/rich-text.definition";
+import { SHORTCUT_MODIFIER } from "../../display/keyboard-shortcut/keyboard-shortcut.definition";
 
 /**
  * 見出しとして書ける階層です。
@@ -80,7 +81,7 @@ export function isRichTextHrefAllowed(href: string): boolean {
  * editor が読み書きする node と mark の全体です。
  *
  * この集合が editor の出力できるタグを決めます。sanitizer の allowlist
- * （{@link RICH_TEXT_TAG_NAMES}）に収まる範囲だけを登録しており、外へ出るものを足すと、書けたのに
+ * （`model/rich-text` の `RICH_TEXT_TAG_NAMES`）に収まる範囲だけを登録しており、外へ出るものを足すと、書けたのに
  * 表示されない内容が生まれます。extension を足すときは allowlist・この集合・test を揃えて変えます。
  *
  * @see Storybook `Rich Text/RichTextEditor`
@@ -124,6 +125,8 @@ export type RichTextEditorToggleAction = {
   readonly label: string;
   /** ボタンに表示する図案。 */
   readonly Icon: LucideIcon;
+  /** 同じことを起こすキー。押す順に並べる。持たない操作もある。 */
+  readonly shortcut?: readonly string[];
   /** 選択範囲へ適用されているかどうかを返す。 */
   readonly isActive: (editor: Editor) => boolean;
   /** 適用と解除を切り替える。 */
@@ -144,6 +147,8 @@ export type RichTextEditorCommandAction = {
   readonly label: string;
   /** ボタンに表示する図案。 */
   readonly Icon: LucideIcon;
+  /** 同じことを起こすキー。押す順に並べる。持たない操作もある。 */
+  readonly shortcut?: readonly string[];
   /** いま実行できるかどうかを返す。実行できない間はボタンを disabled にする。 */
   readonly isEnabled: (editor: Editor) => boolean;
   /** 操作を実行する。 */
@@ -162,6 +167,7 @@ export const RICH_TEXT_EDITOR_MARK_ACTIONS: readonly RichTextEditorToggleAction[
     id: "bold",
     label: "太字",
     Icon: BoldIcon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, "B"],
     isActive: (editor) => editor.isActive("bold"),
     run: (editor) => void editor.chain().focus().toggleBold().run(),
   },
@@ -169,6 +175,7 @@ export const RICH_TEXT_EDITOR_MARK_ACTIONS: readonly RichTextEditorToggleAction[
     id: "italic",
     label: "斜体",
     Icon: ItalicIcon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, "I"],
     isActive: (editor) => editor.isActive("italic"),
     run: (editor) => void editor.chain().focus().toggleItalic().run(),
   },
@@ -176,6 +183,7 @@ export const RICH_TEXT_EDITOR_MARK_ACTIONS: readonly RichTextEditorToggleAction[
     id: "strike",
     label: "打ち消し線",
     Icon: StrikethroughIcon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, SHORTCUT_MODIFIER.SHIFT, "S"],
     isActive: (editor) => editor.isActive("strike"),
     run: (editor) => void editor.chain().focus().toggleStrike().run(),
   },
@@ -183,6 +191,7 @@ export const RICH_TEXT_EDITOR_MARK_ACTIONS: readonly RichTextEditorToggleAction[
     id: "code",
     label: "コード",
     Icon: CodeIcon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, "E"],
     isActive: (editor) => editor.isActive("code"),
     run: (editor) => void editor.chain().focus().toggleCode().run(),
   },
@@ -200,6 +209,7 @@ export const RICH_TEXT_EDITOR_BLOCK_ACTIONS: readonly RichTextEditorToggleAction
     id: "heading2",
     label: "見出し 2",
     Icon: Heading2Icon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, SHORTCUT_MODIFIER.ALT, "2"],
     isActive: (editor) => editor.isActive("heading", { level: 2 }),
     run: (editor) => void editor.chain().focus().toggleHeading({ level: 2 }).run(),
   },
@@ -207,6 +217,7 @@ export const RICH_TEXT_EDITOR_BLOCK_ACTIONS: readonly RichTextEditorToggleAction
     id: "heading3",
     label: "見出し 3",
     Icon: Heading3Icon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, SHORTCUT_MODIFIER.ALT, "3"],
     isActive: (editor) => editor.isActive("heading", { level: 3 }),
     run: (editor) => void editor.chain().focus().toggleHeading({ level: 3 }).run(),
   },
@@ -214,6 +225,7 @@ export const RICH_TEXT_EDITOR_BLOCK_ACTIONS: readonly RichTextEditorToggleAction
     id: "heading4",
     label: "見出し 4",
     Icon: Heading4Icon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, SHORTCUT_MODIFIER.ALT, "4"],
     isActive: (editor) => editor.isActive("heading", { level: 4 }),
     run: (editor) => void editor.chain().focus().toggleHeading({ level: 4 }).run(),
   },
@@ -221,6 +233,7 @@ export const RICH_TEXT_EDITOR_BLOCK_ACTIONS: readonly RichTextEditorToggleAction
     id: "bulletList",
     label: "箇条書き",
     Icon: ListIcon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, SHORTCUT_MODIFIER.SHIFT, "8"],
     isActive: (editor) => editor.isActive("bulletList"),
     run: (editor) => void editor.chain().focus().toggleBulletList().run(),
   },
@@ -228,6 +241,7 @@ export const RICH_TEXT_EDITOR_BLOCK_ACTIONS: readonly RichTextEditorToggleAction
     id: "orderedList",
     label: "番号付き箇条書き",
     Icon: ListOrderedIcon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, SHORTCUT_MODIFIER.SHIFT, "7"],
     isActive: (editor) => editor.isActive("orderedList"),
     run: (editor) => void editor.chain().focus().toggleOrderedList().run(),
   },
@@ -235,6 +249,7 @@ export const RICH_TEXT_EDITOR_BLOCK_ACTIONS: readonly RichTextEditorToggleAction
     id: "blockquote",
     label: "引用",
     Icon: QuoteIcon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, SHORTCUT_MODIFIER.SHIFT, "B"],
     isActive: (editor) => editor.isActive("blockquote"),
     run: (editor) => void editor.chain().focus().toggleBlockquote().run(),
   },
@@ -259,6 +274,7 @@ export const RICH_TEXT_EDITOR_COMMAND_ACTIONS: readonly RichTextEditorCommandAct
     id: "undo",
     label: "元に戻す",
     Icon: Undo2Icon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, "Z"],
     isEnabled: (editor) => editor.can().undo(),
     run: (editor) => void editor.chain().focus().undo().run(),
   },
@@ -266,6 +282,7 @@ export const RICH_TEXT_EDITOR_COMMAND_ACTIONS: readonly RichTextEditorCommandAct
     id: "redo",
     label: "やり直す",
     Icon: Redo2Icon,
+    shortcut: [SHORTCUT_MODIFIER.MOD, SHORTCUT_MODIFIER.SHIFT, "Z"],
     isEnabled: (editor) => editor.can().redo(),
     run: (editor) => void editor.chain().focus().redo().run(),
   },

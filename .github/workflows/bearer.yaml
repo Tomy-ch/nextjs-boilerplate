@@ -2,11 +2,11 @@ name: Bearer Scan
 
 # Bearer follows a value to the point where it leaves the process — a log line, an
 # outbound request, a third-party client — and reports it against a classification of
-# what the value is. Nothing else here asks that: opengrep and CodeQL judge a pattern
+# what the value is. Nothing else here asks that: opengrep judges a pattern
 # or a taint path on its own terms, and neither knows that the string reaching a
 # logger happens to be an email address (ADR 0110 §3).
 #
-# WIRED THE WAY CodeQL IS: a FINDING never fails the job. Findings go to code scanning,
+# A FINDING never fails the job. Findings go to code scanning,
 # and what turns a pull request red is GitHub's own check over the alerts the diff
 # introduces.
 #
@@ -109,31 +109,9 @@ jobs:
           tools: core:node aqua:pnpm/pnpm aqua:Bearer/bearer
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        if: steps.scope.outputs.relevant == 'true'
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        if: steps.scope.outputs.relevant == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
         if: steps.scope.outputs.relevant == 'true'
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # `make bearer-scan` passes --exit-code 0, so findings leave the status at zero.
-      # Anything non-zero here is the tool failing, not the code.
-      #
-      # `bearer-sarif` normalises the report first: Bearer writes `results: null` when it
-      # finds nothing, and the upload below rejects it (bearer.mk).
+        uses: ./.github/actions/setup-deps
       - name: Run the Bearer scan
         if: steps.scope.outputs.relevant == 'true'
         env:

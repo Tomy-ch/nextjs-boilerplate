@@ -45,7 +45,7 @@ make help
 | --- | --- | --- |
 | `make gh-login` | `gh` コマンドで GitHub にログインします。 | ブラウザ認証方式でログインを行います。 |
 | `make delete-all-labels` | GitHub リポジトリ上の既存ラベルをすべて削除します。 | なし |
-| `make create-default-labels` | `.github/settings/labels.json` をもとに、デフォルトラベルを作成します。 | なし |
+| `make create-default-labels` | `.github/settings/labels.json` をもとに、デフォルトラベルを作成します。 | 宣言の読み取りと、宣言と実在の差分は [`scripts/github-settings/labels.ts`](../scripts/github-settings/labels.ts) が持ちます。名前が実在するラベルは色や説明が宣言と違っても触りません。 |
 | `make apply-branch-protection` | `.github/settings/branch-protection.json` をもとに、対象リポジトリへブランチルールセットを適用します。 | なし |
 
 ### GitHub リポジトリ初期化関連
@@ -162,18 +162,26 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 
 ### リリースブランチ関連
 
+いずれも取り消せない操作（`origin` への push / デフォルトブランチの張り替え）を含みます。何をどの順で
+実行するかの判断は [`scripts/release/branch.ts`](../scripts/release/branch.ts) が持ち、ターゲットは
+入口を呼ぶだけです。
+
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make hotfix-patch` | `production` から hotfix ブランチを作成し、GitHub のデフォルトブランチに設定します。 | 現在の最新タグを基準に patch を 1 つ進めます。 |
+| `make hotfix-patch` | `production` から hotfix ブランチを作成し、GitHub のデフォルトブランチに設定します。 | 現在の最新タグを基準に patch を 1 つ進めます。同名ブランチが既に在るとき、作業ツリーが汚れているときは何もせず終了します。 |
 | `make branch-patch` | `production` から patch リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に patch バージョンを進めます。 |
 | `make branch-minor` | `production` から minor リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に minor バージョンを進めます。 |
 | `make branch-major` | `production` から major リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に major バージョンを進めます。 |
 
 ### リリースタグ関連
 
+判断は [`scripts/release/tag.ts`](../scripts/release/tag.ts) が持ちます。基準にする最新タグの選定は
+[`scripts/semver/latest.ts`](../scripts/semver/latest.ts) が一箇所で担い、`pnpm exec tsx scripts/semver latest`
+としても引けます。
+
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make tag-patch` | patch バージョンを 1 つ進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準とし、リリースノートには `.github/release/<version>.md` を使用します。 |
+| `make tag-patch` | patch バージョンを 1 つ進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準とし、リリースノートには `.github/release/<version>.md` を使用します。ノートが無ければタグも Release も作りません。 |
 | `make tag-minor` | minor バージョンを進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準にします。 |
 | `make tag-major` | major バージョンを進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準にします。 |
 
@@ -292,6 +300,8 @@ tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入�
 | `make vrt-record-verified` | 検査が通った時点の入力のハッシュを記録します。 | CI が呼びます。割った実行では**全 shard が緑になってから**書きます（`vrt.yaml`）。 |
 | `make vrt-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/vrt/`（追跡対象外）。 |
 | `make e2e [E2E_ARGS=<args>] [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | build したアプリを実際のブラウザで動かし、主要ジャーニー・ブラウザが報告する異常・帯ごとの出し分けを 3 つの描画エンジンで回して、画面単位の見た目を基準画像と比べます。 | **アプリはホスト、ブラウザはコンテナ**で動きます（[`e2e/README.md`](../e2e/README.md)）。`node_modules` は入れた OS と CPU 向けに解決されるため、コンテナ内で `next start` は起動できません。起動と後片付けもこのターゲットが持ちます。待ち受けるアドレスはコンテナが到達に使う経路 1 本へ絞ります —— この起動が使う `APP_ENV=ci` ではテスト専用の session 発行の口が開いているため、全インターフェースで待ち受けると LAN から叩ける状態になります。 |
+| `make e2e-maintenance [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | `APP_MAINTENANCE_MODE=on` でアプリを起動し、全ルートが停止画面へ差し替わること・生存確認が通ること・状態を変える要求が 503 で断られることを確かめます。 | `make e2e` と同じ立て付け（build → 起動 → コンテナのブラウザから当てる → 片付け）に、起動の環境と当てる設定だけを差し替えて乗せています。**基準画像を撮らない**ので置き場（submodule）を要求しません。停止は全ルートに効き、切り替えに起動し直しが要るため、通常の巡回へ混ぜられません（[`e2e/README.md`](../e2e/README.md)）。 |
+| `make e2e-metadata [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | `SITE_INDEXABLE=on` でアプリを build して起動し、`robots.txt` が巡回を許すこと・`sitemap.xml` が挙げる URL が実在し自分を正規 URL として名乗ること・アイコンと OG 画像が絵として返ることを確かめます。 | `make e2e-maintenance` と同じ立て付けですが、**build から差し替えます** —— 静的に描かれる画面の metadata は build 時の設定で焼き込まれるためです（[`src/config/site/site.server.ts`](../src/config/site/site.server.ts)）。外から見た origin にはコンテナから見たアプリの場所を渡し、画面が名乗る URL と開いた URL を同じ綴りにします。索引させない側は通常の巡回が見ます（[`e2e/README.md`](../e2e/README.md)）。 |
 | `make e2e-update [E2E_ARGS=<args>]` | 画面の基準画像を撮り直します（置き場へは送りません）。 | 送るのは `make baseline-push` です。画面の基準画像も story と同じ置き場の `screen/` 区画に入ります。撮り直しは承認ではありません。 |
 | `make e2e-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/e2e/`（追跡対象外）。trace も同じ場所に出ます。 |
 | `make lighthouse [E2E_PORT=<port>]` | `e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らします。 | 起動は `make e2e` と同じ仕組みを使い、**ブラウザだけホストで動かします** —— 比べるのが画素ではなく数値なので、固定すべきはフォントのラスタライズではなくブラウザの版で、それは lockfile の `@playwright/test` が担います。画面ごとに複数回測って中央値を採り、回数も同じ宣言が持ちます（[ADR 0101](../docs/adr/0101-performance-budget.md)）。 |

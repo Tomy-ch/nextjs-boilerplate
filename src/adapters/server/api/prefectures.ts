@@ -1,14 +1,13 @@
 import "server-only";
 
+import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import type { Prefecture } from "@/model/user/user";
 
 import { GetPrefecturesResponse } from "../../gen/api/endpoints.zod";
-import { createHttpClient, type HttpClient } from "../http/request";
+import { getPublicClient } from "./public-client";
 
 type WirePrefectures = z.infer<typeof GetPrefecturesResponse>;
 
@@ -20,17 +19,6 @@ type WirePrefectures = z.infer<typeof GetPrefecturesResponse>;
  * 取り直す理由がありません。
  */
 export const PREFECTURE_MASTERS_TAG = "prefecture-masters";
-
-let client: HttpClient | undefined;
-
-function getClient(): HttpClient {
-  client ??= createHttpClient({
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-  });
-
-  return client;
-}
 
 /**
  * マスタの応答を表示用の型へ写す。
@@ -50,15 +38,19 @@ function toPrefectures(wire: WirePrefectures): readonly Prefecture[] {
  * 認証を要しない公開の口です。クライアントに Bearer の取得口を渡していないのはそのためで、
  * 未ログインの画面からも同じ取得口を使えます。
  *
- * キャッシュを明示しているのは、都道府県が画面を開くたびに変わる種類のデータではないためです
- * （[0040](../../../../docs/adr/0040-routing-rendering-strategy.md)）。
+ * 都道府県は画面を開くたびに変わる種類のデータではないので、キャッシュへ入れます。寿命と
+ * 入れ物の性質は商品マスタと同じで、`getProductCategories` の項が持ちます。捨てる印だけが
+ * 別で、{@link PREFECTURE_MASTERS_TAG} を使います
+ * （[0071](../../../../docs/adr/0071-bff-api-integration.md)）。
  */
 export const getPrefectures = cache(async (): Promise<readonly Prefecture[]> => {
-  const prefectures = await getClient().request({
+  "use cache";
+  cacheLife("masters");
+  cacheTag(PREFECTURE_MASTERS_TAG);
+
+  const prefectures = await getPublicClient().request({
     path: "/v1/prefectures",
     schema: GetPrefecturesResponse,
-    cache: "force-cache",
-    tags: [PREFECTURE_MASTERS_TAG],
   });
 
   return toPrefectures(prefectures);

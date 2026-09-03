@@ -51,6 +51,8 @@ export function ProductFilterFields({
   draft,
   onChange,
 }: ProductFilterFieldsProps) {
+  "use memo";
+
   const changePrice = useCallback(
     (range: PriceRange) => {
       onChange(applyPriceRange(draft, range));

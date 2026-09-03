@@ -76,16 +76,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          {
-            cat /tmp/baseline-store.md
-            echo
-            cat <<'NOTE'
+          # The evidence is `scripts/baseline-store report`'s own markdown, so it renders.
+          cat <<'NOTE' > /tmp/baseline-store-note.md
           手元で `make baseline-prune` を実行してください（`DRY_RUN=1` を付けると消さずに一覧だけ出ます）。
 
           消えるのは、主リポジトリの生きた ref のどれからも指されていない基準画像の一式です。
           過去のコミットへ遡ったときに基準画像が揃わなくなりますが、それは設計上の前提です。
           NOTE
-          } > /tmp/baseline-store-issue.md
+
+          pnpm exec tsx scripts/ci-report issue-body \
+            --kind authored \
+            --evidence /tmp/baseline-store.md \
+            --note /tmp/baseline-store-note.md > /tmp/baseline-store-issue.md
 
       - name: Raise it where it has an owner
         if: steps.measure.outputs.needed == 'true'

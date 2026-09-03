@@ -2,7 +2,14 @@ import { existsSync, readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { gzipSync } from "node:zlib";
 
-import { hasFailure, judge, type Measurement, missingRoutes, parseBudget } from "./budget";
+import {
+  growthModeFor,
+  hasFailure,
+  judge,
+  type Measurement,
+  missingRoutes,
+  parseBudget,
+} from "./budget";
 import { deferredChunks } from "./deferred";
 import {
   artifactDirOf,
@@ -22,7 +29,8 @@ import { renderReport } from "./report";
  *
  * 使い方: `tsx scripts/bundle-budget [<current .next>] [<base .next>]`
  *
- * base を渡さない場合は増分を判定せず、上限だけを見る。
+ * base を渡さない場合は増分を判定せず、上限だけを見る。base を渡しても増分で落とさない場合が
+ * あり、その判定は `GITHUB_BASE_REF` から `growthModeFor` が下す。
  */
 
 const BUDGET_FILE = "performance-budget.yaml";
@@ -124,6 +132,7 @@ function measure(dir: string): Survey {
 
 function main(): void {
   const [current = ".next", base] = process.argv.slice(2);
+  const mode = growthModeFor(process.env.GITHUB_BASE_REF);
   const budget = parseBudget(readFileSync(BUDGET_FILE, "utf8"));
   const survey = measure(current);
   const missing = missingRoutes(survey.measurements, budget);
@@ -157,7 +166,14 @@ function main(): void {
     return;
   }
 
-  const verdicts = judge(survey.measurements, previous?.measurements ?? [], budget);
+  const verdicts = judge(survey.measurements, previous?.measurements ?? [], budget, mode);
+
+  if (mode === "report") {
+    console.log(
+      "増分は表に出すだけで、判定には使いません。base が配信中のブランチで、差が変更 1 つぶんでは" +
+        "ないためです。落とすのは宣言した上限だけです\n",
+    );
+  }
 
   console.log(
     renderReport(verdicts, {

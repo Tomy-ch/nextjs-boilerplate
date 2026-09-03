@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { gtmContainerIdValidator } from "./analytics/analytics.schema";
 import { apiBaseUrlValidator, apiModeValidator } from "./api/api.schema";
 import {
   authClientIdValidator,
@@ -10,8 +11,13 @@ import {
   authSessionSecretValidator,
 } from "./auth/auth.schema";
 import { fixedNowValidator } from "./clock/clock.schema";
-import { maxUploadBytesValidator, maxUrlBytesValidator } from "./http/http.schema";
+import {
+  allowedOriginsValidator,
+  maxUploadBytesValidator,
+  maxUrlBytesValidator,
+} from "./http/http.schema";
 import { findApplicationEnvironment } from "./load-environment";
+import { maintenanceModeValidator } from "./maintenance/maintenance.schema";
 import { mediaOriginValidator } from "./media/media.schema";
 import {
   otlpEndpointValidator,
@@ -19,6 +25,7 @@ import {
   renderSpansValidator,
   serviceNameValidator,
 } from "./observability/observability.schema";
+import { indexableValidator, publicOriginValidator } from "./site/site.schema";
 
 /**
  * 同梱の秘密値を許す環境。
@@ -36,6 +43,7 @@ function allowsShippedSecrets(): boolean {
 const environmentSchema = z.object({
   APP_API_BASE_URL: apiBaseUrlValidator(),
   APP_API_MODE: apiModeValidator(),
+  APP_MAINTENANCE_MODE: maintenanceModeValidator(),
   CLOCK_FIXED_NOW: fixedNowValidator(),
   MEDIA_ORIGIN: mediaOriginValidator(),
   OBS_SERVICE_NAME: serviceNameValidator(),
@@ -52,6 +60,10 @@ const environmentSchema = z.object({
   AUTH_SESSION_SECRET: authSessionSecretValidator(allowsShippedSecrets()),
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: maxUrlBytesValidator(),
   NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: maxUploadBytesValidator(),
+  HTTP_ALLOWED_ORIGINS: allowedOriginsValidator(),
+  SITE_PUBLIC_ORIGIN: publicOriginValidator(),
+  SITE_INDEXABLE: indexableValidator(),
+  NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID: gtmContainerIdValidator(),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

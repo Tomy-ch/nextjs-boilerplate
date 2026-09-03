@@ -137,6 +137,7 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0102](docs/adr/0102-browser-support.md) | Browser support | Support matrix |
 | [0110](docs/adr/0110-security-operations.md) | Security ops | Dependabot + cooldown / gitleaks secret scan (fail-closed) / vulnerability scan is report-only / suppression-policy format |
 | [0111](docs/adr/0111-csp-security-headers.md) | CSP / security headers | runtime CSP & security headers |
+| [0112](docs/adr/0112-data-classification-cache-boundary.md) | データ分類 / キャッシュ境界 | PII・user-scoped・secret の置き場 / 分類は取得の口が持つ / 段ごとの関所 |
 | [0120](docs/adr/0120-locale-aware-formatting.md) | Locale formatting | date/number formatting + date-fns date arithmetic |
 | [0121](docs/adr/0121-i18n-strategy.md) | i18n (exclusion) | i18n not adopted (negative decision) |
 | [0130](docs/adr/0130-pwa-strategy.md) | PWA (exclusion) | PWA not adopted (negative decision) |
@@ -150,12 +151,13 @@ ADRs under `docs/adr/` are the authoritative source. This file only summarizes t
 | [0153](docs/adr/0153-ci-configuration.md) | CI configuration | GitHub Actions job partitioning / workflow-definition lint (actionlint / zizmor) / hooks mirror CI / required checks / caching |
 | [0154](docs/adr/0154-claude-skills-operations.md) | Claude skills (operations) | Operational skill placement / naming / frontmatter / commercial-action confirmation |
 | [0155](docs/adr/0155-claude-skills-development.md) | Claude skills (development) | Development skill placement / subagent pattern / `new-env` target structure |
+| [0156](docs/adr/0156-browser-observation-tooling.md) | Browser observation tooling | Three lanes (see / measure / dig) / CLI only, no MCP registration / no real-profile access / gates untouched |
 
 > **ADR numbering is finalized (2026-07-14): topical decade-bands.** Numbers are grouped by subject into decade bands (e.g. `002x` architecture, `004x` routing/rendering, `005x` styling/UI, `007x` data/BFF, `008x` error/observability, `015x` process/dev-ops); the former `Toolchain-` / `Dev-` prefixed ADRs were folded into the numeric sequence (`0150`+). Gaps between bands are reserved for future insertion. Each ADR body remains authoritative.
 
 ## Pending Decisions
 
-The major design decisions are now settled as ADRs (`0001`–`0155` across topical bands; the A / B / C / D groups are all authored, including the negative "exclusion" decisions). The `## [TODO]` placeholder sections that this file used to carry — one per undecided area, each with its own "provisional behavior" — have been removed because the corresponding ADRs are now authoritative. The remaining blank slots and not-yet-written design seams are tracked in [`docs/adr/BACKLOG.md`](docs/adr/BACKLOG.md); the ADR bodies are the source of truth and this file only summarizes them.
+The major design decisions are now settled as ADRs (`0001`–`0156` across topical bands; the A / B / C / D groups are all authored, including the negative "exclusion" decisions). The `## [TODO]` placeholder sections that this file used to carry — one per undecided area, each with its own "provisional behavior" — have been removed because the corresponding ADRs are now authoritative. The remaining blank slots and not-yet-written design seams are tracked in [`docs/adr/BACKLOG.md`](docs/adr/BACKLOG.md); the ADR bodies are the source of truth and this file only summarizes them.
 
 When a change forces you into an area that BACKLOG still leaves blank (no accepted ADR yet):
 
@@ -262,6 +264,8 @@ make vrt-review            # Open the stories CI flagged, in a throwaway worktre
 make vrt-update            # Retake the story baselines locally — does NOT push them to the store
 make vrt-retake            # Retake and push. The only local entry point; the `baseline-retake` label is the default path
 make e2e                   # Drive the built app through its journeys and compare each screen (ADR 0090 / 0091)
+make e2e-maintenance       # Boot with delivery stopped and check the stop mechanism holds (ADR 0043)
+make e2e-metadata          # Build with indexing on and check the public surface holds — robots / sitemap / canonical / OG (ADR 0044)
 make e2e-review            # Same, for the screens CI flagged — starts the production build, not the dev server
 make review-clean          # Remove the throwaway worktrees the two review targets left under tmp/review/
 make e2e-update            # Retake the screen baselines locally — same split as vrt-update

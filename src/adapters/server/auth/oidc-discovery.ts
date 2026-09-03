@@ -61,7 +61,7 @@ export async function fetchOidcEndpoints(
   maxUrlBytes: number,
   fetchImpl?: typeof fetch,
 ): Promise<OidcEndpoints> {
-  const client = createHttpClient({ baseUrl: issuer, maxUrlBytes, fetchImpl });
+  const client = createHttpClient({ scope: "public", baseUrl: issuer, maxUrlBytes, fetchImpl });
   const document = await client.request({ path: DISCOVERY_PATH, schema: DiscoveryDocument });
 
   if (document.issuer !== issuer) {

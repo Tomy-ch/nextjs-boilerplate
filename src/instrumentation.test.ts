@@ -47,7 +47,7 @@ describe("register", () => {
     vi.doMock("./observability/initialize.server", () => ({ initializeObservability }));
     vi.doMock("./logging/logging.server", () => ({ getLogger, initializeLogger }));
     vi.doMock("./observability/otlp-log-sink.server", () => ({ createOtlpLogSink }));
-    vi.doMock("./observability/trace-context", () => ({ extractActiveTraceContext }));
+    vi.doMock("./observability/trace-context.server", () => ({ extractActiveTraceContext }));
     const { register } = await import("./instrumentation");
 
     await register();
@@ -92,7 +92,7 @@ describe("register", () => {
     vi.doMock("./observability/initialize.server", () => ({ initializeObservability: vi.fn() }));
     vi.doMock("./logging/logging.server", () => ({ getLogger, initializeLogger }));
     vi.doMock("./observability/otlp-log-sink.server", () => ({ createOtlpLogSink }));
-    vi.doMock("./observability/trace-context", () => ({ extractActiveTraceContext }));
+    vi.doMock("./observability/trace-context.server", () => ({ extractActiveTraceContext }));
     const { register } = await import("./instrumentation");
 
     await register();
@@ -129,7 +129,9 @@ describe("register", () => {
     vi.doMock("./observability/initialize.server", () => ({ initializeObservability: vi.fn() }));
     vi.doMock("./logging/logging.server", () => ({ getLogger, initializeLogger: vi.fn() }));
     vi.doMock("./observability/otlp-log-sink.server", () => ({ createOtlpLogSink: vi.fn() }));
-    vi.doMock("./observability/trace-context", () => ({ extractActiveTraceContext: vi.fn() }));
+    vi.doMock("./observability/trace-context.server", () => ({
+      extractActiveTraceContext: vi.fn(),
+    }));
     vi.doMock("@opentelemetry/api", () => ({ trace: { getTracer: () => ({ startActiveSpan }) } }));
     const { register } = await import("./instrumentation");
 
@@ -167,7 +169,9 @@ describe("register", () => {
       initializeLogger: vi.fn(),
     }));
     vi.doMock("./observability/otlp-log-sink.server", () => ({ createOtlpLogSink: vi.fn() }));
-    vi.doMock("./observability/trace-context", () => ({ extractActiveTraceContext: vi.fn() }));
+    vi.doMock("./observability/trace-context.server", () => ({
+      extractActiveTraceContext: vi.fn(),
+    }));
     vi.doMock("@opentelemetry/api", () => ({ trace: { getTracer: () => ({ startActiveSpan }) } }));
     const { register } = await import("./instrumentation");
 
@@ -200,7 +204,9 @@ describe("register", () => {
       initializeLogger: vi.fn(),
     }));
     vi.doMock("./observability/otlp-log-sink.server", () => ({ createOtlpLogSink: vi.fn() }));
-    vi.doMock("./observability/trace-context", () => ({ extractActiveTraceContext: vi.fn() }));
+    vi.doMock("./observability/trace-context.server", () => ({
+      extractActiveTraceContext: vi.fn(),
+    }));
     const { register } = await import("./instrumentation");
 
     await register();

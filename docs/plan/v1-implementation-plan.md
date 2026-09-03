@@ -225,8 +225,8 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 [0131](../adr/0131-cookie-consent.md) の exclusion を**採用へ反転**する。
 
 - **理由**: [0031](../adr/0031-policy-state-supply.md)(policy state supply)が consent 状態供給を既に規定しており**設置面が実在する**(§3.4)。加えて同意はサードパーティスクリプトの**読み込みをゲートする**機構であり、layout / CSP `script-src` / `next/script` strategy に同時に食い込むため、後付けコストが高い
-- **範囲は「軽量 consent 機構 + ゲート」まで**。同意状態の保持([0031](../adr/0031-policy-state-supply.md) 経由)/ 同意バナー / スクリプト読み込みゲート / 計測用 cookie_id の発行までを持つ
-- **GTM / PostHog 本体は v1 では入れない**(master-plan の「Medium = 統合するが既定は控えめ」)。CMP・IAB TCF 等の本格的な同意管理も対象外
+- **範囲は「軽量 consent 機構 + ゲート + ゲートの裏のタグマネージャ」**。同意状態の保持([0031](../adr/0031-policy-state-supply.md) 経由)/ 同意バナー / スクリプト読み込みゲート / 計測用 cookie_id の発行に加え、ゲートの裏へ繋いだ状態までを持つ
+- **PostHog 本体は v1 では入れない**(master-plan の「Medium = 統合するが既定は控えめ」)。CMP・IAB TCF 等の本格的な同意管理も対象外。**GTM 本体は同意ゲートの裏へ同梱する** —— 決定と受け入れる帰結は [0131](../adr/0131-cookie-consent.md) §2 が持つ
 
 ### 3.8 TipTap を v1 スコープへ繰り上げる
 
@@ -235,7 +235,7 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 - 表示側は **必ず sanitizer を通す**(`rules.md` #48。生の `dangerouslySetInnerHTML` は禁止)
 - TipTap が inline style を出力するため、CSP の `style-src` が論点になる(§3.9)
 
-### 3.9 CSP — enforce seam は「sanitizer の検証結果」で決める
+### 3.9 CSP — enforce seam は seam A で確定した
 
 [0111](../adr/0111-csp-security-headers.md) は **seam A(`next.config.ts` の非 nonce CSP)を既定**とし、seam B(`proxy.ts` の per-request nonce)は「**既定にしない**」と明記している。理由は「nonce を使うと全ページが dynamic rendering を要求し、静的最適化・ISR・CDN キャッシュ・**PPR / Cache Components と非互換**になる」ため。
 
@@ -246,7 +246,7 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 1. **TipTap の inline `style=` 属性に nonce は原理的に効かない** — nonce は要素(`<style>` / `<script>`)にしか付かず、属性は `style-src-attr` の管轄で `'unsafe-inline'` 以外に許可手段がない。つまり「リッチテキストのために `'unsafe-inline'`」は **nonce へ倒しても解消しない**
 2. **sanitizer で `style` 属性を落とせるなら、`'unsafe-inline'` 自体が不要になる** — 商品説明に必要なのは太字 / 斜体 / リスト / 見出し / リンク程度で、いずれも inline style ではなくクラスへ写像できる
 
-**よって順序を固定する**: P3-8 の `rich-text` 実装(sanitizer と allowlist は §3.10 で確定済み)で「`style` 属性を落として TipTap の要件を満たせるか」を検証し、その結果と **P6-8 の Cache Components 判断**を入力として、**0111 追補(seam A 維持 / seam B へ反転)を P6-2 で確定する**(P0-4 では扱わない)。この検証には TipTap の出力サンプルがあれば足り、実 API や生成型を必要としないため、**Phase 4 / 5 の到達を待たない**。静的を保ったまま script を厳格化したい場合の道は nonce ではなく **hash ベース**([0111](../adr/0111-csp-security-headers.md) が挙げる実験的 SRI)であり、採るなら別途判断する。
+**判断の入力は 2 つだった**: P3-8 の `rich-text` 実装(sanitizer と allowlist は §3.10 で確定済み)による「`style` 属性を落として TipTap の要件を満たせるか」の検証と、**P6-8 の Cache Components 判断**である。この検証には TipTap の出力サンプルがあれば足り、実 API や生成型を必要としないため、**Phase 4 / 5 の到達を待たない**。静的を保ったまま script を厳格化したい場合の道は nonce ではなく **hash ベース**([0111](../adr/0111-csp-security-headers.md) が挙げる実験的 SRI)であり、採るなら別途判断する。
 
 **検証結果は次のとおり(P3-8 で実施済み)。上の 2 と 1 の順に対応する。**
 
@@ -254,7 +254,9 @@ master-plan 1.1 の滑走路原則を次のとおり改める。
 2. **ただし `'unsafe-inline'` はリッチテキストと無関係に必要な状態が残る。** Radix の popper が `position` / `transform` / `minWidth` / `zIndex` / `--radix-popper-*` を**要素の `style` 属性**へ書き、`next/image` も `color: transparent` を img へ付ける。これらは `style-src-attr` の管轄で **nonce も hash も効かない**。Radix を import する component は現時点で 27 個あり、浮動 UI は全て popper 経由である。
 3. **TipTap が注入する `<style data-tiptap-style>` は別問題として残る。** `@tiptap/core` の `injectCSS`(既定 `true`)が runtime で style **要素**を 1 本挿す。要素なので nonce / hash が効き、`injectCSS: false` にして CSS を `globals.css` 側で持てば消える。
 
-**したがって判断の形が変わる**: 「`'unsafe-inline'` を外せるか」ではなく「`style-src-elem` と `style-src-attr` を割って、要素側だけ厳格にするか」になる。属性側は Radix を使う限り `'unsafe-inline'` から降りられない。**割る指定は Safari が未対応で `style-src` にフォールバックする**ため、その環境では強化が効かないことも織り込む。要素側を厳格にするなら `injectCSS: false` が前提条件になるが、CSP 本体を書くまで単体では防御が変わらない(効果は FOUC の解消に留まる)。
+**判断の形は「`'unsafe-inline'` を外せるか」ではなく「`style-src-elem` と `style-src-attr` を割って、要素側だけ厳格にするか」になった。** 属性側は Radix を使う限り降りられず、**割る指定は Safari が未対応で `style-src` へフォールバックする**ため、要素側だけを絞っても効かない環境が残る。
+
+**結論は割らない(seam A のまま)**で、[0111](../adr/0111-csp-security-headers.md) §4 が根拠と撤回条件の両方を持つ。前提条件だった `injectCSS: false` も同じ理由で採らない。
 
 ### 3.10 TypeScript / ライブラリの確定事項
 
@@ -450,7 +452,8 @@ backend が server→client push の入口機構(SSE)と、その配信基盤で
 | P6-5 | capabilities カーネル | 6 | P5-7 |
 | P6-6 | メンテナンスモード | 6 | P5-4 |
 | P6-7 | Cookie 同意(軽量 consent 機構 + ゲート) | 6 | P6-2 |
-| P6-8 | プラットフォーム機能の有効化判断 | 6 | P6-4 |
+| P6-8 | プラットフォーム機能の有効化判断 | 6 | P6-4, P6-9 |
+| P6-9 | データ分類とキャッシュ境界(PII / user-scoped の取り扱い) | 6 | P5-4 |
 | P7-1 | 爆破スクリプト移植 | 7 | P5-16 |
 | P7-2 | マーカー埋め込み + purge 検証 CI | 7 | P7-1, P6-4 |
 | P7-3 | `new-feature` スキル(B12) | 7 | P4-6, P3-10 |
@@ -574,7 +577,7 @@ flowchart TD
 - **状態**: **実施済み**。上表の全件を ADR 本文へ反映し、BACKLOG の該当行(T2 / T4 / A6 / B1 / B2 / B5 / B10 / C5 / C9)を更新した。個別の補足:
   - **[0027](../adr/0027-directory-structure.md) は変更不要だった** — 同 ADR は既に「MSW 等のモック生成物は `src/` 外の `mocks/`」と規定しており、P4-4 の記述もこれに一致している(突合の結果、計画側の修正も不要)
   - **[0002](../adr/0002-formatter-linter.md) 側に tsconfig 節を新設**した(型で捕まえる検査は tsc / lint と重複させない、という同 ADR の能力ベース分担に接続するため。0020 には置かない)
-  - **[0022](../adr/0022-capabilities-kernel.md) の Web Worker seam は追加していない** — §5 未決 #14(ADR 化要否)が P6-5 の判断事項として残っているため、ここで先取りしない
+  - **[0022](../adr/0022-capabilities-kernel.md) の Web Worker seam は追加していない** — P6-5 が設置面の不在を理由に置かないと決め、撤回条件は BACKLOG W43 が持つ
 
 ### P0-5: master-plan の再編
 
@@ -1349,27 +1352,28 @@ sources:
 ### P5-18: spec 駆動の採否判断(GB-3)
 
 - **目的**: 実装済みの画面を材料に、spec 駆動を採るかを決める。画面が 1 枚も無い状態では、spec が実装のどれだけを言い当てられるかを測れない
-- **決定: 採用する。** 仕様書から実装を導く方式(BACKLOG GB-3)を採る。**ただし具体的な How はここでは確定しない** —— 下記「持ち越し」を参照
+- **決定: 採用する。** 仕様書から実装を導く方式(BACKLOG GB-3)を採る。**生成 scaffold は持たない**(下記)。残る 1 点は下記「持ち越し」を参照
 - **確定済み(P5-5)**: 仕様書は `docs/spec/route/**` に置き、`src/app` の階層をそのまま写す。画面ごとに **機能要件(`*.function.md`)と画面要件(`*.screen.md`)の 2 層**へ分け、振り分けは「契約と利用者の目的が同じまま、その記述だけが違う画面があり得るか」で決める。layout の仕様はその配下すべてに効く。仕様書は契約 / token / `rules.md` / 部品カタログ / ADR を**指すだけ**で写さない(部品名・単位つきの数値・層をまたぐ規約を書かない)。詳細は [`docs/spec/README.md`](../spec/README.md)
-- **判断の材料と、実際に測れたこと**: `docs/spec/route/**` には **22 画面ぶん 43 本**の仕様書がある。当初の材料は「実装済みの feature を 1 つ選び、後から spec を書き起こす」ことだったが、3 点のうち測れたのは 2 点である
+- **判断の材料と、実際に測れたこと**: `docs/spec/route/**` には **25 画面 + 4 つの器ぶん 57 本**の仕様書がある。当初の材料は「実装済みの feature を 1 つ選び、後から spec を書き起こす」ことだったが、3 点のうち測れたのは 2 点である
 
   | 材料 | 結果 |
   | --- | --- |
-  | (1) spec が実装を再現できるだけの情報を持てるか | **持てる。** 既存 43 本と同じ様式で破綻なく書ける |
+  | (1) spec が実装を再現できるだけの情報を持てるか | **持てる。** 既存 57 本と同じ様式で破綻なく書ける |
   | (2) `architecture.ts` と重複しない情報だけで構成できるか | **できる。** 依存の向きも層の責務も写していない |
-  | (3) 画面の追加時に spec を先に書くほうが速いか | **測れない。** 未実装の画面が残っていないため |
+  | (3) 画面の追加時に spec を先に書くほうが速いか | **問いが解消。** 仕様書は確定した約束を書くもので、書ける時点が実装の後にある |
 
   書き起こしで分かったのは、**画面の約束が文書の外に居やすい**ことである。トップの書き起こしでは、spec に載せた事実の出所が文書 12 / 実装のコード 6 / **実装の doc コメント 4** に分かれ、最後の 4 つ(描画の時点の宣言とその理由・待ちの境界の掛け方・断り書きを待ちの外へ置く理由・節の並びの理由)は画面の約束でありながら TSDoc にしか無かった。**spec 駆動を採る値打ちはここにある** —— 生成の速さではなく、約束の置き場が決まることである
 
-- **持ち越し: 具体的な How は v1 を切る直前の最終品質チェックで確定する。** いま決めたのは方針だけで、次の 3 つは確定していない
+- **生成 scaffold は持たない。** spec から実装の骨格を機械生成する経路は設けない。上の材料がそのまま理由になる —— **spec 駆動の値打ちは生成の速さではなく約束の置き場が決まること**であり、生成器はその値打ちを 1 つも運ばない。加えて 2 点ある
 
-  1. **生成 scaffold を持つか。** 持つなら、そのとき P4-6 の生成入力を `architecture.ts` から差し替えるのか、両方を別の役割で残すのか(**両方を同じ役割で残すと SSOT が二重化する**)
-  2. **輸入資産のうち何を使うか。** `new-spec` / `verify-spec` / `spec-validator-*` / `.claude/scaffold-spec/*` のどれを翻案し、どれを破棄するか。「spec フォーマットを外部ファイルから実行時読込 = SSOT」の構造は言語非依存なので、採るならここが軸になる
-  3. **spec を先に書くことを手順として強制するか。** (3) が測れていないため、いま強制すると測っていない前提を規約にすることになる
+  1. **spec は機械可読な構造を持たず、持たせるべきでもない。** 中身は判断の散文で、価値の中心は「やらない理由」にある(`/products` の「状態で絞り込む口は置かない」は、状態マスタが売り手の語彙だという判断そのものである)。生成器の入力にするには構造化データへ寄せることになり、その部分が落ちる
+  2. **spec が書くのは観測可能な契約であって機構ではない。** 「既定と同じ値は URL に載せない」から、既定を空文字で表す実装は導けない。導けるのは spec と契約の両方を読む側だけである
 
-  **確定を v1 直前へ置く理由**は、How が「画面をあと何枚足すか」に依存し、v1 の実装が出揃うまでその見積もりが立たないためである。方針だけ先に決めておくのは、確定までの間に `docs/spec/route/**` を**壊さず保つ**理由をはっきりさせるためである(採否未定のままだと仕様書の維持が惰性になる)
+  したがって **`pnpm gen`(P4-6)の生成入力は `architecture.ts` + 層 README の 1 本に据え置く**(第 2 の入力を足すと SSOT が二重化する)。**spec は生成入力ではなく `new-feature` スキル(P7-3)の読み込み入力として扱う** —— 散文から実装を導けるのは scaffold ではなく LLM である
 
-- **完了条件**: 採用の決定が BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の IM-26 へ反映されている。**P4-6 の改修 PR はまだ起票しない** —— 差し替えの要否が上記 1 の確定待ちであるため
+- **輸入資産の扱い**: `new-spec` / `new-spec-{domain,usecase}` / `.claude/scaffold-spec/*` は生成 scaffold の資産のため**破棄**する。「spec フォーマットを外部ファイルから実行時読込 = SSOT」の構造は言語非依存だが、生成器を持たない以上その読み手がいない。`verify-spec` + `spec-validator-{domain,usecase}`(spec と実装の突合)は生成と独立に成立するため**別枠で保留**する
+- **spec を先に書くことは強制しない。** [`docs/playbook.md`](../playbook.md) の画面実装の順序が、仕様書を工程 5 —— story のレビューで見た目が確定した後 —— に置いている。仕様書は確定した約束を書くものなので、先に固めると見た目が変わるたびに書き直すことになり、材料 (3) が心配していた手戻りをそのまま起こす。**材料 (3) は測れないまま不要になった** —— 「先に書くほうが速いか」は速さの比較に見えて、実際には書ける時点が後だという順序の問題だったためである
+- **完了条件**: 採用の決定と生成 scaffold の不採用が BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の IM-26 へ反映されている。**P4-6 の改修 PR は起票しない** —— 生成入力を `architecture.ts` の 1 本に据え置くため
 - **依存**: P5-16, P4-6
 
 ### Phase 5 の範囲外: 認証の cloud 経路
@@ -1402,16 +1406,21 @@ sources:
 
 機能が出揃ってから掛ける横断的関心事。
 
+> **9 件とも着地済み。** 以降に残っているのは計画外の監視項目であって、この Phase の PR ではない。
+
 ### P6-1: クライアント観測性
 
 - **目的**: ブラウザ側のシグナルを OTLP へ集約する
 - **対象 ADR**: [0082](../adr/0082-client-observability.md) / [0081](../adr/0081-observability-logging.md) / [0101](../adr/0101-performance-budget.md)
 - **主な変更先**:
-  - `src/observability/client/` — Web Vitals RUM / client error 収集
-  - `src/app/api/telemetry/route.ts` — **ブラウザ → BFF 中継 seam**([0081](../adr/0081-observability-logging.md))。ブラウザから OTLP を直接叩かせない
-  - `src/app/layout.tsx` — 計装の mount
-- **注意**: RUM SaaS は [0081](../adr/0081-observability-logging.md) で exclusion(fork 先判断)。PostHog 等の分析 adapter は v2 マトリクス
-- **設計**: [0101](../adr/0101-performance-budget.md) は「計測の仕組みは持つ / 具体閾値は fork 先」なので、閾値は設定せず計測経路のみ作る
+  - `src/adapters/http/telemetry-report.ts` — 送る側と受ける側が共有する報告の形
+  - `src/adapters/client/telemetry/` — Web Vitals / client error を報告へ組んで送る面と、ブラウザ側の計装([0082](../adr/0082-client-observability.md) の送信面)
+  - `src/adapters/server/telemetry/` — 受けた本体の検証と signal への受け渡し、ブラウザが作った span の collector への中継
+  - `src/observability/web-vital-metric.server.ts` — Web Vitals を OTel の metric として記録する口
+  - `src/app/api/telemetry/route.ts` / `traces/route.ts` — **ブラウザ → BFF 中継 seam**([0081](../adr/0081-observability-logging.md))。ブラウザから collector を直接叩かせない
+  - `src/app/telemetry.tsx` / `src/app/layout.tsx` — 計装の mount
+- **注意**: RUM SaaS は [0081](../adr/0081-observability-logging.md) で exclusion(fork 先判断)。プロダクト分析はタグマネージャの容器の中身が持ち、本体は発火 IF を置かない([0082](../adr/0082-client-observability.md) §3)
+- **設計**: [0101](../adr/0101-performance-budget.md) は「計測の仕組みは持つ / 具体閾値は fork 先」なので、閾値は設定せず計測経路のみ作る。**収集と送信は `observability` ではなく `adapters` に置く** —— [0082](../adr/0082-client-observability.md) が送信面を `adapters/client`・受けを `adapters/server` と定めており、`observability` は末端カーネルで `adapters` を参照できないため、そこへ置くと送る先が無い。Web Vitals は指標ごとのヒストグラムで出す —— 公式 semconv は event 名(`browser.web_vital`)しか定めていないが、event で出すと 1 レコードごとに中継の POST の span が付き、測定が起きていない要求と親子になる
 - **完了条件**: Web Vitals(LCP / CLS / INP)が Grafana に届く。client の未捕捉例外が中継経由で記録される
 - **依存**: P3-5, P4-5
 
@@ -1422,11 +1431,12 @@ sources:
 - **主な変更先**:
   - `next.config.ts` or `src/proxy.ts` — CSP / セキュリティヘッダ(**seam B へ反転した場合のみ** nonce 生成)
   - `docs/adr/0111-csp-security-headers.md` — **CSP enforce seam の確定追補**(§3.9。P0-4 から移管)
-  - `.github/workflows/csp-check.yaml` — inline 違反検出 + ヘッダ well-formed 検証
-- **設計**: `img-src` に `MEDIA_ORIGIN` を含める必要がある(本書 §3.2)。**`script-src` の方式は未決 #1 の確定に従う**(seam A 既定 = 静的維持。seam B へ反転した場合のみ nonce)。`next/script` の strategy 使い分けは `rules.md` #50
+  - `src/config/security-headers/` — ヘッダの組み立てと、その単体検査
+  - `e2e/lib/test.ts` / `e2e/journeys/csp.spec.ts` — **enforce の結果を実ブラウザで見る側**。違反は `securitypolicyviolation` で受ける（ヘッダを読むだけの検査は `Report-Only` でも通る）
+- **設計**: `img-src` に `MEDIA_ORIGIN` を含める必要がある(本書 §3.2)。**`script-src` は seam A(静的)のまま**([0111](../adr/0111-csp-security-headers.md) §4)。nonce は Cache Components と両立しないため、strict 化は fork の opt-in として seam B に名前だけ与える。`next/script` の strategy 使い分けは `rules.md` #50
 - **注意**: **[0111](../adr/0111-csp-security-headers.md)(実行時本体)と [0110](../adr/0110-security-operations.md)(CI 適合スライス)は両輪であり、片側だけでは閉じない**
 - **入力**: `.github/zap/rules.tsv` の一覧。DAST([0110](../adr/0110-security-operations.md) 3.5)を先に置いてあるので、**配信面に何が足りないかは実測済みで並んでいる**。本 PR は「その一覧を空にする作業」であり、1 行 = 1 ヘッダ = 1 作業単位として並行して潰せる
-- **完了条件**: 全画面が CSP 違反ゼロで動作する。意図的に inline script を入れると CI が fail する。**0111 に enforce seam の確定が記録されている**。**`rules.tsv` からヘッダ由来の行が消えている**
+- **完了条件**: 全画面が CSP 違反ゼロで動作する。宣言に無い配信元の script を差すと CI が fail する。**0111 に enforce seam の確定が記録されている**。**`rules.tsv` に残るヘッダ由来の行が、0111 が明示的に受け入れた弱い許可（`script-src` の `'unsafe-inline'`）だけになり、撤回条件を持っている**
 - **依存**: P5-16, **P6-8**(CSP seam と Cache Components を同時に決めるため — §3.9)
 
 ### P6-3: SEO / metadata + fonts
@@ -1471,19 +1481,23 @@ sources:
 - **完了条件**: 主要ジャーニーの E2E が 3 つの描画エンジンで CI で緑。ブラウザが報告する異常が全 spec で見張られる。主要画面の VR ベースラインが帯ごとに登録される（story 単位は着地済み）
 - **依存**: P5-16, P3-8
 
-### P6-5: capabilities カーネル
+### P6-5: capabilities カーネル —— 足すものの確定
 
-- **目的**: 横断 client hook のカーネルを実体化する
-- **対象 ADR**: [0022](../adr/0022-capabilities-kernel.md)
-- **主な変更先**: `src/capabilities/`
-  - 離脱ガード(navigation-block hook)— P5-7 の注文フォームで使用
-  - `useConnectivity`(オンライン / オフライン検知)
-  - Web Worker オフロード seam
-- **注意**: **Web Worker はどの ADR にも記載がなく master-plan 1.2 が唯一の記録**のため、実装時に ADR 化の要否を判断する
-- **キーボード shortcut の実行機構をここで判断する**: `keyboard-shortcut` component は「何が起きるか」と「どのキーか」の表示だけを持ち、キーの登録も `keydown` の待ち受けも持たない。任意の操作をキーへ結び付ける汎用機構は横断的な client hook であり置き場所は `capabilities` だが、`components` は `capabilities` を import できない(層境界。`eslint-plugin-boundaries` で強制)ため、component 側は構造的にこれを持てない。キーと handler の結線は両方を import できる `features` 以上の層が担う。その component 自身の UI 内で完結するキー操作は例外で、component の中に置いてよい(`toaster` の hotkey が先例)。**判断が済むまで「`⌘K` と表示されているのに何も起きない」状態を作れる余地が残り、担保は呼び出し元の責任である。** registry は [0022](../adr/0022-capabilities-kernel.md) から据え置き除外されている(P0-4)ため、採るなら 0022 の範囲判断から入る
-- **設計**: 本書 §3.4 の改訂滑走路原則に従い、**3 件とも設置面(実使用箇所)を伴って作る**。使われない hook は置かない
-- **完了条件**: 3 機構が動作し、それぞれサンプルから 1 箇所以上使われている。キーボード shortcut の実行機構の採否が決まっている(採るなら [0022](../adr/0022-capabilities-kernel.md) の範囲を広げて実装し、採らないなら BACKLOG の撤回条件へ記録する)
-- **依存**: P5-7
+- **目的**: 横断 client hook として `capabilities` へ足すものを確定する
+- **対象 ADR**: [0022](../adr/0022-capabilities-kernel.md) / [0021](../adr/0021-frontend-responsibility.md)(昇格ルール)/ [0053](../adr/0053-ui-component-interaction-seam.md) §5
+- **設計**: 3.4 の滑走路原則に従い、**設置面(実使用箇所)を伴わないものは置かない**。この PR の仕事は「作ること」ではなく、候補ごとに設置面の有無を確かめて足す / 足さないを確定することである
+
+| 候補 | 判断 |
+| --- | --- |
+| 離脱ガード(navigation-block) | **着地済み**。`components/app-starter/navigation-guard`(link click の傍受)と `unload-guard`(`beforeunload`)を、`features/admin/ui/unsaved-changes-guard` の器が束ね、商品フォームが `dirty` を申告している。**`capabilities` へは上げない** —— 申告するのが 1 つの feature だけである以上、[0021](../adr/0021-frontend-responsibility.md) の昇格ルール(複数 feature からの参照)を満たさない。2 つ目の feature が申告した時点で上げる |
+| `useConnectivity` | **置かない**。`navigator.onLine` は「回線はあるがインターネットへ出られない」を `true` と答えるため、送信可否の判断に使うと嘘をつく。送れなかったことを伝える経路は [0063](../adr/0063-mutation-result-notification.md) が既に持っており、そこへ精度の低い二つ目の答えを足すことになる([0020](../adr/0020-adopted-architecture.md) 設計原則 6)。本命の設置面は長寿命接続を持つ画面(EX 枠)側にある |
+| Web Worker オフロード seam | **置かない**。client 側に重い処理が存在しない(`canvas` / `FileReader` / client 側パースのいずれも不使用で、画像は Server Action 経由)。EX 枠が着地しても、client が持つのは重複排除と時間窓バッファだけで設置面は生まれない |
+| キーボード shortcut の実行機構 | **判断しない**。[0053](../adr/0053-ui-component-interaction-seam.md) §5 が exclusion を確定し、BACKLOG の撤回条件も既にある。ここで再決定しない |
+
+- **代わりに置くもの**: **リッチテキストの toolbar へキー操作の案内を出す**。extension が登録しているキー(`Mod-B` 等)は既に効いているが、どのキーで効くのかがどこにも出ていない。案内は `KeyboardShortcut` が持ち、**案内と登録が食い違わないことをテストで固定する**。これは表示であって機構ではないため、0053 §5 の除外に触れない
+- **強制手段**: 案内と extension の登録の突合(component テスト)+ 散文
+- **完了条件**: 上の 4 候補それぞれの判断が記録され、置かないものは BACKLOG の撤回条件を持つ。リッチテキストの toolbar が、実際に効くキーだけを案内している
+- **依存**: —
 
 ### P6-6: メンテナンスモード
 
@@ -1505,12 +1519,13 @@ sources:
   - `src/model/consent.ts` — 同意状態の型(**コア残留**)
   - `src/stores/consent-store.ts` — client 側の同意状態(**コア残留**)
   - `src/proxy.ts` / `src/app/layout.tsx` — 同意 cookie の読み出しと初期状態の供給([0031](../adr/0031-policy-state-supply.md))
-  - `src/components/consent-banner/` — 同意バナー(**コア残留**)
-  - `src/components/analytics-gate.tsx` — **同意が無いとサードパーティスクリプトを読み込まないゲート**
+  - `src/components/shell/consent-banner/` — 同意バナー(**コア残留**)
+  - `src/app/consent.tsx` — **同意が無いとサードパーティスクリプトを読み込まないゲート**
+  - `src/app/analytics.tsx` / `src/config/analytics/` — ゲートの裏へ置くタグマネージャと容器 ID
 - **設計**: 計測用 cookie_id はここで発行する。cookie の命名・属性(SameSite / Secure / HttpOnly / Max-Age)は `rules.md` #44、スクリプト読み込みは `next/script` の strategy(`rules.md` #50)に従う
-- **スコープ外**: **GTM / PostHog 本体は入れない**。CMP・IAB TCF 等の本格的な同意管理も対象外。ゲートの先に何も繋がっていない状態で v1 を出す
+- **スコープ外**: **PostHog 本体は入れない**。CMP・IAB TCF 等の本格的な同意管理も対象外
 - **注意**: CSP(P6-2)の `script-src` と連動する。同意前はゲート対象のスクリプトが DOM に存在しないことをテストで担保する
-- **完了条件**: 同意前後でゲート対象スクリプトの読み込み有無が切り替わる。同意状態が cookie で永続化され RSC 側から読める。バナーが a11y 要件(フォーカストラップ / キーボード操作)を満たす
+- **完了条件**: 同意前後でゲート対象スクリプトの読み込み有無が切り替わる。同意状態が cookie で永続化され、前捌きとブラウザの双方から同じ綴りで読める。バナーが a11y 要件(フォーカストラップ / キーボード操作)を満たす
 - **依存**: P6-2
 
 ### P6-8: プラットフォーム機能の有効化判断
@@ -1523,12 +1538,64 @@ sources:
 | 機能 | 現状 | 判断内容 |
 | --- | --- | --- |
 | Cache Components(PPR) | 無効 | 有効化するか、無効のまま v1 を出すか |
-| React Compiler | 無効 | 同上 |
+| React Compiler | `compilationMode: "annotation"` | 基盤の必須機能にはしない。annotation で opt-in する性能最適化手段として扱う([0042](../adr/0042-react19-rendering-api.md) 決定 4)。印を置く先は feature が決める |
 | React taint API | 無効 | 有効化して `NEXT_PUBLIC_` 境界を強化するか |
 
 - **設計**: E2E + VR(P6-4)が揃った後に判断する。有効化の影響を回帰で検証できるため
-- **完了条件**: 3 機能それぞれについて「有効化した」または「v1 では無効のまま」の判断が該当 ADR に記録されている
-- **依存**: P6-4
+- **Cache Components の有効化は P6-9 を前提にする**: PPR は「何が静的な殻へ入るか」を決める機構であり、user-scoped な値が共有・静的な領域へ載る経路をここで作る。**分類とキャッシュ境界(P6-9)が無いまま有効化すると、事故の起こる面だけが先に開く**
+- **完了条件**: 3 機能それぞれの扱いが該当 ADR に記録されている。Cache Components と taint は「有効化した」または「v1 では無効のまま」、React Compiler は**基盤の前提にしない opt-in 機構としての方針**が記録されていること
+- **依存**: P6-4, **P6-9**
+- **状態**: **判断は確定済み**。Cache Components は [0041](../adr/0041-cache-components-decision.md) が v1 採用に確定(有効化と移行は別 PR。前提は P6-9)。React taint API は [0030](../adr/0030-environment-variable-management.md) §8 が experimental を承知の例外として採用に確定(有効化範囲は全環境)。React Compiler は [0042](../adr/0042-react19-rendering-api.md) 決定 4 が「基盤の必須機能にしない、annotation で opt-in する性能最適化手段」に確定し、`compilationMode: "annotation"` の常設と印を置く先の実例まで着地済み
+
+### P6-9: データ分類とキャッシュ境界(PII / user-scoped の取り扱い)
+
+- **目的**: 値を「どの実行境界・どのキャッシュ範囲で使ってよいか」で分類し、**誤った置き場へ入れる書き方を通常の実装経路から消す**
+- **対象 ADR**: **[0112](../adr/0112-data-classification-cache-boundary.md)(本 PR の決定が正)** / [0020](../adr/0020-adopted-architecture.md)(設計原則 6)/ [0071](../adr/0071-bff-api-integration.md)(キャッシュの所有層)/ [0030](../adr/0030-environment-variable-management.md) §8(漏洩防御)/ [0041](../adr/0041-cache-components-decision.md)(PPR)/ [0040](../adr/0040-routing-rendering-strategy.md)(モード選択)
+- **爆破対象外**: 本 PR が置くものは**すべて基盤**である。サンプル API 固有ではなく、Server / Client 境界とキャッシュ境界そのものを守る機構であり、サンプル破棄後も残る
+
+#### 防ぎたい事故クラス
+
+| # | 事故 | 現在の防御 |
+| --- | --- | --- |
+| 1 | PII を含む server object を Client Component へ丸ごと渡す | 規約のみ(詰め替えを書く人が判断) |
+| 2 | token / secret を RSC ペイロードへ載せる | `import "server-only"` + 目的別 config |
+| 3 | request 固有の値を static generation へ焼き込む | **無し**(PPR 未導入のため面が無い) |
+| 4 | User A のデータを共有キャッシュへ入れ、User B へ配る | **無し**(`cache` / `tags` は全 client が受け取れる) |
+| 5 | projection / clone で分類が消える | **無し** |
+| 6 | サンプル破棄でセキュリティ基盤まで消える | 破棄対象の宣言次第 |
+| 7 | キャッシュの口を直接使って制約を迂回する | **無し**(`use cache` / `unstable_cache` は誰でも書ける) |
+
+#### 設計は [0112](../adr/0112-data-classification-cache-boundary.md) が正
+
+不変条件 6 件・分類の持たせ方・段ごとの関所・責務分界は同 ADR が持つ。本 PR はその実装であり、
+着手時はまず 0112 を読む。要点だけ:
+
+- **機密性 > キャッシュ効率 > SSR 率 > PPR 適用率 > バンドル最小化**。PII は最適化の対象ではなく露出範囲を最小化する対象
+- 分類は値ではなく**取得の口**に持たせ、user-scoped の口からキャッシュ能力を型ごと外す
+- 守りは 1 か所に集約せず、**型 / lint / framework / 取得時 / 境界 / 配信**の段に分ける
+
+#### 主な変更先
+
+- `src/adapters/server/http/request.ts` —— `scope` の宣言、分類ごとの spec 型、取得時の関門
+- `src/adapters/server/api/*.ts` —— 各 client の `scope` 宣言(既に public / 認証つきで分かれており、宣言を足すだけ)
+- `eslint.config.ts` —— `use cache` を持つモジュールの import 制約
+- `docs/rules.md` —— 分類の選び方と `use cache: private` の位置づけ
+
+#### この PR で確かめること
+
+- **`cache()` メモ化と cached scope の関係**。`verifySession` は React `cache()` でメモ化されており、cached scope の外で解決済みの値が中で再利用されると `cookies()` が再読されず、framework 側の防御が発火しない可能性がある
+- **資格情報の解決経路を機械検査にできるか**。framework の防御は「使用地点で cookie から解決される」ことに乗っており、持ち回りやメモ化で静かに外れる
+
+#### トレードオフ
+
+- 通常実装の可読性はほぼ変わらない。feature 側の記述は増えず、変わるのは adapter を書くときに口を選ぶ 1 行だけ
+- 資格情報を載せうる口は共有キャッシュの選択肢を失う。「匿名でも取れるものを共有キャッシュへ」という最適化は、口を分けない限り選べなくなる
+- `use cache` の lint は import で判定するため、間接参照の深い経路を取りこぼしうる
+
+- **完了条件**: user-scoped な取得に `cache` / `tags` を渡すコードが**型検査で落ちる**。`use cache` の下から user-scoped adapter へ到達する import が `lint:ci` で落ちる。資格情報つきの要求にキャッシュ指定を与えると実行時に落ちる。上の 5 層が `docs/rules.md` と ADR に記録されている
+- **依存**: P5-4(認証の口が揃っていること)
+
+---
 
 ---
 
@@ -1663,22 +1730,22 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 
 #### 併せて開封する: spec 駆動の How(GB-3 / IM-26)
 
-**spec 駆動は採用が決まっている**(P5-18)。**確定していないのは How だけ**で、その確定をここへ
-持ち越してある。**v1 を切る前に決めきる。**
+**spec 駆動の How は決着している**(P5-18)。採用する / 生成 scaffold は持たない / spec 先行は強制
+しない、の 3 点がいずれも確定済みで、**ここで決めることは残っていない。**
 
-| 決めること | 選択肢 | 決めるのに要る情報 |
-| --- | --- | --- |
-| 生成 scaffold を持つか | 持つ / 持たない | 持つなら P4-6 の生成入力(`architecture.ts`)をどう扱うか。**両方を同じ役割で残すと SSOT が二重化する** |
-| 輸入資産のどれを使うか | `new-spec` / `verify-spec` / `spec-validator-*` / `scaffold-spec/*` の取捨 | 「spec フォーマットを外部ファイルから実行時読込 = SSOT」の構造は言語非依存。採るならここが軸 |
-| spec を先に書くことを強制するか | 手順に入れる / 入れない | **判断材料 (3)「先に書くほうが速いか」は測れていない**(未実装の画面が残っていないため)。測らずに強制すると、測っていない前提を規約にすることになる |
+ここで見るのは 1 つだけ —— **`docs/spec/route/**` が実装と食い違っていないか**である。仕様書は
+確定した約束を書くものなので、v1 を切る時点の実装と読み合わせる。食い違いがあれば仕様書を直す
+(実装ではなく)。
 
-**ここまでの材料**: 仕様書は 22 画面ぶん 43 本あり、(1) 実装を再現できるだけの情報を持てること、
-(2) `architecture.ts` と重複しない情報だけで構成できることは確認済み。書き起こしで分かったのは、
-**画面の約束が文書の外(実装の doc コメント)に居やすい**ことで、spec 駆動を採る値打ちは生成の
-速さではなく約束の置き場が決まることにある。
+**ここまでの材料**: 仕様書は 25 画面 + 4 つの器ぶん 57 本あり、(1) 実装を再現できるだけの情報を
+持てること、(2) `architecture.ts` と重複しない情報だけで構成できることは確認済み。書き起こしで
+分かったのは、**画面の約束が文書の外(実装の doc コメント)に居やすい**ことで、spec 駆動を採る
+値打ちは生成の速さではなく約束の置き場が決まることにある。**生成 scaffold を持たないと決めたのは
+この材料の裏返しである** —— 生成器はその値打ちを 1 つも運ばない。
 
 **反映先**: BACKLOG GB-3 と [go-boilerplate-import-plan.md](go-boilerplate-import-plan.md) の
-IM-26。**P4-6 の改修 PR は、上表 1 行目が確定してから起票する。**
+IM-26 —— どちらも反映済み。**P4-6 の改修 PR は起票しない**(生成入力を `architecture.ts` の 1 本に
+据え置くため)。
 
 #### 併せて開封する: 認証の cloud 経路
 
@@ -1728,6 +1795,14 @@ IM-26。**P4-6 の改修 PR は、上表 1 行目が確定してから起票す�
 
 会話系の component(`Message` / `Bubble` / `MessageScroller` / `Marker`)は、この枠以外に設置面を持たない。admin 画面をいくら積んでも埋まらないため、Phase 5 の他の PR では代替できない。
 
+**runtime の能力は `capabilities` へ置く(P6-5 からの申し送り)。** この枠は、**本体で唯一 runtime 能力の設置面がまとまって現れる場所**である。P6-5 は候補を調べたうえで「設置面が無い」ことを理由に `useConnectivity` を置かず、本命の設置面がこちらにあると判断して見送っている。したがって EX 枠が着手されるとき、次を feature の内側で書き切らないこと。
+
+- **回線の有無**(`navigator.onLine` の購読)は `capabilities` へ置く。これは runtime の能力であり、chat に固有ではない
+- **stream が生きているか**(`EventSource` の状態・backoff の残り)は `capabilities` **ではない**。通信機構の状態であり、EX-2 の購読 adapter が持つ。**この 2 つは別物で、画面はどちらも必要とする**
+- **ページの可視性**(既読の確定・隠れている間の再接続の抑制)も runtime の能力であり、`capabilities` へ置く
+- **下書きの永続化**を `localStorage` へ持たせる場合、[0112](../adr/0112-data-classification-cache-boundary.md) 決定 8 が先に効く —— 本文は user-scoped であり、保持を最小にし、必要性を説明できる範囲に限る
+- **キー操作**(`⌘Enter` で送信・`Esc` で閉じる)は chat の UI 内で完結するため [0053](../adr/0053-ui-component-interaction-seam.md) §5 の例外に当たり、**登録機構を作らずに置ける**。作らないこと
+
 ### EX-1: ストリーム前提の文書反映
 
 - **目的**: stream 機構の設置面が確定したことを、前提側の文書へ反映する
@@ -1772,22 +1847,16 @@ IM-26。**P4-6 の改修 PR は、上表 1 行目が確定してから起票す�
 
 | # | 内容 | 決着させる時期 |
 | --- | --- | --- |
-| 1 | **CSP の enforce seam**(0111 seam A 維持 / seam B へ反転)。**sanitizer 検証は P3-8 で完了済み**(結果は §3.9)。残る判断は **P6-8 の Cache Components 判断と同時**に決める(両立しないため)。判断時に扱う論点は「`'unsafe-inline'` を外せるか」ではなく「`style-src-elem` / `style-src-attr` を割って要素側だけ厳格にするか」であり、属性側は Radix popper と `next/image` が要求するため降りられない | P6-8 と同時 → **P6-2 で ADR 追補・実装** |
-| 1b | **CSP 本体が未実装**。`next.config.ts` に `headers()` が無く、`src/proxy.ts` も存在しない。0111 は配置先を **seam A = `next.config.ts` `headers()`(既定)/ seam B = `src/proxy.ts`(nonce・opt-in)** と定めているが、どちらの実体も無い。`Content-Security-Policy-Report-Only` での段階導入(0111 §3)もこの実装に含める | #1 と同じ(P6-2) |
-| 1c | **`injectCSS: false` の採否**(`rich-text-editor` の `useEditor` options)。`style-src-elem` を厳格にする場合の前提条件。採る場合は ProseMirror の基礎 CSS を `globals.css` から持つ(0050「グローバル CSS は `globals.css` に集約」。`.ProseMirror` は library が生成する class 名のため CSS Modules ではスコープできない)。単体では防御が変わらず、効果は FOUC の解消に留まる | #1 の判断と同時 |
 | 2 | **認証 Resolver の具体化**(IF 形状 / 既定実装のライブラリ選定 / refresh の扱い / role の取得元)。refresh は mock に無いため実機検証できない | P5-4 |
 | 3 | **admin 判定の手段** — go 側の契約に `roles` が 1 度も出てこない(実測 0 件)。`UserResponse` にも roles が無く **admin かどうかを型から導けない**。[screens.md](../screens.md) §0 の「UI 上は導線ごと出し分ける」が実装できないため、go 側へ roles 露出を依頼するか別手段を設計する | **P5-11 着手前**(必要なら go 側へ起票) |
 | 4 | **`*.localhost` の名前解決** — `next/image` はサーバ側 fetch のため Next.js 実行ホストでの解決が要る。Linux コンテナ / CI では `/etc/hosts` 追記が必要な見込みで、IPv6(`::1`)解決の可能性もある(§3.2) | **P4-5 着手前に実測** |
 | 5 | **U10 登録フローの方式**(JIT 自動プロビジョニング / 明示オンボーディング)。[screens.md](../screens.md) の推奨に従い後者で実装し、確定後に差分吸収する | P5-10 |
-| 6 | **sanitizer ライブラリの選定**(`rules.md` #48。#1 の入力でもある) | P5-1 |
+| 6 | **sanitizer ライブラリの選定**(`rules.md` #48) | P5-1 |
 | 7 | **status を持たない失敗の分類** — [0080](../adr/0080-error-handling.md) は一次キーを HTTP status とし、timeout / abort / DNS 失敗の分類を「実装 PR で判断」と保留している | P4-3 |
-| 8 | `/api/telemetry` の最小防御(ボディサイズ上限 / content-type 検証)。[0077](../adr/0077-bff-abuse-protection-boundary.md) が実装 PR へ保留 | P6-1 |
 | 9 | `ActionState<T>` の具体型(判別子 / fieldErrors の形 / sentinel の直列化)。**B1 テンプレ(P3-10)と scaffold(P4-6)が P5-7 より先行するため、P4-6 時点で草案を切る** | P4-6 で草案 → P5-7 で確定 |
 | 10 | **外部デザイン支援ツール連携スキルの仕様**(書き出し形式 / 同期手順 / 対象パス)。§3.11 の方針変更で新たに生じた | P3-8 |
-| 11 | Phase 2 の残余候補(sync-versions-check / auto-generate-docs)の採否 | Phase 6 実装時 |
 | 12 | issue のラベル体系 / 親子関係(task list か Projects か) | issue 発行時 |
 | 13 | barrel(`index.ts`)の可否。**推奨は作らない** — 循環参照 / tree-shaking の問題に加え、[0021](../adr/0021-frontend-responsibility.md) の「公開面を明示する」目的に対し barrel はむしろ境界を曖昧にするため。公開面は `architecture.ts` と README frontmatter で宣言する | P3-1 |
-| 14 | Web Worker オフロード seam の ADR 化要否 | P6-5 |
 
 ### 解決済み(記録)
 
@@ -1799,6 +1868,10 @@ IM-26。**P4-6 の改修 PR は、上表 1 行目が確定してから起票す�
 | `cn()` の実装ライブラリ | **`clsx` + `tailwind-merge`**。[0052](../adr/0052-ui-component-policy.md) が既に名指ししており追認(§3.10) |
 | `rules.md` #69(生 `<a>` 禁止) | **ESLint で拾う**。`next/link` を必須にするため機械強制が要る(P3-2) |
 | Figma Variables の輸出経路 | §3.11 の方針変更により**消滅**(SSOT がコード側) |
+| CSP の enforce seam / CSP 本体 / `injectCSS: false` の採否(旧 #1 / #1b / #1c) | **seam A(`next.config.ts` の `headers()`)で確定**([0111](../adr/0111-csp-security-headers.md) §4)。実体は `src/config/security-headers/` が組み立て、enforce の結果は実ブラウザの `securitypolicyviolation` が見張る。`style-src` は割らない —— 属性側は Radix と `next/image` が要求して降りられず、要素側だけ厳格にする案は Safari が割った指定を持たないため費用に見合わない。`injectCSS: false` はその前提条件だったので**採らない**(同 §4 の撤回条件が両方を持つ) |
+| Phase 2 の残余候補(sync-versions-check / auto-generate-docs)の採否(旧 #11) | **どちらも不採用**。前者は版の宣言が 2 箇所以上あって初めて意味を持つ検査で、本リポジトリは Docker を持たず `mise.toml` が唯一の宣言である(workflow が版を名乗る面は `make actions-mise-pin-lint` が見ている)。後者は生成物を bot が commit する形だが、本リポジトリの生成物は `gen-drift` / `tokens-drift` / `shadcn-drift` が**落とす**側で守っている。撤回条件は BACKLOG W51 / W52 |
+| Web Worker オフロード seam の ADR 化要否(旧 #14) | **ADR は起こさない**。P6-5 が設置面の不在を理由に置かないと決め、撤回条件を BACKLOG W43 が持つ。決定の本体は [0022](../adr/0022-capabilities-kernel.md) にあり、新しい記録を要しない |
+| `/api/telemetry` の最小防御([0077](../adr/0077-bff-abuse-protection-boundary.md) §2 の保留分) | **Route Handler が持つ**。content-type が JSON を名乗らない要求を 415、契約が許す最大の報告(約 15.7 KB)を超える本体を 413 で落とす。宣言された長さで先に落とし、宣言の無い要求は読んだ後の実測で落とす。レート制限と大域的な遮断は同 §1 のとおり edge / WAF の責務であり本体に置かない |
 
 ## 6. go-boilerplate への依頼
 

@@ -61,31 +61,7 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      # The whole workspace is installed, not just the root: the 1:1 gate decides "is this
-      # export callable" from the type checker, and a package whose dependencies are absent
-      # resolves to `any`, which has no call signatures. The gate would then require nothing
-      # and report a clean run. It fails loudly on an unresolved import instead, so the
-      # trees have to be here.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # The full variant: coverage with no cache, and the thresholds in
-      # `vitest.scripts.config.ts` are part of the gate. A new decision branch that nobody
-      # exercises is exactly how these scripts start reporting a clean run, so an uncovered
-      # branch fails here rather than being reported as a percentage nobody reads.
+        uses: ./.github/actions/setup-deps
       - name: Run the scripts suite with coverage
         run: make scripts-test

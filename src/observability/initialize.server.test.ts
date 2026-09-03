@@ -1,10 +1,8 @@
-import type { Attributes } from "@opentelemetry/api";
 import { CompositePropagator } from "@opentelemetry/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   ignoreRequestHook: vi.fn<(request: { origin: string }) => boolean>(),
-  startSpanHook: vi.fn<(request: { origin: string; path: string }) => Attributes>(),
   start: vi.fn(),
   nodeSdk: vi.fn(),
   undiciInstrumentation: vi.fn(),
@@ -16,10 +14,8 @@ function MockNodeSdk() {
 
 function MockUndiciInstrumentation(config: {
   ignoreRequestHook: (request: { origin: string }) => boolean;
-  startSpanHook: (request: { origin: string; path: string }) => Attributes;
 }) {
   mocks.ignoreRequestHook.mockImplementation(config.ignoreRequestHook);
-  mocks.startSpanHook.mockImplementation(config.startSpanHook);
 
   return {};
 }
@@ -32,7 +28,7 @@ vi.mock("@opentelemetry/instrumentation-undici", () => ({
   UndiciInstrumentation: mocks.undiciInstrumentation,
 }));
 
-import { getSignalEndpoint, OtelSignal, redactUrlQuery } from "./initialize.server";
+import { getSignalEndpoint, OtelSignal } from "./initialize.server";
 
 describe("initializeObservability", () => {
   beforeEach(() => {
@@ -41,7 +37,6 @@ describe("initializeObservability", () => {
     mocks.nodeSdk.mockReset();
     mocks.nodeSdk.mockImplementation(MockNodeSdk);
     mocks.ignoreRequestHook.mockReset();
-    mocks.startSpanHook.mockReset();
     mocks.undiciInstrumentation.mockReset();
     mocks.undiciInstrumentation.mockImplementation(MockUndiciInstrumentation);
   });
@@ -135,7 +130,6 @@ describe("initializeObservability", () => {
     expect(mocks.undiciInstrumentation).toHaveBeenCalledWith({
       requireParentforSpans: true,
       ignoreRequestHook: expect.any(Function),
-      startSpanHook: expect.any(Function),
     });
   });
 
@@ -171,23 +165,6 @@ describe("initializeObservability", () => {
     expect(mocks.ignoreRequestHook({ origin: "https://api.example.test" })).toBe(false);
     expect(mocks.ignoreRequestHook({ origin: "https://media.example.test" })).toBe(false);
     expect(mocks.ignoreRequestHook({ origin: "https://idp.example.test" })).toBe(true);
-  });
-
-  it("外向き span の redaction hook を配線する", async () => {
-    const { initializeObservability, redactUrlQuery: subject } = await import(
-      "./initialize.server"
-    );
-
-    initializeObservability({
-      otlpEndpoint: "http://localhost:4318",
-      tracesEnabled: true,
-      metricsEnabled: false,
-      logsEnabled: false,
-      serviceName: "Boilerplate Web",
-      tracePropagationOrigins: ["https://api.example.test/v1"],
-    });
-
-    expect(mocks.undiciInstrumentation.mock.calls[0]?.[0].startSpanHook).toBe(subject);
   });
 
   it("metrics と logs だけが有効でも SDK を開始する", async () => {
@@ -261,35 +238,5 @@ describe("getSignalEndpoint", () => {
     expect(getSignalEndpoint("https://otel.example.test/", OtelSignal.TRACES)).toBe(
       "https://otel.example.test/v1/traces",
     );
-  });
-});
-
-describe("redactUrlQuery", () => {
-  // ----- 正常系 -----
-  it("query 文字列を落とした url.full を返し、url.query のキーを undefined で上書きする", () => {
-    expect(
-      redactUrlQuery({ origin: "https://api.example.test", path: "/v1/resources?keyword=検索語" }),
-    ).toStrictEqual({
-      "url.full": "https://api.example.test/v1/resources",
-      "url.query": undefined,
-    });
-  });
-
-  it("query を持たない path はそのまま url.full に載せる", () => {
-    expect(
-      redactUrlQuery({ origin: "https://api.example.test", path: "/v1/resources/me" }),
-    ).toStrictEqual({
-      "url.full": "https://api.example.test/v1/resources/me",
-      "url.query": undefined,
-    });
-  });
-
-  it("path が query だけでも origin までを url.full に残す", () => {
-    expect(
-      redactUrlQuery({ origin: "https://api.example.test", path: "?keyword=検索語" }),
-    ).toStrictEqual({
-      "url.full": "https://api.example.test",
-      "url.query": undefined,
-    });
   });
 });

@@ -43,6 +43,10 @@ const lighthouseSchema = z.object({
     count: z.number().int().positive(),
     reason: z.string().trim().min(1),
   }),
+  floor: z.object({
+    screen: z.string().trim().min(1),
+    reason: z.string().trim().min(1),
+  }),
   metrics: limitsSchema,
   screens: z.record(z.string(), limitsSchema.partial()).default({}),
 });
@@ -58,6 +62,16 @@ export type Measurement = {
   readonly name: string;
   /** 試行の中央値。 */
   readonly values: MetricValues;
+  /** 何台目が測ったか。割らなかった実行では `undefined`。 */
+  readonly shard?: number;
+  /**
+   * 機械の速さを読むためだけの測定か。
+   *
+   * @remarks
+   * 床の画面は割った台すべてで測りますが、判定するのは担当の台のぶんだけです。台数ぶん判定
+   * すると、1 台でも遅い実行があるだけで落ちます。
+   */
+  readonly control?: boolean;
 };
 
 /** 画面 1 つぶんの判定。 */
@@ -103,18 +117,20 @@ export function limitsFor(budget: Budget, name: string): MetricValues {
  * @returns 計測と同じ順序の判定。
  */
 export function judge(measurements: readonly Measurement[], budget: Budget): Verdict[] {
-  return measurements.map((measurement) => {
-    const limits = limitsFor(budget, measurement.name);
-    const over: Partial<Record<MetricKey, number>> = {};
+  return measurements
+    .filter((measurement) => measurement.control !== true)
+    .map((measurement) => {
+      const limits = limitsFor(budget, measurement.name);
+      const over: Partial<Record<MetricKey, number>> = {};
 
-    for (const key of METRIC_KEYS) {
-      if (measurement.values[key] > limits[key]) {
-        over[key] = measurement.values[key] - limits[key];
+      for (const key of METRIC_KEYS) {
+        if (measurement.values[key] > limits[key]) {
+          over[key] = measurement.values[key] - limits[key];
+        }
       }
-    }
 
-    return { ...measurement, limits, over };
-  });
+      return { ...measurement, limits, over };
+    });
 }
 
 /** 判定が 1 つでも超過しているか。 */
@@ -130,7 +146,9 @@ export function hasFailure(verdicts: readonly Verdict[]): boolean {
  * 消えたことは、予算に収まったことと見分けが付かないため、別に検出します。
  */
 export function missingScreens(measurements: readonly Measurement[], budget: Budget): string[] {
-  const measured = new Set(measurements.map((measurement) => measurement.name));
+  const measured = new Set(
+    measurements.filter((m) => m.control !== true).map((measurement) => measurement.name),
+  );
 
   return Object.keys(budget.screens).filter((name) => !measured.has(name));
 }

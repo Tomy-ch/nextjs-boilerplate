@@ -19,13 +19,16 @@ story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象�
 | | 見ているもの | ここでしか見えない理由 |
 | --- | --- | --- |
 | ジャーニー | 画面をまたぐ遷移・絞り込み・認証の前捌き | 経路が繋がっているかは、画面 1 枚では答えられない |
-| Browser Errors | hydration の不一致・描画中の例外・通信の失敗 | **hydration の不一致は build も型検査も通る。**実機で描いたときにしか現れない |
+| Browser Errors | hydration の不一致・描画中の例外・通信の失敗・CSP 違反 | **hydration の不一致は build も型検査も通る。**実機で描いたときにしか現れない。CSP の違反も同じで、ヘッダを読む検査（DAST）は enforce の結果を見ない |
 | Responsive | 帯ごとの出し分け（[`docs/rules.md`](../docs/rules.md) #71） | 帯は viewport の関数であり、jsdom には幅が無い |
 | 履歴 | 被せた面と画面遷移が同じ履歴を奪い合わないか（[0053](../docs/adr/0053-ui-component-interaction-seam.md)） | 競合するのは実ブラウザの履歴操作どうしで、jsdom には相手が居ない |
 | Cross Browser | 描画エンジン固有の破綻 | 1 つのエンジンで通ることは、他の 2 つで通ることを意味しない |
+| 別 origin | 宣言した origin から BFF が読めること・宣言に無い origin からの書き込みが止まること（[0111](../docs/adr/0111-csp-security-headers.md) §5） | preflight の自動発行と CORS の読み取り制限は実ブラウザにしか無い。宣言した origin の文書は起動側が別ポートに立てる（`scripts/e2e/partner-origin.ts`。偽装すると Chromium の Private Network Access に止められる） |
 | 画面単位の見た目 | 画面 1 枚ぶんの基準画像との比較 | 部品の比較を全部足しても、並べた結果にはならない |
 | 画面単位の a11y | landmark・`main`・h1 と、配信される document（[`lib/a11y-rules.ts`](lib/a11y-rules.ts)） | story は部品を単独で描くのでこの 4 つが成立せず、Storybook の iframe document を評価してしまう |
 | フォーカス | 被せた面が焦点を受け取り、閉じ込め、閉じたら返すか | **jsdom はフォーカスの実装を持たない。**`inert` も focus trap も無く、`Tab` の巡回順は近似である |
+| 配信の停止 | `APP_MAINTENANCE_MODE=on` で起動したプロセスが、実際に全ルートを差し替えるか | **入口の分岐も設定も、層ごとには mock 越しにしか確かめていない。**結線は起動してみないと分からない |
+| 公開面 | `robots.txt` / `sitemap.xml` / 各画面の canonical / アイコンと OG 画像が、クローラが読む形で成立しているか。索引させる設定と索引させない設定の両方（[`docs/rules.md`](../docs/rules.md) #63） | **metadata は中身が壊れていても画面が壊れない。**空の sitemap・他人を指す canonical・実行時に落ちる `ImageResponse` は build も単体テストも通る |
 
 **ジャーニーの実体は題材と一緒に消えるが、観点は消えない。** 上の表は fork が自分の画面へ
 書き換えたあとも成り立つもので、題材の破棄で失われるのは spec ファイルだけである。**書き換える
@@ -43,6 +46,8 @@ Vitest からは呼べない。何を異常と数えるか・どの画面を開�
 
 ```bash
 make e2e          # 主要ジャーニーを回し、画面の見た目を基準画像と比較する
+make e2e-maintenance  # 配信を止めた状態で起動し、停止の機構が成立することを確かめる
+make e2e-metadata # 索引させる設定で build して起動し、公開面が成立することを確かめる
 make e2e-update   # 画面の基準画像を撮り直す（置き場へ送るのは make baseline-push）
 make e2e-report   # 直前の実行の HTML レポートを開く
 make e2e-review   # CI が落とした画面を手元で開く（後述「落ちた画面を手元で開く」）
@@ -101,6 +106,61 @@ session 発行の口が開いているため）。
 > **story 単位の側（[`vrt/README.md`](../vrt/README.md)）と同じ限界がある。**ここで見えるのは
 > 「なぜ変わったか」であって、画素の一致ではない。手元のブラウザとホストのフォントで描くので、
 > CI が撮った画像とは元から一致しない。
+
+## 停止中だけは別の起動で回る
+
+`APP_MAINTENANCE_MODE` は**全ルートに効き、切り替えに起動し直しが要る**
+（[仕様書](../docs/spec/route/maintenance/page.function.md)）。1 回の起動の中に「止まっている画面」
+と「止まっていない画面」を同居させられないので、`maintenance/` だけは自分の設定
+（`playwright.maintenance.config.ts`）と自分の起動を持つ。
+
+```bash
+make e2e-maintenance   # 止めた状態で起動し、3 つの応答を確かめる
+```
+
+見るのは応答の成立だけで、**基準画像を撮らない**。停止画面の見た目は通常の巡回が `/maintenance`
+を開いて撮っている —— この画面は止めていなくても URL で開けるためである。
+
+`lib/test.ts` の `test` を使わないのもここだけである。あれはサーバ側の 5xx を異常として数えるが、
+停止中の 503 は意図した応答なので、見張りに掛けると成立が失敗として現れる。
+
+## 索引させる側だけは別の build で回る
+
+`SITE_INDEXABLE` は **build 時に読まれ、静的に描かれる画面の metadata と `robots.txt` へ焼き込まれる**
+（`src/config/site/site.server.ts`）。通常の巡回は既定（`off` = 索引させない）で build するので、
+索引させる側の公開面はその build には存在しない。`metadata/` だけは自分の設定
+（`playwright.metadata.config.ts`）と、`SITE_INDEXABLE=on` を build から渡す自分の起動を持つ。
+
+```bash
+make e2e-metadata   # 索引させる設定で build して起動し、公開面を読む
+```
+
+見るのはクローラが読む応答だけで、**基準画像を撮らない**。`robots.txt` が巡回を許しサイトマップの
+場所を知らせること、`sitemap.xml` が挙げる URL がすべて実在して自分を正規 URL として名乗り索引を
+断っていないこと、画面が名乗るアイコンと OG 画像が絵として返ることを確かめる。外から見た origin
+（`SITE_PUBLIC_ORIGIN`）にはコンテナから見たアプリの場所を渡すので、画面が名乗る URL と spec が
+開く URL は同じ綴りになる。
+
+索引させない側は通常の巡回が見る（`journeys/metadata.spec.ts`）。`robots.txt` が全経路を断り、
+画面が `noindex` を名乗ること。両方が通ってはじめて、切り替えが設定で効いていると言える。
+
+`lib/test.ts` の `test` を使わないのは停止中の検証と同じ理由に加えて、あれが画像の要求を 1 枚の
+代替に差し替えるためである。絵として返るかを見たい相手を、絵に差し替えた上では確かめられない。
+
+## 最初の一式から外した島は、描き終わりを待ってから撮る
+
+`next/dynamic` で最初の読み込みから外した島（作図など）は、**枠だけを置いて後から描かれる**。
+届く前に撮ると枠のまま写り、しかも**枠は連続して撮っても同じ絵**なので、Playwright の
+「同じ絵が 2 回続いたら撮る」判定では待てない。届いた日と届かなかった日の絵が交互に基準へ入る。
+
+撮る側が待つ相手を知っている必要があるので、画面の宣言（[`lib/screens.ts`](lib/screens.ts)）へ
+`settled` として**中身にしか現れない要素**を書く。枠そのものを指しても意味がない。
+
+```ts
+{ route: "/<route>", name: "<画面名>", path: "/<開く URL>", settled: "<中身にしか現れない要素>" }
+```
+
+**待つのは撮影だけである。** 巡回（journeys）は操作の前に対象を待つので、この宣言は要らない。
 
 ## 落ちたときにどれをやるか
 
@@ -171,6 +231,7 @@ seed は要求の URL から導かれるので、暦日で区切る画面が実�
 | console の error | JavaScript が書いた行（React の hydration 不一致はこれ） | ブラウザ自身が書いた行（副資源の取得失敗の narration） |
 | 描画中の例外 | すべて | — |
 | 通信 | 5xx と transport の失敗 | 打ち切り（`net::ERR_ABORTED`）と 4xx |
+| CSP 違反 | すべて（`securitypolicyviolation`） | — |
 
 **4xx を数えないのは、それがアプリの設計された結果だから**である。存在しない資源は 404 を返し、
 未認証は 401 を返す。どれも spec が名指しで確かめる対象であり、横断の見張りが一律に落とすと、
@@ -185,6 +246,48 @@ seed は要求の URL から導かれるので、暦日で区切る画面が実�
 ない**ので、この向きなら文言に頼れる。一覧は回すエンジンに閉じており、際限なく伸びない。
 
 判定は [`lib/browser-errors.ts`](lib/browser-errors.ts) が持つ。
+
+**CSP の違反は console の見張りには掛からない。** ブラウザ自身が書く行なので引数を持たず、上の
+規則で外される。document の `securitypolicyviolation` で受け、経路を分けて数える。見張りの外で
+書く spec が 1 つだけある —— [`journeys/csp.spec.ts`](journeys/csp.spec.ts) は宣言に無い配信元を
+自分で差して違反が報告されることを確かめるため、見張りの内側に置くと確かめた違反で落ちる。
+
+## 同意は選び終えた状態から始める
+
+同意を尋ねる面は、選び終えるまで画面を覆う（[0131](../docs/adr/0131-cookie-consent.md)）。
+[`lib/test.ts`](lib/test.ts) はこれを**拒否の側で選んだ状態**にしてから spec へ渡す。ジャーニーが
+確かめたいのはその先の画面であり、全ての spec が最初に同意を押すことになると、押し忘れた spec
+だけが「面に覆われたまま緑」になる。同意ではなく拒否から始めるのは、同意すると計測 id が配られ、
+どのジャーニーも本題と関係のない cookie を持つことになるためである。
+
+**この状態は `lib/test.ts` の便宜ではなく、画面を見る spec 全部の前提である。** 別の理由で
+`lib/test.ts` を使えない spec は、同じ状態を自分で作る —— [`maintenance/stopped.spec.ts`](maintenance/stopped.spec.ts)
+は 503 を意図した応答として確かめるため見張りの内側に置けないが、停止画面も器を通る以上、覆われる
+側は同じである。作らないと、面が周囲を `aria-hidden` にするため役割で引く問い合わせが空になる。
+
+**尋ねる面そのものを見る spec だけが、状態を作らない。**
+[`journeys/consent.spec.ts`](journeys/consent.spec.ts) は選ぶ前の状態を確かめるので、`lib/test.ts`
+ではなく Playwright の `test` を直接使う。CSP の spec と同じ理由で、見張りの内側に置けない側では
+なく**前提の内側に置けない**側である。
+
+### タグマネージャを読み込む側は、ここでは通らない
+
+`env/.env.ci` の容器 ID は空である。したがって **`script-src` に配信元を足し
+`Cross-Origin-Embedder-Policy` を降ろす分岐は、e2e でも DAST でも一度も踏まれない**
+（[0131](../docs/adr/0131-cookie-consent.md) §2）。
+
+**CI から Google を叩かせないための選択である。** ここは画像を差し替え API をモックして、外部の
+状態で赤くならないようにしてある。実在の容器を撃つ spec を置くと、その原則をこの 1 本だけが破り、
+外部の可用性と容器の中身の変更が CI の色に混ざる。
+
+**代わりに担保しているもの**：ヘッダの組み立ては
+[`security-headers.test.ts`](../src/config/security-headers/security-headers.test.ts) が両方の配備で
+確かめ、読み込みの strategy は
+[`analytics.test.tsx`](../src/app/analytics.test.tsx) が固定する。**担保されていないのは、組み立てた
+ヘッダが実ブラウザで宣言どおり効くこと**だけである。
+
+**撤去条件**：外部へ出ずに CSP の enforce を確かめる手段が入ったとき（配信元を差し替えられる形の
+検査など）。そのときはこの節を消し、容器 ID を宣言した起動を 1 つ足す。
 
 ## 帯とエンジンは宣言から引く
 
@@ -259,8 +362,9 @@ E2E の報告が無い commit では画面を 1 枚も撮り直さない。1 対
 | [`lib/viewports.ts`](lib/viewports.ts) | design token から帯を組み立てる |
 | [`lib/screens.ts`](lib/screens.ts) | build の出力と宣言を突き合わせ、開く画面を決める |
 | [`lib/screen-baselines.ts`](lib/screen-baselines.ts) | 画面と帯から、在るべき基準画像のパスを組み立てる |
-| `journeys/` | ジャーニー・帯ごとの出し分け。3 つのエンジンで回る |
+| `journeys/` | ジャーニー・帯ごとの出し分け・CSP の enforce・同意の面。3 つのエンジンで回る |
 | `visual/` | 画面単位の比較。1 つのエンジンで、帯の数だけ回る |
+| `maintenance/` | 配信を止めた状態の成立。**別の起動で回る**（下記） |
 
 同梱サンプルを破棄すると、題材の画面を通す spec（`journeys/browse` / `journeys/responsive`）は
 一緒に消える。**帯の出し分けを見る spec が消えるのは、見る相手が居なくなるため**である —— 残る

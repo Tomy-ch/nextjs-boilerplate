@@ -5,6 +5,7 @@ import { cache } from "react";
 
 import type { Session } from "@/model/session";
 
+import { taintObjectReference } from "../taint/taint";
 import { getSessionResolver } from "./resolver";
 import {
   baseCookieOptions,
@@ -24,6 +25,13 @@ import type { AuthorizationTransaction, SessionRecord } from "./session-resolver
  *
  * 復号を 1 リクエストにつき 1 度へ畳むために memo 化します。認可の検査はデータ源の近くで
  * 何度も行われる想定であり、その都度復号すると回数がそのまま費用になります。
+ *
+ * **復元した記録を汚します。** 出しては困るのは Access Token と ID Token で、それを含む記録を
+ * そのまま Client Component へ渡すと、渡した時点で描画が落ちます
+ * （[0030](../../../../docs/adr/0030-environment-variable-management.md) §8）。ここで汚すのは、
+ * 記録が生まれる場所がここだけだからです。**参照でしか追えない**ので、項目を抜き出した値には
+ * 及びません —— 内側の層へ渡してよいのは {@link verifySession} が返す身元だけ、という約束が主で、
+ * これはそこを抜けたときに実行時で捕まえる補助です。
  */
 const readSessionRecord = cache(async (): Promise<SessionRecord | null> => {
   const sealed = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
@@ -32,7 +40,16 @@ const readSessionRecord = cache(async (): Promise<SessionRecord | null> => {
     return null;
   }
 
-  return getSessionResolver().restore(sealed);
+  const record = await getSessionResolver().restore(sealed);
+
+  if (record !== null) {
+    taintObjectReference(
+      "session の記録には資格情報が含まれます。Client Component へ渡すのは verifySession() が返す身元だけにしてください",
+      record,
+    );
+  }
+
+  return record;
 });
 
 /**

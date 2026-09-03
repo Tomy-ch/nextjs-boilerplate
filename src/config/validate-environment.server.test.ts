@@ -10,14 +10,18 @@ describe("validate-environment.server", () => {
     const getAuthConfig = vi.fn();
     const getClockConfig = vi.fn();
     const getHttpConfig = vi.fn();
+    const getMaintenanceConfig = vi.fn();
     const getMediaConfig = vi.fn();
     const getObservabilityConfig = vi.fn();
+    const getSiteConfig = vi.fn();
     vi.doMock("./api/api.server", () => ({ getApiConfig }));
     vi.doMock("./auth/auth.server", () => ({ getAuthConfig }));
     vi.doMock("./clock/clock.server", () => ({ getClockConfig }));
     vi.doMock("./http/http.server", () => ({ getHttpConfig }));
+    vi.doMock("./maintenance/maintenance.server", () => ({ getMaintenanceConfig }));
     vi.doMock("./media/media.server", () => ({ getMediaConfig }));
     vi.doMock("./observability/observability.server", () => ({ getObservabilityConfig }));
+    vi.doMock("./site/site.server", () => ({ getSiteConfig }));
 
     await import("./validate-environment.server");
 
@@ -25,7 +29,9 @@ describe("validate-environment.server", () => {
     expect(getAuthConfig).toHaveBeenCalledOnce();
     expect(getClockConfig).toHaveBeenCalledOnce();
     expect(getHttpConfig).toHaveBeenCalledOnce();
+    expect(getMaintenanceConfig).toHaveBeenCalledOnce();
     expect(getMediaConfig).toHaveBeenCalledOnce();
     expect(getObservabilityConfig).toHaveBeenCalledOnce();
+    expect(getSiteConfig).toHaveBeenCalledOnce();
   });
 });

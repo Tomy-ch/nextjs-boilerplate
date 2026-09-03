@@ -122,6 +122,15 @@ components:
     as: layout
     directory: src/components/shell/content-container
     addedAt: 2026-08-04T00:55:00.000Z
+  consent-banner:
+    kind: original
+    layer: shell
+    as: overlay
+    directory: src/components/shell/consent-banner
+    addedAt: 2026-08-29T00:00:00.000Z
+    dependencies:
+      - next
+      - radix-ui
   pull-to-refresh:
     kind: original
     layer: shell
@@ -511,6 +520,12 @@ components:
         localPath: src/components/design-system/display/badge/badge.tsx
         commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
         committedAt: 2026-03-02T08:49:00Z
+  json-ld:
+    kind: original
+    layer: design-system
+    as: display
+    directory: src/components/design-system/display/json-ld
+    addedAt: 2026-08-29T04:19:38.000Z
   bubble:
     kind: copy-in
     layer: design-system

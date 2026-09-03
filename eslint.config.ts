@@ -18,9 +18,11 @@ import {
   SHARED_AREAS,
 } from "./architecture";
 import noAnonymousDefaultExport from "./eslint-rules/no-anonymous-default-export";
+import noCapturedBearerToken from "./eslint-rules/no-captured-bearer-token";
 import noInternalAnchor from "./eslint-rules/no-internal-anchor";
 import noMarkupOutsideUiLayers from "./eslint-rules/no-markup-outside-ui-layers";
 import noRawFontWeight from "./eslint-rules/no-raw-font-weight";
+import noUserScopedInCachedModule from "./eslint-rules/no-user-scoped-in-cached-module";
 
 const elements = [
   // 層より先に並べる。区画は層の内側にあるため、層の要素が先に一致すると区画としては
@@ -60,9 +62,11 @@ export default [
       "project-rules": {
         rules: {
           "no-anonymous-default-export": noAnonymousDefaultExport,
+          "no-captured-bearer-token": noCapturedBearerToken,
           "no-internal-anchor": noInternalAnchor,
           "no-markup-outside-ui-layers": noMarkupOutsideUiLayers,
           "no-raw-font-weight": noRawFontWeight,
+          "no-user-scoped-in-cached-module": noUserScopedInCachedModule,
         },
       },
     },
@@ -84,6 +88,9 @@ export default [
     rules: {
       // Biome では effect で state を導出する形や描画中の副作用を表現できないため、React Compiler
       // 由来の診断だけを担う。有効化するルールの選び方は 0002 が正。
+      //
+      // **React Compiler を使うかどうかとは独立に維持する。** これらが止めるのは通常実装のバグで
+      // あって、Compiler の前提充足ではない（0042 決定 4）。
       "react-hooks/capitalized-calls": "error",
       "react-hooks/error-boundaries": "error",
       "react-hooks/gating": "error",
@@ -167,8 +174,10 @@ export default [
       "boundaries/no-unknown-files": "error",
       "boundaries/no-unknown-dependencies": "error",
       "project-rules/no-anonymous-default-export": "error",
+      "project-rules/no-captured-bearer-token": "error",
       "project-rules/no-internal-anchor": "error",
       "project-rules/no-markup-outside-ui-layers": "error",
+      "project-rules/no-user-scoped-in-cached-module": "error",
       "@typescript-eslint/consistent-type-assertions": [
         "error",
         {
@@ -247,7 +256,7 @@ export default [
     },
   },
   {
-    // 危険なパターンの検出。SAST（opengrep / CodeQL）と同じ問いを、**型を解決したうえで
+    // 危険なパターンの検出。SAST（opengrep）と同じ問いを、**型を解決したうえで
     // 編集中に**答える層として置く。走査が CI にしか無いと、指摘が届くのは push の後になる。
     //
     // **推奨プリセット（`security.configs.recommended`）は当てない。** 0002 の能力ベース分担は
@@ -266,10 +275,6 @@ export default [
     // - `detect-possible-timing-attacks` — 識別子の名前で判定する。比較の中身を見ていない
     // - `detect-non-literal-regexp` — 引数から RegExp を組む形をすべて鳴らす。ReDoS の判定は
     //   していないので、上の 1 つ目と同じく形だけを見ている
-    //
-    // ReDoS と path traversal がこれで検査されなくなるわけではない。どちらも opengrep と
-    // CodeQL が担い、そちらは所見を code scanning へ送る層なので、baseline を 0 に保つ必要が
-    // 無い（0110 §3.2 の「落とさない層」）。
     files: ["src/**/*.{js,jsx,ts,tsx}"],
     plugins: { security },
     rules: {

@@ -1,53 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Environment } from "./environment";
+
+import { stubValidEnvironment, VALID_ENVIRONMENT } from "./environment.fixture";
 
 /** リポジトリが同梱している秘密値。`env/.env.local` が積んでいるものと同じ。 */
 const SHIPPED_SESSION_SECRET = "local-development-session-secret-change-before-production";
-
-const validEnvironment = {
-  APP_API_BASE_URL: "https://api.example.test",
-  APP_API_MODE: "mock",
-  CLOCK_FIXED_NOW: "2026-01-01T00:00:00.000Z",
-  MEDIA_ORIGIN: "https://media.example.test",
-  OBS_SERVICE_NAME: "Boilerplate Web",
-  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.test/v1/traces",
-  OBS_TRACES_EXPORTER: "otlp",
-  OBS_METRICS_EXPORTER: "none",
-  OBS_LOGS_EXPORTER: "",
-  OBS_RENDER_SPANS: "screen",
-  AUTH_MODE: "idp",
-  AUTH_ISSUER: "https://id.example.test",
-  AUTH_CLIENT_ID: "nextjs-boilerplate",
-  AUTH_REDIRECT_URI: "https://app.example.test/auth/callback",
-  AUTH_SCOPES: "openid profile",
-  AUTH_SESSION_SECRET: "01234567890123456789012345678901",
-  NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
-  NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: "4194304",
-} satisfies Record<keyof Environment, string>;
-
-function stubValidEnvironment(): void {
-  vi.stubEnv("APP_API_BASE_URL", validEnvironment.APP_API_BASE_URL);
-  vi.stubEnv("APP_API_MODE", validEnvironment.APP_API_MODE);
-  vi.stubEnv("CLOCK_FIXED_NOW", validEnvironment.CLOCK_FIXED_NOW);
-  vi.stubEnv("MEDIA_ORIGIN", validEnvironment.MEDIA_ORIGIN);
-  vi.stubEnv("OBS_SERVICE_NAME", validEnvironment.OBS_SERVICE_NAME);
-  vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", validEnvironment.OTEL_EXPORTER_OTLP_ENDPOINT);
-  vi.stubEnv("OBS_TRACES_EXPORTER", validEnvironment.OBS_TRACES_EXPORTER);
-  vi.stubEnv("OBS_METRICS_EXPORTER", validEnvironment.OBS_METRICS_EXPORTER);
-  vi.stubEnv("OBS_LOGS_EXPORTER", validEnvironment.OBS_LOGS_EXPORTER);
-  vi.stubEnv("OBS_RENDER_SPANS", validEnvironment.OBS_RENDER_SPANS);
-  vi.stubEnv("AUTH_MODE", validEnvironment.AUTH_MODE);
-  vi.stubEnv("AUTH_ISSUER", validEnvironment.AUTH_ISSUER);
-  vi.stubEnv("AUTH_CLIENT_ID", validEnvironment.AUTH_CLIENT_ID);
-  vi.stubEnv("AUTH_REDIRECT_URI", validEnvironment.AUTH_REDIRECT_URI);
-  vi.stubEnv("AUTH_SCOPES", validEnvironment.AUTH_SCOPES);
-  vi.stubEnv("AUTH_SESSION_SECRET", validEnvironment.AUTH_SESSION_SECRET);
-  vi.stubEnv("NEXT_PUBLIC_HTTP_MAX_URL_BYTES", validEnvironment.NEXT_PUBLIC_HTTP_MAX_URL_BYTES);
-  vi.stubEnv(
-    "NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES",
-    validEnvironment.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES,
-  );
-}
 
 beforeEach(() => {
   vi.resetModules();
@@ -69,9 +25,10 @@ describe("getEnvironment", () => {
 
     expect(first).toBe(second);
     expect(first).toEqual({
-      ...validEnvironment,
+      ...VALID_ENVIRONMENT,
       NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
       NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
+      HTTP_ALLOWED_ORIGINS: [],
     });
     expect(() => validateEnvironment()).not.toThrow();
   });
@@ -93,36 +50,42 @@ describe("validateEnvironment", () => {
       { getHttpConfig },
       { getMediaConfig },
       { getObservabilityConfig },
+      { getSiteConfig },
     ] = await Promise.all([
       import("./api/api.server"),
       import("./auth/auth.server"),
       import("./http/http.server"),
       import("./media/media.server"),
       import("./observability/observability.server"),
+      import("./site/site.server"),
     ]);
 
     expect(getApiConfig()).toMatchObject({
-      baseUrl: validEnvironment.APP_API_BASE_URL,
-      mode: validEnvironment.APP_API_MODE,
+      baseUrl: VALID_ENVIRONMENT.APP_API_BASE_URL,
+      mode: VALID_ENVIRONMENT.APP_API_MODE,
     });
     expect(getAuthConfig()).toMatchObject({
-      mode: validEnvironment.AUTH_MODE,
-      issuer: validEnvironment.AUTH_ISSUER,
-      clientId: validEnvironment.AUTH_CLIENT_ID,
-      redirectUri: validEnvironment.AUTH_REDIRECT_URI,
-      scopes: validEnvironment.AUTH_SCOPES,
-      sessionSecret: validEnvironment.AUTH_SESSION_SECRET,
+      mode: VALID_ENVIRONMENT.AUTH_MODE,
+      issuer: VALID_ENVIRONMENT.AUTH_ISSUER,
+      clientId: VALID_ENVIRONMENT.AUTH_CLIENT_ID,
+      redirectUri: VALID_ENVIRONMENT.AUTH_REDIRECT_URI,
+      scopes: VALID_ENVIRONMENT.AUTH_SCOPES,
+      sessionSecret: VALID_ENVIRONMENT.AUTH_SESSION_SECRET,
     });
     expect(getHttpConfig()).toMatchObject({
-      maxUrlBytes: Number(validEnvironment.NEXT_PUBLIC_HTTP_MAX_URL_BYTES),
-      maxUploadBytes: Number(validEnvironment.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES),
+      maxUrlBytes: Number(VALID_ENVIRONMENT.NEXT_PUBLIC_HTTP_MAX_URL_BYTES),
+      maxUploadBytes: Number(VALID_ENVIRONMENT.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES),
     });
-    expect(getMediaConfig()).toMatchObject({ origin: validEnvironment.MEDIA_ORIGIN });
+    expect(getMediaConfig()).toMatchObject({ origin: VALID_ENVIRONMENT.MEDIA_ORIGIN });
     expect(getObservabilityConfig()).toMatchObject({
-      otlpEndpoint: validEnvironment.OTEL_EXPORTER_OTLP_ENDPOINT,
+      otlpEndpoint: VALID_ENVIRONMENT.OTEL_EXPORTER_OTLP_ENDPOINT,
       tracesEnabled: true,
       metricsEnabled: false,
       logsEnabled: false,
+    });
+    expect(getSiteConfig()).toMatchObject({
+      publicOrigin: VALID_ENVIRONMENT.SITE_PUBLIC_ORIGIN,
+      isIndexable: false,
     });
   });
 

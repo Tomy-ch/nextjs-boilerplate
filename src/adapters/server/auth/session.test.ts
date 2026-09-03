@@ -14,6 +14,7 @@ const cookieStore = vi.hoisted(() => ({
   set: vi.fn(),
   delete: vi.fn(),
 }));
+const { taintObjectReference } = vi.hoisted(() => ({ taintObjectReference: vi.fn() }));
 const resolver = vi.hoisted(() => ({
   restore: vi.fn(),
   seal: vi.fn(),
@@ -23,6 +24,9 @@ const resolver = vi.hoisted(() => ({
 }));
 
 vi.mock("next/headers", () => ({ cookies: async () => cookieStore }));
+// 本物は experimental の React を要求する。効くことは `taint/taint.test.ts` が直列化器で確かめ、
+// ここは呼んだかどうかだけを見る。
+vi.mock("../taint/taint", () => ({ taintObjectReference }));
 vi.mock("./resolver", () => ({ getSessionResolver: () => resolver }));
 vi.mock("@/config/auth/auth.server", () => ({
   getAuthConfig: () => ({ redirectUri: "http://localhost:3000/api/auth/callback" }),
@@ -59,6 +63,15 @@ describe("verifySession", () => {
     expect(await verifySession()).toEqual(session);
   });
 
+  it("復元した記録を、client へ渡せないものとして登録する", async () => {
+    cookieStore.get.mockReturnValue({ value: "sealed" });
+    resolver.restore.mockResolvedValue(record);
+
+    await verifySession();
+
+    expect(taintObjectReference).toHaveBeenCalledWith(expect.any(String), record);
+  });
+
   // ----- 異常系 -----
   it("cookie が無ければ null にする", async () => {
     expect(await verifySession()).toBeNull();
@@ -68,6 +81,14 @@ describe("verifySession", () => {
     cookieStore.get.mockReturnValue({ value: "broken" });
 
     expect(await verifySession()).toBeNull();
+  });
+
+  it("復元できなければ、client へ渡せないものとして登録しない", async () => {
+    cookieStore.get.mockReturnValue({ value: "broken" });
+
+    await verifySession();
+
+    expect(taintObjectReference).not.toHaveBeenCalled();
   });
 });
 

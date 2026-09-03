@@ -7,6 +7,7 @@ import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
 import { type CircuitBreaker, createCircuitBreaker } from "./circuit-breaker";
+import { assertNoCredentialHeader, assertSpecWithinScope } from "./data-scope";
 import { DEFAULT_PROFILE, type ResilienceProfile } from "./resilience-profile";
 import { createRetryBudget, type RetryBudget } from "./retry-budget";
 import {
@@ -57,8 +58,8 @@ type RequestPayload =
       multipart?: FormData;
     };
 
-/** 呼び出し 1 件の指定。 */
-type RequestSpec<T> = RequestPayload & {
+/** 呼び出し 1 件の指定のうち、分類によらず共通のもの。 */
+type BaseRequestSpec<T> = RequestPayload & {
   /**
    * 呼び出し先。base URL からの相対パス、または絶対 URL。
    *
@@ -99,24 +100,51 @@ type RequestSpec<T> = RequestPayload & {
    * 呼び出し側が保証したときだけ（Idempotency-Key の付与など）。
    */
   idempotent?: boolean;
+};
+
+/**
+ * 主体を名乗らずに取れるものの指定。
+ *
+ * @remarks
+ * 共有キャッシュへ入れられるのはこちらだけです。
+ */
+type PublicRequestSpec<T> = BaseRequestSpec<T> & {
   /** Next.js のキャッシュ指定。指定しなければキャッシュしない。 */
   cache?: RequestCache;
   /** キャッシュの再検証に使うタグ。 */
   tags?: readonly string[];
 };
 
-/** 接続先ごとの実行環境。 */
-export type HttpClient = {
-  /**
-   * 要求を 1 件送り、契約の形へ通した応答を返す。
-   *
-   * @throws 失敗はすべて分類済みのエラーになる。生の status は表に出ません
-   *   （[0080](../../../../docs/adr/0080-error-handling.md)）。
-   */
-  request<T>(spec: RequestSpec<T>): Promise<T>;
+/**
+ * 主体に紐づくものの指定。
+ *
+ * @remarks
+ * **キャッシュの指定を型として持ちません。**「PII を共有キャッシュへ入れるな」を注意書きでは
+ * なく引数の不在にするのが、この分類の目的です（0112 決定 1）。それでもキャッシュしたい値の
+ * 扱いは `docs/rules.md` #86b が持ちます。
+ */
+type UserScopedRequestSpec<T> = BaseRequestSpec<T> & { cache?: never; tags?: never };
+
+type RequestSpec<T> = PublicRequestSpec<T> | UserScopedRequestSpec<T>;
+
+/**
+ * 主体を名乗らずに取れるものを運ぶ client。
+ *
+ * @remarks
+ * 要求を 1 件送り、契約の形へ通した応答を返します。失敗はすべて分類済みのエラーになり、生の
+ * status は表に出ません（[0080](../../../../docs/adr/0080-error-handling.md)）。
+ */
+export type PublicHttpClient = {
+  request<T>(spec: PublicRequestSpec<T>): Promise<T>;
 };
 
-type ClientDeps = {
+/** {@link PublicHttpClient} の user-scoped 版。キャッシュの指定を受け取らない。 */
+export type UserScopedHttpClient = {
+  request<T>(spec: UserScopedRequestSpec<T>): Promise<T>;
+};
+
+/** 分類によらず要る、接続先ごとの実行環境。 */
+type BaseClientDeps = {
   baseUrl: string;
   /**
    * 1 つの要求 URL に許すバイト数の上限。既定を持たない。
@@ -125,32 +153,99 @@ type ClientDeps = {
    * 何を数え、閾値をどこが持つかは [adapters](../../README.md) の「URL の予算」節が持ちます。
    */
   maxUrlBytes: number;
-  /**
-   * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
-   *
-   * @remarks
-   * ヘッダの組み立てをこの境界が持つのは、呼び出し側が個別に `Authorization` を作らないよう
-   * にするためです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。接続先ごとに
-   * 認証が要るかどうかが決まるので、指定はクライアントの生成時に 1 度だけ行います。
-   *
-   * @returns 認証できないときは null
-   */
-  getBearerToken?: () => Promise<string | null>;
-  /**
-   * 認証を伴わない呼び出しを認める接続先の宣言。
-   *
-   * @remarks
-   * 契約が資格情報の無い呼び出しを受け付ける場合だけ立てます。立てても、取得できた資格情報は
-   * 常に載せます。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として
-   * 扱われるためです。
-   */
-  allowAnonymous?: boolean;
   profile?: ResilienceProfile;
   fetchImpl?: typeof fetch;
+  /**
+   * 経過時間を測る時計。既定は `performance.now`。
+   *
+   * @remarks
+   * **壁時計を使いません。** 締切と遮断が見ているのは「どれだけ経ったか」であり、壁時計は
+   * NTP の補正で前後へ飛びます。飛んだ幅がそのまま引き算に入るため、まだ余裕のある要求が
+   * 期限切れとして捨てられたり、閉じたはずの遮断が即座に開いたりします。単調に進む時計だけが
+   * この引き算に耐えます。
+   */
   now?: () => number;
+  /**
+   * 壁時計。既定は `Date.now`。
+   *
+   * @remarks
+   * `Retry-After` が日時で来たときの差にだけ使います。相手が名指しているのは実世界の時刻なので
+   * （RFC 9110 §10.2.3）、ここだけは経過時間の時計では答えられません。
+   */
+  wallClockNow?: () => number;
   random?: () => number;
   sleep?: (ms: number) => Promise<void>;
 };
+
+/**
+ * 資格情報の解決方法。どちらか一方だけを指定できる。
+ *
+ * @remarks
+ * 型で排他にしているのは、両方を渡した実装が「どちらの資格情報で出ていくか」を読む側に推測
+ * させるためです。
+ */
+type UserScopedCredential =
+  | {
+      /**
+       * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
+       *
+       * @remarks
+       * ヘッダの組み立てをこの境界が持つのは、呼び出し側が個別に `Authorization` を作らないよう
+       * にするためです（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）。接続先ごとに
+       * 認証が要るかどうかが決まるので、指定はクライアントの生成時に 1 度だけ行います。
+       *
+       * **要求のたびに `cookies()` から解決する口を渡します**（0112 決定 5）。解決済みの値を掴む
+       * と、cached scope の中で `cookies()` が読まれなくなり、framework 側の防御
+       * （`next-request-in-use-cache`）が何も言わずに外れます。
+       *
+       * @returns 認証できないときは null
+       */
+      getBearerToken?: () => Promise<string | null>;
+      bearerToken?: never;
+    }
+  | {
+      getBearerToken?: never;
+      /**
+       * 解決済みの Bearer。
+       *
+       * @remarks
+       * **session を確立する途中の 1 往復だけの口です。** その時点では cookie がまだ無く、
+       * 通常の取得口（cookie から Bearer を組む）は存在しません。綴りを分けてあるのは、
+       * 上の防御が外れる箇所を数えられるようにするためです（0112 決定 5 の例外）。
+       */
+      bearerToken: string;
+    };
+
+/**
+ * 主体を名乗らずに取れるものだけを運ぶ口。
+ *
+ * @remarks
+ * **資格情報の口を持ちません。** 認証が要る接続先は {@link UserScopedClientDeps} を選びます。
+ */
+type PublicClientDeps = BaseClientDeps & {
+  scope: "public";
+  getBearerToken?: never;
+  bearerToken?: never;
+  allowAnonymous?: never;
+};
+
+/** 主体に紐づくものを運ぶ口。 */
+type UserScopedClientDeps = BaseClientDeps &
+  UserScopedCredential & {
+    scope: "user-scoped";
+    /**
+     * 認証を伴わない呼び出しを認める接続先の宣言。
+     *
+     * @remarks
+     * 契約が資格情報の無い呼び出しを受け付ける場合だけ立てます。立てても、取得できた資格情報は
+     * 常に載せます。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として
+     * 扱われるためです。
+     *
+     * **立てても分類は動きません。** 資格情報を載せうる口は、載せなかった回も含めて
+     * user-scoped です（0112 決定 3）。
+     */
+    allowAnonymous?: boolean;
+  };
 
 const JSON_CONTENT_TYPE = "application/json";
 const FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
@@ -277,20 +372,25 @@ function buildUrl(
  * 時刻・乱数・待機・fetch は引数で受け取ります。これらを内部で直接掴むと、再試行や遮断の
  * 振る舞いを実時間を待たずに検証できなくなります。
  */
+export function createHttpClient(deps: PublicClientDeps): PublicHttpClient;
+export function createHttpClient(deps: UserScopedClientDeps): UserScopedHttpClient;
 export function createHttpClient({
+  scope,
   baseUrl,
   maxUrlBytes,
   getBearerToken,
+  bearerToken,
   allowAnonymous = false,
   profile = DEFAULT_PROFILE,
   // 既定を `fetch` そのものではなく呼び出し時の解決にする。クライアントは接続先ごとに
   // 1 つを長く使い回すため、生成時点の実装を握ると、後から差し込まれた実装（モックなど）に
   // 切り替わらない。
   fetchImpl = (input, init) => fetch(input, init),
-  now = Date.now,
+  now = () => performance.now(),
+  wallClockNow = Date.now,
   random = Math.random,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-}: ClientDeps): HttpClient {
+}: PublicClientDeps | UserScopedClientDeps): PublicHttpClient | UserScopedHttpClient {
   const breaker: CircuitBreaker = createCircuitBreaker(profile.breaker, now);
   const budget: RetryBudget = createRetryBudget(profile.retryBudgetRatio);
 
@@ -306,11 +406,13 @@ export function createHttpClient({
    * あり、呼び出し側が相対パスしか渡さない慣習だけでは止まりません。
    */
   async function authorizationHeader(url: URL): Promise<Record<string, string>> {
-    if (getBearerToken === undefined || url.origin !== new URL(baseUrl).origin) {
+    const carriesCredential = getBearerToken !== undefined || bearerToken !== undefined;
+
+    if (!carriesCredential || url.origin !== new URL(baseUrl).origin) {
       return {};
     }
 
-    const token = await getBearerToken();
+    const token = bearerToken ?? (await getBearerToken?.()) ?? null;
 
     if (token === null) {
       if (allowAnonymous) {
@@ -346,6 +448,9 @@ export function createHttpClient({
 
   return {
     async request<T>(spec: RequestSpec<T>): Promise<T> {
+      assertSpecWithinScope(scope, spec);
+      assertNoCredentialHeader(spec.headers);
+
       const url = buildUrl(baseUrl, spec.path, spec.searchParams);
 
       // 遮断の判定より先に確かめる。予算を超えた要求は接続先の状態によらず通らないため、
@@ -402,7 +507,7 @@ export function createHttpClient({
         }
 
         const delay =
-          retryAfterDelayMs(response?.headers.get("Retry-After") ?? null, now()) ??
+          retryAfterDelayMs(response?.headers.get("Retry-After") ?? null, wallClockNow()) ??
           backoffDelayMs(count, random);
 
         // 待った先が全体の期限を越えるなら、待たずに諦める。期限に間に合わない再試行は

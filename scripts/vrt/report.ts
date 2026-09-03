@@ -4,15 +4,14 @@
 // 見直す範囲で、どれも同じ集合であることに意味がある。表に出ていない story が承認で撮り直され
 // ると、報告されていない差分が黙って基準画像へ入る。
 
-import { BASELINE_TAG } from "../../vrt/lib/expected-baselines.js";
 import {
   asArray,
+  isFailed,
   type JSONAnnotation,
   type JSONError,
   type JSONResult,
   type JSONTest,
   parseSpecs,
-  tagName,
 } from "../lib/playwright-report.js";
 
 /** 基準画像と食い違った story 1 件。 */
@@ -46,7 +45,7 @@ export function collectFailures(json: string): Failure[] {
 
   for (const spec of parseSpecs(json)) {
     for (const test of asArray<JSONTest>(spec.tests)) {
-      if (test.status === "expected") continue;
+      if (!isFailed(test)) continue;
       const id = storyID(test.annotations);
       if (id === null) continue;
       failures.push({
@@ -85,34 +84,6 @@ export function formatTable(failures: Failure[]): string {
   }
 
   return table.join("\n");
-}
-
-/**
- * 基準画像と撮影対象の 1 対 1 対応が落ちたか。
- *
- * @remarks
- * この検査は story ではないので {@link collectFailures} は拾いません（id の注記を持たない）。
- * それでいて、落ちたときに要るのは**全数の撮り直し**です（理由は `baseline/lib/store.ts`）。
- *
- * @param json - Playwright の JSON レポート
- */
-export function hasBaselineFailure(json: string): boolean {
-  const checks = parseSpecs(json).filter((spec) =>
-    asArray(spec.tags).some((tag) => tagName(tag) === tagName(BASELINE_TAG)),
-  );
-
-  // 見つからないことを「孤児なし」と答えない。1 対 1 の検査は全数の撮影に必ず含まれるので、
-  // 当たらないのはレポートの形か tag の綴りが変わったときである。false を返すと、撮り直しは
-  // 絞り込み側へ落ちて「差分がありません」で止まり、原因の見えない失敗になる。
-  if (checks.length === 0) {
-    throw new Error(
-      `レポートに ${BASELINE_TAG} の spec がありません。全数の報告でないか、tag の載り方が変わっています`,
-    );
-  }
-
-  return checks.some((spec) =>
-    asArray<JSONTest>(spec.tests).some((test) => test.status !== "expected"),
-  );
 }
 
 /** 撮り直す範囲として渡す story の id。テーマ違いは同じ id なので 1 件に畳む。 */

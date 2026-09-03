@@ -9,10 +9,14 @@ import type { Environment } from "./environment";
  * schema は全 purpose の変数をまとめて検証するため、purpose を 1 つだけ確かめたい場合でも
  * 一式を揃える必要があります。各テストが自分の分だけを stub すると、他の purpose の欠落で
  * 落ちて検査したい判定へ到達しません。
+ *
+ * **変数の並びを書くのはここだけです。** 同じ一式をテスト側にも持つと、変数を 1 つ足すたびに
+ * 同じ追記が写しの数だけ要り、片方を忘れた状態を型検査が拾うまで気づけません。
  */
-const VALID_ENVIRONMENT = {
+export const VALID_ENVIRONMENT = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
+  APP_MAINTENANCE_MODE: "off",
   CLOCK_FIXED_NOW: "2026-01-01T00:00:00.000Z",
   MEDIA_ORIGIN: "https://media.example.test",
   OBS_SERVICE_NAME: "Boilerplate Web",
@@ -29,6 +33,10 @@ const VALID_ENVIRONMENT = {
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: "8000",
   NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: "4194304",
+  NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID: "GTM-TEST0000",
+  HTTP_ALLOWED_ORIGINS: "",
+  SITE_PUBLIC_ORIGIN: "https://www.example.test",
+  SITE_INDEXABLE: "off",
 } satisfies Record<keyof Environment, string>;
 
 /** 検証を通る環境変数一式を stub する。 */
@@ -52,6 +60,7 @@ export function stubValidEnvironment(): void {
 export const PARSED_ENVIRONMENT: Environment = {
   APP_API_BASE_URL: "https://api.example.test",
   APP_API_MODE: "mock",
+  APP_MAINTENANCE_MODE: "off",
   CLOCK_FIXED_NOW: "2026-01-01T00:00:00.000Z",
   MEDIA_ORIGIN: "https://media.example.test",
   OBS_SERVICE_NAME: "Boilerplate Web",
@@ -68,4 +77,8 @@ export const PARSED_ENVIRONMENT: Environment = {
   AUTH_SESSION_SECRET: "01234567890123456789012345678901",
   NEXT_PUBLIC_HTTP_MAX_URL_BYTES: 8000,
   NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES: 4194304,
+  NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID: "GTM-TEST0000",
+  HTTP_ALLOWED_ORIGINS: [],
+  SITE_PUBLIC_ORIGIN: "https://www.example.test",
+  SITE_INDEXABLE: "off",
 };

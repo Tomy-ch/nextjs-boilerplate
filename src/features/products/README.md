@@ -88,7 +88,10 @@ error の面を出すのは route の境界（`error.tsx`）で、上の story �
 | `list/ui/load-more-list/` | 読み進めた一覧の見た目。件数を告知し、続きの状態は `LoadMore` が持つ |
 | `list/ui/skeleton/` | 待機表示 |
 | `list/ui/error-state/` | 取得に失敗したときの表示 |
-| `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける |
+| `facade/detail-url/` | 商品詳細の経路。正規 URL とサイトマップが同じ綴りを名乗るための 1 か所 |
+| `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける。構造化データもここで置く |
+| `detail/metadata.ts` | 商品ごとの題・要約・正規 URL。見つからなければ `noindex` を名乗る。page の `generateMetadata` が薄く呼ぶ |
+| `detail/structured-data.ts` | 商品を schema.org の `Product` へ写す。markup を持つ説明は載せない |
 | `detail/view.tsx` | 1 件の詳細の表示。骨格と値の表示を持ち、画像の面は下へ渡す |
 | `detail/ui/gallery/` | 画像を送りながら見る面。枚数によらず carousel に載せ、拡大は実画像だけに出す |
 
@@ -116,6 +119,8 @@ error の面を出すのは route の境界（`error.tsx`）で、上の story �
 - [ ] 幅によって絞り込みの確定の仕方が変わる（脇では即時、overlay ではまとめて）
 - [ ] 読み進めた件数が URL へ書き戻り、契約の上限までは復元される
 - [ ] 分類の選択が上限に達したとき、未選択が `disabled` ではなく `aria-disabled` になる
+- [ ] 見つからない商品の metadata が `noindex` を名乗り、正規 URL を持たない
+- [ ] 要約と構造化データが商品説明の markup を含まない
 
 ## 運用
 
@@ -169,6 +174,12 @@ error の面を出すのは route の境界（`error.tsx`）で、上の story �
 - **在庫状況は、契約の在庫数の条件へ写して URL に載せます**。契約が持つのは数の下限と上限で、
   「在庫あり」という状態ではありません。利用者が選ぶのは有無なので、その橋渡しを
   `stock-availability.ts` が持ちます
+- **供給の購読者には `"use memo"` を付けています**（[0042](../../../docs/adr/0042-react19-rendering-api.md)
+  決定 4）。この画面には、1 つの state の変化が購読者へ直に及ぶ供給が 2 つあります —— 組み立て中の条件
+  （`filter-draft.tsx`。1 打鍵・1 チェックで動く）と、上端の取り合いの状態（`ui/sticky-region/`。scroll の
+  向きと帯の高さで動く）です。印を付けるのは**その 2 つを購読する部品と、その子孫**に限ります。
+  購読しない部品は、供給が何度動いても再描画されません —— 部分木は `children` として受け取った同じ
+  要素のまま素通りするためで、`ui/sort-select/` と一覧本体がこれに当たります
 - **続きを読む操作は失敗したときだけ出します**。読み進めている間は末尾に近づくだけで次が始まるため、
   同じことをする入口を並べても選ぶ手数が増えるだけです。失敗した後は末尾到達の検知がその場では二度と
   起きないので、そこでだけ操作が唯一の復帰口になります。keyboard の scroll も支援技術の読み進めも表示

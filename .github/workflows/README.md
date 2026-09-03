@@ -31,10 +31,26 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 払う代償は検知が 1 マージぶん遅れることで、買うのは「結果がマージの判断をほとんど動かさない検査を、
 どの PR も待たない」ことである。その代償を払うべきでない差分は `Deferred Checks` が名指しする。
 
+**ただし `e2e` と `lighthouse` は、待てない差分を自分でも見分ける。** 5 経路に当たらなくても、差分の
+構造が下の形に当たればラベル無しで回る。名指しと違って、これは勧告ではなく実行である。
+
+| 検査 | ラベル無しで回る差分 | なぜ待てないか |
+| --- | --- | --- |
+| `lighthouse` | 画面の宣言 / 器（layout） | 足した画面には比べる先の数値がまだ無く、待つと検出だけでなく比較そのものが遅れる |
+| `e2e` | 器（layout）/ 全画面が読む土台の CSS / 画面の宣言 | **直す経路が PR にしか無い。** 基準画像の撮り直しは比較が報告した集合に限られ、報告は PR の実行にしか出ない。merge 後に食い違うと、撮り直す相手を名指しできる PR がもう無い |
+
+`e2e` の線は「画面を動かすか」ではなく**「動かすことが差分の見た目から分かるか」**で引いてある。mock の
+応答やジャーニーの宣言も画面を動かすが、それは書いた人に見えているのでラベルの側に残る。この判定のため
+に、降りる PR も約 1 分ぶんの道具立てを払う。
+
+**判定そのものが取れなかったときは、回す側へ倒れる。** 差分を読めないことは「回すに値しない差分だ」の
+証拠にならないためで、`diff-scope` が読めない差分に当てているのと同じ読み方である。倒れたことは
+`::warning::` で残す —— 黙って倒れると、後から見て「差分が要求して回った」実行と区別が付かない。
+
 #### 降りた理由は 2 つあり、書き分ける
 
-降りる判定は 2 段ある。**先送り**（この節の 5 経路に当たらなかった）と、**差分が届かない**
-（`diff-scope` が絵にもジャーニーにも届かないと答えた）である。読み手にとっては別物で、前者は
+降りる判定は 2 段ある。**先送り**（この節の 5 経路にも、差分が自分で回すと決める形にも当たらなかった）
+と、**差分が届かない**（`diff-scope` が絵にもジャーニーにも届かないと答えた）である。読み手にとっては別物で、前者は
 merge を待てば答えが出るが、後者はいくら待っても何も出ない。**PR コメントはこの 2 つを書き分ける** ——
 どちらも「回っていません」で済ませると、ラベルを付けるべき PR と付けても無駄な PR が同じ顔になる。
 
@@ -48,6 +64,11 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 [`../actions/upsert-issue`](../actions/upsert-issue/action.yaml) が 1 つだけ持つ。各ワークフローに
 残るのは**本文を組み立てるステップ**で、書き足すのはその検査に固有の一文（axe なら「rule を切って
 通さないでください」）だけでよい。
+
+**本文が組めなくても issue は立てる。** 起票するステップは `!cancelled()` を持ち、本文を組み立てる
+ステップの成否を見ない。組み立てが落ちたときに何もしなければ、空の issue が立つ。よって組み立ては
+道具を通さない固定文へ退化させる —— ここは誰も見ていない実行のための最後の砦であり、黙るより
+「本文を組めなかった」と言うほうが読み手に届く。
 
 **本文を安全にするのは呼ぶ側の責務である。**issue の本文は Markdown として描かれ、そこへ流すのは
 道具の出力 —— このリポジトリが書いたのではない文字列 —— なので、4 スペース字下げでコードブロックに
@@ -73,10 +94,10 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 | Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
 | Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナに相乗りするので追加のランナーを入れない（ADR 0091 §3）。**実ブラウザなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。検査するのは撮影と同じ 1 テーマだけで、片テーマでだけ出る違反は届かない（[`vrt/README.md`](../../vrt/README.md)）。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないまま基準画像だけが承認済みになるため。省く判定は 3 層ある — **普通の PR ではそもそも回さず**（上記「先送りにする検査」）、回す事由があっても差分が story に届かなければ降り、届いても絵を決める入力が前に通った時点と同じなら axe を省く（[`vrt/README.md`](../../vrt/README.md)）。PR 以外で落ちたときはブランチごとに issue を立てる |
-| E2E | `e2e.yaml` | `e2e` / `e2e-comment` | build したアプリを実際のブラウザで動かす。主要ジャーニー・ブラウザが報告する異常（hydration の不一致 / 描画中の例外 / 通信の失敗）・帯ごとの出し分けを 3 つの描画エンジンで回し、画面単位の見た目を基準画像と比べる（[`e2e/README.md`](../../e2e/README.md)）。**見ているのは 3 つの描画エンジンだけで、ブラウザの銘柄も版も見ていない** —— モダンブラウザ（[0102](../../docs/adr/0102-browser-support.md)）が実装として畳まれる先が Chromium / Firefox / WebKit であり、版は digest 固定したイメージが決める。アプリはランナーで起動し、コンテナで動かすのはブラウザだけ（`node_modules` は入れた OS と CPU 向けに解決されるため）。比較とコメントを別ジョブに割る理由は VRT と同じ。**普通の PR では回さない**（上記「先送りにする検査」）。回す事由があっても、差分が画面に届かなければ降りる |
+| E2E | `e2e.yaml` | `e2e` / `e2e-comment` | build したアプリを実際のブラウザで動かす。主要ジャーニー・ブラウザが報告する異常（hydration の不一致 / 描画中の例外 / 通信の失敗 / CSP 違反）・帯ごとの出し分けを 3 つの描画エンジンで回し、画面単位の見た目を基準画像と比べる（[`e2e/README.md`](../../e2e/README.md)）。**見ているのは 3 つの描画エンジンだけで、ブラウザの銘柄も版も見ていない** —— モダンブラウザ（[0102](../../docs/adr/0102-browser-support.md)）が実装として畳まれる先が Chromium / Firefox / WebKit であり、版は digest 固定したイメージが決める。アプリはランナーで起動し、コンテナで動かすのはブラウザだけ（`node_modules` は入れた OS と CPU 向けに解決されるため）。巡回のあとに、配信を止めた起動（`make e2e-maintenance`）と索引させる設定の build（`make e2e-metadata`。公開面 —— `robots.txt` / `sitemap.xml` / canonical / OG 画像 —— の成立を見る）を別々に回す。比較とコメントを別ジョブに割る理由は VRT と同じ。**普通の PR では回さない**（上記「先送りにする検査」）。ただし器・土台の CSS・画面の宣言が動いた差分は、ラベル無しでも回る（同節の表）。回す事由があっても、差分が画面に届かなければ降りる |
 | Baseline Approval | `baseline-approval.yaml` | `baseline-approval` | 基準画像が動いている PR で `baseline-approve` ラベルを要求する。ラベルの有無だけでなく、付いた時刻がポインタを動かした最後のコミットより後であることを見る（古い承認を新しい一式へ持ち越さない）。PR のレビュー承認を使わないのは、承認の対象が PR 全体ではなく基準画像であるため（[`vrt/README.md`](../../vrt/README.md)） |
 | VisualRegressionTest | `vrt.yaml` | `vrt-scope` / `vrt-shard` / `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、基準画像と撮影対象が 1 対 1 で対応することも併せて検査する。省く判定は 2 層ある — PR の差分が絵に届かなければ CI の入口で丸ごと降り、届いても `make vrt` が絵を決める入力のハッシュを基準画像を撮った時点の値と突き合わせ、一致していれば比較を省く（[`vrt/README.md`](../../vrt/README.md)）。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない）。**撮影は `vrt-shard` が 4 台に割る** —— 費用が story 数に比例する一方、1 台の 4 コアは `playwright.config.ts` が既に埋めているため、実時間を縮める手は台数しかない。**必須 context は束ねる側の `vrt` で、matrix の側ではない** —— matrix は `vrt-shard (1)` のように 1 件ずつ報告し、必須 check はその名前を指定できない |
-| Deferred Checks | `deferred-checks.yaml` | `deferred-checks` | 先送りにしている 3 本のうち、この PR の差分が要求するものを**名指しして**コメントを 1 件だけ残す。判定は 2 段で、**構造が先** —— どのパスがどのラベルを呼ぶかは [`recommend.ts`](../../scripts/deferred-checks/recommend.ts) が理由付きで宣言する（story が動けば axe、器や mock が動けばジャーニー、書体や寸法が動けば計測）。名指しできなければ [`volume.ts`](../../scripts/deferred-checks/volume.ts) の行数に落ち、線（`ALERT_AT`）を超えたときだけ 3 本を並べる。**ゲートではない。**必須 check にも登録しない —— 行数の線に理論的な根拠は無く、マージを止められる場所に根拠の無い数字を置かない。既に付いているラベルは**その検査だけ**落とす（1 枚付いたことで残る 2 本まで黙ると、付けた人が見なかった検査が名指しされないまま消える）。`lighthouse` が自分で測ると決めた差分では計測を勧めない。3 本がそれぞれ「回ったか」を自分のコメントで答えるのに対し、ここが答えるのは**「回すべきだったか」**である |
+| Deferred Checks | `deferred-checks.yaml` | `deferred-checks` | 先送りにしている 3 本のうち、この PR の差分が要求するものを**名指しして**コメントを 1 件だけ残す。判定は 2 段で、**構造が先** —— どのパスがどのラベルを呼ぶかは [`recommend.ts`](../../scripts/deferred-checks/recommend.ts) が理由付きで宣言する（story が動けば axe、proxy や mock が動けばジャーニー、書体や寸法が動けば計測）。名指しできなければ [`volume.ts`](../../scripts/deferred-checks/volume.ts) の行数に落ち、線（`ALERT_AT`）を超えたときだけ 3 本を並べる。**ゲートではない。**必須 check にも登録しない —— 行数の線に理論的な根拠は無く、マージを止められる場所に根拠の無い数字を置かない。既に付いているラベルは**その検査だけ**落とす（1 枚付いたことで残る 2 本まで黙ると、付けた人が見なかった検査が名指しされないまま消える）。`lighthouse` / `e2e` が自分で回すと決めた差分では、その検査を勧めない。3 本がそれぞれ「回ったか」を自分のコメントで答えるのに対し、ここが答えるのは**「回すべきだったか」**である |
 
 ### 並列度に台数を書かない
 
@@ -99,12 +120,16 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 | --- | --- | --- | --- |
 | Secret Scan | `gitleaks.yaml` | `secret-scan` | PR が足したコミットを gitleaks で走査する。週次は履歴全体。検出は fail-closed |
 | SAST | `sast.yaml` | `sast` | 自分が書いたコードを opengrep で見る。**0 件の baseline を保つ**ので検出で落ちる。許容する所見はソースの `// nosemgrep:` に理由付きで置く。**ルールはレジストリから引かず**、`opengrep/opengrep-rules` の commit を固定して読む（下記「SAST のルールをレジストリから引かない」） |
-| CodeQL Scan | `codeql.yaml` | `codeql` | 同じ問いに GitHub 側の解析で答える。high の検出でマージを止めるのは code scanning 側の設定で、この job が落ちるのは解析そのものが走らなかったときだけ |
+| CodeQL Scan | `codeql.yaml` | `codeql` | 同じ問いに GitHub 側の解析で答える。high の検出でマージを止めるのは code scanning 側の設定で、この job が落ちるのは解析そのものが走らなかったときだけ <!-- boilerplate-only:line --> |
 | Dependency Scan | `dependency-scan.yaml` | `dependency-scan` / `dependency-audit` / `dependency-gate` | 依存の脆弱性を Trivy と `pnpm audit` で。同じ対象に 3 つの異なる判定を掛ける（下記） |
 | OSV Scan | `osv-scan.yaml` | `osv-scan` / `osv-gate` | 同じ依存を OSV データベースで読む。報告と昇格ゲートの二段は Trivy と同じ形 |
 | Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナが見るのは木の現状で、持ち越しと増分を区別できない。**このリポジトリの運用にだけ置く**（呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求するため） <!-- boilerplate-only:line --> |
 | Bearer Scan | `bearer.yaml` | `bearer` | 値がプロセスの外へ出る地点を、その値の分類と併せて見る。**落とさない**（下記） |
+<!-- boilerplate-only:replace-begin -->
 | DevSkim Scan | `devskim.yaml` | `devskim` | 言語フロントエンドを持たない regex 検査。opengrep も CodeQL も開かないファイルを読む。**落とさない**（下記） |
+<!-- boilerplate-only:replace-with -->
+<!-- = | DevSkim Scan | `devskim.yaml` | `devskim` | 言語フロントエンドを持たない regex 検査。opengrep が開かないファイルを読む。**落とさない**（下記） | -->
+<!-- boilerplate-only:replace-end -->
 | OpenSSF Scorecard | `scorecard.yaml` | `scorecard` | リポジトリ自身の設定を測る。PR では走らない |
 | SonarQube Cloud Scan | `sonarcloud.yaml` | `preflight` / `sonarcloud` / `report` / `unconfigured-notice` | **外部アカウントを要する唯一の検査。** `SONAR_TOKEN` が無ければ走らず、緑のまま「未設定」を PR へ述べる。剥がしの対象 <!-- boilerplate-only:line --> |
 | DAST | `dast.yaml` | `dast` | **ここだけが応答を読む。** アプリを立てて OWASP ZAP で HTTP を撃ち、配信面を見る。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は赤にする** |
@@ -115,7 +140,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 
 そこで、いま出ている所見だけを [`../zap/rules.tsv`](../zap/rules.tsv) に `IGNORE` で並べ、**一覧に無い所見は赤にする**。ZAP は `IGNORE` にした規則も件数・規則名・URL を出力に残すので、これは黙殺ではなく severity の引き下げにあたる（[0110](../../docs/adr/0110-security-operations.md) 3.4）。
 
-各行に撤回条件が書いてある。**多くは計画 P6-2（CSP / セキュリティヘッダ）が載せた時点で削除できる** —— つまり P6-2 は「この一覧を空にする作業」であり、1 行 = 1 作業単位として並行して潰せる。
+各行に撤回条件が書いてある。条件が満たされた行は削除する —— 一覧が空になることが目標であって、一覧そのものは成果物ではない。CSP と同伴ヘッダ（[0111](../../docs/adr/0111-csp-security-headers.md)）は載っており、ZAP が読むのはそのヘッダである。ヘッダをブラウザが enforce した結果は `e2e` の見張りが見る。
 
 **測る側を先に入れているのは、後入れだと測る側の導入が実装の完了に従属するため。** 実装が終わるまで計測が入らない形にすると、何が足りないかの一覧が最後まで手に入らない。
 
@@ -131,7 +156,11 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 <!-- = | ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dast` | job の exit code | -->
 <!-- boilerplate-only:replace-end -->
 | 報告専用 | `dependency-scan` / `osv-scan` | 何も赤にしない（スキャナが走らなかったときだけ落ちる） |
+<!-- boilerplate-only:replace-begin -->
 | code scanning へ送る | `codeql` / `bearer` / `devskim` / `sonarcloud` | **差分が新しく持ち込んだ alert** に対する GitHub 側のチェック |
+<!-- boilerplate-only:replace-with -->
+<!-- = | code scanning へ送る | `bearer` / `devskim` | **差分が新しく持ち込んだ alert** に対する GitHub 側のチェック | -->
+<!-- boilerplate-only:replace-end -->
 
 **「落とさない」のは所見に対してだけで、機構が壊れたら落ちる。** `bearer` / `devskim` / `scorecard` は報告が出力のすべてなので、走らなかった走査・書かれなかった SARIF・届かなかったアップロードは、いずれも綺麗な結果と同じ緑になってしまう。**検査しない gate は「違反なし」と見分けが付かない。**
 
@@ -180,7 +209,7 @@ PR ごとには走らず、ラベルや保護ブランチへの push で起動�
 
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
-| Baseline Retake | `baseline-retake.yaml` | `retake` / `report` | VRT または E2E の**完了**で発火し、`baseline-retake` ラベルが付いていれば、**story と画面の基準画像をまとめて**撮り直し、置き場へ push してサブモジュールのポインタを進める。story は報告された差分だけ、画面は全数が対象（E2E は差分の報告を出さない）。両方が赤いときは E2E 側の実行が VRT 側へ譲る —— 片方だけでラベルを使い切らないためで、これが「1 ラベル 1 撮り直し」を保つ。ラベルはトリガではなく条件なので、PR 作成時に付けておける（VRT の完了を待つ必要がない）。**絵を動かしうるチェック**（`baseline-retake.yaml` の `DECIDES_PIXELS` が名指しする）が落ちている間は撮らずに見送り、ラベルを残す（次の実行で自動的に再開する）。見るのは各チェックの最新の試行だけで、名指しは allowlist である — 落ちているもの全部を数えると、撮るまで存在しない画像を待つ `baseline-approval` と互いに待ち合う。`revert-` で始まるブランチではラベル無しで全数を撮り直す（掃除で復帰先の一式が消えているため）。ポインタの push は `GITHUB_TOKEN` ではなく App のトークンで行う（`GITHUB_TOKEN` の push は実行を起こさないため、確認用の VRT が走らない）。**承認ではない** — 画素の判断は、コメントが並べる動いた画像の前後を見て PR レビューで行う |
+| Baseline Retake | `baseline-retake.yaml` | `retake` / `report` | VRT または E2E の**完了**で発火し、`baseline-retake` ラベルが付いていれば、**story と画面の基準画像をまとめて**撮り直し、置き場へ push してサブモジュールのポインタを進める。story も画面も**報告された差分だけ**が対象で、報告はそれぞれの実行の artifact（`vrt-report` / `e2e-report`）から引く。画面の報告が無いときは撮らない —— 全数へ落とすと、コメントが誰にも見せていない画素を正にしてしまう。両方が赤いときは E2E 側の実行が VRT 側へ譲る —— 片方だけでラベルを使い切らないためで、これが「1 ラベル 1 撮り直し」を保つ。ラベルはトリガではなく条件なので、PR 作成時に付けておける（VRT の完了を待つ必要がない）。**絵を動かしうるチェック**（`baseline-retake.yaml` の `DECIDES_PIXELS` が名指しする）が落ちている間は撮らずに見送り、ラベルを残す（次の実行で自動的に再開する）。見るのは各チェックの最新の試行だけで、名指しは allowlist である — 落ちているもの全部を数えると、撮るまで存在しない画像を待つ `baseline-approval` と互いに待ち合う。`revert-` で始まるブランチではラベル無しで全数を撮り直す（掃除で復帰先の一式が消えているため）。ポインタの push は `GITHUB_TOKEN` ではなく App のトークンで行う（`GITHUB_TOKEN` の push は実行を起こさないため、確認用の VRT が走らない）。**承認ではない** — 画素の判断は、コメントが並べる動いた画像の前後を見て PR レビューで行う |
 | VRT Guard | `vrt-guard.yaml` | `guard` | 保護ブランチへの push 後に story の比較をやり直す。通常は鳴らない（PR はマージ結果に対して判定され、ブランチは最新であることを要求されるため）。鳴ったら前提が崩れた合図として issue を立てる。**基準画像は撮り直さない** |
 | Lighthouse | `lighthouse.yaml` | `lighthouse` | 保護ブランチへの push と毎日 1 回、`e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らす（[0101](../../docs/adr/0101-performance-budget.md)）。落ちたら issue を立てる（ブランチごとに 1 本、2 度目は同じ issue へコメント）。**performance スコアは見ない** —— 5 指標の加重平均は、下がったときにどれが下がったかを答えられない。INP は実ユーザの操作を要して lab では測れないため TBT が代わる。撮影（`vrt` / `a11y` / `e2e`）と違ってブラウザをコンテナへ閉じ込めないのは、比べるのが画素ではなく数値だから —— 固定すべきはフォントのラスタライズではなくブラウザの版で、それは lockfile が担う。**PR でも起動はするが、測るのは差分が要求したときだけ** —— 画面の宣言か器が動いていれば待たずに測る。**この job が見るのは、自分で測ると決められる構造だけ**で、ラベルで回すべき差分の名指しは `Deferred Checks` が 3 本ぶんまとめて行う。ラベル（`run-lighthouse`）でも回る。**全量を PR で回さない理由は実測にある** —— 計測は直列でしか成立せず（同時に測ると並列度そのものが数値へ混ざる）、23 画面 × 3 試行 × 約 14 秒 ≒ 16 分に対し build は約 1 分。費用は `画面数 × 試行回数` に張り付いており、試行を削れば runner のぶれを吸う中央値を失い、画面を削れば宣言から全数を引く意味を失う。**削るなら網羅ではなく頻度**という判断で、検知が 1 マージぶん遅れる代わりに PR は 1 秒も待たない |
 | Baseline Prune | `baseline-prune.yaml` | `report` | 月次で基準画像の置き場を測り、閾値を超えたときだけ掃除を促す issue を立てる。**消さない** — 履歴の書き換えは取り消せないので、実行は人が `make baseline-prune` で起こす |
@@ -273,7 +302,7 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 | secret-scan | hook + CI | 同じ `make secret-scan` を呼ぶが、**走査範囲の決まり方が違う**。hook の既定は「どのリモートにも無いコミット」で、PR のブランチは既に push 済みなので CI では 0 件になる。CI は `SECRET_SCAN_LOG_OPTS` で base からの範囲を渡す。履歴全体は週次だけ（`make secret-scan-history`） |
 | 依存の脆弱性 | CI のみ | 変更の作者がその場で解消できず、変更と独立に状態が変わる。hook に載せると `--no-verify` の常用を教える（[0110](../../docs/adr/0110-security-operations.md) 3.1 / 撤回条件 W1・W2） |
 | `sast` | CI のみ | 走査に 1 分前後かかり hook の速度目標に収まらない。手元で確かめるなら `make sast` がそのまま同じ検査を回す |
-| `sonarcloud` | CI のみ | 解析を実行するのは SonarCloud 側で、手元には結果を読む口しか無い。そもそも `SONAR_TOKEN` を開発者の環境へ配らない |
+| `sonarcloud` | CI のみ | 解析を実行するのは SonarCloud 側で、手元には結果を読む口しか無い。そもそも `SONAR_TOKEN` を開発者の環境へ配らない <!-- boilerplate-only:line --> |
 | `dast` | CI のみ | build と起動を伴うので hook には収まらない。手元で確かめるなら `pnpm start` したものへ `DAST_TARGET=http://host.docker.internal:3000 make dast` を当てる |
 
 ## 共通の骨格
@@ -325,7 +354,7 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 `dependency-gate` / `osv-gate`（昇格ゲート）は**降りない**。昇格は誰かがツリーの現状を引き受けて判断する場面であり、その PR の差分が lockfile に触れていないことは、ツリーが持っている脆弱性を引き受けない理由にならない。一方 `dependency-audit` は降りる —— base から引き継いだ判定は変更の作者がその場で解消できず、それを赤にするのは [0110](../../docs/adr/0110-security-operations.md) 3.1 が禁じている形そのものである。
 
-`codeql` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。**GitHub 側の仕組みに judgement を預けている検査なので、こちらの都合で走行回数を減らさない。**
+`codeql` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。**GitHub 側の仕組みに judgement を預けている検査なので、こちらの都合で走行回数を減らさない。** <!-- boilerplate-only:line -->
 
 **一覧の実体は各 workflow の `ignore:` ブロックが正**（[`bundle-budget.yaml`](bundle-budget.yaml) / [`vrt.yaml`](vrt.yaml) / [`a11y.yaml`](a11y.yaml)）。この表はどの範囲を外しているかを示すだけで、パスを書き写さない — 書き写せば実体と黙ってずれる側が 1 つ増える。
 
@@ -385,7 +414,11 @@ coverage 以外の各 job は検査結果を即 fail させず、いったん ca
 
 **ルール数が減る。** レジストリの 3 パックで 563 ルールだったところ、いまは 77 ルールである。`p/owasp-top-ten` は複数言語を跨ぐパックで、その大半はこのリポジトリに対象が無いが、**それを差し引いても減っている**。
 
+<!-- boilerplate-only:replace-begin -->
 **ルールが更新されない。** `opengrep/opengrep-rules` はライセンス変更直前（2024-12-13）の fork で、上流の動きは鈍い。新しい規則は入ってこない。**この層の鮮度は CodeQL が補っている**（GitHub 側が更新し続ける）ため、SAST 全体が固まるわけではない。
+<!-- boilerplate-only:replace-with -->
+<!-- = **ルールが更新されない。** `opengrep/opengrep-rules` はライセンス変更直前（2024-12-13）の fork で、上流の動きは鈍い。新しい規則は入ってこない。**固定した commit を上げるまで、この層の鮮度は動かない。** -->
+<!-- boilerplate-only:replace-end -->
 
 撤回条件は BACKLOG の W24 が持つ。
 
@@ -409,14 +442,3 @@ detection は「何が見つかったか」を言えなければ、報告して�
 **これがリポジトリ唯一の `workflow_call`。** 他の共有物は composite action だが、composite action は呼び出し元の job の中で動くため、webhook が「たった今スキャンした依存ツリーを展開したランナー」に載る。`workflow_call` は必ず自前のランナーを取り、このファイルはリポジトリを checkout しない。
 
 なお `make actions-comment-secret-lint` は、この呼び出しを**呼び出し先が投稿するかどうか**で判定する（`notify.yaml` は投稿しないので、呼び出し元は投稿ジョブにならない）。リモートの reusable workflow は解決できないため、従来どおり exit 2 で落ちる。
-
-## 不採用の判断
-
-| 候補 | 判断 | 理由 |
-| --- | --- | --- |
-| `sync-versions-check` | 不採用 | `mise.toml` の版数を複製する下流が本リポに存在しない（Dockerfile 無し / CI は `setup-mise` が `mise.toml` を直読み）。検査対象そのものが無い。`package.json` の `engines` / `packageManager` 等、版数の第二宣言を置いた時点で採用する |
-| `auto-generate-docs` | 不採用 | portal の生成物（`guides/` / `docs.json`）は追跡せず配信時に組み立てるため、drift が発生しえない。追跡する生成物を持つのは型生成（[0072](../../docs/adr/0072-api-type-generation.md)）が入る時点で、そこで再検討する |
-| njsscan | 不採用 | **重複が実測で確かめられた。** 導入して走らせたところ、このツリーに対する所見は 0 件で、`sast`（opengrep）が既に `p/javascript` / `p/typescript` / `p/owasp-top-ten` を当てている。**ライセンスは理由ではない** —— njsscan 自身は LGPL-3.0 で、ルールもライセンス変更前の semgrep-rules 由来を同梱しており、`sast` がレジストリから引くルールより制約が緩い。落とすのは、重なる層のために semgrep 本体（47 MB）を供給網へ足すことになるため |
-| Snyk | 不採用 | SaaS への登録が前提。**最低保証の層を、fork 先が契約していない事業者に預けない。** 見る面（依存の脆弱性）は Trivy / OSV / `pnpm audit` の 3 つが既に覆っており、増えるのは死角ではなく依存先である |
-| SonarQube（self-host） | 不採用 | self-host できる点は Snyk と違うが、boilerplate が配る前提としては重い —— サーバと DB を建てて初めて 1 つの検査が動く。**同じ解析は SonarCloud 版（`sonarcloud.yaml`）が持ち、そちらはアカウントが無ければ黙って降りる。** self-host したい fork は、あの workflow のサーバ URL を差し替えれば届く |
-| `eslint-plugin-security` の推奨プリセット | 部分採用 | プラグインは採るが、`security.configs.recommended` は当てない（[0002](../../docs/adr/0002-formatter-linter.md) の能力ベース分担は束の適用を禁じる）。**0 件の baseline を保てる 9 規則だけ**を `eslint.config.ts` で有効にし、落とした 5 規則とその理由もそこに書いてある |

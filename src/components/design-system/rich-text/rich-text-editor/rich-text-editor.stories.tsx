@@ -76,7 +76,6 @@ export const WithContent: Story = {
   render: () => <RichTextEditorFixture defaultValue={SAMPLE_HTML} />,
 };
 
-/** 送信中や権限が無いときなど、読み取り専用にする場合。toolbar の操作も効かない。 */
 /** プレビューへ切り替えた状態。書式の操作は下がり、読者に届く形だけが残る。 */
 export const Preview: Story = {
   ...WithContent,
@@ -87,6 +86,7 @@ export const Preview: Story = {
   },
 };
 
+/** 送信中や権限が無いときなど、読み取り専用にする場合。toolbar の操作も効かない。 */
 export const Disabled: Story = {
   render: () => <RichTextEditorFixture defaultValue={SAMPLE_HTML} disabled />,
 };
@@ -94,7 +94,7 @@ export const Disabled: Story = {
 /**
  * allowlist の外にあるタグを初期値へ渡した場合。
  *
- * `h1` と `table` と `script` は読み込みの時点で落ち、中身のテキストだけが残る。
+ * `h1` と `table` は読み込みの時点で落ち、中身のテキストだけが残る。
  */
 export const OutsideAllowlist: Story = {
   render: () => (

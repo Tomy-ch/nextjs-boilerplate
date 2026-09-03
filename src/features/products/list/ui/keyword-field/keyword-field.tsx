@@ -34,6 +34,8 @@ export type ProductKeywordFieldProps = {
  * 残すと、反応が無いのか結果が同じなのかを利用者から区別できません。
  */
 export function ProductKeywordField({ selection }: ProductKeywordFieldProps) {
+  "use memo";
+
   const { draft, change, apply } = useProductFilterDraft();
 
   const setKeyword = useCallback(

@@ -66,6 +66,18 @@ export type Screen = {
    * 外すのは値を描く最小の範囲に留めます。広く覆うほど、崩れても気づけない面が増えます。
    */
   readonly mask?: readonly string[];
+  /**
+   * 撮る前に現れているべき要素の CSS 選択子。
+   *
+   * @remarks
+   * **最初の一式から外した島（`next/dynamic`）を持つ画面にだけ与えます。** その島は枠だけを置いて
+   * 後から描かれるので、届く前に撮ると枠のまま写ります。枠は連続して撮っても同じなので、
+   * **Playwright の「同じ絵が 2 回続いたら撮る」判定を素通りします** —— 撮る側が待つ相手を
+   * 知っていなければ、届いた日と届かなかった日の絵が交互に基準へ入ります。
+   *
+   * 指すのは島が描き終えた印です。枠（`loading`）ではなく、中身にしか現れない要素を選びます。
+   */
+  readonly settled?: string;
 };
 
 /** route 1 つに対する宣言。開くか、開かない理由を持つ。 */
@@ -77,6 +89,8 @@ export type ScreenDeclaration =
       readonly signedIn?: SessionRole;
       /** 撮影から外す領域の CSS 選択子（{@link Screen.mask}）。 */
       readonly mask?: readonly string[];
+      /** 撮る前に現れているべき要素の CSS 選択子（{@link Screen.settled}）。 */
+      readonly settled?: string;
     }
   | {
       readonly route: string;
@@ -171,6 +185,9 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   { route: "/admin/users", name: "admin-users", path: "/admin/users", signedIn: "admin" },
   // sample:end
   { route: "/login", name: "login", path: "/login" },
+  // `APP_MAINTENANCE_MODE` を立てずに撮れる（判定は入口が持つ。理由は
+  // `src/features/maintenance/README.md` の「状態とデザイン参照」）。
+  { route: "/maintenance", name: "maintenance", path: "/maintenance" },
   { route: DEV_SESSION_PATH, name: "dev-session", path: DEV_SESSION_PATH },
   { route: "/_not-found", name: "not-found", path: "/この経路は存在しない" },
   {
@@ -237,7 +254,14 @@ export function resolveScreens(
 
   const screens = declarations
     .filter((entry): entry is Extract<ScreenDeclaration, { name: string }> => "name" in entry)
-    .map(({ route, name, path, signedIn, mask }) => ({ route, name, path, signedIn, mask }));
+    .map(({ route, name, path, signedIn, mask, settled }) => ({
+      route,
+      name,
+      path,
+      signedIn,
+      mask,
+      settled,
+    }));
 
   const malformed = screens.filter((screen) => !SCREEN_NAME.test(screen.name));
 

@@ -28,6 +28,7 @@ slice に固有の線引きと、契約・仕様・デザインへの索引で�
 | --- | --- | --- |
 | `auth/` | 身元を預ける入口。認証そのものは持たず、BFF の口へ渡す | [README](auth/README.md) |
 | `dev-session/` | 開発時に主体を差し替える面。本番の束には載らない | [README](dev-session/README.md) |
+| `maintenance/` | 配信を止めているあいだ、全ルートの代わりに見せる面 | [README](maintenance/README.md) |
 
 <!-- sample:begin -->
 同梱のサンプルが加えるもの:
@@ -50,7 +51,7 @@ slice に固有の線引きと、契約・仕様・デザインへの索引で�
 
 | 置き場 | 使うもの | 既定 |
 | --- | --- | --- |
-| `<screen>/page-content` / `<screen>/view` | `withScreenSpan` | 有効 |
+| 画面の最上位（`<screen>/page-content` / `<screen>/view`、および殻の側で取得を持つ合成） | `withScreenSpan` | 有効 |
 | `<screen>/ui/**` | `withPartSpan` | 無効（`OBS_RENDER_SPANS=part` で開く） |
 
 ```tsx
@@ -61,6 +62,11 @@ export const XxxPageContent = withScreenSpan(
   },
 );
 ```
+
+**殻と穴に割れた画面は、最上位が 2 つ以上になる。** Cache Components 有効下では、待たずに配れる節を
+`Suspense` の外へ出すことがある（[0041](../../docs/adr/0041-cache-components-decision.md)）。出した側も
+取得を持つ画面の最上位なので `withScreenSpan` で包み、span 名はその module のパスに揃える —— 1 つの route に
+最上位の span が複数立つことになるが、それは殻と穴が別々に解決されるという事実そのものである。
 
 仕組みと span の読み方は [observability/README.md](../observability/README.md) が持つ。
 

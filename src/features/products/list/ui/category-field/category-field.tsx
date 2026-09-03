@@ -42,6 +42,8 @@ export function ProductCategoryField({
   limit,
   onChange,
 }: ProductCategoryFieldProps) {
+  "use memo";
+
   const scope = useId();
   const noticeId = `${scope}-limit`;
   const reachedLimit = selected.length >= limit;
@@ -90,6 +92,8 @@ function CategoryOption({
   scope: string;
   selected: readonly string[];
 }) {
+  "use memo";
+
   const id = `${scope}-${option.value}`;
   const blocked = reachedLimit && !checked;
   const toggle = useCallback(() => {

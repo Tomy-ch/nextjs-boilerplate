@@ -33,7 +33,7 @@
 
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
-| U1 | トップ | `GET /v1/products/ranking/quantity` / `GET /v1/products`(新着 sort) / `GET /v1/products/categories` | 売れ筋ランキング・新着商品・カテゴリ導線を並べるだけのトップページ。パーソナライズなし | 3 系統は RSC 内で `Promise.allSettled` で取る。`all` は最初の失敗で待機を打ち切るため、成功した系統の結果が使えない。落ちた系統だけを失敗表示へ替える |
+| U1 | トップ | `GET /v1/products/ranking/quantity` / `GET /v1/products`(新着 sort) / `GET /v1/products/categories` | 売れ筋ランキング・新着商品・カテゴリ導線を並べるだけのトップページ。パーソナライズなし | 分類は `use cache` を持つ口から引くので静的な殻に入り、残る 2 系統を RSC 内で `Promise.allSettled` で取る。`all` は最初の失敗で待機を打ち切るため、成功した系統の結果が使えない。落ちた系統だけを失敗表示へ替える |
 | U2 | 商品一覧 | `GET /v1/products`(`after` / `first` / `categoryCodes` / `keyword` / `sort`) / `GET /v1/products/categories` | 検索・絞り込み・並び替え付き一覧 | 条件は `searchParams` に載せ、変わるたびに RSC が再取得する。絞り込みは広い段ではサイドバーで選択即時、狭い段では sheet 内でまとめて確定する(並び替えはどちらの段でも即時)。増分取得は無限スクロール方式。状態で絞り込む口は置かない。`statusCodes` は契約も backend も受け付けて実際に効くが、状態マスタは在庫・販売の 10 状態で売り手の語彙であり、どれを買い手へ出すかが未決のため(公開の可否は `publishedAt` の別軸で、状態マスタとは無関係) |
 | U3 | 商品詳細 | `GET /v1/products/{productId}` / `GET /v1/products`(`categoryCodes`) | 単一商品の詳細表示。関連商品は一覧 API をカテゴリフィルタで再利用(専用 API なし) | description はリッチテキストなので必ず sanitizer 経由で表示 |
 | U4 | カート | `GET /v1/carts/me` / `PUT /v1/carts/me/items/{productId}` / `DELETE /v1/carts/me/items/{productId}` / `DELETE /v1/carts/me` | 商品追加・数量変更・削除・全消し | **リロードで消えない**。数量は加算ではなく設定(upsert)で、自然キーが冪等性を持つため `Idempotency-Key` は要らない。買えない明細・値の変わった明細は `issues` として画面に出す。カートのサイドバー / drawer の副導線「カートを見る」から入る。**認証を要さない**ため、未ログインでも中身を全画面で確かめられる唯一の経路である |

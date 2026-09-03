@@ -7,7 +7,7 @@
  * ツリーの走査は `scripts/test-requirement.gate.test.ts` が担う。
  */
 
-import { APP_ELEMENTS } from "../../architecture";
+import { APP_ELEMENTS, ENTRY_POINTS } from "../../architecture";
 
 import { parseFrontmatter } from "./frontmatter";
 import { toPathPattern } from "./path-pattern";
@@ -25,19 +25,28 @@ const TEST_LAYERS = ["unit", "component", "feature", "route", "integration", "e2
 type TestLayer = (typeof TEST_LAYERS)[number];
 
 /**
- * README を持たないまま宣言を負う入口。
+ * README を持たないまま宣言を負う入口（`architecture.ts` の `ENTRY_POINTS`）。
  *
  * @remarks
- * 値の一次情報は [0090](../../docs/adr/0090-testing-strategy.md) の起動 / 境界エントリの節で、
- * ここはその写しです。ここから外れるのは、その入口がカーネルの内側へ移ったとき。
+ * 入口はカーネルの外に居るため層 README を持たず、宣言できるのは依存マトリクスだけです
+ * （[0090](../../docs/adr/0090-testing-strategy.md) の起動 / 境界エントリ）。**ここで写しを
+ * 持たないのは、宣言が 2 か所になると片方だけ動いた状態を誰も検出できないため**です。
+ *
+ * 入口の `pattern` は拡張子を持たない（`src/proxy*`）ので実装とテストの両方に当たりますが、
+ * ここへ来るのはテストファイルだけなのでそのまま照合します。
+ *
+ * **層として読めない宣言は落とします。** `feature-story` が負う `none` は「テストを課さない」
+ * 宣言であって層ではなく、story はそもそもこの解決を通りません。
  */
-const ENTRY_DECLARATIONS: ReadonlyMap<string, TestLayer> = new Map([
-  ["src/instrumentation.test.ts", "unit"],
-  ["src/proxy.test.ts", "unit"],
-]);
+const ENTRY_DECLARATIONS: readonly { readonly matches: RegExp; readonly layer: TestLayer }[] =
+  ENTRY_POINTS.flatMap(({ pattern, testRequirement }) =>
+    isTestLayer(testRequirement)
+      ? [{ matches: toPathPattern(pattern), layer: testRequirement }]
+      : [],
+  );
 
-/** 入口宣言の出所。README ではなく ADR が持つため、報告にはこの経路を出す。 */
-const ENTRY_DECLARATION_SOURCE = "docs/adr/0090-testing-strategy.md";
+/** 入口宣言の出所。README ではなく依存マトリクスが持つため、報告にはこの経路を出す。 */
+const ENTRY_DECLARATION_SOURCE = "architecture.ts";
 
 /**
  * ファイル名が役割を決める element の宣言（[0090](../../docs/adr/0090-testing-strategy.md) の
@@ -114,10 +123,10 @@ export function resolveTestRequirement(
   testFile: string,
   readReadme: ReadmeReader,
 ): ResolvedTestRequirement | null {
-  const entry = ENTRY_DECLARATIONS.get(testFile);
+  const entry = ENTRY_DECLARATIONS.find(({ matches }) => matches.test(testFile));
 
   if (entry !== undefined) {
-    return { declaredIn: ENTRY_DECLARATION_SOURCE, layers: [entry] };
+    return { declaredIn: ENTRY_DECLARATION_SOURCE, layers: [entry.layer] };
   }
 
   const element = ELEMENT_DECLARATIONS.find(({ matches }) => matches.test(testFile));

@@ -65,12 +65,17 @@
 - [0100-accessibility-target.md](0100-accessibility-target.md) - アクセシビリティ目標（WCAG AA / biome a11y / 手動チェック）
 - [0101-performance-budget.md](0101-performance-budget.md) - パフォーマンス予算（Core Web Vitals / 仕組みは定義・閾値は fork 先）
 - [0102-browser-support.md](0102-browser-support.md) - ブラウザサポート行列（Next.js 既定 browserslist 追認 / 切り捨ては fork 先）
+<!-- boilerplate-only:replace-begin -->
 - [0110-security-operations.md](0110-security-operations.md) - セキュリティ運用（Dependabot cooldown / gitleaks / Trivy 二段 / CodeQL / image-scan は exclusion）
+<!-- boilerplate-only:replace-with -->
+<!-- = - [0110-security-operations.md](0110-security-operations.md) - セキュリティ運用（Dependabot cooldown / gitleaks / Trivy 二段 / Opengrep / image-scan は exclusion） -->
+<!-- boilerplate-only:replace-end -->
 - [0111-csp-security-headers.md](0111-csp-security-headers.md) - CSP・セキュリティヘッダ（実行時）
+- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md) - データ分類とキャッシュ境界（PII / user-scoped / secret の置き場と段ごとの関所）
 - [0120-locale-aware-formatting.md](0120-locale-aware-formatting.md) - ロケール対応フォーマット（日付・数値 + Intl / date-fns 日付演算）
 - [0121-i18n-strategy.md](0121-i18n-strategy.md) - i18n 戦略（本体非同梱 = exclusion / 採用時の seam）
 - [0130-pwa-strategy.md](0130-pwa-strategy.md) - PWA 戦略（Manifest / SW / オフライン本体非同梱 = exclusion）
-- [0131-cookie-consent.md](0131-cookie-consent.md) - Cookie 同意（軽量 consent 機構 + スクリプトゲートは同梱 / CMP・トラッキング製品本体は非同梱）
+- [0131-cookie-consent.md](0131-cookie-consent.md) - Cookie 同意（軽量 consent 機構 + スクリプトゲート + ゲートの裏のタグマネージャは同梱 / CMP・IAB TCF は非同梱。計測製品そのものは容器の中身として fork が選ぶ）
 - [0140-documentation-operations.md](0140-documentation-operations.md) - ドキュメント運用ポリシー（EN canonical 方向・移行 v1 / タクソノミー / rules.md 新設 / ADR 不可変性）
 - [0141-portal-operations.md](0141-portal-operations.md) - ポータル運用（manifest = 構造制御 / 登録基準 / GitHub Pages / 実装は Phase 3）
 - [0142-license.md](0142-license.md) - ライセンス選定（MIT 採用根拠 / OSS 寄与 = inbound=outbound / 同梱ライブラリ整合 / private:true との関係）
@@ -80,3 +85,4 @@
 - [0153-ci-configuration.md](0153-ci-configuration.md) - CI 構成（job 分割 / SHA ピン / 最小 permissions / hooks mirror / matrix 非採用）
 - [0154-claude-skills-operations.md](0154-claude-skills-operations.md) - Claude スキル運用方針（運用系）
 - [0155-claude-skills-development.md](0155-claude-skills-development.md) - Claude スキル運用方針（開発系）
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) - ブラウザ実測ツール（3 レーンの分担 / CLI 前提・MCP 登録なし / 実プロファイル非接続 / 取得経路は pnpm と mise の使い分け）

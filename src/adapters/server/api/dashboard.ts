@@ -10,14 +10,15 @@ import { type TimeWindow, WHOLE_TIME } from "@/model/time-window";
 
 import { GetDashboardSummaryResponse } from "../../gen/api/endpoints.zod";
 import { getAccessToken } from "../auth/session";
-import { createHttpClient, type HttpClient } from "../http/request";
+import { createHttpClient, type UserScopedHttpClient } from "../http/request";
 
 type WireDashboardSummary = z.infer<typeof GetDashboardSummaryResponse>;
 
-let client: HttpClient | undefined;
+let client: UserScopedHttpClient | undefined;
 
-function getClient(): HttpClient {
+function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
+    scope: "user-scoped",
     baseUrl: getApiConfig().baseUrl,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
     getBearerToken: getAccessToken,

@@ -38,8 +38,22 @@ const PUBLISHED_SURFACE = ["src/components/**/*.{ts,tsx}"];
  * - `lighthouse` — `scripts/lighthouse/` が CLI を子プロセスとして起動する。import にしない理由は
  *   同ディレクトリの `index.ts` にある（tsx の変換がページの中で評価される関数を壊す）。撤去条件は、
  *   その変換が問題にならなくなって import へ戻せたとき。
+ * - `babel-plugin-react-compiler` — `next.config.ts` の `reactCompiler` が名前で解決する
+ *   （[0042](docs/adr/0042-react19-rendering-api.md) 決定 4）。設定に文字列すら現れないため、
+ *   knip からは辿れない。撤去条件は、`"use memo"` を持つ component が 1 つも無くなり、
+ *   `reactCompiler` の設定ごと外したとき。
+ * - `chrome-devtools-mcp` — CLI（`chrome-devtools`）を `pnpm exec` から起動する。実装が依存しない
+ *   道具のため import に現れない（[0156](docs/adr/0156-browser-observation-tooling.md)）。撤去条件は、
+ *   観測の「掘る」レーンの道具を差し替えたとき。
  */
-const NON_IMPORTED_DEPENDENCIES = ["date-fns", "@commitlint/cli", "lefthook", "lighthouse"];
+const NON_IMPORTED_DEPENDENCIES = [
+  "date-fns",
+  "@commitlint/cli",
+  "lefthook",
+  "lighthouse",
+  "babel-plugin-react-compiler",
+  "chrome-devtools-mcp",
+];
 
 /**
  * 依存として持たない実行ファイル。
@@ -68,6 +82,8 @@ const config: KnipConfig = {
         "playwright.config.ts",
         "e2e/**/*.spec.ts",
         "playwright.e2e.config.ts",
+        "playwright.maintenance.config.ts",
+        "playwright.metadata.config.ts",
       ],
       ignore: [...GENERATED_MODULES],
       ignoreDependencies: NON_IMPORTED_DEPENDENCIES,

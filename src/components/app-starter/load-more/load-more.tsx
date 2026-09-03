@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
@@ -18,6 +18,13 @@ export type LoadMoreProps = {
   failureMessage?: string;
   /** 取得中であることを読み上げへ伝える語。既定は「続きを読み込んでいます」。 */
   loadingLabel?: string;
+  /**
+   * 取得中に、届く分の場所を先に取る骨組み。
+   *
+   * @remarks
+   * 一覧ごとに項目の姿が違うので、何を並べるかは呼び出し元が決めます。
+   */
+  placeholder?: ReactNode;
 };
 
 /**
@@ -39,6 +46,14 @@ export type LoadMoreProps = {
  * 終端では何も描きません。読み終えたことは一覧が尽きていることで伝わり、そこに空の枠が残ると
  * まだ続きがあるように読めます。
  *
+ * **取得中は届く分の場所を先に取ります。** 追記は一覧の末尾で起きるので、場所を取らないと、
+ * この箱がページ 1 枚分そのまま下へ動きます —— 読み進めている人の目の前で起きる大きなずれで、
+ * Core Web Vitals の CLS がそれを数えます（[0101](../../../../docs/adr/0101-performance-budget.md)）。
+ * 骨組みを実寸で並べておくと、届いた項目がそれを置き換えるだけになり、箱は動きません。
+ *
+ * **これは lab では鳴りません。** 合成計測は scroll しないので、読み進めて初めて起きるずれは
+ * field でしか見えません（[0082](../../../../docs/adr/0082-client-observability.md) の RUM）。
+ *
  * 前後へ 1 ページずつ動く一覧には
  * [`CursorPagination`](../cursor-pagination/README.md) を使います。同じ cursor 方式でも、
  * こちらは**読み進めて積み増す**一覧のためのものです。
@@ -55,11 +70,13 @@ export type LoadMoreProps = {
  * @param props.retryLabel - 読み直す操作の名前。
  * @param props.failureMessage - 失敗したことを伝える文。
  * @param props.loadingLabel - 取得中であることを読み上げへ伝える語。
+ * @param props.placeholder - 取得中に、届く分の場所を先に取る骨組み。
  * @see Storybook `Navigation/LoadMore`
  */
 export function LoadMore({
   state,
   sentinelRef,
+  placeholder,
   retryLabel = "もう一度読み込む",
   failureMessage = "続きを読み込めませんでした。",
   loadingLabel = "続きを読み込んでいます",
@@ -79,7 +96,10 @@ export function LoadMore({
         </>
       ) : null}
       {state.status === "loading" ? (
-        <Spinner className="size-6 text-muted-foreground" label={loadingLabel} />
+        <>
+          <Spinner className="size-6 text-muted-foreground" label={loadingLabel} />
+          {placeholder === undefined ? null : <div className="w-full">{placeholder}</div>}
+        </>
       ) : null}
     </div>
   );

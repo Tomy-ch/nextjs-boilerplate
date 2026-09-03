@@ -23,16 +23,20 @@ ADR [0051](../../../../../docs/adr/0051-styling-system.md) §4 は拡張点（`p
 ```tsx
 <nav className="print-hidden">…</nav>
 <p className="print-only">出力日: 2026-08-04</p>
+<div className="print-color-keep bg-primary" style={{ width: "62%" }} />
 ```
 
 | utility | 挙動 |
 | --- | --- |
 | `print-hidden` | 画面には出て、紙には出ない |
 | `print-only` | 画面には出ず、紙にだけ出る |
+| `print-color-keep` | 面の色を紙にも残す |
 
 `print-hidden` を tag で自動判定しないのは、**何が操作で何が内容かが画面ごとに違う**ためです。`nav` の中に印刷したい情報があることも、`div` が操作の塊であることもあります。
 
 `print-only` の用途は、画面では link や操作で辿れていた情報を紙で補うことです。宛先の URL、出力日時、ページの出典などが該当します。
+
+`print-color-keep` を付けるのは、**色そのものが情報を担う面だけ**です。browser は既定で背景のグラフィックを紙面から省くため、色が装飾でしかない面は付けないほうが読めます（省かれるぶんインクが減ります）。帯グラフの帯や、状態を色で示す印は省かれると空白しか残らないので、こちらに当たります。文字と枠線は既定でも紙に残るため、色を持たない要素に付ける意味はありません。
 
 ## 責務境界
 

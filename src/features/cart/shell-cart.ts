@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { getMyCart } from "@/adapters/server/api/cart";
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import type { Cart } from "@/model/cart/cart";
@@ -17,9 +19,13 @@ import type { Cart } from "@/model/cart/cart";
  * カートが勝手に空になったように見えます。読めなかったことは外枠がカートを出さないことで表し、
  * 理由はカートの画面（自分で取り直し、失敗すれば `error` 境界が受ける）が示します。
  *
+ * **握りごと 1 リクエストに畳みます。** 外枠はカートを複数の口から読むため、畳まないと 1 度の
+ * 失敗に対して警告が口の数だけ出ます。取得自体は `getMyCart` が畳んでいますが、`catch` は
+ * 呼び出しごとに走るので、畳む場所はここでなければなりません。
+ *
  * @returns 読めなければ null
  */
-export async function readShellCart(): Promise<Cart | null> {
+export const readShellCart = cache(async (): Promise<Cart | null> => {
   try {
     return await getMyCart();
   } catch (cause) {
@@ -29,4 +35,4 @@ export async function readShellCart(): Promise<Cart | null> {
 
     return null;
   }
-}
+});

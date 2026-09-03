@@ -30,6 +30,7 @@ export const ENTRYPOINT_PATTERNS = [
   "scripts/portal/gen-*.ts",
   "scripts/portal/build-site.ts",
   "scripts/openapi/fetch-api.ts",
+  "scripts/openapi/gen-api.ts",
   "scripts/openapi/check-generated.ts",
   "scripts/openapi/extract-limits.ts",
   "scripts/lighthouse/diagnose.ts",
@@ -60,6 +61,10 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**"] as cons
  * - `src/app/fonts.ts` — `next/font` の呼び出しと、返った変数名を連結するだけ。分岐を持たず、
  *   単体で回しても `next/font` の mock が返した値をそのまま読むことにしかならない。変数が
  *   `<html>` へ届くことは `layout.test.tsx` が見ている。
+ * - `src/app/icon.tsx` / `apple-icon.tsx` / `opengraph-image.tsx` — `ImageResponse` へ 1 枚の
+ *   絵を渡すだけ。分岐を持たず、単体で回しても渡した JSX をラスタライザが受け取ったことしか
+ *   確かめられない。絵として返ることは `make e2e-metadata` が起動したアプリから取って見ている
+ *   （`e2e/metadata/`）。
  * - `src/model/generated/design-token.ts` — トークン名の一覧を並べた生成物。分岐も式も持たず、
  *   読み手はカタログの story だけで、値そのものは表示する側が実行時に CSS から読む。名前が
  *   SSOT と一致することは `check:tokens` の再生成比較が見ている。
@@ -83,6 +88,9 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**"] as cons
 const NON_DECIDING_MODULES = [
   "scripts/setup/lib/runtime.ts",
   "src/app/fonts.ts",
+  "src/app/icon.tsx",
+  "src/app/apple-icon.tsx",
+  "src/app/opengraph-image.tsx",
   "src/model/generated/design-token.ts",
   "docs-viewer/src/main.tsx",
   "vrt/lib/settle.ts",
@@ -104,9 +112,14 @@ const NON_DECIDING_MODULES = [
  *
  * `account.fixture.ts` は story とテストの双方が読みます。都道府県の 47 件のように、
  * 実物どおりの件数でなければ器の幅を確かめられない入力があるためです。
+ *
+ * `experimental-react.fixture.ts` が返すのは Next.js 同梱の experimental React の位置です。本番は
+ * Next.js が `react` の解決先を差し替えるため、この位置を綴るのはテストだけです
+ * （[0030](../../docs/adr/0030-environment-variable-management.md) §8）。
  */
 const TEST_FIXTURE_MODULES = [
   "src/config/environment.fixture.ts",
+  "src/adapters/server/taint/experimental-react.fixture.ts",
   "src/features/account/account.fixture.ts", // sample:line
   "src/features/cart/cart.fixture.ts", // sample:line
   "src/features/checkout/checkout.fixture.ts", // sample:line

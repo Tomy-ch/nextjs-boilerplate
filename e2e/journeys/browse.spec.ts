@@ -38,6 +38,43 @@ test("絞り込みの条件が URL に残り、開き直しても同じ一覧に
   await expect(page.getByRole("searchbox", { name: "商品名で探す" })).toHaveValue("鞄");
 });
 
+test("脇に絞り込みを常設できる幅では、選んだ時点で一覧へ効く", async ({ page }) => {
+  await page.goto("/products");
+
+  const sidebar = page.getByRole("complementary", { name: "絞り込み条件" });
+
+  await sidebar.getByRole("checkbox").first().check();
+
+  // 確定の操作を持たない。選ぶことがそのまま確定になる（`docs/rules.md` #71）。
+  await expect(page).toHaveURL(/categoryCodes=/);
+  await expect(sidebar.getByRole("checkbox").first()).toBeChecked();
+});
+
+test("脇に領域を持てない幅では、overlay で組んだ条件が確定で一覧へ載る", async ({ page }) => {
+  // 脇に絞り込みを常設できない幅でだけ overlay が出る（`docs/rules.md` #71）。
+  await page.setViewportSize({ width: 720, height: 900 });
+  await page.goto("/products");
+
+  await page.getByRole("button", { name: "絞り込み" }).click();
+
+  const sheet = page.getByRole("dialog", { name: "絞り込み" });
+  await sheet.getByRole("checkbox").first().check();
+
+  // overlay の中では選んだだけでは効かない。効くのは確定したときだけ。
+  await expect(page).not.toHaveURL(/categoryCodes=/);
+
+  await sheet.getByRole("button", { name: /^この条件で見る/ }).click();
+
+  await expect(page).toHaveURL(/categoryCodes=/);
+  await expect(sheet).toBeHidden();
+
+  // overlay が積んだ 1 件は結果で差し替わる（`docs/rules.md` #89）。積み増すと、この戻る操作が
+  // 1 度空振りしてから条件が外れる。
+  await page.goBack();
+
+  await expect(page).not.toHaveURL(/categoryCodes=/);
+});
+
 test("存在しない経路が 404 の面になる", async ({ page }) => {
   const response = await page.goto("/この経路は存在しない");
 

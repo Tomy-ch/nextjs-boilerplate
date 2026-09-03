@@ -90,21 +90,30 @@ Accepted
 
 ## バージョン固定ポリシー
 
-**原則: コア依存は exact pin、それ以外は caret (`^`)**。
+**原則: すべて exact pin。範囲指定(`^` / `~`)は使わない**。
 
 | 区分 | 例 | 指定形式 | 理由 |
 | --- | --- | --- | --- |
 | ランタイム本体 | `next` / `react` / `react-dom` | exact (`16.2.7` 等) | 破壊的変更の影響範囲が広く、明示的な更新判断を要するため |
 | 主要 dev ツール | `@biomejs/biome` / `typescript` | exact | フォーマッタ / 型チェッカの揺らぎを禁ずる |
-| その他 dependencies | UI / utility 系 | `^x.y.z` | lockfile (`pnpm-lock.yaml`) で再現性を担保しつつ、パッチ取り込みを軽くする |
-| その他 devDependencies | `@types/*` / 補助ツール | `^x.y.z` | 同上 |
+| その他 dependencies / devDependencies | UI / utility 系 / `@types/*` / 補助ツール | exact | 下記 |
+
+**範囲指定を採らない理由は、更新の入口を 1 つに保つことにある。** 範囲指定の利点は「パッチ取り込みを
+軽くする」ことだが、本リポジトリではその取り込みを Dependabot が PR として持ち込む
+([0110](0110-security-operations.md))。範囲指定にすると、その PR は `package.json` を変えずに
+lockfile だけを動かす形になり、**版が動いたことが `package.json` の差分に現れなくなる**。exact なら
+版の変化は必ず 1 行として現れ、レビューと `git log` の双方から追える。
+
+**この区別は「更新してよいか」を変えない。** どの区分も Dependabot の cooldown と
+[更新・監査サイクル](#更新監査サイクル)を同じように通る。指定形式が決めるのは、動いたことが
+どこに現れるかだけである。
 
 **lockfile** (`pnpm-lock.yaml`) は **常に commit する**。手動編集は禁止（ADR 0001 の方針を継承）。
 
 **追加・更新ルール:**
 
 - 新規追加は `pnpm add <pkg>` / `pnpm add -D <pkg>` で行う
-- exact pin が必要な場合は `pnpm add -E <pkg>` を使い、`package.json` から `^` を取り除く
+- 追加は必ず `pnpm add -E <pkg>` / `pnpm add -D -E <pkg>` で行い、`package.json` に `^` を残さない
 - メジャー更新は **必ず別 PR** とし、PR 本文に CHANGELOG の breaking change を引用する
 - マイナー / パッチ更新は **複数同時 PR** に集約可（後述「更新・監査サイクル」参照）
 

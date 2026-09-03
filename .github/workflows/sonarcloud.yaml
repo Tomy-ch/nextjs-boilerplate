@@ -61,7 +61,25 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            sonarcloud.io:443
+            api.sonarcloud.io:443
+            scanner.sonarcloud.io:443
+            binaries.sonarsource.com:443
+            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com:443
+            keyserver.ubuntu.com:443
 
       # The secret is read here and nowhere that could print it. What leaves this job is a
       # boolean, so no `if:` expression downstream ever touches the value.
@@ -94,7 +112,25 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            sonarcloud.io:443
+            api.sonarcloud.io:443
+            scanner.sonarcloud.io:443
+            binaries.sonarsource.com:443
+            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com:443
+            keyserver.ubuntu.com:443
 
       # Sonar attributes an issue to the commit that introduced it, which it can only do
       # with the history present. `fetch-depth: 0` is the vendor's documented requirement
@@ -110,216 +146,72 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      # The scanner queues the analysis and writes the queue entry to report-task.txt.
-      # Everything below reads the result back out of it, because the scan itself returns
-      # nothing that could be reported.
+      # The toolchain is installed AFTER the scan on purpose. `sonar.sources` is the whole
+      # tree, so an already-populated node_modules is a directory walk the scanner pays for
+      # before its own exclusion discards it.
+      #
+      # The mise CLI's own version is the one version number pinned in a workflow:
+      # mise.toml declares what mise resolves, not mise itself, so there is nowhere
+      # else to put it. Left unpinned it floats to whatever released today, which is
+      # the resolver for every other tool. It is restated in each workflow — a bump
+      # has to touch all of them.
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-deps
       - name: Read the analysis task
         id: task
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          TASK_FILE=.scannerwork/report-task.txt
-          if [ ! -f "${TASK_FILE}" ]; then
-            echo "::error::${TASK_FILE} was not produced, so the analysis cannot be read back"
-            exit 1
-          fi
-
-          # A flat key=value list whose values may themselves contain '=' (URLs do), so the
-          # split is on the first one only.
-          while IFS= read -r line; do
-            key=${line%%=*}
-            value=${line#*=}
-            case "${key}" in
-              ceTaskId|serverUrl|projectKey|dashboardUrl)
-                echo "${key}=${value}" >> "$GITHUB_OUTPUT"
-                ;;
-              *) ;;
-            esac
-          done < "${TASK_FILE}"
+        run: pnpm exec tsx scripts/sonarcloud task
 
       # The analysis is queued rather than run inline, so the issues cannot be read until
       # the entry reports SUCCESS. The ceiling exists because a queue that never drains
       # would otherwise be indistinguishable from a clean scan.
       - name: Wait for the analysis to complete
         id: analysis
-        shell: bash
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           CE_TASK_ID: ${{ steps.task.outputs.ceTaskId }}
           SERVER_URL: ${{ steps.task.outputs.serverUrl }}
-        run: |
-          set -euo pipefail
-
-          for _ in $(seq 1 60); do
-            TASK=$(curl -sS --fail-with-body \
-              -H "Authorization: Bearer ${SONAR_TOKEN}" \
-              "${SERVER_URL}/api/ce/task?id=${CE_TASK_ID}")
-            STATUS=$(jq -r '.task.status // "UNKNOWN"' <<<"${TASK}")
-
-            case "${STATUS}" in
-              SUCCESS)
-                # Requested by analysisId rather than by project, so a run concurrent with
-                # this one cannot answer for this analysis.
-                echo "analysisId=$(jq -r '.task.analysisId // ""' <<<"${TASK}")" >> "$GITHUB_OUTPUT"
-                exit 0
-                ;;
-              FAILED|CANCELED)
-                echo "::error::the SonarCloud analysis finished as ${STATUS}"
-                exit 1
-                ;;
-              *)
-                sleep 10
-                ;;
-            esac
-          done
-
-          echo "::error::the SonarCloud analysis did not complete within 10 minutes"
-          exit 1
+        run: pnpm exec tsx scripts/sonarcloud wait
 
       # Sonar's own pass / fail verdict, which is a different question from whether the
       # analysis ran: a gate can fail on duplication with no issue raised at all. Read here
       # and enforced at the end, so the findings are reported before the job goes red.
       - name: Read the quality gate
         id: gate
-        shell: bash
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SERVER_URL: ${{ steps.task.outputs.serverUrl }}
           ANALYSIS_ID: ${{ steps.analysis.outputs.analysisId }}
-        run: |
-          set -euo pipefail
-
-          if [ -z "${ANALYSIS_ID:-}" ]; then
-            echo "::error::the completed task carried no analysisId, so the quality gate cannot be read"
-            exit 1
-          fi
-
-          curl -sS --fail-with-body \
-            -H "Authorization: Bearer ${SONAR_TOKEN}" \
-            "${SERVER_URL}/api/qualitygates/project_status?analysisId=${ANALYSIS_ID}" \
-            -o sonar-quality-gate.json
-
-          STATUS=$(jq -r '.projectStatus.status // "UNKNOWN"' sonar-quality-gate.json)
-          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
-
-          # Only the failing conditions are written out. The passing ones are the gate doing
-          # its job, and listing them buries the ones that need reading.
-          jq -r '
-            [(.projectStatus.conditions // [])[] | select(.status == "ERROR")]
-            | .[]
-            | "- `\(.metricKey)` \(.comparator | ascii_downcase) \(.errorThreshold) — actual \(.actualValue)"
-          ' sonar-quality-gate.json > sonar-quality-gate.md
+        run: pnpm exec tsx scripts/sonarcloud gate
 
       # A pull-request analysis is stored against the PR rather than the branch, so the
       # issues have to be requested the same way the scanner filed them.
       - name: Fetch the issues
-        shell: bash
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SERVER_URL: ${{ steps.task.outputs.serverUrl }}
           PROJECT_KEY: ${{ steps.task.outputs.projectKey }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          set -euo pipefail
-
-          SCOPE=""
-          if [ -n "${PR_NUMBER:-}" ]; then
-            SCOPE="&pullRequest=${PR_NUMBER}"
-          fi
-
-          curl -sS --fail-with-body \
-            -H "Authorization: Bearer ${SONAR_TOKEN}" \
-            "${SERVER_URL}/api/issues/search?componentKeys=${PROJECT_KEY}&resolved=false&ps=500${SCOPE}" \
-            -o sonar-issues.json
+        run: pnpm exec tsx scripts/sonarcloud issues
 
       # The issue list becomes SARIF here. Sonar reports the component as
       # "<projectKey>:<path>", so the key is stripped to leave the repository-relative path
       # that code scanning needs to anchor an alert to a file.
       - name: Convert the issues to SARIF
-        shell: bash
         env:
           SERVER_URL: ${{ steps.task.outputs.serverUrl }}
-        run: |
-          set -euo pipefail
-
-          jq --arg serverUrl "${SERVER_URL}" '
-            def level:
-              {BLOCKER: "error", CRITICAL: "error", MAJOR: "warning", MINOR: "note", INFO: "note"}[.] // "warning";
-            # The key is dropped by splitting rather than by matching it as a pattern: a
-            # project key is user-supplied and may contain regex metacharacters, and an
-            # escaping bug here would silently mislocate every alert.
-            def relpath: split(":") | if length > 1 then .[1:] | join(":") else .[0] end;
-
-            (.issues // []) as $issues
-            | {
-                "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
-                version: "2.1.0",
-                runs: [{
-                  tool: {
-                    driver: {
-                      name: "SonarQube Cloud",
-                      informationUri: $serverUrl,
-                      rules: (
-                        $issues
-                        | map(.rule // "unknown")
-                        | unique
-                        | map({id: ., helpUri: ($serverUrl + "/coding_rules?open=" + .)})
-                      )
-                    }
-                  },
-                  results: (
-                    $issues
-                    | map({
-                        ruleId: (.rule // "unknown"),
-                        level: (.severity // "MAJOR" | level),
-                        message: {text: (.message // "")},
-                        locations: [{
-                          physicalLocation: {
-                            artifactLocation: {uri: ((.component // "") | relpath)},
-                            region: {startLine: (.line // .textRange.startLine // 1)}
-                          }
-                        }]
-                      })
-                  )
-                }]
-              }
-          ' sonar-issues.json > sonarcloud.sarif
+        run: pnpm exec tsx scripts/sonarcloud sarif
 
       - name: Create the SonarCloud summary
         id: summarize
-        shell: bash
         env:
           GATE_STATUS: ${{ steps.gate.outputs.status }}
-        run: |
-          set -euo pipefail
-
-          COUNT=$(jq '[(.runs // [])[] | (.results // [])[]] | length' sonarcloud.sarif)
-          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
-
-          # The failing conditions lead the body: a gate can fail on a metric that raises no
-          # issue, and then the issue list below explains nothing about why it failed.
-          {
-            echo "Quality gate: ${GATE_STATUS}"
-            echo
-            if [ -s sonar-quality-gate.md ]; then
-              cat sonar-quality-gate.md
-              echo
-            fi
-          } > sonarcloud-summary.md
-
-          if [ "${COUNT}" -eq 0 ]; then
-            echo "No issues." >> sonarcloud-summary.md
-            exit 0
-          fi
-
-          jq -r '
-            [(.runs // [])[] | (.results // [])[]]
-            | map(.level //= "warning")
-            | sort_by({error: 0, warning: 1, note: 2}[.level] // 3)
-            | .[]
-            | "- [\(.level)] \(.locations[0].physicalLocation.artifactLocation.uri // "?"):\(.locations[0].physicalLocation.region.startLine // 0) \(.ruleId // "?")\n  - \((.message.text // "") | gsub("\n"; " "))"
-          ' sonarcloud.sarif >> sonarcloud-summary.md
+        run: pnpm exec tsx scripts/sonarcloud summary
 
       # The report job below has no token and runs on its own runner, so it reads the result
       # from here rather than from this runner's filesystem.
@@ -381,7 +273,25 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            sonarcloud.io:443
+            api.sonarcloud.io:443
+            scanner.sonarcloud.io:443
+            binaries.sonarsource.com:443
+            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com:443
+            keyserver.ubuntu.com:443
 
       # The composite action below is read from the workspace, so the repository has to be
       # present even though nothing here scans it.
@@ -398,6 +308,11 @@ jobs:
           path: reports
 
       # A missing summary file is a cut-off scan, and the action reports it as one.
+      #
+      # **`body-sanitized` stays unset.** The body carries SonarCloud's own text — rule
+      # messages and file paths this repository did not author — so it must be fenced rather
+      # than rendered. Setting it to make the list read as Markdown would let that text
+      # become markup in a comment posted under `GITHUB_TOKEN` (ADR 0153 §5).
       - name: Comment the SonarCloud result on PR
         if: always() && github.event_name == 'pull_request'
         continue-on-error: true
@@ -438,7 +353,25 @@ jobs:
       - name: Harden the runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+            sonarcloud.io:443
+            api.sonarcloud.io:443
+            scanner.sonarcloud.io:443
+            binaries.sonarsource.com:443
+            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com:443
+            keyserver.ubuntu.com:443
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

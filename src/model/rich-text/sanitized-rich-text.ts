@@ -95,4 +95,22 @@ export class SanitizedRichText {
 
     return new SanitizedRichText(sanitized);
   }
+
+  /**
+   * markup を落とした平文です。
+   *
+   * meta description や構造化データのように、markup を置けない場所へ渡します。段落や改行の
+   * 区切りは持たず、text ノードをそのまま繋いだものです。
+   */
+  get text(): string {
+    return collectText(this.root);
+  }
+}
+
+/** 木の text ノードを文書順に繋ぐ。 */
+function collectText(node: Nodes): string {
+  const own = node.type === "text" ? node.value : "";
+  const inner = "children" in node ? node.children.map(collectText).join("") : "";
+
+  return own + inner;
 }

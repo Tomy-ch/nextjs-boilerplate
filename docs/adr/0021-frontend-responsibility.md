@@ -40,12 +40,12 @@ AGENTS.md の `[TODO] Frontend Responsibility Separation` が敷いていた暫�
 
 | 層(import する側) | 許可される import 先 |
 | --- | --- |
-| `app/route-segment`(page/layout。[0025](0025-app-layer-elements.md)) | `features` / **入口の保護に限り** `adapters/server/auth` の確定認可(`verifySession()`)と `model` の述語([0079](0079-auth-frontend-seam.md))(+ `layout` は横断 UI/Provider を `components`/`capabilities`/ポリシー seam から薄く mount 可。[0026](0026-layout-shell-mount.md)) |
+| `app/route-segment`(page/layout。[0025](0025-app-layer-elements.md)) | `features` / **入口の保護に限り** `adapters/server/auth` の確定認可(`verifySession()`)と `model` の述語([0079](0079-auth-frontend-seam.md))/ **計装の mount に限り** `observability` の trace 相関の取り出し([0082](0082-client-observability.md))(+ `layout` は横断 UI/Provider を `components`/`capabilities`/ポリシー seam から薄く mount 可。[0026](0026-layout-shell-mount.md))/ **Next.js の規約が route segment に置くことを要求する値に限り** `config`(root layout の `metadata` export が読む `config/site`、画面が読む `config/clock`。[0025](0025-app-layer-elements.md) の禁止事項の例外) |
 | `app/route-handler`(`route.ts`) | `adapters/server` / `model` / `errors` / `logging` / feature の `facade/` のみ(thin proxy・業務ロジック禁止。[0025](0025-app-layer-elements.md)。`architecture.ts` の `APP_ELEMENTS` が機械強制する) |
 | `app/server-action`(`actions.ts`。[0025](0025-app-layer-elements.md)) | `adapters/server` / `features` / `model` / `errors` / `logging`(**主体の断言をここで行う**・業務ロジック禁止) |
-| `app/metadata`(robots等) | `config` / `model`(起動 / ビルド境界例外) |
+| `app/metadata`(robots等) | `config` / `model`(起動 / ビルド境界例外)。要求時に一覧を辿る `sitemap.ts` に限り `adapters/server` と対象 feature の `facade/`([0025](0025-app-layer-elements.md)) |
 | `features` | `model` / `components` / `adapters`(公開面のみ)/ **`capabilities`** / **`stores`** / `errors` / `logging` / `observability`(描画を span へ載せる口。[0081](0081-observability-logging.md)) |
-| `adapters/server`([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / **`config`(= `server config` の唯一の許可層 — A7 整合)**。`server-only` |
+| `adapters/server`([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / **`config`(= `server config` の唯一の許可層 — A7 整合)**/ `observability`(ブラウザから中継したテレメトリを signal へ載せる口。[0082](0082-client-observability.md))。`server-only` |
 | `adapters/client`([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / client config(**`server config` 不可**・NEXT_PUBLIC リテラルは可)。`"use client"` |
 | `capabilities`([0022](0022-capabilities-kernel.md)) | `model` / `errors` / `logging` / client config(`server config` 不可・NEXT_PUBLIC リテラルは可)。`"use client"` |
 | `stores`([0023](0023-stores-kernel.md)) | `model` / `errors` / client config(`server config` 不可・NEXT_PUBLIC リテラルは可)。`"use client"` |
@@ -55,6 +55,7 @@ AGENTS.md の `[TODO] Frontend Responsibility Separation` が敷いていた暫�
 
 - 表にない import 方向はすべて**禁止**(内向き依存原則。[0020](0020-adopted-architecture.md) 設計原則 1)
 - **入口の保護は `app/route-segment` の名指しの例外**である([0079](0079-auth-frontend-seam.md) §4)。`verifySession()` を呼び、`model` の述語で判定し、満たさなければ `redirect()` する —— この 3 つだけを許し、取得も業務ロジックも許さない。例外にする理由は、保護が入口ごとに閉じていなければ意味を持たず、**route segment の集合を知っているのは app 層だけ**だからである。`features` へ回せないのは、DAL を含む `adapters/server/auth` へ触れてよいのが `app` と `adapters` だけという同じマトリクスの帰結による(下記「Server Action の置き場」と同型)
+- **計装の mount も `app/route-segment` の名指しの例外**である([0082](0082-client-observability.md))。root layout がアクティブな span の trace 相関を取り出し、mount する client component へ渡す —— これだけを許し、span の生成も記録も許さない。例外にする理由は、**ブラウザに OTel SDK を置かない**([0081](0081-observability-logging.md))結果としてブラウザが自分の trace を持たず、サーバ側の trace id を渡せるのが器を組む層だけだからである。渡さなければ、ブラウザ発の記録は中継要求の span に紐づき、測定が起きていない要求と親子になる
 - **`server config`(secret を持つ runtime config object)を import してよいのは `adapters/server` のみ**(実行時の唯一の許可層。A7 翻案方針「境界アダプタ = 唯一の許可層」と一致)。内側の層は server config でなく**値を引数で受け取る**(go「domain は config を知らない」の維持)。※ client config(= NEXT_PUBLIC のビルド時インライン**リテラル**。[0030](0030-environment-variable-management.md))は runtime object でなく公開定数のため、client 側の層(`adapters/client` / `capabilities` / Client Component)も import 可
 - **起動 / ビルド境界の例外**: A7 の検証実行点である `instrumentation.ts`(`src/` 直下)と `next.config.ts`(リポジトリルート)は config を import してよい。これらは 11 カーネルの**外側**にある起動 / ビルドのエントリである。`app/metadata`(robots等。[0025](0025-app-layer-elements.md))と `proxy.ts`(Edge 互換 config スライス。[0043](0043-middleware-policy.md))も同格の起動 / ビルド境界例外として config import を許す。ESLint boundaries では専用 element として扱う(具体の element 割当は実装 PR)
 

@@ -1,20 +1,11 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { DashboardSummary } from "@/model/dashboard/dashboard";
 import type { TimeWindow } from "@/model/time-window";
-
-beforeAll(() => {
-  // 内訳に併置する図が寸法を測るために使う API を jsdom が持たないため、ここで補う。
-  globalThis.ResizeObserver ??= class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
-});
 
 const { getDashboardSummary } = vi.hoisted(() => ({ getDashboardSummary: vi.fn() }));
 

@@ -108,25 +108,9 @@ jobs:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the pnpm store path
-        id: pnpm-store
-        if: steps.scope.outputs.relevant == 'true'
-        shell: bash
-        run: |
-          path="$(pnpm store path)"
-          echo "path=${path}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache the pnpm store
-        if: steps.scope.outputs.relevant == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
         if: steps.scope.outputs.relevant == 'true'
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        uses: ./.github/actions/setup-deps
 
       - name: Build
         if: steps.scope.outputs.relevant == 'true'
@@ -155,6 +139,10 @@ jobs:
           pnpm install --frozen-lockfile --ignore-scripts
           pnpm build
 
+      # Whether the increments gate this pull request or are only reported is read from
+      # `GITHUB_BASE_REF` by the measurement itself (scripts/bundle-budget/budget.ts), not
+      # decided here — a promotion carries a whole release rather than one change, and that
+      # judgement is testable where it lives.
       - name: Measure and hold against the budget
         id: budget
         if: steps.scope.outputs.relevant == 'true'

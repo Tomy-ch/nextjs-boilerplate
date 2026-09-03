@@ -179,6 +179,17 @@ Include the secret label in the Notes column when one was chosen. This row is wr
 
 Only on the Question-2 "はい" path. Describe the value the way the surrounding entries do: which purpose it belongs to, server or client side, required or code default, and how a consumer receives it. Do **not** restate the env row here — env owns the fact that the variable exists, config owns what the value means and how it is handled. If the config README documents purposes rather than individual values, add nothing and say so in the plan rather than inventing a per-variable section that the file's structure does not have.
 
+### `src/config/environment.fixture.ts` — the whole-set stub (config-backed variables only)
+
+**Every config-backed variable is added here too.** The fixture holds the one list of variables that
+passes validation, and it is typed `satisfies Record<keyof Environment, string>` — so a variable
+added to `environment.ts` without a fixture entry does not fail where it was written, it fails the
+type check of a file the author never opened. Add the key to both objects the fixture exports
+(the raw stub set and the parsed result), using a value of the same shape as its neighbours.
+
+Discover the fixture rather than assuming it: it is the file the purpose tests import
+`stubValidEnvironment` from. If a future refactor moves or splits it, follow the import.
+
 ### Tests
 
 The testing approach for config is **env stub + factory regeneration** (`vi.stubEnv`) — [0030](../../../docs/adr/0030-environment-variable-management.md) 周辺ルール / [0090](../../../docs/adr/0090-testing-strategy.md). If config tests exist in the purpose directory, extend them in lockstep with the production change: a case asserting the new getter, and — for a required variable — a case asserting that its absence fails validation. If no config test file exists yet (the test foundation lands in P3-6), skip this and state so explicitly in the Step 2 plan.
@@ -197,10 +208,11 @@ Confirm with `AskUserQuestion`:
 Use `Edit` with exact anchors derived from the read context (the last existing schema entry / field / getter / table row in the target section). Order:
 
 1. `src/config/<purpose>/<purpose>.schema.ts`, its runtime module, and `src/config/environment.ts` (validator → environment-schema entry → getter) — config-backed path only
-2. The config test file, if one exists
-3. env files (one edit per file)
-4. `env/README.md`
-5. `src/config/README.md` — config-backed path only
+2. `src/config/environment.fixture.ts` — config-backed path only
+3. The config test file, if one exists
+4. env files (one edit per file)
+5. `env/README.md`
+6. `src/config/README.md` — config-backed path only
 
 If any edit fails, stop and report; do not continue with the remaining files.
 
@@ -229,7 +241,7 @@ If a command fails, surface the failure and stop. Do NOT roll back the edits —
 
 Per the "Exception: Skill Execution" clause in `CLAUDE.md` / `AGENTS.md`, the AI modification scope is relaxed during this skill's run, scoped to:
 
-- The env files and `env/README.md`; on the config-backed path also the purpose schema, its runtime module, `src/config/environment.ts`, its co-located test file, and `src/config/README.md` — or the subset the user confirmed.
+- The env files and `env/README.md`; on the config-backed path also the purpose schema, its runtime module, `src/config/environment.ts`, `src/config/environment.fixture.ts`, its co-located test file, and `src/config/README.md` — or the subset the user confirmed.
 
 Remains protected:
 
@@ -271,6 +283,7 @@ Before reporting completion, confirm:
 - [ ] All existing env files updated under the matching section
 - [ ] `env/README.md` got its variable-table row (always)
 - [ ] `src/config/README.md` updated on the config-backed path, without restating the env row
+- [ ] Config-backed path: the key was added to `src/config/environment.fixture.ts` as well
 - [ ] Config tests updated, or their absence stated explicitly
 - [ ] `pnpm fix` / `lint:ci` / `typecheck` / `build` were run and the results reported
 - [ ] No commits / pushes were performed

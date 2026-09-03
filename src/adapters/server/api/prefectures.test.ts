@@ -3,8 +3,10 @@ import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { serveJson, watchFetch } from "../../../../vitest.setup.msw";
 
 const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => PARSED_ENVIRONMENT) }));
+const { cacheLife, cacheTag } = vi.hoisted(() => ({ cacheLife: vi.fn(), cacheTag: vi.fn() }));
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
+vi.mock("next/cache", () => ({ cacheLife, cacheTag }));
 
 import { getPrefectures, PREFECTURE_MASTERS_TAG } from "./prefectures";
 
@@ -46,24 +48,23 @@ describe("getPrefectures", () => {
     expect(prefectures.map(({ name }) => name)).toEqual(["東京都", "北海道"]);
   });
 
-  it("再検証のタグを付ける", async () => {
+  it("マスタの寿命を名乗り、都道府県だけの再検証タグを付ける", async () => {
     serveJson(PREFECTURES_URL, wirePrefectures);
-    const fetchImpl = watchFetch();
 
     await getPrefectures();
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
-      next: { tags: [PREFECTURE_MASTERS_TAG] },
-    });
+    expect(cacheLife).toHaveBeenCalledWith("masters");
+    expect(cacheTag).toHaveBeenCalledWith(PREFECTURE_MASTERS_TAG);
   });
 
-  it("画面を開くたびに取り直さないようキャッシュを指定する", async () => {
+  it("取得そのものには寿命を持たせない", async () => {
     serveJson(PREFECTURES_URL, wirePrefectures);
     const fetchImpl = watchFetch();
 
     await getPrefectures();
 
-    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ cache: "force-cache" });
+    expect(fetchImpl.mock.calls[0]?.[1]).not.toMatchObject({ cache: "force-cache" });
+    expect(fetchImpl.mock.calls[0]?.[1]).not.toHaveProperty("next.tags");
   });
 
   it("認証ヘッダを付けずに送る", async () => {

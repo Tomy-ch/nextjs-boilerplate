@@ -5,6 +5,7 @@ import type { LoadMoreState } from "@/components/app-starter/load-more/load-more
 import type { PurchaseHistoryEntry } from "@/model/purchase/purchase";
 import { withPartSpan } from "@/observability/render-span";
 import { PurchaseRow } from "../purchase-row/purchase-row";
+import { PurchaseHistorySkeleton } from "../skeleton/skeleton";
 
 /** 一覧に並ぶ 1 件と、その詳細の行き先。 */
 export type PurchaseListEntry = {
@@ -50,7 +51,11 @@ export const PurchaseLoadMoreList = withPartSpan(
             <PurchaseRow href={entry.href} key={entry.purchase.code} purchase={entry.purchase} />
           ))}
         </ul>
-        <LoadMore sentinelRef={sentinelRef} state={loadMore} />
+        <LoadMore
+          placeholder={<PurchaseHistorySkeleton />}
+          sentinelRef={sentinelRef}
+          state={loadMore}
+        />
       </div>
     );
   },

@@ -121,6 +121,51 @@ describe("RichTextEditor", () => {
     );
   });
 
+  it("読み取り専用のときは toolbar の操作も効かない", () => {
+    renderEditor({ defaultValue: "<p>本文</p>", disabled: true });
+
+    expect(toolbarButton("太字")).toBeDisabled();
+    expect(toolbarButton("箇条書き")).toBeDisabled();
+    expect(toolbarButton("リンク")).toBeDisabled();
+    expect(toolbarButton("区切り線")).toBeDisabled();
+  });
+
+  it("読み取り専用でもプレビューへは切り替えられる", () => {
+    renderEditor({ defaultValue: "<p>本文</p>", disabled: true });
+
+    expect(toolbarButton("プレビュー")).toBeEnabled();
+  });
+
+  // 案内は hover / focus でしか開かないため、押下ではなく focus で確かめる。
+  it("キーを持つ操作は、案内にそのキーを添える", async () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.focus(toolbarButton("太字"));
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(/太字.*B/);
+  });
+
+  it("キーを持たない操作の案内は、名前だけを出す", async () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.focus(toolbarButton("プレビュー"));
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("プレビュー");
+    expect(screen.getByRole("tooltip").textContent).toBe("プレビュー");
+  });
+
+  it("リンク入力欄を開いたままプレビューへ切り替えると入力欄を閉じる", () => {
+    renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("リンク"));
+    expect(screen.getByLabelText("リンク先")).toBeInTheDocument();
+
+    fireEvent.click(toolbarButton("プレビュー"));
+    fireEvent.click(toolbarButton("プレビュー"));
+
+    expect(screen.queryByLabelText("リンク先")).not.toBeInTheDocument();
+  });
+
   it("外枠へ class を追加できる", () => {
     const { container } = renderEditor({ className: "max-w-prose" });
 
@@ -414,6 +459,7 @@ describe("RichTextEditor", () => {
       });
 
       expect(screen.getByLabelText("リンク先")).toHaveAttribute("aria-invalid", "false");
+      expect(screen.queryByText(/http \/ https \/ mailto/)).not.toBeInTheDocument();
     });
 
     it("リンクがかかっていない間は解除を押せない", () => {
@@ -436,7 +482,10 @@ describe("RichTextEditor", () => {
   });
 
   describe("sanitizer の allowlist との関係", () => {
-    it("読み書きする node と mark が、allowlist から導出した集合と一致する", () => {
+    // 一覧を書き写すのは、これが**留め金**だからである。extension を足し引きすると必ず落ち、
+    // 足したものが allowlist に収まるかを人が見ることになる。対象から導出すると両辺が一緒に
+    // 動いてしまい、何も止まらない。
+    it("読み書きする node と mark を、この一覧に固定する", () => {
       const editor = createHeadlessEditor();
 
       expect(Object.keys(editor.schema.nodes).sort()).toEqual([
@@ -539,6 +588,54 @@ describe("RichTextEditor", () => {
     });
 
     fireEvent.click(toolbarButton("リンク"));
+
+    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+    expect(result.violations).toEqual([]);
+  });
+
+  // 案内は開いたときにしか DOM へ現れない。閉じたままの検査では、その中身が一度も見られない。
+  it("案内を開いた状態で a11y 自動検査に違反しない", async () => {
+    const { baseElement } = renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.focus(toolbarButton("太字"));
+    await screen.findByRole("tooltip");
+
+    // 案内は portal で body の直下へ出るため、landmark の外に置かれる。これは部品を単体で
+    // 描いたことによるもので、画面へ載れば landmark の内側に入る。
+    const result = await axe(baseElement, {
+      rules: { "color-contrast": { enabled: false }, region: { enabled: false } },
+    });
+
+    expect(result.violations).toEqual([]);
+  });
+
+  it("リンク先の誤りを出した状態で a11y 自動検査に違反しない", async () => {
+    const { container } = renderEditor({ defaultValue: "<p>本文</p>" });
+
+    fireEvent.click(toolbarButton("リンク"));
+    fireEvent.change(screen.getByLabelText("リンク先"), { target: { value: "javascript:x" } });
+    fireEvent.click(screen.getByRole("button", { name: "適用" }));
+
+    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+    expect(result.violations).toEqual([]);
+  });
+
+  it("プレビューの状態で a11y 自動検査に違反しない", async () => {
+    const { container } = renderEditor({
+      defaultValue: "<h2>見出し</h2><ul><li>項目</li></ul><blockquote><p>引用</p></blockquote>",
+    });
+
+    fireEvent.click(toolbarButton("プレビュー"));
+
+    const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
+
+    expect(result.violations).toEqual([]);
+  });
+
+  it("読み取り専用の状態で a11y 自動検査に違反しない", async () => {
+    const { container } = renderEditor({ defaultValue: "<p>本文</p>", disabled: true });
 
     const result = await axe(container, { rules: { "color-contrast": { enabled: false } } });
 

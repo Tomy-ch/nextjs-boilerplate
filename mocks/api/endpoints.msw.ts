@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+f6c9463
+ * OpenAPI spec version: 2.2.0+7b2778e
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
@@ -18,7 +18,9 @@ import type {
   AddressCandidatesResponse,
   CartMergeResponse,
   CartResponse,
+  ControlEvent,
   DashboardSummaryResponse,
+  DeliveryEvent,
   ExchangeRateResponse,
   PrefecturesResponse,
   ProductAmountRankingResponse,
@@ -39,6 +41,7 @@ import type {
   PurchaseResponse,
   PurchaseShippableResponse,
   PurchaseShipResponse,
+  PurchasesStatusesResponse,
   UserResponse,
   UserRolesResponse,
   UsersFeedResponse,
@@ -46,6 +49,54 @@ import type {
   UsersSearchResponse,
 } from "../../src/adapters/gen/api/model";
 import { CartItemIssue } from "../../src/adapters/gen/api/model";
+
+export const getGetStreamResponseDeliveryEventMock = (
+  overrideResponse: Partial<DeliveryEvent> = {},
+): DeliveryEvent => ({
+  ...{
+    eventId: faker.string.uuid(),
+    streamId: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    sequence: faker.helpers.fromRegExp("^(0|[1-9][0-9]{0,18})$"),
+    type: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    occurredAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+    schemaVersion: faker.number.int({ min: 1 }),
+    payload: {},
+  },
+  ...overrideResponse,
+});
+
+export const getGetStreamResponseControlEventMock = (
+  overrideResponse: Partial<ControlEvent> = {},
+): ControlEvent => ({
+  ...{
+    action: faker.helpers.arrayElement([
+      "RECONNECT",
+      "RETRY_LATER",
+      "REAUTHENTICATE",
+      "RESYNC",
+      "STOP",
+    ] as const),
+    reason: faker.helpers.arrayElement([
+      "SERVER_DRAINING",
+      "TEMPORARILY_OVERLOADED",
+      "AUTH_REFRESH_REQUIRED",
+      "AUTHORIZATION_REVOKED",
+      "CURSOR_TOO_OLD",
+      "STREAM_RECOVERY_FAILED",
+    ] as const),
+    retryAfterMs: faker.helpers.arrayElement([
+      faker.number.int({ min: 0, max: 86400000 }),
+      undefined,
+    ]),
+  },
+  ...overrideResponse,
+});
+
+export const getGetStreamResponseMock = (): DeliveryEvent | ControlEvent =>
+  faker.helpers.arrayElement([
+    { ...getGetStreamResponseDeliveryEventMock() },
+    { ...getGetStreamResponseControlEventMock() },
+  ]);
 
 export const getGetUsersResponseMock = (): UsersResponse => ({
   ...{
@@ -71,7 +122,11 @@ export const getGetUsersResponseMock = (): UsersResponse => ({
       }),
     ),
   },
-  ...{ total: faker.number.int(), limit: faker.number.int(), offset: faker.number.int() },
+  ...{
+    total: (() => faker.number.int({ min: 0, max: 9999 }))(),
+    limit: (() => faker.number.int({ min: 10, max: 50 }))(),
+    offset: (() => faker.number.int({ min: 0, max: 100 }))(),
+  },
 });
 
 export const getPostUsersResponseMock = (
@@ -177,8 +232,8 @@ export const getGetUsersMeResponseMock = (
 export const getGetUsersMePurchasesSummaryResponseMock = (
   overrideResponse: Partial<Extract<PurchaseAggregateResponse, object>> = {},
 ): PurchaseAggregateResponse => ({
-  totalCount: faker.number.int(),
-  totalAmount: faker.number.int(),
+  totalCount: (() => faker.number.int({ min: 0, max: 9999 }))(),
+  totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
   itemsTotal: faker.string.alpha({ length: { min: 10, max: 20 } }),
   statusBreakdown: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
@@ -189,8 +244,8 @@ export const getGetUsersMePurchasesSummaryResponseMock = (
       code: faker.number.int(),
       name: faker.string.alpha({ length: { min: 10, max: 20 } }),
     },
-    count: faker.number.int(),
-    totalAmount: faker.number.int(),
+    count: (() => faker.number.int({ min: 0, max: 9999 }))(),
+    totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
   })),
   groups: faker.helpers.arrayElement([
     {
@@ -250,7 +305,11 @@ export const getGetUsersSearchResponseMock = (): UsersSearchResponse => ({
       }),
     ),
   },
-  ...{ total: faker.number.int(), limit: faker.number.int(), offset: faker.number.int() },
+  ...{
+    total: (() => faker.number.int({ min: 0, max: 9999 }))(),
+    limit: (() => faker.number.int({ min: 10, max: 50 }))(),
+    offset: (() => faker.number.int({ min: 0, max: 100 }))(),
+  },
 });
 
 export const getGetUsersFeedResponseMock = (): UsersFeedResponse => ({
@@ -300,17 +359,26 @@ export const getGetPrefecturesResponseMock = () => [
   { id: "0195f0c2-0000-7000-8000-000000000047", code: 47, name: "沖縄県" },
 ];
 
-export const getGetProductStatusesResponseMock = (): ProductsStatusesResponse =>
-  Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
-    ...{ id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
-    ...{ code: faker.number.int() },
-  }));
+export const getGetProductStatusesResponseMock = () => [
+  { id: "0195f0c2-1000-7000-9000-000000000001", code: 1, name: "在庫あり" },
+  { id: "0195f0c2-1000-7000-9000-000000000002", code: 2, name: "在庫切れ" },
+  { id: "0195f0c2-1000-7000-9000-000000000003", code: 3, name: "予約受付中" },
+  { id: "0195f0c2-1000-7000-9000-000000000004", code: 4, name: "販売終了" },
+  { id: "0195f0c2-1000-7000-9000-000000000005", code: 5, name: "取り寄せ中" },
+  { id: "0195f0c2-1000-7000-9000-000000000006", code: 6, name: "入荷待ち" },
+  { id: "0195f0c2-1000-7000-9000-000000000007", code: 7, name: "廃盤" },
+  { id: "0195f0c2-1000-7000-9000-000000000008", code: 8, name: "検討中" },
+  { id: "0195f0c2-1000-7000-9000-000000000009", code: 9, name: "再入荷予定" },
+  { id: "0195f0c2-1000-7000-9000-000000000010", code: 10, name: "限定販売" },
+];
 
-export const getGetProductCategoriesResponseMock = (): ProductsCategoriesResponse =>
-  Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
-    ...{ id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
-    ...{ code: faker.number.int() },
-  }));
+export const getGetProductCategoriesResponseMock = () => [
+  { id: "0195f0c2-2000-7000-9000-000000000001", code: 1, name: "家電" },
+  { id: "0195f0c2-2000-7000-9000-000000000002", code: 2, name: "食品" },
+  { id: "0195f0c2-2000-7000-9000-000000000003", code: 3, name: "衣類" },
+  { id: "0195f0c2-2000-7000-9000-000000000004", code: 4, name: "書籍" },
+  { id: "0195f0c2-2000-7000-9000-000000000005", code: 5, name: "日用品" },
+];
 
 export const getGetProductsResponseMock = (): ProductListResponse => ({
   ...{
@@ -323,8 +391,11 @@ export const getGetProductsResponseMock = (): ProductListResponse => ({
           null,
         ]),
         price: (() => "19.99")(),
-        quantity: faker.number.int(),
-        stockWarningThreshold: faker.helpers.arrayElement([faker.number.int(), null]),
+        quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
+        stockWarningThreshold: faker.helpers.arrayElement([
+          (() => faker.number.int({ min: 1, max: 20 }))(),
+          null,
+        ]),
         status: {
           id: faker.string.uuid(),
           name: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -343,7 +414,7 @@ export const getGetProductsResponseMock = (): ProductListResponse => ({
             displaySort: faker.number.int({ min: 1, max: 32767 }),
           }),
         ),
-        version: faker.number.int(),
+        version: (() => faker.number.int({ min: 1, max: 20 }))(),
       }),
     ),
   },
@@ -366,8 +437,11 @@ export const getPostProductsResponseMock = (
     null,
   ]),
   price: (() => "19.99")(),
-  quantity: faker.number.int(),
-  stockWarningThreshold: faker.helpers.arrayElement([faker.number.int(), null]),
+  quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
+  stockWarningThreshold: faker.helpers.arrayElement([
+    (() => faker.number.int({ min: 1, max: 20 }))(),
+    null,
+  ]),
   status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   category: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   publishedAt: faker.helpers.arrayElement([
@@ -380,13 +454,16 @@ export const getPostProductsResponseMock = (
       displaySort: faker.number.int({ min: 1, max: 32767 }),
     }),
   ),
-  version: faker.number.int(),
+  version: (() => faker.number.int({ min: 1, max: 20 }))(),
   ...overrideResponse,
 });
 
 export const getGetProductsCountResponseMock = (
   overrideResponse: Partial<Extract<ProductCountResponse, object>> = {},
-): ProductCountResponse => ({ count: faker.number.int({ min: 0 }), ...overrideResponse });
+): ProductCountResponse => ({
+  count: (() => faker.number.int({ min: 0, max: 9999 }))(),
+  ...overrideResponse,
+});
 
 export const getGetProductsDetailResponseMock = (
   overrideResponse: Partial<Extract<ProductResponse, object>> = {},
@@ -398,8 +475,11 @@ export const getGetProductsDetailResponseMock = (
     null,
   ]),
   price: (() => "19.99")(),
-  quantity: faker.number.int(),
-  stockWarningThreshold: faker.helpers.arrayElement([faker.number.int(), null]),
+  quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
+  stockWarningThreshold: faker.helpers.arrayElement([
+    (() => faker.number.int({ min: 1, max: 20 }))(),
+    null,
+  ]),
   status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   category: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   publishedAt: faker.helpers.arrayElement([
@@ -412,7 +492,7 @@ export const getGetProductsDetailResponseMock = (
       displaySort: faker.number.int({ min: 1, max: 32767 }),
     }),
   ),
-  version: faker.number.int(),
+  version: (() => faker.number.int({ min: 1, max: 20 }))(),
   ...overrideResponse,
 });
 
@@ -426,8 +506,11 @@ export const getPatchProductsDetailResponseMock = (
     null,
   ]),
   price: (() => "19.99")(),
-  quantity: faker.number.int(),
-  stockWarningThreshold: faker.helpers.arrayElement([faker.number.int(), null]),
+  quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
+  stockWarningThreshold: faker.helpers.arrayElement([
+    (() => faker.number.int({ min: 1, max: 20 }))(),
+    null,
+  ]),
   status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   category: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   publishedAt: faker.helpers.arrayElement([
@@ -440,7 +523,7 @@ export const getPatchProductsDetailResponseMock = (
       displaySort: faker.number.int({ min: 1, max: 32767 }),
     }),
   ),
-  version: faker.number.int(),
+  version: (() => faker.number.int({ min: 1, max: 20 }))(),
   ...overrideResponse,
 });
 
@@ -454,8 +537,11 @@ export const getPatchProductsStockResponseMock = (
     null,
   ]),
   price: (() => "19.99")(),
-  quantity: faker.number.int(),
-  stockWarningThreshold: faker.helpers.arrayElement([faker.number.int(), null]),
+  quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
+  stockWarningThreshold: faker.helpers.arrayElement([
+    (() => faker.number.int({ min: 1, max: 20 }))(),
+    null,
+  ]),
   status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   category: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   publishedAt: faker.helpers.arrayElement([
@@ -468,7 +554,7 @@ export const getPatchProductsStockResponseMock = (
       displaySort: faker.number.int({ min: 1, max: 32767 }),
     }),
   ),
-  version: faker.number.int(),
+  version: (() => faker.number.int({ min: 1, max: 20 }))(),
   ...overrideResponse,
 });
 
@@ -480,7 +566,7 @@ export const getGetProductsRankingQuantityResponseMock = (
       productId: faker.string.uuid(),
       name: faker.string.alpha({ length: { min: 10, max: 255 } }),
       price: (() => "19.99")(),
-      soldQuantity: faker.number.int(),
+      soldQuantity: (() => faker.number.int({ min: 0, max: 99 }))(),
     }),
   ),
   ...overrideResponse,
@@ -512,8 +598,11 @@ export const getGetProductsLowStockResponseMock = (
         null,
       ]),
       price: (() => "19.99")(),
-      quantity: faker.number.int(),
-      stockWarningThreshold: faker.helpers.arrayElement([faker.number.int(), null]),
+      quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
+      stockWarningThreshold: faker.helpers.arrayElement([
+        (() => faker.number.int({ min: 1, max: 20 }))(),
+        null,
+      ]),
       status: {
         id: faker.string.uuid(),
         name: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -532,7 +621,7 @@ export const getGetProductsLowStockResponseMock = (
           displaySort: faker.number.int({ min: 1, max: 32767 }),
         }),
       ),
-      version: faker.number.int(),
+      version: (() => faker.number.int({ min: 1, max: 20 }))(),
     }),
   ),
   ...overrideResponse,
@@ -555,7 +644,7 @@ export const getGetExchangeRatesResponseMock = (
   referenceAmount: faker.helpers.arrayElement([
     {
       currency: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      amount: faker.number.int(),
+      amount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
       rate: (() => "19.99")(),
       rateDate: faker.string.alpha({ length: { min: 10, max: 20 } }),
     },
@@ -570,7 +659,7 @@ export const getGetAddressesResponseMock = (
   candidates: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       prefectureId: faker.helpers.arrayElement([faker.string.uuid(), null]),
-      prefectureName: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      prefectureName: (() => "神奈川県")(),
       city: (() => "横浜市西区")(),
       town: faker.string.alpha({ length: { min: 10, max: 20 } }),
     }),
@@ -584,14 +673,14 @@ export const getGetPurchasesResponseMock = (): PurchaseListResponse => ({
     items: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
       () => ({
         code: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        totalAmount: faker.number.int(),
+        totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
         status: {
           id: faker.string.uuid(),
           code: faker.number.int(),
           name: faker.string.alpha({ length: { min: 10, max: 20 } }),
         },
         firstItemName: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        itemCount: faker.number.int(),
+        itemCount: (() => faker.number.int({ min: 0, max: 9999 }))(),
         orderedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
       }),
     ),
@@ -611,14 +700,14 @@ export const getPostPurchasesResponseMock = (
   code: faker.string.alpha({ length: { min: 10, max: 20 } }),
   userId: faker.string.uuid(),
   statusId: faker.string.uuid(),
-  subtotalAmount: faker.number.int(),
-  taxAmount: faker.number.int(),
-  shippingFee: faker.number.int(),
-  totalAmount: faker.number.int(),
+  subtotalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
+  taxAmount: (() => faker.number.int({ min: 0, max: 99_999 }))(),
+  shippingFee: (() => faker.number.int({ min: 0, max: 2000 }))(),
+  totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
   details: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       productId: faker.string.uuid(),
-      quantity: faker.number.int(),
+      quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
       unitPrice: (() => "19.99")(),
     }),
   ),
@@ -626,7 +715,7 @@ export const getPostPurchasesResponseMock = (
   referenceAmount: faker.helpers.arrayElement([
     {
       currency: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      amount: faker.number.int(),
+      amount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
       rate: (() => "19.99")(),
       rateDate: faker.string.alpha({ length: { min: 10, max: 20 } }),
     },
@@ -634,6 +723,18 @@ export const getPostPurchasesResponseMock = (
   ]),
   ...overrideResponse,
 });
+
+export const getGetPurchaseStatusesResponseMock = () => [
+  { id: "0195f0c2-4000-7000-9000-000000000001", code: 1, name: "未処理" },
+  { id: "0195f0c2-4000-7000-9000-000000000002", code: 2, name: "受付中" },
+  { id: "0195f0c2-4000-7000-9000-000000000003", code: 3, name: "確認中" },
+  { id: "0195f0c2-4000-7000-9000-000000000004", code: 4, name: "処理中" },
+  { id: "0195f0c2-4000-7000-9000-000000000005", code: 5, name: "完了" },
+  { id: "0195f0c2-4000-7000-9000-000000000006", code: 6, name: "キャンセル" },
+  { id: "0195f0c2-4000-7000-9000-000000000007", code: 7, name: "支払い済み" },
+  { id: "0195f0c2-4000-7000-9000-000000000008", code: 8, name: "発送済み" },
+  { id: "0195f0c2-4000-7000-9000-000000000009", code: 9, name: "配達済み" },
+];
 
 export const getGetPurchasesShippableResponseMock = (
   overrideResponse: Partial<Extract<PurchaseShippableResponse, object>> = {},
@@ -644,7 +745,7 @@ export const getGetPurchasesShippableResponseMock = (
       purchases: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
         () => ({
           code: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          totalAmount: faker.number.int(),
+          totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
           orderedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
         }),
       ),
@@ -663,15 +764,15 @@ export const getGetPurchasesDetailResponseMock = (
     code: faker.number.int(),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   },
-  subtotalAmount: faker.number.int(),
-  taxAmount: faker.number.int(),
-  shippingFee: faker.number.int(),
-  totalAmount: faker.number.int(),
+  subtotalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
+  taxAmount: (() => faker.number.int({ min: 0, max: 99_999 }))(),
+  shippingFee: (() => faker.number.int({ min: 0, max: 2000 }))(),
+  totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
   details: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       productId: faker.string.uuid(),
       productName: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      quantity: faker.number.int(),
+      quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
       unitPrice: (() => "19.99")(),
     }),
   ),
@@ -697,14 +798,14 @@ export const getPatchPurchasesCancelResponseMock = (
     code: faker.number.int(),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   },
-  subtotalAmount: faker.number.int(),
-  taxAmount: faker.number.int(),
-  shippingFee: faker.number.int(),
-  totalAmount: faker.number.int(),
+  subtotalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
+  taxAmount: (() => faker.number.int({ min: 0, max: 99_999 }))(),
+  shippingFee: (() => faker.number.int({ min: 0, max: 2000 }))(),
+  totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
   details: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       productId: faker.string.uuid(),
-      quantity: faker.number.int(),
+      quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
       unitPrice: (() => "19.99")(),
     }),
   ),
@@ -723,14 +824,14 @@ export const getPatchPurchasesPayResponseMock = (
     code: faker.number.int(),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   },
-  subtotalAmount: faker.number.int(),
-  taxAmount: faker.number.int(),
-  shippingFee: faker.number.int(),
-  totalAmount: faker.number.int(),
+  subtotalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
+  taxAmount: (() => faker.number.int({ min: 0, max: 99_999 }))(),
+  shippingFee: (() => faker.number.int({ min: 0, max: 2000 }))(),
+  totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
   details: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       productId: faker.string.uuid(),
-      quantity: faker.number.int(),
+      quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
       unitPrice: (() => "19.99")(),
     }),
   ),
@@ -749,14 +850,14 @@ export const getPatchPurchasesShipResponseMock = (
     code: faker.number.int(),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   },
-  subtotalAmount: faker.number.int(),
-  taxAmount: faker.number.int(),
-  shippingFee: faker.number.int(),
-  totalAmount: faker.number.int(),
+  subtotalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
+  taxAmount: (() => faker.number.int({ min: 0, max: 99_999 }))(),
+  shippingFee: (() => faker.number.int({ min: 0, max: 2000 }))(),
+  totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
   details: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       productId: faker.string.uuid(),
-      quantity: faker.number.int(),
+      quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
       unitPrice: (() => "19.99")(),
     }),
   ),
@@ -775,14 +876,14 @@ export const getPatchPurchasesDeliverResponseMock = (
     code: faker.number.int(),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   },
-  subtotalAmount: faker.number.int(),
-  taxAmount: faker.number.int(),
-  shippingFee: faker.number.int(),
-  totalAmount: faker.number.int(),
+  subtotalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
+  taxAmount: (() => faker.number.int({ min: 0, max: 99_999 }))(),
+  shippingFee: (() => faker.number.int({ min: 0, max: 2000 }))(),
+  totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
   details: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       productId: faker.string.uuid(),
-      quantity: faker.number.int(),
+      quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
       unitPrice: (() => "19.99")(),
     }),
   ),
@@ -794,8 +895,8 @@ export const getPatchPurchasesDeliverResponseMock = (
 export const getGetDashboardSummaryResponseMock = (
   overrideResponse: Partial<Extract<DashboardSummaryResponse, object>> = {},
 ): DashboardSummaryResponse => ({
-  salesAmount: faker.number.int(),
-  salesCount: faker.number.int(),
+  salesAmount: (() => faker.number.int({ min: 100_000, max: 999_999 }))(),
+  salesCount: (() => faker.number.int({ min: 0, max: 9999 }))(),
   purchaseStatusCounts: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -805,10 +906,10 @@ export const getGetDashboardSummaryResponseMock = (
       code: faker.number.int(),
       name: faker.string.alpha({ length: { min: 10, max: 20 } }),
     },
-    count: faker.number.int(),
+    count: (() => faker.number.int({ min: 0, max: 9999 }))(),
   })),
-  totalProductCount: faker.number.int(),
-  publishedProductCount: faker.number.int(),
+  totalProductCount: (() => faker.number.int({ min: 0, max: 9999 }))(),
+  publishedProductCount: (() => faker.number.int({ min: 0, max: 9999 }))(),
   ...overrideResponse,
 });
 
@@ -829,15 +930,15 @@ export const getGetCartsMeResponseMock = (
       faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
       undefined,
     ]),
-    quantity: faker.number.int(),
+    quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
     unitPrice: faker.helpers.arrayElement([(() => "19.99")(), null]),
     issues: faker.helpers.arrayElements(Object.values(CartItemIssue)),
     availableQuantity: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([faker.number.int(), null]),
-      undefined,
+      (() => faker.number.int({ min: 0, max: 99 }))(),
+      null,
     ]),
   })),
-  subtotalAmount: faker.number.int(),
+  subtotalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
   expiresAt: faker.helpers.arrayElement([
     faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + "Z", null]),
     undefined,
@@ -862,15 +963,15 @@ export const getPutCartsMeItemResponseMock = (
       faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
       undefined,
     ]),
-    quantity: faker.number.int(),
+    quantity: (() => faker.number.int({ min: 0, max: 99 }))(),
     unitPrice: faker.helpers.arrayElement([(() => "19.99")(), null]),
     issues: faker.helpers.arrayElements(Object.values(CartItemIssue)),
     availableQuantity: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([faker.number.int(), null]),
-      undefined,
+      (() => faker.number.int({ min: 0, max: 99 }))(),
+      null,
     ]),
   })),
-  subtotalAmount: faker.number.int(),
+  subtotalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
   expiresAt: faker.helpers.arrayElement([
     faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + "Z", null]),
     undefined,
@@ -889,6 +990,31 @@ export const getPostCartsMeMergeResponseMock = (
   ),
   ...overrideResponse,
 });
+
+export const getGetStreamMockHandler = (
+  overrideResponse?:
+    | DeliveryEvent
+    | ControlEvent
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<DeliveryEvent | ControlEvent> | DeliveryEvent | ControlEvent),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/streams/:destination",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetStreamResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
 
 export const getGetUsersMockHandler = (
   overrideResponse?:
@@ -1557,6 +1683,30 @@ export const getPostPurchasesMockHandler = (
   );
 };
 
+export const getGetPurchaseStatusesMockHandler = (
+  overrideResponse?:
+    | PurchasesStatusesResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<PurchasesStatusesResponse> | PurchasesStatusesResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/purchases/statuses",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetPurchaseStatusesResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
 export const getGetPurchasesShippableMockHandler = (
   overrideResponse?:
     | PurchaseShippableResponse
@@ -1835,6 +1985,7 @@ export const getPostCartsMeMergeMockHandler = (
   );
 };
 export const getGoBoilerplateAPIMock = () => [
+  getGetStreamMockHandler(),
   getGetUsersMockHandler(),
   getPostUsersMockHandler(),
   getGetUsersDetailMockHandler(),
@@ -1863,6 +2014,7 @@ export const getGoBoilerplateAPIMock = () => [
   getGetAddressesMockHandler(),
   getGetPurchasesMockHandler(),
   getPostPurchasesMockHandler(),
+  getGetPurchaseStatusesMockHandler(),
   getGetPurchasesShippableMockHandler(),
   getGetPurchasesDetailMockHandler(),
   getPatchPurchasesCancelMockHandler(),

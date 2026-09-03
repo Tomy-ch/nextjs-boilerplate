@@ -43,12 +43,34 @@ export type PullGesture = {
  * 監視は passive で登録します。`preventDefault` に頼らず `overscroll-behavior` で既定を止めて
  * いるため、scroll を止める必要がありません。
  *
- * modal が開いている間は拾いません。判定に `aria-modal` を使うのは、これが実装によらず立つ
- * 標準の属性だからです（[0010](../../../../docs/adr/0010-standards-and-non-lockin.md)）。特定の
- * overlay ライブラリが付ける印を見ると、部品を差し替えたときに黙って効かなくなります。
+ * modal が開いている間は拾いません（{@link isModalOpen}）。
  *
  * @param onRelease - 実行の域まで引いた状態で指を離したときに呼ばれる
  */
+/**
+ * 画面のどこかに modal が開いているか。
+ *
+ * @remarks
+ * **modal は 2 通りに名乗ります。** 面そのものが `aria-modal` を立てるか、背面を `aria-hidden` /
+ * `inert` で閉じるかです。どちらも ARIA の語彙であって特定の overlay ライブラリの印ではありません
+ * （[0010](../../../../docs/adr/0010-standards-and-non-lockin.md)）。**片方だけを見ると効きません**
+ * —— この repo が使う Radix は「`aria-modal` と等価でより広く支持される」として後者を採り、属性を
+ * 出しません。逆に後者だけを見ると、背面を閉じずに名乗る実装を取り逃がします。
+ *
+ * **背面が閉じているかは landmark を起点に見ます。** 触れた要素から辿ると、装飾のアイコンに付く
+ * `aria-hidden` を modal と取り違え、modal が無いのに引けなくなります。`main` は本文そのものなので
+ * 装飾の理由で隠れることがありません。
+ */
+function isModalOpen(): boolean {
+  if (document.querySelector('[aria-modal="true"]') !== null) {
+    return true;
+  }
+
+  const main = document.querySelector("main");
+
+  return main !== null && main.closest('[aria-hidden="true"], [inert]') !== null;
+}
+
 export function usePullGesture(onRelease: () => void): PullGesture {
   const [enabled, setEnabled] = useState(false);
   const [state, setState] = useState<PullState>(PULL_STATE.IDLE);
@@ -102,10 +124,7 @@ export function usePullGesture(onRelease: () => void): PullGesture {
       // 上端にいないときは通常の scroll。ここで拾うと途中から引き戻す操作を奪う。
       // modal が開いている間も拾わない。背面の取り直しは利用者が求めた操作ではない。
       // 2 本目が触れた時点でも降りる。拡大や 2 本指の scroll を引き下げと取り違えない。
-      const blocked =
-        window.scrollY > 0 ||
-        event.touches.length > 1 ||
-        document.querySelector('[aria-modal="true"]') !== null;
+      const blocked = window.scrollY > 0 || event.touches.length > 1 || isModalOpen();
       const touch = blocked ? undefined : event.touches[0];
 
       if (touch === undefined) {

@@ -1,12 +1,16 @@
 ---
-imports-allowed: [model, errors, logging, config]
+imports-allowed: [model, errors, logging, config, observability]
 forbidden: [components, capabilities, stores, business-logic]
 test-requirement: integration
+coverage-exclusions:
+  - "src/adapters/server/taint/experimental-react.fixture.ts"
 ---
 
 # adapters
 
-バックエンド API、BFF fetch、analytics など外部接続だけを置く境界アダプタです。`server/` と `client/` の 2 element に分けます。
+バックエンド API、BFF fetch、telemetry の送信など外部接続だけを置く境界アダプタです。`server/` と `client/` の 2 element に分けます。
+
+**このアプリが送信を組み立てないものは、ここを通りません。** 同梱のタグマネージャは容器を読み込むだけで、送信は容器の中身が行うため、`app` の client island が受け持ちます（[0082](../../docs/adr/0082-client-observability.md) §3）。
 実行文脈を持たない規則——どちらの element が送る要求にも等しく効くもの——は `http/` に置き、契約からの生成物は `gen/` に置きます。どちらも `adapters` の中からだけ import できます。
 
 ## 受け入れるもの
@@ -18,6 +22,60 @@ test-requirement: integration
 
 - 業務ロジック、UI、local browser API
 
+## 値の分類は取得の口が宣言する
+
+**`createHttpClient` は分類を必ず受け取ります**（[0112](../../docs/adr/0112-data-classification-cache-boundary.md)）。
+
+| 分類 | 何を運ぶか | 持てるもの |
+| --- | --- | --- |
+| `scope: "public"` | 主体を名乗らずに取れるもの | `cache` / `tags`。資格情報の口は**型として持ちません** |
+| `scope: "user-scoped"` | 主体に紐づくもの | 資格情報。`cache` / `tags` は**型として持ちません** |
+
+**資格情報を載せうる口は、載せなかった回も含めて user-scoped です。** `allowAnonymous: true` を立てても
+動きません。分類は口の性質であって要求ごとの結果ではなく、だから静的に決まり、型で塞げます。
+
+**主体を指す値は資格情報とは限りません。** 契約が独自に持つ識別子のヘッダも主体を指します。
+そういう値を載せる口も user-scoped です —— 判定は「認証されているか」ではなく「応答が主体で
+変わるか」です。
+
+分類が塞ぐのは「PII が共有キャッシュへ入る」経路です。入れ物は server 側で共有され、鍵は URL・
+method・ヘッダ・本文なので、主体ごとに割れた値がそこへ載ると、ある主体の応答が別の主体へ渡ります。
+**注意書きではなく引数の不在**にしてあるのは、注意書きが守るのは読んだ人だけだからです。
+
+user-scoped な値をキャッシュしたいときの手段は `use cache: private`（サーバへ保存されず、ブラウザの
+メモリにのみ載る）に限ります。**これは明示的な例外能力であって一般許可ではありません。**
+
+## リクエストをまたいで残すのは `use cache` の側
+
+**寿命を持つのは取得の口です**（[0071](../../docs/adr/0071-bff-api-integration.md)）。残す口の中で
+`use cache` を宣言し、寿命は `cacheLife`、捨てる印は `cacheTag` が持ちます。呼ぶ側（feature / page）へ
+置くと、同じ取得が呼び出しの数だけ別の寿命を持ち、印の付け先が散ります。
+
+**内側の `fetch` には寿命を持たせません。** `use cache` の内側の取得はまとめて外側の寿命に従うので、
+二重に持つと内側が切れないぶん、外側が取り直しても同じ古い応答を掴みます。
+
+**寿命は profile の名前で名乗り、秒数は `next.config.ts` の `cacheLife` が持ちます。** 口の側は「何の
+寿命か」だけを言い、fork は口を触らずに値を動かせます。**殻へ載る取得の profile に `expire` を置きません**
+—— `expire` はその時間トラフィックが途絶えた直後の 1 要求へ同期の取り直しを課すので、そこで取得先へ届かないと
+殻を配れていたはずの route が丸ごと失敗へ倒れます。
+
+**確実に残るのは、組み立て時に殻へ焼かれた分だけです。** `use cache` の既定の入れ物はプロセスのメモリなので、
+serverless では要求ごとに別のインスタンスへ着地しえて再利用が起きない回があり、デプロイをまたぐと鍵ごと
+捨てられます。`fetch` の `cache: "force-cache"` が持っていた「デプロイとインスタンスをまたいで残る」性質は
+ここで失われるもので、**request 時の再利用を保証と読まないでください**。必要になった fork は `cacheHandlers`
+か `use cache: remote` を選びます（配備先に依存するので本体は選びません）。
+
+**`use cache` を持つモジュールは `createHttpClient` を直に引けません。** 直に引けるモジュールは
+user-scoped な client も組める状態にあり、`project-rules/no-user-scoped-in-cached-module` が止めます。
+公開の口は `server/api/public-client.ts` の `getPublicClient` を引きます —— そこが作れるのは公開の
+client だけなので、キャッシュの下で分類を取り違えようがありません。
+
+その口が 1 つである理由はもう 1 つあります。retry budget と circuit breaker は client の中に状態として
+載るため、同じ downstream へ client を分けると、劣化したかどうかの判断が分けた数だけ割れます。**この理由は
+user-scoped 側にも同じだけ当てはまりますが、そちらはまだ各口が自前で組んでいます** —— 資格情報の取得口を
+どこへ寄せるかが `project-rules/no-captured-bearer-token` と交差するためで、扱いは
+[BACKLOG](../../docs/adr/BACKLOG.md) の Tier 4 が持ちます。
+
 ## 主体を名乗るかは、口ではなく client が決める
 
 **`createHttpClient` に `getBearerToken` を渡さない client は、そこを通る要求のすべてが匿名になります。**
@@ -26,6 +84,10 @@ test-requirement: integration
 
 公開の読み取りと主体の要る書き込みが 1 つの client に同居するときは、`getBearerToken` を渡したうえで
 `allowAnonymous: true` を併せます。取れたときだけ載る形になり、未ログインの読み取りも通ります。
+
+**渡すのは import した口だけです。** `Authorization` を組む値をその場で掴むと、要求のたびに
+`cookies()` を読む形が崩れ、cached scope の防御（`next-request-in-use-cache`）が何も言わずに外れます。
+cookie がまだ無い session 確立の 1 往復だけは `bearerToken` という別の綴りで渡します。
 
 これを落としても型も検査も落ちません。**気づけるのはバックエンドが 401 を返したときだけ**で、症状は
 「その画面の保存だけが必ず失敗する」という形で現れます。前面の役割判定は残りますが、バックエンドが
@@ -73,16 +135,112 @@ test-requirement: integration
 原理的に分からず、置けば画面の数だけ当て推量の定数が増えます。超過は `uri-too-long` として落ち、
 画面には `errors` の分類 1 つとして現れます（[0080](../../docs/adr/0080-error-handling.md)）。
 
+## ブラウザ発のテレメトリの中継
+
+**ブラウザから collector を直接叩かせません**（[0081](../../docs/adr/0081-observability-logging.md)）。
+endpoint も資格情報もブラウザへ出さず、同一オリジンの BFF が受けて OTLP へ載せます。この経路は
+3 つに分かれ、境界ごとに持ち物が違います。
+
+| 置き場 | 持つもの |
+| --- | --- |
+| `http/telemetry-report.ts` | 送る側と受ける側が共有する報告の形。型と、送る前に切り詰める長さだけ |
+| `client/telemetry/report-telemetry.ts` | 測定と例外を報告へ組み、`sendBeacon` で送る |
+| `client/telemetry/browser-tracer.ts` | ブラウザ側の計装。動的な import でだけ読まれる |
+| `server/telemetry/browser-telemetry.ts` | 報告を検証し、signal へ載せる |
+| `server/telemetry/browser-traces.ts` | ブラウザが作った span を collector へ渡す |
+| `server/taint/taint.ts` | server の object と秘密値を、Client Component へ渡せないものとして登録する |
+
+**検証は受け側にしかありません。** 送る側にも同じ長さの宣言がありますが、それは通信量を抑える
+ためのもので、送信者は差し替えられます。認証を要求しない口なので、受け側が自分で確かめます
+（[0077](../../docs/adr/0077-bff-abuse-protection-boundary.md)）。
+
+**`observability` を import できるのは受け側だけです。** Web Vitals は指標ごとのヒストグラムとして
+出すため OTel の Metrics API へ、例外は返ってきた `traceparent` の文脈で記録するため trace 相関の口へ
+触ります（[0082](../../docs/adr/0082-client-observability.md)）。
+**この許可は `client/` にも機械的に及びます。** 境界検査の要素は `adapters` ひとつで、`server/` と
+`client/` を区別しません（層より細かい単位を分けているのは `features` だけです）。効いているのは
+**`observability` の側が `server-only` を名乗っていること**で、client から引いた時点でビルドが落ちます。
+同じ形は `config` にもあります —— ADR 0021 は server config を `adapters/server` だけに許しますが、
+機械強制は層の粒度で当たります。
+
+**ブラウザ側の計装は動的な import でだけ読みます。** 要求境界（`client/http/request.ts`）は画面を
+開いた時点で読まれるので、そこから OTel へ辺を張ると計装の重さが初期の読み込みに乗ります。要求を
+span にするのは `fetch` を包む計装のほうで、要求境界のコードは計装を知りません。
+
+**包むのは自分が呼んでいる要求だけではありません。** router が画面遷移と先読みで出す RSC の要求も
+対象です。自分で呼んでいる場所だけを包むと、client 遷移が trace から抜けて別の trace の根になります。
+そのぶん 1 つの trace に載る span は増えます —— 先読みは見えている画面ぶんだけ出るためです。
+
+## client へ渡してはいけないものを登録する
+
+`server/taint/taint.ts` が [0030](../../docs/adr/0030-environment-variable-management.md) §8 の口です。
+汚した object や値を Client Component へ渡すと、**描画が実行時に落ちます**。
+
+| 汚すもの | 例 | 登録する場所 | 寿命 |
+| --- | --- | --- | --- |
+| 資格情報を含む server の object | session の記録（Access Token / ID Token を持つ） | その object が生まれる場所 | object 自身 |
+| PII を含む取得結果 | 連絡先・住所・生年月日を持つ主体の詳細 | 取得の口（契約の形から表示の型へ写した直後） | object 自身 |
+| 文字列の秘密 | 署名鍵・外部サービスのキー | その値を**読む側**（`config` は react を持ち込めない） | 値を持つ singleton |
+
+**何が PII かはここが決めません。** 分類とその置き場は
+[0112](../../docs/adr/0112-data-classification-cache-boundary.md) が持ち、ここはその分類を実行時の
+関所へ写すだけです。
+
+### 参照実装
+
+取得の口で、写し終えた値を汚します。**呼び出し側では汚しません** —— 口が増えるたびに同じ 1 行が
+要り、書き忘れた経路がそのまま穴になります。
+
+```ts
+export const getAccount = cache(async (): Promise<Account> => {
+  const account = toAccount(
+    await getClient().request({ path: "/v1/accounts/me", schema: GetAccountResponse }),
+  );
+
+  taintObjectReference(
+    "主体の詳細には連絡先が含まれます。Client Component へ渡すのは画面が使う項目だけにしてください",
+    account,
+  );
+
+  return account;
+});
+```
+
+文字列の秘密は、値そのものを登録します。参照で追えないためで、登録の寿命はその値を持つ singleton
+に握らせます。
+
+```ts
+taintUniqueValue("署名鍵は server 専用です", config, config.sessionSecret);
+```
+
+**メッセージは落ちた人が読む唯一の手掛かりです。** 「渡すな」だけでなく、代わりに何を渡すのかまで
+書きます。落ちる場所は渡した側で、そこに居る人は何を選べばよいかを知りません。
+
+**主機構ではありません。** 参照でしか追えないので、コピー（`{ ...record }`）にも派生値
+（`` `Bearer ${token}` ``）にも及びません。主防御は取得範囲と Client DTO の最小化で、これはそこを
+抜けた誤送信を実行時に捕まえる補助です（[0112](../../docs/adr/0112-data-classification-cache-boundary.md) 段 4）。
+
+**`react` を直接呼ばず、この口を通します。** テストはこのモジュール境界を差し替え、本物が効くことは
+`taint/taint.test.ts` が RSC の直列化器で確かめます。防御の中に「口があれば呼ぶ」分岐を置かないため
+です —— 置くと、口が消えた日に検査ごと黙って外れます。
+
 ## 運用
 
 - **`integration` の宣言が掛かるのは、外部との往復を持つモジュールです**。`fetch`（または注入された
   `fetchImpl`）を直接持つものが対象で、そこでは HTTP 境界だけを対象に、内側を mock して型と形を
   確かめます（[0090](../../docs/adr/0090-testing-strategy.md)）。**外部 IO を持たない純粋な変換**
   （`http/url-budget.ts` / `server/http/search-params.ts` / `server/http/retry-policy.ts` /
-  `server/http/error-status.ts` など、境界の前後で値を写すだけのもの）は、その変換自体を `unit` の
+  `server/http/error-status.ts` / `server/http/error-response.ts` / `server/http/json-request.ts` /
+  `client/telemetry/route-pattern.ts` / `server/telemetry/browser-telemetry.ts` など、境界の前後で
+  値を写すだけのもの）は、その変換自体を `unit` の
   形——HTTP を模さず値を直接照合する——で検証します。境界を持たないものへ境界のテストを課しても、
   確かめる相手が無いためです。**`http/` はこの形しか置きません**——実行文脈を持たない規則の置き場
   なので、外部との往復を持つものは `server/` か `client/` に属します
+- **`use cache` を持つ口では、寿命 profile の名前と `cacheTag` の引数も観測の対象に含めます**。HTTP
+  境界の外側にある宣言ですが、綴りを取り違えても型検査も lint も落ちず、実行時に「無効化したのに古いまま」
+  という形でしか現れません。`next/cache` をモジュール境界で差し替え、口が何を名乗ったかを確かめます。
+  **確かめられるのはそこまでです** —— 名乗った profile 名が `next.config.ts` に実在するか、実際に
+  キャッシュが効くかは、この層では分かりません（前者は build、後者は殻の実測が持ちます）
 
 - `server/` は server config を利用でき、`client/` は secret を利用しない
 - 外部型・生成型はここで変換し、内側へ漏らさない

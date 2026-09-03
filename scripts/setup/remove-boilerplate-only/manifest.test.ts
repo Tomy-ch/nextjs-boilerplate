@@ -15,6 +15,9 @@ import {
 
 const exists = (relativePath: string): boolean => fs.existsSync(path.join(ROOT_DIR, relativePath));
 
+const isDirectory = (relativePath: string): boolean =>
+  exists(relativePath) && fs.statSync(path.join(ROOT_DIR, relativePath)).isDirectory();
+
 /** 剥がしが走査するのと同じ範囲のファイル（リポジトリルート相対）。 */
 function scanTargets(): string[] {
   return listFilesRecursive(ROOT_DIR, { excludedDirectories: EXCLUDED_DIRECTORIES })
@@ -43,6 +46,39 @@ describe("SELF_DESTRUCT_PATHS", () => {
     );
 
     expect(runners.filter((runner) => !SELF_DESTRUCT_PATHS.includes(runner))).toEqual([]);
+  });
+
+  // 見るのはリテラルの言及だけで、TypeScript の import グラフは辿らない。捕まえたいのは
+  // 「`pnpm exec tsx scripts/<区画>` で起動される区画」であり、その起動は Makefile か workflow の
+  // 文字列として必ず現れる。相対 import しか経路を持たない区画は、この検査には載らない。
+  it("消える検査だけが呼ぶ scripts の区画を、道具ごと消す", () => {
+    const covered = (relativePath: string): boolean =>
+      SELF_DESTRUCT_PATHS.some(
+        (target) => relativePath === target || relativePath.startsWith(`${target}/`),
+      );
+    const referrers = new Map<string, string[]>();
+
+    for (const relativePath of scanTargets()) {
+      for (const [, area] of (readUtf8File(path.join(ROOT_DIR, relativePath)) ?? "").matchAll(
+        /scripts\/([a-z0-9][a-z0-9-]*)/g,
+      )) {
+        const key = `scripts/${area}`;
+
+        // 区画そのものと、その中からの言及は数えない。中だけで閉じた参照は「誰が要るか」を
+        // 答えないので、これを数えると消してよい区画が消せなくなる。
+        if (relativePath.startsWith(`${key}/`) || !isDirectory(key)) {
+          continue;
+        }
+
+        referrers.set(key, [...(referrers.get(key) ?? []), relativePath]);
+      }
+    }
+
+    expect(
+      [...referrers]
+        .filter(([area, from]) => !covered(area) && from.every(covered))
+        .map(([area]) => area),
+    ).toEqual([]);
   });
 
   it("共有機構は消さない", () => {

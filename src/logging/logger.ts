@@ -1,3 +1,24 @@
+/**
+ * 伏せる項目の名前。
+ *
+ * @remarks
+ * **名前で伏せます。値の形は見ません。** 値から秘密を見分けようとすると、見分けられなかったものが
+ * 素通りし、見分けられたつもりのものが偽の安心になります。名前は自分たちが付けるものなので、
+ * ここに挙げた名前で持ち回る限り確実に効きます。
+ *
+ * ログと span の双方がこの表を見ます（[0081](../../docs/adr/0081-observability-logging.md) §3 が
+ * 両方へ同じ redaction を求めています）。増やすときは、名前を持ち回っている側も併せて直します。
+ */
+export const REDACTED_FIELD_NAMES: readonly string[] = [
+  "authorization",
+  "cookie",
+  "password",
+  "token",
+];
+
+/** 伏せた値の代わりに置く文字列。 */
+export const REDACTED = "[REDACTED]";
+
 /** 構造化ログへ付与する追加フィールドです。 */
 export type LogFields = Readonly<Record<string, unknown>>;
 

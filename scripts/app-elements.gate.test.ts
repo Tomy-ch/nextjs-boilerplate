@@ -23,6 +23,7 @@ const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");
 /** `route.ts` が引いてよいカーネル。ここに無いものは `forbidden` に挙がっていなければならない。 */
 const ALLOWED: Readonly<Record<string, readonly Kernel[]>> = {
   "app-route-handler": ["adapters", "model", "errors", "logging"],
+  "app-metadata": ["adapters", "config", "model"],
 };
 
 // ESLint の設定一式を読み込むため、既定の 5 秒では足りない。

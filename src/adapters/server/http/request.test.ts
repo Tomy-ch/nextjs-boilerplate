@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { createHttpClient } from "./request";
+import { createHttpClient, type PublicHttpClient } from "./request";
 import { DEFAULT_PROFILE, type ResilienceProfile } from "./resilience-profile";
 
 const schema = z.object({ ok: z.boolean() });
@@ -22,11 +22,20 @@ function jsonResponse(
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-function createClient(
-  fetchImpl: typeof fetch,
-  overrides: Partial<Parameters<typeof createHttpClient>[0]> = {},
-) {
+type ClientOverrides = {
+  baseUrl?: string;
+  maxUrlBytes?: number;
+  profile?: ResilienceProfile;
+  now?: () => number;
+  wallClockNow?: () => number;
+  getBearerToken?: () => Promise<string | null>;
+  allowAnonymous?: boolean;
+  sleep?: (ms: number) => Promise<void>;
+};
+
+function createClient(fetchImpl: typeof fetch, overrides: ClientOverrides = {}) {
   return createHttpClient({
+    scope: "user-scoped",
     baseUrl: "https://api.example.test",
     maxUrlBytes: MAX_URL_BYTES,
     profile,
@@ -36,6 +45,46 @@ function createClient(
     sleep: async () => {},
     ...overrides,
   });
+}
+
+/**
+ * user-scoped な口を、キャッシュを指定できる面として受け取る。
+ *
+ * @remarks
+ * 型が禁じている組み合わせを実行時の関門へ届けるために要ります。関門が見ているのは
+ * **型を迂回して組み立てられた spec** なので、型の側で通る書き方を用意しないと到達できません。
+ */
+function createEscapedClient(fetchImpl: typeof fetch): PublicHttpClient {
+  return createHttpClient({
+    scope: "user-scoped",
+    baseUrl: "https://api.example.test",
+    maxUrlBytes: MAX_URL_BYTES,
+    profile,
+    fetchImpl,
+  });
+}
+
+function createPublicClient(fetchImpl: typeof fetch) {
+  return createHttpClient({
+    scope: "public",
+    baseUrl: "https://api.example.test",
+    maxUrlBytes: MAX_URL_BYTES,
+    profile,
+    fetchImpl,
+    now: () => 0,
+    random: () => 0,
+    sleep: async () => {},
+  });
+}
+
+async function causeOf(run: () => Promise<unknown>): Promise<unknown> {
+  try {
+    await run();
+  } catch (error) {
+    return findAppError(error)?.cause;
+  }
+
+  return undefined;
 }
 
 async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
@@ -55,6 +104,7 @@ describe("createHttpClient", () => {
     vi.stubGlobal("fetch", globalFetch);
 
     const client = createHttpClient({
+      scope: "public",
       baseUrl: "https://api.example.test",
       maxUrlBytes: MAX_URL_BYTES,
       profile,
@@ -127,13 +177,40 @@ describe("createHttpClient", () => {
     expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/items?tag=a&tag=b");
   });
 
-  it("再検証のタグを渡す", async () => {
+  it("public な口では再検証のタグを渡す", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
-    const client = createClient(fetchImpl);
+    const client = createPublicClient(fetchImpl);
 
     await client.request({ path: "/v1/items", schema, tags: ["items"] });
 
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ next: { tags: ["items"] } });
+  });
+
+  it("public な口ではキャッシュの指定を渡す", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createPublicClient(fetchImpl);
+
+    await client.request({ path: "/v1/items", schema, cache: "force-cache" });
+
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ cache: "force-cache" });
+  });
+
+  it("確立中の口では解決済みの Bearer を載せる", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createHttpClient({
+      scope: "user-scoped",
+      baseUrl: "https://api.example.test",
+      maxUrlBytes: MAX_URL_BYTES,
+      profile,
+      fetchImpl,
+      bearerToken: "establishing-token",
+    });
+
+    await client.request({ path: "/v1/users/me/roles", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).toMatchObject({
+      Authorization: "Bearer establishing-token",
+    });
   });
 
   it("本文があれば JSON として送る", async () => {
@@ -269,6 +346,25 @@ describe("createHttpClient", () => {
     await expect(client.request({ path: "/v1/ping", schema })).resolves.toEqual({ ok: true });
   });
 
+  it("Retry-After が日時なら壁時計との差を待ち時間に使う", async () => {
+    const sleep = vi.fn(async () => {});
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        jsonResponse(503, {}, { "Retry-After": "Fri, 07 Aug 2026 00:00:03 GMT" }),
+      )
+      .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl, {
+      sleep,
+      wallClockNow: () => Date.parse("2026-08-07T00:00:00.000Z"),
+      profile: { ...profile, overallTimeoutMs: 10_000 },
+    });
+
+    await client.request({ path: "/v1/ping", schema });
+
+    expect(sleep).toHaveBeenCalledWith(3_000);
+  });
+
   it("Retry-After の指示を待ち時間に使う", async () => {
     const sleep = vi.fn(async () => {});
     const fetchImpl = vi
@@ -291,6 +387,7 @@ describe("createHttpClient", () => {
       .mockResolvedValueOnce(jsonResponse(503, {}))
       .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
     const client = createHttpClient({
+      scope: "public",
       baseUrl: "https://api.example.test",
       maxUrlBytes: MAX_URL_BYTES,
       profile,
@@ -361,7 +458,55 @@ describe("createHttpClient", () => {
     expect(fetchImpl.mock.calls[0]?.[0]).toBe("https://api.example.test/v1/items/a..b/ship");
   });
 
+  it("確立中の口でも、接続先を離れる要求には資格情報を載せない", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createHttpClient({
+      scope: "user-scoped",
+      baseUrl: "https://api.example.test",
+      maxUrlBytes: MAX_URL_BYTES,
+      profile,
+      fetchImpl,
+      bearerToken: "establishing-token",
+    });
+
+    await client.request({ path: "https://idp.example.test/token", schema });
+
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).not.toHaveProperty("Authorization");
+  });
+
   // ----- 異常系 -----
+  it("user-scoped な口へキャッシュ指定を与えたら、送らずに invalid-argument で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createEscapedClient(fetchImpl);
+
+    expect(
+      await kindOf(() => client.request({ path: "/v1/users/me", schema, cache: "force-cache" })),
+    ).toBe(ErrorKind.INVALID_ARGUMENT);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("user-scoped な口へ再検証のタグを与えたら、送らずに invalid-argument で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createEscapedClient(fetchImpl);
+
+    expect(
+      await kindOf(() => client.request({ path: "/v1/users/me", schema, tags: ["users"] })),
+    ).toBe(ErrorKind.INVALID_ARGUMENT);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("呼び出しごとの指定に資格情報のヘッダを置いたら、送らずに invalid-argument で落とす", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
+    const client = createClient(fetchImpl);
+
+    expect(
+      await kindOf(() =>
+        client.request({ path: "/v1/items", schema, headers: { authorization: "Bearer x" } }),
+      ),
+    ).toBe(ErrorKind.INVALID_ARGUMENT);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("路を畳む区間を含む path を、送らずに invalid-argument で落とす", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl);
@@ -524,6 +669,36 @@ describe("createHttpClient", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
+  it("経過時間だけで期限に達したら、待ちが短くても諦める", async () => {
+    // 締切は単調時計で測る。待ちの長さではなく、試行に費やした時間の積算で越えさせる。
+    const now = vi.fn(() => 0);
+
+    now.mockReturnValueOnce(0).mockReturnValue(profile.overallTimeoutMs);
+
+    const sleep = vi.fn(async () => {});
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(503, {}));
+    const client = createClient(fetchImpl, { now, sleep });
+
+    await kindOf(() => client.request({ path: "/v1/ping", schema }));
+
+    expect(sleep).not.toHaveBeenCalled();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("Error の失敗は原因をそのまま残す", async () => {
+    const cause = new Error("接続できません");
+
+    expect(
+      await causeOf(() =>
+        createClient(
+          vi.fn(async () => {
+            throw cause;
+          }),
+        ).request({ path: "/v1/ping", schema }),
+      ),
+    ).toBe(cause);
+  });
+
   it("通信が中断されたら待たせずに落とす", async () => {
     const client = createClient(
       vi.fn(async () => {
@@ -555,11 +730,14 @@ describe("createHttpClient", () => {
     );
   });
 
-  it("Error でない失敗も分類して落とす", async () => {
-    const client = createClient(vi.fn(async () => Promise.reject("切断")));
+  it("Error でない失敗は文字列を残した Error へ包んで落とす", async () => {
+    const disconnect = () => createClient(vi.fn(async () => Promise.reject("切断")));
 
-    expect(await kindOf(() => client.request({ path: "/v1/ping", schema }))).toBe(
+    expect(await kindOf(() => disconnect().request({ path: "/v1/ping", schema }))).toBe(
       ErrorKind.UNAVAILABLE,
+    );
+    expect(await causeOf(() => disconnect().request({ path: "/v1/ping", schema }))).toStrictEqual(
+      new Error("切断"),
     );
   });
 

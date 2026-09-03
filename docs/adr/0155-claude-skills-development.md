@@ -54,6 +54,7 @@ Accepted
 | `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
 | `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
 | `adr-scan` | ADR 候補の全リポ発見 | de facto に存在するが BACKLOG 未追跡の設計判断を read-only で走査し、taxonomy (decision / exclusion / rule / inventory) と Tier / frame ID へ分類した候補 inventory を出力 (※ 暫定 / one-off。BACKLOG 反映後に削除・アーカイブ予定) |
+| `new-feature` | 画面 1 枚の e2e 動線 | 画面を「ディレクション → story → レビュー → 分離 → 仕様書 → テスト」の順で通す。順序そのものを含め、規則は焼き込まず [`docs/playbook.md`](../playbook.md) / [`docs/templates/feature-readme.md`](../templates/feature-readme.md) / [`docs/spec/README.md`](../spec/README.md) / カーネル README を実行時に読む。配置・命名・境界は `pnpm gen` に委ね、`docs/spec/**` は**読み込み入力であって生成入力ではない**（[BACKLOG](BACKLOG.md) GB-3）。story のレビューが返るまでテストを書かない。レビュー 3 本（`impl-review` / `test-review` / `comment-sweep`）は `AGENTS.md` の Review Phase Protocol に従い**呼ばずに user へ渡す**。commit / push はしない |
 | `manage-skill` | スキルの作成・更新の単一入口 | 公式 `skill-creator` の方法論をラップし、本 ADR / [0154](0154-claude-skills-operations.md) の配置・命名・frontmatter・本文構造と [0140](0140-documentation-operations.md) の対訳ペアを上乗せする。`.claude/skills/**` への変更はこのスキルを入口とし、`SKILL.md` / `SKILL.ja.md` の直接手編集に先立って通す。公式プラグインの用意は `scripts/bootstrap-plugins` が担う |
 
 新規追加は本 ADR の趣旨 (開発系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。
@@ -116,7 +117,7 @@ subagent 自身が read-only である規約は例外を持たない。書き込
 
 ## `new-env` の対象構造
 
-`new-env` は **A7 ([0030](0030-environment-variable-management.md)) の config カーネル**を対象とする。すなわち `src/config/` の目的別 config モジュール (`<purpose>.server.ts` / `<purpose>.client.ts` のスキーマ項目 + `#` private フィールド + getter)、`env/.env.{local,ci,dev,stg,prd}`、変数表ドキュメントの 3 点を同期する。
+`new-env` は **A7 ([0030](0030-environment-variable-management.md)) の config カーネル**を対象とする。すなわち `src/config/` の目的別 config モジュール (`<purpose>.server.ts` / `<purpose>.client.ts` のスキーマ項目 + `#` private フィールド + getter)、検証を通る変数一式を持つ fixture、`env/.env.{local,ci,dev,stg,prd}`、変数表ドキュメントの 4 点を同期する。**fixture を対象に含めるのは、変数一式が型で結ばれているためである** —— 足し忘れると、書いた場所ではなく別ファイルの型検査が落ちる。
 
 スキルは purpose インベントリ・スキーマライブラリ・env ファイル集合を**実行時に実ツリーから検出**し、固定値で持たない。スキーマライブラリの選定は [0030](0030-environment-variable-management.md) が A7 実装 PR へ委ねているため、スキル側でライブラリ名を前提にしない。
 

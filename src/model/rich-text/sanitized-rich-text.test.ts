@@ -53,6 +53,20 @@ describe("SanitizedRichText", () => {
     expect(textOf(parse().root)).toBe("段落の中のブロック");
   });
 
+  it("平文は markup を落として text を文書順に繋ぐ", () => {
+    const content = SanitizedRichText.from(
+      "<p>前半<strong>強調</strong></p><ul><li>後半</li></ul>",
+    );
+
+    expect(content.text).toBe("前半強調後半");
+  });
+
+  it("平文にも sanitize で落としたものは残らない", () => {
+    const content = SanitizedRichText.from("<p>本文<script>alert(1)</script></p>");
+
+    expect(content.text).toBe("本文");
+  });
+
   it("閉じていないタグを例外にしない", () => {
     const { root } = SanitizedRichText.from("<p>閉じ忘れ<strong>強調");
 

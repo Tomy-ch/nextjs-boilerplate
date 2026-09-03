@@ -25,6 +25,7 @@
 
 | 実装 | 仕様書 |
 | --- | --- |
+| `layout.tsx`（根） | `route/layout.{screen,function}.md` |
 | `(group)/layout.tsx` | `route/<group>/layout.{screen,function}.md` |
 | `(group)/<segment>/page.tsx` | `route/<group>/<segment>/page.{screen,function}.md` |
 | `(group)/<segment>/<child>/page.tsx` | `route/<group>/<segment>/<child>/page.{screen,function}.md` |
@@ -43,6 +44,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 
 | ルート | 仕様書 |
 | --- | --- |
+| 根の外枠 | [`layout.screen.md`](route/layout.screen.md) / [`layout.function.md`](route/layout.function.md) |
 | `(shop)` 外枠 | [`layout.screen.md`](route/shop/layout.screen.md) / [`layout.function.md`](route/shop/layout.function.md) <!-- sample:line --> |
 | `/` | [`screen`](route/shop/page.screen.md) / [`function`](route/shop/page.function.md) <!-- sample:line --> |
 | `/products` | [`screen`](route/shop/products/page.screen.md) / [`function`](route/shop/products/page.function.md) <!-- sample:line --> |
@@ -71,6 +73,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/login` | [`screen`](route/auth/login/page.screen.md) / [`function`](route/auth/login/page.function.md) |
 | `/onboarding` | [`screen`](route/auth/onboarding/page.screen.md) / [`function`](route/auth/onboarding/page.function.md) <!-- sample:line --> |
 | `/dev/session` | [`screen`](route/dev/session/page.screen.md) / [`function`](route/dev/session/page.function.md) |
+| `/maintenance` | [`screen`](route/maintenance/page.screen.md) / [`function`](route/maintenance/page.function.md) |
 
 **この目録は「書いた画面の一覧」であって、画面の一覧ではありません。**実装済みの画面は
 [`screens.md`](../screens.md) が持ちます。

@@ -4,8 +4,11 @@ import "../../../../vitest.setup.msw";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 
 const { getEnvironment } = vi.hoisted(() => ({ getEnvironment: vi.fn(() => PARSED_ENVIRONMENT) }));
+const { cacheLife, cacheTag } = vi.hoisted(() => ({ cacheLife: vi.fn(), cacheTag: vi.fn() }));
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
+// `cacheLife` / `cacheTag` は `cacheComponents` を有効にした Next の実行文脈でしか動かない。
+vi.mock("next/cache", () => ({ cacheLife, cacheTag }));
 
 import { getProductCategories } from "./product-masters";
 
@@ -16,7 +19,7 @@ describe("getProductCategories", () => {
 
     // 件数を名指しできるのは、生成ハンドラの応答が要求ごとに再現するため
     // （`mocks/stable-responses.ts`）。件数を見ない形だと、写しが途中で 1 件に畳んでも通る。
-    expect(categories).toHaveLength(4);
+    expect(categories).toHaveLength(5);
   });
 
   it("生成ハンドラの応答から表示に使う項目だけを残す", async () => {

@@ -1,3 +1,4 @@
+import { faker } from "@faker-js/faker";
 import { defineConfig } from "orval";
 
 // 契約に載っているが本アプリが呼ばない operation の tag。
@@ -35,9 +36,79 @@ const PATTERNED_MOCK_PROPERTIES = {
   "/^postalCode$/": () => "100-0001",
   // 住所は pattern を持たないが、faker の既定は 10〜100 文字のランダム英字を返す。実在しない
   // 地名では、選択部品の幅も住所 1 行の折り返しも実物と違う姿で確かめることになる。
-  "/^prefecture$/": () => "神奈川県",
+  // `prefectureName` も同じ選択部品へ入る。郵便番号の補完が返す県名が一覧に無い綴りだと、
+  // 部品は選べない値として扱い、利用者が触っていないのに検証エラーが出る。
+  "/^(prefecture|prefectureName)$/": () => "神奈川県",
   "/^city$/": () => "横浜市西区",
 };
+
+/**
+ * 商品状態マスタのモック応答。
+ *
+ * @remarks
+ * **`code` は画面が読む業務キーです。** 一覧のバッジの色はこの値で決まる
+ * （`src/features/admin/products/list/status-tone.ts`）ので、生成器の既定（32bit の乱数）では
+ * どの商品も既定色になり、色の出し分けを一度も確かめられません。
+ *
+ * 契約は値域を宣言していないため、生成器には本物を出す手がかりがありません。ここに書いた値が
+ * 実データと一致していることの保証はこの宣言だけで、**出所はバックエンドではありません**。
+ */
+const PRODUCT_STATUSES = [
+  { id: "0195f0c2-1000-7000-9000-000000000001", code: 1, name: "在庫あり" },
+  { id: "0195f0c2-1000-7000-9000-000000000002", code: 2, name: "在庫切れ" },
+  { id: "0195f0c2-1000-7000-9000-000000000003", code: 3, name: "予約受付中" },
+  { id: "0195f0c2-1000-7000-9000-000000000004", code: 4, name: "販売終了" },
+  { id: "0195f0c2-1000-7000-9000-000000000005", code: 5, name: "取り寄せ中" },
+  { id: "0195f0c2-1000-7000-9000-000000000006", code: 6, name: "入荷待ち" },
+  { id: "0195f0c2-1000-7000-9000-000000000007", code: 7, name: "廃盤" },
+  { id: "0195f0c2-1000-7000-9000-000000000008", code: 8, name: "検討中" },
+  { id: "0195f0c2-1000-7000-9000-000000000009", code: 9, name: "再入荷予定" },
+  { id: "0195f0c2-1000-7000-9000-000000000010", code: 10, name: "限定販売" },
+];
+
+/**
+ * 商品分類マスタのモック応答。
+ *
+ * @remarks
+ * 名前が乱数の英字列だと、選択部品の幅も一覧の折り返しも実物と違う姿で確かめることになります
+ * （都道府県と同じ理由）。`code` は絞り込みのクエリに載る業務キーです。
+ */
+const PRODUCT_CATEGORIES = [
+  { id: "0195f0c2-2000-7000-9000-000000000001", code: 1, name: "家電" },
+  { id: "0195f0c2-2000-7000-9000-000000000002", code: 2, name: "食品" },
+  { id: "0195f0c2-2000-7000-9000-000000000003", code: 3, name: "衣類" },
+  { id: "0195f0c2-2000-7000-9000-000000000004", code: 4, name: "書籍" },
+  { id: "0195f0c2-2000-7000-9000-000000000005", code: 5, name: "日用品" },
+];
+
+/**
+ * 購入ステータスマスタのモック応答。
+ *
+ * @remarks
+ * **`code` は画面が読む業務キーです。** バッジの見た目
+ * （`src/features/purchases/facade/status-emphasis/status-emphasis.ts`）も、詳細に出せる操作
+ * （`src/features/purchases/detail/available-transitions.ts`）もこの値で決まるので、生成器の既定
+ * （乱数）ではどの購入も既定へ倒れ、操作が 1 つも出ません。
+ *
+ * 契約は値域を宣言していないため、生成器には本物を出す手がかりがありません。ここに書いた値が
+ * アプリ側の転記（`src/model/purchase/purchase-status.ts`）と一致していることは
+ * `mocks/contract-conformance.test.ts` が見ます。
+ */
+const PURCHASE_STATUSES = [
+  { code: 1, name: "未処理" },
+  { code: 2, name: "受付中" },
+  { code: 3, name: "確認中" },
+  { code: 4, name: "処理中" },
+  { code: 5, name: "完了" },
+  { code: 6, name: "キャンセル" },
+  { code: 7, name: "支払い済み" },
+  { code: 8, name: "発送済み" },
+  { code: 9, name: "配達済み" },
+].map(({ code, name }) => ({
+  id: `0195f0c2-4000-7000-9000-${String(code).padStart(12, "0")}`,
+  code,
+  name,
+}));
 
 /**
  * 都道府県マスタのモック応答。
@@ -72,6 +143,35 @@ const PREFECTURES = [
   name,
 }));
 
+/**
+ * 数の項目の値域。
+ *
+ * @remarks
+ * 契約は件数にも金額にも上下限を宣言しないため、生成器は 16 桁の整数を返します。集計の指標は
+ * カードの幅に収まらず途中で切れ、在庫は表の列を押し広げます。**値が切れている画面では、その
+ * カードや列の姿を確かめられません。**
+ *
+ * 金額は USD のセント単位の整数です（`DashboardSummaryResponse`）。税と送料に小さい範囲を別に
+ * 与えるのは、同じ範囲から独立に引くと送料が小計を超えるためです。
+ *
+ * ここに書いた範囲は契約から読める値ではありません。実在しうる桁数を与えるためだけのものです。
+ */
+const NUMBER_RANGE_MOCK_PROPERTIES = {
+  "/^(quantity|soldQuantity|availableQuantity)$/": () => faker.number.int({ min: 0, max: 99 }),
+  "/^stockWarningThreshold$/": () => faker.number.int({ min: 1, max: 20 }),
+  "/^version$/": () => faker.number.int({ min: 1, max: 20 }),
+  "/^(count|itemCount|total|totalCount|salesCount|totalProductCount|publishedProductCount)$/": () =>
+    faker.number.int({ min: 0, max: 9999 }),
+  "/^limit$/": () => faker.number.int({ min: 10, max: 50 }),
+  "/^offset$/": () => faker.number.int({ min: 0, max: 100 }),
+  "/^shippingFee$/": () => faker.number.int({ min: 0, max: 2000 }),
+  "/^taxAmount$/": () => faker.number.int({ min: 0, max: 99_999 }),
+  "/^(amount|subtotalAmount|totalAmount)$/": () => faker.number.int({ min: 1000, max: 999_999 }),
+  // 期間の売上合計。1 日あたり $1,000〜$9,999 にあたる。
+  // 商品売上ランキングの同名の項目は decimal 文字列で宣言されており、そちらは operation の指定が勝つ。
+  "/^salesAmount$/": () => faker.number.int({ min: 100_000, max: 999_999 }),
+};
+
 const apiInput = {
   target: "./openapi/api.gen.yaml",
   filters: { mode: "exclude" as const, tags: NON_CLIENT_TAGS },
@@ -96,9 +196,12 @@ export default defineConfig({
       schemas: "./src/adapters/gen/api/model",
       mock: { generators: [{ type: "msw" }] },
       override: {
-        mock: { properties: PATTERNED_MOCK_PROPERTIES },
+        mock: { properties: { ...PATTERNED_MOCK_PROPERTIES, ...NUMBER_RANGE_MOCK_PROPERTIES } },
         operations: {
           GetPrefectures: { mock: { data: PREFECTURES } },
+          GetProductStatuses: { mock: { data: PRODUCT_STATUSES } },
+          GetProductCategories: { mock: { data: PRODUCT_CATEGORIES } },
+          GetPurchaseStatuses: { mock: { data: PURCHASE_STATUSES } },
           // 売上額は decimal 文字列だが、同じ項目名がダッシュボードの集計では整数で宣言されて
           // いる。項目名で指定すると整数のほうまで文字列に変わるため、この operation に閉じる。
           GetProductsRankingAmount: {

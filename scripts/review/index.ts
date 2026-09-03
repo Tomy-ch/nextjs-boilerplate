@@ -24,6 +24,7 @@ import path from "node:path";
 import { DEV_SESSION_PATH, DEV_SESSION_RETURN_PARAM } from "../../e2e/lib/dev-session.js";
 import { SCREENS } from "../../e2e/lib/screens.js";
 import { createStaticServer } from "../../vrt/lib/static-server.js";
+import { parseOptions as parseFlags } from "../lib/cli-options.js";
 import { isCommandOnPath } from "../lib/command-presence.js";
 import { errorMessage } from "../lib/error-message.js";
 import { announce, type ReviewLink, screenLinks, storyLinks } from "./links.js";
@@ -365,16 +366,7 @@ function parseOptions(argv: string[]): Options {
 
   if (kind !== "vrt" && kind !== "e2e") fail(USAGE);
 
-  const flags = new Map<string, string>();
-
-  for (let index = 0; index < rest.length; index += 2) {
-    const name = rest[index];
-    const value = rest[index + 1];
-
-    if (name === undefined || !name.startsWith("--") || value === undefined) fail(USAGE);
-    flags.set(name.slice(2), value);
-  }
-
+  const flags = readFlags(rest);
   const branch = flags.get("branch") ?? "";
   const run = flags.get("run") ?? "";
 
@@ -388,6 +380,15 @@ function parseOptions(argv: string[]): Options {
     run: run === "" ? null : run,
     port: Number(flags.get("port") ?? DEFAULT_PORT[kind]),
   };
+}
+
+/** 並びの読み取りは共通の判定が持つ。読めない並びはこの入口の案内へ翻訳する。 */
+function readFlags(rest: readonly string[]): Map<string, string> {
+  try {
+    return parseFlags(rest);
+  } catch {
+    fail(USAGE);
+  }
 }
 
 function repositoryRoot(): string {
