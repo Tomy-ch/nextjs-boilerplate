@@ -32,11 +32,9 @@ describe("handlers", () => {
   });
 
   it("具体的なパスを、それに一致してしまうパラメータ区間より先に置く", () => {
-    // `/v1/products/:productId` は `/v1/products/ranking/amount` にも一致するため、
-    // 先に並ぶとランキングへの要求が商品 1 件のハンドラに食われる。
-    expect(indexOf("/v1/products/ranking/amount")).toBeLessThan(
-      indexOf("/v1/products/:productId"),
-    );
+    // 区間 1 つは 1 セグメントしか吸わないので、食い合うのは**同じ深さ**の組だけである。
+    // `/v1/products/ranking/amount` は深さが違うため `:productId` には一致せず、ここでは見ない
+    //（並び順そのものは上の検査が全体で見ている）。
     expect(indexOf("/v1/products/low-stock")).toBeLessThan(indexOf("/v1/products/:productId"));
     expect(indexOf("/v1/users/me")).toBeLessThan(indexOf("/v1/users/:userId"));
   });
