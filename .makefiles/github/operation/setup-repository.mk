@@ -18,6 +18,7 @@ SETUP_DRY_RUN_FLAG := $(if $(filter 1,$(DRY_RUN)),--dry-run,)
 export COPYRIGHT_HOLDER
 export COPYRIGHT_YEAR
 export REPOSITORY
+export PORTAL_URL
 
 setup-repo:
 	@echo "🔧 設定を確認中..."
@@ -123,6 +124,7 @@ setup-replace-repository-reference:
 	fi
 	@pnpm exec tsx scripts/setup/replace-repository-reference \
 		--repository "$$REPOSITORY" \
+		$${PORTAL_URL:+--portal-url "$$PORTAL_URL"} \
 		$(SETUP_DRY_RUN_FLAG)
 
 # boilerplate-only:begin

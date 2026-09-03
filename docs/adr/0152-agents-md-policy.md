@@ -74,6 +74,8 @@ Accepted
 マーカーの形は `sample` 族と同一で、`boilerplate-only:begin` / `:end` / `:line` / `:replace-begin` / `:replace-with` / `:replace-end` を持つ。機構は `scripts/setup/lib/markers.ts` が共有し、剥がしは `make setup-remove-boilerplate-only` が行う。
 
 **族を分けてあるのは、消える契機が違うためである。** サンプルは題材を使うかで選べる任意の破棄だが、boilerplate 限定の記述は fork を作った時点で前提が失効するので選択の余地が無い。同じ族にすると、サンプルを残す fork が両方を残す。剥がしの道具そのものも、この理由から破棄の道具とは独立に自消滅する。
+
+**囲んだ節は、剥がしのあとも残るものから参照しない。** fork へ渡るコードや文書がここを指すと、参照先だけが消えて宛先の無いリンクが残る。剥がしの検査（`.github/workflows/strip-verify.yaml`）が見るのはマーカーの語の残留だけで、宛先を失った参照は捕まえない。fork も読む根拠は、剥がされない側の ADR へ置く。
 <!-- boilerplate-only:end -->
 
 ## Instruction Priority

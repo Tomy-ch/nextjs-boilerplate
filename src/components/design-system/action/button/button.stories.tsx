@@ -32,6 +32,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// portal:replace-begin
+const detailsHref = "https://github.com/";
+// portal:replace-with
+// = const detailsHref = "__PORTAL_URL__";
+// portal:replace-end
+
 /** 既定。画面の主要操作に使う。 */
 export const Default: Story = {};
 
@@ -95,7 +101,7 @@ export const Pending: Story = {
 export const AsChild: Story = {
   render: () => (
     <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
-      <a href="https://github.com/">詳細を確認</a>
+      <a href={detailsHref}>詳細を確認</a>
     </Button>
   ),
 };

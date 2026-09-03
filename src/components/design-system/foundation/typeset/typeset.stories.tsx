@@ -10,6 +10,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// portal:replace-begin
+const detailsLink = { href: "https://github.com/", label: "GitHub" };
+// portal:replace-with
+// = const detailsLink = { href: "__PORTAL_URL__", label: "ドキュメントポータル" };
+// portal:replace-end
+
 /** Markdown から得た一般的な HTML 要素の組版例。 */
 export const Docs: Story = {
   render: () => (
@@ -17,7 +23,7 @@ export const Docs: Story = {
       <h1>ドキュメントの書き方</h1>
       <p>
         このページでは、読みやすい文書を作るための基本的な要素を紹介します。詳細は
-        <a href="https://github.com/">GitHub</a>をご確認ください。
+        <a href={detailsLink.href}>{detailsLink.label}</a>をご確認ください。
       </p>
       <h2>基本方針</h2>
       <ul>
