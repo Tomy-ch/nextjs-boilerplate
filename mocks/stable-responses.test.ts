@@ -62,6 +62,27 @@ describe("seedFor", () => {
 const ENDPOINTS = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta"] as const;
 
 /**
+ * 口 1 つぶんの宣言（ハンドラ生成関数と応答生成関数の組）を組み立てる。
+ *
+ * @remarks
+ * 生成物と同じ形にします —— ハンドラ生成関数は応答の差し替えを受け取り、渡されなければ自分で
+ * 応答を組み立てます。
+ */
+function respondingEndpoint(name: string, path: string): Record<string, unknown> {
+  return {
+    [`get${name}MockHandler`]: (
+      override?: (info: { request: Request }) => Promise<unknown>,
+    ): RequestHandler =>
+      http.get(path, async (info) =>
+        HttpResponse.json(
+          (override === undefined ? randomBody() : await override(info)) as Record<string, unknown>,
+        ),
+      ),
+    [`get${name}ResponseMock`]: randomBody,
+  };
+}
+
+/**
  * 契約から生成したモックの module を模した相手。
  *
  * @remarks
@@ -101,6 +122,10 @@ const generated: Record<string, unknown> = {
   // 応答本文を持たない口（204 を返すもの）。差し替える相手が無い。
   getSilentMockHandler: (): RequestHandler =>
     http.get("https://mock.test/silent", () => new HttpResponse(null, { status: 204 })),
+  // パラメータ区間を持つ口と、それにも一致する具体的な口。生成関数の名前順では前者が先に来るため、
+  // 具体度で並べ替えなければ `/items/latest` への要求が `/items/:itemId` に食われる。
+  ...respondingEndpoint("ItemById", "https://mock.test/items/:itemId"),
+  ...respondingEndpoint("ItemLatest", "https://mock.test/items/latest"),
 };
 
 function randomBody(): Record<string, unknown> {
@@ -194,6 +219,8 @@ describe("stableHandlers", () => {
       [
         ...ENDPOINTS.map((name) => `GET https://mock.test/${name.toLowerCase()}`),
         "GET https://mock.test/silent",
+        "GET https://mock.test/items/:itemId",
+        "GET https://mock.test/items/latest",
         "POST https://mock.test/write",
       ].sort(),
     );
@@ -271,6 +298,25 @@ describe("stableHandlers", () => {
     });
 
     expect(await fetchPatched(patch)).toEqual(await fetchPatched(patch));
+  });
+
+  it("具体的なパスを、それにも一致するパラメータ区間より先に置く", () => {
+    const paths = stableHandlers(generated).map((handler) => String(handler.info.path));
+
+    expect(paths.indexOf("https://mock.test/items/latest")).toBeLessThan(
+      paths.indexOf("https://mock.test/items/:itemId"),
+    );
+  });
+
+  it("具体度が同じ口どうしを生成関数の名前順に並べる", () => {
+    const declared = ENDPOINTS.map((name) => `https://mock.test/${name.toLowerCase()}`);
+    const observed = stableHandlers(generated)
+      .map((handler) => String(handler.info.path))
+      .filter((path) => declared.includes(path));
+
+    expect(observed).toEqual(
+      [...ENDPOINTS].sort().map((name) => `https://mock.test/${name.toLowerCase()}`),
+    );
   });
 
   it("module のキーが並ぶ順序によらず同じ並びを返す", () => {

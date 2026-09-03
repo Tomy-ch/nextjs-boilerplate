@@ -8,19 +8,8 @@ function pathOf(handler: (typeof handlers)[number]): string {
   return String(handler.info.path);
 }
 
-/** パスが持つパラメータ区間の数。 */
-function parameterCount(path: string): number {
-  return (path.match(/:/g) ?? []).length;
-}
-
 describe("handlers", () => {
   // ----- 正常系 -----
-  it("パラメータ区間を持たないパスを、持つパスより先に並べる", () => {
-    const counts = handlers.map((handler) => parameterCount(pathOf(handler)));
-
-    expect(counts).toEqual([...counts].sort((left, right) => left - right));
-  });
-
   it("具体的なパスを、それに一致してしまうパラメータ区間より先に置く", () => {
     const indexOf = (suffix: string) =>
       handlers.findIndex((handler) => pathOf(handler).endsWith(suffix));
@@ -32,7 +21,7 @@ describe("handlers", () => {
     expect(indexOf("/v1/users/me")).toBeLessThan(indexOf("/v1/users/:userId"));
   });
 
-  it("並べ替えでハンドラを落とさず増やさない", () => {
+  it("生成物が持つ口をすべて通し、落とさず増やさない", () => {
     // 呼ぶたび別インスタンスが返るので、突き合わせは口（method + path）で行う。
     const endpointOf = (handler: (typeof handlers)[number]) =>
       `${String(handler.info.method)} ${pathOf(handler)}`;

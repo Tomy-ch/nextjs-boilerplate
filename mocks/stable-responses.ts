@@ -53,6 +53,19 @@ const REFERENCE_DATE = new Date("2026-01-01T00:00:00.000Z");
 /** 生成物が口ごとに公開するハンドラ生成関数の名前の末尾。 */
 const HANDLER_SUFFIX = "MockHandler";
 
+/**
+ * パスが持つパラメータ区間の数。少ないほど具体的なパス。
+ *
+ * @remarks
+ * `/x/latest` は 0、`/x/:id` は 1 で、前者は後者にも一致します。
+ *
+ * パスは常に文字列です。生成物は契約のパスをリテラルで渡すため、`HttpHandler` の `info` が
+ * 許す `RegExp` の形は現れません。防御を足すと、到達しない分岐が残ります。
+ */
+function parameterCount(handler: HttpHandler): number {
+  return (String(handler.info.path).match(/:/g) ?? []).length;
+}
+
 /** 同じ口の応答を組み立てる関数の名前の末尾。 */
 const RESPONSE_SUFFIX = "ResponseMock";
 
@@ -108,13 +121,21 @@ export type ReferencePatches = ReadonlyMap<string, ReferencePatch>;
  * 口と応答の対応は名前で決まります（`getGetProductsMockHandler` ↔ `getGetProductsResponseMock`）。
  * 応答本文を持たない口（204 を返すもの）には差し替えるものが無いため、生成物のまま使います。
  *
- * 並び順は名前順に固定します。**module の宣言順は使えません** —— `import * as` が返すのは
- * Module Namespace Exotic Object で、その文字列キーは仕様上ソート順で列挙されます。宣言順に
- * 見えるかどうかは、素の ESM で読むか bundler の変換を通すかで変わるため、宣言順に依存すると
- * 「テストでは通るが実行時は違う並び」を作れてしまいます。
+ * **並び順はここが決めます。** MSW は登録順に照合するので、並びは呼び出し側の都合ではなく
+ * 照合の正しさで決まります。規則は 2 つあります。
+ *
+ * 1. **具体的なパスを先に置く。** パラメータ区間を持つパス（`/x/:id`）が、それにも一致する
+ *    具体的なパス（`/x/latest`）より前に来ると、後者への要求が前者に食われて別の応答が返ります。
+ *    具体的なパスを先に置けば、パラメータ区間は他に一致するものが無かったときだけ拾います
+ * 2. **同じ具体度どうしは生成関数の名前順。** **module の宣言順は使えません** —— `import * as`
+ *    が返すのは Module Namespace Exotic Object で、その文字列キーは仕様上ソート順で列挙されます。
+ *    宣言順に見えるかどうかは、素の ESM で読むか bundler の変換を通すかで変わるため、宣言順に
+ *    依存すると「テストでは通るが実行時は違う並び」を作れてしまいます
+ *
+ * 2 つめが 1 つめに残るのは、並べ替えが安定だからです。
  *
  * @param generated - 契約から生成したモックの module
- * @returns 口ごとのハンドラ。並び順は生成関数の名前順
+ * @returns 口ごとのハンドラ。具体的なパスが先、同じ具体度どうしは生成関数の名前順
  */
 export function stableHandlers(
   generated: Readonly<Record<string, unknown>>,
@@ -159,7 +180,7 @@ export function stableHandlers(
     throw new Error("契約から生成したハンドラがありません");
   }
 
-  return handlers;
+  return handlers.sort((left, right) => parameterCount(left) - parameterCount(right));
 }
 
 /**
