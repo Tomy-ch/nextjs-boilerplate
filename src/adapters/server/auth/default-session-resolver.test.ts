@@ -250,7 +250,7 @@ describe("createDefaultSessionResolver", () => {
 
   it("宛先が多値でも、azp が client と一致すれば受け入れる", async () => {
     const { complete } = await startSignIn({
-      claims: { aud: [clientId, "go-boilerplate-api"], azp: clientId },
+      claims: { aud: [clientId, "example-resource-api"], azp: clientId },
     });
 
     const record = await complete();

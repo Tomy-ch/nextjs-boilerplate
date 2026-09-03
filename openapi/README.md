@@ -47,11 +47,23 @@ make fetch-api NAME=api   # 契約を 1 本だけ取得する
 ## 複数契約
 
 `sources.yaml` は複数の契約を並べられます。バックエンドが 1 リポジトリでも、契約が 1 本とは
-限らないためです。現在の宣言は次の 1 本です。
+限らないためです。
+
+<!-- sample:replace-begin -->
+現在の宣言は次の 1 本です。
 
 | name | 契約 | 備考 |
 | --- | --- | --- |
 | `api` | go-boilerplate 本体の API | admin と一般が同居しており、tags でも `security` でも scope でも機械的に分割できないため 1 ユニットとして扱う |
+<!-- sample:replace-with -->
+<!-- = 宣言は空です。**`name` は `api` のまま使うのが既定です。** 取得先（`api.gen.yaml`）と版の -->
+<!-- = 突合は `name` から導かれますが、生成の側は綴りを直に持っており、`orval.config.ts` の -->
+<!-- = `apiInput.target` / `output.target` / `output.schemas` と `scripts/openapi/gen-api-plan.ts` の -->
+<!-- = `GEN_API_OUTPUTS` を一緒に揃えないと、`make gen-api-check` が「生成物がありません」で止まります。 -->
+<!-- =  -->
+<!-- = **分けるかどうかは契約の側の都合で決めます** —— 1 本の契約に admin と一般が同居していても、 -->
+<!-- = tags でも `security` でも scope でも機械的に分割できないなら 1 ユニットとして扱います。 -->
+<!-- sample:replace-end -->
 
 **認証の契約はここに置きません。** 開発用 IdP は既製の OIDC Provider を立てて済ませており、
 取り込む先の契約が存在しないためです。フロントが認証で使うのは OIDC Discovery が実行時に

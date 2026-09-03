@@ -12,6 +12,10 @@
  * @remarks
  * **手書きを含めてはいけません。** `src/adapters/gen/README.md` と `mocks/` 直下は人が書いた
  * ものなので、消してよいのは契約ごとの部分木だけです。
+ *
+ * **末尾の `api` は契約の名前で、`openapi/sources.yaml` の `name` と揃えます。** 同じ綴りが
+ * `orval.config.ts` にも入っており、**片方だけ動かしても型検査も lint も通ってしまいます**。
+ * ずれは `make gen-api-check` が「生成物がありません」として遅れて知らせます。
  */
 const GEN_API_OUTPUTS: readonly string[] = ["src/adapters/gen/api", "mocks/api"];
 

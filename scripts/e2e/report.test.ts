@@ -54,7 +54,7 @@ describe("collectFailedScreens", () => {
 
   it("ジャーニーの失敗は画面として拾わない", () => {
     const json = reportOf([
-      { file: "e2e/journeys/purchase.spec.ts", title: "購入", tests: [test({})] },
+      { file: "e2e/journeys/sign-in.spec.ts", title: "サインイン", tests: [test({})] },
       { file: VISUAL, title: "about", tests: [test({})] },
     ]);
 

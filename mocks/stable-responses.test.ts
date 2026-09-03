@@ -62,6 +62,27 @@ describe("seedFor", () => {
 const ENDPOINTS = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta"] as const;
 
 /**
+ * 口 1 つぶんの宣言（ハンドラ生成関数と応答生成関数の組）を組み立てる。
+ *
+ * @remarks
+ * 生成物と同じ形にします —— ハンドラ生成関数は応答の差し替えを受け取り、渡されなければ自分で
+ * 応答を組み立てます。
+ */
+function respondingEndpoint(name: string, path: string): Record<string, unknown> {
+  return {
+    [`get${name}MockHandler`]: (
+      override?: (info: { request: Request }) => Promise<unknown>,
+    ): RequestHandler =>
+      http.get(path, async (info) =>
+        HttpResponse.json(
+          (override === undefined ? randomBody() : await override(info)) as Record<string, unknown>,
+        ),
+      ),
+    [`get${name}ResponseMock`]: randomBody,
+  };
+}
+
+/**
  * 契約から生成したモックの module を模した相手。
  *
  * @remarks
@@ -101,6 +122,23 @@ const generated: Record<string, unknown> = {
   // 応答本文を持たない口（204 を返すもの）。差し替える相手が無い。
   getSilentMockHandler: (): RequestHandler =>
     http.get("https://mock.test/silent", () => new HttpResponse(null, { status: 204 })),
+  // パラメータ区間を持つ口と、それにも一致する具体的な口。生成関数の名前順では前者が先に来るため、
+  // 具体度で並べ替えなければ `/items/latest` への要求が `/items/:itemId` に食われる。
+  ...respondingEndpoint("ItemById", "https://mock.test/items/:itemId"),
+  ...respondingEndpoint("ItemLatest", "https://mock.test/items/latest"),
+  // 具体度が 3 段に分かれる口。名前順は Child → Item → Root で、具体度の順とはちょうど逆になる。
+  //
+  // **区間の数を数える実装と、区間の有無で 2 つに分ける実装を見分けるのがこの 3 つである。**
+  // 後者だと Item と Child が同じ組に入り、名前順のまま Child が先に残る。
+  //
+  // 生成物と同じくスキームを持たないパスにしてある。`/nested` はコロンを 1 つも含まないため、
+  // 数える側の「一致なし」もここで踏む。
+  ...respondingEndpoint("NestedRoot", "/nested"),
+  ...respondingEndpoint("NestedItem", "/nested/:id"),
+  ...respondingEndpoint("NestedChild", "/nested/:id/:subId"),
+  // 名前順とパス順が食い違う組。名前は Mu → Nu、パスは `aaa-nu` → `zzz-mu` で逆になる。
+  ...respondingEndpoint("Mu", "https://mock.test/zzz-mu"),
+  ...respondingEndpoint("Nu", "https://mock.test/aaa-nu"),
 };
 
 function randomBody(): Record<string, unknown> {
@@ -122,6 +160,13 @@ function patchedServer(patch: ReferencePatch) {
 /** ハンドラが受け持つ口。並びと集合の比較に使う。 */
 function endpointOf(handler: HttpHandler): string {
   return `${String(handler.info.method)} ${String(handler.info.path)}`;
+}
+
+/** 組み立てた並びから、当たるパスだけを順序を保って取り出す。 */
+function pathsMatching(pattern: RegExp): string[] {
+  return stableHandlers(generated)
+    .map((handler) => String(handler.info.path))
+    .filter((path) => pattern.test(path));
 }
 
 /**
@@ -194,6 +239,13 @@ describe("stableHandlers", () => {
       [
         ...ENDPOINTS.map((name) => `GET https://mock.test/${name.toLowerCase()}`),
         "GET https://mock.test/silent",
+        "GET https://mock.test/items/:itemId",
+        "GET https://mock.test/items/latest",
+        "GET /nested",
+        "GET /nested/:id",
+        "GET /nested/:id/:subId",
+        "GET https://mock.test/zzz-mu",
+        "GET https://mock.test/aaa-nu",
         "POST https://mock.test/write",
       ].sort(),
     );
@@ -271,6 +323,27 @@ describe("stableHandlers", () => {
     });
 
     expect(await fetchPatched(patch)).toEqual(await fetchPatched(patch));
+  });
+
+  it("具体的なパスを、それにも一致するパラメータ区間より先に置く", () => {
+    // 位置の比較にしない。`indexOf` は無いものに `-1` を返すので、具体的なパスの側が丸ごと
+    // 消えても「先に居る」が成り立ってしまう。
+    expect(pathsMatching(/\/items\//)).toEqual([
+      "https://mock.test/items/latest",
+      "https://mock.test/items/:itemId",
+    ]);
+  });
+
+  it("パラメータ区間の数が多い口ほど後ろへ置く", () => {
+    expect(pathsMatching(/^\/nested/)).toEqual(["/nested", "/nested/:id", "/nested/:id/:subId"]);
+  });
+
+  it("具体度が同じ口どうしを生成関数の名前順に並べる", () => {
+    // パスでソートする実装と見分けるため、名前順とパス順が逆になる組で見る。
+    expect(pathsMatching(/-(?:mu|nu)$/)).toEqual([
+      "https://mock.test/zzz-mu",
+      "https://mock.test/aaa-nu",
+    ]);
   });
 
   it("module のキーが並ぶ順序によらず同じ並びを返す", () => {
