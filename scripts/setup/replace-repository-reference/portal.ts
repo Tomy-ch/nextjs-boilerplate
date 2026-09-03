@@ -9,8 +9,8 @@ import { type StripResult, stripMarkers } from "../lib/markers.js";
  * マーカーの名前。`portal:replace-begin` / `replace-with` / `replace-end` を作る。
  *
  * @remarks
- * `sample` / `boilerplate-only` 族とは別に分けます。族を分ける理由は
- * [0152](../../../docs/adr/0152-agents-md-policy.md) が持ちます。
+ * 既存のマーカー族に相乗りさせず、独立した族にします。理由は
+ * [0141](../../../docs/adr/0141-portal-operations.md) が持ちます。
  */
 const PORTAL_MARKER = "portal";
 

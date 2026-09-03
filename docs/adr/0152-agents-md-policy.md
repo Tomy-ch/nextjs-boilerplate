@@ -74,8 +74,6 @@ Accepted
 マーカーの形は `sample` 族と同一で、`boilerplate-only:begin` / `:end` / `:line` / `:replace-begin` / `:replace-with` / `:replace-end` を持つ。機構は `scripts/setup/lib/markers.ts` が共有し、剥がしは `make setup-remove-boilerplate-only` が行う。
 
 **族を分けてあるのは、消える契機が違うためである。** サンプルは題材を使うかで選べる任意の破棄だが、boilerplate 限定の記述は fork を作った時点で前提が失効するので選択の余地が無い。同じ族にすると、サンプルを残す fork が両方を残す。剥がしの道具そのものも、この理由から破棄の道具とは独立に自消滅する。
-
-**`portal` 族はこの 2 つとは別に立てる。** あちらは印の付いた行を消して完結するが、`portal` は値の差し込みを伴い、走るのはリポジトリ参照の置換（`make setup-replace-repository-reference`）と同じ一手である（[0141](0141-portal-operations.md)）。消す契機ではなく、走らせる道具が違う。
 <!-- boilerplate-only:end -->
 
 ## Instruction Priority
