@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { mediaUrl } from "./media";
 
-const ORIGIN = "http://gobp-local.web.garage.localhost:3902";
+const ORIGIN = "http://media.example.test:9000";
 
 describe("mediaUrl", () => {
   // ----- 正常系 -----

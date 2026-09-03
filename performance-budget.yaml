@@ -63,25 +63,44 @@ routes:
 
 growth:
   initialJs:
+    # sample:replace-begin
     gzipKb: 30
     reason: >-
       依存の patch 更新や chunk の切り直しで数 KB は動くため、本来は 10 KB で足りる。30 KB へ広げて
       あるのは、route を器（app shell）の内と外で移すと、その route が器の client 島をまとめて背負う
       ためである。同梱サンプルではこれが 25 KB 前後で、器を持つ route と持たない route の差そのものに
-      あたる。**サンプルを破棄したら 10 KB へ戻すこと** —— fork 先が器を 1 つに保つ限り、この段差は
-      起きない
+      あたる。**この行はサンプルと一緒に消え、10 KB の側が残る** —— fork 先が器を 1 つに保つ限り、
+      この段差は起きない
+    # sample:replace-with
+    # = gzipKb: 10
+    # = reason: >-
+    # =   依存の patch 更新や chunk の切り直しで数 KB は動くため、その幅では鳴らさない。器（app shell）
+    # =   の内と外で route を移すと、その route が器の client 島をまとめて背負って 20 KB 台の段差が
+    # =   出るが、器を 1 つに保つ限り起きない。**起こす変更をするなら、広げる前に器の側を見直す**
+    # sample:replace-end
   totalJs:
+    # sample:replace-begin
     gzipKb: 30
+    # sample:replace-with
+    # = gzipKb: 10
+    # sample:replace-end
     reason: >-
       初期と同じ幅にしてある。合計は初期を含むので、初期が動く理由はそのまま合計にも効き、別の値に
       すると同じ 1 つの揺れで片方だけが鳴る。**この行が守っているのは「移しただけ」を通さないこと**
       で、`next/dynamic` の先へ寄せた変更は初期が減っても合計が動かないため、ここは静かなままになる
   css:
     gzipKb: 8
+    # sample:replace-begin
     reason: >-
       utility CSS は部品が増えたぶんだけ増える種類の量で、動く幅が JS と桁で違う。JS と同じ 30 KB を
       置くと、この行は何も鳴らさない飾りになる。同梱サンプル全 route の CSS が 20 KB 前後なので、
       8 KB は「1 回の変更で 4 割増えた」に当たる
+    # sample:replace-with
+    # = reason: >-
+    # =   utility CSS は部品が増えたぶんだけ増える種類の量で、JS とは増え方が違う。JS と同じ幅を
+    # =   置くと、片方の揺れがもう片方の線を決めることになる。全 route の CSS が 20 KB 前後の規模で、
+    # =   8 KB は「1 回の変更で 4 割増えた」に当たる
+    # sample:replace-end
 
 # ---------------------------------------------------------------------------------------
 # Core Web Vitals の予算（同じ [ADR 0101](docs/adr/0101-performance-budget.md)）。

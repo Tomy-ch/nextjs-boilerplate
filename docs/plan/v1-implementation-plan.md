@@ -1623,7 +1623,7 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
 | 3 | **`verify` が過不足を両方見て最後に自爆する** | 不足(登録パスの残留)/ 過剰(`git status` 上の登録外削除)/ make ターゲット消失 / 残留参照 grep。検証後に自身とスナップショットを削除しコアのみを残す |
 
 - **安全策**: `assertWithinRoot`(`..` / 絶対パス / ROOT 自体を指す manifest ミスを検出)を移植する。`DRY_RUN` はプレビュー(空でない値はすべてプレビュー扱い)
-- **P4-4 からの申し送り — 画像の配信元を爆破後に切り替える**: サンプル在時の mock モードは **API だけを MSW で差し替え、画像は実配信(Garage の公開エンドポイント)から取得する**。バックエンドと同じ compose に居る別コンテナが配信しており、実物が取れる間はプレースホルダで代用する理由が無いためである。サンプルを破棄すると Garage も go-boilerplate も前提から外れるので、**`MEDIA_ORIGIN` の既定値と画像の取得経路を MSW 側へ倒す**。上の設計判断 1（`sample:replace-begin` / `replace-with` / `replace-end`）が効く箇所であり、`env/.env.local` の `MEDIA_ORIGIN` と `next.config.ts` の `images.remotePatterns`(検証済み ENV から組み立てている)が対象になる
+- **P4-4 からの申し送り — 画像の配信元を爆破後に切り替える**: サンプル在時の mock モードは **API だけを MSW で差し替え、画像は実配信(Garage の公開エンドポイント)から取得する**。バックエンドと同じ compose に居る別コンテナが配信しており、実物が取れる間はプレースホルダで代用する理由が無いためである。サンプルを破棄すると Garage も go-boilerplate も前提から外れるので、**`env/*` の `MEDIA_ORIGIN` を `sample:replace-*` で中立なプレースホルダへ切り替える**(§3.2 の「爆破後 = fork 先の実ストレージ / CDN」)。**取得経路そのものは動かさない** —— 爆破後のツリーに画像を取る画面は 1 つも残らず、MSW にプレースホルダを配らせると `mocks/` が手書きのハンドラを持つことになるためである。上の設計判断 1（`sample:replace-begin` / `replace-with` / `replace-end`）が効く箇所であり、`next.config.ts` の `images.remotePatterns` と CSP の `img-src` はどちらも検証済み ENV から組み立てているので、切り替えは env の 1 行で足りる
 - **BUILD_STEPS**: `gen-api → fix → lint:ci → typecheck → build → test`
 - **完了条件**: `DRY_RUN=1 make setup-remove-sample` がプレビューを出す。実行後に `verify` が過不足なしと判定する
 - **依存**: P5-16
