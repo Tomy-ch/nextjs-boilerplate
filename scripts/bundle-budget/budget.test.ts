@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   type Budget,
+  growthModeFor,
   hasFailure,
   judge,
   type Measurement,
@@ -220,6 +221,61 @@ describe("judge", () => {
     );
 
     expect(verdict?.css.overGrowth).toBe(6 * KB);
+  });
+
+  it("報告だけの扱いなら、3 つの量とも増分で落とさない", () => {
+    const [verdict] = judge(
+      [measured({ route: "/", initialJs: 95 * KB, deferredJs: 50 * KB, css: 20 * KB })],
+      [measured({ route: "/", initialJs: 80 * KB, deferredJs: 20 * KB, css: 10 * KB })],
+      BUDGET,
+      "report",
+    );
+
+    expect(verdict?.initialJs.overGrowth).toBeUndefined();
+    expect(verdict?.totalJs.overGrowth).toBeUndefined();
+    expect(verdict?.css.overGrowth).toBeUndefined();
+  });
+
+  it("報告だけの扱いでも、base の値は表に出せるよう残す", () => {
+    const [verdict] = judge(
+      [measured({ route: "/", initialJs: 95 * KB })],
+      [measured({ route: "/", initialJs: 80 * KB })],
+      BUDGET,
+      "report",
+    );
+
+    expect(verdict?.initialJs.base).toBe(80 * KB);
+  });
+
+  it("報告だけの扱いでも、宣言した上限は超過を返す", () => {
+    const [verdict] = judge(
+      [measured({ route: "/", initialJs: 110 * KB })],
+      [measured({ route: "/", initialJs: 109 * KB })],
+      BUDGET,
+      "report",
+    );
+
+    expect(verdict?.overLimit).toBe(10 * KB);
+  });
+});
+
+describe("growthModeFor", () => {
+  // ----- 正常系 -----
+  it("リリースブランチへ向いた PR は増分を判定に使う", () => {
+    expect(growthModeFor("release/v1.2.0")).toBe("gate");
+  });
+
+  it("base が無い実行は増分を判定に使う", () => {
+    expect(growthModeFor(undefined)).toBe("gate");
+  });
+
+  // ----- 異常系 -----
+  it("production へ向いた昇格は増分を報告に留める", () => {
+    expect(growthModeFor("production")).toBe("report");
+  });
+
+  it("staging へ向いた昇格は増分を報告に留める", () => {
+    expect(growthModeFor("staging")).toBe("report");
   });
 });
 

@@ -89,11 +89,50 @@ export function parseBudget(text: string): Budget {
   return budgetSchema.parse(parse(text));
 }
 
-/** 1 つの量を、base と増分の上限に照らす。 */
-function judgeQuantity(current: number, base: number | undefined, limit: number): Quantity {
-  const growth = base === undefined ? 0 : current - base;
+/**
+ * 増分を判定に使うか、報告に留めるか。
+ *
+ * @remarks
+ * 増分の上限は**変更 1 つぶんのラチェット**です（根拠は `performance-budget.yaml`）。base が
+ * 配信中のブランチであるとき、そこへの差は個別に判定を通った変更の総和なので、変更 1 つぶんの
+ * 幅を当てれば必ず割れます。その場では差を表に出すだけにし、判定は宣言した上限が持ちます。
+ */
+export type GrowthMode = "gate" | "report";
 
-  return { current, base, overGrowth: growth > limit ? growth - limit : undefined };
+/**
+ * 昇格の着地先。ここへ向いた PR は、変更 1 つではなくリリース 1 本を運ぶ。
+ *
+ * @remarks
+ * [0150](../../docs/adr/0150-git-workflow.md) の昇格の連なりの、受ける側だけを並べます。
+ * `release/**` は受ける側でもあり出す側でもありますが、そこへ向く PR は変更 1 つなので入りません。
+ */
+const PROMOTION_TARGETS: ReadonlySet<string> = new Set(["production", "staging"]);
+
+/**
+ * base の名前から、増分の扱いを決める。
+ *
+ * @remarks
+ * 判定を workflow の shell へ置かないのは、置くと検査が掛からないためです。ここに置けば
+ * 「どの base で緩むのか」がテストで固定できます。
+ *
+ * @param baseRef - PR の base ブランチ名（`GITHUB_BASE_REF`）。PR でなければ `undefined`
+ * @returns 昇格の PR なら報告だけ、それ以外は判定に使う
+ */
+export function growthModeFor(baseRef: string | undefined): GrowthMode {
+  return baseRef !== undefined && PROMOTION_TARGETS.has(baseRef) ? "report" : "gate";
+}
+
+/** 1 つの量を、base と増分の上限に照らす。 */
+function judgeQuantity(
+  current: number,
+  base: number | undefined,
+  limit: number,
+  mode: GrowthMode,
+): Quantity {
+  const growth = base === undefined ? 0 : current - base;
+  const over = growth > limit ? growth - limit : undefined;
+
+  return { current, base, overGrowth: mode === "gate" ? over : undefined };
 }
 
 /**
@@ -106,12 +145,14 @@ function judgeQuantity(current: number, base: number | undefined, limit: number)
  * @param current - この PR の計測。
  * @param base - base ブランチの計測。取れない場合は空で渡す。
  * @param budget - 宣言。
+ * @param mode - 増分の扱い。既定は判定に使う。
  * @returns 計測と同じ順序の判定。
  */
 export function judge(
   current: readonly Measurement[],
   base: readonly Measurement[],
   budget: Budget,
+  mode: GrowthMode = "gate",
 ): Verdict[] {
   const baseByRoute = new Map(base.map((row) => [row.route, row]));
   const initialLimit = budget.growth.initialJs.gzipKb * BYTES_PER_KB;
@@ -127,13 +168,13 @@ export function judge(
 
     return {
       route: row.route,
-      initialJs: judgeQuantity(row.initialJs, previous?.initialJs, initialLimit),
+      initialJs: judgeQuantity(row.initialJs, previous?.initialJs, initialLimit, mode),
       // 内訳なので増分では落とさない。同じ増分が全 route へ並ぶのを避けるため、判定は
       // 初期 JS の側が 1 度だけ持つ。
       sharedJs: { current: row.sharedJs, base: previous?.sharedJs, overGrowth: undefined },
       deferredJs: { current: row.deferredJs, base: previous?.deferredJs, overGrowth: undefined },
-      totalJs: judgeQuantity(total, baseTotal, totalLimit),
-      css: judgeQuantity(row.css, previous?.css, cssLimit),
+      totalJs: judgeQuantity(total, baseTotal, totalLimit, mode),
+      css: judgeQuantity(row.css, previous?.css, cssLimit, mode),
       limit,
       overLimit: limit !== undefined && row.initialJs > limit ? row.initialJs - limit : undefined,
     };
