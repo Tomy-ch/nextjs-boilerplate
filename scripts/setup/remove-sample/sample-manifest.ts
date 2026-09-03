@@ -1,4 +1,4 @@
-// 破棄する対象の宣言。ここはデータだけを持ち、消し方は index.ts が担う。
+// 破棄する対象の宣言。ここはデータだけを持ち、消し方の判定は plan.ts、実行は index.ts が担う。
 //
 // 宣言を 1 箇所に集めるのは、削除と検証が同じ表を読む必要があるためである。片方が独自の
 // 一覧を持つと、消したのに検証が知らない対象や、検証だけが要求する対象が生まれる。
@@ -100,10 +100,9 @@ export type SampleRestoration = {
  *
  * @remarks
  * **削除だけでは表せない対象がここに来ます。** 入口（`/`）は題材の画面が占めているので削除の
- * 対象ですが、経路そのものは残らなければなりません —— 不在の面から戻る導線
- * （`src/app/not-found.tsx`）、役割の足りない要求の戻り先（`src/proxy.ts`）、サイトマップが
- * 挙げる公開経路（`src/app/sitemap.ts`）の 3 つが指す先だからです。画面を 1 枚も持たない木は、
- * 起動しても 404 しか返しません。
+ * 対象ですが、経路そのものは残らなければなりません。**何がその経路を指しているか**は、置き直す
+ * 雛形（`templates/app-page.tsx.template`）が持ちます —— 破棄後に残るのはそちらで、理由を必要と
+ * するのも fork 先だからです。
  *
  * 置き直すのは**動作確認用の最小ページ**で、画面実装で置き換わる足場です
  * （[計画](../../../docs/plan/v1-implementation-plan.md) §3.12）。破棄は画面実装の逆操作なので、
@@ -135,8 +134,9 @@ export const SAMPLE_RESTORATIONS: readonly SampleRestoration[] = [
 export const DANGLING_PATTERN = String.raw`商品|カート|在庫|購入|注文|\bproducts\b|\bcart\b`;
 
 // 破棄後に手で戻すもの（削除では表せない）:
-// - `performance-budget.yaml` の `growth.gzipKb` を 30 から 10 へ。広げてあるのは、器の内と外で
-//   route を移すとその route が器の client 島をまとめて背負うためで、サンプルが消えれば起きない
+// - `performance-budget.yaml` の `growth.initialJs.gzipKb` と `growth.totalJs.gzipKb` を 30 から
+//   10 へ（後者は前者と同じ幅にしてある）。広げてあるのは、器の内と外で route を移すとその route
+//   が器の client 島をまとめて背負うためで、サンプルが消えれば起きない
 
 /** マーカーの名前。`sample:begin` / `sample:end` / `sample:line` / `sample:replace-*` を作る。 */
 export const SAMPLE_MARKER = "sample";

@@ -13,8 +13,7 @@ const FOREIGN_SCRIPT = "https://probe.invalid/script.js";
  *
  * @remarks
  * CSP は配信するヘッダなので、どの画面でも同じものが掛かります。選び方は同意の spec と同じで、
- * **同梱サンプルを破棄しても残り、バックエンドから何も取らない**画面を指します
- * （[`consent.spec.ts`](consent.spec.ts)）。
+ * **題材に依らず、バックエンドから何も取らない**画面を指します（[`consent.spec.ts`](consent.spec.ts)）。
  */
 const ENTRY_PATH = "/login";
 

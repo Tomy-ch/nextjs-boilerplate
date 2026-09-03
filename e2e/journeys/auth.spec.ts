@@ -6,10 +6,10 @@ import { expect, test } from "../lib/test";
  * @remarks
  * 見るのは**保護されている経路の扱い**であって、その先に画面が在るかではありません。判定は
  * `src/proxy.ts` が接頭辞の宣言だけで行うため、画面を持たない接頭辞でも同じ経路を通ります。
- * 中立な接頭辞（`/account`）を使うのは、同梱サンプルの画面が破棄されても宣言そのものは残るからです。
+ * 経路を選んだ理由は {@link PROTECTED_PATH} と {@link STATIC_PATH}。
  */
 
-/** 保護されている接頭辞のうち、同梱サンプルと一緒に消えない 1 つ。 */
+/** 保護されている接頭辞のうち、題材の画面が消えても宣言そのものは残る 1 つ。 */
 const PROTECTED_PATH = "/account";
 
 /**
@@ -17,9 +17,9 @@ const PROTECTED_PATH = "/account";
  *
  * @remarks
  * 動的な画面は framework が自分で `no-store` を付けるため、前捌きの付けたヘッダが配信まで
- * 残ったことの証拠になりません。**同梱サンプルを破棄しても残る画面**であることも要ります ——
- * 題材の画面を指すと、破棄した fork でこの spec だけが指す先を失います。停止画面は止めて
- * いなくても URL で開け、取得を持たないので静的に配れる（`src/app/maintenance/page.tsx`）。
+ * 残ったことの証拠になりません。**題材に依らない**画面であることも要ります（[README](../README.md)）。
+ * 停止画面は止めていなくても URL で開け、取得を持たないので静的に配れる
+ * （`src/app/maintenance/page.tsx`）。
  */
 const STATIC_PATH = "/maintenance";
 

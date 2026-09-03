@@ -5,9 +5,7 @@ import { MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
 
 /**
  * 同意を尋ねる面と、その裏で配られる計測 id（[0131](../../docs/adr/0131-cookie-consent.md)）。
- *
- * **`e2e/lib/test.ts` の test を使いません。** あちらは選び終えた状態から始めるため、尋ねる面が
- * そもそも出ません。ここが確かめたいのは選ぶ前の状態です。
+ * `e2e/lib/test.ts` の test を使わない理由は [README](../README.md)「同意は選び終えた状態から始める」。
  */
 
 /**
@@ -15,9 +13,8 @@ import { MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
  *
  * @remarks
  * 尋ねる面は root layout が置くので、どの画面でも出ます。ログインを選ぶのは 2 つの理由です ——
- * **同梱サンプルを破棄しても残る**画面であること（題材の画面を指すと、破棄した fork でこの
- * spec だけが指す先を失います。`e2e/maintenance/stopped.spec.ts` と同じ規律）と、**バックエンド
- * から何も取らない**こと（モックの応答に依る画面を指すと、同意の検査がその取得と一緒に落ちます）。
+ * **題材に依らない**画面であること（[README](../README.md)）と、**バックエンドから何も取らない**
+ * こと（モックの応答に依る画面を指すと、同意の検査がその取得と一緒に落ちます）。
  */
 const ENTRY_PATH = "/login";
 

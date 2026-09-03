@@ -12,8 +12,7 @@ import { expect, test } from "../lib/test";
  *
  * @remarks
  * `noindex` は root layout が置くので、継ぐ画面ならどれでも同じものを名乗ります。入口を選ぶのは
- * **同梱サンプルを破棄しても残る**ためで、破棄後は最小の画面が置き直されます
- * （`e2e/README.md`「同梱サンプルを破棄すると何が消えるか」）。
+ * **題材に依らない**画面だからです（[README](../README.md)）。
  */
 const ENTRY_PATH = "/";
 

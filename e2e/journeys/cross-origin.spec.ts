@@ -22,9 +22,8 @@ const ALLOWED_ORIGIN = process.env.E2E_ALLOWED_ORIGIN ?? "http://host.docker.int
  * 読むだけの BFF の口。
  *
  * @remarks
- * CORS を開くのは接頭辞（`/api/`）で決まるので、口の中身は問いません。**同梱サンプルを破棄
- * しても残る口**を指します —— 題材の口を指すと、破棄した fork でこの spec だけが指す先を
- * 失います（`e2e/maintenance/stopped.spec.ts` と同じ規律）。
+ * CORS を開くのは接頭辞（`/api/`）で決まるので、口の中身は問いません。**題材に依らない**口を
+ * 指します（[README](../README.md)）。
  */
 const READ_PATH = "/api/health";
 
