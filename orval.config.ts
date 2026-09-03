@@ -4,16 +4,17 @@ import { defineConfig } from "orval";
 // 契約に載っているが本アプリが呼ばない operation の tag。
 //
 // health 系と /metrics は運用基盤が叩くものでフロントの接続先ではない。
-// internal/types/error-response は ErrorResponse 型を生成させるためだけの擬似エンドポイントで、
-// 呼び出し先としては存在しない。除外しても ErrorResponse 自体は各 operation の異常系レスポンスから
-// 参照されるため生成される。
 const NON_CLIENT_TAGS = [
   "health",
   "healthz",
   "metrics",
   "ready",
   "version",
+  // sample:begin
+  // ErrorResponse 型を生成させるためだけの擬似エンドポイントで、呼び出し先としては存在しない。
+  // 除外しても ErrorResponse 自体は各 operation の異常系レスポンスから参照されるため生成される。
   "internal/types/error-response",
+  // sample:end
 ];
 
 // pattern を持つ項目の値の作り方。
@@ -21,9 +22,17 @@ const NON_CLIENT_TAGS = [
 // orval は pattern を見つけると `faker.helpers.fromRegExp(パターン)` を出すが、この API は
 // `\d` のような短縮クラスもアンカーも解釈せず、パターンの文字列をほぼそのまま返す
 // (`^\d+(\.\d+)?$` → `^\dd(\.\d)?$`)。結果としてモックが、同じ契約から生成した zod 検証を
-// 通らない。契約に pattern を持つ項目が増えたときの取りこぼしは、全ハンドラの応答を対応する
-// zod で検証するテストが捕まえる。
+// 通らない。
+//
+// sample:replace-begin
+// 契約に pattern を持つ項目が増えたときの取りこぼしは、全ハンドラの応答を対応する zod で
+// 検証するテスト (`mocks/contract-conformance.test.ts`) が捕まえる。
+// sample:replace-with
+// = // 取りこぼしは黙って通る。生成物と zod はどちらも契約から出るので、両者を突き合わせる検査を
+// = // 契約を入れたときに書く (`mocks/README.md` の「契約適合の検査」)。
+// sample:replace-end
 const PATTERNED_MOCK_PROPERTIES = {
+  // sample:begin
   // USD の decimal 文字列。サブセント精度を保つため数値ではなく文字列で表される。
   //
   // `amount` は入れない。参考換算額の中の `amount` は最小単位の整数であり、decimal 文字列を
@@ -31,17 +40,21 @@ const PATTERNED_MOCK_PROPERTIES = {
   "/^(price|unitPrice|rate|original)$/": () => "19.99",
   // 符号付きの decimal 文字列。
   "/^converted$/": () => "-19.99",
+  // sample:end
   // 先頭の + は任意で、以降は 10〜15 桁の数字。
   "/^phone$/": () => "09012345678",
   "/^postalCode$/": () => "100-0001",
+  // sample:begin
   // 住所は pattern を持たないが、faker の既定は 10〜100 文字のランダム英字を返す。実在しない
   // 地名では、選択部品の幅も住所 1 行の折り返しも実物と違う姿で確かめることになる。
   // `prefectureName` も同じ選択部品へ入る。郵便番号の補完が返す県名が一覧に無い綴りだと、
   // 部品は選べない値として扱い、利用者が触っていないのに検証エラーが出る。
   "/^(prefecture|prefectureName)$/": () => "神奈川県",
   "/^city$/": () => "横浜市西区",
+  // sample:end
 };
 
+// sample:begin
 /**
  * 商品状態マスタのモック応答。
  *
@@ -143,6 +156,9 @@ const PREFECTURES = [
   name,
 }));
 
+// sample:end
+
+// sample:replace-begin
 /**
  * 数の項目の値域。
  *
@@ -156,20 +172,45 @@ const PREFECTURES = [
  *
  * ここに書いた範囲は契約から読める値ではありません。実在しうる桁数を与えるためだけのものです。
  */
+// sample:replace-with
+// = /**
+// =  * 数の項目の値域。
+// =  *
+// =  * @remarks
+// =  * 上下限の無い整数を契約が宣言すると、生成器は 16 桁の値を返します。集計の指標はカードの幅に
+// =  * 収まらず途中で切れ、件数は表の列を押し広げます。**値が切れている画面では、そのカードや列の
+// =  * 姿を確かめられません。**
+// =  *
+// =  * 組で決まる値（税と送料のように、独立に引くと大小が逆転するもの）はここでは表せません。
+// =  * 項目ごとに引かれるため、`operations` の側で応答ごと指定します。
+// =  *
+// =  * ここに書いた範囲は契約から読める値ではありません。実在しうる桁数を与えるためだけのものです。
+// =  */
+// sample:replace-end
 const NUMBER_RANGE_MOCK_PROPERTIES = {
+  // sample:begin
   "/^(quantity|soldQuantity|availableQuantity)$/": () => faker.number.int({ min: 0, max: 99 }),
   "/^stockWarningThreshold$/": () => faker.number.int({ min: 1, max: 20 }),
+  // sample:end
   "/^version$/": () => faker.number.int({ min: 1, max: 20 }),
+  // 頁繰りの件数（[0073](docs/adr/0073-pagination-fetch-boundary.md)）。一覧の表示件数と桁が
+  // 揃っていないと、頁送りの見た目を確かめられない。
+  // sample:replace-begin
   "/^(count|itemCount|total|totalCount|salesCount|totalProductCount|publishedProductCount)$/": () =>
     faker.number.int({ min: 0, max: 9999 }),
+  // sample:replace-with
+  // = "/^(count|itemCount|total|totalCount)$/": () => faker.number.int({ min: 0, max: 9999 }),
+  // sample:replace-end
   "/^limit$/": () => faker.number.int({ min: 10, max: 50 }),
   "/^offset$/": () => faker.number.int({ min: 0, max: 100 }),
+  // sample:begin
   "/^shippingFee$/": () => faker.number.int({ min: 0, max: 2000 }),
   "/^taxAmount$/": () => faker.number.int({ min: 0, max: 99_999 }),
   "/^(amount|subtotalAmount|totalAmount)$/": () => faker.number.int({ min: 1000, max: 999_999 }),
   // 期間の売上合計。1 日あたり $1,000〜$9,999 にあたる。
   // 商品売上ランキングの同名の項目は decimal 文字列で宣言されており、そちらは operation の指定が勝つ。
   "/^salesAmount$/": () => faker.number.int({ min: 100_000, max: 999_999 }),
+  // sample:end
 };
 
 const apiInput = {
@@ -197,6 +238,7 @@ export default defineConfig({
       mock: { generators: [{ type: "msw" }] },
       override: {
         mock: { properties: { ...PATTERNED_MOCK_PROPERTIES, ...NUMBER_RANGE_MOCK_PROPERTIES } },
+        // sample:replace-begin
         operations: {
           GetPrefectures: { mock: { data: PREFECTURES } },
           GetProductStatuses: { mock: { data: PRODUCT_STATUSES } },
@@ -208,6 +250,12 @@ export default defineConfig({
             mock: { properties: { "/^salesAmount$/": () => "824.69" } },
           },
         },
+        // sample:replace-with
+        // = // 組で決まる値（`id` と業務キーと名称が揃っていなければならないもの）と、同じ項目名が
+        // = // 口によって別の型で宣言されている場合は、ここで operation ごとに指定する。項目名による
+        // = // 指定は口をまたいで効くため、片方に合わせるともう片方が契約に反する。
+        // = operations: {},
+        // sample:replace-end
       },
     },
   },
