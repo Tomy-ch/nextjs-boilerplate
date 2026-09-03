@@ -48,7 +48,7 @@ build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達でき
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `MEDIA_ORIGIN` | バックエンドが返すオブジェクトキーの配信 origin | URL | `http://gobp-local.web.garage.localhost:3902` | Required。Garage は virtual-host 形式を使う |
+| `MEDIA_ORIGIN` | バックエンドが返すオブジェクトキーの配信 origin | URL | `https://media.example.com` | Required。この値だけが `next/image` の許可 host と CSP の `img-src` を決める（[0045](../docs/adr/0045-fonts-and-images.md) / [0111](../docs/adr/0111-csp-security-headers.md)）。配信元が host 名でバケットを解決する形式なら、その host を含めた origin を置く |
 
 ### Observability
 
@@ -66,8 +66,8 @@ build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達でき
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
 | `AUTH_MODE` | 認可の開始先 | `idp` / `dev` | `idp` | Code default `idp`。`dev` は IdP を立てずに `/dev/session` から session を発行させる。開発専用の口が開く環境（`local` / `ci`）でしか効かない |
-| `AUTH_ISSUER` | OIDC issuer と Discovery の起点 | URL | `https://idp.example.com/realms/main` | Required。**同梱の `local` / `ci` が指すのはサンプルの開発用 IdP**で、fork は最初に自分の IdP へ差し替える |
-| `AUTH_CLIENT_ID` | Authorization Code + PKCE の public client ID | string | `<IdP が発行した public client ID>` | Required。client secret は不要。同梱の値はサンプルの IdP に登録されたものなので、そのままでは通らない |
+| `AUTH_ISSUER` | OIDC issuer と Discovery の起点 | URL | `https://idp.example.com/realms/main` | Required。**同梱の `local` / `ci` が指すのは開発用の IdP**で、fork は最初に自分の IdP へ差し替える |
+| `AUTH_CLIENT_ID` | Authorization Code + PKCE の public client ID | string | `<IdP が発行した public client ID>` | Required。client secret は不要。同梱の値は開発用の IdP に登録されたものなので、自分の IdP へ登録し直した ID に差し替える |
 | `AUTH_REDIRECT_URI` | OIDC callback URL | URL | `http://localhost:3000/api/auth/callback` | Required。IdP 登録値と完全一致させる |
 | `AUTH_SCOPES` | 認可リクエストの space-delimited scope | string | `openid profile email api.read api.write` | Required |
 | `AUTH_SESSION_SECRET` | BFF session cookie を保護する秘密値 | string | `local-development-session-secret-change-before-production` | **Secret management required**。32 文字以上。`local` / `ci` に同梱している値は公開リポジトリに載っているため、それ以外の環境では起動時に拒否される |

@@ -11,7 +11,7 @@ const production: SecurityHeaderInputs = {
 };
 
 const local: SecurityHeaderInputs = {
-  mediaOrigin: "http://gobp-local.web.garage.localhost:3902",
+  mediaOrigin: "http://media.example.test:9000",
   authIssuer: "http://localhost:2010/default",
   servesOverTls: false,
   development: true,
@@ -57,9 +57,7 @@ describe("buildSecurityHeaders", () => {
   });
 
   it("配信元にパスやポートが付いていても origin だけを載せる", () => {
-    expect(directives(local).get("img-src")).toContain(
-      "http://gobp-local.web.garage.localhost:3902",
-    );
+    expect(directives(local).get("img-src")).toContain("http://media.example.test:9000");
     expect(directives(local).get("form-action")).toStrictEqual(["'self'", "http://localhost:2010"]);
   });
 
