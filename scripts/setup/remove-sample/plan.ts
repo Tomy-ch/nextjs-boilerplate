@@ -71,36 +71,84 @@ export function canHoldMarker(relativePath: string, binaryExtensions: readonly s
   return !binaryExtensions.some((extension) => lowered.endsWith(extension));
 }
 
-/** 破棄の 1 手順。`strip` はマーカー除去、`delete` はパスの削除。 */
+/** 破棄の 1 手順。`strip` はマーカー除去、`restore` は雛形の書き出し、`delete` はパスの削除。 */
 export type SampleStep =
   | { kind: "strip"; relativePath: string }
+  | { kind: "restore"; from: string; to: string }
   | { kind: "delete"; relativePath: string };
 
+/** 置き直す 1 件の宣言（`sample-manifest.ts` の `SAMPLE_RESTORATIONS`）。 */
+type Restoration = { readonly from: string; readonly to: string };
+
+/** パスが削除対象そのものか、その配下にあるか。 */
+function isCoveredBy(relativePath: string, samplePaths: readonly string[]): boolean {
+  return samplePaths.some(
+    (target) => relativePath === target || relativePath.startsWith(`${target}${path.posix.sep}`),
+  );
+}
+
 /**
- * 破棄の手順を組む。**マーカー除去を削除より先に並べる。**
+ * 破棄の手順を組む。**マーカー除去 → 置き直し → 削除の順に並べる。**
  *
  * @remarks
- * 順序が逆だと、マーカーの対応が取れていない場合に「消したがマーカーは残った」半端な状態に
- * なります。マーカー除去は不整合で throw するので、先に走らせれば削除は 1 つも起きません。
+ * マーカー除去を先に置くのは、順序が逆だとマーカーの対応が取れていない場合に「消したが
+ * マーカーは残った」半端な状態になるためです。マーカー除去は不整合で throw するので、先に
+ * 走らせれば削除は 1 つも起きません。
+ *
+ * **置き直しは削除より前です。** 雛形は削除対象の内側に置く決まりなので（`from` の宣言）、
+ * 削除を先に済ませると読む相手が消えています。書き出す先は削除対象の外だと確かめてあるため、
+ * 後続の削除が書いたものを持っていくことはありません。
  *
  * @param scannedFiles - 走査で見つかったマーカー除去の対象
  * @param samplePaths - まるごと消すパス
+ * @param restorations - 破棄後に置き直すファイル
  * @param rootDir - リポジトリルートの絶対パス
  * @throws 宣言がリポジトリの外を指す場合。
  */
 export function buildSteps(
   scannedFiles: readonly string[],
   samplePaths: readonly string[],
+  restorations: readonly Restoration[],
   rootDir: string,
 ): SampleStep[] {
   for (const relativePath of samplePaths) {
     assertWithinRoot(relativePath, rootDir);
   }
 
+  for (const restoration of restorations) {
+    assertWithinRoot(restoration.from, rootDir);
+    assertWithinRoot(restoration.to, rootDir);
+  }
+
   return [
     ...scannedFiles.map((relativePath): SampleStep => ({ kind: "strip", relativePath })),
+    ...restorations.map(({ from, to }): SampleStep => ({ kind: "restore", from, to })),
     ...samplePaths.map((relativePath): SampleStep => ({ kind: "delete", relativePath })),
   ];
+}
+
+/**
+ * 置き直しの宣言が、削除との関係で成立しないものを洗い出す。
+ *
+ * @remarks
+ * 見るのは 2 方向です。**書き出す先が削除対象の内側にある**と、置いた直後に削除が持っていき、
+ * 破棄後の木にはどちらも残りません。**雛形が削除対象の外にある**と、置き直したあとも fork 先が
+ * 使い道の無い雛形を持ち続けます —— 破棄の道具は使い終わったら消えるのが決まりで、雛形だけが
+ * 例外になる理由がありません。
+ *
+ * どちらも実行時には無言で成立してしまうため、実行の前に宣言だけで落とします。
+ *
+ * @param restorations - 破棄後に置き直すファイル
+ * @param samplePaths - まるごと消すパス
+ */
+export function findMisplacedRestorations(
+  restorations: readonly Restoration[],
+  samplePaths: readonly string[],
+): string[] {
+  return restorations.flatMap(({ from, to }) => [
+    ...(isCoveredBy(to, samplePaths) ? [`置き直す先が削除対象の内側にあります: ${to}`] : []),
+    ...(isCoveredBy(from, samplePaths) ? [] : [`雛形が削除対象の外にあります: ${from}`]),
+  ]);
 }
 
 /**

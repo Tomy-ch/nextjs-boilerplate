@@ -20,18 +20,30 @@ export function buildDanglingCommand(danglingPattern: string): string {
 }
 
 /**
- * remove-sample が書き出したスナップショットから登録パスを取り出す。
+ * remove-sample が書き出したスナップショットから、削除と置き直しの登録を取り出す。
  *
- * @throws JSON として読めない、または `registeredPaths` が配列でない・空の場合。
+ * @throws JSON として読めない、`registeredPaths` が配列でない・空、`restoredPaths` が配列でない、
+ * または `danglingPattern` が空の場合。
  */
 export function parseSnapshot(json: string): {
   registeredPaths: string[];
+  restoredPaths: string[];
   danglingPattern: string;
 } {
-  const parsed = JSON.parse(json) as { registeredPaths?: unknown; danglingPattern?: unknown };
+  const parsed = JSON.parse(json) as {
+    registeredPaths?: unknown;
+    restoredPaths?: unknown;
+    danglingPattern?: unknown;
+  };
 
   if (!Array.isArray(parsed.registeredPaths) || parsed.registeredPaths.length === 0) {
     throw new Error("スナップショットの registeredPaths が空です");
+  }
+
+  // 空を許すのは registeredPaths と違い、置き直しが 0 件でも破棄そのものは成立するためである。
+  // 配列でないものは書き出しの欠落なので落とす。
+  if (!Array.isArray(parsed.restoredPaths)) {
+    throw new Error("スナップショットに restoredPaths がありません");
   }
 
   if (typeof parsed.danglingPattern !== "string" || parsed.danglingPattern === "") {
@@ -40,6 +52,7 @@ export function parseSnapshot(json: string): {
 
   return {
     registeredPaths: parsed.registeredPaths as string[],
+    restoredPaths: parsed.restoredPaths as string[],
     danglingPattern: parsed.danglingPattern,
   };
 }
@@ -60,6 +73,22 @@ export function findUnremovedPaths(
   return registeredPaths
     .filter((relativePath) => pathExists(relativePath))
     .map((relativePath) => `未削除の登録パス: ${relativePath}`);
+}
+
+/**
+ * 不足検出: 置き直すはずのファイルが無ければ「置き直していない」。
+ *
+ * @remarks
+ * 削除と違い、置き直しの失敗は**残る木に穴が開く**形で現れます。穴は build では見えず
+ * （route が 1 つ減るだけ）、開いてはじめて 404 として出るので、ここで見ます。
+ */
+export function findMissingRestorations(
+  restoredPaths: readonly string[],
+  pathExists: (relativePath: string) => boolean,
+): string[] {
+  return restoredPaths
+    .filter((relativePath) => !pathExists(relativePath))
+    .map((relativePath) => `置き直されていないパス: ${relativePath}`);
 }
 
 /** 過剰検出: 登録パスに含まれない削除は想定外（サンプル以外を巻き込んでいる）。 */
@@ -94,16 +123,18 @@ export function findDanglingReferences(danglingHits: string): string[] {
 /** 検証に要る入力一式。すべて入口が集めて渡す。 */
 export type VerificationInput = {
   registeredPaths: readonly string[];
+  restoredPaths: readonly string[];
   pathExists: (relativePath: string) => boolean;
   gitStatusPorcelain: string;
   makeHelpOutput: string;
   danglingHits: string;
 };
 
-/** 4 種の検査をすべて走らせ、失敗メッセージを 1 本の配列にまとめる。 */
+/** 5 種の検査をすべて走らせ、失敗メッセージを 1 本の配列にまとめる。 */
 export function collectFailures(input: VerificationInput): string[] {
   return [
     ...findUnremovedPaths(input.registeredPaths, input.pathExists),
+    ...findMissingRestorations(input.restoredPaths, input.pathExists),
     ...findUnregisteredDeletions(
       input.registeredPaths,
       parseDeletedPaths(input.gitStatusPorcelain),

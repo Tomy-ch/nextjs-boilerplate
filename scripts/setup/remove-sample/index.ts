@@ -13,7 +13,13 @@ import {
 } from "../lib/file-utils.js";
 import { stripMarkers } from "../lib/markers.js";
 import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
-import { buildSteps, canHoldMarker, findRedundantPaths, isScanTarget } from "./plan.js";
+import {
+  buildSteps,
+  canHoldMarker,
+  findMisplacedRestorations,
+  findRedundantPaths,
+  isScanTarget,
+} from "./plan.js";
 import {
   BINARY_EXTENSIONS,
   DANGLING_PATTERN,
@@ -22,6 +28,7 @@ import {
   MARKER_LITERAL_FILES,
   SAMPLE_MARKER,
   SAMPLE_PATHS,
+  SAMPLE_RESTORATIONS,
 } from "./sample-manifest.js";
 
 /** 検証ツールが読む、削除した対象の記録。 */
@@ -66,11 +73,37 @@ function stripStep(relativePath: string, dryRun: boolean): string | null {
   return `${relativePath} (${result.removed} 行)`;
 }
 
+/**
+ * 雛形の中身を、破棄後に残す場所へ書き出す。
+ *
+ * @returns 報告に出す 1 行。
+ */
+function restoreStep(from: string, to: string, dryRun: boolean): string {
+  const content = readUtf8File(toAbsolutePath(from));
+
+  if (content === null) {
+    throw new Error(`置き直す雛形を読めません: ${from}`);
+  }
+
+  if (!dryRun) {
+    fs.mkdirSync(path.dirname(toAbsolutePath(to)), { recursive: true });
+    fs.writeFileSync(toAbsolutePath(to), content);
+  }
+
+  return `${to} (${from})`;
+}
+
 function run(dryRun: boolean): void {
   const redundant = findRedundantPaths(SAMPLE_PATHS);
 
   if (redundant.length > 0) {
     throw new Error(`宣言に重複があります:\n${redundant.join("\n")}`);
+  }
+
+  const misplaced = findMisplacedRestorations(SAMPLE_RESTORATIONS, SAMPLE_PATHS);
+
+  if (misplaced.length > 0) {
+    throw new Error(`置き直しの宣言が成立しません:\n${misplaced.join("\n")}`);
   }
 
   const scanned = listFilesRecursive(ROOT_DIR, { excludedDirectories: EXCLUDED_DIRECTORIES })
@@ -81,8 +114,9 @@ function run(dryRun: boolean): void {
         isScanTarget(relativePath, EXCLUDED_PATH_PREFIXES, MARKER_LITERAL_FILES),
     );
 
-  const steps = buildSteps(scanned, SAMPLE_PATHS, ROOT_DIR);
+  const steps = buildSteps(scanned, SAMPLE_PATHS, SAMPLE_RESTORATIONS, ROOT_DIR);
   const stripped: string[] = [];
+  const restored: string[] = [];
   const deleted: string[] = [];
 
   for (const step of steps) {
@@ -92,6 +126,12 @@ function run(dryRun: boolean): void {
       if (summary !== null) {
         stripped.push(summary);
       }
+
+      continue;
+    }
+
+    if (step.kind === "restore") {
+      restored.push(restoreStep(step.from, step.to, dryRun));
 
       continue;
     }
@@ -107,16 +147,29 @@ function run(dryRun: boolean): void {
     fs.mkdirSync(toAbsolutePath("tmp"), { recursive: true });
     fs.writeFileSync(
       toAbsolutePath(SNAPSHOT_PATH),
-      `${JSON.stringify({ registeredPaths: SAMPLE_PATHS, danglingPattern: DANGLING_PATTERN }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          registeredPaths: SAMPLE_PATHS,
+          restoredPaths: SAMPLE_RESTORATIONS.map(({ to }) => to),
+          danglingPattern: DANGLING_PATTERN,
+        },
+        null,
+        2,
+      )}\n`,
     );
   }
 
   console.log(
-    `${dryRun ? "ドライラン" : "破棄完了"}: マーカー ${stripped.length} / 削除 ${deleted.length}`,
+    `${dryRun ? "ドライラン" : "破棄完了"}: マーカー ${stripped.length} / 置き直し ${restored.length}` +
+      ` / 削除 ${deleted.length}`,
   );
 
   for (const entry of stripped) {
     console.log(`- マーカー除去 ${entry}`);
+  }
+
+  for (const entry of restored) {
+    console.log(`- 置き直し ${entry}`);
   }
 
   for (const entry of deleted) {
