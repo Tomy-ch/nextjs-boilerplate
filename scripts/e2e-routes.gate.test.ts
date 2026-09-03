@@ -15,13 +15,8 @@ import {
  * E2E の spec が指す経路が、実在する route に着いていることを見るゲート。
  *
  * @remarks
- * spec は経路を文字列で書くので、指す先が消えても型検査には掛かりません。実物で落ちるのは
- * E2E ですが、**同梱サンプルを破棄した木で E2E は回りません** —— `purge-verify` が回すのは
- * lint / typecheck / build / test だけで、E2E は費用のため deferred check に置いてあります
- * （`.github/workflows/e2e.yaml`）。破棄で画面が消えたことに気づける場所がここになります。
- *
- * 見るのは `*.spec.ts` だけです。`lib/` の宣言は build の出力と突き合わせる判定を自分で持ち
- * （`e2e/lib/screens.ts` の `resolveScreens`）、宣言の無い route も実体の無い宣言もそこで落ちます。
+ * 何を・なぜ見るかは [`e2e/README.md`](../e2e/README.md)「spec が指す経路は、実在する route で
+ * なければならない」。走査と判定は [`lib/e2e-routes.ts`](lib/e2e-routes.ts) が持ちます。
  */
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "..");

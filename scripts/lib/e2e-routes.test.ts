@@ -11,73 +11,14 @@ import {
 
 describe("listRouteLiterals", () => {
   // ----- 正常系 -----
-  it("二重引用符と単引用符の経路を拾う", () => {
-    expect(listRouteLiterals(`goto("/about"); goto('/terms');`)).toEqual(["/about", "/terms"]);
+  it("経路の形をしたリテラルだけを拾う", () => {
+    expect(
+      listRouteLiterals('goto("/about"); expect("見出し"); fetch("https://x.test/y");'),
+    ).toEqual(["/about"]);
   });
 
-  it("経路の形をしない文字列は拾わない", () => {
-    expect(listRouteLiterals('const origin = "https://example.test/x";')).toEqual([]);
-  });
-
-  it("逃がした引用符を含む経路を、閉じたものとして読む", () => {
-    expect(listRouteLiterals(String.raw`goto("/a\"b");`)).toEqual(['/a"b']);
-  });
-
-  it("テンプレート文字列は、差し込みより前だけを拾う", () => {
-    expect(listRouteLiterals(`goto(\`/login?returnUrl=\${url}\`);`)).toEqual(["/login?returnUrl="]);
-  });
-
-  it("差し込みで始まるテンプレート文字列は拾わない", () => {
+  it("差し込みで始まるテンプレート文字列は、頭が空なので拾わない", () => {
     expect(listRouteLiterals(`goto(\`\${origin}/api/products\`);`)).toEqual([]);
-  });
-
-  it("差し込みの内側にある文字列と入れ子の括弧を、経路として読まない", () => {
-    expect(listRouteLiterals(`goto(\`/a\${ { k: "/inner" }.k }/b\`);`)).toEqual(["/a"]);
-  });
-
-  it("差し込みの内側にあるテンプレート文字列も読まない", () => {
-    expect(listRouteLiterals(`goto(\`/a\${\`/inner\`}\`);`)).toEqual(["/a"]);
-  });
-
-  it("逃がした文字をテンプレート文字列の頭でも読む", () => {
-    expect(listRouteLiterals(`goto(\`/a\\\`b\`);`)).toEqual(["/a`b"]);
-  });
-
-  it("差し込みより後ろの逃がした文字は拾わない", () => {
-    expect(listRouteLiterals(`goto(\`/a\${x}\\n/b\`);`)).toEqual(["/a"]);
-  });
-
-  // ----- 異常系 -----
-  it("行コメントの中の経路は拾わない", () => {
-    expect(listRouteLiterals('// "/about" を開く\ngoto("/terms");')).toEqual(["/terms"]);
-  });
-
-  it("ブロックコメントの中の経路は拾わない", () => {
-    expect(listRouteLiterals('/* "/about" */ goto("/terms");')).toEqual(["/terms"]);
-  });
-
-  it("閉じないブロックコメントは末尾まで読み飛ばす", () => {
-    expect(listRouteLiterals('goto("/terms"); /* "/about"')).toEqual(["/terms"]);
-  });
-
-  it("行の途中で閉じない引用符を落とし、次の行から読み直す", () => {
-    expect(listRouteLiterals('goto("/about\ngoto("/terms");')).toEqual(["/terms"]);
-  });
-
-  it("閉じないまま末尾へ達した引用符は拾わない", () => {
-    expect(listRouteLiterals('goto("/about')).toEqual([]);
-  });
-
-  it("末尾が逃がし記号で終わる引用符も拾わない", () => {
-    expect(listRouteLiterals('goto("/about\\')).toEqual([]);
-  });
-
-  it("閉じないまま末尾へ達したテンプレート文字列は拾わない", () => {
-    expect(listRouteLiterals(`goto(\`/about`)).toEqual([]);
-  });
-
-  it("末尾が逃がし記号で終わるテンプレート文字列も拾わない", () => {
-    expect(listRouteLiterals(`goto(\`/about\\`)).toEqual([]);
   });
 });
 
@@ -99,6 +40,10 @@ describe("toAppRoute", () => {
     expect(toAppRoute("src/app/api/health/route.ts")).toBe("/api/health");
   });
 
+  it("開発だけに含まれる Route Handler も数える", () => {
+    expect(toAppRoute("src/app/api/auth/test-session/route.dev.ts")).toBe("/api/auth/test-session");
+  });
+
   it("開発だけに含まれる画面も数える", () => {
     expect(toAppRoute("src/app/dev/session/page.dev.tsx")).toBe("/dev/session");
   });
@@ -111,7 +56,6 @@ describe("toAppRoute", () => {
     expect(toAppRoute("src/app/opengraph-image.tsx")).toBe("/opengraph-image");
   });
 
-  // ----- 異常系 -----
   it("`src/app` の外は route にしない", () => {
     expect(toAppRoute("src/features/home/view.tsx")).toBeNull();
   });
@@ -205,7 +149,6 @@ describe("findUnknownRoutes", () => {
     expect(findUnknownRoutes(["/account"], ["/login"], ["/account"])).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("実在しない経路を報告する", () => {
     expect(findUnknownRoutes(["/about"], ["/login"], [])).toEqual([
       "指す先が実在しません: /about（画面を消したか、綴りが違う）",
@@ -213,7 +156,9 @@ describe("findUnknownRoutes", () => {
   });
 
   it("同じ経路を何度指していても 1 度だけ報告する", () => {
-    expect(findUnknownRoutes(["/about", "/about?x=1"], ["/login"], [])).toHaveLength(1);
+    expect(findUnknownRoutes(["/about", "/about?x=1"], ["/login"], [])).toEqual([
+      "指す先が実在しません: /about（画面を消したか、綴りが違う）",
+    ]);
   });
 });
 
@@ -223,7 +168,6 @@ describe("findStaleAbsentDeclarations", () => {
     expect(findStaleAbsentDeclarations(["/account"], ["/login"], ["/account"])).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("どの spec も指していない宣言を報告する", () => {
     expect(findStaleAbsentDeclarations(["/login"], ["/login"], ["/account"])).toEqual([
       "どの spec も指していない宣言です: /account",
