@@ -21,33 +21,30 @@ function parameterCount(handler: GeneratedHandler): number {
 // sample:replace-with
 // sample:replace-end
 
+// sample:replace-begin
 /**
  * 契約から生成した MSW ハンドラ一式。
  *
  * @remarks
- * ハンドラを手書きしません。契約が変われば生成物が変わり、モックも一緒に動きます。手で足すと、
- * 契約とモックが別々に動き始め、モックが通るのに実際の API では通らない状態を作れてしまいます。
+ * 手書きしない理由と、[stable-responses](stable-responses.ts) に通す組み立ての中身は
+ * [README](README.md) が持ちます。
  *
- * 並べ替えるのは、MSW が登録順に照合するためです。パラメータ区間を持つパス（`/x/:id`）が、
- * それにも一致する具体的なパス（`/x/latest`）より前に来ると、後者への要求が前者に食われて別の
- * 応答が返ります。具体的なパスを先に置けば、パラメータ区間は他に一致するものが無かったときだけ
- * 拾います。
- *
- * 同じ具体度どうしの順序は、並べ替えが安定なので
- * [stable-responses](stable-responses.ts) が返した並び —— 生成関数の名前順 —— のままです。
- * **契約に書かれた順ではありません。**
- *
- * 組み立てを [stable-responses](stable-responses.ts) に通すのは、同じ要求へ同じ応答を返させる
- * ためです。応答の形は生成物のままで、手で組み立てたものは含みません。口をまたいで指し合う項目
- * だけは、呼び出し側が渡す表に従って揃えます —— 生成物は口ごとに独立しており、ある口が名乗る
- * 識別子が、それを一覧する口の応答に存在しないためです。
- *
- * mock が差し替えるのは API だけです。画像は配信元（`MEDIA_ORIGIN`）から実物を取得します。
+ * **ここが持つのは並べ替えだけです。** MSW は登録順に照合するので、パラメータ区間を持つパス
+ * （`/x/:id`）が、それにも一致する具体的なパス（`/x/latest`）より前に来ると、後者への要求が
+ * 前者に食われて別の応答が返ります。具体的なパスを先に置けば、パラメータ区間は他に一致する
+ * ものが無かったときだけ拾います。同じ具体度どうしは、並べ替えが安定なので
+ * [stable-responses](stable-responses.ts) が返した並びのままです。
  */
-// sample:replace-begin
 export const handlers = stableHandlers(generated, REFERENCE_PATCHES).sort(
   (left, right) => parameterCount(left) - parameterCount(right),
 );
 // sample:replace-with
+// = /**
+// =  * 契約から生成した MSW ハンドラ一式。
+// =  *
+// =  * @remarks
+// =  * 空なのは契約をまだ置いていないためです。`make gen-api` が生成物を出したら、それを
+// =  * [stable-responses](stable-responses.ts) に通したものをここが返します（[README](README.md)）。
+// =  */
 // = export const handlers: never[] = [];
 // sample:replace-end
