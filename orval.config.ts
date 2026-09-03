@@ -32,7 +32,7 @@ const NON_CLIENT_TAGS = [
 // = // 契約を入れたときに書く (`mocks/README.md` の「契約適合の検査」)。
 // sample:replace-end
 const PATTERNED_MOCK_PROPERTIES = {
-  // sample:begin
+  // sample:replace-begin
   // USD の decimal 文字列。サブセント精度を保つため数値ではなく文字列で表される。
   //
   // `amount` は入れない。参考換算額の中の `amount` は最小単位の整数であり、decimal 文字列を
@@ -40,18 +40,23 @@ const PATTERNED_MOCK_PROPERTIES = {
   "/^(price|unitPrice|rate|original)$/": () => "19.99",
   // 符号付きの decimal 文字列。
   "/^converted$/": () => "-19.99",
-  // sample:end
   // 先頭の + は任意で、以降は 10〜15 桁の数字。
   "/^phone$/": () => "09012345678",
   "/^postalCode$/": () => "100-0001",
-  // sample:begin
   // 住所は pattern を持たないが、faker の既定は 10〜100 文字のランダム英字を返す。実在しない
   // 地名では、選択部品の幅も住所 1 行の折り返しも実物と違う姿で確かめることになる。
   // `prefectureName` も同じ選択部品へ入る。郵便番号の補完が返す県名が一覧に無い綴りだと、
   // 部品は選べない値として扱い、利用者が触っていないのに検証エラーが出る。
   "/^(prefecture|prefectureName)$/": () => "神奈川県",
   "/^city$/": () => "横浜市西区",
-  // sample:end
+  // sample:replace-with
+  // = // 書き方は `"/^<項目名>$/": () => <値>` で、キーは文字列に入れた正規表現、値はその項目の
+  // = // 値を返す関数。
+  // = //
+  // = // **空で始まるのは、下の値域と違って「どの契約でも妥当な既定」が無いためである。** 値域は
+  // = // 桁数の話なので件数や頁の大きさに普遍的な範囲を置けるが、pattern は項目名も書式も契約ごと
+  // = // に違い、書き写した値は次の契約では zod を通らない。
+  // sample:replace-end
 };
 
 // sample:begin
@@ -213,6 +218,10 @@ const NUMBER_RANGE_MOCK_PROPERTIES = {
   // sample:end
 };
 
+// 取得物と生成物の置き場。**綴りの `api` は `openapi/sources.yaml` の `name` と揃える**
+// （同じ綴りが `scripts/openapi/gen-api-plan.ts` の `GEN_API_OUTPUTS` にも入る）。ここだけ
+// 動かしても型検査も lint も通り、`make gen-api-check` が「生成物がありません」という別の顔で
+// 落ちる —— そこが指す `make gen-api` を何度回しても直らない。
 const apiInput = {
   target: "./openapi/api.gen.yaml",
   filters: { mode: "exclude" as const, tags: NON_CLIENT_TAGS },

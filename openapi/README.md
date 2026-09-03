@@ -56,9 +56,10 @@ make fetch-api NAME=api   # 契約を 1 本だけ取得する
 | --- | --- | --- |
 | `api` | go-boilerplate 本体の API | admin と一般が同居しており、tags でも `security` でも scope でも機械的に分割できないため 1 ユニットとして扱う |
 <!-- sample:replace-with -->
-<!-- = 宣言は空です。**`name` は `api` のまま使うのが既定です** —— 生成物の置き場を決める綴りが -->
-<!-- = `orval.config.ts` の project 名と `scripts/openapi/gen-api-plan.ts` の退避先にも入っており、 -->
-<!-- = 変えるなら 3 か所を揃えます。 -->
+<!-- = 宣言は空です。**`name` は `api` のまま使うのが既定です。** 取得先（`api.gen.yaml`）と版の -->
+<!-- = 突合は `name` から導かれますが、生成の側は綴りを直に持っており、`orval.config.ts` の -->
+<!-- = `apiInput.target` / `output.target` / `output.schemas` と `scripts/openapi/gen-api-plan.ts` の -->
+<!-- = `GEN_API_OUTPUTS` を一緒に揃えないと、`make gen-api-check` が「生成物がありません」で止まります。 -->
 <!-- =  -->
 <!-- = **分けるかどうかは契約の側の都合で決めます** —— 1 本の契約に admin と一般が同居していても、 -->
 <!-- = tags でも `security` でも scope でも機械的に分割できないなら 1 ユニットとして扱います。 -->
