@@ -69,6 +69,14 @@ describe("parseSnapshot", () => {
     expect(() => parseSnapshot("not json")).toThrow();
   });
 
+  it("restoredPaths は空でも通す", () => {
+    // 置き直しが 0 件でも破棄そのものは成立するので、registeredPaths と扱いが非対称である。
+    expect(
+      parseSnapshot('{"registeredPaths":["src"],"restoredPaths":[],"danglingPattern":"商品"}')
+        .restoredPaths,
+    ).toEqual([]);
+  });
+
   it("restoredPaths が配列でなければ断る", () => {
     expect(() => parseSnapshot('{"registeredPaths":["src"],"danglingPattern":"商品"}')).toThrow(
       "restoredPaths がありません",
@@ -119,6 +127,13 @@ describe("findUnregisteredDeletions", () => {
       "登録外の削除を検出: src/other.ts",
     ]);
   });
+
+  it("登録パスと接頭辞だけ一致する削除も報告する", () => {
+    // 区切りを見ずに前方一致で判定すると、巻き込んだ削除が登録内に見えて黙って通る。
+    expect(
+      findUnregisteredDeletions(["src/model/product"], ["src/model/products-extra/x.ts"]),
+    ).toEqual(["登録外の削除を検出: src/model/products-extra/x.ts"]);
+  });
 });
 
 describe("findLeftoverMakeTarget", () => {
@@ -155,7 +170,6 @@ describe("findMissingRestorations", () => {
     expect(findMissingRestorations(["src/app/page.tsx"], () => true)).toEqual([]);
   });
 
-  // ----- 異常系 -----
   it("置き直したはずのパスが無ければ報告する", () => {
     expect(findMissingRestorations(["src/app/page.tsx"], NOTHING_EXISTS)).toEqual([
       "置き直されていないパス: src/app/page.tsx",
@@ -190,7 +204,14 @@ describe("collectFailures", () => {
       danglingHits: "src/x.ts:1:商品",
     });
 
-    expect(failures).toHaveLength(5);
+    // 件数だけを見ると、ある検査を落として別の検査を二重に呼んでも同じ数で通る。
+    expect(failures).toEqual([
+      "未削除の登録パス: src/a",
+      "置き直されていないパス: src/app/page.tsx",
+      "登録外の削除を検出: src/other.ts",
+      "make ターゲット setup-remove-sample が残っています",
+      "残留サンプル参照:\nsrc/x.ts:1:商品",
+    ]);
   });
 });
 

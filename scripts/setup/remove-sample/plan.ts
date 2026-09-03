@@ -2,6 +2,8 @@
 
 import path from "node:path";
 
+import type { SampleRestoration } from "./sample-manifest.js";
+
 /**
  * 宣言されたパスがリポジトリの内側を指していることを確かめる。
  *
@@ -60,7 +62,7 @@ export function isScanTarget(
  * マーカーを書ける形式かを拡張子で判定する。
  *
  * @remarks
- * 読み込む前に外します。読んでから判ると、実行のたびに意味のない警告が出ます。
+ * 読み込む前に外す理由は `sample-manifest.ts` の `BINARY_EXTENSIONS` が持ちます。
  *
  * @param relativePath - リポジトリルート相対のパス
  * @param binaryExtensions - マーカーを持てない拡張子（小文字・ドット始まり）
@@ -77,9 +79,6 @@ export type SampleStep =
   | { kind: "restore"; from: string; to: string }
   | { kind: "delete"; relativePath: string };
 
-/** 置き直す 1 件の宣言（`sample-manifest.ts` の `SAMPLE_RESTORATIONS`）。 */
-type Restoration = { readonly from: string; readonly to: string };
-
 /** パスが削除対象そのものか、その配下にあるか。 */
 function isCoveredBy(relativePath: string, samplePaths: readonly string[]): boolean {
   return samplePaths.some(
@@ -95,9 +94,9 @@ function isCoveredBy(relativePath: string, samplePaths: readonly string[]): bool
  * マーカーは残った」半端な状態になるためです。マーカー除去は不整合で throw するので、先に
  * 走らせれば削除は 1 つも起きません。
  *
- * **置き直しは削除より前です。** 雛形は削除対象の内側に置く決まりなので（`from` の宣言）、
- * 削除を先に済ませると読む相手が消えています。書き出す先は削除対象の外だと確かめてあるため、
- * 後続の削除が書いたものを持っていくことはありません。
+ * **置き直しは削除より前です。** `from` が削除対象の内側、`to` が外側にあることは
+ * {@link findMisplacedRestorations} が実行前に確かめるので、削除が読む相手を先に消すことも、
+ * 置き直したものを持っていくこともありません。
  *
  * @param scannedFiles - 走査で見つかったマーカー除去の対象
  * @param samplePaths - まるごと消すパス
@@ -108,7 +107,7 @@ function isCoveredBy(relativePath: string, samplePaths: readonly string[]): bool
 export function buildSteps(
   scannedFiles: readonly string[],
   samplePaths: readonly string[],
-  restorations: readonly Restoration[],
+  restorations: readonly SampleRestoration[],
   rootDir: string,
 ): SampleStep[] {
   for (const relativePath of samplePaths) {
@@ -142,13 +141,38 @@ export function buildSteps(
  * @param samplePaths - まるごと消すパス
  */
 export function findMisplacedRestorations(
-  restorations: readonly Restoration[],
+  restorations: readonly SampleRestoration[],
   samplePaths: readonly string[],
 ): string[] {
   return restorations.flatMap(({ from, to }) => [
     ...(isCoveredBy(to, samplePaths) ? [`置き直す先が削除対象の内側にあります: ${to}`] : []),
     ...(isCoveredBy(from, samplePaths) ? [] : [`雛形が削除対象の外にあります: ${from}`]),
   ]);
+}
+
+/**
+ * 置き直す先が、既に何かに使われている宣言を洗い出す。
+ *
+ * @remarks
+ * **置き直しは削除より前に走る**ので、その時点で `to` に実体があるなら、それは削除対象ではない
+ * ファイル —— つまり**残す側の実物**です（削除対象の内側を指す宣言は
+ * {@link findMisplacedRestorations} が別に落とします）。そのまま書けば、宣言の綴りを 1 文字
+ * 間違えただけで無関係なファイルが雛形の中身で上書きされます。
+ *
+ * **この事故は後段の検査に掛かりません。** 上書きは `git status` に削除ではなく変更として現れる
+ * ので過剰削除の検出（`findUnregisteredDeletions`）を素通りし、書いた先は実在するので置き直しの
+ * 検出（`findMissingRestorations`）も通ります。宣言だけで落とせるうちに落とします。
+ *
+ * @param restorations - 破棄後に置き直すファイル
+ * @param pathExists - リポジトリルート相対のパスに実体があるか
+ */
+export function findOccupiedRestorations(
+  restorations: readonly SampleRestoration[],
+  pathExists: (relativePath: string) => boolean,
+): string[] {
+  return restorations
+    .filter(({ to }) => pathExists(to))
+    .map(({ to }) => `置き直す先が既に使われています: ${to}`);
 }
 
 /**

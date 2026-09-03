@@ -4,7 +4,12 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { ROOT_DIR } from "../lib/runtime";
-import { assertWithinRoot, findMisplacedRestorations, findRedundantPaths } from "./plan";
+import {
+  assertWithinRoot,
+  findMisplacedRestorations,
+  findOccupiedRestorations,
+  findRedundantPaths,
+} from "./plan";
 import {
   BINARY_EXTENSIONS,
   EXCLUDED_PATH_PREFIXES,
@@ -47,6 +52,10 @@ describe("SAMPLE_RESTORATIONS", () => {
 
   it("雛形は削除対象の内側にあり、置き直す先は外側にある", () => {
     expect(findMisplacedRestorations(SAMPLE_RESTORATIONS, SAMPLE_PATHS)).toEqual([]);
+  });
+
+  it("置き直す先が、残す側の実物を指していない", () => {
+    expect(findOccupiedRestorations(SAMPLE_RESTORATIONS, exists)).toEqual([]);
   });
 
   it("すべてリポジトリの内側を指す", () => {

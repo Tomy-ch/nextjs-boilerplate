@@ -17,6 +17,7 @@ import {
   buildSteps,
   canHoldMarker,
   findMisplacedRestorations,
+  findOccupiedRestorations,
   findRedundantPaths,
   isScanTarget,
 } from "./plan.js";
@@ -100,7 +101,12 @@ function run(dryRun: boolean): void {
     throw new Error(`宣言に重複があります:\n${redundant.join("\n")}`);
   }
 
-  const misplaced = findMisplacedRestorations(SAMPLE_RESTORATIONS, SAMPLE_PATHS);
+  const misplaced = [
+    ...findMisplacedRestorations(SAMPLE_RESTORATIONS, SAMPLE_PATHS),
+    ...findOccupiedRestorations(SAMPLE_RESTORATIONS, (relativePath) =>
+      fs.existsSync(toAbsolutePath(relativePath)),
+    ),
+  ];
 
   if (misplaced.length > 0) {
     throw new Error(`置き直しの宣言が成立しません:\n${misplaced.join("\n")}`);

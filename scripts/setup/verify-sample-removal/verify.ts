@@ -10,8 +10,8 @@ const SAMPLE_MAKE_TARGET = "setup-remove-sample";
  * 残留サンプル参照を洗い出す shell コマンド。ヒット無しでも非 0 で落ちないようにする。
  *
  * @remarks
- * 語彙は破棄する対象と同じ表から出す必要があるため、宣言は manifest が持ちます。**検証は削除の
- * 後に走り、その時点で manifest は消えている**ので、スナップショット経由で受け取ります。
+ * 語彙を import ではなく引数で受け取る理由は `sample-manifest.ts` の `DANGLING_PATTERN` が
+ * 持ちます —— 検証が走る時点で、そのモジュール自体が消えています。
  *
  * @param danglingPattern - manifest が宣言した題材の語彙
  */
@@ -23,7 +23,7 @@ export function buildDanglingCommand(danglingPattern: string): string {
  * remove-sample が書き出したスナップショットから、削除と置き直しの登録を取り出す。
  *
  * @throws JSON として読めない、`registeredPaths` が配列でない・空、`restoredPaths` が配列でない、
- * または `danglingPattern` が空の場合。
+ * または `danglingPattern` が文字列でない・空の場合。
  */
 export function parseSnapshot(json: string): {
   registeredPaths: string[];

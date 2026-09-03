@@ -7,6 +7,7 @@ import {
   buildSteps,
   canHoldMarker,
   findMisplacedRestorations,
+  findOccupiedRestorations,
   findRedundantPaths,
   isScanTarget,
 } from "./plan";
@@ -38,6 +39,11 @@ describe("assertWithinRoot", () => {
 
   it("ルートの外へ出るパスを断る", () => {
     expect(() => assertWithinRoot("../secrets", ROOT)).toThrow("リポジトリの外を指しています");
+  });
+
+  it("ルートと接頭辞だけ一致する兄弟ディレクトリを断る", () => {
+    // 区切りを見ずに前方一致で判定すると、隣のディレクトリが内側に見える。
+    expect(() => assertWithinRoot("../repo-secrets", ROOT)).toThrow("リポジトリの外を指しています");
   });
 });
 
@@ -95,7 +101,20 @@ describe("findMisplacedRestorations", () => {
     ).toEqual([]);
   });
 
-  // ----- 異常系 -----
+  it("削除対象と接頭辞だけ一致する先は、内側とみなさない", () => {
+    expect(
+      findMisplacedRestorations(
+        [
+          {
+            from: "scripts/setup/remove-sample/x.template",
+            to: "src/model/products-extra/page.tsx",
+          },
+        ],
+        ["scripts/setup/remove-sample", "src/model/product"],
+      ),
+    ).toEqual([]);
+  });
+
   it("置き直す先が削除対象の内側にあれば報告する", () => {
     expect(
       findMisplacedRestorations(
@@ -121,6 +140,27 @@ describe("findMisplacedRestorations", () => {
         ["scripts/setup/remove-sample", "src/app/global-nav.ts"],
       ),
     ).toEqual(["置き直す先が削除対象の内側にあります: src/app/global-nav.ts"]);
+  });
+});
+
+describe("findOccupiedRestorations", () => {
+  // ----- 正常系 -----
+  it("置き直す先に実体が無ければ何も報告しない", () => {
+    expect(
+      findOccupiedRestorations(
+        [{ from: "scripts/setup/remove-sample/x.template", to: "src/app/page.tsx" }],
+        () => false,
+      ),
+    ).toEqual([]);
+  });
+
+  it("置き直す先に実体があれば報告する", () => {
+    expect(
+      findOccupiedRestorations(
+        [{ from: "scripts/setup/remove-sample/x.template", to: "src/proxy.ts" }],
+        () => true,
+      ),
+    ).toEqual(["置き直す先が既に使われています: src/proxy.ts"]);
   });
 });
 
