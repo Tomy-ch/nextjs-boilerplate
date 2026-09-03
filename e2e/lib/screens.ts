@@ -106,8 +106,11 @@ export type ScreenDeclaration =
  * （[0091](../../docs/adr/0091-test-verification-methods.md) の除外の規律と同じ）。
  */
 export const SCREENS: readonly ScreenDeclaration[] = [
-  // sample:begin
+  // 入口はどのサイトにもあるので、題材を破棄しても残る（`src/app/sitemap.ts` / `src/proxy.ts` の
+  // 戻り先 / `src/app/not-found.tsx` の導線がいずれもここを指す）。破棄後は最小の画面が置き直され、
+  // route は同じまま中身だけが入れ替わる（`scripts/setup/remove-sample/sample-manifest.ts`）。
   { route: "/", name: "home", path: "/" },
+  // sample:begin
   { route: "/products", name: "products", path: "/products" },
   {
     route: "/products/[id]",

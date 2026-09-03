@@ -365,12 +365,45 @@ E2E の報告が無い commit では画面を 1 枚も撮り直さない。1 対
 | `journeys/` | ジャーニー・帯ごとの出し分け・CSP の enforce・同意の面。3 つのエンジンで回る |
 | `visual/` | 画面単位の比較。1 つのエンジンで、帯の数だけ回る |
 | `maintenance/` | 配信を止めた状態の成立。**別の起動で回る**（下記） |
-
-同梱サンプルを破棄すると、題材の画面を通す spec（`journeys/browse` / `journeys/responsive`）は
-一緒に消える。**帯の出し分けを見る spec が消えるのは、見る相手が居なくなるため**である —— 残る
-画面に脇へ常設する領域が無い以上、確かめる対象が無い。帯そのものの組み立て
-（[`lib/viewports.ts`](lib/viewports.ts)）は残るので、そういう画面を置いた時点で spec を書き足せる。
 | [`../playwright.e2e.config.ts`](../playwright.e2e.config.ts) | 実行環境と比較条件 |
 | [`../.makefiles/testing/e2e.mk`](../.makefiles/testing/e2e.mk) | build・起動・後片付け。画面ごとの Core Web Vitals（`make lighthouse`）も同じ起動に相乗りする |
+
+## spec が指す経路は、実在する route でなければならない
+
+spec は開く先を文字列で書くので、**指す先が消えても型検査には掛からない**。実物で落ちるのは
+E2E だが、E2E は費用のため PR ごとには回らない（`.github/workflows/e2e.yaml`）。
+[`scripts/e2e-routes.gate.test.ts`](../scripts/e2e-routes.gate.test.ts) が、`*.spec.ts` の中の経路を
+`src/app` の実在する route と突き合わせてこの隙間を埋める。
+
+実在しないことが**意図**である経路（保護の判定が接頭辞だけで決まることを見る `/account`、
+経路の有無に関わらず差し替わることを見る `/help`）は、理由を添えてそのゲートへ宣言する。
+「まだ画面が無い」は理由にならない。どの spec も指さなくなった宣言と、画面が置かれて実在する
+ようになった宣言は、どちらもゲートが落とす。
+
+`lib/` の宣言はこのゲートの対象ではない。あちらは build の出力と突き合わせる判定を自分で持ち、
+宣言の無い route も実体の無い宣言もそこで落ちる（[`lib/screens.ts`](lib/screens.ts)）。
+
+<!-- sample:begin -->
+## 同梱サンプルを破棄すると何が消えるか
+
+**消えるのは、確かめる相手が題材と一緒に居なくなる spec だけである。**該当するのは 4 本で、
+いずれも `journeys/` に居る。
+
+| spec | 消える理由 |
+| --- | --- |
+| `journeys/browse` | 通す遷移そのものが題材の画面である |
+| `journeys/responsive` | 残る画面に脇へ常設する領域が無い。帯そのものの組み立て（[`lib/viewports.ts`](lib/viewports.ts)）は残るので、そういう画面を置いた時点で書き足せる |
+| `journeys/overlay` | 被せた面と履歴が競合する画面が残らない |
+| `journeys/focus` | ドロワー・モーダル・メニューを持つ画面が残らない |
+
+**残る spec は、残る画面しか指してはならない。**機構を見る spec（同意・CSP・別 origin・公開面・
+認証の前捌き）はどれも題材を要求していないので、入口（`/`）・停止画面・ログインのいずれかを
+指す。破棄した木でこれが守られているかは、上のゲートが `purge-verify` の中で見る。
+
+**入口（`/`）は破棄後も残る。**題材の画面が占めているので削除の対象だが、破棄の最後に動作確認用の
+最小ページが置き直される（`scripts/setup/remove-sample/sample-manifest.ts` の
+`SAMPLE_RESTORATIONS`）。不在の面から戻る導線・役割の足りない要求の戻り先・サイトマップが挙げる
+公開経路が、いずれもこの経路を指しているためである。
+<!-- sample:end -->
 
 `tmp/e2e/` に出る実行結果（trace / HTML レポート / サーバのログ）は追跡しない。

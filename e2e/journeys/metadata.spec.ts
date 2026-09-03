@@ -7,7 +7,13 @@ import { expect, test } from "../lib/test";
  * （`e2e/metadata/`）。両方が通ってはじめて、切り替えが設定で効いていると言える。
  */
 
-/** 索引させない起動でも開ける画面。root の `noindex` を継ぐので、どの画面でもよい。 */
+/**
+ * 索引させない起動でも開ける画面。
+ *
+ * @remarks
+ * `noindex` は root layout が置くので、継ぐ画面ならどれでも同じものを名乗ります。入口を選ぶのは
+ * **題材に依らない**画面だからです（[README](../README.md)）。
+ */
 const ENTRY_PATH = "/";
 
 test("索引させない起動では、robots.txt が全経路を断り、サイトマップを知らせない", async ({

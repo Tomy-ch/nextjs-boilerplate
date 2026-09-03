@@ -19,6 +19,17 @@ name: Purge Verify
 # was considered and rejected — a fork that later grows its own sample would have
 # lost the mechanism with no trace that it ever existed.
 #
+# ## What this job does NOT run
+#
+# The end-to-end suite. It needs a browser container plus a production build and costs
+# about four and a half minutes, which is why `e2e.yaml` defers it rather than running it
+# on every pull request; bolting it onto a job that DOES run on every pull request would
+# undo that decision. The gap it leaves is narrow and covered statically instead: a spec
+# points at a screen by writing its path as a string, so a screen removed by the purge
+# leaves the spec pointing at nothing and no type check sees it. `scripts/e2e-routes.gate.test.ts`
+# resolves every path literal in `e2e/**/*.spec.ts` against the routes that actually exist
+# under `src/app`, and it runs as part of `pnpm test:scripts` below — on the purged tree.
+#
 # Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
 # every PR is in README.md.
 
@@ -92,6 +103,9 @@ jobs:
       - name: Preview the purge
         run: pnpm exec tsx scripts/setup/remove-sample --dry-run
 
+      # Also puts back the files the purge cannot express as a deletion — the entry screen
+      # (`/`), which the sample occupies but which the not-found link, the proxy fallback
+      # and the sitemap all point at (`SAMPLE_RESTORATIONS`).
       - name: Purge the sample
         run: pnpm exec tsx scripts/setup/remove-sample
 
