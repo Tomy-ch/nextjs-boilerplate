@@ -65,3 +65,13 @@ jobs:
         uses: ./.github/actions/setup-deps
       - name: Run the scripts suite with coverage
         run: make scripts-test
+
+      # A dry run of the fork-time replacement over the real tree. The unit tests pin the
+      # mechanism against fixtures, but nothing else reads the markers that live in the
+      # sources: an unbalanced `portal:replace-*` pair throws, and without this step it
+      # would only throw for whoever forks the repository and runs the tool.
+      # Writes nothing — `--dry-run` reports the plan and stops.
+      - name: Preview the repository-reference replacement
+        run: >
+          pnpm exec tsx scripts/setup/replace-repository-reference
+          --repository example-org/example-app --dry-run

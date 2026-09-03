@@ -56,6 +56,11 @@ make setup-remove-boilerplate-only   # boilerplate-only:line
 
 いずれも `DRY_RUN=1` で書き換えずに予定だけ出せる。
 
+1 つ目はドキュメントポータルへのリンクも差し替える。差し替え先の既定は GitHub Pages の配信先
+（`https://<owner>.github.io/<repo>/`）で、custom domain を当てる場合だけ
+`PORTAL_URL=https://docs.example.com/` を足す。**手順 3 で Pages を有効にしていなくても実行してよい** —
+URL の形は Pages の有効化ではなく `<owner>/<repo>` が決めるため、後から有効にしてもリンクは合う。
+
 <!-- boilerplate-only:begin -->
 3 つ目は**この template を配る側にしか意味を持たない記述**を剥がす
 （[0152](../adr/0152-agents-md-policy.md)）。飛ばす選択肢は無い —— fork を作った時点で前提が

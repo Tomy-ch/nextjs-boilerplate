@@ -38,6 +38,7 @@ BACKLOG D2 は、`docs/portal/manifest.yaml` への登録基準・portal ↔ doc
 - **ビューアーは独立した workspace パッケージ(`docs-viewer/`)**、ビルドは **Vite**。パッケージを分けるのは**無害化の許容範囲がアプリ本体と違う**ためで、ドキュメントに必要な広い allowlist(`table` / `pre` / `img` / `language-*` class)を **アプリから import できない位置**へ置く。分離を規約ではなくパッケージ境界で担保する。esbuild ではなく Vite なのは、デザイントークンを通すのに Tailwind のビルドが要るため
 - **配信 = GitHub Pages**(go ADR 0090 の翻案)。`production` への push で発火する。**Pages はリポジトリに 1 サイトしか持てない**ため、`docs/` をサイトルートへ写し、portal を `/portal/`、Storybook を `/storybook/` と兄弟に並べる。ルートは入口への転送だけを持つ
 - **deep-link は位置ハッシュ(`#/<group>/<section>`)で表すため、404 fallback を必要としない**。経路がサーバへ届かない
+- **boilerplate 内から portal を指すリンクは、fork 時に `make setup-replace-repository-reference` が差し替える**。既定は `<owner>/<repo>` から組み立てたサイトルートで、custom domain は `PORTAL_URL` で上書きする。置換前は汎用リンクが生きるよう、`portal` マーカー(`portal:replace-*`)で 2 本を切り替える
 - **生成物(`guides/` / `docs.json`)は追跡しない**。配信時に組み立てるため drift が発生しえず、drift 検出の仕組みを持たない
 
 ### 5. 運用スキルループ
