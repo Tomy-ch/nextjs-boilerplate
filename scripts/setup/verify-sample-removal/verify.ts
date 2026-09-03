@@ -22,8 +22,8 @@ export function buildDanglingCommand(danglingPattern: string): string {
 /**
  * remove-sample が書き出したスナップショットから、削除と置き直しの登録を取り出す。
  *
- * @throws JSON として読めない、`registeredPaths` が配列でない・空、`restoredPaths` が配列でない、
- * または `danglingPattern` が文字列でない・空の場合。
+ * @throws JSON として読めない、`registeredPaths` が配列でない・空、または `danglingPattern` が
+ * 文字列でない・空の場合は `Error`。`restoredPaths` が配列として読めない場合は `TypeError`。
  */
 export function parseSnapshot(json: string): {
   registeredPaths: string[];
@@ -43,7 +43,7 @@ export function parseSnapshot(json: string): {
   // 空を許すのは registeredPaths と違い、置き直しが 0 件でも破棄そのものは成立するためである。
   // 配列でないものは書き出しの欠落なので落とす。
   if (!Array.isArray(parsed.restoredPaths)) {
-    throw new Error("スナップショットに restoredPaths がありません");
+    throw new TypeError("スナップショットの restoredPaths が配列として読めません");
   }
 
   if (typeof parsed.danglingPattern !== "string" || parsed.danglingPattern === "") {

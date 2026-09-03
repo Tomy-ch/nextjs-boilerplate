@@ -94,7 +94,14 @@ function restoreStep(from: string, to: string, dryRun: boolean): string {
   return `${to} (${from})`;
 }
 
-function run(dryRun: boolean): void {
+/**
+ * 宣言どうしの整合を、1 つも書き換える前に確かめる。
+ *
+ * @remarks
+ * 削除は取り消せないので、宣言の書き間違いはここで落とします。実行を始めてから気づく形にすると、
+ * 半分だけ消えた木が残ります。
+ */
+function assertDeclarations(): void {
   const redundant = findRedundantPaths(SAMPLE_PATHS);
 
   if (redundant.length > 0) {
@@ -111,6 +118,51 @@ function run(dryRun: boolean): void {
   if (misplaced.length > 0) {
     throw new Error(`置き直しの宣言が成立しません:\n${misplaced.join("\n")}`);
   }
+}
+
+/** 検証ツールが読む記録を書き出す。 */
+function writeSnapshot(): void {
+  fs.mkdirSync(toAbsolutePath("tmp"), { recursive: true });
+  fs.writeFileSync(
+    toAbsolutePath(SNAPSHOT_PATH),
+    `${JSON.stringify(
+      {
+        registeredPaths: SAMPLE_PATHS,
+        restoredPaths: SAMPLE_RESTORATIONS.map(({ to }) => to),
+        danglingPattern: DANGLING_PATTERN,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
+/** 手順の種類ごとに、対象を 1 行ずつ出す。 */
+function printEach(label: string, entries: readonly string[]): void {
+  for (const entry of entries) {
+    console.log(`- ${label} ${entry}`);
+  }
+}
+
+/** 何をしたかを人へ出す。 */
+function report(
+  dryRun: boolean,
+  stripped: readonly string[],
+  restored: readonly string[],
+  deleted: readonly string[],
+): void {
+  console.log(
+    `${dryRun ? "ドライラン" : "破棄完了"}: マーカー ${stripped.length}` +
+      ` / 置き直し ${restored.length} / 削除 ${deleted.length}`,
+  );
+
+  printEach("マーカー除去", stripped);
+  printEach("置き直し", restored);
+  printEach("削除", deleted);
+}
+
+function run(dryRun: boolean): void {
+  assertDeclarations();
 
   const scanned = listFilesRecursive(ROOT_DIR, { excludedDirectories: EXCLUDED_DIRECTORIES })
     .map((filePath) => toRelativePath(filePath).split(path.sep).join("/"))
@@ -120,24 +172,22 @@ function run(dryRun: boolean): void {
         isScanTarget(relativePath, EXCLUDED_PATH_PREFIXES, MARKER_LITERAL_FILES),
     );
 
-  const steps = buildSteps(scanned, SAMPLE_PATHS, SAMPLE_RESTORATIONS, ROOT_DIR);
   const stripped: string[] = [];
   const restored: string[] = [];
   const deleted: string[] = [];
 
-  for (const step of steps) {
+  for (const step of buildSteps(scanned, SAMPLE_PATHS, SAMPLE_RESTORATIONS, ROOT_DIR)) {
+    if (step.kind === "restore") {
+      restored.push(restoreStep(step.from, step.to, dryRun));
+      continue;
+    }
+
     if (step.kind === "strip") {
       const summary = stripStep(step.relativePath, dryRun);
 
       if (summary !== null) {
         stripped.push(summary);
       }
-
-      continue;
-    }
-
-    if (step.kind === "restore") {
-      restored.push(restoreStep(step.from, step.to, dryRun));
 
       continue;
     }
@@ -150,37 +200,10 @@ function run(dryRun: boolean): void {
   }
 
   if (!dryRun) {
-    fs.mkdirSync(toAbsolutePath("tmp"), { recursive: true });
-    fs.writeFileSync(
-      toAbsolutePath(SNAPSHOT_PATH),
-      `${JSON.stringify(
-        {
-          registeredPaths: SAMPLE_PATHS,
-          restoredPaths: SAMPLE_RESTORATIONS.map(({ to }) => to),
-          danglingPattern: DANGLING_PATTERN,
-        },
-        null,
-        2,
-      )}\n`,
-    );
+    writeSnapshot();
   }
 
-  console.log(
-    `${dryRun ? "ドライラン" : "破棄完了"}: マーカー ${stripped.length} / 置き直し ${restored.length}` +
-      ` / 削除 ${deleted.length}`,
-  );
-
-  for (const entry of stripped) {
-    console.log(`- マーカー除去 ${entry}`);
-  }
-
-  for (const entry of restored) {
-    console.log(`- 置き直し ${entry}`);
-  }
-
-  for (const entry of deleted) {
-    console.log(`- 削除 ${entry}`);
-  }
+  report(dryRun, stripped, restored, deleted);
 }
 
 /* istanbul ignore next -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */

@@ -79,7 +79,7 @@ describe("parseSnapshot", () => {
 
   it("restoredPaths が配列でなければ断る", () => {
     expect(() => parseSnapshot('{"registeredPaths":["src"],"danglingPattern":"商品"}')).toThrow(
-      "restoredPaths がありません",
+      "restoredPaths が配列として読めません",
     );
   });
 });

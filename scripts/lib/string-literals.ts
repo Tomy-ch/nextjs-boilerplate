@@ -44,6 +44,38 @@ function readQuoted(source: string, start: number, quote: string): { value: stri
 }
 
 /**
+ * 差し込み（`${ … }`）の終わりまで送る。
+ *
+ * @remarks
+ * 中身は式なので拾いません。**読み飛ばすだけでは足りず、対応する括弧まで数える必要があります**
+ * —— 中に入った文字列や入れ子のテンプレートが持つ `}` が、終わりに見えるためです。
+ */
+function skipInterpolation(source: string, start: number): number {
+  let index = start;
+  let depth = 1;
+
+  while (index < source.length && depth > 0) {
+    const char = source[index];
+
+    if (char === "{") {
+      depth += 1;
+    } else if (char === "}") {
+      depth -= 1;
+    } else if (char === '"' || char === "'") {
+      index = readQuoted(source, index, char).next;
+      continue;
+    } else if (char === "`") {
+      index = readTemplate(source, index).next;
+      continue;
+    }
+
+    index += 1;
+  }
+
+  return index;
+}
+
+/**
  * テンプレート文字列を読み、**最初の `${` より前だけ**を返す。
  *
  * @remarks
@@ -54,28 +86,9 @@ function readTemplate(source: string, start: number): { value: string; next: num
   let value = "";
   let index = start + 1;
   let inHead = true;
-  let depth = 0;
 
   while (index < source.length) {
     const char = source[index];
-
-    if (depth > 0) {
-      // 差し込みの内側は式なので、中身は拾わずに対応する括弧まで送る。
-      if (char === "{") {
-        depth += 1;
-      } else if (char === "}") {
-        depth -= 1;
-      } else if (char === '"' || char === "'") {
-        index = readQuoted(source, index, char).next;
-        continue;
-      } else if (char === "`") {
-        index = readTemplate(source, index).next;
-        continue;
-      }
-
-      index += 1;
-      continue;
-    }
 
     if (char === "\\") {
       if (inHead) {
@@ -92,8 +105,7 @@ function readTemplate(source: string, start: number): { value: string; next: num
 
     if (char === "$" && source[index + 1] === "{") {
       inHead = false;
-      depth = 1;
-      index += 2;
+      index = skipInterpolation(source, index + 2);
       continue;
     }
 
@@ -146,11 +158,24 @@ function skipRegExp(source: string, start: number): number {
   return index;
 }
 
-/** コメントの終わりまで送る。閉じていなければ末尾まで。 */
+/** 終わりの綴りまで送る。閉じていなければ末尾まで。 */
 function skipTo(source: string, start: number, terminator: string): number {
   const end = source.indexOf(terminator, start);
 
   return end === -1 ? source.length : end + terminator.length;
+}
+
+/** コメントの始まりなら、その終わりまで送った位置を返す。コメントでなければ `null`。 */
+function skipCommentAt(source: string, index: number): number | null {
+  if (source[index] !== "/") {
+    return null;
+  }
+
+  if (source[index + 1] === "/") {
+    return skipTo(source, index + 2, "\n");
+  }
+
+  return source[index + 1] === "*" ? skipTo(source, index + 2, "*/") : null;
 }
 
 /**
@@ -175,13 +200,10 @@ export function listStringLiterals(source: string): string[] {
   while (index < source.length) {
     const char = source[index];
 
-    if (char === "/" && source[index + 1] === "/") {
-      index = skipTo(source, index + 2, "\n");
-      continue;
-    }
+    const afterComment = skipCommentAt(source, index);
 
-    if (char === "/" && source[index + 1] === "*") {
-      index = skipTo(source, index + 2, "*/");
+    if (afterComment !== null) {
+      index = afterComment;
       continue;
     }
 

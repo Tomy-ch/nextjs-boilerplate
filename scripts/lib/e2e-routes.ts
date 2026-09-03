@@ -110,9 +110,14 @@ export function toRoutePattern(route: string): RegExp {
 export function toRoutePath(literal: string): string {
   const cut = literal.search(/[?#]/);
   const withoutQuery = cut === -1 ? literal : literal.slice(0, cut);
-  const trimmed = withoutQuery.replace(/\/+$/, "");
+  // 区切りの繰り返しを正規表現で剥がすと、末尾に固定した反復が後戻りを起こす。端から数える。
+  let end = withoutQuery.length;
 
-  return trimmed === "" ? "/" : trimmed;
+  while (end > 0 && withoutQuery[end - 1] === "/") {
+    end -= 1;
+  }
+
+  return end === 0 ? "/" : withoutQuery.slice(0, end);
 }
 
 /** 経路が、実在する route のどれかに当たるか。 */
