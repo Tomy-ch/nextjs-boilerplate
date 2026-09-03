@@ -19,7 +19,14 @@ import {
 /** 起動側が `SITE_PUBLIC_ORIGIN` に渡した値と同じ。canonical と sitemap はこれを土台に組まれる。 */
 const PUBLIC_ORIGIN = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 
-/** アイコンと OG 画像を名乗る画面。root の宣言を継ぐので、どの画面でもよい。 */
+/**
+ * アイコンと OG 画像を名乗る画面。
+ *
+ * @remarks
+ * どちらも root layout の宣言を継ぐので、継ぐ画面ならどれでも同じものを名乗ります。入口を選ぶのは
+ * **同梱サンプルを破棄しても残り、しかも索引を断らない**唯一の画面だからです —— ログインと停止
+ * 画面は自分で `noindex` を名乗るため、サイトマップが挙げる公開面にはなりません。
+ */
 const ENTRY_PATH = "/";
 
 test("robots.txt が巡回を許し、サイトマップの場所を知らせる", async ({ request }) => {

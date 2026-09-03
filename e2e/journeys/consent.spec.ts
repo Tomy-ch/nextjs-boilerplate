@@ -10,6 +10,17 @@ import { MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
  * そもそも出ません。ここが確かめたいのは選ぶ前の状態です。
  */
 
+/**
+ * 尋ねる面を出す画面。
+ *
+ * @remarks
+ * 尋ねる面は root layout が置くので、どの画面でも出ます。ログインを選ぶのは 2 つの理由です ——
+ * **同梱サンプルを破棄しても残る**画面であること（題材の画面を指すと、破棄した fork でこの
+ * spec だけが指す先を失います。`e2e/maintenance/stopped.spec.ts` と同じ規律）と、**バックエンド
+ * から何も取らない**こと（モックの応答に依る画面を指すと、同意の検査がその取得と一緒に落ちます）。
+ */
+const ENTRY_PATH = "/login";
+
 /** その名前の cookie が配られているか。 */
 async function hasCookie(
   context: { cookies: () => Promise<{ name: string }[]> },
@@ -19,7 +30,7 @@ async function hasCookie(
 }
 
 test("選び終えるまで尋ね続ける", async ({ page }) => {
-  await page.goto("/about");
+  await page.goto(ENTRY_PATH);
 
   const asking = page.getByRole("dialog", { name: CONSENT_BANNER_COPY.title });
 
@@ -31,7 +42,7 @@ test("選び終えるまで尋ね続ける", async ({ page }) => {
 });
 
 test("同意する前は計測 id を配らない", async ({ page }) => {
-  await page.goto("/about");
+  await page.goto(ENTRY_PATH);
 
   await expect(page.getByRole("dialog", { name: CONSENT_BANNER_COPY.title })).toBeVisible();
 
@@ -39,7 +50,7 @@ test("同意する前は計測 id を配らない", async ({ page }) => {
 });
 
 test("同意すると尋ねるのをやめ、計測 id を配る", async ({ page }) => {
-  await page.goto("/about");
+  await page.goto(ENTRY_PATH);
   await page.getByRole("button", { name: CONSENT_BANNER_COPY.accept }).click();
 
   await expect(page.getByRole("dialog", { name: CONSENT_BANNER_COPY.title })).toBeHidden();
@@ -50,7 +61,7 @@ test("同意すると尋ねるのをやめ、計測 id を配る", async ({ page
 });
 
 test("必要なものだけを選ぶと、尋ねるのをやめたうえで計測 id を配らない", async ({ page }) => {
-  await page.goto("/about");
+  await page.goto(ENTRY_PATH);
   await page.getByRole("button", { name: CONSENT_BANNER_COPY.reject }).click();
 
   await expect(page.getByRole("dialog", { name: CONSENT_BANNER_COPY.title })).toBeHidden();

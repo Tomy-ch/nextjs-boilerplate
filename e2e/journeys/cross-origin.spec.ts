@@ -18,13 +18,26 @@ const FOREIGN_ORIGIN = "https://foreign.invalid";
 /** 起動側が宣言した別 origin。起動側を通さずに開いた環境では、この spec は成立しない。 */
 const ALLOWED_ORIGIN = process.env.E2E_ALLOWED_ORIGIN ?? "http://host.docker.internal:3102";
 
+/**
+ * 読むだけの BFF の口。
+ *
+ * @remarks
+ * CORS を開くのは接頭辞（`/api/`）で決まるので、口の中身は問いません。**同梱サンプルを破棄
+ * しても残る口**を指します —— 題材の口を指すと、破棄した fork でこの spec だけが指す先を
+ * 失います（`e2e/maintenance/stopped.spec.ts` と同じ規律）。
+ */
+const READ_PATH = "/api/health";
+
 test("宣言した origin の文書から BFF を読める", async ({ page, baseURL }) => {
   await page.goto(`${ALLOWED_ORIGIN}/`);
 
-  const result = await page.evaluate(async (target) => {
-    const response = await fetch(`${target}/api/products?first=1`, { credentials: "include" });
-    return { status: response.status, hasBody: (await response.text()).length > 0 };
-  }, baseURL);
+  const result = await page.evaluate(
+    async ({ target, path }) => {
+      const response = await fetch(`${target}${path}`, { credentials: "include" });
+      return { status: response.status, hasBody: (await response.text()).length > 0 };
+    },
+    { target: baseURL, path: READ_PATH },
+  );
 
   expect(result).toStrictEqual({ status: 200, hasBody: true });
 });
@@ -57,7 +70,7 @@ test("宣言に無い origin からの書き込みは handler へ届く前に 40
 });
 
 test("宣言に無い origin からの preflight に CORS ヘッダを返さない", async ({ page }) => {
-  const response = await page.request.fetch("/api/products", {
+  const response = await page.request.fetch(READ_PATH, {
     method: "OPTIONS",
     headers: { origin: FOREIGN_ORIGIN, "access-control-request-method": "GET" },
   });
