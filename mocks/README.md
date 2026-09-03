@@ -20,9 +20,13 @@ coverage-exclusions:
 
 ## テストの責務
 
-frontmatter の `test-requirement: unit` が掛かるのは、取りまとめが持つ判定 —— ハンドラの並び順と、
+frontmatter の `test-requirement: unit` が掛かるのは、機構が持つ判定 —— ハンドラの並び順と、
 同じ要求へ同じ応答を返させる組み立て —— です（[0090](../docs/adr/0090-testing-strategy.md)）。
 生成物そのものは検査の母数から外れ、正しさは契約からの再生成が担保します。
+
+**配線の側（`handlers.ts`）にも検査を置きます。** そちらが見るのは規則の正しさではなく、
+**規則が守るべき衝突が実物の契約に現に在るか**です。機構の側は合成した口で規則を確かめるので、
+契約が `/x/latest` と `/x/:id` の組を持たなくなったことには気づけません。
 
 **`setupServer` と `fetch` を使っていても `integration` ではありません。** 層別責務表の `integration`
 が指すのは `adapters` の API クライアントと Route Handler の HTTP 境界で、確かめるのは契約に対する
