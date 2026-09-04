@@ -49,6 +49,7 @@ const wireProduct = {
 const PRODUCT_KEYS = [
   "category",
   "description",
+  "discontinuedAt",
   "id",
   "imagePaths",
   "name",

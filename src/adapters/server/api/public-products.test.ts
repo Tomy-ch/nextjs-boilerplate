@@ -24,6 +24,7 @@ const wireProduct = {
   status: { id: "1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12", name: "公開" },
   category: { id: "2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13", name: "雑貨" },
   publishedAt: "2026-08-07T00:00:00.000Z",
+  discontinuedAt: null,
   images: [{ imagePath: "products/abc.png", displaySort: 1 }],
   version: 1,
 };

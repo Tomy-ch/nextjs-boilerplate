@@ -105,7 +105,7 @@ describe("toAdminProductRows", () => {
   it("マスタに無い状態は既定の見た目へ倒す", () => {
     const rows = toAdminProductRows([product()], []);
 
-    expect(rows[0]?.statusTone).toBe(BADGE_VARIANT.OUTLINE);
+    expect(rows[0]?.statusTone).toBe(BADGE_VARIANT.GHOST);
   });
 
   it("マスタに無い状態でも表示名はそのまま出す", () => {
