@@ -30,8 +30,9 @@ export type Trigger =
 /** 画面の宣言。ここが動くのは、画面が増えたか開き方が変わったとき。 */
 const SCREEN_DECLARATION = "e2e/lib/screens.ts";
 
-/** 全画面が通る器。 */
+/** 全画面が通る器。layout 自身と、layout が組む shell の部品。 */
 const SHELL_SUFFIX = "/layout.tsx";
+const SHELL_COMPONENTS = "src/components/shell/";
 
 /**
  * そのパスが待たずに測る理由に当たるなら、その理由。
@@ -45,8 +46,11 @@ function forceReasonOf(path: string): string | undefined {
     return "画面の宣言が動いています。まだ一度も測られていない画面があるかもしれません";
   }
 
-  if (path.startsWith("src/app/") && path.endsWith(SHELL_SUFFIX)) {
-    return "器（layout）が動いています。全ての画面がこれを通ります";
+  if (
+    (path.startsWith("src/app/") && path.endsWith(SHELL_SUFFIX)) ||
+    path.startsWith(SHELL_COMPONENTS)
+  ) {
+    return "器（layout と、それが組む shell の部品）が動いています。全ての画面がこれを通ります";
   }
 
   return undefined;
