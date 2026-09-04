@@ -42,8 +42,8 @@ export type Trigger =
  */
 const FORCE_RULES: readonly PathRule[] = [
   {
-    globs: ["src/app/**/layout.tsx"],
-    reason: "器（layout）が動いています。全ての画面がこれを通ります",
+    globs: ["src/app/**/layout.tsx", "src/components/shell/**"],
+    reason: "器（layout と、それが組む shell の部品）が動いています。全ての画面がこれを通ります",
   },
   {
     globs: ["src/app/globals.css", "src/components/design-system/foundation/**/*.css"],

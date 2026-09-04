@@ -18,9 +18,16 @@ describe("decideTrigger", () => {
   });
 
   it("器が動いていれば、理由を添えて待たずに測る", () => {
-    expect(decideTrigger([change("src/app/(shop)/layout.tsx")])).toMatchObject({
+    expect(decideTrigger([change("src/app/(main)/layout.tsx")])).toMatchObject({
       kind: "force",
-      reasons: ["器（layout）が動いています。全ての画面がこれを通ります"],
+      reasons: ["器（layout と、それが組む shell の部品）が動いています。全ての画面がこれを通ります"],
+    });
+  });
+
+  it("器を組む shell の部品が動いていても待たずに測る", () => {
+    expect(decideTrigger([change("src/components/shell/app-shell/app-shell.tsx")])).toMatchObject({
+      kind: "force",
+      reasons: ["器（layout と、それが組む shell の部品）が動いています。全ての画面がこれを通ります"],
     });
   });
 
@@ -59,7 +66,7 @@ describe("decideTrigger", () => {
   });
 
   it("app 配下でも layout.tsx でなければ器として扱わない", () => {
-    expect(decideTrigger([change("src/app/(shop)/page.tsx", 900)])).toEqual({ kind: "skip" });
+    expect(decideTrigger([change("src/app/(main)/page.tsx", 900)])).toEqual({ kind: "skip" });
   });
 
   it("`layout` を名前に含むだけのファイルは器として扱わない", () => {
