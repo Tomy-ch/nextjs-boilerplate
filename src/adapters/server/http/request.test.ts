@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { findAppError } from "@/errors/app-error";
+import { resolveErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import { createHttpClient, type PublicHttpClient } from "./request";
 import { DEFAULT_PROFILE, type ResilienceProfile } from "./resilience-profile";
@@ -85,6 +86,16 @@ async function causeOf(run: () => Promise<unknown>): Promise<unknown> {
   }
 
   return undefined;
+}
+
+async function detailsOf(run: () => Promise<unknown>): Promise<readonly string[]> {
+  try {
+    await run();
+  } catch (error) {
+    return resolveErrorMeta(error)?.details ?? [];
+  }
+
+  return [];
 }
 
 async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
@@ -618,6 +629,46 @@ describe("createHttpClient", () => {
     expect(await kindOf(() => client.request({ path: "/v1/items/1", schema }))).toBe(
       ErrorKind.NOT_FOUND,
     );
+  });
+
+  it("接続先が名指しした項目名を、失敗に載せて渡す", async () => {
+    const client = createClient(
+      vi.fn(async () => jsonResponse(422, { code: "VALIDATION_FAILED", details: ["email"] })),
+    );
+
+    expect(await detailsOf(() => client.request({ path: "/v1/users/1", schema }))).toEqual([
+      "email",
+    ]);
+  });
+
+  it("詳細を宣言していない status では本文を読まない", async () => {
+    const client = createClient(vi.fn(async () => jsonResponse(409, { details: ["email"] })));
+
+    expect(await detailsOf(() => client.request({ path: "/v1/users/1", schema }))).toEqual([]);
+  });
+
+  it("本文が JSON でない 422 でも、分類をすり替えない", async () => {
+    const client = createClient(
+      vi.fn(async () => new Response("<html>Gateway</html>", { status: 422 })),
+    );
+
+    expect(await kindOf(() => client.request({ path: "/v1/users/1", schema }))).toBe(
+      ErrorKind.VALIDATION,
+    );
+  });
+
+  it("本文が JSON でない 422 では詳細を載せない", async () => {
+    const client = createClient(
+      vi.fn(async () => new Response("<html>Gateway</html>", { status: 422 })),
+    );
+
+    expect(await detailsOf(() => client.request({ path: "/v1/users/1", schema }))).toEqual([]);
+  });
+
+  it("契約と違う形の詳細は載せない", async () => {
+    const client = createClient(vi.fn(async () => jsonResponse(422, { details: [{ name: 1 }] })));
+
+    expect(await detailsOf(() => client.request({ path: "/v1/users/1", schema }))).toEqual([]);
   });
 
   it("要求が誤っている 4xx を再試行しない", async () => {
