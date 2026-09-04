@@ -2,6 +2,7 @@
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import Link from "next/link";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -145,7 +146,7 @@ describe("AppShell", () => {
 
   it("導線が主体を待つなら side menu を開く操作を残す", async () => {
     render(
-      <AppShell siteName="サイト" navItems={[]} menuNavSlot={<a href="/settings">設定</a>}>
+      <AppShell siteName="サイト" navItems={[]} menuNavSlot={<Link href="/settings">設定</Link>}>
         <p>本文</p>
       </AppShell>,
     );

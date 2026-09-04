@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import Link from "next/link";
 import { userEvent, within } from "storybook/test";
-
 import { Button } from "@/components/design-system/action/button/button";
 
 import { ContentContainer } from "../content-container/content-container";
