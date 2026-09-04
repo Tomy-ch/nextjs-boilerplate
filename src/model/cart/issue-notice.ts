@@ -30,6 +30,8 @@ export function cartIssueNotice(
       return { blocking: true, message: "この商品は取り扱いが終了しました。" };
     case "unpublished":
       return { blocking: true, message: "この商品は現在購入できません。" };
+    case "discontinued":
+      return { blocking: true, message: "この商品は廃番になりました。" };
     case "outOfStock":
       return { blocking: true, message: "在庫がありません。" };
     case "insufficientStock":
