@@ -20,9 +20,9 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 
 - `errors` カーネルに **transport 非依存のエラー分類(sentinel)** を定義する(go apperror の翻案)。HTTP status やレスポンス形式はここに持たない
 - 分類は全層から参照可([0021](0021-frontend-responsibility.md) errors。`model` が依存してよい唯一のカーネル)
-- HTTP に関連する分類(表示層で扱うもの)。**安定エラーコード列は暫定**であり、実装時にバックエンドの実契約(`ErrorResponse.code` の enum。[0072](0072-api-type-generation.md) で生成される wire 契約)へ**整合させる**(下記「エラーコード語彙」参照)。sentinel の一次キーは **HTTP status**(曖昧さがない)とする:
+- HTTP に関連する分類(表示層で扱うもの)。sentinel の一次キーは **HTTP status**(曖昧さがない)とし、安定エラーコードは分類ごとに `errors` カタログが持つ(下記「エラーコード語彙」参照):
 
-| sentinel(分類) | 安定エラーコード(暫定) | HTTP status | 系統 |
+| sentinel(分類) | 安定エラーコード | HTTP status | 系統 |
 | --- | --- | --- | --- |
 | InvalidArgument | `BAD_REQUEST` | 400 | ユーザ起因 |
 | Unauthenticated | `UNAUTHENTICATED` | 401 | ユーザ起因 |
@@ -40,7 +40,7 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 | Internal | `INTERNAL` | 500 | システム起因 |
 
 - go の worker 分類 sentinel(`ErrRetryable` / `ErrPermanent` / `ErrFatal`)はメッセージング worker 固有のため**採用しない**(表示層は HTTP taxonomy のみ翻案)
-- **エラーコード語彙は wire 契約に整合させる(独自語彙を発明しない)**: 上表の安定エラーコード文字列は暫定ラベルであり、**バックエンドが実際に `ErrorResponse.code` で返すコード enum(契約 SSOT = バックエンドリポの `openapi.gen.yaml`。[0070](0070-backend-role-separation.md) A2 / [0072](0072-api-type-generation.md) B4)に実装時に整合させる**。エラーコードは「ソースファイル / 識別子の命名」ではなく **wire contract の値**であるため、[0028](0028-naming-convention.md) の「命名の権威を go に置かない」方針の対象外であり、契約忠実(= バックエンドの語彙に従う)を優先する。フロント内部で追加の分類ラベルが要る場合も、wire コードと別語彙を競合させない。※上表(gRPC canonical 寄りの暫定名)と go 実体(`UNAUTHORIZED` / `ACCESS_DENIED` / `INTERNAL_ERROR` 等)の差異は、実際の契約が判明した実装時に解消する
+- **エラーコード語彙はこの repo が持つ**: 上表のコードは分類ごとに `errors` カタログが生成する**この repo の語彙**であり、**wire へ出ることは無い**(route が返す失敗は文言だけを載せる)。境界も接続先の `code` を読まない(下記 2)。**契約は `ErrorResponse.code` の値域を宣言していない**(`type: string`)ため、生成物から突き合わせる手段も無い。したがってバックエンドの綴りへ機械的に寄せることはせず、**分類の意味に対して正しい名前を選ぶ**(401 は認証が成立していないので `UNAUTHENTICATED`、403 は認可の拒否なので `FORBIDDEN`)。エラーコードは wire contract の値ではないため、[0028](0028-naming-convention.md) の「命名の権威を go に置かない」がそのまま効く。人がログを突き合わせるときの対応は HTTP status で取れる —— 一次キーが status であることが、綴りの一致より確実な対応づけになる。フロント内部で追加の分類ラベルが要る場合も、この語彙と競合させない
 - **`Canceled`(status 499・非標準)を独立分類として採る**。fetch の中断([0071](0071-bff-api-integration.md) の dual timeout / `AbortSignal`)は失敗ではなく打ち切りであり、システム起因の失敗へ畳むと再試行の対象になる
 - **`UriTooLong`(414)を `PayloadTooLarge`(413)と分けて持つ**。要求の本体が大きいのと、条件を載せた URL が長いのとでは、利用者が減らすべきものが違う。畳むと「送信するデータが大きすぎます」しか出せず、条件を減らせばよいことが伝わらない
 
