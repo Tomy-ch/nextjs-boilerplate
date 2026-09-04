@@ -4,7 +4,7 @@
  *
  * 生成した zod スキーマから、検証を伴わない定数だけを写したもの。client はこちらを引く。
  *
- * OpenAPI spec version: 2.2.0+7b2778e
+ * OpenAPI spec version: 2.2.0+76e4825
  */
 
 export const getStreamPathDestinationMax = 128;
@@ -335,6 +335,8 @@ export const postProductsBodyImagesItemImagePathRegExp = new RegExp(
 
 export const postProductsBodyImagesItemDisplaySortMax = 32767;
 
+export const postProductsBodyImagesMax = 20;
+
 export const postProductsResponseNameMax = 255;
 
 export const postProductsResponsePriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
@@ -420,6 +422,8 @@ export const patchProductsDetailBodyImagesItemImagePathRegExp = new RegExp(
 );
 
 export const patchProductsDetailBodyImagesItemDisplaySortMax = 32767;
+
+export const patchProductsDetailBodyImagesMax = 20;
 
 export const patchProductsDetailResponseNameMax = 255;
 
@@ -596,3 +600,39 @@ export const postCartsMeMergeHeaderXCartSessionRegExp = new RegExp("^[A-Za-z0-9_
 export const postCartsMeMergeHeaderIdempotencyKeyMax = 255;
 
 export const postCartsMeMergeHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const getInquiriesQueryAfterMax = 512;
+
+export const getInquiriesQueryAfterRegExp = new RegExp("^[A-Za-z0-9_-]+$");
+
+export const getInquiriesQueryFirstDefault = 50;
+
+export const getInquiriesQueryFirstMax = 200;
+
+export const getInquiriesMeMessagesQueryAfterSequenceMin = 0;
+
+export const getInquiriesMeMessagesQueryFirstDefault = 50;
+
+export const getInquiriesMeMessagesQueryFirstMax = 200;
+
+export const getInquiriesMeMessagesResponseStreamCursorMin = 0;
+
+export const postInquiriesMeMessagesHeaderIdempotencyKeyMax = 255;
+
+export const postInquiriesMeMessagesHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const postInquiriesMeMessagesBodyBodyMax = 4000;
+
+export const getInquiriesDetailMessagesQueryAfterSequenceMin = 0;
+
+export const getInquiriesDetailMessagesQueryFirstDefault = 50;
+
+export const getInquiriesDetailMessagesQueryFirstMax = 200;
+
+export const getInquiriesDetailMessagesResponseStreamCursorMin = 0;
+
+export const postInquiriesDetailMessagesHeaderIdempotencyKeyMax = 255;
+
+export const postInquiriesDetailMessagesHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const postInquiriesDetailMessagesBodyBodyMax = 4000;

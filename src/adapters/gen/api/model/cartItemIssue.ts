@@ -9,13 +9,15 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+7b2778e
+ * OpenAPI spec version: 2.2.0+76e4825
  */
 
 /**
  * カート明細の再評価結果。取得のたびに商品の現在値と突き合わせて判定される。
  * 1 つの明細に複数同時に立ちうるが、notFound は単独で立ち（商品が引けない以上、在庫も価格も
  * 判定材料が無い）、outOfStock と insufficientStock は排他（在庫 0 は「不足」ではなく「無い」）。
+ * discontinued と unpublished も排他で、廃番の明細には discontinued だけが立つ
+ * （廃番は非公開を伴うが、より具体的なほうだけを立てる）。
  * いずれの値もカートの取得を失敗にしない。買えない明細があることは要求の不正ではないため。
  */
 export type CartItemIssue = (typeof CartItemIssue)[keyof typeof CartItemIssue];
@@ -23,6 +25,7 @@ export type CartItemIssue = (typeof CartItemIssue)[keyof typeof CartItemIssue];
 export const CartItemIssue = {
   notFound: "notFound",
   unpublished: "unpublished",
+  discontinued: "discontinued",
   outOfStock: "outOfStock",
   insufficientStock: "insufficientStock",
   priceIncreased: "priceIncreased",

@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+7b2778e
+ * OpenAPI spec version: 2.2.0+76e4825
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
@@ -22,6 +22,10 @@ import type {
   DashboardSummaryResponse,
   DeliveryEvent,
   ExchangeRateResponse,
+  InquiryHistoryResponse,
+  InquiryListResponse,
+  InquiryMessageResponse,
+  InquiryStreamTicketResponse,
   PrefecturesResponse,
   ProductAmountRankingResponse,
   ProductCountResponse,
@@ -408,6 +412,10 @@ export const getGetProductsResponseMock = (): ProductListResponse => ({
           faker.date.past().toISOString().slice(0, 19) + "Z",
           null,
         ]),
+        discontinuedAt: faker.helpers.arrayElement([
+          faker.date.past().toISOString().slice(0, 19) + "Z",
+          null,
+        ]),
         images: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
           () => ({
             imagePath: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -445,6 +453,10 @@ export const getPostProductsResponseMock = (
   status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   category: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   publishedAt: faker.helpers.arrayElement([
+    faker.date.past().toISOString().slice(0, 19) + "Z",
+    null,
+  ]),
+  discontinuedAt: faker.helpers.arrayElement([
     faker.date.past().toISOString().slice(0, 19) + "Z",
     null,
   ]),
@@ -486,6 +498,10 @@ export const getGetProductsDetailResponseMock = (
     faker.date.past().toISOString().slice(0, 19) + "Z",
     null,
   ]),
+  discontinuedAt: faker.helpers.arrayElement([
+    faker.date.past().toISOString().slice(0, 19) + "Z",
+    null,
+  ]),
   images: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       imagePath: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -517,6 +533,10 @@ export const getPatchProductsDetailResponseMock = (
     faker.date.past().toISOString().slice(0, 19) + "Z",
     null,
   ]),
+  discontinuedAt: faker.helpers.arrayElement([
+    faker.date.past().toISOString().slice(0, 19) + "Z",
+    null,
+  ]),
   images: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
     () => ({
       imagePath: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -545,6 +565,10 @@ export const getPatchProductsStockResponseMock = (
   status: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   category: { id: faker.string.uuid(), name: faker.string.alpha({ length: { min: 10, max: 20 } }) },
   publishedAt: faker.helpers.arrayElement([
+    faker.date.past().toISOString().slice(0, 19) + "Z",
+    null,
+  ]),
+  discontinuedAt: faker.helpers.arrayElement([
     faker.date.past().toISOString().slice(0, 19) + "Z",
     null,
   ]),
@@ -612,6 +636,10 @@ export const getGetProductsLowStockResponseMock = (
         name: faker.string.alpha({ length: { min: 10, max: 20 } }),
       },
       publishedAt: faker.helpers.arrayElement([
+        faker.date.past().toISOString().slice(0, 19) + "Z",
+        null,
+      ]),
+      discontinuedAt: faker.helpers.arrayElement([
         faker.date.past().toISOString().slice(0, 19) + "Z",
         null,
       ]),
@@ -988,6 +1016,118 @@ export const getPostCartsMeMergeResponseMock = (
   dropped: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() =>
     faker.string.uuid(),
   ),
+  ...overrideResponse,
+});
+
+export const getGetInquiriesResponseMock = (
+  overrideResponse: Partial<Extract<InquiryListResponse, object>> = {},
+): InquiryListResponse => ({
+  items: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+    id: faker.string.uuid(),
+    userId: faker.string.uuid(),
+    createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+    updatedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  })),
+  nextCursor: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
+
+export const getGetInquiriesMeMessagesResponseMock = (
+  overrideResponse: Partial<Extract<InquiryHistoryResponse, object>> = {},
+): InquiryHistoryResponse => ({
+  inquiryId: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.string.uuid(), null]),
+    undefined,
+  ]),
+  messages: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+    () => ({
+      id: faker.string.uuid(),
+      inquiryId: faker.string.uuid(),
+      authorKind: faker.helpers.arrayElement(["user", "operator"] as const),
+      body: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      sequence: faker.number.int({ min: 1 }),
+      createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+    }),
+  ),
+  nextAfterSequence: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.number.int(), null]),
+    undefined,
+  ]),
+  streamCursor: faker.number.int({ min: 0 }),
+  ...overrideResponse,
+});
+
+export const getPostInquiriesMeMessagesResponseMock = (
+  overrideResponse: Partial<Extract<InquiryMessageResponse, object>> = {},
+): InquiryMessageResponse => ({
+  message: {
+    id: faker.string.uuid(),
+    inquiryId: faker.string.uuid(),
+    authorKind: faker.helpers.arrayElement(["user", "operator"] as const),
+    body: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    sequence: faker.number.int({ min: 1 }),
+    createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  },
+  ...overrideResponse,
+});
+
+export const getPostInquiriesMeStreamTicketResponseMock = (
+  overrideResponse: Partial<Extract<InquiryStreamTicketResponse, object>> = {},
+): InquiryStreamTicketResponse => ({
+  ticket: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  streamId: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  expiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  ...overrideResponse,
+});
+
+export const getPostInquiriesFeedStreamTicketResponseMock = (
+  overrideResponse: Partial<Extract<InquiryStreamTicketResponse, object>> = {},
+): InquiryStreamTicketResponse => ({
+  ticket: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  streamId: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  expiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  ...overrideResponse,
+});
+
+export const getGetInquiriesDetailMessagesResponseMock = (
+  overrideResponse: Partial<Extract<InquiryHistoryResponse, object>> = {},
+): InquiryHistoryResponse => ({
+  inquiryId: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.string.uuid(), null]),
+    undefined,
+  ]),
+  messages: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+    () => ({
+      id: faker.string.uuid(),
+      inquiryId: faker.string.uuid(),
+      authorKind: faker.helpers.arrayElement(["user", "operator"] as const),
+      body: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      sequence: faker.number.int({ min: 1 }),
+      createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+    }),
+  ),
+  nextAfterSequence: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.number.int(), null]),
+    undefined,
+  ]),
+  streamCursor: faker.number.int({ min: 0 }),
+  ...overrideResponse,
+});
+
+export const getPostInquiriesDetailMessagesResponseMock = (
+  overrideResponse: Partial<Extract<InquiryMessageResponse, object>> = {},
+): InquiryMessageResponse => ({
+  message: {
+    id: faker.string.uuid(),
+    inquiryId: faker.string.uuid(),
+    authorKind: faker.helpers.arrayElement(["user", "operator"] as const),
+    body: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    sequence: faker.number.int({ min: 1 }),
+    createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  },
   ...overrideResponse,
 });
 
@@ -1984,6 +2124,174 @@ export const getPostCartsMeMergeMockHandler = (
     options,
   );
 };
+
+export const getGetInquiriesMockHandler = (
+  overrideResponse?:
+    | InquiryListResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<InquiryListResponse> | InquiryListResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/inquiries",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetInquiriesResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
+export const getGetInquiriesMeMessagesMockHandler = (
+  overrideResponse?:
+    | InquiryHistoryResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<InquiryHistoryResponse> | InquiryHistoryResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/inquiries/me/messages",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetInquiriesMeMessagesResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
+export const getPostInquiriesMeMessagesMockHandler = (
+  overrideResponse?:
+    | InquiryMessageResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<InquiryMessageResponse> | InquiryMessageResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/inquiries/me/messages",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostInquiriesMeMessagesResponseMock(),
+        { status: 201 },
+      );
+    },
+    options,
+  );
+};
+
+export const getPostInquiriesMeStreamTicketMockHandler = (
+  overrideResponse?:
+    | InquiryStreamTicketResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<InquiryStreamTicketResponse> | InquiryStreamTicketResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/inquiries/me/stream-ticket",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostInquiriesMeStreamTicketResponseMock(),
+        { status: 201 },
+      );
+    },
+    options,
+  );
+};
+
+export const getPostInquiriesFeedStreamTicketMockHandler = (
+  overrideResponse?:
+    | InquiryStreamTicketResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<InquiryStreamTicketResponse> | InquiryStreamTicketResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/inquiries/feed/stream-ticket",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostInquiriesFeedStreamTicketResponseMock(),
+        { status: 201 },
+      );
+    },
+    options,
+  );
+};
+
+export const getGetInquiriesDetailMessagesMockHandler = (
+  overrideResponse?:
+    | InquiryHistoryResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<InquiryHistoryResponse> | InquiryHistoryResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/inquiries/:inquiryId/messages",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetInquiriesDetailMessagesResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
+export const getPostInquiriesDetailMessagesMockHandler = (
+  overrideResponse?:
+    | InquiryMessageResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<InquiryMessageResponse> | InquiryMessageResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/inquiries/:inquiryId/messages",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostInquiriesDetailMessagesResponseMock(),
+        { status: 201 },
+      );
+    },
+    options,
+  );
+};
 export const getGoBoilerplateAPIMock = () => [
   getGetStreamMockHandler(),
   getGetUsersMockHandler(),
@@ -2027,4 +2335,11 @@ export const getGoBoilerplateAPIMock = () => [
   getPutCartsMeItemMockHandler(),
   getDeleteCartsMeItemMockHandler(),
   getPostCartsMeMergeMockHandler(),
+  getGetInquiriesMockHandler(),
+  getGetInquiriesMeMessagesMockHandler(),
+  getPostInquiriesMeMessagesMockHandler(),
+  getPostInquiriesMeStreamTicketMockHandler(),
+  getPostInquiriesFeedStreamTicketMockHandler(),
+  getGetInquiriesDetailMessagesMockHandler(),
+  getPostInquiriesDetailMessagesMockHandler(),
 ];

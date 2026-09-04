@@ -11,7 +11,7 @@ sources:
     path: openapi/openapi.gen.yaml
     # コミット SHA で固定する。商品 API も購入ステータスマスタも未タグの release ブランチにしか
     # なく、tag では指せない。上流の進展の取り込みはこの ref の書き換えとして明示的に行う。
-    ref: 3da8148eb61011af1998ea4f5bd0d6db86cfdb84
-    sha: 7b2778ecadb7b97c6925f2de55b78713998a3e91
-    fetchedAt: 2026-09-01T18:43:12.457Z
+    ref: 91cf355bcd4d806e81d08ccc367f88ac40de1179
+    sha: 76e48258341218b16deaba772c2dd447f114b13e
+    fetchedAt: 2026-09-04T19:25:56.960Z
   # sample:end
