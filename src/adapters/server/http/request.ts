@@ -266,12 +266,11 @@ async function readBody(response: Response): Promise<unknown> {
 }
 
 /**
- * 契約が詳細識別子を載せる唯一の status。
+ * 契約が詳細識別子を宣言している唯一の status。
  *
  * @remarks
- * `details` を返せるのは、応答に `ErrorResponseWithDetails` を宣言した口だけです（宣言の無い口では
- * 接続先が fail-closed で落とします）。契約上その宣言を持つのは `422` だけなので、他の失敗では
- * 本文を読みに行きません。読んでも空しか得られない一方、再試行のたびに本文の解釈を足します。
+ * `ErrorResponseWithDetails` を宣言した口だけが `details` を返せ、いまその宣言を持つのは `422` だけです。
+ * 契約が増えたらここも増えます。
  */
 const UNPROCESSABLE_ENTITY_STATUS = 422;
 
@@ -279,10 +278,8 @@ const UNPROCESSABLE_ENTITY_STATUS = 422;
  * 失敗した応答のうち、詳細識別子だけを読む形。
  *
  * @remarks
- * **`message` は読みません。**接続先が選んだ文言をそのまま利用者へ出すことになり、こちらが選んで
- * いない文字列が画面に出ます（[0080](../../../../docs/adr/0080-error-handling.md)）。文言は分類ごとに
- * カタログが持ちます。`code` も読みません。値域の宣言が無い（`type: string`）ので、綴りで分岐すると
- * 契約を再生成しても食い違いを検出できません。
+ * `message` も `code` も読みません。理由は
+ * [0080](../../../../docs/adr/0080-error-handling.md) §2 にあります。
  */
 const errorDetailsSchema = z.object({ details: z.array(z.string()).optional() });
 
@@ -290,9 +287,8 @@ const errorDetailsSchema = z.object({ details: z.array(z.string()).optional() })
  * 失敗した応答から、接続先が名指しした項目名を読む。
  *
  * @remarks
- * **失敗の経路なので、ここでの失敗を表に出しません。**本文が JSON でない（経路上の proxy が返した、
- * など）ことも、契約と違う形であることも起こり得ますが、いずれも「詳細が無い」に畳みます。詳細を
- * 読めなかったことを理由に、元の失敗そのものを別の失敗へすり替えないためです。
+ * 読めない本文は「詳細が無い」に畳み、元の失敗をすり替えません
+ * （[0080](../../../../docs/adr/0080-error-handling.md) §2）。
  *
  * @returns 名指しされた項目名。読めなければ空
  */
@@ -525,8 +521,7 @@ export function createHttpClient({
         } catch (cause) {
           lastError = cause instanceof Error ? cause : new Error(String(cause));
           lastKind = overall.aborted ? ErrorKind.CANCELED : ErrorKind.UNAVAILABLE;
-          // 応答を得られなかった試行は、前の試行が名指しした項目を引き継ぎません。分類と詳細が
-          // 別々の試行のものになると、届かなかった失敗に項目の誤りが付いて出ます。
+          // 分類と詳細が別々の試行のものにならないよう捨てる（0080 §2）。
           lastDetails = [];
         }
 
