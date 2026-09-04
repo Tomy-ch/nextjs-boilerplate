@@ -80,6 +80,7 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 | `registration-gate.ts` | 保護された画面の入口。認証と登録の状態を行き先へ変える |
 | `field-labels.ts` | 入力欄と確認に出す項目名。label と見出しの出所を 1 つにする |
 | `parse-profile-form.ts` | 送信された `FormData` を、登録と更新に渡せる形へ解く |
+| `profile-rejection.ts` | 接続先が名指しして拒んだ項目を、送る前の検証と同じ形の文言へ写す |
 | `use-error-visibility.ts` | 誤りをいつ見せるかだけを決める。検証はしない |
 | `use-profile-fields.ts` | 検証を回し、入力欄 1 つぶんの props を組む |
 | `use-address-completion.ts` | 郵便番号から住所を引き、埋める値を決める |
@@ -123,6 +124,7 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 | 住所を引く | `use-address-completion.ts` | 補完の契約や打ち切りの仕方 |
 | 補完をフォームへ当てる | `use-address-field.ts` | どの項目へ埋めるか |
 | 入力を解く | `parse-profile-form.ts` | 送信の形（`FormData`）が変わったとき |
+| 接続先の拒否を項目へ写す | `profile-rejection.ts` | 契約の項目名がフォームの項目名と食い違ったとき |
 | 段の構成と進んでよいか | `onboarding/steps.ts` | 段の割り方が変わったとき |
 | 送信を編成する | `actions.ts` | 更新の手順が変わったとき |
 | 並び | `edit/ui/profile-form/` / `onboarding/ui/*-section/` | 見た目 |

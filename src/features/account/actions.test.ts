@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { withErrorDetails } from "@/errors/error-meta";
 import { idleActionState } from "@/model/action-state";
 
 const { redirect, registerUser, revalidatePath, updateMyProfile, withdrawMe } = vi.hoisted(() => ({
@@ -46,6 +47,13 @@ function formDataOf(overrides: Partial<Record<string, string>> = {}): FormData {
   }
 
   return formData;
+}
+
+/** 接続先が項目を名指しして拒んだ失敗。 */
+function rejectedFields(details: readonly string[]): Error {
+  return createAppError(ErrorKind.VALIDATION, {
+    cause: withErrorDetails(new Error("接続先が拒みました"), details),
+  });
 }
 
 beforeEach(() => {
@@ -109,6 +117,26 @@ describe("updateProfileAction", () => {
       formError: "現在の状態ではこの操作を実行できません。",
       fieldErrors: undefined,
       kind: ErrorKind.CONFLICT,
+    });
+  });
+
+  it("接続先が項目を名指しして拒んだとき、その項目の文言として返す", async () => {
+    updateMyProfile.mockRejectedValue(rejectedFields(["email"]));
+
+    await expect(updateProfileAction(IDLE_PROFILE, formDataOf())).resolves.toMatchObject({
+      status: "error",
+      fieldErrors: {
+        email: ["メールアドレスは受け付けられませんでした。入力し直してください。"],
+      },
+    });
+  });
+
+  it("名指しの無い検証の失敗は、項目に紐づけずカタログの文言で返す", async () => {
+    updateMyProfile.mockRejectedValue(createAppError(ErrorKind.VALIDATION));
+
+    await expect(updateProfileAction(IDLE_PROFILE, formDataOf())).resolves.toMatchObject({
+      formError: "入力内容を確認してください。",
+      fieldErrors: undefined,
     });
   });
 
@@ -192,6 +220,20 @@ describe("registerAction", () => {
       formError:
         "この内容では登録できませんでした。すでに登録が済んでいるか、他の登録と重複しています。",
     });
+  });
+
+  it("接続先が項目を名指しして拒んだとき、その項目の文言として返す", async () => {
+    registerUser.mockRejectedValue(rejectedFields(["postalCode"]));
+
+    const state = await registerAction(IDLE_PROFILE, registrationFormDataOf());
+
+    expect(state).toMatchObject({
+      status: "error",
+      fieldErrors: {
+        postalCode: ["郵便番号は受け付けられませんでした。入力し直してください。"],
+      },
+    });
+    expect(redirect).not.toHaveBeenCalled();
   });
 
   it("競合以外の失敗は分類のまま伝える", async () => {
