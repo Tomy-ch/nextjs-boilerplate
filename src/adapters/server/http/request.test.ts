@@ -641,6 +641,12 @@ describe("createHttpClient", () => {
     ]);
   });
 
+  it("項目を名指ししていない 422 では詳細を載せない", async () => {
+    const client = createClient(vi.fn(async () => jsonResponse(422, { code: "VALIDATION_FAILED" })));
+
+    expect(await detailsOf(() => client.request({ path: "/v1/users/1", schema }))).toEqual([]);
+  });
+
   it("詳細を宣言していない status では本文を読まない", async () => {
     const client = createClient(vi.fn(async () => jsonResponse(409, { details: ["email"] })));
 

@@ -1,6 +1,6 @@
 import { findAppError } from "@/errors/app-error";
-import { resolveErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
+import { errorMetaFrom } from "@/errors/error-meta";
 import type { FieldErrors } from "@/model/action-state";
 import type { ProfileField } from "@/model/user/profile-schema";
 
@@ -52,7 +52,7 @@ export function toProfileFieldErrors(error: unknown): FieldErrors<ProfileField> 
 
   const fieldErrors: Partial<Record<ProfileField, readonly string[]>> = {};
 
-  for (const name of resolveErrorMeta(error)?.details ?? []) {
+  for (const name of errorMetaFrom(error)?.details ?? []) {
     if (isProfileField(name)) {
       fieldErrors[name] = [rejectionMessageOf(name)];
     }
