@@ -133,6 +133,28 @@ describe("AppShell", () => {
     expect(screen.getByRole("navigation", { name: "主要な導線" })).toBeEmptyDOMElement();
   });
 
+  it("畳むものが無ければ side menu を開く操作を出さない", () => {
+    render(
+      <AppShell siteName="サイト" navItems={[]}>
+        <p>本文</p>
+      </AppShell>,
+    );
+
+    expect(screen.queryByRole("button", { name: "メニューを開く" })).not.toBeInTheDocument();
+  });
+
+  it("導線が主体を待つなら side menu を開く操作を残す", async () => {
+    render(
+      <AppShell siteName="サイト" navItems={[]} menuNavSlot={<a href="/settings">設定</a>}>
+        <p>本文</p>
+      </AppShell>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+
+    expect(screen.getByRole("dialog")).toHaveTextContent("設定");
+  });
+
   it("header を、下へ貼り付ける側が参照する高さのとおりに描く", () => {
     renderShell();
 
