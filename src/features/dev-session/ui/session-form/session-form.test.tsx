@@ -144,11 +144,11 @@ describe("DevSessionForm", () => {
         authorization={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
-        returnUrl="/checkout"
+        returnUrl="/account"
       />,
     );
 
-    expect(container.querySelector('input[name="returnUrl"]')).toHaveValue("/checkout");
+    expect(container.querySelector('input[name="returnUrl"]')).toHaveValue("/account");
   });
 
   it("発行している間は、押せなくしたうえで進行を読み上げる", async () => {

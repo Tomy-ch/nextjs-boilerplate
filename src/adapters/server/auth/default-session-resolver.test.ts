@@ -278,7 +278,7 @@ describe("createDefaultSessionResolver", () => {
   });
 
   it("封緘した一時状態を復元する", async () => {
-    const { resolver, transaction } = await startSignIn({ returnUrl: "/mypage" });
+    const { resolver, transaction } = await startSignIn({ returnUrl: "/account" });
 
     const restored = await resolver.restoreTransaction(await resolver.sealTransaction(transaction));
 

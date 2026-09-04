@@ -35,12 +35,12 @@ export const Default: Story = {
 
 /** 保護された画面で弾かれて来た場合。認証後は元の画面へ戻る。 */
 export const WithReturnUrl: Story = {
-  args: { returnUrl: toSafeReturnUrl("/mypage"), notice: null },
+  args: { returnUrl: toSafeReturnUrl("/account"), notice: null },
 };
 
 /** IdP へ到達できず戻された場合。理由と、もう一度押せることが操作の手前で読めるかを見る。 */
 export const Unavailable: Story = {
-  args: { returnUrl: toSafeReturnUrl("/mypage"), notice: LOGIN_NOTICE.UNAVAILABLE },
+  args: { returnUrl: toSafeReturnUrl("/account"), notice: LOGIN_NOTICE.UNAVAILABLE },
 };
 
 /**

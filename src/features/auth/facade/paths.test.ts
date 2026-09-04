@@ -12,13 +12,11 @@ describe("LOGIN_PATH", () => {
 describe("loginPath", () => {
   // ----- 正常系 -----
   it("戻り先を載せた行き先を組む", () => {
-    expect(loginPath("/mypage")).toBe("/login?returnUrl=%2Fmypage");
+    expect(loginPath("/account")).toBe("/login?returnUrl=%2Faccount");
   });
 
   it("検索条件を持つ戻り先も、丸ごと 1 つの値として載せる", () => {
-    expect(loginPath("/purchases?period=month")).toBe(
-      "/login?returnUrl=%2Fpurchases%3Fperiod%3Dmonth",
-    );
+    expect(loginPath("/account?page=2")).toBe("/login?returnUrl=%2Faccount%3Fpage%3D2");
   });
 
   // ----- 異常系 -----

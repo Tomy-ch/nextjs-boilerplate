@@ -24,7 +24,7 @@ const transaction = {
   state: "state-value",
   codeVerifier: "verifier-value",
   nonce: "nonce-value",
-  returnUrl: "/mypage",
+  returnUrl: "/account",
 };
 
 const record = {
@@ -88,7 +88,7 @@ describe("GET", () => {
   it("元の画面へ戻す", async () => {
     const response = await GET(callback("?code=authorization-code&state=state-value"));
 
-    expect(response.headers.get("location")).toBe("http://localhost:3000/mypage");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/account");
   });
 
   // ----- 異常系 -----
@@ -123,7 +123,7 @@ describe("GET", () => {
 
     const response = await GET(callback("?code=authorization-code&state=state-value"));
 
-    expect(response.headers.get("location")).toBe("http://localhost:3000/mypage");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/account");
     expect(logger.warn).toHaveBeenCalled();
   });
 
@@ -135,7 +135,7 @@ describe("GET", () => {
 
     const response = await GET(callback("?code=authorization-code&state=state-value"));
 
-    expect(response.headers.get("location")).toBe("http://localhost:3000/mypage");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/account");
   });
   // sample:end
 

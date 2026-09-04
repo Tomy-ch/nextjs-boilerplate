@@ -133,7 +133,7 @@ describe("proxy", () => {
   });
 
   it("保護されていないパスでも session cookie があれば共有キャッシュへ載せない", async () => {
-    const response = await proxy(request("/api/purchases", "sealed"));
+    const response = await proxy(request("/api/help", "sealed"));
 
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
@@ -158,7 +158,7 @@ describe("proxy", () => {
     allowedOrigins.current = [PARTNER_ORIGIN];
 
     const response = await proxy(
-      crossOrigin("/api/purchases", PARTNER_ORIGIN, {
+      crossOrigin("/api/help", PARTNER_ORIGIN, {
         method: "OPTIONS",
         headers: {
           "access-control-request-method": "POST",
