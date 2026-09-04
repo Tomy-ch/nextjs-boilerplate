@@ -5,13 +5,11 @@ import { shouldWarnUnhandled } from "./unhandled-request";
 describe("shouldWarnUnhandled", () => {
   // ----- 正常系 -----
   it("横取りの対象である `/api/*` は報せる", () => {
-    expect(shouldWarnUnhandled("http://localhost:6006/api/addresses?postalCode=150-0001")).toBe(
-      true,
-    );
+    expect(shouldWarnUnhandled("http://localhost:6006/api/help?scope=all")).toBe(true);
   });
 
   it("下位のパスへ配信されていても、宛先が `/api/*` なら報せる", () => {
-    expect(shouldWarnUnhandled("https://example.test/api/products/count")).toBe(true);
+    expect(shouldWarnUnhandled("https://example.test/api/help/count")).toBe(true);
   });
 
   // ----- 異常系 -----

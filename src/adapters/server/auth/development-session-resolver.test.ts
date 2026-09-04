@@ -34,12 +34,12 @@ function issueCode(state: string, subject: string, role: "admin" | "user"): Prom
 describe("createDevelopmentSessionResolver", () => {
   // ----- 正常系 -----
   it("IdP ではなく、同じ生成元の開発用の面へ送り出す", async () => {
-    const { authorizationUrl } = await resolver.startAuthorization("/mypage");
+    const { authorizationUrl } = await resolver.startAuthorization("/account");
     const url = new URL(authorizationUrl);
 
     expect(url.origin).toBe("http://localhost:3000");
     expect(url.pathname).toBe("/dev/session");
-    expect(url.searchParams.get("returnUrl")).toBe("/mypage");
+    expect(url.searchParams.get("returnUrl")).toBe("/account");
   });
 
   it("送り出す先へ、一時状態と同じ state を載せる", async () => {
@@ -84,7 +84,7 @@ describe("createDevelopmentSessionResolver", () => {
   });
 
   it("封緘した一時状態を、そのまま復元できる", async () => {
-    const { transaction } = await resolver.startAuthorization("/checkout");
+    const { transaction } = await resolver.startAuthorization("/account");
 
     const restored = await resolver.restoreTransaction(await resolver.sealTransaction(transaction));
 

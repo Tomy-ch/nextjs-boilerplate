@@ -24,7 +24,7 @@ function submission(overrides: Record<string, string> = {}): Request {
     expiresInSeconds: "3600",
     accessToken: "",
     issuerUrl: "https://idp.example.test",
-    returnUrl: "/mypage",
+    returnUrl: "/account",
     state: "tx-state",
     ...overrides,
   })) {
@@ -44,7 +44,7 @@ function declaring(declaredBytes: number): Request {
       "content-length": String(declaredBytes),
       "content-type": "application/x-www-form-urlencoded",
     },
-    body: "subject=dev-user&role=user&expiresInSeconds=3600&state=tx-state&returnUrl=%2Fmypage",
+    body: "subject=dev-user&role=user&expiresInSeconds=3600&state=tx-state&returnUrl=%2Faccount",
   });
 }
 
@@ -98,7 +98,7 @@ describe("authorizeDevelopmentSession", () => {
   it("指定が妥当でなければ、分類だけを載せて画面へ戻す", async () => {
     expect(await authorizeDevelopmentSession(submission({ subject: "" }))).toEqual({
       kind: "redirect",
-      destination: "/dev/session?returnUrl=%2Fmypage&state=tx-state&error=invalid",
+      destination: "/dev/session?returnUrl=%2Faccount&state=tx-state&error=invalid",
     });
     expect(issueDevelopmentAuthorizationCode).not.toHaveBeenCalled();
   });
@@ -114,7 +114,7 @@ describe("authorizeDevelopmentSession", () => {
 
     expect(await authorizeDevelopmentSession(submission({ issueAccessToken: "on" }))).toEqual({
       kind: "redirect",
-      destination: "/dev/session?returnUrl=%2Fmypage&state=tx-state&error=unavailable",
+      destination: "/dev/session?returnUrl=%2Faccount&state=tx-state&error=unavailable",
     });
   });
 
