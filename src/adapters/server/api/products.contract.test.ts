@@ -41,6 +41,7 @@ const wireProduct = {
   status: { id: "0195f0c2-1000-7000-9000-000000000001", name: "在庫あり" },
   category: { id: "0195f0c2-2000-7000-9000-000000000001", name: "家電" },
   publishedAt: "2026-04-01T09:00:00Z",
+  discontinuedAt: null,
   images: [{ imagePath: "products/only.webp", displaySort: 1 }],
   version: 1,
 };

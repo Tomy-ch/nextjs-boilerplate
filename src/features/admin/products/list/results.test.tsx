@@ -41,6 +41,7 @@ function product(): Product {
     status: { id: STATUS_ID, name: "在庫あり" },
     category: { id: "c1", name: "電子機器" },
     publishedAt: null,
+    discontinuedAt: null,
     imagePaths: [],
     version: 1,
   };
