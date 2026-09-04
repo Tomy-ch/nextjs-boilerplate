@@ -19,7 +19,7 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 
 - route segment、route handler、metadata と layout への横断 UI / Provider の mount
 - Next.js が規定する特殊ファイルと route segment
-- **複数の route group の器が共有する宣言モジュール**（`fonts.ts` / `global-nav.ts` / `site.ts`）。route
+- **複数の route group の器が共有する宣言モジュール**（`fonts.ts` / `site.ts`）。route
   要素のどれにも当たらないが、器ごとに書くと片方だけが動く。テストは `unit` として扱う
 - **metadata ファイル**（`sitemap.ts` / `robots.ts` / `icon.tsx` / `apple-icon.tsx` /
   `opengraph-image.tsx`）。Next.js の規約で特殊な Route Handler になる（[0044](../../docs/adr/0044-seo-metadata-strategy.md)）。
@@ -41,7 +41,7 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
   テストは `component` として扱う
 
 **shell を通らない画面は、自分で `main` を置く。** route group の外に立つ画面（`not-found.tsx` や
-`dev/` の下）は、`(shop)` / `admin` の layout が置く landmark を持たない。包む物が無いと、支援技術
+`dev/` の下）は、route group の layout が置く landmark を持たない。包む物が無いと、支援技術
 から本文へ直接跳べない。
 
 ## 受け入れないもの

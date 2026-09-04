@@ -10,7 +10,7 @@ describe("readLoginNotice", () => {
   });
 
   it("組む側が付けた理由を、そのまま読み取れる", () => {
-    const query = new URL(unavailableLoginPath("/mypage"), "http://localhost").searchParams;
+    const query = new URL(unavailableLoginPath("/account"), "http://localhost").searchParams;
 
     expect(readLoginNotice(Object.fromEntries(query))).toBe(LOGIN_NOTICE.UNAVAILABLE);
   });
@@ -21,7 +21,7 @@ describe("readLoginNotice", () => {
 
   // ----- 異常系 -----
   it("理由が載っていなければ案内しない", () => {
-    expect(readLoginNotice({ returnUrl: "/mypage" })).toBeNull();
+    expect(readLoginNotice({ returnUrl: "/account" })).toBeNull();
   });
 
   it("宣言に無い理由は案内しない", () => {

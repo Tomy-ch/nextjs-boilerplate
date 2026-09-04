@@ -118,7 +118,7 @@ export type ReferencePatches = ReadonlyMap<string, ReferencePatch>;
  * 同じ理由で、本文の読み取り（非同期）は seed より**前**に済ませます。seed と応答の組み立ての間に
  * `await` を挟むと、そこが割り込み点になります。
  *
- * 口と応答の対応は名前で決まります（`getGetProductsMockHandler` ↔ `getGetProductsResponseMock`）。
+ * 口と応答の対応は名前で決まります（`getGet{Operation}MockHandler` ↔ `getGet{Operation}ResponseMock`）。
  * 応答本文を持たない口（204 を返すもの）には差し替えるものが無いため、生成物のまま使います。
  *
  * **並び順はここが決めます。** MSW が登録順に照合するためで、2 つの規則の意味は

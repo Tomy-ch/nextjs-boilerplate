@@ -19,9 +19,9 @@ describe("LoginPage", () => {
   });
 
   it("復帰先を画面へ渡す", async () => {
-    const { container } = await renderPage({ returnUrl: "/mypage" });
+    const { container } = await renderPage({ returnUrl: "/account" });
 
-    expect(container.querySelector('input[name="returnUrl"]')).toHaveValue("/mypage");
+    expect(container.querySelector('input[name="returnUrl"]')).toHaveValue("/account");
   });
 
   it("認証を始める操作を出す", async () => {
@@ -51,7 +51,7 @@ describe("LoginPage", () => {
   });
 
   it("復帰先が複数指定されていれば落とす", async () => {
-    const { container } = await renderPage({ returnUrl: ["/mypage", "/admin"] });
+    const { container } = await renderPage({ returnUrl: ["/account", "/admin"] });
 
     expect(container.querySelector('input[name="returnUrl"]')).toHaveValue("/");
   });
