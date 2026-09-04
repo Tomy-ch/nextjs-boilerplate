@@ -100,11 +100,11 @@ export function AppShell({
         style={{ height: APP_SHELL_HEADER_HEIGHT }}
       >
         <div className="mx-auto flex h-full w-full max-w-5xl items-center gap-2 px-4 md:px-6">
-          {hasMenu && (
+          {hasMenu ? (
             <Suspense fallback={<AppShellMenuFallback />}>
               <AppShellMenu items={navItems} navSlot={menuNavSlot} />
             </Suspense>
-          )}
+          ) : null}
           {/* 銘はラテンのみの書体を当てる。和文を含む文字列に当てると 1 語の中で書体が変わる */}
           <Link href="/" className="font-brand tracking-wider">
             {siteName}
