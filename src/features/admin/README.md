@@ -70,7 +70,7 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | | 両端が逆 | `Page/Admin/Analytics/RangeReversed` |
 | | 売れ筋が空 | `Page/Admin/Analytics/NoRanking` |
 | | loading（下だけ取り直している間） | `Page/Admin/Analytics/SummaryPending` |
-| 商品一覧 | success | `Page/Admin/Products/List/Default` |
+| 商品一覧 | success（廃番の行を含む） | `Page/Admin/Products/List/Default` |
 | | empty | `Page/Admin/Products/List/Empty` |
 | | 絞り込み・検索・ページ送り | `Page/Admin/Products/List/{MultipleFiltered,Searched,MiddlePage,LastPage}` |
 | | loading | `Features/Admin/Products/List/Skeleton/Default` |
@@ -144,7 +144,7 @@ E2E の画面比較には現れません。VRT へ載せる経路は story し�
 | `products/list/page-size.ts` | 1 ページに並べる件数 |
 | `products/list/filter-option.ts` | 絞り込みで選べる候補の形と、マスタからの写し |
 | `products/list/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |
-| `products/list/row.ts` | 表に並べる 1 行の形。商品とマスタを突き合わせて状態の見た目を決める |
+| `products/list/row.ts` | 表に並べる 1 行の形。商品とマスタを突き合わせて状態の見た目を決め、廃番はラベルより先に出す |
 | `products/list/status-tone.ts` | 状態のコードと見た目の対応。契約が返さない意味づけをこの画面が持つ |
 | `products/list/page-content.tsx` | URL の解釈と画面の組み立て。取り直す範囲をここで区切る |
 | `products/list/results.tsx` | 1 ページ分の取得と、表・ページ送りの組み立て |
@@ -269,6 +269,11 @@ header も失われた素の画面になります（[0080](../../../docs/adr/008
 
 商品の「状態」は在庫・販売の状態（在庫あり・在庫切れ・廃盤など）で、**公開の可否とは別の軸**です。
 公開の可否は `publishedAt` が持ち、状態マスタでの絞り込みが効くかどうかとは関係しません。
+
+**廃番はマスタのラベルではなく、`discontinuedAt` が持つ事実です。** 廃番にする操作はマスタの状態を
+書き換えないため、廃番の商品は `在庫あり` のようなラベルを保ったまま届きます。一覧の状態の欄は
+ラベルより廃番を先に出します（`products/list/row.ts`）。マスタの `廃盤` は admin が手で付けられる
+表示上のラベルで、別物です。
 
 **在庫僅少の一覧（`GetProductsLowStock`）は契約にありますが、この slice は使っていません。**入口の
 数値カードとは独立した後続の機能です。
