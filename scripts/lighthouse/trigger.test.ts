@@ -8,6 +8,10 @@ function change(path: string, changedLines = 1): Change {
   return { path, changedLines };
 }
 
+/** 器が動いたときの理由。 */
+const SHELL_REASON =
+  "器（layout と、それが組む shell の部品）が動いています。全ての画面がこれを通ります";
+
 describe("decideTrigger", () => {
   // ----- 正常系 -----
   it("画面の宣言が動いていれば、理由を添えて待たずに測る", () => {
@@ -18,9 +22,16 @@ describe("decideTrigger", () => {
   });
 
   it("器が動いていれば、理由を添えて待たずに測る", () => {
-    expect(decideTrigger([change("src/app/(shop)/layout.tsx")])).toMatchObject({
+    expect(decideTrigger([change("src/app/(main)/layout.tsx")])).toMatchObject({
       kind: "force",
-      reasons: ["器（layout）が動いています。全ての画面がこれを通ります"],
+      reasons: [SHELL_REASON],
+    });
+  });
+
+  it("器を組む shell の部品が動いていても待たずに測る", () => {
+    expect(decideTrigger([change("src/components/shell/app-shell/app-shell.tsx")])).toMatchObject({
+      kind: "force",
+      reasons: [SHELL_REASON],
     });
   });
 
@@ -59,7 +70,7 @@ describe("decideTrigger", () => {
   });
 
   it("app 配下でも layout.tsx でなければ器として扱わない", () => {
-    expect(decideTrigger([change("src/app/(shop)/page.tsx", 900)])).toEqual({ kind: "skip" });
+    expect(decideTrigger([change("src/app/(main)/page.tsx", 900)])).toEqual({ kind: "skip" });
   });
 
   it("`layout` を名前に含むだけのファイルは器として扱わない", () => {
