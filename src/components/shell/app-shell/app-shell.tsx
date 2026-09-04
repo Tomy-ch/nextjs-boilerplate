@@ -15,7 +15,7 @@ import { AppShellNavLink } from "./app-shell-nav-link";
 export type AppShellProps = {
   /** header 左端に置く名称。遷移先はトップ。 */
   siteName: string;
-  /** header に並べる導線。狭い画面では side menu に畳まれる。 */
+  /** header に並べる導線。狭い画面では side menu に畳まれ、{@link menuNavSlot} と併せて空なら menu を出さない。 */
   navItems: readonly AppShellNavItem[];
   /**
    * header の導線の末尾へ差す要素。
@@ -83,6 +83,9 @@ export function AppShell({
   footer,
   className,
 }: AppShellProps) {
+  // 待ち枠と本体は同じ条件で落とす。片方だけ残すと、届いてから消える枠が header の中身を左へずらす。
+  const hasMenu = navItems.length > 0 || menuNavSlot !== undefined;
+
   return (
     <>
       <PullToRefresh />
@@ -97,9 +100,11 @@ export function AppShell({
         style={{ height: APP_SHELL_HEADER_HEIGHT }}
       >
         <div className="mx-auto flex h-full w-full max-w-5xl items-center gap-2 px-4 md:px-6">
-          <Suspense fallback={<AppShellMenuFallback />}>
-            <AppShellMenu items={navItems} navSlot={menuNavSlot} />
-          </Suspense>
+          {hasMenu ? (
+            <Suspense fallback={<AppShellMenuFallback />}>
+              <AppShellMenu items={navItems} navSlot={menuNavSlot} />
+            </Suspense>
+          ) : null}
           {/* 銘はラテンのみの書体を当てる。和文を含む文字列に当てると 1 語の中で書体が変わる */}
           <Link href="/" className="font-brand tracking-wider">
             {siteName}
