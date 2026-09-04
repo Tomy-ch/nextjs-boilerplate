@@ -49,6 +49,14 @@ go-boilerplate は `internal/apperror`(**go 側**の ADR 0038「protocol-agnosti
 - バックエンド応答の生 HTTP status → sentinel 分類 + 安定エラーコード + ユーザ向けメッセージ への変換は、**`adapters` 境界で 1 回だけ**行う([0071](0071-bff-api-integration.md) B3 の「生 status を errors へ正規化」の詳細=本 ADR。go `http_error.go` の対応表 + `lookupErrorMetaByAppError` の翻案)
 - **生 HTTP status・生エラーを内層 / UI へ漏らさない**([0071](0071-bff-api-integration.md) と一致)。未知エラーは `Internal`(500)へ矯正する
 - ユーザ向けメッセージは日本語(AGENTS.md Language Rules)。メッセージ本文は実装時に確定(本 ADR は分類とコードの対応表を定める)
+- **失敗した応答の本文から読むのは `details` だけ。** 契約が詳細識別子を宣言した status（`ErrorResponseWithDetails`
+  を宣言した口）に限って本文を読み、`ErrorMeta.details` へ載せる。項目名を表示名へ写すのは feature / form の側。
+  **`message` は読まない** —— 接続先が選んだ文言をそのまま出すことになり、こちらが選んでいない文字列が利用者へ
+  出る（文言は分類ごとにカタログが持つ）。**`code` も読まない** —— `ErrorResponse.code` に値域の宣言が無いため、
+  綴りで分岐しても契約を再生成して食い違いを検出できない。分類の一次キーは HTTP status のままとする
+- **本文を読めなかったことで、元の失敗をすり替えない。** 本文が JSON でない・契約と違う形であることは経路上
+  起こり得るが、いずれも「詳細が無い」に畳む。応答を得られなかった試行は、前の試行が名指しした項目を
+  引き継がない（分類と詳細が別々の試行のものになる）
 - **クライアント経路も同じ境界で分類する。** 同一オリジンの BFF を叩く `adapters/client` も生 status を
   そのまま投げ直さず、この対応表へ写す。特に `Unauthenticated`(401)を `Internal` へ畳まないこと ——
   畳むと呼び出し側は「再試行できる失敗」としか扱えず、資格情報が切れているのに読み直す操作しか
