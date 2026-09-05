@@ -46,7 +46,7 @@ describe("planReleaseBranch", () => {
     });
   });
 
-  it("production から切って押し、押し終えてから既定ブランチを張り替える", () => {
+  it("production から切り、版を焼き込んでから押し、押し終えてから既定ブランチを張り替える", () => {
     const plan = planReleaseBranch({ latest: "v1.2.3", next: "v1.3.0", prefix: "release" });
 
     expect(plan.steps).toEqual([
@@ -55,6 +55,13 @@ describe("planReleaseBranch", () => {
         kind: "run",
         command: "git",
         args: ["switch", "-c", "release/v1.3.0", "origin/production"],
+      },
+      { kind: "run", command: "make", args: ["version-stamp", "REF=release/v1.3.0"] },
+      { kind: "run", command: "git", args: ["add", "package.json"] },
+      {
+        kind: "run",
+        command: "git",
+        args: ["commit", "--no-verify", "-m", "Chore: package.json の version を 1.3.0 に合わせる"],
       },
       {
         kind: "run",
