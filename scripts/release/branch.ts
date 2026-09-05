@@ -93,6 +93,27 @@ export function planReleaseBranch(input: {
   };
 }
 
+/** 基準画像ストアを取り込んでいる位置。 */
+const BASELINE_STORE_PATH = "baseline/images";
+
+/**
+ * 汚れがストアの指し先のずれだけか。
+ *
+ * @remarks
+ * **ここを分けないと、案内が嘘になります。** ずれは撮り直しでポインタが進んだ後に実体が
+ * 追いつかないと起き、`git status` には他の変更と同じ顔で出ます。案内どおり commit すると
+ * **間違った基準画像の指し先を保護ブランチへ載せる**ことになり、押した後では取り消せません。
+ */
+function isOnlyBaselinePointer(workTreeStatus: string): boolean {
+  const paths = workTreeStatus
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "")
+    .map((line) => line.slice(line.indexOf(" ") + 1).trim());
+
+  return paths.length > 0 && paths.every((path) => path === BASELINE_STORE_PATH);
+}
+
 /**
  * ブランチを切ってよいか。止めるときだけ、出す行を返す。
  *
@@ -113,6 +134,15 @@ export function branchCreationBlocker(input: {
   }
 
   if (input.workTreeStatus.trim() !== "") {
+    if (isOnlyBaselinePointer(input.workTreeStatus)) {
+      return [
+        logStep(
+          `❌ ${BASELINE_STORE_PATH} の実体が、いま居るブランチの指す版とずれています。` +
+            `git submodule update --init ${BASELINE_STORE_PATH} で合わせてから再実行してください。`,
+        ),
+      ];
+    }
+
     return [
       logStep(
         "❌ 作業ツリーに未コミットの変更があります。変更をコミットまたは退避してから再実行してください。",
