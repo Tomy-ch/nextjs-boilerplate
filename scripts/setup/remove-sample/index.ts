@@ -1,6 +1,7 @@
 // サンプルを破棄する入口。判定は plan.ts、対象の宣言は sample-manifest.ts が持ち、ここは
 // ファイル入出力・スナップショットの書き出し・終了コードだけを担う。
 
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -137,30 +138,8 @@ function writeSnapshot(): void {
   );
 }
 
-/**
- * マーカー行のベースラインを読み書きする面。
- *
- * @remarks
- * 構造を写しているのは、指し先の綴りを型検査から隠しているためです（{@link rewriteMarkerBaseline}）。
- * 実体とずれれば、引き直しを実際に走らせる `purge-verify` がその場で落ちます。
- */
-type MarkerBaselineScan = {
-  BASELINE_PATH: string;
-  REPO_ROOT: string;
-  scanTree: (root: string) => Readonly<Record<string, number>>;
-};
-
 /** 引き直しの相手（リポジトリルート相対）。 */
 const MARKER_BASELINE_DIR = "scripts/marker-baseline";
-
-/**
- * 読み込む面（このファイルからの相対）。
- *
- * @remarks
- * 綴りを組み立てるのは、`import()` の引数を文字列リテラルにしないためです。理由は
- * {@link rewriteMarkerBaseline} が持ちます。
- */
-const BASELINE_SCAN_MODULE = ["..", "..", "marker-baseline", "scan.js"].join("/");
 
 /**
  * マーカー行のベースラインを、破棄後のツリーで引き直す。
@@ -169,20 +148,19 @@ const BASELINE_SCAN_MODULE = ["..", "..", "marker-baseline", "scan.js"].join("/"
  * ベースラインはマーカー行が増えていないかを見張る固定値なので、正当に減るこの破棄の後は、
  * 引き直さない限り `scripts/marker-baseline/scan.test.ts` が鳴り続けます。
  *
- * 相手は boilerplate 限定節の剥がしが**丸ごと消す**ので、この入口より先に消えていることが
- * あります。だから読み込みは存在の確認で囲みます。指し先を文字列リテラルで書かないのも同じ理由で、
- * リテラルだと型検査が解決を試み、剥がしだけを走らせたツリーで「モジュールが無い」と落ちます。
+ * 相手の公開 CLI を子プロセスで呼びます。import で引くと、boilerplate 限定節の剥がしが相手を
+ * 丸ごと消したツリーで、型検査が指し先を解決できずに落ちます。存在の確認で囲んであるのは、
+ * その剥がしがこの入口より先に走っていることがあるためです。
  */
-async function rewriteMarkerBaseline(): Promise<void> {
+function rewriteMarkerBaseline(): void {
   if (!fs.existsSync(toAbsolutePath(MARKER_BASELINE_DIR))) {
     return;
   }
 
-  const scan = (await import(BASELINE_SCAN_MODULE)) as MarkerBaselineScan;
-  const baseline = scan.scanTree(scan.REPO_ROOT);
-
-  fs.writeFileSync(scan.BASELINE_PATH, `${JSON.stringify(baseline, null, 2)}\n`);
-  console.log("マーカー行のベースラインを破棄後のツリーで引き直しました。");
+  execFileSync("pnpm", ["exec", "tsx", MARKER_BASELINE_DIR, "--write"], {
+    cwd: ROOT_DIR,
+    stdio: "inherit",
+  });
 }
 
 /** 手順の種類ごとに、対象を 1 行ずつ出す。 */
@@ -209,7 +187,7 @@ function report(
   printEach("削除", deleted);
 }
 
-async function run(dryRun: boolean): Promise<void> {
+function run(dryRun: boolean): void {
   assertDeclarations();
 
   const scanned = listFilesRecursive(ROOT_DIR, { excludedDirectories: EXCLUDED_DIRECTORIES })
@@ -249,14 +227,19 @@ async function run(dryRun: boolean): Promise<void> {
 
   if (!dryRun) {
     writeSnapshot();
-    await rewriteMarkerBaseline();
   }
 
+  // 報告は引き直しより先に出す。引き直しが落ちても破棄そのものは終わっており、道具も既に
+  // 消えているのでやり直せない。何が済んだかを伝えないまま止めると、壊れたのが破棄のほうだと読まれる。
   report(dryRun, stripped, restored, deleted);
+
+  if (!dryRun) {
+    rewriteMarkerBaseline();
+  }
 }
 
 /* istanbul ignore next -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */
-async function main(): Promise<void> {
+function main(): void {
   const options = parseCommonFlags(process.argv.slice(2));
 
   if (options.help) {
@@ -265,13 +248,10 @@ async function main(): Promise<void> {
   }
 
   try {
-    await run(options.dryRun);
+    run(options.dryRun);
   } catch (error) {
     exitWithUsage(error as Error, printUsage);
   }
 }
 
-// トップレベル await にしない。tsx は CJS へ落とすので変換の時点で落ちる。
-main().catch((error: unknown) => {
-  exitWithUsage(error instanceof Error ? error : new Error(String(error)), printUsage);
-});
+main();
