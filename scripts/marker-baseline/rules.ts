@@ -1,21 +1,11 @@
 // マーカー行の分布を固定するための判定。走査は scan.ts、ここは値を見て答えるところだけを持つ。
 //
-// 撤去マーカー（`sample` / `boilerplate-only`）は、本物として発火してほしい行と、規約を説明する
-// ための例示とが**同じ形**をしている。位置でも構文でも区別は付かない —— `docs/spec/README.md` の
-// 表の行末マーカーは発火してほしい本物であり、`scripts/setup/lib/markers.test.ts` の同じ形は
-// 例示である。区別できるのは書き手の意図だけなので、除去側は「例示だ」という宣言（撤去ツールの
-// `MARKER_LITERAL_FILES` と、走査から外す接頭辞）を持つ。
+// 何のためにこれが在るか（発火するマーカーと規約の例示が同じ形をしていること、例示だと宣言し
+// 忘れると閉じたペアが黙って消えること）は [../README.md](../README.md) の「撤去マーカーを足したら
+// 数え直す」が持つ。
 //
-// 問題はその宣言を**忘れたとき**で、
-//
-// - 対応の取れないマーカーになる場合 → 除去が中断する（声が出る）
-// - 対応が取れている場合             → その区間が黙って消える（声が出ない）
-//
-// 後者が本題である。均衡した `begin` 〜 `end` こそ、規約を説明するときに人が自然に書く形で、
-// 空になったコードフェンスは有効な Markdown のままなので、撤去後のツリーを lint しても鳴らない。
-//
-// 見張るのは「マーカー行が動いたこと」だけでよい。例示を書けば必ず増えるからである。行数は
-// マーカーを足した / 消した瞬間にしか動かないので、区間の中の散文を直しても差分は出ない。
+// 数えるのが**行**であって中身でないのは、マーカーを足した / 消した瞬間にしか行数が動かないから
+// である。区間の中の散文を直しても差分は出ない。
 
 /**
  * 撤去マーカーの行。両方の族の全接尾辞を 1 本で見る。
@@ -25,8 +15,8 @@
  * `remove-boilerplate-only`）がどちらも撤去と一緒に自消滅するからです。import で引くと、
  * 先に消えたほうと一緒にこの判定も壊れます。
  *
- * コメント記号を必須にします。付けないと、規約を説明している散文の `sample:begin` を数えて
- * しまい、文章を直すたびに差分が揺れます。
+ * コメント記号を必須にします。付けないと、`sample:begin` をコード片として含む散文まで数え、
+ * 文章を直すたびに差分が揺れます。
  */
 const MARKER_LINE =
   /(?:\/\/|#|<!--)\s*(?:sample|boilerplate-only):(?:begin|end|line|replace-begin|replace-with|replace-end)\b/;
@@ -77,7 +67,6 @@ export function isBaselineTarget(relativePath: string): boolean {
   return !EXCLUDED_PATH_PREFIXES.some((prefix) => normalized.startsWith(prefix));
 }
 
-/** 本文が含むマーカー行の数。 */
 export function countMarkerLines(content: string): number {
   return content.split("\n").filter((line) => MARKER_LINE.test(line)).length;
 }

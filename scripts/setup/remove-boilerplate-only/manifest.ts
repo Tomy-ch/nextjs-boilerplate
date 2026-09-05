@@ -71,9 +71,9 @@ export const EXCLUDED_DIRECTORIES: Set<string> = new Set([
  *
  * @remarks
  * マーカー行のベースライン（`scripts/marker-baseline/`）は、判定とテストがマーカーの形を**入力**
- * として持ちます。剥がしの対象にすると、そこに書かれた例示が消えます —— 区画自体はこの直後に
- * `SELF_DESTRUCT_PATHS` が消すので跡は残りませんが、例示のペアが崩れた瞬間に剥がしそのものが
- * 中断します。読まないと決めておけば、その巻き添えが起きません。
+ * として持ちます。剥がしの対象にすると、そこに書かれた例示が消えます。区画自体はこの直後に
+ * `SELF_DESTRUCT_PATHS` が消すので跡は残りませんが、**対応の取れない例示がひとつでも増えれば、
+ * その時点で剥がしそのものが止まります。**読まないと決めておけば、どちらも起きません。
  */
 export const EXCLUDED_PATH_PREFIXES: readonly string[] = ["scripts/marker-baseline/"];
 
