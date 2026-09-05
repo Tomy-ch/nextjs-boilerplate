@@ -171,7 +171,7 @@ PR タイトルも日本語で書き、関連 issue / ADR を本文末尾に記�
 
 ## リリース運用
 
-1. 次バージョン (`v<X.Y.Z>`) を決め、`develop` から `release/v<X.Y.Z>` を作る
+1. 次バージョン (`v<X.Y.Z>`) を決め、`develop` から `release/v<X.Y.Z>` を作る (`make branch-patch` / `branch-minor` / `branch-major`)
 2. このブランチに `feature/*` / `bugfix/*` を PR 経由で merge していく
 3. リリース対象が揃ったら `release/v<X.Y.Z>` → `develop` の PR を作る (タイトル例: `Release v<X.Y.Z>`)
 4. `.github/release/` に該当バージョンのリリースノートを Markdown で追加する (本リポの慣例。フォーマットは既存ファイルを参照)
@@ -181,9 +181,21 @@ PR タイトルも日本語で書き、関連 issue / ADR を本文末尾に記�
    - `.github/release/<v>.md` を `--notes-file` として `gh release create` を行い、GitHub Release を生成する
    - 対応するリリースノート Markdown が存在しない場合、コマンドは失敗する (タグ・Release の整合性担保のため)
 
+**`package.json` の `version` はリリースブランチ名から導く。**`package.json` は版を決める側ではなく、
+ブランチ名の名乗りに従う側に置く。人が両方を書くと、出荷した版と名乗る版が黙ってずれる。焼き込むのは
+上の手順 1 の `make branch-*` で、切ったブランチの上に version を合わせるコミットが 1 本乗る (既に
+名乗りどおりなら何も書かず、コミットも作らない)。PR の base が名乗る版と一致するかは CI
+(`package-version`) が同じ規則で導き直して見る。手で直すときは `make version-stamp`。
+
+**検査が届くのは「ブランチ名と `package.json` の一致」までで、ブランチ名そのものの正しさではない。**
+ブランチ名が最新タグから 1 段進んだ版であることを保証するのは `make branch-*` が切る瞬間だけで、手で
+切った `release/v9.9.9` は誰も咎めない。同じ理由で、`hotfix/<issue>-<desc>` の形で切った hotfix には
+版が含まれないため焼き込みは何もせず、CI も据え置きとして緑を返す。版を載せたい hotfix は
+`make hotfix-patch` (`hotfix/v<X.Y.Z>`) で切る。
+
 ### Hotfix 運用
 
-1. `production` から `hotfix/<issue>-<desc>` を切る
+1. `production` から `hotfix/<issue>-<desc>` を切る (`make hotfix-patch` を使うと `hotfix/v<X.Y.Z>` になり、`version` の焼き込みもリリースブランチと同じに揃う)
 2. 修正・テストの上、`hotfix/*` → `production` の PR を作る
 3. merge 後、同じ修正を `develop` にも反映する PR を作る (cherry-pick または同等の変更)
 4. 必要に応じて `staging` にも反映し、3 環境間の差分を解消する

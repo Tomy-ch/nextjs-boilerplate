@@ -173,6 +173,24 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 | `make branch-minor` | `production` から minor リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に minor バージョンを進めます。 |
 | `make branch-major` | `production` から major リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に major バージョンを進めます。 |
 
+### 版の焼き込み関連
+
+版の出所はリリースブランチ名（= タグから数えた次の版）1 つで、`package.json` はそこから導かれる側に
+置きます。焼き込みはブランチを切る手順（上記）の中で走るため、通常これらを直に叩くことはありません。
+何を書くか・何を落とすかの判断は [`scripts/package-version/version.ts`](../scripts/package-version/version.ts)
+が持ちます。
+
+`REF` は recipe 行へ展開せず、環境変数 `PACKAGE_VERSION_REF` としてスクリプトへ渡します。make の変数は
+シェルへ渡る前にテキスト置換されるため、`"` や `;` を含むブランチ名（git は許す）を引数で渡すとクォートが
+破れて任意のコマンドが走ります。`REF` 省略時の取り回し（`GITHUB_REF_NAME` → 手元の現在ブランチ）は
+スクリプトが持ちます。
+
+| コマンド | 説明 | 補足 |
+| --- | --- | --- |
+| `make version-stamp [REF=<ref>]` | `package.json` の `version` をブランチ名の版へ書き換えます。 | `release/vX.Y.Z` / `hotfix/vX.Y.Z` 以外の ref では何もせず正常終了します。コミットはしません。 |
+| `make version-stamp-commit [REF=<ref>]` | 同じ焼き込みを、**書き換えが起きたときだけ**コミットまで行います。 | リリースブランチを切る手順が使います。既に名乗りどおりのときにコミットへ進むと、ステージが空のまま `git commit` が落ち、手順が push の手前で止まります。 |
+| `make version-stamp-check [REF=<ref>]` | `package.json` の `version` がブランチ名と一致するか検査します。 | 書き換えません。食い違いで落ちます（`package-version` job が pull request の base を渡して回します）。 |
+
 ### リリースタグ関連
 
 判断は [`scripts/release/tag.ts`](../scripts/release/tag.ts) が持ちます。基準にする最新タグの選定は
