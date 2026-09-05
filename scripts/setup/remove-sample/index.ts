@@ -137,6 +137,28 @@ function writeSnapshot(): void {
   );
 }
 
+/**
+ * マーカー行のベースラインを、破棄後のツリーで引き直す。
+ *
+ * @remarks
+ * ベースラインはマーカー行が増えていないかを見張る固定値なので、正当に減るこの破棄の後は、
+ * 引き直さない限り `scripts/marker-baseline/scan.test.ts` が鳴り続けます。
+ *
+ * 道具そのものは boilerplate 限定節の剥がしが消します。どちらが先に走るかは決まっていないため、
+ * 動的な import を存在の確認で囲みます —— 静的に書くと、先に消えていた場合にこの入口が
+ * 起動できません。
+ */
+async function rewriteMarkerBaseline(): Promise<void> {
+  if (!fs.existsSync(toAbsolutePath("scripts/marker-baseline"))) {
+    return;
+  }
+
+  const { BASELINE_PATH, REPO_ROOT, scanTree } = await import("../../marker-baseline/scan.js");
+
+  fs.writeFileSync(BASELINE_PATH, `${JSON.stringify(scanTree(REPO_ROOT), null, 2)}\n`);
+  console.log("マーカー行のベースラインを破棄後のツリーで引き直しました。");
+}
+
 /** 手順の種類ごとに、対象を 1 行ずつ出す。 */
 function printEach(label: string, entries: readonly string[]): void {
   for (const entry of entries) {
@@ -161,7 +183,7 @@ function report(
   printEach("削除", deleted);
 }
 
-function run(dryRun: boolean): void {
+async function run(dryRun: boolean): Promise<void> {
   assertDeclarations();
 
   const scanned = listFilesRecursive(ROOT_DIR, { excludedDirectories: EXCLUDED_DIRECTORIES })
@@ -201,13 +223,14 @@ function run(dryRun: boolean): void {
 
   if (!dryRun) {
     writeSnapshot();
+    await rewriteMarkerBaseline();
   }
 
   report(dryRun, stripped, restored, deleted);
 }
 
 /* istanbul ignore next -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */
-function main(): void {
+async function main(): Promise<void> {
   const options = parseCommonFlags(process.argv.slice(2));
 
   if (options.help) {
@@ -216,10 +239,13 @@ function main(): void {
   }
 
   try {
-    run(options.dryRun);
+    await run(options.dryRun);
   } catch (error) {
     exitWithUsage(error as Error, printUsage);
   }
 }
 
-main();
+// トップレベル await にしない。tsx は CJS へ落とすので変換の時点で落ちる。
+main().catch((error: unknown) => {
+  exitWithUsage(error instanceof Error ? error : new Error(String(error)), printUsage);
+});

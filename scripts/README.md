@@ -42,6 +42,26 @@ coverage-exclusions:
 撤去条件を添えてある。**外すのは検査が意味を持たないものだけ**で、「いまは書けていない」は理由に
 ならない。
 
+<!-- boilerplate-only:begin -->
+## 撤去マーカーを足したら数え直す
+
+`sample` / `boilerplate-only` の撤去マーカーは、**発火してほしい本物**と、**規約を説明するための
+例示**とが同じ形をしている。位置でも構文でも区別は付かないので、除去側は「例示だ」という宣言
+（`setup/remove-sample/sample-manifest.ts` の `MARKER_LITERAL_FILES` と、走査から外す接頭辞）を持つ。
+宣言を忘れたときに起きることは 2 通りで、対応の取れないマーカーなら除去が中断して声が出るが、
+**閉じたペアを散文が持っていると、その区間は例外を出さずに消える**。空になったコードフェンスは
+有効な Markdown のままなので、撤去後のツリーを lint しても鳴らない。
+
+そこで [`marker-baseline/`](marker-baseline/) がファイルごとのマーカー行数を
+[`baseline.json`](marker-baseline/baseline.json) に固定し、[`marker-baseline/scan.test.ts`](marker-baseline/scan.test.ts)
+が実ツリーと突き合わせる。マーカーを足した / 消した瞬間にしかこの数は動かないので、区間の中の散文を
+直しても差分は出ない。数が動いたら、そこが判断の場になる。
+
+- 本物のマーカーを足した / 消した → `pnpm exec tsx scripts/marker-baseline --write` で引き直す
+- マーカーの形を**指示ではなくデータ**として書いた → 引き直す前に除去側へリテラルとして宣言する
+
+<!-- boilerplate-only:end -->
+
 ## 実行
 
 | コマンド | いつ |

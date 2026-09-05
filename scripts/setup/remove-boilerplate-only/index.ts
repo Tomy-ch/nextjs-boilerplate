@@ -16,6 +16,7 @@ import {
   BOILERPLATE_ONLY_MARKER,
   EGRESS_DECLARATION_FILE,
   EXCLUDED_DIRECTORIES,
+  EXCLUDED_PATH_PREFIXES,
   SELF_DESTRUCT_PATHS,
 } from "./manifest.js";
 import { dropOrphanedPins, ORPHANED_ACTIONS } from "./pins.js";
@@ -33,15 +34,18 @@ function printUsage(): void {
   );
 }
 
-/** マーカーを持てるファイルか。 */
-function canHoldMarker(relativePath: string): boolean {
-  return !BINARY_EXTENSIONS.some((extension) => relativePath.endsWith(extension));
+/** 剥がしが読むファイルか。マーカーを持てない形式と、マーカーをデータとして持つ区画を外す。 */
+function isStripTarget(relativePath: string): boolean {
+  return (
+    !BINARY_EXTENSIONS.some((extension) => relativePath.endsWith(extension)) &&
+    !EXCLUDED_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix))
+  );
 }
 
 function run(dryRun: boolean): void {
   const scanned = listFilesRecursive(ROOT_DIR, { excludedDirectories: EXCLUDED_DIRECTORIES })
     .map((filePath) => toRelativePath(filePath).split(path.sep).join("/"))
-    .filter(canHoldMarker);
+    .filter(isStripTarget);
 
   const stripped: string[] = [];
 
