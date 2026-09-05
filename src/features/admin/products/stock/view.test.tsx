@@ -24,6 +24,7 @@ const PRODUCT: Product = {
   status: { id: "status-1", name: "在庫あり" },
   category: { id: "category-1", name: "電子機器" },
   publishedAt: null,
+  discontinuedAt: null,
   imagePaths: [],
   version: 4,
 };

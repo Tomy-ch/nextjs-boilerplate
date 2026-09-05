@@ -3,6 +3,7 @@ import Link from "next/link";
 import { userEvent, within } from "storybook/test";
 import { CursorPagination } from "@/components/app-starter/cursor-pagination/cursor-pagination";
 import { Button } from "@/components/design-system/action/button/button";
+import { BADGE_VARIANT } from "@/components/design-system/display/badge/badge.definition";
 import { AdminShell } from "@/components/shell/admin-shell/admin-shell";
 import type { AdminShellNavGroup } from "@/components/shell/admin-shell/admin-shell.definition";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
@@ -148,6 +149,15 @@ const ITEMS: readonly AdminProductRow[] = [
     quantity: 8,
     statusName: "新設された状態",
     statusCode: 99,
+  }),
+  // 廃番はマスタのコードから決まらないため、`item` の割り当てを通さず直に置く。実際の値は
+  // `row.ts` が持ち、対応は `row.test.ts` が押さえる。
+  item({
+    name: "AirPods Pro 第2世代",
+    price: "265.33",
+    quantity: 192,
+    statusName: "廃番",
+    statusTone: BADGE_VARIANT.DEFAULT,
   }),
 ];
 

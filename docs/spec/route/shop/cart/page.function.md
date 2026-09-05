@@ -27,10 +27,11 @@
 ## 明細に立つ事情
 
 事情は同時に複数立つ。買えるかどうかの区分は契約が持ち、この画面は言い方だけを決める。
+ただし `discontinued` と `unpublished` は同時に立たない —— 廃番は非公開でもあるが、より具体的な `discontinued` だけが立つ。優先順位をこの画面が決めることはない。
 
 | 事情 | 買えるか |
 | --- | --- |
-| `notFound` / `unpublished` / `outOfStock` / `insufficientStock` | 買えない |
+| `notFound` / `unpublished` / `discontinued` / `outOfStock` / `insufficientStock` | 買えない |
 | `priceIncreased` / `priceDecreased` | 買える |
 
 **小計は事情の無い明細だけの合算**で、値が変わっただけの明細も外れる。行ごとの小計は持たない

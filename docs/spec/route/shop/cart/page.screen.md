@@ -61,6 +61,7 @@ submit で、押した時点で dialog を閉じない（送信中の表示も�
 | --- | --- |
 | `notFound` | この商品は取り扱いが終了しました。 |
 | `unpublished` | この商品は現在購入できません。 |
+| `discontinued` | この商品は廃番になりました。 |
 | `outOfStock` | 在庫がありません。 |
 | `insufficientStock` | 在庫が 〈n〉 個までです。（上限が判らなければ「在庫が足りません。」） |
 | `priceIncreased` | カートに入れたときより価格が上がっています。 |

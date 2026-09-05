@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+7b2778e
+ * OpenAPI spec version: 2.2.0+76e4825
  */
 import type {
   AddressCandidatesResponse,
@@ -26,6 +26,9 @@ import type {
   GetAddressesParams,
   GetDashboardSummaryParams,
   GetExchangeRatesParams,
+  GetInquiriesDetailMessagesParams,
+  GetInquiriesMeMessagesParams,
+  GetInquiriesParams,
   GetProductsCountParams,
   GetProductsDetailParams,
   GetProductsLowStockParams,
@@ -40,6 +43,11 @@ import type {
   GetUsersParams,
   GetUsersSearchParams,
   Gone410Response,
+  InquiryHistoryResponse,
+  InquiryListResponse,
+  InquiryMessagePostRequest,
+  InquiryMessageResponse,
+  InquiryStreamTicketResponse,
   InternalServerError500Response,
   MethodNotAllowed405Response,
   NotFound404Response,
@@ -1777,6 +1785,9 @@ export const getPatchProductsDetailUrl = (productId: string) => {
  * 公開日時そのものを更新対象とするため、取得系と異なり未公開商品も更新できます。
  * version が DB の現在値と一致しない場合は他者の更新と競合したものとして 409 を返します。
  * 409 は再送では解消しないため、クライアントは再取得してから送り直してください。
+ * **廃番の商品に公開日時を設定することはできません**（422、details に publishedAt）。
+ * 廃番は取り消せないため、この 422 は再取得しても再送しても解消しません。
+ * 409 と違い他者の更新との競合ではないので、両者は取り違えられません。
  * @summary 単一商品の部分更新
  */
 export const patchProductsDetail = async (
@@ -3750,4 +3761,656 @@ export const postCartsMeMerge = async (
 
   const data: postCartsMeMergeResponse["data"] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as postCartsMeMergeResponse;
+};
+
+export type getInquiriesResponse200 = {
+  data: InquiryListResponse;
+  status: 200;
+};
+
+export type getInquiriesResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type getInquiriesResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getInquiriesResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type getInquiriesResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getInquiriesResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getInquiriesResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getInquiriesResponseSuccess = getInquiriesResponse200 & {
+  headers: Headers;
+};
+export type getInquiriesResponseError = (
+  | getInquiriesResponse400
+  | getInquiriesResponse401
+  | getInquiriesResponse403
+  | getInquiriesResponse405
+  | getInquiriesResponse500
+  | getInquiriesResponse503
+) & {
+  headers: Headers;
+};
+
+export type getInquiriesResponse = getInquiriesResponseSuccess | getInquiriesResponseError;
+
+export const getGetInquiriesUrl = (params?: GetInquiriesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/inquiries?${stringifiedParams}` : `/v1/inquiries`;
+};
+
+/**
+ * 問い合わせを更新日時の新しい順に 1 ページ取得します。**管理者ロールが必要です**。
+ * 本文は含めません。一覧は問い合わせの行だけで組み立て、最新メッセージの内容は履歴か feed の
+ * 購読で受け取ります。
+ * ページングは keyset で、応答の nextCursor をそのまま after に渡して続きを取得します。
+ * 一覧画面を購読で更新する場合は POST /v1/inquiries/feed/stream-ticket を使います。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 問い合わせ一覧の取得（運営）
+ */
+export const getInquiries = async (
+  params?: GetInquiriesParams,
+  options?: RequestInit,
+): Promise<getInquiriesResponse> => {
+  const res = await fetch(getGetInquiriesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getInquiriesResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getInquiriesResponse;
+};
+
+export type getInquiriesMeMessagesResponse200 = {
+  data: InquiryHistoryResponse;
+  status: 200;
+};
+
+export type getInquiriesMeMessagesResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type getInquiriesMeMessagesResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getInquiriesMeMessagesResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getInquiriesMeMessagesResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getInquiriesMeMessagesResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getInquiriesMeMessagesResponseSuccess = getInquiriesMeMessagesResponse200 & {
+  headers: Headers;
+};
+export type getInquiriesMeMessagesResponseError = (
+  | getInquiriesMeMessagesResponse400
+  | getInquiriesMeMessagesResponse401
+  | getInquiriesMeMessagesResponse405
+  | getInquiriesMeMessagesResponse500
+  | getInquiriesMeMessagesResponse503
+) & {
+  headers: Headers;
+};
+
+export type getInquiriesMeMessagesResponse =
+  | getInquiriesMeMessagesResponseSuccess
+  | getInquiriesMeMessagesResponseError;
+
+export const getGetInquiriesMeMessagesUrl = (params?: GetInquiriesMeMessagesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/v1/inquiries/me/messages?${stringifiedParams}`
+    : `/v1/inquiries/me/messages`;
+};
+
+/**
+ * 呼び出し主体自身の問い合わせについて、メッセージを位置の昇順で 1 ページ取得します。
+ * パスに他者の識別子を持たないため、他人の問い合わせは取得できません。
+ * **応答の streamCursor を購読の開始位置に渡してください**。このページを読んだ時点の stream の
+ * 現在位置を返し、messages はその位置以下だけを含むため、履歴の取得と購読の開始の間に追加された
+ * メッセージを取りこぼしません。
+ * まだ問い合わせを持たない主体には、空の messages と streamCursor = 0 を 200 で返します
+ * （問い合わせが無いことは誤りではありません）。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分の問い合わせ履歴の取得
+ */
+export const getInquiriesMeMessages = async (
+  params?: GetInquiriesMeMessagesParams,
+  options?: RequestInit,
+): Promise<getInquiriesMeMessagesResponse> => {
+  const res = await fetch(getGetInquiriesMeMessagesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getInquiriesMeMessagesResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getInquiriesMeMessagesResponse;
+};
+
+export type postInquiriesMeMessagesResponse201 = {
+  data: InquiryMessageResponse;
+  status: 201;
+};
+
+export type postInquiriesMeMessagesResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postInquiriesMeMessagesResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postInquiriesMeMessagesResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postInquiriesMeMessagesResponse409 = {
+  data: Conflict409Response;
+  status: 409;
+};
+
+export type postInquiriesMeMessagesResponse415 = {
+  data: UnsupportedMediaType415Response;
+  status: 415;
+};
+
+export type postInquiriesMeMessagesResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type postInquiriesMeMessagesResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postInquiriesMeMessagesResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postInquiriesMeMessagesResponseSuccess = postInquiriesMeMessagesResponse201 & {
+  headers: Headers;
+};
+export type postInquiriesMeMessagesResponseError = (
+  | postInquiriesMeMessagesResponse400
+  | postInquiriesMeMessagesResponse401
+  | postInquiriesMeMessagesResponse405
+  | postInquiriesMeMessagesResponse409
+  | postInquiriesMeMessagesResponse415
+  | postInquiriesMeMessagesResponse422
+  | postInquiriesMeMessagesResponse500
+  | postInquiriesMeMessagesResponse503
+) & {
+  headers: Headers;
+};
+
+export type postInquiriesMeMessagesResponse =
+  | postInquiriesMeMessagesResponseSuccess
+  | postInquiriesMeMessagesResponseError;
+
+export const getPostInquiriesMeMessagesUrl = () => {
+  return `/v1/inquiries/me/messages`;
+};
+
+/**
+ * 呼び出し主体自身の問い合わせへメッセージを 1 通追加します。
+ * **問い合わせは最初の投稿で作られます**。利用者ごとに 1 件だけ持ち、作成のための API は設けません。
+ * 追加は append-only で、編集も取り消しもできません。
+ * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返すため、
+ * timeout 後の再送でメッセージが二重に生まれません。同一キーを内容の異なる要求で使い回した場合は
+ * 422 で拒否します。
+ * 最初の投稿が並行した場合、サーバは内部で 1 度だけやり直します。それでも解けない場合のみ 409 を返します。
+ * 本 op 自体は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の
+ * JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分の問い合わせへの投稿
+ */
+export const postInquiriesMeMessages = async (
+  inquiryMessagePostRequest: InquiryMessagePostRequest,
+  options?: RequestInit,
+): Promise<postInquiriesMeMessagesResponse> => {
+  const res = await fetch(getPostInquiriesMeMessagesUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(inquiryMessagePostRequest),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postInquiriesMeMessagesResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as postInquiriesMeMessagesResponse;
+};
+
+export type postInquiriesMeStreamTicketResponse201 = {
+  data: InquiryStreamTicketResponse;
+  status: 201;
+};
+
+export type postInquiriesMeStreamTicketResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postInquiriesMeStreamTicketResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postInquiriesMeStreamTicketResponse404 = {
+  data: NotFound404Response;
+  status: 404;
+};
+
+export type postInquiriesMeStreamTicketResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postInquiriesMeStreamTicketResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postInquiriesMeStreamTicketResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postInquiriesMeStreamTicketResponseSuccess = postInquiriesMeStreamTicketResponse201 & {
+  headers: Headers;
+};
+export type postInquiriesMeStreamTicketResponseError = (
+  | postInquiriesMeStreamTicketResponse400
+  | postInquiriesMeStreamTicketResponse401
+  | postInquiriesMeStreamTicketResponse404
+  | postInquiriesMeStreamTicketResponse405
+  | postInquiriesMeStreamTicketResponse500
+  | postInquiriesMeStreamTicketResponse503
+) & {
+  headers: Headers;
+};
+
+export type postInquiriesMeStreamTicketResponse =
+  | postInquiriesMeStreamTicketResponseSuccess
+  | postInquiriesMeStreamTicketResponseError;
+
+export const getPostInquiriesMeStreamTicketUrl = () => {
+  return `/v1/inquiries/me/stream-ticket`;
+};
+
+/**
+ * 呼び出し主体自身の問い合わせについて、購読に使う 1 回限りの ticket を発行します。
+ * 応答の streamId を GET /v1/streams/{destination} の destination に渡して接続します。
+ * **生値はこの応答にしか現れません**。サーバは hash しか保存しないため、失った場合は再発行します。
+ * **開始位置には発行時点の stream の現在位置を束ねます**。cursor を持たずに接続した client へ
+ * 履歴を再生し直さないためで、これは認可の下限ではありません（保持範囲であればより前から再開できます）。
+ * 購読する問い合わせを持たない主体には 404 を返します。
+ * GET ではなく POST なのは、この操作が ticket という状態を作るためです。
+ * 本 op は DB の SELECT と ticket store への書き込みを行います。認証段（外部 IdP の JWKS 参照）や
+ * ticket store の一時障害で応答不能となり得るため 503 を宣言します。
+ * @summary 自分の問い合わせを購読する ticket の発行
+ */
+export const postInquiriesMeStreamTicket = async (
+  options?: RequestInit,
+): Promise<postInquiriesMeStreamTicketResponse> => {
+  const res = await fetch(getPostInquiriesMeStreamTicketUrl(), {
+    ...options,
+    method: "POST",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postInquiriesMeStreamTicketResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as postInquiriesMeStreamTicketResponse;
+};
+
+export type postInquiriesFeedStreamTicketResponse201 = {
+  data: InquiryStreamTicketResponse;
+  status: 201;
+};
+
+export type postInquiriesFeedStreamTicketResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postInquiriesFeedStreamTicketResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postInquiriesFeedStreamTicketResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type postInquiriesFeedStreamTicketResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postInquiriesFeedStreamTicketResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postInquiriesFeedStreamTicketResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postInquiriesFeedStreamTicketResponseSuccess =
+  postInquiriesFeedStreamTicketResponse201 & {
+    headers: Headers;
+  };
+export type postInquiriesFeedStreamTicketResponseError = (
+  | postInquiriesFeedStreamTicketResponse400
+  | postInquiriesFeedStreamTicketResponse401
+  | postInquiriesFeedStreamTicketResponse403
+  | postInquiriesFeedStreamTicketResponse405
+  | postInquiriesFeedStreamTicketResponse500
+  | postInquiriesFeedStreamTicketResponse503
+) & {
+  headers: Headers;
+};
+
+export type postInquiriesFeedStreamTicketResponse =
+  | postInquiriesFeedStreamTicketResponseSuccess
+  | postInquiriesFeedStreamTicketResponseError;
+
+export const getPostInquiriesFeedStreamTicketUrl = () => {
+  return `/v1/inquiries/feed/stream-ticket`;
+};
+
+/**
+ * 一覧画面を更新するための feed を購読する ticket を発行します。**管理者ロールが必要です**。
+ * feed が運ぶのは「どの問い合わせがどこまで進んだか」だけで、本文は含みません。
+ * 本文が要る場合は履歴を取得してください。
+ * 応答の形と生値の扱いは自分の問い合わせの ticket（POST /v1/inquiries/me/stream-ticket）と同じです。
+ * 本 op は ticket store への書き込みを行います。認証段（外部 IdP の JWKS 参照）や ticket store の
+ * 一時障害で応答不能となり得るため 503 を宣言します。
+ * @summary 問い合わせ更新フィードを購読する ticket の発行（運営）
+ */
+export const postInquiriesFeedStreamTicket = async (
+  options?: RequestInit,
+): Promise<postInquiriesFeedStreamTicketResponse> => {
+  const res = await fetch(getPostInquiriesFeedStreamTicketUrl(), {
+    ...options,
+    method: "POST",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postInquiriesFeedStreamTicketResponse["data"] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as postInquiriesFeedStreamTicketResponse;
+};
+
+export type getInquiriesDetailMessagesResponse200 = {
+  data: InquiryHistoryResponse;
+  status: 200;
+};
+
+export type getInquiriesDetailMessagesResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type getInquiriesDetailMessagesResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getInquiriesDetailMessagesResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type getInquiriesDetailMessagesResponse404 = {
+  data: NotFound404Response;
+  status: 404;
+};
+
+export type getInquiriesDetailMessagesResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getInquiriesDetailMessagesResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getInquiriesDetailMessagesResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getInquiriesDetailMessagesResponseSuccess = getInquiriesDetailMessagesResponse200 & {
+  headers: Headers;
+};
+export type getInquiriesDetailMessagesResponseError = (
+  | getInquiriesDetailMessagesResponse400
+  | getInquiriesDetailMessagesResponse401
+  | getInquiriesDetailMessagesResponse403
+  | getInquiriesDetailMessagesResponse404
+  | getInquiriesDetailMessagesResponse405
+  | getInquiriesDetailMessagesResponse500
+  | getInquiriesDetailMessagesResponse503
+) & {
+  headers: Headers;
+};
+
+export type getInquiriesDetailMessagesResponse =
+  | getInquiriesDetailMessagesResponseSuccess
+  | getInquiriesDetailMessagesResponseError;
+
+export const getGetInquiriesDetailMessagesUrl = (
+  inquiryId: string,
+  params?: GetInquiriesDetailMessagesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/v1/inquiries/${inquiryId}/messages?${stringifiedParams}`
+    : `/v1/inquiries/${inquiryId}/messages`;
+};
+
+/**
+ * 指定した問い合わせのメッセージを位置の昇順で 1 ページ取得します。**管理者ロールが必要です**。
+ * 応答の形と streamCursor の使い方は自分の履歴（GET /v1/inquiries/me/messages）と同じです。
+ * 存在しない問い合わせには 404 を返します。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 任意の問い合わせ履歴の取得（運営）
+ */
+export const getInquiriesDetailMessages = async (
+  inquiryId: string,
+  params?: GetInquiriesDetailMessagesParams,
+  options?: RequestInit,
+): Promise<getInquiriesDetailMessagesResponse> => {
+  const res = await fetch(getGetInquiriesDetailMessagesUrl(inquiryId, params), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getInquiriesDetailMessagesResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getInquiriesDetailMessagesResponse;
+};
+
+export type postInquiriesDetailMessagesResponse201 = {
+  data: InquiryMessageResponse;
+  status: 201;
+};
+
+export type postInquiriesDetailMessagesResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postInquiriesDetailMessagesResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postInquiriesDetailMessagesResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type postInquiriesDetailMessagesResponse404 = {
+  data: NotFound404Response;
+  status: 404;
+};
+
+export type postInquiriesDetailMessagesResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postInquiriesDetailMessagesResponse415 = {
+  data: UnsupportedMediaType415Response;
+  status: 415;
+};
+
+export type postInquiriesDetailMessagesResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type postInquiriesDetailMessagesResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postInquiriesDetailMessagesResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postInquiriesDetailMessagesResponseSuccess = postInquiriesDetailMessagesResponse201 & {
+  headers: Headers;
+};
+export type postInquiriesDetailMessagesResponseError = (
+  | postInquiriesDetailMessagesResponse400
+  | postInquiriesDetailMessagesResponse401
+  | postInquiriesDetailMessagesResponse403
+  | postInquiriesDetailMessagesResponse404
+  | postInquiriesDetailMessagesResponse405
+  | postInquiriesDetailMessagesResponse415
+  | postInquiriesDetailMessagesResponse422
+  | postInquiriesDetailMessagesResponse500
+  | postInquiriesDetailMessagesResponse503
+) & {
+  headers: Headers;
+};
+
+export type postInquiriesDetailMessagesResponse =
+  | postInquiriesDetailMessagesResponseSuccess
+  | postInquiriesDetailMessagesResponseError;
+
+export const getPostInquiriesDetailMessagesUrl = (inquiryId: string) => {
+  return `/v1/inquiries/${inquiryId}/messages`;
+};
+
+/**
+ * 指定した問い合わせへ回答を 1 通追加します。**管理者ロールが必要です**。
+ * 追加の扱いは利用者の投稿と同じで、append-only であり編集も取り消しもできません。
+ * 送り手の種別は operator として記録されます。
+ * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返すため、
+ * timeout 後の再送で回答が二重に生まれません。
+ * 存在しない問い合わせには 404 を返します。
+ * 本 op 自体は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の
+ * JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 問い合わせへの回答（運営）
+ */
+export const postInquiriesDetailMessages = async (
+  inquiryId: string,
+  inquiryMessagePostRequest: InquiryMessagePostRequest,
+  options?: RequestInit,
+): Promise<postInquiriesDetailMessagesResponse> => {
+  const res = await fetch(getPostInquiriesDetailMessagesUrl(inquiryId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(inquiryMessagePostRequest),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postInquiriesDetailMessagesResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as postInquiriesDetailMessagesResponse;
 };
