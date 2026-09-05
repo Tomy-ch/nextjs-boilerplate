@@ -151,7 +151,10 @@ describe("recommend", () => {
   });
 
   it("既に付いているラベルは、その検査だけを落とす", () => {
-    const changes = [change("src/features/settings/settings-view.stories.tsx"), change("src/proxy.ts")];
+    const changes = [
+      change("src/features/settings/settings-view.stories.tsx"),
+      change("src/proxy.ts"),
+    ];
 
     expect(labelsOf(changes)).toStrictEqual(["run-a11y", "run-e2e"]);
     expect(labelsOf(changes, ["run-a11y"])).toStrictEqual(["run-e2e"]);
@@ -163,7 +166,10 @@ describe("recommend", () => {
 
   it("画面の宣言が動いて e2e が自分で回ると決めても、他の検査は勧める", () => {
     expect(
-      labelsOf([change("e2e/lib/screens.ts"), change("src/features/settings/settings-view.stories.tsx")]),
+      labelsOf([
+        change("e2e/lib/screens.ts"),
+        change("src/features/settings/settings-view.stories.tsx"),
+      ]),
     ).toStrictEqual(["run-a11y"]);
   });
 });

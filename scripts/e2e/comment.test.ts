@@ -93,7 +93,9 @@ describe("composeNotes", () => {
     const notes = composeNotes({ kinds: { ...NONE, pixels: true }, ...REVIEW });
 
     expect(notes).toContain("### 画面の見た目が基準画像と違います");
-    expect(notes).toContain("make e2e-review BRANCH='release/v0.6.0' RUN='1' E2E_ONLY='home,settings'");
+    expect(notes).toContain(
+      "make e2e-review BRANCH='release/v0.6.0' RUN='1' E2E_ONLY='home,settings'",
+    );
     expect(notes).not.toContain("### 種別を判定できませんでした");
   });
 

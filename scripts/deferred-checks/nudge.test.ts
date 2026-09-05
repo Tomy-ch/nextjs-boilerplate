@@ -50,12 +50,16 @@ describe("decideNudge", () => {
   });
 
   it("線のちょうど上は越えたものとして扱う", () => {
-    expect(decideNudge([change("src/features/settings/total.ts", 400)], [], 400).kind).toBe("volume");
+    expect(decideNudge([change("src/features/settings/total.ts", 400)], [], 400).kind).toBe(
+      "volume",
+    );
   });
 
   // ----- 異常系 -----
   it("名指しできず行数も線に届かなければ黙る", () => {
-    expect(decideNudge([change("src/features/settings/total.ts", 399)], [], 400).kind).toBe("quiet");
+    expect(decideNudge([change("src/features/settings/total.ts", 399)], [], 400).kind).toBe(
+      "quiet",
+    );
   });
 
   it("数える対象の外だけが動いた差分では黙る", () => {
@@ -95,7 +99,9 @@ describe("renderNudge", () => {
   });
 
   it("行数の表には理由の列を置かず、動いた行数を本文に書く", () => {
-    const comment = renderNudge(decideNudge([change("src/features/settings/total.ts", 512)], [], 400));
+    const comment = renderNudge(
+      decideNudge([change("src/features/settings/total.ts", 512)], [], 400),
+    );
 
     expect(comment?.title).toBe("## 🔎 先送りにしている検査を回しておくことを勧めます");
     expect(comment?.body).toContain("**512 行**");

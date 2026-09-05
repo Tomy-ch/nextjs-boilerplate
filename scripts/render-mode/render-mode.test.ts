@@ -83,7 +83,11 @@ describe("findRenderModeDrift", () => {
   // ----- 正常系 -----
   it("宣言なしで殻を配れている route を通す", () => {
     expect(
-      findRenderModeDrift(modes({ "/settings": "partial" }), declarations({ "/settings": false }), NONE),
+      findRenderModeDrift(
+        modes({ "/settings": "partial" }),
+        declarations({ "/settings": false }),
+        NONE,
+      ),
     ).toEqual([]);
   });
 

@@ -30,7 +30,9 @@ describe("matchesPathRule", () => {
 
   // ----- 異常系 -----
   it("当たるパスが 1 つも無ければ当たらない", () => {
-    expect(matchesPathRule(rule("src/app/**/layout.tsx"), ["src/app/(site-info)/page.tsx"])).toBe(false);
+    expect(matchesPathRule(rule("src/app/**/layout.tsx"), ["src/app/(site-info)/page.tsx"])).toBe(
+      false,
+    );
   });
 
   it("末尾が一致するだけのパスは当たらない", () => {
