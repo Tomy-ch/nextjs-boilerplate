@@ -66,9 +66,16 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup-deps
 
-      # `github.base_ref` is passed rather than read from the environment: on a pull
-      # request `GITHUB_REF_NAME` is `<number>/merge`, which names no version, so the
-      # check would skip on every PR and report a green it never performed.
+      # The branch name reaches the tool as an environment variable and never as a shell
+      # word. A branch name may contain `"` and `;` — `git check-ref-format` allows both —
+      # and Make expands its own variables into the recipe line before the shell sees it,
+      # so passing one as `REF=...` would let a branch name break out of the quoting and
+      # run arbitrary commands in this job. Whoever can create a branch would then be able
+      # to run code under this job's `GITHUB_TOKEN`.
+      #
+      # `github.base_ref` rather than `GITHUB_REF_NAME`: on a pull request the latter is
+      # `<number>/merge`, which names no version, so the check would skip on every PR and
+      # report a green it never performed.
       #
       # A base that is not a release branch (develop, production) is not a failure —
       # the script reports the skip and exits 0.
@@ -76,11 +83,11 @@ jobs:
         id: check
         shell: bash
         env:
-          BASE_REF: ${{ github.base_ref }}
+          PACKAGE_VERSION_REF: ${{ github.base_ref }}
         run: |
           set +e
 
-          make version-stamp-check REF="${BASE_REF}" 2>&1 | tee /tmp/package-version.log
+          make version-stamp-check 2>&1 | tee /tmp/package-version.log
           code=${PIPESTATUS[0]}
 
           if [ "${code}" -eq 0 ]; then

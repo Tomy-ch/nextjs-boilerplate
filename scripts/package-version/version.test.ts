@@ -7,6 +7,8 @@ import {
   readVersion,
   replaceVersion,
   reportPlan,
+  selectRef,
+  stampCommitMessage,
 } from "./version";
 
 const manifest = [
@@ -19,8 +21,9 @@ const manifest = [
 
 describe("isStampMode", () => {
   // ----- 正常系 -----
-  it("stamp / check を走らせ方として受け入れる", () => {
+  it("stamp / commit / check を走らせ方として受け入れる", () => {
     expect(isStampMode("stamp")).toBe(true);
+    expect(isStampMode("commit")).toBe(true);
     expect(isStampMode("check")).toBe(true);
   });
 
@@ -28,6 +31,34 @@ describe("isStampMode", () => {
   it("走らせ方でない指定を拒否する", () => {
     expect(isStampMode("apply")).toBe(false);
     expect(isStampMode("")).toBe(false);
+  });
+});
+
+describe("selectRef", () => {
+  // ----- 正常系 -----
+  it("先に並べた候補を優先する", () => {
+    expect(selectRef(["release/v1.0.0", "release/v2.0.0"])).toBe("release/v1.0.0");
+  });
+
+  it("指定されていない候補を飛ばして次を採る", () => {
+    expect(selectRef([undefined, "", "  ", "release/v2.0.0"])).toBe("release/v2.0.0");
+  });
+
+  it("端の空白を落として返す", () => {
+    expect(selectRef([" release/v1.0.0\n"])).toBe("release/v1.0.0");
+  });
+
+  // ----- 異常系 -----
+  it("どこにも指定が無ければ null を返す", () => {
+    expect(selectRef([undefined, ""])).toBeNull();
+    expect(selectRef([])).toBeNull();
+  });
+});
+
+describe("stampCommitMessage", () => {
+  // ----- 正常系 -----
+  it("コミット規約の接頭辞を付けて版を名乗る", () => {
+    expect(stampCommitMessage("1.3.0")).toBe("Chore: package.json の version を 1.3.0 に合わせる");
   });
 });
 
@@ -127,6 +158,12 @@ describe("reportPlan", () => {
   // ----- 正常系 -----
   it("書き込む側では、差し替えを仕事として報告する", () => {
     const report = reportPlan({ kind: "write", from: "0.5.0", to: "0.7.0", content: "" }, "stamp");
+
+    expect(report).toEqual({ message: "✏️ version: 0.5.0 → 0.7.0", failed: false });
+  });
+
+  it("コミットまで行う側も、書き込む側と同じ文面を出す", () => {
+    const report = reportPlan({ kind: "write", from: "0.5.0", to: "0.7.0", content: "" }, "commit");
 
     expect(report).toEqual({ message: "✏️ version: 0.5.0 → 0.7.0", failed: false });
   });

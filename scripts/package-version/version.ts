@@ -1,7 +1,7 @@
-// リリース版を名乗るブランチ名から `package.json` の version を決める判断。
+// リリースブランチ名から `package.json` の version を決める判断。
 //
-// 版の出所はブランチ名（= タグから数えた次の版）1 つで、`package.json` はそこから導かれる側に
-// 置く。両方を人が書くと、出荷した版と名乗る版が黙ってずれる。
+// 版の出所はブランチ名 1 つで、`package.json` はそこから導かれる側に置く。両方を人が書くと、
+// 出荷した版と名乗る版が黙ってずれる。
 
 import { normalizeVersion } from "../semver/bump.js";
 
@@ -26,14 +26,37 @@ const RELEASE_BRANCH_PATTERN = /^(?:release|hotfix)\/(v.+)$/;
  */
 const VERSION_FIELD = /^ {2}"version": "([^"]*)"/m;
 
-/** 走らせ方。書き込むか、突き合わせるだけか。 */
-export type StampMode = "stamp" | "check";
+/** 走らせ方。書くだけか、書いてコミットまでするか、突き合わせるだけか。 */
+export type StampMode = "stamp" | "commit" | "check";
 
-const STAMP_MODES: readonly StampMode[] = ["stamp", "check"];
+const STAMP_MODES: readonly StampMode[] = ["stamp", "commit", "check"];
 
 /** 引数として渡された値が走らせ方の指定になっているか。 */
 export function isStampMode(value: string): value is StampMode {
   return (STAMP_MODES as readonly string[]).includes(value);
+}
+
+/**
+ * 版を導く ref を、優先順に選ぶ。
+ *
+ * @remarks
+ * ブランチ名は**シェルを経由せず**環境変数として届きます。make の変数として recipe 行へ
+ * 展開すると、`"` や `;` を含むブランチ名（git が許す）でクォートが破れ、任意のコマンドが
+ * 走ります。優先順をここに置くのは、渡し口が増えても選び方が 1 箇所に残るためです。
+ *
+ * @param candidates - 優先順に並べた候補。空文字列と `undefined` は「指定なし」として次へ送る
+ * @returns 最初に指定されていた候補。1 つも無ければ `null`
+ */
+export function selectRef(candidates: readonly (string | undefined)[]): string | null {
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+
+    if (trimmed !== undefined && trimmed !== "") {
+      return trimmed;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -69,6 +92,11 @@ export function replaceVersion(manifest: string, version: string): string {
   return manifest.replace(VERSION_FIELD, () => `  "version": "${version}"`);
 }
 
+/** 焼き込みを記録するコミットの subject。 */
+export function stampCommitMessage(version: string): string {
+  return `Chore: package.json の version を ${version} に合わせる`;
+}
+
 /** 書き込む前に決まること。書き込まない 3 つを、理由ごとに分けて持つ。 */
 export type StampPlan =
   | { readonly kind: "skip"; readonly ref: string }
@@ -88,6 +116,10 @@ export type StampPlan =
  * 「対象外の ref だから何もしない」「既に同じ版だから何もしない」「version が無くて書けない」は、
  * 書き込まない点では同じですが最後だけは失敗です。入口で畳むと、この 3 つを取り違えても
  * 誰も気づけません。
+ *
+ * **`unchanged` を `write` と分けているのは、コミットするかどうかがここで決まるためでもあります。**
+ * 書き換えが起きていないのにコミットへ進むと、ステージに何も無いまま `git commit` が落ち、
+ * リリースブランチを切る手順がその場で止まります。
  *
  * 本文は `readManifest` から遅延で受け取ります。対象外の ref では読まずに終える必要があり、
  * その順序は呼び出し側の書き方ではなくここが持ちます。
@@ -123,8 +155,8 @@ export type StampReport = {
  * 決まったことを、走らせ方に応じた report へ落とす。
  *
  * @remarks
- * **同じ plan でも、書き込む側と突き合わせる側で意味が反転するのは `write` だけです。**
- * 書き込む側にとっては仕事そのもの、突き合わせる側にとっては「焼き込み忘れ」を意味します。
+ * **同じ plan でも、書く側と突き合わせる側で意味が反転するのは `write` だけです。**
+ * 書く側にとっては仕事そのもの、突き合わせる側にとっては「焼き込み忘れ」を意味します。
  * 反転をここに置くのは、CI が読む文面と手元で出る文面を 1 箇所から出すためです。
  */
 export function reportPlan(plan: StampPlan, mode: StampMode): StampReport {
@@ -143,15 +175,15 @@ export function reportPlan(plan: StampPlan, mode: StampMode): StampReport {
     return { message: `✅ version はブランチ名どおり ${plan.version} です`, failed: false };
   }
 
-  if (mode === "stamp") {
-    return { message: `✏️ version: ${plan.from} → ${plan.to}`, failed: false };
+  if (mode === "check") {
+    return {
+      message: [
+        `❌ version がブランチ名と食い違っています（package.json: ${plan.from} / ブランチ: ${plan.to}）`,
+        "➡️ make version-stamp を実行し、差分をコミットしてください",
+      ].join("\n"),
+      failed: true,
+    };
   }
 
-  return {
-    message: [
-      `❌ version がブランチ名と食い違っています（package.json: ${plan.from} / ブランチ: ${plan.to}）`,
-      "➡️ make version-stamp を実行し、差分をコミットしてください",
-    ].join("\n"),
-    failed: true,
-  };
+  return { message: `✏️ version: ${plan.from} → ${plan.to}`, failed: false };
 }

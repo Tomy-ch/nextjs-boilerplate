@@ -2,30 +2,39 @@
 
 // `package.json` の version をリリースブランチ名へ合わせる入口。
 //
-//   package-version stamp [<ref>]   ブランチ名の版を書き込む
-//   package-version check [<ref>]   ブランチ名の版と一致するかを見る（書き込まない）
+//   package-version stamp    ブランチ名の版を書き込む
+//   package-version commit   書き込み、変わったときだけコミットする（リリース手順が使う）
+//   package-version check    ブランチ名の版と一致するかを見る（書き込まない）
 //
-// <ref> を省いたときは GITHUB_REF_NAME を読む。リリース版を名乗らない ref では何もしない。
-// 何を書くか・何を落とすかは [version.ts](version.ts) が持ち、ここは読み書きと終了コードだけを担う。
+// ブランチ名は環境変数で受け取る（`PACKAGE_VERSION_REF` → `GITHUB_REF_NAME` → 現在のブランチ）。
+// 引数で受け取らないのは、make の変数として recipe 行へ展開するとブランチ名がシェルの構文として
+// 解釈されうるため。何を書くか・何を落とすかは [version.ts](version.ts) が持つ。
+import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { isStampMode, planStamp, reportPlan } from "./version.js";
+import { isStampMode, planStamp, reportPlan, selectRef, stampCommitMessage } from "./version.js";
 
 const MANIFEST = "package.json";
 
 function main(argv: readonly string[]): void {
-  const [mode, ref = process.env.GITHUB_REF_NAME ?? ""] = argv;
+  const [mode] = argv;
 
   if (mode === undefined || !isStampMode(mode)) {
-    fail("使い方: package-version <stamp|check> [<ref>]");
+    fail("使い方: package-version <stamp|commit|check>");
   }
 
+  const ref =
+    selectRef([process.env.PACKAGE_VERSION_REF, process.env.GITHUB_REF_NAME]) ?? currentBranch();
   const manifest = path.join(process.cwd(), MANIFEST);
   const plan = planStamp(ref, () => readFileSync(manifest, "utf8"));
 
-  if (plan.kind === "write" && mode === "stamp") {
+  if (plan.kind === "write" && mode !== "check") {
     writeFileSync(manifest, plan.content);
+
+    if (mode === "commit") {
+      record(plan.to);
+    }
   }
 
   const report = reportPlan(plan, mode);
@@ -36,6 +45,23 @@ function main(argv: readonly string[]): void {
   }
 
   console.log(report.message);
+}
+
+/** 焼き込んだ 1 行をコミットへ落とす。書き換えが起きたときだけ呼ばれる。 */
+function record(version: string): void {
+  git(["add", MANIFEST]);
+  // フックは通さない。載るのはブランチ名から機械的に導いた 1 行で、pre-commit が回す検査は
+  // 派生元の production が既に通している。同じ規則で導き直す突合は CI が持つ。
+  git(["commit", "--no-verify", "-m", stampCommitMessage(version)]);
+}
+
+/** ref の指定がどこにも無いときに読む、手元の現在ブランチ。 */
+function currentBranch(): string {
+  return execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim();
+}
+
+function git(args: readonly string[]): void {
+  execFileSync("git", [...args], { stdio: "inherit" });
 }
 
 function fail(message: string): never {

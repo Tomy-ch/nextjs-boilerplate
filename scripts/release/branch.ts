@@ -58,7 +58,6 @@ export function planReleaseBranch(input: {
   readonly prefix: ReleaseBranchPrefix;
 }): ReleaseBranchPlan {
   const branchName = `${input.prefix}/${input.next}`;
-  const version = input.next.replace(/^v/, "");
 
   return {
     branchName,
@@ -74,18 +73,15 @@ export function planReleaseBranch(input: {
     steps: [
       runStep("git", ["fetch", "origin", PRODUCTION_BRANCH]),
       runStep("git", ["switch", "-c", branchName, `origin/${PRODUCTION_BRANCH}`]),
+      // 切り替えで lockfile が production のものへ入れ替わる。次の段は pnpm 越しに走るため、
+      // 依存の検証（`verifyDepsBeforeRun`）に掛かって手順ごと止まらないよう、ここで揃え直す。
+      runStep("pnpm", ["install", "--frozen-lockfile", "--ignore-scripts"]),
       // 版はここで焼き込む。切った時点がその版を決めた時点であり、後から気づく機会は無い ——
       // production へ入ってしまえば、出荷した版と `package.json` が名乗る版がずれたまま残る。
-      runStep("make", ["version-stamp", `REF=${branchName}`]),
-      runStep("git", ["add", "package.json"]),
-      // commit も `--no-verify`。書いた 1 行はブランチ名から機械的に導いたもので、pre-commit が
-      // 回す検査は production が既に通している。同じ規則で導き直す突合は CI が持つ。
-      runStep("git", [
-        "commit",
-        "--no-verify",
-        "-m",
-        `Chore: package.json の version を ${version} に合わせる`,
-      ]),
+      // **書き換えが起きたときだけコミットする判断は、焼き込む側が持つ。**ここで無条件に
+      // コミットすると、既に名乗りどおりだったときにステージが空のまま `git commit` が落ち、
+      // 手順が push の手前で止まる（タグを打つ前に 2 本目を切ると実際に起きる）。
+      runStep("make", ["version-stamp-commit", `REF=${branchName}`]),
       // push も `--no-verify`。押すのは production が全ゲートを通過した木と、その上へブランチ名
       // から導いた 1 行だけで、フックを回しても新しい情報は出ず、テスト一式の実行時間だけが乗る。
       // 版が名乗りどおりかは、押した先で CI が同じ規則から導き直して見る。
