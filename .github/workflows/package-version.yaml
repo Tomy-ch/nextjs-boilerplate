@@ -1,0 +1,114 @@
+name: Package Version
+
+# `package.json` の version is derived from the release branch name, not written by
+# hand: `make branch-*` stamps it onto the branch it cuts. This job re-derives it from
+# the base branch of the pull request and fails when the two disagree — a hand edit, or
+# a release branch created outside `make branch-*`.
+#
+# The tree it reads is `refs/pull/N/merge`, so what it checks is the version that will
+# actually land on the release branch.
+#
+# Deliberately unfiltered by `paths`; the reason every CI Checks workflow runs on
+# every PR is in README.md.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            release-assets.githubusercontent.com:443
+            *.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
+            *.githubapp.com:443
+            prod.app-api.stepsecurity.io:443
+            mise-versions.jdx.dev:443
+            nodejs.org:443
+            registry.npmjs.org:443
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # The mise CLI's own version is the one version number pinned in a workflow:
+      # mise.toml declares what mise resolves, not mise itself, so there is nowhere
+      # else to put it. Left unpinned it floats to whatever released today, which is
+      # the resolver for every other tool. It is restated in each workflow — a bump
+      # has to touch all of them.
+      - name: Setup mise and the pinned tools
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-deps
+
+      # `github.base_ref` is passed rather than read from the environment: on a pull
+      # request `GITHUB_REF_NAME` is `<number>/merge`, which names no version, so the
+      # check would skip on every PR and report a green it never performed.
+      #
+      # A base that is not a release branch (develop, production) is not a failure —
+      # the script reports the skip and exits 0.
+      - name: Check the version against the base branch
+        id: check
+        shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set +e
+
+          make version-stamp-check REF="${BASE_REF}" 2>&1 | tee /tmp/package-version.log
+          code=${PIPESTATUS[0]}
+
+          if [ "${code}" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=## ✅ Package version: PASS" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=## ❌ Package version: FAIL" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      # A PR from a fork gets a read-only token, so posting is allowed to fail
+      # without taking the verdict with it.
+      - name: Comment package version result on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: ./.github/actions/upsert-pr-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          marker: '<!-- package-version-result -->'
+          status: ${{ steps.check.outputs.status }}
+          title: ${{ steps.check.outputs.title }}
+          body-file: /tmp/package-version.log
+          details-summary: 'version check log'
+
+      # An empty status means the capture step never ran (an earlier step failed),
+      # which is also a failure — the comparison is against 'success', not 'failure'.
+      - name: Fail if the version disagreed with the branch
+        if: always() && steps.check.outputs.status != 'success'
+        run: exit 1

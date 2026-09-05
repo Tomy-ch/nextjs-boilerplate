@@ -66,6 +66,7 @@
           { "context": "lint" },
           { "context": "lockfile-drift" },
           { "context": "md-lint" },
+          { "context": "package-version" },
           { "context": "scripts-check" },
           { "context": "shadcn-manifest" },
           { "context": "smoke" },
