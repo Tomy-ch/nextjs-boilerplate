@@ -181,11 +181,17 @@ PR タイトルも日本語で書き、関連 issue / ADR を本文末尾に記�
    - `.github/release/<v>.md` を `--notes-file` として `gh release create` を行い、GitHub Release を生成する
    - 対応するリリースノート Markdown が存在しない場合、コマンドは失敗する (タグ・Release の整合性担保のため)
 
-**`package.json` の `version` はリリースブランチ名から導く。**版の出所は「タグから数えた次の版」1 つ
-だけで、`package.json` はそこから導かれる側に置く。人が両方を書くと、出荷した版と名乗る版が黙って
-ずれる。焼き込むのは 1. の `make branch-*` で、切ったブランチの上に version を合わせるコミットが
-1 本乗る。PR の base が名乗る版と一致するかは CI (`package-version`) が同じ規則で導き直して見る。
-手で直すときは `make version-stamp`。
+**`package.json` の `version` はリリースブランチ名から導く。**`package.json` は版を決める側ではなく、
+ブランチ名の名乗りに従う側に置く。人が両方を書くと、出荷した版と名乗る版が黙ってずれる。焼き込むのは
+1. の `make branch-*` で、切ったブランチの上に version を合わせるコミットが 1 本乗る (既に名乗りどおり
+なら何も書かず、コミットも作らない)。PR の base が名乗る版と一致するかは CI (`package-version`) が
+同じ規則で導き直して見る。手で直すときは `make version-stamp`。
+
+**検査が届くのは「ブランチ名と `package.json` の一致」までで、ブランチ名そのものの正しさではない。**
+ブランチ名が最新タグから 1 段進んだ版であることを保証するのは `make branch-*` が切る瞬間だけで、手で
+切った `release/v9.9.9` は誰も咎めない。同じ理由で、`hotfix/<issue>-<desc>` の形で切った hotfix には
+版が含まれないため焼き込みは何もせず、CI も据え置きとして緑を返す。版を載せたい hotfix は
+`make hotfix-patch` (`hotfix/v<X.Y.Z>`) で切る。
 
 ### Hotfix 運用
 
