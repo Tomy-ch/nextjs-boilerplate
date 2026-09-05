@@ -24,6 +24,7 @@ function product(overrides: Partial<Product> = {}): Product {
     status: { id: STATUS_ID, name: "在庫切れ" },
     category: { id: "c1", name: "電子機器" },
     publishedAt: null,
+    discontinuedAt: null,
     imagePaths: [],
     version: 1,
     ...overrides,
@@ -53,6 +54,43 @@ describe("toAdminProductRows", () => {
     expect(rows[0]?.statusTone).toBe(BADGE_VARIANT.SECONDARY);
   });
 
+  it("廃番の商品は、マスタのラベルではなく廃番として出す", () => {
+    const rows = toAdminProductRows(
+      [
+        product({
+          status: { id: STATUSES[1].id, name: "在庫あり" },
+          discontinuedAt: new Date("2026-09-05T00:00:00.000Z"),
+        }),
+      ],
+      STATUSES,
+    );
+
+    expect(rows[0]?.statusName).toBe("廃番");
+  });
+
+  it("廃番の商品は、マスタのコードから決まる見た目にも従わない", () => {
+    const rows = toAdminProductRows(
+      [
+        product({
+          status: { id: STATUSES[1].id, name: "在庫あり" },
+          discontinuedAt: new Date("2026-09-05T00:00:00.000Z"),
+        }),
+      ],
+      STATUSES,
+    );
+
+    expect(rows[0]?.statusTone).toBe(BADGE_VARIANT.DEFAULT);
+  });
+
+  it("マスタのラベルが廃盤でも、廃番でなければそのラベルのまま出す", () => {
+    const rows = toAdminProductRows(
+      [product({ status: { id: "6b0f2f3e-0000-4000-8000-000000000003", name: "廃盤" } })],
+      [...STATUSES, { id: "6b0f2f3e-0000-4000-8000-000000000003", name: "廃盤", code: 7 }],
+    );
+
+    expect(rows[0]).toMatchObject({ statusName: "廃盤", statusTone: BADGE_VARIANT.OUTLINE });
+  });
+
   it("受け取った順序を保つ", () => {
     const rows = toAdminProductRows([product({ name: "A" }), product({ name: "B" })], STATUSES);
 
@@ -67,7 +105,7 @@ describe("toAdminProductRows", () => {
   it("マスタに無い状態は既定の見た目へ倒す", () => {
     const rows = toAdminProductRows([product()], []);
 
-    expect(rows[0]?.statusTone).toBe(BADGE_VARIANT.OUTLINE);
+    expect(rows[0]?.statusTone).toBe(BADGE_VARIANT.GHOST);
   });
 
   it("マスタに無い状態でも表示名はそのまま出す", () => {

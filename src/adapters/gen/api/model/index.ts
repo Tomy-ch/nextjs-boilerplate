@@ -9,12 +9,13 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+7b2778e
+ * OpenAPI spec version: 2.2.0+76e4825
  */
 
 export * from "./activeParamParameter";
 export * from "./addressCandidate";
 export * from "./addressCandidatesResponse";
+export * from "./afterSequenceParamParameter";
 export * from "./badRequest400Response";
 export * from "./cartItemIssue";
 export * from "./cartItemPutRequest";
@@ -45,6 +46,9 @@ export * from "./getAddressesParams";
 export * from "./getDashboardSummaryParams";
 export * from "./getExchangeRatesDisplayCurrency";
 export * from "./getExchangeRatesParams";
+export * from "./getInquiriesDetailMessagesParams";
+export * from "./getInquiriesMeMessagesParams";
+export * from "./getInquiriesParams";
 export * from "./getProductsCountParams";
 export * from "./getProductsDetailParams";
 export * from "./getProductsLowStockParams";
@@ -62,6 +66,14 @@ export * from "./gone410Response";
 export * from "./idempotencyKeyParamParameter";
 export * from "./includeOtherUsersParamParameter";
 export * from "./includeUnpublishedParamParameter";
+export * from "./inquiryHistoryResponse";
+export * from "./inquiryListResponse";
+export * from "./inquiryMessage";
+export * from "./inquiryMessageAuthorKind";
+export * from "./inquiryMessagePostRequest";
+export * from "./inquiryMessageResponse";
+export * from "./inquiryStreamTicketResponse";
+export * from "./inquirySummary";
 export * from "./internalServerError500Response";
 export * from "./keywordParamParameter";
 export * from "./lastEventIdParamParameter";

@@ -4,7 +4,7 @@ import type { OpenApiSource } from "./sources-manifest";
 
 const source: OpenApiSource = {
   name: "api",
-  repo: "Tomy-ch/go-boilerplate",
+  repo: "example-org/example-backend",
   path: "openapi/openapi.gen.yaml",
   ref: "130b179afd0146ce393626064ca2facaefa059f8",
   sha: "aa62bff3e087b544494f012d5009702492e40d79",

@@ -47,7 +47,7 @@ describe("DevSessionView", () => {
         authorization={null}
         connectsLiveApi={false}
         defaultIssuer="https://idp.example.test"
-        returnUrl="/checkout"
+        returnUrl="/account"
         session={SESSION}
       />,
     );

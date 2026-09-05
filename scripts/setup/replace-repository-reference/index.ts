@@ -9,10 +9,17 @@ import {
   toRelativePath,
 } from "../lib/file-utils.js";
 import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
-import { ensurePackageName, ensureRepositoryReference } from "../lib/validators.js";
+import {
+  ensurePackageName,
+  ensureRepositoryReference,
+  normalizePortalUrl,
+} from "../lib/validators.js";
+import { planReplacement } from "./plan.js";
+import { buildDefaultPortalUrl } from "./portal.js";
 
 type Options = {
   repository?: string;
+  portalUrl?: string;
   dryRun: boolean;
   help: boolean;
   rest: string[];
@@ -60,15 +67,18 @@ const EXCLUDED_PATH_PREFIXES = [`scripts${path.sep}setup${path.sep}`];
 
 function printUsage(): void {
   console.log(`使用方法:
-  tsx scripts/setup/replace-repository-reference --repository <owner/repo> [--dry-run]
+  tsx scripts/setup/replace-repository-reference --repository <owner/repo> [--portal-url <url>] [--dry-run]
 
 例:
   tsx scripts/setup/replace-repository-reference --repository example-org/example-app
+  tsx scripts/setup/replace-repository-reference --repository example-org/example-app --portal-url https://docs.example.com/
   tsx scripts/setup/replace-repository-reference --repository example-org/example-app --dry-run
 
 補足:
   置換元は package.json の name（現在のプロジェクト名）です。
   <owner>/<現プロジェクト名> 形式のリポジトリ参照と、単独のプロジェクト名の両方を置換します。
+  ドキュメントポータルへのリンクも同時に差し替えます。--portal-url を省くと GitHub Pages の
+  配信先（https://<owner>.github.io/<repo>/）を使います。custom domain を使う場合に渡します。
   docs 配下・.claude 配下・scripts/setup 配下・ビルド成果物・ロックファイルは対象外です。
 `);
 }
@@ -80,19 +90,23 @@ function parseArgs(argv: string[]): Options {
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
 
-    if (arg === "--repository") {
-      const value = args[i + 1];
-
-      if (!value || value.startsWith("--")) {
-        throw new Error(`${arg} の値を指定してください。`);
-      }
-
-      options.repository = value;
-      i += 1;
-      continue;
+    if (arg !== "--repository" && arg !== "--portal-url") {
+      throw new Error(`不明な引数です: ${arg}`);
     }
 
-    throw new Error(`不明な引数です: ${arg}`);
+    const value = args[i + 1];
+
+    if (!value || value.startsWith("--")) {
+      throw new Error(`${arg} の値を指定してください。`);
+    }
+
+    if (arg === "--repository") {
+      options.repository = value;
+    } else {
+      options.portalUrl = value;
+    }
+
+    i += 1;
   }
 
   if (options.help) {
@@ -106,6 +120,11 @@ function parseArgs(argv: string[]): Options {
   ensureRepositoryReference(options.repository);
   ensurePackageName(options.repository.split("/")[1]);
 
+  // 検証しただけの生値を後段へ流さない。戻り値を捨てると入口の検査が意味を失う
+  if (options.portalUrl !== undefined) {
+    options.portalUrl = normalizePortalUrl(options.portalUrl);
+  }
+
   return options;
 }
 
@@ -118,32 +137,6 @@ function readCurrentProjectName(): string {
   }
 
   return name;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-// String.replace の置換文字列では $ が後方参照などの特殊記号になるため無害化する
-function escapeReplacement(value: string): string {
-  return value.replace(/\$/g, "$$$$");
-}
-
-// 名前の途中で切らないための境界。`.git` や `.md` のような拡張子は境界として扱う
-const NAME_TAIL_BOUNDARY = "(?![A-Za-z0-9_-])";
-const NAME_HEAD_BOUNDARY = "(?<![A-Za-z0-9._-])";
-
-// <owner>/<現プロジェクト名> 形式のリポジトリ参照。owner 部分もフォーク先へ差し替える
-function buildSlugPattern(currentName: string): RegExp {
-  return new RegExp(
-    `${NAME_HEAD_BOUNDARY}[A-Za-z0-9._-]+/${escapeRegExp(currentName)}${NAME_TAIL_BOUNDARY}`,
-    "g",
-  );
-}
-
-// 単独で現れるプロジェクト名。package.json の name もここで置換される
-function buildNamePattern(currentName: string): RegExp {
-  return new RegExp(`${NAME_HEAD_BOUNDARY}${escapeRegExp(currentName)}${NAME_TAIL_BOUNDARY}`, "g");
 }
 
 function shouldProcessFile(filePath: string): boolean {
@@ -161,28 +154,22 @@ function shouldProcessFile(filePath: string): boolean {
   return TARGET_FILE_NAMES.has(fileName) || TARGET_EXTENSIONS.has(path.extname(filePath));
 }
 
-function planFile(filePath: string, currentName: string, repository: string): PlannedChange | null {
-  const newName = repository.split("/")[1];
+function planFile(
+  filePath: string,
+  currentName: string,
+  repository: string,
+  portalUrl: string,
+): PlannedChange | null {
   const original = readUtf8File(filePath);
 
   if (original === null) {
     return null;
   }
 
-  const slugPattern = buildSlugPattern(currentName);
-  const namePattern = buildNamePattern(currentName);
+  const relativePath = toRelativePath(filePath);
+  const planned = planReplacement(relativePath, original, currentName, repository, portalUrl);
 
-  // スラッグ置換後の本文を数え直す。先に数えると <owner>/<name> を二重計上する
-  const afterSlug = original.replace(slugPattern, escapeReplacement(repository));
-  const occurrences =
-    (original.match(slugPattern)?.length ?? 0) + (afterSlug.match(namePattern)?.length ?? 0);
-  const content = afterSlug.replace(namePattern, escapeReplacement(newName));
-
-  if (occurrences === 0 || content === original) {
-    return null;
-  }
-
-  return { filePath, relativePath: toRelativePath(filePath), content, occurrences };
+  return planned === null ? null : { filePath, relativePath, ...planned };
 }
 
 // 途中失敗で一部だけ書き換わった状態を残さないため、全ファイルの書き込み可否を先に確かめる
@@ -196,13 +183,15 @@ function commit(planned: PlannedChange[]): void {
   }
 }
 
-function run(repository: string, dryRun: boolean): void {
+function run(repository: string, portalUrl: string, dryRun: boolean): void {
   const currentName = readCurrentProjectName();
   const newName = repository.split("/")[1];
 
   if (currentName === newName) {
     console.log(`プロジェクト名は既に ${newName} です。リポジトリ参照のみ確認します。`);
   }
+
+  console.log(`ドキュメントポータルのリンク先: ${portalUrl}`);
 
   const files = listFilesRecursive(ROOT_DIR, {
     excludedDirectories: EXCLUDED_DIRECTORIES,
@@ -212,7 +201,7 @@ function run(repository: string, dryRun: boolean): void {
   const planned: PlannedChange[] = [];
 
   for (const filePath of files) {
-    const change = planFile(filePath, currentName, repository);
+    const change = planFile(filePath, currentName, repository, portalUrl);
 
     if (change) {
       planned.push(change);
@@ -253,7 +242,11 @@ function main(): void {
   }
 
   try {
-    run(options.repository, options.dryRun);
+    run(
+      options.repository,
+      options.portalUrl ?? buildDefaultPortalUrl(options.repository),
+      options.dryRun,
+    );
   } catch (error) {
     console.error(`エラー: ${(error as Error).message}`);
     process.exit(1);

@@ -73,9 +73,18 @@ export function planReleaseBranch(input: {
     steps: [
       runStep("git", ["fetch", "origin", PRODUCTION_BRANCH]),
       runStep("git", ["switch", "-c", branchName, `origin/${PRODUCTION_BRANCH}`]),
-      // push は `--no-verify` で行う。ここで押すのは `origin/production` に既に在るコミットへ
-      // 新しい ref を張るだけで、内容は production へ入った時点で全ゲートを通過している。
-      // フックを回しても新しい情報は出ず、テスト一式の実行時間だけが乗る。
+      // 切り替えで lockfile が production のものへ入れ替わる。次の段は pnpm 越しに走るため、
+      // 依存の検証（`verifyDepsBeforeRun`）に掛かって手順ごと止まらないよう、ここで揃え直す。
+      runStep("pnpm", ["install", "--frozen-lockfile", "--ignore-scripts"]),
+      // 版はここで焼き込む。切った時点がその版を決めた時点であり、後から気づく機会は無い ——
+      // production へ入ってしまえば、出荷した版と `package.json` が名乗る版がずれたまま残る。
+      // **書き換えが起きたときだけコミットする判断は、焼き込む側が持つ。**ここで無条件に
+      // コミットすると、既に名乗りどおりだったときにステージが空のまま `git commit` が落ち、
+      // 手順が push の手前で止まる（タグを打つ前に 2 本目を切ると実際に起きる）。
+      runStep("make", ["version-stamp-commit", `REF=${branchName}`]),
+      // push も `--no-verify`。押すのは production が全ゲートを通過した木と、その上へブランチ名
+      // から導いた 1 行だけで、フックを回しても新しい情報は出ず、テスト一式の実行時間だけが乗る。
+      // 版が名乗りどおりかは、押した先で CI が同じ規則から導き直して見る。
       runStep("git", ["push", "--no-verify", "origin", branchName]),
       logStep(`⚙️ GitHub上のデフォルトブランチを ${branchName} に設定します。`),
       runStep("gh", ["repo", "edit", "--default-branch", branchName]),

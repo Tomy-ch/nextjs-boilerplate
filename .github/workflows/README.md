@@ -36,8 +36,8 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 | 検査 | ラベル無しで回る差分 | なぜ待てないか |
 | --- | --- | --- |
-| `lighthouse` | 画面の宣言 / 器（layout） | 足した画面には比べる先の数値がまだ無く、待つと検出だけでなく比較そのものが遅れる |
-| `e2e` | 器（layout）/ 全画面が読む土台の CSS / 画面の宣言 | **直す経路が PR にしか無い。** 基準画像の撮り直しは比較が報告した集合に限られ、報告は PR の実行にしか出ない。merge 後に食い違うと、撮り直す相手を名指しできる PR がもう無い |
+| `lighthouse` | 画面の宣言 / 器（layout と shell の部品） | 足した画面には比べる先の数値がまだ無く、待つと検出だけでなく比較そのものが遅れる |
+| `e2e` | 器（layout と shell の部品）/ 全画面が読む土台の CSS / 画面の宣言 | **直す経路が PR にしか無い。** 基準画像の撮り直しは比較が報告した集合に限られ、報告は PR の実行にしか出ない。merge 後に食い違うと、撮り直す相手を名指しできる PR がもう無い |
 
 `e2e` の線は「画面を動かすか」ではなく**「動かすことが差分の見た目から分かるか」**で引いてある。mock の
 応答やジャーニーの宣言も画面を動かすが、それは書いた人に見えているのでラベルの側に残る。この判定のため
@@ -89,6 +89,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 | Purge Verify | `purge-verify.yaml` | `purge-verify` | 使い捨てチェックアウトで同梱サンプルを破棄し、破棄後のツリーで整形・検査・build・test が通ることと、過不足・残留参照が無いことを検査する |
 | Strip Verify | `strip-verify.yaml` | `strip-verify` | 使い捨てチェックアウトで boilerplate 限定の記述を剥がし、剥がした後のツリーで整形・検査・build・test が通ることと、マーカーが 1 件も残っていないことを検査する。**剥がしの対象に自分自身を含む**（[`../../scripts/setup/remove-boilerplate-only/manifest.ts`](../../scripts/setup/remove-boilerplate-only/manifest.ts) の `SELF_DESTRUCT_PATHS`）。剥がしは任意ではないので、fork には検証する相手が残らない <!-- boilerplate-only:line --> |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
+| Package Version | `package-version.yaml` | `package-version` | `package.json` の `version` が PR の base が名乗る版と一致するか検査する。版の出所はリリースブランチ名（= タグから数えた次の版）1 つで、焼き込みは `make branch-*` がブランチを切る手順の中で行う。base がリリースブランチでない PR では据え置きとして緑を返す |
 | Tokens Drift | `tokens-drift.yaml` | `tokens-drift` | hand-written token SSOT と追跡する CSS 生成物が一致することを検査する |
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、追跡下の `*.sh` を `make shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で、mise のピンの整合を `make actions-mise-pin-lint` で、必須ステータスチェックの宣言と実体の突合を `make actions-required-check-lint` で、定義そのものの静的解析を `make actions-zizmor` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |

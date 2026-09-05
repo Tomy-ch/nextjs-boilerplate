@@ -34,11 +34,12 @@ function selfDestruct(): void {
 
 /* istanbul ignore next -- CLI entry（理由は `readCommand` と同じ）。 */
 function main(): void {
-  console.log("🔍 サンプル破棄の検証を開始します（過不足・残留参照・道具の自消滅）。");
+  console.log("🔍 サンプル破棄の検証を開始します（過不足・置き直し・残留参照・道具の自消滅）。");
 
   const snapshot = parseSnapshot(fs.readFileSync(SNAPSHOT_PATH, "utf8"));
   const failures = collectFailures({
     registeredPaths: snapshot.registeredPaths,
+    restoredPaths: snapshot.restoredPaths,
     pathExists: (relativePath) => fs.existsSync(path.join(ROOT_DIR, relativePath)),
     gitStatusPorcelain: readCommand("git", ["status", "--porcelain"]),
     makeHelpOutput: readCommand("make", ["help"]),

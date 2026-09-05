@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { ensureFourDigitYear, ensurePackageName, ensureRepositoryReference } from "./validators";
+import {
+  ensureFourDigitYear,
+  ensurePackageName,
+  ensureRepositoryReference,
+  normalizePortalUrl,
+} from "./validators";
 
 describe("ensureRepositoryReference", () => {
   // ----- 正常系 -----
@@ -66,5 +71,46 @@ describe("ensureFourDigitYear", () => {
 
   it("数字以外を含む値を拒否する", () => {
     expect(() => ensureFourDigitYear("20x6")).toThrow();
+  });
+});
+
+describe("normalizePortalUrl", () => {
+  // ----- 正常系 -----
+  it("GitHub Pages の配信先をそのまま返す", () => {
+    expect(normalizePortalUrl("https://example-org.github.io/example-app/")).toBe(
+      "https://example-org.github.io/example-app/",
+    );
+  });
+
+  it("custom domain の http を受け入れる", () => {
+    expect(normalizePortalUrl("http://docs.example.com/")).toBe("http://docs.example.com/");
+  });
+
+  it("差し込み先の文字列リテラルを閉じられる文字をエンコードする", () => {
+    expect(normalizePortalUrl('https://docs.example.com/";process.exit(1);//')).toBe(
+      "https://docs.example.com/%22;process.exit(1);//",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("scheme を持たない値を拒否する", () => {
+    expect(() => normalizePortalUrl("example.com/portal")).toThrow(
+      "--portal-url は絶対 URL で指定してください。",
+    );
+  });
+
+  it("http 以外の scheme を拒否する", () => {
+    expect(() => normalizePortalUrl("javascript:alert(1)")).toThrow(
+      "--portal-url は http または https の URL で指定してください。",
+    );
+  });
+
+  it("資格情報を含む URL を拒否する", () => {
+    expect(() => normalizePortalUrl("https://user@docs.example.com/")).toThrow(
+      "--portal-url に資格情報を含めないでください。",
+    );
+    expect(() => normalizePortalUrl("https://:token@docs.example.com/")).toThrow(
+      "--portal-url に資格情報を含めないでください。",
+    );
   });
 });

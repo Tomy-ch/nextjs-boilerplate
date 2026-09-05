@@ -36,9 +36,9 @@ describe("GET", () => {
   });
 
   it("復帰先を認可要求へ渡す", async () => {
-    await GET(new Request("http://localhost:3000/api/auth/login?returnUrl=%2Fmypage"));
+    await GET(new Request("http://localhost:3000/api/auth/login?returnUrl=%2Faccount"));
 
-    expect(startAuthorization).toHaveBeenCalledWith("/mypage");
+    expect(startAuthorization).toHaveBeenCalledWith("/account");
   });
 
   it("一時状態を保存してから送り出す", async () => {
@@ -66,13 +66,13 @@ describe("GET", () => {
     startAuthorization.mockRejectedValue(new Error("IdP へ到達できません"));
 
     const response = await GET(
-      new Request("http://localhost:3000/api/auth/login?returnUrl=%2Fmypage"),
+      new Request("http://localhost:3000/api/auth/login?returnUrl=%2Faccount"),
     );
     const location = new URL(String(response.headers.get("location")));
 
     expect(response.status).toBe(302);
     expect(location.pathname).toBe("/login");
-    expect(location.searchParams.get("returnUrl")).toBe("/mypage");
+    expect(location.searchParams.get("returnUrl")).toBe("/account");
     expect(storeTransaction).not.toHaveBeenCalled();
   });
 

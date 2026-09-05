@@ -15,6 +15,7 @@ import type { ProfileFormState, WithdrawFormState } from "./form-state";
 import { parseRegistrationForm } from "./onboarding/parse-registration-form";
 import { parseProfileForm } from "./parse-profile-form";
 import { MYPAGE_PATH } from "./paths";
+import { toProfileFieldErrors } from "./profile-rejection";
 
 const INVALID_INPUT_MESSAGE = "入力内容を確認してください。";
 const BROKEN_REQUEST_MESSAGE = "登録の要求を受け取れませんでした。画面を開き直してください。";
@@ -22,6 +23,28 @@ const REGISTER_CONFLICT_MESSAGE =
   "この内容では登録できませんでした。すでに登録が済んでいるか、他の登録と重複しています。";
 const WITHDRAW_CONFLICT_MESSAGE =
   "進行中の購入が残っているため退会できません。購入が完了またはキャンセルされてから、もう一度お試しください。";
+
+/**
+ * 接続先が項目を名指しして拒んだときの状態。
+ *
+ * @remarks
+ * 送る前の検証が弾いたときと同じ形（フォーム全体の文言 + 項目ごとの文言）を返します。画面はどちらで
+ * 弾かれたかを知らずに出せます。
+ *
+ * **名指しが 1 つも読めなければ何も返しません。**この画面の入力欄に結び付かない名前だけを受け取った
+ * 場合で、そのまま鍵にすると、どこにも出ない文言を状態へ入れることになります。分類ごとの文言は
+ * 呼び出し元が {@link actionStateFromError} で付けます。
+ *
+ * @param error 送信で投げられたエラー
+ * @returns 名指しがあれば失敗の状態。無ければ undefined
+ */
+function rejectedFieldsState(error: unknown): ProfileFormState | undefined {
+  const fieldErrors = toProfileFieldErrors(error);
+
+  return Object.keys(fieldErrors).length === 0
+    ? undefined
+    : failedActionState({ formError: INVALID_INPUT_MESSAGE, fieldErrors });
+}
 
 /**
  * プロフィールを更新する。
@@ -50,7 +73,7 @@ export async function updateProfileAction(
   try {
     await updateMyProfile(parsed.profile);
   } catch (error) {
-    return actionStateFromError(error);
+    return rejectedFieldsState(error) ?? actionStateFromError(error);
   }
 
   revalidatePath(MYPAGE_PATH);
@@ -95,7 +118,7 @@ export async function registerAction(
       return failedActionState({ formError: REGISTER_CONFLICT_MESSAGE });
     }
 
-    return actionStateFromError(error);
+    return rejectedFieldsState(error) ?? actionStateFromError(error);
   }
 
   redirect(parsed.returnUrl);

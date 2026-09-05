@@ -1,4 +1,4 @@
-// 破棄する対象の宣言。ここはデータだけを持ち、消し方は index.ts が担う。
+// 破棄する対象の宣言。ここはデータだけを持ち、消し方の判定は plan.ts、実行は index.ts が担う。
 //
 // 宣言を 1 箇所に集めるのは、削除と検証が同じ表を読む必要があるためである。片方が独自の
 // 一覧を持つと、消したのに検証が知らない対象や、検証だけが要求する対象が生まれる。
@@ -74,15 +74,51 @@ export const SAMPLE_PATHS: readonly string[] = [
   "docs/spec/route/admin",
   "docs/spec/route/auth/onboarding",
   // 題材の画面を通す E2E。土台（`e2e/lib` / `e2e/visual`）と、題材に依らない認証の前捌きは残す。
+  // 焦点の spec も題材側である —— 見ているのは機構だが、確かめる相手（ドロワー・モーダル・
+  // メニュー）を持つ画面が残る木に 1 枚も無い。観点は `e2e/README.md` の表が引き継ぐ。
   "e2e/journeys/browse.spec.ts",
   "e2e/journeys/responsive.spec.ts",
   "e2e/journeys/overlay.spec.ts",
+  "e2e/journeys/focus.spec.ts",
   // 破棄の道具（使い終わったら不要）。ディレクトリごと挙げれば、判定モジュールを足しても漏れない。
   "scripts/setup/remove-sample",
 ];
 
 // verify 自身は検証の後に自分で消える（`selfDestructTargets`）。ここへ登録すると、検証の前に
 // 消えて検証そのものが走らない。
+
+/** 破棄後に置き直すファイル 1 つ。`from` の内容を `to` へ書く。 */
+export type SampleRestoration = {
+  /** 中身の出所。**削除対象の内側に置く** —— 置き直したあとに fork 先が持ち続ける理由が無い。 */
+  readonly from: string;
+  /** 書き出す先（リポジトリルート相対）。削除対象の内側は指せない。 */
+  readonly to: string;
+};
+
+/**
+ * 破棄後に置き直すファイル。
+ *
+ * @remarks
+ * **削除だけでは表せない対象がここに来ます。** 入口（`/`）は題材の画面が占めているので削除の
+ * 対象ですが、経路そのものは残らなければなりません。**何がその経路を指しているか**は、置き直す
+ * 雛形（`templates/app-page.tsx.template`）が持ちます —— 破棄後に残るのはそちらで、理由を必要と
+ * するのも fork 先だからです。
+ *
+ * 置き直すのは**動作確認用の最小ページ**で、画面実装で置き換わる足場です
+ * （[計画](../../../docs/plan/v1-implementation-plan.md) §3.12）。破棄は画面実装の逆操作なので、
+ * 足場へ戻すのが元の状態です。
+ *
+ * 雛形を `.template` で持つのは、**残る木の route になってはいけない**ためです。`src/app` へ
+ * 置けば `/` が 2 つになって build が落ち、`.tsx` として `scripts/` へ置けば、どこからも
+ * import されない module が残ります。中身の妥当性は `purge-verify` が破棄後の木へ `typecheck`
+ * と `build` を掛けて確かめます。
+ */
+export const SAMPLE_RESTORATIONS: readonly SampleRestoration[] = [
+  {
+    from: "scripts/setup/remove-sample/templates/app-page.tsx.template",
+    to: "src/app/page.tsx",
+  },
+];
 
 /**
  * 破棄後に実装へ残っていてはいけない題材の語彙。
@@ -96,10 +132,6 @@ export const SAMPLE_PATHS: readonly string[] = [
  * 一致し、題材と無関係な部品が消し残しとして報告されます）。
  */
 export const DANGLING_PATTERN = String.raw`商品|カート|在庫|購入|注文|\bproducts\b|\bcart\b`;
-
-// 破棄後に手で戻すもの（削除では表せない）:
-// - `performance-budget.yaml` の `growth.gzipKb` を 30 から 10 へ。広げてあるのは、器の内と外で
-//   route を移すとその route が器の client 島をまとめて背負うためで、サンプルが消えれば起きない
 
 /** マーカーの名前。`sample:begin` / `sample:end` / `sample:line` / `sample:replace-*` を作る。 */
 export const SAMPLE_MARKER = "sample";
@@ -120,11 +152,19 @@ export const EXCLUDED_DIRECTORIES: Set<string> = new Set([
   "storybook-static",
 ]);
 
-/** 走査から外す相対パス接頭辞。いずれも生成物か作業用の置き場。 */
+/**
+ * 走査から外す相対パス接頭辞。生成物・作業用の置き場と、マーカーの形をデータとして持つ区画。
+ *
+ * @remarks
+ * マーカー行のベースライン（`scripts/marker-baseline/`）をファイル単位ではなく接頭辞で外すのは、
+ * あの区画を boilerplate 限定節の剥がしが**丸ごと消す**からです。`MARKER_LITERAL_FILES` へ並べると、
+ * 剥がしだけを走らせた木で「宣言したファイルが実在しない」になります。
+ */
 export const EXCLUDED_PATH_PREFIXES: readonly string[] = [
   ".storybook/public/",
   "docs/portal/guides/",
   "graphify-out/",
+  "scripts/marker-baseline/",
   "tmp/",
   "src/app/generated/",
   "src/model/generated/",

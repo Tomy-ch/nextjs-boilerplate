@@ -84,7 +84,7 @@ describe("issueDevSessionAction", () => {
   });
 
   it("発行したら戻り先へ送る", async () => {
-    expect(await issueAndCatch(submission({ returnUrl: "/checkout" }))).toBe("/checkout");
+    expect(await issueAndCatch(submission({ returnUrl: "/account" }))).toBe("/account");
   });
 
   it("戻り先の指定が無ければ入口へ送る", async () => {
@@ -105,10 +105,10 @@ describe("issueDevSessionAction", () => {
 
   it("認可の往復の途中の送信は、この口へは来ない", async () => {
     // 素の form が `/dev/session/authorize` へ送るため、state が載っていても分岐は起きない。
-    await issueAndCatch(submission({ state: "tx-state", returnUrl: "/checkout" }));
+    await issueAndCatch(submission({ state: "tx-state", returnUrl: "/account" }));
 
     expect(issueTestSession).toHaveBeenCalledOnce();
-    expect(redirect).toHaveBeenLastCalledWith("/checkout");
+    expect(redirect).toHaveBeenLastCalledWith("/account");
   });
 
   it("取りに行かない指定なら、口を叩かない", async () => {

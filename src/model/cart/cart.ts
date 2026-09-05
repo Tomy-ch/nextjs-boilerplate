@@ -14,6 +14,12 @@ export type CartLineIssue =
   | "notFound"
   /** 公開が止まっている。 */
   | "unpublished"
+  /**
+   * 廃番になった。
+   *
+   * `unpublished` とは同時に立たない。廃番は非公開でもあるが、より具体的なこちらだけが立つ。
+   */
+  | "discontinued"
   /** 在庫が無い。 */
   | "outOfStock"
   /** 在庫が数量に足りない。今買える数は `availableQuantity` が持つ。 */

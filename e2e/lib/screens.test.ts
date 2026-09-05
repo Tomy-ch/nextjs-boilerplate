@@ -60,14 +60,14 @@ describe("resolveScreens", () => {
   it("ハイフンで繋いだ名前を通す", () => {
     const declared: readonly ScreenDeclaration[] = [
       {
-        route: "/admin/products/[id]/edit",
-        name: "admin-product-edit",
-        path: "/admin/products/1/edit",
+        route: "/admin/reports/[id]/edit",
+        name: "admin-report-edit",
+        path: "/admin/reports/1/edit",
       },
     ];
 
-    expect(resolveScreens(["/admin/products/[id]/edit"], declared)[0]?.name).toBe(
-      "admin-product-edit",
+    expect(resolveScreens(["/admin/reports/[id]/edit"], declared)[0]?.name).toBe(
+      "admin-report-edit",
     );
   });
 
@@ -174,16 +174,16 @@ describe("SCREENS", () => {
 describe("selectScreens", () => {
   const screens: Screen[] = [
     { route: "/", name: "home", path: "/" },
-    { route: "/cart", name: "cart", path: "/cart" },
+    { route: "/settings", name: "settings", path: "/settings" },
   ];
 
   // ----- 正常系 -----
   it("名指しした画面だけを残す", () => {
-    expect(selectScreens(screens, "cart")).toEqual([screens[1]]);
+    expect(selectScreens(screens, "settings")).toEqual([screens[1]]);
   });
 
   it("前後の空白を無視して読む", () => {
-    expect(selectScreens(screens, " home , cart ")).toEqual(screens);
+    expect(selectScreens(screens, " home , settings ")).toEqual(screens);
   });
 
   it("指定が無ければ全数を返す", () => {

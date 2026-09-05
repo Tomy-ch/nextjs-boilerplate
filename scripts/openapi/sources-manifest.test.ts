@@ -11,13 +11,13 @@ const manifest = [
   "sources:",
   "  # 本体の契約",
   "  - name: api",
-  "    repo: Tomy-ch/go-boilerplate",
+  "    repo: example-org/example-backend",
   "    path: openapi/openapi.gen.yaml",
   "    ref: 130b179afd0146ce393626064ca2facaefa059f8",
   "    sha: null",
   "    fetchedAt: null",
   "  - name: other",
-  "    repo: Tomy-ch/go-boilerplate",
+  "    repo: example-org/example-backend",
   "    path: openapi/other.gen.yaml",
   "    ref: 130b179afd0146ce393626064ca2facaefa059f8",
   "    sha: null",
@@ -97,7 +97,7 @@ describe("parseSourcesManifest", () => {
   it("owner/repo の形式でない取得元を拒否する", () => {
     expect(() =>
       parseSourcesManifest(
-        "sources:\n  - name: api\n    repo: go-boilerplate\n    path: openapi.yaml\n    ref: main\n",
+        "sources:\n  - name: api\n    repo: example-backend\n    path: openapi.yaml\n    ref: main\n",
       ),
     ).toThrow();
   });

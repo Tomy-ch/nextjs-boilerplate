@@ -30,16 +30,22 @@ describe("toStatusTone", () => {
     { code: 4, name: "販売終了" },
     { code: 7, name: "廃盤" },
     { code: 8, name: "検討中" },
-  ])("役目を終えた状態（$name）は沈める", ({ code }) => {
-    expect(toStatusTone(code)).toBe(BADGE_VARIANT.GHOST);
+  ])("役目を終えた状態（$name）は縁だけで示す", ({ code }) => {
+    expect(toStatusTone(code)).toBe(BADGE_VARIANT.OUTLINE);
   });
 
   // ----- 異常系 -----
   it("マスタに無いコードは既存のどの区分にも寄せない", () => {
-    expect(toStatusTone(99)).toBe(BADGE_VARIANT.OUTLINE);
+    expect(toStatusTone(99)).toBe(BADGE_VARIANT.GHOST);
   });
 
   it("コードが引けなかったときも既定へ倒す", () => {
-    expect(toStatusTone(undefined)).toBe(BADGE_VARIANT.OUTLINE);
+    expect(toStatusTone(undefined)).toBe(BADGE_VARIANT.GHOST);
+  });
+
+  it("区分の決まっていない状態だけが、枠を持たない", () => {
+    const decided = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((code) => toStatusTone(code));
+
+    expect(decided).not.toContain(BADGE_VARIANT.GHOST);
   });
 });

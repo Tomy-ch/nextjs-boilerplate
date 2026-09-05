@@ -53,7 +53,7 @@ describe("readDiagnosis", () => {
   // ----- 正常系 -----
   it("動いた要素を、確定後の位置とともに拾う", () => {
     const diagnosis = readDiagnosis(
-      "checkout",
+      "reports",
       lhrOf({
         "layout-shifts": {
           details: {
@@ -76,7 +76,7 @@ describe("readDiagnosis", () => {
 
   it("起動時の script を、解析と実行に分けて拾う", () => {
     const diagnosis = readDiagnosis(
-      "checkout",
+      "reports",
       lhrOf({
         "bootup-time": { details: { items: [{ url: "/a.js", total: 284, scripting: 254 }] } },
       }),
@@ -87,7 +87,7 @@ describe("readDiagnosis", () => {
 
   it("最大の描画になった要素を拾う", () => {
     const diagnosis = readDiagnosis(
-      "checkout",
+      "reports",
       lhrOf({
         "largest-contentful-paint-element": {
           details: { items: [{ items: [{ node: { selector: "h1" } }] }] },
@@ -100,7 +100,7 @@ describe("readDiagnosis", () => {
 
   // ----- 異常系 -----
   it("監査そのものが無ければ、空として扱う", () => {
-    const diagnosis = readDiagnosis("checkout", lhrOf({}));
+    const diagnosis = readDiagnosis("reports", lhrOf({}));
 
     expect(diagnosis.shifted).toEqual([]);
     expect(diagnosis.bootup).toEqual([]);
@@ -109,7 +109,7 @@ describe("readDiagnosis", () => {
 
   it("位置を持たない要素は拾わない", () => {
     const diagnosis = readDiagnosis(
-      "checkout",
+      "reports",
       lhrOf({ "layout-shifts": { details: { items: [{ score: 0.1, node: {} }] } } }),
     );
 
@@ -118,7 +118,7 @@ describe("readDiagnosis", () => {
 
   it("selector を持たない要素は、要素不明として拾う", () => {
     const diagnosis = readDiagnosis(
-      "checkout",
+      "reports",
       lhrOf({
         "layout-shifts": {
           details: { items: [{ score: 0.1, node: { boundingRect: { top: 900, height: 50 } } }] },
@@ -133,7 +133,7 @@ describe("readDiagnosis", () => {
 
   it("取得元を持たない script は拾わない", () => {
     const diagnosis = readDiagnosis(
-      "checkout",
+      "reports",
       lhrOf({ "bootup-time": { details: { items: [{ total: 10 }] } } }),
     );
 
@@ -142,7 +142,7 @@ describe("readDiagnosis", () => {
 
   it("実行時間の内訳を持たない script は、実行 0 として拾う", () => {
     const diagnosis = readDiagnosis(
-      "checkout",
+      "reports",
       lhrOf({ "bootup-time": { details: { items: [{ url: "/a.js", total: 284 }] } } }),
     );
 
@@ -150,13 +150,13 @@ describe("readDiagnosis", () => {
   });
 
   it("viewport の宣言が無ければ 0 として扱う", () => {
-    expect(readDiagnosis("checkout", { audits: {} }).viewportHeight).toBe(0);
+    expect(readDiagnosis("reports", { audits: {} }).viewportHeight).toBe(0);
   });
 });
 
 describe("formatDiagnosis", () => {
   const base: Diagnosis = {
-    screen: "checkout",
+    screen: "reports",
     viewportHeight: VIEWPORT_HEIGHT,
     shifted: [],
     bootup: [],

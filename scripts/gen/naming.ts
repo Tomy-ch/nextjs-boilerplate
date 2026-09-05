@@ -17,11 +17,11 @@ const KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
  */
 export function validateName(name: string): string | null {
   if (name === "") {
-    return "名前が空です。kebab-case で指定してください（例: product-detail）。";
+    return "名前が空です。kebab-case で指定してください（例: report-detail）。";
   }
 
   if (!KEBAB_CASE.test(name)) {
-    return `名前 "${name}" は kebab-case ではありません。英小文字で始め、区切りはハイフン 1 つにしてください（例: product-detail）。`;
+    return `名前 "${name}" は kebab-case ではありません。英小文字で始め、区切りはハイフン 1 つにしてください（例: report-detail）。`;
   }
 
   return null;
@@ -31,7 +31,7 @@ export function validateName(name: string): string | null {
  * kebab-case の名前を PascalCase の識別子へ変換する。
  *
  * @example
- * `product-detail` → `ProductDetail`
+ * `report-detail` → `ReportDetail`
  */
 export function toPascalCase(name: string): string {
   return name

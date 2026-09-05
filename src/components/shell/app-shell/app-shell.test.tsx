@@ -2,6 +2,7 @@
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import Link from "next/link";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -131,6 +132,28 @@ describe("AppShell", () => {
 
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "主要な導線" })).toBeEmptyDOMElement();
+  });
+
+  it("畳むものが無ければ side menu を開く操作を出さない", () => {
+    render(
+      <AppShell siteName="サイト" navItems={[]}>
+        <p>本文</p>
+      </AppShell>,
+    );
+
+    expect(screen.queryByRole("button", { name: "メニューを開く" })).not.toBeInTheDocument();
+  });
+
+  it("導線が主体を待つなら side menu を開く操作を残す", async () => {
+    render(
+      <AppShell siteName="サイト" navItems={[]} menuNavSlot={<Link href="/settings">設定</Link>}>
+        <p>本文</p>
+      </AppShell>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+
+    expect(screen.getByRole("dialog")).toHaveTextContent("設定");
   });
 
   it("header を、下へ貼り付ける側が参照する高さのとおりに描く", () => {

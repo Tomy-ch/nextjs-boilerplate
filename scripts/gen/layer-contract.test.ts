@@ -8,7 +8,7 @@ forbidden: [features, business-logic]
 test-requirement: feature
 ---
 
-# products
+# reports
 `;
 
 describe("readLayerContract", () => {
@@ -34,7 +34,7 @@ describe("readLayerContract", () => {
 
   // ----- 異常系 -----
   it("frontmatter が無ければ null を返す", () => {
-    expect(readLayerContract("# products\n")).toBeNull();
+    expect(readLayerContract("# reports\n")).toBeNull();
   });
 
   it("forbidden の宣言が無ければ null を返す", () => {

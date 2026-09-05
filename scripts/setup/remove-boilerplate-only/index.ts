@@ -16,9 +16,11 @@ import {
   BOILERPLATE_ONLY_MARKER,
   EGRESS_DECLARATION_FILE,
   EXCLUDED_DIRECTORIES,
+  EXCLUDED_PATH_PREFIXES,
   SELF_DESTRUCT_PATHS,
 } from "./manifest.js";
 import { dropOrphanedPins, ORPHANED_ACTIONS } from "./pins.js";
+import { isStripTarget } from "./strip-target.js";
 
 function printUsage(): void {
   console.log(
@@ -33,15 +35,12 @@ function printUsage(): void {
   );
 }
 
-/** マーカーを持てるファイルか。 */
-function canHoldMarker(relativePath: string): boolean {
-  return !BINARY_EXTENSIONS.some((extension) => relativePath.endsWith(extension));
-}
-
 function run(dryRun: boolean): void {
   const scanned = listFilesRecursive(ROOT_DIR, { excludedDirectories: EXCLUDED_DIRECTORIES })
     .map((filePath) => toRelativePath(filePath).split(path.sep).join("/"))
-    .filter(canHoldMarker);
+    .filter((relativePath) =>
+      isStripTarget(relativePath, BINARY_EXTENSIONS, EXCLUDED_PATH_PREFIXES),
+    );
 
   const stripped: string[] = [];
 

@@ -48,7 +48,7 @@ describe("CHECKS", () => {
 describe("recommend", () => {
   // ----- 正常系 -----
   it("story が動けば axe を勧める", () => {
-    expect(labelsOf([change("src/features/cart/cart-view.stories.tsx")])).toStrictEqual([
+    expect(labelsOf([change("src/features/settings/settings-view.stories.tsx")])).toStrictEqual([
       "run-a11y",
     ]);
   });
@@ -62,7 +62,7 @@ describe("recommend", () => {
   });
 
   it("mock の応答が動けばジャーニーを勧める", () => {
-    expect(labelsOf([change("mocks/api/products.ts")])).toStrictEqual(["run-e2e"]);
+    expect(labelsOf([change("mocks/api/reports.ts")])).toStrictEqual(["run-e2e"]);
   });
 
   it("書体が動けば計測を勧める", () => {
@@ -113,7 +113,7 @@ describe("recommend", () => {
   });
 
   it("入れ子の画面の器が動けば、ジャーニーは自分で回るのでラベルを勧めない", () => {
-    expect(labelsOf([change("src/app/(shop)/layout.tsx")])).toStrictEqual([]);
+    expect(labelsOf([change("src/app/(site-info)/layout.tsx")])).toStrictEqual([]);
   });
 
   it("全画面が読む土台の CSS が動けば、ジャーニーは自分で回るのでラベルを勧めない", () => {
@@ -151,7 +151,10 @@ describe("recommend", () => {
   });
 
   it("既に付いているラベルは、その検査だけを落とす", () => {
-    const changes = [change("src/features/cart/cart-view.stories.tsx"), change("src/proxy.ts")];
+    const changes = [
+      change("src/features/settings/settings-view.stories.tsx"),
+      change("src/proxy.ts"),
+    ];
 
     expect(labelsOf(changes)).toStrictEqual(["run-a11y", "run-e2e"]);
     expect(labelsOf(changes, ["run-a11y"])).toStrictEqual(["run-e2e"]);
@@ -163,7 +166,10 @@ describe("recommend", () => {
 
   it("画面の宣言が動いて e2e が自分で回ると決めても、他の検査は勧める", () => {
     expect(
-      labelsOf([change("e2e/lib/screens.ts"), change("src/features/cart/cart-view.stories.tsx")]),
+      labelsOf([
+        change("e2e/lib/screens.ts"),
+        change("src/features/settings/settings-view.stories.tsx"),
+      ]),
     ).toStrictEqual(["run-a11y"]);
   });
 });

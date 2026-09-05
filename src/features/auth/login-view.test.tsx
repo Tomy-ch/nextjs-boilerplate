@@ -23,10 +23,10 @@ describe("LoginView", () => {
 
   it("復帰先を送信内容に含める", () => {
     const { container } = render(
-      <LoginView returnUrl={toSafeReturnUrl("/mypage")} notice={null} />,
+      <LoginView returnUrl={toSafeReturnUrl("/account")} notice={null} />,
     );
 
-    expect(container.querySelector('input[name="returnUrl"]')).toHaveValue("/mypage");
+    expect(container.querySelector('input[name="returnUrl"]')).toHaveValue("/account");
   });
 
   it("画面の名前を見出しに出す", () => {

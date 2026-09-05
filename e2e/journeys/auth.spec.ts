@@ -6,11 +6,22 @@ import { expect, test } from "../lib/test";
  * @remarks
  * 見るのは**保護されている経路の扱い**であって、その先に画面が在るかではありません。判定は
  * `src/proxy.ts` が接頭辞の宣言だけで行うため、画面を持たない接頭辞でも同じ経路を通ります。
- * 中立な接頭辞（`/account`）を使うのは、同梱サンプルの画面が破棄されても宣言そのものは残るからです。
+ * 経路を選んだ理由は {@link PROTECTED_PATH} と {@link STATIC_PATH}。
  */
 
-/** 保護されている接頭辞のうち、同梱サンプルと一緒に消えない 1 つ。 */
+/** 保護されている接頭辞のうち、題材の画面が消えても宣言そのものは残る 1 つ。 */
 const PROTECTED_PATH = "/account";
+
+/**
+ * 静的に配れる画面。
+ *
+ * @remarks
+ * 動的な画面は framework が自分で `no-store` を付けるため、前捌きの付けたヘッダが配信まで
+ * 残ったことの証拠になりません。**題材に依らない**画面であることも要ります（[README](../README.md)）。
+ * 停止画面は止めていなくても URL で開け、取得を持たないので静的に配れる
+ * （`src/app/maintenance/page.tsx`）。
+ */
+const STATIC_PATH = "/maintenance";
 
 test("未認証で保護された経路を開くと、復帰先を持ってログインへ送られる", async ({ page }) => {
   await page.goto(PROTECTED_PATH);
@@ -33,9 +44,7 @@ test("session を持つ要求の応答は、静的な画面でも共有キャッ
 }) => {
   await signIn();
 
-  // 静的に配れる画面を選ぶ。動的な画面は framework が自分で `no-store` を付けるため、
-  // 前捌きの付けたヘッダが配信まで残ったことの証拠にならない。
-  const response = await page.request.get("/about");
+  const response = await page.request.get(STATIC_PATH);
 
   expect(response.headers()["cache-control"]).toBe("private, no-store");
 });

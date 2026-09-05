@@ -1,0 +1,43 @@
+import type { Metadata } from "next";
+
+import { ContentContainer } from "@/components/shell/content-container/content-container";
+import {
+  PageHeader,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from "@/components/shell/page-header/page-header";
+
+import { SITE_DESCRIPTION, SITE_NAME } from "./site";
+
+export const metadata: Metadata = {
+  title: "トップ",
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+};
+
+/**
+ * トップ。
+ *
+ * @remarks
+ * **動作確認用の最小ページです。**置いてあるのは、入口が空になると成立しないものが 3 つある
+ * ためです —— 不在の面から戻る導線（[`not-found.tsx`](./not-found.tsx)）、役割の足りない要求の
+ * 戻り先（`src/proxy.ts`）、そしてサイトマップが唯一挙げる公開経路（[`sitemap.ts`](./sitemap.ts)）。
+ * 画面を 1 枚も持たない木では、この 3 つがどれも指す先を失います。
+ *
+ * **器を通らないので `main` は自分で置きます**（[README](./README.md)）。route group の layout が
+ * 置く landmark が無いためで、画面を作り始めたら器ごと組み直す前提です。
+ */
+export default function HomePage() {
+  return (
+    <main>
+      <ContentContainer className="py-16">
+        <PageHeader>
+          <div>
+            <PageHeaderTitle>{SITE_NAME}</PageHeaderTitle>
+            <PageHeaderDescription>{SITE_DESCRIPTION}</PageHeaderDescription>
+          </div>
+        </PageHeader>
+      </ContentContainer>
+    </main>
+  );
+}

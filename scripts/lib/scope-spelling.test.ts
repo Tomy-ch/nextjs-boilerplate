@@ -8,7 +8,7 @@ const SPELLED = {
 };
 
 const CONSTANT = {
-  path: "src/adapters/server/api/cart.ts",
+  path: "src/adapters/server/api/settings.ts",
   content: "createHttpClient({ scope: DATA_SCOPE.userScoped, baseUrl });",
 };
 

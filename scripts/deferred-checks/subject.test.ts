@@ -13,16 +13,16 @@ describe("movesResult", () => {
   });
 
   it("描画とロジックは動かしうる", () => {
-    expect(movesResult("src/features/cart/cart-view.tsx")).toBe(true);
+    expect(movesResult("src/features/settings/settings-view.tsx")).toBe(true);
   });
 
   // ----- 異常系 -----
   it("jsdom で完結する単体テストは動かさない", () => {
-    expect(movesResult("src/features/cart/cart-view.test.tsx")).toBe(false);
-    expect(movesResult("src/features/cart/total.test.ts")).toBe(false);
+    expect(movesResult("src/features/settings/settings-view.test.tsx")).toBe(false);
+    expect(movesResult("src/features/settings/total.test.ts")).toBe(false);
   });
 
   it("描かれない散文は動かさない", () => {
-    expect(movesResult("src/features/cart/README.md")).toBe(false);
+    expect(movesResult("src/features/settings/README.md")).toBe(false);
   });
 });

@@ -33,7 +33,7 @@ const EXEMPT = ["/_not-found", "/_global-error", "/favicon.ico"];
  * 宣言は page だけでなく **layout や並行 slot にも置けます**。admin のように区画ごとブロックする
  * 判断は器の側にあり、page だけを見ると宣言が無いように見えます。
  *
- * 内部の page パス（`/(shop)/cart/page`）は route group と並行 slot を綴りに含むので、そのまま
+ * 内部の page パス（`/(site-info)/settings/page`）は route group と並行 slot を綴りに含むので、そのまま
  * 辿れば実ファイルの位置になります。
  */
 function coveringSources(pagePath: string): string[] {

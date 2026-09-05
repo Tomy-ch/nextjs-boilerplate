@@ -166,7 +166,7 @@ import { ${symbol} } from "${importPath}";
 describe("${symbol}", () => {
   // ----- 正常系 -----
   it("前後の空白を落とした検索語を返す", () => {
-    expect(${symbol}({ keyword: "  商品  " })).toBe("商品");
+    expect(${symbol}({ keyword: "  検索語  " })).toBe("検索語");
   });
 });
 `;

@@ -17,11 +17,11 @@ describe("planTargets", () => {
 
   it("query を持つパスを二重の `?` にしない", () => {
     const screens: Screen[] = [
-      { route: "/checkout/complete", name: "complete", path: "/checkout/complete?purchase=1" },
+      { route: "/reports/export", name: "export", path: "/reports/export?page=1" },
     ];
 
     expect(planTargets(screens, BASE_URL)[0]?.url).toBe(
-      "http://127.0.0.1:3300/checkout/complete?purchase=1",
+      "http://127.0.0.1:3300/reports/export?page=1",
     );
   });
 
@@ -37,7 +37,7 @@ describe("planTargets", () => {
 
   it("役割を宣言した画面は、その役割を運ぶ", () => {
     const screens: Screen[] = [
-      { route: "/admin/products", name: "admin", path: "/admin/products", signedIn: "admin" },
+      { route: "/admin/reports", name: "admin", path: "/admin/reports", signedIn: "admin" },
     ];
 
     expect(planTargets(screens, BASE_URL)[0]?.role).toBe("admin");
@@ -53,7 +53,7 @@ function screen(name: string): Screen {
   return { route: `/${name}`, name, path: `/${name}` };
 }
 
-const SELECTED: Screen[] = [screen("home"), screen("products"), screen("not-found")];
+const SELECTED: Screen[] = [screen("home"), screen("reports"), screen("not-found")];
 
 describe("planScreens", () => {
   // ----- 正常系 -----
@@ -66,7 +66,7 @@ describe("planScreens", () => {
   it("床を担当しない台は、床を足して測る", () => {
     const plan = planScreens(SELECTED, { index: 2, total: 2 }, "not-found");
 
-    expect(plan.screens.map((s) => s.name)).toEqual(["products", "not-found"]);
+    expect(plan.screens.map((s) => s.name)).toEqual(["reports", "not-found"]);
   });
 
   it("足した床は、機械の速さを読むためだけのものとして返す", () => {
@@ -84,13 +84,13 @@ describe("planScreens", () => {
   it("割らない実行では足さない", () => {
     const plan = planScreens(SELECTED, { index: 1, total: 1 }, "not-found");
 
-    expect(plan.screens.map((s) => s.name)).toEqual(["home", "products", "not-found"]);
+    expect(plan.screens.map((s) => s.name)).toEqual(["home", "reports", "not-found"]);
     expect(plan.control).toBeUndefined();
   });
 
   // ----- 異常系 -----
   it("絞りが床を落としていれば足さない", () => {
-    const plan = planScreens([screen("products")], { index: 1, total: 2 }, "not-found");
+    const plan = planScreens([screen("reports")], { index: 1, total: 2 }, "not-found");
 
     expect(plan.control).toBeUndefined();
   });

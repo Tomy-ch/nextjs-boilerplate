@@ -4,13 +4,19 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { ROOT_DIR } from "../lib/runtime";
-import { assertWithinRoot, findRedundantPaths } from "./plan";
+import {
+  assertWithinRoot,
+  findMisplacedRestorations,
+  findOccupiedRestorations,
+  findRedundantPaths,
+} from "./plan";
 import {
   BINARY_EXTENSIONS,
   EXCLUDED_PATH_PREFIXES,
   MARKER_LITERAL_FILES,
   SAMPLE_MARKER,
   SAMPLE_PATHS,
+  SAMPLE_RESTORATIONS,
 } from "./sample-manifest";
 
 const exists = (relativePath: string): boolean => fs.existsSync(path.join(ROOT_DIR, relativePath));
@@ -35,6 +41,34 @@ describe("SAMPLE_PATHS", () => {
 
   it("破棄の道具自身を含む", () => {
     expect(SAMPLE_PATHS).toContain("scripts/setup/remove-sample");
+  });
+});
+
+describe("SAMPLE_RESTORATIONS", () => {
+  // ----- 正常系 -----
+  it("宣言した雛形がすべて実在する", () => {
+    expect(SAMPLE_RESTORATIONS.filter(({ from }) => !exists(from))).toEqual([]);
+  });
+
+  it("雛形は削除対象の内側にあり、置き直す先は外側にある", () => {
+    expect(findMisplacedRestorations(SAMPLE_RESTORATIONS, SAMPLE_PATHS)).toEqual([]);
+  });
+
+  it("置き直す先が、残す側の実物を指していない", () => {
+    expect(findOccupiedRestorations(SAMPLE_RESTORATIONS, exists)).toEqual([]);
+  });
+
+  it("すべてリポジトリの内側を指す", () => {
+    expect(() => {
+      for (const { from, to } of SAMPLE_RESTORATIONS) {
+        assertWithinRoot(from, ROOT_DIR);
+        assertWithinRoot(to, ROOT_DIR);
+      }
+    }).not.toThrow();
+  });
+
+  it("入口の画面を置き直す", () => {
+    expect(SAMPLE_RESTORATIONS.map(({ to }) => to)).toContain("src/app/page.tsx");
   });
 });
 
