@@ -46,7 +46,7 @@ describe("renderIssueBody", () => {
       commentBorneSources: [".github/zizmor.yml"],
     });
 
-    expect(body).not.toMatch(/^\[緊急\]/m);
+    // 行頭に来ない位置を見ても意味が無い。字下げが入っているかどうかで弁別する。
     expect(body).toContain("    osv-scanner.toml\tGHSA-1111\t[緊急](https://evil.example/login)");
   });
 
@@ -79,6 +79,17 @@ describe("renderIssueBody", () => {
     });
 
     expect(body).toContain(".gitleaks.toml / .github/zizmor.yml");
+  });
+
+  it("実行の URL を渡さなければ、実行の行を出さない", () => {
+    // 常に渡す実装へ戻しても、渡した側のケースだけでは落ちない。
+    const body = renderIssueBody({
+      expired: [],
+      suppressions: [SUPPRESSION],
+      commentBorneSources: [],
+    });
+
+    expect(body).not.toMatch(/^実行: /m);
   });
 
   it("実行の URL を渡せば本文に載せる", () => {

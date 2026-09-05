@@ -119,11 +119,22 @@ function bearerSuppressions(root: string): readonly Suppression[] {
   }));
 }
 
-/** 規則ごとの抑止（ZAP）。理由は 3 列目。 */
+/**
+ * 規則ごとの抑止（ZAP）。理由は 3 列目。
+ *
+ * @remarks
+ * **解説かどうかは前後の空白を落として決め、列は生の行から切ります。** 判定を生の行へ当てると
+ * 行頭に空白のある解説が規則番号として混ざり、逆に行ごと落としてから切ると、先頭の空列が
+ * 潰れて 2 列目が規則番号に繰り上がります。
+ */
 function zapSuppressions(root: string): readonly Suppression[] {
   return read(root, ZAP_PATH)
     .split("\n")
-    .filter((line) => line.trim() !== "" && !line.startsWith("#"))
+    .filter((line) => {
+      const decided = line.trim();
+
+      return decided !== "" && !decided.startsWith("#");
+    })
     .flatMap((line) => {
       const [subject, , condition] = line.split("\t");
 

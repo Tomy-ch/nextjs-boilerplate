@@ -109,10 +109,12 @@ describe("scanSuppressions", () => {
     ]);
   });
 
-  it("宣言単位では読めない面を名指しできる", () => {
-    // 報告がこの一覧を出すことで、見えていない範囲が読む人に伝わる。
-    expect(COMMENT_BORNE_SOURCES).toContain("pnpm-workspace.yaml");
-    expect(COMMENT_BORNE_SOURCES).toContain(".github/zizmor.yml");
+  it("コメントに条件を持つ面は、pnpm-workspace.yaml 以外も同じ形で読む", () => {
+    place(".github/zizmor.yml", "rules:\n  # 2026-08-02 以降に外す。\n  github-app:\n");
+
+    expect(scanSuppressions(root)).toEqual([
+      { source: ".github/zizmor.yml", subject: "L2", condition: "# 2026-08-02 以降に外す。" },
+    ]);
   });
 
   it("面をまたいで 1 つの一覧へ均す", () => {
@@ -125,6 +127,10 @@ describe("scanSuppressions", () => {
       "bearer.ignore",
       ".github/zap/rules.tsv",
     ]);
+  });
+
+  it("面が 1 つも無ければ空を返す。読み取りは不在を正規に空へ倒す", () => {
+    expect(scanSuppressions(root)).toEqual([]);
   });
 
   // ----- 異常系 -----
@@ -180,12 +186,19 @@ describe("scanSuppressions", () => {
     ]);
   });
 
-  it("面が 1 つも無ければ空を返す", () => {
-    expect(scanSuppressions(root)).toEqual([]);
-  });
-
   it("根を渡さなければ、自分が置かれているリポジトリを読む", () => {
     // 既定の根は入口だけが使う。ここで踏まないと、実行される経路が検査の外に残る。
-    expect(scanSuppressions().length).toBeGreaterThan(0);
+    // 件数や特定の面で見ると、抑止が撤去された将来にこの検査だけが落ちる —— 見ているのが
+    // コードではなく実データになる。既定の根が指す先そのものを、明示した根と突き合わせる。
+    expect(scanSuppressions()).toEqual(scanSuppressions(join(import.meta.dirname, "../..")));
+  });
+});
+
+describe("COMMENT_BORNE_SOURCES", () => {
+  // ----- 正常系 -----
+  it("宣言単位では読めない面を名指しできる", () => {
+    // 報告がこの一覧を出すことで、見えていない範囲が読む人に伝わる。
+    expect(COMMENT_BORNE_SOURCES).toContain("pnpm-workspace.yaml");
+    expect(COMMENT_BORNE_SOURCES).toContain(".github/zizmor.yml");
   });
 });

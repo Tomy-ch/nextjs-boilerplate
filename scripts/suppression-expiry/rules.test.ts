@@ -20,9 +20,14 @@ describe("expiredSuppressions", () => {
   });
 
   it("期限が基準日と同じ日なら、撤回してよいと答える", () => {
-    expect(
-      expiredSuppressions([suppression("2026-09-06 以降に削除する")], "2026-09-06"),
-    ).toHaveLength(1);
+    expect(expiredSuppressions([suppression("2026-09-06 以降に削除する")], "2026-09-06")).toEqual([
+      {
+        source: "osv-scanner.toml",
+        subject: "GHSA-0000-0000-0000",
+        condition: "2026-09-06 以降に削除する",
+        dueDate: "2026-09-06",
+      },
+    ]);
   });
 
   it("期限がまだ来ていなければ答えない", () => {
@@ -38,6 +43,17 @@ describe("expiredSuppressions", () => {
       expiredSuppressions(
         [suppression("2026-08-29 公開。冷却が明ける 2026-09-05 以降")],
         "2026-09-01",
+      ),
+    ).toEqual([]);
+  });
+
+  it("日付が本文の中で時系列と逆に書かれていても、値として最も遅いものを期限にする", () => {
+    // 出現順の最後を取る実装は、ここで早い側（2026-08-02）を期限に選び、来ていない期限を
+    // 過ぎたと報告する。
+    expect(
+      expiredSuppressions(
+        [suppression("2026-09-05 以降に削除する（当初は 2026-08-02 の予定だった）")],
+        "2026-08-15",
       ),
     ).toEqual([]);
   });
