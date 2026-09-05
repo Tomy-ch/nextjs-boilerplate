@@ -145,13 +145,9 @@ describe("replaceVersion", () => {
 
   it("置換パターンを含む版を文字列としてそのまま書く", () => {
     expect(replaceVersion(manifest, "$&")).toBe(
-      [
-        "{",
-        '  "name": "nextjs-boilerplate",',
-        '  "version": "$&",',
-        '  "private": true',
-        "}",
-      ].join("\n"),
+      ["{", '  "name": "nextjs-boilerplate",', '  "version": "$&",', '  "private": true', "}"].join(
+        "\n",
+      ),
     );
   });
 });
