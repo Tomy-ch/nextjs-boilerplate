@@ -58,7 +58,11 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <TelemetryHole />
         </Suspense>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <div className="flex flex-1 flex-col" data-slot="app-root">
+            {children}
+          </div>
+        </ToastProvider>
         <Consent>
           <Analytics />
         </Consent>

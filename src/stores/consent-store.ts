@@ -55,15 +55,6 @@ function writeConsentCookie(choice: ConsentChoice): void {
 }
 
 /**
- * cookie を読むまでに待つ上限（ミリ秒）。
- *
- * @remarks
- * 暇な瞬間が来なければここで打ち切ります。待ち続ける形にすると、動き続けている画面では
- * いつまでも尋ねられず、任意の用途を選ぶ手段そのものが利用者から消えます。
- */
-const CONSENT_READ_DEADLINE_MS = 1_000;
-
-/**
  * 同意状態を配る store。
  *
  * @remarks
@@ -89,25 +80,12 @@ function snapshot(): ConsentState {
  *
  * cookie を読むのは mount 後の 1 回だけです。サーバは同意状態を知らないので、**バナーはその読み
  * 取りの後に現れます**。知らないまま尋ねるか、知るまで待つかのどちらかしかありません。
- *
- * **読むのは、ブラウザが暇になってからです。** この島は root layout に居て、画面本体より先に
- * hydration が済みます。mount の直後に読むと、まだ hydration が済んでいない `<body>` の子へ
- * 尋ねる面が `aria-hidden` を付けることになり、React が後からそれらを hydrate したときに
- * 「サーバの HTML と client の属性が食い違う」として捨てます。暇になるまで待てば、印を付ける
- * 相手はすべて React の管理下に入っています。
  */
 export function useConsentState(): ConsentState {
   useEffect(() => {
-    if (snapshot().status !== "unread") {
-      return;
+    if (snapshot().status === "unread") {
+      useConsentStore.setState({ state: readConsentCookie() });
     }
-
-    const handle = requestIdleCallback(
-      () => useConsentStore.setState({ state: readConsentCookie() }),
-      { timeout: CONSENT_READ_DEADLINE_MS },
-    );
-
-    return () => cancelIdleCallback(handle);
   }, []);
 
   return useSyncExternalStore(useConsentStore.subscribe, snapshot, snapshot);

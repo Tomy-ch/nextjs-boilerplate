@@ -26,6 +26,28 @@ async function reloadMetadata() {
   return (await import("./layout")).metadata;
 }
 
+/**
+ * 器の閉じ tag が終わる位置。
+ *
+ * @remarks
+ * 中に居るか外に居るかは、開始位置との前後では決まらない —— 通知は器の中でも子要素の後に描かれる。
+ * div の開閉を数えて閉じ位置を出す。
+ */
+function appRootClosesAt(markup: string): number {
+  const start = markup.indexOf('<div class="flex flex-1 flex-col" data-slot="app-root">');
+  let depth = 0;
+
+  for (const tag of markup.slice(start).matchAll(/<(\/?)div\b[^>]*>/g)) {
+    depth += tag[1] === "/" ? -1 : 1;
+
+    if (depth === 0) {
+      return start + (tag.index ?? 0) + tag[0].length;
+    }
+  }
+
+  return Number.POSITIVE_INFINITY;
+}
+
 describe("RootLayout", () => {
   it("HTML の言語と子要素を設定する", () => {
     const markup = renderToStaticMarkup(
@@ -77,6 +99,28 @@ describe("RootLayout", () => {
     );
 
     expect(markup).toContain("consent-island");
+  });
+
+  it("画面を 1 つの器で包む", () => {
+    const markup = renderToStaticMarkup(
+      <RootLayout>
+        <p>テスト用コンテンツ</p>
+      </RootLayout>,
+    );
+
+    expect(markup).toMatch(
+      /<div class="flex flex-1 flex-col" data-slot="app-root">[\s\S]*?テスト用コンテンツ/,
+    );
+  });
+
+  it("横断通知は器の外へ出す。中へ入れると印が器を素通りする", () => {
+    const markup = renderToStaticMarkup(
+      <RootLayout>
+        <p>テスト用コンテンツ</p>
+      </RootLayout>,
+    );
+
+    expect(markup.indexOf('aria-live="polite"')).toBeGreaterThan(appRootClosesAt(markup));
   });
 
   it("横断通知の Provider を配下へ供給する", () => {
