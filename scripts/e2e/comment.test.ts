@@ -6,7 +6,7 @@ import { classifyFailure, composeNotes } from "./comment";
 const NONE = { undeclared: false, unretakable: false, pixels: false } as const;
 
 /** 手元で開く節へ差し込む値。 */
-const REVIEW = { screenNames: "home,cart", headRef: "release/v0.6.0", runId: "1" } as const;
+const REVIEW = { screenNames: "home,settings", headRef: "release/v0.6.0", runId: "1" } as const;
 
 describe("classifyFailure", () => {
   // ----- 正常系 -----
@@ -93,7 +93,9 @@ describe("composeNotes", () => {
     const notes = composeNotes({ kinds: { ...NONE, pixels: true }, ...REVIEW });
 
     expect(notes).toContain("### 画面の見た目が基準画像と違います");
-    expect(notes).toContain("make e2e-review BRANCH='release/v0.6.0' RUN='1' E2E_ONLY='home,cart'");
+    expect(notes).toContain(
+      "make e2e-review BRANCH='release/v0.6.0' RUN='1' E2E_ONLY='home,settings'",
+    );
     expect(notes).not.toContain("### 種別を判定できませんでした");
   });
 

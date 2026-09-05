@@ -16,7 +16,7 @@ describe("toPathPattern", () => {
     const pattern = toPathPattern("src/*/index.ts");
 
     expect(pattern.test("src/model/index.ts")).toBe(true);
-    expect(pattern.test("src/model/cart/index.ts")).toBe(false);
+    expect(pattern.test("src/model/settings/index.ts")).toBe(false);
   });
 
   it("`*` はセグメントの一部にも書ける", () => {

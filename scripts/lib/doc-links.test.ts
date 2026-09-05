@@ -46,8 +46,8 @@ describe("findBrokenDocLinks", () => {
   });
 
   it("`<>` の中の丸括弧は、宛先の一部として読む", () => {
-    place("src/app/(shop)/page.tsx");
-    const source = "[一覧](<../src/app/(shop)/page.tsx>)";
+    place("src/app/(site-info)/page.tsx");
+    const source = "[一覧](<../src/app/(site-info)/page.tsx>)";
 
     expect(findBrokenDocLinks("docs/x.md", source, root)).toEqual([]);
   });

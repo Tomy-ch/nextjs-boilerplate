@@ -123,8 +123,8 @@ export function entryStylesheets(rsc: RscManifest | undefined): string[] {
  * `app-path-routes-manifest.json` の内部 page パスから、成果物のディレクトリを組み立てる。
  *
  * @remarks
- * 内部パスは `/(shop)/products/page` のように末尾が `page` / `route` で、成果物は
- * `server/app/(shop)/products/page/` に置かれます。route group の括弧はそのまま残ります。
+ * 内部パスは `/(site-info)/reports/page` のように末尾が `page` / `route` で、成果物は
+ * `server/app/(site-info)/reports/page/` に置かれます。route group の括弧はそのまま残ります。
  *
  * @param pagePath - `app-path-routes-manifest.json` の key。
  */

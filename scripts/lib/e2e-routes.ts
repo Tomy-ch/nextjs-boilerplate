@@ -104,8 +104,8 @@ export function toRoutePattern(route: string): RegExp {
  * リテラルを、route と突き合わせられる経路へ整える。
  *
  * @remarks
- * 問い合わせと素片は route を決めないので落とします。末尾の区切りも同じで、`/products/` と
- * `/products` は同じ画面です。
+ * 問い合わせと素片は route を決めないので落とします。末尾の区切りも同じで、`/reports/` と
+ * `/reports` は同じ画面です。
  */
 export function toRoutePath(literal: string): string {
   const cut = literal.search(/[?#]/);

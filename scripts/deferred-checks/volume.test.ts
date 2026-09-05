@@ -11,7 +11,7 @@ function change(path: string, changedLines = 1): Change {
 describe("isCounted", () => {
   // ----- 正常系 -----
   it("描画とロジックを数える", () => {
-    expect(isCounted("src/features/cart/cart-view.tsx")).toBe(true);
+    expect(isCounted("src/features/settings/settings-view.tsx")).toBe(true);
   });
 
   it("配色と寸法の宣言を数える", () => {
@@ -27,7 +27,7 @@ describe("isCounted", () => {
   });
 
   it("検査の手順そのものである spec を数える", () => {
-    expect(isCounted("e2e/journeys/checkout.spec.ts")).toBe(true);
+    expect(isCounted("e2e/journeys/reports.spec.ts")).toBe(true);
   });
 
   it("画面の中身になる契約駆動モックを数える", () => {
@@ -40,12 +40,12 @@ describe("isCounted", () => {
 
   // ----- 異常系 -----
   it("単体テストは数えない", () => {
-    expect(isCounted("src/features/cart/cart-view.test.tsx")).toBe(false);
-    expect(isCounted("src/features/cart/total.test.ts")).toBe(false);
+    expect(isCounted("src/features/settings/settings-view.test.tsx")).toBe(false);
+    expect(isCounted("src/features/settings/total.test.ts")).toBe(false);
   });
 
   it("散文は数えない", () => {
-    expect(isCounted("src/features/cart/README.md")).toBe(false);
+    expect(isCounted("src/features/settings/README.md")).toBe(false);
   });
 
   it("挙げていないパスは数えない", () => {

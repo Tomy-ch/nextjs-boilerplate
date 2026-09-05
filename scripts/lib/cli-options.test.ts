@@ -5,10 +5,10 @@ import { parseOptions, requireOption } from "./cli-options";
 describe("parseOptions", () => {
   // ----- 正常系 -----
   it("`--name value` の並びを表に読む", () => {
-    expect(parseOptions(["--kind", "story", "--ids", "home,cart"])).toEqual(
+    expect(parseOptions(["--kind", "story", "--ids", "home,settings"])).toEqual(
       new Map([
         ["kind", "story"],
-        ["ids", "home,cart"],
+        ["ids", "home,settings"],
       ]),
     );
   });
