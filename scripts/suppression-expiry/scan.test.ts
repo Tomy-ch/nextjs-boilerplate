@@ -81,6 +81,60 @@ describe("scanSuppressions", () => {
   });
 
   // ----- 異常系 -----
+  it("理由を持たない脆弱性の抑止も、条件を空にして一覧へ載せる", () => {
+    // 読み飛ばすと、条件を持たない抑止だけが一覧から消え、いちばん確かめたいものが見えなくなる。
+    place("osv-scanner.toml", '[[IgnoredVulns]]\nid = "GHSA-2222-2222-2222"\n');
+
+    expect(scanSuppressions(root)).toEqual([
+      { source: "osv-scanner.toml", subject: "GHSA-2222-2222-2222", condition: "" },
+    ]);
+  });
+
+  it("理由を持たない冷却期間の例外も、条件を空にして一覧へ載せる", () => {
+    place("pnpm-workspace.yaml", "minimumReleaseAgeExclude:\n  - pkg@1.2.3\n");
+
+    expect(scanSuppressions(root)).toEqual([
+      { source: "pnpm-workspace.yaml", subject: "pkg@1.2.3", condition: "" },
+    ]);
+  });
+
+  it("理由の列を持たない動的スキャンの抑止も、条件を空にして一覧へ載せる", () => {
+    place(".github/zap/rules.tsv", "10055\tIGNORE\n");
+
+    expect(scanSuppressions(root)).toEqual([
+      { source: ".github/zap/rules.tsv", subject: "10055", condition: "" },
+    ]);
+  });
+
+  it("名前を持たない宣言は落とす。何を確かめるか決められない", () => {
+    place("osv-scanner.toml", '[[IgnoredVulns]]\nid = ""\nreason = "理由"\n');
+    place("pnpm-workspace.yaml", "minimumReleaseAgeExclude:\n  - # 理由\n");
+    place(".github/zap/rules.tsv", "\tIGNORE\t理由\n");
+
+    expect(scanSuppressions(root)).toEqual([]);
+  });
+
+  it("値が閉じていなければ、その項目を空として読む", () => {
+    place("osv-scanner.toml", '[[IgnoredVulns]]\nid = "GHSA-3"\nreason = "閉じ忘れ\n');
+
+    expect(scanSuppressions(root)).toEqual([
+      { source: "osv-scanner.toml", subject: "GHSA-3", condition: "" },
+    ]);
+  });
+
+  it("列を 1 つも持たない行は、規則番号だけの宣言として読む", () => {
+    place(".github/zap/rules.tsv", "10055\n");
+
+    expect(scanSuppressions(root)).toEqual([
+      { source: ".github/zap/rules.tsv", subject: "10055", condition: "" },
+    ]);
+  });
+
+  it("根を渡さなければ、自分が置かれているリポジトリを読む", () => {
+    // 既定の根は入口だけが使う。ここで踏まないと、実行される経路が検査の外に残る。
+    expect(scanSuppressions().length).toBeGreaterThan(0);
+  });
+
   it("面が 1 つも無ければ空を返す", () => {
     expect(scanSuppressions(root)).toEqual([]);
   });

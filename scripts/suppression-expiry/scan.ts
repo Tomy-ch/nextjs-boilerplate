@@ -19,25 +19,51 @@ const WORKSPACE_PATH = "pnpm-workspace.yaml";
 /** 動的スキャンの所見の抑止。 */
 const ZAP_PATH = ".github/zap/rules.tsv";
 
-/** `id = "..."` と `reason = "..."` の対。TOML の解析器を持ち込まずに済む形だけを受ける。 */
-const OSV_ENTRY = /\[\[IgnoredVulns\]\]\s*\nid\s*=\s*"([^"]+)"\s*\nreason\s*=\s*"([^"]*)"/g;
-
-/** `minimumReleaseAgeExclude` の 1 行。`  - <対象> # <理由>` の形。 */
-const COOLDOWN_ENTRY = /^\s*-\s*(\S+)\s*#\s*(.*)$/;
-
 function read(root: string, relativePath: string): string {
   const absolute = path.join(root, relativePath);
 
   return fs.existsSync(absolute) ? fs.readFileSync(absolute, "utf8") : "";
 }
 
-/** 脆弱性 ID ごとの抑止と、その理由に添えられた撤回条件。 */
+/**
+ * `<key> = "<値>"` の値。
+ *
+ * @remarks
+ * TOML の解析器を持ち込まずに済ませます。**見つからない鍵は空で返します** —— ADR 0110 は
+ * `reason` を必須としますが、必須のつもりで読み飛ばすと、条件を持たない抑止だけが一覧から
+ * 消え、いちばん確かめたいものが見えなくなります。
+ */
+function quotedValue(entry: string, key: string): string {
+  const marker = `${key} = "`;
+  const start = entry.indexOf(marker);
+
+  if (start === -1) {
+    return "";
+  }
+
+  const rest = entry.slice(start + marker.length);
+  const end = rest.indexOf('"');
+
+  return end === -1 ? "" : rest.slice(0, end);
+}
+
+/**
+ * 脆弱性 ID ごとの抑止と、その理由に添えられた撤回条件。
+ *
+ * @remarks
+ * 名前を持たない宣言は落とします。抑止する相手が分からない行を一覧へ載せても、読む人が
+ * 何を確かめればよいか決められません。
+ */
 function osvSuppressions(root: string): readonly Suppression[] {
-  return [...read(root, OSV_PATH).matchAll(OSV_ENTRY)].map(([, subject, condition]) => ({
-    source: OSV_PATH,
-    subject: subject ?? "",
-    condition: condition ?? "",
-  }));
+  return read(root, OSV_PATH)
+    .split("[[IgnoredVulns]]")
+    .slice(1)
+    .map((entry) => ({
+      source: OSV_PATH,
+      subject: quotedValue(entry, "id"),
+      condition: quotedValue(entry, "reason"),
+    }))
+    .filter((entry) => entry.subject !== "");
 }
 
 /**
@@ -58,17 +84,23 @@ function cooldownSuppressions(root: string): readonly Suppression[] {
   const entries: Suppression[] = [];
 
   for (const line of lines.slice(start + 1)) {
-    const matched = COOLDOWN_ENTRY.exec(line);
+    const trimmed = line.trim();
 
-    if (matched === null) {
+    if (!trimmed.startsWith("- ")) {
       break;
     }
 
-    entries.push({
-      source: WORKSPACE_PATH,
-      subject: matched[1] ?? "",
-      condition: matched[2] ?? "",
-    });
+    const body = trimmed.slice(2);
+    const hash = body.indexOf("#");
+    const subject = (hash === -1 ? body : body.slice(0, hash)).trim();
+
+    if (subject !== "") {
+      entries.push({
+        source: WORKSPACE_PATH,
+        subject,
+        condition: hash === -1 ? "" : body.slice(hash + 1).trim(),
+      });
+    }
   }
 
   return entries;
@@ -79,12 +111,18 @@ function zapSuppressions(root: string): readonly Suppression[] {
   return read(root, ZAP_PATH)
     .split("\n")
     .filter((line) => line.trim() !== "" && !line.startsWith("#"))
-    .map((line) => line.split("\t"))
-    .map(([subject, , condition]) => ({
-      source: ZAP_PATH,
-      subject: subject ?? "",
-      condition: condition ?? "",
-    }));
+    .map((line) => {
+      const firstTab = line.indexOf("\t");
+      const afterSubject = firstTab === -1 ? "" : line.slice(firstTab + 1);
+      const secondTab = afterSubject.indexOf("\t");
+
+      return {
+        source: ZAP_PATH,
+        subject: firstTab === -1 ? line : line.slice(0, firstTab),
+        condition: secondTab === -1 ? "" : afterSubject.slice(secondTab + 1),
+      };
+    })
+    .filter((entry) => entry.subject !== "");
 }
 
 /**
