@@ -18,7 +18,7 @@ describe("listRouteLiterals", () => {
   });
 
   it("差し込みで始まるテンプレート文字列は、頭が空なので拾わない", () => {
-    expect(listRouteLiterals(`goto(\`\${origin}/api/products\`);`)).toEqual([]);
+    expect(listRouteLiterals(`goto(\`\${origin}/api/reports\`);`)).toEqual([]);
   });
 });
 
@@ -29,11 +29,11 @@ describe("toAppRoute", () => {
   });
 
   it("route group を URL から落とす", () => {
-    expect(toAppRoute("src/app/(shop)/products/page.tsx")).toBe("/products");
+    expect(toAppRoute("src/app/(site-info)/reports/page.tsx")).toBe("/reports");
   });
 
   it("動的区間を綴りのまま残す", () => {
-    expect(toAppRoute("src/app/(shop)/products/[id]/page.tsx")).toBe("/products/[id]");
+    expect(toAppRoute("src/app/(site-info)/reports/[id]/page.tsx")).toBe("/reports/[id]");
   });
 
   it("Route Handler も route として数える", () => {
@@ -82,11 +82,11 @@ describe("toRoutePattern", () => {
   });
 
   it("動的区間は 1 区間の中身を問わない", () => {
-    const pattern = toRoutePattern("/products/[id]");
+    const pattern = toRoutePattern("/reports/[id]");
 
-    expect(pattern.test("/products/abc")).toBe(true);
-    expect(pattern.test("/products")).toBe(false);
-    expect(pattern.test("/products/a/b")).toBe(false);
+    expect(pattern.test("/reports/abc")).toBe(true);
+    expect(pattern.test("/reports")).toBe(false);
+    expect(pattern.test("/reports/a/b")).toBe(false);
   });
 
   it("catch-all は 1 区間以上に当たる", () => {
@@ -115,7 +115,7 @@ describe("toRoutePattern", () => {
 describe("toRoutePath", () => {
   // ----- 正常系 -----
   it("そのままの経路を返す", () => {
-    expect(toRoutePath("/products")).toBe("/products");
+    expect(toRoutePath("/reports")).toBe("/reports");
   });
 
   it("問い合わせを落とす", () => {
@@ -127,7 +127,7 @@ describe("toRoutePath", () => {
   });
 
   it("末尾の区切りを落とす", () => {
-    expect(toRoutePath("/products/")).toBe("/products");
+    expect(toRoutePath("/reports/")).toBe("/reports");
   });
 
   it("`/` は `/` のまま返す", () => {
@@ -142,7 +142,7 @@ describe("toRoutePath", () => {
 describe("findUnknownRoutes", () => {
   // ----- 正常系 -----
   it("実在する route に着く経路を報告しない", () => {
-    expect(findUnknownRoutes(["/products/abc"], ["/products/[id]"], [])).toEqual([]);
+    expect(findUnknownRoutes(["/reports/abc"], ["/reports/[id]"], [])).toEqual([]);
   });
 
   it("実在しないと宣言した経路を報告しない", () => {

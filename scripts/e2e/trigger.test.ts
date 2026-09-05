@@ -77,8 +77,8 @@ describe("decideTrigger", () => {
   it("見た目から画面を動かすと分かる差分は、ラベルの側に残す", () => {
     expect(
       decideTrigger([
-        change("mocks/handlers/products.ts", 900),
-        change("e2e/journeys/cart.spec.ts", 900),
+        change("mocks/handlers/reports.ts", 900),
+        change("e2e/journeys/settings.spec.ts", 900),
         change("src/proxy.ts", 900),
       ]),
     ).toEqual({ kind: "skip" });
@@ -89,7 +89,7 @@ describe("decideTrigger", () => {
   });
 
   it("`layout` を名前に含むだけのファイルは器として扱わない", () => {
-    expect(decideTrigger([change("src/app/product-layout.tsx", 500)])).toEqual({ kind: "skip" });
+    expect(decideTrigger([change("src/app/report-layout.tsx", 500)])).toEqual({ kind: "skip" });
   });
 
   it("app の外に置かれた layout.tsx は器として扱わない", () => {

@@ -10,7 +10,7 @@ function rule(...globs: string[]): PathRule {
 describe("matchesPathRule", () => {
   // ----- 正常系 -----
   it("いずれかの glob に当たるパスが 1 つでもあれば当たる", () => {
-    expect(matchesPathRule(rule("src/app/**/layout.tsx"), ["src/app/(shop)/layout.tsx"])).toBe(
+    expect(matchesPathRule(rule("src/app/**/layout.tsx"), ["src/app/(site-info)/layout.tsx"])).toBe(
       true,
     );
   });
@@ -30,7 +30,7 @@ describe("matchesPathRule", () => {
 
   // ----- 異常系 -----
   it("当たるパスが 1 つも無ければ当たらない", () => {
-    expect(matchesPathRule(rule("src/app/**/layout.tsx"), ["src/app/(shop)/page.tsx"])).toBe(false);
+    expect(matchesPathRule(rule("src/app/**/layout.tsx"), ["src/app/(site-info)/page.tsx"])).toBe(false);
   });
 
   it("末尾が一致するだけのパスは当たらない", () => {

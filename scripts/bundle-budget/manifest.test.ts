@@ -77,7 +77,7 @@ describe("artifactDirOf", () => {
   });
 
   it("route group の括弧をそのまま残す", () => {
-    expect(artifactDirOf("/(shop)/products/page")).toBe("server/app/(shop)/products/page");
+    expect(artifactDirOf("/(site-info)/reports/page")).toBe("server/app/(site-info)/reports/page");
   });
 });
 

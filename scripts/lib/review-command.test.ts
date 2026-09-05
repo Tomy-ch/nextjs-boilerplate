@@ -21,11 +21,11 @@ describe("composeReviewCommand", () => {
     expect(
       composeReviewCommand({
         kind: REVIEW_KIND.screen,
-        ids: "home,cart",
+        ids: "home,settings",
         headRef: "release/v0.6.0",
         runId: "1",
       }),
-    ).toBe("make e2e-review BRANCH='release/v0.6.0' RUN='1' E2E_ONLY='home,cart'");
+    ).toBe("make e2e-review BRANCH='release/v0.6.0' RUN='1' E2E_ONLY='home,settings'");
   });
 
   it("実行を渡さない面では RUN を置かない", () => {

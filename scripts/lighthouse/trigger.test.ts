@@ -63,7 +63,7 @@ describe("decideTrigger", () => {
   it("構造に当たらない変更は、どれだけ大きくても保護ブランチの計測に任せる", () => {
     expect(
       decideTrigger([
-        change("src/features/cart/cart.ts", 900),
+        change("src/features/settings/settings.ts", 900),
         change("tokens/primitives.json", 900),
       ]),
     ).toEqual({ kind: "skip" });
@@ -74,7 +74,7 @@ describe("decideTrigger", () => {
   });
 
   it("`layout` を名前に含むだけのファイルは器として扱わない", () => {
-    expect(decideTrigger([change("src/app/product-layout.tsx", 500)])).toEqual({ kind: "skip" });
+    expect(decideTrigger([change("src/app/report-layout.tsx", 500)])).toEqual({ kind: "skip" });
   });
 
   it("app の外に置かれた layout.tsx は器として扱わない", () => {

@@ -28,15 +28,15 @@ describe("renderModes", () => {
   });
 
   it("殻だけ配る route を部分として読む", () => {
-    expect(renderModes({ routes: { "/cart": { compute: "resuming" } } }).get("/cart")).toBe(
+    expect(renderModes({ routes: { "/settings": { compute: "resuming" } } }).get("/settings")).toBe(
       "partial",
     );
   });
 
   it("動的セグメントを持つ route も同じ表から読む", () => {
     expect(
-      renderModes({ dynamicRoutes: { "/products/[id]": { compute: "resuming" } } }).get(
-        "/products/[id]",
+      renderModes({ dynamicRoutes: { "/reports/[id]": { compute: "resuming" } } }).get(
+        "/reports/[id]",
       ),
     ).toBe("partial");
   });
@@ -83,7 +83,7 @@ describe("findRenderModeDrift", () => {
   // ----- 正常系 -----
   it("宣言なしで殻を配れている route を通す", () => {
     expect(
-      findRenderModeDrift(modes({ "/cart": "partial" }), declarations({ "/cart": false }), NONE),
+      findRenderModeDrift(modes({ "/settings": "partial" }), declarations({ "/settings": false }), NONE),
     ).toEqual([]);
   });
 
@@ -102,7 +102,7 @@ describe("findRenderModeDrift", () => {
   it("画面を持たない route を見ない", () => {
     // route handler は成果物には並ぶが、描くモードの宣言を置く先が無い。
     expect(
-      findRenderModeDrift(modes({ "/api/products": "blocking" }), declarations({}), NONE),
+      findRenderModeDrift(modes({ "/api/reports": "blocking" }), declarations({}), NONE),
     ).toEqual([]);
   });
 
@@ -163,11 +163,11 @@ describe("formatRenderModeSummary", () => {
     const observed = new Map<string, RenderMode>([
       ["/about", "static"],
       ["/", "partial"],
-      ["/products", "partial"],
+      ["/reports", "partial"],
       ["/admin", "blocking"],
     ]);
 
-    const summary = formatRenderModeSummary(["/about", "/", "/products", "/admin"], observed, []);
+    const summary = formatRenderModeSummary(["/about", "/", "/reports", "/admin"], observed, []);
 
     expect(summary).toContain("4 枚");
     expect(summary).toContain("○ 静的 1");

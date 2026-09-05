@@ -94,7 +94,7 @@ describe("collectFailedScreens", () => {
 
   // ----- 異常系 -----
   it("画面を比べている spec が無いレポートを弾く", () => {
-    const json = reportOf([{ file: "e2e/journeys/purchase.spec.ts", tests: [test({})] }]);
+    const json = reportOf([{ file: "e2e/journeys/reports.spec.ts", tests: [test({})] }]);
 
     expect(() => collectFailedScreens(json)).toThrow(VISUAL.replace("e2e/", ""));
   });

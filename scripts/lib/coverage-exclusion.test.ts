@@ -31,7 +31,7 @@ describe("ownerDirectory", () => {
   it("README が無ければ遡って最初に持つディレクトリを所有者にする", () => {
     const { read } = treeOf({ src: "# src" });
 
-    expect(ownerDirectory("src/features/cart/deep/thing.ts", read)).toBe("src");
+    expect(ownerDirectory("src/features/settings/deep/thing.ts", read)).toBe("src");
   });
 
   it("ワイルドカードより前だけを見る", () => {

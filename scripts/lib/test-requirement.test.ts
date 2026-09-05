@@ -33,8 +33,8 @@ describe("resolveTestRequirement", () => {
 
   it("element の宣言は、同じディレクトリの README より先に効く", () => {
     const resolved = resolveTestRequirement(
-      "src/app/api/products/route.test.ts",
-      readerOf({ "src/app/api/products": frontmatter("test-requirement: route") }),
+      "src/app/api/reports/route.test.ts",
+      readerOf({ "src/app/api/reports": frontmatter("test-requirement: route") }),
     );
 
     expect(resolved).toEqual({ declaredIn: "architecture.ts", layers: ["integration"] });
@@ -51,7 +51,7 @@ describe("resolveTestRequirement", () => {
 
   it("宣言が無いディレクトリからは、遡って最初に宣言を持つ README を引く", () => {
     const resolved = resolveTestRequirement(
-      "src/features/cart/ui/panel/panel.test.tsx",
+      "src/features/settings/ui/panel/panel.test.tsx",
       readerOf({ "src/features": frontmatter("test-requirement: feature") }),
     );
 

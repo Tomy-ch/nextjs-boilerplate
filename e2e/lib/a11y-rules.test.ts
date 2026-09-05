@@ -117,7 +117,7 @@ describe("screenDisabledRuleIds", () => {
   it("名指しされていない画面では、その宣言を外さない", () => {
     const screenRules = [{ id: "region", reason: "理由", removeWhen: "条件", screens: ["mypage"] }];
 
-    expect(screenDisabledRuleIds("cart", [], screenRules)).toEqual([]);
+    expect(screenDisabledRuleIds("settings", [], screenRules)).toEqual([]);
   });
 
   it("画面を渡さなければ、名指しの宣言は効かない", () => {
