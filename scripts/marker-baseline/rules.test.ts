@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  EXCLUDED_PATH_PREFIXES,
-  countMarkerLines,
-  diffBaseline,
-  isBaselineTarget,
-} from "./rules";
+import { countMarkerLines, diffBaseline, EXCLUDED_PATH_PREFIXES, isBaselineTarget } from "./rules";
 
 describe("countMarkerLines", () => {
   // ----- 正常系 -----

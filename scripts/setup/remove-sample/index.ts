@@ -138,24 +138,50 @@ function writeSnapshot(): void {
 }
 
 /**
+ * マーカー行のベースラインを読み書きする面。
+ *
+ * @remarks
+ * 構造を写しているのは、指し先の綴りを型検査から隠しているためです（{@link rewriteMarkerBaseline}）。
+ * 実体とずれれば、引き直しを実際に走らせる `purge-verify` がその場で落ちます。
+ */
+type MarkerBaselineScan = {
+  BASELINE_PATH: string;
+  REPO_ROOT: string;
+  scanTree: (root: string) => Readonly<Record<string, number>>;
+};
+
+/** 引き直しの相手（リポジトリルート相対）。 */
+const MARKER_BASELINE_DIR = "scripts/marker-baseline";
+
+/**
+ * 読み込む面（このファイルからの相対）。
+ *
+ * @remarks
+ * 綴りを組み立てるのは、`import()` の引数を文字列リテラルにしないためです。理由は
+ * {@link rewriteMarkerBaseline} が持ちます。
+ */
+const BASELINE_SCAN_MODULE = ["..", "..", "marker-baseline", "scan.js"].join("/");
+
+/**
  * マーカー行のベースラインを、破棄後のツリーで引き直す。
  *
  * @remarks
  * ベースラインはマーカー行が増えていないかを見張る固定値なので、正当に減るこの破棄の後は、
  * 引き直さない限り `scripts/marker-baseline/scan.test.ts` が鳴り続けます。
  *
- * 道具そのものは boilerplate 限定節の剥がしが消します。どちらが先に走るかは決まっていないため、
- * 動的な import を存在の確認で囲みます —— 静的に書くと、先に消えていた場合にこの入口が
- * 起動できません。
+ * 相手は boilerplate 限定節の剥がしが**丸ごと消す**ので、この入口より先に消えていることが
+ * あります。だから読み込みは存在の確認で囲みます。指し先を文字列リテラルで書かないのも同じ理由で、
+ * リテラルだと型検査が解決を試み、剥がしだけを走らせたツリーで「モジュールが無い」と落ちます。
  */
 async function rewriteMarkerBaseline(): Promise<void> {
-  if (!fs.existsSync(toAbsolutePath("scripts/marker-baseline"))) {
+  if (!fs.existsSync(toAbsolutePath(MARKER_BASELINE_DIR))) {
     return;
   }
 
-  const { BASELINE_PATH, REPO_ROOT, scanTree } = await import("../../marker-baseline/scan.js");
+  const scan = (await import(BASELINE_SCAN_MODULE)) as MarkerBaselineScan;
+  const baseline = scan.scanTree(scan.REPO_ROOT);
 
-  fs.writeFileSync(BASELINE_PATH, `${JSON.stringify(scanTree(REPO_ROOT), null, 2)}\n`);
+  fs.writeFileSync(scan.BASELINE_PATH, `${JSON.stringify(baseline, null, 2)}\n`);
   console.log("マーカー行のベースラインを破棄後のツリーで引き直しました。");
 }
 

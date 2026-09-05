@@ -5,8 +5,8 @@ import path from "node:path";
 
 import {
   type Baseline,
-  EXCLUDED_DIRECTORIES,
   countMarkerLines,
+  EXCLUDED_DIRECTORIES,
   isBaselineTarget,
 } from "./rules.js";
 
