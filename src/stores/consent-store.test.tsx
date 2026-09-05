@@ -10,6 +10,7 @@ import {
   CONSENT_MAX_AGE_SECONDS,
   toConsentCookieValue,
 } from "@/model/consent";
+import { flushIdle } from "../../vitest.setup";
 
 /**
  * cookie を置いた状態で store を読み込み直す。
@@ -25,18 +26,6 @@ async function loadStore(cookie?: string) {
   vi.resetModules();
 
   return import("./consent-store");
-}
-
-/**
- * 暇になった瞬間まで進める。
- *
- * @remarks
- * cookie を読むのはそこからなので、読んだ後を見るケースは必ずこれを挟む。
- */
-async function settle() {
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve));
-  });
 }
 
 /** 状態を綴りとして出すだけの読み手。サーバ側スナップショットを見るために使う。 */
@@ -64,7 +53,7 @@ describe("useConsentState", () => {
     const { useConsentState } = await loadStore();
 
     const { result } = renderHook(() => useConsentState());
-    await settle();
+    await flushIdle();
 
     expect(result.current).toEqual({ status: "unset" });
   });
@@ -73,7 +62,7 @@ describe("useConsentState", () => {
     const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
 
     const { result } = renderHook(() => useConsentState());
-    await settle();
+    await flushIdle();
 
     expect(result.current).toEqual({ status: "decided", optional: CONSENT_CHOICE.granted });
   });
@@ -96,11 +85,11 @@ describe("useConsentState", () => {
   it("二度目の mount では読み直さない。読み終えた値をそのまま配る", async () => {
     const { useConsentState } = await loadStore();
     renderHook(() => useConsentState());
-    await settle();
+    await flushIdle();
 
     document.cookie = `${CONSENT_COOKIE_NAME}=${toConsentCookieValue(CONSENT_CHOICE.granted)}; path=/`;
     const { result } = renderHook(() => useConsentState());
-    await settle();
+    await flushIdle();
 
     expect(result.current).toEqual({ status: "unset" });
   });
@@ -108,7 +97,7 @@ describe("useConsentState", () => {
   it("読み終えたあとのサーバ側スナップショットは、読んだ値を返す", async () => {
     const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
     renderHook(() => useConsentState());
-    await settle();
+    await flushIdle();
 
     expect(renderToStaticMarkup(<Probe use={useConsentState} />)).toContain("decided");
   });
@@ -118,7 +107,7 @@ describe("useConsentState", () => {
     const { useConsentState } = await loadStore("all");
 
     const { result } = renderHook(() => useConsentState());
-    await settle();
+    await flushIdle();
 
     expect(result.current).toEqual({ status: "unset" });
   });
@@ -127,7 +116,7 @@ describe("useConsentState", () => {
     const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
 
     renderHook(() => useConsentState()).unmount();
-    await settle();
+    await flushIdle();
 
     expect(renderToStaticMarkup(<Probe use={useConsentState} />)).toContain("unread");
   });

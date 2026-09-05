@@ -99,6 +99,19 @@ globalThis.requestIdleCallback ??= ((callback: IdleRequestCallback) =>
 globalThis.cancelIdleCallback ??= ((handle: number) =>
   clearTimeout(handle)) as unknown as typeof cancelIdleCallback;
 
+/**
+ * 暇になった瞬間まで進める。
+ *
+ * @remarks
+ * 上の補いが次の task へ送るぶんを待ちます。`requestIdleCallback` の先に置かれた処理を見るケース
+ * は、これを挟まないと処理の前を見ることになります。
+ */
+export async function flushIdle(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve));
+  });
+}
+
 // jsdom は ResizeObserver も実装しない。自分の大きさを測ってから描く部品は mount の時点で例外に
 // なる。何も通知しないのは、jsdom がレイアウトを持たず大きさが変わる瞬間そのものが存在しない
 // ためで、大きさに依存する分岐を確かめたいテストはそのケースだけ上書きする。

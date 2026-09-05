@@ -8,6 +8,7 @@ import { axe } from "vitest-axe";
 
 import { CONSENT_BANNER_COPY } from "@/components/shell/consent-banner/consent-banner.definition";
 import { CONSENT_COOKIE_NAME } from "@/model/consent";
+import { flushIdle } from "../../vitest.setup";
 
 /**
  * ゲートの先に置く資材。同意が無い間は DOM に現れてはならない。
@@ -40,6 +41,7 @@ describe("Consent", () => {
     const Consent = await loadIsland();
 
     render(<Consent />);
+    await flushIdle();
 
     expect(screen.getByRole("dialog", { name: CONSENT_BANNER_COPY.title })).toBeVisible();
   });
@@ -48,6 +50,7 @@ describe("Consent", () => {
     const Consent = await loadIsland();
 
     render(<Consent>{GATED}</Consent>);
+    await flushIdle();
 
     expect(document.querySelector('[data-testid="gated"]')).toBeNull();
   });
@@ -55,6 +58,7 @@ describe("Consent", () => {
   it("同意すると、ゲートの先の資材を読み込む", async () => {
     const Consent = await loadIsland();
     render(<Consent>{GATED}</Consent>);
+    await flushIdle();
 
     await userEvent.click(screen.getByRole("button", { name: CONSENT_BANNER_COPY.accept }));
 
@@ -64,6 +68,7 @@ describe("Consent", () => {
   it("拒否すると、尋ねるのをやめたうえで資材を読み込まない", async () => {
     const Consent = await loadIsland();
     render(<Consent>{GATED}</Consent>);
+    await flushIdle();
 
     await userEvent.click(screen.getByRole("button", { name: CONSENT_BANNER_COPY.reject }));
 
@@ -75,6 +80,7 @@ describe("Consent", () => {
     const Consent = await loadIsland();
 
     const { container } = render(<Consent>{GATED}</Consent>);
+    await flushIdle();
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
