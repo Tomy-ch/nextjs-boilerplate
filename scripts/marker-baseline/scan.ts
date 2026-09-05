@@ -10,7 +10,6 @@ import {
   isBaselineTarget,
 } from "./rules.js";
 
-/** リポジトリのルート。 */
 export const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 
 /** コミット済みのベースラインの置き場。 */
@@ -53,8 +52,7 @@ function walk(root: string, dir: string, found: string[]): string[] {
  * 別のロケールで走査したときに順序が変わり、中身と無関係な差分がベースラインに出ます。
  *
  * 読めないファイルを握り潰しません。読めなければマーカー行数は**不明**であり、飛ばすことは
- * 「0 行」と記録するのと同じです。0 として載れば、そこへ後からマーカーが増えても差分に出ません
- * —— この検査が塞ごうとしている無言の見落としと、同じ形の穴になります。
+ * 「0 行」と記録するのと同じです。0 として載れば、そこへ後からマーカーが増えても差分に出ません。
  */
 export function scanTree(root: string): Baseline {
   const found: Array<[string, number]> = [];
