@@ -42,6 +42,11 @@ export const SELF_DESTRUCT_PATHS: readonly string[] = [
   // 上の検査だけが呼ぶ判定。検査が消えたあとも残すと、誰も呼ばないモジュールがカバレッジの
   // 母数にだけ居座る。
   "scripts/sonarcloud",
+  // マーカー行数のベースライン。守っているのはマーカーを**書く側**で、書く場面は上流にしかない。
+  // 剥がしが済んだツリーにはもう見張る対象が居らず、残せば永久に緑のままの検査が増えるだけになる。
+  // サンプル破棄（`scripts/setup/remove-sample`）は、これが先に走った場合に備えて、引き直しを
+  // 存在の確認で囲んである。
+  "scripts/marker-baseline",
 ];
 
 /**
@@ -60,6 +65,17 @@ export const EXCLUDED_DIRECTORIES: Set<string> = new Set([
   "storybook-static",
   "tmp",
 ]);
+
+/**
+ * 走査から外す相対パス接頭辞。マーカーの形をデータとして持つ区画。
+ *
+ * @remarks
+ * マーカー行のベースライン（`scripts/marker-baseline/`）は、判定とテストがマーカーの形を**入力**
+ * として持ちます。剥がしの対象にすると、そこに書かれた例示が消えます —— 区画自体はこの直後に
+ * `SELF_DESTRUCT_PATHS` が消すので跡は残りませんが、例示のペアが崩れた瞬間に剥がしそのものが
+ * 中断します。読まないと決めておけば、その巻き添えが起きません。
+ */
+export const EXCLUDED_PATH_PREFIXES: readonly string[] = ["scripts/marker-baseline/"];
 
 /** マーカーを持てないファイルの拡張子。 */
 export const BINARY_EXTENSIONS: readonly string[] = [

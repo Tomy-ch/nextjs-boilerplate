@@ -152,11 +152,19 @@ export const EXCLUDED_DIRECTORIES: Set<string> = new Set([
   "storybook-static",
 ]);
 
-/** 走査から外す相対パス接頭辞。いずれも生成物か作業用の置き場。 */
+/**
+ * 走査から外す相対パス接頭辞。生成物・作業用の置き場と、マーカーの形をデータとして持つ区画。
+ *
+ * @remarks
+ * マーカー行のベースライン（`scripts/marker-baseline/`）をファイル単位ではなく接頭辞で外すのは、
+ * あの区画を boilerplate 限定節の剥がしが**丸ごと消す**からです。`MARKER_LITERAL_FILES` へ並べると、
+ * 剥がしだけを走らせた木で「宣言したファイルが実在しない」になります。
+ */
 export const EXCLUDED_PATH_PREFIXES: readonly string[] = [
   ".storybook/public/",
   "docs/portal/guides/",
   "graphify-out/",
+  "scripts/marker-baseline/",
   "tmp/",
   "src/app/generated/",
   "src/model/generated/",

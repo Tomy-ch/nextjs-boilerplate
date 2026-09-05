@@ -1635,6 +1635,9 @@ go-boilerplate の `scripts/setup/` を移植する。マーカー除去ロジ�
   - 全サンプル箇所へのマーカー付与(`src/app/layout.tsx` の nav 配線 / `architecture.ts` の sample 層宣言 / `openapi/sources.yaml` の admin 契約 / `env/*` の `MEDIA_ORIGIN` 既定値 / `vitest.config.ts` の閾値・除外)
   - `typeset` の Storybook 例に portal URL 用の置換マーカーを付与し、未設定時の汎用リンクと fork 後の portal リンクを切り替える
   - `.github/workflows/purge-verify.yaml`
+  - `scripts/marker-baseline/` — ファイルごとのマーカー行数を固定し、数が動いた PR を落とす。発火する
+    マーカーと例示は同じ形なので、増えたことを「ベースラインを更新するか、リテラルとして宣言するか」の
+    判断にする(移植 IM-55)
   - `scripts/setup/lib/sample-manifest.mjs` — **P6-4 の `e2e/` など Phase 6 で追加された破棄対象を追記**(P7-1 は Phase 5 分しか集約していないため)
 - **設計**: 使い捨てチェックアウトで `purge → gen-api → fix → lint:ci → typecheck → build → test` を回す。go 側の `verify` は fork 先で一度きり自爆する設計のため、**boilerplate 自身の腐敗防止にはこの CI ジョブが必要**
 - **カバレッジ**: 爆破でサンプルのテストが消えるため、purge スクリプトが `vitest.config.ts` の閾値・除外も書き換える

@@ -1,6 +1,7 @@
 // サンプルを破棄する入口。判定は plan.ts、対象の宣言は sample-manifest.ts が持ち、ここは
 // ファイル入出力・スナップショットの書き出し・終了コードだけを担う。
 
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -137,6 +138,31 @@ function writeSnapshot(): void {
   );
 }
 
+/** 引き直しの相手（リポジトリルート相対）。 */
+const MARKER_BASELINE_DIR = "scripts/marker-baseline";
+
+/**
+ * マーカー行のベースラインを、破棄後のツリーで引き直す。
+ *
+ * @remarks
+ * ベースラインはマーカー行が増えていないかを見張る固定値なので、正当に減るこの破棄の後は、
+ * 引き直さない限り `scripts/marker-baseline/scan.test.ts` が鳴り続けます。
+ *
+ * 相手の公開 CLI を子プロセスで呼びます。import で引くと、boilerplate 限定節の剥がしが相手を
+ * 丸ごと消したツリーで、型検査が指し先を解決できずに落ちます。存在の確認で囲んであるのは、
+ * その剥がしがこの入口より先に走っていることがあるためです。
+ */
+function rewriteMarkerBaseline(): void {
+  if (!fs.existsSync(toAbsolutePath(MARKER_BASELINE_DIR))) {
+    return;
+  }
+
+  execFileSync("pnpm", ["exec", "tsx", MARKER_BASELINE_DIR, "--write"], {
+    cwd: ROOT_DIR,
+    stdio: "inherit",
+  });
+}
+
 /** 手順の種類ごとに、対象を 1 行ずつ出す。 */
 function printEach(label: string, entries: readonly string[]): void {
   for (const entry of entries) {
@@ -203,7 +229,13 @@ function run(dryRun: boolean): void {
     writeSnapshot();
   }
 
+  // 報告は引き直しより先に出す。引き直しが落ちても破棄そのものは終わっており、道具も既に
+  // 消えているのでやり直せない。何が済んだかを伝えないまま止めると、壊れたのが破棄のほうだと読まれる。
   report(dryRun, stripped, restored, deleted);
+
+  if (!dryRun) {
+    rewriteMarkerBaseline();
+  }
 }
 
 /* istanbul ignore next -- CLI entry。起動経路は make setup-remove-sample と purge-verify が実地で通す。 */
