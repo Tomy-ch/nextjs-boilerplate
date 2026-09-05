@@ -2,74 +2,57 @@
 
 // 抑止の撤回条件を週に一度見る入口。
 //
-// 抑止に条件を書く運用（ADR 0110 3.4）は、条件を満たした時点で誰かが撤去して初めて成立する。
+// 抑止に条件を書く運用（ADR 0110 §3.4）は、条件を満たした時点で誰かが撤去して初めて成立する。
 // 見る機構が無いと、期限を過ぎた宣言が残り続け、次に同じ枠を使う人が期限そのものを軽く扱う。
 //
 //   pnpm exec tsx scripts/suppression-expiry            期限を過ぎた宣言があれば 1 で落ちる
-//   pnpm exec tsx scripts/suppression-expiry --report <path>   一覧を Markdown で書き出す
+//   pnpm exec tsx scripts/suppression-expiry --report <path>   issue の本文を書き出す
 
 import fs from "node:fs";
 
-import { expiredSuppressions, type Suppression } from "./rules.js";
-import { scanSuppressions } from "./scan.js";
-
-/** 判定の基準日。時刻を持ち込むと、実行が CI のどの時間帯かで結果が揺れる。 */
-const today = new Date().toISOString().slice(0, 10);
-
-const suppressions = scanSuppressions();
-const expired = expiredSuppressions(suppressions, today);
+import { parseOptions } from "../lib/cli-options.js";
+import { renderDigest, renderExpired, renderIssueBody } from "./report.js";
+import { expiredSuppressions } from "./rules.js";
+import { COMMENT_BORNE_SOURCES, scanSuppressions } from "./scan.js";
 
 /**
- * 全件の一覧。
+ * 判定の基準日。
  *
  * @remarks
- * **期限を過ぎたものだけでなく、全件を出します。** 判定できるのは日付だけで、「上流が N 以上を
- * 要求したら」「サンプル破棄が働いた後」は機械では決まりません。落ちた件だけを出すと、決まらない
- * 条件が誰にも読まれないまま残ります。
+ * **抑止の条件は日本時間で書かれている**（`# 2026-08-02 20:34 JST 以降に削除する` のように）。
+ * `toISOString()` は UTC の暦日を返すので、そのまま使うと日本時間で期限日を迎えた朝から 9 時間、
+ * 機構だけが「まだ」と答える。時刻を持ち込まないのは、実行が CI のどの時間帯かで結果を揺らさない
+ * ためで、暦をどこに合わせるかとは別の話である。
  */
-function digest(entries: readonly Suppression[]): string {
-  const rows = entries.map(
-    (entry) => `| \`${entry.source}\` | \`${entry.subject}\` | ${entry.condition} |`,
-  );
+const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(new Date());
 
-  return ["| 面 | 対象 | 撤回条件 |", "| --- | --- | --- |", ...rows].join("\n");
-}
+const options = parseOptions(process.argv.slice(2));
+const suppressions = scanSuppressions();
+const expired = expiredSuppressions(suppressions, today);
+const reportPath = options.get("report");
 
-const reportIndex = process.argv.indexOf("--report");
-
-if (reportIndex !== -1) {
-  const reportPath = process.argv[reportIndex + 1];
-
-  if (reportPath === undefined) {
-    console.error("✗ suppression-expiry: --report には書き出す先が要ります");
-    process.exit(1);
-  }
-
-  const heading =
-    expired.length === 0
-      ? "撤回条件を満たした宣言はありません。"
-      : `**${expired.length} 件が撤回条件を満たしています。**\n\n${expired
-          .map((entry) => `- \`${entry.source}\` の \`${entry.subject}\`（期限 ${entry.dueDate}）`)
-          .join("\n")}`;
-
+if (reportPath !== undefined) {
   fs.writeFileSync(
     reportPath,
-    `${heading}\n\n## いま置かれている抑止\n\n${digest(suppressions)}\n`,
+    renderIssueBody({
+      expired,
+      suppressions,
+      commentBorneSources: COMMENT_BORNE_SOURCES,
+      ...(process.env.RUN_URL === undefined ? {} : { runUrl: process.env.RUN_URL }),
+    }),
   );
 }
 
 console.log(`— 抑止 ${suppressions.length} 件（基準日 ${today}）`);
-console.log(digest(suppressions));
+console.log(renderDigest(suppressions));
 
 if (expired.length === 0) {
-  console.log(`\n✓ suppression-expiry: 撤回条件を満たした宣言はありません`);
+  console.log("\n✓ suppression-expiry: 撤回条件を満たした宣言はありません");
   process.exit(0);
 }
 
 console.error(`\n✗ suppression-expiry: ${expired.length} 件が撤回条件を満たしています\n`);
-for (const entry of expired) {
-  console.error(`  ${entry.source} の ${entry.subject}（期限 ${entry.dueDate}）`);
-}
+console.error(renderExpired(expired));
 console.error(
   "\n条件を満たした宣言は撤去してください。まだなら、条件そのものを書き直してください。",
 );

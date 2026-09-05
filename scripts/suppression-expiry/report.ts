@@ -1,0 +1,71 @@
+// 点検の結果を、読む形へ組む。落ちるかどうかは決めない —— それは入口が決める。
+
+import { composeIssueBody } from "../lib/issue-body.js";
+import type { ExpiredSuppression, Suppression } from "./rules.js";
+
+/**
+ * 全件を 1 行ずつ並べる。
+ *
+ * @remarks
+ * **期限を過ぎたものだけでなく、全件を出します。** 機械が決められるのは日付だけで、「上流が N
+ * 以上を要求したら」「サンプル破棄が働いた後」は決まりません。落ちた件だけを出すと、決まらない
+ * 条件が誰にも読まれないまま残ります。
+ *
+ * @param suppressions - 読み取った宣言の全件
+ */
+export function renderDigest(suppressions: readonly Suppression[]): string {
+  return suppressions
+    .map((entry) => `${entry.source}\t${entry.subject}\t${entry.condition}`)
+    .join("\n");
+}
+
+/**
+ * 期限を過ぎた宣言の並び。
+ *
+ * @param expired - 撤回条件を満たした宣言
+ */
+export function renderExpired(expired: readonly ExpiredSuppression[]): string {
+  return expired
+    .map((entry) => `${entry.source} の ${entry.subject}（期限 ${entry.dueDate}）`)
+    .join("\n");
+}
+
+/**
+ * issue へ載せる本文。
+ *
+ * @remarks
+ * **本文は `composeIssueBody` に組ませます。** 撤回条件の散文はこのリポジトリが書いたものでは
+ * なく、抑止を足す PR の提出者が書きます。素の markdown として描くと、mention や偽のリンクが
+ * CI の名義で公開の issue に載ります。`tool-output` は字下げで記法を殺します
+ * （[0153](../../docs/adr/0153-ci-configuration.md) §5）。
+ *
+ * @param input.expired - 撤回条件を満たした宣言
+ * @param input.suppressions - 読み取った宣言の全件
+ * @param input.commentBorneSources - 宣言単位では読めない面
+ * @param input.runUrl - 実行の URL
+ */
+export function renderIssueBody(input: {
+  readonly expired: readonly ExpiredSuppression[];
+  readonly suppressions: readonly Suppression[];
+  readonly commentBorneSources: readonly string[];
+  readonly runUrl?: string;
+}): string {
+  const heading =
+    input.expired.length === 0
+      ? "撤回条件を満たした宣言はありません。"
+      : `${input.expired.length} 件が撤回条件を満たしています。`;
+
+  return composeIssueBody({
+    heading,
+    evidence: {
+      kind: "tool-output",
+      text: [renderExpired(input.expired), "", renderDigest(input.suppressions)].join("\n").trim(),
+    },
+    ...(input.runUrl === undefined ? {} : { runUrl: input.runUrl }),
+    note: [
+      "条件を満たした宣言は撤去してください。まだなら、条件そのものを書き直してください。",
+      "",
+      `次の面は撤回条件をコメントに持つため、**宣言単位では読めません**（日付を含む行だけが上に出ます）: ${input.commentBorneSources.join(" / ")}`,
+    ].join("\n"),
+  });
+}

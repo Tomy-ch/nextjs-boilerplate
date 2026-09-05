@@ -10,4 +10,4 @@
 SUPPRESSION_REPORT ?=
 
 suppression-expiry:
-	@pnpm exec tsx scripts/suppression-expiry $(if $(SUPPRESSION_REPORT),--report $(SUPPRESSION_REPORT))
+	@pnpm exec tsx scripts/suppression-expiry $(if $(SUPPRESSION_REPORT),--report "$(SUPPRESSION_REPORT)")
