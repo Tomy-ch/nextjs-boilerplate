@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { IconExternalLink } from "@tabler/icons-react";
 import { useCallback } from "react";
 
 import {
@@ -54,7 +54,7 @@ function PortalCard({ item, onOpenDocument }: PortalCardProps) {
               >
                 {item.name}
               </a>
-              <ExternalLink aria-hidden className="size-4 shrink-0" />
+              <IconExternalLink aria-hidden className="size-4 shrink-0" />
             </>
           )}
         </CardTitle>

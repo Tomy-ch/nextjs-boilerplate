@@ -24,6 +24,25 @@ import noMarkupOutsideUiLayers from "./eslint-rules/no-markup-outside-ui-layers"
 import noRawFontWeight from "./eslint-rules/no-raw-font-weight";
 import noUserScopedInCachedModule from "./eslint-rules/no-user-scoped-in-cached-module";
 
+/** client の束へ載った時点で壊れるものの締め出し。 */
+const nodeBuiltinImports = {
+  group: ["node:*"],
+  message:
+    "Node の組み込みモジュールは client の束へ載った時点で壊れます。server 側へ寄せるか、config カーネルを通してください。",
+};
+
+/**
+ * アイコンの供給元の締め出し。
+ *
+ * 供給元を名指しできるのは `src/components/icon.ts` だけで、そこは締め出しの側から外してある
+ * （[0052](docs/adr/0052-ui-component-policy.md)）。散らすと差し替えのときに取り残しが出る。
+ */
+const iconVendorImports = {
+  group: ["@tabler/icons-react"],
+  message:
+    "アイコンの供給元は `@/components/icon` へ閉じます（ADR 0052）。アイコンはそこから import してください。",
+};
+
 const elements = [
   // 層より先に並べる。区画は層の内側にあるため、層の要素が先に一致すると区画としては
   // 見えなくなり、層の粒度の許可がそのまま区画への許可になる。
@@ -210,18 +229,14 @@ export default [
             "`process` を読んでよいのは config カーネルと起動境界だけです（ADR 0030）。値は config を通して受け取ってください。",
         },
       ],
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["node:*"],
-              message:
-                "Node の組み込みモジュールは client の束へ載った時点で壊れます。server 側へ寄せるか、config カーネルを通してください。",
-            },
-          ],
-        },
-      ],
+      "no-restricted-imports": ["error", { patterns: [nodeBuiltinImports, iconVendorImports] }],
+    },
+  },
+  {
+    // アイコンの公開面そのもの。ここだけが供給元を名指しするので、締め出しの側から外す。
+    files: ["src/components/icon.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [nodeBuiltinImports] }],
     },
   },
   {

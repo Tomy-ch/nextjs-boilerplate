@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { IconExternalLink } from "@tabler/icons-react";
 import { useId } from "react";
 
 import {
@@ -79,7 +79,7 @@ export function PortalSidebar({ activeGroupSlug, groups, referenceLinks }: Porta
                   target="_blank"
                 >
                   {link.title}
-                  <ExternalLink aria-hidden className="size-3.5 shrink-0" />
+                  <IconExternalLink aria-hidden className="size-3.5 shrink-0" />
                 </a>
               </li>
             ))}

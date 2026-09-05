@@ -36,10 +36,11 @@ test-requirement: component
 
 ## 運用
 
-- 本ディレクトリの部品は shadcn/ui の copy-in を起点にする。Radix / lucide-react など vendor の import を採る場合も `components` に閉じ、feature から直接参照しない
+- 本ディレクトリの部品は shadcn/ui の copy-in を起点にする。Radix など vendor の import を採る場合も `components` に閉じ、feature から直接参照しない
 - **SSR first** とし、初期表示に必要な基礎部品は native HTML と Server Component を優先する。`"use client"`、Radix、Portal など browser runtime を必要とする実装は、native 要素では満たせない操作要件がある client island に限る。静的な少数選択は `select-native` を優先し、初期配置だけを理由に CSR へ寄せない
 - 見た目は Storybook の story を正として確認する。story は対象コンポーネントと同じディレクトリに co-locate する
 - 各 component ディレクトリには `README.md` を co-locate する。短い props の転記ではなく、少なくとも**用途・役割・配置される公開 component・利用ケース・責務境界・Storybook / test の確認範囲**を記す。公開 component がある場合は、名称と個別の役割を表にする。native / Server Component を既定にする部品と client island の部品は、その境界と hydration の要否を明記する
+- shadcn CLI はアイコンを lucide で出力する（`components.json` の `iconLibrary` に Tabler の選択肢が無い）。copy-in したら、その import を [`icon.ts`](./icon.ts) 経由へ差し替える。必要な名前が無ければ `icon.ts` へ 1 行足す。差し替え漏れは、package が解決できないことと `pnpm lint:eslint` の両方で落ちる
 - 新しい shadcn copy-in では [`component-template.md`](./component-template.md) を component ディレクトリの `README.md` として自動コピーする。テンプレートの placeholder は、同じ取り込み作業で実装に合わせて必ず具体化する
 - component を足したら [component 目録](#component-目録) へ 1 行足す。名前を変えたら書き換え、消したら消す。目録に無い component は、これを読む人にとって存在しないのと同じである。`ContextMenu` のように可視の trigger を持たず、既存の部品を読まなければ気付けないものほどこの影響を受ける
 - どこに置くかは [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) の `layer` と `as` が正であり、`pnpm check:ui` が `directory` との一致を検査する。**`layer` は「誰が書き換えるか」、`as` は「何のための部品か」**で軸が違うので畳まない。`design-system/navigation/pagination` と `app-starter/cursor-pagination` がどちらも `as: navigation` になるのは、目的が同じで層が違うためである
@@ -48,6 +49,7 @@ test-requirement: component
 - 単一 feature 専用の UI は feature 内に置く
 - 依存先は `model` と `errors` に限定する
 - class 名の条件分岐と Tailwind utility の競合解消には [`cn.ts`](./cn.ts) を使う。`clsx` と `tailwind-merge` を直接利用する実装は増やさない
+- アイコンは [`icon.ts`](./icon.ts) から取る。供給元を直接 import する実装は `components` の内側にも置かない。差し替えを 1 ファイルへ閉じるためで、`eslint.config.ts` の `no-restricted-imports` が締め出す。**この面は名前付き再輸出に限る** —— 名前から component を引く表を置くと、使っていないアイコンまで束へ乗る
 - 「一度満たしたら以後 mount を維持する」判断には [`use-latched.ts`](./use-latched.ts) を使う。器が閉じるたびに中身を外すと、**外すと復元できないもの**（開いた時点の内容からしか組み立てられない編集面、送信に載せる必要がある入力欄）が作り直しになる。層をまたいで要るため層の下ではなくここに置く
 - 色・余白などは [`tokens/`](../../tokens/README.md) の semantic token を使う。primitive token の直接利用はしない
 - shadcn/ui の追加は `pnpm add:ui <component> --as=<見出し> [--layer=<層>] [-- <shadcn add のオプション>]` を使う。一度に一部品だけを層と見出しに応じた場所へ copy-in し、成功時に [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) へ層・見出し・レジストリ・追加日時・CLI 版を記録するため、`pnpm exec shadcn add` を直接実行しない。`--as` は必須、`--layer` の既定は `design-system` で、いずれも値が不正なら `shadcn add` を走らせる前に弾かれる
@@ -265,6 +267,7 @@ components/
 │       └── README.md
 ├── scripts/
 ├── cn.ts
+├── icon.ts
 ├── use-latched.ts
 └── shadcn-manifest.yaml
 ```
