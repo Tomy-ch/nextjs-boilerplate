@@ -22,19 +22,15 @@ cd <リポジトリ>
 make install-tools
 pnpm install
 pnpm exec lefthook install   # 自動では入らない。clone 後に 1 度だけ
-
-git config submodule.recurse true      # ブランチを移ると基準画像も一緒に動く
-git config push.recurseSubmodules no   # ただし push は巻き込ませない
 ```
 
-**基準画像の 2 行は対で入れる。** `submodule.recurse` だけを入れると `push.recurseSubmodules` が
-`on-demand` になり、**手元の `git push` が基準画像ストアへも押す**。ストアへ押すのは撮り直しの
-機構と `make baseline-push` だけで、そこを開けると誰が撮った画像か分からないものが基準になる
-（[`vrt/README.md`](../../vrt/README.md)）。
+**`lefthook install` は基準画像の追随にも要る。** git はブランチを移っても submodule の実体を
+動かさないため、撮り直しで指し先が進むと実体が取り残され、`git status` に `baseline/images` が
+出続ける。**その汚れを commit すると間違った指し先が載る。** hook が移動と pull のたびに実体を
+指し先へ合わせるので、入れておけば手で直すことはない（[0151](../adr/0151-git-hooks.md)）。
 
-入れずに済ませると、ブランチを移るたびに実体が指し先から取り残され、`git status` に
-`baseline/images` が出続ける。**その状態で commit すると間違った指し先が載る**ので、リリース
-ブランチを切る口はこの汚れだけを見分けて合わせ直す手を案内する（`scripts/release`）。
+入れ忘れても壊れはしない。リリースブランチを切る口はこの汚れだけを見分け、合わせ直す手を
+名指しで案内する（`scripts/release`）。
 
 ## 2. リポジトリを初期化する
 
