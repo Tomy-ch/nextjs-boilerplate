@@ -19,11 +19,11 @@ const STATUS_TONE: Readonly<Record<number, BadgeVariant>> = {
   1: BADGE_VARIANT.SECONDARY, // 在庫あり
   2: BADGE_VARIANT.DESTRUCTIVE, // 在庫切れ
   3: BADGE_VARIANT.WARNING, // 予約受付中
-  4: BADGE_VARIANT.GHOST, // 販売終了
+  4: BADGE_VARIANT.OUTLINE, // 販売終了
   5: BADGE_VARIANT.WARNING, // 取り寄せ中
   6: BADGE_VARIANT.WARNING, // 入荷待ち
-  7: BADGE_VARIANT.GHOST, // 廃盤
-  8: BADGE_VARIANT.GHOST, // 検討中
+  7: BADGE_VARIANT.OUTLINE, // 廃盤
+  8: BADGE_VARIANT.OUTLINE, // 検討中
   9: BADGE_VARIANT.WARNING, // 再入荷予定
   10: BADGE_VARIANT.SECONDARY, // 限定販売
 };
@@ -33,9 +33,10 @@ const STATUS_TONE: Readonly<Record<number, BadgeVariant>> = {
  *
  * @remarks
  * **マスタはこちらの都合と関係なく増えます。** 知らない状態を既存のどれかへ寄せると、意味を
- * 取り違えた色が付きます。縁だけの姿は「区分を決めていない」ことをそのまま示します。
+ * 取り違えた色が付きます。**装飾を持たない姿**は「区分を決めていない」ことをそのまま示します。
+ * 区分の決まっている状態が縁を持つので、決まっていないものだけが枠を持ちません。
  */
-const UNKNOWN_STATUS_TONE: BadgeVariant = BADGE_VARIANT.OUTLINE;
+const UNKNOWN_STATUS_TONE: BadgeVariant = BADGE_VARIANT.GHOST;
 
 /**
  * 状態のコードから、バッジの見た目を選ぶ。

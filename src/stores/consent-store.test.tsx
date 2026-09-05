@@ -10,6 +10,7 @@ import {
   CONSENT_MAX_AGE_SECONDS,
   toConsentCookieValue,
 } from "@/model/consent";
+import { flushIdle } from "../../vitest.setup";
 
 /**
  * cookie を置いた状態で store を読み込み直す。
@@ -40,10 +41,19 @@ afterEach(() => {
 
 describe("useConsentState", () => {
   // ----- 正常系 -----
+  it("mount しただけでは読まない。暇になるまで待つ", async () => {
+    const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
+
+    const { result } = renderHook(() => useConsentState());
+
+    expect(result.current).toEqual({ status: "unread" });
+  });
+
   it("cookie が無ければ、読んだうえで選ばれていない状態を配る", async () => {
     const { useConsentState } = await loadStore();
 
     const { result } = renderHook(() => useConsentState());
+    await flushIdle();
 
     expect(result.current).toEqual({ status: "unset" });
   });
@@ -52,6 +62,7 @@ describe("useConsentState", () => {
     const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
 
     const { result } = renderHook(() => useConsentState());
+    await flushIdle();
 
     expect(result.current).toEqual({ status: "decided", optional: CONSENT_CHOICE.granted });
   });
@@ -74,9 +85,11 @@ describe("useConsentState", () => {
   it("二度目の mount では読み直さない。読み終えた値をそのまま配る", async () => {
     const { useConsentState } = await loadStore();
     renderHook(() => useConsentState());
+    await flushIdle();
 
     document.cookie = `${CONSENT_COOKIE_NAME}=${toConsentCookieValue(CONSENT_CHOICE.granted)}; path=/`;
     const { result } = renderHook(() => useConsentState());
+    await flushIdle();
 
     expect(result.current).toEqual({ status: "unset" });
   });
@@ -84,6 +97,7 @@ describe("useConsentState", () => {
   it("読み終えたあとのサーバ側スナップショットは、読んだ値を返す", async () => {
     const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
     renderHook(() => useConsentState());
+    await flushIdle();
 
     expect(renderToStaticMarkup(<Probe use={useConsentState} />)).toContain("decided");
   });
@@ -93,8 +107,18 @@ describe("useConsentState", () => {
     const { useConsentState } = await loadStore("all");
 
     const { result } = renderHook(() => useConsentState());
+    await flushIdle();
 
     expect(result.current).toEqual({ status: "unset" });
+  });
+
+  it("暇になる前に離れたら、そのまま読まない", async () => {
+    const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
+
+    renderHook(() => useConsentState()).unmount();
+    await flushIdle();
+
+    expect(renderToStaticMarkup(<Probe use={useConsentState} />)).toContain("unread");
   });
 });
 

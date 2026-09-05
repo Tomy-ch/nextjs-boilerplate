@@ -289,6 +289,7 @@ export function toProduct(wire: WireProduct): Product {
     status: { id: wire.status.id, name: wire.status.name },
     category: { id: wire.category.id, name: wire.category.name },
     publishedAt: wire.publishedAt === null ? null : new Date(wire.publishedAt),
+    discontinuedAt: wire.discontinuedAt === null ? null : new Date(wire.discontinuedAt),
     // 契約が displaySort 昇順で返すため、受け取った順序がそのまま表示の順序になる。
     imagePaths: wire.images.map((image) => image.imagePath),
     version: wire.version,

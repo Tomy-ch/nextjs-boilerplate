@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+7b2778e
+ * OpenAPI spec version: 2.2.0+76e4825
  */
 import type { ProductCategoryRef } from "./productCategoryRef";
 import type { ProductImageItem } from "./productImageItem";
@@ -50,6 +50,11 @@ export interface ProductResponse {
    * @nullable
    */
   publishedAt: string | null;
+  /**
+   * 廃番日時。廃番でない場合は null です。廃番は取り消せず、廃番の商品は公開日時を持てません （publishedAt は必ず null になります）。 廃番にする操作は日時を受け取らずサーバーの時刻で確定するため、**未来の日時にはなりません**。 したがって廃番かどうかは現在時刻との比較ではなく null かどうかで判定できます。
+   * @nullable
+   */
+  discontinuedAt: string | null;
   /** 商品画像。displaySort の昇順で返します。画像が 1 枚も無い場合は空配列です。 表示 URL はフロントが配信ベース URL と各要素の imagePath から組み立てます。 */
   images: ProductImageItem[];
   /** 楽観ロック用のバージョン。更新のたびに 1 つ進みます。 部分更新（PATCH /v1/products/{productId}）へそのまま渡すことで、 読み込み後に他者が更新していた場合の上書き（lost update）を 409 として検出できます。 */

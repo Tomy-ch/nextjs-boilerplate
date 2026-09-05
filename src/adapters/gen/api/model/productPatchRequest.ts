@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+7b2778e
+ * OpenAPI spec version: 2.2.0+76e4825
  */
 import type { ProductImageInput } from "./productImageInput";
 
@@ -66,7 +66,8 @@ export interface ProductPatchRequest {
    */
   publishedAt?: string | null;
   /**
-   * 商品画像。送ると集合ごと置き換えます（差分更新ではありません）。null を指定すると画像を全て取り除きます。 同じ商品の中で displaySort が重複する場合は業務不変条件違反として 422 を返します。 置き換えで外れた画像は、猶予期間の経過後に未参照オブジェクトの回収（product-image-gc）が ストレージから削除します。
+   * 商品画像。送ると集合ごと置き換えます（差分更新ではありません）。null を指定すると画像を全て取り除きます。 置き換え後の枚数は 1 商品あたり 20 枚までです。 同じ商品の中で displaySort が重複する場合は業務不変条件違反として 422 を返します。 置き換えで外れた画像は、猶予期間の経過後に未参照オブジェクトの回収（product-image-gc）が ストレージから削除します。
+   * @maxItems 20
    * @nullable
    */
   images?: ProductImageInput[] | null;

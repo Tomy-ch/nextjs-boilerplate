@@ -60,6 +60,13 @@ describe("cartIssueNotice", () => {
     expect(cartIssueNotice("unpublished", null).blocking).toBe(true);
   });
 
+  it("廃番になったとき、非公開とは別の言い方で買えない事情として返す", () => {
+    expect(cartIssueNotice("discontinued", null)).toEqual({
+      blocking: true,
+      message: "この商品は廃番になりました。",
+    });
+  });
+
   it("在庫が無いとき、買えない事情として返す", () => {
     expect(cartIssueNotice("outOfStock", null)).toEqual({
       blocking: true,

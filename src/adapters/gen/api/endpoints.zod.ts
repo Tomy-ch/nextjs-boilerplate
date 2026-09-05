@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+7b2778e
+ * OpenAPI spec version: 2.2.0+76e4825
  */
 import * as zod from "zod";
 
@@ -1188,6 +1188,12 @@ export const GetProductsResponse = zod
             .datetime({ offset: true })
             .nullable()
             .describe("公開日時。未公開の場合は null です。"),
+          discontinuedAt: zod.iso
+            .datetime({ offset: true })
+            .nullable()
+            .describe(
+              "廃番日時。廃番でない場合は null です。廃番は取り消せず、廃番の商品は公開日時を持てません （publishedAt は必ず null になります）。 廃番にする操作は日時を受け取らずサーバーの時刻で確定するため、\*\*未来の日時にはなりません\*\*。 したがって廃番かどうかは現在時刻との比較ではなく null かどうかで判定できます。",
+            ),
           images: zod
             .array(
               zod
@@ -1253,6 +1259,8 @@ export const postProductsBodyImagesItemImagePathRegExp = new RegExp(
 );
 export const postProductsBodyImagesItemDisplaySortMax = 32767;
 
+export const postProductsBodyImagesMax = 20;
+
 export const PostProductsBody = zod
   .object({
     name: zod.string().max(postProductsBodyNameMax).describe("商品名"),
@@ -1304,9 +1312,10 @@ export const PostProductsBody = zod
             "商品へ紐付ける画像 1 件。imagePath には画像アップロード（POST \/v1\/products\/images）で得たパスを渡します。\n",
           ),
       )
+      .max(postProductsBodyImagesMax)
       .optional()
       .describe(
-        "商品画像。未指定の場合は画像を持たない商品として作成します。 同じ商品の中で displaySort が重複する場合は業務不変条件違反として 422 を返します。",
+        "商品画像。未指定の場合は画像を持たない商品として作成します。1 商品あたり 20 枚までです。 同じ商品の中で displaySort が重複する場合は業務不変条件違反として 422 を返します。",
       ),
   })
   .describe(
@@ -1350,6 +1359,12 @@ export const PostProductsResponse = zod
       .datetime({ offset: true })
       .nullable()
       .describe("公開日時。未公開の場合は null です。"),
+    discontinuedAt: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe(
+        "廃番日時。廃番でない場合は null です。廃番は取り消せず、廃番の商品は公開日時を持てません （publishedAt は必ず null になります）。 廃番にする操作は日時を受け取らずサーバーの時刻で確定するため、\*\*未来の日時にはなりません\*\*。 したがって廃番かどうかは現在時刻との比較ではなく null かどうかで判定できます。",
+      ),
     images: zod
       .array(
         zod
@@ -1573,6 +1588,12 @@ export const GetProductsDetailResponse = zod
       .datetime({ offset: true })
       .nullable()
       .describe("公開日時。未公開の場合は null です。"),
+    discontinuedAt: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe(
+        "廃番日時。廃番でない場合は null です。廃番は取り消せず、廃番の商品は公開日時を持てません （publishedAt は必ず null になります）。 廃番にする操作は日時を受け取らずサーバーの時刻で確定するため、\*\*未来の日時にはなりません\*\*。 したがって廃番かどうかは現在時刻との比較ではなく null かどうかで判定できます。",
+      ),
     images: zod
       .array(
         zod
@@ -1606,6 +1627,9 @@ export const GetProductsDetailResponse = zod
  * 公開日時そのものを更新対象とするため、取得系と異なり未公開商品も更新できます。
  * version が DB の現在値と一致しない場合は他者の更新と競合したものとして 409 を返します。
  * 409 は再送では解消しないため、クライアントは再取得してから送り直してください。
+ * **廃番の商品に公開日時を設定することはできません**（422、details に publishedAt）。
+ * 廃番は取り消せないため、この 422 は再取得しても再送しても解消しません。
+ * 409 と違い他者の更新との競合ではないので、両者は取り違えられません。
  * @summary 単一商品の部分更新
  */
 export const patchProductsDetailPathProductIdMax = 36;
@@ -1639,6 +1663,8 @@ export const patchProductsDetailBodyImagesItemImagePathRegExp = new RegExp(
   "^products/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(png|jpg|webp)$",
 );
 export const patchProductsDetailBodyImagesItemDisplaySortMax = 32767;
+
+export const patchProductsDetailBodyImagesMax = 20;
 
 export const PatchProductsDetailBody = zod
   .object({
@@ -1705,9 +1731,10 @@ export const PatchProductsDetailBody = zod
             "商品へ紐付ける画像 1 件。imagePath には画像アップロード（POST \/v1\/products\/images）で得たパスを渡します。\n",
           ),
       )
+      .max(patchProductsDetailBodyImagesMax)
       .nullish()
       .describe(
-        "商品画像。送ると集合ごと置き換えます（差分更新ではありません）。null を指定すると画像を全て取り除きます。 同じ商品の中で displaySort が重複する場合は業務不変条件違反として 422 を返します。 置き換えで外れた画像は、猶予期間の経過後に未参照オブジェクトの回収（product-image-gc）が ストレージから削除します。",
+        "商品画像。送ると集合ごと置き換えます（差分更新ではありません）。null を指定すると画像を全て取り除きます。 置き換え後の枚数は 1 商品あたり 20 枚までです。 同じ商品の中で displaySort が重複する場合は業務不変条件違反として 422 を返します。 置き換えで外れた画像は、猶予期間の経過後に未参照オブジェクトの回収（product-image-gc）が ストレージから削除します。",
       ),
   })
   .describe(
@@ -1751,6 +1778,12 @@ export const PatchProductsDetailResponse = zod
       .datetime({ offset: true })
       .nullable()
       .describe("公開日時。未公開の場合は null です。"),
+    discontinuedAt: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe(
+        "廃番日時。廃番でない場合は null です。廃番は取り消せず、廃番の商品は公開日時を持てません （publishedAt は必ず null になります）。 廃番にする操作は日時を受け取らずサーバーの時刻で確定するため、\*\*未来の日時にはなりません\*\*。 したがって廃番かどうかは現在時刻との比較ではなく null かどうかで判定できます。",
+      ),
     images: zod
       .array(
         zod
@@ -1853,6 +1886,12 @@ export const PatchProductsStockResponse = zod
       .datetime({ offset: true })
       .nullable()
       .describe("公開日時。未公開の場合は null です。"),
+    discontinuedAt: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe(
+        "廃番日時。廃番でない場合は null です。廃番は取り消せず、廃番の商品は公開日時を持てません （publishedAt は必ず null になります）。 廃番にする操作は日時を受け取らずサーバーの時刻で確定するため、\*\*未来の日時にはなりません\*\*。 したがって廃番かどうかは現在時刻との比較ではなく null かどうかで判定できます。",
+      ),
     images: zod
       .array(
         zod
@@ -2102,6 +2141,12 @@ export const GetProductsLowStockResponse = zod
               .datetime({ offset: true })
               .nullable()
               .describe("公開日時。未公開の場合は null です。"),
+            discontinuedAt: zod.iso
+              .datetime({ offset: true })
+              .nullable()
+              .describe(
+                "廃番日時。廃番でない場合は null です。廃番は取り消せず、廃番の商品は公開日時を持てません （publishedAt は必ず null になります）。 廃番にする操作は日時を受け取らずサーバーの時刻で確定するため、\*\*未来の日時にはなりません\*\*。 したがって廃番かどうかは現在時刻との比較ではなく null かどうかで判定できます。",
+              ),
             images: zod
               .array(
                 zod
@@ -3093,13 +3138,14 @@ export const GetCartsMeResponse = zod
                   .enum([
                     "notFound",
                     "unpublished",
+                    "discontinued",
                     "outOfStock",
                     "insufficientStock",
                     "priceIncreased",
                     "priceDecreased",
                   ])
                   .describe(
-                    "カート明細の再評価結果。取得のたびに商品の現在値と突き合わせて判定される。\n1 つの明細に複数同時に立ちうるが、notFound は単独で立ち（商品が引けない以上、在庫も価格も\n判定材料が無い）、outOfStock と insufficientStock は排他（在庫 0 は「不足」ではなく「無い」）。\nいずれの値もカートの取得を失敗にしない。買えない明細があることは要求の不正ではないため。\n",
+                    "カート明細の再評価結果。取得のたびに商品の現在値と突き合わせて判定される。\n1 つの明細に複数同時に立ちうるが、notFound は単独で立ち（商品が引けない以上、在庫も価格も\n判定材料が無い）、outOfStock と insufficientStock は排他（在庫 0 は「不足」ではなく「無い」）。\ndiscontinued と unpublished も排他で、廃番の明細には discontinued だけが立つ\n（廃番は非公開を伴うが、より具体的なほうだけを立てる）。\nいずれの値もカートの取得を失敗にしない。買えない明細があることは要求の不正ではないため。\n",
                   ),
               )
               .describe(
@@ -3276,13 +3322,14 @@ export const PutCartsMeItemResponse = zod
                   .enum([
                     "notFound",
                     "unpublished",
+                    "discontinued",
                     "outOfStock",
                     "insufficientStock",
                     "priceIncreased",
                     "priceDecreased",
                   ])
                   .describe(
-                    "カート明細の再評価結果。取得のたびに商品の現在値と突き合わせて判定される。\n1 つの明細に複数同時に立ちうるが、notFound は単独で立ち（商品が引けない以上、在庫も価格も\n判定材料が無い）、outOfStock と insufficientStock は排他（在庫 0 は「不足」ではなく「無い」）。\nいずれの値もカートの取得を失敗にしない。買えない明細があることは要求の不正ではないため。\n",
+                    "カート明細の再評価結果。取得のたびに商品の現在値と突き合わせて判定される。\n1 つの明細に複数同時に立ちうるが、notFound は単独で立ち（商品が引けない以上、在庫も価格も\n判定材料が無い）、outOfStock と insufficientStock は排他（在庫 0 は「不足」ではなく「無い」）。\ndiscontinued と unpublished も排他で、廃番の明細には discontinued だけが立つ\n（廃番は非公開を伴うが、より具体的なほうだけを立てる）。\nいずれの値もカートの取得を失敗にしない。買えない明細があることは要求の不正ではないため。\n",
                   ),
               )
               .describe(
@@ -3434,3 +3481,379 @@ export const PostCartsMeMergeResponse = zod
   .describe(
     "ログイン時のカート引き継ぎの結果。\*\*引き継ぎで失われた分だけ\*\*を報告します。\n引き継ぎ後のカートの中身は含めません。取得（GET \/v1\/carts\/me）でいつでも引ける一方、\nここで失われた分はこの応答でしか得られないためです。\n",
   );
+
+/**
+ * 問い合わせを更新日時の新しい順に 1 ページ取得します。**管理者ロールが必要です**。
+ * 本文は含めません。一覧は問い合わせの行だけで組み立て、最新メッセージの内容は履歴か feed の
+ * 購読で受け取ります。
+ * ページングは keyset で、応答の nextCursor をそのまま after に渡して続きを取得します。
+ * 一覧画面を購読で更新する場合は POST /v1/inquiries/feed/stream-ticket を使います。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 問い合わせ一覧の取得（運営）
+ */
+export const getInquiriesQueryAfterMax = 512;
+
+export const getInquiriesQueryAfterRegExp = new RegExp("^[A-Za-z0-9_-]+$");
+export const getInquiriesQueryFirstDefault = 50;
+export const getInquiriesQueryFirstMax = 200;
+
+export const GetInquiriesQueryParams = zod.object({
+  after: zod
+    .string()
+    .max(getInquiriesQueryAfterMax)
+    .regex(getInquiriesQueryAfterRegExp)
+    .optional()
+    .describe("次ページ取得用の不透明カーソル。先頭ページを取得する場合は省略します。"),
+  first: zod
+    .int()
+    .min(1)
+    .max(getInquiriesQueryFirstMax)
+    .default(getInquiriesQueryFirstDefault)
+    .describe("取得件数の上限"),
+});
+
+export const GetInquiriesResponse = zod
+  .object({
+    items: zod.array(
+      zod
+        .object({
+          id: zod.uuid().describe("問い合わせ ID。"),
+          userId: zod.uuid().describe("問い合わせを開始した利用者の ID。"),
+          createdAt: zod.iso.datetime({ offset: true }).describe("作成日時。"),
+          updatedAt: zod.iso
+            .datetime({ offset: true })
+            .describe("最後にメッセージが追加された日時。一覧の並び順の基準。"),
+        })
+        .describe(
+          "運営向け一覧の 1 件。本文は含めない（一覧は問い合わせの行だけで組み立てる）。\n",
+        ),
+    ),
+    nextCursor: zod
+      .string()
+      .nullish()
+      .describe("次ページ取得用の不透明カーソル。次ページが無ければ null。"),
+  })
+  .describe("運営向け一覧 1 ページ。更新日時の新しい順。");
+
+/**
+ * 呼び出し主体自身の問い合わせについて、メッセージを位置の昇順で 1 ページ取得します。
+ * パスに他者の識別子を持たないため、他人の問い合わせは取得できません。
+ * **応答の streamCursor を購読の開始位置に渡してください**。このページを読んだ時点の stream の
+ * 現在位置を返し、messages はその位置以下だけを含むため、履歴の取得と購読の開始の間に追加された
+ * メッセージを取りこぼしません。
+ * まだ問い合わせを持たない主体には、空の messages と streamCursor = 0 を 200 で返します
+ * （問い合わせが無いことは誤りではありません）。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分の問い合わせ履歴の取得
+ */
+export const getInquiriesMeMessagesQueryAfterSequenceMin = 0;
+
+export const getInquiriesMeMessagesQueryFirstDefault = 50;
+export const getInquiriesMeMessagesQueryFirstMax = 200;
+
+export const GetInquiriesMeMessagesQueryParams = zod.object({
+  afterSequence: zod
+    .int()
+    .min(getInquiriesMeMessagesQueryAfterSequenceMin)
+    .optional()
+    .describe(
+      "取得を開始する位置。この位置より後ろのメッセージを返す。先頭から取得する場合は省略する。\n不透明カーソルではなく位置そのものを使うのは、この値が購読の再開位置と同じ意味を持つため。\n",
+    ),
+  first: zod
+    .int()
+    .min(1)
+    .max(getInquiriesMeMessagesQueryFirstMax)
+    .default(getInquiriesMeMessagesQueryFirstDefault)
+    .describe("取得件数の上限"),
+});
+
+export const getInquiriesMeMessagesResponseStreamCursorMin = 0;
+
+export const GetInquiriesMeMessagesResponse = zod
+  .object({
+    inquiryId: zod
+      .uuid()
+      .nullish()
+      .describe("対象の問い合わせ。まだ問い合わせを持たない利用者では null。"),
+    messages: zod
+      .array(
+        zod
+          .object({
+            id: zod.uuid().describe("メッセージ ID。"),
+            inquiryId: zod.uuid().describe("所属する問い合わせの ID。"),
+            authorKind: zod
+              .enum(["user", "operator"])
+              .describe("送り手の種別。利用者か回答者かのみを示し、主体の識別子は含めない。"),
+            body: zod.string().describe("本文。"),
+            sequence: zod.int().min(1).describe("問い合わせ内の位置（1 起算、欠番なし）。"),
+            createdAt: zod.iso.datetime({ offset: true }).describe("作成日時。"),
+          })
+          .describe(
+            "問い合わせメッセージ 1 通。作成後に編集も取り消しもされない。\nsequence はこの問い合わせの中での位置であり、購読の再開位置としてそのまま使える。\n",
+          ),
+      )
+      .describe("位置の昇順に並んだメッセージ。"),
+    nextAfterSequence: zod
+      .int()
+      .nullish()
+      .describe("次ページの開始位置。次ページが無ければ null。"),
+    streamCursor: zod
+      .int()
+      .min(getInquiriesMeMessagesResponseStreamCursorMin)
+      .describe("このページを読んだ時点の stream の現在位置。まだ 1 通も無ければ 0。"),
+  })
+  .describe(
+    "問い合わせの履歴 1 ページ。\nstreamCursor はこのページを読んだ時点の stream の現在位置で、messages はこれ以下の位置だけを含む。\n購読を始めるときにこの値を開始位置として渡せば、履歴の取得と購読の間の event を取りこぼさない。\n",
+  );
+
+/**
+ * 呼び出し主体自身の問い合わせへメッセージを 1 通追加します。
+ * **問い合わせは最初の投稿で作られます**。利用者ごとに 1 件だけ持ち、作成のための API は設けません。
+ * 追加は append-only で、編集も取り消しもできません。
+ * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返すため、
+ * timeout 後の再送でメッセージが二重に生まれません。同一キーを内容の異なる要求で使い回した場合は
+ * 422 で拒否します。
+ * 最初の投稿が並行した場合、サーバは内部で 1 度だけやり直します。それでも解けない場合のみ 409 を返します。
+ * 本 op 自体は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の
+ * JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 自分の問い合わせへの投稿
+ */
+export const postInquiriesMeMessagesHeaderIdempotencyKeyMax = 255;
+
+export const postInquiriesMeMessagesHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const PostInquiriesMeMessagesHeader = zod.object({
+  "Idempotency-Key": zod
+    .string()
+    .min(1)
+    .max(postInquiriesMeMessagesHeaderIdempotencyKeyMax)
+    .regex(postInquiriesMeMessagesHeaderIdempotencyKeyRegExp)
+    .optional()
+    .describe(
+      "冪等キー。非冪等な変更操作（作成系など）で、同一キーによるリトライを重複実行なく\n安全にするための識別子。サーバは同一 (認証主体, キー) の再送を初回結果のリプレイとして扱う。\nこのヘッダを宣言する操作は、ハンドラが必ず idempotency.Run 経由で処理する契約（完全性テストで機械検証）。\n",
+    ),
+});
+
+export const postInquiriesMeMessagesBodyBodyMax = 4000;
+
+export const PostInquiriesMeMessagesBody = zod
+  .object({
+    body: zod
+      .string()
+      .min(1)
+      .max(postInquiriesMeMessagesBodyBodyMax)
+      .describe(
+        "本文。長さは文字数（Unicode コードポイント）で数える。\n上限はドメインの上限と一致させてあり、境界の所有については\nopenapi\/boundary-ownership.md を参照。\n",
+      ),
+  })
+  .describe("問い合わせへ追加する 1 通。");
+
+export const PostInquiriesMeMessagesResponse = zod
+  .object({
+    message: zod
+      .object({
+        id: zod.uuid().describe("メッセージ ID。"),
+        inquiryId: zod.uuid().describe("所属する問い合わせの ID。"),
+        authorKind: zod
+          .enum(["user", "operator"])
+          .describe("送り手の種別。利用者か回答者かのみを示し、主体の識別子は含めない。"),
+        body: zod.string().describe("本文。"),
+        sequence: zod.int().min(1).describe("問い合わせ内の位置（1 起算、欠番なし）。"),
+        createdAt: zod.iso.datetime({ offset: true }).describe("作成日時。"),
+      })
+      .describe(
+        "問い合わせメッセージ 1 通。作成後に編集も取り消しもされない。\nsequence はこの問い合わせの中での位置であり、購読の再開位置としてそのまま使える。\n",
+      ),
+  })
+  .describe("追加したメッセージ 1 通。");
+
+/**
+ * 呼び出し主体自身の問い合わせについて、購読に使う 1 回限りの ticket を発行します。
+ * 応答の streamId を GET /v1/streams/{destination} の destination に渡して接続します。
+ * **生値はこの応答にしか現れません**。サーバは hash しか保存しないため、失った場合は再発行します。
+ * **開始位置には発行時点の stream の現在位置を束ねます**。cursor を持たずに接続した client へ
+ * 履歴を再生し直さないためで、これは認可の下限ではありません（保持範囲であればより前から再開できます）。
+ * 購読する問い合わせを持たない主体には 404 を返します。
+ * GET ではなく POST なのは、この操作が ticket という状態を作るためです。
+ * 本 op は DB の SELECT と ticket store への書き込みを行います。認証段（外部 IdP の JWKS 参照）や
+ * ticket store の一時障害で応答不能となり得るため 503 を宣言します。
+ * @summary 自分の問い合わせを購読する ticket の発行
+ */
+export const PostInquiriesMeStreamTicketResponse = zod
+  .object({
+    ticket: zod.string().describe("ticket の生値。log や URL に残さないこと。"),
+    streamId: zod
+      .string()
+      .describe("接続先の stream。GET \/v1\/streams\/{destination} の destination に渡す。"),
+    expiresAt: zod.iso
+      .datetime({ offset: true })
+      .describe(
+        "この ticket で新しい接続を始められる期限。確立済みの接続は別に最大接続時間で区切られる。",
+      ),
+  })
+  .describe(
+    "購読に使う 1 回限りの ticket。生値はこの応答にしか現れず、サーバは hash しか保存しない。\n接続は GET \/v1\/streams\/{destination} に streamId を渡して開始する。\n",
+  );
+
+/**
+ * 一覧画面を更新するための feed を購読する ticket を発行します。**管理者ロールが必要です**。
+ * feed が運ぶのは「どの問い合わせがどこまで進んだか」だけで、本文は含みません。
+ * 本文が要る場合は履歴を取得してください。
+ * 応答の形と生値の扱いは自分の問い合わせの ticket（POST /v1/inquiries/me/stream-ticket）と同じです。
+ * 本 op は ticket store への書き込みを行います。認証段（外部 IdP の JWKS 参照）や ticket store の
+ * 一時障害で応答不能となり得るため 503 を宣言します。
+ * @summary 問い合わせ更新フィードを購読する ticket の発行（運営）
+ */
+export const PostInquiriesFeedStreamTicketResponse = zod
+  .object({
+    ticket: zod.string().describe("ticket の生値。log や URL に残さないこと。"),
+    streamId: zod
+      .string()
+      .describe("接続先の stream。GET \/v1\/streams\/{destination} の destination に渡す。"),
+    expiresAt: zod.iso
+      .datetime({ offset: true })
+      .describe(
+        "この ticket で新しい接続を始められる期限。確立済みの接続は別に最大接続時間で区切られる。",
+      ),
+  })
+  .describe(
+    "購読に使う 1 回限りの ticket。生値はこの応答にしか現れず、サーバは hash しか保存しない。\n接続は GET \/v1\/streams\/{destination} に streamId を渡して開始する。\n",
+  );
+
+/**
+ * 指定した問い合わせのメッセージを位置の昇順で 1 ページ取得します。**管理者ロールが必要です**。
+ * 応答の形と streamCursor の使い方は自分の履歴（GET /v1/inquiries/me/messages）と同じです。
+ * 存在しない問い合わせには 404 を返します。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 任意の問い合わせ履歴の取得（運営）
+ */
+export const GetInquiriesDetailMessagesParams = zod.object({
+  inquiryId: zod.uuid().describe("問い合わせ ID"),
+});
+
+export const getInquiriesDetailMessagesQueryAfterSequenceMin = 0;
+
+export const getInquiriesDetailMessagesQueryFirstDefault = 50;
+export const getInquiriesDetailMessagesQueryFirstMax = 200;
+
+export const GetInquiriesDetailMessagesQueryParams = zod.object({
+  afterSequence: zod
+    .int()
+    .min(getInquiriesDetailMessagesQueryAfterSequenceMin)
+    .optional()
+    .describe(
+      "取得を開始する位置。この位置より後ろのメッセージを返す。先頭から取得する場合は省略する。\n不透明カーソルではなく位置そのものを使うのは、この値が購読の再開位置と同じ意味を持つため。\n",
+    ),
+  first: zod
+    .int()
+    .min(1)
+    .max(getInquiriesDetailMessagesQueryFirstMax)
+    .default(getInquiriesDetailMessagesQueryFirstDefault)
+    .describe("取得件数の上限"),
+});
+
+export const getInquiriesDetailMessagesResponseStreamCursorMin = 0;
+
+export const GetInquiriesDetailMessagesResponse = zod
+  .object({
+    inquiryId: zod
+      .uuid()
+      .nullish()
+      .describe("対象の問い合わせ。まだ問い合わせを持たない利用者では null。"),
+    messages: zod
+      .array(
+        zod
+          .object({
+            id: zod.uuid().describe("メッセージ ID。"),
+            inquiryId: zod.uuid().describe("所属する問い合わせの ID。"),
+            authorKind: zod
+              .enum(["user", "operator"])
+              .describe("送り手の種別。利用者か回答者かのみを示し、主体の識別子は含めない。"),
+            body: zod.string().describe("本文。"),
+            sequence: zod.int().min(1).describe("問い合わせ内の位置（1 起算、欠番なし）。"),
+            createdAt: zod.iso.datetime({ offset: true }).describe("作成日時。"),
+          })
+          .describe(
+            "問い合わせメッセージ 1 通。作成後に編集も取り消しもされない。\nsequence はこの問い合わせの中での位置であり、購読の再開位置としてそのまま使える。\n",
+          ),
+      )
+      .describe("位置の昇順に並んだメッセージ。"),
+    nextAfterSequence: zod
+      .int()
+      .nullish()
+      .describe("次ページの開始位置。次ページが無ければ null。"),
+    streamCursor: zod
+      .int()
+      .min(getInquiriesDetailMessagesResponseStreamCursorMin)
+      .describe("このページを読んだ時点の stream の現在位置。まだ 1 通も無ければ 0。"),
+  })
+  .describe(
+    "問い合わせの履歴 1 ページ。\nstreamCursor はこのページを読んだ時点の stream の現在位置で、messages はこれ以下の位置だけを含む。\n購読を始めるときにこの値を開始位置として渡せば、履歴の取得と購読の間の event を取りこぼさない。\n",
+  );
+
+/**
+ * 指定した問い合わせへ回答を 1 通追加します。**管理者ロールが必要です**。
+ * 追加の扱いは利用者の投稿と同じで、append-only であり編集も取り消しもできません。
+ * 送り手の種別は operator として記録されます。
+ * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返すため、
+ * timeout 後の再送で回答が二重に生まれません。
+ * 存在しない問い合わせには 404 を返します。
+ * 本 op 自体は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の
+ * JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 問い合わせへの回答（運営）
+ */
+export const PostInquiriesDetailMessagesParams = zod.object({
+  inquiryId: zod.uuid().describe("問い合わせ ID"),
+});
+
+export const postInquiriesDetailMessagesHeaderIdempotencyKeyMax = 255;
+
+export const postInquiriesDetailMessagesHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const PostInquiriesDetailMessagesHeader = zod.object({
+  "Idempotency-Key": zod
+    .string()
+    .min(1)
+    .max(postInquiriesDetailMessagesHeaderIdempotencyKeyMax)
+    .regex(postInquiriesDetailMessagesHeaderIdempotencyKeyRegExp)
+    .optional()
+    .describe(
+      "冪等キー。非冪等な変更操作（作成系など）で、同一キーによるリトライを重複実行なく\n安全にするための識別子。サーバは同一 (認証主体, キー) の再送を初回結果のリプレイとして扱う。\nこのヘッダを宣言する操作は、ハンドラが必ず idempotency.Run 経由で処理する契約（完全性テストで機械検証）。\n",
+    ),
+});
+
+export const postInquiriesDetailMessagesBodyBodyMax = 4000;
+
+export const PostInquiriesDetailMessagesBody = zod
+  .object({
+    body: zod
+      .string()
+      .min(1)
+      .max(postInquiriesDetailMessagesBodyBodyMax)
+      .describe(
+        "本文。長さは文字数（Unicode コードポイント）で数える。\n上限はドメインの上限と一致させてあり、境界の所有については\nopenapi\/boundary-ownership.md を参照。\n",
+      ),
+  })
+  .describe("問い合わせへ追加する 1 通。");
+
+export const PostInquiriesDetailMessagesResponse = zod
+  .object({
+    message: zod
+      .object({
+        id: zod.uuid().describe("メッセージ ID。"),
+        inquiryId: zod.uuid().describe("所属する問い合わせの ID。"),
+        authorKind: zod
+          .enum(["user", "operator"])
+          .describe("送り手の種別。利用者か回答者かのみを示し、主体の識別子は含めない。"),
+        body: zod.string().describe("本文。"),
+        sequence: zod.int().min(1).describe("問い合わせ内の位置（1 起算、欠番なし）。"),
+        createdAt: zod.iso.datetime({ offset: true }).describe("作成日時。"),
+      })
+      .describe(
+        "問い合わせメッセージ 1 通。作成後に編集も取り消しもされない。\nsequence はこの問い合わせの中での位置であり、購読の再開位置としてそのまま使える。\n",
+      ),
+  })
+  .describe("追加したメッセージ 1 通。");

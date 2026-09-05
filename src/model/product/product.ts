@@ -36,6 +36,20 @@ export function toProductId(value: string): ProductId {
   return productIdSchema.parse(value);
 }
 
+/**
+ * 商品が廃番かどうか。
+ *
+ * @remarks
+ * **現在時刻と比べません。**廃番にする操作は日時を受け取らずサーバーの時刻で確定するため、
+ * 廃番日時が未来になることがありません。公開日時（予定を表せる）と同じ読み方をすると、
+ * 比べる必要のない値を比べることになり、しかも画面ごとに境界の扱いが分かれます。
+ *
+ * @param product - 判定する商品
+ */
+export function isDiscontinued(product: Pick<Product, "discontinuedAt">): boolean {
+  return product.discontinuedAt !== null;
+}
+
 /** 商品に紐づく分類。ID と表示名だけを持つ。 */
 export type ProductRef = {
   id: string;
@@ -97,6 +111,12 @@ export type Product = {
   category: ProductRef;
   /** 公開日時。未公開なら null。 */
   publishedAt: Date | null;
+  /**
+   * 廃番日時。廃番でなければ null。
+   *
+   * 廃番は取り消せず、廃番の商品は公開日時を持たない。判定は {@link isDiscontinued} を通す。
+   */
+  discontinuedAt: Date | null;
   /**
    * 配信基盤上のオブジェクトキー。表示 URL はここから組み立てる。
    *
