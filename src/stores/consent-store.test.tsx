@@ -27,6 +27,18 @@ async function loadStore(cookie?: string) {
   return import("./consent-store");
 }
 
+/**
+ * 暇になった瞬間まで進める。
+ *
+ * @remarks
+ * cookie を読むのはそこからなので、読んだ後を見るケースは必ずこれを挟む。
+ */
+async function settle() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve));
+  });
+}
+
 /** 状態を綴りとして出すだけの読み手。サーバ側スナップショットを見るために使う。 */
 function Probe({ use }: { use: () => { status: string } }) {
   return <span>{use().status}</span>;
@@ -40,10 +52,19 @@ afterEach(() => {
 
 describe("useConsentState", () => {
   // ----- 正常系 -----
+  it("mount しただけでは読まない。暇になるまで待つ", async () => {
+    const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
+
+    const { result } = renderHook(() => useConsentState());
+
+    expect(result.current).toEqual({ status: "unread" });
+  });
+
   it("cookie が無ければ、読んだうえで選ばれていない状態を配る", async () => {
     const { useConsentState } = await loadStore();
 
     const { result } = renderHook(() => useConsentState());
+    await settle();
 
     expect(result.current).toEqual({ status: "unset" });
   });
@@ -52,6 +73,7 @@ describe("useConsentState", () => {
     const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
 
     const { result } = renderHook(() => useConsentState());
+    await settle();
 
     expect(result.current).toEqual({ status: "decided", optional: CONSENT_CHOICE.granted });
   });
@@ -74,9 +96,11 @@ describe("useConsentState", () => {
   it("二度目の mount では読み直さない。読み終えた値をそのまま配る", async () => {
     const { useConsentState } = await loadStore();
     renderHook(() => useConsentState());
+    await settle();
 
     document.cookie = `${CONSENT_COOKIE_NAME}=${toConsentCookieValue(CONSENT_CHOICE.granted)}; path=/`;
     const { result } = renderHook(() => useConsentState());
+    await settle();
 
     expect(result.current).toEqual({ status: "unset" });
   });
@@ -84,6 +108,7 @@ describe("useConsentState", () => {
   it("読み終えたあとのサーバ側スナップショットは、読んだ値を返す", async () => {
     const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
     renderHook(() => useConsentState());
+    await settle();
 
     expect(renderToStaticMarkup(<Probe use={useConsentState} />)).toContain("decided");
   });
@@ -93,8 +118,18 @@ describe("useConsentState", () => {
     const { useConsentState } = await loadStore("all");
 
     const { result } = renderHook(() => useConsentState());
+    await settle();
 
     expect(result.current).toEqual({ status: "unset" });
+  });
+
+  it("暇になる前に離れたら、そのまま読まない", async () => {
+    const { useConsentState } = await loadStore(toConsentCookieValue(CONSENT_CHOICE.granted));
+
+    renderHook(() => useConsentState()).unmount();
+    await settle();
+
+    expect(renderToStaticMarkup(<Probe use={useConsentState} />)).toContain("unread");
   });
 });
 
