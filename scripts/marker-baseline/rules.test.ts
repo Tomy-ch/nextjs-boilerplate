@@ -60,8 +60,9 @@ describe("isBaselineTarget", () => {
     expect(isBaselineTarget("src/model/authz.ts")).toBe(true);
   });
 
-  it("区切りを Windows の綴りで渡されても同じ判定になる", () => {
-    expect(isBaselineTarget("src\\app\\generated\\api.ts")).toBe(false);
+  it("接頭辞が途中まで一致するだけのパスは対象にする", () => {
+    expect(isBaselineTarget("out-of-scope/notes.md")).toBe(true);
+    expect(isBaselineTarget("src/model/generated-by-hand.ts")).toBe(true);
   });
 
   // ----- 異常系 -----
@@ -75,9 +76,8 @@ describe("isBaselineTarget", () => {
     expect(isBaselineTarget("scripts/marker-baseline/rules.test.ts")).toBe(false);
   });
 
-  it("接頭辞が途中まで一致するだけのパスは外さない", () => {
-    expect(isBaselineTarget("out-of-scope/notes.md")).toBe(true);
-    expect(isBaselineTarget("src/model/generated-by-hand.ts")).toBe(true);
+  it("区切りを Windows の綴りで渡された宣言済みの接頭辞も外す", () => {
+    expect(isBaselineTarget("src\\app\\generated\\api.ts")).toBe(false);
   });
 });
 

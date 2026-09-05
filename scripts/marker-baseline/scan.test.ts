@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -45,6 +45,14 @@ describe("scanTree", () => {
     expect(Object.keys(scanTree(root))).toEqual(["a.md", "a/z.md", "b.md"]);
   });
 
+  // 隣は**ディレクトリ**で置く。除外はディレクトリを降りる前にしか当たらず、ファイルで置くと
+  // 判定を一度も通らない。
+  it("接頭辞が途中まで一致するだけのディレクトリへは降りる", () => {
+    place("src/model/generated-extra/api.ts", "// sample:line");
+
+    expect(scanTree(root)).toEqual({ "src/model/generated-extra/api.ts": 1 });
+  });
+
   it(
     "実ツリーがベースラインと一致する",
     () => {
@@ -69,17 +77,18 @@ describe("scanTree", () => {
     expect(scanTree(root)).toEqual({});
   });
 
-  it("接頭辞が途中まで一致するだけのディレクトリは外さない", () => {
-    place("src/model/generated-by-hand.ts", "// sample:line");
-
-    expect(scanTree(root)).toEqual({ "src/model/generated-by-hand.ts": 1 });
-  });
-
   it("シンボリックリンクを辿らない", () => {
     place("outside.md", "<!-- sample:line -->");
     symlinkSync(join(root, "outside.md"), join(root, "linked.md"));
 
     expect(Object.keys(scanTree(root))).toEqual(["outside.md"]);
+  });
+
+  it("読めないファイルを飛ばさずに投げる", () => {
+    place("locked.md", "<!-- sample:line -->");
+    chmodSync(join(root, "locked.md"), 0o000);
+
+    expect(() => scanTree(root)).toThrow();
   });
 });
 

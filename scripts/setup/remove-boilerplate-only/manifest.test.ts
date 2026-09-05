@@ -13,20 +13,19 @@ import {
   EXCLUDED_PATH_PREFIXES,
   SELF_DESTRUCT_PATHS,
 } from "./manifest";
+import { isStripTarget } from "./strip-target";
 
 const exists = (relativePath: string): boolean => fs.existsSync(path.join(ROOT_DIR, relativePath));
 
 const isDirectory = (relativePath: string): boolean =>
   exists(relativePath) && fs.statSync(path.join(ROOT_DIR, relativePath)).isDirectory();
 
-/** 剥がしが走査するのと同じ範囲のファイル（リポジトリルート相対）。 */
+/** 剥がしが走査するのと同じ範囲のファイル。判定は本番と同じものを通す。 */
 function scanTargets(): string[] {
   return listFilesRecursive(ROOT_DIR, { excludedDirectories: EXCLUDED_DIRECTORIES })
     .map((filePath) => toRelativePath(filePath).split(path.sep).join("/"))
-    .filter(
-      (relativePath) =>
-        !BINARY_EXTENSIONS.some((ext) => relativePath.endsWith(ext)) &&
-        !EXCLUDED_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix)),
+    .filter((relativePath) =>
+      isStripTarget(relativePath, BINARY_EXTENSIONS, EXCLUDED_PATH_PREFIXES),
     );
 }
 

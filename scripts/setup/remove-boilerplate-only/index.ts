@@ -20,6 +20,7 @@ import {
   SELF_DESTRUCT_PATHS,
 } from "./manifest.js";
 import { dropOrphanedPins, ORPHANED_ACTIONS } from "./pins.js";
+import { isStripTarget } from "./strip-target.js";
 
 function printUsage(): void {
   console.log(
@@ -34,18 +35,12 @@ function printUsage(): void {
   );
 }
 
-/** 剥がしが読むファイルか。マーカーを持てない形式と、マーカーをデータとして持つ区画を外す。 */
-function isStripTarget(relativePath: string): boolean {
-  return (
-    !BINARY_EXTENSIONS.some((extension) => relativePath.endsWith(extension)) &&
-    !EXCLUDED_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix))
-  );
-}
-
 function run(dryRun: boolean): void {
   const scanned = listFilesRecursive(ROOT_DIR, { excludedDirectories: EXCLUDED_DIRECTORIES })
     .map((filePath) => toRelativePath(filePath).split(path.sep).join("/"))
-    .filter(isStripTarget);
+    .filter((relativePath) =>
+      isStripTarget(relativePath, BINARY_EXTENSIONS, EXCLUDED_PATH_PREFIXES),
+    );
 
   const stripped: string[] = [];
 
