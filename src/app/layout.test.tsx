@@ -79,6 +79,19 @@ describe("RootLayout", () => {
     expect(markup).toContain("consent-island");
   });
 
+  it("画面を 1 つの器で包み、横断通知はその外へ出す", () => {
+    const markup = renderToStaticMarkup(
+      <RootLayout>
+        <p>テスト用コンテンツ</p>
+      </RootLayout>,
+    );
+
+    // 尋ねる面が背面へ付ける印を、この 1 要素へ集める。通知は読み上げ続ける必要があるので、
+    // 器の中へ入れると印を付ける側がここを素通りして中の要素を個別に印付けする。
+    expect(markup).toMatch(/<div class="flex flex-1 flex-col" data-slot="app-root">.*?テスト用コンテンツ/s);
+    expect(markup).not.toMatch(/data-slot="app-root">.*?aria-live="polite"/s);
+  });
+
   it("横断通知の Provider を配下へ供給する", () => {
     const markup = renderToStaticMarkup(
       <RootLayout>

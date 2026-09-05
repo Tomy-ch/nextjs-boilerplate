@@ -195,7 +195,9 @@ hydration の警告も型エラーも出ず、**保存された値だけが静�
 
 **2 は hydration が 1 回の commit で終わらないときに起きる。** hydration は Suspense 境界ごとに分かれ、境界の外は先に、中は後から hydrate される。先に hydrate された島の effect が、まだ hydrate されていない側の DOM を書き換えると、後からそこへ来た React が食い違いを見る。**島が置かれた位置と、書き換える相手の位置が違う**ことが条件なので、値を揃えても消えない。
 
-**直すには、書き換えを「相手が hydrate された後」へ送る必要がある。時計では送れない。** 実測で外れた手を挙げる —— `requestIdleCallback` は WebKit が持たず例外になる。`setTimeout` は早すぎる。`requestAnimationFrame` は背面 tab で発火しない。`startTransition` は `useSyncExternalStore` の更新が同期で走るため効かない。`load` は effect の時点で `readyState` が既に `complete` のことがある。**相手の側から「hydrate された」と言わせる**以外に確かな合図が無い。
+**直すには、書き換えを「相手が hydrate された後」へ送る必要がある。時計では送れない。** 実測で外れた手を挙げる —— `requestIdleCallback` は WebKit が持たず例外になる。`setTimeout` は早すぎる。`requestAnimationFrame` は背面 tab で発火しない。`startTransition` は `useSyncExternalStore` の更新が同期で走るため効かない。`load` は effect の時点で `readyState` が既に `complete` のことがある。**相手の側から「hydrate された」と言わせる**か、**書き換えられる相手そのものを、先に hydrate される
+要素へ変える**かのどちらかになる。このリポジトリは後者を採り、画面本体を root layout が描く 1 要素で
+包んでいる（`src/app/layout.tsx` の `app-root`）。
 
 **確かめ方**: ブラウザの console を見る。mismatch が起きていれば警告が出る。出ていなければ起きていない。
 
