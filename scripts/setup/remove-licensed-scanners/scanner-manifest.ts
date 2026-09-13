@@ -1,20 +1,25 @@
 // 資格情報を要するスキャナ 1 製品分の撤去宣言。ここはデータだけを持ち、撤去の手順は入口
 // ([index.ts](index.ts))が担う。
 //
-// **文書は書き換えない。**ゲートが見るもの（ファイル・pin・宛先の宣言）だけを機械で始末し、
-// 製品名を残している文書は**一覧として報告する**。複製したリポジトリは ADR も文書も上書きして
-// 使う前提なので、表の行を完全一致で切り出す機構を持つと、**動いた行に静かに素通りされる側**
-// の危険だけが残る（[0157](../../../docs/adr/0157-inspection-declaration-discipline.md)）。
+// **文書の記述も一緒に落とす。**ゲートが見るもの（ファイル・pin・宛先の宣言）だけを始末して
+// 散文を残すと、撤去したはずの製品が文書の中だけ生き残る。落とす塊・語句・節は完全一致で宣言し、
+// 一致しなければ撤去そのものを止める（[scanner-removal.ts](scanner-removal.ts)）。**宣言が現物と
+// 一致することは [manifest のテスト](scanner-manifest.test.ts)が毎回見る**ので、ずれは行を動かした
+// PR の CI で落ち、複製した側のセットアップまで持ち越さない
+// （[0157](../../../docs/adr/0157-inspection-declaration-discipline.md)）。
+//
+// 宣言し切れない言及は `docMentions` が**報告だけ**する。撤去後も真であり続ける記述（他の検査が
+// 使い続ける pin への言及など）がここに残る。
 
 /** 文書から落とす塊。 */
-export type DocBlock = {
+type DocBlock = {
   file: string;
   /** 落とす本文。行を落とすなら末尾の改行まで含める。 */
   block: string;
 };
 
 /** 文書の中で置き換える語句。 */
-export type DocFragment = {
+type DocFragment = {
   file: string;
   /** 置き換える前の語句。 */
   fragment: string;
@@ -23,7 +28,7 @@ export type DocFragment = {
 };
 
 /** 文書から落とす節。 */
-export type DocSection = {
+type DocSection = {
   file: string;
   /** `### 見出し` の形。見出しの形をしていなければ投げる。 */
   heading: string;
@@ -31,7 +36,7 @@ export type DocSection = {
 
 /** 1 製品分の撤去宣言。パスはリポジトリルート相対。 */
 export type ScannerDomain = {
-  /** `--only` で指す名前。 */
+  /** 使い方に並べる短い名前。 */
   key: string;
   /** 人へ見せる名前。 */
   label: string;
