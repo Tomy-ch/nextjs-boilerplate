@@ -62,10 +62,7 @@ function toHistory(wire: WireHistory): InquiryHistory {
     inquiryId:
       wire.inquiryId === undefined || wire.inquiryId === null ? null : toInquiryId(wire.inquiryId),
     messages: wire.messages.map(toMessage),
-    nextAfterSequence:
-      wire.nextAfterSequence === undefined || wire.nextAfterSequence === null
-        ? null
-        : wire.nextAfterSequence,
+    nextAfterSequence: wire.nextAfterSequence ?? null,
     streamCursor: wire.streamCursor,
   };
 }
