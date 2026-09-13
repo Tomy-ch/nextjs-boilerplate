@@ -15,9 +15,18 @@ export type LayerContract = {
   readonly testRequirement: string;
 };
 
-/** `key: [a, b]` 形式の 1 行から値を取り出す。 */
+/**
+ * `key: [a, b]` 形式の 1 行から値を取り出す。
+ *
+ * @remarks
+ * **行末のコメントを許します。** 層 README は `forbidden: [features] # 画面まるごとの story は例外`
+ * のように但し書きを添えるので、許さないと「宣言はあるのに読めない」状態になり、生成が
+ * 「層の宣言を先に整えてください」で止まります。
+ */
 function readListValue(frontmatter: string, key: string): string[] | null {
-  const matched = new RegExp(String.raw`^${key}:\s*\[(.*)\]\s*$`, "m").exec(frontmatter)?.[1];
+  const matched = new RegExp(String.raw`^${key}:\s*\[([^\]]*)\]\s*(?:#.*)?$`, "m").exec(
+    frontmatter,
+  )?.[1];
 
   if (matched === undefined) {
     return null;
@@ -29,9 +38,17 @@ function readListValue(frontmatter: string, key: string): string[] | null {
     .filter((entry) => entry !== "");
 }
 
-/** `key: value` 形式の 1 行から値を取り出す。 */
+/**
+ * `key: value` 形式の 1 行から値を取り出す。
+ *
+ * @remarks
+ * {@link readListValue} と同じく**行末のコメントを許します**。片方だけが許すと、同じ frontmatter の
+ * 中で但し書きを添えてよい行と添えると読めなくなる行が混在し、書く側からは見分けが付きません。
+ */
 function readScalarValue(frontmatter: string, key: string): string | null {
-  return new RegExp(String.raw`^${key}:\s*(\S+)\s*$`, "m").exec(frontmatter)?.[1] ?? null;
+  return (
+    new RegExp(String.raw`^${key}:\s*(\S+)\s*(?:#.*)?$`, "m").exec(frontmatter)?.[1] ?? null
+  );
 }
 
 /**
